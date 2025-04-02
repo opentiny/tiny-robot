@@ -5,6 +5,7 @@
     "dev": "pnpm -F docs docs:dev",
     "build": "pnpm -F docs docs:build",
     "build:lib": "pnpm -F @opentiny/tiny-robot build",
+    "dev:ai-mocker": "pnpm --filter ai-mocker dev",
     "format": "prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
     "lint": "eslint . --fix",
