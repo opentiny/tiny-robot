@@ -6,13 +6,17 @@
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "scripts": {
+    "dev": "vite --open /test/index.html",
     "build": "vue-tsc && vite build"
   },
   "dependencies": {
+    "typed.js": "^2.1.0",
     "vue": "^3.3.11"
   },
   "devDependencies": {
+    "@types/node": "^22.13.17",
     "@vitejs/plugin-vue": "^4.5.2",
+    "less": "^4.2.2",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vue-tsc": "^1.8.25"
