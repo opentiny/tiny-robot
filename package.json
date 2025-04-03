@@ -4,6 +4,19 @@
   "scripts": {
     "dev": "pnpm -F docs docs:dev",
     "build": "pnpm -F docs docs:build",
-    "build:lib": "pnpm -F @opentiny/tiny-robot build"
+    "build:lib": "pnpm -F @opentiny/tiny-robot build",
+    "format": "pnpm prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
+    "type-check": "pnpm -F @opentiny/tiny-robot type-check",
+    "lint": "pnpm eslint . --fix"
+  },
+  "devDependencies": {
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.5.0",
+    "@vue/tsconfig": "^0.7.0",
+    "eslint": "^9.23.0",
+    "eslint-plugin-vue": "^10.0.0",
+    "jiti": "^2.4.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.2.2"
   }
 }

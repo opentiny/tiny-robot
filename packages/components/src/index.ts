@@ -1,11 +1,10 @@
+import { App } from 'vue'
 import Conversations from './conversations'
 
-export {
-  Conversations
-}
+export { Conversations }
 
 export default {
-  install(app) {
+  install<T>(app: App<T>) {
     app.use(Conversations)
-  }
+  },
 }

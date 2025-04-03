@@ -1,9 +1,12 @@
+import { App } from 'vue'
 import Conversations from './conversations.vue'
 
 Conversations.name = 'TinyConversations'
 
-Conversations.install = function (app) {
-  app.component(Conversations.name, Conversations)
+const install = function <T>(app: App<T>) {
+  app.component(Conversations.name!, Conversations)
 }
 
-export default Conversations
+Conversations.install = install
+
+export default Conversations as typeof Conversations & { install: typeof install }
