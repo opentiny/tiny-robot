@@ -5,7 +5,7 @@
       <h3 v-if="props.title" class="title text">{{ props.title }}</h3>
       <p id="ai-answer" class="text"></p>
       <slot name="footer">
-        <div v-if="!loading" class="footer">
+        <div v-if="!isLoading" class="footer">
           <div style="flex: 1"></div>
           <div class="buttons">
             <!-- TODO 切换成button -->
@@ -19,23 +19,23 @@
 </template>
 
 <script setup lang="ts">
-import Typed, { TypedOptions } from "typed.js";
-import { onMounted, ref, watchEffect } from "vue";
+import Typed, { TypedOptions } from 'typed.js'
+import { onMounted, ref, watchEffect } from 'vue'
 
 const props = withDefaults(
   defineProps<{
-    title?: string; // 支持markdown后，不需要此参数
-    content: string;
-    loading?: boolean;
+    title?: string // 支持markdown后，不需要此参数
+    content: string
+    loading?: boolean
   }>(),
-  {}
-);
+  {},
+)
 
-const loading = ref(false);
+const isLoading = ref(false)
 
 watchEffect(() => {
-  loading.value = props.loading;
-});
+  isLoading.value = props.loading
+})
 
 const printFn = (data: string) => {
   const options: TypedOptions = {
@@ -44,22 +44,22 @@ const printFn = (data: string) => {
     startDelay: 300,
     loop: false,
     showCursor: true,
-    contentType: "null",
+    contentType: 'null',
     onBegin: () => {
-      loading.value = true;
+      isLoading.value = true
     },
-    onComplete: (data: Typed) => {
-      loading.value = false;
+    onComplete: () => {
+      isLoading.value = false
     },
-    onStringTyped: (index: number, data: Typed) => {},
-  };
+    onStringTyped: () => {},
+  }
 
-  new Typed(`#ai-answer`, options);
-};
+  new Typed(`#ai-answer`, options)
+}
 
 onMounted(() => {
-  printFn(props.content);
-});
+  printFn(props.content)
+})
 </script>
 
 <style lang="less" scoped>

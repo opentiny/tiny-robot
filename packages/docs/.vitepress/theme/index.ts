@@ -1,5 +1,5 @@
 import DefaultTheme from 'vitepress/theme'
-import TinyRobot, { Conversations } from '@opentiny/tiny-robot'
+import TinyRobot from '@opentiny/tiny-robot'
 
 export default {
   ...DefaultTheme,
