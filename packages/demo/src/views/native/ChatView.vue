@@ -3,11 +3,11 @@
     <div class="chat-header">
       <h1>AI 助手</h1>
     </div>
-    
+
     <div class="chat-messages" ref="chatContainer">
-      <div 
-        v-for="message in messages" 
-        :key="message.id" 
+      <div
+        v-for="message in messages"
+        :key="message.id"
         :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']"
       >
         <div class="message-content">
@@ -22,7 +22,7 @@
           </div>
         </div>
       </div>
-      
+
       <div v-if="isLoading" class="message assistant-message">
         <div class="message-content">
           <div class="message-avatar">
@@ -38,11 +38,11 @@
         </div>
       </div>
     </div>
-    
+
     <div class="chat-input">
-      <textarea 
-        v-model="inputMessage" 
-        placeholder="输入消息..." 
+      <textarea
+        v-model="inputMessage"
+        placeholder="输入消息..."
         @keydown="handleKeyDown"
         :disabled="isLoading"
       ></textarea>
@@ -58,114 +58,114 @@
 import { ref, onMounted, nextTick } from 'vue'
 
 interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: number;
+  id: string
+  content: string
+  role: 'user' | 'assistant'
+  timestamp: number
 }
 
-const messages = ref<Message[]>([]);
-const inputMessage = ref('');
-const isLoading = ref(false);
-const chatContainer = ref<HTMLElement | null>(null);
+const messages = ref<Message[]>([])
+const inputMessage = ref('')
+const isLoading = ref(false)
+const chatContainer = ref<HTMLElement | null>(null)
 
 // 生成唯一ID
 const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2);
-};
+  return Date.now().toString(36) + Math.random().toString(36).substring(2)
+}
 
 // 发送消息
 const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isLoading.value) return;
-  
+  if (!inputMessage.value.trim() || isLoading.value) return
+
   // 添加用户消息
   const userMessage: Message = {
     id: generateId(),
     content: inputMessage.value,
     role: 'user',
-    timestamp: Date.now()
-  };
-  
-  messages.value.push(userMessage);
-  const userInput = inputMessage.value;
-  inputMessage.value = '';
-  
+    timestamp: Date.now(),
+  }
+
+  messages.value.push(userMessage)
+  const userInput = inputMessage.value
+  inputMessage.value = ''
+
   // 滚动到底部
-  await nextTick();
-  scrollToBottom();
-  
+  await nextTick()
+  scrollToBottom()
+
   // 显示加载状态
-  isLoading.value = true;
-  
+  isLoading.value = true
+
   try {
     // 调用AI接口
-    const response = await fetch('http://localhost:3001/v1/chat/completions', {
+    await fetch('http://localhost:3001/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         message: userInput,
-        history: messages.value.map(msg => ({
+        history: messages.value.map((msg) => ({
           role: msg.role,
-          content: msg.content
-        }))
+          content: msg.content,
+        })),
       }),
-    });
-    
+    })
+
     // 模拟接口延迟
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
     // 假设接口返回JSON格式的响应
     // const data = await response.json();
-    
+
     // 由于使用mock接口，这里直接模拟响应
     const aiResponse: Message = {
       id: generateId(),
       content: `您好！我是AI助手。您说的是："${userInput}"。我能帮您解答问题、提供信息或者聊天。请问还有什么我可以帮您的吗？`,
       role: 'assistant',
-      timestamp: Date.now()
-    };
-    
-    messages.value.push(aiResponse);
-    
+      timestamp: Date.now(),
+    }
+
+    messages.value.push(aiResponse)
+
     // 滚动到底部
-    await nextTick();
-    scrollToBottom();
+    await nextTick()
+    scrollToBottom()
   } catch (error) {
-    console.error('Error fetching AI response:', error);
+    console.error('Error fetching AI response:', error)
     // 添加错误消息
     messages.value.push({
       id: generateId(),
       content: '抱歉，连接AI服务时出现了问题，请稍后再试。',
       role: 'assistant',
-      timestamp: Date.now()
-    });
+      timestamp: Date.now(),
+    })
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 // 滚动到底部
 const scrollToBottom = () => {
   if (chatContainer.value) {
-    chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
   }
-};
+}
 
 // 格式化时间
 const formatTime = (timestamp: number) => {
-  const date = new Date(timestamp);
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-};
+  const date = new Date(timestamp)
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
 
 // 处理按键事件
 const handleKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage();
+    event.preventDefault()
+    sendMessage()
   }
-};
+}
 
 // 添加初始欢迎消息
 onMounted(() => {
@@ -173,12 +173,10 @@ onMounted(() => {
     id: generateId(),
     content: '你好！我是AI助手，有什么可以帮助你的吗？',
     role: 'assistant',
-    timestamp: Date.now()
-  });
-});
+    timestamp: Date.now(),
+  })
+})
 </script>
-
-
 
 <style scoped>
 .chat-container {
@@ -388,11 +386,11 @@ button:disabled {
   .message-content {
     max-width: 90%;
   }
-  
+
   .chat-header h1 {
     font-size: 1.2rem;
   }
-  
+
   .message-avatar {
     width: 32px;
     height: 32px;

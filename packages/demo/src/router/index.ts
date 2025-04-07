@@ -6,23 +6,23 @@ const router = createRouter({
     {
       path: '/demo',
       name: 'Native Demo',
-      component: () => import('../views/native/ChatView.vue')
+      component: () => import('../views/native/ChatView.vue'),
     },
     {
       path: '/matechat-demo',
       name: 'MateChat Demo',
-      component: () => import('../views/matechat/MateChatDemo.vue')
+      component: () => import('../views/matechat/MateChatDemo.vue'),
     },
     {
       path: '/tiny-robot-demo',
       name: 'TinyRobotDemo',
-      component: () => import('../views/tinyrobot/TinyRobotDemo.vue')
+      component: () => import('../views/tinyrobot/TinyRobotDemo.vue'),
     },
     {
       path: '/',
-      redirect: '/demo'
-    }
-  ]
+      redirect: '/demo',
+    },
+  ],
 })
 
 export default router

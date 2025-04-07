@@ -1,6 +1,7 @@
 {
   "name": "root",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "pnpm -F docs docs:dev",
     "build": "pnpm -F docs docs:build",

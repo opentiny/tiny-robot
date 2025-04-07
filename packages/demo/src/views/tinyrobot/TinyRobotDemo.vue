@@ -10,8 +10,9 @@
 
     <!-- 需要替换为 TinyRobot Bubble组件-->
     <div class="chat-messages" ref="chatContainer">
-      <div 
-        v-for="message in messages" 
+      <div
+        v-for="(message, index) in messages"
+        :key="index"
         :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']"
       >
         <div class="message-content">
@@ -25,7 +26,7 @@
           </div>
         </div>
       </div>
-      
+
       <div v-if="isLoading" class="message assistant-message">
         <div class="message-content">
           <div class="message-avatar">
@@ -41,12 +42,12 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 需要替换为 TinyRobot InputBox组件-->
     <div class="chat-input">
-      <textarea 
-        v-model="inputMessage" 
-        placeholder="输入消息..." 
+      <textarea
+        v-model="inputMessage"
+        placeholder="输入消息..."
         @keydown="handleKeyDown"
         :disabled="isLoading"
       ></textarea>
@@ -60,101 +61,104 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, toRaw } from 'vue'
-import { TinySwitch } from '@opentiny/vue';
-import { AIClient, type ChatCompletionResponse, type ChatMessage } from '@opentiny/tiny-robot-ai-adapter';
+import { TinySwitch } from '@opentiny/vue'
+import { AIClient, type ChatCompletionResponse, type ChatMessage } from '@opentiny/tiny-robot-ai-adapter'
 
-const messages = ref<ChatMessage[]>([]);
-const inputMessage = ref('');
-const isLoading = ref(false);
-const chatContainer = ref<HTMLElement | null>(null);
-const useStreamResponse = ref(true); // 流式响应开关状态
+const messages = ref<ChatMessage[]>([])
+const inputMessage = ref('')
+const isLoading = ref(false)
+const chatContainer = ref<HTMLElement | null>(null)
+const useStreamResponse = ref(true) // 流式响应开关状态
 
 const client = new AIClient({
   provider: 'openai',
   apiKey: 'your-api-key',
   defaultModel: 'gpt-3.5-turbo',
-  apiUrl: 'http://localhost:3001/v1'
-});
+  apiUrl: 'http://localhost:3001/v1',
+})
 
 const handleMessageResponse = async () => {
   try {
-    const response: ChatCompletionResponse  = await client.chat({
+    const response: ChatCompletionResponse = await client.chat({
       messages: messages.value,
-    });
-    messages.value.push(response.choices[0].message);
-    
-    await nextTick();
-    scrollToBottom();
+    })
+    messages.value.push(response.choices[0].message)
+
+    await nextTick()
+    scrollToBottom()
   } catch (error) {
-    console.error('Error fetching AI response:', error);
+    console.error('Error fetching AI response:', error)
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 const handleStreamMessageResponse = async () => {
-  await client.chatStream({ messages: toRaw(messages.value) }, {
-    onData: async (data) => {
-      isLoading.value = false;
-      if (data.choices[0].delta.content) {
-        if (messages.value[messages.value.length - 1].role !== 'assistant') {
-          messages.value.push({ content: '', role: 'assistant' });
+  await client.chatStream(
+    { messages: toRaw(messages.value) },
+    {
+      onData: async (data) => {
+        isLoading.value = false
+        if (data.choices[0].delta.content) {
+          if (messages.value[messages.value.length - 1].role !== 'assistant') {
+            messages.value.push({ content: '', role: 'assistant' })
+          }
+          messages.value[messages.value.length - 1].content += data.choices[0].delta.content
+          await nextTick()
+          scrollToBottom()
         }
-        messages.value[messages.value.length - 1].content += data.choices[0].delta.content;
-        await nextTick();
-        scrollToBottom();
-      }
+      },
+      onError: (error) => {
+        console.error('Error fetching AI response:', error)
+      },
+      onDone: () => {
+        isLoading.value = false
+      },
     },
-    onError: (error) => {
-      console.error('Error fetching AI response:', error);
-    },
-    onDone: () => {
-      isLoading.value = false;
-    },
-  });
-};
+  )
+}
 
 const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isLoading.value) return;
-  
+  if (!inputMessage.value.trim() || isLoading.value) return
+
   const userMessage: ChatMessage = {
     content: inputMessage.value,
     role: 'user',
-  };
-  messages.value.push(userMessage);
-  inputMessage.value = '';
-  
-  await nextTick();
-  scrollToBottom();
-  
-  isLoading.value = true;
-  
-  if (useStreamResponse.value) {
-    await handleStreamMessageResponse(); // 流式请求
-  } else {
-    await handleMessageResponse();  // 普通请求
   }
-};
+  messages.value.push(userMessage)
+  inputMessage.value = ''
+
+  await nextTick()
+  scrollToBottom()
+
+  isLoading.value = true
+
+  if (useStreamResponse.value) {
+    await handleStreamMessageResponse() // 流式请求
+  } else {
+    await handleMessageResponse() // 普通请求
+  }
+}
 
 const scrollToBottom = () => {
   if (chatContainer.value) {
-    chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
   }
-};
+}
 
 const handleKeyDown = (event: KeyboardEvent) => {
   if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage();
+    event.preventDefault()
+    sendMessage()
   }
-};
+}
 
 onMounted(() => {
   messages.value.push({
     content: '你好！我是AI助手，有什么可以帮助你的吗？',
     role: 'assistant',
-  });
-});
+  })
+})
 </script>
 
 <style scoped lang="less">
@@ -179,13 +183,13 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
+
   h1 {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
   }
-  
+
   .stream-toggle {
     display: flex;
     align-items: center;
@@ -195,7 +199,6 @@ onMounted(() => {
     }
   }
 }
-
 
 .chat-messages {
   flex: 1;
@@ -218,16 +221,16 @@ onMounted(() => {
 
 .user-message {
   justify-content: flex-end;
-  
+
   .message-content {
     flex-direction: row-reverse;
   }
-  
+
   .avatar-icon {
     background-color: #4a6cf7;
     color: white;
   }
-  
+
   .message-bubble {
     background-color: #4a6cf7;
     color: white;
@@ -240,7 +243,7 @@ onMounted(() => {
     background-color: #10b981;
     color: white;
   }
-  
+
   .message-bubble {
     background-color: white;
     color: #333;
@@ -297,7 +300,7 @@ textarea {
   font-size: 1rem;
   outline: none;
   transition: border-color 0.3s;
-  
+
   &:focus {
     border-color: #4a6cf7;
   }
@@ -313,11 +316,11 @@ button {
   cursor: pointer;
   font-weight: 600;
   transition: background-color 0.3s;
-  
+
   &:hover {
     background-color: #3a5ce5;
   }
-  
+
   &:disabled {
     background-color: #a0a0a0;
     cursor: not-allowed;
@@ -329,7 +332,7 @@ button {
   align-items: center;
   justify-content: center;
   padding: 8px 0;
-  
+
   span {
     height: 8px;
     width: 8px;
@@ -338,15 +341,15 @@ button {
     border-radius: 50%;
     display: inline-block;
     animation: typing 1.4s infinite ease-in-out both;
-    
+
     &:nth-child(1) {
       animation-delay: 0s;
     }
-    
+
     &:nth-child(2) {
       animation-delay: 0.2s;
     }
-    
+
     &:nth-child(3) {
       animation-delay: 0.4s;
     }
@@ -354,7 +357,13 @@ button {
 }
 
 @keyframes typing {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
 }
 </style>

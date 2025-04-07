@@ -17,7 +17,8 @@ import { RouterView, RouterLink } from 'vue-router'
 
 <style>
 /* 全局样式，确保根元素占满整个视口 */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;

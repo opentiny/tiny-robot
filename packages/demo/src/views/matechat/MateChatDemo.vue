@@ -9,7 +9,12 @@
     </McHeader>
     <div v-if="startChat" ref="conversationRef" class="conversation-area">
       <template v-for="(msg, idx) in messages" :key="idx">
-        <McBubble v-if="msg.from === 'user'" :content="msg.content" :align="'right'" :avatarConfig="msg.avatarConfig"></McBubble>
+        <McBubble
+          v-if="msg.from === 'user'"
+          :content="msg.content"
+          :align="'right'"
+          :avatarConfig="msg.avatarConfig"
+        ></McBubble>
         <McBubble v-else :loading="msg.loading ?? false" :avatarConfig="msg.avatarConfig">
           <McMarkdownCard :content="msg.content" :theme="theme"></McMarkdownCard>
           <template #bottom>
@@ -32,7 +37,12 @@
           '作为AI模型，MateChat 提供的答案可能不总是确定或准确的，但您的反馈可以帮助 MateChat 做的更好。',
         ]"
       ></McIntroduction>
-      <McPrompt :list="introPrompt.list" :direction="'horizontal'" class="intro-prompt" @itemClick="onItemClick($event)"></McPrompt>
+      <McPrompt
+        :list="introPrompt.list"
+        :direction="'horizontal'"
+        class="intro-prompt"
+        @itemClick="onItemClick($event)"
+      ></McPrompt>
       <div class="guess-question">
         <div class="guess-title">
           <div>猜你想问</div>
@@ -88,7 +98,9 @@
               <span class="input-foot-maxlength">{{ inputValue.length }}/2000</span>
             </div>
             <div class="input-foot-right">
-              <d-button icon="op-clearup" shape="round" :disabled="!inputValue" @click="inputValue = ''">清空输入</d-button>
+              <d-button icon="op-clearup" shape="round" :disabled="!inputValue" @click="inputValue = ''"
+                >清空输入</d-button
+              >
             </div>
           </div>
         </template>
@@ -98,99 +110,112 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick, onMounted } from 'vue'
 
 // 定义消息类型接口
 interface Message {
-  from: 'user' | 'ai-model';
-  content: string;
-  avatarPosition?: 'side-left' | 'side-right';
+  from: 'user' | 'ai-model'
+  content: string
+  avatarPosition?: 'side-left' | 'side-right'
   avatarConfig?: {
-    imgSrc: string;
-    width: number;
-    height: number;
-  };
-  loading?: boolean;
+    imgSrc: string
+    width: number
+    height: number
+  }
+  loading?: boolean
 }
 
 // 定义列表项接口
 interface ListItem {
-  label: string;
-  value: string;
-  active?: boolean;
-  icon?: string;
+  label: string
+  value: string
+  active?: boolean
+  icon?: string
 }
 
 // 定义输入图标接口
 interface InputIcon {
-  icon: string;
-  text: string;
+  icon: string
+  text: string
+}
+
+interface Prompt {
+  value: string
+  label: string
+  iconConfig?: object
+  desc?: string
+}
+
+declare global {
+  interface Window {
+    devuiThemeService?: object
+  }
 }
 
 const introPrompt = {
-  list: []
+  list: [],
 }
-const simplePrompt: any[] = []
+const simplePrompt: Prompt[] = []
 const mockAnswer = {}
 const guessQuestions: ListItem[] = []
 
-const inputValue = ref('');
-const startChat = ref(false);
-const conversationRef = ref<HTMLElement | null>(null);
-const isAgentOpen = ref(false);
-const theme = ref('light');
-const themeService = (window as any)['devuiThemeService'];
+const inputValue = ref('')
+const startChat = ref(false)
+const conversationRef = ref<HTMLElement | null>(null)
+const isAgentOpen = ref(false)
+const theme = ref('light')
+const themeService = window['devuiThemeService']
 const agentList = ref<ListItem[]>([
   { label: 'MateChat', value: 'matechat', active: true },
   { label: 'InsCode', value: 'inscode' },
-]);
-const selectedAgent = ref<ListItem>(agentList.value[0]);
+])
+const selectedAgent = ref<ListItem>(agentList.value[0])
 const aiModelAvatar = {
   imgSrc: 'https://matechat.gitcode.com/logo.svg',
   width: 32,
   height: 32,
-};
+}
 const customerAvatar = {
   imgSrc: 'https://matechat.gitcode.com/png/demo/userAvatar.svg',
   width: 32,
   height: 32,
-};
+}
 const inputFootIcons = ref<InputIcon[]>([
   { icon: 'icon-at', text: '智能体' },
   { icon: 'icon-standard', text: '词库' },
   { icon: 'icon-add', text: '附件' },
-]);
+])
 
-const messages = ref<Message[]>([]);
+const messages = ref<Message[]>([])
 
 const onInputIconClick = (e: InputIcon) => {
   if (e.icon === 'icon-at') {
-    inputValue.value += `@${selectedAgent.value.label}`;
+    inputValue.value += `@${selectedAgent.value.label}`
   }
-};
+}
 
 const onSubmit = (e: string, answer: string | undefined = undefined) => {
-  if(e === '') {
-    return;
+  if (e === '') {
+    return
   }
-  inputValue.value = '';
+  inputValue.value = ''
   if (!messages.value.length) {
-    startChat.value = true;
+    startChat.value = true
   }
   messages.value.push({
     from: 'user',
     content: e,
     avatarPosition: 'side-right',
     avatarConfig: { ...customerAvatar },
-  });
+  })
   nextTick(() => {
     conversationRef.value?.scrollTo({
       top: conversationRef.value.scrollHeight,
       behavior: 'smooth',
-    });
-  });
-  getAIAnswer(answer ?? e);
-};
+    })
+  })
+  getAIAnswer(answer ?? e)
+}
 
 const getAIAnswer = (content: string) => {
   messages.value.push({
@@ -199,47 +224,47 @@ const getAIAnswer = (content: string) => {
     avatarPosition: 'side-left',
     avatarConfig: { ...aiModelAvatar },
     loading: true,
-  });
-  
+  })
+
   /* 模拟流式数据返回 */
   setTimeout(async () => {
-    messages.value.at(-1)!.loading = false;
-    for (let i = 0; i < content.length;) {
-      await new Promise(r => setTimeout(r, 300 * Math.random()));
-      messages.value[messages.value.length - 1].content = content.slice(0, i += Math.random() * 10);
+    messages.value.at(-1)!.loading = false
+    for (let i = 0; i < content.length; ) {
+      await new Promise((r) => setTimeout(r, 300 * Math.random()))
+      messages.value[messages.value.length - 1].content = content.slice(0, (i += Math.random() * 10))
       nextTick(() => {
         conversationRef.value?.scrollTo({
-          top: conversationRef.value.scrollHeight
-        });
-      });
+          top: conversationRef.value.scrollHeight,
+        })
+      })
     }
-  }, 1000);
-};
+  }, 1000)
+}
 
 const onNewConvo = () => {
-  startChat.value = false;
-  messages.value = [];
-};
+  startChat.value = false
+  messages.value = []
+}
 
 const onItemClick = (item: ListItem) => {
   if (mockAnswer[item.value as keyof typeof mockAnswer]) {
     // 使用 mock 数据
-    onSubmit(item.label, mockAnswer[item.value as keyof typeof mockAnswer]);
+    onSubmit(item.label, mockAnswer[item.value as keyof typeof mockAnswer])
   }
-};
+}
 
 const themeChange = () => {
   if (themeService) {
-    theme.value = themeService.currentTheme.id === 'infinity-theme' ? 'light' : 'dark';
+    theme.value = themeService.currentTheme.id === 'infinity-theme' ? 'light' : 'dark'
   }
 }
 
 onMounted(() => {
-  themeChange();
+  themeChange()
   if (themeService && themeService.eventBus) {
-    themeService.eventBus.add('themeChanged', themeChange);
+    themeService.eventBus.add('themeChanged', themeChange)
   }
-});
+})
 </script>
 
 <style scoped lang="less">
@@ -256,7 +281,7 @@ onMounted(() => {
     flex: 1;
     display: flex;
     flex-direction: column;
-//    overflow: auto;
+    //    overflow: auto;
     padding: 0 12px;
   }
 

@@ -3,33 +3,28 @@
  * 用于与OpenAI API进行交互
  */
 
-import { BaseModelProvider } from './base';
-import type {
-  AIModelConfig,
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-  StreamHandler,
-} from '../types';
-import { handleRequestError } from '../error';
-import { handleSSEStream } from '../utils';
+import { BaseModelProvider } from './base'
+import type { AIModelConfig, ChatCompletionRequest, ChatCompletionResponse, StreamHandler } from '../types'
+import { handleRequestError } from '../error'
+import { handleSSEStream } from '../utils'
 
 export class OpenAIProvider extends BaseModelProvider {
-  private baseURL: string;
-  private apiKey: string;
-  private defaultModel: string = 'gpt-3.5-turbo';
+  private baseURL: string
+  private apiKey: string
+  private defaultModel: string = 'gpt-3.5-turbo'
 
   /**
    * @param config AI模型配置
    */
   constructor(config: AIModelConfig) {
-    super(config);
+    super(config)
 
-    this.baseURL = config.apiUrl || 'https://api.openai.com/v1';
-    this.apiKey = config.apiKey || '';
+    this.baseURL = config.apiUrl || 'https://api.openai.com/v1'
+    this.apiKey = config.apiKey || ''
 
     // 设置默认模型
     if (config.defaultModel) {
-      this.defaultModel = config.defaultModel;
+      this.defaultModel = config.defaultModel
     }
   }
 
@@ -40,32 +35,32 @@ export class OpenAIProvider extends BaseModelProvider {
    */
   async chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     try {
-      this.validateRequest(request);
+      this.validateRequest(request)
 
       const requestData = {
         model: request.options?.model || this.config.defaultModel || this.defaultModel,
         messages: request.messages,
         ...request.options,
-        stream: false
-      };
+        stream: false,
+      }
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(requestData),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      return await response.json();
+      return await response.json()
     } catch (error) {
       // 处理错误
-      throw handleRequestError(error);
+      throw handleRequestError(error)
     }
   }
 
@@ -77,32 +72,32 @@ export class OpenAIProvider extends BaseModelProvider {
   async chatStream(request: ChatCompletionRequest, handler: StreamHandler): Promise<void> {
     try {
       // 验证请求参数
-      this.validateRequest(request);
+      this.validateRequest(request)
 
       const requestData = {
         model: request.options?.model || this.config.defaultModel || this.defaultModel,
         messages: request.messages,
         ...request.options,
-        stream: true
-      };
+        stream: true,
+      }
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Accept': 'text/event-stream',
+          Authorization: `Bearer ${this.apiKey}`,
+          Accept: 'text/event-stream',
         },
-        body: JSON.stringify(requestData)
-      });
+        body: JSON.stringify(requestData),
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      await handleSSEStream(response, handler);
+      await handleSSEStream(response, handler)
     } catch (error) {
-      handler.onError(handleRequestError(error));
+      handler.onError(handleRequestError(error))
     }
   }
 
@@ -111,19 +106,19 @@ export class OpenAIProvider extends BaseModelProvider {
    * @param config 新的AI模型配置
    */
   updateConfig(config: AIModelConfig): void {
-    super.updateConfig(config);
+    super.updateConfig(config)
 
     // 更新配置
     if (config.apiUrl) {
-      this.baseURL = config.apiUrl;
+      this.baseURL = config.apiUrl
     }
 
     if (config.apiKey) {
-      this.apiKey = config.apiKey;
+      this.apiKey = config.apiKey
     }
 
     if (config.defaultModel) {
-      this.defaultModel = config.defaultModel;
+      this.defaultModel = config.defaultModel
     }
   }
 }

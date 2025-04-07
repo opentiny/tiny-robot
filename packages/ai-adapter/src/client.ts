@@ -3,24 +3,24 @@
  * 负责根据配置选择合适的提供商并处理请求
  */
 
-import type { AIModelConfig, ChatCompletionRequest, ChatCompletionResponse, StreamHandler } from './types';
-import type { BaseModelProvider } from './providers/base';
-import { OpenAIProvider } from './providers/openai';
+import type { AIModelConfig, ChatCompletionRequest, ChatCompletionResponse, StreamHandler } from './types'
+import type { BaseModelProvider } from './providers/base'
+import { OpenAIProvider } from './providers/openai'
 
 /**
  * AI客户端类
  */
 export class AIClient {
-  private provider: BaseModelProvider;
-  private config: AIModelConfig;
+  private provider: BaseModelProvider
+  private config: AIModelConfig
 
   /**
    * 构造函数
    * @param config AI模型配置
    */
   constructor(config: AIModelConfig) {
-    this.config = config;
-    this.provider = this.createProvider(config);
+    this.config = config
+    this.provider = this.createProvider(config)
   }
 
   /**
@@ -31,7 +31,7 @@ export class AIClient {
   private createProvider(config: AIModelConfig): BaseModelProvider {
     // 如果提供了自定义提供商实现，直接使用
     if (config.provider === 'custom' && 'providerImplementation' in config) {
-      return (config as any).providerImplementation;
+      return (config as { providerImplementation: BaseModelProvider }).providerImplementation
     }
 
     // 根据提供商类型创建对应的提供商实例
@@ -39,12 +39,12 @@ export class AIClient {
       case 'deepseek':
         const defaultConfig = {
           defaultModel: 'deepseek-chat',
-          apiUrl: 'https://api.deepseek.com/v1'
-        };
+          apiUrl: 'https://api.deepseek.com/v1',
+        }
         return new OpenAIProvider({ ...defaultConfig, ...config })
       case 'openai':
       default:
-        return new OpenAIProvider(config);
+        return new OpenAIProvider(config)
     }
   }
 
@@ -54,7 +54,7 @@ export class AIClient {
    * @returns 聊天响应
    */
   async chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
-    return this.provider.chat(request);
+    return this.provider.chat(request)
   }
 
   /**
@@ -68,11 +68,11 @@ export class AIClient {
       ...request,
       options: {
         ...request.options,
-        stream: true
-      }
-    };
+        stream: true,
+      },
+    }
 
-    return this.provider.chatStream(streamRequest, handler);
+    return this.provider.chatStream(streamRequest, handler)
   }
 
   /**
@@ -80,7 +80,7 @@ export class AIClient {
    * @returns AI模型配置
    */
   getConfig(): AIModelConfig {
-    return { ...this.config };
+    return { ...this.config }
   }
 
   /**
@@ -88,14 +88,14 @@ export class AIClient {
    * @param config 新的AI模型配置
    */
   updateConfig(config: Partial<AIModelConfig>): void {
-    this.config = { ...this.config, ...config };
-    
+    this.config = { ...this.config, ...config }
+
     // 如果提供商类型发生变化，重新创建提供商实例
     if (config.provider && config.provider !== this.config.provider) {
-      this.provider = this.createProvider(this.config);
+      this.provider = this.createProvider(this.config)
     } else {
       // 否则只更新提供商配置
-      this.provider.updateConfig(this.config);
+      this.provider.updateConfig(this.config)
     }
   }
 }

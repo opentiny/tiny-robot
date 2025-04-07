@@ -1,17 +1,16 @@
-
-import { AIModelConfig, ChatCompletionRequest, ChatCompletionResponse, StreamHandler } from '../types';
+import { AIModelConfig, ChatCompletionRequest, ChatCompletionResponse, StreamHandler } from '../types'
 
 /**
  * 模型Provider基类
  */
 export abstract class BaseModelProvider {
-  protected config: AIModelConfig;
+  protected config: AIModelConfig
 
   /**
    * @param config AI模型配置
    */
   constructor(config: AIModelConfig) {
-    this.config = config;
+    this.config = config
   }
 
   /**
@@ -19,21 +18,21 @@ export abstract class BaseModelProvider {
    * @param request 聊天请求参数
    * @returns 聊天响应
    */
-  abstract chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse>;
+  abstract chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse>
 
   /**
    * 发送流式聊天请求并通过处理器处理响应
    * @param request 聊天请求参数
    * @param handler 流式响应处理器
    */
-  abstract chatStream(request: ChatCompletionRequest, handler: StreamHandler): Promise<void>;
+  abstract chatStream(request: ChatCompletionRequest, handler: StreamHandler): Promise<void>
 
   /**
    * 更新配置
    * @param config 新的AI模型配置
    */
   updateConfig(config: AIModelConfig): void {
-    this.config = { ...this.config, ...config };
+    this.config = { ...this.config, ...config }
   }
 
   /**
@@ -41,7 +40,7 @@ export abstract class BaseModelProvider {
    * @returns AI模型配置
    */
   getConfig(): AIModelConfig {
-    return { ...this.config };
+    return { ...this.config }
   }
 
   /**
@@ -56,7 +55,7 @@ export abstract class BaseModelProvider {
     // 验证每条消息的格式
     for (const message of request.messages) {
       if (!message.role || !message.content) {
-        throw new Error('每条消息必须包含角色和内容');
+        throw new Error('每条消息必须包含角色和内容')
       }
     }
   }
