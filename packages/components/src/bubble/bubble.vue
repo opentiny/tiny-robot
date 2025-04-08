@@ -1,16 +1,77 @@
+<script setup lang="ts">
+import markdownit from 'markdown-it'
+import Typed, { TypedOptions } from 'typed.js'
+import { computed, onMounted, ref, watchEffect } from 'vue'
+import AIAvatar from '../../images/ai-avatar.svg?raw'
+import Copy from '../../images/copy.svg?raw'
+import Refresh from '../../images/refresh.svg?raw'
+import { Bubble } from './index.type'
+
+const props = withDefaults(defineProps<Bubble>(), {
+  type: 'text',
+})
+
+const textRef = ref<HTMLSpanElement>()
+const isLoading = ref(false)
+
+const bubbleContent = computed(() => {
+  if (props.type === 'markdown') {
+    return markdownit().render(props.content)
+  }
+  return props.content
+})
+
+const isUserRole = computed(() => props.role === 'user')
+
+watchEffect(() => {
+  isLoading.value = props.loading
+})
+
+onMounted(() => {
+  const { enable, ...rest } = props.typedConfig || {}
+
+  const options: TypedOptions = {
+    strings: [bubbleContent.value],
+    contentType: props.type === 'markdown' ? 'html' : 'null',
+    showCursor: false,
+  }
+
+  if (enable) {
+    const otherOptions: TypedOptions = {
+      typeSpeed: 50,
+      showCursor: true,
+      onBegin: () => {
+        isLoading.value = true
+      },
+      onComplete: () => {
+        isLoading.value = false
+      },
+      ...rest,
+    }
+
+    Object.assign(options, otherOptions)
+  }
+
+  new Typed(textRef.value, options)
+})
+</script>
+
 <template>
-  <div class="bubble-container">
-    <img class="ai-avatar" src="/ai-avatar.svg" alt="AI avatar" />
-    <div class="bubble-content">
-      <h3 v-if="props.title" class="title text">{{ props.title }}</h3>
-      <p id="ai-answer" class="text"></p>
+  <div :class="['tr-bubble', { 'tr-bubble__role-user': isUserRole }]">
+    <slot name="avatar">
+      <div class="tr-bubble__avatar" v-html="AIAvatar"></div>
+    </slot>
+    <div :class="['tr-bubble__content', { 'tr-bubble__content-role-user': isUserRole }]">
+      <div class="tr-bubbule__text-wrap">
+        <span ref="textRef" class="tr-bubble__text"></span>
+      </div>
       <slot name="footer">
-        <div v-if="!isLoading" class="footer">
+        <!-- TODO 这里的默认插槽是否需要？ -->
+        <div v-if="!isUserRole && !isLoading" class="tr-bubble__footer">
           <div style="flex: 1"></div>
           <div class="buttons">
-            <!-- TODO 切换成button -->
-            <img src="/refresh.svg" alt="Refresh button" />
-            <img src="/copy.svg" alt="Copy button" />
+            <button class="action" v-html="Refresh"></button>
+            <button class="action" v-html="Copy"></button>
           </div>
         </div>
       </slot>
@@ -18,57 +79,22 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import Typed, { TypedOptions } from 'typed.js'
-import { onMounted, ref, watchEffect } from 'vue'
-
-const props = withDefaults(
-  defineProps<{
-    title?: string // 支持markdown后，不需要此参数
-    content: string
-    loading?: boolean
-  }>(),
-  {},
-)
-
-const isLoading = ref(false)
-
-watchEffect(() => {
-  isLoading.value = props.loading
-})
-
-const printFn = (data: string) => {
-  const options: TypedOptions = {
-    strings: [data],
-    typeSpeed: 50,
-    startDelay: 300,
-    loop: false,
-    showCursor: true,
-    contentType: 'null',
-    onBegin: () => {
-      isLoading.value = true
-    },
-    onComplete: () => {
-      isLoading.value = false
-    },
-    onStringTyped: () => {},
-  }
-
-  new Typed(`#ai-answer`, options)
-}
-
-onMounted(() => {
-  printFn(props.content)
-})
-</script>
-
 <style lang="less" scoped>
-.bubble-container {
+.tr-bubble {
   display: flex;
   gap: 16px;
+
+  &.tr-bubble__role-user {
+    flex-direction: row-reverse;
+  }
 }
 
-.bubble-content {
+.tr-bubble__avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.tr-bubble__content {
   background-color: white;
   padding: 16px 24px;
   border-top-left-radius: 0;
@@ -77,12 +103,14 @@ onMounted(() => {
   border-bottom-right-radius: 24px;
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 
-  h3.title {
-    font-size: 500;
-    margin-bottom: 16px;
+  &.tr-bubble__content-role-user {
+    border-top-left-radius: 24px;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
   }
 
-  .text {
+  .tr-bubble__text {
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
@@ -90,12 +118,7 @@ onMounted(() => {
   }
 }
 
-.ai-avatar {
-  width: 32px;
-  height: 32px;
-}
-
-.footer {
+.tr-bubble__footer {
   margin-top: 16px;
   display: flex;
   gap: 24px;
@@ -104,7 +127,7 @@ onMounted(() => {
     display: flex;
     gap: 4px;
 
-    img {
+    .action {
       width: 24px;
       height: 24px;
       padding: 4px;

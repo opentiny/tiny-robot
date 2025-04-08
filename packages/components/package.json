@@ -10,10 +10,12 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "markdown-it": "^14.1.0",
     "typed.js": "^2.1.0",
     "vue": "^3.3.11"
   },
   "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.13.17",
     "@vitejs/plugin-vue": "^4.5.2",
     "less": "^4.2.2",
