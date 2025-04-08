@@ -10,10 +10,15 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@opentiny/vue": "^3.21.0",
+    "lodash-es": "4.17.21",
     "vue": "^3.3.11"
   },
   "devDependencies": {
+    "@opentiny/vue-icon": "^3.22.0",
+    "@types/lodash-es": "^4.17.12",
     "@vitejs/plugin-vue": "^4.5.2",
+    "less": "^4.3.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vue-tsc": "^2.2.8"

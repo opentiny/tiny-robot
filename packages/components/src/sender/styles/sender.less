@@ -1,0 +1,143 @@
+// 发送器组件样式
+.tiny-sender {
+  border: 1px solid var(--sender-border-color);
+  border-radius: var(--sender-border-radius);
+  background: var(--sender-bg-color);
+  position: relative;
+  color: var(--sender-text-color);
+  padding: 10px;
+
+  .tiny-input__inner {
+    border: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .tiny-input__suffix {
+    right: 0;
+  }
+
+  .tiny-textarea__inner {
+    border: none;
+    height: var(--sender-input-height);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .tiny-textarea:before {
+    display: none;
+  }
+
+  .tiny-textarea:after {
+    display: none;
+  }
+
+  // 输入区域
+  &__input-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    margin: 10px 0;
+    border: none;
+    padding: 15px 18px 12px 24px;
+    border-radius: 24px;
+    box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
+    background-color: rgba(255, 255, 255);
+
+    .tiny-input__count {
+      display: flex;
+    }
+
+    .tiny-input__count-inner {
+      height: 22px;
+      right: 0;
+    }
+  }
+
+  &__word-limit {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    text-align: left;
+    letter-spacing: 0;
+    color: var(--sender-word-limit-color);
+  }
+
+  // 输入建议
+  &__suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--sender-bg-color);
+    border: 1px solid var(--sender-border-color);
+    border-radius: var(--sender-border-radius);
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+
+    .suggestion-item {
+      padding: var(--sender-padding);
+      cursor: pointer;
+      transition: background-color var(--sender-transition-duration);
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.05);
+      }
+    }
+  }
+
+  // 加载遮罩
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  // 工具栏
+  &__toolbar {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  // 错误提示
+  &__error {
+    color: var(--sender-error-color);
+    padding: var(--sender-padding);
+    font-size: var(--sender-font-size-small);
+  }
+
+  // 状态类
+  &.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+
+    * {
+      pointer-events: none;
+    }
+  }
+
+  &.has-error {
+    border-color: var(--sender-error-color);
+  }
+
+  // 文件上传
+  .file-input {
+    display: none;
+  }
+
+  // 响应式样式
+  @media (max-width: 768px) {
+    &__toolbar {
+      flex-wrap: wrap;
+    }
+  }
+}

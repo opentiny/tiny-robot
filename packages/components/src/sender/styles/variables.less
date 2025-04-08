@@ -1,0 +1,31 @@
+// 主题变量
+:root {
+  // 基础颜色
+  --sender-border-color: var(--ti-common-color-line-normal, #dcdfe6);
+  --sender-bg-color: var(--ti-common-color-bg-white, #fff);
+  --sender-text-color: var(--ti-common-color-text-primary, #303133);
+  --sender-error-color: var(--ti-common-color-error, #f56c6c);
+
+  --sender-word-limit-color: #808080;
+
+  // 尺寸
+  --sender-border-radius: 4px;
+  --sender-padding: 12px;
+  --sender-gap: 8px;
+
+  --sender-input-height: 100px;
+
+  // 字体
+  --sender-font-size: 14px;
+  --sender-font-size-small: 12px;
+
+  // 动画
+  --sender-transition-duration: 0.2s;
+
+  // 暗色主题
+  &[data-theme='dark'] {
+    --sender-border-color: #4c4d4f;
+    --sender-bg-color: #1c1c1c;
+    --sender-text-color: #ffffff;
+  }
+}
