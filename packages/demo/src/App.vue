@@ -5,9 +5,8 @@ import { RouterView, RouterLink } from 'vue-router'
 <template>
   <div class="app-container">
     <nav class="nav-menu">
-      <RouterLink to="/demo">Native Demo</RouterLink>
-      <RouterLink to="/matechat-demo">MateChat Demo</RouterLink>
       <RouterLink to="/tiny-robot-demo">TinyRobot Demo</RouterLink>
+      <RouterLink to="/matechat-demo">MateChat Demo</RouterLink>
     </nav>
     <div class="content-area">
       <RouterView />

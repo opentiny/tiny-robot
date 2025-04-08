@@ -26,6 +26,10 @@ export class OpenAIProvider extends BaseModelProvider {
     if (config.defaultModel) {
       this.defaultModel = config.defaultModel
     }
+
+    if (!this.apiKey) {
+      console.warn('API key is not provided. Authentication will likely fail.')
+    }
   }
 
   /**
@@ -54,13 +58,14 @@ export class OpenAIProvider extends BaseModelProvider {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`)
       }
 
       return await response.json()
-    } catch (error) {
+    } catch (error: unknown) {
       // 处理错误
-      throw handleRequestError(error)
+      throw handleRequestError(error as { response: object })
     }
   }
 
@@ -92,12 +97,13 @@ export class OpenAIProvider extends BaseModelProvider {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`)
       }
 
       await handleSSEStream(response, handler)
-    } catch (error) {
-      handler.onError(handleRequestError(error))
+    } catch (error: unknown) {
+      handler.onError(handleRequestError(error as { response: object }))
     }
   }
 

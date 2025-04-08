@@ -4,9 +4,9 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/demo',
-      name: 'Native Demo',
-      component: () => import('../views/native/ChatView.vue'),
+      path: '/tiny-robot-demo',
+      name: 'TinyRobotDemo',
+      component: () => import('../views/tinyrobot/TinyRobotDemo.vue'),
     },
     {
       path: '/matechat-demo',
@@ -14,13 +14,8 @@ const router = createRouter({
       component: () => import('../views/matechat/MateChatDemo.vue'),
     },
     {
-      path: '/tiny-robot-demo',
-      name: 'TinyRobotDemo',
-      component: () => import('../views/tinyrobot/TinyRobotDemo.vue'),
-    },
-    {
       path: '/',
-      redirect: '/demo',
+      redirect: '/tiny-robot-demo',
     },
   ],
 })

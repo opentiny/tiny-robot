@@ -88,12 +88,16 @@ const response = await fetch('http://localhost:3001/v1/chat/completions', {
 const reader = response.body.getReader();
 let decoder = new TextDecoder();
 
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  
-  const chunk = decoder.decode(value);
-  // 处理 SSE 格式的数据
-  console.log(chunk);
+try {
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    const chunk = decoder.decode(value);
+    // 处理 SSE 格式的数据
+    console.log(chunk);
+  }
+} catch (error) {
+  console.error('Error processing stream:', error);
 }
 ```

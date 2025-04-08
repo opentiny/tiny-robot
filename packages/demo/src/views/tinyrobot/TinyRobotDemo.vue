@@ -72,7 +72,7 @@ const useStreamResponse = ref(true) // 流式响应开关状态
 
 const client = new AIClient({
   provider: 'openai',
-  apiKey: 'your-api-key',
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY || 'your-api-key',
   defaultModel: 'gpt-3.5-turbo',
   apiUrl: 'http://localhost:3001/v1',
 })
@@ -99,7 +99,7 @@ const handleStreamMessageResponse = async () => {
     {
       onData: async (data) => {
         isLoading.value = false
-        if (data.choices[0].delta.content) {
+        if (data.choices?.[0]?.delta?.content) {
           if (messages.value[messages.value.length - 1].role !== 'assistant') {
             messages.value.push({ content: '', role: 'assistant' })
           }
@@ -109,10 +109,13 @@ const handleStreamMessageResponse = async () => {
         }
       },
       onError: (error) => {
+        isLoading.value = false
+        messages.value.push({ content: '抱歉，发生了错误，请稍后再试。', role: 'assistant' })
         console.error('Error fetching AI response:', error)
       },
       onDone: () => {
         isLoading.value = false
+        scrollToBottom()
       },
     },
   )
