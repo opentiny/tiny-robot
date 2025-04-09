@@ -75,6 +75,8 @@ export class OpenAIProvider extends BaseModelProvider {
    * @param handler 流式响应处理器
    */
   async chatStream(request: ChatCompletionRequest, handler: StreamHandler): Promise<void> {
+    const { signal, ...options } = request.options || {}
+
     try {
       // 验证请求参数
       this.validateRequest(request)
@@ -82,7 +84,7 @@ export class OpenAIProvider extends BaseModelProvider {
       const requestData = {
         model: request.options?.model || this.config.defaultModel || this.defaultModel,
         messages: request.messages,
-        ...request.options,
+        ...options,
         stream: true,
       }
 
@@ -94,6 +96,7 @@ export class OpenAIProvider extends BaseModelProvider {
           Accept: 'text/event-stream',
         },
         body: JSON.stringify(requestData),
+        signal,
       })
 
       if (!response.ok) {
@@ -101,8 +104,9 @@ export class OpenAIProvider extends BaseModelProvider {
         throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`)
       }
 
-      await handleSSEStream(response, handler)
+      await handleSSEStream(response, handler, signal)
     } catch (error: unknown) {
+      if (signal?.aborted) return
       handler.onError(handleRequestError(error as { response: object }))
     }
   }
