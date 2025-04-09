@@ -1,80 +1,106 @@
 <script setup lang="ts">
 import markdownit from 'markdown-it'
 import Typed, { TypedOptions } from 'typed.js'
-import { computed, onMounted, ref, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AIAvatar from '../../images/ai-avatar.svg?raw'
-import Copy from '../../images/copy.svg?raw'
-import Refresh from '../../images/refresh.svg?raw'
 import { Bubble } from './index.type'
 
 const props = withDefaults(defineProps<Bubble>(), {
+  content: '',
   type: 'text',
+  loading: false,
 })
 
-const textRef = ref<HTMLSpanElement>()
-const isLoading = ref(false)
+const contentRef = ref<HTMLElement>()
+const typedInstance = ref<Typed>()
 
 const bubbleContent = computed(() => {
   if (props.type === 'markdown') {
-    return markdownit().render(props.content)
+    return markdownit(props.mdConfig || {}).render(props.content)
   }
   return props.content
 })
 
 const isUserRole = computed(() => props.role === 'user')
 
-watchEffect(() => {
-  isLoading.value = props.loading
-})
+// 流式文本队列
+const streamQueue: string[] = []
 
-onMounted(() => {
-  const { enable, ...rest } = props.typedConfig || {}
-
-  const options: TypedOptions = {
-    strings: [bubbleContent.value],
-    contentType: props.type === 'markdown' ? 'html' : 'null',
-    showCursor: false,
+const streamAppendText = (text: string) => {
+  if (!typedInstance.value) {
+    return
   }
 
+  streamQueue.push(text)
+}
+
+const playNextChunk = (self: Typed) => {
+  if (!typedInstance.value || streamQueue.length === 0) {
+    self.cursor.remove()
+    return
+  }
+
+  const nextChunk = streamQueue.shift()!
+  const currentStrings = (typedInstance.value as unknown as { strings: string[] }).strings[0]
+
+  // 更新Typed实例的字符串
+  ;(typedInstance.value as unknown as { strings: string[] }).strings = [currentStrings + nextChunk]
+  // TODO typed目前不支持流式输出 https://github.com/mattboldt/typed.js/issues/595
+  typedInstance.value.reset()
+}
+
+onMounted(() => {
+  const { enable, onComplete, ...rest } = props.typedConfig || {}
+
   if (enable) {
-    const otherOptions: TypedOptions = {
+    const options: TypedOptions = {
+      strings: [''], // 初始为空字符串
+      contentType: props.type === 'markdown' ? 'html' : 'null',
       typeSpeed: 50,
       showCursor: true,
-      onBegin: () => {
-        isLoading.value = true
-      },
-      onComplete: () => {
-        isLoading.value = false
+      onComplete: (self) => {
+        // 一段内容播放完成后检查队列
+        playNextChunk(self)
+        onComplete?.(self)
       },
       ...rest,
     }
 
-    Object.assign(options, otherOptions)
-  }
+    typedInstance.value = new Typed(contentRef.value, options)
 
-  new Typed(textRef.value, options)
+    // 初始化第一段内容
+    if (bubbleContent.value) {
+      streamAppendText(bubbleContent.value)
+    }
+  }
 })
+
+onBeforeUnmount(() => {
+  typedInstance.value?.destroy()
+})
+
+defineExpose({ typedInstance, streamAppendText })
 </script>
 
 <template>
   <div :class="['tr-bubble', { 'tr-bubble__role-user': isUserRole }]">
     <slot name="avatar">
-      <div class="tr-bubble__avatar" v-html="AIAvatar"></div>
+      <!-- TODO 修改默认头像 -->
+      <div class="tr-bubble__default-avatar" v-html="AIAvatar"></div>
     </slot>
-    <div :class="['tr-bubble__content', { 'tr-bubble__content-role-user': isUserRole }]">
+    <div
+      :class="[
+        'tr-bubble__content',
+        { 'tr-bubble__content-role-ai': !isUserRole },
+        { 'tr-bubble__content-role-user': isUserRole },
+      ]"
+    >
       <div class="tr-bubbule__text-wrap">
-        <span ref="textRef" class="tr-bubble__text"></span>
+        <span v-if="props.typedConfig?.enable" ref="contentRef" class="tr-bubble__text"></span>
+        <span v-else-if="props.type === 'markdown'" v-html="bubbleContent" class="tr-bubble__text"></span>
+        <span v-else class="tr-bubble__text">{{ bubbleContent }}</span>
       </div>
-      <slot name="footer">
-        <!-- TODO 这里的默认插槽是否需要？ -->
-        <div v-if="!isUserRole && !isLoading" class="tr-bubble__footer">
-          <div style="flex: 1"></div>
-          <div class="buttons">
-            <button class="action" v-html="Refresh"></button>
-            <button class="action" v-html="Copy"></button>
-          </div>
-        </div>
-      </slot>
+      <slot name="footer"></slot>
     </div>
   </div>
 </template>
@@ -89,7 +115,7 @@ onMounted(() => {
   }
 }
 
-.tr-bubble__avatar {
+.tr-bubble__default-avatar {
   width: 32px;
   height: 32px;
 }
@@ -97,17 +123,16 @@ onMounted(() => {
 .tr-bubble__content {
   background-color: white;
   padding: 16px 24px;
-  border-top-left-radius: 0;
-  border-top-right-radius: 24px;
-  border-bottom-left-radius: 24px;
-  border-bottom-right-radius: 24px;
+  border-radius: 24px;
+
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 
+  &.tr-bubble__content-role-ai {
+    border-top-left-radius: 0;
+  }
+
   &.tr-bubble__content-role-user {
-    border-top-left-radius: 24px;
     border-top-right-radius: 0;
-    border-bottom-left-radius: 24px;
-    border-bottom-right-radius: 24px;
   }
 
   .tr-bubble__text {
@@ -123,16 +148,13 @@ onMounted(() => {
   display: flex;
   gap: 24px;
 
-  .buttons {
+  .tr-bubble__footer-left {
+    flex: 1;
+  }
+
+  .tr-bubble__footer-right {
     display: flex;
     gap: 4px;
-
-    .action {
-      width: 24px;
-      height: 24px;
-      padding: 4px;
-      box-sizing: border-box;
-    }
   }
 }
 </style>
