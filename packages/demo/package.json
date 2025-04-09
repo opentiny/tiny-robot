@@ -13,6 +13,7 @@
     "@matechat/core": "^1.3.1",
     "@opentiny/vue": "^3.21.3",
     "@opentiny/vue-icon": "^3.21.0",
+    "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-ai-adapter": "workspace:*",
     "@vitejs/plugin-vue-jsx": "^4.1.2",
     "less": "^4.2.2",

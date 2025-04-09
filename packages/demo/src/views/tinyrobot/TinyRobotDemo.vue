@@ -10,37 +10,14 @@
 
     <!-- 需要替换为 TinyRobot Bubble组件-->
     <div class="chat-messages" ref="chatContainer">
-      <div
+      <tiny-bubble-item
         v-for="(message, index) in messages"
         :key="index"
-        :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']"
-      >
-        <div class="message-content">
-          <div class="message-avatar">
-            <div class="avatar-icon">
-              {{ message.role === 'user' ? '👤' : '🤖' }}
-            </div>
-          </div>
-          <div class="message-bubble">
-            <div class="message-text">{{ message.content }}</div>
-          </div>
-        </div>
-      </div>
+        :role="message.role === 'user' ? 'user' : 'ai'"
+        :content="message.content"
+      ></tiny-bubble-item>
 
-      <div v-if="isLoading" class="message assistant-message">
-        <div class="message-content">
-          <div class="message-avatar">
-            <div class="avatar-icon">🤖</div>
-          </div>
-          <div class="message-bubble">
-            <div class="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <tiny-bubble-item v-if="isLoading" role="ai" loading></tiny-bubble-item>
     </div>
 
     <!-- 需要替换为 TinyRobot InputBox组件-->
@@ -62,6 +39,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, toRaw } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
+import { BubbleItem as TinyBubbleItem } from '@opentiny/tiny-robot'
 import { AIClient, type ChatCompletionResponse, type ChatMessage } from '@opentiny/tiny-robot-ai-adapter'
 
 const messages = ref<ChatMessage[]>([])
@@ -212,79 +190,6 @@ onMounted(() => {
   gap: 16px;
 }
 
-.message {
-  display: flex;
-  margin-bottom: 8px;
-}
-
-.message-content {
-  display: flex;
-  max-width: 80%;
-}
-
-.user-message {
-  justify-content: flex-end;
-
-  .message-content {
-    flex-direction: row-reverse;
-  }
-
-  .avatar-icon {
-    background-color: #4a6cf7;
-    color: white;
-  }
-
-  .message-bubble {
-    background-color: #4a6cf7;
-    color: white;
-    border-top-right-radius: 4px;
-  }
-}
-
-.assistant-message {
-  .avatar-icon {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .message-bubble {
-    background-color: white;
-    color: #333;
-    border-top-left-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-}
-
-.message-avatar {
-  width: 40px;
-  height: 40px;
-  margin: 0 8px;
-  flex-shrink: 0;
-}
-
-.avatar-icon {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e0e0e0;
-  border-radius: 50%;
-  font-size: 20px;
-}
-
-.message-bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  position: relative;
-  word-break: break-word;
-}
-
-.message-text {
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
 .chat-input {
   display: flex;
   padding: 15px;
@@ -327,46 +232,6 @@ button {
   &:disabled {
     background-color: #a0a0a0;
     cursor: not-allowed;
-  }
-}
-
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 0;
-
-  span {
-    height: 8px;
-    width: 8px;
-    margin: 0 2px;
-    background-color: #bbb;
-    border-radius: 50%;
-    display: inline-block;
-    animation: typing 1.4s infinite ease-in-out both;
-
-    &:nth-child(1) {
-      animation-delay: 0s;
-    }
-
-    &:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-
-    &:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-  }
-}
-
-@keyframes typing {
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1);
   }
 }
 </style>

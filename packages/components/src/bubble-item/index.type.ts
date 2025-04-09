@@ -7,11 +7,14 @@ export type TypedConfig = Omit<TypedOptions, 'strings' | 'stringsElement' | 'con
   enable?: boolean
 }
 
-export interface Bubble {
+export interface BubbleItem {
   role: BubbleRole
   content?: string
   loading?: boolean
   type?: 'text' | 'markdown'
+  /**
+   * @deprecated
+   */
   typedConfig?: TypedConfig
   mdConfig?: MarkdownItOptions
 }

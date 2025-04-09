@@ -1,12 +1,12 @@
 import { App } from 'vue'
 import Conversations from './conversations'
-import Bubble from './bubble'
+import BubbleItem from './bubble-item'
 
-export { Conversations, Bubble }
+export { Conversations, BubbleItem }
 
 export default {
   install<T>(app: App<T>) {
     app.use(Conversations)
-    app.use(Bubble)
+    app.use(BubbleItem)
   },
 }

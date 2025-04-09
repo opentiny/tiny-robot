@@ -2,10 +2,11 @@
 import markdownit from 'markdown-it'
 import Typed, { TypedOptions } from 'typed.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import AIAvatar from '../../images/ai-avatar.svg?raw'
-import { Bubble } from './index.type'
+import AISvg from './components/ai-svg.vue'
+import UserSvg from './components/user-svg.vue'
+import { BubbleItem } from './index.type'
 
-const props = withDefaults(defineProps<Bubble>(), {
+const props = withDefaults(defineProps<BubbleItem>(), {
   content: '',
   type: 'text',
   loading: false,
@@ -23,55 +24,19 @@ const bubbleContent = computed(() => {
 
 const isUserRole = computed(() => props.role === 'user')
 
-// 流式文本队列
-const streamQueue: string[] = []
-
-const streamAppendText = (text: string) => {
-  if (!typedInstance.value) {
-    return
-  }
-
-  streamQueue.push(text)
-}
-
-const playNextChunk = (self: Typed) => {
-  if (!typedInstance.value || streamQueue.length === 0) {
-    self.cursor.remove()
-    return
-  }
-
-  const nextChunk = streamQueue.shift()!
-  const currentStrings = (typedInstance.value as unknown as { strings: string[] }).strings[0]
-
-  // 更新Typed实例的字符串
-  ;(typedInstance.value as unknown as { strings: string[] }).strings = [currentStrings + nextChunk]
-  // TODO typed目前不支持流式输出 https://github.com/mattboldt/typed.js/issues/595
-  typedInstance.value.reset()
-}
-
 onMounted(() => {
-  const { enable, onComplete, ...rest } = props.typedConfig || {}
+  const { enable, ...rest } = props.typedConfig || {}
 
   if (enable) {
     const options: TypedOptions = {
-      strings: [''], // 初始为空字符串
+      strings: [bubbleContent.value], // 初始为空字符串
       contentType: props.type === 'markdown' ? 'html' : 'null',
       typeSpeed: 50,
       showCursor: true,
-      onComplete: (self) => {
-        // 一段内容播放完成后检查队列
-        playNextChunk(self)
-        onComplete?.(self)
-      },
       ...rest,
     }
 
     typedInstance.value = new Typed(contentRef.value, options)
-
-    // 初始化第一段内容
-    if (bubbleContent.value) {
-      streamAppendText(bubbleContent.value)
-    }
   }
 })
 
@@ -79,16 +44,24 @@ onBeforeUnmount(() => {
   typedInstance.value?.destroy()
 })
 
-defineExpose({ typedInstance, streamAppendText })
+defineExpose({ typedInstance })
 </script>
 
 <template>
-  <div :class="['tr-bubble', { 'tr-bubble__role-user': isUserRole }]">
-    <slot name="avatar">
-      <!-- TODO 修改默认头像 -->
-      <div class="tr-bubble__default-avatar" v-html="AIAvatar"></div>
-    </slot>
+  <div :class="['tr-bubble', { 'tr-bubble__right': isUserRole }]">
+    <div class="tr-bubble__avatar">
+      <slot name="avatar">
+        <AISvg v-if="!isUserRole" />
+        <UserSvg v-if="isUserRole" />
+      </slot>
+    </div>
+    <div v-if="loading" class="tr-bubble__load-wrap">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
     <div
+      v-if="!loading"
       :class="[
         'tr-bubble__content',
         { 'tr-bubble__content-role-ai': !isUserRole },
@@ -110,14 +83,58 @@ defineExpose({ typedInstance, streamAppendText })
   display: flex;
   gap: 16px;
 
-  &.tr-bubble__role-user {
+  &.tr-bubble__right {
     flex-direction: row-reverse;
   }
 }
 
-.tr-bubble__default-avatar {
-  width: 32px;
-  height: 32px;
+.tr-bubble__avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tr-bubble__load-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+
+  span {
+    height: 8px;
+    width: 8px;
+    margin: 0 2px;
+    background-color: #bbb;
+    border-radius: 50%;
+    display: inline-block;
+    animation: typing 1.4s infinite ease-in-out both;
+
+    &:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
+
+  @keyframes typing {
+    0%,
+    80%,
+    100% {
+      transform: scale(0);
+    }
+    40% {
+      transform: scale(1);
+    }
+  }
 }
 
 .tr-bubble__content {
@@ -133,6 +150,7 @@ defineExpose({ typedInstance, streamAppendText })
 
   &.tr-bubble__content-role-user {
     border-top-right-radius: 0;
+    background-color: rgb(222, 236, 255);
   }
 
   .tr-bubble__text {
@@ -140,21 +158,6 @@ defineExpose({ typedInstance, streamAppendText })
     font-size: 16px;
     line-height: 26px;
     margin: 0;
-  }
-}
-
-.tr-bubble__footer {
-  margin-top: 16px;
-  display: flex;
-  gap: 24px;
-
-  .tr-bubble__footer-left {
-    flex: 1;
-  }
-
-  .tr-bubble__footer-right {
-    display: flex;
-    gap: 4px;
   }
 }
 </style>
