@@ -71,12 +71,14 @@ const client = new AIClient({
 
 async function streamChat() {
   try {
+    const controller: AbortController = new AbortController()
     await client.chatStream({
       messages: [
         { role: 'user', content: '写一个简短的故事。' }
       ],
       options: {
-        stream: true
+        stream: true, // 启用流式响应
+        signal: controller.signal  // 传递 AbortController 的 signal用于中断请求
       }
     }, {
       onData: (data) => {
@@ -91,6 +93,7 @@ async function streamChat() {
         console.log('\n流式响应完成');
       }
     });
+    // controller.abort() // 中断请求
   } catch (error) {
     console.error('流式聊天出错:', error);
   }
