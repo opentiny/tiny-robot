@@ -53,12 +53,10 @@ const resetStreamContent = () => {
 
 ```vue
 <template>
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <TinyBubbleItem
-      role="ai"
-      content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-    />
-  </div>
+  <TinyBubbleItem
+    role="ai"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
+  />
 </template>
 ```
 
@@ -223,3 +221,84 @@ TODO
 ## 气泡底部内容
 
 TODO
+
+## `BubbleRole`
+
+```ts
+type BubbleRole = 'ai' | 'user'
+```
+
+## `RoleConfig`
+
+自定义角色 UI 配置。
+
+```ts
+interface RoleConfig {
+  avatar: VNode
+  placement: 'start' | 'end'
+  style: any
+}
+```
+
+| 属性名    | 类型                 | 说明                  |
+| --------- | -------------------- | --------------------- |
+| avatar    | `VNode`              | 自定义头像 VNode 节点 |
+| placement | `'start'` \| `'end'` | 头像排列方向          |
+| style     | `any`                | 气泡相关的样式        |
+
+## `BubbleItem`
+
+```ts
+export interface BubbleItem {
+  role: BubbleRole
+  content?: string
+  type?: 'text' | 'markdown'
+  loading?: boolean
+  aborted?: boolean
+  mdConfig?: MarkdownItOptions
+  roleConfig?: RoleConfig
+}
+```
+
+单条气泡配置项。
+
+| 属性名     | 类型                   | 说明                                                    |
+| ---------- | ---------------------- | ------------------------------------------------------- |
+| role       | `BubbleRole`           | 角色：`'ai'` 或 `'user'`                                |
+| content    | `string?`              | 内容                                                    |
+| type       | `'text' \| 'markdown'` | 内容格式                                                |
+| loading    | `boolean?`             | 是否为加载状态                                          |
+| aborted    | `boolean?`             | 是否展示用户中止状态，仅角色为 `ai` 时生效              |
+| mdConfig   | `MarkdownItOptions?`   | `markdown-it` 配置项，`type` 设置为 `'markdown'` 时生效 |
+| roleConfig | `RoleConfig?`          | 自定义角色 UI 配置                                      |
+
+| 插槽     | 说明         |
+| -------- | ------------ |
+| #loading | 加载中插槽   |
+| #footer  | 气泡底部插槽 |
+
+## `BubbleList`
+
+用于渲染一组对话气泡的配置。
+
+```ts
+interface BubbleList {
+  items: BubbleItem[]
+  roleConfigs?: Record<BubbleRole, RoleConfig>
+  loading?: boolean
+  mdConfig?: MarkdownItOptions
+  autoScroll?: boolean
+}
+```
+
+| 属性名      | 类型                             | 说明                                                                              |
+| ----------- | -------------------------------- | --------------------------------------------------------------------------------- |
+| items       | `BubbleItem[]`                   | 消息列表                                                                          |
+| roleConfigs | `Record<BubbleRole, RoleConfig>` | 每个角色的 UI 配置                                                                |
+| loading     | `boolean?`                       | ai气泡最后一项是否处于加载状态                                                    |
+| mdConfig    | `MarkdownItOptions?`             | `markdown-it` 配置项， `BubbleItem` 内部的 `mdConfig` 会覆盖这里设置的 `mdConfig` |
+| autoScroll  | `boolean?`                       | 是否在渲染新气泡时自动滚动到底部                                                  |
+
+| 插槽     | 说明       |
+| -------- | ---------- |
+| #loading | 加载中插槽 |

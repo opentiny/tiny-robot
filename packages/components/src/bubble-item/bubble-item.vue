@@ -2,9 +2,9 @@
 import markdownit from 'markdown-it'
 import Typed, { TypedOptions } from 'typed.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { BubbleItem } from '../bubble-list/index.type'
 import AISvg from './components/ai-svg.vue'
 import UserSvg from './components/user-svg.vue'
-import { BubbleItem } from './index.type'
 
 const props = withDefaults(defineProps<BubbleItem>(), {
   content: '',
