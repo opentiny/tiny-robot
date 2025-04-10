@@ -1,0 +1,141 @@
+// 插槽样式 - 使用tiny-sender前缀
+// 头部插槽 (Header)
+.tiny-sender__header-slot {
+  width: 100%;
+  max-height: var(--tiny-sender-header-max-height);
+  min-height: var(--tiny-sender-header-min-height);
+  overflow-y: auto;
+  border-radius: var(--sender-border-radius) var(--sender-border-radius) 0 0;
+  background: var(--sender-bg-color);
+  padding: var(--tiny-sender-header-padding);
+  border: none;
+  z-index: 1;
+}
+
+// 前缀插槽 (Prefix)
+.tiny-sender__prefix-slot {
+  width: var(--tiny-sender-prefix-width);
+  min-width: var(--tiny-sender-prefix-min-width);
+  flex: 0 0 var(--tiny-sender-prefix-width); /* 固定宽度，不可伸缩 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sender-bg-color);
+  transition: background-color var(--sender-transition-duration);
+  padding: 0 calc(var(--sender-padding) / 2);
+
+  &:hover {
+    background-color: var(--tiny-sender-prefix-hover-bg);
+  }
+}
+
+// 内容区域 (Content)
+.tiny-sender__content-area {
+  flex: var(--tiny-sender-content-flex-grow) 1 var(--tiny-sender-content-min-width);
+  min-width: var(--tiny-sender-content-min-width);
+  padding: var(--tiny-sender-content-padding);
+  position: relative;
+  overflow: hidden;
+
+  .tiny-textarea,
+  .tiny-input {
+    width: 100%;
+  }
+}
+
+// 操作区域 (Actions)
+.tiny-sender__actions-slot {
+  display: flex;
+  align-items: center;
+  gap: var(--tiny-sender-actions-gap);
+  margin-left: auto;
+  flex: 0 0 auto; /* 不可伸缩，但可以根据内容自适应宽度 */
+  min-width: var(--tiny-sender-actions-min-width);
+  padding-right: var(--tiny-sender-actions-padding-right);
+
+  .button-icon {
+    font-size: var(--tiny-sender-actions-icon-size);
+    transition: transform var(--sender-transition-duration);
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+}
+
+// 底部插槽 (Footer)
+.tiny-sender__footer-slot {
+  width: 100%;
+  max-height: var(--tiny-sender-footer-max-height);
+  min-height: var(--tiny-sender-footer-min-height);
+  background: var(--tiny-sender-footer-bg);
+  border-radius: 0 0 var(--sender-border-radius) var(--sender-border-radius);
+  padding: 10px;
+  overflow: hidden;
+  margin-top: 0;
+  z-index: 1;
+
+  .suggestion-item {
+    padding: var(--sender-padding);
+    cursor: pointer;
+    transition: background-color var(--sender-transition-duration);
+
+    &:hover {
+      background-color: var(--tiny-sender-footer-hover);
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .tiny-sender__prefix-slot {
+    width: var(--tiny-sender-prefix-min-width);
+    min-width: var(--tiny-sender-prefix-min-width);
+  }
+
+  .tiny-sender__actions-slot {
+    padding: 0 calc(var(--sender-padding) / 2);
+    gap: calc(var(--tiny-sender-actions-gap) / 2);
+    min-width: auto;
+  }
+
+  .tiny-sender__header-slot,
+  .tiny-sender__footer-slot {
+    padding: calc(var(--sender-padding) / 2);
+  }
+
+  .tiny-sender__content-area {
+    min-width: 120px;
+  }
+}
+
+// 动画效果
+.tiny-sender-fade-enter-active,
+.tiny-sender-fade-leave-active {
+  transition: opacity var(--sender-transition-duration) ease;
+}
+
+.tiny-sender-fade-enter-from,
+.tiny-sender-fade-leave-to {
+  opacity: 0;
+}
+
+.tiny-sender-slide-down-enter-active,
+.tiny-sender-slide-down-leave-active {
+  transition: transform var(--sender-transition-duration) ease;
+}
+
+.tiny-sender-slide-down-enter-from,
+.tiny-sender-slide-down-leave-to {
+  transform: translateY(-10px);
+}
+
+.tiny-sender-slide-up-enter-active,
+.tiny-sender-slide-up-leave-active {
+  transition: transform var(--sender-transition-duration) ease;
+}
+
+.tiny-sender-slide-up-enter-from,
+.tiny-sender-slide-up-leave-to {
+  transform: translateY(10px);
+}

@@ -1,0 +1,53 @@
+// ActionButtons组件样式
+.action-buttons {
+  display: flex;
+  gap: var(--sender-gap);
+  padding: var(--sender-padding);
+  background: var(--sender-bg-color);
+  border-radius: var(--sender-border-radius);
+
+  /* 按钮图标统一样式 */
+  .button-icon {
+    font-size: 22px;
+    transition: transform var(--sender-transition-duration);
+    fill: var(--sender-button-icon-color, blueviolet);
+
+    &:hover {
+      transform: scale(1.1);
+      border-radius: 8px;
+      background-color: #fafafa;
+    }
+  }
+
+  /* 加载动画样式 */
+  .spin-icon {
+    animation: spin 1s linear infinite;
+    font-size: 18px;
+    color: var(--ti-common-color-text-white);
+  }
+
+  .submit-button {
+    margin-left: 0;
+  }
+
+  .file-input {
+    display: none;
+  }
+
+  /* 禁用状态样式 */
+  .is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.button-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px; // 控制图标与文本间距
+
+  // 当只有图标时保持居中
+  &:empty {
+    display: block;
+  }
+}

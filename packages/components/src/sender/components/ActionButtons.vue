@@ -1,20 +1,20 @@
 <template>
   <div class="action-buttons">
     <!-- 文件上传按钮 -->
-    <template v-if="allowFiles">
+    <template v-if="allowFiles && !loading">
       <tiny-tooltip content="上传文件" placement="top">
         <tiny-button type="text" :disabled="isDisabled" @click="handleFileUpload">
-          <component :is="TinyIconUpload" class="button-icon" />
+          <img src="../../assets/icons/accessory.svg" class="button-icon" alt="上传文件" />
         </tiny-button>
       </tiny-tooltip>
       <input ref="fileInput" type="file" :accept="acceptFiles" multiple class="file-input" @change="handleFileSelect" />
     </template>
 
     <!-- 语音按钮：仅在启用语音功能时显示 -->
-    <template v-if="speechEnabled">
-      <tiny-tooltip :content="speechButtonText" placement="top">
+    <template v-if="speechEnabled && !loading">
+      <tiny-tooltip :content="speechButtonTooltip" placement="top">
         <tiny-button type="text" :disabled="isDisabled" @click="handleToggleSpeech">
-          <component :is="speechStatus.isRecording ? TinyIconStop : TinyIconMic" class="button-icon" />
+          <img src="../../assets/icons/voice.svg" class="button-icon" alt="语音" />
         </tiny-button>
       </tiny-tooltip>
     </template>
@@ -28,19 +28,12 @@
     </template>
 
     <!-- 提交按钮：主操作按钮 -->
-    <tiny-tooltip :content="submitButtonText" placement="top">
-      <tiny-button
-        v-if="hasContent"
-        type="text"
-        :disabled="isSubmitDisabled"
-        @click="handleSubmit"
-        class="submit-button"
-      >
+    <tiny-tooltip :content="submitTooltip" placement="top">
+      <tiny-button v-if="hasContent || loading" type="text" @click="handleSubmit" class="submit-button">
         <div class="button-content">
-          <component
-            :is="loading ? TinyIconLoading : TinyIconSent"
-            :class="['button-icon', { 'spin-icon': loading }]"
-          />
+          <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
+          <img v-else src="../../assets/icons/loading.svg" alt="加载中" />
+          <span v-if="showShortcuts && !loading" class="shortcut-hint">{{ submitShortcut }}</span>
         </div>
       </tiny-button>
     </tiny-tooltip>
@@ -50,67 +43,52 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TinyButton, TinyTooltip } from '@opentiny/vue'
-import { IconMic, IconStop, IconSent, IconLoading, IconFileupload, IconClose } from '@opentiny/vue-icon'
+import { IconClose } from '@opentiny/vue-icon'
+import { ActionButtonsProps } from '../types'
 
-const TinyIconSent = IconSent()
-const TinyIconMic = IconMic()
-const TinyIconStop = IconStop()
-const TinyIconUpload = IconFileupload()
-const TinyIconLoading = IconLoading()
 const TinyIconCloseSquare = IconClose()
 
-const props = defineProps({
+const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
    * 是否显示加载状态
    * @default false
    */
-  loading: {
-    type: Boolean,
-    default: false,
-  },
+  loading: false,
   /**
    * 是否禁用所有操作
    * @default false
    */
-  disabled: {
-    type: Boolean,
-    default: false,
-  },
+  disabled: false,
   /**
    * 是否显示清除按钮
    * @default true
    */
-  showClear: {
-    type: Boolean,
-    default: true,
-  },
+  showClear: true,
   /**
    * 输入框是否有内容
    * @default false
    */
-  hasContent: {
-    type: Boolean,
-    default: false,
-  },
+  hasContent: false,
   /**
-   * 语音识别状态对象
-   * @default { isRecording: false, isSupported: false }
+   * 是否允许语音功能
    */
-  speechStatus: {
-    type: Object,
-    default: () => ({
-      isRecording: false,
-      isSupported: false,
-    }),
-  },
-  allowFiles: {
-    type: Boolean,
-    default: false,
-  },
-  acceptFiles: {
-    type: String,
-    default: '',
-  },
+  allowedSpeech: false,
+  speechStatus: () => ({
+    isRecording: false,
+    isSupported: false,
+  }),
+  allowFiles: false,
+  acceptFiles: '',
+  /**
+   * 提交快捷方式
+   * @default 'enter'
+   */
+  submitType: 'enter',
+  /**
+   * 是否显示快捷键提示
+   * @default true
+   */
+  showShortcuts: true,
 })
 
 const emit = defineEmits({
@@ -134,7 +112,14 @@ const emit = defineEmits({
 /**
  * 是否启用语音功能
  */
-const speechEnabled = computed(() => props.speechStatus.isSupported)
+const speechEnabled = computed(() => props.allowedSpeech)
+
+/**
+ * 语音图标路径
+ */
+// const speechIconSrc = computed(() =>
+//   props.speechStatus.isRecording ? '../../assets/icons/stop.svg' : '../../assets/icons/voice.svg',
+// )
 
 /**
  * 语音按钮提示文本
@@ -142,14 +127,41 @@ const speechEnabled = computed(() => props.speechStatus.isSupported)
 const speechButtonText = computed(() => (props.speechStatus.isRecording ? '停止录音' : '开始语音输入'))
 
 /**
- * 提交按钮提示文本
+ * 语音按钮tooltip
  */
-const submitButtonText = computed(() => (props.loading ? '发送中...' : '发送消息'))
+const speechButtonTooltip = computed(() => {
+  const text = speechButtonText.value
+  return props.showShortcuts ? `${text} (双击空格键)` : text
+})
+
+/**
+ * 提交快捷键文本
+ */
+const submitShortcut = computed(() => {
+  switch (props.submitType) {
+    case 'enter':
+      return 'Enter'
+    case 'ctrlEnter':
+      return 'Ctrl+Enter'
+    case 'shiftEnter':
+      return 'Shift+Enter'
+    default:
+      return 'Enter'
+  }
+})
+
+/**
+ * 提交按钮tooltip
+ */
+const submitTooltip = computed(() => {
+  if (props.loading) return '发送中...'
+  return props.showShortcuts ? `发送消息 (${submitShortcut.value})` : '发送消息'
+})
 
 /**
  * 整体禁用状态
  */
-const isDisabled = computed(() => props.disabled || props.loading)
+const isDisabled = computed(() => props.disabled)
 
 /**
  * 提交按钮禁用状态
@@ -189,71 +201,65 @@ const handleFileUpload = () => {
 }
 
 const handleFileSelect = (e: Event) => {
-  const files = Array.from((e.target as HTMLInputElement).files || [])
-  emit('file-select', files)
-  // 重置 input 以支持选择相同文件
-  ;(e.target as HTMLInputElement).value = ''
+  if (e.target instanceof HTMLInputElement && e.target.files) {
+    const files = Array.from(e.target.files)
+    emit('file-select', files)
+    // 重置 input 以支持选择相同文件
+    e.target.value = ''
+  }
 }
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
+:deep(.tiny-button > img) {
+  margin-right: 0;
+}
+
 .action-buttons {
   display: flex;
+  align-items: center;
   gap: 8px;
-  padding: 8px;
-  border-top: 1px solid var(--ti-common-color-line-normal);
-  background: var(--ti-common-color-bg-white);
-
-  /* 按钮图标统一样式 */
-  .button-icon {
-    font-size: 22px;
-    transition: transform 0.2s;
-    fill: blueviolet;
-
-    &:hover {
-      transform: scale(1.1);
-    }
-  }
-
-  /* 加载动画样式 */
-  .spin-icon {
-    animation: spin 1s linear infinite;
-    font-size: 18px;
-    color: var(--ti-common-color-text-white);
-  }
-
-  .submit-button {
-    margin-left: 0;
-  }
-
-  .file-input {
-    display: none;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* 禁用状态样式 */
-  .is-disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
 }
 
 .button-content {
-  display: inline-flex;
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 6px; // 控制图标与文本间距
+  justify-content: center;
+}
 
-  // 当只有图标时保持居中
-  &:empty {
-    display: block;
+.shortcut-hint {
+  position: absolute;
+  bottom: -16px;
+  font-size: 10px;
+  color: #909399;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.submit-button {
+  margin-left: 4px;
+}
+
+.button-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.file-input {
+  display: none;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading {
+  animation: spin 1s infinite linear;
 }
 </style>

@@ -10,7 +10,7 @@ export type ThemeType = 'light' | 'dark'
 export type InputMode = 'single' | 'multiple'
 
 // 提交触发方式
-export type SubmitTrigger = 'enter' | 'shiftEnter' | 'ctrlEnter'
+export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
 
 // 语音识别配置
 export interface SpeechConfig {
@@ -34,8 +34,9 @@ export type AutoSize = boolean | { minRows: number; maxRows: number }
 
 // Sender组件属性
 export interface SenderProps {
-  defaultValue?: string // 默认值
+  defaultValue?: string | null // 默认值
   autoSize?: AutoSize // 自适应内容高度
+  allowedSpeech?: boolean // 是否允许语音识别
   modelValue?: string // 双向绑定值
   submitType?: SubmitTrigger // 提交触发方式
   speech?: boolean | SpeechConfig // 语音识别配置
@@ -57,6 +58,22 @@ export interface SenderProps {
   mode?: InputMode // 输入框模式：单行/多行
 }
 
+export interface ActionButtonsProps {
+  loading?: boolean // 加载状态
+  disabled?: boolean // 是否禁用
+  showClear?: boolean // 是否可以清除
+  hasContent?: boolean // 是否有文本内容
+  allowedSpeech?: boolean // 是否允许语音识别
+  speechStatus?: {
+    isRecording: boolean // 是否正在录制
+    isSupported: boolean // 是否支持语音识别
+  }
+  allowFiles?: boolean //  是否允许文件上传
+  acceptFiles?: string // 允许上传的文件类型
+  submitType?: SubmitTrigger // 提交触发方式
+  showShortcuts?: boolean // 是否显示快捷键提示
+}
+
 // 组件事件定义
 export type SenderEmits = {
   (e: 'update:modelValue', value: string): void
@@ -70,8 +87,9 @@ export type SenderEmits = {
   (e: 'file-select', files: any): void
   (e: 'file-error', error: Error): void
   (e: 'exceed-length'): void
-  (e: 'focus'): void
-  (e: 'blur'): void
+  (e: 'focus', event: FocusEvent): void
+  (e: 'blur', event: FocusEvent): void
+  (e: 'escape-press'): void // 按下Esc键时触发
 }
 
 // 语音识别状态
@@ -100,6 +118,13 @@ export interface InputHandler {
 // 提交处理器返回类型
 export interface SubmitHandler {
   handleKeyPress: (e: KeyboardEvent) => void
+  triggerSubmit: () => void
+}
+
+// 键盘处理器返回类型
+export interface KeyboardHandler {
+  handleKeyPress: (e: KeyboardEvent) => void
+  handleKeyUp: (e: KeyboardEvent) => void
   triggerSubmit: () => void
 }
 
