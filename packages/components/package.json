@@ -10,8 +10,6 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@opentiny/vue": "^3.22.0",
-    "@opentiny/vue-icon": "^3.21.0",
     "markdown-it": "^14.1.0",
     "vue": "^3.3.11"
   },
