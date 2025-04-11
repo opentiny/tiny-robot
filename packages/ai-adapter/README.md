@@ -101,3 +101,56 @@ async function streamChat() {
 
 streamChat();
 ```
+
+### useMessage
+
+#### 选项
+
+`useMessage` 接受以下选项：
+
+```typescript
+interface UseMessageOptions {
+  /** AI客户端实例 */
+  client: AIClient;
+  /** 是否默认使用流式响应 */
+  useStreamByDefault?: boolean;
+  /** 错误消息模板 */
+  errorMessage?: string;
+  /** 初始消息列表 */
+  initialMessages?: ChatMessage[];
+}
+```
+
+#### 返回值
+
+`useMessage` 返回以下内容：
+```typescript
+interface UseMessageReturn {
+  messages: ChatMessage[];
+  /** 消息状态 */
+  messageState: Reactive<MessageState>;
+  /** 输入消息 */
+  inputMessage: Ref<string>;
+  /** 是否使用流式响应 */
+  useStream: Ref<boolean>;
+  /** 发送消息 */
+  sendMessage: () => Promise<void>;
+  /** 清空消息 */
+  clearMessages: () => void;
+  /** 添加消息 */
+  addMessage: (message: ChatMessage) => void;
+  /** 中止请求 */
+  abortRequest: () => void;
+  /** 重试请求 */
+  retryRequest: () => Promise<void>;
+}
+```
+
+#### MessageState 接口
+```typescript
+interface MessageState {
+  isLoading: boolean;
+  isResponding: boolean;
+  error: string | null;
+}
+```
