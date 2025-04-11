@@ -14,7 +14,7 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 单行模式(`mode="single"`)适用于简单的输入场景，如搜索框、简短消息输入等。
 
-<TinySender />
+<TinySender  />
 
 ```vue
 <TinySender />
@@ -98,12 +98,14 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 #### 文件上传
 
-默认支持文件上传功能，可通过`allowFiles`和`acceptFiles`控制。
+支持附件上传功能，可通过`allowFiles`控制。
 
-<TinySender :allowFiles="true" acceptFiles="image/*,.pdf" />
+> 目前仅支持按钮显示，后续会添加附件上传相关功能。
+
+<TinySender :allowFiles="true"  />
 
 ```vue
-<TinySender :allowFiles="true" acceptFiles="image/*,.pdf" />
+<TinySender :allowFiles="true" />
 ```
 
 #### 自定义提交方式
@@ -111,21 +113,21 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 通过`submitType`属性控制提交方式，支持多种键盘快捷键组合。
 
 - `enter`: 按下回车键提交（默认）
-- `ctrl+enter`: 按下Ctrl+回车键提交（Windows/Linux中常用）
-- `shift+enter`: 按下Shift+回车键提交（Mac中常用）
+- `ctrlEnter`: 按下Ctrl+回车键提交（Windows/Linux中常用）
+- `shiftEnter`: 按下Shift+回车键提交（Mac中常用）
 
 这些快捷键适用于不同的使用习惯和操作系统，方便用户根据自己的喜好选择提交方式。
 
-<TinySender submitType="ctrl+enter" placeholder="按Ctrl+Enter提交" />
+<TinySender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
 
 ```vue
-<TinySender submitType="ctrl+enter" placeholder="按Ctrl+Enter提交" />
+<TinySender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
 ```
 
-<TinySender submitType="shift+enter" placeholder="按Shift+Enter提交" />
+<TinySender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
 
 ```vue
-<TinySender submitType="shift+enter" placeholder="按Shift+Enter提交" />
+<TinySender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
 ```
 
 使用不同的提交方式可以适应不同的使用场景：
@@ -138,14 +140,13 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 TinySender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
-| 快捷键      | 功能                      | 适用条件                                    |
-| ----------- | ------------------------- | ------------------------------------------- |
-| Enter       | 提交内容                  | submitType="enter"（默认）                  |
-| Ctrl+Enter  | 提交内容                  | submitType="ctrl+enter"                     |
-| Shift+Enter | 提交内容                  | submitType="shift+enter"                    |
-| Esc         | 取消语音录入/关闭建议列表 | 在语音录入状态或显示建议列表时              |
-| Tab         | 切换焦点                  | 输入框获得焦点时                            |
-| Space       | 唤起语音输入              | 配置allowedSpeech=true时可通过双击Space激活 |
+| 快捷键      | 功能                      | 适用条件                       |
+| ----------- | ------------------------- | ------------------------------ |
+| Enter       | 提交内容                  | submitType="enter"（默认）     |
+| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"         |
+| Shift+Enter | 提交内容                  | submitType="shiftEnter"        |
+| Esc         | 取消语音录入/关闭建议列表 | 在语音录入状态或显示建议列表时 |
+| Tab         | 切换焦点                  | 输入框获得焦点时               |
 
 您可以在实际开发中根据应用场景和用户需求选择最适合的快捷键方式。
 
@@ -191,29 +192,25 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
 
 ### Props
 
-| 属性名         | 说明               | 类型                                       | 默认值            |
-| -------------- | ------------------ | ------------------------------------------ | ----------------- |
-| autofocus      | 自动获取焦点       | `boolean`                                  | `false`           |
-| autoSize       | 自动调整高度       | `boolean`                                  | `false`           |
-| allowSpeech    | 是否开启语音输入   | `boolean`                                  | `false`           |
-| allowFiles     | 是否允许文件上传   | `boolean`                                  | `true`            |
-| acceptFiles    | 可接受的文件类型   | `string`                                   | `''`              |
-| maxFileSize    | 最大文件大小(MB)   | `number`                                   | `10`              |
-| clearable      | 是否可清空         | `boolean`                                  | `false`           |
-| disabled       | 是否禁用           | `boolean`                                  | `false`           |
-| modelValue     | 绑定值(v-model)    | `string`                                   | `''`              |
-| defaultValue   | 默认值(非响应式)   | `string`                                   | `''`              |
-| loading        | 是否加载中         | `boolean`                                  | `false`           |
-| mode           | 输入框类型         | `'single' \| 'multiple'`                   | `'single'`        |
-| maxLength      | 最大输入长度       | `number`                                   | `Infinity`        |
-| minHeight      | 最小高度(多行模式) | `string`                                   | `'100px'`         |
-| maxHeight      | 最大高度(多行模式) | `string`                                   | `'300px'`         |
-| placeholder    | 输入框占位文本     | `string`                                   | `'请输入内容...'` |
-| showWordLimit  | 是否显示字数统计   | `boolean`                                  | `false`           |
-| submitType     | 提交方式           | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
-| theme          | 主题样式           | `'light' \| 'dark'`                        | `'light'`         |
-| suggestions    | 输入建议列表       | `string[]`                                 | `[]`              |
-| debounceSubmit | 提交防抖延迟(ms)   | `number`                                   | `300`             |
+| 属性名         | 说明             | 类型                                       | 默认值            |
+| -------------- | ---------------- | ------------------------------------------ | ----------------- |
+| autofocus      | 自动获取焦点     | `boolean`                                  | `false`           |
+| autoSize       | 自动调整高度     | `boolean`                                  | `false`           |
+| allowSpeech    | 是否开启语音输入 | `boolean`                                  | `false`           |
+| allowFiles     | 是否允许文件上传 | `boolean`                                  | `true`            |
+| clearable      | 是否可清空       | `boolean`                                  | `false`           |
+| disabled       | 是否禁用         | `boolean`                                  | `false`           |
+| modelValue     | 绑定值(v-model)  | `string`                                   | `''`              |
+| defaultValue   | 默认值(非响应式) | `string`                                   | `''`              |
+| loading        | 是否加载中       | `boolean`                                  | `false`           |
+| mode           | 输入框类型       | `'single' \| 'multiple'`                   | `'single'`        |
+| maxLength      | 最大输入长度     | `number`                                   | `Infinity`        |
+| placeholder    | 输入框占位文本   | `string`                                   | `'请输入内容...'` |
+| showWordLimit  | 是否显示字数统计 | `boolean`                                  | `false`           |
+| submitType     | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
+| theme          | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
+| suggestions    | 输入建议列表     | `string[]`                                 | `[]`              |
+| debounceSubmit | 提交防抖延迟(ms) | `number`                                   | `300`             |
 
 ### Events
 
@@ -231,7 +228,6 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
 | speech-interim    | 语音识别中间结果时触发    | `(transcript: string)` |
 | speech-error      | 语音识别错误时触发        | `(error: Error)`       |
 | suggestion-select | 选择输入建议时触发        | `(value: string)`      |
-| file-select       | 选择文件时触发            | `(files: File[])`      |
 
 ### Methods
 
@@ -336,7 +332,6 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
     placeholder="请输入您的消息..."
     @submit="handleSubmit"
     @speech-end="handleSpeechEnd"
-    @file-select="handleFileSelect"
   >
     <template #header>
       <div class="conversation-title">聊天对话</div>

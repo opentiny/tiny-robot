@@ -1,6 +1,13 @@
 import { reactive } from 'vue'
 import type { SpeechHookOptions, SpeechHandler, SpeechState } from '../types'
 
+declare global {
+  interface Window {
+    webkitSpeechRecognition: typeof SpeechRecognition
+    SpeechRecognition: typeof SpeechRecognition
+  }
+}
+
 export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
   // 语音识别状态
   const speechState = reactive<SpeechState>({
@@ -11,7 +18,7 @@ export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
 
   // 创建语音识别实例
   const recognition = speechState.isSupported
-    ? new ((window as any).webkitSpeechRecognition || (window as any).SpeechRecognition)()
+    ? new (window.webkitSpeechRecognition || window.SpeechRecognition)()
     : null
 
   // 初始化语音识别配置
@@ -34,9 +41,9 @@ export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
     }
 
     // 中间结果事件
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = Array.from(event.results)
-        .map((result: any) => result[0].transcript)
+        .map((result) => result[0].transcript)
         .join('')
 
       if (event.results[0].isFinal) {
@@ -47,7 +54,7 @@ export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
     }
 
     // 错误处理
-    recognition.onerror = (event: ErrorEvent) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       speechState.error = new Error(event.error)
       speechState.isRecording = false
       options.onError?.(speechState.error)
@@ -63,19 +70,47 @@ export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
       return
     }
 
+    // 已经在录音中则先停止当前会话
+    if (speechState.isRecording) {
+      try {
+        recognition.stop()
+        // 短暂延迟后再开始新的录音会话
+        setTimeout(() => {
+          try {
+            recognition.start()
+          } catch (err) {
+            handleError(err)
+          }
+        }, 100)
+      } catch (err) {
+        handleError(err)
+      }
+      return
+    }
+
     try {
       recognition.start()
     } catch (error) {
-      speechState.error = error instanceof Error ? error : new Error('启动语音识别失败')
-      options.onError?.(speechState.error)
+      handleError(error)
     }
   }
 
   // 停止录音
   const stop = () => {
     if (recognition && speechState.isRecording) {
-      recognition.stop()
+      try {
+        recognition.stop()
+      } catch (error) {
+        handleError(error)
+      }
     }
+  }
+
+  // 处理错误
+  const handleError = (error: unknown) => {
+    speechState.error = error instanceof Error ? error : new Error('语音识别操作失败')
+    speechState.isRecording = false
+    options.onError?.(speechState.error)
   }
 
   return {

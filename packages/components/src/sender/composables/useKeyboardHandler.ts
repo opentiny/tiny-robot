@@ -1,4 +1,4 @@
-import { ref, Ref } from 'vue'
+import { Ref } from 'vue'
 import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../types'
 
 /**
@@ -22,10 +22,6 @@ export function useKeyboardHandler(
   showSuggestions: Ref<boolean>,
   toggleSpeech: () => void,
 ) {
-  // 双击Space检测
-  const lastSpaceKeyTime = ref(0)
-  const DOUBLE_TAP_DELAY = 300 // 双击间隔时间(ms)
-
   /**
    * 验证提交条件
    */
@@ -38,7 +34,8 @@ export function useKeyboardHandler(
    */
   const triggerSubmit = () => {
     if (!validateSubmission(inputValue.value)) return
-    emit('submit', inputValue.value.trim(), undefined)
+    alert('提交成功')
+    emit('submit', inputValue.value.trim())
   }
 
   /**
@@ -52,10 +49,13 @@ export function useKeyboardHandler(
 
     switch (submitType) {
       case 'enter':
+        console.log('enter')
         return !event.shiftKey && !event.ctrlKey && !event.metaKey
       case 'ctrlEnter':
+        console.log('ctrlEnter')
         return (event.ctrlKey || event.metaKey) && !event.shiftKey
       case 'shiftEnter':
+        console.log('shiftEnter')
         return event.shiftKey && !event.ctrlKey && !event.metaKey
       default:
         return false
@@ -85,33 +85,15 @@ export function useKeyboardHandler(
     // 检查是否匹配当前的提交快捷键
     const shouldSubmit = checkSubmitShortcut(event, props.submitType as SubmitTrigger)
 
-    if (shouldSubmit) {
+    // 只有当满足提交条件且输入框有内容时才提交
+    if (shouldSubmit && validateSubmission(inputValue.value)) {
       event.preventDefault()
       triggerSubmit()
     }
   }
 
-  /**
-   * 处理键盘释放事件
-   */
-  const handleKeyUp = (event: KeyboardEvent) => {
-    // 处理Space键双击激活语音输入
-    if (event.code === 'Space' && props.allowedSpeech && !props.disabled && !isComposing.value) {
-      const now = Date.now()
-      if (now - lastSpaceKeyTime.value < DOUBLE_TAP_DELAY) {
-        // 双击Space，触发语音输入
-        event.preventDefault()
-        toggleSpeech()
-        lastSpaceKeyTime.value = 0 // 重置时间戳
-      } else {
-        lastSpaceKeyTime.value = now
-      }
-    }
-  }
-
   return {
     handleKeyPress,
-    handleKeyUp,
     triggerSubmit,
   }
 }

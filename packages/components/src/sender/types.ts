@@ -36,7 +36,7 @@ export type AutoSize = boolean | { minRows: number; maxRows: number }
 export interface SenderProps {
   defaultValue?: string | null // 默认值
   autoSize?: AutoSize // 自适应内容高度
-  allowedSpeech?: boolean // 是否允许语音识别
+  allowSpeech?: boolean // 是否允许语音识别
   modelValue?: string // 双向绑定值
   submitType?: SubmitTrigger // 提交触发方式
   speech?: boolean | SpeechConfig // 语音识别配置
@@ -46,15 +46,11 @@ export interface SenderProps {
   clearable?: boolean // 是否显示清除按钮
   placeholder?: string // 占位文本
   maxLength?: number // 最大输入长度
-  minHeight?: number | string // 最小高度
-  maxHeight?: number | string // 最大高度
   autofocus?: boolean // 自动聚焦
   showWordLimit?: boolean // 显示字数统计
   suggestions?: string[] // 输入建议
   theme?: ThemeType // 主题
-  allowFiles?: boolean // 是否允许文件上传
-  acceptFiles?: string // 允许的文件类型
-  maxFileSize?: number // 最大文件大小(MB)
+  allowFiles?: boolean // 是否允许上传附件
   mode?: InputMode // 输入框模式：单行/多行
 }
 
@@ -63,13 +59,12 @@ export interface ActionButtonsProps {
   disabled?: boolean // 是否禁用
   showClear?: boolean // 是否可以清除
   hasContent?: boolean // 是否有文本内容
-  allowedSpeech?: boolean // 是否允许语音识别
+  allowSpeech?: boolean // 是否允许语音识别
   speechStatus?: {
     isRecording: boolean // 是否正在录制
     isSupported: boolean // 是否支持语音识别
   }
-  allowFiles?: boolean //  是否允许文件上传
-  acceptFiles?: string // 允许上传的文件类型
+  allowFiles?: boolean // 是否允许上传附件
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
 }
@@ -77,16 +72,13 @@ export interface ActionButtonsProps {
 // 组件事件定义
 export type SenderEmits = {
   (e: 'update:modelValue', value: string): void
-  (e: 'submit', value: string, files?: File[]): void
+  (e: 'submit', value: string): void
   (e: 'clear'): void
   (e: 'speech-start'): void
   (e: 'speech-end', transcript?: string): void
   (e: 'speech-interim', transcript: string): void
   (e: 'speech-error', error: Error): void
   (e: 'suggestion-select', value: string): void
-  (e: 'file-select', files: any): void
-  (e: 'file-error', error: Error): void
-  (e: 'exceed-length'): void
   (e: 'focus', event: FocusEvent): void
   (e: 'blur', event: FocusEvent): void
   (e: 'escape-press'): void // 按下Esc键时触发
@@ -124,17 +116,7 @@ export interface SubmitHandler {
 // 键盘处理器返回类型
 export interface KeyboardHandler {
   handleKeyPress: (e: KeyboardEvent) => void
-  handleKeyUp: (e: KeyboardEvent) => void
   triggerSubmit: () => void
-}
-
-// 文件处理器返回类型
-export interface FileHandler {
-  fileInput: Ref<HTMLInputElement | null>
-  triggerFileUpload: () => void
-  handleFileSelect: (e: Event) => void
-  handleFileDrop: (e: DragEvent) => void
-  handleFilePaste: (e: ClipboardEvent) => void
 }
 
 // 语音识别Hook返回类型

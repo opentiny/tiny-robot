@@ -23,46 +23,40 @@
               ref="inputRef"
               :autosize="autoSize"
               :type="inputType"
+              :readonly="isLoading"
               :resize="mode === 'multiple' ? 'none' : undefined"
               v-model="inputValue"
               :disabled="isDisabled"
               :placeholder="placeholder"
               :maxlength="maxLength"
-              :style="textareaStyle"
               :autofocus="autofocus"
               @keydown="handleKeyPress"
-              @keyup="handleKeyUp"
               @compositionstart="isComposing = true"
               @compositionend="handleCompositionEnd"
-              @drop.prevent="handleFileDrop"
-              @paste="handleFilePaste"
               @focus="handleFocus"
               @blur="handleBlur"
             />
           </div>
 
           <!-- 操作区域/后置插槽 -->
-          <div v-if="$slots.actions" class="tiny-sender__actions-slot">
-            <slot name="actions" />
-          </div>
-          <div v-else-if="mode === 'single'" class="tiny-sender__actions-slot">
-            <action-buttons
-              class="inline-buttons"
-              :allowed-speech="allowedSpeech"
-              :loading="loading"
-              :disabled="isDisabled"
-              :show-clear="clearable"
-              :has-content="!!inputValue"
-              :speech-status="speechState"
-              :allow-files="allowFiles"
-              :accept-files="acceptFiles"
-              :submit-type="submitType"
-              @submit="triggerSubmit"
-              @clear="clearInput"
-              @toggle-speech="toggleSpeech"
-              @file-upload="triggerFileUpload"
-              @file-select="handleFileSelect"
-            />
+          <div v-if="mode === 'single'" class="tiny-sender__actions-slot">
+            <div class="tiny-sender__buttons-container">
+              <slot name="actions" />
+              <action-buttons
+                class="inline-buttons"
+                :allow-speech="allowSpeech"
+                :allow-files="allowFiles"
+                :loading="loading"
+                :disabled="isDisabled"
+                :show-clear="clearable"
+                :has-content="!!inputValue"
+                :speech-status="speechState"
+                :submit-type="submitType"
+                @clear="clearInput"
+                @toggle-speech="toggleSpeech"
+                @submit="triggerSubmit"
+              />
+            </div>
           </div>
         </div>
 
@@ -83,22 +77,21 @@
 
             <!-- 多行模式下的操作按钮 -->
             <div v-if="mode === 'multiple'" class="tiny-sender__toolbar">
-              <action-buttons
-                :allowed-speech="allowedSpeech"
-                :loading="loading"
-                :disabled="isDisabled"
-                :show-clear="clearable"
-                :has-content="!!inputValue"
-                :speech-status="speechState"
-                :allow-files="allowFiles"
-                :accept-files="acceptFiles"
-                :submit-type="submitType"
-                @submit="triggerSubmit"
-                @clear="clearInput"
-                @toggle-speech="toggleSpeech"
-                @file-upload="triggerFileUpload"
-                @file-select="handleFileSelect"
-              />
+              <div class="tiny-sender__buttons-container">
+                <action-buttons
+                  :allow-speech="allowSpeech"
+                  :allow-files="allowFiles"
+                  :loading="loading"
+                  :disabled="isDisabled"
+                  :show-clear="clearable"
+                  :has-content="!!inputValue"
+                  :speech-status="speechState"
+                  :submit-type="submitType"
+                  @clear="clearInput"
+                  @toggle-speech="toggleSpeech"
+                  @submit="triggerSubmit"
+                />
+              </div>
             </div>
           </div>
         </Transition>
@@ -129,11 +122,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { TinyInput } from '@opentiny/vue'
-import type { SenderProps, SenderEmits, InputHandler, FileHandler, KeyboardHandler } from './types'
+import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './types'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
 import { useSpeechHandler } from './composables/useSpeechHandler'
-import { useFileHandler } from './composables/useFileHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import './styles/index.less'
 
@@ -143,16 +135,13 @@ const props = withDefaults(defineProps<SenderProps>(), {
   loading: false,
   debounceSubmit: 300,
   clearable: false,
-  allowedSpeech: true,
+  allowSpeech: true,
   placeholder: '请输入内容...',
   theme: 'light',
   maxLength: Infinity,
-  minHeight: '100px',
-  maxHeight: '300px',
   autofocus: false,
   showWordLimit: false,
-  allowFiles: true,
-  maxFileSize: 10,
+  allowFiles: false,
   mode: 'single',
 })
 
@@ -160,12 +149,6 @@ const emit = defineEmits<SenderEmits>()
 
 // 输入引用
 const inputRef = ref<HTMLElement | null>(null)
-
-// 文件处理
-const { triggerFileUpload, handleFileSelect, handleFileDrop, handleFilePaste }: FileHandler = useFileHandler(
-  props,
-  emit,
-)
 
 // 输入控制
 const { inputValue, isComposing, clearInput }: InputHandler = useInputHandler(props, emit)
@@ -205,15 +188,13 @@ const { speechState, start: startSpeech, stop: stopSpeech } = useSpeechHandler(s
 const toggleSpeech = () => {
   if (speechState.isRecording) {
     stopSpeech()
-    speechState.isRecording = false
   } else {
     startSpeech()
-    speechState.isRecording = true
   }
 }
 
 // 键盘处理
-const { handleKeyPress, handleKeyUp, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
+const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   props,
   emit,
   inputValue,
@@ -234,12 +215,6 @@ const handleBlur = (event: FocusEvent) => {
 
 // 输入框类型计算
 const inputType = computed(() => (props.mode === 'multiple' ? 'textarea' : 'text'))
-
-// 文本域样式
-const textareaStyle = computed(() => ({
-  minHeight: props.mode === 'multiple' ? props.minHeight : undefined,
-  maxHeight: props.mode === 'multiple' ? props.maxHeight : undefined,
-}))
 
 const justifyContent = computed(
   (): {
@@ -310,3 +285,36 @@ defineExpose({
   stopSpeech,
 })
 </script>
+
+<style lang="less">
+.tiny-sender__buttons-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shortcut-hint {
+  position: absolute;
+  bottom: -16px;
+  font-size: 10px;
+  color: #909399;
+  white-space: nowrap;
+  user-select: none;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>

@@ -3,18 +3,24 @@
     <!-- 文件上传按钮 -->
     <template v-if="allowFiles && !loading">
       <tiny-tooltip content="上传文件" placement="top">
-        <tiny-button type="text" :disabled="isDisabled" @click="handleFileUpload">
+        <tiny-button type="text" :disabled="isDisabled">
           <img src="../../assets/icons/accessory.svg" class="button-icon" alt="上传文件" />
         </tiny-button>
       </tiny-tooltip>
-      <input ref="fileInput" type="file" :accept="acceptFiles" multiple class="file-input" @change="handleFileSelect" />
     </template>
 
     <!-- 语音按钮：仅在启用语音功能时显示 -->
     <template v-if="speechEnabled && !loading">
-      <tiny-tooltip :content="speechButtonTooltip" placement="top">
-        <tiny-button type="text" :disabled="isDisabled" @click="handleToggleSpeech">
-          <img src="../../assets/icons/voice.svg" class="button-icon" alt="语音" />
+      <tiny-tooltip :content="speechButtonText" placement="top">
+        <tiny-button
+          type="text"
+          :disabled="isDisabled"
+          @click="handleToggleSpeech"
+          class="speech-button"
+          :class="{ 'is-recording': isSpeechRecording }"
+        >
+          <img v-if="!isSpeechRecording" src="../../assets/icons/voice.svg" class="button-icon" alt="录音" />
+          <img v-else src="../../assets/icons/loading-speech.svg" class="button-icon recording-icon" alt="语音中" />
         </tiny-button>
       </tiny-tooltip>
     </template>
@@ -28,15 +34,16 @@
     </template>
 
     <!-- 提交按钮：主操作按钮 -->
-    <tiny-tooltip :content="submitTooltip" placement="top">
-      <tiny-button v-if="hasContent || loading" type="text" @click="handleSubmit" class="submit-button">
-        <div class="button-content">
-          <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
-          <img v-else src="../../assets/icons/loading.svg" alt="加载中" />
-          <span v-if="showShortcuts && !loading" class="shortcut-hint">{{ submitShortcut }}</span>
-        </div>
-      </tiny-button>
-    </tiny-tooltip>
+    <template v-if="hasContent || loading">
+      <tiny-tooltip :content="submitTooltip" placement="top">
+        <tiny-button type="text" @click="handleSubmit" class="submit-button" :disabled="isDisabled">
+          <div class="button-content">
+            <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
+            <img v-else src="../../assets/icons/loading.svg" alt="加载中" class="loading" />
+          </div>
+        </tiny-button>
+      </tiny-tooltip>
+    </template>
   </div>
 </template>
 
@@ -72,30 +79,23 @@ const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
    * 是否允许语音功能
    */
-  allowedSpeech: false,
+  allowSpeech: false,
   speechStatus: () => ({
     isRecording: false,
     isSupported: false,
   }),
+  /**
+   * 是否允许附件功能
+   */
   allowFiles: false,
-  acceptFiles: '',
   /**
    * 提交快捷方式
    * @default 'enter'
    */
   submitType: 'enter',
-  /**
-   * 是否显示快捷键提示
-   * @default true
-   */
-  showShortcuts: true,
 })
 
 const emit = defineEmits({
-  /**
-   * 提交事件
-   */
-  submit: () => true,
   /**
    * 清除内容事件
    */
@@ -105,77 +105,35 @@ const emit = defineEmits({
    * @param {boolean} state - 新的语音识别状态
    */
   'toggle-speech': (state: boolean) => Boolean(state),
-  'file-upload': () => true,
-  'file-select': (files: any) => Array.isArray(files),
+  /**
+   * 提交内容事件
+   */
+  submit: () => true,
 })
 
 /**
  * 是否启用语音功能
  */
-const speechEnabled = computed(() => props.allowedSpeech)
-
-/**
- * 语音图标路径
- */
-// const speechIconSrc = computed(() =>
-//   props.speechStatus.isRecording ? '../../assets/icons/stop.svg' : '../../assets/icons/voice.svg',
-// )
+const speechEnabled = computed(() => props.allowSpeech)
 
 /**
  * 语音按钮提示文本
  */
 const speechButtonText = computed(() => (props.speechStatus.isRecording ? '停止录音' : '开始语音输入'))
 
-/**
- * 语音按钮tooltip
- */
-const speechButtonTooltip = computed(() => {
-  const text = speechButtonText.value
-  return props.showShortcuts ? `${text} (双击空格键)` : text
-})
-
-/**
- * 提交快捷键文本
- */
-const submitShortcut = computed(() => {
-  switch (props.submitType) {
-    case 'enter':
-      return 'Enter'
-    case 'ctrlEnter':
-      return 'Ctrl+Enter'
-    case 'shiftEnter':
-      return 'Shift+Enter'
-    default:
-      return 'Enter'
-  }
-})
+const isSpeechRecording = computed(() => props.speechStatus.isRecording)
 
 /**
  * 提交按钮tooltip
  */
 const submitTooltip = computed(() => {
-  if (props.loading) return '发送中...'
-  return props.showShortcuts ? `发送消息 (${submitShortcut.value})` : '发送消息'
+  return props.loading ? `发送中...` : '发送消息'
 })
 
 /**
  * 整体禁用状态
  */
 const isDisabled = computed(() => props.disabled)
-
-/**
- * 提交按钮禁用状态
- */
-const isSubmitDisabled = computed(() => isDisabled.value || !props.hasContent)
-
-/**
- * 处理提交操作
- */
-const handleSubmit = () => {
-  if (!isSubmitDisabled.value) {
-    emit('submit')
-  }
-}
 
 /**
  * 处理清除操作
@@ -196,16 +154,12 @@ const handleToggleSpeech = () => {
   }
 }
 
-const handleFileUpload = () => {
-  emit('file-upload')
-}
-
-const handleFileSelect = (e: Event) => {
-  if (e.target instanceof HTMLInputElement && e.target.files) {
-    const files = Array.from(e.target.files)
-    emit('file-select', files)
-    // 重置 input 以支持选择相同文件
-    e.target.value = ''
+/**
+ * 处理提交操作
+ */
+const handleSubmit = () => {
+  if (!isDisabled.value) {
+    emit('submit')
   }
 }
 </script>
@@ -215,6 +169,9 @@ const handleFileSelect = (e: Event) => {
   margin-right: 0;
 }
 
+.tiny-button + .tiny-button {
+  margin-left: 0;
+}
 .action-buttons {
   display: flex;
   align-items: center;
@@ -237,17 +194,48 @@ const handleFileSelect = (e: Event) => {
   user-select: none;
 }
 
-.submit-button {
-  margin-left: 4px;
-}
-
 .button-icon {
   width: 28px;
   height: 28px;
 }
 
-.file-input {
-  display: none;
+.speech-button {
+  position: relative;
+}
+
+.speech-button.is-recording {
+  background-color: rgba(255, 0, 0, 0.05);
+}
+
+.recording-icon {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.recording-indicator {
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff4d4f;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.submit-button {
+  margin-left: 4px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes spin {
