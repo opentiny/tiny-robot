@@ -5,6 +5,7 @@
       <div class="stream-toggle">
         <span>流式响应</span>
         <tiny-switch v-model="useStream"></tiny-switch>
+        <icon-full-screen class="full-screen-icon"></icon-full-screen>
       </div>
     </div>
 
@@ -70,6 +71,7 @@
 import { ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { AIClient, useMessage, STATUS, GeneratingStatus } from '@opentiny/tiny-robot-ai-adapter'
+import { IconFullScreen } from '@opentiny/tiny-robot-svgs'
 
 const client = new AIClient({
   provider: 'openai',
@@ -376,5 +378,9 @@ button {
   40% {
     transform: scale(1);
   }
+}
+.full-screen-icon {
+  width: 20px;
+  height: 20px;
 }
 </style>
