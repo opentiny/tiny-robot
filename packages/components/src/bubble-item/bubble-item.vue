@@ -1,24 +1,16 @@
 <script setup lang="ts">
-import { iconCopy, iconRefresh } from '@opentiny/vue-icon'
 import markdownit from 'markdown-it'
-import Typed, { TypedOptions } from 'typed.js'
-import { computed, onBeforeUnmount, onMounted, ref, toRaw } from 'vue'
-import { BubbleItemProps } from '../bubble-list/index.type'
-import AISvg from './components/ai-svg.vue'
-import UserSvg from './components/user-svg.vue'
+import { computed } from 'vue'
+import { BubbleActionOptions, BubbleItemProps } from '../bubble-list/index.type'
+import { CopyAction, RefreshAction } from './components/actions'
+import { AIIcon, UserIcon } from './components/icons'
 
 const props = withDefaults(defineProps<BubbleItemProps>(), {
   content: '',
   type: 'text',
-  loading: false,
+  status: 'complete',
   maxWidth: '80%',
 })
-
-const contentRef = ref<HTMLElement>()
-/**
- * @deprecated
- */
-const typedInstance = ref<Typed>()
 
 const bubbleContent = computed(() => {
   if (props.type === 'markdown') {
@@ -43,43 +35,56 @@ const avatarVNode = computed(() => {
     return () => avatar
   }
 
-  return isUserRole.value ? UserSvg : AISvg
+  return isUserRole.value ? UserIcon : AIIcon
 })
 
-const TinyIconCopy = iconCopy()
-const TinyIconRefresh = iconRefresh()
+const defaultActionsMap = new Map<string, BubbleActionOptions>([
+  [
+    'copy',
+    {
+      name: 'copy',
+      vnode: CopyAction,
+      show: () => props.status === 'complete' || props.status === 'aborted',
+    },
+  ],
+  [
+    'regenerate',
+    {
+      name: 'regenerate',
+      vnode: RefreshAction,
+      show: () => props.status === 'complete' || props.status === 'aborted',
+    },
+  ],
+])
 
-onMounted(() => {
-  const { enable, ...rest } = props.typedConfig || {}
-
-  if (enable) {
-    const options: TypedOptions = {
-      strings: [bubbleContent.value], // 初始为空字符串
-      contentType: props.type === 'markdown' ? 'html' : 'null',
-      typeSpeed: 50,
-      showCursor: true,
-      ...rest,
+const computedActions = computed(() => {
+  const getActions = () => {
+    if (Array.isArray(props.actions) && props.actions.length > 0) {
+      return props.actions
     }
 
-    typedInstance.value = new Typed(contentRef.value, options)
+    if (props.role === 'ai') {
+      return ['regenerate', 'copy']
+    }
+
+    return ['copy']
   }
+
+  const actions = getActions().map((action) => {
+    if (typeof action === 'string') {
+      return defaultActionsMap.get(action)
+    }
+
+    return action
+  })
+
+  return actions.filter((action): action is BubbleActionOptions => Boolean(action))
 })
 
-onBeforeUnmount(() => {
-  typedInstance.value?.destroy()
-})
+const emit = defineEmits(['actionClick'])
 
-defineExpose({ typedInstance })
-
-const emit = defineEmits(['copy', 'regenerate'])
-
-// TODO
-const handleCopy = () => {
-  emit('copy', 'copy', toRaw(props))
-}
-
-const handleRegenerate = () => {
-  emit('regenerate', 'regenerate', toRaw(props))
+const handleActionClick = (name: string, ...args: unknown[]) => {
+  emit('actionClick', name, ...args)
 }
 </script>
 
@@ -96,33 +101,40 @@ const handleRegenerate = () => {
     <div class="tr-bubble__avatar">
       <component :is="avatarVNode"></component>
     </div>
-    <div v-if="loading" class="tr-bubble__load-wrap">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
+    <slot v-if="props.status === 'loading'" name="loading">
+      <div class="tr-bubble__load-wrap">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </slot>
     <div
-      v-if="!loading"
+      v-else
       :class="[
         'tr-bubble__content',
         { 'tr-bubble__content-role-ai': !isUserRole },
         { 'tr-bubble__content-role-user': isUserRole },
       ]"
     >
-      <div class="tr-bubbule__text-wrap">
-        <span v-if="props.typedConfig?.enable" ref="contentRef"></span>
-        <span v-else-if="props.type === 'markdown'" v-html="bubbleContent"></span>
+      <div class="tr-bubbule__body">
+        <span v-if="props.type === 'markdown'" v-html="bubbleContent"></span>
         <span v-else>{{ bubbleContent }}</span>
-        <span v-if="props.aborted" class="tr-bubbule__content-aborted">（用户停止）</span>
+        <span v-if="props.status === 'aborted'" class="tr-bubbule__aborted">（用户停止）</span>
       </div>
-      <slot name="footer"></slot>
-      <div v-if="props.showActions" class="actions">
-        <span>
-          <tiny-icon-refresh @click="handleRegenerate"></tiny-icon-refresh>
-        </span>
-        <span>
-          <tiny-icon-copy @click="handleCopy"></tiny-icon-copy>
-        </span>
+      <div class="tr-bubbule__footer">
+        <div class="tr-bubbule__footer-left">
+          <slot name="footer"></slot>
+        </div>
+        <div v-if="props.showActions" class="tr-bubbule__footer-actions">
+          <template v-for="action in computedActions" :key="action?.name">
+            <component
+              :is="action.vnode"
+              v-show="typeof action.show === 'function' ? action.show(props) : action.show"
+              :bubbleItem="props"
+              @click="handleActionClick(action.name, $event)"
+            ></component>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -214,26 +226,38 @@ const handleRegenerate = () => {
     background-color: rgb(222, 236, 255);
   }
 
-  .tr-bubbule__text-wrap {
+  .tr-bubbule__body {
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
   }
 
-  .tr-bubbule__content-aborted {
+  .tr-bubbule__aborted {
     color: rgb(128, 128, 128);
     font-size: 14px;
   }
 
-  .actions {
+  .tr-bubbule__footer {
     display: flex;
-    justify-self: end;
-    gap: 4px;
-    margin-top: 16px;
+    gap: 12px;
 
-    & > * {
-      width: 24px;
-      height: 24px;
+    .tr-bubbule__footer-left {
+      flex: 1;
+    }
+
+    .tr-bubbule__footer-actions {
+      display: flex;
+      flex-shrink: 0;
+      gap: 4px;
+      margin-top: 12px;
+
+      & > * {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+      }
     }
   }
 }

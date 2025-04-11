@@ -6,7 +6,6 @@
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "scripts": {
-    "test": "vite dev --open src/test/index.html",
     "build": "vue-tsc && vite build",
     "type-check": "vue-tsc --noEmit"
   },
@@ -14,7 +13,6 @@
     "@opentiny/vue": "^3.22.0",
     "@opentiny/vue-icon": "^3.21.0",
     "markdown-it": "^14.1.0",
-    "typed.js": "^2.1.0",
     "vue": "^3.3.11"
   },
   "devDependencies": {

@@ -1,19 +1,24 @@
 import { Options as MarkdownItOptions } from 'markdown-it'
-import { TypedOptions } from 'typed.js'
-import { CSSProperties, VNode } from 'vue'
+import { Component, CSSProperties, VNode } from 'vue'
 
 export type BubbleRole = 'ai' | 'user'
 
-export interface RoleConfig {
+export interface BubbleRoleConfig {
   avatar?: VNode
   align: 'left' | 'right'
 }
 
-export type TypedConfig = Omit<TypedOptions, 'strings' | 'stringsElement' | 'contentType'> & {
-  enable?: boolean
+export type BubbleStatus = 'loading' | 'generating' | 'aborted' | 'complete' | 'error'
+
+export interface BubbleActionOptions {
+  name: string
+  vnode: VNode | Component
+  show?: boolean | ((props: BubbleItemProps) => boolean)
 }
 
-type BaseBubbleItemProps = {
+export type BubbleAction = 'copy' | 'regenerate' | 'like' | 'dislike' | 'continue' | 'edit' | BubbleActionOptions
+
+export interface BubbleItemProps {
   /**
    * 角色，`ai` 或 `user`
    */
@@ -27,59 +32,34 @@ type BaseBubbleItemProps = {
    */
   type?: 'text' | 'markdown'
   /**
-   * 是否显示正在加载
+   * 气泡状态
    */
-  loading?: boolean
-  /**
-   * 是否显示已终止
-   */
-  aborted?: boolean
-  /**
-   * @deprecated
-   */
-  typedConfig?: TypedConfig
+  status?: BubbleStatus
   /**
    * 角色配置项
    */
-  roleConfig?: RoleConfig
+  roleConfig?: BubbleRoleConfig
   /**
    * type 为 'markdown' 时，markdown 的配置项
    */
   mdConfig?: MarkdownItOptions
   showActions?: boolean
+  actions?: BubbleAction[]
   // 样式相关
   maxWidth?: CSSProperties['maxWidth']
 }
 
-export interface CustomAction {
-  name: string
-  show?: boolean | ((props: BubbleItemProps) => boolean)
-  disabled?: boolean | ((props: BubbleItemProps) => boolean)
-  onClick?: () => void
+export interface BubbleActionConfig {
+  show?: boolean
+  actions?: BubbleAction[]
 }
-
-export type UserAction = 'edit' | 'copy' | CustomAction
-
-export type AIAction = 'regenerate' | 'continue' | 'copy' | 'like' | 'dislike' | CustomAction
-
-type AIBubbleItemProps = BaseBubbleItemProps & {
-  role: 'ai'
-  actions?: AIAction[]
-}
-
-type UserBubbleItemProps = BaseBubbleItemProps & {
-  role: 'user'
-  actions?: UserAction[]
-}
-
-export type BubbleItemProps = AIBubbleItemProps | UserBubbleItemProps
 
 export interface BubbleListProps {
   items: BubbleItemProps[]
-  loading?: boolean
-  roleConfigs?: Record<BubbleRole, RoleConfig>
+  roleConfigs?: Partial<Record<BubbleRole, BubbleRoleConfig>>
   mdConfig?: MarkdownItOptions
-  userActions?: UserAction[]
-  aiActions?: AIAction[]
+  actionConfigs?: Partial<Record<BubbleRole, BubbleActionConfig>>
   autoScroll?: boolean
+  // 样式相关
+  maxWidth?: CSSProperties['maxWidth']
 }

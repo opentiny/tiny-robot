@@ -1,6 +1,8 @@
 import { App } from 'vue'
 import BubbleList from './bubble-list.vue'
 
+export type BA = typeof BubbleList
+
 BubbleList.name = 'TinyBubbleList'
 
 const install = function (app: App) {
