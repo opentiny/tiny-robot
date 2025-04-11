@@ -1,7 +1,7 @@
 import { App } from 'vue'
 import Sender from './index.vue'
 
-Sender.name = 'TinySender'
+Sender.name = 'TrSender'
 
 const install = function <T>(app: App<T>) {
   app.component(Sender.name!, Sender)

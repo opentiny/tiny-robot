@@ -2,9 +2,9 @@
 outline: deep
 ---
 
-# Sender 组件
+# TrSender 组件
 
-TinySender 是一个灵活的输入组件，支持单行和多行模式，具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
+TrSender 是一个灵活的输入组件，支持单行和多行模式，具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
 
 ## 组件能力展示
 
@@ -14,20 +14,20 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 单行模式(`mode="single"`)适用于简单的输入场景，如搜索框、简短消息输入等。
 
-<TinySender  />
+<TrSender  />
 
 ```vue
-<TinySender />
+<TrSender />
 ```
 
 #### 多行模式
 
 多行模式(`mode="multiple"`)适用于较长文本输入，如评论、聊天消息等。
 
-<TinySender mode="multiple" />
+<TrSender mode="multiple" />
 
 ```vue
-<TinySender mode="multiple" />
+<TrSender mode="multiple" />
 ```
 
 ### 状态控制
@@ -36,20 +36,20 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 通过设置`loading`属性控制组件的加载状态，加载状态下输入框将显示加载动画并禁用输入。
 
-<TinySender :loading="true" />
+<TrSender :loading="true" />
 
 ```vue
-<TinySender :loading="true" />
+<TrSender :loading="true" />
 ```
 
 #### 禁用状态
 
 通过设置`disabled`属性禁用整个组件，禁用状态下无法输入内容或触发任何操作。
 
-<TinySender :disabled="true" />
+<TrSender :disabled="true" />
 
 ```vue
-<TinySender :disabled="true" />
+<TrSender :disabled="true" />
 ```
 
 ### 内容控制
@@ -58,30 +58,30 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 通过`maxLength`属性限制输入字符数，搭配`showWordLimit`显示字数统计。
 
-<TinySender mode="multiple" :showWordLimit="true" :maxLength="1000" />
+<TrSender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 
 ```vue
-<TinySender mode="multiple" :showWordLimit="true" :maxLength="1000" />
+<TrSender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 ```
 
 #### 自动调整高度
 
 设置`autoSize`属性使输入框高度自动适应内容。
 
-<TinySender mode="multiple" :autoSize="true" />
+<TrSender mode="multiple" :autoSize="true" />
 
 ```vue
-<TinySender mode="multiple" :autoSize="true" />
+<TrSender mode="multiple" :autoSize="true" />
 ```
 
 #### 可清空输入
 
 通过`clearable`属性添加清空按钮，方便用户快速清除输入内容。
 
-<TinySender :clearable="true" />
+<TrSender :clearable="true" />
 
 ```vue
-<TinySender :clearable="true" />
+<TrSender :clearable="true" />
 ```
 
 ### 高级功能
@@ -90,10 +90,10 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 启用`allowSpeech`支持语音输入功能，用户可以通过语音录入文本。
 
-<TinySender :allowSpeech="true" />
+<TrSender :allowSpeech="true" />
 
 ```vue
-<TinySender :allowSpeech="true" />
+<TrSender :allowSpeech="true" />
 ```
 
 #### 文件上传
@@ -102,10 +102,10 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 > 目前仅支持按钮显示，后续会添加附件上传相关功能。
 
-<TinySender :allowFiles="true"  />
+<TrSender :allowFiles="true"  />
 
 ```vue
-<TinySender :allowFiles="true" />
+<TrSender :allowFiles="true" />
 ```
 
 #### 自定义提交方式
@@ -118,16 +118,16 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 这些快捷键适用于不同的使用习惯和操作系统，方便用户根据自己的喜好选择提交方式。
 
-<TinySender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
+<TrSender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
 
 ```vue
-<TinySender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
+<TrSender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
 ```
 
-<TinySender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
+<TrSender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
 
 ```vue
-<TinySender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
+<TrSender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
 ```
 
 使用不同的提交方式可以适应不同的使用场景：
@@ -138,7 +138,7 @@ TinySender 是一个灵活的输入组件，支持单行和多行模式，具有
 
 ### 键盘快捷键支持
 
-TinySender 组件支持多种键盘快捷键操作，提高用户输入效率：
+TrSender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 | 快捷键      | 功能                      | 适用条件                       |
 | ----------- | ------------------------- | ------------------------------ |
@@ -154,9 +154,9 @@ TinySender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 #### 使用插槽自定义布局
 
-TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
+TrSender 提供了丰富的插槽，可以自定义组件的各个部分。
 
-<TinySender mode="multiple">
+<TrSender mode="multiple">
   <template #header>
     <div style="padding: 8px; background-color: #f5f5f5; text-align: center">自定义头部</div>
   </template>
@@ -169,10 +169,10 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
       <button>发送</button>
     </div>
   </template>
-</TinySender>
+</TrSender>
 
 ```vue
-<TinySender mode="multiple">
+<TrSender mode="multiple">
   <template #header>
     <div style="padding: 8px; background-color: #f5f5f5; text-align: center">自定义头部</div>
   </template>
@@ -185,7 +185,7 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
       <button>发送</button>
     </div>
   </template>
-</TinySender>
+</TrSender>
 ```
 
 ## API 说明
@@ -268,50 +268,50 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
 
 #### 容器样式变量
 
-- `--tiny-sender-border-radius`: 组件边框圆角，默认 8px
-- `--tiny-sender-border-color`: 边框颜色，默认 #e4e7ed
-- `--tiny-sender-focus-border-color`: 聚焦时边框颜色，默认 #409eff
-- `--tiny-sender-bg-color`: 背景色，默认 #fff
-- `--tiny-sender-padding`: 内边距，默认 10px
+- `--tr-sender-border-radius`: 组件边框圆角，默认 8px
+- `--tr-sender-border-color`: 边框颜色，默认 #e4e7ed
+- `--tr-sender-focus-border-color`: 聚焦时边框颜色，默认 #409eff
+- `--tr-sender-bg-color`: 背景色，默认 #fff
+- `--tr-sender-padding`: 内边距，默认 10px
 
 #### 输入区域变量
 
-- `--tiny-sender-content-padding`: 内容区域内边距，默认 10px
-- `--tiny-sender-content-padding-with-prefix`: 有前缀时内容区域内边距，默认 10px 10px 10px 0
-- `--tiny-sender-input-font-size`: 输入字体大小，默认 14px
-- `--tiny-sender-input-line-height`: 输入行高，默认 1.5
-- `--tiny-sender-input-color`: 输入文本颜色，默认 #303133
+- `--tr-sender-content-padding`: 内容区域内边距，默认 10px
+- `--tr-sender-content-padding-with-prefix`: 有前缀时内容区域内边距，默认 10px 10px 10px 0
+- `--tr-sender-input-font-size`: 输入字体大小，默认 14px
+- `--tr-sender-input-line-height`: 输入行高，默认 1.5
+- `--tr-sender-input-color`: 输入文本颜色，默认 #303133
 
 #### 插槽样式变量
 
 ##### 头部插槽（Header）
 
-- `--tiny-sender-header-max-height`: 最大高度，默认 120px
-- `--tiny-sender-header-min-height`: 最小高度，默认 40px
-- `--tiny-sender-header-shadow`: 阴影效果，默认 0 2px 8px rgba(0,0,0,0.1)
-- `--tiny-sender-header-padding`: 内边距
+- `--tr-sender-header-max-height`: 最大高度，默认 120px
+- `--tr-sender-header-min-height`: 最小高度，默认 40px
+- `--tr-sender-header-shadow`: 阴影效果，默认 0 2px 8px rgba(0,0,0,0.1)
+- `--tr-sender-header-padding`: 内边距
 
 ##### 前缀插槽（Prefix）
 
-- `--tiny-sender-prefix-width`: 宽度，默认 60px
-- `--tiny-sender-prefix-min-width`: 最小宽度，默认 44px
-- `--tiny-sender-prefix-hover-bg`: 悬停背景色，默认 #f5f5f5
-- `--tiny-sender-prefix-padding-left`: 左内边距，默认 16px
+- `--tr-sender-prefix-width`: 宽度，默认 60px
+- `--tr-sender-prefix-min-width`: 最小宽度，默认 44px
+- `--tr-sender-prefix-hover-bg`: 悬停背景色，默认 #f5f5f5
+- `--tr-sender-prefix-padding-left`: 左内边距，默认 16px
 
 ##### 操作区域（Actions）
 
-- `--tiny-sender-actions-width`: 宽度，默认 auto
-- `--tiny-sender-actions-min-width`: 最小宽度，默认 32px
-- `--tiny-sender-actions-gap`: 按钮间距，默认 8px
-- `--tiny-sender-actions-icon-size`: 图标大小，默认 20px
-- `--tiny-sender-actions-padding-right`: 右侧内边距，默认 10px
+- `--tr-sender-actions-width`: 宽度，默认 auto
+- `--tr-sender-actions-min-width`: 最小宽度，默认 32px
+- `--tr-sender-actions-gap`: 按钮间距，默认 8px
+- `--tr-sender-actions-icon-size`: 图标大小，默认 20px
+- `--tr-sender-actions-padding-right`: 右侧内边距，默认 10px
 
 ##### 底部插槽（Footer）
 
-- `--tiny-sender-footer-max-height`: 最大高度，默认 200px
-- `--tiny-sender-footer-min-height`: 最小高度，默认 0
-- `--tiny-sender-footer-bg`: 背景色，默认 #fff
-- `--tiny-sender-footer-hover`: 悬停背景色，默认 #f9f9f9
+- `--tr-sender-footer-max-height`: 最大高度，默认 200px
+- `--tr-sender-footer-min-height`: 最小高度，默认 0
+- `--tr-sender-footer-bg`: 背景色，默认 #fff
+- `--tr-sender-footer-hover`: 悬停背景色，默认 #f9f9f9
 
 ### 使用示例
 
@@ -319,7 +319,7 @@ TinySender 提供了丰富的插槽，可以自定义组件的各个部分。
 
 ```vue
 <template>
-  <tiny-sender
+  <TrSender
     v-model="inputMessage"
     mode="multiple"
     submitType="ctrl+enter"
@@ -413,10 +413,12 @@ const submitMessage = () => {
 
 ### 主题适配
 
-TinySender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
+TrSender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
+
+<TrSender theme="dark" />
 
 ```vue
-<tiny-sender theme="dark" />
+<TrSender theme="dark" />
 ```
 
 也可以通过CSS变量实现更细致的主题定制：
@@ -424,24 +426,24 @@ TinySender 支持亮色和暗色两种主题模式，通过`theme`属性控制�
 ```css
 /* 亮色主题 */
 .theme-light {
-  --tiny-sender-bg-color: #fff;
-  --tiny-sender-border-color: #e4e7ed;
-  --tiny-sender-input-color: #303133;
+  --tr-sender-bg-color: #fff;
+  --tr-sender-border-color: #e4e7ed;
+  --tr-sender-input-color: #303133;
 }
 
 /* 暗色主题 */
 .theme-dark {
-  --tiny-sender-bg-color: #1e1e1e;
-  --tiny-sender-border-color: #4c4c4c;
-  --tiny-sender-input-color: #e0e0e0;
-  --tiny-sender-actions-icon-color: #b0b0b0;
+  --tr-sender-bg-color: #1e1e1e;
+  --tr-sender-border-color: #4c4c4c;
+  --tr-sender-input-color: #e0e0e0;
+  --tr-sender-actions-icon-color: #b0b0b0;
 }
 ```
 
 ### 性能优化
 
-对于频繁输入的场景，TinySender 提供了防抖处理，可通过`debounceSubmit`属性控制延迟时间：
+对于频繁输入的场景，TrSender 提供了防抖处理，可通过`debounceSubmit`属性控制延迟时间：
 
 ```vue
-<tiny-sender :debounceSubmit="500" />
+<TrSender :debounceSubmit="500" />
 ```

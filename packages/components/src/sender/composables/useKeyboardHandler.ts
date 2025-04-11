@@ -1,5 +1,5 @@
 import { Ref } from 'vue'
-import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../types'
+import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../index.type'
 
 /**
  * 键盘处理Hook

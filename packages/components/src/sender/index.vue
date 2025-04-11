@@ -1,133 +1,12 @@
-<template>
-  <div class="tiny-sender" :class="[senderClasses, `theme-${theme}`, `mode-${mode}`]">
-    <!-- 输入区域容器 -->
-    <div class="tiny-sender__container">
-      <div class="tiny-sender__input-wrapper">
-        <!-- 头部插槽 -->
-        <Transition name="tiny-sender-slide-down">
-          <div v-if="$slots.header" class="tiny-sender__header-slot">
-            <slot name="header"></slot>
-          </div>
-        </Transition>
-
-        <!-- 输入行 - 横向布局 -->
-        <div class="tiny-sender__input-row" :class="{ 'has-prefix': $slots.prefix, 'has-header': $slots.header }">
-          <!-- 前缀插槽 -->
-          <div v-if="$slots.prefix" class="tiny-sender__prefix-slot">
-            <slot name="prefix" />
-          </div>
-
-          <!-- 内容区域 - 确保最小宽度，不被挤占 -->
-          <div class="tiny-sender__content-area" :class="{}">
-            <tiny-input
-              ref="inputRef"
-              :autosize="autoSize"
-              :type="inputType"
-              :readonly="isLoading"
-              :resize="mode === 'multiple' ? 'none' : undefined"
-              v-model="inputValue"
-              :disabled="isDisabled"
-              :placeholder="placeholder"
-              :maxlength="maxLength"
-              :autofocus="autofocus"
-              @keydown="handleKeyPress"
-              @compositionstart="isComposing = true"
-              @compositionend="handleCompositionEnd"
-              @focus="handleFocus"
-              @blur="handleBlur"
-            />
-          </div>
-
-          <!-- 操作区域/后置插槽 -->
-          <div v-if="mode === 'single'" class="tiny-sender__actions-slot">
-            <div class="tiny-sender__buttons-container">
-              <slot name="actions" />
-              <action-buttons
-                class="inline-buttons"
-                :allow-speech="allowSpeech"
-                :allow-files="allowFiles"
-                :loading="loading"
-                :disabled="isDisabled"
-                :show-clear="clearable"
-                :has-content="!!inputValue"
-                :speech-status="speechState"
-                :submit-type="submitType"
-                @clear="clearInput"
-                @toggle-speech="toggleSpeech"
-                @submit="triggerSubmit"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- 底部插槽 - 底部工具栏作为默认内容 -->
-        <Transition name="tiny-sender-slide-up">
-          <div v-if="$slots.footer" class="tiny-sender__footer-slot">
-            <slot name="footer"></slot>
-          </div>
-          <div
-            v-else-if="mode !== 'single' || (showWordLimit && maxLength !== Infinity)"
-            :style="justifyContent"
-            class="tiny-sender__footer-slot tiny-sender__bottom-row"
-          >
-            <!-- 字数限制 -->
-            <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
-              {{ inputValue.length }}/{{ maxLength }}
-            </div>
-
-            <!-- 多行模式下的操作按钮 -->
-            <div v-if="mode === 'multiple'" class="tiny-sender__toolbar">
-              <div class="tiny-sender__buttons-container">
-                <action-buttons
-                  :allow-speech="allowSpeech"
-                  :allow-files="allowFiles"
-                  :loading="loading"
-                  :disabled="isDisabled"
-                  :show-clear="clearable"
-                  :has-content="!!inputValue"
-                  :speech-status="speechState"
-                  :submit-type="submitType"
-                  @clear="clearInput"
-                  @toggle-speech="toggleSpeech"
-                  @submit="triggerSubmit"
-                />
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </div>
-    </div>
-
-    <!-- 输入建议 -->
-    <Transition name="tiny-sender-slide-up">
-      <div v-if="showSuggestions && filteredSuggestions.length" class="tiny-sender__suggestions">
-        <div
-          v-for="(item, index) in filteredSuggestions"
-          :key="index"
-          class="suggestion-item"
-          @click="selectSuggestion(item)"
-        >
-          {{ item }}
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 错误提示 -->
-    <div v-if="errorMessage" class="tiny-sender__error">
-      {{ errorMessage }}
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { TinyInput } from '@opentiny/vue'
-import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './types'
+import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
 import { useSpeechHandler } from './composables/useSpeechHandler'
 import ActionButtons from './components/ActionButtons.vue'
-import './styles/index.less'
+import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
   submitType: 'enter',
@@ -286,35 +165,123 @@ defineExpose({
 })
 </script>
 
-<style lang="less">
-.tiny-sender__buttons-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+<template>
+  <div class="tiny-sender" :class="[senderClasses, `theme-${theme}`, `mode-${mode}`]" :data-theme="theme">
+    <!-- 输入区域容器 -->
+    <div class="tiny-sender__container">
+      <div class="tiny-sender__input-wrapper">
+        <!-- 头部插槽 -->
+        <Transition name="tiny-sender-slide-down">
+          <div v-if="$slots.header" class="tiny-sender__header-slot">
+            <slot name="header"></slot>
+          </div>
+        </Transition>
 
-.button-content {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+        <!-- 输入行 - 横向布局 -->
+        <div class="tiny-sender__input-row" :class="{ 'has-prefix': $slots.prefix, 'has-header': $slots.header }">
+          <!-- 前缀插槽 -->
+          <div v-if="$slots.prefix" class="tiny-sender__prefix-slot">
+            <slot name="prefix" />
+          </div>
 
-.shortcut-hint {
-  position: absolute;
-  bottom: -16px;
-  font-size: 10px;
-  color: #909399;
-  white-space: nowrap;
-  user-select: none;
-}
+          <!-- 内容区域 - 确保最小宽度，不被挤占 -->
+          <div class="tiny-sender__content-area">
+            <tiny-input
+              ref="inputRef"
+              :autosize="autoSize"
+              :type="inputType"
+              :readonly="isLoading"
+              :resize="mode === 'multiple' ? 'none' : undefined"
+              v-model="inputValue"
+              :disabled="isDisabled"
+              :placeholder="placeholder"
+              :maxlength="maxLength"
+              :autofocus="autofocus"
+              @keydown="handleKeyPress"
+              @compositionstart="isComposing = true"
+              @compositionend="handleCompositionEnd"
+              @focus="handleFocus"
+              @blur="handleBlur"
+            />
+          </div>
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>
+          <!-- 操作区域/后置插槽 -->
+          <div v-if="mode === 'single'" class="tiny-sender__actions-slot">
+            <div class="tiny-sender__buttons-container">
+              <slot name="actions" />
+              <action-buttons
+                class="inline-buttons"
+                :allow-speech="allowSpeech"
+                :allow-files="allowFiles"
+                :loading="loading"
+                :disabled="isDisabled"
+                :show-clear="clearable"
+                :has-content="!!inputValue"
+                :speech-status="speechState"
+                :submit-type="submitType"
+                @clear="clearInput"
+                @toggle-speech="toggleSpeech"
+                @submit="triggerSubmit"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部插槽 - 底部工具栏作为默认内容 -->
+        <Transition name="tiny-sender-slide-up">
+          <div v-if="$slots.footer" class="tiny-sender__footer-slot">
+            <slot name="footer"></slot>
+          </div>
+          <div
+            v-else-if="mode !== 'single' || (showWordLimit && maxLength !== Infinity)"
+            :style="justifyContent"
+            class="tiny-sender__footer-slot tiny-sender__bottom-row"
+          >
+            <!-- 字数限制 -->
+            <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
+              {{ inputValue.length }}/{{ maxLength }}
+            </div>
+
+            <!-- 多行模式下的操作按钮 -->
+            <div v-if="mode === 'multiple'" class="tiny-sender__toolbar">
+              <div class="tiny-sender__buttons-container">
+                <action-buttons
+                  :allow-speech="allowSpeech"
+                  :allow-files="allowFiles"
+                  :loading="loading"
+                  :disabled="isDisabled"
+                  :show-clear="clearable"
+                  :has-content="!!inputValue"
+                  :speech-status="speechState"
+                  :submit-type="submitType"
+                  @clear="clearInput"
+                  @toggle-speech="toggleSpeech"
+                  @submit="triggerSubmit"
+                />
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </div>
+
+    <!-- 输入建议 -->
+    <Transition name="tiny-sender-slide-up">
+      <div v-if="showSuggestions && filteredSuggestions.length" class="tiny-sender__suggestions">
+        <div
+          v-for="(item, index) in filteredSuggestions"
+          :key="index"
+          class="suggestion-item"
+          @click="selectSuggestion(item)"
+        >
+          {{ item }}
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 错误提示 -->
+    <div v-if="errorMessage" class="tiny-sender__error">
+      {{ errorMessage }}
+    </div>
+  </div>
+</template>

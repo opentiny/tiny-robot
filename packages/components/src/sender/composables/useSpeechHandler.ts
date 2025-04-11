@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import type { SpeechHookOptions, SpeechHandler, SpeechState } from '../types'
+import type { SpeechHookOptions, SpeechHandler, SpeechState } from '../index.type'
 
 declare global {
   interface Window {

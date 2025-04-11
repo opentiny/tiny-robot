@@ -1,57 +1,8 @@
-<template>
-  <div class="action-buttons">
-    <!-- 文件上传按钮 -->
-    <template v-if="allowFiles && !loading">
-      <tiny-tooltip content="上传文件" placement="top">
-        <tiny-button type="text" :disabled="isDisabled">
-          <img src="../../assets/icons/accessory.svg" class="button-icon" alt="上传文件" />
-        </tiny-button>
-      </tiny-tooltip>
-    </template>
-
-    <!-- 语音按钮：仅在启用语音功能时显示 -->
-    <template v-if="speechEnabled && !loading">
-      <tiny-tooltip :content="speechButtonText" placement="top">
-        <tiny-button
-          type="text"
-          :disabled="isDisabled"
-          @click="handleToggleSpeech"
-          class="speech-button"
-          :class="{ 'is-recording': isSpeechRecording }"
-        >
-          <img v-if="!isSpeechRecording" src="../../assets/icons/voice.svg" class="button-icon" alt="录音" />
-          <img v-else src="../../assets/icons/loading-speech.svg" class="button-icon recording-icon" alt="语音中" />
-        </tiny-button>
-      </tiny-tooltip>
-    </template>
-
-    <template v-if="showClear">
-      <tiny-tooltip content="清空内容" placement="top">
-        <tiny-button type="text" :disabled="isDisabled || !hasContent" @click="handleClear" style="margin-left: 0">
-          <component :is="TinyIconCloseSquare" class="button-icon" />
-        </tiny-button>
-      </tiny-tooltip>
-    </template>
-
-    <!-- 提交按钮：主操作按钮 -->
-    <template v-if="hasContent || loading">
-      <tiny-tooltip :content="submitTooltip" placement="top">
-        <tiny-button type="text" @click="handleSubmit" class="submit-button" :disabled="isDisabled">
-          <div class="button-content">
-            <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
-            <img v-else src="../../assets/icons/loading.svg" alt="加载中" class="loading" />
-          </div>
-        </tiny-button>
-      </tiny-tooltip>
-    </template>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TinyButton, TinyTooltip } from '@opentiny/vue'
 import { IconClose } from '@opentiny/vue-icon'
-import { ActionButtonsProps } from '../types'
+import { ActionButtonsProps } from '../index.type'
 
 const TinyIconCloseSquare = IconClose()
 
@@ -164,90 +115,51 @@ const handleSubmit = () => {
 }
 </script>
 
-<style lang="less" scoped>
-:deep(.tiny-button > img) {
-  margin-right: 0;
-}
+<template>
+  <div class="action-buttons">
+    <!-- 文件上传按钮 -->
+    <template v-if="allowFiles && !loading">
+      <tiny-tooltip content="上传文件" placement="top">
+        <tiny-button type="text" :disabled="isDisabled">
+          <img src="../../assets/icons/accessory.svg" class="button-icon" alt="上传文件" />
+        </tiny-button>
+      </tiny-tooltip>
+    </template>
 
-.tiny-button + .tiny-button {
-  margin-left: 0;
-}
-.action-buttons {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+    <!-- 语音按钮：仅在启用语音功能时显示 -->
+    <template v-if="speechEnabled && !loading">
+      <tiny-tooltip :content="speechButtonText" placement="top">
+        <tiny-button
+          type="text"
+          :disabled="isDisabled"
+          @click="handleToggleSpeech"
+          class="speech-button"
+          :class="{ 'is-recording': isSpeechRecording }"
+        >
+          <img v-if="!isSpeechRecording" src="../../assets/icons/voice.svg" class="button-icon" alt="录音" />
+          <img v-else src="../../assets/icons/loading-speech.svg" class="button-icon recording-icon" alt="语音中" />
+        </tiny-button>
+      </tiny-tooltip>
+    </template>
 
-.button-content {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    <template v-if="showClear">
+      <tiny-tooltip content="清空内容" placement="top">
+        <tiny-button type="text" :disabled="isDisabled || !hasContent" @click="handleClear" style="margin-left: 0">
+          <component :is="TinyIconCloseSquare" class="button-icon" />
+        </tiny-button>
+      </tiny-tooltip>
+    </template>
 
-.shortcut-hint {
-  position: absolute;
-  bottom: -16px;
-  font-size: 10px;
-  color: #909399;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.button-icon {
-  width: 28px;
-  height: 28px;
-}
-
-.speech-button {
-  position: relative;
-}
-
-.speech-button.is-recording {
-  background-color: rgba(255, 0, 0, 0.05);
-}
-
-.recording-icon {
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-.recording-indicator {
-  position: absolute;
-  right: -2px;
-  top: -2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #ff4d4f;
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-.submit-button {
-  margin-left: 4px;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading {
-  animation: spin 1s infinite linear;
-}
-</style>
+    <!-- 提交按钮：主操作按钮 -->
+    <template v-if="hasContent || loading">
+      <tiny-tooltip :content="submitTooltip" placement="top">
+        <tiny-button type="text" @click="handleSubmit" class="submit-button" :disabled="isDisabled">
+          <div class="button-content">
+            <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
+            <img v-else src="../../assets/icons/loading.svg" alt="加载中" class="loading" />
+          </div>
+        </tiny-button>
+      </tiny-tooltip>
+    </template>
+  </div>
+</template>

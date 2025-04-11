@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 import { debounce } from 'lodash-es'
-import type { SenderProps, SenderEmits } from '../types'
+import type { SenderProps, SenderEmits } from '../index.type'
 
 export function useInputHandler(props: SenderProps, emit: SenderEmits) {
   const inputValue = ref(props.defaultValue || '')
