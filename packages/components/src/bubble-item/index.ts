@@ -1,12 +1,11 @@
 import { App } from 'vue'
 import BubbleItem from './bubble-item.vue'
-
-BubbleItem.name = 'TinyBubbleItem'
+;(BubbleItem as unknown as { name: string }).name = 'TinyBubbleItem'
 
 const install = function (app: App) {
   app.component(BubbleItem.name!, BubbleItem)
 }
 
-BubbleItem.install = install
+;(BubbleItem as unknown as { install: unknown }).install = install
 
 export default BubbleItem as typeof BubbleItem & { install: typeof install }

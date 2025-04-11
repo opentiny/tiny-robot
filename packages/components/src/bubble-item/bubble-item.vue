@@ -1,18 +1,23 @@
 <script setup lang="ts">
+import { iconCopy, iconRefresh } from '@opentiny/vue-icon'
 import markdownit from 'markdown-it'
 import Typed, { TypedOptions } from 'typed.js'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { BubbleItem } from '../bubble-list/index.type'
+import { computed, onBeforeUnmount, onMounted, ref, toRaw } from 'vue'
+import { BubbleItemProps } from '../bubble-list/index.type'
 import AISvg from './components/ai-svg.vue'
 import UserSvg from './components/user-svg.vue'
 
-const props = withDefaults(defineProps<BubbleItem>(), {
+const props = withDefaults(defineProps<BubbleItemProps>(), {
   content: '',
   type: 'text',
   loading: false,
+  maxWidth: '80%',
 })
 
 const contentRef = ref<HTMLElement>()
+/**
+ * @deprecated
+ */
 const typedInstance = ref<Typed>()
 
 const bubbleContent = computed(() => {
@@ -23,6 +28,26 @@ const bubbleContent = computed(() => {
 })
 
 const isUserRole = computed(() => props.role === 'user')
+
+const isAlignRight = computed(() => {
+  if (props.roleConfig?.align) {
+    return props.roleConfig.align === 'right'
+  }
+
+  return isUserRole.value
+})
+
+const avatarVNode = computed(() => {
+  const avatar = props.roleConfig?.avatar
+  if (avatar) {
+    return () => avatar
+  }
+
+  return isUserRole.value ? UserSvg : AISvg
+})
+
+const TinyIconCopy = iconCopy()
+const TinyIconRefresh = iconRefresh()
 
 onMounted(() => {
   const { enable, ...rest } = props.typedConfig || {}
@@ -45,15 +70,31 @@ onBeforeUnmount(() => {
 })
 
 defineExpose({ typedInstance })
+
+const emit = defineEmits(['copy', 'regenerate'])
+
+// TODO
+const handleCopy = () => {
+  emit('copy', 'copy', toRaw(props))
+}
+
+const handleRegenerate = () => {
+  emit('regenerate', 'regenerate', toRaw(props))
+}
 </script>
 
 <template>
-  <div :class="['tr-bubble', { 'tr-bubble__right': isUserRole }]">
+  <div
+    :class="[
+      'tr-bubble',
+      {
+        'align-left': !isAlignRight,
+        'align-right': isAlignRight,
+      },
+    ]"
+  >
     <div class="tr-bubble__avatar">
-      <slot name="avatar">
-        <AISvg v-if="!isUserRole" />
-        <UserSvg v-if="isUserRole" />
-      </slot>
+      <component :is="avatarVNode"></component>
     </div>
     <div v-if="loading" class="tr-bubble__load-wrap">
       <span></span>
@@ -69,11 +110,20 @@ defineExpose({ typedInstance })
       ]"
     >
       <div class="tr-bubbule__text-wrap">
-        <span v-if="props.typedConfig?.enable" ref="contentRef" class="tr-bubble__text"></span>
-        <span v-else-if="props.type === 'markdown'" v-html="bubbleContent" class="tr-bubble__text"></span>
-        <span v-else class="tr-bubble__text">{{ bubbleContent }}</span>
+        <span v-if="props.typedConfig?.enable" ref="contentRef"></span>
+        <span v-else-if="props.type === 'markdown'" v-html="bubbleContent"></span>
+        <span v-else>{{ bubbleContent }}</span>
+        <span v-if="props.aborted" class="tr-bubbule__content-aborted">（用户停止）</span>
       </div>
       <slot name="footer"></slot>
+      <div v-if="props.showActions" class="actions">
+        <span>
+          <tiny-icon-refresh @click="handleRegenerate"></tiny-icon-refresh>
+        </span>
+        <span>
+          <tiny-icon-copy @click="handleCopy"></tiny-icon-copy>
+        </span>
+      </div>
     </div>
   </div>
 </template>
@@ -82,9 +132,23 @@ defineExpose({ typedInstance })
 .tr-bubble {
   display: flex;
   gap: 16px;
+  max-width: v-bind('props.maxWidth');
 
-  &.tr-bubble__right {
+  &.align-left {
+    flex-direction: row;
+
+    .tr-bubble__content {
+      border-top-left-radius: 0;
+    }
+  }
+
+  &.align-right {
     flex-direction: row-reverse;
+    margin-left: auto;
+
+    .tr-bubble__content {
+      border-top-right-radius: 0;
+    }
   }
 }
 
@@ -138,26 +202,39 @@ defineExpose({ typedInstance })
 }
 
 .tr-bubble__content {
-  background-color: white;
   padding: 16px 24px;
   border-radius: 24px;
-
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 
   &.tr-bubble__content-role-ai {
-    border-top-left-radius: 0;
+    background-color: white;
   }
 
   &.tr-bubble__content-role-user {
-    border-top-right-radius: 0;
     background-color: rgb(222, 236, 255);
   }
 
-  .tr-bubble__text {
+  .tr-bubbule__text-wrap {
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
-    margin: 0;
+  }
+
+  .tr-bubbule__content-aborted {
+    color: rgb(128, 128, 128);
+    font-size: 14px;
+  }
+
+  .actions {
+    display: flex;
+    justify-self: end;
+    gap: 4px;
+    margin-top: 16px;
+
+    & > * {
+      width: 24px;
+      height: 24px;
+    }
   }
 }
 </style>
