@@ -17,7 +17,7 @@
         :content="message.content"
       ></tiny-bubble-item>
 
-      <tiny-bubble-item v-if="isLoading" role="ai" loading></tiny-bubble-item>
+      <tiny-bubble-item v-if="isLoading" role="ai" status="loading"></tiny-bubble-item>
     </div>
 
     <!-- 需要替换为 TinyRobot InputBox组件-->
