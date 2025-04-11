@@ -28,7 +28,10 @@
         @keydown="handleKeyDown"
         :disabled="isLoading"
       ></textarea>
-      <button @click="sendMessage" :disabled="isLoading || !inputMessage.trim()">
+      <button v-if="isResponding" @click="handleAbort" class="abort-button">
+        <span>停止</span>
+      </button>
+      <button v-else @click="sendMessage" :disabled="isLoading || !inputMessage.trim()">
         <span v-if="!isLoading">发送</span>
         <span v-else>发送中...</span>
       </button>
@@ -45,8 +48,10 @@ import { AIClient, type ChatCompletionResponse, type ChatMessage } from '@openti
 const messages = ref<ChatMessage[]>([])
 const inputMessage = ref('')
 const isLoading = ref(false)
+const isResponding = ref(false)
 const chatContainer = ref<HTMLElement | null>(null)
 const useStreamResponse = ref(true) // 流式响应开关状态
+const controller = ref<AbortController | null>()
 
 const client = new AIClient({
   provider: 'openai',
@@ -55,10 +60,14 @@ const client = new AIClient({
   apiUrl: 'http://localhost:3001/v1',
 })
 
-const handleMessageResponse = async () => {
+const handleMessageResponse = async (signal: AbortSignal) => {
   try {
+    isResponding.value = true
     const response: ChatCompletionResponse = await client.chat({
       messages: messages.value,
+      options: {
+        signal,
+      },
     })
     messages.value.push(response.choices[0].message)
 
@@ -68,15 +77,23 @@ const handleMessageResponse = async () => {
     console.error('Error fetching AI response:', error)
   } finally {
     isLoading.value = false
+    isResponding.value = false
   }
 }
 
-const handleStreamMessageResponse = async () => {
+const handleAbort = () => {
+  controller.value?.abort()
+  isLoading.value = false
+  isResponding.value = false
+}
+
+const handleStreamMessageResponse = async (signal: AbortSignal) => {
   await client.chatStream(
-    { messages: toRaw(messages.value) },
+    { messages: toRaw(messages.value), options: { signal } },
     {
       onData: async (data) => {
         isLoading.value = false
+        isResponding.value = true
         if (data.choices?.[0]?.delta?.content) {
           if (messages.value[messages.value.length - 1].role !== 'assistant') {
             messages.value.push({ content: '', role: 'assistant' })
@@ -88,11 +105,13 @@ const handleStreamMessageResponse = async () => {
       },
       onError: (error) => {
         isLoading.value = false
+        isResponding.value = false
         messages.value.push({ content: '抱歉，发生了错误，请稍后再试。', role: 'assistant' })
         console.error('Error fetching AI response:', error)
       },
       onDone: () => {
         isLoading.value = false
+        isResponding.value = false
         scrollToBottom()
       },
     },
@@ -114,11 +133,13 @@ const sendMessage = async () => {
 
   isLoading.value = true
 
+  controller.value = new AbortController()
   if (useStreamResponse.value) {
-    await handleStreamMessageResponse() // 流式请求
+    await handleStreamMessageResponse(controller.value.signal) // 流式请求
   } else {
-    await handleMessageResponse() // 普通请求
+    await handleMessageResponse(controller.value.signal) // 普通请求
   }
+  controller.value = null
 }
 
 const scrollToBottom = () => {
@@ -232,6 +253,54 @@ button {
   &:disabled {
     background-color: #a0a0a0;
     cursor: not-allowed;
+  }
+}
+
+.abort-button {
+  background-color: #e74c3c;
+
+  &:hover {
+    background-color: #c0392b;
+  }
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+
+  span {
+    height: 8px;
+    width: 8px;
+    margin: 0 2px;
+    background-color: #bbb;
+    border-radius: 50%;
+    display: inline-block;
+    animation: typing 1.4s infinite ease-in-out both;
+
+    &:nth-child(1) {
+      animation-delay: 0s;
+    }
+
+    &:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+  }
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
   }
 }
 </style>

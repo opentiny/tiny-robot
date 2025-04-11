@@ -27,6 +27,7 @@ export interface ChatCompletionOptions {
   n?: number
   stream?: boolean
   max_tokens?: number
+  signal?: AbortSignal
 }
 
 /**
