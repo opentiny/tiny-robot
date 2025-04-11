@@ -1,3 +1,7 @@
+---
+outline: deep
+---
+
 # Bubble
 
 ## 组件示例
@@ -482,6 +486,84 @@ const handleAddBubble = () => {
 
 ## API
 
+### BubbleItem 组件
+
+单个气泡组件的属性定义
+
+```typescript
+interface BubbleItemProps {
+  /**
+   * 角色，`ai` 或 `user`
+   */
+  role: BubbleRole
+  /**
+   * 内容
+   */
+  content?: string
+  /**
+   * 内容类型
+   */
+  type?: 'text' | 'markdown'
+  /**
+   * 气泡状态
+   */
+  status?: BubbleStatus
+  /**
+   * 角色配置项
+   */
+  roleConfig?: BubbleRoleConfig
+  /**
+   * type 为 'markdown' 时，markdown 的配置项
+   */
+  mdConfig?: MarkdownItOptions
+  showActions?: boolean
+  actions?: BubbleAction[]
+  // 样式相关
+  maxWidth?: CSSProperties['maxWidth']
+}
+```
+
+**属性说明**:
+
+- `role`: 必选，气泡角色
+- `content`: 可选，气泡显示的内容
+- `type`: 可选，内容类型，默认为'text'
+- `status`: 可选，气泡状态
+- `roleConfig`: 可选，覆盖全局的角色配置
+- `mdConfig`: 可选，markdown 渲染配置
+- `showActions`: 可选，是否显示操作按钮
+- `actions`: 可选，自定义操作按钮
+- `maxWidth`: 可选，气泡最大宽度
+
+---
+
+### BubbleList 组件
+
+气泡列表组件的属性定义
+
+```typescript
+interface BubbleListProps {
+  items: BubbleItemProps[] // 气泡项列表
+  roleConfigs?: Partial<Record<BubbleRole, BubbleRoleConfig>> // 角色配置
+  mdConfig?: MarkdownItOptions // 全局markdown配置
+  actionConfigs?: Partial<Record<BubbleRole, BubbleActionConfig>> // 操作按钮配置
+  autoScroll?: boolean // 是否自动滚动到底部
+  // 样式相关
+  maxWidth?: CSSProperties['maxWidth'] // 最大宽度
+}
+```
+
+**属性说明**:
+
+- `items`: 必选，气泡项数组
+- `roleConfigs`: 可选，各角色的默认配置
+- `mdConfig`: 可选，全局 markdown 配置
+- `actionConfigs`: 可选，各角色的操作按钮配置
+- `autoScroll`: 可选，是否自动滚动
+- `maxWidth`: 可选，列表最大宽度
+
+---
+
 ### BubbleRole
 
 定义气泡对话中的角色类型
@@ -566,57 +648,6 @@ type BubbleAction = 'copy' | 'regenerate' | 'like' | 'dislike' | 'continue' | 'e
 
 ---
 
-### BubbleItemProps
-
-单个气泡项的属性定义
-
-```typescript
-interface BubbleItemProps {
-  /**
-   * 角色，`ai` 或 `user`
-   */
-  role: BubbleRole
-  /**
-   * 内容
-   */
-  content?: string
-  /**
-   * 内容类型
-   */
-  type?: 'text' | 'markdown'
-  /**
-   * 气泡状态
-   */
-  status?: BubbleStatus
-  /**
-   * 角色配置项
-   */
-  roleConfig?: BubbleRoleConfig
-  /**
-   * type 为 'markdown' 时，markdown 的配置项
-   */
-  mdConfig?: MarkdownItOptions
-  showActions?: boolean
-  actions?: BubbleAction[]
-  // 样式相关
-  maxWidth?: CSSProperties['maxWidth']
-}
-```
-
-**属性说明**:
-
-- `role`: 必选，气泡角色
-- `content`: 可选，气泡显示的内容
-- `type`: 可选，内容类型，默认为'text'
-- `status`: 可选，气泡状态
-- `roleConfig`: 可选，覆盖全局的角色配置
-- `mdConfig`: 可选，markdown 渲染配置
-- `showActions`: 可选，是否显示操作按钮
-- `actions`: 可选，自定义操作按钮
-- `maxWidth`: 可选，气泡最大宽度
-
----
-
 ### BubbleActionConfig
 
 操作按钮配置
@@ -627,30 +658,3 @@ interface BubbleActionConfig {
   actions?: BubbleAction[] // 自定义操作项
 }
 ```
-
----
-
-### BubbleListProps
-
-气泡列表组件的属性定义
-
-```typescript
-interface BubbleListProps {
-  items: BubbleItemProps[] // 气泡项列表
-  roleConfigs?: Partial<Record<BubbleRole, BubbleRoleConfig>> // 角色配置
-  mdConfig?: MarkdownItOptions // 全局markdown配置
-  actionConfigs?: Partial<Record<BubbleRole, BubbleActionConfig>> // 操作按钮配置
-  autoScroll?: boolean // 是否自动滚动到底部
-  // 样式相关
-  maxWidth?: CSSProperties['maxWidth'] // 最大宽度
-}
-```
-
-**属性说明**:
-
-- `items`: 必选，气泡项数组
-- `roleConfigs`: 可选，各角色的默认配置
-- `mdConfig`: 可选，全局 markdown 配置
-- `actionConfigs`: 可选，各角色的操作按钮配置
-- `autoScroll`: 可选，是否自动滚动
-- `maxWidth`: 可选，列表最大宽度
