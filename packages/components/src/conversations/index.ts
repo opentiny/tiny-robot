@@ -1,7 +1,7 @@
 import { App } from 'vue'
-import Conversations from './conversations.vue'
+import Conversations from './index.vue'
 
-Conversations.name = 'TinyConversations'
+Conversations.name = 'TrConversations'
 
 const install = function <T>(app: App<T>) {
   app.component(Conversations.name!, Conversations)
