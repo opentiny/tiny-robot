@@ -20,38 +20,28 @@ export interface SpeechConfig {
   autoReplace?: boolean // 是否自动替换当前输入内容
 }
 
-// 按钮配置类型
-export interface ButtonConfig {
-  key: string
-  icon?: string
-  text?: string
-  loading?: boolean
-  disabled?: boolean
-  onClick?: () => void
-}
-
 export type AutoSize = boolean | { minRows: number; maxRows: number }
 
 // Sender组件属性
 export interface SenderProps {
-  defaultValue?: string | null // 默认值
+  autofocus?: boolean // 自动聚焦
   autoSize?: AutoSize // 自适应内容高度
   allowSpeech?: boolean // 是否允许语音识别
+  allowFiles?: boolean // 是否允许上传附件
+  clearable?: boolean // 是否显示清除按钮
+  disabled?: boolean // 禁用状态
+  defaultValue?: string | null // 默认值
+  debounceSubmit?: number // 提交防抖时间(ms)
+  loading?: boolean // 加载状态
   modelValue?: string // 双向绑定值
+  mode?: InputMode // 输入框模式：单行/多行
+  maxLength?: number // 最大输入长度
   submitType?: SubmitTrigger // 提交触发方式
   speech?: boolean | SpeechConfig // 语音识别配置
-  debounceSubmit?: number // 提交防抖时间(ms)
-  disabled?: boolean // 禁用状态
-  loading?: boolean // 加载状态
-  clearable?: boolean // 是否显示清除按钮
   placeholder?: string // 占位文本
-  maxLength?: number // 最大输入长度
-  autofocus?: boolean // 自动聚焦
   showWordLimit?: boolean // 显示字数统计
   suggestions?: string[] // 输入建议
   theme?: ThemeType // 主题
-  allowFiles?: boolean // 是否允许上传附件
-  mode?: InputMode // 输入框模式：单行/多行
 }
 
 export interface ActionButtonsProps {
@@ -105,12 +95,6 @@ export interface InputHandler {
   inputValue: Ref<string>
   isComposing: Ref<boolean>
   clearInput: () => void
-}
-
-// 提交处理器返回类型
-export interface SubmitHandler {
-  handleKeyPress: (e: KeyboardEvent) => void
-  triggerSubmit: () => void
 }
 
 // 键盘处理器返回类型

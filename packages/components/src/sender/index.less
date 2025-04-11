@@ -23,7 +23,7 @@
     padding-right: 16px;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    
+
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
     }
@@ -48,7 +48,7 @@
     padding-right: 0;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    
+
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
     }
@@ -336,4 +336,9 @@
   color: var(--tr-sender-text-color-secondary);
   white-space: nowrap;
   user-select: none;
+}
+
+/** 处理相邻按钮元素边界  */
+.tiny-button + .tiny-button {
+  margin-left: 0;
 }

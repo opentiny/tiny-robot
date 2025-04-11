@@ -9,19 +9,21 @@ import ActionButtons from './components/ActionButtons.vue'
 import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
-  submitType: 'enter',
-  autoSize: false,
-  loading: false,
-  debounceSubmit: 300,
-  clearable: false,
-  allowSpeech: true,
-  placeholder: '请输入内容...',
-  theme: 'light',
-  maxLength: Infinity,
   autofocus: false,
-  showWordLimit: false,
+  autoSize: false,
+  allowSpeech: true,
   allowFiles: false,
+  clearable: false,
+  disabled: false,
+  debounceSubmit: 300,
+  loading: false,
+  modelValue: '',
   mode: 'single',
+  maxLength: Infinity,
+  placeholder: '请输入内容...',
+  showWordLimit: false,
+  submitType: 'enter',
+  theme: 'light',
 })
 
 const emit = defineEmits<SenderEmits>()

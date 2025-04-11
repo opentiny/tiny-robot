@@ -6,9 +6,9 @@ import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../in
  * 集中管理组件的键盘相关操作
  *
  * @param props - 组件属性
- * @param emit - 事件发射器
+ * @param emit - 组件方法
  * @param inputValue - 输入值
- * @param isComposing - 是否处于输入法组合状态
+ * @param isComposing - 是否处于输入法组合状态（即编辑态）
  * @param speechState - 语音识别状态
  * @param showSuggestions - 是否显示建议列表
  * @param toggleSpeech - 切换语音识别函数

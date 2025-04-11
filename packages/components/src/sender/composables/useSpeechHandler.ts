@@ -8,6 +8,13 @@ declare global {
   }
 }
 
+/**
+ * 语音识别处理 Hook
+ * 集中管理语音识别相关逻辑
+ *
+ * @param options 语音识别配置
+ */
+
 export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
   // 语音识别状态
   const speechState = reactive<SpeechState>({

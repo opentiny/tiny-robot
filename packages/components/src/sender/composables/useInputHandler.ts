@@ -2,6 +2,13 @@ import { ref, watch } from 'vue'
 import { debounce } from 'lodash-es'
 import type { SenderProps, SenderEmits } from '../index.type'
 
+/**
+ * 输入框值处理 Hook
+ * 对输入框的值进行集中处理
+ *
+ * @param props 组件属性
+ * @param emit  组件方法
+ */
 export function useInputHandler(props: SenderProps, emit: SenderEmits) {
   const inputValue = ref(props.defaultValue || '')
   const inputWrapper = ref<HTMLElement | null>(null)
