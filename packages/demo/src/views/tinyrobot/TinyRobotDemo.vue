@@ -44,7 +44,7 @@
 import { ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { AIClient, useMessage } from '@opentiny/tiny-robot-ai-adapter'
-import { BubbleItem as TinyBubbleItem } from '@opentiny/tiny-robot'
+import { TinyBubbleItem } from '@opentiny/tiny-robot'
 import { IconFullScreen } from '@opentiny/tiny-robot-svgs'
 
 const client = new AIClient({
