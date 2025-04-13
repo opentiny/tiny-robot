@@ -15,5 +15,8 @@
     "@types/node": "^22.13.17",
     "tsup": "^8.0.1",
     "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "vue": ">=3.0.0"
   }
 }
