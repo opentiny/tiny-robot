@@ -4,6 +4,7 @@ import router from './router'
 import MateChat from '@matechat/core'
 
 import '@devui-design/icons/icomoon/devui-icon.css'
+import '@opentiny/tiny-robot/dist/style.css'
 
 const app = createApp(App)
 app.use(router).use(MateChat)
