@@ -7,6 +7,8 @@ export default defineConfig({
   title: 'TinyRobot',
   description: 'TinyRobot',
   srcDir: 'src',
+  outDir: 'dist',
+  base: '/cdocs/tiny-robot/',
   markdown: {
     config: (md) => {
       md.use(vitepressDemoPlugin)
@@ -24,7 +26,6 @@ export default defineConfig({
       { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
     ],
-
     sidebar: {
       '/guide/': [
         {

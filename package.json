@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm -F docs docs:dev",
-    "build": "pnpm -F docs docs:build",
+    "dev": "pnpm -F docs dev",
+    "build": "pnpm -F docs build",
     "build:lib": "pnpm -F @opentiny/tiny-robot build",
     "dev:adapter": "pnpm -F @opentiny/tiny-robot-ai-adapter dev",
     "build:adapter": "pnpm -F @opentiny/tiny-robot-ai-adapter build",

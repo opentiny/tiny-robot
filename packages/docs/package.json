@@ -2,11 +2,12 @@
   "name": "docs",
   "private": true,
   "scripts": {
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
   },
   "devDependencies": {
+    "gh-pages": "^2.1.1",
     "vitepress": "^1.6.3",
     "vitepress-demo-plugin": "^1.4.0",
     "vitepress-theme-demoblock": "^3.1.2"
