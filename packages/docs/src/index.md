@@ -10,10 +10,10 @@ hero:
     src: /logo.png
     alt: TinyRobot
   actions:
-    - theme: brand
+    - theme: alt
       text: 指南
       link: /guide/installation
-    - theme: alt
+    - theme: brand
       text: 组件 API 示例
       link: /components/bubble
 

@@ -1,10 +1,21 @@
 import { defineConfig } from 'vitepress'
+// import { demoblockPlugin, demoblockVitePlugin } from 'vitepress-theme-demoblock'
+import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'TinyRobot',
   description: 'TinyRobot',
   srcDir: 'src',
+  markdown: {
+    config: (md) => {
+      md.use(vitepressDemoPlugin)
+      // md.use(demoblockPlugin)
+    },
+  },
+  vite: {
+    // plugins: [demoblockVitePlugin()]
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     logo: '/logo.png',
@@ -29,9 +40,13 @@ export default defineConfig({
           items: [
             { text: 'Bubble 气泡', link: 'bubble' },
             { text: 'Sender 消息输入框', link: 'sender' },
+            { text: '示例', link: 'example' },
           ],
         },
       ],
+    },
+    search: {
+      provider: 'local',
     },
   },
 })

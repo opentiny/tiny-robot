@@ -7,7 +7,9 @@
     "docs:preview": "vitepress preview"
   },
   "devDependencies": {
-    "vitepress": "^1.6.3"
+    "vitepress": "^1.6.3",
+    "vitepress-demo-plugin": "^1.4.0",
+    "vitepress-theme-demoblock": "^3.1.2"
   },
   "dependencies": {
     "@opentiny/tiny-robot": "workspace:^",
