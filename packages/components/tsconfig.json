@@ -16,6 +16,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "preserve",
+    "jsxImportSource": "vue",
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,

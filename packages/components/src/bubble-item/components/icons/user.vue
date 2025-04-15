@@ -1,0 +1,78 @@
+<template>
+  <svg
+    width="2em"
+    height="2em"
+    viewBox="0 0 32 32"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+  >
+    <desc>Created with Pixso.</desc>
+    <defs>
+      <pattern id="pattern_485_194830" patternContentUnits="objectBoundingBox" width="1.000000" height="1.000000">
+        <use xlink:href="#image485_19483_0" transform="matrix(0.014811,0,0,0.014911,-0.184097,-0.15244)" />
+      </pattern>
+      <image
+        id="image485_19483_0"
+        width="94.000000"
+        height="87.000000"
+        xlink:href="data:image/png;base64,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"
+      />
+    </defs>
+    <rect id="矩形" width="32.000000" height="32.000000" fill="#D8D8D8" fill-opacity="0" />
+    <rect
+      id="矩形"
+      x="0.421143"
+      y="0.421021"
+      width="31.157894"
+      height="31.157894"
+      stroke="#979797"
+      stroke-opacity="0"
+      stroke-width="0.842105"
+    />
+    <mask
+      id="mask485_19483"
+      mask-type="alpha"
+      maskUnits="userSpaceOnUse"
+      x="0.000000"
+      y="0.000000"
+      width="31.604980"
+      height="31.604980"
+    >
+      <circle
+        id="椭圆形"
+        cx="15.802490"
+        cy="15.802490"
+        r="15.802469"
+        fill="url(#pattern_485_194830)"
+        fill-opacity="1.000000"
+      />
+      <circle
+        id="椭圆形"
+        cx="15.802490"
+        cy="15.802490"
+        r="15.381416"
+        stroke="#979797"
+        stroke-opacity="0"
+        stroke-width="0.842105"
+      />
+    </mask>
+    <circle
+      id="椭圆形"
+      cx="15.802490"
+      cy="15.802490"
+      r="15.802469"
+      fill="url(#pattern_485_194830)"
+      fill-opacity="1.000000"
+    />
+    <circle
+      id="椭圆形"
+      cx="15.802490"
+      cy="15.802490"
+      r="15.381416"
+      stroke="#979797"
+      stroke-opacity="0"
+      stroke-width="0.842105"
+    />
+  </svg>
+</template>
