@@ -4,20 +4,49 @@
       <h1>AI 助手</h1>
       <div class="stream-toggle">
         <span>流式响应</span>
-        <tiny-switch v-model="useStreamResponse"></tiny-switch>
+        <tiny-switch v-model="useStream"></tiny-switch>
+        <icon-full-screen class="full-screen-icon"></icon-full-screen>
       </div>
     </div>
 
     <!-- 需要替换为 TinyRobot Bubble组件-->
     <div class="chat-messages" ref="chatContainer">
-      <tiny-bubble-item
+      <div
         v-for="(message, index) in messages"
         :key="index"
-        :role="message.role === 'user' ? 'user' : 'ai'"
-        :content="message.content"
-      ></tiny-bubble-item>
+        :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']"
+      >
+        <div class="message-content">
+          <div class="message-avatar">
+            <div class="avatar-icon">
+              {{ message.role === 'user' ? '👤' : '🤖' }}
+            </div>
+          </div>
+          <div class="message-bubble">
+            <div class="message-text">{{ message.content }}</div>
+            <div v-if="message.role === 'assistant' && index > 0" class="message-actions">
+              <button class="action-button retry-button" @click="retryRequest(index)">
+                <span class="retry-icon">↻</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <tiny-bubble-item v-if="isLoading" role="ai" status="loading"></tiny-bubble-item>
+      <div v-if="messageState.status === STATUS.PROCESSING" class="message assistant-message">
+        <div class="message-content">
+          <div class="message-avatar">
+            <div class="avatar-icon">🤖</div>
+          </div>
+          <div class="message-bubble">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 需要替换为 TinyRobot InputBox组件-->
@@ -26,32 +55,23 @@
         v-model="inputMessage"
         placeholder="输入消息..."
         @keydown="handleKeyDown"
-        :disabled="isLoading"
+        :disabled="messageState.status === STATUS.PROCESSING"
       ></textarea>
-      <button v-if="isResponding" @click="handleAbort" class="abort-button">
+      <button v-if="GeneratingStatus.includes(messageState.status)" @click="abortRequest" class="abort-button">
         <span>停止</span>
       </button>
-      <button v-else @click="sendMessage" :disabled="isLoading || !inputMessage.trim()">
-        <span v-if="!isLoading">发送</span>
-        <span v-else>发送中...</span>
+      <button v-else @click="sendMessage" :disabled="messageState.status === STATUS.PROCESSING || !inputMessage.trim()">
+        <span>发送</span>
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, toRaw } from 'vue'
+import { ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import { BubbleItem as TinyBubbleItem } from '@opentiny/tiny-robot'
-import { AIClient, type ChatCompletionResponse, type ChatMessage } from '@opentiny/tiny-robot-ai-adapter'
-
-const messages = ref<ChatMessage[]>([])
-const inputMessage = ref('')
-const isLoading = ref(false)
-const isResponding = ref(false)
-const chatContainer = ref<HTMLElement | null>(null)
-const useStreamResponse = ref(true) // 流式响应开关状态
-const controller = ref<AbortController | null>()
+import { AIClient, useMessage, STATUS, GeneratingStatus } from '@opentiny/tiny-robot-ai-adapter'
+import { IconFullScreen } from '@opentiny/tiny-robot-svgs'
 
 const client = new AIClient({
   provider: 'openai',
@@ -60,87 +80,27 @@ const client = new AIClient({
   apiUrl: 'http://localhost:3001/v1',
 })
 
-const handleMessageResponse = async (signal: AbortSignal) => {
-  try {
-    isResponding.value = true
-    const response: ChatCompletionResponse = await client.chat({
-      messages: messages.value,
-      options: {
-        signal,
-      },
-    })
-    messages.value.push(response.choices[0].message)
-
-    await nextTick()
-    scrollToBottom()
-  } catch (error) {
-    console.error('Error fetching AI response:', error)
-  } finally {
-    isLoading.value = false
-    isResponding.value = false
-  }
-}
-
-const handleAbort = () => {
-  controller.value?.abort()
-  isLoading.value = false
-  isResponding.value = false
-}
-
-const handleStreamMessageResponse = async (signal: AbortSignal) => {
-  await client.chatStream(
-    { messages: toRaw(messages.value), options: { signal } },
+const { messages, messageState, inputMessage, useStream, sendMessage, abortRequest, retryRequest } = useMessage({
+  client,
+  useStreamByDefault: true,
+  initialMessages: [
     {
-      onData: async (data) => {
-        isLoading.value = false
-        isResponding.value = true
-        if (data.choices?.[0]?.delta?.content) {
-          if (messages.value[messages.value.length - 1].role !== 'assistant') {
-            messages.value.push({ content: '', role: 'assistant' })
-          }
-          messages.value[messages.value.length - 1].content += data.choices[0].delta.content
-          await nextTick()
-          scrollToBottom()
-        }
-      },
-      onError: (error) => {
-        isLoading.value = false
-        isResponding.value = false
-        messages.value.push({ content: '抱歉，发生了错误，请稍后再试。', role: 'assistant' })
-        console.error('Error fetching AI response:', error)
-      },
-      onDone: () => {
-        isLoading.value = false
-        isResponding.value = false
-        scrollToBottom()
-      },
+      content: '你好！我是AI助手，有什么可以帮助你的吗？',
+      role: 'assistant',
     },
-  )
-}
+  ],
+})
 
-const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isLoading.value) return
+watch(
+  () => messages.value[messages.value.length - 1].content,
+  () => {
+    if (GeneratingStatus.includes(messageState.status)) {
+      scrollToBottom()
+    }
+  },
+)
 
-  const userMessage: ChatMessage = {
-    content: inputMessage.value,
-    role: 'user',
-  }
-  messages.value.push(userMessage)
-  inputMessage.value = ''
-
-  await nextTick()
-  scrollToBottom()
-
-  isLoading.value = true
-
-  controller.value = new AbortController()
-  if (useStreamResponse.value) {
-    await handleStreamMessageResponse(controller.value.signal) // 流式请求
-  } else {
-    await handleMessageResponse(controller.value.signal) // 普通请求
-  }
-  controller.value = null
-}
+const chatContainer = ref<HTMLElement | null>(null)
 
 const scrollToBottom = () => {
   if (chatContainer.value) {
@@ -154,13 +114,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
     sendMessage()
   }
 }
-
-onMounted(() => {
-  messages.value.push({
-    content: '你好！我是AI助手，有什么可以帮助你的吗？',
-    role: 'assistant',
-  })
-})
 </script>
 
 <style scoped lang="less">
@@ -209,6 +162,129 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.message {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.message-content {
+  display: flex;
+  max-width: 80%;
+}
+
+.user-message {
+  justify-content: flex-end;
+
+  .message-content {
+    flex-direction: row-reverse;
+  }
+
+  .avatar-icon {
+    background-color: #4a6cf7;
+    color: white;
+  }
+
+  .message-bubble {
+    background-color: #4a6cf7;
+    color: white;
+    border-top-right-radius: 4px;
+  }
+}
+
+.assistant-message {
+  .avatar-icon {
+    background-color: #10b981;
+    color: white;
+  }
+
+  .message-bubble {
+    background-color: white;
+    color: #333;
+    border-top-left-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.message-avatar {
+  width: 40px;
+  height: 40px;
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+.avatar-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e0e0e0;
+  border-radius: 50%;
+  font-size: 20px;
+}
+
+.message-bubble {
+  padding: 12px 16px;
+  border-radius: 18px;
+  position: relative;
+  word-break: break-word;
+}
+
+.message-text {
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+// 消息操作区域样式
+.message-actions {
+  position: absolute;
+  right: 10px;
+  bottom: -20px;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.message-bubble:hover .message-actions {
+  opacity: 1;
+}
+
+.action-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  margin-left: 5px;
+  padding: 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+    transform: scale(1.1);
+  }
+}
+
+.retry-button {
+  background-color: #f8f9fa;
+  color: #4a6cf7;
+
+  &:hover {
+    background-color: #e8f0fe;
+    color: #3a5ce5;
+  }
+}
+
+.retry-icon {
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .chat-input {
@@ -302,5 +378,9 @@ button {
   40% {
     transform: scale(1);
   }
+}
+.full-screen-icon {
+  width: 20px;
+  height: 20px;
 }
 </style>
