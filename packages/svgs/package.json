@@ -1,6 +1,9 @@
 {
   "name": "@opentiny/tiny-robot-svgs",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "module": "dist/tiny-robot-svgs.js",
   "types": "dist/types/index.d.ts",
@@ -10,8 +13,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
-    "prebuild": "npm run convert",
+    "build": "npm run convert && vue-tsc && vite build",
     "type-check": "vue-tsc --noEmit",
     "convert": "tsx ./scripts/convert.ts -F"
   },

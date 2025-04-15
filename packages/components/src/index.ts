@@ -1,18 +1,21 @@
 import { App } from 'vue'
+import Welcome from './welcome'
+import Conversations from './conversations'
 import BubbleItem from './bubble-item'
 import BubbleList from './bubble-list'
-import Conversations from './conversations'
 import Sender from './sender'
-
-export { BubbleItem, BubbleList, Conversations, Sender }
 
 export * from './bubble-list/index.type'
 
+const components = [Welcome, Conversations, BubbleItem, BubbleList, Sender]
+
 export default {
   install<T>(app: App<T>) {
-    app.use(Conversations)
-    app.use(BubbleItem)
-    app.use(BubbleList)
-    app.use(Sender)
+    components.forEach((component) => {
+      const name = component.name!.replace(/^Tiny/, '').replace(/^Tr/, '')
+      app.component(name, component)
+    })
   },
 }
+
+export { Welcome, Conversations, BubbleItem, BubbleList, Sender }

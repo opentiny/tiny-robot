@@ -11,42 +11,16 @@
 
     <!-- 需要替换为 TinyRobot Bubble组件-->
     <div class="chat-messages" ref="chatContainer">
-      <div
+      <tiny-bubble-item
         v-for="(message, index) in messages"
         :key="index"
-        :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']"
-      >
-        <div class="message-content">
-          <div class="message-avatar">
-            <div class="avatar-icon">
-              {{ message.role === 'user' ? '👤' : '🤖' }}
-            </div>
-          </div>
-          <div class="message-bubble">
-            <div class="message-text">{{ message.content }}</div>
-            <div v-if="message.role === 'assistant' && index > 0" class="message-actions">
-              <button class="action-button retry-button" @click="retryRequest(index)">
-                <span class="retry-icon">↻</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+        :role="message.role === 'user' ? 'user' : 'ai'"
+        :content="message.content"
+        :showActions="index !== messages.length - 1 || !GeneratingStatus.includes(messageState.status)"
+        @actionClick="handleActionClick($event, index)"
+      ></tiny-bubble-item>
 
-      <div v-if="messageState.status === STATUS.PROCESSING" class="message assistant-message">
-        <div class="message-content">
-          <div class="message-avatar">
-            <div class="avatar-icon">🤖</div>
-          </div>
-          <div class="message-bubble">
-            <div class="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <tiny-bubble-item v-if="messageState.status === STATUS.PROCESSING" role="ai" status="loading"></tiny-bubble-item>
     </div>
 
     <!-- 需要替换为 TinyRobot InputBox组件-->
@@ -71,6 +45,7 @@
 import { ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { AIClient, useMessage, STATUS, GeneratingStatus } from '@opentiny/tiny-robot-ai-adapter'
+import { BubbleItem as TinyBubbleItem } from '@opentiny/tiny-robot'
 import { IconFullScreen } from '@opentiny/tiny-robot-svgs'
 
 const client = new AIClient({
@@ -90,6 +65,10 @@ const { messages, messageState, inputMessage, useStream, sendMessage, abortReque
     },
   ],
 })
+
+const handleActionClick = (action: string, index: number) => {
+  if (action === 'regenerate') retryRequest(index)
+}
 
 watch(
   () => messages.value[messages.value.length - 1].content,
@@ -162,129 +141,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.message {
-  display: flex;
-  margin-bottom: 8px;
-}
-
-.message-content {
-  display: flex;
-  max-width: 80%;
-}
-
-.user-message {
-  justify-content: flex-end;
-
-  .message-content {
-    flex-direction: row-reverse;
-  }
-
-  .avatar-icon {
-    background-color: #4a6cf7;
-    color: white;
-  }
-
-  .message-bubble {
-    background-color: #4a6cf7;
-    color: white;
-    border-top-right-radius: 4px;
-  }
-}
-
-.assistant-message {
-  .avatar-icon {
-    background-color: #10b981;
-    color: white;
-  }
-
-  .message-bubble {
-    background-color: white;
-    color: #333;
-    border-top-left-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-}
-
-.message-avatar {
-  width: 40px;
-  height: 40px;
-  margin: 0 8px;
-  flex-shrink: 0;
-}
-
-.avatar-icon {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #e0e0e0;
-  border-radius: 50%;
-  font-size: 20px;
-}
-
-.message-bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  position: relative;
-  word-break: break-word;
-}
-
-.message-text {
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-// 消息操作区域样式
-.message-actions {
-  position: absolute;
-  right: 10px;
-  bottom: -20px;
-  display: flex;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  z-index: 10;
-}
-
-.message-bubble:hover .message-actions {
-  opacity: 1;
-}
-
-.action-button {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  margin-left: 5px;
-  padding: 0;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #e0e0e0;
-    transform: scale(1.1);
-  }
-}
-
-.retry-button {
-  background-color: #f8f9fa;
-  color: #4a6cf7;
-
-  &:hover {
-    background-color: #e8f0fe;
-    color: #3a5ce5;
-  }
-}
-
-.retry-icon {
-  font-size: 16px;
-  font-weight: bold;
 }
 
 .chat-input {

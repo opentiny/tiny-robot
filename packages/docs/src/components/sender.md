@@ -2,9 +2,9 @@
 outline: deep
 ---
 
-# TrSender 组件
+# Sender 组件
 
-TrSender 是一个灵活的输入组件，支持单行和多行模式，具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
+Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
 
 ## 组件能力展示
 
@@ -14,20 +14,20 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 单行模式(`mode="single"`)适用于简单的输入场景，如搜索框、简短消息输入等。
 
-<TrSender  />
+<Sender  />
 
 ```vue
-<TrSender />
+<Sender />
 ```
 
 #### 多行模式
 
 多行模式(`mode="multiple"`)适用于较长文本输入，如评论、聊天消息等。
 
-<TrSender mode="multiple" />
+<Sender mode="multiple" />
 
 ```vue
-<TrSender mode="multiple" />
+<Sender mode="multiple" />
 ```
 
 ### 状态控制
@@ -36,20 +36,20 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 通过设置`loading`属性控制组件的加载状态，加载状态下输入框将显示加载动画并禁用输入。
 
-<TrSender :loading="true" />
+<Sender :loading="true" />
 
 ```vue
-<TrSender :loading="true" />
+<Sender :loading="true" />
 ```
 
 #### 禁用状态
 
 通过设置`disabled`属性禁用整个组件，禁用状态下无法输入内容或触发任何操作。
 
-<TrSender :disabled="true" />
+<Sender :disabled="true" />
 
 ```vue
-<TrSender :disabled="true" />
+<Sender :disabled="true" />
 ```
 
 ### 内容控制
@@ -58,30 +58,30 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 通过`maxLength`属性限制输入字符数，搭配`showWordLimit`显示字数统计。
 
-<TrSender mode="multiple" :showWordLimit="true" :maxLength="1000" />
+<Sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 
 ```vue
-<TrSender mode="multiple" :showWordLimit="true" :maxLength="1000" />
+<Sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 ```
 
 #### 自动调整高度
 
 设置`autoSize`属性使输入框高度自动适应内容。
 
-<TrSender mode="multiple" :autoSize="true" />
+<Sender mode="multiple" :autoSize="true" />
 
 ```vue
-<TrSender mode="multiple" :autoSize="true" />
+<Sender mode="multiple" :autoSize="true" />
 ```
 
 #### 可清空输入
 
 通过`clearable`属性添加清空按钮，方便用户快速清除输入内容。
 
-<TrSender :clearable="true" />
+<Sender :clearable="true" />
 
 ```vue
-<TrSender :clearable="true" />
+<Sender :clearable="true" />
 ```
 
 ### 高级功能
@@ -90,10 +90,10 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 启用`allowSpeech`支持语音输入功能，用户可以通过语音录入文本。
 
-<TrSender :allowSpeech="true" />
+<Sender :allowSpeech="true" />
 
 ```vue
-<TrSender :allowSpeech="true" />
+<Sender :allowSpeech="true" />
 ```
 
 #### 文件上传
@@ -102,10 +102,10 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 > 目前仅支持按钮显示，后续会添加附件上传相关功能。
 
-<TrSender :allowFiles="true"  />
+<Sender :allowFiles="true"  />
 
 ```vue
-<TrSender :allowFiles="true" />
+<Sender :allowFiles="true" />
 ```
 
 #### 自定义提交方式
@@ -118,16 +118,16 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 这些快捷键适用于不同的使用习惯和操作系统，方便用户根据自己的喜好选择提交方式。
 
-<TrSender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
+<Sender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
 
 ```vue
-<TrSender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
+<Sender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
 ```
 
-<TrSender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
+<Sender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
 
 ```vue
-<TrSender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
+<Sender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
 ```
 
 使用不同的提交方式可以适应不同的使用场景：
@@ -138,7 +138,7 @@ TrSender 是一个灵活的输入组件，支持单行和多行模式，具有�
 
 ### 键盘快捷键支持
 
-TrSender 组件支持多种键盘快捷键操作，提高用户输入效率：
+Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 | 快捷键      | 功能                      | 适用条件                       |
 | ----------- | ------------------------- | ------------------------------ |
@@ -154,9 +154,9 @@ TrSender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 #### 使用插槽自定义布局
 
-TrSender 提供了丰富的插槽，可以自定义组件的各个部分。
+Sender 提供了丰富的插槽，可以自定义组件的各个部分。
 
-<TrSender mode="multiple">
+<Sender mode="multiple">
   <template #header>
     <div style="padding: 8px; background-color: #f5f5f5; text-align: center">自定义头部</div>
   </template>
@@ -169,10 +169,10 @@ TrSender 提供了丰富的插槽，可以自定义组件的各个部分。
       <button>发送</button>
     </div>
   </template>
-</TrSender>
+</Sender>
 
 ```vue
-<TrSender mode="multiple">
+<Sender mode="multiple">
   <template #header>
     <div style="padding: 8px; background-color: #f5f5f5; text-align: center">自定义头部</div>
   </template>
@@ -185,7 +185,7 @@ TrSender 提供了丰富的插槽，可以自定义组件的各个部分。
       <button>发送</button>
     </div>
   </template>
-</TrSender>
+</Sender>
 ```
 
 ## API 说明
@@ -319,7 +319,7 @@ TrSender 提供了丰富的插槽，可以自定义组件的各个部分。
 
 ```vue
 <template>
-  <TrSender
+  <Sender
     v-model="inputMessage"
     mode="multiple"
     submitType="ctrl+enter"
@@ -413,12 +413,12 @@ const submitMessage = () => {
 
 ### 主题适配
 
-TrSender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
+Sender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
 
-<TrSender theme="dark" />
+<Sender theme="dark" />
 
 ```vue
-<TrSender theme="dark" />
+<Sender theme="dark" />
 ```
 
 也可以通过CSS变量实现更细致的主题定制：
@@ -442,8 +442,8 @@ TrSender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
 
 ### 性能优化
 
-对于频繁输入的场景，TrSender 提供了防抖处理，可通过`debounceSubmit`属性控制延迟时间：
+对于频繁输入的场景，Sender 提供了防抖处理，可通过`debounceSubmit`属性控制延迟时间：
 
 ```vue
-<TrSender :debounceSubmit="500" />
+<Sender :debounceSubmit="500" />
 ```
