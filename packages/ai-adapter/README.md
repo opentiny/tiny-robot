@@ -149,8 +149,16 @@ interface UseMessageReturn {
 #### MessageState 接口
 ```typescript
 interface MessageState {
-  isLoading: boolean;
-  isResponding: boolean;
-  error: string | null;
+  status: STATUS
+  errorMsg: string | null
+}
+
+enum STATUS {
+  INIT = 'init', // 初始状态
+  PROCESSING = 'processing', // AI请求正在处理中, 还未响应，显示加载动画
+  STREAMING = 'streaming', // 流式响应中分块数据返回中
+  FINISHED = 'finished', // AI请求已完成
+  ABORTED = 'aborted', // 用户中止请求
+  ERROR = 'error', // AI请求发生错误
 }
 ```

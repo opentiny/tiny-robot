@@ -23,11 +23,16 @@
           </div>
           <div class="message-bubble">
             <div class="message-text">{{ message.content }}</div>
+            <div v-if="message.role === 'assistant' && index > 0" class="message-actions">
+              <button class="action-button retry-button" @click="retryRequest(index)">
+                <span class="retry-icon">↻</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div v-if="messageState.isLoading" class="message assistant-message">
+      <div v-if="messageState.status === STATUS.PROCESSING" class="message assistant-message">
         <div class="message-content">
           <div class="message-avatar">
             <div class="avatar-icon">🤖</div>
@@ -49,14 +54,13 @@
         v-model="inputMessage"
         placeholder="输入消息..."
         @keydown="handleKeyDown"
-        :disabled="messageState.isLoading"
+        :disabled="messageState.status === STATUS.PROCESSING"
       ></textarea>
-      <button v-if="messageState.isResponding" @click="abortRequest" class="abort-button">
+      <button v-if="GeneratingStatus.includes(messageState.status)" @click="abortRequest" class="abort-button">
         <span>停止</span>
       </button>
-      <button v-else @click="sendMessage" :disabled="messageState.isLoading || !inputMessage.trim()">
-        <span v-if="!messageState.isLoading">发送</span>
-        <span v-else>发送中...</span>
+      <button v-else @click="sendMessage" :disabled="messageState.status === STATUS.PROCESSING || !inputMessage.trim()">
+        <span>发送</span>
       </button>
     </div>
   </div>
@@ -65,7 +69,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import { AIClient, useMessage } from '@opentiny/tiny-robot-ai-adapter'
+import { AIClient, useMessage, STATUS, GeneratingStatus } from '@opentiny/tiny-robot-ai-adapter'
 
 const client = new AIClient({
   provider: 'openai',
@@ -74,7 +78,7 @@ const client = new AIClient({
   apiUrl: 'http://localhost:3001/v1',
 })
 
-const { messages, messageState, inputMessage, useStream, sendMessage, abortRequest } = useMessage({
+const { messages, messageState, inputMessage, useStream, sendMessage, abortRequest, retryRequest } = useMessage({
   client,
   useStreamByDefault: true,
   initialMessages: [
@@ -88,7 +92,7 @@ const { messages, messageState, inputMessage, useStream, sendMessage, abortReque
 watch(
   () => messages.value[messages.value.length - 1].content,
   () => {
-    if (messageState.isResponding) {
+    if (GeneratingStatus.includes(messageState.status)) {
       scrollToBottom()
     }
   },
@@ -229,6 +233,56 @@ const handleKeyDown = (event: KeyboardEvent) => {
 .message-text {
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+// 消息操作区域样式
+.message-actions {
+  position: absolute;
+  right: 10px;
+  bottom: -20px;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.message-bubble:hover .message-actions {
+  opacity: 1;
+}
+
+.action-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  margin-left: 5px;
+  padding: 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+    transform: scale(1.1);
+  }
+}
+
+.retry-button {
+  background-color: #f8f9fa;
+  color: #4a6cf7;
+
+  &:hover {
+    background-color: #e8f0fe;
+    color: #3a5ce5;
+  }
+}
+
+.retry-icon {
+  font-size: 16px;
+  font-weight: bold;
 }
 
 .chat-input {

@@ -7,13 +7,24 @@ import { reactive, Reactive, ref, toRaw, type Ref } from 'vue'
 import type { ChatMessage } from '../types'
 import type { AIClient } from '../client'
 
+export enum STATUS {
+  INIT = 'init', // 初始状态
+  PROCESSING = 'processing', // AI请求正在处理中, 还未响应，显示加载动画
+  STREAMING = 'streaming', // 流式响应中分块数据返回中
+  FINISHED = 'finished', // AI请求已完成
+  ABORTED = 'aborted', // 用户中止请求
+  ERROR = 'error', // AI请求发生错误
+}
+
+export const GeneratingStatus = [STATUS.PROCESSING, STATUS.STREAMING]
+export const FinalStatus = [STATUS.FINISHED, STATUS.ABORTED, STATUS.ERROR]
+
 /**
  * 消息状态接口
  */
 export interface MessageState {
-  isLoading: boolean
-  isResponding: boolean
-  error: string | null
+  status: STATUS
+  errorMsg: string | null
 }
 
 /**
@@ -50,7 +61,7 @@ export interface UseMessageReturn {
   /** 中止请求 */
   abortRequest: () => void
   /** 重试请求 */
-  retryRequest: () => Promise<void>
+  retryRequest: (msgIndex: number) => Promise<void>
 }
 
 /**
@@ -77,9 +88,8 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
 
   // 消息状态
   const messageState = reactive<MessageState>({
-    isLoading: false,
-    isResponding: false,
-    error: null,
+    status: STATUS.INIT,
+    errorMsg: null,
   })
 
   // 普通请求
@@ -97,9 +107,6 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
       content: response.choices[0].message.content,
     }
     messages.value.push(assistantMessage)
-
-    messageState.isLoading = false
-    messageState.isResponding = false
   }
 
   // 流式请求
@@ -114,9 +121,7 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
       },
       {
         onData: (data) => {
-          messageState.isLoading = false
-          messageState.isResponding = true
-          messageState.error = null
+          messageState.status = STATUS.STREAMING
           if (messages.value[messages.value.length - 1].role === 'user') {
             messages.value.push({ role: 'assistant', content: '' })
           }
@@ -126,37 +131,21 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
           }
         },
         onError: (error) => {
-          messageState.isLoading = false
-          messageState.isResponding = false
-          messageState.error = errorMessage
+          messageState.status = STATUS.ERROR
+          messageState.errorMsg = errorMessage
           console.error('Stream request error:', error)
         },
         onDone: () => {
-          messageState.isResponding = false
+          messageState.status = STATUS.FINISHED
         },
       },
     )
   }
 
-  // 发送消息
-  const sendMessage = async () => {
-    if (!inputMessage.value.trim() || messageState.isLoading) {
-      return
-    }
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: inputMessage.value,
-    }
-
-    messages.value.push(userMessage)
-
-    inputMessage.value = ''
-
+  const chatRequest = async () => {
     // 更新状态
-    messageState.isLoading = true
-    messageState.isResponding = true
-    messageState.error = null
+    messageState.status = STATUS.PROCESSING
+    messageState.errorMsg = null
 
     // 创建中止控制器
     abortController = new AbortController()
@@ -167,14 +156,30 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
       } else {
         await chat(abortController)
       }
+      messageState.status = STATUS.FINISHED
     } catch (error) {
-      messageState.error = errorMessage
-      messageState.isLoading = false
-      messageState.isResponding = false
+      messageState.errorMsg = errorMessage
+      messageState.status = STATUS.ERROR
       console.error('Send message error:', error)
     } finally {
       abortController = null
     }
+  }
+
+  // 发送消息
+  const sendMessage = async () => {
+    if (!inputMessage.value.trim() || GeneratingStatus.includes(messageState.status)) {
+      return
+    }
+
+    const userMessage: ChatMessage = {
+      role: 'user',
+      content: inputMessage.value,
+    }
+    messages.value.push(userMessage)
+    inputMessage.value = ''
+
+    await chatRequest()
   }
 
   // 中止请求
@@ -182,27 +187,23 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
     if (abortController) {
       abortController.abort()
       abortController = null
-      messageState.isLoading = false
-      messageState.isResponding = false
+      messageState.status = STATUS.ABORTED
     }
   }
 
   // 重试请求
-  const retryRequest = async () => {
-    if (messages.value.length === 0) {
+  const retryRequest = async (msgIndex: number) => {
+    if (!messages.value[msgIndex] || messages.value[msgIndex].role === 'user') {
       return
     }
-    if (messages.value[messages.value.length - 1].role === 'user') {
-      messages.value.pop()
-    }
-    messageState.error = null
-    await sendMessage()
+    messages.value.splice(msgIndex)
+    await chatRequest()
   }
 
   //清空消息
   const clearMessages = () => {
     messages.value = []
-    messageState.error = null
+    messageState.errorMsg = null
   }
 
   // 添加消息
