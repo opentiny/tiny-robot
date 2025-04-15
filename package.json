@@ -9,7 +9,8 @@
     "dev:adapter": "pnpm -F @opentiny/tiny-robot-ai-adapter dev",
     "build:adapter": "pnpm -F @opentiny/tiny-robot-ai-adapter build",
     "dev:ai-mocker": "pnpm --filter ai-mocker dev",
-    "dev:demo": "npm run build:adapter && pnpm --filter tiny-robot-demo dev",
+    "dev:demo": "concurrently 'pnpm dev:ai-mocker' 'pnpm:dev:adapter' 'pnpm:serve:frontend'",
+    "serve:frontend": "pnpm --filter tiny-robot-demo dev",
     "format": "prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
     "lint": "eslint . --fix",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.5.0",
+    "concurrently": "^8.2.0",
     "eslint": "^9.23.0",
     "eslint-plugin-vue": "^10.0.0",
     "husky": "^9.1.7",
