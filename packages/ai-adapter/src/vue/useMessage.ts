@@ -193,7 +193,7 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
 
   // 重试请求
   const retryRequest = async (msgIndex: number) => {
-    if (!messages.value[msgIndex] || messages.value[msgIndex].role === 'user') {
+    if (msgIndex === 0 || !messages.value[msgIndex] || messages.value[msgIndex].role === 'user') {
       return
     }
     messages.value.splice(msgIndex)

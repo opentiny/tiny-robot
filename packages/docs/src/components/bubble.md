@@ -112,18 +112,18 @@ const handleAddBubble = () => {
 设置 `content` 展示简单文本
 
 <div class="language-vue" style="padding: 20px">
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></tiny-bubble-item>
+  ></bubble-item>
 </div>
 
 ```vue
 <template>
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></tiny-bubble-item>
+  ></bubble-item>
 </template>
 ```
 
@@ -132,11 +132,11 @@ const handleAddBubble = () => {
 `role` 属性可设置成 `ai` 或者 `user`
 
 <div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-  <tiny-bubble-item role="user" content="简单介绍TinyVue" :role-config="userRoleConfig"></tiny-bubble-item
-  ><tiny-bubble-item
+  <bubble-item role="user" content="简单介绍TinyVue" :role-config="userRoleConfig"></bubble-item
+  ><bubble-item
     role="ai"
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></tiny-bubble-item>
+  ></bubble-item>
   <hr style="width: 100%" />
   <div style="display: flex; flex-direction: column; gap: 16px">
     <div>
@@ -153,11 +153,11 @@ const handleAddBubble = () => {
 ```vue
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
-    <tiny-bubble-item role="user" content="简单介绍TinyVue" :role-config="userRoleConfig"></tiny-bubble-item
-    ><tiny-bubble-item
+    <bubble-item role="user" content="简单介绍TinyVue" :role-config="userRoleConfig"></bubble-item
+    ><bubble-item
       role="ai"
       content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-    ></tiny-bubble-item>
+    ></bubble-item>
     <hr style="width: 100%" />
     <div style="display: flex; flex-direction: column; gap: 16px">
       <div>
@@ -189,26 +189,26 @@ const toggleUserAvatar = (value: boolean) => {
 
 <div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
   <label>加载中</label>
-  <tiny-bubble-item role="ai" status="loading" />
+  <bubble-item role="ai" status="loading" />
   <label>用户停止</label>
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，"
     status="aborted"
-  ></tiny-bubble-item>
+  ></bubble-item>
 </div>
 
 ```vue
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
     <label>加载中</label>
-    <tiny-bubble-item role="ai" status="loading" />
+    <bubble-item role="ai" status="loading" />
     <label>用户停止</label>
-    <tiny-bubble-item
+    <bubble-item
       role="ai"
       content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，"
       status="aborted"
-    ></tiny-bubble-item>
+    ></bubble-item>
   </div>
 </template>
 ```
@@ -216,11 +216,11 @@ const toggleUserAvatar = (value: boolean) => {
 ### 最大宽度
 
 <div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
     :max-width="maxWidth + '%'"
-  ></tiny-bubble-item>
+  ></bubble-item>
   <hr style="width: 100%" />
   <div style="display: flex; align-items: center">
     <label style="font-size: 12px; margin-right: 8px">调整最大宽度</label>
@@ -232,11 +232,11 @@ const toggleUserAvatar = (value: boolean) => {
 ```vue
 <template>
   <div style=" display: flex; flex-direction: column; gap: 16px">
-    <tiny-bubble-item
+    <bubble-item
       role="ai"
       content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
       :max-width="maxWidth + '%'"
-    ></tiny-bubble-item>
+    ></bubble-item>
     <hr style="width: 100%" />
     <div style="display: flex; align-items: center">
       <label style="font-size: 12px; margin-right: 8px">调整最大宽度</label>
@@ -333,7 +333,7 @@ const resetStreamContent = async () => {
 ### actions
 
 <div class="language-vue" style="padding: 20px">
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     :content="streamContent2"
     :show-actions="true"
@@ -344,7 +344,7 @@ const resetStreamContent = async () => {
 
 ```vue
 <template>
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     :content="streamContent2"
     :show-actions="true"
@@ -391,13 +391,13 @@ const handleAction = (action: string) => {
 
 <div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
   <label>加载中插槽</label>
-  <tiny-bubble-item role="ai" status="loading">
+  <bubble-item role="ai" status="loading">
     <template #loading>
       <div style="display: flex; align-items: center">加载中。。。</div>
     </template>
-  </tiny-bubble-item>
+  </bubble-item>
   <label>footer插槽</label>
-  <tiny-bubble-item
+  <bubble-item
     role="ai"
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
     :show-actions="true"
@@ -405,20 +405,20 @@ const handleAction = (action: string) => {
     <template #footer>
       <div style="color: rgb(128, 128, 128); font-size: 14px; margin-top: 12px">3条来源</div>
     </template>
-  </tiny-bubble-item>
+  </bubble-item>
 </div>
 
 ```vue
 <template>
   <div style=" display: flex; flex-direction: column; gap: 16px">
     <label>加载中插槽</label>
-    <tiny-bubble-item role="ai" status="loading">
+    <bubble-item role="ai" status="loading">
       <template #loading>
         <div style="display: flex; align-items: center">加载中。。。</div>
       </template>
-    </tiny-bubble-item>
+    </bubble-item>
     <label>footer插槽</label>
-    <tiny-bubble-item
+    <bubble-item
       role="ai"
       content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
       :show-actions="true"
@@ -426,7 +426,7 @@ const handleAction = (action: string) => {
       <template #footer>
         <div style="color: rgb(128, 128, 128); font-size: 14px; margin-top: 12px">3条来源</div>
       </template>
-    </tiny-bubble-item>
+    </bubble-item>
   </div>
 </template>
 ```
@@ -434,12 +434,12 @@ const handleAction = (action: string) => {
 ### 列表
 
 <div class="language-vue" style="padding: 20px">
-  <tiny-bubble-list
+  <bubble-list
     :items="bubbleItems"
     :action-configs="{ ai: { show: true } }"
     style="max-height: 200px"
     :auto-scroll="true"
-  ></tiny-bubble-list>
+  ></bubble-list>
   <hr style="width: 100%" />
   <div>
     <button @click="handleAddBubble">点击增加对话</button>
@@ -449,12 +449,12 @@ const handleAction = (action: string) => {
 ```vue
 <template>
   <div style=" display: flex; flex-direction: column; gap: 16px">
-    <tiny-bubble-list
+    <bubble-list
       :items="bubbleItems"
       :action-configs="{ ai: { show: true } }"
       style="max-height: 200px"
       :auto-scroll="true"
-    ></tiny-bubble-list>
+    ></bubble-list>
     <hr style="width: 100%" />
     <div>
       <button @click="handleAddBubble">点击增加对话</button>

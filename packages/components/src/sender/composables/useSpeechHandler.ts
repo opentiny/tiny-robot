@@ -19,17 +19,18 @@ export function useSpeechHandler(options: SpeechHookOptions): SpeechHandler {
   // 语音识别状态
   const speechState = reactive<SpeechState>({
     isRecording: false,
-    isSupported: 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window,
+    isSupported:
+      (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) || 'SpeechRecognition' in window,
     error: undefined,
   })
 
   // 创建语音识别实例
-  const recognition = speechState.isSupported
+  const recognition: SpeechRecognition | undefined = speechState.isSupported
     ? new (window.webkitSpeechRecognition || window.SpeechRecognition)()
-    : null
+    : undefined
 
   // 初始化语音识别配置
-  if (recognition) {
+  if (recognition !== undefined) {
     recognition.continuous = options.continuous ?? false
     recognition.interimResults = options.interimResults ?? true
     recognition.lang = options.lang ?? navigator.language

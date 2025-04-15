@@ -1,6 +1,9 @@
 {
   "name": "@opentiny/tiny-robot-ai-adapter",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "AI大模型适配器",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
