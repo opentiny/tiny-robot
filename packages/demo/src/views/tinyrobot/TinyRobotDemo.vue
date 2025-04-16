@@ -24,20 +24,15 @@
     </div>
 
     <!-- 需要替换为 TinyRobot InputBox组件-->
-    <div class="chat-input">
-      <textarea
-        v-model="inputMessage"
-        placeholder="输入消息..."
-        @keydown="handleKeyDown"
-        :disabled="messageState.status === STATUS.PROCESSING"
-      ></textarea>
-      <button v-if="GeneratingStatus.includes(messageState.status)" @click="abortRequest" class="abort-button">
-        <span>停止</span>
-      </button>
-      <button v-else @click="sendMessage" :disabled="messageState.status === STATUS.PROCESSING || !inputMessage.trim()">
-        <span>发送</span>
-      </button>
-    </div>
+    <TinySender
+      class="chat-input"
+      v-model="inputMessage"
+      :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
+      :clearable="true"
+      :loading="messageState.status === STATUS.PROCESSING"
+      @submit="sendMessage"
+      @cancel="abortRequest"
+    ></TinySender>
   </div>
 </template>
 
@@ -45,7 +40,7 @@
 import { ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { AIClient, useMessage, STATUS, GeneratingStatus } from '@opentiny/tiny-robot-ai-adapter'
-import { BubbleItem as TinyBubbleItem } from '@opentiny/tiny-robot'
+import { BubbleItem as TinyBubbleItem, Sender as TinySender } from '@opentiny/tiny-robot'
 import { IconFullScreen } from '@opentiny/tiny-robot-svgs'
 
 const client = new AIClient({
@@ -84,13 +79,6 @@ const chatContainer = ref<HTMLElement | null>(null)
 const scrollToBottom = () => {
   if (chatContainer.value) {
     chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-  }
-}
-
-const handleKeyDown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault()
-    sendMessage()
   }
 }
 </script>
