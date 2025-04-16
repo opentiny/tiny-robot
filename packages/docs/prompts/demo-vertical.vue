@@ -1,5 +1,5 @@
 <template>
-  <Prompts :items="items"></Prompts>
+  <Prompts :items="items" vertical></Prompts>
 </template>
 
 <script setup lang="ts">

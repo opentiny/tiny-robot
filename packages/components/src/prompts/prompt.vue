@@ -5,13 +5,13 @@ const props = defineProps<PromptProps>()
 </script>
 
 <template>
-  <div class="tr-prompt">
+  <div :class="['tr-prompt', { disabled: props.disabled }]">
     <div class="tr-prompt__icon">
       <component :is="props.icon"></component>
     </div>
     <div class="tr-prompt__content">
       <h6 class="tr-prompt__content-label">{{ props.label }}</h6>
-      <p class="tr-prompt__content-description">{{ props.description }}</p>
+      <p v-if="props.description" class="tr-prompt__content-description">{{ props.description }}</p>
     </div>
     <div class="tr-prompt__badge">{{ props.badge }}</div>
   </div>
@@ -19,12 +19,29 @@ const props = defineProps<PromptProps>()
 
 <style lang="less" scoped>
 .tr-prompt {
+  flex: none;
   display: flex;
   gap: 12px;
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   padding: 16px 24px;
   position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &.disabled {
+    cursor: default;
+    pointer-events: none;
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.15);
+  }
 }
 
 .tr-prompt__content {
