@@ -1,15 +1,19 @@
 {
   "name": "docs",
+  "private": true,
   "scripts": {
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
   },
   "devDependencies": {
-    "vitepress": "^1.6.3"
+    "gh-pages": "^2.1.1",
+    "vitepress": "^1.6.3",
+    "vitepress-demo-plugin": "^1.4.0"
   },
   "dependencies": {
     "@opentiny/tiny-robot": "workspace:^",
+    "@opentiny/vue": "^3.22.1",
     "vue": "^3.5.13"
   }
 }

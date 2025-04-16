@@ -41,3 +41,5 @@ playwright/.cache
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+packages/svgs/src/components
+cui.config.js
