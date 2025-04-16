@@ -1,5 +1,4 @@
 import { ref, watch } from 'vue'
-import { debounce } from 'lodash-es'
 import type { SenderProps, SenderEmits } from '../index.type'
 
 /**
@@ -10,7 +9,7 @@ import type { SenderProps, SenderEmits } from '../index.type'
  * @param emit  组件方法
  */
 export function useInputHandler(props: SenderProps, emit: SenderEmits) {
-  const inputValue = ref(props.defaultValue || '')
+  const inputValue = ref(props.modelValue || props.defaultValue || '')
   const inputWrapper = ref<HTMLElement | null>(null)
 
   // 同步外部值变化
@@ -23,23 +22,29 @@ export function useInputHandler(props: SenderProps, emit: SenderEmits) {
     },
   )
 
+  // 监听内部值变化，触发update:modelValue事件
+  watch(
+    () => inputValue.value,
+    (val) => {
+      emit('update:modelValue', val)
+    },
+  )
+
   // 双向绑定处理
   const handleChange = (value: string) => {
     inputValue.value = value
     emit('update:modelValue', value)
   }
 
-  // 防抖提交
-  const debouncedSubmit = debounce((value: string) => {
-    if (!props.disabled && !props.loading && value.trim()) {
-      emit('submit', value)
-    }
-  }, props.debounceSubmit)
-
   // 提交处理
   const handleSubmit = (event?: Event) => {
     event?.preventDefault()
-    debouncedSubmit(inputValue.value)
+
+    const submitValue = inputValue.value
+
+    if (!props.disabled && !props.loading && submitValue.trim()) {
+      emit('submit', submitValue)
+    }
   }
 
   // 清空输入

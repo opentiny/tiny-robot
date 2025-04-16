@@ -31,7 +31,6 @@ export interface SenderProps {
   clearable?: boolean // 是否显示清除按钮
   disabled?: boolean // 禁用状态
   defaultValue?: string | null // 默认值
-  debounceSubmit?: number // 提交防抖时间(ms)
   loading?: boolean // 加载状态
   modelValue?: string // 双向绑定值
   mode?: InputMode // 输入框模式：单行/多行
@@ -72,6 +71,7 @@ export type SenderEmits = {
   (e: 'focus', event: FocusEvent): void
   (e: 'blur', event: FocusEvent): void
   (e: 'escape-press'): void // 按下Esc键时触发
+  (e: 'cancel'): void // 取消发送状态时触发
 }
 
 // 语音识别状态

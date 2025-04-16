@@ -15,7 +15,6 @@ const props = withDefaults(defineProps<SenderProps>(), {
   allowFiles: false,
   clearable: false,
   disabled: false,
-  debounceSubmit: 300,
   loading: false,
   modelValue: '',
   mode: 'single',
@@ -224,6 +223,7 @@ defineExpose({
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
+                @cancel="$emit('cancel')"
               />
             </div>
           </div>
@@ -259,6 +259,7 @@ defineExpose({
                   @clear="clearInput"
                   @toggle-speech="toggleSpeech"
                   @submit="triggerSubmit"
+                  @cancel="$emit('cancel')"
                 />
               </div>
             </div>

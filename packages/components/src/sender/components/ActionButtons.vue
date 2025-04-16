@@ -46,40 +46,31 @@ const props = withDefaults(defineProps<ActionButtonsProps>(), {
   submitType: 'enter',
 })
 
-const emit = defineEmits({
+const emit = defineEmits<{
   /**
    * 清除内容事件
    */
-  clear: () => true,
+  (e: 'clear'): void
   /**
    * 切换语音识别状态事件
-   * @param {boolean} state - 新的语音识别状态
    */
-  'toggle-speech': (state: boolean) => Boolean(state),
+  (e: 'toggle-speech', state: boolean): void
   /**
    * 提交内容事件
    */
-  submit: () => true,
-})
+  (e: 'submit'): void
+  /**
+   * 取消发送事件，用于取消加载状态
+   */
+  (e: 'cancel'): void
+}>()
 
 /**
  * 是否启用语音功能
  */
 const speechEnabled = computed(() => props.allowSpeech)
 
-/**
- * 语音按钮提示文本
- */
-const speechButtonText = computed(() => (props.speechStatus.isRecording ? '停止录音' : '开始语音输入'))
-
 const isSpeechRecording = computed(() => props.speechStatus.isRecording)
-
-/**
- * 提交按钮tooltip
- */
-const submitTooltip = computed(() => {
-  return props.loading ? `发送中...` : '发送消息'
-})
 
 /**
  * 整体禁用状态
@@ -113,6 +104,15 @@ const handleSubmit = () => {
     emit('submit')
   }
 }
+
+/**
+ * 处理取消操作
+ */
+const handleCancel = () => {
+  if (!isDisabled.value) {
+    emit('cancel')
+  }
+}
 </script>
 
 <template>
@@ -128,18 +128,16 @@ const handleSubmit = () => {
 
     <!-- 语音按钮：仅在启用语音功能时显示 -->
     <template v-if="speechEnabled && !loading">
-      <tiny-tooltip :content="speechButtonText" placement="top">
-        <tiny-button
-          type="text"
-          :disabled="isDisabled"
-          @click="handleToggleSpeech"
-          class="speech-button"
-          :class="{ 'is-recording': isSpeechRecording }"
-        >
-          <img v-if="!isSpeechRecording" src="../../assets/icons/voice.svg" class="button-icon" alt="录音" />
-          <img v-else src="../../assets/icons/loading-speech.svg" class="button-icon recording-icon" alt="语音中" />
-        </tiny-button>
-      </tiny-tooltip>
+      <tiny-button
+        type="text"
+        :disabled="isDisabled"
+        @click="handleToggleSpeech"
+        class="speech-button"
+        :class="{ 'is-recording': isSpeechRecording }"
+      >
+        <img v-if="!isSpeechRecording" src="../../assets/icons/voice.svg" class="button-icon" alt="录音" />
+        <img v-else src="../../assets/icons/loading-speech.svg" class="button-icon recording-icon" alt="语音中" />
+      </tiny-button>
     </template>
 
     <template v-if="showClear">
@@ -152,14 +150,19 @@ const handleSubmit = () => {
 
     <!-- 提交按钮：主操作按钮 -->
     <template v-if="hasContent || loading">
-      <tiny-tooltip :content="submitTooltip" placement="top">
-        <tiny-button type="text" @click="handleSubmit" class="submit-button" :disabled="isDisabled">
-          <div class="button-content">
-            <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
-            <img v-else src="../../assets/icons/loading.svg" alt="加载中" class="loading" />
-          </div>
-        </tiny-button>
-      </tiny-tooltip>
+      <tiny-button
+        type="text"
+        :class="loading ? 'cancel-button' : 'submit-button'"
+        :disabled="isDisabled"
+        @click="loading ? handleCancel() : handleSubmit()"
+      >
+        <div class="button-content">
+          <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
+          <tiny-tooltip v-else content="停止生成" placement="top">
+            <img src="../../assets/icons/loading.svg" alt="加载中" class="loading" />
+          </tiny-tooltip>
+        </div>
+      </tiny-button>
     </template>
   </div>
 </template>
