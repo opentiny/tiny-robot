@@ -18,7 +18,7 @@ export interface PromptProps {
    */
   icon?: VNode
   /**
-   * 是否禁用
+   * 是否禁用。默认 false
    */
   disabled?: boolean
   /**
@@ -28,10 +28,25 @@ export interface PromptProps {
 }
 
 export interface PromptsProps {
+  /**
+   * 包含多个提示项的列表
+   */
   items: PromptProps[]
+  /**
+   * 自定义样式，用于各个提示项的不同部分
+   */
   itemStyle?: string | CSSProperties
+  /**
+   *  自定义类名，用于各个提示项的不同部分
+   */
   itemClass?: string | string[]
+  /**
+   * 提示列表是否垂直排列。默认 false
+   */
   vertical?: boolean
+  /**
+   * 提示列表是否折行。默认 false
+   */
   wrap?: boolean
 }
 

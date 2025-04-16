@@ -40,28 +40,37 @@ const badgeComp = computed(() => {
 
 <style lang="less" scoped>
 .tr-prompt {
+  --tr-prompt-bg-color: white;
+  --tr-prompt-hover-color: rgba(0, 0, 0, 0.04);
+  --tr-prompt-active-color: rgba(0, 0, 0, 0.15);
+  --tr-prompt-disabled-color: rgba(0, 0, 0, 0.04);
+  --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --tr-prompt-text: rgb(25, 25, 25);
+  --tr-prompt-text-muted: rgb(89, 89, 89);
+
   flex: none;
   display: flex;
   gap: 12px;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--tr-prompt-box-shadow);
   padding: 16px 24px;
   position: relative;
   cursor: pointer;
   transition: background 0.3s;
+  background-color: var(--tr-prompt-bg-color);
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--tr-prompt-hover-color);
   }
 
   &.disabled {
     cursor: default;
     pointer-events: none;
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--tr-prompt-disabled-color);
   }
 
   &:active {
-    background-color: rgba(0, 0, 0, 0.15);
+    background-color: var(--tr-prompt-active-color);
   }
 }
 
@@ -73,7 +82,7 @@ const badgeComp = computed(() => {
 
   font-size: 14px;
   line-height: 24px;
-  color: rgb(25, 25, 25);
+  color: var(--tr-prompt-text);
 }
 
 .tr-prompt__content-label {
@@ -85,7 +94,7 @@ const badgeComp = computed(() => {
 .tr-prompt__content-description {
   margin: 0;
   padding: 0;
-  color: rgb(89, 89, 89);
+  color: var(--tr-prompt-text-muted);
 }
 
 .tr-prompt__badge {
