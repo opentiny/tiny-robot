@@ -5,4 +5,6 @@ export { OpenAIProvider } from './providers/openai'
 
 export { formatMessages, extractTextFromResponse } from './utils'
 
+export * from './vue'
+
 export * from './types'

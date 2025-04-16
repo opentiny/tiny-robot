@@ -1,7 +1,7 @@
 import { App } from 'vue'
 import Welcome from './welcome.vue'
 
-Welcome.name = 'TinyWelcome'
+Welcome.name = 'TrWelcome'
 
 const install = function <T>(app: App<T>) {
   app.component(Welcome.name!, Welcome)

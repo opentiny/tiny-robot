@@ -1,5 +1,6 @@
 {
   "name": "ai-mocker",
+  "private": true,
   "version": "1.0.0",
   "description": "Mock AI API service",
   "main": "dist/server.js",
