@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TinyButton, TinyTooltip } from '@opentiny/vue'
+import TinyButton from '@opentiny/vue-button'
 import { IconClose } from '@opentiny/vue-icon'
 import { ActionButtonsProps } from '../index.type'
 

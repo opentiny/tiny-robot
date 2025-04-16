@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { TinyInput } from '@opentiny/vue'
+import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
