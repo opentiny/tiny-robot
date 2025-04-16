@@ -1,19 +1,40 @@
 <script setup lang="ts">
+import { computed, defineComponent, VNode } from 'vue'
 import { PromptProps } from './index.type'
 
 const props = defineProps<PromptProps>()
+
+const vnodeToComponent = (vnode?: VNode | string) => {
+  if (!vnode) {
+    return null
+  }
+
+  return defineComponent(() => {
+    return () => vnode
+  })
+}
+
+const iconComp = computed(() => {
+  return vnodeToComponent(props.icon)
+})
+
+const badgeComp = computed(() => {
+  return vnodeToComponent(props.badge)
+})
 </script>
 
 <template>
   <div :class="['tr-prompt', { disabled: props.disabled }]">
     <div class="tr-prompt__icon">
-      <component :is="props.icon"></component>
+      <component :is="iconComp"></component>
     </div>
     <div class="tr-prompt__content">
       <h6 class="tr-prompt__content-label">{{ props.label }}</h6>
       <p v-if="props.description" class="tr-prompt__content-description">{{ props.description }}</p>
     </div>
-    <div class="tr-prompt__badge">{{ props.badge }}</div>
+    <div :class="['tr-prompt__badge', { label: typeof props.badge === 'string' }]">
+      <component :is="badgeComp"></component>
+    </div>
   </div>
 </template>
 
@@ -69,14 +90,17 @@ const props = defineProps<PromptProps>()
 
 .tr-prompt__badge {
   position: absolute;
-  color: rgb(242, 48, 48);
-  background-color: rgb(255, 234, 232);
   top: 0;
   right: 0;
-  font-size: 14px;
-  line-height: 22px;
   padding: 0 12px;
   border-top-right-radius: 16px;
   border-bottom-left-radius: 16px;
+  background-color: rgb(255, 234, 232);
+
+  &.label {
+    color: rgb(242, 48, 48);
+    font-size: 14px;
+    line-height: 22px;
+  }
 }
 </style>

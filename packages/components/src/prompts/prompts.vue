@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { PromptsEvents, PromptsProps } from './index.type'
+import { toRaw } from 'vue'
+import { PromptProps, PromptsEvents, PromptsProps } from './index.type'
 import Prompt from './prompt.vue'
 
 const props = defineProps<PromptsProps>()
 
 const emit = defineEmits<PromptsEvents>()
+
+const handleClick = (ev: MouseEvent, item: PromptProps) => {
+  emit('item-click', ev, toRaw(item))
+}
 </script>
 
 <template>
@@ -15,7 +20,7 @@ const emit = defineEmits<PromptsEvents>()
       v-bind="item"
       :style="props.itemStyle"
       :class="props.itemClass"
-      @click="emit('item-click', $event, item)"
+      @click="handleClick($event, item)"
     ></Prompt>
   </div>
 </template>

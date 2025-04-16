@@ -30,7 +30,7 @@ export interface PromptProps {
 export interface PromptsProps {
   items: PromptProps[]
   itemStyle?: string | CSSProperties
-  itemClass?: string
+  itemClass?: string | string[]
   vertical?: boolean
   wrap?: boolean
 }

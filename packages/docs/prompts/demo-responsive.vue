@@ -1,6 +1,5 @@
 <template>
-  <!-- TODO click event -->
-  <Prompts :items="items" wrap item-class="prompt-item" @click="console.log(1)"></Prompts>
+  <Prompts :items="items" wrap item-class="prompt-item"></Prompts>
 </template>
 
 <script setup lang="ts">
@@ -12,7 +11,6 @@ const items: PromptProps[] = [
     label: '日常助理场景',
     description: '今天需要我帮你安排日程，规划旅行，还是起草一封邮件？',
     icon: h('span', { style: { fontSize: '18px' } as CSSProperties }, '🧠'),
-    disabled: true,
   },
   {
     label: '学习/知识型场景',
@@ -37,8 +35,8 @@ const items: PromptProps[] = [
 ]
 </script>
 
-<style lang="less">
-.prompt-item {
+<style lang="less" scoped>
+:deep(.prompt-item) {
   width: 100%;
 
   @media (width >= 40rem) {
