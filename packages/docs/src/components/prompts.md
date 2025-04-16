@@ -48,6 +48,12 @@ outline: deep
 
 <demo vue="../../demos/prompts/responsive.vue" />
 
+### 底部内容
+
+使用 `footer` 插槽，给 Prompts 列表底部添加内容
+
+<demo vue="../../demos/prompts/footer.vue" />
+
 ## API
 
 ### PromptProps
@@ -82,3 +88,11 @@ outline: deep
 | 事件名       | 参数                                  | 说明               |
 | ------------ | ------------------------------------- | ------------------ |
 | `item-click` | `(ev: MouseEvent, item: PromptProps)` | 当点击提示项时触发 |
+
+### PromptsSlots
+
+提示列表组件的插槽定义。
+
+| 插槽名   | 说明                                       |
+| -------- | ------------------------------------------ |
+| `footer` | 底部插槽，用于在提示列表底部添加自定义内容 |

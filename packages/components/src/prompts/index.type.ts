@@ -53,3 +53,7 @@ export interface PromptsProps {
 export interface PromptsEvents {
   (e: 'item-click', ev: MouseEvent, item: PromptProps): void
 }
+
+export interface PromptsSlots {
+  footer?: () => unknown
+}
