@@ -6,3 +6,7 @@ export interface WelcomeProps {
   align?: 'left' | 'center' | 'right' | string
   icon?: VNode
 }
+
+export interface WelcomeSlots {
+  footer: () => unknown
+}

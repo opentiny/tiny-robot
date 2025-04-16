@@ -39,6 +39,7 @@ export default defineConfig({
           items: [
             { text: 'Bubble 气泡', link: 'bubble' },
             { text: 'Sender 消息输入框', link: 'sender' },
+            { text: 'Welcome', link: 'welcome' },
             { text: '示例', link: 'example' },
           ],
         },

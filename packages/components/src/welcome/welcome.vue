@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { useSlots } from 'vue'
-import { WelcomeProps } from './index.type'
+import { WelcomeProps, WelcomeSlots } from './index.type'
 
 const props = withDefaults(defineProps<WelcomeProps>(), {
   align: 'center',
 })
 
-const slots = useSlots()
+defineSlots<WelcomeSlots>()
 </script>
 
 <template>
@@ -18,7 +17,7 @@ const slots = useSlots()
       <h3 class="tr-welcome__title">盘古助手</h3>
     </div>
     <span class="tr-welcome__description">{{ props.description }}</span>
-    <span v-if="slots.footer" class="tr-welcome__footer"><slot name="footer"></slot></span>
+    <slot name="footer"></slot>
   </div>
 </template>
 
@@ -66,12 +65,5 @@ const slots = useSlots()
   font-weight: var(--description-font-weight);
 
   margin-top: 32px;
-}
-
-.tr-welcome__footer {
-  margin-top: 12px;
-  color: rgb(128, 128, 128);
-  font-size: 12px;
-  line-height: 20px;
 }
 </style>
