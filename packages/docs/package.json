@@ -15,5 +15,6 @@
     "@opentiny/tiny-robot": "workspace:^",
     "@opentiny/tiny-robot-svgs": "workspace:^",
     "@opentiny/vue": "^3.22.1"
+    "vue": "^3.5.13"
   }
 }
