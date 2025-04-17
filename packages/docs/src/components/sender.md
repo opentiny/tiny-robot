@@ -10,31 +10,18 @@ Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰�
 
 ### 基础用法
 
-#### 单行模式
+> 单行模式(`mode="single"`), 适用于简单的输入场景，如搜索框、简短消息输入等。
 
-单行模式(`mode="single"`)适用于简单的输入场景，如搜索框、简短消息输入等。
+> 多行模式(`mode="multiple"`)适用于较长文本输入，如评论、聊天消息等。
 
-<Sender  />
-
-```vue
-<Sender />
-```
-
-#### 多行模式
-
-多行模式(`mode="multiple"`)适用于较长文本输入，如评论、聊天消息等。
-
-<Sender mode="multiple" />
-
-```vue
-<Sender mode="multiple" />
-```
+<demo vue="../../demos/sender/Mode.vue" title="基础用法" description="Sender 组件的基础用法，支持单行和多行模式。" />
 
 ### 状态控制
 
 #### 加载状态
 
 通过设置`loading`属性控制组件的加载状态，加载状态下输入框将显示加载动画并禁用输入。
+在加载状态下，点击加载图标可以取消发送操作，这会触发 `cancel` 事件。
 
 <Sender :loading="true" />
 
@@ -112,22 +99,23 @@ Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰�
 
 通过`submitType`属性控制提交方式，支持多种键盘快捷键组合。
 
-- `enter`: 按下回车键提交（默认）
-- `ctrlEnter`: 按下Ctrl+回车键提交（Windows/Linux中常用）
-- `shiftEnter`: 按下Shift+回车键提交（Mac中常用）
+- 提交行为说明：
+- - 当 submitType 为 enter 时：按 Enter 键提交
+- - 当 submitType 为 ctrlEnter 时：按 Ctrl+Enter 提交，单独按 Enter 换行
+- - 当 submitType 为 shiftEnter 时：按 Shift+Enter 提交，单独按 Enter 换行
 
 这些快捷键适用于不同的使用习惯和操作系统，方便用户根据自己的喜好选择提交方式。
 
-<Sender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
+<Sender submitType="ctrlEnter" mode="multiple" placeholder="按Ctrl+Enter提交" />
 
 ```vue
-<Sender submitType="ctrlEnter" placeholder="按Ctrl+Enter提交" />
+<Sender submitType="ctrlEnter" mode="multiple" placeholder="按Ctrl+Enter提交" />
 ```
 
-<Sender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
+<Sender submitType="shiftEnter" mode="multiple" placeholder="按Shift+Enter提交" />
 
 ```vue
-<Sender submitType="shiftEnter" placeholder="按Shift+Enter提交" />
+<Sender submitType="shiftEnter" mode="multiple" placeholder="按Shift+Enter提交" />
 ```
 
 使用不同的提交方式可以适应不同的使用场景：
@@ -143,74 +131,41 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | 快捷键      | 功能                      | 适用条件                       |
 | ----------- | ------------------------- | ------------------------------ |
 | Enter       | 提交内容                  | submitType="enter"（默认）     |
-| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"         |
-| Shift+Enter | 提交内容                  | submitType="shiftEnter"        |
+| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"(多行)   |
+| Shift+Enter | 提交内容                  | submitType="shiftEnter"(多行)  |
 | Esc         | 取消语音录入/关闭建议列表 | 在语音录入状态或显示建议列表时 |
 | Tab         | 切换焦点                  | 输入框获得焦点时               |
 
 您可以在实际开发中根据应用场景和用户需求选择最适合的快捷键方式。
 
-### 布局定制
+### 使用示例
 
-#### 使用插槽自定义布局
+以下是一个综合使用示例：
 
-Sender 提供了丰富的插槽，可以自定义组件的各个部分。
-
-<Sender mode="multiple">
-  <template #header>
-    <div style="padding: 8px; background-color: #f5f5f5; text-align: center">自定义头部</div>
-  </template>
-  <template #prefix>
-    <div style="display: flex; justify-content: center; align-items: center">头像</div>
-  </template>
-  <template #footer>
-    <div style="padding: 8px; display: flex; justify-content: space-between">
-      <span>底部工具栏</span>
-      <button>发送</button>
-    </div>
-  </template>
-</Sender>
-
-```vue
-<Sender mode="multiple">
-  <template #header>
-    <div style="padding: 8px; background-color: #f5f5f5; text-align: center">自定义头部</div>
-  </template>
-  <template #prefix>
-    <div style="display: flex; justify-content: center; align-items: center">头像</div>
-  </template>
-  <template #footer>
-    <div style="padding: 8px; display: flex; justify-content: space-between">
-      <span>底部工具栏</span>
-      <button>发送</button>
-    </div>
-  </template>
-</Sender>
-```
+<demo vue="../../demos/sender/All.vue" />
 
 ## API 说明
 
 ### Props
 
-| 属性名         | 说明             | 类型                                       | 默认值            |
-| -------------- | ---------------- | ------------------------------------------ | ----------------- |
-| autofocus      | 自动获取焦点     | `boolean`                                  | `false`           |
-| autoSize       | 自动调整高度     | `boolean`                                  | `false`           |
-| allowSpeech    | 是否开启语音输入 | `boolean`                                  | `false`           |
-| allowFiles     | 是否允许文件上传 | `boolean`                                  | `true`            |
-| clearable      | 是否可清空       | `boolean`                                  | `false`           |
-| disabled       | 是否禁用         | `boolean`                                  | `false`           |
-| modelValue     | 绑定值(v-model)  | `string`                                   | `''`              |
-| defaultValue   | 默认值(非响应式) | `string`                                   | `''`              |
-| loading        | 是否加载中       | `boolean`                                  | `false`           |
-| mode           | 输入框类型       | `'single' \| 'multiple'`                   | `'single'`        |
-| maxLength      | 最大输入长度     | `number`                                   | `Infinity`        |
-| placeholder    | 输入框占位文本   | `string`                                   | `'请输入内容...'` |
-| showWordLimit  | 是否显示字数统计 | `boolean`                                  | `false`           |
-| submitType     | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
-| theme          | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
-| suggestions    | 输入建议列表     | `string[]`                                 | `[]`              |
-| debounceSubmit | 提交防抖延迟(ms) | `number`                                   | `300`             |
+| 属性名        | 说明             | 类型                                       | 默认值            |
+| ------------- | ---------------- | ------------------------------------------ | ----------------- |
+| autofocus     | 自动获取焦点     | `boolean`                                  | `false`           |
+| autoSize      | 自动调整高度     | `boolean`                                  | `false`           |
+| allowSpeech   | 是否开启语音输入 | `boolean`                                  | `false`           |
+| allowFiles    | 是否允许文件上传 | `boolean`                                  | `true`            |
+| clearable     | 是否可清空       | `boolean`                                  | `false`           |
+| disabled      | 是否禁用         | `boolean`                                  | `false`           |
+| modelValue    | 绑定值(v-model)  | `string`                                   | `''`              |
+| defaultValue  | 默认值(非响应式) | `string`                                   | `''`              |
+| loading       | 是否加载中       | `boolean`                                  | `false`           |
+| mode          | 输入框类型       | `'single' \| 'multiple'`                   | `'single'`        |
+| maxLength     | 最大输入长度     | `number`                                   | `Infinity`        |
+| placeholder   | 输入框占位文本   | `string`                                   | `'请输入内容...'` |
+| showWordLimit | 是否显示字数统计 | `boolean`                                  | `false`           |
+| submitType    | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
+| theme         | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
+| suggestions   | 输入建议列表     | `string[]`                                 | `[]`              |
 
 ### Events
 
@@ -223,6 +178,7 @@ Sender 提供了丰富的插槽，可以自定义组件的各个部分。
 | input             | 输入值改变时触发          | `(value: string)`      |
 | submit            | 提交内容时触发            | `(value: string)`      |
 | clear             | 清空内容时触发            | `()`                   |
+| cancel            | 取消发送（加载状态）时触发 | `()`                   |
 | speech-start      | 语音识别开始时触发        | `()`                   |
 | speech-end        | 语音识别结束时触发        | `(transcript: string)` |
 | speech-interim    | 语音识别中间结果时触发    | `(transcript: string)` |
@@ -313,104 +269,6 @@ Sender 提供了丰富的插槽，可以自定义组件的各个部分。
 - `--tr-sender-footer-bg`: 背景色，默认 #fff
 - `--tr-sender-footer-hover`: 悬停背景色，默认 #f9f9f9
 
-### 使用示例
-
-以下是一个综合使用示例：
-
-```vue
-<template>
-  <Sender
-    v-model="inputMessage"
-    mode="multiple"
-    submitType="ctrl+enter"
-    :maxLength="2000"
-    :showWordLimit="true"
-    :autoSize="true"
-    :clearable="true"
-    :allowSpeech="true"
-    :loading="isSubmitting"
-    placeholder="请输入您的消息..."
-    @submit="handleSubmit"
-    @speech-end="handleSpeechEnd"
-  >
-    <template #header>
-      <div class="conversation-title">聊天对话</div>
-    </template>
-
-    <template #prefix>
-      <img :src="currentUserAvatar" alt="User Avatar" class="user-avatar" />
-    </template>
-
-    <template #footer>
-      <div class="custom-toolbar">
-        <div class="emoji-picker">
-          <!-- 表情选择器组件 -->
-        </div>
-        <button @click="submitMessage" :disabled="isSubmitting">发送消息</button>
-      </div>
-    </template>
-  </tiny-sender>
-</template>
-
-<script setup>
-import { ref } from 'vue'
-
-const inputMessage = ref('')
-const isSubmitting = ref(false)
-const currentUserAvatar = 'https://example.com/avatar.jpg'
-
-const handleSubmit = async (message) => {
-  isSubmitting.value = true
-  try {
-    await sendMessageToServer(message)
-    inputMessage.value = '' // 清空输入
-  } catch (error) {
-    console.error('发送失败:', error)
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const handleSpeechEnd = (transcript) => {
-  console.log('语音识别结果:', transcript)
-}
-
-const handleFileSelect = (files) => {
-  console.log('已选择文件:', files)
-}
-
-const submitMessage = () => {
-  if (inputMessage.value.trim()) {
-    handleSubmit(inputMessage.value)
-  }
-}
-</script>
-
-<style>
-.conversation-title {
-  font-weight: bold;
-  padding: 8px 0;
-  text-align: center;
-  border-bottom: 1px solid #eee;
-}
-
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.custom-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px;
-  border-top: 1px solid #eee;
-}
-</style>
-```
-
 ### 主题适配
 
 Sender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
@@ -438,12 +296,4 @@ Sender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
   --tr-sender-input-color: #e0e0e0;
   --tr-sender-actions-icon-color: #b0b0b0;
 }
-```
-
-### 性能优化
-
-对于频繁输入的场景，Sender 提供了防抖处理，可通过`debounceSubmit`属性控制延迟时间：
-
-```vue
-<Sender :debounceSubmit="500" />
 ```

@@ -2,13 +2,9 @@
 
 // 主要组件样式
 .tiny-sender {
-  border: 1px solid var(--tr-sender-border-color);
-  border-radius: var(--tr-sender-border-radius);
   background: var(--tr-sender-bg-color);
   position: relative;
   color: var(--tr-sender-text-color);
-  padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-    var(--tr-sender-padding-left);
 
   // TinyUI 输入框调整
   .tiny-input__prefix {
@@ -166,11 +162,12 @@
     min-width: var(--tr-sender-prefix-min-width);
     flex: 0 0 var(--tr-sender-prefix-width); /* 固定宽度，不可伸缩 */
     display: flex;
-    align-items: center;
+    align-items: start;
     justify-content: center;
     background: var(--tr-sender-bg-color);
     border-radius: var(--tr-sender-border-radius) 0 0 var(--tr-sender-border-radius);
     transition: background-color var(--tr-sender-transition-duration);
+    padding-top: 8px;
     padding-left: var(--tr-sender-prefix-padding-left);
     padding-right: calc(var(--tr-sender-padding-right) / 2);
 
@@ -290,6 +287,7 @@
     var(--tr-sender-padding-left);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
+  align-items: center;
 
   /* 按钮图标统一样式 */
   .button-icon {

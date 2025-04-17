@@ -34,7 +34,6 @@ export function useKeyboardHandler(
    */
   const triggerSubmit = () => {
     if (!validateSubmission(inputValue.value)) return
-    alert('提交成功')
     emit('submit', inputValue.value.trim())
   }
 
@@ -42,6 +41,12 @@ export function useKeyboardHandler(
    * 检查是否为指定的提交快捷键
    * @param event 键盘事件
    * @param submitType 提交类型
+   * @returns 是否触发提交
+   *
+   * 提交行为说明：
+   * - 当 submitType 为 enter 时：按 Enter 键提交
+   * - 当 submitType 为 ctrlEnter 时：按 Ctrl+Enter 提交，单独按 Enter 换行
+   * - 当 submitType 为 shiftEnter 时：按 Shift+Enter 提交，单独按 Enter 换行
    */
   const checkSubmitShortcut = (event: KeyboardEvent, submitType: SubmitTrigger): boolean => {
     const isEnter = event.key === 'Enter'
@@ -49,13 +54,10 @@ export function useKeyboardHandler(
 
     switch (submitType) {
       case 'enter':
-        console.log('enter')
         return !event.shiftKey && !event.ctrlKey && !event.metaKey
       case 'ctrlEnter':
-        console.log('ctrlEnter')
         return (event.ctrlKey || event.metaKey) && !event.shiftKey
       case 'shiftEnter':
-        console.log('shiftEnter')
         return event.shiftKey && !event.ctrlKey && !event.metaKey
       default:
         return false
