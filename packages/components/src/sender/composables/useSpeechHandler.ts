@@ -1,13 +1,6 @@
 import { reactive } from 'vue'
 import type { SpeechHookOptions, SpeechHandler, SpeechState } from '../index.type'
 
-declare global {
-  interface Window {
-    webkitSpeechRecognition: typeof SpeechRecognition
-    SpeechRecognition: typeof SpeechRecognition
-  }
-}
-
 /**
  * 语音识别处理 Hook
  * 集中管理语音识别相关逻辑
