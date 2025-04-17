@@ -1,5 +1,5 @@
 import { App } from 'vue'
-import Container from './container.vue'
+import Container from './index.vue'
 
 Container.name = 'TrContainer'
 
