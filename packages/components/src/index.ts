@@ -1,5 +1,6 @@
 import { App } from 'vue'
 import Welcome from './welcome'
+import Container from './container'
 import Conversations from './conversations'
 import BubbleItem from './bubble-item'
 import BubbleList from './bubble-list'
@@ -7,7 +8,7 @@ import Sender from './sender'
 
 export * from './bubble-list/index.type'
 
-const components = [Welcome, Conversations, BubbleItem, BubbleList, Sender]
+const components = [Welcome, Container, Conversations, BubbleItem, BubbleList, Sender]
 
 export default {
   install<T>(app: App<T>) {
@@ -18,4 +19,4 @@ export default {
   },
 }
 
-export { Welcome, Conversations, BubbleItem, BubbleList, Sender }
+export { Welcome, Container, Conversations, BubbleItem, BubbleList, Sender }

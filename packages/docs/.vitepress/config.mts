@@ -37,6 +37,7 @@ export default defineConfig({
           text: '组件',
           base: '/components/',
           items: [
+            { text: 'Container 容器', link: 'container' },
             { text: 'Bubble 气泡', link: 'bubble' },
             { text: 'Sender 消息输入框', link: 'sender' },
             { text: '示例', link: 'example' },

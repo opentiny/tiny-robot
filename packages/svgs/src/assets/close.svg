@@ -1,0 +1,17 @@
+<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <desc>
+        Created with Pixso.
+    </desc>
+    <defs />
+    <rect id="矩形 757" width="20.000000" height="20.000000" fill="#C4C4C4" fill-opacity="0" />
+    <path id="路径 2"
+        d="M3.33 4.19L3.3 4.19C3.06 3.94 3.06 3.55 3.3 3.3C3.55 3.06 3.94 3.06 4.19 3.3L4.19 3.33L3.33 4.19ZM16.66 15.8L16.69 15.8C16.93 16.05 16.93 16.44 16.69 16.69C16.44 16.93 16.05 16.93 15.8 16.69L15.8 16.66L16.66 15.8Z"
+        fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero" />
+    <path id="路径 2" d="M3.75 3.75L16.25 16.25" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.250000"
+        stroke-linejoin="round" stroke-linecap="round" />
+    <path id="路径 2"
+        d="M15.8 3.33L15.8 3.3C16.05 3.06 16.44 3.06 16.69 3.3C16.93 3.55 16.93 3.94 16.69 4.19L16.66 4.19L15.8 3.33ZM4.19 16.66L4.19 16.69C3.94 16.93 3.55 16.93 3.3 16.69C3.06 16.44 3.06 16.05 3.3 15.8L3.33 15.8L4.19 16.66Z"
+        fill="#D8D8D8" fill-opacity="0" fill-rule="nonzero" />
+    <path id="路径 2" d="M16.25 3.75L3.75 16.25" stroke="#191919" stroke-opacity="1.000000" stroke-width="1.250000"
+        stroke-linejoin="round" stroke-linecap="round" />
+</svg>
