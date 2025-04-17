@@ -2,7 +2,6 @@
 
 /**
  * TR Question 组件样式
- * 包含热门问题弹窗和常见问题胶囊两部分
  */
 
 /* ================ 滚动穿透防止 ================ */
@@ -40,33 +39,29 @@ body.tr-modal-open {
  */
 .tr-question-trigger {
   position: absolute;
-  top: 0;
+  top: 5px;
   left: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 2px 8px 0 0;
-  width: var(--tr-question-trigger-size);
-  height: var(--tr-question-trigger-size);
-  background: var(--tr-question-common-bg);
-  border-radius: 50%;
-  box-shadow: var(--tr-question-trigger-shadow);
-  z-index: 1;
   cursor: pointer;
-  transition: var(--tr-question-hover-transition);
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: var(--tr-question-list-item-shadow);
   }
 
   /* 按钮图标 */
-  & > svg,
-  .tiny-button > svg {
-    width: 1em;
-    height: 1em;
-    font-size: inherit;
-    fill: currentColor;
+  & > svg {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    fill: #ffffff;
+  }
+
+  & > svg:hover {
+    fill: #f5f5f5;
+    transform: scale(1.05);
   }
 }
 
@@ -151,7 +146,6 @@ body.tr-modal-open {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding-bottom: 10px;
 
   /**
    * 单个分类标签
@@ -309,9 +303,6 @@ body.tr-modal-open {
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: var(--tr-question-scrollbar-thumb-bg) var(--tr-question-scrollbar-track-bg); /* Firefox */
   flex-wrap: nowrap;
   transition: all 0.3s ease;
   position: relative;
@@ -336,7 +327,9 @@ body.tr-modal-open {
     max-width: 515px;
     text-overflow: ellipsis;
     overflow: hidden;
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     white-space: nowrap;
     color: var(--tr-question-common-text);
     border: none;
@@ -345,11 +338,15 @@ body.tr-modal-open {
     cursor: pointer;
     text-decoration: none;
     height: var(--tr-question-common-item-height);
-    line-height: var(--tr-question-common-item-height);
     padding: 0 16px;
     border-radius: var(--tr-question-common-border-radius);
     box-shadow: var(--tr-question-common-item-shadow);
     transition: var(--tr-question-hover-transition);
+
+    & > svg {
+      width: 16px;
+      height: 16px;
+    }
 
     /* 悬停效果 */
     &:hover {
@@ -389,16 +386,24 @@ body.tr-modal-open {
   right: 0;
   z-index: 10;
   cursor: pointer;
-  line-height: 0;
-  box-shadow: var(--tr-question-wrap-trigger-shadow);
-  border-radius: 50%;
-  margin-bottom: 12px;
-  background-color: var(--tr-question-common-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 26px;
   height: 26px;
+
+  /* 按钮图标 */
+  & > svg {
+    width: 1em;
+    height: 1em;
+    font-size: 32px;
+    border-radius: 50%;
+    fill: #ffffff;
+  }
+
+  & > svg:hover {
+    fill: #f5f5f5;
+  }
 }
 
 /* ================ 状态指示器样式 ================ */

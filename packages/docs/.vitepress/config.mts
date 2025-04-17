@@ -41,6 +41,7 @@ export default defineConfig({
             { text: 'Sender 消息输入框', link: 'sender' },
             { text: 'Prompts', link: 'prompts' },
             { text: 'Welcome', link: 'welcome' },
+            { text: 'Question 问题', link: 'question' },
             { text: '示例', link: 'example' },
           ],
         },

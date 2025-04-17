@@ -1,0 +1,14 @@
+<svg width="16.000000" height="16.000000" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs/>
+	<rect id="矩形" width="16.000000" height="16.000000" fill="#FF8800" fill-opacity="0"/>
+	<rect id="矩形" x="0.500000" y="0.500000" width="15.000000" height="15.000000" stroke="#979797" stroke-opacity="0" stroke-width="1.000000"/>
+	<path id="路径" d="M4.57 14L12.71 5.85C13.42 5.14 13.42 3.99 12.71 3.28C12 2.57 10.85 2.57 10.14 3.28L2 11.42L2 14L4.57 14Z" stroke="#1476ff" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linejoin="round"/>
+	<path id="Fill 1" d="M12.85 12.75C12.27 13.29 12 14.14 12 15C12 14.15 11.7 13.29 11.14 12.75C10.6 12.22 9.81 12 9 12C9.78 12 10.6 11.73 11.14 11.25C11.74 10.7 12 9.87 12 9C12 9.87 12.26 10.7 12.85 11.25C13.39 11.74 14.21 12 15 12C14.2 12 13.39 12.24 12.85 12.75Z" fill="#1476ff" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="Fill 1" d="" fill="#F2F2F2" fill-opacity="0" fill-rule="evenodd"/>
+	<path id="Fill 1备份" d="M3.57 3.5C3.18 3.86 3 4.42 3 5C3 4.43 2.8 3.86 2.42 3.5C2.06 3.15 1.54 3 1 3C1.52 3 2.07 2.82 2.42 2.5C2.82 2.13 3 1.58 3 1C3 1.58 3.17 2.13 3.57 2.5C3.92 2.82 4.47 3 5 3C4.46 3 3.92 3.16 3.57 3.5Z" fill="#1476ff" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="Fill 1备份" d="" fill="#F2F2F2" fill-opacity="0" fill-rule="evenodd"/>
+	<path id="路径" d="M8.85 4.57L11.42 7.14" stroke="#1476ff" stroke-opacity="1.000000" stroke-width="1.000000" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>

@@ -4,6 +4,8 @@ import { IconClose } from '@opentiny/vue-icon'
 import { TinyButton } from '@opentiny/vue'
 import type { Category, Question } from '../index.type'
 
+import { IconHotQuestion, IconTypeAll } from '@opentiny/tiny-robot-svgs'
+
 const TinyIconClose = IconClose()
 
 const props = defineProps({
@@ -19,10 +21,6 @@ const props = defineProps({
     type: String,
     default: '640px',
   },
-  showCategoryIcons: {
-    type: Boolean,
-    default: false,
-  },
   loading: {
     type: Boolean,
     default: false,
@@ -30,10 +28,6 @@ const props = defineProps({
   closeOnClickOutside: {
     type: Boolean,
     default: true,
-  },
-  wrapQuestions: {
-    type: Boolean,
-    default: false,
   },
 })
 
@@ -97,7 +91,10 @@ const modalRef = ref<HTMLElement | null>(null)
   <div v-if="visible" class="tr-question-modal-backdrop" @mousedown="handleClickOutside">
     <div ref="modalRef" class="tr-question-panel" :style="{ width: modalWidth }" @mousedown.stop>
       <div class="tr-question-header">
-        <div class="tr-question-header-title">热门问题</div>
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div><IconHotQuestion /></div>
+          <div class="tr-question-header-title">热门问题</div>
+        </div>
         <span class="tr-question-close-btn" @click="closeModal">
           <TinyButton :icon="TinyIconClose" type="text" />
         </span>
@@ -112,13 +109,15 @@ const modalRef = ref<HTMLElement | null>(null)
           @click="handleCategorySelect(category.id)"
         >
           <slot name="category-label" :category="category">
-            <i v-if="showCategoryIcons && category.icon" :class="['category-icon', category.icon]"></i>
+            <div class="category-icon">
+              <IconTypeAll />
+            </div>
             <span>{{ category.label }}</span>
           </slot>
         </div>
       </div>
 
-      <div :class="['tr-question-content', { 'tr-question-content-wrap': wrapQuestions }]">
+      <div class="tr-question-content">
         <div v-if="loading" class="tr-question-loading">
           <slot name="loading-indicator">
             <div class="tr-question-loading-spinner"></div>

@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, nextTick, PropType } from 'vue'
 import type { Question } from '../index.type'
+import { IconEdit } from '@opentiny/tiny-robot-svgs'
 
 const props = defineProps({
   questions: {
     type: Array as PropType<Question[]>,
     required: true,
-  },
-  maxVisible: {
-    type: Number,
-    default: 5,
   },
   isExpanded: {
     type: Boolean,
@@ -129,6 +126,7 @@ onBeforeUnmount(() => {
       class="tr-common-questions_item"
       @click="handleQuestionClick(question)"
     >
+      <div style="display: flex; align-items: center"><IconEdit /></div>
       {{ question.text }}
     </div>
 
@@ -140,6 +138,7 @@ onBeforeUnmount(() => {
         class="tr-common-questions_item"
         @click="handleQuestionClick(question)"
       >
+        <IconEdit />
         {{ question.text }}
       </div>
     </div>

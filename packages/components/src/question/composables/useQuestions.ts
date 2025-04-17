@@ -14,9 +14,6 @@ export function useQuestions(categories: Ref<Category[]> = ref([])) {
   // 当前主题
   const currentTheme = ref<ThemeType>('light')
 
-  // 是否展示换行的问题样式
-  const isWrapQuestions = ref(false)
-
   // 计算当前激活分类的问题列表
   const activeQuestions = computed(() => {
     if (!activeCategory.value && categories.value.length > 0) {
@@ -85,11 +82,6 @@ export function useQuestions(categories: Ref<Category[]> = ref([])) {
     document.documentElement.setAttribute('data-theme', theme)
   }
 
-  // 切换问题展示方式
-  const toggleWrapQuestions = () => {
-    isWrapQuestions.value = !isWrapQuestions.value
-  }
-
   // 刷新数据（模拟异步操作）
   const refreshData = async () => {
     // 这里可以添加实际的数据刷新逻辑
@@ -101,7 +93,6 @@ export function useQuestions(categories: Ref<Category[]> = ref([])) {
     isFloatingExpanded,
     modalVisible,
     currentTheme,
-    isWrapQuestions,
     activeQuestions,
     setActiveCategory,
     openModal,
@@ -109,7 +100,6 @@ export function useQuestions(categories: Ref<Category[]> = ref([])) {
     toggleFloating,
     toggleTheme,
     setTheme,
-    toggleWrapQuestions,
     refreshData,
     toggleBodyScroll,
   }
