@@ -1,5 +1,5 @@
 import { App } from 'vue'
-import Welcome from './welcome.vue'
+import Welcome from './index.vue'
 
 Welcome.name = 'TrWelcome'
 

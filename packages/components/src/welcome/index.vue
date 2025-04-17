@@ -14,7 +14,7 @@ defineSlots<WelcomeSlots>()
       <span v-if="props.icon" class="tr-welcome__icon">
         <component :is="props.icon"></component>
       </span>
-      <h3 class="tr-welcome__title">盘古助手</h3>
+      <h3 class="tr-welcome__title">{{ props.title }}</h3>
     </div>
     <span class="tr-welcome__description">{{ props.description }}</span>
     <slot name="footer"></slot>

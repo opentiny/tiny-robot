@@ -1,5 +1,5 @@
 <template>
-  <Welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="icon"></Welcome>
+  <Welcome title="盘古助手2" description="您好，我是盘古助手，您专属的华为云专家" :icon="icon"></Welcome>
 </template>
 
 <script setup lang="tsx">
