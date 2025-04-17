@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm build:deps && concurrently 'pnpm dev:components' 'pnpm dev:docs'",
+    "dev": "pnpm build:deps && concurrently \"pnpm dev:components\" \"pnpm dev:docs\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "pnpm build:components && pnpm -F docs build",
@@ -14,7 +14,7 @@
     "build:adapter": "pnpm -F @opentiny/tiny-robot-ai-adapter build",
     "dev:ai-mocker": "pnpm -F ai-mocker dev",
     "build:svgs": "pnpm -F @opentiny/tiny-robot-svgs build",
-    "dev:demo": "npm run build:components && concurrently 'pnpm dev:ai-mocker' 'pnpm -F tiny-robot-demo dev'",
+    "dev:demo": "npm run build:components && concurrently \"pnpm dev:ai-mocker\" \"pnpm -F tiny-robot-demo dev\"",
     "format": "prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
     "lint": "eslint . --fix",
