@@ -4,657 +4,139 @@ outline: deep
 
 # Bubble
 
-## 组件示例
-
-<script setup lang="ts">
-import { BubbleItemProps, BubbleRoleConfig, BubbleStatus } from '@opentiny/tiny-robot'
-import { h, reactive, ref } from 'vue'
-
-/// 角色配置
-const userRoleConfig = reactive<BubbleRoleConfig>({
-  align: 'right',
-  avatar: undefined,
-})
-
-const toggleUserAvatar = (value: boolean) => {
-  userRoleConfig.avatar = value ? h('div', { style: 'font-size: 24px' }, '👤') : undefined
+<style>
+.vitepress-demo-plugin__container {
+  background-color: rgb(248, 248, 248);
 }
+</style>
 
-// max width
-const maxWidth = ref(80)
+## 代码示例
 
-// 渲染 markdown
-const mdContent = `# h1 Heading
-## Emphasis
+### 基本示例
 
-**This is bold text**
+基本示例
 
-*This is italic text*
+<demo vue="../../demos/bubble/basic.vue" />
 
-_This is italic text_
+### 头像和位置
 
-~~Strikethrough~~
-`
+通过 `avatar` 设置自定义头像，通过 `placement` 设置位置，提供了 `start`、`end` 两个选项
 
-// stream
-const streamContent = ref(mdContent)
+<demo vue="../../demos/bubble/avatar-and-placement.vue" />
 
-const resetStreamContent = async () => {
-  streamContent.value = ''
+### 加载中
 
-  const chunks: string[] = []
-  for (let i = 0; i < mdContent.length; i += 3) {
-    chunks.push(mdContent.slice(i, i + 3))
-  }
+通过 `loading` 设置加载中状态
 
-  for (const chunk of chunks) {
-    // 动态地给 content 末尾添加文本
-    streamContent.value = streamContent.value + chunk
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-}
+<demo vue="../../demos/bubble/loading.vue" />
 
-// actions
-const content = 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。'
-const status = ref<BubbleStatus>('complete')
-const streamContent2 = ref(content)
+### 用户停止
 
-const resetStreamContent2 = async () => {
-  streamContent2.value = ''
-  status.value = 'generating'
+通过 `aborted` 设置用户停止状态
 
-  const chunks: string[] = []
-  for (let i = 0; i < content.length; i += 3) {
-    chunks.push(content.slice(i, i + 3))
-  }
-
-  for (const chunk of chunks) {
-    // 动态地给 content 末尾添加文本
-    streamContent2.value = streamContent2.value + chunk
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-
-  status.value = 'complete'
-}
-
-const handleAction = (action: string) => {
-  console.log(action)
-  if (action === 'regenerate') {
-    resetStreamContent2()
-  } else if (action === 'copy') {
-    alert('copied')
-  }
-}
-
-// list
-const userMsg: BubbleItemProps = {
-  role: 'user',
-  content: '简单介绍TinyVue',
-}
-
-const aiMsg: BubbleItemProps = {
-  role: 'ai',
-  content: 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。',
-}
-const bubbleItems = ref([userMsg, aiMsg])
-
-const handleAddBubble = () => {
-  if (bubbleItems.value[bubbleItems.value.length - 1].role === 'ai') {
-    bubbleItems.value.push(userMsg)
-  } else {
-    bubbleItems.value.push(aiMsg)
-  }
-}
-</script>
-
-### 简单文本
-
-设置 `content` 展示简单文本
-
-<div class="language-vue" style="padding: 20px">
-  <bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></bubble-item>
-</div>
-
-```vue
-<template>
-  <bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></bubble-item>
-</template>
-```
-
-### 角色
-
-`role` 属性可设置成 `ai` 或者 `user`
-
-<div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-  <bubble-item role="user" content="简单介绍TinyVue" :role-config="userRoleConfig"></bubble-item
-  ><bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></bubble-item>
-  <hr style="width: 100%" />
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <div>
-      <label style="font-size: 12px; margin-right: 8px">自定义头像</label>
-      <tiny-switch mini @change="toggleUserAvatar"></tiny-switch>
-    </div>
-    <tiny-radio-group v-model="userRoleConfig.align">
-      <tiny-radio label="left">左对齐</tiny-radio>
-      <tiny-radio label="right">右对齐</tiny-radio>
-    </tiny-radio-group>
-  </div>
-</div>
-
-```vue
-<template>
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <bubble-item role="user" content="简单介绍TinyVue" :role-config="userRoleConfig"></bubble-item
-    ><bubble-item
-      role="ai"
-      content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-    ></bubble-item>
-    <hr style="width: 100%" />
-    <div style="display: flex; flex-direction: column; gap: 16px">
-      <div>
-        <label style="font-size: 12px; margin-right: 8px">自定义头像</label>
-        <tiny-switch mini @change="toggleUserAvatar"></tiny-switch>
-      </div>
-      <tiny-radio-group v-model="userRoleConfig.align">
-        <tiny-radio label="left">左对齐</tiny-radio>
-        <tiny-radio label="right">右对齐</tiny-radio>
-      </tiny-radio-group>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-// 角色配置
-const userRoleConfig = reactive<BubbleRoleConfig>({
-  align: 'right',
-  avatar: undefined,
-})
-
-const toggleUserAvatar = (value: boolean) => {
-  userRoleConfig.avatar = value ? h('div', { style: 'font-size: 24px' }, '👤') : undefined
-}
-</script>
-```
-
-### 状态
-
-<div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-  <label>加载中</label>
-  <bubble-item role="ai" status="loading" />
-  <label>用户停止</label>
-  <bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，"
-    status="aborted"
-  ></bubble-item>
-</div>
-
-```vue
-<template>
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <label>加载中</label>
-    <bubble-item role="ai" status="loading" />
-    <label>用户停止</label>
-    <bubble-item
-      role="ai"
-      content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，"
-      status="aborted"
-    ></bubble-item>
-  </div>
-</template>
-```
+<demo vue="../../demos/bubble/aborted.vue" />
 
 ### 最大宽度
 
-<div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-  <bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-    :max-width="maxWidth + '%'"
-  ></bubble-item>
-  <hr style="width: 100%" />
-  <div style="display: flex; align-items: center">
-    <label style="font-size: 12px; margin-right: 8px">调整最大宽度</label>
-    <tiny-slider v-model="maxWidth" :max="100" :min="30"></tiny-slider>
-    <label style="font-size: 12px; margin-left: 24px">当前值：{{ maxWidth + '%' }}</label>
-  </div>
-</div>
+通过 `maxWidth` 设置气泡最大宽度
 
-```vue
-<template>
-  <div style=" display: flex; flex-direction: column; gap: 16px">
-    <bubble-item
-      role="ai"
-      content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-      :max-width="maxWidth + '%'"
-    ></bubble-item>
-    <hr style="width: 100%" />
-    <div style="display: flex; align-items: center">
-      <label style="font-size: 12px; margin-right: 8px">调整最大宽度</label>
-      <tiny-slider v-model="maxWidth" :max="100" :min="30"></tiny-slider>
-      <label style="font-size: 12px; margin-left: 24px">当前值：{{ maxWidth + '%' }}</label>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-const maxWidth = ref(80)
-</script>
-```
+<demo vue="../../demos/bubble/max-width.vue" />
 
 ### 渲染 markdown
 
-设置 `type` 属性为 `markdown`，会以 markdown 格式渲染。`type` 属性可选值为 `text` 或`markdown`，默认为 `text` 。markdown 渲染使用 [markdown-it](https://github.com/markdown-it/markdown-it) 库实现，`mdConfig` 属性是 markdown 配置，配置会传递给内部的 `markdown-it`。具体配置项可查看 markdown-it 的[options](https://markdown-it.github.io/markdown-it/#MarkdownIt.new)
+通过 `type` 设置气泡内容渲染格式，可选值为 `text` 或者 `markdown`
 
-<div style="background: #f9f9f9; padding: 24px; border-radius: 8px">
-  <TinyBubbleItem role="ai" :content="mdContent" type="markdown" />
-</div>
-
-```vue
-<template>
-  <TinyBubbleItem role="ai" :content="mdContent" type="markdown" />
-</template>
-
-<script setup lang="ts">
-const mdContent = `# h1 Heading
-## Emphasis
-
-**This is bold text**
-
-*This is italic text*
-
-_This is italic text_
-
-~~Strikethrough~~
-`
-</script>
-```
+<demo vue="../../demos/bubble/markdown.vue" />
 
 ### 流式文本
 
-`content` 属性是响应式的，动态地给 `content` 末尾添加文本是实现流式文本的最简单的方法
+`content` 属性是响应式的，动态设置 `content` 即可实现流式文本
 
-<div style="background: #f9f9f9; padding: 24px; border-radius: 8px">
-  <TinyBubbleItem role="ai" :content="streamContent" type="markdown" />
-  <hr />
-  <button @click="resetStreamContent">点击展示流式文本</button>
-</div>
+<demo vue="../../demos/bubble/streaming.vue" />
 
-```vue
-<template>
-  <TinyBubbleItem role="ai" :content="streamContent" type="markdown" />
-  <hr />
-  <button @click="resetStreamContent">点击展示流式文本</button>
-</template>
+### 操作
 
-<script setup lang="ts">
-import { onMounted, ref } from 'vue'
+通过 `actions` 设置气泡底部的操作。气泡组件内置了 `refresh` 和 `copy` 两个操作。`copy` 已经内置实现了复制功能。自定义操作请查看 [BubbleActionOptions](#BubbleActionOptions) 类型说明
 
-const mdContent = `# h1 Heading
-## Emphasis
-
-**This is bold text**
-
-*This is italic text*
-
-_This is italic text_
-
-~~Strikethrough~~
-`
-
-const streamContent = ref(mdContent)
-
-const resetStreamContent = async () => {
-  streamContent.value = ''
-
-  const chunks: string[] = []
-  for (let i = 0; i < mdContent.length; i += 3) {
-    chunks.push(mdContent.slice(i, i + 3))
-  }
-
-  for (const chunk of chunks) {
-    // 动态地给 content 末尾添加文本
-    streamContent.value = streamContent.value + chunk
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-}
-</script>
-```
-
-### actions
-
-<div class="language-vue" style="padding: 20px">
-  <bubble-item
-    role="ai"
-    :content="streamContent2"
-    :show-actions="true"
-    :status="status"
-    @action-click="handleAction"
-  />
-</div>
-
-```vue
-<template>
-  <bubble-item
-    role="ai"
-    :content="streamContent2"
-    :show-actions="true"
-    :status="status"
-    @action-click="handleAction"
-  />
-</template>
-
-<script setup lang="ts">
-const content = 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。'
-const status = ref<BubbleStatus>('complete')
-const streamContent2 = ref(content)
-
-const resetStreamContent2 = async () => {
-  streamContent2.value = ''
-  status.value = 'generating'
-
-  const chunks: string[] = []
-  for (let i = 0; i < content.length; i += 3) {
-    chunks.push(content.slice(i, i + 3))
-  }
-
-  for (const chunk of chunks) {
-    // 动态地给 content 末尾添加文本
-    streamContent2.value = streamContent2.value + chunk
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-
-  status.value = 'complete'
-}
-
-const handleAction = (action: string) => {
-  console.log(action)
-  if (action === 'regenerate') {
-    resetStreamContent2()
-  } else if (action === 'copy') {
-    alert('copied')
-  }
-}
-</script>
-```
+<demo vue="../../demos/bubble/actions.vue" />
 
 ### 插槽
 
-<div class="language-vue" style="padding: 20px; display: flex; flex-direction: column; gap: 16px">
-  <label>加载中插槽</label>
-  <bubble-item role="ai" status="loading">
-    <template #loading>
-      <div style="display: flex; align-items: center">加载中。。。</div>
-    </template>
-  </bubble-item>
-  <label>footer插槽</label>
-  <bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-    :show-actions="true"
-  >
-    <template #footer>
-      <div style="color: rgb(128, 128, 128); font-size: 14px; margin-top: 12px">3条来源</div>
-    </template>
-  </bubble-item>
-</div>
+气泡组件提供了三个插槽，分别是 默认插槽, `loading` 插槽 和 `footer` 插槽
 
-```vue
-<template>
-  <div style=" display: flex; flex-direction: column; gap: 16px">
-    <label>加载中插槽</label>
-    <bubble-item role="ai" status="loading">
-      <template #loading>
-        <div style="display: flex; align-items: center">加载中。。。</div>
-      </template>
-    </bubble-item>
-    <label>footer插槽</label>
-    <bubble-item
-      role="ai"
-      content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-      :show-actions="true"
-    >
-      <template #footer>
-        <div style="color: rgb(128, 128, 128); font-size: 14px; margin-top: 12px">3条来源</div>
-      </template>
-    </bubble-item>
-  </div>
-</template>
-```
+<demo vue="../../demos/bubble/slots.vue" />
 
 ### 列表
 
-<div class="language-vue" style="padding: 20px">
-  <bubble-list
-    :items="bubbleItems"
-    :action-configs="{ ai: { show: true } }"
-    style="max-height: 200px"
-    :auto-scroll="true"
-  ></bubble-list>
-  <hr style="width: 100%" />
-  <div>
-    <button @click="handleAddBubble">点击增加对话</button>
-  </div>
-</div>
-
-```vue
-<template>
-  <div style=" display: flex; flex-direction: column; gap: 16px">
-    <bubble-list
-      :items="bubbleItems"
-      :action-configs="{ ai: { show: true } }"
-      style="max-height: 200px"
-      :auto-scroll="true"
-    ></bubble-list>
-    <hr style="width: 100%" />
-    <div>
-      <button @click="handleAddBubble">点击增加对话</button>
-    </div>
-  </div>
-</template>
-
-<script>
-const userMsg: BubbleItemProps = {
-  role: 'user',
-  content: '简单介绍TinyVue',
-}
-
-const aiMsg: BubbleItemProps = {
-  role: 'ai',
-  content: 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。',
-}
-const bubbleItems = ref([userMsg, aiMsg])
-
-const handleAddBubble = () => {
-  if (bubbleItems.value[bubbleItems.value.length - 1].role === 'ai') {
-    bubbleItems.value.push(userMsg)
-  } else {
-    bubbleItems.value.push(aiMsg)
-  }
-}
-</script>
-```
+<demo vue="../../demos/bubble/list.vue" />
 
 ## API
 
-### BubbleItem 组件
+### BubbleProps
 
-单个气泡组件的属性定义
-
-```typescript
-interface BubbleItemProps {
-  /**
-   * 角色，`ai` 或 `user`
-   */
-  role: BubbleRole
-  /**
-   * 内容
-   */
-  content?: string
-  /**
-   * 内容类型
-   */
-  type?: 'text' | 'markdown'
-  /**
-   * 气泡状态
-   */
-  status?: BubbleStatus
-  /**
-   * 角色配置项
-   */
-  roleConfig?: BubbleRoleConfig
-  /**
-   * type 为 'markdown' 时，markdown 的配置项
-   */
-  mdConfig?: MarkdownItOptions
-  showActions?: boolean
-  actions?: BubbleAction[]
-  // 样式相关
-  maxWidth?: CSSProperties['maxWidth']
-}
-```
-
-**属性说明**:
-
-- `role`: 必选，气泡角色
-- `content`: 可选，气泡显示的内容
-- `type`: 可选，内容类型，默认为'text'
-- `status`: 可选，气泡状态
-- `roleConfig`: 可选，覆盖全局的角色配置
-- `mdConfig`: 可选，markdown 渲染配置
-- `showActions`: 可选，是否显示操作按钮
-- `actions`: 可选，自定义操作按钮
-- `maxWidth`: 可选，气泡最大宽度
-
----
-
-### BubbleList 组件
-
-气泡列表组件的属性定义
-
-```typescript
-interface BubbleListProps {
-  items: BubbleItemProps[] // 气泡项列表
-  roleConfigs?: Partial<Record<BubbleRole, BubbleRoleConfig>> // 角色配置
-  mdConfig?: MarkdownItOptions // 全局markdown配置
-  actionConfigs?: Partial<Record<BubbleRole, BubbleActionConfig>> // 操作按钮配置
-  autoScroll?: boolean // 是否自动滚动到底部
-  // 样式相关
-  maxWidth?: CSSProperties['maxWidth'] // 最大宽度
-}
-```
-
-**属性说明**:
-
-- `items`: 必选，气泡项数组
-- `roleConfigs`: 可选，各角色的默认配置
-- `mdConfig`: 可选，全局 markdown 配置
-- `actionConfigs`: 可选，各角色的操作按钮配置
-- `autoScroll`: 可选，是否自动滚动
-- `maxWidth`: 可选，列表最大宽度
-
----
-
-### BubbleRole
-
-定义气泡对话中的角色类型
-
-```typescript
-type BubbleRole = 'ai' | 'user'
-```
-
-**取值说明**:
-
-- `'ai'`: AI 角色气泡
-- `'user'`: 用户角色气泡
-
----
-
-### BubbleRoleConfig
-
-角色配置项，定义不同角色的显示方式
-
-```typescript
-interface BubbleRoleConfig {
-  avatar?: VNode // 角色头像，Vue虚拟节点
-  align: 'left' | 'right' // 气泡对齐方式
-}
-```
-
-**属性说明**:
-
-- `avatar`: 可选，显示在气泡旁的头像
-- `align`: 必选，气泡的对齐方向
-
----
-
-### BubbleStatus
-
-定义气泡的状态
-
-```typescript
-type BubbleStatus = 'loading' | 'generating' | 'aborted' | 'complete' | 'error'
-```
-
-**状态说明**:
-
-- `'loading'`: 加载中状态
-- `'generating'`: AI 生成内容中
-- `'aborted'`: 生成被中止
-- `'complete'`: 完成状态
-- `'error'`: 错误状态
-
----
-
-### BubbleActionOptions
-
-自定义气泡操作项
-
-```typescript
-interface BubbleActionOptions {
-  name: string // 操作名称
-  vnode: VNode | Component // 操作图标或组件
-  show?: boolean | ((props: BubbleItemProps) => boolean) // 显示条件
-}
-```
-
----
+| Prop Name   | Type                        | Description                                 | Required | Default |
+| ----------- | --------------------------- | ------------------------------------------- | -------- | ------- |
+| `content`   | `string`                    | 气泡内容                                    | ❌       | —       |
+| `id`        | `string`                    | 气泡唯一标识符（可选）                      | ❌       | —       |
+| `placement` | `'start' \| 'end'`          | 气泡位置                                    | ❌       | `start` |
+| `avatar`    | `VNode`                     | 自定义头像插槽内容                          | ❌       | —       |
+| `role`      | `string`                    | 角色标识符（用于匹配角色配置）              | ❌       | —       |
+| `type`      | `'text' \| 'markdown'`      | 内容格式类型                                | ❌       | `text`  |
+| `loading`   | `boolean`                   | 是否显示加载中样式                          | ❌       | `false` |
+| `aborted`   | `boolean`                   | 是否显示终止状态                            | ❌       | `false` |
+| `mdConfig`  | `MarkdownItOptions`         | Markdown 渲染配置（当 type 为 markdown 时） | ❌       | —       |
+| `actions`   | `BubbleAction[]`            | 操作按钮配置，支持字符串或配置项            | ❌       | —       |
+| `maxWidth`  | `CSSProperties['maxWidth']` | 最大宽度                                    | ❌       | —       |
 
 ### BubbleAction
 
-气泡支持的操作类型，可以是预设类型或自定义操作
+`BubbleAction` 类型为 `'copy' | 'refresh' | BubbleActionOptions`
 
-```typescript
-type BubbleAction = 'copy' | 'regenerate' | 'like' | 'dislike' | 'continue' | 'edit' | BubbleActionOptions
-```
+`BubbleActionOptions` 类型说明如下
 
-**预设操作类型**:
-
-- `'copy'`: 复制内容
-- `'regenerate'`: 重新生成
-- `'like'`: 点赞
-- `'dislike'`: 点踩
-- `'continue'`: 继续生成
-- `'edit'`: 编辑内容
+| 属性名  | 类型                                         | 描述                         |
+| ------- | -------------------------------------------- | ---------------------------- |
+| `name`  | `'copy' \| 'refresh' \| string`              | 操作名称                     |
+| `vnode` | `VNode \| Component`                         | 自定义渲染内容（可选）       |
+| `show`  | `boolean \| (props: BubbleProps) => boolean` | 是否显示操作按钮（支持函数） |
 
 ---
 
-### BubbleActionConfig
+### BubbleSlots
 
-操作按钮配置
+| Slot Name | Description      |
+| --------- | ---------------- |
+| `default` | 气泡主内容       |
+| `footer`  | 自定义底部区域   |
+| `loading` | 自定义加载中样式 |
 
-```typescript
-interface BubbleActionConfig {
-  show?: boolean // 是否显示操作栏
-  actions?: BubbleAction[] // 自定义操作项
-}
-```
+---
+
+### BubbleEvents
+
+| Event Name | Parameters                       | Description                |
+| ---------- | -------------------------------- | -------------------------- |
+| `copy`     | `(result: boolean)`              | 复制内容后的回调结果       |
+| `refresh`  | `()`                             | 刷新事件                   |
+| `action`   | `(name: string, ...args: any[])` | 通用操作事件，传入操作名称 |
+
+---
+
+### BubbleListProps
+
+| Prop Name    | Type                               | Description        | Required | Default |
+| ------------ | ---------------------------------- | ------------------ | -------- | ------- |
+| `items`      | `BubbleProps[]`                    | 气泡列表           | ✅       | —       |
+| `roles`      | `Record<string, BubbleRoleConfig>` | 各角色默认配置项   | ❌       | —       |
+| `autoScroll` | `boolean`                          | 是否自动滚动到底部 | ❌       | `false` |
+
+### BubbleRoleConfig
+
+继承自 `BubbleProps` 的部分字段，用于设置每个角色的默认值：
+
+- `placement`
+- `avatar`
+- `type`
+- `mdConfig`
+- `actions`
+- `maxWidth`
