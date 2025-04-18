@@ -53,7 +53,7 @@ export interface UseMessageReturn {
   /** 是否使用流式响应 */
   useStream: Ref<boolean>
   /** 发送消息 */
-  sendMessage: () => Promise<void>
+  sendMessage: (content?: string, clearInput?: boolean) => Promise<void>
   /** 清空消息 */
   clearMessages: () => void
   /** 添加消息 */
@@ -167,17 +167,19 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
   }
 
   // 发送消息
-  const sendMessage = async () => {
-    if (!inputMessage.value.trim() || GeneratingStatus.includes(messageState.status)) {
+  const sendMessage = async (content: string = inputMessage.value, clearInput: boolean = true) => {
+    if (!content?.trim() || GeneratingStatus.includes(messageState.status)) {
       return
     }
 
     const userMessage: ChatMessage = {
       role: 'user',
-      content: inputMessage.value,
+      content,
     }
     messages.value.push(userMessage)
-    inputMessage.value = ''
+    if (clearInput) {
+      inputMessage.value = ''
+    }
 
     await chatRequest()
   }

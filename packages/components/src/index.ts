@@ -1,16 +1,18 @@
 import { App } from 'vue'
-import BubbleItem from './bubble-item'
-import BubbleList from './bubble-list'
+import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import { Prompt, Prompts } from './prompts'
+import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
 
-export * from './bubble-list/index.type'
+export * from './bubble/index.type'
 export * from './prompts/index.type'
+export * from './sender/index.type'
+export * from './welcome/index.type'
 
-const components = [BubbleItem, BubbleList, Container, Conversations, Prompt, Prompts, Sender, Welcome]
+const components = [Bubble, BubbleList, Container, Conversations, Prompt, Prompts, Sender, Welcome, Question]
 
 export default {
   install<T>(app: App<T>) {
@@ -21,4 +23,4 @@ export default {
   },
 }
 
-export { BubbleItem, BubbleList, Container, Conversations, Prompt, Prompts, Sender, Welcome }
+export { Bubble, BubbleList, Container, Conversations, Prompt, Prompts, Question, Sender, Welcome }

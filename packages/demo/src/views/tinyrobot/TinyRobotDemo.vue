@@ -11,16 +11,35 @@
 
     <!-- 需要替换为 TinyRobot Bubble组件-->
     <div class="chat-messages" ref="chatContainer">
-      <tiny-bubble-item
+      <tiny-bubble
         v-for="(message, index) in messages"
         :key="index"
-        :role="message.role === 'user' ? 'user' : 'ai'"
+        :placement="message.role === 'user' ? 'end' : 'start'"
+        :avatar="message.role === 'user' ? userAvatar : aiAvatar"
         :content="message.content"
-        :showActions="index !== messages.length - 1 || !GeneratingStatus.includes(messageState.status)"
-        @actionClick="handleActionClick($event, index)"
-      ></tiny-bubble-item>
+        :actions="
+          message.role === 'user'
+            ? []
+            : [
+                {
+                  name: 'refresh',
+                  show: () => index !== messages.length - 1 || !GeneratingStatus.includes(messageState.status),
+                },
+                {
+                  name: 'copy',
+                  show: () => index !== messages.length - 1 || !GeneratingStatus.includes(messageState.status),
+                },
+              ]
+        "
+        @refresh="onRefresh(index)"
+      ></tiny-bubble>
 
-      <tiny-bubble-item v-if="messageState.status === STATUS.PROCESSING" role="ai" status="loading"></tiny-bubble-item>
+      <tiny-bubble
+        v-if="messageState.status === STATUS.PROCESSING"
+        placement="start"
+        :avatar="aiAvatar"
+        :loading="true"
+      ></tiny-bubble>
     </div>
 
     <!-- 需要替换为 TinyRobot InputBox组件-->
@@ -29,7 +48,7 @@
       v-model="inputMessage"
       :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
       :clearable="true"
-      :loading="messageState.status === STATUS.PROCESSING"
+      :loading="GeneratingStatus.includes(messageState.status)"
       @submit="sendMessage"
       @cancel="abortRequest"
     ></TinySender>
@@ -37,11 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { h, ref, watch } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { AIClient, useMessage, STATUS, GeneratingStatus } from '@opentiny/tiny-robot-ai-adapter'
-import { BubbleItem as TinyBubbleItem, Sender as TinySender } from '@opentiny/tiny-robot'
-import { IconFullScreen } from '@opentiny/tiny-robot-svgs'
+import { Bubble as TinyBubble, Sender as TinySender } from '@opentiny/tiny-robot'
+import { IconFullScreen, IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 
 const client = new AIClient({
   provider: 'openai',
@@ -49,6 +68,9 @@ const client = new AIClient({
   defaultModel: 'gpt-3.5-turbo',
   apiUrl: 'http://localhost:3001/v1',
 })
+
+const aiAvatar = h(IconAi, { style: { width: '32px', height: '32px' } })
+const userAvatar = h(IconUser, { style: { width: '32px', height: '32px' } })
 
 const { messages, messageState, inputMessage, useStream, sendMessage, abortRequest, retryRequest } = useMessage({
   client,
@@ -61,8 +83,8 @@ const { messages, messageState, inputMessage, useStream, sendMessage, abortReque
   ],
 })
 
-const handleActionClick = (action: string, index: number) => {
-  if (action === 'regenerate') retryRequest(index)
+const onRefresh = (index: number) => {
+  retryRequest(index)
 }
 
 watch(
