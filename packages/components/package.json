@@ -22,8 +22,7 @@
     "@opentiny/vue-icon": "^3.22.0",
     "@opentiny/vue-input": "^3.21.0",
     "@opentiny/vue-tooltip": "^3.22.0",
-    "markdown-it": "^14.1.0",
-    "vue": "^3.3.11"
+    "markdown-it": "^14.1.0"
   },
   "devDependencies": {
     "@opentiny/vue-vite-import": "^1.3.0",
