@@ -134,7 +134,7 @@ interface UseMessageReturn {
   /** 是否使用流式响应 */
   useStream: Ref<boolean>;
   /** 发送消息 */
-  sendMessage: () => Promise<void>;
+  sendMessage: (content?: string, clearInput?: boolean) => Promise<void>
   /** 清空消息 */
   clearMessages: () => void;
   /** 添加消息 */

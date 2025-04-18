@@ -29,7 +29,7 @@
       v-model="inputMessage"
       :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
       :clearable="true"
-      :loading="messageState.status === STATUS.PROCESSING"
+      :loading="GeneratingStatus.includes(messageState.status)"
       @submit="sendMessage"
       @cancel="abortRequest"
     ></TinySender>
