@@ -7,16 +7,63 @@
 ### 构造函数
 
 ```typescript
-new AIClient(config: AIModelConfig)
+const client:AIClient = new AIClient(config: AIModelConfig)
+
+/**
+ * AI模型配置接口
+ */
+interface AIModelConfig {
+  provider: AIProvider
+  apiKey?: string
+  apiUrl?: string
+  apiVersion?: string
+  defaultModel?: string
+  defaultOptions?: ChatCompletionOptions
+}
+
 ```
 
 ### 方法
 
-- `chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse>`  
-  发送聊天请求并获取响应。
+```typescript
+/**
+ * AIClient类
+ */
+declare class AIClient {
+    /**
+     * 发送聊天请求并获取响应
+     * @param request 聊天请求参数
+     * @returns 聊天响应
+     */
+    chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse>;
+    /**
+     * 发送流式聊天请求并通过处理器处理响应
+     * @param request 聊天请求参数
+     * @param handler 流式响应处理器
+     */
+    chatStream(request: ChatCompletionRequest, handler: StreamHandler): Promise<void>;
+    /**
+     * 获取当前配置
+     * @returns AI模型配置
+     */
+    getConfig(): AIModelConfig;
+    /**
+     * 更新配置
+     * @param config 新的AI模型配置
+     */
+    updateConfig(config: Partial<AIModelConfig>): void;
+}
 
-- `chatStream(request: ChatCompletionRequest, handler: StreamHandler): Promise<void>`  
-  发送流式聊天请求并通过处理器处理响应。
+/**
+ * 流式响应处理器
+ */
+interface StreamHandler {
+    onData: (data: ChatCompletionStreamResponse) => void;
+    onError: (error: AIAdapterError) => void;
+    onDone: () => void;
+}
+
+```
 
 
 ## 用法示例
@@ -24,7 +71,7 @@ new AIClient(config: AIModelConfig)
 ### 创建客户端并发送消息
 
 ```typescript
-import { AIClient } from 'ai-adapter';
+import { AIClient } from '@opentiny/tiny-robot-ai-adapter';
 
 // 创建客户端
 const client = new AIClient({
@@ -58,7 +105,7 @@ chat();
 ### 使用流式响应
 
 ```typescript
-import { AIClient } from 'ai-adapter';
+import { AIClient } from '@opentiny/tiny-robot-ai-adapter';
 
 const client = new AIClient({
   provider: 'openai',

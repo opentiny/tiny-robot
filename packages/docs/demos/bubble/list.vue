@@ -1,9 +1,8 @@
 <template>
-  <bubble-list :items="items" :roles="roles"></bubble-list>
+  <tr-bubble-list :items="items" :roles="roles"></tr-bubble-list>
 </template>
 
 <script setup lang="ts">
-import { BubbleList, BubbleProps, BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 

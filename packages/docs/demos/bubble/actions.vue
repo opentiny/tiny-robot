@@ -1,5 +1,5 @@
 <template>
-  <bubble
+  <tr-bubble
     :content="streamContent"
     :avatar="aiAvatar"
     :actions="['refresh', 'copy']"
@@ -9,7 +9,6 @@
 </template>
 
 <script setup lang="ts">
-import { Bubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
 

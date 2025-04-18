@@ -1,9 +1,9 @@
 <template>
-  <Prompts :items="items"></Prompts>
+  <tr-prompts :items="items"></tr-prompts>
 </template>
 
 <script setup lang="ts">
-import { PromptProps, Prompts } from '@opentiny/tiny-robot'
+import { PromptProps } from '@opentiny/tiny-robot'
 import { CSSProperties, h } from 'vue'
 
 const items: PromptProps[] = [

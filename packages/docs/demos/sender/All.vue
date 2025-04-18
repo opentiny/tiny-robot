@@ -1,5 +1,5 @@
 <template>
-  <sender
+  <tr-sender
     v-model="inputMessage"
     mode="multiple"
     submitType="ctrlEnter"
@@ -20,11 +20,10 @@
     <template #prefix>
       <IconAvatar class="user-avatar" />
     </template>
-  </sender>
+  </tr-sender>
 </template>
 
 <script setup lang="ts">
-import { Sender } from '@opentiny/tiny-robot'
 import { IconAvatar } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
 

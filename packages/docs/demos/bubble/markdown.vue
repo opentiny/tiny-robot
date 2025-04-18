@@ -1,9 +1,8 @@
 <template>
-  <bubble :content="mdContent" :avatar="aiAvatar" type="markdown"></bubble>
+  <tr-bubble :content="mdContent" :avatar="aiAvatar" type="markdown"></tr-bubble>
 </template>
 
 <script setup lang="ts">
-import { Bubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
