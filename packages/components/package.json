@@ -16,6 +16,7 @@
     "vue": "^3.3.11"
   },
   "dependencies": {
+    "@opentiny/tiny-robot-svgs": "workspace:*",
     "@opentiny/vue": "^3.21.0",
     "@opentiny/vue-button": "^3.21.0",
     "@opentiny/vue-icon": "^3.22.0",

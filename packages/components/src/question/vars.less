@@ -1,0 +1,135 @@
+/* ----------------- 颜色变量 ----------------- */
+:root {
+  /* 主题基础颜色 */
+  --tr-question-primary-color: #1890ff;
+  --tr-question-background-color: #ffffff;
+  --tr-question-modal-background-color: #ffffff;
+  --tr-question-text-color: #333333;
+  --tr-question-text-color-secondary: #666666;
+  --tr-question-border-color: #e8e8e8;
+  --tr-question-hover-color: #f5f5f5;
+  --tr-question-tab-hover-bg: #f0f0f0;
+  --tr-question-active-tab-color: var(--tr-question-primary-color);
+  --tr-question-active-tab-bg: #e6f7ff;
+
+  /* 弹窗相关颜色 */
+  --tr-question-header-bg: #f9f9f9;
+  --tr-question-title-color: #1d2129;
+  --tr-question-close-icon-color: #86909c;
+  --tr-question-tab-active-bg: #e8f3ff;
+  --tr-question-tab-active-text: #1890ff;
+  --tr-question-tab-text: #4e5969;
+  --tr-question-tab-border: #f0f0f0;
+  --tr-question-list-divider-color: #f0f0f0;
+  --tr-question-modal-backdrop-color: rgba(0, 0, 0, 0.5);
+  
+  /* 常见问题颜色 */
+  --tr-question-common-bg: #fff;
+  --tr-question-common-text: #191919;
+  --tr-question-common-hover-bg: #ebebeb;
+  --tr-question-common-shadow: rgba(0, 0, 0, 0.04);
+  
+  /* 背景颜色 */
+  --tr-question-container-bg: #f8f8f8;
+  --tr-question-list-item-bg: #fff;
+  --tr-question-list-hover-shadow: rgba(0, 0, 0, 0.08);
+  --tr-question-category-bg: rgba(0, 0, 0, 0.04);
+  --tr-question-category-hover-bg: rgba(0, 0, 0, 0.08);
+  --tr-question-category-active-border: #191919;
+  --tr-question-item-border-color: rgba(0, 0, 0, 0.04);
+  
+  /* 滚动条颜色 */
+  --tr-question-scrollbar-track-bg: rgba(16, 31, 28, 0.1);
+  --tr-question-scrollbar-thumb-bg: rgba(144, 147, 153, 0.5);
+  --tr-question-scrollbar-thumb-hover-bg: rgba(144, 147, 153, 0.3);
+
+  /* ----------------- 尺寸变量 ----------------- */
+  /* 圆角 */
+  --tr-question-border-radius: 24px;
+  --tr-question-category-border-radius: 8px;
+  --tr-question-list-border-radius: 12px;
+  --tr-question-common-border-radius: 16px;
+  --tr-question-scrollbar-border-radius: 2em;
+  
+  /* 间距和尺寸 */
+  --tr-question-spacing: 16px;
+  --tr-question-icon-size: 16px;
+  --tr-question-container-height: 46px;
+  --tr-question-item-height: 56px;
+  --tr-question-trigger-size: 32px;
+  --tr-question-common-item-height: 32px;
+  --tr-question-category-height: 38px;
+  --tr-question-scrollbar-width: 4px;
+  --tr-question-modal-padding: 24px;
+  --tr-question-modal-max-height: 80vh;
+  --tr-question-modal-max-width: 640px;
+  --tr-question-content-max-height: calc(80vh - 120px);
+
+  /* ----------------- 文字变量 ----------------- */
+  /* 字体 */
+  --tr-question-font-size: 14px;
+  --tr-question-title-font-size: 18px;
+  --tr-question-title-font-weight: 600;
+  --tr-question-item-font-weight: 400;
+  --tr-question-line-height: 1.5;
+  --tr-question-item-line-height: 22px;
+
+  /* ----------------- 特效变量 ----------------- */
+  /* 阴影 */
+  --tr-question-panel-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  --tr-question-trigger-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --tr-question-common-item-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --tr-question-list-item-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --tr-question-wrap-trigger-shadow: 2px 0 9px rgba(0, 0, 0, 0.04);
+
+  /* 动画 */
+  --tr-question-transition-duration: 0.3s;
+  --tr-question-transition-timing: ease;
+  --tr-question-hover-transition: all var(--tr-question-transition-duration) var(--tr-question-transition-timing);
+}
+
+/* ----------------- 暗色主题变量 ----------------- */
+[data-theme='dark'] {
+  /* 主题基础颜色 */
+  --tr-question-primary-color: #177ddc;
+  --tr-question-background-color: #1f1f1f;
+  --tr-question-modal-background-color: #2a2a2a;
+  --tr-question-text-color: #f0f0f0;
+  --tr-question-text-color-secondary: #aaaaaa;
+  --tr-question-border-color: #434343;
+  --tr-question-hover-color: #303030;
+  --tr-question-tab-hover-bg: #3a3a3a;
+  --tr-question-active-tab-color: var(--tr-question-primary-color);
+  --tr-question-active-tab-bg: #113a5c;
+
+  /* 弹窗相关颜色 */
+  --tr-question-header-bg: #2a2a2a;
+  --tr-question-title-color: #c9d1d9;
+  --tr-question-close-icon-color: #8b949e;
+  --tr-question-tab-active-bg: #30363d;
+  --tr-question-tab-active-text: #58a6ff;
+  --tr-question-tab-text: #8b949e;
+  --tr-question-tab-border: #30363d;
+  --tr-question-list-divider-color: #30363d;
+  --tr-question-modal-backdrop-color: rgba(0, 0, 0, 0.7);
+  
+  /* 常见问题颜色 */
+  --tr-question-common-bg: #2a2a2a;
+  --tr-question-common-text: #e6e6e6;
+  --tr-question-common-hover-bg: #3a3a3a;
+  --tr-question-common-shadow: rgba(0, 0, 0, 0.2);
+  
+  /* 背景颜色 */
+  --tr-question-container-bg: #141414;
+  --tr-question-list-item-bg: #2a2a2a;
+  --tr-question-list-hover-shadow: rgba(0, 0, 0, 0.3);
+  --tr-question-category-bg: rgba(255, 255, 255, 0.04);
+  --tr-question-category-hover-bg: rgba(255, 255, 255, 0.08);
+  --tr-question-category-active-border: #e6e6e6;
+  --tr-question-item-border-color: rgba(255, 255, 255, 0.04);
+  
+  /* 滚动条颜色 */
+  --tr-question-scrollbar-track-bg: rgba(255, 255, 255, 0.05);
+  --tr-question-scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
+  --tr-question-scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.3);
+}
