@@ -23,6 +23,7 @@ export default defineConfig({
     nav: [
       { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
+      { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
     ],
     sidebar: {
       '/guide/': [
@@ -41,7 +42,18 @@ export default defineConfig({
             { text: 'Sender 消息输入框', link: 'sender' },
             { text: 'Prompts', link: 'prompts' },
             { text: 'Welcome', link: 'welcome' },
+            { text: 'Question 问题', link: 'question' },
             { text: '示例', link: 'example' },
+          ],
+        },
+      ],
+      '/tools/': [
+        {
+          text: '工具',
+          base: '/tools/',
+          items: [
+            { text: 'AI模型交互工具类', link: 'ai-client' },
+            { text: '消息与数据管理', link: 'message' },
           ],
         },
       ],

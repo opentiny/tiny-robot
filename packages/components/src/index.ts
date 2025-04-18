@@ -4,13 +4,14 @@ import Conversations from './conversations'
 import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
 import Welcome from './welcome'
+import Question from './question'
 
 export * from './bubble/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './welcome/index.type'
 
-const components = [Bubble, BubbleList, Conversations, Prompt, Prompts, Sender, Welcome]
+const components = [Bubble, BubbleList, Conversations, Prompt, Prompts, Sender, Welcome, Question]
 
 export default {
   install<T>(app: App<T>) {
@@ -21,4 +22,4 @@ export default {
   },
 }
 
-export { Bubble, BubbleList, Conversations, Prompt, Prompts, Sender, Welcome }
+export { Bubble, BubbleList, Conversations, Prompt, Prompts, Sender, Welcome, Question }
