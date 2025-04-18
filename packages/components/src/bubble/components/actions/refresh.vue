@@ -18,6 +18,7 @@ button.icon-btn {
   cursor: pointer;
   padding: 0;
   transition: background-color 0.3s;
+  background-color: white;
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.04);
