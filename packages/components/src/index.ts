@@ -12,7 +12,7 @@ export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './welcome/index.type'
 
-const components = [Bubble, BubbleList, Container, Conversations, Prompt, Prompts, Sender, Welcome, Question]
+const components = [Bubble, BubbleList, Container, Conversations, Prompt, Prompts, Question, Sender, Welcome]
 
 export default {
   install<T>(app: App<T>) {

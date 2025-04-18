@@ -21,9 +21,7 @@ watch([() => props.items.length, () => lastBubble.value?.content], () => {
 
 const getItemProps = (item: BubbleProps): BubbleProps => {
   const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { id, ...rest } = item
-  return { ...defaultConfig, ...rest }
+  return { ...defaultConfig, ...item }
 }
 </script>
 

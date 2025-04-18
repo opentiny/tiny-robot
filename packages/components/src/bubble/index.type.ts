@@ -16,7 +16,7 @@ export interface BubbleProps {
    * 气泡内容
    */
   content?: string
-  id?: string
+  id?: string | number | symbol
   /**
    * 气泡位置
    */
