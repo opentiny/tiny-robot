@@ -20,6 +20,7 @@
 </template>
 
 <script setup lang="tsx">
+// import { TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 

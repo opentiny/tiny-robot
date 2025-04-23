@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// import { TrBubble, TrSender } from '@opentiny/tiny-robot'
 import { ref } from 'vue'
 import { AIClient } from '@opentiny/tiny-robot-ai-adapter'
 
@@ -30,8 +31,8 @@ async function chat(content) {
 </script>
 
 <template>
-  <Bubble v-if="message" :content="message"></Bubble>
-  <Sender v-model="content" @submit="chat(content)" class="chat-input"></Sender>
+  <tr-bubble v-if="message" :content="message"></tr-bubble>
+  <tr-sender v-model="content" @submit="chat(content)" class="chat-input"></tr-sender>
 </template>
 
 <style lang="less" scoped>

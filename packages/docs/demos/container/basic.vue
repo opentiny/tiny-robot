@@ -6,7 +6,7 @@
     </div>
     <!-- operations插槽 -->
     <template #operations>
-      <button class="icon-btn"><IconNewSession /></button>
+      <button class="icon-btn"><icon-new-session /></button>
     </template>
     <!-- footer插槽 -->
     <template #footer>
@@ -26,6 +26,7 @@
 </template>
 
 <script setup lang="ts">
+// import { TrContainer } from '@opentiny/tiny-robot'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
 

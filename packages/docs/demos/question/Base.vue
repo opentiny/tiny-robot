@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+// import { TrQuestion } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 
 // 引用组件实例

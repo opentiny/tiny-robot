@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// import { TrBubble, TrSender } from '@opentiny/tiny-robot'
 import { ref } from 'vue'
 import { AIClient } from '@opentiny/tiny-robot-ai-adapter'
 
@@ -56,8 +57,8 @@ function abortRequest() {
 </script>
 
 <template>
-  <Bubble v-if="message" :content="message"></Bubble>
-  <Sender class="chat-input" v-model="content" @submit="chat(content)" @cancel="abortRequest"></Sender>
+  <tr-bubble v-if="message" :content="message"></tr-bubble>
+  <tr-sender class="chat-input" v-model="content" @submit="chat(content)" @cancel="abortRequest"></tr-sender>
 </template>
 
 <style lang="less" scoped>
