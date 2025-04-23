@@ -44,6 +44,7 @@ export default defineConfig({
             { text: 'Prompts', link: 'prompts' },
             { text: 'Welcome', link: 'welcome' },
             { text: 'Question 问题', link: 'question' },
+            { text: 'History 历史', link: 'history' },
             { text: '示例', link: 'example' },
           ],
         },
