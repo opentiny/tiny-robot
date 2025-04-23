@@ -25,6 +25,10 @@ const computedActiveTab = computed(() => {
   return activeTab.value || props.tabs[0].value
 })
 
+const enableTabBottomBorder = computed(() => {
+  return props.tabs.length > 1
+})
+
 const groups = computed(() => {
   return props.data[computedActiveTab.value] || []
 })
@@ -100,8 +104,9 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
               <span class="tr-history__item-title">{{ item.title }}</span>
               <ItemTag v-if="item.tag" class="tr-history__item-tag" v-bind="item.tag" />
               <div class="tr-history__item-actions">
-                <tiny-button :icon="IconEditPen" type="text" size="mini" @click="handleEdit(item)" />
-                <tiny-button :icon="IconDelete" type="text" size="mini" @click="handleDelete(item)" />
+                <!-- TODO add popover提示 -->
+                <tiny-button :icon="IconEditPen" type="text" size="mini" @click.stop="handleEdit(item)" />
+                <tiny-button :icon="IconDelete" type="text" size="mini" @click.stop="handleDelete(item)" />
               </div>
             </template>
             <template v-else>
@@ -115,7 +120,7 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
           </div>
         </div>
       </template>
-      <SearchEmpty :text="searchQuery ? '暂无搜索结果' : '暂无内容'" />
+      <SearchEmpty v-else :text="searchQuery ? '暂无搜索结果' : '暂无内容'" />
     </div>
     <div class="tr-history__close">
       <tiny-button :icon="IconClose" type="text" size="mini" @click="handleClose" />
@@ -141,7 +146,7 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
     gap: 32px;
     font-size: 16px;
     line-height: 1.5;
-    border-bottom: 1px solid rgb(240, 240, 240);
+    border-bottom: v-bind("enableTabBottomBorder ? '1px solid rgb(240, 240, 240)': 'none'");
 
     .tr-history__tab {
       cursor: pointer;
@@ -149,7 +154,7 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
 
       &.active {
         font-weight: 600;
-        border-bottom: 2px solid rgb(25, 25, 25);
+        border-bottom: v-bind("enableTabBottomBorder ? '2px solid rgb(25, 25, 25)': 'none'");
       }
     }
   }
