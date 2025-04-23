@@ -1,18 +1,67 @@
 <script lang="ts" setup>
 import { IconClose, IconDelete, IconEditPen, IconSearch } from '@opentiny/tiny-robot-svgs'
 import { TinyButton, TinyInput } from '@opentiny/vue'
-import { computed, ref } from 'vue'
-import type { HistoryProps } from './index.type'
+import { computed } from 'vue'
+import { ItemTag, SearchEmpty } from './components'
+import { useEditItemTitle } from './composables'
+import type { HistoryEvents, HistoryGroup, HistoryItem, HistoryProps } from './index.type'
 
-const props = defineProps<HistoryProps>()
+const props = withDefaults(defineProps<HistoryProps>(), {
+  searchFn: (query: string, { title }: HistoryItem) => {
+    if (!query) {
+      return true
+    }
+
+    return title.toLowerCase().includes(query.toLowerCase())
+  },
+})
 
 const activeTab = defineModel<HistoryProps['activeTab']>('activeTab')
+const searchQuery = defineModel<HistoryProps['searchQuery']>('searchQuery')
+
+const emit = defineEmits<HistoryEvents>()
 
 const computedActiveTab = computed(() => {
   return activeTab.value || props.tabs[0].value
 })
 
-const searchQuery = ref('')
+const groups = computed(() => {
+  return props.data[computedActiveTab.value] || []
+})
+
+const filteredGroups = computed(() => {
+  if (!props.searchBar) {
+    return groups.value
+  }
+
+  const groupsWithFilteredItems = groups.value.map((group) => {
+    return {
+      ...group,
+      items: group.items.filter((item) => props.searchFn(searchQuery.value || '', item)),
+    } as HistoryGroup
+  })
+
+  return groupsWithFilteredItems.filter((group) => group.items.length > 0)
+})
+
+const handleItemClick = (item: HistoryItem) => {
+  if (item.id === editingItem.value?.id) {
+    return
+  }
+
+  emit('item-click', item)
+}
+
+const handleClose = () => {
+  emit('close')
+}
+
+const handleDelete = (item: HistoryItem) => {
+  // TODO 删除确认弹窗
+  emit('item-delete', item)
+}
+
+const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEditItemTitle(emit)
 </script>
 
 <template>
@@ -27,29 +76,49 @@ const searchQuery = ref('')
         {{ tab.label }}
       </div>
     </div>
-    <div class="tr-history__search">
-      <tiny-input v-model="searchQuery" placeholder="搜索对话名称" :prefix-icon="IconSearch" />
+    <div v-if="props.searchBar" class="tr-history__search">
+      <tiny-input
+        v-model="searchQuery"
+        :placeholder="props.searchPlaceholder || '搜索对话名称'"
+        :prefix-icon="IconSearch"
+        clearable
+      />
     </div>
     <div class="tr-history__content">
-      <div v-for="group in props.data[computedActiveTab]" :key="group.date" class="tr-history__group">
-        <div class="tr-history__date">
-          <span>{{ group.date }}</span>
-        </div>
-        <div
-          v-for="item in group.items"
-          :key="item.title"
-          :class="['tr-history__item', { selected: props.selected === item.id }]"
-        >
-          <span class="tr-history__item-title">{{ item.title }}</span>
-          <div class="tr-history__item-actions">
-            <tiny-button :icon="IconEditPen" type="text" size="mini" />
-            <tiny-button :icon="IconDelete" type="text" size="mini" />
+      <template v-if="filteredGroups.length > 0">
+        <div v-for="group in filteredGroups" :key="group.date" class="tr-history__group">
+          <div class="tr-history__date">
+            <span>{{ group.date }}</span>
+          </div>
+          <div
+            v-for="item in group.items"
+            :key="`${item.id}-${item.title}`"
+            :class="['tr-history__item', { selected: props.selected === item.id }]"
+            @click="handleItemClick(item)"
+          >
+            <template v-if="editingItem?.id !== item.id">
+              <span class="tr-history__item-title">{{ item.title }}</span>
+              <ItemTag v-if="item.tag" class="tr-history__item-tag" v-bind="item.tag" />
+              <div class="tr-history__item-actions">
+                <tiny-button :icon="IconEditPen" type="text" size="mini" @click="handleEdit(item)" />
+                <tiny-button :icon="IconDelete" type="text" size="mini" @click="handleDelete(item)" />
+              </div>
+            </template>
+            <template v-else>
+              <input
+                v-model="editingItem.title"
+                class="tr-history__item-edit"
+                :ref="handleEditorInputRef"
+                v-on:keydown="handleKeyDown"
+              />
+            </template>
           </div>
         </div>
-      </div>
+      </template>
+      <SearchEmpty :text="searchQuery ? '暂无搜索结果' : '暂无内容'" />
     </div>
     <div class="tr-history__close">
-      <tiny-button :icon="IconClose" type="text" size="mini" />
+      <tiny-button :icon="IconClose" type="text" size="mini" @click="handleClose" />
     </div>
   </div>
 </template>
@@ -121,14 +190,14 @@ const searchQuery = ref('')
     }
 
     .tr-history__item {
+      --tr-history-item-bg: rgb(255, 255, 255);
+
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 10px 12px;
       font-size: 14px;
       line-height: 24px;
       border-radius: 12px;
-      background-color: rgb(255, 255, 255);
+      background-color: var(--tr-history-item-bg);
       cursor: pointer;
       position: relative;
       z-index: 1;
@@ -144,17 +213,48 @@ const searchQuery = ref('')
       }
 
       &.selected {
-        border: 1px solid rgb(20, 118, 255);
+        --tr-history-item-bg: rgb(222, 236, 255);
       }
 
       .tr-history__item-title {
+        padding: 10px 12px;
         font-size: 14px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tr-history__item-tag {
+        flex-shrink: 0;
+        margin-right: 12px;
       }
 
       .tr-history__item-actions {
         display: flex;
         gap: 8px;
         opacity: 0;
+        position: absolute;
+        right: 12px;
+        background-color: var(--tr-history-item-bg);
+
+        &::before {
+          content: '';
+          position: absolute;
+          right: 100%;
+          width: 40px;
+          height: 100%;
+
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, var(--tr-history-item-bg) 100%);
+        }
+      }
+
+      .tr-history__item-edit {
+        width: 100%;
+        font-size: 14px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid rgb(20, 118, 255);
+        padding: 0 12px;
       }
     }
   }
