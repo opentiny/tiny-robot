@@ -23,77 +23,13 @@ new AIClient(config: AIModelConfig)
 
 ### 创建客户端并发送消息
 
-```typescript
-import { AIClient } from 'ai-adapter';
+<demo vue="../../demos/tools/client/Basic.vue" />
 
-// 创建客户端
-const client = new AIClient({
-  provider: 'openai',
-  apiKey: 'your-api-key',
-  defaultModel: 'gpt-3.5-turbo'
-});
-
-// 发送消息并获取响应
-async function chat() {
-  try {
-    const response = await client.chat({
-      messages: [
-        { role: 'system', content: '你是一个有用的助手。' },
-        { role: 'user', content: '你好，请介绍一下自己。' }
-      ],
-      options: {
-        temperature: 0.7
-      }
-    });
-    
-    console.log(response.choices[0].message.content);
-  } catch (error) {
-    console.error('聊天出错:', error);
-  }
-}
-
-chat();
-```
 
 ### 使用流式响应
 
-```typescript
-import { AIClient } from 'ai-adapter';
+- 使用chatStream方法实现流式响应
+- signal参数传递 AbortController用于中断请求
 
-const client = new AIClient({
-  provider: 'openai',
-  apiKey: 'your-api-key'
-});
+<demo vue="../../demos/tools/client/Stream.vue" />
 
-async function streamChat() {
-  try {
-    const controller: AbortController = new AbortController()
-    await client.chatStream({
-      messages: [
-        { role: 'user', content: '写一个简短的故事。' }
-      ],
-      options: {
-        stream: true, // 启用流式响应
-        signal: controller.signal  // 传递 AbortController 的 signal用于中断请求
-      }
-    }, {
-      onData: (data) => {
-        // 处理流式数据
-        const content = data.choices[0]?.delta?.content || '';
-        process.stdout.write(content);
-      },
-      onError: (error) => {
-        console.error('流式响应错误:', error);
-      },
-      onDone: () => {
-        console.log('\n流式响应完成');
-      }
-    });
-    // controller.abort() // 中断请求
-  } catch (error) {
-    console.error('流式聊天出错:', error);
-  }
-}
-
-streamChat();
-```
