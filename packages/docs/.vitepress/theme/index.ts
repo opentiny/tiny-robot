@@ -17,3 +17,14 @@ export default {
     })
   },
 }
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .register('/cdocs/tiny-robot/sw.js')
+    .then(() => {
+      console.log('ServiceWorker registration successful')
+    })
+    .catch((err) => {
+      console.log('ServiceWorker registration failed: ', err)
+    })
+}

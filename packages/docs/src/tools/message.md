@@ -68,3 +68,7 @@ enum STATUS {
   ERROR = 'error', // AI请求发生错误
 }
 ```
+
+## 示例
+
+<demo vue="../../demos/tools/message/Basic.vue" />
