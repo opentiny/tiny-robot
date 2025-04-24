@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // import { TrBubble, TrSender } from '@opentiny/tiny-robot'
 import { ref } from 'vue'
-import { AIClient } from '@opentiny/tiny-robot-ai-adapter'
+import { AIClient } from '@opentiny/tiny-robot-kit'
 
 const message = ref('')
 const content = ref('hello')

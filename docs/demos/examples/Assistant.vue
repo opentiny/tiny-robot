@@ -50,7 +50,7 @@
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import { type BubbleRoleConfig, type PromptProps } from '@opentiny/tiny-robot'
-import { AIClient, GeneratingStatus, STATUS, useMessage } from '@opentiny/tiny-robot-ai-adapter'
+import { AIClient, GeneratingStatus, STATUS, useMessage } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, nextTick, ref, watch, type CSSProperties } from 'vue'
 
