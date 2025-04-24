@@ -26,8 +26,8 @@ const client = new AIClient({
   apiUrl: location.origin + '/cdocs/tiny-robot/',
 })
 
-const aiAvatar = h(IconAi, { style: { width: '32px', height: '32px' } })
-const userAvatar = h(IconUser, { style: { width: '32px', height: '32px' } })
+const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
 const { messages, messageState, inputMessage, sendMessage, abortRequest } = useMessage({
   client,

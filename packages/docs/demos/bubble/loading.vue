@@ -16,6 +16,6 @@
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
 
-const aiAvatar = h(IconAi)
+const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const loading = ref(true)
 </script>

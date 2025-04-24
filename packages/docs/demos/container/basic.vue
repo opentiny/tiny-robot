@@ -56,8 +56,7 @@ button.icon-btn {
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    font-size: 20px;
   }
 }
 </style>

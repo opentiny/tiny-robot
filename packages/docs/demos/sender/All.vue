@@ -18,14 +18,14 @@
     </template>
 
     <template #prefix>
-      <icon-avatar class="user-avatar" />
+      <icon-ai class="user-avatar" />
     </template>
   </tr-sender>
 </template>
 
 <script setup lang="ts">
 // import { TrSender } from '@opentiny/tiny-robot'
-import { IconAvatar } from '@opentiny/tiny-robot-svgs'
+import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
 
 const inputMessage = ref('')
@@ -56,8 +56,7 @@ const handleSpeechEnd = (transcript) => {
 }
 
 .user-avatar {
-  width: 36px;
-  height: 36px;
+  font-size: 36px;
   object-fit: cover;
 }
 

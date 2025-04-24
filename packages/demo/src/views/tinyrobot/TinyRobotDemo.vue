@@ -115,9 +115,9 @@ const client = new AIClient({
 
 const fullscreen = ref(true)
 
-const aiAvatar = h(IconAi, { style: { width: '32px', height: '32px' } })
-const userAvatar = h(IconUser, { style: { width: '32px', height: '32px' } })
-const welcomeIcon = h(IconAi, { style: { width: '64px', height: '64px' } })
+const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
+const welcomeIcon = h(IconAi, { style: { fontSize: '48px' } })
 
 const promptItems: PromptProps[] = [
   {
@@ -444,8 +444,7 @@ button.icon-btn {
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    font-size: 20px;
   }
 }
 </style>
