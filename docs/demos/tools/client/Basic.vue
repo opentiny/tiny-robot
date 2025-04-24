@@ -34,9 +34,3 @@ async function chat(content) {
   <tr-bubble v-if="message" :content="message"></tr-bubble>
   <tr-sender v-model="content" @submit="chat(content)" class="chat-input"></tr-sender>
 </template>
-
-<style lang="less" scoped>
-.chat-input {
-  background-color: transparent;
-}
-</style>

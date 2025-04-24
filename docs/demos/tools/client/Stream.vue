@@ -60,9 +60,3 @@ function abortRequest() {
   <tr-bubble v-if="message" :content="message"></tr-bubble>
   <tr-sender class="chat-input" v-model="content" @submit="chat(content)" @cancel="abortRequest"></tr-sender>
 </template>
-
-<style lang="less" scoped>
-.chat-input {
-  background-color: transparent;
-}
-</style>

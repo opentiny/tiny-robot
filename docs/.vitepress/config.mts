@@ -27,13 +27,6 @@ export default defineConfig({
       { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
     ],
     sidebar: {
-      '/guide/': [
-        {
-          text: '指南',
-          base: '/guide/',
-          items: [{ text: '安装', link: 'installation' }],
-        },
-      ],
       '/components/': [
         {
           text: '组件',
