@@ -1,13 +1,14 @@
 <template>
-  <Prompts :items="items" wrap item-class="prompt-item">
+  <tr-prompts :items="items" wrap item-class="prompt-item">
     <template #footer>
       <div class="prompts-footer"><span style="font-size: 16px; margin-right: 4px">🔄</span>换一换</div>
     </template>
-  </Prompts>
+  </tr-prompts>
 </template>
 
 <script setup lang="ts">
-import { PromptProps, Prompts } from '@opentiny/tiny-robot'
+// import { TrPrompts } from '@opentiny/tiny-robot'
+import { PromptProps } from '@opentiny/tiny-robot'
 import { CSSProperties, h } from 'vue'
 
 const items: PromptProps[] = [

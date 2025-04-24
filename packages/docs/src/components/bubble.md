@@ -2,9 +2,10 @@
 outline: deep
 ---
 
-# Bubble
+# Bubble 气泡组件
+Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位置、加载中、终止状态、操作按钮等功能。
 
-<style>
+<style scoped>
 .vitepress-demo-plugin__container {
   background-color: rgb(248, 248, 248);
 }

@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column; height: 200px; padding-top: 80px; background-color: #fafafa">
-    <question
+    <tr-question
       ref="questionRef"
       :categories="questionConfig.categories"
       :commonQuestions="questionConfig.commonQuestions"
@@ -34,7 +34,7 @@
           <p>暂无相关问题，请尝试其他分类</p>
         </div>
       </template>
-    </question>
+    </tr-question>
 
     <!-- 操作按钮 -->
     <div class="action-btns">
@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { Question } from '@opentiny/tiny-robot'
+// import { TrQuestion } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 
 // 引用组件实例

@@ -1,30 +1,30 @@
 <template>
-  <Container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
+  <tr-container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
     <template #operations>
       <button class="icon-btn" @click="handleNewSession">
-        <IconNewSession />
+        <icon-new-session />
       </button>
     </template>
     <template v-if="messages.length === 0">
-      <Welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="welcomeIcon">
+      <tr-welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="welcomeIcon">
         <template #footer>
           <div class="welcome-footer">
             <span>根据相关法律法规要求，您需要先 <a>登录</a>，若没有帐号，您可前往 <a>注册</a></span>
           </div>
         </template>
-      </Welcome>
-      <Prompts
+      </tr-welcome>
+      <tr-prompts
         :items="promptItems"
         :wrap="true"
         item-class="prompt-item"
         class="tiny-prompts"
         @item-click="handlePomptItemClick"
-      ></Prompts>
+      ></tr-prompts>
     </template>
-    <BubbleList v-else :items="messages" :roles="roles"></BubbleList>
+    <tr-bubble-list v-else :items="messages" :roles="roles"></tr-bubble-list>
 
     <template #footer>
-      <Sender
+      <tr-sender
         class="chat-input"
         v-model="inputMessage"
         :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
@@ -32,9 +32,9 @@
         :loading="GeneratingStatus.includes(messageState.status)"
         @submit="sendMessage"
         @cancel="abortRequest"
-      ></Sender>
+      ></tr-sender>
     </template>
-  </Container>
+  </tr-container>
   <div style="display: flex; flex-direction: column; gap: 8px">
     <div>
       <label>show：</label>
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-// import { BubbleList, Container, Prompts, Sender, Welcome } from '@opentiny/tiny-robot'
+// import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import { type BubbleRoleConfig, type PromptProps } from '@opentiny/tiny-robot'
 import { AIClient, GeneratingStatus, STATUS, useMessage } from '@opentiny/tiny-robot-ai-adapter'
 import { IconAi, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'

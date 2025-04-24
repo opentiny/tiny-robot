@@ -1,6 +1,6 @@
 <template>
-  <BubbleList :items="messages" :roles="roles"></BubbleList>
-  <Sender
+  <tr-bubble-list :items="messages" :roles="roles"></tr-bubble-list>
+  <tr-sender
     class="chat-input"
     v-model="inputMessage"
     :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
@@ -8,10 +8,11 @@
     :loading="GeneratingStatus.includes(messageState.status)"
     @submit="sendMessage"
     @cancel="abortRequest"
-  ></Sender>
+  ></tr-sender>
 </template>
 
 <script setup lang="ts">
+// import { TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 // import { BubbleList, Sender } from '@opentiny/tiny-robot'
 import { type BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { AIClient, GeneratingStatus, STATUS, useMessage } from '@opentiny/tiny-robot-ai-adapter'

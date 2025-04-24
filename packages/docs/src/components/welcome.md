@@ -3,12 +3,8 @@ outline: deep
 ---
 
 # Welcome
-
-<style>
-.vitepress-demo-plugin__container {
-  background-color: rgb(248, 248, 248);
-}
-</style>
+Welcome 是一个用于展示欢迎信息的通用组件，包含标题、描述、图标等内容。
+组件支持自定义对齐方向、图标、底部内容等功能。
 
 ## 代码示例
 

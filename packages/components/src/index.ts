@@ -18,9 +18,27 @@ export default {
   install<T>(app: App<T>) {
     components.forEach((component) => {
       const name = component.name!.replace(/^Tiny/, '').replace(/^Tr/, '')
-      app.component(name, component)
+      app.component(`Tr${name}`, component)
     })
   },
 }
 
-export { Bubble, BubbleList, Container, Conversations, Prompt, Prompts, Question, Sender, Welcome }
+export {
+  Bubble,
+  Bubble as TrBubble,
+  BubbleList,
+  BubbleList as TrBubbleList,
+  Container,
+  Container as TrContainer,
+  Conversations,
+  Conversations as TrConversations,
+  Prompt,
+  Prompt as TrPrompt,
+  Prompts,
+  Prompts as TrPrompts,
+  Sender,
+  Sender as TrSender,
+  Welcome,
+  Welcome as TrWelcome,
+  Question,
+}

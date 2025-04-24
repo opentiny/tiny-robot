@@ -1,6 +1,12 @@
 import DefaultTheme from 'vitepress/theme'
 import '@opentiny/tiny-robot/dist/style.css'
 
+declare global {
+  interface Window {
+    __SW_REGISTERED__?: boolean
+  }
+}
+
 export default {
   ...DefaultTheme,
   enhanceApp({ app }) {
@@ -13,12 +19,24 @@ export default {
         import('@opentiny/tiny-robot').then(function (m) {
           app.use(m.default)
         })
+
+        registerServiceWorker()
       },
     })
   },
 }
 
-if ('serviceWorker' in navigator) {
+function registerServiceWorker() {
+  if (
+    typeof window === 'undefined' ||
+    typeof navigator === 'undefined' ||
+    !('serviceWorker' in navigator) ||
+    window.__SW_REGISTERED__
+  ) {
+    return
+  }
+
+  window.__SW_REGISTERED__ = true
   navigator.serviceWorker
     .register('/cdocs/tiny-robot/sw.js')
     .then(() => {
