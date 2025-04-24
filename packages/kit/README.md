@@ -1,6 +1,6 @@
-# ai-adapter
+# tiny-robot-kit
 
-封装与与技术栈无关的AI大模型的交互逻辑与数据处理，适配多种模型提供商，提供统一的API接口。
+封装与与AI大模型的交互逻辑与数据处理，适配多种模型提供商，提供统一的API接口。
 
 ## API参考
 
@@ -28,7 +28,7 @@ new AIClient(config: AIModelConfig)
 ### 创建客户端并发送消息
 
 ```typescript
-import { AIClient } from 'ai-adapter';
+import { AIClient } from '@opentiny/tiny-robot-kit';
 
 // 创建客户端
 const client = new AIClient({
@@ -62,7 +62,7 @@ chat();
 ### 使用流式响应
 
 ```typescript
-import { AIClient } from 'ai-adapter';
+import { AIClient } from '@opentiny/tiny-robot-kit';
 
 const client = new AIClient({
   provider: 'openai',
