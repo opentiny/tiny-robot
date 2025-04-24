@@ -7,8 +7,8 @@
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
-const aiAvatar = h(IconAi)
-const userAvatar = h(IconUser)
+const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
 const items: BubbleProps[] = [
   {
