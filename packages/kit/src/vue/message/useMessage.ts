@@ -4,8 +4,8 @@
  */
 
 import { reactive, Reactive, ref, toRaw, type Ref } from 'vue'
-import type { ChatMessage } from '../types'
-import type { AIClient } from '../client'
+import type { ChatMessage } from '../../types'
+import type { AIClient } from '../../client'
 
 export enum STATUS {
   INIT = 'init', // 初始状态
