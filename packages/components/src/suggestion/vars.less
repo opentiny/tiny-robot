@@ -1,0 +1,141 @@
+/* ----------------- 颜色变量 ----------------- */
+:root {
+  /* 主题基础颜色 */
+  --tr-suggestion-primary-color: #1890ff;
+  --tr-suggestion-background-color: #ffffff;
+  --tr-suggestion-modal-background-color: #ffffff;
+  --tr-suggestion-text-color: #333333;
+  --tr-suggestion-text-color-secondary: #666666;
+  --tr-suggestion-border-color: #e8e8e8;
+  --tr-suggestion-hover-color: #f5f5f5;
+  --tr-suggestion-tab-hover-bg: #f0f0f0;
+  --tr-suggestion-active-tab-color: var(--tr-suggestion-primary-color);
+  --tr-suggestion-active-tab-bg: #e6f7ff;
+
+  /* 弹窗相关颜色 */
+  --tr-suggestion-header-bg: #f9f9f9;
+  --tr-suggestion-title-color: #1d2129;
+  --tr-suggestion-close-icon-color: #86909c;
+  --tr-suggestion-tab-active-bg: #e8f3ff;
+  --tr-suggestion-tab-active-text: #1890ff;
+  --tr-suggestion-tab-text: #4e5969;
+  --tr-suggestion-tab-border: #f0f0f0;
+  --tr-suggestion-list-divider-color: #f0f0f0;
+  --tr-suggestion-modal-backdrop-color: rgba(0, 0, 0, 0.5);
+
+  /* 常见内容颜色 */
+  --tr-suggestion-common-bg: #fff;
+  --tr-suggestion-common-text: #191919;
+  --tr-suggestion-common-hover-bg: #ebebeb;
+  --tr-suggestion-common-shadow: rgba(0, 0, 0, 0.04);
+
+  /* 背景颜色 */
+  --tr-suggestion-container-bg: #f8f8f8;
+  --tr-suggestion-list-item-bg: #fff;
+  --tr-suggestion-list-hover-shadow: rgba(0, 0, 0, 0.08);
+  --tr-suggestion-category-bg: rgba(0, 0, 0, 0.04);
+  --tr-suggestion-category-hover-bg: rgba(0, 0, 0, 0.08);
+  --tr-suggestion-category-active-border: #191919;
+  --tr-suggestion-item-border-color: rgba(0, 0, 0, 0.04);
+
+  /* 滚动条颜色 */
+  --tr-suggestion-scrollbar-track-bg: rgba(16, 31, 28, 0.1);
+  --tr-suggestion-scrollbar-thumb-bg: rgba(144, 147, 153, 0.5);
+  --tr-suggestion-scrollbar-thumb-hover-bg: rgba(144, 147, 153, 0.3);
+
+  /* ----------------- 尺寸变量 ----------------- */
+  /* 圆角 */
+  --tr-suggestion-border-radius: 24px;
+  --tr-suggestion-category-border-radius: 8px;
+  --tr-suggestion-list-border-radius: 12px;
+  --tr-suggestion-common-border-radius: 16px;
+  --tr-suggestion-scrollbar-border-radius: 2em;
+
+  /* 间距和尺寸 */
+  --tr-suggestion-spacing: 16px;
+  --tr-suggestion-icon-size: 16px;
+  --tr-suggestion-container-height: 46px;
+  --tr-suggestion-item-height: 85px;
+  --tr-suggestion-trigger-size: 32px;
+  --tr-suggestion-common-item-height: 32px;
+  --tr-suggestion-category-height: 38px;
+  --tr-suggestion-scrollbar-width: 4px;
+  --tr-suggestion-modal-padding: 20px;
+  --tr-suggestion-modal-max-height: 553px;
+  --tr-suggestion-modal-max-width: 640px;
+  --tr-suggestion-content-max-height: calc(553px - 120px);
+  --tr-suggestion-z-index: 1000;
+
+  /* ----------------- 文字变量 ----------------- */
+  /* 字体 */
+  --tr-suggestion-font-size: 14px;
+  --tr-suggestion-title-font-size: 18px;
+  --tr-suggestion-title-font-weight: 600;
+  --tr-suggestion-item-font-weight: 500;
+  --tr-suggestion-line-height: 1.5;
+  --tr-suggestion-item-line-height: 22px;
+  --tr-suggestion-item-extra-font-size: 0.85em;
+  --tr-suggestion-item-extra-color: #888888;
+
+  /* ----------------- 特效变量 ----------------- */
+  /* 阴影 */
+  --tr-suggestion-panel-shadow:
+    0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  --tr-suggestion-trigger-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --tr-suggestion-common-item-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --tr-suggestion-list-item-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --tr-suggestion-wrap-trigger-shadow: 2px 0 9px rgba(0, 0, 0, 0.04);
+
+  /* 动画 */
+  --tr-suggestion-transition-duration: 0.3s;
+  --tr-suggestion-transition-timing: ease;
+  --tr-suggestion-hover-transition: all var(--tr-suggestion-transition-duration) var(--tr-suggestion-transition-timing);
+}
+
+/* ----------------- 暗色主题变量 ----------------- */
+[data-theme='dark'],
+.theme-dark {
+  /* 主题基础颜色 */
+  --tr-suggestion-primary-color: #177ddc;
+  --tr-suggestion-background-color: #1f1f1f;
+  --tr-suggestion-modal-background-color: #2a2a2a;
+  --tr-suggestion-text-color: #f0f0f0;
+  --tr-suggestion-text-color-secondary: #aaaaaa;
+  --tr-suggestion-border-color: #434343;
+  --tr-suggestion-hover-color: #303030;
+  --tr-suggestion-tab-hover-bg: #3a3a3a;
+  --tr-suggestion-active-tab-color: var(--tr-suggestion-primary-color);
+  --tr-suggestion-active-tab-bg: #113a5c;
+
+  /* 弹窗相关颜色 */
+  --tr-suggestion-header-bg: #2a2a2a;
+  --tr-suggestion-title-color: #c9d1d9;
+  --tr-suggestion-close-icon-color: #8b949e;
+  --tr-suggestion-tab-active-bg: #30363d;
+  --tr-suggestion-tab-active-text: #58a6ff;
+  --tr-suggestion-tab-text: #8b949e;
+  --tr-suggestion-tab-border: #30363d;
+  --tr-suggestion-list-divider-color: #30363d;
+  --tr-suggestion-modal-backdrop-color: rgba(0, 0, 0, 0.7);
+
+  /* 常见内容颜色 */
+  --tr-suggestion-common-bg: #2a2a2a;
+  --tr-suggestion-common-text: #e6e6e6;
+  --tr-suggestion-common-hover-bg: #3a3a3a;
+  --tr-suggestion-common-shadow: rgba(0, 0, 0, 0.2);
+
+  /* 背景颜色 */
+  --tr-suggestion-container-bg: #141414;
+  --tr-suggestion-list-item-bg: #2a2a2a;
+  --tr-suggestion-list-hover-shadow: rgba(0, 0, 0, 0.3);
+  --tr-suggestion-category-bg: rgba(255, 255, 255, 0.04);
+  --tr-suggestion-category-hover-bg: rgba(255, 255, 255, 0.08);
+  --tr-suggestion-category-active-border: #e6e6e6;
+  --tr-suggestion-item-border-color: rgba(255, 255, 255, 0.04);
+
+  /* 滚动条颜色 */
+  --tr-suggestion-scrollbar-track-bg: rgba(255, 255, 255, 0.05);
+  --tr-suggestion-scrollbar-thumb-bg: rgba(255, 255, 255, 0.2);
+  --tr-suggestion-scrollbar-thumb-hover-bg: rgba(255, 255, 255, 0.3);
+  --tr-suggestion-item-extra-color: #aaaaaa;
+}
