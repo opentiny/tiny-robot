@@ -31,8 +31,8 @@ export const useEditItemTitle = (emit: HistoryEvents) => {
   const handleConfirm = () => {
     if (editingItem.value) {
       if (editingItem.value.title !== editingItem.value.rawData.title) {
-        const { id, title, rawData } = editingItem.value
-        emit('item-title-change', id, title, rawData)
+        const { title, rawData } = editingItem.value
+        emit('item-title-change', title, rawData)
       }
       editingItem.value = undefined
     }

@@ -3,7 +3,7 @@
     class="tr-history-demo"
     :data="data"
     :tabs="tabs"
-    :search-bar="true"
+    :active-tab="activeTab"
     :selected="selected"
     @item-click="handleItemClick"
     @item-title-change="handleItemTitleChange"
@@ -14,9 +14,11 @@
 import { History, HistoryGroup, HistoryItem } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 const tabs = [
-  { label: '历史对话', value: 'conversations' },
-  { label: '历史任务', value: 'tasks' },
+  { title: '历史对话', id: 'conversations' },
+  { title: '历史任务', id: 'tasks' },
 ]
+
+const activeTab = ref('tasks')
 
 const selected = ref('2')
 
@@ -58,9 +60,10 @@ const handleItemClick = (item: HistoryItem) => {
   selected.value = item.id
 }
 
-const handleItemTitleChange = (id: string, title: string, rawData: HistoryItem) => {
-  console.log(id, title, rawData)
+const handleItemTitleChange = (title: string, rawData: HistoryItem) => {
   rawData.title = title
+  console.log('previous title:', rawData.title)
+  console.log('new title:', title)
 }
 </script>
 

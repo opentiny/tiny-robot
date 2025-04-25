@@ -1,18 +1,28 @@
 import { CSSProperties } from 'vue'
 
-export interface HistoryProps {
-  tabs: {
-    label: string
-    value: string
-  }[]
+interface BaseHistoryProps {
   activeTab?: string
-  data: Record<string, HistoryGroup[]>
   searchBar?: boolean
   searchQuery?: string
   searchPlaceholder?: string
   searchFn?: (query: string, item: HistoryItem) => boolean
   selected?: string
 }
+
+export type SingleTabHistoryProps = {
+  tabTitle: string
+  data: HistoryGroup[]
+} & BaseHistoryProps
+
+export type MultiTabHistoryProps = {
+  tabs: {
+    title: string
+    id: string
+  }[]
+  data: Record<string, HistoryGroup[]>
+} & BaseHistoryProps
+
+export type HistoryProps = SingleTabHistoryProps | MultiTabHistoryProps
 
 export interface HistoryGroup<T = Record<string, unknown>> {
   date: string
@@ -35,6 +45,6 @@ export interface HistoryItem<T = Record<string, unknown>> {
 export interface HistoryEvents {
   (e: 'close'): void
   (e: 'item-click', item: HistoryItem): void
-  (e: 'item-title-change', id: string, title: string, rawData: HistoryItem): void
+  (e: 'item-title-change', newTitle: string, rawData: HistoryItem): void
   (e: 'item-delete', item: HistoryItem): void
 }

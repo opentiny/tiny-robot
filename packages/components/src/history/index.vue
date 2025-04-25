@@ -4,7 +4,14 @@ import { TinyButton, TinyInput } from '@opentiny/vue'
 import { computed } from 'vue'
 import { ItemTag, SearchEmpty } from './components'
 import { useEditItemTitle } from './composables'
-import type { HistoryEvents, HistoryGroup, HistoryItem, HistoryProps } from './index.type'
+import type {
+  HistoryEvents,
+  HistoryGroup,
+  HistoryItem,
+  HistoryProps,
+  MultiTabHistoryProps,
+  SingleTabHistoryProps,
+} from './index.type'
 
 const props = withDefaults(defineProps<HistoryProps>(), {
   searchFn: (query: string, { title }: HistoryItem) => {
@@ -21,15 +28,27 @@ const searchQuery = defineModel<HistoryProps['searchQuery']>('searchQuery')
 
 const emit = defineEmits<HistoryEvents>()
 
+const computedTabs = computed(() => {
+  if (Array.isArray((props as MultiTabHistoryProps).tabs)) {
+    return (props as MultiTabHistoryProps).tabs
+  }
+
+  return [{ title: (props as SingleTabHistoryProps).tabTitle, id: '0' }]
+})
+
 const computedActiveTab = computed(() => {
-  return activeTab.value || props.tabs[0].value
+  return activeTab.value || computedTabs.value[0].id
 })
 
 const enableTabBottomBorder = computed(() => {
-  return props.tabs.length > 1
+  return computedTabs.value.length > 1
 })
 
 const groups = computed(() => {
+  if (Array.isArray(props.data)) {
+    return props.data || []
+  }
+
   return props.data[computedActiveTab.value] || []
 })
 
@@ -72,12 +91,12 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
   <div class="tr-history">
     <div class="tr-history__tabs">
       <div
-        v-for="tab in props.tabs"
-        :key="tab.value"
-        :class="['tr-history__tab', { active: computedActiveTab === tab.value }]"
-        @click="activeTab = tab.value"
+        v-for="tab in computedTabs"
+        :key="tab.id"
+        :class="['tr-history__tab', { active: computedActiveTab === tab.id }]"
+        @click="activeTab = tab.id"
       >
-        {{ tab.label }}
+        {{ tab.title }}
       </div>
     </div>
     <div v-if="props.searchBar" class="tr-history__search">
@@ -175,13 +194,13 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
 
   .tr-history__content {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     overflow-y: auto;
     padding: 0 20px;
     margin: 0 -20px;
-
-    .tr-history__group {
-      margin-bottom: 12px;
-    }
+    margin-bottom: 12px;
 
     .tr-history__date {
       font-size: 12px;
