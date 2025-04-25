@@ -91,7 +91,7 @@ const modalRef = ref<HTMLElement | null>(null)
   <div v-if="visible" class="tr-question-modal-backdrop" @mousedown="handleClickOutside">
     <div ref="modalRef" class="tr-question-panel" :style="{ width: modalWidth }" @mousedown.stop>
       <div class="tr-question-header">
-        <div style="display: flex; align-items: center; gap: 12px">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 36px">
           <div><IconHotQuestion /></div>
           <div class="tr-question-header-title">热门问题</div>
         </div>

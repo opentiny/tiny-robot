@@ -1,0 +1,25 @@
+{
+  "name": "@opentiny/tiny-robot-kit",
+  "version": "0.2.0-alpha.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "AI大模型请求与数据处理工具包",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.13.17",
+    "tsup": "^8.0.1",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "vue": ">=3.0.0"
+  }
+}

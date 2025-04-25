@@ -117,8 +117,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
       }
 
       svg {
-        width: 20px;
-        height: 20px;
+        font-size: 20px;
       }
     }
   }
