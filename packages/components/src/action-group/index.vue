@@ -3,18 +3,15 @@ import { IconMenu } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside } from '@vueuse/core'
 import { computed, ref, useTemplateRef, VNode } from 'vue'
 import IconButton from '../icon-button'
+import { ActionGroupEvents, ActionGroupProps } from './index.type'
 
-const props = defineProps<{
-  maxNum?: number
-}>()
+const props = defineProps<ActionGroupProps>()
 
 const slots = defineSlots<{
   default: () => VNode | VNode[]
 }>()
 
-const emit = defineEmits<{
-  (e: 'click', name: string): void
-}>()
+const emit = defineEmits<ActionGroupEvents>()
 
 const children = computed(() => {
   const defaultSlot = slots.default()

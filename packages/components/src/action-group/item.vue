@@ -1,8 +1,7 @@
 <script setup lang="ts">
-defineProps<{
-  name: string
-  label: string
-}>()
+import { ActionGroupItemProps } from './index.type'
+
+defineProps<ActionGroupItemProps>()
 </script>
 
 <template>

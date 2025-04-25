@@ -53,7 +53,7 @@ const handleAction = (name: string) => {
 <template>
   <div class="tr-feedback">
     <div class="tr-feedback__operations">
-      <div class="tr-feedback__operations-left">
+      <div v-if="props.operations?.length" class="tr-feedback__operations-left">
         <tiny-button
           v-for="operation in props.operations"
           :key="operation.name"
@@ -64,6 +64,12 @@ const handleAction = (name: string) => {
         >
           {{ operation.label }}
         </tiny-button>
+      </div>
+      <div v-else-if="props.sources?.length">
+        <div class="tr-feedback__source" @click="handleSourceList">
+          <span>{{ props.sources?.length }}条来源</span>
+          <component :is="showSourceList ? IconArrowUp : IconArrowDown" />
+        </div>
       </div>
       <div class="tr-feedback__operations-right">
         <action-group :max-num="2" @click="handleAction">
@@ -85,9 +91,9 @@ const handleAction = (name: string) => {
       </div>
     </div>
     <div class="tr-feedback__footer">
-      <div>
+      <div v-if="props.operations?.length && props.sources?.length">
         <div class="tr-feedback__source" @click="handleSourceList">
-          <span>3条来源</span>
+          <span>{{ props.sources?.length }}条来源</span>
           <component :is="showSourceList ? IconArrowUp : IconArrowDown" />
         </div>
       </div>
@@ -119,25 +125,6 @@ const handleAction = (name: string) => {
   .tr-feedback__footer {
     margin-top: 8px;
 
-    .tr-feedback__source {
-      height: 24px;
-      display: inline-flex;
-      align-items: center;
-      font-size: 12px;
-      line-height: 20px;
-      color: rgb(128, 128, 128);
-      cursor: pointer;
-
-      &:hover {
-        text-decoration: underline;
-      }
-
-      svg {
-        font-size: 16px;
-        margin-left: 2px;
-      }
-    }
-
     .tr-feedback__source-list {
       display: flex;
       flex-wrap: wrap;
@@ -156,6 +143,25 @@ const handleAction = (name: string) => {
           text-decoration: underline;
         }
       }
+    }
+  }
+
+  .tr-feedback__source {
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    line-height: 20px;
+    color: rgb(128, 128, 128);
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    svg {
+      font-size: 16px;
+      margin-left: 2px;
     }
   }
 }
