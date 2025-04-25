@@ -1,6 +1,5 @@
 <template>
   <tr-sender
-    class="chat-input"
     v-model="inputMessage"
     mode="multiple"
     submitType="ctrlEnter"

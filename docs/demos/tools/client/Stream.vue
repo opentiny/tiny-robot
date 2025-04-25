@@ -58,5 +58,5 @@ function abortRequest() {
 
 <template>
   <tr-bubble v-if="message" :content="message"></tr-bubble>
-  <tr-sender class="chat-input" v-model="content" @submit="chat(content)" @cancel="abortRequest"></tr-sender>
+  <tr-sender v-model="content" @submit="chat(content)" @cancel="abortRequest"></tr-sender>
 </template>
