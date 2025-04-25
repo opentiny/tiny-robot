@@ -77,7 +77,6 @@ onClickOutside(dropDown, (ev) => {
 })
 
 const handleItemClick = (name: string) => {
-  console.log('handleItemClick', name)
   emit('click', name)
   showDropdown.value = false
 }
@@ -87,9 +86,7 @@ const handleItemClick = (name: string) => {
   <div class="tr-action-group">
     <component :is="item" v-for="(item, index) in list" :key="index" />
     <span v-if="showMore" ref="moreBtnRef" class="tr-action-group__more">
-      <tiny-tooltip content="更多" effect="dark" placement="top" :open-delay="500">
-        <icon-button :icon="IconMenu" @click="handleMoreClick" />
-      </tiny-tooltip>
+      <icon-button :icon="IconMenu" tooltip="更多" @click="handleMoreClick" />
       <ul v-show="showDropdown" ref="dropDownRef" class="tr-action-group__dropdown">
         <li
           class="tr-action-group__dropdown-item"

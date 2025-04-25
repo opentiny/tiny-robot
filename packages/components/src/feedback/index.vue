@@ -73,16 +73,13 @@ const handleAction = (name: string) => {
             :name="action.name"
             :label="action.label"
           >
-            <tiny-tooltip
-              :content="action.label"
-              effect="dark"
-              placement="top"
-              :open-delay="500"
+            <icon-button
+              v-if="typeof action.icon === 'string'"
+              :icon="iconMap[action.icon]"
+              :tooltip="action.label"
               @click="handleAction(action.name)"
-            >
-              <icon-button v-if="typeof action.icon === 'string'" :icon="iconMap[action.icon]"></icon-button>
-              <component v-else :is="action.icon"></component>
-            </tiny-tooltip>
+            ></icon-button>
+            <component v-else :is="action.icon"></component>
           </action-group-item>
         </action-group>
       </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TinyTooltip from '@opentiny/vue-tooltip'
 import { Component, computed, defineComponent, isVNode, VNode } from 'vue'
 
 const props = withDefaults(
@@ -6,6 +7,7 @@ const props = withDefaults(
     icon: VNode | Component
     size?: string
     svgSize?: string
+    tooltip?: string
   }>(),
   {
     size: '24px',
@@ -25,7 +27,12 @@ const resolvedIcon = computed(() => {
 </script>
 
 <template>
-  <button class="tr-icon-button">
+  <tiny-tooltip v-if="tooltip" :content="tooltip" effect="dark" placement="top" :open-delay="500">
+    <button class="tr-icon-button">
+      <component :is="resolvedIcon" />
+    </button>
+  </tiny-tooltip>
+  <button v-else class="tr-icon-button">
     <component :is="resolvedIcon" />
   </button>
 </template>
