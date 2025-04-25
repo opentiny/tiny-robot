@@ -32,5 +32,5 @@ async function chat(content) {
 
 <template>
   <tr-bubble v-if="message" :content="message"></tr-bubble>
-  <tr-sender v-model="content" @submit="chat(content)" class="chat-input"></tr-sender>
+  <tr-sender v-model="content" @submit="chat(content)"></tr-sender>
 </template>

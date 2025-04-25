@@ -2,7 +2,6 @@
 
 // 主要组件样式
 .tiny-sender {
-  background: var(--tr-sender-bg-color);
   position: relative;
   color: var(--tr-sender-text-color);
 
@@ -31,6 +30,12 @@
     color: var(--tr-sender-text-color-secondary);
   }
 
+  .tiny-textarea.is-disabled .tiny-textarea__inner {
+    border: none;
+    background: var(--tr-sender-bg-color);
+    color: var(--tr-sender-text-color-secondary);
+  }
+
   .tiny-input__suffix {
     right: 0;
     display: flex;
@@ -39,9 +44,10 @@
 
   .tiny-textarea__inner {
     border: none;
-    height: var(--tr-sender-input-height);
-    padding-left: 0;
-    padding-right: 0;
+    height: 26px;
+
+    padding: 0;
+    align-content: center; // 使内容垂直居中
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
 
@@ -88,7 +94,6 @@
     width: 100%;
     border-radius: 0 0 var(--tr-sender-border-radius) var(--tr-sender-border-radius);
     background: var(--tr-sender-footer-bg);
-    margin-top: var(--tr-sender-gap);
     z-index: 1;
 
     &.tiny-sender__bottom-row {
@@ -248,6 +253,11 @@
       cursor: wait;
       background-color: var(--tr-sender-bg-color);
     }
+
+    .tiny-textarea__inner {
+      cursor: wait;
+      background-color: var(--tr-sender-bg-color);
+    }
   }
 
   // 错误状态
@@ -283,8 +293,8 @@
 .action-buttons {
   display: flex;
   gap: var(--tr-sender-gap);
-  padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-    var(--tr-sender-padding-left);
+  padding-left: var(--tr-sender-padding-left);
+  padding-right: var(--tr-sender-padding-right);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
   align-items: center;
