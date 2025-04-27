@@ -15,9 +15,9 @@ outline: deep
 
 ## 使用示例
 
-### 基础使用
+### 整合案例
 
-<demo vue="../../demos/suggestion/Basic.vue" title="基础用法" description="Suggestion 组件的基础用法，支持单行和多行模式。" />
+<demo vue="../../demos/suggestion/All.vue" title="整合案例" description="Sender 组件整合 Suggestion 组件的案例" />
 
 ## API
 

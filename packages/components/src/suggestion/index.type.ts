@@ -30,6 +30,8 @@ export interface SuggestionItem {
   keywords?: string[]
   /** 描述文本 */
   description?: string
+  /** 指令模板，用于在输入框中显示可编辑的模板 */
+  template?: string
 }
 
 /**
@@ -94,4 +96,6 @@ export interface SuggestionEmits {
   (e: 'suggestion-select', item: SuggestionItem): void
   /** 展开/收起状态变化 */
   (e: 'update:expanded', expanded: boolean): void
+  /** 填充模板到输入框 */
+  (e: 'fill-template', template: string): void
 }

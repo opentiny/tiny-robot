@@ -133,6 +133,11 @@ const handleSuggestionClick = (item: SuggestionItem) => {
     text: '',
     position: 0,
   })
+
+  // 如果指令包含模板，在选择后填充模板
+  if (item.template) {
+    emit('fill-template', item.template)
+  }
 }
 
 // 触发事件处理
@@ -205,6 +210,11 @@ const handleCategorySelect = (category: Category) => {
 // 处理指令选择
 const handleSelect = (value: SuggestionItem, context: TriggerContext) => {
   emit('select', value.text, context)
+
+  // 如果指令包含模板，在选择后填充模板
+  if (value.template) {
+    emit('fill-template', value.template)
+  }
 
   closePanel()
 }

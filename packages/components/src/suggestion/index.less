@@ -208,6 +208,8 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   position: relative;
+  padding: 10px 2px;
+  border-radius: var(--tr-suggestion-list-border-radius);
 
   /**
    * 自定义滚动条样式
@@ -253,7 +255,6 @@
       border-radius: var(--tr-suggestion-list-border-radius);
       background: var(--tr-suggestion-list-item-bg);
       cursor: pointer;
-      padding: var(--tr-suggestion-spacing);
       margin: 0;
       white-space: nowrap;
       overflow: hidden;
@@ -263,28 +264,38 @@
       transition: var(--tr-suggestion-hover-transition);
       border-left: 3px solid transparent;
       position: relative;
-      border-bottom: 1px solid #f0f0f0;
 
       &:hover {
-        background-color: var(--tr-suggestion-hover-color);
-        box-shadow: 0 2px 8px var(--tr-suggestion-list-hover-shadow);
+        border-radius: 12px;
+        background-color: #ffffff;
+        box-shadow: 0px 4px 16px 0px var(--tr-suggestion-list-hover-shadow);
         z-index: 2;
+
+        &::after {
+          display: none;
+        }
       }
 
       /* 激活状态 - 键盘导航选中项 */
       &.tr-suggestion-item-active {
-        background-color: var(--tr-suggestion-hover-color);
-        font-weight: var(--tr-suggestion-item-font-weight);
-        box-shadow: 0 2px 8px var(--tr-suggestion-list-hover-shadow);
+        border-radius: 12px;
+        background-color: #ffffff;
+        box-shadow: 0px 4px 16px 0px var(--tr-suggestion-list-hover-shadow);
+        z-index: 2;
+
+        &::after {
+          display: none;
+        }
       }
 
       .item-content {
         flex: 1;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        gap: 4px;
         min-width: 0;
-        height: 100%;
+        justify-content: space-between;
+        padding: 16px;
       }
 
       .item-label {
@@ -309,8 +320,8 @@
         content: '';
         position: absolute;
         bottom: 0;
-        left: 8px;
-        right: 8px;
+        left: 16px;
+        right: 16px;
         height: 1px; /* 边框厚度 */
         background-color: #f0f0f0; /* 边框颜色 */
       }
