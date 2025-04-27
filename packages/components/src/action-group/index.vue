@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconMenu } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside } from '@vueuse/core'
-import { computed, ref, useTemplateRef, VNode } from 'vue'
+import { onClickOutside, useWindowSize } from '@vueuse/core'
+import { computed, nextTick, ref, useTemplateRef, VNode, watch } from 'vue'
 import IconButton from '../icon-button'
 import { ActionGroupEvents, ActionGroupProps } from './index.type'
 
@@ -77,6 +77,37 @@ const handleItemClick = (name: string) => {
   emit('click', name)
   showDropdown.value = false
 }
+
+const dropDownPlacement = ref('placement-bottom')
+const { height: windowHeight } = useWindowSize()
+
+const updateDropDownPlacement = () => {
+  if (!dropDown.value || !moreBtn.value) {
+    return 'placement-bottom'
+  }
+
+  const dropDownRect = dropDown.value.getBoundingClientRect()
+  const moreBtnRect = moreBtn.value.getBoundingClientRect()
+
+  dropDownPlacement.value =
+    moreBtnRect.bottom + dropDownRect.height + 16 > windowHeight.value ? 'placement-top' : 'placement-bottom'
+}
+
+watch(showDropdown, (show) => {
+  if (show) {
+    nextTick(() => {
+      updateDropDownPlacement()
+    })
+  } else {
+    dropDownPlacement.value = 'placement-bottom'
+  }
+})
+
+watch(windowHeight, () => {
+  if (showDropdown.value) {
+    updateDropDownPlacement()
+  }
+})
 </script>
 
 <template>
@@ -84,7 +115,7 @@ const handleItemClick = (name: string) => {
     <component :is="item" v-for="(item, index) in list" :key="index" />
     <span v-if="showMore" ref="moreBtnRef" class="tr-action-group__more">
       <icon-button :icon="IconMenu" tooltip="更多" @click="handleMoreClick" />
-      <ul v-show="showDropdown" ref="dropDownRef" class="tr-action-group__dropdown">
+      <ul v-show="showDropdown" ref="dropDownRef" :class="['tr-action-group__dropdown', dropDownPlacement]">
         <li
           class="tr-action-group__dropdown-item"
           v-for="(item, index) in moreList"
@@ -114,13 +145,20 @@ const handleItemClick = (name: string) => {
   .tr-action-group__dropdown {
     width: max-content;
     position: absolute;
-    top: calc(100% + 8px);
     z-index: 100;
     right: 0;
     background-color: white;
     padding: 4px;
     border-radius: 12px;
     box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+
+    &.placement-top {
+      bottom: calc(100% + 8px);
+    }
+
+    &.placement-bottom {
+      top: calc(100% + 8px);
+    }
 
     .tr-action-group__dropdown-item {
       border-radius: 8px;

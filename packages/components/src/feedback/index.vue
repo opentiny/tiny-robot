@@ -1,28 +1,13 @@
 <script lang="ts" setup>
 import { IconArrowDown, IconArrowUp, IconCopy, IconDislike, IconLike, IconRefresh } from '@opentiny/tiny-robot-svgs'
 import TinyButton from '@opentiny/vue-button'
-import { ref, VNode } from 'vue'
+import { ref } from 'vue'
 import ActionGroup, { ActionGroupItem } from '../action-group'
 import IconButton from '../icon-button'
 import { SourceList } from './components'
+import type { FeedbackEvents, FeedbackProps } from './index.type'
 
-const props = defineProps<{
-  operations?: {
-    name: string
-    label: string
-  }[]
-  sources?: {
-    label: string
-    link: string
-  }[]
-  defaultSourceLines?: number
-  actions?: {
-    name: string
-    label: string
-    icon: 'copy' | 'refresh' | 'like' | 'dislike' | VNode
-    onClick?: () => void
-  }[]
-}>()
+const props = defineProps<FeedbackProps>()
 
 const iconMap = {
   copy: IconCopy,
@@ -31,10 +16,7 @@ const iconMap = {
   dislike: IconDislike,
 }
 
-const emit = defineEmits<{
-  (e: 'operation', name: string): void
-  (e: 'action', name: string): void
-}>()
+const emit = defineEmits<FeedbackEvents>()
 
 const handleOperation = (name: string) => {
   emit('operation', name)
