@@ -261,7 +261,7 @@ interface Conversation {
 默认使用 LocalStorage 存储会话数据，你也可以实现自定义的存储策略：
 
 ```typescript
-interface StorageStrategy {
+interface ConversationStorageStrategy {
   /** 保存会话列表 */
   saveConversations: (conversations: Conversation[]) => Promise<void> | void;
   /** 加载会话列表 */
@@ -269,7 +269,7 @@ interface StorageStrategy {
 }
 
 // 自定义存储策略示例
-class CustomStorageStrategy implements StorageStrategy {
+class CustomStorageStrategy implements ConversationStorageStrategy {
   async saveConversations(conversations: Conversation[]) {
     // 实现自定义存储逻辑
   }
