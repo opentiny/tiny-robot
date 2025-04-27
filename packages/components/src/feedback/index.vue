@@ -4,6 +4,7 @@ import TinyButton from '@opentiny/vue-button'
 import { ref, VNode } from 'vue'
 import ActionGroup, { ActionGroupItem } from '../action-group'
 import IconButton from '../icon-button'
+import { SourceList } from './components'
 
 const props = defineProps<{
   operations?: {
@@ -14,6 +15,7 @@ const props = defineProps<{
     label: string
     link: string
   }[]
+  defaultSourceLines?: number
   actions?: {
     name: string
     label: string
@@ -66,10 +68,10 @@ const handleAction = (name: string) => {
         </tiny-button>
       </div>
       <div v-else-if="props.sources?.length">
-        <div class="tr-feedback__source" @click="handleSourceList">
+        <span class="tr-feedback__source" @click="handleSourceList">
           <span>{{ props.sources?.length }}条来源</span>
           <component :is="showSourceList ? IconArrowUp : IconArrowDown" />
-        </div>
+        </span>
       </div>
       <div class="tr-feedback__operations-right">
         <action-group :max-num="2" @click="handleAction">
@@ -92,16 +94,16 @@ const handleAction = (name: string) => {
     </div>
     <div class="tr-feedback__footer">
       <div v-if="props.operations?.length && props.sources?.length">
-        <div class="tr-feedback__source" @click="handleSourceList">
+        <span class="tr-feedback__source" @click="handleSourceList">
           <span>{{ props.sources?.length }}条来源</span>
           <component :is="showSourceList ? IconArrowUp : IconArrowDown" />
-        </div>
+        </span>
       </div>
-      <div class="tr-feedback__source-list" v-if="showSourceList">
-        <a v-for="source in props.sources" :key="source.label" :href="source.link" target="_blank">
-          {{ source.label }}
-        </a>
-      </div>
+      <source-list
+        v-if="showSourceList && props.sources"
+        :sources="props.sources"
+        :default-lines="props.defaultSourceLines"
+      />
     </div>
   </div>
 </template>
@@ -124,26 +126,9 @@ const handleAction = (name: string) => {
   }
   .tr-feedback__footer {
     margin-top: 8px;
-
-    .tr-feedback__source-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-
-      a {
-        padding: 4px 12px;
-        font-size: 12px;
-        line-height: 20px;
-        border-radius: 999px;
-        border: none;
-        background-color: rgba(20, 118, 255, 0.06);
-        color: rgb(20, 118, 255);
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
-    }
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .tr-feedback__source {
@@ -154,6 +139,7 @@ const handleAction = (name: string) => {
     line-height: 20px;
     color: rgb(128, 128, 128);
     cursor: pointer;
+    gap: 2px;
 
     &:hover {
       text-decoration: underline;
@@ -161,7 +147,6 @@ const handleAction = (name: string) => {
 
     svg {
       font-size: 16px;
-      margin-left: 2px;
     }
   }
 }
