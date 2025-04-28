@@ -4,6 +4,7 @@ import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import Feedback from './feedback'
+import History from './history'
 import IconButton from './icon-button'
 import { Prompt, Prompts } from './prompts'
 import Question from './question'
@@ -13,6 +14,7 @@ import Welcome from './welcome'
 export * from './action-group/index.type'
 export * from './bubble/index.type'
 export * from './feedback/index.type'
+export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
@@ -25,6 +27,7 @@ const components = [
   Container,
   Conversations,
   Feedback,
+  History,
   IconButton,
   Prompt,
   Prompts,
@@ -55,6 +58,8 @@ export {
   Conversations as TrConversations,
   Feedback,
   Feedback as TrFeedback,
+  History,
+  History as TrHistory,
   IconButton,
   IconButton as TrIconButton,
   Prompt,

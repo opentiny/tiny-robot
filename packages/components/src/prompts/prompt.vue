@@ -1,39 +1,25 @@
 <script setup lang="ts">
-import { computed, defineComponent, VNode } from 'vue'
 import { PromptProps } from './index.type'
 
 const props = defineProps<PromptProps>()
-
-const vnodeToComponent = (vnode?: VNode | string) => {
-  if (!vnode) {
-    return null
-  }
-
-  return defineComponent(() => {
-    return () => vnode
-  })
-}
-
-const iconComp = computed(() => {
-  return vnodeToComponent(props.icon)
-})
-
-const badgeComp = computed(() => {
-  return vnodeToComponent(props.badge)
-})
 </script>
 
 <template>
   <div :class="['tr-prompt', { disabled: props.disabled }]">
     <div class="tr-prompt__icon">
-      <component :is="iconComp"></component>
+      <component :is="props.icon"></component>
     </div>
     <div class="tr-prompt__content">
       <h6 class="tr-prompt__content-label">{{ props.label }}</h6>
       <p v-if="props.description" class="tr-prompt__content-description">{{ props.description }}</p>
     </div>
     <div :class="['tr-prompt__badge', { label: typeof props.badge === 'string' }]">
-      <component :is="badgeComp"></component>
+      <template v-if="typeof props.badge === 'string'">
+        {{ props.badge }}
+      </template>
+      <template v-else>
+        <component :is="props.badge"></component>
+      </template>
     </div>
   </div>
 </template>

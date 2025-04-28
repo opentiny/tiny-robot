@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import markdownit from 'markdown-it'
-import { computed, defineComponent, useSlots } from 'vue'
-import { BubbleActionOptions, BubbleEvents, BubbleProps, BubbleSlots } from './index.type'
+import { computed, useSlots } from 'vue'
 import { CopyAction, RefreshAction } from './components/actions'
+import { BubbleActionOptions, BubbleEvents, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
@@ -25,16 +25,6 @@ const bubbleContent = computed(() => {
 })
 
 const placementStart = computed(() => props.placement === 'start')
-
-const AvatarComp = computed(() => {
-  if (!props.avatar) {
-    return null
-  }
-
-  return defineComponent(() => {
-    return () => props.avatar
-  })
-})
 
 const defaultActionsMap = new Map<string, BubbleActionOptions>([
   [
@@ -99,8 +89,8 @@ const handleActionClick = (name: string, ...args: unknown[]) => {
       },
     ]"
   >
-    <div v-if="AvatarComp" class="tr-bubble__avatar">
-      <component :is="AvatarComp"></component>
+    <div v-if="props.avatar" class="tr-bubble__avatar">
+      <component :is="props.avatar"></component>
     </div>
     <div class="tr-bubble__content-wrapper">
       <slot v-if="props.loading" name="loading">

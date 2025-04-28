@@ -39,6 +39,7 @@ export default defineConfig({
             { text: 'Welcome 欢迎', link: 'welcome' },
             { text: 'Question 快捷问题', link: 'question' },
             { text: 'Feedback 气泡反馈', link: 'feedback' },
+            { text: 'History 历史', link: 'history' },
           ],
         },
       ],
