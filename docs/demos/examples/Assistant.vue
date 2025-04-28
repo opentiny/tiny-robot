@@ -4,6 +4,21 @@
       <button class="icon-btn" @click="handleNewSession">
         <icon-new-session />
       </button>
+      <span style="display: inline-flex; line-height: 0; position: relative">
+        <button class="icon-btn" @click="showHistory = true">
+          <icon-history />
+        </button>
+        <tr-history
+          v-show="showHistory"
+          class="tr-history-demo"
+          tab-title="历史对话"
+          :selected="currentMessageId"
+          :search-bar="true"
+          :data="historyData"
+          @close="showHistory = false"
+          @item-click="handleHistorySelect"
+        ></tr-history>
+      </span>
     </template>
     <template v-if="messages.length === 0">
       <tr-welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="welcomeIcon">
@@ -53,9 +68,9 @@
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import { type BubbleRoleConfig, type PromptProps } from '@opentiny/tiny-robot'
-import { AIClient, GeneratingStatus, useMessage } from '@opentiny/tiny-robot-kit'
-import { IconAi, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
-import { h, nextTick, ref, watch, type CSSProperties } from 'vue'
+import { AIClient, ChatMessage, GeneratingStatus, useMessage } from '@opentiny/tiny-robot-kit'
+import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
+import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties } from 'vue'
 
 const client = new AIClient({
   provider: 'openai',
@@ -96,6 +111,10 @@ const { messages, messageState, inputMessage, sendMessage, abortRequest } = useM
   initialMessages: [],
 })
 
+const randomId = () => Math.random().toString(36).substring(2, 15)
+
+const currentMessageId = ref('')
+
 const handlePomptItemClick = (ev: unknown, item: { description?: string }) => {
   sendMessage(item.description)
 }
@@ -115,6 +134,7 @@ const roles: Record<string, BubbleRoleConfig> = {
 
 const handleNewSession = () => {
   messages.value = []
+  currentMessageId.value = ''
 }
 
 watch(
@@ -127,6 +147,56 @@ watch(
     }
   },
 )
+
+const showHistory = ref(false)
+
+const historyData = reactive<
+  {
+    date: string
+    items: {
+      title: string
+      id: string
+      data: ChatMessage[]
+    }[]
+  }[]
+>([])
+
+watch(
+  () => messages.value[messages.value.length - 1]?.content,
+  () => {
+    if (!messages.value.length) {
+      return
+    }
+
+    if (messages.value.length === 1) {
+      currentMessageId.value = randomId()
+    }
+
+    const allSessions = historyData.flatMap((item) => item.items)
+    const currentSession = allSessions.find((item) => item.id === currentMessageId.value)
+
+    const data = toRaw(messages.value)
+    if (!currentSession) {
+      const today = historyData.find((item) => item.date === '今天')
+      if (today) {
+        today.items.unshift({ title: messages.value[0].content, id: currentMessageId.value, data })
+      } else {
+        historyData.unshift({
+          date: '今天',
+          items: [{ title: messages.value[0].content, id: currentMessageId.value, data }],
+        })
+      }
+    } else {
+      currentSession.data = data
+    }
+  },
+)
+
+const handleHistorySelect = (item: { id: string; data: ChatMessage[] }) => {
+  currentMessageId.value = item.id
+  messages.value = item.data
+  showHistory.value = false
+}
 
 const chatContainer = ref<HTMLElement | null>(null)
 
@@ -215,5 +285,15 @@ button.icon-btn {
   svg {
     font-size: 20px;
   }
+}
+
+.tr-history-demo {
+  position: absolute;
+  right: 100%;
+  top: 100%;
+  z-index: 100;
+  width: 300px;
+  height: 600px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 </style>

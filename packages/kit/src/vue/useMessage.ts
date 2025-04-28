@@ -125,7 +125,7 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
           if (messages.value[messages.value.length - 1].role === 'user') {
             messages.value.push({ role: 'assistant', content: '' })
           }
-          const choice = data.choices[0]
+          const choice = data.choices?.[0]
           if (choice && choice.delta.content) {
             messages.value[messages.value.length - 1].content += choice.delta.content
           }

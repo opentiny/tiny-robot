@@ -38,6 +38,7 @@ export default defineConfig({
             { text: 'Prompts 提示集', link: 'prompts' },
             { text: 'Welcome 欢迎', link: 'welcome' },
             { text: 'Question 快捷问题', link: 'question' },
+            { text: 'History 历史', link: 'history' },
           ],
         },
       ],
