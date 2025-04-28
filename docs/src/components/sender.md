@@ -8,12 +8,6 @@ Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰�
 
 ## 代码示例
 
-<style>
-.chat-input {
-  background-color: transparent;
-}
-</style>
-
 ### 基础用法
 
 > 单行模式(`mode="single"`), 适用于简单的输入场景，如搜索框、简短消息输入等。
@@ -55,16 +49,6 @@ Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰�
 
 ```vue
 <tr-sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
-```
-
-#### 自动调整高度
-
-设置`autoSize`属性使输入框高度自动适应内容。
-
-<tr-sender mode="multiple" :autoSize="true" />
-
-```vue
-<tr-sender mode="multiple" :autoSize="true" />
 ```
 
 #### 可清空输入
@@ -175,21 +159,21 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 ### Events
 
-| 事件名            | 说明                      | 回调参数               |
-| ----------------- | ------------------------- | ---------------------- |
-| update:modelValue | 输入值变化时触发(v-model) | `(value: string)`      |
-| blur              | 输入框失去焦点时触发      | `(event: FocusEvent)`  |
-| change            | 输入值改变且失焦时触发    | `(value: string)`      |
-| focus             | 输入框获得焦点时触发      | `(event: FocusEvent)`  |
-| input             | 输入值改变时触发          | `(value: string)`      |
-| submit            | 提交内容时触发            | `(value: string)`      |
-| clear             | 清空内容时触发            | `()`                   |
+| 事件名            | 说明                       | 回调参数               |
+| ----------------- | -------------------------- | ---------------------- |
+| update:modelValue | 输入值变化时触发(v-model)  | `(value: string)`      |
+| blur              | 输入框失去焦点时触发       | `(event: FocusEvent)`  |
+| change            | 输入值改变且失焦时触发     | `(value: string)`      |
+| focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`  |
+| input             | 输入值改变时触发           | `(value: string)`      |
+| submit            | 提交内容时触发             | `(value: string)`      |
+| clear             | 清空内容时触发             | `()`                   |
 | cancel            | 取消发送（加载状态）时触发 | `()`                   |
-| speech-start      | 语音识别开始时触发        | `()`                   |
-| speech-end        | 语音识别结束时触发        | `(transcript: string)` |
-| speech-interim    | 语音识别中间结果时触发    | `(transcript: string)` |
-| speech-error      | 语音识别错误时触发        | `(error: Error)`       |
-| suggestion-select | 选择输入建议时触发        | `(value: string)`      |
+| speech-start      | 语音识别开始时触发         | `()`                   |
+| speech-end        | 语音识别结束时触发         | `(transcript: string)` |
+| speech-interim    | 语音识别中间结果时触发     | `(transcript: string)` |
+| speech-error      | 语音识别错误时触发         | `(error: Error)`       |
+| suggestion-select | 选择输入建议时触发         | `(value: string)`      |
 
 ### Methods
 
@@ -223,83 +207,3 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | `prefix`  | 前缀插槽，位于输入框左侧 | `.tiny-sender__prefix-slot`  | 无                     |
 | `actions` | 后缀插槽，位于输入框右侧 | `.tiny-sender__actions-slot` | 单行模式下的操作按钮   |
 | `footer`  | 底部插槽，位于输入框下方 | `.tiny-sender__footer-slot`  | 字数限制和多行模式按钮 |
-
-### 样式定制
-
-可以通过CSS变量自定义组件样式：
-
-#### 容器样式变量
-
-- `--tr-sender-border-radius`: 组件边框圆角，默认 8px
-- `--tr-sender-border-color`: 边框颜色，默认 #e4e7ed
-- `--tr-sender-focus-border-color`: 聚焦时边框颜色，默认 #409eff
-- `--tr-sender-bg-color`: 背景色，默认 #fff
-- `--tr-sender-padding`: 内边距，默认 10px
-
-#### 输入区域变量
-
-- `--tr-sender-content-padding`: 内容区域内边距，默认 10px
-- `--tr-sender-content-padding-with-prefix`: 有前缀时内容区域内边距，默认 10px 10px 10px 0
-- `--tr-sender-input-font-size`: 输入字体大小，默认 14px
-- `--tr-sender-input-line-height`: 输入行高，默认 1.5
-- `--tr-sender-input-color`: 输入文本颜色，默认 #303133
-
-#### 插槽样式变量
-
-##### 头部插槽（Header）
-
-- `--tr-sender-header-max-height`: 最大高度，默认 120px
-- `--tr-sender-header-min-height`: 最小高度，默认 40px
-- `--tr-sender-header-shadow`: 阴影效果，默认 0 2px 8px rgba(0,0,0,0.1)
-- `--tr-sender-header-padding`: 内边距
-
-##### 前缀插槽（Prefix）
-
-- `--tr-sender-prefix-width`: 宽度，默认 60px
-- `--tr-sender-prefix-min-width`: 最小宽度，默认 44px
-- `--tr-sender-prefix-hover-bg`: 悬停背景色，默认 #f5f5f5
-- `--tr-sender-prefix-padding-left`: 左内边距，默认 16px
-
-##### 操作区域（Actions）
-
-- `--tr-sender-actions-width`: 宽度，默认 auto
-- `--tr-sender-actions-min-width`: 最小宽度，默认 32px
-- `--tr-sender-actions-gap`: 按钮间距，默认 8px
-- `--tr-sender-actions-icon-size`: 图标大小，默认 20px
-- `--tr-sender-actions-padding-right`: 右侧内边距，默认 10px
-
-##### 底部插槽（Footer）
-
-- `--tr-sender-footer-max-height`: 最大高度，默认 200px
-- `--tr-sender-footer-min-height`: 最小高度，默认 0
-- `--tr-sender-footer-bg`: 背景色，默认 #fff
-- `--tr-sender-footer-hover`: 悬停背景色，默认 #f9f9f9
-
-### 主题适配
-
-Sender 支持亮色和暗色两种主题模式，通过`theme`属性控制：
-
-<tr-sender theme="dark" />
-
-```vue
-<tr-sender theme="dark" />
-```
-
-也可以通过CSS变量实现更细致的主题定制：
-
-```css
-/* 亮色主题 */
-.theme-light {
-  --tr-sender-bg-color: #fff;
-  --tr-sender-border-color: #e4e7ed;
-  --tr-sender-input-color: #303133;
-}
-
-/* 暗色主题 */
-.theme-dark {
-  --tr-sender-bg-color: #1e1e1e;
-  --tr-sender-border-color: #4c4c4c;
-  --tr-sender-input-color: #e0e0e0;
-  --tr-sender-actions-icon-color: #b0b0b0;
-}
-```

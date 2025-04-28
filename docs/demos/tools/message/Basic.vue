@@ -1,7 +1,6 @@
 <template>
   <tr-bubble-list :items="messages" :roles="roles"></tr-bubble-list>
   <tr-sender
-    class="chat-input"
     v-model="inputMessage"
     :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
     :clearable="true"
@@ -53,9 +52,3 @@ const roles: Record<string, BubbleRoleConfig> = {
   },
 }
 </script>
-
-<style scoped lang="less">
-.chat-input {
-  background-color: transparent;
-}
-</style>

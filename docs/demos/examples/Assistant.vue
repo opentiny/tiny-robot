@@ -41,10 +41,13 @@
     <template #footer>
       <tr-sender
         class="chat-input"
+        mode="multiple"
         v-model="inputMessage"
-        :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
+        :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
         :clearable="true"
         :loading="GeneratingStatus.includes(messageState.status)"
+        :showWordLimit="true"
+        :maxLength="1000"
         @submit="sendMessage"
         @cancel="abortRequest"
       ></tr-sender>
@@ -65,7 +68,7 @@
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import { type BubbleRoleConfig, type PromptProps } from '@opentiny/tiny-robot'
-import { AIClient, ChatMessage, GeneratingStatus, STATUS, useMessage } from '@opentiny/tiny-robot-kit'
+import { AIClient, ChatMessage, GeneratingStatus, useMessage } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties } from 'vue'
 

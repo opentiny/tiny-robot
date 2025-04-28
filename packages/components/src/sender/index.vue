@@ -93,8 +93,8 @@ const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
 }
 
-// 输入框类型计算
-const inputType = computed(() => (props.mode === 'multiple' ? 'textarea' : 'text'))
+// 初始化自适应对象
+const autoSize = computed(() => (props.mode === 'multiple' ? { minRows: 2, maxRows: 5 } : { maxRows: 1 }))
 
 const justifyContent = computed(
   (): {
@@ -190,9 +190,9 @@ defineExpose({
             <tiny-input
               ref="inputRef"
               :autosize="autoSize"
-              :type="inputType"
+              type="textarea"
               :readonly="isLoading"
-              :resize="mode === 'multiple' ? 'none' : undefined"
+              resize="none"
               v-model="inputValue"
               :disabled="isDisabled"
               :placeholder="placeholder"
