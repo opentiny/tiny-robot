@@ -39,18 +39,33 @@
     <tr-bubble-list v-else :items="messages" :roles="roles"></tr-bubble-list>
 
     <template #footer>
-      <tr-sender
-        class="chat-input"
-        mode="multiple"
-        v-model="inputMessage"
-        :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
-        :clearable="true"
-        :loading="GeneratingStatus.includes(messageState.status)"
-        :showWordLimit="true"
-        :maxLength="1000"
-        @submit="sendMessage"
-        @cancel="abortRequest"
-      ></tr-sender>
+      <div class="chat-input">
+        <tr-suggestion
+          v-model:open="suggestionOpen"
+          :items="suggestionItems"
+          :categories="categories"
+          @fill-template="handleFillTemplate"
+          :maxVisibleItems="5"
+        >
+          <template #trigger="{ onKeyDown, onTrigger }">
+            <tr-sender
+              ref="senderRef"
+              mode="multiple"
+              v-model="inputMessage"
+              :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
+              :clearable="true"
+              :loading="GeneratingStatus.includes(messageState.status)"
+              :showWordLimit="true"
+              :maxLength="1000"
+              :template="currentTemplate"
+              @submit="handleSendMessage"
+              @cancel="abortRequest"
+              @keydown="handleMessageKeydown($event, onTrigger, onKeyDown)"
+              @reset-template="clearTemplate"
+            ></tr-sender>
+          </template>
+        </tr-suggestion>
+      </div>
     </template>
   </tr-container>
   <div style="display: flex; flex-direction: column; gap: 8px">
@@ -67,10 +82,11 @@
 
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
-import { type BubbleRoleConfig, type PromptProps } from '@opentiny/tiny-robot'
+import { type SuggestionItem, type BubbleRoleConfig, type PromptProps, type TriggerHandler } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useMessage } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
-import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties } from 'vue'
+import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties, onMounted } from 'vue'
+import { templateSuggestions, templateCategories } from './templateData'
 
 const client = new AIClient({
   provider: 'openai',
@@ -213,10 +229,96 @@ const scrollToBottom = () => {
     })
   }
 }
+
+// 指令列表
+const suggestionItems = templateSuggestions
+const categories = templateCategories
+
+const senderRef = ref<InstanceType<typeof TrSender> | null>(null)
+const currentTemplate = ref<string>('')
+const currentTemplateName = ref<string>('')
+const suggestionOpen = ref(false)
+
+// 设置指令
+const handleFillTemplate = (templateText: string, item: SuggestionItem) => {
+  setTimeout(() => {
+    currentTemplate.value = templateText
+    currentTemplateName.value = item?.text
+    inputMessage.value = ''
+
+    // 等待DOM更新后激活第一个字段
+    setTimeout(() => {
+      senderRef.value?.activateTemplateFirstField()
+    }, 100)
+  }, 300)
+}
+
+// 清除当前指令
+const clearTemplate = () => {
+  // 清空指令相关状态
+  currentTemplate.value = ''
+  currentTemplateName.value = ''
+
+  // 确保重新聚焦到输入框
+  nextTick(() => {
+    senderRef.value?.focus()
+  })
+}
+
+// 发送消息
+const handleSendMessage = () => {
+  sendMessage(inputMessage.value)
+
+  clearTemplate()
+}
+
+const handleMessageKeydown = (
+  event: KeyboardEvent,
+  triggerFn: TriggerHandler,
+  suggestionKeyDown: (event: KeyboardEvent) => void,
+) => {
+  // 如果指令面板已打开，交给 suggestion 组件处理键盘事件
+  if (suggestionOpen.value) {
+    suggestionKeyDown(event)
+    return
+  }
+
+  // 如果按下斜杠键并且不在指令编辑模式，触发指令面板
+  if (event.key === '/' && !currentTemplate.value) {
+    triggerFn({
+      text: '',
+      position: 0,
+    })
+  }
+
+  // ESC 键清除当前指令
+  if (event.key === 'Escape' && currentTemplate.value) {
+    event.preventDefault()
+    clearTemplate()
+  }
+}
+
+watch(
+  () => inputMessage.value,
+  (value) => {
+    // 如果指令面板已打开，并且指令为空，关闭指令面板
+    if (suggestionOpen.value && value === '') {
+      suggestionOpen.value = false
+    }
+  },
+)
+
+// 页面加载完成后自动聚焦输入框
+onMounted(() => {
+  setTimeout(() => {
+    senderRef.value?.focus()
+  }, 500)
+})
 </script>
 
 <style scoped lang="less">
 .chat-input {
+  margin-top: 8px;
   padding: 10px 15px;
 }
 

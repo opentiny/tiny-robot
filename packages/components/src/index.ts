@@ -9,6 +9,7 @@ import { Prompt, Prompts } from './prompts'
 import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
+import Suggestion from './suggestion'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -18,6 +19,7 @@ export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './welcome/index.type'
+export * from './suggestion/index.type'
 
 const components = [
   Bubble,
@@ -32,6 +34,7 @@ const components = [
   Question,
   Sender,
   Welcome,
+  Suggestion,
 ]
 
 export default {
@@ -66,6 +69,8 @@ export {
   Sender as TrSender,
   Welcome,
   Welcome as TrWelcome,
+  Suggestion,
+  Suggestion as TrSuggestion,
   Question,
   Question as TrQuestion,
 }
