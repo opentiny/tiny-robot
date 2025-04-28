@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 // import { TrSender, TrSuggestion } from '@opentiny/tiny-robot'
 import { templateSuggestions, templateCategories } from './templateData'
 
@@ -95,7 +95,6 @@ const handleKeyDown = (event, triggerFn, suggestionKeyDown) => {
 
   // 如果按下斜杠键并且不在指令编辑模式，触发建议面板
   if (event.key === '/' && !currentTemplate.value) {
-    event.preventDefault()
     triggerFn({
       text: '',
       position: 0,
@@ -156,6 +155,16 @@ const clearTemplate = () => {
     senderRef.value?.focus()
   })
 }
+
+watch(
+  () => inputText.value,
+  (value) => {
+    // 如果指令面板已打开，并且指令为空，关闭指令面板
+    if (suggestionOpen.value && value === '') {
+      suggestionOpen.value = false
+    }
+  },
+)
 
 // 页面加载完成后自动聚焦输入框
 onMounted(() => {

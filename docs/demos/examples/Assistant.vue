@@ -41,13 +41,15 @@
     <template #footer>
       <div class="chat-input">
         <tr-suggestion
-          :items="suggestItems"
+          v-model:open="suggestionOpen"
+          :items="suggestionItems"
           :categories="categories"
-          @select="handleCommandSelect"
+          @fill-template="handleFillTemplate"
           :maxVisibleItems="5"
         >
-          <template #trigger="{ onKeyDown, onInput }">
+          <template #trigger="{ onKeyDown, onTrigger }">
             <tr-sender
+              ref="senderRef"
               mode="multiple"
               v-model="inputMessage"
               :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
@@ -55,10 +57,11 @@
               :loading="GeneratingStatus.includes(messageState.status)"
               :showWordLimit="true"
               :maxLength="1000"
-              @submit="sendMessage"
+              :template="currentTemplate"
+              @submit="handleSendMessage"
               @cancel="abortRequest"
-              @input="handleMessageInput($event, onInput)"
-              @keydown="handleMessageKeydown($event, onKeyDown)"
+              @keydown="handleMessageKeydown($event, onTrigger, onKeyDown)"
+              @reset-template="clearTemplate"
             ></tr-sender>
           </template>
         </tr-suggestion>
@@ -79,10 +82,11 @@
 
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
-import { type BubbleRoleConfig, type PromptProps, type SuggestionItem, type Category } from '@opentiny/tiny-robot'
+import { type SuggestionItem, type BubbleRoleConfig, type PromptProps, type TriggerHandler } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useMessage } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
-import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties } from 'vue'
+import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties, onMounted } from 'vue'
+import { templateSuggestions, templateCategories } from './templateData'
 
 const client = new AIClient({
   provider: 'openai',
@@ -226,107 +230,90 @@ const scrollToBottom = () => {
   }
 }
 
-// 处理输入，检测命令触发
-const handleMessageInput = (event, handleInput) => {
-  const currentText = inputMessage.value
+// 指令列表
+const suggestionItems = templateSuggestions
+const categories = templateCategories
 
-  handleInput(event, currentText)
+const senderRef = ref<InstanceType<typeof TrSender> | null>(null)
+const currentTemplate = ref<string>('')
+const currentTemplateName = ref<string>('')
+const suggestionOpen = ref(false)
+
+// 设置指令
+const handleFillTemplate = (templateText: string, item: SuggestionItem) => {
+  setTimeout(() => {
+    currentTemplate.value = templateText
+    currentTemplateName.value = item?.text
+    inputMessage.value = ''
+
+    // 等待DOM更新后激活第一个字段
+    setTimeout(() => {
+      senderRef.value?.activateTemplateFirstField()
+    }, 100)
+  }, 300)
 }
 
-const handleCommandSelect = (value) => {
-  inputMessage.value = value
+// 清除当前指令
+const clearTemplate = () => {
+  // 清空指令相关状态
+  currentTemplate.value = ''
+  currentTemplateName.value = ''
+
+  // 确保重新聚焦到输入框
+  nextTick(() => {
+    senderRef.value?.focus()
+  })
 }
 
-// 处理键盘事件
-const handleMessageKeydown = (event, onKeyDown) => {
-  onKeyDown(event)
+// 发送消息
+const handleSendMessage = () => {
+  sendMessage(inputMessage.value)
+
+  clearTemplate()
 }
 
-// 常用指令
-const commonCommands: SuggestionItem[] = [
-  {
-    id: 'image',
-    text: '/image',
-    value: '/image',
-    description: '生成图像 - 根据文本描述创建图像',
-  },
-  {
-    id: 'sql',
-    text: '/sql',
-    value: '/sql',
-    description: 'SQL查询 - 编写SQL查询语句并获取解释',
-  },
-  {
-    id: 'code',
-    text: '/code',
-    value: '/code',
-    description: '生成代码 - 根据描述生成代码片段',
-  },
-  {
-    id: 'translate',
-    text: '/translate',
-    value: '/translate',
-    description: '翻译文本 - 将文本翻译成指定语言',
-  },
-  {
-    id: 'explain',
-    text: '/explain',
-    value: '/explain',
-    description: '解释代码 - 分析并解释代码片段',
-  },
-]
+const handleMessageKeydown = (
+  event: KeyboardEvent,
+  triggerFn: TriggerHandler,
+  suggestionKeyDown: (event: KeyboardEvent) => void,
+) => {
+  // 如果指令面板已打开，交给 suggestion 组件处理键盘事件
+  if (suggestionOpen.value) {
+    suggestionKeyDown(event)
+    return
+  }
 
-// 高级指令
-const advancedCommands: SuggestionItem[] = [
-  {
-    id: 'debug',
-    text: '/debug',
-    value: '/debug',
-    description: '调试代码 - 查找并修复代码中的问题',
-  },
-  {
-    id: 'optimize',
-    text: '/optimize',
-    value: '/optimize',
-    description: '优化代码 - 提升代码性能和质量',
-  },
-  {
-    id: 'format',
-    text: '/format',
-    value: '/format',
-    description: '格式化代码 - 按照规范格式化代码',
-  },
-]
+  // 如果按下斜杠键并且不在指令编辑模式，触发指令面板
+  if (event.key === '/' && !currentTemplate.value) {
+    triggerFn({
+      text: '',
+      position: 0,
+    })
+  }
 
-// Suggestion 组件使用的建议项
-const suggestCommands = [...commonCommands, ...advancedCommands]
+  // ESC 键清除当前指令
+  if (event.key === 'Escape' && currentTemplate.value) {
+    event.preventDefault()
+    clearTemplate()
+  }
+}
 
-// 初始化 suggestItems 为所有可用的命令项
-const suggestItems = ref<SuggestionItem[]>(suggestCommands)
+watch(
+  () => inputMessage.value,
+  (value) => {
+    // 如果指令面板已打开，并且指令为空，关闭指令面板
+    if (suggestionOpen.value && value === '') {
+      suggestionOpen.value = false
+    }
+  },
+)
 
-// 功能分类
-const categories = ref<Category[]>([
-  {
-    id: 'common',
-    label: '常用指令',
-    items: commonCommands,
-  },
-  {
-    id: 'advanced',
-    label: '高级指令',
-    items: advancedCommands,
-  },
-  {
-    id: 'One',
-    label: '高级指令1',
-    items: advancedCommands,
-  },
-  {
-    id: 'Two',
-    label: '高级指令2',
-    items: advancedCommands,
-  },
-])
+// 页面加载完成后自动聚焦输入框
+onMounted(() => {
+  setTimeout(() => {
+    senderRef.value?.focus()
+  }, 500)
+})
 </script>
 
 <style scoped lang="less">
