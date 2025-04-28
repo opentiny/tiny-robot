@@ -6,6 +6,7 @@ import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
 import { useSpeechHandler } from './composables/useSpeechHandler'
 import ActionButtons from './components/ActionButtons.vue'
+import TemplateEditor from './components/TemplateEditor.vue'
 import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
@@ -23,15 +24,33 @@ const props = withDefaults(defineProps<SenderProps>(), {
   showWordLimit: false,
   submitType: 'enter',
   theme: 'light',
+  template: '',
+  hasContent: undefined,
 })
 
 const emit = defineEmits<SenderEmits>()
 
 // 输入引用
 const inputRef = ref<HTMLElement | null>(null)
+const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
+
+// 是否显示模板编辑器
+const showTemplateEditor = computed(() => !!props.template)
 
 // 输入控制
-const { inputValue, isComposing, clearInput }: InputHandler = useInputHandler(props, emit)
+const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler = useInputHandler(props, emit)
+
+// 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
+const clearInput = () => {
+  // 调用原始清空方法
+  originalClearInput()
+
+  // 如果当前是模板编辑模式，需要退出模板编辑模式
+  if (props.template) {
+    // 发出一个模板重置事件，通知父组件清除模板
+    emit('reset-template')
+  }
+}
 
 // 输入建议
 const showSuggestions = ref(false)
@@ -44,6 +63,19 @@ const selectSuggestion = (value: string) => {
   inputValue.value = value
   showSuggestions.value = false
   emit('suggestion-select', value)
+}
+
+// 模板相关处理
+const handleTemplateInput = (value: string) => {
+  inputValue.value = value
+  emit('update:modelValue', value)
+}
+
+// 激活第一个模板字段
+const activateTemplateFirstField = () => {
+  if (templateEditorRef.value) {
+    templateEditorRef.value.activateFirstField()
+  }
 }
 
 // 语音识别
@@ -115,6 +147,7 @@ const justifyContent = computed(
 // 状态计算
 const isDisabled = computed(() => props.disabled)
 const isLoading = computed(() => props.loading)
+const hasContent = computed(() => (props.hasContent !== undefined ? props.hasContent : !!inputValue.value))
 
 // 样式类
 const senderClasses = computed(() => ({
@@ -144,7 +177,9 @@ watch(inputValue, () => {
 // 暴露方法
 defineExpose({
   focus: () => {
-    if (inputRef.value) {
+    if (showTemplateEditor.value && templateEditorRef.value) {
+      activateTemplateFirstField()
+    } else if (inputRef.value) {
       inputRef.value.focus()
     } else {
       const input = document.querySelector('.tiny-input__inner') as HTMLInputElement
@@ -163,6 +198,7 @@ defineExpose({
   submit: triggerSubmit,
   startSpeech,
   stopSpeech,
+  activateTemplateFirstField,
 })
 </script>
 
@@ -187,7 +223,19 @@ defineExpose({
 
           <!-- 内容区域 - 确保最小宽度，不被挤占 -->
           <div class="tiny-sender__content-area">
+            <!-- 模板编辑器 -->
+            <template v-if="showTemplateEditor">
+              <TemplateEditor
+                ref="templateEditorRef"
+                :template="template"
+                :value="inputValue"
+                @update:value="handleTemplateInput"
+                @input="handleTemplateInput"
+              />
+            </template>
+            <!-- 普通输入框 -->
             <tiny-input
+              v-else
               ref="inputRef"
               :autosize="autoSize"
               type="textarea"
@@ -217,7 +265,7 @@ defineExpose({
                 :loading="loading"
                 :disabled="isDisabled"
                 :show-clear="clearable"
-                :has-content="!!inputValue"
+                :has-content="hasContent"
                 :speech-status="speechState"
                 :submit-type="submitType"
                 @clear="clearInput"
@@ -253,7 +301,7 @@ defineExpose({
                   :loading="loading"
                   :disabled="isDisabled"
                   :show-clear="clearable"
-                  :has-content="!!inputValue"
+                  :has-content="hasContent"
                   :speech-status="speechState"
                   :submit-type="submitType"
                   @clear="clearInput"
