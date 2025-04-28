@@ -7,7 +7,11 @@ import IconButton from '../icon-button'
 import { SourceList } from './components'
 import type { FeedbackEvents, FeedbackProps } from './index.type'
 
-const props = defineProps<FeedbackProps>()
+const props = withDefaults(defineProps<FeedbackProps>(), {
+  operationsLimit: Number.MAX_SAFE_INTEGER,
+  actionsLimit: Number.MAX_SAFE_INTEGER,
+  sourcesLinesLimit: Number.MAX_SAFE_INTEGER,
+})
 
 const iconMap = {
   copy: IconCopy,
@@ -19,7 +23,13 @@ const iconMap = {
 const emit = defineEmits<FeedbackEvents>()
 
 const handleOperation = (name: string) => {
+  props.operations?.find((operation) => operation.name === name)?.onClick?.()
   emit('operation', name)
+}
+
+const handleAction = (name: string) => {
+  props.actions?.find((action) => action.name === name)?.onClick?.()
+  emit('action', name)
 }
 
 const showSourceList = ref(false)
@@ -27,27 +37,35 @@ const showSourceList = ref(false)
 const handleSourceList = () => {
   showSourceList.value = !showSourceList.value
 }
-
-const handleAction = (name: string) => {
-  props.actions?.find((action) => action.name === name)?.onClick?.()
-  emit('action', name)
-}
 </script>
 
 <template>
   <div class="tr-feedback">
     <div class="tr-feedback__operations">
       <div v-if="props.operations?.length" class="tr-feedback__operations-left">
-        <tiny-button
-          v-for="operation in props.operations"
-          :key="operation.name"
-          round
-          :reset-time="0"
-          size="mini"
-          @click="handleOperation(operation.name)"
+        <action-group
+          :max-num="props.operationsLimit"
+          :drop-down-show-label-only="true"
+          @item-click="handleOperation"
+          class="tr-feedback__operations-left-action-group"
         >
-          {{ operation.label }}
-        </tiny-button>
+          <action-group-item
+            v-for="operation in props.operations"
+            :key="operation.name"
+            :name="operation.name"
+            :label="operation.label"
+          >
+            <tiny-button round :reset-time="0" size="mini">
+              {{ operation.label }}
+            </tiny-button>
+          </action-group-item>
+          <template #moreBtn>
+            <tiny-button round size="mini" :reset-time="0" class="tr-feedback__operations-more-btn">
+              <span>更多</span>
+              <icon-arrow-down />
+            </tiny-button>
+          </template>
+        </action-group>
       </div>
       <div v-else-if="props.sources?.length">
         <span class="tr-feedback__source" @click="handleSourceList">
@@ -56,7 +74,7 @@ const handleAction = (name: string) => {
         </span>
       </div>
       <div class="tr-feedback__operations-right">
-        <action-group :max-num="2" @click="handleAction">
+        <action-group :max-num="props.actionsLimit" @item-click="handleAction">
           <action-group-item
             v-for="action in props.actions"
             :key="action.name"
@@ -67,7 +85,6 @@ const handleAction = (name: string) => {
               v-if="typeof action.icon === 'string'"
               :icon="iconMap[action.icon]"
               :tooltip="action.label"
-              @click="handleAction(action.name)"
             ></icon-button>
             <component v-else :is="action.icon"></component>
           </action-group-item>
@@ -84,7 +101,7 @@ const handleAction = (name: string) => {
       <source-list
         v-if="showSourceList && props.sources"
         :sources="props.sources"
-        :default-lines="props.defaultSourceLines"
+        :lines-limit="props.sourcesLinesLimit"
       />
     </div>
   </div>
@@ -96,8 +113,22 @@ const handleAction = (name: string) => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
 
     .tr-feedback__operations-left {
+      .tr-feedback__operations-left-action-group {
+        gap: 8px;
+      }
+
+      .tr-feedback__operations-more-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        svg {
+          font-size: 12px;
+        }
+      }
     }
 
     .tr-feedback__operations-right {

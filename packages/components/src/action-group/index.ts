@@ -1,6 +1,6 @@
 import { App } from 'vue'
-import ActionGroup from './index.vue'
-import ActionGroupItemComp from './item.vue'
+import ActionGroup from './ActionGroup.vue'
+import ActionGroupItemComp from './ActionGroupItem.vue'
 
 ActionGroup.name = 'TrActionGroup'
 

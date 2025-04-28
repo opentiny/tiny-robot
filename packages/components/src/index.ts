@@ -12,6 +12,7 @@ import Welcome from './welcome'
 
 export * from './action-group/index.type'
 export * from './bubble/index.type'
+export * from './feedback/index.type'
 export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'

@@ -3,13 +3,11 @@ import { IconMenu } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, ref, useTemplateRef, VNode, watch } from 'vue'
 import IconButton from '../icon-button'
-import { ActionGroupEvents, ActionGroupProps } from './index.type'
+import { ActionGroupEvents, ActionGroupProps, ActionGroupSlots } from './index.type'
 
 const props = defineProps<ActionGroupProps>()
 
-const slots = defineSlots<{
-  default: () => VNode | VNode[]
-}>()
+const slots = defineSlots<ActionGroupSlots>()
 
 const emit = defineEmits<ActionGroupEvents>()
 
@@ -74,7 +72,7 @@ onClickOutside(dropDown, (ev) => {
 })
 
 const handleItemClick = (name: string) => {
-  emit('click', name)
+  emit('item-click', name)
   showDropdown.value = false
 }
 
@@ -98,8 +96,6 @@ watch(showDropdown, (show) => {
     nextTick(() => {
       updateDropDownPlacement()
     })
-  } else {
-    dropDownPlacement.value = 'placement-bottom'
   }
 })
 
@@ -112,20 +108,31 @@ watch(windowHeight, () => {
 
 <template>
   <div class="tr-action-group">
-    <component :is="item" v-for="(item, index) in list" :key="index" />
-    <span v-if="showMore" ref="moreBtnRef" class="tr-action-group__more">
-      <icon-button :icon="IconMenu" tooltip="更多" @click="handleMoreClick" />
-      <ul v-show="showDropdown" ref="dropDownRef" :class="['tr-action-group__dropdown', dropDownPlacement]">
-        <li
-          class="tr-action-group__dropdown-item"
-          v-for="(item, index) in moreList"
-          :key="index"
-          @click="handleItemClick(item.props?.name)"
-        >
-          <component :is="item" />
-          <span class="tr-action-group__dropdown-item-text">{{ item.props?.label }}</span>
-        </li>
-      </ul>
+    <span
+      v-for="(item, index) in list"
+      :key="index"
+      class="tr-action-group__btn-wrapper"
+      @click="handleItemClick(item.props?.name)"
+    >
+      <component :is="item" />
+    </span>
+    <span v-if="showMore" ref="moreBtnRef" class="tr-action-group__btn-wrapper" @click="handleMoreClick">
+      <slot name="moreBtn">
+        <icon-button :icon="IconMenu" tooltip="更多" />
+      </slot>
+      <transition name="tr-action-group-dropdown">
+        <ul v-show="showDropdown" ref="dropDownRef" :class="['tr-action-group__dropdown', dropDownPlacement]">
+          <li
+            class="tr-action-group__dropdown-item"
+            v-for="(item, index) in moreList"
+            :key="index"
+            @click.stop="handleItemClick(item.props?.name)"
+          >
+            <component v-if="!props.dropDownShowLabelOnly" :is="item" />
+            <span class="tr-action-group__dropdown-item-text">{{ item.props?.label }}</span>
+          </li>
+        </ul>
+      </transition>
     </span>
   </div>
 </template>
@@ -136,7 +143,7 @@ watch(windowHeight, () => {
   align-items: center;
   gap: 4px;
 
-  .tr-action-group__more {
+  .tr-action-group__btn-wrapper {
     display: inline-flex;
     line-height: 0;
     position: relative;
@@ -167,8 +174,7 @@ watch(windowHeight, () => {
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      padding: 4px;
-      padding-right: 16px;
+      padding: 4px 16px 4px 8px;
       gap: 4px;
       transition: background-color 0.3s;
 
@@ -188,6 +194,10 @@ watch(windowHeight, () => {
         flex-shrink: 0;
       }
 
+      &:has(> *:only-child) {
+        padding: 4px 16px;
+      }
+
       .tr-action-group__dropdown-item-text {
         font-size: 12px;
         line-height: 20px;
@@ -198,6 +208,24 @@ watch(windowHeight, () => {
         --tr-icon-button-hover-bg: unset;
         --tr-icon-button-active-bg: unset;
       }
+    }
+  }
+
+  // 下拉动画
+  .tr-action-group-dropdown {
+    &-enter-active,
+    &-leave-active {
+      transition: opacity 0.3s ease;
+    }
+
+    &-enter-from,
+    &-leave-to {
+      opacity: 0;
+    }
+
+    &-enter-to,
+    &-leave-from {
+      opacity: 1;
     }
   }
 }

@@ -5,10 +5,10 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 const props = withDefaults(
   defineProps<{
     sources: { label: string; link: string }[]
-    defaultLines?: number
+    linesLimit?: number
   }>(),
   {
-    defaultLines: 2,
+    linesLimit: Number.MAX_SAFE_INTEGER,
   },
 )
 
@@ -21,9 +21,9 @@ const updateMoreIndex = () => {
     const tops = pillRefs.value.map((el) => el?.offsetTop || 0)
     const uniqueTops = Array.from(new Set(tops))
 
-    if (uniqueTops.length > props.defaultLines) {
-      // 超过 defaultLines 行，找到第 defaultLines 行最后一个的index
-      const lastLineTop = uniqueTops[props.defaultLines - 1]
+    if (uniqueTops.length > props.linesLimit) {
+      // 超过 linesLimit 行，找到第 linesLimit 行最后一个的index
+      const lastLineTop = uniqueTops[props.linesLimit - 1]
       const lastIndex = tops.lastIndexOf(lastLineTop)
       morePillIndex.value = lastIndex
     } else {
