@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import Bubble from './bubble.vue'
+import Bubble from './Bubble.vue'
 import { BubbleListProps, BubbleProps } from './index.type'
 import { useElementScroll } from './useScroll'
 

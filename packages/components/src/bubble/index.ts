@@ -1,6 +1,6 @@
 import { App } from 'vue'
-import BubbleComp from './bubble.vue'
-import BubbleListComp from './bubble-list.vue'
+import BubbleComp from './Bubble.vue'
+import BubbleListComp from './BubbleList.vue'
 
 BubbleComp.name = 'TrBubble'
 
