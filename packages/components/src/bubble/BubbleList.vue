@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import Bubble from './Bubble.vue'
-import { BubbleListProps, BubbleProps } from './index.type'
+import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
 import { useElementScroll } from './useScroll'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})
@@ -19,15 +19,26 @@ watch([() => props.items.length, () => lastBubble.value?.content], () => {
   scrollToBottom()
 })
 
-const getItemProps = (item: BubbleProps): BubbleProps => {
+const getItemProps = (item: BubbleProps & { slots?: BubbleSlots }): BubbleProps => {
   const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
-  return { ...defaultConfig, ...item }
+  const { slots: _roleSlots, ...rest } = defaultConfig
+  const { slots: _itemSlots, ...restItem } = item
+  return { ...rest, ...restItem }
+}
+
+const getItemSlots = (item: BubbleProps & { slots?: BubbleSlots }): BubbleSlots => {
+  const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
+  return { ...defaultConfig.slots, ...item.slots }
 }
 </script>
 
 <template>
   <div class="tr-bubble-list" ref="scrollContainer">
-    <Bubble v-for="(item, index) in props.items" :key="item.id || index" v-bind="getItemProps(item)"></Bubble>
+    <Bubble v-for="(item, index) in props.items" :key="item.id || index" v-bind="getItemProps(item)">
+      <template v-for="(_, slotName) in getItemSlots(item)" #[slotName]="slotProps" :key="slotName">
+        <component :is="getItemSlots(item)[slotName]" v-bind="slotProps" />
+      </template>
+    </Bubble>
   </div>
 </template>
 

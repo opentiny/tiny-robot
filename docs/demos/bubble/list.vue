@@ -4,13 +4,15 @@
 
 <script setup lang="ts">
 // import { TrBubbleList } from '@opentiny/tiny-robot'
+import { TrFeedback } from '@opentiny/tiny-robot'
+import type { BubbleProps, BubbleRoleConfig, BubbleSlots } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
-const items: BubbleProps[] = [
+const items: (BubbleProps & { slots?: BubbleSlots })[] = [
   {
     role: 'user',
     content: '简单介绍 TinyVue',
@@ -18,6 +20,11 @@ const items: BubbleProps[] = [
   {
     role: 'ai',
     content: 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。',
+    slots: {
+      default: ({ bubbleProps }) => {
+        return h('div', { style: { color: 'green' } }, bubbleProps.content)
+      },
+    },
   },
   {
     role: 'user',
@@ -41,8 +48,24 @@ const roles: Record<string, BubbleRoleConfig> = {
   ai: {
     placement: 'start',
     avatar: aiAvatar,
-    actions: ['refresh', 'copy'],
     maxWidth: '80%',
+    slots: {
+      default: ({ bubbleProps }) => {
+        return h('div', { style: { color: 'red' } }, bubbleProps.content)
+      },
+      footer: ({ bubbleProps }) => {
+        return h(TrFeedback, {
+          actions: [
+            { name: 'refresh', label: '刷新', icon: 'refresh' },
+            { name: 'copy', label: '复制', icon: 'copy' },
+          ],
+          onAction(name) {
+            console.log(name)
+            console.log(bubbleProps.content)
+          },
+        })
+      },
+    },
   },
   user: {
     placement: 'end',

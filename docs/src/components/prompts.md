@@ -4,12 +4,6 @@ outline: deep
 
 # Prompts 提示集组件
 
-<style>
-.vitepress-demo-plugin__container {
-  background-color: rgb(248, 248, 248);
-}
-</style>
-
 Prompts 是一个用于展示提示列表的通用组件，包含多个提示项，支持自定义样式、禁用状态、徽章、纵向展示、自动换行、响应式布局、底部内容等功能。
 
 ## 代码示例
