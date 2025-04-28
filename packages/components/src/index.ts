@@ -2,19 +2,37 @@ import { App } from 'vue'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
+import Feedback from './feedback'
 import History from './history'
+import IconButton from './icon-button'
 import { Prompt, Prompts } from './prompts'
 import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
 
 export * from './bubble/index.type'
+export * from './container/index.type'
+export * from './feedback/index.type'
 export * from './history/index.type'
+export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './welcome/index.type'
 
-const components = [Bubble, BubbleList, Container, Conversations, History, Prompt, Prompts, Question, Sender, Welcome]
+const components = [
+  Bubble,
+  BubbleList,
+  Container,
+  Conversations,
+  Feedback,
+  History,
+  IconButton,
+  Prompt,
+  Prompts,
+  Question,
+  Sender,
+  Welcome,
+]
 
 export default {
   install<T>(app: App<T>) {
@@ -34,8 +52,12 @@ export {
   Container as TrContainer,
   Conversations,
   Conversations as TrConversations,
+  Feedback,
+  Feedback as TrFeedback,
   History,
   History as TrHistory,
+  IconButton,
+  IconButton as TrIconButton,
   Prompt,
   Prompt as TrPrompt,
   Prompts,
@@ -45,4 +67,5 @@ export {
   Welcome,
   Welcome as TrWelcome,
   Question,
+  Question as TrQuestion,
 }

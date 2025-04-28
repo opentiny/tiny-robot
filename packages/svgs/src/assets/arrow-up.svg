@@ -1,25 +1,6 @@
-<svg width="1em" height="1em" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 简化阴影效果 -->
-  <filter id="shadow_s" x="-20%" y="-20%" width="140%" height="140%">
-    <feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/>
-    <feOffset dx="0" dy="2" result="offsetblur"/>
-    <feFlood flood-color="rgba(0,0,0,0.15)"/>
-    <feComposite in2="offsetblur" operator="in"/>
-    <feMerge>
-      <feMergeNode/>
-      <feMergeNode in="SourceGraphic"/>
-    </feMerge>
-  </filter>
-
-  <!-- 主体圆形 -->
-  <circle cx="10" cy="10" r="6" 
-          fill="white" 
-          filter="url(#shadow_s)"/>
-
-  <!-- 向下箭头 -->
-  <path d="M7.5 10.5L10 8L12.5 10.5" 
-        stroke="#595959" 
-        stroke-width="1"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
+<svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs />
+  <path id="路径" d="M 3.8 10 L 8 5.8 L 12.2 10" stroke="currentColor" stroke-width="1" stroke-linejoin="round"
+    stroke-linecap="round" />
 </svg>
