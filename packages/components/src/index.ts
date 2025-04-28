@@ -1,5 +1,4 @@
 import { App } from 'vue'
-import ActionGroup from './action-group'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
@@ -11,8 +10,8 @@ import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
 
-export * from './action-group/index.type'
 export * from './bubble/index.type'
+export * from './container/index.type'
 export * from './feedback/index.type'
 export * from './history/index.type'
 export * from './icon-button/index.type'
@@ -21,7 +20,6 @@ export * from './sender/index.type'
 export * from './welcome/index.type'
 
 const components = [
-  ActionGroup,
   Bubble,
   BubbleList,
   Container,
@@ -46,8 +44,6 @@ export default {
 }
 
 export {
-  ActionGroup,
-  ActionGroup as TrActionGroup,
   Bubble,
   Bubble as TrBubble,
   BubbleList,
@@ -71,4 +67,5 @@ export {
   Welcome,
   Welcome as TrWelcome,
   Question,
+  Question as TrQuestion,
 }
