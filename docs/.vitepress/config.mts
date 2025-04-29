@@ -50,7 +50,8 @@ export default defineConfig({
           base: '/tools/',
           items: [
             { text: 'AI模型交互工具类', link: 'ai-client' },
-            { text: '消息与数据管理', link: 'message' },
+            { text: '消息数据管理', link: 'message' },
+            { text: '会话数据管理', link: 'conversation' },
           ],
         },
       ],

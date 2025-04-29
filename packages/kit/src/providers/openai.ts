@@ -48,14 +48,15 @@ export class OpenAIProvider extends BaseModelProvider {
         stream: false,
       }
 
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
+      const options = {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
-      })
+      }
+      if (this.apiKey) {
+        Object.assign(options.headers, { Authorization: `Bearer ${this.apiKey}` })
+      }
+      const response = await fetch(`${this.baseURL}/chat/completions`, options)
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -88,7 +89,7 @@ export class OpenAIProvider extends BaseModelProvider {
         stream: true,
       }
 
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
+      const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +98,11 @@ export class OpenAIProvider extends BaseModelProvider {
         },
         body: JSON.stringify(requestData),
         signal,
-      })
+      }
+      if (this.apiKey) {
+        Object.assign(requestOptions.headers, { Authorization: `Bearer ${this.apiKey}` })
+      }
+      const response = await fetch(`${this.baseURL}/chat/completions`, requestOptions)
 
       if (!response.ok) {
         const errorText = await response.text()

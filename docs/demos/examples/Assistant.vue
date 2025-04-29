@@ -1,7 +1,7 @@
 <template>
   <tr-container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
     <template #operations>
-      <button class="icon-btn" @click="handleNewSession">
+      <button class="icon-btn" @click="createConversation()">
         <icon-new-session />
       </button>
       <span style="display: inline-flex; line-height: 0; position: relative">
@@ -33,7 +33,7 @@
         :wrap="true"
         item-class="prompt-item"
         class="tiny-prompts"
-        @item-click="handlePomptItemClick"
+        @item-click="handlePromptItemClick"
       ></tr-prompts>
     </template>
     <tr-bubble-list v-else :items="messages" :roles="roles"></tr-bubble-list>
@@ -83,7 +83,7 @@
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import { type SuggestionItem, type BubbleRoleConfig, type PromptProps, type TriggerHandler } from '@opentiny/tiny-robot'
-import { AIClient, ChatMessage, GeneratingStatus, useMessage } from '@opentiny/tiny-robot-kit'
+import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties, onMounted } from 'vue'
 import { templateSuggestions, templateCategories } from './templateData'
@@ -121,17 +121,15 @@ const promptItems: PromptProps[] = [
   },
 ]
 
-const { messages, messageState, inputMessage, sendMessage, abortRequest } = useMessage({
-  client,
-  useStreamByDefault: true,
-  initialMessages: [],
-})
+const { messageManager, createConversation } = useConversation({ client })
 
 const randomId = () => Math.random().toString(36).substring(2, 15)
 
 const currentMessageId = ref('')
 
-const handlePomptItemClick = (ev: unknown, item: { description?: string }) => {
+const { messages, messageState, inputMessage, sendMessage, abortRequest } = messageManager
+
+const handlePromptItemClick = (ev: unknown, item: { description?: string }) => {
   sendMessage(item.description)
 }
 
@@ -146,11 +144,6 @@ const roles: Record<string, BubbleRoleConfig> = {
     avatar: userAvatar,
     maxWidth: '80%',
   },
-}
-
-const handleNewSession = () => {
-  messages.value = []
-  currentMessageId.value = ''
 }
 
 watch(
