@@ -4,7 +4,7 @@ outline: deep
 
 # Sender 消息输入框组件
 
-Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
+Sender 是一个灵活的输入组件，支持多种输入方式和功能，包括文本输入、语音输入、模板填充等。具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
 
 ## 代码示例
 
@@ -84,6 +84,10 @@ Sender 是一个灵活的输入组件，支持单行和多行模式，具有丰�
 ```vue
 <tr-sender :allowFiles="true" />
 ```
+
+#### 模版填充
+
+<demo vue="../../demos/sender/Template.vue" title="基础用法" description="Sender 组件支持模板填充。" />
 
 #### 自定义提交方式
 
@@ -177,14 +181,15 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 ### Methods
 
-| 方法名      | 说明             | 参数 | 返回值          |
-| ----------- | ---------------- | ---- | --------------- |
-| focus       | 使输入框获取焦点 | -    | `void`          |
-| blur        | 使输入框失去焦点 | -    | `void`          |
-| clear       | 清空输入内容     | -    | `void`          |
-| submit      | 手动触发提交事件 | -    | `void`          |
-| startSpeech | 开始语音识别     | -    | `Promise<void>` |
-| stopSpeech  | 停止语音识别     | -    | `void`          |
+| 方法名                     | 说明                     | 参数 | 返回值          |
+| -------------------------- | ------------------------ | ---- | --------------- |
+| focus                      | 使输入框获取焦点         | -    | `void`          |
+| blur                       | 使输入框失去焦点         | -    | `void`          |
+| clear                      | 清空输入内容             | -    | `void`          |
+| submit                     | 手动触发提交事件         | -    | `void`          |
+| startSpeech                | 开始语音识别             | -    | `Promise<void>` |
+| stopSpeech                 | 停止语音识别             | -    | `void`          |
+| activateTemplateFirstField | 激活模板的第一个输入字段 | -    | `void`          |
 
 ### Slots
 

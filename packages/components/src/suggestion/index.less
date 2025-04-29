@@ -1,0 +1,497 @@
+@import './vars.less';
+
+/**
+ * TR Suggestion 组件样式
+ */
+
+/* ================ 基础容器样式 ================ */
+.tr-suggestion {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+
+  &.block-mode {
+    display: block;
+    width: 100%;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+  }
+
+  &-header-left {
+    display: flex;
+    align-items: center;
+  }
+
+  &__expand-button {
+    position: absolute;
+    right: 0;
+    z-index: 10;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+
+    /* 按钮图标 */
+    & > svg {
+      font-size: 26px;
+      fill: #ffffff;
+    }
+
+    & > svg:hover {
+      fill: #f5f5f5;
+    }
+  }
+
+  &__trigger {
+    background-color: #fff;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+
+    & > svg {
+      font-size: 28px;
+    }
+  }
+
+  &__trigger:hover {
+    transform: scale(1.05);
+    background-color: #f5f5f5;
+  }
+
+  &.theme-dark {
+    --tr-suggestion-modal-background-color: var(--tr-suggestion-dark-bg, #1e1e1e);
+    --tr-suggestion-text-color: var(--tr-suggestion-dark-text, #e0e0e0);
+    --tr-suggestion-border-color: var(--tr-suggestion-dark-border, #3a3a3a);
+    --tr-suggestion-hover-color: var(--tr-suggestion-dark-hover-bg, #2a2a2a);
+    --tr-suggestion-item-extra-color: var(--tr-suggestion-dark-item-extra-color, #aaaaaa);
+  }
+}
+
+/**
+ * 指令弹窗面板
+ * 包含标题、分类标签和指令列表
+ */
+.tr-suggestion-panel {
+  position: absolute;
+  border: none;
+  border-radius: var(--tr-suggestion-border-radius);
+  padding: var(--tr-suggestion-modal-padding);
+  box-shadow: var(--tr-suggestion-panel-shadow);
+  background-color: var(--tr-suggestion-modal-background-color);
+  max-height: var(--tr-suggestion-modal-max-height);
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: var(--tr-suggestion-z-index);
+
+  /* 位置：显示在输入框下方 */
+  &.placement-bottom {
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+  }
+
+  /* 位置：显示在输入框上方 */
+  &.placement-top {
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+  }
+}
+
+/**
+ * 弹窗标题栏
+ * 包含标题文本和关闭按钮
+ */
+.tr-suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+
+  /* 标题文本 */
+  &-title {
+    font-size: var(--tr-suggestion-title-font-size);
+    font-weight: var(--tr-suggestion-title-font-weight);
+    color: var(--tr-suggestion-title-color);
+  }
+
+  /* 关闭按钮 */
+  .tr-suggestion-close-btn {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tr-suggestion-close-icon-color);
+    transition: var(--tr-suggestion-hover-transition);
+
+    .close-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    &:hover {
+      color: var(--tr-suggestion-text-color);
+    }
+  }
+}
+
+/* ================ 分类标签样式 ================ */
+/**
+ * 分类标签容器
+ * 水平展示指令分类，支持点击切换，自适应屏幕宽度并支持换行
+ */
+.tr-suggestion-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  /**
+   * 单个分类标签
+   * 支持悬停和激活状态样式
+   */
+  &-item {
+    box-sizing: border-box;
+    border-radius: var(--tr-suggestion-category-border-radius);
+    background: var(--tr-suggestion-category-bg);
+    border: 1px solid transparent;
+    height: var(--tr-suggestion-category-height);
+    padding: 10px 16px;
+    color: var(--tr-suggestion-tab-text);
+    transition: var(--tr-suggestion-hover-transition);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    /* 分类图标 */
+    .category-icon {
+      font-size: var(--tr-suggestion-icon-size);
+      margin-right: 4px;
+    }
+
+    /* 悬停效果 */
+    &:hover {
+      cursor: pointer;
+      background: var(--tr-suggestion-category-hover-bg);
+    }
+
+    /* 激活状态 */
+    &.active {
+      background: var(--tr-suggestion-common-bg) !important;
+      border: 1px solid var(--tr-suggestion-category-active-border) !important;
+      color: var(--tr-suggestion-text-color);
+      font-weight: 500;
+    }
+  }
+}
+
+/* ================ 指令列表样式 ================ */
+/**
+ * 指令内容区
+ * 包含指令列表，支持滚动
+ */
+.tr-suggestion-content {
+  flex: 1;
+  max-height: var(--tr-suggestion-content-max-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: relative;
+  padding: 10px 2px;
+  border-radius: var(--tr-suggestion-list-border-radius);
+
+  /**
+   * 自定义滚动条样式
+   */
+  &::-webkit-scrollbar {
+    width: var(--tr-suggestion-scrollbar-width);
+    height: 10px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--tr-suggestion-scrollbar-track-bg);
+    border-radius: var(--tr-suggestion-scrollbar-border-radius);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--tr-suggestion-scrollbar-thumb-bg);
+    border-radius: var(--tr-suggestion-scrollbar-border-radius);
+    transition: background-color var(--tr-suggestion-transition-duration);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--tr-suggestion-scrollbar-thumb-hover-bg);
+  }
+
+  /**
+   * 指令列表
+   */
+  & > ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    /**
+     * 指令项
+     * 支持悬停效果和溢出文本处理
+     */
+    .tr-suggestion-list-item {
+      color: var(--tr-suggestion-common-text);
+      font-size: var(--tr-suggestion-font-size);
+      font-weight: var(--tr-suggestion-item-font-weight);
+      text-align: left;
+      height: var(--tr-suggestion-item-height);
+      border-radius: var(--tr-suggestion-list-border-radius);
+      background: var(--tr-suggestion-list-item-bg);
+      cursor: pointer;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      transition: var(--tr-suggestion-hover-transition);
+      border-left: 3px solid transparent;
+      position: relative;
+
+      &:hover {
+        border-radius: 12px;
+        background-color: #ffffff;
+        box-shadow: 0px 4px 16px 0px var(--tr-suggestion-list-hover-shadow);
+        z-index: 2;
+
+        &::after {
+          display: none;
+        }
+      }
+
+      /* 激活状态 - 键盘导航选中项 */
+      &.tr-suggestion-item-active {
+        border-radius: 12px;
+        background-color: #ffffff;
+        box-shadow: 0px 4px 16px 0px var(--tr-suggestion-list-hover-shadow);
+        z-index: 2;
+
+        &::after {
+          display: none;
+        }
+      }
+
+      .item-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+        justify-content: space-between;
+        padding: 16px;
+      }
+
+      .item-label {
+        font-weight: var(--tr-suggestion-item-font-weight);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--tr-suggestion-common-text);
+      }
+
+      .item-description {
+        font-size: var(--tr-suggestion-item-extra-font-size);
+        font-weight: 400;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--tr-suggestion-item-extra-color);
+        margin-top: 3px;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 16px;
+        right: 16px;
+        height: 1px; /* 边框厚度 */
+        background-color: #f0f0f0; /* 边框颜色 */
+      }
+    }
+  }
+
+  /**
+   * 加载状态
+   */
+  .tr-suggestion-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+
+    .tr-suggestion-loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--tr-suggestion-primary-color);
+      animation: tr-suggestion-spin 1s ease-in-out infinite;
+    }
+
+    @keyframes tr-suggestion-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  }
+
+  /**
+   * 空状态
+   */
+  .tr-suggestion-empty {
+    padding: var(--tr-suggestion-spacing);
+    color: var(--tr-suggestion-text-color-secondary);
+    text-align: center;
+    font-size: var(--tr-suggestion-font-size);
+
+    p {
+      margin: 0;
+      opacity: 0.7;
+    }
+  }
+}
+
+/* ================ 胶囊式指令样式 ================ */
+/**
+ * 胶囊式指令容器
+ * 横向展示胶囊式指令
+ */
+.tr-common-suggestions {
+  display: flex;
+  flex: 1;
+  position: relative;
+  width: 90%;
+
+  &_content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* 展开后的胶囊外层容器 - 使用绝对定位脱离文档流 */
+  &_expanded-wrapper {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+  }
+
+  &_expanded-area {
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 8px;
+    animation: fadeInUp 0.2s ease-out;
+  }
+
+  &_row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  &_container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+  }
+
+  &.expanded {
+    position: relative;
+    z-index: 5;
+  }
+
+  &_hidden {
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /**
+ * 常见问题项
+ * 支持悬停效果和溢出文本处理
+ */
+  &_item {
+    width: 136px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    color: #191919;
+    border: none;
+    background: #fff;
+    margin: 4px 8px 4px 0;
+    cursor: pointer;
+    text-decoration: none;
+    height: 32px;
+    padding: 5px 16px;
+    border-radius: 26px;
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+
+    & > svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* 悬停效果 */
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+
+    &_icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    &_text {
+      width: 84px;
+    }
+  }
+}
+
+/* 向上淡入动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 暗色主题下的激活项样式 */
+.theme-dark {
+  .tr-suggestion-list-item {
+    &.tr-suggestion-item-active {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-left: 3px solid var(--tr-suggestion-primary-color);
+    }
+  }
+}

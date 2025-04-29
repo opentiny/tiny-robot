@@ -40,6 +40,7 @@ export default defineConfig({
             { text: 'Question 快捷问题', link: 'question' },
             { text: 'Feedback 气泡反馈', link: 'feedback' },
             { text: 'History 历史', link: 'history' },
+            { text: 'Suggestion 快捷指令', link: 'suggestion' },
           ],
         },
       ],
