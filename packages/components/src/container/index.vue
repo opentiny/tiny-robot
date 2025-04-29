@@ -30,9 +30,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
         </button>
       </div>
     </div>
-    <div class="tr-container__body">
-      <slot></slot>
-    </div>
+    <slot></slot>
     <div class="tr-container__footer">
       <slot name="footer"></slot>
     </div>
@@ -122,7 +120,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
     }
   }
 
-  .tr-container__body {
+  .tr-container__header + :slotted(*) {
     flex: 1;
     overflow-y: auto;
   }

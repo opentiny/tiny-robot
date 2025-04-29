@@ -20,7 +20,7 @@
         ></tr-history>
       </span>
     </template>
-    <template v-if="messages.length === 0">
+    <div v-if="messages.length === 0">
       <tr-welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="welcomeIcon">
         <template #footer>
           <div class="welcome-footer">
@@ -35,8 +35,8 @@
         class="tiny-prompts"
         @item-click="handlePromptItemClick"
       ></tr-prompts>
-    </template>
-    <tr-bubble-list v-else :items="messages" :roles="roles"></tr-bubble-list>
+    </div>
+    <tr-bubble-list v-else :items="messages" :roles="roles" auto-scroll></tr-bubble-list>
 
     <template #footer>
       <div class="chat-input">
@@ -146,17 +146,6 @@ const roles: Record<string, BubbleRoleConfig> = {
   },
 }
 
-watch(
-  () => messages.value[messages.value.length - 1]?.content,
-  () => {
-    if (GeneratingStatus.includes(messageState.status)) {
-      nextTick(() => {
-        scrollToBottom()
-      })
-    }
-  },
-)
-
 const showHistory = ref(false)
 
 const historyData = reactive<
@@ -205,22 +194,6 @@ const handleHistorySelect = (item: { id: string; data: ChatMessage[] }) => {
   currentMessageId.value = item.id
   messages.value = item.data
   showHistory.value = false
-}
-
-const chatContainer = ref<HTMLElement | null>(null)
-
-const scrollToBottom = () => {
-  if (chatContainer.value) {
-    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-  }
-
-  const containerBody = document.querySelector('div.tr-container__body')
-  if (containerBody) {
-    containerBody.scrollTo({
-      top: containerBody.scrollHeight,
-      behavior: 'smooth',
-    })
-  }
 }
 
 // 指令列表
