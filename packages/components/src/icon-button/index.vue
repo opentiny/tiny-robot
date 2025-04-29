@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import TinyTooltip from '@opentiny/vue-tooltip'
 import { IconButtonProps } from './index.type'
 
 const props = withDefaults(defineProps<IconButtonProps>(), {
@@ -9,12 +8,7 @@ const props = withDefaults(defineProps<IconButtonProps>(), {
 </script>
 
 <template>
-  <tiny-tooltip v-if="tooltip" :content="tooltip" effect="dark" placement="top" :open-delay="500">
-    <button class="tr-icon-button">
-      <component :is="props.icon" />
-    </button>
-  </tiny-tooltip>
-  <button v-else class="tr-icon-button">
+  <button class="tr-icon-button">
     <component :is="props.icon" />
   </button>
 </template>

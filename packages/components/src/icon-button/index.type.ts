@@ -4,5 +4,4 @@ export interface IconButtonProps {
   icon: VNode | Component
   size?: string
   svgSize?: string
-  tooltip?: string
 }
