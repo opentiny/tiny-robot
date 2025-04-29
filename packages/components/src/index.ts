@@ -1,6 +1,7 @@
 import './styles/root.css'
 
 import { App } from 'vue'
+import Attachments from './attachments'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
@@ -29,8 +30,10 @@ export * from './suggestion/index.type'
 // TODO suggestion 中类型和 suggestion-popover 类型部分冲突。后续整改 suggestion 的类型
 // export * from './suggestion-popover/index.type'
 export * from './suggestion-pills/index.type'
+export * from './attachments/index.type'
 
 const components = [
+  Attachments,
   Bubble,
   BubbleList,
   Container,
@@ -60,6 +63,8 @@ export default {
 }
 
 export {
+  Attachments,
+  Attachments as TrAttachments,
   Bubble,
   Bubble as TrBubble,
   BubbleList,
