@@ -3,16 +3,15 @@
 </template>
 
 <script setup lang="ts">
-// import { TrBubbleList } from '@opentiny/tiny-robot'
-import { TrFeedback } from '@opentiny/tiny-robot'
-import type { BubbleProps, BubbleRoleConfig, BubbleSlots } from '@opentiny/tiny-robot'
+// import { TrBubbleList, TrFeedback} from '@opentiny/tiny-robot'
+import type { BubbleListProps, BubbleRoleConfig, TrFeedback } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
-const items: (BubbleProps & { slots?: BubbleSlots })[] = [
+const items: BubbleListProps['items'] = [
   {
     role: 'user',
     content: '简单介绍 TinyVue',
@@ -54,7 +53,9 @@ const roles: Record<string, BubbleRoleConfig> = {
         return h('div', { style: { color: 'red' } }, bubbleProps.content)
       },
       footer: ({ bubbleProps }) => {
-        return h(TrFeedback, {
+        // 由于code-block插件问题，不能引入TrFeedback的值，这里使用as unknown as typeof TrFeedback来提供类型提示
+        // 正常可以直接使用h(TrFeedback)
+        return h('TrFeedback' as unknown as typeof TrFeedback, {
           actions: [
             { name: 'refresh', label: '刷新', icon: 'refresh' },
             { name: 'copy', label: '复制', icon: 'copy' },

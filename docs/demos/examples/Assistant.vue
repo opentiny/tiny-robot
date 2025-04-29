@@ -82,7 +82,13 @@
 
 <script setup lang="ts">
 // import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
-import { type SuggestionItem, type BubbleRoleConfig, type PromptProps, type TriggerHandler } from '@opentiny/tiny-robot'
+import {
+  type SuggestionItem,
+  type BubbleRoleConfig,
+  type PromptProps,
+  type TriggerHandler,
+  type TrSender,
+} from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties, onMounted } from 'vue'
