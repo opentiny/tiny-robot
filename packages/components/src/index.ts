@@ -1,6 +1,7 @@
 import './styles/root.css'
 
 import { App } from 'vue'
+import Attachments from './attachments'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
@@ -27,6 +28,7 @@ export * from './suggestion-popover/index.type'
 export * from './welcome/index.type'
 
 const components = [
+  Attachments,
   Bubble,
   BubbleList,
   Container,
@@ -54,6 +56,8 @@ export default {
 }
 
 export {
+  Attachments,
+  Attachments as TrAttachments,
   Bubble,
   Bubble as TrBubble,
   BubbleList,
