@@ -13,8 +13,8 @@
 </template>
 
 <script setup lang="ts">
+// import { TinyButton } from '@opentiny/vue'
 import { type FeedbackProps } from '@opentiny/tiny-robot'
-import { TinyButton } from '@opentiny/vue'
 import { ref } from 'vue'
 
 const operations: FeedbackProps['operations'] = [

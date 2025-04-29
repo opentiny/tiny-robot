@@ -1,5 +1,5 @@
 <template>
-  <history
+  <tr-history
     class="tr-history-demo"
     :data="data"
     :tabs="tabs"
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { History, HistoryGroup, HistoryItem } from '@opentiny/tiny-robot'
+import { HistoryGroup, HistoryItem } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 const tabs = [
   { title: '历史对话', id: 'conversations' },
