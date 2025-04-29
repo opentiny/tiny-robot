@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"pnpm dev:components\" \"pnpm dev:docs\"",
+    "dev": "concurrently \"pnpm dev:components\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "pnpm build:components && pnpm -F docs build",
