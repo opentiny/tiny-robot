@@ -1,13 +1,9 @@
 <template>
   <tr-container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
     <template #operations>
-      <button class="icon-btn" @click="createConversation()">
-        <icon-new-session />
-      </button>
+      <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
       <span style="display: inline-flex; line-height: 0; position: relative">
-        <button class="icon-btn" @click="showHistory = true">
-          <icon-history />
-        </button>
+        <tr-icon-button :icon="IconHistory" size="28" svgSize="20" @click="showHistory = true" />
         <tr-history
           v-show="showHistory"
           class="tr-history-demo"
@@ -326,10 +322,6 @@ onMounted(() => {
 
   container-type: inline-size;
 
-  :deep(button.icon-btn) {
-    background-color: rgba(0, 0, 0, 0);
-  }
-
   :deep(.tr-welcome__title-wrapper) {
     display: flex;
     align-items: center;
@@ -359,32 +351,6 @@ onMounted(() => {
       font-size: 14px;
       line-height: 24px;
     }
-  }
-}
-
-button.icon-btn {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  padding: 0;
-  transition: background-color 0.3s;
-  background-color: rgba(0, 0, 0, 0);
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.15);
-  }
-
-  svg {
-    font-size: 20px;
   }
 }
 
