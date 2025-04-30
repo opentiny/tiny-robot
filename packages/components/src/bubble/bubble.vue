@@ -203,6 +203,7 @@ const handleActionClick = (name: string, ...args: unknown[]) => {
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
+    word-break: break-word;
   }
 
   .tr-bubbule__aborted {
