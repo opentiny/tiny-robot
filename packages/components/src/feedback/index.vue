@@ -74,18 +74,14 @@ const handleSourceList = () => {
         </span>
       </div>
       <div class="tr-feedback__operations-right">
-        <action-group :max-num="props.actionsLimit" @item-click="handleAction">
+        <action-group :max-num="props.actionsLimit" :show-tooltip="true" @item-click="handleAction">
           <action-group-item
             v-for="action in props.actions"
             :key="action.name"
             :name="action.name"
             :label="action.label"
           >
-            <icon-button
-              v-if="typeof action.icon === 'string'"
-              :icon="iconMap[action.icon]"
-              :tooltip="action.label"
-            ></icon-button>
+            <icon-button v-if="typeof action.icon === 'string'" :icon="iconMap[action.icon]"></icon-button>
             <component v-else :is="action.icon"></component>
           </action-group-item>
         </action-group>

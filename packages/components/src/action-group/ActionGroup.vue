@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { IconMenu } from '@opentiny/tiny-robot-svgs'
+import TinyTooltip from '@opentiny/vue-tooltip'
 import { onClickOutside, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, ref, useTemplateRef, VNode, watch } from 'vue'
 import IconButton from '../icon-button'
@@ -108,32 +109,46 @@ watch(windowHeight, () => {
 
 <template>
   <div class="tr-action-group">
-    <span
+    <tiny-tooltip
       v-for="(item, index) in list"
       :key="index"
-      class="tr-action-group__btn-wrapper"
-      @click="handleItemClick(item.props?.name)"
+      :content="item.props?.label"
+      effect="dark"
+      placement="top"
+      :open-delay="500"
+      :disabled="!props.showTooltip"
     >
-      <component :is="item" />
-    </span>
-    <span v-if="showMore" ref="moreBtnRef" class="tr-action-group__btn-wrapper" @click="handleMoreClick">
-      <slot name="moreBtn">
-        <icon-button :icon="IconMenu" tooltip="更多" />
-      </slot>
-      <transition name="tr-action-group-dropdown">
-        <ul v-show="showDropdown" ref="dropDownRef" :class="['tr-action-group__dropdown', dropDownPlacement]">
-          <li
-            class="tr-action-group__dropdown-item"
-            v-for="(item, index) in moreList"
-            :key="index"
-            @click.stop="handleItemClick(item.props?.name)"
-          >
-            <component v-if="!props.dropDownShowLabelOnly" :is="item" />
-            <span class="tr-action-group__dropdown-item-text">{{ item.props?.label }}</span>
-          </li>
-        </ul>
-      </transition>
-    </span>
+      <span class="tr-action-group__btn-wrapper" @click="handleItemClick(item.props?.name)">
+        <component :is="item" />
+      </span>
+    </tiny-tooltip>
+    <tiny-tooltip
+      v-if="showMore"
+      content="更多"
+      effect="dark"
+      placement="top"
+      :open-delay="500"
+      :disabled="!props.showTooltip"
+    >
+      <span ref="moreBtnRef" class="tr-action-group__btn-wrapper" @click="handleMoreClick">
+        <slot name="moreBtn">
+          <icon-button :icon="IconMenu" />
+        </slot>
+        <transition name="tr-action-group-dropdown">
+          <ul v-show="showDropdown" ref="dropDownRef" :class="['tr-action-group__dropdown', dropDownPlacement]">
+            <li
+              class="tr-action-group__dropdown-item"
+              v-for="(item, index) in moreList"
+              :key="index"
+              @click.stop="handleItemClick(item.props?.name)"
+            >
+              <component v-if="!props.dropDownShowLabelOnly" :is="item" />
+              <span class="tr-action-group__dropdown-item-text">{{ item.props?.label }}</span>
+            </li>
+          </ul>
+        </transition>
+      </span>
+    </tiny-tooltip>
   </div>
 </template>
 
