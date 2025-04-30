@@ -201,7 +201,7 @@ const registerEditableRef = (el: HTMLSpanElement | null, index: number): void =>
 
         // 延迟更新模型，避免与Vue渲染循环冲突
         setTimeout(() => {
-          editableParts.value[index].content = el.textContent || (editableParts.value[index].placeholder as string)
+          editableParts.value[index].content = el.textContent !== null ? el.textContent : ''
           isUserEditing.value = false
         }, 0)
       }
@@ -221,7 +221,7 @@ const handleContentInput = (event: Event, index: number): void => {
 
   // 获取当前输入内容
   const target = event.target as HTMLElement
-  const content = target.textContent || (editableParts.value[index].placeholder as string)
+  const content = target.textContent !== null ? target.textContent : ''
 
   // 更新模型，但不触发DOM更新
   if (editableParts.value[index].content !== content) {
@@ -263,8 +263,7 @@ const activateField = (index: number): void => {
     const currentIndex = activeFieldIndex.value
     const el = editableRefs.value[currentIndex]
     if (el) {
-      editableParts.value[currentIndex].content =
-        el.textContent || (editableParts.value[currentIndex].placeholder as string)
+      editableParts.value[currentIndex].content = el.textContent !== null ? el.textContent : ''
       updateValue()
     }
   }
@@ -281,7 +280,7 @@ const activateField = (index: number): void => {
       el.focus()
 
       // 确保元素有内容以便放置光标
-      if (!el.textContent) {
+      if (!el.textContent && editableParts.value[index].content) {
         el.textContent = editableParts.value[index].content
       }
 
@@ -298,8 +297,9 @@ const deactivateField = (): void => {
     // 更新当前编辑的内容
     const el = editableRefs.value[currentIndex]
     if (el) {
-      const content = el.textContent || ''
-      editableParts.value[currentIndex].content = content || (editableParts.value[currentIndex].placeholder as string)
+      // 使用实际内容，不回退到占位符
+      const content = el.textContent !== null ? el.textContent : ''
+      editableParts.value[currentIndex].content = content
     }
 
     emit('field-active', false, currentIndex)
