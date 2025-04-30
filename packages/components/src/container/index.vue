@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { IconCancelFullScreen, IconClose, IconFullScreen } from '@opentiny/tiny-robot-svgs'
 import { computed } from 'vue'
+import IconButton from '../icon-button'
 import { ContainerProps, ContainerSlots } from './index.type'
 
 const show = defineModel<ContainerProps['show']>('show', { required: true })
@@ -22,12 +23,13 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
       </slot>
       <div class="tr-container__header-operations">
         <slot name="operations"></slot>
-        <button class="icon-btn" @click="$emit('update:fullscreen', !fullscreen)">
-          <IconFullScreenSwitcher />
-        </button>
-        <button class="icon-btn" @click="$emit('update:show', false)">
-          <IconClose />
-        </button>
+        <icon-button
+          size="28"
+          svg-size="20"
+          :icon="IconFullScreenSwitcher"
+          @click="$emit('update:fullscreen', !fullscreen)"
+        ></icon-button>
+        <icon-button size="28" svg-size="20" :icon="IconClose" @click="$emit('update:show', false)"></icon-button>
       </div>
     </div>
     <slot></slot>
@@ -93,31 +95,6 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
   .tr-container__header-operations {
     display: flex;
     gap: 8px;
-
-    button.icon-btn {
-      width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      padding: 0;
-      transition: background-color 0.3s;
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.04);
-      }
-
-      &:active {
-        background-color: rgba(0, 0, 0, 0.15);
-      }
-
-      svg {
-        font-size: 20px;
-      }
-    }
   }
 
   .tr-container__header + :slotted(*) {

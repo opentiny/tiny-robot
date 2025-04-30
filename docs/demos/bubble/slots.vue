@@ -13,7 +13,7 @@
         >TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。</span
       >
       <template #footer>
-        <div style="color: rgb(128, 128, 128); font-size: 14px; margin-top: 12px">3条来源</div>
+        <tr-feedback :operations="operations" :actions="actions" :sources="sources" />
       </template>
     </tr-bubble>
   </div>
@@ -21,8 +21,45 @@
 
 <script setup lang="tsx">
 // import { TrBubble } from '@opentiny/tiny-robot'
+import { type FeedbackProps } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+
+const operations: FeedbackProps['operations'] = [
+  {
+    name: 'edit',
+    label: '编辑',
+    onClick: () => console.log('点击了编辑按钮'),
+  },
+  {
+    name: 'delete',
+    label: '删除',
+  },
+]
+
+const actions: FeedbackProps['actions'] = [
+  {
+    name: 'copy',
+    label: '复制',
+    icon: 'copy',
+  },
+  {
+    name: 'refresh',
+    label: '刷新',
+    icon: 'refresh',
+  },
+]
+
+const sources: FeedbackProps['sources'] = [
+  {
+    label: '数据来源1',
+    link: 'https://example.com/source1',
+  },
+  {
+    label: '数据来源2',
+    link: 'https://example.com/source2',
+  },
+]
 </script>

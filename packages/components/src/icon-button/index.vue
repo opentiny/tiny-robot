@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import { IconButtonProps } from './index.type'
+import { computed } from 'vue'
 
 const props = withDefaults(defineProps<IconButtonProps>(), {
   size: '24px',
   svgSize: '16px',
 })
+
+const formatSize = (size: string | number) => {
+  if (!isNaN(Number(size))) {
+    return `${size}px`
+  }
+
+  return size as string
+}
+
+const size = computed(() => formatSize(props.size))
+const svgSize = computed(() => formatSize(props.svgSize))
 </script>
 
 <template>
@@ -19,8 +31,8 @@ button.tr-icon-button {
   --tr-icon-button-active-bg: rgba(0, 0, 0, 0.15);
   --tr-icon-button-border-radius: 8px;
 
-  width: v-bind('props.size');
-  height: v-bind('props.size');
+  width: v-bind('size');
+  height: v-bind('size');
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -40,7 +52,7 @@ button.tr-icon-button {
   }
 
   svg {
-    font-size: v-bind('props.svgSize');
+    font-size: v-bind('svgSize');
   }
 }
 </style>

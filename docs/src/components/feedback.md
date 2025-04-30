@@ -4,12 +4,6 @@ outline: deep
 
 # Feedback 气泡反馈
 
-<style scoped>
-.vitepress-demo-plugin__container {
-  background-color: rgb(248, 248, 248);
-}
-</style>
-
 ## 代码示例
 
 ### 基本示例

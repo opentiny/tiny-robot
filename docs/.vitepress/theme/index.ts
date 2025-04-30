@@ -1,5 +1,6 @@
 import DefaultTheme from 'vitepress/theme'
 import '@opentiny/tiny-robot/dist/style.css'
+import './style.css'
 
 declare global {
   interface Window {

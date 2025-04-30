@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import markdownit from 'markdown-it'
-import { computed, useSlots } from 'vue'
-import { CopyAction, RefreshAction } from './components/actions'
-import { BubbleActionOptions, BubbleEvents, BubbleProps, BubbleSlots } from './index.type'
+import { computed } from 'vue'
+import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
@@ -11,72 +10,20 @@ const props = withDefaults(defineProps<BubbleProps>(), {
   maxWidth: '80%',
 })
 
-const emit = defineEmits<BubbleEvents>()
+const slots = defineSlots<BubbleSlots>()
 
-defineSlots<BubbleSlots>()
-
-const slots = useSlots()
+const markdownItInstance = computed(() => {
+  return markdownit(props.mdConfig || {})
+})
 
 const bubbleContent = computed(() => {
   if (props.type === 'markdown') {
-    return markdownit(props.mdConfig || {}).render(props.content)
+    return markdownItInstance.value.render(props.content)
   }
   return props.content
 })
 
 const placementStart = computed(() => props.placement === 'start')
-
-const defaultActionsMap = new Map<string, BubbleActionOptions>([
-  [
-    'copy',
-    {
-      name: 'copy',
-      vnode: CopyAction,
-      show: true,
-    },
-  ],
-  [
-    'refresh',
-    {
-      name: 'refresh',
-      vnode: RefreshAction,
-      show: true,
-    },
-  ],
-])
-
-const computedActions = computed(() => {
-  const actions = (props.actions || []).map((action) => {
-    if (typeof action === 'string') {
-      return defaultActionsMap.get(action)
-    }
-
-    if (defaultActionsMap.has(action.name)) {
-      return {
-        ...defaultActionsMap.get(action.name),
-        ...action,
-      }
-    }
-
-    return action
-  })
-
-  return actions.filter((action): action is BubbleActionOptions => Boolean(action))
-})
-
-const handleActionClick = (name: string, ...args: unknown[]) => {
-  if (name === 'copy') {
-    emit('copy', args[0] as boolean)
-    return
-  }
-
-  if (name === 'refresh') {
-    emit('refresh')
-    return
-  }
-
-  emit('action', name, ...args)
-}
 </script>
 
 <template>
@@ -93,7 +40,7 @@ const handleActionClick = (name: string, ...args: unknown[]) => {
       <component :is="props.avatar"></component>
     </div>
     <div class="tr-bubble__content-wrapper">
-      <slot v-if="props.loading" name="loading">
+      <slot v-if="props.loading" name="loading" :bubble-props="props">
         <div class="tr-bubble__loading">
           <span></span>
           <span></span>
@@ -102,26 +49,14 @@ const handleActionClick = (name: string, ...args: unknown[]) => {
       </slot>
       <div v-else :class="['tr-bubble__content']">
         <div class="tr-bubbule__body">
-          <slot>
+          <slot :bubble-props="props">
             <span v-if="props.type === 'markdown'" v-html="bubbleContent"></span>
             <span v-else>{{ bubbleContent }}</span>
             <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
           </slot>
         </div>
-        <div v-if="slots.footer || computedActions.length > 0" class="tr-bubbule__footer">
-          <div class="tr-bubbule__footer-left">
-            <slot name="footer"></slot>
-          </div>
-          <div class="tr-bubbule__footer-actions">
-            <template v-for="action in computedActions" :key="action?.name">
-              <component
-                :is="action.vnode"
-                v-show="typeof action.show === 'function' ? action.show(props) : action.show"
-                :bubbleItem="props"
-                @click="handleActionClick(action.name, $event)"
-              ></component>
-            </template>
-          </div>
+        <div v-if="slots.footer" class="tr-bubbule__footer">
+          <slot name="footer" :bubble-props="props"></slot>
         </div>
       </div>
     </div>
@@ -212,27 +147,7 @@ const handleActionClick = (name: string, ...args: unknown[]) => {
   }
 
   .tr-bubbule__footer {
-    display: flex;
-    gap: 12px;
-
-    .tr-bubbule__footer-left {
-      flex: 1;
-    }
-
-    .tr-bubbule__footer-actions {
-      display: flex;
-      flex-shrink: 0;
-      gap: 4px;
-      margin-top: 12px;
-
-      & > * {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-      }
-    }
+    margin-top: 12px;
   }
 }
 </style>

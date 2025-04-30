@@ -42,8 +42,9 @@ const handleSourceList = () => {
 <template>
   <div class="tr-feedback">
     <div class="tr-feedback__operations">
-      <div v-if="props.operations?.length" class="tr-feedback__operations-left">
+      <div class="tr-feedback__operations-left">
         <action-group
+          v-if="props.operations?.length"
           :max-num="props.operationsLimit"
           :drop-down-show-label-only="true"
           @item-click="handleOperation"
@@ -66,12 +67,12 @@ const handleSourceList = () => {
             </tiny-button>
           </template>
         </action-group>
-      </div>
-      <div v-else-if="props.sources?.length">
-        <span class="tr-feedback__source" @click="handleSourceList">
-          <span>{{ props.sources?.length }}条来源</span>
-          <component :is="showSourceList ? IconArrowUp : IconArrowDown" />
-        </span>
+        <div v-else-if="props.sources?.length">
+          <span class="tr-feedback__source" @click="handleSourceList">
+            <span>{{ props.sources?.length }}条来源</span>
+            <component :is="showSourceList ? IconArrowUp : IconArrowDown" />
+          </span>
+        </div>
       </div>
       <div class="tr-feedback__operations-right">
         <action-group :max-num="props.actionsLimit" :show-tooltip="true" @item-click="handleAction">
@@ -87,7 +88,10 @@ const handleSourceList = () => {
         </action-group>
       </div>
     </div>
-    <div class="tr-feedback__footer">
+    <div
+      v-if="(props.operations?.length && props.sources?.length) || (showSourceList && props.sources)"
+      class="tr-feedback__footer"
+    >
       <div v-if="props.operations?.length && props.sources?.length">
         <span class="tr-feedback__source" @click="handleSourceList">
           <span>{{ props.sources?.length }}条来源</span>

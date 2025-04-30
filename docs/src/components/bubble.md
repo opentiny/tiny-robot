@@ -3,13 +3,8 @@ outline: deep
 ---
 
 # Bubble 气泡组件
-Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位置、加载中、终止状态、操作按钮等功能。
 
-<style>
-.vitepress-demo-plugin__container {
-  background-color: rgb(248, 248, 248);
-}
-</style>
+Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位置、加载中、终止状态、操作按钮等功能。
 
 ## 代码示例
 
@@ -55,12 +50,6 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 <demo vue="../../demos/bubble/streaming.vue" />
 
-### 操作
-
-通过 `actions` 设置气泡底部的操作。气泡组件内置了 `refresh` 和 `copy` 两个操作。`copy` 已经内置实现了复制功能。自定义操作请查看 [BubbleActionOptions](#BubbleActionOptions) 类型说明
-
-<demo vue="../../demos/bubble/actions.vue" />
-
 ### 插槽
 
 气泡组件提供了三个插槽，分别是 默认插槽, `loading` 插槽 和 `footer` 插槽
@@ -73,71 +62,60 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ## API
 
+### BubblePlacement
+
+气泡位置类型：
+
+```typescript
+type BubblePlacement = 'start' | 'end'
+```
+
+- `'start'`: 气泡位于左侧/起始位置
+- `'end'`: 气泡位于右侧/结束位置
+
 ### BubbleProps
 
-| Prop Name   | Type                        | Description                                 | Required | Default |
-| ----------- | --------------------------- | ------------------------------------------- | -------- | ------- |
-| `content`   | `string`                    | 气泡内容                                    | ❌       | —       |
-| `id`        | `string`                    | 气泡唯一标识符（可选）                      | ❌       | —       |
-| `placement` | `'start' \| 'end'`          | 气泡位置                                    | ❌       | `start` |
-| `avatar`    | `VNode`                     | 自定义头像插槽内容                          | ❌       | —       |
-| `role`      | `string`                    | 角色标识符（用于匹配角色配置）              | ❌       | —       |
-| `type`      | `'text' \| 'markdown'`      | 内容格式类型                                | ❌       | `text`  |
-| `loading`   | `boolean`                   | 是否显示加载中样式                          | ❌       | `false` |
-| `aborted`   | `boolean`                   | 是否显示终止状态                            | ❌       | `false` |
-| `mdConfig`  | `MarkdownItOptions`         | Markdown 渲染配置（当 type 为 markdown 时） | ❌       | —       |
-| `actions`   | `BubbleAction[]`            | 操作按钮配置，支持字符串或配置项            | ❌       | —       |
-| `maxWidth`  | `CSSProperties['maxWidth']` | 最大宽度                                    | ❌       | —       |
+单个气泡的属性配置。
 
-### BubbleAction
-
-`BubbleAction` 类型为 `'copy' | 'refresh' | BubbleActionOptions`
-
-`BubbleActionOptions` 类型说明如下
-
-| 属性名  | 类型                                         | 描述                         |
-| ------- | -------------------------------------------- | ---------------------------- |
-| `name`  | `'copy' \| 'refresh' \| string`              | 操作名称                     |
-| `vnode` | `VNode \| Component`                         | 自定义渲染内容（可选）       |
-| `show`  | `boolean \| (props: BubbleProps) => boolean` | 是否显示操作按钮（支持函数） |
-
----
+| 属性        | 类型                         | 默认值   | 说明                                             |
+| ----------- | ---------------------------- | -------- | ------------------------------------------------ |
+| `content`   | `string`                     | -        | 气泡内容文本                                     |
+| `id`        | `string \| number \| symbol` | -        | 气泡唯一标识                                     |
+| `placement` | `BubblePlacement`            | -        | 气泡位置 (`'start'` 或 `'end'`)                  |
+| `avatar`    | `VNode`                      | -        | 气泡头像部分的自定义 Vue 节点                    |
+| `role`      | `string`                     | -        | 气泡角色标识，用于关联 `roles` 配置              |
+| `type`      | `'text' \| 'markdown'`       | `'text'` | 内容类型：纯文本或 Markdown                      |
+| `loading`   | `boolean`                    | `false`  | 是否显示加载状态                                 |
+| `aborted`   | `boolean`                    | `false`  | 是否显示为已中止状态                             |
+| `mdConfig`  | `MarkdownItOptions`          | -        | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
+| `maxWidth`  | `CSSProperties['maxWidth']`  | -        | 气泡内容的最大宽度                               |
 
 ### BubbleSlots
 
-| Slot Name | Description      |
-| --------- | ---------------- |
-| `default` | 气泡主内容       |
-| `footer`  | 自定义底部区域   |
-| `loading` | 自定义加载中样式 |
+气泡组件的插槽定义。
 
----
-
-### BubbleEvents
-
-| Event Name | Parameters                       | Description                |
-| ---------- | -------------------------------- | -------------------------- |
-| `copy`     | `(result: boolean)`              | 复制内容后的回调结果       |
-| `refresh`  | `()`                             | 刷新事件                   |
-| `action`   | `(name: string, ...args: any[])` | 通用操作事件，传入操作名称 |
-
----
-
-### BubbleListProps
-
-| Prop Name    | Type                               | Description        | Required | Default |
-| ------------ | ---------------------------------- | ------------------ | -------- | ------- |
-| `items`      | `BubbleProps[]`                    | 气泡列表           | ✅       | —       |
-| `roles`      | `Record<string, BubbleRoleConfig>` | 各角色默认配置项   | ❌       | —       |
-| `autoScroll` | `boolean`                          | 是否自动滚动到底部 | ❌       | `false` |
+| 插槽名    | 参数                           | 说明                                 |
+| --------- | ------------------------------ | ------------------------------------ |
+| `default` | `{ bubbleProps: BubbleProps }` | 默认内容插槽，用于自定义气泡内容     |
+| `footer`  | `{ bubbleProps: BubbleProps }` | 底部插槽，用于在气泡底部添加内容     |
+| `loading` | `{ bubbleProps: BubbleProps }` | 加载状态插槽，用于自定义加载状态显示 |
 
 ### BubbleRoleConfig
 
-继承自 `BubbleProps` 的部分字段，用于设置每个角色的默认值：
+角色配置类型，用于定义不同角色的默认气泡配置。
 
-- `placement`
-- `avatar`
-- `type`
-- `mdConfig`
-- `actions`
-- `maxWidth`
+```typescript
+type BubbleRoleConfig = Pick<BubbleProps, 'placement' | 'avatar' | 'type' | 'mdConfig' | 'maxWidth'> & {
+  slots?: BubbleSlots
+}
+```
+
+### BubbleListProps
+
+气泡列表组件的属性配置。
+
+| 属性         | 类型                                        | 默认值  | 说明                           |
+| ------------ | ------------------------------------------- | ------- | ------------------------------ |
+| `items`      | `(BubbleProps & { slots?: BubbleSlots })[]` | -       | **必填**，气泡项数组           |
+| `roles`      | `Record<string, BubbleRoleConfig>`          | -       | 角色默认配置字典，key 为角色名 |
+| `autoScroll` | `boolean`                                   | `false` | 是否自动滚动到最新内容         |
