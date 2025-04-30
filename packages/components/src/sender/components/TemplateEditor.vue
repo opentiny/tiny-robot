@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, onMounted } from 'vue'
+import { ref, nextTick, watch, onMounted } from 'vue'
 import { TemplatePart, TemplateEditorProps, TemplateEditorEmits, TemplateEditorExpose } from '../index.type'
 
 // 使用类型定义props
@@ -23,9 +23,14 @@ const hasContent = ref(false)
 // 标记是否是用户手动编辑
 const isUserEditing = ref(false)
 
+// 标记是否是内部更新，避免循环更新
+const isInternalUpdate = ref(false)
+
+// 使用ref代替computed属性，作为组件的主要状态来源
+const editableParts = ref<TemplatePart[]>([])
+
 // 解析模板，将其分解为普通文本和可编辑字段
-const templateParts = computed<TemplatePart[]>(() => {
-  // 否则使用模板解析
+const parseTemplate = (template: string): TemplatePart[] => {
   const parts: TemplatePart[] = []
   let currentIndex = 0
   let fieldIndex = 0
@@ -34,11 +39,11 @@ const templateParts = computed<TemplatePart[]>(() => {
   const regex = /\[(.*?)\]/g
   let match
 
-  while ((match = regex.exec(props.template)) !== null) {
+  while ((match = regex.exec(template)) !== null) {
     // 添加匹配前的普通文本
     if (match.index > currentIndex) {
       parts.push({
-        content: props.template.substring(currentIndex, match.index),
+        content: template.substring(currentIndex, match.index),
         isField: false,
       })
     }
@@ -55,39 +60,116 @@ const templateParts = computed<TemplatePart[]>(() => {
   }
 
   // 添加剩余的普通文本
-  if (currentIndex < props.template.length) {
+  if (currentIndex < template.length) {
     parts.push({
-      content: props.template.substring(currentIndex),
+      content: template.substring(currentIndex),
       isField: false,
     })
   }
 
-  // 如果有value，用value覆盖默认值
+  return parts
+}
+
+// 初始化editableParts
+const initializeEditableParts = (): void => {
+  editableParts.value = parseTemplate(props.template)
   if (props.value) {
-    return parseValueIntoTemplate(parts, props.value)
+    updatePartsFromValue(props.value)
+  }
+}
+
+// 从value更新各个部分的内容
+const updatePartsFromValue = (value: string): void => {
+  if (!value || isInternalUpdate.value) return
+
+  // 仅在值确实不同时才更新，避免不必要的处理
+  const currentValue = generateValue()
+  if (currentValue === value) return
+
+  // 创建一个临时的解析结果用于比较
+  const templateStructure = parseTemplate(props.template)
+
+  // 计算模板的静态部分（非字段部分）
+  const staticParts: string[] = []
+
+  templateStructure.forEach((part) => {
+    if (!part.isField) {
+      staticParts.push(part.content)
+    } else {
+      // 用一个占位符标记字段位置
+      staticParts.push(`__FIELD_${part.fieldIndex}__`)
+    }
+  })
+
+  // 使用静态部分作为分隔符，尝试提取字段值
+  let remainingValue = value
+  let currentFieldIndex = 0
+
+  // 遍历editableParts，找到字段并更新
+  for (let i = 0; i < editableParts.value.length; i++) {
+    const part = editableParts.value[i]
+
+    if (!part.isField) continue
+
+    // 尝试找到当前字段前的静态部分
+    const prevStaticPart = staticParts[currentFieldIndex]
+    currentFieldIndex++
+
+    // 下一个静态部分（如果有）
+    const nextStaticPart = staticParts[currentFieldIndex] || ''
+
+    if (prevStaticPart && remainingValue.startsWith(prevStaticPart)) {
+      // 移除前导静态部分
+      remainingValue = remainingValue.substring(prevStaticPart.length)
+
+      // 如果有下一个静态部分，提取中间的字段值
+      if (nextStaticPart && remainingValue.includes(nextStaticPart)) {
+        const fieldEndIndex = remainingValue.indexOf(nextStaticPart)
+        const fieldValue = remainingValue.substring(0, fieldEndIndex)
+
+        // 更新字段内容
+        if (fieldValue) {
+          editableParts.value[i].content = fieldValue
+
+          // 如果当前字段是激活状态，更新DOM内容，但不改变光标位置
+          if (activeFieldIndex.value === i && editableRefs.value[i]) {
+            // 使用MutationObserver来禁用临时
+            isUserEditing.value = true
+            // 不要直接设置textContent，避免干扰用户输入
+          }
+        }
+
+        // 移除已处理的部分
+        remainingValue = remainingValue.substring(fieldEndIndex)
+      } else if (!nextStaticPart && remainingValue) {
+        // 如果是最后一个字段，则剩余的全部是它的值
+        editableParts.value[i].content = remainingValue
+        remainingValue = ''
+      }
+    }
   }
 
-  return parts
-})
-
-// 解析现有值填充到模板中
-const parseValueIntoTemplate = (parts: TemplatePart[], value: string): TemplatePart[] => {
-  if (!value) return parts
-  const newParts = JSON.parse(JSON.stringify(parts))
-  return newParts
+  // 更新内容状态
+  checkHasContent(value)
 }
 
 // 生成完整的文本值
 const generateValue = (): string => {
-  return templateParts.value.map((part) => part.content).join('')
+  return editableParts.value.map((part) => part.content).join('')
 }
 
 // 更新值并触发事件
 const updateValue = (): void => {
+  isInternalUpdate.value = true
   const newValue = generateValue()
   emit('update:value', newValue)
   emit('input', newValue)
   checkHasContent(newValue)
+
+  // 延迟重置标志，防止循环更新
+  setTimeout(() => {
+    isInternalUpdate.value = false
+  }, 0)
 }
 
 // 检查是否有内容
@@ -107,6 +189,11 @@ const registerEditableRef = (el: HTMLSpanElement | null, index: number): void =>
     // 保存引用
     editableRefs.value[index] = el
 
+    // 设置初始内容 (只在初始时设置，后续由用户输入控制)
+    if (!el.textContent) {
+      el.textContent = editableParts.value[index].content
+    }
+
     // 使用MutationObserver监听内容变化，但避免循环更新
     const observer = new MutationObserver(() => {
       if (activeFieldIndex.value === index && !isUserEditing.value) {
@@ -114,7 +201,7 @@ const registerEditableRef = (el: HTMLSpanElement | null, index: number): void =>
 
         // 延迟更新模型，避免与Vue渲染循环冲突
         setTimeout(() => {
-          templateParts.value[index].content = el.textContent || (templateParts.value[index].placeholder as string)
+          editableParts.value[index].content = el.textContent || (editableParts.value[index].placeholder as string)
           isUserEditing.value = false
         }, 0)
       }
@@ -134,11 +221,11 @@ const handleContentInput = (event: Event, index: number): void => {
 
   // 获取当前输入内容
   const target = event.target as HTMLElement
-  const content = target.textContent || (templateParts.value[index].placeholder as string)
+  const content = target.textContent || (editableParts.value[index].placeholder as string)
 
-  // 更新模型
-  if (templateParts.value[index].content !== content) {
-    templateParts.value[index].content = content
+  // 更新模型，但不触发DOM更新
+  if (editableParts.value[index].content !== content) {
+    editableParts.value[index].content = content
     updateValue()
   }
 
@@ -176,8 +263,8 @@ const activateField = (index: number): void => {
     const currentIndex = activeFieldIndex.value
     const el = editableRefs.value[currentIndex]
     if (el) {
-      templateParts.value[currentIndex].content =
-        el.textContent || (templateParts.value[currentIndex].placeholder as string)
+      editableParts.value[currentIndex].content =
+        el.textContent || (editableParts.value[currentIndex].placeholder as string)
       updateValue()
     }
   }
@@ -193,9 +280,9 @@ const activateField = (index: number): void => {
       // 先获取焦点
       el.focus()
 
-      // 只有在内容为空时才设置内容
-      if (!el.textContent || el.textContent.trim() === '') {
-        el.textContent = templateParts.value[index].content
+      // 确保元素有内容以便放置光标
+      if (!el.textContent) {
+        el.textContent = editableParts.value[index].content
       }
 
       // 将光标放到末尾
@@ -212,7 +299,7 @@ const deactivateField = (): void => {
     const el = editableRefs.value[currentIndex]
     if (el) {
       const content = el.textContent || ''
-      templateParts.value[currentIndex].content = content || (templateParts.value[currentIndex].placeholder as string)
+      editableParts.value[currentIndex].content = content || (editableParts.value[currentIndex].placeholder as string)
     }
 
     emit('field-active', false, currentIndex)
@@ -238,6 +325,9 @@ watch(
     // 如果外部值为空字符串，重置为默认placeholder值
     if (newValue === '') {
       resetToDefaultValues()
+    } else if (newValue && !isInternalUpdate.value) {
+      // 如果新值不为空，并且不是内部更新触发的，更新各部分内容
+      updatePartsFromValue(newValue)
     }
   },
 )
@@ -246,16 +336,19 @@ watch(
 watch(
   () => props.template,
   () => {
-    // 当模板变化时，检查内容状态
+    // 当模板变化时，重新初始化
+    initializeEditableParts()
+    // 检查内容状态
     nextTick(() => {
       checkHasContent()
     })
   },
+  { immediate: true },
 )
 
 // 重置所有字段内容为默认值
 const resetToDefaultValues = (): void => {
-  templateParts.value.forEach((part) => {
+  editableParts.value.forEach((part) => {
     if (part.isField) {
       part.content = part.placeholder || ''
     }
@@ -278,8 +371,8 @@ onMounted(() => {
 // 导出方法供父组件调用
 defineExpose<TemplateEditorExpose>({
   activateFirstField: () => {
-    for (let i = 0; i < templateParts.value.length; i++) {
-      if (templateParts.value[i].isField) {
+    for (let i = 0; i < editableParts.value.length; i++) {
+      if (editableParts.value[i].isField) {
         activateField(i)
         break
       }
@@ -292,7 +385,7 @@ defineExpose<TemplateEditorExpose>({
 <template>
   <div class="template-editor">
     <div class="template-content" ref="editorRef">
-      <template v-for="(part, index) in templateParts" :key="index">
+      <template v-for="(part, index) in editableParts" :key="index">
         <!-- 普通文本部分 -->
         <span v-if="!part.isField">{{ part.content }}</span>
 
@@ -303,6 +396,7 @@ defineExpose<TemplateEditorExpose>({
           :class="{ 'template-field-active': activeFieldIndex === index }"
           @click="activateField(index)"
         >
+          <!-- 编辑状态显示 -->
           <span
             v-if="activeFieldIndex === index"
             :ref="(el) => registerEditableRef(el as HTMLSpanElement, index)"
@@ -312,8 +406,7 @@ defineExpose<TemplateEditorExpose>({
             @blur="deactivateField()"
             @keydown="handleInputKeyDown($event)"
             @click.stop
-            >{{ part.content }}</span
-          >
+          ></span>
           <!-- 非编辑状态显示 -->
           <span v-else class="template-placeholder">{{ part.content }}</span>
         </span>
