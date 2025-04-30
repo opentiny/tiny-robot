@@ -46,7 +46,7 @@
           <template #trigger="{ onKeyDown, onTrigger }">
             <tr-sender
               ref="senderRef"
-              mode="multiple"
+              :mode="currentMode"
               v-model="inputMessage"
               :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
               :clearable="true"
@@ -330,11 +330,13 @@ const clearTemplate = () => {
   })
 }
 
+const currentMode = ref<'multiple' | 'single'>('single')
 // 发送消息
 const handleSendMessage = () => {
   sendMessage(inputMessage.value)
 
   clearTemplate()
+  currentMode.value = 'single'
 }
 
 const handleMessageKeydown = (

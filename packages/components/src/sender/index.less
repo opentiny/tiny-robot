@@ -5,26 +5,26 @@
   position: relative;
   color: var(--tr-sender-text-color);
 
-  // 模式切换的平滑过渡
-  transition: all 0.3s ease-out;
+  // 模式切换的主过渡效果
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 
   // 单行到多行模式的切换过渡
   &.mode-single,
   &.mode-multiple {
-    transition: all 0.3s ease-out;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   // 自动切换模式时的过渡
   &.is-auto-switching {
     .tiny-input__inner,
     .tiny-textarea__inner {
-      transition: all 0.3s ease-out;
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
 
     .tiny-sender__footer-slot,
     .tiny-sender__actions-slot,
     .tiny-sender__toolbar {
-      transition: all 0.3s ease-out;
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
   }
 
@@ -42,7 +42,6 @@
     padding-right: 16px;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    transition: all 0.3s ease-out;
     min-height: 26px; // 固定高度以减少跳动
     line-height: 26px; // 行高保持一致
 
@@ -70,7 +69,7 @@
   }
 
   .tiny-textarea__inner {
-    font-size: 14px;
+    font-size: 16px;
     border: none;
     min-height: 26px; // 最小高度与单行保持一致
     padding: 0;
@@ -102,7 +101,7 @@
     display: flex;
     align-items: stretch;
     width: 100%;
-    transition: all 0.3s ease-out;
+    transition: height 0.3s ease-out;
     min-height: 42px; // 与容器一致的最小高度
   }
 
@@ -126,7 +125,6 @@
     border-radius: 0 0 var(--tr-sender-border-radius) var(--tr-sender-border-radius);
     background: var(--tr-sender-footer-bg);
     z-index: 1;
-    transition: all 0.3s ease-out;
     min-height: 0; // 允许自动高度
 
     &.tiny-sender__bottom-row {
@@ -160,7 +158,6 @@
     background-color: var(--tr-sender-bg-color);
     display: flex;
     flex-direction: column;
-    transition: all 0.3s ease-out;
     min-height: 42px; // 设置最小高度
 
     .tiny-input__count {
@@ -180,8 +177,7 @@
     padding: var(--tr-sender-content-padding);
     position: relative;
     overflow: hidden;
-    transition: all 0.3s ease-out;
-    min-height: 26px; // 最小高度与输入框一致
+    min-height: 26px;
 
     // 当前置插槽存在时，调整内边距
     .has-prefix & {
@@ -195,12 +191,7 @@
     .tiny-textarea,
     .tiny-input {
       width: 100%;
-      transition: all 0.3s ease-out;
-
-      &::before,
-      &::after {
-        transition: all 0.3s ease-out;
-      }
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
   }
 
@@ -235,7 +226,10 @@
     /* 不可伸缩，但可以根据内容自适应宽度 */
     min-width: var(--tr-sender-actions-min-width);
     padding-right: var(--tr-sender-actions-padding-right);
-    transition: all 0.3s ease-out;
+    transition:
+      opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      visibility 0.3s step-end;
     position: absolute; // 使用绝对定位减少布局变化
     right: 0; // 靠右对齐
     top: 50%; // 垂直居中
@@ -252,7 +246,11 @@
   }
 
   &__toolbar {
-    transition: all 0.3s ease-out;
+    transition:
+      opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      visibility 0.3s step-end;
+    will-change: transform, opacity;
   }
 
   &__bottom-row {
@@ -342,37 +340,53 @@
     }
   }
 
-  // 自动模式切换的过渡动画
-  // 从单行到多行的动画
+  // 优化模式切换的过渡动画
+  // 单行模式
   &.mode-single .tiny-sender__actions-slot {
     opacity: 1;
     visibility: visible;
     transform: translateY(-50%);
-    position: absolute;
+    transition:
+      opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      visibility 0s;
     z-index: 2;
   }
 
+  // 多行模式 - actions 消失
   &.mode-multiple .tiny-sender__actions-slot {
     opacity: 0;
     visibility: hidden;
     transform: translateY(-50%) translateX(10px);
-    position: absolute;
+    transition:
+      opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      visibility 0s 0.3s;
     z-index: -1;
   }
 
+  // 多行模式 - toolbar 出现
   &.mode-multiple .tiny-sender__toolbar {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    transition:
+      opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      visibility 0s;
     z-index: 2;
     position: relative;
   }
 
+  // 单行模式 - toolbar 消失
   &.mode-single .tiny-sender__toolbar {
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
-    position: absolute;
+    transform: translateY(10px);
+    transition:
+      opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+      visibility 0s 0.3s;
     z-index: -1;
     height: 0;
     overflow: hidden;
@@ -446,17 +460,20 @@
 .tiny-sender-slide-up-leave-active,
 .tiny-sender-slide-down-enter-active,
 .tiny-sender-slide-down-leave-active {
-  transition: all 0.3s ease-out;
+  overflow: hidden;
+  max-height: 300px;
 }
 
 .tiny-sender-slide-up-enter-from,
 .tiny-sender-slide-up-leave-to {
   opacity: 0;
   transform: translateY(10px);
+  max-height: 0;
 }
 
 .tiny-sender-slide-down-enter-from,
 .tiny-sender-slide-down-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+  max-height: 0;
 }

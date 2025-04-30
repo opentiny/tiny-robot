@@ -11,7 +11,7 @@ import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
   autofocus: false,
-  autoSize: () => ({ minRows: 2, maxRows: 5 }),
+  autoSize: () => ({ minRows: 1, maxRows: 3 }),
   allowSpeech: true,
   allowFiles: false,
   clearable: false,
@@ -68,7 +68,13 @@ const setMultipleMode = () => {
 const checkInputOverflow = () => {
   if (props.mode !== 'single' || !inputRef.value || isAutoSwitching.value) return
 
-  const inputElement = document.querySelector('.tiny-input__inner') as HTMLInputElement
+  // 获取父级元素
+  const parentElement = document.querySelector('.tiny-sender__content-area') as HTMLElement
+
+  // 获取子元素
+  const inputElement = parentElement.querySelector('.tiny-input__inner') as HTMLElement
+
+  const buttonsElement = document.querySelector('.tiny-sender__buttons-container') as HTMLElement
   const wrapperElement = inputWrapperRef.value
 
   if (!inputElement || !wrapperElement) return
@@ -79,16 +85,19 @@ const checkInputOverflow = () => {
   testElem.style.position = 'absolute'
   testElem.style.whiteSpace = 'nowrap'
   testElem.style.font = window.getComputedStyle(inputElement).font
-  testElem.innerText = inputValue.value || props.placeholder
+  testElem.innerText = inputValue.value
   document.body.appendChild(testElem)
+
+  console.log('testElem.offsetWidth', testElem.offsetWidth, testElem)
+  console.log('inputElement.offsetWidth', inputElement.offsetWidth, inputElement)
 
   // 计算文本宽度与输入框可用宽度的比例
   const textWidth = testElem.offsetWidth
-  const availableWidth = inputElement.offsetWidth
+  const availableWidth = inputElement.offsetWidth - buttonsElement.offsetWidth
 
   document.body.removeChild(testElem)
 
-  if (textWidth > availableWidth * 0.8 && currentMode.value === 'single') {
+  if (textWidth > availableWidth * 0.9 && currentMode.value === 'single') {
     isAutoSwitching.value = true
     currentMode.value = 'multiple'
 
@@ -114,16 +123,21 @@ const clearInput = () => {
   // 调用原始清空方法
   originalClearInput()
 
-  // 如果是自动切换的模式，清空时恢复单行模式
-  if (currentMode.value !== props.mode) {
-    currentMode.value = props.mode
-  }
+  // 总是回到单行模式，无条件
+  currentMode.value = 'single'
 
   // 如果当前是模板编辑模式，需要退出模板编辑模式
   if (props.template) {
     // 发出一个模板重置事件，通知父组件清除模板
     emit('reset-template')
   }
+
+  // 确保DOM更新后再次检查
+  nextTick(() => {
+    if (inputValue.value === '') {
+      currentMode.value = props.mode || 'single'
+    }
+  })
 }
 
 // 输入建议
@@ -248,12 +262,23 @@ const handleCompositionEnd = () => {
 // 监听输入变化
 watch(inputValue, () => {
   showSuggestions.value = !!props.suggestions && !!inputValue.value
+
   // 当输入内容变化时检查是否需要切换模式
   nextTick(checkInputOverflow)
+
   if (inputValue.value === '') {
     currentMode.value = 'single'
   }
 })
+
+watch(
+  () => showTemplateEditor.value,
+  (val) => {
+    if (val) {
+      currentMode.value = 'multiple'
+    }
+  },
+)
 
 // 暴露方法
 defineExpose({
@@ -332,7 +357,6 @@ defineExpose({
               @compositionend="handleCompositionEnd"
               @focus="handleFocus"
               @blur="handleBlur"
-              @input="nextTick(checkInputOverflow)"
             />
           </div>
 
@@ -365,7 +389,7 @@ defineExpose({
             <slot name="footer"></slot>
           </div>
           <div
-            v-else-if="currentMode !== 'single' || (showWordLimit && maxLength !== Infinity)"
+            v-else-if="currentMode === 'multiple'"
             :style="justifyContent"
             class="tiny-sender__footer-slot tiny-sender__bottom-row"
           >
