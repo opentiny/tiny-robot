@@ -25,6 +25,7 @@ export default defineConfig({
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
       { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
       { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
+      { text: '0.2.0-alpha.2', link: '/releases/update-log', activeMatch: '/releases/' },
     ],
     sidebar: {
       '/components/': [

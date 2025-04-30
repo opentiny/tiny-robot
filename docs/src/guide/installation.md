@@ -8,9 +8,9 @@ TinyRobot是符合OpenTiny Design 设计体系的 AI 组件库，提供了丰富
 在项目的根目录中，打开控制台，执行以下命令，为 Vue 3.0 的项目安装 TinyRobot 组件库：
 
 ```bash
-yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit
+yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
 # 或者
-npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit -S
+npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs -S
 ```
 ## 引入与使用
 
@@ -24,7 +24,7 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit -S
 import { createApp } from 'vue'
 import App from './App.vue'
 ++ import TinyRobot from '@opentiny/tiny-robot' # 全量引入组件库
-++ import '@opentiny/tiny-robot/dist/index.css'  # 引入样式
+++ import '@opentiny/tiny-robot/dist/style.css'  # 引入样式
 
 const app = createApp(App)
 ++ app.use(TinyRobot)
@@ -51,7 +51,7 @@ app.mount('#app')
 ```ts
 import { createApp } from 'vue'
 import App from './App.vue'
-++ import '@opentiny/tiny-robot/dist/index.css'
+++ import '@opentiny/tiny-robot/dist/style.css'
 
 const app = createApp(App)
 app.mount('#app')
