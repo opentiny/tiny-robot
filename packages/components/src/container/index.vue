@@ -32,9 +32,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
         <icon-button size="28" svg-size="20" :icon="IconClose" @click="$emit('update:show', false)"></icon-button>
       </div>
     </div>
-    <div class="tr-container__body">
-      <slot></slot>
-    </div>
+    <slot></slot>
     <div class="tr-container__footer">
       <slot name="footer"></slot>
     </div>
@@ -99,7 +97,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
     gap: 8px;
   }
 
-  .tr-container__body {
+  .tr-container__header + :slotted(*) {
     flex: 1;
     overflow-y: auto;
   }

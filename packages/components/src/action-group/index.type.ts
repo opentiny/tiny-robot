@@ -2,6 +2,7 @@ import { VNode } from 'vue'
 
 export interface ActionGroupProps {
   maxNum?: number
+  showTooltip?: boolean
   dropDownShowLabelOnly?: boolean
 }
 

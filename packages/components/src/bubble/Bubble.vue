@@ -138,6 +138,7 @@ const placementStart = computed(() => props.placement === 'start')
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
+    word-break: break-word;
   }
 
   .tr-bubbule__aborted {

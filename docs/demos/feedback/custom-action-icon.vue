@@ -13,7 +13,7 @@
 // import { IconButton } from '@opentiny/vue'
 import { type FeedbackProps } from '@opentiny/tiny-robot'
 import { IconPin } from '@opentiny/tiny-robot-svgs'
-import { h } from 'vue'
+import { h, resolveComponent } from 'vue'
 
 const operations: FeedbackProps['operations'] = [
   {
@@ -33,12 +33,10 @@ const handleOperation = (name: string) => {
 const actions: FeedbackProps['actions'] = [
   { name: 'refresh', label: '刷新', icon: 'refresh' },
   { name: 'copy', label: '复制', icon: 'copy' },
-  // { name: 'pin', label: '置顶', icon: h(IconButton, { icon: IconPin, tooltip: '置顶' }) },
-  { name: 'pin', label: '置顶', icon: h(IconPin) },
+  { name: 'pin', label: '置顶', icon: h(resolveComponent('TrIconButton'), { icon: IconPin }) },
   { name: 'like', label: '推荐', icon: 'like' },
   { name: 'dislike', label: '不推荐', icon: 'dislike' },
-  // { name: 'pin2', label: '置顶2', icon: h(IconButton, { icon: IconPin, tooltip: '置顶' }) },
-  { name: 'pin2', label: '置顶2', icon: IconPin },
+  { name: 'pin2', label: '置顶2', icon: h(resolveComponent('TrIconButton'), { icon: IconPin }) },
 ]
 
 const handleAction = (name: string) => {

@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { useScroll } from '@vueuse/core'
+import { computed, useTemplateRef, watch } from 'vue'
 import Bubble from './Bubble.vue'
 import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
-import { useElementScroll } from './useScroll'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})
 
-const scrollContainer = ref<HTMLDivElement>()
-const { scrollToBottom } = useElementScroll(scrollContainer)
-
+const scrollContainerRef = useTemplateRef<HTMLDivElement>('scrollContainer')
+const { y } = useScroll(scrollContainerRef, {
+  behavior: 'smooth',
+  throttle: 100,
+})
 const lastBubble = computed(() => props.items.at(-1))
 
 watch([() => props.items.length, () => lastBubble.value?.content], () => {
-  if (!props.autoScroll) {
+  if (!props.autoScroll || !scrollContainerRef.value) {
     return
   }
 
-  scrollToBottom()
+  y.value = scrollContainerRef.value.scrollHeight
 })
 
 const getItemProps = (item: BubbleProps & { slots?: BubbleSlots }): BubbleProps => {
