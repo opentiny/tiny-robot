@@ -8,7 +8,6 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
     position: { x: 0, y: 0 },
   })
 
-  let dragCounter = 0
   let dropElement: HTMLElement | null = null
   let cleanup: (() => void) | undefined
 
@@ -23,7 +22,6 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
 
   const resetState = () => {
     dragState.active = false
-    dragCounter = 0
   }
 
   const initDrag = () => {
@@ -36,63 +34,68 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
       dropElement = document.body
     }
 
-    const handleDragEnter = (e: DragEvent) => {
-      e.preventDefault()
-      if (!dragState.active) {
-        dragState.active = true
-        dragCounter = 1
-      } else {
-        dragCounter++
-      }
+    const isEventInDropZone = (e: DragEvent): boolean => {
+      if (dragState.isFullscreen) return true
+
+      if (!dropElement) return false
+
+      const rect = dropElement.getBoundingClientRect()
+
+      return e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom
     }
 
-    const handleDragOver = (e: DragEvent) => {
+    // 处理document上的拖拽事件
+    const handleDocumentDragOver = (e: DragEvent) => {
       e.preventDefault()
-      e.stopPropagation()
+
+      // 更新鼠标位置
       dragState.position = { x: e.clientX, y: e.clientY }
-    }
 
-    const handleDragLeave = (e: DragEvent) => {
-      e.preventDefault()
-      dragCounter--
-      if (dragCounter <= 0) {
+      // 检查是否在拖拽区域内
+      const inDropZone = isEventInDropZone(e)
+
+      // 如果在区域内但未激活，则激活
+      if (inDropZone && !dragState.active) {
+        dragState.active = true
+      }
+
+      // 如果不在区域内但已激活，则取消激活
+      if (!inDropZone && dragState.active) {
         resetState()
       }
     }
 
-    const handleDrop = (e: DragEvent) => {
+    const handleDocumentDrop = (e: DragEvent) => {
       e.preventDefault()
       e.stopPropagation()
-      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-        const files = Array.from(e.dataTransfer.files)
-        options.onDrop(files)
+
+      // 只有在拖拽区域内放置文件时才处理
+      if (isEventInDropZone(e)) {
+        if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+          const files = Array.from(e.dataTransfer.files)
+          options.onDrop(files)
+        }
       }
+
+      // 总是重置状态
       resetState()
     }
 
-    const handlers = {
-      dragenter: handleDragEnter,
-      dragover: handleDragOver,
-      dragleave: handleDragLeave,
-      drop: handleDrop,
+    // 全局事件处理器
+    const documentHandlers = {
+      dragover: handleDocumentDragOver,
+      drop: handleDocumentDrop,
     }
 
-    const eventTarget = dragState.isFullscreen ? window : dropElement
-
-    if (!eventTarget) {
-      console.error('无效的拖拽目标元素')
-      return () => {}
-    }
-
-    Object.entries(handlers).forEach(([event, handler]) => {
-      eventTarget.addEventListener(event, handler as EventListener)
+    // 添加document事件监听器
+    Object.entries(documentHandlers).forEach(([event, handler]) => {
+      document.addEventListener(event, handler as EventListener)
     })
 
+    // 返回清理函数
     return () => {
-      if (!eventTarget) return
-
-      Object.entries(handlers).forEach(([event, handler]) => {
-        eventTarget.removeEventListener(event, handler as EventListener)
+      Object.entries(documentHandlers).forEach(([event, handler]) => {
+        document.removeEventListener(event, handler as EventListener)
       })
     }
   }
