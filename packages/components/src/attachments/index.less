@@ -10,17 +10,27 @@
     animation: pulse-border 1.5s infinite;
   }
 
+  &__file-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   &__dropzone {
     width: 100%;
     min-height: 100px;
     display: flex;
     flex-direction: column;
+    cursor: pointer;
   }
 
   &__file-list {
     display: flex;
     flex-direction: column;
     width: 100%;
+    cursor: default;
 
     &--scrollX {
       flex-direction: row;
@@ -46,6 +56,13 @@
         margin-bottom: 0;
         flex: 0 0 auto;
         width: 200px;
+      }
+
+      .tr-attachments__add-button {
+        margin-right: 8px;
+        margin-bottom: 0;
+        flex: 0 0 auto;
+        width: 120px;
       }
     }
 
@@ -90,6 +107,36 @@
       //     margin-right: 0;
       //   }
       // }
+    }
+  }
+
+  &__add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 120px;
+    border: 1px dashed #bdbdbd;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #1976d2;
+      background-color: rgba(25, 118, 210, 0.05);
+    }
+  }
+
+  &__add-icon {
+    font-size: 32px;
+    color: #bdbdbd;
+    font-weight: 300;
+    line-height: 1;
+    transition: color 0.2s ease;
+
+    .tr-attachments__add-button:hover & {
+      color: #1976d2;
     }
   }
 

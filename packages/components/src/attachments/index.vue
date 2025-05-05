@@ -4,7 +4,7 @@ import { useDragDrop } from './composables/useDragDrop'
 import { useFileType } from './composables/useFileType'
 import FileCard from './components/FileCard.vue'
 import FullScreenOverlay from './components/FullscreenOverlay.vue'
-import type { AttachmentsProps, Attachment } from './index.type'
+import type { AttachmentsProps, Attachment, DragConfig } from './index.type'
 import './index.less'
 
 const props = withDefaults(defineProps<AttachmentsProps>(), {
@@ -23,6 +23,7 @@ const { detectFileType, generateUID } = useFileType()
 
 // 拖拽相关
 const dropZoneRef = ref<HTMLElement | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // 拖拽配置和状态
 const isDragEnabled = computed(() => !!props.drag && !props.disabled)
@@ -30,10 +31,24 @@ const isDragFullscreen = computed(() => {
   return typeof props.drag === 'object' && props.drag.mode === 'fullscreen'
 })
 
+// 准备拖拽配置
+const dragConfig = computed<DragConfig | undefined>(() => {
+  if (typeof props.drag !== 'object') return undefined
+
+  const config: DragConfig = { ...props.drag }
+
+  // 如果未指定target但有dropZoneRef，则使用dropZoneRef作为目标
+  if (!config.target && dropZoneRef.value) {
+    config.target = dropZoneRef.value
+  }
+
+  return config
+})
+
 // 初始化拖拽功能
-const { dragState, initDrag } = useDragDrop({
+const { dragState, initDrag, cleanupDrag } = useDragDrop({
   enabled: isDragEnabled.value,
-  config: typeof props.drag === 'object' ? props.drag : undefined,
+  config: dragConfig.value,
   onDrop: handleDrop,
 })
 
@@ -55,6 +70,23 @@ function handleDrop(files: File[]) {
   fileList.value = [...fileList.value, ...newFiles]
   emit('files-dropped', newFiles)
   emit('update:items', fileList.value)
+}
+
+// 触发文件选择
+function triggerFileSelect() {
+  if (props.disabled) return
+  fileInputRef.value?.click()
+}
+
+// 处理文件选择
+function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files.length > 0) {
+    const files = Array.from(input.files)
+    handleDrop(files)
+    // 重置文件输入，以便可以再次选择相同的文件
+    input.value = ''
+  }
 }
 
 // 移除文件
@@ -85,29 +117,41 @@ watch(
   { deep: true },
 )
 
-// 拖拽相关的计算属性和状态变更时重新初始化
+// 监听拖拽配置变化
 watch(
-  [isDragEnabled, () => props.drag],
-  () => {
-    onMounted(() => {
-      initDrag()
-    })
+  () => isDragEnabled.value,
+  (enabled: boolean) => {
+    // 当拖拽配置变化时，重新初始化拖拽功能
+    cleanupDrag()
+    if (enabled) {
+      setTimeout(() => {
+        initDrag()
+      }, 0)
+    }
   },
-  { immediate: true },
+  { deep: true },
 )
 
-// 设置拖拽区域
-onMounted(() => {
-  if (dropZoneRef.value) {
-    if (typeof props.drag === 'object' && props.drag.target === undefined) {
-      // TODO: 更新拖拽区域
-      // props.drag.target = dropZoneRef.value
+// 监听dropZoneRef变化
+watch(
+  () => dropZoneRef.value,
+  (newRef) => {
+    if (newRef && isDragEnabled.value) {
+      // 当DOM引用更新后，重新初始化拖拽
+      cleanupDrag()
+      setTimeout(() => {
+        initDrag()
+      }, 0)
     }
+  },
+)
 
-    // 确保在DOM加载完成后初始化拖拽
+// 在组件挂载后设置拖拽区域
+onMounted(() => {
+  if (dropZoneRef.value && isDragEnabled.value) {
     setTimeout(() => {
       initDrag()
-    }, 100)
+    }, 0)
   }
 })
 </script>
@@ -118,12 +162,16 @@ onMounted(() => {
     :class="[rootClass, { 'tr-attachments--dragging': dragState.active && !isDragFullscreen }]"
     :style="styles?.root"
   >
-    <div ref="dropZoneRef" class="tr-attachments__dropzone">
+    <!-- 隐藏的文件输入 -->
+    <input ref="fileInputRef" type="file" multiple class="tr-attachments__file-input" @change="handleFileSelect" />
+
+    <div ref="dropZoneRef" class="tr-attachments__dropzone" @click="triggerFileSelect">
       <!-- 文件列表展示 -->
       <div
         v-if="fileList.length > 0"
         class="tr-attachments__file-list"
         :class="`tr-attachments__file-list--${overflow}`"
+        @click.stop
       >
         <FileCard
           v-for="file in fileList"
@@ -136,6 +184,11 @@ onMounted(() => {
           @remove="handleRemove"
           @preview="handlePreview"
         />
+
+        <!-- 添加文件按钮 -->
+        <div class="tr-attachments__add-button" @click.stop="triggerFileSelect" v-if="!disabled">
+          <div class="tr-attachments__add-icon">+</div>
+        </div>
       </div>
 
       <!-- 空状态 -->
