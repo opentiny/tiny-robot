@@ -11,9 +11,10 @@ const props = withDefaults(defineProps<AttachmentsProps>(), {
   overflow: 'wrap',
   disabled: false,
   iconSize: 42,
+  statusType: 'info',
 })
 
-const emit = defineEmits(['update:items', 'files-dropped', 'file-remove', 'file-preview'])
+const emit = defineEmits(['update:items', 'files-dropped', 'file-remove', 'file-preview', 'action'])
 
 // 文件列表管理
 const fileList = ref<Attachment[]>(props.items || [])
@@ -94,6 +95,12 @@ function handlePreview(file: Attachment) {
   emit('file-preview', file)
 }
 
+// 处理自定义操作按钮事件
+// eslint-disable-next-line
+function handleAction(payload: any) {
+  emit('action', payload)
+}
+
 // 监听props.items变化
 watch(
   () => props.items,
@@ -141,8 +148,12 @@ onMounted(() => {
           :icon-size="iconSize"
           :disabled="disabled"
           :style="styles?.card"
+          :status-type="statusType"
+          :custom-actions="customActions"
+          :show-status="true"
           @remove="handleRemove"
           @preview="handlePreview"
+          @action="handleAction"
         />
 
         <!-- 添加文件按钮 -->

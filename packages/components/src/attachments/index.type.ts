@@ -16,6 +16,7 @@ export interface Attachment extends UploadFile {
   size?: number
   progress?: number
   isUploading?: boolean
+  messageType?: 'error' | 'warning' | 'success' | 'info' // 状态消息类型
 }
 
 export interface DragConfig {
@@ -49,6 +50,10 @@ export interface AttachmentsProps {
     card?: CSSProperties
     overlay?: CSSProperties
   }
+
+  // 文件卡片状态配置
+  statusType?: 'info' | 'progress' | 'operate' | 'message' | 'default'
+  customActions?: ActionButton[]
 }
 
 // 自定义操作按钮类型
