@@ -25,22 +25,39 @@
             <span class="tr-file-card__file-size" v-if="file.size">{{ formatFileSize(file.size) }}</span>
           </template>
 
+          <!-- 类型2: 进度状态 -->
+          <template v-else-if="statusType === 'progress' && file.progress !== undefined">
+            <div class="tr-file-card__progress">
+              <div class="tr-file-card__progress-text">{{ file.status || '处理中...' }} {{ file.progress }}%</div>
+              <div class="tr-file-card__progress-bar">
+                <div class="tr-file-card__progress-inner" :style="{ width: `${file.progress}%` }"></div>
+              </div>
+            </div>
+          </template>
+
+          <!-- 类型3: 自定义操作按钮 -->
           <template v-else-if="statusType === 'operate'">
-            <template v-if="customActions && customActions.length">
-              <button
+            <div class="tr-file-card__actions">
+              <span
                 v-for="(action, index) in customActions"
                 :key="index"
-                type="button"
                 class="tr-file-card__action"
                 :class="`tr-file-card__action--${action.type}`"
                 @click="handleCustomAction(action)"
               >
                 <span class="tr-file-card__action-icon">{{ action.label }}</span>
-              </button>
-            </template>
+              </span>
+            </div>
           </template>
 
-          <!-- 类型2: 默认状态文本 -->
+          <!-- 类型4: 状态消息 -->
+          <template v-else-if="statusType === 'message'">
+            <div class="tr-file-card__message" :class="`tr-file-card__message--${file.messageType || 'info'}`">
+              {{ file.status }}
+            </div>
+          </template>
+
+          <!-- 类型5: 默认状态文本 -->
           <template v-else>
             {{ file.status }}
           </template>
@@ -71,7 +88,7 @@ const props = withDefaults(
     disabled?: boolean
     showPreview?: boolean
     showStatus?: boolean
-    statusType?: 'info' | 'operate' | 'default'
+    statusType?: 'info' | 'progress' | 'operate' | 'message' | 'default'
     customActions?: ActionButton[]
   }>(),
   {
@@ -242,6 +259,7 @@ const handleCustomAction = (action: ActionButton) => {
     text-align: left;
     display: flex;
     align-items: center;
+    width: 100%;
   }
 
   &__file-type {
@@ -267,6 +285,8 @@ const handleCustomAction = (action: ActionButton) => {
     &-text {
       font-size: 12px;
       margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
     }
 
     &-bar {
@@ -287,12 +307,10 @@ const handleCustomAction = (action: ActionButton) => {
   &__actions {
     display: flex;
     align-items: center;
-    margin-left: 12px;
   }
 
   &__action {
-    min-width: 24px;
-    height: 24px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,14 +319,8 @@ const handleCustomAction = (action: ActionButton) => {
     color: #616161;
     cursor: pointer;
     border-radius: 4px;
-    padding: 0 4px;
-    margin-left: 4px;
     transition: all 0.2s;
     white-space: nowrap;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.1);
-    }
 
     &__icon {
       font-size: 12px;
@@ -316,15 +328,41 @@ const handleCustomAction = (action: ActionButton) => {
     }
 
     &--preview {
+      color: rgb(20, 118, 255);
       &:hover {
         color: #2196f3;
       }
     }
 
     &--download {
+      margin-left: 24px;
+      color: rgb(20, 118, 255);
+
       &:hover {
-        color: #4caf50;
+        color: #2196f3;
       }
+    }
+  }
+
+  &__message {
+    width: 100%;
+    font-size: 12px;
+    line-height: 18px;
+
+    &--error {
+      color: #f44336;
+    }
+
+    &--warning {
+      color: #ff9800;
+    }
+
+    &--success {
+      color: #4caf50;
+    }
+
+    &--info {
+      color: #2196f3;
     }
   }
 }
