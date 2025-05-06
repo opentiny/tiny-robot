@@ -88,9 +88,6 @@ const checkInputOverflow = () => {
   testElem.innerText = inputValue.value
   document.body.appendChild(testElem)
 
-  console.log('testElem.offsetWidth', testElem.offsetWidth, testElem)
-  console.log('inputElement.offsetWidth', inputElement.offsetWidth, inputElement)
-
   // 计算文本宽度与输入框可用宽度的比例
   const textWidth = testElem.offsetWidth
   const availableWidth = inputElement.offsetWidth - buttonsElement.offsetWidth
