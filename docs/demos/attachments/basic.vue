@@ -3,16 +3,16 @@
     <div style="display: flex; align-items: center; gap: 8px">
       <label style="margin-right: 8px">拖拽模式</label>
 
-      <tiny-switch v-model="dragMode" true-value="fullscreen" false-value="containerRef"></tiny-switch>
+      <tiny-switch v-model="dragMode" true-value="fullscreen" false-value="container"></tiny-switch>
       <label style="font-weight: bold">{{ currentDragModeDesc }}</label>
     </div>
 
     <tr-attachments
-      ref="containerRef"
+      id="containerRef"
       v-model:items="files"
       :drag="{
         mode: dragMode,
-        overlay: { zIndex: 9999 },
+        target: dragMode === 'container' ? containerRef : undefined,
       }"
       overflow="wrap"
       @files-dropped="handleFilesDropped"
@@ -23,11 +23,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
-const dragMode = ref('fullscreen')
+const dragMode = ref('container')
 
-const containerRef = ref(null)
+const containerRef = ref<HTMLElement | null>(null)
 
 const files = ref([
   {
@@ -63,4 +63,8 @@ const handleFilePreview = (file) => {
     window.open(file.previewUrl)
   }
 }
+
+onMounted(() => {
+  containerRef.value = document.getElementById('containerRef')
+})
 </script>

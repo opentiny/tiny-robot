@@ -8,8 +8,15 @@
         <tiny-radio-button label="scrollY">scrollY</tiny-radio-button>
       </tiny-radio-group>
     </div>
+    <div style="display: flex; align-items: center">
+      <label style="margin-right: 8px">禁止上传</label>
+      <tiny-radio-group v-model="disabled">
+        <tiny-radio-button :label="true">是</tiny-radio-button>
+        <tiny-radio-button :label="false">否</tiny-radio-button>
+      </tiny-radio-group>
+    </div>
 
-    <tr-attachments ref="containerRef" v-model:items="files" :drag="false" :overflow="wrapMode" />
+    <tr-attachments ref="containerRef" v-model:items="files" :drag="false" :disabled="disabled" :overflow="wrapMode" />
   </div>
 </template>
 
@@ -18,6 +25,7 @@ import { ref } from 'vue'
 // import { TrAttachments } from '@opentiny/tiny-robot'
 
 const wrapMode = ref('wrap')
+const disabled = ref(false)
 
 const files = ref([
   {
