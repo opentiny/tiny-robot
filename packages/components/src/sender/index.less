@@ -199,8 +199,7 @@
   &__prefix-slot {
     width: var(--tr-sender-prefix-width);
     min-width: var(--tr-sender-prefix-min-width);
-    flex: 0 0 var(--tr-sender-prefix-width);
-    /* 固定宽度，不可伸缩 */
+    flex: 0 0 var(--tr-sender-prefix-width); /* 固定宽度，不可伸缩 */
     display: flex;
     align-items: start;
     justify-content: center;
@@ -222,18 +221,17 @@
     align-items: center;
     gap: var(--tr-sender-actions-gap);
     margin-left: auto;
-    flex: 0 0 auto;
-    /* 不可伸缩，但可以根据内容自适应宽度 */
+    flex: 0 0 auto; /* 不可伸缩，但可以根据内容自适应宽度 */
     min-width: var(--tr-sender-actions-min-width);
     padding-right: var(--tr-sender-actions-padding-right);
     transition:
       opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1),
       transform 0.3s cubic-bezier(0.25, 1, 0.5, 1),
       visibility 0.3s step-end;
-    position: absolute; // 使用绝对定位减少布局变化
-    right: 0; // 靠右对齐
-    top: 50%; // 垂直居中
-    transform: translateY(-50%); // 垂直居中修正
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
 
     .button-icon {
       font-size: var(--tr-sender-actions-icon-size);
@@ -340,7 +338,7 @@
     }
   }
 
-  // 优化模式切换的过渡动画
+  // 模式切换的过渡动画
   // 单行模式
   &.mode-single .tiny-sender__actions-slot {
     opacity: 1;

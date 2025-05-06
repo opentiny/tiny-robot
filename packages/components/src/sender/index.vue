@@ -59,7 +59,7 @@ const setMultipleMode = () => {
           textareaElement.focus()
           textareaElement.setSelectionRange(pos, pos)
         }
-      }, 50) // 较短的延迟以减少感知延迟
+      }, 50)
     })
   }
 }
@@ -110,7 +110,7 @@ const checkInputOverflow = () => {
           }
         }
         isAutoSwitching.value = false
-      }, 300) // 与CSS过渡时间匹配
+      }, 300)
     })
   }
 }
