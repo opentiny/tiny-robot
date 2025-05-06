@@ -10,7 +10,9 @@
     </button>
 
     <div class="tr-file-card__icon">
-      <div class="tr-file-card__icon-wrapper" v-html="iconHtml"></div>
+      <div class="tr-file-card__icon-wrapper">
+        <fileTypeIcon />
+      </div>
     </div>
 
     <div class="tr-file-card__content">
@@ -105,10 +107,9 @@ const emit = defineEmits(['remove', 'preview', 'action'])
 // 使用图标类型管理
 const { getIconComponent } = useIconType(props.fileIcons, props.iconSize)
 
-// 获取当前文件类型对应的图标HTML
-const iconHtml = computed(() => {
-  const icon = getIconComponent(props.file.fileType as FileType).value
-  return typeof icon === 'string' ? icon : ''
+// 获取当前文件类型对应的图标
+const fileTypeIcon = computed(() => {
+  return getIconComponent(props.file.fileType as FileType).value
 })
 
 // 格式化文件大小

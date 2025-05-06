@@ -23,14 +23,6 @@ const extensionTypeMap: FileTypeMap = {
   xlsx: 'excel',
   ppt: 'ppt',
   pptx: 'ppt',
-  txt: 'text',
-
-  // 压缩文件
-  zip: 'zip',
-  rar: 'zip',
-  '7z': 'zip',
-  tar: 'zip',
-  gz: 'zip',
 
   // 文件夹
   folder: 'folder',
@@ -46,10 +38,6 @@ const mimeTypeMap: FileTypeMap = {
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'excel',
   'application/vnd.ms-powerpoint': 'ppt',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'ppt',
-  'text/plain': 'text',
-  'application/zip': 'zip',
-  'application/x-rar-compressed': 'zip',
-  'application/x-7z-compressed': 'zip',
 }
 
 export function useFileType() {

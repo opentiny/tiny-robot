@@ -8,15 +8,8 @@
         <tiny-radio-button label="scrollY">scrollY</tiny-radio-button>
       </tiny-radio-group>
     </div>
-    <div style="display: flex; align-items: center">
-      <label style="margin-right: 8px">禁止上传</label>
-      <tiny-radio-group v-model="disabled">
-        <tiny-radio-button :label="true">是</tiny-radio-button>
-        <tiny-radio-button :label="false">否</tiny-radio-button>
-      </tiny-radio-group>
-    </div>
 
-    <tr-attachments ref="containerRef" v-model:items="files" :drag="false" :disabled="disabled" :overflow="wrapMode" />
+    <tr-attachments ref="containerRef" v-model:items="files" :drag="false" :overflow="wrapMode" />
   </div>
 </template>
 
@@ -25,7 +18,6 @@ import { ref } from 'vue'
 // import { TrAttachments } from '@opentiny/tiny-robot'
 
 const wrapMode = ref('wrap')
-const disabled = ref(false)
 
 const files = ref([
   {
@@ -70,42 +62,10 @@ const files = ref([
   },
   {
     uid: '5',
-    name: '示例文档.text',
-    status: 'done',
-    size: 200,
-    fileType: 'text',
-    previewUrl: '/path/to/preview.text',
-  },
-  {
-    uid: '6',
-    name: '示例文档.zip',
-    status: 'done',
-    size: 200,
-    fileType: 'zip',
-    previewUrl: '/path/to/preview.zip',
-  },
-  {
-    uid: '7',
     name: 'other',
     status: 'done',
     size: 200,
     fileType: 'other',
-  },
-  {
-    uid: '8',
-    name: '示例图片',
-    status: 'done',
-    size: 200,
-    fileType: 'image',
-    previewUrl: '/path/to/preview.jpg',
-  },
-  {
-    uid: '9',
-    name: '示例图片',
-    status: 'done',
-    size: 200,
-    fileType: 'image',
-    previewUrl: '/path/to/preview.jpg',
   },
 ])
 </script>
