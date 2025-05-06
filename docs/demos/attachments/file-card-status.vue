@@ -37,12 +37,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 // import { TrAttachments } from '@opentiny/tiny-robot'
-import type { Attachment } from '@opentiny/tiny-robot'
 
 const wrapMode = ref('wrap')
 
 // 示例1: 信息状态 - 显示文件类型和大小
-const infoFiles = ref<Attachment[]>([
+const infoFiles = ref([
   {
     id: '1',
     name: '设计文档.docx',
@@ -64,7 +63,7 @@ const infoFiles = ref<Attachment[]>([
 ])
 
 // 示例2: 进度状态 - 显示上传/下载进度
-const progressFiles = ref<Attachment[]>([
+const progressFiles = ref([
   {
     id: '4',
     name: '正在上传文件.png',
@@ -83,21 +82,12 @@ const progressFiles = ref<Attachment[]>([
     progress: 75,
     isUploading: true,
   },
-  {
-    id: '6',
-    name: '下载安装包.zip',
-    fileType: 'zip',
-    size: 1024 * 1024 * 15, // 15MB
-    status: '下载中',
-    progress: 45,
-    isUploading: false,
-  },
 ])
 
 // 示例3: 状态消息 - 显示不同类型的状态消息
-const messageFiles = ref<Attachment[]>([
+const messageFiles = ref([
   {
-    id: '7',
+    id: '6',
     name: '上传成功.doc',
     fileType: 'word',
     size: 1024 * 1024 * 1.5, // 1.5MB
@@ -105,7 +95,7 @@ const messageFiles = ref<Attachment[]>([
     messageType: 'success',
   },
   {
-    id: '8',
+    id: '7',
     name: '上传失败.xlsx',
     fileType: 'excel',
     size: 1024 * 1024 * 2.3, // 2.3MB
@@ -113,34 +103,26 @@ const messageFiles = ref<Attachment[]>([
     messageType: 'error',
   },
   {
-    id: '9',
+    id: '8',
     name: '处理中.pdf',
     fileType: 'pdf',
     size: 1024 * 1024 * 1.7, // 1.7MB
     status: '处理中...',
     messageType: 'info',
   },
-  {
-    id: '10',
-    name: '需要审核.zip',
-    fileType: 'zip',
-    size: 1024 * 1024 * 8.2, // 8.2MB
-    status: '需要审核',
-    messageType: 'warning',
-  },
 ])
 
 // 示例4: 自定义操作按钮
-const customActionFiles = ref<Attachment[]>([
+const customActionFiles = ref([
   {
-    id: '11',
+    id: '9',
     name: '共享文档.pdf',
     fileType: 'pdf',
     size: 1024 * 1024 * 1.2, // 1.2MB
     status: '已完成',
   },
   {
-    id: '12',
+    id: '10',
     name: '产品图片.jpg',
     fileType: 'image',
     size: 1024 * 900, // 900KB
@@ -162,7 +144,7 @@ const fileActions = [
 
 // 处理文件操作按钮点击事件
 // eslint-disable-next-line
-const handleFileAction = (payload: { action: any; file: Attachment }) => {
+const handleFileAction = (payload: { action: any; file: any }) => {
   const { action, file } = payload
   console.log(`执行操作: ${action.type}，文件: ${file.name}`)
   // 这里可以根据不同的操作类型执行不同的操作

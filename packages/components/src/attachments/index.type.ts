@@ -1,6 +1,6 @@
 import { CSSProperties, Component } from 'vue'
 
-export type FileType = 'image' | 'pdf' | 'word' | 'excel' | 'ppt' | 'folder' | 'text' | 'zip' | 'other'
+export type FileType = 'image' | 'pdf' | 'word' | 'excel' | 'ppt' | 'folder' | 'other'
 
 export interface UploadFile {
   uid: string
