@@ -1,15 +1,18 @@
-import { reactive, watch, onBeforeUnmount } from 'vue'
-import type { DragConfig } from '../index.type'
+import { reactive, watch, onBeforeUnmount, computed, ComputedRef } from 'vue'
+import type { DragConfig, AttachmentsProps } from '../index.type'
 
-export function useDragDrop(options: { enabled: boolean; config?: DragConfig; onDrop: (files: File[]) => void }) {
+export function useDragDrop(options: { enabled: boolean; onDrop: (files: File[]) => void }, props: AttachmentsProps) {
   const dragState = reactive({
     active: false,
     isFullscreen: false,
     position: { x: 0, y: 0 },
   })
 
+  const dragConfig = computed(() => props.drag) as ComputedRef<DragConfig>
+
   let dropElement: HTMLElement | null = null
   let cleanup: (() => void) | undefined
+  let isInitialized = false
 
   const resolveDropTarget = (target?: string | HTMLElement): HTMLElement | null => {
     if (!target) return document.body
@@ -25,10 +28,15 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
   }
 
   const initDrag = () => {
-    const mode = options.config?.mode || 'container'
+    if (cleanup) {
+      cleanup()
+      cleanup = undefined
+    }
+
+    const mode = dragConfig.value.mode || 'container'
     dragState.isFullscreen = mode === 'fullscreen'
 
-    dropElement = resolveDropTarget(options.config?.target)
+    dropElement = resolveDropTarget(dragConfig?.value.target)
     if (!dropElement && !dragState.isFullscreen) {
       console.warn('无法找到拖拽目标元素，将使用document.body作为默认值')
       dropElement = document.body
@@ -54,15 +62,8 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
       // 检查是否在拖拽区域内
       const inDropZone = isEventInDropZone(e)
 
-      // 如果在区域内但未激活，则激活
-      if (inDropZone && !dragState.active) {
-        dragState.active = true
-      }
-
-      // 如果不在区域内但已激活，则取消激活
-      if (!inDropZone && dragState.active) {
-        resetState()
-      }
+      // 更新激活状态，仅在拖拽区域内才激活
+      dragState.active = inDropZone
     }
 
     const handleDocumentDrop = (e: DragEvent) => {
@@ -81,10 +82,18 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
       resetState()
     }
 
+    const handleDocumentDragLeave = (e: DragEvent) => {
+      // 当拖拽离开document时，重置状态
+      if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+        resetState()
+      }
+    }
+
     // 全局事件处理器
     const documentHandlers = {
       dragover: handleDocumentDragOver,
       drop: handleDocumentDrop,
+      dragleave: handleDocumentDragLeave,
     }
 
     // 添加document事件监听器
@@ -92,11 +101,15 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
       document.addEventListener(event, handler as EventListener)
     })
 
+    // 设置初始化标志
+    isInitialized = true
+
     // 返回清理函数
     return () => {
       Object.entries(documentHandlers).forEach(([event, handler]) => {
         document.removeEventListener(event, handler as EventListener)
       })
+      isInitialized = false
     }
   }
 
@@ -106,12 +119,22 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
       cleanup = undefined
     }
 
-    if (enabled) {
+    if (enabled && !isInitialized) {
       cleanup = initDrag()
     }
   }
 
   watch(() => options.enabled, updateDragState, { immediate: true })
+
+  watch(
+    () => dragConfig.value,
+    () => {
+      if (options.enabled) {
+        updateDragState(true)
+      }
+    },
+    { deep: true },
+  )
 
   onBeforeUnmount(() => {
     if (cleanup) {
@@ -123,7 +146,11 @@ export function useDragDrop(options: { enabled: boolean; config?: DragConfig; on
   return {
     dragState,
     dropZone: () => dropElement,
-    initDrag: () => updateDragState(true),
+    initDrag: () => {
+      if (!isInitialized && options.enabled) {
+        updateDragState(true)
+      }
+    },
     cleanupDrag: () => updateDragState(false),
   }
 }

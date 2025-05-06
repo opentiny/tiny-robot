@@ -161,8 +161,8 @@ const handleCustomAction = (action: ActionButton) => {
     top: 0;
     right: 0;
     transform: translate(50%, -50%);
-    width: 24px;
-    height: 24px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: rgb(194, 194, 194);
     color: white;
@@ -176,9 +176,9 @@ const handleCustomAction = (action: ActionButton) => {
     z-index: 10;
 
     &-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
+      font-size: 6px;
+      width: 6px;
+      height: 6px;
       line-height: 1;
     }
   }

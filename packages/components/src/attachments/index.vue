@@ -4,7 +4,7 @@ import { useDragDrop } from './composables/useDragDrop'
 import { useFileType } from './composables/useFileType'
 import FileCard from './components/FileCard.vue'
 import FullScreenOverlay from './components/FullscreenOverlay.vue'
-import type { AttachmentsProps, Attachment, DragConfig } from './index.type'
+import type { AttachmentsProps, Attachment } from './index.type'
 import './index.less'
 
 const props = withDefaults(defineProps<AttachmentsProps>(), {
@@ -31,26 +31,14 @@ const isDragFullscreen = computed(() => {
   return typeof props.drag === 'object' && props.drag.mode === 'fullscreen'
 })
 
-// 准备拖拽配置
-const dragConfig = computed<DragConfig | undefined>(() => {
-  if (typeof props.drag !== 'object') return undefined
-
-  const config: DragConfig = { ...props.drag }
-
-  // 如果未指定target但有dropZoneRef，则使用dropZoneRef作为目标
-  if (!config.target && dropZoneRef.value) {
-    config.target = dropZoneRef.value
-  }
-
-  return config
-})
-
 // 初始化拖拽功能
-const { dragState, initDrag, cleanupDrag } = useDragDrop({
-  enabled: isDragEnabled.value,
-  config: dragConfig.value,
-  onDrop: handleDrop,
-})
+const { dragState, initDrag } = useDragDrop(
+  {
+    enabled: isDragEnabled.value,
+    onDrop: handleDrop,
+  },
+  props,
+)
 
 // 处理文件拖放
 function handleDrop(files: File[]) {
@@ -117,38 +105,10 @@ watch(
   { deep: true },
 )
 
-// 监听拖拽配置变化
-watch(
-  () => isDragEnabled.value,
-  (enabled: boolean) => {
-    // 当拖拽配置变化时，重新初始化拖拽功能
-    cleanupDrag()
-    if (enabled) {
-      setTimeout(() => {
-        initDrag()
-      }, 0)
-    }
-  },
-  { deep: true },
-)
-
-// 监听dropZoneRef变化
-watch(
-  () => dropZoneRef.value,
-  (newRef) => {
-    if (newRef && isDragEnabled.value) {
-      // 当DOM引用更新后，重新初始化拖拽
-      cleanupDrag()
-      setTimeout(() => {
-        initDrag()
-      }, 0)
-    }
-  },
-)
-
-// 在组件挂载后设置拖拽区域
+// 在组件挂载后设置拖拽区域，只初始化一次
 onMounted(() => {
   if (dropZoneRef.value && isDragEnabled.value) {
+    // 使用一个短延时确保DOM已完全加载
     setTimeout(() => {
       initDrag()
     }, 0)
