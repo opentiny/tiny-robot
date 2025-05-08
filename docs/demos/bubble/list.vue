@@ -47,11 +47,9 @@ const roles: Record<string, BubbleRoleConfig> = {
   ai: {
     placement: 'start',
     avatar: aiAvatar,
+    type: 'markdown',
     maxWidth: '80%',
     slots: {
-      default: ({ bubbleProps }) => {
-        return h('div', { style: { color: 'red' } }, bubbleProps.content)
-      },
       footer: ({ bubbleProps }) => {
         // 由于vitepress-demo插件的问题，不能引入TrFeedback的值，这里使用resolveComponent
         // 正常可以直接使用h(TrFeedback)

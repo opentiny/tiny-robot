@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DOMPurify from 'dompurify'
 import markdownit from 'markdown-it'
 import { computed } from 'vue'
 import { BubbleProps, BubbleSlots } from './index.type'
@@ -13,12 +14,13 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 const slots = defineSlots<BubbleSlots>()
 
 const markdownItInstance = computed(() => {
-  return markdownit(props.mdConfig || {})
+  return props.markdownItInstance || markdownit(props.mdConfig || {})
 })
 
 const bubbleContent = computed(() => {
   if (props.type === 'markdown') {
-    return markdownItInstance.value.render(props.content)
+    const htmlContent = markdownItInstance.value.render(props.content)
+    return DOMPurify.sanitize(htmlContent, props.domPurifyConfig)
   }
   return props.content
 })

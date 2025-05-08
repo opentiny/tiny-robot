@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
-import { computed, useTemplateRef, watch } from 'vue'
+import { computed, onBeforeUnmount, useTemplateRef, watch } from 'vue'
 import Bubble from './Bubble.vue'
+import { useMarkdownIt } from './composables'
 import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})
@@ -21,14 +22,26 @@ watch([() => props.items.length, () => lastBubble.value?.content], () => {
   y.value = scrollContainerRef.value.scrollHeight
 })
 
-const getItemProps = (item: BubbleProps & { slots?: BubbleSlots }): BubbleProps => {
+const { getInstance: getMarkdownItInstance, clearCache } = useMarkdownIt()
+
+onBeforeUnmount(() => {
+  clearCache()
+})
+
+const getItemProps = (item: BubbleListProps['items'][number]): BubbleProps => {
   const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
   const { slots: _roleSlots, ...rest } = defaultConfig
   const { slots: _itemSlots, ...restItem } = item
-  return { ...rest, ...restItem }
+  const mergedProps = { ...rest, ...restItem }
+
+  if (mergedProps.type === 'markdown' && !mergedProps.markdownItInstance) {
+    mergedProps.markdownItInstance = getMarkdownItInstance(mergedProps.mdConfig)
+  }
+
+  return mergedProps
 }
 
-const getItemSlots = (item: BubbleProps & { slots?: BubbleSlots }): BubbleSlots => {
+const getItemSlots = (item: BubbleListProps['items'][number]): BubbleSlots => {
   const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
   return { ...defaultConfig.slots, ...item.slots }
 }
