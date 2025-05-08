@@ -2,6 +2,7 @@
 import DOMPurify from 'dompurify'
 import markdownit from 'markdown-it'
 import { computed } from 'vue'
+import { useMarkdownIt } from './composables'
 import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -14,7 +15,7 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 const slots = defineSlots<BubbleSlots>()
 
 const markdownItInstance = computed(() => {
-  return props.markdownItInstance || markdownit(props.mdConfig || {})
+  return props.markdownItInstance || markdownit(props.mdConfig || useMarkdownIt().MD_DEFAULT_OPTIONS)
 })
 
 const bubbleContent = computed(() => {

@@ -1,0 +1,11 @@
+.code-toolbar::before {
+  content: 'language-';
+  background-color: rgb(245, 245, 245);
+  display: block;
+  margin-bottom: -0.5em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+pre[class*='language-'] {
+  background-color: rgb(245, 245, 245);
+}
