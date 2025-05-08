@@ -1,12 +1,41 @@
+// 变量定义
+@primary-color: #1976d2;
+@primary-light: rgba(25, 118, 210, 0.05);
+@primary-blue: #2196f3;
+@error-color: #f44336;
+@warning-color: #ff9800;
+@success-color: #4caf50;
+@border-color: #e0e0e0;
+@text-color: rgb(25, 25, 25);
+@text-secondary: rgb(128, 128, 128);
+@background-light: rgba(0, 0, 0, 0.04);
+@border-radius: 8px;
+@transition-normal: all 0.3s ease;
+@card-height: 58px;
+@card-width: 192px;
+
+// 文本样式混合
+.text-style(@size: 12px, @color: @text-secondary, @weight: 400) {
+  font-size: @size;
+  font-weight: @weight;
+  line-height: 18px;
+  color: @color;
+}
+
+// 弹性布局混合
+.flex-center() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .tr-attachments {
   position: relative;
-  border: 2px dashed #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: @border-radius;
+  transition: @transition-normal;
 
   &--dragging {
-    border: 2px dashed #1976d2;
+    border: 2px dashed @primary-color;
     animation: pulse-border 1.5s infinite;
   }
 
@@ -52,10 +81,14 @@
       }
 
       .tr-file-card {
-        margin-right: 8px;
         margin-bottom: 0;
         flex: 0 0 auto;
-        width: 200px;
+      }
+
+      .tr-attachments__add-button {
+        flex: 0 0 auto;
+        margin-right: 8px;
+        margin-bottom: 0;
       }
     }
 
@@ -77,47 +110,31 @@
         background-color: rgba(0, 0, 0, 0.05);
         border-radius: 3px;
       }
+
+      .tr-attachments__add-button {
+        flex: 0 0 auto;
+      }
     }
 
     &--wrap {
       flex-direction: row;
       flex-wrap: wrap;
-
-      // .tr-file-card {
-      //   margin-right: 8px;
-      //   width: calc(25% - 8px);
-
-      //   @media (max-width: 1200px) {
-      //     width: calc(33.33% - 8px);
-      //   }
-
-      //   @media (max-width: 768px) {
-      //     width: calc(50% - 8px);
-      //   }
-
-      //   @media (max-width: 480px) {
-      //     width: 100%;
-      //     margin-right: 0;
-      //   }
-      // }
     }
   }
 
   &__add-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 192px;
+    .flex-center();
+    width: 58px;
     height: 58px;
     border: 1px dashed #bdbdbd;
-    border-radius: 8px;
+    border-radius: @border-radius;
     margin-bottom: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      border-color: #1976d2;
-      background-color: rgba(25, 118, 210, 0.05);
+      border-color: @primary-color;
+      background-color: @primary-light;
     }
   }
 
@@ -129,7 +146,7 @@
     transition: color 0.2s ease;
 
     .tr-attachments__add-button:hover & {
-      color: #1976d2;
+      color: @primary-color;
     }
   }
 
@@ -143,8 +160,10 @@
     text-align: center;
 
     &-icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+      width: 32px;
+      height: 32px;
+      font-size: 32px;
+      margin-bottom: 4px;
       color: #bdbdbd;
     }
 
@@ -160,8 +179,208 @@
   }
 }
 
+// 文件卡片样式
+.tr-file-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: @card-width;
+  height: @card-height;
+  border-radius: @border-radius;
+  background: @background-light;
+  padding: 8px 12px 8px 8px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  transition: @transition-normal;
+  box-sizing: border-box;
+
+  &:hover {
+    background: rgb(255, 255, 255);
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+  }
+
+  &.error {
+    background-color: #ffebee;
+  }
+
+  &--uploading {
+    .tr-file-card__status {
+      color: @primary-blue;
+    }
+  }
+
+  // 右上角关闭按钮
+  &__close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgb(194, 194, 194);
+    color: white;
+    .flex-center();
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+
+    &-icon {
+      font-size: 6px;
+      width: 6px;
+      height: 6px;
+      line-height: 1;
+    }
+  }
+
+  &:hover &__close {
+    opacity: 1;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    margin-right: 12px;
+    .flex-center();
+
+    &-wrapper {
+      width: 100%;
+      height: 100%;
+      .flex-center();
+    }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__name {
+    width: 118px;
+    height: 18px;
+    .text-style(12px, @text-color, 400);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    margin-bottom: 2px;
+  }
+
+  // 文本样式通用规则
+  &__status,
+  &__file-type,
+  &__file-size {
+    .text-style();
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__file-type {
+    margin-right: 10px;
+  }
+
+  &__progress {
+    width: 100%;
+
+    &-text {
+      font-size: 12px;
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    &-bar {
+      height: 3px;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    &-inner {
+      height: 100%;
+      background-color: @primary-blue;
+      transition: width 0.3s ease;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+  }
+
+  &__action {
+    height: 18px;
+    .flex-center();
+    border: none;
+    background: transparent;
+    color: #616161;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    &-icon {
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    &--preview,
+    &--download {
+      color: rgb(20, 118, 255);
+
+      &:hover {
+        color: @primary-blue;
+      }
+    }
+
+    &--download {
+      margin-left: 24px;
+    }
+  }
+
+  &__message {
+    width: 100%;
+    font-size: 12px;
+    line-height: 18px;
+
+    &--error {
+      color: @error-color;
+    }
+
+    &--warning {
+      color: @warning-color;
+    }
+
+    &--success {
+      color: @success-color;
+    }
+
+    &--info {
+      color: @primary-blue;
+    }
+  }
+}
+
 // 动画效果
 @keyframes pulse-border {
+
   0%,
   100% {
     border-color: rgba(25, 118, 210, 0.7);

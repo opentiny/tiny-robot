@@ -1,74 +1,3 @@
-<template>
-  <div
-    class="tr-file-card"
-    :class="[`tr-file-card--${file.fileType || 'other'}`, file.status, { 'tr-file-card--uploading': file.isUploading }]"
-    :data-file-type="file.fileType || 'other'"
-  >
-    <!-- 关闭按钮 - 右上角固定位置，悬浮显示 -->
-    <button v-if="!disabled" type="button" class="tr-file-card__close" @click="handleRemove" aria-label="移除文件">
-      <span class="tr-file-card__close-icon">×</span>
-    </button>
-
-    <div class="tr-file-card__icon">
-      <div class="tr-file-card__icon-wrapper">
-        <fileTypeIcon />
-      </div>
-    </div>
-
-    <div class="tr-file-card__content">
-      <div class="tr-file-card__info">
-        <span class="tr-file-card__name" :title="file.name">{{ file.name }}</span>
-
-        <!-- 状态区域 - 根据状态类型显示不同内容 -->
-        <div v-if="showStatus" class="tr-file-card__status">
-          <!-- 类型1: 文件类型和大小 -->
-          <template v-if="statusType === 'info'">
-            <span class="tr-file-card__file-type">{{ file.fileType?.toUpperCase() || 'FILE' }}</span>
-            <span class="tr-file-card__file-size" v-if="file.size">{{ formatFileSize(file.size) }}</span>
-          </template>
-
-          <!-- 类型2: 进度状态 -->
-          <template v-else-if="statusType === 'progress' && file.progress !== undefined">
-            <div class="tr-file-card__progress">
-              <div class="tr-file-card__progress-text">{{ file.status || '处理中...' }} {{ file.progress }}%</div>
-              <div class="tr-file-card__progress-bar">
-                <div class="tr-file-card__progress-inner" :style="{ width: `${file.progress}%` }"></div>
-              </div>
-            </div>
-          </template>
-
-          <!-- 类型3: 自定义操作按钮 -->
-          <template v-else-if="statusType === 'operate'">
-            <div class="tr-file-card__actions">
-              <span
-                v-for="(action, index) in customActions"
-                :key="index"
-                class="tr-file-card__action"
-                :class="`tr-file-card__action--${action.type}`"
-                @click="handleCustomAction(action)"
-              >
-                <span class="tr-file-card__action-icon">{{ action.label }}</span>
-              </span>
-            </div>
-          </template>
-
-          <!-- 类型4: 状态消息 -->
-          <template v-else-if="statusType === 'message'">
-            <div class="tr-file-card__message" :class="`tr-file-card__message--${file.messageType || 'info'}`">
-              {{ file.status }}
-            </div>
-          </template>
-
-          <!-- 类型5: 默认状态文本 -->
-          <template v-else>
-            {{ file.status }}
-          </template>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useIconType } from '../composables/useIconType'
@@ -144,227 +73,73 @@ const handleCustomAction = (action: ActionButton) => {
 }
 </script>
 
-<style lang="less">
-.tr-file-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 192px;
-  height: 58px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.04);
-  padding: 8px 12px 8px 8px;
-  margin-right: 8px;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
+<template>
+  <div
+    class="tr-file-card"
+    :class="[`tr-file-card--${file.fileType || 'other'}`, file.status, { 'tr-file-card--uploading': file.isUploading }]"
+    :data-file-type="file.fileType || 'other'"
+  >
+    <!-- 关闭按钮 - 右上角固定位置，悬浮显示 -->
+    <button v-if="!disabled" type="button" class="tr-file-card__close" @click="handleRemove" aria-label="移除文件">
+      <span class="tr-file-card__close-icon">×</span>
+    </button>
 
-  &:hover {
-    background: rgb(255, 255, 255);
-    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
-  }
+    <div class="tr-file-card__icon">
+      <div class="tr-file-card__icon-wrapper">
+        <fileTypeIcon />
+      </div>
+    </div>
 
-  &.error {
-    background-color: #ffebee;
-  }
+    <div class="tr-file-card__content">
+      <div class="tr-file-card__info">
+        <span class="tr-file-card__name" :title="file.name">{{ file.name }}</span>
 
-  &--uploading {
-    .tr-file-card__status {
-      color: #2196f3;
-    }
-  }
+        <!-- 状态区域 - 根据状态类型显示不同内容 -->
+        <div v-if="showStatus" class="tr-file-card__status">
+          <!-- 类型1: 文件类型和大小 -->
+          <template v-if="statusType === 'info'">
+            <span class="tr-file-card__file-type">{{ file.fileType?.toUpperCase() || 'FILE' }}</span>
+            <span class="tr-file-card__file-size" v-if="file.size">{{ formatFileSize(file.size) }}</span>
+          </template>
 
-  // 右上角关闭按钮
-  &__close {
-    position: absolute;
-    top: 0;
-    right: 0;
-    transform: translate(50%, -50%);
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: rgb(194, 194, 194);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10;
+          <!-- 类型2: 进度状态 -->
+          <template v-else-if="statusType === 'progress' && file.progress !== undefined">
+            <div class="tr-file-card__progress">
+              <div class="tr-file-card__progress-text">{{ file.status || '处理中...' }} {{ file.progress }}%</div>
+              <div class="tr-file-card__progress-bar">
+                <div class="tr-file-card__progress-inner" :style="{ width: `${file.progress}%` }"></div>
+              </div>
+            </div>
+          </template>
 
-    &-icon {
-      font-size: 6px;
-      width: 6px;
-      height: 6px;
-      line-height: 1;
-    }
-  }
+          <!-- 类型3: 自定义操作按钮 -->
+          <template v-else-if="statusType === 'operate'">
+            <div class="tr-file-card__actions">
+              <span
+                v-for="(action, index) in customActions"
+                :key="index"
+                class="tr-file-card__action"
+                :class="`tr-file-card__action--${action.type}`"
+                @click="handleCustomAction(action)"
+              >
+                <span class="tr-file-card__action-icon">{{ action.label }}</span>
+              </span>
+            </div>
+          </template>
 
-  &:hover &__close {
-    opacity: 1;
-  }
+          <!-- 类型4: 状态消息 -->
+          <template v-else-if="statusType === 'message'">
+            <div class="tr-file-card__message" :class="`tr-file-card__message--${file.messageType || 'info'}`">
+              {{ file.status }}
+            </div>
+          </template>
 
-  &__icon {
-    flex-shrink: 0;
-    width: 42px;
-    height: 42px;
-    margin-right: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &-wrapper {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  }
-
-  &__content {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  &__info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-  }
-
-  &__name {
-    width: 118px;
-    height: 18px;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 18px;
-    white-space: nowrap;
-    color: rgb(25, 25, 25);
-    text-overflow: ellipsis;
-    overflow: hidden;
-    margin-bottom: 2px;
-  }
-
-  &__status {
-    color: rgb(128, 128, 128);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 18px;
-    letter-spacing: 0px;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
-
-  &__file-type {
-    color: rgb(128, 128, 128);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 18px;
-    letter-spacing: 0px;
-    margin-right: 10px;
-  }
-
-  &__file-size {
-    color: rgb(128, 128, 128);
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 18px;
-    letter-spacing: 0px;
-  }
-
-  &__progress {
-    width: 100%;
-
-    &-text {
-      font-size: 12px;
-      margin-bottom: 2px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    &-bar {
-      height: 3px;
-      width: 100%;
-      background-color: rgba(0, 0, 0, 0.08);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    &-inner {
-      height: 100%;
-      background-color: #2196f3;
-      transition: width 0.3s ease;
-    }
-  }
-
-  &__actions {
-    display: flex;
-    align-items: center;
-  }
-
-  &__action {
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: #616161;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s;
-    white-space: nowrap;
-
-    &__icon {
-      font-size: 12px;
-      line-height: 1;
-    }
-
-    &--preview {
-      color: rgb(20, 118, 255);
-      &:hover {
-        color: #2196f3;
-      }
-    }
-
-    &--download {
-      margin-left: 24px;
-      color: rgb(20, 118, 255);
-
-      &:hover {
-        color: #2196f3;
-      }
-    }
-  }
-
-  &__message {
-    width: 100%;
-    font-size: 12px;
-    line-height: 18px;
-
-    &--error {
-      color: #f44336;
-    }
-
-    &--warning {
-      color: #ff9800;
-    }
-
-    &--success {
-      color: #4caf50;
-    }
-
-    &--info {
-      color: #2196f3;
-    }
-  }
-}
-</style>
+          <!-- 类型5: 默认状态文本 -->
+          <template v-else>
+            {{ file.status }}
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
