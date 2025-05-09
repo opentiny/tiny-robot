@@ -16,11 +16,23 @@ export interface BubbleProps {
   avatar?: VNode
   role?: string
   /**
+   * 气泡形状，默认 'default' 圆角矩形
+   */
+  shape?: 'default' | 'corner'
+  /**
    * 内容类型
    */
   type?: 'text' | 'markdown'
   loading?: boolean
   aborted?: boolean
+  /**
+   * 推理内容
+   */
+  reasoning?: {
+    enabled?: boolean
+    content?: string
+    completed?: boolean
+  }
   /**
    * type 为 'markdown' 时，markdown 的配置项
    */
@@ -35,7 +47,10 @@ export interface BubbleSlots {
   loading?: (slotProps: { bubbleProps: BubbleProps }) => unknown
 }
 
-export type BubbleRoleConfig = Pick<BubbleProps, 'placement' | 'avatar' | 'type' | 'mdConfig' | 'maxWidth'> & {
+export type BubbleRoleConfig = Pick<
+  BubbleProps,
+  'placement' | 'avatar' | 'shape' | 'type' | 'mdConfig' | 'maxWidth'
+> & {
   slots?: BubbleSlots
 }
 

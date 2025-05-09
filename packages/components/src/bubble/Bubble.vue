@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import markdownit from 'markdown-it'
 import { computed } from 'vue'
+import { Reasoning } from './components'
 import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
   placement: 'start',
+  shape: 'default',
   type: 'text',
   maxWidth: '80%',
 })
@@ -47,11 +49,14 @@ const placementStart = computed(() => props.placement === 'start')
           <span></span>
         </div>
       </slot>
-      <div v-else :class="['tr-bubble__content']">
+      <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
+        <div v-if="props.reasoning?.enabled">
+          <Reasoning :content="props.reasoning.content" :completed="props.reasoning.completed"></Reasoning>
+        </div>
         <div class="tr-bubbule__body">
           <slot :bubble-props="props">
             <span v-if="props.type === 'markdown'" v-html="bubbleContent"></span>
-            <span v-else>{{ bubbleContent }}</span>
+            <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
             <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
           </slot>
         </div>
@@ -71,11 +76,19 @@ const placementStart = computed(() => props.placement === 'start')
 
   &.placement-start {
     flex-direction: row;
+
+    .tr-bubble__content.border-corner {
+      border-top-left-radius: 0;
+    }
   }
 
   &.placement-end {
     flex-direction: row-reverse;
     margin-left: auto;
+
+    .tr-bubble__content.border-corner {
+      border-top-right-radius: 0;
+    }
   }
 }
 
@@ -139,6 +152,10 @@ const placementStart = computed(() => props.placement === 'start')
     font-size: 16px;
     line-height: 26px;
     word-break: break-word;
+  }
+
+  .tr-bubbule__body-text {
+    white-space: pre-line;
   }
 
   .tr-bubbule__aborted {
