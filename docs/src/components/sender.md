@@ -96,11 +96,11 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 启用`allowSpeech`支持语音输入功能，用户可以通过语音录入文本。
 
-<tr-sender :allowSpeech="true" />
+* 混合模式：用户可以先用键盘输入部分内容，然后通过语音继续补充，自动停止录音。
 
-```vue
-<tr-sender :allowSpeech="true" />
-```
+* 连续语音输入：用户可以连续录入语音，系统会自动将语音转换为文本，点击按钮手动停止录音。
+
+<demo vue="../../demos/sender/voiceInput.vue" title="语音输入" description="可以使用 speech 属性进行配置" />
 
 #### 文件上传
 
