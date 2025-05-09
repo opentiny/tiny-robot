@@ -27,6 +27,10 @@ outline: deep
 3. **状态消息 (message)**：显示状态文本，可以通过 `file.messageType` 指定消息类型（error/warning/success/info）。
 4. **自定义操作 (operate)**：显示自定义操作按钮，需要提供 `customActions` 属性。
 
+
+### 整合案例
+<demo vue="../../demos/attachments/integration.vue" title="整合案例" description="整合案例" />
+
 ## API
 
 ### Props
@@ -106,6 +110,4 @@ interface DragConfig {
 - excel: Excel表格（xls, xlsx）
 - ppt: 演示文稿（ppt, pptx）
 - folder: 文件夹
-- text: 文本文件（txt等）
-- zip: 压缩文件（zip, rar, 7z等）
 - other: 其他类型文件

@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { useIconType } from '../composables/useIconType'
 import type { Attachment, FileType } from '../index.type'
+import IconAttachmentUploadFailed from './IconAttachmentUploadFailed.vue'
+import IconAttachmentUploadLoading from './IconAttachmentUploadLoading.vue'
 
 // 自定义操作按钮类型
 interface ActionButton {
@@ -54,6 +56,10 @@ const formatFileSize = (size: number): string => {
   }
 }
 
+// 判断文件状态
+const isUploading = computed(() => props.file.status === 'uploading' || props.file.isUploading)
+const isUploadFailed = computed(() => props.file.status === 'error')
+
 // 预览文件
 // const handlePreview = () => {
 //   emit('preview', props.file)
@@ -76,7 +82,14 @@ const handleCustomAction = (action: ActionButton) => {
 <template>
   <div
     class="tr-file-card"
-    :class="[`tr-file-card--${file.fileType || 'other'}`, file.status, { 'tr-file-card--uploading': file.isUploading }]"
+    :class="[
+      `tr-file-card--${file.fileType || 'other'}`,
+      file.status,
+      {
+        'tr-file-card--uploading': isUploading,
+        'tr-file-card--error': isUploadFailed,
+      },
+    ]"
     :data-file-type="file.fileType || 'other'"
   >
     <!-- 关闭按钮 - 右上角固定位置，悬浮显示 -->
@@ -87,6 +100,14 @@ const handleCustomAction = (action: ActionButton) => {
     <div class="tr-file-card__icon">
       <div class="tr-file-card__icon-wrapper">
         <fileTypeIcon />
+
+        <!-- 上传状态蒙版 -->
+        <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
+          <div v-if="isUploading" class="tr-file-card__loading-icon">
+            <IconAttachmentUploadLoading :width="24" :height="24" />
+          </div>
+          <IconAttachmentUploadFailed v-if="isUploadFailed" :width="24" :height="24" />
+        </div>
       </div>
     </div>
 
@@ -143,3 +164,45 @@ const handleCustomAction = (action: ActionButton) => {
     </div>
   </div>
 </template>
+
+<style lang="less" scoped>
+.tr-file-card {
+  /* 已有样式保持不变 */
+
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    z-index: 5;
+  }
+
+  &__icon-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__loading-icon {
+    animation: spin 1.5s linear infinite;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+}
+</style>
