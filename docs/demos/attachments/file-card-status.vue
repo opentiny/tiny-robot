@@ -99,7 +99,7 @@ const messageFiles = ref([
     name: '上传失败.xlsx',
     fileType: 'excel',
     size: 1024 * 1024 * 2.3, // 2.3MB
-    status: '上传失败',
+    status: 'error',
     messageType: 'error',
   },
   {
