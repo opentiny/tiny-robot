@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useIconType } from '../composables/useIconType'
 import type { Attachment, FileType } from '../index.type'
-import IconAttachmentUploadFailed from './IconAttachmentUploadFailed.vue'
-import IconAttachmentUploadLoading from './IconAttachmentUploadLoading.vue'
+import { IconUploadFailed, IconUploadLoading } from '@opentiny/tiny-robot-svgs'
+import ImagePreview from './ImagePreview.vue'
 
 // 自定义操作按钮类型
 interface ActionButton {
@@ -33,7 +33,11 @@ const props = withDefaults(
   },
 )
 
-const emit = defineEmits(['remove', 'preview', 'action'])
+const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
+
+// 图片预览相关状态
+const isPreviewVisible = ref(false)
+const previewUrl = ref('')
 
 // 使用图标类型管理
 const { getIconComponent } = useIconType(props.fileIcons, props.iconSize)
@@ -41,6 +45,11 @@ const { getIconComponent } = useIconType(props.fileIcons, props.iconSize)
 // 获取当前文件类型对应的图标
 const fileTypeIcon = computed(() => {
   return getIconComponent(props.file.fileType as FileType).value
+})
+
+// 判断是否为图片类型
+const isImage = computed(() => {
+  return props.file.fileType === 'image'
 })
 
 // 格式化文件大小
@@ -61,9 +70,55 @@ const isUploading = computed(() => props.file.status === 'uploading' || props.fi
 const isUploadFailed = computed(() => props.file.status === 'error')
 
 // 预览文件
-// const handlePreview = () => {
-//   emit('preview', props.file)
-// }
+const handlePreview = () => {
+  if (isImage.value && props.file.previewUrl) {
+    previewUrl.value = props.file.previewUrl
+    isPreviewVisible.value = true
+  } else if (isImage.value && props.file.rawFile) {
+    // 如果是原生 File 对象，创建临时 URL
+    previewUrl.value = URL.createObjectURL(props.file.rawFile)
+    isPreviewVisible.value = true
+  } else {
+    // 非图片类型，触发外部预览事件
+    emit('preview', props.file)
+  }
+}
+
+// 关闭预览
+const closePreview = () => {
+  isPreviewVisible.value = false
+  // 清理临时 URL
+  if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(previewUrl.value)
+  }
+}
+
+// 下载文件
+const downloadFile = () => {
+  if (props.file.previewUrl) {
+    // 创建下载链接
+    const link = document.createElement('a')
+    link.href = props.file.previewUrl
+    link.download = props.file.name
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } else if (props.file.rawFile) {
+    // 使用 File 对象创建下载
+    const url = URL.createObjectURL(props.file.rawFile)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = props.file.name
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  emit('download', props.file)
+}
 
 // 移除文件
 const handleRemove = () => {
@@ -75,7 +130,20 @@ const handleCustomAction = (action: ActionButton) => {
   if (action.handler) {
     action.handler(props.file)
   }
-  emit('action', { action, file: props.file })
+
+  // 对预览和下载操作进行特殊处理
+  if (action.type === 'preview' && isImage.value) {
+    handlePreview()
+  } else if (action.type === 'download' && isImage.value) {
+    downloadFile()
+  } else {
+    emit('action', { action, file: props.file })
+  }
+}
+
+// 重试上传
+const handleRetry = () => {
+  emit('retry', props.file)
 }
 </script>
 
@@ -97,16 +165,20 @@ const handleCustomAction = (action: ActionButton) => {
       <span class="tr-file-card__close-icon">×</span>
     </button>
 
-    <div class="tr-file-card__icon">
+    <div
+      class="tr-file-card__icon"
+      @click="isImage && showPreview ? handlePreview() : null"
+      :class="{ 'tr-file-card__icon--preview': isImage && showPreview }"
+    >
       <div class="tr-file-card__icon-wrapper">
         <fileTypeIcon />
 
         <!-- 上传状态蒙版 -->
         <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
           <div v-if="isUploading" class="tr-file-card__loading-icon">
-            <IconAttachmentUploadLoading :width="24" :height="24" />
+            <IconUploadLoading :width="24" :height="24" />
           </div>
-          <IconAttachmentUploadFailed v-if="isUploadFailed" :width="24" :height="24" />
+          <IconUploadFailed v-if="isUploadFailed" :width="24" :height="24" />
         </div>
       </div>
     </div>
@@ -150,8 +222,19 @@ const handleCustomAction = (action: ActionButton) => {
 
           <!-- 类型4: 状态消息 -->
           <template v-else-if="statusType === 'message'">
-            <div class="tr-file-card__message" :class="`tr-file-card__message--${file.messageType || 'info'}`">
-              {{ file.status }}
+            <!-- 重试操作：显示上传失败文本和重试按钮 -->
+            <div v-if="file.messageType === 'error' && file.status === 'error'" class="tr-file-card__retry">
+              <span class="tr-file-card__error-text">上传失败</span>
+              <button class="tr-file-card__retry-btn" @click="handleRetry">重试</button>
+            </div>
+            <!-- 普通消息类型 -->
+            <div v-else class="tr-file-card__message" :class="`tr-file-card__message--${file.messageType || 'info'}`">
+              <span v-if="file.messageType === 'error'">上传失败</span>
+              <span v-if="file.messageType === 'warning'">上传警告</span>
+              <span v-if="file.messageType === 'success'">上传成功</span>
+              <span v-if="file.messageType === 'info'">处理中</span>
+              <span v-if="file.messageType === 'uploading'">上传中</span>
+              <span v-if="!file.messageType">{{ file.status || '状态信息' }}</span>
             </div>
           </template>
 
@@ -162,6 +245,15 @@ const handleCustomAction = (action: ActionButton) => {
         </div>
       </div>
     </div>
+
+    <!-- 图片预览弹窗 -->
+    <ImagePreview
+      v-if="isImage"
+      :visible="isPreviewVisible"
+      :image-url="previewUrl"
+      @close="closePreview"
+      @download="downloadFile"
+    />
   </div>
 </template>
 
@@ -192,8 +284,46 @@ const handleCustomAction = (action: ActionButton) => {
     justify-content: center;
   }
 
+  &__icon--preview {
+    cursor: pointer;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
   &__loading-icon {
     animation: spin 1.5s linear infinite;
+  }
+
+  &__retry {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__error-text {
+    color: #f44336;
+    font-size: 12px;
+  }
+
+  &__retry-btn {
+    background: transparent;
+    border: none;
+    color: #1976d2;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+
+    &:hover {
+      background-color: rgba(25, 118, 210, 0.1);
+    }
   }
 
   @keyframes spin {
