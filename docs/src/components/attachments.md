@@ -18,15 +18,38 @@ outline: deep
 
 ### 卡片状态
 
-<demo vue="../../demos/attachments/file-card-status.vue" title="文件卡片状态类型" description="文件卡片可以展示不同类型的状态：文件信息、进度状态、状态消息和自定义操作按钮" />
+<demo vue="../../demos/attachments/file-card-status.vue" title="文件卡片状态类型" description="文件卡片可以展示不同类型的状态" />
 
-文件卡片支持多种状态类型展示，可以通过 `statusType` 属性进行配置：
 
-1. **信息状态 (info)**：默认状态，显示文件类型和大小。
-2. **进度状态 (progress)**：显示文件上传/下载进度条，需要设置 `file.progress` 属性。
-3. **状态消息 (message)**：显示状态文本，可以通过 `file.messageType` 指定消息类型（error/warning/success/info）。
-4. **自定义操作 (operate)**：显示自定义操作按钮，需要提供 `customActions` 属性。
+**文件状态消息类型**
 
+| 状态类型          | 属性配置            | 说明                              | 相关属性                  | 交互/备注                                                                 |
+|-------------------|---------------------|-----------------------------------|--------------------------|--------------------------------------------------------------------------|
+| 信息状态          | `statusType="info"` | 默认状态，显示文件类型和大小      | -                        | 无特殊交互                                                              |
+| 进度状态          | `statusType="progress"` | 显示上传/下载进度条           | `file.progress` (必填)   | 需提供进度百分比数值（0-100）                                           |
+| 状态消息          | `statusType="message"` | 显示预设状态消息文本          | `file.messageType`<br>`file.status` | 需配合 `file.messageType` 定义消息类型，`file.status` 可扩展交互功能    |
+| 自定义操作        | `statusType="operate"` | 显示自定义操作按钮            | `customActions` (必填)   | 需通过数组提供按钮配置                                                  |
+| 默认状态          | 不设置或默认配置    | 仅显示 `file.status` 的文本内容   | `file.status`            | 纯文本展示无交互                                                        |
+
+**状态消息类型 (file.messageType 可选值):**
+| 消息类型          | 触发条件                                | 典型场景              | 特殊交互                         |
+|-------------------|---------------------------------------|---------------------|----------------------------------|
+| error             | `file.messageType="error"`<br>且 `file.status="error"` | 上传失败            | 自动显示重试按钮                 |
+| warning           | `file.messageType="warning"`          | 文件校验警告         | 仅显示警示图标和文本             |
+| success           | `file.messageType="success"`          | 传输成功            | 可配置成功图标                   |
+| info              | `file.messageType="info"`             | 常规提示信息         | 基础文本展示                     |
+| uploading         | `file.messageType="uploading"`        | 上传中              | 可配合进度条使用                 |
+
+**特点说明：**
+1. 状态消息支持组合控制：通过 `messageType` 定义样式，`status` 控制交互状态
+2. 错误重试逻辑：当同时满足 `messageType="error"` 和 `status="error"` 时自动激活
+3. 扩展性设计：自定义操作可通过 `customActions` 注入任意按钮组件
+4. 渐进式显示：未设置特殊状态时自动降级为默认信息展示模式
+
+
+### 高级功能
+
+<demo vue="../../demos/attachments/file-image-preview.vue" title="附加功能" description="文件卡片支持图片预览和下载以及失败重传功能" />
 
 ### 整合案例
 <demo vue="../../demos/attachments/integration.vue" title="整合案例" description="整合案例" />
@@ -59,7 +82,7 @@ interface Attachment {
   status?: string
   progress?: number // 上传/下载进度 (0-100)
   isUploading?: boolean
-  messageType?: 'error' | 'warning' | 'success' | 'info' // 状态消息类型
+  messageType?: 'error' | 'warning' | 'success' | 'info' | 'uploading' // 状态消息类型
   // ... 其他属性
 }
 ```
@@ -98,6 +121,7 @@ interface DragConfig {
 | files-dropped | `Attachment[]`                               | 文件拖拽上传时触发       |
 | file-remove   | `Attachment`                                 | 文件被移除时触发         |
 | file-preview  | `Attachment`                                 | 文件预览时触发           |
+| file-retry    | `Attachment`                                 | 文件重试上传时触发       |
 | action        | `{ action: ActionButton, file: Attachment }` | 自定义操作按钮点击时触发 |
 
 ## 附件类型

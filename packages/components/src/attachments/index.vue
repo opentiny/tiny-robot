@@ -14,7 +14,15 @@ const props = withDefaults(defineProps<AttachmentsProps>(), {
   statusType: 'info',
 })
 
-const emit = defineEmits(['update:items', 'files-dropped', 'file-remove', 'file-preview', 'action'])
+const emit = defineEmits([
+  'update:items',
+  'files-dropped',
+  'file-remove',
+  'file-preview',
+  'file-download',
+  'file-retry',
+  'action',
+])
 
 // 文件列表管理
 const fileList = ref<Attachment[]>(props.items || [])
@@ -95,6 +103,26 @@ function handlePreview(file: Attachment) {
   emit('file-preview', file)
 }
 
+// 下载文件
+function handleDownload(file: Attachment) {
+  emit('file-download', file)
+}
+
+// 重试上传
+function handleRetry(file: Attachment) {
+  // 将文件状态重置为上传中
+  const index = fileList.value.findIndex((item) => item.uid === file.uid)
+  if (index !== -1) {
+    fileList.value[index].status = 'uploading'
+    fileList.value[index].messageType = undefined
+    fileList.value[index].isUploading = true
+
+    // 触发重试事件
+    emit('file-retry', file)
+    emit('update:items', fileList.value)
+  }
+}
+
 // 处理自定义操作按钮事件
 // eslint-disable-next-line
 function handleAction(payload: any) {
@@ -153,6 +181,8 @@ onMounted(() => {
           :show-status="true"
           @remove="handleRemove"
           @preview="handlePreview"
+          @download="handleDownload"
+          @retry="handleRetry"
           @action="handleAction"
         />
 
