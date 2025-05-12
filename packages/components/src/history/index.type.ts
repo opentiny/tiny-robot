@@ -11,7 +11,7 @@ interface BaseHistoryProps {
 
 export type SingleTabHistoryProps = {
   tabTitle: string
-  data: HistoryGroup[]
+  data: HistoryData
 } & BaseHistoryProps
 
 export type MultiTabHistoryProps = {
@@ -19,15 +19,10 @@ export type MultiTabHistoryProps = {
     title: string
     id: string
   }[]
-  data: Record<string, HistoryGroup[]>
+  data: Record<string, HistoryData>
 } & BaseHistoryProps
 
 export type HistoryProps = SingleTabHistoryProps | MultiTabHistoryProps
-
-export interface HistoryGroup<T = Record<string, unknown>> {
-  date: string
-  items: HistoryItem<T>[]
-}
 
 export interface HistoryItemTagProps {
   text: string
@@ -41,6 +36,13 @@ export interface HistoryItem<T = Record<string, unknown>> {
   tag?: HistoryItemTagProps
   data?: T
 }
+
+export interface HistoryGroup<T = Record<string, unknown>> {
+  group: string | symbol
+  items: HistoryItem<T>[]
+}
+
+export type HistoryData = HistoryItem[] | HistoryGroup[]
 
 export interface HistoryEvents {
   (e: 'close'): void

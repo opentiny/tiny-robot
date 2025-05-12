@@ -1,10 +1,13 @@
 <script lang="ts" setup>
 import { IconClose, IconDelete, IconEditPen, IconSearch } from '@opentiny/tiny-robot-svgs'
-import { TinyButton, TinyInput } from '@opentiny/vue'
+import TinyInput from '@opentiny/vue-input'
+import TinyTooltip from '@opentiny/vue-tooltip'
 import { computed } from 'vue'
+import IconButton from '../icon-button'
 import { ItemTag, SearchEmpty } from './components'
 import { useEditItemTitle } from './composables'
 import type {
+  HistoryData,
   HistoryEvents,
   HistoryGroup,
   HistoryItem,
@@ -44,12 +47,29 @@ const enableTabBottomBorder = computed(() => {
   return computedTabs.value.length > 1
 })
 
-const groups = computed(() => {
+const isGroup = (data: HistoryData): data is HistoryGroup[] => {
+  const typeOfGroup = typeof (data[0] as HistoryGroup)?.group
+  return typeOfGroup === 'string' || typeOfGroup === 'symbol'
+}
+
+const data = computed(() => {
   if (Array.isArray(props.data)) {
     return props.data || []
   }
 
   return props.data[computedActiveTab.value] || []
+})
+
+const NO_GROUP = Symbol('NO_GROUP')
+
+const groups = computed(() => {
+  const value = data.value
+
+  if (isGroup(value)) {
+    return value
+  }
+
+  return [{ group: NO_GROUP, items: value }]
 })
 
 const filteredGroups = computed(() => {
@@ -65,6 +85,18 @@ const filteredGroups = computed(() => {
   })
 
   return groupsWithFilteredItems.filter((group) => group.items.length > 0)
+})
+
+const notEmpty = computed(() => {
+  if (filteredGroups.value.length === 0) {
+    return false
+  }
+
+  if (filteredGroups.value[0].group === NO_GROUP) {
+    return filteredGroups.value[0].items.length > 0
+  }
+
+  return true
 })
 
 const handleItemClick = (item: HistoryItem) => {
@@ -108,10 +140,10 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
       />
     </div>
     <div class="tr-history__content">
-      <template v-if="filteredGroups.length > 0">
-        <div v-for="group in filteredGroups" :key="group.date" class="tr-history__group">
-          <div class="tr-history__date">
-            <span>{{ group.date }}</span>
+      <template v-if="notEmpty">
+        <div v-for="group in filteredGroups" :key="group.group" class="tr-history__group">
+          <div v-if="group.group !== NO_GROUP" class="tr-history__group-title">
+            <span>{{ group.group }}</span>
           </div>
           <div
             v-for="item in group.items"
@@ -123,9 +155,12 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
               <span class="tr-history__item-title">{{ item.title }}</span>
               <ItemTag v-if="item.tag" class="tr-history__item-tag" v-bind="item.tag" />
               <div class="tr-history__item-actions">
-                <!-- TODO add popover提示 -->
-                <tiny-button :icon="IconEditPen" type="text" size="mini" @click.stop="handleEdit(item)" />
-                <tiny-button :icon="IconDelete" type="text" size="mini" @click.stop="handleDelete(item)" />
+                <tiny-tooltip content="编辑" effect="dark" placement="top" :open-delay="500">
+                  <icon-button :icon="IconEditPen" @click.stop="handleEdit(item)"></icon-button>
+                </tiny-tooltip>
+                <tiny-tooltip content="删除" effect="dark" placement="top" :open-delay="500">
+                  <icon-button :icon="IconDelete" @click.stop="handleDelete(item)"></icon-button>
+                </tiny-tooltip>
               </div>
             </template>
             <template v-else>
@@ -142,7 +177,7 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
       <SearchEmpty v-else :text="searchQuery ? '暂无搜索结果' : '暂无内容'" />
     </div>
     <div class="tr-history__close">
-      <tiny-button :icon="IconClose" type="text" size="mini" @click="handleClose" />
+      <icon-button :icon="IconClose" rounded @click="handleClose"></icon-button>
     </div>
   </div>
 </template>
@@ -202,7 +237,7 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
     margin: 0 -20px;
     margin-bottom: 12px;
 
-    .tr-history__date {
+    .tr-history__group-title {
       font-size: 12px;
       line-height: 20px;
       padding: 4px 12px;
@@ -218,6 +253,8 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
 
       display: flex;
       align-items: center;
+      height: 44px;
+      padding: 0 12px;
       font-size: 14px;
       line-height: 24px;
       border-radius: 12px;
@@ -237,11 +274,10 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
       }
 
       &.selected {
-        --tr-history-item-bg: rgb(222, 236, 255);
+        border: 1px solid rgb(20, 118, 255);
       }
 
       .tr-history__item-title {
-        padding: 10px 12px;
         font-size: 14px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -275,10 +311,9 @@ const { editingItem, handleEdit, handleEditorInputRef, handleKeyDown } = useEdit
       .tr-history__item-edit {
         width: 100%;
         font-size: 14px;
-        height: 44px;
-        border-radius: 12px;
-        border: 1px solid rgb(20, 118, 255);
-        padding: 0 12px;
+        line-height: 24px;
+        background-color: rgba(0, 0, 0, 0.04);
+        border-radius: 4px;
       }
     }
   }
