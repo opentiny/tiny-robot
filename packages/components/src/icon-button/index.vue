@@ -20,7 +20,7 @@ const svgSize = computed(() => formatSize(props.svgSize))
 </script>
 
 <template>
-  <button class="tr-icon-button">
+  <button :class="['tr-icon-button', { rounded: props.rounded }]">
     <component :is="props.icon" />
   </button>
 </template>
@@ -30,6 +30,7 @@ button.tr-icon-button {
   --tr-icon-button-hover-bg: rgba(0, 0, 0, 0.04);
   --tr-icon-button-active-bg: rgba(0, 0, 0, 0.15);
   --tr-icon-button-border-radius: 8px;
+  --tr-icon-button-border-radius-rounded: 999px;
 
   width: v-bind('size');
   height: v-bind('size');
@@ -49,6 +50,10 @@ button.tr-icon-button {
 
   &:active {
     background-color: var(--tr-icon-button-active-bg);
+  }
+
+  &.rounded {
+    border-radius: var(--tr-icon-button-border-radius-rounded);
   }
 
   svg {
