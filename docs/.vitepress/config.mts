@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
+import demoPlugin from './theme/components/demo-plugin'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -10,6 +11,7 @@ export default defineConfig({
   base: '/cdocs/tiny-robot/',
   vite: {
     server: { open: true },
+    plugins: [demoPlugin()],
   },
   markdown: {
     config: (md) => {
