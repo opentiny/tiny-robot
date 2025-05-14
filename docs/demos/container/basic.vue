@@ -26,9 +26,8 @@
 </template>
 
 <script setup lang="ts">
-import { TrContainer, TrIconButton } from '@opentiny/tiny-robot'
+// import { TrContainer } from '@opentiny/tiny-robot'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
-import { TinySwitch } from '@opentiny/vue'
 import { ref } from 'vue'
 
 const show = ref(false)
