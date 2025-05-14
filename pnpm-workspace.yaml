@@ -1,3 +1,5 @@
 packages:
   - packages/**
   - docs
+patchedDependencies:
+  vitepress-demo-plugin: patches/vitepress-demo-plugin.patch
