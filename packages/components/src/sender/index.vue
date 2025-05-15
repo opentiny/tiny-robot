@@ -12,7 +12,7 @@ import './index.less'
 const props = withDefaults(defineProps<SenderProps>(), {
   autofocus: false,
   autoSize: () => ({ minRows: 1, maxRows: 3 }),
-  allowSpeech: true,
+  allowSpeech: false,
   allowFiles: false,
   clearable: false,
   disabled: false,
@@ -26,6 +26,8 @@ const props = withDefaults(defineProps<SenderProps>(), {
   theme: 'light',
   template: '',
   hasContent: undefined,
+  fixedText: '',
+  fixedTextLink: undefined,
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -366,6 +368,22 @@ defineExpose({
 
           <!-- 内容区域 - 确保最小宽度，不被挤占 -->
           <div class="tiny-sender__content-area">
+            <!-- 固定文本提示 -->
+            <div v-if="fixedText" class="tiny-sender__fixed-text">
+              <span>{{ fixedText.replace(fixedTextLink?.text || '', '') }}</span>
+              <a
+                v-if="fixedTextLink"
+                class="tiny-sender__fixed-link"
+                :href="fixedTextLink.url || 'javascript:void(0)'"
+                @click.prevent="
+                  $emit('fixed-link-click')
+                  fixedTextLink.handler && fixedTextLink.handler()
+                "
+              >
+                {{ fixedTextLink.text }}
+              </a>
+            </div>
+
             <!-- 模板编辑器 -->
             <template v-if="showTemplateEditor">
               <TemplateEditor

@@ -57,11 +57,16 @@
     color: var(--tr-sender-text-color-secondary);
   }
 
-  .tiny-textarea.is-disabled .tiny-textarea__inner {
-    border: none;
-    background: var(--tr-sender-bg-color);
-    color: var(--tr-sender-text-color-secondary);
+  .tiny-textarea.is-disabled {
+    background-color: var(--tr-sender-bg-color);
+
+    & .tiny-textarea__inner {
+      background: var(--tr-sender-bg-color);
+      border: none;
+      color: var(--tr-sender-text-color-secondary);
+    }
   }
+
 
   .tiny-input__suffix {
     right: 0;
@@ -276,7 +281,7 @@
     line-height: 22px;
     text-align: left;
     letter-spacing: 0;
-    color: var(--tr-sender-word-limit-color);
+    color: var(--tr-sender-text-color-tertiary);
   }
 
   // 输入建议
@@ -305,7 +310,6 @@
 
   // 禁用状态
   &.is-disabled {
-    opacity: var(--tr-sender-disabled-opacity);
     cursor: not-allowed;
   }
 
@@ -403,6 +407,32 @@
     height: 0;
     overflow: hidden;
   }
+
+  // 固定文本样式
+  &__fixed-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: var(--tr-sender-border-radius);
+    padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+    background-color: var(--tr-sender-bg-color);
+    color: var(--tr-sender-text-color-tertiary);
+    z-index: 1;
+    pointer-events: none; // 让固定文本不能接收鼠标事件
+    display: flex;
+    align-items: center;
+  }
+
+  &__fixed-link {
+    pointer-events: auto; // 让链接可以接收鼠标事件
+    color: var(--tr-sender-link-color);
+    text-decoration: none;
+    margin-left: 4px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 // ActionButtons组件样式
@@ -465,6 +495,29 @@
 /** 处理相邻按钮元素边界  */
 .tiny-button+.tiny-button {
   margin-left: 0;
+}
+
+/* 模式切换过渡动画 */
+.tiny-sender-slide-up-enter-active,
+.tiny-sender-slide-up-leave-active,
+.tiny-sender-slide-down-enter-active,
+.tiny-sender-slide-down-leave-active {
+  overflow: hidden;
+  max-height: var(--tr-sender-transition-max-height);
+}
+
+.tiny-sender-slide-up-enter-from,
+.tiny-sender-slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+  max-height: 0;
+}
+
+.tiny-sender-slide-down-enter-from,
+.tiny-sender-slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+  max-height: 0;
 }
 
 /* 模式切换过渡动画 */

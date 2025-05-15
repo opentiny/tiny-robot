@@ -43,6 +43,13 @@ export interface SenderProps {
   theme?: ThemeType // 主题
   template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
   hasContent?: boolean // 手动指定是否有内容，用于模板模式
+  fixedText?: string // 固定提示文本
+  fixedTextLink?: {
+    // 固定文本中的可点击链接部分
+    text: string // 链接文本
+    url?: string // 链接地址
+    handler?: () => void // 点击处理函数
+  }
 }
 
 export interface ActionButtonsProps {
@@ -75,6 +82,7 @@ export type SenderEmits = {
   (e: 'escape-press'): void // 按下Esc键时触发
   (e: 'cancel'): void // 取消发送状态时触发
   (e: 'reset-template'): void // 重置模板状态，退出模板编辑模式
+  (e: 'fixed-link-click'): void // 固定文本中链接点击时触发
 }
 
 // 语音识别状态

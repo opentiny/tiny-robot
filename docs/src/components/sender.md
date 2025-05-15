@@ -102,6 +102,18 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 <demo vue="../../demos/sender/voiceInput.vue" title="语音输入" description="可以使用 speech 属性进行配置" />
 
+#### 固定提示文本与链接
+
+此功能适用于需要在输入框内显示提示信息并引导用户操作的场景，如：
+- **1. 服务状态提示**
+- **2. 快捷操作链接**
+- **3. 功能引导等**
+
+
+可以通过`fixedText`和`fixedTextLink`属性在输入框内显示固定文本和可点击链接
+
+<demo vue="../../demos/sender/FixedText.vue" title="固定提示文本与链接" description="在输入框内显示固定文本和可点击链接，可用于服务状态提示、功能引导等场景。" />
+
 #### 文件上传
 
 支持附件上传功能，可通过`allowFiles`控制。
@@ -190,6 +202,8 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | submitType    | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
 | theme         | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
 | suggestions   | 输入建议列表     | `string[]`                                 | `[]`              |
+| fixedText     | 固定提示文本     | `string`                                   | `''`              |
+| fixedTextLink | 固定文本中的链接 | `{text: string, url?: string, handler?: Function}` | `undefined` |
 
 ### Events
 
@@ -208,6 +222,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | speech-interim    | 语音识别中间结果时触发     | `(transcript: string)` |
 | speech-error      | 语音识别错误时触发         | `(error: Error)`       |
 | suggestion-select | 选择输入建议时触发         | `(value: string)`      |
+| fixed-link-click  | 固定文本中链接点击时触发   | `()`                   |
 
 ### Methods
 
