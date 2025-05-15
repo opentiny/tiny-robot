@@ -16,6 +16,7 @@
 
   // 自动切换模式时的过渡
   &.is-auto-switching {
+
     .tiny-input__inner,
     .tiny-textarea__inner {
       transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -36,13 +37,13 @@
   }
 
   .tiny-input__inner {
-    font-size: 16px;
+    font-size: var(--tr-sender-input-font-size);
     border: none;
     padding-left: 0;
     padding-right: 16px;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    min-height: 26px; // 固定高度以减少跳动
+    min-height: var(--tr-sender-input-height); // 固定高度以减少跳动
     line-height: 26px; // 行高保持一致
 
     &::placeholder {
@@ -69,13 +70,13 @@
   }
 
   .tiny-textarea__inner {
-    font-size: 16px;
+    font-size: var(--tr-sender-input-font-size);
     border: none;
-    min-height: 26px; // 最小高度与单行保持一致
+    min-height: var(--tr-sender-textarea-min-height); // 最小高度与单行保持一致
     padding: 0;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    line-height: 26px; // 行高与单行保持一致
+    line-height: var(--tr-sender-textarea-line-height); // 行高与单行保持一致
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
@@ -93,7 +94,7 @@
     flex-direction: column;
     width: 100%;
     transition: all 0.3s ease-out;
-    min-height: 42px; // 设置最小高度避免内容区域跳变
+    min-height: var(--tr-sender-container-min-height); // 设置最小高度避免内容区域跳变
   }
 
   // 输入行 - 横向布局，包含prefix、content、actions
@@ -102,7 +103,7 @@
     align-items: stretch;
     width: 100%;
     transition: height 0.3s ease-out;
-    min-height: 42px; // 与容器一致的最小高度
+    min-height: var(--tr-sender-container-min-height); // 与容器一致的最小高度
   }
 
   // 头部插槽
@@ -125,18 +126,17 @@
     border-radius: 0 0 var(--tr-sender-border-radius) var(--tr-sender-border-radius);
     background: var(--tr-sender-footer-bg);
     z-index: 1;
-    min-height: 0; // 允许自动高度
+    min-height: var(--tr-sender-footer-min-height);
 
     &.tiny-sender__bottom-row {
-      padding: 2px 10px 10px 24px;
+      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
     .suggestion-item {
-      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-padding-left);
+      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
       cursor: pointer;
       transition: background-color var(--tr-sender-transition-duration);
 
@@ -144,6 +144,20 @@
         background: var(--tr-sender-footer-hover);
       }
     }
+  }
+
+  // 底部左侧区域
+  &__footer-left {
+    display: flex;
+    align-items: center;
+    gap: var(--tr-sender-gap);
+  }
+
+  // 底部右侧区域
+  &__footer-right {
+    display: flex;
+    align-items: center;
+    gap: var(--tr-sender-gap);
   }
 
   // 输入区域
@@ -158,7 +172,7 @@
     background-color: var(--tr-sender-bg-color);
     display: flex;
     flex-direction: column;
-    min-height: 42px; // 设置最小高度
+    min-height: var(--tr-sender-input-min-height); // 设置最小高度
 
     .tiny-input__count {
       display: flex;
@@ -177,7 +191,7 @@
     padding: var(--tr-sender-content-padding);
     position: relative;
     overflow: hidden;
-    min-height: 26px;
+    min-height: var(--tr-sender-input-height);
 
     // 当前置插槽存在时，调整内边距
     .has-prefix & {
@@ -199,14 +213,14 @@
   &__prefix-slot {
     width: var(--tr-sender-prefix-width);
     min-width: var(--tr-sender-prefix-min-width);
-    flex: 0 0 var(--tr-sender-prefix-width); /* 固定宽度，不可伸缩 */
+    flex: 0 0 var(--tr-sender-prefix-width);
     display: flex;
     align-items: start;
     justify-content: center;
     background: var(--tr-sender-bg-color);
     border-radius: var(--tr-sender-border-radius) 0 0 var(--tr-sender-border-radius);
     transition: background-color var(--tr-sender-transition-duration);
-    padding-top: 8px;
+    padding-top: var(--tr-sender-prefix-padding-top);
     padding-left: var(--tr-sender-prefix-padding-left);
     padding-right: calc(var(--tr-sender-padding-right) / 2);
 
@@ -221,7 +235,7 @@
     align-items: center;
     gap: var(--tr-sender-actions-gap);
     margin-left: auto;
-    flex: 0 0 auto; /* 不可伸缩，但可以根据内容自适应宽度 */
+    flex: 0 0 auto;
     min-width: var(--tr-sender-actions-min-width);
     padding-right: var(--tr-sender-actions-padding-right);
     transition:
@@ -252,7 +266,7 @@
   }
 
   &__bottom-row {
-    padding: 2px 10px 10px 24px;
+    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
   }
 
   // 字数限制
@@ -283,7 +297,7 @@
   // 错误提示
   &__error {
     position: absolute;
-    bottom: -20px;
+    bottom: var(--tr-sender-error-bottom-offset);
     left: 0;
     color: var(--tr-sender-error-color);
     font-size: var(--tr-sender-font-size-small);
@@ -291,7 +305,7 @@
 
   // 禁用状态
   &.is-disabled {
-    opacity: 0.7;
+    opacity: var(--tr-sender-disabled-opacity);
     cursor: not-allowed;
   }
 
@@ -334,7 +348,7 @@
     }
 
     &__content-area {
-      min-width: 120px;
+      min-width: var(--tr-sender-content-min-width);
     }
   }
 
@@ -395,8 +409,8 @@
 .action-buttons {
   display: flex;
   gap: var(--tr-sender-gap);
-  padding-left: var(--tr-sender-padding-left);
-  padding-right: var(--tr-sender-padding-right);
+  padding-left: var(--tr-sender-actions-padding-left);
+  padding-right: var(--tr-sender-actions-padding-right);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
   align-items: center;
@@ -422,7 +436,7 @@
 
   /* 禁用状态样式 */
   .is-disabled {
-    opacity: 0.6;
+    opacity: var(--tr-sender-action-button-disabled-opacity);
     cursor: not-allowed;
   }
 }
@@ -442,14 +456,14 @@
 .shortcut-hint {
   position: absolute;
   bottom: -16px;
-  font-size: 10px;
+  font-size: var(--tr-sender-font-size-extra-small);
   color: var(--tr-sender-text-color-secondary);
   white-space: nowrap;
   user-select: none;
 }
 
 /** 处理相邻按钮元素边界  */
-.tiny-button + .tiny-button {
+.tiny-button+.tiny-button {
   margin-left: 0;
 }
 
@@ -459,7 +473,7 @@
 .tiny-sender-slide-down-enter-active,
 .tiny-sender-slide-down-leave-active {
   overflow: hidden;
-  max-height: 300px;
+  max-height: var(--tr-sender-transition-max-height);
 }
 
 .tiny-sender-slide-up-enter-from,

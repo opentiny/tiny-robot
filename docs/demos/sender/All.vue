@@ -20,6 +20,14 @@
     <template #prefix>
       <icon-ai class="user-avatar" />
     </template>
+
+    <template #footer-left>
+      <button>思考</button>
+    </template>
+
+    <template #footer-right>
+      <button>截图</button>
+    </template>
   </tr-sender>
 </template>
 
