@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-// import { TrSender } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
 

@@ -13,8 +13,9 @@
 </template>
 
 <script setup lang="ts">
-// import { TrBubble } from '@opentiny/tiny-robot'
+import { TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
+import { TinySlider } from '@opentiny/vue'
 import { h, ref } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
