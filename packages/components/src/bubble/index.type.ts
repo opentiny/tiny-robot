@@ -1,5 +1,5 @@
 import { Config as DompurifyConfig } from 'dompurify'
-import MarkdownIt, { Options as MarkdownItOptions } from 'markdown-it'
+import { Options as MarkdownItOptions } from 'markdown-it'
 import { CSSProperties, VNode } from 'vue'
 
 export type BubblePalcement = 'start' | 'end'
@@ -20,16 +20,16 @@ export interface BubbleProps {
    * 内容类型
    */
   type?: 'text' | 'markdown'
+  /**
+   * 用来异步解析 markdown，仅在 type 为 markdown 时生效
+   */
+  asyncContent?: (content?: string) => Promise<string>
   loading?: boolean
   aborted?: boolean
   /**
    * type 为 'markdown' 时，markdown 的配置项
    */
   mdConfig?: MarkdownItOptions
-  /**
-   * 用于复用 markdown-it 实例，此配置项会覆盖 mdConfig
-   */
-  markdownItInstance?: MarkdownIt
   /**
    * dompurify 配置项，用于 XSS 防护。type 为 'markdown' 时会使用此配置项
    */

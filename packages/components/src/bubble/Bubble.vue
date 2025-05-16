@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import DOMPurify from 'dompurify'
-import markdownit from 'markdown-it'
-import { computed } from 'vue'
-import { useMarkdownIt } from './composables'
+import { computed, ref, watchEffect } from 'vue'
+import { parseMarkdown } from './composables'
 import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -14,16 +12,21 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 
 const slots = defineSlots<BubbleSlots>()
 
-const markdownItInstance = computed(() => {
-  return props.markdownItInstance || markdownit(props.mdConfig || useMarkdownIt().MD_DEFAULT_OPTIONS)
-})
+const bubbleContent = ref('')
 
-const bubbleContent = computed(() => {
-  if (props.type === 'markdown') {
-    const htmlContent = markdownItInstance.value.render(props.content)
-    return DOMPurify.sanitize(htmlContent, props.domPurifyConfig)
+watchEffect(async () => {
+  if (props.asyncContent) {
+    const content = await props.asyncContent(props.content)
+    bubbleContent.value = content
+    return
   }
-  return props.content
+
+  if (props.type === 'markdown') {
+    const content = await parseMarkdown(props.content, props.mdConfig, props.domPurifyConfig)
+    bubbleContent.value = content
+  } else {
+    bubbleContent.value = props.content
+  }
 })
 
 const placementStart = computed(() => props.placement === 'start')

@@ -1,46 +1,50 @@
+import Shiki from '@shikijs/markdown-it'
+import DOMPurify, { Config as DompurifyConfig } from 'dompurify'
 import MarkdownIt, { Options } from 'markdown-it'
-import Prism from 'prismjs'
+import { onBeforeUnmount } from 'vue'
 
-import 'prismjs/components/prism-typescript'
-import 'prismjs/themes/prism.css'
+const MD_DEFAULT_OPTIONS: Readonly<Options> = {} as const
 
-import 'prismjs/plugins/toolbar/prism-toolbar.js'
-import 'prismjs/plugins/toolbar/prism-toolbar.css'
-
-import 'prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard.js'
-import 'prismjs/plugins/show-language/prism-show-language.js'
-import './code-toolbar.css'
-
-const MD_DEFAULT_OPTIONS: Readonly<Options> = {
-  highlight: (code, lang) => {
-    if (Prism.languages[lang]) {
-      return Prism.highlight(code, Prism.languages[lang], lang)
-    }
-
-    return `<pre class="language-txt"><code>${MarkdownIt().utils.escapeHtml(code)}</code></pre>`
+const markdownItShiki = Shiki({
+  themes: {
+    light: 'vitesse-light',
+    dark: 'vitesse-dark',
   },
-} as const
+})
+
+export const parseMarkdown = async (mdContent: string, mdConfig: Options = {}, domPurifyConfig?: DompurifyConfig) => {
+  const md = MarkdownIt(mdConfig)
+  md.use(await markdownItShiki)
+  const htmlContent = md.render(mdContent)
+  return DOMPurify.sanitize(htmlContent, domPurifyConfig)
+}
 
 export function useMarkdownIt() {
-  let cache = new WeakMap<Options, MarkdownIt>()
+  let cache: WeakMap<Options, MarkdownIt> | null = new WeakMap<Options, MarkdownIt>()
 
-  const getInstance = (mdConfig = MD_DEFAULT_OPTIONS): MarkdownIt => {
-    if (!cache.has(mdConfig)) {
+  const getInstance = async (mdConfig = MD_DEFAULT_OPTIONS): Promise<MarkdownIt> => {
+    const cacheMap = cache!
+
+    if (!cacheMap.has(mdConfig)) {
       const md = MarkdownIt(mdConfig)
-
-      cache.set(mdConfig, md)
+      md.use(await markdownItShiki)
+      cacheMap.set(mdConfig, md)
     }
 
-    return cache.get(mdConfig)!
+    return cacheMap.get(mdConfig)!
   }
 
-  const clearCache = () => {
-    cache = new WeakMap()
+  const parse = async (mdContent: string, mdConfig?: Options, domPurifyConfig?: DompurifyConfig) => {
+    const md = await getInstance(mdConfig)
+    const htmlContent = md.render(mdContent)
+    return DOMPurify.sanitize(htmlContent, domPurifyConfig)
   }
+
+  onBeforeUnmount(() => {
+    cache = null
+  })
 
   return {
-    MD_DEFAULT_OPTIONS,
-    getInstance,
-    clearCache,
+    parse,
   }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
-import { computed, onBeforeUnmount, useTemplateRef, watch } from 'vue'
+import { computed, useTemplateRef, watch } from 'vue'
 import Bubble from './Bubble.vue'
 import { useMarkdownIt } from './composables'
 import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
@@ -22,11 +22,7 @@ watch([() => props.items.length, () => lastBubble.value?.content], () => {
   y.value = scrollContainerRef.value.scrollHeight
 })
 
-const { getInstance: getMarkdownItInstance, clearCache } = useMarkdownIt()
-
-onBeforeUnmount(() => {
-  clearCache()
-})
+const { parse: parseMarkdown } = useMarkdownIt()
 
 const getItemProps = (item: BubbleListProps['items'][number]): BubbleProps => {
   const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
@@ -34,8 +30,9 @@ const getItemProps = (item: BubbleListProps['items'][number]): BubbleProps => {
   const { slots: _itemSlots, ...restItem } = item
   const mergedProps = { ...rest, ...restItem }
 
-  if (mergedProps.type === 'markdown' && !mergedProps.markdownItInstance) {
-    mergedProps.markdownItInstance = getMarkdownItInstance(mergedProps.mdConfig)
+  if (mergedProps.type === 'markdown' && !mergedProps.asyncContent) {
+    mergedProps.asyncContent = (content) =>
+      parseMarkdown(content || '', mergedProps.mdConfig, mergedProps.domPurifyConfig)
   }
 
   return mergedProps
