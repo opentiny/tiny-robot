@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="tsx">
-// import { TrBubble } from '@opentiny/tiny-robot'
+import { TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { defineCustomElement, h, ref } from 'vue'
 import SchemaCard from './schema-card.vue'

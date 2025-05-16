@@ -20,18 +20,6 @@ export default {
         import('@opentiny/tiny-robot').then(function (m) {
           app.use(m.default)
         })
-        // import('@opentiny/tiny-schema-renderer').then(function (m) {
-        //   app.component('schema-renderer', m.default)
-
-        //   // if (!customElements.get('schema-card')) {
-        //   //   // 将 Vue 组件转为自定义元素类。
-        //   //   const CardElement = defineCustomElement(SchemaCard)
-        //   //   // 在浏览器中注册元素类。
-        //   //   customElements.define('schema-card', CardElement)
-
-        //   //   console.log(customElements.get('schema-card'))
-        //   // }
-        // })
 
         registerServiceWorker()
       },
