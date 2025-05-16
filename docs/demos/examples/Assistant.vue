@@ -159,7 +159,7 @@ const showHistory = ref(false)
 
 const historyData = reactive<
   {
-    date: string
+    group: string
     items: {
       title: string
       id: string
@@ -184,12 +184,12 @@ watch(
 
     const data = toRaw(messages.value)
     if (!currentSession) {
-      const today = historyData.find((item) => item.date === '今天')
+      const today = historyData.find((item) => item.group === '今天')
       if (today) {
         today.items.unshift({ title: messages.value[0].content, id: currentMessageId.value, data })
       } else {
         historyData.unshift({
-          date: '今天',
+          group: '今天',
           items: [{ title: messages.value[0].content, id: currentMessageId.value, data }],
         })
       }

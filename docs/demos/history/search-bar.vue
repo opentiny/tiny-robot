@@ -23,7 +23,7 @@ const searchFn = (query: string, item: HistoryItem) => {
 
 const data: HistoryGroup[] = reactive([
   {
-    date: '今天',
+    group: '今天',
     items: [
       { title: '如何训练一只聪明的小狗', id: '1' },
       { title: 'How to make a perfect soufflé', id: '2' },
