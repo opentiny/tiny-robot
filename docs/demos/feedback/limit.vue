@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import { type FeedbackProps } from '@opentiny/tiny-robot'
+import { FeedbackProps, TrFeedback } from '@opentiny/tiny-robot'
 
 const operations: FeedbackProps['operations'] = [
   { name: 'operation1', label: '操作一', onClick: () => console.log('单独监听点击事件', 'operation1') },

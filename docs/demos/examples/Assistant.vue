@@ -77,18 +77,25 @@
 </template>
 
 <script setup lang="ts">
-// import { TrContainer, TrWelcome, TrPrompts, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import {
-  type SuggestionItem,
   type BubbleRoleConfig,
   type PromptProps,
+  type SuggestionItem,
   type TriggerHandler,
-  type TrSender,
+  TrBubbleList,
+  TrContainer,
+  TrHistory,
+  TrIconButton,
+  TrPrompts,
+  TrSender,
+  TrSuggestion,
+  TrWelcome,
 } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconHistory, IconNewSession, IconUser } from '@opentiny/tiny-robot-svgs'
-import { h, nextTick, reactive, ref, toRaw, watch, type CSSProperties, onMounted } from 'vue'
-import { templateSuggestions, templateCategories } from './templateData'
+import { TinySwitch } from '@opentiny/vue'
+import { type CSSProperties, h, nextTick, onMounted, reactive, ref, toRaw, watch } from 'vue'
+import { templateCategories, templateSuggestions } from './templateData'
 
 const client = new AIClient({
   provider: 'openai',
@@ -207,6 +214,7 @@ const currentTemplate = ref<string>('')
 const currentTemplateName = ref<string>('')
 const suggestionOpen = ref(false)
 
+// FIXME 'fill-template' 事件只有一个参数
 // 设置指令
 const handleFillTemplate = (templateText: string, item: SuggestionItem) => {
   setTimeout(() => {

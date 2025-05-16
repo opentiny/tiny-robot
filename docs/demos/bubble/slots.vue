@@ -20,8 +20,7 @@
 </template>
 
 <script setup lang="tsx">
-// import { TrBubble } from '@opentiny/tiny-robot'
-import { type FeedbackProps } from '@opentiny/tiny-robot'
+import { FeedbackProps, TrBubble, TrFeedback } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
