@@ -338,7 +338,7 @@
       align-items: center;
       padding: 4px 8px;
       cursor: pointer;
-      font-size: 0.9em;
+      font-size: 14px;
 
       &.highlighted {
         background-color: var(--tr-sender-suggestion-hover-color);
@@ -371,19 +371,17 @@
   // 自动完成占位符
   &__completion-placeholder {
     position: absolute;
-    top: -1px;
-    left: -2px;
-    font-family: inherit;
-    font-size: 15px;
+    left: 0;
+    height: var(--tr-sender-input-height);
+    font-size: 14px;
     color: var(--tr-sender-suggestion-placeholder-color);
     pointer-events: none;
     white-space: pre;
     line-height: inherit;
-    height: 100%;
     display: flex;
     align-items: center;
-    overflow: hidden;
     text-overflow: ellipsis;
+    overflow: hidden;
 
     .user-input-mirror {
       visibility: hidden;
@@ -394,11 +392,26 @@
   &__tab-hint {
     margin-top: auto;
     border: 1px dashed var(--tr-sender-suggestion-tab-hint-border-color);
-    padding: 2px 6px;
-    font-size: 0.8em;
+    padding: 0 6px;
+    font-size: 14px;
     color: var(--tr-sender-suggestion-tab-hint-color);
     border-radius: var(--tr-sender-suggestion-tab-border-radius);
     pointer-events: none;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  // 模式特定样式
+  &.mode-single {
+    .tiny-sender__completion-placeholder {
+      top: -2.5px;
+    }
+  }
+
+  &.mode-multiple {
+    .tiny-sender__completion-placeholder {
+      top: 8.5px;
+    }
   }
 
   // 过渡动画

@@ -64,10 +64,6 @@ export function useSuggestionHandler(
    * @param suggestionText - 可选的建议文本，如果没有提供则使用第一个过滤结果
    */
   const updateCompletionPlaceholder = (suggestionText?: string) => {
-    if (props.mode === 'multiple') {
-      completionPlaceholder.value = ''
-      return
-    }
     const textToComplete =
       suggestionText || (filteredSuggestions.value.length > 0 ? filteredSuggestions.value[0] : null)
     if (textToComplete && inputValue.value && textToComplete.toLowerCase().startsWith(inputValue.value.toLowerCase())) {

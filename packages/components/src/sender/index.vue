@@ -445,12 +445,12 @@ defineExpose({
                 @blur="handleBlur"
               />
               <!-- 补全提示词 -->
-              <div v-if="completionPlaceholder && mode === 'single'" class="tiny-sender__completion-placeholder">
+              <div v-if="completionPlaceholder" class="tiny-sender__completion-placeholder">
                 <span class="user-input-mirror">{{ inputValue }}</span
                 >{{ completionPlaceholder }}
 
                 <!-- Tab Hint -->
-                <div v-if="showTabHint && mode === 'single'" class="tiny-sender__tab-hint">TAB</div>
+                <div v-if="showTabHint" class="tiny-sender__tab-hint">TAB</div>
               </div>
             </div>
           </div>

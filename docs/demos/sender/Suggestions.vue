@@ -62,6 +62,7 @@ const sampleSuggestions = ref([
   'strawberry',
   'stream',
   'strong',
+  '你觉得自己今天还好吗？',
 ])
 </script>
 
@@ -82,10 +83,5 @@ p {
   margin-bottom: 10px;
   font-size: 0.9em;
   color: #555;
-}
-
-tr-sender {
-  width: 100%;
-  max-width: 500px;
 }
 </style>

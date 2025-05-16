@@ -131,7 +131,7 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 <demo vue="../../demos/sender/Template.vue" title="基础用法" description="Sender 组件支持模板填充。" />
 
-#### 输入联想 (Autocomplete)
+#### 输入联想
 
 Sender 组件支持输入联想功能，当用户输入时，可以根据提供的 `suggestions` 列表显示匹配的建议项。此功能有助于提高输入效率和准确性。
 
