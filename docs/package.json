@@ -9,7 +9,7 @@
   "devDependencies": {
     "gh-pages": "^2.1.1",
     "vitepress": "^1.6.3",
-    "vitepress-demo-plugin": "^1.4.0"
+    "vitepress-demo-plugin": "^1.4.2"
   },
   "dependencies": {
     "@opentiny/tiny-robot": "workspace:^",

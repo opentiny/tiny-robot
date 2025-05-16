@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts">
-// import { TrBubble } from '@opentiny/tiny-robot'
+import { TrBubble } from '@opentiny/tiny-robot'
 </script>

@@ -12,6 +12,12 @@ outline: deep
 
 <demo vue="../../demos/history/basic.vue" />
 
+### 分组
+
+分组
+
+<demo vue="../../demos/history/group.vue" />
+
 ### 搜索框
 
 使用 `search-bar` 控制是否显示搜索框。相应的还有 `search-placeholder`、`search-query`（这是一个双向绑定model）、`search-fn`（自定义搜索函数）
@@ -41,10 +47,10 @@ outline: deep
 
 继承 `BaseHistoryProps` 的所有属性，并添加：
 
-| 属性       | 类型             | 必填 | 说明             |
-| ---------- | ---------------- | ---- | ---------------- |
-| `tabTitle` | `string`         | 是   | 标签页标题       |
-| `data`     | `HistoryGroup[]` | 是   | 历史数据分组列表 |
+| 属性       | 类型          | 必填 | 说明                                                   |
+| ---------- | ------------- | ---- | ------------------------------------------------------ |
+| `tabTitle` | `string`      | 是   | 标签页标题                                             |
+| `data`     | `HistoryData` | 是   | 历史数据（可以是 `HistoryItem[]` 或 `HistoryGroup[]`） |
 
 ### MultiTabHistoryProps 多标签页模式
 
@@ -53,13 +59,24 @@ outline: deep
 | 属性   | 类型                              | 必填 | 说明                     |
 | ------ | --------------------------------- | ---- | ------------------------ |
 | `tabs` | `{ title: string; id: string }[]` | 是   | 标签页配置数组           |
-| `data` | `Record<string, HistoryGroup[]>`  | 是   | 按标签页ID分组的历史数据 |
+| `data` | `Record<string, HistoryData>`     | 是   | 按标签页ID分组的历史数据 |
+
+### HistoryData
+
+```typescript
+type HistoryData = HistoryItem[] | HistoryGroup[]
+```
+
+表示历史数据可以是：
+
+1. 直接的历史项数组 `HistoryItem[]`
+2. 分组的历史项数组 `HistoryGroup[]`
 
 ### HistoryGroup
 
 | 属性    | 类型            | 说明                 |
-| ------- | --------------- | -------------------- |
-| `date`  | `string`        | 分组日期             |
+| ------- | --------------- | -------------------- | -------- |
+| `group` | `string         | symbol`              | 分组标识 |
 | `items` | `HistoryItem[]` | 该分组下的历史项列表 |
 
 ### HistoryItemTagProps
@@ -72,12 +89,12 @@ outline: deep
 
 ### HistoryItem
 
-| 属性    | 类型                  | 说明       |
-| ------- | --------------------- | ---------- |
-| `id`    | `string`              | 唯一标识   |
-| `title` | `string`              | 标题       |
-| `tag`   | `HistoryItemTagProps` | 标签配置   |
-| `data`  | `T`                   | 自定义数据 |
+| 属性    | 类型                  | 说明                                                 |
+| ------- | --------------------- | ---------------------------------------------------- |
+| `id`    | `string`              | 唯一标识                                             |
+| `title` | `string`              | 标题                                                 |
+| `tag`   | `HistoryItemTagProps` | 标签配置                                             |
+| `data`  | `T`                   | 自定义数据（泛型，默认为 `Record<string, unknown>`） |
 
 ### HistoryEvents
 
