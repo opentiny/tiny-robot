@@ -3,10 +3,9 @@
 </template>
 
 <script setup lang="ts">
-// import { TrBubbleList, TrFeedback} from '@opentiny/tiny-robot'
-import type { BubbleListProps, BubbleRoleConfig, TrFeedback } from '@opentiny/tiny-robot'
+import { BubbleListProps, BubbleRoleConfig, TrBubbleList, TrFeedback } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
-import { h, resolveComponent } from 'vue'
+import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
@@ -51,9 +50,7 @@ const roles: Record<string, BubbleRoleConfig> = {
     maxWidth: '80%',
     slots: {
       footer: ({ bubbleProps }) => {
-        // 由于vitepress-demo插件的问题，不能引入TrFeedback的值，这里使用resolveComponent
-        // 正常可以直接使用h(TrFeedback)
-        return h(resolveComponent('TrFeedback') as typeof TrFeedback, {
+        return h(TrFeedback, {
           actions: [
             { name: 'refresh', label: '刷新', icon: 'refresh' },
             { name: 'copy', label: '复制', icon: 'copy' },
