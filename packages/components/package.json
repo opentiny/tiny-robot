@@ -7,6 +7,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vue-tsc && vite build --watch",
     "build": "vue-tsc && vite build",
