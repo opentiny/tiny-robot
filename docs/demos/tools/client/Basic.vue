@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// import { TrBubble, TrSender } from '@opentiny/tiny-robot'
+import { TrBubble, TrSender } from '@opentiny/tiny-robot'
 import { ref } from 'vue'
 import { AIClient } from '@opentiny/tiny-robot-kit'
 

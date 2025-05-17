@@ -14,6 +14,32 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-s
 ```
 ## 引入与使用
 
+### 按需引入(推荐)
+先在main.js/main.ts中引入组件库样式：
+
+```ts
+import { createApp } from 'vue'
+import App from './App.vue'
+++ import '@opentiny/tiny-robot/dist/style.css'
+
+const app = createApp(App)
+app.mount('#app')
+```
+
+之后在Vue文件中，按需引入组件使用, 示例如下：
+```vue
+<template>
+  <tr-bubble-item
+    role="ai"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
+  ></tr-bubble-item>
+</template>
+
+<script setup>
+import { TrBubbleItem } from '@opentiny/tiny-robot'
+</script>
+```
+
 ### 全局引入
 
 全局引入组件库可以快速使用组件库中的所有组件，无需在每个Vue文件中单独引入组件。
@@ -44,31 +70,6 @@ app.mount('#app')
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
   ></tr-bubble-item>
 </template>
-```
-### 按需引入(推荐)
-先在main.js/main.ts中引入组件库样式：
-
-```ts
-import { createApp } from 'vue'
-import App from './App.vue'
-++ import '@opentiny/tiny-robot/dist/style.css'
-
-const app = createApp(App)
-app.mount('#app')
-```
-
-之后在Vue文件中，按需引入组件使用, 示例如下：
-```vue
-<template>
-  <tr-bubble-item
-    role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
-  ></tr-bubble-item>
-</template>
-
-<script setup>
-import { TrBubbleItem } from '@opentiny/tiny-robot'
-</script>
 ```
 
 更多示例参考组件或演示部分

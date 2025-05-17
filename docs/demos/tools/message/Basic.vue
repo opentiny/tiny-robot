@@ -11,8 +11,7 @@
 </template>
 
 <script setup lang="ts">
-// import { TrBubbleList, TrSender } from '@opentiny/tiny-robot'
-// import { BubbleList, Sender } from '@opentiny/tiny-robot'
+import { TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import { type BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { AIClient, GeneratingStatus, STATUS, useMessage } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
