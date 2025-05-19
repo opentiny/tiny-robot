@@ -12,6 +12,12 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 
 > 单行模式(`mode="single"`), 适用于简单的输入场景，如搜索框、简短消息输入等。
 
+- **换行说明，在单行模式下**：
+
+- 1.输入文字超出单行宽度限制时，会自动切换至多行模式。
+
+- 2.使用快捷键组合 `shift+enter` 可以直接切换至多行模式
+
 > 多行模式(`mode="multiple"`)适用于较长文本输入，如评论、聊天消息等。
 
 <demo vue="../../demos/sender/Mode.vue" title="基础用法" description="Sender 组件的基础用法，支持单行和多行模式。" />
@@ -51,6 +57,16 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 <tr-sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 ```
 
+#### 自动调整高度
+
+通过`autoSize`属性可以设置输入框是否自动调整高度。当设置为`true`时，输入框会根据内容自动调整高度，适用于需要动态适应内容长度的场景。
+
+**注意**：只对 mode="multiple" 有效。
+
+> 可传入对象，如{ minRows: 2, maxRows: 3 }。
+
+<demo vue="../../demos/sender/AutoSize.vue" title="自动调整高度" description="Sender 组件支持自动调整高度。" />
+
 #### 可清空输入
 
 通过`clearable`属性添加清空按钮，方便用户快速清除输入内容。
@@ -62,6 +78,19 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 ```
 
 ### 高级功能
+
+#### 自定义按钮
+
+
+Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-left` 和 `footer-right` 插槽，您可以在保留现有功能的同时添加自定义内容。
+
+- `footer-left`: 在字数限制左侧添加自定义内容
+- `footer-right`: 在操作按钮左侧添加自定义内容
+- `footer`: 完全自定义底部区域（会覆盖默认内容，仅用于向后兼容）
+
+<demo vue="../../demos/sender/DeepThink.vue" title="自定义按钮" description="Sender 组件支持在多行模式下灵活定制底部区域。" />
+
+注意：`footer` 插槽与 `footer-left`/`footer-right` 插槽互斥，如果同时使用，将优先显示 `footer-left`/`footer-right` 插槽。
 
 #### 语音输入
 
@@ -132,9 +161,9 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 您可以在实际开发中根据应用场景和用户需求选择最适合的快捷键方式。
 
-### 使用示例
+### 布局与插槽
 
-以下是一个综合使用示例：
+以下是一个关于插槽的综合使用示例：
 
 <demo vue="../../demos/sender/All.vue" />
 
@@ -145,7 +174,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | 属性名        | 说明             | 类型                                       | 默认值            |
 | ------------- | ---------------- | ------------------------------------------ | ----------------- |
 | autofocus     | 自动获取焦点     | `boolean`                                  | `false`           |
-| autoSize      | 自动调整高度     | `boolean`                                  | `false`           |
+| autoSize      | 自动调整高度     | `boolean \| { minRows: number, maxRows: number }` | `false`           |
 | allowSpeech   | 是否开启语音输入 | `boolean`                                  | `false`           |
 | allowFiles    | 是否允许文件上传 | `boolean`                                  | `true`            |
 | clearable     | 是否可清空       | `boolean`                                  | `false`           |
@@ -202,13 +231,15 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | prefix |   content   | actions  <!-- 横向排列 -->
 | slot   |    area     | slot
 +----------------------+
-|      footer slot     |  <!-- 位于内容区域下方 -->
+|footer-left | footer-right|  <!-- 底部左右两侧区域 -->
 +----------------------+
 ```
 
-| 插槽名称  | 描述                     | CSS类名                      | 默认内容               |
-| --------- | ------------------------ | ---------------------------- | ---------------------- |
-| `header`  | 头部插槽，位于输入框上方 | `.tiny-sender__header-slot`  | 无                     |
-| `prefix`  | 前缀插槽，位于输入框左侧 | `.tiny-sender__prefix-slot`  | 无                     |
-| `actions` | 后缀插槽，位于输入框右侧 | `.tiny-sender__actions-slot` | 单行模式下的操作按钮   |
-| `footer`  | 底部插槽，位于输入框下方 | `.tiny-sender__footer-slot`  | 字数限制和多行模式按钮 |
+| 插槽名称        | 描述                         | CSS类名                        | 默认内容                 |
+| --------------- | ---------------------------- | ------------------------------ | ------------------------ |
+| `header`        | 头部插槽，位于输入框上方     | `.tiny-sender__header-slot`    | 无                       |
+| `prefix`        | 前缀插槽，位于输入框左侧     | `.tiny-sender__prefix-slot`    | 无                       |
+| `actions`       | 后缀插槽，位于输入框右侧     | `.tiny-sender__actions-slot`   | 单行模式下的操作按钮     |
+| `footer-left`   | 底部左侧插槽，保留字数限制   | `.tiny-sender__footer-left`    | 字数限制                 |
+| `footer-right`  | 底部右侧插槽，保留操作按钮   | `.tiny-sender__footer-right`   | 多行模式下的操作按钮     |
+| `footer`        | 底部完全自定义插槽(向后兼容) | `.tiny-sender__footer-slot`    | 无 (会覆盖其他底部元素)  |

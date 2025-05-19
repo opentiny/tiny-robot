@@ -46,7 +46,7 @@
           <template #trigger="{ onKeyDown, onTrigger }">
             <tr-sender
               ref="senderRef"
-              mode="multiple"
+              mode="single"
               v-model="inputMessage"
               :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
               :clearable="true"

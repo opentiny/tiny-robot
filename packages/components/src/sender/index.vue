@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
@@ -11,7 +11,7 @@ import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
   autofocus: false,
-  autoSize: false,
+  autoSize: () => ({ minRows: 1, maxRows: 3 }),
   allowSpeech: true,
   allowFiles: false,
   clearable: false,
@@ -30,9 +30,11 @@ const props = withDefaults(defineProps<SenderProps>(), {
 
 const emit = defineEmits<SenderEmits>()
 
-// 输入引用
+// 输入区域元素引用
 const inputRef = ref<HTMLElement | null>(null)
 const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
+const inputWrapperRef = ref<HTMLElement | null>(null)
+const buttonsContainerRef = ref<HTMLElement | null>(null)
 
 // 是否显示模板编辑器
 const showTemplateEditor = computed(() => !!props.template)
@@ -40,16 +42,122 @@ const showTemplateEditor = computed(() => !!props.template)
 // 输入控制
 const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler = useInputHandler(props, emit)
 
+// 自动模式切换
+const currentMode = ref(props.mode)
+const isAutoSwitching = ref(false)
+
+// 设置多行模式
+const setMultipleMode = () => {
+  if (currentMode.value === 'single') {
+    currentMode.value = 'multiple'
+
+    // 保持焦点并设置光标位置
+    nextTick(() => {
+      setTimeout(() => {
+        const textareaElement = document.querySelector('.tiny-textarea__inner') as HTMLTextAreaElement
+        if (textareaElement) {
+          // 确保textarea的white-space属性正确设置
+          textareaElement.style.whiteSpace = 'pre-wrap'
+          const pos = inputValue.value.length
+          textareaElement.focus()
+          textareaElement.setSelectionRange(pos, pos)
+        }
+      }, 50)
+    })
+  }
+}
+
+// 计算文本宽度的辅助函数
+const calculateTextWidth = (text: string, fontStyle: string): number => {
+  // 创建一个临时元素来测量文本宽度
+  const testElem = document.createElement('span')
+  testElem.style.visibility = 'hidden'
+  testElem.style.position = 'absolute'
+  testElem.style.whiteSpace = 'nowrap'
+  testElem.style.font = fontStyle
+  // 使用textContent而不是innerText，保留空格的原始形式
+  testElem.textContent = text
+  document.body.appendChild(testElem)
+
+  const width = testElem.offsetWidth
+  document.body.removeChild(testElem)
+
+  return width
+}
+
+// 检测输入是否溢出的函数
+const checkInputOverflow = () => {
+  // 如果不是单行模式或正在自动切换中，则直接返回
+  if (props.mode !== 'single' || !inputRef.value || isAutoSwitching.value) return
+
+  // 指定父级元素 - 避免存在多个父级元素
+  const parentElement = document.querySelector('.tiny-sender__content-area') as HTMLElement
+
+  // 获取输入元素
+  const inputElement = parentElement.querySelector('.tiny-input__inner') as HTMLElement
+
+  // 获取按钮容器元素
+  const buttonsElement =
+    buttonsContainerRef.value || (document.querySelector('.tiny-sender__buttons-container') as HTMLElement)
+
+  if (!inputElement) return
+
+  // 获取输入框的字体样式
+  const fontStyle = window.getComputedStyle(inputElement).font
+
+  // 计算文本宽度
+  const textWidth = calculateTextWidth(inputValue.value, fontStyle)
+
+  // 计算可用宽度（输入框宽度减去按钮区域宽度再减去固定边距）
+  const fixedMargin = 20
+  const availableWidth = inputElement.offsetWidth - (buttonsElement?.offsetWidth || 0) - fixedMargin
+
+  // 判断是否需要切换到多行模式
+  if (textWidth > availableWidth && currentMode.value === 'single') {
+    isAutoSwitching.value = true
+    currentMode.value = 'multiple'
+
+    // 在切换模式时保留原始文本格式
+    nextTick(() => {
+      if (inputRef.value) {
+        setTimeout(() => {
+          const textareaElement = document.querySelector('.tiny-textarea__inner') as HTMLInputElement
+          if (textareaElement) {
+            // 确保textarea的white-space属性正确设置
+            textareaElement.style.whiteSpace = 'pre-wrap'
+            const pos = inputValue.value.length
+            textareaElement.focus()
+            textareaElement.setSelectionRange(pos, pos)
+          }
+          isAutoSwitching.value = false
+        }, 300)
+      } else {
+        isAutoSwitching.value = false
+      }
+    })
+  }
+}
+
 // 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
 const clearInput = () => {
   // 调用原始清空方法
   originalClearInput()
+
+  // 总是回到单行模式，无条件
+  currentMode.value = 'single'
 
   // 如果当前是模板编辑模式，需要退出模板编辑模式
   if (props.template) {
     // 发出一个模板重置事件，通知父组件清除模板
     emit('reset-template')
   }
+
+  // 确保DOM更新后再次检查
+  nextTick(() => {
+    if (inputValue.value === '') {
+      currentMode.value = props.mode || 'single'
+    }
+  })
 }
 
 // 输入建议
@@ -114,6 +222,8 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   speechState,
   showSuggestions,
   toggleSpeech,
+  currentMode,
+  setMultipleMode,
 )
 
 // 处理焦点事件
@@ -125,8 +235,7 @@ const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
 }
 
-// 初始化自适应对象
-const autoSize = computed(() => (props.mode === 'multiple' ? { minRows: 2, maxRows: 5 } : { maxRows: 1 }))
+const currentType = computed(() => (currentMode.value === 'multiple' ? 'textarea' : 'text'))
 
 const justifyContent = computed(
   (): {
@@ -154,6 +263,7 @@ const senderClasses = computed(() => ({
   'is-disabled': isDisabled.value,
   'is-loading': isLoading.value,
   'has-error': !!errorMessage.value,
+  'is-auto-switching': isAutoSwitching.value,
 }))
 
 // 错误处理
@@ -172,7 +282,23 @@ const handleCompositionEnd = () => {
 // 监听输入变化
 watch(inputValue, () => {
   showSuggestions.value = !!props.suggestions && !!inputValue.value
+
+  // 当输入内容变化时检查是否需要切换模式
+  nextTick(checkInputOverflow)
+
+  if (inputValue.value === '' && props.mode === 'single') {
+    currentMode.value = 'single'
+  }
 })
+
+watch(
+  () => showTemplateEditor.value,
+  (val) => {
+    if (val) {
+      currentMode.value = 'multiple'
+    }
+  },
+)
 
 // 暴露方法
 defineExpose({
@@ -203,10 +329,10 @@ defineExpose({
 </script>
 
 <template>
-  <div class="tiny-sender" :class="[senderClasses, `theme-${theme}`, `mode-${mode}`]" :data-theme="theme">
+  <div class="tiny-sender" :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`]" :data-theme="theme">
     <!-- 输入区域容器 -->
     <div class="tiny-sender__container">
-      <div class="tiny-sender__input-wrapper">
+      <div class="tiny-sender__input-wrapper" ref="inputWrapperRef">
         <!-- 头部插槽 -->
         <Transition name="tiny-sender-slide-down">
           <div v-if="$slots.header" class="tiny-sender__header-slot">
@@ -238,7 +364,7 @@ defineExpose({
               v-else
               ref="inputRef"
               :autosize="autoSize"
-              type="textarea"
+              :type="currentType"
               :readonly="isLoading"
               resize="none"
               v-model="inputValue"
@@ -255,8 +381,8 @@ defineExpose({
           </div>
 
           <!-- 操作区域/后置插槽 -->
-          <div v-if="mode === 'single'" class="tiny-sender__actions-slot">
-            <div class="tiny-sender__buttons-container">
+          <div v-if="currentMode === 'single'" class="tiny-sender__actions-slot">
+            <div class="tiny-sender__buttons-container" ref="buttonsContainerRef">
               <slot name="actions" />
               <action-buttons
                 class="inline-buttons"
@@ -279,38 +405,52 @@ defineExpose({
 
         <!-- 底部插槽 - 底部工具栏作为默认内容 -->
         <Transition name="tiny-sender-slide-up">
-          <div v-if="$slots.footer" class="tiny-sender__footer-slot">
-            <slot name="footer"></slot>
-          </div>
           <div
-            v-else-if="mode !== 'single' || (showWordLimit && maxLength !== Infinity)"
+            v-if="currentMode === 'multiple'"
             :style="justifyContent"
             class="tiny-sender__footer-slot tiny-sender__bottom-row"
           >
-            <!-- 字数限制 -->
-            <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
-              {{ inputValue.length }}/{{ maxLength }}
-            </div>
+            <!-- 底部左侧区域 -->
+            <div class="tiny-sender__footer-left">
+              <!-- 左侧自定义插槽 -->
+              <slot name="footer-left"></slot>
 
-            <!-- 多行模式下的操作按钮 -->
-            <div v-if="mode === 'multiple'" class="tiny-sender__toolbar">
-              <div class="tiny-sender__buttons-container">
-                <action-buttons
-                  :allow-speech="allowSpeech"
-                  :allow-files="allowFiles"
-                  :loading="loading"
-                  :disabled="isDisabled"
-                  :show-clear="clearable"
-                  :has-content="hasContent"
-                  :speech-status="speechState"
-                  :submit-type="submitType"
-                  @clear="clearInput"
-                  @toggle-speech="toggleSpeech"
-                  @submit="triggerSubmit"
-                  @cancel="$emit('cancel')"
-                />
+              <!-- 字数限制 -->
+              <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
+                {{ inputValue.length }}/{{ maxLength }}
               </div>
             </div>
+
+            <!-- 底部右侧区域 -->
+            <div class="tiny-sender__footer-right">
+              <!-- 右侧自定义插槽 -->
+              <slot name="footer-right"></slot>
+
+              <!-- 多行模式下的操作按钮 -->
+              <div v-if="currentMode === 'multiple'" class="tiny-sender__toolbar">
+                <div class="tiny-sender__buttons-container">
+                  <action-buttons
+                    :allow-speech="allowSpeech"
+                    :allow-files="allowFiles"
+                    :loading="loading"
+                    :disabled="isDisabled"
+                    :show-clear="clearable"
+                    :has-content="hasContent"
+                    :speech-status="speechState"
+                    :submit-type="submitType"
+                    @clear="clearInput"
+                    @toggle-speech="toggleSpeech"
+                    @submit="triggerSubmit"
+                    @cancel="$emit('cancel')"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 完全自定义的底部插槽（向后兼容） -->
+          <div v-else-if="$slots.footer" class="tiny-sender__footer-slot">
+            <slot name="footer"></slot>
           </div>
         </Transition>
       </div>
