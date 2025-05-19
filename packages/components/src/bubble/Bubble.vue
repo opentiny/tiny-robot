@@ -15,8 +15,8 @@ const slots = defineSlots<BubbleSlots>()
 const bubbleContent = ref('')
 
 watchEffect(async () => {
-  if (props.asyncContent) {
-    const content = await props.asyncContent(props.content)
+  if (props.transformContent) {
+    const content = await props.transformContent(props.content)
     bubbleContent.value = content
     return
   }
@@ -155,5 +155,22 @@ const placementStart = computed(() => props.placement === 'start')
   .tr-bubbule__footer {
     margin-top: 12px;
   }
+}
+</style>
+
+<style>
+pre:has(> code.tr-bubble__code[class*='language-']) {
+  position: relative;
+  z-index: 1;
+  margin: 16px 0;
+  padding: 16px 0;
+  background-color: rgb(245, 245, 245);
+  border-radius: 12px;
+  overflow-x: auto;
+  font-size: 14px;
+}
+pre > code.tr-bubble__code[class*='language-'] {
+  padding: 0 16px;
+  display: block;
 }
 </style>

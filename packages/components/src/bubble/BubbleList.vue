@@ -30,8 +30,8 @@ const getItemProps = (item: BubbleListProps['items'][number]): BubbleProps => {
   const { slots: _itemSlots, ...restItem } = item
   const mergedProps = { ...rest, ...restItem }
 
-  if (mergedProps.type === 'markdown' && !mergedProps.asyncContent) {
-    mergedProps.asyncContent = (content) =>
+  if (mergedProps.type === 'markdown' && !mergedProps.transformContent) {
+    mergedProps.transformContent = (content) =>
       parseMarkdown(content || '', mergedProps.mdConfig, mergedProps.domPurifyConfig)
   }
 

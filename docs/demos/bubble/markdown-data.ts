@@ -10,18 +10,35 @@ _This is italic text_
 ~~Strikethrough~~
 
 \`\`\`javascript
+// javascript
 const msg = 'Hello, world!'
 
 console.log(msg)
 \`\`\`
 
 \`\`\`typescript
+// typescript
 const msg: string = 'Hello, world!'
 
 console.log(msg)
 \`\`\`
 
-\`\`\`xml
-<xml></xml>
+\`\`\`vue
+// vue
+<template>
+  <span>{{ msg }}</span>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const msg = ref('hello')
+</script>
+
+\`\`\`
+
+\`\`\`unknown
+// unknown
+unknown
 \`\`\`
 `

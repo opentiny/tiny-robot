@@ -1,5 +1,5 @@
 import { Config as DompurifyConfig } from 'dompurify'
-import { Options as MarkdownItOptions } from 'markdown-it'
+import { Options as MarkdownItOptions } from 'markdown-it-async'
 import { CSSProperties, VNode } from 'vue'
 
 export type BubblePalcement = 'start' | 'end'
@@ -21,9 +21,9 @@ export interface BubbleProps {
    */
   type?: 'text' | 'markdown'
   /**
-   * 用来异步解析 markdown，仅在 type 为 markdown 时生效
+   * 自定义内容转换函数，支持异步
    */
-  asyncContent?: (content?: string) => Promise<string>
+  transformContent?: (content?: string) => Promise<string> | string
   loading?: boolean
   aborted?: boolean
   /**
