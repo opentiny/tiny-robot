@@ -120,14 +120,12 @@
     border-radius: var(--tr-sender-border-radius) var(--tr-sender-border-radius) 0 0;
     background: var(--tr-sender-bg-color);
     padding: var(--tr-sender-header-padding);
-    margin-bottom: var(--tr-sender-gap);
     z-index: 1;
     border-bottom: 1px solid var(--tr-sender-border-color);
   }
 
   // 底部插槽
   &__footer-slot {
-    width: 100%;
     border-radius: 0 0 var(--tr-sender-border-radius) var(--tr-sender-border-radius);
     background: var(--tr-sender-footer-bg);
     z-index: 1;
@@ -138,6 +136,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-sizing: content-box;
     }
 
     .suggestion-item {
@@ -177,7 +176,6 @@
     background-color: var(--tr-sender-bg-color);
     display: flex;
     flex-direction: column;
-    min-height: var(--tr-sender-input-min-height); // 设置最小高度
 
     .tiny-input__count {
       display: flex;
@@ -193,18 +191,27 @@
   &__content-area {
     flex: var(--tr-sender-content-flex-grow) 1 var(--tr-sender-content-min-width);
     min-width: var(--tr-sender-content-min-width);
-    padding: var(--tr-sender-content-padding);
     position: relative;
     overflow: hidden;
     min-height: var(--tr-sender-input-height);
 
     // 当前置插槽存在时，调整内边距
     .has-prefix & {
-      padding: var(--tr-sender-content-padding-with-prefix);
+      padding: var(--tr-sender-content-padding-with-prefix) !important;
     }
 
     .has-header & {
       padding-top: 0;
+    }
+
+    // 单行模式下的内边距
+    .mode-single & {
+      padding: var(--tr-sender-content-padding-single);
+    }
+
+    // 多行模式下的内边距
+    .mode-multiple & {
+      padding: var(--tr-sender-content-padding-multiple);
     }
 
     .tiny-textarea,
@@ -216,8 +223,6 @@
 
   // 前缀区域
   &__prefix-slot {
-    width: var(--tr-sender-prefix-width);
-    min-width: var(--tr-sender-prefix-min-width);
     flex: 0 0 var(--tr-sender-prefix-width);
     display: flex;
     align-items: start;
@@ -227,7 +232,7 @@
     transition: background-color var(--tr-sender-transition-duration);
     padding-top: var(--tr-sender-prefix-padding-top);
     padding-left: var(--tr-sender-prefix-padding-left);
-    padding-right: calc(var(--tr-sender-padding-right) / 2);
+    padding-right: var(--tr-sender-prefix-padding-right);
 
     &:hover {
       background-color: var(--tr-sender-prefix-hover-bg);
@@ -414,13 +419,17 @@
     top: 0;
     left: 0;
     border-radius: var(--tr-sender-border-radius);
-    padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+    padding: 12px 16px 12px 24px;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color-tertiary);
     z-index: 1;
     display: flex;
     align-items: center;
     width: 100%;
+
+    span {
+      line-height: 32px;
+    }
 
     a {
       color: var(--tr-sender-link-color);

@@ -12,7 +12,7 @@ import './index.less'
 const props = withDefaults(defineProps<SenderProps>(), {
   autofocus: false,
   autoSize: () => ({ minRows: 1, maxRows: 3 }),
-  allowSpeech: false,
+  allowSpeech: true,
   allowFiles: false,
   clearable: false,
   disabled: false,
