@@ -419,7 +419,7 @@
     top: 0;
     left: 0;
     border-radius: var(--tr-sender-border-radius);
-    padding: 12px 16px 12px 24px;
+    padding: var(--tr-sender-content-padding-single);
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color-tertiary);
     z-index: 1;
@@ -428,13 +428,13 @@
     width: 100%;
 
     span {
-      line-height: 32px;
+      line-height: var(--tr-sender-tips-line-height);
     }
 
     a {
       color: var(--tr-sender-link-color);
       text-decoration: none;
-      margin-left: 4px;
+      margin-left: var(--tr-sender-tips-margin-left);
 
       &:hover {
         text-decoration: underline;
