@@ -373,11 +373,11 @@
     position: absolute;
     left: 0;
     height: var(--tr-sender-input-height);
-    font-size: 14px;
+    font-size: var(--tr-sender-completion-placeholder-font-size);
     color: var(--tr-sender-suggestion-placeholder-color);
     pointer-events: none;
     white-space: pre;
-    line-height: inherit;
+    line-height: var(--tr-sender-completion-placeholder-line-height);
     display: flex;
     align-items: center;
     text-overflow: ellipsis;
@@ -392,8 +392,8 @@
   &__tab-hint {
     margin-top: auto;
     border: 1px dashed var(--tr-sender-suggestion-tab-hint-border-color);
-    padding: 0 6px;
-    font-size: 14px;
+    padding: var(--tr-sender-tab-hint-padding);
+    font-size: var(--tr-sender-tab-hint-font-size);
     color: var(--tr-sender-suggestion-tab-hint-color);
     border-radius: var(--tr-sender-suggestion-tab-border-radius);
     pointer-events: none;
@@ -404,13 +404,13 @@
   // 模式特定样式
   &.mode-single {
     .tiny-sender__completion-placeholder {
-      top: -2.5px;
+      top: var(--tr-sender-placeholder-top-single);
     }
   }
 
   &.mode-multiple {
     .tiny-sender__completion-placeholder {
-      top: 8.5px;
+      top: var(--tr-sender-placeholder-top-multiple);
     }
   }
 
@@ -631,7 +631,7 @@
 
 /** 处理相邻按钮元素边界  */
 .tiny-button+.tiny-button {
-  margin-left: 0;
+  margin-left: 0 !important;
 }
 
 /* 模式切换过渡动画 */
