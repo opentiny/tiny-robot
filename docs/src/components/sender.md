@@ -57,6 +57,16 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 <tr-sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 ```
 
+#### 自动调整高度
+
+通过`autoSize`属性可以设置输入框是否自动调整高度。当设置为`true`时，输入框会根据内容自动调整高度，适用于需要动态适应内容长度的场景。
+
+**注意**：只对 mode="multiple" 有效。
+
+> 可传入对象，如{ minRows: 2, maxRows: 3 }。
+
+<demo vue="../../demos/sender/AutoSize.vue" title="自动调整高度" description="Sender 组件支持自动调整高度。" />
+
 #### 可清空输入
 
 通过`clearable`属性添加清空按钮，方便用户快速清除输入内容。
@@ -153,7 +163,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 ### 布局与插槽
 
-以下是一个综合使用示例：
+以下是一个关于插槽的综合使用示例：
 
 <demo vue="../../demos/sender/All.vue" />
 
@@ -164,7 +174,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | 属性名        | 说明             | 类型                                       | 默认值            |
 | ------------- | ---------------- | ------------------------------------------ | ----------------- |
 | autofocus     | 自动获取焦点     | `boolean`                                  | `false`           |
-| autoSize      | 自动调整高度     | `boolean`                                  | `false`           |
+| autoSize      | 自动调整高度     | `boolean \| { minRows: number, maxRows: number }` | `false`           |
 | allowSpeech   | 是否开启语音输入 | `boolean`                                  | `false`           |
 | allowFiles    | 是否允许文件上传 | `boolean`                                  | `true`            |
 | clearable     | 是否可清空       | `boolean`                                  | `false`           |
