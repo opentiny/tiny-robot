@@ -40,7 +40,7 @@ outline: deep
 | --------------- | -------------------------------------------- | -------------------------- |
 | select          | value: string, triggerInfo?: TriggerPosition | 选择快捷指令项时触发       |
 | open-change     | value: boolean                               | 指令弹窗打开状态变化时触发 |
-| select-category | category: Category                           | 选择分类时触发             |
+| category-select | category: Category                           | 选择分类时触发             |
 | close           | -                                            | 关闭指令弹窗时触发         |
 
 ### Slots

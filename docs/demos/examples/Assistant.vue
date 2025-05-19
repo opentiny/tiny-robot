@@ -300,15 +300,12 @@ const categories = templateCategories
 
 const senderRef = ref<InstanceType<typeof TrSender> | null>(null)
 const currentTemplate = ref<string>('')
-const currentTemplateName = ref<string>('')
 const suggestionOpen = ref(false)
 
-// FIXME 'fill-template' 事件只有一个参数
 // 设置指令
-const handleFillTemplate = (templateText: string, item: SuggestionItem) => {
+const handleFillTemplate = (templateText: string) => {
   setTimeout(() => {
     currentTemplate.value = templateText
-    currentTemplateName.value = item?.text
     inputMessage.value = ''
 
     // 等待DOM更新后激活第一个字段
@@ -322,7 +319,6 @@ const handleFillTemplate = (templateText: string, item: SuggestionItem) => {
 const clearTemplate = () => {
   // 清空指令相关状态
   currentTemplate.value = ''
-  currentTemplateName.value = ''
 
   // 确保重新聚焦到输入框
   nextTick(() => {

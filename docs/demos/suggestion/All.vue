@@ -110,17 +110,16 @@ const handleKeyDown = (event, triggerFn, suggestionKeyDown) => {
 
 // 处理指令选择
 const handleSuggestionSelect = (text) => {
+  currentTemplateName.value = text
   console.log('选择了指令:', text)
 }
 
-// FIXME 'fill-template' 事件只有一个参数
 // 设置指令
-const handleFillTemplate = (templateText, item) => {
+const handleFillTemplate = (templateText) => {
   // 模拟加载效果
   loading.value = true
   setTimeout(() => {
     currentTemplate.value = templateText
-    currentTemplateName.value = item?.text
     inputText.value = ''
     loading.value = false
 
