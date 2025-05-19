@@ -9,13 +9,6 @@ _This is italic text_
 
 ~~Strikethrough~~
 
-\`\`\`javascript
-// javascript
-const msg = 'Hello, world!'
-
-console.log(msg)
-\`\`\`
-
 \`\`\`typescript
 // typescript
 const msg: string = 'Hello, world!'
