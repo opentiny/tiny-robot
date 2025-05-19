@@ -96,11 +96,11 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 启用`allowSpeech`支持语音输入功能，用户可以通过语音录入文本。
 
-<tr-sender :allowSpeech="true" />
+* 混合模式：用户可以先用键盘输入部分内容，然后通过语音继续补充，自动停止录音。
 
-```vue
-<tr-sender :allowSpeech="true" />
-```
+* 连续语音输入：用户可以连续录入语音，系统会自动将语音转换为文本，点击按钮手动停止录音。
+
+<demo vue="../../demos/sender/voiceInput.vue" title="语音输入" description="可以使用 speech 属性进行配置" />
 
 #### 文件上传
 
@@ -185,6 +185,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | mode          | 输入框类型       | `'single' \| 'multiple'`                   | `'single'`        |
 | maxLength     | 最大输入长度     | `number`                                   | `Infinity`        |
 | placeholder   | 输入框占位文本   | `string`                                   | `'请输入内容...'` |
+| speech        | 语音识别配置     | `'boolean' \| 'SpeechConfig'`              | 无                |
 | showWordLimit | 是否显示字数统计 | `boolean`                                  | `false`           |
 | submitType    | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
 | theme         | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
@@ -243,3 +244,14 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | `footer-left`   | 底部左侧插槽，保留字数限制   | `.tiny-sender__footer-left`    | 字数限制                 |
 | `footer-right`  | 底部右侧插槽，保留操作按钮   | `.tiny-sender__footer-right`   | 多行模式下的操作按钮     |
 | `footer`        | 底部完全自定义插槽(向后兼容) | `.tiny-sender__footer-slot`    | 无 (会覆盖其他底部元素)  |
+
+### Types
+
+```typescript
+interface SpeechConfig {
+  lang?: string // 识别语言，默认浏览器语言
+  continuous?: boolean // 是否持续识别
+  interimResults?: boolean // 是否返回中间结果
+  autoReplace?: boolean // 是否自动替换当前输入内容
+}
+```

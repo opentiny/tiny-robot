@@ -187,20 +187,37 @@ const activateTemplateFirstField = () => {
 }
 
 // 语音识别
-const speechOptions = computed(() => ({
-  ...(typeof props.speech === 'object' ? props.speech : {}),
-  onStart: () => emit('speech-start'),
-  onEnd: (transcript?: string) => emit('speech-end', transcript),
-  onInterim: (transcript: string) => emit('speech-interim', transcript),
-  onFinal: (text: string) => {
-    inputValue.value = text
-    emit('speech-end', text)
-  },
-  onError: (err: Error) => {
-    showError(err.message)
-    emit('speech-error', err)
-  },
-}))
+const speechOptions = computed(() => {
+  const speechConfig = typeof props.speech === 'object' ? props.speech : {}
+  return {
+    ...speechConfig,
+    onStart: () => emit('speech-start'),
+    onEnd: (transcript?: string) => emit('speech-end', transcript),
+    onInterim: (transcript: string) => emit('speech-interim', transcript),
+    onFinal: (text: string) => {
+      // 根据 autoReplace 选项决定是追加还是替换文本
+      // 默认为追加模式（autoReplace = false）
+      if (speechConfig.autoReplace) {
+        // 替换模式：直接覆盖现有内容
+        inputValue.value = text
+      } else {
+        // 追加模式：将识别结果追加到现有内容
+        // 智能空格处理：如果当前内容末尾和识别结果开头都不是空格，自动添加空格
+        const currentText = inputValue.value
+        if (currentText && text && !currentText.endsWith(' ') && !text.startsWith(' ') && currentText.length > 0) {
+          inputValue.value = currentText + ' ' + text
+        } else {
+          inputValue.value = currentText + text
+        }
+      }
+      emit('speech-end', text)
+    },
+    onError: (err: Error) => {
+      showError(err.message)
+      emit('speech-error', err)
+    },
+  }
+})
 
 const { speechState, start: startSpeech, stop: stopSpeech } = useSpeechHandler(speechOptions.value)
 
