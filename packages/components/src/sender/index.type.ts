@@ -43,13 +43,7 @@ export interface SenderProps {
   theme?: ThemeType // 主题
   template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
   hasContent?: boolean // 手动指定是否有内容，用于模板模式
-  fixedText?: string // 固定提示文本
-  fixedTextLink?: {
-    // 固定文本中的可点击链接部分
-    text: string // 链接文本
-    url?: string // 链接地址
-    handler?: () => void // 点击处理函数
-  }
+  tipsMessage?: string // 消息提示信息
 }
 
 export interface ActionButtonsProps {

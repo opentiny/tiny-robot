@@ -409,7 +409,7 @@
   }
 
   // 固定文本样式
-  &__fixed-text {
+  &__tips {
     position: absolute;
     top: 0;
     left: 0;
@@ -418,19 +418,18 @@
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color-tertiary);
     z-index: 1;
-    pointer-events: none; // 让固定文本不能接收鼠标事件
     display: flex;
     align-items: center;
-  }
+    width: 100%;
 
-  &__fixed-link {
-    pointer-events: auto; // 让链接可以接收鼠标事件
-    color: var(--tr-sender-link-color);
-    text-decoration: none;
-    margin-left: 4px;
+    a {
+      color: var(--tr-sender-link-color);
+      text-decoration: none;
+      margin-left: 4px;
 
-    &:hover {
-      text-decoration: underline;
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 }
