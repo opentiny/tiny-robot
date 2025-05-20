@@ -43,6 +43,7 @@ export interface SenderProps {
   theme?: ThemeType // 主题
   template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
   hasContent?: boolean // 手动指定是否有内容，用于模板模式
+  templateInitialValues?: Record<string, string> // 模板字段的初始值，键为字段占位符文本，值为初始内容
 }
 
 export interface ActionButtonsProps {
@@ -135,6 +136,10 @@ export interface TemplateEditorProps {
   template: string
   /** 当前值 */
   value?: string
+  /** 是否自动聚焦 */
+  autofocus?: boolean
+  /** 字段初始值，键为占位符文本，值为初始内容 */
+  initialValues?: Record<string, string>
 }
 
 /**
@@ -149,6 +154,12 @@ export interface TemplateEditorEmits {
   (e: 'content-status', hasContent: boolean): void
   /** 字段激活状态变更 */
   (e: 'field-active', isActive: boolean, index: number): void
+  /** 提交事件 */
+  (e: 'submit', value: string): void
+  /** 聚焦事件 */
+  (e: 'focus', event: FocusEvent): void
+  /** 失焦事件 */
+  (e: 'blur', event: FocusEvent): void
 }
 
 /**
@@ -159,4 +170,6 @@ export interface TemplateEditorExpose {
   activateFirstField: () => void
   /** 重置所有字段 */
   resetFields: () => void
+  /** 聚焦编辑器并将光标置于末尾 */
+  focus: () => void
 }

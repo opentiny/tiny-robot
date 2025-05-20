@@ -26,6 +26,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   theme: 'light',
   template: '',
   hasContent: undefined,
+  templateInitialValues: () => ({}),
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -372,6 +373,7 @@ defineExpose({
                 ref="templateEditorRef"
                 :template="template"
                 :value="inputValue"
+                :initialValues="templateInitialValues"
                 @update:value="handleTemplateInput"
                 @input="handleTemplateInput"
               />
