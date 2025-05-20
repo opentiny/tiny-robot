@@ -171,11 +171,8 @@ div.tr-bubble__code-wrapper {
     justify-content: space-between;
     border-bottom: solid 1px rgba(0, 0, 0, 0.06);
     font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
-
-    &-lang {
-      font-size: 14px;
-      line-height: 24px;
-    }
+    font-size: 14px;
+    line-height: 24px;
   }
 }
 
