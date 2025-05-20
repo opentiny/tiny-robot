@@ -1,5 +1,5 @@
 import { App } from 'vue'
-import IconButton from './index.vue'
+import IconButton from './index.ce.vue'
 
 IconButton.name = 'TrIconButton'
 

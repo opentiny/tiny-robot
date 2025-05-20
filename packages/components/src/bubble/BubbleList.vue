@@ -2,7 +2,7 @@
 import { useScroll } from '@vueuse/core'
 import { computed, useTemplateRef, watch } from 'vue'
 import Bubble from './Bubble.vue'
-import { useMarkdownIt } from './composables'
+import { useMarkdownIt } from './composables/useMarkdownIt'
 import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})

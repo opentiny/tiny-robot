@@ -10,14 +10,12 @@ _This is italic text_
 ~~Strikethrough~~
 
 \`\`\`typescript
-// typescript
 const msg: string = 'Hello, world!'
 
 console.log(msg)
 \`\`\`
 
 \`\`\`vue
-// vue
 <template>
   <span>{{ msg }}</span>
 </template>
@@ -31,7 +29,6 @@ const msg = ref('hello')
 \`\`\`
 
 \`\`\`unknown
-// unknown
-unknown
+unknown text type
 \`\`\`
 `

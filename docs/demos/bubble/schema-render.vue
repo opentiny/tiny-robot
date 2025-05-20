@@ -20,7 +20,7 @@
 import { BubbleProps, TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { defineCustomElement, h, ref } from 'vue'
-import SchemaCard from './schema-card.vue'
+import SchemaCard from './schema-card.ce.vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const mdConfig: BubbleProps['mdConfig'] = { html: true }

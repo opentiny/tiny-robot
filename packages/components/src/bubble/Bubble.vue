@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue'
-import { parseMarkdown } from './composables'
+import { parseMarkdown } from './composables/useMarkdownIt'
 import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -158,14 +158,35 @@ const placementStart = computed(() => props.placement === 'start')
 }
 </style>
 
-<style>
+<style lang="less">
+div.tr-bubble__code-wrapper {
+  margin: 16px 0;
+  .tr-bubble__code-toolbar {
+    padding: 12px;
+    background-color: rgb(245, 245, 245);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: solid 1px rgba(0, 0, 0, 0.06);
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+
+    &-lang {
+      font-size: 14px;
+      line-height: 24px;
+    }
+  }
+}
+
 pre:has(> code.tr-bubble__code[class*='language-']) {
   position: relative;
   z-index: 1;
-  margin: 16px 0;
+  margin: 0;
   padding: 16px 0;
   background-color: rgb(245, 245, 245);
-  border-radius: 12px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
   overflow-x: auto;
   font-size: 14px;
 }

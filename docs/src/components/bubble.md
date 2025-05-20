@@ -60,7 +60,7 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 SchemaCard 组件代码如下
 
-<demo vue="../../demos/bubble/schema-card.vue" />
+<demo vue="../../demos/bubble/schema-card.ce.vue" />
 
 <demo vue="../../demos/bubble/schema-render.vue" />
 
