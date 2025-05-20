@@ -12,6 +12,8 @@ import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../in
  * @param speechState - 语音识别状态
  * @param showSuggestions - 是否显示建议列表
  * @param toggleSpeech - 切换语音识别函数
+ * @param currentMode - 当前输入模式
+ * @param setMultipleMode - 设置为多行模式的回调函数
  */
 export function useKeyboardHandler(
   props: SenderProps,
@@ -21,6 +23,8 @@ export function useKeyboardHandler(
   speechState: SpeechState,
   showSuggestions: Ref<boolean>,
   toggleSpeech: () => void,
+  currentMode?: Ref<'single' | 'multiple'>,
+  setMultipleMode?: () => void,
 ) {
   /**
    * 验证提交条件
@@ -69,6 +73,27 @@ export function useKeyboardHandler(
    */
   const handleKeyPress = (event: KeyboardEvent) => {
     if (isComposing.value) return // 阻止输入法状态下的提交
+
+    // 处理 Shift+Enter - 单行模式切换到多行模式并添加换行
+    if (event.key === 'Enter' && event.shiftKey && currentMode?.value === 'single' && setMultipleMode) {
+      event.preventDefault()
+      // 首先切换到多行模式
+      setMultipleMode()
+      // 然后在当前输入内容的光标位置添加换行符
+      const target = event.target as HTMLTextAreaElement
+      const cursorPosition = target.selectionStart
+      const currentValue = inputValue.value
+
+      // 在光标位置插入换行符
+      inputValue.value = currentValue.substring(0, cursorPosition) + '\n' + currentValue.substring(cursorPosition)
+
+      // 设置光标位置到换行符之后
+      setTimeout(() => {
+        target.selectionStart = target.selectionEnd = cursorPosition + 1
+      }, 0)
+
+      return
+    }
 
     // 处理Esc键 - 关闭建议列表或停止语音录制
     if (event.key === 'Escape') {

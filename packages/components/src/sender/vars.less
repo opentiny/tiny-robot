@@ -31,7 +31,12 @@
 
   // 阴影
   --tr-sender-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
-  --tr-sender-focus-shadow: 0 0 0 2px rgba(94, 124, 224, 0.3);
+
+  // 输入框
+  --tr-sender-textarea-min-height: 26px;
+  --tr-sender-textarea-line-height: 26px;
+  --tr-sender-input-height: 26px;
+  --tr-sender-input-font-size: 16px;
 
   // 插槽变量
   // 头部插槽 (Header)
@@ -44,6 +49,7 @@
   --tr-sender-prefix-width: 60px;
   --tr-sender-prefix-min-width: 44px;
   --tr-sender-prefix-hover-bg: #f5f5f5;
+  --tr-sender-prefix-padding-top: 8px;
   --tr-sender-prefix-padding-left: 16px;
 
   // 内容区域 (Content)
@@ -53,17 +59,25 @@
   --tr-sender-content-flex-grow: 1;
 
   // 操作区域 (Actions)
-  --tr-sender-actions-width: auto;
   --tr-sender-actions-min-width: 32px;
   --tr-sender-actions-gap: 8px;
   --tr-sender-actions-icon-size: 20px;
+  --tr-sender-actions-padding-left: 10px;
   --tr-sender-actions-padding-right: 10px;
 
   // 底部插槽 (Footer)
-  --tr-sender-footer-max-height: 200px;
-  --tr-sender-footer-min-height: 0;
+  --tr-sender-footer-min-height: 48px;
   --tr-sender-footer-bg: #fff;
   --tr-sender-footer-hover: #f9f9f9;
+
+  // 其余变量
+  --tr-sender-container-min-height: 42px;
+  --tr-sender-bottom-row-padding-top: 2px;
+  --tr-sender-disabled-opacity: 0.7;
+  --tr-sender-action-button-disabled-opacity: 0.6;
+  --tr-sender-error-bottom-offset: -20px;
+  --tr-sender-font-size-extra-small: 10px;
+  --tr-sender-transition-max-height: 300px;
 }
 
 /* 暗色主题 */
