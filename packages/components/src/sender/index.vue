@@ -305,6 +305,11 @@ const handleCompositionEnd = () => {
   setTimeout(() => (isComposing.value = false), 50)
 }
 
+// 计算字数是否超出限制
+const isOverLimit = computed(() => {
+  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
+})
+
 // 监听输入变化
 watch(inputValue, () => {
   showSuggestions.value = !!props.suggestions && !!inputValue.value
@@ -400,7 +405,6 @@ defineExpose({
               v-model="inputValue"
               :disabled="isDisabled"
               :placeholder="placeholder"
-              :maxlength="maxLength"
               :autofocus="autofocus"
               @keydown="handleKeyPress"
               @compositionstart="isComposing = true"
@@ -424,6 +428,7 @@ defineExpose({
                 :has-content="hasContent"
                 :speech-status="speechState"
                 :submit-type="submitType"
+                :is-over-limit="isOverLimit"
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
@@ -444,17 +449,22 @@ defineExpose({
             <div class="tiny-sender__footer-left">
               <!-- 左侧自定义插槽 -->
               <slot name="footer-left"></slot>
-
-              <!-- 字数限制 -->
-              <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
-                {{ inputValue.length }}/{{ maxLength }}
-              </div>
             </div>
 
             <!-- 底部右侧区域 -->
             <div class="tiny-sender__footer-right">
               <!-- 右侧自定义插槽 -->
               <slot name="footer-right"></slot>
+
+              <!-- 字数限制 -->
+              <div
+                v-if="showWordLimit && maxLength !== Infinity"
+                class="tiny-sender__word-limit"
+                :class="{ 'is-over-limit': isOverLimit }"
+              >
+                <span class="real-word-length">{{ inputValue.length }}</span
+                >/{{ maxLength }}
+              </div>
 
               <!-- 多行模式下的操作按钮 -->
               <div v-if="currentMode === 'multiple'" class="tiny-sender__toolbar">
@@ -468,6 +478,7 @@ defineExpose({
                     :has-content="hasContent"
                     :speech-status="speechState"
                     :submit-type="submitType"
+                    :is-over-limit="isOverLimit"
                     @clear="clearInput"
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"

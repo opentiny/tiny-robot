@@ -44,6 +44,11 @@ const props = withDefaults(defineProps<ActionButtonsProps>(), {
    * @default 'enter'
    */
   submitType: 'enter',
+  /**
+   * 是否超出字数限制
+   * @default false
+   */
+  isOverLimit: false,
 })
 
 const emit = defineEmits<{
@@ -78,6 +83,11 @@ const isSpeechRecording = computed(() => props.speechStatus.isRecording)
 const isDisabled = computed(() => props.disabled)
 
 /**
+ * 提交按钮禁用状态
+ */
+const isSubmitDisabled = computed(() => isDisabled.value || props.isOverLimit)
+
+/**
  * 处理清除操作
  */
 const handleClear = () => {
@@ -100,7 +110,7 @@ const handleToggleSpeech = () => {
  * 处理提交操作
  */
 const handleSubmit = () => {
-  if (!isDisabled.value) {
+  if (!isSubmitDisabled.value) {
     emit('submit')
   }
 }
@@ -153,7 +163,7 @@ const handleCancel = () => {
       <tiny-button
         type="text"
         :class="loading ? 'cancel-button' : 'submit-button'"
-        :disabled="isDisabled"
+        :disabled="loading ? isDisabled : isSubmitDisabled"
         @click="loading ? handleCancel() : handleSubmit()"
       >
         <div class="button-content">

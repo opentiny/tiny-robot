@@ -287,6 +287,15 @@
     text-align: left;
     letter-spacing: 0;
     color: var(--tr-sender-text-color-tertiary);
+
+    // 超出限制的红色警示样式
+    &.is-over-limit {
+
+      &>.real-word-length {
+        color: var(--tr-sender-error-color);
+        font-weight: 500;
+      }
+    }
   }
 
   // 输入建议
@@ -444,7 +453,6 @@
 .action-buttons {
   display: flex;
   gap: var(--tr-sender-gap);
-  padding-left: var(--tr-sender-actions-padding-left);
   padding-right: var(--tr-sender-actions-padding-right);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
