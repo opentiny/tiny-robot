@@ -22,7 +22,7 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ### 气泡形状
 
-通过 `shape` 设置气泡形状。目前提供了 `default` 和 `corner` 两个选项。默认为 `default`
+通过 `shape` 设置气泡形状。目前提供了 `rounded` 和 `corner` 两个选项。默认为 `corner`
 
 <demo vue="../../demos/bubble/shape.vue" />
 
@@ -97,20 +97,20 @@ type BubblePlacement = 'start' | 'end'
 
 单个气泡的属性配置。
 
-| 属性        | 类型                                                           | 默认值      | 说明                                             |
-| ----------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------ |
-| `content`   | `string`                                                       | -           | 气泡内容文本                                     |
-| `id`        | `string \| number \| symbol`                                   | -           | 气泡唯一标识                                     |
-| `placement` | `BubblePlacement`                                              | -           | 气泡位置 (`'start'` 或 `'end'`)                  |
-| `avatar`    | `VNode`                                                        | -           | 气泡头像部分的自定义 Vue 节点                    |
-| `role`      | `string`                                                       | -           | 气泡角色标识，用于关联 `roles` 配置              |
-| `type`      | `'text' \| 'markdown'`                                         | `'text'`    | 内容类型：纯文本或 Markdown                      |
-| `loading`   | `boolean`                                                      | `false`     | 是否显示加载状态                                 |
-| `aborted`   | `boolean`                                                      | `false`     | 是否显示为已中止状态                             |
-| `mdConfig`  | `MarkdownItOptions`                                            | -           | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
-| `maxWidth`  | `CSSProperties['maxWidth']`                                    | -           | 气泡内容的最大宽度                               |
-| `shape`     | `'default' \| 'corner'`                                        | `'default'` | 气泡形状，默认圆角矩形                           |
-| `reasoning` | `{ enabled?: boolean; content?: string; completed?: boolean }` | -           | 推理相关内容                                     |
+| 属性        | 类型                                                           | 默认值     | 说明                                             |
+| ----------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------ |
+| `content`   | `string`                                                       | -          | 气泡内容文本                                     |
+| `id`        | `string \| number \| symbol`                                   | -          | 气泡唯一标识                                     |
+| `placement` | `BubblePlacement`                                              | -          | 气泡位置 (`'start'` 或 `'end'`)                  |
+| `avatar`    | `VNode`                                                        | -          | 气泡头像部分的自定义 Vue 节点                    |
+| `role`      | `string`                                                       | -          | 气泡角色标识，用于关联 `roles` 配置              |
+| `type`      | `'text' \| 'markdown'`                                         | `'text'`   | 内容类型：纯文本或 Markdown                      |
+| `loading`   | `boolean`                                                      | `false`    | 是否显示加载状态                                 |
+| `aborted`   | `boolean`                                                      | `false`    | 是否显示为已中止状态                             |
+| `mdConfig`  | `MarkdownItOptions`                                            | -          | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
+| `maxWidth`  | `CSSProperties['maxWidth']`                                    | -          | 气泡内容的最大宽度                               |
+| `shape`     | `'rounded' \| 'corner'`                                        | `'corner'` | 气泡形状                                         |
+| `reasoning` | `{ enabled?: boolean; content?: string; completed?: boolean }` | -          | 推理相关内容                                     |
 
 ### BubbleSlots
 

@@ -16,9 +16,9 @@ export interface BubbleProps {
   avatar?: VNode
   role?: string
   /**
-   * 气泡形状，默认 'default' 圆角矩形
+   * 气泡形状，默认 'corner'
    */
-  shape?: 'default' | 'corner'
+  shape?: 'rounded' | 'corner'
   /**
    * 内容类型
    */

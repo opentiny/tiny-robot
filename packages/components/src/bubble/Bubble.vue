@@ -7,7 +7,7 @@ import { BubbleProps, BubbleSlots } from './index.type'
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
   placement: 'start',
-  shape: 'default',
+  shape: 'corner',
   type: 'text',
   maxWidth: '80%',
 })
