@@ -50,6 +50,7 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 #### 字数限制与统计
 
 通过`maxLength`属性限制输入字符数，搭配`showWordLimit`显示字数统计。
+> **注意**：当输入内容超出字数限制时，系统不会自动截断，真实字数会以红色标示，且无法发送。
 
 <tr-sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
 

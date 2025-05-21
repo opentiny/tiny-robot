@@ -58,6 +58,7 @@ export interface ActionButtonsProps {
   allowFiles?: boolean // 是否允许上传附件
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
+  isOverLimit?: boolean // 是否超出字数限制
 }
 
 // 组件事件定义
