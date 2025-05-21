@@ -14,22 +14,52 @@
     @speech-end="handleSpeechEnd"
   >
     <template #header>
-      <div class="conversation-title">聊天对话</div>
+      <div class="conversation-title">自定义插槽</div>
     </template>
 
     <template #prefix>
       <icon-ai class="user-avatar" />
     </template>
+
+    <template #footer-left>
+      <tiny-tooltip :disabled="isActive" content="适用于复杂问题解析" placement="top" theme="dark">
+        <tiny-button
+          size="mini"
+          plain
+          circle
+          :reset-time="0"
+          style=""
+          :class="['custom-button', isActive ? 'active' : '']"
+          @click="toggleActive"
+        >
+          <IconThink class="icon-think" />
+          <span style="margin-left: 4px">深度思考</span>
+        </tiny-button>
+      </tiny-tooltip>
+    </template>
+
+    <template #footer-right>
+      <tiny-button plain type="text">
+        <IconRefresh class="icon-refresh" />
+      </tiny-button>
+    </template>
   </tr-sender>
 </template>
 
 <script setup lang="ts">
-// import { TrSender } from '@opentiny/tiny-robot'
-import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
+import { TrSender } from '@opentiny/tiny-robot'
+import { IconAi, IconThink, IconRefresh } from '@opentiny/tiny-robot-svgs'
+import { TinyButton, TinyTooltip } from '@opentiny/vue'
+
+const isActive = ref(false)
 
 const inputMessage = ref('')
 const isSubmitting = ref(false)
+
+const toggleActive = () => {
+  isActive.value = !isActive.value
+}
 
 const handleSubmit = async (message) => {
   isSubmitting.value = true
@@ -48,7 +78,7 @@ const handleSpeechEnd = (transcript) => {
 }
 </script>
 
-<style>
+<style scoped>
 .conversation-title {
   font-weight: bold;
   padding: 8px 0;
@@ -56,7 +86,7 @@ const handleSpeechEnd = (transcript) => {
 }
 
 .user-avatar {
-  font-size: 36px;
+  font-size: 28px;
   object-fit: cover;
 }
 
@@ -66,5 +96,36 @@ const handleSpeechEnd = (transcript) => {
   align-items: center;
   padding: 8px;
   border-top: 1px solid #eee;
+}
+
+.icon-refresh {
+  font-size: 20px;
+}
+
+.icon-think {
+  width: 16px;
+  height: 16px;
+}
+
+.custom-button {
+  width: 100px;
+  height: 32px;
+}
+
+:deep(.tiny-button) {
+  background-color: rgb(255, 255, 255) !important;
+}
+
+:deep(.tiny-button.active) {
+  border: 1px solid rgb(20, 118, 255) !important;
+  background: rgba(20, 118, 255, 0.08) !important;
+  color: rgb(20, 118, 255) !important;
+}
+
+:deep(.tiny-tooltip.tiny-tooltip__popper) {
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: rgb(89, 89, 89);
+  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.16);
 }
 </style>

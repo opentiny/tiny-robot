@@ -52,9 +52,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, watch } from 'vue'
-// import { TrSender, TrSuggestion } from '@opentiny/tiny-robot'
-import { templateSuggestions, templateCategories } from './templateData'
+import { TrSender, TrSuggestion } from '@opentiny/tiny-robot'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { templateCategories, templateSuggestions } from './templateData'
 
 // 状态管理
 const inputText = ref('')
@@ -110,16 +110,16 @@ const handleKeyDown = (event, triggerFn, suggestionKeyDown) => {
 
 // 处理指令选择
 const handleSuggestionSelect = (text) => {
+  currentTemplateName.value = text
   console.log('选择了指令:', text)
 }
 
 // 设置指令
-const handleFillTemplate = (templateText, item) => {
+const handleFillTemplate = (templateText) => {
   // 模拟加载效果
   loading.value = true
   setTimeout(() => {
     currentTemplate.value = templateText
-    currentTemplateName.value = item?.text
     inputText.value = ''
     loading.value = false
 

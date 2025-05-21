@@ -10,8 +10,7 @@
 </template>
 
 <script setup lang="ts">
-// import { IconButton } from '@opentiny/vue'
-import { type FeedbackProps } from '@opentiny/tiny-robot'
+import { FeedbackProps, TrFeedback } from '@opentiny/tiny-robot'
 import { IconPin } from '@opentiny/tiny-robot-svgs'
 import { h, resolveComponent } from 'vue'
 

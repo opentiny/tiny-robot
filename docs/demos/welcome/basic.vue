@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="tsx">
-// import { TrWelcome } from '@opentiny/tiny-robot'
+import { TrWelcome } from '@opentiny/tiny-robot'
 import { CSSProperties, h } from 'vue'
 
 const icon = h('span', { style: { fontSize: '56px', lineHeight: '64px' } as CSSProperties }, '🤖')

@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot-kit",
-  "version": "0.2.0-alpha.2",
+  "version": "0.2.0-alpha.3",
   "publishConfig": {
     "access": "public"
   },
@@ -8,8 +8,12 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --minify",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
   },
   "author": "",

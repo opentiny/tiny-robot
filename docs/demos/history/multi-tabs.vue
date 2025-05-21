@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { HistoryGroup, HistoryItem } from '@opentiny/tiny-robot'
+import { HistoryGroup, HistoryItem, TrHistory } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 const tabs = [
   { title: '历史对话', id: 'conversations' },
@@ -25,7 +25,7 @@ const selected = ref('2')
 const data: Record<string, HistoryGroup[]> = reactive({
   conversations: [
     {
-      date: '今天',
+      group: '今天',
       items: [
         { title: '如何训练一只聪明的小狗', id: '1', tag: { text: '成功', type: 'success' } },
         { title: 'How to make a perfect soufflé', id: '2', tag: { text: '警告', type: 'warning' } },
@@ -33,7 +33,7 @@ const data: Record<string, HistoryGroup[]> = reactive({
       ],
     },
     {
-      date: '昨天',
+      group: '昨天',
       items: [
         {
           title:
@@ -45,13 +45,13 @@ const data: Record<string, HistoryGroup[]> = reactive({
       ],
     },
     {
-      date: '5月13日',
+      group: '5月13日',
       items: [
         { title: '历史对话默认', id: '7' },
         { title: '历史对话默认', id: '8' },
       ],
     },
-    { date: '5月12日', items: [] },
+    { group: '5月12日', items: [] },
   ],
   tasks: [],
 })

@@ -10,7 +10,7 @@
 
 ### 示例代码中编写规范
 
-demo推荐写在`demos`目录下，无需引入组件库（但需要在代码中通过注释体现）：
+demo推荐写在`demos`目录下
 ```vue
 <!-- Xxx.vue -->
 <template>
@@ -20,10 +20,9 @@ demo推荐写在`demos`目录下，无需引入组件库（但需要在代码中
   <Bubble/>    <!-- 不推荐 -->
 </template>
 <script setup>
-// import { TrBubble } from '@opentiny/tiny-robot'
+import { TrBubble } from '@opentiny/tiny-robot'
 </script>
 ```
-
 
 对于简短Demo可以写在markdown中，需要注意标签规范：
 markdown文件中可以直接引用模板标签，无需引入组件库：
