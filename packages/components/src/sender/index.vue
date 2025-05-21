@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
@@ -270,8 +270,17 @@ const justifyContent = computed(
   },
 )
 
+type SlotsType = {
+  decorativeContent?: () => boolean
+  [key: string]: (() => any) | undefined // eslint-disable-line
+}
+const slots = useSlots() as SlotsType
+
+// 检查是否有decorativeContent插槽
+const hasDecorativeContent = computed((): boolean => !!slots.decorativeContent?.())
+
 // 状态计算
-const isDisabled = computed(() => props.disabled)
+const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
 const hasContent = computed(() => (props.hasContent !== undefined ? props.hasContent : !!inputValue.value))
 
@@ -366,6 +375,10 @@ defineExpose({
 
           <!-- 内容区域 - 确保最小宽度，不被挤占 -->
           <div class="tiny-sender__content-area">
+            <div v-if="$slots.decorativeContent" class="tiny-sender__decorative-content">
+              <slot name="decorativeContent"></slot>
+            </div>
+
             <!-- 模板编辑器 -->
             <template v-if="showTemplateEditor">
               <TemplateEditor
