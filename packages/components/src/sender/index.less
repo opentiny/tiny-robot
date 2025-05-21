@@ -414,27 +414,24 @@
   }
 
   // 固定文本样式
-  &__tips {
+  &__decorative-content {
     position: absolute;
     top: 0;
     left: 0;
     border-radius: var(--tr-sender-border-radius);
     padding: var(--tr-sender-content-padding-single);
     background-color: var(--tr-sender-bg-color);
+    line-height: var(--tr-sender-decorative-content-line-height);
     color: var(--tr-sender-text-color-tertiary);
     z-index: 1;
     display: flex;
     align-items: center;
     width: 100%;
 
-    span {
-      line-height: var(--tr-sender-tips-line-height);
-    }
-
     a {
       color: var(--tr-sender-link-color);
       text-decoration: none;
-      margin-left: var(--tr-sender-tips-margin-left);
+      margin-left: var(--tr-sender-decorative-content-margin-left);
 
       &:hover {
         text-decoration: underline;
