@@ -277,7 +277,7 @@ type SlotsType = {
 const slots = useSlots() as SlotsType
 
 // 检查是否有decorativeContent插槽
-const hasDecorativeContent = computed((): boolean => !!slots.decorativeContent?.())
+const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
