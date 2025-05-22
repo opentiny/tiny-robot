@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, ref, nextTick, useSlots } from 'vue'
+import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
@@ -162,9 +162,6 @@ const checkInputOverflow = () => {
 // 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
 const clearInput = () => {
   originalClearInput()
-
-  // 总是回到单行模式，无条件
-  currentMode.value = 'single'
 
   // 如果当前是模板编辑模式，需要退出模板编辑模式
   if (props.template) {
@@ -388,7 +385,7 @@ defineExpose({
   <div
     ref="senderRef"
     class="tiny-sender"
-    :class="[senderClasses, `theme-${theme}`, `mode-${mode}`]"
+    :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`]"
     :data-theme="theme"
   >
     <!-- 输入区域容器 -->
