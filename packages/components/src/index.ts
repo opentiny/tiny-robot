@@ -10,6 +10,7 @@ import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
 import Suggestion from './suggestion'
+import QuestionPopover from './question-popover'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -73,4 +74,6 @@ export {
   Suggestion as TrSuggestion,
   Question,
   Question as TrQuestion,
+  QuestionPopover,
+  QuestionPopover as TrQuestionPopover,
 }

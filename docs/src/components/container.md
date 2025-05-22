@@ -8,6 +8,8 @@ outline: deep
 
 ### 基本示例
 
+<demo vue="../../demos/container/test.vue" />
+
 <demo vue="../../demos/container/basic.vue" />
 
 ## API
