@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, nextTick, useSlots } from 'vue'
+import { computed, watch, ref, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
@@ -339,8 +339,6 @@ const isOverLimit = computed(() => {
 
 // 监听输入变化
 watch(inputValue, () => {
-  showSuggestions.value = !!props.suggestions && !!inputValue.value
-
   // 当输入内容变化时检查是否需要切换模式
   nextTick(checkInputOverflow)
 
@@ -437,7 +435,7 @@ defineExpose({
                 v-model="inputValue"
                 :disabled="isDisabled"
                 :placeholder="placeholder"
-                  :autofocus="autofocus"
+                :autofocus="autofocus"
                 @keydown="handleKeyPress"
                 @compositionstart="isComposing = true"
                 @compositionend="handleCompositionEnd"
