@@ -452,29 +452,88 @@
 // ActionButtons组件样式
 .action-buttons {
   display: flex;
-  gap: var(--tr-sender-gap);
+  gap: var(--tr-action-buttons-gap);
   padding-right: var(--tr-sender-actions-padding-right);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
   align-items: center;
 
-  /* 按钮图标统一样式 */
-  .button-icon {
-    font-size: var(--tr-sender-icon-size);
-    transition: transform var(--tr-sender-transition-duration);
-    fill: var(--tr-sender-button-icon-color);
-    color: var(--tr-sender-button-icon-color);
-    margin-right: 0;
+  /* 公共按钮样式 */
+  &__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    &:hover {
-      transform: scale(1.1);
-      border-radius: 8px;
+  /* 图标统一样式 */
+  &__icon {
+    font-size: var(--tr-action-buttons-icon-size);
+
+    &:not(&--send):hover {
+      border-radius: var(--tr-action-buttons-border-radius);
       background-color: var(--tr-sender-prefix-hover-bg);
+    }
+
+    /* 关闭图标 */
+    &--close {
+      font-size: var(--tr-action-buttons-icon-size-close);
+    }
+
+    /* 发送图标 */
+    &--send {
+      font-size: var(--tr-action-buttons-icon-size-send);
+      color: var(--tr-action-buttons-send-bg-color);
+      border-radius: var(--tr-action-buttons-send-border-radius);
+
+      &:hover {
+        color: var(--tr-action-buttons-send-hover-bg-color);
+      }
+    }
+
+    /* 停止图标 */
+    &--stop {
+      font-size: var(--tr-action-buttons-icon-size-stop);
     }
   }
 
-  .submit-button {
-    margin-left: 0;
+  /* 辅助按钮组 */
+  &__utility {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--tr-action-utility-buttons-gap);
+    border-radius: var(--tr-action-buttons-border-radius);
+  }
+
+  /* 提交按钮内容 */
+  &__submit-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: var(--tr-action-buttons-submit-content-line-height);
+    gap: var(--tr-action-buttons-submit-content-gap);
+  }
+
+  /* 取消按钮 */
+  &__cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: var(--tr-action-buttons-cancel-height);
+    gap: var(--tr-action-buttons-cancel-gap);
+    cursor: wait;
+    font-size: var(--tr-action-buttons-cancel-font-size);
+    border-radius: var(--tr-action-buttons-cancel-border-radius);
+    padding: var(--tr-action-buttons-cancel-padding);
+    background-color: var(--tr-action-buttons-cancel-bg);
+  }
+
+  /* 取消按钮文本 */
+  &__cancel-text {
+    line-height: var(--tr-action-buttons-cancel-text-line-height);
+    height: var(--tr-action-buttons-cancel-text-height);
+    text-decoration: none;
   }
 
   /* 禁用状态样式 */
@@ -484,17 +543,6 @@
   }
 }
 
-.button-content {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-
-  // 当只有图标时保持居中
-  &:empty {
-    display: block;
-  }
-}
 
 .shortcut-hint {
   position: absolute;
@@ -507,7 +555,7 @@
 
 /** 处理相邻按钮元素边界  */
 .tiny-button+.tiny-button {
-  margin-left: 0;
+  margin-left: 0 !important;
 }
 
 /* 模式切换过渡动画 */

@@ -419,7 +419,6 @@ defineExpose({
             <div class="tiny-sender__buttons-container" ref="buttonsContainerRef">
               <slot name="actions" />
               <action-buttons
-                class="inline-buttons"
                 :allow-speech="allowSpeech"
                 :allow-files="allowFiles"
                 :loading="loading"

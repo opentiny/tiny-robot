@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import TinyButton from '@opentiny/vue-button'
 import { IconClose } from '@opentiny/vue-icon'
 import { ActionButtonsProps } from '../index.type'
+import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech } from '@opentiny/tiny-robot-svgs'
 
 const TinyIconCloseSquare = IconClose()
 
@@ -127,49 +128,64 @@ const handleCancel = () => {
 
 <template>
   <div class="action-buttons">
-    <!-- 文件上传按钮 -->
-    <template v-if="allowFiles && !loading">
-      <tiny-tooltip content="上传文件" placement="top">
-        <tiny-button type="text" :disabled="isDisabled">
-          <img src="../../assets/icons/accessory.svg" class="button-icon" alt="上传文件" />
-        </tiny-button>
-      </tiny-tooltip>
-    </template>
+    <!-- 辅助按钮组：文件上传、语音、清除 -->
+    <div class="action-buttons__utility">
+      <!-- 文件上传按钮 -->
+      <template v-if="allowFiles && !loading">
+        <tiny-tooltip content="上传文件" placement="top">
+          <tiny-button class="action-buttons__button action-buttons__file-button" type="text" :disabled="isDisabled">
+            <IconAccessory class="action-buttons__icon" alt="上传文件" />
+          </tiny-button>
+        </tiny-tooltip>
+      </template>
 
-    <!-- 语音按钮：仅在启用语音功能时显示 -->
-    <template v-if="speechEnabled && !loading">
-      <tiny-button
-        type="text"
-        :disabled="isDisabled"
-        @click="handleToggleSpeech"
-        class="speech-button"
-        :class="{ 'is-recording': isSpeechRecording }"
-      >
-        <img v-if="!isSpeechRecording" src="../../assets/icons/voice.svg" class="button-icon" alt="录音" />
-        <img v-else src="../../assets/icons/loading-speech.svg" class="button-icon recording-icon" alt="语音中" />
-      </tiny-button>
-    </template>
-
-    <template v-if="showClear">
-      <tiny-tooltip content="清空内容" placement="top">
-        <tiny-button type="text" :disabled="isDisabled || !hasContent" @click="handleClear" style="margin-left: 0">
-          <component :is="TinyIconCloseSquare" class="button-icon" />
+      <!-- 语音按钮：仅在启用语音功能时显示 -->
+      <template v-if="speechEnabled && !loading">
+        <tiny-button
+          class="action-buttons__button action-buttons__speech-button"
+          type="text"
+          :disabled="isDisabled"
+          @click="handleToggleSpeech"
+          :class="{ 'is-recording': isSpeechRecording }"
+        >
+          <IconVoice v-if="!isSpeechRecording" class="action-buttons__icon" alt="录音" />
+          <IconLoadingSpeech v-else class="action-buttons__icon action-buttons__icon--recording" alt="语音中" />
         </tiny-button>
-      </tiny-tooltip>
-    </template>
+      </template>
+
+      <!-- 清除按钮 -->
+      <template v-if="showClear">
+        <tiny-tooltip content="清空内容" placement="top">
+          <tiny-button
+            class="action-buttons__button action-buttons__clear-button"
+            type="text"
+            :disabled="isDisabled || !hasContent"
+            @click="handleClear"
+          >
+            <component :is="TinyIconCloseSquare" class="action-buttons__icon action-buttons__icon--close" />
+          </tiny-button>
+        </tiny-tooltip>
+      </template>
+    </div>
 
     <!-- 提交按钮：主操作按钮 -->
     <template v-if="hasContent || loading">
       <tiny-button
         type="text"
-        :class="loading ? 'cancel-button' : 'submit-button'"
+        class="action-buttons__button action-buttons__submit"
         :disabled="loading ? isDisabled : isSubmitDisabled"
         @click="loading ? handleCancel() : handleSubmit()"
       >
-        <div class="button-content">
-          <img v-if="!loading" src="../../assets/icons/send.svg" alt="发送" />
+        <div class="action-buttons__submit-content">
+          <!-- 发送图标 -->
+          <IconSend class="action-buttons__icon action-buttons__icon--send" v-if="!loading" alt="发送" />
+
+          <!-- 停止生成按钮 -->
           <tiny-tooltip v-else content="停止生成" placement="top">
-            <img src="../../assets/icons/loading.svg" alt="加载中" class="loading" />
+            <div class="action-buttons__cancel">
+              <IconStop class="action-buttons__icon action-buttons__icon--stop" alt="加载中" />
+              <span class="action-buttons__cancel-text">停止回答</span>
+            </div>
           </tiny-tooltip>
         </div>
       </tiny-button>
