@@ -16,7 +16,6 @@
 
   // 自动切换模式时的过渡
   &.is-auto-switching {
-
     .tiny-input__inner,
     .tiny-textarea__inner {
       transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -43,8 +42,8 @@
     padding-right: 16px;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    min-height: var(--tr-sender-input-height); // 固定高度以减少跳动
-    line-height: var(--tr-sender-textarea-line-heigh); // 行高保持一致
+    height: var(--tr-sender-input-height); // 固定高度以减少跳动
+    line-height: var(--tr-sender-textarea-line-height); // 行高保持一致
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
@@ -67,7 +66,6 @@
     }
   }
 
-
   .tiny-input__suffix {
     right: 0;
     display: flex;
@@ -85,6 +83,10 @@
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
+    }
+
+    &::-webkit-scrollbar {
+      width: 14px;
     }
   }
 
@@ -132,7 +134,8 @@
     min-height: var(--tr-sender-footer-min-height);
 
     &.tiny-sender__bottom-row {
-      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
+        var(--tr-sender-bottom-row-padding-left);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -140,7 +143,8 @@
     }
 
     .suggestion-item {
-      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
+        var(--tr-sender-padding-left);
       cursor: pointer;
       transition: background-color var(--tr-sender-transition-duration);
 
@@ -168,7 +172,6 @@
   &__input-wrapper {
     position: relative;
     width: 100%;
-    margin: var(--tr-sender-gap) 0;
     border: none;
     padding: 0;
     border-radius: var(--tr-sender-border-radius);
@@ -276,7 +279,8 @@
   }
 
   &__bottom-row {
-    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
+      var(--tr-sender-padding-left);
   }
 
   // 字数限制
@@ -290,8 +294,7 @@
 
     // 超出限制的红色警示样式
     &.is-over-limit {
-
-      &>.real-word-length {
+      & > .real-word-length {
         color: var(--tr-sender-error-color);
         font-weight: 500;
       }
@@ -453,7 +456,6 @@
 .action-buttons {
   display: flex;
   gap: var(--tr-action-buttons-gap);
-  padding-right: var(--tr-sender-actions-padding-right);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
   align-items: center;
@@ -543,7 +545,6 @@
   }
 }
 
-
 .shortcut-hint {
   position: absolute;
   bottom: -16px;
@@ -554,7 +555,7 @@
 }
 
 /** 处理相邻按钮元素边界  */
-.tiny-button+.tiny-button {
+.tiny-button + .tiny-button {
   margin-left: 0 !important;
 }
 

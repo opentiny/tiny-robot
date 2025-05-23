@@ -89,6 +89,11 @@ const isDisabled = computed(() => props.disabled)
 const isSubmitDisabled = computed(() => isDisabled.value || props.isOverLimit)
 
 /**
+ * 是否显示辅助按钮
+ */
+const hasUtilityButtons = computed(() => props.allowFiles || props.allowSpeech || props.showClear)
+
+/**
  * 处理清除操作
  */
 const handleClear = () => {
@@ -129,7 +134,7 @@ const handleCancel = () => {
 <template>
   <div class="action-buttons">
     <!-- 辅助按钮组：文件上传、语音、清除 -->
-    <div class="action-buttons__utility">
+    <div v-if="hasUtilityButtons" class="action-buttons__utility">
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
         <tiny-tooltip content="上传文件" placement="top">
