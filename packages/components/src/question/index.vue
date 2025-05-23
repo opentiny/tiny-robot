@@ -5,7 +5,7 @@ import CommonQuestions from './components/CommonQuestions.vue'
 import HotQuestions from './components/HotQuestions.vue'
 import type { Category, Question, QuestionProps, QuestionEmits } from './index.type'
 
-import { IconHotQuestion, IconArrowUp, IconArrowDown, IconTypeAll } from '@opentiny/tiny-robot-svgs'
+import { IconSparkles, IconArrowUp, IconArrowDown, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import './index.less'
 
 const props = withDefaults(defineProps<QuestionProps>(), {
@@ -79,7 +79,7 @@ defineExpose({
   <div class="tr-question-container" :class="[`theme-${theme}`]" :data-theme="theme">
     <!-- 热门问题弹窗触发按钮 -->
     <div class="tr-question-trigger" @click="openModal">
-      <IconHotQuestion />
+      <IconSparkles style="color: #1476ff" />
     </div>
 
     <!-- 热门问题弹窗 -->

@@ -4,7 +4,7 @@ import { IconClose } from '@opentiny/vue-icon'
 import { TinyButton } from '@opentiny/vue'
 import type { Category, Question } from '../index.type'
 
-import { IconHotQuestion, IconTypeAll } from '@opentiny/tiny-robot-svgs'
+import { IconSparkles, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 
 const TinyIconClose = IconClose()
 
@@ -92,7 +92,7 @@ const modalRef = ref<HTMLElement | null>(null)
     <div ref="modalRef" class="tr-question-panel" :style="{ width: modalWidth }" @mousedown.stop>
       <div class="tr-question-header">
         <div style="display: flex; align-items: center; gap: 12px; font-size: 36px">
-          <div><IconHotQuestion /></div>
+          <div><IconSparkles style="color: #1476ff" /></div>
           <div class="tr-question-header-title">热门问题</div>
         </div>
         <span class="tr-question-close-btn" @click="closeModal">

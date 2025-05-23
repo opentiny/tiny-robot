@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<FlowLayoutProps>(), {
   showMoreTrigger: 'click',
 })
 
-const selected = defineModel<string | symbol>('selected')
+const selected = defineModel<FlowLayoutProps['selected']>('selected')
 
 if (!selected.value && props.items.length) {
   selected.value = props.items[0].id
