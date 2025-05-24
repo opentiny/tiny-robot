@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<QuestionPopoverProps>(), {
   title: '热门问题',
   popperWidth: '540px',
   listHeight: '280px',
+  topOffset: '-8px',
 })
 
 const show = defineModel<QuestionPopoverProps['show']>('show')
@@ -19,15 +20,22 @@ defineSlots<QuestionPopoverSlots>()
 const selectedGroup = defineModel<string | symbol>('selectedGroup')
 
 if (!selectedGroup.value && props.groups.length) {
-  selectedGroup.value = props.groups[0].id
+  selectedGroup.value = props.groups[0].group
 }
 
-const groupItems = computed(() => {
+const dataItems = computed(() => {
   if (!selectedGroup.value) {
     return []
   }
 
-  return props.groups.find((group) => group.id === selectedGroup.value)?.items || []
+  return props.groups.find((group) => group.group === selectedGroup.value)?.items || []
+})
+
+const flowLayoutGroups = computed(() => {
+  return props.groups.map((group) => ({
+    ...group,
+    id: group.group,
+  }))
 })
 
 const popoverTriggerRef = useTemplateRef('popover-trigger')
@@ -64,9 +72,9 @@ const handleClose = () => {
           />
         </div>
         <div class="tr-question__body">
-          <FlowLayout :items="props.groups" v-model:selected="selectedGroup" :lines-limit="2"></FlowLayout>
+          <FlowLayout :items="flowLayoutGroups" v-model:selected="selectedGroup" :lines-limit="2"></FlowLayout>
           <ul class="tr-question__list">
-            <li class="tr-question__list-item" v-for="(item, index) in groupItems" :key="item.id">
+            <li class="tr-question__list-item" v-for="(item, index) in dataItems" :key="item.id">
               <span class="tr-question__list-item-text">
                 <span>{{ index + 1 }}. </span>{{ item.text }}
               </span>
@@ -86,7 +94,7 @@ const handleClose = () => {
 .tr-question-popover {
   position: fixed;
   left: v-bind("x + 'px'");
-  top: v-bind("y + 'px'");
+  top: calc(v-bind("y + 'px'") + v-bind('props.topOffset'));
   z-index: 30;
   max-width: v-bind('props.popperWidth');
   transform: translateY(-100%);

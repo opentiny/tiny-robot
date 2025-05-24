@@ -1,21 +1,25 @@
 import { Component, VNode } from 'vue'
 
-export interface GroupItem {
+// TODO rename Question
+export interface QuestionDataItem {
   id: string
   text: string
 }
 
-export interface Group {
-  id: string
+export interface QuestionGroup {
+  group: string
   label: string
   icon?: VNode | Component
-  items: GroupItem[]
+  items: QuestionDataItem[]
 }
 
-// TODO rename
+export type QuestionData = (QuestionDataItem | QuestionGroup)[]
+
 export interface QuestionPopoverProps {
   // TODO 统一字段 data，可为group或者普通的items
-  groups: Group[]
+  groups: QuestionGroup[]
+  // TODO
+  data?: QuestionData
   title?: string
   icon?: VNode | Component
   /**
@@ -26,12 +30,12 @@ export interface QuestionPopoverProps {
    * model:selectedGroup
    */
   selectedGroup?: string
+  // TODO
   loading?: boolean
-  /**
-   * style
-   */
+  // 下面是样式相关的属性
   popperWidth?: string
   listHeight?: string
+  topOffset?: string
 }
 
 export interface QuestionPopoverSlots {
