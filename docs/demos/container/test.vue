@@ -1,7 +1,12 @@
 <template>
-  <QuestionPopover :groups="groups" :show="show">
-    <button>show</button>
-  </QuestionPopover>
+  <div style="display: flex; flex-direction: column">
+    <QuestionPopover :data="groups" :show="show1" @item-click="(item) => console.log(item)">
+      <button>show popover with grouped data</button>
+    </QuestionPopover>
+    <QuestionPopover :data="data" :show="show2" @item-click="(item) => console.log(item)">
+      <button>show popover without grouped data</button>
+    </QuestionPopover>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -9,7 +14,8 @@ import { QuestionPopover } from '@opentiny/tiny-robot'
 import { IconLike, IconDislike } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
 
-const show = ref(true)
+const show1 = ref(false)
+const show2 = ref(false)
 
 const groups = [
   {
@@ -61,4 +67,6 @@ const groups = [
   { group: '9', label: '购买咨询', icon: IconLike, items: [] },
   { group: '10', label: '使用咨询', icon: IconLike, items: [] },
 ]
+
+const data = groups[0].items
 </script>

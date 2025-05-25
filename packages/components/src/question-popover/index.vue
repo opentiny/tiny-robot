@@ -1,45 +1,72 @@
 <script setup lang="ts">
 import { IconSparkles, IconClose } from '@opentiny/tiny-robot-svgs'
-import { useElementBounding } from '@vueuse/core'
+import { onClickOutside, useElementBounding } from '@vueuse/core'
 import { computed, useTemplateRef } from 'vue'
 import FlowLayout from '../flow-layout'
-import { QuestionPopoverProps, QuestionPopoverSlots } from './index.type'
+import {
+  QuestionGroup,
+  QuestionItem,
+  QuestionPopoverEmits,
+  QuestionPopoverProps,
+  QuestionPopoverSlots,
+} from './index.type'
 import IconButton from '../icon-button'
+import { toCssUnit } from '../shared/utils'
 
 const props = withDefaults(defineProps<QuestionPopoverProps>(), {
   title: '热门问题',
-  popperWidth: '540px',
-  listHeight: '280px',
-  topOffset: '-8px',
+  popperWidth: 540,
+  listHeight: 280,
+  topOffset: 0,
+  closeOnClickOutside: true,
 })
 
 const show = defineModel<QuestionPopoverProps['show']>('show')
 
 defineSlots<QuestionPopoverSlots>()
 
+const emit = defineEmits<QuestionPopoverEmits>()
+
 const selectedGroup = defineModel<string | symbol>('selectedGroup')
 
-if (!selectedGroup.value && props.groups.length) {
-  selectedGroup.value = props.groups[0].group
+const isGrouped = computed(() => {
+  return typeof (props.data[0] as QuestionGroup).group === 'string'
+})
+
+if (!selectedGroup.value && isGrouped.value && props.data.length) {
+  selectedGroup.value = (props.data as QuestionGroup[])[0].group
 }
 
 const dataItems = computed(() => {
-  if (!selectedGroup.value) {
-    return []
+  if (!isGrouped.value) {
+    return props.data as QuestionItem[]
   }
 
-  return props.groups.find((group) => group.group === selectedGroup.value)?.items || []
+  return (props.data as QuestionGroup[]).find((group) => group.group === selectedGroup.value)?.items || []
 })
 
 const flowLayoutGroups = computed(() => {
-  return props.groups.map((group) => ({
+  if (!isGrouped.value) {
+    return []
+  }
+
+  return (props.data as QuestionGroup[]).map((group) => ({
     ...group,
     id: group.group,
   }))
 })
 
-const popoverTriggerRef = useTemplateRef('popover-trigger')
+const popoverTriggerRef = useTemplateRef('popper-trigger')
+const popperRef = useTemplateRef('popper')
+
 const { x, y, update } = useElementBounding(popoverTriggerRef)
+
+if (props.closeOnClickOutside) {
+  onClickOutside(popperRef, (ev) => {
+    ev.stopPropagation()
+    show.value = false
+  })
+}
 
 const handleToggleShow = () => {
   show.value = !show.value
@@ -51,14 +78,19 @@ const handleToggleShow = () => {
 const handleClose = () => {
   show.value = false
 }
+
+const handleItemClick = (item: QuestionItem) => {
+  emit('item-click', item)
+  handleClose()
+}
 </script>
 
 <template>
-  <div class="tr-question-popover__wrapper" ref="popover-trigger" @click="handleToggleShow">
+  <div class="tr-question-popover__wrapper" ref="popper-trigger" @click="handleToggleShow">
     <slot />
 
     <Teleport v-if="show" to="body">
-      <div class="tr-question-popover">
+      <div class="tr-question-popover" ref="popper">
         <div class="tr-question__header">
           <component v-if="props.icon" :is="icon" />
           <IconSparkles v-else style="font-size: 36px; color: #1476ff" />
@@ -72,9 +104,20 @@ const handleClose = () => {
           />
         </div>
         <div class="tr-question__body">
-          <FlowLayout :items="flowLayoutGroups" v-model:selected="selectedGroup" :lines-limit="2"></FlowLayout>
+          <FlowLayout
+            class="tr-question__group"
+            v-if="flowLayoutGroups.length > 0"
+            :items="flowLayoutGroups"
+            v-model:selected="selectedGroup"
+            :lines-limit="2"
+          ></FlowLayout>
           <ul class="tr-question__list">
-            <li class="tr-question__list-item" v-for="(item, index) in dataItems" :key="item.id">
+            <li
+              class="tr-question__list-item"
+              v-for="(item, index) in dataItems"
+              :key="item.id"
+              @click="handleItemClick(item)"
+            >
               <span class="tr-question__list-item-text">
                 <span>{{ index + 1 }}. </span>{{ item.text }}
               </span>
@@ -93,10 +136,10 @@ const handleClose = () => {
 
 .tr-question-popover {
   position: fixed;
-  left: v-bind("x + 'px'");
-  top: calc(v-bind("y + 'px'") + v-bind('props.topOffset'));
+  left: v-bind('toCssUnit(x)');
+  top: calc(v-bind('toCssUnit(y)') + v-bind('toCssUnit(props.topOffset)') - 8px);
   z-index: 30;
-  max-width: v-bind('props.popperWidth');
+  width: v-bind('toCssUnit(props.popperWidth)');
   transform: translateY(-100%);
   padding: 20px;
   padding-bottom: 16px;
@@ -127,14 +170,16 @@ const handleClose = () => {
   }
 
   .tr-question__body {
-    margin-top: 16px;
+    .tr-question__group {
+      margin-top: 16px;
+    }
 
     .tr-question__list {
       list-style: none;
       // 负数 margin + 正数补偿 padding 解决 box-shadow 被裁剪的问题
-      margin: 16px -16px 0 -16px;
-      padding: 0 16px;
-      height: v-bind('props.listHeight');
+      margin: 0 -16px 0 -16px;
+      padding: 16px 16px 0 16px;
+      height: v-bind('toCssUnit(props.listHeight)');
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: #dbdbdb transparent;
