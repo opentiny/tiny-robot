@@ -1,22 +1,21 @@
 import { Component, VNode } from 'vue'
 
-// TODO rename Question
-export interface QuestionItem {
+export interface SuggestionItem {
   id: string
   text: string
 }
 
-export interface QuestionGroup {
+export interface SuggestionGroup {
   group: string
   label: string
   icon?: VNode | Component
-  items: QuestionItem[]
+  items: SuggestionItem[]
 }
 
-export type QuestionData = (QuestionItem | QuestionGroup)[]
+export type SuggestionData = (SuggestionItem | SuggestionGroup)[]
 
-export interface QuestionPopoverProps {
-  data: QuestionData
+export interface SuggestionPopoverProps {
+  data: SuggestionData
   title?: string
   icon?: VNode | Component
   /**
@@ -34,15 +33,15 @@ export interface QuestionPopoverProps {
    */
   closeOnClickOutside?: boolean
   // 下面是样式相关的属性
-  popperWidth?: string | number
+  popoverWidth?: string | number
   listHeight?: string | number
   topOffset?: string | number
 }
 
-export interface QuestionPopoverSlots {
+export interface SuggestionPopoverSlots {
   default: () => unknown
 }
 
-export interface QuestionPopoverEmits {
-  (e: 'item-click', item: QuestionItem): void
+export interface SuggestionPopoverEmits {
+  (e: 'item-click', item: SuggestionItem): void
 }

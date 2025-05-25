@@ -1,48 +1,48 @@
 <script setup lang="ts">
-import { IconSparkles, IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementBounding } from '@vueuse/core'
 import { computed, useTemplateRef } from 'vue'
 import FlowLayout from '../flow-layout'
-import {
-  QuestionGroup,
-  QuestionItem,
-  QuestionPopoverEmits,
-  QuestionPopoverProps,
-  QuestionPopoverSlots,
-} from './index.type'
 import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
+import {
+  SuggestionGroup,
+  SuggestionItem,
+  SuggestionPopoverEmits,
+  SuggestionPopoverProps,
+  SuggestionPopoverSlots,
+} from './index.type'
 
-const props = withDefaults(defineProps<QuestionPopoverProps>(), {
+const props = withDefaults(defineProps<SuggestionPopoverProps>(), {
   title: '热门问题',
-  popperWidth: 540,
+  popoverWidth: 540,
   listHeight: 280,
   topOffset: 0,
   closeOnClickOutside: true,
 })
 
-const show = defineModel<QuestionPopoverProps['show']>('show')
+const show = defineModel<SuggestionPopoverProps['show']>('show')
 
-defineSlots<QuestionPopoverSlots>()
+defineSlots<SuggestionPopoverSlots>()
 
-const emit = defineEmits<QuestionPopoverEmits>()
+const emit = defineEmits<SuggestionPopoverEmits>()
 
 const selectedGroup = defineModel<string | symbol>('selectedGroup')
 
 const isGrouped = computed(() => {
-  return typeof (props.data[0] as QuestionGroup).group === 'string'
+  return typeof (props.data[0] as SuggestionGroup).group === 'string'
 })
 
 if (!selectedGroup.value && isGrouped.value && props.data.length) {
-  selectedGroup.value = (props.data as QuestionGroup[])[0].group
+  selectedGroup.value = (props.data as SuggestionGroup[])[0].group
 }
 
 const dataItems = computed(() => {
   if (!isGrouped.value) {
-    return props.data as QuestionItem[]
+    return props.data as SuggestionItem[]
   }
 
-  return (props.data as QuestionGroup[]).find((group) => group.group === selectedGroup.value)?.items || []
+  return (props.data as SuggestionGroup[]).find((group) => group.group === selectedGroup.value)?.items || []
 })
 
 const flowLayoutGroups = computed(() => {
@@ -50,19 +50,19 @@ const flowLayoutGroups = computed(() => {
     return []
   }
 
-  return (props.data as QuestionGroup[]).map((group) => ({
+  return (props.data as SuggestionGroup[]).map((group) => ({
     ...group,
     id: group.group,
   }))
 })
 
-const popoverTriggerRef = useTemplateRef('popper-trigger')
-const popperRef = useTemplateRef('popper')
+const popoverTriggerRef = useTemplateRef('popover-trigger')
+const popoerRef = useTemplateRef('popover')
 
 const { x, y, update } = useElementBounding(popoverTriggerRef)
 
 if (props.closeOnClickOutside) {
-  onClickOutside(popperRef, (ev) => {
+  onClickOutside(popoerRef, (ev) => {
     ev.stopPropagation()
     show.value = false
   })
@@ -79,18 +79,18 @@ const handleClose = () => {
   show.value = false
 }
 
-const handleItemClick = (item: QuestionItem) => {
+const handleItemClick = (item: SuggestionItem) => {
   emit('item-click', item)
   handleClose()
 }
 </script>
 
 <template>
-  <div class="tr-question-popover__wrapper" ref="popper-trigger" @click="handleToggleShow">
+  <div class="tr-question-popover__wrapper" ref="popover-trigger" @click="handleToggleShow">
     <slot />
 
     <Teleport v-if="show" to="body">
-      <div class="tr-question-popover" ref="popper">
+      <div class="tr-question-popover" ref="popover">
         <div class="tr-question__header">
           <component v-if="props.icon" :is="icon" />
           <IconSparkles v-else style="font-size: 36px; color: #1476ff" />
@@ -139,7 +139,7 @@ const handleItemClick = (item: QuestionItem) => {
   left: v-bind('toCssUnit(x)');
   top: calc(v-bind('toCssUnit(y)') + v-bind('toCssUnit(props.topOffset)') - 8px);
   z-index: 30;
-  width: v-bind('toCssUnit(props.popperWidth)');
+  width: v-bind('toCssUnit(props.popoverWidth)');
   transform: translateY(-100%);
   padding: 20px;
   padding-bottom: 16px;
