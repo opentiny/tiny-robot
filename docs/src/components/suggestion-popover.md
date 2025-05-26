@@ -18,6 +18,12 @@ outline: deep
 
 <demo vue="../../demos/suggestion/popover-other-status.vue" />
 
+### 移动端适配
+
+> 目前移动端判断逻辑是，视窗宽度小于 768px
+
+将窗口宽度缩小到 768px，可以点击查看上面的示例
+
 ## API
 
 ### Props
