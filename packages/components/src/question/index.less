@@ -22,47 +22,67 @@ body.tr-modal-open {
  */
 .tr-question-container {
   position: relative;
-  display: flex;
-  align-items: center;
-  height: var(--tr-question-container-height);
-  padding: 0;
-  font-size: var(--tr-question-font-size);
-  line-height: var(--tr-question-line-height);
-  color: var(--tr-question-text-color);
-  box-sizing: border-box;
+  display: inline-block;
+  width: 100%;
+
+  .tr-question {
+    &__header {
+      display: flex;
+      align-items: center;
+    }
+
+    &-header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    &__expand-button {
+      position: absolute;
+      right: 0;
+      z-index: 10;
+      cursor: pointer;
+      background-color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      /* 按钮图标 */
+      &>svg {
+        font-size: 26px;
+      }
+
+      &>svg:hover {
+        fill: #f5f5f5;
+      }
+    }
+
+    &__expand-button:hover {
+      background-color: #f5f5f5;
+    }
+
+    &__trigger {
+      background-color: #fff;
+      border-radius: 50%;
+      margin-right: 8px;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+
+      &>svg {
+        font-size: 28px;
+      }
+    }
+
+    &__trigger:hover {
+      transform: scale(1.05);
+      background-color: #f5f5f5;
+    }
+  }
 }
 
-/* ================ 触发按钮样式 ================ */
-/**
- * 热门问题触发按钮
- * 位于左侧，点击显示弹窗
- */
-.tr-question-trigger {
-  position: absolute;
-  top: 5px;
-  left: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 2px 8px 0 0;
-  cursor: pointer;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-
-  /* 按钮图标 */
-  & > svg {
-    font-size: 28px;
-    border-radius: 50%;
-    fill: #ffffff;
-  }
-
-  & > svg:hover {
-    fill: #f5f5f5;
-    transform: scale(1.05);
-  }
-}
 
 /* ================ 弹窗样式 ================ */
 /**
@@ -81,7 +101,7 @@ body.tr-modal-open {
   align-items: center;
   z-index: 1000;
   overflow: hidden;
-  overscroll-behavior: contain; /* 防止滚动传递 */
+  overscroll-behavior: contain;
 }
 
 /**
@@ -289,87 +309,183 @@ body.tr-modal-open {
 
 /* ================ 常见问题样式 ================ */
 /**
+ * 常见问题容器包装器
+ * 父级容器，包含常见问题和展开/收起按钮
+ */
+.tr-common-questions-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/**
  * 常见问题容器
- * 横向展示常见问题
+ * 横向展示常见问题，支持展开收起
  */
 .tr-common-questions {
-  margin-left: 40px;
-  width: calc(100% - 40px);
   display: flex;
-  align-items: center;
   flex: 1;
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  flex-wrap: nowrap;
-  transition: all 0.3s ease;
   position: relative;
+  width: 90%;
+
+  &_content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* 展开后的胶囊外层容器 - 使用绝对定位脱离文档流 */
+  &_expanded-wrapper {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+  }
+
+  &_expanded-area {
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 8px;
+    animation: fadeInUp 0.2s ease-out;
+  }
+
+  &_row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  &_container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+  }
 
   &.expanded {
-    flex-wrap: wrap;
-    align-content: flex-end;
-    height: auto;
-    max-height: 200px; /* 可以根据需要调整 */
-    overflow-y: auto;
-    position: absolute;
-    bottom: 0;
+    position: relative;
     z-index: 5;
-    padding: 8px 0;
+  }
+
+  &_hidden {
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
   }
 
   /**
-   * 常见问题项
-   * 支持悬停效果和溢出文本处理
-   */
+ * 常见问题项
+ * 支持悬停效果和溢出文本处理
+ */
   &_item {
-    max-width: 515px;
+    min-width: 70px;
     text-overflow: ellipsis;
     overflow: hidden;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
     white-space: nowrap;
-    color: var(--tr-question-common-text);
+    color: #191919;
     border: none;
-    background: var(--tr-question-common-bg);
-    margin: 1px 8px 4px 0;
+    background: #fff;
+    margin: 4px 8px 4px 0;
     cursor: pointer;
     text-decoration: none;
-    height: var(--tr-question-common-item-height);
-    padding: 0 16px;
-    border-radius: var(--tr-question-common-border-radius);
-    box-shadow: var(--tr-question-common-item-shadow);
-    transition: var(--tr-question-hover-transition);
+    height: 32px;
+    padding: 5px 16px;
+    border-radius: 26px;
+    box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
 
-    & svg {
-      font-size: 16px;
+    &>svg {
+      width: 16px;
+      height: 16px;
     }
 
     /* 悬停效果 */
     &:hover {
-      background-color: var(--tr-question-common-hover-bg);
+      background: rgba(0, 0, 0, 0.08);
       transform: translateY(-1px);
+    }
+
+    &_icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    &_text {
+      flex: 1;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
   }
 
-  /* 自定义滚动条 */
-  &::-webkit-scrollbar {
-    height: var(--tr-question-scrollbar-width);
+  /* 最后一个可见胶囊的样式 */
+  &_item.last-item {
+    position: relative;
+    overflow: hidden;
+    width: 20%;
   }
 
-  &::-webkit-scrollbar-track {
-    background: var(--tr-question-scrollbar-track-bg);
-    border-radius: var(--tr-question-scrollbar-border-radius);
+  /* 为最后一个可见胶囊添加渐变效果 */
+  &_item.last-item::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 60%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 1) 80%);
+    pointer-events: none;
+  }
+}
+
+/**
+ * 隐藏的问题容器
+ * 展开状态下显示的被隐藏问题的容器
+ */
+.hidden-questions-container {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/**
+ * 展开/收起按钮
+ * 控制问题展示方式的按钮
+ */
+.tr-question-expand-trigger {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 101;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+
+  /* 展开状态下的按钮位置调整 */
+  .expanded & {
+    top: auto;
+    bottom: 10px;
+    transform: none;
   }
 
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--tr-question-scrollbar-thumb-bg);
-    border-radius: var(--tr-question-scrollbar-border-radius);
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: var(--tr-question-scrollbar-thumb-hover-bg);
+  /* 按钮图标包装器 */
+  .expand-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -391,7 +507,7 @@ body.tr-modal-open {
   height: 26px;
 
   /* 按钮图标 */
-  & > svg {
+  &>svg {
     font-size: 20px;
     background-color: #fff;
     color: rgb(89, 89, 89);
@@ -400,7 +516,7 @@ body.tr-modal-open {
     transition: background-color 0.3s ease;
   }
 
-  & > svg:hover {
+  &>svg:hover {
     background-color: #f5f5f5;
   }
 }
@@ -441,6 +557,7 @@ body.tr-modal-open {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

@@ -59,6 +59,7 @@ export interface ActionButtonsProps {
   allowFiles?: boolean // 是否允许上传附件
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
+  isOverLimit?: boolean // 是否超出字数限制
 }
 
 // 组件事件定义
@@ -152,8 +153,6 @@ export interface TemplateEditorEmits {
   (e: 'input', value: string): void
   /** 内容变更状态 - 通知父组件是否有内容 */
   (e: 'content-status', hasContent: boolean): void
-  /** 字段激活状态变更 */
-  (e: 'field-active', isActive: boolean, index: number): void
   /** 提交事件 */
   (e: 'submit', value: string): void
   /** 聚焦事件 */

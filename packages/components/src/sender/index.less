@@ -57,11 +57,16 @@
     color: var(--tr-sender-text-color-secondary);
   }
 
-  .tiny-textarea.is-disabled .tiny-textarea__inner {
-    border: none;
-    background: var(--tr-sender-bg-color);
-    color: var(--tr-sender-text-color-secondary);
+  .tiny-textarea.is-disabled {
+    background-color: var(--tr-sender-bg-color);
+
+    & .tiny-textarea__inner {
+      background: var(--tr-sender-bg-color);
+      border: none;
+      color: var(--tr-sender-text-color-secondary);
+    }
   }
+
 
   .tiny-input__suffix {
     right: 0;
@@ -115,14 +120,12 @@
     border-radius: var(--tr-sender-border-radius) var(--tr-sender-border-radius) 0 0;
     background: var(--tr-sender-bg-color);
     padding: var(--tr-sender-header-padding);
-    margin-bottom: var(--tr-sender-gap);
     z-index: 1;
     border-bottom: 1px solid var(--tr-sender-border-color);
   }
 
   // 底部插槽
   &__footer-slot {
-    width: 100%;
     border-radius: 0 0 var(--tr-sender-border-radius) var(--tr-sender-border-radius);
     background: var(--tr-sender-footer-bg);
     z-index: 1;
@@ -133,6 +136,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-sizing: content-box;
     }
 
     .suggestion-item {
@@ -172,7 +176,6 @@
     background-color: var(--tr-sender-bg-color);
     display: flex;
     flex-direction: column;
-    min-height: var(--tr-sender-input-min-height); // 设置最小高度
 
     .tiny-input__count {
       display: flex;
@@ -188,18 +191,27 @@
   &__content-area {
     flex: var(--tr-sender-content-flex-grow) 1 var(--tr-sender-content-min-width);
     min-width: var(--tr-sender-content-min-width);
-    padding: var(--tr-sender-content-padding);
     position: relative;
     overflow: hidden;
     min-height: var(--tr-sender-input-height);
 
     // 当前置插槽存在时，调整内边距
     .has-prefix & {
-      padding: var(--tr-sender-content-padding-with-prefix);
+      padding: var(--tr-sender-content-padding-with-prefix) !important;
     }
 
     .has-header & {
       padding-top: 0;
+    }
+
+    // 单行模式下的内边距
+    .mode-single & {
+      padding: var(--tr-sender-content-padding-single);
+    }
+
+    // 多行模式下的内边距
+    .mode-multiple & {
+      padding: var(--tr-sender-content-padding-multiple);
     }
 
     .tiny-textarea,
@@ -211,9 +223,7 @@
 
   // 前缀区域
   &__prefix-slot {
-    width: var(--tr-sender-prefix-width);
-    min-width: var(--tr-sender-prefix-min-width);
-    flex: 0 0 var(--tr-sender-prefix-width);
+    flex: 0 0 var(--tr-sender-prefix-min-width);
     display: flex;
     align-items: start;
     justify-content: center;
@@ -222,7 +232,7 @@
     transition: background-color var(--tr-sender-transition-duration);
     padding-top: var(--tr-sender-prefix-padding-top);
     padding-left: var(--tr-sender-prefix-padding-left);
-    padding-right: calc(var(--tr-sender-padding-right) / 2);
+    padding-right: var(--tr-sender-prefix-padding-right);
 
     &:hover {
       background-color: var(--tr-sender-prefix-hover-bg);
@@ -276,7 +286,16 @@
     line-height: 22px;
     text-align: left;
     letter-spacing: 0;
-    color: var(--tr-sender-word-limit-color);
+    color: var(--tr-sender-text-color-tertiary);
+
+    // 超出限制的红色警示样式
+    &.is-over-limit {
+
+      &>.real-word-length {
+        color: var(--tr-sender-error-color);
+        font-weight: 500;
+      }
+    }
   }
 
   // 输入建议
@@ -305,7 +324,6 @@
 
   // 禁用状态
   &.is-disabled {
-    opacity: var(--tr-sender-disabled-opacity);
     cursor: not-allowed;
   }
 
@@ -403,6 +421,32 @@
     height: 0;
     overflow: hidden;
   }
+
+  // 固定文本样式
+  &__decorative-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: var(--tr-sender-border-radius);
+    padding: var(--tr-sender-content-padding-single);
+    background-color: var(--tr-sender-bg-color);
+    line-height: var(--tr-sender-decorative-content-line-height);
+    color: var(--tr-sender-text-color-tertiary);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    width: 100%;
+
+    a {
+      color: var(--tr-sender-link-color);
+      text-decoration: none;
+      margin-left: var(--tr-sender-decorative-content-margin-left);
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
 }
 
 // 模板编辑器样式
@@ -483,7 +527,6 @@
 .action-buttons {
   display: flex;
   gap: var(--tr-sender-gap);
-  padding-left: var(--tr-sender-actions-padding-left);
   padding-right: var(--tr-sender-actions-padding-right);
   background: var(--tr-sender-bg-color);
   border-radius: var(--tr-sender-border-radius);
@@ -539,6 +582,29 @@
 /** 处理相邻按钮元素边界  */
 .tiny-button+.tiny-button {
   margin-left: 0;
+}
+
+/* 模式切换过渡动画 */
+.tiny-sender-slide-up-enter-active,
+.tiny-sender-slide-up-leave-active,
+.tiny-sender-slide-down-enter-active,
+.tiny-sender-slide-down-leave-active {
+  overflow: hidden;
+  max-height: var(--tr-sender-transition-max-height);
+}
+
+.tiny-sender-slide-up-enter-from,
+.tiny-sender-slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+  max-height: 0;
+}
+
+.tiny-sender-slide-down-enter-from,
+.tiny-sender-slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+  max-height: 0;
 }
 
 /* 模式切换过渡动画 */

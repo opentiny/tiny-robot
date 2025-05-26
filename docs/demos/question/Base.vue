@@ -96,7 +96,7 @@ const questionConfig = reactive<QuestionProps>({
     },
   ],
   commonQuestions: [
-    { id: 'f1', text: '如何注册账号?' },
+    { id: 'f1', text: 'ECS - 如何注册账号?' },
     { id: 'f2', text: '购买云服务器的付款方式有哪些?' },
     { id: 'f3', text: '更换操作系统需要多久?' },
     { id: 'f4', text: '云服务器可以安装自定义镜像吗?' },

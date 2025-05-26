@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
@@ -271,8 +271,17 @@ const justifyContent = computed(
   },
 )
 
+type SlotsType = {
+  decorativeContent?: () => boolean
+  [key: string]: (() => any) | undefined // eslint-disable-line
+}
+const slots = useSlots() as SlotsType
+
+// 检查是否有decorativeContent插槽
+const hasDecorativeContent = computed((): boolean => !!slots.decorativeContent?.())
+
 // 状态计算
-const isDisabled = computed(() => props.disabled)
+const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
 const hasContent = computed(() => (props.hasContent !== undefined ? props.hasContent : !!inputValue.value))
 
@@ -296,6 +305,11 @@ const handleCompositionEnd = () => {
   isComposing.value = false
   setTimeout(() => (isComposing.value = false), 50)
 }
+
+// 计算字数是否超出限制
+const isOverLimit = computed(() => {
+  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
+})
 
 // 监听输入变化
 watch(inputValue, () => {
@@ -367,6 +381,10 @@ defineExpose({
 
           <!-- 内容区域 - 确保最小宽度，不被挤占 -->
           <div class="tiny-sender__content-area">
+            <div v-if="$slots.decorativeContent" class="tiny-sender__decorative-content">
+              <slot name="decorativeContent"></slot>
+            </div>
+
             <!-- 模板编辑器 -->
             <template v-if="showTemplateEditor">
               <TemplateEditor
@@ -389,7 +407,6 @@ defineExpose({
               v-model="inputValue"
               :disabled="isDisabled"
               :placeholder="placeholder"
-              :maxlength="maxLength"
               :autofocus="autofocus"
               @keydown="handleKeyPress"
               @compositionstart="isComposing = true"
@@ -413,6 +430,7 @@ defineExpose({
                 :has-content="hasContent"
                 :speech-status="speechState"
                 :submit-type="submitType"
+                :is-over-limit="isOverLimit"
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
@@ -433,17 +451,22 @@ defineExpose({
             <div class="tiny-sender__footer-left">
               <!-- 左侧自定义插槽 -->
               <slot name="footer-left"></slot>
-
-              <!-- 字数限制 -->
-              <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
-                {{ inputValue.length }}/{{ maxLength }}
-              </div>
             </div>
 
             <!-- 底部右侧区域 -->
             <div class="tiny-sender__footer-right">
               <!-- 右侧自定义插槽 -->
               <slot name="footer-right"></slot>
+
+              <!-- 字数限制 -->
+              <div
+                v-if="showWordLimit && maxLength !== Infinity"
+                class="tiny-sender__word-limit"
+                :class="{ 'is-over-limit': isOverLimit }"
+              >
+                <span class="real-word-length">{{ inputValue.length }}</span
+                >/{{ maxLength }}
+              </div>
 
               <!-- 多行模式下的操作按钮 -->
               <div v-if="currentMode === 'multiple'" class="tiny-sender__toolbar">
@@ -457,6 +480,7 @@ defineExpose({
                     :has-content="hasContent"
                     :speech-status="speechState"
                     :submit-type="submitType"
+                    :is-over-limit="isOverLimit"
                     @clear="clearInput"
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"
