@@ -10,6 +10,7 @@ import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
 import Suggestion from './suggestion'
+import SuggestionPills from './suggestion-pills'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -20,6 +21,7 @@ export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './welcome/index.type'
 export * from './suggestion/index.type'
+export * from './suggestion-pills/index.type'
 
 const components = [
   Bubble,
@@ -35,6 +37,7 @@ const components = [
   Sender,
   Welcome,
   Suggestion,
+  SuggestionPills,
 ]
 
 export default {
@@ -71,6 +74,8 @@ export {
   Welcome as TrWelcome,
   Suggestion,
   Suggestion as TrSuggestion,
+  SuggestionPills,
+  SuggestionPills as TrSuggestionPills,
   Question,
   Question as TrQuestion,
 }
