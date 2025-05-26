@@ -112,7 +112,80 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
       span.textContent = content
     }
 
+    nextTick(() => {
+      setFieldWidth(span, content || '')
+    })
+
     return span
+  }
+
+  /**
+   * 设置字段宽度以适应内容
+   */
+  const setFieldWidth = (fieldElement: HTMLElement, content: string) => {
+    // 如果内容为空，根据 placeholder 文字计算宽度
+    if (!content || content.trim() === '') {
+      const placeholder = fieldElement.getAttribute('data-placeholder') || ''
+      if (placeholder) {
+        setFieldWidthByText(fieldElement, placeholder, true)
+      } else {
+        // 没有 placeholder，清除自定义宽度，使用默认最小宽度
+        fieldElement.style.minWidth = ''
+        fieldElement.style.width = ''
+      }
+      return
+    }
+
+    // 有内容时，根据内容计算宽度
+    setFieldWidthByText(fieldElement, content, false)
+  }
+
+  /**
+   * 根据文本内容设置字段宽度
+   */
+  const setFieldWidthByText = (fieldElement: HTMLElement, text: string, isPlaceholder: boolean) => {
+    // 创建临时元素来测量文本宽度
+    const tempSpan = document.createElement('span')
+    tempSpan.className = 'template-field'
+    tempSpan.style.visibility = 'hidden'
+    tempSpan.style.position = 'absolute'
+    tempSpan.style.top = '-9999px'
+    tempSpan.style.left = '-9999px'
+    tempSpan.style.whiteSpace = 'nowrap'
+    tempSpan.style.padding = '3px 8px'
+    tempSpan.style.margin = '0 2px'
+    tempSpan.style.boxSizing = 'border-box'
+    tempSpan.textContent = text
+
+    // 添加到DOM中进行测量
+    document.body.appendChild(tempSpan)
+
+    // 获取实际的计算样式
+    const computedStyle = getComputedStyle(tempSpan)
+    const contentWidth = tempSpan.offsetWidth
+    const fontSize = parseFloat(computedStyle.fontSize)
+
+    // 清理临时元素
+    document.body.removeChild(tempSpan)
+
+    // 计算需要的最小宽度
+    const defaultMinWidthEm = isPlaceholder ? 1.5 : 2
+    const contentWidthEm = contentWidth / fontSize
+    const minWidthEm = Math.max(defaultMinWidthEm, Math.ceil(contentWidthEm))
+
+    // 使用 !important 确保样式优先级
+    fieldElement.style.setProperty('min-width', `${minWidthEm}em`, 'important')
+
+    // 设置一个最大宽度以避免单行过长
+    const maxWidthEm = 20
+    if (minWidthEm > maxWidthEm) {
+      fieldElement.style.setProperty('max-width', `${maxWidthEm}em`, 'important')
+      fieldElement.style.setProperty('white-space', 'normal', 'important')
+      fieldElement.style.setProperty('word-break', 'break-word', 'important')
+    } else {
+      // 短文本保持单行显示
+      fieldElement.style.removeProperty('max-width')
+    }
   }
 
   /**
@@ -323,8 +396,11 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
 
     checkHasContent()
 
-    // 设置光标位置
+    // 设置光标位置并更新所有字段宽度
     nextTick(() => {
+      // 确保所有字段的宽度都被正确设置
+      updateAllFieldWidths()
+
       if (firstField && firstField.textContent) {
         setCursorTo(firstField, 'inside', false) // 光标到内容末尾
       } else if (firstField) {
@@ -343,12 +419,29 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
   const handleInput = () => {
     if (options.isInternalUpdate || options.isComposing) return
 
+    // 更新所有字段的宽度
+    updateAllFieldWidths()
+
     const currentValue = getValueFromDOM()
     if (currentValue !== options.value) {
       options.onValueChange(currentValue)
       options.onInput(currentValue)
     }
     checkHasContent(currentValue)
+  }
+
+  /**
+   * 更新所有字段的宽度
+   */
+  const updateAllFieldWidths = () => {
+    if (!editor.value) return
+
+    const fields = editor.value.querySelectorAll('.template-field') as NodeListOf<HTMLElement>
+    fields.forEach((field) => {
+      const content = field.textContent || ''
+      // 无论内容是否为空，都需要设置宽度
+      setFieldWidth(field, content)
+    })
   }
 
   /**

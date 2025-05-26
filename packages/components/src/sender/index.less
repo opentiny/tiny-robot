@@ -438,13 +438,12 @@
     border-radius: var(--tr-sender-template-field-border-radius);
     cursor: text;
     transition: background-color var(--tr-sender-transition-duration);
-    /* 允许文本在字段内折行 */
-    white-space: normal !important;
-    /* 允许在任意字符处断行 */
-    word-break: break-all !important;
-    word-wrap: break-word !important;
+    white-space: nowrap;
+    /* 允许在任意字符处断行（当设置为多行时） */
+    word-break: break-word;
+    word-wrap: break-word;
     box-sizing: border-box;
-    overflow-wrap: break-word !important;
+    overflow-wrap: break-word;
     line-height: var(--tr-sender-template-field-line-height);
     position: relative;
     vertical-align: middle;
@@ -455,8 +454,6 @@
     &:empty {
       /* 确保空字段有足够高度 */
       min-height: var(--tr-sender-template-field-min-height-empty);
-      /* 确保空字段有足够宽度 */
-      min-width: var(--tr-sender-template-field-min-width-empty);
       /* 空字段使用inline-block确保有区域 */
       display: inline-block;
       /* 与字段自身和周围文本保持一致的垂直对齐 */
