@@ -10,3 +10,7 @@ export type SuggestionPillItem = SuggestionPillBaseItem &
 export interface SuggestionPillProps {
   items: SuggestionPillItem[]
 }
+
+export interface SuggestionPillEmits {
+  (e: 'item-click', item: SuggestionPillItem): void
+}

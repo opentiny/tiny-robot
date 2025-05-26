@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
 import { computed, useTemplateRef } from 'vue'
-import { SuggestionPillProps } from './index.type'
+import { SuggestionPillEmits, SuggestionPillProps } from './index.type'
 
 const props = defineProps<SuggestionPillProps>()
+
+const emit = defineEmits<SuggestionPillEmits>()
 
 const containerRef = useTemplateRef('container')
 
@@ -28,6 +30,7 @@ const maskImage = computed(() => {
       v-for="item in props.items"
       :key="item.id"
       :class="['tr-suggestion-pills__item', { 'only-icon': !item.text }]"
+      @click="emit('item-click', item)"
     >
       <component :is="item.icon" class="tr-suggestion-pills__item_icon" />
       <span v-if="item.text" class="tr-suggestion-pills__item_text">
@@ -57,11 +60,10 @@ const maskImage = computed(() => {
     border-radius: 999px;
     background-color: rgb(255, 255, 255);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    cursor: pointer;
     transition: background-color 0.3s ease;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.4);
+      background-color: rgba(255, 255, 255, 0.04);
     }
 
     &.only-icon {
