@@ -405,6 +405,83 @@
   }
 }
 
+// 模板编辑器样式
+.template-editor {
+  width: 100%;
+  min-height: var(--tr-sender-template-editor-min-height);
+  line-height: var(--tr-sender-template-editor-line-height);
+  border-radius: var(--tr-sender-template-editor-border-radius);
+  word-break: break-word;
+  word-wrap: break-word;
+  /* 保持空格和换行符 */
+  white-space: pre-wrap;
+  outline: none;
+  display: block;
+  box-sizing: border-box;
+  /* 确保长单词可以折行 */
+  overflow-wrap: break-word;
+  /* 确保文本左对齐 */
+  text-align: left;
+  /* 防止内容溢出 */
+  overflow: hidden;
+  /* 超出部分显示省略号 */
+  text-overflow: ellipsis;
+
+
+  .template-field {
+    display: inline;
+    min-width: var(--tr-sender-template-field-min-width);
+    max-width: none;
+    background: var(--tr-sender-template-field-bg);
+    padding: var(--tr-sender-template-field-padding);
+    margin: var(--tr-sender-template-field-margin);
+    border-radius: var(--tr-sender-template-field-border-radius);
+    cursor: text;
+    transition: background-color var(--tr-sender-transition-duration);
+    /* 允许文本在字段内折行 */
+    white-space: normal !important;
+    /* 允许在任意字符处断行 */
+    word-break: break-all !important;
+    word-wrap: break-word !important;
+    box-sizing: border-box;
+    overflow-wrap: break-word !important;
+    line-height: var(--tr-sender-template-field-line-height);
+    position: relative;
+    vertical-align: middle;
+    /* 启用连字符，帮助长英文词的折行 */
+    hyphens: auto;
+
+    /* 明确设置内容为空白时的行为 */
+    &:empty {
+      /* 确保空字段有足够高度 */
+      min-height: var(--tr-sender-template-field-min-height-empty);
+      /* 确保空字段有足够宽度 */
+      min-width: var(--tr-sender-template-field-min-width-empty);
+      /* 空字段使用inline-block确保有区域 */
+      display: inline-block;
+      /* 与字段自身和周围文本保持一致的垂直对齐 */
+      vertical-align: middle;
+      line-height: var(--tr-sender-template-field-line-height);
+    }
+
+    &:hover {
+      background-color: var(--tr-sender-template-field-bg-hover);
+    }
+
+    &:empty::before {
+      content: attr(data-placeholder);
+      color: var(--tr-sender-template-field-placeholder-color);
+      cursor: text;
+      user-select: none;
+      position: absolute;
+      left: var(--tr-sender-template-field-placeholder-left);
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+  }
+}
+
 // ActionButtons组件样式
 .action-buttons {
   display: flex;
