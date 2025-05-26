@@ -1,5 +1,11 @@
 <template>
-  <SuggestionPopover :data="groups" :show="show" @item-click="(item) => console.log(item)">
+  <SuggestionPopover
+    :data="groups"
+    :show="show"
+    :selectedGroup="selectedGroup"
+    @item-click="(item) => console.log(item)"
+    @group-click="(group) => console.log(group)"
+  >
     <button>点击弹出SuggestionPopover</button>
   </SuggestionPopover>
 </template>
@@ -61,4 +67,6 @@ const groups = [
   { group: '9', label: '购买咨询', icon: IconLike, items: [] },
   { group: '10', label: '使用咨询', icon: IconLike, items: [] },
 ]
+
+const selectedGroup = ref(groups[1].group)
 </script>

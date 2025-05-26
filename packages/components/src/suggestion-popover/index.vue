@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementBounding } from '@vueuse/core'
-import { computed, useTemplateRef } from 'vue'
+import { onClickOutside, useElementBounding, useMediaQuery } from '@vueuse/core'
+import { computed, CSSProperties, useTemplateRef } from 'vue'
 import FlowLayout from '../flow-layout'
 import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
@@ -27,7 +27,7 @@ defineSlots<SuggestionPopoverSlots>()
 
 const emit = defineEmits<SuggestionPopoverEmits>()
 
-const selectedGroup = defineModel<string | symbol>('selectedGroup')
+const selectedGroup = defineModel<string>('selectedGroup')
 
 const isGrouped = computed(() => {
   return typeof (props.data.at(0) as SuggestionGroup | undefined)?.group === 'string'
@@ -61,6 +61,24 @@ const popoerRef = useTemplateRef('popover')
 
 const { x, y, update } = useElementBounding(popoverTriggerRef)
 
+const isMobile = useMediaQuery('(max-width: 767px)')
+
+const popoverStyles = computed<CSSProperties>(() => {
+  if (isMobile.value) {
+    return {
+      left: 0,
+      right: 0,
+      bottom: 0,
+    }
+  }
+
+  return {
+    left: toCssUnit(x.value),
+    top: `max(${toCssUnit(y.value)} - ${toCssUnit(props.popoverHeight)} + ${toCssUnit(props.topOffset)} - 8px, 0px)`,
+    width: toCssUnit(props.popoverWidth),
+  }
+})
+
 if (props.closeOnClickOutside) {
   onClickOutside(popoerRef, (ev) => {
     ev.stopPropagation()
@@ -83,15 +101,25 @@ const handleItemClick = (item: SuggestionItem) => {
   emit('item-click', item)
   handleClose()
 }
+
+const handleGroupClick = (id: string) => {
+  const group = props.data.find((item) => (item as SuggestionGroup).group === id) as SuggestionGroup | undefined
+  if (group) {
+    emit('group-click', group)
+  }
+}
 </script>
 
 <template>
   <div class="tr-question-popover__wrapper" ref="popover-trigger" @click="handleToggleShow">
     <slot />
 
+    <Teleport v-if="show && isMobile" to="body">
+      <div class="tr-question-popover__backdrop"></div>
+    </Teleport>
     <Transition name="tr-question-popover">
       <Teleport v-if="show" to="body">
-        <div class="tr-question-popover" ref="popover">
+        <div class="tr-question-popover" :style="popoverStyles" ref="popover">
           <div class="tr-question__header">
             <component v-if="props.icon" :is="icon" />
             <IconSparkles v-else style="font-size: 36px; color: #1476ff" />
@@ -123,6 +151,7 @@ const handleItemClick = (item: SuggestionItem) => {
               :items="flowLayoutGroups"
               v-model:selected="selectedGroup"
               :lines-limit="2"
+              @item-click="handleGroupClick"
             ></FlowLayout>
             <ul class="tr-question__list">
               <li
@@ -148,20 +177,25 @@ const handleItemClick = (item: SuggestionItem) => {
   display: inline-block;
 }
 
+.tr-question-popover__backdrop {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
 .tr-question-popover {
   position: fixed;
-  left: v-bind('toCssUnit(x)');
-  top: max(
-    calc(v-bind('toCssUnit(y)') + v-bind('toCssUnit(props.topOffset)') - 8px),
-    v-bind('toCssUnit(props.popoverHeight)')
-  );
-  z-index: 30;
-  width: v-bind('toCssUnit(props.popoverWidth)');
+  z-index: 50;
   height: v-bind('toCssUnit(props.popoverHeight)');
-  transform: translateY(-100%);
   padding: 20px;
   padding-bottom: 16px;
   border-radius: 24px;
+  border-bottom-left-radius: v-bind("isMobile ? '0': '24px'");
+  border-bottom-right-radius: v-bind("isMobile ? '0': '24px'");
   background-color: #ffffff;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
   display: flex;
@@ -169,17 +203,21 @@ const handleItemClick = (item: SuggestionItem) => {
 
   &-enter-active,
   &-leave-active {
-    transition: opacity 0.3s ease;
+    transition-property: opacity, transform;
+    transition-duration: 0.3s;
+    transition-timing-function: ease;
   }
 
   &-enter-from,
   &-leave-to {
-    opacity: 0;
+    opacity: v-bind("isMobile ? 'unset': '0'");
+    transform: v-bind("isMobile ? 'translateY(100%)': 'unset'");
   }
 
   &-enter-to,
   &-leave-from {
-    opacity: 1;
+    opacity: v-bind("isMobile ? 'unset': '1'");
+    transform: v-bind("isMobile ? 'translateY(0)': 'unset'");
   }
 
   .tr-question__header {

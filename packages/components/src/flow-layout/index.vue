@@ -86,7 +86,7 @@ const moreButtonSelected = computed(() => {
   return selectedIndex >= moreButtonIndex.value
 })
 
-const handleClick = (id: string | symbol) => {
+const handleClick = (id: string) => {
   selected.value = id
   showMore.value = false
   emit('item-click', id)

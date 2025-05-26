@@ -1,8 +1,8 @@
 import { Component, VNode } from 'vue'
 
 export type FlowLayoutItem =
-  | { id: string | symbol; icon: VNode | Component; label?: string }
-  | { id: string | symbol; label: string; icon?: VNode | Component }
+  | { id: string; icon: VNode | Component; label?: string }
+  | { id: string; label: string; icon?: VNode | Component }
 
 export interface FlowLayoutProps {
   /**
@@ -28,5 +28,5 @@ export interface FlowLayoutProps {
 }
 
 export interface FlowLayoutEmits {
-  (e: 'item-click', id: string | symbol): void
+  (e: 'item-click', id: string): void
 }
