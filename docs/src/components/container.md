@@ -10,8 +10,6 @@ outline: deep
 
 <demo vue="../../demos/container/basic.vue" />
 
-<demo vue="../../demos/container/test.vue" />
-
 ## API
 
 ### Props
