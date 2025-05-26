@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TinyButton from '@opentiny/vue-button'
+import TinyTooltip from '@opentiny/vue-tooltip'
 import { IconClose } from '@opentiny/vue-icon'
 import { ActionButtonsProps } from '../index.type'
 import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech } from '@opentiny/tiny-robot-svgs'
