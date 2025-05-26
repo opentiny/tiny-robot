@@ -116,7 +116,32 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 #### 模版填充
 
+
+**模板字段初始值**
+
+通过 `templateInitialValues` 属性可以为模板中的字段提供初始值。这是一个对象，其中键是字段的占位符文本，值是对应的初始内容。示例代码如下所示：
+
+```vue
+<template>
+  <tr-sender
+    v-model="inputText"
+    mode="multiple"
+    :template="'你好 [称呼]，感谢您的 [事项]。'"
+    :templateInitialValues="{
+      '称呼': '王先生',
+      '事项': '反馈'
+    }"
+  />
+</template>
+```
+
+这样用户可以看到预填充的模板内容，并根据需要进行修改。当用户删除预填充的内容后，将显示原始的占位符文本。
+
+
+**模板示例**
+
 <demo vue="../../demos/sender/Template.vue" title="基础用法" description="Sender 组件支持模板填充。" />
+
 
 #### 自定义提交方式
 
@@ -171,25 +196,27 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 ### Props
 
-| 属性名        | 说明             | 类型                                       | 默认值            |
-| ------------- | ---------------- | ------------------------------------------ | ----------------- |
-| autofocus     | 自动获取焦点     | `boolean`                                  | `false`           |
-| autoSize      | 自动调整高度     | `boolean \| { minRows: number, maxRows: number }` | `false`           |
-| allowSpeech   | 是否开启语音输入 | `boolean`                                  | `false`           |
-| allowFiles    | 是否允许文件上传 | `boolean`                                  | `true`            |
-| clearable     | 是否可清空       | `boolean`                                  | `false`           |
-| disabled      | 是否禁用         | `boolean`                                  | `false`           |
-| modelValue    | 绑定值(v-model)  | `string`                                   | `''`              |
-| defaultValue  | 默认值(非响应式) | `string`                                   | `''`              |
-| loading       | 是否加载中       | `boolean`                                  | `false`           |
-| mode          | 输入框类型       | `'single' \| 'multiple'`                   | `'single'`        |
-| maxLength     | 最大输入长度     | `number`                                   | `Infinity`        |
-| placeholder   | 输入框占位文本   | `string`                                   | `'请输入内容...'` |
-| speech        | 语音识别配置     | `'boolean' \| 'SpeechConfig'`              | 无                |
-| showWordLimit | 是否显示字数统计 | `boolean`                                  | `false`           |
-| submitType    | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
-| theme         | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
-| suggestions   | 输入建议列表     | `string[]`                                 | `[]`              |
+| 属性名               | 说明                     | 类型                                             | 默认值            |
+| -------------------- | ------------------------ | ------------------------------------------------ | ----------------- |
+| autofocus            | 自动获取焦点             | `boolean`                                        | `false`           |
+| autoSize             | 自动调整高度             | `boolean \| { minRows: number, maxRows: number }` | `false`           |
+| allowSpeech          | 是否开启语音输入         | `boolean`                                        | `false`           |
+| allowFiles           | 是否允许文件上传         | `boolean`                                        | `true`            |
+| clearable            | 是否可清空               | `boolean`                                        | `false`           |
+| disabled             | 是否禁用                 | `boolean`                                        | `false`           |
+| modelValue           | 绑定值(v-model)          | `string`                                         | `''`              |
+| defaultValue         | 默认值(非响应式)         | `string`                                         | `''`              |
+| loading              | 是否加载中               | `boolean`                                        | `false`           |
+| mode                 | 输入框类型               | `'single' \| 'multiple'`                         | `'single'`        |
+| maxLength            | 最大输入长度             | `number`                                         | `Infinity`        |
+| placeholder          | 输入框占位文本           | `string`                                         | `'请输入内容...'` |
+| speech               | 语音识别配置             | `'boolean' \| 'SpeechConfig'`                    | 无                |
+| showWordLimit        | 是否显示字数统计         | `boolean`                                        | `false`           |
+| submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`       | `'enter'`         |
+| theme                | 主题样式                 | `'light' \| 'dark'`                              | `'light'`         |
+| suggestions          | 输入建议列表             | `string[]`                                       | `[]`              |
+| template             | 模板字符串               | `string`                                         | `''`              |
+| templateInitialValues| 模板字段初始值           | `Record<string, string>`                         | `{}`              |
 
 ### Events
 
