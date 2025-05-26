@@ -5,7 +5,7 @@ import CommonQuestions from './components/CommonQuestions.vue'
 import HotQuestions from './components/HotQuestions.vue'
 import type { Category, Question, QuestionProps, QuestionEmits } from './index.type'
 
-import { IconSparkles, IconArrowUp, IconArrowDown, IconTypeAll } from '@opentiny/tiny-robot-svgs'
+import { IconSparkles, IconTypeAll, IconArrowUp, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import './index.less'
 
 const props = withDefaults(defineProps<QuestionProps>(), {
@@ -27,6 +27,7 @@ const emit = defineEmits<QuestionEmits>()
 
 const categories = computed(() => props.categories)
 const isExpanded = ref(props.initialExpanded)
+const showExpandButton = ref(false)
 
 const { modalVisible, currentTheme, setActiveCategory, openModal, closeModal, setTheme, refreshData } =
   useQuestions(categories)
@@ -45,19 +46,17 @@ const handleQuestionClick = (question: Question) => {
   emit('question-click', question)
 }
 
+// 处理鼠标悬停
+const handleHoverChange = (val: boolean) => {
+  showExpandButton.value = val
+}
+
 // 处理分类选择
 const handleCategorySelect = (category: Category) => {
   if (category) {
     setActiveCategory(category.id)
     emit('select-category', category)
   }
-}
-
-// 处理按钮隐藏
-const showExpandButton = ref(false)
-
-const handleShowExpandButton = (value: boolean) => {
-  showExpandButton.value = value
 }
 
 // 组件挂载时初始化主题
@@ -77,9 +76,26 @@ defineExpose({
 
 <template>
   <div class="tr-question-container" :class="[`theme-${theme}`]" :data-theme="theme">
-    <!-- 热门问题弹窗触发按钮 -->
-    <div class="tr-question-trigger" @click="openModal">
-      <IconSparkles style="color: #1476ff" />
+    <div class="tr-question__header">
+      <!-- 热门问题弹窗触发按钮 -->
+      <div class="tr-question__trigger" @click="openModal">
+        <IconSparkles style="color: #1476ff" />
+      </div>
+
+      <!-- 胶囊式问题 -->
+      <CommonQuestions
+        :questions="commonQuestions"
+        :isExpanded="isExpanded"
+        @question-click="handleQuestionClick"
+        @hover-change="handleHoverChange"
+      >
+      </CommonQuestions>
+
+      <!-- 常规问题完整内容触发按钮 -->
+      <div v-if="showExpandButton" class="tr-question__expand-button" @click="toggleExpand">
+        <IconArrowUp v-if="!isExpanded" />
+        <IconArrowDown v-else />
+      </div>
     </div>
 
     <!-- 热门问题弹窗 -->
@@ -122,19 +138,5 @@ defineExpose({
         </slot>
       </template>
     </HotQuestions>
-
-    <!-- 常见问题胶囊 -->
-    <CommonQuestions
-      :isExpanded="isExpanded"
-      :questions="commonQuestions"
-      @show-expand-button="handleShowExpandButton"
-      @question-click="handleQuestionClick"
-    />
-
-    <!-- 常规问题完整内容触发按钮 -->
-    <div v-if="showExpandButton" class="tr-question-wrap-trigger" @click="toggleExpand">
-      <IconArrowUp v-if="!isExpanded" />
-      <IconArrowDown v-else />
-    </div>
   </div>
 </template>
