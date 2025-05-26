@@ -6,17 +6,25 @@
     </tr-bubble>
 
     <label>使用markdown渲染运行时渲染（webcomponent）</label>
-    <tr-bubble :avatar="aiAvatar" type="markdown" :content="mdContent" :mdConfig="{ html: true }"></tr-bubble>
+    <tr-bubble
+      :avatar="aiAvatar"
+      type="markdown"
+      :content="mdContent"
+      :mdConfig="mdConfig"
+      :domPurifyConfig="domPurifyConfig"
+    ></tr-bubble>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { TrBubble } from '@opentiny/tiny-robot'
+import { BubbleProps, TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { defineCustomElement, h, ref } from 'vue'
-import SchemaCard from './schema-card.vue'
+import SchemaCard from './schema-card.ce.vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+const mdConfig: BubbleProps['mdConfig'] = { html: true }
+const domPurifyConfig: BubbleProps['domPurifyConfig'] = { ADD_TAGS: ['schema-card'], ADD_ATTR: ['schema'] }
 
 const schemaObj = ref(
   JSON.stringify({

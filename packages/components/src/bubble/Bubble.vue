@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import markdownit from 'markdown-it'
-import { computed } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
+import { parseMarkdown } from './composables/useMarkdownIt'
 import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -12,15 +12,21 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 
 const slots = defineSlots<BubbleSlots>()
 
-const markdownItInstance = computed(() => {
-  return markdownit(props.mdConfig || {})
-})
+const bubbleContent = ref('')
 
-const bubbleContent = computed(() => {
-  if (props.type === 'markdown') {
-    return markdownItInstance.value.render(props.content)
+watchEffect(async () => {
+  if (props.transformContent) {
+    const content = await props.transformContent(props.content)
+    bubbleContent.value = content
+    return
   }
-  return props.content
+
+  if (props.type === 'markdown') {
+    const content = await parseMarkdown(props.content, props.mdConfig, props.domPurifyConfig)
+    bubbleContent.value = content
+  } else {
+    bubbleContent.value = props.content
+  }
 })
 
 const placementStart = computed(() => props.placement === 'start')
@@ -149,5 +155,40 @@ const placementStart = computed(() => props.placement === 'start')
   .tr-bubbule__footer {
     margin-top: 12px;
   }
+}
+</style>
+
+<style lang="less">
+div.tr-bubble__code-wrapper {
+  margin: 16px 0;
+  .tr-bubble__code-toolbar {
+    padding: 12px;
+    background-color: rgb(245, 245, 245);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: solid 1px rgba(0, 0, 0, 0.06);
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 24px;
+  }
+}
+
+pre:has(> code.tr-bubble__code[class*='language-']) {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: 16px 0;
+  background-color: rgb(245, 245, 245);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  overflow-x: auto;
+  font-size: 14px;
+}
+pre > code.tr-bubble__code[class*='language-'] {
+  padding: 0 16px;
+  display: block;
 }
 </style>

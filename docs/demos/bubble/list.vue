@@ -46,11 +46,9 @@ const roles: Record<string, BubbleRoleConfig> = {
   ai: {
     placement: 'start',
     avatar: aiAvatar,
+    type: 'markdown',
     maxWidth: '80%',
     slots: {
-      default: ({ bubbleProps }) => {
-        return h('div', { style: { color: 'red' } }, bubbleProps.content)
-      },
       footer: ({ bubbleProps }) => {
         return h(TrFeedback, {
           actions: [

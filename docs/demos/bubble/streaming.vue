@@ -8,20 +8,9 @@
 import { TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
+import { mdContent } from './markdown-data'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
-
-const mdContent = `# h1 Heading
-## Emphasis
-
-**This is bold text**
-
-*This is italic text*
-
-_This is italic text_
-
-~~Strikethrough~~
-`
 
 const streamContent = ref(mdContent)
 
