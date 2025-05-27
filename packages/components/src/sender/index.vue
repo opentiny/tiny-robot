@@ -441,7 +441,7 @@ defineExpose({
                 @blur="handleBlur"
               />
               <!-- 补全提示词 -->
-              <div v-if="completionPlaceholder" class="tiny-sender__completion-placeholder">
+              <div v-if="completionPlaceholder && !isComposing" class="tiny-sender__completion-placeholder">
                 <span class="user-input-mirror">{{ inputValue }}</span
                 >{{ completionPlaceholder }}
 
