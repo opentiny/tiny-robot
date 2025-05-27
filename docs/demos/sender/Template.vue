@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <h4>模板编辑器</h4>
+    <h4 style="margin-bottom: 20px">模板编辑器</h4>
     <tr-sender
       v-model="inputText"
       mode="multiple"
@@ -75,16 +75,6 @@ const templates = [
   },
   {
     name: '模板4',
-    template: '关于 [项目名称] 的 [文档类型]，请在 [截止日期] 前提交到 [提交地址]。',
-    initialValues: {
-      项目名称: '企业级智能客服系统集成与优化项目',
-      文档类型: '详细的技术方案设计文档和实施计划书',
-      截止日期: '2024年12月31日下午5点整',
-      提交地址: 'project-management@company.com',
-    },
-  },
-  {
-    name: '模板5',
     template: '[发件人] 向 [收件人] 发送关于 [主题] 的邮件。',
     initialValues: {
       发件人: '北京某某科技有限公司产品研发部技术总监',
@@ -93,7 +83,7 @@ const templates = [
     },
   },
   {
-    name: '模板6',
+    name: '模板5',
     template: '[短] 和 [长文本] 在 [时间] 进行 [活动]。',
     initialValues: {
       短: 'AI',
