@@ -2,6 +2,7 @@ import { App } from 'vue'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
+import DropdownMenu from './dropdown-menu'
 import Feedback from './feedback'
 import History from './history'
 import IconButton from './icon-button'
@@ -15,6 +16,7 @@ import SuggestionPills from './suggestion-pills'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
+export * from './dropdown-menu/index.type'
 export * from './feedback/index.type'
 export * from './history/index.type'
 export * from './icon-button/index.type'
@@ -31,6 +33,7 @@ const components = [
   BubbleList,
   Container,
   Conversations,
+  DropdownMenu,
   Feedback,
   History,
   IconButton,
@@ -62,6 +65,8 @@ export {
   Container as TrContainer,
   Conversations,
   Conversations as TrConversations,
+  DropdownMenu,
+  DropdownMenu as TrDropdownMenu,
   Feedback,
   Feedback as TrFeedback,
   History,

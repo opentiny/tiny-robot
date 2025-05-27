@@ -1,7 +1,7 @@
-export function toCssUnit(value: number | string): string {
+export function toCssUnit(value?: number | string): string {
   if (typeof value === 'number') return `${value}px`
 
-  const trimmed = value.trim()
+  const trimmed = value?.trim()
 
   if (!trimmed) return '0px'
 

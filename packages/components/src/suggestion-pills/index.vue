@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
 import { computed, useTemplateRef } from 'vue'
-import { SuggestionPillEmits, SuggestionPillProps } from './index.type'
+import DropdownMenu from '../dropdown-menu'
 import SuggestionPopover from '../suggestion-popover'
 import { PillButton } from './components'
+import { SuggestionPillEmits, SuggestionPillProps } from './index.type'
 
 const props = defineProps<SuggestionPillProps>()
 
@@ -32,6 +33,7 @@ const maskImage = computed(() => {
       <template v-for="item in props.items" :key="item.id">
         <SuggestionPopover
           v-if="item.action?.type === 'popover'"
+          class="shrink"
           v-bind="item.action.props"
           @item-click="item.action.events?.itemClick"
           @group-click="item.action.events?.groupClick"
@@ -42,6 +44,14 @@ const maskImage = computed(() => {
             <component :is="slotVNode" />
           </template>
         </SuggestionPopover>
+        <DropdownMenu
+          v-else-if="item.action?.type === 'menu'"
+          class="shrink"
+          v-bind="item.action.props"
+          @item-click="item.action.events?.itemClick"
+        >
+          <PillButton :item="item" @click="emit('item-click', item)"></PillButton>
+        </DropdownMenu>
         <PillButton v-else :item="item" @click="emit('item-click', item)"></PillButton>
       </template>
     </slot>
@@ -58,5 +68,9 @@ const maskImage = computed(() => {
 
   mask-image: v-bind('maskImage');
   mask-repeat: no-repeat;
+
+  .shrink {
+    flex-shrink: 0;
+  }
 }
 </style>

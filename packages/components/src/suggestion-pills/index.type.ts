@@ -4,6 +4,7 @@ import {
   SuggestionPopoverProps,
   SuggestionPopoverSlots,
 } from '../suggestion-popover/index.type'
+import { DropdownMenuEvents, DropdownMenuProps } from '../dropdown-menu/index.type'
 
 export type SuggestionPillAction =
   | {
@@ -12,7 +13,7 @@ export type SuggestionPillAction =
       slots?: Omit<SuggestionPopoverSlots, 'default'>
       events?: SuggestionPopoverEvents
     }
-  | { type: 'menu'; props: unknown }
+  | { type: 'menu'; props: DropdownMenuProps; events?: DropdownMenuEvents }
 
 export type SuggestionPillBaseItem<T> = {
   id: string

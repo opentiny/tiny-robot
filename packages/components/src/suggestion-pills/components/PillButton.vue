@@ -26,7 +26,7 @@ defineProps<{ item: SuggestionPillItem }>()
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(255, 255, 255, 0.08);
   }
 
   &.only-icon {

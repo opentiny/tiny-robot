@@ -222,6 +222,7 @@ const handleGroupClick = (id: string) => {
   border-bottom-right-radius: v-bind("isMobile ? '0': '24px'");
   background-color: #ffffff;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  color: rgb(25, 25, 25);
   display: flex;
   flex-direction: column;
 
@@ -265,7 +266,6 @@ const handleGroupClick = (id: string) => {
       font-size: 20px;
       line-height: 30px;
       font-weight: 600;
-      color: #1d2129;
     }
 
     .tr-question-popover__close {
