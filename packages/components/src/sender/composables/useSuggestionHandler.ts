@@ -2,6 +2,52 @@ import { ref, computed, watch } from 'vue'
 import type { SenderProps, SenderEmits } from '../index.type'
 
 /**
+ * 处理建议项文本高亮
+ * @param suggestionText - 建议文本
+ * @param inputText - 输入文本
+ * @returns 包含文本片段和匹配状态的数组
+ */
+const highlightSuggestionText = (suggestionText: string, inputText: string) => {
+  if (!inputText || !suggestionText) {
+    return [{ text: suggestionText, isMatch: false }]
+  }
+
+  const lowerSuggestion = suggestionText.toLowerCase()
+  const lowerInput = inputText.toLowerCase()
+  const matchIndex = lowerSuggestion.indexOf(lowerInput)
+
+  if (matchIndex === -1) {
+    return [{ text: suggestionText, isMatch: false }]
+  }
+
+  const parts = []
+
+  // 匹配前的部分
+  if (matchIndex > 0) {
+    parts.push({
+      text: suggestionText.substring(0, matchIndex),
+      isMatch: false,
+    })
+  }
+
+  // 匹配的部分
+  parts.push({
+    text: suggestionText.substring(matchIndex, matchIndex + inputText.length),
+    isMatch: true,
+  })
+
+  // 匹配后的部分
+  if (matchIndex + inputText.length < suggestionText.length) {
+    parts.push({
+      text: suggestionText.substring(matchIndex + inputText.length),
+      isMatch: false,
+    })
+  }
+
+  return parts
+}
+
+/**
  * 建议处理Hook
  * 管理输入建议功能，提供建议项过滤、导航和选择功能
  *
@@ -187,5 +233,6 @@ export function useSuggestionHandler(
     navigateSuggestions,
     handleSuggestionItemHover,
     handleClickOutside,
+    highlightSuggestionText,
   }
 }

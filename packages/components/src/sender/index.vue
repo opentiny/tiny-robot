@@ -61,6 +61,7 @@ const {
   closeSuggestionsPopup,
   navigateSuggestions,
   handleSuggestionItemHover,
+  highlightSuggestionText,
 } = useSuggestionHandler(props, emit, inputValue, isComposing)
 
 // 自动模式切换
@@ -232,47 +233,6 @@ const toggleSpeech = () => {
   } else {
     startSpeech()
   }
-}
-
-// 处理建议项文本高亮
-const highlightSuggestionText = (suggestionText: string, inputText: string) => {
-  if (!inputText || !suggestionText) {
-    return [{ text: suggestionText, isMatch: false }]
-  }
-
-  const lowerSuggestion = suggestionText.toLowerCase()
-  const lowerInput = inputText.toLowerCase()
-  const matchIndex = lowerSuggestion.indexOf(lowerInput)
-
-  if (matchIndex === -1) {
-    return [{ text: suggestionText, isMatch: false }]
-  }
-
-  const parts = []
-
-  // 匹配前的部分
-  if (matchIndex > 0) {
-    parts.push({
-      text: suggestionText.substring(0, matchIndex),
-      isMatch: false,
-    })
-  }
-
-  // 匹配的部分
-  parts.push({
-    text: suggestionText.substring(matchIndex, matchIndex + inputText.length),
-    isMatch: true,
-  })
-
-  // 匹配后的部分
-  if (matchIndex + inputText.length < suggestionText.length) {
-    parts.push({
-      text: suggestionText.substring(matchIndex + inputText.length),
-      isMatch: false,
-    })
-  }
-
-  return parts
 }
 
 // 键盘处理
