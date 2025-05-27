@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementBounding, useMediaQuery } from '@vueuse/core'
-import { computed, CSSProperties, ref, useTemplateRef } from 'vue'
+import { computed, CSSProperties, ref, useTemplateRef, watch } from 'vue'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
@@ -103,11 +103,14 @@ if (props.trigger === 'click') {
   })
 }
 
-const handleToggleShow = () => {
-  show.value = !show.value
-  if (show.value) {
+watch(show, (value) => {
+  if (value) {
     update()
   }
+})
+
+const handleToggleShow = () => {
+  show.value = !show.value
 }
 
 const handleClose = () => {
@@ -139,7 +142,7 @@ const handleGroupClick = (id: string) => {
       <Teleport v-if="show" to="body">
         <div class="tr-question-popover" :style="popoverStyles" ref="popover">
           <div class="tr-question__header">
-            <component v-if="props.icon" :is="icon" />
+            <component v-if="props.icon" :is="props.icon" />
             <IconSparkles v-else style="font-size: 36px; color: #1476ff" />
             <h3 class="tr-question_header-title">{{ props.title }}</h3>
             <IconButton

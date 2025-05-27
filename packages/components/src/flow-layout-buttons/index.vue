@@ -12,9 +12,15 @@ const props = withDefaults(defineProps<FlowLayoutProps>(), {
 
 const selected = defineModel<FlowLayoutProps['selected']>('selected')
 
-if (!selected.value && props.items.length) {
-  selected.value = props.items[0].id
-}
+watch(
+  () => props.items,
+  (newItems) => {
+    if (!newItems.find((item) => item.id === selected.value) && newItems.length) {
+      selected.value = newItems[0].id
+    }
+  },
+  { immediate: true },
+)
 
 const emit = defineEmits<FlowLayoutEmits>()
 
@@ -44,7 +50,10 @@ const updateMoreIndex = () => {
       return
     }
 
-    const tops = itemRefs.value.map((el) => el?.offsetTop || 0)
+    const tops = itemRefs.value
+      .slice(0, props.items.length)
+      .filter((el) => Boolean(el))
+      .map((el) => el!.offsetTop)
     const uniqueTops = Array.from(new Set(tops))
 
     if (uniqueTops.length > props.linesLimit) {
