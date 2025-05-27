@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import type { SenderProps, SenderEmits } from '../index.type'
 
 /**
@@ -89,6 +89,11 @@ export function useSuggestionHandler(
   const suggestionsListRef = ref<HTMLElement | null>(null)
 
   /**
+   * 标志是否正在选择建议项
+   */
+  const isSelectingSuggestion = ref(false)
+
+  /**
    * 计算经过过滤的建议列表
    * 基于当前输入过滤出匹配的建议项
    */
@@ -123,7 +128,7 @@ export function useSuggestionHandler(
    * 监听输入值变化，更新建议状态
    */
   watch(inputValue, (newValue) => {
-    if (isComposing.value) return
+    if (isComposing.value || isSelectingSuggestion.value) return
 
     if (newValue && props.suggestions && props.suggestions.length > 0 && !props.template) {
       showSuggestionsPopup.value = filteredSuggestions.value.length > 0
@@ -149,10 +154,15 @@ export function useSuggestionHandler(
    * @param suggestion - 要选择的建议文本
    */
   const selectSuggestion = (suggestion: string) => {
+    isSelectingSuggestion.value = true
     inputValue.value = suggestion
     emit('update:modelValue', suggestion)
     emit('suggestion-select', suggestion)
     closeSuggestionsPopup()
+    // 在下一个事件循环中重置标志
+    nextTick(() => {
+      isSelectingSuggestion.value = false
+    })
   }
 
   /**
@@ -162,7 +172,6 @@ export function useSuggestionHandler(
   const acceptCurrentSuggestion = () => {
     if (activeSuggestion.value) {
       selectSuggestion(activeSuggestion.value)
-      closeSuggestionsPopup()
     }
   }
 
@@ -172,7 +181,6 @@ export function useSuggestionHandler(
   const closeSuggestionsPopup = () => {
     showSuggestionsPopup.value = false
     showTabHint.value = false
-    filteredSuggestions.value.length = 0
     completionPlaceholder.value = ''
     highlightedIndex.value = -1
   }
@@ -195,7 +203,7 @@ export function useSuggestionHandler(
     }
     const list = suggestionsListRef.value
     if (list) {
-      const item = list.children[highlightedIndex.value] as HTMLElement
+      const item = list.children[highlightedIndex.value] as HTMLElement | null
       if (item) {
         item.scrollIntoView({ block: 'nearest' })
       }
