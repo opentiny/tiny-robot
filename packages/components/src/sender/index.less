@@ -84,10 +84,6 @@
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
     }
-
-    &::-webkit-scrollbar {
-      width: 14px;
-    }
   }
 
   .tiny-textarea:before,
@@ -557,6 +553,11 @@
 /** 处理相邻按钮元素边界  */
 .tiny-button + .tiny-button {
   margin-left: 0 !important;
+}
+
+/** 隐藏 hover 时 按钮文字下划线 */
+.tiny-button.tiny-button.tiny-button--text:not(.is-only-icon):not(.is-icon):hover {
+  text-decoration: none;
 }
 
 /* 模式切换过渡动画 */
