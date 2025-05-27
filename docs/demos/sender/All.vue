@@ -32,8 +32,10 @@
           :class="['custom-button', isActive ? 'active' : '']"
           @click="toggleActive"
         >
-          <IconThink class="icon-think" />
-          <span style="margin-left: 4px">深度思考</span>
+          <div class="icon-container">
+            <IconThink class="icon-think" />
+            <span class="text">深度思考</span>
+          </div>
         </tiny-button>
       </tiny-tooltip>
     </template>
@@ -102,9 +104,22 @@ const handleSpeechEnd = (transcript) => {
   font-size: 20px;
 }
 
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
 .icon-think {
-  width: 16px;
-  height: 16px;
+  font-size: 16px;
+}
+
+.text {
+  width: 56px;
+  height: 22px;
+  line-height: 22px;
+  font-size: 14px;
 }
 
 .custom-button {
