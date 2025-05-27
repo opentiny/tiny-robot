@@ -92,7 +92,7 @@ const modalRef = ref<HTMLElement | null>(null)
     <div ref="modalRef" class="tr-question-panel" :style="{ width: modalWidth }" @mousedown.stop>
       <div class="tr-question-header">
         <div style="display: flex; align-items: center; gap: 12px; font-size: 36px">
-          <div><IconSparkles style="color: #1476ff" /></div>
+          <div><IconSparkles style="color: #1476ff; font-size: 24px" /></div>
           <div class="tr-question-header-title">热门问题</div>
         </div>
         <span class="tr-question-close-btn" @click="closeModal">

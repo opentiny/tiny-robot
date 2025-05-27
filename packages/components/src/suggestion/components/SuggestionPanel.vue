@@ -90,7 +90,7 @@ defineExpose({
       <div class="tr-suggestion-header-left">
         <div class="tr-suggestion-header-icon">
           <slot name="title-icon">
-            <IconSparkles style="color: #1476ff" />
+            <IconSparkles style="color: #1476ff; font-size: 24px" />
           </slot>
         </div>
         <div class="tr-suggestion-header-title">{{ title }}</div>

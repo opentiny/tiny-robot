@@ -143,8 +143,10 @@ const handleGroupClick = (id: string) => {
         <div class="tr-question-popover" :style="popoverStyles" ref="popover">
           <div class="tr-question__header">
             <component v-if="props.icon" :is="props.icon" />
-            <IconSparkles v-else style="font-size: 36px; color: #1476ff" />
-            <h3 class="tr-question_header-title">{{ props.title }}</h3>
+            <span v-else class="tr-question__header-icon">
+              <IconSparkles style="color: #1476ff" />
+            </span>
+            <h3 class="tr-question__header-title">{{ props.title }}</h3>
             <IconButton
               class="tr-question-popover__close"
               :icon="IconClose"
@@ -249,7 +251,16 @@ const handleGroupClick = (id: string) => {
     gap: 10px;
     position: relative;
 
-    .tr-question_header-title {
+    .tr-question__header-icon {
+      font-size: 24px;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tr-question__header-title {
       margin: 0;
       font-size: 20px;
       line-height: 30px;
