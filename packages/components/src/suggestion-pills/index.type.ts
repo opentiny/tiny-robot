@@ -34,3 +34,12 @@ export interface SuggestionPillSlots {
 export interface SuggestionPillEmits {
   (e: 'item-click', item: SuggestionPillItem): void
 }
+
+export interface SuggestionPillButtonProps {
+  item?: SuggestionPillItem
+}
+
+export interface SuggestionPillButtonSlots {
+  default?: () => unknown
+  icon?: () => unknown
+}

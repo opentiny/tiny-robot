@@ -47,6 +47,7 @@ export interface SuggestionPopoverSlots {
 export interface SuggestionPopoverEmits {
   (e: 'item-click', item: SuggestionItem): void
   (e: 'group-click', group: SuggestionGroup): void
+  (e: 'open'): void
   (e: 'close'): void
 }
 

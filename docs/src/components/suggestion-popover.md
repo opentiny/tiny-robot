@@ -72,6 +72,7 @@ outline: deep
 | ------------- | ------------------------ | ---------------- |
 | `item-click`  | `item: SuggestionItem`   | 点击建议项时触发 |
 | `group-click` | `group: SuggestionGroup` | 点击分组时触发   |
+| `open`       | -                        | 弹窗打开时触发   |
 | `close`       | -                        | 弹窗关闭时触发   |
 
 ### Types

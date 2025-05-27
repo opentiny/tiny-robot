@@ -12,7 +12,7 @@ import Sender from './sender'
 import Welcome from './welcome'
 import Suggestion from './suggestion'
 import SuggestionPopover from './suggestion-popover'
-import SuggestionPills from './suggestion-pills'
+import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -45,6 +45,7 @@ const components = [
   Suggestion,
   SuggestionPopover,
   SuggestionPills,
+  SuggestionPillButton,
 ]
 
 export default {
@@ -85,6 +86,8 @@ export {
   Suggestion as TrSuggestion,
   SuggestionPills,
   SuggestionPills as TrSuggestionPills,
+  SuggestionPillButton,
+  SuggestionPillButton as TrSuggestionPillButton,
   Question,
   Question as TrQuestion,
   SuggestionPopover,

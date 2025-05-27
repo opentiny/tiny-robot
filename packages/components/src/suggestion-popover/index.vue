@@ -111,6 +111,9 @@ watch(show, (value) => {
 
 const handleToggleShow = () => {
   show.value = !show.value
+  if (show.value) {
+    emit('open')
+  }
 }
 
 const handleClose = () => {
