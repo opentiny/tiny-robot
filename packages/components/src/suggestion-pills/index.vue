@@ -2,6 +2,8 @@
 import { useScroll } from '@vueuse/core'
 import { computed, useTemplateRef } from 'vue'
 import { SuggestionPillEmits, SuggestionPillProps } from './index.type'
+import SuggestionPopover from '../suggestion-popover'
+import { PillButton } from './components'
 
 const props = defineProps<SuggestionPillProps>()
 
@@ -26,17 +28,23 @@ const maskImage = computed(() => {
 
 <template>
   <div class="tr-suggestion-pills__container" ref="container">
-    <button
-      v-for="item in props.items"
-      :key="item.id"
-      :class="['tr-suggestion-pills__item', { 'only-icon': !item.text }]"
-      @click="emit('item-click', item)"
-    >
-      <component :is="item.icon" class="tr-suggestion-pills__item_icon" />
-      <span v-if="item.text" class="tr-suggestion-pills__item_text">
-        {{ item.text }}
-      </span>
-    </button>
+    <slot>
+      <template v-for="item in props.items" :key="item.id">
+        <SuggestionPopover
+          v-if="item.action?.type === 'popover'"
+          v-bind="item.action.props"
+          @item-click="item.action.events?.itemClick"
+          @group-click="item.action.events?.groupClick"
+          @close="item.action.events?.close"
+        >
+          <PillButton :item="item" @click="emit('item-click', item)"></PillButton>
+          <template v-for="(slotVNode, slotName) in item.action.slots" :key="slotName" #[slotName]>
+            <component :is="slotVNode" />
+          </template>
+        </SuggestionPopover>
+        <PillButton v-else :item="item" @click="emit('item-click', item)"></PillButton>
+      </template>
+    </slot>
   </div>
 </template>
 
@@ -50,36 +58,5 @@ const maskImage = computed(() => {
 
   mask-image: v-bind('maskImage');
   mask-repeat: no-repeat;
-
-  .tr-suggestion-pills__item {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 5px 16px;
-    border-radius: 999px;
-    background-color: rgb(255, 255, 255);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    transition: background-color 0.3s ease;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.04);
-    }
-
-    &.only-icon {
-      padding: 8px;
-    }
-
-    .tr-suggestion-pills__item_icon {
-      width: 16px;
-      height: 16px;
-    }
-
-    .tr-suggestion-pills__item_text {
-      font-size: 14px;
-      line-height: 22px;
-      color: rgb(25, 25, 25);
-    }
-  }
 }
 </style>

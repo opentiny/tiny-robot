@@ -1,14 +1,33 @@
 import { Component, VNode } from 'vue'
+import {
+  SuggestionPopoverEvents,
+  SuggestionPopoverProps,
+  SuggestionPopoverSlots,
+} from '../suggestion-popover/index.type'
 
-export interface SuggestionPillBaseItem {
+export type SuggestionPillAction =
+  | {
+      type: 'popover'
+      props: SuggestionPopoverProps
+      slots?: Omit<SuggestionPopoverSlots, 'default'>
+      events?: SuggestionPopoverEvents
+    }
+  | { type: 'menu'; props: unknown }
+
+export type SuggestionPillBaseItem<T> = {
   id: string
-}
+  action?: SuggestionPillAction
+} & T
 
-export type SuggestionPillItem = SuggestionPillBaseItem &
+export type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBaseItem<T> &
   ({ text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component })
 
 export interface SuggestionPillProps {
-  items: SuggestionPillItem[]
+  items?: SuggestionPillItem[]
+}
+
+export interface SuggestionPillSlots {
+  default?: () => VNode | VNode[]
 }
 
 export interface SuggestionPillEmits {
