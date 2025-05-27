@@ -42,7 +42,7 @@ export default defineConfig({
             { text: 'Feedback 气泡反馈', link: 'feedback' },
             { text: 'History 历史', link: 'history' },
             { text: 'Suggestion 快捷指令', link: 'suggestion' },
-            { text: 'SuggesttionPopover 建议弹出框', link: 'suggestion-popover' },
+            { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
           ],
         },
       ],

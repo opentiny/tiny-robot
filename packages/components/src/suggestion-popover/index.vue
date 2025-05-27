@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementBounding, useMediaQuery } from '@vueuse/core'
-import { computed, CSSProperties, useTemplateRef } from 'vue'
-import FlowLayout from '../flow-layout'
+import { computed, CSSProperties, ref, useTemplateRef } from 'vue'
+import FlowLayoutButtons from '../flow-layout-buttons'
 import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
 import {
@@ -15,13 +15,30 @@ import {
 
 const props = withDefaults(defineProps<SuggestionPopoverProps>(), {
   title: '热门问题',
+  trigger: 'click',
   popoverWidth: 540,
   popoverHeight: 464,
   topOffset: 0,
-  closeOnClickOutside: true,
+  groupShowMoreTrigger: 'hover',
 })
 
-const show = defineModel<SuggestionPopoverProps['show']>('show')
+const showRef = ref(false)
+
+// 如果 trigger 是 manual，则 show 由外部控制，此时组件内部无法修改 show 的值
+const show = computed({
+  get: () => {
+    if (props.trigger === 'manual') {
+      return props.show
+    }
+    return showRef.value
+  },
+  set: (newValue) => {
+    if (props.trigger === 'manual') {
+      return
+    }
+    showRef.value = newValue
+  },
+})
 
 defineSlots<SuggestionPopoverSlots>()
 
@@ -57,7 +74,7 @@ const flowLayoutGroups = computed(() => {
 })
 
 const popoverTriggerRef = useTemplateRef('popover-trigger')
-const popoerRef = useTemplateRef('popover')
+const popoverRef = useTemplateRef('popover')
 
 const { x, y, update } = useElementBounding(popoverTriggerRef)
 
@@ -73,14 +90,14 @@ const popoverStyles = computed<CSSProperties>(() => {
   }
 
   return {
-    left: toCssUnit(x.value),
+    left: `min(${toCssUnit(x.value)}, 100% - ${toCssUnit(props.popoverWidth)})`,
     top: `max(${toCssUnit(y.value)} - ${toCssUnit(props.popoverHeight)} + ${toCssUnit(props.topOffset)} - 8px, 0px)`,
     width: toCssUnit(props.popoverWidth),
   }
 })
 
-if (props.closeOnClickOutside) {
-  onClickOutside(popoerRef, (ev) => {
+if (props.trigger === 'click') {
+  onClickOutside(popoverRef, (ev) => {
     ev.stopPropagation()
     show.value = false
   })
@@ -95,11 +112,12 @@ const handleToggleShow = () => {
 
 const handleClose = () => {
   show.value = false
+  emit('close')
 }
 
 const handleItemClick = (item: SuggestionItem) => {
+  show.value = false
   emit('item-click', item)
-  handleClose()
 }
 
 const handleGroupClick = (id: string) => {
@@ -145,14 +163,15 @@ const handleGroupClick = (id: string) => {
             </slot>
           </div>
           <template v-else>
-            <FlowLayout
+            <FlowLayoutButtons
               class="tr-question__group"
               v-if="flowLayoutGroups.length > 0"
               :items="flowLayoutGroups"
               v-model:selected="selectedGroup"
               :lines-limit="2"
+              :show-more-trigger="props.groupShowMoreTrigger"
               @item-click="handleGroupClick"
-            ></FlowLayout>
+            ></FlowLayoutButtons>
             <ul class="tr-question__list">
               <li
                 class="tr-question__list-item"

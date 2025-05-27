@@ -19,18 +19,19 @@ export interface SuggestionPopoverProps {
   title?: string
   icon?: VNode | Component
   /**
-   * model:show
+   * 是否显示弹窗，仅在 trigger 为 'manual' 时有效
    */
   show?: boolean
+  /**
+   * 触发方式。默认值为 'click'
+   */
+  trigger?: 'click' | 'manual'
   /**
    * model:selectedGroup
    */
   selectedGroup?: string
+  groupShowMoreTrigger?: 'click' | 'hover'
   loading?: boolean
-  /**
-   * 默认值为 true，点击外部关闭
-   */
-  closeOnClickOutside?: boolean
   // 下面是样式相关的属性
   popoverWidth?: string | number
   popoverHeight?: string | number
@@ -46,4 +47,5 @@ export interface SuggestionPopoverSlots {
 export interface SuggestionPopoverEmits {
   (e: 'item-click', item: SuggestionItem): void
   (e: 'group-click', group: SuggestionGroup): void
+  (e: 'close'): void
 }

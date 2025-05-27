@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex; flex-direction: column; gap: 8px">
+  <div style="display: flex; gap: 8px; justify-content: space-around">
     <SuggestionPopover :data="[]" :loading="true">
       <button>加载中状态</button>
     </SuggestionPopover>

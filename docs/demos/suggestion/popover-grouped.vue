@@ -1,12 +1,11 @@
 <template>
   <SuggestionPopover
     :data="groups"
-    :show="show"
     :selectedGroup="selectedGroup"
     @item-click="(item) => console.log(item)"
     @group-click="(group) => console.log(group)"
   >
-    <button>点击弹出SuggestionPopover</button>
+    <button>分组数据</button>
   </SuggestionPopover>
 </template>
 
@@ -14,8 +13,6 @@
 import { SuggestionPopover } from '@opentiny/tiny-robot'
 import { IconLike, IconDislike } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
-
-const show = ref(false)
 
 const groups = [
   {

@@ -1,11 +1,23 @@
 <template>
-  <SuggestionPopover :data="data" @item-click="(item) => console.log(item)">
-    <button>点击弹出SuggestionPopover</button>
-  </SuggestionPopover>
+  <div style="display: flex; gap: 8px; justify-content: space-around">
+    <SuggestionPopover :data="data" trigger="click">
+      <button>click触发</button>
+    </SuggestionPopover>
+    <SuggestionPopover :data="data" :show="show" trigger="manual" @close="handleClose">
+      <button @click="show = !show">manual触发</button>
+    </SuggestionPopover>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { SuggestionPopover } from '@opentiny/tiny-robot'
+import { ref } from 'vue'
+
+const show = ref(false)
+
+const handleClose = () => {
+  show.value = false
+}
 
 const data = [
   { id: 'b1', text: '什么是弹性云服务器?' },
