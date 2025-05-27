@@ -3,7 +3,7 @@ import { ref, computed, PropType } from 'vue'
 import { SuggestionItem, Category } from '../index.type'
 import CategoryNav from './CategoryNav.vue'
 import { useKeyboardNavigation } from '../composables/useKeyboardNavigation'
-import { IconHotQuestion, IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconSparkles, IconClose } from '@opentiny/tiny-robot-svgs'
 
 const props = defineProps({
   items: {
@@ -90,7 +90,7 @@ defineExpose({
       <div class="tr-suggestion-header-left">
         <div class="tr-suggestion-header-icon">
           <slot name="title-icon">
-            <IconHotQuestion />
+            <IconSparkles style="color: #1476ff" />
           </slot>
         </div>
         <div class="tr-suggestion-header-title">{{ title }}</div>
