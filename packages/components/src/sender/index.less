@@ -358,6 +358,14 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+
+      .suggestion-item__text--match {
+        font-weight: 500;
+      }
+
+      .suggestion-item__text--normal {
+        font-weight: 400;
+      }
     }
   }
 
@@ -370,6 +378,7 @@
   // 自动完成占位符
   &__completion-placeholder {
     position: absolute;
+    top: 0;
     left: 0;
     height: var(--tr-sender-input-height);
     font-size: var(--tr-sender-input-font-size);
@@ -400,23 +409,12 @@
     flex-shrink: 0;
   }
 
-  // 模式特定样式
-  &.mode-single {
-    .tiny-sender__completion-placeholder {
-      top: var(--tr-sender-placeholder-top-single);
-    }
-  }
-
-  &.mode-multiple {
-    .tiny-sender__completion-placeholder {
-      top: var(--tr-sender-placeholder-top-multiple);
-    }
-  }
-
   // 过渡动画
   .tiny-sender-slide-up-enter-active,
   .tiny-sender-slide-up-leave-active {
-    transition: opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style), transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
+    transition:
+      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
+      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
   }
 
   .tiny-sender-slide-up-enter-from,
@@ -427,7 +425,9 @@
 
   .tiny-sender-slide-down-enter-active,
   .tiny-sender-slide-down-leave-active {
-    transition: opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style), transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
+    transition:
+      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
+      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
   }
 
   .tiny-sender-slide-down-enter-from,
@@ -676,7 +676,7 @@
 
 /** 处理相邻按钮元素边界  */
 .tiny-button + .tiny-button {
-  margin-left: 0 !important !important;
+  margin-left: 0 !important;
 }
 
 /** 隐藏 hover 时 按钮文字下划线 */

@@ -18,19 +18,6 @@
       placeholder="多行模式联想..."
     ></tr-sender>
     <p>当前输入: {{ textMultiple }}</p>
-
-    <h3>空联想数据</h3>
-    <tr-sender v-model="textEmpty" :suggestions="[]" placeholder="无联想数据..."></tr-sender>
-    <p>当前输入: {{ textEmpty }}</p>
-
-    <h3>配合其他 Prop (例如 clearable)</h3>
-    <tr-sender
-      v-model="textWithClear"
-      :suggestions="sampleSuggestions"
-      :clearable="true"
-      placeholder="可清空..."
-    ></tr-sender>
-    <p>当前输入: {{ textWithClear }}</p>
   </div>
 </template>
 
@@ -40,8 +27,6 @@ import { TrSender } from '@opentiny/tiny-robot'
 
 const textSingle = ref('')
 const textMultiple = ref('')
-const textEmpty = ref('')
-const textWithClear = ref('')
 
 const sampleSuggestions = ref([
   'ECS-云服务器卡顿',

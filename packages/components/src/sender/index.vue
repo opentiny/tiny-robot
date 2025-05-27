@@ -234,6 +234,47 @@ const toggleSpeech = () => {
   }
 }
 
+// 处理建议项文本高亮
+const highlightSuggestionText = (suggestionText: string, inputText: string) => {
+  if (!inputText || !suggestionText) {
+    return [{ text: suggestionText, isMatch: false }]
+  }
+
+  const lowerSuggestion = suggestionText.toLowerCase()
+  const lowerInput = inputText.toLowerCase()
+  const matchIndex = lowerSuggestion.indexOf(lowerInput)
+
+  if (matchIndex === -1) {
+    return [{ text: suggestionText, isMatch: false }]
+  }
+
+  const parts = []
+
+  // 匹配前的部分
+  if (matchIndex > 0) {
+    parts.push({
+      text: suggestionText.substring(0, matchIndex),
+      isMatch: false,
+    })
+  }
+
+  // 匹配的部分
+  parts.push({
+    text: suggestionText.substring(matchIndex, matchIndex + inputText.length),
+    isMatch: true,
+  })
+
+  // 匹配后的部分
+  if (matchIndex + inputText.length < suggestionText.length) {
+    parts.push({
+      text: suggestionText.substring(matchIndex + inputText.length),
+      isMatch: false,
+    })
+  }
+
+  return parts
+}
+
 // 键盘处理
 const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   props,
@@ -548,7 +589,14 @@ defineExpose({
           @mousedown.prevent="selectSuggestion(item)"
         >
           <span class="suggestion-item__icon"><IconAssociate /></span>
-          <span class="suggestion-item__text">{{ item }}</span>
+          <span class="suggestion-item__text">
+            <span
+              v-for="(part, partIndex) in highlightSuggestionText(item, inputValue)"
+              :key="partIndex"
+              :class="{ 'suggestion-item__text--match': part.isMatch, 'suggestion-item__text--normal': !part.isMatch }"
+              >{{ part.text }}</span
+            >
+          </span>
         </div>
       </div>
     </Transition>
