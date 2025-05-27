@@ -1,22 +1,15 @@
 <script setup lang="ts">
-import { IconButtonProps } from './index.type'
 import { computed } from 'vue'
+import { toCssUnit } from '../shared/utils'
+import { IconButtonProps } from './index.type'
 
 const props = withDefaults(defineProps<IconButtonProps>(), {
   size: '24px',
   svgSize: '16px',
 })
 
-const formatSize = (size: string | number) => {
-  if (!isNaN(Number(size))) {
-    return `${size}px`
-  }
-
-  return size as string
-}
-
-const size = computed(() => formatSize(props.size))
-const svgSize = computed(() => formatSize(props.svgSize))
+const size = computed(() => toCssUnit(props.size))
+const svgSize = computed(() => toCssUnit(props.svgSize))
 </script>
 
 <template>

@@ -10,6 +10,7 @@ import Question from './question'
 import Sender from './sender'
 import Welcome from './welcome'
 import Suggestion from './suggestion'
+import SuggestionPopover from './suggestion-popover'
 import SuggestionPills from './suggestion-pills'
 
 export * from './bubble/index.type'
@@ -21,6 +22,8 @@ export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './welcome/index.type'
 export * from './suggestion/index.type'
+// TODO suggestion 中类型和 suggestion-popover 类型部分冲突。后续整改 suggestion 的类型
+// export * from './suggestion-popover/index.type'
 export * from './suggestion-pills/index.type'
 
 const components = [
@@ -37,6 +40,7 @@ const components = [
   Sender,
   Welcome,
   Suggestion,
+  SuggestionPopover,
   SuggestionPills,
 ]
 
@@ -78,4 +82,6 @@ export {
   SuggestionPills as TrSuggestionPills,
   Question,
   Question as TrQuestion,
+  SuggestionPopover,
+  SuggestionPopover as TrSuggestionPopover,
 }
