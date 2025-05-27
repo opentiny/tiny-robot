@@ -1,7 +1,7 @@
 <template>
   <div class="demo-container">
     <h3>单行模式 (mode="single") - 默认</h3>
-    <p>尝试输入 "ECS", "CDN", "服务器" 等查看联想效果。</p>
+    <p>尝试输入 "ECS", "CDN" 等查看联想效果。</p>
     <tr-sender
       v-model="textSingle"
       :suggestions="sampleSuggestions"

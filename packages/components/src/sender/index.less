@@ -300,16 +300,16 @@
   // 输入建议
   &__suggestions {
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + var(--tr-sender-suggestion-padding-bottom));
     left: 0;
-    width: 100%;
+    width: var(--tr-sender-suggestion-width);
     background: var(--tr-sender-bg-color);
     border-radius: var(--tr-sender-suggestion-border-radius);
     box-shadow: 0 4px 12px var(--tr-sender-suggestion-box-shadow-color);
     z-index: 10;
     max-height: var(--tr-sender-suggestion-max-height);
     overflow-y: auto;
-    padding: 8px;
+    padding: var(--tr-sender-suggestion-padding);
 
     &::-webkit-scrollbar {
       width: var(--tr-sender-suggestion-scrollbar-width);
@@ -318,7 +318,7 @@
     &::-webkit-scrollbar-track {
       background: transparent;
       border-radius: var(--tr-sender-suggestion-border-radius);
-      margin: 4px 0;
+      margin: var(--tr-sender-suggestion-scrollbar-track-margin);
     }
 
     &::-webkit-scrollbar-thumb {
@@ -335,9 +335,9 @@
     .suggestion-item {
       display: flex;
       align-items: center;
-      padding: 4px 8px;
+      padding: var(--tr-sender-suggestion-item-padding);
       cursor: pointer;
-      font-size: 14px;
+      font-size: var(--tr-sender-suggestion-item-font-size);
 
       &.highlighted {
         background-color: var(--tr-sender-suggestion-hover-color);
@@ -345,10 +345,8 @@
       }
 
       .suggestion-item__icon {
-        width: 16px;
-        height: 16px;
-        margin-right: 8px;
-        font-size: 16px;
+        margin-right: var(--tr-sender-suggestion-item-icon-margin-right);
+        font-size: var(--tr-sender-suggestion-item-icon-size);
         text-align: center;
       }
 
