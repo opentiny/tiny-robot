@@ -278,7 +278,7 @@ type SlotsType = {
 const slots = useSlots() as SlotsType
 
 // 检查是否有decorativeContent插槽
-const hasDecorativeContent = computed((): boolean => !!slots.decorativeContent?.())
+const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
@@ -421,7 +421,6 @@ defineExpose({
             <div class="tiny-sender__buttons-container" ref="buttonsContainerRef">
               <slot name="actions" />
               <action-buttons
-                class="inline-buttons"
                 :allow-speech="allowSpeech"
                 :allow-files="allowFiles"
                 :loading="loading"
