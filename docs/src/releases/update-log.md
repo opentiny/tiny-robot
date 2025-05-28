@@ -1,6 +1,16 @@
 
 # 版本更新日志
 
+## 0.2.0-alpha.5（25.5.28）
+
+### 组件
+1.【特性】【Sender 消息输入框】增强模板编辑功能
+2.【特性】【Sender 消息输入框】支持输入联想功能
+3.【优化】【Sender 消息输入框】替换组件按钮图标、调整按钮样式；自定义按钮 及 布局与插槽 案例中 - 深度思考 按钮样式修复；样式与设计稿对齐
+4.【特性】新增 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件
+5.【特性】新增 DropdownMenu 下拉菜单 组件
+6.【变更】Suggestion 快捷指令 与 Question 快捷问题 改为弃用状态，建议使用 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件
+
 ## 0.2.0-alpha.4（25.5.21）
 
 ### 组件
