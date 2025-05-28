@@ -23,15 +23,15 @@ export type SuggestionPillBaseItem<T> = {
 export type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBaseItem<T> &
   ({ text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component })
 
-export interface SuggestionPillProps {
+export interface SuggestionPillsProps {
   items?: SuggestionPillItem[]
 }
 
-export interface SuggestionPillSlots {
+export interface SuggestionPillsSlots {
   default?: () => VNode | VNode[]
 }
 
-export interface SuggestionPillEmits {
+export interface SuggestionPillsEmits {
   (e: 'item-click', item: SuggestionPillItem): void
 }
 

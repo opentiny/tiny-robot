@@ -4,6 +4,9 @@ outline: deep
 
 # Question 快捷问题组件
 
+> [!CAUTION]
+> 本组件准备弃用，请使用 [SuggestionPopover 建议弹出框](./suggestion-popover.html)和 [SuggestionPills 建议按钮组](./suggestion-pills.html) 组件
+
 Question 是一个用于展示问题列表的通用组件，包含两个主要部分：热门问题弹窗和一般问题悬浮胶囊。
 
 组件支持分类展示、问题列表的部分/全部显示切换以及暗色主题适配。
