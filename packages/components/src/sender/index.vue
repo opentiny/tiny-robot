@@ -26,8 +26,9 @@ const props = withDefaults(defineProps<SenderProps>(), {
   showWordLimit: false,
   submitType: 'enter',
   theme: 'light',
-  template: '',
   hasContent: undefined,
+  template: '',
+  templateInitialValues: () => ({}),
   suggestions: () => [],
 })
 
@@ -418,6 +419,7 @@ defineExpose({
                 ref="templateEditorRef"
                 :template="template"
                 :value="inputValue"
+                :initialValues="templateInitialValues"
                 @update:value="handleTemplateInput"
                 @input="handleTemplateInput"
               />
