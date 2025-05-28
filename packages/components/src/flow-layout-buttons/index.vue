@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementSize } from '@vueuse/core'
-import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { FlowLayoutEmits, FlowLayoutProps } from './index.type'
 
 const props = withDefaults(defineProps<FlowLayoutProps>(), {
@@ -24,9 +24,9 @@ watch(
 
 const emit = defineEmits<FlowLayoutEmits>()
 
-const containerRef = useTemplateRef('container')
-const moreButtonRef = useTemplateRef('more-button')
-const dropDownRef = useTemplateRef('dropDown')
+const containerRef = ref<HTMLDivElement | null>(null)
+const moreButtonRef = ref<HTMLButtonElement | null>(null)
+const dropDownRef = ref<HTMLDivElement | null>(null)
 
 const itemRefs = ref<(HTMLElement | null)[]>([])
 const moreButtonIndex = ref<number | null>(null)
@@ -127,7 +127,7 @@ onClickOutside(dropDownRef, (ev) => {
 </script>
 
 <template>
-  <div class="tr-flow-layout" ref="container">
+  <div class="tr-flow-layout" ref="containerRef">
     <template v-for="(item, index) in props.items" :key="item.id">
       <button
         :class="['tr-flow-layout__item', { 'icon-only': !item.label }, { selected: item.id === selected }]"
@@ -143,7 +143,7 @@ onClickOutside(dropDownRef, (ev) => {
       <button
         :class="['tr-flow-layout__item', 'icon-only', { selected: moreButtonSelected }]"
         v-if="!hideMoreButton"
-        ref="more-button"
+        ref="moreButtonRef"
         @click="handleClickMore"
         @mouseenter="handleHoverMore(true)"
         @mouseleave="handleHoverMore(false)"
@@ -155,7 +155,7 @@ onClickOutside(dropDownRef, (ev) => {
         @mouseenter="handleHoverMore(true)"
         @mouseleave="handleHoverMore(false)"
       >
-        <div class="tr-flow-layout__dropdown" v-if="showMore" ref="dropDown">
+        <div class="tr-flow-layout__dropdown" v-if="showMore" ref="dropDownRef">
           <button
             :class="['tr-flow-layout__dropdown_item', { selected: item.id === selected }]"
             v-for="item in leftItems"

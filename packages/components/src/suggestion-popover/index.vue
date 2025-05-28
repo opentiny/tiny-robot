@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementBounding, useMediaQuery } from '@vueuse/core'
-import { computed, CSSProperties, ref, useTemplateRef, watch } from 'vue'
+import { computed, CSSProperties, ref, watch } from 'vue'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
@@ -73,8 +73,8 @@ const flowLayoutGroups = computed(() => {
   }))
 })
 
-const popoverTriggerRef = useTemplateRef('popover-trigger')
-const popoverRef = useTemplateRef('popover')
+const popoverTriggerRef = ref<HTMLDivElement | null>(null)
+const popoverRef = ref<HTMLDivElement | null>(null)
 
 const { x, y, update } = useElementBounding(popoverTriggerRef)
 
@@ -135,7 +135,7 @@ const handleGroupClick = (id: string) => {
 </script>
 
 <template>
-  <div class="tr-question-popover__wrapper" ref="popover-trigger" @click="handleToggleShow">
+  <div class="tr-question-popover__wrapper" ref="popoverTriggerRef" @click="handleToggleShow">
     <slot />
 
     <Teleport v-if="show && isMobile" to="body">
@@ -143,7 +143,7 @@ const handleGroupClick = (id: string) => {
     </Teleport>
     <Transition name="tr-question-popover">
       <Teleport v-if="show" to="body">
-        <div class="tr-question-popover" :style="popoverStyles" ref="popover">
+        <div class="tr-question-popover" :style="popoverStyles" ref="popoverRef">
           <div class="tr-question__header">
             <component v-if="props.icon" :is="props.icon" />
             <span v-else class="tr-question__header-icon">

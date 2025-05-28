@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onClickOutside, useElementBounding } from '@vueuse/core'
-import { computed, CSSProperties, ref, useTemplateRef, watch } from 'vue'
+import { computed, CSSProperties, ref, watch } from 'vue'
 import { toCssUnit } from '../shared/utils'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps, DropdownMenuSlots } from './index.type'
 
@@ -15,8 +15,8 @@ defineSlots<DropdownMenuSlots>()
 
 const emit = defineEmits<DropdownMenuEmits>()
 
-const dropDownTriggerRef = useTemplateRef('dropdown-menu-trigger')
-const dropdownMenuRef = useTemplateRef('dropdown-menu')
+const dropDownTriggerRef = ref<HTMLDivElement | null>(null)
+const dropdownMenuRef = ref<HTMLDivElement | null>(null)
 
 const { x, y, update } = useElementBounding(dropDownTriggerRef)
 const { width: menuWidth, height: menuHeight } = useElementBounding(dropdownMenuRef)
@@ -50,12 +50,12 @@ const handleItemClick = (item: DropdownMenuItem) => {
 </script>
 
 <template>
-  <div class="tr-dropdown-menu__wrapper" ref="dropdown-menu-trigger" @click="handleToggleShow">
+  <div class="tr-dropdown-menu__wrapper" ref="dropDownTriggerRef" @click="handleToggleShow">
     <slot />
 
     <Transition name="tr-dropdown-menu">
       <Teleport v-if="show" to="body">
-        <div class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdown-menu">
+        <div class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdownMenuRef">
           <ul class="tr-dropdown-menu__list">
             <li
               class="tr-dropdown-menu__list-item"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
-import { computed, useTemplateRef } from 'vue'
+import { computed, ref } from 'vue'
 import DropdownMenu from '../dropdown-menu'
 import SuggestionPopover from '../suggestion-popover'
 import { PillButton } from './components'
@@ -10,7 +10,7 @@ const props = defineProps<SuggestionPillsProps>()
 
 const emit = defineEmits<SuggestionPillsEmits>()
 
-const containerRef = useTemplateRef('container')
+const containerRef = ref<HTMLDivElement | null>(null)
 
 const { arrivedState } = useScroll(containerRef)
 
@@ -28,7 +28,7 @@ const maskImage = computed(() => {
 </script>
 
 <template>
-  <div class="tr-suggestion-pills__container" ref="container">
+  <div class="tr-suggestion-pills__container" ref="containerRef">
     <slot>
       <template v-for="item in props.items" :key="item.id">
         <SuggestionPopover
