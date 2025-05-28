@@ -300,16 +300,138 @@
   // 输入建议
   &__suggestions {
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + var(--tr-sender-suggestion-padding-bottom));
     left: 0;
-    width: 100%;
+    width: var(--tr-sender-suggestion-width);
     background: var(--tr-sender-bg-color);
-    border: 1px solid var(--tr-sender-border-color);
-    border-radius: var(--tr-sender-border-radius);
-    box-shadow: var(--tr-sender-box-shadow);
+    border-radius: var(--tr-sender-suggestion-border-radius);
+    box-shadow: 0 4px 12px var(--tr-sender-suggestion-box-shadow-color);
     z-index: 10;
-    max-height: 200px;
+    max-height: var(--tr-sender-suggestion-max-height);
     overflow-y: auto;
+    padding: var(--tr-sender-suggestion-padding);
+
+    &::-webkit-scrollbar {
+      width: var(--tr-sender-suggestion-scrollbar-width);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: var(--tr-sender-suggestion-border-radius);
+      margin: var(--tr-sender-suggestion-scrollbar-track-margin);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--tr-sender-suggestion-scrollbar-thumb-color);
+      border-radius: var(--tr-sender-suggestion-scrollbar-border-radius);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: var(--tr-sender-suggestion-scrollbar-thumb-hover-color);
+    }
+
+    scrollbar-color: var(--tr-sender-suggestion-scrollbar-thumb-color) transparent;
+
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      padding: var(--tr-sender-suggestion-item-padding);
+      cursor: pointer;
+      font-size: var(--tr-sender-suggestion-item-font-size);
+
+      &.highlighted {
+        background-color: var(--tr-sender-suggestion-hover-color);
+        border-radius: var(--tr-sender-suggestion-item-border-radius);
+      }
+
+      .suggestion-item__icon {
+        margin-right: var(--tr-sender-suggestion-item-icon-margin-right);
+        font-size: var(--tr-sender-suggestion-item-icon-size);
+        text-align: center;
+      }
+
+      .suggestion-item__text {
+        flex-grow: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .suggestion-item__text--match {
+        font-weight: 500;
+      }
+
+      .suggestion-item__text--normal {
+        font-weight: 400;
+      }
+    }
+  }
+
+  // 输入字段包装器
+  &__input-field-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  // 自动完成占位符
+  &__completion-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: var(--tr-sender-input-height);
+    font-size: var(--tr-sender-input-font-size);
+    color: var(--tr-sender-suggestion-placeholder-color);
+    pointer-events: none;
+    white-space: pre;
+    line-height: var(--tr-sender-completion-placeholder-line-height);
+    display: flex;
+    align-items: center;
+    text-overflow: ellipsis;
+    overflow: hidden;
+
+    .user-input-mirror {
+      visibility: hidden;
+    }
+  }
+
+  // Tab提示
+  &__tab-hint {
+    margin-top: auto;
+    border: 1px dashed var(--tr-sender-suggestion-tab-hint-border-color);
+    padding: var(--tr-sender-tab-hint-padding);
+    font-size: var(--tr-sender-tab-hint-font-size);
+    color: var(--tr-sender-suggestion-tab-hint-color);
+    border-radius: var(--tr-sender-suggestion-tab-border-radius);
+    pointer-events: none;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  // 过渡动画
+  .tiny-sender-slide-up-enter-active,
+  .tiny-sender-slide-up-leave-active {
+    transition:
+      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
+      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
+  }
+
+  .tiny-sender-slide-up-enter-from,
+  .tiny-sender-slide-up-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .tiny-sender-slide-down-enter-active,
+  .tiny-sender-slide-down-leave-active {
+    transition:
+      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
+      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
+  }
+
+  .tiny-sender-slide-down-enter-from,
+  .tiny-sender-slide-down-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
   // 错误提示
