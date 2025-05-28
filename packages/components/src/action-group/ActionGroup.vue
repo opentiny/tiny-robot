@@ -2,7 +2,7 @@
 import { IconMenu } from '@opentiny/tiny-robot-svgs'
 import TinyTooltip from '@opentiny/vue-tooltip'
 import { onClickOutside, useWindowSize } from '@vueuse/core'
-import { computed, nextTick, ref, useTemplateRef, VNode, watch } from 'vue'
+import { computed, nextTick, ref, VNode, watch } from 'vue'
 import IconButton from '../icon-button'
 import { ActionGroupEvents, ActionGroupProps, ActionGroupSlots } from './index.type'
 
@@ -56,16 +56,16 @@ const moreList = computed(() => {
   return []
 })
 
-const moreBtn = useTemplateRef('moreBtnRef')
-const dropDown = useTemplateRef('dropDownRef')
+const moreBtnRef = ref<HTMLSpanElement | null>(null)
+const dropDownRef = ref<HTMLUListElement | null>(null)
 const showDropdown = ref(false)
 
 const handleMoreClick = () => {
   showDropdown.value = !showDropdown.value
 }
 
-onClickOutside(dropDown, (ev) => {
-  if (moreBtn.value?.contains(ev.target as Node)) {
+onClickOutside(dropDownRef, (ev) => {
+  if (moreBtnRef.value?.contains(ev.target as Node)) {
     return
   }
 
@@ -81,12 +81,12 @@ const dropDownPlacement = ref('placement-bottom')
 const { height: windowHeight } = useWindowSize()
 
 const updateDropDownPlacement = () => {
-  if (!dropDown.value || !moreBtn.value) {
+  if (!dropDownRef.value || !moreBtnRef.value) {
     return 'placement-bottom'
   }
 
-  const dropDownRect = dropDown.value.getBoundingClientRect()
-  const moreBtnRect = moreBtn.value.getBoundingClientRect()
+  const dropDownRect = dropDownRef.value.getBoundingClientRect()
+  const moreBtnRect = moreBtnRef.value.getBoundingClientRect()
 
   dropDownPlacement.value =
     moreBtnRect.bottom + dropDownRect.height + 16 > windowHeight.value ? 'placement-top' : 'placement-bottom'
