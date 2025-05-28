@@ -310,7 +310,7 @@ defineExpose({
       <!-- 转发所有插槽到面板组件 -->
       <template #title-icon>
         <slot name="title-icon">
-          <IconSparkles style="font-size: 36px; color: #1476ff" />
+          <IconSparkles style="font-size: 24px; color: #1476ff" />
         </slot>
       </template>
 

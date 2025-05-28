@@ -46,7 +46,7 @@ outline: deep
 | `title`                | `string`                         | -         | 弹出框标题                                                     |
 | `icon`                 | `VNode \| Component`             | -         | 标题图标                                                       |
 | `show`                 | `boolean`                        | -         | 控制弹出框显示/隐藏，仅在 trigger 为 'manual' 时有效 |
-| `trigger`              | `'click' \| 'manual'` | `'click'` | 触发方式：点击、悬停或手动控制                                 |
+| `trigger`              | `'click' \| 'manual'` | `'click'` | 触发方式：点击或手动控制                                 |
 | `selectedGroup`        | `string`                         | -         | 当前选中分组 (v-model)                                         |
 | `groupShowMoreTrigger` | `'click' \| 'hover'`             | -         | 分组"显示更多"的触发方式                                       |
 | `loading`              | `boolean`                        | `false`   | 是否显示加载状态                                               |
@@ -72,6 +72,7 @@ outline: deep
 | ------------- | ------------------------ | ---------------- |
 | `item-click`  | `item: SuggestionItem`   | 点击建议项时触发 |
 | `group-click` | `group: SuggestionGroup` | 点击分组时触发   |
+| `open`       | -                        | 弹窗打开时触发   |
 | `close`       | -                        | 弹窗关闭时触发   |
 
 ### Types

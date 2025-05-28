@@ -111,6 +111,9 @@ watch(show, (value) => {
 
 const handleToggleShow = () => {
   show.value = !show.value
+  if (show.value) {
+    emit('open')
+  }
 }
 
 const handleClose = () => {
@@ -143,8 +146,10 @@ const handleGroupClick = (id: string) => {
         <div class="tr-question-popover" :style="popoverStyles" ref="popover">
           <div class="tr-question__header">
             <component v-if="props.icon" :is="props.icon" />
-            <IconSparkles v-else style="font-size: 36px; color: #1476ff" />
-            <h3 class="tr-question_header-title">{{ props.title }}</h3>
+            <span v-else class="tr-question__header-icon">
+              <IconSparkles style="color: #1476ff" />
+            </span>
+            <h3 class="tr-question__header-title">{{ props.title }}</h3>
             <IconButton
               class="tr-question-popover__close"
               :icon="IconClose"
@@ -220,6 +225,7 @@ const handleGroupClick = (id: string) => {
   border-bottom-right-radius: v-bind("isMobile ? '0': '24px'");
   background-color: #ffffff;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  color: rgb(25, 25, 25);
   display: flex;
   flex-direction: column;
 
@@ -249,12 +255,20 @@ const handleGroupClick = (id: string) => {
     gap: 10px;
     position: relative;
 
-    .tr-question_header-title {
+    .tr-question__header-icon {
+      font-size: 24px;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tr-question__header-title {
       margin: 0;
       font-size: 20px;
       line-height: 30px;
       font-weight: 600;
-      color: #1d2129;
     }
 
     .tr-question-popover__close {
