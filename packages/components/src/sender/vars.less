@@ -3,15 +3,16 @@
   // 基础颜色
   --tr-sender-border-color: #dcdfe6;
   --tr-sender-bg-color: #fff;
-  --tr-sender-text-color: #303133;
+  --tr-sender-text-color: #191919;
   --tr-sender-text-color-secondary: #909399;
+  --tr-sender-text-color-tertiary: #808080;
   --tr-sender-error-color: #f56c6c;
   --tr-sender-input-disabled-bg-color: #f0f0f0;
-  --tr-sender-word-limit-color: #808080;
   --tr-sender-button-icon-color: #5e7ce0;
+  --tr-sender-link-color: #1476FF;
 
   // 尺寸
-  --tr-sender-border-radius: 28px;
+  --tr-sender-border-radius: 26px;
   --tr-sender-padding-top: 15px;
   --tr-sender-padding-right: 10px;
   --tr-sender-padding-bottom: 10px;
@@ -19,7 +20,7 @@
   --tr-sender-gap: 8px;
   --tr-sender-input-height: 26px;
   --tr-sender-input-min-height: 60px;
-  --tr-sender-icon-size: 22px;
+  --tr-sender-icon-size: 32px;
   --tr-sender-icon-size-small: 18px;
 
   // 字体
@@ -35,8 +36,23 @@
   // 输入框
   --tr-sender-textarea-min-height: 26px;
   --tr-sender-textarea-line-height: 26px;
-  --tr-sender-input-height: 26px;
   --tr-sender-input-font-size: 16px;
+
+  // 模板编辑器变量
+  --tr-sender-template-editor-min-height: 26px;
+  --tr-sender-template-editor-line-height: 26px;
+  --tr-sender-template-editor-border-radius: 4px;
+  --tr-sender-template-field-bg: rgba(0, 0, 0, 0.05);
+  --tr-sender-template-field-bg-hover: rgba(0, 0, 0, 0.08);
+  --tr-sender-template-field-padding: 3px 8px;
+  --tr-sender-template-field-margin: 0 2px;
+  --tr-sender-template-field-border-radius: 4px;
+  --tr-sender-template-field-min-width: 2em;
+  --tr-sender-template-field-min-width-empty: 3em;
+  --tr-sender-template-field-min-height-empty: 24px;
+  --tr-sender-template-field-line-height: 16px;
+  --tr-sender-template-field-placeholder-color: #a8abb2;
+  --tr-sender-template-field-placeholder-left: 8px;
 
   // 插槽变量
   // 头部插槽 (Header)
@@ -46,17 +62,18 @@
   --tr-sender-header-padding: 10px;
 
   // 前缀插槽 (Prefix)
-  --tr-sender-prefix-width: 60px;
-  --tr-sender-prefix-min-width: 44px;
+  --tr-sender-prefix-min-width: 28px;
   --tr-sender-prefix-hover-bg: #f5f5f5;
-  --tr-sender-prefix-padding-top: 8px;
+  --tr-sender-prefix-padding-top: 12px;
   --tr-sender-prefix-padding-left: 16px;
+  --tr-sender-prefix-padding-right: 8px;
 
   // 内容区域 (Content)
   --tr-sender-content-min-width: 180px;
-  --tr-sender-content-padding: 15px 10px 12px 24px;
-  --tr-sender-content-padding-with-prefix: 15px 10px 10px 8px;
+  --tr-sender-content-padding-with-prefix: 12px 16px 0 0;
   --tr-sender-content-flex-grow: 1;
+  --tr-sender-content-padding-single: 15px 10px 15px 20px;
+  --tr-sender-content-padding-multiple: 16px 20px 0 20px;
 
   // 操作区域 (Actions)
   --tr-sender-actions-min-width: 32px;
@@ -65,19 +82,81 @@
   --tr-sender-actions-padding-left: 10px;
   --tr-sender-actions-padding-right: 10px;
 
+  // ActionButtons组件变量
+  --tr-action-buttons-gap: 12px;
+  --tr-action-utility-buttons-gap: 4px;
+  --tr-action-buttons-border-radius: 8px;
+  --tr-action-buttons-icon-size: 32px;
+  --tr-action-buttons-icon-size-close: 22px;
+  --tr-action-buttons-icon-size-send: 36px;
+  --tr-action-buttons-icon-size-stop: 24px;
+  --tr-action-buttons-submit-margin: 12px;
+  --tr-action-buttons-cancel-height: 36px;
+  --tr-action-buttons-cancel-gap: 4px;
+  --tr-action-buttons-cancel-padding: 4px 12px 4px 6px;
+  --tr-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
+  --tr-action-buttons-cancel-border-radius: 99px;
+  --tr-action-buttons-cancel-font-size: 14px;
+  --tr-action-buttons-submit-content-gap: 6px;
+  --tr-action-buttons-submit-content-line-height: 32px;
+  --tr-action-buttons-cancel-text-height: 24px;
+  --tr-action-buttons-cancel-text-line-height: 24px;
+  --tr-action-buttons-send-bg-color: #1476FF;
+  --tr-action-buttons-send-border-radius: 18px;
+  --tr-action-buttons-send-hover-bg-color: #126deb;
+
   // 底部插槽 (Footer)
-  --tr-sender-footer-min-height: 48px;
+  --tr-sender-footer-min-height: 36px;
   --tr-sender-footer-bg: #fff;
   --tr-sender-footer-hover: #f9f9f9;
 
+  // Decorative Content
+  --tr-sender-decorative-content-line-height: 26px;
+  --tr-sender-decorative-content-margin-left: 4px;
+
+
   // 其余变量
   --tr-sender-container-min-height: 42px;
-  --tr-sender-bottom-row-padding-top: 2px;
+  --tr-sender-bottom-row-padding-top: 12px;
+  --tr-sender-bottom-row-padding-left: 10px;
   --tr-sender-disabled-opacity: 0.7;
   --tr-sender-action-button-disabled-opacity: 0.6;
   --tr-sender-error-bottom-offset: -20px;
   --tr-sender-font-size-extra-small: 10px;
   --tr-sender-transition-max-height: 300px;
+
+  // 建议相关变量
+  --tr-sender-suggestion-width: 400px;
+  --tr-sender-suggestion-padding: 4px;
+  --tr-sender-suggestion-padding-bottom: 4px;
+  --tr-sender-suggestion-box-shadow-color: rgba(0, 0, 0, 0.1);
+  --tr-sender-suggestion-placeholder-color: #999;
+  --tr-sender-suggestion-tab-hint-color: #666;
+  --tr-sender-suggestion-tab-hint-border-color: #999;
+  --tr-sender-suggestion-hover-color: rgba(0, 0, 0, 0.04);
+  --tr-sender-suggestion-scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+  --tr-sender-suggestion-scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.3);
+  --tr-sender-suggestion-scrollbar-track-margin: 4px 0;
+  --tr-sender-suggestion-border-radius: 12px;
+  --tr-sender-suggestion-tab-border-radius: 4px;
+  --tr-sender-suggestion-item-border-radius: 4px;
+  --tr-sender-suggestion-item-padding: 4px 8px;
+  --tr-sender-suggestion-item-font-size: 14px;
+  --tr-sender-suggestion-item-icon-size: 16px;
+  --tr-sender-suggestion-item-icon-margin-right: 8px;
+  --tr-sender-suggestion-max-height: 200px;
+  --tr-sender-suggestion-scrollbar-width: 6px;
+  --tr-sender-suggestion-scrollbar-border-radius: 6px;
+  --tr-sender-suggestion-transition-duration: 0.2s;
+  --tr-sender-suggestion-transition-style: ease;
+
+  // 自动完成占位符
+  --tr-sender-completion-placeholder-font-size: 14px;
+  --tr-sender-completion-placeholder-line-height: 22px;
+
+  // Tab提示
+  --tr-sender-tab-hint-padding: 0 6px;
+  --tr-sender-tab-hint-font-size: 14px;
 }
 
 /* 暗色主题 */
@@ -95,4 +174,7 @@
   --tr-sender-prefix-hover-bg: #333;
   --tr-sender-footer-bg: #2c2c2c;
   --tr-sender-footer-hover: #3a3a3a;
+
+  // ActionButtons组件暗色主题变量
+  --tr-action-buttons-cancel-bg: rgba(20, 118, 255, 0.1);
 }

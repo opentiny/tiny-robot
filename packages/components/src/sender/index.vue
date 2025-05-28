@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
 import { useSpeechHandler } from './composables/useSpeechHandler'
+import { useSuggestionHandler } from './composables/useSuggestionHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
+import { IconAssociate } from '@opentiny/tiny-robot-svgs'
 import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
@@ -24,14 +26,17 @@ const props = withDefaults(defineProps<SenderProps>(), {
   showWordLimit: false,
   submitType: 'enter',
   theme: 'light',
-  template: '',
   hasContent: undefined,
+  template: '',
+  templateInitialValues: () => ({}),
+  suggestions: () => [],
 })
 
 const emit = defineEmits<SenderEmits>()
 
 // 输入区域元素引用
 const inputRef = ref<HTMLElement | null>(null)
+const senderRef = ref<HTMLElement | null>(null)
 const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
 const inputWrapperRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
@@ -41,6 +46,24 @@ const showTemplateEditor = computed(() => !!props.template)
 
 // 输入控制
 const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler = useInputHandler(props, emit)
+
+// 建议处理
+const {
+  showSuggestionsPopup,
+  highlightedIndex,
+  completionPlaceholder,
+  showTabHint,
+  suggestionsListRef,
+  filteredSuggestions,
+  activeSuggestion,
+  updateCompletionPlaceholder,
+  selectSuggestion,
+  acceptCurrentSuggestion,
+  closeSuggestionsPopup,
+  navigateSuggestions,
+  handleSuggestionItemHover,
+  highlightSuggestionText,
+} = useSuggestionHandler(props, emit, inputValue, isComposing)
 
 // 自动模式切换
 const currentMode = ref(props.mode)
@@ -140,15 +163,10 @@ const checkInputOverflow = () => {
 
 // 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
 const clearInput = () => {
-  // 调用原始清空方法
   originalClearInput()
-
-  // 总是回到单行模式，无条件
-  currentMode.value = 'single'
 
   // 如果当前是模板编辑模式，需要退出模板编辑模式
   if (props.template) {
-    // 发出一个模板重置事件，通知父组件清除模板
     emit('reset-template')
   }
 
@@ -158,19 +176,7 @@ const clearInput = () => {
       currentMode.value = props.mode || 'single'
     }
   })
-}
-
-// 输入建议
-const showSuggestions = ref(false)
-const filteredSuggestions = computed(() => {
-  if (!props.suggestions || !inputValue.value) return []
-  return props.suggestions.filter((item) => item.toLowerCase().includes(inputValue.value.toLowerCase()))
-})
-
-const selectSuggestion = (value: string) => {
-  inputValue.value = value
-  showSuggestions.value = false
-  emit('suggestion-select', value)
+  closeSuggestionsPopup()
 }
 
 // 模板相关处理
@@ -237,7 +243,11 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   inputValue,
   isComposing,
   speechState,
-  showSuggestions,
+  showSuggestionsPopup,
+  activeSuggestion,
+  acceptCurrentSuggestion,
+  closeSuggestionsPopup,
+  navigateSuggestions,
   toggleSpeech,
   currentMode,
   setMultipleMode,
@@ -246,6 +256,12 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
 // 处理焦点事件
 const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
+  if (inputValue.value && filteredSuggestions.value.length > 0 && !props.template) {
+    showSuggestionsPopup.value = true
+    showTabHint.value = true
+    if (highlightedIndex.value === -1) highlightedIndex.value = 0
+    updateCompletionPlaceholder(activeSuggestion.value || filteredSuggestions.value[0])
+  }
 }
 
 const handleBlur = (event: FocusEvent) => {
@@ -270,8 +286,17 @@ const justifyContent = computed(
   },
 )
 
+type SlotsType = {
+  decorativeContent?: () => boolean
+  [key: string]: (() => any) | undefined // eslint-disable-line
+}
+const slots = useSlots() as SlotsType
+
+// 检查是否有decorativeContent插槽
+const hasDecorativeContent = computed(() => !!slots.decorativeContent)
+
 // 状态计算
-const isDisabled = computed(() => props.disabled)
+const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
 const hasContent = computed(() => (props.hasContent !== undefined ? props.hasContent : !!inputValue.value))
 
@@ -293,13 +318,26 @@ const showError = (msg: string) => {
 // 输入法结束处理
 const handleCompositionEnd = () => {
   isComposing.value = false
-  setTimeout(() => (isComposing.value = false), 50)
+  setTimeout(() => {
+    isComposing.value = false
+    if (inputValue.value && props.suggestions && props.suggestions.length > 0 && !props.template) {
+      showSuggestionsPopup.value = filteredSuggestions.value.length > 0
+      if (showSuggestionsPopup.value) {
+        highlightedIndex.value = 0
+        updateCompletionPlaceholder()
+        showTabHint.value = true
+      }
+    }
+  }, 50)
 }
+
+// 计算字数是否超出限制
+const isOverLimit = computed(() => {
+  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
+})
 
 // 监听输入变化
 watch(inputValue, () => {
-  showSuggestions.value = !!props.suggestions && !!inputValue.value
-
   // 当输入内容变化时检查是否需要切换模式
   nextTick(checkInputOverflow)
 
@@ -346,7 +384,12 @@ defineExpose({
 </script>
 
 <template>
-  <div class="tiny-sender" :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`]" :data-theme="theme">
+  <div
+    ref="senderRef"
+    class="tiny-sender"
+    :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`]"
+    :data-theme="theme"
+  >
     <!-- 输入区域容器 -->
     <div class="tiny-sender__container">
       <div class="tiny-sender__input-wrapper" ref="inputWrapperRef">
@@ -366,35 +409,48 @@ defineExpose({
 
           <!-- 内容区域 - 确保最小宽度，不被挤占 -->
           <div class="tiny-sender__content-area">
+            <div v-if="$slots.decorativeContent" class="tiny-sender__decorative-content">
+              <slot name="decorativeContent"></slot>
+            </div>
+
             <!-- 模板编辑器 -->
             <template v-if="showTemplateEditor">
               <TemplateEditor
                 ref="templateEditorRef"
                 :template="template"
                 :value="inputValue"
+                :initialValues="templateInitialValues"
                 @update:value="handleTemplateInput"
                 @input="handleTemplateInput"
               />
             </template>
             <!-- 普通输入框 -->
-            <tiny-input
-              v-else
-              ref="inputRef"
-              :autosize="autoSize"
-              :type="currentType"
-              :readonly="isLoading"
-              resize="none"
-              v-model="inputValue"
-              :disabled="isDisabled"
-              :placeholder="placeholder"
-              :maxlength="maxLength"
-              :autofocus="autofocus"
-              @keydown="handleKeyPress"
-              @compositionstart="isComposing = true"
-              @compositionend="handleCompositionEnd"
-              @focus="handleFocus"
-              @blur="handleBlur"
-            />
+            <div v-else class="tiny-sender__input-field-wrapper">
+              <tiny-input
+                ref="inputRef"
+                :autosize="autoSize"
+                :type="currentType"
+                :readonly="isLoading"
+                resize="none"
+                v-model="inputValue"
+                :disabled="isDisabled"
+                :placeholder="placeholder"
+                :autofocus="autofocus"
+                @keydown="handleKeyPress"
+                @compositionstart="isComposing = true"
+                @compositionend="handleCompositionEnd"
+                @focus="handleFocus"
+                @blur="handleBlur"
+              />
+              <!-- 补全提示词 -->
+              <div v-if="completionPlaceholder && !isComposing" class="tiny-sender__completion-placeholder">
+                <span class="user-input-mirror">{{ inputValue }}</span
+                >{{ completionPlaceholder }}
+
+                <!-- Tab Hint -->
+                <div v-if="showTabHint" class="tiny-sender__tab-hint">TAB</div>
+              </div>
+            </div>
           </div>
 
           <!-- 操作区域/后置插槽 -->
@@ -402,7 +458,6 @@ defineExpose({
             <div class="tiny-sender__buttons-container" ref="buttonsContainerRef">
               <slot name="actions" />
               <action-buttons
-                class="inline-buttons"
                 :allow-speech="allowSpeech"
                 :allow-files="allowFiles"
                 :loading="loading"
@@ -411,6 +466,7 @@ defineExpose({
                 :has-content="hasContent"
                 :speech-status="speechState"
                 :submit-type="submitType"
+                :is-over-limit="isOverLimit"
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
@@ -431,17 +487,22 @@ defineExpose({
             <div class="tiny-sender__footer-left">
               <!-- 左侧自定义插槽 -->
               <slot name="footer-left"></slot>
-
-              <!-- 字数限制 -->
-              <div v-if="showWordLimit && maxLength !== Infinity" class="tiny-sender__word-limit">
-                {{ inputValue.length }}/{{ maxLength }}
-              </div>
             </div>
 
             <!-- 底部右侧区域 -->
             <div class="tiny-sender__footer-right">
               <!-- 右侧自定义插槽 -->
               <slot name="footer-right"></slot>
+
+              <!-- 字数限制 -->
+              <div
+                v-if="showWordLimit && maxLength !== Infinity"
+                class="tiny-sender__word-limit"
+                :class="{ 'is-over-limit': isOverLimit }"
+              >
+                <span class="real-word-length">{{ inputValue.length }}</span
+                >/{{ maxLength }}
+              </div>
 
               <!-- 多行模式下的操作按钮 -->
               <div v-if="currentMode === 'multiple'" class="tiny-sender__toolbar">
@@ -455,6 +516,7 @@ defineExpose({
                     :has-content="hasContent"
                     :speech-status="speechState"
                     :submit-type="submitType"
+                    :is-over-limit="isOverLimit"
                     @clear="clearInput"
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"
@@ -475,14 +537,28 @@ defineExpose({
 
     <!-- 输入建议 -->
     <Transition name="tiny-sender-slide-up">
-      <div v-if="showSuggestions && filteredSuggestions.length" class="tiny-sender__suggestions">
+      <div
+        v-if="showSuggestionsPopup && filteredSuggestions.length"
+        ref="suggestionsListRef"
+        class="tiny-sender__suggestions"
+      >
         <div
           v-for="(item, index) in filteredSuggestions"
           :key="index"
           class="suggestion-item"
-          @click="selectSuggestion(item)"
+          :class="{ highlighted: index === highlightedIndex }"
+          @mouseenter="handleSuggestionItemHover(index)"
+          @mousedown.prevent="selectSuggestion(item)"
         >
-          {{ item }}
+          <span class="suggestion-item__icon"><IconAssociate /></span>
+          <span class="suggestion-item__text">
+            <span
+              v-for="(part, partIndex) in highlightSuggestionText(item, inputValue)"
+              :key="partIndex"
+              :class="{ 'suggestion-item__text--match': part.isMatch, 'suggestion-item__text--normal': !part.isMatch }"
+              >{{ part.text }}</span
+            >
+          </span>
         </div>
       </div>
     </Transition>

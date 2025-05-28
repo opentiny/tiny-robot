@@ -12,7 +12,7 @@ import type {
   TriggerContext,
   Category,
 } from './index.type'
-import { IconHotQuestion, IconArrowUp, IconArrowDown } from '@opentiny/tiny-robot-svgs'
+import { IconSparkles, IconArrowUp, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 
 import './index.less'
 
@@ -263,7 +263,7 @@ defineExpose({
   <div ref="rootRef" :class="['tr-suggestion', className, { 'tr-suggestion--dark': theme === 'dark' }]">
     <div class="tr-suggestion__header">
       <div class="tr-suggestion__trigger" @click="handleOpenPanel">
-        <IconHotQuestion />
+        <IconSparkles style="color: #1476ff" />
       </div>
 
       <!-- 胶囊式指令 -->
@@ -310,7 +310,7 @@ defineExpose({
       <!-- 转发所有插槽到面板组件 -->
       <template #title-icon>
         <slot name="title-icon">
-          <IconHotQuestion style="font-size: 36px" />
+          <IconSparkles style="font-size: 24px; color: #1476ff" />
         </slot>
       </template>
 

@@ -50,11 +50,12 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 #### 字数限制与统计
 
 通过`maxLength`属性限制输入字符数，搭配`showWordLimit`显示字数统计。
+> **注意**：当输入内容超出字数限制时，系统不会自动截断，真实字数会以红色标示，且无法发送。
 
-<tr-sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
+<tr-sender mode="multiple" :showWordLimit="true" :maxLength="20" defaultValue="测试超出字数限制，当前已经超过了字数限制。"/>
 
 ```vue
-<tr-sender mode="multiple" :showWordLimit="true" :maxLength="1000" />
+<tr-sender mode="multiple" :showWordLimit="true" :maxLength="20" defaultValue="测试超出字数限制，当前已经超过了字数限制。"/>
 ```
 
 #### 自动调整高度
@@ -96,11 +97,23 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 启用`allowSpeech`支持语音输入功能，用户可以通过语音录入文本。
 
-* 混合模式：用户可以先用键盘输入部分内容，然后通过语音继续补充，自动停止录音。
+- 混合模式：用户可以先用键盘输入部分内容，然后通过语音继续补充，自动停止录音。
 
-* 连续语音输入：用户可以连续录入语音，系统会自动将语音转换为文本，点击按钮手动停止录音。
+- 连续语音输入：用户可以连续录入语音，系统会自动将语音转换为文本，点击按钮手动停止录音。
 
 <demo vue="../../demos/sender/voiceInput.vue" title="语音输入" description="可以使用 speech 属性进行配置" />
+
+#### 消息提示
+
+此功能适用于需要在输入框内显示提示信息并引导用户操作的场景，如：
+
+- **1. 服务状态提示**
+- **2. 快捷操作链接**
+- **3. 功能引导等**
+
+当使用 `decorativeContent` 插槽时，输入框会自动被禁用，仅展示插槽内容，无法输入文本或触发发送操作。
+
+<demo vue="../../demos/sender/DecorativeContent.vue" title="装饰性内容示例" description="在输入框内显示装饰性内容和可点击链接，可用于服务状态提示、功能引导等场景。" />
 
 #### 文件上传
 
@@ -116,7 +129,48 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 #### 模版填充
 
+
+**模板字段初始值**
+
+通过 `templateInitialValues` 属性可以为模板中的字段提供初始值。这是一个对象，其中键是字段的占位符文本，值是对应的初始内容。示例代码如下所示：
+
+```vue
+<template>
+  <tr-sender
+    v-model="inputText"
+    mode="multiple"
+    :template="'你好 [称呼]，感谢您的 [事项]。'"
+    :templateInitialValues="{
+      '称呼': '王先生',
+      '事项': '反馈'
+    }"
+  />
+</template>
+```
+
+这样用户可以看到预填充的模板内容，并根据需要进行修改。当用户删除预填充的内容后，将显示原始的占位符文本。
+
+
+**模板示例**
+
 <demo vue="../../demos/sender/Template.vue" title="基础用法" description="Sender 组件支持模板填充。" />
+
+#### 输入联想
+
+Sender 组件支持输入联想功能，当用户输入时，可以根据提供的 `suggestions` 列表显示匹配的建议项。此功能有助于提高输入效率和准确性。
+
+**核心特性:**
+- **Tab 提示器**: 仅在有联想数据且输入框有内容时显示，提示用户可按 Tab 选择。
+- **输入框补全**: 用户输入部分正常显示，联想到的补全部分以半透明灰色文本展示。
+
+- **键盘交互**:
+    - `↑`/`↓`: 在联想弹窗中导航。
+    - `Tab`/`Enter`: 确认当前高亮的联想项。
+    - `Esc`: 关闭联想弹窗。
+
+> **注意**: 输入框内的补全文本特性在匹配到联想项的前置字符时显示，否则不显示。
+
+<demo vue="../../demos/sender/Suggestions.vue" title="输入联想示例" description="展示 Sender 组件的输入联想功能。" />
 
 #### 自定义提交方式
 
@@ -153,11 +207,12 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 | 快捷键      | 功能                      | 适用条件                       |
 | ----------- | ------------------------- | ------------------------------ |
-| Enter       | 提交内容                  | submitType="enter"（默认）     |
+| Enter       | 提交内容 / 选中联想项     | submitType="enter"（默认） / 联想弹窗开启时 |
 | Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"(多行)   |
 | Shift+Enter | 提交内容                  | submitType="shiftEnter"(多行)  |
-| Esc         | 取消语音录入/关闭建议列表 | 在语音录入状态或显示建议列表时 |
-| Tab         | 切换焦点                  | 输入框获得焦点时               |
+| Tab         | 选中联想项                | 联想弹窗开启并有联想数据时     |
+| Esc         | 取消语音/关闭联想/建议    | 对应功能激活时                |
+| ↑ / ↓       | 导航联想项                | 联想弹窗开启时                 |
 
 您可以在实际开发中根据应用场景和用户需求选择最适合的快捷键方式。
 
@@ -171,25 +226,27 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 ### Props
 
-| 属性名        | 说明             | 类型                                       | 默认值            |
-| ------------- | ---------------- | ------------------------------------------ | ----------------- |
-| autofocus     | 自动获取焦点     | `boolean`                                  | `false`           |
-| autoSize      | 自动调整高度     | `boolean \| { minRows: number, maxRows: number }` | `false`           |
-| allowSpeech   | 是否开启语音输入 | `boolean`                                  | `false`           |
-| allowFiles    | 是否允许文件上传 | `boolean`                                  | `true`            |
-| clearable     | 是否可清空       | `boolean`                                  | `false`           |
-| disabled      | 是否禁用         | `boolean`                                  | `false`           |
-| modelValue    | 绑定值(v-model)  | `string`                                   | `''`              |
-| defaultValue  | 默认值(非响应式) | `string`                                   | `''`              |
-| loading       | 是否加载中       | `boolean`                                  | `false`           |
-| mode          | 输入框类型       | `'single' \| 'multiple'`                   | `'single'`        |
-| maxLength     | 最大输入长度     | `number`                                   | `Infinity`        |
-| placeholder   | 输入框占位文本   | `string`                                   | `'请输入内容...'` |
-| speech        | 语音识别配置     | `'boolean' \| 'SpeechConfig'`              | 无                |
-| showWordLimit | 是否显示字数统计 | `boolean`                                  | `false`           |
-| submitType    | 提交方式         | `'enter' \| 'ctrl+enter' \| 'shift+enter'` | `'enter'`         |
-| theme         | 主题样式         | `'light' \| 'dark'`                        | `'light'`         |
-| suggestions   | 输入建议列表     | `string[]`                                 | `[]`              |
+| 属性名               | 说明                     | 类型                                                    | 默认值            |
+| -------------------- | ------------------------ | ------------------------------------------------------- | ----------------- |
+| autofocus            | 自动获取焦点             | `boolean`                                               | `false`           |
+| autoSize             | 自动调整高度             | `boolean \| { minRows: number, maxRows: number }` | `false`           |
+| allowSpeech          | 是否开启语音输入         | `boolean`                                               | `false`           |
+| allowFiles           | 是否允许文件上传         | `boolean`                                               | `true`            |
+| clearable            | 是否可清空               | `boolean`                                               | `false`           |
+| disabled             | 是否禁用                 | `boolean`                                               | `false`           |
+| modelValue           | 绑定值(v-model)          | `string`                                                | `''`              |
+| defaultValue         | 默认值(非响应式)         | `string`                                                | `''`              |
+| loading              | 是否加载中               | `boolean`                                               | `false`           |
+| mode                 | 输入框类型               | `'single' \| 'multiple'`                                | `'single'`        |
+| maxLength            | 最大输入长度             | `number`                                                | `Infinity`        |
+| placeholder          | 输入框占位文本           | `string`                                                | `'请输入内容...'` |
+| speech               | 语音识别配置             | `'boolean' \| 'SpeechConfig'`                           | 无                |
+| showWordLimit        | 是否显示字数统计         | `boolean`                                               | `false`           |
+| submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
+| theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
+| suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
+| template             | 模板字符串               | `string`                                         | `''`              |
+| templateInitialValues| 模板字段初始值           | `Record<string, string>`                         | `{}`              |
 
 ### Events
 
@@ -236,14 +293,15 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 +----------------------+
 ```
 
-| 插槽名称        | 描述                         | CSS类名                        | 默认内容                 |
-| --------------- | ---------------------------- | ------------------------------ | ------------------------ |
-| `header`        | 头部插槽，位于输入框上方     | `.tiny-sender__header-slot`    | 无                       |
-| `prefix`        | 前缀插槽，位于输入框左侧     | `.tiny-sender__prefix-slot`    | 无                       |
-| `actions`       | 后缀插槽，位于输入框右侧     | `.tiny-sender__actions-slot`   | 单行模式下的操作按钮     |
-| `footer-left`   | 底部左侧插槽，保留字数限制   | `.tiny-sender__footer-left`    | 字数限制                 |
-| `footer-right`  | 底部右侧插槽，保留操作按钮   | `.tiny-sender__footer-right`   | 多行模式下的操作按钮     |
-| `footer`        | 底部完全自定义插槽(向后兼容) | `.tiny-sender__footer-slot`    | 无 (会覆盖其他底部元素)  |
+| 插槽名称          | 描述                             | CSS类名                           | 默认内容                |
+| ----------------- | -------------------------------- | --------------------------------- | ----------------------- |
+| `header`          | 头部插槽，位于输入框上方         | `.tiny-sender__header-slot`       | 无                      |
+| `prefix`          | 前缀插槽，位于输入框左侧         | `.tiny-sender__prefix-slot`       | 无                      |
+| `actions`         | 后缀插槽，位于输入框右侧         | `.tiny-sender__actions-slot`      | 单行模式下的操作按钮    |
+| `footer-left`     | 底部左侧插槽，保留字数限制       | `.tiny-sender__footer-left`       | 字数限制                |
+| `footer-right`    | 底部右侧插槽，保留操作按钮       | `.tiny-sender__footer-right`      | 多行模式下的操作按钮    |
+| `footer`          | 底部完全自定义插槽(向后兼容)     | `.tiny-sender__footer-slot`       | 无 (会覆盖其他底部元素) |
+| `decorativeContent` | 装饰性内容插槽，启用后禁止输入 | `.tiny-sender__decorative-content` | 无                      |
 
 ### Types
 

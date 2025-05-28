@@ -4,6 +4,9 @@ outline: deep
 
 # Suggestion 快捷指令
 
+> [!CAUTION]
+> 本组件准备弃用，请使用 [SuggestionPopover 建议弹出框](./suggestion-popover.html)和 [SuggestionPills 建议按钮组](./suggestion-pills.html) 组件
+
 快捷指令组件是一个用于显示快捷指令/提示的复合组件，支持胶囊式快捷指令和弹窗的快捷指令两种形式。
 
 ## 代码示例
