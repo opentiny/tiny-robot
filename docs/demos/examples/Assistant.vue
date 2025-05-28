@@ -1,5 +1,5 @@
 <template>
-  <tr-container v-model:show="show" class="tiny-container">
+  <tr-container v-model:show="show" title="OpenTiny NEXT" class="tiny-container">
     <template #header-actions>
       <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
       <span style="display: inline-flex; line-height: 0; position: relative">

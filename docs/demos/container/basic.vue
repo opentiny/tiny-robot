@@ -1,5 +1,5 @@
 <template>
-  <tr-container v-model:show="show" :persistDisplayMode="true">
+  <tr-container v-model:show="show" title="OpenTiny NEXT">
     <!-- 默认插槽 -->
     <div style="padding: 0 24px">
       <p v-for="i in 20" :key="i">测试文本</p>

@@ -4,13 +4,15 @@ export interface ContainerProps {
    */
   show: boolean
   /**
-   * 显示模式，默认 'docked'
+   * 标题
+   */
+  title: string
+  /**
+   * model:displayMode 显示模式，默认 'docked'
    */
   displayMode?: 'fullscreen' | 'docked' | 'floating'
-  /**
-   * 是否持久化显示模式到 localStorage，默认 false
-   */
-  persistDisplayMode?: boolean
+
+  width?: string | number
 }
 
 export interface ContainerSlots {
@@ -20,7 +22,7 @@ export interface ContainerSlots {
   footer: () => unknown
 }
 
-export interface ContainerEvents {
+export interface ContainerEmits {
   (e: 'open'): void
   (e: 'close'): void
 }

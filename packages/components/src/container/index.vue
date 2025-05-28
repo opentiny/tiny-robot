@@ -1,46 +1,24 @@
 <script setup lang="ts">
-import { IconCancelFullScreen, IconClose, IconFullScreen } from '@opentiny/tiny-robot-svgs'
-import { computed, ref, watch } from 'vue'
-import { useStorage } from '@vueuse/core'
+import { IconClose, IconFullScreen, IconWindowDocked, IconWindowFloating } from '@opentiny/tiny-robot-svgs'
+import { computed, CSSProperties, watch } from 'vue'
 import IconButton from '../icon-button'
-import { ContainerEvents, ContainerProps, ContainerSlots } from './index.type'
+import { toCssUnit } from '../shared/utils'
+import { ContainerEmits, ContainerProps, ContainerSlots } from './index.type'
 
 const props = withDefaults(defineProps<ContainerProps>(), {
-  displayMode: 'docked',
+  width: 480,
 })
 
 const show = defineModel<ContainerProps['show']>('show', { required: true })
-
-const DISPLAY_MODE_PERSISTENCE_KEY = 'tr.continaer.displayMode'
-const PREVIOUS_DISPLAY_MODE_PERSISTENCE_KEY = 'tr.continaer.previousDisplayMode'
-
-// TODO 修改为悬浮窗口、侧边窗口、全屏窗口。不需要自带的持久化
-const getDisplayMode = () => {
-  const defaultPreviousDisplayMode = props.displayMode === 'fullscreen' ? 'docked' : props.displayMode
-
-  if (props.persistDisplayMode) {
-    const displayMode = useStorage<ContainerProps['displayMode']>(DISPLAY_MODE_PERSISTENCE_KEY, props.displayMode)
-    const previousDisplayMode = useStorage<ContainerProps['displayMode']>(
-      PREVIOUS_DISPLAY_MODE_PERSISTENCE_KEY,
-      defaultPreviousDisplayMode,
-    )
-    return { displayMode, previousDisplayMode }
-  }
-
-  return { displayMode: ref(props.displayMode), previousDisplayMode: ref(defaultPreviousDisplayMode) }
-}
-
-const { displayMode, previousDisplayMode } = getDisplayMode()
-
-const fullscreen = computed(() => displayMode.value === 'fullscreen')
-
-watch(fullscreen, (v) => {
-  console.log(v)
-})
+const displayMode = defineModel<ContainerProps['displayMode']>('displayMode', { default: 'docked' })
 
 defineSlots<ContainerSlots>()
 
-const emit = defineEmits<ContainerEvents>()
+const emit = defineEmits<ContainerEmits>()
+
+const handleClose = () => {
+  show.value = false
+}
 
 watch(show, (value) => {
   if (value) {
@@ -50,59 +28,75 @@ watch(show, (value) => {
   }
 })
 
-const IconFullScreenSwitcher = computed(() =>
-  displayMode.value === 'fullscreen' ? IconCancelFullScreen : IconFullScreen,
-)
-
-function toggleFullscreen() {
-  console.log(displayMode.value)
+const styles = computed<CSSProperties>(() => {
   if (displayMode.value === 'fullscreen') {
-    // 恢复上次非 fullscreen 的状态
-    displayMode.value = previousDisplayMode.value
+    return {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    }
   } else {
-    // 保存当前模式，然后进入 fullscreen
-    previousDisplayMode.value = displayMode.value
-    displayMode.value = 'fullscreen'
+    return {
+      width: toCssUnit(props.width),
+      right: 0,
+      top: 0,
+      bottom: 0,
+    }
+  }
+})
+
+const displayModesIcons = [
+  { mode: 'fullscreen', icon: IconFullScreen },
+  { mode: 'docked', icon: IconWindowDocked },
+  { mode: 'floating', icon: IconWindowFloating },
+] satisfies { mode: ContainerProps['displayMode']; icon: unknown }[]
+
+const handleChangeDisplayMode = (mode: ContainerProps['displayMode']) => {
+  if (displayMode.value !== mode) {
+    displayMode.value = mode
   }
 }
 </script>
 
 <template>
-  <div class="tr-container">
-    <div class="tr-container__dragging-bar-wrapper">
-      <div class="tr-container__dragging-bar"></div>
-    </div>
-    <div class="tr-container__header">
-      <slot name="title">
-        <h3 class="tr-container__title">OpenTiny NEXT</h3>
-      </slot>
-      <div class="tr-container__header-actions">
-        <slot name="header-actions"></slot>
-        <icon-button size="28" svg-size="20" :icon="IconFullScreenSwitcher" @click="toggleFullscreen"></icon-button>
-        <icon-button size="28" svg-size="20" :icon="IconClose" @click="$emit('update:show', false)"></icon-button>
+  <Teleport to="body">
+    <div v-show="show" class="tr-container" :style="styles">
+      <div class="tr-container__dragging-bar-wrapper">
+        <div class="tr-container__dragging-bar"></div>
+      </div>
+      <div class="tr-container__header">
+        <slot name="title">
+          <h3 class="tr-container__title">{{ props.title }}</h3>
+        </slot>
+        <div class="tr-container__header-actions">
+          <slot name="header-actions"></slot>
+          <template v-for="(item, index) in displayModesIcons" :key="index">
+            <icon-button
+              v-if="item.mode !== displayMode"
+              size="28"
+              svg-size="20"
+              :icon="item.icon"
+              @click="handleChangeDisplayMode(item.mode)"
+            ></icon-button>
+          </template>
+          <icon-button size="28" svg-size="20" :icon="IconClose" @click="handleClose"></icon-button>
+        </div>
+      </div>
+      <slot></slot>
+      <div class="tr-container__footer">
+        <slot name="footer"></slot>
       </div>
     </div>
-    <slot></slot>
-    <div class="tr-container__footer">
-      <slot name="footer"></slot>
-    </div>
-  </div>
+  </Teleport>
 </template>
 
 <style lang="less" scoped>
 .tr-container {
-  --tr-container-width: 480px;
-
   background-color: rgb(248, 248, 248);
   border: 1px solid rgba(0, 0, 0, 0.08);
   position: fixed;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: v-bind('fullscreen? "0" : "unset"');
-  width: v-bind('fullscreen? "unset" : "var(--tr-container-width)"');
-  z-index: v-bind('show? "100":"-1"');
-  opacity: v-bind('show? "1":"0"');
+  z-index: 100;
   display: flex;
   flex-direction: column;
 
