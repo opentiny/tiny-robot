@@ -11,6 +11,10 @@ import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../in
  * @param isComposing - 是否处于输入法组合状态（即编辑态）
  * @param speechState - 语音识别状态
  * @param showSuggestions - 是否显示建议列表
+ * @param activeSuggestion - 当前活动的建议项
+ * @param acceptCurrentSuggestion - 接受当前建议的函数
+ * @param closeSuggestionsPopup - 关闭建议弹窗的函数
+ * @param navigateSuggestions - 导航建议列表的函数
  * @param toggleSpeech - 切换语音识别函数
  * @param currentMode - 当前输入模式
  * @param setMultipleMode - 设置为多行模式的回调函数
@@ -22,6 +26,10 @@ export function useKeyboardHandler(
   isComposing: Ref<boolean>,
   speechState: SpeechState,
   showSuggestions: Ref<boolean>,
+  activeSuggestion: Ref<string | null>,
+  acceptCurrentSuggestion: () => void,
+  closeSuggestionsPopup: (keepFocus?: boolean) => void,
+  navigateSuggestions: (direction: 'up' | 'down') => void,
   toggleSpeech: () => void,
   currentMode?: Ref<'single' | 'multiple'>,
   setMultipleMode?: () => void,
@@ -95,10 +103,39 @@ export function useKeyboardHandler(
       return
     }
 
+    // 处理Tab键 - 接受当前建议
+    if (event.key === 'Tab' && showSuggestions.value && activeSuggestion.value) {
+      event.preventDefault()
+      acceptCurrentSuggestion()
+      return
+    }
+
+    // 处理上下键 - 导航建议列表
+    if (showSuggestions.value) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        navigateSuggestions('down')
+        return
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        navigateSuggestions('up')
+        return
+      }
+
+      // 处理Enter键 - 当建议弹窗打开时，如果有建议项，则选择当前项
+      if (event.key === 'Enter' && activeSuggestion.value) {
+        event.preventDefault()
+        acceptCurrentSuggestion()
+        return
+      }
+    }
+
     // 处理Esc键 - 关闭建议列表或停止语音录制
     if (event.key === 'Escape') {
       if (showSuggestions.value) {
-        showSuggestions.value = false
+        closeSuggestionsPopup()
         event.preventDefault()
       } else if (speechState.isRecording) {
         toggleSpeech()
