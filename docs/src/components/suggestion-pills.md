@@ -20,7 +20,7 @@ outline: deep
 
 ## API
 
-### SuggestionPillProps
+### SuggestionPillsProps
 
 药丸组件属性配置。
 
@@ -28,7 +28,7 @@ outline: deep
 | ------- | ---------------------- | ------------------ |
 | `items` | `SuggestionPillItem[]` | 建议药丸项数据数组 |
 
-### SuggestionPillSlots
+### SuggestionPillsSlots
 
 药丸组件插槽定义。
 
@@ -36,7 +36,7 @@ outline: deep
 | --------- | ------------------------ | -------------- |
 | `default` | `() => VNode \| VNode[]` | 自定义内容插槽 |
 
-### SuggestionPillEmits
+### SuggestionPillsEmits
 
 药丸组件事件定义。
 

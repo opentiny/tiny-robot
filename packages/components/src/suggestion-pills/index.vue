@@ -4,11 +4,11 @@ import { computed, useTemplateRef } from 'vue'
 import DropdownMenu from '../dropdown-menu'
 import SuggestionPopover from '../suggestion-popover'
 import { PillButton } from './components'
-import { SuggestionPillEmits, SuggestionPillProps } from './index.type'
+import { SuggestionPillsEmits, SuggestionPillsProps } from './index.type'
 
-const props = defineProps<SuggestionPillProps>()
+const props = defineProps<SuggestionPillsProps>()
 
-const emit = defineEmits<SuggestionPillEmits>()
+const emit = defineEmits<SuggestionPillsEmits>()
 
 const containerRef = useTemplateRef('container')
 
