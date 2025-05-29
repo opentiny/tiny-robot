@@ -1,14 +1,7 @@
 <template>
   <div class="app-container">
     <h4 style="margin-bottom: 20px">模板编辑器</h4>
-    <tr-sender
-      v-model="inputText"
-      mode="multiple"
-      :template="currentTemplate"
-      :templateInitialValues="currentInitialValues"
-      @submit="handleSubmit"
-      ref="senderRef"
-    />
+    <tr-sender v-model="inputText" mode="multiple" clearable @submit="handleSubmit" ref="senderRef" />
 
     <div class="template-selector-container">
       <h4>请选择模板</h4>
@@ -39,7 +32,7 @@
 
 <script setup lang="ts">
 import { TrSender } from '@opentiny/tiny-robot'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const inputText = ref('')
 const currentTemplate = ref('')
@@ -60,7 +53,9 @@ const templates = [
     name: '模板2',
     template: '你好 [姓名]，关于 [项目名称] 的进展，请查看 [文档链接]。',
     initialValues: {
-      姓名: '张三', // 只有姓名有初始值，其他字段显示placeholder
+      姓名: '张三',
+      项目名称: '',
+      文档链接: '',
     },
   },
   {
@@ -94,11 +89,14 @@ const templates = [
   },
 ]
 
-// 选择模板
+// 选择模板 - 使用 setTemplate 方法
 const selectTemplate = (template) => {
   currentTemplate.value = template.template
   currentInitialValues.value = template.initialValues || {}
-  inputText.value = ''
+
+  if (senderRef.value && senderRef.value.setTemplate) {
+    senderRef.value.setTemplate(template.template, template.initialValues)
+  }
 }
 
 // 提交处理
@@ -107,8 +105,9 @@ const handleSubmit = (text) => {
   alert(`提交内容: ${text}`)
 }
 
-// 默认选择第一个模板
-selectTemplate(templates[0])
+onMounted(() => {
+  selectTemplate(templates[0])
+})
 </script>
 
 <style scoped>
