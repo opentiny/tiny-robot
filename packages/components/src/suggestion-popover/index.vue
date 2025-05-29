@@ -209,7 +209,7 @@ const handleGroupClick = (id: string) => {
 
 .tr-question-popover__backdrop {
   position: fixed;
-  z-index: 40;
+  z-index: 999;
   top: 0;
   left: 0;
   right: 0;
@@ -219,7 +219,7 @@ const handleGroupClick = (id: string) => {
 
 .tr-question-popover {
   position: fixed;
-  z-index: 50;
+  z-index: 1000;
   height: v-bind('toCssUnit(props.popoverHeight)');
   padding: 20px;
   padding-bottom: 16px;

@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { IconArrowDown, IconArrowUp } from '@opentiny/tiny-robot-svgs'
 import { useElementSize, useScroll, watchDebounced } from '@vueuse/core'
-import { computed, CSSProperties, onBeforeUnmount, ref, watch } from 'vue'
-import DropdownMenu from '../dropdown-menu'
-import SuggestionPopover from '../suggestion-popover'
-import { PillButton } from './components'
-import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
+import { computed, nextTick, ref, watch } from 'vue'
+import { PillButtonWrapper } from './components'
+import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
 const props = defineProps<SuggestionPillsProps>()
 
@@ -15,17 +13,23 @@ defineSlots<SuggestionPillsSlots>()
 
 const containerRef = ref<HTMLDivElement | null>(null)
 
-const { width, height } = useElementSize(containerRef)
+const { width } = useElementSize(containerRef)
 const { arrivedState } = useScroll(containerRef)
 
-const initialHeight = ref(0)
-const showMoreBtn = ref(false)
-const isShowingMore = defineModel<SuggestionPillsProps['showMore']>('showMore', { default: false })
-
-watch(height, () => {
-  if (initialHeight.value === 0 && height.value > 0) {
-    initialHeight.value = height.value
+const hiddenIndex = ref(-1)
+const hasShowMoreBtn = computed(() => hiddenIndex.value !== -1)
+const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
+const staticItems = computed(() => {
+  if (!hasShowMoreBtn.value || !showAll.value) {
+    return props.items || []
   }
+  return (props.items || []).slice(0, hiddenIndex.value)
+})
+const floatingItems = computed(() => {
+  if (!hasShowMoreBtn.value || !showAll.value) {
+    return []
+  }
+  return (props.items || []).slice(hiddenIndex.value)
 })
 
 const maskImage = computed(() => {
@@ -33,112 +37,67 @@ const maskImage = computed(() => {
     return 'linear-gradient(to right, black 90%, transparent)'
   }
 
-  if (arrivedState.right) {
-    return 'linear-gradient(to left, black 90%, transparent)'
-  }
-
-  return 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)'
+  return 'unset'
 })
 
-const containerStyles = computed<CSSProperties>(() => {
-  if (showMoreBtn.value && isShowingMore.value) {
-    return {
-      position: 'absolute',
-      flexWrap: 'wrap-reverse',
-    }
-  }
-  return {
-    position: 'relative',
-    flexWrap: 'nowrap',
-  }
-})
+const updateHiddenIndex = () => {
+  nextTick(() => {
+    const container = containerRef.value
 
-const listeners: (() => void)[] = []
-
-const removeAllListeners = () => {
-  listeners.forEach((removeListener) => removeListener())
-  listeners.length = 0
-}
-
-watchDebounced(
-  width,
-  (value) => {
-    if (value === 0) {
+    if (!container) {
       return
     }
 
-    const container = containerRef.value!
-    const containerRight = container.scrollLeft + container.clientWidth
     const children = Array.from(container.children) as HTMLElement[]
+    hiddenIndex.value = children.findIndex((el) => el.offsetLeft + el.offsetWidth > container.clientWidth)
+  })
+}
 
-    removeAllListeners()
+watch(() => props.items, updateHiddenIndex)
 
-    let hasHiddenChildren = false
-
-    children.forEach((child) => {
-      const childRight = child.offsetLeft + child.offsetWidth
-
-      const isHidden = childRight > containerRight
-      if (isHidden) {
-        hasHiddenChildren = true
-        child.addEventListener('click', onHiddenChildClick, { capture: true })
-        listeners.push(() => {
-          child.removeEventListener('click', onHiddenChildClick)
-        })
-      }
-    })
-
-    showMoreBtn.value = hasHiddenChildren
+watchDebounced(
+  width,
+  (w) => {
+    if (w > 0) {
+      updateHiddenIndex()
+    }
   },
   { debounce: 100 },
 )
 
-const onHiddenChildClick = (event: Event) => {
-  if (!isShowingMore.value) {
-    event.stopPropagation()
+const handleClick = (item: SuggestionPillItem, index: number) => {
+  if (hasShowMoreBtn.value && index >= hiddenIndex.value) {
     toggleIsShowingMore()
+    return
   }
+  emit('item-click', item)
 }
 
 const toggleIsShowingMore = () => {
-  isShowingMore.value = !isShowingMore.value
+  showAll.value = !showAll.value
 }
-
-onBeforeUnmount(() => {
-  removeAllListeners()
-})
 </script>
 
 <template>
   <div class="tr-suggestion-pills__wrapper">
-    <div class="tr-suggestion-pills__container" ref="containerRef" :style="containerStyles">
+    <div class="tr-suggestion-pills__container" ref="containerRef">
       <slot>
-        <template v-for="item in props.items" :key="item.id">
-          <SuggestionPopover
-            v-if="item.action?.type === 'popover'"
-            v-bind="item.action.props"
-            @item-click="item.action.events?.itemClick"
-            @group-click="item.action.events?.groupClick"
-            @close="item.action.events?.close"
-          >
-            <PillButton :item="item" @click="emit('item-click', item)"></PillButton>
-            <template v-for="(slotVNode, slotName) in item.action.slots" :key="slotName" #[slotName]>
-              <component :is="slotVNode" />
-            </template>
-          </SuggestionPopover>
-          <DropdownMenu
-            v-else-if="item.action?.type === 'menu'"
-            v-bind="item.action.props"
-            @item-click="item.action.events?.itemClick"
-          >
-            <PillButton :item="item" @click="emit('item-click', item)"></PillButton>
-          </DropdownMenu>
-          <PillButton v-else :item="item" @click="emit('item-click', item)"></PillButton>
+        <template v-for="(item, index) in staticItems" :key="item.id">
+          <PillButtonWrapper :item="item" @click="handleClick(item, index)"></PillButtonWrapper>
         </template>
       </slot>
     </div>
-    <button v-if="showMoreBtn" class="tr-suggestion-pills__expand" @click="toggleIsShowingMore">
-      <IconArrowUp v-if="!isShowingMore" />
+    <div class="tr-suggestion-pills__more-wrapper">
+      <Transition name="tr-suggestion-pills__more">
+        <div v-if="floatingItems.length" class="tr-suggestion-pills__more">
+          <template v-for="item in floatingItems" :key="item.id">
+            <PillButtonWrapper :item="item" @click="emit('item-click', item)"></PillButtonWrapper>
+          </template>
+        </div>
+      </Transition>
+    </div>
+    <button v-if="hasShowMoreBtn" class="tr-suggestion-pills__expand" @click="toggleIsShowingMore">
+      <IconArrowUp v-if="!showAll" />
       <IconArrowDown v-else />
     </button>
   </div>
@@ -147,16 +106,13 @@ onBeforeUnmount(() => {
 <style lang="less" scoped>
 .tr-suggestion-pills__wrapper {
   position: relative;
-  width: calc(100% - 6px);
-  height: v-bind('initialHeight + "px"');
 }
 
 .tr-suggestion-pills__container {
+  position: relative;
   display: flex;
   gap: 8px;
   overflow-x: hidden;
-  left: 0;
-  bottom: 0;
 
   mask-image: v-bind('maskImage');
   mask-repeat: no-repeat;
@@ -166,10 +122,43 @@ onBeforeUnmount(() => {
   }
 }
 
+.tr-suggestion-pills__more-wrapper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  overflow: hidden;
+
+  .tr-suggestion-pills__more {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap-reverse;
+
+    &-enter-active,
+    &-leave-active {
+      transition: transform 0.3s ease;
+      transition-property: transform, opacity;
+    }
+
+    &-enter-from,
+    &-leave-to {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+
+    &-enter-to,
+    &-leave-from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
 .tr-suggestion-pills__expand {
   position: absolute;
-  top: 6px;
+  top: 50%;
   right: 0;
+  transform: translateY(-50%);
   padding: 3px;
   background-color: white;
   border-radius: 999px;

@@ -1,13 +1,21 @@
 <template>
-  <TrSuggestionPills :items="items" @item-click="handleItemClick"></TrSuggestionPills>
+  <TrSuggestionPills :items="items" v-model:showAll="showAll" @item-click="handleItemClick"></TrSuggestionPills>
   <hr />
   <span>点击第一个图标会打开Popover弹出框</span>
+  <hr />
+  <div>
+    <label>手动控制显示更多：</label>
+    <tiny-switch v-model="showAll"></tiny-switch>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { SuggestionPillItem, TrSuggestionPills } from '@opentiny/tiny-robot'
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
-import { h, ref } from 'vue'
+import { TinySwitch } from '@opentiny/vue'
+import { h, markRaw, ref } from 'vue'
+
+const showAll = ref(false)
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
@@ -37,22 +45,27 @@ const items = ref<SuggestionPillItem[]>([
       },
     },
   },
-  {
-    id: '2',
-    text: '费用成本',
-    icon: IconEdit,
-    action: {
-      type: 'menu',
-      props: {
-        items: dropdownMenuItems.value,
-      },
-      events: {
-        itemClick: (item) => {
-          console.log(item)
-        },
-      },
-    },
-  },
+  ...Array.from({ length: 8 })
+    .fill(0)
+    .map(
+      (_, index) =>
+        ({
+          id: String(index),
+          text: '费用成本',
+          icon: markRaw(IconEdit),
+          action: {
+            type: 'menu',
+            props: {
+              items: dropdownMenuItems.value,
+            },
+            events: {
+              itemClick: (item) => {
+                console.log(item)
+              },
+            },
+          },
+        }) as const,
+    ),
 ])
 
 const data = [

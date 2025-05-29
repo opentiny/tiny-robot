@@ -8,29 +8,21 @@ outline: deep
 
 ### 基本示例
 
-`SuggestionPills` 是一个横向容器，内部建议使用 `SuggestionPillButton` 元素
+使用配置式来配置按钮组的内部元素
 
-元素超长会隐藏，会自动显示更多按钮。更多按钮也可以通过 `v-model:show-more` 控制
+元素超长会隐藏，会自动显示展开按钮。展开按钮也可以通过 `v-model:show-all` 控制
 
-> 如果是使用默认插槽，`TrSuggestionPills` 的 `item-click` 事件是无效的。因为 `TrSuggestionPills` 无法得知插槽元素具体的数据结构。如果需要统一通过 `item-click` 事件来处理点击，需要[使用配置式](#使用配置式)
-
-<demo vue="../../demos/suggestion/pills-basic.vue" />
-
-### 结合弹出框
-
-<demo vue="../../demos/suggestion/pills-popper.vue" />
-
-### 使用配置式
-
-使用配置式时，内部按钮点击事件可以通过 `item-click` 统一处理。目前按钮支持3种类型，分别是：`popover`, `menu` 和默认的普通按钮
+目前按钮支持3种类型，分别是：`popover`, `menu` 和默认的普通按钮
 
 <demo vue="../../demos/suggestion/pills-popper-config.vue" />
 
-### 综合示例
+如果你想自定义弹出容器的边距，使用 `:deep(.tr-suggestion-pills__more-wrapper)` 选择器
 
-下面的综合示例将星星按钮单独放到左侧，与文本按钮分隔开
+### 使用插槽（不推荐）
 
-<demo vue="../../demos/suggestion/pills-popper-full.vue" />
+如果是使用默认插槽，`TrSuggestionPills` 的 `item-click` 事件是无效的。而且无法添加展开收起逻辑
+
+<demo vue="../../demos/suggestion/pills-popper.vue" />
 
 ## API
 
@@ -38,18 +30,18 @@ outline: deep
 
 药丸组件属性配置。
 
-| 属性             | 类型                   | 说明                                   |
-| ---------------- | ---------------------- | -------------------------------------- |
-| `items`          | `SuggestionPillItem[]` | 建议药丸项数据数组                     |
-| `model:showMore` | `boolean`              | 是否展开更多内容，当内部元素超长时有效 |
+| 属性      | 类型                   | 说明                       |
+| --------- | ---------------------- | -------------------------- |
+| `items`   | `SuggestionPillItem[]` | 建议药丸项数据数组         |
+| `showAll` | `boolean`              | 是否展开全部元素 (v-model) |
 
 ### SuggestionPillsSlots
 
 药丸组件插槽定义。
 
-| 插槽名    | 类型                     | 说明           |
-| --------- | ------------------------ | -------------- |
-| `default` | `() => VNode \| VNode[]` | 自定义内容插槽 |
+| 插槽名    | 类型                     | 说明           | 状态   |
+| --------- | ------------------------ | -------------- | ------ |
+| `default` | `() => VNode \| VNode[]` | 自定义内容插槽 | 已废弃 |
 
 ### SuggestionPillsEmits
 
