@@ -1,5 +1,8 @@
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
+import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
+
+const { version } = pkg
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -25,7 +28,7 @@ export default defineConfig({
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
       { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
       { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
-      { text: '0.2.0-alpha.5', link: '/releases/update-log', activeMatch: '/releases/' },
+      { text: version, link: '/releases/update-log', activeMatch: '/releases/' },
     ],
     sidebar: {
       '/components/': [
