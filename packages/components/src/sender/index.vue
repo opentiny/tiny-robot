@@ -42,7 +42,7 @@ const inputWrapperRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
 
 // 是否显示模板编辑器
-const showTemplateEditor = computed(() => !!props.template)
+const showTemplateEditor = ref(false)
 
 // 输入控制
 const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler = useInputHandler(props, emit)
@@ -162,13 +162,44 @@ const checkInputOverflow = () => {
   }
 }
 
+// 通用聚焦函数
+const focusInput = () => {
+  if (showTemplateEditor.value && templateEditorRef.value) {
+    activateTemplateFirstField()
+  } else if (inputRef.value) {
+    inputRef.value.focus()
+  } else {
+    // 如果ref还没有准备好，直接通过DOM查找
+    const input = document.querySelector('.tiny-input__inner') as HTMLInputElement
+    input?.focus()
+  }
+}
+
+const exitTemplateMode = () => {
+  showTemplateEditor.value = false
+  emit('reset-template')
+  nextTick(() => {
+    if (inputValue.value === '') {
+      currentMode.value = props.mode || 'single'
+    }
+    // 确保在DOM完全更新后聚焦到普通输入框
+    // 使用setTimeout确保Vue组件完全重新渲染和ref更新
+    setTimeout(() => {
+      focusInput()
+    }, 50)
+  })
+}
+
 // 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
 const clearInput = () => {
   originalClearInput()
 
-  // 如果当前是模板编辑模式，需要退出模板编辑模式
-  if (props.template) {
-    emit('reset-template')
+  // 如果当前是模板编辑模式，退出模板编辑模式（已包含聚焦逻辑）
+  if (showTemplateEditor.value) {
+    exitTemplateMode()
+  } else {
+    // 普通模式下直接聚焦
+    senderRef.value?.focus()
   }
 
   // 确保DOM更新后再次检查
@@ -182,7 +213,6 @@ const clearInput = () => {
 
 // 模板相关处理
 const handleTemplateInput = (value: string) => {
-  inputValue.value = value
   emit('update:modelValue', value)
 }
 
@@ -191,6 +221,18 @@ const activateTemplateFirstField = () => {
   if (templateEditorRef.value) {
     templateEditorRef.value.activateFirstField()
   }
+}
+
+// 设置模板方法
+const setTemplate = (template: string, initialValues?: Record<string, string>) => {
+  // 设置模板后显示模板编辑器
+  showTemplateEditor.value = true
+
+  nextTick(() => {
+    if (templateEditorRef.value) {
+      templateEditorRef.value.setTemplate({ template, initialValues })
+    }
+  })
 }
 
 // 语音识别
@@ -341,6 +383,7 @@ watch(inputValue, () => {
   }
 })
 
+// 监听模板编辑器显示状态
 watch(
   () => showTemplateEditor.value,
   (val) => {
@@ -352,16 +395,7 @@ watch(
 
 // 暴露方法
 defineExpose({
-  focus: () => {
-    if (showTemplateEditor.value && templateEditorRef.value) {
-      activateTemplateFirstField()
-    } else if (inputRef.value) {
-      inputRef.value.focus()
-    } else {
-      const input = document.querySelector('.tiny-input__inner') as HTMLInputElement
-      input?.focus()
-    }
-  },
+  focus: focusInput,
   blur: () => {
     if (inputRef.value) {
       inputRef.value.blur()
@@ -375,6 +409,7 @@ defineExpose({
   startSpeech,
   stopSpeech,
   activateTemplateFirstField,
+  setTemplate,
 })
 </script>
 
@@ -412,11 +447,9 @@ defineExpose({
             <template v-if="showTemplateEditor">
               <TemplateEditor
                 ref="templateEditorRef"
-                :template="template"
-                :value="inputValue"
-                :initialValues="templateInitialValues"
-                @update:value="handleTemplateInput"
+                v-model:value="inputValue"
                 @input="handleTemplateInput"
+                @empty-content="exitTemplateMode"
               />
             </template>
             <!-- 普通输入框 -->
