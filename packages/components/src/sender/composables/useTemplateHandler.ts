@@ -86,6 +86,7 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
       } else if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('template-field')) {
         result += node.textContent || ''
       }
+      // 忽略其他类型的元素节点（如br标签等）
     })
     return result
   }
@@ -417,7 +418,10 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
    * 处理输入事件
    */
   const handleInput = () => {
-    if (options.isInternalUpdate || options.isComposing) return
+    if (options.isComposing) return // 只在输入法组合时跳过，其他情况都要处理
+
+    // 清理DOM中的空白文本节点
+    cleanupEmptyTextNodes()
 
     // 更新所有字段的宽度
     updateAllFieldWidths()
@@ -428,6 +432,52 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
       options.onInput(currentValue)
     }
     checkHasContent(currentValue)
+
+    // 如果当前值为空且只有空字段，确保DOM结构正确
+    if (currentValue === '' && editor.value) {
+      const hasOnlyEmptyFields = Array.from(editor.value.childNodes).every((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('template-field')) {
+          return !node.textContent || node.textContent.trim() === ''
+        }
+        return false
+      })
+
+      if (hasOnlyEmptyFields) {
+        // 再次清理，确保没有多余的br标签或空白节点
+        cleanupEmptyTextNodes()
+      }
+    }
+  }
+
+  /**
+   * 清理DOM中的空白文本节点
+   */
+  const cleanupEmptyTextNodes = () => {
+    if (!editor.value) return
+
+    const nodesToRemove: Node[] = []
+    editor.value.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const textContent = node.textContent || ''
+        // 如果是纯空白字符（包括换行符），标记为删除
+        if (textContent.trim() === '') {
+          nodesToRemove.push(node)
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement
+        // 清理浏览器自动插入的br标签
+        if (element.tagName.toLowerCase() === 'br') {
+          nodesToRemove.push(node)
+        }
+      }
+    })
+
+    // 删除空白节点和br标签
+    nodesToRemove.forEach((node) => {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node)
+      }
+    })
   }
 
   /**
@@ -515,6 +565,7 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
     // 事件处理
     handleInput,
     checkHasContent,
+    cleanupEmptyTextNodes,
 
     // 方法
     resetFields,
