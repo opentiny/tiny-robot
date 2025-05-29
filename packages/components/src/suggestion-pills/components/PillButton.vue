@@ -40,7 +40,7 @@ const onlyIcon = computed(() => hasIcon.value && !hasText.value)
   color: rgb(25, 25, 25);
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: rgb(235, 235, 235);
   }
 
   &.only-icon {

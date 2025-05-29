@@ -96,7 +96,7 @@ type BubblePlacement = 'start' | 'end'
 | `loading`   | `boolean`                    | `false`  | 是否显示加载状态                                 |
 | `aborted`   | `boolean`                    | `false`  | 是否显示为已中止状态                             |
 | `mdConfig`  | `MarkdownItOptions`          | -        | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
-| `maxWidth`  | `CSSProperties['maxWidth']`  | -        | 气泡内容的最大宽度                               |
+| `maxWidth`  | `string \| number`  | -        | 气泡内容的最大宽度                               |
 
 ### BubbleSlots
 

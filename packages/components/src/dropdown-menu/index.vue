@@ -29,7 +29,10 @@ const dropdownStyles = computed<CSSProperties>(() => {
 })
 
 onClickOutside(dropdownMenuRef, (ev) => {
-  ev.stopPropagation()
+  // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
+  if (dropDownTriggerRef.value?.contains(ev.target as Node)) {
+    ev.stopPropagation()
+  }
   show.value = false
 })
 
@@ -80,7 +83,7 @@ const handleItemClick = (item: DropdownMenuItem) => {
 .tr-dropdown-menu {
   position: fixed;
   min-width: v-bind('toCssUnit(props.minWidth)');
-  z-index: 50;
+  z-index: 1000;
   padding: 8px;
   border-radius: 12px;
   color: rgb(25, 25, 25);
