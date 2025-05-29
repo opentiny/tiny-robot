@@ -125,29 +125,58 @@ export function useSuggestionHandler(
   }
 
   /**
-   * 监听输入值变化，更新建议状态
+   * 重置联想建议相关状态
    */
-  watch(inputValue, (newValue) => {
+  const resetSuggestionsState = () => {
+    showSuggestionsPopup.value = false
+    highlightedIndex.value = -1
+    completionPlaceholder.value = ''
+    showTabHint.value = false
+  }
+
+  /**
+   * 显示联想建议并设置相关状态
+   */
+  const showSuggestionsState = () => {
+    showSuggestionsPopup.value = true
+    highlightedIndex.value = 0
+    updateCompletionPlaceholder()
+    showTabHint.value = true
+  }
+
+  /**
+   * 统一处理显示/隐藏联想弹窗的逻辑
+   */
+  const updateSuggestionsState = () => {
+    // 如果正处于输入法状态或正在选择建议，直接返回
     if (isComposing.value || isSelectingSuggestion.value) return
 
-    if (newValue && props.suggestions && props.suggestions.length > 0 && !props.template) {
-      showSuggestionsPopup.value = filteredSuggestions.value.length > 0
-      if (showSuggestionsPopup.value) {
-        highlightedIndex.value = 0
-        updateCompletionPlaceholder()
-        showTabHint.value = true
+    nextTick(() => {
+      // 判断是否应该显示联想弹窗
+      const shouldShowSuggestions =
+        inputValue.value &&
+        props.suggestions &&
+        props.suggestions.length > 0 &&
+        !props.template &&
+        filteredSuggestions.value.length > 0
+
+      if (shouldShowSuggestions) {
+        showSuggestionsState()
       } else {
-        highlightedIndex.value = -1
-        completionPlaceholder.value = ''
-        showTabHint.value = false
+        resetSuggestionsState()
       }
-    } else {
-      showSuggestionsPopup.value = false
-      highlightedIndex.value = -1
-      completionPlaceholder.value = ''
-      showTabHint.value = false
-    }
-  })
+    })
+  }
+
+  /**
+   * 监听输入值变化，更新建议状态
+   */
+  watch(inputValue, updateSuggestionsState)
+
+  /**
+   * 监听建议数据变化，支持动态更新（如API请求完成后）
+   */
+  watch(() => props.suggestions, updateSuggestionsState)
 
   /**
    * 选择建议项
@@ -179,10 +208,7 @@ export function useSuggestionHandler(
    * 关闭建议弹窗
    */
   const closeSuggestionsPopup = () => {
-    showSuggestionsPopup.value = false
-    showTabHint.value = false
-    completionPlaceholder.value = ''
-    highlightedIndex.value = -1
+    resetSuggestionsState()
   }
 
   /**
@@ -235,6 +261,7 @@ export function useSuggestionHandler(
     filteredSuggestions,
     activeSuggestion,
     updateCompletionPlaceholder,
+    updateSuggestionsState,
     selectSuggestion,
     acceptCurrentSuggestion,
     closeSuggestionsPopup,

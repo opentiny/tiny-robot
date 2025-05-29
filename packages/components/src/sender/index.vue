@@ -57,6 +57,7 @@ const {
   filteredSuggestions,
   activeSuggestion,
   updateCompletionPlaceholder,
+  updateSuggestionsState,
   selectSuggestion,
   acceptCurrentSuggestion,
   closeSuggestionsPopup,
@@ -320,14 +321,8 @@ const handleCompositionEnd = () => {
   isComposing.value = false
   setTimeout(() => {
     isComposing.value = false
-    if (inputValue.value && props.suggestions && props.suggestions.length > 0 && !props.template) {
-      showSuggestionsPopup.value = filteredSuggestions.value.length > 0
-      if (showSuggestionsPopup.value) {
-        highlightedIndex.value = 0
-        updateCompletionPlaceholder()
-        showTabHint.value = true
-      }
-    }
+    // 输入法结束后，触发联想状态更新
+    updateSuggestionsState()
   }, 50)
 }
 
