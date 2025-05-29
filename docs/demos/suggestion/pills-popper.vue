@@ -17,9 +17,6 @@
     </TrDropdownMenu>
     <TrSuggestionPillButton>资源管理</TrSuggestionPillButton>
     <TrSuggestionPillButton>费用查询</TrSuggestionPillButton>
-    <TrSuggestionPillButton>资源管理</TrSuggestionPillButton>
-    <TrSuggestionPillButton>费用查询</TrSuggestionPillButton>
-    <TrSuggestionPillButton>资源管理</TrSuggestionPillButton>
   </TrSuggestionPills>
   <hr />
   <span>点击第一个图标会打开Popover弹出框</span>
