@@ -1,18 +1,23 @@
 <template>
   <TrSuggestionPills>
-    <TrSuggestionPopover :data="popoverData" :loading="loading" @open="delaySetData">
+    <TrSuggestionPopover
+      :data="popoverData"
+      :loading="loading"
+      @open="delaySetData"
+      @item-click="handlePopoverItemClick"
+    >
       <TrSuggestionPillButton>
         <template #icon>
           <IconSparkles style="font-size: 16px; color: #1476ff" />
         </template>
       </TrSuggestionPillButton>
     </TrSuggestionPopover>
-    <TrDropdownMenu :items="dropdownMenuItems">
-      <TrSuggestionPillButton> 点我打开Dropdown Menu </TrSuggestionPillButton>
+    <TrDropdownMenu :items="dropdownMenuItems" @item-click="handleDropdownMenuItemClick">
+      <TrSuggestionPillButton>点击我打开DropdownMenu弹出框</TrSuggestionPillButton>
     </TrDropdownMenu>
   </TrSuggestionPills>
   <hr />
-  <span>点击第一个图标打开Popover弹出框</span>
+  <span>点击第一个图标会打开Popover弹出框</span>
 </template>
 
 <script setup lang="ts">
@@ -49,5 +54,13 @@ const delaySetData = () => {
     popoverData.value = data
     loading.value = false
   }, 1000)
+}
+
+const handlePopoverItemClick = (item) => {
+  console.log('Popover item clicked,', item)
+}
+
+const handleDropdownMenuItemClick = (item) => {
+  console.log('DropdownMenu item clicked,', item)
 }
 </script>

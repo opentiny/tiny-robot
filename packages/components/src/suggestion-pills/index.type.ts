@@ -25,6 +25,10 @@ export type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBase
 
 export interface SuggestionPillsProps {
   items?: SuggestionPillItem[]
+  /**
+   * model:showMore
+   */
+  showMore?: boolean
 }
 
 export interface SuggestionPillsSlots {

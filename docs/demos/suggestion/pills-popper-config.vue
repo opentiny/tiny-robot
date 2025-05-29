@@ -1,7 +1,7 @@
 <template>
   <TrSuggestionPills :items="items" @item-click="handleItemClick"></TrSuggestionPills>
   <hr />
-  <span>点击第一个图标打开Popover弹出框</span>
+  <span>点击第一个图标会打开Popover弹出框</span>
 </template>
 
 <script setup lang="ts">
@@ -39,7 +39,7 @@ const items = ref<SuggestionPillItem[]>([
   },
   {
     id: '2',
-    text: '点我打开Dropdown Menu',
+    text: '费用成本',
     icon: IconEdit,
     action: {
       type: 'menu',
@@ -52,22 +52,6 @@ const items = ref<SuggestionPillItem[]>([
         },
       },
     },
-  },
-  {
-    id: '3',
-    text: '资源管理',
-  },
-  {
-    id: '4',
-    text: '华为云弹性公网IP不通怎么回事？',
-  },
-  {
-    id: '5',
-    text: 'ECS示例规格如何选择？',
-  },
-  {
-    id: '6',
-    text: '什么是ECS弹性云服务器？',
   },
 ])
 
@@ -94,7 +78,7 @@ const delaySetData = () => {
 }
 
 const handleItemClick = (item: SuggestionPillItem) => {
-  console.log(item)
+  console.log('SuggestionPillButton clicked,', item)
 
   if (item.id === items.value[0].id) {
     delaySetData()

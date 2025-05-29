@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import markdownit from 'markdown-it'
 import { computed } from 'vue'
+import { toCssUnit } from '../shared/utils'
 import { BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -67,7 +68,7 @@ const placementStart = computed(() => props.placement === 'start')
 .tr-bubble {
   display: flex;
   gap: 16px;
-  max-width: v-bind('props.maxWidth');
+  max-width: v-bind('toCssUnit(props.maxWidth)');
 
   &.placement-start {
     flex-direction: row;

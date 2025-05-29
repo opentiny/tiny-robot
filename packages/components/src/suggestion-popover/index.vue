@@ -98,7 +98,10 @@ const popoverStyles = computed<CSSProperties>(() => {
 
 if (props.trigger === 'click') {
   onClickOutside(popoverRef, (ev) => {
-    ev.stopPropagation()
+    // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
+    if (popoverTriggerRef.value?.contains(ev.target as Node)) {
+      ev.stopPropagation()
+    }
     show.value = false
   })
 }
