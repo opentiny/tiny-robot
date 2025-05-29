@@ -142,6 +142,166 @@ const handleEditorClick = (event: MouseEvent) => {
   }
 }
 
+// 处理粘贴事件
+const handlePaste = (event: ClipboardEvent) => {
+  event.preventDefault()
+
+  // 获取粘贴的数据
+  const clipboardData = event.clipboardData
+  if (!clipboardData) return
+
+  // 获取HTML和文本内容
+  const htmlData = clipboardData.getData('text/html')
+  const textData = clipboardData.getData('text/plain')
+
+  if (htmlData) {
+    // 创建临时容器解析HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlData
+
+    // 检查并修复模板字段
+    const spans = tempDiv.querySelectorAll('span')
+    let hasTemplateFields = false
+
+    spans.forEach((span) => {
+      const element = span as HTMLElement
+      const style = element.style
+
+      // 检查是否具有模板字段的特征
+      const hasTemplateFieldClass = element.classList.contains('template-field')
+      const hasTemplateFieldAttr = element.hasAttribute('data-placeholder')
+
+      // 检查背景颜色特征（支持多种格式）
+      const hasTemplateFieldBg =
+        style.backgroundColor &&
+        // 标准格式
+        (style.backgroundColor === 'rgba(0, 0, 0, 0.05)' ||
+          style.backgroundColor === 'rgba(0, 0, 0, 0.08)' ||
+          // 可能的变体格式
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.05)') ||
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.08)') ||
+          // 十六进制或其他可能的格式
+          style.backgroundColor.toLowerCase().includes('0.05') ||
+          style.backgroundColor.toLowerCase().includes('0.08'))
+
+      // 检查其他可能的模板字段特征
+      const hasTemplateFieldStyles =
+        style.borderRadius === '4px' ||
+        style.padding === '3px 8px' ||
+        style.margin === '0px 2px' ||
+        style.whiteSpace === 'nowrap'
+
+      if (hasTemplateFieldClass || hasTemplateFieldAttr || hasTemplateFieldBg || hasTemplateFieldStyles) {
+        hasTemplateFields = true
+        // 确保有正确的类名
+        element.className = 'template-field'
+        // 从文本内容推断placeholder
+        const content = element.textContent || ''
+        if (content && !element.getAttribute('data-placeholder')) {
+          element.setAttribute('data-placeholder', content)
+        }
+        // 清理内联样式，让CSS类接管
+        element.removeAttribute('style')
+      }
+    })
+
+    if (hasTemplateFields) {
+      // 插入修复后的HTML
+      insertHtmlContent(tempDiv)
+      return
+    }
+  }
+
+  // 如果没有检测到模板字段，则插入纯文本
+  if (textData) {
+    insertTextContent(textData)
+  }
+}
+
+// 插入HTML内容的辅助函数
+const insertHtmlContent = (container: HTMLElement) => {
+  const selection = window.getSelection()
+  if (selection && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+
+    // 将修复后的内容插入
+    const fragment = document.createDocumentFragment()
+    while (container.firstChild) {
+      fragment.appendChild(container.firstChild)
+    }
+    range.insertNode(fragment)
+
+    // 移动光标到插入内容的末尾
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    // 强制更新值 - 多重保障
+    updateValueAfterPaste()
+  }
+}
+
+// 插入文本内容的辅助函数
+const insertTextContent = (text: string) => {
+  const selection = window.getSelection()
+  if (selection && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+    range.insertNode(document.createTextNode(text))
+
+    // 移动光标到插入内容的末尾
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    // 强制更新值 - 多重保障
+    updateValueAfterPaste()
+  }
+}
+
+// 粘贴后强制更新值的辅助函数
+const updateValueAfterPaste = () => {
+  // 确保不在输入法组合状态
+  isComposing.value = false
+
+  // 使用多种方式确保值被正确更新
+  nextTick(() => {
+    // 方法1: 直接调用handleInput
+    templateHandler.handleInput()
+
+    // 方法2: 手动获取DOM值并更新
+    const newValue = templateHandler.getValueFromDOM()
+    if (newValue !== inputValue.value) {
+      // 临时设置标志，防止循环更新
+      const wasInternalUpdate = isInternalUpdate.value
+      isInternalUpdate.value = true
+
+      inputValue.value = newValue
+      emit('input', newValue)
+
+      // 恢复标志
+      nextTick(() => {
+        isInternalUpdate.value = wasInternalUpdate
+      })
+    }
+
+    // 方法3: 再次延迟确保DOM完全更新
+    setTimeout(() => {
+      const finalValue = templateHandler.getValueFromDOM()
+      if (finalValue !== inputValue.value) {
+        isInternalUpdate.value = true
+        inputValue.value = finalValue
+        emit('input', finalValue)
+
+        nextTick(() => {
+          isInternalUpdate.value = false
+        })
+      }
+    }, 50)
+  })
+}
+
 onMounted(() => {
   if (template.value) {
     templateHandler.updateEditorDOM()
@@ -228,5 +388,6 @@ defineExpose<TemplateEditorExpose>({
     @compositionend="handleCompositionEnd"
     @focus="$emit('focus', $event)"
     @blur="$emit('blur', $event)"
+    @paste="handlePaste"
   ></div>
 </template>

@@ -5,6 +5,9 @@
 
     <div class="template-selector-container">
       <h4>请选择模板</h4>
+      <p style="font-size: 12px; color: #666; margin: 5px 0">
+        💡 提示：设置模板后，你可以尝试复制模板字段并粘贴到其他位置，样式会自动保持一致
+      </p>
     </div>
 
     <div class="template-selector">
@@ -17,6 +20,17 @@
       >
         {{ item.name }}
       </button>
+    </div>
+
+    <!-- 实时显示输入值用于测试 -->
+    <div class="real-time-value" v-if="inputText">
+      <h4>当前输入值 (用于测试复制粘贴功能):</h4>
+      <div class="value-display">
+        <code>{{ inputText }}</code>
+      </div>
+      <p style="font-size: 12px; color: #666; margin-top: 8px">
+        复制粘贴后，这里的值应该会实时更新。如果没有更新，说明存在问题。
+      </p>
     </div>
 
     <div class="test-info" v-if="currentTemplate">
@@ -142,6 +156,39 @@ onMounted(() => {
   background: #007bff;
   color: white;
   border-color: #007bff;
+}
+
+.real-time-value {
+  margin: 20px 0;
+  padding: 15px;
+  background: #e8f4f8;
+  border-radius: 8px;
+  border: 1px solid #b8daff;
+}
+
+.real-time-value h4 {
+  margin: 0 0 10px 0;
+  color: #495057;
+  font-size: 14px;
+}
+
+.value-display {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 8px 0;
+  min-height: 20px;
+}
+
+.value-display code {
+  background: transparent;
+  padding: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #212529;
+  word-break: break-all;
 }
 
 .test-info {

@@ -79,15 +79,43 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
   const getValueFromDOM = (): string => {
     if (!editor.value) return ''
     let result = ''
-    editor.value.childNodes.forEach((node) => {
-      // 只统计文本节点和字段span的值
+
+    // 递归遍历所有节点，确保获取完整的文本内容
+    const getTextFromNode = (node: Node): string => {
+      let text = ''
+
       if (node.nodeType === Node.TEXT_NODE) {
-        result += node.textContent || ''
-      } else if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('template-field')) {
-        result += node.textContent || ''
+        // 文本节点直接获取内容
+        text += node.textContent || ''
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement
+
+        // 检查是否是模板字段或其他需要处理的元素
+        if (element.classList.contains('template-field')) {
+          // 模板字段，获取其文本内容
+          text += element.textContent || ''
+        } else if (element.tagName.toLowerCase() === 'span') {
+          // 普通span元素（可能是粘贴进来的），获取其文本内容
+          text += element.textContent || ''
+        } else if (element.tagName.toLowerCase() === 'br') {
+          // br标签转换为换行符
+          text += '\n'
+        } else {
+          // 其他元素类型，递归处理子节点
+          for (const childNode of Array.from(element.childNodes)) {
+            text += getTextFromNode(childNode)
+          }
+        }
       }
-      // 忽略其他类型的元素节点（如br标签等）
+
+      return text
+    }
+
+    // 遍历所有直接子节点
+    editor.value.childNodes.forEach((node) => {
+      result += getTextFromNode(node)
     })
+
     return result
   }
 
@@ -423,10 +451,14 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
     // 清理DOM中的空白文本节点
     cleanupEmptyTextNodes()
 
+    // 检查并修复粘贴的模板字段
+    fixPastedTemplateFields()
+
     // 更新所有字段的宽度
     updateAllFieldWidths()
 
     const currentValue = getValueFromDOM()
+
     if (currentValue !== options.value) {
       options.onValueChange(currentValue)
       options.onInput(currentValue)
@@ -476,6 +508,67 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
     nodesToRemove.forEach((node) => {
       if (node.parentNode) {
         node.parentNode.removeChild(node)
+      }
+    })
+  }
+
+  /**
+   * 检查并修复粘贴的模板字段
+   * 主要用于修复复制粘贴时丢失的CSS类名和属性
+   */
+  const fixPastedTemplateFields = () => {
+    if (!editor.value) return
+
+    const spans = editor.value.querySelectorAll('span')
+    spans.forEach((span) => {
+      const element = span as HTMLElement
+      const style = element.style
+
+      // 检查是否已经是正确的模板字段
+      const hasTemplateFieldClass = element.classList.contains('template-field')
+      const hasTemplateFieldAttr = element.hasAttribute('data-placeholder')
+
+      // 如果已经是正确的模板字段，跳过
+      if (hasTemplateFieldClass && hasTemplateFieldAttr) {
+        return
+      }
+
+      // 检查是否是未正确识别的模板字段
+      // 1. 检查背景颜色特征（支持多种格式）
+      const hasTemplateFieldBg =
+        style.backgroundColor &&
+        // 标准格式
+        (style.backgroundColor === 'rgba(0, 0, 0, 0.05)' ||
+          style.backgroundColor === 'rgba(0, 0, 0, 0.08)' ||
+          // 可能的变体格式
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.05)') ||
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.08)') ||
+          // 十六进制或其他可能的格式
+          style.backgroundColor.toLowerCase().includes('0.05') ||
+          style.backgroundColor.toLowerCase().includes('0.08'))
+
+      // 2. 检查其他可能的模板字段特征样式
+      const hasTemplateFieldStyles =
+        style.borderRadius === '4px' ||
+        style.padding === '3px 8px' ||
+        style.margin === '0px 2px' ||
+        (style.whiteSpace === 'nowrap' && style.padding && style.margin)
+
+      if (hasTemplateFieldBg || hasTemplateFieldStyles || hasTemplateFieldAttr) {
+        // 这是一个粘贴后丢失类名的模板字段，进行修复
+        element.className = 'template-field'
+
+        // 设置data-placeholder属性（如果没有的话）
+        const content = element.textContent || ''
+        if (content && !element.getAttribute('data-placeholder')) {
+          element.setAttribute('data-placeholder', content)
+        }
+
+        // 清理内联样式，让CSS类接管
+        element.removeAttribute('style')
+
+        // 设置字段宽度
+        setFieldWidth(element, content)
       }
     })
   }
