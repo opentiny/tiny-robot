@@ -195,11 +195,16 @@ const handlePaste = (event: ClipboardEvent) => {
         hasTemplateFields = true
         // 确保有正确的类名
         element.className = 'template-field'
-        // 从文本内容推断placeholder
-        const content = element.textContent || ''
-        if (content && !element.getAttribute('data-placeholder')) {
-          element.setAttribute('data-placeholder', content)
+
+        // 获取placeholder
+        if (!element.getAttribute('data-placeholder')) {
+          const placeholder = templateHandler.extractPlaceholderFromElement(element)
+
+          if (placeholder) {
+            element.setAttribute('data-placeholder', placeholder)
+          }
         }
+
         // 清理内联样式，让CSS类接管
         element.removeAttribute('style')
       }

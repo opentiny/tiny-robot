@@ -513,6 +513,60 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
   }
 
   /**
+   * 基于当前模板和initialValues来推断正确的placeholder
+   */
+  const inferPlaceholderForContent = (content: string): string => {
+    // 如果没有模板或初始值，无法推断
+    if (!options.template || !options.initialValues) {
+      return '字段'
+    }
+
+    // 遍历initialValues，找到匹配内容的字段
+    for (const [placeholder, value] of Object.entries(options.initialValues)) {
+      if (value === content) {
+        return placeholder
+      }
+    }
+
+    // 如果没有找到匹配的，检查内容是否像占位符
+    if (content.length <= 2 || /^[[\]{}()]+$/.test(content) || (content.includes('[') && content.includes(']'))) {
+      return content
+    }
+
+    // 默认返回通用占位符
+    return '字段'
+  }
+
+  /**
+   * 从元素中提取 placeholder
+   * 优先级：data-placeholder > 其他属性 > 基于内容推断
+   */
+  const extractPlaceholderFromElement = (element: HTMLElement): string => {
+    // 如果已经有data-placeholder属性，直接返回
+    const existingPlaceholder = element.getAttribute('data-placeholder')
+    if (existingPlaceholder) {
+      return existingPlaceholder
+    }
+
+    // 1. 尝试从其他属性获取placeholder信息
+    const placeholder =
+      element.getAttribute('title') ||
+      element.getAttribute('data-field') ||
+      element.getAttribute('data-key') ||
+      element.getAttribute('placeholder') ||
+      ''
+
+    // 2. 如果有从属性获取到的值，返回
+    if (placeholder) {
+      return placeholder
+    }
+
+    // 3. 如果还是没有，使用基于内容的推断方法
+    const content = element.textContent || ''
+    return inferPlaceholderForContent(content)
+  }
+
+  /**
    * 检查并修复粘贴的模板字段
    * 主要用于修复复制粘贴时丢失的CSS类名和属性
    */
@@ -559,15 +613,18 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
         element.className = 'template-field'
 
         // 设置data-placeholder属性（如果没有的话）
-        const content = element.textContent || ''
-        if (content && !element.getAttribute('data-placeholder')) {
-          element.setAttribute('data-placeholder', content)
+        if (!element.getAttribute('data-placeholder')) {
+          const placeholder = extractPlaceholderFromElement(element)
+          if (placeholder) {
+            element.setAttribute('data-placeholder', placeholder)
+          }
         }
 
         // 清理内联样式，让CSS类接管
         element.removeAttribute('style')
 
         // 设置字段宽度
+        const content = element.textContent || ''
         setFieldWidth(element, content)
       }
     })
@@ -659,6 +716,10 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
     handleInput,
     checkHasContent,
     cleanupEmptyTextNodes,
+
+    // 推断 placeholder
+    inferPlaceholderForContent,
+    extractPlaceholderFromElement,
 
     // 方法
     resetFields,
