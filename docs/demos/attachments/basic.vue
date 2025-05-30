@@ -24,6 +24,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { TrAttachments } from '@opentiny/tiny-robot'
 
 const dragMode = ref('container')
 

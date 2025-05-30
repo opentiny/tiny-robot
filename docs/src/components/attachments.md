@@ -75,14 +75,16 @@ outline: deep
 
 ```typescript
 interface Attachment {
-  id: string
-  name: string
-  fileType?: FileType
-  size?: number
-  status?: string
+  uid: string // 唯一标识符
+  name: string // 文件名
+  fileType?: FileType // 文件类型
+  size?: number // 文件大小（字节）
+  status?: string // 文件状态
   progress?: number // 上传/下载进度 (0-100)
-  isUploading?: boolean
+  isUploading?: boolean // 是否正在上传
   messageType?: 'error' | 'warning' | 'success' | 'info' | 'uploading' // 状态消息类型
+  rawFile?: File // 原始文件对象
+  previewUrl?: string // 预览URL (图片文件自动生成)
   // ... 其他属性
 }
 ```
@@ -123,6 +125,21 @@ interface DragConfig {
 | file-preview  | `Attachment`                                 | 文件预览时触发           |
 | file-retry    | `Attachment`                                 | 文件重试上传时触发       |
 | action        | `{ action: ActionButton, file: Attachment }` | 自定义操作按钮点击时触发 |
+
+### Methods
+
+通过模板引用可以调用以下方法：
+
+| 方法名            | 参数类型      | 返回类型         | 说明                           |
+| ----------------- | ------------- | ---------------- | ------------------------------ |
+| triggerUpload     | -             | `void`           | 触发文件选择对话框             |
+| addFiles          | `File[]`      | `void`           | 添加文件到附件列表             |
+| clearFiles        | -             | `void`           | 清空所有附件（会清理预览URL）  |
+| getFiles          | -             | `Attachment[]`   | 获取当前附件列表               |
+| getFileCount      | -             | `number`         | 获取附件数量                   |
+| hasFiles          | -             | `boolean`        | 是否有附件                     |
+| formatFileSize    | `number`      | `string`         | 格式化文件大小                 |
+| createAttachments | `File[]`      | `Attachment[]`   | 批量创建附件对象               |
 
 ## 附件类型
 

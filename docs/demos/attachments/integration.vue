@@ -1,30 +1,93 @@
 <template>
-  <div>
-    <h3>sender 与 Attachments 上传示例</h3>
-    <div style="max-width: 500px">
-      <tiny-sender v-model="inputValue" :allow-files="true" placeholder="请输入内容..." @submit="handleSubmit">
-        <!-- 在头部插槽中放置附件组件 -->
-        <template #header v-if="showAttachments">
-          <div class="attachments-container">
-            <tiny-attachments
-              v-model:items="attachmentItems"
-              :drag="{ mode: 'container' }"
-              @files-dropped="handleFilesDropped"
-              @file-remove="handleFileRemove"
-            />
+  <div class="demo-container">
+    <!-- 单行模式示例 -->
+    <div class="demo-section">
+      <h3>单行模式 (mode="single")</h3>
+      <div class="sender-container">
+        <tr-sender
+          v-model="singleInputValue"
+          mode="single"
+          :allow-files="true"
+          placeholder="请输入内容（单行模式）..."
+          @submit="handleSingleSubmit"
+          @upload-local="handleSingleUploadLocal"
+        >
+          <!-- 在头部插槽中放置附件组件，只有当有附件时才显示 -->
+          <template #header v-if="singleAttachmentItems.length > 0">
+            <div class="attachments-container">
+              <tr-attachments
+                ref="singleAttachmentsRef"
+                v-model:items="singleAttachmentItems"
+                :drag="{ mode: 'container' }"
+                @files-dropped="handleSingleFilesDropped"
+                @file-remove="handleSingleFileRemove"
+              />
+            </div>
+          </template>
+        </tr-sender>
+      </div>
+
+      <tr-attachments
+        v-show="false"
+        ref="singleAttachmentsRef"
+        v-model:items="singleAttachmentItems"
+        :drag="{ mode: 'container' }"
+        @files-dropped="handleMultipleFilesDropped"
+        @file-remove="handleMultipleFileRemove"
+      />
+
+      <!-- 单行模式消息展示区域 -->
+      <div class="messages-container" v-if="singleMessages.length > 0">
+        <h4>单行模式消息记录:</h4>
+        <div class="message" v-for="(message, index) in singleMessages" :key="index">
+          <div class="message-content">{{ message.text }}</div>
+          <div class="message-attachments" v-if="message.attachments && message.attachments.length > 0">
+            <div class="attachment-item" v-for="file in message.attachments" :key="file.uid">
+              <span class="file-name">{{ file.name }}</span>
+              <span class="file-size" v-if="file.size">{{ singleAttachmentsRef?.formatFileSize(file.size) }}</span>
+            </div>
           </div>
-        </template>
-      </tiny-sender>
+        </div>
+      </div>
     </div>
 
-    <!-- 消息展示区域 -->
-    <div class="messages-container" v-if="messages.length > 0">
-      <div class="message" v-for="(message, index) in messages" :key="index">
-        <div class="message-content">{{ message.text }}</div>
-        <div class="message-attachments" v-if="message.attachments && message.attachments.length > 0">
-          <div class="attachment-item" v-for="file in message.attachments" :key="file.uid">
-            <span class="file-name">{{ file.name }}</span>
-            <span class="file-size" v-if="file.rawFile">{{ formatFileSize(file.rawFile.size) }}</span>
+    <!-- 多行模式示例 -->
+    <div class="demo-section">
+      <h3>多行模式 (mode="multiple")</h3>
+      <div class="sender-container">
+        <tr-sender
+          v-model="multipleInputValue"
+          mode="multiple"
+          :allow-files="true"
+          placeholder="请输入内容（多行模式）..."
+          @submit="handleMultipleSubmit"
+          @upload-local="handleMultipleUploadLocal"
+        >
+          <!-- 在头部插槽中放置附件组件，只有当有附件时才显示 -->
+          <template #header v-if="multipleAttachmentItems.length > 0">
+            <div class="attachments-container">
+              <tr-attachments
+                ref="multipleAttachmentsRef"
+                v-model:items="multipleAttachmentItems"
+                :drag="{ mode: 'container' }"
+                @files-dropped="handleMultipleFilesDropped"
+                @file-remove="handleMultipleFileRemove"
+              />
+            </div>
+          </template>
+        </tr-sender>
+      </div>
+
+      <!-- 多行模式消息展示区域 -->
+      <div class="messages-container" v-if="multipleMessages.length > 0">
+        <h4>多行模式消息记录:</h4>
+        <div class="message" v-for="(message, index) in multipleMessages" :key="index">
+          <div class="message-content">{{ message.text }}</div>
+          <div class="message-attachments" v-if="message.attachments && message.attachments.length > 0">
+            <div class="attachment-item" v-for="file in message.attachments" :key="file.uid">
+              <span class="file-name">{{ file.name }}</span>
+              <span class="file-size" v-if="file.size">{{ multipleAttachmentsRef?.formatFileSize(file.size) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -34,67 +97,119 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-// import {TinySender, TinyAttachments} from '@opentiny/tiny-robot'
+import { TrSender, TrAttachments } from '@opentiny/tiny-robot'
 import type { Attachment } from '@opentiny/tiny-robot'
 
-// 输入值
-const inputValue = ref('')
+// 单行模式相关状态
+const singleInputValue = ref('')
+const singleAttachmentItems = ref<Attachment[]>([])
+const singleMessages = ref<Array<{ text: string; attachments?: Attachment[] }>>([])
+const singleAttachmentsRef = ref<InstanceType<typeof TrAttachments> | null>(null)
 
-// 附件相关状态
-const showAttachments = ref(false)
-const attachmentItems = ref<Attachment[]>([])
+// 多行模式相关状态
+const multipleInputValue = ref('')
+const multipleAttachmentItems = ref<Attachment[]>([])
+const multipleMessages = ref<Array<{ text: string; attachments?: Attachment[] }>>([])
+const multipleAttachmentsRef = ref<InstanceType<typeof TrAttachments> | null>(null)
 
-// 消息列表
-const messages = ref<Array<{ text: string; attachments?: Attachment[] }>>([])
-
-// 切换附件显示
-// const toggleAttachments = () => {
-//   showAttachments.value = !showAttachments.value
-// }
-
-// 处理文件拖放
-const handleFilesDropped = (files: Attachment[]) => {
-  console.log('文件已上传:', files)
+// 单行模式处理函数
+const handleSingleUploadLocal = () => {
+  singleAttachmentsRef.value?.triggerUpload()
 }
 
-// 处理文件移除
-const handleFileRemove = (file: Attachment) => {
-  console.log('文件已移除:', file)
+const handleSingleFilesDropped = (files: Attachment[]) => {
+  console.log('单行模式文件已上传:', files)
 }
 
-// 处理消息发送
-const handleSubmit = () => {
-  if (inputValue.value.trim() || attachmentItems.value.length > 0) {
-    messages.value.push({
-      text: inputValue.value,
-      attachments: [...attachmentItems.value],
+const handleSingleFileRemove = (file: Attachment) => {
+  console.log('单行模式文件已移除:', file)
+}
+
+const handleSingleSubmit = () => {
+  if (singleInputValue.value.trim() || singleAttachmentsRef.value?.hasFiles()) {
+    singleMessages.value.push({
+      text: singleInputValue.value,
+      attachments: [...singleAttachmentItems.value],
     })
 
     // 清空输入和附件
-    inputValue.value = ''
-    attachmentItems.value = []
-    showAttachments.value = false
+    singleInputValue.value = ''
+    singleAttachmentsRef.value?.clearFiles()
   }
 }
 
-// 格式化文件大小
-const formatFileSize = (size: number) => {
-  if (size < 1024) {
-    return size + ' B'
-  } else if (size < 1024 * 1024) {
-    return (size / 1024).toFixed(2) + ' KB'
-  } else {
-    return (size / (1024 * 1024)).toFixed(2) + ' MB'
+// 多行模式处理函数
+const handleMultipleUploadLocal = () => {
+  multipleAttachmentsRef.value?.triggerUpload()
+}
+
+const handleMultipleFilesDropped = (files: Attachment[]) => {
+  console.log('多行模式文件已上传:', files)
+}
+
+const handleMultipleFileRemove = (file: Attachment) => {
+  console.log('多行模式文件已移除:', file)
+}
+
+const handleMultipleSubmit = () => {
+  if (multipleInputValue.value.trim() || multipleAttachmentsRef.value?.hasFiles()) {
+    multipleMessages.value.push({
+      text: multipleInputValue.value,
+      attachments: [...multipleAttachmentItems.value],
+    })
+
+    // 清空输入和附件
+    multipleInputValue.value = ''
+    multipleAttachmentsRef.value?.clearFiles()
   }
 }
 </script>
 
 <style scoped>
+.demo-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.demo-section {
+  margin-bottom: 40px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.demo-section h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #333;
+  border-bottom: 2px solid #007acc;
+  padding-bottom: 8px;
+}
+
+.sender-container {
+  margin-bottom: 20px;
+}
+
+.attachments-container {
+  /* margin-bottom: 8px; */
+}
+
 .messages-container {
   margin-top: 20px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   overflow: hidden;
+  background-color: white;
+}
+
+.messages-container h4 {
+  margin: 0;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .message {
@@ -108,6 +223,7 @@ const formatFileSize = (size: number) => {
 
 .message-content {
   margin-bottom: 8px;
+  line-height: 1.5;
 }
 
 .message-attachments {

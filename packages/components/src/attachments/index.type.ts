@@ -12,11 +12,11 @@ export interface UploadFile {
 export interface Attachment extends UploadFile {
   previewUrl?: string
   fileType?: FileType
-  id?: string
   size?: number
   progress?: number
   isUploading?: boolean
   messageType?: 'error' | 'warning' | 'success' | 'info' | 'retry' | 'uploading' // 状态消息类型
+  rawFile?: File
 }
 
 export interface DragConfig {
@@ -54,6 +54,9 @@ export interface AttachmentsProps {
   // 文件卡片状态配置
   statusType?: 'info' | 'progress' | 'operate' | 'message' | 'default'
   customActions?: ActionButton[]
+
+  // 上传触发器 - 用于外部触发上传
+  triggerUpload?: number
 }
 
 // 自定义操作按钮类型

@@ -1,8 +1,6 @@
 import { FileType } from '../index.type'
 
-interface FileTypeMap {
-  [key: string]: FileType
-}
+type FileTypeMap = Record<string, FileType>
 
 // 文件扩展名与类型映射
 const extensionTypeMap: FileTypeMap = {
@@ -69,8 +67,49 @@ export function useFileType() {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 
+  /**
+   * 格式化文件大小
+   */
+  const formatFileSize = (size: number): string => {
+    if (size < 1024) {
+      return size + ' B'
+    } else if (size < 1024 * 1024) {
+      return (size / 1024).toFixed(2) + ' KB'
+    } else {
+      return (size / (1024 * 1024)).toFixed(2) + ' MB'
+    }
+  }
+
+  /**
+   * 创建文件预览URL
+   */
+  const createPreviewUrl = (file: File): string => {
+    if (file.type.startsWith('image/')) {
+      return URL.createObjectURL(file)
+    }
+    return ''
+  }
+
+  /**
+   * 批量创建文件附件对象
+   */
+  const createAttachments = (files: File[]) => {
+    return files.map((file) => ({
+      uid: generateUID(),
+      name: file.name,
+      status: 'success',
+      fileType: detectFileType(file),
+      rawFile: file,
+      size: file.size,
+      previewUrl: createPreviewUrl(file),
+    }))
+  }
+
   return {
     detectFileType,
     generateUID,
+    formatFileSize,
+    createPreviewUrl,
+    createAttachments,
   }
 }
