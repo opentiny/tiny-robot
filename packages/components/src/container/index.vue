@@ -51,7 +51,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
   right: 0;
   left: v-bind('fullscreen? "0" : "unset"');
   width: v-bind('fullscreen? "unset" : "var(--tr-container-width)"');
-  z-index: v-bind('show? "100":"-1"');
+  z-index: v-bind('show? "var(--tr-z-index-fixed)":"-1"');
   opacity: v-bind('show? "1":"0"');
   display: flex;
   flex-direction: column;

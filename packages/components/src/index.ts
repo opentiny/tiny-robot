@@ -1,3 +1,5 @@
+import './styles/variables.css'
+
 import { App } from 'vue'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
