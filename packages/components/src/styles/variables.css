@@ -1,0 +1,26 @@
+:root {
+  /* 🧱 基础层级：用于默认或背景元素，确保不遮挡主要内容 */
+  --tr-z-index-base: 0;
+
+  /* 📌 固定定位层：导航栏、侧边栏等始终停留在视口中的元素 */
+  --tr-z-index-fixed: 100;
+
+  /* 🪂 浮动弹层：如下拉菜单、提示框、气泡确认框等，通常会覆盖内容但层级低于模态框 */
+  --tr-z-index-dropdown: 1000; /* 下拉菜单 */
+  --tr-z-index-popover-backdrop: 1490; /* 气泡框背景遮罩 */
+  --tr-z-index-popover: 1500; /* 气泡确认框 */
+  --tr-z-index-tooltip: 1800; /* 文字提示 */
+
+  /* 🧱 模态弹窗层：模态框、抽屉、全屏覆盖层等，通常会禁用页面滚动 */
+  --tr-z-index-modal-backdrop: 1990; /* 模态框背景遮罩 */
+  --tr-z-index-modal: 2000; /* 模态对话框 */
+  --tr-z-index-drawer: 2100; /* 抽屉导航/面板 */
+  --tr-z-index-overlay: 2200; /* 全屏覆盖层，如加载中或禁用页面交互时使用 */
+
+  /* 🧃 消息提示层：Toast、Message 等非阻断式提示信息，通常短暂出现后消失 */
+  --tr-z-index-toast: 3000; /* Toast 提示 */
+  --tr-z-index-message: 3100; /* Message 通知 */
+
+  /* 🚨 最高优先级：例如全局加载动画、强制更新提示等，确保始终显示在最顶层 */
+  --tr-z-index-loading: 9999; /* 全局加载指示器 */
+}

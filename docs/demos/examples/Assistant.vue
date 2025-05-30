@@ -424,7 +424,7 @@ onMounted(() => {
   position: absolute;
   right: 100%;
   top: 100%;
-  z-index: 100;
+  z-index: var(--tr-z-index-popover);
   width: 300px;
   height: 600px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
