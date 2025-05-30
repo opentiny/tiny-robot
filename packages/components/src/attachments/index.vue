@@ -12,6 +12,7 @@ const props = withDefaults(defineProps<AttachmentsProps>(), {
   disabled: false,
   iconSize: 42,
   statusType: 'info',
+  triggerUpload: 0,
 })
 
 const emit = defineEmits([
@@ -28,7 +29,7 @@ const emit = defineEmits([
 const fileList = ref<Attachment[]>(props.items || [])
 
 // 使用文件类型工具
-const { detectFileType, generateUID } = useFileType()
+const { detectFileType, generateUID, formatFileSize, createPreviewUrl, createAttachments } = useFileType()
 
 // 拖拽相关
 const dropZoneRef = ref<HTMLElement | null>(null)
@@ -61,6 +62,8 @@ function handleDrop(files: File[]) {
         status: 'uploading',
         fileType: detectFileType(file),
         rawFile: file,
+        size: file.size,
+        previewUrl: createPreviewUrl(file),
       }) as Attachment,
   )
 
@@ -92,6 +95,11 @@ function handleRemove(file: Attachment) {
 
   const index = fileList.value.findIndex((item) => item.uid === file.uid)
   if (index !== -1) {
+    // 清理预览URL
+    if (file.previewUrl && file.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(file.previewUrl)
+    }
+
     fileList.value.splice(index, 1)
     emit('file-remove', file)
     emit('update:items', fileList.value)
@@ -140,6 +148,17 @@ watch(
   { deep: true },
 )
 
+// 监听外部上传触发
+watch(
+  () => props.triggerUpload,
+  (newValue, oldValue) => {
+    if (newValue && newValue !== oldValue) {
+      console.log('Attachments 组件收到上传触发信号')
+      triggerFileSelect()
+    }
+  },
+)
+
 // 在组件挂载后设置拖拽区域，只初始化一次
 onMounted(() => {
   if (dropZoneRef.value && isDragEnabled.value) {
@@ -148,6 +167,28 @@ onMounted(() => {
       initDrag()
     }, 0)
   }
+})
+
+// 暴露方法给外部调用
+defineExpose({
+  triggerUpload: triggerFileSelect,
+  addFiles: handleDrop,
+  clearFiles: () => {
+    // 清理所有预览URL
+    fileList.value.forEach((file) => {
+      if (file.previewUrl && file.previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(file.previewUrl)
+      }
+    })
+    fileList.value = []
+    emit('update:items', fileList.value)
+  },
+  // 新增的便利方法
+  getFiles: () => fileList.value,
+  getFileCount: () => fileList.value.length,
+  hasFiles: () => fileList.value.length > 0,
+  formatFileSize,
+  createAttachments,
 })
 </script>
 

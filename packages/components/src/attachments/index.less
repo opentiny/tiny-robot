@@ -67,17 +67,32 @@
       padding: 8px 0;
 
       &::-webkit-scrollbar {
-        height: 6px;
+        height: 4px;
       }
 
       &::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.2);
-        border-radius: 3px;
+        background-color: rgba(0, 0, 0, 0.12);
+        border-radius: 2px;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.2);
+        }
       }
 
       &::-webkit-scrollbar-track {
-        background-color: rgba(0, 0, 0, 0.05);
-        border-radius: 3px;
+        background-color: transparent;
+      }
+
+      // Firefox滚动条样式
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+
+      // 当不悬停时隐藏滚动条
+      &:not(:hover) {
+        &::-webkit-scrollbar-thumb {
+          background-color: transparent;
+        }
       }
 
       .tr-file-card {
@@ -98,17 +113,32 @@
       padding-right: 8px;
 
       &::-webkit-scrollbar {
-        width: 6px;
+        width: 4px;
       }
 
       &::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.2);
-        border-radius: 3px;
+        background-color: rgba(0, 0, 0, 0.12);
+        border-radius: 2px;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.2);
+        }
       }
 
       &::-webkit-scrollbar-track {
-        background-color: rgba(0, 0, 0, 0.05);
-        border-radius: 3px;
+        background-color: transparent;
+      }
+
+      // Firefox滚动条样式
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+
+      // 当不悬停时隐藏滚动条
+      &:not(:hover) {
+        &::-webkit-scrollbar-thumb {
+          background-color: transparent;
+        }
       }
 
       .tr-attachments__add-button {

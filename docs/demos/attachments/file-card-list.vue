@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-// import { TrAttachments } from '@opentiny/tiny-robot'
+import { TrAttachments } from '@opentiny/tiny-robot'
 
 const wrapMode = ref('wrap')
 
