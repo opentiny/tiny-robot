@@ -17,7 +17,6 @@ const props = withDefaults(
     file: Attachment
     // eslint-disable-next-line
     fileIcons?: Record<FileType, any>
-    iconSize?: number
     disabled?: boolean
     showPreview?: boolean
     showStatus?: boolean
@@ -25,7 +24,6 @@ const props = withDefaults(
     customActions?: ActionButton[]
   }>(),
   {
-    iconSize: 24,
     disabled: false,
     showPreview: true,
     showStatus: true,
@@ -40,9 +38,9 @@ const isPreviewVisible = ref(false)
 const previewUrl = ref('')
 
 // 使用图标类型管理
-const { getIconComponent } = useIconType(props.fileIcons, props.iconSize)
+const { getIconComponent } = useIconType(props.fileIcons)
 
-// 获取当前文件类型对应的图标
+// 获取当前文件类型对应的图标组件
 const fileTypeIcon = computed(() => {
   return getIconComponent(props.file.fileType as FileType).value
 })
@@ -171,7 +169,8 @@ const handleRetry = () => {
       :class="{ 'tr-file-card__icon--preview': isImage && showPreview }"
     >
       <div class="tr-file-card__icon-wrapper">
-        <fileTypeIcon />
+        <!-- 渲染图标组件 -->
+        <component :is="fileTypeIcon" />
 
         <!-- 上传状态蒙版 -->
         <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">

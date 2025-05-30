@@ -38,19 +38,23 @@ const imageFiles = ref([
   {
     id: '1',
     uid: '1',
-    name: '产品照片.jpg',
+    name: 'demo.png',
     fileType: 'image',
+    status: 'done',
     size: 1024 * 1024 * 2.5, // 2.5MB
-    // 实际项目中应使用真实图片URL
-    previewUrl: 'https://example.com/images/product1.jpg',
+    // 使用真实的可访问图片URL进行测试
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
   {
     id: '2',
     uid: '2',
-    name: '设计草图.png',
+    name: 'demo.png',
     fileType: 'image',
+    status: 'done',
     size: 1024 * 1024 * 1.8, // 1.8MB
-    previewUrl: 'https://example.com/images/design1.png',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
 ])
 
@@ -76,6 +80,7 @@ const errorFiles = ref([
     size: 1024 * 1024 * 3.2, // 3.2MB
     status: 'error',
     messageType: 'error',
+    isUploading: false,
   },
   {
     id: '4',
@@ -85,6 +90,7 @@ const errorFiles = ref([
     size: 1024 * 1024 * 4.7, // 4.7MB
     status: 'error',
     messageType: 'error',
+    isUploading: false,
   },
 ])
 
@@ -117,16 +123,33 @@ const handleFileDownload = (file) => {
 const handleFileRetry = (file) => {
   console.log(`重试上传文件: ${file.name}`)
 
+  // 先设置上传中状态
+  const index = errorFiles.value.findIndex((item) => item.uid === file.uid)
+  if (index !== -1) {
+    errorFiles.value[index].status = 'uploading'
+    errorFiles.value[index].messageType = 'uploading'
+    errorFiles.value[index].isUploading = true
+  }
+
   // 模拟上传过程
   setTimeout(() => {
-    const index = errorFiles.value.findIndex((item) => item.uid === file.uid)
-    if (index !== -1) {
+    const currentIndex = errorFiles.value.findIndex((item) => item.uid === file.uid)
+    if (currentIndex !== -1) {
       // 随机模拟上传成功或失败
       const success = Math.random() > 0.5
 
-      errorFiles.value[index].status = success ? '上传成功' : 'error'
-      errorFiles.value[index].messageType = success ? 'success' : 'error'
-      errorFiles.value[index].isUploading = false
+      // 保持原有文件属性，只更新状态相关属性
+      errorFiles.value[currentIndex] = {
+        ...errorFiles.value[currentIndex], // 保持所有原有属性
+        status: success ? 'done' : 'error',
+        messageType: success ? 'success' : 'error',
+        isUploading: false,
+        // 如果上传成功，可以添加预览URL
+        ...(success &&
+          file.name.includes('图片') && {
+            previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+          }),
+      }
 
       console.log(`${file.name} 上传${success ? '成功' : '失败'}`)
     }

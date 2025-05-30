@@ -1,4 +1,4 @@
-import { computed, Component, ComputedRef, h } from 'vue'
+import { computed, Component, ComputedRef } from 'vue'
 import { FileType } from '../index.type'
 import {
   IconFileImage,
@@ -15,53 +15,18 @@ export interface DefaultIconOptions {
   color?: string
 }
 
-// 默认图标组件（简单SVG示例）
-const DefaultIcons: Record<FileType, (options?: DefaultIconOptions) => Component> = {
-  image: (options = {}) =>
-    h(IconFileImage, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
-  pdf: (options = {}) =>
-    h(IconFilePdf, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
-  word: (options = {}) =>
-    h(IconFileWord, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
-  excel: (options = {}) =>
-    h(IconFileExcel, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
-  ppt: (options = {}) =>
-    h(IconFilePpt, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
-  folder: (options = {}) =>
-    h(IconFileFolder, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
-  other: (options = {}) =>
-    h(IconFileOther, {
-      style: {
-        fontSize: `${options.size || 24}px`,
-      },
-    }),
+// 默认图标组件映射
+const DefaultIcons: Record<FileType, Component> = {
+  image: IconFileImage,
+  pdf: IconFilePdf,
+  word: IconFileWord,
+  excel: IconFileExcel,
+  ppt: IconFilePpt,
+  folder: IconFileFolder,
+  other: IconFileOther,
 }
 
-export function useIconType(customIcons?: Record<FileType, Component>, iconSize?: number) {
+export function useIconType(customIcons?: Record<FileType, Component>) {
   /**
    * 获取指定文件类型的图标组件
    */
@@ -73,7 +38,7 @@ export function useIconType(customIcons?: Record<FileType, Component>, iconSize?
       }
 
       // 否则使用默认图标
-      return DefaultIcons?.[fileType]({ size: iconSize })
+      return DefaultIcons?.[fileType]
     })
   }
 

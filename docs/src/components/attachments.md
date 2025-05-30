@@ -65,7 +65,6 @@ outline: deep
 | overflow      | 'wrap'/'scrollX'/'scrollY'    | 'wrap' | 文件列表溢出展示方式                                     |
 | drag          | `boolean/DragConfig`          | false  | 拖拽上传配置                                             |
 | fileIcons     | `Record<FileType, Component>` | -      | 自定义文件类型图标                                       |
-| iconSize      | `number`                      | 24     | 图标大小                                                 |
 | rootClass     | `string`                      | -      | 根元素自定义类名                                         |
 | styles        | `{ root, card, overlay }`     | -      | 自定义样式                                               |
 | statusType    | `string`                      | 'info' | 文件卡片状态类型 (info/progress/operate/message/default) |

@@ -41,7 +41,6 @@ export interface AttachmentsProps {
 
   // 图标配置
   fileIcons?: Record<FileType, Component>
-  iconSize?: number
 
   // 样式配置
   rootClass?: string
