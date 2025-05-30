@@ -1,0 +1,122 @@
+// Attachments 组件 CSS 变量定义
+:root {
+    // 基础颜色变量
+    --tr-attachments-primary-color: #1976d2;
+    --tr-attachments-primary-light: rgba(25, 118, 210, 0.05);
+    --tr-attachments-primary-blue: #2196f3;
+    --tr-attachments-error-color: #f44336;
+    --tr-attachments-warning-color: #ff9800;
+    --tr-attachments-success-color: #4caf50;
+    --tr-attachments-border-color: #e0e0e0;
+    --tr-attachments-text-color: rgb(25, 25, 25);
+    --tr-attachments-text-secondary: rgb(128, 128, 128);
+    --tr-attachments-text-tertiary: #9e9e9e;
+    --tr-attachments-background-light: rgba(0, 0, 0, 0.04);
+    --tr-attachments-background-white: rgb(255, 255, 255);
+    --tr-attachments-background-hover: rgba(0, 0, 0, 0.04);
+
+    // 布局和尺寸变量
+    --tr-attachments-border-radius: 8px;
+    --tr-attachments-card-height: 58px;
+    --tr-attachments-card-width: 192px;
+    --tr-attachments-icon-size: 42px;
+    --tr-attachments-close-button-size: 14px;
+    --tr-attachments-add-button-size: 58px;
+
+    // 间距变量
+    --tr-attachments-padding-small: 4px;
+    --tr-attachments-padding-medium: 8px;
+    --tr-attachments-padding-large: 12px;
+    --tr-attachments-padding-extra-large: 24px;
+    --tr-attachments-margin-small: 4px;
+    --tr-attachments-margin-medium: 8px;
+    --tr-attachments-margin-large: 12px;
+    --tr-attachments-gap: 8px;
+
+    // 字体变量
+    --tr-attachments-font-size-small: 12px;
+    --tr-attachments-font-size-medium: 14px;
+    --tr-attachments-font-size-large: 16px;
+    --tr-attachments-font-size-extra-large: 32px;
+    --tr-attachments-font-weight-normal: 400;
+    --tr-attachments-font-weight-medium: 500;
+    --tr-attachments-font-weight-light: 300;
+    --tr-attachments-line-height: 18px;
+    --tr-attachments-line-height-large: 24px;
+
+    // 过渡动画变量
+    --tr-attachments-transition-duration: 0.3s;
+    --tr-attachments-transition-fast: 0.2s;
+    --tr-attachments-transition-timing: ease;
+    --tr-attachments-transition-normal: all 0.3s ease;
+    --tr-attachments-transition-fast-all: all 0.2s ease;
+
+    // 阴影变量
+    --tr-attachments-box-shadow-light: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+    --tr-attachments-box-shadow-hover: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+    // 拖拽相关变量
+    --tr-attachments-drag-border-color: rgba(25, 118, 210, 0.7);
+    --tr-attachments-drag-border-color-active: rgba(25, 118, 210, 1);
+    --tr-attachments-drag-shadow-color: rgba(25, 118, 210, 0.3);
+
+    // 空状态变量
+    --tr-attachments-empty-icon-size: 32px;
+    --tr-attachments-empty-icon-color: #bdbdbd;
+    --tr-attachments-empty-text-color: #757575;
+    --tr-attachments-empty-hint-color: #9e9e9e;
+
+    // 进度条变量
+    --tr-attachments-progress-height: 3px;
+    --tr-attachments-progress-bg: rgba(0, 0, 0, 0.08);
+    --tr-attachments-progress-color: var(--tr-attachments-primary-blue);
+
+    // 滚动条变量
+    --tr-attachments-scrollbar-width: 4px;
+    --tr-attachments-scrollbar-height: 4px;
+    --tr-attachments-scrollbar-thumb-color: rgba(0, 0, 0, 0.12);
+    --tr-attachments-scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.2);
+    --tr-attachments-scrollbar-track-color: transparent;
+
+    // 文件卡片特定变量
+    --tr-attachments-card-name-width: 118px;
+    --tr-attachments-card-name-height: 18px;
+    --tr-attachments-card-icon-margin: 12px;
+    --tr-attachments-card-close-offset: 50%;
+    --tr-attachments-card-padding: 8px 12px 8px 8px;
+
+    // 操作按钮变量
+    --tr-attachments-action-height: 18px;
+    --tr-attachments-action-spacing: 24px;
+    --tr-attachments-action-color: #616161;
+    --tr-attachments-action-hover-color: var(--tr-attachments-primary-blue);
+    --tr-attachments-action-preview-color: rgb(20, 118, 255);
+
+    // 容器最小高度
+    --tr-attachments-min-height: 100px;
+    --tr-attachments-dropzone-min-height: 60px;
+
+    // 文件列表布局变量
+    --tr-attachments-list-max-height: 320px;
+    --tr-attachments-list-padding: 8px 0;
+    --tr-attachments-list-padding-right: 8px;
+
+    // 添加按钮变量
+    --tr-attachments-add-button-border: 1px dashed #bdbdbd;
+    --tr-attachments-add-button-hover-border: var(--tr-attachments-primary-color);
+    --tr-attachments-add-icon-size: 32px;
+    --tr-attachments-add-icon-color: #bdbdbd;
+    --tr-attachments-add-icon-hover-color: var(--tr-attachments-primary-color);
+
+    // 状态颜色变量
+    --tr-attachments-status-uploading-color: #808080;
+    --tr-attachments-status-error-color: var(--tr-attachments-error-color);
+    --tr-attachments-status-success-color: var(--tr-attachments-success-color);
+    --tr-attachments-status-warning-color: var(--tr-attachments-warning-color);
+    --tr-attachments-status-info-color: #808080;
+
+    // Z-index 变量
+    --tr-attachments-z-index-overlay: 5;
+    --tr-attachments-z-index-close: 10;
+    --tr-attachments-z-index-normal: 1;
+}

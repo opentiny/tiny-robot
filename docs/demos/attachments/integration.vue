@@ -19,8 +19,10 @@
                 ref="singleAttachmentsRef"
                 v-model:items="singleAttachmentItems"
                 :drag="{ mode: 'container' }"
+                status-type="message"
                 @files-dropped="handleSingleFilesDropped"
                 @file-remove="handleSingleFileRemove"
+                @file-retry="handleSingleFileRetry"
               />
             </div>
           </template>
@@ -32,8 +34,10 @@
         ref="singleAttachmentsRef"
         v-model:items="singleAttachmentItems"
         :drag="{ mode: 'container' }"
-        @files-dropped="handleMultipleFilesDropped"
-        @file-remove="handleMultipleFileRemove"
+        status-type="message"
+        @files-dropped="handleSingleFilesDropped"
+        @file-remove="handleSingleFileRemove"
+        @file-retry="handleSingleFileRetry"
       />
 
       <!-- 单行模式消息展示区域 -->
@@ -45,48 +49,17 @@
             <div class="attachment-item" v-for="file in message.attachments" :key="file.uid">
               <span class="file-name">{{ file.name }}</span>
               <span class="file-size" v-if="file.size">{{ singleAttachmentsRef?.formatFileSize(file.size) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 多行模式示例 -->
-    <div class="demo-section">
-      <h3>多行模式 (mode="multiple")</h3>
-      <div class="sender-container">
-        <tr-sender
-          v-model="multipleInputValue"
-          mode="multiple"
-          :allow-files="true"
-          placeholder="请输入内容（多行模式）..."
-          @submit="handleMultipleSubmit"
-          @upload-local="handleMultipleUploadLocal"
-        >
-          <!-- 在头部插槽中放置附件组件，只有当有附件时才显示 -->
-          <template #header v-if="multipleAttachmentItems.length > 0">
-            <div class="attachments-container">
-              <tr-attachments
-                ref="multipleAttachmentsRef"
-                v-model:items="multipleAttachmentItems"
-                :drag="{ mode: 'container' }"
-                @files-dropped="handleMultipleFilesDropped"
-                @file-remove="handleMultipleFileRemove"
-              />
-            </div>
-          </template>
-        </tr-sender>
-      </div>
-
-      <!-- 多行模式消息展示区域 -->
-      <div class="messages-container" v-if="multipleMessages.length > 0">
-        <h4>多行模式消息记录:</h4>
-        <div class="message" v-for="(message, index) in multipleMessages" :key="index">
-          <div class="message-content">{{ message.text }}</div>
-          <div class="message-attachments" v-if="message.attachments && message.attachments.length > 0">
-            <div class="attachment-item" v-for="file in message.attachments" :key="file.uid">
-              <span class="file-name">{{ file.name }}</span>
-              <span class="file-size" v-if="file.size">{{ multipleAttachmentsRef?.formatFileSize(file.size) }}</span>
+              <span class="file-status" :class="`status-${file.messageType || file.status}`">
+                {{
+                  file.messageType === 'success'
+                    ? '✓ 上传成功'
+                    : file.messageType === 'error'
+                      ? '✗ 上传失败'
+                      : file.messageType === 'uploading'
+                        ? '⏳ 上传中'
+                        : file.status || '未知状态'
+                }}
+              </span>
             </div>
           </div>
         </div>
@@ -106,23 +79,88 @@ const singleAttachmentItems = ref<Attachment[]>([])
 const singleMessages = ref<Array<{ text: string; attachments?: Attachment[] }>>([])
 const singleAttachmentsRef = ref<InstanceType<typeof TrAttachments> | null>(null)
 
-// 多行模式相关状态
-const multipleInputValue = ref('')
-const multipleAttachmentItems = ref<Attachment[]>([])
-const multipleMessages = ref<Array<{ text: string; attachments?: Attachment[] }>>([])
-const multipleAttachmentsRef = ref<InstanceType<typeof TrAttachments> | null>(null)
-
 // 单行模式处理函数
 const handleSingleUploadLocal = () => {
   singleAttachmentsRef.value?.triggerUpload()
 }
 
 const handleSingleFilesDropped = (files: Attachment[]) => {
-  console.log('单行模式文件已上传:', files)
+  console.log('单行模式文件开始上传:', files)
+
+  // 为每个文件设置上传中状态
+  files.forEach((file) => {
+    // 在响应式数组中查找并设置初始上传状态
+    const fileIndex = singleAttachmentItems.value.findIndex((item) => item.uid === file.uid)
+    if (fileIndex !== -1) {
+      singleAttachmentItems.value[fileIndex].status = 'uploading'
+      singleAttachmentItems.value[fileIndex].isUploading = true
+      singleAttachmentItems.value[fileIndex].messageType = 'uploading'
+    }
+
+    // 模拟上传过程
+    setTimeout(
+      () => {
+        // 通过uid在响应式数组中查找并更新文件状态
+        const currentFileIndex = singleAttachmentItems.value.findIndex((item) => item.uid === file.uid)
+        if (currentFileIndex !== -1) {
+          // 随机模拟上传成功或失败（这里设置为90%成功）
+          const success = Math.random() > 0.1 // 90% 成功率
+
+          if (success) {
+            singleAttachmentItems.value[currentFileIndex].status = 'done'
+            singleAttachmentItems.value[currentFileIndex].isUploading = false
+            singleAttachmentItems.value[currentFileIndex].messageType = 'success'
+            console.log(`${file.name} 上传成功`)
+          } else {
+            singleAttachmentItems.value[currentFileIndex].status = 'error'
+            singleAttachmentItems.value[currentFileIndex].isUploading = false
+            singleAttachmentItems.value[currentFileIndex].messageType = 'error'
+            console.log(`${file.name} 上传失败`)
+          }
+        }
+      },
+      1000 + Math.random() * 2000,
+    ) // 1-3秒的随机上传时间
+  })
 }
 
 const handleSingleFileRemove = (file: Attachment) => {
   console.log('单行模式文件已移除:', file)
+}
+
+const handleSingleFileRetry = (file: Attachment) => {
+  console.log('单行模式文件重试上传:', file)
+
+  // 通过uid在响应式数组中查找并设置重试状态
+  const fileIndex = singleAttachmentItems.value.findIndex((item) => item.uid === file.uid)
+  if (fileIndex !== -1) {
+    singleAttachmentItems.value[fileIndex].status = 'uploading'
+    singleAttachmentItems.value[fileIndex].isUploading = true
+    singleAttachmentItems.value[fileIndex].messageType = 'uploading'
+  }
+
+  // 模拟重试上传过程
+  setTimeout(
+    () => {
+      const currentFileIndex = singleAttachmentItems.value.findIndex((item) => item.uid === file.uid)
+      if (currentFileIndex !== -1) {
+        const success = Math.random() > 0.3 // 70% 成功率
+
+        if (success) {
+          singleAttachmentItems.value[currentFileIndex].status = 'done'
+          singleAttachmentItems.value[currentFileIndex].isUploading = false
+          singleAttachmentItems.value[currentFileIndex].messageType = 'success'
+          console.log(`${file.name} 重试上传成功`)
+        } else {
+          singleAttachmentItems.value[currentFileIndex].status = 'error'
+          singleAttachmentItems.value[currentFileIndex].isUploading = false
+          singleAttachmentItems.value[currentFileIndex].messageType = 'error'
+          console.log(`${file.name} 重试上传失败`)
+        }
+      }
+    },
+    1000 + Math.random() * 1500,
+  ) // 1-2.5秒的随机上传时间
 }
 
 const handleSingleSubmit = () => {
@@ -135,32 +173,6 @@ const handleSingleSubmit = () => {
     // 清空输入和附件
     singleInputValue.value = ''
     singleAttachmentsRef.value?.clearFiles()
-  }
-}
-
-// 多行模式处理函数
-const handleMultipleUploadLocal = () => {
-  multipleAttachmentsRef.value?.triggerUpload()
-}
-
-const handleMultipleFilesDropped = (files: Attachment[]) => {
-  console.log('多行模式文件已上传:', files)
-}
-
-const handleMultipleFileRemove = (file: Attachment) => {
-  console.log('多行模式文件已移除:', file)
-}
-
-const handleMultipleSubmit = () => {
-  if (multipleInputValue.value.trim() || multipleAttachmentsRef.value?.hasFiles()) {
-    multipleMessages.value.push({
-      text: multipleInputValue.value,
-      attachments: [...multipleAttachmentItems.value],
-    })
-
-    // 清空输入和附件
-    multipleInputValue.value = ''
-    multipleAttachmentsRef.value?.clearFiles()
   }
 }
 </script>
@@ -252,5 +264,22 @@ const handleMultipleSubmit = () => {
 .file-size {
   margin-left: 6px;
   color: #666;
+}
+
+.file-status {
+  margin-left: 6px;
+  color: #666;
+}
+
+.status-success {
+  color: #4caf50;
+}
+
+.status-error {
+  color: #f44336;
+}
+
+.status-uploading {
+  color: #2196f3;
 }
 </style>

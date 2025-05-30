@@ -10,7 +10,6 @@ import './index.less'
 const props = withDefaults(defineProps<AttachmentsProps>(), {
   overflow: 'wrap',
   disabled: false,
-  iconSize: 42,
   statusType: 'info',
   triggerUpload: 0,
 })
@@ -214,7 +213,6 @@ defineExpose({
           :key="file.uid"
           :file="file"
           :file-icons="fileIcons"
-          :icon-size="iconSize"
           :disabled="disabled"
           :style="styles?.card"
           :status-type="statusType"
