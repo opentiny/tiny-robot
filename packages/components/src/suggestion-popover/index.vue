@@ -255,7 +255,7 @@ const handleGroupClick = (id: string) => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     position: relative;
 
     .tr-question__header-icon {

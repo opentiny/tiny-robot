@@ -1,0 +1,3 @@
+button[class^='tr-'] {
+  border: none;
+}

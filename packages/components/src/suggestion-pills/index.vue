@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconArrowDown, IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { useElementSize, useScroll, watchDebounced } from '@vueuse/core'
+import { useElementSize, watchDebounced } from '@vueuse/core'
 import { computed, nextTick, ref, watch } from 'vue'
 import { PillButtonWrapper } from './components'
 import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
@@ -14,7 +14,6 @@ defineSlots<SuggestionPillsSlots>()
 const containerRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
-const { arrivedState } = useScroll(containerRef)
 
 const hiddenIndex = ref(-1)
 const hasShowMoreBtn = computed(() => hiddenIndex.value !== -1)
@@ -33,7 +32,7 @@ const floatingItems = computed(() => {
 })
 
 const maskImage = computed(() => {
-  if (arrivedState.left) {
+  if (width.value < containerRef.value!.scrollWidth) {
     return 'linear-gradient(to right, black 90%, transparent)'
   }
 
@@ -53,7 +52,7 @@ const updateHiddenIndex = () => {
   })
 }
 
-watch(() => props.items, updateHiddenIndex)
+watch(() => [props.items, props.items?.length], updateHiddenIndex)
 
 watchDebounced(
   width,

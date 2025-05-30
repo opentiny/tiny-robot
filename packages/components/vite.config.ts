@@ -11,9 +11,11 @@ const entries = {
   index: './src/index.ts',
 }
 
+const componentWhitelist = ['assets', 'shared', 'styles']
+
 // 为每个组件添加入口
 const components = readdirSync(resolve(__dirname, 'src'), { withFileTypes: true })
-  .filter((dirent) => dirent.isDirectory() && dirent.name !== 'assets')
+  .filter((dirent) => dirent.isDirectory() && !componentWhitelist.includes(dirent.name))
   .map((dirent) => dirent.name)
 components.forEach((comp) => {
   entries[`${comp}/index`] = `./src/${comp}/index.ts`
