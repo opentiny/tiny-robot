@@ -1,3 +1,5 @@
+import { BaseModelProvider } from './providers/base'
+
 /**
  * 消息角色类型
  */
@@ -114,6 +116,7 @@ export type AIProvider = 'openai' | 'deepseek' | 'custom'
  */
 export interface AIModelConfig {
   provider: AIProvider
+  providerImplementation?: BaseModelProvider
   apiKey?: string
   apiUrl?: string
   apiVersion?: string
