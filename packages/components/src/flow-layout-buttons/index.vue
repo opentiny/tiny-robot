@@ -224,7 +224,7 @@ onClickOutside(dropDownRef, (ev) => {
       right: 0;
       padding-top: 8px;
       min-width: 150px;
-      z-index: 10;
+      z-index: var(--tr-z-index-dropdown);
     }
 
     .tr-flow-layout__dropdown {

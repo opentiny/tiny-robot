@@ -83,7 +83,7 @@ const handleItemClick = (item: DropdownMenuItem) => {
 .tr-dropdown-menu {
   position: fixed;
   min-width: v-bind('toCssUnit(props.minWidth)');
-  z-index: 1000;
+  z-index: var(--tr-z-index-dropdown);
   padding: 8px;
   border-radius: 12px;
   color: rgb(25, 25, 25);
