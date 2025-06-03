@@ -57,7 +57,7 @@ const senderRef = ref(null)
 const templates = [
   {
     name: '模板1',
-    template: '你好 [姓名]，欢迎使用 [产品]！',
+    template: '你好[姓名]，欢迎使用[产品]！',
     initialValues: {
       姓名: '张三',
       产品: 'TinyRobot',
@@ -65,7 +65,7 @@ const templates = [
   },
   {
     name: '模板2',
-    template: '你好 [姓名]，关于 [项目名称] 的进展，请查看 [文档链接]。',
+    template: '你好[姓名]，关于[项目名称]的进展，请查看[文档链接]。',
     initialValues: {
       姓名: '张三',
       项目名称: '',
@@ -74,7 +74,7 @@ const templates = [
   },
   {
     name: '模板3',
-    template: '尊敬的 [客户姓名]，您的 [订单类型] 已经 [处理状态]，预计 [交付时间] 完成。',
+    template: '尊敬的[客户姓名]，您的[订单类型]已经[处理状态]，预计[交付时间]完成。',
     initialValues: {
       客户姓名: '李明先生',
       订单类型: '定制化软件开发项目',
@@ -84,7 +84,7 @@ const templates = [
   },
   {
     name: '模板4',
-    template: '[发件人] 向 [收件人] 发送关于 [主题] 的邮件。',
+    template: '[发件人]向[收件人]发送关于[主题]的邮件。',
     initialValues: {
       发件人: '北京某某科技有限公司产品研发部技术总监',
       收件人: '上海某某集团信息技术部系统架构师团队负责人',
@@ -93,7 +93,7 @@ const templates = [
   },
   {
     name: '模板5',
-    template: '[短] 和 [长文本] 在 [时间] 进行 [活动]。',
+    template: '[短]和[长文本]在[时间]进行[活动]。',
     initialValues: {
       短: 'AI',
       长文本: '企业级人工智能解决方案技术研讨会暨产品发布会',
