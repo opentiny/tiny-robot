@@ -98,7 +98,10 @@ const popoverStyles = computed<CSSProperties>(() => {
 
 if (props.trigger === 'click') {
   onClickOutside(popoverRef, (ev) => {
-    ev.stopPropagation()
+    // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
+    if (popoverTriggerRef.value?.contains(ev.target as Node)) {
+      ev.stopPropagation()
+    }
     show.value = false
   })
 }
@@ -137,66 +140,55 @@ const handleGroupClick = (id: string) => {
 <template>
   <div class="tr-question-popover__wrapper" ref="popoverTriggerRef" @click="handleToggleShow">
     <slot />
-
-    <Teleport v-if="show && isMobile" to="body">
-      <div class="tr-question-popover__backdrop"></div>
-    </Teleport>
-    <Transition name="tr-question-popover">
-      <Teleport v-if="show" to="body">
-        <div class="tr-question-popover" :style="popoverStyles" ref="popoverRef">
-          <div class="tr-question__header">
-            <component v-if="props.icon" :is="props.icon" />
-            <span v-else class="tr-question__header-icon">
-              <IconSparkles style="color: #1476ff" />
-            </span>
-            <h3 class="tr-question__header-title">{{ props.title }}</h3>
-            <IconButton
-              class="tr-question-popover__close"
-              :icon="IconClose"
-              size="24"
-              svg-size="20"
-              @click="handleClose"
-            />
-          </div>
-          <div v-if="props.loading" class="tr-question__loading-wrapper">
-            <slot name="loading">
-              <img class="tr-question__loading" src="../assets/loading.webp" />
-              <span class="tr-question__loading-text">正在加载</span>
-            </slot>
-          </div>
-          <div v-else-if="props.data.length === 0" class="tr-question__no-data-wrapper">
-            <slot name="empty">
-              <img class="tr-question__no-data" src="../assets/svgs/no-data.svg" />
-              <span class="tr-question__no-data-text">暂时没有内容</span>
-            </slot>
-          </div>
-          <template v-else>
-            <FlowLayoutButtons
-              class="tr-question__group"
-              v-if="flowLayoutGroups.length > 0"
-              :items="flowLayoutGroups"
-              v-model:selected="selectedGroup"
-              :lines-limit="2"
-              :show-more-trigger="props.groupShowMoreTrigger"
-              @item-click="handleGroupClick"
-            ></FlowLayoutButtons>
-            <ul class="tr-question__list">
-              <li
-                class="tr-question__list-item"
-                v-for="(item, index) in dataItems"
-                :key="item.id"
-                @click="handleItemClick(item)"
-              >
-                <span class="tr-question__list-item-text">
-                  <span>{{ index + 1 }}. </span>{{ item.text }}
-                </span>
-              </li>
-            </ul>
-          </template>
-        </div>
-      </Teleport>
-    </Transition>
   </div>
+  <div v-if="show && isMobile" class="tr-question-popover__backdrop"></div>
+  <Transition name="tr-question-popover">
+    <div v-if="show" class="tr-question-popover" :style="popoverStyles" ref="popoverRef">
+      <div class="tr-question__header">
+        <component v-if="props.icon" :is="props.icon" />
+        <span v-else class="tr-question__header-icon">
+          <IconSparkles style="color: #1476ff" />
+        </span>
+        <h3 class="tr-question__header-title">{{ props.title }}</h3>
+        <IconButton class="tr-question-popover__close" :icon="IconClose" size="24" svg-size="20" @click="handleClose" />
+      </div>
+      <div v-if="props.loading" class="tr-question__loading-wrapper">
+        <slot name="loading">
+          <img class="tr-question__loading" src="../assets/loading.webp" />
+          <span class="tr-question__loading-text">正在加载</span>
+        </slot>
+      </div>
+      <div v-else-if="props.data.length === 0" class="tr-question__no-data-wrapper">
+        <slot name="empty">
+          <img class="tr-question__no-data" src="../assets/svgs/no-data.svg" />
+          <span class="tr-question__no-data-text">暂时没有内容</span>
+        </slot>
+      </div>
+      <template v-else>
+        <FlowLayoutButtons
+          class="tr-question__group"
+          v-if="flowLayoutGroups.length > 0"
+          :items="flowLayoutGroups"
+          v-model:selected="selectedGroup"
+          :lines-limit="2"
+          :show-more-trigger="props.groupShowMoreTrigger"
+          @item-click="handleGroupClick"
+        ></FlowLayoutButtons>
+        <ul class="tr-question__list">
+          <li
+            class="tr-question__list-item"
+            v-for="(item, index) in dataItems"
+            :key="item.id"
+            @click="handleItemClick(item)"
+          >
+            <span class="tr-question__list-item-text">
+              <span>{{ index + 1 }}. </span>{{ item.text }}
+            </span>
+          </li>
+        </ul>
+      </template>
+    </div>
+  </Transition>
 </template>
 
 <style lang="less" scoped>
@@ -206,17 +198,14 @@ const handleGroupClick = (id: string) => {
 
 .tr-question-popover__backdrop {
   position: fixed;
-  z-index: 40;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  z-index: var(--tr-z-index-popover-backdrop);
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.15);
 }
 
 .tr-question-popover {
   position: fixed;
-  z-index: 50;
+  z-index: var(--tr-z-index-popover);
   height: v-bind('toCssUnit(props.popoverHeight)');
   padding: 20px;
   padding-bottom: 16px;
@@ -252,7 +241,7 @@ const handleGroupClick = (id: string) => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     position: relative;
 
     .tr-question__header-icon {

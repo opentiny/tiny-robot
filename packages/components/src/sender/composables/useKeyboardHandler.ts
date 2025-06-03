@@ -1,6 +1,7 @@
 import { Ref } from 'vue'
 import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../index.type'
 import { type CursorPosition } from './useTemplateHandler'
+import { isOnlyZeroWidthSpace, cleanZeroWidthSpaces } from '../utils/zeroWidthUtils'
 
 /**
  * 键盘处理Hook
@@ -285,22 +286,82 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
     // 处理空字段的特殊情况
     if (
       startContainer.nodeType === Node.ELEMENT_NODE &&
-      (startContainer as HTMLElement).classList.contains('template-field') &&
-      !startContainer.textContent
+      (startContainer as HTMLElement).classList.contains('template-field')
     ) {
-      // 如果光标在空字段中，根据方向键移到字段前/后
+      const element = startContainer as HTMLElement
+      const textContent = element.textContent || ''
+      const cleanContent = cleanZeroWidthSpaces(textContent)
+
+      // 如果光标在空字段中（只包含零宽字符或完全为空），根据方向键移到字段前/后
+      if (!cleanContent || cleanContent.trim() === '') {
+        event.preventDefault()
+        const newRange = document.createRange()
+        const selection = window.getSelection()
+        if (!selection) return true
+
+        if (event.key === 'ArrowLeft') {
+          newRange.setStartBefore(startContainer)
+        } else {
+          // 右箭头键，移到字段后的零宽字符节点中
+          const nextSibling = startContainer.nextSibling
+          if (
+            nextSibling &&
+            nextSibling.nodeType === Node.TEXT_NODE &&
+            isOnlyZeroWidthSpace(nextSibling.textContent || '')
+          ) {
+            newRange.setStart(nextSibling, 0)
+            newRange.setEnd(nextSibling, 0)
+          } else {
+            newRange.setStartAfter(startContainer)
+          }
+        }
+
+        newRange.collapse(true)
+        selection.removeAllRanges()
+        selection.addRange(newRange)
+        return true
+      }
+    }
+
+    // 处理在零宽字符文本节点中的导航
+    if (startContainer.nodeType === Node.TEXT_NODE && isOnlyZeroWidthSpace(startContainer.textContent || '')) {
+      const prevSibling = startContainer.previousSibling
+      const nextSibling = startContainer.nextSibling
+
       event.preventDefault()
       const newRange = document.createRange()
       const selection = window.getSelection()
       if (!selection) return true
 
       if (event.key === 'ArrowLeft') {
-        newRange.setStartBefore(startContainer)
+        // 左箭头键，移到前面的字段内
+        if (
+          prevSibling &&
+          prevSibling.nodeType === Node.ELEMENT_NODE &&
+          (prevSibling as HTMLElement).classList.contains('template-field')
+        ) {
+          newRange.selectNodeContents(prevSibling)
+          newRange.collapse(false) // 光标到字段末尾
+        } else {
+          newRange.setStartBefore(startContainer)
+        }
       } else {
-        newRange.setStartAfter(startContainer)
+        // 右箭头键，移到后面的节点
+        if (nextSibling) {
+          if (
+            nextSibling.nodeType === Node.ELEMENT_NODE &&
+            (nextSibling as HTMLElement).classList.contains('template-field')
+          ) {
+            newRange.selectNodeContents(nextSibling)
+            newRange.collapse(true) // 光标到字段开头
+          } else {
+            newRange.setStartAfter(startContainer)
+          }
+        } else {
+          newRange.setStartAfter(startContainer)
+        }
       }
 
-      newRange.collapse(true)
       selection.removeAllRanges()
       selection.addRange(newRange)
       return true
@@ -317,33 +378,124 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
     const { startContainer, startOffset } = range
 
+    // 检查是否在零宽字符文本节点中
+    if (startContainer.nodeType === Node.TEXT_NODE && isOnlyZeroWidthSpace(startContainer.textContent || '')) {
+      // 在零宽字符文本节点中，查找前面的字段
+      const prevSibling = startContainer.previousSibling
+      if (
+        prevSibling &&
+        prevSibling.nodeType === Node.ELEMENT_NODE &&
+        (prevSibling as HTMLElement).classList.contains('template-field')
+      ) {
+        const fieldElement = prevSibling as HTMLElement
+        const textContent = fieldElement.textContent || ''
+        const cleanContent = cleanZeroWidthSpaces(textContent)
+
+        // 如果前面的字段为空，删除该字段和零宽字符节点
+        if (!cleanContent || cleanContent.trim() === '') {
+          event.preventDefault()
+
+          // 记录删除前的位置信息，用于删除后的光标定位
+          const prevPrevSibling = fieldElement.previousSibling
+          const nextSibling = startContainer.nextSibling
+
+          // 删除字段和零宽字符节点
+          if (fieldElement.parentNode) {
+            fieldElement.parentNode.removeChild(fieldElement)
+          }
+          if (startContainer.parentNode) {
+            startContainer.parentNode.removeChild(startContainer)
+          }
+
+          // 重新定位光标到合适位置
+          const selection = window.getSelection()
+          if (selection) {
+            const newRange = document.createRange()
+
+            if (prevPrevSibling) {
+              // 如果前面还有节点，将光标设置到前面节点的后面
+              if (
+                prevPrevSibling.nodeType === Node.ELEMENT_NODE &&
+                (prevPrevSibling as HTMLElement).classList.contains('template-field')
+              ) {
+                // 前面是字段，光标到字段内部末尾
+                newRange.selectNodeContents(prevPrevSibling)
+                newRange.collapse(false)
+              } else if (
+                prevPrevSibling.nodeType === Node.TEXT_NODE &&
+                isOnlyZeroWidthSpace(prevPrevSibling.textContent || '')
+              ) {
+                // 前面是零宽字符，光标设置到该零宽字符中
+                newRange.setStart(prevPrevSibling, 0)
+                newRange.setEnd(prevPrevSibling, 0)
+              } else {
+                // 前面是普通文本节点，光标到其后面
+                newRange.setStartAfter(prevPrevSibling)
+              }
+            } else if (nextSibling) {
+              // 如果前面没有节点但后面有，光标到后面节点前面
+              newRange.setStartBefore(nextSibling)
+            } else {
+              // 如果前后都没有节点，光标到编辑器开头
+              newRange.setStart(editor, 0)
+            }
+
+            newRange.collapse(true)
+            selection.removeAllRanges()
+            selection.addRange(newRange)
+          }
+
+          options.handleInput()
+          return true
+        } else {
+          // 如果字段有内容，将光标移到字段末尾
+          event.preventDefault()
+          const selection = window.getSelection()
+          if (selection) {
+            const newRange = document.createRange()
+            newRange.selectNodeContents(fieldElement)
+            newRange.collapse(false) // 光标到末尾
+            selection.removeAllRanges()
+            selection.addRange(newRange)
+          }
+          return true
+        }
+      }
+    }
+
     // 判断当前是否在字段内部，且只剩一个字符即将被删除
     const isInField =
       startContainer.nodeType === Node.TEXT_NODE &&
       startContainer.parentNode &&
       (startContainer.parentNode as HTMLElement).classList.contains('template-field')
 
-    if (isInField && startContainer.textContent && startContainer.textContent.length === 1 && startOffset === 1) {
-      // 即将删除字段内最后一个字符，阻止默认行为
-      event.preventDefault()
+    if (isInField && startContainer.textContent) {
+      const textContent = startContainer.textContent
+      const cleanContent = cleanZeroWidthSpaces(textContent)
 
-      // 清空文本内容但保留字段元素
-      startContainer.textContent = ''
+      // 检查是否是即将删除最后一个有效字符
+      if (cleanContent.length === 1 && startOffset === textContent.length) {
+        // 即将删除字段内最后一个有效字符，阻止默认行为
+        event.preventDefault()
 
-      // 重新设置光标位置到字段内
-      const fieldElement = startContainer.parentNode as HTMLElement
-      const selection = window.getSelection()
-      if (selection) {
-        const newRange = document.createRange()
-        newRange.selectNodeContents(fieldElement)
-        newRange.collapse(true)
-        selection.removeAllRanges()
-        selection.addRange(newRange)
+        // 清空字段内容
+        startContainer.textContent = ''
+
+        // 保持光标在字段内部，不要跳转到零宽字符
+        const fieldElement = startContainer.parentNode as HTMLElement
+        const selection = window.getSelection()
+        if (selection) {
+          const newRange = document.createRange()
+          newRange.selectNodeContents(fieldElement)
+          newRange.collapse(true) // 光标到字段开头
+          selection.removeAllRanges()
+          selection.addRange(newRange)
+        }
+
+        // 触发输入事件以更新值
+        options.handleInput()
+        return true
       }
-
-      // 触发输入事件以更新值
-      options.handleInput()
-      return true
     }
 
     // 情况1: 光标在字段（可能为空）的开头位置
@@ -364,7 +516,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
       }
 
       if (fieldElement) {
-        // 找到了一个字段，阻止默认行为
+        // 删除字段的操作应该在零宽字符位置进行
         event.preventDefault()
 
         // 将光标移到字段前面
@@ -379,37 +531,13 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
       }
     }
 
-    // 情况2: 光标紧跟一个空字段之后，此时删除该字段
-    let prevNode: Node | null = null
-
-    if (startContainer === editor && startOffset > 0) {
-      prevNode = editor.childNodes[startOffset - 1]
-    } else if (startContainer.nodeType === Node.TEXT_NODE && startOffset === 0) {
-      prevNode = startContainer.previousSibling
-    }
-
-    if (
-      prevNode &&
-      prevNode.nodeType === Node.ELEMENT_NODE &&
-      (prevNode as HTMLElement).classList.contains('template-field') &&
-      prevNode.textContent === ''
-    ) {
-      // 前一个节点是空字段，删除它
-      event.preventDefault()
-      if (prevNode.parentNode) {
-        prevNode.parentNode.removeChild(prevNode)
-      }
-      options.handleInput()
-      return true
-    }
-
     return false
   }
 
   /**
    * 处理Delete键
    */
-  const handleDeleteKey = (event: KeyboardEvent, range: Range, editor: HTMLDivElement): boolean => {
+  const handleDeleteKey = (event: KeyboardEvent, range: Range): boolean => {
     if (!range.collapsed) return false
 
     const { startContainer, startOffset } = range
@@ -420,59 +548,33 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
       startContainer.parentNode &&
       (startContainer.parentNode as HTMLElement).classList.contains('template-field')
 
-    if (
-      isInField &&
-      startContainer.textContent &&
-      startOffset === startContainer.textContent.length &&
-      startContainer.textContent.length === 1
-    ) {
-      // 即将从末尾删除字段内最后一个字符，阻止默认行为
-      event.preventDefault()
+    if (isInField && startContainer.textContent) {
+      const textContent = startContainer.textContent
+      const cleanContent = cleanZeroWidthSpaces(textContent)
 
-      // 清空文本内容但保留字段元素
-      startContainer.textContent = ''
+      // 检查是否在末尾且即将删除最后一个有效字符
+      if (startOffset === textContent.length && cleanContent.length === 1) {
+        // 即将从末尾删除字段内最后一个有效字符，阻止默认行为
+        event.preventDefault()
 
-      // 重新设置光标位置到字段内
-      const fieldElement = startContainer.parentNode as HTMLElement
-      const selection = window.getSelection()
-      if (selection) {
-        const newRange = document.createRange()
-        newRange.selectNodeContents(fieldElement)
-        newRange.collapse(true)
-        selection.removeAllRanges()
-        selection.addRange(newRange)
+        // 清空字段内容
+        startContainer.textContent = ''
+
+        // 保持光标在字段内部
+        const fieldElement = startContainer.parentNode as HTMLElement
+        const selection = window.getSelection()
+        if (selection) {
+          const newRange = document.createRange()
+          newRange.selectNodeContents(fieldElement)
+          newRange.collapse(true) // 光标到字段开头
+          selection.removeAllRanges()
+          selection.addRange(newRange)
+        }
+
+        // 触发输入事件以更新值
+        options.handleInput()
+        return true
       }
-
-      // 触发输入事件以更新值
-      options.handleInput()
-      return true
-    }
-
-    // 寻找下一个要处理的节点
-    let nextNode: Node | null = null
-
-    if (startContainer === editor && startOffset < editor.childNodes.length) {
-      nextNode = editor.childNodes[startOffset]
-    } else if (
-      startContainer.nodeType === Node.TEXT_NODE &&
-      startOffset === (startContainer.textContent?.length || 0)
-    ) {
-      nextNode = startContainer.nextSibling
-    }
-
-    // 仅当下一个节点是空字段时才删除
-    if (
-      nextNode &&
-      nextNode.nodeType === Node.ELEMENT_NODE &&
-      (nextNode as HTMLElement).classList.contains('template-field') &&
-      nextNode.textContent === ''
-    ) {
-      event.preventDefault()
-      if (nextNode.parentNode) {
-        nextNode.parentNode.removeChild(nextNode)
-      }
-      options.handleInput()
-      return true
     }
 
     return false
@@ -515,7 +617,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
     // 处理Delete键
     if (event.key === 'Delete') {
-      if (handleDeleteKey(event, range, editor)) {
+      if (handleDeleteKey(event, range)) {
         return
       }
     }

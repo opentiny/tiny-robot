@@ -96,7 +96,7 @@ const handleChangeDisplayMode = (mode: ContainerProps['displayMode']) => {
   background-color: rgb(248, 248, 248);
   border: 1px solid rgba(0, 0, 0, 0.08);
   position: fixed;
-  z-index: 100;
+  z-index: var(--tr-z-index-fixed);
   display: flex;
   flex-direction: column;
 

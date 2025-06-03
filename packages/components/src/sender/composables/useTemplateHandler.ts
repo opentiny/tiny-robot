@@ -1,4 +1,12 @@
 import { ref, Ref, nextTick, reactive } from 'vue'
+import {
+  isOnlyZeroWidthSpace,
+  cleanZeroWidthSpaces,
+  createZeroWidthTextNode,
+  isFieldEmpty,
+  ensureZeroWidthAfterField,
+  cleanupZeroWidthNodes,
+} from '../utils/zeroWidthUtils'
 
 /**
  * 模板部分类型定义
@@ -79,14 +87,46 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
   const getValueFromDOM = (): string => {
     if (!editor.value) return ''
     let result = ''
-    editor.value.childNodes.forEach((node) => {
-      // 只统计文本节点和字段span的值
+
+    // 递归遍历所有节点，确保获取完整的文本内容
+    const getTextFromNode = (node: Node): string => {
+      let text = ''
+
       if (node.nodeType === Node.TEXT_NODE) {
-        result += node.textContent || ''
-      } else if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('template-field')) {
-        result += node.textContent || ''
+        // 文本节点直接获取内容，并清理零宽字符
+        const rawText = node.textContent || ''
+        text += cleanZeroWidthSpaces(rawText)
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement
+
+        // 检查是否是模板字段或其他需要处理的元素
+        if (element.classList.contains('template-field')) {
+          // 模板字段，获取其文本内容并清理零宽字符
+          const rawText = element.textContent || ''
+          text += cleanZeroWidthSpaces(rawText)
+        } else if (element.tagName.toLowerCase() === 'span') {
+          // 普通span元素（可能是粘贴进来的），获取其文本内容并清理零宽字符
+          const rawText = element.textContent || ''
+          text += cleanZeroWidthSpaces(rawText)
+        } else if (element.tagName.toLowerCase() === 'br') {
+          // br标签转换为换行符
+          text += '\n'
+        } else {
+          // 其他元素类型，递归处理子节点
+          for (const childNode of Array.from(element.childNodes)) {
+            text += getTextFromNode(childNode)
+          }
+        }
       }
+
+      return text
+    }
+
+    // 遍历所有直接子节点
+    editor.value.childNodes.forEach((node) => {
+      result += getTextFromNode(node)
     })
+
     return result
   }
 
@@ -123,8 +163,11 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
    * 设置字段宽度以适应内容
    */
   const setFieldWidth = (fieldElement: HTMLElement, content: string) => {
+    // 清理零宽字符后检查内容是否为空
+    const cleanContent = cleanZeroWidthSpaces(content)
+
     // 如果内容为空，根据 placeholder 文字计算宽度
-    if (!content || content.trim() === '') {
+    if (!cleanContent || cleanContent.trim() === '') {
       const placeholder = fieldElement.getAttribute('data-placeholder') || ''
       if (placeholder) {
         setFieldWidthByText(fieldElement, placeholder, true)
@@ -133,11 +176,13 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
         fieldElement.style.minWidth = ''
         fieldElement.style.width = ''
       }
-      return
+    } else {
+      // 有内容时，根据清理后的内容计算宽度
+      setFieldWidthByText(fieldElement, cleanContent, false)
     }
 
-    // 有内容时，根据内容计算宽度
-    setFieldWidthByText(fieldElement, content, false)
+    // 确保所有字段后面都有零宽字符节点（不管是否为空）
+    ensureZeroWidthAfterField(fieldElement)
   }
 
   /**
@@ -272,6 +317,10 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
 
           editorElement.appendChild(span)
 
+          // 为所有字段在其后添加零宽字符文本节点
+          const zeroWidthNode = createZeroWidthTextNode()
+          editorElement.appendChild(zeroWidthNode)
+
           // 记录第一个字段
           if (!firstField) {
             firstField = span
@@ -298,6 +347,13 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
       if (parseResult.success) {
         parseResult.elements.forEach((element) => {
           editorElement.appendChild(element.node)
+
+          // 为所有字段在其后添加零宽字符文本节点
+          if (element.isField) {
+            const zeroWidthNode = createZeroWidthTextNode()
+            editorElement.appendChild(zeroWidthNode)
+          }
+
           if (element.isField && !firstField) {
             firstField = element.node as HTMLElement
           }
@@ -401,10 +457,15 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
       // 确保所有字段的宽度都被正确设置
       updateAllFieldWidths()
 
-      if (firstField && firstField.textContent) {
-        setCursorTo(firstField, 'inside', false) // 光标到内容末尾
-      } else if (firstField) {
-        setCursorTo(firstField, 'inside', true) // 光标到开头
+      if (firstField) {
+        const textContent = firstField.textContent || ''
+        const cleanContent = cleanZeroWidthSpaces(textContent)
+
+        if (cleanContent && cleanContent.trim() !== '') {
+          setCursorTo(firstField, 'inside', false) // 光标到内容末尾
+        } else {
+          setCursorTo(firstField, 'inside', true) // 光标到开头
+        }
       } else {
         setCursorToEnd()
       }
@@ -417,17 +478,225 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
    * 处理输入事件
    */
   const handleInput = () => {
-    if (options.isInternalUpdate || options.isComposing) return
+    if (options.isComposing) return // 只在输入法组合时跳过，其他情况都要处理
+
+    // 清理DOM中的空白文本节点
+    cleanupEmptyTextNodes()
+
+    // 检查并修复粘贴的模板字段
+    fixPastedTemplateFields()
+
+    // 维护空字段后的零宽字符文本节点
+    maintainZeroWidthNodes()
 
     // 更新所有字段的宽度
     updateAllFieldWidths()
 
     const currentValue = getValueFromDOM()
+
     if (currentValue !== options.value) {
       options.onValueChange(currentValue)
       options.onInput(currentValue)
     }
     checkHasContent(currentValue)
+
+    // 如果当前值为空且只有空字段，确保DOM结构正确
+    if (currentValue === '' && editor.value) {
+      const hasOnlyEmptyFields = Array.from(editor.value.childNodes).every((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).classList.contains('template-field')) {
+          return isFieldEmpty(node as HTMLElement)
+        }
+        // 忽略零宽字符文本节点
+        if (node.nodeType === Node.TEXT_NODE && isOnlyZeroWidthSpace(node.textContent || '')) {
+          return true
+        }
+        return false
+      })
+
+      if (hasOnlyEmptyFields) {
+        // 再次清理，确保没有多余的br标签或空白节点
+        cleanupEmptyTextNodes()
+      }
+    }
+  }
+
+  /**
+   * 维护零宽字符文本节点
+   */
+  const maintainZeroWidthNodes = () => {
+    if (!editor.value) return
+
+    // 先清理多余的零宽字符节点
+    cleanupZeroWidthNodes(editor.value)
+
+    // 为所有字段添加零宽字符节点（不管是否为空）
+    const templateFields = editor.value.querySelectorAll('.template-field')
+    templateFields.forEach((field) => {
+      const element = field as HTMLElement
+      ensureZeroWidthAfterField(element)
+    })
+  }
+
+  /**
+   * 清理DOM中的空白文本节点
+   */
+  const cleanupEmptyTextNodes = () => {
+    if (!editor.value) return
+
+    const nodesToRemove: Node[] = []
+    editor.value.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const textContent = node.textContent || ''
+
+        // 不要清理有用的零宽字符文本节点（紧跟在任何字段后面的）
+        if (isOnlyZeroWidthSpace(textContent)) {
+          const prevSibling = node.previousSibling
+          if (
+            prevSibling &&
+            prevSibling.nodeType === Node.ELEMENT_NODE &&
+            (prevSibling as HTMLElement).classList.contains('template-field')
+          ) {
+            return // 保留这个零宽字符节点
+          }
+        }
+
+        // 如果是纯空白字符（包括换行符和多余的零宽字符），标记为删除
+        if (textContent.trim() === '' || isOnlyZeroWidthSpace(textContent)) {
+          nodesToRemove.push(node)
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement
+        // 清理浏览器自动插入的br标签
+        if (element.tagName.toLowerCase() === 'br') {
+          nodesToRemove.push(node)
+        }
+      }
+    })
+
+    // 删除空白节点和br标签
+    nodesToRemove.forEach((node) => {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node)
+      }
+    })
+  }
+
+  /**
+   * 基于当前模板和initialValues来推断正确的placeholder
+   */
+  const inferPlaceholderForContent = (content: string): string => {
+    // 如果没有模板或初始值，无法推断
+    if (!options.template || !options.initialValues) {
+      return '字段'
+    }
+
+    // 遍历initialValues，找到匹配内容的字段
+    for (const [placeholder, value] of Object.entries(options.initialValues)) {
+      if (value === content) {
+        return placeholder
+      }
+    }
+
+    // 如果没有找到匹配的，检查内容是否像占位符
+    if (content.length <= 2 || /^[[\]{}()]+$/.test(content) || (content.includes('[') && content.includes(']'))) {
+      return content
+    }
+
+    // 默认返回通用占位符
+    return '字段'
+  }
+
+  /**
+   * 从元素中提取 placeholder
+   * 优先级：data-placeholder > 其他属性 > 基于内容推断
+   */
+  const extractPlaceholderFromElement = (element: HTMLElement): string => {
+    // 如果已经有data-placeholder属性，直接返回
+    const existingPlaceholder = element.getAttribute('data-placeholder')
+    if (existingPlaceholder) {
+      return existingPlaceholder
+    }
+
+    // 1. 尝试从其他属性获取placeholder信息
+    const placeholder =
+      element.getAttribute('title') ||
+      element.getAttribute('data-field') ||
+      element.getAttribute('data-key') ||
+      element.getAttribute('placeholder') ||
+      ''
+
+    // 2. 如果有从属性获取到的值，返回
+    if (placeholder) {
+      return placeholder
+    }
+
+    // 3. 如果还是没有，使用基于内容的推断方法
+    const content = element.textContent || ''
+    return inferPlaceholderForContent(content)
+  }
+
+  /**
+   * 检查并修复粘贴的模板字段
+   * 主要用于修复复制粘贴时丢失的CSS类名和属性
+   */
+  const fixPastedTemplateFields = () => {
+    if (!editor.value) return
+
+    const spans = editor.value.querySelectorAll('span')
+    spans.forEach((span) => {
+      const element = span as HTMLElement
+      const style = element.style
+
+      // 检查是否已经是正确的模板字段
+      const hasTemplateFieldClass = element.classList.contains('template-field')
+      const hasTemplateFieldAttr = element.hasAttribute('data-placeholder')
+
+      // 如果已经是正确的模板字段，跳过
+      if (hasTemplateFieldClass && hasTemplateFieldAttr) {
+        return
+      }
+
+      // 检查是否是未正确识别的模板字段
+      // 1. 检查背景颜色特征（支持多种格式）
+      const hasTemplateFieldBg =
+        style.backgroundColor &&
+        // 标准格式
+        (style.backgroundColor === 'rgba(0, 0, 0, 0.05)' ||
+          style.backgroundColor === 'rgba(0, 0, 0, 0.08)' ||
+          // 可能的变体格式
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.05)') ||
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.08)') ||
+          // 十六进制或其他可能的格式
+          style.backgroundColor.toLowerCase().includes('0.05') ||
+          style.backgroundColor.toLowerCase().includes('0.08'))
+
+      // 2. 检查其他可能的模板字段特征样式
+      const hasTemplateFieldStyles =
+        style.borderRadius === '4px' ||
+        style.padding === '3px 8px' ||
+        style.margin === '0px 2px' ||
+        (style.whiteSpace === 'nowrap' && style.padding && style.margin)
+
+      if (hasTemplateFieldBg || hasTemplateFieldStyles || hasTemplateFieldAttr) {
+        // 这是一个粘贴后丢失类名的模板字段，进行修复
+        element.className = 'template-field'
+
+        // 设置data-placeholder属性（如果没有的话）
+        if (!element.getAttribute('data-placeholder')) {
+          const placeholder = extractPlaceholderFromElement(element)
+          if (placeholder) {
+            element.setAttribute('data-placeholder', placeholder)
+          }
+        }
+
+        // 清理内联样式，让CSS类接管
+        element.removeAttribute('style')
+
+        // 设置字段宽度
+        const content = element.textContent || ''
+        setFieldWidth(element, content)
+      }
+    })
   }
 
   /**
@@ -515,6 +784,11 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
     // 事件处理
     handleInput,
     checkHasContent,
+    cleanupEmptyTextNodes,
+
+    // 推断 placeholder
+    inferPlaceholderForContent,
+    extractPlaceholderFromElement,
 
     // 方法
     resetFields,

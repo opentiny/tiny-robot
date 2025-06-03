@@ -25,8 +25,15 @@ export type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBase
 
 export interface SuggestionPillsProps {
   items?: SuggestionPillItem[]
+  /**
+   * model:showAll
+   */
+  showAll?: boolean
 }
 
+/**
+ * @deprecated
+ */
 export interface SuggestionPillsSlots {
   default?: () => VNode | VNode[]
 }

@@ -1,15 +1,47 @@
 
 # 版本更新日志
 
+## 0.2.0-alpha.9（25.6.3）
+
+### 组件
+
+1.【优化】【Sender 消息输入框】更新模板编辑器相关颜色变量  
+2.【问题】【Sender 消息输入框】修复模板编辑块空内容时无法在右侧定位的问题  
+3.【问题】使用了 `Teleport to="body"` 的弹出框的组件，在 shadow dom 中会导致弹出框不显示
+
+## 0.2.0-alpha.8（25.6.3）
+
+### 组件
+
+1.【优化】使用 css 变量统一全局的 z-index 叠层等级。全局 css 变量可在 `packages/components/src/styles/variables.css` 查看  
+2.【问题】【SuggestionPills 建议按钮组】修复按钮组数据长度变更，无法更新 UI 的问题
+
+### Kit
+
+1.【优化】【kit】AIModelConfig 新增 providerImplementation 可选属性，用于扩展 provider
+
+## 0.2.0-alpha.7（25.5.29）
+
+1.【问题】【Sender 消息输入框】修复 输入联想，修改输入框内容后，联想弹窗不展示的问题  
+2.【问题】【Sender 消息输入框】修复了删除当前模板后，选择使用同一模板时输入框无反应的问题  
+3.【变更】【Sender 消息输入框】使用 setTemplate() 函数统一模板设置，替代之前使用 template 和 templateInitialValues 配置  
+4.【优化】【Sender 消息输入框】模板删除逻辑优化；编辑块删除交互优化；模板复制粘贴效果优化  
+5.【优化】【SuggestionPills 建议按钮组】支持显示更多功能；文档与示例优化
+
+## 0.2.0-alpha.6（25.5.28）
+
+### 组件
+1.【问题】修复在 Vue3.4 及更低版本下报错无法使用组件的问题  
+
 ## 0.2.0-alpha.5（25.5.28）
 
 ### 组件
-1.【特性】【Sender 消息输入框】增强模板编辑功能
-2.【特性】【Sender 消息输入框】支持输入联想功能
-3.【优化】【Sender 消息输入框】替换组件按钮图标、调整按钮样式；自定义按钮 及 布局与插槽 案例中 - 深度思考 按钮样式修复；样式与设计稿对齐
-4.【特性】新增 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件
-5.【特性】新增 DropdownMenu 下拉菜单 组件
-6.【变更】Suggestion 快捷指令 与 Question 快捷问题 改为弃用状态，建议使用 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件
+1.【特性】【Sender 消息输入框】增强模板编辑功能  
+2.【特性】【Sender 消息输入框】支持输入联想功能  
+3.【优化】【Sender 消息输入框】替换组件按钮图标、调整按钮样式；自定义按钮 及 布局与插槽 案例中 - 深度思考 按钮样式修复；样式与设计稿对齐  
+4.【特性】新增 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件  
+5.【特性】新增 DropdownMenu 下拉菜单 组件  
+6.【变更】Suggestion 快捷指令 与 Question 快捷问题 改为弃用状态，建议使用 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件  
 
 ## 0.2.0-alpha.4（25.5.21）
 

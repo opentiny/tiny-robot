@@ -26,7 +26,6 @@ const onlyIcon = computed(() => hasIcon.value && !hasText.value)
 
 <style lang="less" scoped>
 .tr-suggestion-pills__item {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -40,7 +39,7 @@ const onlyIcon = computed(() => hasIcon.value && !hasText.value)
   color: rgb(25, 25, 25);
 
   &:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: rgb(235, 235, 235);
   }
 
   &.only-icon {

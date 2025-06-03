@@ -129,31 +129,16 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 #### 模版填充
 
+通过调用组件实例的 `setTemplate` 方法动态设置模板。
 
-**模板字段初始值**
-
-通过 `templateInitialValues` 属性可以为模板中的字段提供初始值。这是一个对象，其中键是字段的占位符文本，值是对应的初始内容。示例代码如下所示：
-
-```vue
-<template>
-  <tr-sender
-    v-model="inputText"
-    mode="multiple"
-    :template="'你好 [称呼]，感谢您的 [事项]。'"
-    :templateInitialValues="{
-      '称呼': '王先生',
-      '事项': '反馈'
-    }"
-  />
-</template>
-```
-
-这样用户可以看到预填充的模板内容，并根据需要进行修改。当用户删除预填充的内容后，将显示原始的占位符文本。
-
+这种方式适合需要动态切换模板的场景，如模板选择器。
 
 **模板示例**
 
-<demo vue="../../demos/sender/Template.vue" title="基础用法" description="Sender 组件支持模板填充。" />
+<demo vue="../../demos/sender/Template.vue" title="模板填充示例" description="Sender 组件支持模板填充，展示动态模板切换功能。" />
+
+
+**备注** `initialValues` 中对应字段赋值为 `''`, 则会显示 `placeholder`; 赋值不为 `''` , 则会显示对应字段的初始值
 
 #### 输入联想
 
@@ -245,8 +230,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
-| template             | 模板字符串               | `string`                                         | `''`              |
-| templateInitialValues| 模板字段初始值           | `Record<string, string>`                         | `{}`              |
+
 
 ### Events
 
@@ -276,6 +260,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | submit                     | 手动触发提交事件         | -    | `void`          |
 | startSpeech                | 开始语音识别             | -    | `Promise<void>` |
 | stopSpeech                 | 停止语音识别             | -    | `void`          |
+| setTemplate                | 动态设置模板内容         | `(template: string, initialValues?: Record<string, string>)` | `void` |
 | activateTemplateFirstField | 激活模板的第一个输入字段 | -    | `void`          |
 
 ### Slots

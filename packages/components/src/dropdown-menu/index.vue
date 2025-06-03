@@ -29,7 +29,10 @@ const dropdownStyles = computed<CSSProperties>(() => {
 })
 
 onClickOutside(dropdownMenuRef, (ev) => {
-  ev.stopPropagation()
+  // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
+  if (dropDownTriggerRef.value?.contains(ev.target as Node)) {
+    ev.stopPropagation()
+  }
   show.value = false
 })
 
@@ -52,24 +55,22 @@ const handleItemClick = (item: DropdownMenuItem) => {
 <template>
   <div class="tr-dropdown-menu__wrapper" ref="dropDownTriggerRef" @click="handleToggleShow">
     <slot />
-
-    <Transition name="tr-dropdown-menu">
-      <Teleport v-if="show" to="body">
-        <div class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdownMenuRef">
-          <ul class="tr-dropdown-menu__list">
-            <li
-              class="tr-dropdown-menu__list-item"
-              v-for="item in props.items"
-              :key="item.id"
-              @click="handleItemClick(item)"
-            >
-              {{ item.text }}
-            </li>
-          </ul>
-        </div>
-      </Teleport>
-    </Transition>
   </div>
+
+  <Transition name="tr-dropdown-menu">
+    <div v-if="show" class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdownMenuRef">
+      <ul class="tr-dropdown-menu__list">
+        <li
+          class="tr-dropdown-menu__list-item"
+          v-for="item in props.items"
+          :key="item.id"
+          @click="handleItemClick(item)"
+        >
+          {{ item.text }}
+        </li>
+      </ul>
+    </div>
+  </Transition>
 </template>
 
 <style lang="less" scoped>
@@ -80,7 +81,7 @@ const handleItemClick = (item: DropdownMenuItem) => {
 .tr-dropdown-menu {
   position: fixed;
   min-width: v-bind('toCssUnit(props.minWidth)');
-  z-index: 50;
+  z-index: var(--tr-z-index-dropdown);
   padding: 8px;
   border-radius: 12px;
   color: rgb(25, 25, 25);

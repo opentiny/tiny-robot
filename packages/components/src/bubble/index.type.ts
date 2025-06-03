@@ -1,5 +1,5 @@
 import { Options as MarkdownItOptions } from 'markdown-it'
-import { CSSProperties, VNode } from 'vue'
+import { VNode } from 'vue'
 
 export type BubblePalcement = 'start' | 'end'
 
@@ -26,7 +26,7 @@ export interface BubbleProps {
    */
   mdConfig?: MarkdownItOptions
   // 样式相关
-  maxWidth?: CSSProperties['maxWidth']
+  maxWidth?: string | number
 }
 
 export interface BubbleSlots {

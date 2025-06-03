@@ -306,7 +306,7 @@
     background: var(--tr-sender-bg-color);
     border-radius: var(--tr-sender-suggestion-border-radius);
     box-shadow: 0 4px 12px var(--tr-sender-suggestion-box-shadow-color);
-    z-index: 10;
+    z-index: var(--tr-z-index-dropdown);
     max-height: var(--tr-sender-suggestion-max-height);
     overflow-y: auto;
     padding: var(--tr-sender-suggestion-padding);
@@ -595,6 +595,8 @@
 
   .template-field {
     display: inline;
+    caret-color: var(--tr-sender-text-color);
+    color: var(--tr-sender-template-field-color);
     min-width: var(--tr-sender-template-field-min-width);
     max-width: none;
     background: var(--tr-sender-template-field-bg);

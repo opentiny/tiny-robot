@@ -167,7 +167,7 @@ watch(windowHeight, () => {
   .tr-action-group__dropdown {
     width: max-content;
     position: absolute;
-    z-index: 100;
+    z-index: var(--tr-z-index-dropdown);
     right: 0;
     background-color: white;
     padding: 4px;
