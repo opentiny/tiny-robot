@@ -1,23 +1,7 @@
 import { Ref } from 'vue'
 import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../index.type'
 import { type CursorPosition } from './useTemplateHandler'
-
-// 零宽字符常量
-const ZERO_WIDTH_SPACE = '\u200B'
-
-/**
- * 清理文本中的零宽字符
- */
-const cleanZeroWidthSpaces = (text: string): string => {
-  return text.replace(/\u200B/g, '')
-}
-
-/**
- * 检查文本是否只包含零宽字符
- */
-const isOnlyZeroWidthSpace = (text: string): boolean => {
-  return text === ZERO_WIDTH_SPACE || text.split('').every((char) => char === ZERO_WIDTH_SPACE)
-}
+import { isOnlyZeroWidthSpace, cleanZeroWidthSpaces } from '../utils/zeroWidthUtils'
 
 /**
  * 键盘处理Hook
