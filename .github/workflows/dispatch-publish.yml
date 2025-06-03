@@ -3,6 +3,14 @@ run-name: Dispatch Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: '选择发布分支'
+        required: true
+        default: 'develop'
+        type: choice
+        options:
+          - develop
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
