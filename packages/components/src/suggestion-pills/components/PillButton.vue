@@ -26,7 +26,6 @@ const onlyIcon = computed(() => hasIcon.value && !hasText.value)
 
 <style lang="less" scoped>
 .tr-suggestion-pills__item {
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 4px;

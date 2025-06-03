@@ -1,4 +1,4 @@
-import './styles/variables.css'
+import './styles/root.css'
 
 import { App } from 'vue'
 import { Bubble, BubbleList } from './bubble'
