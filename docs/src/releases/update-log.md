@@ -1,6 +1,17 @@
 
 # 版本更新日志
 
+## 0.2.0-alpha.8（25.6.3）
+
+### 组件
+
+1.【优化】使用 css 变量统一全局的 z-index 叠层等级。全局 css 变量可在 `packages/components/src/styles/variables.css` 查看  
+2.【问题】【SuggestionPills 建议按钮组】修复按钮组数据长度变更，无法更新 UI 的问题
+
+### Kit
+
+1.【优化】【kit】AIModelConfig 新增 providerImplementation 可选属性，用于扩展 provider
+
 ## 0.2.0-alpha.7（25.5.29）
 
 1.【问题】【Sender 消息输入框】修复 输入联想，修改输入框内容后，联想弹窗不展示的问题  
