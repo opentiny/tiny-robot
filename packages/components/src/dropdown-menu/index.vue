@@ -55,24 +55,22 @@ const handleItemClick = (item: DropdownMenuItem) => {
 <template>
   <div class="tr-dropdown-menu__wrapper" ref="dropDownTriggerRef" @click="handleToggleShow">
     <slot />
-
-    <Transition name="tr-dropdown-menu">
-      <Teleport v-if="show" to="body">
-        <div class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdownMenuRef">
-          <ul class="tr-dropdown-menu__list">
-            <li
-              class="tr-dropdown-menu__list-item"
-              v-for="item in props.items"
-              :key="item.id"
-              @click="handleItemClick(item)"
-            >
-              {{ item.text }}
-            </li>
-          </ul>
-        </div>
-      </Teleport>
-    </Transition>
   </div>
+
+  <Transition name="tr-dropdown-menu">
+    <div v-if="show" class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdownMenuRef">
+      <ul class="tr-dropdown-menu__list">
+        <li
+          class="tr-dropdown-menu__list-item"
+          v-for="item in props.items"
+          :key="item.id"
+          @click="handleItemClick(item)"
+        >
+          {{ item.text }}
+        </li>
+      </ul>
+    </div>
+  </Transition>
 </template>
 
 <style lang="less" scoped>
