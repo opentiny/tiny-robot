@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20 # 使用Node.js 20版本
-          cache: 'pnpm' # 启用pnpm缓存
+          registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
       # 步骤4: 获取pnpm缓存目录路径
       - name: Get pnpm store directory
