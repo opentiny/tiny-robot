@@ -107,6 +107,7 @@
 
   // 输入行 - 横向布局，包含prefix、content、actions
   &__input-row {
+    position: relative;
     display: flex;
     align-items: stretch;
     width: 100%;
@@ -366,6 +367,54 @@
       .suggestion-item__text--normal {
         font-weight: 400;
       }
+    }
+  }
+
+  // 上传弹窗
+  &__upload-popup {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    right: 0;
+    background: rgb(255, 255, 255);
+    backdrop-filter: blur(54.37px);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px 0px rgba(0, 0, 0, 0.04);
+    z-index: 1000;
+
+    .upload-options {
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      gap: 2px;
+      width: 174px;
+      height: 82px;
+    }
+
+    .upload-option {
+      display: flex;
+      align-items: center;
+      width: 158px;
+      height: 32px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+
+      &:hover {
+        border-radius: 6px;
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+    }
+
+    .option-icon {
+      font-size: 16px;
+      margin-left: 12px;
+      margin-right: 8px;
+    }
+
+    .option-text {
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 24px;
     }
   }
 
@@ -771,4 +820,13 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+/* 上传弹窗蒙层 */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
 }

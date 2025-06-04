@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import TinyButton from '@opentiny/vue-button'
 import TinyTooltip from '@opentiny/vue-tooltip'
 import { IconClose } from '@opentiny/vue-icon'
@@ -51,6 +51,11 @@ const props = withDefaults(defineProps<ActionButtonsProps>(), {
    * @default false
    */
   isOverLimit: false,
+  /**
+   * 文件上传按钮的提示文本
+   * @default '上传文件'
+   */
+  uploadTooltip: '上传文件',
 })
 
 const emit = defineEmits<{
@@ -70,7 +75,14 @@ const emit = defineEmits<{
    * 取消发送事件，用于取消加载状态
    */
   (e: 'cancel'): void
+  /**
+   * 显示上传弹窗事件
+   */
+  (e: 'show-upload-popup', show: boolean): void
 }>()
+
+// 文件上传按钮引用
+const uploadButtonRef = ref<HTMLElement | null>(null)
 
 /**
  * 是否启用语音功能
@@ -130,6 +142,14 @@ const handleCancel = () => {
     emit('cancel')
   }
 }
+
+/**
+ * 处理文件上传按钮点击
+ */
+const handleUploadClick = () => {
+  if (isDisabled.value) return
+  emit('show-upload-popup', true)
+}
 </script>
 
 <template>
@@ -138,8 +158,14 @@ const handleCancel = () => {
     <div v-if="hasUtilityButtons" class="action-buttons__utility">
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
-        <tiny-tooltip content="上传文件" placement="top">
-          <tiny-button class="action-buttons__button action-buttons__file-button" type="text" :disabled="isDisabled">
+        <tiny-tooltip :content="uploadTooltip" placement="top" effect="light">
+          <tiny-button
+            ref="uploadButtonRef"
+            class="action-buttons__button action-buttons__file-button"
+            type="text"
+            :disabled="isDisabled"
+            @click="handleUploadClick"
+          >
             <IconAccessory class="action-buttons__icon" alt="上传文件" />
           </tiny-button>
         </tiny-tooltip>
