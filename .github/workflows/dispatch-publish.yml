@@ -1,9 +1,14 @@
+# 工作流名称
 name: Dispatch Publish
+# 运行时显示的名称
 run-name: Dispatch Publish
 
+# 触发条件配置
 on:
+  # 手动触发工作流
   workflow_dispatch:
     inputs:
+      # 定义手动触发时的输入参数
       branch:
         description: '选择发布分支'
         required: true
@@ -12,47 +17,63 @@ on:
         options:
           - develop
 
+# 并发控制配置
 concurrency:
+  # 使用工作流名称和提交SHA作为并发组
   group: ${{ github.workflow }}-${{ github.sha }}
+  # 如果有新的工作流运行，取消正在进行的工作流
   cancel-in-progress: true
 
+# 定义工作流中的作业
 jobs:
   build:
+    # 指定运行环境为最新版本的Windows
     runs-on: windows-latest
     steps:
+      # 步骤1: 检出代码
       - name: CheckOut Code
         uses: actions/checkout@master
         with:
           ref: ${{ github.ref_name }}
 
+      # 步骤2: 设置pnpm包管理器
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
 
+      # 步骤3: 设置Node.js环境
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 20.10.0
-          registry-url: 'https://registry.npmjs.org'
+          node-version: 20 # 使用Node.js 20版本
+          cache: 'pnpm' # 启用pnpm缓存
 
+      # 步骤4: 获取pnpm缓存目录路径
       - name: Get pnpm store directory
         id: pnpm-cache
         run: |
           echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
+      # 步骤5: 配置pnpm缓存
       - uses: actions/cache@v3
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          # 使用操作系统类型和pnpm-lock.yaml的哈希值作为缓存键
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
+      # 步骤6: 安装项目依赖
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
 
+      # 步骤7: 构建组件
       - name: Run Build Components
         run: pnpm build
 
+      # 步骤8: 发布组件到NPM
       - name: Publish components
         run: pnpm lerna publish from-package --pre-dist-tag latest
         env:
+          # 使用NPM令牌进行身份验证
           NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}

@@ -2,6 +2,7 @@
   "name": "root",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "concurrently \"pnpm dev:components\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
