@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useFileDialog } from '@vueuse/core'
 import { useDragDrop } from './composables/useDragDrop'
 import { useFileType } from './composables/useFileType'
 import FileCard from './components/FileCard.vue'
@@ -32,7 +33,24 @@ const { detectFileType, generateUID, formatFileSize, createPreviewUrl, createAtt
 
 // 拖拽相关
 const dropZoneRef = ref<HTMLElement | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
+
+const {
+  open: openFileDialog,
+  reset: resetFileDialog,
+  onChange,
+} = useFileDialog({
+  multiple: true,
+  accept: '*',
+  reset: true,
+})
+
+// 监听文件选择变化
+onChange((selectedFiles) => {
+  if (selectedFiles && selectedFiles.length > 0) {
+    const filesArray = Array.from(selectedFiles)
+    handleDrop(filesArray)
+  }
+})
 
 // 拖拽配置和状态
 const isDragEnabled = computed(() => !!props.drag && !props.disabled)
@@ -74,18 +92,7 @@ function handleDrop(files: File[]) {
 // 触发文件选择
 function triggerFileSelect() {
   if (props.disabled) return
-  fileInputRef.value?.click()
-}
-
-// 处理文件选择
-function handleFileSelect(event: Event) {
-  const input = event.target as HTMLInputElement
-  if (input.files && input.files.length > 0) {
-    const files = Array.from(input.files)
-    handleDrop(files)
-    // 重置文件输入，以便可以再次选择相同的文件
-    input.value = ''
-  }
+  openFileDialog()
 }
 
 // 移除文件
@@ -152,11 +159,22 @@ watch(
   () => props.triggerUpload,
   (newValue, oldValue) => {
     if (newValue && newValue !== oldValue) {
-      console.log('Attachments 组件收到上传触发信号')
       triggerFileSelect()
     }
   },
 )
+
+const clearAllAttachments = () => {
+  fileList.value.forEach((file) => {
+    if (file.previewUrl && file.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(file.previewUrl)
+    }
+  })
+
+  fileList.value = []
+  resetFileDialog()
+  emit('update:items', fileList.value)
+}
 
 // 在组件挂载后设置拖拽区域，只初始化一次
 onMounted(() => {
@@ -172,17 +190,7 @@ onMounted(() => {
 defineExpose({
   triggerUpload: triggerFileSelect,
   addFiles: handleDrop,
-  clearFiles: () => {
-    // 清理所有预览URL
-    fileList.value.forEach((file) => {
-      if (file.previewUrl && file.previewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(file.previewUrl)
-      }
-    })
-    fileList.value = []
-    emit('update:items', fileList.value)
-  },
-  // 新增的便利方法
+  clearFiles: clearAllAttachments,
   getFiles: () => fileList.value,
   getFileCount: () => fileList.value.length,
   hasFiles: () => fileList.value.length > 0,
@@ -197,9 +205,6 @@ defineExpose({
     :class="[rootClass, { 'tr-attachments--dragging': dragState.active && !isDragFullscreen }]"
     :style="styles?.root"
   >
-    <!-- 隐藏的文件输入 -->
-    <input ref="fileInputRef" type="file" multiple class="tr-attachments__file-input" @change="handleFileSelect" />
-
     <div ref="dropZoneRef" class="tr-attachments__dropzone" @click="triggerFileSelect">
       <!-- 文件列表展示 -->
       <div

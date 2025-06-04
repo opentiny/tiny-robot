@@ -1,3 +1,27 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+
+const props = defineProps<{
+  visible: boolean
+  config?: {
+    zIndex?: number
+    enterDelay?: number
+    leaveDelay?: number
+    className?: string
+  }
+}>()
+
+const overlayStyle = computed(() => {
+  return {
+    zIndex: props.config?.zIndex || 1000,
+    '--enter-delay': `${props.config?.enterDelay || 200}ms`,
+    '--leave-delay': `${props.config?.leaveDelay || 200}ms`,
+  }
+})
+
+const customClass = computed(() => props.config?.className || '')
+</script>
+
 <template>
   <Transition name="tr-fade">
     <div v-if="visible" class="tr-fullscreen-overlay" :class="[customClass]" :style="overlayStyle">
@@ -22,30 +46,6 @@
     </div>
   </Transition>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-
-const props = defineProps<{
-  visible: boolean
-  config?: {
-    zIndex?: number
-    enterDelay?: number
-    leaveDelay?: number
-    className?: string
-  }
-}>()
-
-const overlayStyle = computed(() => {
-  return {
-    zIndex: props.config?.zIndex || 1000,
-    '--enter-delay': `${props.config?.enterDelay || 200}ms`,
-    '--leave-delay': `${props.config?.leaveDelay || 200}ms`,
-  }
-})
-
-const customClass = computed(() => props.config?.className || '')
-</script>
 
 <style lang="less" scoped>
 .tr-fullscreen-overlay {
