@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
+import { useFileDialog } from '@vueuse/core'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
@@ -8,7 +9,7 @@ import { useSpeechHandler } from './composables/useSpeechHandler'
 import { useSuggestionHandler } from './composables/useSuggestionHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
-import { IconAssociate } from '@opentiny/tiny-robot-svgs'
+import { IconAssociate, IconUploadCloud, IconUploadLocal } from '@opentiny/tiny-robot-svgs'
 import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   autoSize: () => ({ minRows: 1, maxRows: 3 }),
   allowSpeech: true,
   allowFiles: false,
+  uploadTooltip: '上传文件',
   clearable: false,
   disabled: false,
   loading: false,
@@ -40,6 +42,46 @@ const senderRef = ref<HTMLElement | null>(null)
 const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
 const inputWrapperRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
+
+// 上传弹窗控制
+const showUploadPopup = ref(false)
+
+// 文件对话框配置
+const { files, open: openFileDialog } = useFileDialog({
+  multiple: true,
+  accept: '*',
+  reset: true,
+})
+
+// 监听文件选择变化
+watch(files, (selectedFiles) => {
+  if (selectedFiles && selectedFiles.length > 0) {
+    emit('files-selected', selectedFiles)
+  }
+})
+
+// 处理上传弹窗显示/隐藏
+const handleShowUploadPopup = (show: boolean) => {
+  showUploadPopup.value = show
+}
+
+// 处理上传弹窗中的本地上传
+const handleUploadPopupLocalUpload = () => {
+  showUploadPopup.value = false
+  // 打开文件选择对话框
+  openFileDialog()
+}
+
+// 处理上传弹窗中的在线上传
+const handleUploadPopupOnlineUpload = () => {
+  showUploadPopup.value = false
+  emit('upload-online')
+}
+
+// 关闭上传弹窗
+const closeUploadPopup = () => {
+  showUploadPopup.value = false
+}
 
 // 是否显示模板编辑器
 const showTemplateEditor = ref(false)
@@ -488,6 +530,7 @@ defineExpose({
               <action-buttons
                 :allow-speech="allowSpeech"
                 :allow-files="allowFiles"
+                :upload-tooltip="uploadTooltip"
                 :loading="loading"
                 :disabled="isDisabled"
                 :show-clear="clearable"
@@ -499,6 +542,7 @@ defineExpose({
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
                 @cancel="$emit('cancel')"
+                @show-upload-popup="handleShowUploadPopup"
               />
             </div>
           </div>
@@ -538,6 +582,7 @@ defineExpose({
                   <action-buttons
                     :allow-speech="allowSpeech"
                     :allow-files="allowFiles"
+                    :upload-tooltip="uploadTooltip"
                     :loading="loading"
                     :disabled="isDisabled"
                     :show-clear="clearable"
@@ -549,6 +594,7 @@ defineExpose({
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"
                     @cancel="$emit('cancel')"
+                    @show-upload-popup="handleShowUploadPopup"
                   />
                 </div>
               </div>
@@ -590,6 +636,25 @@ defineExpose({
         </div>
       </div>
     </Transition>
+
+    <!-- 上传弹窗 -->
+    <Transition name="tiny-sender-slide-up">
+      <div v-if="showUploadPopup" class="tiny-sender__upload-popup" @click.stop>
+        <div class="upload-options">
+          <div class="upload-option" @click="handleUploadPopupOnlineUpload">
+            <IconUploadCloud class="option-icon" />
+            <span class="option-text">在线文件</span>
+          </div>
+          <div class="upload-option" @click="handleUploadPopupLocalUpload">
+            <IconUploadLocal class="option-icon" />
+            <span class="option-text">本地上传</span>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 点击其他区域关闭上传弹窗的蒙层 -->
+    <div v-if="showUploadPopup" class="popup-overlay" @click="closeUploadPopup"></div>
 
     <!-- 错误提示 -->
     <div v-if="errorMessage" class="tiny-sender__error">
