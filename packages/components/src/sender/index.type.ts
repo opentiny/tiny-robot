@@ -28,6 +28,7 @@ export interface SenderProps {
   autoSize?: AutoSize // 自适应内容高度
   allowSpeech?: boolean // 是否允许语音识别
   allowFiles?: boolean // 是否允许上传附件
+  uploadTooltip?: string // 文件上传按钮的提示文本
   clearable?: boolean // 是否显示清除按钮
   disabled?: boolean // 禁用状态
   defaultValue?: string | null // 默认值
@@ -57,6 +58,7 @@ export interface ActionButtonsProps {
     isSupported: boolean // 是否支持语音识别
   }
   allowFiles?: boolean // 是否允许上传附件
+  uploadTooltip?: string // 文件上传按钮的提示文本
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
   isOverLimit?: boolean // 是否超出字数限制
@@ -77,6 +79,8 @@ export type SenderEmits = {
   (e: 'escape-press'): void // 按下Esc键时触发
   (e: 'cancel'): void // 取消发送状态时触发
   (e: 'reset-template'): void // 重置模板状态，退出模板编辑模式
+  (e: 'upload-online'): void // 在线文件上传触发
+  (e: 'files-selected', files: FileList | null): void // 文件选择完成后触发
 }
 
 // 语音识别状态
