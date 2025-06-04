@@ -78,7 +78,6 @@ interface Attachment {
   fileType?: FileType // 文件类型
   size?: number // 文件大小（字节）
   status?: string // 文件状态
-  progress?: number // 上传/下载进度 (0-100)
   isUploading?: boolean // 是否正在上传
   messageType?: 'error' | 'warning' | 'success' | 'info' | 'uploading' // 状态消息类型
   rawFile?: File // 原始文件对象
