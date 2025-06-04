@@ -1,10 +1,10 @@
 import { Component, VNode } from 'vue'
+import { DropdownMenuEvents, DropdownMenuProps } from '../dropdown-menu/index.type'
 import {
   SuggestionPopoverEvents,
   SuggestionPopoverProps,
   SuggestionPopoverSlots,
 } from '../suggestion-popover/index.type'
-import { DropdownMenuEvents, DropdownMenuProps } from '../dropdown-menu/index.type'
 
 export type SuggestionPillAction =
   | {
