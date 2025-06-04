@@ -1,21 +1,23 @@
 import { Component, VNode } from 'vue'
 
-export interface SuggestionItem {
+export interface SuggestionBaseItem {
   id: string
   text: string
 }
 
-export interface SuggestionGroup {
+export type SuggestionItem<T = Record<string, unknown>> = SuggestionBaseItem & T
+
+export interface SuggestionGroup<T = Record<string, unknown>> {
   group: string
   label: string
   icon?: VNode | Component
-  items: SuggestionItem[]
+  items: SuggestionItem<T>[]
 }
 
-export type SuggestionData = (SuggestionItem | SuggestionGroup)[]
+export type SuggestionData<T = Record<string, unknown>> = (SuggestionItem<T> | SuggestionGroup<T>)[]
 
-export interface SuggestionPopoverProps {
-  data: SuggestionData
+export interface SuggestionPopoverProps<T = Record<string, unknown>> {
+  data: SuggestionData<T>
   title?: string
   icon?: VNode | Component
   /**

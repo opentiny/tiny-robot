@@ -98,3 +98,20 @@ const handleItemClick = (item: SuggestionPillItem) => {
   }
 }
 </script>
+
+<style lang="less" scoped>
+:deep(.tr-suggestion-pills__more-wrapper) {
+  left: 40px;
+}
+
+:deep(.tr-suggestion-pills__container) {
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    // 背景色需要和容器背景色一致
+    background: linear-gradient(to right, rgba(rgb(248, 248, 248), 0) 90%, rgba(rgb(248, 248, 248), 1));
+    pointer-events: none;
+  }
+}
+</style>

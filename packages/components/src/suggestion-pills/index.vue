@@ -31,14 +31,6 @@ const floatingItems = computed(() => {
   return (props.items || []).slice(hiddenIndex.value)
 })
 
-const maskImage = computed(() => {
-  if (width.value < containerRef.value!.scrollWidth) {
-    return 'linear-gradient(to right, black 90%, transparent)'
-  }
-
-  return 'unset'
-})
-
 const updateHiddenIndex = () => {
   nextTick(() => {
     const container = containerRef.value
@@ -112,9 +104,6 @@ const toggleIsShowingMore = () => {
   display: flex;
   gap: 8px;
   overflow-x: hidden;
-
-  mask-image: v-bind('maskImage');
-  mask-repeat: no-repeat;
 
   & > * {
     flex-shrink: 0;
