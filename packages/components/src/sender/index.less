@@ -16,6 +16,7 @@
 
   // 自动切换模式时的过渡
   &.is-auto-switching {
+
     .tiny-input__inner,
     .tiny-textarea__inner {
       transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -108,6 +109,7 @@
     width: 100%;
     transition: height 0.3s ease-out;
     min-height: var(--tr-sender-container-min-height); // 与容器一致的最小高度
+    position: relative; // 添加相对定位，作为actions-slot的定位参考
   }
 
   // 头部插槽
@@ -121,6 +123,85 @@
     padding: var(--tr-sender-header-padding);
     z-index: 1;
     border-bottom: 1px solid var(--tr-sender-border-color);
+
+    // 美化滚动条样式
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.12);
+      border-radius: 2px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+
+    // Firefox滚动条样式
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+
+    // 当内容不足时隐藏滚动条
+    &:not(:hover) {
+      &::-webkit-scrollbar-thumb {
+        background-color: transparent;
+      }
+    }
+
+    // 为attachments组件在header中的特殊样式优化
+    .tr-attachments {
+
+      // 移除attachments组件自身的最小高度限制
+      .tr-attachments__dropzone {
+        min-height: 60px;
+      }
+
+      // 优化空状态在header中的显示
+      .tr-attachments__empty {
+        padding: 16px 12px;
+
+        &-icon {
+          width: 24px;
+          height: 24px;
+          font-size: 24px;
+        }
+
+        &-text {
+          font-size: 14px;
+        }
+
+        &-hint {
+          font-size: 13px;
+        }
+      }
+
+      // 当文件列表过多时，优化布局
+      .tr-attachments__file-list {
+
+        // 在header中强制使用wrap模式，避免水平滚动
+        &--wrap {
+          gap: 6px;
+        }
+
+        // 确保添加按钮在合适位置
+        .tr-attachments__add-button {
+          margin-bottom: 6px;
+          margin-right: 6px;
+        }
+      }
+
+      // 优化文件卡片在header中的间距
+      .tr-file-card {
+        margin-right: 6px;
+        margin-bottom: 6px;
+      }
+    }
   }
 
   // 底部插槽
@@ -131,8 +212,7 @@
     min-height: var(--tr-sender-footer-min-height);
 
     &.tiny-sender__bottom-row {
-      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-bottom-row-padding-left);
+      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-bottom-row-padding-left);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -140,8 +220,7 @@
     }
 
     .suggestion-item {
-      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-padding-left);
+      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
       cursor: pointer;
       transition: background-color var(--tr-sender-transition-duration);
 
@@ -276,8 +355,7 @@
   }
 
   &__bottom-row {
-    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-      var(--tr-sender-padding-left);
+    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
   }
 
   // 字数限制
@@ -291,7 +369,7 @@
 
     // 超出限制的红色警示样式
     &.is-over-limit {
-      & > .real-word-length {
+      &>.real-word-length {
         color: var(--tr-sender-error-color);
         font-weight: 500;
       }
@@ -797,7 +875,7 @@
 }
 
 /** 处理相邻按钮元素边界  */
-.tiny-button + .tiny-button {
+.tiny-button+.tiny-button {
   margin-left: 0 !important;
 }
 

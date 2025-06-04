@@ -1,0 +1,453 @@
+@import './vars.less';
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-ellipsis {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.scrollbar-style {
+  scrollbar-width: thin;
+  scrollbar-color: var(--tr-attachments-scrollbar-thumb-color) var(--tr-attachments-scrollbar-track-color);
+
+  &::-webkit-scrollbar {
+    width: var(--tr-attachments-scrollbar-width);
+    height: var(--tr-attachments-scrollbar-height);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--tr-attachments-scrollbar-thumb-color);
+    border-radius: calc(var(--tr-attachments-scrollbar-width) / 2);
+    transition: background-color var(--tr-attachments-transition-fast);
+
+    &:hover {
+      background-color: var(--tr-attachments-scrollbar-thumb-hover-color);
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: var(--tr-attachments-scrollbar-track-color);
+  }
+
+  // 不悬停时隐藏滚动条
+  &:not(:hover) {
+    &::-webkit-scrollbar-thumb {
+      background-color: transparent;
+    }
+  }
+}
+
+// 主容器样式
+.tr-attachments {
+  position: relative;
+  border-radius: var(--tr-attachments-border-radius);
+  transition: var(--tr-attachments-transition-normal);
+  color: var(--tr-attachments-text-color);
+
+  &--dragging {
+    border: 2px dashed var(--tr-attachments-primary-color);
+    animation: pulse-border 1.5s infinite;
+  }
+
+  &__file-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__dropzone {
+    width: 100%;
+    min-height: var(--tr-attachments-min-height);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+  }
+
+  // 文件列表容器
+  &__file-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    cursor: default;
+
+    // 水平滚动模式
+    &--scrollX {
+      flex-direction: row;
+      overflow-x: auto;
+      padding: var(--tr-attachments-list-padding);
+      .scrollbar-style;
+
+      .tr-file-card {
+        margin-bottom: 0;
+        flex: 0 0 auto;
+      }
+
+      .tr-attachments__add-button {
+        flex: 0 0 auto;
+        margin-right: var(--tr-attachments-margin-medium);
+        margin-bottom: 0;
+      }
+    }
+
+    // 垂直滚动模式
+    &--scrollY {
+      max-height: var(--tr-attachments-list-max-height);
+      overflow-y: auto;
+      padding-right: var(--tr-attachments-list-padding-right);
+      .scrollbar-style;
+
+      .tr-attachments__add-button {
+        flex: 0 0 auto;
+      }
+    }
+
+    // 换行模式
+    &--wrap {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+  }
+
+  // 添加文件按钮
+  &__add-button {
+    .flex-center;
+    width: var(--tr-attachments-add-button-size);
+    height: var(--tr-attachments-add-button-size);
+    border: var(--tr-attachments-add-button-border);
+    border-radius: var(--tr-attachments-border-radius);
+    margin-bottom: var(--tr-attachments-margin-medium);
+    cursor: pointer;
+    transition: var(--tr-attachments-transition-fast-all);
+
+    &:hover {
+      border-color: var(--tr-attachments-add-button-hover-border);
+      background-color: var(--tr-attachments-primary-light);
+    }
+  }
+
+  &__add-icon {
+    font-size: var(--tr-attachments-add-icon-size);
+    color: var(--tr-attachments-add-icon-color);
+    font-weight: var(--tr-attachments-font-weight-light);
+    line-height: 1;
+    transition: color var(--tr-attachments-transition-fast);
+
+    .tr-attachments__add-button:hover & {
+      color: var(--tr-attachments-add-icon-hover-color);
+    }
+  }
+
+  // 空状态
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--tr-attachments-padding-extra-large);
+    color: var(--tr-attachments-empty-text-color);
+    text-align: center;
+
+    &-icon {
+      width: var(--tr-attachments-empty-icon-size);
+      height: var(--tr-attachments-empty-icon-size);
+      font-size: var(--tr-attachments-empty-icon-size);
+      margin-bottom: var(--tr-attachments-margin-small);
+      color: var(--tr-attachments-empty-icon-color);
+    }
+
+    &-text {
+      font-size: var(--tr-attachments-font-size-large);
+      margin-bottom: var(--tr-attachments-margin-medium);
+    }
+
+    &-hint {
+      font-size: var(--tr-attachments-font-size-medium);
+      color: var(--tr-attachments-empty-hint-color);
+    }
+  }
+}
+
+// 文件卡片样式
+.tr-file-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: var(--tr-attachments-card-width);
+  height: var(--tr-attachments-card-height);
+  border-radius: var(--tr-attachments-border-radius);
+  background: var(--tr-attachments-background-light);
+  padding: var(--tr-attachments-card-padding);
+  margin-right: var(--tr-attachments-margin-medium);
+  margin-bottom: var(--tr-attachments-margin-medium);
+  transition: var(--tr-attachments-transition-normal);
+  box-sizing: border-box;
+
+  &:hover {
+    background: var(--tr-attachments-background-white);
+    box-shadow: var(--tr-attachments-box-shadow-light);
+  }
+
+  &--uploading {
+    .tr-file-card__status {
+      color: var(--tr-attachments-status-uploading-color);
+    }
+  }
+
+  // 关闭按钮
+  &__close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(var(--tr-attachments-card-close-offset), calc(-1 * var(--tr-attachments-card-close-offset)));
+    width: var(--tr-attachments-close-button-size);
+    height: var(--tr-attachments-close-button-size);
+    border-radius: 50%;
+    background: rgb(194, 194, 194);
+    color: white;
+    .flex-center;
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--tr-attachments-transition-fast);
+    z-index: var(--tr-attachments-z-index-close);
+
+    &-icon {
+      font-size: 6px;
+      width: 6px;
+      height: 6px;
+      line-height: 1;
+    }
+  }
+
+  &:hover &__close {
+    opacity: 1;
+  }
+
+  // 文件图标区域
+  &__icon {
+    flex-shrink: 0;
+    width: var(--tr-attachments-icon-size);
+    height: var(--tr-attachments-icon-size);
+    margin-right: var(--tr-attachments-card-icon-margin);
+    .flex-center;
+
+    &-wrapper {
+      width: 100%;
+      height: 100%;
+      .flex-center;
+      position: relative;
+      font-size: var(--tr-attachments-icon-size);
+    }
+
+    &--preview {
+      cursor: pointer;
+      transition: transform var(--tr-attachments-transition-fast);
+
+      &:hover {
+        transform: scale(1.05);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  // 上传状态遮罩
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: var(--tr-attachments-border-radius);
+    z-index: var(--tr-attachments-z-index-overlay);
+  }
+
+  // 内容区域
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // 文件名
+  &__name {
+    width: var(--tr-attachments-card-name-width);
+    height: var(--tr-attachments-card-name-height);
+    font-size: var(--tr-attachments-font-size-small);
+    font-weight: var(--tr-attachments-font-weight-normal);
+    line-height: var(--tr-attachments-line-height);
+    color: var(--tr-attachments-text-color);
+    margin-bottom: 2px;
+    .text-ellipsis;
+  }
+
+  // 状态信息通用样式
+  &__status,
+  &__file-type,
+  &__file-size {
+    font-size: var(--tr-attachments-font-size-small);
+    font-weight: var(--tr-attachments-font-weight-normal);
+    line-height: var(--tr-attachments-line-height);
+    color: var(--tr-attachments-text-secondary);
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__file-type {
+    margin-right: 10px;
+  }
+
+  // 进度条
+  &__progress {
+    width: 100%;
+
+    &-text {
+      font-size: var(--tr-attachments-font-size-small);
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    &-bar {
+      height: var(--tr-attachments-progress-height);
+      width: 100%;
+      background-color: var(--tr-attachments-progress-bg);
+      border-radius: calc(var(--tr-attachments-progress-height) / 2);
+      overflow: hidden;
+    }
+
+    &-inner {
+      height: 100%;
+      background-color: var(--tr-attachments-progress-color);
+      transition: width var(--tr-attachments-transition-duration) var(--tr-attachments-transition-timing);
+    }
+  }
+
+  // 操作按钮
+  &__actions {
+    display: flex;
+    align-items: center;
+  }
+
+  &__action {
+    height: var(--tr-attachments-action-height);
+    .flex-center;
+    border: none;
+    background: transparent;
+    color: var(--tr-attachments-action-color);
+    cursor: pointer;
+    border-radius: var(--tr-attachments-padding-small);
+    transition: var(--tr-attachments-transition-fast-all);
+    white-space: nowrap;
+
+    &-icon {
+      font-size: var(--tr-attachments-font-size-small);
+      line-height: 1;
+    }
+
+    &--preview,
+    &--download {
+      color: var(--tr-attachments-action-preview-color);
+
+      &:hover {
+        color: var(--tr-attachments-action-hover-color);
+      }
+    }
+
+    &--download {
+      margin-left: var(--tr-attachments-action-spacing);
+    }
+  }
+
+  // 状态消息
+  &__message {
+    width: 100%;
+    font-size: var(--tr-attachments-font-size-small);
+    line-height: var(--tr-attachments-line-height);
+
+    &--error {
+      color: var(--tr-attachments-status-error-color);
+    }
+
+    &--warning {
+      color: var(--tr-attachments-status-warning-color);
+    }
+
+    &--success {
+      color: var(--tr-attachments-status-success-color);
+    }
+
+    &--info {
+      color: var(--tr-attachments-status-info-color);
+    }
+  }
+
+  // 重试按钮
+  &__retry {
+    display: flex;
+    gap: var(--tr-attachments-gap);
+    align-items: center;
+    width: 100%;
+  }
+
+  &__error-text {
+    color: var(--tr-attachments-status-error-color);
+    font-size: var(--tr-attachments-font-size-small);
+  }
+
+  &__retry-btn {
+    background: transparent;
+    border: none;
+    color: var(--tr-attachments-primary-color);
+    cursor: pointer;
+    font-size: var(--tr-attachments-font-size-small);
+    border-radius: var(--tr-attachments-padding-small);
+    transition: var(--tr-attachments-transition-fast-all);
+
+    &:hover {
+      background-color: var(--tr-attachments-primary-light);
+    }
+  }
+}
+
+// 动画定义
+@keyframes pulse-border {
+
+  0%,
+  100% {
+    border-color: var(--tr-attachments-drag-border-color);
+    box-shadow: 0 0 0 0 var(--tr-attachments-drag-shadow-color);
+  }
+
+  50% {
+    border-color: var(--tr-attachments-drag-border-color-active);
+    box-shadow: 0 0 0 5px rgba(25, 118, 210, 0);
+  }
+}

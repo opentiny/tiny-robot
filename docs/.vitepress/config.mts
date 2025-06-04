@@ -48,6 +48,7 @@ export default defineConfig({
             { text: 'Suggestion 快捷指令', link: 'suggestion' },
             { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
             { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
+            { text: 'Attachments 附件上传', link: 'attachments' },
           ],
         },
       ],
