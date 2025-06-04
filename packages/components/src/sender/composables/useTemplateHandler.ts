@@ -39,7 +39,6 @@ export interface TemplateHandlerOptions {
   onValueChange: (value: string) => void
   onInput: (value: string) => void
   onContentStatusChange: (hasContent: boolean) => void
-  onSubmit: (value: string) => void
 }
 
 /**

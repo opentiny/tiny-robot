@@ -137,6 +137,8 @@ export interface TemplateEditorProps {
   value?: string
   /** 是否自动聚焦 */
   autofocus?: boolean
+  /** 提交触发方式 */
+  submitType?: SubmitTrigger
 }
 
 /**
@@ -158,7 +160,7 @@ export interface TemplateEditorEmits {
   /** 内容变更状态 - 通知父组件是否有内容 */
   (e: 'content-status', hasContent: boolean): void
   /** 提交事件 */
-  (e: 'submit', value: string): void
+  (e: 'submit'): void
   /** 聚焦事件 */
   (e: 'focus', event: FocusEvent): void
   /** 失焦事件 */
