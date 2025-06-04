@@ -1,16 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useFileType } from '../composables/useFileType'
 import { useIconType } from '../composables/useIconType'
-import type { Attachment, FileType } from '../index.type'
+import type { Attachment, FileType, ActionButton } from '../index.type'
 import { IconUploadFailed, IconUploadLoading } from '@opentiny/tiny-robot-svgs'
 import ImagePreview from './ImagePreview.vue'
-
-// 自定义操作按钮类型
-interface ActionButton {
-  type: string
-  label: string
-  handler?: (file: Attachment) => void
-}
 
 const props = withDefaults(
   defineProps<{
@@ -32,6 +26,7 @@ const props = withDefaults(
 )
 
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
+const { formatFileSize } = useFileType()
 
 // 图片预览相关状态
 const isPreviewVisible = ref(false)
@@ -49,19 +44,6 @@ const fileTypeIcon = computed(() => {
 const isImage = computed(() => {
   return props.file.fileType === 'image'
 })
-
-// 格式化文件大小
-const formatFileSize = (size: number): string => {
-  if (size < 1024) {
-    return size + 'B'
-  } else if (size < 1024 * 1024) {
-    return (size / 1024).toFixed(1) + 'KB'
-  } else if (size < 1024 * 1024 * 1024) {
-    return (size / (1024 * 1024)).toFixed(1) + 'MB'
-  } else {
-    return (size / (1024 * 1024 * 1024)).toFixed(1) + 'GB'
-  }
-}
 
 // 判断文件状态
 const isUploading = computed(() => props.file.status === 'uploading' || props.file.isUploading)
@@ -231,8 +213,8 @@ const handleRetry = () => {
               <span v-if="file.messageType === 'error'">上传失败</span>
               <span v-if="file.messageType === 'warning'">上传警告</span>
               <span v-if="file.messageType === 'success'">上传成功</span>
-              <span v-if="file.messageType === 'info'">处理中</span>
-              <span v-if="file.messageType === 'uploading'">上传中</span>
+              <span v-if="file.messageType === 'info'">处理中...</span>
+              <span v-if="file.messageType === 'uploading'">上传中...</span>
               <span v-if="!file.messageType">{{ file.status || '状态信息' }}</span>
             </div>
           </template>
@@ -255,83 +237,3 @@ const handleRetry = () => {
     />
   </div>
 </template>
-
-<style lang="less" scoped>
-.tr-file-card {
-  /* 已有样式保持不变 */
-
-  &__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 8px;
-    z-index: 5;
-  }
-
-  &__icon-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__icon--preview {
-    cursor: pointer;
-    transition: transform 0.2s;
-
-    &:hover {
-      transform: scale(1.05);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-  }
-
-  &__loading-icon {
-    animation: spin 1.5s linear infinite;
-  }
-
-  &__retry {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    width: 100%;
-  }
-
-  &__error-text {
-    color: #f44336;
-    font-size: 12px;
-  }
-
-  &__retry-btn {
-    background: transparent;
-    border: none;
-    color: #1976d2;
-    cursor: pointer;
-    font-size: 12px;
-    border-radius: 4px;
-
-    &:hover {
-      background-color: rgba(25, 118, 210, 0.1);
-    }
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-}
-</style>

@@ -276,10 +276,6 @@
     z-index: var(--tr-attachments-z-index-overlay);
   }
 
-  &__loading-icon {
-    animation: spin 1.5s linear infinite;
-  }
-
   // 内容区域
   &__content {
     flex: 1;
@@ -453,15 +449,5 @@
   50% {
     border-color: var(--tr-attachments-drag-border-color-active);
     box-shadow: 0 0 0 5px rgba(25, 118, 210, 0);
-  }
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
   }
 }

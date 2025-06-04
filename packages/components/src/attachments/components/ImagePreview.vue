@@ -1,26 +1,3 @@
-<template>
-  <div class="tr-image-preview" v-if="visible" @click.self="close">
-    <div class="tr-image-preview__content">
-      <img :src="imageUrl" alt="预览图片" class="tr-image-preview__image" />
-      <div class="tr-image-preview__tools">
-        <button class="tr-image-preview__btn" @click="zoomIn">
-          <span>+</span>
-        </button>
-        <button class="tr-image-preview__btn" @click="resetZoom">
-          <span>100%</span>
-        </button>
-        <button class="tr-image-preview__btn" @click="zoomOut">
-          <span>-</span>
-        </button>
-        <button class="tr-image-preview__btn tr-image-preview__btn--download" @click="download">
-          <span>下载</span>
-        </button>
-      </div>
-      <button class="tr-image-preview__close" @click="close">×</button>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 
@@ -72,6 +49,29 @@ function download() {
   emit('download')
 }
 </script>
+
+<template>
+  <div class="tr-image-preview" v-if="visible" @click.self="close">
+    <div class="tr-image-preview__content">
+      <img :src="imageUrl" alt="预览图片" class="tr-image-preview__image" />
+      <div class="tr-image-preview__tools">
+        <button class="tr-image-preview__btn" @click="zoomIn">
+          <span>+</span>
+        </button>
+        <button class="tr-image-preview__btn" @click="resetZoom">
+          <span>100%</span>
+        </button>
+        <button class="tr-image-preview__btn" @click="zoomOut">
+          <span>-</span>
+        </button>
+        <button class="tr-image-preview__btn tr-image-preview__btn--download" @click="download">
+          <span>下载</span>
+        </button>
+      </div>
+      <button class="tr-image-preview__close" @click="close">×</button>
+    </div>
+  </div>
+</template>
 
 <style lang="less" scoped>
 .tr-image-preview {

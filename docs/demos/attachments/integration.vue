@@ -8,9 +8,11 @@
           v-model="singleInputValue"
           mode="single"
           :allow-files="true"
-          placeholder="请输入内容（单行模式）..."
+          uploadTooltip="上传文件 (支持图片、PDF、Word文档)"
+          placeholder="请输入内容，可以上传附件..."
           @submit="handleSingleSubmit"
-          @upload-local="handleSingleUploadLocal"
+          @upload-online="handleSingleOnlineUpload"
+          @files-selected="handleSingleFilesSelected"
         >
           <!-- 在头部插槽中放置附件组件，只有当有附件时才显示 -->
           <template #header v-if="singleAttachmentItems.length > 0">
@@ -29,16 +31,14 @@
         </tr-sender>
       </div>
 
-      <tr-attachments
-        v-show="false"
-        ref="singleAttachmentsRef"
-        v-model:items="singleAttachmentItems"
-        :drag="{ mode: 'container' }"
-        status-type="message"
-        @files-dropped="handleSingleFilesDropped"
-        @file-remove="handleSingleFileRemove"
-        @file-retry="handleSingleFileRetry"
-      />
+      <!-- 事件信息显示 -->
+      <div v-if="uploadEvents.length > 0" class="event-log">
+        <h4>触发的事件：</h4>
+        <div v-for="(event, index) in uploadEvents" :key="index" class="event-item">
+          <span class="event-time">{{ event.time }}</span>
+          <span class="event-type" :class="event.type">{{ event.message }}</span>
+        </div>
+      </div>
 
       <!-- 单行模式消息展示区域 -->
       <div class="messages-container" v-if="singleMessages.length > 0">
@@ -79,9 +79,52 @@ const singleAttachmentItems = ref<Attachment[]>([])
 const singleMessages = ref<Array<{ text: string; attachments?: Attachment[] }>>([])
 const singleAttachmentsRef = ref<InstanceType<typeof TrAttachments> | null>(null)
 
-// 单行模式处理函数
-const handleSingleUploadLocal = () => {
-  singleAttachmentsRef.value?.triggerUpload()
+// 事件日志
+const uploadEvents = ref<Array<{ time: string; message: string; type: string }>>([])
+
+// 添加事件记录的辅助函数
+const addEvent = (message: string, type: string) => {
+  const now = new Date().toLocaleTimeString()
+  uploadEvents.value.unshift({
+    time: now,
+    message,
+    type,
+  })
+
+  // 限制显示最近5条事件
+  if (uploadEvents.value.length > 5) {
+    uploadEvents.value = uploadEvents.value.slice(0, 5)
+  }
+}
+
+// 处理在线上传事件
+const handleSingleOnlineUpload = () => {
+  addEvent('触发在线文件事件 (upload-online)', 'online')
+  console.log('在线文件事件被触发，可以在这里处理在线文件选择逻辑')
+}
+
+// 处理文件选择事件
+const handleSingleFilesSelected = (files: FileList | null) => {
+  if (files && files.length > 0) {
+    addEvent(`选择了 ${files.length} 个文件 (files-selected)`, 'files')
+
+    // 将选中的文件转换为 Attachment 格式并添加到附件列表
+    const newAttachments: Attachment[] = Array.from(files).map((file, index) => ({
+      uid: `${Date.now()}-${index}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      status: 'ready',
+      messageType: 'info',
+      file: file,
+    }))
+
+    singleAttachmentItems.value.push(...newAttachments)
+    console.log('选中的文件：', newAttachments)
+
+    // 自动开始上传
+    handleSingleFilesDropped(newAttachments)
+  }
 }
 
 const handleSingleFilesDropped = (files: Attachment[]) => {
@@ -194,18 +237,68 @@ const handleSingleSubmit = () => {
 
 .demo-section h3 {
   margin-top: 0;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   color: #333;
   border-bottom: 2px solid #007acc;
   padding-bottom: 8px;
+}
+
+.demo-section p {
+  margin-top: 5px;
+  margin-bottom: 16px;
+  font-size: 0.9em;
+  color: #666;
 }
 
 .sender-container {
   margin-bottom: 20px;
 }
 
-.attachments-container {
-  /* margin-bottom: 8px; */
+.event-log {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  background-color: #f9f9f9;
+  margin-bottom: 20px;
+}
+
+.event-log h4 {
+  margin: 0 0 12px 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.event-item {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: white;
+  border-left: 3px solid #ddd;
+}
+
+.event-time {
+  font-size: 12px;
+  color: #666;
+  min-width: 80px;
+}
+
+.event-type {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.event-type.local {
+  color: #1890ff;
+}
+
+.event-type.online {
+  color: #52c41a;
+}
+
+.event-type.files {
+  color: #722ed1;
 }
 
 .messages-container {
@@ -222,6 +315,7 @@ const handleSingleSubmit = () => {
   border-bottom: 1px solid #e0e0e0;
   font-size: 14px;
   font-weight: 600;
+  padding: 12px;
 }
 
 .message {
