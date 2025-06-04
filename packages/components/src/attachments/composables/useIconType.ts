@@ -42,25 +42,7 @@ export function useIconType(customIcons?: Record<FileType, Component>) {
     })
   }
 
-  /**
-   * 获取文件类型对应的颜色
-   */
-  const getIconColor = (fileType: FileType = 'other'): string => {
-    const colorMap: Record<FileType, string> = {
-      image: '#42a5f5',
-      pdf: '#ff5252',
-      word: '#4285f4',
-      excel: '#00a650',
-      ppt: '#ff6d01',
-      folder: '#ffc107',
-      other: '#9e9e9e',
-    }
-
-    return colorMap[fileType] || colorMap.other
-  }
-
   return {
     getIconComponent,
-    getIconColor,
   }
 }
