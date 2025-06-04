@@ -117,15 +117,18 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 #### 文件上传
 
-支持附件上传功能，可通过`allowFiles`控制。
+支持附件上传功能，可通过`allowFiles`控制是否启用文件上传功能。
 
-> 目前仅支持按钮显示，后续会添加附件上传相关功能。
+点击文件上传按钮会显示上传选项弹窗，包含"在线文件"和"本地上传"两个选项：
 
-<tr-sender :allowFiles="true"  />
+- **本地上传**：点击后会自动打开文件选择对话框，用户选择文件后会触发 `files-selected` 事件，返回选中的文件列表
+- **在线文件**：点击后会触发 `upload-online` 事件，具体的在线文件选择逻辑需要在父组件中实现
 
-```vue
-<tr-sender :allowFiles="true" />
-```
+通过 `uploadTooltip` 属性可以自定义文件上传按钮的提示文本，默认为"上传文件"。
+
+**使用示例：**
+
+<demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="支持附件上传功能，本地上传会自动打开文件对话框，选择文件后返回文件列表。" />
 
 #### 模版填充
 
@@ -217,6 +220,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | autoSize             | 自动调整高度             | `boolean \| { minRows: number, maxRows: number }` | `false`           |
 | allowSpeech          | 是否开启语音输入         | `boolean`                                               | `false`           |
 | allowFiles           | 是否允许文件上传         | `boolean`                                               | `true`            |
+| uploadTooltip        | 文件上传按钮的提示文本   | `string`                                                | `'上传文件'`      |
 | clearable            | 是否可清空               | `boolean`                                               | `false`           |
 | disabled             | 是否禁用                 | `boolean`                                               | `false`           |
 | modelValue           | 绑定值(v-model)          | `string`                                                | `''`              |
@@ -249,6 +253,8 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | speech-interim    | 语音识别中间结果时触发     | `(transcript: string)` |
 | speech-error      | 语音识别错误时触发         | `(error: Error)`       |
 | suggestion-select | 选择输入建议时触发         | `(value: string)`      |
+| upload-online     | 在线文件上传时触发         | `()`                   |
+| files-selected    | 文件选择时触发             | `(files: FileList \| null)` |
 
 ### Methods
 
