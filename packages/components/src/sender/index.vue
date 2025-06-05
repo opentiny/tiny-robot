@@ -580,7 +580,7 @@ defineExpose({
           @mouseenter="handleSuggestionItemHover(index)"
           @mousedown.prevent="selectSuggestion(item)"
         >
-          <span class="suggestion-item__icon"><IconAssociate /></span>
+          <IconAssociate class="suggestion-item__icon" />
           <span class="suggestion-item__text">
             <span
               v-for="(part, partIndex) in highlightSuggestionText(item, inputValue)"
