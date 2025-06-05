@@ -309,6 +309,8 @@ const handleFocus = (event: FocusEvent) => {
 
 const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
+  // 失焦时关闭联想弹窗
+  closeSuggestionsPopup()
 }
 
 const currentType = computed(() => (currentMode.value === 'multiple' ? 'textarea' : 'text'))
