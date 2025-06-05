@@ -759,47 +759,46 @@
 }
 
 /* 模式切换过渡动画 */
-.tiny-sender-slide-up-enter-active,
-.tiny-sender-slide-up-leave-active,
-.tiny-sender-slide-down-enter-active,
-.tiny-sender-slide-down-leave-active {
-  overflow: hidden;
-  max-height: var(--tr-sender-transition-max-height);
+.tiny-sender-slide-up {
+
+  &-enter-active,
+  &-leave-active {
+    transition:
+      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
+      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
+  }
+
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  &-enter-to,
+  &-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.tiny-sender-slide-up-enter-from,
-.tiny-sender-slide-up-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-  max-height: 0;
-}
+.tiny-sender-slide-down {
 
-.tiny-sender-slide-down-enter-from,
-.tiny-sender-slide-down-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-  max-height: 0;
-}
+  &-enter-active,
+  &-leave-active {
+    transition:
+      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
+      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
+  }
 
-/* 模式切换过渡动画 */
-.tiny-sender-slide-up-enter-active,
-.tiny-sender-slide-up-leave-active,
-.tiny-sender-slide-down-enter-active,
-.tiny-sender-slide-down-leave-active {
-  overflow: hidden;
-  max-height: var(--tr-sender-transition-max-height);
-}
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 
-.tiny-sender-slide-up-enter-from,
-.tiny-sender-slide-up-leave-to {
-  opacity: 0;
-  transform: translateY(10px);
-  max-height: 0;
-}
-
-.tiny-sender-slide-down-enter-from,
-.tiny-sender-slide-down-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-  max-height: 0;
+  &-enter-to,
+  &-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
