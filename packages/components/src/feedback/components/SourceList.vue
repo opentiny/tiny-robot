@@ -18,7 +18,7 @@ const morePillIndex = ref<number | null>(null)
 
 const updateMoreIndex = () => {
   nextTick(() => {
-    const tops = pillRefs.value.map((el) => el?.offsetTop || 0)
+    const tops = pillRefs.value.slice(0, props.sources.length).map((el) => el?.offsetTop || 0)
     const uniqueTops = Array.from(new Set(tops))
 
     if (uniqueTops.length > props.linesLimit) {

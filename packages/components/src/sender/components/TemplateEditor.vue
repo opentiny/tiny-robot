@@ -1,465 +1,398 @@
 <script setup lang="ts">
-import { ref, nextTick, watch, onMounted } from 'vue'
-import { TemplatePart, TemplateEditorProps, TemplateEditorEmits, TemplateEditorExpose } from '../index.type'
+import { ref, watch, onMounted, nextTick } from 'vue'
+import type { TemplateEditorProps, TemplateEditorEmits, TemplateEditorExpose, SetTemplateParams } from '../index.type'
+import { useTemplateHandler } from '../composables/useTemplateHandler'
+import { useTemplateKeyboardHandler } from '../composables/useKeyboardHandler'
 
-// 使用类型定义props
+// 使用 defineModel 定义双向绑定的值
+const inputValue = defineModel<string>('value', { default: '' })
+
 const props = defineProps<TemplateEditorProps>()
 
-// 使用类型定义emits
 const emit = defineEmits<TemplateEditorEmits>()
 
-// 编辑器DOM引用
-const editorRef = ref<HTMLElement | null>(null)
+// DOM引用
+const contentEditableRef = ref<HTMLDivElement | null>(null)
 
-// 可编辑元素引用集合
-const editableRefs = ref<Record<number, HTMLElement>>({})
+// 内部状态
+const template = ref('')
+const initialValues = ref<Record<string, string>>({})
+const isInternalUpdate = ref(false) // 防止程序化更新时的事件循环
+const isComposing = ref(false) // 输入法组合状态
 
-// 当前激活的输入块索引
-const activeFieldIndex = ref<number>(-1)
+// 使用模板处理 Hook
+const templateHandler = useTemplateHandler(contentEditableRef, {
+  template: template.value,
+  value: inputValue.value,
+  initialValues: initialValues.value,
+  isInternalUpdate,
+  isComposing,
+  onValueChange: (newValue: string) => {
+    // 强制更新 defineModel 的值，即使在内部更新期间也要同步
+    if (inputValue.value !== newValue) {
+      // 临时设置标志，防止循环更新
+      const wasInternalUpdate = isInternalUpdate.value
+      isInternalUpdate.value = true
 
-// 是否有内容标志
-const hasContent = ref(false)
+      inputValue.value = newValue
 
-// 标记是否是用户手动编辑
-const isUserEditing = ref(false)
-
-// 标记是否是内部更新，避免循环更新
-const isInternalUpdate = ref(false)
-
-// 使用ref代替computed属性，作为组件的主要状态来源
-const editableParts = ref<TemplatePart[]>([])
-
-// 解析模板，将其分解为普通文本和可编辑字段
-const parseTemplate = (template: string): TemplatePart[] => {
-  const parts: TemplatePart[] = []
-  let currentIndex = 0
-  let fieldIndex = 0
-
-  // 正则表达式匹配 [xxx] 格式
-  const regex = /\[(.*?)\]/g
-  let match
-
-  while ((match = regex.exec(template)) !== null) {
-    // 添加匹配前的普通文本
-    if (match.index > currentIndex) {
-      parts.push({
-        content: template.substring(currentIndex, match.index),
-        isField: false,
+      // 恢复标志
+      nextTick(() => {
+        isInternalUpdate.value = wasInternalUpdate
       })
     }
+  },
+  onInput: (newValue: string) => {
+    emit('input', newValue)
+  },
+  onContentStatusChange: (hasContent: boolean) => emit('content-status', hasContent),
+  onSubmit: (submitValue: string) => emit('submit', submitValue),
+})
 
-    // 添加匹配的字段，将placeholder作为默认内容
-    parts.push({
-      content: match[1], // 使用占位符作为默认内容
-      placeholder: match[1],
-      isField: true,
-      fieldIndex: fieldIndex++,
-    })
+// 使用键盘事件处理 Hook
+const keyboardHandler = useTemplateKeyboardHandler({
+  editor: contentEditableRef,
+  isComposing,
+  getValueFromDOM: templateHandler.getValueFromDOM,
+  handleInput: templateHandler.handleInput,
+  onSubmit: (submitValue: string) => emit('submit', submitValue),
+})
 
-    currentIndex = match.index + match[0].length
-  }
+// 生成模板内容的辅助函数
+const generateTemplateContent = (templateStr: string, initialVals: Record<string, string>): string => {
+  let content = templateStr
 
-  // 添加剩余的普通文本
-  if (currentIndex < template.length) {
-    parts.push({
-      content: template.substring(currentIndex),
-      isField: false,
-    })
-  }
-
-  return parts
-}
-
-// 初始化editableParts
-const initializeEditableParts = (): void => {
-  editableParts.value = parseTemplate(props.template)
-  if (props.value) {
-    updatePartsFromValue(props.value)
-  }
-}
-
-// 从value更新各个部分的内容
-const updatePartsFromValue = (value: string): void => {
-  if (!value || isInternalUpdate.value) return
-
-  // 仅在值确实不同时才更新，避免不必要的处理
-  const currentValue = generateValue()
-  if (currentValue === value) return
-
-  // 创建一个临时的解析结果用于比较
-  const templateStructure = parseTemplate(props.template)
-
-  // 计算模板的静态部分（非字段部分）
-  const staticParts: string[] = []
-
-  templateStructure.forEach((part) => {
-    if (!part.isField) {
-      staticParts.push(part.content)
-    } else {
-      // 用一个占位符标记字段位置
-      staticParts.push(`__FIELD_${part.fieldIndex}__`)
-    }
+  // 替换模板中的占位符
+  Object.entries(initialVals).forEach(([key, value]) => {
+    const placeholder = `[${key}]`
+    content = content.replace(new RegExp(placeholder.replace(/[[\]]/g, '\\$&'), 'g'), value)
   })
 
-  // 使用静态部分作为分隔符，尝试提取字段值
-  let remainingValue = value
-  let currentFieldIndex = 0
+  return content
+}
 
-  // 遍历editableParts，找到字段并更新
-  for (let i = 0; i < editableParts.value.length; i++) {
-    const part = editableParts.value[i]
+// 设置模板方法
+const setTemplate = (params: SetTemplateParams) => {
+  // 设置内部更新标志，防止触发 watch 回调
+  isInternalUpdate.value = true
 
-    if (!part.isField) continue
+  template.value = params.template
+  initialValues.value = params.initialValues || {}
 
-    // 尝试找到当前字段前的静态部分
-    const prevStaticPart = staticParts[currentFieldIndex]
-    currentFieldIndex++
+  // 生成基于新模板和初始值的内容
+  const newContent = generateTemplateContent(template.value, initialValues.value)
 
-    // 下一个静态部分（如果有）
-    const nextStaticPart = staticParts[currentFieldIndex] || ''
+  // 更新 templateHandler 的选项
+  templateHandler.updateOptions({
+    template: template.value,
+    value: newContent, // 使用新生成的内容而不是旧的inputValue
+    initialValues: initialValues.value,
+  })
 
-    if (prevStaticPart && remainingValue.startsWith(prevStaticPart)) {
-      // 移除前导静态部分
-      remainingValue = remainingValue.substring(prevStaticPart.length)
+  // 更新 DOM
+  templateHandler.updateEditorDOM()
 
-      // 如果有下一个静态部分，提取中间的字段值
-      if (nextStaticPart && remainingValue.includes(nextStaticPart)) {
-        const fieldEndIndex = remainingValue.indexOf(nextStaticPart)
-        const fieldValue = remainingValue.substring(0, fieldEndIndex)
+  // 同步更新 inputValue
+  inputValue.value = newContent
 
-        // 更新字段内容
-        if (fieldValue) {
-          editableParts.value[i].content = fieldValue
+  // 重置内部更新标志
+  nextTick(() => {
+    isInternalUpdate.value = false
+  })
+}
 
-          // 如果当前字段是激活状态，更新DOM内容，但不改变光标位置
-          if (activeFieldIndex.value === i && editableRefs.value[i]) {
-            // 使用MutationObserver来禁用临时
-            isUserEditing.value = true
-            // 不要直接设置textContent，避免干扰用户输入
+// 处理输入法组合事件
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+const handleCompositionEnd = () => {
+  isComposing.value = false
+  templateHandler.handleInput()
+}
+
+// 处理点击事件
+const handleEditorClick = (event: MouseEvent) => {
+  if (!contentEditableRef.value) return
+
+  const target = event.target as HTMLElement
+  let fieldElement: HTMLElement | null = null
+
+  if (target.classList.contains('template-field')) {
+    fieldElement = target
+  } else if (target.parentElement?.classList.contains('template-field')) {
+    fieldElement = target.parentElement
+  }
+
+  if (fieldElement) {
+    if (!fieldElement.textContent || fieldElement.textContent.trim() === '') {
+      const selection = window.getSelection()
+      const range = document.createRange()
+
+      if (selection) {
+        range.selectNodeContents(fieldElement)
+        range.collapse(true)
+        selection.removeAllRanges()
+        selection.addRange(range)
+        fieldElement.focus()
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+  }
+}
+
+// 处理粘贴事件
+const handlePaste = (event: ClipboardEvent) => {
+  event.preventDefault()
+
+  // 获取粘贴的数据
+  const clipboardData = event.clipboardData
+  if (!clipboardData) return
+
+  // 获取HTML和文本内容
+  const htmlData = clipboardData.getData('text/html')
+  const textData = clipboardData.getData('text/plain')
+
+  if (htmlData) {
+    // 创建临时容器解析HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlData
+
+    // 检查并修复模板字段
+    const spans = tempDiv.querySelectorAll('span')
+    let hasTemplateFields = false
+
+    spans.forEach((span) => {
+      const element = span as HTMLElement
+      const style = element.style
+
+      // 检查是否具有模板字段的特征
+      const hasTemplateFieldClass = element.classList.contains('template-field')
+      const hasTemplateFieldAttr = element.hasAttribute('data-placeholder')
+
+      // 检查背景颜色特征（支持多种格式）
+      const hasTemplateFieldBg =
+        style.backgroundColor &&
+        // 标准格式
+        (style.backgroundColor === 'rgba(0, 0, 0, 0.05)' ||
+          style.backgroundColor === 'rgba(0, 0, 0, 0.08)' ||
+          // 可能的变体格式
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.05)') ||
+          style.backgroundColor.includes('rgba(0, 0, 0, 0.08)') ||
+          // 十六进制或其他可能的格式
+          style.backgroundColor.toLowerCase().includes('0.05') ||
+          style.backgroundColor.toLowerCase().includes('0.08'))
+
+      // 检查其他可能的模板字段特征
+      const hasTemplateFieldStyles =
+        style.borderRadius === '4px' ||
+        style.padding === '3px 8px' ||
+        style.margin === '0px 2px' ||
+        style.whiteSpace === 'nowrap'
+
+      if (hasTemplateFieldClass || hasTemplateFieldAttr || hasTemplateFieldBg || hasTemplateFieldStyles) {
+        hasTemplateFields = true
+        // 确保有正确的类名
+        element.className = 'template-field'
+
+        // 获取placeholder
+        if (!element.getAttribute('data-placeholder')) {
+          const placeholder = templateHandler.extractPlaceholderFromElement(element)
+
+          if (placeholder) {
+            element.setAttribute('data-placeholder', placeholder)
           }
         }
 
-        // 移除已处理的部分
-        remainingValue = remainingValue.substring(fieldEndIndex)
-      } else if (!nextStaticPart && remainingValue) {
-        // 如果是最后一个字段，则剩余的全部是它的值
-        editableParts.value[i].content = remainingValue
-        remainingValue = ''
-      }
-    }
-  }
-
-  // 更新内容状态
-  checkHasContent(value)
-}
-
-// 生成完整的文本值
-const generateValue = (): string => {
-  return editableParts.value.map((part) => part.content).join('')
-}
-
-// 更新值并触发事件
-const updateValue = (): void => {
-  isInternalUpdate.value = true
-  const newValue = generateValue()
-  emit('update:value', newValue)
-  emit('input', newValue)
-  checkHasContent(newValue)
-
-  // 延迟重置标志，防止循环更新
-  setTimeout(() => {
-    isInternalUpdate.value = false
-  }, 0)
-}
-
-// 检查是否有内容
-const checkHasContent = (value?: string): void => {
-  const contentValue = value || generateValue()
-  const newHasContent = contentValue.trim().length > 0
-
-  if (hasContent.value !== newHasContent) {
-    hasContent.value = newHasContent
-    emit('content-status', newHasContent)
-  }
-}
-
-// 注册可编辑元素引用
-const registerEditableRef = (el: HTMLSpanElement | null, index: number): void => {
-  if (el) {
-    // 保存引用
-    editableRefs.value[index] = el
-
-    // 设置初始内容 (只在初始时设置，后续由用户输入控制)
-    if (!el.textContent) {
-      el.textContent = editableParts.value[index].content
-    }
-
-    // 使用MutationObserver监听内容变化，但避免循环更新
-    const observer = new MutationObserver(() => {
-      if (activeFieldIndex.value === index && !isUserEditing.value) {
-        isUserEditing.value = true
-
-        // 延迟更新模型，避免与Vue渲染循环冲突
-        setTimeout(() => {
-          editableParts.value[index].content = el.textContent !== null ? el.textContent : ''
-          isUserEditing.value = false
-        }, 0)
+        // 清理内联样式，让CSS类接管
+        element.removeAttribute('style')
       }
     })
 
-    observer.observe(el, {
-      characterData: true,
-      childList: true,
-      subtree: true,
-    })
+    if (hasTemplateFields) {
+      // 插入修复后的HTML
+      insertHtmlContent(tempDiv)
+      return
+    }
+  }
+
+  // 如果没有检测到模板字段，则插入纯文本
+  if (textData) {
+    insertTextContent(textData)
   }
 }
 
-// 处理内容输入事件
-const handleContentInput = (event: Event, index: number): void => {
-  isUserEditing.value = true
+// 插入HTML内容的辅助函数
+const insertHtmlContent = (container: HTMLElement) => {
+  const selection = window.getSelection()
+  if (selection && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
 
-  // 获取当前输入内容
-  const target = event.target as HTMLElement
-  const content = target.textContent !== null ? target.textContent : ''
+    // 将修复后的内容插入
+    const fragment = document.createDocumentFragment()
+    while (container.firstChild) {
+      fragment.appendChild(container.firstChild)
+    }
+    range.insertNode(fragment)
 
-  // 更新模型，但不触发DOM更新
-  if (editableParts.value[index].content !== content) {
-    editableParts.value[index].content = content
-    updateValue()
-  }
-
-  // 通过延时重置标志，防止与MutationObserver冲突
-  setTimeout(() => {
-    isUserEditing.value = false
-  }, 10)
-}
-
-// 将光标放到元素内容末尾
-const placeCaretAtEnd = (el: HTMLElement): void => {
-  if (document.createRange) {
-    const range = document.createRange()
-    range.selectNodeContents(el)
-    // false表示光标放到末尾
+    // 移动光标到插入内容的末尾
     range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
 
-    const selection = window.getSelection()
-    if (selection) {
-      selection.removeAllRanges()
-      selection.addRange(range)
-    }
+    // 强制更新值 - 多重保障
+    updateValueAfterPaste()
   }
 }
 
-// 激活输入块
-const activateField = (index: number): void => {
-  // 如果点击的就是当前激活的字段，不做任何处理
-  if (activeFieldIndex.value === index) {
-    return
+// 插入文本内容的辅助函数
+const insertTextContent = (text: string) => {
+  const selection = window.getSelection()
+  if (selection && selection.rangeCount > 0) {
+    const range = selection.getRangeAt(0)
+    range.deleteContents()
+    range.insertNode(document.createTextNode(text))
+
+    // 移动光标到插入内容的末尾
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+
+    // 强制更新值 - 多重保障
+    updateValueAfterPaste()
   }
+}
 
-  // 如果当前已有激活的字段，先保存它的值
-  if (activeFieldIndex.value !== -1) {
-    const currentIndex = activeFieldIndex.value
-    const el = editableRefs.value[currentIndex]
-    if (el) {
-      editableParts.value[currentIndex].content = el.textContent !== null ? el.textContent : ''
-      updateValue()
-    }
-  }
+// 粘贴后强制更新值的辅助函数
+const updateValueAfterPaste = () => {
+  // 确保不在输入法组合状态
+  isComposing.value = false
 
-  // 设置激活状态
-  activeFieldIndex.value = index
-  emit('field-active', true, index)
-
-  // 确保DOM更新后再聚焦
+  // 使用多种方式确保值被正确更新
   nextTick(() => {
-    const el = editableRefs.value[index]
-    if (el) {
-      // 先获取焦点
-      el.focus()
+    // 方法1: 直接调用handleInput
+    templateHandler.handleInput()
 
-      // 确保元素有内容以便放置光标
-      if (!el.textContent && editableParts.value[index].content) {
-        el.textContent = editableParts.value[index].content
+    // 方法2: 手动获取DOM值并更新
+    const newValue = templateHandler.getValueFromDOM()
+    if (newValue !== inputValue.value) {
+      // 临时设置标志，防止循环更新
+      const wasInternalUpdate = isInternalUpdate.value
+      isInternalUpdate.value = true
+
+      inputValue.value = newValue
+      emit('input', newValue)
+
+      // 恢复标志
+      nextTick(() => {
+        isInternalUpdate.value = wasInternalUpdate
+      })
+    }
+
+    // 方法3: 再次延迟确保DOM完全更新
+    setTimeout(() => {
+      const finalValue = templateHandler.getValueFromDOM()
+      if (finalValue !== inputValue.value) {
+        isInternalUpdate.value = true
+        inputValue.value = finalValue
+        emit('input', finalValue)
+
+        nextTick(() => {
+          isInternalUpdate.value = false
+        })
       }
-
-      // 将光标放到末尾
-      placeCaretAtEnd(el)
-    }
+    }, 50)
   })
 }
 
-// 取消激活输入块
-const deactivateField = (): void => {
-  const currentIndex = activeFieldIndex.value
-  if (currentIndex >= 0) {
-    // 更新当前编辑的内容
-    const el = editableRefs.value[currentIndex]
-    if (el) {
-      // 使用实际内容，不回退到占位符
-      const content = el.textContent !== null ? el.textContent : ''
-      editableParts.value[currentIndex].content = content
-    }
-
-    emit('field-active', false, currentIndex)
-  }
-
-  updateValue()
-  activeFieldIndex.value = -1
-}
-
-// 处理输入框键盘事件
-const handleInputKeyDown = (event: KeyboardEvent): void => {
-  // 只处理Enter键
-  if (event.key === 'Enter') {
-    event.preventDefault()
-    deactivateField()
-  }
-}
-
-// 监听值变化
-watch(
-  () => props.value,
-  (newValue) => {
-    // 如果外部值为空字符串，重置为默认placeholder值
-    if (newValue === '') {
-      resetToDefaultValues()
-    } else if (newValue && !isInternalUpdate.value) {
-      // 如果新值不为空，并且不是内部更新触发的，更新各部分内容
-      updatePartsFromValue(newValue)
-    }
-  },
-)
-
-// 监听模板变化
-watch(
-  () => props.template,
-  () => {
-    // 当模板变化时，重新初始化
-    initializeEditableParts()
-    // 检查内容状态
-    nextTick(() => {
-      checkHasContent()
-    })
-  },
-  { immediate: true },
-)
-
-// 重置所有字段内容为默认值
-const resetToDefaultValues = (): void => {
-  editableParts.value.forEach((part) => {
-    if (part.isField) {
-      part.content = part.placeholder || ''
-    }
-  })
-  // 更新值
-  updateValue()
-}
-
-// 重置所有字段内容
-const resetFields = (): void => {
-  resetToDefaultValues()
-}
-
-// 组件挂载时
 onMounted(() => {
-  // 初始化内容状态
-  checkHasContent()
+  if (template.value) {
+    templateHandler.updateEditorDOM()
+  }
+  if (props.autofocus && contentEditableRef.value) {
+    templateHandler.setCursorToEnd()
+  }
 })
 
-// 导出方法供父组件调用
-defineExpose<TemplateEditorExpose>({
-  activateFirstField: () => {
-    for (let i = 0; i < editableParts.value.length; i++) {
-      if (editableParts.value[i].isField) {
-        activateField(i)
-        break
-      }
+// 监听内部 template 变化
+watch(
+  () => template.value,
+  () => {
+    if (!isInternalUpdate.value) {
+      templateHandler.updateOptions({
+        template: template.value,
+        value: inputValue.value,
+        initialValues: initialValues.value,
+      })
+      templateHandler.updateEditorDOM()
     }
   },
-  resetFields,
+)
+
+// 监听 initialValues 变化
+watch(
+  () => initialValues.value,
+  () => {
+    if (!isInternalUpdate.value) {
+      templateHandler.updateOptions({
+        template: template.value,
+        value: inputValue.value,
+        initialValues: initialValues.value,
+      })
+      templateHandler.updateEditorDOM()
+    }
+  },
+  { deep: true },
+)
+
+// 监听 defineModel 的值变化
+watch(
+  () => inputValue.value,
+  (newValue) => {
+    if (!isInternalUpdate.value) {
+      // 先更新 templateHandler 的 options.value
+      templateHandler.updateOptions({
+        template: template.value,
+        value: newValue,
+        initialValues: initialValues.value,
+      })
+      templateHandler.updateEditorDOM()
+    }
+
+    // 检测模板内容是否为空，如果为空则通知父组件可以退出模板编辑模式
+    if (!newValue || newValue.trim() === '') {
+      emit('empty-content')
+    }
+  },
+)
+
+// 暴露方法
+defineExpose<TemplateEditorExpose>({
+  focus: () => {
+    contentEditableRef.value?.focus()
+    templateHandler.setCursorToEnd()
+  },
+  resetFields: templateHandler.resetFields,
+  activateFirstField: templateHandler.activateFirstField,
+  getValueFromDOM: templateHandler.getValueFromDOM,
+  setTemplate,
 })
 </script>
 
 <template>
-  <div class="template-editor">
-    <div class="template-content" ref="editorRef">
-      <template v-for="(part, index) in editableParts" :key="index">
-        <!-- 普通文本部分 -->
-        <span v-if="!part.isField">{{ part.content }}</span>
-
-        <!-- 可编辑的输入块部分 -->
-        <span
-          v-else
-          class="template-field"
-          :class="{ 'template-field-active': activeFieldIndex === index }"
-          @click="activateField(index)"
-        >
-          <!-- 编辑状态显示 -->
-          <span
-            v-if="activeFieldIndex === index"
-            :ref="(el) => registerEditableRef(el as HTMLSpanElement, index)"
-            class="template-editable"
-            contenteditable="true"
-            @input="handleContentInput($event, index)"
-            @blur="deactivateField()"
-            @keydown="handleInputKeyDown($event)"
-            @click.stop
-          ></span>
-          <!-- 非编辑状态显示 -->
-          <span v-else class="template-placeholder">{{ part.content }}</span>
-        </span>
-      </template>
-    </div>
-  </div>
+  <div
+    class="template-editor"
+    ref="contentEditableRef"
+    contenteditable="true"
+    @input="templateHandler.handleInput"
+    @keydown="keyboardHandler.handleTemplateKeyDown"
+    @click="handleEditorClick"
+    @compositionstart="handleCompositionStart"
+    @compositionend="handleCompositionEnd"
+    @focus="$emit('focus', $event)"
+    @blur="$emit('blur', $event)"
+    @paste="handlePaste"
+  ></div>
 </template>
-
-<style lang="less" scoped>
-.template-editor {
-  width: 100%;
-  min-height: 26px;
-  line-height: 26px;
-}
-
-.template-content {
-  display: inline;
-  word-break: break-word;
-}
-
-.template-field {
-  display: inline-block;
-  height: 26px;
-  min-width: fit-content;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.05);
-  padding: 0 10px;
-  margin: 0 2px;
-  vertical-align: middle;
-  cursor: text;
-  transition: all 0.2s ease;
-
-  &-active {
-    background-color: #ffffff;
-    border: 1px solid rgba(194, 194, 194);
-    border-radius: 4px;
-  }
-
-  .template-placeholder {
-    color: #333;
-    user-select: none;
-  }
-}
-
-.template-editable {
-  display: inline-block;
-  min-width: 1px; // 防止编辑框过窄
-  outline: none;
-  white-space: nowrap;
-  color: #333;
-
-  &:focus {
-    outline: none;
-  }
-}
-</style>

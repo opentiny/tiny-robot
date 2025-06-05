@@ -43,6 +43,7 @@ export interface SenderProps {
   theme?: ThemeType // 主题
   template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
   hasContent?: boolean // 手动指定是否有内容，用于模板模式
+  templateInitialValues?: Record<string, string> // 模板字段的初始值，键为字段占位符文本，值为初始内容
 }
 
 export interface ActionButtonsProps {
@@ -58,6 +59,7 @@ export interface ActionButtonsProps {
   allowFiles?: boolean // 是否允许上传附件
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
+  isOverLimit?: boolean // 是否超出字数限制
 }
 
 // 组件事件定义
@@ -131,32 +133,52 @@ export interface TemplatePart {
  * 模板编辑器属性
  */
 export interface TemplateEditorProps {
-  /** 模板字符串，格式为普通文本与 [占位符] 的组合 */
-  template: string
   /** 当前值 */
   value?: string
+  /** 是否自动聚焦 */
+  autofocus?: boolean
+}
+
+/**
+ * 设置模板的参数接口
+ */
+export interface SetTemplateParams {
+  /** 模板字符串，格式为普通文本与 [占位符] 的组合 */
+  template: string
+  /** 字段初始值，键为占位符文本，值为初始内容 */
+  initialValues?: Record<string, string>
 }
 
 /**
  * 模板编辑器事件
  */
 export interface TemplateEditorEmits {
-  /** 更新值 */
-  (e: 'update:value', value: string): void
   /** 输入事件 */
   (e: 'input', value: string): void
   /** 内容变更状态 - 通知父组件是否有内容 */
   (e: 'content-status', hasContent: boolean): void
-  /** 字段激活状态变更 */
-  (e: 'field-active', isActive: boolean, index: number): void
+  /** 提交事件 */
+  (e: 'submit', value: string): void
+  /** 聚焦事件 */
+  (e: 'focus', event: FocusEvent): void
+  /** 失焦事件 */
+  (e: 'blur', event: FocusEvent): void
+  /** 模板内容为空时触发，通知父组件可以退出模板编辑模式 */
+  (e: 'empty-content'): void
 }
 
 /**
  * 模板编辑器暴露的方法
  */
 export interface TemplateEditorExpose {
-  /** 激活第一个可编辑字段 */
-  activateFirstField: () => void
+  /** 聚焦到编辑器 */
+  focus: () => void
   /** 重置所有字段 */
   resetFields: () => void
+  /** 激活第一个字段 */
+  activateFirstField: () => void
+  /** 获取当前DOM中的值 */
+  getValueFromDOM: () => string
+  /** 设置模板和初始值 */
+  setTemplate: (params: SetTemplateParams) => void
 }

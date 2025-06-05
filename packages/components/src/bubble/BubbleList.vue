@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
-import { computed, useTemplateRef, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Bubble from './Bubble.vue'
 import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})
 
-const scrollContainerRef = useTemplateRef<HTMLDivElement>('scrollContainer')
+const scrollContainerRef = ref<HTMLDivElement | null>(null)
 const { y } = useScroll(scrollContainerRef, {
   behavior: 'smooth',
   throttle: 100,
@@ -35,7 +35,7 @@ const getItemSlots = (item: BubbleProps & { slots?: BubbleSlots }): BubbleSlots 
 </script>
 
 <template>
-  <div class="tr-bubble-list" ref="scrollContainer">
+  <div class="tr-bubble-list" ref="scrollContainerRef">
     <Bubble v-for="(item, index) in props.items" :key="item.id || index" v-bind="getItemProps(item)">
       <template v-for="(_, slotName) in getItemSlots(item)" #[slotName]="slotProps" :key="slotName">
         <component :is="getItemSlots(item)[slotName]" v-bind="slotProps" />
