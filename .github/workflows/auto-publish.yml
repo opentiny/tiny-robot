@@ -12,12 +12,12 @@ on:
 # 定义工作流中的作业
 jobs:
   build:
-    # 指定运行环境为最新版本的Windows
-    runs-on: windows-latest
+    # 指定运行环境为最新版本的ubuntu
+    runs-on: ubuntu-latest
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
 
@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20 # 使用Node.js 20版本
-          cache: 'pnpm' # 启用pnpm缓存
+          registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
       # 步骤4: 获取pnpm缓存目录路径
       - name: Get pnpm store directory

@@ -18,6 +18,27 @@ outline: deep
 
 如果你想自定义弹出容器的边距，使用 `:deep(.tr-suggestion-pills__more-wrapper)` 选择器
 
+```less
+:deep(.tr-suggestion-pills__more-wrapper) {
+  left: 40px
+}
+```
+
+由于目前弹窗是位于 SuggestionPills 内部，无法使用 mask 来实现右侧超出的按钮渐变。需要手动加上下面的样式
+
+```less
+:deep(.tr-suggestion-pills__container) {
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    // 背景色需要和容器背景色一致
+    background: linear-gradient(to right, rgba(rgb(248, 248, 248), 0) 90%, rgba(rgb(248, 248, 248), 1));
+    pointer-events: none;
+  }
+}
+```
+
 ### 使用插槽（不推荐）
 
 如果是使用默认插槽，`TrSuggestionPills` 的 `item-click` 事件是无效的。而且无法添加展开收起逻辑
