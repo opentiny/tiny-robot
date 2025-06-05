@@ -18,11 +18,12 @@ const { width } = useElementSize(containerRef)
 const hiddenIndex = ref(-1)
 const hasShowMoreBtn = computed(() => hiddenIndex.value !== -1)
 const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
-const staticItems = computed(() => {
+
+const staticItemsLength = computed(() => {
   if (!hasShowMoreBtn.value || !showAll.value) {
-    return props.items || []
+    return props.items?.length || 0
   }
-  return (props.items || []).slice(0, hiddenIndex.value)
+  return hiddenIndex.value
 })
 const floatingItems = computed(() => {
   if (!hasShowMoreBtn.value || !showAll.value) {
@@ -56,8 +57,9 @@ watchDebounced(
   { debounce: 100 },
 )
 
-const handleClick = (item: SuggestionPillItem, index: number) => {
+const handleClick = (ev: MouseEvent, item: SuggestionPillItem, index: number) => {
   if (hasShowMoreBtn.value && index >= hiddenIndex.value) {
+    ev.stopPropagation()
     toggleIsShowingMore()
     return
   }
@@ -73,8 +75,15 @@ const toggleIsShowingMore = () => {
   <div class="tr-suggestion-pills__wrapper">
     <div class="tr-suggestion-pills__container" ref="containerRef">
       <slot>
-        <template v-for="(item, index) in staticItems" :key="item.id">
-          <PillButtonWrapper :item="item" @click="handleClick(item, index)"></PillButtonWrapper>
+        <template v-for="(item, index) in props.items" :key="item.id">
+          <PillButtonWrapper
+            :item="item"
+            :style="{
+              visibility: index < staticItemsLength ? undefined : 'hidden',
+              pointerEvents: index < staticItemsLength ? undefined : 'none',
+            }"
+            @click="handleClick($event, item, index)"
+          ></PillButtonWrapper>
         </template>
       </slot>
     </div>
