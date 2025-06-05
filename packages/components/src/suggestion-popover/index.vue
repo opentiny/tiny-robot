@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementBounding, useMediaQuery } from '@vueuse/core'
-import { computed, CSSProperties, ref, watch } from 'vue'
+import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
@@ -21,6 +21,9 @@ const props = withDefaults(defineProps<SuggestionPopoverProps>(), {
   topOffset: 0,
   groupShowMoreTrigger: 'hover',
 })
+
+const attrs = useAttrs()
+const attrsStyle = computed(() => attrs.style as StyleValue)
 
 const showRef = ref(false)
 
@@ -138,7 +141,13 @@ const handleGroupClick = (id: string) => {
 </script>
 
 <template>
-  <div class="tr-question-popover__wrapper" ref="popoverTriggerRef" @click="handleToggleShow">
+  <div
+    class="tr-question-popover__wrapper"
+    :class="attrs.class"
+    :style="attrsStyle"
+    ref="popoverTriggerRef"
+    @click="handleToggleShow"
+  >
     <slot />
   </div>
   <div v-if="show && isMobile" class="tr-question-popover__backdrop"></div>

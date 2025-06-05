@@ -12,12 +12,12 @@ on:
 # 定义工作流中的作业
 jobs:
   build:
-    # 指定运行环境为最新版本的Windows
-    runs-on: windows-latest
+    # 指定运行环境为最新版本的ubuntu
+    runs-on: ubuntu-latest
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
 

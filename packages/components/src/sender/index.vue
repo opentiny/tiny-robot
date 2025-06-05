@@ -309,6 +309,8 @@ const handleFocus = (event: FocusEvent) => {
 
 const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
+  // 失焦时关闭联想弹窗
+  closeSuggestionsPopup()
 }
 
 const currentType = computed(() => (currentMode.value === 'multiple' ? 'textarea' : 'text'))
@@ -578,7 +580,7 @@ defineExpose({
           @mouseenter="handleSuggestionItemHover(index)"
           @mousedown.prevent="selectSuggestion(item)"
         >
-          <span class="suggestion-item__icon"><IconAssociate /></span>
+          <IconAssociate class="suggestion-item__icon" />
           <span class="suggestion-item__text">
             <span
               v-for="(part, partIndex) in highlightSuggestionText(item, inputValue)"

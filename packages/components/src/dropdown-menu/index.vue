@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onClickOutside, useElementBounding } from '@vueuse/core'
-import { computed, CSSProperties, ref, watch } from 'vue'
+import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
 import { toCssUnit } from '../shared/utils'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps, DropdownMenuSlots } from './index.type'
 
@@ -8,6 +8,9 @@ const props = withDefaults(defineProps<DropdownMenuProps>(), {
   topOffset: 0,
   minWidth: 160,
 })
+
+const attrs = useAttrs()
+const attrsStyle = computed(() => attrs.style as StyleValue)
 
 const show = ref(false)
 
@@ -53,7 +56,13 @@ const handleItemClick = (item: DropdownMenuItem) => {
 </script>
 
 <template>
-  <div class="tr-dropdown-menu__wrapper" ref="dropDownTriggerRef" @click="handleToggleShow">
+  <div
+    class="tr-dropdown-menu__wrapper"
+    :class="attrs.class"
+    :style="attrsStyle"
+    ref="dropDownTriggerRef"
+    @click="handleToggleShow"
+  >
     <slot />
   </div>
 
