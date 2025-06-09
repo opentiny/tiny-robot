@@ -9,6 +9,7 @@ import { useSuggestionHandler } from './composables/useSuggestionHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
+import { toCssUnit } from '../shared/utils'
 import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
@@ -354,11 +355,11 @@ const senderClasses = computed(() => ({
 
 // 联想建议弹窗宽度样式
 const suggestionPopupWidthStyle = computed(() => {
-  const width = props.suggestionPopupWidth
-  if (typeof width === 'number') {
-    return `${width}px`
+  const width = toCssUnit(props.suggestionPopupWidth)
+  return {
+    width: width,
+    maxWidth: '100%', // 确保不超出父容器宽度
   }
-  return width
 })
 
 // 错误处理
@@ -579,7 +580,7 @@ defineExpose({
         v-if="showSuggestionsPopup && filteredSuggestions.length"
         ref="suggestionsListRef"
         class="tiny-sender__suggestions"
-        :style="{ width: suggestionPopupWidthStyle }"
+        :style="suggestionPopupWidthStyle"
       >
         <div
           v-for="(item, index) in filteredSuggestions"
