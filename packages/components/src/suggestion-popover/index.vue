@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementBounding, useMediaQuery } from '@vueuse/core'
+import { onClickOutside, useElementBounding, useElementSize, useMediaQuery, useScroll } from '@vueuse/core'
 import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
 import FlowLayoutButtons from '../flow-layout-buttons'
-import IconButton from '../icon-button'
 import { toCssUnit } from '../shared/utils'
+import Header from './components/Header.vue'
+import Loading from './components/Loading.vue'
+import NoData from './components/NoData.vue'
+import Tooltip from './components/Tooltip.vue'
 import {
   SuggestionGroup,
   SuggestionItem,
@@ -83,6 +85,36 @@ const { x, y, update } = useElementBounding(popoverTriggerRef)
 
 const isMobile = useMediaQuery('(max-width: 767px)')
 
+const listRef = ref<HTMLElement | null>(null)
+const { isScrolling } = useScroll(listRef, { throttle: 100 })
+
+const listItemsRef = ref<(HTMLElement | null)[]>([])
+const firstItemRef = computed(() => listItemsRef.value.at(0))
+
+const setItemRef = (el: HTMLElement | null, index: number) => {
+  listItemsRef.value[index] = el
+}
+
+const isOverflowList = ref<boolean[]>([])
+
+const updateOverflowStates = () => {
+  isOverflowList.value = listItemsRef.value.map((el) => {
+    if (!el) return false
+    return el.scrollWidth > el.clientWidth
+  })
+}
+
+const tooltipRef = ref<InstanceType<typeof Tooltip> | null>(null)
+const tooltipTriggerRef = ref<HTMLElement | null>(null)
+const tooltipShow = ref(false)
+const tooltipContent = ref('')
+
+const { width: firstItemWidth } = useElementSize(firstItemRef)
+
+watch(firstItemWidth, () => {
+  updateOverflowStates()
+})
+
 const popoverStyles = computed<CSSProperties>(() => {
   if (isMobile.value) {
     return {
@@ -106,6 +138,7 @@ if (props.trigger === 'click') {
       ev.stopPropagation()
     }
     show.value = false
+    emit('close')
   })
 }
 
@@ -128,8 +161,11 @@ const handleClose = () => {
 }
 
 const handleItemClick = (item: SuggestionItem) => {
-  show.value = false
   emit('item-click', item)
+  show.value = false
+  if (props.trigger === 'click') {
+    emit('close')
+  }
 }
 
 const handleGroupClick = (id: string) => {
@@ -137,6 +173,20 @@ const handleGroupClick = (id: string) => {
   if (group) {
     emit('group-click', group)
   }
+}
+
+const handleItemMouseenter = (item: SuggestionItem, index: number) => {
+  tooltipTriggerRef.value = listItemsRef.value[index]
+  tooltipShow.value = true
+  tooltipContent.value = item.text
+}
+
+const handleItemMouseleave = (event: MouseEvent) => {
+  if ((tooltipRef.value?.$el as HTMLElement).contains(event.relatedTarget as Node)) {
+    return
+  }
+
+  tooltipShow.value = false
 }
 </script>
 
@@ -153,26 +203,13 @@ const handleGroupClick = (id: string) => {
   <div v-if="show && isMobile" class="tr-question-popover__backdrop"></div>
   <Transition name="tr-question-popover">
     <div v-if="show" class="tr-question-popover" :style="popoverStyles" ref="popoverRef">
-      <div class="tr-question__header">
-        <component v-if="props.icon" :is="props.icon" />
-        <span v-else class="tr-question__header-icon">
-          <IconSparkles style="color: #1476ff" />
-        </span>
-        <h3 class="tr-question__header-title">{{ props.title }}</h3>
-        <IconButton class="tr-question-popover__close" :icon="IconClose" size="24" svg-size="20" @click="handleClose" />
-      </div>
-      <div v-if="props.loading" class="tr-question__loading-wrapper">
-        <slot name="loading">
-          <img class="tr-question__loading" src="../assets/loading.webp" />
-          <span class="tr-question__loading-text">正在加载</span>
-        </slot>
-      </div>
-      <div v-else-if="props.data.length === 0" class="tr-question__no-data-wrapper">
-        <slot name="empty">
-          <img class="tr-question__no-data" src="../assets/svgs/no-data.svg" />
-          <span class="tr-question__no-data-text">暂时没有内容</span>
-        </slot>
-      </div>
+      <Header :icon="props.icon" :title="props.title" @close="handleClose" />
+      <Loading v-if="props.loading">
+        <slot name="loading" />
+      </Loading>
+      <NoData v-else-if="props.data.length === 0">
+        <slot name="empty" />
+      </NoData>
       <template v-else>
         <FlowLayoutButtons
           class="tr-question__group"
@@ -183,19 +220,30 @@ const handleGroupClick = (id: string) => {
           :show-more-trigger="props.groupShowMoreTrigger"
           @item-click="handleGroupClick"
         ></FlowLayoutButtons>
-        <ul class="tr-question__list">
+        <ul class="tr-question__list" :class="{ scrolling: isScrolling }" ref="listRef">
           <li
             class="tr-question__list-item"
             v-for="(item, index) in dataItems"
             :key="item.id"
+            :ref="(el) => setItemRef(el as HTMLElement, index)"
             @click="handleItemClick(item)"
+            @mouseenter="isOverflowList[index] && handleItemMouseenter(item, index)"
+            @mouseleave="isOverflowList[index] && handleItemMouseleave($event)"
           >
-            <span class="tr-question__list-item-text">
-              <span>{{ index + 1 }}. </span>{{ item.text }}
-            </span>
+            <span>{{ index + 1 }}. </span>{{ item.text }}
           </li>
         </ul>
       </template>
+      <Tooltip
+        ref="tooltipRef"
+        v-model:show="tooltipShow"
+        :content="tooltipContent"
+        :trigger="tooltipTriggerRef"
+        :disabled="isScrolling"
+        placement="top"
+        :delay-open="300"
+        :delay-close="300"
+      ></Tooltip>
     </div>
   </Transition>
 </template>
@@ -246,37 +294,6 @@ const handleGroupClick = (id: string) => {
     transform: v-bind("isMobile ? 'translateY(0)': 'unset'");
   }
 
-  .tr-question__header {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    position: relative;
-
-    .tr-question__header-icon {
-      font-size: 24px;
-      width: 36px;
-      height: 36px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .tr-question__header-title {
-      margin: 0;
-      font-size: 20px;
-      line-height: 30px;
-      font-weight: 600;
-    }
-
-    .tr-question-popover__close {
-      // TODO icon 待整改
-      // color: #595959;
-      right: 0;
-      position: absolute;
-    }
-  }
-
   .tr-question__group {
     flex-shrink: 0;
     margin-top: 16px;
@@ -286,72 +303,72 @@ const handleGroupClick = (id: string) => {
     flex: 1;
     list-style: none;
     // 负数 margin + 正数补偿 padding 解决 box-shadow 被裁剪的问题
-    margin: 0 -16px 0 -16px;
-    padding: 16px 16px 0 16px;
+    margin: 0 -12px;
+    margin-top: 16px;
+    padding: 0 12px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #dbdbdb transparent;
+    --scrollbar-bg: transparent;
+
+    &.scrolling {
+      --scrollbar-bg: #dbdbdb;
+    }
+
+    &::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-bg);
+      border-radius: 2px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    // 兼容性不支持 ::-webkit-scrollbar 的浏览器
+    @supports not selector(::-webkit-scrollbar) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-bg) transparent;
+    }
 
     .tr-question__list-item {
       font-size: 14px;
       line-height: 24px;
-      padding: 0 12px;
+      padding: 16px;
       cursor: pointer;
       border-radius: 12px;
       transition: box-shadow 0.3s ease;
+      white-space: nowrap;
+      overflow-x: hidden;
+      text-overflow: ellipsis;
+      position: relative;
 
       &:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
-        .tr-question__list-item-text {
-          border-color: transparent;
+        &::after {
+          background-color: transparent;
         }
       }
 
-      .tr-question__list-item-text {
-        display: inline-block;
-        width: 100%;
-        padding: 16px 4px 15px 4px;
-        border-bottom: 1px solid rgb(240, 240, 240);
-        transition: border-color 0.3s ease;
+      &::after {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 12px;
+        right: 12px;
+        height: 1px;
+        background-color: rgb(240, 240, 240);
+        transition: background-color 0.3s ease;
       }
-    }
-  }
 
-  .tr-question__loading-wrapper,
-  .tr-question__no-data-wrapper {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .tr-question__loading-wrapper {
-    .tr-question__loading {
-      width: 36px;
-      height: 36px;
-    }
-
-    .tr-question__loading-text {
-      margin-top: 12px;
-      font-size: 12px;
-      line-height: 24px;
-      color: #808080;
-    }
-  }
-
-  .tr-question__no-data-wrapper {
-    .tr-question__no-data {
-      width: 120px;
-      height: 120px;
-    }
-
-    .tr-question__no-data-text {
-      margin-top: 14px;
-      font-size: 12px;
-      line-height: 24px;
-      color: #191919;
+      // 如果当前项的下一个项被 hover，则当前项的after边框不显示
+      &:has(+ .tr-question__list-item:hover) {
+        &::after {
+          background-color: transparent;
+        }
+      }
     }
   }
 }
