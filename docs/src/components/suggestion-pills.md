@@ -20,7 +20,7 @@ outline: deep
 
 ```less
 :deep(.tr-suggestion-pills__more-wrapper) {
-  left: 40px
+  left: 40px;
 }
 ```
 
@@ -68,9 +68,10 @@ outline: deep
 
 药丸组件事件定义。
 
-| 事件名       | 参数                       | 说明             |
-| ------------ | -------------------------- | ---------------- |
-| `item-click` | `item: SuggestionPillItem` | 点击药丸项时触发 |
+| 事件名          | 参数                       | 说明                                           |
+| --------------- | -------------------------- | ---------------------------------------------- |
+| `item-click`    | `item: SuggestionPillItem` | 点击药丸项时触发                               |
+| `click-outside` |                            | 点击组件外部区域时触发，用于关闭展开的药丸列表 |
 
 ### SuggestionPillButtonProps
 

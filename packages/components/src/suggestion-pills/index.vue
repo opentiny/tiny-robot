@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconArrowDown, IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { useElementSize, watchDebounced } from '@vueuse/core'
+import { onClickOutside, useElementSize, watchDebounced } from '@vueuse/core'
 import { computed, nextTick, ref, watch } from 'vue'
 import { PillButtonWrapper } from './components'
 import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
@@ -11,6 +11,7 @@ const emit = defineEmits<SuggestionPillsEmits>()
 
 defineSlots<SuggestionPillsSlots>()
 
+const containerWrapperRef = ref<HTMLDivElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
@@ -69,10 +70,15 @@ const handleClick = (ev: MouseEvent, item: SuggestionPillItem, index: number) =>
 const toggleIsShowingMore = () => {
   showAll.value = !showAll.value
 }
+
+onClickOutside(containerWrapperRef, () => {
+  showAll.value = false
+  emit('click-outside')
+})
 </script>
 
 <template>
-  <div class="tr-suggestion-pills__wrapper">
+  <div class="tr-suggestion-pills__wrapper" ref="containerWrapperRef">
     <div class="tr-suggestion-pills__container" ref="containerRef">
       <slot>
         <template v-for="(item, index) in props.items" :key="item.id">

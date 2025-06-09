@@ -40,6 +40,7 @@ export interface SuggestionPillsSlots {
 
 export interface SuggestionPillsEmits {
   (e: 'item-click', item: SuggestionPillItem): void
+  (e: 'click-outside'): void
 }
 
 export interface SuggestionPillButtonProps {
