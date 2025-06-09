@@ -7,6 +7,7 @@ interface TooltipContentProps {
   show?: boolean
   content: string
   trigger?: HTMLElement | null
+  disabled?: boolean
   placement?: 'top' | 'bottom'
   delayOpen?: number
   delayClose?: number
@@ -17,20 +18,19 @@ const showModel = defineModel<TooltipContentProps['show']>('show', { default: fa
 const showTooltip = ref(props.show)
 const triggerRef = computed(() => props.trigger)
 // TODO 似乎在shadow dom中无法监听变化
-const { x, y, width } = useElementBounding(triggerRef)
+const { x, y, width, height } = useElementBounding(triggerRef)
 
 const style = computed<CSSProperties>(() => {
   if (!props.trigger) return {}
 
   return {
     left: toCssUnit(x.value),
-    top: toCssUnit(y.value),
+    top: props.placement === 'top' ? toCssUnit(y.value) : toCssUnit(y.value + height.value),
     width: toCssUnit(width.value),
   }
 })
 
 let delayTimer: NodeJS.Timeout | null = null
-let delayValue: boolean | null = null
 
 watch(
   () => [showModel.value, props.delayOpen, props.delayClose] as const,
@@ -44,12 +44,8 @@ watch(
 
       if (delayTimer) {
         clearTimeout(delayTimer)
-        if (delayValue !== null) {
-          showTooltip.value = delayValue
-        }
       }
 
-      delayValue = true
       delayTimer = setTimeout(() => {
         showTooltip.value = true
       }, delayOpen)
@@ -62,12 +58,8 @@ watch(
 
       if (delayTimer) {
         clearTimeout(delayTimer)
-        if (delayValue !== null) {
-          showTooltip.value = delayValue
-        }
       }
 
-      delayValue = false
       delayTimer = setTimeout(() => {
         showTooltip.value = false
       }, delayClose)
@@ -87,7 +79,7 @@ const handleMouseleave = (event: MouseEvent) => {
 <template>
   <Transition name="tr-tooltip">
     <div
-      v-if="showTooltip"
+      v-if="!props.disabled && showTooltip"
       class="tr-tooltip"
       :class="`placement-${props.placement}`"
       role="tooltip"
@@ -109,11 +101,11 @@ const handleMouseleave = (event: MouseEvent) => {
   --tr-tooltip-padding: 16px;
   --tr-tooltip-font-size: 14px;
   --tr-tooltip-line-height: 22px;
-  --tr-tooltip-arrow-size: 10px;
+  --tr-tooltip-arrow-size: 8px;
+  --tr-tooltip-offset: 10px;
 
   position: fixed;
   z-index: var(--tr-z-index-tooltip);
-  padding-bottom: var(--tr-tooltip-arrow-size);
 
   &-enter-active,
   &-leave-active {
@@ -145,7 +137,6 @@ const handleMouseleave = (event: MouseEvent) => {
   .tr-tooltip-arrow {
     position: absolute;
     left: 50%;
-    top: 100%;
     transform: translate(-50%, -100%);
     width: 0;
     height: 0;
@@ -154,19 +145,20 @@ const handleMouseleave = (event: MouseEvent) => {
   }
 
   &.placement-top {
+    padding-bottom: var(--tr-tooltip-offset);
     transform: translateY(-100%);
 
     .tr-tooltip-arrow {
-      bottom: calc(0px - var(--tr-tooltip-arrow-size));
+      top: calc(100% - var(--tr-tooltip-offset) + var(--tr-tooltip-arrow-size));
       border-top: var(--tr-tooltip-arrow-size) solid var(--tr-tooltip-bg);
     }
   }
 
   &.placement-bottom {
-    transform: translateY(100%);
+    padding-top: var(--tr-tooltip-offset);
 
     .tr-tooltip-arrow {
-      top: calc(0px - var(--tr-tooltip-arrow-size));
+      top: calc(0 - var(--tr-tooltip-arrow-size));
       border-bottom: var(--tr-tooltip-arrow-size) solid var(--tr-tooltip-bg);
     }
   }

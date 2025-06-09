@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onClickOutside, useElementBounding, useElementSize, useMediaQuery } from '@vueuse/core'
+import { onClickOutside, useElementBounding, useElementSize, useMediaQuery, useScroll } from '@vueuse/core'
 import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import { toCssUnit } from '../shared/utils'
@@ -85,6 +85,9 @@ const { x, y, update } = useElementBounding(popoverTriggerRef)
 
 const isMobile = useMediaQuery('(max-width: 767px)')
 
+const listRef = ref<HTMLElement | null>(null)
+const { isScrolling } = useScroll(listRef, { throttle: 100 })
+
 const listItemsRef = ref<(HTMLElement | null)[]>([])
 const firstItemRef = computed(() => listItemsRef.value.at(0))
 
@@ -135,6 +138,7 @@ if (props.trigger === 'click') {
       ev.stopPropagation()
     }
     show.value = false
+    emit('close')
   })
 }
 
@@ -157,8 +161,11 @@ const handleClose = () => {
 }
 
 const handleItemClick = (item: SuggestionItem) => {
-  show.value = false
   emit('item-click', item)
+  show.value = false
+  if (props.trigger === 'click') {
+    emit('close')
+  }
 }
 
 const handleGroupClick = (id: string) => {
@@ -213,7 +220,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
           :show-more-trigger="props.groupShowMoreTrigger"
           @item-click="handleGroupClick"
         ></FlowLayoutButtons>
-        <ul class="tr-question__list">
+        <ul class="tr-question__list" :class="{ scrolling: isScrolling }" ref="listRef">
           <li
             class="tr-question__list-item"
             v-for="(item, index) in dataItems"
@@ -232,6 +239,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
         v-model:show="tooltipShow"
         :content="tooltipContent"
         :trigger="tooltipTriggerRef"
+        :disabled="isScrolling"
         placement="top"
         :delay-open="300"
         :delay-close="300"
@@ -295,11 +303,33 @@ const handleItemMouseleave = (event: MouseEvent) => {
     flex: 1;
     list-style: none;
     // 负数 margin + 正数补偿 padding 解决 box-shadow 被裁剪的问题
-    margin: 0 -16px 0 -16px;
-    padding: 16px 16px 0 16px;
+    margin: 0 -12px;
+    margin-top: 16px;
+    padding: 0 12px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #dbdbdb transparent;
+    --scrollbar-bg: transparent;
+
+    &.scrolling {
+      --scrollbar-bg: #dbdbdb;
+    }
+
+    &::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-bg);
+      border-radius: 2px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    // 兼容性不支持 ::-webkit-scrollbar 的浏览器
+    @supports not selector(::-webkit-scrollbar) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-bg) transparent;
+    }
 
     .tr-question__list-item {
       font-size: 14px;
@@ -331,6 +361,13 @@ const handleItemMouseleave = (event: MouseEvent) => {
         height: 1px;
         background-color: rgb(240, 240, 240);
         transition: background-color 0.3s ease;
+      }
+
+      // 如果当前项的下一个项被 hover，则当前项的after边框不显示
+      &:has(+ .tr-question__list-item:hover) {
+        &::after {
+          background-color: transparent;
+        }
       }
     }
   }
