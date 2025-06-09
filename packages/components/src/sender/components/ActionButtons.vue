@@ -187,12 +187,10 @@ const handleCancel = () => {
           <IconSend class="action-buttons__icon action-buttons__icon--send" v-if="!loading" alt="发送" />
 
           <!-- 停止生成按钮 -->
-          <tiny-tooltip v-else content="停止生成" placement="top">
-            <div class="action-buttons__cancel">
-              <IconStop class="action-buttons__icon action-buttons__icon--stop" alt="加载中" />
-              <span class="action-buttons__cancel-text">停止回答</span>
-            </div>
-          </tiny-tooltip>
+          <div v-else class="action-buttons__cancel">
+            <IconStop class="action-buttons__icon action-buttons__icon--stop" alt="加载中" />
+            <span class="action-buttons__cancel-text">停止回答</span>
+          </div>
         </div>
       </tiny-button>
     </template>
