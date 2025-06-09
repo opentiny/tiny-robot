@@ -230,6 +230,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
+| suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
 
 
 ### Events

@@ -30,6 +30,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   template: '',
   templateInitialValues: () => ({}),
   suggestions: () => [],
+  suggestionPopupWidth: 400,
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -56,7 +57,6 @@ const {
   suggestionsListRef,
   filteredSuggestions,
   activeSuggestion,
-  updateCompletionPlaceholder,
   updateSuggestionsState,
   selectSuggestion,
   acceptCurrentSuggestion,
@@ -299,11 +299,10 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
 // 处理焦点事件
 const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
+  // 当有输入内容且有匹配的联想项时，显示联想弹窗但不自动选中任何项
   if (inputValue.value && filteredSuggestions.value.length > 0 && !props.template) {
     showSuggestionsPopup.value = true
     showTabHint.value = true
-    if (highlightedIndex.value === -1) highlightedIndex.value = 0
-    updateCompletionPlaceholder(activeSuggestion.value || filteredSuggestions.value[0])
   }
 }
 
@@ -352,6 +351,15 @@ const senderClasses = computed(() => ({
   'has-error': !!errorMessage.value,
   'is-auto-switching': isAutoSwitching.value,
 }))
+
+// 联想建议弹窗宽度样式
+const suggestionPopupWidthStyle = computed(() => {
+  const width = props.suggestionPopupWidth
+  if (typeof width === 'number') {
+    return `${width}px`
+  }
+  return width
+})
 
 // 错误处理
 const errorMessage = ref<string>('')
@@ -571,6 +579,7 @@ defineExpose({
         v-if="showSuggestionsPopup && filteredSuggestions.length"
         ref="suggestionsListRef"
         class="tiny-sender__suggestions"
+        :style="{ width: suggestionPopupWidthStyle }"
       >
         <div
           v-for="(item, index) in filteredSuggestions"
