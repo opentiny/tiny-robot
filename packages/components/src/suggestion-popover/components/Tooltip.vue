@@ -3,7 +3,7 @@ import { useElementBounding } from '@vueuse/core'
 import { computed, CSSProperties, ref, watch } from 'vue'
 import { toCssUnit } from '../../shared/utils'
 
-interface TooltipContentProps {
+export interface TooltipContentProps {
   show?: boolean
   content: string
   trigger?: HTMLElement | null
