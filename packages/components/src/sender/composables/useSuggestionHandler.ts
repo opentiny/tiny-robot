@@ -112,11 +112,16 @@ export function useSuggestionHandler(
 
   /**
    * 更新自动完成占位符
-   * @param suggestionText - 可选的建议文本，如果没有提供则使用第一个过滤结果
+   * @param suggestionText - 可选的建议文本，如果没有提供则使用当前选中项
    */
   const updateCompletionPlaceholder = (suggestionText?: string) => {
-    const textToComplete =
-      suggestionText || (filteredSuggestions.value.length > 0 ? filteredSuggestions.value[0] : null)
+    // 如果没有选中项且没有提供建议文本，清空占位符
+    if (!suggestionText && highlightedIndex.value === -1) {
+      completionPlaceholder.value = ''
+      return
+    }
+
+    const textToComplete = suggestionText || activeSuggestion.value
     if (textToComplete && inputValue.value && textToComplete.toLowerCase().startsWith(inputValue.value.toLowerCase())) {
       completionPlaceholder.value = textToComplete.substring(inputValue.value.length)
     } else {
@@ -139,7 +144,8 @@ export function useSuggestionHandler(
    */
   const showSuggestionsState = () => {
     showSuggestionsPopup.value = true
-    highlightedIndex.value = 0
+    // 移除默认选中逻辑，不自动选中第一项
+    highlightedIndex.value = -1
     updateCompletionPlaceholder()
     showTabHint.value = true
   }
@@ -218,15 +224,25 @@ export function useSuggestionHandler(
   const navigateSuggestions = (direction: 'up' | 'down') => {
     if (!showSuggestionsPopup.value || filteredSuggestions.value.length === 0) return
 
-    if (direction === 'down') {
-      highlightedIndex.value = (highlightedIndex.value + 1) % filteredSuggestions.value.length
+    // 如果当前没有选中项，根据方向选择第一个或最后一个
+    if (highlightedIndex.value === -1) {
+      highlightedIndex.value = direction === 'down' ? 0 : filteredSuggestions.value.length - 1
     } else {
-      highlightedIndex.value =
-        (highlightedIndex.value - 1 + filteredSuggestions.value.length) % filteredSuggestions.value.length
+      // 正常导航
+      if (direction === 'down') {
+        highlightedIndex.value = (highlightedIndex.value + 1) % filteredSuggestions.value.length
+      } else {
+        highlightedIndex.value =
+          (highlightedIndex.value - 1 + filteredSuggestions.value.length) % filteredSuggestions.value.length
+      }
     }
+
+    // 更新自动完成占位符
     if (activeSuggestion.value) {
       updateCompletionPlaceholder(activeSuggestion.value)
     }
+
+    // 滚动到可见区域
     const list = suggestionsListRef.value
     if (list) {
       const item = list.children[highlightedIndex.value] as HTMLElement | null
