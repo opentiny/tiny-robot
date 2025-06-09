@@ -565,6 +565,17 @@
       }
     }
   }
+
+  /** 处理相邻按钮元素边界  */
+  .tiny-button+.tiny-button {
+    margin-left: 0;
+  }
+
+  /** 隐藏 hover 时 按钮文字下划线 */
+  .tiny-button.tiny-button.tiny-button--text:not(.is-only-icon):not(.is-icon):hover {
+    text-decoration: none;
+  }
+
 }
 
 // 模板编辑器样式
@@ -610,7 +621,7 @@
     overflow-wrap: break-word;
     line-height: var(--tr-sender-template-field-line-height);
     position: relative;
-    vertical-align: middle;
+    vertical-align: baseline;
     /* 启用连字符，帮助长英文词的折行 */
     hyphens: auto;
 
@@ -621,7 +632,7 @@
       /* 空字段使用inline-block确保有区域 */
       display: inline-block;
       /* 与字段自身和周围文本保持一致的垂直对齐 */
-      vertical-align: middle;
+      vertical-align: baseline;
       line-height: var(--tr-sender-template-field-line-height);
     }
 
@@ -743,16 +754,6 @@
   color: var(--tr-sender-text-color-secondary);
   white-space: nowrap;
   user-select: none;
-}
-
-/** 处理相邻按钮元素边界  */
-.tiny-button + .tiny-button {
-  margin-left: 0 !important;
-}
-
-/** 隐藏 hover 时 按钮文字下划线 */
-.tiny-button.tiny-button.tiny-button--text:not(.is-only-icon):not(.is-icon):hover {
-  text-decoration: none;
 }
 
 /* 模式切换过渡动画 */
