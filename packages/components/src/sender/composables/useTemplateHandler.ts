@@ -7,6 +7,7 @@ import {
   ensureZeroWidthAfterField,
   cleanupZeroWidthNodes,
 } from '../utils/zeroWidthUtils'
+import { getSelectionFromTarget } from '../../shared/utils'
 
 /**
  * 模板部分类型定义
@@ -250,7 +251,7 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
    */
   const setCursorTo = (element: HTMLElement, position: CursorPosition = 'inside', collapse = false) => {
     nextTick(() => {
-      const selection = window.getSelection()
+      const selection = getSelectionFromTarget(editor.value!)
       if (!selection) return
 
       const range = document.createRange()
@@ -286,7 +287,7 @@ export function useTemplateHandler(editor: { value: HTMLDivElement | null }, ini
       const editorElement = editor.value
       if (editorElement) {
         const range = document.createRange()
-        const selection = window.getSelection()
+        const selection = getSelectionFromTarget(editorElement)
         range.selectNodeContents(editorElement)
         range.collapse(false) // 光标移至最后
         if (selection) {

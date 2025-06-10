@@ -105,7 +105,7 @@ onMounted(() => {
 </script>
 
 <style>
-@import url('@opentiny/tiny-robot/dist/style.css');
+@import url('@opentiny/tiny-robot-style');
 
 .app-container {
   width: 100%;
