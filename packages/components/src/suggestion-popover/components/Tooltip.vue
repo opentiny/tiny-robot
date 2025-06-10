@@ -30,40 +30,39 @@ const style = computed<CSSProperties>(() => {
   }
 })
 
-let delayTimer: NodeJS.Timeout | null = null
+let delayTimer: ReturnType<typeof setTimeout> | undefined
 
 watch(
-  () => [showModel.value, props.delayOpen, props.delayClose] as const,
-  ([show, delayOpen, delayClose]) => {
-    if (show) {
-      // 如果 delayOpen 为 0，则立即显示
-      if ((delayOpen ?? 0) <= 0) {
-        showTooltip.value = true
-        return
-      }
-
-      if (delayTimer) {
-        clearTimeout(delayTimer)
-      }
-
-      delayTimer = setTimeout(() => {
-        showTooltip.value = true
-      }, delayOpen)
-    } else {
-      // 如果 delayClose 为 0，则立即隐藏
-      if ((delayClose ?? 0) <= 0) {
+  () => showModel.value,
+  (show) => {
+    const delay = show ? props.delayOpen : props.delayClose
+    if (delayTimer) {
+      clearTimeout(delayTimer)
+      delayTimer = undefined
+      if (!show) {
         showTooltip.value = false
-        return
       }
-
-      if (delayTimer) {
-        clearTimeout(delayTimer)
-      }
-
-      delayTimer = setTimeout(() => {
-        showTooltip.value = false
-      }, delayClose)
     }
+
+    if (delay) {
+      delayTimer = setTimeout(() => (showTooltip.value = show || false), delay)
+    } else {
+      showTooltip.value = show || false
+    }
+  },
+)
+
+watch(
+  () => props.disabled,
+  (disabled) => {
+    if (!disabled) {
+      return
+    }
+
+    if (delayTimer) {
+      clearTimeout(delayTimer)
+    }
+    showTooltip.value = false
   },
 )
 
@@ -79,7 +78,7 @@ const handleMouseleave = (event: MouseEvent) => {
 <template>
   <Transition name="tr-tooltip">
     <div
-      v-if="!props.disabled && showTooltip"
+      v-if="showTooltip"
       class="tr-tooltip"
       :class="`placement-${props.placement}`"
       role="tooltip"
