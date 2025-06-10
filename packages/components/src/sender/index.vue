@@ -281,6 +281,11 @@ const toggleSpeech = () => {
   }
 }
 
+// 计算字数是否超出限制
+const isOverLimit = computed(() => {
+  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
+})
+
 // 键盘处理
 const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   props,
@@ -294,6 +299,7 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   closeSuggestionsPopup,
   navigateSuggestions,
   toggleSpeech,
+  isOverLimit,
   currentMode,
   setMultipleMode,
 )
@@ -379,11 +385,6 @@ const handleCompositionEnd = () => {
     updateSuggestionsState()
   }, 50)
 }
-
-// 计算字数是否超出限制
-const isOverLimit = computed(() => {
-  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
-})
 
 // 监听输入变化
 watch(inputValue, () => {
