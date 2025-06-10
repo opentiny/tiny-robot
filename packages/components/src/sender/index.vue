@@ -52,18 +52,19 @@ const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler 
 // 建议处理
 const {
   showSuggestionsPopup,
-  highlightedIndex,
   completionPlaceholder,
   showTabHint,
   suggestionsListRef,
   filteredSuggestions,
   activeSuggestion,
+  isItemHighlighted,
   updateSuggestionsState,
   selectSuggestion,
   acceptCurrentSuggestion,
   closeSuggestionsPopup,
   navigateSuggestions,
   handleSuggestionItemHover,
+  handleSuggestionItemLeave,
   highlightSuggestionText,
 } = useSuggestionHandler(props, emit, inputValue, isComposing)
 
@@ -280,6 +281,11 @@ const toggleSpeech = () => {
   }
 }
 
+// 计算字数是否超出限制
+const isOverLimit = computed(() => {
+  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
+})
+
 // 键盘处理
 const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   props,
@@ -293,6 +299,7 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   closeSuggestionsPopup,
   navigateSuggestions,
   toggleSpeech,
+  isOverLimit,
   currentMode,
   setMultipleMode,
 )
@@ -378,11 +385,6 @@ const handleCompositionEnd = () => {
     updateSuggestionsState()
   }, 50)
 }
-
-// 计算字数是否超出限制
-const isOverLimit = computed(() => {
-  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
-})
 
 // 监听输入变化
 watch(inputValue, () => {
@@ -586,8 +588,9 @@ defineExpose({
           v-for="(item, index) in filteredSuggestions"
           :key="index"
           class="suggestion-item"
-          :class="{ highlighted: index === highlightedIndex }"
+          :class="{ highlighted: isItemHighlighted(index) }"
           @mouseenter="handleSuggestionItemHover(index)"
+          @mouseleave="handleSuggestionItemLeave"
           @mousedown.prevent="selectSuggestion(item)"
         >
           <IconAssociate class="suggestion-item__icon" />

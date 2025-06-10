@@ -18,6 +18,7 @@ import { isOnlyZeroWidthSpace, cleanZeroWidthSpaces } from '../utils/zeroWidthUt
  * @param closeSuggestionsPopup - 关闭建议弹窗的函数
  * @param navigateSuggestions - 导航建议列表的函数
  * @param toggleSpeech - 切换语音识别函数
+ * @param isOverLimit - 是否超出字数限制
  * @param currentMode - 当前输入模式
  * @param setMultipleMode - 设置为多行模式的回调函数
  */
@@ -33,14 +34,33 @@ export function useKeyboardHandler(
   closeSuggestionsPopup: (keepFocus?: boolean) => void,
   navigateSuggestions: (direction: 'up' | 'down') => void,
   toggleSpeech: () => void,
+  isOverLimit: Ref<boolean>,
   currentMode?: Ref<'single' | 'multiple'>,
   setMultipleMode?: () => void,
 ) {
   /**
    * 验证提交条件
+   * @param value 输入值
+   * @returns 是否可以提交
    */
-  const validateSubmission = (value: string) => {
-    return !props.disabled && !props.loading && value.trim().length > 0
+  const validateSubmission = (value: string): boolean => {
+    // 基础状态检查：禁用或加载中时不能提交
+    if (props.disabled || props.loading) {
+      return false
+    }
+
+    // 内容检查：空内容不能提交
+    const trimmedValue = value.trim()
+    if (trimmedValue.length === 0) {
+      return false
+    }
+
+    // 字数限制检查：超出限制时不能提交
+    if (isOverLimit.value) {
+      return false
+    }
+
+    return true
   }
 
   /**
