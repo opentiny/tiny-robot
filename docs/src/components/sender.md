@@ -207,6 +207,12 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 <demo vue="../../demos/sender/All.vue" />
 
+### 容器模式配置
+
+Sender 组件支持主题定制，您可以通过修改主题变量来改变组件的样式。
+
+<demo vue="../../demos/sender/ContainerMode.vue" />
+
 ## API 说明
 
 ### Props

@@ -18,6 +18,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   allowSpeech: true,
   allowFiles: false,
   clearable: false,
+  containerMode: 'fullscreen',
   disabled: false,
   loading: false,
   modelValue: '',
@@ -428,8 +429,9 @@ defineExpose({
   <div
     ref="senderRef"
     class="tiny-sender"
-    :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`]"
+    :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`, `tr-sender-${containerMode}`]"
     :data-theme="theme"
+    :data-container-mode="containerMode"
   >
     <!-- 输入区域容器 -->
     <div class="tiny-sender__container">

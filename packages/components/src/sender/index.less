@@ -16,6 +16,7 @@
 
   // 自动切换模式时的过渡
   &.is-auto-switching {
+
     .tiny-input__inner,
     .tiny-textarea__inner {
       transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -43,7 +44,7 @@
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
     height: var(--tr-sender-input-height); // 固定高度以减少跳动
-    line-height: var(--tr-sender-textarea-line-height); // 行高保持一致
+    line-height: var(--tr-sender-input-line-height); // 行高保持一致
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
@@ -79,7 +80,7 @@
     padding: 0;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    line-height: var(--tr-sender-textarea-line-height); // 行高与单行保持一致
+    line-height: var(--tr-sender-input-line-height); // 行高与单行保持一致
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
@@ -130,8 +131,7 @@
     min-height: var(--tr-sender-footer-min-height);
 
     &.tiny-sender__bottom-row {
-      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-bottom-row-padding-left);
+      padding: var(--tr-sender-bottom-row-padding);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -139,8 +139,7 @@
     }
 
     .suggestion-item {
-      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-padding-left);
+      padding: var(--tr-sender-suggestion-item-padding-full);
       cursor: pointer;
       transition: background-color var(--tr-sender-transition-duration);
 
@@ -275,8 +274,7 @@
   }
 
   &__bottom-row {
-    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-      var(--tr-sender-padding-left);
+    padding: var(--tr-sender-default-padding);
   }
 
   // 字数限制
@@ -290,7 +288,7 @@
 
     // 超出限制的红色警示样式
     &.is-over-limit {
-      & > .real-word-length {
+      &>.real-word-length {
         color: var(--tr-sender-error-color);
         font-weight: 500;
       }
@@ -405,33 +403,6 @@
     pointer-events: none;
     display: inline-block;
     flex-shrink: 0;
-  }
-
-  // 过渡动画
-  .tiny-sender-slide-up-enter-active,
-  .tiny-sender-slide-up-leave-active {
-    transition:
-      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
-      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
-  }
-
-  .tiny-sender-slide-up-enter-from,
-  .tiny-sender-slide-up-leave-to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  .tiny-sender-slide-down-enter-active,
-  .tiny-sender-slide-down-leave-active {
-    transition:
-      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
-      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
-  }
-
-  .tiny-sender-slide-down-enter-from,
-  .tiny-sender-slide-down-leave-to {
-    opacity: 0;
-    transform: translateY(10px);
   }
 
   // 错误提示
@@ -685,7 +656,7 @@
 
     /* 发送图标 */
     &--send {
-      font-size: var(--tr-action-buttons-icon-size-send);
+      font-size: var(--tr-sender-send-icon-size);
       color: var(--tr-action-buttons-send-bg-color);
       border-radius: var(--tr-action-buttons-send-border-radius);
 
