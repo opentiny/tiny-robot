@@ -39,11 +39,11 @@
 
 
   // 侧边栏模式 - 内边距配置
-  --tr-sender-sidebar-single-content-padding: 8px 6px 8px 12px;
-  --tr-sender-sidebar-multiple-content-padding: 10px 12px 0 12px;
+  --tr-sender-sidebar-single-content-padding: 12px 8px 12px 20px;
+  --tr-sender-sidebar-multiple-content-padding: 14px 20px 0 20px;
   --tr-sender-sidebar-prefix-padding: 8px 4px 8px 8px;
   --tr-sender-sidebar-actions-padding: 0 6px;
-  --tr-sender-sidebar-bottom-row-padding: 8px 6px 6px 12px;
+  --tr-sender-sidebar-bottom-row-padding: 10px 8px 10px 8px;
   --tr-sender-sidebar-footer-padding: 8px 6px 6px 12px;
 
   // 默认配置（向后兼容）
@@ -126,6 +126,12 @@
   --tr-sender-actions-padding-left: 10px;
   --tr-sender-actions-padding-right: 10px;
 
+  // 全屏模式 - ActionButtons组件变量
+  --tr-action-buttons-fullscreen-cancel-height: 36px;
+
+  // 侧边栏模式 - ActionButtons组件变量
+  --tr-action-buttons-sidebar-cancel-height: 32px;
+
   // ActionButtons组件变量
   --tr-action-buttons-gap: 12px;
   --tr-action-utility-buttons-gap: 4px;
@@ -135,7 +141,7 @@
   --tr-action-buttons-icon-size-send: var(--tr-sender-send-icon-size);
   --tr-action-buttons-icon-size-stop: 24px;
   --tr-action-buttons-submit-margin: 12px;
-  --tr-action-buttons-cancel-height: 36px;
+  --tr-action-buttons-cancel-height: var(--tr-action-buttons-fullscreen-cancel-height);
   --tr-action-buttons-cancel-gap: 4px;
   --tr-action-buttons-cancel-padding: 4px 12px 4px 6px;
   --tr-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
@@ -150,7 +156,7 @@
   --tr-action-buttons-send-hover-bg-color: #126deb;
 
   // 底部插槽 (Footer)
-  --tr-sender-footer-min-height: 36px;
+  --tr-sender-footer-min-height: 32px;
   --tr-sender-footer-bg: #fff;
   --tr-sender-footer-hover: #f9f9f9;
 
@@ -231,6 +237,9 @@
   --tr-sender-actions-padding-right: 6px;
   --tr-sender-bottom-row-padding: var(--tr-sender-sidebar-bottom-row-padding);
   --tr-sender-default-padding: var(--tr-sender-sidebar-footer-padding);
+
+  // 覆盖ActionButtons组件的取消按钮高度
+  --tr-action-buttons-cancel-height: var(--tr-action-buttons-sidebar-cancel-height);
 
   // 调整其他元素尺寸
   --tr-sender-gap: 4px;
