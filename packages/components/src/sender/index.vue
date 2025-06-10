@@ -52,18 +52,19 @@ const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler 
 // 建议处理
 const {
   showSuggestionsPopup,
-  highlightedIndex,
   completionPlaceholder,
   showTabHint,
   suggestionsListRef,
   filteredSuggestions,
   activeSuggestion,
+  isItemHighlighted,
   updateSuggestionsState,
   selectSuggestion,
   acceptCurrentSuggestion,
   closeSuggestionsPopup,
   navigateSuggestions,
   handleSuggestionItemHover,
+  handleSuggestionItemLeave,
   highlightSuggestionText,
 } = useSuggestionHandler(props, emit, inputValue, isComposing)
 
@@ -586,8 +587,9 @@ defineExpose({
           v-for="(item, index) in filteredSuggestions"
           :key="index"
           class="suggestion-item"
-          :class="{ highlighted: index === highlightedIndex }"
+          :class="{ highlighted: isItemHighlighted(index) }"
           @mouseenter="handleSuggestionItemHover(index)"
+          @mouseleave="handleSuggestionItemLeave"
           @mousedown.prevent="selectSuggestion(item)"
         >
           <IconAssociate class="suggestion-item__icon" />

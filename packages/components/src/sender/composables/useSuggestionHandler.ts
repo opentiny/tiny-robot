@@ -14,32 +14,69 @@ const highlightSuggestionText = (suggestionText: string, inputText: string) => {
 
   const lowerSuggestion = suggestionText.toLowerCase()
   const lowerInput = inputText.toLowerCase()
-  const matchIndex = lowerSuggestion.indexOf(lowerInput)
 
-  if (matchIndex === -1) {
+  // 查找所有匹配项
+  const matches: { start: number; end: number }[] = []
+  let searchIndex = 0
+
+  while (searchIndex < lowerSuggestion.length) {
+    const matchIndex = lowerSuggestion.indexOf(lowerInput, searchIndex)
+    if (matchIndex === -1) break
+
+    matches.push({
+      start: matchIndex,
+      end: matchIndex + inputText.length,
+    })
+
+    searchIndex = matchIndex + 1
+  }
+
+  if (matches.length === 0) {
     return [{ text: suggestionText, isMatch: false }]
   }
 
-  const parts = []
-
-  // 匹配前的部分
-  if (matchIndex > 0) {
-    parts.push({
-      text: suggestionText.substring(0, matchIndex),
-      isMatch: false,
-    })
+  // 合并重叠的匹配区间
+  const mergedMatches: { start: number; end: number }[] = []
+  for (const match of matches) {
+    if (mergedMatches.length === 0) {
+      mergedMatches.push(match)
+    } else {
+      const lastMatch = mergedMatches[mergedMatches.length - 1]
+      if (match.start <= lastMatch.end) {
+        // 合并重叠区间
+        lastMatch.end = Math.max(lastMatch.end, match.end)
+      } else {
+        mergedMatches.push(match)
+      }
+    }
   }
 
-  // 匹配的部分
-  parts.push({
-    text: suggestionText.substring(matchIndex, matchIndex + inputText.length),
-    isMatch: true,
-  })
+  // 构建结果数组
+  const parts = []
+  let currentIndex = 0
 
-  // 匹配后的部分
-  if (matchIndex + inputText.length < suggestionText.length) {
+  for (const match of mergedMatches) {
+    // 匹配前的部分
+    if (currentIndex < match.start) {
+      parts.push({
+        text: suggestionText.substring(currentIndex, match.start),
+        isMatch: false,
+      })
+    }
+
+    // 匹配的部分
     parts.push({
-      text: suggestionText.substring(matchIndex + inputText.length),
+      text: suggestionText.substring(match.start, match.end),
+      isMatch: true,
+    })
+
+    currentIndex = match.end
+  }
+
+  // 最后剩余的部分
+  if (currentIndex < suggestionText.length) {
+    parts.push({
+      text: suggestionText.substring(currentIndex),
       isMatch: false,
     })
   }
@@ -69,9 +106,14 @@ export function useSuggestionHandler(
   const showSuggestionsPopup = ref(false)
 
   /**
-   * 当前高亮的建议项索引
+   * 键盘导航的高亮索引
    */
-  const highlightedIndex = ref(-1)
+  const keyboardHighlightedIndex = ref(-1)
+
+  /**
+   * 鼠标悬停的高亮索引
+   */
+  const mouseHighlightedIndex = ref(-1)
 
   /**
    * 自动完成占位符文本
@@ -94,6 +136,11 @@ export function useSuggestionHandler(
   const isSelectingSuggestion = ref(false)
 
   /**
+   * 最后交互类型：'keyboard' | 'mouse' | null
+   */
+  const lastInteractionType = ref<'keyboard' | 'mouse' | null>(null)
+
+  /**
    * 计算经过过滤的建议列表
    * 基于当前输入过滤出匹配的建议项
    */
@@ -105,27 +152,49 @@ export function useSuggestionHandler(
 
   /**
    * 计算当前高亮的建议项
+   * 根据最后交互类型决定使用哪个索引对应的建议项
    */
   const activeSuggestion = computed(() => {
-    return filteredSuggestions.value[highlightedIndex.value] || null
+    let index = -1
+
+    // 根据最后交互类型决定使用哪个索引
+    if (lastInteractionType.value === 'mouse' && mouseHighlightedIndex.value !== -1) {
+      index = mouseHighlightedIndex.value
+    } else if (lastInteractionType.value === 'keyboard' && keyboardHighlightedIndex.value !== -1) {
+      index = keyboardHighlightedIndex.value
+    }
+
+    return filteredSuggestions.value[index] || null
   })
+
+  /**
+   * 判断指定索引的建议项是否应该高亮显示
+   * @param index - 建议项索引
+   * @returns 是否高亮
+   */
+  const isItemHighlighted = (index: number): boolean => {
+    return index === keyboardHighlightedIndex.value || index === mouseHighlightedIndex.value
+  }
 
   /**
    * 更新自动完成占位符
    * @param suggestionText - 可选的建议文本，如果没有提供则使用当前选中项
    */
   const updateCompletionPlaceholder = (suggestionText?: string) => {
-    // 如果没有选中项且没有提供建议文本，清空占位符
-    if (!suggestionText && highlightedIndex.value === -1) {
+    // 只有当激活交互时才显示占位符
+    if (lastInteractionType.value === null) {
       completionPlaceholder.value = ''
+      showTabHint.value = false
       return
     }
 
     const textToComplete = suggestionText || activeSuggestion.value
     if (textToComplete && inputValue.value && textToComplete.toLowerCase().startsWith(inputValue.value.toLowerCase())) {
       completionPlaceholder.value = textToComplete.substring(inputValue.value.length)
+      showTabHint.value = true
     } else {
       completionPlaceholder.value = ''
+      showTabHint.value = false
     }
   }
 
@@ -134,7 +203,9 @@ export function useSuggestionHandler(
    */
   const resetSuggestionsState = () => {
     showSuggestionsPopup.value = false
-    highlightedIndex.value = -1
+    keyboardHighlightedIndex.value = -1
+    mouseHighlightedIndex.value = -1
+    lastInteractionType.value = null
     completionPlaceholder.value = ''
     showTabHint.value = false
   }
@@ -144,10 +215,11 @@ export function useSuggestionHandler(
    */
   const showSuggestionsState = () => {
     showSuggestionsPopup.value = true
-    // 移除默认选中逻辑，不自动选中第一项
-    highlightedIndex.value = -1
+    // 重置所有选中状态
+    keyboardHighlightedIndex.value = -1
+    mouseHighlightedIndex.value = -1
+    lastInteractionType.value = null
     updateCompletionPlaceholder()
-    showTabHint.value = true
   }
 
   /**
@@ -224,28 +296,32 @@ export function useSuggestionHandler(
   const navigateSuggestions = (direction: 'up' | 'down') => {
     if (!showSuggestionsPopup.value || filteredSuggestions.value.length === 0) return
 
-    // 如果当前没有选中项，根据方向选择第一个或最后一个
-    if (highlightedIndex.value === -1) {
-      highlightedIndex.value = direction === 'down' ? 0 : filteredSuggestions.value.length - 1
+    lastInteractionType.value = 'keyboard'
+    // 不清除鼠标高亮，让两种状态共存
+
+    // 如果当前没有键盘选中项，根据方向选择第一个或最后一个
+    if (keyboardHighlightedIndex.value === -1) {
+      keyboardHighlightedIndex.value = direction === 'down' ? 0 : filteredSuggestions.value.length - 1
     } else {
       // 正常导航
       if (direction === 'down') {
-        highlightedIndex.value = (highlightedIndex.value + 1) % filteredSuggestions.value.length
+        keyboardHighlightedIndex.value = (keyboardHighlightedIndex.value + 1) % filteredSuggestions.value.length
       } else {
-        highlightedIndex.value =
-          (highlightedIndex.value - 1 + filteredSuggestions.value.length) % filteredSuggestions.value.length
+        keyboardHighlightedIndex.value =
+          (keyboardHighlightedIndex.value - 1 + filteredSuggestions.value.length) % filteredSuggestions.value.length
       }
     }
 
-    // 更新自动完成占位符
-    if (activeSuggestion.value) {
-      updateCompletionPlaceholder(activeSuggestion.value)
+    // 更新自动完成占位符，使用键盘选中的项
+    const keyboardSelectedSuggestion = filteredSuggestions.value[keyboardHighlightedIndex.value]
+    if (keyboardSelectedSuggestion) {
+      updateCompletionPlaceholder(keyboardSelectedSuggestion)
     }
 
     // 滚动到可见区域
     const list = suggestionsListRef.value
     if (list) {
-      const item = list.children[highlightedIndex.value] as HTMLElement | null
+      const item = list.children[keyboardHighlightedIndex.value] as HTMLElement | null
       if (item) {
         item.scrollIntoView({ block: 'nearest' })
       }
@@ -257,8 +333,28 @@ export function useSuggestionHandler(
    * @param index - 悬停项的索引
    */
   const handleSuggestionItemHover = (index: number) => {
-    highlightedIndex.value = index
+    lastInteractionType.value = 'mouse'
+    mouseHighlightedIndex.value = index
     updateCompletionPlaceholder(filteredSuggestions.value[index])
+  }
+
+  /**
+   * 处理鼠标离开建议项
+   */
+  const handleSuggestionItemLeave = () => {
+    mouseHighlightedIndex.value = -1
+    // 如果有键盘选中项，切换到键盘交互类型并显示键盘选中项的占位符
+    if (keyboardHighlightedIndex.value !== -1) {
+      lastInteractionType.value = 'keyboard'
+      const keyboardSelectedSuggestion = filteredSuggestions.value[keyboardHighlightedIndex.value]
+      if (keyboardSelectedSuggestion) {
+        updateCompletionPlaceholder(keyboardSelectedSuggestion)
+      }
+    } else {
+      // 如果没有键盘选中项，清除交互类型和占位符
+      lastInteractionType.value = null
+      updateCompletionPlaceholder()
+    }
   }
 
   /**
@@ -270,12 +366,12 @@ export function useSuggestionHandler(
 
   return {
     showSuggestionsPopup,
-    highlightedIndex,
     completionPlaceholder,
     showTabHint,
     suggestionsListRef,
     filteredSuggestions,
     activeSuggestion,
+    isItemHighlighted,
     updateCompletionPlaceholder,
     updateSuggestionsState,
     selectSuggestion,
@@ -283,6 +379,7 @@ export function useSuggestionHandler(
     closeSuggestionsPopup,
     navigateSuggestions,
     handleSuggestionItemHover,
+    handleSuggestionItemLeave,
     handleClickOutside,
     highlightSuggestionText,
   }
