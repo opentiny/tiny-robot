@@ -24,8 +24,8 @@
 
   // 侧边栏模式 - 字体和行高配置
   --tr-sender-sidebar-font-size: 14px;
-  --tr-sender-sidebar-line-height: 22px;
-  --tr-sender-sidebar-input-height: 22px;
+  --tr-sender-sidebar-line-height: 24px;
+  --tr-sender-sidebar-input-height: 24px;
   --tr-sender-sidebar-input-radius: 24px;
   --tr-sender-sidebar-send-icon-size: 32px;
 
@@ -34,7 +34,7 @@
   --tr-sender-fullscreen-multiple-content-padding: 16px 20px 0 20px;
   --tr-sender-fullscreen-prefix-padding: 12px 8px 12px 16px;
   --tr-sender-fullscreen-actions-padding: 0 10px;
-  --tr-sender-fullscreen-bottom-row-padding: 12px 10px 10px 24px;
+  --tr-sender-fullscreen-bottom-row-padding: 12px 10px 10px 10px;
   --tr-sender-fullscreen-footer-padding: 15px 10px 10px 24px;
 
 
@@ -132,6 +132,12 @@
   // 侧边栏模式 - ActionButtons组件变量
   --tr-action-buttons-sidebar-cancel-height: 32px;
 
+  // 全屏模式 - Footer高度变量
+  --tr-sender-fullscreen-footer-min-height: 36px;
+
+  // 侧边栏模式 - Footer高度变量
+  --tr-sender-sidebar-footer-min-height: 32px;
+
   // ActionButtons组件变量
   --tr-action-buttons-gap: 12px;
   --tr-action-utility-buttons-gap: 4px;
@@ -156,7 +162,7 @@
   --tr-action-buttons-send-hover-bg-color: #126deb;
 
   // 底部插槽 (Footer)
-  --tr-sender-footer-min-height: 32px;
+  --tr-sender-footer-min-height: var(--tr-sender-fullscreen-footer-min-height);
   --tr-sender-footer-bg: #fff;
   --tr-sender-footer-hover: #f9f9f9;
 
@@ -166,7 +172,7 @@
   --tr-sender-default-padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
 
   // Decorative Content
-  --tr-sender-decorative-content-line-height: 26px;
+  --tr-sender-decorative-content-line-height: var(--tr-sender-fullscreen-line-height);
   --tr-sender-decorative-content-margin-left: 4px;
 
 
@@ -234,12 +240,18 @@
   --tr-sender-prefix-padding-top: 8px;
   --tr-sender-prefix-padding-left: 8px;
   --tr-sender-prefix-padding-right: 4px;
-  --tr-sender-actions-padding-right: 6px;
+  --tr-sender-actions-padding-right: 8px;
   --tr-sender-bottom-row-padding: var(--tr-sender-sidebar-bottom-row-padding);
   --tr-sender-default-padding: var(--tr-sender-sidebar-footer-padding);
 
   // 覆盖ActionButtons组件的取消按钮高度
   --tr-action-buttons-cancel-height: var(--tr-action-buttons-sidebar-cancel-height);
+
+  // 覆盖Footer高度
+  --tr-sender-footer-min-height: var(--tr-sender-sidebar-footer-min-height);
+
+  // 覆盖Decorative Content行高
+  --tr-sender-decorative-content-line-height: var(--tr-sender-sidebar-line-height);
 
   // 调整其他元素尺寸
   --tr-sender-gap: 4px;
@@ -265,6 +277,12 @@
   --tr-sender-content-padding-multiple: var(--tr-sender-fullscreen-multiple-content-padding);
   --tr-sender-bottom-row-padding: var(--tr-sender-fullscreen-bottom-row-padding);
   --tr-sender-default-padding: var(--tr-sender-fullscreen-footer-padding);
+
+  // Footer高度配置
+  --tr-sender-footer-min-height: var(--tr-sender-fullscreen-footer-min-height);
+
+  // Decorative Content行高配置
+  --tr-sender-decorative-content-line-height: var(--tr-sender-fullscreen-line-height);
 }
 
 /* 暗色主题 */
