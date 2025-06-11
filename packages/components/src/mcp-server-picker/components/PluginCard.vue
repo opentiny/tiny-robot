@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import TinySwitch from '@opentiny/vue-switch'
 import TinyButton from '@opentiny/vue-button'
-import { computed, toRefs } from 'vue'
+import { computed, toRefs, watch } from 'vue'
 import { IconDel, IconChevronRight, IconChevronDown } from '@opentiny/vue-icon'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
 
@@ -14,11 +14,12 @@ const props = withDefaults(defineProps<PluginCardProps>(), {
   expandable: false,
   expanded: false,
   showToolCount: true,
+  enableParentChildSync: true,
 })
 
 const emit = defineEmits<PluginCardEmits>()
 
-const { plugin, mode, expandable, expanded, showToolCount } = toRefs(props)
+const { plugin, mode, expandable, expanded, showToolCount, enableParentChildSync } = toRefs(props)
 
 const isExpanded = computed({
   get: () => expanded.value,
@@ -38,7 +39,35 @@ const handleToggleExpand = () => {
   }
 }
 
+// 计算父级插件的激活状态（支持三态）
+const pluginState = computed(() => {
+  if (!plugin.value.tools?.length) {
+    return { checked: plugin.value.enabled || false, indeterminate: false }
+  }
+
+  const enabledTools = plugin.value.tools.filter((tool) => tool.enabled)
+  const totalTools = plugin.value.tools.length
+
+  if (enabledTools.length === 0) {
+    return { checked: false, indeterminate: false }
+  } else if (enabledTools.length === totalTools) {
+    return { checked: true, indeterminate: false }
+  } else {
+    return { checked: true, indeterminate: true }
+  }
+})
+
 const handlePluginToggle = (enabled: boolean) => {
+  if (enableParentChildSync.value && plugin.value.tools?.length) {
+    plugin.value.tools.forEach((tool) => {
+      if (tool.enabled !== enabled) {
+        tool.enabled = enabled
+        // 通知父组件工具状态已改变
+        emit('toggle-tool', tool.id, enabled)
+      }
+    })
+  }
+
   emit('toggle-plugin', enabled)
 }
 
@@ -46,12 +75,32 @@ const handleToolToggle = (toolId: string, enabled: boolean) => {
   emit('toggle-tool', toolId, enabled)
 }
 
+// 监听工具状态变化，自动更新父级插件的UI状态
+watch(
+  () => plugin.value.tools?.map((tool) => tool.enabled),
+  () => {
+    if (enableParentChildSync.value && mode.value === 'installed' && plugin.value.tools?.length) {
+      const newPluginState = pluginState.value
+      // 只有当UI计算出的状态与当前数据状态不同时才同步
+      if (plugin.value.enabled !== newPluginState.checked) {
+        plugin.value.enabled = newPluginState.checked
+        emit('toggle-plugin', newPluginState.checked)
+      }
+    }
+  },
+  { deep: true },
+)
+
 const handleDelete = () => {
   emit('delete-plugin')
 }
 
+// 市场插件添加状态
+const isAdded = computed(() => plugin.value.added || false)
+
 const handleAdd = () => {
-  emit('add-plugin')
+  const newAddedState = !isAdded.value
+  emit('add-plugin', newAddedState)
 }
 </script>
 
@@ -83,13 +132,19 @@ const handleAdd = () => {
               <slot name="delete-icon" @click="handleDelete">
                 <TinyIconDel />
               </slot>
-              <TinySwitch :model-value="plugin.enabled" @update:model-value="handlePluginToggle" />
+              <TinySwitch
+                :model-value="pluginState.checked"
+                :indeterminate="pluginState.indeterminate"
+                @update:model-value="handlePluginToggle"
+              />
             </div>
           </template>
           <template v-else-if="mode === 'market'">
             <div class="plugin-card__add">
               <slot name="add-button" @click="handleAdd">
-                <TinyButton size="mini" circle>添加</TinyButton>
+                <TinyButton size="mini" circle :type="isAdded ? 'success' : 'primary'">
+                  {{ isAdded ? '已添加' : '添加' }}
+                </TinyButton>
               </slot>
             </div>
           </template>

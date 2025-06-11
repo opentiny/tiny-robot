@@ -15,6 +15,7 @@ import Welcome from './welcome'
 import Suggestion from './suggestion'
 import SuggestionPopover from './suggestion-popover'
 import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
+import McpServerPicker from './mcp-server-picker'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -29,6 +30,7 @@ export * from './suggestion/index.type'
 // TODO suggestion 中类型和 suggestion-popover 类型部分冲突。后续整改 suggestion 的类型
 // export * from './suggestion-popover/index.type'
 export * from './suggestion-pills/index.type'
+export * from './mcp-server-picker/index.type'
 
 const components = [
   Bubble,
@@ -48,6 +50,7 @@ const components = [
   SuggestionPopover,
   SuggestionPills,
   SuggestionPillButton,
+  McpServerPicker,
 ]
 
 export default {
@@ -94,4 +97,6 @@ export {
   Question as TrQuestion,
   SuggestionPopover,
   SuggestionPopover as TrSuggestionPopover,
+  McpServerPicker,
+  McpServerPicker as TrMcpServerPicker,
 }
