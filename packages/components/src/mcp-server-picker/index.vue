@@ -3,7 +3,7 @@ import TinyButton from '@opentiny/vue-button'
 import TinyTabs from '@opentiny/vue-tabs'
 import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { IconPlus } from '@opentiny/vue-icon'
 import PluginCard from './components/PluginCard.vue'
 import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits } from './index.type'
@@ -18,6 +18,7 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   defaultActiveTab: 'installed',
   showInstalledTab: true,
   showMarketTab: true,
+  visible: true,
   installedTabTitle: '已安装插件',
   marketTabTitle: '市场',
   title: '插件',
@@ -27,6 +28,7 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   allowToolToggle: true,
   allowPluginDelete: true,
   allowPluginAdd: true,
+  enableParentChildSync: true,
   loading: false,
   marketLoading: false,
 })
@@ -41,50 +43,23 @@ const currentSearchPlaceholder = computed(() =>
   activeTab.value === 'installed' ? props.searchPlaceholder : '搜索市场插件',
 )
 
-// 已添加插件数据（模拟数据）
-const pluginData = reactive<PluginInfo>({
-  id: 'deepseek',
-  name: 'DeepSeek',
-  icon: 'https://cdn.deepseek.com/chat/icon.png',
-  description: 'DeepSeek 的官方扩展',
-  toolCount: 3,
-  enabled: true,
-  expanded: false,
-  tools: [
-    {
-      id: 'tool1',
-      name: '代码生成工具',
-      description: '智能代码生成和优化工具',
-      enabled: true,
-    },
-    {
-      id: 'tool2',
-      name: '文档分析工具',
-      description: '自动分析和总结文档内容',
-      enabled: false,
-    },
-    {
-      id: 'tool3',
-      name: 'API 调用工具',
-      description: '自动化API接口调用和测试',
-      enabled: true,
-    },
-  ],
+// 直接使用 props 传入的数据
+const installedPluginsList = computed(() => props.installedPlugins)
+const marketPluginsList = computed(() => props.marketPlugins)
+
+// 计算激活的插件数量
+const activePluginCount = computed(() => {
+  return installedPluginsList.value.filter((plugin) => plugin.enabled).length
 })
 
-// 插件市场数据（模拟数据）
-const marketPluginData = reactive<PluginInfo>({
-  id: 'deepseek-market',
-  name: 'DeepSeek',
-  icon: 'https://cdn.deepseek.com/chat/icon.png',
-  description: 'DeepSeek 的官方扩展',
-  enabled: false,
-})
-
-// 合并数据：优先使用props数据，没有则使用模拟数据
-const installedPluginsList = computed(() => (props.installedPlugins.length > 0 ? props.installedPlugins : [pluginData]))
-
-const marketPluginsList = computed(() => (props.marketPlugins.length > 0 ? props.marketPlugins : [marketPluginData]))
+// 监听激活插件数量变化
+watch(
+  activePluginCount,
+  (newCount) => {
+    emit('active-count-change', newCount)
+  },
+  { immediate: true },
+)
 
 // 监听Tab变化
 watch(activeTab, (newTab, oldTab) => {
@@ -106,9 +81,29 @@ watch(marketSearch, (query) => {
 const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
   if (!props.allowPluginToggle) return
 
-  // 更新本地数据（如果是模拟数据）
-  if (plugin.id === pluginData.id) {
-    pluginData.enabled = enabled
+  // 直接更新插件数据
+  plugin.enabled = enabled
+
+  // 父子级联动
+  if (props.enableParentChildSync && plugin.tools?.length) {
+    if (!enabled) {
+      // 父级被禁用时，禁用所有子级工具
+      plugin.tools.forEach((tool) => {
+        if (tool.enabled) {
+          tool.enabled = false
+          emit('tool-toggle', plugin, tool.id, false)
+        }
+      })
+    } else {
+      // 父级被激活时，如果所有工具都是禁用的，则激活所有工具
+      const enabledTools = plugin.tools.filter((t) => t.enabled)
+      if (enabledTools.length === 0) {
+        plugin.tools.forEach((tool) => {
+          tool.enabled = true
+          emit('tool-toggle', plugin, tool.id, true)
+        })
+      }
+    }
   }
 
   emit('plugin-toggle', plugin, enabled)
@@ -117,11 +112,20 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
 const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) => {
   if (!props.allowToolToggle) return
 
-  // 更新本地数据（如果是模拟数据）
-  if (plugin.id === pluginData.id) {
-    const tool = pluginData.tools?.find((t) => t.id === toolId)
-    if (tool) {
-      tool.enabled = enabled
+  // 直接更新工具数据
+  const tool = plugin.tools?.find((t) => t.id === toolId)
+  if (tool) {
+    tool.enabled = enabled
+  }
+
+  // 父子级联动：根据子级工具的激活状态更新父级插件的激活状态
+  if (props.enableParentChildSync && plugin.tools?.length) {
+    const enabledTools = plugin.tools.filter((t) => t.enabled)
+    const shouldPluginBeEnabled = enabledTools.length > 0
+
+    if (plugin.enabled !== shouldPluginBeEnabled) {
+      plugin.enabled = shouldPluginBeEnabled
+      emit('plugin-toggle', plugin, shouldPluginBeEnabled)
     }
   }
 
@@ -133,16 +137,18 @@ const handleDeletePlugin = (plugin: PluginInfo) => {
   emit('plugin-delete', plugin)
 }
 
-const handleAddPlugin = (plugin: PluginInfo) => {
+const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
   if (!props.allowPluginAdd) return
-  emit('plugin-add', plugin)
+
+  // 直接更新插件对象的added状态
+  plugin.added = added
+
+  emit('plugin-add', plugin, added)
 }
 
 const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
-  // 更新本地数据（如果是模拟数据）
-  if (plugin.id === pluginData.id) {
-    pluginData.expanded = expanded
-  }
+  // 直接更新插件数据
+  plugin.expanded = expanded
 
   emit('plugin-expand', plugin, expanded)
 }
@@ -153,7 +159,7 @@ const handleCustomAdd = () => {
 </script>
 
 <template>
-  <div class="mcp-server-picker">
+  <div v-if="props.visible" class="mcp-server-picker">
     <div class="mcp-server-picker__header">
       <div class="mcp-server-picker__header-left">{{ props.title }}</div>
       <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right">
@@ -180,6 +186,7 @@ const handleCustomAdd = () => {
                   :plugin="plugin"
                   mode="installed"
                   :expandable="!!plugin.tools?.length"
+                  :enable-parent-child-sync="props.enableParentChildSync"
                   v-model:expanded="plugin.expanded"
                   @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
                   @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
@@ -212,7 +219,7 @@ const handleCustomAdd = () => {
                 mode="market"
                 :expandable="false"
                 :show-tool-count="false"
-                @add-plugin="() => handleAddPlugin(plugin)"
+                @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
               />
             </template>
           </div>

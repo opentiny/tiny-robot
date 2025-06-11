@@ -14,6 +14,7 @@ export interface PluginInfo {
   enabled?: boolean
   expanded?: boolean
   tools?: PluginTool[]
+  added?: boolean
 }
 
 export type PluginCardMode = 'installed' | 'market'
@@ -24,6 +25,7 @@ export interface PluginCardProps {
   expandable?: boolean
   expanded?: boolean
   showToolCount?: boolean
+  enableParentChildSync?: boolean
 }
 
 export interface PluginCardEmits {
@@ -31,7 +33,7 @@ export interface PluginCardEmits {
   (e: 'toggle-expand'): void
   (e: 'toggle-plugin', enabled: boolean): void
   (e: 'toggle-tool', toolId: string, enabled: boolean): void
-  (e: 'add-plugin'): void
+  (e: 'add-plugin', added: boolean): void
   (e: 'delete-plugin'): void
 }
 
@@ -49,6 +51,8 @@ export interface McpServerPickerProps {
   defaultActiveTab?: 'installed' | 'market'
   showInstalledTab?: boolean
   showMarketTab?: boolean
+  // 整体面板显示控制
+  visible?: boolean
 
   // 标签名称
   installedTabTitle?: string
@@ -64,6 +68,8 @@ export interface McpServerPickerProps {
   allowToolToggle?: boolean
   allowPluginDelete?: boolean
   allowPluginAdd?: boolean
+  // 是否启用父子级联动
+  enableParentChildSync?: boolean
 
   // 加载状态
   loading?: boolean
@@ -81,7 +87,7 @@ export interface McpServerPickerEmits {
   // 插件操作事件
   (e: 'plugin-toggle', plugin: PluginInfo, enabled: boolean): void
   (e: 'plugin-delete', plugin: PluginInfo): void
-  (e: 'plugin-add', plugin: PluginInfo): void
+  (e: 'plugin-add', plugin: PluginInfo, added: boolean): void
   (e: 'plugin-expand', plugin: PluginInfo, expanded: boolean): void
 
   // 工具操作事件
@@ -92,4 +98,7 @@ export interface McpServerPickerEmits {
 
   // 刷新事件
   (e: 'refresh', tab: 'installed' | 'market'): void
+
+  // 激活插件数量变化事件
+  (e: 'active-count-change', count: number): void
 }

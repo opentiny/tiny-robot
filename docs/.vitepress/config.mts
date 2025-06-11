@@ -68,6 +68,7 @@ export default defineConfig({
             { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
             { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
             { text: 'Attachments 附件卡片', link: 'attachments' },
+            { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
           ],
         },
       ],
