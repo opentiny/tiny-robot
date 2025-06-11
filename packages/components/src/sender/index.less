@@ -394,9 +394,7 @@
 
   // Tab提示
   &__tab-hint {
-    margin-top: auto;
     border: 1px dashed var(--tr-sender-suggestion-tab-hint-border-color);
-    padding: var(--tr-sender-tab-hint-padding);
     font-size: var(--tr-sender-tab-hint-font-size);
     color: var(--tr-sender-suggestion-tab-hint-color);
     border-radius: var(--tr-sender-suggestion-tab-border-radius);
@@ -553,7 +551,8 @@
 .template-editor {
   width: 100%;
   min-height: var(--tr-sender-template-editor-min-height);
-  line-height: var(--tr-sender-template-editor-line-height);
+  font-size: var(--tr-sender-input-font-size);
+  line-height: var(--tr-sender-input-line-height);
   border-radius: var(--tr-sender-template-editor-border-radius);
   word-break: break-word;
   word-wrap: break-word;
@@ -573,7 +572,7 @@
 
 
   .template-field {
-    display: inline;
+    display: inline-block;
     caret-color: var(--tr-sender-text-color);
     color: var(--tr-sender-template-field-color);
     min-width: var(--tr-sender-template-field-min-width);
@@ -590,20 +589,20 @@
     word-wrap: break-word;
     box-sizing: border-box;
     overflow-wrap: break-word;
-    line-height: var(--tr-sender-template-field-line-height);
+    line-height: var(--tr-sender-template-field-min-height-empty);
     position: relative;
-    vertical-align: baseline;
     /* 启用连字符，帮助长英文词的折行 */
     hyphens: auto;
+    vertical-align: baseline;
 
     /* 明确设置内容为空白时的行为 */
     &:empty {
       /* 确保空字段有足够高度 */
-      min-height: var(--tr-sender-template-field-min-height-empty);
+      min-height: var(--tr-sender-template-field-line-height);
       /* 空字段使用inline-block确保有区域 */
       display: inline-block;
       /* 与字段自身和周围文本保持一致的垂直对齐 */
-      vertical-align: baseline;
+      vertical-align: bottom;
       line-height: var(--tr-sender-template-field-line-height);
     }
 
