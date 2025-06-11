@@ -145,6 +145,13 @@ const handleEditorClick = (event: MouseEvent) => {
 
 // 处理粘贴事件
 const handlePaste = (event: ClipboardEvent) => {
+  // 检测是否为 Safari 浏览器，如果是则禁用粘贴操作
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  if (isSafari) {
+    console.warn('Template paste is disabled in Safari browser')
+    return
+  }
+
   event.preventDefault()
 
   // 获取粘贴的数据
