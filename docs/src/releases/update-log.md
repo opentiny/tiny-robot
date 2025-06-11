@@ -6,21 +6,20 @@
 
 ### 组件
 
-1.【问题】【Sender 消息输入框】模板回填在 shadow dom 环境下表现异常
+1.【问题】【Sender 消息输入框】模板回填在 shadow dom 环境下表现异常  
+> safari 存在的问题：
+>
+> 1.safari 中删除完模板中的字符，模板也不会有 placeholder  
+> 2.不支持模板粘贴
 
-safari 存在的问题：
-1. safari 中删除完模板中的字符，模板也不会有 placeholder
-2. 不支持模板粘贴
-
-2.【优化】【Sender 消息输入框】问题联想功能的交互调整
-
-3.【优化】【Suggestion Popover 建议弹出框】优化了 popover 内tooltip 延时打开的逻辑
+2.【优化】【Sender 消息输入框】问题联想功能的交互调整  
+3.【优化】【Suggestion Popover 建议弹出框】优化了 popover 内 tooltip 延时打开的逻辑
 
 ## 0.2.4 (25.6.9)
 
 ### 组件
 
-1.【问题】【Sender 消息输入框】修复一些样式问题
+1.【问题】【Sender 消息输入框】修复一些样式问题  
 2.【问题】【Sender 消息输入框】移除了停止生成的提示语
 
 ## 0.2.3 (25.6.9)
