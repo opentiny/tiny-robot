@@ -145,10 +145,9 @@ const handleEditorClick = (event: MouseEvent) => {
 
 // 处理粘贴事件
 const handlePaste = (event: ClipboardEvent) => {
-  // 检测是否为 Safari 浏览器，如果是则禁用粘贴操作
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-  if (isSafari) {
-    console.warn('Template paste is disabled in Safari browser')
+  // 检测 ShadowRoot.prototype.getSelection API 是否存在，如果不存在则禁用模板粘贴操作
+  // eslint-disable-next-line
+  if (typeof (ShadowRoot.prototype as any).getSelection !== 'function') {
     return
   }
 
