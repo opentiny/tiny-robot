@@ -58,11 +58,22 @@
 
       <pre class="code-example"><code>/* 自定义侧边栏模式的变量 */
 .custom-sidebar-sender {
+  /* 基础字体和行高 */
   --tr-sender-sidebar-font-size: 12px;
   --tr-sender-sidebar-line-height: 18px;
-  --tr-sender-sidebar-single-content-padding: 6px 4px 6px 8px;
+  --tr-sender-sidebar-input-height: 18px;
+  
+  /* 圆角和图标尺寸 */
   --tr-sender-sidebar-input-radius: 16px;
   --tr-sender-sidebar-send-icon-size: 28px;
+  
+  /* 内边距配置 */
+  --tr-sender-sidebar-single-content-padding: 6px 4px 6px 8px;
+  --tr-sender-sidebar-multiple-content-padding: 8px 12px 0 12px;
+  --tr-sender-sidebar-prefix-padding: 6px 2px 6px 4px;
+  --tr-sender-sidebar-actions-padding: 0 4px;
+  --tr-sender-sidebar-bottom-row-padding: 6px 4px 6px 4px;
+  --tr-sender-sidebar-footer-padding: 6px 4px 4px 8px;
 }</code></pre>
     </div>
   </div>
