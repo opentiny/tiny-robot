@@ -5,6 +5,17 @@ import { fileURLToPath } from 'url'
 
 const { version } = pkg
 
+const devAlias = {
+  '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
+  '@opentiny/tiny-robot-style': fileURLToPath(
+    new URL('../../packages/components/src/styles/root.css', import.meta.url),
+  ),
+}
+
+const prodAlias = {
+  '@opentiny/tiny-robot-style': '@opentiny/tiny-robot/dist/style.css',
+}
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'TinyRobot',
@@ -16,14 +27,7 @@ export default defineConfig({
     server: { open: true },
     resolve: {
       alias: {
-        '@opentiny/tiny-robot':
-          process.env.VP_MODE === 'development'
-            ? fileURLToPath(new URL('../../packages/components/src', import.meta.url))
-            : '@opentiny/tiny-robot',
-        '@opentiny/tiny-robot-style':
-          process.env.VP_MODE === 'development'
-            ? fileURLToPath(new URL('../../packages/components/src/styles/root.css', import.meta.url))
-            : '@opentiny/tiny-robot/dist/style.css',
+        ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
       },
     },
   },
