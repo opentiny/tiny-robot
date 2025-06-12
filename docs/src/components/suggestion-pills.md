@@ -51,10 +51,11 @@ outline: deep
 
 药丸组件属性配置。
 
-| 属性      | 类型                   | 说明                       |
-| --------- | ---------------------- | -------------------------- |
-| `items`   | `SuggestionPillItem[]` | 建议药丸项数据数组         |
-| `showAll` | `boolean`              | 是否展开全部元素 (v-model) |
+| 属性              | 类型                   | 默认值    | 说明                                                        |
+| ----------------- | ---------------------- | --------- | ----------------------------------------------------------- |
+| `items`           | `SuggestionPillItem[]` | -         | 建议药丸项数据数组                                          |
+| `showAll`         | `boolean`              | -         | 是否展开全部元素 (v-model)                                  |
+| `showAllButtonOn` | `'hover' \| 'always'`  | `'hover'` | 显示“更多按钮”的时机，`hover`为悬停显示，`always`为总是显示 |
 
 ### SuggestionPillsSlots
 
@@ -68,10 +69,10 @@ outline: deep
 
 药丸组件事件定义。
 
-| 事件名          | 参数                       | 说明                                           |
-| --------------- | -------------------------- | ---------------------------------------------- |
-| `item-click`    | `item: SuggestionPillItem` | 点击药丸项时触发                               |
-| `click-outside` |                            | 点击组件外部区域时触发，用于关闭展开的药丸列表 |
+| 事件名          | 参数                       | 说明                   |
+| --------------- | -------------------------- | ---------------------- |
+| `item-click`    | `item: SuggestionPillItem` | 点击药丸项时触发       |
+| `click-outside` | `event: MouseEvent`        | 点击组件外部区域时触发 |
 
 ### SuggestionPillButtonProps
 

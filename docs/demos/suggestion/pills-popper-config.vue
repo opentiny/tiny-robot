@@ -1,11 +1,16 @@
 <template>
-  <TrSuggestionPills :items="items" v-model:showAll="showAll" @item-click="handleItemClick"></TrSuggestionPills>
+  <TrSuggestionPills
+    :items="items"
+    v-model:showAll="showAll"
+    @item-click="handleItemClick"
+    @click-outside="handleClickOutside"
+  ></TrSuggestionPills>
   <hr />
   <span>点击第一个图标会打开Popover弹出框</span>
   <hr />
   <div>
     <label>手动控制显示更多：</label>
-    <tiny-switch v-model="showAll"></tiny-switch>
+    <tiny-switch v-model="showAll" ref="showAllRef"></tiny-switch>
   </div>
 </template>
 
@@ -16,6 +21,7 @@ import { TinySwitch } from '@opentiny/vue'
 import { h, markRaw, ref } from 'vue'
 
 const showAll = ref(false)
+const showAllRef = ref<InstanceType<typeof TinySwitch>>()
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
@@ -96,6 +102,13 @@ const handleItemClick = (item: SuggestionPillItem) => {
   if (item.id === items.value[0].id) {
     delaySetData()
   }
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (showAllRef.value?.$el.contains(event.target as Node)) {
+    return
+  }
+  showAll.value = false
 }
 </script>
 
