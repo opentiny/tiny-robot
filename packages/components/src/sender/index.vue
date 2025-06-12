@@ -18,7 +18,6 @@ const props = withDefaults(defineProps<SenderProps>(), {
   allowSpeech: true,
   allowFiles: false,
   clearable: false,
-  containerMode: 'fullscreen',
   disabled: false,
   loading: false,
   modelValue: '',
@@ -155,8 +154,9 @@ const checkInputOverflow = () => {
   // 计算文本宽度
   const textWidth = calculateTextWidth(inputValue.value, fontStyle)
 
-  // 根据容器模式动态调整固定边距
-  const dynamicMargin = props.containerMode === 'sidebar' ? 12 : 20
+  // 根据是否有紧凑类动态调整固定边距
+  const hasCompactClass = senderRef.value?.classList.contains('tr-sender-compact')
+  const dynamicMargin = hasCompactClass ? 12 : 20
 
   // 使用getBoundingClientRect获取更精确的宽度
   const inputWidth = inputRect.width
@@ -166,7 +166,7 @@ const checkInputOverflow = () => {
   const availableWidth = inputWidth - buttonsWidth - dynamicMargin
 
   // 添加最小阈值检查，避免在极小宽度下误触发
-  const minThreshold = props.containerMode === 'sidebar' ? 50 : 80
+  const minThreshold = hasCompactClass ? 50 : 80
 
   // 判断是否需要切换到多行模式
   if (textWidth > availableWidth && availableWidth > minThreshold && currentMode.value === 'single') {
@@ -461,9 +461,8 @@ defineExpose({
   <div
     ref="senderRef"
     class="tiny-sender"
-    :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`, `tr-sender-${containerMode}`]"
+    :class="[senderClasses, `theme-${theme}`, `mode-${currentMode}`]"
     :data-theme="theme"
-    :data-container-mode="containerMode"
   >
     <!-- 输入区域容器 -->
     <div class="tiny-sender__container">
