@@ -9,9 +9,6 @@ export type ThemeType = 'light' | 'dark'
 // 输入模式类型
 export type InputMode = 'single' | 'multiple'
 
-// 容器模式类型
-export type ContainerMode = 'fullscreen' | 'sidebar'
-
 // 提交触发方式
 export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
 
@@ -32,7 +29,6 @@ export interface SenderProps {
   allowSpeech?: boolean // 是否允许语音识别
   allowFiles?: boolean // 是否允许上传附件
   clearable?: boolean // 是否显示清除按钮
-  containerMode?: ContainerMode // 容器模式：全屏/侧边栏
   disabled?: boolean // 禁用状态
   defaultValue?: string | null // 默认值
   loading?: boolean // 加载状态
