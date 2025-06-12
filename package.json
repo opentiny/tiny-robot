@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "concurrently \"pnpm dev:components\" \"pnpm -F docs dev\"",
+    "dev": "concurrently \"pnpm build:deps\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "pnpm build:components && pnpm -F docs build",
