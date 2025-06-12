@@ -29,6 +29,13 @@ export interface SuggestionPillsProps {
    * model:showAll
    */
   showAll?: boolean
+  /**
+   * 显示更多按钮的时机
+   * - hover: 鼠标悬停时显示
+   * - always: 总是显示
+   * @default 'hover'
+   */
+  showAllButtonOn?: 'hover' | 'always'
 }
 
 /**
@@ -40,7 +47,7 @@ export interface SuggestionPillsSlots {
 
 export interface SuggestionPillsEmits {
   (e: 'item-click', item: SuggestionPillItem): void
-  (e: 'click-outside'): void
+  (e: 'click-outside', event: MouseEvent): void
 }
 
 export interface SuggestionPillButtonProps {
