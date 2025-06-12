@@ -85,6 +85,10 @@
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
     }
+
+    &::-webkit-scrollbar {
+      width: 12px !important;
+    }
   }
 
   .tiny-textarea:before,
@@ -565,14 +569,10 @@
   overflow-wrap: break-word;
   /* 确保文本左对齐 */
   text-align: left;
-  /* 防止内容溢出 */
-  overflow: hidden;
-  /* 超出部分显示省略号 */
-  text-overflow: ellipsis;
 
 
   .template-field {
-    display: inline-block;
+    display: inline;
     caret-color: var(--tr-sender-text-color);
     color: var(--tr-sender-template-field-color);
     min-width: var(--tr-sender-template-field-min-width);
@@ -583,9 +583,10 @@
     border-radius: var(--tr-sender-template-field-border-radius);
     cursor: text;
     transition: background-color var(--tr-sender-transition-duration);
-    white-space: nowrap;
-    /* 允许在任意字符处断行（当设置为多行时） */
-    word-break: break-word;
+    /* 允许字段内容换行，与容器保持一致 */
+    white-space: pre-wrap;
+    /* 强制换行设置 - 允许在任意字符处断行 */
+    word-break: break-all;
     word-wrap: break-word;
     box-sizing: border-box;
     overflow-wrap: break-word;
@@ -604,6 +605,8 @@
       /* 与字段自身和周围文本保持一致的垂直对齐 */
       vertical-align: bottom;
       line-height: var(--tr-sender-template-field-line-height);
+      /* 空白字段不需要换行 */
+      white-space: nowrap;
     }
 
     &:hover {
