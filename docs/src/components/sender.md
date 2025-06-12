@@ -237,6 +237,7 @@ Sender 组件支持主题定制，您可以通过修改主题变量来改变组�
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
 | suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
+| containerMode | 容器模式 | `'fullscreen' \| 'sidebar'` | `'fullscreen'` |
 
 
 ### Events
