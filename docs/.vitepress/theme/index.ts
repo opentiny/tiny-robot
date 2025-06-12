@@ -1,5 +1,5 @@
 import DefaultTheme from 'vitepress/theme'
-import '@opentiny/tiny-robot/dist/style.css'
+import '@opentiny/tiny-robot-style'
 import './style.css'
 
 declare global {

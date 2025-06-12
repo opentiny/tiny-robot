@@ -2,11 +2,12 @@
   "name": "docs",
   "private": true,
   "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
+    "dev": "cross-env VP_MODE=development vitepress dev",
+    "build": "cross-env VP_MODE=production vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "gh-pages": "^2.1.1",
     "vitepress": "^1.6.3",
     "vitepress-demo-plugin": "^1.4.2"
