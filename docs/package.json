@@ -2,8 +2,8 @@
   "name": "docs",
   "private": true,
   "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
+    "dev": "VP_MODE=development vitepress dev",
+    "build": "VP_MODE=production vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {
