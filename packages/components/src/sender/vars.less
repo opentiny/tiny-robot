@@ -11,32 +11,77 @@
   --tr-sender-button-icon-color: #5e7ce0;
   --tr-sender-link-color: #1476FF;
 
+  // ===== 双维度主题配置 =====
+  // 容器模式 (Container Mode): fullscreen | sidebar
+  // 输入模式 (Input Mode): single | multiple
+
+  // 全屏模式 - 字体和行高配置
+  --tr-sender-fullscreen-font-size: 16px;
+  --tr-sender-fullscreen-line-height: 26px;
+  --tr-sender-fullscreen-input-height: 26px;
+  --tr-sender-fullscreen-input-radius: 26px;
+  --tr-sender-fullscreen-send-icon-size: 36px;
+
+  // 侧边栏模式 - 字体和行高配置
+  --tr-sender-sidebar-font-size: 14px;
+  --tr-sender-sidebar-line-height: 24px;
+  --tr-sender-sidebar-input-height: 24px;
+  --tr-sender-sidebar-input-radius: 24px;
+  --tr-sender-sidebar-send-icon-size: 32px;
+
+  // 全屏模式 - 内边距配置
+  --tr-sender-fullscreen-single-content-padding: 15px 10px 15px 20px;
+  --tr-sender-fullscreen-multiple-content-padding: 16px 20px 0 20px;
+  --tr-sender-fullscreen-prefix-padding: 12px 8px 12px 16px;
+  --tr-sender-fullscreen-actions-padding: 0 10px;
+  --tr-sender-fullscreen-bottom-row-padding: 12px 10px 10px 10px;
+  --tr-sender-fullscreen-footer-padding: 15px 10px 10px 24px;
+
+
+  // 侧边栏模式 - 内边距配置
+  --tr-sender-sidebar-single-content-padding: 12px 8px 12px 20px;
+  --tr-sender-sidebar-multiple-content-padding: 14px 20px 0 20px;
+  --tr-sender-sidebar-prefix-padding: 8px 4px 8px 8px;
+  --tr-sender-sidebar-actions-padding: 0 6px;
+  --tr-sender-sidebar-bottom-row-padding: 10px 8px 10px 8px;
+  --tr-sender-sidebar-footer-padding: 8px 6px 6px 12px;
+
+  // 默认配置（向后兼容）
+  // 默认使用全屏模式的配置
+  --tr-sender-input-font-size: var(--tr-sender-fullscreen-font-size);
+  --tr-sender-input-line-height: var(--tr-sender-fullscreen-line-height);
+  --tr-sender-input-height: var(--tr-sender-fullscreen-input-height);
+  --tr-sender-content-padding-single: var(--tr-sender-fullscreen-single-content-padding);
+  --tr-sender-content-padding-multiple: var(--tr-sender-fullscreen-multiple-content-padding);
+
+  // 默认圆角和图标尺寸
+  --tr-sender-input-radius: var(--tr-sender-fullscreen-input-radius);
+  --tr-sender-send-icon-size: var(--tr-sender-fullscreen-send-icon-size);
+
   // 尺寸
-  --tr-sender-border-radius: 26px;
+  --tr-sender-border-radius: var(--tr-sender-input-radius);
   --tr-sender-padding-top: 15px;
   --tr-sender-padding-right: 10px;
   --tr-sender-padding-bottom: 10px;
   --tr-sender-padding-left: 24px;
   --tr-sender-gap: 8px;
-  --tr-sender-input-height: 26px;
   --tr-sender-input-min-height: 60px;
   --tr-sender-icon-size: 32px;
   --tr-sender-icon-size-small: 18px;
 
-  // 字体
+  // 基础字体（用于其他元素）
   --tr-sender-font-size: 14px;
   --tr-sender-font-size-small: 12px;
+
+  // 为了保持向后兼容性，保留原有变量名称，但指向新的变量
+  --tr-sender-textarea-line-height: var(--tr-sender-input-line-height);
+  --tr-sender-textarea-min-height: var(--tr-sender-input-line-height);
 
   // 动画
   --tr-sender-transition-duration: 0.2s;
 
   // 阴影
   --tr-sender-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
-
-  // 输入框
-  --tr-sender-textarea-min-height: 26px;
-  --tr-sender-textarea-line-height: 26px;
-  --tr-sender-input-font-size: 16px;
 
   // 模板编辑器变量
   --tr-sender-template-editor-min-height: 26px;
@@ -73,8 +118,6 @@
   --tr-sender-content-min-width: 180px;
   --tr-sender-content-padding-with-prefix: 12px 16px 0 0;
   --tr-sender-content-flex-grow: 1;
-  --tr-sender-content-padding-single: 15px 10px 15px 20px;
-  --tr-sender-content-padding-multiple: 16px 20px 0 20px;
 
   // 操作区域 (Actions)
   --tr-sender-actions-min-width: 32px;
@@ -83,16 +126,28 @@
   --tr-sender-actions-padding-left: 10px;
   --tr-sender-actions-padding-right: 10px;
 
+  // 全屏模式 - ActionButtons组件变量
+  --tr-action-buttons-fullscreen-cancel-height: 36px;
+
+  // 侧边栏模式 - ActionButtons组件变量
+  --tr-action-buttons-sidebar-cancel-height: 32px;
+
+  // 全屏模式 - Footer高度变量
+  --tr-sender-fullscreen-footer-min-height: 36px;
+
+  // 侧边栏模式 - Footer高度变量
+  --tr-sender-sidebar-footer-min-height: 32px;
+
   // ActionButtons组件变量
   --tr-action-buttons-gap: 12px;
   --tr-action-utility-buttons-gap: 4px;
   --tr-action-buttons-border-radius: 8px;
   --tr-action-buttons-icon-size: 32px;
   --tr-action-buttons-icon-size-close: 22px;
-  --tr-action-buttons-icon-size-send: 36px;
+  --tr-action-buttons-icon-size-send: var(--tr-sender-send-icon-size);
   --tr-action-buttons-icon-size-stop: 24px;
   --tr-action-buttons-submit-margin: 12px;
-  --tr-action-buttons-cancel-height: 36px;
+  --tr-action-buttons-cancel-height: var(--tr-action-buttons-fullscreen-cancel-height);
   --tr-action-buttons-cancel-gap: 4px;
   --tr-action-buttons-cancel-padding: 4px 12px 4px 6px;
   --tr-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
@@ -107,12 +162,17 @@
   --tr-action-buttons-send-hover-bg-color: #126deb;
 
   // 底部插槽 (Footer)
-  --tr-sender-footer-min-height: 36px;
+  --tr-sender-footer-min-height: var(--tr-sender-fullscreen-footer-min-height);
   --tr-sender-footer-bg: #fff;
   --tr-sender-footer-hover: #f9f9f9;
 
+  // Padding 组合变量
+  --tr-sender-bottom-row-padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-bottom-row-padding-left);
+  --tr-sender-suggestion-item-padding-full: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+  --tr-sender-default-padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom) var(--tr-sender-padding-left);
+
   // Decorative Content
-  --tr-sender-decorative-content-line-height: 26px;
+  --tr-sender-decorative-content-line-height: var(--tr-sender-fullscreen-line-height);
   --tr-sender-decorative-content-margin-left: 4px;
 
 
@@ -153,11 +213,76 @@
 
   // 自动完成占位符
   --tr-sender-completion-placeholder-font-size: 14px;
-  --tr-sender-completion-placeholder-line-height: 22px;
+  --tr-sender-completion-placeholder-line-height: 16px;
 
   // Tab提示
   --tr-sender-tab-hint-padding: 0 6px;
   --tr-sender-tab-hint-font-size: 14px;
+}
+
+// ===== 容器模式主题 =====
+/* 侧边栏模式 */
+.tr-sender-sidebar,
+.tiny-sender[data-container-mode='sidebar'] {
+  // 覆盖字体和行高
+  --tr-sender-input-font-size: var(--tr-sender-sidebar-font-size);
+  --tr-sender-input-line-height: var(--tr-sender-sidebar-line-height);
+  --tr-sender-input-height: var(--tr-sender-sidebar-input-height);
+
+  // 覆盖圆角和图标尺寸
+  --tr-sender-input-radius: var(--tr-sender-sidebar-input-radius);
+  --tr-sender-send-icon-size: var(--tr-sender-sidebar-send-icon-size);
+  --tr-sender-border-radius: var(--tr-sender-sidebar-input-radius);
+
+  // 覆盖内边距
+  --tr-sender-content-padding-single: var(--tr-sender-sidebar-single-content-padding);
+  --tr-sender-content-padding-multiple: var(--tr-sender-sidebar-multiple-content-padding);
+  --tr-sender-prefix-padding-top: 8px;
+  --tr-sender-prefix-padding-left: 8px;
+  --tr-sender-prefix-padding-right: 4px;
+  --tr-sender-actions-padding-right: 8px;
+  --tr-sender-bottom-row-padding: var(--tr-sender-sidebar-bottom-row-padding);
+  --tr-sender-default-padding: var(--tr-sender-sidebar-footer-padding);
+
+  // 覆盖ActionButtons组件的取消按钮高度
+  --tr-action-buttons-cancel-height: var(--tr-action-buttons-sidebar-cancel-height);
+
+  // 覆盖Footer高度
+  --tr-sender-footer-min-height: var(--tr-sender-sidebar-footer-min-height);
+
+  // 覆盖Decorative Content行高
+  --tr-sender-decorative-content-line-height: var(--tr-sender-sidebar-line-height);
+
+  // 调整其他元素尺寸
+  --tr-sender-gap: 4px;
+  --tr-sender-actions-gap: 4px;
+  --tr-sender-container-min-height: 32px;
+}
+
+/* 全屏模式（默认） */
+.tr-sender-fullscreen,
+.tiny-sender[data-container-mode='fullscreen'] {
+  // 使用全屏模式配置
+  --tr-sender-input-font-size: var(--tr-sender-fullscreen-font-size);
+  --tr-sender-input-line-height: var(--tr-sender-fullscreen-line-height);
+  --tr-sender-input-height: var(--tr-sender-fullscreen-input-height);
+
+  // 圆角和图标尺寸
+  --tr-sender-input-radius: var(--tr-sender-fullscreen-input-radius);
+  --tr-sender-send-icon-size: var(--tr-sender-fullscreen-send-icon-size);
+  --tr-sender-border-radius: var(--tr-sender-fullscreen-input-radius);
+
+  // 内边距配置
+  --tr-sender-content-padding-single: var(--tr-sender-fullscreen-single-content-padding);
+  --tr-sender-content-padding-multiple: var(--tr-sender-fullscreen-multiple-content-padding);
+  --tr-sender-bottom-row-padding: var(--tr-sender-fullscreen-bottom-row-padding);
+  --tr-sender-default-padding: var(--tr-sender-fullscreen-footer-padding);
+
+  // Footer高度配置
+  --tr-sender-footer-min-height: var(--tr-sender-fullscreen-footer-min-height);
+
+  // Decorative Content行高配置
+  --tr-sender-decorative-content-line-height: var(--tr-sender-fullscreen-line-height);
 }
 
 /* 暗色主题 */

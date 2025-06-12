@@ -207,6 +207,12 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 <demo vue="../../demos/sender/All.vue" />
 
+### 侧边栏模式配置
+
+Sender 组件支持主题定制，您可以通过修改主题变量来改变组件的样式。
+
+<demo vue="../../demos/sender/ContainerMode.vue" />
+
 ## API 说明
 
 ### Props
@@ -231,6 +237,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
 | suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
+| containerMode | 容器模式 | `'fullscreen' \| 'sidebar'` | `'fullscreen'` |
 
 
 ### Events
