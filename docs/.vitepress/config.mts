@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
-import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
+import pkg from '@opentiny/tiny-robot/package.json' with { type: 'json' }
 import { fileURLToPath } from 'url'
 
 const { version } = pkg
