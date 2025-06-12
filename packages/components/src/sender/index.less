@@ -16,6 +16,7 @@
 
   // 自动切换模式时的过渡
   &.is-auto-switching {
+
     .tiny-input__inner,
     .tiny-textarea__inner {
       transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -43,7 +44,7 @@
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
     height: var(--tr-sender-input-height); // 固定高度以减少跳动
-    line-height: var(--tr-sender-textarea-line-height); // 行高保持一致
+    line-height: var(--tr-sender-input-line-height); // 行高保持一致
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
@@ -79,10 +80,14 @@
     padding: 0;
     background-color: var(--tr-sender-bg-color);
     color: var(--tr-sender-text-color);
-    line-height: var(--tr-sender-textarea-line-height); // 行高与单行保持一致
+    line-height: var(--tr-sender-input-line-height); // 行高与单行保持一致
 
     &::placeholder {
       color: var(--tr-sender-text-color-secondary);
+    }
+
+    &::-webkit-scrollbar {
+      width: 12px !important;
     }
   }
 
@@ -130,8 +135,7 @@
     min-height: var(--tr-sender-footer-min-height);
 
     &.tiny-sender__bottom-row {
-      padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-bottom-row-padding-left);
+      padding: var(--tr-sender-bottom-row-padding);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -139,8 +143,7 @@
     }
 
     .suggestion-item {
-      padding: var(--tr-sender-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-        var(--tr-sender-padding-left);
+      padding: var(--tr-sender-suggestion-item-padding-full);
       cursor: pointer;
       transition: background-color var(--tr-sender-transition-duration);
 
@@ -275,8 +278,7 @@
   }
 
   &__bottom-row {
-    padding: var(--tr-sender-bottom-row-padding-top) var(--tr-sender-padding-right) var(--tr-sender-padding-bottom)
-      var(--tr-sender-padding-left);
+    padding: var(--tr-sender-default-padding);
   }
 
   // 字数限制
@@ -290,7 +292,7 @@
 
     // 超出限制的红色警示样式
     &.is-over-limit {
-      & > .real-word-length {
+      &>.real-word-length {
         color: var(--tr-sender-error-color);
         font-weight: 500;
       }
@@ -396,42 +398,13 @@
 
   // Tab提示
   &__tab-hint {
-    margin-top: auto;
     border: 1px dashed var(--tr-sender-suggestion-tab-hint-border-color);
-    padding: var(--tr-sender-tab-hint-padding);
     font-size: var(--tr-sender-tab-hint-font-size);
     color: var(--tr-sender-suggestion-tab-hint-color);
     border-radius: var(--tr-sender-suggestion-tab-border-radius);
     pointer-events: none;
     display: inline-block;
     flex-shrink: 0;
-  }
-
-  // 过渡动画
-  .tiny-sender-slide-up-enter-active,
-  .tiny-sender-slide-up-leave-active {
-    transition:
-      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
-      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
-  }
-
-  .tiny-sender-slide-up-enter-from,
-  .tiny-sender-slide-up-leave-to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  .tiny-sender-slide-down-enter-active,
-  .tiny-sender-slide-down-leave-active {
-    transition:
-      opacity var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style),
-      transform var(--tr-sender-suggestion-transition-duration) var(--tr-sender-suggestion-transition-style);
-  }
-
-  .tiny-sender-slide-down-enter-from,
-  .tiny-sender-slide-down-leave-to {
-    opacity: 0;
-    transform: translateY(10px);
   }
 
   // 错误提示
@@ -582,7 +555,8 @@
 .template-editor {
   width: 100%;
   min-height: var(--tr-sender-template-editor-min-height);
-  line-height: var(--tr-sender-template-editor-line-height);
+  font-size: var(--tr-sender-input-font-size);
+  line-height: var(--tr-sender-input-line-height);
   border-radius: var(--tr-sender-template-editor-border-radius);
   word-break: break-word;
   word-wrap: break-word;
@@ -595,10 +569,6 @@
   overflow-wrap: break-word;
   /* 确保文本左对齐 */
   text-align: left;
-  /* 防止内容溢出 */
-  overflow: hidden;
-  /* 超出部分显示省略号 */
-  text-overflow: ellipsis;
 
 
   .template-field {
@@ -613,17 +583,18 @@
     border-radius: var(--tr-sender-template-field-border-radius);
     cursor: text;
     transition: background-color var(--tr-sender-transition-duration);
-    white-space: nowrap;
-    /* 允许在任意字符处断行（当设置为多行时） */
-    word-break: break-word;
+    /* 允许字段内容换行，与容器保持一致 */
+    white-space: pre-wrap;
+    /* 强制换行设置 - 允许在任意字符处断行 */
+    word-break: break-all;
     word-wrap: break-word;
     box-sizing: border-box;
     overflow-wrap: break-word;
     line-height: var(--tr-sender-template-field-line-height);
     position: relative;
-    vertical-align: baseline;
     /* 启用连字符，帮助长英文词的折行 */
     hyphens: auto;
+    vertical-align: baseline;
 
     /* 明确设置内容为空白时的行为 */
     &:empty {
@@ -632,8 +603,10 @@
       /* 空字段使用inline-block确保有区域 */
       display: inline-block;
       /* 与字段自身和周围文本保持一致的垂直对齐 */
-      vertical-align: baseline;
+      vertical-align: bottom;
       line-height: var(--tr-sender-template-field-line-height);
+      /* 空白字段不需要换行 */
+      white-space: nowrap;
     }
 
     &:hover {
@@ -685,7 +658,7 @@
 
     /* 发送图标 */
     &--send {
-      font-size: var(--tr-action-buttons-icon-size-send);
+      font-size: var(--tr-sender-send-icon-size);
       color: var(--tr-action-buttons-send-bg-color);
       border-radius: var(--tr-action-buttons-send-border-radius);
 
