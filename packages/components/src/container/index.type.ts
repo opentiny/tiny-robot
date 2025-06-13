@@ -4,14 +4,25 @@ export interface ContainerProps {
    */
   show: boolean
   /**
-   * model:fullscreen
+   * 标题
    */
-  fullscreen?: boolean
+  title: string
+  /**
+   * model:displayMode 显示模式，默认 'docked'
+   */
+  displayMode?: 'fullscreen' | 'docked' | 'floating'
+
+  width?: string | number
 }
 
 export interface ContainerSlots {
   default: () => unknown
   title: () => unknown
-  operations: () => unknown
+  'header-actions': () => unknown
   footer: () => unknown
+}
+
+export interface ContainerEmits {
+  (e: 'open'): void
+  (e: 'close'): void
 }

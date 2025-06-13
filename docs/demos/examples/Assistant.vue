@@ -1,6 +1,6 @@
 <template>
-  <tr-container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
-    <template #operations>
+  <tr-container v-model:show="show" title="OpenTiny NEXT" class="tiny-container">
+    <template #header-actions>
       <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
       <span style="display: inline-flex; line-height: 0; position: relative">
         <tr-icon-button :icon="IconHistory" size="28" svgSize="20" @click="showHistory = true" />
@@ -69,10 +69,6 @@
       <label>show：</label>
       <tiny-switch v-model="show"></tiny-switch>
     </div>
-    <div>
-      <label>fullscreen：</label>
-      <tiny-switch v-model="fullscreen"></tiny-switch>
-    </div>
   </div>
 </template>
 
@@ -105,7 +101,6 @@ const client = new AIClient({
   apiUrl: location.origin + '/cdocs/tiny-robot/',
 })
 
-const fullscreen = ref(false)
 const show = ref(true)
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })

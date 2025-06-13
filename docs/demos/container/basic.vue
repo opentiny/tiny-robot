@@ -1,11 +1,11 @@
 <template>
-  <tr-container v-model:show="show" v-model:fullscreen="fullscreen">
+  <tr-container v-model:show="show" title="OpenTiny NEXT">
     <!-- 默认插槽 -->
     <div style="padding: 0 24px">
       <p v-for="i in 20" :key="i">测试文本</p>
     </div>
-    <!-- operations插槽 -->
-    <template #operations>
+    <!-- header-actions插槽 -->
+    <template #header-actions>
       <tr-icon-button size="28" svg-size="20" :icon="IconNewSession" />
     </template>
     <!-- footer插槽 -->
@@ -18,10 +18,6 @@
       <label>show：</label>
       <tiny-switch v-model="show"></tiny-switch>
     </div>
-    <div>
-      <label>fullscreen：</label>
-      <tiny-switch v-model="fullscreen"></tiny-switch>
-    </div>
   </div>
 </template>
 
@@ -32,5 +28,4 @@ import { TinySwitch } from '@opentiny/vue'
 import { ref } from 'vue'
 
 const show = ref(false)
-const fullscreen = ref(false)
 </script>
