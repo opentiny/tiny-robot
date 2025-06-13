@@ -6,7 +6,8 @@ import TinyInput from '@opentiny/vue-input'
 import { ref, computed, watch } from 'vue'
 import { IconPlus } from '@opentiny/vue-icon'
 import PluginCard from './components/PluginCard.vue'
-import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits } from './index.type'
+import CreatePluginDialog from './components/CreatePluginDialog.vue'
+import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits, CreatePluginData } from './index.type'
 
 const TinyIconPlus = IconPlus()
 
@@ -38,6 +39,7 @@ const emit = defineEmits<McpServerPickerEmits>()
 const activeTab = ref(props.defaultActiveTab)
 const installedSearch = ref('')
 const marketSearch = ref('')
+const showCreatePluginDialog = ref(false)
 
 const currentSearchPlaceholder = computed(() =>
   activeTab.value === 'installed' ? props.searchPlaceholder : '搜索市场插件',
@@ -154,7 +156,17 @@ const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
 }
 
 const handleCustomAdd = () => {
+  showCreatePluginDialog.value = true
   emit('custom-add')
+}
+
+const handleCreatePluginConfirm = (data: CreatePluginData) => {
+  emit('plugin-create', data)
+  showCreatePluginDialog.value = false
+}
+
+const handleCreatePluginCancel = () => {
+  showCreatePluginDialog.value = false
 }
 </script>
 
@@ -226,13 +238,21 @@ const handleCustomAdd = () => {
         </TinyTabItem>
       </TinyTabs>
     </div>
+
+    <!-- 创建插件弹窗 -->
+    <CreatePluginDialog
+      v-model:visible="showCreatePluginDialog"
+      title="创建插件"
+      @confirm="handleCreatePluginConfirm"
+      @cancel="handleCreatePluginCancel"
+    />
   </div>
 </template>
 
 <style lang="less" scoped>
 .mcp-server-picker {
   width: 482px;
-  height: calc(100vh - 20px);
+  height: 100%;
   box-sizing: border-box;
   background: rgb(248, 248, 248);
   border-left: 1px solid rgb(219, 219, 219);
