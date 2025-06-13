@@ -492,7 +492,9 @@ defineExpose({
               <TemplateEditor
                 ref="templateEditorRef"
                 v-model:value="inputValue"
+                :submit-type="submitType"
                 @input="handleTemplateInput"
+                @submit="triggerSubmit"
                 @empty-content="exitTemplateMode"
               />
             </template>

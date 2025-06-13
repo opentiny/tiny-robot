@@ -47,7 +47,6 @@ const templateHandler = useTemplateHandler(contentEditableRef, {
     emit('input', newValue)
   },
   onContentStatusChange: (hasContent: boolean) => emit('content-status', hasContent),
-  onSubmit: (submitValue: string) => emit('submit', submitValue),
 })
 
 // 使用键盘事件处理 Hook
@@ -56,7 +55,8 @@ const keyboardHandler = useTemplateKeyboardHandler({
   isComposing,
   getValueFromDOM: templateHandler.getValueFromDOM,
   handleInput: templateHandler.handleInput,
-  onSubmit: (submitValue: string) => emit('submit', submitValue),
+  onSubmit: () => emit('submit'),
+  submitType: props.submitType,
 })
 
 // 生成模板内容的辅助函数
