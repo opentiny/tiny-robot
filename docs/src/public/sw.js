@@ -39,38 +39,56 @@ const getMockData = (messages) => {
   return template.replace('{{lastMessage}}', lastMessage)
 }
 
+async function delay(start = 100, end) {
+  end = end || start
+  return new Promise((resolve) => setTimeout(resolve, Math.random() * (end - start) + start))
+}
+
+async function mockStreamData(responseData, { model, isReasoningContent = false } = {}, callback = () => {}) {
+  const responseParts = responseData.split('')
+  for (let i = 0; i < responseParts.length; i++) {
+    const part = responseParts[i]
+    const data = {
+      id: 'mock-' + Date.now(),
+      object: 'chat.completion.chunk',
+      created: Math.floor(Date.now() / 1000),
+      model: model || 'gpt-3.5-turbo',
+      choices: [
+        {
+          index: 0,
+          delta: {
+            [isReasoningContent? 'reasoning_content': 'content']: part,
+          },
+          finish_reason: i === responseParts.length - 1 && !isReasoningContent ? 'stop' : null,
+        },
+      ],
+    }
+
+    callback(data)
+    await delay(...(isReasoningContent?[30, 70]:[50, 150]))
+  }
+}
+
 function generateStreamResponse(body) {
   const mockData = getMockData(body.messages)
-  const responseParts = mockData.split('')
+
+  const isReasonModel = body.model.includes('reason')
 
   const stream = new ReadableStream({
     async start(controller) {
       controller.enqueue(encoder.encode('data: {}\n\n'))
 
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      await delay(100)
 
-      for (let i = 0; i < responseParts.length; i++) {
-        const part = responseParts[i]
-        const data = {
-          id: 'mock-' + Date.now(),
-          object: 'chat.completion.chunk',
-          created: Math.floor(Date.now() / 1000),
-          model: body.model || 'gpt-3.5-turbo',
-          choices: [
-            {
-              index: 0,
-              delta: {
-                content: part,
-              },
-              finish_reason: i === responseParts.length - 1 ? 'stop' : null,
-            },
-          ],
-        }
-
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
-
-        await new Promise((resolve) => setTimeout(resolve, Math.random() * 100 + 50))
+      if (isReasonModel) {
+        await mockStreamData('深度思考：\n' + mockData, { model: body.model, isReasoningContent: true }, (data) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+        })
       }
+      await mockStreamData(mockData, { model: body.model }, (data) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+      })
+
 
       controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       controller.close()
