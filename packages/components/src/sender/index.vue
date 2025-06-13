@@ -9,6 +9,7 @@ import { useSuggestionHandler } from './composables/useSuggestionHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
+import { toCssUnit } from '../shared/utils'
 import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
@@ -30,6 +31,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   template: '',
   templateInitialValues: () => ({}),
   suggestions: () => [],
+  suggestionPopupWidth: 400,
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -50,19 +52,19 @@ const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler 
 // 建议处理
 const {
   showSuggestionsPopup,
-  highlightedIndex,
   completionPlaceholder,
   showTabHint,
   suggestionsListRef,
   filteredSuggestions,
   activeSuggestion,
-  updateCompletionPlaceholder,
+  isItemHighlighted,
   updateSuggestionsState,
   selectSuggestion,
   acceptCurrentSuggestion,
   closeSuggestionsPopup,
   navigateSuggestions,
   handleSuggestionItemHover,
+  handleSuggestionItemLeave,
   highlightSuggestionText,
 } = useSuggestionHandler(props, emit, inputValue, isComposing)
 
@@ -114,17 +116,37 @@ const checkInputOverflow = () => {
   // 如果不是单行模式或正在自动切换中，则直接返回
   if (props.mode !== 'single' || !inputRef.value || isAutoSwitching.value) return
 
-  // 指定父级元素 - 避免存在多个父级元素
-  const parentElement = document.querySelector('.tiny-sender__content-area') as HTMLElement
+  // 使用组件内部的ref来精确定位元素，避免全局选择器问题
+  if (!senderRef.value || !inputWrapperRef.value) return
+
+  // 从当前组件实例的DOM树中查找目标元素
+  const parentElement = senderRef.value.querySelector('.tiny-sender__content-area') as HTMLElement
+  if (!parentElement) return
 
   // 获取输入元素
-  const inputElement = parentElement.querySelector('.tiny-input__inner') as HTMLElement
+  const inputElement =
+    inputRef.value?.querySelector?.('.tiny-input__inner') ||
+    (parentElement.querySelector('.tiny-input__inner') as HTMLElement)
 
   // 获取按钮容器元素
   const buttonsElement =
-    buttonsContainerRef.value || (document.querySelector('.tiny-sender__buttons-container') as HTMLElement)
+    buttonsContainerRef.value || (senderRef.value.querySelector('.tiny-sender__buttons-container') as HTMLElement)
 
-  if (!inputElement) return
+  if (!inputElement) {
+    console.warn('Cannot find input element for overflow check')
+    return
+  }
+
+  // 确保元素已完全渲染并获取准确的宽度
+  // 使用getBoundingClientRect获取更准确的尺寸信息
+  const inputRect = inputElement.getBoundingClientRect()
+  const buttonsRect = buttonsElement?.getBoundingClientRect()
+
+  // 如果元素宽度为0，说明还未完全渲染，延迟检查
+  if (inputRect.width === 0) {
+    setTimeout(() => checkInputOverflow(), 50)
+    return
+  }
 
   // 获取输入框的字体样式
   const fontStyle = window.getComputedStyle(inputElement).font
@@ -132,12 +154,22 @@ const checkInputOverflow = () => {
   // 计算文本宽度
   const textWidth = calculateTextWidth(inputValue.value, fontStyle)
 
-  // 计算可用宽度（输入框宽度减去按钮区域宽度再减去固定边距）
-  const fixedMargin = 20
-  const availableWidth = inputElement.offsetWidth - (buttonsElement?.offsetWidth || 0) - fixedMargin
+  // 根据是否有紧凑类动态调整固定边距
+  const hasCompactClass = senderRef.value?.classList.contains('tr-sender-compact')
+  const dynamicMargin = hasCompactClass ? 12 : 20
+
+  // 使用getBoundingClientRect获取更精确的宽度
+  const inputWidth = inputRect.width
+  const buttonsWidth = buttonsRect?.width || 0
+
+  // 计算可用宽度（输入框宽度减去按钮区域宽度再减去动态边距）
+  const availableWidth = inputWidth - buttonsWidth - dynamicMargin
+
+  // 添加最小阈值检查，避免在极小宽度下误触发
+  const minThreshold = hasCompactClass ? 50 : 80
 
   // 判断是否需要切换到多行模式
-  if (textWidth > availableWidth && currentMode.value === 'single') {
+  if (textWidth > availableWidth && availableWidth > minThreshold && currentMode.value === 'single') {
     isAutoSwitching.value = true
     currentMode.value = 'multiple'
 
@@ -145,7 +177,8 @@ const checkInputOverflow = () => {
     nextTick(() => {
       if (inputRef.value) {
         setTimeout(() => {
-          const textareaElement = document.querySelector('.tiny-textarea__inner') as HTMLInputElement
+          // 使用组件作用域查找textarea
+          const textareaElement = senderRef.value?.querySelector('.tiny-textarea__inner') as HTMLInputElement
           if (textareaElement) {
             // 确保textarea的white-space属性正确设置
             textareaElement.style.whiteSpace = 'pre-wrap'
@@ -279,6 +312,11 @@ const toggleSpeech = () => {
   }
 }
 
+// 计算字数是否超出限制
+const isOverLimit = computed(() => {
+  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
+})
+
 // 键盘处理
 const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   props,
@@ -292,6 +330,7 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   closeSuggestionsPopup,
   navigateSuggestions,
   toggleSpeech,
+  isOverLimit,
   currentMode,
   setMultipleMode,
 )
@@ -299,11 +338,10 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
 // 处理焦点事件
 const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
+  // 当有输入内容且有匹配的联想项时，显示联想弹窗但不自动选中任何项
   if (inputValue.value && filteredSuggestions.value.length > 0 && !props.template) {
     showSuggestionsPopup.value = true
     showTabHint.value = true
-    if (highlightedIndex.value === -1) highlightedIndex.value = 0
-    updateCompletionPlaceholder(activeSuggestion.value || filteredSuggestions.value[0])
   }
 }
 
@@ -353,6 +391,15 @@ const senderClasses = computed(() => ({
   'is-auto-switching': isAutoSwitching.value,
 }))
 
+// 联想建议弹窗宽度样式
+const suggestionPopupWidthStyle = computed(() => {
+  const width = toCssUnit(props.suggestionPopupWidth)
+  return {
+    width: width,
+    maxWidth: '100%', // 确保不超出父容器宽度
+  }
+})
+
 // 错误处理
 const errorMessage = ref<string>('')
 const showError = (msg: string) => {
@@ -369,11 +416,6 @@ const handleCompositionEnd = () => {
     updateSuggestionsState()
   }, 50)
 }
-
-// 计算字数是否超出限制
-const isOverLimit = computed(() => {
-  return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
-})
 
 // 监听输入变化
 watch(inputValue, () => {
@@ -571,13 +613,15 @@ defineExpose({
         v-if="showSuggestionsPopup && filteredSuggestions.length"
         ref="suggestionsListRef"
         class="tiny-sender__suggestions"
+        :style="suggestionPopupWidthStyle"
       >
         <div
           v-for="(item, index) in filteredSuggestions"
           :key="index"
           class="suggestion-item"
-          :class="{ highlighted: index === highlightedIndex }"
+          :class="{ highlighted: isItemHighlighted(index) }"
           @mouseenter="handleSuggestionItemHover(index)"
+          @mouseleave="handleSuggestionItemLeave"
           @mousedown.prevent="selectSuggestion(item)"
         >
           <IconAssociate class="suggestion-item__icon" />

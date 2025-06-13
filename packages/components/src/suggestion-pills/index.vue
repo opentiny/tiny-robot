@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { IconArrowDown, IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { useElementSize, watchDebounced } from '@vueuse/core'
+import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
+import { onClickOutside, useElementSize, watchDebounced } from '@vueuse/core'
 import { computed, nextTick, ref, watch } from 'vue'
 import { PillButtonWrapper } from './components'
 import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
-const props = defineProps<SuggestionPillsProps>()
+const props = withDefaults(defineProps<SuggestionPillsProps>(), {
+  showAllButtonOn: 'hover',
+})
 
 const emit = defineEmits<SuggestionPillsEmits>()
 
 defineSlots<SuggestionPillsSlots>()
 
+const containerWrapperRef = ref<HTMLDivElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
@@ -69,10 +72,14 @@ const handleClick = (ev: MouseEvent, item: SuggestionPillItem, index: number) =>
 const toggleIsShowingMore = () => {
   showAll.value = !showAll.value
 }
+
+onClickOutside(containerWrapperRef, (event) => {
+  emit('click-outside', event)
+})
 </script>
 
 <template>
-  <div class="tr-suggestion-pills__wrapper">
+  <div class="tr-suggestion-pills__wrapper" ref="containerWrapperRef">
     <div class="tr-suggestion-pills__container" ref="containerRef">
       <slot>
         <template v-for="(item, index) in props.items" :key="item.id">
@@ -96,9 +103,13 @@ const toggleIsShowingMore = () => {
         </div>
       </Transition>
     </div>
-    <button v-if="hasShowMoreBtn" class="tr-suggestion-pills__expand" @click="toggleIsShowingMore">
-      <IconArrowUp v-if="!showAll" />
-      <IconArrowDown v-else />
+    <button
+      v-if="hasShowMoreBtn"
+      class="tr-suggestion-pills__expand"
+      :class="{ 'show-on-hover': props.showAllButtonOn === 'hover' }"
+      @click="toggleIsShowingMore"
+    >
+      <IconArrowUp class="tr-suggestion-pills__expand-icon" :class="{ rotate: showAll }" />
     </button>
   </div>
 </template>
@@ -106,6 +117,12 @@ const toggleIsShowingMore = () => {
 <style lang="less" scoped>
 .tr-suggestion-pills__wrapper {
   position: relative;
+}
+
+.tr-suggestion-pills__wrapper:hover {
+  .tr-suggestion-pills__expand.show-on-hover {
+    opacity: 1;
+  }
 }
 
 .tr-suggestion-pills__container {
@@ -166,6 +183,16 @@ const toggleIsShowingMore = () => {
 
   &:hover {
     background-color: rgb(235, 235, 235);
+  }
+
+  &.show-on-hover {
+    opacity: 0;
+  }
+
+  .tr-suggestion-pills__expand-icon {
+    &.rotate {
+      transform: rotate(180deg);
+    }
   }
 }
 </style>

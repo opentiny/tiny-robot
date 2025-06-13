@@ -3,6 +3,7 @@ import { ref, watch, onMounted, nextTick } from 'vue'
 import type { TemplateEditorProps, TemplateEditorEmits, TemplateEditorExpose, SetTemplateParams } from '../index.type'
 import { useTemplateHandler } from '../composables/useTemplateHandler'
 import { useTemplateKeyboardHandler } from '../composables/useKeyboardHandler'
+import { getSelectionFromTarget } from '../../shared/utils'
 
 // 使用 defineModel 定义双向绑定的值
 const inputValue = defineModel<string>('value', { default: '' })
@@ -126,7 +127,7 @@ const handleEditorClick = (event: MouseEvent) => {
 
   if (fieldElement) {
     if (!fieldElement.textContent || fieldElement.textContent.trim() === '') {
-      const selection = window.getSelection()
+      const selection = getSelectionFromTarget(contentEditableRef.value!)
       const range = document.createRange()
 
       if (selection) {
@@ -144,6 +145,12 @@ const handleEditorClick = (event: MouseEvent) => {
 
 // 处理粘贴事件
 const handlePaste = (event: ClipboardEvent) => {
+  // 检测 ShadowRoot.prototype.getSelection API 是否存在，如果不存在则禁用模板粘贴操作
+  // eslint-disable-next-line
+  if (typeof (ShadowRoot.prototype as any).getSelection !== 'function') {
+    return
+  }
+
   event.preventDefault()
 
   // 获取粘贴的数据
@@ -225,7 +232,7 @@ const handlePaste = (event: ClipboardEvent) => {
 
 // 插入HTML内容的辅助函数
 const insertHtmlContent = (container: HTMLElement) => {
-  const selection = window.getSelection()
+  const selection = getSelectionFromTarget(contentEditableRef.value!)
   if (selection && selection.rangeCount > 0) {
     const range = selection.getRangeAt(0)
     range.deleteContents()
@@ -249,7 +256,7 @@ const insertHtmlContent = (container: HTMLElement) => {
 
 // 插入文本内容的辅助函数
 const insertTextContent = (text: string) => {
-  const selection = window.getSelection()
+  const selection = getSelectionFromTarget(contentEditableRef.value!)
   if (selection && selection.rangeCount > 0) {
     const range = selection.getRangeAt(0)
     range.deleteContents()

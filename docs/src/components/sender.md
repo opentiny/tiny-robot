@@ -207,6 +207,28 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 
 <demo vue="../../demos/sender/All.vue" />
 
+### 紧凑模式配置
+
+Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 `tr-sender-compact` CSS类可以启用紧凑样式。
+
+紧凑模式的特点：
+- 较小的字体和输入框（14px vs 16px）
+- 更紧凑的内边距和间距
+- 更小的图标尺寸（32px vs 36px）
+- 更小的圆角（24px vs 26px）
+
+**使用方式：**
+
+```vue
+<!-- 默认样式（宽松模式） -->
+<TrSender />
+
+<!-- 紧凑模式 -->
+<TrSender class="tr-sender-compact" />
+```
+
+<demo vue="../../demos/sender/CompactMode.vue" />
+
 ## API 说明
 
 ### Props
@@ -230,6 +252,7 @@ Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
+| suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
 
 
 ### Events

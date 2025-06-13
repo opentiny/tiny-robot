@@ -40,6 +40,7 @@ export interface SenderProps {
   placeholder?: string // 占位文本
   showWordLimit?: boolean // 显示字数统计
   suggestions?: string[] // 输入建议
+  suggestionPopupWidth?: string | number // 联想建议弹窗宽度，如 '300px' 或 300
   theme?: ThemeType // 主题
   template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
   hasContent?: boolean // 手动指定是否有内容，用于模板模式
