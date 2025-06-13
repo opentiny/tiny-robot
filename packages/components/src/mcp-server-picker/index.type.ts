@@ -76,6 +76,25 @@ export interface McpServerPickerProps {
   marketLoading?: boolean
 }
 
+// 创建插件弹窗数据类型
+export interface CreatePluginData {
+  aiPlugin: string
+  openapi: string
+}
+
+// 创建插件弹窗 Props
+export interface CreatePluginDialogProps {
+  visible: boolean
+  title?: string
+}
+
+// 创建插件弹窗 Emits
+export interface CreatePluginDialogEmits {
+  (e: 'update:visible', value: boolean): void
+  (e: 'confirm', data: CreatePluginData): void
+  (e: 'cancel'): void
+}
+
 // MCP Server Picker 组件的Emits
 export interface McpServerPickerEmits {
   // 搜索事件
@@ -95,6 +114,9 @@ export interface McpServerPickerEmits {
 
   // 自定义添加按钮事件
   (e: 'custom-add'): void
+
+  // 创建插件事件
+  (e: 'plugin-create', data: CreatePluginData): void
 
   // 刷新事件
   (e: 'refresh', tab: 'installed' | 'market'): void

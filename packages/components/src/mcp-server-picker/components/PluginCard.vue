@@ -260,6 +260,9 @@ const handleAdd = () => {
     line-height: 24px;
     text-align: justify;
     color: rgb(89, 89, 89);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__actions {
