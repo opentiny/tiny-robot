@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { onClickOutside, useElementBounding, useElementSize, useMediaQuery, useScroll } from '@vueuse/core'
+import {
+  onClickOutside,
+  useElementBounding,
+  useElementSize,
+  useMediaQuery,
+  useScroll,
+  watchThrottled,
+} from '@vueuse/core'
 import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import { toCssUnit } from '../shared/utils'
@@ -86,7 +93,16 @@ const { x, y, update } = useElementBounding(popoverTriggerRef)
 const isMobile = useMediaQuery('(max-width: 767px)')
 
 const listRef = ref<HTMLElement | null>(null)
-const { isScrolling } = useScroll(listRef, { throttle: 100 })
+const isScrolling = ref(false)
+// useScroll 设置 throttle 参数在 shadow dom 中会报错，所以使用 watchThrottled 代替
+const { isScrolling: listScrolling } = useScroll(listRef)
+watchThrottled(
+  listScrolling,
+  (value) => {
+    isScrolling.value = value
+  },
+  { throttle: 100, leading: true, trailing: true },
+)
 
 const listItemsRef = ref<(HTMLElement | null)[]>([])
 const firstItemRef = computed(() => listItemsRef.value.at(0))
