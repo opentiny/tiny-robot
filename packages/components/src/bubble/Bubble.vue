@@ -2,8 +2,8 @@
 import markdownit from 'markdown-it'
 import { computed } from 'vue'
 import { toCssUnit } from '../shared/utils'
-import { Reasoning } from './components'
 import { BubbleProps, BubbleSlots } from './index.type'
+import Message from './Message.vue'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
@@ -51,16 +51,18 @@ const placementStart = computed(() => props.placement === 'start')
         </div>
       </slot>
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <div v-if="props.reasoning?.enabled">
-          <Reasoning :content="props.reasoning.content" :completed="props.reasoning.completed"></Reasoning>
-        </div>
-        <div class="tr-bubbule__body">
-          <slot :bubble-props="props">
-            <span v-if="props.type === 'markdown'" v-html="bubbleContent"></span>
-            <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
-            <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
-          </slot>
-        </div>
+        <template v-if="props.messages?.length">
+          <Message v-for="(message, index) in props.messages" :key="index" v-bind="message" />
+        </template>
+        <template v-else>
+          <div class="tr-bubbule__body">
+            <slot :bubble-props="props">
+              <span v-if="props.type === 'markdown'" v-html="bubbleContent"></span>
+              <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
+              <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
+            </slot>
+          </div>
+        </template>
         <div v-if="slots.footer" class="tr-bubbule__footer">
           <slot name="footer" :bubble-props="props"></slot>
         </div>
