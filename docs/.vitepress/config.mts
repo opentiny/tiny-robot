@@ -1,8 +1,21 @@
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
 import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
+import { fileURLToPath } from 'url'
 
 const { version } = pkg
+
+const devAlias = {
+  '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
+  '@opentiny/tiny-robot-kit': fileURLToPath(new URL('../../packages/kit/src', import.meta.url)),
+  '@opentiny/tiny-robot-style': fileURLToPath(
+    new URL('../../packages/components/src/styles/root.css', import.meta.url),
+  ),
+}
+
+const prodAlias = {
+  '@opentiny/tiny-robot-style': '@opentiny/tiny-robot/dist/style.css',
+}
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -13,6 +26,11 @@ export default defineConfig({
   base: '/cdocs/tiny-robot/',
   vite: {
     server: { open: true },
+    resolve: {
+      alias: {
+        ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
+      },
+    },
   },
   markdown: {
     config: (md) => {

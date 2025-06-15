@@ -199,6 +199,7 @@ onClickOutside(dropDownRef, (ev) => {
     &.selected {
       background-color: white;
       border-color: black;
+      font-weight: 600;
     }
   }
 

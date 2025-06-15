@@ -2,6 +2,7 @@ import { Ref } from 'vue'
 import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../index.type'
 import { type CursorPosition } from './useTemplateHandler'
 import { isOnlyZeroWidthSpace, cleanZeroWidthSpaces } from '../utils/zeroWidthUtils'
+import { getSelectionFromTarget, isShadowDOM } from '../../shared/utils'
 
 /**
  * 键盘处理Hook
@@ -18,6 +19,7 @@ import { isOnlyZeroWidthSpace, cleanZeroWidthSpaces } from '../utils/zeroWidthUt
  * @param closeSuggestionsPopup - 关闭建议弹窗的函数
  * @param navigateSuggestions - 导航建议列表的函数
  * @param toggleSpeech - 切换语音识别函数
+ * @param isOverLimit - 是否超出字数限制
  * @param currentMode - 当前输入模式
  * @param setMultipleMode - 设置为多行模式的回调函数
  */
@@ -33,14 +35,33 @@ export function useKeyboardHandler(
   closeSuggestionsPopup: (keepFocus?: boolean) => void,
   navigateSuggestions: (direction: 'up' | 'down') => void,
   toggleSpeech: () => void,
+  isOverLimit: Ref<boolean>,
   currentMode?: Ref<'single' | 'multiple'>,
   setMultipleMode?: () => void,
 ) {
   /**
    * 验证提交条件
+   * @param value 输入值
+   * @returns 是否可以提交
    */
-  const validateSubmission = (value: string) => {
-    return !props.disabled && !props.loading && value.trim().length > 0
+  const validateSubmission = (value: string): boolean => {
+    // 基础状态检查：禁用或加载中时不能提交
+    if (props.disabled || props.loading) {
+      return false
+    }
+
+    // 内容检查：空内容不能提交
+    const trimmedValue = value.trim()
+    if (trimmedValue.length === 0) {
+      return false
+    }
+
+    // 字数限制检查：超出限制时不能提交
+    if (isOverLimit.value) {
+      return false
+    }
+
+    return true
   }
 
   /**
@@ -192,7 +213,11 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
    * 处理箭头键导航
    */
   const handleArrowKeyNavigation = (event: KeyboardEvent, range: Range, editor: HTMLDivElement): boolean => {
-    const { startContainer, startOffset, collapsed } = range
+    const { startOffset, collapsed } = range
+    let startContainer = range.startContainer
+    if (startContainer.parentElement?.classList.contains('template-field')) {
+      startContainer = startContainer.parentElement
+    }
     if (!collapsed) return false // 如果有选择区域，使用默认行为
 
     // 判断是否在文本节点的边界
@@ -263,7 +288,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
       if (targetNode) {
         event.preventDefault()
         const newRange = document.createRange()
-        const selection = window.getSelection()
+        const selection = getSelectionFromTarget(editor)
         if (!selection) return true
 
         if (targetPosition === 'before') {
@@ -296,7 +321,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
       if (!cleanContent || cleanContent.trim() === '') {
         event.preventDefault()
         const newRange = document.createRange()
-        const selection = window.getSelection()
+        const selection = getSelectionFromTarget(editor)
         if (!selection) return true
 
         if (event.key === 'ArrowLeft') {
@@ -330,7 +355,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
       event.preventDefault()
       const newRange = document.createRange()
-      const selection = window.getSelection()
+      const selection = getSelectionFromTarget(editor)
       if (!selection) return true
 
       if (event.key === 'ArrowLeft') {
@@ -355,7 +380,12 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
             newRange.selectNodeContents(nextSibling)
             newRange.collapse(true) // 光标到字段开头
           } else {
-            newRange.setStartAfter(startContainer)
+            if (isShadowDOM(editor)) {
+              newRange.setStart(nextSibling, 1)
+              newRange.collapse(true)
+            } else {
+              newRange.setStartAfter(startContainer)
+            }
           }
         } else {
           newRange.setStartAfter(startContainer)
@@ -408,7 +438,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
           }
 
           // 重新定位光标到合适位置
-          const selection = window.getSelection()
+          const selection = getSelectionFromTarget(editor)
           if (selection) {
             const newRange = document.createRange()
 
@@ -450,7 +480,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
         } else {
           // 如果字段有内容，将光标移到字段末尾
           event.preventDefault()
-          const selection = window.getSelection()
+          const selection = getSelectionFromTarget(editor)
           if (selection) {
             const newRange = document.createRange()
             newRange.selectNodeContents(fieldElement)
@@ -483,7 +513,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
         // 保持光标在字段内部，不要跳转到零宽字符
         const fieldElement = startContainer.parentNode as HTMLElement
-        const selection = window.getSelection()
+        const selection = getSelectionFromTarget(editor)
         if (selection) {
           const newRange = document.createRange()
           newRange.selectNodeContents(fieldElement)
@@ -520,7 +550,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
         event.preventDefault()
 
         // 将光标移到字段前面
-        const selection = window.getSelection()
+        const selection = getSelectionFromTarget(editor)
         if (selection) {
           range.setStartBefore(fieldElement)
           range.collapse(true)
@@ -537,7 +567,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
   /**
    * 处理Delete键
    */
-  const handleDeleteKey = (event: KeyboardEvent, range: Range): boolean => {
+  const handleDeleteKey = (event: KeyboardEvent, range: Range, editor: HTMLDivElement): boolean => {
     if (!range.collapsed) return false
 
     const { startContainer, startOffset } = range
@@ -562,7 +592,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
         // 保持光标在字段内部
         const fieldElement = startContainer.parentNode as HTMLElement
-        const selection = window.getSelection()
+        const selection = getSelectionFromTarget(editor)
         if (selection) {
           const newRange = document.createRange()
           newRange.selectNodeContents(fieldElement)
@@ -589,7 +619,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
     const editor = options.editor.value
     if (!editor) return
 
-    const selection = window.getSelection()
+    const selection = getSelectionFromTarget(editor)
     if (!selection || selection.rangeCount === 0) return
 
     const range = selection.getRangeAt(0)
@@ -617,7 +647,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
     // 处理Delete键
     if (event.key === 'Delete') {
-      if (handleDeleteKey(event, range)) {
+      if (handleDeleteKey(event, range, editor)) {
         return
       }
     }
