@@ -9,7 +9,7 @@ const collapsed = ref(false)
 </script>
 
 <template>
-  <div class="tr-bubble__step">
+  <div class="tr-bubble__step-text">
     <div class="tr-bubble__step-text-title">
       <span>{{ props.title }}</span>
       <IconArrowUp class="expand-icon" :class="{ 'rotate-180': collapsed }" @click="collapsed = !collapsed" />
