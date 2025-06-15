@@ -10,7 +10,7 @@ export interface BubbleProps {
    * 气泡内容
    */
   content?: string
-  // TODO 如何监听内容变化，按需更新
+  // TODO 测试：超长文本和超长单词的显示
   messages?: BubbleMessageProps[]
   id?: string | number | symbol
   /**
