@@ -20,6 +20,12 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 <demo vue="../../demos/bubble/avatar-and-placement.vue" />
 
+### 气泡形状
+
+通过 `shape` 设置气泡形状。目前提供了 `rounded` 和 `corner` 两个选项。默认为 `corner`
+
+<demo vue="../../demos/bubble/shape.vue" />
+
 ### 加载中
 
 通过 `loading` 设置加载中状态
@@ -49,6 +55,10 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 `content` 属性是响应式的，动态设置 `content` 即可实现流式文本
 
 <demo vue="../../demos/bubble/streaming.vue" />
+
+### 不同消息格式
+
+<demo vue="../../demos/bubble/message.vue" />
 
 ### 插槽
 
@@ -85,18 +95,21 @@ type BubblePlacement = 'start' | 'end'
 
 单个气泡的属性配置。
 
-| 属性        | 类型                         | 默认值   | 说明                                             |
-| ----------- | ---------------------------- | -------- | ------------------------------------------------ |
-| `content`   | `string`                     | -        | 气泡内容文本                                     |
-| `id`        | `string \| number \| symbol` | -        | 气泡唯一标识                                     |
-| `placement` | `BubblePlacement`            | -        | 气泡位置 (`'start'` 或 `'end'`)                  |
-| `avatar`    | `VNode`                      | -        | 气泡头像部分的自定义 Vue 节点                    |
-| `role`      | `string`                     | -        | 气泡角色标识，用于关联 `roles` 配置              |
-| `type`      | `'text' \| 'markdown'`       | `'text'` | 内容类型：纯文本或 Markdown                      |
-| `loading`   | `boolean`                    | `false`  | 是否显示加载状态                                 |
-| `aborted`   | `boolean`                    | `false`  | 是否显示为已中止状态                             |
-| `mdConfig`  | `MarkdownItOptions`          | -        | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
-| `maxWidth`  | `string \| number`  | -        | 气泡内容的最大宽度                               |
+| 属性        | 类型                         | 默认值     | 说明                                             |
+| ----------- | ---------------------------- | ---------- | ------------------------------------------------ |
+| `content`   | `string`                     | -          | 气泡内容文本                                     |
+| `messages`  | `BubbleMessageProps[]`       | -          | 气泡消息数组                                     |
+| `id`        | `string \| number \| symbol` | -          | 气泡唯一标识                                     |
+| `placement` | `BubblePlacement`            | -          | 气泡位置 (`'start'` 或 `'end'`)                  |
+| `avatar`    | `VNode`                      | -          | 气泡头像部分的自定义 Vue 节点                    |
+| `role`      | `string`                     | -          | 气泡角色标识，用于关联 `roles` 配置              |
+| `shape`     | `'rounded' \| 'corner'`      | `'corner'` | 气泡形状                                         |
+| `type`      | `'text' \| 'markdown'`       | `'text'`   | 内容类型：纯文本或 Markdown                      |
+| `loading`   | `boolean`                    | `false`    | 是否显示加载状态                                 |
+| `aborted`   | `boolean`                    | `false`    | 是否显示为已中止状态                             |
+| `mdConfig`  | `MarkdownItOptions`          | -          | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
+| `hidden`    | `boolean`                    | -          | 是否隐藏气泡                                     |
+| `maxWidth`  | `string \| number`           | -          | 气泡内容的最大宽度                               |
 
 ### BubbleSlots
 
@@ -113,7 +126,10 @@ type BubblePlacement = 'start' | 'end'
 角色配置类型，用于定义不同角色的默认气泡配置。
 
 ```typescript
-type BubbleRoleConfig = Pick<BubbleProps, 'placement' | 'avatar' | 'type' | 'mdConfig' | 'maxWidth'> & {
+type BubbleRoleConfig = Pick<
+  BubbleProps,
+  'placement' | 'avatar' | 'shape' | 'type' | 'mdConfig' | 'hidden' | 'maxWidth'
+> & {
   slots?: BubbleSlots
 }
 ```

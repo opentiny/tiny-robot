@@ -36,11 +36,13 @@ const getItemSlots = (item: BubbleProps & { slots?: BubbleSlots }): BubbleSlots 
 
 <template>
   <div class="tr-bubble-list" ref="scrollContainerRef">
-    <Bubble v-for="(item, index) in props.items" :key="item.id || index" v-bind="getItemProps(item)">
-      <template v-for="(_, slotName) in getItemSlots(item)" #[slotName]="slotProps" :key="slotName">
-        <component :is="getItemSlots(item)[slotName]" v-bind="slotProps" />
-      </template>
-    </Bubble>
+    <template v-for="(item, index) in props.items" :key="item.id || index">
+      <Bubble v-if="!item.hidden" v-bind="getItemProps(item)">
+        <template v-for="(_, slotName) in getItemSlots(item)" #[slotName]="slotProps" :key="slotName">
+          <component :is="getItemSlots(item)[slotName]" v-bind="slotProps" />
+        </template>
+      </Bubble>
+    </template>
   </div>
 </template>
 
