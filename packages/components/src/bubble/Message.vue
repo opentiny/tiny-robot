@@ -22,10 +22,10 @@ const MessageRendererMap: Record<string, BubbleMessageRenderer> = {
 </script>
 
 <template>
-  <template v-if="(MessageRendererMap[props.type] as BubbleMessageFunctionRenderer).renderer">
+  <template v-if="(MessageRendererMap[props.type] as BubbleMessageFunctionRenderer)?.renderer">
     <component :is="(MessageRendererMap[props.type] as BubbleMessageFunctionRenderer).renderer(props)"></component>
   </template>
-  <template v-else>
+  <template v-else-if="(MessageRendererMap[props.type] as BubbleMessageComponentRenderer)?.component">
     <component
       :is="(MessageRendererMap[props.type] as BubbleMessageComponentRenderer).component"
       v-bind="props"
