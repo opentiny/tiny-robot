@@ -3,7 +3,13 @@
     <SuggestionPopover :data="data" trigger="click">
       <button>click触发</button>
     </SuggestionPopover>
-    <SuggestionPopover :data="data" :show="show" trigger="manual" @close="handleClose">
+    <SuggestionPopover
+      :data="data"
+      :show="show"
+      trigger="manual"
+      @close="handleClose"
+      @click-outside="handleClickOutside"
+    >
       <button @click="show = !show">manual触发</button>
     </SuggestionPopover>
   </div>
@@ -17,6 +23,10 @@ const show = ref(false)
 
 const handleClose = () => {
   show.value = false
+}
+
+const handleClickOutside = (ev: MouseEvent) => {
+  console.log('click-outside', ev)
 }
 
 const data = [

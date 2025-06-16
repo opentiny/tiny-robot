@@ -5,6 +5,7 @@ import { toCssUnit } from '../shared/utils'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps, DropdownMenuSlots } from './index.type'
 
 const props = withDefaults(defineProps<DropdownMenuProps>(), {
+  trigger: 'click',
   topOffset: 0,
   minWidth: 160,
 })
@@ -12,7 +13,23 @@ const props = withDefaults(defineProps<DropdownMenuProps>(), {
 const attrs = useAttrs()
 const attrsStyle = computed(() => attrs.style as StyleValue)
 
-const show = ref(false)
+const showRef = ref(false)
+
+// 如果 trigger 是 manual，则 show 由外部控制，此时组件内部无法修改 show 的值
+const show = computed({
+  get: () => {
+    if (props.trigger === 'manual') {
+      return props.show
+    }
+    return showRef.value
+  },
+  set: (newValue) => {
+    if (props.trigger === 'manual') {
+      return
+    }
+    showRef.value = newValue
+  },
+})
 
 defineSlots<DropdownMenuSlots>()
 
@@ -32,11 +49,15 @@ const dropdownStyles = computed<CSSProperties>(() => {
 })
 
 onClickOutside(dropdownMenuRef, (ev) => {
-  // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
-  if (dropDownTriggerRef.value?.contains(ev.target as Node)) {
-    ev.stopPropagation()
+  emit('click-outside', ev)
+
+  if (props.trigger === 'click') {
+    // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
+    if (dropDownTriggerRef.value?.contains(ev.target as Node)) {
+      ev.stopPropagation()
+    }
+    show.value = false
   }
-  show.value = false
 })
 
 watch(show, (value) => {

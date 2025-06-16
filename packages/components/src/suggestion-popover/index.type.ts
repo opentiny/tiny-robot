@@ -51,10 +51,13 @@ export interface SuggestionPopoverEmits {
   (e: 'group-click', group: SuggestionGroup): void
   (e: 'open'): void
   (e: 'close'): void
+  (e: 'click-outside', event: MouseEvent): void
 }
 
 export interface SuggestionPopoverEvents {
   itemClick?: (item: SuggestionItem) => void
   groupClick?: (group: SuggestionGroup) => void
+  open?: () => void
   close?: () => void
+  clickOutside?: (event: MouseEvent) => void
 }

@@ -18,11 +18,13 @@ outline: deep
 
 下拉菜单属性配置。
 
-| 属性        | 类型                 | 说明                     |
-| ----------- | -------------------- | ------------------------ |
-| `items`     | `DropdownMenuItem[]` | **必填**，菜单项数据数组 |
-| `minWidth`  | `string \| number`   | 下拉菜单最小宽度         |
-| `topOffset` | `string \| number`   | 下拉菜单顶部偏移量       |
+| 属性        | 类型                  | 默认值    | 说明                                            |
+| ----------- | --------------------- | --------- | ----------------------------------------------- |
+| `items`     | `DropdownMenuItem[]`  | -         | **必填**，菜单项数据数组                        |
+| `show`      | `boolean`             | -         | 是否显示菜单（仅在 trigger 为 'manual' 时有效） |
+| `trigger`   | `'click' \| 'manual'` | `'click'` | 触发方式                                        |
+| `minWidth`  | `string \| number`    | -         | 下拉菜单最小宽度                                |
+| `topOffset` | `string \| number`    | -         | 下拉菜单顶部偏移量                              |
 
 ### Slots
 
@@ -36,9 +38,10 @@ outline: deep
 
 下拉菜单事件定义。
 
-| 事件名       | 参数                     | 说明             |
-| ------------ | ------------------------ | ---------------- |
-| `item-click` | `item: DropdownMenuItem` | 点击菜单项时触发 |
+| 事件名          | 参数                     | 说明                   |
+| --------------- | ------------------------ | ---------------------- |
+| `item-click`    | `item: DropdownMenuItem` | 点击菜单项时触发       |
+| `click-outside` | `event: MouseEvent`      | 点击菜单外部区域时触发 |
 
 ### Types
 

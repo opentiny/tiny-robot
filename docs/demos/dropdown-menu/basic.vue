@@ -2,6 +2,16 @@
   <TrDropdownMenu :items="dropdownMenuItems" @item-click="(item) => console.log(item)">
     <TrSuggestionPillButton> 点我打开Dropdown Menu </TrSuggestionPillButton>
   </TrDropdownMenu>
+  <hr />
+  <TrDropdownMenu
+    :items="dropdownMenuItems"
+    :show="show"
+    trigger="manual"
+    @item-click="(item) => console.log(item)"
+    @click-outside="handleClickOutside"
+  >
+    <TrSuggestionPillButton @click="show = !show"> Trigger 为 manual </TrSuggestionPillButton>
+  </TrDropdownMenu>
 </template>
 
 <script setup lang="ts">
@@ -15,4 +25,10 @@ const dropdownMenuItems = ref([
   { id: '4', text: '导账单' },
   { id: '5', text: '对帐单' },
 ])
+
+const show = ref(false)
+
+const handleClickOutside = (ev: MouseEvent) => {
+  console.log('click-outside', ev)
+}
 </script>

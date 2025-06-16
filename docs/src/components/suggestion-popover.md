@@ -40,19 +40,19 @@ outline: deep
 
 弹出框属性配置。
 
-| 属性                   | 类型                             | 默认值    | 说明                                                           |
-| ---------------------- | -------------------------------- | --------- | -------------------------------------------------------------- |
-| `data`                 | `SuggestionData`                 | -         | **必填**，建议数据                                             |
-| `title`                | `string`                         | -         | 弹出框标题                                                     |
-| `icon`                 | `VNode \| Component`             | -         | 标题图标                                                       |
-| `show`                 | `boolean`                        | -         | 控制弹出框显示/隐藏，仅在 trigger 为 'manual' 时有效 |
-| `trigger`              | `'click' \| 'manual'` | `'click'` | 触发方式：点击或手动控制                                 |
-| `selectedGroup`        | `string`                         | -         | 当前选中分组 (v-model)                                         |
-| `groupShowMoreTrigger` | `'click' \| 'hover'`             | -         | 分组"显示更多"的触发方式                                       |
-| `loading`              | `boolean`                        | `false`   | 是否显示加载状态                                               |
-| `popoverWidth`         | `string \| number`               | -         | 弹出框宽度                                                     |
-| `popoverHeight`        | `string \| number`               | -         | 弹出框高度                                                     |
-| `topOffset`            | `string \| number`               | -         | 顶部偏移量                                                     |
+| 属性                   | 类型                  | 默认值    | 说明                                                 |
+| ---------------------- | --------------------- | --------- | ---------------------------------------------------- |
+| `data`                 | `SuggestionData`      | -         | **必填**，建议数据                                   |
+| `title`                | `string`              | -         | 弹出框标题                                           |
+| `icon`                 | `VNode \| Component`  | -         | 标题图标                                             |
+| `show`                 | `boolean`             | -         | 控制弹出框显示/隐藏，仅在 trigger 为 'manual' 时有效 |
+| `trigger`              | `'click' \| 'manual'` | `'click'` | 触发方式：点击或手动控制                             |
+| `selectedGroup`        | `string`              | -         | 当前选中分组 (v-model)                               |
+| `groupShowMoreTrigger` | `'click' \| 'hover'`  | -         | 分组"显示更多"的触发方式                             |
+| `loading`              | `boolean`             | `false`   | 是否显示加载状态                                     |
+| `popoverWidth`         | `string \| number`    | -         | 弹出框宽度                                           |
+| `popoverHeight`        | `string \| number`    | -         | 弹出框高度                                           |
+| `topOffset`            | `string \| number`    | -         | 顶部偏移量                                           |
 
 ### Slots
 
@@ -68,12 +68,13 @@ outline: deep
 
 弹出框事件定义。
 
-| 事件名        | 参数                     | 说明             |
-| ------------- | ------------------------ | ---------------- |
-| `item-click`  | `item: SuggestionItem`   | 点击建议项时触发 |
-| `group-click` | `group: SuggestionGroup` | 点击分组时触发   |
-| `open`       | -                        | 弹窗打开时触发   |
-| `close`       | -                        | 弹窗关闭时触发   |
+| 事件名          | 参数                     | 说明                   |
+| --------------- | ------------------------ | ---------------------- |
+| `item-click`    | `item: SuggestionItem`   | 点击建议项时触发       |
+| `group-click`   | `group: SuggestionGroup` | 点击分组时触发         |
+| `open`          | -                        | 弹窗打开时触发         |
+| `close`         | -                        | 弹窗关闭时触发         |
+| `click-outside` | `event: MouseEvent`      | 点击弹窗外部区域时触发 |
 
 ### Types
 
