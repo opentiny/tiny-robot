@@ -82,43 +82,37 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <div v-if="show" class="create-plugin-dialog__backdrop"></div>
-  <Transition name="create-plugin-dialog">
-    <div v-if="show" class="create-plugin-dialog" ref="dialogRef">
-      <div class="create-plugin-dialog__header">
-        <h3 class="create-plugin-dialog__title">{{ props.title }}</h3>
-        <IconButton
-          class="create-plugin-dialog__close"
-          :icon="IconClose"
-          size="24"
-          svg-size="20"
-          @click="handleClose"
-        />
+  <div v-if="show" class="plugin-code-dialog__backdrop"></div>
+  <Transition name="plugin-code-dialog">
+    <div v-if="show" class="plugin-code-dialog" ref="dialogRef">
+      <div class="plugin-code-dialog__header">
+        <h3 class="plugin-code-dialog__title">{{ props.title }}</h3>
+        <IconButton class="plugin-code-dialog__close" :icon="IconClose" size="24" svg-size="20" @click="handleClose" />
       </div>
 
-      <div class="create-plugin-dialog__content">
-        <div class="create-plugin-dialog__editor-container">
-          <div class="create-plugin-dialog__editor-section">
-            <div class="create-plugin-dialog__editor-header">
-              <span class="create-plugin-dialog__editor-title">ai_plugin（填写json）</span>
+      <div class="plugin-code-dialog__content">
+        <div class="plugin-code-dialog__editor-container">
+          <div class="plugin-code-dialog__editor-section">
+            <div class="plugin-code-dialog__editor-header">
+              <span class="plugin-code-dialog__editor-title">ai_plugin（填写json）</span>
             </div>
-            <div class="create-plugin-dialog__editor">
+            <div class="plugin-code-dialog__editor">
               <textarea
                 v-model="aiPluginCode"
-                class="create-plugin-dialog__textarea"
+                class="plugin-code-dialog__textarea"
                 placeholder="请输入 JSON 配置..."
               ></textarea>
             </div>
           </div>
 
-          <div class="create-plugin-dialog__editor-section">
-            <div class="create-plugin-dialog__editor-header">
-              <span class="create-plugin-dialog__editor-title">openapi（填写yaml）</span>
+          <div class="plugin-code-dialog__editor-section">
+            <div class="plugin-code-dialog__editor-header">
+              <span class="plugin-code-dialog__editor-title">openapi（填写yaml）</span>
             </div>
-            <div class="create-plugin-dialog__editor">
+            <div class="plugin-code-dialog__editor">
               <textarea
                 v-model="openapiCode"
-                class="create-plugin-dialog__textarea"
+                class="plugin-code-dialog__textarea"
                 placeholder="请输入 YAML 配置..."
               ></textarea>
             </div>
@@ -126,7 +120,7 @@ const handleCancel = () => {
         </div>
       </div>
 
-      <div class="create-plugin-dialog__footer">
+      <div class="plugin-code-dialog__footer">
         <div class="button cancel" @click="handleCancel">
           <span>取消</span>
         </div>
@@ -139,14 +133,14 @@ const handleCancel = () => {
 </template>
 
 <style lang="less" scoped>
-.create-plugin-dialog__backdrop {
+.plugin-code-dialog__backdrop {
   position: fixed;
   z-index: 9998;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.15);
 }
 
-.create-plugin-dialog {
+.plugin-code-dialog {
   position: fixed;
   z-index: 9999;
   top: 0;

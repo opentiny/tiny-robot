@@ -1,3 +1,8 @@
+export interface PluginDialogState {
+  codeEditor: boolean
+  formEditor: boolean
+}
+
 export interface PluginTool {
   id: string
   name: string
@@ -77,7 +82,7 @@ export interface McpServerPickerProps {
 }
 
 // 创建插件弹窗数据类型
-export interface CreatePluginData {
+export interface AddPluginCodeData {
   aiPlugin: string
   openapi: string
 }
@@ -91,8 +96,32 @@ export interface CreatePluginDialogProps {
 // 创建插件弹窗 Emits
 export interface CreatePluginDialogEmits {
   (e: 'update:visible', value: boolean): void
-  (e: 'confirm', data: CreatePluginData): void
+  (e: 'confirm', data: AddPluginCodeData): void
   (e: 'cancel'): void
+}
+
+// 添加插件表单数据类型
+export interface AddPluginFormData {
+  name: string
+  description: string
+  types: string[]
+  url: string
+  headers: string
+  thumbnail?: File | null
+}
+
+// 添加插件弹窗 Props
+export interface AddPluginDialogProps {
+  visible: boolean
+  title?: string
+}
+
+// 添加插件弹窗 Emits
+export interface AddPluginDialogEmits {
+  (e: 'update:visible', value: boolean): void
+  (e: 'confirm', data: AddPluginFormData): void
+  (e: 'cancel'): void
+  (e: 'open-code-editor'): void
 }
 
 // MCP Server Picker 组件的Emits
@@ -115,8 +144,9 @@ export interface McpServerPickerEmits {
   // 自定义添加按钮事件
   (e: 'custom-add'): void
 
-  // 创建插件事件
-  (e: 'plugin-create', data: CreatePluginData): void
+  // 添加插件表单事件
+  (e: 'plugin-form-add', data: AddPluginFormData): void
+  (e: 'plugin-code-add', data: AddPluginCodeData): void
 
   // 刷新事件
   (e: 'refresh', tab: 'installed' | 'market'): void

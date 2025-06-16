@@ -3,11 +3,20 @@ import TinyButton from '@opentiny/vue-button'
 import TinyTabs from '@opentiny/vue-tabs'
 import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
-import { ref, computed, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { IconPlus } from '@opentiny/vue-icon'
 import PluginCard from './components/PluginCard.vue'
-import CreatePluginDialog from './components/CreatePluginDialog.vue'
-import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits, CreatePluginData } from './index.type'
+import PluginCodeDialog from './components/PluginCodeDialog.vue'
+import PluginFormDialog from './components/PluginFormDialog.vue'
+import { IconClose } from '@opentiny/tiny-robot-svgs'
+import type {
+  PluginInfo,
+  McpServerPickerProps,
+  McpServerPickerEmits,
+  AddPluginCodeData,
+  AddPluginFormData,
+  PluginDialogState,
+} from './index.type'
 
 const TinyIconPlus = IconPlus()
 
@@ -39,7 +48,22 @@ const emit = defineEmits<McpServerPickerEmits>()
 const activeTab = ref(props.defaultActiveTab)
 const installedSearch = ref('')
 const marketSearch = ref('')
-const showCreatePluginDialog = ref(false)
+
+// 插件弹窗状态管理
+const pluginDialogState = reactive<PluginDialogState>({
+  codeEditor: false,
+  formEditor: false,
+})
+
+const showCodeEditorDialog = computed({
+  get: () => pluginDialogState.codeEditor,
+  set: (value) => (pluginDialogState.codeEditor = value),
+})
+
+const showFormEditorDialog = computed({
+  get: () => pluginDialogState.formEditor,
+  set: (value) => (pluginDialogState.formEditor = value),
+})
 
 const currentSearchPlaceholder = computed(() =>
   activeTab.value === 'installed' ? props.searchPlaceholder : '搜索市场插件',
@@ -155,29 +179,64 @@ const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
   emit('plugin-expand', plugin, expanded)
 }
 
+const closeAllPluginDialogs = () => {
+  pluginDialogState.codeEditor = false
+  pluginDialogState.formEditor = false
+}
+
+// 统一的弹窗控制方法
+const openPluginDialog = (type: 'codeEditor' | 'formEditor') => {
+  // 关闭所有弹窗
+  closeAllPluginDialogs()
+
+  // 打开指定弹窗
+  pluginDialogState[type] = true
+}
+
+// 事件处理函数
 const handleCustomAdd = () => {
-  showCreatePluginDialog.value = true
+  openPluginDialog('formEditor')
   emit('custom-add')
 }
 
-const handleCreatePluginConfirm = (data: CreatePluginData) => {
-  emit('plugin-create', data)
-  showCreatePluginDialog.value = false
+const handleCodePluginConfirm = (data: AddPluginCodeData) => {
+  emit('plugin-code-add', data)
+  closeAllPluginDialogs()
 }
 
-const handleCreatePluginCancel = () => {
-  showCreatePluginDialog.value = false
+const handleCodePluginCancel = () => {
+  closeAllPluginDialogs()
+}
+
+const handleFormPluginConfirm = (data: AddPluginFormData) => {
+  emit('plugin-form-add', data)
+  closeAllPluginDialogs()
+}
+
+const handleFormPluginCancel = () => {
+  closeAllPluginDialogs()
+}
+
+const handleSwitchToCodeEditor = () => {
+  openPluginDialog('codeEditor')
+}
+
+const McpPanelVisible = ref(props.visible)
+
+const handleClose = () => {
+  McpPanelVisible.value = false
 }
 </script>
 
 <template>
-  <div v-if="props.visible" class="mcp-server-picker">
+  <div v-if="McpPanelVisible" class="mcp-server-picker">
     <div class="mcp-server-picker__header">
       <div class="mcp-server-picker__header-left">{{ props.title }}</div>
       <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right">
         <TinyButton :icon="TinyIconPlus" circle @click="handleCustomAdd">
           {{ props.customAddButtonText }}
         </TinyButton>
+        <IconClose style="font-size: 24px" @click="handleClose" />
       </div>
     </div>
     <div class="mcp-server-picker__content">
@@ -239,12 +298,21 @@ const handleCreatePluginCancel = () => {
       </TinyTabs>
     </div>
 
-    <!-- 创建插件弹窗 -->
-    <CreatePluginDialog
-      v-model:visible="showCreatePluginDialog"
+    <!-- 代码编辑器添加插件弹窗 -->
+    <PluginCodeDialog
+      v-model:visible="showCodeEditorDialog"
       title="创建插件"
-      @confirm="handleCreatePluginConfirm"
-      @cancel="handleCreatePluginCancel"
+      @confirm="handleCodePluginConfirm"
+      @cancel="handleCodePluginCancel"
+    />
+
+    <!-- 可视化编辑器添加插件弹窗 -->
+    <PluginFormDialog
+      v-model:visible="showFormEditorDialog"
+      title="添加插件"
+      @confirm="handleFormPluginConfirm"
+      @cancel="handleFormPluginCancel"
+      @open-code-editor="handleSwitchToCodeEditor"
     />
   </div>
 </template>
@@ -272,6 +340,10 @@ const handleCreatePluginCancel = () => {
 
     &-right {
       font-size: 14px;
+
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
   }
 

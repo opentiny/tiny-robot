@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import TinySwitch from '@opentiny/vue-switch'
-import TinyButton from '@opentiny/vue-button'
 import { computed, toRefs, watch } from 'vue'
 import { IconDel, IconChevronRight, IconChevronDown } from '@opentiny/vue-icon'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
@@ -141,10 +140,14 @@ const handleAdd = () => {
           </template>
           <template v-else-if="mode === 'market'">
             <div class="plugin-card__add">
-              <slot name="add-button" @click="handleAdd">
-                <TinyButton size="mini" circle :type="isAdded ? 'success' : 'primary'">
-                  {{ isAdded ? '已添加' : '添加' }}
-                </TinyButton>
+              <slot name="add-button">
+                <div
+                  class="plugin-card__add-button"
+                  :class="{ 'plugin-card__add-button--added': isAdded }"
+                  @click="handleAdd"
+                >
+                  <span>{{ isAdded ? '已添加' : '添加' }}</span>
+                </div>
               </slot>
             </div>
           </template>
@@ -245,6 +248,7 @@ const handleAdd = () => {
     height: 18px;
     padding: 0 4px;
     border-radius: 4px;
+    box-sizing: content-box;
     background: rgb(230, 230, 230);
     font-size: 12px;
     font-weight: 400;
@@ -266,7 +270,7 @@ const handleAdd = () => {
   }
 
   &__actions {
-    width: 68px;
+    max-width: 80px;
     height: 52px;
     display: flex;
     flex-direction: column;
@@ -294,6 +298,7 @@ const handleAdd = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 68px;
   }
 
   &__add {
@@ -302,6 +307,25 @@ const handleAdd = () => {
     align-items: center;
     height: 100%;
     padding: 16px 0;
+
+    &-button {
+      width: 64px;
+      height: 24px;
+      padding: 3px 16px;
+      text-align: center;
+      line-height: 18px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #191919;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid #595959;
+      cursor: pointer;
+
+      &--added {
+        width: 78px;
+      }
+    }
   }
 
   // 工具列表样式

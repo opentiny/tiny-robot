@@ -93,6 +93,7 @@ outline: deep
 | `plugin-delete` | `(plugin: PluginInfo)` | 删除插件 |
 | `plugin-add` | `(plugin: PluginInfo, added: boolean)` | 市场插件添加/取消添加 |
 | `plugin-expand` | `(plugin: PluginInfo, expanded: boolean)` | 插件展开/折叠 |
+| `plugin-create` | `(data: CreatePluginData)`| 创建插件 |
 
 #### 工具操作事件
 | 事件名 | 参数 | 说明 |
@@ -137,5 +138,16 @@ interface PluginTool {
   name: string            // 工具名称
   description: string     // 工具描述
   enabled: boolean        // 是否启用
+}
+```
+
+#### CreatePluginData 
+
+新增插件插件数据
+
+```typescript
+export interface CreatePluginData {
+  aiPlugin: string
+  openapi: string
 }
 ```
