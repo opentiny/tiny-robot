@@ -6,6 +6,7 @@
     :market-loading="marketLoading"
     @plugin-toggle="handlePluginToggle"
     @plugin-add="handlePluginAdd"
+    @plugin-create="handlePluginCreate"
     @plugin-delete="handlePluginDelete"
     @tool-toggle="handleToolToggle"
     @search="handleSearch"
@@ -15,14 +16,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { McpServerPicker, PluginInfo, PluginTool } from '@opentiny/tiny-robot'
+import { McpServerPicker, PluginInfo, PluginTool, CreatePluginData } from '@opentiny/tiny-robot'
 
 // 模拟加载状态
 const loading = ref(false)
 const marketLoading = ref(false)
 
 // 已安装插件数据
-const installedPlugins = ref([
+const installedPlugins = ref<PluginInfo[]>([
   {
     id: 'plugin-1',
     name: 'GitHub 集成',
@@ -111,18 +112,7 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
 const handlePluginAdd = (plugin: PluginInfo) => {
   console.log('添加插件:', plugin.name)
   // 模拟添加到已安装列表
-  installedPlugins.value.push({
-    ...plugin,
-    enabled: true,
-    expanded: false,
-    tools: [],
-  })
-
-  // 从市场列表中移除
-  const index = marketPlugins.value.findIndex((p) => p.id === plugin.id)
-  if (index > -1) {
-    marketPlugins.value.splice(index, 1)
-  }
+  installedPlugins.value.push(plugin)
 }
 
 const handlePluginDelete = (plugin: PluginInfo) => {
@@ -139,6 +129,10 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
   if (tool) {
     tool.enabled = enabled
   }
+}
+
+const handlePluginCreate = (data: CreatePluginData) => {
+  console.log('创建插件:', data)
 }
 
 const handleSearch = (query: string, tab: string) => {
