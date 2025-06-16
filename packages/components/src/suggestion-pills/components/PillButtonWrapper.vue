@@ -20,7 +20,7 @@ const emit = defineEmits<{
     @group-click="item.action.events?.groupClick"
     @close="item.action.events?.close"
   >
-    <PillButton :item="item" @click="emit('click', $event, item)"></PillButton>
+    <PillButton :item="item" @pointerup="emit('click', $event, item)"></PillButton>
     <template v-for="(slotVNode, slotName) in item.action.slots" :key="slotName" #[slotName]>
       <component :is="slotVNode" />
     </template>
@@ -31,7 +31,7 @@ const emit = defineEmits<{
     v-bind="item.action.props"
     @item-click="item.action.events?.itemClick"
   >
-    <PillButton :item="item" @click="emit('click', $event, item)"></PillButton>
+    <PillButton :item="item" @pointerup="emit('click', $event, item)"></PillButton>
   </DropdownMenu>
-  <PillButton v-else :item="item" :style="style" @click="emit('click', $event, item)"></PillButton>
+  <PillButton v-else :item="item" :style="style" @pointerup="emit('click', $event, item)"></PillButton>
 </template>

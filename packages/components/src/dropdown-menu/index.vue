@@ -61,7 +61,7 @@ const handleItemClick = (item: DropdownMenuItem) => {
     :class="attrs.class"
     :style="attrsStyle"
     ref="dropDownTriggerRef"
-    @click="handleToggleShow"
+    @pointerup="handleToggleShow"
   >
     <slot />
   </div>

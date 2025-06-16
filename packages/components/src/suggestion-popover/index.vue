@@ -212,7 +212,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
     :class="attrs.class"
     :style="attrsStyle"
     ref="popoverTriggerRef"
-    @click="handleToggleShow"
+    @pointerup="handleToggleShow"
   >
     <slot />
   </div>
@@ -280,6 +280,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
   position: fixed;
   z-index: var(--tr-z-index-popover);
   height: v-bind('toCssUnit(props.popoverHeight)');
+  max-height: 100dvh;
   padding: 20px;
   padding-bottom: 16px;
   border-radius: 24px;
