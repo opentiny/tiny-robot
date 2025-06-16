@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import { BubbleToolStepItem } from '../../types'
+import { IconArrowDown, IconToolRunning } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
+import { BubbleToolStepItem } from '../../types'
 
 const props = defineProps<BubbleToolStepItem>()
 
@@ -10,9 +10,12 @@ const collapsed = ref(false)
 
 <template>
   <div class="tr-bubble__step-tool">
-    <div class="tr-bubble__step-tool-title">
-      <span class="tr-bubble__step-tool-status">{{ props.status === 'running' ? '正在调用' : '已调用' }}</span>
-      <span class="tr-bubble__step-tool-name">{{ props.name }}</span>
+    <div class="tr-bubble__step-tool-header">
+      <IconToolRunning class="tr-bubble__step-tool-icon" />
+      <span class="tr-bubble__step-tool-title">
+        {{ props.status === 'running' ? '正在调用' : '已调用' }}
+        <span class="tr-bubble__step-tool-name">{{ props.name }}</span></span
+      >
     </div>
     <div class="tr-bubble__step-tool-expand">
       <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !collapsed }" @click="collapsed = !collapsed" />
@@ -28,15 +31,30 @@ const collapsed = ref(false)
   justify-content: space-between;
   gap: 8px;
   font-size: 14px;
-  line-height: 22px;
+  line-height: 24px;
   padding: 12px;
-  background-color: #fafafa;
-  border-radius: 8px;
+  color: rgb(89, 89, 89);
+  background-color: rgb(250, 250, 250);
+  border-radius: 12px;
 
-  .tr-bubble__step-tool-title {
+  .tr-bubble__step-tool-header {
     display: flex;
     align-items: center;
     gap: 8px;
+
+    .tr-bubble__step-tool-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .tr-bubble__step-tool-title {
+      word-break: break-word;
+    }
+
+    .tr-bubble__step-tool-name {
+      color: rgb(25, 25, 25);
+      font-weight: 600;
+    }
   }
 
   .tr-bubble__step-tool-expand {
@@ -44,16 +62,12 @@ const collapsed = ref(false)
     flex-shrink: 0;
 
     .expand-icon {
-      font-size: 14px;
+      font-size: 16px;
 
       &.-rotate-90 {
         transform: rotate(-90deg);
       }
     }
-  }
-
-  .tr-bubble__step-tool-name {
-    font-weight: 600;
   }
 }
 </style>

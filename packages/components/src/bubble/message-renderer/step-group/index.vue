@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { IconSuccess } from '@opentiny/tiny-robot-svgs'
 import { BubbleStepGroupMessageProps } from '../../types'
 import TextStep from './TextStep.vue'
 import ToolStep from './ToolStep.vue'
@@ -11,10 +12,11 @@ const props = defineProps<BubbleStepGroupMessageProps>()
     <div class="tr-bubble__step-group-title">
       <!-- TODO 其他状态的图标 -->
       <img
-        v-if="props.data.status === 'running'"
+        v-if="props.data.status !== 'success'"
         src="../../../assets/loading.webp"
         style="width: 24px; height: 24px"
       />
+      <IconSuccess v-else-if="props.data.status === 'success'" style="font-size: 20px" />
       <span>{{ props.data.title }}</span>
     </div>
     <template v-for="(step, index) in props.data.steps" :key="index">
@@ -26,10 +28,10 @@ const props = defineProps<BubbleStepGroupMessageProps>()
 
 <style lang="less" scoped>
 .tr-bubble__step-group {
-  padding: 16px 0;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .tr-bubble__step-group-title {
@@ -37,7 +39,7 @@ const props = defineProps<BubbleStepGroupMessageProps>()
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  line-height: 22px;
-  font-weight: 600;
+  line-height: 24px;
+  font-weight: 500;
 }
 </style>

@@ -52,6 +52,7 @@ const collapsed = ref(false)
   padding-left: 8px;
   margin-top: 8px;
   white-space: pre-line;
+  word-break: break-word;
   display: inline-block;
 }
 
