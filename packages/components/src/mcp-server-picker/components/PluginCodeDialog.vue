@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconClose } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside } from '@vueuse/core'
-import { ref, computed, defineProps, defineEmits } from 'vue'
+import { ref, computed, defineProps, defineEmits, watch } from 'vue'
 import IconButton from '../../icon-button'
 import type { CreatePluginDialogProps, CreatePluginDialogEmits } from '../index.type'
 
@@ -13,7 +13,8 @@ const emit = defineEmits<CreatePluginDialogEmits>()
 
 const dialogRef = ref<HTMLDivElement | null>(null)
 
-const aiPluginCode = ref(`{
+// 默认代码模板
+const getDefaultAiPluginCode = () => `{
   "schema_version": "v1",
   "name_for_model": "example_plugin",
   "name_for_human": "示例插件",
@@ -26,9 +27,9 @@ const aiPluginCode = ref(`{
     "type": "openapi",
     "url": "http://localhost:3000/openapi.yaml"
   }
-}`)
+}`
 
-const openapiCode = ref(`openapi: 3.0.0
+const getDefaultOpenapiCode = () => `openapi: 3.0.0
 info:
   title: 示例插件 API
   version: 1.0.0
@@ -50,12 +51,31 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "Hello World"`)
+                    example: "Hello World"`
+
+const aiPluginCode = ref(getDefaultAiPluginCode())
+const openapiCode = ref(getDefaultOpenapiCode())
+
+// 重置代码内容
+const resetCodeContent = () => {
+  aiPluginCode.value = getDefaultAiPluginCode()
+  openapiCode.value = getDefaultOpenapiCode()
+}
 
 const show = computed({
   get: () => props.visible,
   set: (value) => emit('update:visible', value),
 })
+
+// 监听弹窗显示状态，打开时重置代码内容
+watch(
+  () => props.visible,
+  (newVisible) => {
+    if (newVisible) {
+      resetCodeContent()
+    }
+  },
+)
 
 onClickOutside(dialogRef, () => {
   if (show.value) {
@@ -148,7 +168,6 @@ const handleCancel = () => {
   width: 100%;
   height: 765px;
   background-color: #ffffff;
-  border-radius: 12px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;

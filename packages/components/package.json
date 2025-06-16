@@ -29,6 +29,8 @@
     "@opentiny/vue-tabs": "^3.21.0",
     "@opentiny/vue-tab-item": "^3.21.0",
     "@opentiny/vue-switch": "^3.21.0",
+    "@opentiny/vue-select": "^3.21.0",
+    "@opentiny/vue-option": "^3.21.0",
     "@vueuse/core": "^13.1.0",
     "markdown-it": "^14.1.0"
   },

@@ -20,6 +20,7 @@ export interface PluginInfo {
   expanded?: boolean
   tools?: PluginTool[]
   added?: boolean
+  category?: string
 }
 
 export type PluginCardMode = 'installed' | 'market'
@@ -42,6 +43,12 @@ export interface PluginCardEmits {
   (e: 'delete-plugin'): void
 }
 
+// 市场分类选项类型
+export interface MarketCategoryOption {
+  value: string
+  label: string
+}
+
 // 组件的Props
 export interface McpServerPickerProps {
   // 数据源
@@ -52,12 +59,20 @@ export interface McpServerPickerProps {
   searchPlaceholder?: string
   enableSearch?: boolean
 
+  // 市场分类筛选
+  marketCategoryOptions?: MarketCategoryOption[]
+  marketCategoryPlaceholder?: string
+  enableMarketCategoryFilter?: boolean
+
   // 面板控制
   defaultActiveTab?: 'installed' | 'market'
   showInstalledTab?: boolean
   showMarketTab?: boolean
   // 整体面板显示控制
   visible?: boolean
+
+  // 激活数量控制（支持 v-model:activeCount）
+  activeCount?: number
 
   // 标签名称
   installedTabTitle?: string
@@ -129,6 +144,9 @@ export interface McpServerPickerEmits {
   // 搜索事件
   (e: 'search', query: string, tab: 'installed' | 'market'): void
 
+  // 市场分类筛选事件
+  (e: 'market-category-change', category: string): void
+
   // Tab切换事件
   (e: 'tab-change', activeTab: 'installed' | 'market'): void
 
@@ -152,5 +170,8 @@ export interface McpServerPickerEmits {
   (e: 'refresh', tab: 'installed' | 'market'): void
 
   // 激活插件数量变化事件
-  (e: 'active-count-change', count: number): void
+  (e: 'update:activeCount', count: number): void
+
+  // 面板显示控制
+  (e: 'update:visible', visible: boolean): void
 }

@@ -3,11 +3,11 @@ import TinyButton from '@opentiny/vue-button'
 import TinyTabs from '@opentiny/vue-tabs'
 import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
+import TinySelect from '@opentiny/vue-select'
+import TinyOption from '@opentiny/vue-option'
 import { ref, reactive, computed, watch } from 'vue'
 import { IconPlus } from '@opentiny/vue-icon'
-import PluginCard from './components/PluginCard.vue'
-import PluginCodeDialog from './components/PluginCodeDialog.vue'
-import PluginFormDialog from './components/PluginFormDialog.vue'
+import { PluginCard, PluginCodeDialog, PluginFormDialog } from './components'
 import { IconClose } from '@opentiny/tiny-robot-svgs'
 import type {
   PluginInfo,
@@ -25,10 +25,13 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   marketPlugins: () => [],
   searchPlaceholder: '搜索插件',
   enableSearch: true,
+  marketCategoryOptions: () => [],
+  marketCategoryPlaceholder: '按照分类筛选',
+  enableMarketCategoryFilter: true,
   defaultActiveTab: 'installed',
   showInstalledTab: true,
   showMarketTab: true,
-  visible: true,
+  visible: false,
   installedTabTitle: '已安装插件',
   marketTabTitle: '市场',
   title: '插件',
@@ -48,6 +51,7 @@ const emit = defineEmits<McpServerPickerEmits>()
 const activeTab = ref(props.defaultActiveTab)
 const installedSearch = ref('')
 const marketSearch = ref('')
+const marketCategory = ref('')
 
 // 插件弹窗状态管理
 const pluginDialogState = reactive<PluginDialogState>({
@@ -78,13 +82,14 @@ const activePluginCount = computed(() => {
   return installedPluginsList.value.filter((plugin) => plugin.enabled).length
 })
 
-// 监听激活插件数量变化
+// 监听激活插件数量变化，实时同步给父组件
 watch(
   activePluginCount,
   (newCount) => {
-    emit('active-count-change', newCount)
+    // 发射事件，让父组件可以通过 v-model:activeCount 获取最新值
+    emit('update:activeCount', newCount)
   },
-  { immediate: true },
+  { immediate: true }, // 立即执行，确保初始化时同步数量
 )
 
 // 监听Tab变化
@@ -101,6 +106,11 @@ watch(installedSearch, (query) => {
 
 watch(marketSearch, (query) => {
   emit('search', query, 'market')
+})
+
+// 监听市场分类筛选变化
+watch(marketCategory, (category) => {
+  emit('market-category-change', category)
 })
 
 // 事件处理函数
@@ -221,10 +231,13 @@ const handleSwitchToCodeEditor = () => {
   openPluginDialog('codeEditor')
 }
 
-const McpPanelVisible = ref(props.visible)
+const McpPanelVisible = computed({
+  get: () => props.visible,
+  set: (value) => emit('update:visible', value),
+})
 
 const handleClose = () => {
-  McpPanelVisible.value = false
+  emit('update:visible', false)
 }
 </script>
 
@@ -270,11 +283,23 @@ const handleClose = () => {
         </TinyTabItem>
 
         <TinyTabItem v-if="props.showMarketTab" :title="props.marketTabTitle" name="market">
-          <div class="mcp-server-picker__content-market-header" v-if="props.enableSearch">
-            <div style="width: 168px">
-              <TinyInput v-model="marketSearch" placeholder="按照分类筛选" />
+          <div
+            class="mcp-server-picker__content-market-header"
+            v-if="props.enableSearch || props.enableMarketCategoryFilter"
+          >
+            <div v-if="props.enableMarketCategoryFilter" style="width: 168px">
+              <TinySelect v-model="marketCategory" :placeholder="props.marketCategoryPlaceholder">
+                <TinyOption
+                  v-for="option in props.marketCategoryOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </TinyOption>
+              </TinySelect>
             </div>
-            <div style="width: 264px; flex-shrink: 0">
+            <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
               <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder" />
             </div>
           </div>
@@ -322,9 +347,8 @@ const handleClose = () => {
   width: 482px;
   height: 100%;
   box-sizing: border-box;
-  background: rgb(248, 248, 248);
-  border-left: 1px solid rgb(219, 219, 219);
-  border-right: 1px solid rgb(219, 219, 219);
+  background: rgb(255, 255, 255);
+  border: 1px solid rgb(219, 219, 219);
   padding: 20px;
 
   &__header {
