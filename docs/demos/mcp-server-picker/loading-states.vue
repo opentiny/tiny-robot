@@ -21,6 +21,7 @@
     </div>
 
     <McpServerPicker
+      :visible="true"
       :installed-plugins="installedPlugins"
       :market-plugins="marketPlugins"
       :loading="loading"

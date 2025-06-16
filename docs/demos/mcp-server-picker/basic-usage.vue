@@ -1,26 +1,53 @@
 <template>
-  <McpServerPicker
-    :installed-plugins="installedPlugins"
-    :market-plugins="marketPlugins"
-    :loading="loading"
-    :market-loading="marketLoading"
-    @plugin-toggle="handlePluginToggle"
-    @plugin-add="handlePluginAdd"
-    @plugin-create="handlePluginCreate"
-    @plugin-delete="handlePluginDelete"
-    @tool-toggle="handleToolToggle"
-    @search="handleSearch"
-    @tab-change="handleTabChange"
-  />
+  <div class="demo-controls">
+    <h3>MCP Server Picker 演示</h3>
+  </div>
+
+  <!-- 插件面板，默认在页面右侧以抽屉的形式展示，可以点击按钮控制抽屉的显示和隐藏 -->
+  <div class="demo-controls">
+    <TinyButton @click="handleVisibleToggle"> 显示插件面板 </TinyButton>
+    <span class="active-count">激活插件数量: {{ activeCount }}</span>
+  </div>
+  <tiny-drawer title="标题" :show-header="false" width="482px" :visible="visible" @update:visible="visible = $event">
+    <McpServerPicker
+      v-model:visible="visible"
+      v-model:activeCount="activeCount"
+      :installed-plugins="installedPlugins"
+      :market-plugins="marketPlugins"
+      :market-category-options="marketCategoryOptions"
+      :loading="loading"
+      :market-loading="marketLoading"
+      @plugin-toggle="handlePluginToggle"
+      @plugin-add="handlePluginAdd"
+      @plugin-form-add="handlePluginFormAdd"
+      @plugin-code-add="handlePluginCodeAdd"
+      @plugin-delete="handlePluginDelete"
+      @tool-toggle="handleToolToggle"
+      @search="handleSearch"
+      @tab-change="handleTabChange"
+      @market-category-change="handleMarketCategoryChange"
+      @custom-add="handleCustomAdd"
+    />
+  </tiny-drawer>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { McpServerPicker, PluginInfo, PluginTool, CreatePluginData } from '@opentiny/tiny-robot'
+import {
+  McpServerPicker,
+  PluginInfo,
+  PluginTool,
+  AddPluginCodeData,
+  AddPluginFormData,
+  MarketCategoryOption,
+} from '@opentiny/tiny-robot'
 
 // 模拟加载状态
 const loading = ref(false)
 const marketLoading = ref(false)
+
+// 激活数量 - 通过 v-model:activeCount 自动同步
+const activeCount = ref(0)
 
 // 已安装插件数据
 const installedPlugins = ref<PluginInfo[]>([
@@ -31,7 +58,6 @@ const installedPlugins = ref<PluginInfo[]>([
     description: '与 GitHub 仓库集成，提供代码搜索、PR 管理等功能',
     toolCount: 5,
     enabled: true,
-    expanded: false,
     tools: [
       {
         id: 'tool-1',
@@ -60,47 +86,70 @@ const installedPlugins = ref<PluginInfo[]>([
     description: '发送消息到 Slack 频道',
     toolCount: 2,
     enabled: false,
-    expanded: false,
     tools: [
       {
         id: 'tool-4',
         name: '发送消息',
         description: '发送消息到指定频道',
-        enabled: true,
+        enabled: false,
       },
       {
         id: 'tool-5',
         name: '文件上传',
         description: '上传文件到 Slack',
-        enabled: true,
+        enabled: false,
       },
     ],
   },
 ])
 
 // 市场插件数据
-const marketPlugins = ref([
+const marketPlugins = ref<PluginInfo[]>([
   {
-    id: 'market-1',
+    id: 'plugin-1',
     name: 'Jira 集成',
-    icon: 'https://jira.atlassian.com/favicon.ico',
-    description: '与 Jira 集成，管理任务和问题跟踪',
-    toolCount: 8,
+    icon: 'https://ts3.tc.mm.bing.net/th/id/ODLS.2a97aa8b-50c6-4e00-af97-3b563dfa07f4',
+    description: 'Jira 任务管理',
+    enabled: true,
+    added: false,
+    category: 'productivity', // 添加分类标识
+    tools: [
+      { id: 'tool-5', name: '创建任务', description: '创建 Jira 任务', enabled: true },
+      { id: 'tool-6', name: '查询任务', description: '查询 Jira 任务', enabled: true },
+    ],
   },
   {
-    id: 'market-2',
-    name: 'Trello 看板',
-    icon: 'https://trello.com/favicon.ico',
-    description: 'Trello 看板管理工具',
-    toolCount: 4,
+    id: 'plugin-2',
+    name: 'Notion 集成',
+    icon: 'https://www.notion.so/front-static/favicon.ico',
+    description: 'Notion 文档管理和协作',
+    enabled: false,
+    added: false,
+    category: 'productivity',
+    tools: [
+      { id: 'tool-7', name: '创建页面', description: '创建 Notion 页面', enabled: false },
+      { id: 'tool-8', name: '查询数据库', description: '查询 Notion 数据库', enabled: false },
+    ],
   },
   {
-    id: 'market-3',
-    name: 'Notion 笔记',
-    icon: 'https://notion.so/favicon.ico',
-    description: 'Notion 笔记和文档管理',
-    toolCount: 6,
+    id: 'plugin-3',
+    name: 'Telegram 机器人',
+    icon: 'https://telegram.org/favicon.ico',
+    description: 'Telegram 消息推送和自动化',
+    enabled: false,
+    added: false,
+    category: 'communication',
+    tools: [{ id: 'tool-9', name: '发送消息', description: '发送 Telegram 消息', enabled: false }],
   },
+])
+
+// 市场分类选项
+const marketCategoryOptions = ref<MarketCategoryOption[]>([
+  { value: '', label: '全部分类' },
+  { value: 'productivity', label: '生产力工具' },
+  { value: 'communication', label: '沟通协作' },
+  { value: 'development', label: '开发工具' },
+  { value: 'ai', label: 'AI 助手' },
 ])
 
 // 事件处理
@@ -109,10 +158,25 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
   plugin.enabled = enabled
 }
 
-const handlePluginAdd = (plugin: PluginInfo) => {
-  console.log('添加插件:', plugin.name)
-  // 模拟添加到已安装列表
-  installedPlugins.value.push(plugin)
+const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
+  console.log('插件添加状态变化:', plugin.name, added)
+
+  if (added) {
+    // 如果是添加操作，创建新的插件副本并添加到已安装列表
+    const newPlugin: PluginInfo = {
+      ...plugin,
+      id: `${plugin.id}-installed-${Date.now()}`, // 生成新的ID避免冲突
+      enabled: false, // 新添加的插件默认不启用
+      added: true,
+    }
+    installedPlugins.value.push(newPlugin)
+  } else {
+    // 如果是取消添加操作，从已安装列表中移除
+    const index = installedPlugins.value.findIndex((p) => p.name === plugin.name)
+    if (index > -1) {
+      installedPlugins.value.splice(index, 1)
+    }
+  }
 }
 
 const handlePluginDelete = (plugin: PluginInfo) => {
@@ -131,8 +195,40 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
   }
 }
 
-const handlePluginCreate = (data: CreatePluginData) => {
-  console.log('创建插件:', data)
+// 新的插件创建事件处理
+const handlePluginFormAdd = (data: AddPluginFormData) => {
+  console.log('表单方式添加插件:', data)
+  // 可以在这里处理表单数据，例如发送到服务器
+  const newPlugin: PluginInfo = {
+    id: `custom-${Date.now()}`,
+    name: data.name,
+    icon: '', // 如果有缩略图可以处理 data.thumbnail
+    description: data.description,
+    toolCount: 0,
+    enabled: false,
+    tools: [],
+  }
+  installedPlugins.value.push(newPlugin)
+}
+
+const handlePluginCodeAdd = (data: AddPluginCodeData) => {
+  console.log('代码方式添加插件:', data)
+  // 可以在这里处理代码数据，例如解析 aiPlugin 和 openAPI 配置
+  // 这里简化为直接创建一个插件
+  const newPlugin: PluginInfo = {
+    id: `code-${Date.now()}`,
+    name: '代码创建的插件',
+    icon: '',
+    description: '通过代码编辑器创建的插件',
+    toolCount: 0,
+    enabled: false,
+    tools: [],
+  }
+  installedPlugins.value.push(newPlugin)
+}
+
+const handleCustomAdd = () => {
+  console.log('用户点击了自定义添加按钮')
 }
 
 const handleSearch = (query: string, tab: string) => {
@@ -142,4 +238,50 @@ const handleSearch = (query: string, tab: string) => {
 const handleTabChange = (activeTab: string) => {
   console.log('标签页切换:', activeTab)
 }
+
+const handleMarketCategoryChange = (category: string) => {
+  console.log('市场分类筛选:', category)
+  // 这里可以根据分类过滤市场插件
+}
+
+const visible = ref(false)
+
+const handleVisibleToggle = () => {
+  visible.value = true
+}
 </script>
+
+<style scoped>
+:deep(.tiny-drawer__body) {
+  padding: 0 !important;
+}
+
+.demo-controls {
+  display: flex;
+  justify-content: flex-start;
+  gap: 16px;
+  align-items: center;
+}
+
+.demo-controls {
+  margin-bottom: 20px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.active-count {
+  font-weight: 600;
+  color: #1890ff;
+  padding: 4px 8px;
+  background-color: #e6f7ff;
+  border-radius: 4px;
+}
+</style>

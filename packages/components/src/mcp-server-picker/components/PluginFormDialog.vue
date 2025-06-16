@@ -2,7 +2,7 @@
 import { IconClose } from '@opentiny/tiny-robot-svgs'
 import { IconEditorCode } from '@opentiny/vue-icon'
 import { onClickOutside } from '@vueuse/core'
-import { ref, computed, defineProps, defineEmits } from 'vue'
+import { ref, computed, defineProps, defineEmits, watch } from 'vue'
 import IconButton from '../../icon-button'
 import type { AddPluginDialogProps, AddPluginDialogEmits, AddPluginFormData } from '../index.type'
 
@@ -16,15 +16,23 @@ const dialogRef = ref<HTMLDivElement | null>(null)
 
 const EditorCode = IconEditorCode()
 
-// 表单数据
-const formData = ref<AddPluginFormData>({
-  name: '对话agent',
+// 默认表单数据
+const getDefaultFormData = (): AddPluginFormData => ({
+  name: '',
   description: '',
   types: [],
   url: '',
   headers: '',
   thumbnail: null,
 })
+
+// 表单数据
+const formData = ref<AddPluginFormData>(getDefaultFormData())
+
+// 重置表单数据
+const resetFormData = () => {
+  formData.value = getDefaultFormData()
+}
 
 // 类型选项
 const typeOptions = [
@@ -37,6 +45,16 @@ const show = computed({
   get: () => props.visible,
   set: (value) => emit('update:visible', value),
 })
+
+// 监听弹窗显示状态，打开时重置表单数据
+watch(
+  () => props.visible,
+  (newVisible) => {
+    if (newVisible) {
+      resetFormData()
+    }
+  },
+)
 
 onClickOutside(dialogRef, () => {
   if (show.value) {

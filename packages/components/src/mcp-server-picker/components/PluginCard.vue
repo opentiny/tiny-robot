@@ -128,8 +128,8 @@ const handleAdd = () => {
               </slot>
             </div>
             <div class="plugin-card__operations">
-              <slot name="delete-icon" @click="handleDelete">
-                <TinyIconDel />
+              <slot name="delete-icon">
+                <TinyIconDel @click="handleDelete" />
               </slot>
               <TinySwitch
                 :model-value="pluginState.checked"
