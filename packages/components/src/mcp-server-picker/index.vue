@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import TinyButton from '@opentiny/vue-button'
 import TinyTabs from '@opentiny/vue-tabs'
 import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
 import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
 import { ref, reactive, computed, watch } from 'vue'
-import { IconPlus } from '@opentiny/vue-icon'
 import { PluginCard, PluginCodeDialog, PluginFormDialog } from './components'
-import { IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
 import type {
   PluginInfo,
   McpServerPickerProps,
@@ -17,8 +15,6 @@ import type {
   AddPluginFormData,
   PluginDialogState,
 } from './index.type'
-
-const TinyIconPlus = IconPlus()
 
 const props = withDefaults(defineProps<McpServerPickerProps>(), {
   installedPlugins: () => [],
@@ -246,9 +242,10 @@ const handleClose = () => {
     <div class="mcp-server-picker__header">
       <div class="mcp-server-picker__header-left">{{ props.title }}</div>
       <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right">
-        <TinyButton :icon="TinyIconPlus" circle @click="handleCustomAdd">
-          {{ props.customAddButtonText }}
-        </TinyButton>
+        <div class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
+          <IconPlus style="font-size: 16px; cursor: pointer" />
+          <span>{{ props.customAddButtonText }}</span>
+        </div>
         <IconClose style="font-size: 24px" @click="handleClose" />
       </div>
     </div>
@@ -257,7 +254,11 @@ const handleClose = () => {
         <TinyTabItem v-if="props.showInstalledTab" :title="props.installedTabTitle" name="installed">
           <div class="mcp-server-picker__content-item">
             <div v-if="props.enableSearch" class="mcp-server-picker__content-installed-search">
-              <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder" />
+              <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder">
+                <template #suffix>
+                  <IconSearch style="font-size: 16px; cursor: pointer" />
+                </template>
+              </TinyInput>
             </div>
 
             <div class="mcp-server-picker__content-installed-list">
@@ -300,7 +301,11 @@ const handleClose = () => {
               </TinySelect>
             </div>
             <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
-              <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder" />
+              <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder">
+                <template #suffix>
+                  <IconSearch style="font-size: 16px; cursor: pointer" />
+                </template>
+              </TinyInput>
             </div>
           </div>
 
@@ -368,6 +373,26 @@ const handleClose = () => {
       display: flex;
       align-items: center;
       gap: 20px;
+
+      &-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        color: rgb(25, 25, 25);
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 22px;
+        border: 1px solid rgb(89, 89, 89);
+        box-sizing: border-box;
+        border-radius: 999px;
+        padding: 5px 16px;
+
+        &:hover {
+          background-color: rgb(245, 245, 245);
+          border-color: rgb(25, 25, 25);
+        }
+      }
     }
   }
 

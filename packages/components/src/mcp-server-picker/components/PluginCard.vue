@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import TinySwitch from '@opentiny/vue-switch'
 import { computed, toRefs, watch } from 'vue'
-import { IconDel, IconChevronRight, IconChevronDown } from '@opentiny/vue-icon'
+import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
-
-const TinyIconDel = IconDel()
-const TinyIconChevronRight = IconChevronRight()
-const TinyIconChevronDown = IconChevronDown()
 
 const props = withDefaults(defineProps<PluginCardProps>(), {
   mode: 'installed',
@@ -123,13 +119,13 @@ const handleAdd = () => {
           <template v-if="mode === 'installed'">
             <div v-if="expandable" class="plugin-card__expand" @click="handleToggleExpand">
               <slot name="expand-icon" :expanded="isExpanded">
-                <TinyIconChevronRight v-if="!isExpanded" />
-                <TinyIconChevronDown v-else />
+                <IconArrowRight style="font-size: 16px; cursor: pointer" v-if="!isExpanded" />
+                <IconArrowDown style="font-size: 16px; cursor: pointer" v-else />
               </slot>
             </div>
             <div class="plugin-card__operations">
               <slot name="delete-icon">
-                <TinyIconDel @click="handleDelete" />
+                <TinyButton size="small" :icon="IconDelete" type="text" style="font-size: 16px" @click="handleDelete" />
               </slot>
               <TinySwitch
                 :model-value="pluginState.checked"
@@ -298,7 +294,7 @@ const handleAdd = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 68px;
+    gap: 12px;
   }
 
   &__add {
@@ -391,5 +387,9 @@ const handleAdd = () => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.tiny-button {
+  --tv-Button-height-small: 16px;
 }
 </style>
