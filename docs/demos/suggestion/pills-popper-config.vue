@@ -63,24 +63,24 @@ const items = ref<SuggestionPillItem[]>([
           show: false,
           onItemClick: (item) => {
             console.log(item)
-            items.value.forEach((i) => {
-              if (i.action?.type === 'menu') {
-                i.action.props.show = false
-              }
-            })
+            closeAllDropdownMenus()
           },
           onClickOutside: () => {
             console.log('onClickOutside')
-            items.value.forEach((i) => {
-              if (i.action?.type === 'menu') {
-                i.action.props.show = false
-              }
-            })
+            closeAllDropdownMenus()
           },
         },
       } as SuggestionPillMenuAction,
     })),
 ])
+
+const closeAllDropdownMenus = () => {
+  items.value.forEach((i) => {
+    if (i.action?.type === 'menu') {
+      i.action.props.show = false
+    }
+  })
+}
 
 const data = [
   { id: 'b1', text: '什么是弹性云服务器?' },
@@ -129,6 +129,7 @@ const handleClickOutside = (event: MouseEvent) => {
     return
   }
   showAll.value = false
+  closeAllDropdownMenus()
 }
 </script>
 

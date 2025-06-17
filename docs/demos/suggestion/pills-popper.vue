@@ -13,7 +13,9 @@
       </TrSuggestionPillButton>
     </TrSuggestionPopover>
     <TrDropdownMenu :items="dropdownMenuItems" @item-click="handleDropdownMenuItemClick">
-      <TrSuggestionPillButton>点击我打开DropdownMenu弹出框</TrSuggestionPillButton>
+      <template #trigger>
+        <TrSuggestionPillButton>点击我打开DropdownMenu弹出框</TrSuggestionPillButton>
+      </template>
     </TrDropdownMenu>
     <TrSuggestionPillButton>资源管理</TrSuggestionPillButton>
     <TrSuggestionPillButton>费用查询</TrSuggestionPillButton>

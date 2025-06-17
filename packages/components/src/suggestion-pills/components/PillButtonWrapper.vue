@@ -34,7 +34,9 @@ const emit = defineEmits<{
     @item-click="item.action.events?.itemClick"
     @click-outside="item.action.events?.clickOutside"
   >
-    <PillButton :item="item" @pointerup="emit('click', $event, item)"></PillButton>
+    <template #trigger>
+      <PillButton :item="item" @pointerup="emit('click', $event, item)"></PillButton>
+    </template>
   </DropdownMenu>
   <PillButton v-else :item="item" :style="style" @pointerup="emit('click', $event, item)"></PillButton>
 </template>

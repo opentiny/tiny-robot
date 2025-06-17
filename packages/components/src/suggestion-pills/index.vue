@@ -114,7 +114,9 @@ const toggleIsShowingMore = () => {
 }
 
 onClickOutside(containerWrapperRef, (event) => {
-  emit('click-outside', event)
+  if (showAll.value) {
+    emit('click-outside', event)
+  }
 })
 </script>
 

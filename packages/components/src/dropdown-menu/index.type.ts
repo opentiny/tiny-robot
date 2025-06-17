@@ -1,3 +1,5 @@
+import { VNode } from 'vue'
+
 export interface DropdownMenuItem {
   id: string
   text: string
@@ -19,7 +21,7 @@ export interface DropdownMenuProps {
 }
 
 export interface DropdownMenuSlots {
-  default?: () => unknown
+  trigger?: () => VNode | VNode[]
 }
 
 export interface DropdownMenuEmits {

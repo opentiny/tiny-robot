@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onClickOutside, useElementBounding } from '@vueuse/core'
-import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
+import { ComponentPublicInstance, computed, CSSProperties, ref, watch } from 'vue'
 import { toCssUnit } from '../shared/utils'
+import { TrTeleport } from '../teleport'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps, DropdownMenuSlots } from './index.type'
 
 const props = withDefaults(defineProps<DropdownMenuProps>(), {
@@ -10,8 +11,7 @@ const props = withDefaults(defineProps<DropdownMenuProps>(), {
   minWidth: 160,
 })
 
-const attrs = useAttrs()
-const attrsStyle = computed(() => attrs.style as StyleValue)
+const emit = defineEmits<DropdownMenuEmits>()
 
 const showRef = ref(false)
 
@@ -31,20 +31,31 @@ const show = computed({
   },
 })
 
-defineSlots<DropdownMenuSlots>()
+const slots = defineSlots<DropdownMenuSlots>()
+const triggerSlots = slots.trigger?.()
+const triggerVNode = Array.isArray(triggerSlots) ? triggerSlots.at(0) : triggerSlots
 
-const emit = defineEmits<DropdownMenuEmits>()
-
-const dropDownTriggerRef = ref<HTMLDivElement | null>(null)
+const triggerRef = ref<HTMLElement | null>(null)
 const dropdownMenuRef = ref<HTMLDivElement | null>(null)
 
-const { x, y, update } = useElementBounding(dropDownTriggerRef)
+const setRef = (el: unknown) => {
+  if ((el as ComponentPublicInstance)?.$el) {
+    triggerRef.value = (el as ComponentPublicInstance).$el
+  } else if (el instanceof HTMLElement) {
+    triggerRef.value = el
+  } else {
+    triggerRef.value = null
+  }
+}
+
+const { x, y, update } = useElementBounding(triggerRef)
 const { width: menuWidth, height: menuHeight } = useElementBounding(dropdownMenuRef)
 
 const dropdownStyles = computed<CSSProperties>(() => {
   return {
     left: `min(${toCssUnit(x.value)}, 100% - ${toCssUnit(menuWidth.value)})`,
     top: `max(${toCssUnit(y.value)} - ${toCssUnit(menuHeight.value)} + ${toCssUnit(props.topOffset)} - 8px, 0px)`,
+    minWidth: toCssUnit(props.minWidth),
   }
 })
 
@@ -54,7 +65,7 @@ onClickOutside(
     emit('click-outside', ev as MouseEvent)
     show.value = false
   },
-  { ignore: [dropDownTriggerRef] },
+  { ignore: [triggerRef] },
 )
 
 watch(show, (value) => {
@@ -74,40 +85,28 @@ const handleItemClick = (item: DropdownMenuItem) => {
 </script>
 
 <template>
-  <div
-    class="tr-dropdown-menu__wrapper"
-    :class="attrs.class"
-    :style="attrsStyle"
-    ref="dropDownTriggerRef"
-    @pointerup="handleToggleShow"
-  >
-    <slot />
-  </div>
-
-  <Transition name="tr-dropdown-menu">
-    <div v-if="show" class="tr-dropdown-menu" :style="dropdownStyles" ref="dropdownMenuRef">
-      <ul class="tr-dropdown-menu__list">
-        <li
-          class="tr-dropdown-menu__list-item"
-          v-for="item in props.items"
-          :key="item.id"
-          @click="handleItemClick(item)"
-        >
-          {{ item.text }}
-        </li>
-      </ul>
-    </div>
-  </Transition>
+  <component :is="triggerVNode" :ref="setRef" @pointerup="handleToggleShow" />
+  <TrTeleport :anchor="triggerRef">
+    <Transition name="tr-dropdown-menu">
+      <div v-if="show" class="tr-dropdown-menu" :style="dropdownStyles" v-bind="$attrs" ref="dropdownMenuRef">
+        <ul class="tr-dropdown-menu__list">
+          <li
+            class="tr-dropdown-menu__list-item"
+            v-for="item in props.items"
+            :key="item.id"
+            @click="handleItemClick(item)"
+          >
+            {{ item.text }}
+          </li>
+        </ul>
+      </div>
+    </Transition>
+  </TrTeleport>
 </template>
 
 <style lang="less" scoped>
-.tr-dropdown-menu__wrapper {
-  display: inline-block;
-}
-
 .tr-dropdown-menu {
   position: fixed;
-  min-width: v-bind('toCssUnit(props.minWidth)');
   z-index: var(--tr-z-index-dropdown);
   padding: 8px;
   border-radius: 12px;
