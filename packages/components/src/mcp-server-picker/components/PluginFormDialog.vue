@@ -2,7 +2,6 @@
 import { IconClose, IconShell, IconSelected, IconUnselected } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside } from '@vueuse/core'
 import { ref, computed, defineProps, defineEmits, watch, onUnmounted } from 'vue'
-import IconButton from '../../icon-button'
 import { useFileDialog } from '@vueuse/core'
 import type { AddPluginDialogProps, AddPluginDialogEmits, AddPluginFormData } from '../index.type'
 
@@ -152,13 +151,7 @@ const handleOpenFileDialog = () => {
         <div class="plugin-form-dialog__actions">
           <IconShell class="plugin-form-dialog__actions-icon" @click="handleOpenCodeEditor" />
           <div class="plugin-form-dialog__actions-divider"></div>
-          <IconButton
-            class="plugin-form-dialog__close"
-            :icon="IconClose"
-            size="24"
-            svg-size="20"
-            @click="handleClose"
-          />
+          <IconClose class="plugin-form-dialog__close" @click="handleClose" />
         </div>
       </div>
 
@@ -322,6 +315,8 @@ const handleOpenFileDialog = () => {
   }
 
   &__close {
+    cursor: pointer;
+    font-size: 24px;
     color: #595959;
   }
 

@@ -5,8 +5,17 @@
 
   <!-- 插件面板，默认在页面右侧以抽屉的形式展示，可以点击按钮控制抽屉的显示和隐藏 -->
   <div class="demo-controls">
-    <TinyButton @click="handleVisibleToggle"> 显示插件面板 </TinyButton>
-    <span class="active-count">激活插件数量: {{ activeCount }}</span>
+    <TinyButton
+      :class="['plugin-common', { 'plugin-active': activeCount > 0 }]"
+      circle
+      size="small"
+      @click="handleVisibleToggle"
+    >
+      <!-- 按钮的内容分为两种：激活状态和未激活状态 -->
+      <IconPlugin class="plugin-common_icon" />
+      <span class="plugin-common_text">扩展</span>
+      <span class="plugin-active_count" v-if="activeCount">{{ activeCount }}</span>
+    </TinyButton>
   </div>
   <tiny-drawer title="标题" :show-header="false" width="482px" :visible="visible" @update:visible="visible = $event">
     <McpServerPicker
@@ -41,6 +50,7 @@ import {
   AddPluginFormData,
   MarketCategoryOption,
 } from '@opentiny/tiny-robot'
+import { IconPlugin } from '@opentiny/tiny-robot-svgs'
 
 // 模拟加载状态
 const loading = ref(false)
@@ -114,8 +124,8 @@ const marketPlugins = ref<PluginInfo[]>([
     added: false,
     category: 'productivity', // 添加分类标识
     tools: [
-      { id: 'tool-5', name: '创建任务', description: '创建 Jira 任务', enabled: true },
-      { id: 'tool-6', name: '查询任务', description: '查询 Jira 任务', enabled: true },
+      { id: 'tool-5', name: '创建任务', description: '创建 Jira 任务', enabled: false },
+      { id: 'tool-6', name: '查询任务', description: '查询 Jira 任务', enabled: false },
     ],
   },
   {
@@ -251,16 +261,9 @@ const handleVisibleToggle = () => {
 }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 :deep(.tiny-drawer__body) {
   padding: 0 !important;
-}
-
-.demo-controls {
-  display: flex;
-  justify-content: flex-start;
-  gap: 16px;
-  align-items: center;
 }
 
 .demo-controls {
@@ -270,18 +273,52 @@ const handleVisibleToggle = () => {
   border-radius: 8px;
 }
 
-.control-buttons {
+.plugin-common {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 4px;
+  padding: 4px 12px;
+  height: 20px;
+  min-width: 44px;
+  box-sizing: content-box;
+
+  &_text {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 20px;
+    letter-spacing: 0;
+    text-align: left;
+  }
+
+  &_icon {
+    font-size: 16px;
+  }
 }
 
-.active-count {
-  font-weight: 600;
-  color: #1890ff;
-  padding: 4px 8px;
-  background-color: #e6f7ff;
-  border-radius: 4px;
+.plugin-active {
+  color: #1476ff;
+  background-color: #eaf0f8;
+  border: 1px solid #1476ff;
+
+  &_count {
+    width: 12px;
+    height: 12px;
+    background: #1476ff;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 12px;
+    color: #fff;
+  }
+
+  &:hover {
+    color: #1476ff;
+    background-color: #eaf0f8;
+    border: 1px solid #1476ff;
+  }
 }
 </style>

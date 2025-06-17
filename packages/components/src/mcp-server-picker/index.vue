@@ -69,7 +69,6 @@ const currentSearchPlaceholder = computed(() =>
   activeTab.value === 'installed' ? props.searchPlaceholder : '搜索市场插件',
 )
 
-// 直接使用 props 传入的数据
 const installedPluginsList = computed(() => props.installedPlugins)
 const marketPluginsList = computed(() => props.marketPlugins)
 
@@ -78,14 +77,12 @@ const activePluginCount = computed(() => {
   return installedPluginsList.value.filter((plugin) => plugin.enabled).length
 })
 
-// 监听激活插件数量变化，实时同步给父组件
 watch(
   activePluginCount,
   (newCount) => {
-    // 发射事件，让父组件可以通过 v-model:activeCount 获取最新值
     emit('update:activeCount', newCount)
   },
-  { immediate: true }, // 立即执行，确保初始化时同步数量
+  { immediate: true },
 )
 
 // 监听Tab变化
@@ -104,7 +101,6 @@ watch(marketSearch, (query) => {
   emit('search', query, 'market')
 })
 
-// 监听市场分类筛选变化
 watch(marketCategory, (category) => {
   emit('market-category-change', category)
 })
@@ -246,7 +242,7 @@ const handleClose = () => {
           <IconPlus style="font-size: 16px; cursor: pointer" />
           <span>{{ props.customAddButtonText }}</span>
         </div>
-        <IconClose style="font-size: 24px" @click="handleClose" />
+        <IconClose class="mcp-server-picker__header-right-close" @click="handleClose" />
       </div>
     </div>
     <div class="mcp-server-picker__content">
@@ -377,7 +373,7 @@ const handleClose = () => {
       &-item {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         cursor: pointer;
         color: rgb(25, 25, 25);
         font-size: 14px;
@@ -393,6 +389,11 @@ const handleClose = () => {
           border-color: rgb(25, 25, 25);
         }
       }
+    }
+
+    &-right-close {
+      font-size: 24px;
+      cursor: pointer;
     }
   }
 
