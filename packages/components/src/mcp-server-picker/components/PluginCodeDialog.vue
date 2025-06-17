@@ -277,22 +277,38 @@ const handleCancel = () => {
     box-sizing: border-box;
     align-items: center;
     gap: 8px;
-
     & > .button {
       display: flex;
       justify-content: center;
+      align-items: center;
       border-radius: 999px;
-      padding: 5px 24px;
+      padding: 7px 24px;
       font-size: 14px;
-      width: 28px;
       line-height: 22px;
       cursor: pointer;
-      border: 1px solid #595959;
-      box-sizing: content-box;
+      transition: all 0.2s;
+      min-width: 60px;
+
+      &.cancel {
+        background-color: #ffffff;
+        border: 1px solid #d9d9d9;
+        color: #595959;
+
+        &:hover {
+          border-color: #1890ff;
+          color: #1890ff;
+        }
+      }
 
       &.confirm {
         background-color: #000000;
+        border: 1px solid #000000;
         color: #ffffff;
+
+        &:hover {
+          background-color: #333333;
+          border-color: #333333;
+        }
       }
     }
   }
