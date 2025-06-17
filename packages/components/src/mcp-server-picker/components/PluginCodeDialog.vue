@@ -2,7 +2,6 @@
 import { IconClose } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside } from '@vueuse/core'
 import { ref, computed, defineProps, defineEmits, watch } from 'vue'
-import IconButton from '../../icon-button'
 import type { CreatePluginDialogProps, CreatePluginDialogEmits } from '../index.type'
 
 const props = withDefaults(defineProps<CreatePluginDialogProps>(), {
@@ -14,44 +13,9 @@ const emit = defineEmits<CreatePluginDialogEmits>()
 const dialogRef = ref<HTMLDivElement | null>(null)
 
 // 默认代码模板
-const getDefaultAiPluginCode = () => `{
-  "schema_version": "v1",
-  "name_for_model": "example_plugin",
-  "name_for_human": "示例插件",
-  "description_for_model": "这是一个示例插件的描述",
-  "description_for_human": "这是一个供人类阅读的插件描述",
-  "auth": {
-    "type": "none"
-  },
-  "api": {
-    "type": "openapi",
-    "url": "http://localhost:3000/openapi.yaml"
-  }
-}`
+const getDefaultAiPluginCode = () => ``
 
-const getDefaultOpenapiCode = () => `openapi: 3.0.0
-info:
-  title: 示例插件 API
-  version: 1.0.0
-  description: 这是一个示例插件的 OpenAPI 规范
-servers:
-  - url: http://localhost:3000
-paths:
-  /example:
-    get:
-      summary: 示例接口
-      description: 这是一个示例接口
-      responses:
-        '200':
-          description: 成功响应
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Hello World"`
+const getDefaultOpenapiCode = () => ``
 
 const aiPluginCode = ref(getDefaultAiPluginCode())
 const openapiCode = ref(getDefaultOpenapiCode())
@@ -107,7 +71,7 @@ const handleCancel = () => {
     <div v-if="show" class="plugin-code-dialog" ref="dialogRef">
       <div class="plugin-code-dialog__header">
         <h3 class="plugin-code-dialog__title">{{ props.title }}</h3>
-        <IconButton class="plugin-code-dialog__close" :icon="IconClose" size="24" svg-size="20" @click="handleClose" />
+        <IconClose class="plugin-code-dialog__close" @click="handleClose" />
       </div>
 
       <div class="plugin-code-dialog__content">
@@ -196,7 +160,7 @@ const handleCancel = () => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px;
+    padding: 32px 32px 20px 32px;
     height: 60px;
     box-sizing: border-box;
   }
@@ -209,6 +173,8 @@ const handleCancel = () => {
   }
 
   &__close {
+    cursor: pointer;
+    font-size: 24px;
     color: #595959;
   }
 
