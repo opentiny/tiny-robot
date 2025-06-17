@@ -1,19 +1,32 @@
 import { Component, VNode } from 'vue'
-import { DropdownMenuEvents, DropdownMenuProps } from '../dropdown-menu/index.type'
+import { DropdownMenuEvents, DropdownMenuEventProps, DropdownMenuProps } from '../dropdown-menu/index.type'
 import {
+  SuggestionPopoverEventProps,
   SuggestionPopoverEvents,
   SuggestionPopoverProps,
   SuggestionPopoverSlots,
 } from '../suggestion-popover/index.type'
 
-export type SuggestionPillAction =
-  | {
-      type: 'popover'
-      props: SuggestionPopoverProps
-      slots?: Omit<SuggestionPopoverSlots, 'default'>
-      events?: SuggestionPopoverEvents
-    }
-  | { type: 'menu'; props: DropdownMenuProps; events?: DropdownMenuEvents }
+export type SuggestionPillPopoverAction = {
+  type: 'popover'
+  props: SuggestionPopoverProps & SuggestionPopoverEventProps
+  slots?: Omit<SuggestionPopoverSlots, 'default'>
+  /**
+   * @deprecated use onXXX in props instead
+   */
+  events?: SuggestionPopoverEvents
+}
+
+export type SuggestionPillMenuAction = {
+  type: 'menu'
+  props: DropdownMenuProps & DropdownMenuEventProps
+  /**
+   * @deprecated use onXXX in props instead
+   */
+  events?: DropdownMenuEvents
+}
+
+export type SuggestionPillAction = SuggestionPillPopoverAction | SuggestionPillMenuAction
 
 export type SuggestionPillBaseItem<T> = {
   id: string

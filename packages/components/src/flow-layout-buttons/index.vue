@@ -113,17 +113,13 @@ const handleHoverMore = (val: boolean) => {
   }
 }
 
-onClickOutside(dropDownRef, (ev) => {
-  if (dropDownRef.value?.contains(ev.target as Node)) {
-    return
-  }
-
-  if (moreButtonRef.value?.contains(ev.target as Node)) {
-    return
-  }
-
-  showMore.value = false
-})
+onClickOutside(
+  dropDownRef,
+  () => {
+    showMore.value = false
+  },
+  { ignore: [dropDownRef, moreButtonRef] },
+)
 </script>
 
 <template>

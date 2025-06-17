@@ -18,7 +18,9 @@ const emit = defineEmits<{
     v-bind="item.action.props"
     @item-click="item.action.events?.itemClick"
     @group-click="item.action.events?.groupClick"
+    @open="item.action.events?.open"
     @close="item.action.events?.close"
+    @click-outside="item.action.events?.clickOutside"
   >
     <PillButton :item="item" @pointerup="emit('click', $event, item)"></PillButton>
     <template v-for="(slotVNode, slotName) in item.action.slots" :key="slotName" #[slotName]>
@@ -30,6 +32,7 @@ const emit = defineEmits<{
     :style="style"
     v-bind="item.action.props"
     @item-click="item.action.events?.itemClick"
+    @click-outside="item.action.events?.clickOutside"
   >
     <PillButton :item="item" @pointerup="emit('click', $event, item)"></PillButton>
   </DropdownMenu>

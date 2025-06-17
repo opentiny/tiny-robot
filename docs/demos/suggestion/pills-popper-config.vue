@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-import { SuggestionPillItem, TrSuggestionPills } from '@opentiny/tiny-robot'
+import { SuggestionPillItem, SuggestionPillMenuAction, TrSuggestionPills } from '@opentiny/tiny-robot'
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { TinySwitch } from '@opentiny/vue'
 import { h, markRaw, ref } from 'vue'
@@ -40,38 +40,46 @@ const items = ref<SuggestionPillItem[]>([
       props: {
         data: [],
         loading: true,
+        onItemClick: (item) => {
+          console.log(item)
+        },
       },
       slots: {
         loading: () => h('span', {}, '加载中...'),
-      },
-      events: {
-        itemClick: (item) => {
-          console.log(item)
-        },
       },
     },
   },
   ...Array.from({ length: 8 })
     .fill(0)
-    .map(
-      (_, index) =>
-        ({
-          id: String(index),
-          text: '费用成本',
-          icon: markRaw(IconEdit),
-          action: {
-            type: 'menu',
-            props: {
-              items: dropdownMenuItems.value,
-            },
-            events: {
-              itemClick: (item) => {
-                console.log(item)
-              },
-            },
+    .map((_, index) => ({
+      id: String(index),
+      text: '费用成本',
+      icon: markRaw(IconEdit),
+      action: {
+        type: 'menu',
+        props: {
+          items: dropdownMenuItems.value,
+          trigger: 'manual',
+          show: false,
+          onItemClick: (item) => {
+            console.log(item)
+            items.value.forEach((i) => {
+              if (i.action?.type === 'menu') {
+                i.action.props.show = false
+              }
+            })
           },
-        }) as const,
-    ),
+          onClickOutside: () => {
+            console.log('onClickOutside')
+            items.value.forEach((i) => {
+              if (i.action?.type === 'menu') {
+                i.action.props.show = false
+              }
+            })
+          },
+        },
+      } as SuggestionPillMenuAction,
+    })),
 ])
 
 const data = [
@@ -102,10 +110,22 @@ const handleItemClick = (item: SuggestionPillItem) => {
   if (item.id === items.value[0].id) {
     delaySetData()
   }
+
+  if (item.action?.type === 'menu') {
+    items.value.forEach((i) => {
+      if (i.action?.type === 'menu') {
+        if (i.id === item.id) {
+          i.action.props.show = !i.action.props.show
+        } else {
+          i.action.props.show = false
+        }
+      }
+    })
+  }
 }
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (showAllRef.value?.$el.contains(event.target as Node)) {
+  if (event.composedPath().includes(showAllRef.value?.$el)) {
     return
   }
   showAll.value = false

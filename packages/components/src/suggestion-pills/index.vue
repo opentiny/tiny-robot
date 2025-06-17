@@ -13,40 +13,80 @@ const emit = defineEmits<SuggestionPillsEmits>()
 
 defineSlots<SuggestionPillsSlots>()
 
-const containerWrapperRef = ref<HTMLDivElement | null>(null)
-const containerRef = ref<HTMLDivElement | null>(null)
-
-const { width } = useElementSize(containerRef)
-
-const hiddenIndex = ref(-1)
-const hasShowMoreBtn = computed(() => hiddenIndex.value !== -1)
 const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
 
-const staticItemsLength = computed(() => {
+const containerWrapperRef = ref<HTMLDivElement | null>(null)
+const containerRef = ref<HTMLDivElement | null>(null)
+const floatingItemsRef = ref<HTMLDivElement | null>(null)
+
+const { width } = useElementSize(containerRef)
+const containerFullWidth = ref(0)
+const hasShowMoreBtn = computed(() => width.value < containerFullWidth.value)
+const hiddenIndex = ref(-1)
+
+const staticItems = computed(() => {
   if (!hasShowMoreBtn.value || !showAll.value) {
-    return props.items?.length || 0
+    return props.items || []
   }
-  return hiddenIndex.value
+  return props.items?.slice(0, hiddenIndex.value) || []
 })
 const floatingItems = computed(() => {
   if (!hasShowMoreBtn.value || !showAll.value) {
     return []
   }
-  return (props.items || []).slice(hiddenIndex.value)
+  return props.items?.slice(hiddenIndex.value) || []
 })
+
+const getElementStyleGap = (element: HTMLElement) => {
+  const style = window.getComputedStyle(element)
+  return parseFloat(style.gap) || 0
+}
 
 const updateHiddenIndex = () => {
   nextTick(() => {
     const container = containerRef.value
+    const floatingItems = floatingItemsRef.value
 
     if (!container) {
       return
     }
 
-    const children = Array.from(container.children) as HTMLElement[]
-    hiddenIndex.value = children.findIndex((el) => el.offsetLeft + el.offsetWidth > container.clientWidth)
+    const children = Array.from(container.children).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
+    const gap = getElementStyleGap(container)
+
+    let totalWidth = 0
+    for (let i = 0; i < children.length; i++) {
+      totalWidth += children[i].offsetWidth
+      if (i > 0) {
+        totalWidth += gap
+      }
+      if (totalWidth > container.clientWidth) {
+        hiddenIndex.value = i
+        break
+      }
+      if (i === children.length - 1) {
+        hiddenIndex.value = -1
+      }
+    }
   })
 }
+
+watch(
+  () => [props.items, props.items?.length],
+  () => {
+    nextTick(() => {
+      if (!containerRef.value) {
+        return
+      }
+
+      // 计算容器最大宽度
+      const children = Array.from(containerRef.value.children) as HTMLElement[]
+      const gap = getElementStyleGap(containerRef.value)
+      containerFullWidth.value = children.map((el) => el.offsetWidth).reduce((acc, cur) => acc + cur + gap)
+    })
+  },
+  { immediate: true },
+)
 
 watch(() => [props.items, props.items?.length], updateHiddenIndex)
 
@@ -82,21 +122,14 @@ onClickOutside(containerWrapperRef, (event) => {
   <div class="tr-suggestion-pills__wrapper" ref="containerWrapperRef">
     <div class="tr-suggestion-pills__container" ref="containerRef">
       <slot>
-        <template v-for="(item, index) in props.items" :key="item.id">
-          <PillButtonWrapper
-            :item="item"
-            :style="{
-              visibility: index < staticItemsLength ? undefined : 'hidden',
-              pointerEvents: index < staticItemsLength ? undefined : 'none',
-            }"
-            @click="handleClick($event, item, index)"
-          ></PillButtonWrapper>
+        <template v-for="(item, index) in staticItems" :key="item.id">
+          <PillButtonWrapper :item="item" @click="handleClick($event, item, index)"></PillButtonWrapper>
         </template>
       </slot>
     </div>
     <div class="tr-suggestion-pills__more-wrapper">
       <Transition name="tr-suggestion-pills__more">
-        <div v-if="floatingItems.length" class="tr-suggestion-pills__more">
+        <div v-if="floatingItems.length" class="tr-suggestion-pills__more" ref="floatingItemsRef">
           <template v-for="item in floatingItems" :key="item.id">
             <PillButtonWrapper :item="item" @click="emit('item-click', item)"></PillButtonWrapper>
           </template>

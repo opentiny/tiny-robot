@@ -54,10 +54,33 @@ export interface SuggestionPopoverEmits {
   (e: 'click-outside', event: MouseEvent): void
 }
 
+export interface SuggestionPopoverEventProps {
+  onItemClick?: (item: SuggestionItem) => void
+  onGroupClick?: (group: SuggestionGroup) => void
+  onOpen?: () => void
+  onClose?: () => void
+  onClickOutside?: (event: MouseEvent) => void
+}
+
 export interface SuggestionPopoverEvents {
+  /**
+   * @deprecated use onItemClick in props instead
+   */
   itemClick?: (item: SuggestionItem) => void
+  /**
+   * @deprecated use onGroupClick in props instead
+   */
   groupClick?: (group: SuggestionGroup) => void
+  /**
+   * @deprecated use onOpen in props instead
+   */
   open?: () => void
+  /**
+   * @deprecated use onClose in props instead
+   */
   close?: () => void
+  /**
+   * @deprecated use onClickOutside in props instead
+   */
   clickOutside?: (event: MouseEvent) => void
 }

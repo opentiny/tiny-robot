@@ -48,17 +48,14 @@ const dropdownStyles = computed<CSSProperties>(() => {
   }
 })
 
-onClickOutside(dropdownMenuRef, (ev) => {
-  emit('click-outside', ev)
-
-  if (props.trigger === 'click') {
-    // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
-    if (dropDownTriggerRef.value?.contains(ev.target as Node)) {
-      ev.stopPropagation()
-    }
+onClickOutside(
+  dropdownMenuRef,
+  (ev) => {
+    emit('click-outside', ev as MouseEvent)
     show.value = false
-  }
-})
+  },
+  { ignore: [dropDownTriggerRef] },
+)
 
 watch(show, (value) => {
   if (value) {

@@ -1,6 +1,13 @@
 <template>
   <div style="display: flex; gap: 8px; justify-content: space-around">
-    <SuggestionPopover :data="data" trigger="click">
+    <SuggestionPopover
+      :data="data"
+      trigger="click"
+      @open="console.log('open')"
+      @close="console.log('close')"
+      @item-click="console.log('item-click')"
+      @click-outside="console.log('click-outside')"
+    >
       <button>click触发</button>
     </SuggestionPopover>
     <SuggestionPopover
@@ -8,7 +15,8 @@
       :show="show"
       trigger="manual"
       @close="handleClose"
-      @click-outside="handleClickOutside"
+      @item-click="console.log('item-click')"
+      @click-outside="console.log('click-outside')"
     >
       <button @click="show = !show">manual触发</button>
     </SuggestionPopover>
@@ -22,11 +30,8 @@ import { ref } from 'vue'
 const show = ref(false)
 
 const handleClose = () => {
+  console.log('close')
   show.value = false
-}
-
-const handleClickOutside = (ev: MouseEvent) => {
-  console.log('click-outside', ev)
 }
 
 const data = [

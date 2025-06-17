@@ -147,18 +147,25 @@ const popoverStyles = computed<CSSProperties>(() => {
   }
 })
 
-onClickOutside(popoverRef, (ev) => {
-  emit('click-outside', ev)
-
+const emitClickTriggerEvents = () => {
   if (props.trigger === 'click') {
-    // 如果在外部点到了 trigger，则停止冒泡，防止 triger 被点击然后触发菜单再次开启
-    if (popoverTriggerRef.value?.contains(ev.target as Node)) {
-      ev.stopPropagation()
+    if (show.value) {
+      emit('open')
+    } else {
+      emit('close')
     }
-    show.value = false
-    emit('close')
   }
-})
+}
+
+onClickOutside(
+  popoverRef,
+  (ev) => {
+    emit('click-outside', ev as MouseEvent)
+    show.value = false
+    emitClickTriggerEvents()
+  },
+  { ignore: [popoverTriggerRef] },
+)
 
 watch(show, (value) => {
   if (value) {
@@ -168,9 +175,7 @@ watch(show, (value) => {
 
 const handleToggleShow = () => {
   show.value = !show.value
-  if (show.value) {
-    emit('open')
-  }
+  emitClickTriggerEvents()
 }
 
 const handleClose = () => {
@@ -181,9 +186,7 @@ const handleClose = () => {
 const handleItemClick = (item: SuggestionItem) => {
   emit('item-click', item)
   show.value = false
-  if (props.trigger === 'click') {
-    emit('close')
-  }
+  emitClickTriggerEvents()
 }
 
 const handleGroupClick = (id: string) => {

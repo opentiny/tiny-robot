@@ -27,7 +27,18 @@ export interface DropdownMenuEmits {
   (e: 'click-outside', event: MouseEvent): void
 }
 
+export interface DropdownMenuEventProps {
+  onItemClick?: (item: DropdownMenuItem) => void
+  onClickOutside?: (event: MouseEvent) => void
+}
+
 export interface DropdownMenuEvents {
+  /**
+   * @deprecated
+   */
   itemClick?: (item: DropdownMenuItem) => void
+  /**
+   * @deprecated
+   */
   clickOutside?: (event: MouseEvent) => void
 }
