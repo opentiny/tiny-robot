@@ -46,10 +46,10 @@ const selectedFiles = ref<File[]>([])
 const uploadEvents = ref<Array<{ time: string; message: string; type: string }>>([])
 
 // 处理文件选择事件
-const handleFilesSelected = (files: FileList | null) => {
+const handleFilesSelected = (files: File[]) => {
   if (files && files.length > 0) {
-    // 转换 FileList 为数组
-    selectedFiles.value = Array.from(files)
+    // 直接使用传入的文件数组
+    selectedFiles.value = files
 
     const now = new Date().toLocaleTimeString()
     uploadEvents.value.unshift({
@@ -63,7 +63,7 @@ const handleFilesSelected = (files: FileList | null) => {
       uploadEvents.value = uploadEvents.value.slice(0, 5)
     }
 
-    console.log('选中的文件：', Array.from(files))
+    console.log('选中的文件：', files)
   }
 }
 

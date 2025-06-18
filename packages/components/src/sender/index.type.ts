@@ -81,7 +81,7 @@ export type SenderEmits = {
   (e: 'cancel'): void // 取消发送状态时触发
   (e: 'reset-template'): void // 重置模板状态，退出模板编辑模式
   (e: 'upload-online'): void // 在线文件上传触发
-  (e: 'files-selected', files: FileList | null): void // 文件选择完成后触发
+  (e: 'files-selected', files: File[]): void // 文件选择完成后触发
 }
 
 // 语音识别状态

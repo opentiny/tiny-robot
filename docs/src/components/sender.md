@@ -277,7 +277,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | speech-error      | 语音识别错误时触发         | `(error: Error)`       |
 | suggestion-select | 选择输入建议时触发         | `(value: string)`      |
 | upload-online     | 在线文件上传时触发         | `()`                   |
-| files-selected    | 文件选择时触发             | `(files: FileList \| null)` |
+| files-selected    | 文件选择时触发             | `(files: File[])` |
 
 ### Methods
 

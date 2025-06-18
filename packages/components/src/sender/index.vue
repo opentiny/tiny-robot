@@ -58,7 +58,7 @@ const { files, open: openFileDialog } = useFileDialog({
 // 监听文件选择变化
 watch(files, (selectedFiles) => {
   if (selectedFiles && selectedFiles.length > 0) {
-    emit('files-selected', selectedFiles)
+    emit('files-selected', Array.from(selectedFiles))
   }
 })
 
