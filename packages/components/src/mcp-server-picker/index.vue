@@ -14,6 +14,7 @@ import type {
   AddPluginCodeData,
   AddPluginFormData,
   PluginDialogState,
+  PopupConfig,
 } from './index.type'
 
 const props = withDefaults(defineProps<McpServerPickerProps>(), {
@@ -28,6 +29,12 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   showInstalledTab: true,
   showMarketTab: true,
   visible: false,
+  popupConfig: () => ({
+    type: 'fixed',
+    position: {},
+    drawer: { direction: 'right', width: 482 },
+    zIndex: 1000,
+  }),
   installedTabTitle: '已安装插件',
   marketTabTitle: '市场',
   title: '插件',
@@ -231,126 +238,239 @@ const McpPanelVisible = computed({
 const handleClose = () => {
   emit('update:visible', false)
 }
+
+const pickerStyle = computed(() => {
+  const { type, position, drawer, zIndex } = props.popupConfig || {}
+
+  const baseStyle: Record<string, string> = {
+    'z-index': String(zIndex || 1000),
+    position: 'fixed',
+  }
+
+  if (type === 'fixed') {
+    return {
+      ...baseStyle,
+      ...getFixedPositionStyles(position),
+    }
+  }
+
+  if (type === 'drawer') {
+    return {
+      ...baseStyle,
+      ...getDrawerPositionStyles(drawer),
+    }
+  }
+
+  return baseStyle
+})
+
+// 获取固定位置样式
+const getFixedPositionStyles = (position: PopupConfig['position'] = {}) => {
+  const styles: Record<string, string> = {}
+
+  // 处理位置属性
+  Object.entries(position).forEach(([key, value]) => {
+    if (value !== undefined) {
+      styles[key] = typeof value === 'number' ? `${value}px` : value
+    }
+  })
+
+  // 如果没有设置任何位置，使用默认居中
+  if (Object.keys(styles).length === 0) {
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+    }
+  }
+
+  return styles
+}
+
+// 获取抽屉位置样式
+const getDrawerPositionStyles = (drawer: PopupConfig['drawer'] = { direction: 'right', width: 482 }) => {
+  const { direction, width } = drawer
+  const drawerWidth = typeof width === 'number' ? `${width}px` : width
+
+  const baseDrawerStyles = {
+    top: '0',
+    bottom: '0',
+    height: '100%',
+    width: drawerWidth,
+  }
+
+  if (direction === 'left') {
+    return {
+      ...baseDrawerStyles,
+      left: '0',
+      'border-right': '1px solid rgb(219, 219, 219)',
+    }
+  }
+
+  return {
+    ...baseDrawerStyles,
+    right: '0',
+    'border-left': '1px solid rgb(219, 219, 219)',
+  }
+}
+
+// 计算抽屉动画类名
+const drawerAnimationClass = computed(() => {
+  const { type, drawer } = props.popupConfig || {}
+  if (type !== 'drawer') return ''
+
+  const direction = drawer?.direction || 'right'
+  return `drawer-${direction}`
+})
+
+// 计算过渡名称
+const transitionName = computed(() => {
+  const { type } = props.popupConfig || {}
+  return type === 'drawer' ? drawerAnimationClass.value : 'fade'
+})
 </script>
 
 <template>
-  <div v-if="McpPanelVisible" class="mcp-server-picker">
-    <div class="mcp-server-picker__header">
-      <div class="mcp-server-picker__header-left">{{ props.title }}</div>
-      <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right">
-        <div class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
-          <IconPlus style="font-size: 16px; cursor: pointer" />
-          <span>{{ props.customAddButtonText }}</span>
+  <Transition :name="transitionName">
+    <div
+      v-if="McpPanelVisible"
+      class="mcp-server-picker"
+      :class="[`popup-type-${props.popupConfig?.type || 'fixed'}`, drawerAnimationClass]"
+      :style="pickerStyle"
+    >
+      <div class="mcp-server-picker__header">
+        <div class="mcp-server-picker__header-left">{{ props.title }}</div>
+        <div class="mcp-server-picker__header-right">
+          <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
+            <IconPlus style="font-size: 16px; cursor: pointer" />
+            <span>{{ props.customAddButtonText }}</span>
+          </div>
+          <IconClose class="mcp-server-picker__header-right-close" @click="handleClose" />
         </div>
-        <IconClose class="mcp-server-picker__header-right-close" @click="handleClose" />
       </div>
-    </div>
-    <div class="mcp-server-picker__content">
-      <TinyTabs v-model="activeTab">
-        <TinyTabItem v-if="props.showInstalledTab" :title="props.installedTabTitle" name="installed">
-          <div class="mcp-server-picker__content-item">
-            <div v-if="props.enableSearch" class="mcp-server-picker__content-installed-search">
-              <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder">
-                <template #suffix>
-                  <IconSearch style="font-size: 16px; cursor: pointer" />
+
+      <div class="mcp-server-picker__content">
+        <TinyTabs v-model="activeTab">
+          <TinyTabItem v-if="props.showInstalledTab" :title="props.installedTabTitle" name="installed">
+            <div class="mcp-server-picker__content-item">
+              <div v-if="props.enableSearch" class="mcp-server-picker__content-installed-search">
+                <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder">
+                  <template #suffix>
+                    <IconSearch style="font-size: 16px; cursor: pointer" />
+                  </template>
+                </TinyInput>
+              </div>
+
+              <div class="mcp-server-picker__content-installed-list">
+                <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
+                <template v-else>
+                  <!-- 已安装插件列表 -->
+                  <PluginCard
+                    v-for="plugin in installedPluginsList"
+                    :key="plugin.id"
+                    :plugin="plugin"
+                    mode="installed"
+                    :expandable="!!plugin.tools?.length"
+                    :enable-parent-child-sync="props.enableParentChildSync"
+                    v-model:expanded="plugin.expanded"
+                    @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
+                    @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
+                    @delete-plugin="() => handleDeletePlugin(plugin)"
+                    @update:expanded="(expanded) => handlePluginExpand(plugin, expanded)"
+                  />
                 </template>
-              </TinyInput>
+              </div>
+            </div>
+          </TinyTabItem>
+
+          <TinyTabItem v-if="props.showMarketTab" :title="props.marketTabTitle" name="market">
+            <div
+              class="mcp-server-picker__content-market-header"
+              v-if="props.enableSearch || props.enableMarketCategoryFilter"
+            >
+              <div v-if="props.enableMarketCategoryFilter" style="width: 168px">
+                <TinySelect v-model="marketCategory" :placeholder="props.marketCategoryPlaceholder">
+                  <TinyOption
+                    v-for="option in props.marketCategoryOptions"
+                    :key="option.value"
+                    :label="option.label"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </TinyOption>
+                </TinySelect>
+              </div>
+              <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
+                <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder">
+                  <template #suffix>
+                    <IconSearch style="font-size: 16px; cursor: pointer" />
+                  </template>
+                </TinyInput>
+              </div>
             </div>
 
-            <div class="mcp-server-picker__content-installed-list">
-              <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
+            <div class="mcp-server-picker__content-market-list">
+              <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
               <template v-else>
-                <!-- 已安装插件列表 -->
+                <!-- 插件市场列表 -->
                 <PluginCard
-                  v-for="plugin in installedPluginsList"
+                  v-for="plugin in marketPluginsList"
                   :key="plugin.id"
                   :plugin="plugin"
-                  mode="installed"
-                  :expandable="!!plugin.tools?.length"
-                  :enable-parent-child-sync="props.enableParentChildSync"
-                  v-model:expanded="plugin.expanded"
-                  @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
-                  @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
-                  @delete-plugin="() => handleDeletePlugin(plugin)"
-                  @update:expanded="(expanded) => handlePluginExpand(plugin, expanded)"
+                  mode="market"
+                  :expandable="false"
+                  :show-tool-count="false"
+                  @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
                 />
               </template>
             </div>
-          </div>
-        </TinyTabItem>
+          </TinyTabItem>
+        </TinyTabs>
+      </div>
 
-        <TinyTabItem v-if="props.showMarketTab" :title="props.marketTabTitle" name="market">
-          <div
-            class="mcp-server-picker__content-market-header"
-            v-if="props.enableSearch || props.enableMarketCategoryFilter"
-          >
-            <div v-if="props.enableMarketCategoryFilter" style="width: 168px">
-              <TinySelect v-model="marketCategory" :placeholder="props.marketCategoryPlaceholder">
-                <TinyOption
-                  v-for="option in props.marketCategoryOptions"
-                  :key="option.value"
-                  :label="option.label"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </TinyOption>
-              </TinySelect>
-            </div>
-            <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
-              <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder">
-                <template #suffix>
-                  <IconSearch style="font-size: 16px; cursor: pointer" />
-                </template>
-              </TinyInput>
-            </div>
-          </div>
+      <!-- 代码编辑器添加插件弹窗 -->
+      <PluginCodeDialog
+        v-model:visible="showCodeEditorDialog"
+        title="创建插件"
+        @confirm="handleCodePluginConfirm"
+        @cancel="handleCodePluginCancel"
+      />
 
-          <div class="mcp-server-picker__content-market-list">
-            <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
-            <template v-else>
-              <!-- 插件市场列表 -->
-              <PluginCard
-                v-for="plugin in marketPluginsList"
-                :key="plugin.id"
-                :plugin="plugin"
-                mode="market"
-                :expandable="false"
-                :show-tool-count="false"
-                @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
-              />
-            </template>
-          </div>
-        </TinyTabItem>
-      </TinyTabs>
+      <!-- 可视化编辑器添加插件弹窗 -->
+      <PluginFormDialog
+        v-model:visible="showFormEditorDialog"
+        title="添加插件"
+        @confirm="handleFormPluginConfirm"
+        @cancel="handleFormPluginCancel"
+        @open-code-editor="handleSwitchToCodeEditor"
+      />
     </div>
-
-    <!-- 代码编辑器添加插件弹窗 -->
-    <PluginCodeDialog
-      v-model:visible="showCodeEditorDialog"
-      title="创建插件"
-      @confirm="handleCodePluginConfirm"
-      @cancel="handleCodePluginCancel"
-    />
-
-    <!-- 可视化编辑器添加插件弹窗 -->
-    <PluginFormDialog
-      v-model:visible="showFormEditorDialog"
-      title="添加插件"
-      @confirm="handleFormPluginConfirm"
-      @cancel="handleFormPluginCancel"
-      @open-code-editor="handleSwitchToCodeEditor"
-    />
-  </div>
+  </Transition>
 </template>
 
 <style lang="less" scoped>
 .mcp-server-picker {
-  width: 482px;
-  height: 100%;
   box-sizing: border-box;
   background: rgb(255, 255, 255);
   border: 1px solid rgb(219, 219, 219);
   padding: 20px;
+
+  // 默认样式(fixed模式)
+  &.popup-type-fixed {
+    width: 482px;
+    height: auto;
+    max-height: 100vh;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  // 抽屉模式样式
+  &.popup-type-drawer {
+    padding-top: 20px;
+    height: 100vh;
+    overflow-y: auto;
+  }
 
   &__header {
     display: flex;
@@ -389,11 +509,11 @@ const handleClose = () => {
           border-color: rgb(25, 25, 25);
         }
       }
-    }
 
-    &-right-close {
-      font-size: 24px;
-      cursor: pointer;
+      &-close {
+        font-size: 24px;
+        cursor: pointer;
+      }
     }
   }
 
@@ -442,6 +562,43 @@ const handleClose = () => {
   }
 }
 
+// 抽屉动画 - 使用less嵌套写法
+.drawer-left,
+.drawer-right {
+  &-enter-active,
+  &-leave-active {
+    transition: transform 0.3s ease;
+  }
+}
+
+.drawer-left {
+  &-enter-from,
+  &-leave-to {
+    transform: translateX(-100%);
+  }
+}
+
+.drawer-right {
+  &-enter-from,
+  &-leave-to {
+    transform: translateX(100%);
+  }
+}
+
+// 淡入淡出动画
+.fade {
+  &-enter-active,
+  &-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+  }
+}
+
+// 深度选择器样式
 :deep(.tiny-tabs__nav-wrap) {
   width: 100%;
 }

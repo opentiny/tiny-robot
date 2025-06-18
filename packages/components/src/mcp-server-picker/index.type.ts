@@ -49,6 +49,25 @@ export interface MarketCategoryOption {
   label: string
 }
 
+// 弹出配置类型
+export interface PopupConfig {
+  type: 'fixed' | 'drawer'
+  // fixed模式配置
+  position?: {
+    top?: string | number
+    left?: string | number
+    right?: string | number
+    bottom?: string | number
+  }
+  // drawer模式配置
+  drawer?: {
+    direction: 'left' | 'right'
+    width?: string | number
+  }
+  // 通用配置
+  zIndex?: number
+}
+
 // 组件的Props
 export interface McpServerPickerProps {
   // 数据源
@@ -70,6 +89,9 @@ export interface McpServerPickerProps {
   showMarketTab?: boolean
   // 整体面板显示控制
   visible?: boolean
+
+  // 弹出配置 - 统一配置对象
+  popupConfig?: PopupConfig
 
   // 激活数量控制（支持 v-model:activeCount）
   activeCount?: number

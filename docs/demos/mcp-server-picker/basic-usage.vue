@@ -17,27 +17,30 @@
       <span class="plugin-active_count" v-if="activeCount">{{ activeCount }}</span>
     </TinyButton>
   </div>
-  <tiny-drawer title="标题" :show-header="false" width="482px" :visible="visible" @update:visible="visible = $event">
-    <McpServerPicker
-      v-model:visible="visible"
-      v-model:activeCount="activeCount"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      :market-category-options="marketCategoryOptions"
-      :loading="loading"
-      :market-loading="marketLoading"
-      @plugin-toggle="handlePluginToggle"
-      @plugin-add="handlePluginAdd"
-      @plugin-form-add="handlePluginFormAdd"
-      @plugin-code-add="handlePluginCodeAdd"
-      @plugin-delete="handlePluginDelete"
-      @tool-toggle="handleToolToggle"
-      @search="handleSearch"
-      @tab-change="handleTabChange"
-      @market-category-change="handleMarketCategoryChange"
-      @custom-add="handleCustomAdd"
-    />
-  </tiny-drawer>
+  <McpServerPicker
+    v-model:visible="visible"
+    v-model:activeCount="activeCount"
+    :popup-config="{
+      type: 'fixed',
+      position: { top: 0, bottom: 0, right: '20px' },
+      zIndex: 1000,
+    }"
+    :installed-plugins="installedPlugins"
+    :market-plugins="marketPlugins"
+    :market-category-options="marketCategoryOptions"
+    :loading="loading"
+    :market-loading="marketLoading"
+    @plugin-toggle="handlePluginToggle"
+    @plugin-add="handlePluginAdd"
+    @plugin-form-add="handlePluginFormAdd"
+    @plugin-code-add="handlePluginCodeAdd"
+    @plugin-delete="handlePluginDelete"
+    @tool-toggle="handleToolToggle"
+    @search="handleSearch"
+    @tab-change="handleTabChange"
+    @market-category-change="handleMarketCategoryChange"
+    @custom-add="handleCustomAdd"
+  />
 </template>
 
 <script setup lang="ts">
