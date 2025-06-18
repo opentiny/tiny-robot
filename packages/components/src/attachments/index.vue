@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useFileDialog } from '@vueuse/core'
 import { useDragDrop } from './composables/useDragDrop'
 import { useFileType } from './composables/useFileType'
@@ -61,7 +61,7 @@ const isDragFullscreen = computed(() => {
 // 初始化拖拽功能
 const { dragState, initDrag } = useDragDrop(
   {
-    enabled: isDragEnabled.value,
+    enabled: isDragEnabled,
     onDrop: handleDrop,
   },
   props,
@@ -176,14 +176,28 @@ const clearAllAttachments = () => {
   emit('update:items', fileList.value)
 }
 
+let initDragTimeout: ReturnType<typeof setTimeout> | null = null
+
+const clearInitDragTimeout = () => {
+  if (initDragTimeout) {
+    clearTimeout(initDragTimeout)
+    initDragTimeout = null
+  }
+}
+
 // 在组件挂载后设置拖拽区域，只初始化一次
 onMounted(() => {
   if (dropZoneRef.value && isDragEnabled.value) {
     // 使用一个短延时确保DOM已完全加载
-    setTimeout(() => {
+    initDragTimeout = setTimeout(() => {
       initDrag()
+      clearInitDragTimeout()
     }, 0)
   }
+})
+
+onUnmounted(() => {
+  clearInitDragTimeout()
 })
 
 // 暴露方法给外部调用

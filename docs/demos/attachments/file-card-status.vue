@@ -23,19 +23,19 @@ const wrapMode = ref('wrap')
 // 示例1: 信息状态 - 显示文件类型和大小
 const infoFiles = ref([
   {
-    id: '1',
+    uid: '1',
     name: '设计文档.docx',
     fileType: 'word',
     size: 1024 * 1024 * 1.2, // 1.2MB
   },
   {
-    id: '2',
+    uid: '2',
     name: 'logo设计图.png',
     fileType: 'image',
     size: 1024 * 1024 * 3.5, // 3.5MB
   },
   {
-    id: '3',
+    uid: '3',
     name: '项目文档.pdf',
     fileType: 'pdf',
     size: 1024 * 1024 * 2.8, // 2.8MB
@@ -45,7 +45,7 @@ const infoFiles = ref([
 // 示例2: 状态消息 - 显示不同类型的状态消息
 const messageFiles = ref([
   {
-    id: '4',
+    uid: '4',
     name: '设计文档.doc',
     fileType: 'word',
     size: 1024 * 1024 * 1.5, // 1.5MB
@@ -53,7 +53,7 @@ const messageFiles = ref([
     messageType: 'success',
   },
   {
-    id: '5',
+    uid: '5',
     name: '设计文档.xlsx',
     fileType: 'excel',
     size: 1024 * 1024 * 2.3, // 2.3MB
@@ -61,7 +61,7 @@ const messageFiles = ref([
     messageType: 'uploading',
   },
   {
-    id: '6',
+    uid: '6',
     name: '设计文档.pdf',
     fileType: 'pdf',
     size: 1024 * 1024 * 1.1, // 1.1MB

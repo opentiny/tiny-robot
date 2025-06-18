@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onUnmounted } from 'vue'
 import { useFileType } from '../composables/useFileType'
 import { useIconType } from '../composables/useIconType'
 import type { Attachment, FileType, ActionButton } from '../index.type'
@@ -27,6 +27,8 @@ const props = withDefaults(
 
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
 const { formatFileSize } = useFileType()
+
+const createdBlobUrls = ref<string[]>([])
 
 // 图片预览相关状态
 const isPreviewVisible = ref(false)
@@ -56,7 +58,9 @@ const handlePreview = () => {
     isPreviewVisible.value = true
   } else if (isImage.value && props.file.rawFile) {
     // 如果是原生 File 对象，创建临时 URL
-    previewUrl.value = URL.createObjectURL(props.file.rawFile)
+    const blobUrl = URL.createObjectURL(props.file.rawFile)
+    previewUrl.value = blobUrl
+    createdBlobUrls.value.push(blobUrl)
     isPreviewVisible.value = true
   } else {
     // 非图片类型，触发外部预览事件
@@ -73,27 +77,29 @@ const closePreview = () => {
   }
 }
 
+/**
+ * 触发下载
+ * @param url 文件URL
+ * @param fileName 文件名
+ */
+const triggerDownload = (url: string, fileName: string) => {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.target = '_blank'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 // 下载文件
 const downloadFile = () => {
   if (props.file.previewUrl) {
-    // 创建下载链接
-    const link = document.createElement('a')
-    link.href = props.file.previewUrl
-    link.download = props.file.name
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    triggerDownload(props.file.previewUrl, props.file.name)
   } else if (props.file.rawFile) {
     // 使用 File 对象创建下载
     const url = URL.createObjectURL(props.file.rawFile)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = props.file.name
-    link.target = '_blank'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    triggerDownload(url, props.file.name)
     URL.revokeObjectURL(url)
   }
 
@@ -125,6 +131,12 @@ const handleCustomAction = (action: ActionButton) => {
 const handleRetry = () => {
   emit('retry', props.file)
 }
+
+onUnmounted(() => {
+  createdBlobUrls.value.forEach((url) => {
+    URL.revokeObjectURL(url)
+  })
+})
 </script>
 
 <template>

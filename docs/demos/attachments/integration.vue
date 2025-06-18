@@ -216,6 +216,7 @@ const handleSingleSubmit = () => {
     // 清空输入和附件
     singleInputValue.value = ''
     singleAttachmentsRef.value?.clearFiles()
+    singleAttachmentItems.value = []
   }
 }
 </script>

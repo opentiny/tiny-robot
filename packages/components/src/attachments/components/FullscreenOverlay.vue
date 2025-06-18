@@ -13,13 +13,13 @@ const props = defineProps<{
 
 const overlayStyle = computed(() => {
   return {
-    zIndex: props.config?.zIndex || 1000,
-    '--enter-delay': `${props.config?.enterDelay || 200}ms`,
-    '--leave-delay': `${props.config?.leaveDelay || 200}ms`,
+    zIndex: props.config?.zIndex ?? 1000,
+    '--enter-delay': `${props.config?.enterDelay ?? 200}ms`,
+    '--leave-delay': `${props.config?.leaveDelay ?? 200}ms`,
   }
 })
 
-const customClass = computed(() => props.config?.className || '')
+const customClass = computed(() => props.config?.className ?? '')
 </script>
 
 <template>

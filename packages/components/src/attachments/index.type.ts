@@ -16,7 +16,6 @@ export interface Attachment extends UploadFile {
   progress?: number
   isUploading?: boolean
   messageType?: 'error' | 'warning' | 'success' | 'info' | 'retry' | 'uploading' // 状态消息类型
-  rawFile?: File
 }
 
 export interface DragConfig {

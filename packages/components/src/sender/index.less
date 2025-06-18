@@ -157,54 +157,7 @@
       }
     }
 
-    // 为attachments组件在header中的特殊样式优化
-    .tr-attachments {
 
-      // 移除attachments组件自身的最小高度限制
-      .tr-attachments__dropzone {
-        min-height: 60px;
-      }
-
-      // 优化空状态在header中的显示
-      .tr-attachments__empty {
-        padding: 16px 12px;
-
-        &-icon {
-          width: 24px;
-          height: 24px;
-          font-size: 24px;
-        }
-
-        &-text {
-          font-size: 14px;
-        }
-
-        &-hint {
-          font-size: 13px;
-        }
-      }
-
-      // 当文件列表过多时，优化布局
-      .tr-attachments__file-list {
-
-        // 在header中强制使用wrap模式，避免水平滚动
-        &--wrap {
-          gap: 6px;
-        }
-
-        // 确保添加按钮在合适位置
-        .tr-attachments__add-button {
-          margin-bottom: 6px;
-          margin-right: 6px;
-        }
-      }
-
-      // 优化文件卡片在header中的间距
-      .tr-file-card {
-        margin-right: 6px;
-        margin-bottom: 6px;
-      }
-    }
   }
 
   // 底部插槽
