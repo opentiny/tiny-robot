@@ -8,116 +8,185 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 
 ## 基础用法
 
-基础的插件选择器组件用法，支持两种弹出方式：fixed（固定位置）和 drawer（抽屉）。
-
 <demo vue="../../demos/mcp-server-picker/basic-usage.vue" />
 
 ## 弹出方式
 
-MCP Server Picker 组件支持两种弹出方式，通过 `popupConfig` 配置对象统一管理：
+> MCP Server Picker 组件支持两种弹出方式， 即 `Fixed` 模式和 `Drawer` 模式，通过 `popupConfig` 配置对象统一管理
 
-### Fixed 模式
+<demo vue="../../demos/mcp-server-picker/popup-config.vue" />
 
-Fixed 模式下，组件会以固定位置的弹窗形式展示，可以通过 `position` 属性配置弹窗的位置。
-
-```vue
-<template>
-  <McpServerPicker
-    v-model:visible="showFixedPanel"
-    :popup-config="{
-      type: 'fixed',
-      position: { top: '10%', right: '10%' },
-      zIndex: 1000
-    }"
-    title="Fixed模式弹窗"
-  />
-</template>
-```
-
-### Drawer 模式
-
-Drawer 模式下，组件会以抽屉的形式从页面的左侧或右侧滑出，可以通过 `drawer` 属性配置抽屉的方向和宽度。
-
-```vue
-<template>
-  <!-- 左侧抽屉 -->
-  <McpServerPicker
-    v-model:visible="showDrawerLeftPanel"
-    :popup-config="{
-      type: 'drawer',
-      drawer: { direction: 'left', width: 400 },
-      zIndex: 1000
-    }"
-    title="左侧抽屉"
-  />
-  
-  <!-- 右侧抽屉 -->
-  <McpServerPicker
-    v-model:visible="showDrawerRightPanel"
-    :popup-config="{
-      type: 'drawer',
-      drawer: { direction: 'right', width: 450 }
-    }"
-    title="右侧抽屉"
-  />
-</template>
-```
 
 ## API
 
 ### Props
 
-| 属性名 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| installedPlugins | PluginInfo[] | [] | 已安装的插件列表 |
-| marketPlugins | PluginInfo[] | [] | 市场插件列表 |
-| visible | boolean | false | 是否显示面板，支持 v-model:visible |
-| popupConfig | PopupConfig | { type: 'fixed', position: {}, drawer: { direction: 'right', width: 482 }, zIndex: 1000 } | 弹出配置对象 |
-| searchPlaceholder | string | '搜索插件' | 搜索框占位文本 |
-| enableSearch | boolean | true | 是否启用搜索功能 |
-| marketCategoryOptions | MarketCategoryOption[] | [] | 市场分类选项 |
-| marketCategoryPlaceholder | string | '按照分类筛选' | 市场分类选择器占位文本 |
-| enableMarketCategoryFilter | boolean | true | 是否启用市场分类筛选 |
-| defaultActiveTab | 'installed' \| 'market' | 'installed' | 默认激活的标签页 |
-| showInstalledTab | boolean | true | 是否显示已安装标签页 |
-| showMarketTab | boolean | true | 是否显示市场标签页 |
-| activeCount | number | - | 已激活的插件数量，支持 v-model:activeCount |
-| installedTabTitle | string | '已安装插件' | 已安装标签页标题 |
-| marketTabTitle | string | '市场' | 市场标签页标题 |
-| title | string | '插件' | 面板标题 |
-| showCustomAddButton | boolean | true | 是否显示自定义添加按钮 |
-| customAddButtonText | string | '自定义添加' | 自定义添加按钮文本 |
-| allowPluginToggle | boolean | true | 是否允许切换插件状态 |
-| allowToolToggle | boolean | true | 是否允许切换工具状态 |
-| allowPluginDelete | boolean | true | 是否允许删除插件 |
-| allowPluginAdd | boolean | true | 是否允许添加插件 |
-| enableParentChildSync | boolean | true | 是否启用父子级联动 |
-| loading | boolean | false | 已安装插件列表加载状态 |
-| marketLoading | boolean | false | 市场插件列表加载状态 |
+#### 数据源配置
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `installedPlugins` | `PluginInfo[]` | `[]` | 已安装插件列表 |
+| `marketPlugins` | `PluginInfo[]` | `[]` | 市场插件列表 |
+
+#### 搜索与筛选
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enableSearch` | `boolean` | `true` | 是否启用搜索功能 |
+| `searchPlaceholder` | `string` | `'搜索插件'` | 搜索框占位符 |
+| `enableMarketCategoryFilter` | `boolean` | `true` | 是否启用市场分类筛选功能 |
+| `marketCategoryOptions` | `MarketCategoryOption[]` | `[]` | 市场分类选项列表 |
+| `marketCategoryPlaceholder` | `string` | `'按照分类筛选'` | 分类筛选下拉框占位符 |
+
+#### 面板控制
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `visible` | `boolean` | `false` | 是否显示整个组件面板（支持 v-model:visible） |
+| `activeCount` | `number` | - | 激活插件数量（支持 v-model:activeCount） |
+| `defaultActiveTab` | `'installed' \| 'market'` | `'installed'` | 默认激活的标签页 |
+| `showInstalledTab` | `boolean` | `true` | 是否显示已安装标签页 |
+| `showMarketTab` | `boolean` | `true` | 是否显示市场标签页 |
+| `installedTabTitle` | `string` | `'已安装插件'` | 已安装标签页标题 |
+| `marketTabTitle` | `string` | `'市场'` | 市场标签页标题 |
+| `popupConfig` | `PopupConfig` | `{ type: 'fixed', position: {}, drawer: { direction: 'right', width: 482 }, zIndex: 1000 }` | 弹出配置对象 |
+
+
+#### 头部配置
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `title` | `string` | `'插件'` | 组件标题 |
+| `showCustomAddButton` | `boolean` | `true` | 是否显示自定义添加按钮 |
+| `customAddButtonText` | `string` | `'自定义添加'` | 自定义添加按钮文本 |
+
+#### 行为控制
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `allowPluginToggle` | `boolean` | `true` | 是否允许切换插件状态 |
+| `allowToolToggle` | `boolean` | `true` | 是否允许切换工具状态 |
+| `allowPluginDelete` | `boolean` | `true` | 是否允许删除插件 |
+| `allowPluginAdd` | `boolean` | `true` | 是否允许添加插件 |
+| `enableParentChildSync` | `boolean` | `true` | 是否启用父子级联动 |
+
+#### 状态控制
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `loading` | `boolean` | `false` | 已安装插件加载状态 |
+| `marketLoading` | `boolean` | `false` | 市场插件加载状态 |
 
 ### Events
 
-| 事件名 | 说明 | 参数 |
-| --- | --- | --- |
-| update:visible | 面板显示状态变化 | (visible: boolean) |
-| update:activeCount | 激活插件数量变化 | (count: number) |
-| search | 搜索事件 | (query: string, tab: 'installed' \| 'market') |
-| market-category-change | 市场分类变化 | (category: string) |
-| tab-change | 标签页切换 | (activeTab: 'installed' \| 'market') |
-| plugin-toggle | 插件状态切换 | (plugin: PluginInfo, enabled: boolean) |
-| plugin-delete | 删除插件 | (plugin: PluginInfo) |
-| plugin-add | 添加插件 | (plugin: PluginInfo, added: boolean) |
-| plugin-expand | 展开/收起插件 | (plugin: PluginInfo, expanded: boolean) |
-| tool-toggle | 工具状态切换 | (plugin: PluginInfo, toolId: string, enabled: boolean) |
-| custom-add | 点击自定义添加按钮 | - |
-| plugin-form-add | 表单方式添加插件 | (data: AddPluginFormData) |
-| plugin-code-add | 代码方式添加插件 | (data: AddPluginCodeData) |
-| refresh | 刷新事件 | (tab: 'installed' \| 'market') |
+#### 搜索与筛选
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| `search` | `(query: string, tab: 'installed' \| 'market')` | 搜索输入变化 |
+| `market-category-change` | `(category: string)` | 市场分类筛选变化 |
 
-### 类型定义
+#### 面板控制
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| `update:visible` | `(visible: boolean)` | 面板显示状态变化 |
+| `update:activeCount` | `(count: number)` | 激活插件数量变化 |
+| `tab-change` | `(activeTab: 'installed' \| 'market')` | 标签页切换 |
 
-```ts
-// 弹出配置
+#### 插件操作
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| `plugin-toggle` | `(plugin: PluginInfo, enabled: boolean)` | 插件启用/禁用 |
+| `plugin-delete` | `(plugin: PluginInfo)` | 删除插件 |
+| `plugin-add` | `(plugin: PluginInfo, added: boolean)` | 市场插件添加/取消添加 |
+| `plugin-expand` | `(plugin: PluginInfo, expanded: boolean)` | 插件展开/折叠 |
+
+#### 工具操作
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| `tool-toggle` | `(plugin: PluginInfo, toolId: string, enabled: boolean)` | 工具启用/禁用 |
+
+#### 插件创建
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| `plugin-form-add` | `(data: AddPluginFormData)` | 表单方式添加插件 |
+| `plugin-code-add` | `(data: AddPluginCodeData)` | 代码方式添加插件 |
+| `custom-add` | `()` | 自定义添加按钮点击 |
+
+#### 其他
+| 事件名 | 参数 | 说明 |
+|--------|------|------|
+| `refresh` | `(tab: 'installed' \| 'market')` | 刷新请求 |
+
+### Types
+
+#### PluginInfo
+
+插件信息类型：
+
+```typescript
+interface PluginInfo {
+  id: string              // 插件唯一标识
+  name: string            // 插件名称
+  icon: string            // 插件图标URL
+  description: string     // 插件描述
+  toolCount?: number      // 工具数量（可选）
+  enabled?: boolean       // 是否启用（可选）
+  expanded?: boolean      // 是否展开（可选）
+  tools?: PluginTool[]    // 工具列表（可选）
+  added?: boolean         // 市场插件添加状态（可选）
+  category?: string       // 插件分类（可选，用于市场分类筛选）
+}
+```
+
+#### PluginTool
+
+插件工具类型：
+
+```typescript
+interface PluginTool {
+  id: string              // 工具唯一标识
+  name: string            // 工具名称
+  description: string     // 工具描述
+  enabled: boolean        // 是否启用
+}
+```
+
+#### MarketCategoryOption
+
+市场分类选项类型：
+
+```typescript
+interface MarketCategoryOption {
+  value: string           // 分类值
+  label: string           // 分类显示名称
+}
+```
+
+#### AddPluginFormData
+
+表单方式添加插件数据类型：
+
+```typescript
+interface AddPluginFormData {
+  name: string            // 插件名称
+  description: string     // 插件描述
+  types: string[]         // 插件类型数组，可选值：'stdio'、'sse'、'streamableHttp'
+  url: string             // 插件 URL
+  headers: string         // 请求头（JSON 格式字符串）
+  thumbnail?: File | null // 缩略图文件（可选）
+}
+```
+
+#### AddPluginCodeData
+
+代码方式添加插件数据类型：
+
+```typescript
+interface AddPluginCodeData {
+  aiPlugin: string        // AI 插件配置
+  openapi: string         // OpenAPI 配置
+}
+```
+
+#### PopupConfig
+
+弹窗配置类型：
+
+```typescript
 interface PopupConfig {
   type: 'fixed' | 'drawer'
   // fixed模式配置
@@ -134,49 +203,5 @@ interface PopupConfig {
   }
   // 通用配置
   zIndex?: number
-}
-
-// 插件信息
-interface PluginInfo {
-  id: string
-  name: string
-  icon: string
-  description: string
-  toolCount?: number
-  enabled?: boolean
-  expanded?: boolean
-  tools?: PluginTool[]
-  added?: boolean
-  category?: string
-}
-
-// 插件工具
-interface PluginTool {
-  id: string
-  name: string
-  description: string
-  enabled: boolean
-}
-
-// 市场分类选项
-interface MarketCategoryOption {
-  value: string
-  label: string
-}
-
-// 添加插件表单数据
-interface AddPluginFormData {
-  name: string
-  description: string
-  types: string[]
-  url: string
-  headers: string
-  thumbnail?: File | null
-}
-
-// 添加插件代码数据
-interface AddPluginCodeData {
-  aiPlugin: string
-  openapi: string
 }
 ```

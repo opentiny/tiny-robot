@@ -1,6 +1,70 @@
+<template>
+  <div class="demo-container">
+    <h3>弹窗配置示例 - 单实例模式</h3>
+    <p class="description">此示例展示了如何确保同时最多只弹出一个弹窗，提供更好的用户体验。</p>
+
+    <div class="button-group">
+      <button class="demo-button" :class="{ active: activeModal === 'center' }" @click="openModal('center')">
+        居中弹窗
+      </button>
+      <button class="demo-button" :class="{ active: activeModal === 'topRight' }" @click="openModal('topRight')">
+        右上角弹窗
+      </button>
+      <button class="demo-button" :class="{ active: activeModal === 'leftDrawer' }" @click="openModal('leftDrawer')">
+        左侧抽屉
+      </button>
+      <button class="demo-button" :class="{ active: activeModal === 'rightDrawer' }" @click="openModal('rightDrawer')">
+        右侧抽屉
+      </button>
+      <button class="demo-button close-button" :disabled="!activeModal" @click="closeModal">关闭弹窗</button>
+    </div>
+
+    <div v-if="activeModal" class="status-info">当前激活弹窗：{{ getModalDisplayName(activeModal) }}</div>
+
+    <!-- 居中弹窗 -->
+    <McpServerPicker
+      v-model:visible="showCenterModal"
+      :popup-config="centerModalConfig"
+      :installed-plugins="installedPlugins"
+      :market-plugins="marketPlugins"
+      title="居中弹窗"
+    />
+
+    <!-- 右上角弹窗 -->
+    <McpServerPicker
+      v-model:visible="showTopRightModal"
+      :popup-config="topRightModalConfig"
+      :installed-plugins="installedPlugins"
+      :market-plugins="marketPlugins"
+      title="右上角弹窗"
+    />
+
+    <!-- 左侧抽屉 -->
+    <McpServerPicker
+      v-model:visible="showLeftDrawer"
+      :popup-config="leftDrawerConfig"
+      :installed-plugins="installedPlugins"
+      :market-plugins="marketPlugins"
+      title="左侧抽屉"
+    />
+
+    <!-- 右侧抽屉 -->
+    <McpServerPicker
+      v-model:visible="showRightDrawer"
+      :popup-config="rightDrawerConfig"
+      :installed-plugins="installedPlugins"
+      :market-plugins="marketPlugins"
+      title="右侧抽屉"
+    />
+  </div>
+</template>
+
 <script lang="ts" setup>
-import { ref } from 'vue'
-import { McpServerPicker } from '@opentiny/vue-tiny-robot'
+import { ref, computed } from 'vue'
+import { McpServerPicker } from '@opentiny/tiny-robot'
+
+// 弹窗类型枚举
+type ModalType = 'center' | 'topRight' | 'leftDrawer' | 'rightDrawer' | null
 
 // 示例插件数据
 const installedPlugins = [
@@ -43,11 +107,57 @@ const marketPlugins = [
   },
 ]
 
-// 控制面板显示
-const showCenterModal = ref(false)
-const showTopRightModal = ref(false)
-const showLeftDrawer = ref(false)
-const showRightDrawer = ref(false)
+// 统一的弹窗状态管理
+const activeModal = ref<ModalType>(null)
+
+// 计算属性：基于活动弹窗类型控制各个弹窗的显示状态
+const showCenterModal = computed({
+  get: () => activeModal.value === 'center',
+  set: (value: boolean) => {
+    activeModal.value = value ? 'center' : null
+  },
+})
+
+const showTopRightModal = computed({
+  get: () => activeModal.value === 'topRight',
+  set: (value: boolean) => {
+    activeModal.value = value ? 'topRight' : null
+  },
+})
+
+const showLeftDrawer = computed({
+  get: () => activeModal.value === 'leftDrawer',
+  set: (value: boolean) => {
+    activeModal.value = value ? 'leftDrawer' : null
+  },
+})
+
+const showRightDrawer = computed({
+  get: () => activeModal.value === 'rightDrawer',
+  set: (value: boolean) => {
+    activeModal.value = value ? 'rightDrawer' : null
+  },
+})
+
+// 弹窗操作方法
+const openModal = (type: ModalType) => {
+  activeModal.value = type
+}
+
+const closeModal = () => {
+  activeModal.value = null
+}
+
+// 获取弹窗显示名称
+const getModalDisplayName = (type: ModalType): string => {
+  const nameMap = {
+    center: '居中弹窗',
+    topRight: '右上角弹窗',
+    leftDrawer: '左侧抽屉',
+    rightDrawer: '右侧抽屉',
+  }
+  return type ? nameMap[type] : ''
+}
 
 // 不同的弹出配置
 const centerModalConfig = {
@@ -75,55 +185,6 @@ const rightDrawerConfig = {
 }
 </script>
 
-<template>
-  <div class="demo-container">
-    <h3>不同弹出配置示例</h3>
-
-    <div class="button-group">
-      <button class="demo-button" @click="showCenterModal = true">居中弹窗</button>
-      <button class="demo-button" @click="showTopRightModal = true">右上角弹窗</button>
-      <button class="demo-button" @click="showLeftDrawer = true">左侧抽屉</button>
-      <button class="demo-button" @click="showRightDrawer = true">右侧抽屉</button>
-    </div>
-
-    <!-- 居中弹窗 -->
-    <McpServerPicker
-      v-model:visible="showCenterModal"
-      :popup-config="centerModalConfig"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      title="居中弹窗"
-    />
-
-    <!-- 右上角弹窗 -->
-    <McpServerPicker
-      v-model:visible="showTopRightModal"
-      :popup-config="topRightModalConfig"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      title="右上角弹窗"
-    />
-
-    <!-- 左侧抽屉 -->
-    <McpServerPicker
-      v-model:visible="showLeftDrawer"
-      :popup-config="leftDrawerConfig"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      title="左侧抽屉"
-    />
-
-    <!-- 右侧抽屉 -->
-    <McpServerPicker
-      v-model:visible="showRightDrawer"
-      :popup-config="rightDrawerConfig"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      title="右侧抽屉"
-    />
-  </div>
-</template>
-
 <style scoped>
 .demo-container {
   padding: 20px;
@@ -144,14 +205,61 @@ const rightDrawerConfig = {
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  position: relative;
 }
 
-.demo-button:hover {
+.demo-button:hover:not(:disabled) {
   background-color: #40a9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
 }
 
-.demo-button:active {
+.demo-button:active:not(:disabled) {
   background-color: #096dd9;
+  transform: translateY(0);
+}
+
+.demo-button.active {
+  background-color: #52c41a;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.4);
+}
+
+.demo-button.active:hover {
+  background-color: #73d13d;
+}
+
+.demo-button.close-button {
+  background-color: #ff4d4f;
+}
+
+.demo-button.close-button:hover:not(:disabled) {
+  background-color: #ff7875;
+}
+
+.demo-button:disabled {
+  background-color: #d9d9d9;
+  color: #00000040;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.status-info {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background-color: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  color: #52c41a;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.description {
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
 }
 </style>
