@@ -29,10 +29,10 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 通过设置`loading`属性控制组件的加载状态，加载状态下输入框将显示加载动画并禁用输入。
 在加载状态下，点击加载图标可以取消发送操作，这会触发 `cancel` 事件。
 
-<tr-sender :loading="true" />
+<tr-sender :loading="true" stopText="停止回答" />
 
 ```vue
-<tr-sender :loading="true" />
+<tr-sender :loading="true" stopText="停止回答" />
 ```
 
 #### 禁用状态
@@ -249,6 +249,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | placeholder          | 输入框占位文本           | `string`                                                | `'请输入内容...'` |
 | speech               | 语音识别配置             | `'boolean' \| 'SpeechConfig'`                           | 无                |
 | showWordLimit        | 是否显示字数统计         | `boolean`                                               | `false`           |
+| stopText             | 停止按钮文字             | `string`                                                | `仅显示图标`      |
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |

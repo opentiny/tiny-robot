@@ -45,6 +45,7 @@ export interface SenderProps {
   template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
   hasContent?: boolean // 手动指定是否有内容，用于模板模式
   templateInitialValues?: Record<string, string> // 模板字段的初始值，键为字段占位符文本，值为初始内容
+  stopText?: string // 停止按钮文字，不传则只显示图标
 }
 
 export interface ActionButtonsProps {
@@ -61,6 +62,7 @@ export interface ActionButtonsProps {
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
   isOverLimit?: boolean // 是否超出字数限制
+  stopText?: string // 停止按钮文字，不传则只显示图标
 }
 
 // 组件事件定义
