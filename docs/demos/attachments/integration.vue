@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 import { TrSender, TrAttachments } from '@opentiny/tiny-robot'
 import type { Attachment } from '@opentiny/tiny-robot'
 
@@ -81,6 +81,36 @@ const singleAttachmentsRef = ref<InstanceType<typeof TrAttachments> | null>(null
 
 // 事件日志
 const uploadEvents = ref<Array<{ time: string; message: string; type: string }>>([])
+
+// 定时器注册表 - 用于跟踪和清理所有待处理的定时器
+const timerRegistry = new Set<ReturnType<typeof setTimeout>>()
+
+// 定时器管理工具函数
+const createTimer = (callback: () => void, delay: number): ReturnType<typeof setTimeout> => {
+  const timerId = setTimeout(() => {
+    // 执行回调
+    callback()
+    // 从注册表中移除已完成的定时器
+    timerRegistry.delete(timerId)
+  }, delay)
+
+  // 将定时器添加到注册表
+  timerRegistry.add(timerId)
+  return timerId
+}
+
+// 清理所有待处理的定时器
+const clearAllTimers = () => {
+  timerRegistry.forEach((timerId) => {
+    clearTimeout(timerId)
+  })
+  timerRegistry.clear()
+}
+
+// 组件卸载前清理所有定时器
+onBeforeUnmount(() => {
+  clearAllTimers()
+})
 
 // 添加事件记录的辅助函数
 const addEvent = (message: string, type: string) => {
@@ -141,7 +171,7 @@ const handleSingleFilesDropped = (files: Attachment[]) => {
     }
 
     // 模拟上传过程
-    setTimeout(
+    createTimer(
       () => {
         // 通过uid在响应式数组中查找并更新文件状态
         const currentFileIndex = singleAttachmentItems.value.findIndex((item) => item.uid === file.uid)
@@ -183,7 +213,7 @@ const handleSingleFileRetry = (file: Attachment) => {
   }
 
   // 模拟重试上传过程
-  setTimeout(
+  createTimer(
     () => {
       const currentFileIndex = singleAttachmentItems.value.findIndex((item) => item.uid === file.uid)
       if (currentFileIndex !== -1) {
@@ -217,6 +247,9 @@ const handleSingleSubmit = () => {
     singleInputValue.value = ''
     singleAttachmentsRef.value?.clearFiles()
     singleAttachmentItems.value = []
+
+    // 清理所有上传定时器，避免在提交后继续更新状态
+    clearAllTimers()
   }
 }
 </script>
