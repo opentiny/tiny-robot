@@ -21,9 +21,7 @@
     v-model:visible="visible"
     v-model:activeCount="activeCount"
     :popup-config="{
-      type: 'fixed',
-      position: { top: 0, bottom: 0, right: '20px' },
-      zIndex: 1000,
+      type: 'drawer',
     }"
     :installed-plugins="installedPlugins"
     :market-plugins="marketPlugins"
