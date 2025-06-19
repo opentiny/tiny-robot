@@ -605,6 +605,107 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
         options.handleInput()
         return true
       }
+
+      // 新增：检查是否在字段末尾，且右侧有零宽字符需要跳过
+      if (startOffset === textContent.length) {
+        const fieldElement = startContainer.parentNode as HTMLElement
+        const nextSibling = fieldElement.nextSibling
+
+        // 如果字段后面是零宽字符文本节点，跳过它
+        if (
+          nextSibling &&
+          nextSibling.nodeType === Node.TEXT_NODE &&
+          isOnlyZeroWidthSpace(nextSibling.textContent || '')
+        ) {
+          event.preventDefault()
+          const selection = getSelectionFromTarget(editor)
+          if (!selection) return true
+
+          const newRange = document.createRange()
+          const nextNextSibling = nextSibling.nextSibling
+
+          if (nextNextSibling) {
+            if (
+              nextNextSibling.nodeType === Node.ELEMENT_NODE &&
+              (nextNextSibling as HTMLElement).classList.contains('template-field')
+            ) {
+              // 跳过零宽字符后是字段，聚焦到字段内部开头
+              newRange.selectNodeContents(nextNextSibling)
+              newRange.collapse(true)
+            } else if (nextNextSibling.nodeType === Node.TEXT_NODE) {
+              // 跳过零宽字符后是文本节点，光标到其开头
+              newRange.setStart(nextNextSibling, 0)
+              newRange.setEnd(nextNextSibling, 0)
+            } else {
+              // 其他类型节点，光标到其前面
+              newRange.setStartBefore(nextNextSibling)
+            }
+          } else {
+            // 跳过零宽字符后没有更多节点，光标到编辑器末尾
+            newRange.setStart(editor, editor.childNodes.length)
+          }
+
+          newRange.collapse(true)
+          selection.removeAllRanges()
+          selection.addRange(newRange)
+          return true
+        }
+      }
+    }
+
+    // 新增：处理光标在字段末尾但字段为空的情况
+    if (
+      startContainer.nodeType === Node.ELEMENT_NODE &&
+      (startContainer as HTMLElement).classList.contains('template-field') &&
+      startOffset === 0
+    ) {
+      const fieldElement = startContainer as HTMLElement
+      const textContent = fieldElement.textContent || ''
+      const cleanContent = cleanZeroWidthSpaces(textContent)
+
+      // 如果字段为空，并且右侧有零宽字符，跳过零宽字符
+      if (!cleanContent || cleanContent.trim() === '') {
+        const nextSibling = fieldElement.nextSibling
+
+        if (
+          nextSibling &&
+          nextSibling.nodeType === Node.TEXT_NODE &&
+          isOnlyZeroWidthSpace(nextSibling.textContent || '')
+        ) {
+          event.preventDefault()
+          const selection = getSelectionFromTarget(editor)
+          if (!selection) return true
+
+          const newRange = document.createRange()
+          const nextNextSibling = nextSibling.nextSibling
+
+          if (nextNextSibling) {
+            if (
+              nextNextSibling.nodeType === Node.ELEMENT_NODE &&
+              (nextNextSibling as HTMLElement).classList.contains('template-field')
+            ) {
+              // 跳过零宽字符后是字段，聚焦到字段内部开头
+              newRange.selectNodeContents(nextNextSibling)
+              newRange.collapse(true)
+            } else if (nextNextSibling.nodeType === Node.TEXT_NODE) {
+              // 跳过零宽字符后是文本节点，光标到其开头
+              newRange.setStart(nextNextSibling, 0)
+              newRange.setEnd(nextNextSibling, 0)
+            } else {
+              // 其他类型节点，光标到其前面
+              newRange.setStartBefore(nextNextSibling)
+            }
+          } else {
+            // 跳过零宽字符后没有更多节点，光标到编辑器末尾
+            newRange.setStart(editor, editor.childNodes.length)
+          }
+
+          newRange.collapse(true)
+          selection.removeAllRanges()
+          selection.addRange(newRange)
+          return true
+        }
+      }
     }
 
     return false
