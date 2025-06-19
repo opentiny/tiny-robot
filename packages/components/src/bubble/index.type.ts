@@ -1,41 +1,39 @@
-import { Options as MarkdownItOptions } from 'markdown-it'
 import { VNode } from 'vue'
-import { BubbleMessageProps } from './types'
-export * from './types'
+import { BubbleMessageProps, BubbleMessageRenderer } from './message'
+export * from './message/index.type'
 
-export type BubblePalcement = 'start' | 'end'
-
-export interface BubbleProps {
+export interface BubbleCommonProps {
   /**
-   * 气泡内容
+   * 气泡对齐位置
    */
-  content?: string
-  // TODO 测试：超长文本和超长单词的显示
-  messages?: BubbleMessageProps[]
-  id?: string | number | symbol
+  placement?: 'start' | 'end'
   /**
-   * 气泡位置
+   * 气泡头像
    */
-  placement?: BubblePalcement
   avatar?: VNode
-  role?: string
   /**
    * 气泡形状，默认 'corner'
    */
   shape?: 'rounded' | 'corner'
   /**
-   * 内容类型
+   * 气泡内容渲染器。
+   * 如果 Bubble 中的 messages 长度大于 0，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
    */
-  type?: 'text' | 'markdown'
+  contentRenderer?: BubbleMessageRenderer
   loading?: boolean
-  aborted?: boolean
-  /**
-   * type 为 'markdown' 时，markdown 的配置项
-   */
-  mdConfig?: MarkdownItOptions
   hidden?: boolean
-  // 样式相关
   maxWidth?: string | number
+}
+
+export interface BubbleProps extends BubbleCommonProps {
+  /**
+   * 气泡内容
+   */
+  content?: string
+  messages?: BubbleMessageProps[]
+  id?: string | number | symbol
+  role?: string
+  aborted?: boolean
 }
 
 export interface BubbleSlots {
@@ -44,10 +42,7 @@ export interface BubbleSlots {
   loading?: (slotProps: { bubbleProps: BubbleProps }) => unknown
 }
 
-export type BubbleRoleConfig = Pick<
-  BubbleProps,
-  'placement' | 'avatar' | 'shape' | 'type' | 'mdConfig' | 'hidden' | 'maxWidth'
-> & {
+export type BubbleRoleConfig = BubbleCommonProps & {
   slots?: BubbleSlots
 }
 

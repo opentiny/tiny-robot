@@ -1,7 +1,7 @@
 import './styles/root.css'
 
 import { App } from 'vue'
-import { Bubble, BubbleList } from './bubble'
+import { Bubble, BubbleList, BubbleProvider, BubbleMarkdownMessageRenderer, BubbleMessageClassRenderer } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import DropdownMenu from './dropdown-menu'
@@ -33,6 +33,7 @@ export * from './suggestion-pills/index.type'
 const components = [
   Bubble,
   BubbleList,
+  BubbleProvider,
   Container,
   Conversations,
   DropdownMenu,
@@ -64,6 +65,10 @@ export {
   Bubble as TrBubble,
   BubbleList,
   BubbleList as TrBubbleList,
+  BubbleProvider,
+  BubbleProvider as TrBubbleProvider,
+  BubbleMarkdownMessageRenderer,
+  BubbleMessageClassRenderer,
   Container,
   Container as TrContainer,
   Conversations,

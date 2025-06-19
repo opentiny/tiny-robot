@@ -1,6 +1,8 @@
 import { App } from 'vue'
 import BubbleComp from './Bubble.vue'
 import BubbleListComp from './BubbleList.vue'
+import BubbleProviderComp from './BubbleProvider.vue'
+export { BubbleMarkdownMessageRenderer, BubbleMessageClassRenderer } from './message'
 
 BubbleComp.name = 'TrBubble'
 
@@ -21,3 +23,15 @@ const bubbleListInstall = function (app: App) {
 BubbleListComp.install = bubbleListInstall
 
 export const BubbleList = BubbleListComp as typeof BubbleListComp & { install: typeof bubbleListInstall }
+
+BubbleProviderComp.name = 'TrBubbleProvider'
+
+const bubbleProviderInstall = function (app: App) {
+  app.component(BubbleProviderComp.name!, BubbleProviderComp)
+}
+
+BubbleProviderComp.install = bubbleProviderInstall
+
+export const BubbleProvider = BubbleProviderComp as typeof BubbleProviderComp & {
+  install: typeof bubbleProviderInstall
+}

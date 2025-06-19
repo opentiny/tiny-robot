@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
 import { ref } from 'vue'
-import { BubbleTextStepItem } from '../../types'
 
-const props = defineProps<BubbleTextStepItem>()
+const props = defineProps<{
+  title: string
+  content: string
+}>()
 
 const collapsed = ref(false)
 </script>

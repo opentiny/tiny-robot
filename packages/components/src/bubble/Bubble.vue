@@ -1,28 +1,39 @@
 <script setup lang="ts">
-import markdownit from 'markdown-it'
 import { computed } from 'vue'
 import { toCssUnit } from '../shared/utils'
-import { BubbleProps, BubbleSlots } from './index.type'
-import Message from './Message.vue'
+import { BubbleMessageFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
+import { BubbleMessageClassRenderer } from './message/class-renderer'
+import Message from './message/Message.vue'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
   placement: 'start',
   shape: 'corner',
-  type: 'text',
   maxWidth: '80%',
 })
 
 const slots = defineSlots<BubbleSlots>()
 
-const markdownItInstance = computed(() => {
-  return markdownit(props.mdConfig || {})
+const contentRenderer = computed(() => {
+  const renderer = props.contentRenderer
+
+  if (!renderer) {
+    return null
+  }
+
+  if (typeof renderer === 'function') {
+    const renderFn = renderer as BubbleMessageFunctionRenderer
+    return { isComponent: false, vNodeOrComponent: renderFn(props) }
+  }
+
+  if (renderer instanceof BubbleMessageClassRenderer) {
+    return { isComponent: false, vNodeOrComponent: renderer.render(props) }
+  }
+
+  return { isComponent: true, vNodeOrComponent: renderer }
 })
 
 const bubbleContent = computed(() => {
-  if (props.type === 'markdown') {
-    return markdownItInstance.value.render(props.content)
-  }
   return props.content
 })
 
@@ -51,18 +62,25 @@ const placementStart = computed(() => props.placement === 'start')
         </div>
       </slot>
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <template v-if="props.messages?.length">
-          <Message v-for="(message, index) in props.messages" :key="index" v-bind="message" />
-        </template>
-        <template v-else>
-          <div class="tr-bubbule__body">
+        <div class="tr-bubble__content-messages">
+          <template v-if="props.messages?.length">
+            <Message v-for="(message, index) in props.messages" :key="index" v-bind="message" />
+          </template>
+          <template v-else>
             <slot :bubble-props="props">
-              <span v-if="props.type === 'markdown'" v-html="bubbleContent"></span>
+              <template v-if="contentRenderer">
+                <component
+                  v-if="contentRenderer.isComponent"
+                  :is="contentRenderer.vNodeOrComponent"
+                  v-bind="props"
+                ></component>
+                <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+              </template>
               <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
-              <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
             </slot>
-          </div>
-        </template>
+          </template>
+          <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
+        </div>
         <div v-if="slots.footer" class="tr-bubbule__footer">
           <slot name="footer" :bubble-props="props"></slot>
         </div>
@@ -150,14 +168,17 @@ const placementStart = computed(() => props.placement === 'start')
   border-radius: 24px;
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 
-  .tr-bubbule__body {
+  .tr-bubble__content-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tr-bubbule__body-text {
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
     word-break: break-word;
-  }
-
-  .tr-bubbule__body-text {
     white-space: pre-line;
   }
 
