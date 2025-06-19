@@ -559,7 +559,7 @@
   line-height: var(--tr-sender-input-line-height);
   border-radius: var(--tr-sender-template-editor-border-radius);
   word-break: break-word;
-  word-wrap: break-word;
+  line-break: anywhere;
   /* 保持空格和换行符 */
   white-space: pre-wrap;
   outline: none;
@@ -583,47 +583,46 @@
     border-radius: var(--tr-sender-template-field-border-radius);
     cursor: text;
     transition: background-color var(--tr-sender-transition-duration);
+
+    /* 当元素跨越多行时，为每个片段应用独立的边框、内边距和圆角 */
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+
     /* 允许字段内容换行，与容器保持一致 */
     white-space: pre-wrap;
     /* 强制换行设置 - 允许在任意字符处断行 */
     word-break: break-all;
-    word-wrap: break-word;
     box-sizing: border-box;
-    overflow-wrap: break-word;
     line-height: var(--tr-sender-template-field-line-height);
     position: relative;
-    /* 启用连字符，帮助长英文词的折行 */
-    hyphens: auto;
-    vertical-align: baseline;
+    vertical-align: bottom;
 
     /* 明确设置内容为空白时的行为 */
     &:empty {
-      /* 确保空字段有足够高度 */
-      min-height: var(--tr-sender-template-field-min-height-empty);
-      /* 空字段使用inline-block确保有区域 */
-      display: inline-block;
       /* 与字段自身和周围文本保持一致的垂直对齐 */
-      vertical-align: bottom;
-      line-height: var(--tr-sender-template-field-line-height);
+      vertical-align: initial;
+      line-height: calc(var(--tr-sender-template-field-empty-height) - 4px);
       /* 空白字段不需要换行 */
       white-space: nowrap;
+      display: inline-block;
+      height: var(--tr-sender-template-field-empty-height);
+
+      &::before {
+        content: attr(data-placeholder);
+        color: var(--tr-sender-template-field-placeholder-color);
+        cursor: text;
+      }
+
+      /* 插入一个零宽度的空格，以确保光标在垂直方向上正确对齐 */
+      &::after {
+        content: '\200b';
+      }
     }
 
     &:hover {
       background-color: var(--tr-sender-template-field-bg-hover);
     }
 
-    &:empty::before {
-      content: attr(data-placeholder);
-      color: var(--tr-sender-template-field-placeholder-color);
-      cursor: text;
-      user-select: none;
-      position: absolute;
-      left: var(--tr-sender-template-field-placeholder-left);
-      top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-    }
   }
 }
 
