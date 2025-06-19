@@ -55,32 +55,30 @@ const placementStart = computed(() => props.placement === 'start')
     </div>
     <div class="tr-bubble__content-wrapper">
       <slot v-if="props.loading" name="loading" :bubble-props="props">
-        <div class="tr-bubble__loading">
-          <span></span>
-          <span></span>
-          <span></span>
+        <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
+          <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
         </div>
       </slot>
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <div class="tr-bubble__content-messages">
-          <template v-if="props.messages?.length">
+        <template v-if="props.messages?.length">
+          <div class="tr-bubble__content-messages">
             <Message v-for="(message, index) in props.messages" :key="index" v-bind="message" />
-          </template>
-          <template v-else>
-            <slot :bubble-props="props">
-              <template v-if="contentRenderer">
-                <component
-                  v-if="contentRenderer.isComponent"
-                  :is="contentRenderer.vNodeOrComponent"
-                  v-bind="props"
-                ></component>
-                <component v-else :is="contentRenderer.vNodeOrComponent"></component>
-              </template>
-              <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
-            </slot>
-          </template>
-          <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
-        </div>
+          </div>
+        </template>
+        <template v-else>
+          <slot :bubble-props="props">
+            <template v-if="contentRenderer">
+              <component
+                v-if="contentRenderer.isComponent"
+                :is="contentRenderer.vNodeOrComponent"
+                v-bind="props"
+              ></component>
+              <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+            </template>
+            <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
+          </slot>
+        </template>
+        <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
         <div v-if="slots.footer" class="tr-bubbule__footer">
           <slot name="footer" :bubble-props="props"></slot>
         </div>
@@ -123,43 +121,8 @@ const placementStart = computed(() => props.placement === 'start')
 }
 
 .tr-bubble__loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 0;
-
-  span {
-    height: 8px;
-    width: 8px;
-    margin: 0 2px;
-    background-color: #bbb;
-    border-radius: 50%;
-    display: inline-block;
-    animation: typing 1.4s infinite ease-in-out both;
-
-    &:nth-child(1) {
-      animation-delay: 0s;
-    }
-
-    &:nth-child(2) {
-      animation-delay: 0.2s;
-    }
-
-    &:nth-child(3) {
-      animation-delay: 0.4s;
-    }
-  }
-
-  @keyframes typing {
-    0%,
-    80%,
-    100% {
-      transform: scale(0);
-    }
-    40% {
-      transform: scale(1);
-    }
-  }
+  width: 24px;
+  height: 24px;
 }
 
 .tr-bubble__content {
