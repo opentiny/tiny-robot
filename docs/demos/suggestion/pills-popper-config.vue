@@ -52,7 +52,7 @@ const items = ref<SuggestionPillItem[]>([
   ...Array.from({ length: 8 })
     .fill(0)
     .map((_, index) => ({
-      id: String(index),
+      id: String(index + 2),
       text: '费用成本',
       icon: markRaw(IconEdit),
       action: {
