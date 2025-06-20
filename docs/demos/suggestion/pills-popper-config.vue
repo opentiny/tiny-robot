@@ -12,6 +12,8 @@
     <label>手动控制显示更多：</label>
     <tiny-switch v-model="showAll" ref="showAllRef"></tiny-switch>
   </div>
+  <hr />
+  <button ref="addButtonRef" @click="handleClickAddButton">增加按钮</button>
 </template>
 
 <script setup lang="ts">
@@ -22,6 +24,7 @@ import { h, markRaw, ref } from 'vue'
 
 const showAll = ref(false)
 const showAllRef = ref<InstanceType<typeof TinySwitch>>()
+const addButtonRef = ref<HTMLButtonElement | null>(null)
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
@@ -63,19 +66,11 @@ const items = ref<SuggestionPillItem[]>([
           show: false,
           onItemClick: (item) => {
             console.log(item)
-            items.value.forEach((i) => {
-              if (i.action?.type === 'menu') {
-                i.action.props.show = false
-              }
-            })
+            closeAllPopper()
           },
           onClickOutside: () => {
             console.log('onClickOutside')
-            items.value.forEach((i) => {
-              if (i.action?.type === 'menu') {
-                i.action.props.show = false
-              }
-            })
+            closeAllPopper()
           },
         },
       } as SuggestionPillMenuAction,
@@ -94,6 +89,14 @@ const data = [
   { id: 'b9', text: '云服务器安全组如何配置?' },
   { id: 'b0', text: '如何查看云服务器密码?' },
 ]
+
+const closeAllPopper = () => {
+  items.value.forEach((i) => {
+    if (i.action?.props) {
+      i.action.props.show = false
+    }
+  })
+}
 
 const delaySetData = () => {
   setTimeout(() => {
@@ -128,7 +131,35 @@ const handleClickOutside = (event: MouseEvent) => {
   if (event.composedPath().includes(showAllRef.value?.$el)) {
     return
   }
+  if (addButtonRef.value && event.composedPath().includes(addButtonRef.value)) {
+    return
+  }
   showAll.value = false
+  closeAllPopper()
+}
+
+const handleClickAddButton = () => {
+  items.value.push({
+    id: String(items.value.length + 2),
+    text: '费用成本',
+    icon: markRaw(IconEdit),
+    action: {
+      type: 'menu',
+      props: {
+        items: dropdownMenuItems.value,
+        trigger: 'manual',
+        show: false,
+        onItemClick: (item) => {
+          console.log(item)
+          closeAllPopper()
+        },
+        onClickOutside: () => {
+          console.log('onClickOutside')
+          closeAllPopper()
+        },
+      },
+    } as SuggestionPillMenuAction,
+  })
 }
 </script>
 

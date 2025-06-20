@@ -37,16 +37,21 @@ const floatingItems = computed(() => {
   return []
 })
 
+const getAllItemElements = () => {
+  const container = containerRef.value
+  const floatingItems = floatingItemsRef.value
+  return Array.from(container?.children || []).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
+}
+
 const updateHiddenIndex = () => {
   nextTick(() => {
     const container = containerRef.value
-    const floatingItems = floatingItemsRef.value
 
     if (!container) {
       return
     }
 
-    const children = Array.from(container.children).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
+    const children = getAllItemElements()
     const gap = 8
 
     let totalWidth = 0
@@ -70,12 +75,8 @@ watch(
   () => [props.items, props.items?.length],
   () => {
     nextTick(() => {
-      if (!containerRef.value) {
-        return
-      }
-
       // 计算容器最大宽度
-      const children = Array.from(containerRef.value.children) as HTMLElement[]
+      const children = getAllItemElements()
       const gap = 8
       containerFullWidth.value = children.map((el) => el.offsetWidth).reduce((acc, cur) => acc + cur + gap)
     })
