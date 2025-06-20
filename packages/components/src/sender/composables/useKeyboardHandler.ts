@@ -656,7 +656,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
         return true
       }
 
-      // 新增：检查是否在字段末尾，且右侧有零宽字符需要跳过
+      // 检查是否在字段末尾，且右侧有零宽字符需要跳过
       if (startOffset === textContent.length) {
         const fieldElement = startContainer.parentNode as HTMLElement
         const nextSibling = fieldElement.nextSibling
@@ -703,7 +703,7 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
       }
     }
 
-    // 新增：处理光标在字段末尾但字段为空的情况
+    // 处理光标在字段末尾但字段为空的情况
     if (
       startContainer.nodeType === Node.ELEMENT_NODE &&
       (startContainer as HTMLElement).classList.contains('template-field') &&
