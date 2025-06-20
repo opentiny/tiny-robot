@@ -20,7 +20,6 @@ export interface BubbleCommonProps {
    * 如果 Bubble 中的 messages 长度大于 0，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
    */
   contentRenderer?: BubbleMessageRenderer
-  loading?: boolean
   hidden?: boolean
   maxWidth?: string | number
 }
@@ -33,6 +32,7 @@ export interface BubbleProps extends BubbleCommonProps {
   messages?: BubbleMessageProps[]
   id?: string | number | symbol
   role?: string
+  loading?: boolean
   aborted?: boolean
 }
 
@@ -52,5 +52,13 @@ export interface BubbleListProps {
    * 每个角色的默认配置项
    */
   roles?: Record<string, BubbleRoleConfig>
+  /**
+   * 列表是否加载中
+   */
+  loading?: boolean
+  /**
+   * 指定哪个角色可以有加载中状态
+   */
+  loadingRole?: string
   autoScroll?: boolean
 }
