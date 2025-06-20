@@ -62,10 +62,7 @@ export interface PopupConfig {
   // drawer模式配置
   drawer?: {
     direction: 'left' | 'right'
-    width?: string | number
   }
-  // 通用配置
-  zIndex?: number
 }
 
 // 组件的Props

@@ -46,7 +46,7 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 | `showMarketTab` | `boolean` | `true` | 是否显示市场标签页 |
 | `installedTabTitle` | `string` | `'已安装插件'` | 已安装标签页标题 |
 | `marketTabTitle` | `string` | `'市场'` | 市场标签页标题 |
-| `popupConfig` | `PopupConfig` | `{ type: 'fixed', position: {}, drawer: { direction: 'right', width: 482 }, zIndex: 1000 }` | 弹出配置对象 |
+| `popupConfig` | `PopupConfig` | `{ type: 'fixed', position: {}, drawer: { direction: 'right' } }` | 弹出配置对象 |
 
 
 #### 头部配置
@@ -199,9 +199,6 @@ interface PopupConfig {
   // drawer模式配置
   drawer?: {
     direction: 'left' | 'right'
-    width?: string | number
   }
-  // 通用配置
-  zIndex?: number
 }
 ```
