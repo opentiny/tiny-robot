@@ -8,9 +8,14 @@ import {
   BubbleMessageRenderer,
 } from './message'
 
-const props = defineProps<{
-  messageRenderers: Record<string, BubbleMessageRenderer>
-}>()
+const props = withDefaults(
+  defineProps<{
+    messageRenderers?: Record<string, BubbleMessageRenderer>
+  }>(),
+  {
+    messageRenderers: () => ({}),
+  },
+)
 
 const bubbleMessageRendererMap = new Map<string, BubbleMessageRenderer>()
 

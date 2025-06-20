@@ -15,10 +15,18 @@ export class BubbleMarkdownMessageRenderer extends BubbleMessageClassRenderer {
     this.md = MarkdownIt(this.mdConfig)
   }
 
-  render(options: { content: string }) {
-    const htmlContent = this.md.render(options.content || '')
+  render(options: { content?: string }) {
+    let htmlContent = ''
+
+    try {
+      htmlContent = this.md.render(options.content ?? '')
+    } catch (error) {
+      console.error('Error rendering markdown:', error)
+      htmlContent = options.content ?? ''
+    }
 
     if (this.dompurifyConfig.disable) {
+      console.warn('HTML sanitization is disabled, potential XSS risk')
       return h('div', { innerHTML: htmlContent })
     }
 

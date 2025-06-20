@@ -2,7 +2,12 @@
 import { IconArrowDown, IconToolRunning } from '@opentiny/tiny-robot-svgs'
 import { ref, useCssModule, computed } from 'vue'
 
-const props = defineProps<{ name: string; status: 'running' | 'success' | 'failed' | 'cancelled'; params?: unknown }>()
+const props = defineProps<{
+  name: string
+  status: 'running' | 'success' | 'failed' | 'cancelled'
+  params?: unknown
+  formatPretty?: boolean
+}>()
 
 const collapsed = ref(false)
 
@@ -24,32 +29,39 @@ const statusText = computed(() => {
 const classes = useCssModule()
 
 const highlightJSON = (json?: unknown): string => {
-  let str = ''
-
-  if (typeof json === 'string') {
-    str = JSON.stringify(JSON.parse(json), null, 2)
-  } else {
-    try {
-      str = JSON.stringify(json, null, 2)
-    } catch (error) {
-      console.warn(error)
-    }
+  if (!json) {
+    return ''
   }
 
-  return str.replace(
+  let prettyJson = ''
+  const space = props.formatPretty ? 2 : 0
+
+  try {
+    if (typeof json === 'string') {
+      prettyJson = JSON.stringify(JSON.parse(json), null, space)
+    } else {
+      prettyJson = JSON.stringify(json, null, space)
+    }
+  } catch (error) {
+    console.warn(error)
+  }
+
+  prettyJson = prettyJson.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
     (match) => {
-      let cls = 'number'
+      let className = 'number'
       if (/^"/.test(match)) {
-        cls = /:$/.test(match) ? 'key' : 'string'
+        className = /:$/.test(match) ? 'key' : 'string'
       } else if (/true|false/.test(match)) {
-        cls = 'boolean'
+        className = 'boolean'
       } else if (/null/.test(match)) {
-        cls = 'null'
+        className = 'null'
       }
-      return `<span class="${classes[cls]}">${match}</span>`
+      return `<span class="${classes[className]}">${match}</span>`
     },
   )
+
+  return prettyJson
 }
 </script>
 
@@ -126,6 +138,11 @@ const highlightJSON = (json?: unknown): string => {
   .tr-bubble__step-tool-hr {
     margin: 12px 0;
     color: rgb(219, 219, 219);
+  }
+
+  .tr-bubble__step-tool-params-content {
+    white-space: pre-wrap;
+    font-family: monospace;
   }
 }
 </style>
