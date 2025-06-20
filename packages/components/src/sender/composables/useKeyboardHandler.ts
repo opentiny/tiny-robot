@@ -572,6 +572,56 @@ export function useTemplateKeyboardHandler(options: TemplateKeyboardOptions) {
 
     const { startContainer, startOffset } = range
 
+    // 检查光标是否在模板字段之前，如果是，则阻止默认的删除行为
+    let nodeToDelete: Node | null | undefined
+    if (startContainer.nodeType === Node.ELEMENT_NODE) {
+      nodeToDelete = startContainer.childNodes[startOffset]
+    } else if (
+      startContainer.nodeType === Node.TEXT_NODE &&
+      startContainer.textContent &&
+      startOffset === startContainer.textContent.length
+    ) {
+      nodeToDelete = startContainer.nextSibling
+    }
+
+    if (
+      nodeToDelete &&
+      nodeToDelete.nodeType === Node.ELEMENT_NODE &&
+      (nodeToDelete as HTMLElement).classList.contains('template-field')
+    ) {
+      const fieldElement = nodeToDelete as HTMLElement
+      const textContent = fieldElement.textContent || ''
+      const cleanContent = cleanZeroWidthSpaces(textContent)
+
+      // 如果字段为空或只有一个字符（即将删空），阻止默认行为并保持光标在字段内
+      if (cleanContent.length <= 1) {
+        event.preventDefault()
+
+        // 如果有内容，则清空
+        if (cleanContent.length === 1) {
+          fieldElement.textContent = ''
+          options.handleInput()
+        }
+
+        // 设置光标位置到字段内部的起始位置
+        const selection = getSelectionFromTarget(editor)
+        if (selection) {
+          const newRange = document.createRange()
+          // 选中字段的全部内容
+          newRange.selectNodeContents(fieldElement)
+          // 将选区折叠到起始位置(即字段开头)，光标移动到字段开头
+          newRange.collapse(true)
+          selection.removeAllRanges()
+          selection.addRange(newRange)
+        }
+
+        return true
+      }
+
+      // 其他情况让浏览器原生处理
+      return false
+    }
+
     // 判断当前是否在字段内部，且在字段文本的末尾
     const isInField =
       startContainer.nodeType === Node.TEXT_NODE &&
