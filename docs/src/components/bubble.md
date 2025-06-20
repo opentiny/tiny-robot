@@ -56,6 +56,63 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ### 多种消息格式
 
+`BubbleProvider` 管理和注册消息渲染器。渲染器注册机制
+
+当 Bubble 组件的 `messages` 数组不为空时，系统会：
+
+1. 检查每条消息的 `type` 字段
+2. 在 `BubbleProvider` 中查找匹配的渲染器
+3. 使用找到的渲染器渲染消息内容
+4. 如果未找到匹配的渲染器，则使用默认渲染方式
+
+有三种方式可以实现自定义消息渲染器：
+
+1. **函数式渲染器**：
+
+   ```typescript
+   const myRenderer: BubbleMessageFunctionRenderer = (options) => {
+     return h('div', options.content)
+   }
+   ```
+
+2. **类式渲染器**：
+
+   必须继承 `BubbleMessageClassRenderer` 类
+
+   类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
+
+   ```typescript
+   class MyRenderer implements BubbleMessageClassRenderer {
+     render(options) {
+       return h('div', options.content)
+     }
+   }
+   ```
+
+   注册时记得 new 一个实例，否则会导致渲染失败
+
+   ```vue
+   <template>
+     <tr-bubble-provider :message-renderers="messageRenderers">
+       <!-- other codes... -->
+     </tr-bubble-provider>
+   </template>
+
+   <script>
+   const messageRenderers = { 'my-render': new MyRenderer() }
+   </script>
+   ```
+
+3. **Vue 组件**：
+
+   message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
+
+   ```vue
+   <template>
+     <div>{{ props.content }}</div>
+   </template>
+   ```
+
 <demo vue="../../demos/bubble/messages.vue" />
 
 ### 插槽

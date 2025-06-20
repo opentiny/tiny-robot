@@ -35,7 +35,7 @@ const thinkingContent = `已获取到西安明天（2025年5月31日）的天气
 const messages = ref<BubbleMessageProps[]>([
   {
     type: 'text',
-    content: '我使用默认的文本渲染器（组件渲染器），非props属性会当作attrs传递给组件，onXXX会当作事件传递给组件',
+    content: '我使用默认的文本渲染器（组件渲染器）',
     style: {
       fontWeight: 'bold',
     },
@@ -50,10 +50,7 @@ const messages = ref<BubbleMessageProps[]>([
   },
   {
     type: 'markdown',
-    content: `# 我使用Markdown渲染器（类渲染器）
-
-**类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例**
-`,
+    content: `# 我使用Markdown渲染器（类渲染器）`,
   },
   {
     type: 'tool',
