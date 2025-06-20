@@ -84,7 +84,7 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
    类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
 
    ```typescript
-   class MyRenderer implements BubbleMessageClassRenderer {
+   class MyRenderer extends BubbleMessageClassRenderer {
      render(options) {
        return h('div', options.content)
      }
