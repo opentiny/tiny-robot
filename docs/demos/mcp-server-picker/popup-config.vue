@@ -25,6 +25,7 @@
       :popup-config="fixedModalConfig"
       :installed-plugins="installedPlugins"
       :market-plugins="marketPlugins"
+      :market-category-options="marketCategoryOptions"
       title="固定位置"
     />
 
@@ -34,6 +35,7 @@
       :popup-config="leftDrawerConfig"
       :installed-plugins="installedPlugins"
       :market-plugins="marketPlugins"
+      :market-category-options="marketCategoryOptions"
       title="左侧抽屉"
     />
 
@@ -43,6 +45,7 @@
       :popup-config="rightDrawerConfig"
       :installed-plugins="installedPlugins"
       :market-plugins="marketPlugins"
+      :market-category-options="marketCategoryOptions"
       title="右侧抽屉"
     />
   </div>
@@ -50,52 +53,115 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { McpServerPicker } from '@opentiny/tiny-robot'
+import { McpServerPicker, PluginInfo } from '@opentiny/tiny-robot'
+
+type MarketCategoryOption = {
+  label: string
+  value: string
+}
 
 // 弹窗类型枚举
 type ModalType = 'fixed' | 'leftDrawer' | 'rightDrawer' | null
 
 // 示例插件数据
-const installedPlugins = [
+const installedPlugins = ref<PluginInfo[]>([
   {
-    id: '1',
-    name: '翻译助手',
-    icon: 'https://example.com/icon1.png',
-    description: '提供多语言翻译功能',
+    id: 'plugin-1',
+    name: 'GitHub 集成',
+    icon: 'https://github.com/favicon.ico',
+    description: '与 GitHub 仓库集成，提供代码搜索、PR 管理等功能',
+    toolCount: 5,
     enabled: true,
     tools: [
-      { id: '1-1', name: '中英互译', description: '中英文互相翻译', enabled: true },
-      { id: '1-2', name: '多语种翻译', description: '支持多种语言翻译', enabled: false },
+      {
+        id: 'tool-1',
+        name: '搜索代码',
+        description: '在 GitHub 仓库中搜索代码',
+        enabled: true,
+      },
+      {
+        id: 'tool-2',
+        name: '创建 PR',
+        description: '创建新的 Pull Request',
+        enabled: true,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
     ],
   },
   {
-    id: '2',
-    name: '图像处理',
-    icon: 'https://example.com/icon2.png',
-    description: '提供图像处理功能',
+    id: 'plugin-2',
+    name: 'Slack 通知',
+    icon: 'https://slack.com/favicon.ico',
+    description: '发送消息到 Slack 频道',
+    toolCount: 2,
     enabled: false,
+    tools: [
+      {
+        id: 'tool-4',
+        name: '发送消息',
+        description: '发送消息到指定频道',
+        enabled: false,
+      },
+      {
+        id: 'tool-5',
+        name: '文件上传',
+        description: '上传文件到 Slack',
+        enabled: false,
+      },
+    ],
   },
-]
+])
 
-const marketPlugins = [
+// 市场插件数据
+const marketPlugins = ref<PluginInfo[]>([
   {
-    id: '3',
-    name: '代码助手',
-    icon: 'https://example.com/icon3.png',
-    description: '代码补全和优化建议',
-    category: 'dev',
+    id: 'plugin-1',
+    name: 'Jira 集成',
+    icon: 'https://ts3.tc.mm.bing.net/th/id/ODLS.2a97aa8b-50c6-4e00-af97-3b563dfa07f4',
+    description: 'Jira 任务管理',
+    enabled: true,
     added: false,
+    tools: [
+      { id: 'tool-5', name: '创建任务', description: '创建 Jira 任务', enabled: false },
+      { id: 'tool-6', name: '查询任务', description: '查询 Jira 任务', enabled: false },
+    ],
   },
   {
-    id: '4',
-    name: '数据分析',
-    icon: 'https://example.com/icon4.png',
-    description: '数据可视化和分析工具',
-    category: 'data',
-    added: true,
+    id: 'plugin-2',
+    name: 'Notion 集成',
+    icon: 'https://www.notion.so/front-static/favicon.ico',
+    description: 'Notion 文档管理和协作',
+    enabled: false,
+    added: false,
+    tools: [
+      { id: 'tool-7', name: '创建页面', description: '创建 Notion 页面', enabled: false },
+      { id: 'tool-8', name: '查询数据库', description: '查询 Notion 数据库', enabled: false },
+    ],
   },
-]
+  {
+    id: 'plugin-3',
+    name: 'Telegram 机器人',
+    icon: 'https://telegram.org/favicon.ico',
+    description: 'Telegram 消息推送和自动化',
+    enabled: false,
+    added: false,
+    tools: [{ id: 'tool-9', name: '发送消息', description: '发送 Telegram 消息', enabled: false }],
+  },
+])
 
+// 市场分类选项
+const marketCategoryOptions = ref<MarketCategoryOption[]>([
+  { value: '', label: '全部分类' },
+  { value: 'productivity', label: '生产力工具' },
+  { value: 'communication', label: '沟通协作' },
+  { value: 'development', label: '开发工具' },
+  { value: 'ai', label: 'AI 助手' },
+])
 // 统一的弹窗状态管理
 const activeModal = ref<ModalType>(null)
 

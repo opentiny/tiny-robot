@@ -43,14 +43,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import {
-  McpServerPicker,
-  PluginInfo,
-  PluginTool,
-  AddPluginCodeData,
-  AddPluginFormData,
-  MarketCategoryOption,
-} from '@opentiny/tiny-robot'
+import { McpServerPicker, PluginInfo, PluginTool, AddPluginCodeData, AddPluginFormData } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
 
 // 模拟加载状态
@@ -123,7 +116,6 @@ const marketPlugins = ref<PluginInfo[]>([
     description: 'Jira 任务管理',
     enabled: true,
     added: false,
-    category: 'productivity', // 添加分类标识
     tools: [
       { id: 'tool-5', name: '创建任务', description: '创建 Jira 任务', enabled: false },
       { id: 'tool-6', name: '查询任务', description: '查询 Jira 任务', enabled: false },
@@ -136,7 +128,6 @@ const marketPlugins = ref<PluginInfo[]>([
     description: 'Notion 文档管理和协作',
     enabled: false,
     added: false,
-    category: 'productivity',
     tools: [
       { id: 'tool-7', name: '创建页面', description: '创建 Notion 页面', enabled: false },
       { id: 'tool-8', name: '查询数据库', description: '查询 Notion 数据库', enabled: false },
@@ -149,10 +140,14 @@ const marketPlugins = ref<PluginInfo[]>([
     description: 'Telegram 消息推送和自动化',
     enabled: false,
     added: false,
-    category: 'communication',
     tools: [{ id: 'tool-9', name: '发送消息', description: '发送 Telegram 消息', enabled: false }],
   },
 ])
+
+type MarketCategoryOption = {
+  label: string
+  value: string
+}
 
 // 市场分类选项
 const marketCategoryOptions = ref<MarketCategoryOption[]>([
@@ -252,7 +247,6 @@ const handleTabChange = (activeTab: string) => {
 
 const handleMarketCategoryChange = (category: string) => {
   console.log('市场分类筛选:', category)
-  // 这里可以根据分类过滤市场插件
 }
 
 const visible = ref(false)
