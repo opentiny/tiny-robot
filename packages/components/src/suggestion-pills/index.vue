@@ -25,34 +25,34 @@ const hasShowMoreBtn = computed(() => width.value < containerFullWidth.value)
 const hiddenIndex = ref(-1)
 
 const staticItems = computed(() => {
-  if (!hasShowMoreBtn.value || !showAll.value) {
-    return props.items || []
+  if (hasShowMoreBtn.value && showAll.value) {
+    return props.items?.slice(0, hiddenIndex.value) || []
   }
-  return props.items?.slice(0, hiddenIndex.value) || []
+  return props.items || []
 })
 const floatingItems = computed(() => {
-  if (!hasShowMoreBtn.value || !showAll.value) {
-    return []
+  if (hasShowMoreBtn.value && showAll.value) {
+    return props.items?.slice(hiddenIndex.value) || []
   }
-  return props.items?.slice(hiddenIndex.value) || []
+  return []
 })
 
-const getElementStyleGap = (element: HTMLElement) => {
-  const style = window.getComputedStyle(element)
-  return parseFloat(style.gap) || 0
+const getAllItemElements = () => {
+  const container = containerRef.value
+  const floatingItems = floatingItemsRef.value
+  return Array.from(container?.children || []).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
 }
 
 const updateHiddenIndex = () => {
   nextTick(() => {
     const container = containerRef.value
-    const floatingItems = floatingItemsRef.value
 
     if (!container) {
       return
     }
 
-    const children = Array.from(container.children).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
-    const gap = getElementStyleGap(container)
+    const children = getAllItemElements()
+    const gap = 8
 
     let totalWidth = 0
     for (let i = 0; i < children.length; i++) {
@@ -75,13 +75,9 @@ watch(
   () => [props.items, props.items?.length],
   () => {
     nextTick(() => {
-      if (!containerRef.value) {
-        return
-      }
-
       // 计算容器最大宽度
-      const children = Array.from(containerRef.value.children) as HTMLElement[]
-      const gap = getElementStyleGap(containerRef.value)
+      const children = getAllItemElements()
+      const gap = 8
       containerFullWidth.value = children.map((el) => el.offsetWidth).reduce((acc, cur) => acc + cur + gap)
     })
   },
