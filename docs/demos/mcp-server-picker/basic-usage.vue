@@ -263,10 +263,6 @@ const handleVisibleToggle = () => {
 </script>
 
 <style lang="less" scoped>
-:deep(.tiny-drawer__body) {
-  padding: 0 !important;
-}
-
 .demo-controls {
   margin-bottom: 20px;
   padding: 16px;

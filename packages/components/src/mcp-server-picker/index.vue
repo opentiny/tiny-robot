@@ -32,8 +32,7 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   popupConfig: () => ({
     type: 'fixed',
     position: {},
-    drawer: { direction: 'right', width: 482 },
-    zIndex: 1000,
+    drawer: { direction: 'right' },
   }),
   installedTabTitle: '已安装插件',
   marketTabTitle: '市场',
@@ -240,10 +239,10 @@ const handleClose = () => {
 }
 
 const pickerStyle = computed(() => {
-  const { type, position, drawer, zIndex } = props.popupConfig || {}
+  const { type, position, drawer } = props.popupConfig || {}
 
   const baseStyle: Record<string, string> = {
-    'z-index': String(zIndex || 1000),
+    'z-index': '1000',
     position: 'fixed',
   }
 
@@ -288,15 +287,13 @@ const getFixedPositionStyles = (position: PopupConfig['position'] = {}) => {
 }
 
 // 获取抽屉位置样式
-const getDrawerPositionStyles = (drawer: PopupConfig['drawer'] = { direction: 'right', width: 482 }) => {
-  const { direction, width } = drawer
-  const drawerWidth = typeof width === 'number' ? `${width}px` : width
+const getDrawerPositionStyles = (drawer: PopupConfig['drawer'] = { direction: 'right' }) => {
+  const { direction } = drawer
 
   const baseDrawerStyles = {
     top: '0',
     bottom: '0',
     height: '100%',
-    width: drawerWidth,
   }
 
   if (direction === 'left') {
@@ -467,6 +464,7 @@ const transitionName = computed(() => {
 
   // 抽屉模式样式
   &.popup-type-drawer {
+    width: 482px;
     padding-top: 20px;
     height: 100vh;
     overflow-y: auto;

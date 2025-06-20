@@ -4,11 +4,9 @@
     <p class="description">此示例展示了如何确保同时最多只弹出一个弹窗，提供更好的用户体验。</p>
 
     <div class="button-group">
-      <button class="demo-button" :class="{ active: activeModal === 'center' }" @click="openModal('center')">
-        居中弹窗
-      </button>
-      <button class="demo-button" :class="{ active: activeModal === 'topRight' }" @click="openModal('topRight')">
-        右上角弹窗
+      <!-- 固定位置-->
+      <button class="demo-button" :class="{ active: activeModal === 'fixed' }" @click="openModal('fixed')">
+        固定位置
       </button>
       <button class="demo-button" :class="{ active: activeModal === 'leftDrawer' }" @click="openModal('leftDrawer')">
         左侧抽屉
@@ -21,22 +19,13 @@
 
     <div v-if="activeModal" class="status-info">当前激活弹窗：{{ getModalDisplayName(activeModal) }}</div>
 
-    <!-- 居中弹窗 -->
+    <!-- 固定位置 -->
     <McpServerPicker
-      v-model:visible="showCenterModal"
-      :popup-config="centerModalConfig"
+      v-model:visible="showFixedModal"
+      :popup-config="fixedModalConfig"
       :installed-plugins="installedPlugins"
       :market-plugins="marketPlugins"
-      title="居中弹窗"
-    />
-
-    <!-- 右上角弹窗 -->
-    <McpServerPicker
-      v-model:visible="showTopRightModal"
-      :popup-config="topRightModalConfig"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      title="右上角弹窗"
+      title="固定位置"
     />
 
     <!-- 左侧抽屉 -->
@@ -64,7 +53,7 @@ import { ref, computed } from 'vue'
 import { McpServerPicker } from '@opentiny/tiny-robot'
 
 // 弹窗类型枚举
-type ModalType = 'center' | 'topRight' | 'leftDrawer' | 'rightDrawer' | null
+type ModalType = 'fixed' | 'leftDrawer' | 'rightDrawer' | null
 
 // 示例插件数据
 const installedPlugins = [
@@ -111,17 +100,10 @@ const marketPlugins = [
 const activeModal = ref<ModalType>(null)
 
 // 计算属性：基于活动弹窗类型控制各个弹窗的显示状态
-const showCenterModal = computed({
-  get: () => activeModal.value === 'center',
+const showFixedModal = computed({
+  get: () => activeModal.value === 'fixed',
   set: (value: boolean) => {
-    activeModal.value = value ? 'center' : null
-  },
-})
-
-const showTopRightModal = computed({
-  get: () => activeModal.value === 'topRight',
-  set: (value: boolean) => {
-    activeModal.value = value ? 'topRight' : null
+    activeModal.value = value ? 'fixed' : null
   },
 })
 
@@ -151,37 +133,27 @@ const closeModal = () => {
 // 获取弹窗显示名称
 const getModalDisplayName = (type: ModalType): string => {
   const nameMap = {
-    center: '居中弹窗',
-    topRight: '右上角弹窗',
     leftDrawer: '左侧抽屉',
     rightDrawer: '右侧抽屉',
+    fixed: '固定位置',
   }
   return type ? nameMap[type] : ''
 }
 
 // 不同的弹出配置
-const centerModalConfig = {
+const fixedModalConfig = {
   type: 'fixed',
-  position: {}, // 默认居中
-  zIndex: 1000,
-}
-
-const topRightModalConfig = {
-  type: 'fixed',
-  position: { top: '50px', right: '50px' },
-  zIndex: 1000,
+  position: { top: 0, bottom: 0, right: '20%' },
 }
 
 const leftDrawerConfig = {
   type: 'drawer',
-  drawer: { direction: 'left', width: 400 },
-  zIndex: 1000,
+  drawer: { direction: 'left' },
 }
 
 const rightDrawerConfig = {
   type: 'drawer',
-  drawer: { direction: 'right', width: 500 },
-  zIndex: 1000,
+  drawer: { direction: 'right' },
 }
 </script>
 
