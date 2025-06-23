@@ -51,6 +51,10 @@ const props = withDefaults(defineProps<ActionButtonsProps>(), {
    * @default false
    */
   isOverLimit: false,
+  /**
+   * 停止按钮文字，不传则只显示图标
+   */
+  stopText: undefined,
 })
 
 const emit = defineEmits<{
@@ -187,9 +191,9 @@ const handleCancel = () => {
           <IconSend class="action-buttons__icon action-buttons__icon--send" v-if="!loading" alt="发送" />
 
           <!-- 停止生成按钮 -->
-          <div v-else class="action-buttons__cancel">
-            <IconStop class="action-buttons__icon action-buttons__icon--stop" alt="加载中" />
-            <span class="action-buttons__cancel-text">停止回答</span>
+          <div v-else class="action-buttons__cancel" :class="{ 'action-buttons__cancel--icon-only': !stopText }">
+            <IconStop class="action-buttons__icon action-buttons__icon--stop" alt="停止" />
+            <span v-if="stopText" class="action-buttons__cancel-text">{{ stopText }}</span>
           </div>
         </div>
       </tiny-button>

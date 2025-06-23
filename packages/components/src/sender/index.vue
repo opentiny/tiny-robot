@@ -32,6 +32,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   templateInitialValues: () => ({}),
   suggestions: () => [],
   suggestionPopupWidth: 400,
+  stopText: '',
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -502,7 +503,6 @@ defineExpose({
                 ref="inputRef"
                 :autosize="autoSize"
                 :type="currentType"
-                :readonly="isLoading"
                 resize="none"
                 v-model="inputValue"
                 :disabled="isDisabled"
@@ -539,6 +539,7 @@ defineExpose({
                 :speech-status="speechState"
                 :submit-type="submitType"
                 :is-over-limit="isOverLimit"
+                :stop-text="stopText"
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
@@ -589,6 +590,7 @@ defineExpose({
                     :speech-status="speechState"
                     :submit-type="submitType"
                     :is-over-limit="isOverLimit"
+                    :stop-text="stopText"
                     @clear="clearInput"
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"

@@ -52,7 +52,7 @@ const updateHiddenIndex = () => {
     }
 
     const children = getAllItemElements()
-    const gap = 8
+    const gap = parseFloat(getComputedStyle(container).rowGap) || 0
 
     let totalWidth = 0
     for (let i = 0; i < children.length; i++) {
@@ -75,9 +75,13 @@ watch(
   () => [props.items, props.items?.length],
   () => {
     nextTick(() => {
+      if (!containerRef.value) {
+        return
+      }
+
       // 计算容器最大宽度
       const children = getAllItemElements()
-      const gap = 8
+      const gap = parseFloat(getComputedStyle(containerRef.value).rowGap) || 0
       containerFullWidth.value = children.map((el) => el.offsetWidth).reduce((acc, cur) => acc + cur + gap)
     })
   },
