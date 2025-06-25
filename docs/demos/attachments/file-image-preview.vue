@@ -1,39 +1,28 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
-    <h3>1. 图片预览和下载</h3>
-    <p>点击图片可预览图片，预览界面中可进行缩放和下载操作</p>
+    <h3>1. 标准卡片图片预览和下载</h3>
+    <p>默认卡片模式，点击图片卡片同样可以打开画廊预览。</p>
     <tr-attachments
       v-model:items="imageFiles"
       :drag="false"
       :disabled="false"
-      :overflow="wrapMode"
       status-type="operate"
       :custom-actions="imageActions"
       @action="handleFileAction"
-      @file-preview="handleFilePreview"
       @file-download="handleFileDownload"
     />
 
     <h3>2. 上传失败重试功能</h3>
     <p>当图片上传失败时，可以点击"重试"按钮重新上传</p>
-    <tr-attachments
-      v-model:items="errorFiles"
-      :drag="false"
-      :disabled="false"
-      :overflow="wrapMode"
-      status-type="message"
-      @file-retry="handleFileRetry"
-    />
+    <tr-attachments v-model:items="errorFiles" status-type="message" @file-retry="handleFileRetry" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrAttachments } from '@opentiny/tiny-robot'
+import { TrAttachments, type Attachment } from '@opentiny/tiny-robot'
 
-const wrapMode = ref('wrap')
-
-// 示例1: 图片预览和下载
+// 示例1: 标准图片卡片
 const imageFiles = ref([
   {
     id: '1',
@@ -53,8 +42,8 @@ const imageFiles = ref([
     fileType: 'image',
     status: 'done',
     size: 1024 * 1024 * 1.8, // 1.8MB
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
-    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/scenery.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/scenery.jpg',
   },
 ])
 
@@ -81,6 +70,7 @@ const errorFiles = ref([
     status: 'error',
     messageType: 'error',
     isUploading: false,
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
   },
   {
     id: '4',
@@ -91,6 +81,7 @@ const errorFiles = ref([
     status: 'error',
     messageType: 'error',
     isUploading: false,
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/aurora.png',
   },
 ])
 
@@ -107,14 +98,8 @@ const handleFileAction = (payload) => {
   }
 }
 
-// 处理文件预览
-const handleFilePreview = (file) => {
-  console.log(`预览文件: ${file.name}`)
-  // 在这里可以实现自定义预览逻辑
-}
-
 // 处理文件下载
-const handleFileDownload = (file) => {
+const handleFileDownload = (file: Attachment) => {
   console.log(`下载文件: ${file.name}`)
   // 在这里可以实现自定义下载逻辑，例如通过后端API下载
 }

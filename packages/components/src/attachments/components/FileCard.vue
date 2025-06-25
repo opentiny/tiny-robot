@@ -2,37 +2,21 @@
 import { computed, ref, onUnmounted } from 'vue'
 import { useFileType } from '../composables/useFileType'
 import { useIconType } from '../composables/useIconType'
-import type { Attachment, FileType, ActionButton } from '../index.type'
-import { IconUploadFailed, IconUploadLoading } from '@opentiny/tiny-robot-svgs'
-import ImagePreview from './ImagePreview.vue'
+import type { FileType, ActionButton, FileCardProps } from '../index.type'
+import { IconUploadFailed, IconUploadLoading, IconClose } from '@opentiny/tiny-robot-svgs'
 
-const props = withDefaults(
-  defineProps<{
-    file: Attachment
-    // eslint-disable-next-line
-    fileIcons?: Record<FileType, any>
-    disabled?: boolean
-    showPreview?: boolean
-    showStatus?: boolean
-    statusType?: 'info' | 'progress' | 'operate' | 'message' | 'default'
-    customActions?: ActionButton[]
-  }>(),
-  {
-    disabled: false,
-    showPreview: true,
-    showStatus: true,
-    statusType: 'info',
-  },
-)
+const props = withDefaults(defineProps<FileCardProps>(), {
+  variant: 'card',
+  disabled: false,
+  showPreview: true,
+  showStatus: true,
+  statusType: 'info',
+})
 
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
 const { formatFileSize } = useFileType()
 
 const createdBlobUrls = ref<string[]>([])
-
-// 图片预览相关状态
-const isPreviewVisible = ref(false)
-const previewUrl = ref('')
 
 // 使用图标类型管理
 const { getIconComponent } = useIconType(props.fileIcons)
@@ -53,27 +37,14 @@ const isUploadFailed = computed(() => props.file.status === 'error')
 
 // 预览文件
 const handlePreview = () => {
-  if (isImage.value && props.file.previewUrl) {
-    previewUrl.value = props.file.previewUrl
-    isPreviewVisible.value = true
-  } else if (isImage.value && props.file.rawFile) {
-    // 如果是原生 File 对象，创建临时 URL
+  if (isImage.value && !props.file.previewUrl && props.file.rawFile) {
+    // 如果是原生 File 对象且没有预览图，创建临时 URL 给父组件使用
     const blobUrl = URL.createObjectURL(props.file.rawFile)
-    previewUrl.value = blobUrl
     createdBlobUrls.value.push(blobUrl)
-    isPreviewVisible.value = true
+    emit('preview', { ...props.file, previewUrl: blobUrl })
   } else {
-    // 非图片类型，触发外部预览事件
+    // 触发外部预览事件
     emit('preview', props.file)
-  }
-}
-
-// 关闭预览
-const closePreview = () => {
-  isPreviewVisible.value = false
-  // 清理临时 URL
-  if (previewUrl.value && previewUrl.value.startsWith('blob:')) {
-    URL.revokeObjectURL(previewUrl.value)
   }
 }
 
@@ -140,7 +111,38 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- Picture Card Variant -->
   <div
+    v-if="variant === 'picture'"
+    class="tr-file-card--picture"
+    :class="{
+      'tr-file-card--uploading': isUploading,
+      'tr-file-card--error': isUploadFailed,
+    }"
+    @click="handlePreview"
+  >
+    <img :src="file.previewUrl" :alt="file.name" class="tr-file-card__picture-img" />
+    <div class="tr-file-card__picture-overlay">
+      <span>预览</span>
+    </div>
+
+    <!-- 状态蒙版 -->
+    <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
+      <div v-if="isUploading" class="tr-file-card__loading-icon">
+        <IconUploadLoading :width="24" :height="24" />
+      </div>
+      <IconUploadFailed v-if="isUploadFailed" :width="24" :height="24" />
+    </div>
+
+    <!-- 关闭按钮 -->
+    <button v-if="!disabled" type="button" class="tr-file-card__close" @click.stop="handleRemove" aria-label="移除文件">
+      <span class="tr-file-card__close-icon"><IconClose /></span>
+    </button>
+  </div>
+
+  <!-- Default Card Variant -->
+  <div
+    v-else
     class="tr-file-card"
     :class="[
       `tr-file-card--${file.fileType || 'other'}`,
@@ -154,12 +156,12 @@ onUnmounted(() => {
   >
     <!-- 关闭按钮 - 右上角固定位置，悬浮显示 -->
     <button v-if="!disabled" type="button" class="tr-file-card__close" @click="handleRemove" aria-label="移除文件">
-      <span class="tr-file-card__close-icon">×</span>
+      <span class="tr-file-card__close-icon"><IconClose /></span>
     </button>
 
     <div
       class="tr-file-card__icon"
-      @click="isImage && showPreview ? handlePreview() : null"
+      @click.stop="isImage && showPreview ? handlePreview() : null"
       :class="{ 'tr-file-card__icon--preview': isImage && showPreview }"
     >
       <div class="tr-file-card__icon-wrapper">
@@ -238,14 +240,355 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
-
-    <!-- 图片预览弹窗 -->
-    <ImagePreview
-      v-if="isImage"
-      :visible="isPreviewVisible"
-      :image-url="previewUrl"
-      @close="closePreview"
-      @download="downloadFile"
-    />
   </div>
 </template>
+
+<style lang="less" scoped>
+@import '../vars.less';
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-ellipsis {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+// Picture Card Variant
+.tr-file-card--picture {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  margin-right: var(--tr-attachments-margin-medium);
+  margin-bottom: var(--tr-attachments-margin-medium);
+  overflow: visible;
+  cursor: pointer;
+  background-color: var(--tr-attachments-background-light);
+
+  .tr-file-card__picture-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    border-radius: inherit;
+  }
+
+  .tr-file-card__picture-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background-color: rgba(0, 0, 0, 0.4);
+    color: white;
+    .flex-center;
+    flex-direction: column;
+    font-size: var(--tr-attachments-font-size-small);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    .tr-file-card__picture-overlay {
+      opacity: 1;
+    }
+  }
+
+  // Status overlay for uploading/error
+  .tr-file-card__overlay {
+    z-index: 2;
+  }
+
+  // Close button for picture card
+  .tr-file-card__close {
+    transform: none;
+    top: -7px;
+    right: -7px;
+    background-color: #c2c2c2;
+    z-index: 3;
+  }
+
+  // Show close button on hover
+  &:hover .tr-file-card__close {
+    opacity: 1;
+  }
+
+  // Special handling for uploading/error states
+  &.tr-file-card--uploading,
+  &.tr-file-card--error {
+    .tr-file-card__picture-overlay {
+      // Hide preview overlay when showing status overlay
+      opacity: 0;
+    }
+  }
+}
+
+// Default Card Variant
+.tr-file-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: var(--tr-attachments-card-width);
+  height: var(--tr-attachments-card-height);
+  border-radius: var(--tr-attachments-border-radius);
+  background: var(--tr-attachments-background-light);
+  padding: var(--tr-attachments-card-padding);
+  margin-right: var(--tr-attachments-margin-medium);
+  margin-bottom: var(--tr-attachments-margin-medium);
+  transition: var(--tr-attachments-transition-normal);
+  box-sizing: border-box;
+
+  &:hover {
+    background: var(--tr-attachments-background-white);
+    box-shadow: var(--tr-attachments-box-shadow-light);
+  }
+
+  &--uploading {
+    .tr-file-card__status {
+      color: var(--tr-attachments-status-uploading-color);
+    }
+  }
+
+  // 关闭按钮
+  &__close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(var(--tr-attachments-card-close-offset), calc(-1 * var(--tr-attachments-card-close-offset)));
+    width: var(--tr-attachments-close-button-size);
+    height: var(--tr-attachments-close-button-size);
+    border-radius: 50%;
+    background: rgb(194, 194, 194);
+    color: white;
+    .flex-center;
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--tr-attachments-transition-fast);
+    z-index: var(--tr-attachments-z-index-close);
+
+    &-icon {
+      font-size: 6px;
+      width: 6px;
+      height: 6px;
+      line-height: 1;
+    }
+  }
+
+  &:hover &__close {
+    opacity: 1;
+  }
+
+  // 文件图标区域
+  &__icon {
+    flex-shrink: 0;
+    width: var(--tr-attachments-icon-size);
+    height: var(--tr-attachments-icon-size);
+    margin-right: var(--tr-attachments-card-icon-margin);
+    .flex-center;
+
+    &-wrapper {
+      width: 100%;
+      height: 100%;
+      .flex-center;
+      position: relative;
+      font-size: var(--tr-attachments-icon-size);
+    }
+
+    &--preview {
+      cursor: pointer;
+      transition: transform var(--tr-attachments-transition-fast);
+
+      &:hover {
+        transform: scale(1.05);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  // 上传状态遮罩
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: var(--tr-attachments-border-radius);
+    z-index: var(--tr-attachments-z-index-overlay);
+  }
+
+  // 内容区域
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // 文件名
+  &__name {
+    text-align: left;
+    width: var(--tr-attachments-card-name-width);
+    height: var(--tr-attachments-card-name-height);
+    font-size: var(--tr-attachments-font-size-small);
+    font-weight: var(--tr-attachments-font-weight-normal);
+    line-height: var(--tr-attachments-line-height);
+    color: var(--tr-attachments-text-color);
+    margin-bottom: 2px;
+    .text-ellipsis;
+  }
+
+  // 状态信息通用样式
+  &__status,
+  &__file-type,
+  &__file-size {
+    font-size: var(--tr-attachments-font-size-small);
+    font-weight: var(--tr-attachments-font-weight-normal);
+    line-height: var(--tr-attachments-line-height);
+    color: var(--tr-attachments-text-secondary);
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__file-type {
+    margin-right: 10px;
+  }
+
+  // 进度条
+  &__progress {
+    width: 100%;
+
+    &-text {
+      font-size: var(--tr-attachments-font-size-small);
+      margin-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    &-bar {
+      height: var(--tr-attachments-progress-height);
+      width: 100%;
+      background-color: var(--tr-attachments-progress-bg);
+      border-radius: calc(var(--tr-attachments-progress-height) / 2);
+      overflow: hidden;
+    }
+
+    &-inner {
+      height: 100%;
+      background-color: var(--tr-attachments-progress-color);
+      transition: width var(--tr-attachments-transition-duration) var(--tr-attachments-transition-timing);
+    }
+  }
+
+  // 操作按钮
+  &__actions {
+    display: flex;
+    align-items: center;
+  }
+
+  &__action {
+    height: var(--tr-attachments-action-height);
+    .flex-center;
+    border: none;
+    background: transparent;
+    color: var(--tr-attachments-action-color);
+    cursor: pointer;
+    border-radius: var(--tr-attachments-padding-small);
+    transition: var(--tr-attachments-transition-fast-all);
+    white-space: nowrap;
+
+    &-icon {
+      font-size: var(--tr-attachments-font-size-small);
+      line-height: 1;
+    }
+
+    &--preview,
+    &--download {
+      color: var(--tr-attachments-action-preview-color);
+
+      &:hover {
+        color: var(--tr-attachments-action-hover-color);
+      }
+    }
+
+    &--download {
+      margin-left: var(--tr-attachments-action-spacing);
+    }
+  }
+
+  // 状态消息
+  &__message {
+    width: 100%;
+    font-size: var(--tr-attachments-font-size-small);
+    line-height: var(--tr-attachments-line-height);
+
+    &--error {
+      color: var(--tr-attachments-status-error-color);
+    }
+
+    &--warning {
+      color: var(--tr-attachments-status-warning-color);
+    }
+
+    &--success {
+      color: var(--tr-attachments-status-success-color);
+    }
+
+    &--info {
+      color: var(--tr-attachments-status-info-color);
+    }
+  }
+
+  // 重试按钮
+  &__retry {
+    display: flex;
+    gap: var(--tr-attachments-gap);
+    align-items: center;
+    width: 100%;
+  }
+
+  &__error-text {
+    color: var(--tr-attachments-status-error-color);
+    font-size: var(--tr-attachments-font-size-small);
+  }
+
+  &__retry-btn {
+    background: transparent;
+    border: none;
+    color: var(--tr-attachments-primary-color);
+    cursor: pointer;
+    font-size: var(--tr-attachments-font-size-small);
+    border-radius: var(--tr-attachments-padding-small);
+    transition: var(--tr-attachments-transition-fast-all);
+
+    &:hover {
+      background-color: var(--tr-attachments-primary-light);
+    }
+  }
+}
+</style>

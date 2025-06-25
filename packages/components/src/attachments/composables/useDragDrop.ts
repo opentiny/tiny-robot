@@ -1,4 +1,4 @@
-import { reactive, watch, onBeforeUnmount, computed, ComputedRef, Ref, isRef, ref } from 'vue'
+import { reactive, watch, onBeforeUnmount, computed, ComputedRef, ref } from 'vue'
 import type { DragConfig, AttachmentsProps } from '../index.type'
 
 /**
@@ -7,14 +7,18 @@ import type { DragConfig, AttachmentsProps } from '../index.type'
  * @param props 属性
  * @returns 拖拽状态
  */
-export function useDragDrop(
-  options: { enabled: Ref<boolean>; onDrop: (files: File[]) => void },
-  props: AttachmentsProps,
-) {
+export function useDragDrop(options: { onDrop: (files: File[]) => void }, props: AttachmentsProps) {
+  const dropZoneRef = ref<HTMLElement | null>(null)
+
   const dragState = reactive({
     active: false,
     isFullscreen: false,
     position: { x: 0, y: 0 },
+  })
+
+  const isDragEnabled = computed(() => !!props.drag && !props.disabled)
+  const isDragFullscreen = computed(() => {
+    return typeof props.drag === 'object' && props.drag.mode === 'fullscreen'
   })
 
   const dragConfig = computed(() => props.drag) as ComputedRef<DragConfig>
@@ -133,7 +137,7 @@ export function useDragDrop(
     }
   }
 
-  const enabledRef = isRef(options.enabled) ? options.enabled : ref(options.enabled)
+  const enabledRef = isDragEnabled
   watch(enabledRef, updateDragState, { immediate: true })
 
   watch(
@@ -154,7 +158,10 @@ export function useDragDrop(
   })
 
   return {
+    dropZoneRef,
     dragState,
+    isDragEnabled,
+    isDragFullscreen,
     dropZone: () => dropElement,
     initDrag: () => {
       if (!isInitialized && enabledRef.value) {

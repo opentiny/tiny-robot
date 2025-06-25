@@ -48,62 +48,61 @@ const customClass = computed(() => props.config?.className ?? '')
 </template>
 
 <style lang="less" scoped>
+@import '../vars.less';
+
 .tr-fullscreen-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: var(--tr-overlay-backdrop-filter);
+  background: var(--tr-overlay-bg-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 10px;
-  border: 2px dashed #1976d2;
-  border-radius: 8px;
-  animation: pulse-border 1.5s infinite;
 
   &__content {
     display: flex;
+    min-width: var(--tr-overlay-content-min-width);
+    min-height: var(--tr-overlay-content-min-height);
     flex-direction: column;
+    justify-content: center;
     align-items: center;
-    padding: 40px;
-    border-radius: 8px;
-    min-width: 300px;
+    padding: var(--tr-overlay-padding);
+    border-radius: var(--tr-overlay-border-radius);
     text-align: center;
+    border: var(--tr-overlay-border);
   }
 
   &__icon {
-    color: #1976d2;
-    margin-bottom: 32.25px;
-    font-size: 64px;
-    animation: bounce 1.5s infinite ease-in-out;
+    color: var(--tr-overlay-icon-color);
+    margin-bottom: var(--tr-overlay-icon-margin-bottom);
+    font-size: var(--tr-overlay-icon-size);
   }
 
   &__text {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--tr-overlay-text-gap);
     justify-content: center;
   }
 
   &__title {
-    color: rgb(25, 25, 25);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 24px;
+    color: var(--tr-overlay-title-color);
+    font-size: var(--tr-overlay-title-font-size);
+    font-weight: var(--tr-overlay-title-font-weight);
+    line-height: var(--tr-overlay-desc-line-height);
     letter-spacing: 0;
     text-align: center;
   }
 
   &__description {
-    width: 253px;
-    height: 40px;
-    color: rgb(128, 128, 128);
-    font-size: 12px;
+    width: 100%;
+    color: var(--tr-overlay-desc-color);
+    font-size: var(--tr-overlay-desc-font-size);
     font-weight: 400;
-    line-height: 20px;
+    line-height: var(--tr-overlay-desc-line-height);
     letter-spacing: 0;
     text-align: center;
 
@@ -112,48 +111,20 @@ const customClass = computed(() => props.config?.className ?? '')
     align-items: center;
     justify-content: center;
   }
-
-  @keyframes bounce {
-    0%,
-    20%,
-    50%,
-    80%,
-    100% {
-      transform: translateY(0);
-    }
-    40% {
-      transform: translateY(-20px);
-    }
-    60% {
-      transform: translateY(-10px);
-    }
-  }
-
-  @keyframes pulse-border {
-    0%,
-    100% {
-      border-color: rgba(25, 118, 210, 0.7);
-      box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.3);
-    }
-
-    50% {
-      border-color: rgba(25, 118, 210, 1);
-      box-shadow: 0 0 0 5px rgba(25, 118, 210, 0);
-    }
-  }
 }
 
 // 过渡动画
-.tr-fade-enter-active {
-  transition: opacity var(--enter-delay) ease;
-}
+.tr-fade {
+  &-enter-active {
+    transition: opacity var(--enter-delay) ease;
+  }
+  &-leave-active {
+    transition: opacity var(--leave-delay) ease;
+  }
 
-.tr-fade-leave-active {
-  transition: opacity var(--leave-delay) ease;
-}
-
-.tr-fade-enter-from,
-.tr-fade-leave-to {
-  opacity: 0;
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+  }
 }
 </style>

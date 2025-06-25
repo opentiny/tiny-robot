@@ -11,12 +11,16 @@
       :overflow="wrapMode"
       status-type="message"
     />
+
+    <h3>3. 纯图片卡片预览</h3>
+    <p>设置 <code>variant="picture"</code> 可开启纯图片展示模式。点击图片可打开画廊式预览</p>
+    <tr-attachments v-model:items="pictureFiles" variant="picture" :drag="true" :disabled="false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrAttachments } from '@opentiny/tiny-robot'
+import { TrAttachments, Attachment } from '@opentiny/tiny-robot'
 
 const wrapMode = ref('wrap')
 
@@ -67,6 +71,31 @@ const messageFiles = ref([
     size: 1024 * 1024 * 1.1, // 1.1MB
     status: 'error',
     messageType: 'error',
+  },
+])
+
+// 示例1: 纯图片卡片
+const pictureFiles = ref<Attachment[]>([
+  {
+    uid: 'pic1',
+    name: 'nature-1.jpg',
+    fileType: 'image',
+    status: 'done',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+  },
+  {
+    uid: 'pic2',
+    name: 'nature-2.jpg',
+    fileType: 'image',
+    status: 'uploading',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
+  },
+  {
+    uid: 'pic3',
+    name: 'nature-3.jpg',
+    fileType: 'image',
+    status: 'error',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.png',
   },
 ])
 </script>

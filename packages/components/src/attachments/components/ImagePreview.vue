@@ -1,74 +1,100 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { IconArrowUp as IconArrowLeft, IconArrowDown as IconArrowRight, IconClose } from '@opentiny/tiny-robot-svgs'
+import type { Attachment } from '../index.type'
 
-defineProps<{
+const props = defineProps<{
   visible: boolean
-  imageUrl: string
+  images: Attachment[]
+  currentIndex: number
 }>()
 
-const emit = defineEmits(['close', 'download'])
+const emit = defineEmits(['close', 'update:currentIndex'])
 
-const zoomLevel = ref(1)
-const zoomStep = 0.1
+const localCurrentIndex = ref(props.currentIndex)
 
-// 放大图片
-function zoomIn() {
-  zoomLevel.value += zoomStep
-  updateZoom()
-}
+const currentImage = computed(() => props.images[localCurrentIndex.value])
 
-// 缩小图片
-function zoomOut() {
-  if (zoomLevel.value > zoomStep) {
-    zoomLevel.value -= zoomStep
-    updateZoom()
+watch(
+  () => props.currentIndex,
+  (newIndex) => {
+    localCurrentIndex.value = newIndex
+  },
+)
+
+watch(
+  () => props.visible,
+  (isVisible) => {
+    if (isVisible) {
+      localCurrentIndex.value = props.currentIndex
+    }
+  },
+)
+
+// 切换图片
+const prevImage = () => {
+  if (localCurrentIndex.value > 0) {
+    localCurrentIndex.value--
+    emit('update:currentIndex', localCurrentIndex.value)
   }
 }
 
-// 重置缩放
-function resetZoom() {
-  zoomLevel.value = 1
-  updateZoom()
+const nextImage = () => {
+  if (localCurrentIndex.value < props.images.length - 1) {
+    localCurrentIndex.value++
+    emit('update:currentIndex', localCurrentIndex.value)
+  }
 }
 
-// 更新图片缩放
-function updateZoom() {
-  const img = document.querySelector('.tr-image-preview__image') as HTMLElement
-  if (img) {
-    img.style.transform = `scale(${zoomLevel.value})`
-  }
+const selectImage = (index: number) => {
+  localCurrentIndex.value = index
+  emit('update:currentIndex', localCurrentIndex.value)
 }
 
 // 关闭预览
 function close() {
   emit('close')
 }
-
-// 下载图片
-function download() {
-  emit('download')
-}
 </script>
 
 <template>
   <div class="tr-image-preview" v-if="visible" @click.self="close">
-    <div class="tr-image-preview__content">
-      <img :src="imageUrl" alt="预览图片" class="tr-image-preview__image" />
-      <div class="tr-image-preview__tools">
-        <button class="tr-image-preview__btn" @click="zoomIn">
-          <span>+</span>
-        </button>
-        <button class="tr-image-preview__btn" @click="resetZoom">
-          <span>100%</span>
-        </button>
-        <button class="tr-image-preview__btn" @click="zoomOut">
-          <span>-</span>
-        </button>
-        <button class="tr-image-preview__btn tr-image-preview__btn--download" @click="download">
-          <span>下载</span>
-        </button>
+    <button class="tr-image-preview__close" @click="close"><IconClose /></button>
+
+    <div class="tr-image-preview__main">
+      <button
+        class="tr-image-preview__nav tr-image-preview__nav--left"
+        @click.stop="prevImage"
+        :disabled="localCurrentIndex === 0"
+      >
+        <IconArrowRight />
+      </button>
+
+      <div class="tr-image-preview__content">
+        <img :src="currentImage?.previewUrl" :alt="currentImage?.name" class="tr-image-preview__image" />
       </div>
-      <button class="tr-image-preview__close" @click="close">×</button>
+
+      <button
+        class="tr-image-preview__nav tr-image-preview__nav--right"
+        @click.stop="nextImage"
+        :disabled="localCurrentIndex === images.length - 1"
+      >
+        <IconArrowLeft />
+      </button>
+    </div>
+
+    <div class="tr-image-preview__footer">
+      <div class="tr-image-preview__thumbnails">
+        <div
+          v-for="(image, index) in images"
+          :key="image.uid"
+          class="tr-image-preview__thumbnail"
+          :class="{ 'tr-image-preview__thumbnail--active': index === localCurrentIndex }"
+          @click="selectImage(index)"
+        >
+          <img :src="image.previewUrl" :alt="image.name" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -80,76 +106,123 @@ function download() {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
+
+  &__main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  &__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #898989;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+
+    &:disabled {
+      display: none;
+    }
+
+    &--left {
+      font-size: 16px;
+      transform: rotate(90deg);
+      left: 100px;
+    }
+
+    &--right {
+      font-size: 16px;
+      transform: rotate(90deg);
+      right: 100px;
+    }
+  }
 
   &__content {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 90%;
-    max-height: 90%;
+    max-width: 80%;
+    max-height: 80vh;
   }
 
   &__image {
     max-width: 100%;
-    max-height: 80vh;
+    max-height: calc(80vh - 120px); // 留出底部工具栏和缩略图空间
     object-fit: contain;
     transition: transform 0.2s ease;
   }
 
-  &__tools {
+  &__footer {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    gap: 8px;
-    margin-top: 16px;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
 
-  &__btn {
-    padding: 6px 12px;
-    background-color: rgba(255, 255, 255, 0.2);
-    border: none;
-    border-radius: 4px;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.2s;
+  &__thumbnails {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    max-width: 80vw;
+    overflow-x: auto;
+  }
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.3);
+  &__thumbnail {
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    filter: blur(1px);
+    transition: border-color 0.2s;
+
+    &--active {
+      filter: blur(0);
     }
 
-    &--download {
-      background-color: rgba(61, 112, 178, 0.8);
-      margin-left: 8px;
-
-      &:hover {
-        background-color: rgba(61, 112, 178, 1);
-      }
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
   }
 
   &__close {
     position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 36px;
-    height: 36px;
+    top: 20px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: #595959;
     border: none;
     color: white;
-    font-size: 20px;
+    font-size: 15px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.3);
-    }
   }
 }
 </style>
