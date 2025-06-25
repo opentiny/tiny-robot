@@ -75,11 +75,11 @@ const placementStart = computed(() => props.placement === 'start')
               ></component>
               <component v-else :is="contentRenderer.vNodeOrComponent"></component>
             </template>
-            <span v-else class="tr-bubbule__body-text">{{ bubbleContent }}</span>
+            <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
           </slot>
         </template>
-        <span v-if="props.aborted" class="tr-bubbule__aborted">（用户停止）</span>
-        <div v-if="slots.footer" class="tr-bubbule__footer">
+        <span v-if="props.aborted" class="tr-bubble__aborted">（用户停止）</span>
+        <div v-if="slots.footer" class="tr-bubble__footer">
           <slot name="footer" :bubble-props="props"></slot>
         </div>
       </div>
@@ -137,7 +137,7 @@ const placementStart = computed(() => props.placement === 'start')
     gap: 12px;
   }
 
-  .tr-bubbule__body-text {
+  .tr-bubble__body-text {
     color: rgb(25, 25, 25);
     font-size: 16px;
     line-height: 26px;
@@ -145,12 +145,12 @@ const placementStart = computed(() => props.placement === 'start')
     white-space: pre-line;
   }
 
-  .tr-bubbule__aborted {
+  .tr-bubble__aborted {
     color: rgb(128, 128, 128);
     font-size: 14px;
   }
 
-  .tr-bubbule__footer {
+  .tr-bubble__footer {
     margin-top: 12px;
   }
 }
