@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { onClickOutside, useElementBounding } from '@vueuse/core'
-import { ComponentPublicInstance, computed, CSSProperties, ref, watch } from 'vue'
+import { onClickOutside } from '@vueuse/core'
+import { computed, ref } from 'vue'
+import TrBasePopper from '../base-popper'
 import { toCssUnit } from '../shared/utils'
-import { TrTeleport } from '../teleport'
-import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps, DropdownMenuSlots } from './index.type'
+import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps } from './index.type'
 
 const props = withDefaults(defineProps<DropdownMenuProps>(), {
   trigger: 'click',
-  topOffset: 0,
   minWidth: 160,
 })
 
@@ -31,33 +30,9 @@ const show = computed({
   },
 })
 
-const slots = defineSlots<DropdownMenuSlots>()
-const triggerSlots = slots.trigger?.()
-const triggerVNode = Array.isArray(triggerSlots) ? triggerSlots.at(0) : triggerSlots
-
-const triggerRef = ref<HTMLElement | null>(null)
-const dropdownMenuRef = ref<HTMLDivElement | null>(null)
-
-const setRef = (el: unknown) => {
-  if ((el as ComponentPublicInstance)?.$el) {
-    triggerRef.value = (el as ComponentPublicInstance).$el
-  } else if (el instanceof HTMLElement) {
-    triggerRef.value = el
-  } else {
-    triggerRef.value = null
-  }
-}
-
-const { x, y, update } = useElementBounding(triggerRef)
-const { width: menuWidth, height: menuHeight } = useElementBounding(dropdownMenuRef)
-
-const dropdownStyles = computed<CSSProperties>(() => {
-  return {
-    left: `min(${toCssUnit(x.value)}, 100% - ${toCssUnit(menuWidth.value)})`,
-    top: `max(${toCssUnit(y.value)} - ${toCssUnit(menuHeight.value)} + ${toCssUnit(props.topOffset)} - 8px, 0px)`,
-    minWidth: toCssUnit(props.minWidth),
-  }
-})
+const basePopperRef = ref<InstanceType<typeof TrBasePopper> | null>(null)
+const triggerRef = computed(() => basePopperRef.value?.triggerRef)
+const dropdownMenuRef = computed(() => basePopperRef.value?.popperRef)
 
 onClickOutside(
   dropdownMenuRef,
@@ -68,13 +43,7 @@ onClickOutside(
   { ignore: [triggerRef] },
 )
 
-watch(show, (value) => {
-  if (value) {
-    update()
-  }
-})
-
-const handleToggleShow = () => {
+const toggleShow = () => {
   show.value = !show.value
 }
 
@@ -85,28 +54,37 @@ const handleItemClick = (item: DropdownMenuItem) => {
 </script>
 
 <template>
-  <component :is="triggerVNode" :ref="setRef" @pointerup="handleToggleShow" />
-  <TrTeleport :anchor="triggerRef">
-    <Transition name="tr-dropdown-menu">
-      <div v-if="show" class="tr-dropdown-menu" :style="dropdownStyles" v-bind="$attrs" ref="dropdownMenuRef">
-        <ul class="tr-dropdown-menu__list">
-          <li
-            class="tr-dropdown-menu__list-item"
-            v-for="item in props.items"
-            :key="item.id"
-            @click="handleItemClick(item)"
-          >
-            {{ item.text }}
-          </li>
-        </ul>
-      </div>
-    </Transition>
-  </TrTeleport>
+  <TrBasePopper
+    :show="show"
+    class="tr-dropdown-menu"
+    :style="{ minWidth: toCssUnit(props.minWidth) }"
+    ref="basePopperRef"
+    placement="top-left"
+    :offset="8"
+    :transition-props="{ name: 'tr-dropdown-menu' }"
+    :prevent-overflow="true"
+    :trigger-events="{ onPointerup: toggleShow }"
+  >
+    <template #trigger>
+      <slot name="trigger" />
+    </template>
+    <template #content>
+      <ul class="tr-dropdown-menu__list">
+        <li
+          class="tr-dropdown-menu__list-item"
+          v-for="item in props.items"
+          :key="item.id"
+          @click="handleItemClick(item)"
+        >
+          {{ item.text }}
+        </li>
+      </ul>
+    </template>
+  </TrBasePopper>
 </template>
 
-<style lang="less" scoped>
+<style lang="less">
 .tr-dropdown-menu {
-  position: fixed;
   z-index: var(--tr-z-index-dropdown);
   padding: 8px;
   border-radius: 12px;
@@ -130,25 +108,27 @@ const handleItemClick = (item: DropdownMenuItem) => {
   &-leave-from {
     opacity: 1;
   }
+}
+</style>
 
-  .tr-dropdown-menu__list {
-    flex: 1;
-    list-style: none;
-    scrollbar-width: thin;
-    scrollbar-color: #dbdbdb transparent;
+<style lang="less" scoped>
+.tr-dropdown-menu__list {
+  flex: 1;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #dbdbdb transparent;
 
-    .tr-dropdown-menu__list-item {
-      font-size: 14px;
-      line-height: 24px;
-      padding: 4px 8px;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: background-color 0.3s ease;
-      font-weight: 600;
+  .tr-dropdown-menu__list-item {
+    font-size: 14px;
+    line-height: 24px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    font-weight: 600;
 
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.08);
-      }
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.08);
     }
   }
 }

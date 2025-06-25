@@ -3,7 +3,6 @@ import vue from '@vitejs/plugin-vue'
 import vuejsx from '@vitejs/plugin-vue-jsx'
 import { readdirSync } from 'fs'
 import { resolve } from 'path'
-import { fileURLToPath } from 'url'
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
 
@@ -50,9 +49,6 @@ export default defineConfig({
   ],
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
-    alias: {
-      '~': fileURLToPath(new URL('./src', import.meta.url)),
-    },
   },
   build: {
     lib: {
