@@ -38,6 +38,7 @@
     @tab-change="handleTabChange"
     @market-category-change="handleMarketCategoryChange"
     @custom-add="handleCustomAdd"
+    @plugin-expand="handlePluginExpand"
   />
 </template>
 
@@ -190,6 +191,14 @@ const handlePluginDelete = (plugin: PluginInfo) => {
   const index = installedPlugins.value.findIndex((p) => p.id === plugin.id)
   if (index > -1) {
     installedPlugins.value.splice(index, 1)
+  }
+}
+
+const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
+  console.log('插件展开状态变化:', plugin.name, expanded)
+  const targetPlugin = installedPlugins.value.find((p) => p.id === plugin.id)
+  if (targetPlugin) {
+    targetPlugin.expanded = expanded
   }
 }
 
