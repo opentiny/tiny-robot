@@ -1,7 +1,7 @@
 import { App } from 'vue'
 import MCPServerPicker from './index.vue'
 
-MCPServerPicker.name = 'MCPServerPicker'
+MCPServerPicker.name = 'McpServerPicker'
 
 const install = function <T>(app: App<T>) {
   app.component(MCPServerPicker.name!, MCPServerPicker)

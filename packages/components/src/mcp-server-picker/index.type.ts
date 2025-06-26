@@ -138,7 +138,7 @@ export interface CreatePluginDialogEmits {
 export interface AddPluginFormData {
   name: string
   description: string
-  types: string[]
+  type: string
   url: string
   headers: string
   thumbnail?: File | null

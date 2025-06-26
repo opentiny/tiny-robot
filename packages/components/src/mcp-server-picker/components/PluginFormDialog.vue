@@ -21,7 +21,7 @@ const defaultImageUrl = 'https://res.hc-cdn.com/tinyui-design/1.1.0.202505261915
 const getDefaultFormData = (): AddPluginFormData => ({
   name: '',
   description: '',
-  types: [],
+  type: '',
   url: '',
   headers: '',
   thumbnail: null,
@@ -92,11 +92,7 @@ const handleCancel = () => {
 }
 
 const handleTypeChange = (typeValue: string) => {
-  if (formData.value.types.includes(typeValue)) {
-    formData.value.types = formData.value.types.filter((t) => t !== typeValue)
-  } else {
-    formData.value.types.push(typeValue)
-  }
+  formData.value.type = typeValue
 }
 
 const { open: openFileDialog, files } = useFileDialog({
@@ -179,12 +175,12 @@ const handleOpenFileDialog = () => {
             <label class="plugin-form-dialog__label">类型</label>
             <div class="plugin-form-dialog__checkbox-group">
               <label v-for="option in typeOptions" :key="option.value" class="plugin-form-dialog__checkbox-item">
-                <IconSelected v-if="formData.types.includes(option.value)" />
+                <IconSelected v-if="formData.type === option.value" />
                 <IconUnselected v-else />
                 <input
-                  type="checkbox"
+                  type="radio"
                   :value="option.value"
-                  :checked="formData.types.includes(option.value)"
+                  :checked="formData.type === option.value"
                   @change="handleTypeChange(option.value)"
                   class="plugin-form-dialog__checkbox"
                 />

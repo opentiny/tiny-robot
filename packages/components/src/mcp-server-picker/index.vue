@@ -115,8 +115,7 @@ watch(marketCategory, (category) => {
 const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
   if (!props.allowPluginToggle) return
 
-  // 直接更新插件数据
-  plugin.enabled = enabled
+  emit('plugin-toggle', plugin, enabled)
 
   // 父子级联动
   if (props.enableParentChildSync && plugin.tools?.length) {
@@ -124,7 +123,6 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
       // 父级被禁用时，禁用所有子级工具
       plugin.tools.forEach((tool) => {
         if (tool.enabled) {
-          tool.enabled = false
           emit('tool-toggle', plugin, tool.id, false)
         }
       })
@@ -133,37 +131,28 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
       const enabledTools = plugin.tools.filter((t) => t.enabled)
       if (enabledTools.length === 0) {
         plugin.tools.forEach((tool) => {
-          tool.enabled = true
           emit('tool-toggle', plugin, tool.id, true)
         })
       }
     }
   }
-
-  emit('plugin-toggle', plugin, enabled)
 }
 
 const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) => {
   if (!props.allowToolToggle) return
 
-  // 直接更新工具数据
-  const tool = plugin.tools?.find((t) => t.id === toolId)
-  if (tool) {
-    tool.enabled = enabled
-  }
+  emit('tool-toggle', plugin, toolId, enabled)
 
   // 父子级联动：根据子级工具的激活状态更新父级插件的激活状态
   if (props.enableParentChildSync && plugin.tools?.length) {
-    const enabledTools = plugin.tools.filter((t) => t.enabled)
-    const shouldPluginBeEnabled = enabledTools.length > 0
+    // 模拟本次切换后的工具状态，以计算父插件是否应该被激活
+    const otherToolsEnabled = plugin.tools.filter((t) => t.id !== toolId).some((t) => t.enabled)
+    const shouldPluginBeEnabled = enabled || otherToolsEnabled
 
     if (plugin.enabled !== shouldPluginBeEnabled) {
-      plugin.enabled = shouldPluginBeEnabled
       emit('plugin-toggle', plugin, shouldPluginBeEnabled)
     }
   }
-
-  emit('tool-toggle', plugin, toolId, enabled)
 }
 
 const handleDeletePlugin = (plugin: PluginInfo) => {
