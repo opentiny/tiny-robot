@@ -1,5 +1,5 @@
 export * from './class-renderer'
-export * from './collapse'
+export * from './collapsible-text'
 export * from './defaultRendererMap'
 export * from './index.type'
 export * from './markdown'

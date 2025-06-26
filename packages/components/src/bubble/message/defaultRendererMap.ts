@@ -1,4 +1,4 @@
-import { BubbleCollapseMessageRenderer } from './collapse'
+import { BubbleCollapsibleTextMessageRenderer } from './collapsible-text'
 import { BubbleMessageRenderer } from './index.type'
 import { BubbleTextMessageRenderer } from './text'
 import { BubbleToolMessageRenderer } from './tool'
@@ -6,7 +6,7 @@ import { BubbleToolMessageRenderer } from './tool'
 export const defaultMessageRendererMap = new Map<string, BubbleMessageRenderer>([
   ['text', BubbleTextMessageRenderer],
   ['tool', BubbleToolMessageRenderer],
-  ['collapse', BubbleCollapseMessageRenderer],
+  ['collapsible-text', BubbleCollapsibleTextMessageRenderer],
 ])
 
 export const RENDERER_MAP_PROVIDER_KEY = Symbol('bubbleMessageRendererMap')

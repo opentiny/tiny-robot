@@ -69,7 +69,7 @@ const messages = ref<BubbleMessageProps[]>([
     formatPretty: true,
   },
   {
-    type: 'collapse',
+    type: 'collapsible-text',
     title: '思考过程（折叠消息渲染器）',
     content: thinkingContent,
   },
@@ -77,7 +77,7 @@ const messages = ref<BubbleMessageProps[]>([
 
 const addMessage = () => {
   messages.value.push({
-    type: 'collapse',
+    type: 'collapsible-text',
     title: '思考过程',
     content:
       '已获取到西安明天（2025年5月31日）的天气，最高温度28℃，最低温度17℃，有小雨。下一步，使用高德地图的文本搜索工具查找西安适合游玩的地点。',
@@ -85,7 +85,7 @@ const addMessage = () => {
 }
 
 const setThinkingContent = () => {
-  const message = messages.value.find((m) => m.type === 'collapse')
+  const message = messages.value.find((m) => m.type === 'collapsible-text')
   if (!message) {
     return
   }

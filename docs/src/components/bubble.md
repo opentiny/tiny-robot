@@ -62,14 +62,14 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 
 当 Bubble 组件的 `messages` 数组不为空时，系统会：
 
-1. 检查每条消息的 `type` 字段
-2. 在 `BubbleProvider` 中查找匹配的渲染器
-3. 使用找到的渲染器渲染消息内容
-4. 如果未找到匹配的渲染器，则使用默认渲染方式
+1.检查每条消息的 `type` 字段  
+2.在 `BubbleProvider` 中查找匹配的渲染器  
+3.使用找到的渲染器渲染消息内容  
+4.如果未找到匹配的渲染器，则使用默认渲染方式
 
 有三种方式可以实现自定义消息渲染器：
 
-1. **函数式渲染器**：
+1.**函数式渲染器**：
 
    ```typescript
    const myRenderer: BubbleMessageFunctionRenderer = (options) => {
@@ -77,7 +77,7 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
    }
    ```
 
-2. **类式渲染器**：
+2.**类式渲染器**：
 
    必须继承 `BubbleMessageClassRenderer` 类
 
@@ -105,7 +105,7 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
    </script>
    ```
 
-3. **Vue 组件**：
+3.**Vue 组件**：
 
    message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
 
@@ -114,6 +114,16 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
      <div>{{ props.content }}</div>
    </template>
    ```
+
+目前内置直接可用的的渲染器类型有
+
+- `text`(默认渲染器)
+- `collapsible-text`
+- `tool`
+
+内置需要自行导入的渲染有
+
+- `BubbleMarkdownMessageRenderer` 类渲染器
 
 <demo vue="../../demos/bubble/messages.vue" />
 
