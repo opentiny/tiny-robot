@@ -113,7 +113,8 @@ const handleItemClick = (item: DropdownMenuItem) => {
 
 <style lang="less" scoped>
 .tr-dropdown-menu__list {
-  flex: 1;
+  padding: 0;
+  margin: 0;
   list-style: none;
   scrollbar-width: thin;
   scrollbar-color: #dbdbdb transparent;

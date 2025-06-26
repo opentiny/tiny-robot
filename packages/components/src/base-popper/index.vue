@@ -1,6 +1,6 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { MaybeElement, unrefElement, useElementBounding, useElementSize } from '@vueuse/core'
+import { MaybeElement, useElementBounding, useElementSize } from '@vueuse/core'
 import {
   ComponentPublicInstance,
   computed,
@@ -12,8 +12,8 @@ import {
   VNode,
   watch,
 } from 'vue'
+import { useTeleportTarget } from '../shared/composables'
 import { toCssUnit } from '../shared/utils'
-import { TrTeleport } from '../teleport'
 
 defineOptions({
   inheritAttrs: false,
@@ -161,6 +161,8 @@ watch(
   },
 )
 
+const teleportTarget = useTeleportTarget(triggerRef)
+
 defineExpose({
   triggerRef,
   triggerRefs,
@@ -176,13 +178,13 @@ defineExpose({
     :ref="(el: unknown) => setRefs(el, index)"
     v-bind="indexedEventHandlers[index]"
   />
-  <TrTeleport :anchor="unrefElement(triggerRef)">
-    <Transition v-bind="transitionProps">
-      <div v-if="show" class="tr-base-popper" ref="popperRef" :style="popperStyles" v-bind="$attrs">
+  <Transition v-bind="transitionProps">
+    <Teleport v-if="show" :to="teleportTarget">
+      <div class="tr-base-popper" ref="popperRef" :style="popperStyles" v-bind="$attrs">
         <slot name="content" />
       </div>
-    </Transition>
-  </TrTeleport>
+    </Teleport>
+  </Transition>
 </template>
 
 <style lang="less" scoped>
