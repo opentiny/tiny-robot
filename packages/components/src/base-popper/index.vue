@@ -19,7 +19,7 @@ defineOptions({
   inheritAttrs: false,
 })
 
-type TriggerEvents = Record<`on${Capitalize<string>}`, (...args: any[]) => void>
+type TriggerEvents = Partial<Record<`on${Capitalize<string>}`, (...args: any[]) => void>>
 
 const props = withDefaults(
   defineProps<{

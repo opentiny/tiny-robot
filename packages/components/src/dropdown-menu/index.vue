@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { onClickOutside } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { onClickOutside, unrefElement, useElementHover } from '@vueuse/core'
+import { computed, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
-import { toCssUnit } from '../shared/utils'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps } from './index.type'
 
 const props = withDefaults(defineProps<DropdownMenuProps>(), {
   trigger: 'click',
-  minWidth: 160,
 })
 
 const emit = defineEmits<DropdownMenuEmits>()
@@ -34,17 +32,34 @@ const basePopperRef = ref<InstanceType<typeof TrBasePopper> | null>(null)
 const triggerRef = computed(() => basePopperRef.value?.triggerRef)
 const dropdownMenuRef = computed(() => basePopperRef.value?.popperRef)
 
-onClickOutside(
-  dropdownMenuRef,
-  (ev) => {
-    emit('click-outside', ev as MouseEvent)
-    show.value = false
-  },
-  { ignore: [triggerRef] },
-)
+if (props.trigger === 'click' || props.trigger === 'manual') {
+  onClickOutside(
+    dropdownMenuRef,
+    (ev) => {
+      emit('click-outside', ev as MouseEvent)
+      show.value = false
+    },
+    { ignore: [triggerRef] },
+  )
+} else if (props.trigger === 'hover') {
+  const isTriggerHovered = useElementHover(
+    computed(() => unrefElement(triggerRef.value)),
+    { delayEnter: 100, delayLeave: 300 },
+  )
+  const isDropdownMenuHovered = useElementHover(dropdownMenuRef, { delayEnter: 100, delayLeave: 300 })
 
-const toggleShow = () => {
-  show.value = !show.value
+  watch(
+    () => [isTriggerHovered.value, isDropdownMenuHovered.value],
+    ([isTriggerHovered, isDropdownMenuHovered]) => {
+      show.value = isTriggerHovered || isDropdownMenuHovered
+    },
+  )
+}
+
+const handleTriggerClick = () => {
+  if (props.trigger === 'click') {
+    show.value = !show.value
+  }
 }
 
 const handleItemClick = (item: DropdownMenuItem) => {
@@ -57,13 +72,12 @@ const handleItemClick = (item: DropdownMenuItem) => {
   <TrBasePopper
     :show="show"
     class="tr-dropdown-menu"
-    :style="{ minWidth: toCssUnit(props.minWidth) }"
     ref="basePopperRef"
     placement="top-left"
     :offset="8"
     :transition-props="{ name: 'tr-dropdown-menu' }"
     :prevent-overflow="true"
-    :trigger-events="{ onPointerup: toggleShow }"
+    :trigger-events="{ onClick: handleTriggerClick }"
   >
     <template #trigger>
       <slot name="trigger" />
@@ -84,19 +98,28 @@ const handleItemClick = (item: DropdownMenuItem) => {
 </template>
 
 <style lang="less">
+:root {
+  --tr-dropdown-menu-bg-color: #ffffff;
+  --tr-dropdown-menu-box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  --tr-dropdown-menu-min-width: 130px;
+  --tr-dropdown-menu-item-color: rgb(25, 25, 25);
+  --tr-dropdown-menu-item-hover-bg-color: #f5f5f5;
+}
+
 .tr-dropdown-menu {
   z-index: var(--tr-z-index-dropdown);
+  min-width: var(--tr-dropdown-menu-min-width);
   padding: 8px;
   border-radius: 12px;
-  color: rgb(25, 25, 25);
-  background-color: #ffffff;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  background-color: var(--tr-dropdown-menu-bg-color);
+  box-shadow: var(--tr-dropdown-menu-box-shadow);
 
   &-enter-active,
   &-leave-active {
     transition-property: opacity;
     transition-duration: 0.3s;
     transition-timing-function: ease;
+    pointer-events: none;
   }
 
   &-enter-from,
@@ -120,16 +143,16 @@ const handleItemClick = (item: DropdownMenuItem) => {
   scrollbar-color: #dbdbdb transparent;
 
   .tr-dropdown-menu__list-item {
+    color: var(--tr-dropdown-menu-item-color);
     font-size: 14px;
     line-height: 24px;
     padding: 4px 8px;
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.3s ease;
-    font-weight: 600;
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.08);
+      background-color: var(--tr-dropdown-menu-item-hover-bg-color);
     }
   }
 }

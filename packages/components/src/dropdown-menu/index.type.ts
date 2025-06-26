@@ -14,9 +14,7 @@ export interface DropdownMenuProps {
   /**
    * 触发方式。默认值为 'click'
    */
-  trigger?: 'click' | 'manual'
-  // 下面是样式相关的属性
-  minWidth?: string | number
+  trigger?: 'click' | 'hover' | 'manual'
 }
 
 export interface DropdownMenuSlots {
@@ -25,6 +23,9 @@ export interface DropdownMenuSlots {
 
 export interface DropdownMenuEmits {
   (e: 'item-click', item: DropdownMenuItem): void
+  /**
+   * 点击外部区域时触发, 仅在 trigger 为 'click' 或 'manual' 时有效
+   */
   (e: 'click-outside', event: MouseEvent): void
 }
 

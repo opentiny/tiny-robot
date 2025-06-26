@@ -16,6 +16,19 @@
       <TrSuggestionPillButton @click="show = !show"> Trigger 为 manual </TrSuggestionPillButton>
     </template>
   </TrDropdownMenu>
+  <hr />
+  <div style="display: flex; gap: 10px">
+    <TrDropdownMenu :items="dropdownMenuItems" trigger="hover" @item-click="(item) => console.log(item)">
+      <template #trigger>
+        <TrSuggestionPillButton> Trigger 为 hover </TrSuggestionPillButton>
+      </template>
+    </TrDropdownMenu>
+    <TrDropdownMenu :items="dropdownMenuItems" trigger="hover" @item-click="(item) => console.log(item)">
+      <template #trigger>
+        <TrSuggestionPillButton> Trigger 为 hover </TrSuggestionPillButton>
+      </template>
+    </TrDropdownMenu>
+  </div>
 </template>
 
 <script setup lang="ts">
