@@ -170,9 +170,6 @@ const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
 }
 
 const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
-  // 直接更新插件数据
-  plugin.expanded = expanded
-
   emit('plugin-expand', plugin, expanded)
 }
 
@@ -358,7 +355,7 @@ const transitionName = computed(() => {
                     mode="installed"
                     :expandable="!!plugin.tools?.length"
                     :enable-parent-child-sync="props.enableParentChildSync"
-                    v-model:expanded="plugin.expanded"
+                    :expanded="plugin.expanded"
                     @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
                     @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
                     @delete-plugin="() => handleDeletePlugin(plugin)"
