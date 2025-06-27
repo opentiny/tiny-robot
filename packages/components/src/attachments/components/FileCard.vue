@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, onUnmounted } from 'vue'
+import TinyTooltip from '@opentiny/vue-tooltip'
 import { useFileType } from '../composables/useFileType'
 import { useIconType } from '../composables/useIconType'
 import type { FileType, ActionButton, FileCardProps } from '../index.type'
-import { IconUploadFailed, IconUploadLoading, IconClose } from '@opentiny/tiny-robot-svgs'
+import {
+  IconUploadFailed,
+  IconUploadLoading,
+  IconClose,
+  IconImageLoading,
+  IconImageWarning,
+} from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<FileCardProps>(), {
   variant: 'card',
@@ -129,9 +136,11 @@ onUnmounted(() => {
     <!-- 状态蒙版 -->
     <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
       <div v-if="isUploading" class="tr-file-card__loading-icon">
-        <IconUploadLoading :width="24" :height="24" />
+        <IconImageLoading :width="24" :height="24" />
       </div>
-      <IconUploadFailed v-if="isUploadFailed" :width="24" :height="24" />
+      <TinyTooltip v-if="isUploadFailed" content="解析失败" :placement="'top'" :effect="'light'">
+        <IconImageWarning :width="24" :height="24" />
+      </TinyTooltip>
     </div>
 
     <!-- 关闭按钮 -->
@@ -425,7 +434,7 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.4);
     border-radius: var(--tr-attachments-border-radius);
     z-index: var(--tr-attachments-z-index-overlay);
   }

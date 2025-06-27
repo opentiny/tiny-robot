@@ -194,11 +194,26 @@ function close() {
     cursor: pointer;
     border-radius: 8px;
     overflow: hidden;
-    filter: blur(1px);
     transition: border-color 0.2s;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.2);
+      transition: background-color 0.2s;
+    }
 
     &--active {
-      filter: blur(0);
+      background-color: transparent;
+
+      &::after {
+        background-color: transparent;
+      }
     }
 
     img {
