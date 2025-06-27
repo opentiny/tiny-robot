@@ -42,6 +42,7 @@ if (props.trigger === 'click' || props.trigger === 'manual') {
     { ignore: [triggerRef] },
   )
 } else if (props.trigger === 'hover') {
+  // TODO 使用 @floating-ui/dom 提供的 safePolygon() 工具。实现鼠标从触发元素（trigger）移动到弹出框时，即使中间有空隙，也不会马上关闭
   const isTriggerHovered = useElementHover(
     computed(() => unrefElement(triggerRef.value)),
     { delayEnter: 100, delayLeave: 300 },
