@@ -49,6 +49,18 @@ export interface SuggestionPillsProps {
    * @default 'hover'
    */
   showAllButtonOn?: 'hover' | 'always'
+  /**
+   * 控制多余按钮如何展示
+   * - expand: 点击更多按钮展开所有项
+   * - scroll: 横向滚动显示多余项
+   * @default 'expand'
+   */
+  overflowMode?: 'expand' | 'scroll'
+  /**
+   * 鼠标悬停时是否自动滚动到可见区域
+   * @default false
+   */
+  autoScrollOnHover?: boolean
 }
 
 /**

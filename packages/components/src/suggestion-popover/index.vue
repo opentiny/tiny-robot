@@ -217,7 +217,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
     :class="attrs.class"
     :style="attrsStyle"
     ref="popoverTriggerRef"
-    @pointerup="handleToggleShow"
+    @click="handleToggleShow"
   >
     <slot />
   </div>

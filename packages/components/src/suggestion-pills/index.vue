@@ -7,6 +7,7 @@ import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, Suggest
 
 const props = withDefaults(defineProps<SuggestionPillsProps>(), {
   showAllButtonOn: 'hover',
+  overflowMode: 'expand',
 })
 
 const emit = defineEmits<SuggestionPillsEmits>()
@@ -21,7 +22,7 @@ const floatingItemsRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
 const containerFullWidth = ref(0)
-const hasShowMoreBtn = computed(() => width.value < containerFullWidth.value)
+const hasShowMoreBtn = computed(() => props.overflowMode === 'expand' && width.value < containerFullWidth.value)
 const hiddenIndex = ref(-1)
 
 const staticItems = computed(() => {
@@ -118,14 +119,56 @@ onClickOutside(containerWrapperRef, (event) => {
     emit('click-outside', event)
   }
 })
+
+const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
+  const container = containerRef.value
+  if (!container) {
+    return
+  }
+
+  const offsetLeft = item.offsetLeft
+  const offsetRight = offsetLeft + item.offsetWidth
+
+  const scrollLeft = container.scrollLeft
+  const containerWidth = container.clientWidth
+
+  const isLeftHidden = offsetLeft < scrollLeft
+  const isRightHidden = offsetRight > scrollLeft + containerWidth
+
+  if (isLeftHidden) {
+    container.scrollTo({
+      left: offsetLeft,
+      behavior: 'smooth',
+    })
+  } else if (isRightHidden) {
+    container.scrollTo({
+      left: offsetRight - containerWidth,
+      behavior: 'smooth',
+    })
+  }
+}
+
+const handleMouseenter = (ev: MouseEvent) => {
+  if (props.overflowMode === 'scroll' && props.autoScrollOnHover && ev.currentTarget) {
+    scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
+  }
+}
 </script>
 
 <template>
   <div class="tr-suggestion-pills__wrapper" ref="containerWrapperRef">
-    <div class="tr-suggestion-pills__container" ref="containerRef">
+    <div
+      class="tr-suggestion-pills__container"
+      :class="{ 'overflow-scroll': props.overflowMode === 'scroll' }"
+      ref="containerRef"
+    >
       <slot>
         <template v-for="(item, index) in staticItems" :key="item.id">
-          <PillButtonWrapper :item="item" @click="handleClick($event, item, index)"></PillButtonWrapper>
+          <PillButtonWrapper
+            :item="item"
+            @click="handleClick($event, item, index)"
+            @mouseenter="handleMouseenter($event)"
+          ></PillButtonWrapper>
         </template>
       </slot>
     </div>
@@ -168,6 +211,11 @@ onClickOutside(containerWrapperRef, (event) => {
 
   & > * {
     flex-shrink: 0;
+  }
+
+  &.overflow-scroll {
+    overflow-x: auto;
+    scroll-behavior: smooth;
   }
 }
 

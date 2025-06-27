@@ -2,6 +2,8 @@
   <TrSuggestionPills
     :items="items"
     v-model:showAll="showAll"
+    :overflow-mode="overflowMode"
+    :auto-scroll-on-hover="autoScrollOnHover"
     @item-click="handleItemClick"
     @click-outside="handleClickOutside"
   ></TrSuggestionPills>
@@ -13,18 +15,36 @@
     <tiny-switch v-model="showAll" ref="showAllRef"></tiny-switch>
   </div>
   <hr />
-  <button ref="addButtonRef" @click="handleClickAddButton">增加按钮</button>
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div><button ref="addButtonRef" @click="handleClickAddButton">点我增加按钮</button></div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <label>overflowMode：</label>
+      <tiny-radio-group v-model="overflowMode" :options="overflowModeOptions"></tiny-radio-group>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <label>autoScrollOnHover：</label>
+      <tiny-switch v-model="autoScrollOnHover"></tiny-switch>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { SuggestionPillItem, SuggestionPillMenuAction, TrSuggestionPills } from '@opentiny/tiny-robot'
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
-import { TinySwitch } from '@opentiny/vue'
+import { TinyRadioGroup, TinySwitch } from '@opentiny/vue'
 import { h, markRaw, ref } from 'vue'
 
 const showAll = ref(false)
 const showAllRef = ref<InstanceType<typeof TinySwitch>>()
 const addButtonRef = ref<HTMLButtonElement | null>(null)
+
+const overflowMode = ref('expand')
+const overflowModeOptions = ref([
+  { label: 'expand', value: 'expand' },
+  { label: 'scroll', value: 'scroll' },
+])
+
+const autoScrollOnHover = ref(false)
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
@@ -166,16 +186,5 @@ const handleClickAddButton = () => {
 <style lang="less" scoped>
 :deep(.tr-suggestion-pills__more-wrapper) {
   left: 40px;
-}
-
-:deep(.tr-suggestion-pills__container) {
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    // 背景色需要和容器背景色一致
-    background: linear-gradient(to right, rgba(rgb(248, 248, 248), 0) 90%, rgba(rgb(248, 248, 248), 1));
-    pointer-events: none;
-  }
 }
 </style>

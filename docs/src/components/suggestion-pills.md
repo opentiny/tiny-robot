@@ -51,11 +51,13 @@ outline: deep
 
 药丸组件属性配置。
 
-| 属性              | 类型                   | 默认值    | 说明                                                        |
-| ----------------- | ---------------------- | --------- | ----------------------------------------------------------- |
-| `items`           | `SuggestionPillItem[]` | -         | 建议药丸项数据数组                                          |
-| `showAll`         | `boolean`              | -         | 是否展开全部元素 (v-model)                                  |
-| `showAllButtonOn` | `'hover' \| 'always'`  | `'hover'` | 显示“更多按钮”的时机，`hover`为悬停显示，`always`为总是显示 |
+| 属性                | 类型                   | 默认值     | 说明                                                             |
+| ------------------- | ---------------------- | ---------- | ---------------------------------------------------------------- |
+| `items`             | `SuggestionPillItem[]` | -          | 建议药丸项数据数组                                               |
+| `showAll`           | `boolean`              | -          | 是否展开全部元素 (v-model)                                       |
+| `showAllButtonOn`   | `'hover' \| 'always'`  | `'hover'`  | 显示"更多"按钮的时机                                             |
+| `overflowMode`      | `'expand' \| 'scroll'` | `'expand'` | 控制多余项的展示方式：`expand`为展开显示，`scroll`为横向滚动显示 |
+| `autoScrollOnHover` | `boolean`              | `false`    | 鼠标悬停时是否自动滚动到可见区域                                 |
 
 ### SuggestionPillsSlots
 
@@ -98,24 +100,33 @@ outline: deep
 建议药丸动作配置类型：
 
 ```typescript
-type SuggestionPillAction =
-  | {
-      type: 'popover'
-      props: SuggestionPopoverProps
-      slots?: Omit<SuggestionPopoverSlots, 'default'>
-      events?: SuggestionPopoverEvents
-    }
-  | {
-      type: 'menu'
-      props: DropdownMenuProps
-      events?: DropdownMenuEvents
-    }
+type SuggestionPillAction = SuggestionPillPopoverAction | SuggestionPillMenuAction
 ```
 
-表示动作可以是：
+#### SuggestionPillPopoverAction
 
-1. 弹出框类型 (popover) - 包含弹出框属性、插槽和事件
-2. 下拉菜单类型 (menu) - 包含下拉菜单属性和事件
+弹出框动作配置：
+
+```typescript
+{
+  type: 'popover'
+  props: SuggestionPopoverProps & SuggestionPopoverEventProps
+  slots?: Omit<SuggestionPopoverSlots, 'default'>
+  events?: SuggestionPopoverEvents // 已废弃，请使用 props 中的 onXXX 事件
+}
+```
+
+#### SuggestionPillMenuAction
+
+下拉菜单动作配置：
+
+```typescript
+{
+  type: 'menu'
+  props: DropdownMenuProps & DropdownMenuEventProps
+  events?: DropdownMenuEvents // 已废弃，请使用 props 中的 onXXX 事件
+}
+```
 
 #### SuggestionPillBaseItem
 
@@ -136,9 +147,3 @@ type SuggestionPillBaseItem<T> = {
 type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBaseItem<T> &
   ({ text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component })
 ```
-
-表示每个药丸项必须包含：
-
-- `id`: 唯一标识
-- 必须包含 `text` 或 `icon` 至少一个
-- 可选的 `action` 配置
