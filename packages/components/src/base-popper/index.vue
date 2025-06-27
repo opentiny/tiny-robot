@@ -1,18 +1,8 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="ts">
-import { MaybeElement, useElementBounding, useElementSize } from '@vueuse/core'
-import {
-  ComponentPublicInstance,
-  computed,
-  CSSProperties,
-  Fragment,
-  nextTick,
-  ref,
-  TransitionProps,
-  VNode,
-  watch,
-} from 'vue'
-import { useTeleportTarget } from '../shared/composables'
+import { useElementBounding, useElementSize } from '@vueuse/core'
+import { computed, CSSProperties, isVNode, ref, TransitionProps, VNode, watch } from 'vue'
+import { useSlotRefs, useTeleportTarget } from '../shared/composables'
 import { toCssUnit } from '../shared/utils'
 
 defineOptions({
@@ -37,50 +27,16 @@ const props = withDefaults(
 )
 
 const slots = defineSlots<{
-  trigger?: () => VNode | VNode[]
-  content?: () => VNode | VNode[]
+  trigger?: () => VNode[]
+  content?: () => VNode[]
 }>()
 
-const triggerVNodes = computed(() => {
-  const triggerSlot = slots.trigger?.()
-  const vnodes = triggerSlot ? (Array.isArray(triggerSlot) ? triggerSlot : [triggerSlot]) : []
-
-  // 如果第一个 vnode 是 Fragment 类型，并且 children 是数组，则返回 children（只渲染第一个 v-for Fragment）
-  if (vnodes[0].type === Fragment && Array.isArray(vnodes[0].children)) {
-    return vnodes[0].children
-  }
-
-  return vnodes
-})
-const triggerLength = computed(() => (props.renderAllTriggers ? triggerVNodes.value.length : 1))
-const renderedTriggerVNodes = computed(() => triggerVNodes.value.slice(0, triggerLength.value))
-
-const triggerRefs = ref<MaybeElement[]>([])
-const triggerRef = computed(() => triggerRefs.value.at(0))
-
-const getRef = (el: unknown) => {
-  if ((el as ComponentPublicInstance)?.$el) {
-    // Vue 组件实例
-    return el as ComponentPublicInstance
-  } else if (el instanceof HTMLElement || el instanceof SVGElement) {
-    // 原生 HTMLElement 或者 SVGElement
-    return el
-  }
-  console.warn('trigger must be an HTMLElement or SVGElement or Vue component instance')
-  return null
-}
-
-const setRefs = (el: unknown, index: number) => {
-  triggerRefs.value[index] = getRef(el)
-}
-
-watch(
-  triggerLength,
-  (len) => {
-    triggerRefs.value.length = len
-  },
-  { flush: 'post' },
-)
+const {
+  vnodes: triggerVNodes,
+  refs: triggerRefs,
+  ref: triggerRef,
+  setRefs,
+} = useSlotRefs(slots.trigger, props.renderAllTriggers)
 
 function createIndexedEventHandlers(events: TriggerEvents = {}, index: number) {
   const wrapped: TriggerEvents = {}
@@ -95,7 +51,7 @@ function createIndexedEventHandlers(events: TriggerEvents = {}, index: number) {
 }
 
 const indexedEventHandlers = computed(() =>
-  renderedTriggerVNodes.value.map((_, index) => createIndexedEventHandlers(props.triggerEvents, index)),
+  triggerVNodes.value.map((_, index) => createIndexedEventHandlers(props.triggerEvents, index)),
 )
 
 const popperRef = ref<HTMLDivElement | null>(null)
@@ -154,11 +110,10 @@ watch(
   () => props.show,
   (value) => {
     if (value) {
-      nextTick(() => {
-        update()
-      })
+      update()
     }
   },
+  { flush: 'post' },
 )
 
 const teleportTarget = useTeleportTarget(triggerRef)
@@ -172,8 +127,8 @@ defineExpose({
 
 <template>
   <component
-    v-for="(vnode, index) in renderedTriggerVNodes"
-    :key="(vnode as VNode).key ?? index"
+    v-for="(vnode, index) in triggerVNodes"
+    :key="isVNode(vnode) ? vnode.key : index"
     :is="vnode"
     :ref="(el: unknown) => setRefs(el, index)"
     v-bind="indexedEventHandlers[index]"
