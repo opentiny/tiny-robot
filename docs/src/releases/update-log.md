@@ -1,6 +1,15 @@
 
 # 版本更新日志
 
+## 0.2.10 (25.6.28)
+
+> [!IMPORTANT]
+> **Breaking Change**: DropdownMenu 下拉菜单组件
+
+1.【特性】【DropdownMenu 下拉菜单】`trigger` 属性新增 `hover`支持  
+2.【特性】【SuggestionPills 建议按钮组】新增属性 `overflowMode`，控制多余项的展示方式：`expand`为展开显示，`scroll`为横向滚动显示；新增属性 `autoScrollOnHover`，鼠标悬停时是否自动滚动到可见区域  
+3.【优化】【DropdownMenu 下拉菜单】默认插槽变更为 `trigger` 插槽；下拉菜单最小宽度不再通过 props 设置，可以通过样式类、内联样式或者 css 变量 `--tr-dropdown-menu-min-width` 控制
+
 ## 0.2.10 (25.6.18)
 
 1.【优化】【Sender 消息输入框】实现输入框在加载状态时可以输入  
