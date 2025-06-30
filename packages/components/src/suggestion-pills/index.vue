@@ -149,7 +149,7 @@ const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
 }
 
 const handleMouseenter = (ev: MouseEvent) => {
-  if (props.overflowMode === 'scroll' && props.autoScrollOnHover && ev.currentTarget) {
+  if (props.autoScrollOnHover && ev.currentTarget) {
     scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
   }
 }
