@@ -1,7 +1,14 @@
 import './styles/root.css'
 
 import { App } from 'vue'
-import { Bubble, BubbleList, BubbleProvider, BubbleMarkdownMessageRenderer, BubbleMessageClassRenderer } from './bubble'
+import {
+  Bubble,
+  BubbleList,
+  BubbleProvider,
+  BubbleMarkdownMessageRenderer,
+  BubbleMessageClassRenderer,
+  BubbleChainMessageRenderer,
+} from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import DropdownMenu from './dropdown-menu'
@@ -69,6 +76,7 @@ export {
   BubbleProvider as TrBubbleProvider,
   BubbleMarkdownMessageRenderer,
   BubbleMessageClassRenderer,
+  BubbleChainMessageRenderer,
   Container,
   Container as TrContainer,
   Conversations,

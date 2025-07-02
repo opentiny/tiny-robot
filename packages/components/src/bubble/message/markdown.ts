@@ -6,7 +6,7 @@ import { BubbleMessageClassRenderer } from './class-renderer'
 export class BubbleMarkdownMessageRenderer extends BubbleMessageClassRenderer {
   readonly mdConfig: MarkdownItOptions
   readonly dompurifyConfig: DompurifyConfig & { disable?: boolean }
-  private md: MarkdownIt
+  readonly md: MarkdownIt
 
   constructor(mdConfig?: MarkdownItOptions, dompurifyConfig?: DompurifyConfig & { disable?: boolean }) {
     super()

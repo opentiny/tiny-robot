@@ -1,3 +1,4 @@
+export * from './chain'
 export * from './class-renderer'
 export * from './collapsible-text'
 export * from './defaultRendererMap'

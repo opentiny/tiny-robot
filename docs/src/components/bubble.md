@@ -71,49 +71,49 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 
 1.**函数式渲染器**：
 
-   ```typescript
-   const myRenderer: BubbleMessageFunctionRenderer = (options) => {
-     return h('div', options.content)
-   }
-   ```
+```typescript
+const myRenderer: BubbleMessageFunctionRenderer = (options) => {
+  return h('div', options.content)
+}
+```
 
 2.**类式渲染器**：
 
-   必须继承 `BubbleMessageClassRenderer` 类
+必须继承 `BubbleMessageClassRenderer` 类
 
-   类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
+类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
 
-   ```typescript
-   class MyRenderer extends BubbleMessageClassRenderer {
-     render(options) {
-       return h('div', options.content)
-     }
-   }
-   ```
+```typescript
+class MyRenderer extends BubbleMessageClassRenderer {
+  render(options) {
+    return h('div', options.content)
+  }
+}
+```
 
-   注册时记得 new 一个实例，否则会导致渲染失败
+注册时记得 new 一个实例，否则会导致渲染失败
 
-   ```vue
-   <template>
-     <tr-bubble-provider :message-renderers="messageRenderers">
-       <!-- other codes... -->
-     </tr-bubble-provider>
-   </template>
+```vue
+<template>
+  <tr-bubble-provider :message-renderers="messageRenderers">
+    <!-- other codes... -->
+  </tr-bubble-provider>
+</template>
 
-   <script>
-   const messageRenderers = { 'my-render': new MyRenderer() }
-   </script>
-   ```
+<script>
+const messageRenderers = { 'my-render': new MyRenderer() }
+</script>
+```
 
 3.**Vue 组件**：
 
-   message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
+message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
 
-   ```vue
-   <template>
-     <div>{{ props.content }}</div>
-   </template>
-   ```
+```vue
+<template>
+  <div>{{ props.content }}</div>
+</template>
+```
 
 目前内置直接可用的的渲染器类型有
 
@@ -126,6 +126,10 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 - `BubbleMarkdownMessageRenderer` 类渲染器
 
 <demo vue="../../demos/bubble/messages.vue" />
+
+### 思维链
+
+<demo vue="../../demos/bubble/chain.vue" />
 
 ### 插槽
 
