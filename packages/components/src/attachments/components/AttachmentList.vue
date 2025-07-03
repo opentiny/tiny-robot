@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import FileCard from './FileCard.vue'
-import type { AttachmentListProps, AttachmentListEmits } from '../index.type'
+import type { AttachmentListProps, FileCardEmits } from '../index.type'
 
 withDefaults(defineProps<AttachmentListProps>(), {
   overflow: 'wrap',
 })
 
-const emit = defineEmits<AttachmentListEmits>()
+const emit = defineEmits<FileCardEmits>()
 </script>
 
 <template>
@@ -20,7 +20,7 @@ const emit = defineEmits<AttachmentListEmits>()
       v-for="file in files"
       :key="file.uid"
       :file="file"
-      :variant="variant"
+      :list-type="listType"
       :file-icons="fileIcons"
       :disabled="disabled"
       :style="styles?.card"

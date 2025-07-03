@@ -13,8 +13,8 @@
     />
 
     <h3>3. 纯图片卡片预览</h3>
-    <p>设置 <code>variant="picture"</code> 可开启纯图片展示模式。点击图片可打开画廊式预览</p>
-    <tr-attachments v-model:items="pictureFiles" variant="picture" :drag="true" :disabled="false" />
+    <p>设置 <code>listType="picture"</code> 可开启纯图片展示模式。点击图片可打开画廊式预览</p>
+    <tr-attachments v-model:items="pictureFiles" listType="picture" :drag="true" :disabled="false" />
   </div>
 </template>
 

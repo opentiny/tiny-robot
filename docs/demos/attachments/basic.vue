@@ -10,6 +10,7 @@
     <tr-attachments
       id="containerRef"
       v-model:items="files"
+      action="https://jsonplaceholder.typicode.com/posts/"
       :drag="{
         mode: dragMode,
         target: dragMode === 'container' ? containerRef : undefined,

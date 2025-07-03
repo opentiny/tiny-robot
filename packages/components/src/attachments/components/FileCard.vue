@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import TinyTooltip from '@opentiny/vue-tooltip'
-import { useFileType } from '../composables/useFileType'
-import { useIconType } from '../composables/useIconType'
-import type { FileType, ActionButton, FileCardProps } from '../index.type'
+import { useFileType, useFileCard } from '../composables'
+import type { FileType, FileCardProps } from '../index.type'
 import {
   IconUploadFailed,
   IconUploadLoading,
@@ -13,7 +12,7 @@ import {
 } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<FileCardProps>(), {
-  variant: 'card',
+  listType: 'card',
   disabled: false,
   showPreview: true,
   showStatus: true,
@@ -21,106 +20,27 @@ const props = withDefaults(defineProps<FileCardProps>(), {
 })
 
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
-const { formatFileSize } = useFileType()
 
-const createdBlobUrls = ref<string[]>([])
+// 文件相关工具 & 图标
+const { formatFileSize, getIconComponent } = useFileType(props.fileIcons)
 
-// 使用图标类型管理
-const { getIconComponent } = useIconType(props.fileIcons)
+// 卡片交互相关
+const { isImage, handlePreview, handleRemove, handleCustomAction, handleRetry } = useFileCard(props, emit)
 
 // 获取当前文件类型对应的图标组件
 const fileTypeIcon = computed(() => {
   return getIconComponent(props.file.fileType as FileType).value
 })
 
-// 判断是否为图片类型
-const isImage = computed(() => {
-  return props.file.fileType === 'image'
-})
-
 // 判断文件状态
 const isUploading = computed(() => props.file.status === 'uploading' || props.file.isUploading)
 const isUploadFailed = computed(() => props.file.status === 'error')
-
-// 预览文件
-const handlePreview = () => {
-  if (isImage.value && !props.file.previewUrl && props.file.rawFile) {
-    // 如果是原生 File 对象且没有预览图，创建临时 URL 给父组件使用
-    const blobUrl = URL.createObjectURL(props.file.rawFile)
-    createdBlobUrls.value.push(blobUrl)
-    emit('preview', { ...props.file, previewUrl: blobUrl })
-  } else {
-    // 触发外部预览事件
-    emit('preview', props.file)
-  }
-}
-
-/**
- * 触发下载
- * @param url 文件URL
- * @param fileName 文件名
- */
-const triggerDownload = (url: string, fileName: string) => {
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.target = '_blank'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}
-
-// 下载文件
-const downloadFile = () => {
-  if (props.file.previewUrl) {
-    triggerDownload(props.file.previewUrl, props.file.name)
-  } else if (props.file.rawFile) {
-    // 使用 File 对象创建下载
-    const url = URL.createObjectURL(props.file.rawFile)
-    triggerDownload(url, props.file.name)
-    URL.revokeObjectURL(url)
-  }
-
-  emit('download', props.file)
-}
-
-// 移除文件
-const handleRemove = () => {
-  emit('remove', props.file)
-}
-
-// 处理自定义操作按钮点击事件
-const handleCustomAction = (action: ActionButton) => {
-  if (action.handler) {
-    action.handler(props.file)
-  }
-
-  // 对预览和下载操作进行特殊处理
-  if (action.type === 'preview' && isImage.value) {
-    handlePreview()
-  } else if (action.type === 'download' && isImage.value) {
-    downloadFile()
-  } else {
-    emit('action', { action, file: props.file })
-  }
-}
-
-// 重试上传
-const handleRetry = () => {
-  emit('retry', props.file)
-}
-
-onUnmounted(() => {
-  createdBlobUrls.value.forEach((url) => {
-    URL.revokeObjectURL(url)
-  })
-})
 </script>
 
 <template>
   <!-- Picture Card Variant -->
   <div
-    v-if="variant === 'picture'"
+    v-if="listType === 'picture'"
     class="tr-file-card--picture"
     :class="{
       'tr-file-card--uploading': isUploading,

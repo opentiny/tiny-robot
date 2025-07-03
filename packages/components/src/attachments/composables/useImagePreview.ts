@@ -1,11 +1,35 @@
-import { ref, computed, Ref } from 'vue'
+import { ref, Ref, h } from 'vue'
 import type { Attachment, AttachmentsEmits } from '../index.type'
+import ImagePreview from '../components/ImagePreview.vue'
 
-export function useImagePreview(fileList: Ref<Attachment[]>, emit: AttachmentsEmits) {
+export interface ImagePreviewOptions {
+  /**
+   * 是否启用下载功能
+   */
+  enableDownload?: boolean
+
+  /**
+   * 自定义下载处理函数
+   */
+  onDownload?: (file: Attachment) => void
+}
+
+export function useImagePreview(
+  fileList: Ref<Attachment[]>,
+  emit: AttachmentsEmits,
+  options: ImagePreviewOptions = {},
+) {
+  // 状态管理
   const isPreviewVisible = ref(false)
   const previewImages = ref<Attachment[]>([])
   const previewCurrentIndex = ref(0)
 
+  // 更新当前索引
+  const updateCurrentIndex = (index: number) => {
+    previewCurrentIndex.value = index
+  }
+
+  // 显示预览
   const show = (file: Attachment) => {
     // 更新文件列表中的文件信息（主要针对新创建的 blob url）
     const fileIndex = fileList.value.findIndex((item) => item.uid === file.uid)
@@ -15,6 +39,7 @@ export function useImagePreview(fileList: Ref<Attachment[]>, emit: AttachmentsEm
 
     // 如果是图片，则打开图片预览器
     if (file.fileType === 'image') {
+      // 过滤出所有图片类型且非错误状态的文件
       previewImages.value = fileList.value.filter((item) => item.fileType === 'image' && item.status !== 'error')
       const currentIndex = previewImages.value.findIndex((item) => item.uid === file.uid)
 
@@ -28,18 +53,37 @@ export function useImagePreview(fileList: Ref<Attachment[]>, emit: AttachmentsEm
     }
   }
 
+  // 关闭预览
   const close = () => {
     isPreviewVisible.value = false
   }
 
-  const currentImage = computed(() => previewImages.value[previewCurrentIndex.value])
+  // 处理下载
+  const handleDownload = (file: Attachment) => {
+    if (options.onDownload) {
+      options.onDownload(file)
+    } else {
+      emit('file-download', file)
+    }
+  }
+
+  // 渲染预览组件
+  const renderPreview = () => {
+    return h(ImagePreview, {
+      visible: isPreviewVisible.value,
+      images: previewImages.value,
+      currentIndex: previewCurrentIndex.value,
+      'onUpdate:currentIndex': updateCurrentIndex,
+      onClose: close,
+      onDownload: handleDownload,
+    })
+  }
 
   return {
-    isPreviewVisible,
-    previewImages,
-    previewCurrentIndex,
-    currentImage,
-    showImagePreview: show,
-    closeImagePreview: close,
+    // 显示预览
+    handlePreview: show,
+
+    // 渲染预览组件
+    renderPreview,
   }
 }

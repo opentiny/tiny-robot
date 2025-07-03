@@ -1,4 +1,14 @@
+import { computed, Component, ComputedRef } from 'vue'
 import { FileType } from '../index.type'
+import {
+  IconFileImage,
+  IconFilePdf,
+  IconFileWord,
+  IconFileExcel,
+  IconFilePpt,
+  IconFileFolder,
+  IconFileOther,
+} from '@opentiny/tiny-robot-svgs'
 
 type FileTypeMap = Record<string, FileType>
 
@@ -38,7 +48,18 @@ const mimeTypeMap: FileTypeMap = {
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'ppt',
 }
 
-export function useFileType() {
+// 默认图标组件映射
+const DefaultIcons: Record<FileType, Component> = {
+  image: IconFileImage,
+  pdf: IconFilePdf,
+  word: IconFileWord,
+  excel: IconFileExcel,
+  ppt: IconFilePpt,
+  folder: IconFileFolder,
+  other: IconFileOther,
+}
+
+export function useFileType(customIcons?: Record<FileType, Component>) {
   /**
    * 根据文件名或File对象检测文件类型
    */
@@ -105,11 +126,27 @@ export function useFileType() {
     }))
   }
 
+  /**
+   * 获取指定文件类型的图标组件
+   */
+  const getIconComponent = (fileType: FileType = 'other'): ComputedRef<Component> => {
+    return computed(() => {
+      // 优先使用自定义图标
+      if (customIcons?.[fileType]) {
+        return customIcons[fileType]
+      }
+
+      // 否则使用默认图标
+      return DefaultIcons?.[fileType]
+    })
+  }
+
   return {
     detectFileType,
     generateUID,
     formatFileSize,
     createPreviewUrl,
     createAttachments,
+    getIconComponent,
   }
 }

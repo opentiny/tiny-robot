@@ -26,7 +26,6 @@
     "@opentiny/vue-icon": "^3.22.0",
     "@opentiny/vue-input": "^3.21.0",
     "@opentiny/vue-tooltip": "^3.22.0",
-    "@opentiny/vue-file-upload": "^3.22.0",
     "@vueuse/core": "^13.1.0",
     "markdown-it": "^14.1.0"
   },

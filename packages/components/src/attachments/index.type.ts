@@ -32,7 +32,7 @@ export interface Attachment extends UploadFile {
 }
 
 export interface DragConfig {
-  mode?: 'fullscreen' | 'container'
+  mode: 'fullscreen' | 'container'
   target?: string | HTMLElement
   overlay?: {
     zIndex?: number
@@ -65,9 +65,6 @@ export interface TinyUploadProps {
   onChange?: (info: OnChangeInfo) => void
   onRemove?: (file: UploadFile) => boolean | Promise<boolean>
   onPreview?: (file: UploadFile) => void
-
-  // 样式
-  listType?: 'text' | 'picture' | 'picture-card'
 }
 
 // 占位符配置
@@ -102,15 +99,11 @@ export interface AttachmentsProps extends TinyUploadProps {
   statusType?: 'info' | 'progress' | 'operate' | 'message' | 'default'
   customActions?: ActionButton[]
 
-  // 上传触发器 - 用于外部触发上传
-  triggerUpload?: number
-
   // 新增属性
   placeholder?: PlaceholderConfig | ((type: 'inline' | 'drop') => PlaceholderConfig)
-  showUploadList?: boolean // 是否显示内置文件列表（默认 false）
   autoUpload?: boolean // 是否自动上传（默认 true）
-  uploadMode?: 'auto' | 'manual' // 上传模式
-  variant?: 'card' | 'picture' // 卡片展示模式
+
+  listType?: 'picture' | 'card' // 卡片展示模式
 }
 
 export interface AttachmentsEmits {
@@ -126,7 +119,7 @@ export interface AttachmentsEmits {
 // 文件卡片属性
 export type FileCardProps = Pick<
   AttachmentsProps,
-  'variant' | 'fileIcons' | 'disabled' | 'styles' | 'statusType' | 'customActions'
+  'listType' | 'fileIcons' | 'disabled' | 'styles' | 'statusType' | 'customActions'
 > & {
   file: Attachment
   showPreview?: boolean
@@ -136,13 +129,13 @@ export type FileCardProps = Pick<
 // AttachmentList 组件属性
 export type AttachmentListProps = Pick<
   AttachmentsProps,
-  'variant' | 'fileIcons' | 'disabled' | 'styles' | 'statusType' | 'customActions' | 'overflow'
+  'listType' | 'fileIcons' | 'disabled' | 'styles' | 'statusType' | 'customActions' | 'overflow'
 > & {
   files: Attachment[]
 }
 
-// AttachmentList 组件事件
-export interface AttachmentListEmits {
+// FileCard 组件事件
+export interface FileCardEmits {
   (e: 'remove', file: Attachment): void
   (e: 'preview', file: Attachment): void
   (e: 'download', file: Attachment): void
