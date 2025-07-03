@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { watch, ref } from 'vue'
 import { useFileDialog } from '@vueuse/core'
-import { AttachmentList, FullScreenOverlay } from './components'
+import { AttachmentList, DropZoneOverlay } from './components'
 import { useDragDrop, useFileType, useImagePreview, useUpload } from './composables'
 import { AttachmentsEmits, AttachmentsProps, Attachment } from './index.type'
 import './index.less'
@@ -137,11 +137,7 @@ defineExpose({
 </script>
 
 <template>
-  <div
-    class="tr-attachments"
-    :class="[rootClass, { 'tr-attachments--dragging': dragState.active && !isDragFullscreen }]"
-    :style="styles?.root"
-  >
+  <div class="tr-attachments rootClass" :style="styles?.root">
     <div ref="dropZoneRef" class="tr-attachments__dropzone" @click="handleTriggerSelect()">
       <AttachmentList
         v-if="fileList.length > 0"
@@ -162,22 +158,16 @@ defineExpose({
 
       <!-- 空状态 -->
       <div v-else class="tr-attachments__empty">
-        <div class="tr-attachments__empty-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#bdbdbd">
-            <path
-              d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"
-            />
-          </svg>
-        </div>
+        <img class="tr-attachments__empty-icon" src="./../assets/svgs/add-file.svg" />
         <div class="tr-attachments__empty-text">暂无文件</div>
         <div class="tr-attachments__empty-hint">将文件拖拽到此处，或点击上传</div>
       </div>
     </div>
 
     <!-- 全屏拖拽遮罩 -->
-    <FullScreenOverlay
-      v-if="isDragFullscreen"
+    <DropZoneOverlay
       :visible="dragState.active"
+      :fullscreen="isDragFullscreen"
       :config="typeof drag === 'object' ? drag.overlay : undefined"
       :style="styles?.overlay"
     />

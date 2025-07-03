@@ -55,7 +55,6 @@ export interface TinyUploadProps {
 
   // 文件列表
   fileList?: UploadFile[] // 文件列表
-  showFileList?: boolean // 是否显示文件列表
 
   // 上传控制
   beforeUpload?: (file: File) => boolean | Promise<boolean>
@@ -116,22 +115,16 @@ export interface AttachmentsEmits {
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }
 
-// 文件卡片属性
-export type FileCardProps = Pick<
+type BaseCardProps = Pick<
   AttachmentsProps,
   'listType' | 'fileIcons' | 'disabled' | 'styles' | 'statusType' | 'customActions'
-> & {
+>
+
+// FileCard 组件属性
+export type FileCardProps = BaseCardProps & {
   file: Attachment
   showPreview?: boolean
   showStatus?: boolean
-}
-
-// AttachmentList 组件属性
-export type AttachmentListProps = Pick<
-  AttachmentsProps,
-  'listType' | 'fileIcons' | 'disabled' | 'styles' | 'statusType' | 'customActions' | 'overflow'
-> & {
-  files: Attachment[]
 }
 
 // FileCard 组件事件
@@ -142,6 +135,12 @@ export interface FileCardEmits {
   (e: 'retry', file: Attachment): void
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }
+
+// AttachmentList 组件属性
+export type AttachmentListProps = BaseCardProps &
+  Pick<AttachmentsProps, 'overflow'> & {
+    files: Attachment[]
+  }
 
 // 自定义操作按钮类型
 export interface ActionButton {

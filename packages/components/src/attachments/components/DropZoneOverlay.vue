@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   visible: boolean
+  fullscreen: boolean
   config?: {
     zIndex?: number
     enterDelay?: number
@@ -24,18 +25,17 @@ const customClass = computed(() => props.config?.className ?? '')
 
 <template>
   <Transition name="tr-fade">
-    <div v-if="visible" class="tr-fullscreen-overlay" :class="[customClass]" :style="overlayStyle">
-      <div class="tr-fullscreen-overlay__content">
-        <div class="tr-fullscreen-overlay__icon">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"
-            />
-          </svg>
-        </div>
-        <div class="tr-fullscreen-overlay__text">
-          <div class="tr-fullscreen-overlay__title"><slot name="header"> 将附件拖到此处完成上传 </slot></div>
-          <div class="tr-fullscreen-overlay__description">
+    <div
+      v-if="visible"
+      class="tr-dropzone-overlay"
+      :class="[customClass, { 'tr-dropzone-overlay--fullscreen': fullscreen }]"
+      :style="overlayStyle"
+    >
+      <div class="tr-dropzone-overlay__content">
+        <img class="tr-dropzone-overlay__icon" src="../../assets/svgs/add-file.svg" />
+        <div class="tr-dropzone-overlay__text">
+          <div class="tr-dropzone-overlay__title"><slot name="header"> 将附件拖到此处完成上传 </slot></div>
+          <div class="tr-dropzone-overlay__description">
             <slot name="description">
               <span>总计最多上传50个附件（每个100MB以内）</span>
               <span>支持附件格式 PDF/Word/Excel/PPT/Markdown</span>
@@ -50,8 +50,8 @@ const customClass = computed(() => props.config?.className ?? '')
 <style lang="less" scoped>
 @import '../vars.less';
 
-.tr-fullscreen-overlay {
-  position: fixed;
+.tr-dropzone-overlay {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -61,6 +61,16 @@ const customClass = computed(() => props.config?.className ?? '')
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--tr-attachments-border-radius);
+
+  &--fullscreen {
+    position: fixed;
+    border-radius: 0;
+
+    .tr-dropzone-overlay__content {
+      border: var(--tr-overlay-border);
+    }
+  }
 
   &__content {
     display: flex;
@@ -72,7 +82,6 @@ const customClass = computed(() => props.config?.className ?? '')
     padding: var(--tr-overlay-padding);
     border-radius: var(--tr-overlay-border-radius);
     text-align: center;
-    border: var(--tr-overlay-border);
   }
 
   &__icon {

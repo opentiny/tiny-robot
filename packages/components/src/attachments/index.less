@@ -50,11 +50,6 @@
   transition: var(--tr-attachments-transition-normal);
   color: var(--tr-attachments-text-color);
 
-  &--dragging {
-    border: 2px dashed var(--tr-attachments-primary-color);
-    animation: pulse-border 1.5s infinite;
-  }
-
   &__file-input {
     position: absolute;
     width: 0;
@@ -133,20 +128,5 @@
       font-size: var(--tr-attachments-font-size-medium);
       color: var(--tr-attachments-empty-hint-color);
     }
-  }
-}
-
-// 动画定义
-@keyframes pulse-border {
-
-  0%,
-  100% {
-    border-color: var(--tr-attachments-drag-border-color);
-    box-shadow: 0 0 0 0 var(--tr-attachments-drag-shadow-color);
-  }
-
-  50% {
-    border-color: var(--tr-attachments-drag-border-color-active);
-    box-shadow: 0 0 0 5px rgba(25, 118, 210, 0);
   }
 }
