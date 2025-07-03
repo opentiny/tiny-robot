@@ -6,11 +6,10 @@ export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: bool
   const vnodes = computed(() => {
     const nodes = slot?.() || []
 
-    // TODO 支持多个 Fragment 的情况
-    // 如果第一个 vnode 是 Fragment 类型，并且 children 是数组，则返回 children（只渲染第一个 v-for Fragment）
-    const firstNode = nodes.at(0)
-    if (firstNode?.type === Fragment && Array.isArray(firstNode.children)) {
-      return firstNode.children
+    // 如果 vnodes 中存在 Fragment 类型，并且 children 是数组，则返回 children。只渲染第一个是 Fragment 的节点
+    const fragmentNode = nodes.find((node) => node.type === Fragment)
+    if (fragmentNode && Array.isArray(fragmentNode.children)) {
+      return fragmentNode.children
     }
 
     return nodes
@@ -22,14 +21,14 @@ export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: bool
   const refs = ref<MaybeElement[]>([])
 
   const resolveRef = (el: unknown) => {
-    if ((el as ComponentPublicInstance)?.$el) {
+    if (el && typeof el === 'object' && '$el' in el) {
       // Vue 组件实例
       return el as ComponentPublicInstance
     } else if (el instanceof HTMLElement || el instanceof SVGElement) {
       // 原生 HTMLElement 或者 SVGElement
       return el
     }
-    console.warn('trigger must be an HTMLElement or SVGElement or Vue component instance')
+    console.warn('el must be an HTMLElement or SVGElement or Vue component instance. el:', el)
     return null
   }
 
