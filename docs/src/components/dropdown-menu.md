@@ -51,3 +51,14 @@ outline: deep
 | ------ | -------- | ---------- |
 | `id`   | `string` | 项唯一标识 |
 | `text` | `string` | 显示文本   |
+
+### CSS Variables
+
+| 变量名                                   | 说明               | 默认值                         |
+| ---------------------------------------- | ------------------ | ------------------------------ |
+| `--tr-dropdown-menu-bg-color`            | 下拉菜单背景色     | `#ffffff`                      |
+| `--tr-dropdown-menu-box-shadow`          | 下拉菜单阴影       | `0 0 20px rgba(0, 0, 0, 0.08)` |
+| `--tr-dropdown-menu-min-width`           | 下拉菜单最小宽度   | `130px`                        |
+| `--tr-dropdown-menu-item-color`          | 菜单项文字颜色     | `rgb(25, 25, 25)`              |
+| `--tr-dropdown-menu-item-hover-bg-color` | 菜单项悬停时背景色 | `#f5f5f5`                      |
+| `--tr-dropdown-menu-item-font-weight`    | 菜单项字体粗细     | `normal`                       |
