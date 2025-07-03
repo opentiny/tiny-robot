@@ -6,6 +6,7 @@ export interface DropdownMenuItem {
 }
 
 export interface DropdownMenuProps {
+  appendTo?: string | HTMLElement
   items: DropdownMenuItem[]
   /**
    * 是否显示菜单，仅在 trigger 为 'manual' 时有效

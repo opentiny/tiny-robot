@@ -75,6 +75,7 @@ const handleItemClick = (item: DropdownMenuItem) => {
     class="tr-dropdown-menu"
     ref="basePopperRef"
     placement="top-left"
+    :append-to="props.appendTo"
     :offset="8"
     :transition-props="{ name: 'tr-dropdown-menu' }"
     :prevent-overflow="true"

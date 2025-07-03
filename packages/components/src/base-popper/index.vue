@@ -23,6 +23,7 @@ type TriggerEvents = Partial<Record<`on${Capitalize<string>}`, (...args: any[]) 
 
 const props = withDefaults(
   defineProps<{
+    appendTo?: string | HTMLElement
     offset?: number | { mainAxis?: number; crossAxis?: number }
     placement?: 'top-center' | 'bottom-center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
     preventOverflow?: boolean
@@ -179,7 +180,7 @@ defineExpose({
     v-bind="indexedEventHandlers[index]"
   />
   <Transition v-bind="transitionProps">
-    <Teleport v-if="show" :to="teleportTarget">
+    <Teleport v-if="show" :to="props.appendTo || teleportTarget">
       <div class="tr-base-popper" ref="popperRef" :style="popperStyles" v-bind="$attrs">
         <slot name="content" />
       </div>

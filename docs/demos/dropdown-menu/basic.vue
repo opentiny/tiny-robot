@@ -18,7 +18,12 @@
   </TrDropdownMenu>
   <hr />
   <div style="display: flex; gap: 10px">
-    <TrDropdownMenu :items="dropdownMenuItems" trigger="hover" @item-click="(item) => console.log(item)">
+    <TrDropdownMenu
+      :items="dropdownMenuItems"
+      trigger="hover"
+      @item-click="(item) => console.log(item)"
+      append-to="#app"
+    >
       <template #trigger>
         <TrSuggestionPillButton> Trigger 为 hover </TrSuggestionPillButton>
       </template>
