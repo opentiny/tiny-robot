@@ -31,17 +31,6 @@ export interface Attachment extends UploadFile {
   messageType?: 'error' | 'warning' | 'success' | 'info' | 'retry' | 'uploading' // 状态消息类型
 }
 
-export interface DragConfig {
-  mode: 'fullscreen' | 'container'
-  target?: string | HTMLElement
-  overlay?: {
-    zIndex?: number
-    enterDelay?: number
-    leaveDelay?: number
-    className?: string
-  }
-}
-
 export interface TinyUploadProps {
   // 基础属性
   action?: string // 上传地址
@@ -71,7 +60,25 @@ export interface PlaceholderConfig {
   icon?: Component | string
   title?: string
   description?: string
+}
+
+export type OverlayConfig = {
+  zIndex?: number
+  enterDelay?: number
+  leaveDelay?: number
   className?: string
+}
+
+export interface DragConfig {
+  mode: 'fullscreen' | 'container'
+  target?: string | HTMLElement
+  overlay?: OverlayConfig
+}
+
+export interface DropZoneOverlayProps extends PlaceholderConfig {
+  visible?: boolean
+  fullscreen?: boolean
+  config?: OverlayConfig
 }
 
 export interface AttachmentsProps extends TinyUploadProps {
@@ -98,7 +105,7 @@ export interface AttachmentsProps extends TinyUploadProps {
   statusType?: 'info' | 'progress' | 'operate' | 'message' | 'default'
   customActions?: ActionButton[]
 
-  // 新增属性
+  // 占位符配置
   placeholder?: PlaceholderConfig | ((type: 'inline' | 'drop') => PlaceholderConfig)
   autoUpload?: boolean // 是否自动上传（默认 true）
 

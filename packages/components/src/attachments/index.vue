@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { watch, ref } from 'vue'
+import { watch, ref, computed } from 'vue'
 import { useFileDialog } from '@vueuse/core'
 import { AttachmentList, DropZoneOverlay } from './components'
 import { useDragDrop, useFileType, useImagePreview, useUpload } from './composables'
-import { AttachmentsEmits, AttachmentsProps, Attachment } from './index.type'
+import { AttachmentsEmits, AttachmentsProps, Attachment, PlaceholderConfig } from './index.type'
 import './index.less'
 
 const props = withDefaults(defineProps<AttachmentsProps>(), {
@@ -134,6 +134,13 @@ defineExpose({
   hasFiles: () => fileList.value.length > 0,
   addFiles: handleFilesDropped,
 })
+
+const dropZoneConfig = computed<PlaceholderConfig | undefined>(() => {
+  if (typeof props.placeholder === 'function') {
+    return props.placeholder('drop')
+  }
+  return undefined
+})
 </script>
 
 <template>
@@ -168,6 +175,9 @@ defineExpose({
     <DropZoneOverlay
       :visible="dragState.active"
       :fullscreen="isDragFullscreen"
+      :icon="dropZoneConfig?.icon"
+      :title="dropZoneConfig?.title"
+      :description="dropZoneConfig?.description"
       :config="typeof drag === 'object' ? drag.overlay : undefined"
       :style="styles?.overlay"
     />

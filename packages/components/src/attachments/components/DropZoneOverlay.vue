@@ -1,16 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { DropZoneOverlayProps } from '../index.type'
 
-const props = defineProps<{
-  visible: boolean
-  fullscreen: boolean
-  config?: {
-    zIndex?: number
-    enterDelay?: number
-    leaveDelay?: number
-    className?: string
-  }
-}>()
+const props = defineProps<DropZoneOverlayProps>()
 
 const overlayStyle = computed(() => {
   return {
@@ -21,6 +13,13 @@ const overlayStyle = computed(() => {
 })
 
 const customClass = computed(() => props.config?.className ?? '')
+
+const descriptionLines = computed(() => {
+  if (Array.isArray(props.description)) {
+    return props.description
+  }
+  return props.description ? [props.description] : []
+})
 </script>
 
 <template>
@@ -32,14 +31,23 @@ const customClass = computed(() => props.config?.className ?? '')
       :style="overlayStyle"
     >
       <div class="tr-dropzone-overlay__content">
-        <img class="tr-dropzone-overlay__icon" src="../../assets/svgs/add-file.svg" />
+        <div class="tr-dropzone-overlay__icon">
+          <component v-if="typeof icon === 'object'" :is="icon" />
+          <img v-else-if="typeof icon === 'string'" :src="icon" />
+          <img v-else src="../../assets/svgs/add-file.svg" />
+        </div>
         <div class="tr-dropzone-overlay__text">
-          <div class="tr-dropzone-overlay__title"><slot name="header"> 将附件拖到此处完成上传 </slot></div>
+          <div class="tr-dropzone-overlay__title">
+            {{ title || '将附件拖到此处完成上传' }}
+          </div>
           <div class="tr-dropzone-overlay__description">
-            <slot name="description">
+            <template v-if="descriptionLines.length > 0">
+              <span v-for="(line, index) in descriptionLines" :key="index">{{ line }}</span>
+            </template>
+            <template v-else>
               <span>总计最多上传50个附件（每个100MB以内）</span>
               <span>支持附件格式 PDF/Word/Excel/PPT/Markdown</span>
-            </slot>
+            </template>
           </div>
         </div>
       </div>

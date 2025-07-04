@@ -40,7 +40,9 @@ export function useImagePreview(
     // 如果是图片，则打开图片预览器
     if (file.fileType === 'image') {
       // 过滤出所有图片类型且非错误状态的文件
-      previewImages.value = fileList.value.filter((item) => item.fileType === 'image' && item.status !== 'error')
+      previewImages.value = fileList.value.filter(
+        (item) => item.fileType === 'image' && item.status !== 'error' && item.status !== 'uploading',
+      )
       const currentIndex = previewImages.value.findIndex((item) => item.uid === file.uid)
 
       if (currentIndex !== -1) {

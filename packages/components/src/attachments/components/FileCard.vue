@@ -6,7 +6,7 @@ import type { FileType, FileCardProps } from '../index.type'
 import {
   IconUploadFailed,
   IconUploadLoading,
-  IconClose,
+  IconFileRemove,
   IconImageLoading,
   IconImageWarning,
 } from '@opentiny/tiny-robot-svgs'
@@ -35,6 +35,7 @@ const fileTypeIcon = computed(() => {
 // 判断文件状态
 const isUploading = computed(() => props.file.status === 'uploading' || props.file.isUploading)
 const isUploadFailed = computed(() => props.file.status === 'error')
+const isUploadSuccess = computed(() => props.file.status === 'done')
 </script>
 
 <template>
@@ -45,6 +46,7 @@ const isUploadFailed = computed(() => props.file.status === 'error')
     :class="{
       'tr-file-card--uploading': isUploading,
       'tr-file-card--error': isUploadFailed,
+      'tr-file-card--success': isUploadSuccess,
     }"
     @click="handlePreview"
   >
@@ -64,9 +66,9 @@ const isUploadFailed = computed(() => props.file.status === 'error')
     </div>
 
     <!-- 关闭按钮 -->
-    <button v-if="!disabled" type="button" class="tr-file-card__close" @click.stop="handleRemove" aria-label="移除文件">
-      <span class="tr-file-card__close-icon"><IconClose /></span>
-    </button>
+    <span v-if="!disabled" class="tr-file-card__close" @click.stop="handleRemove" aria-label="移除文件">
+      <IconFileRemove />
+    </span>
   </div>
 
   <!-- Default Card Variant -->
@@ -79,14 +81,15 @@ const isUploadFailed = computed(() => props.file.status === 'error')
       {
         'tr-file-card--uploading': isUploading,
         'tr-file-card--error': isUploadFailed,
+        'tr-file-card--success': isUploadSuccess,
       },
     ]"
     :data-file-type="file.fileType || 'other'"
   >
     <!-- 关闭按钮 - 右上角固定位置，悬浮显示 -->
-    <button v-if="!disabled" type="button" class="tr-file-card__close" @click="handleRemove" aria-label="移除文件">
-      <span class="tr-file-card__close-icon"><IconClose /></span>
-    </button>
+    <span v-if="!disabled" class="tr-file-card__close" @click="handleRemove" aria-label="移除文件">
+      <IconFileRemove />
+    </span>
 
     <div
       class="tr-file-card__icon"
@@ -229,30 +232,37 @@ const isUploadFailed = computed(() => props.file.status === 'error')
     }
   }
 
-  // Status overlay for uploading/error
+  // 上传/错误状态下的状态蒙版
   .tr-file-card__overlay {
     z-index: 2;
   }
 
-  // Close button for picture card
+  // 图片卡片的关闭按钮
   .tr-file-card__close {
-    transform: none;
-    top: -7px;
-    right: -7px;
-    background-color: #c2c2c2;
-    z-index: 3;
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    cursor: pointer;
+    z-index: var(--tr-attachments-z-index-close);
+    opacity: 0;
+    transition: opacity var(--tr-attachments-transition-fast);
   }
 
-  // Show close button on hover
+  // 悬浮时显示关闭按钮
   &:hover .tr-file-card__close {
     opacity: 1;
   }
 
-  // Special handling for uploading/error states
+  // 上传成功时，始终显示关闭按钮
+  &.tr-file-card--success .tr-file-card__close {
+    opacity: 1;
+  }
+
+  // 上传中/错误状态的特殊处理
   &.tr-file-card--uploading,
   &.tr-file-card--error {
     .tr-file-card__picture-overlay {
-      // Hide preview overlay when showing status overlay
+      // 显示状态蒙版时，隐藏预览文本
       opacity: 0;
     }
   }
@@ -287,27 +297,10 @@ const isUploadFailed = computed(() => props.file.status === 'error')
   // 关闭按钮
   &__close {
     position: absolute;
-    top: 0;
-    right: 0;
-    transform: translate(var(--tr-attachments-card-close-offset), calc(-1 * var(--tr-attachments-card-close-offset)));
-    width: var(--tr-attachments-close-button-size);
-    height: var(--tr-attachments-close-button-size);
-    border-radius: 50%;
-    background: rgb(194, 194, 194);
-    color: white;
-    .flex-center;
-    border: none;
+    top: -8px;
+    right: -8px;
     cursor: pointer;
-    opacity: 0;
-    transition: opacity var(--tr-attachments-transition-fast);
     z-index: var(--tr-attachments-z-index-close);
-
-    &-icon {
-      font-size: 6px;
-      width: 6px;
-      height: 6px;
-      line-height: 1;
-    }
   }
 
   &:hover &__close {
