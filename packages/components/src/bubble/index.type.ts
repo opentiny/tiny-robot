@@ -1,5 +1,5 @@
 import { VNode } from 'vue'
-import { BubbleMessageProps, BubbleMessageRenderer } from './message'
+import { BubbleMessageProps } from './message'
 export * from './message/index.type'
 
 export interface BubbleCommonProps {
@@ -15,11 +15,6 @@ export interface BubbleCommonProps {
    * 气泡形状，默认 'corner'
    */
   shape?: 'rounded' | 'corner'
-  /**
-   * 气泡内容渲染器。
-   * 如果 Bubble 中的 messages 长度大于 0，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
-   */
-  contentRenderer?: BubbleMessageRenderer
   hidden?: boolean
   maxWidth?: string | number
 }
