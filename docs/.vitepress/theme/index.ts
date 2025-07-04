@@ -39,7 +39,7 @@ function registerServiceWorker() {
 
   window.__SW_REGISTERED__ = true
   navigator.serviceWorker
-    .register('/cdocs/tiny-robot/sw.js')
+    .register(import.meta.env.BASE_URL + 'sw.js')
     .then(() => {
       console.log('ServiceWorker registration successful')
     })
