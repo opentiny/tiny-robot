@@ -338,7 +338,7 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
 const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
   // 当有输入内容且有匹配的联想项时，显示联想弹窗但不自动选中任何项
-  if (inputValue.value && filteredSuggestions.value.length > 0) {
+  if (inputValue.value && filteredSuggestions.value.length > 0 && !showTemplateEditor.value) {
     showSuggestionsPopup.value = true
     showTabHint.value = true
   }
