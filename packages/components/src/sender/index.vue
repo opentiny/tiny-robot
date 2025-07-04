@@ -27,7 +27,6 @@ const props = withDefaults(defineProps<SenderProps>(), {
   showWordLimit: false,
   submitType: 'enter',
   theme: 'light',
-  template: '',
   templateData: () => [],
   suggestions: () => [],
   suggestionPopupWidth: 400,
@@ -66,7 +65,7 @@ const {
   handleSuggestionItemHover,
   handleSuggestionItemLeave,
   highlightSuggestionText,
-} = useSuggestionHandler(props, emit, inputValue, isComposing)
+} = useSuggestionHandler(props, emit, inputValue, isComposing, showTemplateEditor)
 
 // 自动模式切换
 const currentMode = ref(props.mode)
@@ -339,7 +338,7 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
 const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
   // 当有输入内容且有匹配的联想项时，显示联想弹窗但不自动选中任何项
-  if (inputValue.value && filteredSuggestions.value.length > 0 && !props.template) {
+  if (inputValue.value && filteredSuggestions.value.length > 0) {
     showSuggestionsPopup.value = true
     showTabHint.value = true
   }
