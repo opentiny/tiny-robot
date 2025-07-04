@@ -27,7 +27,6 @@ const props = withDefaults(defineProps<SenderProps>(), {
   showWordLimit: false,
   submitType: 'enter',
   theme: 'light',
-  hasContent: undefined,
   template: '',
   templateData: () => [],
   suggestions: () => [],
@@ -382,7 +381,7 @@ const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
-const hasContent = computed(() => (props.hasContent !== undefined ? props.hasContent : !!inputValue.value))
+const hasContent = computed(() => !!inputValue.value.trim())
 
 // 样式类
 const senderClasses = computed(() => ({
