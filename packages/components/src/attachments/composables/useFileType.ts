@@ -68,7 +68,7 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
     if (typeof file !== 'string') {
       // 先尝试根据MIME类型判断
       for (const [mimePrefix, fileType] of Object.entries(mimeTypeMap)) {
-        if (file.type.startsWith(mimePrefix)) {
+        if (file.type?.startsWith(mimePrefix)) {
           return fileType
         }
       }
@@ -105,7 +105,7 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
    * 创建文件预览URL
    */
   const createPreviewUrl = (file: File): string => {
-    if (file.type.startsWith('image/')) {
+    if (file.type?.startsWith('image/')) {
       return URL.createObjectURL(file)
     }
     return ''
