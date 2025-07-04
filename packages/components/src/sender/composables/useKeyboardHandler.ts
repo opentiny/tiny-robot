@@ -178,10 +178,14 @@ export function useKeyboardHandler(
     // 检查是否匹配当前的提交快捷键
     const shouldSubmit = checkSubmitShortcut(event, props.submitType as SubmitTrigger)
 
-    // 只有当满足提交条件且输入框有内容时才提交
-    if (shouldSubmit && validateSubmission(inputValue.value)) {
+    if (shouldSubmit) {
+      // 只要是提交快捷键，就阻止默认行为（比如换行）
       event.preventDefault()
-      triggerSubmit()
+
+      // 如果验证通过，则执行提交
+      if (validateSubmission(inputValue.value)) {
+        triggerSubmit()
+      }
     }
   }
 
