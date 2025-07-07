@@ -52,7 +52,7 @@ const items: BubbleListProps['items'] = [
     role: 'ai',
     messages: [
       {
-        type: 'markdown',
+        type: 'text',
         content: '好的，下面开始执行扩容操作',
       },
       {
@@ -102,8 +102,6 @@ const items: BubbleListProps['items'] = [
     padding: 0;
     white-space: pre-line;
     word-break: break-word;
-    font-size: 14px;
-    line-height: 24px;
   }
 
   p:first-child {
@@ -118,7 +116,7 @@ const items: BubbleListProps['items'] = [
     background-color: #f0f0f0;
     border-radius: 999px;
     padding: 4px 12px;
-    font-size: 12px;
+    font-size: 14px;
     border-radius: 999px;
     border: none;
     color: #595959;
@@ -140,9 +138,9 @@ const items: BubbleListProps['items'] = [
     code[class*='language-'] {
       display: block;
       padding: 8px;
-      font-size: 12px;
+      font-size: 14px;
       background-color: #f0f0f0;
-      border-radius: 12px;
+      border-radius: 8px;
       font-family: monospace;
     }
   }

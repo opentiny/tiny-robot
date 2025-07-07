@@ -82,20 +82,20 @@ const getContent = (content: string) => {
     justify-content: center;
     width: 24px;
     height: 24px;
-    font-size: 12px;
+    font-size: 14px;
     color: #dbdbdb;
   }
 
   .tr-chain-item__title {
-    font-size: 14px;
-    line-height: 24px;
+    font-size: 16px;
+    line-height: 26px;
     color: #191919;
     font-weight: 600;
   }
 
   .expand-icon {
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     color: #191919;
 
     &.rotate-180 {
@@ -127,8 +127,8 @@ const getContent = (content: string) => {
 
   .tr-chain-item__content {
     flex: 1;
-    font-size: 14px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 26px;
     color: #595959;
   }
 }
