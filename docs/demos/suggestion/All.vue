@@ -27,7 +27,6 @@
             :placeholder="placeholder"
             :clearable="true"
             mode="multiple"
-            :has-content="hasContent"
             @submit="handleSubmit"
             @keydown="(e) => handleKeyDown(e, onTrigger, onKeyDown)"
             @update:modelValue="updateInputValue"
@@ -53,7 +52,7 @@
 
 <script setup lang="ts">
 import { TrSender, TrSuggestion } from '@opentiny/tiny-robot'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { templateCategories, templateSuggestions } from './templateData'
 
 // 状态管理
@@ -66,15 +65,6 @@ const senderRef = ref<any>(null)
 const loading = ref(false)
 const placeholder = ref('输入 / 打开指令菜单...')
 const messages = ref<string[]>([])
-
-// 计算属性：判断是否有内容
-const hasContent = computed(() => {
-  // 当处于指令编辑模式且输入内容不为空时，视为有内容
-  if (currentTemplate.value) {
-    return inputText.value.trim().length > 0
-  }
-  return inputText.value.trim().length > 0
-})
 
 // 更新输入值
 const updateInputValue = (value) => {

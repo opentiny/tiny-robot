@@ -48,6 +48,28 @@ const showTemplateEditor = computed(() => props.templateData && props.templateDa
 // 输入控制
 const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler = useInputHandler(props, emit)
 
+const hasContent = computed(() => !!inputValue.value.trim())
+
+// 统一的提交条件验证
+const canSubmit = computed(() => {
+  // 基础状态检查：禁用或加载中时不能提交
+  if (props.disabled || props.loading) {
+    return false
+  }
+
+  // 内容检查：空内容不能提交
+  if (!hasContent.value) {
+    return false
+  }
+
+  // 字数限制检查：超出限制时不能提交
+  if (isOverLimit.value) {
+    return false
+  }
+
+  return true
+})
+
 // 建议处理
 const {
   showSuggestionsPopup,
@@ -327,7 +349,7 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   closeSuggestionsPopup,
   navigateSuggestions,
   toggleSpeech,
-  isOverLimit,
+  canSubmit,
   currentMode,
   setMultipleMode,
   showTemplateEditor,
@@ -380,7 +402,6 @@ const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
-const hasContent = computed(() => !!inputValue.value.trim())
 
 // 样式类
 const senderClasses = computed(() => ({
