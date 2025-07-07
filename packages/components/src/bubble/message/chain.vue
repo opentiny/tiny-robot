@@ -12,6 +12,7 @@ const props = withDefaults(
     items: ChainItem[]
     html?: boolean
     contentClass?: string
+    contentRenderer?: (content: string) => string
   }>(),
   {
     html: true,
@@ -22,6 +23,13 @@ const collapsedMap = ref<Record<number, boolean>>({})
 
 const toggleCollapse = (index: number) => {
   collapsedMap.value[index] = !collapsedMap.value[index]
+}
+
+const getContent = (content: string) => {
+  if (props.contentRenderer) {
+    return props.contentRenderer(content)
+  }
+  return content
 }
 </script>
 
@@ -42,9 +50,9 @@ const toggleCollapse = (index: number) => {
           <div class="tr-chain-item__chain-line"></div>
         </div>
         <div v-if="!props.html" class="tr-chain-item__content" :class="props.contentClass">
-          {{ item.content }}
+          {{ getContent(item.content) }}
         </div>
-        <div v-else class="tr-chain-item__content" :class="props.contentClass" v-html="item.content"></div>
+        <div v-else class="tr-chain-item__content" :class="props.contentClass" v-html="getContent(item.content)"></div>
       </div>
     </div>
   </div>

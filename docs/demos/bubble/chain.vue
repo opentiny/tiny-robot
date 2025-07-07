@@ -30,14 +30,18 @@ const roles: Record<string, BubbleRoleConfig> = {
   },
 }
 
-const markdownRenderer = new BubbleMarkdownMessageRenderer()
+const classes = useCssModule()
+
+const markdownRenderer = new BubbleMarkdownMessageRenderer({ styleOptions: { class: classes.content } })
 
 // register renderer
 const messageRenderers = {
-  chain: BubbleChainMessageRenderer,
+  markdown: markdownRenderer,
+  chain: {
+    component: BubbleChainMessageRenderer,
+    defaultProps: { contentRenderer: (content: string) => markdownRenderer.md.render(content) },
+  },
 }
-
-const classes = useCssModule()
 
 const items: BubbleListProps['items'] = [
   {
@@ -48,7 +52,7 @@ const items: BubbleListProps['items'] = [
     role: 'ai',
     messages: [
       {
-        type: 'text',
+        type: 'markdown',
         content: '好的，下面开始执行扩容操作',
       },
       {
@@ -57,17 +61,15 @@ const items: BubbleListProps['items'] = [
         items: [
           {
             title: '查看云硬盘状态',
-            content: markdownRenderer.md.render(
-              `确认云硬盘和云主机满足一定的条件，才可以进行扩容
+            content: `确认云硬盘和云主机满足一定的条件，才可以进行扩容
 
 **已经查询**
 [淘乐电商网站的云硬盘evs-90b0详情页](#) [详情页](#) [淘乐电商网站的云硬盘evs-90b0详情页](#)
 `,
-            ),
           },
           {
             title: '扩容分区和文件系统',
-            content: markdownRenderer.md.render(`下面将开始执行扩容分区和文件系统的操作
+            content: `下面将开始执行扩容分区和文件系统的操作
 
 **安装扩容工具**
 
@@ -80,7 +82,7 @@ const items: BubbleListProps['items'] = [
 \`\`\`bash
 执行扩容命令[root@ecs-centos76 ~]# growpart /dev/vda 1
 \`\`\`
-`),
+`,
           },
           {
             title: '确认扩容生效',
