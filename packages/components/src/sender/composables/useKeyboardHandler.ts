@@ -16,7 +16,7 @@ import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../in
  * @param closeSuggestionsPopup - 关闭建议弹窗的函数
  * @param navigateSuggestions - 导航建议列表的函数
  * @param toggleSpeech - 切换语音识别函数
- * @param isOverLimit - 是否超出字数限制
+ * @param canSubmit - 是否可以提交
  * @param currentMode - 当前输入模式
  * @param setMultipleMode - 设置为多行模式的回调函数
  * @param isTemplateMode - 是否处于模板编辑模式
@@ -34,42 +34,17 @@ export function useKeyboardHandler(
   closeSuggestionsPopup: (keepFocus?: boolean) => void,
   navigateSuggestions: (direction: 'up' | 'down') => void,
   toggleSpeech: () => void,
-  isOverLimit: Ref<boolean>,
+  canSubmit: ComputedRef<boolean>,
   currentMode?: Ref<'single' | 'multiple'>,
   setMultipleMode?: () => void,
   isTemplateMode?: ComputedRef<boolean>,
   exitTemplateMode?: () => void,
 ) {
   /**
-   * 验证提交条件
-   * @param value 输入值
-   * @returns 是否可以提交
-   */
-  const validateSubmission = (value: string): boolean => {
-    // 基础状态检查：禁用或加载中时不能提交
-    if (props.disabled || props.loading) {
-      return false
-    }
-
-    // 内容检查：空内容不能提交
-    const trimmedValue = value.trim()
-    if (trimmedValue.length === 0) {
-      return false
-    }
-
-    // 字数限制检查：超出限制时不能提交
-    if (isOverLimit.value) {
-      return false
-    }
-
-    return true
-  }
-
-  /**
    * 触发提交
    */
   const triggerSubmit = () => {
-    if (!validateSubmission(inputValue.value)) return
+    if (!canSubmit.value) return
 
     if (isTemplateMode?.value) {
       exitTemplateMode?.()
@@ -178,10 +153,14 @@ export function useKeyboardHandler(
     // 检查是否匹配当前的提交快捷键
     const shouldSubmit = checkSubmitShortcut(event, props.submitType as SubmitTrigger)
 
-    // 只有当满足提交条件且输入框有内容时才提交
-    if (shouldSubmit && validateSubmission(inputValue.value)) {
+    if (shouldSubmit) {
+      // 只要是提交快捷键，就阻止默认行为（比如换行）
       event.preventDefault()
-      triggerSubmit()
+
+      // 如果验证通过，则执行提交
+      if (canSubmit.value) {
+        triggerSubmit()
+      }
     }
   }
 

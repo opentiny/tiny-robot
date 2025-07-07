@@ -44,8 +44,6 @@ export interface SenderProps {
   suggestions?: string[] // 输入建议
   suggestionPopupWidth?: string | number // 联想建议弹窗宽度，如 '300px' 或 300
   theme?: ThemeType // 主题
-  template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
-  hasContent?: boolean // 手动指定是否有内容，用于模板模式
   templateData?: UserItem[] // 模板数据
   stopText?: string // 停止按钮文字，不传则只显示图标
 }
