@@ -9,12 +9,10 @@ import Feedback from './feedback'
 import History from './history'
 import IconButton from './icon-button'
 import { Prompt, Prompts } from './prompts'
-import Question from './question'
 import Sender from './sender'
-import Welcome from './welcome'
-import Suggestion from './suggestion'
-import SuggestionPopover from './suggestion-popover'
 import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
+import SuggestionPopover from './suggestion-popover'
+import Welcome from './welcome'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -24,11 +22,9 @@ export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
-export * from './welcome/index.type'
-export * from './suggestion/index.type'
-// TODO suggestion 中类型和 suggestion-popover 类型部分冲突。后续整改 suggestion 的类型
-// export * from './suggestion-popover/index.type'
 export * from './suggestion-pills/index.type'
+export * from './suggestion-popover/index.type'
+export * from './welcome/index.type'
 
 const components = [
   Bubble,
@@ -41,13 +37,11 @@ const components = [
   IconButton,
   Prompt,
   Prompts,
-  Question,
   Sender,
-  Welcome,
-  Suggestion,
-  SuggestionPopover,
   SuggestionPills,
   SuggestionPillButton,
+  SuggestionPopover,
+  Welcome,
 ]
 
 export default {
@@ -82,16 +76,12 @@ export {
   Prompts as TrPrompts,
   Sender,
   Sender as TrSender,
-  Welcome,
-  Welcome as TrWelcome,
-  Suggestion,
-  Suggestion as TrSuggestion,
-  SuggestionPills,
-  SuggestionPills as TrSuggestionPills,
   SuggestionPillButton,
   SuggestionPillButton as TrSuggestionPillButton,
-  Question,
-  Question as TrQuestion,
+  SuggestionPills,
+  SuggestionPills as TrSuggestionPills,
   SuggestionPopover,
   SuggestionPopover as TrSuggestionPopover,
+  Welcome,
+  Welcome as TrWelcome,
 }
