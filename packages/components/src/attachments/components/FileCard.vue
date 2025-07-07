@@ -13,7 +13,6 @@ import {
 
 const props = withDefaults(defineProps<FileCardProps>(), {
   listType: 'card',
-  disabled: false,
   showPreview: true,
   showStatus: true,
   statusType: 'info',
@@ -58,10 +57,10 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
     <!-- 状态蒙版 -->
     <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
       <div v-if="isUploading" class="tr-file-card__loading-icon">
-        <IconImageLoading :width="24" :height="24" />
+        <IconImageLoading style="font-size: 16px" />
       </div>
       <TinyTooltip v-if="isUploadFailed" content="解析失败" :placement="'top'" :effect="'light'">
-        <IconImageWarning :width="24" :height="24" />
+        <IconImageWarning style="font-size: 16px" />
       </TinyTooltip>
     </div>
 
@@ -103,9 +102,9 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
         <!-- 上传状态蒙版 -->
         <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
           <div v-if="isUploading" class="tr-file-card__loading-icon">
-            <IconUploadLoading :width="24" :height="24" />
+            <IconUploadLoading style="font-size: 16px" />
           </div>
-          <IconUploadFailed v-if="isUploadFailed" :width="24" :height="24" />
+          <IconUploadFailed v-if="isUploadFailed" style="font-size: 16px" />
         </div>
       </div>
     </div>
@@ -122,17 +121,7 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
             <span class="tr-file-card__file-size" v-if="file.size">{{ formatFileSize(file.size) }}</span>
           </template>
 
-          <!-- 类型2: 进度状态 -->
-          <template v-else-if="statusType === 'progress' && file.progress !== undefined">
-            <div class="tr-file-card__progress">
-              <div class="tr-file-card__progress-text">{{ file.status || '处理中...' }} {{ file.progress }}%</div>
-              <div class="tr-file-card__progress-bar">
-                <div class="tr-file-card__progress-inner" :style="{ width: `${file.progress}%` }"></div>
-              </div>
-            </div>
-          </template>
-
-          <!-- 类型3: 自定义操作按钮 -->
+          <!-- 类型2: 自定义操作按钮 -->
           <template v-else-if="statusType === 'operate'">
             <div class="tr-file-card__actions">
               <span
@@ -147,7 +136,7 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
             </div>
           </template>
 
-          <!-- 类型4: 状态消息 -->
+          <!-- 类型3: 状态消息 -->
           <template v-else-if="statusType === 'message'">
             <!-- 重试操作：显示上传失败文本和重试按钮 -->
             <div v-if="file.messageType === 'error' && file.status === 'error'" class="tr-file-card__retry">
@@ -165,7 +154,7 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
             </div>
           </template>
 
-          <!-- 类型5: 默认状态文本 -->
+          <!-- 类型4: 默认状态文本 -->
           <template v-else>
             {{ file.status }}
           </template>
@@ -399,32 +388,6 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
 
   &__file-type {
     margin-right: 10px;
-  }
-
-  // 进度条
-  &__progress {
-    width: 100%;
-
-    &-text {
-      font-size: var(--tr-attachments-font-size-small);
-      margin-bottom: 2px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    &-bar {
-      height: var(--tr-attachments-progress-height);
-      width: 100%;
-      background-color: var(--tr-attachments-progress-bg);
-      border-radius: calc(var(--tr-attachments-progress-height) / 2);
-      overflow: hidden;
-    }
-
-    &-inner {
-      height: 100%;
-      background-color: var(--tr-attachments-progress-color);
-      transition: width var(--tr-attachments-transition-duration) var(--tr-attachments-transition-timing);
-    }
   }
 
   // 操作按钮

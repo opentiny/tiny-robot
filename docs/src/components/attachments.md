@@ -4,7 +4,7 @@ outline: deep
 
 # Attachments 附件上传组件
 
-一个功能强大的附件上传组件，支持文件类型图标展示和增强的拖拽上传功能。
+文件上传卡片
 
 ## 代码示例
 
@@ -15,11 +15,6 @@ outline: deep
 ### 溢出控制
 
 <demo vue="../../demos/attachments/file-card-list.vue" title="上传卡片列表" description="卡片列表溢出控制" />
-
-### 卡片状态
-
-<demo vue="../../demos/attachments/file-card-status.vue" title="文件卡片状态类型" description="文件卡片可以展示不同类型的状态" />
-
 
 **文件状态消息类型**
 
@@ -44,14 +39,6 @@ outline: deep
 2. 错误重试逻辑：当同时满足 `messageType="error"` 和 `status="error"` 时自动激活
 3. 扩展性设计：自定义操作可通过 `customActions` 注入任意按钮组件
 4. 渐进式显示：未设置特殊状态时自动降级为默认信息展示模式
-
-
-### 高级功能
-
-<demo vue="../../demos/attachments/file-image-preview.vue" title="附加功能" description="文件卡片支持图片预览和下载以及失败重传功能" />
-
-### 整合案例
-<demo vue="../../demos/attachments/integration.vue" title="整合案例" description="整合案例" />
 
 ## API
 
