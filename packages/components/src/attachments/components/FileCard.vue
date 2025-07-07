@@ -3,19 +3,13 @@ import { computed } from 'vue'
 import TinyTooltip from '@opentiny/vue-tooltip'
 import { useFileType, useFileCard } from '../composables'
 import type { FileType, FileCardProps } from '../index.type'
-import {
-  IconUploadFailed,
-  IconUploadLoading,
-  IconFileRemove,
-  IconImageLoading,
-  IconImageWarning,
-} from '@opentiny/tiny-robot-svgs'
+import { IconFileRemove, IconImageLoading, IconImageWarning } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<FileCardProps>(), {
-  listType: 'card',
-  showPreview: true,
-  showStatus: true,
-  statusType: 'info',
+  variant: 'card',
+  preview: true,
+  status: true,
+  statusMode: 'info',
 })
 
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
@@ -34,172 +28,260 @@ const fileTypeIcon = computed(() => {
 // 判断文件状态
 const isUploading = computed(() => props.file.status === 'uploading' || props.file.isUploading)
 const isUploadFailed = computed(() => props.file.status === 'error')
-const isUploadSuccess = computed(() => props.file.status === 'done')
+const isUploadSuccess = computed(() => props.file.status === 'success')
+
+// 卡片样式类
+const cardClasses = computed(() => {
+  const baseClass = props.variant === 'picture' ? 'tr-file-card--picture' : 'tr-file-card'
+  return [
+    baseClass,
+    `tr-file-card--${props.file.fileType || 'other'}`,
+    {
+      'tr-file-card--uploading': isUploading.value,
+      'tr-file-card--error': isUploadFailed.value,
+      'tr-file-card--success': isUploadSuccess.value,
+    },
+  ]
+})
+
+// 渲染状态消息的文本
+const getStatusMessageText = computed(() => {
+  const messageType = props.file.messageType
+  switch (messageType) {
+    case 'error':
+      return '上传失败'
+    case 'warning':
+      return '上传警告'
+    case 'success':
+      return '上传成功'
+    case 'info':
+      return '处理中...'
+    case 'uploading':
+      return '上传中...'
+    default:
+      return props.file.status || '状态信息'
+  }
+})
 </script>
 
 <template>
-  <!-- Picture Card Variant -->
   <div
-    v-if="listType === 'picture'"
-    class="tr-file-card--picture"
-    :class="{
-      'tr-file-card--uploading': isUploading,
-      'tr-file-card--error': isUploadFailed,
-      'tr-file-card--success': isUploadSuccess,
-    }"
-    @click="handlePreview"
-  >
-    <img :src="file.previewUrl" :alt="file.name" class="tr-file-card__picture-img" />
-    <div class="tr-file-card__picture-overlay">
-      <span>预览</span>
-    </div>
-
-    <!-- 状态蒙版 -->
-    <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
-      <div v-if="isUploading" class="tr-file-card__loading-icon">
-        <IconImageLoading style="font-size: 16px" />
-      </div>
-      <TinyTooltip v-if="isUploadFailed" content="解析失败" :placement="'top'" :effect="'light'">
-        <IconImageWarning style="font-size: 16px" />
-      </TinyTooltip>
-    </div>
-
-    <!-- 关闭按钮 -->
-    <span v-if="!disabled" class="tr-file-card__close" @click.stop="handleRemove" aria-label="移除文件">
-      <IconFileRemove />
-    </span>
-  </div>
-
-  <!-- Default Card Variant -->
-  <div
-    v-else
-    class="tr-file-card"
-    :class="[
-      `tr-file-card--${file.fileType || 'other'}`,
-      file.status,
-      {
-        'tr-file-card--uploading': isUploading,
-        'tr-file-card--error': isUploadFailed,
-        'tr-file-card--success': isUploadSuccess,
-      },
-    ]"
+    :class="cardClasses"
     :data-file-type="file.fileType || 'other'"
+    @click="variant === 'picture' ? handlePreview() : undefined"
   >
-    <!-- 关闭按钮 - 右上角固定位置，悬浮显示 -->
-    <span v-if="!disabled" class="tr-file-card__close" @click="handleRemove" aria-label="移除文件">
+    <!-- 关闭按钮 - 通用组件 -->
+    <button v-if="!disabled" class="tr-file-card__close-btn" @click.stop="handleRemove" aria-label="移除文件">
       <IconFileRemove />
-    </span>
+    </button>
 
-    <div
-      class="tr-file-card__icon"
-      @click.stop="isImage && showPreview ? handlePreview() : null"
-      :class="{ 'tr-file-card__icon--preview': isImage && showPreview }"
-    >
-      <div class="tr-file-card__icon-wrapper">
-        <!-- 渲染图标组件 -->
-        <component :is="fileTypeIcon" />
+    <!-- 图片卡片模式 -->
+    <template v-if="variant === 'picture'">
+      <div class="tr-file-card__picture-container">
+        <!-- 图片预览 -->
+        <img :src="file.previewUrl" :alt="file.name" class="tr-file-card__picture-img" />
 
-        <!-- 上传状态蒙版 -->
-        <div v-if="isUploading || isUploadFailed" class="tr-file-card__overlay">
-          <div v-if="isUploading" class="tr-file-card__loading-icon">
-            <IconUploadLoading style="font-size: 16px" />
+        <!-- 预览遮罩 - 只有上传成功状态才显示 -->
+        <div v-if="isUploadSuccess" class="tr-file-card__picture-overlay">
+          <span class="tr-file-card__picture-overlay-text">预览</span>
+        </div>
+
+        <!-- 状态遮罩 -->
+        <div
+          v-if="isUploading || isUploadFailed"
+          class="tr-file-card__status-overlay tr-file-card__status-overlay--picture"
+        >
+          <!-- 上传中状态 -->
+          <div v-if="isUploading" class="tr-file-card__status-icon tr-file-card__status-icon--loading">
+            <IconImageLoading />
           </div>
-          <IconUploadFailed v-if="isUploadFailed" style="font-size: 16px" />
+
+          <!-- 上传失败状态 -->
+          <TinyTooltip v-else-if="isUploadFailed" content="解析失败" placement="top" effect="light">
+            <IconImageWarning class="tr-file-card__status-icon tr-file-card__status-icon--error" />
+          </TinyTooltip>
         </div>
       </div>
-    </div>
+    </template>
 
-    <div class="tr-file-card__content">
-      <div class="tr-file-card__info">
-        <span class="tr-file-card__name" :title="file.name">{{ file.name }}</span>
+    <!-- 默认卡片模式 -->
+    <template v-else>
+      <div class="tr-file-card__default-container">
+        <!-- 文件图标区域 -->
+        <div
+          class="tr-file-card__icon"
+          :class="{ 'tr-file-card__icon--clickable': isImage && preview }"
+          @click.stop="isImage && preview ? handlePreview() : null"
+        >
+          <div class="tr-file-card__icon-wrapper">
+            <!-- 文件类型图标 -->
+            <component :is="fileTypeIcon" class="tr-file-card__file-icon" />
 
-        <!-- 状态区域 - 根据状态类型显示不同内容 -->
-        <div v-if="showStatus" class="tr-file-card__status">
-          <!-- 类型1: 文件类型和大小 -->
-          <template v-if="statusType === 'info'">
-            <span class="tr-file-card__file-type">{{ file.fileType?.toUpperCase() || 'FILE' }}</span>
-            <span class="tr-file-card__file-size" v-if="file.size">{{ formatFileSize(file.size) }}</span>
-          </template>
+            <!-- 状态遮罩 -->
+            <div
+              v-if="isUploading || isUploadFailed"
+              class="tr-file-card__status-overlay tr-file-card__status-overlay--icon"
+            >
+              <!-- 上传中状态 -->
+              <div v-if="isUploading" class="tr-file-card__status-icon tr-file-card__status-icon--loading">
+                <IconImageLoading />
+              </div>
 
-          <!-- 类型2: 自定义操作按钮 -->
-          <template v-else-if="statusType === 'operate'">
-            <div class="tr-file-card__actions">
-              <span
-                v-for="(action, index) in customActions"
-                :key="index"
-                class="tr-file-card__action"
-                :class="`tr-file-card__action--${action.type}`"
-                @click="handleCustomAction(action)"
-              >
-                <span class="tr-file-card__action-icon">{{ action.label }}</span>
+              <!-- 上传失败状态 -->
+              <IconImageWarning
+                v-else-if="isUploadFailed"
+                class="tr-file-card__status-icon tr-file-card__status-icon--error"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 文件信息区域 -->
+        <div class="tr-file-card__content">
+          <div class="tr-file-card__info">
+            <!-- 文件名 -->
+            <div class="tr-file-card__name" :title="file.name">
+              {{ file.name }}
+            </div>
+
+            <!-- 状态区域 -->
+            <div v-if="status" class="tr-file-card__status">
+              <!-- 文件信息类型 -->
+              <div v-if="statusMode === 'info'" class="tr-file-card__status-info">
+                <span class="tr-file-card__file-type">
+                  {{ file.fileType?.toUpperCase() || 'FILE' }}
+                </span>
+                <span v-if="file.size" class="tr-file-card__file-size">
+                  {{ formatFileSize(file.size) }}
+                </span>
+              </div>
+
+              <!-- 操作按钮类型 -->
+              <div v-else-if="statusMode === 'actions'" class="tr-file-card__status-actions">
+                <button
+                  v-for="(action, index) in actions"
+                  :key="index"
+                  class="tr-file-card__action-btn"
+                  :class="`tr-file-card__action-btn--${action.type}`"
+                  @click="handleCustomAction(action)"
+                >
+                  {{ action.label }}
+                </button>
+              </div>
+
+              <!-- 消息类型 -->
+              <div v-else-if="statusMode === 'message'" class="tr-file-card__status-message">
+                <!-- 错误重试 -->
+                <div v-if="file.messageType === 'error' && file.status === 'error'" class="tr-file-card__error-retry">
+                  <span class="tr-file-card__error-text">上传失败</span>
+                  <button class="tr-file-card__retry-btn" @click="handleRetry">重试</button>
+                </div>
+
+                <!-- 普通消息 -->
+                <div
+                  v-else
+                  class="tr-file-card__message"
+                  :class="`tr-file-card__message--${file.messageType || 'info'}`"
+                >
+                  {{ getStatusMessageText }}
+                </div>
+              </div>
+
+              <!-- 默认状态 -->
+              <span v-else class="tr-file-card__status-default">
+                {{ file.status }}
               </span>
             </div>
-          </template>
-
-          <!-- 类型3: 状态消息 -->
-          <template v-else-if="statusType === 'message'">
-            <!-- 重试操作：显示上传失败文本和重试按钮 -->
-            <div v-if="file.messageType === 'error' && file.status === 'error'" class="tr-file-card__retry">
-              <span class="tr-file-card__error-text">上传失败</span>
-              <button class="tr-file-card__retry-btn" @click="handleRetry">重试</button>
-            </div>
-            <!-- 普通消息类型 -->
-            <div v-else class="tr-file-card__message" :class="`tr-file-card__message--${file.messageType || 'info'}`">
-              <span v-if="file.messageType === 'error'">上传失败</span>
-              <span v-if="file.messageType === 'warning'">上传警告</span>
-              <span v-if="file.messageType === 'success'">上传成功</span>
-              <span v-if="file.messageType === 'info'">处理中...</span>
-              <span v-if="file.messageType === 'uploading'">上传中...</span>
-              <span v-if="!file.messageType">{{ file.status || '状态信息' }}</span>
-            </div>
-          </template>
-
-          <!-- 类型4: 默认状态文本 -->
-          <template v-else>
-            {{ file.status }}
-          </template>
+          </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <style lang="less" scoped>
-@import '../vars.less';
+.tr-file-card {
+  // 基础样式
+  &,
+  &--picture {
+    position: relative;
+    border-radius: 8px;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    background: rgb(255, 255, 255);
+    border: 1px solid rgb(240, 240, 240);
+  }
 
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  // 默认卡片样式
+  & {
+    display: flex;
+    align-items: center;
+    width: 192px;
+    height: 56px;
+    padding: 8px 12px 8px 8px;
 
-.text-ellipsis {
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
+    &:hover {
+      background: rgb(255, 255, 255);
+      box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+    }
+  }
 
-// Picture Card Variant
-.tr-file-card--picture {
-  position: relative;
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  margin-right: var(--tr-attachments-margin-medium);
-  margin-bottom: var(--tr-attachments-margin-medium);
-  overflow: visible;
-  cursor: pointer;
-  background-color: var(--tr-attachments-background-light);
+  // 图片卡片样式
+  &--picture {
+    width: 60px;
+    height: 60px;
+    overflow: visible;
+    cursor: pointer;
+  }
 
-  .tr-file-card__picture-img {
+  &--uploading {
+    .tr-file-card__status {
+      color: #808080;
+    }
+  }
+
+  &__close-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 20;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: opacity 0.2s;
+    opacity: 0;
+
+    // 悬浮时显示
+    .tr-file-card:hover &,
+    .tr-file-card--picture:hover & {
+      opacity: 1;
+    }
+
+    // 成功状态始终显示
+    .tr-file-card--success & {
+      opacity: 1;
+    }
+  }
+
+  &__picture-container {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
+    position: relative;
     border-radius: inherit;
   }
 
-  .tr-file-card__picture-overlay {
+  &__picture-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    transition: transform 0.3s ease;
+  }
+
+  &__picture-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -208,113 +290,52 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
     border-radius: inherit;
     background-color: rgba(0, 0, 0, 0.4);
     color: white;
-    .flex-center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-direction: column;
-    font-size: var(--tr-attachments-font-size-small);
+    font-size: 12px;
     opacity: 0;
     transition: opacity 0.3s ease;
-  }
 
-  &:hover {
-    .tr-file-card__picture-overlay {
+    &-text {
+      font-weight: 500;
+    }
+
+    // 只有成功状态且hover时才显示预览遮罩
+    .tr-file-card--picture.tr-file-card--success:hover & {
       opacity: 1;
     }
   }
 
-  // 上传/错误状态下的状态蒙版
-  .tr-file-card__overlay {
-    z-index: 2;
+  &__default-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
   }
 
-  // 图片卡片的关闭按钮
-  .tr-file-card__close {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    cursor: pointer;
-    z-index: var(--tr-attachments-z-index-close);
-    opacity: 0;
-    transition: opacity var(--tr-attachments-transition-fast);
-  }
-
-  // 悬浮时显示关闭按钮
-  &:hover .tr-file-card__close {
-    opacity: 1;
-  }
-
-  // 上传成功时，始终显示关闭按钮
-  &.tr-file-card--success .tr-file-card__close {
-    opacity: 1;
-  }
-
-  // 上传中/错误状态的特殊处理
-  &.tr-file-card--uploading,
-  &.tr-file-card--error {
-    .tr-file-card__picture-overlay {
-      // 显示状态蒙版时，隐藏预览文本
-      opacity: 0;
-    }
-  }
-}
-
-// Default Card Variant
-.tr-file-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: var(--tr-attachments-card-width);
-  height: var(--tr-attachments-card-height);
-  border-radius: var(--tr-attachments-border-radius);
-  background: var(--tr-attachments-background-light);
-  padding: var(--tr-attachments-card-padding);
-  margin-right: var(--tr-attachments-margin-medium);
-  margin-bottom: var(--tr-attachments-margin-medium);
-  transition: var(--tr-attachments-transition-normal);
-  box-sizing: border-box;
-
-  &:hover {
-    background: var(--tr-attachments-background-white);
-    box-shadow: var(--tr-attachments-box-shadow-light);
-  }
-
-  &--uploading {
-    .tr-file-card__status {
-      color: var(--tr-attachments-status-uploading-color);
-    }
-  }
-
-  // 关闭按钮
-  &__close {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    cursor: pointer;
-    z-index: var(--tr-attachments-z-index-close);
-  }
-
-  &:hover &__close {
-    opacity: 1;
-  }
-
-  // 文件图标区域
   &__icon {
     flex-shrink: 0;
-    width: var(--tr-attachments-icon-size);
-    height: var(--tr-attachments-icon-size);
-    margin-right: var(--tr-attachments-card-icon-margin);
-    .flex-center;
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &-wrapper {
       width: 100%;
       height: 100%;
-      .flex-center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: relative;
-      font-size: var(--tr-attachments-icon-size);
     }
 
-    &--preview {
+    &--clickable {
       cursor: pointer;
-      transition: transform var(--tr-attachments-transition-fast);
+      transition: transform 0.2s;
 
       &:hover {
         transform: scale(1.05);
@@ -326,8 +347,12 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
     }
   }
 
-  // 上传状态遮罩
-  &__overlay {
+  &__file-icon {
+    font-size: 40px;
+    color: currentColor;
+  }
+
+  &__status-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -336,12 +361,33 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(0, 0, 0, 0.4);
-    border-radius: var(--tr-attachments-border-radius);
-    z-index: var(--tr-attachments-z-index-overlay);
+    border-radius: 8px;
+    z-index: 10;
+
+    // 卡片模式
+    &--icon {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    // 图片模式
+    &--picture {
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 2;
+    }
   }
 
-  // 内容区域
+  &__status-icon {
+    font-size: 16px;
+
+    &--loading {
+      color: #1890ff;
+    }
+
+    &--error {
+      color: #ff4d4f;
+    }
+  }
+
   &__content {
     flex: 1;
     min-width: 0;
@@ -355,124 +401,132 @@ const isUploadSuccess = computed(() => props.file.status === 'done')
     min-width: 0;
     display: flex;
     flex-direction: column;
+    gap: 2px;
   }
 
-  // 文件名
   &__name {
     text-align: left;
-    width: var(--tr-attachments-card-name-width);
-    height: var(--tr-attachments-card-name-height);
-    font-size: var(--tr-attachments-font-size-small);
-    font-weight: var(--tr-attachments-font-weight-normal);
-    line-height: var(--tr-attachments-line-height);
-    color: var(--tr-attachments-text-color);
-    margin-bottom: 2px;
-    .text-ellipsis;
-  }
+    width: 118px;
+    height: 18px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    color: rgb(25, 25, 25);
 
-  // 状态信息通用样式
-  &__status,
-  &__file-type,
-  &__file-size {
-    font-size: var(--tr-attachments-font-size-small);
-    font-weight: var(--tr-attachments-font-weight-normal);
-    line-height: var(--tr-attachments-line-height);
-    color: var(--tr-attachments-text-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   &__status {
     display: flex;
     align-items: center;
     width: 100%;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    color: rgb(128, 128, 128);
+
+    &-default {
+      color: rgb(128, 128, 128);
+    }
+
+    // 文件信息状态
+    &-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    // 操作按钮状态
+    &-actions {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    // 消息状态
+    &-message {
+      width: 100%;
+    }
   }
 
   &__file-type {
-    margin-right: 10px;
+    color: rgb(128, 128, 128);
   }
 
-  // 操作按钮
-  &__actions {
-    display: flex;
-    align-items: center;
+  &__file-size {
+    color: rgb(128, 128, 128);
   }
 
-  &__action {
-    height: var(--tr-attachments-action-height);
-    .flex-center;
+  &__action-btn {
+    height: 18px;
+    padding: 0 8px;
     border: none;
     background: transparent;
-    color: var(--tr-attachments-action-color);
+    color: #616161;
     cursor: pointer;
-    border-radius: var(--tr-attachments-padding-small);
-    transition: var(--tr-attachments-transition-fast-all);
+    border-radius: 4px;
+    transition: all 0.2s ease;
     white-space: nowrap;
-
-    &-icon {
-      font-size: var(--tr-attachments-font-size-small);
-      line-height: 1;
-    }
+    font-size: 12px;
 
     &--preview,
     &--download {
-      color: var(--tr-attachments-action-preview-color);
+      color: rgb(20, 118, 255);
 
       &:hover {
-        color: var(--tr-attachments-action-hover-color);
+        color: #1476ff;
+        background-color: rgba(0, 0, 0, 0.04);
       }
-    }
-
-    &--download {
-      margin-left: var(--tr-attachments-action-spacing);
     }
   }
 
-  // 状态消息
   &__message {
     width: 100%;
-    font-size: var(--tr-attachments-font-size-small);
-    line-height: var(--tr-attachments-line-height);
 
     &--error {
-      color: var(--tr-attachments-status-error-color);
+      color: #f23030;
     }
 
     &--warning {
-      color: var(--tr-attachments-status-warning-color);
+      color: #ff9800;
     }
 
     &--success {
-      color: var(--tr-attachments-status-success-color);
+      color: #4caf50;
     }
 
     &--info {
-      color: var(--tr-attachments-status-info-color);
+      color: #808080;
     }
   }
 
-  // 重试按钮
-  &__retry {
+  // 错误重试
+  &__error-retry {
     display: flex;
-    gap: var(--tr-attachments-gap);
+    gap: 8px;
     align-items: center;
     width: 100%;
   }
 
   &__error-text {
-    color: var(--tr-attachments-status-error-color);
-    font-size: var(--tr-attachments-font-size-small);
+    color: #f23030;
+    font-size: 12px;
   }
 
   &__retry-btn {
     background: transparent;
     border: none;
-    color: var(--tr-attachments-primary-color);
+    color: #1476ff;
     cursor: pointer;
-    font-size: var(--tr-attachments-font-size-small);
-    border-radius: var(--tr-attachments-padding-small);
-    transition: var(--tr-attachments-transition-fast-all);
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 
     &:hover {
-      background-color: var(--tr-attachments-primary-light);
+      background-color: rgba(20, 118, 255, 0.05);
     }
   }
 }

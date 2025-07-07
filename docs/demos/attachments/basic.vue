@@ -1,20 +1,14 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
     <h3>1. 信息状态 (默认)</h3>
-    <tr-attachments v-model:items="infoFiles" :drag="false" :disabled="true" :overflow="wrapMode" status-type="info" />
+    <tr-attachments v-model:items="infoFiles" :disabled="true" :layout="wrapMode" status-mode="info" />
 
     <h3>2. 状态消息</h3>
-    <tr-attachments
-      v-model:items="messageFiles"
-      :drag="false"
-      :disabled="true"
-      :overflow="wrapMode"
-      status-type="message"
-    />
+    <tr-attachments v-model:items="messageFiles" :disabled="true" :layout="wrapMode" status-mode="message" />
 
     <h3>3. 纯图片卡片预览</h3>
-    <p>设置 <code>listType="picture"</code> 可开启纯图片展示模式。点击图片可打开画廊式预览</p>
-    <tr-attachments v-model:items="pictureFiles" listType="picture" :drag="true" :disabled="false" />
+    <p>设置 <code>variant="picture"</code> 可开启纯图片展示模式。点击图片可打开画廊式预览</p>
+    <tr-attachments v-model:items="pictureFiles" variant="picture" />
   </div>
 </template>
 
@@ -31,18 +25,21 @@ const infoFiles = ref([
     name: '设计文档.docx',
     fileType: 'word',
     size: 1024 * 1024 * 1.2, // 1.2MB
+    status: 'success',
   },
   {
     uid: '2',
     name: 'logo设计图.png',
     fileType: 'image',
     size: 1024 * 1024 * 3.5, // 3.5MB
+    status: 'success',
   },
   {
     uid: '3',
     name: '项目文档.pdf',
     fileType: 'pdf',
     size: 1024 * 1024 * 2.8, // 2.8MB
+    status: 'success',
   },
 ])
 
@@ -53,7 +50,7 @@ const messageFiles = ref([
     name: '设计文档.doc',
     fileType: 'word',
     size: 1024 * 1024 * 1.5, // 1.5MB
-    status: '上传成功',
+    status: 'success',
     messageType: 'success',
   },
   {
@@ -74,13 +71,13 @@ const messageFiles = ref([
   },
 ])
 
-// 示例1: 纯图片卡片
+// 示例3: 纯图片卡片
 const pictureFiles = ref<Attachment[]>([
   {
     uid: 'pic1',
     name: 'nature-1.jpg',
     fileType: 'image',
-    status: 'done',
+    status: 'success',
     previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
   {

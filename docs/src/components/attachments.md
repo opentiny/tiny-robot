@@ -12,17 +12,17 @@ outline: deep
 
 <demo vue="../../demos/attachments/basic.vue" />
 
-### 溢出控制
+### 是否换行
 
-<demo vue="../../demos/attachments/file-card-list.vue" title="上传卡片列表" description="卡片列表溢出控制" />
+<demo vue="../../demos/attachments/file-card-list.vue" title="卡片列表布局" description="卡片列表布局" />
 
-**文件状态消息类型**
+**文件卡片状态显示模式**
 
 | 状态类型          | 属性配置            | 说明                              | 相关属性                  | 交互/备注                                                                 |
 |-------------------|---------------------|-----------------------------------|--------------------------|--------------------------------------------------------------------------|
-| 信息状态          | `statusType="info"` | 默认状态，显示文件类型和大小      | -                        | 无特殊交互                                                              |                                         |
-| 状态消息          | `statusType="message"` | 显示预设状态消息文本          | `file.messageType`<br>`file.status` | 需配合 `file.messageType` 定义消息类型，`file.status` 可扩展交互功能    |
-| 自定义操作        | `statusType="operate"` | 显示自定义操作按钮            | `customActions` (必填)   | 需通过数组提供按钮配置                                                  |
+| 信息状态          | `statusMode="info"` | 默认状态，显示文件类型和大小      | -                        | 无特殊交互                                                              |                                         |
+| 状态消息          | `statusMode="message"` | 显示预设状态消息文本          | `file.messageType`<br>`file.status` | 需配合 `file.messageType` 定义消息类型，`file.status` 可扩展交互功能    |
+| 自定义操作        | `statusMode="actions"` | 显示自定义操作按钮            | `actions` (必填)   | 需通过数组提供按钮配置                                                  |
 | 默认状态          | 不设置或默认配置    | 仅显示 `file.status` 的文本内容   | `file.status`            | 纯文本展示无交互                                                        |
 
 **状态消息类型 (file.messageType 可选值):**
@@ -37,7 +37,7 @@ outline: deep
 **特点说明：**
 1. 状态消息支持组合控制：通过 `messageType` 定义样式，`status` 控制交互状态
 2. 错误重试逻辑：当同时满足 `messageType="error"` 和 `status="error"` 时自动激活
-3. 扩展性设计：自定义操作可通过 `customActions` 注入任意按钮组件
+3. 扩展性设计：自定义操作可通过 `actions` 注入任意按钮组件
 4. 渐进式显示：未设置特殊状态时自动降级为默认信息展示模式
 
 ## API
@@ -48,13 +48,11 @@ outline: deep
 | ------------- | ----------------------------- | ------ | -------------------------------------------------------- |
 | items         | `Attachment[]`                | []     | 附件列表，支持v-model:items双向绑定                      |
 | disabled      | boolean                       | false  | 是否禁用组件                                             |
-| overflow      | 'wrap'/'scrollX'/'scrollY'    | 'wrap' | 文件列表溢出展示方式                                     |
-| drag          | `boolean/DragConfig`          | false  | 拖拽上传配置                                             |
+| layout      | 'wrap'/'no-wrap'    | 'wrap' | 文件列表布局方式，`no-wrap` 为水平滚动                                     |
+| variant       | `'picture'/'card'/'auto'`     | 'auto' | 附件列表的展示变体                                       |
 | fileIcons     | `Record<FileType, Component>` | -      | 自定义文件类型图标                                       |
-| rootClass     | `string`                      | -      | 根元素自定义类名                                         |
-| styles        | `{ root, card, overlay }`     | -      | 自定义样式                                               |
-| statusType    | `string`                      | 'info' | 文件卡片状态类型 (info/progress/operate/message/default) |
-| customActions | `ActionButton[]`              | []     | 自定义操作按钮列表                                       |
+| statusMode    | `'info'/'actions'/'message'/'default'`                      | 'info' | 文件卡片状态类型 (info/progress/operate/message/default) |
+| actions | `ActionButton[]`              | []     | 自定义操作按钮列表                                       |
 
 #### Attachment 类型
 
@@ -62,9 +60,9 @@ outline: deep
 interface Attachment {
   uid: string // 唯一标识符
   name: string // 文件名
-  fileType?: FileType // 文件类型
+  status: 'uploading' | 'success' | 'error' // 文件状态
+  fileType?: 'image' | 'pdf' | 'word' | 'excel' | 'ppt' | 'folder' | 'other' // 文件类型
   size?: number // 文件大小（字节）
-  status?: string // 文件状态
   isUploading?: boolean // 是否正在上传
   messageType?: 'error' | 'warning' | 'success' | 'info' | 'uploading' // 状态消息类型
   rawFile?: File // 原始文件对象
@@ -82,47 +80,16 @@ interface ActionButton {
 }
 ```
 
-#### DragConfig 类型
-
-```typescript
-interface DragConfig {
-  mode?: 'fullscreen' | 'container' // 拖拽模式
-  target?: string | HTMLElement // 拖拽目标元素
-  overlay?: {
-    // 遮罩层配置
-    zIndex?: number // 层级
-    enterDelay?: number // 进入动画延迟
-    leaveDelay?: number // 离开动画延迟
-    className?: string // 自定义类名
-  }
-}
-```
-
 ### Events
 
 | 事件名        | 参数类型                                     | 说明                     |
 | ------------- | -------------------------------------------- | ------------------------ |
 | update:items  | `Attachment[]`                               | 附件列表更新时触发       |
-| files-dropped | `Attachment[]`                               | 文件拖拽上传时触发       |
 | file-remove   | `Attachment`                                 | 文件被移除时触发         |
+| file-download   | `Attachment`                               | 文件下载时触发         |
 | file-preview  | `Attachment`                                 | 文件预览时触发           |
 | file-retry    | `Attachment`                                 | 文件重试上传时触发       |
 | action        | `{ action: ActionButton, file: Attachment }` | 自定义操作按钮点击时触发 |
-
-### Methods
-
-通过模板引用可以调用以下方法：
-
-| 方法名            | 参数类型      | 返回类型         | 说明                           |
-| ----------------- | ------------- | ---------------- | ------------------------------ |
-| triggerUpload     | -             | `void`           | 触发文件选择对话框             |
-| addFiles          | `File[]`      | `void`           | 添加文件到附件列表             |
-| clearFiles        | -             | `void`           | 清空所有附件（会清理预览URL）  |
-| getFiles          | -             | `Attachment[]`   | 获取当前附件列表               |
-| getFileCount      | -             | `number`         | 获取附件数量                   |
-| hasFiles          | -             | `boolean`        | 是否有附件                     |
-| formatFileSize    | `number`      | `string`         | 格式化文件大小                 |
-| createAttachments | `File[]`      | `Attachment[]`   | 批量创建附件对象               |
 
 ## 附件类型
 

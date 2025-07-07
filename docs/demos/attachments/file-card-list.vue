@@ -1,15 +1,13 @@
 <template>
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <div style="display: flex; align-items: center">
-      <label style="margin-right: 8px">溢出控制</label>
-      <tiny-radio-group v-model="wrapMode">
-        <tiny-radio-button label="wrap">wrap</tiny-radio-button>
-        <tiny-radio-button label="scrollX">scrollX</tiny-radio-button>
-        <tiny-radio-button label="scrollY">scrollY</tiny-radio-button>
+  <div>
+    <div style="margin-bottom: 16px">
+      <tiny-radio-group v-model="layoutMode">
+        <tiny-radio label="wrap">wrap</tiny-radio>
+        <tiny-radio label="no-wrap">no-wrap</tiny-radio>
       </tiny-radio-group>
     </div>
 
-    <tr-attachments ref="containerRef" v-model:items="files" :drag="false" :overflow="wrapMode" />
+    <tr-attachments v-model:items="files" :layout="layoutMode" />
   </div>
 </template>
 
@@ -17,7 +15,7 @@
 import { ref } from 'vue'
 import { TrAttachments } from '@opentiny/tiny-robot'
 
-const wrapMode = ref('wrap')
+const layoutMode = ref('wrap')
 
 const files = ref([
   {

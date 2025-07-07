@@ -1,5 +1,5 @@
 import { computed, Ref } from 'vue'
-import type { Attachment, ListType } from '../index.type'
+import type { Attachment, DisplayVariant } from '../index.type'
 
 /**
  * 处理listType自动检测的组合函数
@@ -7,7 +7,7 @@ import type { Attachment, ListType } from '../index.type'
  * @param specifiedListType 用户指定的listType
  * @returns 实际使用的listType
  */
-export function useListType(fileList: Ref<Attachment[]>, specifiedListType?: ListType) {
+export function useListType(fileList: Ref<Attachment[]>, specifiedListType?: DisplayVariant) {
   const actualListType = computed(() => {
     // 如果明确指定了listType且不是auto，直接使用
     if (specifiedListType && specifiedListType !== 'auto') {

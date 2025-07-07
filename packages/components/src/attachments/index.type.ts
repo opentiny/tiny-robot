@@ -2,13 +2,15 @@ import { Component } from 'vue'
 
 export type FileType = 'image' | 'pdf' | 'word' | 'excel' | 'ppt' | 'folder' | 'other'
 
-export type FileStatus = 'uploading' | 'done' | 'error' | 'success'
+export type FileStatus = 'uploading' | 'success' | 'error'
 
 export type MessageType = 'error' | 'warning' | 'success' | 'info' | 'retry' | 'uploading'
 
-export type StatusType = 'info' | 'operate' | 'message' | 'default'
+export type StatusDisplayMode = 'info' | 'actions' | 'message' | 'default'
 
-export type ListType = 'picture' | 'card' | 'auto'
+export type DisplayVariant = 'picture' | 'card' | 'auto'
+
+export type LayoutMode = 'wrap' | 'no-wrap'
 
 export interface Attachment {
   uid: string
@@ -18,6 +20,7 @@ export interface Attachment {
   fileType?: FileType
   size?: number
   isUploading?: boolean
+  // TODO: 超时文本
   messageType?: MessageType
   rawFile?: File // 原始文件对象，用于下载和预览
 }
@@ -28,24 +31,24 @@ export interface ActionButton {
   handler?: (file: Attachment) => void
 }
 
-export interface AttachmentsProps {
+export interface AttachmentListProps {
   // 核心属性
   items?: Attachment[]
   disabled?: boolean
-  overflow?: 'wrap' | 'no-wrap'
+  layout?: LayoutMode
 
   // 图标配置
   fileIcons?: Record<FileType, Component>
 
-  // 文件卡片状态配置
-  statusType?: StatusType
-  customActions?: ActionButton[]
+  // 文件卡片内容显示模式配置
+  statusMode?: StatusDisplayMode
+  actions?: ActionButton[]
 
   // 展示模式：'auto' 表示自动检测，'picture' 强制图片模式，'card' 强制卡片模式
-  listType?: ListType
+  variant?: DisplayVariant
 }
 
-export interface AttachmentsEmits {
+export interface AttachmentListEmits {
   (e: 'update:items', items: Attachment[]): void
   (e: 'file-remove', file: Attachment): void
   (e: 'file-download', file: Attachment): void
@@ -54,15 +57,14 @@ export interface AttachmentsEmits {
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }
 
-// 从AttachmentsProps中提取FileCard需要的属性
-type BaseCardProps = Pick<AttachmentsProps, 'fileIcons' | 'disabled' | 'statusType' | 'customActions'>
+type BaseCardProps = Pick<AttachmentListProps, 'fileIcons' | 'disabled' | 'statusMode' | 'actions'>
 
 // FileCard 组件属性
 export interface FileCardProps extends BaseCardProps {
   file: Attachment
-  listType: 'picture' | 'card' // FileCard组件中listType不支持auto，必须是具体的类型
-  showPreview?: boolean
-  showStatus?: boolean
+  variant: 'picture' | 'card' // FileCard组件中variant不支持auto，必须是具体的类型
+  preview?: boolean
+  status?: boolean
 }
 
 // FileCard 组件事件

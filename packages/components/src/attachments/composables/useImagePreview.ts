@@ -1,5 +1,5 @@
 import { ref, Ref, h } from 'vue'
-import type { Attachment, AttachmentsEmits } from '../index.type'
+import type { Attachment, AttachmentListEmits } from '../index.type'
 import ImagePreview from '../components/ImagePreview.vue'
 
 export interface ImagePreviewOptions {
@@ -16,7 +16,7 @@ export interface ImagePreviewOptions {
 
 export function useImagePreview(
   fileList: Ref<Attachment[]>,
-  emit: AttachmentsEmits,
+  emit: AttachmentListEmits,
   options: ImagePreviewOptions = {},
 ) {
   // 状态管理

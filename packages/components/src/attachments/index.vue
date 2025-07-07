@@ -1,22 +1,21 @@
 <script setup lang="ts">
 import { watch, ref } from 'vue'
 import { useImagePreview, useListType } from './composables'
-import { AttachmentsEmits, AttachmentsProps, Attachment } from './index.type'
+import { AttachmentListEmits, AttachmentListProps, Attachment } from './index.type'
 import FileCard from './components/FileCard.vue'
-import './index.less'
 
-const props = withDefaults(defineProps<AttachmentsProps>(), {
-  overflow: 'wrap',
-  listType: 'auto', // 默认自动检测
+const props = withDefaults(defineProps<AttachmentListProps>(), {
+  layout: 'wrap',
+  variant: 'auto',
 })
 
-const emit = defineEmits<AttachmentsEmits>()
+const emit = defineEmits<AttachmentListEmits>()
 
 // 文件列表管理
 const fileList = ref<Attachment[]>(props.items || [])
 
 // 自动检测 listType
-const { actualListType } = useListType(fileList, props.listType)
+const { actualListType } = useListType(fileList, props.variant)
 
 // 图片预览逻辑
 const { handlePreview, renderPreview } = useImagePreview(fileList, emit, { enableDownload: true })
@@ -71,24 +70,23 @@ watch(
     <div
       v-if="fileList.length > 0"
       class="tr-attachments__file-list"
-      :class="`tr-attachments__file-list--${overflow}`"
+      :class="`tr-attachments__file-list--${layout}`"
       @click.stop
     >
       <FileCard
         v-for="file in fileList"
         :key="file.uid"
         :file="file"
-        :list-type="actualListType"
+        :variant="actualListType"
         :file-icons="fileIcons"
         :disabled="disabled"
-        :status-type="statusType"
-        :custom-actions="customActions"
+        :status-mode="statusMode"
+        :actions="actions"
         :show-status="true"
         @remove="handleRemove"
         @preview="handlePreview"
         @download="handleDownload"
         @retry="handleRetry"
-        @file-preview="handlePreview"
         @action="handleAction"
       />
     </div>
@@ -97,3 +95,38 @@ watch(
     <Component :is="renderPreview()" />
   </div>
 </template>
+
+<style lang="less" scoped>
+// 主容器样式
+.tr-attachments {
+  position: relative;
+  border-radius: 8px;
+  color: rgb(25, 25, 25);
+
+  // 文件列表容器
+  &__file-list {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    cursor: default;
+
+    // 不换行模式（水平滚动）
+    &--no-wrap {
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 8px 0;
+
+      .tr-file-card {
+        margin-bottom: 0;
+        flex: 0 0 auto;
+      }
+    }
+
+    // 换行模式
+    &--wrap {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+  }
+}
+</style>
