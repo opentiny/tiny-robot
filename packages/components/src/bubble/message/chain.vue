@@ -34,8 +34,8 @@ const getContent = (content: string) => {
 </script>
 
 <template>
-  <div class="tr-chain-list">
-    <div class="tr-chain-item" v-for="(item, index) in props.items" :key="index">
+  <div class="tr-chain-list" :key="props.items.length">
+    <div class="tr-chain-item" v-for="(item, index) in props.items" :key="item.content">
       <div class="tr-chain-item__header">
         <div class="tr-chain-item__icon"><IconSuccessFill /></div>
         <div class="tr-chain-item__title">{{ item.title }}</div>
