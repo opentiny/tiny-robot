@@ -4,7 +4,7 @@ import { App } from 'vue'
 import { Bubble, BubbleList } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
-import DragUploadWrapper from './drag-upload-wrapper'
+import DragOverlay from './drag-overlay'
 import DropdownMenu from './dropdown-menu'
 import Feedback from './feedback'
 import History from './history'
@@ -17,7 +17,7 @@ import Welcome from './welcome'
 
 export * from './bubble/index.type'
 export * from './container/index.type'
-export * from './drag-upload-wrapper/index.type'
+export * from './drag-overlay/index.type'
 export * from './dropdown-menu/index.type'
 export * from './feedback/index.type'
 export * from './history/index.type'
@@ -28,12 +28,14 @@ export * from './suggestion-pills/index.type'
 export * from './suggestion-popover/index.type'
 export * from './welcome/index.type'
 
+export { vDragAware } from './drag-overlay/directives/vDragAware'
+
 const components = [
   Bubble,
   BubbleList,
   Container,
   Conversations,
-  DragUploadWrapper,
+  DragOverlay,
   DropdownMenu,
   Feedback,
   History,
@@ -65,8 +67,8 @@ export {
   Container as TrContainer,
   Conversations,
   Conversations as TrConversations,
-  DragUploadWrapper,
-  DragUploadWrapper as TrDragUploadWrapper,
+  DragOverlay,
+  DragOverlay as TrDragOverlay,
   DropdownMenu,
   DropdownMenu as TrDropdownMenu,
   Feedback,

@@ -1,6 +1,6 @@
 <template>
   <div class="demo-container">
-    <h2>DragUploadWrapper 与 Container 集成演示</h2>
+    <h2>DragOverlay 与 Container 集成演示</h2>
 
     <!-- 控制面板 -->
     <div class="control-panel">
@@ -12,14 +12,20 @@
         <label>全屏模式：</label>
         <tiny-switch v-model="fullscreen"></tiny-switch>
       </div>
-      <div class="control-item">
-        <label>拖拽模式：</label>
-        <tiny-select v-model="dragMode" :options="dragModeOptions" />
-      </div>
     </div>
 
-    <!-- Container 容器 -->
-    <tr-container v-model:show="show" v-model:fullscreen="fullscreen">
+    <!-- Container 和 DragOverlay 作为兄弟节点 -->
+    <tr-container
+      v-model:show="show"
+      v-model:fullscreen="fullscreen"
+      v-drag-aware="{
+        onStateChange: handleDragStateChange,
+        onFilesDropped: handleFilesDropped,
+        onFilesRejected: handleFilesRejected,
+        accept: 'image/*,.pdf,.doc,.docx',
+        multiple: true,
+      }"
+    >
       <!-- 标题插槽 -->
       <template #title>
         <h3>{{ fullscreen ? '全屏聊天窗口' : '侧边栏聊天窗口' }}</h3>
@@ -30,57 +36,34 @@
         <tr-icon-button size="28" svg-size="20" :icon="IconNewSession" @click="clearMessages" />
       </template>
 
-      <!-- 主要内容 - 包装在 DragUploadWrapper 中 -->
-      <tr-drag-upload-wrapper
-        :key="dragMode"
-        :multiple="true"
-        accept="image/*,.pdf,.doc,.docx,.txt,.md"
-        :overlay-title="dragMode === 'container' ? '拖拽文件到聊天区域' : '拖拽文件到任意位置'"
-        :overlay-description="overlayDescription"
-        @files-dropped="handleFilesDropped"
-        @files-rejected="handleFilesRejected"
-        @drag-enter="handleDragEnter"
-        @drag-leave="handleDragLeave"
-      >
-        <template #default="{ isDragging }">
-          <div class="chat-container" :class="{ dragging: isDragging }">
-            <!-- 聊天消息区域 -->
-            <div class="chat-messages">
-              <div v-if="messages.length === 0" class="empty-state">
-                <div class="empty-icon">💬</div>
-                <div class="empty-text">开始对话吧！</div>
-                <div class="empty-hint">你可以拖拽文件到这里进行上传</div>
-              </div>
-
-              <div v-for="message in messages" :key="message.id" class="message">
-                <div class="message-avatar">
-                  <div v-if="message.type === 'user'" class="user-avatar">👤</div>
-                  <div v-else class="bot-avatar">🤖</div>
-                </div>
-                <div class="message-content">
-                  <div class="message-text">{{ message.text }}</div>
-                  <div v-if="message.files && message.files.length > 0" class="message-files">
-                    <div v-for="file in message.files" :key="file.name" class="file-item">
-                      <span class="file-icon">📎</span>
-                      <span class="file-name">{{ file.name }}</span>
-                      <span class="file-size">({{ formatFileSize(file.size) }})</span>
-                    </div>
-                  </div>
-                  <div class="message-time">{{ message.time }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 拖拽状态指示器 -->
-            <!-- <div v-if="isDragging && dragMode === 'container'" class="drag-indicator">
-              <div class="drag-indicator-content">
-                <div class="drag-indicator-icon">📁</div>
-                <div class="drag-indicator-text">松手即可上传文件</div>
-              </div>
-            </div> -->
+      <div class="chat-container">
+        <!-- 聊天消息区域 -->
+        <div class="chat-messages">
+          <div v-if="messages.length === 0" class="empty-state">
+            <div class="empty-icon">💬</div>
+            <div class="empty-text">开始对话吧！</div>
+            <div class="empty-hint">你可以拖拽文件到这里进行上传</div>
           </div>
-        </template>
-      </tr-drag-upload-wrapper>
+
+          <div v-for="message in messages" :key="message.id" class="message">
+            <div class="message-avatar">
+              <div v-if="message.type === 'user'" class="user-avatar">👤</div>
+              <div v-else class="bot-avatar">🤖</div>
+            </div>
+            <div class="message-content">
+              <div class="message-text">{{ message.text }}</div>
+              <div v-if="message.files && message.files.length > 0" class="message-files">
+                <div v-for="file in message.files" :key="file.name" class="file-item">
+                  <span class="file-icon">📎</span>
+                  <span class="file-name">{{ file.name }}</span>
+                  <span class="file-size">({{ formatFileSize(file.size) }})</span>
+                </div>
+              </div>
+              <div class="message-time">{{ message.time }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 底部输入区域 -->
       <template #footer>
@@ -92,6 +75,14 @@
         </div>
       </template>
     </tr-container>
+
+    <tr-drag-overlay
+      :is-dragging="isDragging"
+      :target-rect="targetRect"
+      :fullscreen="fullscreen"
+      :overlay-title="fullscreen ? '拖拽文件到任意位置' : '拖拽文件到聊天区域'"
+      :overlay-description="overlayDescription"
+    />
 
     <!-- 事件日志 -->
     <div v-if="events.length > 0" class="event-log">
@@ -109,9 +100,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { TrContainer, TrIconButton, TrDragUploadWrapper } from '@opentiny/tiny-robot'
+import { TrContainer, TrIconButton, TrDragOverlay } from '@opentiny/tiny-robot'
+import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
+
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
-import { TinySwitch, TinySelect } from '@opentiny/vue'
+import { TinySwitch } from '@opentiny/vue'
 
 interface Message {
   id: string
@@ -129,21 +122,14 @@ interface Event {
 
 const show = ref(true)
 const fullscreen = ref(false)
-const dragMode = ref('container')
 const inputText = ref('')
 const messages = ref<Message[]>([])
 const events = ref<Event[]>([])
-
-const dragModeOptions = [
-  { label: '容器拖拽', value: 'container' },
-  { label: '全屏拖拽', value: 'fullscreen' },
-]
+const isDragging = ref(false) // State managed by the parent
+const targetRect = ref<DOMRect | null>(null)
 
 const overlayDescription = computed(() => {
-  if (dragMode.value === 'fullscreen') {
-    return ['支持图片、PDF、Word、文本文档', '可同时上传多个文件']
-  }
-  return ['支持多种文件格式', '拖拽到聊天区域即可上传']
+  return ['支持图片、PDF、Word、文本文档', '可同时上传多个文件']
 })
 
 const addEvent = (type: string, message: string) => {
@@ -217,12 +203,9 @@ const handleFilesRejected = (rejection: { reason: string; files: File[] }) => {
   addMessage('bot', `抱歉，有 ${rejection.files.length} 个文件格式不支持，请上传支持的文件格式。`)
 }
 
-const handleDragEnter = () => {
-  addEvent('drag-enter', `拖拽进入 (${dragMode.value} 模式)`)
-}
-
-const handleDragLeave = () => {
-  addEvent('drag-leave', `拖拽离开 (${dragMode.value} 模式)`)
+const handleDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
+  isDragging.value = dragging
+  targetRect.value = rect
 }
 
 // 初始化一些示例消息

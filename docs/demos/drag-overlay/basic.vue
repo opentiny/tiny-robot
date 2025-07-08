@@ -5,53 +5,63 @@
     <!-- 基本用法 -->
     <div class="demo-section">
       <h3>基本用法</h3>
-      <p>将任何内容包装在 DragUploadWrapper 中，就可以获得拖拽上传功能：</p>
+      <p>将 v-drag-aware 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
 
-      <tr-drag-upload-wrapper
-        :multiple="true"
-        accept="image/*,.pdf,.doc,.docx"
-        @files-dropped="handleFilesDropped"
-        @files-rejected="handleFilesRejected"
+      <div
+        class="chat-container"
+        v-drag-aware="{
+          onStateChange: handleDragStateChange,
+          onFilesDropped: handleFilesDropped,
+          onFilesRejected: handleFilesRejected,
+          accept: 'image/*,.pdf,.doc,.docx',
+          multiple: true,
+        }"
+        :class="{ dragging: isDragging }"
       >
-        <template #default="{ isDragging }">
-          <div class="chat-container" :class="{ dragging: isDragging }">
-            <div class="chat-header">
-              <h4>聊天窗口</h4>
-              <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
-            </div>
-            <div class="chat-content">
-              <div class="message">
-                <div class="message-content">你好！这是一个聊天界面的演示。</div>
-              </div>
-              <div class="message">
-                <div class="message-content">你可以将文件拖拽到这个区域来上传文件。</div>
-              </div>
-            </div>
-            <div class="chat-input">
-              <input type="text" placeholder="输入消息..." />
-              <button>发送</button>
-            </div>
+        <div class="chat-header">
+          <h4>聊天窗口</h4>
+          <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
+        </div>
+        <div class="chat-content">
+          <div class="message">
+            <div class="message-content">你好！这是一个聊天界面的演示。</div>
           </div>
-        </template>
-      </tr-drag-upload-wrapper>
+          <div class="message">
+            <div class="message-content">你可以将文件拖拽到这个区域来上传文件。</div>
+          </div>
+        </div>
+        <div class="chat-input">
+          <input type="text" placeholder="输入消息..." />
+          <button>发送</button>
+        </div>
+      </div>
+      <!-- 浮层组件现在是同级元素 -->
+      <tr-drag-overlay :is-dragging="isDragging" :target-rect="targetRect" />
     </div>
 
     <!-- 自定义覆盖层 -->
     <div class="demo-section">
       <h3>自定义覆盖层</h3>
-      <p>可以自定义拖拽时显示的覆盖层：</p>
+      <p>浮层组件允许你通过插槽完全自定义内容：</p>
 
-      <tr-drag-upload-wrapper :multiple="false" accept=".jpg,.jpeg,.png,.gif" @files-dropped="handleImageDropped">
-        <template #default="{ isDragging }">
-          <div class="image-upload-area" :class="{ dragging: isDragging }">
-            <div v-if="!uploadedImage" class="upload-placeholder">
-              <div class="upload-icon">📷</div>
-              <div class="upload-text">点击或拖拽图片到这里</div>
-            </div>
-            <img v-else :src="uploadedImage" alt="上传的图片" class="uploaded-image" />
-          </div>
-        </template>
+      <div
+        class="image-upload-area"
+        v-drag-aware="{
+          onStateChange: handleImageDragStateChange,
+          onFilesDropped: handleImageDropped,
+          accept: '.jpg,.jpeg,.png,.gif',
+          multiple: false,
+        }"
+        :class="{ dragging: isImageDragging }"
+      >
+        <div v-if="!uploadedImage" class="upload-placeholder">
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">点击或拖拽图片到这里</div>
+        </div>
+        <img v-else :src="uploadedImage" alt="上传的图片" class="uploaded-image" />
+      </div>
 
+      <tr-drag-overlay :is-dragging="isImageDragging" :target-rect="targetRect">
         <template #overlay>
           <div class="custom-overlay">
             <div class="custom-overlay-content">
@@ -61,24 +71,24 @@
             </div>
           </div>
         </template>
-      </tr-drag-upload-wrapper>
+      </tr-drag-overlay>
     </div>
 
     <!-- 禁用状态 -->
     <div class="demo-section">
       <h3>禁用状态</h3>
-      <p>可以禁用拖拽功能：</p>
+      <p>通过指令传递 disabled 标志可以禁用拖拽功能：</p>
 
-      <tr-drag-upload-wrapper :disabled="true" @files-dropped="handleFilesDropped">
-        <template #default="{ disabled }">
-          <div class="disabled-area" :class="{ disabled: disabled }">
-            <div class="disabled-content">
-              <div class="disabled-icon">🚫</div>
-              <div class="disabled-text">拖拽功能已禁用</div>
-            </div>
-          </div>
-        </template>
-      </tr-drag-upload-wrapper>
+      <div
+        class="disabled-area"
+        v-drag-aware="{ onStateChange: () => {}, onFilesDropped: () => {}, disabled: true }"
+        :class="{ disabled: true }"
+      >
+        <div class="disabled-content">
+          <div class="disabled-icon">🚫</div>
+          <div class="disabled-text">拖拽功能已禁用</div>
+        </div>
+      </div>
     </div>
 
     <!-- 事件日志 -->
@@ -97,7 +107,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrDragUploadWrapper } from '@opentiny/tiny-robot'
+import { TrDragOverlay } from '@opentiny/tiny-robot'
+import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
 
 interface Event {
   time: string
@@ -107,6 +118,19 @@ interface Event {
 
 const events = ref<Event[]>([])
 const uploadedImage = ref<string>('')
+const isDragging = ref(false)
+const isImageDragging = ref(false)
+const targetRect = ref<DOMRect | null>(null)
+
+const handleDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
+  isDragging.value = dragging
+  targetRect.value = rect
+}
+
+const handleImageDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
+  isImageDragging.value = dragging
+  targetRect.value = rect
+}
 
 const addEvent = (type: string, message: string) => {
   const now = new Date().toLocaleTimeString()
