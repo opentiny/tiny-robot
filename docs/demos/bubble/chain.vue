@@ -19,6 +19,10 @@ import { h, useCssModule } from 'vue'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
+const classes = useCssModule()
+
+const markdownRenderer = new BubbleMarkdownMessageRenderer({ styleOptions: { class: classes.content } })
+
 const roles: Record<string, BubbleRoleConfig> = {
   ai: {
     placement: 'start',
@@ -27,17 +31,18 @@ const roles: Record<string, BubbleRoleConfig> = {
   user: {
     placement: 'end',
     avatar: userAvatar,
+    contentRenderer: markdownRenderer,
   },
 }
 
-const markdownRenderer = new BubbleMarkdownMessageRenderer()
-
 // register renderer
 const messageRenderers = {
-  chain: BubbleChainMessageRenderer,
+  markdown: markdownRenderer,
+  chain: {
+    component: BubbleChainMessageRenderer,
+    defaultProps: { contentRenderer: (content: string) => markdownRenderer.md.render(content) },
+  },
 }
-
-const classes = useCssModule()
 
 const items: BubbleListProps['items'] = [
   {
@@ -48,7 +53,7 @@ const items: BubbleListProps['items'] = [
     role: 'ai',
     messages: [
       {
-        type: 'text',
+        type: 'markdown',
         content: '好的，下面开始执行扩容操作',
       },
       {
@@ -57,17 +62,15 @@ const items: BubbleListProps['items'] = [
         items: [
           {
             title: '查看云硬盘状态',
-            content: markdownRenderer.md.render(
-              `确认云硬盘和云主机满足一定的条件，才可以进行扩容
+            content: `确认云硬盘和云主机满足一定的条件，才可以进行扩容
 
 **已经查询**
 [淘乐电商网站的云硬盘evs-90b0详情页](#) [详情页](#) [淘乐电商网站的云硬盘evs-90b0详情页](#)
 `,
-            ),
           },
           {
             title: '扩容分区和文件系统',
-            content: markdownRenderer.md.render(`下面将开始执行扩容分区和文件系统的操作
+            content: `下面将开始执行扩容分区和文件系统的操作
 
 **安装扩容工具**
 
@@ -80,7 +83,7 @@ const items: BubbleListProps['items'] = [
 \`\`\`bash
 执行扩容命令[root@ecs-centos76 ~]# growpart /dev/vda 1
 \`\`\`
-`),
+`,
           },
           {
             title: '确认扩容生效',
@@ -95,13 +98,14 @@ const items: BubbleListProps['items'] = [
 
 <style lang="less" module>
 .content {
+  font-size: 16px;
+  line-height: 26px;
+
   p {
     margin: 8px 0;
     padding: 0;
     white-space: pre-line;
     word-break: break-word;
-    font-size: 14px;
-    line-height: 24px;
   }
 
   p:first-child {
@@ -116,7 +120,7 @@ const items: BubbleListProps['items'] = [
     background-color: #f0f0f0;
     border-radius: 999px;
     padding: 4px 12px;
-    font-size: 12px;
+    font-size: 14px;
     border-radius: 999px;
     border: none;
     color: #595959;
@@ -138,9 +142,9 @@ const items: BubbleListProps['items'] = [
     code[class*='language-'] {
       display: block;
       padding: 8px;
-      font-size: 12px;
+      font-size: 14px;
       background-color: #f0f0f0;
-      border-radius: 12px;
+      border-radius: 8px;
       font-family: monospace;
     }
   }

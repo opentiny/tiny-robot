@@ -33,13 +33,22 @@ const getVNodeOrComponent = (type: string) => {
     return { isComponent: false, vNodeOrComponent: renderer.render(options) }
   }
 
+  if (typeof renderer === 'object' && 'component' in renderer) {
+    return { isComponent: true, vNodeOrComponent: renderer.component, defaultProps: renderer.defaultProps }
+  }
+
   return { isComponent: true, vNodeOrComponent: renderer }
 }
 
-const { isComponent, vNodeOrComponent } = getVNodeOrComponent(props.type)
+const { isComponent, vNodeOrComponent, defaultProps } = getVNodeOrComponent(props.type)
 </script>
 
 <template>
-  <component v-if="isComponent" :is="vNodeOrComponent" v-bind="{ ...props, ...attrs }"></component>
-  <component v-else :is="vNodeOrComponent"></component>
+  <component
+    v-if="isComponent"
+    :is="vNodeOrComponent"
+    v-bind="{ ...defaultProps, ...props, ...attrs }"
+    :data-type="props.type"
+  ></component>
+  <component v-else :is="vNodeOrComponent" :data-type="props.type"></component>
 </template>

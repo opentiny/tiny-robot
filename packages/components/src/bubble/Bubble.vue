@@ -30,6 +30,10 @@ const contentRenderer = computed(() => {
     return { isComponent: false, vNodeOrComponent: renderer.render(props) }
   }
 
+  if (typeof renderer === 'object' && 'component' in renderer) {
+    return { isComponent: true, vNodeOrComponent: renderer.component, defaultProps: renderer.defaultProps }
+  }
+
   return { isComponent: true, vNodeOrComponent: renderer }
 })
 
@@ -71,7 +75,7 @@ const placementStart = computed(() => props.placement === 'start')
               <component
                 v-if="contentRenderer.isComponent"
                 :is="contentRenderer.vNodeOrComponent"
-                v-bind="props"
+                v-bind="{ ...contentRenderer.defaultProps, ...props }"
               ></component>
               <component v-else :is="contentRenderer.vNodeOrComponent"></component>
             </template>

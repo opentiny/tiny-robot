@@ -130,6 +130,18 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
             messages.value[messages.value.length - 1].content += choice.delta.content
           }
         },
+        onMessage: (msgObj: { type: string; [extra: string]: unknown }) => {
+          messageState.status = STATUS.STREAMING
+          if (messages.value[messages.value.length - 1].role === 'user') {
+            messages.value.push({ role: 'assistant', content: '' })
+          }
+          if ('type' in msgObj) {
+            if (!messages.value[messages.value.length - 1].messages) {
+              messages.value[messages.value.length - 1].messages = []
+            }
+            messages.value[messages.value.length - 1].messages!.push(msgObj)
+          }
+        },
         onError: (error) => {
           messageState.status = STATUS.ERROR
           messageState.errorMsg = errorMessage

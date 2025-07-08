@@ -11,6 +11,7 @@ export type MessageRole = 'system' | 'user' | 'assistant'
 export interface ChatMessage {
   role: MessageRole
   content: string
+  messages?: { type: string; [extra: string]: unknown }[]
   name?: string
 }
 
@@ -161,6 +162,7 @@ export enum StreamEventType {
  */
 export interface StreamHandler {
   onData: (data: ChatCompletionStreamResponse) => void
+  onMessage?: (msgObj: { type: string; [extra: string]: unknown }) => void
   onError: (error: AIAdapterError) => void
   onDone: () => void
 }

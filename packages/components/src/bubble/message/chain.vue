@@ -12,6 +12,7 @@ const props = withDefaults(
     items: ChainItem[]
     html?: boolean
     contentClass?: string
+    contentRenderer?: (content: string) => string
   }>(),
   {
     html: true,
@@ -22,6 +23,13 @@ const collapsedMap = ref<Record<number, boolean>>({})
 
 const toggleCollapse = (index: number) => {
   collapsedMap.value[index] = !collapsedMap.value[index]
+}
+
+const getContent = (content: string) => {
+  if (props.contentRenderer) {
+    return props.contentRenderer(content)
+  }
+  return content
 }
 </script>
 
@@ -42,9 +50,9 @@ const toggleCollapse = (index: number) => {
           <div class="tr-chain-item__chain-line"></div>
         </div>
         <div v-if="!props.html" class="tr-chain-item__content" :class="props.contentClass">
-          {{ item.content }}
+          {{ getContent(item.content) }}
         </div>
-        <div v-else class="tr-chain-item__content" :class="props.contentClass" v-html="item.content"></div>
+        <div v-else class="tr-chain-item__content" :class="props.contentClass" v-html="getContent(item.content)"></div>
       </div>
     </div>
   </div>
@@ -74,20 +82,20 @@ const toggleCollapse = (index: number) => {
     justify-content: center;
     width: 24px;
     height: 24px;
-    font-size: 12px;
+    font-size: 14px;
     color: #dbdbdb;
   }
 
   .tr-chain-item__title {
-    font-size: 14px;
-    line-height: 24px;
+    font-size: 16px;
+    line-height: 26px;
     color: #191919;
     font-weight: 600;
   }
 
   .expand-icon {
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     color: #191919;
 
     &.rotate-180 {
@@ -119,8 +127,8 @@ const toggleCollapse = (index: number) => {
 
   .tr-chain-item__content {
     flex: 1;
-    font-size: 14px;
-    line-height: 22px;
+    font-size: 16px;
+    line-height: 26px;
     color: #595959;
   }
 }

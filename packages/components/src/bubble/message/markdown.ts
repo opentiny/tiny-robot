@@ -3,16 +3,30 @@ import { default as MarkdownIt, Options as MarkdownItOptions } from 'markdown-it
 import { h } from 'vue'
 import { BubbleMessageClassRenderer } from './class-renderer'
 
-export class BubbleMarkdownMessageRenderer extends BubbleMessageClassRenderer {
-  readonly mdConfig: MarkdownItOptions
-  readonly dompurifyConfig: DompurifyConfig & { disable?: boolean }
-  readonly md: MarkdownIt
+export interface BubbleMarkdownRendererOptions {
+  mdConfig?: MarkdownItOptions
+  dompurifyConfig?: DompurifyConfig
+  sanitizeDisabled?: boolean
+  styleOptions?: {
+    class?: string
+    style?: string
+  }
+}
 
-  constructor(mdConfig?: MarkdownItOptions, dompurifyConfig?: DompurifyConfig & { disable?: boolean }) {
+export class BubbleMarkdownMessageRenderer extends BubbleMessageClassRenderer {
+  readonly md: MarkdownIt
+  readonly mdConfig: MarkdownItOptions
+  readonly dompurifyConfig: DompurifyConfig
+  readonly sanitizeDisabled: boolean
+  readonly styleOptions: { class?: string; style?: string }
+
+  constructor({ mdConfig, dompurifyConfig, sanitizeDisabled, styleOptions }: BubbleMarkdownRendererOptions = {}) {
     super()
     this.mdConfig = mdConfig || {}
     this.dompurifyConfig = dompurifyConfig || {}
     this.md = MarkdownIt(this.mdConfig)
+    this.sanitizeDisabled = sanitizeDisabled ?? false
+    this.styleOptions = styleOptions ?? {}
   }
 
   render(options: { content?: string }) {
@@ -25,12 +39,12 @@ export class BubbleMarkdownMessageRenderer extends BubbleMessageClassRenderer {
       htmlContent = options.content ?? ''
     }
 
-    if (this.dompurifyConfig.disable) {
+    if (this.sanitizeDisabled) {
       console.warn('HTML sanitization is disabled, potential XSS risk')
-      return h('div', { innerHTML: htmlContent })
+      return h('div', { innerHTML: htmlContent, class: this.styleOptions.class, style: this.styleOptions.style })
     }
 
     const sanitizedHtml = DOMPurify.sanitize(htmlContent, this.dompurifyConfig)
-    return h('div', { innerHTML: sanitizedHtml })
+    return h('div', { innerHTML: sanitizedHtml, class: this.styleOptions.class, style: this.styleOptions.style })
   }
 }
