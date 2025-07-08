@@ -26,11 +26,6 @@ function handleRemove(file: Attachment) {
 
   const index = fileList.value.findIndex((item) => item.uid === file.uid)
   if (index !== -1) {
-    // 清理预览URL
-    if (file.previewUrl && file.previewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(file.previewUrl)
-    }
-
     fileList.value.splice(index, 1)
     emit('file-remove', file)
     emit('update:items', fileList.value)

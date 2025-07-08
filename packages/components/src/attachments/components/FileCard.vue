@@ -26,7 +26,7 @@ const fileTypeIcon = computed(() => {
 })
 
 // 判断文件状态
-const isUploading = computed(() => props.file.status === 'uploading' || props.file.isUploading)
+const isUploading = computed(() => props.file.status === 'uploading')
 const isUploadFailed = computed(() => props.file.status === 'error')
 const isUploadSuccess = computed(() => props.file.status === 'success')
 
@@ -46,8 +46,7 @@ const cardClasses = computed(() => {
 
 // 渲染状态消息的文本
 const getStatusMessageText = computed(() => {
-  const messageType = props.file.messageType
-  switch (messageType) {
+  switch (props.file.status) {
     case 'error':
       return '上传失败'
     case 'warning':
@@ -91,9 +90,12 @@ const getStatusMessageText = computed(() => {
           v-if="isUploading || isUploadFailed"
           class="tr-file-card__status-overlay tr-file-card__status-overlay--picture"
         >
-          <!-- 上传中状态 -->
+          <!-- 上传中状态 添加超时文本状态 -->
           <div v-if="isUploading" class="tr-file-card__status-icon tr-file-card__status-icon--loading">
             <IconImageLoading />
+            <span v-if="file.uploadTimeoutText" class="tr-file-card__status-icon--loading-text">
+              {{ file.uploadTimeoutText }}
+            </span>
           </div>
 
           <!-- 上传失败状态 -->
@@ -172,17 +174,13 @@ const getStatusMessageText = computed(() => {
               <!-- 消息类型 -->
               <div v-else-if="statusMode === 'message'" class="tr-file-card__status-message">
                 <!-- 错误重试 -->
-                <div v-if="file.messageType === 'error' && file.status === 'error'" class="tr-file-card__error-retry">
+                <div v-if="file.status === 'error'" class="tr-file-card__error-retry">
                   <span class="tr-file-card__error-text">上传失败</span>
                   <button class="tr-file-card__retry-btn" @click="handleRetry">重试</button>
                 </div>
 
                 <!-- 普通消息 -->
-                <div
-                  v-else
-                  class="tr-file-card__message"
-                  :class="`tr-file-card__message--${file.messageType || 'info'}`"
-                >
+                <div v-else class="tr-file-card__message" :class="`tr-file-card__message--${file.status || 'info'}`">
                   {{ getStatusMessageText }}
                 </div>
               </div>
@@ -380,7 +378,16 @@ const getStatusMessageText = computed(() => {
     font-size: 16px;
 
     &--loading {
-      color: #1890ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      &-text {
+        width: 60px;
+        height: 17px;
+        font-size: 12px;
+        color: #fff;
+      }
     }
 
     &--error {
@@ -442,7 +449,7 @@ const getStatusMessageText = computed(() => {
     &-actions {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 12px;
     }
 
     // 消息状态
@@ -461,7 +468,6 @@ const getStatusMessageText = computed(() => {
 
   &__action-btn {
     height: 18px;
-    padding: 0 8px;
     border: none;
     background: transparent;
     color: #616161;

@@ -9,6 +9,9 @@
     <h3>3. 纯图片卡片预览</h3>
     <p>设置 <code>variant="picture"</code> 可开启纯图片展示模式。点击图片可打开画廊式预览</p>
     <tr-attachments v-model:items="pictureFiles" variant="picture" />
+
+    <h3>4. 自定义操作</h3>
+    <tr-attachments v-model:items="customFiles" variant="card" :actions="customActions" status-mode="actions" />
   </div>
 </template>
 
@@ -93,6 +96,45 @@ const pictureFiles = ref<Attachment[]>([
     fileType: 'image',
     status: 'error',
     previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.png',
+  },
+])
+
+// 示例4：自定义操作
+const customFiles = ref([
+  {
+    id: '1',
+    uid: '1',
+    name: 'demo.png',
+    fileType: 'image',
+    status: 'success',
+    size: 1024 * 1024 * 2.5, // 2.5MB
+    // 使用真实的可访问图片URL进行测试
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+  },
+  {
+    id: '2',
+    uid: '2',
+    name: 'demo.png',
+    fileType: 'image',
+    status: 'success',
+    size: 1024 * 1024 * 1.8, // 1.8MB
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/scenery.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/scenery.jpg',
+  },
+])
+
+const customActions = ref([
+  {
+    type: 'preview',
+    label: '预览',
+  },
+  {
+    type: 'download',
+    label: '下载',
+    handler: (file: File) => {
+      console.log('下载文件', file)
+    },
   },
 ])
 </script>

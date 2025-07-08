@@ -2,9 +2,7 @@ import { Component } from 'vue'
 
 export type FileType = 'image' | 'pdf' | 'word' | 'excel' | 'ppt' | 'folder' | 'other'
 
-export type FileStatus = 'uploading' | 'success' | 'error'
-
-export type MessageType = 'error' | 'warning' | 'success' | 'info' | 'retry' | 'uploading'
+export type FileStatus = 'uploading' | 'success' | 'error' | 'warning' | 'info'
 
 export type StatusDisplayMode = 'info' | 'actions' | 'message' | 'default'
 
@@ -19,9 +17,7 @@ export interface Attachment {
   previewUrl?: string
   fileType?: FileType
   size?: number
-  isUploading?: boolean
-  // TODO: 超时文本
-  messageType?: MessageType
+  uploadTimeoutText?: string
   rawFile?: File // 原始文件对象，用于下载和预览
 }
 
