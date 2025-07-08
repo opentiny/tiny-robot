@@ -19,6 +19,10 @@ import { h, useCssModule } from 'vue'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
+const classes = useCssModule()
+
+const markdownRenderer = new BubbleMarkdownMessageRenderer({ styleOptions: { class: classes.content } })
+
 const roles: Record<string, BubbleRoleConfig> = {
   ai: {
     placement: 'start',
@@ -27,12 +31,9 @@ const roles: Record<string, BubbleRoleConfig> = {
   user: {
     placement: 'end',
     avatar: userAvatar,
+    contentRenderer: markdownRenderer,
   },
 }
-
-const classes = useCssModule()
-
-const markdownRenderer = new BubbleMarkdownMessageRenderer({ styleOptions: { class: classes.content } })
 
 // register renderer
 const messageRenderers = {
@@ -52,7 +53,7 @@ const items: BubbleListProps['items'] = [
     role: 'ai',
     messages: [
       {
-        type: 'text',
+        type: 'markdown',
         content: '好的，下面开始执行扩容操作',
       },
       {
@@ -97,6 +98,9 @@ const items: BubbleListProps['items'] = [
 
 <style lang="less" module>
 .content {
+  font-size: 16px;
+  line-height: 26px;
+
   p {
     margin: 8px 0;
     padding: 0;
