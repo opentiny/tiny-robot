@@ -83,7 +83,7 @@ watch(
       // 计算容器最大宽度
       const children = getAllItemElements()
       const gap = parseFloat(getComputedStyle(containerRef.value).rowGap) || 0
-      containerFullWidth.value = children.map((el) => el.offsetWidth).reduce((acc, cur) => acc + cur + gap)
+      containerFullWidth.value = children.reduce((acc, cur, index) => acc + cur.offsetWidth + (index > 0 ? gap : 0), 0)
     })
   },
   { immediate: true },

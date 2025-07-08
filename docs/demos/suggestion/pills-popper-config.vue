@@ -38,7 +38,7 @@ const showAll = ref(false)
 const showAllRef = ref<InstanceType<typeof TinySwitch>>()
 const addButtonRef = ref<HTMLButtonElement | null>(null)
 
-const overflowMode = ref('expand')
+const overflowMode = ref<'expand' | 'scroll'>('expand')
 const overflowModeOptions = ref([
   { label: 'expand', value: 'expand' },
   { label: 'scroll', value: 'scroll' },
