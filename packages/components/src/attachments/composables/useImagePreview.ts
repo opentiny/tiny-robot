@@ -32,7 +32,7 @@ export function useImagePreview(
   // 显示预览
   const show = (file: Attachment) => {
     // 更新文件列表中的文件信息（主要针对新创建的 blob url）
-    const fileIndex = fileList.value.findIndex((item) => item.uid === file.uid)
+    const fileIndex = fileList.value.findIndex((item) => item.id === file.id)
     if (fileIndex !== -1 && file.previewUrl) {
       fileList.value.splice(fileIndex, 1, file)
     }
@@ -43,7 +43,7 @@ export function useImagePreview(
       previewImages.value = fileList.value.filter(
         (item) => item.fileType === 'image' && item.status !== 'error' && item.status !== 'uploading',
       )
-      const currentIndex = previewImages.value.findIndex((item) => item.uid === file.uid)
+      const currentIndex = previewImages.value.findIndex((item) => item.id === file.id)
 
       if (currentIndex !== -1) {
         previewCurrentIndex.value = currentIndex
@@ -71,14 +71,15 @@ export function useImagePreview(
 
   // 渲染预览组件
   const renderPreview = () => {
-    return h(ImagePreview, {
-      visible: isPreviewVisible.value,
-      images: previewImages.value,
-      currentIndex: previewCurrentIndex.value,
-      'onUpdate:currentIndex': updateCurrentIndex,
-      onClose: close,
-      onDownload: handleDownload,
-    })
+    return isPreviewVisible.value
+      ? h(ImagePreview, {
+          images: previewImages.value,
+          currentIndex: previewCurrentIndex.value,
+          'onUpdate:currentIndex': updateCurrentIndex,
+          onClose: close,
+          onDownload: handleDownload,
+        })
+      : null
   }
 
   return {

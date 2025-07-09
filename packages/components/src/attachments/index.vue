@@ -7,6 +7,16 @@ import FileCard from './components/FileCard.vue'
 const props = withDefaults(defineProps<AttachmentListProps>(), {
   layout: 'wrap',
   variant: 'auto',
+  actions: () => [
+    {
+      label: '下载',
+      type: 'download',
+    },
+    {
+      label: '预览',
+      type: 'preview',
+    },
+  ],
 })
 
 const emit = defineEmits<AttachmentListEmits>()
@@ -24,7 +34,7 @@ const { handlePreview, renderPreview } = useImagePreview(fileList, emit, { enabl
 function handleRemove(file: Attachment) {
   if (props.disabled) return
 
-  const index = fileList.value.findIndex((item) => item.uid === file.uid)
+  const index = fileList.value.findIndex((item) => item.id === file.id)
   if (index !== -1) {
     fileList.value.splice(index, 1)
     emit('file-remove', file)
@@ -70,7 +80,7 @@ watch(
     >
       <FileCard
         v-for="file in fileList"
-        :key="file.uid"
+        :key="file.id"
         :file="file"
         :variant="actualListType"
         :file-icons="fileIcons"

@@ -385,6 +385,7 @@ const getStatusMessageText = computed(() => {
       &-text {
         width: 60px;
         height: 17px;
+        text-align: center;
         font-size: 12px;
         color: #fff;
       }

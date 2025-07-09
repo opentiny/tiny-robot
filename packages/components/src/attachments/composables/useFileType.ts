@@ -84,7 +84,7 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
   /**
    * 生成唯一标识符
    */
-  const generateUID = (): string => {
+  const generateID = (): string => {
     return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
   }
 
@@ -116,7 +116,7 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
    */
   const createAttachments = (files: File[]) => {
     return files.map((file) => ({
-      uid: generateUID(),
+      id: generateID(),
       name: file.name,
       status: 'success',
       fileType: detectFileType(file),
@@ -143,7 +143,7 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
 
   return {
     detectFileType,
-    generateUID,
+    generateID,
     formatFileSize,
     createPreviewUrl,
     createAttachments,

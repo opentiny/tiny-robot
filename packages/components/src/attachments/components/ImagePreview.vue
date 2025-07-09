@@ -1,54 +1,37 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { IconArrowUp as IconArrowLeft, IconArrowDown as IconArrowRight, IconClose } from '@opentiny/tiny-robot-svgs'
 import type { Attachment } from '../index.type'
 
-const props = defineProps<{
-  visible: boolean
-  images: Attachment[]
-  currentIndex: number
-}>()
+type Image = Pick<Attachment, 'id' | 'name' | 'previewUrl'>
 
-const emit = defineEmits(['close', 'update:currentIndex'])
+interface ImagePreviewProps {
+  images: Image[]
+}
 
-const localCurrentIndex = ref(props.currentIndex)
+const props = defineProps<ImagePreviewProps>()
 
-const currentImage = computed(() => props.images[localCurrentIndex.value])
+const emit = defineEmits(['close'])
 
-watch(
-  () => props.currentIndex,
-  (newIndex) => {
-    localCurrentIndex.value = newIndex
-  },
-)
+const currentIndex = defineModel<number>('currentIndex', { required: true })
 
-watch(
-  () => props.visible,
-  (isVisible) => {
-    if (isVisible) {
-      localCurrentIndex.value = props.currentIndex
-    }
-  },
-)
+const currentImage = computed(() => props.images[currentIndex.value])
 
 // 切换图片
 const prevImage = () => {
-  if (localCurrentIndex.value > 0) {
-    localCurrentIndex.value--
-    emit('update:currentIndex', localCurrentIndex.value)
+  if (currentIndex.value > 0) {
+    currentIndex.value--
   }
 }
 
 const nextImage = () => {
-  if (localCurrentIndex.value < props.images.length - 1) {
-    localCurrentIndex.value++
-    emit('update:currentIndex', localCurrentIndex.value)
+  if (currentIndex.value < props.images.length - 1) {
+    currentIndex.value++
   }
 }
 
 const selectImage = (index: number) => {
-  localCurrentIndex.value = index
-  emit('update:currentIndex', localCurrentIndex.value)
+  currentIndex.value = index
 }
 
 // 关闭预览
@@ -58,14 +41,14 @@ function close() {
 </script>
 
 <template>
-  <div class="tr-image-preview" v-if="visible" @click.self="close">
+  <div class="tr-image-preview" @click.self="close">
     <button class="tr-image-preview__close" @click="close"><IconClose /></button>
 
     <div class="tr-image-preview__main">
       <button
         class="tr-image-preview__nav tr-image-preview__nav--left"
         @click.stop="prevImage"
-        :disabled="localCurrentIndex === 0"
+        :disabled="currentIndex === 0"
       >
         <IconArrowRight />
       </button>
@@ -77,7 +60,7 @@ function close() {
       <button
         class="tr-image-preview__nav tr-image-preview__nav--right"
         @click.stop="nextImage"
-        :disabled="localCurrentIndex === images.length - 1"
+        :disabled="currentIndex === images.length - 1"
       >
         <IconArrowLeft />
       </button>
@@ -87,9 +70,9 @@ function close() {
       <div class="tr-image-preview__thumbnails">
         <div
           v-for="(image, index) in images"
-          :key="image.uid"
+          :key="image.id"
           class="tr-image-preview__thumbnail"
-          :class="{ 'tr-image-preview__thumbnail--active': index === localCurrentIndex }"
+          :class="{ 'tr-image-preview__thumbnail--active': index === currentIndex }"
           @click="selectImage(index)"
         >
           <img :src="image.previewUrl" :alt="image.name" />

@@ -19,7 +19,7 @@ const layoutMode = ref('wrap')
 
 const files = ref([
   {
-    uid: '0',
+    id: '0',
     name: '示例文档.docx',
     status: 'done',
     size: 200,
@@ -27,7 +27,7 @@ const files = ref([
     previewUrl: '/path/to/preview.docx',
   },
   {
-    uid: '1',
+    id: '1',
     name: '示例文档.pdf',
     status: 'done',
     size: 200,
@@ -35,7 +35,7 @@ const files = ref([
     previewUrl: '/path/to/preview.pdf',
   },
   {
-    uid: '2',
+    id: '2',
     name: '示例文档.ppt',
     status: 'done',
     size: 200 * 1024,
@@ -43,7 +43,7 @@ const files = ref([
     previewUrl: '/path/to/preview.ppt',
   },
   {
-    uid: '3',
+    id: '3',
     name: '示例文档.xlsx',
     status: 'done',
     size: 200,
@@ -51,7 +51,7 @@ const files = ref([
     previewUrl: '/path/to/preview.xlsx',
   },
   {
-    uid: '4',
+    id: '4',
     name: '示例文档',
     status: 'done',
     size: 200,
@@ -59,7 +59,7 @@ const files = ref([
     previewUrl: '/path/to/preview',
   },
   {
-    uid: '5',
+    id: '5',
     name: 'other',
     status: 'done',
     size: 200,

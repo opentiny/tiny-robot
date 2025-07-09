@@ -11,7 +11,7 @@ export type DisplayVariant = 'picture' | 'card' | 'auto'
 export type LayoutMode = 'wrap' | 'no-wrap'
 
 export interface Attachment {
-  uid: string
+  id: string
   name: string
   status: FileStatus
   previewUrl?: string
