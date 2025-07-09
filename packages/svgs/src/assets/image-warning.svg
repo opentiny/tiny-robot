@@ -1,0 +1,10 @@
+<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" fill="none">
+	<rect id="提示" width="16" height="16" x="0" y="0" />
+	<rect id="矩形" width="16" height="16" x="0" y="0" fill="rgb(216,216,216)" fill-opacity="0" />
+	<rect id="矩形" width="14.999999" height="15" x="0.5" y="0.5" fill="rgb(0,0,0)" fill-opacity="0" />
+	<rect id="矩形" width="14.999999" height="15" x="0.5" y="0.5" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="1" />
+	<path id="路径" d="M8 1C4.13 1 1 4.13 1 8C1 11.86 4.13 15 8 15C11.86 15 15 11.86 15 8C15 4.13 11.86 1 8 1Z" fill="rgb(255,136,2)" fill-opacity="0" fill-rule="evenodd" />
+	<path id="路径" d="M1 8C1 11.86 4.13 15 8 15C11.86 15 15 11.86 15 8C15 4.13 11.86 1 8 1C4.13 1 1 4.13 1 8Z" fill-rule="evenodd" stroke="rgb(255,254.745,254.745)" stroke-width="1" />
+	<path id="路径" d="M8.00014 5.71C7.52014 5.71 7.14014 5.33 7.14014 4.85C7.14014 4.38 7.52014 4 8.00014 4C8.47014 4 8.85014 4.38 8.85014 4.85C8.85014 5.33 8.47014 5.71 8.00014 5.71Z" fill="rgb(255,255,255)" fill-rule="evenodd" />
+	<rect id="矩形" width="1.1428566" height="5.14285707" x="7.42822266" y="6.85742188" rx="0.071428299" fill="rgb(255,255,255)" />
+</svg>

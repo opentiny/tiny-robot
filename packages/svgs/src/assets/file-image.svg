@@ -1,0 +1,11 @@
+<svg width="1em" height="1em" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<g opacity="0.000000">
+		<rect id="Rectangle" width="20.000000" height="20.000000" fill="#000000" fill-opacity="1.000000"/>
+	</g>
+	<path id="Path" d="M17.61 6.14L17.61 16.66C17.61 17.71 16.76 18.57 15.71 18.57L4.28 18.57C3.23 18.57 2.38 17.71 2.38 16.66L2.38 3.33C2.38 2.28 3.23 1.42 4.28 1.42L12.9 1.42L17.61 6.14Z" fill="#FF8800" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="路径" d="M12.63 9.87C12.73 9.95 12.82 10.03 12.89 10.13L14.81 12.64C15.06 12.97 14.83 13.44 14.41 13.44L5.72 13.44C5.31 13.44 5.07 12.97 5.32 12.64L6.25 11.43C6.48 11.13 6.92 11.07 7.22 11.3C7.27 11.34 7.31 11.38 7.35 11.43L7.73 11.93C8.13 12.45 8.92 12.45 9.32 11.93L10.69 10.13C11.15 9.52 12.02 9.41 12.63 9.87Z" fill="#FFFFFF" fill-opacity="1.000000" fill-rule="evenodd"/>
+	<path id="路径" d="" fill="#979797" fill-opacity="0" fill-rule="evenodd"/>
+	<circle id="椭圆形" cx="8.214355" cy="8.928375" r="1.071429" fill="#FFFFFF" fill-opacity="1.000000"/>
+	<circle id="椭圆形" cx="8.214355" cy="8.928375" r="0.571429" stroke="#979797" stroke-opacity="0" stroke-width="1.000000"/>
+	<path id="Path" d="M12.9 5.19L12.9 1.42L17.61 6.14L13.85 6.14C13.33 6.14 12.9 5.71 12.9 5.19L12.9 5.19Z" fill="#FFC693" fill-opacity="1.000000" fill-rule="evenodd"/>
+</svg>
