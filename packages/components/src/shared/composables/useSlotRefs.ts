@@ -6,18 +6,37 @@ export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: bool
   const vnodes = computed(() => {
     const nodes = slot?.() || []
 
-    // 如果 vnodes 中存在 Fragment 类型，并且 children 是数组，则返回 children。只渲染第一个是 Fragment 的节点
-    const fragmentNode = nodes.find((node) => node.type === Fragment)
-    if (fragmentNode && Array.isArray(fragmentNode.children)) {
-      return fragmentNode.children
+    let fragmentCount = 0
+
+    const regenKey = (key: PropertyKey | null) => {
+      // 如果 key 是 symbol，则保持 key 不变，symbol 是唯一的，不会重复
+      if (typeof key === 'symbol') {
+        return key
+      }
+      // 如果指定了 key，给 key 添加前缀，用来区分不同的 Fragment 节点；如果未指定 key，保持 key 不变
+      return key === null || key === undefined ? key : `fg${fragmentCount}-${key}`
     }
 
     return nodes
+      .map((node) => {
+        if (node.type === Fragment && Array.isArray(node.children)) {
+          for (const child of node.children) {
+            if (child && typeof child === 'object' && 'key' in child) {
+              child.key = regenKey(child.key)
+            }
+          }
+          fragmentCount++
+          return node.children
+        }
+        return node
+      })
+      .flat()
   })
 
   const length = computed(() => (renderAll ? vnodes.value.length : 1))
   const renderedVNodes = computed(() => vnodes.value.slice(0, length.value))
 
+  // TODO 不使用 MaybeElement，直接在 resolveRef 中 unrefElement
   const refs = ref<MaybeElement[]>([])
 
   const resolveRef = (el: unknown) => {

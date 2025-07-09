@@ -29,7 +29,7 @@ const show = computed({
 })
 
 const basePopperRef = ref<InstanceType<typeof TrBasePopper> | null>(null)
-const triggerRef = computed(() => basePopperRef.value?.triggerRef)
+const triggerRef = computed(() => unrefElement(basePopperRef.value?.triggerRef))
 const dropdownMenuRef = computed(() => basePopperRef.value?.popperRef)
 
 if (props.trigger === 'click' || props.trigger === 'manual') {
@@ -43,10 +43,7 @@ if (props.trigger === 'click' || props.trigger === 'manual') {
   )
 } else if (props.trigger === 'hover') {
   // TODO 使用 @floating-ui/dom 提供的 safePolygon() 工具。实现鼠标从触发元素（trigger）移动到弹出框时，即使中间有空隙，也不会马上关闭
-  const isTriggerHovered = useElementHover(
-    computed(() => unrefElement(triggerRef.value)),
-    { delayEnter: 100, delayLeave: 300 },
-  )
+  const isTriggerHovered = useElementHover(triggerRef, { delayEnter: 100, delayLeave: 300 })
   const isDropdownMenuHovered = useElementHover(dropdownMenuRef, { delayEnter: 100, delayLeave: 300 })
 
   watch(
@@ -67,6 +64,10 @@ const handleItemClick = (item: DropdownMenuItem) => {
   show.value = false
   emit('item-click', item)
 }
+
+defineExpose({
+  $el: triggerRef,
+})
 </script>
 
 <template>
