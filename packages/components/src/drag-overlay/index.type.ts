@@ -1,12 +1,30 @@
-export interface FileRejection {
-  files: File[]
-  reason: 'invalid-file-type'
+export interface Handlers {
+  handleDragEnter: (e: DragEvent) => void
+  handleDragOver: (e: DragEvent) => void
+  handleDragLeave: (e: DragEvent) => void
+  handleDrop: (e: DragEvent) => void
 }
 
-export interface DragUploadWrapperProps {
+export interface FileRejection {
+  files: File[]
+  reason: 'invalid-file-type' | 'invalid-file-size' | 'invalid-file-count'
+}
+
+export interface DragAwareBinding {
+  onStateChange: (isDragging: boolean, rect: DOMRect | null) => void
+  onFilesDropped: (files: File[]) => void
+  onFilesRejected: (rejection: FileRejection) => void
+  accept?: string
+  multiple?: boolean
+  disabled?: boolean
+  maxSize?: number
+  maxFiles?: number
+}
+
+export interface DragOverlayProps {
   /**
    * 覆盖层标题
-   * @default '将附件拖到此处完成上传'
+   * @default ''
    */
   overlayTitle?: string
 
@@ -37,7 +55,7 @@ export interface DragUploadWrapperProps {
   fullscreen?: boolean
 }
 
-export interface DragUploadWrapperSlots {
+export interface DragOverlaySlots {
   /**
    * 覆盖层插槽，用于自定义拖拽时的覆盖层内容
    */

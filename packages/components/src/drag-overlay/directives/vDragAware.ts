@@ -1,14 +1,5 @@
 import type { Directive } from 'vue'
-import type { FileRejection } from '../index.type'
-
-interface DragAwareBinding {
-  onStateChange: (isDragging: boolean, rect: DOMRect | null) => void
-  onFilesDropped: (files: File[]) => void
-  onFilesRejected: (rejection: FileRejection) => void
-  accept?: string
-  multiple?: boolean
-  disabled?: boolean
-}
+import type { Handlers, DragAwareBinding, FileRejection } from '../index.type'
 
 /**
  * 验证文件类型
@@ -32,13 +23,23 @@ function validateFileType(file: File, accept: string): boolean {
 }
 
 /**
- * 拖拽感知指令的内部事件处理函数
+ * 验证文件大小
+ * @param file 文件
+ * @param maxSize 最大文件大小
+ * @returns 是否接受
  */
-interface Handlers {
-  handleDragEnter: (e: DragEvent) => void
-  handleDragOver: (e: DragEvent) => void
-  handleDragLeave: (e: DragEvent) => void
-  handleDrop: (e: DragEvent) => void
+function validateFileSize(file: File, maxSize: number): boolean {
+  return file.size <= maxSize
+}
+
+/**
+ * 验证文件数量
+ * @param files 文件数组
+ * @param maxFiles 最大文件数量
+ * @returns 是否接受
+ */
+function validateFileCount(files: File[], maxFiles: number): boolean {
+  return files.length <= maxFiles
 }
 
 /**
@@ -61,6 +62,8 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
       accept = '',
       multiple = true,
       disabled = false,
+      maxSize = 1024 * 1024 * 10,
+      maxFiles = 3,
     } = binding.value
 
     const handlers: Handlers = {
@@ -113,8 +116,18 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
         const files = e.dataTransfer?.files
         if (files && files.length > 0) {
           const fileArray = Array.from(files)
-          let acceptedFiles = fileArray.filter((file) => validateFileType(file, accept || ''))
-          const rejectedFiles = fileArray.filter((file) => !validateFileType(file, accept || ''))
+          let acceptedFiles = fileArray.filter(
+            (file) =>
+              validateFileType(file, accept || '') &&
+              validateFileSize(file, maxSize) &&
+              validateFileCount(fileArray, maxFiles),
+          )
+          const rejectedFiles = fileArray.filter(
+            (file) =>
+              !validateFileType(file, accept || '') ||
+              !validateFileSize(file, maxSize) ||
+              !validateFileCount(fileArray, maxFiles),
+          )
 
           if (!multiple && acceptedFiles.length > 0) {
             acceptedFiles = [acceptedFiles[0]]
@@ -125,8 +138,18 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
           }
 
           if (rejectedFiles.length > 0) {
-            const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-type' }
-            onFilesRejected(rejection)
+            if (rejectedFiles.some((file) => !validateFileType(file, accept || ''))) {
+              const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-type' }
+              onFilesRejected(rejection)
+            }
+            if (rejectedFiles.some((file) => !validateFileSize(file, maxSize))) {
+              const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-size' }
+              onFilesRejected(rejection)
+            }
+            if (!validateFileCount(rejectedFiles, maxFiles)) {
+              const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-count' }
+              onFilesRejected(rejection)
+            }
           }
         }
       },

@@ -1,105 +1,53 @@
 <template>
-  <div class="demo-container">
-    <h2>拖拽上传包装器演示</h2>
+  <div class="demo-section">
+    <p>将 v-drag-aware 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
 
-    <!-- 基本用法 -->
-    <div class="demo-section">
-      <h3>基本用法</h3>
-      <p>将 v-drag-aware 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
-
-      <div
-        class="chat-container"
-        v-drag-aware="{
-          onStateChange: handleDragStateChange,
-          onFilesDropped: handleFilesDropped,
-          onFilesRejected: handleFilesRejected,
-          accept: 'image/*,.pdf,.doc,.docx',
-          multiple: true,
-        }"
-        :class="{ dragging: isDragging }"
-      >
-        <div class="chat-header">
-          <h4>聊天窗口</h4>
-          <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
+    <!-- 目标元素 -->
+    <div
+      class="chat-container"
+      v-drag-aware="{
+        accept,
+        onStateChange: handleDragStateChange,
+        onFilesDropped: handleFilesDropped,
+        onFilesRejected: handleFilesRejected,
+      }"
+      :class="{ dragging: isDragging }"
+    >
+      <div class="chat-header">
+        <h4>聊天窗口</h4>
+        <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
+      </div>
+      <div class="chat-content">
+        <div class="message">
+          <div class="message-content">你好！这是一个聊天界面的演示。</div>
         </div>
-        <div class="chat-content">
-          <div class="message">
-            <div class="message-content">你好！这是一个聊天界面的演示。</div>
-          </div>
-          <div class="message">
-            <div class="message-content">你可以将文件拖拽到这个区域来上传文件。</div>
-          </div>
-        </div>
-        <div class="chat-input">
-          <input type="text" placeholder="输入消息..." />
-          <button>发送</button>
+        <div class="message">
+          <div class="message-content">你可以将文件拖拽到这个区域来上传文件。</div>
         </div>
       </div>
-      <!-- 浮层组件现在是同级元素 -->
-      <tr-drag-overlay :is-dragging="isDragging" :target-rect="targetRect" />
-    </div>
-
-    <!-- 自定义覆盖层 -->
-    <div class="demo-section">
-      <h3>自定义覆盖层</h3>
-      <p>浮层组件允许你通过插槽完全自定义内容：</p>
-
-      <div
-        class="image-upload-area"
-        v-drag-aware="{
-          onStateChange: handleImageDragStateChange,
-          onFilesDropped: handleImageDropped,
-          accept: '.jpg,.jpeg,.png,.gif',
-          multiple: false,
-        }"
-        :class="{ dragging: isImageDragging }"
-      >
-        <div v-if="!uploadedImage" class="upload-placeholder">
-          <div class="upload-icon">📷</div>
-          <div class="upload-text">点击或拖拽图片到这里</div>
-        </div>
-        <img v-else :src="uploadedImage" alt="上传的图片" class="uploaded-image" />
-      </div>
-
-      <tr-drag-overlay :is-dragging="isImageDragging" :target-rect="targetRect">
-        <template #overlay>
-          <div class="custom-overlay">
-            <div class="custom-overlay-content">
-              <div class="custom-icon">🎨</div>
-              <div class="custom-text">释放鼠标上传图片</div>
-              <div class="custom-hint">支持 JPG、PNG、GIF 格式</div>
-            </div>
-          </div>
-        </template>
-      </tr-drag-overlay>
-    </div>
-
-    <!-- 禁用状态 -->
-    <div class="demo-section">
-      <h3>禁用状态</h3>
-      <p>通过指令传递 disabled 标志可以禁用拖拽功能：</p>
-
-      <div
-        class="disabled-area"
-        v-drag-aware="{ onStateChange: () => {}, onFilesDropped: () => {}, disabled: true }"
-        :class="{ disabled: true }"
-      >
-        <div class="disabled-content">
-          <div class="disabled-icon">🚫</div>
-          <div class="disabled-text">拖拽功能已禁用</div>
-        </div>
+      <div class="chat-input">
+        <input type="text" placeholder="输入消息..." />
+        <button>发送</button>
       </div>
     </div>
 
-    <!-- 事件日志 -->
-    <div v-if="events.length > 0" class="demo-section">
-      <h3>事件日志</h3>
-      <div class="event-log">
-        <div v-for="(event, index) in events" :key="index" class="event-item">
-          <span class="event-time">{{ event.time }}</span>
-          <span class="event-type">{{ event.type }}</span>
-          <span class="event-message">{{ event.message }}</span>
-        </div>
+    <!-- 浮层组件 -->
+    <tr-drag-overlay
+      :overlay-title="overlayTitle"
+      :overlay-description="overlayDescription"
+      :is-dragging="isDragging"
+      :target-rect="targetRect"
+    />
+  </div>
+
+  <!-- 事件日志 -->
+  <div v-if="events.length > 0" class="demo-section">
+    <h3>事件日志</h3>
+    <div class="event-log">
+      <div v-for="(event, index) in events" :key="index" class="event-item">
+        <span class="event-time">{{ event.time }}</span>
+        <span class="event-type">{{ event.type }}</span>
+        <span class="event-message">{{ event.message }}</span>
       </div>
     </div>
   </div>
@@ -117,18 +65,14 @@ interface Event {
 }
 
 const events = ref<Event[]>([])
-const uploadedImage = ref<string>('')
 const isDragging = ref(false)
-const isImageDragging = ref(false)
 const targetRect = ref<DOMRect | null>(null)
+const overlayTitle = '将图片拖到此处完成上传'
+const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
+const accept = 'image/jpeg, image/png'
 
 const handleDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
   isDragging.value = dragging
-  targetRect.value = rect
-}
-
-const handleImageDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
-  isImageDragging.value = dragging
   targetRect.value = rect
 }
 
@@ -155,29 +99,9 @@ const handleFilesRejected = (rejection: { reason: string; files: File[] }) => {
   addEvent('files-rejected', `文件被拒绝: ${rejection.reason}, 文件数量: ${rejection.files.length}`)
   console.log('被拒绝的文件:', rejection)
 }
-
-const handleImageDropped = (files: File[]) => {
-  if (files.length > 0) {
-    const file = files[0]
-    addEvent('image-dropped', `上传了图片: ${file.name}`)
-
-    // 创建预览
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      uploadedImage.value = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
-}
 </script>
 
 <style scoped>
-.demo-container {
-  padding: 20px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
 .demo-section {
   margin-bottom: 40px;
   padding: 20px;
@@ -281,112 +205,6 @@ const handleImageDropped = (files: File[]) => {
   border: none;
   border-radius: 20px;
   cursor: pointer;
-}
-
-/* 图片上传区域样式 */
-.image-upload-area {
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  min-height: 200px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.image-upload-area.dragging {
-  border-color: #007bff;
-  background: rgba(0, 123, 255, 0.05);
-}
-
-.upload-placeholder {
-  text-align: center;
-  color: #666;
-}
-
-.upload-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.upload-text {
-  font-size: 16px;
-}
-
-.uploaded-image {
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: 8px;
-}
-
-/* 自定义覆盖层样式 */
-.custom-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(255, 0, 150, 0.8), rgba(0, 123, 255, 0.8));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  pointer-events: none;
-}
-
-.custom-overlay-content {
-  text-align: center;
-  color: white;
-  padding: 20px;
-  border: 2px dashed white;
-  border-radius: 8px;
-}
-
-.custom-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.custom-text {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.custom-hint {
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-/* 禁用状态样式 */
-.disabled-area {
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fa;
-}
-
-.disabled-area.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.disabled-content {
-  text-align: center;
-  color: #666;
-}
-
-.disabled-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
-}
-
-.disabled-text {
-  font-size: 14px;
 }
 
 /* 事件日志样式 */

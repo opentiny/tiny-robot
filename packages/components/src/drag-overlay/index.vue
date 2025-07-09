@@ -1,11 +1,8 @@
 <script setup lang="ts">
 import { computed, type CSSProperties } from 'vue'
-import { DragUploadWrapperProps } from './index.type'
+import type { DragOverlayProps } from './index.type'
 
-const props = withDefaults(defineProps<DragUploadWrapperProps>(), {
-  overlayTitle: '',
-  overlayDescription: () => [],
-})
+const props = defineProps<DragOverlayProps>()
 
 const overlayStyle = computed((): CSSProperties => {
   if (!props.isDragging || !props.targetRect) {
@@ -21,13 +18,6 @@ const overlayStyle = computed((): CSSProperties => {
     height: `${height}px`,
   }
 })
-
-const overlayDescriptionLines = computed(() => {
-  if (props.overlayDescription.length > 0) {
-    return props.overlayDescription
-  }
-  return ['总计最多上传50个附件（每个100MB以内）', '支持附件格式 PDF/Word/Excel/PPT/Markdown']
-})
 </script>
 
 <template>
@@ -40,10 +30,10 @@ const overlayDescriptionLines = computed(() => {
           </div>
           <div class="tr-drag-overlay__text">
             <div class="tr-drag-overlay__title">
-              {{ overlayTitle || '将附件拖到此处完成上传' }}
+              {{ overlayTitle }}
             </div>
             <div class="tr-drag-overlay__description">
-              <span v-for="(line, index) in overlayDescriptionLines" :key="index">
+              <span v-for="(line, index) in overlayDescription" :key="index">
                 {{ line }}
               </span>
             </div>

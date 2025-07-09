@@ -64,7 +64,6 @@ export default defineConfig({
             { text: 'DropdownMenu 下拉菜单', link: 'dropdown-menu' },
             { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
             { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
-            { text: 'Attachments 附件上传', link: 'attachments' },
             { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
           ],
         },

@@ -1,5 +1,15 @@
 <template>
-  <tr-container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
+  <tr-container
+    v-drag-aware="{
+      accept: 'image/jpeg, image/png',
+      onStateChange: handleDragStateChange,
+      onFilesDropped: handleFilesDropped,
+      onFilesRejected: handleFilesRejected,
+    }"
+    v-model:fullscreen="fullscreen"
+    v-model:show="show"
+    class="tiny-container"
+  >
     <template #operations>
       <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
       <span style="display: inline-flex; line-height: 0; position: relative">
@@ -78,6 +88,14 @@
       <tiny-switch v-model="fullscreen"></tiny-switch>
     </div>
   </div>
+
+  <tr-drag-overlay
+    :overlay-title="overlayTitle"
+    :overlay-description="overlayDescription"
+    :is-dragging="isDragging"
+    :fullscreen="fullscreen"
+    :target-rect="targetRect"
+  />
 </template>
 
 <script setup lang="ts">
@@ -90,6 +108,7 @@ import type {
   SuggestionPillItem,
   UserItem,
 } from '@opentiny/tiny-robot'
+import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
 import {
   TrBubbleList,
   TrContainer,
@@ -101,6 +120,7 @@ import {
   TrSuggestionPills,
   TrSuggestionPopover,
   TrWelcome,
+  TrDragOverlay,
 } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import {
@@ -515,6 +535,25 @@ watch(
     }
   },
 )
+
+const isDragging = ref(false)
+const targetRect = ref<DOMRect | null>(null)
+
+const overlayTitle = '将图片拖到此处完成上传'
+const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
+
+const handleDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
+  isDragging.value = dragging
+  targetRect.value = rect
+}
+
+const handleFilesDropped = (files: File[]) => {
+  console.log('上传的文件:', files)
+}
+
+const handleFilesRejected = (rejection: { reason: string; files: File[] }) => {
+  console.log('被拒绝的文件:', rejection)
+}
 
 // 页面加载完成后自动聚焦输入框
 onMounted(() => {
