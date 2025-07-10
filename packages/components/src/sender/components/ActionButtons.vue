@@ -200,3 +200,136 @@ const handleCancel = () => {
     </template>
   </div>
 </template>
+
+<style lang="less">
+:root {
+  // 颜色
+  --tr-sender-action-buttons-bg-color: #ffffff;
+  --tr-sender-action-buttons-icon-hover-bg-color: #f5f5f5;
+  --tr-sender-action-buttons-send-bg-color: #1476ff;
+  --tr-sender-action-buttons-send-hover-bg-color: #126deb;
+  --tr-sender-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
+
+  // 字号
+  --tr-sender-action-buttons-cancel-font-size: 14px;
+
+  // 其它
+  --tr-sender-action-utility-buttons-gap: 4px;
+  --tr-sender-action-buttons-icon-size: 32px;
+  --tr-sender-action-buttons-icon-size-send: 36px;
+  --tr-sender-action-buttons-icon-size-stop: 24px;
+  --tr-sender-action-buttons-icon-size-close: 22px;
+  --tr-sender-action-buttons-border-radius: 8px;
+  --tr-sender-action-buttons-cancel-height: 36px;
+  --tr-sender-action-buttons-cancel-gap: 4px;
+  --tr-sender-action-buttons-cancel-padding: 4px 12px 4px 6px;
+  --tr-sender-action-buttons-cancel-border-radius: 99px;
+  --tr-sender-action-buttons-submit-margin: 12px;
+  --tr-sender-action-buttons-submit-content-gap: 6px;
+  --tr-sender-action-buttons-submit-content-line-height: 32px;
+  --tr-sender-action-buttons-cancel-text-height: 24px;
+  --tr-sender-action-buttons-cancel-text-line-height: 24px;
+  --tr-sender-action-buttons-send-border-radius: 18px;
+}
+</style>
+
+<style lang="less" scoped>
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  background: var(--tr-sender-action-buttons-bg-color);
+  border-radius: 26px;
+  align-items: center;
+
+  /* 公共按钮样式 */
+  &__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 图标统一样式 */
+  &__icon {
+    font-size: var(--tr-sender-action-buttons-icon-size);
+
+    &:not(&--send):hover {
+      border-radius: var(--tr-sender-action-buttons-border-radius);
+      background-color: var(--tr-sender-action-buttons-icon-hover-bg-color);
+    }
+
+    /* 关闭图标 */
+    &--close {
+      font-size: var(--tr-sender-action-buttons-icon-size-close);
+    }
+
+    /* 发送图标 */
+    &--send {
+      font-size: var(--tr-sender-action-buttons-icon-size-send);
+      color: var(--tr-sender-action-buttons-send-bg-color);
+      border-radius: var(--tr-sender-action-buttons-send-border-radius);
+
+      &:hover {
+        color: var(--tr-sender-action-buttons-send-hover-bg-color);
+      }
+    }
+
+    /* 停止图标 */
+    &--stop {
+      font-size: var(--tr-sender-action-buttons-icon-size-stop);
+    }
+  }
+
+  /* 辅助按钮组 */
+  &__utility {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--tr-sender-action-utility-buttons-gap);
+    border-radius: var(--tr-sender-action-buttons-border-radius);
+  }
+
+  /* 提交按钮内容 */
+  &__submit-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    line-height: var(--tr-sender-action-buttons-submit-content-line-height);
+    gap: var(--tr-sender-action-buttons-submit-content-gap);
+  }
+
+  /* 取消按钮 */
+  &__cancel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    height: var(--tr-sender-action-buttons-cancel-height);
+    gap: var(--tr-sender-action-buttons-cancel-gap);
+    font-size: var(--tr-sender-action-buttons-cancel-font-size);
+    border-radius: var(--tr-sender-action-buttons-cancel-border-radius);
+    padding: var(--tr-sender-action-buttons-cancel-padding);
+    background-color: var(--tr-sender-action-buttons-cancel-bg);
+
+    /* 仅图标模式样式 */
+    &--icon-only {
+      background-color: transparent;
+      padding: 0;
+      height: auto;
+      gap: 0;
+    }
+  }
+
+  /* 取消按钮文本 */
+  &__cancel-text {
+    line-height: var(--tr-sender-action-buttons-cancel-text-line-height);
+    height: var(--tr-sender-action-buttons-cancel-text-height);
+    text-decoration: none;
+  }
+
+  /* 禁用状态样式 */
+  .is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+</style>

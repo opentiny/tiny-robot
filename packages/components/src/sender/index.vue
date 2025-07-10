@@ -8,7 +8,7 @@ import { useSpeechHandler } from './composables/useSpeechHandler'
 import { useSuggestionHandler } from './composables/useSuggestionHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
-import { IconAssociate } from '@opentiny/tiny-robot-svgs'
+import SuggestionList from './components/SuggestionList.vue'
 import { toCssUnit } from '../shared/utils'
 import './index.less'
 
@@ -314,7 +314,6 @@ const speechOptions = computed(() => {
       emit('speech-end', text)
     },
     onError: (err: Error) => {
-      showError(err.message)
       emit('speech-error', err)
     },
   }
@@ -407,7 +406,6 @@ const isLoading = computed(() => props.loading)
 const senderClasses = computed(() => ({
   'is-disabled': isDisabled.value,
   'is-loading': isLoading.value,
-  'has-error': !!errorMessage.value,
   'is-auto-switching': isAutoSwitching.value,
 }))
 
@@ -419,13 +417,6 @@ const suggestionPopupWidthStyle = computed(() => {
     maxWidth: '100%', // 确保不超出父容器宽度
   }
 })
-
-// 错误处理
-const errorMessage = ref<string>('')
-const showError = (msg: string) => {
-  errorMessage.value = msg
-  setTimeout(() => (errorMessage.value = ''), 5000)
-}
 
 // 输入法结束处理
 const handleCompositionEnd = () => {
@@ -628,38 +619,211 @@ defineExpose({
     </div>
 
     <!-- 输入建议 -->
-    <Transition name="tiny-sender-slide-up">
-      <div
-        v-if="showSuggestionsPopup && filteredSuggestions.length"
-        ref="suggestionsListRef"
-        class="tiny-sender__suggestions"
-        :style="suggestionPopupWidthStyle"
-      >
-        <div
-          v-for="(item, index) in filteredSuggestions"
-          :key="index"
-          class="suggestion-item"
-          :class="{ highlighted: isItemHighlighted(index) }"
-          @mouseenter="handleSuggestionItemHover(index)"
-          @mouseleave="handleSuggestionItemLeave"
-          @mousedown.prevent="selectSuggestion(item)"
-        >
-          <IconAssociate class="suggestion-item__icon" />
-          <span class="suggestion-item__text">
-            <span
-              v-for="(part, partIndex) in highlightSuggestionText(item, inputValue)"
-              :key="partIndex"
-              :class="{ 'suggestion-item__text--match': part.isMatch, 'suggestion-item__text--normal': !part.isMatch }"
-              >{{ part.text }}</span
-            >
-          </span>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 错误提示 -->
-    <div v-if="errorMessage" class="tiny-sender__error">
-      {{ errorMessage }}
-    </div>
+    <suggestion-list
+      ref="suggestionsListRef"
+      :show="showSuggestionsPopup"
+      :suggestions="filteredSuggestions"
+      :popup-style="suggestionPopupWidthStyle"
+      :is-item-highlighted="isItemHighlighted"
+      :highlight-suggestion-text="highlightSuggestionText"
+      :input-value="inputValue"
+      @item-hover="handleSuggestionItemHover"
+      @item-leave="handleSuggestionItemLeave"
+      @select="selectSuggestion"
+    />
   </div>
 </template>
+
+<style lang="less">
+// 主题变量
+:root {
+  // 基础颜色
+  --tr-sender-bg-color: #fff;
+  --tr-sender-text-color: #191919;
+  --tr-sender-placeholder-color: #909399;
+
+  // 字数限制
+  --tr-sender-word-limit-error-color: #f56c6c;
+  --tr-sender-word-limit-color: #808080;
+  --tr-sender-word-limit-font-size: 14px;
+
+  // 紧凑模式 - 字体和行高配置
+  --tr-sender-compact-font-size: 14px;
+  --tr-sender-compact-line-height: 24px;
+  --tr-sender-compact-input-height: 24px;
+  --tr-sender-compact-input-radius: 24px;
+  --tr-sender-compact-send-icon-size: 32px;
+
+  // 紧凑模式 - 内边距配置
+  --tr-sender-compact-single-content-padding: 12px 8px 12px 20px;
+  --tr-sender-compact-multiple-content-padding: 14px 20px 0 20px;
+  --tr-sender-compact-prefix-padding: 8px 4px 8px 8px;
+  --tr-sender-compact-actions-padding: 0 6px;
+  --tr-sender-compact-bottom-row-padding: 10px 8px 10px 8px;
+  --tr-sender-compact-footer-padding: 8px 6px 6px 12px;
+
+  // 默认模式 - 字体和行高配置
+  --tr-sender-font-size: 16px;
+  --tr-sender-line-height: 26px;
+  --tr-sender-default-input-height: 26px;
+  --tr-sender-default-input-radius: 26px;
+  --tr-sender-default-send-icon-size: 36px;
+
+  // 默认模式 - 内边距配置
+  --tr-sender-default-single-content-padding: 15px 10px 15px 20px;
+  --tr-sender-default-multiple-content-padding: 16px 20px 0 20px;
+  --tr-sender-default-prefix-padding: 12px 8px 12px 16px;
+  --tr-sender-default-actions-padding: 0 10px;
+  --tr-sender-default-bottom-row-padding: 12px 10px 10px 10px;
+  --tr-sender-default-footer-padding: 15px 10px 10px 24px;
+
+  // 默认配置（直接使用默认值，无需前缀）
+  --tr-sender-input-font-size: var(--tr-sender-font-size);
+  --tr-sender-input-line-height: var(--tr-sender-line-height);
+  --tr-sender-input-height: var(--tr-sender-default-input-height);
+  --tr-sender-content-padding-single: var(--tr-sender-default-single-content-padding);
+  --tr-sender-content-padding-multiple: var(--tr-sender-default-multiple-content-padding);
+  --tr-sender-prefix-padding: var(--tr-sender-default-prefix-padding);
+  --tr-sender-actions-padding: var(--tr-sender-default-actions-padding);
+  --tr-sender-bottom-row-padding: var(--tr-sender-default-bottom-row-padding);
+  --tr-sender-footer-padding: var(--tr-sender-default-footer-padding);
+
+  // 默认圆角和图标尺寸
+  --tr-sender-input-radius: var(--tr-sender-default-input-radius);
+  --tr-sender-send-icon-size: var(--tr-sender-default-send-icon-size);
+
+  // 默认Footer高度
+  --tr-sender-footer-min-height: var(--tr-sender-default-footer-min-height);
+
+  // 默认ActionButtons取消按钮高度
+  --tr-action-buttons-cancel-height: var(--tr-action-buttons-default-cancel-height);
+
+  // 尺寸
+  --tr-sender-border-radius: var(--tr-sender-input-radius);
+  --tr-sender-padding-top: 15px;
+  --tr-sender-padding-right: 10px;
+  --tr-sender-padding-bottom: 10px;
+  --tr-sender-padding-left: 24px;
+  --tr-sender-gap: 8px;
+  --tr-sender-input-min-height: 60px;
+  --tr-sender-icon-size: 32px;
+  --tr-sender-icon-size-small: 18px;
+
+  // 基础字体（用于其他元素）
+  --tr-sender-font-size-small: 12px;
+
+  // 文本域
+  --tr-sender-textarea-line-height: 26px;
+  --tr-sender-textarea-min-height: 26px;
+
+  // 动画
+  --tr-sender-transition-duration: 0.2s;
+
+  // 阴影
+  --tr-sender-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
+
+  // 插槽变量
+  // 头部插槽 (Header)
+  --tr-sender-header-max-height: 120px;
+  --tr-sender-header-min-height: 40px;
+  --tr-sender-header-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --tr-sender-header-padding: 15px 10px 10px 24px;
+  --tr-sender-header-bg-color: #ffffff;
+  --tr-sender-header-border-color: #dcdfe6;
+
+  // 前缀插槽 (Prefix)
+  --tr-sender-prefix-min-width: 28px;
+  --tr-sender-prefix-hover-bg: #f5f5f5;
+  --tr-sender-prefix-padding-top: 12px;
+  --tr-sender-prefix-padding-left: 16px;
+  --tr-sender-prefix-padding-right: 8px;
+
+  // 内容区域 (Content)
+  --tr-sender-content-min-width: 180px;
+  --tr-sender-content-padding-with-prefix: 12px 16px 0 0;
+  --tr-sender-content-flex-grow: 1;
+
+  // 操作区域 (Actions)
+  --tr-sender-actions-min-width: 32px;
+  --tr-sender-actions-gap: 8px;
+  --tr-sender-actions-icon-size: 20px;
+  --tr-sender-actions-padding-left: 10px;
+  --tr-sender-actions-padding-right: 10px;
+
+  // 底部插槽 (Footer)
+  --tr-sender-default-footer-min-height: 36px;
+  --tr-sender-compact-footer-min-height: 32px;
+
+  --tr-sender-footer-min-height: var(--tr-sender-default-footer-min-height);
+  --tr-sender-footer-bg: #fff;
+  --tr-sender-footer-hover: #f9f9f9;
+
+  // Padding 组合变量
+  --tr-sender-bottom-row-padding: 12px 10px 10px 10px;
+  --tr-sender-default-padding: 12px 10px 10px 24px;
+
+  // 消息装饰提示内容
+  --tr-sender-decorative-content-bg-color: #ffffff;
+  --tr-sender-decorative-content-color: #808080;
+  --tr-sender-decorative-content-link-color: #1476ff;
+  --tr-sender-decorative-content-line-height: 26px;
+
+  // 其余变量
+  --tr-sender-container-min-height: 42px;
+  --tr-sender-disabled-opacity: 0.7;
+  --tr-sender-action-button-disabled-opacity: 0.6;
+  --tr-sender-error-bottom-offset: -20px;
+  --tr-sender-font-size-extra-small: 10px;
+  --tr-sender-transition-max-height: 300px;
+
+  // 自动完成占位符
+  --tr-sender-completion-placeholder-color: #999;
+  --tr-sender-completion-placeholder-font-size: 16px;
+  --tr-sender-completion-placeholder-line-height: 16px;
+
+  // Tab提示
+  --tr-sender-tab-hint-font-size: 14px;
+  --tr-sender-tab-hint-color: #666;
+  --tr-sender-tab-hint-border-color: #999;
+
+  // 快捷提示
+  --tr-sender-shortcut-hint-color: #909399;
+  --tr-sender-shortcut-hint-font-size: 10px;
+}
+</style>
+
+<style lang="less" scoped>
+.tr-sender-compact {
+  // 覆盖字体和行高
+  --tr-sender-input-font-size: var(--tr-sender-compact-font-size);
+  --tr-sender-input-line-height: var(--tr-sender-compact-line-height);
+  --tr-sender-input-height: var(--tr-sender-compact-input-height);
+  --tr-sender-textarea-min-height: var(--tr-sender-compact-line-height);
+
+  // 覆盖圆角和图标尺寸
+  --tr-sender-border-radius: 24px;
+  --tr-sender-action-buttons-icon-size-send: 32px;
+  --tr-sender-action-buttons-cancel-height: 32px;
+
+  // 覆盖内边距
+  --tr-sender-content-padding-single: var(--tr-sender-compact-single-content-padding);
+  --tr-sender-content-padding-multiple: var(--tr-sender-compact-multiple-content-padding);
+  --tr-sender-prefix-padding-top: 8px;
+  --tr-sender-prefix-padding-left: 8px;
+  --tr-sender-prefix-padding-right: 4px;
+  --tr-sender-actions-padding-right: 8px;
+  --tr-sender-bottom-row-padding: var(--tr-sender-compact-bottom-row-padding);
+  --tr-sender-default-padding: var(--tr-sender-compact-footer-padding);
+
+  // 覆盖Footer高度
+  --tr-sender-footer-min-height: var(--tr-sender-compact-footer-min-height);
+
+  // 覆盖Decorative Content行高
+  --tr-sender-decorative-content-line-height: var(--tr-sender-compact-line-height);
+
+  // 调整其他元素尺寸
+  --tr-sender-gap: 4px;
+  --tr-sender-actions-gap: 4px;
+  --tr-sender-container-min-height: 32px;
+}
+</style>
