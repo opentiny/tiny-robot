@@ -93,8 +93,8 @@ const handleMouseleave = (event: MouseEvent) => {
 
 <style lang="less">
 :root {
-  --tr-tooltip-bg: rgb(255, 255, 255);
-  --tr-tooltip-text: rgb(25, 25, 25);
+  --tr-tooltip-bg-color: rgb(255, 255, 255);
+  --tr-tooltip-color: rgb(25, 25, 25);
   --tr-tooltip-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
   --tr-tooltip-font-size: 14px;
   --tr-tooltip-line-height: 22px;
@@ -127,11 +127,11 @@ const handleMouseleave = (event: MouseEvent) => {
   .tr-tooltip-content {
     display: block;
     padding: 16px;
-    color: var(--tr-tooltip-text);
+    color: var(--tr-tooltip-color);
     font-size: var(--tr-tooltip-font-size);
     line-height: var(--tr-tooltip-line-height);
     word-break: break-word;
-    background-color: var(--tr-tooltip-bg);
+    background-color: var(--tr-tooltip-bg-color);
     border-radius: 12px;
     box-shadow: var(--tr-tooltip-shadow);
   }
@@ -152,7 +152,7 @@ const handleMouseleave = (event: MouseEvent) => {
 
     .tr-tooltip-arrow {
       top: calc(100% - var(--tr-tooltip-offset) + var(--tr-tooltip-arrow-size));
-      border-top: var(--tr-tooltip-arrow-size) solid var(--tr-tooltip-bg);
+      border-top: var(--tr-tooltip-arrow-size) solid var(--tr-tooltip-bg-color);
     }
   }
 
@@ -161,7 +161,7 @@ const handleMouseleave = (event: MouseEvent) => {
 
     .tr-tooltip-arrow {
       top: calc(0 - var(--tr-tooltip-arrow-size));
-      border-bottom: var(--tr-tooltip-arrow-size) solid var(--tr-tooltip-bg);
+      border-bottom: var(--tr-tooltip-arrow-size) solid var(--tr-tooltip-bg-color);
     }
   }
 }
