@@ -24,6 +24,12 @@ outline: deep
 
 <demo vue="../../demos/suggestion/popover-grouped.vue" />
 
+### 自定义渲染列表项
+
+使用 `item` 插槽自定义渲染列表项
+
+<demo vue="../../demos/suggestion/popover-custom-item.vue" />
+
 ### 加载中和空数据
 
 <demo vue="../../demos/suggestion/popover-other-status.vue" />
@@ -56,11 +62,12 @@ outline: deep
 
 弹出框插槽定义。
 
-| 插槽名    | 类型            | 说明               |
-| --------- | --------------- | ------------------ |
-| `default` | `() => unknown` | 自定义内容插槽     |
-| `loading` | `() => unknown` | 自定义加载状态显示 |
-| `empty`   | `() => unknown` | 自定义空状态显示   |
+| 插槽名    | 类型                                                       | 说明               |
+| --------- | ---------------------------------------------------------- | ------------------ |
+| `default` | `() => VNode \| VNode[]`                                   | 自定义内容插槽     |
+| `item ` | `({ item }: { item: SuggestionItem }) => VNode \| VNode[]` | 自定义渲染列表项   |
+| `loading` | `() => VNode \| VNode[]`                                   | 自定义加载状态显示 |
+| `empty`   | `() => VNode \| VNode[]`                                   | 自定义空状态显示   |
 
 ### Events
 

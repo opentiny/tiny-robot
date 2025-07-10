@@ -203,7 +203,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
     :trigger-events="{ onClick: handleToggleShow }"
   >
     <template #trigger>
-      <slot />
+      <slot name="trigger" />
     </template>
     <template #content>
       <Header :icon="props.icon" :title="props.title" @close="handleClose" />
@@ -233,7 +233,9 @@ const handleItemMouseleave = (event: MouseEvent) => {
             @mouseenter="isOverflowList[index] && handleItemMouseenter(item, index)"
             @mouseleave="isOverflowList[index] && handleItemMouseleave($event)"
           >
-            <span>{{ index + 1 }}. </span>{{ item.text }}
+            <slot name="item" :item="item">
+              <span>{{ index + 1 }}. </span>{{ item.text }}
+            </slot>
           </li>
         </ul>
       </template>

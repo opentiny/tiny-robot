@@ -6,11 +6,13 @@
       @open="delaySetData"
       @item-click="handlePopoverItemClick"
     >
-      <TrSuggestionPillButton>
-        <template #icon>
-          <IconSparkles style="font-size: 16px; color: #1476ff" />
-        </template>
-      </TrSuggestionPillButton>
+      <template #trigger>
+        <TrSuggestionPillButton>
+          <template #icon>
+            <IconSparkles style="font-size: 16px; color: #1476ff" />
+          </template>
+        </TrSuggestionPillButton>
+      </template>
     </TrSuggestionPopover>
     <TrDropdownMenu :items="dropdownMenuItems" @item-click="handleDropdownMenuItemClick">
       <template #trigger>

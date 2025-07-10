@@ -23,7 +23,9 @@ const emit = defineEmits<{
     @close="item.action.events?.close"
     @click-outside="item.action.events?.clickOutside"
   >
-    <PillButton :item="item" @click="emit('click', $event)" @mouseenter="emit('mouseenter', $event)"></PillButton>
+    <template #trigger>
+      <PillButton :item="item" @click="emit('click', $event)" @mouseenter="emit('mouseenter', $event)"></PillButton>
+    </template>
     <template v-for="(slotVNode, slotName) in item.action.slots" :key="slotName" #[slotName]>
       <component :is="slotVNode" />
     </template>

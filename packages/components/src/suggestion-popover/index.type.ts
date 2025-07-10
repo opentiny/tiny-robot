@@ -40,9 +40,10 @@ export interface SuggestionPopoverProps<T = Record<string, unknown>> {
 }
 
 export interface SuggestionPopoverSlots {
-  default?: () => unknown
-  loading?: () => unknown
-  empty?: () => unknown
+  trigger?: () => VNode | VNode[]
+  item?: ({ item }: { item: SuggestionItem }) => VNode | VNode[]
+  loading?: () => VNode | VNode[]
+  empty?: () => VNode | VNode[]
 }
 
 export interface SuggestionPopoverEmits {
