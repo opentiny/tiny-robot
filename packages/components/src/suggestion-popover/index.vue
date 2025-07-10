@@ -1,15 +1,8 @@
 <script setup lang="ts">
-import {
-  onClickOutside,
-  useElementBounding,
-  useElementSize,
-  useMediaQuery,
-  useScroll,
-  watchThrottled,
-} from '@vueuse/core'
-import { computed, CSSProperties, ref, StyleValue, useAttrs, watch } from 'vue'
+import { onClickOutside, useElementSize, useMediaQuery, useScroll, watchThrottled } from '@vueuse/core'
+import { computed, CSSProperties, ref, watch } from 'vue'
+import TrBasePopper from '../base-popper'
 import FlowLayoutButtons from '../flow-layout-buttons'
-import { toCssUnit } from '../shared/utils'
 import Header from './components/Header.vue'
 import Loading from './components/Loading.vue'
 import NoData from './components/NoData.vue'
@@ -25,14 +18,9 @@ import {
 const props = withDefaults(defineProps<SuggestionPopoverProps>(), {
   title: '热门问题',
   trigger: 'click',
-  popoverWidth: 540,
-  popoverHeight: 464,
-  topOffset: 0,
+  topOffset: 8,
   groupShowMoreTrigger: 'hover',
 })
-
-const attrs = useAttrs()
-const attrsStyle = computed(() => attrs.style as StyleValue)
 
 const showRef = ref(false)
 
@@ -85,10 +73,9 @@ const flowLayoutGroups = computed(() => {
   }))
 })
 
-const popoverTriggerRef = ref<HTMLDivElement | null>(null)
-const popoverRef = ref<HTMLDivElement | null>(null)
-
-const { x, y, update } = useElementBounding(popoverTriggerRef)
+const basePopperRef = ref<InstanceType<typeof TrBasePopper> | null>(null)
+const triggerRef = computed(() => basePopperRef.value?.triggerRef)
+const popoverRef = computed(() => basePopperRef.value?.popperRef)
 
 const isMobile = useMediaQuery('(max-width: 767px)')
 
@@ -137,14 +124,11 @@ const popoverStyles = computed<CSSProperties>(() => {
       left: 0,
       right: 0,
       bottom: 0,
+      top: 'unset',
     }
   }
 
-  return {
-    left: `min(${toCssUnit(x.value)}, 100% - ${toCssUnit(props.popoverWidth)})`,
-    top: `max(${toCssUnit(y.value)} - ${toCssUnit(props.popoverHeight)} + ${toCssUnit(props.topOffset)} - 8px, 0px)`,
-    width: toCssUnit(props.popoverWidth),
-  }
+  return {}
 })
 
 const emitClickTriggerEvents = () => {
@@ -164,14 +148,8 @@ onClickOutside(
     show.value = false
     emitClickTriggerEvents()
   },
-  { ignore: [popoverTriggerRef] },
+  { ignore: [triggerRef] },
 )
-
-watch(show, (value) => {
-  if (value) {
-    update()
-  }
-})
 
 const handleToggleShow = () => {
   show.value = !show.value
@@ -212,18 +190,22 @@ const handleItemMouseleave = (event: MouseEvent) => {
 </script>
 
 <template>
-  <div
-    class="tr-question-popover__wrapper"
-    :class="attrs.class"
-    :style="attrsStyle"
-    ref="popoverTriggerRef"
-    @click="handleToggleShow"
+  <TrBasePopper
+    :show="show"
+    :class="['tr-question-popover', { mobile: isMobile }]"
+    :style="popoverStyles"
+    ref="basePopperRef"
+    placement="top-left"
+    :append-to="props.appendTo"
+    :offset="props.topOffset"
+    :transition-props="{ name: isMobile ? 'tr-question-popover-mobile' : 'tr-question-popover' }"
+    :prevent-overflow="true"
+    :trigger-events="{ onClick: handleToggleShow }"
   >
-    <slot />
-  </div>
-  <div v-if="show && isMobile" class="tr-question-popover__backdrop"></div>
-  <Transition name="tr-question-popover">
-    <div v-if="show" class="tr-question-popover" :style="popoverStyles" ref="popoverRef">
+    <template #trigger>
+      <slot />
+    </template>
+    <template #content>
       <Header :icon="props.icon" :title="props.title" @close="handleClose" />
       <Loading v-if="props.loading">
         <slot name="loading" />
@@ -265,9 +247,85 @@ const handleItemMouseleave = (event: MouseEvent) => {
         :delay-open="300"
         :delay-close="300"
       ></Tooltip>
-    </div>
-  </Transition>
+    </template>
+    <template #backdrop>
+      <div v-if="show && isMobile" class="tr-question-popover__backdrop"></div>
+    </template>
+  </TrBasePopper>
 </template>
+
+<style lang="less">
+:root {
+  --tr-suggestion-popover-bg-color: #ffffff;
+  --tr-suggestion-popover-box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  --tr-suggestion-popover-color: rgb(25, 25, 25);
+  --tr-suggestion-popover-width: 540px;
+  --tr-suggestion-popover-height: 464px;
+  --tr-suggestion-popover-backdrop-color: rgba(0, 0, 0, 0.15);
+  --tr-suggestion-popover-scrollbar-color: #dbdbdb;
+
+  // 列表项
+  --tr-suggestion-popover-item-font-size: 14px;
+  --tr-suggestion-popover-item-line-height: 24px;
+  --tr-suggestion-popover-item-hover-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-suggestion-popover-item-border-color: rgb(240, 240, 240);
+}
+
+.tr-question-popover {
+  z-index: var(--tr-z-index-popover);
+  width: var(--tr-suggestion-popover-width);
+  height: var(--tr-suggestion-popover-height);
+  max-width: 100dvw;
+  max-height: 100dvh;
+  padding: 20px;
+  padding-bottom: 16px;
+  border-radius: 24px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  background-color: var(--tr-suggestion-popover-bg-color);
+  box-shadow: var(--tr-suggestion-popover-box-shadow);
+  color: var(--tr-suggestion-popover-color);
+  display: flex;
+  flex-direction: column;
+
+  &.mobile {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  &-enter-active,
+  &-leave-active {
+    transition: opacity 0.3s ease;
+  }
+
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+  }
+
+  &-enter-to,
+  &-leave-from {
+    opacity: 1;
+  }
+}
+
+.tr-question-popover-mobile {
+  &-enter-active,
+  &-leave-active {
+    transition: transform 0.3s ease;
+  }
+
+  &-enter-from,
+  &-leave-to {
+    transform: translateY(100%);
+  }
+
+  &-enter-to,
+  &-leave-from {
+    transform: translateY(0);
+  }
+}
+</style>
 
 <style lang="less" scoped>
 .tr-question-popover__wrapper {
@@ -278,118 +336,82 @@ const handleItemMouseleave = (event: MouseEvent) => {
   position: fixed;
   z-index: var(--tr-z-index-popover-backdrop);
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: var(--tr-suggestion-popover-backdrop-color);
 }
 
-.tr-question-popover {
-  position: fixed;
-  z-index: var(--tr-z-index-popover);
-  height: v-bind('toCssUnit(props.popoverHeight)');
-  max-height: 100dvh;
-  padding: 20px;
-  padding-bottom: 16px;
-  border-radius: 24px;
-  border-bottom-left-radius: v-bind("isMobile ? '0': '24px'");
-  border-bottom-right-radius: v-bind("isMobile ? '0': '24px'");
-  background-color: #ffffff;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
-  color: rgb(25, 25, 25);
-  display: flex;
-  flex-direction: column;
+.tr-question__group {
+  flex-shrink: 0;
+  margin-top: 16px;
+}
 
-  &-enter-active,
-  &-leave-active {
-    transition-property: opacity, transform;
-    transition-duration: 0.3s;
-    transition-timing-function: ease;
+.tr-question__list {
+  flex: 1;
+  list-style: none;
+  // 负数 margin + 正数补偿 padding 解决 box-shadow 被裁剪的问题
+  margin: 0 -12px;
+  margin-top: 16px;
+  padding: 0 12px;
+  overflow-y: auto;
+  --scrollbar-color: transparent;
+
+  &.scrolling {
+    --scrollbar-color: var(--tr-suggestion-popover-scrollbar-color);
   }
 
-  &-enter-from,
-  &-leave-to {
-    opacity: v-bind("isMobile ? 'unset': '0'");
-    transform: v-bind("isMobile ? 'translateY(100%)': 'unset'");
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-color);
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  &-enter-to,
-  &-leave-from {
-    opacity: v-bind("isMobile ? 'unset': '1'");
-    transform: v-bind("isMobile ? 'translateY(0)': 'unset'");
+  // 兼容性不支持 ::-webkit-scrollbar 的浏览器
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-color) transparent;
   }
 
-  .tr-question__group {
-    flex-shrink: 0;
-    margin-top: 16px;
-  }
+  .tr-question__list-item {
+    font-size: var(--tr-suggestion-popover-item-font-size);
+    line-height: var(--tr-suggestion-popover-item-line-height);
+    padding: 16px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: box-shadow 0.3s ease;
+    white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    position: relative;
 
-  .tr-question__list {
-    flex: 1;
-    list-style: none;
-    // 负数 margin + 正数补偿 padding 解决 box-shadow 被裁剪的问题
-    margin: 0 -12px;
-    margin-top: 16px;
-    padding: 0 12px;
-    overflow-y: auto;
-    --scrollbar-bg: transparent;
-
-    &.scrolling {
-      --scrollbar-bg: #dbdbdb;
-    }
-
-    &::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: var(--scrollbar-bg);
-      border-radius: 2px;
-    }
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    // 兼容性不支持 ::-webkit-scrollbar 的浏览器
-    @supports not selector(::-webkit-scrollbar) {
-      scrollbar-width: thin;
-      scrollbar-color: var(--scrollbar-bg) transparent;
-    }
-
-    .tr-question__list-item {
-      font-size: 14px;
-      line-height: 24px;
-      padding: 16px;
-      cursor: pointer;
-      border-radius: 12px;
-      transition: box-shadow 0.3s ease;
-      white-space: nowrap;
-      overflow-x: hidden;
-      text-overflow: ellipsis;
-      position: relative;
-
-      &:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-
-        &::after {
-          background-color: transparent;
-        }
-      }
+    &:hover {
+      box-shadow: var(--tr-suggestion-popover-item-hover-box-shadow);
 
       &::after {
-        content: '';
-        display: block;
-        position: absolute;
-        bottom: 0;
-        left: 12px;
-        right: 12px;
-        height: 1px;
-        background-color: rgb(240, 240, 240);
-        transition: background-color 0.3s ease;
+        background-color: transparent;
       }
+    }
 
-      // 如果当前项的下一个项被 hover，则当前项的after边框不显示
-      &:has(+ .tr-question__list-item:hover) {
-        &::after {
-          background-color: transparent;
-        }
+    &::after {
+      content: '';
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 12px;
+      right: 12px;
+      height: 1px;
+      background-color: var(--tr-suggestion-popover-item-border-color);
+      transition: background-color 0.3s ease;
+    }
+
+    // 如果当前项的下一个项被 hover，则当前项的after边框不显示
+    &:has(+ .tr-question__list-item:hover) {
+      &::after {
+        background-color: transparent;
       }
     }
   }

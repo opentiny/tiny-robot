@@ -50,9 +50,7 @@ outline: deep
 | `selectedGroup`        | `string`              | -         | 当前选中分组 (v-model)                               |
 | `groupShowMoreTrigger` | `'click' \| 'hover'`  | -         | 分组"显示更多"的触发方式                             |
 | `loading`              | `boolean`             | `false`   | 是否显示加载状态                                     |
-| `popoverWidth`         | `string \| number`    | -         | 弹出框宽度                                           |
-| `popoverHeight`        | `string \| number`    | -         | 弹出框高度                                           |
-| `topOffset`            | `string \| number`    | -         | 顶部偏移量                                           |
+| `topOffset`            | `number`              | -         | 顶部偏移量                                           |
 
 ### Slots
 

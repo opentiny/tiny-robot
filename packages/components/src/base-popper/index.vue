@@ -30,6 +30,7 @@ const props = withDefaults(
 const slots = defineSlots<{
   trigger?: () => VNode[]
   content?: () => VNode[]
+  backdrop?: () => VNode[]
 }>()
 
 const {
@@ -134,6 +135,9 @@ defineExpose({
     :ref="(el: unknown) => setRefs(el, index)"
     v-bind="indexedEventHandlers[index]"
   />
+  <!-- TODO 临时方案 -->
+  <slot name="backdrop" />
+  <!-- TODO 使用 Teleport 包裹 Transition -->
   <Transition v-bind="transitionProps">
     <Teleport v-if="show" :to="props.appendTo || teleportTarget">
       <div class="tr-base-popper" ref="popperRef" :style="popperStyles" v-bind="$attrs">

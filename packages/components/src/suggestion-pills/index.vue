@@ -192,6 +192,16 @@ const handleMouseenter = (ev: MouseEvent) => {
   </div>
 </template>
 
+<style lang="less">
+:root {
+  --tr-suggestion-pills-expand-color: rgb(89, 89, 89);
+  --tr-suggestion-pills-expand-bg-color: white;
+  --tr-suggestion-pills-expand-hover-bg-color: rgb(235, 235, 235);
+  --tr-suggestion-pills-expand-font-size: 14px;
+  --tr-suggestion-pills-expand-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+</style>
+
 <style lang="less" scoped>
 .tr-suggestion-pills__wrapper {
   position: relative;
@@ -257,15 +267,16 @@ const handleMouseenter = (ev: MouseEvent) => {
   right: 0;
   transform: translateY(-50%);
   padding: 3px;
-  background-color: white;
+  color: var(--tr-suggestion-pills-expand-color);
+  background-color: var(--tr-suggestion-pills-expand-bg-color);
   border-radius: 999px;
   display: flex;
-  font-size: 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  font-size: var(--tr-suggestion-pills-expand-font-size);
+  box-shadow: var(--tr-suggestion-pills-expand-box-shadow);
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: rgb(235, 235, 235);
+    background-color: var(--tr-suggestion-pills-expand-hover-bg-color);
   }
 
   &.show-on-hover {
