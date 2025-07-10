@@ -108,7 +108,6 @@ import type {
   SuggestionPillItem,
   UserItem,
 } from '@opentiny/tiny-robot'
-import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
 import {
   TrBubbleList,
   TrContainer,
@@ -120,6 +119,7 @@ import {
   TrSuggestionPills,
   TrSuggestionPopover,
   TrWelcome,
+  vDragAware,
   TrDragOverlay,
 } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'

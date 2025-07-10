@@ -35,8 +35,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { TrDragOverlay } from '@opentiny/tiny-robot'
-import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
+import { TrDragOverlay, vDragAware } from '@opentiny/tiny-robot'
 
 const isImageDragging = ref(false)
 const targetRect = ref<DOMRect | null>(null)

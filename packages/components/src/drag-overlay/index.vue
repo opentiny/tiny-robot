@@ -22,9 +22,13 @@ const overlayStyle = computed((): CSSProperties => {
 
 <template>
   <Transition name="tr-fade">
-    <div v-if="isDragging" class="tr-drag-overlay" :style="overlayStyle">
+    <div
+      v-if="isDragging"
+      :class="['tr-drag-overlay', { 'tr-drag-overlay--fullscreen': fullscreen }]"
+      :style="overlayStyle"
+    >
       <slot name="overlay" :is-dragging="isDragging">
-        <div :class="['tr-drag-overlay__content', { 'tr-drag-overlay__content--fullscreen': fullscreen }]">
+        <div class="tr-drag-overlay__content">
           <div class="tr-drag-overlay__icon">
             <img src="../assets/svgs/add-file.svg" alt="上传文件" />
           </div>
@@ -58,18 +62,20 @@ const overlayStyle = computed((): CSSProperties => {
 
   &__content {
     display: flex;
-    min-width: 320px;
-    min-height: 200px;
+    width: 100%;
+    height: 100%;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 40px;
     border-radius: 40px;
     text-align: center;
+  }
 
-    &--fullscreen {
-      min-width: 1080px;
-      min-height: 896px;
+  &--fullscreen {
+    padding: 60px 420px;
+
+    .tr-drag-overlay__content {
       border: 1px dashed #808080;
     }
   }

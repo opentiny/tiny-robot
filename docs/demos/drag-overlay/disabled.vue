@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
+import { vDragAware } from '@opentiny/tiny-robot'
 </script>
 
 <style scoped>

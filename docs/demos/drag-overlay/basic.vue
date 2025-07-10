@@ -55,8 +55,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrDragOverlay } from '@opentiny/tiny-robot'
-import { vDragAware } from '@opentiny/tiny-robot/drag-overlay/directives/vDragAware'
+import { TrDragOverlay, vDragAware } from '@opentiny/tiny-robot'
 
 interface Event {
   time: string
@@ -128,11 +127,6 @@ const handleFilesRejected = (rejection: { reason: string; files: File[] }) => {
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
-}
-
-.chat-container.dragging {
-  border-color: #007bff;
-  box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
 }
 
 .chat-header {
