@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import TinyButton from '@opentiny/vue-button'
 import TinyTooltip from '@opentiny/vue-tooltip'
-import { IconClose } from '@opentiny/vue-icon'
 import { ActionButtonsProps } from '../index.type'
-import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech } from '@opentiny/tiny-robot-svgs'
-
-const TinyIconCloseSquare = IconClose()
+import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech, IconClose } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -139,53 +135,41 @@ const handleCancel = () => {
 <template>
   <div class="action-buttons">
     <!-- 辅助按钮组：文件上传、语音、清除 -->
-    <div v-if="hasUtilityButtons" class="action-buttons__utility">
+    <div
+      v-if="hasUtilityButtons"
+      class="action-buttons__utility"
+      :style="{ 'padding-right': hasContent || loading ? '0' : '6px' }"
+    >
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
         <tiny-tooltip content="上传文件" placement="top">
-          <tiny-button class="action-buttons__button action-buttons__file-button" type="text" :disabled="isDisabled">
+          <div class="action-buttons__button">
             <IconAccessory class="action-buttons__icon" alt="上传文件" />
-          </tiny-button>
+          </div>
         </tiny-tooltip>
       </template>
 
       <!-- 语音按钮：仅在启用语音功能时显示 -->
       <template v-if="speechEnabled && !loading">
-        <tiny-button
-          class="action-buttons__button action-buttons__speech-button"
-          type="text"
-          :disabled="isDisabled"
-          @click="handleToggleSpeech"
-          :class="{ 'is-recording': isSpeechRecording }"
-        >
+        <div class="action-buttons__button" @click="handleToggleSpeech" :class="{ 'is-recording': isSpeechRecording }">
           <IconVoice v-if="!isSpeechRecording" class="action-buttons__icon" alt="录音" />
           <IconLoadingSpeech v-else class="action-buttons__icon action-buttons__icon--recording" alt="语音中" />
-        </tiny-button>
+        </div>
       </template>
 
       <!-- 清除按钮 -->
       <template v-if="showClear">
         <tiny-tooltip content="清空内容" placement="top">
-          <tiny-button
-            class="action-buttons__button action-buttons__clear-button"
-            type="text"
-            :disabled="isDisabled || !hasContent"
-            @click="handleClear"
-          >
-            <component :is="TinyIconCloseSquare" class="action-buttons__icon action-buttons__icon--close" />
-          </tiny-button>
+          <div class="action-buttons__button" @click="handleClear">
+            <IconClose class="action-buttons__icon action-buttons__icon--close" />
+          </div>
         </tiny-tooltip>
       </template>
     </div>
 
     <!-- 提交按钮：主操作按钮 -->
     <template v-if="hasContent || loading">
-      <tiny-button
-        type="text"
-        class="action-buttons__button action-buttons__submit"
-        :disabled="loading ? isDisabled : isSubmitDisabled"
-        @click="loading ? handleCancel() : handleSubmit()"
-      >
+      <div class="action-buttons__button action-buttons__submit" @click="loading ? handleCancel() : handleSubmit()">
         <div class="action-buttons__submit-content">
           <!-- 发送图标 -->
           <IconSend
@@ -200,7 +184,7 @@ const handleCancel = () => {
             <span v-if="stopText" class="action-buttons__cancel-text">{{ stopText }}</span>
           </div>
         </div>
-      </tiny-button>
+      </div>
     </template>
   </div>
 </template>
@@ -209,22 +193,24 @@ const handleCancel = () => {
 :root {
   // 颜色
   --tr-sender-action-buttons-bg-color: #ffffff;
+  --tr-sender-action-buttons-icon-color: #595959;
   --tr-sender-action-buttons-icon-hover-bg-color: #f5f5f5;
   --tr-sender-action-buttons-send-bg-color: #1476ff;
   --tr-sender-action-buttons-send-hover-bg-color: #126deb;
   --tr-sender-action-buttons-send-disabled-color: #c2c2c2;
   --tr-sender-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
+  --tr-sender-action-buttons-cancel-text-color: #1476ff;
 
   // 字号
   --tr-sender-action-buttons-cancel-font-size: 14px;
 
   // 其它
-  --tr-sender-actions-gap: 8px;
+  --tr-sender-actions-gap: 12px;
   --tr-sender-action-utility-buttons-gap: 4px;
   --tr-sender-action-buttons-icon-size: 32px;
   --tr-sender-action-buttons-icon-size-send: 36px;
   --tr-sender-action-buttons-icon-size-stop: 24px;
-  --tr-sender-action-buttons-icon-size-close: 22px;
+  --tr-sender-action-buttons-icon-size-close: 24px;
   --tr-sender-action-buttons-border-radius: 8px;
   --tr-sender-action-buttons-cancel-height: 36px;
   --tr-sender-action-buttons-cancel-gap: 4px;
@@ -257,6 +243,7 @@ const handleCancel = () => {
   /* 图标统一样式 */
   &__icon {
     font-size: var(--tr-sender-action-buttons-icon-size);
+    color: var(--tr-sender-action-buttons-icon-color);
 
     &:not(&--send):hover {
       border-radius: var(--tr-sender-action-buttons-border-radius);
@@ -265,6 +252,9 @@ const handleCancel = () => {
 
     /* 关闭图标 */
     &--close {
+      width: 32px;
+      height: 32px;
+      padding: 4px;
       font-size: var(--tr-sender-action-buttons-icon-size-close);
     }
 
@@ -292,7 +282,6 @@ const handleCancel = () => {
     align-items: center;
     gap: var(--tr-sender-action-utility-buttons-gap);
     border-radius: var(--tr-sender-action-buttons-border-radius);
-    padding-right: 6px;
   }
 
   /* 提交按钮内容 */
@@ -328,6 +317,7 @@ const handleCancel = () => {
 
   /* 取消按钮文本 */
   &__cancel-text {
+    color: var(--tr-sender-action-buttons-cancel-text-color);
     line-height: var(--tr-sender-action-buttons-cancel-text-line-height);
     height: var(--tr-sender-action-buttons-cancel-text-height);
     text-decoration: none;
@@ -345,11 +335,12 @@ const handleCancel = () => {
 .tr-sender-compact {
   --tr-sender-action-buttons-icon-size: 28px;
   --tr-sender-action-buttons-icon-size-send: 32px;
-  --tr-sender-action-buttons-icon-size-stop: 32px;
-  --tr-sender-action-buttons-icon-size-close: 32px;
+  --tr-sender-action-buttons-icon-size-close: 22px;
   --tr-sender-action-buttons-cancel-height: 32px;
-  --tr-sender-action-buttons-cancel-font-size: 14px;
+  --tr-sender-action-buttons-cancel-font-size: 12px;
+  --tr-sender-action-buttons-cancel-padding: 4px 16px 4px 4px;
+  --tr-sender-action-buttons-icon-hover-size: 28px;
 
-  --tr-sender-actions-gap: 4px;
+  --tr-sender-actions-gap: 10px;
 }
 </style>

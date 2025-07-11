@@ -670,7 +670,6 @@ defineExpose({
   --tr-sender-header-min-height: 40px;
   --tr-sender-header-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --tr-sender-header-bg-color: #ffffff;
-  --tr-sender-header-border-color: #dcdfe6;
 
   // 前缀插槽 (Prefix)
   --tr-sender-prefix-min-width: 28px;
@@ -716,16 +715,15 @@ defineExpose({
 
   // gap
   --tr-sender-gap: 8px;
-  --tr-sender-actions-gap: 8px;
 
   // padding
   --tr-sender-padding: 15px 10px 10px 24px;
-  --tr-sender-header-padding: 15px 10px 10px 24px;
-  --tr-sender-prefix-padding: 12px 8px 12px 16px;
+  --tr-sender-prefix-padding: 12px 8px 0 16px;
   --tr-sender-content-padding-with-prefix: 12px 16px 0 0;
   --tr-sender-content-padding-single: 15px 10px 15px 20px;
   --tr-sender-content-padding-multiple: 16px 20px 0 20px;
   --tr-sender-actions-padding: 0 10px;
+  --tr-sender-actions-padding-right: 10px;
   --tr-sender-bottom-row-padding: 12px 10px 10px 10px;
 }
 </style>
