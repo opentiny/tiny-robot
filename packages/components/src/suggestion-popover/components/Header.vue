@@ -21,7 +21,7 @@ const handleClose = () => {
       <IconSparkles style="color: #1476ff" />
     </span>
     <h3 class="tr-question__header-title">{{ props.title }}</h3>
-    <IconButton class="tr-question-popover__close" :icon="IconClose" size="20" svg-size="14" @click="handleClose" />
+    <IconButton class="tr-question-popover__close" :icon="IconClose" size="32" svg-size="20" @click="handleClose" />
   </div>
 </template>
 
