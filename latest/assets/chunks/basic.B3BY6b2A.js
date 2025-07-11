@@ -1,0 +1,1 @@
+import{J as e}from"./index.BF_PQeJ7.js";import{d as o,b as r,o as t,k as n}from"./framework.kTfunus-.js";import"./utils.D1YSndqS.js";import"./plugin-vue_export-helper.lGy7RumW.js";import"./index2.DXNIapAb.js";const f=o({__name:"basic",setup(a){return(p,s)=>(t(),r(n(e),{content:"TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"}))}});export{f as default};

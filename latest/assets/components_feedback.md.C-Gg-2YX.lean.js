@@ -1,0 +1,159 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/chunks/custom-action-icon.BIRWxUaK.js","assets/chunks/index.qi1GoFxM.js","assets/chunks/tiny-robot-svgs.BaAiG9Fu.js","assets/chunks/framework.kTfunus-.js","assets/chunks/index4.UhD4dyzc.js","assets/chunks/index2.DXNIapAb.js","assets/chunks/index.DM95O2dU.js","assets/chunks/utils.D1YSndqS.js","assets/chunks/plugin-vue_export-helper.lGy7RumW.js","assets/chunks/tiny-robot-svgs.Ct4S-7ct.js","assets/chunks/limit.CvU7LZ13.js","assets/chunks/basic.B7wtszUa.js","assets/chunks/index.D5z7hk73.js","assets/chunks/index.DKVCnifJ.js","assets/chunks/loading-shadow.lIjb6yma.js"])))=>i.map(i=>d[i]);
+import{p as c,v as s,V as p,C as W,c as y,o as g,ag as b,ah as m,G as t,j as l,ai as u,k as n,w as i,a as d}from"./chunks/framework.kTfunus-.js";import{O as h,E as k}from"./chunks/index.Bs5OpVoR.js";const T=`<template>
+  <tr-feedback
+    :operations="operations"
+    :operations-limit="3"
+    @operation="handleOperation"
+    :actions="actions"
+    :actions-limit="3"
+    @action="handleAction"
+  ></tr-feedback>
+</template>
+
+<script setup lang="ts">
+import { FeedbackProps, TrFeedback } from '@opentiny/tiny-robot'
+import { IconPin } from '@opentiny/tiny-robot-svgs'
+import { h, resolveComponent } from 'vue'
+
+const operations: FeedbackProps['operations'] = [
+  {
+    name: 'edit',
+    label: '编辑',
+  },
+  {
+    name: 'delete',
+    label: '删除',
+  },
+]
+
+const handleOperation = (name: string) => {
+  console.log('operation', name)
+}
+
+const actions: FeedbackProps['actions'] = [
+  { name: 'refresh', label: '刷新', icon: 'refresh' },
+  { name: 'copy', label: '复制', icon: 'copy' },
+  { name: 'pin', label: '置顶', icon: h(resolveComponent('TrIconButton'), { icon: IconPin }) },
+  { name: 'like', label: '推荐', icon: 'like' },
+  { name: 'dislike', label: '不推荐', icon: 'dislike' },
+  { name: 'pin2', label: '置顶2', icon: h(resolveComponent('TrIconButton'), { icon: IconPin }) },
+]
+
+const handleAction = (name: string) => {
+  console.log('action', name)
+}
+<\/script>
+`,A=`<template>
+  <tr-feedback
+    :operations="operations"
+    :operations-limit="3"
+    :actions="actions"
+    :actions-limit="3"
+    :sources="sources"
+    :sources-lines-limit="1"
+    @operation="handleOperation"
+    @action="handleAction"
+  />
+  <hr />
+</template>
+
+<script setup lang="ts">
+import { FeedbackProps, TrFeedback } from '@opentiny/tiny-robot'
+
+const operations: FeedbackProps['operations'] = [
+  { name: 'operation1', label: '操作一', onClick: () => console.log('单独监听点击事件', 'operation1') },
+  { name: 'operation2', label: '操作二' },
+  { name: 'operation3', label: '操作三' },
+  { name: 'operation4', label: '操作四' },
+  { name: 'operation5', label: '操作五' },
+]
+
+const actions: FeedbackProps['actions'] = [
+  { name: 'refresh', label: '刷新', icon: 'refresh' },
+  { name: 'copy', label: '复制', icon: 'copy' },
+  { name: 'like', label: '推荐', icon: 'like' },
+  { name: 'dislike', label: '不推荐', icon: 'dislike' },
+]
+
+const sources = Array(6)
+  .fill([
+    { label: '来源1', link: 'https://www.baidu.com' },
+    { label: '来源22', link: 'https://www.baidu.com' },
+    { label: '来源3333333', link: 'https://www.baidu.com' },
+  ])
+  .flat()
+
+const handleOperation = (name: string) => {
+  console.log('操作:', name)
+}
+
+const handleAction = (name: string) => {
+  console.log('动作:', name)
+}
+<\/script>
+`,C=`<template>
+  <tr-feedback
+    :operations="showOperations ? operations : undefined"
+    :actions="actions"
+    :sources="sources"
+    @operation="handleOperation"
+    @action="handleAction"
+  />
+  <hr />
+  <tiny-button @click="showOperations = !showOperations" :reset-time="0">
+    {{ showOperations ? '隐藏操作' : '显示操作' }}
+  </tiny-button>
+</template>
+
+<script setup lang="ts">
+import { FeedbackProps, TrFeedback } from '@opentiny/tiny-robot'
+import { TinyButton } from '@opentiny/vue'
+import { ref } from 'vue'
+
+const operations: FeedbackProps['operations'] = [
+  {
+    name: 'edit',
+    label: '编辑',
+    onClick: () => console.log('点击了编辑按钮'),
+  },
+  {
+    name: 'delete',
+    label: '删除',
+  },
+]
+
+const showOperations = ref(true)
+
+const actions: FeedbackProps['actions'] = [
+  {
+    name: 'copy',
+    label: '复制',
+    icon: 'copy',
+  },
+  {
+    name: 'refresh',
+    label: '刷新',
+    icon: 'refresh',
+  },
+]
+
+const sources: FeedbackProps['sources'] = [
+  {
+    label: '数据来源1',
+    link: 'https://example.com/source1',
+  },
+  {
+    label: '数据来源2',
+    link: 'https://example.com/source2',
+  },
+]
+
+const handleOperation = (name: string) => {
+  console.log('操作:', name)
+}
+
+const handleAction = (name: string) => {
+  console.log('动作:', name)
+}
+<\/script>
+`,L=JSON.parse('{"title":"Feedback 气泡反馈","description":"","frontmatter":{"outline":"deep"},"headers":[],"relativePath":"components/feedback.md","filePath":"components/feedback.md"}'),N={name:"components/feedback.md"},D=Object.assign(N,{setup(P){const f=c();s(async()=>{f.value=(await p(async()=>{const{default:a}=await import("./chunks/custom-action-icon.BIRWxUaK.js");return{default:a}},__vite__mapDeps([0,1,2,3,4,5,6,7,8,9]))).default});const _=c();s(async()=>{_.value=(await p(async()=>{const{default:a}=await import("./chunks/limit.CvU7LZ13.js");return{default:a}},__vite__mapDeps([10,1,2,3,4,5,6,7,8]))).default});const o=c(!0),v=c();return s(async()=>{v.value=(await p(async()=>{const{default:a}=await import("./chunks/basic.B7wtszUa.js");return{default:a}},__vite__mapDeps([11,1,2,3,4,5,6,7,8,12,13,14]))).default}),(a,e)=>{const r=W("ClientOnly");return g(),y("div",null,[e[3]||(e[3]=b("",6)),m(t(n(h),null,null,512),[[u,o.value]]),t(r,null,{default:i(()=>[t(n(k),{title:"",description:"",locale:"",select:"vue",order:"vue,react,html",github:"",gitlab:"",theme:"",lightTheme:"",darkTheme:"",stackblitz:"%7B%22show%22%3Afalse%7D",codesandbox:"%7B%22show%22%3Afalse%7D",codeplayer:"%7B%22show%22%3Afalse%7D",files:"%7B%22vue%22%3A%7B%7D%2C%22react%22%3A%7B%7D%2C%22html%22%3A%7B%7D%7D",scope:"",visible:!0,onMount:e[0]||(e[0]=()=>{o.value=!1}),vueCode:n(C)},{vue:i(()=>[t(n(v))]),_:1},8,["vueCode"])]),_:1}),e[4]||(e[4]=l("h3",{id:"控制显示数量",tabindex:"-1"},[d("控制显示数量 "),l("a",{class:"header-anchor",href:"#控制显示数量","aria-label":'Permalink to "控制显示数量"'},"​")],-1)),e[5]||(e[5]=l("p",null,[d("使用 "),l("code",null,"operations-limit"),d("，"),l("code",null,"actions-limit"),d("，"),l("code",null,"sources-lines-limit"),d(" 来分别控制左侧操作按钮、右侧动作按钮和底部来源展开后显示的最大数量或行数")],-1)),m(t(n(h),null,null,512),[[u,o.value]]),t(r,null,{default:i(()=>[t(n(k),{title:"",description:"",locale:"",select:"vue",order:"vue,react,html",github:"",gitlab:"",theme:"",lightTheme:"",darkTheme:"",stackblitz:"%7B%22show%22%3Afalse%7D",codesandbox:"%7B%22show%22%3Afalse%7D",codeplayer:"%7B%22show%22%3Afalse%7D",files:"%7B%22vue%22%3A%7B%7D%2C%22react%22%3A%7B%7D%2C%22html%22%3A%7B%7D%7D",scope:"",visible:!0,onMount:e[1]||(e[1]=()=>{o.value=!1}),vueCode:n(A)},{vue:i(()=>[t(n(_))]),_:1},8,["vueCode"])]),_:1}),e[6]||(e[6]=b("",2)),m(t(n(h),null,null,512),[[u,o.value]]),t(r,null,{default:i(()=>[t(n(k),{title:"",description:"",locale:"",select:"vue",order:"vue,react,html",github:"",gitlab:"",theme:"",lightTheme:"",darkTheme:"",stackblitz:"%7B%22show%22%3Afalse%7D",codesandbox:"%7B%22show%22%3Afalse%7D",codeplayer:"%7B%22show%22%3Afalse%7D",files:"%7B%22vue%22%3A%7B%7D%2C%22react%22%3A%7B%7D%2C%22html%22%3A%7B%7D%7D",scope:"",visible:!0,onMount:e[2]||(e[2]=()=>{o.value=!1}),vueCode:n(T)},{vue:i(()=>[t(n(f))]),_:1},8,["vueCode"])]),_:1}),e[7]||(e[7]=b("",5))])}}});export{L as __pageData,D as default};
