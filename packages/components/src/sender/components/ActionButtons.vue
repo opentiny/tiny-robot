@@ -188,7 +188,11 @@ const handleCancel = () => {
       >
         <div class="action-buttons__submit-content">
           <!-- 发送图标 -->
-          <IconSend class="action-buttons__icon action-buttons__icon--send" v-if="!loading" alt="发送" />
+          <IconSend
+            :class="['action-buttons__icon', 'action-buttons__icon--send', { 'is-disabled': isSubmitDisabled }]"
+            v-if="!loading"
+            alt="发送"
+          />
 
           <!-- 停止生成按钮 -->
           <div v-else class="action-buttons__cancel" :class="{ 'action-buttons__cancel--icon-only': !stopText }">
@@ -208,12 +212,14 @@ const handleCancel = () => {
   --tr-sender-action-buttons-icon-hover-bg-color: #f5f5f5;
   --tr-sender-action-buttons-send-bg-color: #1476ff;
   --tr-sender-action-buttons-send-hover-bg-color: #126deb;
+  --tr-sender-action-buttons-send-disabled-color: #c2c2c2;
   --tr-sender-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
 
   // 字号
   --tr-sender-action-buttons-cancel-font-size: 14px;
 
   // 其它
+  --tr-sender-actions-gap: 8px;
   --tr-sender-action-utility-buttons-gap: 4px;
   --tr-sender-action-buttons-icon-size: 32px;
   --tr-sender-action-buttons-icon-size-send: 36px;
@@ -236,7 +242,7 @@ const handleCancel = () => {
 <style lang="less" scoped>
 .action-buttons {
   display: flex;
-  gap: 12px;
+  gap: var(--tr-sender-actions-gap);
   background: var(--tr-sender-action-buttons-bg-color);
   border-radius: 26px;
   align-items: center;
@@ -286,6 +292,7 @@ const handleCancel = () => {
     align-items: center;
     gap: var(--tr-sender-action-utility-buttons-gap);
     border-radius: var(--tr-sender-action-buttons-border-radius);
+    padding-right: 6px;
   }
 
   /* 提交按钮内容 */
@@ -328,8 +335,21 @@ const handleCancel = () => {
 
   /* 禁用状态样式 */
   .is-disabled {
-    opacity: 0.6;
+    color: var(--tr-sender-action-buttons-send-disabled-color);
     cursor: not-allowed;
   }
+}
+</style>
+
+<style lang="less">
+.tr-sender-compact {
+  --tr-sender-action-buttons-icon-size: 28px;
+  --tr-sender-action-buttons-icon-size-send: 32px;
+  --tr-sender-action-buttons-icon-size-stop: 32px;
+  --tr-sender-action-buttons-icon-size-close: 32px;
+  --tr-sender-action-buttons-cancel-height: 32px;
+  --tr-sender-action-buttons-cancel-font-size: 14px;
+
+  --tr-sender-actions-gap: 4px;
 }
 </style>

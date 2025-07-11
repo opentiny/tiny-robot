@@ -86,30 +86,30 @@ const handleSelect = (item: string) => {
 <style lang="less" scoped>
 .suggestion-list {
   position: absolute;
-  bottom: calc(100% + 8px); // --tr-sender-suggestion-padding-bottom
+  bottom: calc(100% + 8px);
   left: 0;
-  width: 400px; // --tr-sender-suggestion-width
+  width: 400px;
   background: var(--tr-sender-suggestion-bg-color);
-  border-radius: 12px; // --tr-sender-suggestion-border-radius
+  border-radius: 12px;
   box-shadow: 0 4px 12px var(--tr-sender-suggestion-box-shadow-color);
-  z-index: 2000; // --tr-z-index-dropdown
-  max-height: 200px; // --tr-sender-suggestion-max-height
+  z-index: 2000;
+  max-height: 200px;
   overflow-y: auto;
-  padding: 8px; // --tr-sender-suggestion-padding
+  padding: 8px;
 
   &::-webkit-scrollbar {
-    width: 6px; // --tr-sender-suggestion-scrollbar-width
+    width: 6px;
   }
 
   &::-webkit-scrollbar-track {
     background: transparent;
-    border-radius: 12px; // --tr-sender-suggestion-border-radius
-    margin: 4px 0; // --tr-sender-suggestion-scrollbar-track-margin
+    border-radius: 12px;
+    margin: 4px 0;
   }
 
   &::-webkit-scrollbar-thumb {
     background-color: var(--tr-sender-suggestion-scrollbar-thumb-color);
-    border-radius: 6px; // --tr-sender-suggestion-scrollbar-border-radius
+    border-radius: 6px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
@@ -121,14 +121,14 @@ const handleSelect = (item: string) => {
   &__item {
     display: flex;
     align-items: center;
-    padding: 4px 8px; // --tr-sender-suggestion-item-padding
+    padding: 4px 8px;
     cursor: pointer;
     font-size: var(--tr-sender-suggestion-item-font-size);
-    gap: 8px; // --tr-sender-suggestion-item-gap
+    gap: 8px;
 
     &.highlighted {
       background-color: var(--tr-sender-suggestion-hover-bg-color);
-      border-radius: 8px; // --tr-sender-suggestion-item-border-radius
+      border-radius: 8px;
     }
   }
 

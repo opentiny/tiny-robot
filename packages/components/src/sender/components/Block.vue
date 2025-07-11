@@ -33,14 +33,14 @@ const attrs = useAttrs()
 }
 
 [data-type='block'] {
-  color: #1476ff;
+  color: var(--tr-sender-template-block-color);
   max-width: none;
-  background: rgba(20, 118, 255, 0.1);
+  background: var(--tr-sender-template-block-bg-color);
   padding: 5.5px 8px;
   margin: 0 4px;
   border-radius: 6px;
   cursor: text;
-  caret-color: #191919;
+  caret-color: var(--tr-sender-template-block-caret-color);
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
