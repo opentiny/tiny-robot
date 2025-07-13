@@ -1,33 +1,84 @@
 <template>
-  <TrSuggestionPills>
-    <TrSuggestionPopover
-      :data="popoverData"
-      :loading="loading"
-      @open="delaySetData"
-      @item-click="handlePopoverItemClick"
-    >
+  <div class="pills-container">
+    <TrSuggestionPopover :data="[]">
       <TrSuggestionPillButton>
         <template #icon>
           <IconSparkles style="font-size: 16px; color: #1476ff" />
         </template>
       </TrSuggestionPillButton>
     </TrSuggestionPopover>
-    <TrDropdownMenu :items="dropdownMenuItems" @item-click="handleDropdownMenuItemClick">
-      <template #trigger>
-        <TrSuggestionPillButton>点击我打开DropdownMenu弹出框</TrSuggestionPillButton>
-      </template>
-    </TrDropdownMenu>
-    <TrSuggestionPillButton>资源管理</TrSuggestionPillButton>
-    <TrSuggestionPillButton>费用查询</TrSuggestionPillButton>
-  </TrSuggestionPills>
+    <TrSuggestionPills
+      class="pills"
+      v-model:showAll="showAll"
+      :show-all-button-on="showAllButtonOn"
+      :overflow-mode="overflowMode"
+      :auto-scroll-on-hover="autoScrollOnHover"
+      @click-outside="handleClickOutside"
+    >
+      <TrDropdownMenu
+        v-for="(button, index) in buttons"
+        :items="dropdownMenuItems"
+        @item-click="handleDropdownMenuItemClick"
+        :key="index"
+        trigger="hover"
+      >
+        <template #trigger>
+          <TrSuggestionPillButton>{{ button.text }}</TrSuggestionPillButton>
+        </template>
+      </TrDropdownMenu>
+    </TrSuggestionPills>
+  </div>
   <hr />
   <span>点击第一个图标会打开Popover弹出框</span>
+  <hr />
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div>
+      <label>showAll：</label>
+      <tiny-switch v-model="showAll" ref="showAllRef"></tiny-switch>
+    </div>
+    <div>
+      <label>showAllButtonOn：</label>
+      <tiny-radio-group v-model="showAllButtonOn" :options="showAllButtonOnOptions"></tiny-radio-group>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <label>overflowMode：</label>
+      <tiny-radio-group v-model="overflowMode" :options="overflowModeOptions"></tiny-radio-group>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <label>autoScrollOnHover：</label>
+      <tiny-switch v-model="autoScrollOnHover"></tiny-switch>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <button ref="addButtonRef" @click="handleClickAddButton">点我增加按钮</button>
+      <button ref="removeButtonRef" @click="handleClickRemoveButton">点我删除按钮</button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover, TrDropdownMenu } from '@opentiny/tiny-robot'
+import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover } from '@opentiny/tiny-robot'
 import { IconSparkles } from '@opentiny/tiny-robot-svgs'
+import { TinyRadioGroup, TinySwitch } from '@opentiny/vue'
 import { ref } from 'vue'
+
+const showAll = ref(false)
+const showAllRef = ref<InstanceType<typeof TinySwitch>>()
+const addButtonRef = ref<HTMLButtonElement | null>(null)
+const removeButtonRef = ref<HTMLButtonElement | null>(null)
+
+const showAllButtonOn = ref<'hover' | 'always'>('hover')
+const showAllButtonOnOptions = ref([
+  { label: 'hover', value: 'hover' },
+  { label: 'always', value: 'always' },
+])
+
+const overflowMode = ref<'expand' | 'scroll'>('expand')
+const overflowModeOptions = ref([
+  { label: 'expand', value: 'expand' },
+  { label: 'scroll', value: 'scroll' },
+])
+
+const autoScrollOnHover = ref(false)
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
@@ -37,34 +88,65 @@ const dropdownMenuItems = ref([
   { id: '5', text: '对帐单' },
 ])
 
-const popoverData = ref<typeof data>([])
-const loading = ref(true)
-
-const data = [
-  { id: 'b1', text: '什么是弹性云服务器?' },
-  { id: 'b2', text: '如何登录到Windows云服务器?' },
-  { id: 'b3', text: '弹性公网IP为什么ping不通?' },
-  { id: 'b4', text: '云服务器安全组如何配置?' },
-  { id: 'b5', text: '如何查看云服务器密码?' },
-  { id: 'b6', text: '什么是弹性云服务器?' },
-  { id: 'b7', text: '如何登录到Windows云服务器?' },
-  { id: 'b8', text: '弹性公网IP为什么ping不通?' },
-  { id: 'b9', text: '云服务器安全组如何配置?' },
-  { id: 'b0', text: '如何查看云服务器密码?' },
-]
-
-const delaySetData = () => {
-  setTimeout(() => {
-    popoverData.value = data
-    loading.value = false
-  }, 1000)
-}
-
-const handlePopoverItemClick = (item) => {
-  console.log('Popover item clicked,', item)
+const handleClickOutside = (event: MouseEvent) => {
+  if (event.composedPath().includes(showAllRef.value?.$el)) {
+    return
+  }
+  if (addButtonRef.value && event.composedPath().includes(addButtonRef.value)) {
+    return
+  }
+  if (removeButtonRef.value && event.composedPath().includes(removeButtonRef.value)) {
+    return
+  }
+  showAll.value = false
 }
 
 const handleDropdownMenuItemClick = (item) => {
   console.log('DropdownMenu item clicked,', item)
 }
+
+const buttons = ref([
+  {
+    text: '资源管理1',
+  },
+  {
+    text: '资源管理2',
+  },
+  {
+    text: '资源管理3',
+  },
+  {
+    text: '资源管理4',
+  },
+  {
+    text: '资源管理5',
+  },
+  {
+    text: '资源管理6',
+  },
+  {
+    text: '资源管理7',
+  },
+])
+
+const handleClickAddButton = () => {
+  buttons.value.push({
+    text: '新增按钮',
+  })
+}
+
+const handleClickRemoveButton = () => {
+  buttons.value.pop()
+}
 </script>
+
+<style lang="less" scoped>
+.pills-container {
+  display: flex;
+  gap: 8px;
+}
+
+.pills {
+  width: calc(100% - 40px);
+}
+</style>

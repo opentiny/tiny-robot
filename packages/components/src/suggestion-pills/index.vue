@@ -1,114 +1,93 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementSize, watchDebounced } from '@vueuse/core'
-import { computed, nextTick, ref, watch } from 'vue'
-import { PillButtonWrapper } from './components'
-import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
+import { onClickOutside, useElementSize, useEventListener, watchDebounced } from '@vueuse/core'
+import { computed, isVNode, ref, watch, watchEffect } from 'vue'
+import { useSlotRefs } from '../shared/composables'
+import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
 const props = withDefaults(defineProps<SuggestionPillsProps>(), {
   showAllButtonOn: 'hover',
   overflowMode: 'expand',
 })
 
+const slots = defineSlots<SuggestionPillsSlots>()
 const emit = defineEmits<SuggestionPillsEmits>()
 
-defineSlots<SuggestionPillsSlots>()
-
+const { vnodes: itemVnodes, refs: itemRefs, setRefs: setItemRefs } = useSlotRefs(slots.default, true)
+const validItemRefs = computed(() => itemRefs.value.filter((el): el is HTMLElement | SVGElement => Boolean(el)))
 const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
+
+watchEffect(() => {
+  console.log('validItemRefs', validItemRefs.value)
+})
 
 const containerWrapperRef = ref<HTMLDivElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
-const floatingItemsRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
-const containerFullWidth = ref(0)
+const containerFullWidth = computed(() => {
+  const container = containerRef.value
+  if (!container) {
+    return 0
+  }
+  const gap = parseFloat(getComputedStyle(container).rowGap) || 0
+  return validItemRefs.value.reduce(
+    (acc, el, index) => acc + el.getBoundingClientRect().width + (index > 0 ? gap : 0),
+    0,
+  )
+})
+
 const hasShowMoreBtn = computed(() => props.overflowMode === 'expand' && width.value < containerFullWidth.value)
 const hiddenIndex = ref(-1)
 
-const staticItems = computed(() => {
+const staticVnodes = computed(() => {
   if (hasShowMoreBtn.value && showAll.value) {
-    return props.items?.slice(0, hiddenIndex.value) || []
+    return itemVnodes.value.slice(0, hiddenIndex.value)
   }
-  return props.items || []
+  return itemVnodes.value
 })
-const floatingItems = computed(() => {
+
+watchEffect(() => {
+  console.log('containerFullWidth', containerFullWidth.value)
+})
+
+const floatingVnodesWithIndex = computed(() => {
   if (hasShowMoreBtn.value && showAll.value) {
-    return props.items?.slice(hiddenIndex.value) || []
+    return itemVnodes.value.slice(hiddenIndex.value).map((vnode, index) => ({
+      vnode,
+      index: index + hiddenIndex.value,
+    }))
   }
   return []
 })
 
-const getAllItemElements = () => {
-  const container = containerRef.value
-  const floatingItems = floatingItemsRef.value
-  return Array.from(container?.children || []).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
-}
-
 const updateHiddenIndex = () => {
-  nextTick(() => {
-    const container = containerRef.value
+  const container = containerRef.value
 
-    if (!container) {
-      return
-    }
-
-    const children = getAllItemElements()
-    const gap = parseFloat(getComputedStyle(container).rowGap) || 0
-
-    let totalWidth = 0
-    for (let i = 0; i < children.length; i++) {
-      totalWidth += children[i].offsetWidth
-      if (i > 0) {
-        totalWidth += gap
-      }
-      if (totalWidth > container.clientWidth) {
-        hiddenIndex.value = i
-        break
-      }
-      if (i === children.length - 1) {
-        hiddenIndex.value = -1
-      }
-    }
-  })
-}
-
-watch(
-  () => [props.items, props.items?.length],
-  () => {
-    nextTick(() => {
-      if (!containerRef.value) {
-        return
-      }
-
-      // 计算容器最大宽度
-      const children = getAllItemElements()
-      const gap = parseFloat(getComputedStyle(containerRef.value).rowGap) || 0
-      containerFullWidth.value = children.reduce((acc, cur, index) => acc + cur.offsetWidth + (index > 0 ? gap : 0), 0)
-    })
-  },
-  { immediate: true },
-)
-
-watch(() => [props.items, props.items?.length], updateHiddenIndex)
-
-watchDebounced(
-  width,
-  (w) => {
-    if (w > 0) {
-      updateHiddenIndex()
-    }
-  },
-  { debounce: 100 },
-)
-
-const handleClick = (ev: MouseEvent, item: SuggestionPillItem, index: number) => {
-  if (hasShowMoreBtn.value && index >= hiddenIndex.value) {
-    ev.stopPropagation()
-    toggleIsShowingMore()
+  if (!container) {
     return
   }
-  emit('item-click', item)
+
+  const children = validItemRefs.value
+  const gap = parseFloat(getComputedStyle(container).rowGap) || 0
+
+  hiddenIndex.value = -1
+  let totalWidth = 0
+  for (let i = 0; i < children.length; i++) {
+    totalWidth += children[i].getBoundingClientRect().width
+    if (i > 0) {
+      totalWidth += gap
+    }
+    if (totalWidth > container.clientWidth) {
+      hiddenIndex.value = i
+      break
+    }
+  }
 }
+
+watch(containerFullWidth, updateHiddenIndex)
+
+watchDebounced(width, updateHiddenIndex, { debounce: 100 })
 
 const toggleIsShowingMore = () => {
   showAll.value = !showAll.value
@@ -148,11 +127,11 @@ const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
   }
 }
 
-const handleMouseenter = (ev: MouseEvent) => {
+useEventListener(validItemRefs, 'mouseenter', (ev) => {
   if (props.autoScrollOnHover && ev.currentTarget) {
     scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
   }
-}
+})
 </script>
 
 <template>
@@ -162,22 +141,22 @@ const handleMouseenter = (ev: MouseEvent) => {
       :class="{ 'overflow-scroll': props.overflowMode === 'scroll' }"
       ref="containerRef"
     >
-      <slot>
-        <template v-for="(item, index) in staticItems" :key="item.id">
-          <PillButtonWrapper
-            :item="item"
-            @click="handleClick($event, item, index)"
-            @mouseenter="handleMouseenter($event)"
-          ></PillButtonWrapper>
-        </template>
-      </slot>
+      <component
+        v-for="(vnode, index) in staticVnodes"
+        :key="isVNode(vnode) ? vnode.key : index"
+        :is="vnode"
+        :ref="(el: unknown) => setItemRefs(el, index)"
+      />
     </div>
     <div class="tr-suggestion-pills__more-wrapper">
       <Transition name="tr-suggestion-pills__more">
-        <div v-if="floatingItems.length" class="tr-suggestion-pills__more" ref="floatingItemsRef">
-          <template v-for="item in floatingItems" :key="item.id">
-            <PillButtonWrapper :item="item" @click="emit('item-click', item)"></PillButtonWrapper>
-          </template>
+        <div v-if="floatingVnodesWithIndex.length" class="tr-suggestion-pills__more">
+          <component
+            v-for="{ vnode, index } in floatingVnodesWithIndex"
+            :key="isVNode(vnode) ? vnode.key : index"
+            :is="vnode"
+            :ref="(el: unknown) => setItemRefs(el, index)"
+          />
         </div>
       </Transition>
     </div>

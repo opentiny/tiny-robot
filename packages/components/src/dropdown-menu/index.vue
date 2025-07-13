@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onClickOutside, unrefElement, useElementHover } from '@vueuse/core'
+import { onClickOutside, useElementHover } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps } from './index.type'
@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<DropdownMenuProps>(), {
 
 const emit = defineEmits<DropdownMenuEmits>()
 
-const showRef = ref(false)
+const showModel = defineModel<boolean>('show', { default: false })
 
 // 如果 trigger 是 manual，则 show 由外部控制，此时组件内部无法修改 show 的值
 const show = computed({
@@ -18,18 +18,18 @@ const show = computed({
     if (props.trigger === 'manual') {
       return props.show
     }
-    return showRef.value
+    return showModel.value
   },
   set: (newValue) => {
     if (props.trigger === 'manual') {
       return
     }
-    showRef.value = newValue
+    showModel.value = newValue
   },
 })
 
 const basePopperRef = ref<InstanceType<typeof TrBasePopper> | null>(null)
-const triggerRef = computed(() => unrefElement(basePopperRef.value?.triggerRef))
+const triggerRef = computed(() => basePopperRef.value?.triggerRef)
 const dropdownMenuRef = computed(() => basePopperRef.value?.popperRef)
 
 if (props.trigger === 'click' || props.trigger === 'manual') {

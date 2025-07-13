@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MaybeElement } from '@vueuse/core'
-import { ComponentPublicInstance, computed, Fragment, ref, VNode, watch } from 'vue'
+import { MaybeComputedElementRef, MaybeElement, unrefElement } from '@vueuse/core'
+import { computed, Fragment, nextTick, ref, VNode, watch } from 'vue'
 
 export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: boolean) {
   const vnodes = computed(() => {
@@ -36,42 +36,36 @@ export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: bool
   const length = computed(() => (renderAll ? vnodes.value.length : 1))
   const renderedVNodes = computed(() => vnodes.value.slice(0, length.value))
 
-  // TODO 不使用 MaybeElement，直接在 resolveRef 中 unrefElement
-  const refs = ref<MaybeElement[]>([])
+  const refs = ref<(HTMLElement | SVGElement | null | undefined)[]>([])
 
   const resolveRef = (el: unknown) => {
-    if (el && typeof el === 'object' && '$el' in el) {
-      // Vue 组件实例
-      return el as ComponentPublicInstance
-    } else if (el instanceof HTMLElement || el instanceof SVGElement) {
-      // 原生 HTMLElement 或者 SVGElement
-      return el
+    const resolvedEl = unrefElement(el as MaybeComputedElementRef<MaybeElement>)
+
+    if (resolvedEl instanceof HTMLElement || resolvedEl instanceof SVGElement) {
+      return resolvedEl
     }
-    console.warn('el must be an HTMLElement or SVGElement or Vue component instance. el:', el)
+
     return null
   }
 
-  const setRef = (el: unknown) => {
-    refs.value[0] = resolveRef(el)
-  }
-
   const setRefs = (el: unknown, index: number) => {
-    refs.value[index] = resolveRef(el)
+    const resolvedEl = resolveRef(el)
+    if (resolvedEl) {
+      refs.value[index] = resolvedEl
+    }
   }
 
-  watch(
-    length,
-    (len) => {
+  watch(length, (len) => {
+    nextTick(() => {
       refs.value.length = len
-    },
-    { flush: 'post' },
-  )
+    })
+  })
 
   return {
     vnodes: renderedVNodes,
     ref: computed(() => refs.value.at(0)),
     refs,
-    setRef,
+    setRef: (el: unknown) => setRefs(el, 0),
     setRefs,
   }
 }
