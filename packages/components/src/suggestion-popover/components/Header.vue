@@ -21,9 +21,20 @@ const handleClose = () => {
       <IconSparkles style="color: #1476ff" />
     </span>
     <h3 class="tr-question__header-title">{{ props.title }}</h3>
-    <IconButton class="tr-question-popover__close" :icon="IconClose" size="24" svg-size="20" @click="handleClose" />
+    <IconButton class="tr-question-popover__close" :icon="IconClose" size="32" svg-size="20" @click="handleClose" />
   </div>
 </template>
+
+<style lang="less">
+:root {
+  --tr-suggestion-popover-header-font-size: 20px;
+  --tr-suggestion-popover-header-line-height: 30px;
+
+  --tr-suggestion-popover-close-bg-color: var(--tr-icon-button-bg);
+  --tr-suggestion-popover-close-hover-bg-color: var(--tr-icon-button-hover-bg);
+  --tr-suggestion-popover-close-color: #595959;
+}
+</style>
 
 <style scoped lang="less">
 .tr-question__header {
@@ -44,14 +55,14 @@ const handleClose = () => {
 
   .tr-question__header-title {
     margin: 0;
-    font-size: 20px;
-    line-height: 30px;
+    font-size: var(--tr-suggestion-popover-header-font-size);
+    line-height: var(--tr-suggestion-popover-header-line-height);
     font-weight: 600;
   }
 
   .tr-question-popover__close {
-    // TODO icon 待整改
-    // color: #595959;
+    background-color: var(--tr-suggestion-popover-close-bg-color);
+    color: var(--tr-suggestion-popover-close-color);
     right: 0;
     position: absolute;
   }

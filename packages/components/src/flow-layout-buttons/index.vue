@@ -167,6 +167,25 @@ onClickOutside(
   </div>
 </template>
 
+<style lang="less">
+:root {
+  --tr-flow-layout-item-bg-color: rgba(0, 0, 0, 0.04);
+  --tr-flow-layout-item-border-color: transparent;
+  --tr-flow-layout-item-hover-bg-color: rgba(0, 0, 0, 0.08);
+  --tr-flow-layout-item-selected-bg-color: white;
+  --tr-flow-layout-item-selected-border-color: black;
+  --tr-flow-layout-item-font-size: 14px;
+  --tr-flow-layout-item-line-height: 24px;
+  --tr-flow-layout-item-icon-size: 16px;
+
+  --tr-flow-layout-dropdown-bg-color: white;
+  --tr-flow-layout-dropdown-box-shadow: 0 0 16px rgba(0, 0, 0, 0.08);
+  --tr-flow-layout-dropdown-selected-bg-color: white;
+  --tr-flow-layout-dropdown-selected-border-color: black;
+  --tr-flow-layout-dropdown-item-hover-bg-color: rgba(0, 0, 0, 0.04);
+}
+</style>
+
 <style lang="less" scoped>
 .tr-flow-layout {
   display: flex;
@@ -179,9 +198,9 @@ onClickOutside(
     display: flex;
     align-items: center;
     gap: 8px;
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--tr-flow-layout-item-bg-color);
     border-radius: 8px;
-    border: 1px solid transparent;
+    border: 1px solid var(--tr-flow-layout-item-border-color);
     transition: background-color 0.3s ease;
 
     &.icon-only {
@@ -189,25 +208,25 @@ onClickOutside(
     }
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.08);
+      background-color: var(--tr-flow-layout-item-hover-bg-color);
     }
 
     &.selected {
-      background-color: white;
-      border-color: black;
+      background-color: var(--tr-flow-layout-item-selected-bg-color);
+      border-color: var(--tr-flow-layout-item-selected-border-color);
       font-weight: 600;
     }
   }
 
   .tr-flow-layout__item-icon {
-    width: 16px;
-    height: 16px;
+    width: var(--tr-flow-layout-item-icon-size);
+    height: var(--tr-flow-layout-item-icon-size);
     flex-shrink: 0;
   }
 
   .tr-flow-layout__item-label {
-    font-size: 14px;
-    line-height: 24px;
+    font-size: var(--tr-flow-layout-item-font-size);
+    line-height: var(--tr-flow-layout-item-line-height);
     white-space: nowrap;
   }
 
@@ -225,10 +244,10 @@ onClickOutside(
     }
 
     .tr-flow-layout__dropdown {
-      background: white;
+      background: var(--tr-flow-layout-dropdown-bg-color);
       padding: 4px;
       border-radius: 12px;
-      box-shadow: 0 0 16px rgba(0, 0, 0, 0.08);
+      box-shadow: var(--tr-flow-layout-dropdown-box-shadow);
 
       .tr-flow-layout__dropdown_item {
         display: flex;
@@ -241,12 +260,12 @@ onClickOutside(
         border: 1px solid transparent;
 
         &:hover {
-          background-color: rgba(0, 0, 0, 0.04);
+          background-color: var(--tr-flow-layout-dropdown-item-hover-bg-color);
         }
 
         &.selected {
-          background-color: white;
-          border-color: black;
+          background-color: var(--tr-flow-layout-dropdown-selected-bg-color);
+          border-color: var(--tr-flow-layout-dropdown-selected-border-color);
         }
 
         & + .tr-flow-layout__dropdown_item {
