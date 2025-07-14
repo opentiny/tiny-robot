@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { watch, ref } from 'vue'
+import { watch, ref, computed } from 'vue'
 import { useImagePreview, useListType } from './composables'
 import { AttachmentListEmits, AttachmentListProps, Attachment } from './index.type'
 import FileCard from './components/FileCard.vue'
 
 const props = withDefaults(defineProps<AttachmentListProps>(), {
-  layout: 'wrap',
   variant: 'auto',
   actions: () => [
     {
@@ -58,6 +57,8 @@ function handleAction(payload: any) {
   emit('action', payload)
 }
 
+const wrapClass = computed(() => (props.wrap ? 'wrap' : 'no-wrap'))
+
 // 监听props.items变化
 watch(
   () => props.items,
@@ -72,12 +73,7 @@ watch(
 
 <template>
   <div class="tr-attachments">
-    <div
-      v-if="fileList.length > 0"
-      class="tr-attachments__file-list"
-      :class="`tr-attachments__file-list--${layout}`"
-      @click.stop
-    >
+    <div v-if="fileList.length > 0" :class="['tr-attachments__file-list', wrapClass]" @click.stop>
       <FileCard
         v-for="file in fileList"
         :key="file.id"
@@ -116,7 +112,7 @@ watch(
     cursor: default;
 
     // 不换行模式（水平滚动）
-    &--no-wrap {
+    &.no-wrap {
       flex-direction: row;
       overflow-x: auto;
       padding: 8px 0;
@@ -128,7 +124,7 @@ watch(
     }
 
     // 换行模式
-    &--wrap {
+    &.wrap {
       flex-direction: row;
       flex-wrap: wrap;
     }

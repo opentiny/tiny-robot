@@ -8,8 +8,6 @@ export type StatusDisplayMode = 'info' | 'actions' | 'message' | 'default'
 
 export type DisplayVariant = 'picture' | 'card' | 'auto'
 
-export type LayoutMode = 'wrap' | 'no-wrap'
-
 export interface Attachment {
   id: string
   name: string
@@ -31,7 +29,7 @@ export interface AttachmentListProps {
   // 核心属性
   items?: Attachment[]
   disabled?: boolean
-  layout?: LayoutMode
+  wrap?: boolean
 
   // 图标配置
   fileIcons?: Record<FileType, Component>

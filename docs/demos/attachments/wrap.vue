@@ -1,13 +1,13 @@
 <template>
   <div>
     <div style="margin-bottom: 16px">
-      <tiny-radio-group v-model="layoutMode">
-        <tiny-radio label="wrap">wrap</tiny-radio>
-        <tiny-radio label="no-wrap">no-wrap</tiny-radio>
+      <tiny-radio-group v-model="wrap">
+        <tiny-radio :label="false">no-wrap</tiny-radio>
+        <tiny-radio :label="true">wrap</tiny-radio>
       </tiny-radio-group>
     </div>
 
-    <tr-attachments v-model:items="files" :layout="layoutMode" />
+    <tr-attachments v-model:items="files" :wrap="wrap" />
   </div>
 </template>
 
@@ -15,7 +15,7 @@
 import { ref } from 'vue'
 import { TrAttachments } from '@opentiny/tiny-robot'
 
-const layoutMode = ref('wrap')
+const wrap = ref(false)
 
 const files = ref([
   {

@@ -20,7 +20,7 @@ outline: deep
 
 ### 是否换行
 
-<demo vue="../../demos/attachments/layout.vue" />
+<demo vue="../../demos/attachments/wrap.vue" />
 
 ### 自定义文件图标
 
@@ -45,7 +45,7 @@ outline: deep
 | ------------- | ----------------------------- | ------ | -------------------------------------------------------- |
 | items         | `Attachment[]`                | []     | 附件列表，支持v-model:items双向绑定                      |
 | disabled      | boolean                       | false  | 是否禁用组件                                             |
-| layout      | 'wrap'/'no-wrap'    | 'wrap' | 文件列表布局方式，`no-wrap` 为水平滚动                                     |
+| wrap      | boolean    | false | 文件列表是否换行                                     |
 | variant       | `'picture'/'card'/'auto'`     | 'auto' | 附件列表的展示变体                                       |
 | fileIcons     | `Record<FileType, Component>` | -      | 自定义文件类型图标                                       |
 | statusMode    | `'info'/'actions'/'message'/'default'`                      | 'info' | 文件卡片状态类型 ('info'/'actions'/'message'/'default') |
