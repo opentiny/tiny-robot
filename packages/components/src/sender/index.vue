@@ -666,7 +666,6 @@ defineExpose({
 
   // 插槽变量
   // 头部插槽 (Header)
-  --tr-sender-header-max-height: 120px;
   --tr-sender-header-min-height: 40px;
   --tr-sender-header-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   --tr-sender-header-bg-color: #ffffff;

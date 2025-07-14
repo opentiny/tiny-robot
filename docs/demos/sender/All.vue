@@ -33,7 +33,7 @@
     </template>
 
     <template #footer-right>
-      <IconRefresh class="icon-refresh" />
+      <IconSearch class="icon-search" />
     </template>
   </tr-sender>
 </template>
@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import { IconAi, IconThink, IconRefresh } from '@opentiny/tiny-robot-svgs'
+import { IconAi, IconThink, IconSearch } from '@opentiny/tiny-robot-svgs'
 import { TinyTooltip } from '@opentiny/vue'
 
 const isActive = ref(false)
@@ -89,9 +89,10 @@ const handleSpeechEnd = (transcript) => {
   padding: 8px;
 }
 
-.icon-refresh {
+.icon-search {
   color: #595959;
   font-size: 20px;
+  cursor: pointer;
 }
 
 .text {
@@ -120,6 +121,9 @@ const handleSpeechEnd = (transcript) => {
   cursor: pointer;
   box-sizing: border-box;
 }
+.button-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
 
 .button {
   display: flex;
@@ -136,6 +140,10 @@ const handleSpeechEnd = (transcript) => {
   .icon-think {
     color: rgb(20, 118, 255);
   }
+}
+
+.button-wrapper.active:hover {
+  background: rgba(20, 118, 255, 0.12);
 }
 
 :deep(.tiny-tooltip.tiny-tooltip__popper) {

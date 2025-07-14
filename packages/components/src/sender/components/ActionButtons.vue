@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import TinyTooltip from '@opentiny/vue-tooltip'
 import { ActionButtonsProps } from '../index.type'
-import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech, IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -161,7 +161,7 @@ const handleCancel = () => {
       <template v-if="showClear">
         <tiny-tooltip content="清空内容" placement="top">
           <div class="action-buttons__button" @click="handleClear">
-            <IconClose class="action-buttons__icon action-buttons__icon--close" />
+            <IconClear class="action-buttons__icon action-buttons__icon--clear" />
           </div>
         </tiny-tooltip>
       </template>
@@ -210,7 +210,7 @@ const handleCancel = () => {
   --tr-sender-action-buttons-icon-size: 32px;
   --tr-sender-action-buttons-icon-size-send: 36px;
   --tr-sender-action-buttons-icon-size-stop: 24px;
-  --tr-sender-action-buttons-icon-size-close: 24px;
+  --tr-sender-action-buttons-icon-size-clear: 24px;
   --tr-sender-action-buttons-border-radius: 8px;
   --tr-sender-action-buttons-cancel-height: 36px;
   --tr-sender-action-buttons-cancel-gap: 4px;
@@ -244,6 +244,7 @@ const handleCancel = () => {
   &__icon {
     font-size: var(--tr-sender-action-buttons-icon-size);
     color: var(--tr-sender-action-buttons-icon-color);
+    cursor: pointer;
 
     &:not(&--send):hover {
       border-radius: var(--tr-sender-action-buttons-border-radius);
@@ -251,11 +252,11 @@ const handleCancel = () => {
     }
 
     /* 关闭图标 */
-    &--close {
+    &--clear {
       width: 32px;
       height: 32px;
       padding: 4px;
-      font-size: var(--tr-sender-action-buttons-icon-size-close);
+      font-size: var(--tr-sender-action-buttons-icon-size-clear);
     }
 
     /* 发送图标 */
@@ -305,6 +306,7 @@ const handleCancel = () => {
     border-radius: var(--tr-sender-action-buttons-cancel-border-radius);
     padding: var(--tr-sender-action-buttons-cancel-padding);
     background-color: var(--tr-sender-action-buttons-cancel-bg);
+    cursor: pointer;
 
     /* 仅图标模式样式 */
     &--icon-only {
@@ -335,7 +337,7 @@ const handleCancel = () => {
 .tr-sender-compact {
   --tr-sender-action-buttons-icon-size: 28px;
   --tr-sender-action-buttons-icon-size-send: 32px;
-  --tr-sender-action-buttons-icon-size-close: 22px;
+  --tr-sender-action-buttons-icon-size-clear: 22px;
   --tr-sender-action-buttons-cancel-height: 32px;
   --tr-sender-action-buttons-cancel-font-size: 12px;
   --tr-sender-action-buttons-cancel-padding: 4px 16px 4px 4px;

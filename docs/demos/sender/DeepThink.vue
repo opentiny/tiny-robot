@@ -61,6 +61,10 @@ const toggleActive = () => {
   box-sizing: border-box;
 }
 
+.button-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
 .button {
   display: flex;
   align-items: center;
@@ -76,6 +80,10 @@ const toggleActive = () => {
   .icon-think {
     color: rgb(20, 118, 255);
   }
+}
+
+.button-wrapper.active:hover {
+  background: rgba(20, 118, 255, 0.12);
 }
 
 :deep(.tiny-tooltip.tiny-tooltip__popper) {
