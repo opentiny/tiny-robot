@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import TinyTooltip from '@opentiny/vue-tooltip'
 import { ActionButtonsProps } from '../index.type'
-import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
+import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech, IconClose } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -161,7 +161,7 @@ const handleCancel = () => {
       <template v-if="showClear">
         <tiny-tooltip content="清空内容" placement="top">
           <div class="action-buttons__button" @click="handleClear">
-            <IconClear class="action-buttons__icon action-buttons__icon--clear" />
+            <IconClose class="action-buttons__icon action-buttons__icon--clear" />
           </div>
         </tiny-tooltip>
       </template>
