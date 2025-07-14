@@ -180,7 +180,7 @@ const handleCancel = () => {
 
           <!-- 停止生成按钮 -->
           <div v-else class="action-buttons__cancel" :class="{ 'action-buttons__cancel--icon-only': !stopText }">
-            <IconStop class="action-buttons__icon action-buttons__icon--stop" alt="停止" />
+            <IconStop class="action-buttons__icon action-buttons__icon--cancel" alt="停止" />
             <span v-if="stopText" class="action-buttons__cancel-text">{{ stopText }}</span>
           </div>
         </div>
@@ -200,6 +200,7 @@ const handleCancel = () => {
   --tr-sender-action-buttons-send-disabled-color: #c2c2c2;
   --tr-sender-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
   --tr-sender-action-buttons-cancel-text-color: #1476ff;
+  --tr-sender-action-buttons-cancel-icon-color: #1476ff;
 
   // 字号
   --tr-sender-action-buttons-cancel-font-size: 14px;
@@ -209,7 +210,7 @@ const handleCancel = () => {
   --tr-sender-action-utility-buttons-gap: 4px;
   --tr-sender-action-buttons-icon-size: 32px;
   --tr-sender-action-buttons-icon-size-send: 36px;
-  --tr-sender-action-buttons-icon-size-stop: 24px;
+  --tr-sender-action-buttons-icon-size-cancel: 24px;
   --tr-sender-action-buttons-icon-size-clear: 24px;
   --tr-sender-action-buttons-border-radius: 8px;
   --tr-sender-action-buttons-cancel-height: 36px;
@@ -271,8 +272,9 @@ const handleCancel = () => {
     }
 
     /* 停止图标 */
-    &--stop {
-      font-size: var(--tr-sender-action-buttons-icon-size-stop);
+    &--cancel {
+      color: var(--tr-sender-action-buttons-cancel-icon-color);
+      font-size: var(--tr-sender-action-buttons-icon-size-cancel);
     }
   }
 
