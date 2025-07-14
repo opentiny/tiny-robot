@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementSize, useEventListener, watchDebounced } from '@vueuse/core'
-import { computed, isVNode, ref, watch, watchEffect } from 'vue'
+import { computed, isVNode, ref, watch } from 'vue'
 import { useSlotRefs } from '../shared/composables'
 import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
@@ -16,10 +16,6 @@ const emit = defineEmits<SuggestionPillsEmits>()
 const { vnodes: itemVnodes, refs: itemRefs, setRefs: setItemRefs } = useSlotRefs(slots.default, true)
 const validItemRefs = computed(() => itemRefs.value.filter((el): el is HTMLElement | SVGElement => Boolean(el)))
 const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
-
-watchEffect(() => {
-  console.log('validItemRefs', validItemRefs.value)
-})
 
 const containerWrapperRef = ref<HTMLDivElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -45,10 +41,6 @@ const staticVnodes = computed(() => {
     return itemVnodes.value.slice(0, hiddenIndex.value)
   }
   return itemVnodes.value
-})
-
-watchEffect(() => {
-  console.log('containerFullWidth', containerFullWidth.value)
 })
 
 const floatingVnodesWithIndex = computed(() => {
@@ -131,6 +123,10 @@ useEventListener(validItemRefs, 'mouseenter', (ev) => {
   if (props.autoScrollOnHover && ev.currentTarget) {
     scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
   }
+})
+
+defineExpose({
+  children: itemRefs,
 })
 </script>
 

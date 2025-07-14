@@ -9,6 +9,7 @@
     </TrSuggestionPopover>
     <TrSuggestionPills
       class="pills"
+      ref="pillsRef"
       v-model:showAll="showAll"
       :show-all-button-on="showAllButtonOn"
       :overflow-mode="overflowMode"
@@ -20,10 +21,11 @@
         :items="dropdownMenuItems"
         @item-click="handleDropdownMenuItemClick"
         :key="index"
+        v-model:show="hoverShowModels[index]"
         trigger="hover"
       >
         <template #trigger>
-          <TrSuggestionPillButton>{{ button.text }}</TrSuggestionPillButton>
+          <TrSuggestionPillButton :data-index="index">{{ button.text }}</TrSuggestionPillButton>
         </template>
       </TrDropdownMenu>
     </TrSuggestionPills>
@@ -59,7 +61,7 @@
 import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover } from '@opentiny/tiny-robot'
 import { IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { TinyRadioGroup, TinySwitch } from '@opentiny/vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const showAll = ref(false)
 const showAllRef = ref<InstanceType<typeof TinySwitch>>()
@@ -129,6 +131,16 @@ const buttons = ref([
   },
 ])
 
+const hoverShowModels = ref<boolean[]>([])
+
+watch(
+  () => buttons.value.length,
+  (len) => {
+    hoverShowModels.value = Array.from({ length: len }, () => false)
+  },
+  { immediate: true },
+)
+
 const handleClickAddButton = () => {
   buttons.value.push({
     text: '新增按钮',
@@ -138,6 +150,41 @@ const handleClickAddButton = () => {
 const handleClickRemoveButton = () => {
   buttons.value.pop()
 }
+
+const pillsRef = ref<InstanceType<typeof TrSuggestionPills>>()
+
+watch(
+  () => [pillsRef.value?.$el, pillsRef.value?.children.map((el) => el)] as const,
+  ([root, targets], _, onCleanup) => {
+    if (!root || !Array.isArray(targets) || targets.length === 0) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            const index = Number((entry.target as HTMLElement).dataset.index)
+            if (typeof index === 'number' && !isNaN(index)) {
+              hoverShowModels.value[index] = false
+            }
+          }
+        })
+      },
+      {
+        root,
+        threshold: 0.99,
+      },
+    )
+
+    targets.forEach((el) => el && observer.observe(el))
+
+    onCleanup(() => {
+      observer.disconnect()
+    })
+  },
+  { flush: 'post' },
+)
 </script>
 
 <style lang="less" scoped>
