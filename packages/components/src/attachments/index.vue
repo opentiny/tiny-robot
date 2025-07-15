@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { watch, ref, computed } from 'vue'
 import { useImagePreview, useListType } from './composables'
-import { AttachmentListEmits, AttachmentListProps, Attachment } from './index.type'
+import { AttachmentListEmits, AttachmentListProps, Attachment, ActionButton } from './index.type'
 import FileCard from './components/FileCard.vue'
 
 const props = withDefaults(defineProps<AttachmentListProps>(), {
@@ -52,8 +52,7 @@ function handleRetry(file: Attachment) {
 }
 
 // 处理自定义操作按钮事件
-// eslint-disable-next-line
-function handleAction(payload: any) {
+function handleAction(payload: { action: ActionButton; file: Attachment }) {
   emit('action', payload)
 }
 

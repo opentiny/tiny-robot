@@ -6,7 +6,7 @@ outline: deep
 
 ## 代码示例
 
-#### 基本示例
+### 基本示例
 
 <demo vue="../../demos/attachments/basic.vue" />
 

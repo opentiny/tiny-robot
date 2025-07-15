@@ -67,7 +67,7 @@ const getStatusMessageText = computed(() => {
   <div
     :class="cardClasses"
     :data-file-type="file.fileType || 'other'"
-    @click="variant === 'picture' ? handlePreview() : undefined"
+    @click="variant === 'picture' && preview ? handlePreview() : undefined"
   >
     <!-- 关闭按钮 - 通用组件 -->
     <button v-if="!disabled" class="tr-file-card__close-btn" @click.stop="handleRemove" aria-label="移除文件">

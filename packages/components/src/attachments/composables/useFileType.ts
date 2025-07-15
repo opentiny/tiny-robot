@@ -1,5 +1,5 @@
 import { computed, Component, ComputedRef } from 'vue'
-import { FileType } from '../index.type'
+import { FileStatus, FileType } from '../index.type'
 import {
   IconFileImage,
   IconFilePdf,
@@ -103,6 +103,7 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
 
   /**
    * 创建文件预览URL
+   * @returns 预览URL
    */
   const createPreviewUrl = (file: File): string => {
     if (file.type?.startsWith('image/')) {
@@ -114,11 +115,11 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
   /**
    * 批量创建文件附件对象
    */
-  const createAttachments = (files: File[]) => {
+  const createAttachments = (files: File[], defaultStatus: FileStatus = 'success') => {
     return files.map((file) => ({
       id: generateID(),
       name: file.name,
-      status: 'success',
+      status: defaultStatus,
       fileType: detectFileType(file),
       rawFile: file,
       size: file.size,

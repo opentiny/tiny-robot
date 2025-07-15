@@ -15,6 +15,7 @@ import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
 import SuggestionPopover from './suggestion-popover'
 import Welcome from './welcome'
 
+export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
 export * from './dropdown-menu/index.type'
