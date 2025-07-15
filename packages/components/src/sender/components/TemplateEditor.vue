@@ -71,6 +71,34 @@ const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[]
 
 const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
 
+const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
+  if (items.length > 0) {
+    if (items[0].type === 'template') {
+      originalData.value = [{ type: 'text', content: '\u200B', id: randomId() } as TextItem | TemplateItem].concat(
+        items,
+      )
+    } else {
+      originalData.value = items
+      const firstItem = items[0]
+      const lastItem = items[items.length - 1]
+
+      if (isSafariBrowser) {
+        // 在 safari 环境下，如果最后一个元素是 text，清空 content
+        if (lastItem.content !== '\u200B') {
+          lastItem.content = lastItem.content.replace(/\u200B/g, '')
+        }
+      } else {
+        // 在 chrome 环境下，如果第一个元素是 text，清空 content
+        if (firstItem.content !== '\u200B') {
+          firstItem.content = firstItem.content.replace(/\u200B/g, '')
+        }
+      }
+    }
+  } else {
+    originalData.value = items
+  }
+}
+
 const flattenedData = computed<ExtendedTextItem[]>(() => {
   return originalData.value
     .map((item) => {
@@ -160,7 +188,7 @@ watch(
   () => model.value,
   (newModel) => {
     // 当 props 变化时，更新内部状态
-    originalData.value = transformUserToInternal(newModel || [])
+    setOriginalData(transformUserToInternal(newModel || []))
 
     history.commit(serializeWithTimestamp(originalData.value))
   },
@@ -259,15 +287,17 @@ const insertNewTextAndSetCaretPosition = (content: string, insertAfter?: string)
   if (insertAfter) {
     const index = originalData.value.findIndex((item) => item.id === insertAfter)
     if (index !== -1) {
-      originalData.value = originalData.value
-        .slice(0, index + 1)
-        .concat(textItem)
-        .concat(originalData.value.slice(index + 1))
+      setOriginalData(
+        originalData.value
+          .slice(0, index + 1)
+          .concat(textItem)
+          .concat(originalData.value.slice(index + 1)),
+      )
     } else {
       console.warn(`can not find item with id: ${insertAfter}`)
     }
   } else {
-    originalData.value.unshift(textItem)
+    setOriginalData([textItem as TextItem | TemplateItem].concat(originalData.value))
   }
 
   nextTick(() => {
@@ -437,13 +467,15 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   }
 
   // 删除空数据
-  originalData.value = originalData.value.filter((item) => !toDeleted.includes(item.id))
-  originalData.value = originalData.value.filter((item) => {
-    if (item.type === 'text') {
-      return item.content.length > 0
-    }
-    return [item.prefix, item.suffix, item.content].join('').length > 0
-  })
+  setOriginalData(originalData.value.filter((item) => !toDeleted.includes(item.id)))
+  setOriginalData(
+    originalData.value.filter((item) => {
+      if (item.type === 'text') {
+        return item.content.length > 0
+      }
+      return [item.prefix, item.suffix, item.content].join('').length > 0
+    }),
+  )
 
   // 恢复分隔符
   for (const dataItem of originalData.value.filter((item) => item.type === 'template')) {
@@ -757,7 +789,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 const restoreDataAndCaretPosition = (historyItem: string) => {
   const { data } = parseSerializedData(historyItem)
-  originalData.value = data
+  setOriginalData(data)
   if (rangeMap.has(historyItem)) {
     const range = rangeMap.get(historyItem)!
     nextTick(() => {
