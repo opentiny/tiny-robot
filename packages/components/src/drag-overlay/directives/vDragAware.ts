@@ -55,6 +55,7 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
    */
   mounted(el, binding) {
     let dragCounter = 0
+    let isDragging = false
     const {
       onStateChange,
       onFilesDropped,
@@ -66,18 +67,35 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
       maxFiles = 3,
     } = binding.value
 
+    const updateRect = () => {
+      if (isDragging) {
+        onStateChange(true, el.getBoundingClientRect())
+      }
+    }
+
+    const resizeObserver = new ResizeObserver(updateRect)
+
+    const startMonitoring = () => {
+      resizeObserver.observe(el)
+      window.addEventListener('scroll', updateRect, true)
+    }
+
+    const stopMonitoring = () => {
+      resizeObserver.unobserve(el)
+      window.removeEventListener('scroll', updateRect, true)
+    }
+
     const handlers: Handlers = {
       /**
        * 拖拽进入
-       * @param e 事件
        */
-      handleDragEnter: (e: DragEvent) => {
+      handleDragEnter: () => {
         if (disabled) return
-        e.preventDefault()
-        e.stopPropagation()
         dragCounter++
         if (dragCounter === 1) {
+          isDragging = true
           onStateChange(true, el.getBoundingClientRect())
+          startMonitoring()
         }
       },
       /**
@@ -87,19 +105,17 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
       handleDragOver: (e: DragEvent) => {
         if (disabled) return
         e.preventDefault()
-        e.stopPropagation()
       },
       /**
        * 拖拽离开
-       * @param e 事件
        */
-      handleDragLeave: (e: DragEvent) => {
+      handleDragLeave: () => {
         if (disabled) return
-        e.preventDefault()
-        e.stopPropagation()
         dragCounter--
         if (dragCounter === 0) {
+          isDragging = false
           onStateChange(false, null)
+          stopMonitoring()
         }
       },
       /**
@@ -109,28 +125,37 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
       handleDrop: (e: DragEvent) => {
         if (disabled) return
         e.preventDefault()
-        e.stopPropagation()
         dragCounter = 0
+        isDragging = false
         onStateChange(false, null)
+        stopMonitoring()
 
         const files = e.dataTransfer?.files
         if (files && files.length > 0) {
           const fileArray = Array.from(files)
-          let acceptedFiles = fileArray.filter(
-            (file) =>
-              validateFileType(file, accept || '') &&
-              validateFileSize(file, maxSize) &&
-              validateFileCount(fileArray, maxFiles),
-          )
-          const rejectedFiles = fileArray.filter(
-            (file) =>
-              !validateFileType(file, accept || '') ||
-              !validateFileSize(file, maxSize) ||
-              !validateFileCount(fileArray, maxFiles),
-          )
+          const acceptedFiles: File[] = []
+          const rejectedFiles: File[] = []
 
-          if (!multiple && acceptedFiles.length > 0) {
-            acceptedFiles = [acceptedFiles[0]]
+          // 校验文件数量
+          if (!validateFileCount(fileArray, maxFiles)) {
+            const rejection: FileRejection = { files: fileArray, reason: 'file-count-exceeded' }
+            onFilesRejected(rejection)
+            return
+          }
+
+          fileArray.forEach((file) => {
+            if (validateFileType(file, accept || '') && validateFileSize(file, maxSize)) {
+              acceptedFiles.push(file)
+            } else {
+              rejectedFiles.push(file)
+            }
+          })
+
+          if (!multiple && acceptedFiles.length > 1) {
+            // 如果不允许上传多个文件，但拖入了多个文件
+            const rejection: FileRejection = { files: acceptedFiles, reason: 'file-count-exceeded' }
+            onFilesRejected(rejection)
+            return
           }
 
           if (acceptedFiles.length > 0) {
@@ -138,18 +163,12 @@ export const vDragAware: Directive<HTMLElement & { _dragHandlers?: Handlers }, D
           }
 
           if (rejectedFiles.length > 0) {
-            if (rejectedFiles.some((file) => !validateFileType(file, accept || ''))) {
-              const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-type' }
-              onFilesRejected(rejection)
-            }
+            let reason: FileRejection['reason'] = 'file-type-not-allowed'
             if (rejectedFiles.some((file) => !validateFileSize(file, maxSize))) {
-              const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-size' }
-              onFilesRejected(rejection)
+              reason = 'file-size-exceeded'
             }
-            if (!validateFileCount(rejectedFiles, maxFiles)) {
-              const rejection: FileRejection = { files: rejectedFiles, reason: 'invalid-file-count' }
-              onFilesRejected(rejection)
-            }
+            const rejection: FileRejection = { files: rejectedFiles, reason }
+            onFilesRejected(rejection)
           }
         }
       },
