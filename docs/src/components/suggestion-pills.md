@@ -10,8 +10,6 @@ outline: deep
 
 <demo vue="../../demos/suggestion/pills-popper.vue" />
 
-# 更新后的 SuggestionPills 组件 API 文档
-
 ## API
 
 ### SuggestionPillsProps

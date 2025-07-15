@@ -127,6 +127,7 @@ const popoverStyles = computed<CSSProperties>(() => {
       right: 0,
       bottom: 0,
       top: 'unset',
+      minWidth: '100dvw',
     }
   }
 
@@ -336,13 +337,6 @@ const handleItemMouseleave = (event: MouseEvent) => {
 <style lang="less" scoped>
 .tr-question-popover__wrapper {
   display: inline-block;
-}
-
-.tr-question-popover__backdrop {
-  position: fixed;
-  z-index: var(--tr-z-index-popover-backdrop);
-  inset: 0;
-  background-color: var(--tr-suggestion-popover-backdrop-color);
 }
 
 .tr-question__group {
