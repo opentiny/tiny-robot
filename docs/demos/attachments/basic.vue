@@ -1,5 +1,5 @@
 <template>
-  <tr-attachments v-model:items="infoFiles" status-mode="info" />
+  <tr-attachments v-model:items="infoFiles" />
 </template>
 
 <script setup lang="ts">
@@ -7,7 +7,7 @@ import { ref } from 'vue'
 import { TrAttachments } from '@opentiny/tiny-robot'
 import type { Attachment } from '@opentiny/tiny-robot'
 
-// 示例1: 信息状态 - 显示文件类型和大小
+// 基本示例 - 显示文件类型和大小
 const infoFiles = ref<Attachment[]>([
   {
     id: '1',

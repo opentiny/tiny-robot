@@ -80,7 +80,6 @@ watch(
         :variant="actualListType"
         :file-icons="fileIcons"
         :disabled="disabled"
-        :status-mode="statusMode"
         :actions="actions"
         :show-status="true"
         @remove="handleRemove"

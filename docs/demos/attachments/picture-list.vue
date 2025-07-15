@@ -8,9 +8,9 @@
 
     <div>
       <h4>状态展示</h4>
-      <p>设置 <code>status-mode="message"</code> 可显示基于状态的预设消息文本。</p>
+      <p>图片卡片会根据状态自动显示不同的视觉效果。</p>
     </div>
-    <tr-attachments v-model:items="pictureStatusFiles" variant="picture" status-mode="message" />
+    <tr-attachments v-model:items="pictureStatusFiles" variant="picture" />
 
     <div>
       <h4>上传超时文本</h4>

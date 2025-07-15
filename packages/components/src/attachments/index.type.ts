@@ -2,9 +2,7 @@ import { Component } from 'vue'
 
 export type FileType = 'image' | 'pdf' | 'word' | 'excel' | 'ppt' | 'folder' | 'other'
 
-export type FileStatus = 'uploading' | 'success' | 'error' | 'warning' | 'info'
-
-export type StatusDisplayMode = 'info' | 'actions' | 'message' | 'default'
+export type FileStatus = 'uploading' | 'success' | 'error'
 
 export type DisplayVariant = 'picture' | 'card' | 'auto'
 
@@ -34,8 +32,7 @@ export interface AttachmentListProps {
   // 图标配置
   fileIcons?: Record<FileType, Component>
 
-  // 文件卡片内容显示模式配置
-  statusMode?: StatusDisplayMode
+  // 操作按钮配置
   actions?: ActionButton[]
 
   // 展示模式：'auto' 表示自动检测，'picture' 强制图片模式，'card' 强制卡片模式
@@ -51,7 +48,7 @@ export interface AttachmentListEmits {
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }
 
-type BaseCardProps = Pick<AttachmentListProps, 'fileIcons' | 'disabled' | 'statusMode' | 'actions'>
+type BaseCardProps = Pick<AttachmentListProps, 'fileIcons' | 'disabled' | 'actions'>
 
 // FileCard 组件属性
 export interface FileCardProps extends BaseCardProps {

@@ -1,15 +1,19 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
     <div>
-      <p>根据 <code>file.status</code> 的值显示不同消息，例如 <code>error</code> 状态会附带重试按钮。</p>
+      <p>文件卡片根据 <code>file.status</code> 的值自动切换显示内容：</p>
+      <p>• <code>success</code> 状态：显示文件类型和大小信息</p>
+      <p>• <code>uploading</code> 状态：显示"上传中..."文本</p>
+      <p>• <code>error</code> 状态：显示"上传失败"和"重试"按钮</p>
     </div>
-    <tr-attachments v-model:items="messageFiles" status-mode="message" />
+    <tr-attachments v-model:items="statusFiles" />
 
     <div>
-      <p>设置 <code>status-mode="actions"</code> 可显示默认操作按钮。</p>
-      <p>默认显示 <code>下载 | 预览</code> 按钮。除图片类型外，其余的类型需要开发者实现相应操作函数。</p>
+      <p>悬浮操作按钮测试：</p>
+      <p>• 图片文件：已经默认实现</p>
+      <p>• 非图片文件：需要自行实现</p>
     </div>
-    <tr-attachments v-model:items="actionsFiles" variant="card" status-mode="actions" />
+    <tr-attachments v-model:items="actionsFiles" variant="card" wrap />
   </div>
 </template>
 
@@ -18,24 +22,24 @@ import { ref } from 'vue'
 import { TrAttachments } from '@opentiny/tiny-robot'
 import type { Attachment } from '@opentiny/tiny-robot'
 
-const messageFiles = ref<Attachment[]>([
+const statusFiles = ref<Attachment[]>([
   {
-    id: '4',
-    name: '设计文档.doc',
+    id: '1',
+    name: '设计文档.docx',
     fileType: 'word',
     size: 1024 * 1024 * 1.5, // 1.5MB
     status: 'success',
   },
   {
-    id: '5',
-    name: '设计文档.xlsx',
+    id: '2',
+    name: '数据表格.xlsx',
     fileType: 'excel',
     size: 1024 * 1024 * 2.3, // 2.3MB
     status: 'uploading',
   },
   {
-    id: '6',
-    name: '设计文档.pdf',
+    id: '3',
+    name: '演示文稿.pdf',
     fileType: 'pdf',
     size: 1024 * 1024 * 1.1, // 1.1MB
     status: 'error',
@@ -44,12 +48,34 @@ const messageFiles = ref<Attachment[]>([
 
 const actionsFiles = ref<Attachment[]>([
   {
-    id: '7',
+    id: '4',
     name: '测试图片.jpg',
     fileType: 'image',
     size: 1024 * 1024 * 1.5, // 1.5MB
     status: 'success',
     previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+  },
+  {
+    id: '5',
+    name: '项目文档.docx',
+    fileType: 'word',
+    size: 1024 * 1024 * 0.8, // 0.8MB
+    status: 'success',
+  },
+  {
+    id: '6',
+    name: '另一张图片.png',
+    fileType: 'image',
+    size: 1024 * 1024 * 2.1, // 2.1MB
+    status: 'success',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
+  },
+  {
+    id: '7',
+    name: '数据分析.xlsx',
+    fileType: 'excel',
+    size: 1024 * 1024 * 1.2, // 1.2MB
+    status: 'success',
   },
 ])
 </script>

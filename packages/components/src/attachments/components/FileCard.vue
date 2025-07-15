@@ -27,8 +27,8 @@ const fileTypeIcon = computed(() => {
 
 // 判断文件状态
 const isUploading = computed(() => props.file.status === 'uploading')
-const isUploadFailed = computed(() => props.file.status === 'error')
 const isUploadSuccess = computed(() => props.file.status === 'success')
+const isUploadFailed = computed(() => props.file.status === 'error')
 
 // 卡片样式类
 const cardClasses = computed(() => {
@@ -42,24 +42,6 @@ const cardClasses = computed(() => {
       'tr-file-card--success': isUploadSuccess.value,
     },
   ]
-})
-
-// 渲染状态消息的文本
-const getStatusMessageText = computed(() => {
-  switch (props.file.status) {
-    case 'error':
-      return '上传失败'
-    case 'warning':
-      return '上传警告'
-    case 'success':
-      return '上传成功'
-    case 'info':
-      return '处理中...'
-    case 'uploading':
-      return '上传中...'
-    default:
-      return props.file.status || '状态信息'
-  }
 })
 </script>
 
@@ -148,47 +130,42 @@ const getStatusMessageText = computed(() => {
 
             <!-- 状态区域 -->
             <div v-if="status" class="tr-file-card__status">
-              <!-- 文件信息类型 -->
-              <div v-if="statusMode === 'info'" class="tr-file-card__status-info">
-                <span class="tr-file-card__file-type">
-                  {{ file.fileType?.toUpperCase() || 'FILE' }}
-                </span>
-                <span v-if="file.size" class="tr-file-card__file-size">
-                  {{ formatFileSize(file.size) }}
-                </span>
-              </div>
-
-              <!-- 操作按钮类型 -->
-              <div v-else-if="statusMode === 'actions'" class="tr-file-card__status-actions">
-                <button
-                  v-for="(action, index) in actions"
-                  :key="index"
-                  class="tr-file-card__action-btn"
-                  :class="`tr-file-card__action-btn--${action.type}`"
-                  @click="handleCustomAction(action)"
-                >
-                  {{ action.label }}
-                </button>
-              </div>
-
-              <!-- 消息类型 -->
-              <div v-else-if="statusMode === 'message'" class="tr-file-card__status-message">
-                <!-- 错误重试 -->
-                <div v-if="file.status === 'error'" class="tr-file-card__error-retry">
-                  <span class="tr-file-card__error-text">上传失败</span>
-                  <button class="tr-file-card__retry-btn" @click="handleRetry">重试</button>
+              <!-- 成功状态 -->
+              <div v-if="isUploadSuccess" class="tr-file-card__status-success">
+                <!-- 默认显示文件信息 -->
+                <div class="tr-file-card__status-info">
+                  <span class="tr-file-card__file-type">
+                    {{ file.fileType?.toUpperCase() || 'FILE' }}
+                  </span>
+                  <span v-if="file.size" class="tr-file-card__file-size">
+                    {{ formatFileSize(file.size) }}
+                  </span>
                 </div>
 
-                <!-- 普通消息 -->
-                <div v-else class="tr-file-card__message" :class="`tr-file-card__message--${file.status || 'info'}`">
-                  {{ getStatusMessageText }}
+                <!-- 悬浮时显示操作按钮 -->
+                <div v-if="actions" class="tr-file-card__actions">
+                  <button
+                    v-for="(action, index) in actions"
+                    :key="index"
+                    class="tr-file-card__action-btn"
+                    :class="`tr-file-card__action-btn--${action.type}`"
+                    @click="handleCustomAction(action)"
+                  >
+                    {{ action.label }}
+                  </button>
                 </div>
               </div>
 
-              <!-- 默认状态 -->
-              <span v-else class="tr-file-card__status-default">
-                {{ file.status }}
-              </span>
+              <!-- 上传中状态 - 显示上传中文本 -->
+              <div v-else-if="isUploading" class="tr-file-card__status-uploading">
+                <span class="tr-file-card__uploading-text">上传中...</span>
+              </div>
+
+              <!-- 失败状态 - 显示上传失败和重试 -->
+              <div v-else-if="isUploadFailed" class="tr-file-card__status-error">
+                <span class="tr-file-card__error-text">上传失败</span>
+                <button class="tr-file-card__retry-btn" @click="handleRetry">重试</button>
+              </div>
             </div>
           </div>
         </div>
@@ -414,7 +391,7 @@ const getStatusMessageText = computed(() => {
 
   &__name {
     text-align: left;
-    width: 118px;
+    width: 100%; // 使用100%宽度以适应容器
     height: 18px;
     font-size: 12px;
     font-weight: 400;
@@ -435,8 +412,35 @@ const getStatusMessageText = computed(() => {
     line-height: 18px;
     color: rgb(128, 128, 128);
 
-    &-default {
-      color: rgb(128, 128, 128);
+    // 成功状态容器
+    &-success {
+      display: flex;
+      align-items: center;
+      width: 100%;
+
+      // 默认显示文件信息
+      .tr-file-card__status-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      // 默认隐藏操作按钮
+      .tr-file-card__actions {
+        display: none;
+        align-items: center;
+        gap: 12px;
+      }
+
+      // 悬浮时切换显示
+      .tr-file-card:hover & {
+        .tr-file-card__status-info {
+          display: none;
+        }
+        .tr-file-card__actions {
+          display: flex;
+        }
+      }
     }
 
     // 文件信息状态
@@ -446,11 +450,19 @@ const getStatusMessageText = computed(() => {
       gap: 10px;
     }
 
-    // 操作按钮状态
-    &-actions {
+    // 上传中状态
+    &-uploading {
       display: flex;
       align-items: center;
-      gap: 12px;
+      width: 100%;
+    }
+
+    // 错误状态
+    &-error {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
     }
 
     // 消息状态
@@ -465,6 +477,34 @@ const getStatusMessageText = computed(() => {
 
   &__file-size {
     color: rgb(128, 128, 128);
+  }
+
+  // 上传中文本
+  &__uploading-text {
+    color: rgb(128, 128, 128);
+    font-size: 12px;
+  }
+
+  // 错误文本
+  &__error-text {
+    color: #f23030;
+    font-size: 12px;
+  }
+
+  // 重试按钮
+  &__retry-btn {
+    background: transparent;
+    border: none;
+    color: #1476ff;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: rgba(20, 118, 255, 0.05);
+    }
   }
 
   &__action-btn {
@@ -489,52 +529,12 @@ const getStatusMessageText = computed(() => {
     }
   }
 
-  &__message {
-    width: 100%;
-
-    &--error {
-      color: #f23030;
-    }
-
-    &--warning {
-      color: #ff9800;
-    }
-
-    &--success {
-      color: #4caf50;
-    }
-
-    &--info {
-      color: #808080;
-    }
-  }
-
   // 错误重试
   &__error-retry {
     display: flex;
     gap: 8px;
     align-items: center;
     width: 100%;
-  }
-
-  &__error-text {
-    color: #f23030;
-    font-size: 12px;
-  }
-
-  &__retry-btn {
-    background: transparent;
-    border: none;
-    color: #1476ff;
-    cursor: pointer;
-    font-size: 12px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background-color: rgba(20, 118, 255, 0.05);
-    }
   }
 }
 </style>

@@ -14,14 +14,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrAttachments } from '@opentiny/tiny-robot'
+import type { Attachment } from '@opentiny/tiny-robot'
 
 const wrap = ref(false)
 
-const files = ref([
+const files = ref<Attachment[]>([
   {
     id: '0',
     name: '示例文档.docx',
-    status: 'done',
+    status: 'success',
     size: 200,
     fileType: 'word',
     previewUrl: '/path/to/preview.docx',
@@ -29,7 +30,7 @@ const files = ref([
   {
     id: '1',
     name: '示例文档.pdf',
-    status: 'done',
+    status: 'success',
     size: 200,
     fileType: 'pdf',
     previewUrl: '/path/to/preview.pdf',
@@ -37,7 +38,7 @@ const files = ref([
   {
     id: '2',
     name: '示例文档.ppt',
-    status: 'done',
+    status: 'success',
     size: 200 * 1024,
     fileType: 'ppt',
     previewUrl: '/path/to/preview.ppt',
@@ -45,7 +46,7 @@ const files = ref([
   {
     id: '3',
     name: '示例文档.xlsx',
-    status: 'done',
+    status: 'success',
     size: 200,
     fileType: 'excel',
     previewUrl: '/path/to/preview.xlsx',
@@ -53,7 +54,7 @@ const files = ref([
   {
     id: '4',
     name: '示例文档',
-    status: 'done',
+    status: 'success',
     size: 200,
     fileType: 'folder',
     previewUrl: '/path/to/preview',
@@ -61,7 +62,7 @@ const files = ref([
   {
     id: '5',
     name: 'other',
-    status: 'done',
+    status: 'success',
     size: 200,
     fileType: 'other',
   },
