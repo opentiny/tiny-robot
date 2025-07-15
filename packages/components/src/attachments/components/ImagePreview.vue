@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUp as IconArrowLeft, IconArrowDown as IconArrowRight, IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconArrowLeft, IconArrowRight, IconClose } from '@opentiny/tiny-robot-svgs'
 import type { Attachment } from '../index.type'
 
 type Image = Pick<Attachment, 'id' | 'name' | 'previewUrl'>
@@ -50,7 +50,7 @@ function close() {
         @click.stop="prevImage"
         :disabled="currentIndex === 0"
       >
-        <IconArrowRight />
+        <IconArrowLeft />
       </button>
 
       <div class="tr-image-preview__content">
@@ -62,7 +62,7 @@ function close() {
         @click.stop="nextImage"
         :disabled="currentIndex === images.length - 1"
       >
-        <IconArrowLeft />
+        <IconArrowRight />
       </button>
     </div>
 
@@ -124,13 +124,11 @@ function close() {
 
     &--left {
       font-size: 16px;
-      transform: rotate(90deg);
       left: 100px;
     }
 
     &--right {
       font-size: 16px;
-      transform: rotate(90deg);
       right: 100px;
     }
   }
