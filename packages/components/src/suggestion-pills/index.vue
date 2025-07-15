@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementSize, useEventListener, watchDebounced } from '@vueuse/core'
-import { computed, isVNode, nextTick, ref, watch, watchEffect } from 'vue'
+import { computed, isVNode, nextTick, ref, watch } from 'vue'
 import { useSlotRefs } from '../shared/composables'
 import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
@@ -25,14 +25,6 @@ const containerFullWidth = ref(0)
 
 const hasShowMoreBtn = computed(() => props.overflowMode === 'expand' && width.value < containerFullWidth.value)
 const hiddenIndex = ref(-1)
-
-watchEffect(() => {
-  console.log('containerFullWidth', containerFullWidth.value)
-})
-
-watchEffect(() => {
-  console.log('hiddenIndex', hiddenIndex.value)
-})
 
 const staticVnodes = computed(() => {
   if (hasShowMoreBtn.value && showAll.value) {
@@ -58,27 +50,29 @@ const getAllItemElements = () => {
 }
 
 const updateHiddenIndex = () => {
-  const container = containerRef.value
+  nextTick(() => {
+    const container = containerRef.value
 
-  if (!container) {
-    return
-  }
-
-  const children = getAllItemElements()
-  const gap = parseFloat(getComputedStyle(container).rowGap) || 0
-
-  hiddenIndex.value = -1
-  let totalWidth = 0
-  for (let i = 0; i < children.length; i++) {
-    totalWidth += children[i].getBoundingClientRect().width
-    if (i > 0) {
-      totalWidth += gap
+    if (!container) {
+      return
     }
-    if (totalWidth > container.clientWidth) {
-      hiddenIndex.value = i
-      break
+
+    const children = getAllItemElements()
+    const gap = parseFloat(getComputedStyle(container).rowGap) || 0
+
+    hiddenIndex.value = -1
+    let totalWidth = 0
+    for (let i = 0; i < children.length; i++) {
+      totalWidth += children[i].getBoundingClientRect().width
+      if (i > 0) {
+        totalWidth += gap
+      }
+      if (totalWidth > container.clientWidth) {
+        hiddenIndex.value = i
+        break
+      }
     }
-  }
+  })
 }
 
 watch(
