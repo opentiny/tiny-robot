@@ -22,7 +22,7 @@
         @item-click="handleDropdownMenuItemClick"
         :key="index"
         v-model:show="hoverShowModels[index]"
-        trigger="hover"
+        trigger="click"
       >
         <template #trigger>
           <TrSuggestionPillButton :data-index="index">{{ button.text }}</TrSuggestionPillButton>
@@ -53,6 +53,7 @@
     <div style="display: flex; align-items: center; gap: 10px">
       <button ref="addButtonRef" @click="handleClickAddButton">点我增加按钮</button>
       <button ref="removeButtonRef" @click="handleClickRemoveButton">点我删除按钮</button>
+      <button @click="handleClickResetButton">点我重置按钮</button>
     </div>
   </div>
 </template>
@@ -107,7 +108,7 @@ const handleDropdownMenuItemClick = (item) => {
   console.log('DropdownMenu item clicked,', item)
 }
 
-const buttons = ref([
+const originalButtons = [
   {
     text: '资源管理1',
   },
@@ -129,7 +130,9 @@ const buttons = ref([
   {
     text: '资源管理7',
   },
-])
+]
+
+const buttons = ref(structuredClone(originalButtons))
 
 const hoverShowModels = ref<boolean[]>([])
 
@@ -149,6 +152,10 @@ const handleClickAddButton = () => {
 
 const handleClickRemoveButton = () => {
   buttons.value.pop()
+}
+
+const handleClickResetButton = () => {
+  buttons.value = structuredClone(originalButtons)
 }
 
 const pillsRef = ref<InstanceType<typeof TrSuggestionPills>>()
