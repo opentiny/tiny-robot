@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MaybeComputedElementRef, MaybeElement, unrefElement } from '@vueuse/core'
-import { computed, Fragment, nextTick, ref, VNode, watch } from 'vue'
+import { MaybeElement, unrefElement } from '@vueuse/core'
+import { computed, Fragment, ref, VNode, watch } from 'vue'
 
 export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: boolean) {
   const vnodes = computed(() => {
@@ -36,30 +36,22 @@ export function useSlotRefs(slot?: (...args: any[]) => VNode[], renderAll?: bool
   const length = computed(() => (renderAll ? vnodes.value.length : 1))
   const renderedVNodes = computed(() => vnodes.value.slice(0, length.value))
 
-  const refs = ref<(HTMLElement | SVGElement | null | undefined)[]>([])
-
-  const resolveRef = (el: unknown) => {
-    const resolvedEl = unrefElement(el as MaybeComputedElementRef<MaybeElement>)
-
-    if (resolvedEl instanceof HTMLElement || resolvedEl instanceof SVGElement) {
-      return resolvedEl
-    }
-
-    return null
-  }
+  const refs = ref<(HTMLElement | SVGElement | null)[]>([])
 
   const setRefs = (el: unknown, index: number) => {
-    const resolvedEl = resolveRef(el)
-    if (resolvedEl) {
+    const resolvedEl = unrefElement(el as MaybeElement)
+    if (resolvedEl instanceof Element) {
       refs.value[index] = resolvedEl
     }
   }
 
-  watch(length, (len) => {
-    nextTick(() => {
+  watch(
+    length,
+    (len) => {
       refs.value.length = len
-    })
-  })
+    },
+    { flush: 'post' },
+  )
 
   return {
     vnodes: renderedVNodes,

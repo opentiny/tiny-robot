@@ -1,8 +1,10 @@
-<script setup lang="ts">
+<script setup lang="tsx">
 import { onClickOutside, useElementSize, useMediaQuery, useScroll, watchThrottled } from '@vueuse/core'
 import { computed, CSSProperties, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
 import FlowLayoutButtons from '../flow-layout-buttons'
+import { createTeleport, useTeleportTarget } from '../shared/composables'
+import Backdrop from './components/Backdrop.vue'
 import Header from './components/Header.vue'
 import Loading from './components/Loading.vue'
 import NoData from './components/NoData.vue'
@@ -131,6 +133,13 @@ const popoverStyles = computed<CSSProperties>(() => {
   return {}
 })
 
+const teleportTarget = useTeleportTarget(triggerRef)
+
+createTeleport(
+  () => ({ to: teleportTarget.value }),
+  () => <Backdrop show={show.value && isMobile.value} />,
+)
+
 const emitClickTriggerEvents = () => {
   if (props.trigger === 'click') {
     if (show.value) {
@@ -247,9 +256,6 @@ const handleItemMouseleave = (event: MouseEvent) => {
         :delay-open="300"
         :delay-close="300"
       ></Tooltip>
-    </template>
-    <template #backdrop>
-      <div v-if="show && isMobile" class="tr-question-popover__backdrop"></div>
     </template>
   </TrBasePopper>
 </template>
