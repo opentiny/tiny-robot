@@ -63,7 +63,7 @@ const updateHiddenIndex = () => {
     hiddenIndex.value = -1
     let totalWidth = 0
     for (let i = 0; i < children.length; i++) {
-      totalWidth += children[i].getBoundingClientRect().width
+      totalWidth += children[i].offsetWidth
       if (i > 0) {
         totalWidth += gap
       }
@@ -85,10 +85,7 @@ watch(
       // 计算容器最大宽度
       const children = getAllItemElements()
       const gap = parseFloat(getComputedStyle(containerRef.value).rowGap) || 0
-      containerFullWidth.value = children.reduce(
-        (acc, cur, index) => acc + cur.getBoundingClientRect().width + (index > 0 ? gap : 0),
-        0,
-      )
+      containerFullWidth.value = children.reduce((acc, cur, index) => acc + cur.offsetWidth + (index > 0 ? gap : 0), 0)
     })
   },
   { immediate: true },
