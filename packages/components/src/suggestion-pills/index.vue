@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementSize, useEventListener, watchDebounced } from '@vueuse/core'
+import {
+  MaybeElement,
+  onClickOutside,
+  unrefElement,
+  useElementSize,
+  useEventListener,
+  watchDebounced,
+} from '@vueuse/core'
 import { computed, isVNode, nextTick, ref, watch } from 'vue'
 import { useSlotRefs } from '../shared/composables'
 import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
@@ -13,7 +20,8 @@ const props = withDefaults(defineProps<SuggestionPillsProps>(), {
 const slots = defineSlots<SuggestionPillsSlots>()
 const emit = defineEmits<SuggestionPillsEmits>()
 
-const { vnodes: itemVnodes, refs: itemRefs, setRefs: setItemRefs } = useSlotRefs(slots.default, true)
+const { vnodes: itemVnodes } = useSlotRefs(slots.default, true)
+
 const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
 
 const containerWrapperRef = ref<HTMLDivElement | null>(null)
@@ -41,6 +49,21 @@ const floatingVnodesWithIndex = computed(() => {
     }))
   }
   return []
+})
+
+const staticMaybeItemRefs = ref<MaybeElement[]>([])
+const floatingMaybeItemRefs = ref<MaybeElement[]>([])
+
+const staticItemRefs = computed(() => {
+  return staticMaybeItemRefs.value
+    .map((el) => unrefElement(el))
+    .filter((el): el is HTMLElement | SVGElement => el instanceof Element)
+})
+
+const floatingItemRefs = computed(() => {
+  return floatingMaybeItemRefs.value
+    .map((el) => unrefElement(el))
+    .filter((el): el is HTMLElement | SVGElement => el instanceof Element)
 })
 
 const getAllItemElements = () => {
@@ -133,18 +156,14 @@ const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
   }
 }
 
-useEventListener(
-  computed(() => itemRefs.value.filter((el): el is HTMLElement | SVGElement => Boolean(el))),
-  'mouseenter',
-  (ev) => {
-    if (props.autoScrollOnHover && ev.currentTarget) {
-      scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
-    }
-  },
-)
+useEventListener(staticItemRefs, 'mouseenter', (ev) => {
+  if (props.autoScrollOnHover && ev.currentTarget) {
+    scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
+  }
+})
 
 defineExpose({
-  children: itemRefs,
+  children: computed(() => staticItemRefs.value.concat(floatingItemRefs.value)),
 })
 </script>
 
@@ -159,7 +178,7 @@ defineExpose({
         v-for="(vnode, index) in staticVnodes"
         :key="isVNode(vnode) ? vnode.key : index"
         :is="vnode"
-        :ref="(el: unknown) => setItemRefs(el, index)"
+        ref="staticMaybeItemRefs"
       />
     </div>
     <div class="tr-suggestion-pills__more-wrapper">
@@ -169,7 +188,7 @@ defineExpose({
             v-for="{ vnode, index } in floatingVnodesWithIndex"
             :key="isVNode(vnode) ? vnode.key : index"
             :is="vnode"
-            :ref="(el: unknown) => setItemRefs(el, index)"
+            ref="floatingMaybeItemRefs"
           />
         </div>
       </Transition>

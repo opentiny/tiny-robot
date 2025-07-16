@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { onClickOutside, useElementSize, useMediaQuery, useScroll, watchThrottled } from '@vueuse/core'
-import { computed, CSSProperties, ref, watch } from 'vue'
+import { computed, CSSProperties, reactive, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import { createTeleport, useTeleportTarget } from '../shared/composables'
@@ -136,10 +136,8 @@ const popoverStyles = computed<CSSProperties>(() => {
 
 const teleportTarget = useTeleportTarget(triggerRef)
 
-createTeleport(
-  () => ({ to: teleportTarget.value }),
-  () => <Backdrop show={show.value && isMobile.value} />,
-)
+const teleportProps = reactive({ to: teleportTarget.value })
+createTeleport(teleportProps, () => <Backdrop show={show.value && isMobile.value} />)
 
 const emitClickTriggerEvents = () => {
   if (props.trigger === 'click') {
