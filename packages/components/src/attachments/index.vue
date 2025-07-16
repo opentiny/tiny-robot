@@ -16,6 +16,7 @@ const props = withDefaults(defineProps<AttachmentListProps>(), {
       type: 'preview',
     },
   ],
+  customMatchers: () => [],
 })
 
 const emit = defineEmits<AttachmentListEmits>()
@@ -36,19 +37,19 @@ function handleRemove(file: Attachment) {
   const index = fileList.value.findIndex((item) => item.id === file.id)
   if (index !== -1) {
     fileList.value.splice(index, 1)
-    emit('file-remove', file)
+    emit('remove', file)
     emit('update:items', fileList.value)
   }
 }
 
 // 下载文件
 function handleDownload(file: Attachment) {
-  emit('file-download', file)
+  emit('download', file)
 }
 
 // 重试上传
 function handleRetry(file: Attachment) {
-  emit('file-retry', file)
+  emit('retry', file)
 }
 
 // 处理自定义操作按钮事件
@@ -82,6 +83,8 @@ watch(
         :disabled="disabled"
         :actions="actions"
         :show-status="true"
+        :custom-matchers="customMatchers"
+        :download-handler="downloadHandler"
         @remove="handleRemove"
         @preview="handlePreview"
         @download="handleDownload"

@@ -1,12 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 10px">
     <div>
-      <h4>纯图片展示模式</h4>
-      <p>当上传的文件类型为图片时，会自动开启纯图片展示模式。点击图片可打开画廊式预览</p>
-    </div>
-    <tr-attachments v-model:items="pictureFiles" variant="picture" />
-
-    <div>
       <h4>状态展示</h4>
       <p>图片卡片会根据状态自动显示不同的视觉效果。</p>
     </div>
@@ -46,30 +40,6 @@ const pictureStatusFiles = ref<Attachment[]>([
     fileType: 'image',
     status: 'error',
     previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.png',
-  },
-])
-
-const pictureFiles = ref<Attachment[]>([
-  {
-    id: 'pic1',
-    name: 'nature-1.jpg',
-    fileType: 'image',
-    status: 'success',
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
-  },
-  {
-    id: 'pic2',
-    name: 'nature-2.jpg',
-    fileType: 'image',
-    status: 'success',
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
-  },
-  {
-    id: 'pic3',
-    name: 'nature-3.jpg',
-    fileType: 'image',
-    status: 'success',
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
 ])
 

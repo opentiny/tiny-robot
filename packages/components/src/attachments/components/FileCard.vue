@@ -7,15 +7,13 @@ import { IconFileRemove, IconImageLoading, IconImageWarning } from '@opentiny/ti
 
 const props = withDefaults(defineProps<FileCardProps>(), {
   variant: 'card',
-  preview: true,
-  status: true,
-  statusMode: 'info',
+  showStatus: true,
 })
 
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
 
 // 文件相关工具 & 图标
-const { formatFileSize, getIconComponent } = useFileType(props.fileIcons)
+const { formatFileSize, getIconComponent } = useFileType(props.fileIcons, props.customMatchers)
 
 // 卡片交互相关
 const { isImage, handlePreview, handleRemove, handleCustomAction, handleRetry } = useFileCard(props, emit)
@@ -49,7 +47,7 @@ const cardClasses = computed(() => {
   <div
     :class="cardClasses"
     :data-file-type="file.fileType || 'other'"
-    @click="variant === 'picture' && preview ? handlePreview() : undefined"
+    @click="variant === 'picture' ? handlePreview() : undefined"
   >
     <!-- 关闭按钮 - 通用组件 -->
     <button v-if="!disabled" class="tr-file-card__close-btn" @click.stop="handleRemove" aria-label="移除文件">
@@ -94,8 +92,8 @@ const cardClasses = computed(() => {
         <!-- 文件图标区域 -->
         <div
           class="tr-file-card__icon"
-          :class="{ 'tr-file-card__icon--clickable': isImage && preview }"
-          @click.stop="isImage && preview ? handlePreview() : null"
+          :class="{ 'tr-file-card__icon--clickable': isImage }"
+          @click.stop="isImage ? handlePreview() : null"
         >
           <div class="tr-file-card__icon-wrapper">
             <!-- 文件类型图标 -->
@@ -129,7 +127,7 @@ const cardClasses = computed(() => {
             </div>
 
             <!-- 状态区域 -->
-            <div v-if="status" class="tr-file-card__status">
+            <div v-if="showStatus" class="tr-file-card__status">
               <!-- 成功状态 -->
               <div v-if="isUploadSuccess" class="tr-file-card__status-success">
                 <!-- 默认显示文件信息 -->

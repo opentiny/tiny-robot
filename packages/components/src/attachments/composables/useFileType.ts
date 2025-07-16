@@ -1,5 +1,5 @@
 import { computed, Component, ComputedRef } from 'vue'
-import { FileStatus, FileType } from '../index.type'
+import { FileStatus, FileType, BaseFileType, FileTypeMatcher } from '../index.type'
 import {
   IconFileImage,
   IconFilePdf,
@@ -10,46 +10,8 @@ import {
   IconFileOther,
 } from '@opentiny/tiny-robot-svgs'
 
-type FileTypeMap = Record<string, FileType>
-
-// 文件扩展名与类型映射
-const extensionTypeMap: FileTypeMap = {
-  // 图片类型
-  png: 'image',
-  jpg: 'image',
-  jpeg: 'image',
-  gif: 'image',
-  webp: 'image',
-  bmp: 'image',
-  svg: 'image',
-
-  // 文档类型
-  pdf: 'pdf',
-  doc: 'word',
-  docx: 'word',
-  xls: 'excel',
-  xlsx: 'excel',
-  ppt: 'ppt',
-  pptx: 'ppt',
-
-  // 文件夹
-  folder: 'folder',
-}
-
-// MIME类型与文件类型映射
-const mimeTypeMap: FileTypeMap = {
-  'image/': 'image',
-  'application/pdf': 'pdf',
-  'application/msword': 'word',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'word',
-  'application/vnd.ms-excel': 'excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'excel',
-  'application/vnd.ms-powerpoint': 'ppt',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'ppt',
-}
-
 // 默认图标组件映射
-const DefaultIcons: Record<FileType, Component> = {
+const DefaultIcons: Record<BaseFileType, Component> = {
   image: IconFileImage,
   pdf: IconFilePdf,
   word: IconFileWord,
@@ -59,26 +21,117 @@ const DefaultIcons: Record<FileType, Component> = {
   other: IconFileOther,
 }
 
-export function useFileType(customIcons?: Record<FileType, Component>) {
+// 默认文件类型匹配器
+const defaultMatchers: FileTypeMatcher[] = [
+  {
+    type: 'image',
+    matcher: (file: File | string) => {
+      if (typeof file !== 'string') {
+        return file.type?.startsWith('image/') || false
+      }
+      const extension = file.split('.').pop()?.toLowerCase() || ''
+      return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)
+    },
+    icon: IconFileImage,
+    priority: 100,
+  },
+  {
+    type: 'pdf',
+    matcher: (file: File | string) => {
+      if (typeof file !== 'string') {
+        return file.type === 'application/pdf'
+      }
+      return file.toLowerCase().endsWith('.pdf')
+    },
+    icon: IconFilePdf,
+    priority: 100,
+  },
+  {
+    type: 'word',
+    matcher: (file: File | string) => {
+      if (typeof file !== 'string') {
+        return (
+          file.type === 'application/msword' ||
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+      }
+      const extension = file.split('.').pop()?.toLowerCase() || ''
+      return ['doc', 'docx'].includes(extension)
+    },
+    icon: IconFileWord,
+    priority: 100,
+  },
+  {
+    type: 'excel',
+    matcher: (file: File | string) => {
+      if (typeof file !== 'string') {
+        return (
+          file.type === 'application/vnd.ms-excel' ||
+          file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+      }
+      const extension = file.split('.').pop()?.toLowerCase() || ''
+      return ['xls', 'xlsx'].includes(extension)
+    },
+    icon: IconFileExcel,
+    priority: 100,
+  },
+  {
+    type: 'ppt',
+    matcher: (file: File | string) => {
+      if (typeof file !== 'string') {
+        return (
+          file.type === 'application/vnd.ms-powerpoint' ||
+          file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+        )
+      }
+      const extension = file.split('.').pop()?.toLowerCase() || ''
+      return ['ppt', 'pptx'].includes(extension)
+    },
+    icon: IconFilePpt,
+    priority: 100,
+  },
+  {
+    type: 'folder',
+    matcher: (file: File | string) => {
+      if (typeof file !== 'string') {
+        return false
+      }
+      return file.toLowerCase().endsWith('folder')
+    },
+    icon: IconFileFolder,
+    priority: 100,
+  },
+]
+
+export function useFileType(customIcons?: Record<string, Component>, customMatchers?: FileTypeMatcher[]) {
+  /**
+   * 获取所有匹配器（合并默认和自定义）
+   */
+  const getAllMatchers = (): FileTypeMatcher[] => {
+    const allMatchers = [...defaultMatchers]
+
+    if (customMatchers) {
+      allMatchers.push(...customMatchers)
+    }
+
+    // 按优先级排序，优先级高的在前
+    return allMatchers.sort((a, b) => (b.priority || 0) - (a.priority || 0))
+  }
+
   /**
    * 根据文件名或File对象检测文件类型
    */
   const detectFileType = (file: File | string): FileType => {
-    // 处理文件对象
-    if (typeof file !== 'string') {
-      // 先尝试根据MIME类型判断
-      for (const [mimePrefix, fileType] of Object.entries(mimeTypeMap)) {
-        if (file.type?.startsWith(mimePrefix)) {
-          return fileType
-        }
+    const matchers = getAllMatchers()
+
+    for (const matcher of matchers) {
+      if (matcher.matcher(file)) {
+        return matcher.type
       }
-      // 如果MIME类型不匹配，尝试根据文件名判断
-      file = file.name
     }
 
-    // 处理文件名
-    const extension = file.split('.').pop()?.toLowerCase() || ''
-    return extensionTypeMap[extension] || 'other'
+    return 'other'
   }
 
   /**
@@ -137,8 +190,20 @@ export function useFileType(customIcons?: Record<FileType, Component>) {
         return customIcons[fileType]
       }
 
-      // 否则使用默认图标
-      return DefaultIcons?.[fileType]
+      // 查找匹配器中的图标
+      const matchers = getAllMatchers()
+      const matcher = matchers.find((m) => m.type === fileType)
+      if (matcher?.icon) {
+        return matcher.icon
+      }
+
+      // 使用默认图标
+      if (DefaultIcons[fileType as BaseFileType]) {
+        return DefaultIcons[fileType as BaseFileType]
+      }
+
+      // 最后使用 other 图标
+      return DefaultIcons.other
     })
   }
 

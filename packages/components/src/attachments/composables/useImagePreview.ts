@@ -51,7 +51,7 @@ export function useImagePreview(
       }
     } else {
       // 否则，触发外部预览事件
-      emit('file-preview', file)
+      emit('preview', file)
     }
   }
 
@@ -65,7 +65,7 @@ export function useImagePreview(
     if (options.onDownload) {
       options.onDownload(file)
     } else {
-      emit('file-download', file)
+      emit('download', file)
     }
   }
 

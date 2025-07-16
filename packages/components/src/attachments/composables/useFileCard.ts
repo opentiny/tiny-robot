@@ -2,18 +2,49 @@ import { ref, onUnmounted, computed } from 'vue'
 import type { ActionButton, FileCardProps, FileCardEmits } from '../index.type'
 
 /**
- * 触发下载的辅助函数
+ * 强制下载文件的辅助函数
  * @param url 文件URL
  * @param fileName 文件名
  */
-const triggerDownload = (url: string, fileName: string) => {
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.target = '_blank'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+const forceDownload = (url: string, fileName: string) => {
+  // 创建一个隐藏的 iframe 来触发下载
+  const iframe = document.createElement('iframe')
+  iframe.style.display = 'none'
+  document.body.appendChild(iframe)
+
+  // 对于图片文件，使用 fetch 来强制下载
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    // 直接使用 a 标签下载
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } else {
+    // 对于远程文件，使用 fetch 来处理
+    fetch(url)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const blobUrl = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = fileName
+        link.style.display = 'none'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(blobUrl)
+      })
+      .catch((error) => {
+        console.error('下载失败:', error)
+        // 如果 fetch 失败，回退到打开新窗口
+        window.open(url, '_blank')
+      })
+  }
+
+  document.body.removeChild(iframe)
 }
 
 /**
@@ -53,13 +84,26 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
   /**
    * 处理文件下载
    */
-  const downloadFile = () => {
+  const downloadFile = async () => {
+    // 如果有自定义下载处理器，优先使用
+    if (props.downloadHandler) {
+      try {
+        await props.downloadHandler(props.file)
+        emit('download', props.file)
+        return
+      } catch (error) {
+        console.error('自定义下载处理器执行失败:', error)
+      }
+    }
+
+    // 使用默认下载逻辑
     if (props.file.previewUrl) {
-      triggerDownload(props.file.previewUrl, props.file.name)
+      forceDownload(props.file.previewUrl, props.file.name)
     } else if (props.file.rawFile) {
       const url = createBlobUrl(props.file.rawFile)
-      triggerDownload(url, props.file.name)
+      forceDownload(url, props.file.name)
     }
+
     emit('download', props.file)
   }
 
@@ -86,9 +130,9 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
       action.handler(props.file)
     }
 
-    if (action.type === 'preview' && isImage.value) {
+    if (action.type === 'preview') {
       handlePreview()
-    } else if (action.type === 'download' && isImage.value) {
+    } else if (action.type === 'download') {
       downloadFile()
     } else {
       emit('action', { action, file: props.file })

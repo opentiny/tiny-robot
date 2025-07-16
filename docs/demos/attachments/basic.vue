@@ -1,5 +1,14 @@
 <template>
-  <tr-attachments v-model:items="infoFiles" />
+  <div class="demo-container">
+    <div class="demo-section">
+      <h4>文件列表</h4>
+      <tr-attachments v-model:items="infoFiles" />
+    </div>
+    <div class="demo-section">
+      <h4>图片列表</h4>
+      <tr-attachments v-model:items="pictureFiles" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -29,6 +38,30 @@ const infoFiles = ref<Attachment[]>([
     fileType: 'pdf',
     size: 1024 * 1024 * 2.8, // 2.8MB
     status: 'success',
+  },
+])
+
+const pictureFiles = ref<Attachment[]>([
+  {
+    id: 'pic1',
+    name: 'nature-1.jpg',
+    fileType: 'image',
+    status: 'success',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+  },
+  {
+    id: 'pic2',
+    name: 'nature-2.jpg',
+    fileType: 'image',
+    status: 'success',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
+  },
+  {
+    id: 'pic3',
+    name: 'nature-3.jpg',
+    fileType: 'image',
+    status: 'success',
+    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
 ])
 </script>
