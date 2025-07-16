@@ -35,37 +35,6 @@
       </div>
     </div>
 
-    <div class="custom-vars-section">
-      <h4>自定义变量覆盖</h4>
-      <p>你可以通过CSS变量来进一步自定义紧凑模式的样式：</p>
-
-      <div class="custom-example">
-        <tr-sender
-          class="tr-sender-compact custom-compact-sender"
-          mode="multiple"
-          placeholder="自定义样式的紧凑模式..."
-          :showWordLimit="true"
-          :maxLength="50"
-        />
-      </div>
-
-      <pre class="code-example"><code>/* 自定义紧凑模式的变量 */
-.custom-compact-sender {
-  /* 进一步减小字体和行高 */
-  --tr-sender-compact-font-size: 12px;
-  --tr-sender-compact-line-height: 18px;
-  --tr-sender-compact-input-height: 18px;
-  
-  /* 调整圆角和图标尺寸 */
-  --tr-sender-compact-input-radius: 16px;
-  --tr-sender-compact-send-icon-size: 28px;
-  
-  /* 调整内边距配置 */
-  --tr-sender-compact-single-content-padding: 6px 4px 6px 8px;
-  --tr-sender-compact-multiple-content-padding: 8px 12px 0 12px;
-}</code></pre>
-    </div>
-
     <div class="comparison-section">
       <h4>样式对比</h4>
       <div class="comparison-grid">
@@ -184,14 +153,5 @@ code {
   padding: 2px 4px;
   border-radius: 2px;
   font-size: 12px;
-}
-
-/* 自定义样式示例 */
-:deep(.custom-compact-sender) {
-  --tr-sender-compact-font-size: 12px;
-  --tr-sender-compact-line-height: 18px;
-  --tr-sender-compact-single-content-padding: 6px 4px 6px 8px;
-  --tr-sender-compact-input-radius: 16px;
-  --tr-sender-compact-send-icon-size: 28px;
 }
 </style>

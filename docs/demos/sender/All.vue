@@ -23,27 +23,17 @@
 
     <template #footer-left>
       <tiny-tooltip :disabled="isActive" content="适用于复杂问题解析" placement="top" theme="dark">
-        <tiny-button
-          size="mini"
-          plain
-          circle
-          :reset-time="0"
-          style=""
-          :class="['custom-button', isActive ? 'active' : '']"
-          @click="toggleActive"
-        >
-          <div class="icon-container">
+        <div :class="['button-wrapper', isActive ? 'active' : '']" @click="toggleActive">
+          <div class="button">
             <IconThink class="icon-think" />
             <span class="text">深度思考</span>
           </div>
-        </tiny-button>
+        </div>
       </tiny-tooltip>
     </template>
 
     <template #footer-right>
-      <tiny-button plain type="text">
-        <IconRefresh class="icon-refresh" />
-      </tiny-button>
+      <IconSearch class="icon-search" />
     </template>
   </tr-sender>
 </template>
@@ -51,8 +41,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import { IconAi, IconThink, IconRefresh } from '@opentiny/tiny-robot-svgs'
-import { TinyButton, TinyTooltip } from '@opentiny/vue'
+import { IconAi, IconThink, IconSearch } from '@opentiny/tiny-robot-svgs'
+import { TinyTooltip } from '@opentiny/vue'
 
 const isActive = ref(false)
 
@@ -97,22 +87,12 @@ const handleSpeechEnd = (transcript) => {
   justify-content: space-between;
   align-items: center;
   padding: 8px;
-  border-top: 1px solid #eee;
 }
 
-.icon-refresh {
+.icon-search {
+  color: #595959;
   font-size: 20px;
-}
-
-.icon-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-
-.icon-think {
-  font-size: 16px;
+  cursor: pointer;
 }
 
 .text {
@@ -120,21 +100,50 @@ const handleSpeechEnd = (transcript) => {
   height: 22px;
   line-height: 22px;
   font-size: 14px;
+  font-weight: 400;
+  text-align: left;
 }
 
-.custom-button {
+.icon-think {
+  width: 16px;
+  height: 16px;
+  color: #595959;
+}
+
+.button-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100px;
   height: 32px;
+  border: 1px solid rgb(194, 194, 194);
+  border-radius: 999px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.button-wrapper:hover {
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
-:deep(.tiny-button) {
-  background-color: rgb(255, 255, 255) !important;
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
-:deep(.tiny-button.active) {
-  border: 1px solid rgb(20, 118, 255) !important;
-  background: rgba(20, 118, 255, 0.08) !important;
-  color: rgb(20, 118, 255) !important;
+.button-wrapper.active {
+  border: 1px solid rgb(20, 118, 255);
+  background: rgba(20, 118, 255, 0.08);
+  color: rgb(20, 118, 255);
+
+  .icon-think {
+    color: rgb(20, 118, 255);
+  }
+}
+
+.button-wrapper.active:hover {
+  background: rgba(20, 118, 255, 0.12);
 }
 
 :deep(.tiny-tooltip.tiny-tooltip__popper) {

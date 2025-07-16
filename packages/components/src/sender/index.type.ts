@@ -24,6 +24,11 @@ export interface SpeechConfig {
 
 export type AutoSize = boolean | { minRows: number; maxRows: number }
 
+export interface SuggestionTextPart {
+  text: string
+  isMatch: boolean
+}
+
 // Sender组件属性
 export interface SenderProps {
   autofocus?: boolean // 自动聚焦
