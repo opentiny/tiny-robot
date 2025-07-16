@@ -1,18 +1,9 @@
 <template>
   <div class="demo-section">
-    <p>将 v-drag-aware 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
+    <p>将 v-dropzone 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
 
     <!-- 目标元素 -->
-    <div
-      class="chat-container"
-      v-drag-aware="{
-        accept,
-        onStateChange: handleDragStateChange,
-        onFilesDropped: handleFilesDropped,
-        onFilesRejected: handleFilesRejected,
-      }"
-      :class="{ dragging: isDragging }"
-    >
+    <div ref="targetElement" class="chat-container" v-dropzone="dropOptions" :class="{ dragging: isDragging }">
       <div class="chat-header">
         <h4>聊天窗口</h4>
         <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
@@ -36,7 +27,7 @@
       :overlay-title="overlayTitle"
       :overlay-description="overlayDescription"
       :is-dragging="isDragging"
-      :target-rect="targetRect"
+      :drag-target="targetElement"
     />
   </div>
 
@@ -55,7 +46,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrDragOverlay, vDragAware } from '@opentiny/tiny-robot'
+import { TrDragOverlay, vDropzone } from '@opentiny/tiny-robot'
+import type { DropzoneBinding, FileRejection } from '@opentiny/tiny-robot'
 
 interface Event {
   time: string
@@ -64,16 +56,21 @@ interface Event {
 }
 
 const events = ref<Event[]>([])
+
 const isDragging = ref(false)
-const targetRect = ref<DOMRect | null>(null)
-const overlayTitle = '将图片拖到此处完成上传'
-const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
+const targetElement = ref<HTMLElement | null>(null)
 const accept = 'image/jpeg, image/png'
 
-const handleDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
-  isDragging.value = dragging
-  targetRect.value = rect
+const dropOptions: DropzoneBinding = {
+  accept,
+  isDragging,
+  targetElement,
+  onDrop: handleFilesDropped,
+  onError: handleFilesRejected,
 }
+
+const overlayTitle = '将图片拖到此处完成上传'
+const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
 
 const addEvent = (type: string, message: string) => {
   const now = new Date().toLocaleTimeString()
@@ -89,13 +86,16 @@ const addEvent = (type: string, message: string) => {
   }
 }
 
-const handleFilesDropped = (files: File[]) => {
+function handleFilesDropped(files: File[]) {
   addEvent('files-dropped', `上传了 ${files.length} 个文件: ${files.map((f) => f.name).join(', ')}`)
   console.log('上传的文件:', files)
 }
 
-const handleFilesRejected = (rejection: { reason: string; files: File[] }) => {
-  addEvent('files-rejected', `文件被拒绝: ${rejection.reason}, 文件数量: ${rejection.files.length}`)
+function handleFilesRejected(rejection: FileRejection) {
+  addEvent(
+    'files-rejected',
+    `文件被拒绝: ${rejection.message} (${rejection.code}), 文件数量: ${rejection.files.length}`,
+  )
   console.log('被拒绝的文件:', rejection)
 }
 </script>

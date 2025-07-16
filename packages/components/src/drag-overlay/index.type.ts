@@ -1,3 +1,5 @@
+import type { Ref } from 'vue'
+
 export interface Handlers {
   handleDragEnter: (e: DragEvent) => void
   handleDragOver: (e: DragEvent) => void
@@ -6,20 +8,44 @@ export interface Handlers {
 }
 
 /**
+ * 文件拒绝原因码
+ */
+export enum FileRejectionCode {
+  /**
+   * 文件类型不允许
+   */
+  FileTypeNotAllowed = 'file-type-not-allowed',
+  /**
+   * 文件大小超出限制
+   */
+  FileSizeExceeded = 'file-size-exceeded',
+  /**
+   * 文件数量超出限制
+   */
+  FileCountExceeded = 'file-count-exceeded',
+}
+
+/**
  * 文件拒绝信息
  */
 export interface FileRejection {
   files: File[]
-  reason: 'file-type-not-allowed' | 'file-size-exceeded' | 'file-count-exceeded'
+  code: FileRejectionCode
+  message: string
 }
 
 /**
  * 拖拽上传组件的属性
  */
-export interface DragAwareBinding {
-  onStateChange: (visible: boolean, rect: DOMRect | null) => void
-  onFilesDropped: (files: File[]) => void
-  onFilesRejected: (rejection: FileRejection) => void
+export interface DropzoneBinding {
+  /**
+   * 是否正在拖拽
+   */
+  isDragging: Ref<boolean>
+  /**
+   * 拖拽目标元素
+   */
+  targetElement: Ref<HTMLElement | null>
   /**
    * 允许上传的文件类型, 与原生 input 的 accept 属性一致
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#accept
@@ -31,6 +57,10 @@ export interface DragAwareBinding {
    * @default true
    */
   multiple?: boolean
+  /**
+   * 是否禁用拖拽
+   * @default false
+   */
   disabled?: boolean
   /**
    * 单个文件的最大大小（单位：字节）
@@ -42,6 +72,16 @@ export interface DragAwareBinding {
    * @default 3
    */
   maxFiles?: number
+  /**
+   * 拖拽完成后的回调
+   * @param files 上传的文件
+   */
+  onDrop: (files: File[]) => void
+  /**
+   * 拖拽失败后的回调
+   * @param rejection 拒绝信息
+   */
+  onError: (rejection: FileRejection) => void
 }
 
 /**
@@ -60,15 +100,15 @@ export interface DragOverlayProps {
    */
   overlayDescription?: string[]
   /**
-   * 控制拖拽覆盖层是否可见。这旨在与 v-drag-aware 指令结合使用，由父组件控制。
+   * 控制拖拽覆盖层是否可见。这旨在与 v-dropzone 指令结合使用，由父组件控制。
    * @default false
    */
   isDragging?: boolean
   /**
-   * @description 目标元素的 DOMRect，用于定位覆盖层
+   * @description 拖拽目标元素，用于定位覆盖层
    * @default null
    */
-  targetRect?: DOMRect | null
+  dragTarget?: HTMLElement | null
   /**
    * @description 是否全屏模式，控制覆盖层的边框显示
    * @default false

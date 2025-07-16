@@ -2,16 +2,7 @@
   <div class="demo-section">
     <p>浮层组件允许你通过插槽完全自定义内容：</p>
 
-    <div
-      class="image-upload-area"
-      v-drag-aware="{
-        onStateChange: handleImageDragStateChange,
-        onFilesDropped: handleImageDropped,
-        accept: '.jpg,.jpeg,.png,.gif',
-        multiple: false,
-      }"
-      :class="{ dragging: isImageDragging }"
-    >
+    <div ref="targetElement" class="image-upload-area" v-dropzone="dropOptions" :class="{ dragging: isDragging }">
       <div v-if="!uploadedImage" class="upload-placeholder">
         <div class="upload-icon">📷</div>
         <div class="upload-text">点击或拖拽图片到这里</div>
@@ -19,7 +10,7 @@
       <img v-else :src="uploadedImage" alt="上传的图片" class="uploaded-image" />
     </div>
 
-    <tr-drag-overlay :is-dragging="isImageDragging" :target-rect="targetRect">
+    <tr-drag-overlay :is-dragging="isDragging" :drag-target="targetElement">
       <template #overlay>
         <div class="custom-overlay">
           <div class="custom-overlay-content">
@@ -35,18 +26,23 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { TrDragOverlay, vDragAware } from '@opentiny/tiny-robot'
+import { TrDragOverlay, vDropzone } from '@opentiny/tiny-robot'
+import type { DropzoneBinding, FileRejection } from '@opentiny/tiny-robot'
 
-const isImageDragging = ref(false)
-const targetRect = ref<DOMRect | null>(null)
+const isDragging = ref(false)
+const targetElement = ref<HTMLElement | null>(null)
 const uploadedImage = ref<string>('')
 
-const handleImageDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
-  isImageDragging.value = dragging
-  targetRect.value = rect
+const dropOptions: DropzoneBinding = {
+  isDragging,
+  targetElement,
+  accept: '.jpg,.jpeg,.png,.gif',
+  multiple: false,
+  onDrop: handleImageDropped,
+  onError: handleImageError,
 }
 
-const handleImageDropped = (files: File[]) => {
+function handleImageDropped(files: File[]) {
   if (files.length > 0) {
     const file = files[0]
     console.log('上传的文件:', file)
@@ -58,6 +54,10 @@ const handleImageDropped = (files: File[]) => {
     }
     reader.readAsDataURL(file)
   }
+}
+
+function handleImageError(rejection: FileRejection) {
+  console.error('上传失败:', rejection)
 }
 </script>
 

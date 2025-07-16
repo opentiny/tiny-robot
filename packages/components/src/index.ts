@@ -28,7 +28,7 @@ export * from './suggestion-pills/index.type'
 export * from './suggestion-popover/index.type'
 export * from './welcome/index.type'
 
-export { vDragAware } from './drag-overlay/directives/vDragAware'
+export { vDropzone } from './drag-overlay/directives/vDropzone'
 
 const components = [
   Bubble,

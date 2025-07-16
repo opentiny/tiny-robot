@@ -4,18 +4,18 @@ outline: deep
 
 # DragOverlay 拖拽浮层
 
-一个提供拖拽上传能力的组件，通过自定义指令 `v-drag-aware` 和一个纯展示的浮层组件 `<tr-drag-overlay>` 协同工作。
+一个提供拖拽上传能力的组件，通过自定义指令 `v-dropzone` 和一个纯展示的浮层组件 `<tr-drag-overlay>` 协同工作。
 
 本功能由两部分组成：
 
--   `v-drag-aware`: 一个自定义 Vue 指令，负责监听和处理DOM元素的拖拽事件。
+-   `v-dropzone`: 一个自定义 Vue 指令，负责监听和处理DOM元素的拖拽事件。
 -   `<tr-drag-overlay>`: 一个纯展示组件，根据传入的 `is-dragging` prop 显示或隐藏一个全屏的拖拽浮层。
 
 ## 代码示例
 
 ### 基本用法
 
-将 `v-drag-aware` 指令附加到任何你希望响应拖拽的元素上。同时，在页面中放置一个 `<tr-drag-overlay>` 组件，并通过一个状态变量将其 `is-dragging` prop 与指令的状态同步。
+将 `v-dropzone` 指令附加到任何你希望响应拖拽的元素上。同时，在页面中放置一个 `<tr-drag-overlay>` 组件，并通过一个状态变量将其 `is-dragging` prop 与指令的状态同步。
 
 <demo vue="../../demos/drag-overlay/basic.vue" />
 
@@ -31,7 +31,7 @@ outline: deep
 
 ### Attributes
 
-**v-drag-aware** 指令传递的参数
+**v-dropzone** 指令传递的参数
 
 | 名称             | 类型                                   | 说明                                             |
 | ---------------- | -------------------------------------- | ------------------------------------------------ |
@@ -67,13 +67,7 @@ outline: deep
 ```typeScript
 export interface FileRejection {
   files: File[]
-  /**
-   * 拒绝原因
-   * @description 可能的值：
-   * - 'invalid-file-type'：文件类型不支持
-   * - 'invalid-file-size'：文件大小超出限制
-   * - 'invalid-file-count'：文件数量超出限制
-   */
-  reason: 'invalid-file-type' | 'invalid-file-size' | 'invalid-file-count'
+  code: FileRejectionCode
+  message: string
 }
 ```

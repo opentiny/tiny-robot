@@ -1,21 +1,23 @@
 <script setup lang="ts">
 import { computed, type CSSProperties } from 'vue'
+import { useElementBounding } from '@vueuse/core'
 import type { DragOverlayProps } from './index.type'
 
 const props = defineProps<DragOverlayProps>()
 
+const { top, left, width, height } = useElementBounding(() => props.dragTarget)
+
 const overlayStyle = computed((): CSSProperties => {
-  if (!props.isDragging || !props.targetRect) {
+  if (!props.isDragging || !props.dragTarget) {
     return { display: 'none' }
   }
 
-  const { top, left, width, height } = props.targetRect
   return {
     position: 'fixed',
-    top: `${top}px`,
-    left: `${left}px`,
-    width: `${width}px`,
-    height: `${height}px`,
+    top: `${top.value}px`,
+    left: `${left.value}px`,
+    width: `${width.value}px`,
+    height: `${height.value}px`,
   }
 })
 </script>

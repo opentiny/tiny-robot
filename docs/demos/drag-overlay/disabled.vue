@@ -4,7 +4,7 @@
 
     <div
       class="disabled-area"
-      v-drag-aware="{ onStateChange: () => {}, onFilesDropped: () => {}, disabled: true }"
+      v-dropzone="{ onStateChange: () => {}, onFilesDropped: () => {}, disabled: true }"
       :class="{ disabled: true }"
     >
       <div class="disabled-content">
@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts" setup>
-import { vDragAware } from '@opentiny/tiny-robot'
+import { vDropzone } from '@opentiny/tiny-robot'
 </script>
 
 <style scoped>

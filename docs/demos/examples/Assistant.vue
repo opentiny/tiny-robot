@@ -1,11 +1,7 @@
 <template>
   <tr-container
-    v-drag-aware="{
-      accept: 'image/jpeg, image/png',
-      onStateChange: handleDragStateChange,
-      onFilesDropped: handleFilesDropped,
-      onFilesRejected: handleFilesRejected,
-    }"
+    ref="targetElement"
+    v-dropzone="dropOptions"
     v-model:fullscreen="fullscreen"
     v-model:show="show"
     class="tiny-container"
@@ -94,7 +90,7 @@
     :overlay-description="overlayDescription"
     :is-dragging="isDragging"
     :fullscreen="fullscreen"
-    :target-rect="targetRect"
+    :drag-target="targetElement"
   />
 </template>
 
@@ -107,6 +103,8 @@ import type {
   SuggestionItem,
   SuggestionPillItem,
   UserItem,
+  DropzoneBinding,
+  FileRejection,
 } from '@opentiny/tiny-robot'
 import {
   TrBubbleList,
@@ -119,7 +117,7 @@ import {
   TrSuggestionPills,
   TrSuggestionPopover,
   TrWelcome,
-  vDragAware,
+  vDropzone,
   TrDragOverlay,
 } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
@@ -537,22 +535,26 @@ watch(
 )
 
 const isDragging = ref(false)
-const targetRect = ref<DOMRect | null>(null)
+const targetElement = ref<HTMLElement | null>(null)
 
 const overlayTitle = '将图片拖到此处完成上传'
 const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
-
-const handleDragStateChange = (dragging: boolean, rect: DOMRect | null) => {
-  isDragging.value = dragging
-  targetRect.value = rect
-}
 
 const handleFilesDropped = (files: File[]) => {
   console.log('上传的文件:', files)
 }
 
-const handleFilesRejected = (rejection: { reason: string; files: File[] }) => {
-  console.log('被拒绝的文件:', rejection)
+const handleFilesRejected = (rejection: FileRejection) => {
+  console.error('被拒绝的文件:', rejection)
+}
+
+const dropOptions: DropzoneBinding = {
+  isDragging,
+  targetElement,
+  accept: 'image/jpeg, image/png',
+  multiple: true,
+  onDrop: handleFilesDropped,
+  onError: handleFilesRejected,
 }
 
 // 页面加载完成后自动聚焦输入框
