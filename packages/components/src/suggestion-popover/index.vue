@@ -136,7 +136,7 @@ const popoverStyles = computed<CSSProperties>(() => {
 
 const teleportTarget = useTeleportTarget(triggerRef)
 
-const teleportProps = reactive({ to: teleportTarget.value })
+const teleportProps = reactive({ to: props.appendTo || teleportTarget.value })
 createTeleport(teleportProps, () => <Backdrop show={show.value && isMobile.value} />)
 
 const emitClickTriggerEvents = () => {
