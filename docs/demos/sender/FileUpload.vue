@@ -49,6 +49,7 @@ const handleFilesSelected = (files: File[]) => {
   } else {
     buttonGroup.value.file.disabled = false
     buttonGroup.value.submit.disabled = false
+    buttonGroup.value.submit.tooltips = ''
   }
 }
 
