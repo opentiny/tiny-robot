@@ -104,7 +104,7 @@ jobs:
 
       # 步骤10: 发布文档到GitHub Pages
       - name: Build VitePress
-        run: pnpm -F docs build --base=/tiny-robot/latest/
+        run: pnpm -F docs build --base=/tiny-robot/${{steps.parse_tag.outputs.dist_tag}}/
 
       - name: Verify build output
         run: ls -la ./docs/dist
