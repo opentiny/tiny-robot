@@ -16,12 +16,12 @@ outline: deep
 
 药丸组件属性配置。
 
-| 属性                | 类型                   | 默认值     | 说明                                                             |
-| ------------------- | ---------------------- | ---------- | ---------------------------------------------------------------- |
-| `showAll`           | `boolean`              | -          | 是否展开全部元素 (v-model)                                       |
-| `showAllButtonOn`   | `'hover' \| 'always'`  | `'hover'`  | 显示"更多"按钮的时机                                             |
-| `overflowMode`      | `'expand' \| 'scroll'` | `'expand'` | 控制多余项的展示方式：`expand`为展开显示，`scroll`为横向滚动显示 |
-| `autoScrollOnHover` | `boolean`              | `false`    | 鼠标悬停时是否自动滚动到可见区域                                 |
+| 属性              | 类型                      | 默认值     | 说明                                                             |
+| ----------------- | ------------------------- | ---------- | ---------------------------------------------------------------- |
+| `showAll`         | `boolean`                 | -          | 是否展开全部元素 (v-model)                                       |
+| `showAllButtonOn` | `'hover' \| 'always'`     | `'hover'`  | 显示"更多"按钮的时机                                             |
+| `overflowMode`    | `'expand' \| 'scroll'`    | `'expand'` | 控制多余项的展示方式：`expand`为展开显示，`scroll`为横向滚动显示 |
+| `autoScrollOn`    | `'mouseenter' \| 'click'` | -          | 鼠标悬停或点击时是否自动滚动到可见区域                           |
 
 ### SuggestionPillsSlots
 

@@ -156,11 +156,28 @@ const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
   }
 }
 
-useEventListener(staticItemRefs, 'mouseenter', (ev) => {
-  if (props.autoScrollOnHover && ev.currentTarget) {
-    scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
-  }
-})
+let cleanup: (() => void) | null = null
+
+watch(
+  () => props.autoScrollOn,
+  (value) => {
+    if (cleanup) {
+      cleanup()
+      cleanup = null
+    }
+
+    if (value) {
+      cleanup = useEventListener(staticItemRefs, value, (ev) => {
+        if (ev.currentTarget) {
+          scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
+        }
+      })
+    }
+  },
+  {
+    immediate: true,
+  },
+)
 
 defineExpose({
   children: computed(() => staticItemRefs.value.concat(floatingItemRefs.value)),

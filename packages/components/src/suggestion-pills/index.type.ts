@@ -23,9 +23,8 @@ export interface SuggestionPillsProps {
   overflowMode?: 'expand' | 'scroll'
   /**
    * 鼠标悬停时是否自动滚动到可见区域
-   * @default false
    */
-  autoScrollOnHover?: boolean
+  autoScrollOn?: 'mouseenter' | 'click'
 }
 
 export interface SuggestionPillsSlots {

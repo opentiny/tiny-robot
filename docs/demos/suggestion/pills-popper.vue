@@ -13,7 +13,7 @@
       v-model:showAll="showAll"
       :show-all-button-on="showAllButtonOn"
       :overflow-mode="overflowMode"
-      :auto-scroll-on-hover="autoScrollOnHover"
+      :auto-scroll-on="autoScrollOn"
       @click-outside="handleClickOutside"
     >
       <TrDropdownMenu
@@ -47,8 +47,8 @@
       <tiny-radio-group v-model="overflowMode" :options="overflowModeOptions"></tiny-radio-group>
     </div>
     <div style="display: flex; align-items: center; gap: 10px">
-      <label>autoScrollOnHover：</label>
-      <tiny-switch v-model="autoScrollOnHover"></tiny-switch>
+      <label>autoScrollOn：</label>
+      <tiny-radio-group v-model="autoScrollOn" :options="autoScrollOptions"></tiny-radio-group>
     </div>
     <div style="display: flex; align-items: center; gap: 10px">
       <button ref="addButtonRef" @click="handleClickAddButton">点我增加按钮</button>
@@ -81,7 +81,12 @@ const overflowModeOptions = ref([
   { label: 'scroll', value: 'scroll' },
 ])
 
-const autoScrollOnHover = ref(false)
+const autoScrollOn = ref<'click' | 'mouseenter' | undefined>(undefined)
+const autoScrollOptions = ref([
+  { label: 'none', value: undefined },
+  { label: 'click', value: 'click' },
+  { label: 'mouseenter', value: 'mouseenter' },
+])
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
