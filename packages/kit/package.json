@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot-kit",
-  "version": "0.2.15",
+  "version": "v0.3.0-alpha.6",
   "publishConfig": {
     "access": "public"
   },
