@@ -15,6 +15,7 @@ on:
         options:
           - alpha
           - beta
+          - rc
           - latest
 
 concurrency:
