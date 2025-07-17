@@ -2,7 +2,17 @@
   <div class="demo-section">
     <p>浮层组件允许你通过插槽完全自定义内容：</p>
 
-    <div ref="targetElement" class="image-upload-area" v-dropzone="dropOptions" :class="{ dragging: isDragging }">
+    <div
+      class="image-upload-area"
+      v-dropzone="{
+        accept: '.jpg,.jpeg,.png,.gif',
+        multiple: false,
+        onDrop: handleImageDropped,
+        onError: handleImageError,
+        onDraggingChange: handleDraggingChange,
+      }"
+      :class="{ dragging: isDragging }"
+    >
       <div v-if="!uploadedImage" class="upload-placeholder">
         <div class="upload-icon">📷</div>
         <div class="upload-text">点击或拖拽图片到这里</div>
@@ -26,20 +36,15 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
-import { TrDragOverlay, vDropzone } from '@opentiny/tiny-robot'
-import type { DropzoneBinding, FileRejection } from '@opentiny/tiny-robot'
+import { TrDragOverlay, vDropzone, type FileRejection } from '@opentiny/tiny-robot'
 
 const isDragging = ref(false)
 const targetElement = ref<HTMLElement | null>(null)
 const uploadedImage = ref<string>('')
 
-const dropOptions: DropzoneBinding = {
-  isDragging,
-  targetElement,
-  accept: '.jpg,.jpeg,.png,.gif',
-  multiple: false,
-  onDrop: handleImageDropped,
-  onError: handleImageError,
+function handleDraggingChange(dragging: boolean, element: HTMLElement | null) {
+  isDragging.value = dragging
+  targetElement.value = element
 }
 
 function handleImageDropped(files: File[]) {

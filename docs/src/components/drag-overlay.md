@@ -35,15 +35,14 @@ outline: deep
 
 | 名称          | 类型                                 | 说明                                                           |
 | ------------- | ------------------------------------ | -------------------------------------------------------------- |
-| isDragging    | `Ref<boolean>`                       | **必须**。响应式布尔值，由指令自动更新，表示是否处于拖拽状态。 |
-| targetElement | `Ref<HTMLElement \| null>`           | **必须**。响应式元素引用，拖拽开始时指令会设置为当前元素。     |
-| disabled      | `boolean`                            | 是否禁用拖拽，默认 `false`。                                   |
 | accept        | `string`                             | 文件类型过滤规则（如 `'.png,.jpg'`），默认接收所有类型。       |
 | multiple      | `boolean`                            | 是否允许多文件拖拽，默认 `true`。                              |
 | maxSize       | `number`                             | 最大文件大小（字节），默认 `10485760`（10 MB）。               |
 | maxFiles      | `number`                             | 最大文件数量，默认 `3`。                                       |
+| disabled      | `boolean`                            | 是否禁用拖拽，默认 `false`。                                   |
 | onDrop        | `(files: File[]) => void`            | **必须**。当符合条件的文件被放下时触发的回调。                 |
 | onError       | `(rejection: FileRejection) => void` | **必须**。当文件被拒绝或发生错误时触发的回调。                 |
+| onDraggingChange | `(dragging: boolean, element: HTMLElement \| null) => void` | 拖拽状态变化时触发的回调。 |
 
 ### Props
 

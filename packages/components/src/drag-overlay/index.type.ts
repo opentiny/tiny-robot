@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { DragZoneErrorCode } from './constants'
 
 export interface Handlers {
   handleDragEnter: (e: DragEvent) => void
@@ -8,29 +8,11 @@ export interface Handlers {
 }
 
 /**
- * 文件拒绝原因码
- */
-export enum FileRejectionCode {
-  /**
-   * 文件类型不允许
-   */
-  FileTypeNotAllowed = 'file-type-not-allowed',
-  /**
-   * 文件大小超出限制
-   */
-  FileSizeExceeded = 'file-size-exceeded',
-  /**
-   * 文件数量超出限制
-   */
-  FileCountExceeded = 'file-count-exceeded',
-}
-
-/**
  * 文件拒绝信息
  */
 export interface FileRejection {
   files: File[]
-  code: FileRejectionCode
+  code: DragZoneErrorCode
   message: string
 }
 
@@ -38,14 +20,6 @@ export interface FileRejection {
  * 拖拽上传组件的属性
  */
 export interface DropzoneBinding {
-  /**
-   * 是否正在拖拽
-   */
-  isDragging: Ref<boolean>
-  /**
-   * 拖拽目标元素
-   */
-  targetElement: Ref<HTMLElement | null>
   /**
    * 允许上传的文件类型, 与原生 input 的 accept 属性一致
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/file#accept
@@ -82,6 +56,12 @@ export interface DropzoneBinding {
    * @param rejection 拒绝信息
    */
   onError: (rejection: FileRejection) => void
+  /**
+   * 拖拽开始时的回调
+   * @param dragging 是否正在拖拽
+   * @param element 拖拽目标元素
+   */
+  onDraggingChange: (dragging: boolean, element: HTMLElement | null) => void
 }
 
 /**

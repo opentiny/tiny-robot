@@ -3,7 +3,15 @@
     <p>将 v-dropzone 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
 
     <!-- 目标元素 -->
-    <div ref="targetElement" class="chat-container" v-dropzone="dropOptions" :class="{ dragging: isDragging }">
+    <div
+      class="chat-container"
+      v-dropzone="{
+        accept: 'image/jpeg, image/png',
+        onDrop: handleFilesDropped,
+        onError: handleFilesRejected,
+        onDraggingChange: handleDraggingChange,
+      }"
+    >
       <div class="chat-header">
         <h4>聊天窗口</h4>
         <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
@@ -46,8 +54,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrDragOverlay, vDropzone } from '@opentiny/tiny-robot'
-import type { DropzoneBinding, FileRejection } from '@opentiny/tiny-robot'
+import { TrDragOverlay, vDropzone, type FileRejection } from '@opentiny/tiny-robot'
 
 interface Event {
   time: string
@@ -56,23 +63,18 @@ interface Event {
 }
 
 const events = ref<Event[]>([])
-
-const isDragging = ref(false)
-const targetElement = ref<HTMLElement | null>(null)
-const accept = 'image/jpeg, image/png'
-
-const dropOptions: DropzoneBinding = {
-  accept,
-  isDragging,
-  targetElement,
-  onDrop: handleFilesDropped,
-  onError: handleFilesRejected,
-}
-
 const overlayTitle = '将图片拖到此处完成上传'
 const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
 
-const addEvent = (type: string, message: string) => {
+const isDragging = ref(false)
+const targetElement = ref<HTMLElement | null>(null)
+
+function handleDraggingChange(dragging: boolean, element: HTMLElement | null) {
+  isDragging.value = dragging
+  targetElement.value = element
+}
+
+function addEvent(type: string, message: string) {
   const now = new Date().toLocaleTimeString()
   events.value.unshift({
     time: now,

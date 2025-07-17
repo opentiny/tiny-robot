@@ -4,7 +4,7 @@
 
     <div
       class="disabled-area"
-      v-dropzone="{ onStateChange: () => {}, onFilesDropped: () => {}, disabled: true }"
+      v-dropzone="{ onDrop: () => {}, onError: () => {}, disabled: true }"
       :class="{ disabled: true }"
     >
       <div class="disabled-content">
