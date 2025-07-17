@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot",
-  "version": "v0.3.0-alpha.6",
+  "version": "0.3.0-alpha.6",
   "publishConfig": {
     "access": "public"
   },
