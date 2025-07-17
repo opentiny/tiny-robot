@@ -8,8 +8,8 @@ outline: deep
 
 本功能由两部分组成：
 
--   `v-dropzone`: 一个自定义 Vue 指令，负责监听和处理DOM元素的拖拽事件。
--   `<tr-drag-overlay>`: 一个纯展示组件，根据传入的 `is-dragging` prop 显示或隐藏一个全屏的拖拽浮层。
+- `v-dropzone`: 一个自定义 Vue 指令，负责监听和处理DOM元素的拖拽事件。
+- `<tr-drag-overlay>`: 一个纯展示组件，根据传入的 `is-dragging` prop 显示或隐藏一个全屏的拖拽浮层。
 
 ## 代码示例
 
@@ -33,32 +33,33 @@ outline: deep
 
 **v-dropzone** 指令传递的参数
 
-| 名称             | 类型                                   | 说明                                             |
-| ---------------- | -------------------------------------- | ------------------------------------------------ |
-| onStateChange    | `(isDragging: boolean) => void`        | **必须**。当拖拽状态改变时触发的回调。         |
-| onFilesDropped   | `(files: File[]) => void`              | **必须**。当符合要求的文件被放下时触发的回调。 |
-| onFilesRejected  | `(rejection: FileRejection) => void`   | 当文件因不符条件被拒绝时触发的回调。             |
-| accept           | `string`                               | 可选。接受的文件类型，同 `<input>` 的 `accept` 属性。 |
-| multiple         | `boolean`                              | 可选，默认为 `true`。是否允许上传多个文件。       |
-| disabled         | `boolean`                              | 可选，默认为 `false`。是否禁用拖拽功能。          |
-| maxSize          | `number`                                | 可选。允许上传的最大文件大小，单位为字节。默认为 10 MB |
-| maxFiles         | `number`                               | 可选。允许上传的最大文件数量。默认为 3。         |
+| 名称          | 类型                                 | 说明                                                           |
+| ------------- | ------------------------------------ | -------------------------------------------------------------- |
+| isDragging    | `Ref<boolean>`                       | **必须**。响应式布尔值，由指令自动更新，表示是否处于拖拽状态。 |
+| targetElement | `Ref<HTMLElement \| null>`           | **必须**。响应式元素引用，拖拽开始时指令会设置为当前元素。     |
+| disabled      | `boolean`                            | 是否禁用拖拽，默认 `false`。                                   |
+| accept        | `string`                             | 文件类型过滤规则（如 `'.png,.jpg'`），默认接收所有类型。       |
+| multiple      | `boolean`                            | 是否允许多文件拖拽，默认 `true`。                              |
+| maxSize       | `number`                             | 最大文件大小（字节），默认 `10485760`（10 MB）。               |
+| maxFiles      | `number`                             | 最大文件数量，默认 `3`。                                       |
+| onDrop        | `(files: File[]) => void`            | **必须**。当符合条件的文件被放下时触发的回调。                 |
+| onError       | `(rejection: FileRejection) => void` | **必须**。当文件被拒绝或发生错误时触发的回调。                 |
 
 ### Props
 
-| 名称               | 类型      | 默认值 | 说明                                     |
-| ------------------ | --------- | ------ | ---------------------------------------- |
-| is-dragging        | `boolean` | `false`| 是否显示拖拽浮层。                       |
-| overlay-title      | `string`  | `''`   | 浮层的主标题。                           |
-| overlay-description| `string[]`| `[]`   | 浮层的描述文本，数组中的每个元素为一行。 |
-| targetRect | `DOMRect \| null`| `null`   | 目标元素的 DOMRect，用于定位覆盖层。 |
-| fullscreen | `boolean`| `false`   | 是否全屏模式，控制覆盖层的边框显示。 |
+| 名称                | 类型              | 默认值  | 说明                                     |
+| ------------------- | ----------------- | ------- | ---------------------------------------- |
+| is-dragging         | `boolean`         | `false` | 是否显示拖拽浮层。                       |
+| drag-target         | `Element \| null` | `null`  | 目标元素的 Element，用于定位覆盖层。     |
+| overlay-title       | `string`          | `''`    | 浮层的主标题。                           |
+| overlay-description | `string[]`        | `[]`    | 浮层的描述文本，数组中的每个元素为一行。 |
+| fullscreen          | `boolean`         | `false` | 是否全屏模式，控制覆盖层的边框显示。     |
 
 ### Slots
 
-| 名称      | 说明           |
-| --------- | -------------- |
-| overlay   | 自定义浮层内容。 |
+| 名称    | 说明             |
+| ------- | ---------------- |
+| overlay | 自定义浮层内容。 |
 
 ### Types
 

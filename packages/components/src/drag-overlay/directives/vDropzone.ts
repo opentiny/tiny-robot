@@ -114,11 +114,28 @@ function processFiles(
   return { acceptedFiles, rejectedFiles, rejection: null }
 }
 
-type DragAwareOptions = Omit<DropzoneBinding, 'isDragging' | 'targetElement' | 'disabled'>
+type DragAwareOptions = Omit<DropzoneBinding, 'isDragging' | 'targetElement'>
 
 interface DragAwareElement extends HTMLElement {
   __vDropzoneHandlers__?: Handlers
   __vDropzoneOptions__?: DragAwareOptions
+}
+
+/**
+ * 创建拖拽区域指令的配置
+ * @param binding 绑定
+ * @returns 配置
+ */
+function createDragOptions(binding: DropzoneBinding): DragAwareOptions {
+  return {
+    accept: binding.accept || '',
+    multiple: binding.multiple || true,
+    maxSize: binding.maxSize || 1024 * 1024 * 10,
+    maxFiles: binding.maxFiles || 3,
+    onDrop: binding.onDrop,
+    onError: binding.onError,
+    disabled: binding.disabled || false,
+  }
 }
 
 /**
@@ -137,14 +154,7 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
 
     const { isDragging, targetElement, disabled } = binding.value
 
-    const dragOptions: DragAwareOptions = {
-      accept: binding.value.accept || '',
-      multiple: binding.value.multiple || true,
-      maxSize: binding.value.maxSize || 1024 * 1024 * 10,
-      maxFiles: binding.value.maxFiles || 3,
-      onDrop: binding.value.onDrop,
-      onError: binding.value.onError,
-    }
+    const dragOptions: DragAwareOptions = createDragOptions(binding.value)
 
     const handlers: Handlers = {
       /**
@@ -193,10 +203,10 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
         if (files && files.length > 0) {
           const fileArray = Array.from(files)
           const { acceptedFiles, rejection } = processFiles(fileArray, {
-            accept: accept!,
-            multiple: multiple!,
-            maxSize: maxSize!,
-            maxFiles: maxFiles!,
+            accept: accept || '',
+            multiple: multiple || true,
+            maxSize: maxSize || 1024 * 1024 * 10,
+            maxFiles: maxFiles || 3,
           })
 
           if (rejection) {
@@ -219,14 +229,9 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
     el.addEventListener('drop', handlers.handleDrop)
   },
   updated(el, binding) {
-    // 更新指令的配置和回调函数
-    el.__vDropzoneOptions__ = {
-      accept: binding.value.accept || '',
-      multiple: binding.value.multiple || true,
-      maxSize: binding.value.maxSize || 1024 * 1024 * 10,
-      maxFiles: binding.value.maxFiles || 3,
-      onDrop: binding.value.onDrop,
-      onError: binding.value.onError,
+    // 更新指令的配置
+    if (el.__vDropzoneOptions__) {
+      el.__vDropzoneOptions__ = createDragOptions(binding.value)
     }
   },
   /**
