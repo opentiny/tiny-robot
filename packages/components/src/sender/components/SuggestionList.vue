@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
 import type { SuggestionTextPart } from '../index.type'
 
-interface Props {
+export interface Props {
   show: boolean
   suggestions: string[]
   popupStyle: Record<string, string | number>
