@@ -13,7 +13,10 @@ const props = withDefaults(defineProps<FileCardProps>(), {
 const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
 
 // 文件相关工具 & 图标
-const { formatFileSize, getIconComponent } = useFileType(props.fileIcons, props.customMatchers)
+const { formatFileSize, getIconComponent } = useFileType({
+  customIcons: props.fileIcons,
+  customMatchers: props.customMatchers,
+})
 
 // 卡片交互相关
 const { isImage, handlePreview, handleRemove, handleCustomAction, handleRetry } = useFileCard(props, emit)

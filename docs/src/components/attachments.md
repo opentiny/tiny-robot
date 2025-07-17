@@ -36,7 +36,6 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 
 <demo vue="../../demos/attachments/picture-list.vue" />
 
-
 ### 列表换行
 
 通过设置 `wrap` 属性，可以控制文件列表是否在达到容器宽度时自动换行。
@@ -71,21 +70,23 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 
 ### Props
 
-| 属性名           | 类型                          | 默认值                                    | 说明                                                         |
-| ---------------- | ----------------------------- | ----------------------------------------- | ------------------------------------------------------------ |
-| items            | `Attachment[]`                | []                                        | 附件列表，支持 `v-model:items` 双向绑定。                   |
-| disabled         | boolean                       | false                                     | 是否禁用整个组件，禁用后所有交互操作（如删除、下载）将不可用。 |
-| wrap             | boolean                       | false                                     | 文件列表是否换行，详见 [列表换行](#列表换行)。               |
-| variant          | `'picture' \| 'card' \| 'auto'`     | `'auto'`                                  | 附件列表的展示形式，详见 [展示形式](#展示形式-variant)。        |
-| actions          | `ActionButton[]`              | 图片默认: `['preview', 'download']` | 自定义操作按钮，详见 [自定义操作按钮](#自定义操作按钮-actions)。 |
-| fileIcons        | `Record<string, Component>`   | -                                         | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)。   |
-| customMatchers   | `FileTypeMatcher[]`           | []                                        | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-custommatchers)。 |
-| downloadHandler  | `(file: Attachment) => void`  | -                                         | 自定义下载处理器，详见 [自定义下载](#自定义下载-downloadhandler)。   |
+| 属性名          | 类型                            | 默认值                              | 说明                                                                          |
+| --------------- | ------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
+| items           | `Attachment[]`                  | []                                  | 附件列表，支持 `v-model:items` 双向绑定。                                     |
+| disabled        | boolean                         | false                               | 是否禁用整个组件，禁用后所有交互操作（如删除、下载）将不可用。                |
+| wrap            | boolean                         | false                               | 文件列表是否换行，详见 [列表换行](#列表换行)。                                |
+| variant         | `'picture' \| 'card' \| 'auto'` | `'auto'`                            | 附件列表的展示形式，详见 [展示形式](#展示形式-variant)。                      |
+| actions         | `ActionButton[]`                | 图片默认: `['preview', 'download']` | 自定义操作按钮，详见 [自定义操作按钮](#自定义操作按钮-actions)。              |
+| fileIcons       | `Record<string, Component>`     | -                                   | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)。                |
+| customMatchers  | `FileTypeMatcher[]`             | []                                  | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-custommatchers)。 |
+| downloadHandler | `(file: Attachment) => void`    | -                                   | 自定义下载处理器，详见 [自定义下载](#自定义下载-downloadhandler)。            |
 
 ### Types
 
 #### Attachment
+
 这是描述一个附件对象的核心类型。
+
 ```typescript
 interface Attachment {
   id: string // 唯一标识符
@@ -100,7 +101,9 @@ interface Attachment {
 ```
 
 #### ActionButton
+
 用于定义操作按钮。
+
 ```typescript
 interface ActionButton {
   type: string // 操作类型，如 'preview', 'download' 等
@@ -110,7 +113,9 @@ interface ActionButton {
 ```
 
 #### FileTypeMatcher
+
 用于自定义文件类型匹配规则。
+
 ```typescript
 interface FileTypeMatcher {
   type: string // 唯一类型标识
@@ -122,14 +127,14 @@ interface FileTypeMatcher {
 
 ### Events
 
-| 事件名   | 参数类型                                     | 说明                     |
-| -------- | -------------------------------------------- | ------------------------ |
-| update:items | `Attachment[]`                               | 附件列表更新时触发。     |
-| remove   | `Attachment`                                 | 文件被移除时触发。       |
-| download | `(file: Attachment) => void`                 | 点击内置下载按钮时触发。 |
-| preview  | `(file: Attachment) => void`                 | 点击内置预览按钮时触发。 |
-| retry    | `(file: Attachment) => void`                 | 点击重试按钮时触发。     |
-| action   | `{ action: ActionButton, file: Attachment }` | 点击自定义操作按钮时触发。 |
+| 事件名       | 参数类型                                     | 说明                       |
+| ------------ | -------------------------------------------- | -------------------------- |
+| update:items | `Attachment[]`                               | 附件列表更新时触发。       |
+| remove       | `Attachment`                                 | 文件被移除时触发。         |
+| download     | `(file: Attachment) => void`                 | 点击内置下载按钮时触发。   |
+| preview      | `(file: Attachment) => void`                 | 点击内置预览按钮时触发。   |
+| retry        | `(file: Attachment) => void`                 | 点击重试按钮时触发。       |
+| action       | `{ action: ActionButton, file: Attachment }` | 点击自定义操作按钮时触发。 |
 
 ## 内置附件类型
 

@@ -104,7 +104,13 @@ const defaultMatchers: FileTypeMatcher[] = [
   },
 ]
 
-export function useFileType(customIcons?: Record<string, Component>, customMatchers?: FileTypeMatcher[]) {
+interface UseFileTypeOptions {
+  customIcons?: Record<string, Component>
+  customMatchers?: FileTypeMatcher[]
+}
+
+export function useFileType(options: UseFileTypeOptions = {}) {
+  const { customIcons, customMatchers } = options
   /**
    * 获取所有匹配器（合并默认和自定义）
    */
