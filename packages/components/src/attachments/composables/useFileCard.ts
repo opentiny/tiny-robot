@@ -2,11 +2,11 @@ import { ref, onUnmounted, computed } from 'vue'
 import type { ActionButton, FileCardProps, FileCardEmits } from '../index.type'
 
 /**
- * 强制下载文件的辅助函数
+ * 下载本地文件
  * @param url 文件URL
  * @param fileName 文件名
  */
-const forceDownload = (url: string, fileName: string) => {
+const downloadLocalFile = (url: string, fileName: string) => {
   // 创建一个隐藏的 iframe 来触发下载
   const iframe = document.createElement('iframe')
   iframe.style.display = 'none'
@@ -22,26 +22,6 @@ const forceDownload = (url: string, fileName: string) => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } else {
-    // 对于远程文件，使用 fetch 来处理
-    fetch(url)
-      .then((response) => response.blob())
-      .then((blob) => {
-        const blobUrl = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = blobUrl
-        link.download = fileName
-        link.style.display = 'none'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(blobUrl)
-      })
-      .catch((error) => {
-        console.error('下载失败:', error)
-        // 如果 fetch 失败，回退到打开新窗口
-        window.open(url, '_blank')
-      })
   }
 
   document.body.removeChild(iframe)
@@ -73,9 +53,9 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
    * 处理文件预览
    */
   const handlePreview = () => {
-    if (isImage.value && !props.file.previewUrl && props.file.rawFile) {
+    if (isImage.value && !props.file.url && props.file.rawFile) {
       const blobUrl = createBlobUrl(props.file.rawFile)
-      emit('preview', { ...props.file, previewUrl: blobUrl })
+      emit('preview', { ...props.file, url: blobUrl })
     } else {
       emit('preview', props.file)
     }
@@ -83,28 +63,17 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
 
   /**
    * 处理文件下载
+   *
+   * 本地文件：rawFile 有的话，组件内部下载
+   * 远程文件：触发下载事件
    */
-  const downloadFile = async () => {
-    // 如果有自定义下载处理器，优先使用
-    if (props.downloadHandler) {
-      try {
-        await props.downloadHandler(props.file)
-        emit('download', props.file)
-        return
-      } catch (error) {
-        console.error('自定义下载处理器执行失败:', error)
-      }
+  const downloadFile = (event: MouseEvent) => {
+    if (props.file.rawFile && !props.file.url) {
+      const blobUrl = createBlobUrl(props.file.rawFile)
+      downloadLocalFile(blobUrl, props.file.name)
     }
 
-    // 使用默认下载逻辑
-    if (props.file.previewUrl) {
-      forceDownload(props.file.previewUrl, props.file.name)
-    } else if (props.file.rawFile) {
-      const url = createBlobUrl(props.file.rawFile)
-      forceDownload(url, props.file.name)
-    }
-
-    emit('download', props.file)
+    emit('download', { event, file: props.file })
   }
 
   /**
@@ -125,7 +94,9 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
    * 处理自定义操作
    * @param action 自定义操作按钮配置
    */
-  const handleCustomAction = (action: ActionButton) => {
+  const handleCustomAction = (action: ActionButton, event: MouseEvent) => {
+    event.stopPropagation()
+
     if (action.handler) {
       action.handler(props.file)
     }
@@ -133,7 +104,7 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
     if (action.type === 'preview') {
       handlePreview()
     } else if (action.type === 'download') {
-      downloadFile()
+      downloadFile(event)
     } else {
       emit('action', { action, file: props.file })
     }

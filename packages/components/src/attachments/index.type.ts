@@ -14,22 +14,16 @@ export interface FileTypeMatcher {
   type: string
   matcher: (file: File | string) => boolean
   icon?: Component
-  priority?: number // 优先级，数字越大优先级越高
-}
-
-// 下载处理器
-export interface DownloadHandler {
-  (file: Attachment): Promise<void> | void
 }
 
 export interface Attachment {
   id: string
   name: string
-  status: FileStatus
-  previewUrl?: string
-  fileType?: FileType
+  status?: FileStatus
+  url?: string
+  fileType: FileType
   size?: number
-  uploadTimeoutText?: string
+  message?: string // 上传过程中提示信息
   rawFile?: File // 原始文件对象，用于下载和预览
 }
 
@@ -55,25 +49,19 @@ export interface AttachmentListProps {
   variant?: DisplayVariant
 
   // 自定义文件类型匹配器
-  customMatchers?: FileTypeMatcher[]
-
-  // 自定义下载处理器
-  downloadHandler?: DownloadHandler
+  fileMatchers?: FileTypeMatcher[]
 }
 
 export interface AttachmentListEmits {
   (e: 'update:items', items: Attachment[]): void
   (e: 'remove', file: Attachment): void
-  (e: 'download', file: Attachment): void
+  (e: 'download', payload: { event: MouseEvent; file: Attachment }): void
   (e: 'retry', file: Attachment): void
   (e: 'preview', file: Attachment): void
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }
 
-type BaseCardProps = Pick<
-  AttachmentListProps,
-  'fileIcons' | 'disabled' | 'actions' | 'customMatchers' | 'downloadHandler'
->
+type BaseCardProps = Pick<AttachmentListProps, 'fileIcons' | 'disabled' | 'actions' | 'fileMatchers'>
 
 // FileCard 组件属性
 export interface FileCardProps extends BaseCardProps {
@@ -86,7 +74,7 @@ export interface FileCardProps extends BaseCardProps {
 export interface FileCardEmits {
   (e: 'remove', file: Attachment): void
   (e: 'preview', file: Attachment): void
-  (e: 'download', file: Attachment): void
+  (e: 'download', payload: { event: MouseEvent; file: Attachment }): void
   (e: 'retry', file: Attachment): void
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }

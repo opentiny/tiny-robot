@@ -2,7 +2,7 @@
   <div class="demo-container">
     <div class="demo-section">
       <h4>支持自定义文件类型（txt、md、json）</h4>
-      <tr-attachments v-model:items="customFiles" :custom-matchers="customMatchers" wrap />
+      <tr-attachments v-model:items="customFiles" :file-matchers="fileMatchers" wrap />
     </div>
 
     <div class="demo-section">
@@ -24,7 +24,7 @@ const MDIcon = h('div', { style: { color: '#1890ff', fontSize: '20px' } }, '📝
 const JsonIcon = h('div', { style: { color: '#fa8c16', fontSize: '20px' } }, '📊')
 
 // 自定义文件类型匹配器
-const customMatchers: FileTypeMatcher[] = [
+const fileMatchers: FileTypeMatcher[] = [
   {
     type: 'txt',
     matcher: (file: File | string) => {
@@ -34,7 +34,6 @@ const customMatchers: FileTypeMatcher[] = [
       return file.toLowerCase().endsWith('.txt')
     },
     icon: TextIcon,
-    priority: 200, // 高优先级
   },
   {
     type: 'md',
@@ -45,7 +44,6 @@ const customMatchers: FileTypeMatcher[] = [
       return file.toLowerCase().endsWith('.md') || file.toLowerCase().endsWith('.markdown')
     },
     icon: MDIcon,
-    priority: 200,
   },
   {
     type: 'json',
@@ -56,12 +54,11 @@ const customMatchers: FileTypeMatcher[] = [
       return file.toLowerCase().endsWith('.json')
     },
     icon: JsonIcon,
-    priority: 200,
   },
 ]
 
 // 使用自定义匹配器创建 useFileType 实例
-const { createAttachments } = useFileType({ customMatchers })
+const { createAttachments } = useFileType({ fileMatchers })
 
 // 自定义文件类型示例
 const customFiles = ref<Attachment[]>([

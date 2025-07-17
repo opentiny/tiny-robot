@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { IconArrowLeft, IconArrowRight, IconClose } from '@opentiny/tiny-robot-svgs'
 import type { Attachment } from '../index.type'
 
-type Image = Pick<Attachment, 'id' | 'name' | 'previewUrl'>
+type Image = Pick<Attachment, 'id' | 'name' | 'url'>
 
 interface ImagePreviewProps {
   images: Image[]
@@ -54,7 +54,7 @@ function close() {
       </button>
 
       <div class="tr-image-preview__content">
-        <img :src="currentImage?.previewUrl" :alt="currentImage?.name" class="tr-image-preview__image" />
+        <img :src="currentImage?.url" :alt="currentImage?.name" class="tr-image-preview__image" />
       </div>
 
       <button
@@ -75,7 +75,7 @@ function close() {
           :class="{ 'tr-image-preview__thumbnail--active': index === currentIndex }"
           @click="selectImage(index)"
         >
-          <img :src="image.previewUrl" :alt="image.name" />
+          <img :src="image.url" :alt="image.name" />
         </div>
       </div>
     </div>

@@ -15,7 +15,7 @@ const emit = defineEmits(['remove', 'preview', 'action', 'retry', 'download'])
 // 文件相关工具 & 图标
 const { formatFileSize, getIconComponent } = useFileType({
   customIcons: props.fileIcons,
-  customMatchers: props.customMatchers,
+  fileMatchers: props.fileMatchers,
 })
 
 // 卡片交互相关
@@ -61,7 +61,7 @@ const cardClasses = computed(() => {
     <template v-if="variant === 'picture'">
       <div class="tr-file-card__picture-container">
         <!-- 图片预览 -->
-        <img :src="file.previewUrl" :alt="file.name" class="tr-file-card__picture-img" />
+        <img :src="file.url" :alt="file.name" class="tr-file-card__picture-img" />
 
         <!-- 预览遮罩 - 只有上传成功状态才显示 -->
         <div v-if="isUploadSuccess" class="tr-file-card__picture-overlay">
@@ -73,11 +73,11 @@ const cardClasses = computed(() => {
           v-if="isUploading || isUploadFailed"
           class="tr-file-card__status-overlay tr-file-card__status-overlay--picture"
         >
-          <!-- 上传中状态 添加超时文本状态 -->
+          <!-- 上传中状态 添加状态提示文本 -->
           <div v-if="isUploading" class="tr-file-card__status-icon tr-file-card__status-icon--loading">
             <IconImageLoading />
-            <span v-if="file.uploadTimeoutText" class="tr-file-card__status-icon--loading-text">
-              {{ file.uploadTimeoutText }}
+            <span v-if="file.message" class="tr-file-card__status-icon--loading-text">
+              {{ file.message }}
             </span>
           </div>
 
@@ -150,7 +150,7 @@ const cardClasses = computed(() => {
                     :key="index"
                     class="tr-file-card__action-btn"
                     :class="`tr-file-card__action-btn--${action.type}`"
-                    @click="handleCustomAction(action)"
+                    @click="handleCustomAction(action, $event)"
                   >
                     {{ action.label }}
                   </button>

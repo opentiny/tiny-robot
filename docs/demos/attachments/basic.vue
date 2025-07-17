@@ -2,7 +2,7 @@
   <div class="demo-container">
     <div class="demo-section">
       <h4>文件列表</h4>
-      <tr-attachments v-model:items="infoFiles" />
+      <tr-attachments v-model:items="infoFiles" @download="handleDownload" />
     </div>
     <div class="demo-section">
       <h4>图片列表</h4>
@@ -47,21 +47,25 @@ const pictureFiles = ref<Attachment[]>([
     name: 'nature-1.jpg',
     fileType: 'image',
     status: 'success',
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
   {
     id: 'pic2',
     name: 'nature-2.jpg',
     fileType: 'image',
     status: 'success',
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
   },
   {
     id: 'pic3',
     name: 'nature-3.jpg',
     fileType: 'image',
     status: 'success',
-    previewUrl: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
 ])
+
+const handleDownload = (payload: { event: MouseEvent; file: Attachment }) => {
+  console.log('download', payload)
+}
 </script>

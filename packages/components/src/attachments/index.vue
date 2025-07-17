@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<AttachmentListProps>(), {
       type: 'preview',
     },
   ],
-  customMatchers: () => [],
+  fileMatchers: () => [],
 })
 
 const emit = defineEmits<AttachmentListEmits>()
@@ -43,8 +43,8 @@ function handleRemove(file: Attachment) {
 }
 
 // 下载文件
-function handleDownload(file: Attachment) {
-  emit('download', file)
+function handleDownload(payload: { event: MouseEvent; file: Attachment }) {
+  emit('download', payload)
 }
 
 // 重试上传
@@ -83,8 +83,7 @@ watch(
         :disabled="disabled"
         :actions="actions"
         :show-status="true"
-        :custom-matchers="customMatchers"
-        :download-handler="downloadHandler"
+        :file-matchers="fileMatchers"
         @remove="handleRemove"
         @preview="handlePreview"
         @download="handleDownload"

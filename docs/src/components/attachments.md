@@ -54,17 +54,11 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 
 <demo vue="../../demos/attachments/custom-icon.vue" />
 
-### 自定义文件类型 (customMatchers)
+### 自定义文件类型 (fileMatchers)
 
-当内置的文件类型不满足需求时，可以通过 `customMatchers` 属性定义新的文件类型、匹配逻辑和专属图标。这在需要支持特殊格式或业务特定文件时非常有用。
+当内置的文件类型不满足需求时，可以通过 `fileMatchers` 属性定义新的文件类型、匹配逻辑和专属图标。这在需要支持特殊格式或业务特定文件时非常有用。
 
 <demo vue="../../demos/attachments/custom-file-type.vue" />
-
-### 自定义下载 (downloadHandler)
-
-通过 `downloadHandler` 属性，可以拦截默认的下载行为，实现自定义下载逻辑，例如需要授权才能下载的场景。
-
-<demo vue="../../demos/attachments/custom-download.vue" />
 
 ## API 参考
 
@@ -78,8 +72,7 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 | variant         | `'picture' \| 'card' \| 'auto'` | `'auto'`                            | 附件列表的展示形式，详见 [展示形式](#展示形式-variant)。                      |
 | actions         | `ActionButton[]`                | 图片默认: `['preview', 'download']` | 自定义操作按钮，详见 [自定义操作按钮](#自定义操作按钮-actions)。              |
 | fileIcons       | `Record<string, Component>`     | -                                   | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)。                |
-| customMatchers  | `FileTypeMatcher[]`             | []                                  | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-custommatchers)。 |
-| downloadHandler | `(file: Attachment) => void`    | -                                   | 自定义下载处理器，详见 [自定义下载](#自定义下载-downloadhandler)。            |
+| fileMatchers  | `FileTypeMatcher[]`             | []                                  | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-filematchers)。 |
 
 ### Types
 
@@ -95,8 +88,8 @@ interface Attachment {
   fileType?: string // 文件类型
   size?: number // 文件大小（字节）
   rawFile?: File // 原始文件对象
-  previewUrl?: string // 预览URL (仅图片类型)
-  uploadTimeoutText?: string // 上传超时文本
+  url?: string // 预览URL (仅图片类型)
+  message?: string // 上传超时文本
 }
 ```
 
@@ -121,7 +114,6 @@ interface FileTypeMatcher {
   type: string // 唯一类型标识
   matcher: (file: File | string) => boolean // 匹配函数，返回 true 则表示匹配成功
   icon?: Component // 该类型对应的图标
-  priority?: number // 优先级，数字越大，越先被匹配
 }
 ```
 
@@ -131,14 +123,14 @@ interface FileTypeMatcher {
 | ------------ | -------------------------------------------- | -------------------------- |
 | update:items | `Attachment[]`                               | 附件列表更新时触发。       |
 | remove       | `Attachment`                                 | 文件被移除时触发。         |
-| download     | `(file: Attachment) => void`                 | 点击内置下载按钮时触发。   |
+| download     | `{ event: MouseEvent; file: Attachment }`    | 点击内置下载按钮时触发。   |
 | preview      | `(file: Attachment) => void`                 | 点击内置预览按钮时触发。   |
 | retry        | `(file: Attachment) => void`                 | 点击重试按钮时触发。       |
 | action       | `{ action: ActionButton, file: Attachment }` | 点击自定义操作按钮时触发。 |
 
 ## 内置附件类型
 
-组件内置了以下文件类型，并提供了默认图标。通过 `customMatchers` 属性可以扩展或覆盖这些类型。
+组件内置了以下文件类型，并提供了默认图标。通过 `fileMatchers` 属性可以扩展或覆盖这些类型。
 
 - `image`: 图片 (png, jpg, jpeg, gif, webp, svg)
 - `pdf`: PDF 文档

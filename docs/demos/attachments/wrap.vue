@@ -25,7 +25,7 @@ const files = ref<Attachment[]>([
     status: 'success',
     size: 200,
     fileType: 'word',
-    previewUrl: '/path/to/preview.docx',
+    url: '/path/to/preview.docx',
   },
   {
     id: '1',
@@ -33,7 +33,7 @@ const files = ref<Attachment[]>([
     status: 'success',
     size: 200,
     fileType: 'pdf',
-    previewUrl: '/path/to/preview.pdf',
+    url: '/path/to/preview.pdf',
   },
   {
     id: '2',
@@ -41,7 +41,7 @@ const files = ref<Attachment[]>([
     status: 'success',
     size: 200 * 1024,
     fileType: 'ppt',
-    previewUrl: '/path/to/preview.ppt',
+    url: '/path/to/preview.ppt',
   },
   {
     id: '3',
@@ -49,7 +49,7 @@ const files = ref<Attachment[]>([
     status: 'success',
     size: 200,
     fileType: 'excel',
-    previewUrl: '/path/to/preview.xlsx',
+    url: '/path/to/preview.xlsx',
   },
   {
     id: '4',
@@ -57,7 +57,7 @@ const files = ref<Attachment[]>([
     status: 'success',
     size: 200,
     fileType: 'folder',
-    previewUrl: '/path/to/preview',
+    url: '/path/to/preview',
   },
   {
     id: '5',

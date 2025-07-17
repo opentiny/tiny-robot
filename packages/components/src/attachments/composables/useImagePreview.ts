@@ -11,7 +11,7 @@ export interface ImagePreviewOptions {
   /**
    * 自定义下载处理函数
    */
-  onDownload?: (file: Attachment) => void
+  onDownload?: (payload: { event: MouseEvent; file: Attachment }) => void
 }
 
 export function useImagePreview(
@@ -33,7 +33,7 @@ export function useImagePreview(
   const show = (file: Attachment) => {
     // 更新文件列表中的文件信息（主要针对新创建的 blob url）
     const fileIndex = fileList.value.findIndex((item) => item.id === file.id)
-    if (fileIndex !== -1 && file.previewUrl) {
+    if (fileIndex !== -1 && file.url) {
       fileList.value.splice(fileIndex, 1, file)
     }
 
@@ -61,11 +61,11 @@ export function useImagePreview(
   }
 
   // 处理下载
-  const handleDownload = (file: Attachment) => {
+  const handleDownload = (payload: { event: MouseEvent; file: Attachment }) => {
     if (options.onDownload) {
-      options.onDownload(file)
+      options.onDownload(payload)
     } else {
-      emit('download', file)
+      emit('download', payload)
     }
   }
 

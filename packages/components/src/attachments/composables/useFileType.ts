@@ -33,7 +33,6 @@ const defaultMatchers: FileTypeMatcher[] = [
       return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)
     },
     icon: IconFileImage,
-    priority: 100,
   },
   {
     type: 'pdf',
@@ -44,7 +43,6 @@ const defaultMatchers: FileTypeMatcher[] = [
       return file.toLowerCase().endsWith('.pdf')
     },
     icon: IconFilePdf,
-    priority: 100,
   },
   {
     type: 'word',
@@ -59,7 +57,6 @@ const defaultMatchers: FileTypeMatcher[] = [
       return ['doc', 'docx'].includes(extension)
     },
     icon: IconFileWord,
-    priority: 100,
   },
   {
     type: 'excel',
@@ -74,7 +71,6 @@ const defaultMatchers: FileTypeMatcher[] = [
       return ['xls', 'xlsx'].includes(extension)
     },
     icon: IconFileExcel,
-    priority: 100,
   },
   {
     type: 'ppt',
@@ -89,7 +85,6 @@ const defaultMatchers: FileTypeMatcher[] = [
       return ['ppt', 'pptx'].includes(extension)
     },
     icon: IconFilePpt,
-    priority: 100,
   },
   {
     type: 'folder',
@@ -100,29 +95,64 @@ const defaultMatchers: FileTypeMatcher[] = [
       return file.toLowerCase().endsWith('folder')
     },
     icon: IconFileFolder,
-    priority: 100,
   },
 ]
 
 interface UseFileTypeOptions {
+  /**
+   * 自定义图标
+   */
   customIcons?: Record<string, Component>
-  customMatchers?: FileTypeMatcher[]
+
+  /**
+   * 自定义文件类型匹配器
+   */
+  fileMatchers?: FileTypeMatcher[]
 }
 
 export function useFileType(options: UseFileTypeOptions = {}) {
-  const { customIcons, customMatchers } = options
+  const { customIcons, fileMatchers } = options
+
   /**
    * 获取所有匹配器（合并默认和自定义）
+   *
+   * 自定义匹配器优先级高于默认匹配器
    */
   const getAllMatchers = (): FileTypeMatcher[] => {
-    const allMatchers = [...defaultMatchers]
+    let allMatchers: FileTypeMatcher[] = []
 
-    if (customMatchers) {
-      allMatchers.push(...customMatchers)
+    if (fileMatchers) {
+      allMatchers = fileMatchers.concat(defaultMatchers)
+    } else {
+      allMatchers = defaultMatchers
     }
 
-    // 按优先级排序，优先级高的在前
-    return allMatchers.sort((a, b) => (b.priority || 0) - (a.priority || 0))
+    return allMatchers
+  }
+
+  // 获取指定文件类型的图标组件
+  const getIconComponent = (fileType: FileType = 'other'): ComputedRef<Component> => {
+    return computed(() => {
+      // 优先使用自定义图标
+      if (customIcons?.[fileType]) {
+        return customIcons[fileType]
+      }
+
+      // 查找匹配器中的图标
+      const matchers = getAllMatchers()
+      const matcher = matchers.find((m) => m.type === fileType)
+      if (matcher?.icon) {
+        return matcher.icon
+      }
+
+      // 使用默认图标
+      if (DefaultIcons[fileType as BaseFileType]) {
+        return DefaultIcons[fileType as BaseFileType]
+      }
+
+      // 最后使用 other 图标
+      return DefaultIcons.other
+    })
   }
 
   /**
@@ -182,35 +212,8 @@ export function useFileType(options: UseFileTypeOptions = {}) {
       fileType: detectFileType(file),
       rawFile: file,
       size: file.size,
-      previewUrl: createPreviewUrl(file),
+      url: createPreviewUrl(file),
     }))
-  }
-
-  /**
-   * 获取指定文件类型的图标组件
-   */
-  const getIconComponent = (fileType: FileType = 'other'): ComputedRef<Component> => {
-    return computed(() => {
-      // 优先使用自定义图标
-      if (customIcons?.[fileType]) {
-        return customIcons[fileType]
-      }
-
-      // 查找匹配器中的图标
-      const matchers = getAllMatchers()
-      const matcher = matchers.find((m) => m.type === fileType)
-      if (matcher?.icon) {
-        return matcher.icon
-      }
-
-      // 使用默认图标
-      if (DefaultIcons[fileType as BaseFileType]) {
-        return DefaultIcons[fileType as BaseFileType]
-      }
-
-      // 最后使用 other 图标
-      return DefaultIcons.other
-    })
   }
 
   return {
