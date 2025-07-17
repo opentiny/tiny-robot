@@ -461,7 +461,9 @@ const activateTemplateFirstField = () => {
   }
 }
 
-const { open: openFileDialog, files } = useFileDialog(props.buttonGroup?.file)
+const { accept = '*', multiple = true } = props.buttonGroup?.file || {}
+
+const { open: openFileDialog, files } = useFileDialog({ accept, multiple })
 
 watch(files, (selectedFiles) => {
   if (selectedFiles && selectedFiles.length > 0) {
