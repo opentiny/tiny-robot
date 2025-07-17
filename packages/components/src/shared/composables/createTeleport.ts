@@ -10,15 +10,18 @@ const TeleportWrapperComponent = defineComponent({
 export function createTeleport(props: TeleportProps, child: () => VNode) {
   let vnode: VNode | null = null
   let container: HTMLElement | null = null
+  let isUnmounted = false
 
   // render Teleport
   nextTick(() => {
+    if (isUnmounted) return
     container = document.createElement('div')
     vnode = h(TeleportWrapperComponent, { teleportProps: props, vnodeFactory: child })
     render(vnode, container)
   })
 
   onBeforeUnmount(() => {
+    isUnmounted = true
     nextTick(() => {
       if (container) {
         render(null, container)
