@@ -417,6 +417,45 @@ const insertToText = (text: string, insertedText: string, startOffset: number, e
   return text.slice(0, startOffset) + insertedText + text.slice(endOffset)
 }
 
+const adjustSelectionForSentinelNode = (
+  selectedItems: SelectedItem[],
+  range: EditorRange,
+  inputType: string,
+): SelectedItem[] => {
+  // 仅处理 deleteContentBackward
+  if (inputType !== 'deleteContentForward' || selectedItems.length !== 1) {
+    return selectedItems
+  }
+
+  const item = selectedItems[0]
+  const dataItem = originalData.value.find((d) => d.id === item.id)
+
+  // 检查是否是哨兵节点（仅包含零宽字符的文本节点）
+  if (!dataItem || dataItem.type !== 'text' || dataItem.content !== '\u200B' || range.collapsed) {
+    return selectedItems
+  }
+
+  // 是哨兵节点，我们将光标移动到下一个元素
+  const currentIndex = flattenedData.value.findIndex((flatItem) => flatItem.id === item.id)
+
+  if (currentIndex < 0 || currentIndex >= flattenedData.value.length - 1) {
+    // 如果是最后一个元素，或者没找到，就只阻止删除（通过折叠选区）
+    return [{ ...item, startOffset: 0, endOffset: 0 }]
+  }
+
+  const nextItem = flattenedData.value[currentIndex + 1]
+
+  // 返回一个指向下一个元素开头的新选区
+  return [
+    {
+      id: nextItem.id,
+      type: nextItem.type,
+      startOffset: 0,
+      endOffset: 0,
+    },
+  ]
+}
+
 const processInput = (range: EditorRange, inputType: string, inputData: string) => {
   const selected = getSelected(range)
 
@@ -424,7 +463,9 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
     return
   }
 
-  const selectedOrCreateItems = transformSelected(selected, range, inputType, inputData)
+  const adjustedSelected = adjustSelectionForSentinelNode(selected, range, inputType)
+
+  const selectedOrCreateItems = transformSelected(adjustedSelected, range, inputType, inputData)
 
   if (selectedOrCreateItems.some((item) => (item as CreateItem).tag === 'new')) {
     const { afterId, content } = selectedOrCreateItems[0] as CreateItem
@@ -473,12 +514,13 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
       if (item.type === 'text') {
         return item.content.length > 0
       }
-      return [item.prefix, item.suffix, item.content].join('').length > 0
+      const templateItem = item as TemplateItem
+      return [templateItem.prefix, templateItem.suffix, templateItem.content].join('').length > 0
     }),
   )
 
   // 恢复分隔符
-  for (const dataItem of originalData.value.filter((item) => item.type === 'template')) {
+  for (const dataItem of originalData.value.filter((item): item is TemplateItem => item.type === 'template')) {
     if (dataItem.prefix.length === 0) {
       dataItem.prefix = PREFIX
     }
