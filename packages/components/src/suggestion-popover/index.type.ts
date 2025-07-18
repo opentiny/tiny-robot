@@ -44,6 +44,8 @@ export interface SuggestionPopoverSlots {
   item?: ({ item }: { item: SuggestionItem }) => VNode | VNode[]
   loading?: () => VNode | VNode[]
   empty?: () => VNode | VNode[]
+  header?: () => VNode | VNode[]
+  body?: () => VNode | VNode[]
 }
 
 export interface SuggestionPopoverEmits {
