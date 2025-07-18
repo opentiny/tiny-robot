@@ -15,24 +15,20 @@ import type { Attachment } from '@opentiny/tiny-robot'
 
 const statusFiles = ref<Attachment[]>([
   {
-    id: '1',
-    name: '设计文档.docx',
-    fileType: 'word',
-    size: 1024 * 1024 * 1.5, // 1.5MB
+    size: 1024 * 1024 * 3.5, // 3.5MB
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
     status: 'success',
   },
+
   {
-    id: '2',
-    name: '数据表格.xlsx',
-    fileType: 'excel',
-    size: 1024 * 1024 * 2.3, // 2.3MB
+    size: 1024 * 1024 * 3.5, // 3.5MB
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/设计2.jpg',
     status: 'uploading',
   },
+
   {
-    id: '3',
-    name: '演示文稿.pdf',
-    fileType: 'pdf',
-    size: 1024 * 1024 * 1.1, // 1.1MB
+    size: 1024 * 1024 * 3.5, // 3.5MB
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/设计3.jpg',
     status: 'error',
   },
 ])

@@ -42,6 +42,15 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 
 <demo vue="../../demos/attachments/wrap.vue" />
 
+### 预览和下载
+
+> 本地文件 和 网络文件 的下载方式不同
+
+- 本地文件：直接使用 `a` 标签下载
+- 网络文件：使用 `fetch` 下载
+
+<demo vue="../../demos/attachments/download.vue" />
+
 ### 自定义操作按钮 (actions)
 
 通过 `actions` 属性可以定义在文件卡片上显示的操作按钮。对于图片类型，组件内置了“预览”和“下载”操作。你可以覆盖或添加新的操作。

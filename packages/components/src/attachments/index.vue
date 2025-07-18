@@ -3,6 +3,7 @@ import { watch, ref, computed } from 'vue'
 import { useImagePreview, useListType } from './composables'
 import { AttachmentListEmits, AttachmentListProps, Attachment, ActionButton } from './index.type'
 import FileCard from './components/FileCard.vue'
+import { useFileType } from './composables/useFileType'
 
 const props = withDefaults(defineProps<AttachmentListProps>(), {
   variant: 'auto',
@@ -59,15 +60,19 @@ function handleAction(payload: { action: ActionButton; file: Attachment }) {
 
 const wrapClass = computed(() => (props.wrap ? 'wrap' : 'no-wrap'))
 
+const { uploadAttachments } = useFileType({
+  fileMatchers: props.fileMatchers,
+})
+
 // 监听props.items变化
 watch(
   () => props.items,
   (newItems) => {
-    if (newItems) {
-      fileList.value = newItems
+    if (newItems && newItems.length > 0) {
+      fileList.value = uploadAttachments(newItems)
     }
   },
-  { deep: true },
+  { deep: true, immediate: true },
 )
 </script>
 

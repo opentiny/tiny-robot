@@ -15,17 +15,11 @@ const fileIcons: Record<FileType, Component> = {
 
 const items = ref<Attachment[]>([
   {
-    id: '1',
-    name: '这是一个word文档.docx',
-    status: 'success',
-    fileType: 'word',
+    url: 'https://www.demo.com/文档.docx',
     size: 12345,
   },
   {
-    id: '2',
-    name: '这是一个excel表格.xlsx',
-    status: 'success',
-    fileType: 'excel',
+    url: 'https://www.demo.com/表格.xlsx',
     size: 24576,
   },
 ])

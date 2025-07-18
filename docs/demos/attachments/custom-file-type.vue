@@ -3,9 +3,7 @@
     <div class="demo-section">
       <h4>支持自定义文件类型（txt、md、json）</h4>
       <tr-attachments v-model:items="customFiles" :file-matchers="fileMatchers" wrap />
-    </div>
 
-    <div class="demo-section">
       <h4>添加自定义文件类型</h4>
       <input type="file" @change="handleFileChange" accept=".txt,.md,.json" style="margin-bottom: 16px" />
       <p>选择 .txt、.md 或 .json 文件来测试自定义匹配器</p>
@@ -15,7 +13,7 @@
 
 <script setup lang="ts">
 import { ref, h } from 'vue'
-import { TrAttachments, useFileType } from '@opentiny/tiny-robot'
+import { TrAttachments } from '@opentiny/tiny-robot'
 import type { Attachment, FileTypeMatcher } from '@opentiny/tiny-robot'
 
 // 自定义图标组件
@@ -57,9 +55,6 @@ const fileMatchers: FileTypeMatcher[] = [
   },
 ]
 
-// 使用自定义匹配器创建 useFileType 实例
-const { createAttachments } = useFileType({ fileMatchers })
-
 // 自定义文件类型示例
 const customFiles = ref<Attachment[]>([
   {
@@ -67,6 +62,7 @@ const customFiles = ref<Attachment[]>([
     name: 'README.md',
     fileType: 'md',
     size: 1024 * 2, // 2KB
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.md',
     status: 'success',
   },
   {
@@ -74,6 +70,7 @@ const customFiles = ref<Attachment[]>([
     name: 'config.json',
     fileType: 'json',
     size: 1024 * 1.5, // 1.5KB
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.json',
     status: 'success',
   },
   {
@@ -81,6 +78,7 @@ const customFiles = ref<Attachment[]>([
     name: 'notes.txt',
     fileType: 'txt',
     size: 1024 * 3, // 3KB
+    url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.txt',
     status: 'success',
   },
 ])
@@ -93,7 +91,7 @@ const handleFileChange = (event: Event) => {
   if (files && files.length > 0) {
     const file = files[0]
 
-    customFiles.value.push(...createAttachments([file], 'success'))
+    customFiles.value.push({ rawFile: file })
   }
 
   // 清空输入框

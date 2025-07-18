@@ -21,35 +21,27 @@ import type { Attachment } from '@opentiny/tiny-robot'
 
 const pictureStatusFiles = ref<Attachment[]>([
   {
-    id: 'pic1',
-    name: 'nature-1.jpg',
-    fileType: 'image',
     status: 'success',
+    size: 1024 * 1024 * 3.5,
     url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
   {
-    id: 'pic2',
-    name: 'nature-2.jpg',
-    fileType: 'image',
     status: 'uploading',
+    size: 1024 * 1024 * 3.5,
     url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/book.jpg',
   },
   {
-    id: 'pic3',
-    name: 'nature-3.jpg',
-    fileType: 'image',
     status: 'error',
+    size: 1024 * 1024 * 3.5,
     url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.png',
   },
 ])
 
 const pictureTimeoutFiles = ref<Attachment[]>([
   {
-    id: 'pic1',
-    name: 'nature-1.jpg',
-    fileType: 'image',
     status: 'uploading',
     message: '努力中...',
+    size: 1024 * 1024 * 3.5,
     url: 'https://res.hc-cdn.com/tiny-vue-web-doc/3.23.0.20250521142915/static/images/fruit.jpg',
   },
 ])

@@ -1,5 +1,5 @@
 import { computed, Component, ComputedRef } from 'vue'
-import { FileStatus, FileType, BaseFileType, FileTypeMatcher } from '../index.type'
+import { FileType, BaseFileType, FileTypeMatcher, Attachment } from '../index.type'
 import {
   IconFileImage,
   IconFilePdf,
@@ -190,38 +190,82 @@ export function useFileType(options: UseFileTypeOptions = {}) {
     }
   }
 
-  /**
-   * 创建文件预览URL
-   * @returns 预览URL
-   */
-  const createPreviewUrl = (file: File): string => {
-    if (file.type?.startsWith('image/')) {
-      return URL.createObjectURL(file)
-    }
-    return ''
+  type RawFileItem = { rawFile: File } & Partial<Attachment>
+  type UrlSizeItem = { url: string; size: number } & Partial<Attachment>
+  type InputItem = RawFileItem | UrlSizeItem | Partial<Attachment>
+
+  const isUrlSizeItem = (item: InputItem): item is UrlSizeItem => {
+    return typeof item.url === 'string' && !!item.url && typeof item.size === 'number'
+  }
+
+  const isRawFileItem = (item: InputItem): item is RawFileItem => {
+    return item.rawFile instanceof File
   }
 
   /**
-   * 批量创建文件附件对象
+   * 更新文件附件对象列表
+   * @param items 输入的文件附件原始数据列表
+   * @returns 标准化的文件附件对象列表
    */
-  const createAttachments = (files: File[], defaultStatus: FileStatus = 'success') => {
-    return files.map((file) => ({
-      id: generateID(),
-      name: file.name,
-      status: defaultStatus,
-      fileType: detectFileType(file),
-      rawFile: file,
-      size: file.size,
-      url: createPreviewUrl(file),
-    }))
+  const uploadAttachments = (items: InputItem[]): Attachment[] => {
+    return items.map((item) => {
+      if (isUrlSizeItem(item)) {
+        return transformUrlItem(item)
+      } else if (isRawFileItem(item)) {
+        return transformRawFileItem(item)
+      }
+    }) as Attachment[]
+  }
+
+  type CommonProps = Pick<Attachment, 'id' | 'name' | 'status' | 'message'>
+
+  const getCommonProps = (item: Partial<Attachment>): CommonProps => ({
+    id: item.id || generateID(),
+    name: item.name || '',
+    status: item.status || 'success',
+    message: item.message || '',
+  })
+
+  /**
+   * 根据文件URL和大小更新文件附件对象
+   * @param item 含url和size的原始数据
+   * @returns 标准化的Attachment对象
+   */
+  const transformUrlItem = (item: UrlSizeItem): Attachment => {
+    const common = getCommonProps(item)
+    const parsedName = item.url.split('/').pop() || ''
+    return {
+      ...common,
+      name: common.name || parsedName,
+      fileType: detectFileType(parsedName),
+      size: item.size,
+      url: item.url,
+    }
+  }
+
+  /**
+   * 根据rawFile文件更新文件附件对象
+   * @param item 含rawFile的原始数据
+   * @returns 标准化的Attachment对象
+   */
+  const transformRawFileItem = (item: RawFileItem): Attachment => {
+    const common = getCommonProps(item)
+    const { rawFile } = item
+    return {
+      ...common,
+      name: common.name || rawFile.name,
+      fileType: detectFileType(rawFile),
+      rawFile: rawFile,
+      size: rawFile.size,
+      url: item.url,
+    }
   }
 
   return {
     detectFileType,
     generateID,
     formatFileSize,
-    createPreviewUrl,
-    createAttachments,
+    uploadAttachments,
     getIconComponent,
   }
 }

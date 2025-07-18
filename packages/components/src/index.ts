@@ -28,8 +28,6 @@ export * from './suggestion-pills/index.type'
 export * from './suggestion-popover/index.type'
 export * from './welcome/index.type'
 
-export { useFileType } from './attachments/composables/useFileType'
-
 const components = [
   Attachments,
   Bubble,

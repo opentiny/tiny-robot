@@ -59,12 +59,5 @@ const files = ref<Attachment[]>([
     fileType: 'folder',
     url: '/path/to/preview',
   },
-  {
-    id: '5',
-    name: 'other',
-    status: 'success',
-    size: 200,
-    fileType: 'other',
-  },
 ])
 </script>

@@ -53,12 +53,7 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
    * 处理文件预览
    */
   const handlePreview = () => {
-    if (isImage.value && !props.file.url && props.file.rawFile) {
-      const blobUrl = createBlobUrl(props.file.rawFile)
-      emit('preview', { ...props.file, url: blobUrl })
-    } else {
-      emit('preview', props.file)
-    }
+    emit('preview', props.file)
   }
 
   /**
@@ -70,7 +65,7 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
   const downloadFile = (event: MouseEvent) => {
     if (props.file.rawFile && !props.file.url) {
       const blobUrl = createBlobUrl(props.file.rawFile)
-      downloadLocalFile(blobUrl, props.file.name)
+      downloadLocalFile(blobUrl, props.file.name || '')
     }
 
     emit('download', { event, file: props.file })

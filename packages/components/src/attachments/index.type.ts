@@ -16,16 +16,27 @@ export interface FileTypeMatcher {
   icon?: Component
 }
 
-export interface Attachment {
-  id: string
-  name: string
-  status?: FileStatus
-  url?: string
-  fileType: FileType
-  size?: number
-  message?: string // 上传过程中提示信息
-  rawFile?: File // 原始文件对象，用于下载和预览
-}
+export type Attachment =
+  | {
+      id?: string
+      name?: string
+      status?: FileStatus
+      url: string
+      fileType?: FileType
+      size: number
+      message?: string // 上传过程中提示信息
+      rawFile?: File // 原始文件对象，用于下载和预览
+    }
+  | {
+      id?: string
+      name?: string
+      status?: FileStatus
+      url?: string
+      fileType?: FileType
+      size?: number
+      message?: string // 上传过程中提示信息
+      rawFile: File // 原始文件对象，用于下载和预览
+    }
 
 export interface ActionButton {
   type: string

@@ -145,15 +145,24 @@ const cardClasses = computed(() => {
 
                 <!-- 悬浮时显示操作按钮 -->
                 <div v-if="actions" class="tr-file-card__actions">
-                  <button
-                    v-for="(action, index) in actions"
-                    :key="index"
-                    class="tr-file-card__action-btn"
-                    :class="`tr-file-card__action-btn--${action.type}`"
-                    @click="handleCustomAction(action, $event)"
-                  >
-                    {{ action.label }}
-                  </button>
+                  <div v-for="(action, index) in actions" :key="index" class="tr-file-card__action-btn">
+                    <a
+                      v-if="action.type === 'download'"
+                      class="tr-file-card__action-btn--download"
+                      :href="file.url ?? 'javascript:void(0)'"
+                      :target="isImage ? '_blank' : '_self'"
+                      @click="handleCustomAction(action, $event)"
+                    >
+                      {{ action.label }}</a
+                    >
+                    <button
+                      v-else
+                      :class="`tr-file-card__action-btn--${action.type}`"
+                      @click="handleCustomAction(action, $event)"
+                    >
+                      {{ action.label }}
+                    </button>
+                  </div>
                 </div>
               </div>
 
