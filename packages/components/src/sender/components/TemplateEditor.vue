@@ -817,13 +817,22 @@ defineExpose({
   </div>
 </template>
 
+<style lang="less">
+:root {
+  --tr-sender-template-editor-font-size: 16px;
+  --tr-sender-template-block-color: #1476ff;
+  --tr-sender-template-block-bg-color: rgba(20, 118, 255, 0.1);
+  --tr-sender-template-block-caret-color: #191919;
+}
+</style>
+
 <style lang="less" scoped>
 .editor-container {
   [contenteditable] {
     display: block;
     width: 100%;
     min-height: 26px;
-    font-size: 16px;
+    font-size: var(--tr-sender-template-editor-font-size);
     line-height: 2.5;
     border-radius: 4px;
     word-break: break-word;

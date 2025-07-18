@@ -5,3 +5,8 @@
 .vitepress-demo-plugin__container li + li {
   margin: 0;
 }
+
+.VPNav .container {
+  width: unset;
+  padding: unset;
+}

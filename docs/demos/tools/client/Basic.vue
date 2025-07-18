@@ -12,7 +12,7 @@ async function chat(content) {
   const client = new AIClient({
     provider: 'openai',
     defaultModel: 'gpt-3.5-turbo',
-    apiUrl: location.origin + '/cdocs/tiny-robot/',
+    apiUrl: location.origin + import.meta.env.BASE_URL,
     // apiKey: 'your-api-key',
   })
   try {

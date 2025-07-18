@@ -13,14 +13,6 @@ export default {
   enhanceApp({ app }) {
     app.mixin({
       mounted() {
-        // 动态引入TinyVue/TinyRobot, 解决vitepress打包在服务端渲染没有document和window等会报错
-        import('@opentiny/vue').then(function (m) {
-          app.use(m.default)
-        })
-        import('@opentiny/tiny-robot').then(function (m) {
-          app.use(m.default)
-        })
-
         registerServiceWorker()
       },
     })
@@ -39,7 +31,7 @@ function registerServiceWorker() {
 
   window.__SW_REGISTERED__ = true
   navigator.serviceWorker
-    .register('/cdocs/tiny-robot/sw.js')
+    .register(import.meta.env.BASE_URL + 'sw.js')
     .then(() => {
       console.log('ServiceWorker registration successful')
     })

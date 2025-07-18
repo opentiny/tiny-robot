@@ -15,6 +15,7 @@ on:
         options:
           - alpha
           - beta
+          - rc
           - latest
 
 concurrency:
@@ -74,3 +75,21 @@ jobs:
         env:
           # 使用NPM令牌进行身份验证
           NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}
+
+      # 步骤9: 发布文档到GitHub Pages
+      - name: Build VitePress
+        run: pnpm -F docs build --base=/tiny-robot/${{ inputs.tag }}/
+
+      - name: Verify build output
+        run: ls -la ./docs/dist
+
+      - name: Deploy docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/dist
+          destination_dir: ./${{ inputs.tag }}/
+          keep_files: true
+          force_orphan: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'

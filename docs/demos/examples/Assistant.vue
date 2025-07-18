@@ -120,7 +120,7 @@ const client = new AIClient({
   provider: 'openai',
   // apiKey: 'your-api-key',
   defaultModel: 'gpt-3.5-turbo',
-  apiUrl: location.origin + '/cdocs/tiny-robot/',
+  apiUrl: location.origin + import.meta.env.BASE_URL,
 })
 
 const fullscreen = ref(false)
