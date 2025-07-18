@@ -1,12 +1,12 @@
 <template>
   <div class="demo-section">
     <p>将 v-dropzone 指令应用到任何元素上，就可以获得拖拽上传功能：</p>
-
     <!-- 目标元素 -->
     <div
       class="chat-container"
       v-dropzone="{
-        accept: 'image/jpeg, image/png',
+        accept,
+        multiple,
         onDrop: handleFilesDropped,
         onError: handleFilesRejected,
         onDraggingChange: handleDraggingChange,
@@ -14,7 +14,6 @@
     >
       <div class="chat-header">
         <h4>聊天窗口</h4>
-        <span v-if="isDragging" class="drag-indicator">📁 拖拽文件到这里</span>
       </div>
       <div class="chat-content">
         <div class="message">
@@ -37,16 +36,42 @@
       :is-dragging="isDragging"
       :drag-target="targetElement"
     />
+
+    <!-- 事件日志 -->
+    <div v-if="events.length > 0" class="demo-section">
+      <h3>事件日志</h3>
+      <div class="event-log">
+        <div v-for="(event, index) in events" :key="index" class="event-item">
+          <span class="event-time">{{ event.time }}</span>
+          <span class="event-type">{{ event.type }}</span>
+          <span class="event-message">{{ event.message }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- 事件日志 -->
-  <div v-if="events.length > 0" class="demo-section">
-    <h3>事件日志</h3>
-    <div class="event-log">
-      <div v-for="(event, index) in events" :key="index" class="event-item">
-        <span class="event-time">{{ event.time }}</span>
-        <span class="event-type">{{ event.type }}</span>
-        <span class="event-message">{{ event.message }}</span>
+  <!-- accept 和 multiple 属性响应式示例 -->
+  <div>
+    <h4>accept 和 multiple 属性响应式示例</h4>
+    <p>accept 属性用于限制文件类型，multiple 属性用于限制文件数量</p>
+    <p>更改属性后，拖拽区域配置会自动更新，无需重新挂载指令</p>
+    <div class="demo-section-property">
+      <!-- accept 属性 -->
+      <div class="demo-section-body">
+        <label style="margin-right: 8px">accept:</label>
+        <TinySelect v-model="accept">
+          <TinyOption label="图片" value="image/*" />
+          <TinyOption label="视频" value="video/*" />
+          <TinyOption label="音频" value="audio/*" />
+          <TinyOption label="其他" value="application/*" />
+        </TinySelect>
+      </div>
+
+      <!-- multiple 属性 radio 示例 -->
+      <div class="demo-section-body">
+        <label style="margin-right: 8px">multiple:</label>
+        <TinySwitch v-model="multiple" :true-value="true" :false-value="false" />
+        <p style="font-weight: bold">{{ multiple ? '多选' : '单选' }}</p>
       </div>
     </div>
   </div>
@@ -54,6 +79,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { TinySwitch, TinySelect, TinyOption } from '@opentiny/vue'
 import { TrDragOverlay, vDropzone, type FileRejection } from '@opentiny/tiny-robot'
 
 interface Event {
@@ -68,6 +94,8 @@ const overlayDescription = ['总计最多上传3个图片（每个10MB以内）'
 
 const isDragging = ref(false)
 const targetElement = ref<HTMLElement | null>(null)
+const accept = ref('image/*')
+const multiple = ref(true)
 
 function handleDraggingChange(dragging: boolean, element: HTMLElement | null) {
   isDragging.value = dragging
@@ -104,10 +132,22 @@ function handleFilesRejected(rejection: FileRejection) {
 
 <style scoped>
 .demo-section {
-  margin-bottom: 40px;
+  margin-bottom: 10px;
   padding: 20px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
+}
+
+.demo-section-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-section-property {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .demo-section h3 {
@@ -129,6 +169,7 @@ function handleFilesRejected(rejection: FileRejection) {
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+  margin-bottom: 10px;
 }
 
 .chat-header {

@@ -129,8 +129,8 @@ interface DragAwareElement extends HTMLElement {
  */
 function createDragOptions(binding: DropzoneBinding): DragAwareOptions {
   return {
-    accept: binding.accept || '',
-    multiple: binding.multiple || true,
+    accept: binding.accept || '*',
+    multiple: binding.multiple ?? true,
     maxSize: binding.maxSize || 1024 * 1024 * 10,
     maxFiles: binding.maxFiles || 3,
     onDrop: binding.onDrop,
@@ -155,7 +155,7 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
 
     const { disabled, onDraggingChange } = binding.value
 
-    const dragOptions: DragAwareOptions = createDragOptions(binding.value)
+    el.__vDropzoneOptions__ = createDragOptions(binding.value)
 
     const handlers: Handlers = {
       /**
@@ -196,12 +196,12 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
         dragCounter = 0
         onDraggingChange(false, null)
         const files = e.dataTransfer?.files
-        const { onDrop, onError, accept, multiple, maxSize, maxFiles } = dragOptions
+        const { onDrop, onError, accept, multiple, maxSize, maxFiles } = el.__vDropzoneOptions__ as DropzoneBinding
         if (files && files.length > 0) {
           const fileArray = Array.from(files)
           const { acceptedFiles, rejection } = processFiles(fileArray, {
             accept: accept || '',
-            multiple: multiple || true,
+            multiple: multiple ?? true,
             maxSize: maxSize || 1024 * 1024 * 10,
             maxFiles: maxFiles || 3,
           })
@@ -218,7 +218,6 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
     }
 
     el.__vDropzoneHandlers__ = handlers
-    el.__vDropzoneOptions__ = dragOptions
 
     el.addEventListener('dragenter', handlers.handleDragEnter)
     el.addEventListener('dragover', handlers.handleDragOver)
