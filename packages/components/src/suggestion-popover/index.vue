@@ -1,8 +1,10 @@
 <script setup lang="tsx">
+import { IconClose } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementSize, useMediaQuery, useScroll, watchThrottled } from '@vueuse/core'
 import { computed, CSSProperties, reactive, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
 import FlowLayoutButtons from '../flow-layout-buttons'
+import IconButton from '../icon-button'
 import { createTeleport, useTeleportTarget } from '../shared/composables'
 import Backdrop from './components/Backdrop.vue'
 import Header from './components/Header.vue'
@@ -211,10 +213,12 @@ const handleItemMouseleave = (event: MouseEvent) => {
     :trigger-events="{ onClick: handleToggleShow }"
   >
     <template #trigger>
-      <slot />
+      <slot name="trigger" />
     </template>
     <template #content>
-      <Header :icon="props.icon" :title="props.title" @close="handleClose" />
+      <slot name="header">
+        <Header :icon="props.icon" :title="props.title" />
+      </slot>
       <Loading v-if="props.loading">
         <slot name="loading" />
       </Loading>
@@ -222,28 +226,32 @@ const handleItemMouseleave = (event: MouseEvent) => {
         <slot name="empty" />
       </NoData>
       <template v-else>
-        <FlowLayoutButtons
-          class="tr-question__group"
-          v-if="flowLayoutGroups.length > 0"
-          :items="flowLayoutGroups"
-          v-model:selected="selectedGroup"
-          :lines-limit="2"
-          :show-more-trigger="props.groupShowMoreTrigger"
-          @item-click="handleGroupClick"
-        ></FlowLayoutButtons>
-        <ul class="tr-question__list" :class="{ scrolling: isScrolling }" ref="listRef">
-          <li
-            class="tr-question__list-item"
-            v-for="(item, index) in dataItems"
-            :key="item.id"
-            :ref="(el) => setItemRef(el as HTMLElement, index)"
-            @click="handleItemClick(item)"
-            @mouseenter="isOverflowList[index] && handleItemMouseenter(item, index)"
-            @mouseleave="isOverflowList[index] && handleItemMouseleave($event)"
-          >
-            <span>{{ index + 1 }}. </span>{{ item.text }}
-          </li>
-        </ul>
+        <slot name="body">
+          <FlowLayoutButtons
+            class="tr-question__group"
+            v-if="flowLayoutGroups.length > 0"
+            :items="flowLayoutGroups"
+            v-model:selected="selectedGroup"
+            :lines-limit="2"
+            :show-more-trigger="props.groupShowMoreTrigger"
+            @item-click="handleGroupClick"
+          ></FlowLayoutButtons>
+          <ul class="tr-question__list" :class="{ scrolling: isScrolling }" ref="listRef">
+            <li
+              class="tr-question__list-item"
+              v-for="(item, index) in dataItems"
+              :key="item.id"
+              :ref="(el) => setItemRef(el as HTMLElement, index)"
+              @click="handleItemClick(item)"
+              @mouseenter="isOverflowList[index] && handleItemMouseenter(item, index)"
+              @mouseleave="isOverflowList[index] && handleItemMouseleave($event)"
+            >
+              <slot name="item" :item="item">
+                <span>{{ index + 1 }}. </span>{{ item.text }}
+              </slot>
+            </li>
+          </ul>
+        </slot>
       </template>
       <Tooltip
         ref="tooltipRef"
@@ -255,6 +263,7 @@ const handleItemMouseleave = (event: MouseEvent) => {
         :delay-open="300"
         :delay-close="300"
       ></Tooltip>
+      <IconButton class="tr-question-popover__close" :icon="IconClose" size="32" svg-size="20" @click="handleClose" />
     </template>
   </TrBasePopper>
 </template>
@@ -274,6 +283,11 @@ const handleItemMouseleave = (event: MouseEvent) => {
   --tr-suggestion-popover-item-line-height: 24px;
   --tr-suggestion-popover-item-hover-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   --tr-suggestion-popover-item-border-color: rgb(240, 240, 240);
+
+  // 关闭按钮
+  --tr-suggestion-popover-close-bg-color: var(--tr-icon-button-bg);
+  --tr-suggestion-popover-close-hover-bg-color: var(--tr-icon-button-hover-bg);
+  --tr-suggestion-popover-close-color: #595959;
 }
 
 .tr-question-popover {
@@ -413,5 +427,13 @@ const handleItemMouseleave = (event: MouseEvent) => {
       }
     }
   }
+}
+
+.tr-question-popover__close {
+  background-color: var(--tr-suggestion-popover-close-bg-color);
+  color: var(--tr-suggestion-popover-close-color);
+  top: 22px;
+  right: 10px;
+  position: absolute;
 }
 </style>

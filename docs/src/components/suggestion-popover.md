@@ -24,9 +24,21 @@ outline: deep
 
 <demo vue="../../demos/suggestion/popover-grouped.vue" />
 
+### 自定义渲染列表项
+
+使用 `item` 插槽自定义渲染列表项
+
+<demo vue="../../demos/suggestion/popover-custom-item.vue" />
+
 ### 加载中和空数据
 
 <demo vue="../../demos/suggestion/popover-other-status.vue" />
+
+### 其他插槽
+
+另外还提供了 `header` 和 `body` 插槽，方便开发者扩展
+
+<demo vue="../../demos/suggestion/popover-slots.vue" />
 
 ### 移动端适配
 
@@ -56,11 +68,31 @@ outline: deep
 
 弹出框插槽定义。
 
-| 插槽名    | 类型            | 说明               |
-| --------- | --------------- | ------------------ |
-| `default` | `() => unknown` | 自定义内容插槽     |
-| `loading` | `() => unknown` | 自定义加载状态显示 |
-| `empty`   | `() => unknown` | 自定义空状态显示   |
+```code
++---------------------------+         +-----------+
+|     SuggestionPopover     |  <----  |  trigger  |
+|  +---------------------+  |         +-----------+
+|  |       header        |  |
+|  +---------------------+  |
+|  |                     |  |
+|  |        body         |  |
+|  |   +-------------+   |  |
+|  |   |   item[]    |   |  |
+|  |   +-------------+   |  |
+|  |                     |  |
+|  |  loading / empty    |  |
+|  +---------------------+  |
++---------------------------+
+```
+
+| 插槽名    | 类型                                                       | 说明               |
+| --------- | ---------------------------------------------------------- | ------------------ |
+| `trigger` | `() => VNode \| VNode[]`                                   | 自定义触发器       |
+| `item`    | `({ item }: { item: SuggestionItem }) => VNode \| VNode[]` | 自定义渲染列表项   |
+| `loading` | `() => VNode \| VNode[]`                                   | 自定义加载状态显示 |
+| `empty`   | `() => VNode \| VNode[]`                                   | 自定义空状态显示   |
+| `header`  | `() => VNode \| VNode[]`                                   | 自定义头部区域     |
+| `body`    | `() => VNode \| VNode[]`                                   | 自定义列表区域     |
 
 ### Events
 

@@ -1,11 +1,13 @@
 <template>
   <div class="pills-container">
     <TrSuggestionPopover :data="[]">
-      <TrSuggestionPillButton>
-        <template #icon>
-          <IconSparkles style="font-size: 16px; color: #1476ff" />
-        </template>
-      </TrSuggestionPillButton>
+      <template #trigger>
+        <TrSuggestionPillButton>
+          <template #icon>
+            <IconSparkles style="font-size: 16px; color: #1476ff" />
+          </template>
+        </TrSuggestionPillButton>
+      </template>
     </TrSuggestionPopover>
     <TrSuggestionPills
       class="pills"

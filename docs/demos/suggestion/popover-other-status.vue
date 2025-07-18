@@ -1,10 +1,14 @@
 <template>
   <div style="display: flex; gap: 8px; justify-content: space-around">
     <SuggestionPopover :data="[]" :loading="true">
-      <button>加载中状态</button>
+      <template #trigger>
+        <button>加载中状态</button>
+      </template>
     </SuggestionPopover>
     <SuggestionPopover :data="[]">
-      <button>空状态</button>
+      <template #trigger>
+        <button>空状态</button>
+      </template>
     </SuggestionPopover>
   </div>
 </template>

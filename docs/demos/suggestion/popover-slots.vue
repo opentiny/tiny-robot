@@ -1,13 +1,41 @@
 <template>
-  <SuggestionPopover :data="data" @item-click="(item) => console.log(item)">
+  <SuggestionPopover :data="data" @item-click="(item) => console.log(item)" v-model:show="show" trigger="manual">
     <template #trigger>
-      <button>点击弹出SuggestionPopover</button>
+      <button @click="show = !show">点击弹出SuggestionPopover</button>
+    </template>
+    <template #header v-if="customHeader">
+      <h3 style="font-size: 20px; font-weight: 500">我是自定义头部</h3>
+    </template>
+    <template #body v-if="customBody">
+      <ul>
+        <li v-for="item in data" :key="item.id">
+          <span style="font-size: 14px">{{ item.text }}</span>
+        </li>
+      </ul>
     </template>
   </SuggestionPopover>
+  <hr />
+  <div>
+    <div>
+      <label>自定义头部</label>
+      <tiny-switch v-model="customHeader" />
+    </div>
+    <div>
+      <label>自定义内容</label>
+      <tiny-switch v-model="customBody" />
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { SuggestionPopover } from '@opentiny/tiny-robot'
+import { ref } from 'vue'
+import { TinySwitch } from '@opentiny/vue'
+
+const show = ref(false)
+
+const customHeader = ref(true)
+const customBody = ref(true)
 
 const data = [
   { id: 'b1', text: '什么是弹性云服务器?' },

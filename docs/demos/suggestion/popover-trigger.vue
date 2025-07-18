@@ -8,7 +8,9 @@
       @item-click="console.log('item-click')"
       @click-outside="console.log('click-outside')"
     >
-      <button>click触发</button>
+      <template #trigger>
+        <button>click触发</button>
+      </template>
     </SuggestionPopover>
     <SuggestionPopover
       :data="data"
@@ -18,7 +20,9 @@
       @item-click="console.log('item-click')"
       @click-outside="console.log('click-outside')"
     >
-      <button @click="show = !show">manual触发</button>
+      <template #trigger>
+        <button @click="show = !show">manual触发</button>
+      </template>
     </SuggestionPopover>
   </div>
 </template>

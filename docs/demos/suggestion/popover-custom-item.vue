@@ -3,6 +3,9 @@
     <template #trigger>
       <button>点击弹出SuggestionPopover</button>
     </template>
+    <template #item="{ item }">
+      <span style="color: orange">{{ item.customText }}</span>
+    </template>
   </SuggestionPopover>
 </template>
 
@@ -23,5 +26,5 @@ const data = [
   { id: 'b8', text: '弹性公网IP为什么ping不通?' },
   { id: 'b9', text: '云服务器安全组如何配置?' },
   { id: 'b0', text: '如何查看云服务器密码?' },
-]
+].map((item) => ({ ...item, customText: item.text }))
 </script>
