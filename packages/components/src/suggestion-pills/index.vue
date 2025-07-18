@@ -1,18 +1,26 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementSize, watchDebounced } from '@vueuse/core'
-import { computed, nextTick, ref, watch } from 'vue'
-import { PillButtonWrapper } from './components'
-import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
+import {
+  MaybeElement,
+  onClickOutside,
+  unrefElement,
+  useElementSize,
+  useEventListener,
+  watchDebounced,
+} from '@vueuse/core'
+import { computed, isVNode, nextTick, ref, watch } from 'vue'
+import { useSlotRefs } from '../shared/composables'
+import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
 const props = withDefaults(defineProps<SuggestionPillsProps>(), {
   showAllButtonOn: 'hover',
   overflowMode: 'expand',
 })
 
+const slots = defineSlots<SuggestionPillsSlots>()
 const emit = defineEmits<SuggestionPillsEmits>()
 
-defineSlots<SuggestionPillsSlots>()
+const { vnodes: itemVnodes } = useSlotRefs(slots.default, true)
 
 const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
 
@@ -22,20 +30,40 @@ const floatingItemsRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
 const containerFullWidth = ref(0)
+
 const hasShowMoreBtn = computed(() => props.overflowMode === 'expand' && width.value < containerFullWidth.value)
 const hiddenIndex = ref(-1)
 
-const staticItems = computed(() => {
+const staticVnodes = computed(() => {
   if (hasShowMoreBtn.value && showAll.value) {
-    return props.items?.slice(0, hiddenIndex.value) || []
+    return itemVnodes.value.slice(0, hiddenIndex.value)
   }
-  return props.items || []
+  return itemVnodes.value
 })
-const floatingItems = computed(() => {
+
+const floatingVnodesWithIndex = computed(() => {
   if (hasShowMoreBtn.value && showAll.value) {
-    return props.items?.slice(hiddenIndex.value) || []
+    return itemVnodes.value.slice(hiddenIndex.value).map((vnode, index) => ({
+      vnode,
+      index: index + hiddenIndex.value,
+    }))
   }
   return []
+})
+
+const staticMaybeItemRefs = ref<MaybeElement[]>([])
+const floatingMaybeItemRefs = ref<MaybeElement[]>([])
+
+const staticItemRefs = computed(() => {
+  return staticMaybeItemRefs.value
+    .map((el) => unrefElement(el))
+    .filter((el): el is HTMLElement | SVGElement => el instanceof Element)
+})
+
+const floatingItemRefs = computed(() => {
+  return floatingMaybeItemRefs.value
+    .map((el) => unrefElement(el))
+    .filter((el): el is HTMLElement | SVGElement => el instanceof Element)
 })
 
 const getAllItemElements = () => {
@@ -55,6 +83,7 @@ const updateHiddenIndex = () => {
     const children = getAllItemElements()
     const gap = parseFloat(getComputedStyle(container).rowGap) || 0
 
+    hiddenIndex.value = -1
     let totalWidth = 0
     for (let i = 0; i < children.length; i++) {
       totalWidth += children[i].offsetWidth
@@ -65,21 +94,17 @@ const updateHiddenIndex = () => {
         hiddenIndex.value = i
         break
       }
-      if (i === children.length - 1) {
-        hiddenIndex.value = -1
-      }
     }
   })
 }
 
 watch(
-  () => [props.items, props.items?.length],
+  itemVnodes,
   () => {
     nextTick(() => {
       if (!containerRef.value) {
         return
       }
-
       // 计算容器最大宽度
       const children = getAllItemElements()
       const gap = parseFloat(getComputedStyle(containerRef.value).rowGap) || 0
@@ -89,26 +114,9 @@ watch(
   { immediate: true },
 )
 
-watch(() => [props.items, props.items?.length], updateHiddenIndex)
+watch(itemVnodes, updateHiddenIndex)
 
-watchDebounced(
-  width,
-  (w) => {
-    if (w > 0) {
-      updateHiddenIndex()
-    }
-  },
-  { debounce: 100 },
-)
-
-const handleClick = (ev: MouseEvent, item: SuggestionPillItem, index: number) => {
-  if (hasShowMoreBtn.value && index >= hiddenIndex.value) {
-    ev.stopPropagation()
-    toggleIsShowingMore()
-    return
-  }
-  emit('item-click', item)
-}
+watchDebounced(width, updateHiddenIndex, { debounce: 100 })
 
 const toggleIsShowingMore = () => {
   showAll.value = !showAll.value
@@ -148,11 +156,32 @@ const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
   }
 }
 
-const handleMouseenter = (ev: MouseEvent) => {
-  if (props.autoScrollOnHover && ev.currentTarget) {
-    scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
-  }
-}
+let cleanup: (() => void) | null = null
+
+watch(
+  () => props.autoScrollOn,
+  (value) => {
+    if (cleanup) {
+      cleanup()
+      cleanup = null
+    }
+
+    if (value) {
+      cleanup = useEventListener(staticItemRefs, value, (ev) => {
+        if (ev.currentTarget) {
+          scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
+        }
+      })
+    }
+  },
+  {
+    immediate: true,
+  },
+)
+
+defineExpose({
+  children: computed(() => staticItemRefs.value.concat(floatingItemRefs.value)),
+})
 </script>
 
 <template>
@@ -162,22 +191,22 @@ const handleMouseenter = (ev: MouseEvent) => {
       :class="{ 'overflow-scroll': props.overflowMode === 'scroll' }"
       ref="containerRef"
     >
-      <slot>
-        <template v-for="(item, index) in staticItems" :key="item.id">
-          <PillButtonWrapper
-            :item="item"
-            @click="handleClick($event, item, index)"
-            @mouseenter="handleMouseenter($event)"
-          ></PillButtonWrapper>
-        </template>
-      </slot>
+      <component
+        v-for="(vnode, index) in staticVnodes"
+        :key="isVNode(vnode) ? vnode.key : index"
+        :is="vnode"
+        ref="staticMaybeItemRefs"
+      />
     </div>
     <div class="tr-suggestion-pills__more-wrapper">
       <Transition name="tr-suggestion-pills__more">
-        <div v-if="floatingItems.length" class="tr-suggestion-pills__more" ref="floatingItemsRef">
-          <template v-for="item in floatingItems" :key="item.id">
-            <PillButtonWrapper :item="item" @click="emit('item-click', item)"></PillButtonWrapper>
-          </template>
+        <div v-if="floatingVnodesWithIndex.length" class="tr-suggestion-pills__more" ref="floatingItemsRef">
+          <component
+            v-for="{ vnode, index } in floatingVnodesWithIndex"
+            :key="isVNode(vnode) ? vnode.key : index"
+            :is="vnode"
+            ref="floatingMaybeItemRefs"
+          />
         </div>
       </Transition>
     </div>

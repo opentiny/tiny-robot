@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onClickOutside, unrefElement, useElementHover } from '@vueuse/core'
+import { onClickOutside, useElementHover } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps } from './index.type'
@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<DropdownMenuProps>(), {
 
 const emit = defineEmits<DropdownMenuEmits>()
 
-const showRef = ref(false)
+const showModel = defineModel<boolean>('show', { default: false })
 
 // 如果 trigger 是 manual，则 show 由外部控制，此时组件内部无法修改 show 的值
 const show = computed({
@@ -18,13 +18,13 @@ const show = computed({
     if (props.trigger === 'manual') {
       return props.show
     }
-    return showRef.value
+    return showModel.value
   },
   set: (newValue) => {
     if (props.trigger === 'manual') {
       return
     }
-    showRef.value = newValue
+    showModel.value = newValue
   },
 })
 
@@ -42,11 +42,8 @@ if (props.trigger === 'click' || props.trigger === 'manual') {
     { ignore: [triggerRef] },
   )
 } else if (props.trigger === 'hover') {
-  // TODO 使用 @floating-ui/dom 提供的 safePolygon() 工具。实现鼠标从触发元素（trigger）移动到弹出框时，即使中间有空隙，也不会马上关闭
-  const isTriggerHovered = useElementHover(
-    computed(() => unrefElement(triggerRef.value)),
-    { delayEnter: 100, delayLeave: 300 },
-  )
+  // TODO 计算多边形
+  const isTriggerHovered = useElementHover(triggerRef, { delayEnter: 100, delayLeave: 300 })
   const isDropdownMenuHovered = useElementHover(dropdownMenuRef, { delayEnter: 100, delayLeave: 300 })
 
   watch(

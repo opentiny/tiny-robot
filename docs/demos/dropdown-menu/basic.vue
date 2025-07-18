@@ -1,7 +1,7 @@
 <template>
-  <TrDropdownMenu :items="dropdownMenuItems" @item-click="(item) => console.log(item)">
+  <TrDropdownMenu v-model:show="clickShow" :items="dropdownMenuItems" @item-click="(item) => console.log(item)">
     <template #trigger>
-      <TrSuggestionPillButton> 点我打开Dropdown Menu </TrSuggestionPillButton>
+      <TrSuggestionPillButton> Trigger 为 click </TrSuggestionPillButton>
     </template>
   </TrDropdownMenu>
   <hr />
@@ -19,6 +19,7 @@
   <hr />
   <div style="display: flex; gap: 10px">
     <TrDropdownMenu
+      v-model:show="hoverShow"
       :items="dropdownMenuItems"
       trigger="hover"
       @item-click="(item) => console.log(item)"
@@ -33,6 +34,16 @@
         <TrSuggestionPillButton> Trigger 为 hover </TrSuggestionPillButton>
       </template>
     </TrDropdownMenu>
+  </div>
+  <hr />
+  <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-start">
+    <button @click="clickShow = true">点我打开Trigger为click</button>
+    <button @click="hoverShow = !hoverShow">点我切换Trigger为hover</button>
+  </div>
+  <hr />
+  <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-start">
+    <button @click="addDropdownMenu">新增菜单项</button>
+    <button @click="removeDropdownMenu">删除菜单项</button>
   </div>
 </template>
 
@@ -49,8 +60,18 @@ const dropdownMenuItems = ref([
 ])
 
 const show = ref(false)
+const clickShow = ref(false)
+const hoverShow = ref(false)
 
 const handleClickOutside = (ev: MouseEvent) => {
   console.log('click-outside', ev)
+}
+
+const addDropdownMenu = () => {
+  dropdownMenuItems.value.push({ id: String(dropdownMenuItems.value.length + 1), text: '新增' })
+}
+
+const removeDropdownMenu = () => {
+  dropdownMenuItems.value.pop()
 }
 </script>

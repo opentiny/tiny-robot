@@ -1,7 +1,8 @@
+import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
+import vueJsx from '@vitejs/plugin-vue-jsx'
+import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
-import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
-import { fileURLToPath } from 'url'
 
 const { version } = pkg
 
@@ -25,6 +26,7 @@ export default defineConfig({
   outDir: 'dist',
   base: '/cdocs/tiny-robot/',
   vite: {
+    plugins: [vueJsx()],
     server: { open: true },
     resolve: {
       alias: {
