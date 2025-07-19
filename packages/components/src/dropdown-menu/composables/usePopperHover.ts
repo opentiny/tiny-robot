@@ -61,7 +61,7 @@ const isPointInPolygon = (point: Point, polygon: Polygon, includeBoundary = fals
   return inside
 }
 
-const calcHoverPolygon = (triggerRect: DOMRect, popperRect: DOMRect) => {
+const calcHoverPolygon = (triggerRect: DOMRect, popperRect: DOMRect): Polygon => {
   // popper 在 trigger 的上方
   if (popperRect.bottom < triggerRect.top) {
     return [
@@ -100,7 +100,7 @@ export const usePopperHover = (
   const { delayEnter = 0, delayLeave = 0 } = options || {}
 
   const isHovering = ref(false)
-  const hoveringArea = ref<'trigger' | 'popper' | 'polygon' | 'outside' | null>(null)
+  const hoveringArea = ref<'trigger' | 'popper' | 'polygon' | 'outside'>('outside')
 
   let timer: ReturnType<typeof setTimeout> | null = null
 
@@ -129,7 +129,7 @@ export const usePopperHover = (
   watch(
     hoveringArea,
     (area) => {
-      if (area && ['trigger', 'popper', 'polygon'].includes(area)) {
+      if (['trigger', 'popper', 'polygon'].includes(area)) {
         toggle(true)
       } else {
         toggle(false)
