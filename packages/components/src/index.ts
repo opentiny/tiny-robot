@@ -5,6 +5,7 @@ import { Bubble, BubbleList, BubbleProvider, BubbleMarkdownMessageRenderer, Bubb
 import Attachments from './attachments'
 import Container from './container'
 import Conversations from './conversations'
+import DragOverlay from './drag-overlay'
 import DropdownMenu from './dropdown-menu'
 import Feedback from './feedback'
 import History from './history'
@@ -19,6 +20,7 @@ import McpServerPicker from './mcp-server-picker'
 export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
+export * from './drag-overlay/index.type'
 export * from './dropdown-menu/index.type'
 export * from './feedback/index.type'
 export * from './history/index.type'
@@ -30,6 +32,8 @@ export * from './suggestion-popover/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 
+export { vDropzone } from './drag-overlay/directives/vDropzone'
+
 const components = [
   Attachments,
   Bubble,
@@ -37,6 +41,7 @@ const components = [
   BubbleProvider,
   Container,
   Conversations,
+  DragOverlay,
   DropdownMenu,
   Feedback,
   History,
@@ -75,6 +80,8 @@ export {
   Container as TrContainer,
   Conversations,
   Conversations as TrConversations,
+  DragOverlay,
+  DragOverlay as TrDragOverlay,
   DropdownMenu,
   DropdownMenu as TrDropdownMenu,
   Feedback,
