@@ -61,8 +61,6 @@ const isPointInPolygon = (point: Point, polygon: Polygon, includeBoundary = fals
   return inside
 }
 
-const emptyPolygon: Polygon = []
-
 const calcHoverPolygon = (triggerRect: DOMRect, popperRect: DOMRect) => {
   // popper 在 trigger 的上方
   if (popperRect.bottom > triggerRect.top) {
@@ -84,7 +82,7 @@ const calcHoverPolygon = (triggerRect: DOMRect, popperRect: DOMRect) => {
     ]
   }
 
-  return emptyPolygon
+  return []
 }
 
 const { x: pointerX, y: pointerY } = useGlobalPointer()
