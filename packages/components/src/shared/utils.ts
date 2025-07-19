@@ -1,4 +1,4 @@
-import { usePointer } from '@vueuse/core'
+import { usePointer, UsePointerReturn } from '@vueuse/core'
 
 export function toCssUnit(value?: number | string): string {
   if (typeof value === 'number') return `${value}px`
@@ -31,8 +31,10 @@ export function isShadowDOM(target: HTMLElement) {
   return rootNode instanceof ShadowRoot
 }
 
-const { x: pointerX, y: pointerY } = usePointer()
-
+let pointer: UsePointerReturn | null = null
 export function useGlobalPointer() {
-  return { x: pointerX, y: pointerY }
+  if (!pointer) {
+    pointer = usePointer()
+  }
+  return { x: pointer.x, y: pointer.y }
 }
