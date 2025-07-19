@@ -102,7 +102,7 @@ export const usePopperHover = (
   const isHovering = ref(false)
   const hoveringArea = ref<'trigger' | 'popper' | 'polygon' | 'outside' | null>(null)
 
-  let timer: NodeJS.Timeout | null = null
+  let timer: ReturnType<typeof setTimeout> | null = null
 
   const toggle = (entering: boolean) => {
     const delay = entering ? delayEnter : delayLeave
