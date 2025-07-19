@@ -20,9 +20,17 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 <demo vue="../../demos/bubble/avatar-and-placement.vue" />
 
+### 气泡形状
+
+通过 `shape` 设置气泡形状。目前提供了 `rounded` 和 `corner` 两个选项。默认为 `corner`
+
+<demo vue="../../demos/bubble/shape.vue" />
+
 ### 加载中
 
 通过 `loading` 设置加载中状态
+
+BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需要注意的是，列表的加载中气泡实际上并没有新增一条消息，`loading` 设置为 `false` 后，加载中的气泡不会渲染
 
 <demo vue="../../demos/bubble/loading.vue" />
 
@@ -40,8 +48,6 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ### 渲染 markdown
 
-通过 `type` 设置气泡内容渲染格式，可选值为 `text` 或者 `markdown`
-
 <demo vue="../../demos/bubble/markdown.vue" />
 
 ### 流式文本
@@ -49,6 +55,77 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 `content` 属性是响应式的，动态设置 `content` 即可实现流式文本
 
 <demo vue="../../demos/bubble/streaming.vue" />
+
+### 多种消息格式
+
+`BubbleProvider` 管理和注册消息渲染器。渲染器注册机制
+
+当 Bubble 组件的 `messages` 数组不为空时，系统会：
+
+1.检查每条消息的 `type` 字段  
+2.在 `BubbleProvider` 中查找匹配的渲染器  
+3.使用找到的渲染器渲染消息内容  
+4.如果未找到匹配的渲染器，则使用默认渲染方式
+
+有三种方式可以实现自定义消息渲染器：
+
+1.**函数式渲染器**：
+
+   ```typescript
+   const myRenderer: BubbleMessageFunctionRenderer = (options) => {
+     return h('div', options.content)
+   }
+   ```
+
+2.**类式渲染器**：
+
+   必须继承 `BubbleMessageClassRenderer` 类
+
+   类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
+
+   ```typescript
+   class MyRenderer extends BubbleMessageClassRenderer {
+     render(options) {
+       return h('div', options.content)
+     }
+   }
+   ```
+
+   注册时记得 new 一个实例，否则会导致渲染失败
+
+   ```vue
+   <template>
+     <tr-bubble-provider :message-renderers="messageRenderers">
+       <!-- other codes... -->
+     </tr-bubble-provider>
+   </template>
+
+   <script>
+   const messageRenderers = { 'my-render': new MyRenderer() }
+   </script>
+   ```
+
+3.**Vue 组件**：
+
+   message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
+
+   ```vue
+   <template>
+     <div>{{ props.content }}</div>
+   </template>
+   ```
+
+目前内置直接可用的的渲染器类型有
+
+- `text`(默认渲染器)
+- `collapsible-text`
+- `tool`
+
+内置需要自行导入的渲染有
+
+- `BubbleMarkdownMessageRenderer` 类渲染器
+
+<demo vue="../../demos/bubble/messages.vue" />
 
 ### 插槽
 
@@ -60,7 +137,7 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 SchemaCard 组件代码如下
 
-<demo vue="../../demos/bubble/schema-card.vue" />
+<demo vue="../../demos/bubble/schema-card.ce.vue" />
 
 <demo vue="../../demos/bubble/schema-render.vue" />
 
@@ -81,22 +158,30 @@ type BubblePlacement = 'start' | 'end'
 - `'start'`: 气泡位于左侧/起始位置
 - `'end'`: 气泡位于右侧/结束位置
 
+### BubbleCommonProps
+
+气泡通用属性配置。
+
+| 属性              | 类型                    | 默认值     | 说明                                                                              |
+| ----------------- | ----------------------- | ---------- | --------------------------------------------------------------------------------- |
+| `placement`       | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                               |
+| `avatar`          | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                     |
+| `shape`           | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                          |
+| `hidden`          | `boolean`               | -          | 是否隐藏气泡                                                                      |
+| `maxWidth`        | `string \| number`      | -          | 气泡内容的最大宽度                                                                |
+
 ### BubbleProps
 
-单个气泡的属性配置。
+单个气泡的属性配置（继承自 BubbleCommonProps）。
 
-| 属性        | 类型                         | 默认值   | 说明                                             |
-| ----------- | ---------------------------- | -------- | ------------------------------------------------ |
-| `content`   | `string`                     | -        | 气泡内容文本                                     |
-| `id`        | `string \| number \| symbol` | -        | 气泡唯一标识                                     |
-| `placement` | `BubblePlacement`            | -        | 气泡位置 (`'start'` 或 `'end'`)                  |
-| `avatar`    | `VNode`                      | -        | 气泡头像部分的自定义 Vue 节点                    |
-| `role`      | `string`                     | -        | 气泡角色标识，用于关联 `roles` 配置              |
-| `type`      | `'text' \| 'markdown'`       | `'text'` | 内容类型：纯文本或 Markdown                      |
-| `loading`   | `boolean`                    | `false`  | 是否显示加载状态                                 |
-| `aborted`   | `boolean`                    | `false`  | 是否显示为已中止状态                             |
-| `mdConfig`  | `MarkdownItOptions`          | -        | 当 `type='markdown'` 时，Markdown 解析器的配置项 |
-| `maxWidth`  | `string \| number`  | -        | 气泡内容的最大宽度                               |
+| 属性       | 类型                         | 默认值  | 说明                                |
+| ---------- | ---------------------------- | ------- | ----------------------------------- |
+| `content`  | `string`                     | -       | 气泡内容文本                        |
+| `messages` | `BubbleMessageProps[]`       | -       | 气泡消息数组                        |
+| `id`       | `string \| number \| symbol` | -       | 气泡唯一标识                        |
+| `role`     | `string`                     | -       | 气泡角色标识，用于关联 `roles` 配置 |
+| `loading`  | `boolean`                    | `false` | 是否显示加载状态                    |
+| `aborted`  | `boolean`                    | `false` | 是否显示为已中止状态                |
 
 ### BubbleSlots
 
@@ -110,10 +195,10 @@ type BubblePlacement = 'start' | 'end'
 
 ### BubbleRoleConfig
 
-角色配置类型，用于定义不同角色的默认气泡配置。
+角色配置类型（继承自 BubbleCommonProps）。
 
 ```typescript
-type BubbleRoleConfig = Pick<BubbleProps, 'placement' | 'avatar' | 'type' | 'mdConfig' | 'maxWidth'> & {
+type BubbleRoleConfig = BubbleCommonProps & {
   slots?: BubbleSlots
 }
 ```
@@ -122,8 +207,61 @@ type BubbleRoleConfig = Pick<BubbleProps, 'placement' | 'avatar' | 'type' | 'mdC
 
 气泡列表组件的属性配置。
 
-| 属性         | 类型                                        | 默认值  | 说明                           |
-| ------------ | ------------------------------------------- | ------- | ------------------------------ |
-| `items`      | `(BubbleProps & { slots?: BubbleSlots })[]` | -       | **必填**，气泡项数组           |
-| `roles`      | `Record<string, BubbleRoleConfig>`          | -       | 角色默认配置字典，key 为角色名 |
-| `autoScroll` | `boolean`                                   | `false` | 是否自动滚动到最新内容         |
+| 属性          | 类型                                        | 默认值  | 说明                           |
+| ------------- | ------------------------------------------- | ------- | ------------------------------ |
+| `items`       | `(BubbleProps & { slots?: BubbleSlots })[]` | -       | **必填**，气泡项数组           |
+| `roles`       | `Record<string, BubbleRoleConfig>`          | -       | 角色默认配置字典，key 为角色名 |
+| `loading`     | `boolean`                                   | `false` | 列表是否加载中                 |
+| `loadingRole` | `string`                                    | -       | 指定哪个角色可以有加载中状态   |
+| `autoScroll`  | `boolean`                                   | `false` | 是否自动滚动到最新内容         |
+
+### BubbleMessageProps
+
+单条消息对象的结构。
+
+```typescript
+interface BubbleMessageProps {
+  type: string
+  [key: string]: any
+}
+```
+
+| 属性            | 类型     | 说明                                             |
+| --------------- | -------- | ------------------------------------------------ |
+| `type`          | `string` | 消息类型，用于选择对应的渲染器                   |
+| `[key: string]` | `any`    | 其他字段可自由扩展，用于携带消息所需的自定义数据 |
+
+### BubbleMessageRenderer
+
+用于渲染气泡消息内容的渲染器类型。
+
+```typescript
+type BubbleMessageRenderer = BubbleMessageFunctionRenderer | BubbleMessageClassRenderer | Component
+```
+
+- `BubbleMessageFunctionRenderer`: 函数式渲染器，返回 `VNode`
+- `BubbleMessageClassRenderer`: 基于类的渲染器，需实现 `.render()` 方法
+- `Component`: 任意 Vue 组件，也可以用作渲染器
+
+### BubbleMessageFunctionRenderer
+
+函数式消息渲染器：
+
+```typescript
+type BubbleMessageFunctionRenderer = (options: { [key: string]: any }) => VNode
+```
+
+| 参数      | 类型                     | 说明                                         |
+| --------- | ------------------------ | -------------------------------------------- |
+| `options` | `{ [key: string]: any }` | 与消息类型 (`BubbleMessageProps`) 对应的数据 |
+| 返回值    | `VNode`                  | 渲染结果                                     |
+
+### BubbleMessageClassRenderer
+
+基于类的消息渲染器：
+
+```typescript
+abstract class BubbleMessageClassRenderer {
+  abstract render(options: { [key: string]: any }): VNode
+}
+```

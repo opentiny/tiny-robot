@@ -7,7 +7,7 @@
       </template>
     </tr-bubble>
     <hr />
-    <label>默认 content 插槽 和 footer 插槽</label>
+    <label>默认插槽 和 footer 插槽</label>
     <tr-bubble :avatar="aiAvatar" :actions="['refresh', 'copy']">
       <span style="color: orange"
         >TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。</span

@@ -1,32 +1,34 @@
-import { Options as MarkdownItOptions } from 'markdown-it'
 import { VNode } from 'vue'
+import { BubbleMessageProps } from './message'
+export * from './message/index.type'
 
-export type BubblePalcement = 'start' | 'end'
+export interface BubbleCommonProps {
+  /**
+   * 气泡对齐位置
+   */
+  placement?: 'start' | 'end'
+  /**
+   * 气泡头像
+   */
+  avatar?: VNode
+  /**
+   * 气泡形状，默认 'corner'
+   */
+  shape?: 'rounded' | 'corner'
+  hidden?: boolean
+  maxWidth?: string | number
+}
 
-export interface BubbleProps {
+export interface BubbleProps extends BubbleCommonProps {
   /**
    * 气泡内容
    */
   content?: string
+  messages?: BubbleMessageProps[]
   id?: string | number | symbol
-  /**
-   * 气泡位置
-   */
-  placement?: BubblePalcement
-  avatar?: VNode
   role?: string
-  /**
-   * 内容类型
-   */
-  type?: 'text' | 'markdown'
   loading?: boolean
   aborted?: boolean
-  /**
-   * type 为 'markdown' 时，markdown 的配置项
-   */
-  mdConfig?: MarkdownItOptions
-  // 样式相关
-  maxWidth?: string | number
 }
 
 export interface BubbleSlots {
@@ -35,7 +37,7 @@ export interface BubbleSlots {
   loading?: (slotProps: { bubbleProps: BubbleProps }) => unknown
 }
 
-export type BubbleRoleConfig = Pick<BubbleProps, 'placement' | 'avatar' | 'type' | 'mdConfig' | 'maxWidth'> & {
+export type BubbleRoleConfig = BubbleCommonProps & {
   slots?: BubbleSlots
 }
 
@@ -45,5 +47,13 @@ export interface BubbleListProps {
    * 每个角色的默认配置项
    */
   roles?: Record<string, BubbleRoleConfig>
+  /**
+   * 列表是否加载中
+   */
+  loading?: boolean
+  /**
+   * 指定哪个角色可以有加载中状态
+   */
+  loadingRole?: string
   autoScroll?: boolean
 }
