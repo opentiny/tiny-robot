@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
+import { useFileDialog } from '@vueuse/core'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler, UserItem } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
@@ -64,6 +65,11 @@ const canSubmit = computed(() => {
 
   // 字数限制检查：超出限制时不能提交
   if (isOverLimit.value) {
+    return false
+  }
+
+  // 提交按钮禁用检查：禁用时不能提交
+  if (props.buttonGroup?.submit?.disabled) {
     return false
   }
 
@@ -455,6 +461,16 @@ const activateTemplateFirstField = () => {
   }
 }
 
+const { accept = '*', multiple = true } = props.buttonGroup?.file || {}
+
+const { open: openFileDialog, files } = useFileDialog({ accept, multiple })
+
+watch(files, (selectedFiles) => {
+  if (selectedFiles && selectedFiles.length > 0) {
+    emit('files-selected', Array.from(selectedFiles))
+  }
+})
+
 // 暴露方法
 defineExpose({
   focus: focusInput,
@@ -546,6 +562,7 @@ defineExpose({
                 :show-clear="clearable"
                 :has-content="hasContent"
                 :speech-status="speechState"
+                :button-group="buttonGroup"
                 :submit-type="submitType"
                 :is-over-limit="isOverLimit"
                 :stop-text="stopText"
@@ -553,6 +570,7 @@ defineExpose({
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
                 @cancel="$emit('cancel')"
+                @trigger-select="openFileDialog"
               />
             </div>
           </div>
@@ -597,6 +615,7 @@ defineExpose({
                     :show-clear="clearable"
                     :has-content="hasContent"
                     :speech-status="speechState"
+                    :button-group="buttonGroup"
                     :submit-type="submitType"
                     :is-over-limit="isOverLimit"
                     :stop-text="stopText"
@@ -604,6 +623,7 @@ defineExpose({
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"
                     @cancel="$emit('cancel')"
+                    @trigger-select="openFileDialog"
                   />
                 </div>
               </div>
