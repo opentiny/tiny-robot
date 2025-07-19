@@ -1,0 +1,282 @@
+<script setup lang="ts">
+import { IconClose } from '@opentiny/tiny-robot-svgs'
+import { onClickOutside } from '@vueuse/core'
+import { ref, computed, defineProps, defineEmits, watch } from 'vue'
+import type { CreatePluginDialogProps, CreatePluginDialogEmits } from '../index.type'
+
+const props = withDefaults(defineProps<CreatePluginDialogProps>(), {
+  title: '创建插件',
+})
+
+const emit = defineEmits<CreatePluginDialogEmits>()
+
+const dialogRef = ref<HTMLDivElement | null>(null)
+
+// 默认代码模板
+const getDefaultAiPluginCode = () => ``
+
+const getDefaultOpenapiCode = () => ``
+
+const aiPluginCode = ref(getDefaultAiPluginCode())
+const openapiCode = ref(getDefaultOpenapiCode())
+
+// 重置代码内容
+const resetCodeContent = () => {
+  aiPluginCode.value = getDefaultAiPluginCode()
+  openapiCode.value = getDefaultOpenapiCode()
+}
+
+const show = computed({
+  get: () => props.visible,
+  set: (value) => emit('update:visible', value),
+})
+
+// 监听弹窗显示状态，打开时重置代码内容
+watch(
+  () => props.visible,
+  (newVisible) => {
+    if (newVisible) {
+      resetCodeContent()
+    }
+  },
+)
+
+onClickOutside(dialogRef, () => {
+  if (show.value) {
+    handleClose()
+  }
+})
+
+const handleClose = () => {
+  show.value = false
+  emit('cancel')
+}
+
+const handleConfirm = () => {
+  emit('confirm', {
+    aiPlugin: aiPluginCode.value,
+    openapi: openapiCode.value,
+  })
+  show.value = false
+}
+
+const handleCancel = () => {
+  handleClose()
+}
+</script>
+
+<template>
+  <div v-if="show" class="plugin-code-dialog__backdrop"></div>
+  <Transition name="plugin-code-dialog">
+    <div v-if="show" class="plugin-code-dialog" ref="dialogRef">
+      <div class="plugin-code-dialog__header">
+        <h3 class="plugin-code-dialog__title">{{ props.title }}</h3>
+        <IconClose class="plugin-code-dialog__close" @click="handleClose" />
+      </div>
+
+      <div class="plugin-code-dialog__content">
+        <div class="plugin-code-dialog__editor-container">
+          <div class="plugin-code-dialog__editor-section">
+            <div class="plugin-code-dialog__editor-header">
+              <span class="plugin-code-dialog__editor-title">ai_plugin（填写json）</span>
+            </div>
+            <div class="plugin-code-dialog__editor">
+              <textarea
+                v-model="aiPluginCode"
+                class="plugin-code-dialog__textarea"
+                placeholder="请输入 JSON 配置..."
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="plugin-code-dialog__editor-section">
+            <div class="plugin-code-dialog__editor-header">
+              <span class="plugin-code-dialog__editor-title">openapi（填写yaml）</span>
+            </div>
+            <div class="plugin-code-dialog__editor">
+              <textarea
+                v-model="openapiCode"
+                class="plugin-code-dialog__textarea"
+                placeholder="请输入 YAML 配置..."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plugin-code-dialog__footer">
+        <div class="button cancel" @click="handleCancel">
+          <span>取消</span>
+        </div>
+        <div class="button confirm" @click="handleConfirm">
+          <span>确定</span>
+        </div>
+      </div>
+    </div>
+  </Transition>
+</template>
+
+<style lang="less" scoped>
+.plugin-code-dialog__backdrop {
+  position: fixed;
+  z-index: 9998;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.plugin-code-dialog {
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 765px;
+  background-color: #ffffff;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+
+  &-enter-active,
+  &-leave-active {
+    transition-property: opacity, transform;
+    transition-duration: 0.3s;
+    transition-timing-function: ease;
+  }
+
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+
+  &-enter-to,
+  &-leave-from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  &__header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 32px 20px 32px;
+    height: 60px;
+    box-sizing: border-box;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333333;
+  }
+
+  &__close {
+    cursor: pointer;
+    font-size: 24px;
+    color: #595959;
+  }
+
+  &__editor-container {
+    display: flex;
+    gap: 32px;
+    width: 100%;
+    padding: 0 32px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  &__editor-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__editor-header {
+    padding-bottom: 8px;
+  }
+
+  &__editor-title {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22px;
+    color: #191919;
+  }
+
+  &__editor {
+    flex: 1;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  &__textarea {
+    width: 100%;
+    height: 571px;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 12px;
+    font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #191919;
+    background-color: #f5f5f5;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: #999999;
+    }
+
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  &__footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 32px;
+    height: 88px;
+    box-sizing: border-box;
+    align-items: center;
+    gap: 8px;
+    & > .button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 24px;
+      font-size: 14px;
+      line-height: 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 60px;
+
+      &.cancel {
+        background-color: #ffffff;
+        border: 1px solid #d9d9d9;
+        color: #595959;
+
+        &:hover {
+          border-color: #1890ff;
+          color: #1890ff;
+        }
+      }
+
+      &.confirm {
+        background-color: #000000;
+        border: 1px solid #000000;
+        color: #ffffff;
+
+        &:hover {
+          background-color: #333333;
+          border-color: #333333;
+        }
+      }
+    }
+  }
+}
+</style>
