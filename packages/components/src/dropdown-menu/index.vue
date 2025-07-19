@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onClickOutside, useElementHover } from '@vueuse/core'
+import { onClickOutside } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
+import { usePopperHover } from './composables/usePopperHover'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps } from './index.type'
 
 const props = withDefaults(defineProps<DropdownMenuProps>(), {
@@ -42,16 +43,11 @@ if (props.trigger === 'click' || props.trigger === 'manual') {
     { ignore: [triggerRef] },
   )
 } else if (props.trigger === 'hover') {
-  // TODO 计算多边形
-  const isTriggerHovered = useElementHover(triggerRef, { delayEnter: 100, delayLeave: 300 })
-  const isDropdownMenuHovered = useElementHover(dropdownMenuRef, { delayEnter: 100, delayLeave: 300 })
+  const isHovering = usePopperHover(triggerRef, dropdownMenuRef, { delayEnter: 100, delayLeave: 100 })
 
-  watch(
-    () => [isTriggerHovered.value, isDropdownMenuHovered.value],
-    ([isTriggerHovered, isDropdownMenuHovered]) => {
-      show.value = isTriggerHovered || isDropdownMenuHovered
-    },
-  )
+  watch(isHovering, (isHovering) => {
+    show.value = isHovering
+  })
 }
 
 const handleTriggerClick = () => {

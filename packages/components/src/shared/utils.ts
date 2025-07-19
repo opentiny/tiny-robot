@@ -1,3 +1,5 @@
+import { usePointer } from '@vueuse/core'
+
 export function toCssUnit(value?: number | string): string {
   if (typeof value === 'number') return `${value}px`
 
@@ -27,4 +29,10 @@ export function getSelectionFromTarget(target?: HTMLElement) {
 export function isShadowDOM(target: HTMLElement) {
   const rootNode = target.getRootNode()
   return rootNode instanceof ShadowRoot
+}
+
+const { x: pointerX, y: pointerY } = usePointer()
+
+export function useGlobalPointer() {
+  return { x: pointerX, y: pointerY }
 }
