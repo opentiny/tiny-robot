@@ -1,5 +1,5 @@
 import { MaybeComputedElementRef, unrefElement, watchThrottled } from '@vueuse/core'
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useGlobalPointer } from '../../shared/utils'
 
 type Point = { x: number; y: number }
@@ -63,7 +63,7 @@ const isPointInPolygon = (point: Point, polygon: Polygon, includeBoundary = fals
 
 const calcHoverPolygon = (triggerRect: DOMRect, popperRect: DOMRect) => {
   // popper 在 trigger 的上方
-  if (popperRect.bottom > triggerRect.top) {
+  if (popperRect.bottom < triggerRect.top) {
     return [
       { x: triggerRect.left, y: triggerRect.top },
       { x: triggerRect.right, y: triggerRect.top },
@@ -73,7 +73,7 @@ const calcHoverPolygon = (triggerRect: DOMRect, popperRect: DOMRect) => {
   }
 
   // popper 在 trigger 的下方
-  if (popperRect.top < triggerRect.bottom) {
+  if (popperRect.top > triggerRect.bottom) {
     return [
       { x: triggerRect.left, y: triggerRect.bottom },
       { x: triggerRect.right, y: triggerRect.bottom },
@@ -104,12 +104,20 @@ export const usePopperHover = (
 
   let timer: ReturnType<typeof setTimeout> | null = null
 
-  const toggle = (entering: boolean) => {
-    const delay = entering ? delayEnter : delayLeave
+  const clearTimer = () => {
     if (timer) {
       clearTimeout(timer)
       timer = null
     }
+  }
+
+  onUnmounted(() => {
+    clearTimer()
+  })
+
+  const toggle = (entering: boolean) => {
+    const delay = entering ? delayEnter : delayLeave
+    clearTimer()
 
     if (delay) {
       timer = setTimeout(() => (isHovering.value = entering), delay)
