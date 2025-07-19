@@ -67,6 +67,7 @@ export default defineConfig({
             { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
             { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
             { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+            { text: 'Attachments 附件卡片', link: 'attachments' },
           ],
         },
       ],

@@ -2,6 +2,7 @@ import './styles/root.css'
 
 import { App } from 'vue'
 import { Bubble, BubbleList, BubbleProvider, BubbleMarkdownMessageRenderer, BubbleMessageClassRenderer } from './bubble'
+import Attachments from './attachments'
 import Container from './container'
 import Conversations from './conversations'
 import DropdownMenu from './dropdown-menu'
@@ -15,6 +16,7 @@ import SuggestionPopover from './suggestion-popover'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 
+export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
 export * from './dropdown-menu/index.type'
@@ -29,6 +31,7 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 
 const components = [
+  Attachments,
   Bubble,
   BubbleList,
   BubbleProvider,
@@ -58,6 +61,8 @@ export default {
 }
 
 export {
+  Attachments,
+  Attachments as TrAttachments,
   Bubble,
   Bubble as TrBubble,
   BubbleList,
