@@ -65,9 +65,12 @@ outline: deep
 **FileRejection**
 
 ```typeScript
-export interface FileRejection {
-  files: File[]
+export interface RejectionReason {
   code: DragZoneErrorCode
   message: string
+}
+
+export interface FileRejection extends RejectionReason {
+  files: File[]
 }
 ```

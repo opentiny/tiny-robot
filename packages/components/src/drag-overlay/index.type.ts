@@ -8,12 +8,18 @@ export interface Handlers {
 }
 
 /**
- * 文件拒绝信息
+ * 文件拒绝原因
  */
-export interface FileRejection {
-  files: File[]
+export interface RejectionReason {
   code: DragZoneErrorCode
   message: string
+}
+
+/**
+ * 文件拒绝信息
+ */
+export interface FileRejection extends RejectionReason {
+  files: File[]
 }
 
 /**

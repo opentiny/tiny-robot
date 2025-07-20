@@ -1,5 +1,5 @@
 import type { Directive } from 'vue'
-import { type Handlers, type DropzoneBinding, type FileRejection } from '../index.type'
+import { type Handlers, type DropzoneBinding, type RejectionReason } from '../index.type'
 import { DragZoneErrorCode } from '../constants'
 
 /**
@@ -11,6 +11,9 @@ import { DragZoneErrorCode } from '../constants'
 function validateFileType(file: File, accept: string): boolean {
   if (!accept) return true
   const acceptTypes = accept.split(',').map((type) => type.trim())
+
+  if (acceptTypes.includes('*')) return true
+
   return acceptTypes.some((acceptType) => {
     if (acceptType.startsWith('.')) {
       return file.name.toLowerCase().endsWith(acceptType.toLowerCase())
@@ -60,7 +63,7 @@ function processFiles(
 ): {
   acceptedFiles: File[]
   rejectedFiles: File[]
-  rejection: FileRejection | null
+  rejectionReason: RejectionReason | null
 } {
   const { accept, multiple, maxSize, maxFiles } = options
   const acceptedFiles: File[] = []
@@ -70,8 +73,7 @@ function processFiles(
     return {
       acceptedFiles,
       rejectedFiles: Array.from(files),
-      rejection: {
-        files: Array.from(files),
+      rejectionReason: {
         code: DragZoneErrorCode.FileCountExceeded,
         message: `文件数量不能超过 ${maxFiles} 个`,
       },
@@ -90,8 +92,7 @@ function processFiles(
     return {
       acceptedFiles: [],
       rejectedFiles: acceptedFiles,
-      rejection: {
-        files: acceptedFiles,
+      rejectionReason: {
         code: DragZoneErrorCode.FileCountExceeded,
         message: '只允许上传一个文件',
       },
@@ -108,11 +109,11 @@ function processFiles(
     return {
       acceptedFiles,
       rejectedFiles,
-      rejection: { files: rejectedFiles, code, message },
+      rejectionReason: { code, message },
     }
   }
 
-  return { acceptedFiles, rejectedFiles, rejection: null }
+  return { acceptedFiles, rejectedFiles, rejectionReason: null }
 }
 
 type DragAwareOptions = Omit<DropzoneBinding, 'onDraggingChange'>
@@ -196,18 +197,19 @@ export const vDropzone: Directive<DragAwareElement, DropzoneBinding> = {
         dragCounter = 0
         onDraggingChange(false, null)
         const files = e.dataTransfer?.files
-        const { onDrop, onError, accept, multiple, maxSize, maxFiles } = el.__vDropzoneOptions__ as DropzoneBinding
+        const { onDrop, onError, accept, multiple, maxSize, maxFiles } =
+          el.__vDropzoneOptions__ as Required<DropzoneBinding>
         if (files && files.length > 0) {
           const fileArray = Array.from(files)
-          const { acceptedFiles, rejection } = processFiles(fileArray, {
-            accept: accept || '',
-            multiple: multiple ?? true,
-            maxSize: maxSize || 1024 * 1024 * 10,
-            maxFiles: maxFiles || 3,
+          const { acceptedFiles, rejectedFiles, rejectionReason } = processFiles(fileArray, {
+            accept,
+            multiple,
+            maxSize,
+            maxFiles,
           })
 
-          if (rejection) {
-            onError(rejection)
+          if (rejectionReason) {
+            onError({ files: rejectedFiles, ...rejectionReason })
           }
 
           if (acceptedFiles.length > 0) {
