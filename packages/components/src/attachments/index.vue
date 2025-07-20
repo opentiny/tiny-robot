@@ -60,7 +60,7 @@ function handleAction(payload: { action: ActionButton; file: Attachment }) {
 
 const wrapClass = computed(() => (props.wrap ? 'wrap' : 'no-wrap'))
 
-const { uploadAttachments } = useFileType({
+const { normalizeAttachments } = useFileType({
   fileMatchers: props.fileMatchers,
 })
 
@@ -69,7 +69,7 @@ watch(
   () => props.items,
   (newItems) => {
     if (newItems && newItems.length > 0) {
-      fileList.value = uploadAttachments(newItems)
+      fileList.value = normalizeAttachments(newItems)
     }
   },
   { deep: true, immediate: true },

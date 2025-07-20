@@ -1,5 +1,5 @@
 import { computed, Component, ComputedRef } from 'vue'
-import { FileType, BaseFileType, FileTypeMatcher, Attachment } from '../index.type'
+import { FileType, BaseFileType, FileTypeMatcher, Attachment, RawFileAttachment, UrlAttachment } from '../index.type'
 import {
   IconFileImage,
   IconFilePdf,
@@ -190,8 +190,8 @@ export function useFileType(options: UseFileTypeOptions = {}) {
     }
   }
 
-  type RawFileItem = { rawFile: File } & Partial<Attachment>
-  type UrlSizeItem = { url: string; size: number } & Partial<Attachment>
+  type RawFileItem = RawFileAttachment
+  type UrlSizeItem = UrlAttachment
   type InputItem = RawFileItem | UrlSizeItem | Partial<Attachment>
 
   const isUrlSizeItem = (item: InputItem): item is UrlSizeItem => {
@@ -207,7 +207,7 @@ export function useFileType(options: UseFileTypeOptions = {}) {
    * @param items 输入的文件附件原始数据列表
    * @returns 标准化的文件附件对象列表
    */
-  const uploadAttachments = (items: InputItem[]): Attachment[] => {
+  const normalizeAttachments = (items: InputItem[]): Attachment[] => {
     return items.map((item) => {
       if (isUrlSizeItem(item)) {
         return transformUrlItem(item)
@@ -229,34 +229,36 @@ export function useFileType(options: UseFileTypeOptions = {}) {
   /**
    * 根据文件URL和大小更新文件附件对象
    * @param item 含url和size的原始数据
-   * @returns 标准化的Attachment对象
+   * @returns 标准化的UrlAttachment对象
    */
-  const transformUrlItem = (item: UrlSizeItem): Attachment => {
+  const transformUrlItem = (item: UrlSizeItem): UrlAttachment => {
     const common = getCommonProps(item)
-    const parsedName = item.url.split('/').pop() || ''
+    const url = item.url!
+    const size = item.size!
+    const parsedName = url.split('/').pop() || ''
     return {
       ...common,
       name: common.name || parsedName,
       fileType: detectFileType(parsedName),
-      size: item.size,
-      url: item.url,
+      size,
+      url,
     }
   }
 
   /**
    * 根据rawFile文件更新文件附件对象
    * @param item 含rawFile的原始数据
-   * @returns 标准化的Attachment对象
+   * @returns 标准化的RawFileAttachment对象
    */
-  const transformRawFileItem = (item: RawFileItem): Attachment => {
+  const transformRawFileItem = (item: RawFileItem): RawFileAttachment => {
     const common = getCommonProps(item)
-    const { rawFile } = item
+    const rawFile = item.rawFile!
     return {
       ...common,
       name: common.name || rawFile.name,
       fileType: detectFileType(rawFile),
-      rawFile: rawFile,
-      size: rawFile.size,
+      rawFile,
+      size: item.size || rawFile.size,
       url: item.url,
     }
   }
@@ -265,7 +267,7 @@ export function useFileType(options: UseFileTypeOptions = {}) {
     detectFileType,
     generateID,
     formatFileSize,
-    uploadAttachments,
+    normalizeAttachments,
     getIconComponent,
   }
 }

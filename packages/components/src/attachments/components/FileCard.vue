@@ -150,7 +150,7 @@ const cardClasses = computed(() => {
                       v-if="action.type === 'download'"
                       class="tr-file-card__action-btn--download"
                       :href="file.url ?? 'javascript:void(0)'"
-                      :target="isImage ? '_blank' : '_self'"
+                      :target="file.url ? '_blank' : '_self'"
                       @click="handleCustomAction(action, $event)"
                     >
                       {{ action.label }}</a
@@ -531,6 +531,7 @@ const cardClasses = computed(() => {
     &--preview,
     &--download {
       color: rgb(20, 118, 255);
+      font-size: 12px;
 
       &:hover {
         color: #1476ff;

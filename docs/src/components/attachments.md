@@ -46,8 +46,10 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 
 > 本地文件 和 网络文件 的下载方式不同
 
-- 本地文件：直接使用 `a` 标签下载
-- 网络文件：使用 `fetch` 下载
+- **本地文件**（有 `rawFile`）：组件内部自动处理下载，创建 Blob URL 并使用 `a` 标签下载
+- **网络文件**（有 `url`）：触发 `download` 事件，由开发者自定义下载逻辑
+
+你可以使用 `@download.prevent` 来阻止组件的默认下载行为，完全自定义下载逻辑。
 
 <demo vue="../../demos/attachments/download.vue" />
 

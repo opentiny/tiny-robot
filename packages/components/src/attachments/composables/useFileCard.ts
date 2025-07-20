@@ -3,7 +3,7 @@ import type { ActionButton, FileCardProps, FileCardEmits } from '../index.type'
 
 /**
  * 下载本地文件
- * @param url 文件URL
+ * @param url 文件URL或Blob URL
  * @param fileName 文件名
  */
 const downloadLocalFile = (url: string, fileName: string) => {
@@ -59,16 +59,20 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
   /**
    * 处理文件下载
    *
-   * 本地文件：rawFile 有的话，组件内部下载
-   * 远程文件：触发下载事件
+   * 策略：
+   * 1. 总是先触发 download 事件
+   * 2. 如果外部使用了 @download.prevent，则不执行默认行为
+   * 3. 否则，对于本地文件执行内部下载逻辑
    */
   const downloadFile = (event: MouseEvent) => {
+    // 总是触发 download 事件，让外部有机会处理
+    emit('download', { event, file: props.file })
+
+    // 对于本地文件，执行内部下载逻辑（除非外部使用了 .prevent）
     if (props.file.rawFile && !props.file.url) {
       const blobUrl = createBlobUrl(props.file.rawFile)
-      downloadLocalFile(blobUrl, props.file.name || '')
+      downloadLocalFile(blobUrl, props.file.name || props.file.rawFile.name)
     }
-
-    emit('download', { event, file: props.file })
   }
 
   /**

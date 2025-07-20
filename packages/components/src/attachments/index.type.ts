@@ -16,27 +16,31 @@ export interface FileTypeMatcher {
   icon?: Component
 }
 
-export type Attachment =
-  | {
-      id?: string
-      name?: string
-      status?: FileStatus
-      url: string
-      fileType?: FileType
-      size: number
-      message?: string // 上传过程中提示信息
-      rawFile?: File // 原始文件对象，用于下载和预览
-    }
-  | {
-      id?: string
-      name?: string
-      status?: FileStatus
-      url?: string
-      fileType?: FileType
-      size?: number
-      message?: string // 上传过程中提示信息
-      rawFile: File // 原始文件对象，用于下载和预览
-    }
+// 基础附件类型
+export interface BaseAttachment {
+  id?: string
+  name?: string
+  status?: FileStatus
+  fileType?: FileType
+  message?: string // 上传过程中提示信息
+}
+
+// URL 文件类型 - 已有远程URL的文件
+export interface UrlAttachment extends BaseAttachment {
+  url: string
+  size: number
+  rawFile?: File
+}
+
+// 本地文件类型 - 本地上传的文件
+export interface RawFileAttachment extends BaseAttachment {
+  rawFile: File
+  url?: string
+  size?: number
+}
+
+// 附件联合类型
+export type Attachment = UrlAttachment | RawFileAttachment
 
 export interface ActionButton {
   type: string
