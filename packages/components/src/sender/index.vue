@@ -276,6 +276,12 @@ const clearInput = () => {
 }
 
 const handleTemplateUpdate = (data: UserItem[]) => {
+  // 如果模板数据为空，则退出模板编辑模式
+  if (data && data.length === 1 && data[0].type === 'text' && data[0].content === '\u200B') {
+    exitTemplateMode()
+    return
+  }
+
   emit('update:templateData', data)
 }
 
