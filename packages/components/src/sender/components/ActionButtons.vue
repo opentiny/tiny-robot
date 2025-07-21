@@ -254,8 +254,8 @@ const handleCancel = () => {
 
     /* 关闭图标 */
     &--clear {
-      width: 32px;
-      height: 32px;
+      width: var(--tr-sender-action-buttons-icon-size);
+      height: var(--tr-sender-action-buttons-icon-size);
       padding: 4px;
       font-size: var(--tr-sender-action-buttons-icon-size-clear);
     }

@@ -55,6 +55,7 @@
           ref="senderRef"
           mode="single"
           v-model="inputMessage"
+          :class="{ 'tr-sender-compact': !fullscreen }"
           :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
           :clearable="true"
           :loading="GeneratingStatus.includes(messageState.status)"

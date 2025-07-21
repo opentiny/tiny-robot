@@ -900,7 +900,7 @@ defineExpose({
 }
 </style>
 
-<style lang="less" scoped>
+<style lang="less">
 .editor-container {
   [contenteditable] {
     display: block;
@@ -921,5 +921,9 @@ defineExpose({
       border: none;
     }
   }
+}
+
+.tr-sender-compact {
+  --tr-sender-template-editor-font-size: 14px;
 }
 </style>
