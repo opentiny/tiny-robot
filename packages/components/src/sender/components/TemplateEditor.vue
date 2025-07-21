@@ -417,12 +417,11 @@ const insertToText = (text: string, insertedText: string, startOffset: number, e
   return text.slice(0, startOffset) + insertedText + text.slice(endOffset)
 }
 
-const adjustSelectionForSentinelNode = (
+const handleSentinelNodeForwardDeletion = (
   selectedItems: SelectedItem[],
   range: EditorRange,
   inputType: string,
 ): SelectedItem[] => {
-  // 仅处理 deleteContentBackward
   if (inputType !== 'deleteContentForward' || selectedItems.length !== 1) {
     return selectedItems
   }
@@ -463,7 +462,7 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
     return
   }
 
-  const adjustedSelected = adjustSelectionForSentinelNode(selected, range, inputType)
+  const adjustedSelected = handleSentinelNodeForwardDeletion(selected, range, inputType)
 
   const selectedOrCreateItems = transformSelected(adjustedSelected, range, inputType, inputData)
 
