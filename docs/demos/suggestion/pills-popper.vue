@@ -1,11 +1,13 @@
 <template>
   <div class="pills-container">
     <TrSuggestionPopover :data="[]">
-      <TrSuggestionPillButton>
-        <template #icon>
-          <IconSparkles style="font-size: 16px; color: #1476ff" />
-        </template>
-      </TrSuggestionPillButton>
+      <template #trigger>
+        <TrSuggestionPillButton>
+          <template #icon>
+            <IconSparkles style="font-size: 16px; color: #1476ff" />
+          </template>
+        </TrSuggestionPillButton>
+      </template>
     </TrSuggestionPopover>
     <TrSuggestionPills
       class="pills"
@@ -21,7 +23,7 @@
         :items="dropdownMenuItems"
         @item-click="handleDropdownMenuItemClick"
         :key="index"
-        v-model:show="hoverShowModels[index]"
+        v-model:show="dropdownShowModels[index]"
         trigger="click"
       >
         <template #trigger>
@@ -97,13 +99,21 @@ const dropdownMenuItems = ref([
 ])
 
 const handleClickOutside = (event: MouseEvent) => {
-  if (event.composedPath().includes(showAllRef.value?.$el)) {
+  dropdownShowModels.value.forEach((_, index) => {
+    dropdownShowModels.value[index] = false
+  })
+
+  const composedPath = event.composedPath()
+  if (composedPath.some((el) => el instanceof HTMLElement && el.matches('ul.tr-dropdown-menu__list'))) {
     return
   }
-  if (addButtonRef.value && event.composedPath().includes(addButtonRef.value)) {
+  if (composedPath.includes(showAllRef.value?.$el)) {
     return
   }
-  if (removeButtonRef.value && event.composedPath().includes(removeButtonRef.value)) {
+  if (addButtonRef.value && composedPath.includes(addButtonRef.value)) {
+    return
+  }
+  if (removeButtonRef.value && composedPath.includes(removeButtonRef.value)) {
     return
   }
   showAll.value = false
@@ -139,12 +149,12 @@ const originalButtons = [
 
 const buttons = ref(structuredClone(originalButtons))
 
-const hoverShowModels = ref<boolean[]>([])
+const dropdownShowModels = ref<boolean[]>([])
 
 watch(
   () => buttons.value.length,
   (len) => {
-    hoverShowModels.value = Array.from({ length: len }, () => false)
+    dropdownShowModels.value = Array.from({ length: len }, () => false)
   },
   { immediate: true },
 )
@@ -178,7 +188,7 @@ watch(
           if (!entry.isIntersecting) {
             const index = Number((entry.target as HTMLElement).dataset.index)
             if (typeof index === 'number' && !isNaN(index)) {
-              hoverShowModels.value[index] = false
+              dropdownShowModels.value[index] = false
             }
           }
         })

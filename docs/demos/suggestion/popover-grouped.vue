@@ -5,7 +5,9 @@
     @item-click="(item) => console.log(item)"
     @group-click="(group) => console.log(group)"
   >
-    <button>分组数据</button>
+    <template #trigger>
+      <button>分组数据</button>
+    </template>
   </SuggestionPopover>
 </template>
 
