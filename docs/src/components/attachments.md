@@ -93,16 +93,30 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 这是描述一个附件对象的核心类型。
 
 ```typescript
-interface Attachment {
-  id: string // 唯一标识符
-  name: string // 文件名
-  status: 'uploading' | 'success' | 'error' // 文件状态
-  fileType?: string // 文件类型
-  size?: number // 文件大小（字节）
-  rawFile?: File // 原始文件对象
-  url?: string // 预览URL (仅图片类型)
-  message?: string // 上传超时文本
+// 基础附件类型
+export interface BaseAttachment {
+  id?: string
+  name?: string
+  status?: FileStatus
+  fileType?: FileType
+  message?: string // 上传过程中提示信息
 }
+
+// URL 文件类型 - 已有远程URL的文件
+export interface UrlAttachment extends BaseAttachment {
+  url: string
+  size: number
+  rawFile?: File
+}
+
+// 本地文件类型 - 本地上传的文件
+export interface RawFileAttachment extends BaseAttachment {
+  rawFile: File
+  url?: string
+  size?: number
+}
+
+export type Attachment = UrlAttachment | RawFileAttachment
 ```
 
 #### ActionButton
