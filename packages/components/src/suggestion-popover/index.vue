@@ -199,7 +199,9 @@ const handleItemMouseleave = (event: MouseEvent) => {
 }
 
 defineExpose({
-  update: () => basePopperRef.value?.update(),
+  update: () => {
+    basePopperRef.value?.update()
+  },
 })
 </script>
 
