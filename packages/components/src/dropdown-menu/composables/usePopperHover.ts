@@ -94,7 +94,7 @@ export interface UsePopperHoverOptions {
 
 export const usePopperHover = (
   triggerRef: MaybeComputedElementRef,
-  dropdownMenuRef: MaybeComputedElementRef,
+  popperRef: MaybeComputedElementRef,
   options?: UsePopperHoverOptions,
 ) => {
   const { delayEnter = 0, delayLeave = 0 } = options || {}
@@ -142,7 +142,7 @@ export const usePopperHover = (
     [pointerX, pointerY],
     ([x, y]) => {
       const trigger = unrefElement(triggerRef)
-      const popper = unrefElement(dropdownMenuRef)
+      const popper = unrefElement(popperRef)
 
       const triggerRect = trigger?.getBoundingClientRect()
       const popperRect = popper?.getBoundingClientRect()
