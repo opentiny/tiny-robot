@@ -29,7 +29,7 @@ const fileList = ref<Attachment[]>(props.items || [])
 const { actualListType } = useListType(fileList, props.variant)
 
 // 图片预览逻辑
-const { handlePreview: handleImagePreview, renderPreview } = useImagePreview(fileList, emit, { enableDownload: true })
+const { handlePreview, renderPreview } = useImagePreview(fileList, emit, { enableDownload: true })
 
 // 移除文件
 function handleRemove(file: Attachment) {
@@ -41,17 +41,6 @@ function handleRemove(file: Attachment) {
     emit('remove', file)
     emit('update:items', fileList.value)
   }
-}
-
-// 预览文件
-function handlePreview(event: MouseEvent, file: Attachment) {
-  emit('preview', event, file)
-
-  if (event.defaultPrevented) {
-    return
-  }
-
-  handleImagePreview(event, file)
 }
 
 // 下载文件
