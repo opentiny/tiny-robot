@@ -129,7 +129,7 @@ const popoverStyles = computed<CSSProperties>(() => {
       right: 0,
       bottom: 0,
       top: 'unset',
-      minWidth: '100dvw',
+      minWidth: '100%',
     }
   }
 
@@ -300,8 +300,8 @@ defineExpose({
   z-index: var(--tr-z-index-popover);
   width: var(--tr-suggestion-popover-width);
   height: var(--tr-suggestion-popover-height);
-  max-width: 100dvw;
-  max-height: 100dvh;
+  max-width: 100%;
+  max-height: 100%;
   padding: 20px;
   padding-bottom: 16px;
   border-radius: 24px;
