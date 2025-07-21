@@ -77,7 +77,7 @@ const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
   if (items.length > 0) {
     if (isSafariBrowser && items[items.length - 1].type === 'template') {
       originalData.value = items.concat([zeroWidthLocatorNode])
-    } else if (items[0].type === 'template') {
+    } else if (!isSafariBrowser && items[0].type === 'template') {
       originalData.value = [zeroWidthLocatorNode].concat(items)
     } else {
       originalData.value = items
