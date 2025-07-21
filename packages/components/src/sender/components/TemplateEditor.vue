@@ -72,11 +72,13 @@ const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[]
 const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
 
 const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
+  const zeroWidthLocatorNode = { type: 'text', content: '\u200B', id: randomId() } as TextItem | TemplateItem
+
   if (items.length > 0) {
-    if (items[0].type === 'template') {
-      originalData.value = [{ type: 'text', content: '\u200B', id: randomId() } as TextItem | TemplateItem].concat(
-        items,
-      )
+    if (isSafariBrowser && items[items.length - 1].type === 'template') {
+      originalData.value = items.concat([zeroWidthLocatorNode])
+    } else if (items[0].type === 'template') {
+      originalData.value = [zeroWidthLocatorNode].concat(items)
     } else {
       originalData.value = items
       const firstItem = items[0]
