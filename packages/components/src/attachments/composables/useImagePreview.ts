@@ -11,7 +11,7 @@ export interface ImagePreviewOptions {
   /**
    * 自定义下载处理函数
    */
-  onDownload?: (payload: { event: MouseEvent; file: Attachment }) => void
+  onDownload?: (event: MouseEvent, file: Attachment) => void
 }
 
 export function useImagePreview(
@@ -61,11 +61,11 @@ export function useImagePreview(
   }
 
   // 处理下载
-  const handleDownload = (payload: { event: MouseEvent; file: Attachment }) => {
+  const handleDownload = (event: MouseEvent, file: Attachment) => {
     if (options.onDownload) {
-      options.onDownload(payload)
+      options.onDownload(event, file)
     } else {
-      emit('download', payload)
+      emit('download', event, file)
     }
   }
 

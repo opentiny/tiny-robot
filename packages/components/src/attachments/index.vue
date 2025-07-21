@@ -44,8 +44,8 @@ function handleRemove(file: Attachment) {
 }
 
 // 下载文件
-function handleDownload(payload: { event: MouseEvent; file: Attachment }) {
-  emit('download', payload)
+function handleDownload(event: MouseEvent, file: Attachment) {
+  emit('download', event, file)
 }
 
 // 重试上传

@@ -59,31 +59,19 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
    *
    * 策略：
    * 1. 总是先触发 download 事件
-   * 2. 如果外部使用了 event.preventDefault()，则不执行默认行为
+   * 2. 如果外部使用了 @download.prevent，则不执行默认行为
    * 3. 否则，对于本地文件执行内部下载逻辑
    */
-  const downloadFile = (originalEvent: MouseEvent) => {
-    // 创建是否触发默认下载的标志
-    const shouldDefaultDownload = true
+  const downloadFile = (event: MouseEvent) => {
+    // 总是触发 download 事件，让外部有机会处理
+    emit('download', event, props.file)
 
-    // 创建一个事件对象，包含 preventDefault 方法
-    const wrappedEvent = {
-      ...originalEvent,
-      preventDefault: () => {
-        if (originalEvent && typeof originalEvent.preventDefault === 'function') {
-          originalEvent.preventDefault()
-        }
-      },
-      get defaultPrevented() {
-        return !shouldDefaultDownload
-      },
+    if (event.defaultPrevented) {
+      return
     }
 
-    // 总是触发 download 事件，让外部有机会处理
-    emit('download', { event: wrappedEvent, file: props.file })
-
-    // 对于本地文件，执行内部下载逻辑（除非外部使用了 event.preventDefault()）
-    if (shouldDefaultDownload && props.file.rawFile && !props.file.url) {
+    // 对于本地文件，执行内部下载逻辑（除非外部使用了 .prevent）
+    if (props.file.rawFile && !props.file.url) {
       const blobUrl = createBlobUrl(props.file.rawFile)
       downloadLocalFile(blobUrl, props.file.name || props.file.rawFile.name)
     }
