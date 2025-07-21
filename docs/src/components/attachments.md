@@ -75,15 +75,15 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 
 ### Props
 
-| 属性名          | 类型                            | 默认值                              | 说明                                                                          |
-| --------------- | ------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------- |
-| items           | `Attachment[]`                  | []                                  | 附件列表，支持 `v-model:items` 双向绑定。                                     |
-| disabled        | boolean                         | false                               | 是否禁用整个组件，禁用后所有交互操作（如删除、下载）将不可用。                |
-| wrap            | boolean                         | false                               | 文件列表是否换行，详见 [列表换行](#列表换行)。                                |
-| variant         | `'picture' \| 'card' \| 'auto'` | `'auto'`                            | 附件列表的展示形式，详见 [展示形式](#展示形式-variant)。                      |
-| actions         | `ActionButton[]`                | 图片默认: `['preview', 'download']` | 自定义操作按钮，详见 [自定义操作按钮](#自定义操作按钮-actions)。              |
-| fileIcons       | `Record<string, Component>`     | -                                   | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)。                |
-| fileMatchers  | `FileTypeMatcher[]`             | []                                  | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-filematchers)。 |
+| 属性名       | 类型                            | 默认值                              | 说明                                                                        |
+| ------------ | ------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| items        | `Attachment[]`                  | []                                  | 附件列表，支持 `v-model:items` 双向绑定。                                   |
+| disabled     | boolean                         | false                               | 是否禁用整个组件，禁用后所有交互操作（如删除、下载）将不可用。              |
+| wrap         | boolean                         | false                               | 文件列表是否换行，详见 [列表换行](#列表换行)。                              |
+| variant      | `'picture' \| 'card' \| 'auto'` | `'auto'`                            | 附件列表的展示形式，详见 [展示形式](#展示形式-variant)。                    |
+| actions      | `ActionButton[]`                | 图片默认: `['preview', 'download']` | 自定义操作按钮，详见 [自定义操作按钮](#自定义操作按钮-actions)。            |
+| fileIcons    | `Record<string, Component>`     | -                                   | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)。              |
+| fileMatchers | `FileTypeMatcher[]`             | []                                  | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-filematchers)。 |
 
 ### Types
 
@@ -135,8 +135,8 @@ interface FileTypeMatcher {
 | update:items | `Attachment[]`                               | 附件列表更新时触发。       |
 | remove       | `Attachment`                                 | 文件被移除时触发。         |
 | download     | `{ event: MouseEvent; file: Attachment }`    | 点击内置下载按钮时触发。   |
-| preview      | `(file: Attachment) => void`                 | 点击内置预览按钮时触发。   |
-| retry        | `(file: Attachment) => void`                 | 点击重试按钮时触发。       |
+| preview      | `Attachment`                                 | 点击内置预览按钮时触发。   |
+| retry        | `Attachment`                                 | 点击重试按钮时触发。       |
 | action       | `{ action: ActionButton, file: Attachment }` | 点击自定义操作按钮时触发。 |
 
 ## 内置附件类型
