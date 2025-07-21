@@ -7,24 +7,22 @@ import type { ActionButton, FileCardProps, FileCardEmits } from '../index.type'
  * @param fileName 文件名
  */
 const downloadLocalFile = (url: string, fileName: string) => {
-  // 创建一个隐藏的 iframe 来触发下载
-  const iframe = document.createElement('iframe')
-  iframe.style.display = 'none'
-  document.body.appendChild(iframe)
-
-  // 对于图片文件，使用 fetch 来强制下载
+  // 处理blob和data协议的URL
   if (url.startsWith('blob:') || url.startsWith('data:')) {
-    // 直接使用 a 标签下载
     const link = document.createElement('a')
     link.href = url
     link.download = fileName
-    link.style.display = 'none'
+    // 添加到文档并触发点击
     document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    // 使用requestAnimationFrame确保DOM已更新
+    requestAnimationFrame(() => {
+      link.click()
+      // 移除元素
+      document.body.removeChild(link)
+      // 清理可能的引用
+      URL.revokeObjectURL(url)
+    })
   }
-
-  document.body.removeChild(iframe)
 }
 
 /**
@@ -61,15 +59,31 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
    *
    * 策略：
    * 1. 总是先触发 download 事件
-   * 2. 如果外部使用了 @download.prevent，则不执行默认行为
+   * 2. 如果外部使用了 event.preventDefault()，则不执行默认行为
    * 3. 否则，对于本地文件执行内部下载逻辑
    */
-  const downloadFile = (event: MouseEvent) => {
-    // 总是触发 download 事件，让外部有机会处理
-    emit('download', { event, file: props.file })
+  const downloadFile = (originalEvent: MouseEvent) => {
+    // 创建是否触发默认下载的标志
+    const shouldDefaultDownload = true
 
-    // 对于本地文件，执行内部下载逻辑（除非外部使用了 .prevent）
-    if (props.file.rawFile && !props.file.url) {
+    // 创建一个事件对象，包含 preventDefault 方法
+    const wrappedEvent = {
+      ...originalEvent,
+      preventDefault: () => {
+        if (originalEvent && typeof originalEvent.preventDefault === 'function') {
+          originalEvent.preventDefault()
+        }
+      },
+      get defaultPrevented() {
+        return !shouldDefaultDownload
+      },
+    }
+
+    // 总是触发 download 事件，让外部有机会处理
+    emit('download', { event: wrappedEvent, file: props.file })
+
+    // 对于本地文件，执行内部下载逻辑（除非外部使用了 event.preventDefault()）
+    if (shouldDefaultDownload && props.file.rawFile && !props.file.url) {
       const blobUrl = createBlobUrl(props.file.rawFile)
       downloadLocalFile(blobUrl, props.file.name || props.file.rawFile.name)
     }

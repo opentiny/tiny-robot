@@ -10,8 +10,8 @@
       <TrAttachments v-model:items="localAttachments" variant="card" @download="handleLocalDownload" />
 
       <h3>自定义下载逻辑</h3>
-      <p>使用 @download.prevent 阻止默认行为，完全自定义下载逻辑</p>
-      <TrAttachments v-model:items="customAttachments" variant="card" @download.prevent="handleCustomDownload" />
+      <p>使用 event.preventDefault() 阻止默认行为，完全自定义下载逻辑</p>
+      <TrAttachments v-model:items="customAttachments" variant="card" @download="handleCustomDownload" />
 
       <div class="demo-section">
         <h4>添加本地文件</h4>
@@ -100,14 +100,15 @@ const handleLocalDownload = (payload: { event: MouseEvent; file: Attachment }) =
 }
 
 // 处理自定义下载逻辑
-const handleCustomDownload = (payload: { event: MouseEvent; file: Attachment }) => {
-  const { file } = payload
+const handleCustomDownload = (payload: { event: { preventDefault: () => void }; file: Attachment }) => {
+  const { event, file } = payload
+
+  event.preventDefault()
+
   console.log('自定义下载逻辑:', file)
 
   // 这里实现完全自定义的下载逻辑
   alert(`自定义下载文件: ${file.name}`)
-
-  // 由于使用了 .prevent，组件的默认下载行为不会执行
 }
 </script>
 
