@@ -195,6 +195,10 @@ const handleItemMouseleave = (event: MouseEvent) => {
 
   tooltipShow.value = false
 }
+
+defineExpose({
+  update: () => basePopperRef.value?.update(),
+})
 </script>
 
 <template>

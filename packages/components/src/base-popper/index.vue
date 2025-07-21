@@ -137,6 +137,7 @@ createTeleport(teleportProps, () => (
 defineExpose({
   triggerRef,
   popperRef,
+  update,
 })
 </script>
 
