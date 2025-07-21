@@ -50,8 +50,8 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
   /**
    * 处理文件预览
    */
-  const handlePreview = () => {
-    emit('preview', props.file)
+  const handlePreview = (event: MouseEvent) => {
+    emit('preview', event, props.file)
   }
 
   /**
@@ -103,7 +103,7 @@ export function useFileCard(props: FileCardProps, emit: FileCardEmits) {
     }
 
     if (action.type === 'preview') {
-      handlePreview()
+      handlePreview(event)
     } else if (action.type === 'download') {
       downloadFile(event)
     } else {

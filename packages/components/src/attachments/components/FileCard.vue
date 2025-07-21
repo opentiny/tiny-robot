@@ -50,7 +50,7 @@ const cardClasses = computed(() => {
   <div
     :class="cardClasses"
     :data-file-type="file.fileType || 'other'"
-    @click="variant === 'picture' ? handlePreview() : undefined"
+    @click="variant === 'picture' ? handlePreview($event) : undefined"
   >
     <!-- 关闭按钮 - 通用组件 -->
     <button v-if="!disabled" class="tr-file-card__close-btn" @click.stop="handleRemove" aria-label="移除文件">
@@ -96,7 +96,7 @@ const cardClasses = computed(() => {
         <div
           class="tr-file-card__icon"
           :class="{ 'tr-file-card__icon--clickable': isImage }"
-          @click.stop="isImage ? handlePreview() : null"
+          @click.stop="isImage ? handlePreview($event) : null"
         >
           <div class="tr-file-card__icon-wrapper">
             <!-- 文件类型图标 -->

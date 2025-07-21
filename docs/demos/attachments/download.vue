@@ -54,11 +54,8 @@ const handleFileChange = (event: Event) => {
     const file = files[0]
 
     localAttachments.value.push({
-      id: Date.now().toString(),
       rawFile: file,
-      name: file.name,
-      size: file.size,
-      status: 'success',
+      url: URL.createObjectURL(file),
     })
 
     target.value = ''

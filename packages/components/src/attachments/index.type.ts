@@ -72,7 +72,7 @@ export interface AttachmentListEmits {
   (e: 'remove', file: Attachment): void
   (e: 'download', event: MouseEvent, file: Attachment): void
   (e: 'retry', file: Attachment): void
-  (e: 'preview', file: Attachment): void
+  (e: 'preview', event: MouseEvent, file: Attachment): void
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void
 }
 
@@ -88,7 +88,7 @@ export interface FileCardProps extends BaseCardProps {
 // FileCard 组件事件
 export interface FileCardEmits {
   (e: 'remove', file: Attachment): void
-  (e: 'preview', file: Attachment): void
+  (e: 'preview', event: MouseEvent, file: Attachment): void
   (e: 'download', event: MouseEvent, file: Attachment): void
   (e: 'retry', file: Attachment): void
   (e: 'action', payload: { action: ActionButton; file: Attachment }): void

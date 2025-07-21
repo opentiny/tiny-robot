@@ -30,7 +30,7 @@ export function useImagePreview(
   }
 
   // 显示预览
-  const show = (file: Attachment) => {
+  const show = (event: MouseEvent, file: Attachment) => {
     // 更新文件列表中的文件信息（主要针对新创建的 blob url）
     const fileIndex = fileList.value.findIndex((item) => item.id === file.id)
     if (fileIndex !== -1 && file.url) {
@@ -51,7 +51,7 @@ export function useImagePreview(
       }
     } else {
       // 否则，触发外部预览事件
-      emit('preview', file)
+      emit('preview', event, file)
     }
   }
 
