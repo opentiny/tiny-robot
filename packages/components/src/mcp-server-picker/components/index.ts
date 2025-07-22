@@ -1,3 +1,4 @@
 export { default as PluginCard } from './PluginCard.vue'
-export { default as PluginCodeDialog } from './PluginCodeDialog.vue'
-export { default as PluginFormDialog } from './PluginFormDialog.vue'
+export { default as PluginModal } from './PluginModal.vue'
+export { default as CodeEditor } from './CodeEditor.vue'
+export { default as FormEditor } from './FormEditor.vue'

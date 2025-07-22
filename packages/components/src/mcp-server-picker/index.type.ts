@@ -1,8 +1,3 @@
-export interface PluginDialogState {
-  codeEditor: boolean
-  formEditor: boolean
-}
-
 export interface PluginTool {
   id: string
   name: string
@@ -115,27 +110,20 @@ export interface McpServerPickerProps {
   marketLoading?: boolean
 }
 
-// 创建插件弹窗数据类型
-export interface AddPluginCodeData {
-  aiPlugin: string
-  openapi: string
-}
-
 // 创建插件弹窗 Props
-export interface CreatePluginDialogProps {
+export interface CodePluginProps {
   visible: boolean
   title?: string
 }
 
 // 创建插件弹窗 Emits
-export interface CreatePluginDialogEmits {
+export interface CodePluginEmits {
   (e: 'update:visible', value: boolean): void
-  (e: 'confirm', data: AddPluginCodeData): void
-  (e: 'cancel'): void
+  (e: 'confirm', data: string): void
 }
 
 // 添加插件表单数据类型
-export interface AddPluginFormData {
+export interface FormData {
   name: string
   description: string
   type: string
@@ -145,16 +133,16 @@ export interface AddPluginFormData {
 }
 
 // 添加插件弹窗 Props
-export interface AddPluginDialogProps {
+export interface PluginModalProps {
   visible: boolean
-  title?: string
 }
 
+export type Data = FormData | string
+
 // 添加插件弹窗 Emits
-export interface AddPluginDialogEmits {
+export interface PluginModalEmits {
   (e: 'update:visible', value: boolean): void
-  (e: 'confirm', data: AddPluginFormData): void
-  (e: 'cancel'): void
+  (e: 'confirm', data: Data): void
   (e: 'open-code-editor'): void
 }
 
@@ -182,8 +170,8 @@ export interface McpServerPickerEmits {
   (e: 'custom-add'): void
 
   // 添加插件表单事件
-  (e: 'plugin-form-add', data: AddPluginFormData): void
-  (e: 'plugin-code-add', data: AddPluginCodeData): void
+  (e: 'plugin-form-add', data: Data): void
+  (e: 'plugin-code-add', data: string): void
 
   // 刷新事件
   (e: 'refresh', tab: 'installed' | 'market'): void

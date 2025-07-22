@@ -46,6 +46,7 @@
 import { ref } from 'vue'
 import { McpServerPicker, PluginInfo, PluginTool, AddPluginCodeData, AddPluginFormData } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
+import { TinyButton } from '@opentiny/vue'
 
 // 模拟加载状态
 const loading = ref(false)

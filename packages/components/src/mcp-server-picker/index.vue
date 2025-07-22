@@ -4,18 +4,10 @@ import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
 import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
-import { ref, reactive, computed, watch } from 'vue'
-import { PluginCard, PluginCodeDialog, PluginFormDialog } from './components'
+import { ref, computed, watch } from 'vue'
+import { PluginCard, PluginModal } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
-import type {
-  PluginInfo,
-  McpServerPickerProps,
-  McpServerPickerEmits,
-  AddPluginCodeData,
-  AddPluginFormData,
-  PluginDialogState,
-  PopupConfig,
-} from './index.type'
+import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits, Data, PopupConfig } from './index.type'
 
 const props = withDefaults(defineProps<McpServerPickerProps>(), {
   installedPlugins: () => [],
@@ -28,7 +20,6 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   defaultActiveTab: 'installed',
   showInstalledTab: true,
   showMarketTab: true,
-  visible: false,
   popupConfig: () => ({
     type: 'fixed',
     position: {},
@@ -54,22 +45,6 @@ const activeTab = ref(props.defaultActiveTab)
 const installedSearch = ref('')
 const marketSearch = ref('')
 const marketCategory = ref('')
-
-// 插件弹窗状态管理
-const pluginDialogState = reactive<PluginDialogState>({
-  codeEditor: false,
-  formEditor: false,
-})
-
-const showCodeEditorDialog = computed({
-  get: () => pluginDialogState.codeEditor,
-  set: (value) => (pluginDialogState.codeEditor = value),
-})
-
-const showFormEditorDialog = computed({
-  get: () => pluginDialogState.formEditor,
-  set: (value) => (pluginDialogState.formEditor = value),
-})
 
 const currentSearchPlaceholder = computed(() =>
   activeTab.value === 'installed' ? props.searchPlaceholder : '搜索市场插件',
@@ -173,51 +148,21 @@ const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
   emit('plugin-expand', plugin, expanded)
 }
 
-const closeAllPluginDialogs = () => {
-  pluginDialogState.codeEditor = false
-  pluginDialogState.formEditor = false
-}
-
-// 统一的弹窗控制方法
-const openPluginDialog = (type: 'codeEditor' | 'formEditor') => {
-  // 关闭所有弹窗
-  closeAllPluginDialogs()
-
-  // 打开指定弹窗
-  pluginDialogState[type] = true
-}
+const showModal = ref(false)
 
 // 事件处理函数
 const handleCustomAdd = () => {
-  openPluginDialog('formEditor')
+  showModal.value = true
   emit('custom-add')
 }
 
-const handleCodePluginConfirm = (data: AddPluginCodeData) => {
-  emit('plugin-code-add', data)
-  closeAllPluginDialogs()
-}
-
-const handleCodePluginCancel = () => {
-  closeAllPluginDialogs()
-}
-
-const handleFormPluginConfirm = (data: AddPluginFormData) => {
+const handleCustomAddPlugin = (data: Data) => {
   emit('plugin-form-add', data)
-  closeAllPluginDialogs()
+  showModal.value = false
 }
 
-const handleFormPluginCancel = () => {
-  closeAllPluginDialogs()
-}
-
-const handleSwitchToCodeEditor = () => {
-  openPluginDialog('codeEditor')
-}
-
-const McpPanelVisible = computed({
-  get: () => props.visible,
-  set: (value) => emit('update:visible', value),
+const visible = defineModel<boolean>('visible', {
+  required: true,
 })
 
 const handleClose = () => {
@@ -316,7 +261,7 @@ const transitionName = computed(() => {
 <template>
   <Transition :name="transitionName">
     <div
-      v-if="McpPanelVisible"
+      v-if="visible"
       class="mcp-server-picker"
       :class="[`popup-type-${props.popupConfig?.type || 'fixed'}`, drawerAnimationClass]"
       :style="pickerStyle"
@@ -411,22 +356,8 @@ const transitionName = computed(() => {
         </TinyTabs>
       </div>
 
-      <!-- 代码编辑器添加插件弹窗 -->
-      <PluginCodeDialog
-        v-model:visible="showCodeEditorDialog"
-        title="创建插件"
-        @confirm="handleCodePluginConfirm"
-        @cancel="handleCodePluginCancel"
-      />
-
-      <!-- 可视化编辑器添加插件弹窗 -->
-      <PluginFormDialog
-        v-model:visible="showFormEditorDialog"
-        title="添加插件"
-        @confirm="handleFormPluginConfirm"
-        @cancel="handleFormPluginCancel"
-        @open-code-editor="handleSwitchToCodeEditor"
-      />
+      <!-- 插件表单添加弹窗 -->
+      <PluginModal v-model:visible="showModal" @confirm="handleCustomAddPlugin" />
     </div>
   </Transition>
 </template>
