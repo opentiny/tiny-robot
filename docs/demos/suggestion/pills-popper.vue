@@ -21,6 +21,10 @@
       <TrDropdownMenu
         v-for="(button, index) in buttons"
         :items="dropdownMenuItems"
+        :style="{
+          '--tr-dropdown-menu-min-left': leftRange.left,
+          '--tr-dropdown-menu-max-right': leftRange.right,
+        }"
         @item-click="handleDropdownMenuItemClick"
         :key="index"
         v-model:show="dropdownShowModels[index]"
@@ -64,7 +68,7 @@
 import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover } from '@opentiny/tiny-robot'
 import { IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { TinyRadioGroup, TinySwitch } from '@opentiny/vue'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const showAll = ref(false)
 const showAllRef = ref<InstanceType<typeof TinySwitch>>()
@@ -174,6 +178,18 @@ const handleClickResetButton = () => {
 }
 
 const pillsRef = ref<InstanceType<typeof TrSuggestionPills>>()
+
+const leftRange = computed(() => {
+  const el = pillsRef.value?.$el
+  if (!el) {
+    return { left: '0px', right: '100%' }
+  }
+  const { left, right } = el.getBoundingClientRect()
+  return {
+    left: `${left}px`,
+    right: `${right}px`,
+  }
+})
 
 watch(
   () => [pillsRef.value?.$el, pillsRef.value?.children.map((el) => el)] as const,

@@ -64,7 +64,7 @@ const { width: popperWidth, height: popperHeight } = useElementSize(popperRef, u
 
 const popperStyles = computed<CSSProperties>(() => {
   const { placement, preventOverflow } = props
-  type Side = 'top' | 'bottom' | 'left' | 'right'
+  type Side = 'top' | 'left'
   const styles: Pick<CSSProperties, Side> = {}
 
   const set = (side: Side, value: string) => {
@@ -73,24 +73,30 @@ const popperStyles = computed<CSSProperties>(() => {
       return
     }
 
-    const isVertical = side === 'top' || side === 'bottom'
-    const maxViewport = isVertical ? '100%' : '100%'
+    const isVertical = side === 'top'
     const size = toCssUnit(isVertical ? popperHeight.value : popperWidth.value)
 
-    styles[side] = `clamp(0px, ${value}, calc(${maxViewport} - ${size}))`
+    if (side === 'top') {
+      styles[side] = `clamp(var(--tr-base-popper-min-top), ${value}, calc(var(--tr-base-popper-max-bottom) - ${size}))`
+    } else if (side === 'left') {
+      styles[side] = `clamp(var(--tr-base-popper-min-left), ${value}, calc(var(--tr-base-popper-max-right) - ${size}))`
+    }
   }
 
+  // 只用 top/left 定位
   if (placement.includes('top')) {
     set('top', toCssUnit(top.value - popperHeight.value - resolvedOffset.value.mainAxis))
   }
   if (placement.includes('bottom')) {
-    set('bottom', `calc(100% - ${toCssUnit(bottom.value + popperHeight.value + resolvedOffset.value.mainAxis)})`)
+    // bottom 定位转换为 top 定位
+    set('top', toCssUnit(bottom.value + resolvedOffset.value.mainAxis))
   }
   if (placement.includes('left')) {
     set('left', toCssUnit(left.value + resolvedOffset.value.crossAxis))
   }
   if (placement.includes('right')) {
-    set('right', `calc(100% - ${toCssUnit(right.value + resolvedOffset.value.crossAxis)})`)
+    // right 定位转换为 left 定位
+    set('left', toCssUnit(right.value - popperWidth.value + resolvedOffset.value.crossAxis))
   }
   if (placement.includes('center')) {
     set('left', toCssUnit(left.value + width.value / 2 - popperWidth.value / 2 + resolvedOffset.value.crossAxis))
@@ -136,6 +142,15 @@ defineExpose({
 <template>
   <component :is="triggerVNodes[0]" :ref="setRef" v-bind="resolveEventHandlers(props.triggerEvents)" />
 </template>
+
+<style lang="less">
+:root {
+  --tr-base-popper-min-top: 0px;
+  --tr-base-popper-max-bottom: 100%;
+  --tr-base-popper-min-left: 0px;
+  --tr-base-popper-max-right: 100%;
+}
+</style>
 
 <style lang="less" scoped>
 .tr-base-popper {

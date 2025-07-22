@@ -110,9 +110,19 @@ defineExpose({
   --tr-dropdown-menu-item-color: rgb(25, 25, 25);
   --tr-dropdown-menu-item-hover-bg-color: #f5f5f5;
   --tr-dropdown-menu-item-font-weight: normal;
+
+  --tr-dropdown-menu-min-top: 0px;
+  --tr-dropdown-menu-max-bottom: 100%;
+  --tr-dropdown-menu-min-left: 0px;
+  --tr-dropdown-menu-max-right: 100%;
 }
 
 .tr-dropdown-menu {
+  --tr-base-popper-min-top: var(--tr-dropdown-menu-min-top);
+  --tr-base-popper-max-bottom: var(--tr-dropdown-menu-max-bottom);
+  --tr-base-popper-min-left: var(--tr-dropdown-menu-min-left);
+  --tr-base-popper-max-right: var(--tr-dropdown-menu-max-right);
+
   z-index: var(--tr-z-index-dropdown);
   min-width: var(--tr-dropdown-menu-min-width);
   padding: 8px;

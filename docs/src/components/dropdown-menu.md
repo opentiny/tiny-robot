@@ -28,7 +28,6 @@ outline: deep
 属性详细说明
 
 1. **`show` 属性行为**：
-
    - 当 `trigger` 为 `'click'` 或 `'hover'` 时：
      - 可作为双向绑定属性使用 (`v-model:show`)
      - 组件内外均可修改显示状态
@@ -37,7 +36,6 @@ outline: deep
      - 组件内部不会自动修改此值
 
 2. **`trigger` 模式区别**：
-
    - `click`：点击触发元素显示/隐藏菜单
    - `hover`：鼠标悬停触发元素显示菜单，移出后隐藏
    - `manual`：完全通过外部控制的显示状态
@@ -72,11 +70,15 @@ outline: deep
 
 ### CSS Variables
 
-| 变量名                                   | 说明               | 默认值                         |
-| ---------------------------------------- | ------------------ | ------------------------------ |
-| `--tr-dropdown-menu-bg-color`            | 下拉菜单背景色     | `#ffffff`                      |
-| `--tr-dropdown-menu-box-shadow`          | 下拉菜单阴影       | `0 0 20px rgba(0, 0, 0, 0.08)` |
-| `--tr-dropdown-menu-min-width`           | 下拉菜单最小宽度   | `130px`                        |
-| `--tr-dropdown-menu-item-color`          | 菜单项文字颜色     | `rgb(25, 25, 25)`              |
-| `--tr-dropdown-menu-item-hover-bg-color` | 菜单项悬停时背景色 | `#f5f5f5`                      |
-| `--tr-dropdown-menu-item-font-weight`    | 菜单项字体粗细     | `normal`                       |
+| 变量名                                   | 说明                     | 默认值                         |
+| ---------------------------------------- | ------------------------ | ------------------------------ |
+| `--tr-dropdown-menu-bg-color`            | 下拉菜单背景色           | `#ffffff`                      |
+| `--tr-dropdown-menu-box-shadow`          | 下拉菜单阴影             | `0 0 20px rgba(0, 0, 0, 0.08)` |
+| `--tr-dropdown-menu-min-width`           | 下拉菜单最小宽度         | `130px`                        |
+| `--tr-dropdown-menu-item-color`          | 菜单项文字颜色           | `rgb(25, 25, 25)`              |
+| `--tr-dropdown-menu-item-hover-bg-color` | 菜单项悬停时背景色       | `#f5f5f5`                      |
+| `--tr-dropdown-menu-item-font-weight`    | 菜单项字体粗细           | `normal`                       |
+| `--tr-dropdown-menu-min-top`             | 下拉菜单最小 `top` 值    | `0px`                          |
+| `--tr-dropdown-menu-max-bottom`          | 下拉菜单最大 `bottom` 值 | `100%`                         |
+| `--tr-dropdown-menu-min-left`            | 下拉菜单最小 `left` 值   | `0px`                          |
+| `--tr-dropdown-menu-max-right`           | 下拉菜单最大 `right` 值  | `100%`                         |
