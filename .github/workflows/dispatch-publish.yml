@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: '选择发布版本的tag (alpha/beta/latest)'
+        description: '选择发布/部署版本tag (alpha/beta/rc/latest)'
         required: true
         default: 'alpha'
         type: choice
@@ -17,6 +17,11 @@ on:
           - beta
           - rc
           - latest
+      publish_npm:
+        description: '是否发布npm包（未勾选则只部署文档）'
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.sha }}
@@ -71,6 +76,7 @@ jobs:
 
       # 步骤8: 发布组件到NPM
       - name: Publish components
+        if: ${{ inputs.publish_npm == 'true' }}
         run: pnpm lerna publish from-package --pre-dist-tag ${{ inputs.tag }} --yes
         env:
           # 使用NPM令牌进行身份验证
