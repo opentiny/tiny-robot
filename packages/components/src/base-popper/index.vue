@@ -74,7 +74,7 @@ const popperStyles = computed<CSSProperties>(() => {
     }
 
     const isVertical = side === 'top' || side === 'bottom'
-    const maxViewport = isVertical ? '100dvh' : '100dvw'
+    const maxViewport = isVertical ? '100%' : '100%'
     const size = toCssUnit(isVertical ? popperHeight.value : popperWidth.value)
 
     styles[side] = `clamp(0px, ${value}, calc(${maxViewport} - ${size}))`
