@@ -40,9 +40,9 @@ onClickOutside(dialogRef, () => {
 
 const handleConfirm = () => {
   if (addType.value === 'form') {
-    emit('confirm', formData.value)
+    emit('confirm', 'form', formData.value)
   } else {
-    emit('confirm', codeData.value)
+    emit('confirm', 'code', codeData.value)
   }
 
   handleClose()

@@ -53,12 +53,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { McpServerPicker, PluginInfo } from '@opentiny/tiny-robot'
-
-type MarketCategoryOption = {
-  label: string
-  value: string
-}
+import { McpServerPicker, PluginInfo, MarketCategoryOption } from '@opentiny/tiny-robot'
 
 // 弹窗类型枚举
 type ModalType = 'fixed' | 'leftDrawer' | 'rightDrawer' | null
@@ -70,7 +65,6 @@ const installedPlugins = ref<PluginInfo[]>([
     name: 'GitHub 集成',
     icon: 'https://github.com/favicon.ico',
     description: '与 GitHub 仓库集成，提供代码搜索、PR 管理等功能',
-    toolCount: 5,
     enabled: true,
     tools: [
       {
@@ -98,7 +92,6 @@ const installedPlugins = ref<PluginInfo[]>([
     name: 'Slack 通知',
     icon: 'https://slack.com/favicon.ico',
     description: '发送消息到 Slack 频道',
-    toolCount: 2,
     enabled: false,
     tools: [
       {

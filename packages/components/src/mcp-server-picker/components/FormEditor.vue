@@ -38,14 +38,12 @@ watch(files, (newFiles) => {
 
     // 验证文件类型
     if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件')
       return
     }
 
     // 验证文件大小（限制为5MB）
     const maxSize = 5 * 1024 * 1024 // 5MB
     if (file.size > maxSize) {
-      alert('文件大小不能超过5MB')
       return
     }
 

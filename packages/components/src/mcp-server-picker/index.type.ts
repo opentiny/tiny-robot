@@ -10,10 +10,8 @@ export interface PluginInfo {
   name: string
   icon: string
   description: string
-  toolCount?: number
   enabled?: boolean
-  expanded?: boolean
-  tools?: PluginTool[]
+  tools: PluginTool[]
   added?: boolean
   category?: string
 }
@@ -23,15 +21,10 @@ export type PluginCardMode = 'installed' | 'market'
 export interface PluginCardProps {
   plugin: PluginInfo
   mode?: PluginCardMode
-  expandable?: boolean
-  expanded?: boolean
   showToolCount?: boolean
-  enableParentChildSync?: boolean
 }
 
 export interface PluginCardEmits {
-  (e: 'update:expanded', value: boolean): void
-  (e: 'toggle-expand'): void
   (e: 'toggle-plugin', enabled: boolean): void
   (e: 'toggle-tool', toolId: string, enabled: boolean): void
   (e: 'add-plugin', added: boolean): void
@@ -60,7 +53,25 @@ export interface PopupConfig {
   }
 }
 
-// 组件的Props
+// 添加插件表单数据类型
+export interface FormData {
+  name: string
+  description: string
+  type: string
+  url: string
+  headers: string
+  thumbnail?: File | null
+}
+
+export type Data = FormData | string
+
+// 添加插件弹窗 Emits
+export interface PluginModalEmits {
+  (e: 'update:visible', value: boolean): void
+  (e: 'confirm', type: 'form' | 'code', data: Data): void
+}
+
+// MCP Server Picker 组件的Props
 export interface McpServerPickerProps {
   // 数据源
   installedPlugins?: PluginInfo[]
@@ -102,48 +113,10 @@ export interface McpServerPickerProps {
   allowToolToggle?: boolean
   allowPluginDelete?: boolean
   allowPluginAdd?: boolean
-  // 是否启用父子级联动
-  enableParentChildSync?: boolean
 
   // 加载状态
   loading?: boolean
   marketLoading?: boolean
-}
-
-// 创建插件弹窗 Props
-export interface CodePluginProps {
-  visible: boolean
-  title?: string
-}
-
-// 创建插件弹窗 Emits
-export interface CodePluginEmits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'confirm', data: string): void
-}
-
-// 添加插件表单数据类型
-export interface FormData {
-  name: string
-  description: string
-  type: string
-  url: string
-  headers: string
-  thumbnail?: File | null
-}
-
-// 添加插件弹窗 Props
-export interface PluginModalProps {
-  visible: boolean
-}
-
-export type Data = FormData | string
-
-// 添加插件弹窗 Emits
-export interface PluginModalEmits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'confirm', data: Data): void
-  (e: 'open-code-editor'): void
 }
 
 // MCP Server Picker 组件的Emits
@@ -161,17 +134,10 @@ export interface McpServerPickerEmits {
   (e: 'plugin-toggle', plugin: PluginInfo, enabled: boolean): void
   (e: 'plugin-delete', plugin: PluginInfo): void
   (e: 'plugin-add', plugin: PluginInfo, added: boolean): void
-  (e: 'plugin-expand', plugin: PluginInfo, expanded: boolean): void
+  (e: 'plugin-create', type: 'form' | 'code', data: Data): void
 
   // 工具操作事件
   (e: 'tool-toggle', plugin: PluginInfo, toolId: string, enabled: boolean): void
-
-  // 自定义添加按钮事件
-  (e: 'custom-add'): void
-
-  // 添加插件表单事件
-  (e: 'plugin-form-add', data: Data): void
-  (e: 'plugin-code-add', data: string): void
 
   // 刷新事件
   (e: 'refresh', tab: 'installed' | 'market'): void

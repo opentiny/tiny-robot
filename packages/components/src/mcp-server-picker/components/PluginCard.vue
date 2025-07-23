@@ -1,47 +1,41 @@
 <script setup lang="ts">
 import TinySwitch from '@opentiny/vue-switch'
-import { computed, toRefs, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
 
 const props = withDefaults(defineProps<PluginCardProps>(), {
   mode: 'installed',
-  expandable: false,
-  expanded: false,
   showToolCount: true,
-  enableParentChildSync: true,
 })
 
 const emit = defineEmits<PluginCardEmits>()
 
-const { plugin, mode, expandable, expanded, showToolCount, enableParentChildSync } = toRefs(props)
-
-const isExpanded = computed({
-  get: () => expanded.value,
-  set: (value) => emit('update:expanded', value),
-})
+const isExpanded = ref(false)
+const toolCount = computed(() => props.plugin.tools?.length || 0)
+// 工具数量大于0时，插件可展开
+const expandable = computed(() => toolCount.value > 0)
 
 const cardClasses = computed(() => ({
   'plugin-card--expandable': expandable.value,
   'plugin-card--expanded': isExpanded.value,
-  [`plugin-card--${mode.value}`]: true,
+  [`plugin-card--${props.mode}`]: true,
 }))
 
 const handleToggleExpand = () => {
   if (expandable.value) {
     isExpanded.value = !isExpanded.value
-    emit('toggle-expand')
   }
 }
 
 // 计算父级插件的激活状态（支持三态）
 const pluginState = computed(() => {
-  if (!plugin.value.tools?.length) {
-    return { checked: plugin.value.enabled || false, indeterminate: false }
+  if (!expandable.value) {
+    return { checked: props.plugin.enabled || false, indeterminate: false }
   }
 
-  const enabledTools = plugin.value.tools.filter((tool) => tool.enabled)
-  const totalTools = plugin.value.tools.length
+  const enabledTools = props.plugin.tools.filter((tool) => tool.enabled)
+  const totalTools = props.plugin.tools.length
 
   if (enabledTools.length === 0) {
     return { checked: false, indeterminate: false }
@@ -53,8 +47,8 @@ const pluginState = computed(() => {
 })
 
 const handlePluginToggle = (enabled: boolean) => {
-  if (enableParentChildSync.value && plugin.value.tools?.length) {
-    plugin.value.tools.forEach((tool) => {
+  if (expandable.value) {
+    props.plugin.tools.forEach((tool) => {
       if (tool.enabled !== enabled) {
         tool.enabled = enabled
         // 通知父组件工具状态已改变
@@ -72,13 +66,12 @@ const handleToolToggle = (toolId: string, enabled: boolean) => {
 
 // 监听工具状态变化，自动更新父级插件的UI状态
 watch(
-  () => plugin.value.tools?.map((tool) => tool.enabled),
+  () => props.plugin.tools?.map((tool) => tool.enabled),
   () => {
-    if (enableParentChildSync.value && mode.value === 'installed' && plugin.value.tools?.length) {
+    if (props.mode === 'installed' && expandable.value) {
       const newPluginState = pluginState.value
       // 只有当UI计算出的状态与当前数据状态不同时才同步
-      if (plugin.value.enabled !== newPluginState.checked) {
-        plugin.value.enabled = newPluginState.checked
+      if (props.plugin.enabled !== newPluginState.checked) {
         emit('toggle-plugin', newPluginState.checked)
       }
     }
@@ -91,7 +84,7 @@ const handleDelete = () => {
 }
 
 // 市场插件添加状态
-const isAdded = computed(() => plugin.value.added || false)
+const isAdded = computed(() => props.plugin.added || false)
 
 const handleAdd = () => {
   const newAddedState = !isAdded.value
@@ -107,9 +100,7 @@ const handleAdd = () => {
       <div class="plugin-card__content">
         <div class="plugin-card__info">
           <span class="plugin-card__name">{{ plugin.name }}</span>
-          <span v-if="showToolCount && plugin.toolCount" class="plugin-card__count">
-            {{ plugin.toolCount }} 个工具
-          </span>
+          <span v-if="showToolCount && toolCount" class="plugin-card__count"> {{ toolCount }} 个工具 </span>
         </div>
         <div class="plugin-card__desc">{{ plugin.description }}</div>
       </div>
@@ -169,7 +160,7 @@ const handleAdd = () => {
             <div class="plugin-card__actions plugin-card__actions--tool">
               <TinySwitch
                 :model-value="tool.enabled"
-                @update:model-value="(enabled) => handleToolToggle(tool.id, enabled)"
+                @update:model-value="(enabled: boolean) => handleToolToggle(tool.id, enabled)"
               />
             </div>
           </div>

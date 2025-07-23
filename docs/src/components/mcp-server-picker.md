@@ -63,7 +63,6 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 | `allowToolToggle` | `boolean` | `true` | 是否允许切换工具状态 |
 | `allowPluginDelete` | `boolean` | `true` | 是否允许删除插件 |
 | `allowPluginAdd` | `boolean` | `true` | 是否允许添加插件 |
-| `enableParentChildSync` | `boolean` | `true` | 是否启用父子级联动 |
 
 #### 状态控制
 | 属性 | 类型 | 默认值 | 说明 |
@@ -92,19 +91,12 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 | `plugin-toggle` | `(plugin: PluginInfo, enabled: boolean)` | 插件启用/禁用 |
 | `plugin-delete` | `(plugin: PluginInfo)` | 删除插件 |
 | `plugin-add` | `(plugin: PluginInfo, added: boolean)` | 市场插件添加/取消添加 |
-| `plugin-expand` | `(plugin: PluginInfo, expanded: boolean)` | 插件展开/折叠 |
+| `plugin-create` | `(type: 'form' \| 'code', data: Data)` | 插件创建 |
 
 #### 工具操作
 | 事件名 | 参数 | 说明 |
 |--------|------|------|
 | `tool-toggle` | `(plugin: PluginInfo, toolId: string, enabled: boolean)` | 工具启用/禁用 |
-
-#### 插件创建
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| `plugin-form-add` | `(data: AddPluginFormData)` | 表单方式添加插件 |
-| `plugin-code-add` | `(data: AddPluginCodeData)` | 代码方式添加插件 |
-| `custom-add` | `()` | 自定义添加按钮点击 |
 
 #### 其他
 | 事件名 | 参数 | 说明 |
@@ -123,10 +115,8 @@ interface PluginInfo {
   name: string            // 插件名称
   icon: string            // 插件图标URL
   description: string     // 插件描述
-  toolCount?: number      // 工具数量（可选）
   enabled?: boolean       // 是否启用（可选）
-  expanded?: boolean      // 是否展开（可选）
-  tools?: PluginTool[]    // 工具列表（可选）
+  tools: PluginTool[]    // 工具列表（可选）
   added?: boolean         // 市场插件添加状态（可选）
   category?: string       // 插件分类（可选，用于市场分类筛选）
 }
@@ -156,12 +146,12 @@ interface MarketCategoryOption {
 }
 ```
 
-#### AddPluginFormData
+#### FormData
 
 表单方式添加插件数据类型：
 
 ```typescript
-interface AddPluginFormData {
+interface FormData {
   name: string            // 插件名称
   description: string     // 插件描述
   types: string[]         // 插件类型数组，可选值：'stdio'、'sse'、'streamableHttp'
@@ -171,15 +161,12 @@ interface AddPluginFormData {
 }
 ```
 
-#### AddPluginCodeData
+#### Data
 
-代码方式添加插件数据类型：
+Data 类型是 FormData 或 string 的联合类型，用于表示插件创建的数据。
 
 ```typescript
-interface AddPluginCodeData {
-  aiPlugin: string        // AI 插件配置
-  openapi: string         // OpenAPI 配置
-}
+type Data = FormData | string
 ```
 
 #### PopupConfig

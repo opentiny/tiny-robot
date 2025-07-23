@@ -34,7 +34,6 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   allowToolToggle: true,
   allowPluginDelete: true,
   allowPluginAdd: true,
-  enableParentChildSync: true,
   loading: false,
   marketLoading: false,
 })
@@ -93,7 +92,7 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
   emit('plugin-toggle', plugin, enabled)
 
   // 父子级联动
-  if (props.enableParentChildSync && plugin.tools?.length) {
+  if (plugin.tools?.length) {
     if (!enabled) {
       // 父级被禁用时，禁用所有子级工具
       plugin.tools.forEach((tool) => {
@@ -119,7 +118,7 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
   emit('tool-toggle', plugin, toolId, enabled)
 
   // 父子级联动：根据子级工具的激活状态更新父级插件的激活状态
-  if (props.enableParentChildSync && plugin.tools?.length) {
+  if (plugin.tools?.length) {
     // 模拟本次切换后的工具状态，以计算父插件是否应该被激活
     const otherToolsEnabled = plugin.tools.filter((t) => t.id !== toolId).some((t) => t.enabled)
     const shouldPluginBeEnabled = enabled || otherToolsEnabled
@@ -138,14 +137,7 @@ const handleDeletePlugin = (plugin: PluginInfo) => {
 const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
   if (!props.allowPluginAdd) return
 
-  // 直接更新插件对象的added状态
-  plugin.added = added
-
   emit('plugin-add', plugin, added)
-}
-
-const handlePluginExpand = (plugin: PluginInfo, expanded: boolean) => {
-  emit('plugin-expand', plugin, expanded)
 }
 
 const showModal = ref(false)
@@ -153,11 +145,10 @@ const showModal = ref(false)
 // 事件处理函数
 const handleCustomAdd = () => {
   showModal.value = true
-  emit('custom-add')
 }
 
-const handleCustomAddPlugin = (data: Data) => {
-  emit('plugin-form-add', data)
+const handleCustomAddPlugin = (type: 'form' | 'code', data: Data) => {
+  emit('plugin-create', type, data)
   showModal.value = false
 }
 
@@ -299,12 +290,9 @@ const transitionName = computed(() => {
                     :plugin="plugin"
                     mode="installed"
                     :expandable="!!plugin.tools?.length"
-                    :enable-parent-child-sync="props.enableParentChildSync"
-                    :expanded="plugin.expanded"
                     @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
                     @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
                     @delete-plugin="() => handleDeletePlugin(plugin)"
-                    @update:expanded="(expanded) => handlePluginExpand(plugin, expanded)"
                   />
                 </template>
               </div>
