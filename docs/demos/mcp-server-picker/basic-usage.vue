@@ -41,7 +41,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { McpServerPicker, PluginInfo, PluginTool, MarketCategoryOption, FormData, Data } from '@opentiny/tiny-robot'
+import {
+  McpServerPicker,
+  type PluginInfo,
+  type PluginTool,
+  type MarketCategoryOption,
+  type FormData,
+  type Data,
+} from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 
@@ -165,7 +172,7 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
 const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
   console.log('插件添加状态变化:', plugin, added)
 
-  const targetPlugin = marketPlugins.value.find((p) => p.id === plugin.id)
+  const targetPlugin = marketPlugins.value.find((p) => p.id === plugin.id)!
   targetPlugin.added = added
 
   if (added) {

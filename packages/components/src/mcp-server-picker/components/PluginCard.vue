@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TinySwitch from '@opentiny/vue-switch'
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
 
@@ -63,21 +63,6 @@ const handlePluginToggle = (enabled: boolean) => {
 const handleToolToggle = (toolId: string, enabled: boolean) => {
   emit('toggle-tool', toolId, enabled)
 }
-
-// 监听工具状态变化，自动更新父级插件的UI状态
-watch(
-  () => props.plugin.tools?.map((tool) => tool.enabled),
-  () => {
-    if (props.mode === 'installed' && expandable.value) {
-      const newPluginState = pluginState.value
-      // 只有当UI计算出的状态与当前数据状态不同时才同步
-      if (props.plugin.enabled !== newPluginState.checked) {
-        emit('toggle-plugin', newPluginState.checked)
-      }
-    }
-  },
-  { deep: true },
-)
 
 const handleDelete = () => {
   emit('delete-plugin')
