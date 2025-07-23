@@ -1,7 +1,7 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
 <script setup lang="tsx">
 import { useElementBounding, useElementSize } from '@vueuse/core'
-import { computed, CSSProperties, reactive, ref, TransitionProps, useAttrs, VNode, watch } from 'vue'
+import { computed, CSSProperties, ref, TransitionProps, useAttrs, VNode, watch } from 'vue'
 import { createTeleport, useSlotRefs, useTeleportTarget } from '../shared/composables'
 import { toCssUnit } from '../shared/utils'
 import Popper from './components/Popper.vue'
@@ -113,18 +113,20 @@ const teleportTarget = useTeleportTarget(triggerRef)
 
 const attrs = useAttrs()
 
-const teleportProps = reactive({ to: props.appendTo || teleportTarget.value })
-createTeleport(teleportProps, () => (
-  <Popper
-    ref={popperInstance}
-    show={props.show}
-    transitionProps={props.transitionProps}
-    style={popperStyles.value}
-    {...attrs}
-  >
-    {slots.content?.()}
-  </Popper>
-))
+createTeleport(
+  () => ({ to: props.appendTo || teleportTarget.value }),
+  () => (
+    <Popper
+      ref={popperInstance}
+      show={props.show}
+      transitionProps={props.transitionProps}
+      style={popperStyles.value}
+      {...attrs}
+    >
+      {slots.content?.()}
+    </Popper>
+  ),
+)
 
 defineExpose({
   triggerRef,
