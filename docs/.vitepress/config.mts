@@ -27,7 +27,7 @@ export default defineConfig({
   base: '/cdocs/tiny-robot/',
   vite: {
     plugins: [vueJsx()],
-    server: { open: true },
+    server: { open: true, host: '0.0.0.0' },
     resolve: {
       alias: {
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),

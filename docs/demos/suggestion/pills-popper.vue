@@ -1,37 +1,39 @@
 <template>
-  <div class="pills-container">
-    <TrSuggestionPopover :data="[]">
-      <template #trigger>
-        <TrSuggestionPillButton>
-          <template #icon>
-            <IconSparkles style="font-size: 16px; color: #1476ff" />
-          </template>
-        </TrSuggestionPillButton>
-      </template>
-    </TrSuggestionPopover>
-    <TrSuggestionPills
-      class="pills"
-      ref="pillsRef"
-      v-model:showAll="showAll"
-      :show-all-button-on="showAllButtonOn"
-      :overflow-mode="overflowMode"
-      :auto-scroll-on="autoScrollOn"
-      @click-outside="handleClickOutside"
-    >
-      <TrDropdownMenu
-        v-for="(button, index) in buttons"
-        :items="dropdownMenuItems"
-        @item-click="handleDropdownMenuItemClick"
-        :key="index"
-        v-model:show="dropdownShowModels[index]"
-        trigger="click"
-      >
+  <Test>
+    <div class="pills-container">
+      <TrSuggestionPopover :data="[]">
         <template #trigger>
-          <TrSuggestionPillButton :data-index="index">{{ button.text }}</TrSuggestionPillButton>
+          <TrSuggestionPillButton>
+            <template #icon>
+              <IconSparkles style="font-size: 16px; color: #1476ff" />
+            </template>
+          </TrSuggestionPillButton>
         </template>
-      </TrDropdownMenu>
-    </TrSuggestionPills>
-  </div>
+      </TrSuggestionPopover>
+      <TrSuggestionPills
+        class="pills"
+        ref="pillsRef"
+        v-model:showAll="showAll"
+        :show-all-button-on="showAllButtonOn"
+        :overflow-mode="overflowMode"
+        :auto-scroll-on="autoScrollOn"
+        @click-outside="handleClickOutside"
+      >
+        <TrDropdownMenu
+          v-for="(button, index) in buttons"
+          :items="dropdownMenuItems"
+          @item-click="handleDropdownMenuItemClick"
+          :key="index"
+          v-model:show="dropdownShowModels[index]"
+          trigger="click"
+        >
+          <template #trigger>
+            <TrSuggestionPillButton :data-index="index">{{ button.text }}</TrSuggestionPillButton>
+          </template>
+        </TrDropdownMenu>
+      </TrSuggestionPills>
+    </div>
+  </Test>
   <hr />
   <span>点击第一个图标会打开Popover弹出框</span>
   <hr />
@@ -64,6 +66,7 @@
 import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover } from '@opentiny/tiny-robot'
 import { IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { TinyRadioGroup, TinySwitch } from '@opentiny/vue'
+import Test from './test.vue'
 import { ref, watch } from 'vue'
 
 const showAll = ref(false)
