@@ -1,7 +1,7 @@
 <script setup lang="tsx">
 import { IconClose } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementSize, useMediaQuery, useScroll, watchThrottled } from '@vueuse/core'
-import { computed, CSSProperties, reactive, ref, watch } from 'vue'
+import { computed, CSSProperties, ref, watch } from 'vue'
 import TrBasePopper from '../base-popper'
 import FlowLayoutButtons from '../flow-layout-buttons'
 import IconButton from '../icon-button'
@@ -136,10 +136,12 @@ const popoverStyles = computed<CSSProperties>(() => {
   return {}
 })
 
-const teleportTarget = useTeleportTarget(triggerRef)
+const teleportTarget = useTeleportTarget(triggerRef, props.appendTo)
 
-const teleportProps = reactive({ to: props.appendTo || teleportTarget.value })
-createTeleport(teleportProps, () => <Backdrop show={show.value && isMobile.value} />)
+createTeleport(
+  () => ({ to: teleportTarget.value }),
+  () => <Backdrop show={show.value && isMobile.value} />,
+)
 
 const emitClickTriggerEvents = () => {
   if (props.trigger === 'click') {
