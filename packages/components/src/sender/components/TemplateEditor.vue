@@ -54,7 +54,7 @@ const forceRerender = ref(0)
 const transformUserToInternal = (items: UserItem[]): (TextItem | TemplateItem)[] => {
   return items.map((item, index) => {
     return {
-      id: `id-${index}`,
+      id: item.id || `id-${index}`,
       ...(item.type === 'template' ? { ...item, prefix: PREFIX, suffix: SUFFIX } : item),
     } as TextItem | TemplateItem
   })
@@ -66,7 +66,7 @@ const transformUserToInternal = (items: UserItem[]): (TextItem | TemplateItem)[]
  * @returns 用户数据结构
  */
 const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[] => {
-  return items.map((item) => ({ type: item.type, content: item.content }))
+  return items.map((item) => ({ id: item.id, type: item.type, content: item.content }))
 }
 
 const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
