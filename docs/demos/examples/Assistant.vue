@@ -1,5 +1,16 @@
 <template>
-  <tr-container v-model:fullscreen="fullscreen" v-model:show="show" class="tiny-container">
+  <tr-container
+    v-dropzone="{
+      accept: 'image/jpeg, image/png',
+      multiple: true,
+      onDrop: handleFilesDropped,
+      onError: handleFilesRejected,
+      onDraggingChange: handleDraggingChange,
+    }"
+    v-model:fullscreen="fullscreen"
+    v-model:show="show"
+    class="tiny-container"
+  >
     <template #operations>
       <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
       <span style="display: inline-flex; line-height: 0; position: relative">
@@ -79,6 +90,14 @@
       <tiny-switch v-model="fullscreen"></tiny-switch>
     </div>
   </div>
+
+  <tr-drag-overlay
+    :overlay-title="overlayTitle"
+    :overlay-description="overlayDescription"
+    :is-dragging="isDragging"
+    :fullscreen="fullscreen"
+    :drag-target="targetElement"
+  />
 </template>
 
 <script setup lang="ts">
@@ -90,6 +109,7 @@ import type {
   SuggestionItem,
   SuggestionPillItem,
   UserItem,
+  FileRejection,
 } from '@opentiny/tiny-robot'
 import {
   TrBubbleList,
@@ -102,6 +122,8 @@ import {
   TrSuggestionPills,
   TrSuggestionPopover,
   TrWelcome,
+  vDropzone,
+  TrDragOverlay,
 } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import {
@@ -516,6 +538,25 @@ watch(
     }
   },
 )
+
+const overlayTitle = '将图片拖到此处完成上传'
+const overlayDescription = ['总计最多上传3个图片（每个10MB以内）', '支持图片格式 JPG/JPEG/PNG']
+
+const isDragging = ref(false)
+const targetElement = ref<HTMLElement | null>(null)
+
+const handleDraggingChange = (dragging: boolean, element: HTMLElement | null) => {
+  isDragging.value = dragging
+  targetElement.value = element
+}
+
+const handleFilesDropped = (files: File[]) => {
+  console.log('上传的文件:', files)
+}
+
+const handleFilesRejected = (rejection: FileRejection) => {
+  console.error('被拒绝的文件:', rejection)
+}
 
 // 页面加载完成后自动聚焦输入框
 onMounted(() => {
