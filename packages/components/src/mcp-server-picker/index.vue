@@ -7,7 +7,13 @@ import TinyOption from '@opentiny/vue-option'
 import { ref, computed, watch } from 'vue'
 import { PluginCard, PluginModal } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
-import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits, Data, PopupConfig } from './index.type'
+import type {
+  PluginInfo,
+  McpServerPickerProps,
+  McpServerPickerEmits,
+  PluginCreationData,
+  PopupConfig,
+} from './index.type'
 
 const props = withDefaults(defineProps<McpServerPickerProps>(), {
   installedPlugins: () => [],
@@ -147,7 +153,7 @@ const handleCustomAdd = () => {
   showModal.value = true
 }
 
-const handleCustomAddPlugin = (type: 'form' | 'code', data: Data) => {
+const handleCustomAddPlugin = (type: 'form' | 'code', data: PluginCreationData) => {
   emit('plugin-create', type, data)
   showModal.value = false
 }

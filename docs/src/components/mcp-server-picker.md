@@ -91,7 +91,7 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 | `plugin-toggle` | `(plugin: PluginInfo, enabled: boolean)` | 插件启用/禁用 |
 | `plugin-delete` | `(plugin: PluginInfo)` | 删除插件 |
 | `plugin-add` | `(plugin: PluginInfo, added: boolean)` | 市场插件添加/取消添加 |
-| `plugin-create` | `(type: 'form' \| 'code', data: Data)` | 插件创建 |
+| `plugin-create` | `(type: 'form' \| 'code', data: PluginCreationData)` | 插件创建 |
 
 #### 工具操作
 | 事件名 | 参数 | 说明 |
@@ -154,19 +154,19 @@ interface MarketCategoryOption {
 interface FormData {
   name: string            // 插件名称
   description: string     // 插件描述
-  types: string[]         // 插件类型数组，可选值：'stdio'、'sse'、'streamableHttp'
+  types: string[]         // 插件类型数组，可选值：'sse'、'streamableHttp'
   url: string             // 插件 URL
   headers: string         // 请求头（JSON 格式字符串）
   thumbnail?: File | null // 缩略图文件（可选）
 }
 ```
 
-#### Data
+#### PluginCreationData
 
-Data 类型是 FormData 或 string 的联合类型，用于表示插件创建的数据。
+PluginCreationData 类型是 FormData 或 string 的联合类型，用于表示插件创建的数据。
 
 ```typescript
-type Data = FormData | string
+type PluginCreationData = FormData | string
 ```
 
 #### PopupConfig

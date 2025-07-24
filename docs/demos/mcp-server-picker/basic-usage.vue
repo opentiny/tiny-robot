@@ -47,7 +47,7 @@ import {
   type PluginTool,
   type MarketCategoryOption,
   type FormData,
-  type Data,
+  type PluginCreationData,
 } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
@@ -228,7 +228,7 @@ const createPluginByCode = (data: string) => {
 }
 
 // 新的插件创建事件处理
-const handlePluginCreate = (type: 'form' | 'code', data: Data) => {
+const handlePluginCreate = (type: 'form' | 'code', data: PluginCreationData) => {
   if (type === 'form') {
     createPluginByForm(data)
   } else {

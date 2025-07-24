@@ -13,7 +13,6 @@ const formData = defineModel<FormData>('formData', { required: true })
 
 // 类型选项
 const typeOptions = [
-  { value: 'stdio', label: '标准输入/输出（stdio）' },
   { value: 'sse', label: '服务器发送事件（sse）' },
   { value: 'streamableHttp', label: '可流式传输的HTTP（streamableHttp）' },
 ]
