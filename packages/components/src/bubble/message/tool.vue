@@ -9,7 +9,7 @@ const props = defineProps<{
   formatPretty?: boolean
 }>()
 
-const collapsed = ref(false)
+const expanded = ref(false)
 
 const statusText = computed(() => {
   if (props.status === 'running') {
@@ -76,10 +76,10 @@ const highlightJSON = (json?: unknown): string => {
         </span>
       </div>
       <div class="tr-bubble__step-tool-expand">
-        <IconArrowDown class="expand-icon" :class="{ '-rotate-90': collapsed }" @click="collapsed = !collapsed" />
+        <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !expanded }" @click="expanded = !expanded" />
       </div>
     </div>
-    <div class="tr-bubble__step-tool-params" v-if="!collapsed">
+    <div class="tr-bubble__step-tool-params" v-if="expanded">
       <hr class="tr-bubble__step-tool-hr" />
       <div class="tr-bubble__step-tool-params-content" v-html="highlightJSON(props.params)"></div>
     </div>
