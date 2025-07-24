@@ -119,13 +119,9 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 支持附件上传功能，可通过`allowFiles`控制。
 
-> 目前仅支持按钮显示，后续会添加附件上传相关功能。
+结合 `buttonGroup` 属性，您可以实现更复杂的交互逻辑。例如，通过监听 `files-selected` 事件返回的文件列表，动态地禁用上传按钮或提交按钮，并更新其 `tooltips` 提示信息，以引导用户操作。
 
-<tr-sender :allowFiles="true"  />
-
-```vue
-<tr-sender :allowFiles="true" />
-```
+<demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="Sender 组件支持文件上传功能，并可通过 buttonGroup 动态控制按钮状态。" />
 
 #### 模版填充
 
@@ -248,6 +244,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | loading              | 是否加载中               | `boolean`                                               | `false`           |
 | mode                 | 输入框类型               | `'single' \| 'multiple'`                                | `'single'`        |
 | maxLength            | 最大输入长度             | `number`                                                | `Infinity`        |
+| buttonGroup          | 按钮组配置               | `ButtonGroupConfig`                                     | `{}`              |
 | placeholder          | 输入框占位文本           | `string`                                                | `'请输入内容...'` |
 | speech               | 语音识别配置             | `'boolean' \| 'SpeechConfig'`                           | 无                |
 | showWordLimit        | 是否显示字数统计         | `boolean`                                               | `false`           |
@@ -322,5 +319,23 @@ interface SpeechConfig {
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
   autoReplace?: boolean // 是否自动替换当前输入内容
+}
+```
+
+```typescript
+export interface ControlState {
+  tooltips?: string | Function // 工具提示
+  disabled?: boolean // 是否禁用
+}
+
+interface fileUploadConfig {
+  accept?: string // 接受的文件类型
+  multiple?: boolean // 是否支持多选文件
+}
+
+interface ButtonGroupConfig {
+  file?: ControlState & fileUploadConfig // 文件上传按钮
+  submit?: ControlState // 提交按钮
+  // 后续可扩展至其他按钮...
 }
 ```

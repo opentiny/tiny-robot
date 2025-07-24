@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import TinyTooltip from '@opentiny/vue-tooltip'
 import { ActionButtonsProps } from '../index.type'
-import { IconSend, IconStop, IconAccessory, IconVoice, IconLoadingSpeech, IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClose } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -70,7 +70,33 @@ const emit = defineEmits<{
    * 取消发送事件，用于取消加载状态
    */
   (e: 'cancel'): void
+  /**
+   * 触发选择文件事件
+   */
+  (e: 'trigger-select'): void
 }>()
+
+const fileTooltipRenderFn = computed(() => {
+  const tooltip = props.buttonGroup?.file?.tooltips
+  if (typeof tooltip === 'string' && tooltip) {
+    return () => tooltip
+  }
+  if (typeof tooltip === 'function') {
+    return tooltip
+  }
+  return undefined
+})
+
+const submitTooltipRenderFn = computed(() => {
+  const tooltip = props.buttonGroup?.submit?.tooltips
+  if (typeof tooltip === 'string' && tooltip) {
+    return () => tooltip
+  }
+  if (typeof tooltip === 'function') {
+    return tooltip
+  }
+  return undefined
+})
 
 /**
  * 是否启用语音功能
@@ -87,7 +113,7 @@ const isDisabled = computed(() => props.disabled)
 /**
  * 提交按钮禁用状态
  */
-const isSubmitDisabled = computed(() => isDisabled.value || props.isOverLimit)
+const isSubmitDisabled = computed(() => isDisabled.value || props.isOverLimit || props.buttonGroup?.submit?.disabled)
 
 /**
  * 是否显示辅助按钮
@@ -130,6 +156,16 @@ const handleCancel = () => {
     emit('cancel')
   }
 }
+
+const fileDisabled = computed(() => isDisabled.value || props.buttonGroup?.file?.disabled)
+/**
+ * 处理上传操作
+ */
+const handleUpload = () => {
+  if (!fileDisabled.value) {
+    emit('trigger-select')
+  }
+}
 </script>
 
 <template>
@@ -142,9 +178,12 @@ const handleCancel = () => {
     >
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
-        <tiny-tooltip content="上传文件" placement="top">
-          <div class="action-buttons__button">
-            <IconAccessory class="action-buttons__icon" alt="上传文件" />
+        <tiny-tooltip effect="light" placement="top" :render-content="fileTooltipRenderFn" :visible-arrow="false">
+          <div class="action-buttons__button" @click="handleUpload">
+            <IconUpload
+              :class="['action-buttons__icon', 'action-buttons__icon--upload', { 'is-disabled': fileDisabled }]"
+              alt="上传文件"
+            />
           </div>
         </tiny-tooltip>
       </template>
@@ -172,11 +211,18 @@ const handleCancel = () => {
       <div class="action-buttons__button action-buttons__submit" @click="loading ? handleCancel() : handleSubmit()">
         <div class="action-buttons__submit-content">
           <!-- 发送图标 -->
-          <IconSend
-            :class="['action-buttons__icon', 'action-buttons__icon--send', { 'is-disabled': isSubmitDisabled }]"
+          <tiny-tooltip
             v-if="!loading"
-            alt="发送"
-          />
+            effect="light"
+            placement="top"
+            :render-content="submitTooltipRenderFn"
+            :visible-arrow="false"
+          >
+            <IconSend
+              :class="['action-buttons__icon', 'action-buttons__icon--send', { 'is-disabled': isSubmitDisabled }]"
+              alt="发送"
+            />
+          </tiny-tooltip>
 
           <!-- 停止生成按钮 -->
           <div v-else class="action-buttons__cancel" :class="{ 'action-buttons__cancel--icon-only': !stopText }">
@@ -212,6 +258,7 @@ const handleCancel = () => {
   --tr-sender-action-buttons-icon-size-send: 36px;
   --tr-sender-action-buttons-icon-size-cancel: 24px;
   --tr-sender-action-buttons-icon-size-clear: 24px;
+  --tr-sender-action-buttons-icon-size-upload: 20px;
   --tr-sender-action-buttons-border-radius: 8px;
   --tr-sender-action-buttons-cancel-height: 36px;
   --tr-sender-action-buttons-cancel-gap: 4px;
@@ -258,6 +305,14 @@ const handleCancel = () => {
       height: var(--tr-sender-action-buttons-icon-size);
       padding: 4px;
       font-size: var(--tr-sender-action-buttons-icon-size-clear);
+    }
+
+    /* 上传图标 */
+    &--upload {
+      width: 32px;
+      height: 32px;
+      padding: 6px;
+      font-size: var(--tr-sender-action-buttons-icon-size-upload);
     }
 
     /* 发送图标 */

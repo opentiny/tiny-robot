@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { Ref, VNode } from 'vue'
 import type { TemplateItem, TextItem } from './types/editor.type'
 
 /**
@@ -29,6 +29,23 @@ export interface SuggestionTextPart {
   isMatch: boolean
 }
 
+export type TooltipRender = () => VNode | string
+
+export interface ControlState {
+  tooltips?: string | TooltipRender // 工具提示
+  disabled?: boolean // 是否禁用
+}
+
+interface fileUploadConfig {
+  accept?: string // 接受的文件类型
+  multiple?: boolean // 是否支持多选文件
+}
+
+export interface ButtonGroupConfig {
+  file?: ControlState & fileUploadConfig // 文件上传按钮
+  submit?: ControlState // 提交按钮
+}
+
 // Sender组件属性
 export interface SenderProps {
   autofocus?: boolean // 自动聚焦
@@ -42,6 +59,7 @@ export interface SenderProps {
   modelValue?: string // 双向绑定值
   mode?: InputMode // 输入框模式：单行/多行
   maxLength?: number // 最大输入长度
+  buttonGroup?: ButtonGroupConfig // 按钮组配置
   submitType?: SubmitTrigger // 提交触发方式
   speech?: boolean | SpeechConfig // 语音识别配置
   placeholder?: string // 占位文本
@@ -58,6 +76,7 @@ export interface ActionButtonsProps {
   disabled?: boolean // 是否禁用
   showClear?: boolean // 是否可以清除
   hasContent?: boolean // 是否有文本内容
+  buttonGroup?: ButtonGroupConfig
   allowSpeech?: boolean // 是否允许语音识别
   speechStatus?: {
     isRecording: boolean // 是否正在录制
@@ -86,6 +105,7 @@ export type SenderEmits = {
   (e: 'escape-press'): void // 按下Esc键时触发
   (e: 'cancel'): void // 取消发送状态时触发
   (e: 'reset-template'): void // 重置模板状态，退出模板编辑模式
+  (e: 'files-selected', files: File[]): void // 文件选择事件
 }
 
 // 语音识别状态
