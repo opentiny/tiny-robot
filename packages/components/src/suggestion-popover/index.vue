@@ -136,10 +136,10 @@ const popoverStyles = computed<CSSProperties>(() => {
   return {}
 })
 
-const teleportTarget = useTeleportTarget(triggerRef)
+const teleportTarget = useTeleportTarget(triggerRef, props.appendTo)
 
 createTeleport(
-  () => ({ to: props.appendTo || teleportTarget.value }),
+  () => ({ to: teleportTarget.value }),
   () => <Backdrop show={show.value && isMobile.value} />,
 )
 

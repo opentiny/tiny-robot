@@ -109,12 +109,12 @@ watch(
   { flush: 'post' },
 )
 
-const teleportTarget = useTeleportTarget(triggerRef)
+const teleportTarget = useTeleportTarget(triggerRef, props.appendTo)
 
 const attrs = useAttrs()
 
 createTeleport(
-  () => ({ to: props.appendTo || teleportTarget.value }),
+  () => ({ to: teleportTarget.value }),
   () => (
     <Popper
       ref={popperInstance}
