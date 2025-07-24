@@ -167,6 +167,7 @@ type BubblePlacement = 'start' | 'end'
 | `placement`       | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                               |
 | `avatar`          | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                     |
 | `shape`           | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                          |
+| `contentRenderer` | `BubbleMessageRenderer` | -          | 气泡内容渲染器（当 messages 长度大于 0 时无效，使用 BubbleProvider 注册的渲染器） |
 | `hidden`          | `boolean`               | -          | 是否隐藏气泡                                                                      |
 | `maxWidth`        | `string \| number`      | -          | 气泡内容的最大宽度                                                                |
 

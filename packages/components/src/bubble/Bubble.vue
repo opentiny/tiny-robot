@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { toCssUnit } from '../shared/utils'
-import { BubbleProps, BubbleSlots } from './index.type'
+import { BubbleMessageFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
+import { BubbleMessageClassRenderer } from './message/class-renderer'
 import Message from './message/Message.vue'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -12,6 +13,25 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 })
 
 const slots = defineSlots<BubbleSlots>()
+
+const contentRenderer = computed(() => {
+  const renderer = props.contentRenderer
+
+  if (!renderer) {
+    return null
+  }
+
+  if (typeof renderer === 'function') {
+    const renderFn = renderer as BubbleMessageFunctionRenderer
+    return { isComponent: false, vNodeOrComponent: renderFn(props) }
+  }
+
+  if (renderer instanceof BubbleMessageClassRenderer) {
+    return { isComponent: false, vNodeOrComponent: renderer.render(props) }
+  }
+
+  return { isComponent: true, vNodeOrComponent: renderer }
+})
 
 const bubbleContent = computed(() => {
   return props.content
@@ -47,7 +67,15 @@ const placementStart = computed(() => props.placement === 'start')
         </template>
         <template v-else>
           <slot :bubble-props="props">
-            <span class="tr-bubble__body-text">{{ bubbleContent }}</span>
+            <template v-if="contentRenderer">
+              <component
+                v-if="contentRenderer.isComponent"
+                :is="contentRenderer.vNodeOrComponent"
+                v-bind="props"
+              ></component>
+              <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+            </template>
+            <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
           </slot>
         </template>
         <span v-if="props.aborted" class="tr-bubble__aborted">（用户停止）</span>
