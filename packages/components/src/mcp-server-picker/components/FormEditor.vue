@@ -13,8 +13,8 @@ const formData = defineModel<PluginFormData>('formData', { required: true })
 
 // 类型选项
 const typeOptions = [
-  { value: 'sse', label: '服务器发送事件（sse）' },
-  { value: 'streamableHttp', label: '可流式传输的HTTP（streamableHttp）' },
+  { label: 'sse', text: '服务器发送事件（sse）' },
+  { label: 'streamableHttp', text: '可流式传输的HTTP（streamableHttp）' },
 ]
 
 const { open: openFileDialog, files } = useFileDialog({
