@@ -97,7 +97,7 @@ const IconFullScreenSwitcher = computed(() => (fullscreen.value ? IconCancelFull
     gap: 8px;
   }
 
-  .tr-container__header + :slotted(*) {
+  .tr-container__header + * {
     flex: 1;
     overflow-y: auto;
   }

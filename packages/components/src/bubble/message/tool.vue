@@ -142,6 +142,7 @@ const highlightJSON = (json?: unknown): string => {
 
   .tr-bubble__step-tool-params-content {
     white-space: pre-wrap;
+    word-break: break-word;
     font-family: monospace;
   }
 }
