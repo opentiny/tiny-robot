@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TinySwitch from '@opentiny/vue-switch'
+import TinyPopconfirm from '@opentiny/vue-popconfirm'
 import { computed, ref } from 'vue'
 import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
@@ -100,9 +101,19 @@ const handleAdd = () => {
               </slot>
             </div>
             <div class="plugin-card__operations">
-              <slot name="delete-icon">
-                <IconDelete style="font-size: 16px; cursor: pointer" @click="handleDelete" />
-              </slot>
+              <TinyPopconfirm
+                title="确定删除该插件吗？"
+                style="height: 16px"
+                type="info"
+                @confirm="handleDelete"
+                trigger="click"
+              >
+                <template #reference>
+                  <slot name="delete-icon">
+                    <IconDelete style="font-size: 16px; cursor: pointer" />
+                  </slot>
+                </template>
+              </TinyPopconfirm>
               <TinySwitch
                 :model-value="pluginState.checked"
                 :indeterminate="pluginState.indeterminate"
