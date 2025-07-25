@@ -1,43 +1,8 @@
 import { Component, VNode } from 'vue'
-import { DropdownMenuEvents, DropdownMenuEventProps, DropdownMenuProps } from '../dropdown-menu/index.type'
-import {
-  SuggestionPopoverEventProps,
-  SuggestionPopoverEvents,
-  SuggestionPopoverProps,
-  SuggestionPopoverSlots,
-} from '../suggestion-popover/index.type'
 
-export type SuggestionPillPopoverAction = {
-  type: 'popover'
-  props: SuggestionPopoverProps & SuggestionPopoverEventProps
-  slots?: Omit<SuggestionPopoverSlots, 'default'>
-  /**
-   * @deprecated use onXXX in props instead
-   */
-  events?: SuggestionPopoverEvents
-}
-
-export type SuggestionPillMenuAction = {
-  type: 'menu'
-  props: DropdownMenuProps & DropdownMenuEventProps
-  /**
-   * @deprecated use onXXX in props instead
-   */
-  events?: DropdownMenuEvents
-}
-
-export type SuggestionPillAction = SuggestionPillPopoverAction | SuggestionPillMenuAction
-
-export type SuggestionPillBaseItem<T> = {
-  id: string
-  action?: SuggestionPillAction
-} & T
-
-export type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBaseItem<T> &
-  ({ text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component })
+export type SuggestionPillItem = { text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component }
 
 export interface SuggestionPillsProps {
-  items?: SuggestionPillItem[]
   /**
    * model:showAll
    */
@@ -58,20 +23,15 @@ export interface SuggestionPillsProps {
   overflowMode?: 'expand' | 'scroll'
   /**
    * 鼠标悬停时是否自动滚动到可见区域
-   * @default false
    */
-  autoScrollOnHover?: boolean
+  autoScrollOn?: 'mouseenter' | 'click'
 }
 
-/**
- * @deprecated
- */
 export interface SuggestionPillsSlots {
-  default?: () => VNode | VNode[]
+  default?: () => VNode[]
 }
 
 export interface SuggestionPillsEmits {
-  (e: 'item-click', item: SuggestionPillItem): void
   (e: 'click-outside', event: MouseEvent): void
 }
 

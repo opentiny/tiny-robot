@@ -1,17 +1,8 @@
 <script setup lang="ts">
-import { IconClose, IconSparkles } from '@opentiny/tiny-robot-svgs'
-import IconButton from '../../icon-button'
+import { IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { SuggestionPopoverProps } from '../index.type'
 
 const props = defineProps<Pick<SuggestionPopoverProps, 'icon' | 'title'>>()
-
-const emit = defineEmits<{
-  (e: 'close'): void
-}>()
-
-const handleClose = () => {
-  emit('close')
-}
 </script>
 
 <template>
@@ -21,9 +12,15 @@ const handleClose = () => {
       <IconSparkles style="color: #1476ff" />
     </span>
     <h3 class="tr-question__header-title">{{ props.title }}</h3>
-    <IconButton class="tr-question-popover__close" :icon="IconClose" size="24" svg-size="20" @click="handleClose" />
   </div>
 </template>
+
+<style lang="less">
+:root {
+  --tr-suggestion-popover-header-font-size: 20px;
+  --tr-suggestion-popover-header-line-height: 30px;
+}
+</style>
 
 <style scoped lang="less">
 .tr-question__header {
@@ -44,16 +41,9 @@ const handleClose = () => {
 
   .tr-question__header-title {
     margin: 0;
-    font-size: 20px;
-    line-height: 30px;
+    font-size: var(--tr-suggestion-popover-header-font-size);
+    line-height: var(--tr-suggestion-popover-header-line-height);
     font-weight: 600;
-  }
-
-  .tr-question-popover__close {
-    // TODO icon 待整改
-    // color: #595959;
-    right: 0;
-    position: absolute;
   }
 }
 </style>

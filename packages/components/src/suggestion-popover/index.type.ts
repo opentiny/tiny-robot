@@ -17,6 +17,7 @@ export interface SuggestionGroup<T = Record<string, unknown>> {
 export type SuggestionData<T = Record<string, unknown>> = (SuggestionItem<T> | SuggestionGroup<T>)[]
 
 export interface SuggestionPopoverProps<T = Record<string, unknown>> {
+  appendTo?: string | HTMLElement
   data: SuggestionData<T>
   title?: string
   icon?: VNode | Component
@@ -35,15 +36,16 @@ export interface SuggestionPopoverProps<T = Record<string, unknown>> {
   groupShowMoreTrigger?: 'click' | 'hover'
   loading?: boolean
   // 下面是样式相关的属性
-  popoverWidth?: string | number
-  popoverHeight?: string | number
-  topOffset?: string | number
+  topOffset?: number
 }
 
 export interface SuggestionPopoverSlots {
-  default?: () => unknown
-  loading?: () => unknown
-  empty?: () => unknown
+  trigger?: () => VNode | VNode[]
+  item?: ({ item }: { item: SuggestionItem }) => VNode | VNode[]
+  loading?: () => VNode | VNode[]
+  empty?: () => VNode | VNode[]
+  header?: () => VNode | VNode[]
+  body?: () => VNode | VNode[]
 }
 
 export interface SuggestionPopoverEmits {

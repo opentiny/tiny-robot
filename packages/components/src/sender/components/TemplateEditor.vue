@@ -71,6 +71,36 @@ const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[]
 
 const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
 
+const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
+  const zeroWidthLocatorNode = { type: 'text', content: '\u200B', id: randomId() } as TextItem | TemplateItem
+
+  if (items.length > 0) {
+    if (isSafariBrowser && items[items.length - 1].type === 'template') {
+      originalData.value = items.concat([zeroWidthLocatorNode])
+    } else if (!isSafariBrowser && items[0].type === 'template') {
+      originalData.value = [zeroWidthLocatorNode].concat(items)
+    } else {
+      originalData.value = items
+      const firstItem = items[0]
+      const lastItem = items[items.length - 1]
+
+      if (isSafariBrowser) {
+        // 在 safari 环境下，如果最后一个元素是 text，清空 content
+        if (lastItem.content !== '\u200B') {
+          lastItem.content = lastItem.content.replace(/\u200B/g, '')
+        }
+      } else {
+        // 在 chrome 环境下，如果第一个元素是 text，清空 content
+        if (firstItem.content !== '\u200B') {
+          firstItem.content = firstItem.content.replace(/\u200B/g, '')
+        }
+      }
+    }
+  } else {
+    originalData.value = items
+  }
+}
+
 const flattenedData = computed<ExtendedTextItem[]>(() => {
   return originalData.value
     .map((item) => {
@@ -160,7 +190,7 @@ watch(
   () => model.value,
   (newModel) => {
     // 当 props 变化时，更新内部状态
-    originalData.value = transformUserToInternal(newModel || [])
+    setOriginalData(transformUserToInternal(newModel || []))
 
     history.commit(serializeWithTimestamp(originalData.value))
   },
@@ -259,15 +289,17 @@ const insertNewTextAndSetCaretPosition = (content: string, insertAfter?: string)
   if (insertAfter) {
     const index = originalData.value.findIndex((item) => item.id === insertAfter)
     if (index !== -1) {
-      originalData.value = originalData.value
-        .slice(0, index + 1)
-        .concat(textItem)
-        .concat(originalData.value.slice(index + 1))
+      setOriginalData(
+        originalData.value
+          .slice(0, index + 1)
+          .concat(textItem)
+          .concat(originalData.value.slice(index + 1)),
+      )
     } else {
       console.warn(`can not find item with id: ${insertAfter}`)
     }
   } else {
-    originalData.value.unshift(textItem)
+    setOriginalData([textItem as TextItem | TemplateItem].concat(originalData.value))
   }
 
   nextTick(() => {
@@ -387,6 +419,44 @@ const insertToText = (text: string, insertedText: string, startOffset: number, e
   return text.slice(0, startOffset) + insertedText + text.slice(endOffset)
 }
 
+const handleSentinelNodeForwardDeletion = (
+  selectedItems: SelectedItem[],
+  range: EditorRange,
+  inputType: string,
+): SelectedItem[] => {
+  if (inputType !== 'deleteContentForward' || selectedItems.length !== 1) {
+    return selectedItems
+  }
+
+  const item = selectedItems[0]
+  const dataItem = originalData.value.find((d) => d.id === item.id)
+
+  // 检查是否是哨兵节点（仅包含零宽字符的文本节点）
+  if (!dataItem || dataItem.type !== 'text' || dataItem.content !== '\u200B' || range.collapsed) {
+    return selectedItems
+  }
+
+  // 是哨兵节点，我们将光标移动到下一个元素
+  const currentIndex = flattenedData.value.findIndex((flatItem) => flatItem.id === item.id)
+
+  if (currentIndex < 0 || currentIndex >= flattenedData.value.length - 1) {
+    // 如果是最后一个元素，或者没找到，就只阻止删除（通过折叠选区）
+    return [{ ...item, startOffset: 0, endOffset: 0 }]
+  }
+
+  const nextItem = flattenedData.value[currentIndex + 1]
+
+  // 返回一个指向下一个元素开头的新选区
+  return [
+    {
+      id: nextItem.id,
+      type: nextItem.type,
+      startOffset: 0,
+      endOffset: 0,
+    },
+  ]
+}
+
 const processInput = (range: EditorRange, inputType: string, inputData: string) => {
   const selected = getSelected(range)
 
@@ -394,7 +464,9 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
     return
   }
 
-  const selectedOrCreateItems = transformSelected(selected, range, inputType, inputData)
+  const adjustedSelected = handleSentinelNodeForwardDeletion(selected, range, inputType)
+
+  const selectedOrCreateItems = transformSelected(adjustedSelected, range, inputType, inputData)
 
   if (selectedOrCreateItems.some((item) => (item as CreateItem).tag === 'new')) {
     const { afterId, content } = selectedOrCreateItems[0] as CreateItem
@@ -437,16 +509,19 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   }
 
   // 删除空数据
-  originalData.value = originalData.value.filter((item) => !toDeleted.includes(item.id))
-  originalData.value = originalData.value.filter((item) => {
-    if (item.type === 'text') {
-      return item.content.length > 0
-    }
-    return [item.prefix, item.suffix, item.content].join('').length > 0
-  })
+  setOriginalData(originalData.value.filter((item) => !toDeleted.includes(item.id)))
+  setOriginalData(
+    originalData.value.filter((item) => {
+      if (item.type === 'text') {
+        return item.content.length > 0
+      }
+      const templateItem = item as TemplateItem
+      return [templateItem.prefix, templateItem.suffix, templateItem.content].join('').length > 0
+    }),
+  )
 
   // 恢复分隔符
-  for (const dataItem of originalData.value.filter((item) => item.type === 'template')) {
+  for (const dataItem of originalData.value.filter((item): item is TemplateItem => item.type === 'template')) {
     if (dataItem.prefix.length === 0) {
       dataItem.prefix = PREFIX
     }
@@ -757,7 +832,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 const restoreDataAndCaretPosition = (historyItem: string) => {
   const { data } = parseSerializedData(historyItem)
-  originalData.value = data
+  setOriginalData(data)
   if (rangeMap.has(historyItem)) {
     const range = rangeMap.get(historyItem)!
     nextTick(() => {
@@ -817,13 +892,22 @@ defineExpose({
   </div>
 </template>
 
+<style lang="less">
+:root {
+  --tr-sender-template-editor-font-size: 16px;
+  --tr-sender-template-block-color: #1476ff;
+  --tr-sender-template-block-bg-color: rgba(20, 118, 255, 0.1);
+  --tr-sender-template-block-caret-color: #191919;
+}
+</style>
+
 <style lang="less" scoped>
 .editor-container {
   [contenteditable] {
     display: block;
     width: 100%;
     min-height: 26px;
-    font-size: 16px;
+    font-size: var(--tr-sender-template-editor-font-size);
     line-height: 2.5;
     border-radius: 4px;
     word-break: break-word;
@@ -838,5 +922,11 @@ defineExpose({
       border: none;
     }
   }
+}
+</style>
+
+<style lang="less">
+.tr-sender-compact {
+  --tr-sender-template-editor-font-size: 14px;
 }
 </style>

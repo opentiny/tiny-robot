@@ -1,9 +1,10 @@
 <!-- eslint-disable @typescript-eslint/no-explicit-any -->
-<script setup lang="ts">
+<script setup lang="tsx">
 import { useElementBounding, useElementSize } from '@vueuse/core'
-import { computed, CSSProperties, isVNode, ref, TransitionProps, VNode, watch } from 'vue'
-import { useSlotRefs, useTeleportTarget } from '../shared/composables'
+import { computed, CSSProperties, ref, TransitionProps, useAttrs, VNode, watch } from 'vue'
+import { createTeleport, useSlotRefs, useTeleportTarget } from '../shared/composables'
 import { toCssUnit } from '../shared/utils'
+import Popper from './components/Popper.vue'
 
 defineOptions({
   inheritAttrs: false,
@@ -17,7 +18,6 @@ const props = withDefaults(
     offset?: number | { mainAxis?: number; crossAxis?: number }
     placement?: 'top-center' | 'bottom-center' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
     preventOverflow?: boolean
-    renderAllTriggers?: boolean
     show?: boolean
     transitionProps?: TransitionProps
     triggerEvents?: TriggerEvents
@@ -32,30 +32,22 @@ const slots = defineSlots<{
   content?: () => VNode[]
 }>()
 
-const {
-  vnodes: triggerVNodes,
-  refs: triggerRefs,
-  ref: triggerRef,
-  setRefs,
-} = useSlotRefs(slots.trigger, props.renderAllTriggers)
+const { vnodes: triggerVNodes, ref: triggerRef, setRef } = useSlotRefs(slots.trigger)
 
-function createIndexedEventHandlers(events: TriggerEvents = {}, index: number) {
-  const wrapped: TriggerEvents = {}
+const resolveEventHandlers = (events: TriggerEvents = {}) => {
+  const result: TriggerEvents = {}
 
   for (const [key, value] of Object.entries(events)) {
     if (/^on[A-Z]/.test(key) && typeof value === 'function') {
-      wrapped[key as keyof TriggerEvents] = (...args: any[]) => value(...args, index)
+      result[key as keyof TriggerEvents] = value
     }
   }
 
-  return wrapped
+  return result
 }
 
-const indexedEventHandlers = computed(() =>
-  triggerVNodes.value.map((_, index) => createIndexedEventHandlers(props.triggerEvents, index)),
-)
-
-const popperRef = ref<HTMLDivElement | null>(null)
+const popperInstance = ref<InstanceType<typeof Popper> | null>(null)
+const popperRef = computed(() => popperInstance.value?.popperRef || null)
 
 const resolvedOffset = computed(() => {
   if (typeof props.offset === 'number') {
@@ -82,7 +74,7 @@ const popperStyles = computed<CSSProperties>(() => {
     }
 
     const isVertical = side === 'top' || side === 'bottom'
-    const maxViewport = isVertical ? '100dvh' : '100dvw'
+    const maxViewport = isVertical ? '100%' : '100%'
     const size = toCssUnit(isVertical ? popperHeight.value : popperWidth.value)
 
     styles[side] = `clamp(0px, ${value}, calc(${maxViewport} - ${size}))`
@@ -117,30 +109,34 @@ watch(
   { flush: 'post' },
 )
 
-const teleportTarget = useTeleportTarget(triggerRef)
+const teleportTarget = useTeleportTarget(triggerRef, props.appendTo)
+
+const attrs = useAttrs()
+
+createTeleport(
+  () => ({ to: teleportTarget.value }),
+  () => (
+    <Popper
+      ref={popperInstance}
+      show={props.show}
+      transitionProps={props.transitionProps}
+      style={popperStyles.value}
+      {...attrs}
+    >
+      {slots.content?.()}
+    </Popper>
+  ),
+)
 
 defineExpose({
   triggerRef,
-  triggerRefs,
   popperRef,
+  update,
 })
 </script>
 
 <template>
-  <component
-    v-for="(vnode, index) in triggerVNodes"
-    :key="isVNode(vnode) ? vnode.key : index"
-    :is="vnode"
-    :ref="(el: unknown) => setRefs(el, index)"
-    v-bind="indexedEventHandlers[index]"
-  />
-  <Transition v-bind="transitionProps">
-    <Teleport v-if="show" :to="props.appendTo || teleportTarget">
-      <div class="tr-base-popper" ref="popperRef" :style="popperStyles" v-bind="$attrs">
-        <slot name="content" />
-      </div>
-    </Teleport>
-  </Transition>
+  <component :is="triggerVNodes[0]" :ref="setRef" v-bind="resolveEventHandlers(props.triggerEvents)" />
 </template>
 
 <style lang="less" scoped>

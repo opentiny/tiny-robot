@@ -1,6 +1,8 @@
 <template>
   <SuggestionPopover :data="data" @item-click="(item) => console.log(item)">
-    <button>点击弹出SuggestionPopover</button>
+    <template #trigger>
+      <button>点击弹出SuggestionPopover</button>
+    </template>
   </SuggestionPopover>
 </template>
 

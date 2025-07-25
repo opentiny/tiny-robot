@@ -7,6 +7,14 @@
   </div>
 </template>
 
+<style lang="less">
+:root {
+  --tr-suggestion-popover-no-data-color: #191919;
+  --tr-suggestion-popover-no-data-font-size: 12px;
+  --tr-suggestion-popover-no-data-line-height: 24px;
+}
+</style>
+
 <style scoped lang="less">
 .tr-question__no-data-wrapper {
   flex: 1;
@@ -22,9 +30,9 @@
 
   .tr-question__no-data-text {
     margin-top: 14px;
-    font-size: 12px;
-    line-height: 24px;
-    color: #191919;
+    font-size: var(--tr-suggestion-popover-no-data-font-size);
+    line-height: var(--tr-suggestion-popover-no-data-line-height);
+    color: var(--tr-suggestion-popover-no-data-color);
   }
 }
 </style>
