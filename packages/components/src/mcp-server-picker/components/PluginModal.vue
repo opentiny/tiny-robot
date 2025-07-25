@@ -3,7 +3,7 @@ import { IconClose } from '@opentiny/tiny-robot-svgs'
 import TinyRadioGroup from '@opentiny/vue-radio-group'
 import { onClickOutside } from '@vueuse/core'
 import { ref, defineEmits } from 'vue'
-import type { PluginModalEmits, FormData } from '../index.type'
+import type { PluginModalEmits, PluginFormData } from '../index.type'
 import CodeEditor from './CodeEditor.vue'
 import FormEditor from './FormEditor.vue'
 
@@ -12,10 +12,10 @@ const emit = defineEmits<PluginModalEmits>()
 const visible = defineModel<boolean>('visible', { required: true })
 const dialogRef = ref<HTMLDivElement | null>(null)
 
-const formData = ref<FormData>({
+const formData = ref<PluginFormData>({
   name: '',
   description: '',
-  type: '',
+  type: 'sse',
   url: '',
   headers: '',
   thumbnail: null,

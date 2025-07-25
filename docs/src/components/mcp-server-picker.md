@@ -146,15 +146,15 @@ interface MarketCategoryOption {
 }
 ```
 
-#### FormData
+#### PluginFormData
 
 表单方式添加插件数据类型：
 
 ```typescript
-interface FormData {
+interface PluginFormData {
   name: string            // 插件名称
   description: string     // 插件描述
-  types: string[]         // 插件类型数组，可选值：'sse'、'streamableHttp'
+  type: 'sse' | 'streamableHttp'  // 插件类型, sse 或 streamableHttp
   url: string             // 插件 URL
   headers: string         // 请求头（JSON 格式字符串）
   thumbnail?: File | null // 缩略图文件（可选）
@@ -163,10 +163,10 @@ interface FormData {
 
 #### PluginCreationData
 
-PluginCreationData 类型是 FormData 或 string 的联合类型，用于表示插件创建的数据。
+PluginCreationData 类型是 PluginFormData 或 string 的联合类型，用于表示插件创建的数据。
 
 ```typescript
-type PluginCreationData = FormData | string
+type PluginCreationData = PluginFormData | string
 ```
 
 #### PopupConfig

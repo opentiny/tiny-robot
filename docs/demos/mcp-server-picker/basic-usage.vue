@@ -46,7 +46,7 @@ import {
   type PluginInfo,
   type PluginTool,
   type MarketCategoryOption,
-  type FormData,
+  type PluginFormData,
   type PluginCreationData,
 } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
@@ -209,7 +209,7 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
   }
 }
 
-const createPluginByForm = (data: FormData) => {
+const createPluginByForm = (data: PluginFormData) => {
   console.log('表单方式添加插件:', data)
   // 可以在这里处理表单数据，例如发送到服务器
   const newPlugin: PluginInfo = {

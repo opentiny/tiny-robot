@@ -2,14 +2,14 @@
 import TinyRadioGroup from '@opentiny/vue-radio-group'
 import { ref, onUnmounted, watch } from 'vue'
 import { useFileDialog } from '@vueuse/core'
-import type { FormData } from '../index.type'
+import type { PluginFormData } from '../index.type'
 
 // 图片预览相关
 const previewImageUrl = ref<string>('')
 const defaultImageUrl = 'https://res.hc-cdn.com/tinyui-design/1.1.0.20250526191525/home/images/tiny-ng.svg'
 
 // 表单数据
-const formData = defineModel<FormData>('formData', { required: true })
+const formData = defineModel<PluginFormData>('formData', { required: true })
 
 // 类型选项
 const typeOptions = [

@@ -54,16 +54,16 @@ export interface PopupConfig {
 }
 
 // 添加插件表单数据类型
-export interface FormData {
+export interface PluginFormData {
   name: string
   description: string
-  type: string
+  type: 'sse' | 'streamableHttp'
   url: string
   headers: string
   thumbnail?: File | null
 }
 
-export type PluginCreationData = FormData | string
+export type PluginCreationData = PluginFormData | string
 
 // 添加插件弹窗 Emits
 export interface PluginModalEmits {
