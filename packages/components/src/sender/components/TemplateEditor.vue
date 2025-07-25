@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import Block from './Block.vue'
 import { useUndoRedo } from '../composables/useUndoRedo'
 import type { UserItem } from '../index.type'
 import type {
@@ -12,6 +11,7 @@ import type {
   TemplateItem,
   TextItem,
 } from '../types/editor.type'
+import Block from './Block.vue'
 
 declare global {
   interface Selection {
@@ -35,8 +35,10 @@ const isSafariBrowser = isSafari()
 
 const randomId = () => Math.random().toString(36).substring(2, 15)
 
-const PREFIX = '\u200B'
-const SUFFIX = '\u200B'
+const ZERO_WIDTH_CHAR = '\u200B'
+const PLACEHOLDER = ZERO_WIDTH_CHAR
+const PREFIX = ZERO_WIDTH_CHAR
+const SUFFIX = ZERO_WIDTH_CHAR
 
 const model = defineModel<UserItem[]>({ default: () => [] })
 
@@ -52,9 +54,9 @@ const forceRerender = ref(0)
  * @returns 内部数据结构
  */
 const transformUserToInternal = (items: UserItem[]): (TextItem | TemplateItem)[] => {
-  return items.map((item, index) => {
+  return items.map((item) => {
     return {
-      id: item.id || `id-${index}`,
+      id: item.id || randomId(),
       ...(item.type === 'template' ? { ...item, prefix: PREFIX, suffix: SUFFIX } : item),
     } as TextItem | TemplateItem
   })
@@ -72,33 +74,31 @@ const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[]
 const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
 
 const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
-  const zeroWidthLocatorNode = { type: 'text', content: '\u200B', id: randomId() } as TextItem | TemplateItem
+  const first: (TextItem | TemplateItem)[] = []
+  const last: (TextItem | TemplateItem)[] = []
 
-  if (items.length > 0) {
-    if (isSafariBrowser && items[items.length - 1].type === 'template') {
-      originalData.value = items.concat([zeroWidthLocatorNode])
-    } else if (!isSafariBrowser && items[0].type === 'template') {
-      originalData.value = [zeroWidthLocatorNode].concat(items)
-    } else {
-      originalData.value = items
-      const firstItem = items[0]
-      const lastItem = items[items.length - 1]
-
-      if (isSafariBrowser) {
-        // 在 safari 环境下，如果最后一个元素是 text，清空 content
-        if (lastItem.content !== '\u200B') {
-          lastItem.content = lastItem.content.replace(/\u200B/g, '')
-        }
-      } else {
-        // 在 chrome 环境下，如果第一个元素是 text，清空 content
-        if (firstItem.content !== '\u200B') {
-          firstItem.content = firstItem.content.replace(/\u200B/g, '')
-        }
-      }
-    }
-  } else {
-    originalData.value = items
+  // 如果第一个元素是template，则添加一个空text
+  if (items.length > 0 && items[0].type === 'template') {
+    first.push({ type: 'text', content: PLACEHOLDER, id: randomId() })
   }
+
+  // 如果最后一个元素是template，则添加一个空text
+  if (items.length > 0 && items[items.length - 1].type === 'template') {
+    last.push({ type: 'text', content: PLACEHOLDER, id: randomId() })
+  }
+
+  // 如果首尾text有实际内容，则删除placeholder
+  const regex = new RegExp(PLACEHOLDER, 'g')
+  if (items.length > 0) {
+    if (items[0].content !== PLACEHOLDER) {
+      items[0].content = items[0].content.replace(regex, '')
+    }
+    if (items[items.length - 1].content !== PLACEHOLDER) {
+      items[items.length - 1].content = items[items.length - 1].content.replace(regex, '')
+    }
+  }
+
+  originalData.value = first.concat(items).concat(last)
 }
 
 const flattenedData = computed<ExtendedTextItem[]>(() => {
@@ -406,10 +406,12 @@ const transformRange = (range: StaticRange): EditorRange => {
     collapsed: range.collapsed,
     endContainer: range.endContainer,
     endId: endEl?.dataset.id,
+    endEl,
     endOffset: range.endOffset,
     endType: endEl?.dataset.type,
     startContainer: range.startContainer,
     startId: startEl?.dataset.id,
+    startEl,
     startOffset: range.startOffset,
     startType: startEl?.dataset.type,
   }
@@ -419,44 +421,6 @@ const insertToText = (text: string, insertedText: string, startOffset: number, e
   return text.slice(0, startOffset) + insertedText + text.slice(endOffset)
 }
 
-const handleSentinelNodeForwardDeletion = (
-  selectedItems: SelectedItem[],
-  range: EditorRange,
-  inputType: string,
-): SelectedItem[] => {
-  if (inputType !== 'deleteContentForward' || selectedItems.length !== 1) {
-    return selectedItems
-  }
-
-  const item = selectedItems[0]
-  const dataItem = originalData.value.find((d) => d.id === item.id)
-
-  // 检查是否是哨兵节点（仅包含零宽字符的文本节点）
-  if (!dataItem || dataItem.type !== 'text' || dataItem.content !== '\u200B' || range.collapsed) {
-    return selectedItems
-  }
-
-  // 是哨兵节点，我们将光标移动到下一个元素
-  const currentIndex = flattenedData.value.findIndex((flatItem) => flatItem.id === item.id)
-
-  if (currentIndex < 0 || currentIndex >= flattenedData.value.length - 1) {
-    // 如果是最后一个元素，或者没找到，就只阻止删除（通过折叠选区）
-    return [{ ...item, startOffset: 0, endOffset: 0 }]
-  }
-
-  const nextItem = flattenedData.value[currentIndex + 1]
-
-  // 返回一个指向下一个元素开头的新选区
-  return [
-    {
-      id: nextItem.id,
-      type: nextItem.type,
-      startOffset: 0,
-      endOffset: 0,
-    },
-  ]
-}
-
 const processInput = (range: EditorRange, inputType: string, inputData: string) => {
   const selected = getSelected(range)
 
@@ -464,9 +428,7 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
     return
   }
 
-  const adjustedSelected = handleSentinelNodeForwardDeletion(selected, range, inputType)
-
-  const selectedOrCreateItems = transformSelected(adjustedSelected, range, inputType, inputData)
+  const selectedOrCreateItems = transformSelected(selected, range, inputType, inputData)
 
   if (selectedOrCreateItems.some((item) => (item as CreateItem).tag === 'new')) {
     const { afterId, content } = selectedOrCreateItems[0] as CreateItem
@@ -476,7 +438,7 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
 
   const selectedItems = selectedOrCreateItems as SelectedItem[]
 
-  const toDeleted: string[] = []
+  const toDeletedTemplate: string[] = []
 
   for (const [index, item] of selectedItems.entries()) {
     const dataItem = originalData.value.find((i) => i.id === item.id)
@@ -495,7 +457,7 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
           }
         } else {
           if (item.startOffset < 0 || item.endOffset > dataItem.content.length) {
-            toDeleted.push(dataItem.id)
+            toDeletedTemplate.push(dataItem.id)
           } else {
             dataItem.content = insertToText(dataItem.content, insertedText, item.startOffset, item.endOffset)
           }
@@ -508,17 +470,33 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
     }
   }
 
-  // 删除空数据
-  setOriginalData(originalData.value.filter((item) => !toDeleted.includes(item.id)))
-  setOriginalData(
-    originalData.value.filter((item) => {
-      if (item.type === 'text') {
-        return item.content.length > 0
-      }
-      const templateItem = item as TemplateItem
-      return [templateItem.prefix, templateItem.suffix, templateItem.content].join('').length > 0
-    }),
-  )
+  // 删除template
+  let newOriginalData = originalData.value.filter((item) => !toDeletedTemplate.includes(item.id))
+
+  // 下面的逻辑是为了不让template位于首尾
+  // 先删除空template
+  newOriginalData = newOriginalData.filter((item) => {
+    return !(item.type === 'template' && [item.prefix, item.suffix, item.content].join('').length === 0)
+  })
+  // 首尾的空text如何和template相邻，则将空text转换成PLACEHOLDER（为了下一步不被删除，并且能不让template位于首尾）
+  if (newOriginalData.length >= 2) {
+    const first = newOriginalData[0]
+    const second = newOriginalData[1]
+    if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
+      first.content = PLACEHOLDER
+    }
+    const last = newOriginalData[newOriginalData.length - 1]
+    const secondLast = newOriginalData[newOriginalData.length - 2]
+    if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
+      last.content = PLACEHOLDER
+    }
+  }
+  // 再删除空text
+  newOriginalData = newOriginalData.filter((item) => {
+    return !(item.type === 'text' && item.content.length === 0)
+  })
+
+  setOriginalData(newOriginalData)
 
   // 恢复分隔符
   for (const dataItem of originalData.value.filter((item): item is TemplateItem => item.type === 'template')) {
@@ -868,6 +846,44 @@ const handleClearHistory = () => {
   history.clear()
   rangeMap.clear()
 }
+
+// 处理光标移动到首尾空text时的特殊情况
+document.addEventListener('selectionchange', () => {
+  // 如果正在进行合成输入，则不处理
+  if (!editorRef.value || compositionContext.value.range) {
+    return
+  }
+
+  const range = getSelectionRange(editorRef.value!)
+
+  if (range && range.collapsed && originalData.value.length > 0) {
+    const editorRange = transformRange(range)
+
+    // 如果选中的是开头的空text，则将光标移动到空text后
+    const first = originalData.value[0]
+    if (
+      first.content === PLACEHOLDER &&
+      first.type === 'text' &&
+      editorRange.startId === first.id &&
+      editorRange.startOffset === 0
+    ) {
+      setCaretPosition(editorRange.startEl!, 1)
+      return
+    }
+
+    // 如果选中的是末尾的空text，则将光标移动到空text前
+    const last = originalData.value[originalData.value.length - 1]
+    if (
+      last.content === PLACEHOLDER &&
+      last.type === 'text' &&
+      editorRange.endId === last.id &&
+      editorRange.endOffset === 1
+    ) {
+      setCaretPosition(editorRange.endEl!, 0)
+      return
+    }
+  }
+})
 
 defineExpose({
   clearHistory: handleClearHistory,
