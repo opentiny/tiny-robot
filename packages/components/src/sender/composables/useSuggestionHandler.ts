@@ -143,20 +143,12 @@ export function useSuggestionHandler(
   const lastInteractionType = ref<'keyboard' | 'mouse' | null>(null)
 
   /**
-   * 计算经过过滤的建议列表
-   * 基于当前输入过滤出匹配的建议项
-   */
-  const filteredSuggestions = computed(() => {
-    if (!props.suggestions || !inputValue.value || showTemplateEditor.value) return []
-    const lowerInputValue = inputValue.value.toLowerCase()
-    return props.suggestions.filter((item) => item.toLowerCase().includes(lowerInputValue))
-  })
-
-  /**
    * 计算当前高亮的建议项
    * 根据最后交互类型决定使用哪个索引对应的建议项
    */
   const activeSuggestion = computed(() => {
+    if (!props.suggestions) return ''
+
     let index = -1
 
     // 根据最后交互类型决定使用哪个索引
@@ -166,7 +158,7 @@ export function useSuggestionHandler(
       index = keyboardHighlightedIndex.value
     }
 
-    return filteredSuggestions.value[index] || null
+    return props.suggestions[index] || ''
   })
 
   /**
@@ -234,11 +226,7 @@ export function useSuggestionHandler(
     nextTick(() => {
       // 判断是否应该显示联想弹窗
       const shouldShowSuggestions =
-        inputValue.value &&
-        props.suggestions &&
-        props.suggestions.length > 0 &&
-        !showTemplateEditor.value &&
-        filteredSuggestions.value.length > 0
+        inputValue.value && props.suggestions && props.suggestions.length > 0 && !showTemplateEditor.value
 
       if (shouldShowSuggestions) {
         showSuggestionsState()
@@ -296,26 +284,26 @@ export function useSuggestionHandler(
    * @param direction - 导航方向：'up' | 'down'
    */
   const navigateSuggestions = (direction: 'up' | 'down') => {
-    if (!showSuggestionsPopup.value || filteredSuggestions.value.length === 0) return
+    if (!showSuggestionsPopup.value || !props.suggestions) return
 
     lastInteractionType.value = 'keyboard'
     // 不清除鼠标高亮，让两种状态共存
 
     // 如果当前没有键盘选中项，根据方向选择第一个或最后一个
     if (keyboardHighlightedIndex.value === -1) {
-      keyboardHighlightedIndex.value = direction === 'down' ? 0 : filteredSuggestions.value.length - 1
+      keyboardHighlightedIndex.value = direction === 'down' ? 0 : props.suggestions.length - 1
     } else {
       // 正常导航
       if (direction === 'down') {
-        keyboardHighlightedIndex.value = (keyboardHighlightedIndex.value + 1) % filteredSuggestions.value.length
+        keyboardHighlightedIndex.value = (keyboardHighlightedIndex.value + 1) % props.suggestions.length
       } else {
         keyboardHighlightedIndex.value =
-          (keyboardHighlightedIndex.value - 1 + filteredSuggestions.value.length) % filteredSuggestions.value.length
+          (keyboardHighlightedIndex.value - 1 + props.suggestions.length) % props.suggestions.length
       }
     }
 
     // 更新自动完成占位符，使用键盘选中的项
-    const keyboardSelectedSuggestion = filteredSuggestions.value[keyboardHighlightedIndex.value]
+    const keyboardSelectedSuggestion = props.suggestions[keyboardHighlightedIndex.value]
     if (keyboardSelectedSuggestion) {
       updateCompletionPlaceholder(keyboardSelectedSuggestion)
     }
@@ -335,20 +323,24 @@ export function useSuggestionHandler(
    * @param index - 悬停项的索引
    */
   const handleSuggestionItemHover = (index: number) => {
+    if (!props.suggestions) return
+
     lastInteractionType.value = 'mouse'
     mouseHighlightedIndex.value = index
-    updateCompletionPlaceholder(filteredSuggestions.value[index])
+    updateCompletionPlaceholder(props.suggestions[index])
   }
 
   /**
    * 处理鼠标离开建议项
    */
   const handleSuggestionItemLeave = () => {
+    if (!props.suggestions) return
+
     mouseHighlightedIndex.value = -1
     // 如果有键盘选中项，切换到键盘交互类型并显示键盘选中项的占位符
     if (keyboardHighlightedIndex.value !== -1) {
       lastInteractionType.value = 'keyboard'
-      const keyboardSelectedSuggestion = filteredSuggestions.value[keyboardHighlightedIndex.value]
+      const keyboardSelectedSuggestion = props.suggestions[keyboardHighlightedIndex.value]
       if (keyboardSelectedSuggestion) {
         updateCompletionPlaceholder(keyboardSelectedSuggestion)
       }
@@ -371,7 +363,6 @@ export function useSuggestionHandler(
     completionPlaceholder,
     showTabHint,
     suggestionsListRef,
-    filteredSuggestions,
     activeSuggestion,
     isItemHighlighted,
     updateCompletionPlaceholder,
