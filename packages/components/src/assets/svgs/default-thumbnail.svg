@@ -1,0 +1,25 @@
+<svg width="40.000000" height="40.000000" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<defs>
+		<linearGradient x1="27.998352" y1="21.163740" x2="19.247299" y2="15.057180" id="paint_linear_56_5028_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#000000" stop-opacity="0.000000"/>
+			<stop offset="1.000000" stop-color="#000000"/>
+		</linearGradient>
+		<linearGradient x1="18.251587" y1="30.279514" x2="13.350390" y2="26.171864" id="paint_linear_56_5029_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#000000" stop-opacity="0.000000"/>
+			<stop offset="1.000000" stop-color="#000000"/>
+		</linearGradient>
+		<linearGradient x1="33.265755" y1="30.052002" x2="11.241692" y2="24.161419" id="paint_linear_82_5013_0" gradientUnits="userSpaceOnUse">
+			<stop stop-color="#FFFFFF" stop-opacity="0.905882"/>
+			<stop offset="0.697115" stop-color="#FFFFFF" stop-opacity="0.800000"/>
+			<stop offset="1.000000" stop-color="#FFFFFF"/>
+		</linearGradient>
+	</defs>
+	<rect id="矩形备份 3" rx="8.000000" width="40.000000" height="40.000000" fill="#5F5AF8" fill-opacity="1.000000"/>
+	<g style="mix-blend-mode:soft-light">
+		<path id="路径 41" d="M18.08 15.52C20.38 10.73 23.84 9.91 26.31 14.86C26.71 15.67 28.65 19.51 29.21 20.66C34.12 30.83 25.48 26.74 22.93 21.63C22.47 20.71 20.27 16.19 19.89 15.49C19.44 14.65 18.38 14.85 18.08 15.52Z" fill="url(#paint_linear_56_5028_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+	</g>
+	<g style="mix-blend-mode:soft-light">
+		<path id="路径 41备份 2" d="M13.67 24.36C12.04 26.99 10.05 31.98 16.06 32C16.97 32 20.74 32 22 32C20.98 29.97 19.68 27.39 18.99 26C17.96 25.99 15.35 26 14.52 26C13.56 25.99 13.22 25.05 13.67 24.36Z" fill="url(#paint_linear_56_5029_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+	</g>
+	<path id="减去顶层" d="M6.76465 24.7642L14.5352 9.2229C16.377 5.54004 21.6309 5.53711 23.4766 9.21753L34.9023 32.0002L28.1885 32.0002L19.8965 15.4915C19.5273 14.7556 18.4766 14.7566 18.1084 15.4929L13.5781 24.553C13.2461 25.2178 13.7295 26.0002 14.4727 26.0002L19.001 26.0002L22.001 32.0002L11.2373 32.0002C7.51953 32.0002 5.10254 28.0886 6.76465 24.7642Z" clip-rule="evenodd" fill="url(#paint_linear_82_5013_0)" fill-opacity="1.000000" fill-rule="evenodd"/>
+</svg>
