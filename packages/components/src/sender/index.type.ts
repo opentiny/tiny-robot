@@ -1,4 +1,6 @@
-import type { Ref } from 'vue'
+import type { Ref, VNode } from 'vue'
+import type { TemplateItem, TextItem } from './types/editor.type'
+
 /**
  * 组件核心类型定义
  */
@@ -22,6 +24,28 @@ export interface SpeechConfig {
 
 export type AutoSize = boolean | { minRows: number; maxRows: number }
 
+export interface SuggestionTextPart {
+  text: string
+  isMatch: boolean
+}
+
+export type TooltipRender = () => VNode | string
+
+export interface ControlState {
+  tooltips?: string | TooltipRender // 工具提示
+  disabled?: boolean // 是否禁用
+}
+
+interface fileUploadConfig {
+  accept?: string // 接受的文件类型
+  multiple?: boolean // 是否支持多选文件
+}
+
+export interface ButtonGroupConfig {
+  file?: ControlState & fileUploadConfig // 文件上传按钮
+  submit?: ControlState // 提交按钮
+}
+
 // Sender组件属性
 export interface SenderProps {
   autofocus?: boolean // 自动聚焦
@@ -35,6 +59,7 @@ export interface SenderProps {
   modelValue?: string // 双向绑定值
   mode?: InputMode // 输入框模式：单行/多行
   maxLength?: number // 最大输入长度
+  buttonGroup?: ButtonGroupConfig // 按钮组配置
   submitType?: SubmitTrigger // 提交触发方式
   speech?: boolean | SpeechConfig // 语音识别配置
   placeholder?: string // 占位文本
@@ -42,9 +67,8 @@ export interface SenderProps {
   suggestions?: string[] // 输入建议
   suggestionPopupWidth?: string | number // 联想建议弹窗宽度，如 '300px' 或 300
   theme?: ThemeType // 主题
-  template?: string // 模板字符串，格式如 "你好 [称呼]，感谢您的 [事项]"
-  hasContent?: boolean // 手动指定是否有内容，用于模板模式
-  templateInitialValues?: Record<string, string> // 模板字段的初始值，键为字段占位符文本，值为初始内容
+  templateData?: UserItem[] // 模板数据
+  stopText?: string // 停止按钮文字，不传则只显示图标
 }
 
 export interface ActionButtonsProps {
@@ -52,6 +76,7 @@ export interface ActionButtonsProps {
   disabled?: boolean // 是否禁用
   showClear?: boolean // 是否可以清除
   hasContent?: boolean // 是否有文本内容
+  buttonGroup?: ButtonGroupConfig
   allowSpeech?: boolean // 是否允许语音识别
   speechStatus?: {
     isRecording: boolean // 是否正在录制
@@ -61,11 +86,13 @@ export interface ActionButtonsProps {
   submitType?: SubmitTrigger // 提交触发方式
   showShortcuts?: boolean // 是否显示快捷键提示
   isOverLimit?: boolean // 是否超出字数限制
+  stopText?: string // 停止按钮文字，不传则只显示图标
 }
 
 // 组件事件定义
 export type SenderEmits = {
   (e: 'update:modelValue', value: string): void
+  (e: 'update:templateData', value: UserItem[]): void
   (e: 'submit', value: string): void
   (e: 'clear'): void
   (e: 'speech-start'): void
@@ -78,6 +105,7 @@ export type SenderEmits = {
   (e: 'escape-press'): void // 按下Esc键时触发
   (e: 'cancel'): void // 取消发送状态时触发
   (e: 'reset-template'): void // 重置模板状态，退出模板编辑模式
+  (e: 'files-selected', files: File[]): void // 文件选择事件
 }
 
 // 语音识别状态
@@ -116,70 +144,8 @@ export interface SpeechHandler {
   stop: () => void
 }
 
-/**
- * 模板部分定义
- */
-export interface TemplatePart {
-  /** 内容文本 */
-  content: string
-  /** 是否为可编辑字段 */
-  isField: boolean
-  /** 占位符文本 (当字段为空时显示) */
-  placeholder?: string
-  /** 字段索引 (用于标识可编辑字段) */
-  fieldIndex?: number
-}
+export type UserTextItem = Omit<TextItem, 'id'>
 
-/**
- * 模板编辑器属性
- */
-export interface TemplateEditorProps {
-  /** 当前值 */
-  value?: string
-  /** 是否自动聚焦 */
-  autofocus?: boolean
-}
+export type UserTemplateItem = Pick<TemplateItem, 'type' | 'content'>
 
-/**
- * 设置模板的参数接口
- */
-export interface SetTemplateParams {
-  /** 模板字符串，格式为普通文本与 [占位符] 的组合 */
-  template: string
-  /** 字段初始值，键为占位符文本，值为初始内容 */
-  initialValues?: Record<string, string>
-}
-
-/**
- * 模板编辑器事件
- */
-export interface TemplateEditorEmits {
-  /** 输入事件 */
-  (e: 'input', value: string): void
-  /** 内容变更状态 - 通知父组件是否有内容 */
-  (e: 'content-status', hasContent: boolean): void
-  /** 提交事件 */
-  (e: 'submit', value: string): void
-  /** 聚焦事件 */
-  (e: 'focus', event: FocusEvent): void
-  /** 失焦事件 */
-  (e: 'blur', event: FocusEvent): void
-  /** 模板内容为空时触发，通知父组件可以退出模板编辑模式 */
-  (e: 'empty-content'): void
-}
-
-/**
- * 模板编辑器暴露的方法
- */
-export interface TemplateEditorExpose {
-  /** 聚焦到编辑器 */
-  focus: () => void
-  /** 重置所有字段 */
-  resetFields: () => void
-  /** 激活第一个字段 */
-  activateFirstField: () => void
-  /** 获取当前DOM中的值 */
-  getValueFromDOM: () => string
-  /** 设置模板和初始值 */
-  setTemplate: (params: SetTemplateParams) => void
-}
+export type UserItem = UserTextItem | UserTemplateItem

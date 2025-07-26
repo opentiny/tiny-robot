@@ -7,6 +7,14 @@
   </div>
 </template>
 
+<style lang="less">
+:root {
+  --tr-suggestion-popover-loading-color: #808080;
+  --tr-suggestion-popover-loading-font-size: 12px;
+  --tr-suggestion-popover-loading-line-height: 24px;
+}
+</style>
+
 <style scoped lang="less">
 .tr-question__loading-wrapper {
   flex: 1;
@@ -22,9 +30,9 @@
 
   .tr-question__loading-text {
     margin-top: 12px;
-    font-size: 12px;
-    line-height: 24px;
-    color: #808080;
+    font-size: var(--tr-suggestion-popover-loading-font-size);
+    line-height: var(--tr-suggestion-popover-loading-line-height);
+    color: var(--tr-suggestion-popover-loading-color);
   }
 }
 </style>

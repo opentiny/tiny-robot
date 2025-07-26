@@ -1,7 +1,14 @@
 <template>
   <div class="app-container">
     <h4 style="margin-bottom: 20px">模板编辑器</h4>
-    <tr-sender v-model="inputText" mode="multiple" clearable @submit="handleSubmit" ref="senderRef" />
+    <tr-sender
+      v-model="inputText"
+      v-model:template-data="templateData"
+      mode="multiple"
+      clearable
+      @submit="handleSubmit"
+      ref="senderRef"
+    />
 
     <div class="template-selector-container">
       <h4>请选择模板</h4>
@@ -16,7 +23,7 @@
         :key="index"
         @click="selectTemplate(item)"
         class="template-button"
-        :class="{ active: currentTemplate === item.template }"
+        :class="{ active: activeTemplateName === item.name }"
       >
         {{ item.name }}
       </button>
@@ -33,84 +40,91 @@
       </p>
     </div>
 
-    <div class="test-info" v-if="currentTemplate">
-      <h4>当前模板:</h4>
-      <p>
-        <code>{{ currentTemplate }}</code>
-      </p>
-      <h4>初始值:</h4>
-      <pre>{{ JSON.stringify(currentInitialValues, null, 2) }}</pre>
+    <div class="test-info" v-if="activeTemplateName">
+      <h4>当前模板: {{ activeTemplateName }}</h4>
+      <pre>{{ JSON.stringify(templateData, null, 2) }}</pre>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { TrSender } from '@opentiny/tiny-robot'
+import { TrSender, type UserItem } from '@opentiny/tiny-robot'
 import { ref, onMounted } from 'vue'
 
 const inputText = ref('')
-const currentTemplate = ref('')
-const currentInitialValues = ref<Record<string, string>>({})
 const senderRef = ref(null)
+const templateData = ref<UserItem[]>([])
+const activeTemplateName = ref('')
 
 // 预定义模板
 const templates = [
   {
     name: '模板1',
-    template: '你好[姓名]，欢迎使用[产品]！',
-    initialValues: {
-      姓名: '张三',
-      产品: 'TinyRobot',
-    },
+    data: [
+      { type: 'text', content: '你好' },
+      { type: 'template', content: '张三' },
+      { type: 'text', content: '，欢迎使用' },
+      { type: 'template', content: 'TinyRobot' },
+      { type: 'text', content: '！' },
+    ],
   },
   {
     name: '模板2',
-    template: '你好[姓名]，关于[项目名称]的进展，请查看[文档链接]。',
-    initialValues: {
-      姓名: '张三',
-      项目名称: '',
-      文档链接: '',
-    },
+    data: [
+      { type: 'text', content: '你好' },
+      { type: 'template', content: '张三先生' },
+      { type: 'text', content: '，关于' },
+      { type: 'template', content: '' },
+      { type: 'text', content: '的进展，请查看' },
+      { type: 'template', content: '' },
+      { type: 'text', content: '。' },
+    ],
   },
   {
     name: '模板3',
-    template: '尊敬的[客户姓名]，您的[订单类型]已经[处理状态]，预计[交付时间]完成。',
-    initialValues: {
-      客户姓名: '李明先生',
-      订单类型: '定制化软件开发项目',
-      处理状态: '进入开发阶段',
-      交付时间: '三个工作日内',
-    },
+    data: [
+      { type: 'text', content: '尊敬的' },
+      { type: 'template', content: '李明先生' },
+      { type: 'text', content: '，您的' },
+      { type: 'template', content: '定制化软件开发项目' },
+      { type: 'text', content: '已经' },
+      { type: 'template', content: '进入开发阶段' },
+      { type: 'text', content: '，预计将在' },
+      { type: 'template', content: '三个工作日内' },
+      { type: 'text', content: '完成。' },
+    ],
   },
   {
     name: '模板4',
-    template: '[发件人]向[收件人]发送关于[主题]的邮件。',
-    initialValues: {
-      发件人: '北京某某科技有限公司产品研发部技术总监',
-      收件人: '上海某某集团信息技术部系统架构师团队负责人',
-      主题: '关于新一代人工智能客服系统设计方案的深度讨论与合作意向洽谈',
-    },
+    data: [
+      { type: 'template', content: '北京某某科技有限公司产品研发部技术总监' },
+      { type: 'text', content: '向' },
+      { type: 'template', content: '上海某某集团信息技术部系统架构师团队负责人' },
+      { type: 'text', content: '发送关于' },
+      { type: 'template', content: '关于新一代人工智能客服系统设计方案的深度讨论与合作意向洽谈' },
+      { type: 'text', content: '的邮件。' },
+    ],
   },
   {
     name: '模板5',
-    template: '[短]和[长文本]在[时间]进行[活动]。',
-    initialValues: {
-      短: 'AI',
-      长文本: '企业级人工智能解决方案技术研讨会暨产品发布会',
-      时间: '明天',
-      活动: '深度技术交流',
-    },
+    data: [
+      { type: 'template', content: 'AI' },
+      { type: 'text', content: '和' },
+      { type: 'template', content: '企业级人工智能解决方案技术研讨会暨产品发布会' },
+      { type: 'text', content: '在' },
+      { type: 'template', content: '明天' },
+      { type: 'text', content: '进行' },
+      { type: 'template', content: '深度技术交流' },
+      { type: 'text', content: '。' },
+    ],
   },
 ]
 
-// 选择模板 - 使用 setTemplate 方法
+// 选择模板
 const selectTemplate = (template) => {
-  currentTemplate.value = template.template
-  currentInitialValues.value = template.initialValues || {}
-
-  if (senderRef.value && senderRef.value.setTemplate) {
-    senderRef.value.setTemplate(template.template, template.initialValues)
-  }
+  activeTemplateName.value = template.name
+  templateData.value = template.data
+  senderRef.value?.activateTemplateFirstField()
 }
 
 // 提交处理

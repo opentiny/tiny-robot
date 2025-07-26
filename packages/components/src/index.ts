@@ -1,54 +1,59 @@
 import './styles/root.css'
 
 import { App } from 'vue'
+import Attachments from './attachments'
 import { Bubble, BubbleList, BubbleProvider, BubbleMarkdownMessageRenderer, BubbleMessageClassRenderer } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
+import DragOverlay from './drag-overlay'
 import DropdownMenu from './dropdown-menu'
 import Feedback from './feedback'
 import History from './history'
 import IconButton from './icon-button'
 import { Prompt, Prompts } from './prompts'
-import Question from './question'
 import Sender from './sender'
-import Welcome from './welcome'
-import Suggestion from './suggestion'
-import SuggestionPopover from './suggestion-popover'
 import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
+import SuggestionPopover from './suggestion-popover'
+import Welcome from './welcome'
+import McpServerPicker from './mcp-server-picker'
 
+export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
+export * from './drag-overlay/index.type'
 export * from './dropdown-menu/index.type'
 export * from './feedback/index.type'
 export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
-export * from './welcome/index.type'
-export * from './suggestion/index.type'
-// TODO suggestion 中类型和 suggestion-popover 类型部分冲突。后续整改 suggestion 的类型
-// export * from './suggestion-popover/index.type'
 export * from './suggestion-pills/index.type'
+export * from './suggestion-popover/index.type'
+export * from './welcome/index.type'
+export * from './mcp-server-picker/index.type'
+
+export { vDropzone } from './drag-overlay/directives/vDropzone'
 
 const components = [
+  Attachments,
   Bubble,
   BubbleList,
   BubbleProvider,
   Container,
   Conversations,
+  DragOverlay,
   DropdownMenu,
   Feedback,
   History,
   IconButton,
   Prompt,
   Prompts,
-  Question,
   Sender,
-  Welcome,
-  Suggestion,
-  SuggestionPopover,
   SuggestionPills,
   SuggestionPillButton,
+  SuggestionPopover,
+  Welcome,
+  McpServerPicker,
 ]
 
 export default {
@@ -61,6 +66,8 @@ export default {
 }
 
 export {
+  Attachments,
+  Attachments as TrAttachments,
   Bubble,
   Bubble as TrBubble,
   BubbleList,
@@ -73,6 +80,8 @@ export {
   Container as TrContainer,
   Conversations,
   Conversations as TrConversations,
+  DragOverlay,
+  DragOverlay as TrDragOverlay,
   DropdownMenu,
   DropdownMenu as TrDropdownMenu,
   Feedback,
@@ -87,16 +96,14 @@ export {
   Prompts as TrPrompts,
   Sender,
   Sender as TrSender,
-  Welcome,
-  Welcome as TrWelcome,
-  Suggestion,
-  Suggestion as TrSuggestion,
-  SuggestionPills,
-  SuggestionPills as TrSuggestionPills,
   SuggestionPillButton,
   SuggestionPillButton as TrSuggestionPillButton,
-  Question,
-  Question as TrQuestion,
+  SuggestionPills,
+  SuggestionPills as TrSuggestionPills,
   SuggestionPopover,
   SuggestionPopover as TrSuggestionPopover,
+  Welcome,
+  Welcome as TrWelcome,
+  McpServerPicker,
+  McpServerPicker as TrMcpServerPicker,
 }

@@ -1,39 +1,76 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementSize, watchDebounced } from '@vueuse/core'
-import { computed, nextTick, ref, watch } from 'vue'
-import { PillButtonWrapper } from './components'
-import { SuggestionPillItem, SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
+import {
+  MaybeElement,
+  onClickOutside,
+  unrefElement,
+  useElementSize,
+  useEventListener,
+  watchDebounced,
+} from '@vueuse/core'
+import { computed, isVNode, nextTick, ref, watch } from 'vue'
+import { useSlotRefs } from '../shared/composables'
+import { SuggestionPillsEmits, SuggestionPillsProps, SuggestionPillsSlots } from './index.type'
 
 const props = withDefaults(defineProps<SuggestionPillsProps>(), {
   showAllButtonOn: 'hover',
+  overflowMode: 'expand',
 })
 
+const slots = defineSlots<SuggestionPillsSlots>()
 const emit = defineEmits<SuggestionPillsEmits>()
 
-defineSlots<SuggestionPillsSlots>()
+const { vnodes: itemVnodes } = useSlotRefs(slots.default, true)
+
+const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
 
 const containerWrapperRef = ref<HTMLDivElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
+const floatingItemsRef = ref<HTMLDivElement | null>(null)
 
 const { width } = useElementSize(containerRef)
+const containerFullWidth = ref(0)
 
+const hasShowMoreBtn = computed(() => props.overflowMode === 'expand' && width.value < containerFullWidth.value)
 const hiddenIndex = ref(-1)
-const hasShowMoreBtn = computed(() => hiddenIndex.value !== -1)
-const showAll = defineModel<SuggestionPillsProps['showAll']>('showAll', { default: false })
 
-const staticItemsLength = computed(() => {
-  if (!hasShowMoreBtn.value || !showAll.value) {
-    return props.items?.length || 0
+const staticVnodes = computed(() => {
+  if (hasShowMoreBtn.value && showAll.value) {
+    return itemVnodes.value.slice(0, hiddenIndex.value)
   }
-  return hiddenIndex.value
+  return itemVnodes.value
 })
-const floatingItems = computed(() => {
-  if (!hasShowMoreBtn.value || !showAll.value) {
-    return []
+
+const floatingVnodesWithIndex = computed(() => {
+  if (hasShowMoreBtn.value && showAll.value) {
+    return itemVnodes.value.slice(hiddenIndex.value).map((vnode, index) => ({
+      vnode,
+      index: index + hiddenIndex.value,
+    }))
   }
-  return (props.items || []).slice(hiddenIndex.value)
+  return []
 })
+
+const staticMaybeItemRefs = ref<MaybeElement[]>([])
+const floatingMaybeItemRefs = ref<MaybeElement[]>([])
+
+const staticItemRefs = computed(() => {
+  return staticMaybeItemRefs.value
+    .map((el) => unrefElement(el))
+    .filter((el): el is HTMLElement | SVGElement => el instanceof Element)
+})
+
+const floatingItemRefs = computed(() => {
+  return floatingMaybeItemRefs.value
+    .map((el) => unrefElement(el))
+    .filter((el): el is HTMLElement | SVGElement => el instanceof Element)
+})
+
+const getAllItemElements = () => {
+  const container = containerRef.value
+  const floatingItems = floatingItemsRef.value
+  return Array.from(container?.children || []).concat(Array.from(floatingItems?.children || [])) as HTMLElement[]
+}
 
 const updateHiddenIndex = () => {
   nextTick(() => {
@@ -43,63 +80,133 @@ const updateHiddenIndex = () => {
       return
     }
 
-    const children = Array.from(container.children) as HTMLElement[]
-    hiddenIndex.value = children.findIndex((el) => el.offsetLeft + el.offsetWidth > container.clientWidth)
+    const children = getAllItemElements()
+    const gap = parseFloat(getComputedStyle(container).rowGap) || 0
+
+    hiddenIndex.value = -1
+    let totalWidth = 0
+    for (let i = 0; i < children.length; i++) {
+      totalWidth += children[i].offsetWidth
+      if (i > 0) {
+        totalWidth += gap
+      }
+      if (totalWidth > container.clientWidth) {
+        hiddenIndex.value = i
+        break
+      }
+    }
   })
 }
 
-watch(() => [props.items, props.items?.length], updateHiddenIndex)
-
-watchDebounced(
-  width,
-  (w) => {
-    if (w > 0) {
-      updateHiddenIndex()
-    }
+watch(
+  itemVnodes,
+  () => {
+    nextTick(() => {
+      if (!containerRef.value) {
+        return
+      }
+      // 计算容器最大宽度
+      const children = getAllItemElements()
+      const gap = parseFloat(getComputedStyle(containerRef.value).rowGap) || 0
+      containerFullWidth.value = children.reduce((acc, cur, index) => acc + cur.offsetWidth + (index > 0 ? gap : 0), 0)
+    })
   },
-  { debounce: 100 },
+  { immediate: true },
 )
 
-const handleClick = (ev: MouseEvent, item: SuggestionPillItem, index: number) => {
-  if (hasShowMoreBtn.value && index >= hiddenIndex.value) {
-    ev.stopPropagation()
-    toggleIsShowingMore()
-    return
-  }
-  emit('item-click', item)
-}
+watch(itemVnodes, updateHiddenIndex)
+
+watchDebounced(width, updateHiddenIndex, { debounce: 100 })
 
 const toggleIsShowingMore = () => {
   showAll.value = !showAll.value
 }
 
 onClickOutside(containerWrapperRef, (event) => {
-  emit('click-outside', event)
+  if (showAll.value) {
+    emit('click-outside', event)
+  }
+})
+
+const scrollIntoViewIfPartiallyHidden = (item: HTMLElement) => {
+  const container = containerRef.value
+  if (!container) {
+    return
+  }
+
+  const offsetLeft = item.offsetLeft
+  const offsetRight = offsetLeft + item.offsetWidth
+
+  const scrollLeft = container.scrollLeft
+  const containerWidth = container.clientWidth
+
+  const isLeftHidden = offsetLeft < scrollLeft
+  const isRightHidden = offsetRight > scrollLeft + containerWidth
+
+  if (isLeftHidden) {
+    container.scrollTo({
+      left: offsetLeft,
+      behavior: 'smooth',
+    })
+  } else if (isRightHidden) {
+    container.scrollTo({
+      left: offsetRight - containerWidth,
+      behavior: 'smooth',
+    })
+  }
+}
+
+let cleanup: (() => void) | null = null
+
+watch(
+  () => props.autoScrollOn,
+  (value) => {
+    if (cleanup) {
+      cleanup()
+      cleanup = null
+    }
+
+    if (value) {
+      cleanup = useEventListener(staticItemRefs, value, (ev) => {
+        if (ev.currentTarget) {
+          scrollIntoViewIfPartiallyHidden(ev.currentTarget as HTMLElement)
+        }
+      })
+    }
+  },
+  {
+    immediate: true,
+  },
+)
+
+defineExpose({
+  children: computed(() => staticItemRefs.value.concat(floatingItemRefs.value)),
 })
 </script>
 
 <template>
   <div class="tr-suggestion-pills__wrapper" ref="containerWrapperRef">
-    <div class="tr-suggestion-pills__container" ref="containerRef">
-      <slot>
-        <template v-for="(item, index) in props.items" :key="item.id">
-          <PillButtonWrapper
-            :item="item"
-            :style="{
-              visibility: index < staticItemsLength ? undefined : 'hidden',
-              pointerEvents: index < staticItemsLength ? undefined : 'none',
-            }"
-            @click="handleClick($event, item, index)"
-          ></PillButtonWrapper>
-        </template>
-      </slot>
+    <div
+      class="tr-suggestion-pills__container"
+      :class="{ 'overflow-scroll': props.overflowMode === 'scroll' }"
+      ref="containerRef"
+    >
+      <component
+        v-for="(vnode, index) in staticVnodes"
+        :key="isVNode(vnode) ? vnode.key : index"
+        :is="vnode"
+        ref="staticMaybeItemRefs"
+      />
     </div>
     <div class="tr-suggestion-pills__more-wrapper">
       <Transition name="tr-suggestion-pills__more">
-        <div v-if="floatingItems.length" class="tr-suggestion-pills__more">
-          <template v-for="item in floatingItems" :key="item.id">
-            <PillButtonWrapper :item="item" @click="emit('item-click', item)"></PillButtonWrapper>
-          </template>
+        <div v-if="floatingVnodesWithIndex.length" class="tr-suggestion-pills__more" ref="floatingItemsRef">
+          <component
+            v-for="{ vnode, index } in floatingVnodesWithIndex"
+            :key="isVNode(vnode) ? vnode.key : index"
+            :is="vnode"
+            ref="floatingMaybeItemRefs"
+          />
         </div>
       </Transition>
     </div>
@@ -113,6 +220,16 @@ onClickOutside(containerWrapperRef, (event) => {
     </button>
   </div>
 </template>
+
+<style lang="less">
+:root {
+  --tr-suggestion-pills-expand-color: rgb(89, 89, 89);
+  --tr-suggestion-pills-expand-bg-color: white;
+  --tr-suggestion-pills-expand-hover-bg-color: rgb(235, 235, 235);
+  --tr-suggestion-pills-expand-font-size: 14px;
+  --tr-suggestion-pills-expand-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+</style>
 
 <style lang="less" scoped>
 .tr-suggestion-pills__wrapper {
@@ -133,6 +250,11 @@ onClickOutside(containerWrapperRef, (event) => {
 
   & > * {
     flex-shrink: 0;
+  }
+
+  &.overflow-scroll {
+    overflow-x: auto;
+    scroll-behavior: smooth;
   }
 }
 
@@ -174,15 +296,16 @@ onClickOutside(containerWrapperRef, (event) => {
   right: 0;
   transform: translateY(-50%);
   padding: 3px;
-  background-color: white;
+  color: var(--tr-suggestion-pills-expand-color);
+  background-color: var(--tr-suggestion-pills-expand-bg-color);
   border-radius: 999px;
   display: flex;
-  font-size: 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  font-size: var(--tr-suggestion-pills-expand-font-size);
+  box-shadow: var(--tr-suggestion-pills-expand-box-shadow);
   transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: rgb(235, 235, 235);
+    background-color: var(--tr-suggestion-pills-expand-hover-bg-color);
   }
 
   &.show-on-hover {

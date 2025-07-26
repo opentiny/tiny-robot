@@ -17,6 +17,7 @@ export interface SuggestionGroup<T = Record<string, unknown>> {
 export type SuggestionData<T = Record<string, unknown>> = (SuggestionItem<T> | SuggestionGroup<T>)[]
 
 export interface SuggestionPopoverProps<T = Record<string, unknown>> {
+  appendTo?: string | HTMLElement
   data: SuggestionData<T>
   title?: string
   icon?: VNode | Component
@@ -35,15 +36,16 @@ export interface SuggestionPopoverProps<T = Record<string, unknown>> {
   groupShowMoreTrigger?: 'click' | 'hover'
   loading?: boolean
   // 下面是样式相关的属性
-  popoverWidth?: string | number
-  popoverHeight?: string | number
-  topOffset?: string | number
+  topOffset?: number
 }
 
 export interface SuggestionPopoverSlots {
-  default?: () => unknown
-  loading?: () => unknown
-  empty?: () => unknown
+  trigger?: () => VNode | VNode[]
+  item?: ({ item }: { item: SuggestionItem }) => VNode | VNode[]
+  loading?: () => VNode | VNode[]
+  empty?: () => VNode | VNode[]
+  header?: () => VNode | VNode[]
+  body?: () => VNode | VNode[]
 }
 
 export interface SuggestionPopoverEmits {
@@ -51,10 +53,36 @@ export interface SuggestionPopoverEmits {
   (e: 'group-click', group: SuggestionGroup): void
   (e: 'open'): void
   (e: 'close'): void
+  (e: 'click-outside', event: MouseEvent): void
+}
+
+export interface SuggestionPopoverEventProps {
+  onItemClick?: (item: SuggestionItem) => void
+  onGroupClick?: (group: SuggestionGroup) => void
+  onOpen?: () => void
+  onClose?: () => void
+  onClickOutside?: (event: MouseEvent) => void
 }
 
 export interface SuggestionPopoverEvents {
+  /**
+   * @deprecated use onItemClick in props instead
+   */
   itemClick?: (item: SuggestionItem) => void
+  /**
+   * @deprecated use onGroupClick in props instead
+   */
   groupClick?: (group: SuggestionGroup) => void
+  /**
+   * @deprecated use onOpen in props instead
+   */
+  open?: () => void
+  /**
+   * @deprecated use onClose in props instead
+   */
   close?: () => void
+  /**
+   * @deprecated use onClickOutside in props instead
+   */
+  clickOutside?: (event: MouseEvent) => void
 }

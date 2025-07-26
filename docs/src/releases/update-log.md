@@ -1,6 +1,67 @@
 
 # 版本更新日志
 
+## 0.2.15 (25.7.17)
+
+组件
+
+1.【优化】【Sender 组件】增加 css 变量以增强样式扩展性  
+2.【优化】【SuggestionPopover 建议弹出框】增加 css 变量以增强样式扩展性  
+3.【问题】【SuggestionPills 建议按钮组】修复按钮组为空数组时，宽度计算报错的问题
+
+其他
+
+1.【问题】修复文档网站 header 区域宽度不正确的问题
+2.【问题】修复开发模式下，文档网站大量警告的问题
+3.【CI/CD】增加自动构建文档网站的步骤
+4.【CI/CD】tag 自动发布支持 alpha、beta、rc版本
+
+## 0.2.14 (25.7.7)
+
+1.【优化】【Sender 组件】优化编辑器仅输入空格时的异常换行  
+2.【移除】 Question 组件和 Suggestion 组件
+
+## 0.2.13 (25.7.3)
+
+1.【特性】【DropdownMenu 下拉菜单】新增 `appendTo` prop，设置菜单挂载的目标容器
+
+## 0.2.12 (25.7.3)
+
+> [!IMPORTANT]
+> **Breaking Change**: Sender 消息输入框模板编辑功能重新设计，相关用法请查看最新稳定
+
+1.【优化】【Sender 组件】模板编辑重新设计，优化使用体验  
+2.【优化】【SuggestionPills 建议按钮组】`autoScrollOnHover` 属性现在已经在任意 `overflowMode` 下都支持  
+3.【优化】【DropdownMenu 下拉菜单】增加控制菜单项的字重的 CSS 变量 `--tr-dropdown-menu-item-font-weight`
+
+## 0.2.11 (25.6.28)
+
+> [!IMPORTANT]
+> **Breaking Change**: DropdownMenu 下拉菜单组件
+
+1.【特性】【DropdownMenu 下拉菜单】`trigger` 属性新增 `hover`支持  
+2.【特性】【SuggestionPills 建议按钮组】新增属性 `overflowMode`，控制多余项的展示方式：`expand`为展开显示，`scroll`为横向滚动显示；新增属性 `autoScrollOnHover`，鼠标悬停时是否自动滚动到可见区域  
+3.【优化】【DropdownMenu 下拉菜单】默认插槽变更为 `trigger` 插槽；下拉菜单最小宽度不再通过 props 设置，可以通过样式类、内联样式或者 css 变量 `--tr-dropdown-menu-min-width` 控制
+
+## 0.2.10 (25.6.18)
+
+1.【优化】【Sender 消息输入框】实现输入框在加载状态时可以输入  
+2.【优化】【Sender 消息输入框】支持 `stopText` 属性配置停止按钮的文本，如不配置则显示默认图标
+
+## 0.2.9 (25.6.16)
+
+1.【问题】【SuggestionPills 建议按钮组】修复 ios safari 两次点击才能打开弹出框的问题  
+
+## 0.2.8 (25.6.13)
+
+1.【问题】【Sender 消息输入框】修复宽松和紧凑模式切换时，输入框出现滚动条的问题
+
+## 0.2.7 (25.6.13)
+
+### 组件
+
+1.【问题】【Suggestion Popover 建议弹出框】修复了在 shadow dom 中滚动事件可能报错的问题
+
 ## 0.2.6 (25.6.12)
 
 ### 组件

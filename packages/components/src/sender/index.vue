@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useSlots } from 'vue'
 import TinyInput from '@opentiny/vue-input'
-import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler } from './index.type'
+import { useFileDialog } from '@vueuse/core'
+import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler, UserItem } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
 import { useSpeechHandler } from './composables/useSpeechHandler'
 import { useSuggestionHandler } from './composables/useSuggestionHandler'
 import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
-import { IconAssociate } from '@opentiny/tiny-robot-svgs'
+import SuggestionList from './components/SuggestionList.vue'
 import { toCssUnit } from '../shared/utils'
 import './index.less'
 
@@ -27,11 +28,10 @@ const props = withDefaults(defineProps<SenderProps>(), {
   showWordLimit: false,
   submitType: 'enter',
   theme: 'light',
-  hasContent: undefined,
-  template: '',
-  templateInitialValues: () => ({}),
+  templateData: () => [],
   suggestions: () => [],
   suggestionPopupWidth: 400,
+  stopText: '',
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -44,10 +44,37 @@ const inputWrapperRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
 
 // 是否显示模板编辑器
-const showTemplateEditor = ref(false)
+const showTemplateEditor = computed(() => props.templateData && props.templateData.length > 0)
 
 // 输入控制
 const { inputValue, isComposing, clearInput: originalClearInput }: InputHandler = useInputHandler(props, emit)
+
+const hasContent = computed(() => !!inputValue.value.trim())
+
+// 统一的提交条件验证
+const canSubmit = computed(() => {
+  // 基础状态检查：禁用或加载中时不能提交
+  if (props.disabled || props.loading) {
+    return false
+  }
+
+  // 内容检查：空内容不能提交
+  if (!hasContent.value) {
+    return false
+  }
+
+  // 字数限制检查：超出限制时不能提交
+  if (isOverLimit.value) {
+    return false
+  }
+
+  // 提交按钮禁用检查：禁用时不能提交
+  if (props.buttonGroup?.submit?.disabled) {
+    return false
+  }
+
+  return true
+})
 
 // 建议处理
 const {
@@ -66,7 +93,7 @@ const {
   handleSuggestionItemHover,
   handleSuggestionItemLeave,
   highlightSuggestionText,
-} = useSuggestionHandler(props, emit, inputValue, isComposing)
+} = useSuggestionHandler(props, emit, inputValue, isComposing, showTemplateEditor)
 
 // 自动模式切换
 const currentMode = ref(props.mode)
@@ -208,9 +235,18 @@ const focusInput = () => {
   }
 }
 
+const blurInput = () => {
+  if (inputRef.value) {
+    inputRef.value.blur()
+  } else {
+    const input = document.querySelector('.tiny-input__inner') as HTMLInputElement
+    input?.blur()
+  }
+}
+
 const exitTemplateMode = () => {
-  showTemplateEditor.value = false
-  emit('reset-template')
+  emit('update:templateData', [])
+  templateEditorRef.value?.clearHistory()
   nextTick(() => {
     if (inputValue.value === '') {
       currentMode.value = props.mode || 'single'
@@ -221,6 +257,7 @@ const exitTemplateMode = () => {
       focusInput()
     }, 50)
   })
+  closeSuggestionsPopup()
 }
 
 // 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
@@ -244,29 +281,26 @@ const clearInput = () => {
   closeSuggestionsPopup()
 }
 
-// 模板相关处理
-const handleTemplateInput = (value: string) => {
-  emit('update:modelValue', value)
-}
+const handleTemplateUpdate = (data: UserItem[]) => {
+  const isTemplateEmpty =
+    data.length === 0 || (data.length === 1 && data[0].type === 'text' && data[0].content === '\u200B')
 
-// 激活第一个模板字段
-const activateTemplateFirstField = () => {
-  if (templateEditorRef.value) {
-    templateEditorRef.value.activateFirstField()
+  // 如果模板数据为空，则退出模板编辑模式
+  if (isTemplateEmpty) {
+    exitTemplateMode()
+    return
   }
+
+  emit('update:templateData', data)
 }
 
-// 设置模板方法
-const setTemplate = (template: string, initialValues?: Record<string, string>) => {
-  // 设置模板后显示模板编辑器
-  showTemplateEditor.value = true
-
-  nextTick(() => {
-    if (templateEditorRef.value) {
-      templateEditorRef.value.setTemplate({ template, initialValues })
-    }
-  })
-}
+watch(
+  () => props.templateData,
+  () => {
+    inputValue.value = props.templateData.map((item) => item.content).join('')
+  },
+  { deep: true },
+)
 
 // 语音识别
 const speechOptions = computed(() => {
@@ -295,7 +329,6 @@ const speechOptions = computed(() => {
       emit('speech-end', text)
     },
     onError: (err: Error) => {
-      showError(err.message)
       emit('speech-error', err)
     },
   }
@@ -330,16 +363,18 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   closeSuggestionsPopup,
   navigateSuggestions,
   toggleSpeech,
-  isOverLimit,
+  canSubmit,
   currentMode,
   setMultipleMode,
+  showTemplateEditor,
+  exitTemplateMode,
 )
 
 // 处理焦点事件
 const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
   // 当有输入内容且有匹配的联想项时，显示联想弹窗但不自动选中任何项
-  if (inputValue.value && filteredSuggestions.value.length > 0 && !props.template) {
+  if (inputValue.value && filteredSuggestions.value.length > 0 && !showTemplateEditor.value) {
     showSuggestionsPopup.value = true
     showTabHint.value = true
   }
@@ -381,13 +416,11 @@ const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
-const hasContent = computed(() => (props.hasContent !== undefined ? props.hasContent : !!inputValue.value))
 
 // 样式类
 const senderClasses = computed(() => ({
   'is-disabled': isDisabled.value,
   'is-loading': isLoading.value,
-  'has-error': !!errorMessage.value,
   'is-auto-switching': isAutoSwitching.value,
 }))
 
@@ -399,13 +432,6 @@ const suggestionPopupWidthStyle = computed(() => {
     maxWidth: '100%', // 确保不超出父容器宽度
   }
 })
-
-// 错误处理
-const errorMessage = ref<string>('')
-const showError = (msg: string) => {
-  errorMessage.value = msg
-  setTimeout(() => (errorMessage.value = ''), 5000)
-}
 
 // 输入法结束处理
 const handleCompositionEnd = () => {
@@ -437,23 +463,32 @@ watch(
   },
 )
 
+// 激活第一个模板字段
+const activateTemplateFirstField = () => {
+  if (templateEditorRef.value) {
+    templateEditorRef.value.activateFirstField()
+  }
+}
+
+const { accept = '*', multiple = true } = props.buttonGroup?.file || {}
+
+const { open: openFileDialog, files } = useFileDialog({ accept, multiple })
+
+watch(files, (selectedFiles) => {
+  if (selectedFiles && selectedFiles.length > 0) {
+    emit('files-selected', Array.from(selectedFiles))
+  }
+})
+
 // 暴露方法
 defineExpose({
   focus: focusInput,
-  blur: () => {
-    if (inputRef.value) {
-      inputRef.value.blur()
-    } else {
-      const input = document.querySelector('.tiny-input__inner') as HTMLInputElement
-      input?.blur()
-    }
-  },
+  blur: blurInput,
   clear: clearInput,
   submit: triggerSubmit,
   startSpeech,
   stopSpeech,
   activateTemplateFirstField,
-  setTemplate,
 })
 </script>
 
@@ -491,9 +526,9 @@ defineExpose({
             <template v-if="showTemplateEditor">
               <TemplateEditor
                 ref="templateEditorRef"
-                v-model:value="inputValue"
-                @input="handleTemplateInput"
-                @empty-content="exitTemplateMode"
+                :model-value="props.templateData"
+                @update:model-value="handleTemplateUpdate"
+                @submit="triggerSubmit"
               />
             </template>
             <!-- 普通输入框 -->
@@ -502,7 +537,6 @@ defineExpose({
                 ref="inputRef"
                 :autosize="autoSize"
                 :type="currentType"
-                :readonly="isLoading"
                 resize="none"
                 v-model="inputValue"
                 :disabled="isDisabled"
@@ -537,12 +571,15 @@ defineExpose({
                 :show-clear="clearable"
                 :has-content="hasContent"
                 :speech-status="speechState"
+                :button-group="buttonGroup"
                 :submit-type="submitType"
                 :is-over-limit="isOverLimit"
+                :stop-text="stopText"
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
                 @cancel="$emit('cancel')"
+                @trigger-select="openFileDialog"
               />
             </div>
           </div>
@@ -587,12 +624,15 @@ defineExpose({
                     :show-clear="clearable"
                     :has-content="hasContent"
                     :speech-status="speechState"
+                    :button-group="buttonGroup"
                     :submit-type="submitType"
                     :is-over-limit="isOverLimit"
+                    :stop-text="stopText"
                     @clear="clearInput"
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"
                     @cancel="$emit('cancel')"
+                    @trigger-select="openFileDialog"
                   />
                 </div>
               </div>
@@ -608,38 +648,141 @@ defineExpose({
     </div>
 
     <!-- 输入建议 -->
-    <Transition name="tiny-sender-slide-up">
-      <div
-        v-if="showSuggestionsPopup && filteredSuggestions.length"
-        ref="suggestionsListRef"
-        class="tiny-sender__suggestions"
-        :style="suggestionPopupWidthStyle"
-      >
-        <div
-          v-for="(item, index) in filteredSuggestions"
-          :key="index"
-          class="suggestion-item"
-          :class="{ highlighted: isItemHighlighted(index) }"
-          @mouseenter="handleSuggestionItemHover(index)"
-          @mouseleave="handleSuggestionItemLeave"
-          @mousedown.prevent="selectSuggestion(item)"
-        >
-          <IconAssociate class="suggestion-item__icon" />
-          <span class="suggestion-item__text">
-            <span
-              v-for="(part, partIndex) in highlightSuggestionText(item, inputValue)"
-              :key="partIndex"
-              :class="{ 'suggestion-item__text--match': part.isMatch, 'suggestion-item__text--normal': !part.isMatch }"
-              >{{ part.text }}</span
-            >
-          </span>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 错误提示 -->
-    <div v-if="errorMessage" class="tiny-sender__error">
-      {{ errorMessage }}
-    </div>
+    <suggestion-list
+      ref="suggestionsListRef"
+      :show="showSuggestionsPopup"
+      :suggestions="filteredSuggestions"
+      :popup-style="suggestionPopupWidthStyle"
+      :is-item-highlighted="isItemHighlighted"
+      :highlight-suggestion-text="highlightSuggestionText"
+      :input-value="inputValue"
+      @item-hover="handleSuggestionItemHover"
+      @item-leave="handleSuggestionItemLeave"
+      @select="selectSuggestion"
+    />
   </div>
 </template>
+
+<style lang="less">
+// 主题变量
+:root {
+  // 基础颜色
+  --tr-sender-bg-color: #fff;
+  --tr-sender-text-color: #191919;
+  --tr-sender-placeholder-color: #909399;
+
+  // 基础字号、行高、高度
+  --tr-sender-input-font-size: 16px;
+  --tr-sender-input-line-height: 26px;
+  --tr-sender-input-height: 26px;
+
+  // 最小高度配置
+  --tr-sender-container-min-height: 42px;
+  --tr-sender-textarea-min-height: 26px;
+  --tr-sender-textarea-line-height: 26px;
+
+  // 基本圆角、图标大小
+  --tr-sender-input-radius: 26px;
+  --tr-sender-border-radius: 26px;
+  --tr-sender-send-icon-size: 36px;
+  --tr-action-buttons-cancel-height: 36px;
+
+  // 动画
+  --tr-sender-transition-duration: 0.2s;
+
+  // 阴影
+  --tr-sender-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
+
+  // 插槽变量
+  // 头部插槽 (Header)
+  --tr-sender-header-min-height: 40px;
+  --tr-sender-header-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --tr-sender-header-bg-color: #ffffff;
+
+  // 前缀插槽 (Prefix)
+  --tr-sender-prefix-min-width: 28px;
+  --tr-sender-prefix-hover-bg: #f5f5f5;
+
+  // 内容区域 (Content)
+  --tr-sender-content-min-width: 180px;
+  --tr-sender-content-flex-grow: 1;
+
+  // 操作区域 (Actions)
+  --tr-sender-actions-min-width: 32px;
+  --tr-sender-actions-icon-size: 20px;
+
+  // 底部插槽 (Footer)
+  --tr-sender-footer-min-height: 36px;
+  --tr-sender-footer-bg: #fff;
+  --tr-sender-footer-hover: #f9f9f9;
+
+  // 字数限制
+  --tr-sender-word-limit-error-color: #f23030;
+  --tr-sender-word-limit-color: #808080;
+  --tr-sender-word-limit-font-size: 14px;
+
+  // 消息装饰提示内容
+  --tr-sender-decorative-content-bg-color: #ffffff;
+  --tr-sender-decorative-content-color: #808080;
+  --tr-sender-decorative-content-link-color: #1476ff;
+  --tr-sender-decorative-content-line-height: 26px;
+
+  // 自动完成占位符
+  --tr-sender-completion-placeholder-color: #999;
+  --tr-sender-completion-placeholder-font-size: 16px;
+  --tr-sender-completion-placeholder-line-height: 16px;
+
+  // Tab提示
+  --tr-sender-tab-hint-font-size: 14px;
+  --tr-sender-tab-hint-color: #666;
+  --tr-sender-tab-hint-border-color: #999;
+
+  // 快捷提示
+  --tr-sender-shortcut-hint-color: #909399;
+  --tr-sender-shortcut-hint-font-size: 10px;
+
+  // gap
+  --tr-sender-gap: 8px;
+
+  // padding
+  --tr-sender-padding: 15px 10px 10px 24px;
+  --tr-sender-prefix-padding: 12px 8px 0 16px;
+  --tr-sender-content-padding-with-prefix: 12px 16px 0 0;
+  --tr-sender-content-padding-single: 15px 10px 15px 20px;
+  --tr-sender-content-padding-multiple: 16px 20px 0 20px;
+  --tr-sender-actions-padding: 0 10px;
+  --tr-sender-actions-padding-right: 10px;
+  --tr-sender-bottom-row-padding: 12px 10px 10px 10px;
+}
+</style>
+
+<style lang="less">
+.tr-sender-compact {
+  // 覆盖字体和行高
+  --tr-sender-input-font-size: 14px;
+  --tr-sender-input-line-height: 24px;
+  --tr-sender-input-height: 24px;
+  --tr-sender-textarea-min-height: 24px;
+
+  // 覆盖圆角和图标尺寸
+  --tr-sender-input-radius: 24px;
+  --tr-sender-border-radius: 24px;
+
+  // 覆盖内边距
+  --tr-sender-content-padding-single: 12px 8px 12px 20px;
+  --tr-sender-content-padding-multiple: 14px 20px 0 20px;
+  --tr-sender-prefix-padding: 8px 4px 12px 8px;
+  --tr-sender-actions-padding-right: 8px;
+  --tr-sender-bottom-row-padding: 10px 8px 10px 8px;
+
+  // 覆盖Footer高度
+  --tr-sender-footer-min-height: 32px;
+
+  // 覆盖Decorative Content行高
+  --tr-sender-decorative-content-line-height: 24px;
+
+  // 调整其他元素尺寸
+  --tr-sender-gap: 4px;
+  --tr-sender-container-min-height: 32px;
+}
+</style>

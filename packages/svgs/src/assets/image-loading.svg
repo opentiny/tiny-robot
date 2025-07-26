@@ -1,0 +1,21 @@
+<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20" height="20" fill="none" customFrame="#000000">
+	<defs>
+		<clipPath id="clipPath_0">
+			<rect width="16" height="16" x="2" y="2" fill="rgb(255,255,255)" />
+		</clipPath>
+		<linearGradient id="paint_linear_0" x1="21.5809536" x2="6.56828499" y1="9.9996109" y2="2.59961891" gradientUnits="userSpaceOnUse">
+			<stop stop-color="rgb(255,255,255)" offset="0.000956000003" stop-opacity="0" />
+			<stop stop-color="rgb(255,255,255)" offset="1" stop-opacity="1" />
+		</linearGradient>
+	</defs>
+	<rect id="附件状态" width="20" height="20" x="0" y="0" />
+	<rect id="矩形" width="20" height="20" x="0" y="0" fill="rgb(216,216,216)" fill-opacity="0" />
+	<rect id="矩形" width="18" height="18" x="1" y="1" stroke="rgb(151,151,151)" stroke-opacity="0" stroke-width="2" />
+	<g id="编组备份 21" clip-path="url(#clipPath_0)" customFrame="url(#clipPath_0)">
+		<rect id="编组备份 21" width="16" height="16" x="2" y="2" />
+		<path id="Fill 1" d="M2 18L18 18L18 2L2 2L2 18Z" fill="rgb(229,229,229)" fill-opacity="0" fill-rule="evenodd" />
+		<path id="路径" d="M10.0002 2.59961C10.4952 2.59961 10.8952 2.99961 10.8952 3.49961C10.8952 3.99461 10.4952 4.39461 10.0002 4.39461C6.90522 4.39461 4.40022 6.90461 4.40022 9.99961C4.40022 13.0896 6.90522 15.5996 10.0002 15.5996C13.0902 15.5996 15.6002 13.0896 15.6002 9.99961C15.6002 9.49961 16.0002 9.09961 16.5002 9.09961C16.9952 9.09961 17.4002 9.49961 17.4002 9.99961C17.4002 14.0846 14.0852 17.3996 10.0002 17.3996C5.91021 17.3996 2.59521 14.0846 2.59521 9.99961C2.59521 5.90961 5.91021 2.59961 10.0002 2.59961Z" fill="url(#paint_linear_0)" fill-rule="evenodd" />
+	</g>
+
+	<animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="1s" repeatCount="indefinite" />
+</svg>

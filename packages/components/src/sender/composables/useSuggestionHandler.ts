@@ -1,4 +1,4 @@
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, ComputedRef } from 'vue'
 import type { SenderProps, SenderEmits } from '../index.type'
 
 /**
@@ -92,12 +92,14 @@ const highlightSuggestionText = (suggestionText: string, inputText: string) => {
  * @param emit - 组件方法
  * @param inputValue - 输入值
  * @param isComposing - 是否处于输入法组合状态
+ * @param showTemplateEditor - 是否显示模板编辑器
  */
 export function useSuggestionHandler(
   props: SenderProps,
   emit: SenderEmits,
   inputValue: ReturnType<typeof ref<string>>,
   isComposing: ReturnType<typeof ref<boolean>>,
+  showTemplateEditor: ComputedRef<boolean>,
 ) {
   // 状态变量
   /**
@@ -145,7 +147,7 @@ export function useSuggestionHandler(
    * 基于当前输入过滤出匹配的建议项
    */
   const filteredSuggestions = computed(() => {
-    if (!props.suggestions || !inputValue.value || props.template) return []
+    if (!props.suggestions || !inputValue.value || showTemplateEditor.value) return []
     const lowerInputValue = inputValue.value.toLowerCase()
     return props.suggestions.filter((item) => item.toLowerCase().includes(lowerInputValue))
   })
@@ -235,7 +237,7 @@ export function useSuggestionHandler(
         inputValue.value &&
         props.suggestions &&
         props.suggestions.length > 0 &&
-        !props.template &&
+        !showTemplateEditor.value &&
         filteredSuggestions.value.length > 0
 
       if (shouldShowSuggestions) {

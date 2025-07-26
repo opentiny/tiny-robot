@@ -1,30 +1,8 @@
 import { Component, VNode } from 'vue'
-import { DropdownMenuEvents, DropdownMenuProps } from '../dropdown-menu/index.type'
-import {
-  SuggestionPopoverEvents,
-  SuggestionPopoverProps,
-  SuggestionPopoverSlots,
-} from '../suggestion-popover/index.type'
 
-export type SuggestionPillAction =
-  | {
-      type: 'popover'
-      props: SuggestionPopoverProps
-      slots?: Omit<SuggestionPopoverSlots, 'default'>
-      events?: SuggestionPopoverEvents
-    }
-  | { type: 'menu'; props: DropdownMenuProps; events?: DropdownMenuEvents }
-
-export type SuggestionPillBaseItem<T> = {
-  id: string
-  action?: SuggestionPillAction
-} & T
-
-export type SuggestionPillItem<T = Record<string, unknown>> = SuggestionPillBaseItem<T> &
-  ({ text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component })
+export type SuggestionPillItem = { text: string; icon?: VNode | Component } | { text?: string; icon: VNode | Component }
 
 export interface SuggestionPillsProps {
-  items?: SuggestionPillItem[]
   /**
    * model:showAll
    */
@@ -36,17 +14,24 @@ export interface SuggestionPillsProps {
    * @default 'hover'
    */
   showAllButtonOn?: 'hover' | 'always'
+  /**
+   * 控制多余按钮如何展示
+   * - expand: 点击更多按钮展开所有项
+   * - scroll: 横向滚动显示多余项
+   * @default 'expand'
+   */
+  overflowMode?: 'expand' | 'scroll'
+  /**
+   * 鼠标悬停时是否自动滚动到可见区域
+   */
+  autoScrollOn?: 'mouseenter' | 'click'
 }
 
-/**
- * @deprecated
- */
 export interface SuggestionPillsSlots {
-  default?: () => VNode | VNode[]
+  default?: () => VNode[]
 }
 
 export interface SuggestionPillsEmits {
-  (e: 'item-click', item: SuggestionPillItem): void
   (e: 'click-outside', event: MouseEvent): void
 }
 

@@ -24,9 +24,21 @@ outline: deep
 
 <demo vue="../../demos/suggestion/popover-grouped.vue" />
 
+### 自定义渲染列表项
+
+使用 `item` 插槽自定义渲染列表项
+
+<demo vue="../../demos/suggestion/popover-custom-item.vue" />
+
 ### 加载中和空数据
 
 <demo vue="../../demos/suggestion/popover-other-status.vue" />
+
+### 其他插槽
+
+另外还提供了 `header` 和 `body` 插槽，方便开发者扩展
+
+<demo vue="../../demos/suggestion/popover-slots.vue" />
 
 ### 移动端适配
 
@@ -40,40 +52,59 @@ outline: deep
 
 弹出框属性配置。
 
-| 属性                   | 类型                             | 默认值    | 说明                                                           |
-| ---------------------- | -------------------------------- | --------- | -------------------------------------------------------------- |
-| `data`                 | `SuggestionData`                 | -         | **必填**，建议数据                                             |
-| `title`                | `string`                         | -         | 弹出框标题                                                     |
-| `icon`                 | `VNode \| Component`             | -         | 标题图标                                                       |
-| `show`                 | `boolean`                        | -         | 控制弹出框显示/隐藏，仅在 trigger 为 'manual' 时有效 |
-| `trigger`              | `'click' \| 'manual'` | `'click'` | 触发方式：点击或手动控制                                 |
-| `selectedGroup`        | `string`                         | -         | 当前选中分组 (v-model)                                         |
-| `groupShowMoreTrigger` | `'click' \| 'hover'`             | -         | 分组"显示更多"的触发方式                                       |
-| `loading`              | `boolean`                        | `false`   | 是否显示加载状态                                               |
-| `popoverWidth`         | `string \| number`               | -         | 弹出框宽度                                                     |
-| `popoverHeight`        | `string \| number`               | -         | 弹出框高度                                                     |
-| `topOffset`            | `string \| number`               | -         | 顶部偏移量                                                     |
+| 属性                   | 类型                  | 默认值    | 说明                                                 |
+| ---------------------- | --------------------- | --------- | ---------------------------------------------------- |
+| `data`                 | `SuggestionData`      | -         | **必填**，建议数据                                   |
+| `title`                | `string`              | -         | 弹出框标题                                           |
+| `icon`                 | `VNode \| Component`  | -         | 标题图标                                             |
+| `show`                 | `boolean`             | -         | 控制弹出框显示/隐藏，仅在 trigger 为 'manual' 时有效 |
+| `trigger`              | `'click' \| 'manual'` | `'click'` | 触发方式：点击或手动控制                             |
+| `selectedGroup`        | `string`              | -         | 当前选中分组 (v-model)                               |
+| `groupShowMoreTrigger` | `'click' \| 'hover'`  | -         | 分组"显示更多"的触发方式                             |
+| `loading`              | `boolean`             | `false`   | 是否显示加载状态                                     |
+| `topOffset`            | `number`              | -         | 顶部偏移量                                           |
 
 ### Slots
 
 弹出框插槽定义。
 
-| 插槽名    | 类型            | 说明               |
-| --------- | --------------- | ------------------ |
-| `default` | `() => unknown` | 自定义内容插槽     |
-| `loading` | `() => unknown` | 自定义加载状态显示 |
-| `empty`   | `() => unknown` | 自定义空状态显示   |
+```code
++---------------------------+         +-----------+
+|     SuggestionPopover     |  <----  |  trigger  |
+|  +---------------------+  |         +-----------+
+|  |       header        |  |
+|  +---------------------+  |
+|  |                     |  |
+|  |        body         |  |
+|  |   +-------------+   |  |
+|  |   |   item[]    |   |  |
+|  |   +-------------+   |  |
+|  |                     |  |
+|  |  loading / empty    |  |
+|  +---------------------+  |
++---------------------------+
+```
+
+| 插槽名    | 类型                                                       | 说明               |
+| --------- | ---------------------------------------------------------- | ------------------ |
+| `trigger` | `() => VNode \| VNode[]`                                   | 自定义触发器       |
+| `item`    | `({ item }: { item: SuggestionItem }) => VNode \| VNode[]` | 自定义渲染列表项   |
+| `loading` | `() => VNode \| VNode[]`                                   | 自定义加载状态显示 |
+| `empty`   | `() => VNode \| VNode[]`                                   | 自定义空状态显示   |
+| `header`  | `() => VNode \| VNode[]`                                   | 自定义头部区域     |
+| `body`    | `() => VNode \| VNode[]`                                   | 自定义列表区域     |
 
 ### Events
 
 弹出框事件定义。
 
-| 事件名        | 参数                     | 说明             |
-| ------------- | ------------------------ | ---------------- |
-| `item-click`  | `item: SuggestionItem`   | 点击建议项时触发 |
-| `group-click` | `group: SuggestionGroup` | 点击分组时触发   |
-| `open`       | -                        | 弹窗打开时触发   |
-| `close`       | -                        | 弹窗关闭时触发   |
+| 事件名          | 参数                     | 说明                   |
+| --------------- | ------------------------ | ---------------------- |
+| `item-click`    | `item: SuggestionItem`   | 点击建议项时触发       |
+| `group-click`   | `group: SuggestionGroup` | 点击分组时触发         |
+| `open`          | -                        | 弹窗打开时触发         |
+| `close`         | -                        | 弹窗关闭时触发         |
+| `click-outside` | `event: MouseEvent`      | 点击弹窗外部区域时触发 |
 
 ### Types
 

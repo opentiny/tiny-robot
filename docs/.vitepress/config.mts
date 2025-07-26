@@ -1,7 +1,8 @@
+import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
+import vueJsx from '@vitejs/plugin-vue-jsx'
+import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
-import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
-import { fileURLToPath } from 'url'
 
 const { version } = pkg
 
@@ -25,6 +26,7 @@ export default defineConfig({
   outDir: 'dist',
   base: '/cdocs/tiny-robot/',
   vite: {
+    plugins: [vueJsx()],
     server: { open: true },
     resolve: {
       alias: {
@@ -59,13 +61,14 @@ export default defineConfig({
             { text: 'Sender 消息输入框', link: 'sender' },
             { text: 'Prompts 提示集', link: 'prompts' },
             { text: 'Welcome 欢迎', link: 'welcome' },
-            { text: 'Question 快捷问题', link: 'question' },
             { text: 'Feedback 气泡反馈', link: 'feedback' },
             { text: 'History 历史', link: 'history' },
             { text: 'DropdownMenu 下拉菜单', link: 'dropdown-menu' },
-            { text: 'Suggestion 快捷指令', link: 'suggestion' },
             { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
             { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
+            { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
+            { text: 'Attachments 附件卡片', link: 'attachments' },
+            { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
           ],
         },
       ],

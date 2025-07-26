@@ -13,20 +13,23 @@ const svgSize = computed(() => toCssUnit(props.svgSize))
 </script>
 
 <template>
-  <button :class="['tr-icon-button', { rounded: props.rounded }]">
-    <component :is="props.icon" />
+  <button :class="['tr-icon-button', { rounded: props.rounded }]" :style="{ width: size, height: size }">
+    <component :is="props.icon" :style="{ width: svgSize, height: svgSize, fontSize: svgSize }" />
   </button>
 </template>
+
+<style lang="less">
+:root {
+  --tr-icon-button-bg: transparent;
+  --tr-icon-button-hover-bg: #f5f5f5;
+}
+</style>
+
 <style lang="less" scoped>
 button.tr-icon-button {
-  --tr-icon-button-bg: transparent;
-  --tr-icon-button-hover-bg: rgba(0, 0, 0, 0.04);
-  --tr-icon-button-active-bg: rgba(0, 0, 0, 0.15);
   --tr-icon-button-border-radius: 8px;
   --tr-icon-button-border-radius-rounded: 999px;
 
-  width: v-bind('size');
-  height: v-bind('size');
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -41,16 +44,8 @@ button.tr-icon-button {
     background-color: var(--tr-icon-button-hover-bg);
   }
 
-  &:active {
-    background-color: var(--tr-icon-button-active-bg);
-  }
-
   &.rounded {
     border-radius: var(--tr-icon-button-border-radius-rounded);
-  }
-
-  svg {
-    font-size: v-bind('svgSize');
   }
 }
 </style>

@@ -29,10 +29,10 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 通过设置`loading`属性控制组件的加载状态，加载状态下输入框将显示加载动画并禁用输入。
 在加载状态下，点击加载图标可以取消发送操作，这会触发 `cancel` 事件。
 
-<tr-sender :loading="true" />
+<tr-sender :loading="true" stopText="停止回答" />
 
 ```vue
-<tr-sender :loading="true" />
+<tr-sender :loading="true" stopText="停止回答" />
 ```
 
 #### 禁用状态
@@ -119,26 +119,24 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 支持附件上传功能，可通过`allowFiles`控制。
 
-> 目前仅支持按钮显示，后续会添加附件上传相关功能。
+结合 `buttonGroup` 属性，您可以实现更复杂的交互逻辑。例如，通过监听 `files-selected` 事件返回的文件列表，动态地禁用上传按钮或提交按钮，并更新其 `tooltips` 提示信息，以引导用户操作。
 
-<tr-sender :allowFiles="true"  />
-
-```vue
-<tr-sender :allowFiles="true" />
-```
+<demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="Sender 组件支持文件上传功能，并可通过 buttonGroup 动态控制按钮状态。" />
 
 #### 模版填充
 
-通过调用组件实例的 `setTemplate` 方法动态设置模板。
+通过 `templateData` prop 实现模板的动态设置与双向绑定。推荐使用 `v-model:templateData` 的语法糖。
 
-这种方式适合需要动态切换模板的场景，如模板选择器。
+该功能加载后，光标会自动聚焦在第一个可编辑的模板字段上，方便用户直接开始编辑。
 
 **模板示例**
 
 <demo vue="../../demos/sender/Template.vue" title="模板填充示例" description="Sender 组件支持模板填充，展示动态模板切换功能。" />
 
-
-**备注** `initialValues` 中对应字段赋值为 `''`, 则会显示 `placeholder`; 赋值不为 `''` , 则会显示对应字段的初始值
+**备注**
+`templateData` prop 接收一个 `UserItem[]` 类型的数组。
+`UserItem` 的结构为 `{ type: 'text', content: string }` 或 `{ type: 'template', content: string }`。
+当 `type` 为 `'template'` 时，对应的 `content` 会渲染为一个可编辑的模板字段。
 
 #### 输入联想
 
@@ -246,13 +244,16 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | loading              | 是否加载中               | `boolean`                                               | `false`           |
 | mode                 | 输入框类型               | `'single' \| 'multiple'`                                | `'single'`        |
 | maxLength            | 最大输入长度             | `number`                                                | `Infinity`        |
+| buttonGroup          | 按钮组配置               | `ButtonGroupConfig`                                     | `{}`              |
 | placeholder          | 输入框占位文本           | `string`                                                | `'请输入内容...'` |
 | speech               | 语音识别配置             | `'boolean' \| 'SpeechConfig'`                           | 无                |
 | showWordLimit        | 是否显示字数统计         | `boolean`                                               | `false`           |
+| stopText             | 停止按钮文字             | `string`                                                | `仅显示图标`      |
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
 | suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
 | suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
+| templateData         | 模板数据，用于初始化或 v-model 更新 | `UserItem[]`                                            | `[]`              |
 
 
 ### Events
@@ -283,7 +284,6 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | submit                     | 手动触发提交事件         | -    | `void`          |
 | startSpeech                | 开始语音识别             | -    | `Promise<void>` |
 | stopSpeech                 | 停止语音识别             | -    | `void`          |
-| setTemplate                | 动态设置模板内容         | `(template: string, initialValues?: Record<string, string>)` | `void` |
 | activateTemplateFirstField | 激活模板的第一个输入字段 | -    | `void`          |
 
 ### Slots
@@ -319,5 +319,23 @@ interface SpeechConfig {
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
   autoReplace?: boolean // 是否自动替换当前输入内容
+}
+```
+
+```typescript
+export interface ControlState {
+  tooltips?: string | Function // 工具提示
+  disabled?: boolean // 是否禁用
+}
+
+interface fileUploadConfig {
+  accept?: string // 接受的文件类型
+  multiple?: boolean // 是否支持多选文件
+}
+
+interface ButtonGroupConfig {
+  file?: ControlState & fileUploadConfig // 文件上传按钮
+  submit?: ControlState // 提交按钮
+  // 后续可扩展至其他按钮...
 }
 ```

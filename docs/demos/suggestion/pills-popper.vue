@@ -1,31 +1,98 @@
 <template>
-  <TrSuggestionPills>
-    <TrSuggestionPopover
-      :data="popoverData"
-      :loading="loading"
-      @open="delaySetData"
-      @item-click="handlePopoverItemClick"
-    >
-      <TrSuggestionPillButton>
-        <template #icon>
-          <IconSparkles style="font-size: 16px; color: #1476ff" />
-        </template>
-      </TrSuggestionPillButton>
+  <div class="pills-container">
+    <TrSuggestionPopover :data="[]">
+      <template #trigger>
+        <TrSuggestionPillButton>
+          <template #icon>
+            <IconSparkles style="font-size: 16px; color: #1476ff" />
+          </template>
+        </TrSuggestionPillButton>
+      </template>
     </TrSuggestionPopover>
-    <TrDropdownMenu :items="dropdownMenuItems" @item-click="handleDropdownMenuItemClick">
-      <TrSuggestionPillButton>点击我打开DropdownMenu弹出框</TrSuggestionPillButton>
-    </TrDropdownMenu>
-    <TrSuggestionPillButton>资源管理</TrSuggestionPillButton>
-    <TrSuggestionPillButton>费用查询</TrSuggestionPillButton>
-  </TrSuggestionPills>
+    <TrSuggestionPills
+      class="pills"
+      ref="pillsRef"
+      v-model:showAll="showAll"
+      :show-all-button-on="showAllButtonOn"
+      :overflow-mode="overflowMode"
+      :auto-scroll-on="autoScrollOn"
+      @click-outside="handleClickOutside"
+    >
+      <TrDropdownMenu
+        v-for="(button, index) in buttons"
+        :items="dropdownMenuItems"
+        :style="{
+          '--tr-dropdown-menu-min-left': leftRange.left,
+          '--tr-dropdown-menu-max-right': leftRange.right,
+        }"
+        @item-click="handleDropdownMenuItemClick"
+        :key="index"
+        v-model:show="dropdownShowModels[index]"
+        trigger="click"
+      >
+        <template #trigger>
+          <TrSuggestionPillButton :data-index="index">{{ button.text }}</TrSuggestionPillButton>
+        </template>
+      </TrDropdownMenu>
+    </TrSuggestionPills>
+  </div>
   <hr />
   <span>点击第一个图标会打开Popover弹出框</span>
+  <hr />
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div>
+      <label>showAll：</label>
+      <tiny-switch v-model="showAll" ref="showAllRef"></tiny-switch>
+    </div>
+    <div>
+      <label>showAllButtonOn：</label>
+      <tiny-radio-group v-model="showAllButtonOn" :options="showAllButtonOnOptions"></tiny-radio-group>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <label>overflowMode：</label>
+      <tiny-radio-group v-model="overflowMode" :options="overflowModeOptions"></tiny-radio-group>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <label>autoScrollOn：</label>
+      <tiny-radio-group v-model="autoScrollOn" :options="autoScrollOptions"></tiny-radio-group>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px">
+      <button ref="addButtonRef" @click="handleClickAddButton">点我增加按钮</button>
+      <button ref="removeButtonRef" @click="handleClickRemoveButton">点我删除按钮</button>
+      <button @click="handleClickResetButton">点我重置按钮</button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover, TrDropdownMenu } from '@opentiny/tiny-robot'
+import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover } from '@opentiny/tiny-robot'
 import { IconSparkles } from '@opentiny/tiny-robot-svgs'
-import { ref } from 'vue'
+import { TinyRadioGroup, TinySwitch } from '@opentiny/vue'
+import { computed, ref, watch } from 'vue'
+
+const showAll = ref(false)
+const showAllRef = ref<InstanceType<typeof TinySwitch>>()
+const addButtonRef = ref<HTMLButtonElement | null>(null)
+const removeButtonRef = ref<HTMLButtonElement | null>(null)
+
+const showAllButtonOn = ref<'hover' | 'always'>('hover')
+const showAllButtonOnOptions = ref([
+  { label: 'hover', value: 'hover' },
+  { label: 'always', value: 'always' },
+])
+
+const overflowMode = ref<'expand' | 'scroll'>('expand')
+const overflowModeOptions = ref([
+  { label: 'expand', value: 'expand' },
+  { label: 'scroll', value: 'scroll' },
+])
+
+const autoScrollOn = ref<'click' | 'mouseenter' | undefined>(undefined)
+const autoScrollOptions = ref([
+  { label: 'none', value: undefined },
+  { label: 'click', value: 'click' },
+  { label: 'mouseenter', value: 'mouseenter' },
+])
 
 const dropdownMenuItems = ref([
   { id: '1', text: '去续费' },
@@ -35,34 +102,136 @@ const dropdownMenuItems = ref([
   { id: '5', text: '对帐单' },
 ])
 
-const popoverData = ref<typeof data>([])
-const loading = ref(true)
+const handleClickOutside = (event: MouseEvent) => {
+  dropdownShowModels.value.forEach((_, index) => {
+    dropdownShowModels.value[index] = false
+  })
 
-const data = [
-  { id: 'b1', text: '什么是弹性云服务器?' },
-  { id: 'b2', text: '如何登录到Windows云服务器?' },
-  { id: 'b3', text: '弹性公网IP为什么ping不通?' },
-  { id: 'b4', text: '云服务器安全组如何配置?' },
-  { id: 'b5', text: '如何查看云服务器密码?' },
-  { id: 'b6', text: '什么是弹性云服务器?' },
-  { id: 'b7', text: '如何登录到Windows云服务器?' },
-  { id: 'b8', text: '弹性公网IP为什么ping不通?' },
-  { id: 'b9', text: '云服务器安全组如何配置?' },
-  { id: 'b0', text: '如何查看云服务器密码?' },
-]
-
-const delaySetData = () => {
-  setTimeout(() => {
-    popoverData.value = data
-    loading.value = false
-  }, 1000)
-}
-
-const handlePopoverItemClick = (item) => {
-  console.log('Popover item clicked,', item)
+  const composedPath = event.composedPath()
+  if (composedPath.some((el) => el instanceof HTMLElement && el.matches('ul.tr-dropdown-menu__list'))) {
+    return
+  }
+  if (composedPath.includes(showAllRef.value?.$el)) {
+    return
+  }
+  if (addButtonRef.value && composedPath.includes(addButtonRef.value)) {
+    return
+  }
+  if (removeButtonRef.value && composedPath.includes(removeButtonRef.value)) {
+    return
+  }
+  showAll.value = false
 }
 
 const handleDropdownMenuItemClick = (item) => {
   console.log('DropdownMenu item clicked,', item)
 }
+
+const originalButtons = [
+  {
+    text: '资源管理1',
+  },
+  {
+    text: '资源管理2',
+  },
+  {
+    text: '资源管理3',
+  },
+  {
+    text: '资源管理4',
+  },
+  {
+    text: '资源管理5',
+  },
+  {
+    text: '资源管理6',
+  },
+  {
+    text: '资源管理7',
+  },
+]
+
+const buttons = ref(structuredClone(originalButtons))
+
+const dropdownShowModels = ref<boolean[]>([])
+
+watch(
+  () => buttons.value.length,
+  (len) => {
+    dropdownShowModels.value = Array.from({ length: len }, () => false)
+  },
+  { immediate: true },
+)
+
+const handleClickAddButton = () => {
+  buttons.value.push({
+    text: '新增按钮',
+  })
+}
+
+const handleClickRemoveButton = () => {
+  buttons.value.pop()
+}
+
+const handleClickResetButton = () => {
+  buttons.value = structuredClone(originalButtons)
+}
+
+const pillsRef = ref<InstanceType<typeof TrSuggestionPills>>()
+
+const leftRange = computed(() => {
+  const el = pillsRef.value?.$el
+  if (!el) {
+    return { left: '0px', right: '100%' }
+  }
+  const { left, right } = el.getBoundingClientRect()
+  return {
+    left: `${left}px`,
+    right: `${right}px`,
+  }
+})
+
+watch(
+  () => [pillsRef.value?.$el, pillsRef.value?.children.map((el) => el)] as const,
+  ([root, targets], _, onCleanup) => {
+    if (!root || !Array.isArray(targets) || targets.length === 0) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            const index = Number((entry.target as HTMLElement).dataset.index)
+            if (typeof index === 'number' && !isNaN(index)) {
+              dropdownShowModels.value[index] = false
+            }
+          }
+        })
+      },
+      {
+        root,
+        threshold: 0.99,
+      },
+    )
+
+    targets.forEach((el) => el && observer.observe(el))
+
+    onCleanup(() => {
+      observer.disconnect()
+    })
+  },
+  { flush: 'post' },
+)
 </script>
+
+<style lang="less" scoped>
+.pills-container {
+  display: flex;
+  gap: 8px;
+}
+
+.pills {
+  width: calc(100% - 40px);
+}
+</style>

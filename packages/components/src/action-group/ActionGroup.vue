@@ -64,13 +64,13 @@ const handleMoreClick = () => {
   showDropdown.value = !showDropdown.value
 }
 
-onClickOutside(dropDownRef, (ev) => {
-  if (moreBtnRef.value?.contains(ev.target as Node)) {
-    return
-  }
-
-  showDropdown.value = false
-})
+onClickOutside(
+  dropDownRef,
+  () => {
+    showDropdown.value = false
+  },
+  { ignore: [moreBtnRef] },
+)
 
 const handleItemClick = (name: string) => {
   emit('item-click', name)
