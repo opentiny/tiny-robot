@@ -270,7 +270,7 @@ const getSelectionRange = (el: Element) => {
 
 const getNodeAndOffset = (el: Element, offset: number) => {
   if (!el.firstChild || el.firstChild.nodeType !== Node.TEXT_NODE) {
-    console.warn('el.firstChild is not a text node. set anchor and focus to the element with offset 0', el)
+    // el.firstChild is not a text node. set anchor and focus to the element with offset 0
     return { node: el, offset: 0 }
   }
 
@@ -502,7 +502,7 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   newOriginalData = newOriginalData.filter((item) => {
     return !(item.type === 'template' && [item.prefix, item.suffix, item.content].join('').length === 0)
   })
-  // 首尾的空text如何和template相邻，则将空text转换成PLACEHOLDER（为了下一步不被删除，并且能不让template位于首尾）
+  // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER（为了下一步不被删除，并且能不让template位于首尾）
   if (newOriginalData.length >= 2) {
     const first = newOriginalData[0]
     const second = newOriginalData[1]
