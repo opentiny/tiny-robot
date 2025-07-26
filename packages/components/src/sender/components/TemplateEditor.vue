@@ -73,6 +73,12 @@ const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[]
 
 const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
 
+// 设置originalData实际上是3个步骤
+// 1. 记录旧值的 selectionRange (rangeMap.set)
+// 2. 设置originalData (setOriginalData)
+// 3. 提交历史记录 (history.commit)
+// 特殊情况1: 在 watch model中，如果是内部更新，不需要1和3步骤。因为已经执行过了
+// 特殊情况2: 在 history undo redo 中，不需要3步骤。否则历史记录会重复
 const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
   const first: (TextItem | TemplateItem)[] = []
   const last: (TextItem | TemplateItem)[] = []
@@ -189,10 +195,28 @@ const history = useUndoRedo<string>(serializeWithTimestamp(originalData.value), 
 watch(
   () => model.value,
   (newModel) => {
-    // 当 props 变化时，更新内部状态
-    setOriginalData(transformUserToInternal(newModel || []))
+    // 将新的 model 转换为内部数据格式
+    const newInternalData = transformUserToInternal(newModel || [])
 
-    history.commit(serializeWithTimestamp(originalData.value))
+    // 比较新数据与当前内部数据是否相同，如果相同说明是内部更新触发的
+    // 这里比较的是转换后的内部数据，因为内部更新时 model.value 是从 originalData.value 转换而来的
+    const isInternalUpdate = JSON.stringify(newInternalData) === JSON.stringify(originalData.value)
+
+    // 外部更新，记录旧值的 selectionRange
+    if (!isInternalUpdate && editorRef.value) {
+      const selectionRange = getSelectionRange(editorRef.value)
+      if (selectionRange) {
+        rangeMap.set(history.get(), transformRange(selectionRange))
+      }
+    }
+
+    // 当 props 变化时，更新内部状态
+    setOriginalData(newInternalData)
+
+    // 外部更新，提交历史记录
+    if (!isInternalUpdate) {
+      history.commit(serializeWithTimestamp(originalData.value))
+    }
   },
   { deep: true },
 )
@@ -295,11 +319,13 @@ const insertNewTextAndSetCaretPosition = (content: string, insertAfter?: string)
           .concat(textItem)
           .concat(originalData.value.slice(index + 1)),
       )
+      history.commit(serializeWithTimestamp(originalData.value))
     } else {
       console.warn(`can not find item with id: ${insertAfter}`)
     }
   } else {
     setOriginalData([textItem as TextItem | TemplateItem].concat(originalData.value))
+    history.commit(serializeWithTimestamp(originalData.value))
   }
 
   nextTick(() => {
@@ -373,22 +399,22 @@ const handleBeforeInput = (e: Event) => {
 
   if (inputTypes.includes(inputType)) {
     if (inputData && isEditor(range.startContainer) && isEditor(range.endContainer)) {
-      // 输入框为空，直接插入
-      insertNewTextAndSetCaretPosition(inputData)
-
       if (selectionRange) {
         rangeMap.set(history.get(), transformRange(selectionRange))
       }
+
+      // 输入框为空，直接插入
+      insertNewTextAndSetCaretPosition(inputData)
       return
     }
 
     const transformedRange = transformRange(range)
     if (transformedRange.startId && transformedRange.endId) {
-      processInput(transformedRange, inputType, inputData)
-
       if (selectionRange) {
         rangeMap.set(history.get(), transformRange(selectionRange))
       }
+
+      processInput(transformedRange, inputType, inputData)
     } else {
       console.warn('range is not valid, range:', transformedRange)
     }
@@ -496,10 +522,8 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
     return !(item.type === 'text' && item.content.length === 0)
   })
 
-  setOriginalData(newOriginalData)
-
   // 恢复分隔符
-  for (const dataItem of originalData.value.filter((item): item is TemplateItem => item.type === 'template')) {
+  for (const dataItem of newOriginalData.filter((item): item is TemplateItem => item.type === 'template')) {
     if (dataItem.prefix.length === 0) {
       dataItem.prefix = PREFIX
     }
@@ -507,6 +531,9 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
       dataItem.suffix = SUFFIX
     }
   }
+
+  setOriginalData(newOriginalData)
+  history.commit(serializeWithTimestamp(originalData.value))
 
   if (selectedItems.length > 0) {
     // 光标定位
@@ -739,14 +766,12 @@ const handleCompositionEnd = (e: CompositionEvent) => {
   const range = compositionContext.value.range
   if (range) {
     if (e.data && isEditor(range.startContainer) && isEditor(range.endContainer)) {
+      rangeMap.set(history.get(), transformRange(range))
       // 输入框为空，直接插入
       insertNewTextAndSetCaretPosition(e.data)
-
-      rangeMap.set(history.get(), transformRange(range))
     } else if (range.startId && range.endId) {
-      processInput(range, 'insertCompositionText', e.data)
-
       rangeMap.set(history.get(), transformRange(range))
+      processInput(range, 'insertCompositionText', e.data)
     } else {
       console.warn('range is not valid, range:', range)
     }
@@ -821,6 +846,8 @@ const restoreDataAndCaretPosition = (historyItem: string) => {
       }
     })
   }
+
+  model.value = transformInternalToUser(originalData.value)
 }
 
 const activateFirstField = () => {
@@ -856,30 +883,32 @@ document.addEventListener('selectionchange', () => {
 
   const range = getSelectionRange(editorRef.value!)
 
-  if (range && range.collapsed && originalData.value.length > 0) {
+  if (range?.collapsed && originalData.value.length > 0) {
     const editorRange = transformRange(range)
 
     // 如果选中的是开头的空text，则将光标移动到空text后
     const first = originalData.value[0]
     if (
-      first.content === PLACEHOLDER &&
-      first.type === 'text' &&
+      editorRange.startEl &&
       editorRange.startId === first.id &&
-      editorRange.startOffset === 0
+      editorRange.startOffset === 0 &&
+      first.content === PLACEHOLDER &&
+      first.type === 'text'
     ) {
-      setCaretPosition(editorRange.startEl!, 1)
+      setCaretPosition(editorRange.startEl, 1)
       return
     }
 
     // 如果选中的是末尾的空text，则将光标移动到空text前
     const last = originalData.value[originalData.value.length - 1]
     if (
-      last.content === PLACEHOLDER &&
-      last.type === 'text' &&
+      editorRange.endEl &&
       editorRange.endId === last.id &&
-      editorRange.endOffset === 1
+      editorRange.endOffset === 1 &&
+      last.content === PLACEHOLDER &&
+      last.type === 'text'
     ) {
-      setCaretPosition(editorRange.endEl!, 0)
+      setCaretPosition(editorRange.endEl, 0)
       return
     }
   }
