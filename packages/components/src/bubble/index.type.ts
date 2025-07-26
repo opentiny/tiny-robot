@@ -1,6 +1,6 @@
 import { VNode } from 'vue'
-import { BubbleMessageProps, BubbleMessageRenderer } from './message'
-export * from './message/index.type'
+import { BubbleContentItem, BubbleContentRenderer } from './renderers'
+export * from './renderers/index.type'
 
 export interface BubbleCommonProps {
   /**
@@ -19,7 +19,7 @@ export interface BubbleCommonProps {
    * 气泡内容渲染器。
    * 如果 Bubble 中的 content 是长度大于 0 的数组，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
    */
-  contentRenderer?: BubbleMessageRenderer
+  contentRenderer?: BubbleContentRenderer
   hidden?: boolean
   maxWidth?: string | number
 }
@@ -28,7 +28,7 @@ export interface BubbleProps extends BubbleCommonProps {
   /**
    * 气泡内容
    */
-  content?: string | BubbleMessageProps[]
+  content?: string | BubbleContentItem[]
   id?: string | number | symbol
   role?: string
   loading?: boolean

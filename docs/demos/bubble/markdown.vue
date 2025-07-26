@@ -3,13 +3,13 @@
 </template>
 
 <script setup lang="ts">
-import { BubbleMarkdownMessageRenderer, TrBubble } from '@opentiny/tiny-robot'
+import { BubbleMarkdownContentRenderer, TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
-const markdownRenderer = new BubbleMarkdownMessageRenderer()
+const markdownRenderer = new BubbleMarkdownContentRenderer()
 
 const mdContent = `# h1 Heading
 ## Emphasis

@@ -1,5 +1,5 @@
 <template>
-  <tr-bubble-provider :message-renderers="messageRenderers">
+  <tr-bubble-provider :content-renderers="contentRenderers">
     <tr-bubble :content="content" :avatar="aiAvatar" placement="start"></tr-bubble>
   </tr-bubble-provider>
   <hr />
@@ -11,22 +11,22 @@
 </template>
 
 <script setup lang="ts">
-import { BubbleMessageProps, TrBubbleProvider, TrBubble, BubbleMarkdownMessageRenderer } from '@opentiny/tiny-robot'
+import { BubbleContentItem, TrBubbleProvider, TrBubble, BubbleMarkdownContentRenderer } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h, reactive, ref } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
 // function renderer
-const customTextRenderer = (props: BubbleMessageProps) => {
+const customTextRenderer = (props: BubbleContentItem) => {
   return h('div', { style: { color: 'red', fontStyle: 'italic' } }, props.content)
 }
 
 // class renderer
-const markdownRenderer = new BubbleMarkdownMessageRenderer()
+const markdownRenderer = new BubbleMarkdownContentRenderer()
 
 // register renderer
-const messageRenderers = {
+const contentRenderers = {
   'custom-text': customTextRenderer,
   markdown: markdownRenderer,
 }
@@ -45,7 +45,7 @@ const thinkingMessage = reactive({
   content: thinkingContent,
 })
 
-const content = ref<BubbleMessageProps[]>([
+const content = ref<BubbleContentItem[]>([
   {
     type: 'text',
     content: '我使用默认的文本渲染器（组件渲染器）',

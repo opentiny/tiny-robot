@@ -1,9 +1,9 @@
 import DOMPurify, { Config as DompurifyConfig } from 'dompurify'
 import { default as MarkdownIt, Options as MarkdownItOptions } from 'markdown-it'
 import { h } from 'vue'
-import { BubbleMessageClassRenderer } from './class-renderer'
+import { BubbleContentClassRenderer } from './class-renderer'
 
-export class BubbleMarkdownMessageRenderer extends BubbleMessageClassRenderer {
+export class BubbleMarkdownContentRenderer extends BubbleContentClassRenderer {
   readonly mdConfig: MarkdownItOptions
   readonly dompurifyConfig: DompurifyConfig & { disable?: boolean }
   private md: MarkdownIt

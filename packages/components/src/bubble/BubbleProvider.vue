@@ -1,34 +1,34 @@
 <script setup lang="ts">
 import { provide } from 'vue'
 import {
-  defaultMessageRendererMap,
-  RENDERER_MAP_PROVIDER_KEY,
+  BubbleContentRenderer,
+  BubbleTextContentRenderer,
+  defaultContentRendererMap,
   FALLBACK_RENDERER_PROVIDER_KEY,
-  BubbleTextMessageRenderer,
-  BubbleMessageRenderer,
-} from './message'
+  RENDERER_MAP_PROVIDER_KEY,
+} from './renderers'
 
 const props = withDefaults(
   defineProps<{
-    messageRenderers?: Record<string, BubbleMessageRenderer>
+    contentRenderers?: Record<string, BubbleContentRenderer>
   }>(),
   {
-    messageRenderers: () => ({}),
+    contentRenderers: () => ({}),
   },
 )
 
-const bubbleMessageRendererMap = new Map<string, BubbleMessageRenderer>()
+const bubbleContentRendererMap = new Map<string, BubbleContentRenderer>()
 
-for (const [type, renderer] of defaultMessageRendererMap.entries()) {
-  bubbleMessageRendererMap.set(type, renderer)
+for (const [type, renderer] of defaultContentRendererMap.entries()) {
+  bubbleContentRendererMap.set(type, renderer)
 }
 
-for (const [type, renderer] of Object.entries(props.messageRenderers)) {
-  bubbleMessageRendererMap.set(type, renderer)
+for (const [type, renderer] of Object.entries(props.contentRenderers)) {
+  bubbleContentRendererMap.set(type, renderer)
 }
 
-provide(RENDERER_MAP_PROVIDER_KEY, bubbleMessageRendererMap)
-provide(FALLBACK_RENDERER_PROVIDER_KEY, BubbleTextMessageRenderer)
+provide(RENDERER_MAP_PROVIDER_KEY, bubbleContentRendererMap)
+provide(FALLBACK_RENDERER_PROVIDER_KEY, BubbleTextContentRenderer)
 </script>
 
 <template>

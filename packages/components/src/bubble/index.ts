@@ -2,7 +2,7 @@ import { App } from 'vue'
 import BubbleComp from './Bubble.vue'
 import BubbleListComp from './BubbleList.vue'
 import BubbleProviderComp from './BubbleProvider.vue'
-export { BubbleMarkdownMessageRenderer, BubbleMessageClassRenderer } from './message'
+export { BubbleMarkdownContentRenderer, BubbleContentClassRenderer } from './renderers'
 
 BubbleComp.name = 'TrBubble'
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { toCssUnit } from '../shared/utils'
-import { BubbleMessageFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
-import { BubbleMessageClassRenderer } from './message/class-renderer'
-import Message from './message/Message.vue'
+import { BubbleContentFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
+import { BubbleContentClassRenderer } from './renderers'
+import { ContentItem } from './components'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
@@ -22,11 +22,11 @@ const contentRenderer = computed(() => {
   }
 
   if (typeof renderer === 'function') {
-    const renderFn = renderer as BubbleMessageFunctionRenderer
+    const renderFn = renderer as BubbleContentFunctionRenderer
     return { isComponent: false, vNodeOrComponent: renderFn(props) }
   }
 
-  if (renderer instanceof BubbleMessageClassRenderer) {
+  if (renderer instanceof BubbleContentClassRenderer) {
     return { isComponent: false, vNodeOrComponent: renderer.render(props) }
   }
 
@@ -41,7 +41,7 @@ const bubbleContent = computed(() => {
   return props.content
 })
 
-const messages = computed(() => {
+const contentItems = computed(() => {
   if (Array.isArray(props.content)) {
     return props.content
   }
@@ -73,9 +73,9 @@ const placementStart = computed(() => props.placement === 'start')
         </div>
       </slot>
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <template v-if="messages.length">
-          <div class="tr-bubble__content-messages">
-            <Message v-for="(message, index) in messages" :key="index" v-bind="message" />
+        <template v-if="contentItems.length">
+          <div class="tr-bubble__content-items">
+            <ContentItem v-for="(item, index) in contentItems" :key="index" v-bind="item" />
           </div>
         </template>
         <template v-else>
@@ -143,7 +143,7 @@ const placementStart = computed(() => props.placement === 'start')
   border-radius: 24px;
   box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 
-  .tr-bubble__content-messages {
+  .tr-bubble__content-items {
     display: flex;
     flex-direction: column;
     gap: 12px;
