@@ -60,9 +60,9 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 
 `BubbleProvider` 管理和注册消息渲染器。渲染器注册机制
 
-当 Bubble 组件的 `messages` 数组不为空时，系统会：
+当 Bubble 组件的 `content` 是长度大于0的数组时，系统会：
 
-1.检查每条消息的 `type` 字段  
+1.检查每数组项的 `type` 字段  
 2.在 `BubbleProvider` 中查找匹配的渲染器  
 3.使用找到的渲染器渲染消息内容  
 4.如果未找到匹配的渲染器，则使用默认渲染方式
@@ -71,49 +71,49 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 
 1.**函数式渲染器**：
 
-   ```typescript
-   const myRenderer: BubbleMessageFunctionRenderer = (options) => {
-     return h('div', options.content)
-   }
-   ```
+```typescript
+const myRenderer: BubbleMessageFunctionRenderer = (options) => {
+  return h('div', options.content)
+}
+```
 
 2.**类式渲染器**：
 
-   必须继承 `BubbleMessageClassRenderer` 类
+必须继承 `BubbleMessageClassRenderer` 类
 
-   类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
+类渲染器通常用来复用复杂度较高的渲染器，比如MarkdownIt实例
 
-   ```typescript
-   class MyRenderer extends BubbleMessageClassRenderer {
-     render(options) {
-       return h('div', options.content)
-     }
-   }
-   ```
+```typescript
+class MyRenderer extends BubbleMessageClassRenderer {
+  render(options) {
+    return h('div', options.content)
+  }
+}
+```
 
-   注册时记得 new 一个实例，否则会导致渲染失败
+注册时记得 new 一个实例，否则会导致渲染失败
 
-   ```vue
-   <template>
-     <tr-bubble-provider :message-renderers="messageRenderers">
-       <!-- other codes... -->
-     </tr-bubble-provider>
-   </template>
+```vue
+<template>
+  <tr-bubble-provider :message-renderers="messageRenderers">
+    <!-- other codes... -->
+  </tr-bubble-provider>
+</template>
 
-   <script>
-   const messageRenderers = { 'my-render': new MyRenderer() }
-   </script>
-   ```
+<script>
+const messageRenderers = { 'my-render': new MyRenderer() }
+</script>
+```
 
 3.**Vue 组件**：
 
-   message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
+message 对象中的所有属性都将传递给组件，onXXX会当作事件传递给组件，非props属性会当作attrs传递给组件
 
-   ```vue
-   <template>
-     <div>{{ props.content }}</div>
-   </template>
-   ```
+```vue
+<template>
+  <div>{{ props.content }}</div>
+</template>
+```
 
 目前内置直接可用的的渲染器类型有
 
@@ -162,27 +162,28 @@ type BubblePlacement = 'start' | 'end'
 
 气泡通用属性配置。
 
-| 属性              | 类型                    | 默认值     | 说明                                                                              |
-| ----------------- | ----------------------- | ---------- | --------------------------------------------------------------------------------- |
-| `placement`       | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                               |
-| `avatar`          | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                     |
-| `shape`           | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                          |
-| `contentRenderer` | `BubbleMessageRenderer` | -          | 气泡内容渲染器（当 messages 长度大于 0 时无效，使用 BubbleProvider 注册的渲染器） |
-| `hidden`          | `boolean`               | -          | 是否隐藏气泡                                                                      |
-| `maxWidth`        | `string \| number`      | -          | 气泡内容的最大宽度                                                                |
+| 属性              | 类型                    | 默认值     | 说明                                                                            |
+| ----------------- | ----------------------- | ---------- | ------------------------------------------------------------------------------- |
+| `placement`       | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                             |
+| `avatar`          | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                   |
+| `shape`           | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                        |
+| `contentRenderer` | `BubbleMessageRenderer` | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器） |
+| `hidden`          | `boolean`               | -          | 是否隐藏气泡                                                                    |
+| `maxWidth`        | `string \| number`      | -          | 气泡内容的最大宽度                                                              |
 
 ### BubbleProps
 
 单个气泡的属性配置（继承自 BubbleCommonProps）。
 
-| 属性       | 类型                         | 默认值  | 说明                                |
-| ---------- | ---------------------------- | ------- | ----------------------------------- |
-| `content`  | `string`                     | -       | 气泡内容文本                        |
-| `messages` | `BubbleMessageProps[]`       | -       | 气泡消息数组                        |
-| `id`       | `string \| number \| symbol` | -       | 气泡唯一标识                        |
-| `role`     | `string`                     | -       | 气泡角色标识，用于关联 `roles` 配置 |
-| `loading`  | `boolean`                    | `false` | 是否显示加载状态                    |
-| `aborted`  | `boolean`                    | `false` | 是否显示为已中止状态                |
+| 属性      | 类型                             | 默认值  | 说明                                |
+| --------- | -------------------------------- | ------- | ----------------------------------- |
+| `content` | `string \| BubbleMessageProps[]` | -       | 气泡内容                            |
+| `id`      | `string \| number \| symbol`     | -       | 气泡唯一标识                        |
+| `role`    | `string`                         | -       | 气泡角色标识，用于关联 `roles` 配置 |
+| `loading` | `boolean`                        | `false` | 是否显示加载状态                    |
+| `aborted` | `boolean`                        | `false` | 是否显示为已中止状态                |
+
+---
 
 ### BubbleSlots
 
@@ -198,7 +199,7 @@ type BubblePlacement = 'start' | 'end'
 
 角色配置类型（继承自 BubbleCommonProps）。
 
-```typescript
+```ts
 type BubbleRoleConfig = BubbleCommonProps & {
   slots?: BubbleSlots
 }
@@ -208,13 +209,13 @@ type BubbleRoleConfig = BubbleCommonProps & {
 
 气泡列表组件的属性配置。
 
-| 属性          | 类型                                        | 默认值  | 说明                           |
-| ------------- | ------------------------------------------- | ------- | ------------------------------ |
-| `items`       | `(BubbleProps & { slots?: BubbleSlots })[]` | -       | **必填**，气泡项数组           |
-| `roles`       | `Record<string, BubbleRoleConfig>`          | -       | 角色默认配置字典，key 为角色名 |
-| `loading`     | `boolean`                                   | `false` | 列表是否加载中                 |
-| `loadingRole` | `string`                                    | -       | 指定哪个角色可以有加载中状态   |
-| `autoScroll`  | `boolean`                                   | `false` | 是否自动滚动到最新内容         |
+| 属性          | 类型                                        | 默认值  | 说明                         |
+| ------------- | ------------------------------------------- | ------- | ---------------------------- |
+| `items`       | `(BubbleProps & { slots?: BubbleSlots })[]` | -       | **必填**，气泡项数组         |
+| `roles`       | `Record<string, BubbleRoleConfig>`          | -       | 每个角色的默认配置项         |
+| `loading`     | `boolean`                                   | `false` | 列表是否加载中               |
+| `loadingRole` | `string`                                    | -       | 指定哪个角色可以有加载中状态 |
+| `autoScroll`  | `boolean`                                   | `false` | 是否自动滚动到最新内容       |
 
 ### BubbleMessageProps
 

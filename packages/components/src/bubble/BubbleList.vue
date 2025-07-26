@@ -14,7 +14,7 @@ const { y } = useScroll(scrollContainerRef, {
 const lastBubble = computed(() => props.items.at(-1))
 
 watch(
-  [() => props.items.length, () => lastBubble.value?.content, () => lastBubble.value?.messages],
+  [() => props.items.length, () => lastBubble.value?.content],
   () => {
     if (!props.autoScroll || !scrollContainerRef.value) {
       return

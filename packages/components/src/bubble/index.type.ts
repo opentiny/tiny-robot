@@ -17,7 +17,7 @@ export interface BubbleCommonProps {
   shape?: 'rounded' | 'corner'
   /**
    * 气泡内容渲染器。
-   * 如果 Bubble 中的 messages 长度大于 0，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
+   * 如果 Bubble 中的 content 是长度大于 0 的数组，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
    */
   contentRenderer?: BubbleMessageRenderer
   hidden?: boolean
@@ -28,8 +28,7 @@ export interface BubbleProps extends BubbleCommonProps {
   /**
    * 气泡内容
    */
-  content?: string
-  messages?: BubbleMessageProps[]
+  content?: string | BubbleMessageProps[]
   id?: string | number | symbol
   role?: string
   loading?: boolean

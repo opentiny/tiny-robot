@@ -34,7 +34,19 @@ const contentRenderer = computed(() => {
 })
 
 const bubbleContent = computed(() => {
+  if (Array.isArray(props.content)) {
+    return ''
+  }
+
   return props.content
+})
+
+const messages = computed(() => {
+  if (Array.isArray(props.content)) {
+    return props.content
+  }
+
+  return []
 })
 
 const placementStart = computed(() => props.placement === 'start')
@@ -61,9 +73,9 @@ const placementStart = computed(() => props.placement === 'start')
         </div>
       </slot>
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <template v-if="props.messages?.length">
+        <template v-if="messages.length">
           <div class="tr-bubble__content-messages">
-            <Message v-for="(message, index) in props.messages" :key="index" v-bind="message" />
+            <Message v-for="(message, index) in messages" :key="index" v-bind="message" />
           </div>
         </template>
         <template v-else>
