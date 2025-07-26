@@ -77,8 +77,7 @@ const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(mo
 // 1. 记录旧值的 selectionRange (rangeMap.set)
 // 2. 设置originalData (setOriginalData)
 // 3. 提交历史记录 (history.commit)
-// 特殊情况1: 在 watch model中，如果是内部更新，不需要1和3步骤。因为已经执行过了
-// 特殊情况2: 在 history undo redo 中，不需要3步骤。否则历史记录会重复
+// 特殊情况: 在 history undo redo 中，不需要3步骤。否则历史记录会重复
 const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
   const first: (TextItem | TemplateItem)[] = []
   const last: (TextItem | TemplateItem)[] = []
@@ -198,25 +197,24 @@ watch(
     // 将新的 model 转换为内部数据格式
     const newInternalData = transformUserToInternal(newModel || [])
 
+    // TODO 有没有其他更好的方法来判断是否是内部更新？
     // 比较新数据与当前内部数据是否相同，如果相同说明是内部更新触发的
     // 这里比较的是转换后的内部数据，因为内部更新时 model.value 是从 originalData.value 转换而来的
     const isInternalUpdate = JSON.stringify(newInternalData) === JSON.stringify(originalData.value)
 
-    // 外部更新，记录旧值的 selectionRange
-    if (!isInternalUpdate && editorRef.value) {
+    if (isInternalUpdate) {
+      return
+    }
+
+    // 外部更新
+    if (editorRef.value) {
       const selectionRange = getSelectionRange(editorRef.value)
       if (selectionRange) {
         rangeMap.set(history.get(), transformRange(selectionRange))
       }
     }
-
-    // 当 props 变化时，更新内部状态
     setOriginalData(newInternalData)
-
-    // 外部更新，提交历史记录
-    if (!isInternalUpdate) {
-      history.commit(serializeWithTimestamp(originalData.value))
-    }
+    history.commit(serializeWithTimestamp(originalData.value))
   },
   { deep: true },
 )
