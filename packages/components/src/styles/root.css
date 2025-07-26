@@ -1,4 +1,5 @@
 @import './variables.css';
+@import './animations.css';
 
 button[class^='tr-'] {
   border: none;

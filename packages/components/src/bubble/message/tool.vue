@@ -1,34 +1,30 @@
 <script setup lang="ts">
-import { IconArrowDown, IconToolRunning } from '@opentiny/tiny-robot-svgs'
-import { ref, useCssModule, computed } from 'vue'
+import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
+import { computed, ref, useCssModule, type Component } from 'vue'
 
 const props = defineProps<{
   name: string
   status: 'running' | 'success' | 'failed' | 'cancelled'
-  params?: unknown
+  content?: string | { params?: object; result?: object; [x: string]: unknown }
   formatPretty?: boolean
 }>()
 
 const expanded = ref(false)
 
-const statusText = computed(() => {
-  if (props.status === 'running') {
-    return '正在调用'
-  }
-  if (props.status === 'success') {
-    return '已调用'
-  }
+const textAndIconMap = new Map<string, { text: string; icon: Component }>([
+  ['running', { text: '正在调用', icon: IconLoading }],
+  ['success', { text: '已调用', icon: IconPlugin }],
+  ['failed', { text: '调用失败', icon: IconError }],
+  ['cancelled', { text: '已取消', icon: IconCancelled }],
+])
 
-  if (props.status === 'failed') {
-    return '调用失败'
-  }
-
-  return '已取消'
+const textAndIcon = computed(() => {
+  return textAndIconMap.get(props.status) || { text: '', icon: IconPlugin }
 })
 
 const classes = useCssModule()
 
-const highlightJSON = (json?: unknown): string => {
+const highlightJSON = <T extends string | object>(json?: T): string => {
   if (!json) {
     return ''
   }
@@ -69,9 +65,9 @@ const highlightJSON = (json?: unknown): string => {
   <div class="tr-bubble__step-tool">
     <div class="tr-bubble__step-tool-header">
       <div class="tr-bubble__step-tool-left">
-        <IconToolRunning class="tr-bubble__step-tool-icon" />
+        <component :is="textAndIcon.icon" class="tr-bubble__step-tool-icon" :class="`icon-${props.status}`" />
         <span class="tr-bubble__step-tool-title">
-          {{ statusText }}
+          {{ textAndIcon.text }}
           <span class="tr-bubble__step-tool-name">{{ props.name }}</span>
         </span>
       </div>
@@ -81,7 +77,7 @@ const highlightJSON = (json?: unknown): string => {
     </div>
     <div class="tr-bubble__step-tool-params" v-if="expanded">
       <hr class="tr-bubble__step-tool-hr" />
-      <div class="tr-bubble__step-tool-params-content" v-html="highlightJSON(props.params)"></div>
+      <div class="tr-bubble__step-tool-params-content" v-html="highlightJSON(props.content)"></div>
     </div>
   </div>
 </template>
@@ -110,6 +106,20 @@ const highlightJSON = (json?: unknown): string => {
     .tr-bubble__step-tool-icon {
       font-size: 20px;
       flex-shrink: 0;
+
+      &.icon-running {
+        color: #898989;
+        animation: spin 1s linear infinite;
+      }
+
+      &.icon-success {
+        color: #898989;
+      }
+
+      &.icon-failed,
+      &.icon-cancelled {
+        color: #f23030;
+      }
     }
 
     .tr-bubble__step-tool-title {

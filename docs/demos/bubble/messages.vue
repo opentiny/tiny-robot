@@ -6,13 +6,14 @@
   <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px">
     <button @click="addMessage">添加消息</button>
     <button @click="setThinkingContent">设置思考过程</button>
+    <button @click="toggleToolStatus">切换工具状态</button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { BubbleMessageProps, TrBubbleProvider, TrBubble, BubbleMarkdownMessageRenderer } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
-import { h, ref } from 'vue'
+import { h, reactive, ref } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
@@ -31,6 +32,12 @@ const messageRenderers = {
 }
 
 const thinkingContent = `已获取到西安明天（2025年5月31日）的天气，最高温度28℃，最低温度17℃，有小雨。下一步，使用高德地图的文本搜索工具查找西安适合游玩的地点。`
+
+const toolMessage = reactive({
+  type: 'tool',
+  name: 'DayWeather（工具渲染器）',
+  status: 'running',
+})
 
 const messages = ref<BubbleMessageProps[]>([
   {
@@ -56,7 +63,7 @@ const messages = ref<BubbleMessageProps[]>([
     type: 'tool',
     name: 'DayWeather（工具渲染器）',
     status: 'success',
-    params: JSON.stringify({
+    content: JSON.stringify({
       city: '西安',
       date: '2025-05-31',
       number: 123,
@@ -67,6 +74,17 @@ const messages = ref<BubbleMessageProps[]>([
       },
     }),
     formatPretty: true,
+  },
+  toolMessage,
+  {
+    type: 'tool',
+    name: 'DayWeather（工具渲染器）',
+    status: 'failed',
+  },
+  {
+    type: 'tool',
+    name: 'DayWeather（工具渲染器）',
+    status: 'cancelled',
   },
   {
     type: 'collapsible-text',
@@ -82,6 +100,10 @@ const addMessage = () => {
     content:
       '已获取到西安明天（2025年5月31日）的天气，最高温度28℃，最低温度17℃，有小雨。下一步，使用高德地图的文本搜索工具查找西安适合游玩的地点。',
   })
+}
+
+const toggleToolStatus = () => {
+  toolMessage.status = toolMessage.status === 'running' ? 'success' : 'running'
 }
 
 const setThinkingContent = () => {

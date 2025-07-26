@@ -49,6 +49,7 @@ const placementStart = computed(() => props.placement === 'start')
         'placement-end': !placementStart,
       },
     ]"
+    :style="{ maxWidth: toCssUnit(props.maxWidth) }"
   >
     <div v-if="props.avatar" class="tr-bubble__avatar">
       <component :is="props.avatar"></component>
@@ -91,7 +92,6 @@ const placementStart = computed(() => props.placement === 'start')
 .tr-bubble {
   display: flex;
   gap: 16px;
-  max-width: v-bind('toCssUnit(props.maxWidth)');
 
   &.placement-start {
     flex-direction: row;
