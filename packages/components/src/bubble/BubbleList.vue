@@ -13,13 +13,17 @@ const { y } = useScroll(scrollContainerRef, {
 })
 const lastBubble = computed(() => props.items.at(-1))
 
-watch([() => props.items.length, () => lastBubble.value?.content], () => {
-  if (!props.autoScroll || !scrollContainerRef.value) {
-    return
-  }
+watch(
+  [() => props.items.length, () => lastBubble.value?.content, () => lastBubble.value?.messages],
+  () => {
+    if (!props.autoScroll || !scrollContainerRef.value) {
+      return
+    }
 
-  y.value = scrollContainerRef.value.scrollHeight
-})
+    y.value = scrollContainerRef.value.scrollHeight
+  },
+  { deep: true },
+)
 
 const getItemProps = (item: BubbleProps & { slots?: BubbleSlots }): BubbleProps => {
   const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
