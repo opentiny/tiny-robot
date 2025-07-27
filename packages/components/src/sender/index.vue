@@ -81,9 +81,9 @@ const {
   showSuggestionsPopup,
   completionPlaceholder,
   showTabHint,
-  suggestionsListRef,
   activeSuggestion,
   isItemHighlighted,
+  keyboardHighlightedIndex,
   updateSuggestionsState,
   selectSuggestion,
   acceptCurrentSuggestion,
@@ -91,8 +91,15 @@ const {
   navigateSuggestions,
   handleSuggestionItemHover,
   handleSuggestionItemLeave,
-  highlightSuggestionText,
-} = useSuggestionHandler(props, emit, inputValue, isComposing, showTemplateEditor)
+  processHighlights,
+} = useSuggestionHandler(
+  computed(() => props.suggestions),
+  inputValue,
+  isComposing,
+  showTemplateEditor,
+  (value) => emit('update:modelValue', value),
+  (value) => emit('suggestion-select', value),
+)
 
 // 自动模式切换
 const currentMode = ref(props.mode)
@@ -648,12 +655,12 @@ defineExpose({
 
     <!-- 输入建议 -->
     <suggestion-list
-      ref="suggestionsListRef"
       :show="showSuggestionsPopup"
       :suggestions="suggestions"
       :popup-style="suggestionPopupWidthStyle"
       :is-item-highlighted="isItemHighlighted"
-      :highlight-suggestion-text="highlightSuggestionText"
+      :process-highlights="processHighlights"
+      :keyboard-highlighted-index="keyboardHighlightedIndex"
       :input-value="inputValue"
       @item-hover="handleSuggestionItemHover"
       @item-leave="handleSuggestionItemLeave"

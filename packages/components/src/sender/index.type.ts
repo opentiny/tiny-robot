@@ -24,11 +24,6 @@ export interface SpeechConfig {
 
 export type AutoSize = boolean | { minRows: number; maxRows: number }
 
-export interface SuggestionTextPart {
-  text: string
-  isMatch: boolean
-}
-
 export type TooltipRender = () => VNode | string
 
 export interface ControlState {
@@ -44,6 +39,24 @@ interface fileUploadConfig {
 export interface ButtonGroupConfig {
   file?: ControlState & fileUploadConfig // 文件上传按钮
   submit?: ControlState // 提交按钮
+}
+// 高亮片段类型
+export interface SuggestionTextPart {
+  text: string
+  isMatch: boolean
+}
+
+// 高亮函数类型
+type HighlightFunction = (suggestionText: string, inputText: string) => SuggestionTextPart[]
+
+// 建议项类型
+export interface ISuggestionItem {
+  content: string
+  // 三种可能的高亮方式：
+  // 1. 未定义：使用默认高亮函数
+  // 2. 字符串数组：指定要高亮的文本片段
+  // 3. 函数：自定义高亮逻辑
+  highlights?: string[] | HighlightFunction
 }
 
 // Sender组件属性
@@ -64,7 +77,7 @@ export interface SenderProps {
   speech?: boolean | SpeechConfig // 语音识别配置
   placeholder?: string // 占位文本
   showWordLimit?: boolean // 显示字数统计
-  suggestions?: string[] // 输入建议
+  suggestions?: ISuggestionItem[] // 输入建议
   suggestionPopupWidth?: string | number // 联想建议弹窗宽度，如 '300px' 或 300
   theme?: ThemeType // 主题
   templateData?: UserItem[] // 模板数据

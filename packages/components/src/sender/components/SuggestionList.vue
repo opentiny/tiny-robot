@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
-import type { SuggestionTextPart } from '../index.type'
+import type { ISuggestionItem, SuggestionTextPart } from '../index.type'
 
 export interface Props {
   show: boolean
-  suggestions: string[]
+  suggestions: ISuggestionItem[]
   popupStyle: Record<string, string | number>
   isItemHighlighted: (index: number) => boolean
-  highlightSuggestionText: (item: string, inputValue: string) => SuggestionTextPart[]
+  processHighlights: (item: ISuggestionItem, inputValue: string) => SuggestionTextPart[]
   inputValue: string
+  keyboardHighlightedIndex: number
 }
 
 const props = defineProps<Props>()
@@ -35,6 +36,18 @@ const handleItemLeave = () => {
 const handleSelect = (item: string) => {
   emit('select', item)
 }
+
+watch(
+  () => props.keyboardHighlightedIndex,
+  (newIndex) => {
+    if (newIndex !== -1 && suggestionsListRef.value) {
+      const itemElement = suggestionsListRef.value.children[newIndex] as HTMLElement | undefined
+      if (itemElement) {
+        itemElement.scrollIntoView({ block: 'nearest' })
+      }
+    }
+  },
+)
 </script>
 
 <template>
@@ -52,12 +65,12 @@ const handleSelect = (item: string) => {
         :class="{ highlighted: props.isItemHighlighted(index) }"
         @mouseenter="handleItemHover(index)"
         @mouseleave="handleItemLeave"
-        @mousedown.prevent="handleSelect(item)"
+        @mousedown.prevent="handleSelect(item.content)"
       >
         <IconAssociate class="suggestion-list__icon" />
         <span class="suggestion-list__text">
           <span
-            v-for="(part, partIndex) in props.highlightSuggestionText(item, props.inputValue)"
+            v-for="(part, partIndex) in props.processHighlights(item, props.inputValue)"
             :key="partIndex"
             :class="{
               'suggestion-list__text--match': part.isMatch,

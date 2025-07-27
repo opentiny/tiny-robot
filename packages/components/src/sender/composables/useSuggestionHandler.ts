@@ -1,5 +1,5 @@
 import { ref, computed, watch, nextTick, ComputedRef } from 'vue'
-import type { SenderProps, SenderEmits } from '../index.type'
+import type { ISuggestionItem, SuggestionTextPart } from '../index.type'
 
 /**
  * 处理建议项文本高亮
@@ -83,23 +83,95 @@ const highlightSuggestionText = (suggestionText: string, inputText: string) => {
 
   return parts
 }
+/**
+ * 将预定义的高亮字符串数组转换为文本片段
+ * @param content - 完整的建议文本
+ * @param highlights - 需要高亮的文本片段数组
+ * @returns 包含文本片段和匹配状态的数组
+ */
+const convertHighlightsArrayToTextParts = (content: string, highlights: string[]): SuggestionTextPart[] => {
+  if (!highlights.length) {
+    return [{ text: content, isMatch: false }]
+  }
+
+  // 创建一个标记数组，标记每个字符是否应该高亮
+  const markedChars = new Array(content.length).fill(false)
+
+  // 标记所有需要高亮的部分
+  for (const highlight of highlights) {
+    let startIndex = 0
+    while (true) {
+      const index = content.indexOf(highlight, startIndex)
+      if (index === -1) break
+
+      // 标记这段文本为高亮
+      for (let i = 0; i < highlight.length; i++) {
+        markedChars[index + i] = true
+      }
+
+      startIndex = index + 1
+    }
+  }
+
+  // 将连续的相同标记状态的字符合并为片段
+  const parts: SuggestionTextPart[] = []
+  let currentPart: SuggestionTextPart | null = null
+
+  for (let i = 0; i < content.length; i++) {
+    const isMatch = markedChars[i]
+
+    if (!currentPart || currentPart.isMatch !== isMatch) {
+      currentPart = { text: content[i], isMatch }
+      parts.push(currentPart)
+    } else {
+      currentPart.text += content[i]
+    }
+  }
+
+  return parts
+}
+
+/**
+ * 处理建议项的高亮
+ * @param item - 建议项
+ * @param inputText - 用户输入文本
+ * @returns 包含文本片段和匹配状态的数组
+ */
+const processHighlights = (item: ISuggestionItem, inputText: string): SuggestionTextPart[] => {
+  const { content, highlights } = item
+
+  // 情况1：使用自定义高亮函数
+  if (typeof highlights === 'function') {
+    return highlights(content, inputText)
+  }
+
+  // 情况2：使用预定义的高亮片段
+  if (Array.isArray(highlights)) {
+    return convertHighlightsArrayToTextParts(content, highlights)
+  }
+
+  // 情况3：使用默认高亮函数
+  return highlightSuggestionText(content, inputText)
+}
 
 /**
  * 建议处理Hook
  * 管理输入建议功能，提供建议项过滤、导航和选择功能
  *
- * @param props - 组件属性
- * @param emit - 组件方法
+ * @param suggestions - 建议项列表
  * @param inputValue - 输入值
  * @param isComposing - 是否处于输入法组合状态
  * @param showTemplateEditor - 是否显示模板编辑器
+ * @param onModelValueUpdate - 更新模型值的回调
+ * @param onSuggestionSelect - 选择建议项的回调
  */
 export function useSuggestionHandler(
-  props: SenderProps,
-  emit: SenderEmits,
+  suggestions: ComputedRef<ISuggestionItem[]>,
   inputValue: ReturnType<typeof ref<string>>,
   isComposing: ReturnType<typeof ref<boolean>>,
   showTemplateEditor: ComputedRef<boolean>,
+  onModelValueUpdate: (value: string) => void,
+  onSuggestionSelect: (value: string) => void,
 ) {
   // 状态变量
   /**
@@ -128,11 +200,6 @@ export function useSuggestionHandler(
   const showTabHint = ref(false)
 
   /**
-   * 建议列表DOM引用
-   */
-  const suggestionsListRef = ref<HTMLElement | null>(null)
-
-  /**
    * 标志是否正在选择建议项
    */
   const isSelectingSuggestion = ref(false)
@@ -147,7 +214,7 @@ export function useSuggestionHandler(
    * 根据最后交互类型决定使用哪个索引对应的建议项
    */
   const activeSuggestion = computed(() => {
-    if (!props.suggestions) return ''
+    if (!suggestions.value) return ''
 
     let index = -1
 
@@ -158,7 +225,7 @@ export function useSuggestionHandler(
       index = keyboardHighlightedIndex.value
     }
 
-    return props.suggestions[index] || ''
+    return suggestions.value[index]?.content || ''
   })
 
   /**
@@ -226,7 +293,7 @@ export function useSuggestionHandler(
     nextTick(() => {
       // 判断是否应该显示联想弹窗
       const shouldShowSuggestions =
-        inputValue.value && props.suggestions && props.suggestions.length > 0 && !showTemplateEditor.value
+        inputValue.value && suggestions.value && suggestions.value.length > 0 && !showTemplateEditor.value
 
       if (shouldShowSuggestions) {
         showSuggestionsState()
@@ -244,7 +311,7 @@ export function useSuggestionHandler(
   /**
    * 监听建议数据变化，支持动态更新（如API请求完成后）
    */
-  watch(() => props.suggestions, updateSuggestionsState)
+  watch(() => suggestions.value, updateSuggestionsState)
 
   /**
    * 选择建议项
@@ -253,8 +320,8 @@ export function useSuggestionHandler(
   const selectSuggestion = (suggestion: string) => {
     isSelectingSuggestion.value = true
     inputValue.value = suggestion
-    emit('update:modelValue', suggestion)
-    emit('suggestion-select', suggestion)
+    onModelValueUpdate(suggestion)
+    onSuggestionSelect(suggestion)
     closeSuggestionsPopup()
     // 在下一个事件循环中重置标志
     nextTick(() => {
@@ -284,37 +351,28 @@ export function useSuggestionHandler(
    * @param direction - 导航方向：'up' | 'down'
    */
   const navigateSuggestions = (direction: 'up' | 'down') => {
-    if (!showSuggestionsPopup.value || !props.suggestions) return
+    if (!showSuggestionsPopup.value || !suggestions.value) return
 
     lastInteractionType.value = 'keyboard'
     // 不清除鼠标高亮，让两种状态共存
 
     // 如果当前没有键盘选中项，根据方向选择第一个或最后一个
     if (keyboardHighlightedIndex.value === -1) {
-      keyboardHighlightedIndex.value = direction === 'down' ? 0 : props.suggestions.length - 1
+      keyboardHighlightedIndex.value = direction === 'down' ? 0 : suggestions.value.length - 1
     } else {
       // 正常导航
       if (direction === 'down') {
-        keyboardHighlightedIndex.value = (keyboardHighlightedIndex.value + 1) % props.suggestions.length
+        keyboardHighlightedIndex.value = (keyboardHighlightedIndex.value + 1) % suggestions.value.length
       } else {
         keyboardHighlightedIndex.value =
-          (keyboardHighlightedIndex.value - 1 + props.suggestions.length) % props.suggestions.length
+          (keyboardHighlightedIndex.value - 1 + suggestions.value.length) % suggestions.value.length
       }
     }
 
     // 更新自动完成占位符，使用键盘选中的项
-    const keyboardSelectedSuggestion = props.suggestions[keyboardHighlightedIndex.value]
+    const keyboardSelectedSuggestion = suggestions.value[keyboardHighlightedIndex.value]
     if (keyboardSelectedSuggestion) {
-      updateCompletionPlaceholder(keyboardSelectedSuggestion)
-    }
-
-    // 滚动到可见区域
-    const list = suggestionsListRef.value
-    if (list) {
-      const item = list.children[keyboardHighlightedIndex.value] as HTMLElement | null
-      if (item) {
-        item.scrollIntoView({ block: 'nearest' })
-      }
+      updateCompletionPlaceholder(keyboardSelectedSuggestion.content)
     }
   }
 
@@ -323,26 +381,26 @@ export function useSuggestionHandler(
    * @param index - 悬停项的索引
    */
   const handleSuggestionItemHover = (index: number) => {
-    if (!props.suggestions) return
+    if (!suggestions.value) return
 
     lastInteractionType.value = 'mouse'
     mouseHighlightedIndex.value = index
-    updateCompletionPlaceholder(props.suggestions[index])
+    updateCompletionPlaceholder(suggestions.value[index].content)
   }
 
   /**
    * 处理鼠标离开建议项
    */
   const handleSuggestionItemLeave = () => {
-    if (!props.suggestions) return
+    if (!suggestions.value) return
 
     mouseHighlightedIndex.value = -1
     // 如果有键盘选中项，切换到键盘交互类型并显示键盘选中项的占位符
     if (keyboardHighlightedIndex.value !== -1) {
       lastInteractionType.value = 'keyboard'
-      const keyboardSelectedSuggestion = props.suggestions[keyboardHighlightedIndex.value]
+      const keyboardSelectedSuggestion = suggestions.value[keyboardHighlightedIndex.value]
       if (keyboardSelectedSuggestion) {
-        updateCompletionPlaceholder(keyboardSelectedSuggestion)
+        updateCompletionPlaceholder(keyboardSelectedSuggestion.content)
       }
     } else {
       // 如果没有键盘选中项，清除交互类型和占位符
@@ -362,9 +420,9 @@ export function useSuggestionHandler(
     showSuggestionsPopup,
     completionPlaceholder,
     showTabHint,
-    suggestionsListRef,
     activeSuggestion,
     isItemHighlighted,
+    keyboardHighlightedIndex,
     updateCompletionPlaceholder,
     updateSuggestionsState,
     selectSuggestion,
@@ -374,6 +432,6 @@ export function useSuggestionHandler(
     handleSuggestionItemHover,
     handleSuggestionItemLeave,
     handleClickOutside,
-    highlightSuggestionText,
+    processHighlights,
   }
 }
