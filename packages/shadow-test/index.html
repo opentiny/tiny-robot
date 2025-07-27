@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shadow DOM Test</title>
+    <style>
+      #root-container {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        padding: 16px;
+        padding-top: 0;
+      }
+
+      #root-container > * {
+        flex: 1;
+      }
+
+      .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #333;
+      }
+
+      .section-content {
+        padding: 16px;
+        border-radius: 16px;
+        box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root-container">
+      <div class="section">
+        <h1 class="section-title">Vue Component</h1>
+        <div class="section-content">
+          <div id="app"></div>
+        </div>
+      </div>
+      <div class="section">
+        <h1 class="section-title">Shadow DOM Component</h1>
+        <div class="section-content">
+          <shadow-test></shadow-test>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/shadow-styles.js"></script>
+    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/main-shadow.ts"></script>
+  </body>
+</html>
