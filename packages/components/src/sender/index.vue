@@ -78,19 +78,19 @@ const canSubmit = computed(() => {
 
 // 建议处理
 const {
-  showSuggestionsPopup,
-  completionPlaceholder,
-  showTabHint,
+  isPopupVisible,
   activeSuggestion,
+  activeKeyboardIndex,
+  autoCompleteText,
+  showTabIndicator,
+  syncAutoComplete,
+  closePopup,
+  applySuggestion,
+  confirmSelection,
   isItemHighlighted,
-  keyboardHighlightedIndex,
-  updateSuggestionsState,
-  selectSuggestion,
-  acceptCurrentSuggestion,
-  closeSuggestionsPopup,
-  navigateSuggestions,
-  handleSuggestionItemHover,
-  handleSuggestionItemLeave,
+  navigateWithKeyboard,
+  handleMouseEnter,
+  handleMouseLeave,
   processHighlights,
 } = useSuggestionHandler(
   computed(() => props.suggestions),
@@ -263,7 +263,6 @@ const exitTemplateMode = () => {
       focusInput()
     }, 50)
   })
-  closeSuggestionsPopup()
 }
 
 // 清空功能增强：同时处理模板和普通输入，并退出模板编辑模式
@@ -284,7 +283,6 @@ const clearInput = () => {
       currentMode.value = props.mode || 'single'
     }
   })
-  closeSuggestionsPopup()
 }
 
 const handleTemplateUpdate = (data: UserItem[]) => {
@@ -363,11 +361,11 @@ const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   inputValue,
   isComposing,
   speechState,
-  showSuggestionsPopup,
+  isPopupVisible,
   activeSuggestion,
-  acceptCurrentSuggestion,
-  closeSuggestionsPopup,
-  navigateSuggestions,
+  confirmSelection,
+  closePopup,
+  navigateWithKeyboard,
   toggleSpeech,
   canSubmit,
   currentMode,
@@ -381,15 +379,14 @@ const handleFocus = (event: FocusEvent) => {
   emit('focus', event)
   // 当有输入内容且有匹配的联想项时，显示联想弹窗但不自动选中任何项
   if (inputValue.value && !showTemplateEditor.value) {
-    showSuggestionsPopup.value = true
-    showTabHint.value = true
+    isPopupVisible.value = true
   }
 }
 
 const handleBlur = (event: FocusEvent) => {
   emit('blur', event)
   // 失焦时关闭联想弹窗
-  closeSuggestionsPopup()
+  closePopup()
 }
 
 const currentType = computed(() => (currentMode.value === 'multiple' ? 'textarea' : 'text'))
@@ -442,11 +439,6 @@ const suggestionPopupWidthStyle = computed(() => {
 // 输入法结束处理
 const handleCompositionEnd = () => {
   isComposing.value = false
-  setTimeout(() => {
-    isComposing.value = false
-    // 输入法结束后，触发联想状态更新
-    updateSuggestionsState()
-  }, 50)
 }
 
 // 监听输入变化
@@ -457,6 +449,8 @@ watch(inputValue, () => {
   if (inputValue.value === '' && props.mode === 'single') {
     currentMode.value = 'single'
   }
+
+  syncAutoComplete()
 })
 
 // 监听模板编辑器显示状态
@@ -555,12 +549,12 @@ defineExpose({
                 @blur="handleBlur"
               />
               <!-- 补全提示词 -->
-              <div v-if="completionPlaceholder && !isComposing" class="tiny-sender__completion-placeholder">
+              <div v-if="autoCompleteText && !isComposing" class="tiny-sender__completion-placeholder">
                 <span class="user-input-mirror">{{ inputValue }}</span
-                >{{ completionPlaceholder }}
+                >{{ autoCompleteText }}
 
                 <!-- Tab Hint -->
-                <div v-if="showTabHint" class="tiny-sender__tab-hint">TAB</div>
+                <div v-if="showTabIndicator" class="tiny-sender__tab-hint">TAB</div>
               </div>
             </div>
           </div>
@@ -655,16 +649,16 @@ defineExpose({
 
     <!-- 输入建议 -->
     <suggestion-list
-      :show="showSuggestionsPopup"
+      :show="isPopupVisible"
       :suggestions="suggestions"
       :popup-style="suggestionPopupWidthStyle"
       :is-item-highlighted="isItemHighlighted"
       :process-highlights="processHighlights"
-      :keyboard-highlighted-index="keyboardHighlightedIndex"
+      :keyboard-highlighted-index="activeKeyboardIndex"
       :input-value="inputValue"
-      @item-hover="handleSuggestionItemHover"
-      @item-leave="handleSuggestionItemLeave"
-      @select="selectSuggestion"
+      @item-hover="handleMouseEnter"
+      @item-leave="handleMouseLeave"
+      @select="applySuggestion"
     />
   </div>
 </template>

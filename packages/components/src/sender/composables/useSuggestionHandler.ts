@@ -1,4 +1,4 @@
-import { ref, computed, watch, nextTick, ComputedRef } from 'vue'
+import { ref, computed, watch, ComputedRef } from 'vue'
 import type { ISuggestionItem, SuggestionTextPart } from '../index.type'
 
 /**
@@ -83,6 +83,7 @@ const highlightSuggestionText = (suggestionText: string, inputText: string) => {
 
   return parts
 }
+
 /**
  * 将预定义的高亮字符串数组转换为文本片段
  * @param content - 完整的建议文本
@@ -173,265 +174,192 @@ export function useSuggestionHandler(
   onModelValueUpdate: (value: string) => void,
   onSuggestionSelect: (value: string) => void,
 ) {
-  // 状态变量
-  /**
-   * 控制是否显示建议弹窗
-   */
-  const showSuggestionsPopup = ref(false)
+  const isPopupVisible = ref(false)
+  const activeKeyboardIndex = ref(-1)
+  const activeMouseIndex = ref(-1)
+  const interactionMode = ref<'keyboard' | 'mouse' | null>(null)
+  const autoCompleteText = ref('')
+  const showTabIndicator = ref(false)
 
-  /**
-   * 键盘导航的高亮索引
-   */
-  const keyboardHighlightedIndex = ref(-1)
+  const setAutoComplete = (suffix: string) => {
+    autoCompleteText.value = suffix
+    showTabIndicator.value = true
+  }
 
-  /**
-   * 鼠标悬停的高亮索引
-   */
-  const mouseHighlightedIndex = ref(-1)
+  const clearAutoComplete = () => {
+    autoCompleteText.value = ''
+    showTabIndicator.value = false
+  }
 
-  /**
-   * 自动完成占位符文本
-   */
-  const completionPlaceholder = ref('')
-
-  /**
-   * 是否显示Tab提示
-   */
-  const showTabHint = ref(false)
-
-  /**
-   * 标志是否正在选择建议项
-   */
-  const isSelectingSuggestion = ref(false)
-
-  /**
-   * 最后交互类型：'keyboard' | 'mouse' | null
-   */
-  const lastInteractionType = ref<'keyboard' | 'mouse' | null>(null)
-
-  /**
-   * 计算当前高亮的建议项
-   * 根据最后交互类型决定使用哪个索引对应的建议项
-   */
-  const activeSuggestion = computed(() => {
-    if (!suggestions.value) return ''
-
-    let index = -1
-
-    // 根据最后交互类型决定使用哪个索引
-    if (lastInteractionType.value === 'mouse' && mouseHighlightedIndex.value !== -1) {
-      index = mouseHighlightedIndex.value
-    } else if (lastInteractionType.value === 'keyboard' && keyboardHighlightedIndex.value !== -1) {
-      index = keyboardHighlightedIndex.value
+  const syncAutoComplete = (suggestion?: string) => {
+    const targetText = suggestion || activeSuggestion.value
+    if (!targetText || !inputValue.value) {
+      clearAutoComplete()
+      return
     }
+
+    const suffix = targetText.substring(inputValue.value.length)
+    const isValidPrefix = targetText.toLowerCase().startsWith(inputValue.value.toLowerCase())
+
+    if (isValidPrefix && suffix) {
+      setAutoComplete(suffix)
+    } else {
+      clearAutoComplete()
+    }
+  }
+
+  // 获取当前高亮的建议项
+  const activeSuggestion = computed(() => {
+    if (!suggestions.value?.length) return ''
+
+    const index = interactionMode.value === 'mouse' ? activeMouseIndex.value : activeKeyboardIndex.value
 
     return suggestions.value[index]?.content || ''
   })
 
-  /**
-   * 判断指定索引的建议项是否应该高亮显示
-   * @param index - 建议项索引
-   * @returns 是否高亮
-   */
+  // 判断指定索引的建议项是否应该高亮显示
   const isItemHighlighted = (index: number): boolean => {
-    return index === keyboardHighlightedIndex.value || index === mouseHighlightedIndex.value
+    return index === activeKeyboardIndex.value || index === activeMouseIndex.value
   }
 
-  /**
-   * 更新自动完成占位符
-   * @param suggestionText - 可选的建议文本，如果没有提供则使用当前选中项
-   */
-  const updateCompletionPlaceholder = (suggestionText?: string) => {
-    // 只有当激活交互时才显示占位符
-    if (lastInteractionType.value === null) {
-      completionPlaceholder.value = ''
-      showTabHint.value = false
-      return
-    }
-
-    const textToComplete = suggestionText || activeSuggestion.value
-    if (textToComplete && inputValue.value && textToComplete.toLowerCase().startsWith(inputValue.value.toLowerCase())) {
-      completionPlaceholder.value = textToComplete.substring(inputValue.value.length)
-      showTabHint.value = true
-    } else {
-      completionPlaceholder.value = ''
-      showTabHint.value = false
-    }
+  const clearSelection = () => {
+    activeKeyboardIndex.value = -1
+    activeMouseIndex.value = -1
+    interactionMode.value = null
   }
 
-  /**
-   * 重置联想建议相关状态
-   */
-  const resetSuggestionsState = () => {
-    showSuggestionsPopup.value = false
-    keyboardHighlightedIndex.value = -1
-    mouseHighlightedIndex.value = -1
-    lastInteractionType.value = null
-    completionPlaceholder.value = ''
-    showTabHint.value = false
+  const openPopup = () => {
+    isPopupVisible.value = true
+    syncAutoComplete()
   }
 
-  /**
-   * 显示联想建议并设置相关状态
-   */
-  const showSuggestionsState = () => {
-    showSuggestionsPopup.value = true
-    // 重置所有选中状态
-    keyboardHighlightedIndex.value = -1
-    mouseHighlightedIndex.value = -1
-    lastInteractionType.value = null
-    updateCompletionPlaceholder()
+  const closePopup = () => {
+    isPopupVisible.value = false
+    clearSelection()
+    clearAutoComplete()
   }
 
-  /**
-   * 统一处理显示/隐藏联想弹窗的逻辑
-   */
-  const updateSuggestionsState = () => {
-    // 如果正处于输入法状态或正在选择建议，直接返回
-    if (isComposing.value || isSelectingSuggestion.value) return
+  const shouldShowPopup = computed(() => {
+    // 如果正处于输入法状态，直接返回
+    if (isComposing.value) return true
 
-    nextTick(() => {
-      // 判断是否应该显示联想弹窗
-      const shouldShowSuggestions =
-        inputValue.value && suggestions.value && suggestions.value.length > 0 && !showTemplateEditor.value
+    return Boolean(inputValue.value && suggestions.value?.length > 0 && !showTemplateEditor.value)
+  })
 
-      if (shouldShowSuggestions) {
-        showSuggestionsState()
-      } else {
-        resetSuggestionsState()
-      }
-    })
-  }
-
-  /**
-   * 监听输入值变化，更新建议状态
-   */
-  watch(inputValue, updateSuggestionsState)
-
-  /**
-   * 监听建议数据变化，支持动态更新（如API请求完成后）
-   */
-  watch(() => suggestions.value, updateSuggestionsState)
-
-  /**
-   * 选择建议项
-   * @param suggestion - 要选择的建议文本
-   */
-  const selectSuggestion = (suggestion: string) => {
-    isSelectingSuggestion.value = true
+  const applySuggestion = (suggestion: string) => {
+    closePopup()
     inputValue.value = suggestion
     onModelValueUpdate(suggestion)
     onSuggestionSelect(suggestion)
-    closeSuggestionsPopup()
-    // 在下一个事件循环中重置标志
-    nextTick(() => {
-      isSelectingSuggestion.value = false
-    })
   }
 
-  /**
-   * 接受当前高亮的建议项
-   * 如果存在活跃的建议项，则选择该项并关闭建议弹窗
-   */
-  const acceptCurrentSuggestion = () => {
+  const confirmSelection = () => {
     if (activeSuggestion.value) {
-      selectSuggestion(activeSuggestion.value)
+      applySuggestion(activeSuggestion.value)
     }
   }
 
   /**
-   * 关闭建议弹窗
-   */
-  const closeSuggestionsPopup = () => {
-    resetSuggestionsState()
-  }
-
-  /**
-   * 在建议列表中导航
+   * 使用键盘导航建议项
    * @param direction - 导航方向：'up' | 'down'
    */
-  const navigateSuggestions = (direction: 'up' | 'down') => {
-    if (!showSuggestionsPopup.value || !suggestions.value) return
+  const navigateWithKeyboard = (direction: 'up' | 'down') => {
+    if (!isPopupVisible.value || !suggestions.value) return
 
-    lastInteractionType.value = 'keyboard'
-    // 不清除鼠标高亮，让两种状态共存
+    interactionMode.value = 'keyboard'
 
     // 如果当前没有键盘选中项，根据方向选择第一个或最后一个
-    if (keyboardHighlightedIndex.value === -1) {
-      keyboardHighlightedIndex.value = direction === 'down' ? 0 : suggestions.value.length - 1
+    if (activeKeyboardIndex.value === -1) {
+      activeKeyboardIndex.value = direction === 'down' ? 0 : suggestions.value.length - 1
     } else {
       // 正常导航
       if (direction === 'down') {
-        keyboardHighlightedIndex.value = (keyboardHighlightedIndex.value + 1) % suggestions.value.length
+        activeKeyboardIndex.value = (activeKeyboardIndex.value + 1) % suggestions.value.length
       } else {
-        keyboardHighlightedIndex.value =
-          (keyboardHighlightedIndex.value - 1 + suggestions.value.length) % suggestions.value.length
+        activeKeyboardIndex.value =
+          (activeKeyboardIndex.value - 1 + suggestions.value.length) % suggestions.value.length
       }
     }
 
     // 更新自动完成占位符，使用键盘选中的项
-    const keyboardSelectedSuggestion = suggestions.value[keyboardHighlightedIndex.value]
+    const keyboardSelectedSuggestion = suggestions.value[activeKeyboardIndex.value]
     if (keyboardSelectedSuggestion) {
-      updateCompletionPlaceholder(keyboardSelectedSuggestion.content)
+      syncAutoComplete(keyboardSelectedSuggestion.content)
     }
   }
 
   /**
-   * 处理建议项悬停事件
-   * @param index - 悬停项的索引
+   * 处理鼠标进入建议项
+   * @param index - 目标项的索引
    */
-  const handleSuggestionItemHover = (index: number) => {
+  const handleMouseEnter = (index: number) => {
     if (!suggestions.value) return
 
-    lastInteractionType.value = 'mouse'
-    mouseHighlightedIndex.value = index
-    updateCompletionPlaceholder(suggestions.value[index].content)
+    interactionMode.value = 'mouse'
+    activeMouseIndex.value = index
+    syncAutoComplete(suggestions.value[index].content)
   }
 
   /**
    * 处理鼠标离开建议项
    */
-  const handleSuggestionItemLeave = () => {
+  const handleMouseLeave = () => {
     if (!suggestions.value) return
 
-    mouseHighlightedIndex.value = -1
+    activeMouseIndex.value = -1
     // 如果有键盘选中项，切换到键盘交互类型并显示键盘选中项的占位符
-    if (keyboardHighlightedIndex.value !== -1) {
-      lastInteractionType.value = 'keyboard'
-      const keyboardSelectedSuggestion = suggestions.value[keyboardHighlightedIndex.value]
+    if (activeKeyboardIndex.value !== -1) {
+      interactionMode.value = 'keyboard'
+      const keyboardSelectedSuggestion = suggestions.value[activeKeyboardIndex.value]
       if (keyboardSelectedSuggestion) {
-        updateCompletionPlaceholder(keyboardSelectedSuggestion.content)
+        syncAutoComplete(keyboardSelectedSuggestion.content)
       }
     } else {
       // 如果没有键盘选中项，清除交互类型和占位符
-      lastInteractionType.value = null
-      updateCompletionPlaceholder()
+      interactionMode.value = null
+      syncAutoComplete()
     }
   }
 
-  /**
-   * 处理点击外部事件，关闭建议弹窗
-   */
-  const handleClickOutside = () => {
-    closeSuggestionsPopup()
-  }
+  // 监听条件变化，控制弹窗
+  watch(shouldShowPopup, (shouldShow) => {
+    if (shouldShow) {
+      if (!isPopupVisible.value) {
+        openPopup()
+      }
+    } else {
+      if (isPopupVisible.value) {
+        closePopup()
+      }
+    }
+  })
 
   return {
-    showSuggestionsPopup,
-    completionPlaceholder,
-    showTabHint,
+    // 弹窗控制
+    isPopupVisible,
+    openPopup,
+    closePopup,
+
+    // 自动完成占位符
+    autoCompleteText,
+    showTabIndicator,
+    syncAutoComplete,
+
+    // 选中控制层
     activeSuggestion,
     isItemHighlighted,
-    keyboardHighlightedIndex,
-    updateCompletionPlaceholder,
-    updateSuggestionsState,
-    selectSuggestion,
-    acceptCurrentSuggestion,
-    closeSuggestionsPopup,
-    navigateSuggestions,
-    handleSuggestionItemHover,
-    handleSuggestionItemLeave,
-    handleClickOutside,
+    activeKeyboardIndex,
+
+    // 交互处理
+    navigateWithKeyboard,
+    handleMouseEnter,
+    handleMouseLeave,
+
+    // 业务操作
+    applySuggestion,
+    confirmSelection,
+
+    // 工具函数
     processHighlights,
   }
 }
