@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
-import type { ISuggestionItem, SuggestionTextPart } from '../index.type'
+import { processHighlights } from '../utils/suggestionHighlight'
+import type { ISuggestionItem } from '../index.type'
 
 export interface Props {
   show: boolean
   suggestions: ISuggestionItem[]
   popupStyle: Record<string, string | number>
   isItemHighlighted: (index: number) => boolean
-  processHighlights: (item: ISuggestionItem, inputValue: string) => SuggestionTextPart[]
   inputValue: string
   keyboardHighlightedIndex: number
 }
@@ -70,7 +70,7 @@ watch(
         <IconAssociate class="suggestion-list__icon" />
         <span class="suggestion-list__text">
           <span
-            v-for="(part, partIndex) in props.processHighlights(item, props.inputValue)"
+            v-for="(part, partIndex) in processHighlights(item, props.inputValue)"
             :key="partIndex"
             :class="{
               'suggestion-list__text--match': part.isMatch,

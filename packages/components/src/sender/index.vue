@@ -91,7 +91,6 @@ const {
   navigateWithKeyboard,
   handleMouseEnter,
   handleMouseLeave,
-  processHighlights,
 } = useSuggestionHandler(
   computed(() => props.suggestions),
   inputValue,
@@ -653,7 +652,6 @@ defineExpose({
       :suggestions="suggestions"
       :popup-style="suggestionPopupWidthStyle"
       :is-item-highlighted="isItemHighlighted"
-      :process-highlights="processHighlights"
       :keyboard-highlighted-index="activeKeyboardIndex"
       :input-value="inputValue"
       @item-hover="handleMouseEnter"
