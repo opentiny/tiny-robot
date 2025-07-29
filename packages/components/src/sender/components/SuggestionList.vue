@@ -8,29 +8,33 @@ export interface Props {
   show: boolean
   suggestions: ISuggestionItem[]
   popupStyle: Record<string, string | number>
-  isItemHighlighted: (index: number) => boolean
+  activeKeyboardIndex: number
+  activeMouseIndex: number
   inputValue: string
-  keyboardHighlightedIndex: number
 }
 
 const props = defineProps<Props>()
 
 interface Emits {
-  (e: 'item-hover', index: number): void
-  (e: 'item-leave'): void
   (e: 'select', item: string): void
+  (e: 'mouse-enter', index: number): void
+  (e: 'mouse-leave'): void
 }
 
 const emit = defineEmits<Emits>()
 
 const suggestionsListRef = ref<HTMLElement | null>(null)
 
+const isItemHighlighted = (index: number): boolean => {
+  return index === props.activeKeyboardIndex || index === props.activeMouseIndex
+}
+
 const handleItemHover = (index: number) => {
-  emit('item-hover', index)
+  emit('mouse-enter', index)
 }
 
 const handleItemLeave = () => {
-  emit('item-leave')
+  emit('mouse-leave')
 }
 
 const handleSelect = (item: string) => {
@@ -38,7 +42,7 @@ const handleSelect = (item: string) => {
 }
 
 watch(
-  () => props.keyboardHighlightedIndex,
+  () => props.activeKeyboardIndex,
   (newIndex) => {
     if (newIndex !== -1 && suggestionsListRef.value) {
       const itemElement = suggestionsListRef.value.children[newIndex] as HTMLElement | undefined
@@ -62,7 +66,7 @@ watch(
         v-for="(item, index) in props.suggestions"
         :key="index"
         class="suggestion-list__item"
-        :class="{ highlighted: props.isItemHighlighted(index) }"
+        :class="{ highlighted: isItemHighlighted(index) }"
         @mouseenter="handleItemHover(index)"
         @mouseleave="handleItemLeave"
         @mousedown.prevent="handleSelect(item.content)"

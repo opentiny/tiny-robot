@@ -81,13 +81,13 @@ const {
   isPopupVisible,
   activeSuggestion,
   activeKeyboardIndex,
+  activeMouseIndex,
   autoCompleteText,
   showTabIndicator,
   syncAutoComplete,
   closePopup,
   applySuggestion,
   confirmSelection,
-  isItemHighlighted,
   navigateWithKeyboard,
   handleMouseEnter,
   handleMouseLeave,
@@ -651,12 +651,12 @@ defineExpose({
       :show="isPopupVisible"
       :suggestions="suggestions"
       :popup-style="suggestionPopupWidthStyle"
-      :is-item-highlighted="isItemHighlighted"
-      :keyboard-highlighted-index="activeKeyboardIndex"
+      :active-keyboard-index="activeKeyboardIndex"
+      :active-mouse-index="activeMouseIndex"
       :input-value="inputValue"
-      @item-hover="handleMouseEnter"
-      @item-leave="handleMouseLeave"
       @select="applySuggestion"
+      @mouse-enter="handleMouseEnter"
+      @mouse-leave="handleMouseLeave"
     />
   </div>
 </template>

@@ -27,6 +27,15 @@ export function useSuggestionHandler(
   const autoCompleteText = ref('')
   const showTabIndicator = ref(false)
 
+  // 获取当前高亮的建议项
+  const activeSuggestion = computed(() => {
+    if (!suggestions.value?.length) return ''
+
+    const targetIndex = interactionMode.value === 'mouse' ? activeMouseIndex.value : activeKeyboardIndex.value
+
+    return suggestions.value[targetIndex]?.content || ''
+  })
+
   const setAutoComplete = (suffix: string) => {
     autoCompleteText.value = suffix
     showTabIndicator.value = true
@@ -54,20 +63,6 @@ export function useSuggestionHandler(
     }
   }
 
-  // 获取当前高亮的建议项
-  const activeSuggestion = computed(() => {
-    if (!suggestions.value?.length) return ''
-
-    const index = interactionMode.value === 'mouse' ? activeMouseIndex.value : activeKeyboardIndex.value
-
-    return suggestions.value[index]?.content || ''
-  })
-
-  // 判断指定索引的建议项是否应该高亮显示
-  const isItemHighlighted = (index: number): boolean => {
-    return index === activeKeyboardIndex.value || index === activeMouseIndex.value
-  }
-
   const clearSelection = () => {
     activeKeyboardIndex.value = -1
     activeMouseIndex.value = -1
@@ -86,9 +81,7 @@ export function useSuggestionHandler(
   }
 
   const shouldShowPopup = computed(() => {
-    // 如果正处于输入法状态，直接返回
     if (isComposing.value) return true
-
     return Boolean(inputValue.value && suggestions.value?.length > 0 && !showTemplateEditor.value)
   })
 
@@ -105,20 +98,15 @@ export function useSuggestionHandler(
     }
   }
 
-  /**
-   * 使用键盘导航建议项
-   * @param direction - 导航方向：'up' | 'down'
-   */
+  // 键盘导航
   const navigateWithKeyboard = (direction: 'up' | 'down') => {
     if (!isPopupVisible.value || !suggestions.value) return
 
     interactionMode.value = 'keyboard'
 
-    // 如果当前没有键盘选中项，根据方向选择第一个或最后一个
     if (activeKeyboardIndex.value === -1) {
       activeKeyboardIndex.value = direction === 'down' ? 0 : suggestions.value.length - 1
     } else {
-      // 正常导航
       if (direction === 'down') {
         activeKeyboardIndex.value = (activeKeyboardIndex.value + 1) % suggestions.value.length
       } else {
@@ -127,44 +115,31 @@ export function useSuggestionHandler(
       }
     }
 
-    // 更新自动完成占位符，使用键盘选中的项
-    const keyboardSelectedSuggestion = suggestions.value[activeKeyboardIndex.value]
-    if (keyboardSelectedSuggestion) {
-      syncAutoComplete(keyboardSelectedSuggestion.content)
-    }
+    syncAutoComplete()
   }
 
-  /**
-   * 处理鼠标进入建议项
-   * @param index - 目标项的索引
-   */
+  // 处理鼠标悬停
   const handleMouseEnter = (index: number) => {
     if (!suggestions.value) return
 
     interactionMode.value = 'mouse'
     activeMouseIndex.value = index
-    syncAutoComplete(suggestions.value[index].content)
+    syncAutoComplete()
   }
 
-  /**
-   * 处理鼠标离开建议项
-   */
   const handleMouseLeave = () => {
     if (!suggestions.value) return
 
     activeMouseIndex.value = -1
-    // 如果有键盘选中项，切换到键盘交互类型并显示键盘选中项的占位符
+
+    // 如果有键盘选中项，切换回键盘模式
     if (activeKeyboardIndex.value !== -1) {
       interactionMode.value = 'keyboard'
-      const keyboardSelectedSuggestion = suggestions.value[activeKeyboardIndex.value]
-      if (keyboardSelectedSuggestion) {
-        syncAutoComplete(keyboardSelectedSuggestion.content)
-      }
     } else {
-      // 如果没有键盘选中项，清除交互类型和占位符
       interactionMode.value = null
-      syncAutoComplete()
     }
+
+    syncAutoComplete()
   }
 
   // 监听条件变化，控制弹窗
@@ -193,8 +168,8 @@ export function useSuggestionHandler(
 
     // 选中控制层
     activeSuggestion,
-    isItemHighlighted,
     activeKeyboardIndex,
+    activeMouseIndex,
 
     // 交互处理
     navigateWithKeyboard,
