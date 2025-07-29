@@ -88,7 +88,7 @@ const handleAdd = () => {
           <span class="plugin-card__name">{{ plugin.name }}</span>
           <span v-if="showToolCount && toolCount" class="plugin-card__count"> {{ toolCount }} 个工具 </span>
         </div>
-        <div class="plugin-card__desc">{{ plugin.description }}</div>
+        <div class="plugin-card__desc" :title="plugin.description">{{ plugin.description }}</div>
       </div>
       <div class="plugin-card__actions">
         <slot name="actions" :plugin="plugin" :expanded="isExpanded" :mode="mode">
@@ -151,7 +151,7 @@ const handleAdd = () => {
               <div class="plugin-card__info">
                 <span class="plugin-card__name">{{ tool.name }}</span>
               </div>
-              <div class="plugin-card__desc">{{ tool.description }}</div>
+              <div class="plugin-card__desc" :title="tool.description">{{ tool.description }}</div>
             </div>
             <div class="plugin-card__actions plugin-card__actions--tool">
               <TinySwitch
