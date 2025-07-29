@@ -153,6 +153,16 @@ Sender 组件支持输入联想功能，当用户输入时，可以根据提供�
 
 > **注意**: 输入框内的补全文本特性在匹配到联想项的前置字符时显示，否则不显示。
 
+**自定义高亮方式**
+
+Sender 组件支持三种高亮方式：
+
+1. **默认高亮**: 直接传入字符串数组，组件会自动高亮与输入文本匹配的部分。
+2. **预定义高亮**: 传入对象数组，通过 `highlights` 字段指定要高亮的文本片段。
+3. **自定义高亮函数**: 传入对象数组，`highlights` 字段为函数，可完全自定义高亮逻辑。
+
+> **优先级**：自定义高亮函数 > 预定义高亮 > 默认高亮
+
 <demo vue="../../demos/sender/Suggestions.vue" title="输入联想示例" description="展示 Sender 组件的输入联想功能。" />
 
 #### 自定义提交方式
@@ -251,7 +261,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | stopText             | 停止按钮文字             | `string`                                                | `仅显示图标`      |
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
 | theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
-| suggestions          | 输入建议列表             | `string[]`                                              | `[]`              |
+| suggestions          | 输入建议列表             | `(string \| SuggestionItem)[]`                          | `[]`              |
 | suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
 | templateData         | 模板数据，用于初始化或 v-model 更新 | `UserItem[]`                                            | `[]`              |
 
@@ -339,3 +349,20 @@ interface ButtonGroupConfig {
   // 后续可扩展至其他按钮...
 }
 ```
+
+```typescript
+// 高亮文本片段类型
+interface SuggestionTextPart {
+  text: string;  // 文本片段
+  isMatch: boolean;  // 是否高亮
+}
+
+// 高亮函数类型
+type HighlightFunction = (suggestionText: string, inputText: string) => SuggestionTextPart[]
+
+// 建议项类型
+type SuggestionItem = string | {
+  content: string;  // 建议项文本内容
+  highlights?: string[] | HighlightFunction;  // 高亮方式
+}
+``` 
