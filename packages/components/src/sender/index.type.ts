@@ -144,8 +144,8 @@ export interface SpeechHandler {
   stop: () => void
 }
 
-export type UserTextItem = Omit<TextItem, 'id'>
+export type UserTextItem = Omit<TextItem, 'id'> & { id?: TextItem['id'] }
 
-export type UserTemplateItem = Pick<TemplateItem, 'type' | 'content'>
+export type UserTemplateItem = Omit<Pick<TemplateItem, 'type' | 'content'>, 'id'> & { id?: TemplateItem['id'] }
 
 export type UserItem = UserTextItem | UserTemplateItem

@@ -27,8 +27,10 @@ export interface StructuredDataItem {
 }
 
 export interface EditorRange extends StaticRange {
+  readonly endEl?: HTMLElement | null
   readonly endId?: string
   readonly endType?: string
+  readonly startEl?: HTMLElement | null
   readonly startId?: string
   readonly startType?: string
 }
