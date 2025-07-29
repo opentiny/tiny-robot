@@ -1,0 +1,1 @@
+import{e as t}from"./index3.BnOquABP.js";function u(n){if(typeof n=="number")return`${n}px`;const r=n==null?void 0:n.trim();return r?/^-?\d+(\.\d+)?$/.test(r)?`${r}px`:r:"0px"}let e=null;function i(){return e||(e=t()),{x:e.x,y:e.y}}export{u as e,i as s};
