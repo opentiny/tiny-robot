@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useUndoRedo } from '../composables/useUndoRedo'
 import type { UserItem } from '../index.type'
 import type {
@@ -873,7 +873,7 @@ const handleClearHistory = () => {
 }
 
 // 处理光标移动到首尾空text时的特殊情况
-document.addEventListener('selectionchange', () => {
+const handleSelectionChange = () => {
   // 如果正在进行合成输入，则不处理
   if (!editorRef.value || compositionContext.value.range) {
     return
@@ -910,6 +910,14 @@ document.addEventListener('selectionchange', () => {
       return
     }
   }
+}
+
+onMounted(() => {
+  document.addEventListener('selectionchange', handleSelectionChange)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('selectionchange', handleSelectionChange)
 })
 
 defineExpose({
