@@ -4,14 +4,9 @@ import type { ISuggestionItem, SuggestionTextPart } from '../index.type'
  * 将预定义的高亮字符串数组转换为文本片段
  * @param content - 完整的建议文本
  * @param highlights - 需要高亮的文本片段数组
- * @param caseSensitive - 是否大小写敏感，默认为 true
  * @returns 包含文本片段和匹配状态的数组
  */
-export const convertHighlightsArrayToTextParts = (
-  content: string,
-  highlights: string[],
-  caseSensitive: boolean = true,
-): SuggestionTextPart[] => {
+export const convertHighlightsArrayToTextParts = (content: string, highlights: string[]): SuggestionTextPart[] => {
   if (!highlights.length) {
     return [{ text: content, isMatch: false }]
   }
@@ -23,8 +18,8 @@ export const convertHighlightsArrayToTextParts = (
     if (!highlight) continue
 
     let startIndex = 0
-    const searchContent = caseSensitive ? content : content.toLowerCase()
-    const searchHighlight = caseSensitive ? highlight : highlight.toLowerCase()
+    const searchContent = content.toLowerCase()
+    const searchHighlight = highlight.toLowerCase()
 
     while (true) {
       const index = searchContent.indexOf(searchHighlight, startIndex)
@@ -106,7 +101,7 @@ export const highlightSuggestionText = (suggestionText: string, inputText: strin
     return [{ text: suggestionText, isMatch: false }]
   }
 
-  return convertHighlightsArrayToTextParts(suggestionText, [inputText], false)
+  return convertHighlightsArrayToTextParts(suggestionText, [inputText])
 }
 
 /**
@@ -123,11 +118,11 @@ export const processHighlights = (item: ISuggestionItem, inputText: string): Sug
     return highlights(content, inputText)
   }
 
-  // 情况2：使用预定义的高亮片段(区分大小写)
+  // 情况2：使用预定义的高亮片段
   if (Array.isArray(highlights)) {
     return convertHighlightsArrayToTextParts(content, highlights)
   }
 
-  // 情况3：使用默认高亮函数 (不区分大小写)
+  // 情况3：使用默认高亮函数
   return highlightSuggestionText(content, inputText)
 }
