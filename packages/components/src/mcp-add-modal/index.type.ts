@@ -1,5 +1,5 @@
 // 添加插件表单数据类型
-export interface IFormData {
+export interface PluginFormData {
   /** 插件名称 */
   name: string
   /** 插件描述 */
@@ -14,7 +14,7 @@ export interface IFormData {
   thumbnail?: File | null
 }
 
-export type IPluginCreationData = IFormData | string
+export type PluginCreationData = PluginFormData | string
 
 export interface PluginModalProps {
   /** 是否显示 */
@@ -26,6 +26,6 @@ export interface PluginModalProps {
 }
 
 // 添加插件弹窗 Emits
-export interface IPluginModalEmits {
-  (e: 'confirm', type: 'form' | 'code', data: IPluginCreationData): void
+export interface PluginModalEmits {
+  (e: 'confirm', type: 'form' | 'code', data: PluginCreationData): void
 }

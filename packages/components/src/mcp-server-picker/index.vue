@@ -5,15 +5,9 @@ import TinyInput from '@opentiny/vue-input'
 import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
 import { ref, computed, watch } from 'vue'
-import { PluginCard, PluginModal } from './components'
+import PluginCard from './PluginCard.vue'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
-import type {
-  PluginInfo,
-  McpServerPickerProps,
-  McpServerPickerEmits,
-  PluginCreationData,
-  PopupConfig,
-} from './index.type'
+import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits, PopupConfig } from './index.type'
 
 const props = withDefaults(defineProps<McpServerPickerProps>(), {
   installedPlugins: () => [],
@@ -146,18 +140,6 @@ const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
   emit('plugin-add', plugin, added)
 }
 
-const showModal = ref(false)
-
-// 事件处理函数
-const handleCustomAdd = () => {
-  showModal.value = true
-}
-
-const handleCustomAddPlugin = (type: 'form' | 'code', data: PluginCreationData) => {
-  emit('plugin-create', type, data)
-  showModal.value = false
-}
-
 const visible = defineModel<boolean>('visible', {
   required: true,
 })
@@ -266,7 +248,7 @@ const transitionName = computed(() => {
       <div class="mcp-server-picker__header">
         <div class="mcp-server-picker__header-left">{{ props.title }}</div>
         <div class="mcp-server-picker__header-right">
-          <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
+          <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item">
             <IconPlus style="font-size: 16px; cursor: pointer" />
             <span>{{ props.customAddButtonText }}</span>
           </div>
@@ -296,8 +278,8 @@ const transitionName = computed(() => {
                     :plugin="plugin"
                     mode="installed"
                     :expandable="!!plugin.tools?.length"
-                    @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
-                    @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
+                    @toggle-plugin="(enabled: boolean) => handlePluginToggle(plugin, enabled)"
+                    @toggle-tool="(toolId: string, enabled: boolean) => handleToolToggle(plugin, toolId, enabled)"
                     @delete-plugin="() => handleDeletePlugin(plugin)"
                   />
                 </template>
@@ -349,9 +331,6 @@ const transitionName = computed(() => {
           </TinyTabItem>
         </TinyTabs>
       </div>
-
-      <!-- 插件表单添加弹窗 -->
-      <PluginModal v-model:visible="showModal" @confirm="handleCustomAddPlugin" />
     </div>
   </Transition>
 </template>

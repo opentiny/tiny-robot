@@ -53,24 +53,6 @@ export interface PopupConfig {
   }
 }
 
-// 添加插件表单数据类型
-export interface PluginFormData {
-  name: string
-  description: string
-  type: 'sse' | 'streamableHttp'
-  url: string
-  headers: string
-  thumbnail?: File | null
-}
-
-export type PluginCreationData = PluginFormData | string
-
-// 添加插件弹窗 Emits
-export interface PluginModalEmits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'confirm', type: 'form' | 'code', data: PluginCreationData): void
-}
-
 // MCP Server Picker 组件的Props
 export interface McpServerPickerProps {
   // 数据源
@@ -134,7 +116,6 @@ export interface McpServerPickerEmits {
   (e: 'plugin-toggle', plugin: PluginInfo, enabled: boolean): void
   (e: 'plugin-delete', plugin: PluginInfo): void
   (e: 'plugin-add', plugin: PluginInfo, added: boolean): void
-  (e: 'plugin-create', type: 'form' | 'code', data: PluginCreationData): void
 
   // 工具操作事件
   (e: 'tool-toggle', plugin: PluginInfo, toolId: string, enabled: boolean): void

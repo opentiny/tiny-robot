@@ -20,28 +20,20 @@ outline: deep
 | `title`            | 弹窗标题     | `string`  | ❌       | `'添加插件'` |
 | `defaultMode` | 默认添加方式 | `'form' \| 'code'` | ❌       | `'form'` |
 
-### Emits
+### Events
 
 | Event Name | Description | Type |
 | ---------- | ----------- | ---- |
-| `confirm`  | 确认事件    | `(type: 'form' \| 'code', data: IPluginCreationData) => void` |
----
-
-### Slots
-
-| Slot Name    | Description        |
-| ------------ | ------------------ |
-| `default`    | 弹窗主体内容       |
-| `title`      | 自定义标题区域内容 |
+| `confirm`  | 确认事件    | `(type: 'form' \| 'code', data: PluginCreationData) => void` |
 
 ### Types
 
-#### IFormData
+#### PluginFormData
 
 表单方式添加插件数据类型：
 
 ```typescript
-interface IFormData {
+interface PluginFormData {
   name: string            // 插件名称
   description: string     // 插件描述
   type: 'sse' | 'streamableHttp'  // 插件类型, sse 或 streamableHttp
@@ -49,4 +41,12 @@ interface IFormData {
   headers: string         // 请求头（JSON 格式字符串）
   thumbnail?: File | null // 缩略图文件（可选）
 }
+```
+
+#### PluginCreationData
+
+PluginCreationData 类型是 PluginFormData 或 string 的联合类型，用于表示插件创建的数据。
+
+```typescript
+type PluginCreationData = PluginFormData | string
 ```

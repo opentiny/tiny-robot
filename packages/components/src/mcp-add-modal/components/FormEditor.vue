@@ -2,13 +2,13 @@
 import TinyRadioGroup from '@opentiny/vue-radio-group'
 import { ref, onUnmounted, watch } from 'vue'
 import { useFileDialog } from '@vueuse/core'
-import type { IFormData } from '../index.type'
+import type { PluginFormData } from '../index.type'
 
 // 图片预览相关
 const previewImageUrl = ref<string>('')
 
 // 表单数据
-const formData = defineModel<IFormData>('formData', { required: true })
+const formData = defineModel<PluginFormData>('formData', { required: true })
 
 // 类型选项
 const typeOptions = [

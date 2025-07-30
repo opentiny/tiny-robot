@@ -3,7 +3,7 @@ import TinySwitch from '@opentiny/vue-switch'
 import TinyPopconfirm from '@opentiny/vue-popconfirm'
 import { computed, ref } from 'vue'
 import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import type { PluginCardEmits, PluginCardProps } from '../index.type'
+import type { PluginCardEmits, PluginCardProps } from './index.type'
 
 const props = withDefaults(defineProps<PluginCardProps>(), {
   mode: 'installed',
