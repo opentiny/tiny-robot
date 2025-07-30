@@ -12,8 +12,8 @@ const formData = defineModel<IFormData>('formData', { required: true })
 
 // 类型选项
 const typeOptions = [
-  { label: 'sse', text: '服务器发送事件（sse）' },
-  { label: 'streamableHttp', text: '可流式传输的HTTP（streamableHttp）' },
+  { label: 'sse', text: '服务器发送事件（SSE）' },
+  { label: 'streamableHttp', text: '流式HTTP（Streamable HTTP）' },
 ]
 
 const { open: openFileDialog, files } = useFileDialog({

@@ -20,7 +20,7 @@ const initFormData = (): IFormData => {
   return {
     name: '',
     description: '',
-    type: '',
+    type: 'sse',
     url: '',
     headers: '',
     thumbnail: null,

@@ -5,7 +5,7 @@ export interface IFormData {
   /** 插件描述 */
   description: string
   /** 插件类型 */
-  type: 'sse' | 'streamableHttp' | ''
+  type: 'sse' | 'streamableHttp'
   /** 插件URL */
   url: string
   /** 插件请求头 */
