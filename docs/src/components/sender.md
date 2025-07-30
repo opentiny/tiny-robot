@@ -153,15 +153,45 @@ Sender 组件支持输入联想功能，当用户输入时，可以根据提供�
 
 > **注意**: 输入框内的补全文本特性在匹配到联想项的前置字符时显示，否则不显示。
 
-**自定义高亮方式**
+**高亮匹配模式**
 
-Sender 组件支持三种高亮方式：
+Sender 组件支持三种高亮匹配模式，通过 `suggestions` 属性实现：
 
-1. **默认高亮**: 直接传入字符串数组，组件会自动高亮与输入文本匹配的部分。
-2. **预定义高亮**: 传入对象数组，通过 `highlights` 字段指定要高亮的文本片段。
-3. **自定义高亮函数**: 传入对象数组，`highlights` 字段为函数，可完全自定义高亮逻辑。
+1. **自动匹配高亮**（默认）：直接传入字符串数组到 `suggestions` 属性，组件会根据用户输入自动高亮匹配部分。
+   ```vue
+   <tr-sender :suggestions="['你好世界', '你好中国', '你好北京']" />
+   ```
 
-> **优先级**：自定义高亮函数 > 预定义高亮 > 默认高亮
+2. **精确指定高亮**：传入对象数组到 `suggestions` 属性，通过 `content` 和 `highlights` 字段精确指定要高亮的文本片段。
+   ```vue
+   <tr-sender :suggestions="[
+     { content: '你好世界', highlights: ['你好'] },
+     { content: '你好中国', highlights: ['中国'] },
+     { content: '你好北京', highlights: ['你好', '北京'] }
+   ]" />
+   ```
+
+3. **完全自定义高亮**：传入对象数组到 `suggestions` 属性，`highlights` 字段为函数，可完全自定义高亮逻辑。
+   ```vue
+   <tr-sender :suggestions="[
+    { 
+      content: '你好世界',
+      // 自定义高亮：根据输入内容高亮匹配部分
+      highlights: (content, input) => {
+        // 简单示例：输入"你"时高亮"你好"
+        if (input === '你') {
+          return [
+            { text: '你', isMatch: true },
+            { text: '好世界', isMatch: false }
+          ]
+        }
+        return [{ text: content, isMatch: false }]
+      }
+    }
+   ]" />
+   ```
+
+> **优先级**：完全自定义高亮 > 精确指定高亮 > 自动匹配高亮
 
 <demo vue="../../demos/sender/Suggestions.vue" title="输入联想示例" description="展示 Sender 组件的输入联想功能。" />
 
