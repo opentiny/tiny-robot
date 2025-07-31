@@ -853,18 +853,18 @@ const activateFirstField = () => {
     return
   }
 
-  const firstTemplateItem = originalData.value.find((item) => item.type === 'template')
+  nextTick(() => {
+    const firstTemplateItem = originalData.value.find((item) => item.type === 'template')
 
-  if (firstTemplateItem) {
-    nextTick(() => {
+    if (firstTemplateItem) {
       const startEl = editorRef.value?.querySelector(`[data-id="${firstTemplateItem.id}"][data-type="template"]`)
 
       if (startEl) {
         const startOffset = startEl.textContent?.length || 0
         setCaretPosition(startEl, startOffset)
       }
-    })
-  }
+    }
+  })
 }
 
 const handleClearHistory = () => {
