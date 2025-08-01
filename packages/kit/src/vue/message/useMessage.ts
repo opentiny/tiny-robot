@@ -54,10 +54,12 @@ export interface UseMessageReturn {
   useStream: Ref<boolean>
   /** 发送消息 */
   sendMessage: (content?: string, clearInput?: boolean) => Promise<void>
+  /** 手动执行addMessage添加消息后，可以执行send发送消息 */
+  send: () => Promise<void>
   /** 清空消息 */
   clearMessages: () => void
   /** 添加消息 */
-  addMessage: (message: ChatMessage) => void
+  addMessage: (message: ChatMessage | ChatMessage[]) => void
   /** 中止请求 */
   abortRequest: () => void
   /** 重试请求 */
@@ -196,6 +198,14 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
     await chatRequest()
   }
 
+  const send = async () => {
+    if (GeneratingStatus.includes(messageState.status)) {
+      return
+    }
+
+    await chatRequest()
+  }
+
   // 中止请求
   const abortRequest = () => {
     if (abortController) {
@@ -221,8 +231,12 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
   }
 
   // 添加消息
-  const addMessage = (message: ChatMessage) => {
-    messages.value.push(message)
+  const addMessage = (message: ChatMessage | ChatMessage[]) => {
+    if (Array.isArray(message)) {
+      messages.value.push(...message)
+    } else {
+      messages.value.push(message)
+    }
   }
 
   return {
@@ -231,6 +245,7 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
     inputMessage,
     useStream,
     sendMessage,
+    send,
     clearMessages,
     addMessage,
     abortRequest,
