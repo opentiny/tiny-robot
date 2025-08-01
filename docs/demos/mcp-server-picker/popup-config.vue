@@ -20,7 +20,7 @@
     <div v-if="activeModal" class="status-info">当前激活弹窗：{{ getModalDisplayName(activeModal) }}</div>
 
     <!-- 固定位置 -->
-    <McpServerPicker
+    <TrMcpServerPicker
       v-model:visible="showFixedModal"
       :popup-config="fixedModalConfig"
       :installed-plugins="installedPlugins"
@@ -30,7 +30,7 @@
     />
 
     <!-- 左侧抽屉 -->
-    <McpServerPicker
+    <TrMcpServerPicker
       v-model:visible="showLeftDrawer"
       :popup-config="leftDrawerConfig"
       :installed-plugins="installedPlugins"
@@ -40,7 +40,7 @@
     />
 
     <!-- 右侧抽屉 -->
-    <McpServerPicker
+    <TrMcpServerPicker
       v-model:visible="showRightDrawer"
       :popup-config="rightDrawerConfig"
       :installed-plugins="installedPlugins"
@@ -53,7 +53,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
-import { McpServerPicker, PluginInfo, MarketCategoryOption } from '@opentiny/tiny-robot'
+import { TrMcpServerPicker, PluginInfo, MarketCategoryOption } from '@opentiny/tiny-robot'
 
 // 弹窗类型枚举
 type ModalType = 'fixed' | 'leftDrawer' | 'rightDrawer' | null

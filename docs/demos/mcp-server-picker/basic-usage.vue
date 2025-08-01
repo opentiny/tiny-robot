@@ -17,7 +17,7 @@
       <span class="plugin-active_count" v-if="activeCount">{{ activeCount }}</span>
     </TinyButton>
   </div>
-  <McpServerPicker
+  <TrMcpServerPicker
     v-model:visible="visible"
     v-model:activeCount="activeCount"
     :popup-config="{
@@ -30,26 +30,35 @@
     :market-loading="marketLoading"
     @plugin-toggle="handlePluginToggle"
     @plugin-add="handlePluginAdd"
-    @plugin-create="handlePluginCreate"
     @plugin-delete="handlePluginDelete"
     @tool-toggle="handleToolToggle"
     @search="handleSearch"
     @tab-change="handleTabChange"
     @market-category-change="handleMarketCategoryChange"
-  />
+  >
+    <template #header-extra>
+      <div class="header-extra" @click="isShowAddModal = true">
+        <IconPlus style="font-size: 16px; cursor: pointer" />
+        <span>自定义添加</span>
+      </div>
+    </template>
+  </TrMcpServerPicker>
+
+  <TrMcpAddModal v-model:show="isShowAddModal" @confirm="handlePluginConfirm" />
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import {
-  McpServerPicker,
+  TrMcpServerPicker,
+  TrMcpAddModal,
   type PluginInfo,
   type PluginTool,
   type MarketCategoryOption,
   type PluginFormData,
   type PluginCreationData,
 } from '@opentiny/tiny-robot'
-import { IconPlugin } from '@opentiny/tiny-robot-svgs'
+import { IconPlugin, IconPlus } from '@opentiny/tiny-robot-svgs'
 import { TinyButton } from '@opentiny/vue'
 
 // 模拟加载状态
@@ -158,6 +167,7 @@ const marketCategoryOptions = ref<MarketCategoryOption[]>([
 ])
 
 const visible = ref(false)
+const isShowAddModal = ref(false)
 
 const handleVisibleToggle = () => {
   visible.value = true
@@ -228,7 +238,7 @@ const createPluginByCode = (data: string) => {
 }
 
 // 新的插件创建事件处理
-const handlePluginCreate = (type: 'form' | 'code', data: PluginCreationData) => {
+const handlePluginConfirm = (type: 'form' | 'code', data: PluginCreationData) => {
   if (type === 'form') {
     createPluginByForm(data)
   } else {
@@ -303,6 +313,26 @@ const handleMarketCategoryChange = (category: string) => {
     color: #1476ff;
     background-color: #eaf0f8;
     border: 1px solid #1476ff;
+  }
+}
+
+.header-extra {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: rgb(25, 25, 25);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  border: 1px solid rgb(89, 89, 89);
+  box-sizing: border-box;
+  border-radius: 999px;
+  padding: 5px 16px;
+
+  &:hover {
+    background-color: rgb(245, 245, 245);
+    border-color: rgb(25, 25, 25);
   }
 }
 </style>

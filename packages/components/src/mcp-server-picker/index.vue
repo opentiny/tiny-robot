@@ -6,7 +6,7 @@ import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
 import { ref, computed, watch } from 'vue'
 import PluginCard from './PluginCard.vue'
-import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
+import { IconClose, IconSearch } from '@opentiny/tiny-robot-svgs'
 import type { PluginInfo, McpServerPickerProps, McpServerPickerEmits, PopupConfig } from './index.type'
 
 const props = withDefaults(defineProps<McpServerPickerProps>(), {
@@ -28,8 +28,6 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   installedTabTitle: '已安装插件',
   marketTabTitle: '市场',
   title: '插件',
-  showCustomAddButton: true,
-  customAddButtonText: '自定义添加',
   allowPluginToggle: true,
   allowToolToggle: true,
   allowPluginDelete: true,
@@ -248,10 +246,7 @@ const transitionName = computed(() => {
       <div class="mcp-server-picker__header">
         <div class="mcp-server-picker__header-left">{{ props.title }}</div>
         <div class="mcp-server-picker__header-right">
-          <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item">
-            <IconPlus style="font-size: 16px; cursor: pointer" />
-            <span>{{ props.customAddButtonText }}</span>
-          </div>
+          <slot name="header-extra" />
           <IconClose class="mcp-server-picker__header-right-close" @click="handleClose" />
         </div>
       </div>
@@ -377,26 +372,6 @@ const transitionName = computed(() => {
       display: flex;
       align-items: center;
       gap: 20px;
-
-      &-item {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        cursor: pointer;
-        color: rgb(25, 25, 25);
-        font-size: 14px;
-        font-weight: 400;
-        line-height: 22px;
-        border: 1px solid rgb(89, 89, 89);
-        box-sizing: border-box;
-        border-radius: 999px;
-        padding: 5px 16px;
-
-        &:hover {
-          background-color: rgb(245, 245, 245);
-          border-color: rgb(25, 25, 25);
-        }
-      }
 
       &-close {
         font-size: 24px;

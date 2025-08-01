@@ -87,8 +87,6 @@ export interface McpServerPickerProps {
 
   // 头部配置
   title?: string
-  showCustomAddButton?: boolean
-  customAddButtonText?: string
 
   // 行为控制
   allowPluginToggle?: boolean
