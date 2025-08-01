@@ -2,7 +2,7 @@
 import { useScroll } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import Bubble from './Bubble.vue'
-import { BubbleListProps, BubbleProps, BubbleSlots } from './index.type'
+import { BubbleListProps } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})
 
@@ -25,17 +25,25 @@ watch(
   { deep: true },
 )
 
-const getItemProps = (item: BubbleProps & { slots?: BubbleSlots }): BubbleProps => {
-  const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
-  const { slots: _roleSlots, ...rest } = defaultConfig
-  const { slots: _itemSlots, ...restItem } = item
-  return { ...rest, ...restItem }
-}
+const processedItems = computed(() => {
+  return props.items
+    .map((item) => {
+      const roleConfig = item.role ? props.roles?.[item.role] || {} : {}
+      if (roleConfig.hidden) {
+        return null
+      }
 
-const getItemSlots = (item: BubbleProps & { slots?: BubbleSlots }): BubbleSlots => {
-  const defaultConfig = item.role ? props.roles?.[item.role] || {} : {}
-  return { ...defaultConfig.slots, ...item.slots }
-}
+      const { slots: roleSlots, hidden: _hidden, ...restConfig } = roleConfig
+      const { slots: itemSlots, ...restItem } = item
+
+      return {
+        id: item.id,
+        props: { ...restConfig, ...restItem },
+        slots: { ...roleSlots, ...itemSlots },
+      }
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+})
 
 const loadingBubble = computed(() => {
   if (!(props.loading && props.loadingRole && props.roles?.[props.loadingRole])) {
@@ -50,13 +58,12 @@ const loadingBubble = computed(() => {
 
 <template>
   <div class="tr-bubble-list" ref="scrollContainerRef">
-    <template v-for="(item, index) in props.items" :key="item.id || index">
-      <Bubble v-if="!item.hidden" v-bind="getItemProps(item)">
-        <template v-for="(slot, slotName) in getItemSlots(item)" #[slotName]="slotProps" :key="slotName">
-          <component :is="slot" v-bind="slotProps" />
-        </template>
-      </Bubble>
-    </template>
+    <Bubble v-for="(item, index) in processedItems" :key="item.id || index" v-bind="item.props">
+      <template v-for="(slot, slotName) in item.slots" #[slotName]="slotProps" :key="slotName">
+        <component :is="slot" v-bind="slotProps" />
+      </template>
+    </Bubble>
+
     <Bubble v-if="loadingBubble" v-bind="loadingBubble.props">
       <template v-for="(slot, slotName) in loadingBubble.slots" #[slotName]="slotProps" :key="slotName">
         <component :is="slot" v-bind="slotProps" />
