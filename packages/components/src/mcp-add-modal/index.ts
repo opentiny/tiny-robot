@@ -1,7 +1,7 @@
 import { App } from 'vue'
 import MCPAddModal from './index.vue'
 
-MCPAddModal.name = 'MCPAddModal'
+MCPAddModal.name = 'McpAddModal'
 
 const install = function <T>(app: App<T>) {
   app.component(MCPAddModal.name!, MCPAddModal)
