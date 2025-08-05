@@ -79,8 +79,13 @@ const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(mo
 // 3. 提交历史记录 (history.commit)
 // 特殊情况: 在 history undo redo 中，不需要3步骤。否则历史记录会重复
 const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
+  originalData.value = items
+}
+
+const originalDataForUI = computed(() => {
   const first: (TextItem | TemplateItem)[] = []
   const last: (TextItem | TemplateItem)[] = []
+  const items = originalData.value
 
   // 如果第一个元素是template，则添加一个空text
   if (items.length > 0 && items[0].type === 'template') {
@@ -103,8 +108,8 @@ const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
     }
   }
 
-  originalData.value = first.concat(items).concat(last)
-}
+  return first.concat(items).concat(last)
+})
 
 const flattenedData = computed<ExtendedTextItem[]>(() => {
   return originalData.value
@@ -122,7 +127,7 @@ const flattenedData = computed<ExtendedTextItem[]>(() => {
 })
 
 const structuredData = computed<StructuredDataItem[]>(() => {
-  return originalData.value.map((item) => {
+  return originalDataForUI.value.map((item) => {
     if (item.type === 'text') {
       return item
     }
@@ -502,19 +507,6 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   newOriginalData = newOriginalData.filter((item) => {
     return !(item.type === 'template' && [item.prefix, item.suffix, item.content].join('').length === 0)
   })
-  // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER（为了下一步不被删除，并且能不让template位于首尾）
-  if (newOriginalData.length >= 2) {
-    const first = newOriginalData[0]
-    const second = newOriginalData[1]
-    if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
-      first.content = PLACEHOLDER
-    }
-    const last = newOriginalData[newOriginalData.length - 1]
-    const secondLast = newOriginalData[newOriginalData.length - 2]
-    if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
-      last.content = PLACEHOLDER
-    }
-  }
   // 再删除空text
   newOriginalData = newOriginalData.filter((item) => {
     return !(item.type === 'text' && item.content.length === 0)
@@ -881,11 +873,11 @@ const handleSelectionChange = () => {
 
   const range = getSelectionRange(editorRef.value!)
 
-  if (range?.collapsed && originalData.value.length > 0) {
+  if (range?.collapsed && originalDataForUI.value.length > 0) {
     const editorRange = transformRange(range)
 
     // 如果选中的是开头的空text，则将光标移动到空text后
-    const first = originalData.value[0]
+    const first = originalDataForUI.value[0]
     if (
       editorRange.startEl &&
       editorRange.startId === first.id &&
@@ -898,7 +890,7 @@ const handleSelectionChange = () => {
     }
 
     // 如果选中的是末尾的空text，则将光标移动到空text前
-    const last = originalData.value[originalData.value.length - 1]
+    const last = originalDataForUI.value[originalDataForUI.value.length - 1]
     if (
       editorRange.endEl &&
       editorRange.endId === last.id &&
