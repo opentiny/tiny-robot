@@ -9,15 +9,22 @@
     </nav>
 
     <main>
-      <component :is="currentComponent" />
+      <component :is="components[currentComponent]" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import ContainerDemo from './components/ContainerDemo.vue'
+import Home from './components/Home.vue'
 
 const currentComponent = ref('Home')
+
+const components = {
+  Home,
+  Container: ContainerDemo,
+}
 </script>
 
 <style>
