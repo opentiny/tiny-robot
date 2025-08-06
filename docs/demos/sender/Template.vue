@@ -128,8 +128,7 @@ const selectTemplate = (template) => {
 }
 
 // 提交处理
-const handleSubmit = (text: string) => {
-  console.log('是否包含零宽字符:', text.includes('\u200B'))
+const handleSubmit = (text) => {
   console.log('提交模板填充内容:', text)
   alert(`提交内容: ${text}`)
 }

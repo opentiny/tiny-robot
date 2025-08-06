@@ -89,15 +89,24 @@ const originalDataForUI = computed(() => {
 
   // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER
   if (items.length >= 2) {
-    const first = items[0]
+    const originalDataFirstItem = items[0]
     const second = items[1]
-    if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
-      first.content = PLACEHOLDER
+    if (
+      originalDataFirstItem.type === 'text' &&
+      originalDataFirstItem.content.length === 0 &&
+      second.type === 'template'
+    ) {
+      first.push({ ...originalDataFirstItem, content: PLACEHOLDER })
     }
-    const last = items[items.length - 1]
+
+    const originalDataLastItem = items[items.length - 1]
     const secondLast = items[items.length - 2]
-    if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
-      last.content = PLACEHOLDER
+    if (
+      originalDataLastItem.type === 'text' &&
+      originalDataLastItem.content.length === 0 &&
+      secondLast.type === 'template'
+    ) {
+      last.push({ ...originalDataLastItem, content: PLACEHOLDER })
     }
   }
 
