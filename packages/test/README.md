@@ -49,7 +49,7 @@ cd packages/test
 pnpm dev
 ```
 
-应用将在 http://localhost:5173 启动。
+应用将在 http://localhost:3000 启动。
 
 ### 运行测试
 
@@ -74,7 +74,19 @@ pnpm test:report
 
 ```bash
 cd packages/test
+```
 
+> 初次需要安装 Playwright 环境
+
+```bash
+# 仅安装chromium
+npx playwright install chromium
+```
+
+```bash
+# 仅安装chromium shell及 系统依赖
+npx playwright install --with-deps --only-shell chromium
+```
 # 运行测试
 pnpm test
 
@@ -89,6 +101,7 @@ pnpm test:debug
 
 # 查看测试报告
 pnpm test:report
+
 ```
 
 ## 测试用例说明
