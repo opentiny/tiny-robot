@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
+    "test:codegen": "playwright codegen localhost:3000",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report"

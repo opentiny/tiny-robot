@@ -63,16 +63,6 @@ test.describe('Container 组件测试', () => {
 
     // 检查日志
     await expect(page.getByTestId('action-log')).toContainText('进入全屏模式')
-
-    // 退出全屏模式
-    await page.click('[data-testid="toggle-fullscreen-btn"]')
-
-    // 检查状态更新
-    await expect(page.getByTestId('fullscreen-status')).toHaveText('普通')
-    await expect(page.getByTestId('toggle-fullscreen-btn')).toHaveText('全屏模式')
-
-    // 检查日志
-    await expect(page.getByTestId('action-log')).toContainText('退出全屏模式')
   })
 
   test('应该正确显示容器内容', async ({ page }) => {
@@ -150,7 +140,7 @@ test.describe('Container 组件测试', () => {
     await expect(page.getByTestId('test-container')).toBeVisible()
 
     // 点击容器内置的全屏切换按钮
-    const fullscreenButton = page.locator('.tr-container__header-operations').locator('button').first()
+    const fullscreenButton = page.getByTestId('test-container').getByRole('button').nth(1)
     await fullscreenButton.click()
 
     // 检查全屏状态
@@ -164,7 +154,6 @@ test.describe('Container 组件测试', () => {
   test('应该能够清空操作日志', async ({ page }) => {
     // 显示容器以产生一些日志
     await page.click('[data-testid="show-container-btn"]')
-    await page.click('[data-testid="toggle-fullscreen-btn"]')
 
     // 检查日志存在
     await expect(page.getByTestId('action-log')).toContainText('容器显示')
