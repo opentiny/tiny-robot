@@ -530,21 +530,23 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   const toDeletedText = new Set<string>()
 
   newOriginalData.forEach((item, index, arr) => {
-    if (index === 0 || index === 1) {
-      const first = arr[0]
-      const second = arr[1]
+    if (arr.length >= 2) {
+      if (index === 0 || index === 1) {
+        const first = arr[0]
+        const second = arr[1]
 
-      if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
-        return
+        if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
+          return
+        }
       }
-    }
 
-    if (index === arr.length - 2 || index === arr.length - 1) {
-      const last = arr[arr.length - 1]
-      const secondLast = arr[arr.length - 2]
+      if (index === arr.length - 2 || index === arr.length - 1) {
+        const last = arr[arr.length - 1]
+        const secondLast = arr[arr.length - 2]
 
-      if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
-        return
+        if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
+          return
+        }
       }
     }
 
