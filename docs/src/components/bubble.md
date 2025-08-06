@@ -127,6 +127,12 @@ content 对象中的所有属性都将传递给组件，onXXX会当作事件传�
 
 <demo vue="../../demos/bubble/messages.vue" />
 
+### 指定渲染属性
+
+和大模型交互数据时，交互的原始数据中的 content 字段可能需要经过前端二次处理再展示到UI上，但此时我们又不想改动原始的 content 字段。此时可以通过 `customContentField` 属性来在前端指定你需要渲染的属性
+
+<demo vue="../../demos/bubble/custom-content-field.vue" />
+
 ### 插槽
 
 气泡组件提供了三个插槽，分别是 默认插槽, `loading` 插槽 和 `footer` 插槽
@@ -162,14 +168,15 @@ type BubblePlacement = 'start' | 'end'
 
 气泡通用属性配置。
 
-| 属性              | 类型                    | 默认值     | 说明                                                                            |
-| ----------------- | ----------------------- | ---------- | ------------------------------------------------------------------------------- |
-| `placement`       | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                             |
-| `avatar`          | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                   |
-| `shape`           | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                        |
-| `contentRenderer` | `BubbleContentRenderer` | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器） |
-| `hidden`          | `boolean`               | -          | 是否隐藏气泡                                                                    |
-| `maxWidth`        | `string \| number`      | -          | 气泡内容的最大宽度                                                              |
+| 属性                 | 类型                    | 默认值     | 说明                                                                                                          |
+| -------------------- | ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `placement`          | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                                                           |
+| `avatar`             | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                                                 |
+| `shape`              | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                                                      |
+| `contentRenderer`    | `BubbleContentRenderer` | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器）                               |
+| `customContentField` | `string`                | -          | 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容 |
+| `hidden`             | `boolean`               | -          | 是否隐藏气泡                                                                                                  |
+| `maxWidth`           | `string \| number`      | -          | 气泡内容的最大宽度                                                                                            |
 
 ### BubbleProps
 
