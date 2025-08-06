@@ -87,6 +87,20 @@ const originalDataForUI = computed(() => {
   const last: (TextItem | TemplateItem)[] = []
   const items = originalData.value
 
+  // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER
+  if (items.length >= 2) {
+    const first = items[0]
+    const second = items[1]
+    if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
+      first.content = PLACEHOLDER
+    }
+    const last = items[items.length - 1]
+    const secondLast = items[items.length - 2]
+    if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
+      last.content = PLACEHOLDER
+    }
+  }
+
   // 如果第一个元素是template，则添加一个空text
   if (items.length > 0 && items[0].type === 'template') {
     first.push({ type: 'text', content: PLACEHOLDER, id: randomId() })
@@ -280,10 +294,6 @@ const getNodeAndOffset = (el: Element, offset: number) => {
   }
 
   const contentLength = el.firstChild.textContent?.length ?? 0
-
-  if (offset > contentLength) {
-    console.warn('offset is too large', { offset, el })
-  }
 
   return { node: el.firstChild, offset: Math.min(offset, contentLength) }
 }
@@ -507,10 +517,35 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   newOriginalData = newOriginalData.filter((item) => {
     return !(item.type === 'template' && [item.prefix, item.suffix, item.content].join('').length === 0)
   })
-  // 再删除空text
-  newOriginalData = newOriginalData.filter((item) => {
-    return !(item.type === 'text' && item.content.length === 0)
+
+  const toDeletedText = new Set<string>()
+
+  newOriginalData.forEach((item, index, arr) => {
+    if (index === 0 || index === 1) {
+      const first = arr[0]
+      const second = arr[1]
+
+      if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
+        return
+      }
+    }
+
+    if (index === arr.length - 2 || index === arr.length - 1) {
+      const last = arr[arr.length - 1]
+      const secondLast = arr[arr.length - 2]
+
+      if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
+        return
+      }
+    }
+
+    if (item.type === 'text' && item.content.length === 0) {
+      toDeletedText.add(item.id)
+    }
   })
+
+  // 再删除空text
+  newOriginalData = newOriginalData.filter((item) => !toDeletedText.has(item.id))
 
   // 恢复分隔符
   for (const dataItem of newOriginalData.filter((item): item is TemplateItem => item.type === 'template')) {
