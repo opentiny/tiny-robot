@@ -49,7 +49,7 @@ cd packages/test
 pnpm dev
 ```
 
-应用将在 http://localhost:3000 启动。
+应用将在 http://localhost:3333 启动。
 
 ### 运行测试
 
@@ -167,7 +167,7 @@ pnpm test:report
 
 ### Vite 配置 (`vite.config.ts`)
 
-- **端口**: 5173
+- **端口**: 3333
 - **别名配置**: 支持 `@` 和组件库路径别名
 - **构建配置**: 生成 sourcemap 便于调试
 
