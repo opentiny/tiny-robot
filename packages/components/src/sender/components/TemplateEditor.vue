@@ -13,15 +13,6 @@ import type {
 } from '../types/editor.type'
 import Block from './Block.vue'
 
-declare global {
-  interface Selection {
-    getComposedRanges?: (options?: { shadowRoots: ShadowRoot[] } | ShadowRoot) => Range[]
-  }
-  interface ShadowRoot {
-    getSelection?: () => Selection
-  }
-}
-
 const SUPPORTS_SHADOW_SELECTION = typeof window.ShadowRoot.prototype.getSelection === 'function'
 const SUPPORTS_COMPOSED_RANGES = typeof window.Selection.prototype.getComposedRanges === 'function'
 
@@ -235,8 +226,12 @@ const isEditor = (node: Node) => {
   return node === editorRef.value
 }
 
+interface CompatibleSelection extends Omit<Selection, 'getComposedRanges'> {
+  getComposedRanges?: (options?: { shadowRoots: ShadowRoot[] } | ShadowRoot) => StaticRange[]
+}
+
 const getSelectionRange = (el: Element) => {
-  const selection = window.getSelection()
+  const selection = window.getSelection() as CompatibleSelection | null
 
   if (!selection) {
     return null
