@@ -87,7 +87,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import TrContainer from '@opentiny/tiny-robot/container'
+import TrContainer from '../../../components/src/container/index.vue'
 
 // 响应式数据
 const showContainer = ref(false)
