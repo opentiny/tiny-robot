@@ -9,22 +9,32 @@
     </nav>
 
     <main>
-      <component :is="components[currentComponent]" />
+      <component :is="currentComponentInstance" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import type { Component } from 'vue'
 import ContainerDemo from './components/ContainerDemo.vue'
 import Home from './components/Home.vue'
 
-const currentComponent = ref('Home')
+// 定义组件名称类型
+type ComponentName = 'Home' | 'Container'
 
-const components = {
+const currentComponent = ref<ComponentName>('Home')
+
+// 定义组件映射对象
+const components: Record<ComponentName, Component> = {
   Home,
   Container: ContainerDemo,
 }
+
+// 计算属性确保类型安全
+const currentComponentInstance = computed(() => {
+  return components[currentComponent.value]
+})
 </script>
 
 <style>
