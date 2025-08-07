@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { toCssUnit } from '../shared/utils'
+import { ContentItem } from './components'
 import { BubbleContentFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
 import { BubbleContentClassRenderer } from './renderers'
-import { ContentItem } from './components'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
@@ -75,7 +75,7 @@ const placementStart = computed(() => props.placement === 'start')
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
         <template v-if="contentItems.length">
           <div class="tr-bubble__content-items">
-            <ContentItem v-for="(item, index) in contentItems" :key="index" v-bind="item" />
+            <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
           </div>
         </template>
         <template v-else>

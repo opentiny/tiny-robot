@@ -5,19 +5,20 @@ import { ref } from 'vue'
 const props = defineProps<{
   title: string
   content: string
+  defaultOpen?: boolean
 }>()
 
-const collapsed = ref(false)
+const opened = ref(props.defaultOpen ?? false)
 </script>
 
 <template>
   <div class="tr-bubble__step-text">
     <div class="tr-bubble__step-text-title">
       <span>{{ props.title }}</span>
-      <IconArrowUp class="expand-icon" :class="{ 'rotate-180': collapsed }" @click="collapsed = !collapsed" />
+      <IconArrowUp class="expand-icon" :class="{ 'rotate-180': !opened }" @click="opened = !opened" />
     </div>
     <div class="tr-bubble__step-text-content-wrapper">
-      <div v-show="!collapsed" class="tr-bubble__step-text-content">{{ props.content }}</div>
+      <div v-show="opened" class="tr-bubble__step-text-content">{{ props.content }}</div>
     </div>
   </div>
 </template>

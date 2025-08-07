@@ -4,6 +4,9 @@
   </tr-bubble-provider>
   <hr />
   <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px">
+    <button @click="changeCustomTextContent">修改自定义文本内容</button>
+    <button @click="changeMarkdownContent">修改Markdown内容</button>
+    <button @click="changeToolContent">修改工具内容(给number加1)</button>
     <button @click="addMessage">添加消息</button>
     <button @click="setThinkingContent">设置思考过程</button>
     <button @click="toggleToolStatus">切换工具状态</button>
@@ -19,11 +22,13 @@ const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
 // function renderer
 const customTextRenderer = (props: BubbleContentItem) => {
-  return h('div', { style: { color: 'red', fontStyle: 'italic' } }, props.content)
+  // 剩余参数当作属性传递给div，那么外部可以传递class、style、id等属性
+  const { content, ...rest } = props
+  return h('div', { style: { color: 'red', fontStyle: 'italic' }, ...rest }, content)
 }
 
 // class renderer
-const markdownRenderer = new BubbleMarkdownContentRenderer()
+const markdownRenderer = new BubbleMarkdownContentRenderer({ defaultAttrs: { class: 'markdown-content' } })
 
 // register renderer
 const contentRenderers = {
@@ -51,6 +56,7 @@ const content = ref<BubbleContentItem[]>([
     content: '我使用默认的文本渲染器（组件渲染器）',
     style: {
       fontWeight: 'bold',
+      color: 'green',
     },
     'data-id': 'test-id-1',
     onClick: () => {
@@ -60,18 +66,19 @@ const content = ref<BubbleContentItem[]>([
   {
     type: 'custom-text',
     content: '我使用自定义的文本渲染器（函数渲染器）',
+    id: 'custom-text-id',
   },
   {
     type: 'markdown',
     content: `# 我使用Markdown渲染器（类渲染器）`,
+    id: 'markdown-id',
   },
   {
     type: 'tool',
     name: 'DayWeather（工具渲染器）',
     status: 'success',
     content: JSON.stringify({
-      city: '西安',
-      date: '2025-05-31',
+      string: 'hello',
       number: 123,
       boolean: true,
       null: null,
@@ -80,6 +87,7 @@ const content = ref<BubbleContentItem[]>([
       },
     }),
     formatPretty: true,
+    defaultOpen: true,
   },
   toolMessage,
   {
@@ -113,6 +121,33 @@ const setThinkingContent = () => {
     setTimeout(() => {
       thinkingMessage.content += thinkingContent[i]
     }, i * 100)
+  }
+}
+
+const changeCustomTextContent = () => {
+  const customTextMessage = content.value.find((item) => item.type === 'custom-text')
+  if (customTextMessage) {
+    customTextMessage.content += '123'
+  }
+}
+
+const changeMarkdownContent = () => {
+  const markdownMessage = content.value.find((item) => item.type === 'markdown')
+  if (markdownMessage) {
+    markdownMessage.content += '123'
+  }
+}
+
+const changeToolContent = () => {
+  const toolMessage = content.value.find((item) => item.type === 'tool')
+  if (toolMessage) {
+    if (toolMessage.content?.startsWith('{')) {
+      const parsedContent = JSON.parse(toolMessage.content)
+      toolMessage.content = JSON.stringify({
+        ...parsedContent,
+        number: parsedContent.number + 1,
+      })
+    }
   }
 }
 </script>
