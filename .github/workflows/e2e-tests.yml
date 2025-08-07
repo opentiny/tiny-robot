@@ -1,57 +1,67 @@
-name: E2E 测试
+name: E2E Tests
+# 运行时显示的名称
+run-name: E2E Tests
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ develop, main, feat/e2e-test ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ develop, main, feat/e2e-test ]
 
 jobs:
   e2e-tests:
     timeout-minutes: 60
+    # 指定运行环境为最新版本的ubuntu
     runs-on: ubuntu-latest
     
     steps:
-    - name: 检出代码
-      uses: actions/checkout@v4
-      
-    - name: 设置 Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        
-    - name: 安装 pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 9.15.0
-        
-    - name: 安装依赖
-      run: pnpm install
-      
-    - name: 构建组件
-      run: pnpm build:components
-      
-    - name: 安装 Playwright 浏览器
-      run: |
-        cd packages/test
-        npx playwright install --with-deps chromium
-        
-    - name: 运行 E2E 测试
-      run: pnpm test
-      
-    - name: 上传测试报告
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: playwright-report
-        path: packages/test/playwright-report/
-        retention-days: 30
-        
-    - name: 上传测试结果
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: packages/test/test-results/
-        retention-days: 30
+      # 步骤1: 检出代码
+      - name: CheckOut Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      # 步骤2: 设置pnpm包管理器
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # 步骤3: 设置Node.js环境
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # 使用Node.js 20版本
+          registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
+
+      # 步骤4: 获取pnpm缓存目录路径
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: |
+          echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      # 步骤5: 配置pnpm缓存
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          # 使用操作系统类型和pnpm-lock.yaml的哈希值作为缓存键
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # 步骤6: 安装项目依赖
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+
+      # 步骤7: 构建组件
+      - name: Run Build Components
+        run: pnpm build
+
+      # 步骤8: 安装 Playwright 浏览器
+      - name: Install Playwright Browser
+        run: |
+          cd packages/test
+          npx playwright install --with-deps chromium
+
+      # 步骤9: 运行 E2E 测试
+      - name: Run Playwright Tests
+        run: pnpm test
