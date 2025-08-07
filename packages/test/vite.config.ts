@@ -11,7 +11,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@opentiny/tiny-robot': resolve(__dirname, '../components/src'),
     },
   },
   build: {

@@ -4,7 +4,7 @@ import { Page, expect } from '@playwright/test'
  * 测试辅助工具类
  */
 export class TestUtils {
-  constructor(private page: Page) {}
+  constructor(protected page: Page) {}
 
   /**
    * 等待元素可见并点击
