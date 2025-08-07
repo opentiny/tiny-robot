@@ -49,18 +49,31 @@
       <div class="chat-input">
         <div class="chat-input-pills">
           <tr-suggestion-popover
-            class="popover"
-            :popover-width="440"
+            style="--tr-suggestion-popover-width: 440px"
             :data="popoverData"
             @item-click="handlePopoverItemClick"
           >
-            <tr-suggestion-pill-button>
-              <template #icon>
-                <IconSparkles style="font-size: 16px; color: #1476ff" />
-              </template>
-            </tr-suggestion-pill-button>
+            <template #trigger>
+              <tr-suggestion-pill-button>
+                <template #icon>
+                  <IconSparkles style="font-size: 16px; color: #1476ff" />
+                </template>
+              </tr-suggestion-pill-button>
+            </template>
           </tr-suggestion-popover>
-          <tr-suggestion-pills class="pills" :items="pillItems" />
+          <tr-suggestion-pills class="pills">
+            <tr-dropdown-menu
+              v-for="(item, index) in pillItems"
+              :items="item.menu.items"
+              @item-click="item.menu.onItemClick"
+              :key="index"
+              trigger="click"
+            >
+              <template #trigger>
+                <tr-suggestion-pill-button>{{ item.text }}</tr-suggestion-pill-button>
+              </template>
+            </tr-dropdown-menu>
+          </tr-suggestion-pills>
         </div>
         <tr-sender
           ref="senderRef"
@@ -103,17 +116,18 @@
 <script setup lang="ts">
 import type {
   BubbleRoleConfig,
+  FileRejection,
   HistoryGroup,
   PromptProps,
   SuggestionGroup,
   SuggestionItem,
-  SuggestionPillItem,
   UserItem,
-  FileRejection,
 } from '@opentiny/tiny-robot'
 import {
   TrBubbleList,
   TrContainer,
+  TrDragOverlay,
+  TrDropdownMenu,
   TrHistory,
   TrIconButton,
   TrPrompts,
@@ -123,7 +137,6 @@ import {
   TrSuggestionPopover,
   TrWelcome,
   vDropzone,
-  TrDragOverlay,
 } from '@opentiny/tiny-robot'
 import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import {
@@ -372,66 +385,59 @@ const handlePopoverItemClick = (item: SuggestionItem) => {
   sendMessage(item.text)
 }
 
-const pillItems: SuggestionPillItem[] = [
+const pillItems = [
   {
-    id: 'cost',
     text: '费用成本',
     icon: markRaw(IconEdit),
-    action: {
-      type: 'menu',
-      props: {
-        items: dropdownMenuItems.value,
-        onItemClick: (item) => {
-          sendMessage(item.text)
-        },
+    menu: {
+      items: dropdownMenuItems.value,
+      onItemClick: (item) => {
+        sendMessage(item.text)
       },
     },
   },
   {
-    id: 'common',
     text: '常用指令',
     icon: markRaw(IconEdit),
-    action: {
-      type: 'menu',
-      props: {
-        items: templateSuggestions.slice(0, 3),
-        onItemClick: (item) => {
-          handleFillTemplate((item as unknown as { template: UserItem[] }).template)
-        },
+    menu: {
+      items: templateSuggestions.slice(0, 3),
+      onItemClick: (item) => {
+        handleFillTemplate((item as unknown as { template: UserItem[] }).template)
       },
     },
   },
   {
-    id: 'work',
     text: '工作助手',
     icon: markRaw(IconEdit),
-    action: {
-      type: 'menu',
-      props: {
-        items: templateSuggestions.slice(3, 6),
-        onItemClick: (item) => {
-          handleFillTemplate((item as unknown as { template: UserItem[] }).template)
-        },
+    menu: {
+      items: templateSuggestions.slice(3, 6),
+      onItemClick: (item) => {
+        handleFillTemplate((item as unknown as { template: UserItem[] }).template)
       },
     },
   },
   {
-    id: 'content',
     text: '内容创作',
     icon: markRaw(IconEdit),
-    action: {
-      type: 'menu',
-      props: {
-        items: templateSuggestions.slice(6),
-        onItemClick: (item) => {
-          handleFillTemplate((item as unknown as { template: UserItem[] }).template)
-        },
+    menu: {
+      items: templateSuggestions.slice(6),
+      onItemClick: (item) => {
+        handleFillTemplate((item as unknown as { template: UserItem[] }).template)
       },
     },
   },
 ]
 
-const { messageManager, createConversation } = useConversation({ client })
+const { messageManager, createConversation } = useConversation({
+  client,
+  events: {
+    onReceiveData: (data, _messages, _preventDefault) => {
+      // 执行 preventDefault 可以阻止默认写入消息列表的逻辑
+      // preventDefault()
+      console.log(data)
+    },
+  },
+})
 
 const randomId = () => Math.random().toString(36).substring(2, 15)
 
@@ -478,11 +484,11 @@ watch(
     if (!currentSession) {
       const today = historyData.find((item) => item.group === '今天')
       if (today) {
-        today.items.unshift({ title: messages.value[0].content, id: currentMessageId.value, data })
+        today.items.unshift({ title: messages.value[0].content as string, id: currentMessageId.value, data })
       } else {
         historyData.unshift({
           group: '今天',
-          items: [{ title: messages.value[0].content, id: currentMessageId.value, data }],
+          items: [{ title: messages.value[0].content as string, id: currentMessageId.value, data }],
         })
       }
     } else {
@@ -577,10 +583,6 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 8px;
-
-    :deep(.popover) {
-      flex-shrink: 0;
-    }
 
     .pills {
       flex: 1;
