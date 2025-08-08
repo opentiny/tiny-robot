@@ -14,6 +14,12 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 
 <demo vue="../../demos/prompts/basic.vue" />
 
+### 大小
+
+使用 `size` 属性，控制 Prompt 项的大小。默认大小为 `medium`，可选值为 `small`、`medium`、`large`。
+
+<demo vue="../../demos/prompts/size.vue" />
+
 ### 禁用状态
 
 要将 Prompt 标记为禁用，请向 Prompt 添加 `disabled` 属性

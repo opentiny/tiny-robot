@@ -1,4 +1,5 @@
 import './styles/root.css'
+import './styles/light/index.css'
 
 import { App } from 'vue'
 import Attachments from './attachments'

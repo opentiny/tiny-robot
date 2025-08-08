@@ -34,7 +34,7 @@ const handleClick = (ev: MouseEvent, item: PromptProps) => {
 .tr-prompts {
   .tr-prompts__list-container {
     display: flex;
-    gap: 16px;
+    gap: var(--tr-prompts-gap);
     overflow-x: auto;
 
     &.wrap {

@@ -1,0 +1,67 @@
+:root {
+  --tr-prompts-gap: 16px;
+
+  /* 不影响的布局的变量 */
+  --tr-prompt-bg-color: white;
+  --tr-prompt-hover-color: rgba(0, 0, 0, 0.04);
+  --tr-prompt-active-color: rgba(0, 0, 0, 0.15);
+  --tr-prompt-disabled-color: rgba(0, 0, 0, 0.04);
+  --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --tr-prompt-title-color: rgb(25, 25, 25);
+  --tr-prompt-title-font-weight: 500;
+  --tr-prompt-description-color: rgb(89, 89, 89);
+  --tr-prompt-border-radius: 16px;
+
+  /* 影响布局的变量 */
+  /* default (medium) */
+  --tr-prompt-padding-block: var(--tr-prompt-padding-block-medium);
+  --tr-prompt-padding-inline: var(--tr-prompt-padding-inline-medium);
+  --tr-prompt-title-font-size: var(--tr-prompt-title-font-size-medium);
+  --tr-prompt-title-line-height: var(--tr-prompt-title-line-height-medium);
+  --tr-prompt-description-font-size: var(--tr-prompt-description-font-size-medium);
+  --tr-prompt-description-line-height: var(--tr-prompt-description-line-height-medium);
+  --tr-prompt-gap: var(--tr-prompt-gap-medium);
+  --tr-prompt-content-gap: var(--tr-prompt-content-gap-medium);
+  --tr-prompt-badge-padding-inline: var(--tr-prompt-badge-padding-inline-medium);
+  --tr-prompt-badge-font-size: var(--tr-prompt-badge-font-size-medium);
+  --tr-prompt-badge-line-height: var(--tr-prompt-badge-line-height-medium);
+
+  /* small */
+  --tr-prompt-padding-block-small: 10px;
+  --tr-prompt-padding-inline-small: 16px;
+  --tr-prompt-title-font-size-small: 14px;
+  --tr-prompt-title-line-height-small: 24px;
+  --tr-prompt-description-font-size-small: 14px;
+  --tr-prompt-description-line-height-small: 22px;
+  --tr-prompt-gap-small: 12px;
+  --tr-prompt-content-gap-small: 4px;
+  --tr-prompt-badge-padding-inline-small: 12px;
+  --tr-prompt-badge-font-size-small: 14px;
+  --tr-prompt-badge-line-height-small: 22px;
+
+  /* medium */
+  --tr-prompt-padding-block-medium: 14px;
+  --tr-prompt-padding-inline-medium: 24px;
+  --tr-prompt-title-font-size-medium: 14px;
+  --tr-prompt-title-line-height-medium: 24px;
+  --tr-prompt-description-font-size-medium: 14px;
+  --tr-prompt-description-line-height-medium: 22px;
+  --tr-prompt-gap-medium: 12px;
+  --tr-prompt-content-gap-medium: 4px;
+  --tr-prompt-badge-padding-inline-medium: 12px;
+  --tr-prompt-badge-font-size-medium: 14px;
+  --tr-prompt-badge-line-height-medium: 22px;
+
+  /* large */
+  --tr-prompt-padding-block-large: 14px;
+  --tr-prompt-padding-inline-large: 24px;
+  --tr-prompt-title-font-size-large: 16px;
+  --tr-prompt-title-line-height-large: 24px;
+  --tr-prompt-description-font-size-large: 14px;
+  --tr-prompt-description-line-height-large: 22px;
+  --tr-prompt-gap-large: 12px;
+  --tr-prompt-content-gap-large: 4px;
+  --tr-prompt-badge-padding-inline-large: 12px;
+  --tr-prompt-badge-font-size-large: 14px;
+  --tr-prompt-badge-line-height-large: 22px;
+}

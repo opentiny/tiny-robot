@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { PromptProps } from './index.type'
 
-const props = defineProps<PromptProps>()
+const props = withDefaults(defineProps<PromptProps>(), {
+  size: 'medium',
+})
 </script>
 
 <template>
-  <div :class="['tr-prompt', { disabled: props.disabled }]">
-    <div class="tr-prompt__icon">
-      <component :is="props.icon"></component>
-    </div>
+  <div :class="['tr-prompt', { disabled: props.disabled }, props.size]">
+    <component :is="props.icon"></component>
     <div class="tr-prompt__content">
-      <h6 class="tr-prompt__content-label">{{ props.label }}</h6>
+      <h6 class="tr-prompt__content-title">{{ props.label }}</h6>
       <p v-if="props.description" class="tr-prompt__content-description">{{ props.description }}</p>
     </div>
     <div :class="['tr-prompt__badge', { label: typeof props.badge === 'string' }]">
@@ -26,76 +26,123 @@ const props = defineProps<PromptProps>()
 
 <style lang="less" scoped>
 .tr-prompt {
-  --tr-prompt-bg-color: white;
-  --tr-prompt-hover-color: rgba(0, 0, 0, 0.04);
-  --tr-prompt-active-color: rgba(0, 0, 0, 0.15);
-  --tr-prompt-disabled-color: rgba(0, 0, 0, 0.04);
-  --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  --tr-prompt-text: rgb(25, 25, 25);
-  --tr-prompt-text-muted: rgb(89, 89, 89);
+  --bg-color: var(--tr-prompt-bg-color);
+  --hover-color: var(--tr-prompt-hover-color);
+  --active-color: var(--tr-prompt-active-color);
+  --disabled-color: var(--tr-prompt-disabled-color);
+  --box-shadow: var(--tr-prompt-box-shadow);
+  --title-color: var(--tr-prompt-title-color);
+  --title-font-weight: var(--tr-prompt-title-font-weight);
+  --description-color: var(--tr-prompt-description-color);
+  --border-radius: var(--tr-prompt-border-radius);
 
+  --padding-block: var(--tr-prompt-padding-block);
+  --padding-inline: var(--tr-prompt-padding-inline);
+  --title-font-size: var(--tr-prompt-title-font-size);
+  --title-line-height: var(--tr-prompt-title-line-height);
+  --description-font-size: var(--tr-prompt-description-font-size);
+  --description-line-height: var(--tr-prompt-description-line-height);
+  --gap: var(--tr-prompt-gap);
+  --content-gap: var(--tr-prompt-content-gap);
+  --badge-padding-inline: var(--tr-prompt-badge-padding-inline);
+  --badge-font-size: var(--tr-prompt-badge-font-size);
+  --badge-line-height: var(--tr-prompt-badge-line-height);
+
+  &.small {
+    --padding-block: var(--tr-prompt-padding-block-small, var(--tr-prompt-padding-block));
+    --padding-inline: var(--tr-prompt-padding-inline-small, var(--tr-prompt-padding-inline));
+    --title-font-size: var(--tr-prompt-title-font-size-small, var(--tr-prompt-title-font-size));
+    --title-line-height: var(--tr-prompt-title-line-height-small, var(--tr-prompt-title-line-height));
+    --description-font-size: var(--tr-prompt-description-font-size-small, var(--tr-prompt-description-font-size));
+    --description-line-height: var(--tr-prompt-description-line-height-small, var(--tr-prompt-description-line-height));
+    --gap: var(--tr-prompt-gap-small, var(--tr-prompt-gap));
+    --content-gap: var(--tr-prompt-content-gap-small, var(--tr-prompt-content-gap));
+    --badge-padding-inline: var(--tr-prompt-badge-padding-inline-small, var(--tr-prompt-badge-padding-inline));
+    --badge-font-size: var(--tr-prompt-badge-font-size-small, var(--tr-prompt-badge-font-size));
+    --badge-line-height: var(--tr-prompt-badge-line-height-small, var(--tr-prompt-badge-line-height));
+  }
+
+  &.large {
+    --padding-block: var(--tr-prompt-padding-block-large, var(--tr-prompt-padding-block));
+    --padding-inline: var(--tr-prompt-padding-inline-large, var(--tr-prompt-padding-inline));
+    --title-font-size: var(--tr-prompt-title-font-size-large, var(--tr-prompt-title-font-size));
+    --title-line-height: var(--tr-prompt-title-line-height-large, var(--tr-prompt-title-line-height));
+    --description-font-size: var(--tr-prompt-description-font-size-large, var(--tr-prompt-description-font-size));
+    --description-line-height: var(--tr-prompt-description-line-height-large, var(--tr-prompt-description-line-height));
+    --gap: var(--tr-prompt-gap-large, var(--tr-prompt-gap));
+    --content-gap: var(--tr-prompt-content-gap-large, var(--tr-prompt-content-gap));
+    --badge-padding-inline: var(--tr-prompt-badge-padding-inline-large, var(--tr-prompt-badge-padding-inline));
+    --badge-font-size: var(--tr-prompt-badge-font-size-large, var(--tr-prompt-badge-font-size));
+    --badge-line-height: var(--tr-prompt-badge-line-height-large, var(--tr-prompt-badge-line-height));
+  }
+}
+
+.tr-prompt {
   flex: none;
   display: flex;
-  gap: 12px;
-  border-radius: 16px;
-  box-shadow: var(--tr-prompt-box-shadow);
-  padding: 16px 24px;
+  align-items: start;
+  gap: var(--gap);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding-block: var(--padding-block);
+  padding-inline: var(--padding-inline);
   position: relative;
   cursor: pointer;
   transition: background 0.3s;
-  background-color: var(--tr-prompt-bg-color);
+  background-color: var(--bg-color);
 
   &:hover {
-    background-color: var(--tr-prompt-hover-color);
+    background-color: var(--hover-color);
   }
 
   &.disabled {
     cursor: default;
     pointer-events: none;
-    background-color: var(--tr-prompt-disabled-color);
+    background-color: var(--disabled-color);
   }
 
   &:active {
-    background-color: var(--tr-prompt-active-color);
+    background-color: var(--active-color);
   }
 }
 
 .tr-prompt__content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--content-gap);
   align-items: start;
-
-  font-size: 14px;
-  line-height: 24px;
-  color: var(--tr-prompt-text);
 }
 
-.tr-prompt__content-label {
+.tr-prompt__content-title {
   margin: 0;
   padding: 0;
-  font-weight: 500;
+  color: var(--title-color);
+  font-size: var(--title-font-size);
+  line-height: var(--title-line-height);
+  font-weight: var(--title-font-weight);
 }
 
 .tr-prompt__content-description {
   margin: 0;
   padding: 0;
-  color: var(--tr-prompt-text-muted);
+  font-size: var(--description-font-size);
+  line-height: var(--description-line-height);
+  color: var(--description-color);
 }
 
 .tr-prompt__badge {
   position: absolute;
   top: 0;
   right: 0;
-  padding: 0 12px;
-  border-top-right-radius: 16px;
-  border-bottom-left-radius: 16px;
+  padding: 0 var(--badge-padding-inline);
+  border-top-right-radius: var(--border-radius);
+  border-bottom-left-radius: var(--border-radius);
   background-color: rgb(255, 234, 232);
 
   &.label {
     color: rgb(242, 48, 48);
-    font-size: 14px;
-    line-height: 22px;
+    font-size: var(--badge-font-size);
+    line-height: var(--badge-line-height);
   }
 }
 </style>
