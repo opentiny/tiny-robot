@@ -14,6 +14,7 @@ import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
 import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
 import SuggestionPopover from './suggestion-popover'
+import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 
@@ -29,9 +30,11 @@ export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './suggestion-pills/index.type'
 export * from './suggestion-popover/index.type'
+export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 
+export { useTheme } from './theme-provider/useTheme'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 
 const components = [
@@ -52,6 +55,7 @@ const components = [
   SuggestionPills,
   SuggestionPillButton,
   SuggestionPopover,
+  ThemeProvider,
   Welcome,
   McpServerPicker,
 ]
@@ -102,6 +106,8 @@ export {
   SuggestionPills as TrSuggestionPills,
   SuggestionPopover,
   SuggestionPopover as TrSuggestionPopover,
+  ThemeProvider,
+  ThemeProvider as TrThemeProvider,
   Welcome,
   Welcome as TrWelcome,
   McpServerPicker,
