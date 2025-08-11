@@ -1,26 +1,133 @@
-<!DOCTYPE html>
-<html lang="en-US" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>对话管理 useConversation | TinyRobot</title>
-    <meta name="description" content="TinyRobot">
-    <meta name="generator" content="VitePress v1.6.4">
-    <link rel="preload stylesheet" href="/tiny-robot/alpha/assets/style.C_1jpg8q.css" as="style">
-    <link rel="preload stylesheet" href="/tiny-robot/alpha/vp-icons.css" as="style">
-    
-    <script type="module" src="/tiny-robot/alpha/assets/app.B5d4Lai6.js"></script>
-    <link rel="preload" href="/tiny-robot/alpha/assets/inter-roman-latin.Di8DUHzh.woff2" as="font" type="font/woff2" crossorigin="">
-    <link rel="modulepreload" href="/tiny-robot/alpha/assets/chunks/theme.CoIiUtkG.js">
-    <link rel="modulepreload" href="/tiny-robot/alpha/assets/chunks/framework.WjEkGhiu.js">
-    <link rel="modulepreload" href="/tiny-robot/alpha/assets/chunks/index.C4nH5rc5.js">
-    <link rel="modulepreload" href="/tiny-robot/alpha/assets/chunks/Basic.tvhO85OA.js">
-    <link rel="modulepreload" href="/tiny-robot/alpha/assets/tools_conversation.md.DxWtLZW9.lean.js">
-    <script id="check-dark-mode">(()=>{const e=localStorage.getItem("vitepress-theme-appearance")||"auto",a=window.matchMedia("(prefers-color-scheme: dark)").matches;(!e||e==="auto"?a:e==="dark")&&document.documentElement.classList.add("dark")})();</script>
-    <script id="check-mac-os">document.documentElement.classList.toggle("mac",/Mac|iPhone|iPod|iPad/i.test(navigator.platform));</script>
-  </head>
-  <body>
-    <div id="app"><div class="Layout" data-v-95014076><!--[--><!--]--><!--[--><span tabindex="-1" data-v-ec82799f></span><a href="#VPContent" class="VPSkipLink visually-hidden" data-v-ec82799f>Skip to content</a><!--]--><!----><header class="VPNav" data-v-95014076 data-v-48f88076><div class="VPNavBar" data-v-48f88076 data-v-a5262c26><div class="wrapper" data-v-a5262c26><div class="container" data-v-a5262c26><div class="title" data-v-a5262c26><div class="VPNavBarTitle has-sidebar" data-v-a5262c26 data-v-fb093f0d><a class="title" href="/tiny-robot/alpha/" data-v-fb093f0d><!--[--><!--]--><!--[--><img class="VPImage logo" src="/tiny-robot/alpha/logo.png" alt data-v-05f692dd><!--]--><span data-v-fb093f0d>TinyRobot</span><!--[--><!--]--></a></div></div><div class="content" data-v-a5262c26><div class="content-body" data-v-a5262c26><!--[--><!--]--><div class="VPNavBarSearch search" data-v-a5262c26><!--[--><!----><div id="local-search"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search"><span class="DocSearch-Button-Container"><span class="vp-icon DocSearch-Search-Icon"></span><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"><kbd class="DocSearch-Button-Key"></kbd><kbd class="DocSearch-Button-Key">K</kbd></span></button></div><!--]--></div><nav aria-labelledby="main-nav-aria-label" class="VPNavBarMenu menu" data-v-a5262c26 data-v-da2d7c32><span id="main-nav-aria-label" class="visually-hidden" data-v-da2d7c32> Main Navigation </span><!--[--><!--[--><a class="VPLink link VPNavBarMenuLink" href="/tiny-robot/alpha/guide/installation.html" tabindex="0" data-v-da2d7c32 data-v-9ee5ee1e><!--[--><span data-v-9ee5ee1e>指南</span><!--]--></a><!--]--><!--[--><a class="VPLink link VPNavBarMenuLink" href="/tiny-robot/alpha/components/bubble.html" tabindex="0" data-v-da2d7c32 data-v-9ee5ee1e><!--[--><span data-v-9ee5ee1e>组件</span><!--]--></a><!--]--><!--[--><a class="VPLink link VPNavBarMenuLink active" href="/tiny-robot/alpha/tools/ai-client.html" tabindex="0" data-v-da2d7c32 data-v-9ee5ee1e><!--[--><span data-v-9ee5ee1e>工具</span><!--]--></a><!--]--><!--[--><a class="VPLink link VPNavBarMenuLink" href="/tiny-robot/alpha/examples/assistant.html" tabindex="0" data-v-da2d7c32 data-v-9ee5ee1e><!--[--><span data-v-9ee5ee1e>演示</span><!--]--></a><!--]--><!--[--><a class="VPLink link VPNavBarMenuLink" href="/tiny-robot/alpha/releases/update-log.html" tabindex="0" data-v-da2d7c32 data-v-9ee5ee1e><!--[--><span data-v-9ee5ee1e>0.3.0-alpha.18</span><!--]--></a><!--]--><!--]--></nav><!----><div class="VPNavBarAppearance appearance" data-v-a5262c26 data-v-41b23b0e><button class="VPSwitch VPSwitchAppearance" type="button" role="switch" title aria-checked="false" data-v-41b23b0e data-v-442a0559 data-v-e295c38a><span class="check" data-v-e295c38a><span class="icon" data-v-e295c38a><!--[--><span class="vpi-sun sun" data-v-442a0559></span><span class="vpi-moon moon" data-v-442a0559></span><!--]--></span></span></button></div><!----><div class="VPFlyout VPNavBarExtra extra" data-v-a5262c26 data-v-f8ce1e7d data-v-df823eed><button type="button" class="button" aria-haspopup="true" aria-expanded="false" aria-label="extra navigation" data-v-df823eed><span class="vpi-more-horizontal icon" data-v-df823eed></span></button><div class="menu" data-v-df823eed><div class="VPMenu" data-v-df823eed data-v-6727265f><!----><!--[--><!--[--><!----><div class="group" data-v-f8ce1e7d><div class="item appearance" data-v-f8ce1e7d><p class="label" data-v-f8ce1e7d>Appearance</p><div class="appearance-action" data-v-f8ce1e7d><button class="VPSwitch VPSwitchAppearance" type="button" role="switch" title aria-checked="false" data-v-f8ce1e7d data-v-442a0559 data-v-e295c38a><span class="check" data-v-e295c38a><span class="icon" data-v-e295c38a><!--[--><span class="vpi-sun sun" data-v-442a0559></span><span class="vpi-moon moon" data-v-442a0559></span><!--]--></span></span></button></div></div></div><!----><!--]--><!--]--></div></div></div><!--[--><!--]--><button type="button" class="VPNavBarHamburger hamburger" aria-label="mobile navigation" aria-expanded="false" aria-controls="VPNavScreen" data-v-a5262c26 data-v-654ab16a><span class="container" data-v-654ab16a><span class="top" data-v-654ab16a></span><span class="middle" data-v-654ab16a></span><span class="bottom" data-v-654ab16a></span></span></button></div></div></div></div><div class="divider" data-v-a5262c26><div class="divider-line" data-v-a5262c26></div></div></div><!----></header><div class="VPLocalNav has-sidebar empty" data-v-95014076 data-v-864a6bc8><div class="container" data-v-864a6bc8><button class="menu" aria-expanded="false" aria-controls="VPSidebarNav" data-v-864a6bc8><span class="vpi-align-left menu-icon" data-v-864a6bc8></span><span class="menu-text" data-v-864a6bc8>Menu</span></button><div class="VPLocalNavOutlineDropdown" style="--vp-vh:0px;" data-v-864a6bc8 data-v-d1a42e90><button data-v-d1a42e90>Return to top</button><!----></div></div></div><aside class="VPSidebar" data-v-95014076 data-v-7dd01983><div class="curtain" data-v-7dd01983></div><nav class="nav" id="VPSidebarNav" aria-labelledby="sidebar-aria-label" tabindex="-1" data-v-7dd01983><span class="visually-hidden" id="sidebar-aria-label" data-v-7dd01983> Sidebar Navigation </span><!--[--><!--]--><!--[--><div class="no-transition group" data-v-b8730ebb><section class="VPSidebarItem level-0 has-active" data-v-b8730ebb data-v-9161d70f><div class="item" role="button" tabindex="0" data-v-9161d70f><div class="indicator" data-v-9161d70f></div><h2 class="text" data-v-9161d70f>工具</h2><!----></div><div class="items" data-v-9161d70f><!--[--><div class="VPSidebarItem level-1 is-link" data-v-9161d70f data-v-9161d70f><div class="item" data-v-9161d70f><div class="indicator" data-v-9161d70f></div><a class="VPLink link link" href="/tiny-robot/alpha/tools/ai-client.html" data-v-9161d70f><!--[--><p class="text" data-v-9161d70f>AI模型交互工具类</p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-9161d70f data-v-9161d70f><div class="item" data-v-9161d70f><div class="indicator" data-v-9161d70f></div><a class="VPLink link link" href="/tiny-robot/alpha/tools/message.html" data-v-9161d70f><!--[--><p class="text" data-v-9161d70f>消息数据管理</p><!--]--></a><!----></div><!----></div><div class="VPSidebarItem level-1 is-link" data-v-9161d70f data-v-9161d70f><div class="item" data-v-9161d70f><div class="indicator" data-v-9161d70f></div><a class="VPLink link link" href="/tiny-robot/alpha/tools/conversation.html" data-v-9161d70f><!--[--><p class="text" data-v-9161d70f>会话数据管理</p><!--]--></a><!----></div><!----></div><!--]--></div></section></div><!--]--><!--[--><!--]--></nav></aside><div class="VPContent has-sidebar" id="VPContent" data-v-95014076 data-v-a2b19bd5><div class="VPDoc has-sidebar has-aside" data-v-a2b19bd5 data-v-723792fb><!--[--><!--]--><div class="container" data-v-723792fb><div class="aside" data-v-723792fb><div class="aside-curtain" data-v-723792fb></div><div class="aside-container" data-v-723792fb><div class="aside-content" data-v-723792fb><div class="VPDocAside" data-v-723792fb data-v-4481cfbd><!--[--><!--]--><!--[--><!--]--><nav aria-labelledby="doc-outline-aria-label" class="VPDocAsideOutline" data-v-4481cfbd data-v-74c8ebf6><div class="content" data-v-74c8ebf6><div class="outline-marker" data-v-74c8ebf6></div><div aria-level="2" class="outline-title" id="doc-outline-aria-label" role="heading" data-v-74c8ebf6>On this page</div><ul class="VPDocOutlineItem root" data-v-74c8ebf6 data-v-98ba1413><!--[--><!--]--></ul></div></nav><!--[--><!--]--><div class="spacer" data-v-4481cfbd></div><!--[--><!--]--><!----><!--[--><!--]--><!--[--><!--]--></div></div></div></div><div class="content" data-v-723792fb><div class="content-container" data-v-723792fb><!--[--><!--]--><main class="main" data-v-723792fb><div style="position:relative;" class="vp-doc _tiny-robot_alpha_tools_conversation" data-v-723792fb><div><h1 id="对话管理-useconversation" tabindex="-1">对话管理 useConversation <a class="header-anchor" href="#对话管理-useconversation" aria-label="Permalink to &quot;对话管理 useConversation&quot;">​</a></h1><p><code>useConversation</code> 是一个对话管理工具，它可以帮助你管理对话的状态和历史记录。</p><h2 id="示例" tabindex="-1">示例 <a class="header-anchor" href="#示例" aria-label="Permalink to &quot;示例&quot;">​</a></h2><div class="vitepress-demo-plugin-placeholder__container" style="" data-v-5eb3f8d4><div class="loader" data-v-5eb3f8d4></div><div class="loading-text" data-v-5eb3f8d4>loading</div></div><!----><h2 id="api" tabindex="-1">API <a class="header-anchor" href="#api" aria-label="Permalink to &quot;API&quot;">​</a></h2><p><code>useConversation</code> 返回以下内容：</p><div class="language-typescript vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">typescript</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">interface</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UseConversationReturn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> {</span></span>
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/chunks/Basic.tvhO85OA.js","assets/chunks/index.DCvxHCxL.js","assets/chunks/framework.WjEkGhiu.js","assets/chunks/tiny-robot-svgs.B2XD9sQ_.js"])))=>i.map(i=>d[i]);
+import{p as r,D as d,v as g,V as o,C as E,c as y,o as F,j as i,ag as c,G as a,ah as C,a as l,ai as A,k as n,w as k,aj as D}from"./chunks/framework.WjEkGhiu.js";import{R as v,k as u}from"./chunks/index.C4nH5rc5.js";const B=`<template>
+  <h1>会话</h1>
+  <tr-bubble-list :items="messages" :roles="roles"></tr-bubble-list>
+  <div class="actions">
+    <span><b>切换会话</b></span
+    ><tiny-select :modelValue="state.currentId" :options="options" @change="switchConversation($event)"></tiny-select>
+    <tiny-button type="info" @click="createConversation()">创建新对话</tiny-button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { BubbleRoleConfig } from '@opentiny/tiny-robot'
+import { useConversation, AIClient, ConversationStorageStrategy, Conversation } from '@opentiny/tiny-robot-kit'
+import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
+import { computed, h } from 'vue'
+
+class MockStorageStrategy implements ConversationStorageStrategy {
+  mockData: Conversation[] = [
+    {
+      id: 'm9zfbomexdm9pza',
+      title: '安排日程',
+      createdAt: 1745744706662,
+      updatedAt: 1745744717297,
+      messages: [
+        {
+          role: 'user',
+          content: '今天需要我帮你安排日程，规划旅行，还是起草一封邮件？',
+        },
+        {
+          role: 'assistant',
+          content: '这是对 "今天需要我帮你安排日程，规划旅行，还是起草一封邮件？" 的模拟回复。',
+        },
+      ],
+      metadata: {},
+    },
+    {
+      id: 'm9zefqta1rihhpj',
+      title: '写段文案',
+      createdAt: 1745743216510,
+      updatedAt: 1745744704671,
+      messages: [
+        {
+          role: 'user',
+          content: '想写段文案、起个名字，还是来点灵感？',
+        },
+        {
+          role: 'assistant',
+          content: '这是对 "想写段文案、起个名字，还是来点灵感？" 的模拟回复。',
+        },
+        {
+          role: 'user',
+          content: 'hello',
+        },
+        {
+          role: 'assistant',
+          content: '你好！我是TinyRobot搭建的AI助手。你可以问我任何问题，我会尽力回答。',
+        },
+      ],
+      metadata: {},
+    },
+  ]
+
+  async saveConversations(conversations: Conversation[]) {
+    this.mockData = conversations
+  }
+
+  async loadConversations(): Promise<Conversation[]> {
+    return this.mockData || []
+  }
+}
+
+const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
+
+const roles: Record<string, BubbleRoleConfig> = {
+  assistant: {
+    placement: 'start',
+    avatar: aiAvatar,
+    maxWidth: '80%',
+  },
+  user: {
+    placement: 'end',
+    avatar: userAvatar,
+    maxWidth: '80%',
+  },
+}
+
+const client = new AIClient({
+  provider: 'openai',
+  // apiKey: 'your-api-key',
+  defaultModel: 'gpt-3.5-turbo',
+  apiUrl: location.origin + import.meta.env.BASE_URL,
+})
+
+const storage = new MockStorageStrategy()
+const {
+  state,
+  messageManager: { messages }, // 与 useMessage 返回一致，具体查看useMessage
+  createConversation,
+  switchConversation,
+} = useConversation({ client, storage })
+
+const options = computed(() =>
+  state.conversations.map((conversation) => ({
+    label: conversation.title,
+    value: conversation.id,
+  })),
+)
+
+console.log('state: ', state)
+<\/script>
+
+<style lang="less" scoped>
+.tiny-select {
+  width: 280px;
+  margin-left: 4px;
+}
+
+.tiny-button {
+  margin-left: 10px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+</style>
+`,S=JSON.parse('{"title":"对话管理 useConversation","description":"","frontmatter":{},"headers":[],"relativePath":"tools/conversation.md","filePath":"tools/conversation.md"}'),m={name:"tools/conversation.md"},x=Object.assign(m,{setup(b){const h=r(!0),t=d();return g(async()=>{t.value=(await o(async()=>{const{default:e}=await import("./chunks/Basic.tvhO85OA.js");return{default:e}},__vite__mapDeps([0,1,2,3]))).default}),(e,s)=>{const p=E("ClientOnly");return F(),y("div",null,[s[1]||(s[1]=i("h1",{id:"对话管理-useconversation",tabindex:"-1"},[l("对话管理 useConversation "),i("a",{class:"header-anchor",href:"#对话管理-useconversation","aria-label":'Permalink to "对话管理 useConversation"'},"​")],-1)),s[2]||(s[2]=i("p",null,[i("code",null,"useConversation"),l(" 是一个对话管理工具，它可以帮助你管理对话的状态和历史记录。")],-1)),s[3]||(s[3]=i("h2",{id:"示例",tabindex:"-1"},[l("示例 "),i("a",{class:"header-anchor",href:"#示例","aria-label":'Permalink to "示例"'},"​")],-1)),c(a(n(v),null,null,512),[[A,h.value]]),a(p,null,{default:k(()=>[a(n(u),{title:"",description:"",locale:"",select:"vue",order:"vue,react,html",github:"",gitlab:"",theme:"",lightTheme:"",darkTheme:"",stackblitz:"%7B%22show%22%3Afalse%7D",codesandbox:"%7B%22show%22%3Afalse%7D",codeplayer:"%7B%22show%22%3Afalse%7D",files:"%7B%22vue%22%3A%7B%7D%2C%22react%22%3A%7B%7D%2C%22html%22%3A%7B%7D%7D",scope:"",htmlWriteWay:"write",visible:!0,onMount:s[0]||(s[0]=()=>{h.value=!1}),vueCode:n(B)},D({_:2},[t.value?{name:"vue",fn:k(()=>[a(n(t))]),key:"0"}:void 0]),1032,["vueCode"])]),_:1}),s[4]||(s[4]=C(`<h2 id="api" tabindex="-1">API <a class="header-anchor" href="#api" aria-label="Permalink to &quot;API&quot;">​</a></h2><p><code>useConversation</code> 返回以下内容：</p><div class="language-typescript vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang">typescript</span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">interface</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> UseConversationReturn</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;"> {</span></span>
 <span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">  /** 会话状态 */</span></span>
 <span class="line"><span style="--shiki-light:#E36209;--shiki-dark:#FFAB70;">  state</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">:</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> ConversationState</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">;</span></span>
 <span class="line"><span style="--shiki-light:#6A737D;--shiki-dark:#6A737D;">  /** 消息管理 */</span></span>
@@ -87,8 +194,4 @@
 <span class="line"><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">const</span><span style="--shiki-light:#005CC5;--shiki-dark:#79B8FF;"> conversationManager</span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;"> =</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> useConversation</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">({</span></span>
 <span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  client,</span></span>
 <span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">  storage: </span><span style="--shiki-light:#D73A49;--shiki-dark:#F97583;">new</span><span style="--shiki-light:#6F42C1;--shiki-dark:#B392F0;"> CustomStorageStrategy</span><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">(),</span></span>
-<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">});</span></span></code></pre></div></div></div></main><footer class="VPDocFooter" data-v-723792fb data-v-c09d971b><!--[--><!--]--><!----><nav class="prev-next" aria-labelledby="doc-footer-aria-label" data-v-c09d971b><span class="visually-hidden" id="doc-footer-aria-label" data-v-c09d971b>Pager</span><div class="pager" data-v-c09d971b><a class="VPLink link pager-link prev" href="/tiny-robot/alpha/tools/message.html" data-v-c09d971b><!--[--><span class="desc" data-v-c09d971b>Previous page</span><span class="title" data-v-c09d971b>消息数据管理</span><!--]--></a></div><div class="pager" data-v-c09d971b><!----></div></nav></footer><!--[--><!--]--></div></div></div><!--[--><!--]--></div></div><!----><!--[--><!--]--></div></div>
-    <script>window.__VP_HASH_MAP__=JSON.parse("{\"components_attachments.md\":\"Dr5LZBre\",\"components_bubble.md\":\"CaLWqf9Z\",\"components_container.md\":\"BmqB1rXt\",\"components_drag-overlay.md\":\"BMKsNfl8\",\"components_dropdown-menu.md\":\"CjYxajsJ\",\"components_feedback.md\":\"C6NOOYOW\",\"components_history.md\":\"gA_G_5eM\",\"components_mcp-server-picker.md\":\"DGWzZi_z\",\"components_prompts.md\":\"CKkPZ8S6\",\"components_sender.md\":\"B_QWf7UA\",\"components_suggestion-pills.md\":\"Cqnp9F7W\",\"components_suggestion-popover.md\":\"BBbS310M\",\"components_welcome.md\":\"DLrbt2A9\",\"examples_assistant.md\":\"23VZ_C42\",\"guide_installation.md\":\"nznYpDkG\",\"index.md\":\"DEzU_W3Q\",\"releases_update-log.md\":\"ucsHQS7-\",\"tools_ai-client.md\":\"C81GdqM9\",\"tools_conversation.md\":\"DxWtLZW9\",\"tools_message.md\":\"n-3qYwTb\"}");window.__VP_SITE_DATA__=JSON.parse("{\"lang\":\"en-US\",\"dir\":\"ltr\",\"title\":\"TinyRobot\",\"description\":\"TinyRobot\",\"base\":\"/tiny-robot/alpha/\",\"head\":[],\"router\":{\"prefetchLinks\":true},\"appearance\":true,\"themeConfig\":{\"logo\":\"/logo.png\",\"siteTitle\":\"TinyRobot\",\"nav\":[{\"text\":\"指南\",\"link\":\"/guide/installation\",\"activeMatch\":\"/guide/\"},{\"text\":\"组件\",\"link\":\"/components/bubble\",\"activeMatch\":\"/components/\"},{\"text\":\"工具\",\"link\":\"/tools/ai-client\",\"activeMatch\":\"/tools/\"},{\"text\":\"演示\",\"link\":\"/examples/assistant\",\"activeMatch\":\"/examples/\"},{\"text\":\"0.3.0-alpha.18\",\"link\":\"/releases/update-log\",\"activeMatch\":\"/releases/\"}],\"sidebar\":{\"/components/\":[{\"text\":\"组件\",\"base\":\"/components/\",\"items\":[{\"text\":\"Container 容器\",\"link\":\"container\"},{\"text\":\"Bubble 气泡\",\"link\":\"bubble\"},{\"text\":\"Sender 消息输入框\",\"link\":\"sender\"},{\"text\":\"Prompts 提示集\",\"link\":\"prompts\"},{\"text\":\"Welcome 欢迎\",\"link\":\"welcome\"},{\"text\":\"Feedback 气泡反馈\",\"link\":\"feedback\"},{\"text\":\"History 历史\",\"link\":\"history\"},{\"text\":\"DropdownMenu 下拉菜单\",\"link\":\"dropdown-menu\"},{\"text\":\"SuggestionPopover 建议弹出框\",\"link\":\"suggestion-popover\"},{\"text\":\"SuggestionPills 建议按钮组\",\"link\":\"suggestion-pills\"},{\"text\":\"DragOverlay 拖拽浮层\",\"link\":\"drag-overlay\"},{\"text\":\"Attachments 附件卡片\",\"link\":\"attachments\"},{\"text\":\"McpServerPicker 插件选择器\",\"link\":\"mcp-server-picker\"}]}],\"/tools/\":[{\"text\":\"工具\",\"base\":\"/tools/\",\"items\":[{\"text\":\"AI模型交互工具类\",\"link\":\"ai-client\"},{\"text\":\"消息数据管理\",\"link\":\"message\"},{\"text\":\"会话数据管理\",\"link\":\"conversation\"}]}]},\"search\":{\"provider\":\"local\"}},\"locales\":{},\"scrollOffset\":134,\"cleanUrls\":false}");</script>
-    
-  </body>
-</html>
+<span class="line"><span style="--shiki-light:#24292E;--shiki-dark:#E1E4E8;">});</span></span></code></pre></div>`,10))])}}});export{S as __pageData,x as default};
