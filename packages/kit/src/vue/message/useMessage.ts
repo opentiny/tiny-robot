@@ -126,6 +126,12 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
             messages.value.push({ role: 'assistant', content: '' })
           }
           const choice = data.choices?.[0]
+          if (choice && choice.delta.reasoning_content) {
+            if (!messages.value[messages.value.length - 1].reasoning_content) {
+              messages.value[messages.value.length - 1].reasoning_content = ''
+            }
+            messages.value[messages.value.length - 1].reasoning_content += choice.delta.reasoning_content
+          }
           if (choice && choice.delta.content) {
             messages.value[messages.value.length - 1].content += choice.delta.content
           }

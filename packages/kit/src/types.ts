@@ -10,7 +10,8 @@ export type MessageRole = 'system' | 'user' | 'assistant'
  */
 export interface ChatMessage {
   role: MessageRole
-  content: string
+  content: string | null
+  reasoning_content?: string | null
   name?: string
 }
 
@@ -84,6 +85,7 @@ export interface ChatCompletionResponse {
 export interface ChatCompletionStreamResponseDelta {
   content?: string
   role?: MessageRole
+  reasoning_content?: string | null
 }
 
 /**
