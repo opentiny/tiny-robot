@@ -76,6 +76,10 @@ const handleAdd = () => {
   const newAddedState = !isAdded.value
   emit('add-plugin', newAddedState)
 }
+
+const getHoverTitle = (isEnabled: boolean) => {
+  return isEnabled ? '关闭插件' : '打开插件'
+}
 </script>
 
 <template>
@@ -96,13 +100,13 @@ const handleAdd = () => {
           <template v-if="mode === 'installed'">
             <div v-if="expandable" class="plugin-card__expand" @click="handleToggleExpand">
               <slot name="expand-icon" :expanded="isExpanded">
-                <IconArrowRight style="font-size: 16px; cursor: pointer" v-if="!isExpanded" />
-                <IconArrowDown style="font-size: 16px; cursor: pointer" v-else />
+                <IconArrowRight class="common-icon" v-if="!isExpanded" />
+                <IconArrowDown class="common-icon" v-else />
               </slot>
             </div>
             <div class="plugin-card__operations">
               <TinyPopconfirm
-                title="确定删除该插件吗？"
+                title="确定移除该插件吗？"
                 style="height: 16px"
                 type="info"
                 @confirm="handleDelete"
@@ -110,11 +114,14 @@ const handleAdd = () => {
               >
                 <template #reference>
                   <slot name="delete-icon">
-                    <IconDelete style="font-size: 16px; cursor: pointer" />
+                    <span title="移除插件">
+                      <IconDelete class="common-icon" />
+                    </span>
                   </slot>
                 </template>
               </TinyPopconfirm>
               <TinySwitch
+                :title="getHoverTitle(pluginState.checked)"
                 :model-value="pluginState.checked"
                 :indeterminate="pluginState.indeterminate"
                 @update:model-value="handlePluginToggle"
@@ -155,6 +162,7 @@ const handleAdd = () => {
             </div>
             <div class="plugin-card__actions plugin-card__actions--tool">
               <TinySwitch
+                :title="getHoverTitle(tool.enabled)"
                 :model-value="tool.enabled"
                 @update:model-value="(enabled: boolean) => handleToolToggle(tool.id, enabled)"
               />
@@ -178,12 +186,11 @@ const handleAdd = () => {
   overflow: hidden;
 
   &__main {
-    width: 440px;
     display: flex;
     align-items: center;
     gap: 16px;
     box-sizing: border-box;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 14px 24px;
     background: transparent;
     transition: border-radius 0.3s ease;
@@ -227,9 +234,8 @@ const handleAdd = () => {
   }
 
   &__count {
-    width: 49px;
     height: 18px;
-    padding: 0 4px;
+    padding: 0 6px;
     border-radius: 4px;
     box-sizing: content-box;
     background: rgb(230, 230, 230);
@@ -271,17 +277,17 @@ const handleAdd = () => {
     align-items: center;
     cursor: pointer;
     transition: all 0.3s ease;
-
-    &:hover {
-      opacity: 0.7;
-    }
   }
 
   &__operations {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+
+    :deep(.tiny-popconfirm) {
+      height: 24px !important;
+    }
   }
 
   &__add {
@@ -378,5 +384,18 @@ const handleAdd = () => {
 
 .tiny-button {
   --tv-Button-height-small: 16px;
+}
+
+.common-icon {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.common-icon:hover {
+  border-radius: 8px;
+  background: #f5f5f5;
 }
 </style>

@@ -82,7 +82,7 @@ onUnmounted(() => {
         v-model="formData.description"
         class="form-editor__textarea"
         placeholder="请输入插件描述"
-        rows="4"
+        row="1"
       ></textarea>
     </div>
 
@@ -105,7 +105,7 @@ onUnmounted(() => {
         v-model="formData.headers"
         class="form-editor__textarea"
         placeholder="请输入请求头，格式为JSON"
-        rows="4"
+        row="1"
       ></textarea>
     </div>
 
@@ -174,7 +174,7 @@ onUnmounted(() => {
     color: #191919;
     background-color: #ffffff;
     resize: vertical;
-    min-height: 80px;
+    height: 60px;
     font-family: inherit;
     transition: border-color 0.2s;
 

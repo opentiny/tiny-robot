@@ -86,6 +86,162 @@ const installedPlugins = ref<PluginInfo[]>([
         description: '查看和管理仓库 Issues',
         enabled: false,
       },
+      {
+        id: 'tool-2',
+        name: '创建 PR',
+        description: '创建新的 Pull Request',
+        enabled: true,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
+      {
+        id: 'tool-3',
+        name: '查看 Issues',
+        description: '查看和管理仓库 Issues',
+        enabled: false,
+      },
     ],
   },
   {
@@ -157,7 +313,7 @@ const marketCategoryOptions = ref<MarketCategoryOption[]>([
   { value: 'ai', label: 'AI 助手' },
 ])
 
-const visible = ref(false)
+const visible = ref(true)
 
 const handleVisibleToggle = () => {
   visible.value = true

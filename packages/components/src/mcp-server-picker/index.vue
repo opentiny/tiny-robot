@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
     position: {},
     drawer: { direction: 'right' },
   }),
-  installedTabTitle: '已安装插件',
+  installedTabTitle: '已添加插件',
   marketTabTitle: '市场',
   title: '插件',
   showCustomAddButton: true,
@@ -289,7 +289,7 @@ const transitionName = computed(() => {
               <div class="mcp-server-picker__content-installed-list">
                 <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
                 <template v-else>
-                  <!-- 已安装插件列表 -->
+                  <!-- 已添加插件列表 -->
                   <PluginCard
                     v-for="plugin in installedPluginsList"
                     :key="plugin.id"
@@ -363,14 +363,15 @@ const transitionName = computed(() => {
   border: 1px solid rgb(219, 219, 219);
   padding: 20px;
 
+  &::-webkit-scrollbar {
+    width: 6px !important;
+  }
+
   // 默认样式(fixed模式)
   &.popup-type-fixed {
     width: 482px;
     height: auto;
-    max-height: 100vh;
     overflow-y: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   // 抽屉模式样式
@@ -388,6 +389,7 @@ const transitionName = computed(() => {
     margin-bottom: 18px;
 
     &-left {
+      color: #191919;
       font-size: 16px;
       font-weight: 600;
     }
@@ -405,23 +407,31 @@ const transitionName = computed(() => {
         gap: 4px;
         cursor: pointer;
         color: rgb(25, 25, 25);
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 400;
-        line-height: 22px;
+        line-height: 18px;
+        text-align: center;
         border: 1px solid rgb(89, 89, 89);
         box-sizing: border-box;
         border-radius: 999px;
-        padding: 5px 16px;
+        padding: 7px 20px;
 
         &:hover {
-          background-color: rgb(245, 245, 245);
-          border-color: rgb(25, 25, 25);
+          border-color: rgb(194, 194, 194);
         }
       }
 
       &-close {
-        font-size: 24px;
+        width: 28px;
+        height: 28px;
+        padding: 4px;
+        font-size: 20px;
         cursor: pointer;
+      }
+
+      &-close:hover {
+        background: #f5f5f5;
+        border-radius: 8px;
       }
     }
   }
@@ -518,7 +528,6 @@ const transitionName = computed(() => {
 
 :deep(.tiny-tabs__item__title) {
   font-size: 14px;
-  font-weight: 600;
   color: rgb(25, 25, 25);
   line-height: 22px;
 }
