@@ -4,7 +4,7 @@
  */
 
 import { reactive, Reactive, ref, toRaw, type Ref } from 'vue'
-import type { ChatMessage } from '../../types'
+import type { ChatMessage, MessageContent } from '../../types'
 import type { AIClient } from '../../client'
 
 export enum STATUS {
@@ -53,7 +53,7 @@ export interface UseMessageReturn {
   /** 是否使用流式响应 */
   useStream: Ref<boolean>
   /** 发送消息 */
-  sendMessage: (content?: string, clearInput?: boolean) => Promise<void>
+  sendMessage: (content?: MessageContent, clearInput?: boolean) => Promise<void>
   /** 清空消息 */
   clearMessages: () => void
   /** 添加消息 */
@@ -167,8 +167,9 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
   }
 
   // 发送消息
-  const sendMessage = async (content: string = inputMessage.value, clearInput: boolean = true) => {
-    if (!content?.trim() || GeneratingStatus.includes(messageState.status)) {
+  const sendMessage = async (content: MessageContent = inputMessage.value, clearInput: boolean = true) => {
+    const isEmptyContent = (typeof content === 'string' && !content.trim()) || content.length === 0
+    if (isEmptyContent || GeneratingStatus.includes(messageState.status)) {
       return
     }
 
