@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<PluginCardProps>(), {
 
 const emit = defineEmits<PluginCardEmits>()
 
-const isExpanded = ref(false)
+const isExpanded = ref(props.plugin.expanded || false)
 const toolCount = computed(() => props.plugin.tools?.length || 0)
 // 工具数量大于0时，插件可展开
 const expandable = computed(() => toolCount.value > 0)

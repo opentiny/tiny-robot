@@ -11,6 +11,7 @@ export interface PluginInfo {
   icon: string
   description: string
   enabled: boolean
+  expanded?: boolean
   tools: PluginTool[]
   added?: boolean
   category?: string

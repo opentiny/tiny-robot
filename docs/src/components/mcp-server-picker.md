@@ -116,6 +116,7 @@ interface PluginInfo {
   icon: string            // 插件图标URL
   description: string     // 插件描述
   enabled: boolean       // 是否启用
+  expanded?: boolean      // 是否展开
   tools: PluginTool[]    // 工具列表
   added?: boolean         // 市场插件添加状态(可选)
   category?: string       // 插件分类(可选，用于市场分类筛选)

@@ -67,6 +67,7 @@ const installedPlugins = ref<PluginInfo[]>([
     icon: 'https://github.com/favicon.ico',
     description: '与 GitHub 仓库集成，提供代码搜索、PR 管理等功能',
     enabled: true,
+    expanded: true,
     tools: [
       {
         id: 'tool-1',
@@ -86,162 +87,6 @@ const installedPlugins = ref<PluginInfo[]>([
         description: '查看和管理仓库 Issues',
         enabled: false,
       },
-      {
-        id: 'tool-2',
-        name: '创建 PR',
-        description: '创建新的 Pull Request',
-        enabled: true,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
-      {
-        id: 'tool-3',
-        name: '查看 Issues',
-        description: '查看和管理仓库 Issues',
-        enabled: false,
-      },
     ],
   },
   {
@@ -250,6 +95,7 @@ const installedPlugins = ref<PluginInfo[]>([
     icon: 'https://slack.com/favicon.ico',
     description: '发送消息到 Slack 频道',
     enabled: false,
+    expanded: true,
     tools: [
       {
         id: 'tool-4',
@@ -313,7 +159,7 @@ const marketCategoryOptions = ref<MarketCategoryOption[]>([
   { value: 'ai', label: 'AI 助手' },
 ])
 
-const visible = ref(true)
+const visible = ref(false)
 
 const handleVisibleToggle = () => {
   visible.value = true

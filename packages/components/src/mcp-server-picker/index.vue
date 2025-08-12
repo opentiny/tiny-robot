@@ -5,7 +5,7 @@ import TinyInput from '@opentiny/vue-input'
 import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
 import { ref, computed, watch } from 'vue'
-import { PluginCard, PluginModal } from './components'
+import { PluginCard, PluginModal, NoData } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
 import type {
   PluginInfo,
@@ -60,6 +60,7 @@ const marketPluginsList = computed(() => props.marketPlugins)
 
 // 计算激活的插件数量
 const activePluginCount = computed(() => {
+  if (!installedPluginsList.value || installedPluginsList.value.length === 0) return 0
   return installedPluginsList.value.filter((plugin) => plugin.enabled).length
 })
 
@@ -288,6 +289,7 @@ const transitionName = computed(() => {
 
               <div class="mcp-server-picker__content-installed-list">
                 <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
+                <NoData v-else-if="installedPluginsList.length === 0" />
                 <template v-else>
                   <!-- 已添加插件列表 -->
                   <PluginCard
@@ -333,6 +335,7 @@ const transitionName = computed(() => {
 
             <div class="mcp-server-picker__content-market-list">
               <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
+              <NoData v-else-if="marketPluginsList.length === 0" />
               <template v-else>
                 <!-- 插件市场列表 -->
                 <PluginCard
