@@ -1,22 +1,41 @@
 <template>
-  <div class="tr-mcp__no-data-wrapper">
-    <slot>
-      <img class="tr-mcp__no-data" src="../../assets/svgs/no-data.svg" />
-      <span class="tr-mcp__no-data-text">暂时没有内容</span>
-    </slot>
-  </div>
+  <section class="empty-state" role="status" aria-live="polite">
+    <IconEmptySearch v-if="hasSearchQuery" class="empty-state__illustration" />
+    <IconNoData v-else class="empty-state__illustration" />
+    <p class="empty-state__message">
+      {{ message }}
+    </p>
+  </section>
 </template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { IconEmptySearch, IconNoData } from '@opentiny/tiny-robot-svgs'
+
+interface EmptyStateProps {
+  searchQuery: string
+}
+
+const props = withDefaults(defineProps<EmptyStateProps>(), {
+  searchQuery: '',
+})
+
+const hasSearchQuery = computed(() => !!props.searchQuery?.trim())
+const message = computed(() => (hasSearchQuery.value ? '暂无搜索结果' : '暂无数据'))
+</script>
 
 <style lang="less">
 :root {
-  --tr-mcp-no-data-color: #191919;
-  --tr-mcp-no-data-font-size: 12px;
-  --tr-mcp-no-data-line-height: 24px;
+  --empty-state-illustration-size: 112px;
+  --empty-state-message-color: #191919;
+  --empty-state-message-font-size: 12px;
+  --empty-state-message-line-height: 24px;
+  --empty-state-spacing: 12px;
 }
 </style>
 
 <style scoped lang="less">
-.tr-mcp__no-data-wrapper {
+.empty-state {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -24,16 +43,17 @@
   justify-content: center;
   margin-top: 180px;
 
-  .tr-mcp__no-data {
-    width: 112px;
-    height: 112px;
+  &__illustration {
+    width: var(--empty-state-illustration-size);
+    height: var(--empty-state-illustration-size);
   }
 
-  .tr-mcp__no-data-text {
-    margin-top: 12px;
-    font-size: var(--tr-mcp-no-data-font-size);
-    line-height: var(--tr-mcp-no-data-line-height);
-    color: var(--tr-mcp-no-data-color);
+  &__message {
+    margin-top: var(--empty-state-spacing);
+    font-size: var(--empty-state-message-font-size);
+    line-height: var(--empty-state-message-line-height);
+    color: var(--empty-state-message-color);
+    text-align: center;
   }
 }
 </style>

@@ -26,6 +26,8 @@
     :installed-plugins="installedPlugins"
     :market-plugins="marketPlugins"
     :market-category-options="marketCategoryOptions"
+    :installed-search-fn="handleInstalledSearchFn"
+    :market-search-fn="handleMarketSearchFn"
     :loading="loading"
     :market-loading="marketLoading"
     @plugin-toggle="handlePluginToggle"
@@ -33,7 +35,6 @@
     @plugin-create="handlePluginCreate"
     @plugin-delete="handlePluginDelete"
     @tool-toggle="handleToolToggle"
-    @search="handleSearch"
     @tab-change="handleTabChange"
     @market-category-change="handleMarketCategoryChange"
   />
@@ -147,6 +148,7 @@ const marketPlugins = ref<PluginInfo[]>([
     enabled: false,
     added: false,
     tools: [{ id: 'tool-9', name: '发送消息', description: '发送 Telegram 消息', enabled: false }],
+    category: 'ai',
   },
 ])
 
@@ -238,8 +240,14 @@ const handlePluginCreate = (type: 'form' | 'code', data: PluginCreationData) => 
   }
 }
 
-const handleSearch = (query: string, tab: string) => {
-  console.log('搜索:', query, '在', tab)
+const handleInstalledSearchFn = (query: string, item: PluginInfo) => {
+  console.log('已添加插件搜索:', query, item.name)
+  return item.name.toLowerCase().includes(query.toLowerCase())
+}
+
+const handleMarketSearchFn = (query: string, item: PluginInfo) => {
+  console.log('市场插件搜索:', query, item.name)
+  return item.name.toLowerCase().includes(query.toLowerCase())
 }
 
 const handleTabChange = (activeTab: string) => {

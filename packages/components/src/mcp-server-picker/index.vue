@@ -4,6 +4,7 @@ import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
 import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
+import TinyModal from '@opentiny/vue-modal'
 import { ref, computed, watch } from 'vue'
 import { PluginCard, PluginModal, NoData } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
@@ -42,6 +43,18 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   allowPluginAdd: true,
   loading: false,
   marketLoading: false,
+  installedSearchFn: (query: string, item: PluginInfo) => {
+    if (!query) {
+      return true
+    }
+    return item.name.toLowerCase().includes(query.toLowerCase())
+  },
+  marketSearchFn: (query: string, item: PluginInfo) => {
+    if (!query) {
+      return true
+    }
+    return item.name.toLowerCase().includes(query.toLowerCase())
+  },
 })
 
 const emit = defineEmits<McpServerPickerEmits>()
@@ -80,12 +93,36 @@ watch(activeTab, (newTab, oldTab) => {
 })
 
 // 监听搜索变化
-watch(installedSearch, (query) => {
-  emit('search', query, 'installed')
+const installedFilteredPlugins = computed(() => {
+  return installedPluginsList.value.filter((plugin) => props.installedSearchFn(installedSearch.value, plugin))
 })
 
-watch(marketSearch, (query) => {
-  emit('search', query, 'market')
+const marketFilteredPlugins = computed(() => {
+  const { category, search } = {
+    category: marketCategory.value,
+    search: marketSearch.value,
+  }
+
+  // 基础过滤函数：同时处理分类和搜索条件
+  const filterFn = (plugin: PluginInfo) => {
+    // 分类匹配：若有分类条件，则插件分类必须匹配；否则直接通过
+    const matchCategory = !category || plugin.category === category
+    // 搜索匹配：若有搜索条件，则通过搜索函数校验；否则直接通过
+    const matchSearch = !search || props.marketSearchFn(search, plugin)
+    // 同时满足分类和搜索条件
+    return matchCategory && matchSearch
+  }
+
+  // 统一过滤
+  return marketPluginsList.value.filter(filterFn)
+})
+
+const hasFilteredPlugins = computed(() => {
+  if (activeTab.value === 'installed') {
+    return installedFilteredPlugins.value.length > 0
+  }
+
+  return marketFilteredPlugins.value.length > 0
 })
 
 watch(marketCategory, (category) => {
@@ -138,12 +175,21 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
 
 const handleDeletePlugin = (plugin: PluginInfo) => {
   if (!props.allowPluginDelete) return
+  TinyModal.message({
+    message: `${plugin.name} 已移除`,
+    status: 'success',
+  })
   emit('plugin-delete', plugin)
 }
 
 const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
   if (!props.allowPluginAdd) return
-
+  if (added) {
+    TinyModal.message({
+      message: `${plugin.name} 已添加`,
+      status: 'success',
+    })
+  }
   emit('plugin-add', plugin, added)
 }
 
@@ -287,13 +333,12 @@ const transitionName = computed(() => {
                 </TinyInput>
               </div>
 
-              <div class="mcp-server-picker__content-installed-list">
+              <div class="mcp-server-picker__content-installed-list" v-if="hasFilteredPlugins">
                 <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
-                <NoData v-else-if="installedPluginsList.length === 0" />
                 <template v-else>
                   <!-- 已添加插件列表 -->
                   <PluginCard
-                    v-for="plugin in installedPluginsList"
+                    v-for="plugin in installedFilteredPlugins"
                     :key="plugin.id"
                     :plugin="plugin"
                     mode="installed"
@@ -304,6 +349,7 @@ const transitionName = computed(() => {
                   />
                 </template>
               </div>
+              <NoData v-else :search-query="installedSearch" />
             </div>
           </TinyTabItem>
 
@@ -333,13 +379,12 @@ const transitionName = computed(() => {
               </div>
             </div>
 
-            <div class="mcp-server-picker__content-market-list">
+            <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-market-list">
               <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
-              <NoData v-else-if="marketPluginsList.length === 0" />
               <template v-else>
                 <!-- 插件市场列表 -->
                 <PluginCard
-                  v-for="plugin in marketPluginsList"
+                  v-for="plugin in marketFilteredPlugins"
                   :key="plugin.id"
                   :plugin="plugin"
                   mode="market"
@@ -349,6 +394,7 @@ const transitionName = computed(() => {
                 />
               </template>
             </div>
+            <NoData v-else :search-query="marketSearch || marketCategory" />
           </TinyTabItem>
         </TinyTabs>
       </div>
