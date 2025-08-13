@@ -118,6 +118,10 @@ const templates = [
       { type: 'text', content: '。' },
     ],
   },
+  {
+    name: '模板6',
+    data: [{ type: 'text', content: 'ECS 服务器的最新版本' }],
+  },
 ]
 
 // 选择模板
