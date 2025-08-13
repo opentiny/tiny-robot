@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { IconArrowDown, IconArrowUp, IconCopy, IconDislike, IconLike, IconRefresh } from '@opentiny/tiny-robot-svgs'
-import TinyButton from '@opentiny/vue-button'
+import { TinyButton } from '@opentiny/vue'
 import { ref } from 'vue'
 import ActionGroup, { ActionGroupItem } from '../action-group'
 import IconButton from '../icon-button'

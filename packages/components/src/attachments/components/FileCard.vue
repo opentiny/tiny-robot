@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import TinyTooltip from '@opentiny/vue-tooltip'
+import { TinyTooltip } from '@opentiny/vue'
 import { useFileType, useFileCard } from '../composables'
 import type { FileType, FileCardProps } from '../index.type'
 import { IconFileRemove, IconImageLoading, IconImageWarning } from '@opentiny/tiny-robot-svgs'

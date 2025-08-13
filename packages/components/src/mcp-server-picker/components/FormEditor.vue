@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import TinyRadioGroup from '@opentiny/vue-radio-group'
+import { TinyRadioGroup } from '@opentiny/vue'
 import { ref, onUnmounted, watch } from 'vue'
 import { useFileDialog } from '@vueuse/core'
 import type { PluginFormData } from '../index.type'

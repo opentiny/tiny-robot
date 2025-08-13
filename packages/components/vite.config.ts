@@ -1,4 +1,3 @@
-import importPlugin from '@opentiny/vue-vite-import'
 import vue from '@vitejs/plugin-vue'
 import vuejsx from '@vitejs/plugin-vue-jsx'
 import { readdirSync } from 'fs'
@@ -32,20 +31,6 @@ export default defineConfig({
       entryRoot: 'src',
       tsconfigPath: './tsconfig.json',
     }),
-    importPlugin(
-      [
-        {
-          libraryName: '@opentiny/vue',
-        },
-        {
-          libraryName: `@opentiny/vue-icon`,
-          customName: (name) => {
-            return `@opentiny/vue-icon/lib/${name.replace(/^icon-/, '')}.js`
-          },
-        },
-      ],
-      'pc', // 此配置非必选，按需配置 (pc|mobile|mobile-first)
-    ),
   ],
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
@@ -58,7 +43,7 @@ export default defineConfig({
     },
     minify: true,
     rollupOptions: {
-      external: ['vue', 'vue-router'],
+      external: ['vue', 'vue-router', '@opentiny/vue', '@opentiny/tiny-robot-svgs'],
       input: entries,
       output: {
         format: 'es',
