@@ -89,7 +89,7 @@ onUnmounted(() => {
     <!-- 类型 -->
     <div class="form-editor__item">
       <label class="form-editor__label">类型</label>
-      <tiny-radio-group v-model="formData.type" :options="typeOptions" style="padding: 1px 0" />
+      <tiny-radio-group v-model="formData.type" :options="typeOptions" class="form-editor__radio-group" />
     </div>
 
     <!-- URL -->
@@ -154,6 +154,7 @@ onUnmounted(() => {
     color: #191919;
     background-color: #ffffff;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 
     &:focus {
       outline: none;
@@ -163,6 +164,11 @@ onUnmounted(() => {
     &::placeholder {
       color: #999999;
     }
+  }
+
+  &__radio-group {
+    height: 22px;
+    box-sizing: border-box;
   }
 
   &__textarea {
@@ -177,6 +183,7 @@ onUnmounted(() => {
     height: 60px;
     font-family: inherit;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 
     &:focus {
       outline: none;
@@ -196,7 +203,6 @@ onUnmounted(() => {
     border-radius: 10px;
     overflow: hidden;
     transition: all 0.2s ease;
-    border: 2px solid transparent;
 
     & > img {
       width: 100%;

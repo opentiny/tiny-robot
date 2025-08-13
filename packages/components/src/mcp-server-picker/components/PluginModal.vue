@@ -101,7 +101,6 @@ const handleConfirm = () => {
   left: 50%;
   transform: translate(-50%, -50%);
   width: 700px;
-  height: 752px;
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
@@ -133,7 +132,8 @@ const handleConfirm = () => {
     align-items: center;
     justify-content: space-between;
     padding: 32px 32px 20px 32px;
-    box-sizing: border-box;
+    box-sizing: content-box;
+    height: 24px;
   }
 
   &__title {
@@ -150,6 +150,7 @@ const handleConfirm = () => {
     padding: 4px;
     font-size: 20px;
     cursor: pointer;
+    box-sizing: border-box;
   }
 
   &__close:hover {
@@ -202,6 +203,7 @@ const handleConfirm = () => {
       cursor: pointer;
       transition: all 0.2s;
       min-width: 60px;
+      box-sizing: border-box;
 
       &.cancel {
         background-color: #ffffff;

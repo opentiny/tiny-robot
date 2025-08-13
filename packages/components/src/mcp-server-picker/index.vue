@@ -476,6 +476,7 @@ const transitionName = computed(() => {
         padding: 4px;
         font-size: 20px;
         cursor: pointer;
+        box-sizing: border-box;
       }
 
       &-close:hover {

@@ -310,6 +310,7 @@ const getHoverTitle = (isEnabled: boolean) => {
       background: #ffffff;
       border: 1px solid #595959;
       cursor: pointer;
+      box-sizing: border-box;
 
       &--added {
         width: 78px;
@@ -392,6 +393,7 @@ const getHoverTitle = (isEnabled: boolean) => {
   padding: 4px;
   font-size: 16px;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .common-icon:hover {
