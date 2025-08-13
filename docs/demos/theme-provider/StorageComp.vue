@@ -22,17 +22,3 @@ const items: PromptProps[] = [
   },
 ]
 </script>
-
-<style>
-[data-tr-theme='custom-theme'] {
-  --tr-prompt-bg-color: #fff7ed;
-  --tr-prompt-hover-color: rgba(249, 115, 22, 0.08);
-  --tr-prompt-active-color: rgba(249, 115, 22, 0.15);
-  --tr-prompt-disabled-color: rgba(249, 115, 22, 0.04);
-  --tr-prompt-box-shadow: 0 2px 12px rgba(249, 115, 22, 0.08);
-  --tr-prompt-title-color: #c2410c;
-  --tr-prompt-description-color: #92400e;
-  --tr-prompt-badge-bg-color: #fed7aa;
-  --tr-prompt-badge-color: #ea580c;
-}
-</style>
