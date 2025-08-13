@@ -15,16 +15,18 @@ const colorMode = ref<'light' | 'dark' | 'auto'>('auto')
 
 // 在客户端环境下同步 ColorModeSubject
 if (typeof window !== 'undefined') {
+  let unsubscribe: (() => void) | undefined = undefined
+
   onMounted(() => {
     // 订阅 ColorModeSubject 的变化
-    const unsubscribe = colorModeSubject.subscribe((mode) => {
+    unsubscribe = colorModeSubject.subscribe((mode) => {
       colorMode.value = mode
     })
+  })
 
-    // 组件卸载时取消订阅
-    onUnmounted(() => {
-      unsubscribe()
-    })
+  // 组件卸载时取消订阅
+  onUnmounted(() => {
+    unsubscribe?.()
   })
 }
 
