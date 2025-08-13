@@ -1,35 +1,67 @@
 import { ComputedRef, inject, type Ref } from 'vue'
-import { COLOR_MODE_KEY, RESOLVED_COLOR_MODE_KEY, STORAGE_COLOR_MODE_KEY, STORAGE_KEY } from './constants'
-import type { ColorMode, ThemeStorage } from './index.type'
+import { COLOR_MODE, RESOLVED_COLOR_MODE, THEME } from './constants'
+import type { ColorMode } from './index.type'
+
+const WARN_MESSAGE =
+  'Theme context not available, cannot set theme data. Condisder using ThemeProvider to wrap your app.'
 
 export const useTheme = () => {
-  const colorMode = inject<Ref<ColorMode>>(COLOR_MODE_KEY)
-  const resolvedColorMode = inject<ComputedRef<Readonly<Exclude<ColorMode, 'auto'>>>>(RESOLVED_COLOR_MODE_KEY)
-  const storage = inject<ThemeStorage | null>(STORAGE_KEY)
-  const storageKey = inject<string | null>(STORAGE_COLOR_MODE_KEY)
+  const theme = inject<Ref<string>>(THEME)
+  const colorMode = inject<Ref<ColorMode>>(COLOR_MODE)
+  const resolvedColorMode = inject<ComputedRef<Readonly<Exclude<ColorMode, 'auto'>>>>(RESOLVED_COLOR_MODE)
 
-  const saveToStorage = (mode: ColorMode) => {
-    if (!storage || !storageKey) return
-    storage.setItem(storageKey, mode)
-  }
-
-  const toggleColorMode = () => {
-    if (!colorMode || !resolvedColorMode) return
-
-    if (resolvedColorMode.value === 'light') {
-      colorMode.value = 'dark'
-      saveToStorage('dark')
-    } else {
-      colorMode.value = 'light'
-      saveToStorage('light')
+  /**
+   * @param newTheme - 要设置的新主题
+   * @returns 主题是否设置成功
+   */
+  const setTheme = (newTheme: string) => {
+    if (!theme) {
+      console.warn(WARN_MESSAGE)
+      return false
     }
+
+    theme.value = newTheme
+
+    return true
   }
 
+  /**
+   * 切换颜色模式
+   * @returns 颜色模式是否切换成功
+   */
+  const toggleColorMode = () => {
+    if (!colorMode || !resolvedColorMode) {
+      console.warn(WARN_MESSAGE)
+      return false
+    }
+
+    colorMode.value = resolvedColorMode.value === 'light' ? 'dark' : 'light'
+
+    return true
+  }
+
+  /**
+   * 设置颜色模式
+   * @param mode - 要设置的颜色模式
+   * @returns 颜色模式是否设置成功
+   */
   const setColorMode = (mode: ColorMode) => {
-    if (!colorMode) return
+    if (!colorMode) {
+      console.warn(WARN_MESSAGE)
+      return false
+    }
+
     colorMode.value = mode
-    saveToStorage(mode)
+
+    return true
   }
 
-  return { colorMode, resolvedColorMode, toggleColorMode, setColorMode }
+  return {
+    theme,
+    colorMode,
+    resolvedColorMode,
+    setTheme,
+    toggleColorMode,
+    setColorMode,
+  }
 }

@@ -1,10 +1,6 @@
 @import './variables.css';
 @import './animations.css';
 
-html {
-  color-scheme: light dark;
-}
-
 button[class^='tr-'] {
   border: none;
 }

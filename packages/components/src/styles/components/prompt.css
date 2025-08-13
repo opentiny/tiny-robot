@@ -1,15 +1,38 @@
-:root {
-  --tr-prompts-gap: 16px;
-
-  /* 不影响的布局的变量 */
+/* 使用 :root 的目的：不使用 ThemeProvider 时，会应用下面的默认主题 */
+:root,
+[data-tr-color-mode='light'] {
+  /* Prompt */
   --tr-prompt-bg-color: white;
   --tr-prompt-hover-color: rgba(0, 0, 0, 0.04);
   --tr-prompt-active-color: rgba(0, 0, 0, 0.15);
   --tr-prompt-disabled-color: rgba(0, 0, 0, 0.04);
   --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   --tr-prompt-title-color: rgb(25, 25, 25);
-  --tr-prompt-title-font-weight: 500;
   --tr-prompt-description-color: rgb(89, 89, 89);
+  --tr-prompt-badge-bg-color: rgb(255, 234, 232);
+  --tr-prompt-badge-color: rgb(242, 48, 48);
+}
+
+[data-tr-color-mode='dark'] {
+  /* Prompt */
+  --tr-prompt-bg-color: #262626;
+  --tr-prompt-hover-color: rgba(255, 255, 255, 0.08); /* TODO 无设计稿 */
+  --tr-prompt-active-color: rgba(255, 255, 255, 0.16); /* TODO 无设计稿 */
+  --tr-prompt-disabled-color: rgba(255, 255, 255, 0.06); /* TODO 无设计稿 */
+  --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.48);
+  --tr-prompt-title-color: #e6e6e6;
+  --tr-prompt-description-color: #b3b3b3;
+  --tr-prompt-badge-bg-color: rgb(255, 234, 232); /* TODO 无设计稿 */
+  --tr-prompt-badge-color: rgb(242, 48, 48); /* TODO 无设计稿 */
+}
+
+:root {
+  /* Prompts */
+  --tr-prompts-gap: 16px;
+
+  /* Prompt */
+  /* 不影响的布局的变量 */
+  --tr-prompt-title-font-weight: 500;
   --tr-prompt-border-radius: 16px;
 
   /* 影响布局的变量 */

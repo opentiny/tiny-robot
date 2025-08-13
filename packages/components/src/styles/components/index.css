@@ -1,0 +1,9 @@
+@import './prompt.css';
+
+[data-tr-color-mode='light'] {
+  color-scheme: light;
+}
+
+[data-tr-color-mode='dark'] {
+  color-scheme: dark;
+}

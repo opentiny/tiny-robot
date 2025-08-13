@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
       <h6 class="tr-prompt__content-title">{{ props.label }}</h6>
       <p v-if="props.description" class="tr-prompt__content-description">{{ props.description }}</p>
     </div>
-    <div :class="['tr-prompt__badge', { label: typeof props.badge === 'string' }]">
+    <div class="tr-prompt__badge">
       <template v-if="typeof props.badge === 'string'">
         {{ props.badge }}
       </template>
@@ -26,6 +26,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
 
 <style lang="less" scoped>
 .tr-prompt {
+  /* 不影响的布局的变量 */
   --bg-color: var(--tr-prompt-bg-color);
   --hover-color: var(--tr-prompt-hover-color);
   --active-color: var(--tr-prompt-active-color);
@@ -35,7 +36,10 @@ const props = withDefaults(defineProps<PromptProps>(), {
   --title-font-weight: var(--tr-prompt-title-font-weight);
   --description-color: var(--tr-prompt-description-color);
   --border-radius: var(--tr-prompt-border-radius);
+  --badge-bg-color: var(--tr-prompt-badge-bg-color);
+  --badge-color: var(--tr-prompt-badge-color);
 
+  /* 影响布局的变量 */
   --padding-block: var(--tr-prompt-padding-block);
   --padding-inline: var(--tr-prompt-padding-inline);
   --title-font-size: var(--tr-prompt-title-font-size);
@@ -134,15 +138,12 @@ const props = withDefaults(defineProps<PromptProps>(), {
   position: absolute;
   top: 0;
   right: 0;
-  padding: 0 var(--badge-padding-inline);
+  padding-inline: var(--badge-padding-inline);
   border-top-right-radius: var(--border-radius);
   border-bottom-left-radius: var(--border-radius);
-  background-color: rgb(255, 234, 232);
-
-  &.label {
-    color: rgb(242, 48, 48);
-    font-size: var(--badge-font-size);
-    line-height: var(--badge-line-height);
-  }
+  background-color: var(--badge-bg-color);
+  color: var(--badge-color);
+  font-size: var(--badge-font-size);
+  line-height: var(--badge-line-height);
 }
 </style>

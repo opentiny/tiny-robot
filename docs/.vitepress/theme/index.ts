@@ -1,5 +1,7 @@
-import DefaultTheme from 'vitepress/theme'
 import '@opentiny/tiny-robot-style'
+import DefaultTheme from 'vitepress/theme'
+import { setupDarkModeListener } from './color-mode'
+import Layout from './Layout.vue'
 import './style.css'
 
 declare global {
@@ -11,12 +13,16 @@ declare global {
 export default {
   ...DefaultTheme,
   enhanceApp({ app }) {
+    // 监听暗黑模式变化
+    setupDarkModeListener()
+
     app.mixin({
       mounted() {
         registerServiceWorker()
       },
     })
   },
+  Layout,
 }
 
 function registerServiceWorker() {
