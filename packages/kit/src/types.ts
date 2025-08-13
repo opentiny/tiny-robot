@@ -10,8 +10,9 @@ export type MessageRole = 'system' | 'user' | 'assistant'
  */
 export interface ChatMessage {
   role: MessageRole
-  content: string
+  content: string | { type: 'string'; [x: string]: unknown }[]
   name?: string
+  [x: string]: unknown
 }
 
 /**

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, useAttrs } from 'vue'
+import { computed, inject } from 'vue'
 import { BubbleContentClassRenderer } from '../renderers/class-renderer'
 import {
   defaultContentRendererMap,
@@ -12,34 +12,29 @@ import { BubbleTextContentRenderer } from '../renderers/text'
 const rendererMap: Map<string, BubbleContentRenderer> = inject(RENDERER_MAP_PROVIDER_KEY, defaultContentRendererMap)
 const fallbackRenderer: BubbleContentRenderer = inject(FALLBACK_RENDERER_PROVIDER_KEY, BubbleTextContentRenderer)
 
-defineOptions({
-  inheritAttrs: false,
-})
-
-const props = defineProps<BubbleContentItem>()
-const attrs = useAttrs()
+const props = defineProps<{ item: BubbleContentItem }>()
 
 const getVNodeOrComponent = (type: string) => {
-  const options = { ...attrs, ...props }
-
   const renderer = rendererMap.get(type) || fallbackRenderer
 
   if (typeof renderer === 'function') {
     const renderFn = renderer as BubbleContentFunctionRenderer
-    return { isComponent: false, vNodeOrComponent: renderFn(options) }
+    return { isComponent: false, vNodeOrComponent: renderFn(props.item) }
   }
 
   if (renderer instanceof BubbleContentClassRenderer) {
-    return { isComponent: false, vNodeOrComponent: renderer.render(options) }
+    return { isComponent: false, vNodeOrComponent: renderer.render(props.item) }
   }
 
   return { isComponent: true, vNodeOrComponent: renderer }
 }
 
-const { isComponent, vNodeOrComponent } = getVNodeOrComponent(props.type)
+const contentRenderer = computed(() => {
+  return getVNodeOrComponent(props.item.type)
+})
 </script>
 
 <template>
-  <component v-if="isComponent" :is="vNodeOrComponent" v-bind="{ ...props, ...attrs }"></component>
-  <component v-else :is="vNodeOrComponent"></component>
+  <component v-if="contentRenderer.isComponent" :is="contentRenderer.vNodeOrComponent" v-bind="props.item"></component>
+  <component v-else :is="contentRenderer.vNodeOrComponent"></component>
 </template>

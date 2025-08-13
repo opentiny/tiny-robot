@@ -13,15 +13,6 @@ import type {
 } from '../types/editor.type'
 import Block from './Block.vue'
 
-declare global {
-  interface Selection {
-    getComposedRanges?: (options?: { shadowRoots: ShadowRoot[] } | ShadowRoot) => Range[]
-  }
-  interface ShadowRoot {
-    getSelection?: () => Selection
-  }
-}
-
 const SUPPORTS_SHADOW_SELECTION = typeof window.ShadowRoot.prototype.getSelection === 'function'
 const SUPPORTS_COMPOSED_RANGES = typeof window.Selection.prototype.getComposedRanges === 'function'
 
@@ -79,8 +70,36 @@ const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(mo
 // 3. 提交历史记录 (history.commit)
 // 特殊情况: 在 history undo redo 中，不需要3步骤。否则历史记录会重复
 const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
+  originalData.value = items
+}
+
+const originalDataForUI = computed(() => {
   const first: (TextItem | TemplateItem)[] = []
   const last: (TextItem | TemplateItem)[] = []
+  const items = originalData.value
+
+  // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER
+  if (items.length >= 2) {
+    const originalDataFirstItem = items[0]
+    const second = items[1]
+    if (
+      originalDataFirstItem.type === 'text' &&
+      originalDataFirstItem.content.length === 0 &&
+      second.type === 'template'
+    ) {
+      first.push({ ...originalDataFirstItem, content: PLACEHOLDER })
+    }
+
+    const originalDataLastItem = items[items.length - 1]
+    const secondLast = items[items.length - 2]
+    if (
+      originalDataLastItem.type === 'text' &&
+      originalDataLastItem.content.length === 0 &&
+      secondLast.type === 'template'
+    ) {
+      last.push({ ...originalDataLastItem, content: PLACEHOLDER })
+    }
+  }
 
   // 如果第一个元素是template，则添加一个空text
   if (items.length > 0 && items[0].type === 'template') {
@@ -103,8 +122,8 @@ const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
     }
   }
 
-  originalData.value = first.concat(items).concat(last)
-}
+  return first.concat(items).concat(last)
+})
 
 const flattenedData = computed<ExtendedTextItem[]>(() => {
   return originalData.value
@@ -122,7 +141,7 @@ const flattenedData = computed<ExtendedTextItem[]>(() => {
 })
 
 const structuredData = computed<StructuredDataItem[]>(() => {
-  return originalData.value.map((item) => {
+  return originalDataForUI.value.map((item) => {
     if (item.type === 'text') {
       return item
     }
@@ -235,8 +254,12 @@ const isEditor = (node: Node) => {
   return node === editorRef.value
 }
 
+interface CompatibleSelection extends Omit<Selection, 'getComposedRanges'> {
+  getComposedRanges?: (options?: { shadowRoots: ShadowRoot[] } | ShadowRoot) => StaticRange[]
+}
+
 const getSelectionRange = (el: Element) => {
-  const selection = window.getSelection()
+  const selection = window.getSelection() as CompatibleSelection | null
 
   if (!selection) {
     return null
@@ -275,10 +298,6 @@ const getNodeAndOffset = (el: Element, offset: number) => {
   }
 
   const contentLength = el.firstChild.textContent?.length ?? 0
-
-  if (offset > contentLength) {
-    console.warn('offset is too large', { offset, el })
-  }
 
   return { node: el.firstChild, offset: Math.min(offset, contentLength) }
 }
@@ -502,23 +521,37 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   newOriginalData = newOriginalData.filter((item) => {
     return !(item.type === 'template' && [item.prefix, item.suffix, item.content].join('').length === 0)
   })
-  // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER（为了下一步不被删除，并且能不让template位于首尾）
-  if (newOriginalData.length >= 2) {
-    const first = newOriginalData[0]
-    const second = newOriginalData[1]
-    if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
-      first.content = PLACEHOLDER
+
+  const toDeletedText = new Set<string>()
+
+  newOriginalData.forEach((item, index, arr) => {
+    if (arr.length >= 2) {
+      if (index === 0 || index === 1) {
+        const first = arr[0]
+        const second = arr[1]
+
+        if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
+          return
+        }
+      }
+
+      if (index === arr.length - 2 || index === arr.length - 1) {
+        const last = arr[arr.length - 1]
+        const secondLast = arr[arr.length - 2]
+
+        if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
+          return
+        }
+      }
     }
-    const last = newOriginalData[newOriginalData.length - 1]
-    const secondLast = newOriginalData[newOriginalData.length - 2]
-    if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
-      last.content = PLACEHOLDER
+
+    if (item.type === 'text' && item.content.length === 0) {
+      toDeletedText.add(item.id)
     }
-  }
-  // 再删除空text
-  newOriginalData = newOriginalData.filter((item) => {
-    return !(item.type === 'text' && item.content.length === 0)
   })
+
+  // 再删除空text
+  newOriginalData = newOriginalData.filter((item) => !toDeletedText.has(item.id))
 
   // 恢复分隔符
   for (const dataItem of newOriginalData.filter((item): item is TemplateItem => item.type === 'template')) {
@@ -881,11 +914,11 @@ const handleSelectionChange = () => {
 
   const range = getSelectionRange(editorRef.value!)
 
-  if (range?.collapsed && originalData.value.length > 0) {
+  if (range?.collapsed && originalDataForUI.value.length > 0) {
     const editorRange = transformRange(range)
 
     // 如果选中的是开头的空text，则将光标移动到空text后
-    const first = originalData.value[0]
+    const first = originalDataForUI.value[0]
     if (
       editorRange.startEl &&
       editorRange.startId === first.id &&
@@ -898,7 +931,7 @@ const handleSelectionChange = () => {
     }
 
     // 如果选中的是末尾的空text，则将光标移动到空text前
-    const last = originalData.value[originalData.value.length - 1]
+    const last = originalDataForUI.value[originalDataForUI.value.length - 1]
     if (
       editorRange.endEl &&
       editorRange.endId === last.id &&

@@ -1,40 +1,57 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
-import type { SuggestionTextPart } from '../index.type'
+import { processHighlights } from '../utils/suggestionHighlight'
+import type { ISuggestionItem } from '../index.type'
 
 export interface Props {
   show: boolean
-  suggestions: string[]
+  suggestions: ISuggestionItem[]
   popupStyle: Record<string, string | number>
-  isItemHighlighted: (index: number) => boolean
-  highlightSuggestionText: (item: string, inputValue: string) => SuggestionTextPart[]
+  activeKeyboardIndex: number
+  activeMouseIndex: number
   inputValue: string
 }
 
 const props = defineProps<Props>()
 
 interface Emits {
-  (e: 'item-hover', index: number): void
-  (e: 'item-leave'): void
   (e: 'select', item: string): void
+  (e: 'mouse-enter', index: number): void
+  (e: 'mouse-leave'): void
 }
 
 const emit = defineEmits<Emits>()
 
 const suggestionsListRef = ref<HTMLElement | null>(null)
 
+const isItemHighlighted = (index: number): boolean => {
+  return index === props.activeKeyboardIndex || index === props.activeMouseIndex
+}
+
 const handleItemHover = (index: number) => {
-  emit('item-hover', index)
+  emit('mouse-enter', index)
 }
 
 const handleItemLeave = () => {
-  emit('item-leave')
+  emit('mouse-leave')
 }
 
 const handleSelect = (item: string) => {
   emit('select', item)
 }
+
+watch(
+  () => props.activeKeyboardIndex,
+  (newIndex) => {
+    if (newIndex !== -1 && suggestionsListRef.value) {
+      const itemElement = suggestionsListRef.value.children[newIndex] as HTMLElement | undefined
+      if (itemElement) {
+        itemElement.scrollIntoView({ block: 'nearest' })
+      }
+    }
+  },
+)
 </script>
 
 <template>
@@ -49,15 +66,15 @@ const handleSelect = (item: string) => {
         v-for="(item, index) in props.suggestions"
         :key="index"
         class="suggestion-list__item"
-        :class="{ highlighted: props.isItemHighlighted(index) }"
+        :class="{ highlighted: isItemHighlighted(index) }"
         @mouseenter="handleItemHover(index)"
         @mouseleave="handleItemLeave"
-        @mousedown.prevent="handleSelect(item)"
+        @mousedown.prevent="handleSelect(item.content)"
       >
         <IconAssociate class="suggestion-list__icon" />
         <span class="suggestion-list__text">
           <span
-            v-for="(part, partIndex) in props.highlightSuggestionText(item, props.inputValue)"
+            v-for="(part, partIndex) in processHighlights(item, props.inputValue)"
             :key="partIndex"
             :class="{
               'suggestion-list__text--match': part.isMatch,

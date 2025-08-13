@@ -151,6 +151,12 @@ SchemaCard 组件代码如下
 
 <demo vue="../../demos/bubble/list.vue" />
 
+### 隐藏角色
+
+角色配置中使用 `hidden` 来隐藏这个角色的所有消息
+
+<demo vue="../../demos/bubble/list-hidden.vue" />
+
 ## API
 
 ### BubblePlacement
@@ -208,6 +214,7 @@ type BubblePlacement = 'start' | 'end'
 
 ```ts
 type BubbleRoleConfig = BubbleCommonProps & {
+  hidden?: boolean
   slots?: BubbleSlots
 }
 ```
