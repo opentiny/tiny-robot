@@ -40,15 +40,20 @@ if (props.storage) {
   innerColorMode.value = themeData.colorMode || innerColorMode.value
 }
 
-const matchDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
-const systemMode = ref<'light' | 'dark'>(matchDarkQuery.matches ? 'dark' : 'light')
-const handleMatchDarkChange = (e: MediaQueryListEvent) => {
-  systemMode.value = e.matches ? 'dark' : 'light'
+const systemMode = ref<'light' | 'dark'>('light')
+
+if (typeof window !== 'undefined') {
+  const matchDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  systemMode.value = matchDarkQuery.matches ? 'dark' : 'light'
+
+  const handleMatchDarkChange = (e: MediaQueryListEvent) => {
+    systemMode.value = e.matches ? 'dark' : 'light'
+  }
+  matchDarkQuery.addEventListener('change', handleMatchDarkChange)
+  onUnmounted(() => {
+    matchDarkQuery.removeEventListener('change', handleMatchDarkChange)
+  })
 }
-matchDarkQuery.addEventListener('change', handleMatchDarkChange)
-onUnmounted(() => {
-  matchDarkQuery.removeEventListener('change', handleMatchDarkChange)
-})
 
 const resolvedColorMode = computed(() => {
   if (innerColorMode.value === 'auto') {
@@ -64,6 +69,8 @@ provide(RESOLVED_COLOR_MODE, resolvedColorMode)
 // 应用主题到指定选择器
 watchEffect(
   () => {
+    if (typeof document === 'undefined') return
+
     const targetElement = document.querySelector(props.targetElement)
     if (!targetElement) return
 
