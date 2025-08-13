@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useSlots } from 'vue'
-import TinyInput from '@opentiny/vue-input'
+import { TinyInput } from '@opentiny/vue'
 import { useFileDialog } from '@vueuse/core'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler, UserItem } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'

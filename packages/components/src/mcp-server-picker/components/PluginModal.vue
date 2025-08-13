@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconClose } from '@opentiny/tiny-robot-svgs'
-import TinyRadioGroup from '@opentiny/vue-radio-group'
+import { TinyRadioGroup } from '@opentiny/vue'
 import { onClickOutside } from '@vueuse/core'
 import { ref, defineEmits } from 'vue'
 import type { PluginModalEmits, PluginFormData } from '../index.type'

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import TinySwitch from '@opentiny/vue-switch'
-import TinyPopconfirm from '@opentiny/vue-popconfirm'
+import { TinySwitch, TinyPopconfirm } from '@opentiny/vue'
 import { computed, ref } from 'vue'
 import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { PluginCardEmits, PluginCardProps } from '../index.type'
