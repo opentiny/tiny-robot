@@ -911,9 +911,9 @@ const activateFirstField = () => {
     }
 
     // 场景2：仅存在一个text类型的项，定位到该text元素后面
-    const onlyTextItem = data.find((item) => item.type === 'text')
+    const onlyTextItem = data.every((item) => item.type === 'text')
     if (onlyTextItem && data.length === 1) {
-      setCaretToElementEnd(onlyTextItem.id, 'text')
+      setCaretToElementEnd(data[0].id, 'text')
     }
   })
 }
