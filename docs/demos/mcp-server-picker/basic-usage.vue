@@ -219,16 +219,13 @@ const createPluginByForm = (data: PluginFormData) => {
   installedPlugins.value.push(newPlugin)
 }
 
-const createPluginByCode = () => {
-  // 代码创建插件逻辑
-}
-
 // 新的插件创建事件处理
 const handlePluginCreate = (type: 'form' | 'code', data: PluginCreationData) => {
   if (type === 'form') {
+    // 表单 创建插件逻辑
     createPluginByForm(data)
   } else {
-    createPluginByCode(data)
+    // 代码 创建插件逻辑
   }
 }
 
