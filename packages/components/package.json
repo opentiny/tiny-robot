@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@opentiny/tiny-robot-svgs": "workspace:*",
-    "@opentiny/vue": "^3.21.0",
+    "@opentiny/vue": "^3.20.0",
     "@vueuse/core": "^13.1.0",
     "dompurify": "^3.2.6",
     "markdown-it": "^14.1.0"
