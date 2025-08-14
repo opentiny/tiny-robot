@@ -7,6 +7,7 @@ export interface ContainerProps {
    * model:fullscreen
    */
   fullscreen?: boolean
+  title?: string
 }
 
 export interface ContainerSlots {
@@ -14,4 +15,8 @@ export interface ContainerSlots {
   title: () => unknown
   operations: () => unknown
   footer: () => unknown
+}
+
+export interface ContainerEmits {
+  (e: 'close'): void
 }
