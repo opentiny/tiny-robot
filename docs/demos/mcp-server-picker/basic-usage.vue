@@ -35,8 +35,6 @@
     @plugin-create="handlePluginCreate"
     @plugin-delete="handlePluginDelete"
     @tool-toggle="handleToolToggle"
-    @tab-change="handleTabChange"
-    @market-category-change="handleMarketCategoryChange"
   />
 </template>
 
@@ -169,13 +167,10 @@ const handleVisibleToggle = () => {
 
 // 事件处理
 const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
-  console.log('插件状态切换:', plugin.name, enabled)
   plugin.enabled = enabled
 }
 
 const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
-  console.log('插件添加状态变化:', plugin, added)
-
   const targetPlugin = marketPlugins.value.find((p) => p.id === plugin.id)!
   targetPlugin.added = added
 
@@ -198,7 +193,6 @@ const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
 }
 
 const handlePluginDelete = (plugin: PluginInfo) => {
-  console.log('删除插件:', plugin.name)
   const index = installedPlugins.value.findIndex((p) => p.id === plugin.id)
   if (index > -1) {
     installedPlugins.value.splice(index, 1)
@@ -206,7 +200,6 @@ const handlePluginDelete = (plugin: PluginInfo) => {
 }
 
 const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) => {
-  console.log('工具状态切换:', plugin, toolId, enabled)
   const tool = plugin.tools?.find((t: PluginTool) => t.id === toolId)
   if (tool) {
     tool.enabled = enabled
@@ -214,7 +207,6 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
 }
 
 const createPluginByForm = (data: PluginFormData) => {
-  console.log('表单方式添加插件:', data)
   // 可以在这里处理表单数据，例如发送到服务器
   const newPlugin: PluginInfo = {
     id: `custom-${Date.now()}`,
@@ -227,8 +219,8 @@ const createPluginByForm = (data: PluginFormData) => {
   installedPlugins.value.push(newPlugin)
 }
 
-const createPluginByCode = (data: string) => {
-  console.log('代码方式添加插件:', data)
+const createPluginByCode = () => {
+  // 代码创建插件逻辑
 }
 
 // 新的插件创建事件处理
@@ -241,21 +233,11 @@ const handlePluginCreate = (type: 'form' | 'code', data: PluginCreationData) => 
 }
 
 const handleInstalledSearchFn = (query: string, item: PluginInfo) => {
-  console.log('已添加插件搜索:', query, item.name)
   return item.name.toLowerCase().includes(query.toLowerCase())
 }
 
 const handleMarketSearchFn = (query: string, item: PluginInfo) => {
-  console.log('市场插件搜索:', query, item.name)
   return item.name.toLowerCase().includes(query.toLowerCase())
-}
-
-const handleTabChange = (activeTab: string) => {
-  console.log('标签页切换:', activeTab)
-}
-
-const handleMarketCategoryChange = (category: string) => {
-  console.log('市场分类筛选:', category)
 }
 </script>
 

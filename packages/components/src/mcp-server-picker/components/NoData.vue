@@ -24,18 +24,14 @@ const hasSearchQuery = computed(() => !!props.searchQuery?.trim())
 const message = computed(() => (hasSearchQuery.value ? '暂无搜索结果' : '暂无数据'))
 </script>
 
-<style lang="less">
-:root {
+<style lang="less" scoped>
+.empty-state {
   --empty-state-illustration-size: 112px;
   --empty-state-message-color: #191919;
   --empty-state-message-font-size: 12px;
   --empty-state-message-line-height: 24px;
   --empty-state-spacing: 12px;
-}
-</style>
 
-<style scoped lang="less">
-.empty-state {
   flex: 1;
   display: flex;
   flex-direction: column;

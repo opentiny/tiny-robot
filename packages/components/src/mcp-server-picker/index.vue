@@ -4,7 +4,7 @@ import TinyTabItem from '@opentiny/vue-tab-item'
 import TinyInput from '@opentiny/vue-input'
 import TinySelect from '@opentiny/vue-select'
 import TinyOption from '@opentiny/vue-option'
-import TinyModal from '@opentiny/vue-modal'
+import { TinyModal } from '@opentiny/vue'
 import { ref, computed, watch } from 'vue'
 import { PluginCard, PluginModal, NoData } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
@@ -413,7 +413,7 @@ const transitionName = computed(() => {
   padding: 20px;
 
   &::-webkit-scrollbar {
-    width: 6px !important;
+    width: 6px;
   }
 
   // 默认样式(fixed模式)
@@ -474,7 +474,6 @@ const transitionName = computed(() => {
         width: 28px;
         height: 28px;
         padding: 4px;
-        font-size: 20px;
         cursor: pointer;
         box-sizing: border-box;
       }

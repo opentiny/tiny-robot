@@ -391,7 +391,6 @@ const getHoverTitle = (isEnabled: boolean) => {
   width: 24px;
   height: 24px;
   padding: 4px;
-  font-size: 16px;
   cursor: pointer;
   box-sizing: border-box;
 }
