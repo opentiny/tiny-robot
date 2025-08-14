@@ -78,18 +78,13 @@ onUnmounted(() => {
     <!-- 描述 -->
     <div class="form-editor__item">
       <label class="form-editor__label">描述</label>
-      <textarea
-        v-model="formData.description"
-        class="form-editor__textarea"
-        placeholder="请输入插件描述"
-        rows="4"
-      ></textarea>
+      <textarea v-model="formData.description" class="form-editor__textarea" placeholder="请输入插件描述"></textarea>
     </div>
 
     <!-- 类型 -->
     <div class="form-editor__item">
       <label class="form-editor__label">类型</label>
-      <tiny-radio-group v-model="formData.type" :options="typeOptions" style="padding: 1px 0" />
+      <tiny-radio-group v-model="formData.type" :options="typeOptions" class="form-editor__radio-group" />
     </div>
 
     <!-- URL -->
@@ -105,7 +100,6 @@ onUnmounted(() => {
         v-model="formData.headers"
         class="form-editor__textarea"
         placeholder="请输入请求头，格式为JSON"
-        rows="4"
       ></textarea>
     </div>
 
@@ -154,6 +148,7 @@ onUnmounted(() => {
     color: #191919;
     background-color: #ffffff;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 
     &:focus {
       outline: none;
@@ -165,6 +160,11 @@ onUnmounted(() => {
     }
   }
 
+  &__radio-group {
+    height: 22px;
+    box-sizing: border-box;
+  }
+
   &__textarea {
     padding: 8px 12px;
     border: 1px solid #d9d9d9;
@@ -173,10 +173,11 @@ onUnmounted(() => {
     line-height: 22px;
     color: #191919;
     background-color: #ffffff;
-    resize: vertical;
-    min-height: 80px;
+    resize: none;
+    height: 60px;
     font-family: inherit;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 
     &:focus {
       outline: none;
@@ -196,7 +197,6 @@ onUnmounted(() => {
     border-radius: 10px;
     overflow: hidden;
     transition: all 0.2s ease;
-    border: 2px solid transparent;
 
     & > img {
       width: 100%;

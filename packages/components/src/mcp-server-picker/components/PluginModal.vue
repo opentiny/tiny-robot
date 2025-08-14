@@ -100,7 +100,7 @@ const handleConfirm = () => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 900px;
+  width: 700px;
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
@@ -132,7 +132,8 @@ const handleConfirm = () => {
     align-items: center;
     justify-content: space-between;
     padding: 32px 32px 20px 32px;
-    box-sizing: border-box;
+    box-sizing: content-box;
+    height: 24px;
   }
 
   &__title {
@@ -144,9 +145,16 @@ const handleConfirm = () => {
   }
 
   &__close {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
     cursor: pointer;
-    font-size: 24px;
-    color: #595959;
+    box-sizing: border-box;
+  }
+
+  &__close:hover {
+    background: #f5f5f5;
+    border-radius: 8px;
   }
 
   &__content {
@@ -179,7 +187,7 @@ const handleConfirm = () => {
     flex-shrink: 0;
     display: flex;
     justify-content: flex-end;
-    padding: 26px 32px 32px 32px;
+    padding: 20px 32px 32px 32px;
     gap: 8px;
 
     & > .button {
@@ -194,15 +202,15 @@ const handleConfirm = () => {
       cursor: pointer;
       transition: all 0.2s;
       min-width: 60px;
+      box-sizing: border-box;
 
       &.cancel {
         background-color: #ffffff;
-        border: 1px solid #d9d9d9;
-        color: #595959;
+        border: 1px solid #595959;
+        color: #191919;
 
         &:hover {
-          border-color: #1890ff;
-          color: #1890ff;
+          border-color: #c2c2c2;
         }
       }
 

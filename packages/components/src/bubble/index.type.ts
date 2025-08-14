@@ -21,6 +21,10 @@ export interface BubbleCommonProps {
    */
   contentRenderer?: BubbleContentRenderer
   /**
+   * 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容
+   */
+  customContentField?: string
+  /**
    * 气泡最大宽度
    */
   maxWidth?: string | number

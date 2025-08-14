@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { TinyTabs, TinyTabItem, TinyInput, TinySelect, TinyOption } from '@opentiny/vue'
+import { TinyTabs, TinyTabItem, TinyInput, TinySelect, TinyOption, TinyModal } from '@opentiny/vue'
 import { ref, computed, watch } from 'vue'
-import { PluginCard, PluginModal } from './components'
+import { PluginCard, PluginModal, NoData } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
 import type {
   PluginInfo,
@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
     position: {},
     drawer: { direction: 'right' },
   }),
-  installedTabTitle: '已安装插件',
+  installedTabTitle: '已添加插件',
   marketTabTitle: '市场',
   title: '插件',
   showCustomAddButton: true,
@@ -38,6 +38,18 @@ const props = withDefaults(defineProps<McpServerPickerProps>(), {
   allowPluginAdd: true,
   loading: false,
   marketLoading: false,
+  installedSearchFn: (query: string, item: PluginInfo) => {
+    if (!query) {
+      return true
+    }
+    return item.name.toLowerCase().includes(query.toLowerCase())
+  },
+  marketSearchFn: (query: string, item: PluginInfo) => {
+    if (!query) {
+      return true
+    }
+    return item.name.toLowerCase().includes(query.toLowerCase())
+  },
 })
 
 const emit = defineEmits<McpServerPickerEmits>()
@@ -56,6 +68,7 @@ const marketPluginsList = computed(() => props.marketPlugins)
 
 // 计算激活的插件数量
 const activePluginCount = computed(() => {
+  if (!installedPluginsList.value || installedPluginsList.value.length === 0) return 0
   return installedPluginsList.value.filter((plugin) => plugin.enabled).length
 })
 
@@ -75,12 +88,36 @@ watch(activeTab, (newTab, oldTab) => {
 })
 
 // 监听搜索变化
-watch(installedSearch, (query) => {
-  emit('search', query, 'installed')
+const installedFilteredPlugins = computed(() => {
+  return installedPluginsList.value.filter((plugin) => props.installedSearchFn(installedSearch.value, plugin))
 })
 
-watch(marketSearch, (query) => {
-  emit('search', query, 'market')
+const marketFilteredPlugins = computed(() => {
+  const { category, search } = {
+    category: marketCategory.value,
+    search: marketSearch.value,
+  }
+
+  // 基础过滤函数：同时处理分类和搜索条件
+  const filterFn = (plugin: PluginInfo) => {
+    // 分类匹配：若有分类条件，则插件分类必须匹配；否则直接通过
+    const matchCategory = !category || plugin.category === category
+    // 搜索匹配：若有搜索条件，则通过搜索函数校验；否则直接通过
+    const matchSearch = !search || props.marketSearchFn(search, plugin)
+    // 同时满足分类和搜索条件
+    return matchCategory && matchSearch
+  }
+
+  // 统一过滤
+  return marketPluginsList.value.filter(filterFn)
+})
+
+const hasFilteredPlugins = computed(() => {
+  if (activeTab.value === 'installed') {
+    return installedFilteredPlugins.value.length > 0
+  }
+
+  return marketFilteredPlugins.value.length > 0
 })
 
 watch(marketCategory, (category) => {
@@ -133,12 +170,21 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
 
 const handleDeletePlugin = (plugin: PluginInfo) => {
   if (!props.allowPluginDelete) return
+  TinyModal.message({
+    message: `${plugin.name} 已移除`,
+    status: 'success',
+  })
   emit('plugin-delete', plugin)
 }
 
 const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
   if (!props.allowPluginAdd) return
-
+  if (added) {
+    TinyModal.message({
+      message: `${plugin.name} 已添加`,
+      status: 'success',
+    })
+  }
   emit('plugin-add', plugin, added)
 }
 
@@ -282,12 +328,12 @@ const transitionName = computed(() => {
                 </TinyInput>
               </div>
 
-              <div class="mcp-server-picker__content-installed-list">
+              <div class="mcp-server-picker__content-installed-list" v-if="hasFilteredPlugins">
                 <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
                 <template v-else>
-                  <!-- 已安装插件列表 -->
+                  <!-- 已添加插件列表 -->
                   <PluginCard
-                    v-for="plugin in installedPluginsList"
+                    v-for="plugin in installedFilteredPlugins"
                     :key="plugin.id"
                     :plugin="plugin"
                     mode="installed"
@@ -298,6 +344,7 @@ const transitionName = computed(() => {
                   />
                 </template>
               </div>
+              <NoData v-else :search-query="installedSearch" />
             </div>
           </TinyTabItem>
 
@@ -327,12 +374,12 @@ const transitionName = computed(() => {
               </div>
             </div>
 
-            <div class="mcp-server-picker__content-market-list">
+            <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-market-list">
               <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
               <template v-else>
                 <!-- 插件市场列表 -->
                 <PluginCard
-                  v-for="plugin in marketPluginsList"
+                  v-for="plugin in marketFilteredPlugins"
                   :key="plugin.id"
                   :plugin="plugin"
                   mode="market"
@@ -342,6 +389,7 @@ const transitionName = computed(() => {
                 />
               </template>
             </div>
+            <NoData v-else :search-query="marketSearch || marketCategory" />
           </TinyTabItem>
         </TinyTabs>
       </div>
@@ -359,14 +407,15 @@ const transitionName = computed(() => {
   border: 1px solid rgb(219, 219, 219);
   padding: 20px;
 
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
   // 默认样式(fixed模式)
   &.popup-type-fixed {
     width: 482px;
     height: auto;
-    max-height: 100vh;
     overflow-y: auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   // 抽屉模式样式
@@ -384,6 +433,7 @@ const transitionName = computed(() => {
     margin-bottom: 18px;
 
     &-left {
+      color: #191919;
       font-size: 16px;
       font-weight: 600;
     }
@@ -401,23 +451,31 @@ const transitionName = computed(() => {
         gap: 4px;
         cursor: pointer;
         color: rgb(25, 25, 25);
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 400;
-        line-height: 22px;
+        line-height: 18px;
+        text-align: center;
         border: 1px solid rgb(89, 89, 89);
         box-sizing: border-box;
         border-radius: 999px;
-        padding: 5px 16px;
+        padding: 7px 20px;
 
         &:hover {
-          background-color: rgb(245, 245, 245);
-          border-color: rgb(25, 25, 25);
+          border-color: rgb(194, 194, 194);
         }
       }
 
       &-close {
-        font-size: 24px;
+        width: 28px;
+        height: 28px;
+        padding: 4px;
         cursor: pointer;
+        box-sizing: border-box;
+      }
+
+      &-close:hover {
+        background: #f5f5f5;
+        border-radius: 8px;
       }
     }
   }
@@ -514,7 +572,6 @@ const transitionName = computed(() => {
 
 :deep(.tiny-tabs__item__title) {
   font-size: 14px;
-  font-weight: 600;
   color: rgb(25, 25, 25);
   line-height: 22px;
 }

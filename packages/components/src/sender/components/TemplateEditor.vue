@@ -881,21 +881,39 @@ const restoreDataAndCaretPosition = (historyItem: string) => {
   model.value = transformInternalToUser(originalData.value)
 }
 
+/**
+ * 将光标移动到指定元素的末尾
+ * @param id 元素id
+ * @param type 元素类型
+ */
+const setCaretToElementEnd = (id: string, type: 'text' | 'template') => {
+  // 查找目标元素
+  const el = editorRef.value?.querySelector(`[data-id="${id}"][data-type="${type}"]`)
+  if (!el) return // 元素不存在则直接返回
+
+  // 计算文本长度（作为光标偏移量），设置光标位置
+  const offset = el.textContent?.length || 0
+  setCaretPosition(el, offset)
+}
+
 const activateFirstField = () => {
   if (!editorRef.value) {
     return
   }
 
   nextTick(() => {
-    const firstTemplateItem = originalData.value.find((item) => item.type === 'template')
+    const data = originalData.value
 
+    // 场景1：存在template类型的项，定位到第一个template元素后面
+    const firstTemplateItem = data.find((item) => item.type === 'template')
     if (firstTemplateItem) {
-      const startEl = editorRef.value?.querySelector(`[data-id="${firstTemplateItem.id}"][data-type="template"]`)
+      setCaretToElementEnd(firstTemplateItem.id, 'template')
+    }
 
-      if (startEl) {
-        const startOffset = startEl.textContent?.length || 0
-        setCaretPosition(startEl, startOffset)
-      }
+    // 场景2：仅存在一个text类型的项，定位到该text元素后面
+    const onlyTextItem = data.every((item) => item.type === 'text')
+    if (onlyTextItem && data.length === 1) {
+      setCaretToElementEnd(data[0].id, 'text')
     }
   })
 }
