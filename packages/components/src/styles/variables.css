@@ -145,7 +145,7 @@
   --tr-mask-bg-global: rgba(0, 0, 0, 0.2);
 
   /* ===== 阴影系统 ===== */
-  --tr-shadow-elevation-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 /* ===== 深色主题 ===== */

@@ -1,3 +1,4 @@
+/* 使用 [data-tr-color-mode] 属性选择器，提高优先级，让嵌套的 ThemeProvider 的样式覆盖外层 ThemeProvider 的样式 */
 :root,
 [data-tr-color-mode] {
   --tr-prompt-bg: var(--tr-container-bg-default);
