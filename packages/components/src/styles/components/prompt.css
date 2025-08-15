@@ -1,39 +1,24 @@
-/* 使用 :root 的目的：不使用 ThemeProvider 时，会应用下面的默认主题 */
 :root,
-[data-tr-color-mode='light'] {
-  /* Prompt */
-  --tr-prompt-bg-color: white;
-  --tr-prompt-hover-color: rgba(0, 0, 0, 0.04);
-  --tr-prompt-active-color: rgba(0, 0, 0, 0.15);
-  --tr-prompt-disabled-color: rgba(0, 0, 0, 0.04);
-  --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  --tr-prompt-title-color: rgb(25, 25, 25);
-  --tr-prompt-description-color: rgb(89, 89, 89);
-  --tr-prompt-badge-bg-color: rgb(255, 234, 232);
-  --tr-prompt-badge-color: rgb(242, 48, 48);
-}
-
-[data-tr-color-mode='dark'] {
-  /* Prompt */
-  --tr-prompt-bg-color: #262626;
-  --tr-prompt-hover-color: rgba(255, 255, 255, 0.08); /* TODO 无设计稿 */
-  --tr-prompt-active-color: rgba(255, 255, 255, 0.16); /* TODO 无设计稿 */
-  --tr-prompt-disabled-color: rgba(255, 255, 255, 0.06); /* TODO 无设计稿 */
-  --tr-prompt-box-shadow: 0 2px 12px rgba(0, 0, 0, 0.48);
-  --tr-prompt-title-color: #e6e6e6;
-  --tr-prompt-description-color: #b3b3b3;
-  --tr-prompt-badge-bg-color: rgb(255, 234, 232); /* TODO 无设计稿 */
-  --tr-prompt-badge-color: rgb(242, 48, 48); /* TODO 无设计稿 */
+[data-tr-color-mode] {
+  --tr-prompt-bg: var(--tr-container-bg-default);
+  --tr-prompt-bg-hover: var(--tr-container-bg-hover);
+  --tr-prompt-bg-active: var(--tr-container-bg-active);
+  --tr-prompt-bg-disabled: var(--tr-container-bg-disabled);
+  --tr-prompt-shadow: var(--tr-shadow-sm);
+  --tr-prompt-title-color: var(--tr-text-color-primary);
+  --tr-prompt-description-color: var(--tr-text-color-secondary);
+  --tr-prompt-badge-bg: var(--tr-error-bg);
+  --tr-prompt-badge-color: var(--tr-error-text);
 }
 
 :root {
   /* Prompts */
-  --tr-prompts-gap: 16px;
+  --tr-prompts-gap: var(--tr-spacing-lg);
 
   /* Prompt */
   /* 不影响的布局的变量 */
-  --tr-prompt-title-font-weight: 500;
-  --tr-prompt-border-radius: 16px;
+  --tr-prompt-title-font-weight: var(--tr-font-weight-medium);
+  --tr-prompt-border-radius: var(--tr-radius-xl);
 
   /* 影响布局的变量 */
   /* default (medium) */
@@ -51,40 +36,40 @@
 
   /* small */
   --tr-prompt-padding-block-small: 10px;
-  --tr-prompt-padding-inline-small: 16px;
-  --tr-prompt-title-font-size-small: 14px;
+  --tr-prompt-padding-inline-small: var(--tr-spacing-lg);
+  --tr-prompt-title-font-size-small: var(--tr-font-size-sm);
   --tr-prompt-title-line-height-small: 24px;
-  --tr-prompt-description-font-size-small: 14px;
+  --tr-prompt-description-font-size-small: var(--tr-font-size-sm);
   --tr-prompt-description-line-height-small: 22px;
-  --tr-prompt-gap-small: 12px;
-  --tr-prompt-content-gap-small: 4px;
-  --tr-prompt-badge-padding-inline-small: 12px;
-  --tr-prompt-badge-font-size-small: 14px;
+  --tr-prompt-gap-small: var(--tr-spacing-md);
+  --tr-prompt-content-gap-small: var(--tr-spacing-xs);
+  --tr-prompt-badge-padding-inline-small: var(--tr-spacing-md);
+  --tr-prompt-badge-font-size-small: var(--tr-font-size-sm);
   --tr-prompt-badge-line-height-small: 22px;
 
   /* medium */
   --tr-prompt-padding-block-medium: 14px;
-  --tr-prompt-padding-inline-medium: 24px;
-  --tr-prompt-title-font-size-medium: 14px;
+  --tr-prompt-padding-inline-medium: var(--tr-spacing-2xl);
+  --tr-prompt-title-font-size-medium: var(--tr-font-size-sm);
   --tr-prompt-title-line-height-medium: 24px;
-  --tr-prompt-description-font-size-medium: 14px;
+  --tr-prompt-description-font-size-medium: var(--tr-font-size-sm);
   --tr-prompt-description-line-height-medium: 22px;
-  --tr-prompt-gap-medium: 12px;
-  --tr-prompt-content-gap-medium: 4px;
-  --tr-prompt-badge-padding-inline-medium: 12px;
-  --tr-prompt-badge-font-size-medium: 14px;
+  --tr-prompt-gap-medium: var(--tr-spacing-md);
+  --tr-prompt-content-gap-medium: var(--tr-spacing-xs);
+  --tr-prompt-badge-padding-inline-medium: var(--tr-spacing-md);
+  --tr-prompt-badge-font-size-medium: var(--tr-font-size-sm);
   --tr-prompt-badge-line-height-medium: 22px;
 
   /* large */
   --tr-prompt-padding-block-large: 14px;
-  --tr-prompt-padding-inline-large: 24px;
-  --tr-prompt-title-font-size-large: 16px;
+  --tr-prompt-padding-inline-large: var(--tr-spacing-2xl);
+  --tr-prompt-title-font-size-large: var(--tr-font-size-md);
   --tr-prompt-title-line-height-large: 24px;
-  --tr-prompt-description-font-size-large: 14px;
+  --tr-prompt-description-font-size-large: var(--tr-font-size-sm);
   --tr-prompt-description-line-height-large: 22px;
-  --tr-prompt-gap-large: 12px;
-  --tr-prompt-content-gap-large: 4px;
-  --tr-prompt-badge-padding-inline-large: 12px;
-  --tr-prompt-badge-font-size-large: 14px;
+  --tr-prompt-gap-large: var(--tr-spacing-md);
+  --tr-prompt-content-gap-large: var(--tr-spacing-xs);
+  --tr-prompt-badge-padding-inline-large: var(--tr-spacing-md);
+  --tr-prompt-badge-font-size-large: var(--tr-font-size-md);
   --tr-prompt-badge-line-height-large: 22px;
 }

@@ -27,16 +27,16 @@ const props = withDefaults(defineProps<PromptProps>(), {
 <style lang="less" scoped>
 .tr-prompt {
   /* 不影响的布局的变量 */
-  --bg-color: var(--tr-prompt-bg-color);
-  --hover-color: var(--tr-prompt-hover-color);
-  --active-color: var(--tr-prompt-active-color);
-  --disabled-color: var(--tr-prompt-disabled-color);
-  --box-shadow: var(--tr-prompt-box-shadow);
+  --bg: var(--tr-prompt-bg);
+  --bg-hover: var(--tr-prompt-bg-hover);
+  --bg-active: var(--tr-prompt-bg-active);
+  --bg-disabled: var(--tr-prompt-bg-disabled);
+  --box-shadow: var(--tr-prompt-shadow);
   --title-color: var(--tr-prompt-title-color);
   --title-font-weight: var(--tr-prompt-title-font-weight);
   --description-color: var(--tr-prompt-description-color);
   --border-radius: var(--tr-prompt-border-radius);
-  --badge-bg-color: var(--tr-prompt-badge-bg-color);
+  --badge-bg: var(--tr-prompt-badge-bg);
   --badge-color: var(--tr-prompt-badge-color);
 
   /* 影响布局的变量 */
@@ -93,20 +93,20 @@ const props = withDefaults(defineProps<PromptProps>(), {
   position: relative;
   cursor: pointer;
   transition: background 0.3s;
-  background-color: var(--bg-color);
+  background-color: var(--bg);
 
   &:hover {
-    background-color: var(--hover-color);
+    background-color: var(--bg-hover);
   }
 
   &.disabled {
     cursor: default;
     pointer-events: none;
-    background-color: var(--disabled-color);
+    background-color: var(--bg-disabled);
   }
 
   &:active {
-    background-color: var(--active-color);
+    background-color: var(--bg-active);
   }
 }
 
@@ -141,7 +141,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
   padding-inline: var(--badge-padding-inline);
   border-top-right-radius: var(--border-radius);
   border-bottom-left-radius: var(--border-radius);
-  background-color: var(--badge-bg-color);
+  background-color: var(--badge-bg);
   color: var(--badge-color);
   font-size: var(--badge-font-size);
   line-height: var(--badge-line-height);

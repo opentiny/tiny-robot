@@ -1,4 +1,5 @@
 :root {
+  /* ===== 层级管理 ===== */
   /* 🧱 基础层级：用于默认或背景元素，确保不遮挡主要内容 */
   --tr-z-index-base: 0;
 
@@ -23,4 +24,203 @@
 
   /* 🚨 最高优先级：例如全局加载动画、强制更新提示等，确保始终显示在最顶层 */
   --tr-z-index-loading: 9999; /* 全局加载指示器 */
+
+  /* ===== 间距系统 ===== */
+  --tr-spacing-2xs: 2px;
+  --tr-spacing-xs: 4px;
+  --tr-spacing-sm: 8px;
+  --tr-spacing-md: 12px;
+  --tr-spacing-lg: 16px;
+  --tr-spacing-xl: 20px;
+  --tr-spacing-2xl: 24px;
+  --tr-spacing-3xl: 32px;
+  --tr-spacing-4xl: 40px;
+  --tr-spacing-5xl: 48px;
+  --tr-spacing-6xl: 64px;
+
+  /* ===== 圆角系统 ===== */
+  --tr-radius-xs: 2px;
+  --tr-radius-sm: 4px;
+  --tr-radius-md: 8px;
+  --tr-radius-lg: 12px;
+  --tr-radius-xl: 16px;
+  --tr-radius-full: 9999px;
+
+  /* ===== 字体系统 ===== */
+  --tr-font-size-xs: 12px;
+  --tr-font-size-sm: 14px;
+  --tr-font-size-md: 16px;
+  --tr-font-size-lg: 18px;
+  --tr-font-size-xl: 20px;
+  --tr-font-size-2xl: 24px;
+  --tr-font-size-3xl: 32px;
+  --tr-font-size-4xl: 36px;
+  --tr-font-size-5xl: 40px;
+  --tr-font-size-6xl: 48px;
+  --tr-font-size-7xl: 60px;
+
+  /* ===== 字体粗细 ===== */
+  --tr-font-weight-thin: 100;
+  --tr-font-weight-extralight: 200;
+  --tr-font-weight-light: 300;
+  --tr-font-weight-regular: 400;
+  --tr-font-weight-medium: 500;
+  --tr-font-weight-semibold: 600;
+  --tr-font-weight-bold: 700;
+  --tr-font-weight-extrabold: 800;
+  --tr-font-weight-black: 900;
+}
+
+:root,
+[data-tr-color-mode='light'] {
+  /* ===== 功能色系 ===== */
+  /* 成功色 */
+  --tr-success-bg: #e6f2d5;
+  --tr-success-border: #e6f2d5;
+  --tr-success-icon: #5cb300;
+  --tr-success-text: #5cb300;
+
+  /* 错误色 */
+  --tr-error-bg: #fce3e1;
+  --tr-error-border: #fce3e1;
+  --tr-error-icon: #f23030;
+  --tr-error-text: #f23030;
+
+  /* 警告色 */
+  --tr-warning-bg: #ffebd1;
+  --tr-warning-border: #ffebd1;
+  --tr-warning-icon: #ff8800;
+  --tr-warning-text: #ff8800;
+
+  /* 信息色 */
+  --tr-info-bg: #deecff;
+  --tr-info-border: #deecff;
+  --tr-info-icon: #1476ff;
+  --tr-info-text: #1476ff;
+
+  /* ===== 文本色系 ===== */
+  /* 主要文本色 */
+  --tr-text-color-primary: #191919;
+  --tr-text-color-secondary: #595959;
+  --tr-text-color-placeholder: #808080;
+  --tr-text-color-disabled: #c2c2c2;
+  --tr-text-color-highlight: #1476ff;
+  --tr-text-color-link: #1476ff;
+  --tr-text-color-hover: #191919;
+  --tr-text-color-active: #191919;
+
+  /* ===== 图标色系 ===== */
+  /* 基础图标色 */
+  --tr-icon-color-default: #808080;
+  --tr-icon-color-hover: #191919;
+  --tr-icon-color-active: #191919;
+  --tr-icon-color-disabled: #c2c2c2;
+  --tr-icon-color-link: #1476ff;
+
+  /* ===== 边框色系 ===== */
+  /* 基础边框色 */
+  --tr-border-color-default: #c2c2c2;
+  --tr-border-color-hover: #191919;
+  --tr-border-color-active: #191919;
+  --tr-border-color-disabled: rgba(219, 219, 219, 0.15);
+
+  /* ===== 背景色系 ===== */
+  /* 页面背景 */
+  --tr-page-bg-default: #f5f5f5;
+
+  /* 容器背景 */
+  --tr-container-bg-default: #ffffff;
+  --tr-container-bg-hover: rgba(0, 0, 0, 0.04);
+  --tr-container-bg-active: rgba(0, 0, 0, 0.15);
+  --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
+
+  /* 控制组件背景 */
+  --tr-control-bg-default: #c2c2c2;
+  --tr-control-bg-hover: rgba(222, 236, 255, 0.2);
+  --tr-control-bg-active: #1476ff;
+  --tr-control-bg-disabled: #dbdbdb;
+
+  /* 蒙层背景 */
+  --tr-mask-bg-block: rgba(255, 255, 255, 0.7);
+  --tr-mask-bg-global: rgba(0, 0, 0, 0.2);
+
+  /* ===== 阴影系统 ===== */
+  --tr-shadow-elevation-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== 深色主题 ===== */
+[data-tr-color-mode='dark'] {
+  /* ===== 功能色系 ===== */
+  /* 成功色 */
+  --tr-success-bg: #394e3b;
+  --tr-success-border: #394e3b;
+  --tr-success-icon: #5ba854;
+  --tr-success-text: #5ba854;
+
+  /* 错误色 */
+  --tr-error-bg: #583634;
+  --tr-error-border: #583634;
+  --tr-error-icon: #d94838;
+  --tr-error-text: #d94838;
+
+  /* 警告色 */
+  --tr-warning-bg: #624626;
+  --tr-warning-border: #624626;
+  --tr-warning-icon: #ff8800;
+  --tr-warning-text: #ff8800;
+
+  /* 信息色 */
+  --tr-info-bg: #2e4364;
+  --tr-info-border: #2e4364;
+  --tr-info-icon: #317af7;
+  --tr-info-text: #5291ff;
+
+  /* ===== 文本色系 ===== */
+  /* 主要文本色 */
+  --tr-text-color-primary: #e6e6e6;
+  --tr-text-color-secondary: #b3b3b3;
+  --tr-text-color-placeholder: #808080;
+  --tr-text-color-disabled: #808080;
+  --tr-text-color-highlight: #5291ff;
+  --tr-text-color-link: #5291ff;
+  --tr-text-color-hover: #e6e6e6;
+  --tr-text-color-active: #ffffff;
+
+  /* ===== 图标色系 ===== */
+  /* 基础图标色 */
+  --tr-icon-color-default: #b3b3b3;
+  --tr-icon-color-hover: #e6e6e6;
+  --tr-icon-color-active: #e6e6e6;
+  --tr-icon-color-disabled: #808080;
+  --tr-icon-color-link: #5291ff;
+
+  /* ===== 边框色系 ===== */
+  /* 基础边框色 */
+  --tr-border-color-default: #808080;
+  --tr-border-color-hover: #e6e6e6;
+  --tr-border-color-active: #e6e6e6;
+  --tr-border-color-disabled: rgba(255, 255, 255, 0.15);
+
+  /* ===== 背景色系 ===== */
+  /* 页面背景 */
+  --tr-page-bg-default: #191919;
+
+  /* 容器背景 */
+  --tr-container-bg-default: #262626;
+  --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
+  --tr-container-bg-active: rgba(255, 255, 255, 0.15);
+  --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
+
+  /* 控制组件背景 */
+  --tr-control-bg-default: #4d4d4d;
+  --tr-control-bg-hover: rgba(49, 122, 247, 0.2);
+  --tr-control-bg-active: #317af7;
+  --tr-control-bg-disabled: #808080;
+
+  /* 蒙层背景 */
+  --tr-mask-bg-block: rgba(26, 26, 26, 0.7);
+  --tr-mask-bg-global: rgba(0, 0, 0, 0.6);
+
+  /* ===== 阴影系统 ===== */
+  --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);
 }
