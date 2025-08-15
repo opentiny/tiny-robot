@@ -73,10 +73,11 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 ### Events
 
 #### 搜索与筛选
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| `search` | `(query: string, tab: 'installed' \| 'market')` | 搜索输入变化 |
-| `market-category-change` | `(category: string)` | 市场分类筛选变化 |
+| 事件名 | 参数 | 默认 | 说明 |
+|--------|------|------|------|
+| `market-category-change` | `(category: string)` | 无 | 市场分类筛选变化 |
+| `installedSearchFn` | `(query: string, item: PluginInfo) => boolean` | `默认按 name 包含匹配` | 已添加插件搜索函数 |
+| `marketSearchFn` | `(query: string, item: PluginInfo) => boolean` | `默认按 name 包含匹配` | 市场插件搜索函数 |
 
 #### 面板控制
 | 事件名 | 参数 | 说明 |
@@ -116,6 +117,7 @@ interface PluginInfo {
   icon: string            // 插件图标URL
   description: string     // 插件描述
   enabled: boolean       // 是否启用
+  expanded?: boolean      // 是否展开
   tools: PluginTool[]    // 工具列表
   added?: boolean         // 市场插件添加状态(可选)
   category?: string       // 插件分类(可选，用于市场分类筛选)

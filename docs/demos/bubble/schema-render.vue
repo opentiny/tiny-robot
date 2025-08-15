@@ -18,10 +18,10 @@ import SchemaCard from './schema-card.ce.vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
-const markdownRenderer = new BubbleMarkdownContentRenderer(
-  { html: true },
-  { ADD_TAGS: ['schema-card'], ADD_ATTR: ['schema'] },
-)
+const markdownRenderer = new BubbleMarkdownContentRenderer({
+  mdConfig: { html: true },
+  dompurifyConfig: { ADD_TAGS: ['schema-card'], ADD_ATTR: ['schema'] },
+})
 
 const schemaObj = ref(
   JSON.stringify({

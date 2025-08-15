@@ -7,9 +7,10 @@ const props = defineProps<{
   status: 'running' | 'success' | 'failed' | 'cancelled'
   content?: string | { params?: object; result?: object; [x: string]: unknown }
   formatPretty?: boolean
+  defaultOpen?: boolean
 }>()
 
-const expanded = ref(false)
+const opened = ref(props.defaultOpen ?? false)
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['running', { text: '正在调用', icon: IconLoading }],
@@ -72,10 +73,10 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
         </span>
       </div>
       <div class="tr-bubble__step-tool-expand">
-        <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !expanded }" @click="expanded = !expanded" />
+        <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !opened }" @click="opened = !opened" />
       </div>
     </div>
-    <div class="tr-bubble__step-tool-params" v-if="expanded">
+    <div class="tr-bubble__step-tool-params" v-if="opened">
       <hr class="tr-bubble__step-tool-hr" />
       <div class="tr-bubble__step-tool-params-content" v-html="highlightJSON(props.content)"></div>
     </div>

@@ -20,7 +20,13 @@ export interface BubbleCommonProps {
    * 如果 Bubble 中的 content 是长度大于 0 的数组，则 contentRenderer 无效。将会使用 BubbleProvider 中注册的渲染器
    */
   contentRenderer?: BubbleContentRenderer
-  hidden?: boolean
+  /**
+   * 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容
+   */
+  customContentField?: string
+  /**
+   * 气泡最大宽度
+   */
   maxWidth?: string | number
 }
 
@@ -42,6 +48,7 @@ export interface BubbleSlots {
 }
 
 export type BubbleRoleConfig = BubbleCommonProps & {
+  hidden?: boolean
   slots?: BubbleSlots
 }
 

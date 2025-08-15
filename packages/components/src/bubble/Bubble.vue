@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useAttrs } from 'vue'
 import { toCssUnit } from '../shared/utils'
+import { ContentItem } from './components'
 import { BubbleContentFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
 import { BubbleContentClassRenderer } from './renderers'
-import { ContentItem } from './components'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
@@ -33,17 +33,36 @@ const contentRenderer = computed(() => {
   return { isComponent: true, vNodeOrComponent: renderer }
 })
 
+const attrs = useAttrs()
+
+const customContent = computed(() => {
+  if (!props.customContentField) {
+    return null
+  }
+
+  const value = attrs[props.customContentField]
+
+  // value 是字符串，或者是数组且长度大于0
+  if (typeof value === 'string' || (Array.isArray(value) && value.length > 0)) {
+    return value
+  }
+
+  return null
+})
+
+const finalContent = computed(() => customContent.value || props.content)
+
 const bubbleContent = computed(() => {
-  if (Array.isArray(props.content)) {
+  if (Array.isArray(finalContent.value)) {
     return ''
   }
 
-  return props.content
+  return finalContent.value
 })
 
 const contentItems = computed(() => {
-  if (Array.isArray(props.content)) {
-    return props.content
+  if (Array.isArray(finalContent.value)) {
+    return finalContent.value
   }
 
   return []
@@ -75,7 +94,7 @@ const placementStart = computed(() => props.placement === 'start')
       <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
         <template v-if="contentItems.length">
           <div class="tr-bubble__content-items">
-            <ContentItem v-for="(item, index) in contentItems" :key="index" v-bind="item" />
+            <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
           </div>
         </template>
         <template v-else>

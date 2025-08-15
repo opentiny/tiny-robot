@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconMenu } from '@opentiny/tiny-robot-svgs'
-import TinyTooltip from '@opentiny/vue-tooltip'
+import { TinyTooltip } from '@opentiny/vue'
 import { onClickOutside, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, ref, VNode, watch } from 'vue'
 import IconButton from '../icon-button'

@@ -5,7 +5,7 @@
 
 import { reactive, watch } from 'vue'
 import type { ChatMessage } from '../../types'
-import { useMessage, type UseMessageReturn } from '../message/useMessage'
+import { useMessage, type UseMessageOptions, type UseMessageReturn } from '../message/useMessage'
 import type { AIClient } from '../../client'
 
 /**
@@ -91,6 +91,7 @@ export interface UseConversationOptions {
   useStreamByDefault?: boolean
   /** 错误消息模板 */
   errorMessage?: string
+  events?: UseMessageOptions['events']
 }
 
 /**
@@ -157,6 +158,7 @@ export function useConversation(options: UseConversationOptions): UseConversatio
     useStreamByDefault,
     errorMessage,
     initialMessages: [],
+    events: options.events,
   })
 
   // 监听消息变化，自动更新会话
