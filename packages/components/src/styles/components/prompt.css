@@ -6,8 +6,8 @@
   --tr-prompt-bg-active: var(--tr-container-bg-active);
   --tr-prompt-bg-disabled: var(--tr-container-bg-disabled);
   --tr-prompt-shadow: var(--tr-shadow-sm);
-  --tr-prompt-title-color: var(--tr-text-color-primary);
-  --tr-prompt-description-color: var(--tr-text-color-secondary);
+  --tr-prompt-title-color: var(--tr-text-primary);
+  --tr-prompt-description-color: var(--tr-text-secondary);
   --tr-prompt-badge-bg: var(--tr-error-bg);
   --tr-prompt-badge-color: var(--tr-error-text);
 }

@@ -42,7 +42,7 @@ const items: PromptProps[] = [
   justify-content: flex-end;
   align-items: center;
   margin-top: 16px;
-  color: var(--tr-text-color-secondary);
+  color: var(--tr-text-secondary);
   cursor: pointer;
 }
 </style>
