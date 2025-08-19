@@ -10,7 +10,7 @@
 </template>
 
 <script setup lang="ts">
-import { HistoryGroup, HistoryItem } from '@opentiny/tiny-robot'
+import { HistoryGroup, HistoryItem, TrHistory } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 
 const selected = ref('2')
