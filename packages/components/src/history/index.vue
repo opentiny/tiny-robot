@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { IconClose, IconDelete, IconEditPen, IconSearch } from '@opentiny/tiny-robot-svgs'
-import TinyInput from '@opentiny/vue-input'
-import TinyTooltip from '@opentiny/vue-tooltip'
+import { TinyInput, TinyTooltip } from '@opentiny/vue'
 import { computed } from 'vue'
 import IconButton from '../icon-button'
 import { ItemTag, SearchEmpty } from './components'

@@ -26,6 +26,8 @@
     :installed-plugins="installedPlugins"
     :market-plugins="marketPlugins"
     :market-category-options="marketCategoryOptions"
+    :installed-search-fn="handleInstalledSearchFn"
+    :market-search-fn="handleMarketSearchFn"
     :loading="loading"
     :market-loading="marketLoading"
     @plugin-toggle="handlePluginToggle"
@@ -33,9 +35,6 @@
     @plugin-create="handlePluginCreate"
     @plugin-delete="handlePluginDelete"
     @tool-toggle="handleToolToggle"
-    @search="handleSearch"
-    @tab-change="handleTabChange"
-    @market-category-change="handleMarketCategoryChange"
   />
 </template>
 
@@ -67,6 +66,7 @@ const installedPlugins = ref<PluginInfo[]>([
     icon: 'https://github.com/favicon.ico',
     description: '与 GitHub 仓库集成，提供代码搜索、PR 管理等功能',
     enabled: true,
+    expanded: true,
     tools: [
       {
         id: 'tool-1',
@@ -94,6 +94,7 @@ const installedPlugins = ref<PluginInfo[]>([
     icon: 'https://slack.com/favicon.ico',
     description: '发送消息到 Slack 频道',
     enabled: false,
+    expanded: true,
     tools: [
       {
         id: 'tool-4',
@@ -145,6 +146,7 @@ const marketPlugins = ref<PluginInfo[]>([
     enabled: false,
     added: false,
     tools: [{ id: 'tool-9', name: '发送消息', description: '发送 Telegram 消息', enabled: false }],
+    category: 'ai',
   },
 ])
 
@@ -165,13 +167,10 @@ const handleVisibleToggle = () => {
 
 // 事件处理
 const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
-  console.log('插件状态切换:', plugin.name, enabled)
   plugin.enabled = enabled
 }
 
 const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
-  console.log('插件添加状态变化:', plugin, added)
-
   const targetPlugin = marketPlugins.value.find((p) => p.id === plugin.id)!
   targetPlugin.added = added
 
@@ -194,7 +193,6 @@ const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
 }
 
 const handlePluginDelete = (plugin: PluginInfo) => {
-  console.log('删除插件:', plugin.name)
   const index = installedPlugins.value.findIndex((p) => p.id === plugin.id)
   if (index > -1) {
     installedPlugins.value.splice(index, 1)
@@ -202,7 +200,6 @@ const handlePluginDelete = (plugin: PluginInfo) => {
 }
 
 const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) => {
-  console.log('工具状态切换:', plugin, toolId, enabled)
   const tool = plugin.tools?.find((t: PluginTool) => t.id === toolId)
   if (tool) {
     tool.enabled = enabled
@@ -210,7 +207,6 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
 }
 
 const createPluginByForm = (data: PluginFormData) => {
-  console.log('表单方式添加插件:', data)
   // 可以在这里处理表单数据，例如发送到服务器
   const newPlugin: PluginInfo = {
     id: `custom-${Date.now()}`,
@@ -223,29 +219,22 @@ const createPluginByForm = (data: PluginFormData) => {
   installedPlugins.value.push(newPlugin)
 }
 
-const createPluginByCode = (data: string) => {
-  console.log('代码方式添加插件:', data)
-}
-
 // 新的插件创建事件处理
 const handlePluginCreate = (type: 'form' | 'code', data: PluginCreationData) => {
   if (type === 'form') {
+    // 表单 创建插件逻辑
     createPluginByForm(data)
   } else {
-    createPluginByCode(data)
+    // 代码 创建插件逻辑
   }
 }
 
-const handleSearch = (query: string, tab: string) => {
-  console.log('搜索:', query, '在', tab)
+const handleInstalledSearchFn = (query: string, item: PluginInfo) => {
+  return item.name.toLowerCase().includes(query.toLowerCase())
 }
 
-const handleTabChange = (activeTab: string) => {
-  console.log('标签页切换:', activeTab)
-}
-
-const handleMarketCategoryChange = (category: string) => {
-  console.log('市场分类筛选:', category)
+const handleMarketSearchFn = (query: string, item: PluginInfo) => {
+  return item.name.toLowerCase().includes(query.toLowerCase())
 }
 </script>
 

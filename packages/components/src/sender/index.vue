@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useSlots } from 'vue'
-import TinyInput from '@opentiny/vue-input'
+import { TinyInput } from '@opentiny/vue'
 import { useFileDialog } from '@vueuse/core'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler, UserItem } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
@@ -11,7 +11,6 @@ import ActionButtons from './components/ActionButtons.vue'
 import TemplateEditor from './components/TemplateEditor.vue'
 import SuggestionList from './components/SuggestionList.vue'
 import { toCssUnit } from '../shared/utils'
-import './index.less'
 
 const props = withDefaults(defineProps<SenderProps>(), {
   autofocus: false,
@@ -783,4 +782,8 @@ defineExpose({
   --tr-sender-gap: 4px;
   --tr-sender-container-min-height: 32px;
 }
+</style>
+
+<style lang="less" scoped>
+@import url('./index.less');
 </style>

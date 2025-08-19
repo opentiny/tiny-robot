@@ -28,13 +28,13 @@
   }
 
   // TinyUI 输入框调整
-  .tiny-input__prefix {
+  :deep(.tiny-sender__input-field-wrapper .tiny-input__prefix) {
     left: 0;
     display: flex;
     align-items: center;
   }
 
-  .tiny-input__inner {
+  :deep(.tiny-sender__input-field-wrapper .tiny-input__inner) {
     border: none;
     padding-left: 0;
     padding-right: 16px;
@@ -49,13 +49,13 @@
     }
   }
 
-  .tiny-input.is-disabled .tiny-input__inner {
+  :deep(.tiny-sender__input-field-wrapper .is-disabled .tiny-input__inner) {
     border: none;
     background: var(--tr-sender-bg-color);
     color: var(--tr-sender-placeholder-color);
   }
 
-  .tiny-textarea.is-disabled {
+  :deep(.tiny-sender__input-field-wrapper .tiny-textarea.is-disabled) {
     background-color: var(--tr-sender-bg-color);
 
     & .tiny-textarea__inner {
@@ -65,13 +65,13 @@
     }
   }
 
-  .tiny-input__suffix {
+  :deep(.tiny-sender__input-field-wrapper .tiny-input__suffix) {
     right: 0;
     display: flex;
     align-items: center;
   }
 
-  .tiny-textarea__inner {
+  :deep(.tiny-sender__input-field-wrapper .tiny-textarea__inner) {
     font-size: var(--tr-sender-input-font-size);
     border: none;
     min-height: var(--tr-sender-textarea-min-height) !important; // 最小高度与单行保持一致
@@ -89,8 +89,8 @@
     }
   }
 
-  .tiny-textarea:before,
-  .tiny-textarea:after {
+  :deep(.tiny-sender__input-field-wrapper .tiny-textarea:before,
+    .tiny-sender__input-field-wrapper .tiny-textarea:after) {
     display: none;
   }
 

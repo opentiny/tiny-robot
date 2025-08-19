@@ -11,6 +11,7 @@ export interface PluginInfo {
   icon: string
   description: string
   enabled: boolean
+  expanded?: boolean
   tools: PluginTool[]
   added?: boolean
   category?: string
@@ -80,6 +81,8 @@ export interface McpServerPickerProps {
   // 搜索相关
   searchPlaceholder?: string
   enableSearch?: boolean
+  installedSearchFn?: (query: string, item: PluginInfo) => boolean
+  marketSearchFn?: (query: string, item: PluginInfo) => boolean
 
   // 市场分类筛选
   marketCategoryOptions?: MarketCategoryOption[]
@@ -121,9 +124,6 @@ export interface McpServerPickerProps {
 
 // MCP Server Picker 组件的Emits
 export interface McpServerPickerEmits {
-  // 搜索事件
-  (e: 'search', query: string, tab: 'installed' | 'market'): void
-
   // 市场分类筛选事件
   (e: 'market-category-change', category: string): void
 

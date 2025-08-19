@@ -51,8 +51,8 @@ const codeData = defineModel<string>('codeData', { required: true })
   }
 
   &__textarea {
-    width: 836px;
-    height: 576px;
+    width: 100%;
+    height: 480px;
     border: none;
     outline: none;
     resize: none;
