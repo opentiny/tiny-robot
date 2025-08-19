@@ -134,12 +134,6 @@
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
 
-  /* 控制组件背景 */
-  --tr-control-bg-default: #c2c2c2;
-  --tr-control-bg-hover: rgba(222, 236, 255, 0.2);
-  --tr-control-bg-active: #1476ff;
-  --tr-control-bg-disabled: #dbdbdb;
-
   /* 蒙层背景 */
   --tr-mask-bg-block: rgba(255, 255, 255, 0.7);
   --tr-mask-bg-global: rgba(0, 0, 0, 0.2);
@@ -210,12 +204,6 @@
   --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
   --tr-container-bg-active: rgba(255, 255, 255, 0.15);
   --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
-
-  /* 控制组件背景 */
-  --tr-control-bg-default: #4d4d4d;
-  --tr-control-bg-hover: rgba(49, 122, 247, 0.2);
-  --tr-control-bg-active: #317af7;
-  --tr-control-bg-disabled: #808080;
 
   /* 蒙层背景 */
   --tr-mask-bg-block: rgba(26, 26, 26, 0.7);
