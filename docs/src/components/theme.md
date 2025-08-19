@@ -2,13 +2,13 @@
 outline: deep
 ---
 
-# ThemeProvider
+# Theme
 
-## 基本用法
+## 基础用法
 
 需要自定义主题或者配色时，使用 `ThemeProvider` 包裹应用，`ThemeProvider` 提供的 `target-element` prop，是应用主题的根元素（默认是 `html` 元素）。
 
-主题和配色是通过覆盖 css 变量来实现的，`ThemeProvider` 会在 `target-element` 上添加属性，所以需要使用属性选择器来覆盖 css 变量。
+主题和配色是通过覆盖 css 变量来实现的，`ThemeProvider` 会在 `target-element` 上添加 `data-tr-theme` 和 `data-tr-color-mode` 属性，所以需要使用属性选择器来覆盖 css 变量。
 
 - `[data-tr-theme]` 属性选择器，用于覆盖主题相关的 css 变量，可以为任意字符串，和你设置的主题对应
 - `[data-tr-color-mode]` 属性选择器，用于覆盖颜色模式相关的 css 变量，可以为 `light` 或 `dark`
@@ -32,6 +32,20 @@ outline: deep
 }
 ```
 
+另外，TinyRobot 提供了 `useTheme` 组合式函数，可以使用代码动态切换主题和颜色模式。
+
+> [!IMPORTANT]
+> `useTheme` 只能在 `ThemeProvider` 包裹的组件中使用。
+
+```typescript
+import { useTheme } from '@opentiny/tiny-robot'
+
+const { toggleColorMode, setColorMode } = useTheme()
+
+toggleColorMode() // 切换颜色模式
+setColorMode('dark') // 设置颜色模式
+```
+
 ## 主题设置
 
 使用 `ThemeProvider` 的 `theme` props 设置主题，或者使用 `useTheme` 中的 `setTheme` 设置主题。
@@ -47,6 +61,12 @@ outline: deep
 使用 `[data-tr-color-mode='light']` 和 `[data-tr-color-mode='dark']` 属性选择器来自定义你的颜色模式 css 变量。
 
 <demo vue="../../demos/theme-provider/ColorMode.vue" :vueFiles="['../../demos/theme-provider/ColorMode.vue', '../../demos/theme-provider/ColorModeComp.vue']" />
+
+## 嵌套主题
+
+`ThemeProvider` 可以嵌套使用。组件会往上查找最近的 `ThemeProvider` 提供的主题和颜色模式。
+
+<demo vue="../../demos/theme-provider/NestedTheme.vue" :vueFiles="['../../demos/theme-provider/NestedTheme.vue', '../../demos/theme-provider/ThemeComp.vue']" />
 
 ## 主题数据持久化
 
