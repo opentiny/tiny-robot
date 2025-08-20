@@ -19,7 +19,7 @@ jobs:
       - name: CheckOut Code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref || github.ref_name }}
 
       # 步骤2: 设置pnpm包管理器
       - name: Setup pnpm
