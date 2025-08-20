@@ -328,20 +328,22 @@ const transitionName = computed(() => {
                 </TinyInput>
               </div>
 
-              <div class="mcp-server-picker__content-installed-list" v-if="hasFilteredPlugins">
+              <div class="mcp-server-picker__content-list" v-if="hasFilteredPlugins">
                 <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
                 <template v-else>
-                  <!-- 已添加插件列表 -->
-                  <PluginCard
-                    v-for="plugin in installedFilteredPlugins"
-                    :key="plugin.id"
-                    :plugin="plugin"
-                    mode="installed"
-                    :expandable="!!plugin.tools?.length"
-                    @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
-                    @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
-                    @delete-plugin="() => handleDeletePlugin(plugin)"
-                  />
+                  <div class="mcp-server-picker__content-list-wrapper">
+                    <!-- 已添加插件列表 -->
+                    <PluginCard
+                      v-for="plugin in installedFilteredPlugins"
+                      :key="plugin.id"
+                      :plugin="plugin"
+                      mode="installed"
+                      :expandable="!!plugin.tools?.length"
+                      @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
+                      @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
+                      @delete-plugin="() => handleDeletePlugin(plugin)"
+                    />
+                  </div>
                 </template>
               </div>
               <NoData v-else :search-query="installedSearch" />
@@ -374,19 +376,21 @@ const transitionName = computed(() => {
               </div>
             </div>
 
-            <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-market-list">
+            <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-list">
               <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
               <template v-else>
-                <!-- 插件市场列表 -->
-                <PluginCard
-                  v-for="plugin in marketFilteredPlugins"
-                  :key="plugin.id"
-                  :plugin="plugin"
-                  mode="market"
-                  :expandable="false"
-                  :show-tool-count="false"
-                  @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
-                />
+                <div class="mcp-server-picker__content-list-wrapper">
+                  <!-- 插件市场列表 -->
+                  <PluginCard
+                    v-for="plugin in marketFilteredPlugins"
+                    :key="plugin.id"
+                    :plugin="plugin"
+                    mode="market"
+                    :expandable="false"
+                    :show-tool-count="false"
+                    @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
+                  />
+                </div>
               </template>
             </div>
             <NoData v-else :search-query="marketSearch || marketCategory" />
@@ -414,16 +418,12 @@ const transitionName = computed(() => {
   // 默认样式(fixed模式)
   &.popup-type-fixed {
     width: 482px;
-    height: auto;
-    overflow-y: auto;
   }
 
   // 抽屉模式样式
   &.popup-type-drawer {
     width: 482px;
     padding-top: 20px;
-    height: 100vh;
-    overflow-y: auto;
   }
 
   &__header {
@@ -496,22 +496,20 @@ const transitionName = computed(() => {
       justify-content: space-between;
     }
 
-    &-market-list {
-      display: flex;
-      flex-direction: column;
-      overflow: visible;
-      gap: 16px;
-    }
-
     &-installed-search {
       margin: 16px 0;
     }
 
-    &-installed-list {
-      display: flex;
-      flex-direction: column;
-      overflow: visible;
-      gap: 16px;
+    &-list {
+      max-height: calc(100vh - 170px);
+      overflow-y: auto;
+      padding: 5px;
+
+      &-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
     }
   }
 
