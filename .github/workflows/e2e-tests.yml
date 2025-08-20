@@ -4,9 +4,9 @@ run-name: E2E Tests
 
 on:
   push:
-    branches: [ develop, main, feat/e2e-test ]
+    branches: [ develop, main ]
   pull_request:
-    branches: [ develop, main, feat/e2e-test ]
+    branches: [ develop, main ]
 
 jobs:
   e2e-tests:
@@ -65,3 +65,12 @@ jobs:
       # 步骤9: 运行 E2E 测试
       - name: Run Playwright Tests
         run: pnpm test
+
+      # 步骤10: 上传 Playwright 测试报告
+      - name: Upload Playwright Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: packages/test/playwright-report/
+          retention-days: 13
