@@ -1,4 +1,5 @@
-@import './prompt.css';
+@import './prompt.less';
+@import './prompts.less';
 
 [data-tr-color-mode='light'] {
   color-scheme: light;

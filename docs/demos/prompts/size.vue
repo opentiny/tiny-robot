@@ -21,18 +21,21 @@ const items: PromptProps[] = [
     description: '今天需要我帮你安排日程，规划旅行，还是起草一封邮件？',
     icon: h('span', { style: iconStyle }, '🧠'),
     size: 'small',
+    badge: 'NEW',
   },
   {
     label: '日常助理场景(medium)',
     description: '今天需要我帮你安排日程，规划旅行，还是起草一封邮件？',
     icon: h('span', { style: iconStyle }, '🧠'),
     size: 'medium',
+    badge: 'NEW',
   },
   {
     label: '日常助理场景(large)',
     description: '今天需要我帮你安排日程，规划旅行，还是起草一封邮件？',
     icon: h('span', { style: iconStyle }, '🧠'),
     size: 'large',
+    badge: 'NEW',
   },
 ]
 </script>

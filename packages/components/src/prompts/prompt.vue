@@ -40,42 +40,39 @@ const props = withDefaults(defineProps<PromptProps>(), {
   --badge-color: var(--tr-prompt-badge-color);
 
   /* 影响布局的变量 */
-  --padding-block: var(--tr-prompt-padding-block);
-  --padding-inline: var(--tr-prompt-padding-inline);
+  --padding: var(--tr-prompt-padding);
   --title-font-size: var(--tr-prompt-title-font-size);
   --title-line-height: var(--tr-prompt-title-line-height);
   --description-font-size: var(--tr-prompt-description-font-size);
   --description-line-height: var(--tr-prompt-description-line-height);
   --gap: var(--tr-prompt-gap);
   --content-gap: var(--tr-prompt-content-gap);
-  --badge-padding-inline: var(--tr-prompt-badge-padding-inline);
+  --badge-padding: var(--tr-prompt-badge-padding);
   --badge-font-size: var(--tr-prompt-badge-font-size);
   --badge-line-height: var(--tr-prompt-badge-line-height);
 
   &.small {
-    --padding-block: var(--tr-prompt-padding-block-small, var(--tr-prompt-padding-block));
-    --padding-inline: var(--tr-prompt-padding-inline-small, var(--tr-prompt-padding-inline));
+    --padding: var(--tr-prompt-padding-small, var(--tr-prompt-padding));
     --title-font-size: var(--tr-prompt-title-font-size-small, var(--tr-prompt-title-font-size));
     --title-line-height: var(--tr-prompt-title-line-height-small, var(--tr-prompt-title-line-height));
     --description-font-size: var(--tr-prompt-description-font-size-small, var(--tr-prompt-description-font-size));
     --description-line-height: var(--tr-prompt-description-line-height-small, var(--tr-prompt-description-line-height));
     --gap: var(--tr-prompt-gap-small, var(--tr-prompt-gap));
     --content-gap: var(--tr-prompt-content-gap-small, var(--tr-prompt-content-gap));
-    --badge-padding-inline: var(--tr-prompt-badge-padding-inline-small, var(--tr-prompt-badge-padding-inline));
+    --badge-padding: var(--tr-prompt-badge-padding-small, var(--tr-prompt-badge-padding));
     --badge-font-size: var(--tr-prompt-badge-font-size-small, var(--tr-prompt-badge-font-size));
     --badge-line-height: var(--tr-prompt-badge-line-height-small, var(--tr-prompt-badge-line-height));
   }
 
   &.large {
-    --padding-block: var(--tr-prompt-padding-block-large, var(--tr-prompt-padding-block));
-    --padding-inline: var(--tr-prompt-padding-inline-large, var(--tr-prompt-padding-inline));
+    --padding: var(--tr-prompt-padding-large, var(--tr-prompt-padding));
     --title-font-size: var(--tr-prompt-title-font-size-large, var(--tr-prompt-title-font-size));
     --title-line-height: var(--tr-prompt-title-line-height-large, var(--tr-prompt-title-line-height));
     --description-font-size: var(--tr-prompt-description-font-size-large, var(--tr-prompt-description-font-size));
     --description-line-height: var(--tr-prompt-description-line-height-large, var(--tr-prompt-description-line-height));
     --gap: var(--tr-prompt-gap-large, var(--tr-prompt-gap));
     --content-gap: var(--tr-prompt-content-gap-large, var(--tr-prompt-content-gap));
-    --badge-padding-inline: var(--tr-prompt-badge-padding-inline-large, var(--tr-prompt-badge-padding-inline));
+    --badge-padding: var(--tr-prompt-badge-padding-large, var(--tr-prompt-badge-padding));
     --badge-font-size: var(--tr-prompt-badge-font-size-large, var(--tr-prompt-badge-font-size));
     --badge-line-height: var(--tr-prompt-badge-line-height-large, var(--tr-prompt-badge-line-height));
   }
@@ -88,8 +85,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
   gap: var(--gap);
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
-  padding-block: var(--padding-block);
-  padding-inline: var(--padding-inline);
+  padding: var(--padding);
   position: relative;
   cursor: pointer;
   transition: background 0.3s;
@@ -138,7 +134,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
   position: absolute;
   top: 0;
   right: 0;
-  padding-inline: var(--badge-padding-inline);
+  padding: var(--badge-padding);
   border-top-right-radius: var(--border-radius);
   border-bottom-left-radius: var(--border-radius);
   background-color: var(--badge-bg);

@@ -1,0 +1,94 @@
+:root,
+[data-tr-color-mode] {
+  /* 颜色相关的变量，需要加上 [data-tr-color-mode] 属性选择器。目的是提高优先级，让嵌套的 ThemeProvider 的样式能覆盖外层 ThemeProvider 的样式 */
+  --tr-prompt-bg: var(--tr-container-bg-default);
+  --tr-prompt-bg-hover: var(--tr-container-bg-hover);
+  --tr-prompt-bg-active: var(--tr-container-bg-active);
+  --tr-prompt-bg-disabled: var(--tr-container-bg-disabled);
+  --tr-prompt-shadow: var(--tr-shadow-sm);
+  --tr-prompt-title-color: var(--tr-text-primary);
+  --tr-prompt-description-color: var(--tr-text-secondary);
+  --tr-prompt-badge-bg: var(--tr-color-error-light);
+  --tr-prompt-badge-color: var(--tr-color-error);
+}
+
+.tr-prompt-vars() {
+  @prefix: tr-prompt;
+
+  @vars: {
+    /* 不影响布局的变量 */
+    title-font-weight: var(--tr-font-weight-medium);
+    border-radius: var(--tr-radius-xl);
+    /* 影响布局的变量 */
+    // 默认取 medium 的值
+    padding: var(--tr-prompt-padding-medium);
+    title-font-size: var(--tr-prompt-title-font-size-medium);
+    title-line-height: var(--tr-prompt-title-line-height-medium);
+    description-font-size: var(--tr-prompt-description-font-size-medium);
+    description-line-height: var(--tr-prompt-description-line-height-medium);
+    gap: var(--tr-prompt-gap-medium);
+    content-gap: var(--tr-prompt-content-gap-medium);
+    badge-padding: var(--tr-prompt-badge-padding-medium);
+    badge-font-size: var(--tr-prompt-badge-font-size-medium);
+    badge-line-height: var(--tr-prompt-badge-line-height-medium);
+  };
+
+  @small-vars: {
+    padding: 10px var(--tr-spacing-lg);
+    title-font-size: var(--tr-font-size-sm);
+    title-line-height: 24px;
+    description-font-size: var(--tr-font-size-sm);
+    description-line-height: 22px;
+    gap: var(--tr-spacing-md);
+    content-gap: var(--tr-spacing-xs);
+    badge-padding: 0 var(--tr-spacing-md);
+    badge-font-size: var(--tr-font-size-sm);
+    badge-line-height: 22px;
+  };
+
+  @medium-vars: {
+    padding: 14px var(--tr-spacing-2xl);
+    title-font-size: var(--tr-font-size-sm);
+    title-line-height: 24px;
+    description-font-size: var(--tr-font-size-sm);
+    description-line-height: 22px;
+    gap: var(--tr-spacing-md);
+    content-gap: var(--tr-spacing-xs);
+    badge-padding: 0 var(--tr-spacing-md);
+    badge-font-size: var(--tr-font-size-sm);
+    badge-line-height: 22px;
+  };
+
+  @large-vars: {
+    padding: 14px var(--tr-spacing-2xl);
+    title-font-size: var(--tr-font-size-md);
+    title-line-height: 24px;
+    description-font-size: var(--tr-font-size-sm);
+    description-line-height: 22px;
+    gap: var(--tr-spacing-md);
+    content-gap: var(--tr-spacing-xs);
+    badge-padding: 0 var(--tr-spacing-md);
+    badge-font-size: var(--tr-font-size-md);
+    badge-line-height: 22px;
+  };
+
+  :root {
+    each(@vars, {
+      --@{prefix}-@{key}: @value;
+    });
+
+    each(@small-vars, {
+      --@{prefix}-@{key}-small: @value;
+    });
+
+    each(@medium-vars, {
+      --@{prefix}-@{key}-medium: @value;
+    });
+
+    each(@large-vars, {
+      --@{prefix}-@{key}-large: @value;
+    });
+  }
+}
+
+.tr-prompt-vars();
