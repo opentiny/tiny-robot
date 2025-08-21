@@ -1,5 +1,5 @@
 ---
-outline: deep
+outline: [1, 3]
 ---
 
 # DragOverlay 拖拽浮层
@@ -72,5 +72,57 @@ export interface RejectionReason {
 
 export interface FileRejection extends RejectionReason {
   files: File[]
+}
+```
+
+### CSS 变量
+
+DragOverlay 组件支持以下 CSS 变量来自定义样式：
+
+#### 全局变量 (`:root`)
+
+| 变量名                                          | 描述                 |
+| ----------------------------------------------- | -------------------- |
+| `--tr-drag-overlay-bg-color`                    | 背景颜色             |
+| `--tr-drag-overlay-border-color`                | 边框颜色             |
+| `--tr-drag-overlay-title-color`                 | 标题文字颜色         |
+| `--tr-drag-overlay-title-font-weight`           | 标题字体粗细         |
+| `--tr-drag-overlay-description-color`           | 描述文字颜色         |
+| `--tr-drag-overlay-description-font-weight`     | 描述字体粗细         |
+| `--tr-drag-overlay-content-padding`             | 内容区域内边距       |
+| `--tr-drag-overlay-content-border-width`        | 内容边框宽度         |
+| `--tr-drag-overlay-content-border-radius`       | 内容边框圆角         |
+| `--tr-drag-overlay-icon-font-size`              | 图标字体大小         |
+| `--tr-drag-overlay-icon-margin-bottom`          | 图标下边距           |
+| `--tr-drag-overlay-text-gap`                    | 文本区域间距         |
+| `--tr-drag-overlay-title-font-size`             | 标题字体大小         |
+| `--tr-drag-overlay-title-line-height`           | 标题行高             |
+| `--tr-drag-overlay-description-font-size`       | 描述字体大小         |
+| `--tr-drag-overlay-description-line-height`     | 描述行高             |
+
+全屏模式下的 CSS 变量：
+
+| 变量名                                               | 描述                 |
+| ---------------------------------------------------- | -------------------- |
+| `--tr-drag-overlay-fullscreen-content-padding`        | 全屏模式内容区域内边距 |
+
+#### 变量覆盖
+
+非全屏模式（默认）
+
+```css
+:root {
+  --tr-drag-overlay-bg-color: rgba(255, 255, 255, 0.8);
+  --tr-drag-overlay-title-color: rgba(0, 0, 0, 1);
+  --tr-drag-overlay-content-padding: 40px;
+}
+```
+
+全屏模式
+
+```css
+:root {
+  --tr-drag-overlay-fullscreen-content-padding: 60px 420px;
+  --tr-drag-overlay-content-border-width: 1px;
 }
 ```
