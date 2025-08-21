@@ -389,22 +389,6 @@ const handleBlur = (event: FocusEvent) => {
 
 const currentType = computed(() => (currentMode.value === 'multiple' ? 'textarea' : 'text'))
 
-const justifyContent = computed(
-  (): {
-    display: string
-    justifyContent: 'space-between' | 'flex-end'
-    alignItems: string
-  } => {
-    const justifyContent = props.showWordLimit && props.maxLength !== Infinity ? 'space-between' : 'flex-end'
-
-    return {
-      display: 'flex',
-      justifyContent,
-      alignItems: 'center',
-    }
-  },
-)
-
 type SlotsType = {
   decorativeContent?: () => boolean
   [key: string]: (() => any) | undefined // eslint-disable-line
@@ -585,11 +569,7 @@ defineExpose({
 
         <!-- 底部插槽 - 底部工具栏作为默认内容 -->
         <Transition name="tiny-sender-slide-up">
-          <div
-            v-if="currentMode === 'multiple'"
-            :style="justifyContent"
-            class="tiny-sender__footer-slot tiny-sender__bottom-row"
-          >
+          <div v-if="currentMode === 'multiple'" class="tiny-sender__footer-slot tiny-sender__bottom-row">
             <!-- 底部左侧区域 -->
             <div class="tiny-sender__footer-left">
               <!-- 左侧自定义插槽 -->

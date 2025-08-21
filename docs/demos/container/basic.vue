@@ -1,7 +1,7 @@
 <template>
   <tr-container v-model:show="show" v-model:fullscreen="fullscreen">
     <!-- 默认插槽 -->
-    <div style="padding: 0 24px">
+    <div class="content">
       <p v-for="i in 20" :key="i">测试文本</p>
     </div>
     <!-- operations插槽 -->
@@ -10,7 +10,7 @@
     </template>
     <!-- footer插槽 -->
     <template #footer>
-      <div style="padding: 8px 24px; border-top: 1px solid rgb(0, 0, 0, 0.15)">footer</div>
+      <div class="footer">footer</div>
     </template>
   </tr-container>
   <div style="display: flex; flex-direction: column; gap: 8px">
@@ -34,3 +34,25 @@ import { ref } from 'vue'
 const show = ref(false)
 const fullscreen = ref(false)
 </script>
+
+<style lang="less" scoped>
+.content {
+  padding: 0 24px;
+  background-color: antiquewhite;
+}
+
+.footer {
+  background-color: #f0f0f0;
+  padding: 16px 24px;
+}
+
+.fullscreen {
+  @media (min-width: 1280px) {
+    .content,
+    .footer {
+      width: 1280px;
+      margin: 0 auto;
+    }
+  }
+}
+</style>

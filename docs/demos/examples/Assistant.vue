@@ -27,7 +27,7 @@
         ></tr-history>
       </span>
     </template>
-    <div v-if="messages.length === 0">
+    <div :class="{ 'max-container': fullscreen }" v-if="messages.length === 0">
       <tr-welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="welcomeIcon">
         <template #footer>
           <div class="welcome-footer">
@@ -43,10 +43,16 @@
         @item-click="handlePromptItemClick"
       ></tr-prompts>
     </div>
-    <tr-bubble-list v-else :items="messages" :roles="roles" auto-scroll></tr-bubble-list>
+    <tr-bubble-list
+      :class="{ 'max-container': fullscreen }"
+      v-else
+      :items="messages"
+      :roles="roles"
+      auto-scroll
+    ></tr-bubble-list>
 
     <template #footer>
-      <div class="chat-input">
+      <div class="chat-input max-container">
         <div class="chat-input-pills">
           <tr-suggestion-popover
             style="--tr-suggestion-popover-width: 440px"
@@ -573,6 +579,13 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
+@media (min-width: 1280px) {
+  .max-container {
+    width: 1280px;
+    margin: 0 auto;
+  }
+}
+
 .chat-input {
   padding: 8px 12px;
   display: flex;
