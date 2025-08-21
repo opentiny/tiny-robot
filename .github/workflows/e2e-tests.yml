@@ -15,11 +15,26 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 步骤1: 检出代码
-      - name: CheckOut Code
+      # 步骤1: 检出代码 (处理所有情况)
+
+      # 场景 A: 当工作流由 push 事件触发时 (例如合并到 develop 分支)
+      # 或者由仓库内部成员创建的 PR 触发时，执行此步骤。
+      - name: Checkout for Develop Repo Push or PR
+        # 条件：事件不是来自 fork 的 PR
+        if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          # 当是 PR 时，确保我们检出的是 PR 的最新代码，而不是合并后的代码
+          ref: ${{ github.head_ref }}
+
+      # 场景 B: 当工作流由外部 fork 仓库的 PR 触发时，执行此步骤
+      - name: Checkout for Fork PR
+        # 条件：事件是来自 fork 的 PR
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.head_ref }}
 
       # 步骤2: 设置pnpm包管理器
       - name: Setup pnpm
