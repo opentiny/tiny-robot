@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div class="app">
     <h1>Tiny Robot E2E Test App</h1>
     <nav>
       <ul>
@@ -38,7 +38,7 @@ const currentComponentInstance = computed(() => {
 </script>
 
 <style>
-#app {
+.app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
