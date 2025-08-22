@@ -86,8 +86,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import TrContainer from '../../../components/src/container/index.vue'
+import { ref, watch } from 'vue'
+import { TrContainer } from '@opentiny/tiny-robot'
 
 // 响应式数据
 const showContainer = ref(false)
@@ -115,14 +115,11 @@ const clearLogs = () => {
   addLog('日志已清空')
 }
 
-// 监听容器状态变化
-import { watch } from 'vue'
-
-watch(showContainer, (newVal) => {
+watch(showContainer, (newVal: boolean) => {
   addLog(`容器${newVal ? '显示' : '隐藏'}`)
 })
 
-watch(isFullscreen, (newVal) => {
+watch(isFullscreen, (newVal: boolean) => {
   addLog(`${newVal ? '进入' : '退出'}全屏模式`)
 })
 </script>
@@ -134,6 +131,7 @@ watch(isFullscreen, (newVal) => {
   padding: 20px;
 }
 
+/* 核心布局样式 */
 .controls {
   display: flex;
   gap: 10px;
@@ -144,14 +142,8 @@ watch(isFullscreen, (newVal) => {
 .controls button {
   padding: 8px 16px;
   border: 1px solid #ddd;
-  border-radius: 4px;
   background: #fff;
   cursor: pointer;
-  transition: all 0.3s;
-}
-
-.controls button:hover:not(:disabled) {
-  background: #f0f0f0;
 }
 
 .controls button:disabled {
@@ -159,11 +151,11 @@ watch(isFullscreen, (newVal) => {
   cursor: not-allowed;
 }
 
+/* 基础状态显示 */
 .status-info {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
+  padding: 10px;
   margin: 20px 0;
+  background: #f5f5f5;
 }
 
 .status-info span {
@@ -171,62 +163,16 @@ watch(isFullscreen, (newVal) => {
   color: #007bff;
 }
 
+/* 容器内容 */
 .container-content {
-  padding: 20px;
-  line-height: 1.6;
-}
-
-.demo-content {
-  background: #f8f9fa;
   padding: 15px;
-  border-radius: 4px;
-  margin: 15px 0;
 }
 
-.form-demo {
-  margin: 15px 0;
-}
-
-.form-demo label {
-  display: block;
-  margin: 10px 0;
-}
-
-.form-demo input {
-  margin-left: 10px;
-  padding: 4px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.container-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  background: #f8f9fa;
-  border-top: 1px solid #ddd;
-}
-
-.custom-btn {
-  padding: 4px 12px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.custom-btn:hover {
-  background: #0056b3;
-}
-
+/* 操作日志 */
 .action-log {
-  margin-top: 30px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 4px;
+  margin-top: 20px;
+  padding: 15px;
+  background: #f5f5f5;
   border: 1px solid #ddd;
 }
 
@@ -241,16 +187,14 @@ watch(isFullscreen, (newVal) => {
 .action-log li {
   padding: 5px 0;
   border-bottom: 1px solid #eee;
-  font-family: monospace;
-  font-size: 14px;
 }
 
-.action-log li:last-child {
-  border-bottom: none;
-}
-
-.footer-text {
-  color: #666;
-  font-size: 14px;
+/* 基础按钮样式 */
+.custom-btn {
+  padding: 4px 8px;
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 </style>

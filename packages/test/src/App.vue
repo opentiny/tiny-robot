@@ -17,8 +17,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { Component } from 'vue'
-import ContainerDemo from './components/ContainerDemo.vue'
-import Home from './components/Home.vue'
+import Home from './home/Home.vue'
+import ContainerDemo from './container/ContainerDemo.vue'
 
 // 定义组件名称类型
 type ComponentName = 'Home' | 'Container'
