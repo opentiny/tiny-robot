@@ -319,35 +319,31 @@ const transitionName = computed(() => {
       <div class="mcp-server-picker__content">
         <TinyTabs v-model="activeTab">
           <TinyTabItem v-if="props.showInstalledTab" :title="props.installedTabTitle" name="installed">
-            <div class="mcp-server-picker__content-item">
-              <div v-if="props.enableSearch" class="mcp-server-picker__content-installed-search">
-                <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder">
-                  <template #suffix>
-                    <IconSearch style="font-size: 16px; cursor: pointer" />
-                  </template>
-                </TinyInput>
-              </div>
-
-              <div class="mcp-server-picker__content-list" v-if="hasFilteredPlugins">
-                <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
-                <template v-else>
-                  <div class="mcp-server-picker__content-list-wrapper">
-                    <!-- 已添加插件列表 -->
-                    <PluginCard
-                      v-for="plugin in installedFilteredPlugins"
-                      :key="plugin.id"
-                      :plugin="plugin"
-                      mode="installed"
-                      :expandable="!!plugin.tools?.length"
-                      @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
-                      @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
-                      @delete-plugin="() => handleDeletePlugin(plugin)"
-                    />
-                  </div>
+            <div v-if="props.enableSearch" class="mcp-server-picker__content-installed-search">
+              <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder">
+                <template #suffix>
+                  <IconSearch style="font-size: 16px; cursor: pointer" />
                 </template>
-              </div>
-              <NoData v-else :search-query="installedSearch" />
+              </TinyInput>
             </div>
+
+            <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-list">
+              <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
+              <div v-else class="mcp-server-picker__content-list-wrapper">
+                <!-- 已添加插件列表 -->
+                <PluginCard
+                  v-for="plugin in installedFilteredPlugins"
+                  :key="plugin.id"
+                  :plugin="plugin"
+                  mode="installed"
+                  :expandable="!!plugin.tools?.length"
+                  @toggle-plugin="(enabled) => handlePluginToggle(plugin, enabled)"
+                  @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
+                  @delete-plugin="() => handleDeletePlugin(plugin)"
+                />
+              </div>
+            </div>
+            <NoData v-else :search-query="installedSearch" />
           </TinyTabItem>
 
           <TinyTabItem v-if="props.showMarketTab" :title="props.marketTabTitle" name="market">
@@ -378,20 +374,18 @@ const transitionName = computed(() => {
 
             <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-list">
               <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
-              <template v-else>
-                <div class="mcp-server-picker__content-list-wrapper">
-                  <!-- 插件市场列表 -->
-                  <PluginCard
-                    v-for="plugin in marketFilteredPlugins"
-                    :key="plugin.id"
-                    :plugin="plugin"
-                    mode="market"
-                    :expandable="false"
-                    :show-tool-count="false"
-                    @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
-                  />
-                </div>
-              </template>
+              <div v-else class="mcp-server-picker__content-list-wrapper">
+                <!-- 插件市场列表 -->
+                <PluginCard
+                  v-for="plugin in marketFilteredPlugins"
+                  :key="plugin.id"
+                  :plugin="plugin"
+                  mode="market"
+                  :expandable="false"
+                  :show-tool-count="false"
+                  @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
+                />
+              </div>
             </div>
             <NoData v-else :search-query="marketSearch || marketCategory" />
           </TinyTabItem>
@@ -418,12 +412,16 @@ const transitionName = computed(() => {
   // 默认样式(fixed模式)
   &.popup-type-fixed {
     width: 482px;
+    display: flex;
+    flex-direction: column;
   }
 
   // 抽屉模式样式
   &.popup-type-drawer {
     width: 482px;
     padding-top: 20px;
+    display: flex;
+    flex-direction: column;
   }
 
   &__header {
@@ -431,6 +429,7 @@ const transitionName = computed(() => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 18px;
+    flex-shrink: 0;
 
     &-left {
       color: #191919;
@@ -484,6 +483,8 @@ const transitionName = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex: 1;
+    min-height: 0;
 
     :deep(.tiny-tabs__content) {
       margin: 0;
@@ -494,16 +495,19 @@ const transitionName = computed(() => {
       display: flex;
       padding: 16px 0;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
     &-installed-search {
       margin: 16px 0;
+      flex-shrink: 0;
     }
 
     &-list {
-      max-height: calc(100vh - 170px);
-      overflow-y: auto;
+      flex: 1;
+      margin-bottom: 16px;
       padding: 5px;
+      overflow-y: auto;
 
       &-wrapper {
         display: flex;
@@ -557,6 +561,27 @@ const transitionName = computed(() => {
   &-leave-to {
     opacity: 0;
   }
+}
+
+:deep(.tiny-tabs) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.tiny-tabs__header) {
+  flex-shrink: 0;
+}
+
+:deep(.tiny-tabs__content) {
+  flex: 1;
+  height: 100%;
+}
+
+:deep(.tiny-tab-pane) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 // 深度选择器样式
