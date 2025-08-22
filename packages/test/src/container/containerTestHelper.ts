@@ -10,7 +10,7 @@ export interface createContainerTestHelperOptions extends TestUtilsOptions {
  * 创建 Container 组件专用测试辅助工具
  */
 export function createContainerTestHelper(page: Page, options: createContainerTestHelperOptions = {}) {
-  const { defaultTimeout = 5000, containerSelectors = {} } = options
+  const { defaultTimeout = 2000, containerSelectors = {}, ...restTestUtilsOptions } = options
 
   // 合并默认选择器和自定义选择器
   const selectors = {
@@ -19,7 +19,7 @@ export function createContainerTestHelper(page: Page, options: createContainerTe
   }
 
   // 创建基础测试工具实例
-  const testUtils = createTestUtils(page, { defaultTimeout })
+  const testUtils = createTestUtils(page, { defaultTimeout, ...restTestUtilsOptions })
 
   /** 显示容器 */
   const showContainer = async () => {

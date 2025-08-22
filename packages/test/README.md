@@ -80,7 +80,7 @@ pnpm test:report
 1. **使用调试模式**：
    ```bash
    pnpm test:debug
-   ````
+   ```
 
 2. **使用可见浏览器模式**：
 

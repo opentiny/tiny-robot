@@ -82,7 +82,7 @@ pnpm install @playwright/test
 
 ```typescript
 import { test } from '@playwright/test'
-import { createContainerTestHelper } from './src/container/containerTestHelper'
+import { createContainerTestHelper } from './containerTestHelper'
 
 test('Container 基础功能测试', async ({ page }) => {
   // 创建测试助手
@@ -124,7 +124,7 @@ test('Container 基础功能测试', async ({ page }) => {
 
 ```typescript
 import { test, expect } from '@playwright/test'
-import { createContainerTestHelper } from './src/container/containerTestHelper'
+import { createContainerTestHelper } from './containerTestHelper'
 
 test.describe('Container 组件测试套件', () => {
   let helper: ReturnType<typeof createContainerTestHelper>
