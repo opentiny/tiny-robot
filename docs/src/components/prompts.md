@@ -1,5 +1,5 @@
 ---
-outline: deep
+outline: [1, 3]
 ---
 
 # Prompts 提示集组件
@@ -98,3 +98,106 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 | 插槽名   | 说明                                       |
 | -------- | ------------------------------------------ |
 | `footer` | 底部插槽，用于在提示列表底部添加自定义内容 |
+
+### CSS 变量
+
+#### Prompt 组件变量
+
+Prompt 根元素
+
+| 变量名                      | 说明             |
+| --------------------------- | ---------------- |
+| `--tr-prompt-bg`            | 提示项背景色     |
+| `--tr-prompt-bg-hover`      | 提示项悬停背景色 |
+| `--tr-prompt-bg-active`     | 提示项激活背景色 |
+| `--tr-prompt-bg-disabled`   | 提示项禁用背景色 |
+| `--tr-prompt-border-radius` | 圆角大小         |
+| `--tr-prompt-shadow`        | 阴影效果         |
+| `--tr-prompt-padding`       | 内边距           |
+| `--tr-prompt-gap`           | 图标与内容间距   |
+
+title 标题
+
+| 变量名                          | 说明         |
+| ------------------------------- | ------------ |
+| `--tr-prompt-title-color`       | 标题文字颜色 |
+| `--tr-prompt-title-font-size`   | 标题字号     |
+| `--tr-prompt-title-line-height` | 标题行高     |
+| `--tr-prompt-title-font-weight` | 标题字重     |
+
+content 内容
+
+| 变量名                    | 说明           |
+| ------------------------- | -------------- |
+| `--tr-prompt-content-gap` | 标题与描述间距 |
+
+description 描述
+
+| 变量名                                | 说明         |
+| ------------------------------------- | ------------ |
+| `--tr-prompt-description-color`       | 描述文字颜色 |
+| `--tr-prompt-description-font-size`   | 描述字号     |
+| `--tr-prompt-description-line-height` | 描述行高     |
+
+badge 徽章
+
+| 变量名                          | 说明         |
+| ------------------------------- | ------------ |
+| `--tr-prompt-badge-bg`          | 徽章背景色   |
+| `--tr-prompt-badge-color`       | 徽章文字颜色 |
+| `--tr-prompt-badge-padding`     | 徽章内边距   |
+| `--tr-prompt-badge-font-size`   | 徽章字号     |
+| `--tr-prompt-badge-line-height` | 徽章行高     |
+
+#### Prompt 组件尺寸变量
+
+Small 尺寸
+
+| 变量名                                      | 说明             |
+| ------------------------------------------- | ---------------- |
+| `--tr-prompt-padding-small`                 | 小尺寸内边距     |
+| `--tr-prompt-gap-small`                     | 小尺寸图标间距   |
+| `--tr-prompt-title-font-size-small`         | 小尺寸标题字号   |
+| `--tr-prompt-title-line-height-small`       | 小尺寸标题行高   |
+| `--tr-prompt-content-gap-small`             | 小尺寸内容间距   |
+| `--tr-prompt-description-font-size-small`   | 小尺寸描述字号   |
+| `--tr-prompt-description-line-height-small` | 小尺寸描述行高   |
+| `--tr-prompt-badge-padding-small`           | 小尺寸徽章内边距 |
+| `--tr-prompt-badge-font-size-small`         | 小尺寸徽章字号   |
+| `--tr-prompt-badge-line-height-small`       | 小尺寸徽章行高   |
+
+Medium 尺寸（默认尺寸）
+
+| 变量名                                       | 说明               |
+| -------------------------------------------- | ------------------ |
+| `--tr-prompt-padding-medium`                 | 中等尺寸内边距     |
+| `--tr-prompt-gap-medium`                     | 中等尺寸图标间距   |
+| `--tr-prompt-title-font-size-medium`         | 中等尺寸标题字号   |
+| `--tr-prompt-title-line-height-medium`       | 中等尺寸标题行高   |
+| `--tr-prompt-content-gap-medium`             | 中等尺寸内容间距   |
+| `--tr-prompt-description-font-size-medium`   | 中等尺寸描述字号   |
+| `--tr-prompt-description-line-height-medium` | 中等尺寸描述行高   |
+| `--tr-prompt-badge-padding-medium`           | 中等尺寸徽章内边距 |
+| `--tr-prompt-badge-font-size-medium`         | 中等尺寸徽章字号   |
+| `--tr-prompt-badge-line-height-medium`       | 中等尺寸徽章行高   |
+
+Large 尺寸
+
+| 变量名                                      | 说明             |
+| ------------------------------------------- | ---------------- |
+| `--tr-prompt-padding-large`                 | 大尺寸内边距     |
+| `--tr-prompt-gap-large`                     | 大尺寸图标间距   |
+| `--tr-prompt-title-font-size-large`         | 大尺寸标题字号   |
+| `--tr-prompt-title-line-height-large`       | 大尺寸标题行高   |
+| `--tr-prompt-content-gap-large`             | 大尺寸内容间距   |
+| `--tr-prompt-description-font-size-large`   | 大尺寸描述字号   |
+| `--tr-prompt-description-line-height-large` | 大尺寸描述行高   |
+| `--tr-prompt-badge-padding-large`           | 大尺寸徽章内边距 |
+| `--tr-prompt-badge-font-size-large`         | 大尺寸徽章字号   |
+| `--tr-prompt-badge-line-height-large`       | 大尺寸徽章行高   |
+
+#### Prompts 容器变量
+
+| 变量名             | 说明             |
+| ------------------ | ---------------- |
+| `--tr-prompts-gap` | 提示项之间的间距 |

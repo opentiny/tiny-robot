@@ -8,7 +8,7 @@ outline: deep
 
 需要自定义主题或者配色时，使用 `ThemeProvider` 包裹应用，`ThemeProvider` 提供的 `target-element` prop，是应用主题的根元素（默认是 `html` 元素）。
 
-主题和配色是通过覆盖 css 变量来实现的，`ThemeProvider` 会在 `target-element` 上添加 `data-tr-theme` 和 `data-tr-color-mode` 属性，所以需要使用属性选择器来覆盖 css 变量。
+主题和配色是通过 css 变量来实现的，`ThemeProvider` 会在 `target-element` 上添加 `data-tr-theme` 和 `data-tr-color-mode` 属性，所以需要使用属性选择器来覆盖 css 变量。
 
 - `[data-tr-theme]` 属性选择器，用于覆盖主题相关的 css 变量，可以为任意字符串，和你设置的主题对应
 - `[data-tr-color-mode]` 属性选择器，用于覆盖颜色模式相关的 css 变量，可以为 `light` 或 `dark`
@@ -40,15 +40,16 @@ outline: deep
 ```typescript
 import { useTheme } from '@opentiny/tiny-robot'
 
-const { toggleColorMode, setColorMode } = useTheme()
+const { toggleColorMode, setColorMode, setTheme } = useTheme()
 
 toggleColorMode() // 切换颜色模式
 setColorMode('dark') // 设置颜色模式
+setTheme('custom-theme') // 设置主题
 ```
 
 ## 主题设置
 
-使用 `ThemeProvider` 的 `theme` props 设置主题，或者使用 `useTheme` 中的 `setTheme` 设置主题。
+使用 `ThemeProvider` 的 `theme` prop 设置主题，或者使用 `useTheme` 中的 `setTheme` 设置主题。`theme` prop 默认值为空字符串，表示使用默认主题。
 
 使用 `[data-tr-theme='custom-theme']` 属性选择器来自定义你的主题 css 变量。
 
@@ -56,7 +57,7 @@ setColorMode('dark') // 设置颜色模式
 
 ## 颜色模式切换
 
-使用 `ThemeProvider` 的 `colorMode` props 设置颜色模式，或者使用 `useTheme` 中的 `setColorMode` 设置颜色模式。
+使用 `ThemeProvider` 的 `colorMode` prop 设置颜色模式，或者使用 `useTheme` 中的 `setColorMode` 设置颜色模式。`colorMode` prop 默认值为 `'auto'`，表示自动模式，跟随系统设置。
 
 使用 `[data-tr-color-mode='light']` 和 `[data-tr-color-mode='dark']` 属性选择器来自定义你的颜色模式 css 变量。
 
