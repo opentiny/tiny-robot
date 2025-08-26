@@ -11,11 +11,7 @@
 `onReceiveData` 的签名如下：
 
 ```ts
-onReceiveData?: <T = any>(
-  data: T,
-  messages: Ref<ChatMessage[]>,
-  preventDefault: () => void,
-) => void
+onReceiveData?: <T = any>(data: T, messages: Ref<ChatMessage[]>, preventDefault: () => void) => void
 ```
 
 `data` 是大模型响应， `messages` 是本地存储的对话记录， `preventDefault` 可以用来阻止默认行为。
