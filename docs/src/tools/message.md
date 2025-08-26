@@ -11,7 +11,7 @@
 `onReceiveData` 的签名如下：
 
 ```ts
-onReceiveData?: <T extends ChatCompletionResponse | ChatCompletionStreamResponse>(
+onReceiveData?: <T = any>(
   data: T,
   messages: Ref<ChatMessage[]>,
   preventDefault: () => void,
@@ -66,11 +66,7 @@ interface UseMessageOptions {
   initialMessages?: ChatMessage[]
   /** 事件回调 */
   events?: {
-    onReceiveData?: <T extends ChatCompletionResponse | ChatCompletionStreamResponse>(
-      data: T,
-      messages: Ref<ChatMessage[]>,
-      preventDefault: () => void,
-    ) => void
+    onReceiveData?: <T = any>(data: T, messages: Ref<ChatMessage[]>, preventDefault: () => void) => void
   }
 }
 ```
@@ -123,76 +119,4 @@ enum STATUS {
 // 状态常量
 const GeneratingStatus = [STATUS.PROCESSING, STATUS.STREAMING]
 const FinalStatus = [STATUS.FINISHED, STATUS.ABORTED, STATUS.ERROR]
-```
-
-## 相关类型定义
-
-### ChatMessage
-
-```typescript
-interface ChatMessage {
-  role: MessageRole
-  content: string | { type: string; [x: string]: unknown }[]
-  name?: string
-  [x: string]: unknown
-}
-
-type MessageRole = 'system' | 'user' | 'assistant'
-```
-
-### AI客户端类型
-
-查看 [AIClient](./ai-client.html#方法)
-
-### 响应类型
-
-```typescript
-interface ChatCompletionResponse {
-  id: string
-  object: string
-  created: number
-  model: string
-  choices: ChatCompletionResponseChoice[]
-  usage: ChatCompletionResponseUsage
-}
-
-interface ChatCompletionResponseChoice {
-  index: number
-  message: ChatCompletionResponseMessage
-  finish_reason: string
-  [x: string]: unknown
-}
-
-interface ChatCompletionResponseMessage {
-  role: MessageRole
-  content: string
-  [x: string]: unknown
-}
-
-interface ChatCompletionResponseUsage {
-  prompt_tokens: number
-  completion_tokens: number
-  total_tokens: number
-}
-
-interface ChatCompletionStreamResponse {
-  id: string
-  object: string
-  created: number
-  model: string
-  choices: ChatCompletionStreamResponseChoice[]
-}
-
-interface ChatCompletionStreamResponseChoice {
-  index: number
-  delta: ChatCompletionStreamResponseDelta
-  finish_reason: string | null
-  [x: string]: unknown
-}
-
-interface ChatCompletionStreamResponseDelta {
-  content?: string
-  role?: MessageRole
-  [x: string]: unknown
-}
 ```

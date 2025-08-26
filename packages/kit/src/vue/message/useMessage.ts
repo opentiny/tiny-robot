@@ -40,11 +40,8 @@ export interface UseMessageOptions {
   /** 初始消息列表 */
   initialMessages?: ChatMessage[]
   events?: {
-    onReceiveData?: <T extends ChatCompletionResponse | ChatCompletionStreamResponse>(
-      data: T,
-      messages: Ref<ChatMessage[]>,
-      preventDefault: () => void,
-    ) => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onReceiveData?: <T = any>(data: T, messages: Ref<ChatMessage[]>, preventDefault: () => void) => void
   }
 }
 
