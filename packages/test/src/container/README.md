@@ -6,18 +6,24 @@
 
 ```
 packages/test/src/container/
-├── containerSelectors.ts      # 选择器常量定义
-├── containerTestHelper.ts     # 测试辅助工具
-├── container.spec.ts          # 完整的测试用例
-├── ContainerDemo.vue          # 测试演示组件
-└── README.md                  # 文档说明
+├── Selectors.ts      # 选择器常量定义
+├── TestHelper.ts     # 测试辅助工具
+├── index.spec.ts     # 完整的测试用例
+├── index.vue         # 测试演示组件
+└── README.md         # 文档说明
 ```
 
 ## 📚 API 参考
 
+### 测试范围
+
+- 测试 Container 组件的基本功能，包括显示/隐藏、全屏模式切换等
+- 验证组件的结构和样式是否正确
+- 测试插槽内容和自定义操作按钮的显示
+
 ### 核心文件说明
 
-#### `containerSelectors.ts` - 选择器常量定义
+#### `Selectors.ts` - 选择器常量定义
 
 ```typescript
 // 主要导出
@@ -26,7 +32,7 @@ export type ContainerSelectors = typeof CONTAINER_SELECTORS
 export function getContainerSelector(key: keyof ContainerSelectors): string
 ```
 
-#### `containerTestHelper.ts` - 测试辅助工具
+#### `TestHelper.ts` - 测试辅助工具
 
 ```typescript
 // 主要导出
@@ -45,26 +51,29 @@ interface ContainerTestHelper {
   showContainer(): Promise<void>
   hideContainer(): Promise<void>
   toggleFullscreen(): Promise<void>
-  expectContainerStatus(visible: boolean, fullscreen: boolean): Promise<void>
+  closeContainerByInternalBtn(): Promise<void>
+  toggleFullscreenByInternalBtn(): Promise<void>
 
-  // 日志操作
-  expectLogContains(message: string): Promise<void>
-  clearLogs(): Promise<void>
+  // 容器状态检查
+  expectContainerVisible(visible: boolean): Promise<void>
+  expectContainerFullscreen(fullscreen: boolean): Promise<void>
+
+  // 插槽内容检查
+  expectTitleSlot(title: string): Promise<void>
+  expectDefaultSlot(content: string): Promise<void>
+  expectFooterSlot(footer: string): Promise<void>
+  expectOperationsSlot(operations: string): Promise<void>
 
   // 交互操作
-  testContainerInteraction(inputText: string): Promise<void>
-  setDemoInput(input: string): Promise<void>
-  expectDemoInput(input: string): Promise<void>
+  clickCustomOperation(operation: string): Promise<void>
 
-  // 元素获取
+  // 工具方法
   getContainer(): Locator
 
-  // 基础测试工具
-  click(selector: string, timeout?: number): Promise<void>
-  waitForText(selector: string, text: string, timeout?: number): Promise<void>
-  // ... 更多基础方法
+  // 暴露基础测试工具
+  ...testUtils,
 
-  // 配置信息
+  // 暴露选择器配置
   selectors: ContainerSelectors
 }
 ```
@@ -82,7 +91,7 @@ pnpm install @playwright/test
 
 ```typescript
 import { test } from '@playwright/test'
-import { createContainerTestHelper } from './containerTestHelper'
+import { createContainerTestHelper } from './TestHelper'
 
 test('Container 基础功能测试', async ({ page }) => {
   // 创建测试助手
@@ -100,23 +109,20 @@ test('Container 基础功能测试', async ({ page }) => {
 
 | 选择器键 | 描述 | 默认值 |
 |---------|------|--------|
-| `showBtn` | 显示容器按钮 | `[data-testid="show-container-btn"]` |
-| `hideBtn` | 隐藏容器按钮 | `[data-testid="hide-container-btn"]` |
-| `toggleFullscreenBtn` | 全屏切换按钮 | `[data-testid="toggle-fullscreen-btn"]` |
+| `toggleShowBtn` | 切换容器可见性按钮 | `[data-testid="toggle-show-btn"]` |
+| `toggleFullscreenBtn` | 切换全屏模式按钮 | `[data-testid="toggle-fullscreen-btn"]` |
 | `container` | 主容器元素 | `[data-testid="test-container"]` |
-| `containerStatus` | 容器状态显示 | `[data-testid="container-status"]` |
-| `fullscreenStatus` | 全屏状态显示 | `[data-testid="fullscreen-status"]` |
-| `actionLog` | 操作日志区域 | `[data-testid="action-log"]` |
-| `clearLogsBtn` | 清空日志按钮 | `[data-testid="clear-logs-btn"]` |
-| `demoInput` | 演示输入框 | `[data-testid="demo-input"]` |
-| `demoInputValue` | 输入值显示 | `[data-testid="demo-input-value"]` |
-| `containerTitle` | 容器标题 | `[data-testid="container-title"]` |
-| `containerContent` | 容器内容区域 | `[data-testid="container-content"]` |
-| `containerFooter` | 容器底部区域 | `[data-testid="container-footer"]` |
 | `containerDraggingBar` | 拖拽条 | `.tr-container__dragging-bar` |
+| `containerHeader` | 头部区域 | `.tr-container__header` |
 | `containerHeaderOperations` | 头部操作区域 | `.tr-container__header-operations` |
+| `containerFooter` | 底部区域 | `.tr-container__footer` |
+| `containerCloseBtn` | 关闭按钮 | `.tr-container__header-operations button:last-child` |
+| `containerFullscreenBtn` | 全屏按钮 | `.tr-container__header-operations button:nth-last-child(2)` |
+| `containerTitle` | 标题区域 | `[data-testid="container-title"]` |
+| `containerContent` | 内容区域 | `[data-testid="container-content"]` |
+| `containerFooterContent` | 底部内容区域 | `[data-testid="container-footer"]` |
 | `customOperationBtn` | 自定义操作按钮 | `[data-testid="custom-operation-btn"]` |
-| `footerActionBtn` | 底部操作按钮 | `[data-testid="footer-action-btn"]` |
+| `demoInput` | 演示输入框 | `[data-testid="demo-input"]` |
 
 ## 🔧 详细使用指南
 
@@ -124,7 +130,7 @@ test('Container 基础功能测试', async ({ page }) => {
 
 ```typescript
 import { test, expect } from '@playwright/test'
-import { createContainerTestHelper } from './containerTestHelper'
+import { createContainerTestHelper } from './TestHelper'
 
 test.describe('Container 组件测试套件', () => {
   let helper: ReturnType<typeof createContainerTestHelper>
@@ -153,7 +159,7 @@ test.describe('Container 组件测试套件', () => {
 ### 2. 自定义配置
 
 ```typescript
-import { createContainerTestHelper } from './src/container/containerTestHelper'
+import { createContainerTestHelper } from './TestHelper'
 
 test('使用自定义选择器', async ({ page }) => {
   const helper = createContainerTestHelper(page, {

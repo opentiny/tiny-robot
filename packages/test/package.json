@@ -17,6 +17,7 @@
   "dependencies": {
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
+    "@opentiny/vue": "^3.20.0",
     "vue": "^3.3.11"
   },
   "devDependencies": {
