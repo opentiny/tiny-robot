@@ -1,4 +1,4 @@
-import { VNode } from 'vue'
+import { CSSProperties, VNode } from 'vue'
 import { BubbleContentItem, BubbleContentRenderer } from './renderers'
 export * from './renderers/index.type'
 
@@ -28,6 +28,14 @@ export interface BubbleCommonProps {
    * 气泡最大宽度
    */
   maxWidth?: string | number
+  styles?: {
+    avatar?: string | CSSProperties
+    content?: string | CSSProperties
+  }
+  classes?: {
+    avatar?: string
+    content?: string
+  }
 }
 
 export interface BubbleProps extends BubbleCommonProps {

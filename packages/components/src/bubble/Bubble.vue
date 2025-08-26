@@ -82,7 +82,7 @@ const placementStart = computed(() => props.placement === 'start')
     ]"
     :style="{ maxWidth: toCssUnit(props.maxWidth) }"
   >
-    <div v-if="props.avatar" class="tr-bubble__avatar">
+    <div v-if="props.avatar" :class="['tr-bubble__avatar', props.classes?.avatar]" :style="props.styles?.avatar">
       <component :is="props.avatar"></component>
     </div>
     <div class="tr-bubble__content-wrapper">
@@ -91,7 +91,11 @@ const placementStart = computed(() => props.placement === 'start')
           <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
         </div>
       </slot>
-      <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
+      <div
+        v-else
+        :class="['tr-bubble__content', props.classes?.content, { 'border-corner': props.shape === 'corner' }]"
+        :style="props.styles?.content"
+      >
         <template v-if="contentItems.length">
           <div class="tr-bubble__content-items">
             <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />

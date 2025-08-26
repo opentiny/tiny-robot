@@ -28,7 +28,7 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ### 加载中
 
-通过 `loading` 设置加载中状态
+通过 `loading` 设置加载中状态。或者使用 `loading` 插槽来实现自定义加载中状态
 
 BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需要注意的是，列表的加载中气泡实际上并没有新增一条消息，`loading` 设置为 `false` 后，加载中的气泡不会渲染
 
@@ -45,6 +45,12 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 通过 `maxWidth` 设置气泡最大宽度
 
 <demo vue="../../demos/bubble/max-width.vue" />
+
+### 自定义内容样式
+
+通过 `styles` 和 `classes` 设置气泡头像和内容样式
+
+<demo vue="../../demos/bubble/content-style.vue" />
 
 ### 渲染 markdown
 
@@ -174,15 +180,16 @@ type BubblePlacement = 'start' | 'end'
 
 气泡通用属性配置。
 
-| 属性                 | 类型                    | 默认值     | 说明                                                                                                          |
-| -------------------- | ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| `placement`          | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                                                           |
-| `avatar`             | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                                                 |
-| `shape`              | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                                                      |
-| `contentRenderer`    | `BubbleContentRenderer` | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器）                               |
-| `customContentField` | `string`                | -          | 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容 |
-| `hidden`             | `boolean`               | -          | 是否隐藏气泡                                                                                                  |
-| `maxWidth`           | `string \| number`      | -          | 气泡内容的最大宽度                                                                                            |
+| 属性                 | 类型                                                                      | 默认值     | 说明                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `placement`          | `BubblePlacement`                                                         | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                                                           |
+| `avatar`             | `VNode`                                                                   | -          | 气泡头像部分的自定义 Vue 节点                                                                                 |
+| `shape`              | `'rounded' \| 'corner'`                                                   | `'corner'` | 气泡形状                                                                                                      |
+| `contentRenderer`    | `BubbleContentRenderer`                                                   | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器）                               |
+| `customContentField` | `string`                                                                  | -          | 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容 |
+| `maxWidth`           | `string \| number`                                                        | -          | 气泡内容的最大宽度                                                                                            |
+| `styles`             | `{ avatar?: string \| CSSProperties; content?: string \| CSSProperties }` | -          | 自定义气泡头像和内容的样式                                                                                    |
+| `classes`            | `{ avatar?: string; content?: string }`                                   | -          | 自定义气泡头像和内容的 CSS 类名                                                                               |
 
 ### BubbleProps
 
@@ -230,6 +237,14 @@ type BubbleRoleConfig = BubbleCommonProps & {
 | `loading`     | `boolean`                                   | `false` | 列表是否加载中               |
 | `loadingRole` | `string`                                    | -       | 指定哪个角色可以有加载中状态 |
 | `autoScroll`  | `boolean`                                   | `false` | 是否自动滚动到最新内容       |
+
+### BubbleProviderProps
+
+```ts
+type BubbleProviderProps = {
+  contentRenderers?: Record<string, BubbleContentRenderer>
+}
+```
 
 ### BubbleContentItem
 
