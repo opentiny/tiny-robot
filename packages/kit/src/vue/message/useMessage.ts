@@ -60,7 +60,7 @@ export interface UseMessageReturn {
   /** 是否使用流式响应 */
   useStream: Ref<boolean>
   /** 发送消息 */
-  sendMessage: (content?: string, clearInput?: boolean) => Promise<void>
+  sendMessage: (content?: ChatMessage['content'], clearInput?: boolean) => Promise<void>
   /** 手动执行addMessage添加消息后，可以执行send发送消息 */
   send: () => Promise<void>
   /** 清空消息 */
