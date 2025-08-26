@@ -122,7 +122,6 @@ test('Container 基础功能测试', async ({ page }) => {
 | `containerContent` | 内容区域 | `[data-testid="container-content"]` |
 | `containerFooterContent` | 底部内容区域 | `[data-testid="container-footer"]` |
 | `customOperationBtn` | 自定义操作按钮 | `[data-testid="custom-operation-btn"]` |
-| `demoInput` | 演示输入框 | `[data-testid="demo-input"]` |
 
 ## 🔧 详细使用指南
 
@@ -165,7 +164,7 @@ test('使用自定义选择器', async ({ page }) => {
   const helper = createContainerTestHelper(page, {
     defaultTimeout: 10000, // 自定义超时时间
     containerSelectors: {
-      showBtn: '[data-testid="my-custom-show-btn"]',
+      toggleShowBtn: '[data-testid="my-custom-show-btn"]',
       demoInput: '[data-testid="my-custom-input"]'
     }
   })
@@ -181,24 +180,24 @@ test('使用自定义选择器', async ({ page }) => {
 
 ```typescript
 // ✅ 推荐：使用常量
-const showBtn = CONTAINER_SELECTORS.showBtn
+const showBtn = CONTAINER_SELECTORS.toggleShowBtn
 
 // ❌ 避免：硬编码字符串
-const showBtn = '[data-testid="show-container-btn"]'
+const showBtn = '[data-testid="toggle-show-btn"]'
 ```
 
 ### 2. 类型安全
 
 ```typescript
 // ✅ TypeScript 编译时检查
-const validSelector = CONTAINER_SELECTORS.showBtn // 编译通过
+const validSelector = CONTAINER_SELECTORS.toggleShowBtn // 编译通过
 // const invalidSelector = CONTAINER_SELECTORS.nonExistent // 编译错误
 
 // ✅ 类型安全的动态访问
-const selector = getContainerSelector('showBtn') // 类型安全
+const selector = getContainerSelector('toggleShowBtn') // 类型安全
 
 // ✅ 自定义选择器类型安全
 const customSelectors: Partial<ContainerSelectors> = {
-  showBtn: '[data-testid="my-show-btn"]'
+  toggleShowBtn: '[data-testid="my-show-btn"]'
 }
 ```

@@ -23,9 +23,6 @@ export const CONTAINER_SELECTORS = {
   containerContent: '[data-testid="container-content"]',
   containerFooterContent: '[data-testid="container-footer"]',
   customOperationBtn: '[data-testid="custom-operation-btn"]',
-
-  // 测试用输入框
-  demoInput: '[data-testid="demo-input"]',
 } as const
 
 /**
