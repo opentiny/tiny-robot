@@ -329,7 +329,7 @@ const transitionName = computed(() => {
 
             <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-list">
               <div v-if="props.loading" class="mcp-server-picker__loading">加载中...</div>
-              <div v-else class="mcp-server-picker__content-list-wrapper">
+              <template v-else>
                 <!-- 已添加插件列表 -->
                 <PluginCard
                   v-for="plugin in installedFilteredPlugins"
@@ -341,7 +341,7 @@ const transitionName = computed(() => {
                   @toggle-tool="(toolId, enabled) => handleToolToggle(plugin, toolId, enabled)"
                   @delete-plugin="() => handleDeletePlugin(plugin)"
                 />
-              </div>
+              </template>
             </div>
             <NoData v-else :search-query="installedSearch" />
           </TinyTabItem>
@@ -374,7 +374,7 @@ const transitionName = computed(() => {
 
             <div v-if="hasFilteredPlugins" class="mcp-server-picker__content-list">
               <div v-if="props.marketLoading" class="mcp-server-picker__loading">加载中...</div>
-              <div v-else class="mcp-server-picker__content-list-wrapper">
+              <template v-else>
                 <!-- 插件市场列表 -->
                 <PluginCard
                   v-for="plugin in marketFilteredPlugins"
@@ -385,7 +385,7 @@ const transitionName = computed(() => {
                   :show-tool-count="false"
                   @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
                 />
-              </div>
+              </template>
             </div>
             <NoData v-else :search-query="marketSearch || marketCategory" />
           </TinyTabItem>
@@ -509,11 +509,9 @@ const transitionName = computed(() => {
       padding: 5px;
       overflow-y: auto;
 
-      &-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
   }
 
