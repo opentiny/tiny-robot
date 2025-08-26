@@ -160,11 +160,13 @@ interface ChatCompletionResponseChoice {
   index: number
   message: ChatCompletionResponseMessage
   finish_reason: string
+  [x: string]: unknown
 }
 
 interface ChatCompletionResponseMessage {
   role: MessageRole
   content: string
+  [x: string]: unknown
 }
 
 interface ChatCompletionResponseUsage {
@@ -185,10 +187,12 @@ interface ChatCompletionStreamResponseChoice {
   index: number
   delta: ChatCompletionStreamResponseDelta
   finish_reason: string | null
+  [x: string]: unknown
 }
 
 interface ChatCompletionStreamResponseDelta {
   content?: string
   role?: MessageRole
+  [x: string]: unknown
 }
 ```

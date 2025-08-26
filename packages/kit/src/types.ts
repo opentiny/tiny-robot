@@ -47,6 +47,7 @@ export interface ChatCompletionRequest {
 export interface ChatCompletionResponseMessage {
   role: MessageRole
   content: string
+  [x: string]: unknown
 }
 
 /**
@@ -56,6 +57,7 @@ export interface ChatCompletionResponseChoice {
   index: number
   message: ChatCompletionResponseMessage
   finish_reason: string
+  [x: string]: unknown
 }
 
 /**
@@ -85,6 +87,7 @@ export interface ChatCompletionResponse {
 export interface ChatCompletionStreamResponseDelta {
   content?: string
   role?: MessageRole
+  [x: string]: unknown
 }
 
 /**
@@ -94,6 +97,7 @@ export interface ChatCompletionStreamResponseChoice {
   index: number
   delta: ChatCompletionStreamResponseDelta
   finish_reason: string | null
+  [x: string]: unknown
 }
 
 /**
