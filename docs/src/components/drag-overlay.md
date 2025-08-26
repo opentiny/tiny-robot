@@ -77,7 +77,7 @@ export interface FileRejection extends RejectionReason {
 
 ### CSS 变量
 
-DragOverlay 组件支持以下 CSS 变量来自定义样式：
+DragOverlay 组件采用三层 CSS 变量架构，支持灵活的样式自定义：
 
 #### 全局变量 (`:root`)
 
@@ -102,27 +102,28 @@ DragOverlay 组件支持以下 CSS 变量来自定义样式：
 
 全屏模式下的 CSS 变量：
 
-| 变量名                                               | 描述                 |
-| ---------------------------------------------------- | -------------------- |
-| `--tr-drag-overlay-fullscreen-content-padding`        | 全屏模式内容区域内边距 |
+| 变量名                                         | 默认值       | 描述                   |
+| ---------------------------------------------- | ------------ | ---------------------- |
+| `--tr-drag-overlay-content-padding-fullscreen` | `60px 420px` | 全屏模式内容区域内边距 |
+| `--tr-drag-overlay-content-border-width-fullscreen` | `1px` | 全屏模式内容边框宽度 |
 
 #### 变量覆盖
 
-非全屏模式（默认）
+**基础样式自定义**
 
 ```css
 :root {
-  --tr-drag-overlay-bg-color: rgba(255, 255, 255, 0.8);
-  --tr-drag-overlay-title-color: rgba(0, 0, 0, 1);
-  --tr-drag-overlay-content-padding: 40px;
+  --tr-drag-overlay-bg-color: rgba(0, 0, 0, 0.1);
+  --tr-drag-overlay-title-color: #333;
+  --tr-drag-overlay-content-padding: 60px;
 }
 ```
 
-全屏模式
+**全屏模式自定义**
 
 ```css
 :root {
-  --tr-drag-overlay-fullscreen-content-padding: 60px 420px;
-  --tr-drag-overlay-content-border-width: 1px;
+  --tr-drag-overlay-content-padding-fullscreen: 80px 200px;
+  --tr-drag-overlay-content-border-width-fullscreen: 2px;
 }
 ```

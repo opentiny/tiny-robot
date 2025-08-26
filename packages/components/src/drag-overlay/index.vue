@@ -24,11 +24,7 @@ const overlayStyle = computed((): CSSProperties => {
 
 <template>
   <Transition name="tr-fade">
-    <div
-      v-if="isDragging"
-      :class="['tr-drag-overlay', { 'tr-drag-overlay--fullscreen': fullscreen }]"
-      :style="overlayStyle"
-    >
+    <div v-if="isDragging" :class="['tr-drag-overlay', { fullscreen: fullscreen }]" :style="overlayStyle">
       <slot name="overlay" :is-dragging="isDragging">
         <div class="tr-drag-overlay__content">
           <div class="tr-drag-overlay__icon">
@@ -54,8 +50,9 @@ const overlayStyle = computed((): CSSProperties => {
 .tr-drag-overlay-vars() {
   @prefix: tr-drag-overlay;
 
+  // 基础变量组
   @vars: {
-    /** 不影响布局的变量 */
+    /* 不影响布局的变量 */
     bg-color: rgba(255, 255, 255, 0.8);
     border-color: #808080;
     title-color: rgba(0, 0, 0, 1);
@@ -63,14 +60,12 @@ const overlayStyle = computed((): CSSProperties => {
     description-color: #808080;
     description-font-weight: 400;
 
-    /** 影响布局的变量 */
+    /* 影响布局的变量 */
     content-padding: 40px;
-    content-border-width: 1px;
+    content-border-width: 0;
     content-border-radius: 40px;
-
     icon-font-size: 80px;
-    icon-margin-bottom: 12px;
-
+    icon-margin: 12px;
     text-gap: 12px;
     title-font-size: 16px;
     title-line-height: 24px;
@@ -78,8 +73,10 @@ const overlayStyle = computed((): CSSProperties => {
     description-line-height: 24px;
   };
 
+  // fullscreen 模式变量组
   @fullscreen-vars: {
     content-padding: 60px 420px;
+    content-border-width: 1px;
   };
 
   :root {
@@ -88,7 +85,7 @@ const overlayStyle = computed((): CSSProperties => {
     });
 
     each(@fullscreen-vars, {
-      --@{prefix}-fullscreen-@{key}: @{value};
+    --@{prefix}-@{key}-fullscreen: @{value};
   });
   }
 }
@@ -97,8 +94,9 @@ const overlayStyle = computed((): CSSProperties => {
 </style>
 
 <style lang="less" scoped>
+// 第二层：组件映射层 (Component Mapping Layer)
 .tr-drag-overlay {
-  /** 不影响布局的变量 */
+  /* 不影响布局的变量 */
   --bg-color: var(--tr-drag-overlay-bg-color);
   --border-color: var(--tr-drag-overlay-border-color);
   --title-color: var(--tr-drag-overlay-title-color);
@@ -106,22 +104,26 @@ const overlayStyle = computed((): CSSProperties => {
   --description-color: var(--tr-drag-overlay-description-color);
   --description-font-weight: var(--tr-drag-overlay-description-font-weight);
 
-  /** 影响布局的变量 */
+  /* 影响布局的变量 */
   --content-padding: var(--tr-drag-overlay-content-padding);
   --content-border-width: var(--tr-drag-overlay-content-border-width);
   --content-border-radius: var(--tr-drag-overlay-content-border-radius);
-
   --icon-font-size: var(--tr-drag-overlay-icon-font-size);
-  --icon-margin-bottom: var(--tr-drag-overlay-icon-margin-bottom);
-
+  --icon-margin: var(--tr-drag-overlay-icon-margin);
   --text-gap: var(--tr-drag-overlay-text-gap);
   --title-font-size: var(--tr-drag-overlay-title-font-size);
   --title-line-height: var(--tr-drag-overlay-title-line-height);
   --description-font-size: var(--tr-drag-overlay-description-font-size);
   --description-line-height: var(--tr-drag-overlay-description-line-height);
 
-  /** 全屏变量 */
-  --content-padding-fullscreen: var(--tr-drag-overlay-fullscreen-content-padding);
+  /* 模式状态覆盖 */
+  &.fullscreen {
+    --content-padding: var(--tr-drag-overlay-content-padding-fullscreen, var(--tr-drag-overlay-content-padding));
+    --content-border-width: var(
+      --tr-drag-overlay-content-border-width-fullscreen,
+      var(--tr-drag-overlay-content-border-width)
+    );
+  }
 }
 
 .tr-drag-overlay {
@@ -147,8 +149,8 @@ const overlayStyle = computed((): CSSProperties => {
     text-align: center;
   }
 
-  &--fullscreen {
-    padding: var(--content-padding-fullscreen);
+  &.fullscreen {
+    padding: var(--content-padding);
 
     .tr-drag-overlay__content {
       border: var(--content-border-width) dashed var(--border-color);
@@ -156,7 +158,7 @@ const overlayStyle = computed((): CSSProperties => {
   }
 
   &__icon {
-    margin-bottom: var(--icon-margin-bottom);
+    margin-bottom: var(--icon-margin);
     font-size: var(--icon-font-size);
   }
 
