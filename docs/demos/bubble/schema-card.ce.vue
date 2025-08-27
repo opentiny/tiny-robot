@@ -10,14 +10,6 @@ const props = defineProps({
   schema: {
     type: String,
     required: true,
-    default: () =>
-      JSON.stringify({
-        state: {},
-        methods: {},
-        componentName: 'Page',
-        props: {},
-        children: [{ componentName: 'Text', props: { text: '展开查看 SchemaCard 组件代码' } }],
-      }),
   },
 })
 

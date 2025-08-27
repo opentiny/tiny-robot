@@ -1,5 +1,5 @@
 ---
-outline: deep
+outline: [1, 3]
 ---
 
 # Bubble 气泡组件
@@ -10,7 +10,9 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ### 基本示例
 
-基本示例
+基本示例。使用 `content` 属性设置气泡内容，使用 css 变量 `--tr-bubble-content-bg-color` 设置气泡内容背景颜色。
+
+> 更多 css 变量请参考 [CSS 变量](#css-变量)
 
 <demo vue="../../demos/bubble/basic.vue" />
 
@@ -45,12 +47,6 @@ BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需�
 通过 `maxWidth` 设置气泡最大宽度
 
 <demo vue="../../demos/bubble/max-width.vue" />
-
-### 自定义内容样式
-
-通过 `styles` 和 `classes` 设置气泡头像和内容样式
-
-<demo vue="../../demos/bubble/content-style.vue" />
 
 ### 渲染 markdown
 
@@ -147,11 +143,7 @@ content 对象中的所有属性都将传递给组件，onXXX会当作事件传�
 
 ### schema 卡片渲染
 
-SchemaCard 组件代码如下
-
-<demo vue="../../demos/bubble/schema-card.ce.vue" />
-
-<demo vue="../../demos/bubble/schema-render.vue" />
+<demo vue="../../demos/bubble/schema-render.vue" :vueFiles="['../../demos/bubble/schema-render.vue', '../../demos/bubble/schema-card.ce.vue']" />
 
 ### 列表
 
@@ -180,16 +172,15 @@ type BubblePlacement = 'start' | 'end'
 
 气泡通用属性配置。
 
-| 属性                 | 类型                                                                      | 默认值     | 说明                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
-| `placement`          | `BubblePlacement`                                                         | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                                                           |
-| `avatar`             | `VNode`                                                                   | -          | 气泡头像部分的自定义 Vue 节点                                                                                 |
-| `shape`              | `'rounded' \| 'corner'`                                                   | `'corner'` | 气泡形状                                                                                                      |
-| `contentRenderer`    | `BubbleContentRenderer`                                                   | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器）                               |
-| `customContentField` | `string`                                                                  | -          | 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容 |
-| `maxWidth`           | `string \| number`                                                        | -          | 气泡内容的最大宽度                                                                                            |
-| `styles`             | `{ avatar?: string \| CSSProperties; content?: string \| CSSProperties }` | -          | 自定义气泡头像和内容的样式                                                                                    |
-| `classes`            | `{ avatar?: string; content?: string }`                                   | -          | 自定义气泡头像和内容的 CSS 类名                                                                               |
+| 属性                 | 类型                    | 默认值     | 说明                                                                                                          |
+| -------------------- | ----------------------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `placement`          | `BubblePlacement`       | -          | 气泡对齐位置 (`'start'` 或 `'end'`)                                                                           |
+| `avatar`             | `VNode`                 | -          | 气泡头像部分的自定义 Vue 节点                                                                                 |
+| `shape`              | `'rounded' \| 'corner'` | `'corner'` | 气泡形状                                                                                                      |
+| `contentRenderer`    | `BubbleContentRenderer` | -          | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器）                               |
+| `customContentField` | `string`                | -          | 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容 |
+| `abortedText`        | `string`                | -          | 气泡中止文本                                                                                                  |
+| `maxWidth`           | `string \| number`      | -          | 气泡内容的最大宽度                                                                                            |
 
 ### BubbleProps
 
@@ -296,3 +287,64 @@ abstract class BubbleContentClassRenderer {
   abstract render(options: { [key: string]: any }): VNode
 }
 ```
+
+### CSS 变量
+
+#### Bubble 组件变量
+
+Bubble 根元素
+
+| 变量名                  | 说明           |
+| ----------------------- | -------------- |
+| `--tr-bubble-gap`       | 头像与内容间距 |
+| `--tr-bubble-max-width` | 气泡最大宽度   |
+
+avatar 头像
+
+| 变量名                    | 说明     |
+| ------------------------- | -------- |
+| `--tr-bubble-avatar-size` | 头像尺寸 |
+
+content 内容
+
+| 变量名                              | 说明                                                |
+| ----------------------------------- | --------------------------------------------------- |
+| `--tr-bubble-content-bg-color`      | 内容背景色                                          |
+| `--tr-bubble-content-border-radius` | 内容圆角大小                                        |
+| `--tr-bubble-content-box-shadow`    | 内容阴影效果                                        |
+| `--tr-bubble-content-padding`       | 内容内边距                                          |
+| `--tr-bubble-content-items-gap`     | 内容项之间的间距（仅当 `content` 属性是数组时有效） |
+
+text 文本（仅当 `content` 属性是字符串时有效）
+
+| 变量名                         | 说明         |
+| ------------------------------ | ------------ |
+| `--tr-bubble-text-color`       | 文本文字颜色 |
+| `--tr-bubble-text-font-size`   | 文本字号     |
+| `--tr-bubble-text-line-height` | 文本行高     |
+
+loading 加载
+
+| 变量名                     | 说明         |
+| -------------------------- | ------------ |
+| `--tr-bubble-loading-size` | 加载图标尺寸 |
+
+aborted 中止状态
+
+| 变量名                          | 说明         |
+| ------------------------------- | ------------ |
+| `--tr-bubble-aborted-color`     | 中止文字颜色 |
+| `--tr-bubble-aborted-font-size` | 中止文字字号 |
+
+footer 底部
+
+| 变量名                      | 说明       |
+| --------------------------- | ---------- |
+| `--tr-bubble-footer-margin` | 底部外边距 |
+
+#### BubbleList 容器变量
+
+| 变量名                     | 说明             |
+| -------------------------- | ---------------- |
+| `--tr-bubble-list-gap`     | 气泡项之间的间距 |
+| `--tr-bubble-list-padding` | 容器内边距       |

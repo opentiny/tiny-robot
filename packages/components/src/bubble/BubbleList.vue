@@ -38,7 +38,7 @@ const processedItems = computed(() => {
 
       return {
         id: item.id,
-        props: { ...restConfig, ...restItem },
+        props: { ...restConfig, ...restItem, 'data-role': item.role },
         slots: { ...roleSlots, ...itemSlots },
       }
     })
@@ -72,12 +72,36 @@ const loadingBubble = computed(() => {
   </div>
 </template>
 
+<style lang="less">
+.tr-bubble-list-vars() {
+  @prefix: tr-bubble-list;
+
+  @vars: {
+    gap: 16px;
+    padding: 16px;
+  };
+
+  :root {
+    each(@vars, {
+    --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-bubble-list-vars();
+</style>
+
 <style lang="less" scoped>
+.tr-bubble-list {
+  --gap: var(--tr-bubble-list-gap);
+  --padding: var(--tr-bubble-list-padding);
+}
+
 .tr-bubble-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--gap);
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--padding);
 }
 </style>
