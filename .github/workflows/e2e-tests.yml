@@ -1,0 +1,91 @@
+name: E2E Tests
+# 运行时显示的名称
+run-name: E2E Tests
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  e2e-tests:
+    timeout-minutes: 60
+    # 指定运行环境为最新版本的ubuntu
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 步骤1: 检出代码 (处理所有情况)
+
+      # 场景 A: 当工作流由 push 事件触发时 (例如合并到 develop 分支)
+      # 或者由仓库内部成员创建的 PR 触发时，执行此步骤。
+      - name: Checkout for Develop Repo Push or PR
+        # 条件：事件不是来自 fork 的 PR
+        if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+        uses: actions/checkout@v4
+        with:
+          # 当是 PR 时，确保我们检出的是 PR 的最新代码，而不是合并后的代码
+          ref: ${{ github.ref_name }}
+
+      # 场景 B: 当工作流由外部 fork 仓库的 PR 触发时，执行此步骤
+      - name: Checkout for Fork PR
+        # 条件：事件是来自 fork 的 PR
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.head_ref }}
+
+      # 步骤2: 设置pnpm包管理器
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # 步骤3: 设置Node.js环境
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # 使用Node.js 20版本
+          registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
+
+      # 步骤4: 获取pnpm缓存目录路径
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: |
+          echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      # 步骤5: 配置pnpm缓存
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          # 使用操作系统类型和pnpm-lock.yaml的哈希值作为缓存键
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # 步骤6: 安装项目依赖
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+
+      # 步骤7: 构建组件
+      - name: Run Build Components
+        run: pnpm build
+
+      # 步骤8: 安装 Playwright 浏览器
+      - name: Install Playwright Browser
+        run: |
+          cd packages/test
+          npx playwright install --with-deps chromium
+
+      # 步骤9: 运行 E2E 测试
+      - name: Run Playwright Tests
+        run: pnpm test
+
+      # 步骤10: 上传 Playwright 测试报告
+      - name: Upload Playwright Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: packages/test/playwright-report/
+          retention-days: 13
