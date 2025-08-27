@@ -1,5 +1,5 @@
 {
-  "name": "@opentiny/tiny-robot-test",
+  "name": "@opentiny/test-suite",
   "version": "0.1.0",
   "private": true,
   "type": "module",
