@@ -77,8 +77,6 @@ export interface FileRejection extends RejectionReason {
 
 ### CSS 变量
 
-DragOverlay 组件采用三层 CSS 变量架构，支持灵活的样式自定义：
-
 #### 全局变量 (`:root`)
 
 | 变量名                                          | 描述                 |
