@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PromptProps } from './index.type'
+import type { PromptProps } from './index.type'
 
 const props = withDefaults(defineProps<PromptProps>(), {
   size: 'medium',
@@ -89,20 +89,20 @@ const props = withDefaults(defineProps<PromptProps>(), {
   position: relative;
   cursor: pointer;
   transition: background 0.3s;
-  background-color: var(--bg);
+  background: var(--bg);
 
   &:hover {
-    background-color: var(--bg-hover);
+    background: var(--bg-hover);
   }
 
   &.disabled {
     cursor: default;
     pointer-events: none;
-    background-color: var(--bg-disabled);
+    background: var(--bg-disabled);
   }
 
   &:active {
-    background-color: var(--bg-active);
+    background: var(--bg-active);
   }
 }
 

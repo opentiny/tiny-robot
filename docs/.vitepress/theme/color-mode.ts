@@ -48,9 +48,14 @@ function handleDarkModeChange(isDark: boolean) {
   colorModeSubject.emit(isDark ? 'dark' : 'light')
 }
 
+// 确保只注册一个监听器
+let darkModeCleanup: (() => void) | undefined
+
 // 监听暗黑模式变化的函数
 export function setupDarkModeListener() {
   if (typeof window === 'undefined') return
+
+  if (darkModeCleanup) return darkModeCleanup
 
   // 获取 HTML 元素
   const htmlElement = document.documentElement
@@ -79,8 +84,10 @@ export function setupDarkModeListener() {
     attributeFilter: ['class'],
   })
 
-  // 返回清理函数
-  return () => {
+  darkModeCleanup = () => {
     observer.disconnect()
+    darkModeCleanup = undefined
   }
+
+  return darkModeCleanup
 }
