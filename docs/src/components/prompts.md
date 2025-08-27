@@ -151,50 +151,28 @@ badge 徽章
 
 #### Prompt 组件尺寸变量
 
-Small 尺寸
+Prompt 组件 `size` 属性可选值有 `small`、`medium`、`large`，默认值为 `medium`。不同尺寸对应的变量是如下变量名后缀加上 `-small`、`-medium`、`-large`。
 
-| 变量名                                      | 说明             |
-| ------------------------------------------- | ---------------- |
-| `--tr-prompt-padding-small`                 | 小尺寸内边距     |
-| `--tr-prompt-gap-small`                     | 小尺寸图标间距   |
-| `--tr-prompt-title-font-size-small`         | 小尺寸标题字号   |
-| `--tr-prompt-title-line-height-small`       | 小尺寸标题行高   |
-| `--tr-prompt-content-gap-small`             | 小尺寸内容间距   |
-| `--tr-prompt-description-font-size-small`   | 小尺寸描述字号   |
-| `--tr-prompt-description-line-height-small` | 小尺寸描述行高   |
-| `--tr-prompt-badge-padding-small`           | 小尺寸徽章内边距 |
-| `--tr-prompt-badge-font-size-small`         | 小尺寸徽章字号   |
-| `--tr-prompt-badge-line-height-small`       | 小尺寸徽章行高   |
+| 变量名                                | 说明       |
+| ------------------------------------- | ---------- |
+| `--tr-prompt-padding`                 | 内边距     |
+| `--tr-prompt-gap`                     | 图标间距   |
+| `--tr-prompt-title-font-size`         | 标题字号   |
+| `--tr-prompt-title-line-height`       | 标题行高   |
+| `--tr-prompt-content-gap`             | 内容间距   |
+| `--tr-prompt-description-font-size`   | 描述字号   |
+| `--tr-prompt-description-line-height` | 描述行高   |
+| `--tr-prompt-badge-padding`           | 徽章内边距 |
+| `--tr-prompt-badge-font-size`         | 徽章字号   |
+| `--tr-prompt-badge-line-height`       | 徽章行高   |
 
-Medium 尺寸（默认尺寸）
+比如 `--tr-prompt-padding` 变量，对应不同尺寸的变量如下：
 
-| 变量名                                       | 说明               |
-| -------------------------------------------- | ------------------ |
-| `--tr-prompt-padding-medium`                 | 中等尺寸内边距     |
-| `--tr-prompt-gap-medium`                     | 中等尺寸图标间距   |
-| `--tr-prompt-title-font-size-medium`         | 中等尺寸标题字号   |
-| `--tr-prompt-title-line-height-medium`       | 中等尺寸标题行高   |
-| `--tr-prompt-content-gap-medium`             | 中等尺寸内容间距   |
-| `--tr-prompt-description-font-size-medium`   | 中等尺寸描述字号   |
-| `--tr-prompt-description-line-height-medium` | 中等尺寸描述行高   |
-| `--tr-prompt-badge-padding-medium`           | 中等尺寸徽章内边距 |
-| `--tr-prompt-badge-font-size-medium`         | 中等尺寸徽章字号   |
-| `--tr-prompt-badge-line-height-medium`       | 中等尺寸徽章行高   |
-
-Large 尺寸
-
-| 变量名                                      | 说明             |
-| ------------------------------------------- | ---------------- |
-| `--tr-prompt-padding-large`                 | 大尺寸内边距     |
-| `--tr-prompt-gap-large`                     | 大尺寸图标间距   |
-| `--tr-prompt-title-font-size-large`         | 大尺寸标题字号   |
-| `--tr-prompt-title-line-height-large`       | 大尺寸标题行高   |
-| `--tr-prompt-content-gap-large`             | 大尺寸内容间距   |
-| `--tr-prompt-description-font-size-large`   | 大尺寸描述字号   |
-| `--tr-prompt-description-line-height-large` | 大尺寸描述行高   |
-| `--tr-prompt-badge-padding-large`           | 大尺寸徽章内边距 |
-| `--tr-prompt-badge-font-size-large`         | 大尺寸徽章字号   |
-| `--tr-prompt-badge-line-height-large`       | 大尺寸徽章行高   |
+| 变量名                       | size   |
+| ---------------------------- | ------ |
+| `--tr-prompt-padding-small`  | small  |
+| `--tr-prompt-padding-medium` | medium |
+| `--tr-prompt-padding-large`  | large  |
 
 #### Prompts 容器变量
 
