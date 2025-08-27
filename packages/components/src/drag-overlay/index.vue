@@ -135,6 +135,7 @@ const overlayStyle = computed((): CSSProperties => {
   pointer-events: none;
   border-radius: inherit;
   transition: opacity 0.2s ease;
+  padding: var(--content-padding);
   z-index: 9999;
 
   &__content {
@@ -144,17 +145,9 @@ const overlayStyle = computed((): CSSProperties => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: var(--content-padding);
+    border: var(--content-border-width) dashed var(--border-color);
     border-radius: var(--content-border-radius);
     text-align: center;
-  }
-
-  &.fullscreen {
-    padding: var(--content-padding);
-
-    .tr-drag-overlay__content {
-      border: var(--content-border-width) dashed var(--border-color);
-    }
   }
 
   &__icon {

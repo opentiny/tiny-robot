@@ -93,7 +93,7 @@ DragOverlay 组件采用三层 CSS 变量架构，支持灵活的样式自定义
 | `--tr-drag-overlay-content-border-width`        | 内容边框宽度         |
 | `--tr-drag-overlay-content-border-radius`       | 内容边框圆角         |
 | `--tr-drag-overlay-icon-font-size`              | 图标字体大小         |
-| `--tr-drag-overlay-icon-margin-bottom`          | 图标下边距           |
+| `--tr-drag-overlay-icon-margin`                 | 图标外边距           |
 | `--tr-drag-overlay-text-gap`                    | 文本区域间距         |
 | `--tr-drag-overlay-title-font-size`             | 标题字体大小         |
 | `--tr-drag-overlay-title-line-height`           | 标题行高             |
@@ -102,10 +102,10 @@ DragOverlay 组件采用三层 CSS 变量架构，支持灵活的样式自定义
 
 全屏模式下的 CSS 变量：
 
-| 变量名                                         | 默认值       | 描述                   |
-| ---------------------------------------------- | ------------ | ---------------------- |
-| `--tr-drag-overlay-content-padding-fullscreen` | `60px 420px` | 全屏模式内容区域内边距 |
-| `--tr-drag-overlay-content-border-width-fullscreen` | `1px` | 全屏模式内容边框宽度 |
+| 变量名                                         | 描述                   |
+| ---------------------------------------------- | ---------------------- |
+| `--tr-drag-overlay-content-padding-fullscreen` | 全屏模式内容区域内边距 |
+| `--tr-drag-overlay-content-border-width-fullscreen` | 全屏模式内容边框宽度 |
 
 #### 变量覆盖
 
