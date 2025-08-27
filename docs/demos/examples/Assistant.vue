@@ -52,7 +52,7 @@
     ></tr-bubble-list>
 
     <template #footer>
-      <div class="chat-input max-container">
+      <div class="chat-input" :class="{ 'max-container': fullscreen }">
         <div class="chat-input-pills">
           <tr-suggestion-popover
             style="--tr-suggestion-popover-width: 440px"
