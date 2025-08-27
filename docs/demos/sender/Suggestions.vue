@@ -26,6 +26,16 @@
       placeholder="输入'云'或'CDN'查看自定义高亮..."
     ></tr-sender>
     <p>当前输入: {{ textCustomHighlight }}</p>
+
+    <h3>自定义激活按键</h3>
+    <tr-sender
+      v-model="textCustomKeys"
+      :suggestions="sampleSuggestions"
+      :activeSuggestionKeys="['Control']"
+      mode="single"
+      placeholder="输入'ECS'后按 Ctrl 键选中联想项..."
+    ></tr-sender>
+    <p>当前输入: {{ textCustomKeys }}</p>
   </div>
 </template>
 
@@ -36,6 +46,7 @@ import { TrSender, type SuggestionTextPart } from '@opentiny/tiny-robot'
 const textSingle = ref('')
 const textMultiple = ref('')
 const textCustomHighlight = ref('')
+const textCustomKeys = ref('')
 
 // 基础建议项
 const sampleSuggestions = ref([

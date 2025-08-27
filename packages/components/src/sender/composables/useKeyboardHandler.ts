@@ -107,15 +107,8 @@ export function useKeyboardHandler(
       return
     }
 
-    // 处理Tab键 - 接受当前建议
-    if (event.key === 'Tab' && showSuggestions.value && activeSuggestion.value) {
-      event.preventDefault()
-      acceptCurrentSuggestion()
-      return
-    }
-
-    // 处理上下键 - 导航建议列表
     if (showSuggestions.value) {
+      // 处理上下键 - 导航建议列表
       if (event.key === 'ArrowDown') {
         event.preventDefault()
         navigateSuggestions('down')
@@ -128,11 +121,15 @@ export function useKeyboardHandler(
         return
       }
 
-      // 处理Enter键 - 当建议弹窗打开时，如果有建议项，则选择当前项
-      if (event.key === 'Enter' && activeSuggestion.value) {
-        event.preventDefault()
-        acceptCurrentSuggestion()
-        return
+      if (activeSuggestion.value) {
+        // 处理激活建议项的快捷键
+        const activeSuggestionKeys = props.activeSuggestionKeys || ['Enter', 'Tab']
+
+        if (activeSuggestionKeys.includes(event.key)) {
+          event.preventDefault()
+          acceptCurrentSuggestion()
+          return
+        }
       }
     }
 

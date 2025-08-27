@@ -79,6 +79,7 @@ export interface SenderProps {
   showWordLimit?: boolean // 显示字数统计
   suggestions?: ISuggestionItem[] // 输入建议
   suggestionPopupWidth?: string | number // 联想建议弹窗宽度，如 '300px' 或 300
+  activeSuggestionKeys?: string[] // 激活建议项的按键，默认 ['Enter', 'Tab']
   theme?: ThemeType // 主题
   templateData?: UserItem[] // 模板数据
   stopText?: string // 停止按钮文字，不传则只显示图标
