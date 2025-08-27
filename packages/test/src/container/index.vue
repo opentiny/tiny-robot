@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import TrContainer from '../../../components/src/container/index.vue'
+import { TrContainer } from '@opentiny/tiny-robot'
 
 const showContainer = ref(false)
 const isFullscreen = ref(false)
