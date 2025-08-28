@@ -23,4 +23,141 @@
 
   /* 🚨 最高优先级：例如全局加载动画、强制更新提示等，确保始终显示在最顶层 */
   --tr-z-index-loading: 9999; /* 全局加载指示器 */
+
+  /* ===== 间距系统 ===== */
+  --tr-spacing-2xs: 2px;
+  --tr-spacing-xs: 4px;
+  --tr-spacing-sm: 8px;
+  --tr-spacing-md: 12px;
+  --tr-spacing-lg: 16px;
+  --tr-spacing-xl: 20px;
+  --tr-spacing-2xl: 24px;
+  --tr-spacing-3xl: 28px;
+
+  /* ===== 圆角系统 ===== */
+  --tr-radius-xs: 2px;
+  --tr-radius-sm: 4px;
+  --tr-radius-md: 8px;
+  --tr-radius-lg: 12px;
+  --tr-radius-xl: 16px;
+  --tr-radius-full: 9999px;
+
+  /* ===== 字体系统 ===== */
+  --tr-font-size-xs: 12px;
+  --tr-font-size-sm: 14px;
+  --tr-font-size-md: 16px;
+  --tr-font-size-lg: 18px;
+  --tr-font-size-xl: 20px;
+  --tr-font-size-2xl: 22px;
+  --tr-font-size-3xl: 24px;
+
+  /* ===== 字体粗细 ===== */
+  --tr-font-weight-thin: 100;
+  --tr-font-weight-extralight: 200;
+  --tr-font-weight-light: 300;
+  --tr-font-weight-regular: 400;
+  --tr-font-weight-medium: 500;
+  --tr-font-weight-semibold: 600;
+  --tr-font-weight-bold: 700;
+  --tr-font-weight-extrabold: 800;
+  --tr-font-weight-black: 900;
+}
+
+:root,
+[data-tr-color-mode='light'] {
+  /* 基础颜色 */
+  --tr-color-primary: #1476ff;
+  --tr-color-primary-light: #deecff;
+  --tr-color-success: #5cb300;
+  --tr-color-success-light: #e6f2d5;
+  --tr-color-error: #f23030;
+  --tr-color-error-light: #fce3e1;
+  --tr-color-warning: #ff8800;
+  --tr-color-warning-light: #ffebd1;
+  --tr-color-info: var(--tr-color-primary);
+  --tr-color-info-light: var(--tr-color-primary-light);
+
+  /* ===== 文本色系 ===== */
+  --tr-text-primary: #191919;
+  --tr-text-secondary: #595959;
+  --tr-text-tertiary: #808080;
+  --tr-text-disabled: #c2c2c2;
+  --tr-text-highlight: var(--tr-color-primary);
+  --tr-text-link: var(--tr-color-primary);
+
+  /* ===== 图标色系 ===== */
+  --tr-icon-color-default: var(--tr-text-secondary);
+  --tr-icon-color-hover: var(--tr-text-primary);
+  --tr-icon-color-active: var(--tr-text-primary);
+  --tr-icon-color-disabled: var(--tr-text-disabled);
+  --tr-icon-color-link: var(--tr-color-primary);
+
+  /* ===== 边框色系 ===== */
+  --tr-border-color-default: #c2c2c2;
+  --tr-border-color-hover: var(--tr-color-primary);
+  --tr-border-color-active: var(--tr-color-primary);
+  --tr-border-color-disabled: #dbdbdb;
+
+  /* ===== 页面背景 ===== */
+  --tr-page-bg-default: #f5f5f5;
+
+  /* ===== 容器背景 ===== */
+  --tr-container-bg-default: #ffffff;
+  --tr-container-bg-default-2: #fafafa;
+  --tr-container-bg-hover: rgba(0, 0, 0, 0.04);
+  --tr-container-bg-active: rgba(0, 0, 0, 0.15);
+  --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
+
+  /* ===== 阴影系统 ===== */
+  --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* ===== 深色主题 ===== */
+[data-tr-color-mode='dark'] {
+  /* ===== 基础颜色 ===== */
+  --tr-color-primary: #5291ff;
+  --tr-color-primary-light: #2e4364;
+  --tr-color-success: #5ba854;
+  --tr-color-success-light: #394e3b;
+  --tr-color-error: #d94838;
+  --tr-color-error-light: #583634;
+  --tr-color-warning: #ff8800;
+  --tr-color-warning-light: #624626;
+  --tr-color-info: var(--tr-color-primary);
+  --tr-color-info-light: var(--tr-color-primary-light);
+
+  /* ===== 文本色系 ===== */
+  --tr-text-primary: #e6e6e6;
+  --tr-text-secondary: #b3b3b3;
+  --tr-text-tertiary: #808080;
+  --tr-text-disabled: #808080;
+  --tr-text-highlight: var(--tr-color-primary);
+  --tr-text-link: var(--tr-color-primary);
+
+  /* ===== 图标色系 ===== */
+  --tr-icon-color-default: var(--tr-text-secondary);
+  --tr-icon-color-hover: var(--tr-text-primary);
+  --tr-icon-color-active: var(--tr-text-primary);
+  --tr-icon-color-disabled: var(--tr-text-disabled);
+  --tr-icon-color-link: var(--tr-color-primary);
+
+  /* ===== 边框色系 ===== */
+  --tr-border-color-default: #808080;
+  --tr-border-color-hover: var(--tr-color-primary);
+  --tr-border-color-active: var(--tr-color-primary);
+  --tr-border-color-disabled: rgba(255, 255, 255, 0.2);
+
+  /* ===== 页面背景 ===== */
+  --tr-page-bg-default: #191919;
+
+  /* ===== 容器背景 ===== */
+  --tr-container-bg-default: #262626;
+  --tr-container-bg-default-2: rgba(255, 255, 255, 0.05);
+  --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
+  --tr-container-bg-active: rgba(255, 255, 255, 0.15);
+  --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
+
+  /* ===== 阴影系统 ===== */
+  --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);
+  --tr-shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 }

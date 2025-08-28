@@ -88,8 +88,8 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
   font-size: 14px;
   line-height: 24px;
   padding: 12px;
-  color: rgb(89, 89, 89);
-  background-color: rgb(250, 250, 250);
+  color: var(--tr-text-secondary);
+  background-color: var(--tr-container-bg-default-2);
   border-radius: 12px;
 
   .tr-bubble__step-tool-header {
@@ -119,7 +119,7 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
 
       &.icon-failed,
       &.icon-cancelled {
-        color: #f23030;
+        color: var(--tr-color-error);
       }
     }
 
@@ -128,7 +128,7 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
     }
 
     .tr-bubble__step-tool-name {
-      color: rgb(25, 25, 25);
+      color: var(--tr-text-primary);
       font-weight: 600;
     }
   }
@@ -178,5 +178,27 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
 
 .null {
   color: gray;
+}
+
+[data-tr-color-mode='dark'] {
+  .number {
+    color: #4da6ff;
+  }
+
+  .key {
+    color: #ff6b6b;
+  }
+
+  .string {
+    color: #6bcf7f;
+  }
+
+  .boolean {
+    color: #ffb366;
+  }
+
+  .null {
+    color: #b3b3b3;
+  }
 }
 </style>

@@ -1,0 +1,11 @@
+@import './bubble.less';
+@import './prompt.less';
+@import './prompts.less';
+
+[data-tr-color-mode='light'] {
+  color-scheme: light;
+}
+
+[data-tr-color-mode='dark'] {
+  color-scheme: dark;
+}

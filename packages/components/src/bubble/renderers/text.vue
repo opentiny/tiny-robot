@@ -8,6 +8,7 @@ const props = defineProps<{ content: string }>()
 
 <style scoped lang="less">
 .tr-bubble__text {
+  color: var(--tr-text-primary);
   display: block;
   font-size: 14px;
   line-height: 24px;

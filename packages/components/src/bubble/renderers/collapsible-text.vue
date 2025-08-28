@@ -27,7 +27,7 @@ const opened = ref(props.defaultOpen ?? false)
 .tr-bubble__step-text-title {
   font-size: 14px;
   line-height: 22px;
-  color: rgb(25, 25, 25);
+  color: var(--tr-text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -39,7 +39,7 @@ const opened = ref(props.defaultOpen ?? false)
     height: 4px;
     margin-left: -1px;
     border-radius: 50%;
-    background-color: rgb(25, 25, 25);
+    background-color: var(--tr-text-primary);
   }
 }
 
@@ -50,8 +50,8 @@ const opened = ref(props.defaultOpen ?? false)
 .tr-bubble__step-text-content {
   font-size: 14px;
   line-height: 16px;
-  color: rgb(89, 89, 89);
-  border-left: 2px solid rgb(219, 219, 219);
+  color: var(--tr-text-secondary);
+  border-left: 2px solid var(--tr-border-color-disabled);
   padding-left: 8px;
   margin-top: 8px;
   white-space: pre-line;
