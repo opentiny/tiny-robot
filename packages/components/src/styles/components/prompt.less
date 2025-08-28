@@ -1,22 +1,17 @@
-:root,
-[data-tr-color-mode] {
-  /* 颜色相关的变量，需要加上 [data-tr-color-mode] 属性选择器。目的是提高优先级，让嵌套的 ThemeProvider 的样式能覆盖外层 ThemeProvider 的样式 */
-  --tr-prompt-bg: var(--tr-container-bg-default);
-  --tr-prompt-bg-hover: var(--tr-container-bg-hover);
-  --tr-prompt-bg-active: var(--tr-container-bg-active);
-  --tr-prompt-bg-disabled: var(--tr-container-bg-disabled);
-  --tr-prompt-shadow: var(--tr-shadow-sm);
-  --tr-prompt-title-color: var(--tr-text-primary);
-  --tr-prompt-description-color: var(--tr-text-secondary);
-  --tr-prompt-badge-bg: var(--tr-color-error-light);
-  --tr-prompt-badge-color: var(--tr-color-error);
-}
-
 .tr-prompt-vars() {
   @prefix: tr-prompt;
 
   @vars: {
     /* 不影响布局的变量 */
+    bg: var(--tr-container-bg-default);
+    bg-hover: var(--tr-container-bg-hover);
+    bg-active: var(--tr-container-bg-active);
+    bg-disabled: var(--tr-container-bg-disabled);
+    shadow: var(--tr-shadow-sm);
+    title-color: var(--tr-text-primary);
+    description-color: var(--tr-text-secondary);
+    badge-bg: var(--tr-color-error-light);
+    badge-color: var(--tr-color-error);
     title-font-weight: var(--tr-font-weight-medium);
     border-radius: var(--tr-radius-xl);
     /* 影响布局的变量 */
@@ -72,7 +67,8 @@
     badge-line-height: 22px;
   };
 
-  :root {
+  :root,
+  [data-tr-color-mode] {
     each(@vars, {
       --@{prefix}-@{key}: @value;
     });
