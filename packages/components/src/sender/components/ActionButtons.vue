@@ -238,15 +238,15 @@ const handleUpload = () => {
 <style lang="less">
 :root {
   // 颜色
-  --tr-sender-action-buttons-bg-color: #ffffff;
-  --tr-sender-action-buttons-icon-color: #595959;
-  --tr-sender-action-buttons-icon-hover-bg-color: #f5f5f5;
-  --tr-sender-action-buttons-send-bg-color: #1476ff;
+  --tr-sender-action-buttons-bg-color: var(--tr-container-bg-default);
+  --tr-sender-action-buttons-icon-color: var(--tr-text-secondary);
+  --tr-sender-action-buttons-icon-hover-bg-color: var(--tr-container-bg-hover);
+  --tr-sender-action-buttons-send-bg-color: var(--tr-color-primary);
   --tr-sender-action-buttons-send-hover-bg-color: #126deb;
-  --tr-sender-action-buttons-send-disabled-color: #c2c2c2;
+  --tr-sender-action-buttons-send-disabled-color: var(--tr-text-disabled);
   --tr-sender-action-buttons-cancel-bg: rgba(20, 118, 255, 0.06);
-  --tr-sender-action-buttons-cancel-text-color: #1476ff;
-  --tr-sender-action-buttons-cancel-icon-color: #1476ff;
+  --tr-sender-action-buttons-cancel-text-color: var(--tr-color-primary);
+  --tr-sender-action-buttons-cancel-icon-color: var(--tr-color-primary);
 
   // 字号
   --tr-sender-action-buttons-cancel-font-size: 14px;
@@ -277,7 +277,6 @@ const handleUpload = () => {
 .action-buttons {
   display: flex;
   gap: var(--tr-sender-actions-gap);
-  background: var(--tr-sender-action-buttons-bg-color);
   border-radius: 26px;
   align-items: center;
 
