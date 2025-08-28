@@ -50,46 +50,6 @@ const handleClose = () => {
   </div>
 </template>
 
-<style lang="less">
-// TODO 提取到全局变量中
-.tr-container-vars() {
-  @prefix: tr-container;
-
-  @vars: {
-    /* 不影响布局的变量 */
-    bg-color: rgb(248, 248, 248);
-    border-color: rgba(0, 0, 0, 0.08);
-    title-color: #191919;
-    title-font-weight: 600;
-    /* 影响布局的变量 */
-    width: 480px;
-    border-width: 1px;
-    header-padding: 0 24px 16px;
-    header-operations-gap: 8px;
-    title-font-size: 14px;
-    title-line-height: 22px;
-  };
-
-  @fullscreen-vars: {
-    title-font-size: 16px;
-    title-line-height: 22px;
-    header-padding: 0 160px 16px;
-  };
-
-  :root {
-    each(@vars, {
-    --@{prefix}-@{key}: @value;
-  });
-
-    each(@fullscreen-vars, {
-    --@{prefix}-@{key}-fullscreen: @value;
-  });
-  }
-}
-
-.tr-container-vars();
-</style>
-
 <style lang="less" scoped>
 .tr-container {
   /* 不影响布局的变量 */
