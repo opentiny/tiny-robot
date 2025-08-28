@@ -43,8 +43,12 @@ const innerColorMode = defineModel<ColorMode>('colorMode', {
 // 如果启用了 storage，则从 storage 中获取数据
 if (props.storage) {
   const themeData = getThemeDataFromStorage()
-  innerTheme.value = typeof themeData.theme === 'string' ? themeData.theme : innerTheme.value
-  innerColorMode.value = themeData.colorMode || innerColorMode.value
+  if (typeof themeData.theme === 'string') {
+    innerTheme.value = themeData.theme
+  }
+  if (themeData.colorMode === 'auto' || themeData.colorMode === 'light' || themeData.colorMode === 'dark') {
+    innerColorMode.value = themeData.colorMode
+  }
 }
 
 const systemMode = ref<'light' | 'dark'>('light')
