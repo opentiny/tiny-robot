@@ -644,9 +644,9 @@ defineExpose({
 // 主题变量
 :root {
   // 基础颜色
-  --tr-sender-bg-color: #fff;
-  --tr-sender-text-color: #191919;
-  --tr-sender-placeholder-color: #909399;
+  --tr-sender-bg-color: var(--tr-container-bg-default);
+  --tr-sender-text-color: var(--tr-text-primary);
+  --tr-sender-placeholder-color: var(--tr-text-tertiary);
 
   // 基础字号、行高、高度
   --tr-sender-input-font-size: 16px;
@@ -674,7 +674,7 @@ defineExpose({
   // 头部插槽 (Header)
   --tr-sender-header-min-height: 40px;
   --tr-sender-header-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  --tr-sender-header-bg-color: #ffffff;
+  --tr-sender-header-bg-color: var(--tr-container-bg-default);
 
   // 前缀插槽 (Prefix)
   --tr-sender-prefix-min-width: 28px;
@@ -690,7 +690,7 @@ defineExpose({
 
   // 底部插槽 (Footer)
   --tr-sender-footer-min-height: 36px;
-  --tr-sender-footer-bg: #fff;
+  --tr-sender-footer-bg: var(--tr-container-bg-default);
   --tr-sender-footer-hover: #f9f9f9;
 
   // 字数限制
