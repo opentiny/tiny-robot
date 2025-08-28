@@ -68,8 +68,7 @@
   };
 
   :root,
-  [data-tr-theme],
-  [data-tr-color-mode] {
+  [data-tr-theme] {
     each(@vars, {
       --@{prefix}-@{key}: @value;
     });
