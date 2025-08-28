@@ -25,6 +25,10 @@ export interface BubbleCommonProps {
    */
   customContentField?: string
   /**
+   * 气泡中止文本
+   */
+  abortedText?: string
+  /**
    * 气泡最大宽度
    */
   maxWidth?: string | number

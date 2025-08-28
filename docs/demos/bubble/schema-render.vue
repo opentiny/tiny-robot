@@ -44,14 +44,9 @@ if (!customElements.get('schema-card')) {
   customElements.define('schema-card', CardElement)
 }
 
-const mdContent = `# h1 Heading
-## Emphasis
+const mdContent = `# Markdown 标题
 
-**This is bold text**
-
-*This is italic text*
-
-_This is italic text_
+**Markdown 加粗文本**
 
 <schema-card schema='${schemaObj.value}'></schema-card>
 `
