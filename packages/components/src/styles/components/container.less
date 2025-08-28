@@ -1,0 +1,37 @@
+.tr-container-vars() {
+  @prefix: tr-container;
+
+  @vars: {
+    /* 不影响布局的变量 */
+    bg-color: var(--tr-page-bg-default);
+    border-color: var(--tr-border-color-disabled);
+    title-color: var(--tr-text-primary);
+    title-font-weight: 600;
+    /* 影响布局的变量 */
+    width: 480px;
+    border-width: 1px;
+    header-padding: 0 24px 16px;
+    header-operations-gap: 8px;
+    title-font-size: 14px;
+    title-line-height: 22px;
+  };
+
+  @fullscreen-vars: {
+    title-font-size: 16px;
+    title-line-height: 22px;
+    header-padding: 0 160px 16px;
+  };
+
+  :root,
+  [data-tr-theme] {
+    each(@vars, {
+      --@{prefix}-@{key}: @value;
+    });
+
+    each(@fullscreen-vars, {
+      --@{prefix}-@{key}-fullscreen: @value;
+    });
+  }
+}
+
+.tr-container-vars();

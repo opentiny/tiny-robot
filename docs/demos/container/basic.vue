@@ -10,7 +10,7 @@
     </template>
     <!-- footer插槽 -->
     <template #footer>
-      <div class="footer">footer</div>
+      <div class="footer">这是 footer</div>
     </template>
   </tr-container>
   <div style="display: flex; flex-direction: column; gap: 8px">
@@ -38,11 +38,9 @@ const fullscreen = ref(false)
 <style lang="less" scoped>
 .content {
   padding: 0 24px;
-  background-color: antiquewhite;
 }
 
 .footer {
-  background-color: #f0f0f0;
   padding: 16px 24px;
 }
 

@@ -21,7 +21,7 @@ const svgSize = computed(() => toCssUnit(props.svgSize))
 <style lang="less">
 :root {
   --tr-icon-button-bg: transparent;
-  --tr-icon-button-hover-bg: #f5f5f5;
+  --tr-icon-button-hover-bg: var(--tr-container-bg-hover);
 }
 </style>
 
