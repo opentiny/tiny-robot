@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, onUnmounted, provide, ref, watch, watchEffect } from 'vue'
-import { COLOR_MODE, COLOR_MODE_ATTR_NAME, RESOLVED_COLOR_MODE, THEME, THEME_ATTR_NAME } from './constants'
+import {
+  COLOR_MODE,
+  COLOR_MODE_ATTR_NAME,
+  RESOLVED_COLOR_MODE,
+  SYSTEM_COLOR_MODE,
+  THEME,
+  THEME_ATTR_NAME,
+} from './constants'
 import type { ColorMode, ThemeProviderProps } from './index.type'
 
 const props = withDefaults(defineProps<ThemeProviderProps>(), {
@@ -65,6 +72,7 @@ const resolvedColorMode = computed(() => {
 provide(THEME, innerTheme)
 provide(COLOR_MODE, innerColorMode)
 provide(RESOLVED_COLOR_MODE, resolvedColorMode)
+provide(SYSTEM_COLOR_MODE, systemMode)
 
 // 应用主题到指定选择器
 watchEffect(

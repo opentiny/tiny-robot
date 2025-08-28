@@ -120,17 +120,21 @@ ThemeProvider 组件的属性配置。
 
 主题相关的组合式函数，提供主题和颜色模式的操作 API。
 
+> [!IMPORTANT]
+> `useTheme` 只能在 `ThemeProvider` 包裹的组件中使用。如果在没有 `ThemeProvider` 的组件中使用，相关方法会返回 `false` 并在控制台输出警告信息。
+
 useTheme 返回值
 
 ```typescript
-const { theme, colorMode, resolvedColorMode, setTheme, toggleColorMode, setColorMode } = useTheme()
+const { theme, colorMode, resolvedColorMode, systemColorMode, setTheme, toggleColorMode, setColorMode } = useTheme()
 ```
 
-| 属性                | 类型                                       | 说明                                                      |
-| ------------------- | ------------------------------------------ | --------------------------------------------------------- |
-| `theme`             | `Ref<string>`                              | 当前主题名称的响应式引用                                  |
-| `colorMode`         | `Ref<ColorMode>`                           | 当前颜色模式的响应式引用                                  |
-| `resolvedColorMode` | `ComputedRef<Readonly<'light' \| 'dark'>>` | 解析后的颜色模式，auto 模式会被解析为实际的 light 或 dark |
-| `setTheme`          | `(newTheme: string) => boolean`            | 设置主题名称，返回是否设置成功                            |
-| `toggleColorMode`   | `() => boolean`                            | 切换颜色模式，返回是否切换成功                            |
-| `setColorMode`      | `(mode: ColorMode) => boolean`             | 设置颜色模式，返回是否设置成功                            |
+| 属性                | 类型                               | 说明                                                                                           |
+| ------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `theme`             | `Ref<string>`                      | 当前主题名称的响应式引用                                                                       |
+| `colorMode`         | `Ref<ColorMode>`                   | 当前颜色模式的响应式引用                                                                       |
+| `resolvedColorMode` | `Readonly<Ref<'light' \| 'dark'>>` | 解析后的颜色模式，auto 模式会被解析为实际的 light 或 dark                                      |
+| `systemColorMode`   | `Readonly<Ref<'light' \| 'dark'>>` | 系统颜色模式的响应式引用，只读。`window.matchMedia('(prefers-color-scheme: dark)')` 的匹配结果 |
+| `setTheme`          | `(newTheme: string) => boolean`    | 设置主题名称，返回是否设置成功                                                                 |
+| `toggleColorMode`   | `() => boolean`                    | 切换颜色模式，返回是否切换成功                                                                 |
+| `setColorMode`      | `(mode: ColorMode) => boolean`     | 设置颜色模式，返回是否设置成功                                                                 |

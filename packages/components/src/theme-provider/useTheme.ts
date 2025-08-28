@@ -1,5 +1,5 @@
-import { ComputedRef, inject, type Ref } from 'vue'
-import { COLOR_MODE, RESOLVED_COLOR_MODE, THEME } from './constants'
+import { ComputedRef, inject, readonly, type Ref } from 'vue'
+import { COLOR_MODE, RESOLVED_COLOR_MODE, SYSTEM_COLOR_MODE, THEME } from './constants'
 import type { ColorMode } from './index.type'
 
 const WARN_MESSAGE =
@@ -8,7 +8,8 @@ const WARN_MESSAGE =
 export const useTheme = () => {
   const theme = inject<Ref<string>>(THEME)
   const colorMode = inject<Ref<ColorMode>>(COLOR_MODE)
-  const resolvedColorMode = inject<ComputedRef<Readonly<Exclude<ColorMode, 'auto'>>>>(RESOLVED_COLOR_MODE)
+  const resolvedColorMode = inject<ComputedRef<'light' | 'dark'>>(RESOLVED_COLOR_MODE)
+  const systemColorMode = inject<Ref<'light' | 'dark'>>(SYSTEM_COLOR_MODE)
 
   /**
    * @param newTheme - 要设置的新主题
@@ -59,7 +60,8 @@ export const useTheme = () => {
   return {
     theme,
     colorMode,
-    resolvedColorMode,
+    resolvedColorMode: resolvedColorMode ? readonly(resolvedColorMode) : undefined,
+    systemColorMode: systemColorMode ? readonly(systemColorMode) : undefined,
     setTheme,
     toggleColorMode,
     setColorMode,
