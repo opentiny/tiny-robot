@@ -127,40 +127,6 @@ const style = computed(() => {
   </div>
 </template>
 
-<style lang="less">
-.tr-bubble-vars() {
-  @prefix: tr-bubble;
-
-  @vars: {
-    /* 不影响布局的变量 */
-    content-bg-color: white;
-    content-border-radius: 24px;
-    content-box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
-    text-color: rgb(25, 25, 25);
-    aborted-color: rgb(128, 128, 128);
-    /* 影响布局的变量 */
-    gap: 16px;
-    max-width: 80%;
-    avatar-size: 40px;
-    content-padding: 16px 24px;
-    text-font-size: 16px;
-    text-line-height: 26px;
-    loading-size: 24px;
-    aborted-font-size: 14px;
-    content-items-gap: 12px;
-    footer-margin: 12px 0 0 0;
-  };
-
-  :root {
-    each(@vars, {
-    --@{prefix}-@{key}: @value;
-    });
-  }
-}
-
-.tr-bubble-vars();
-</style>
-
 <style lang="less" scoped>
 .tr-bubble {
   /* 不影响布局的变量 */

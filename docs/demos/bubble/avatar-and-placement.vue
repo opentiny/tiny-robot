@@ -4,7 +4,7 @@
       content="简单介绍 TinyVue"
       :avatar="userAvatar"
       placement="end"
-      style="--tr-bubble-content-bg-color: #deecff"
+      style="--tr-bubble-content-bg-color: var(--tr-color-primary-light)"
     ></tr-bubble>
     <tr-bubble
       content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
