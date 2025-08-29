@@ -3,7 +3,7 @@ import { COLOR_MODE, RESOLVED_COLOR_MODE, SYSTEM_COLOR_MODE, THEME } from './con
 import type { ColorMode } from './index.type'
 
 const WARN_MESSAGE =
-  'Theme context not available, cannot set theme data. Condisder using ThemeProvider to wrap your app.'
+  'Theme context not available, cannot set theme data. Consider using ThemeProvider to wrap your app.'
 
 export const useTheme = () => {
   const theme = inject<Ref<string>>(THEME)
