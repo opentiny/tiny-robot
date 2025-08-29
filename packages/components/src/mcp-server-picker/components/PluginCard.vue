@@ -182,7 +182,6 @@ const getHoverTitle = (isEnabled: boolean) => {
   background: rgb(255, 255, 255);
   border-radius: 12px;
   box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
 
   &__main {
     display: flex;
@@ -320,14 +319,7 @@ const getHoverTitle = (isEnabled: boolean) => {
   // 工具列表样式
   &__tools {
     background: rgb(255, 255, 255);
-  }
-
-  &__tool-item {
-    position: relative;
-
-    &:last-child .plugin-card__tool {
-      border-radius: 0 0 12px 12px;
-    }
+    border-radius: 0 0 16px 16px;
   }
 
   &__tool {

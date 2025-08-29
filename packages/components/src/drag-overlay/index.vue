@@ -24,11 +24,7 @@ const overlayStyle = computed((): CSSProperties => {
 
 <template>
   <Transition name="tr-fade">
-    <div
-      v-if="isDragging"
-      :class="['tr-drag-overlay', { 'tr-drag-overlay--fullscreen': fullscreen }]"
-      :style="overlayStyle"
-    >
+    <div v-if="isDragging" :class="['tr-drag-overlay', { fullscreen: fullscreen }]" :style="overlayStyle">
       <slot name="overlay" :is-dragging="isDragging">
         <div class="tr-drag-overlay__content">
           <div class="tr-drag-overlay__icon">
@@ -50,9 +46,88 @@ const overlayStyle = computed((): CSSProperties => {
   </Transition>
 </template>
 
+<style lang="less">
+.tr-drag-overlay-vars() {
+  @prefix: tr-drag-overlay;
+
+  // 基础变量组
+  @vars: {
+    /* 不影响布局的变量 */
+    bg-color: rgba(255, 255, 255, 0.8);
+    border-color: #808080;
+    title-color: rgba(0, 0, 0, 1);
+    title-font-weight: 600;
+    description-color: #808080;
+    description-font-weight: 400;
+
+    /* 影响布局的变量 */
+    content-padding: 40px;
+    content-border-width: 0;
+    content-border-radius: 40px;
+    icon-font-size: 80px;
+    icon-margin: 12px;
+    text-gap: 12px;
+    title-font-size: 16px;
+    title-line-height: 24px;
+    description-font-size: 14px;
+    description-line-height: 24px;
+  };
+
+  // fullscreen 模式变量组
+  @fullscreen-vars: {
+    content-padding: 60px 420px;
+    content-border-width: 1px;
+  };
+
+  :root {
+    each(@vars, {
+      --@{prefix}-@{key}: @{value};
+    });
+
+    each(@fullscreen-vars, {
+    --@{prefix}-@{key}-fullscreen: @{value};
+  });
+  }
+}
+
+.tr-drag-overlay-vars();
+</style>
+
 <style lang="less" scoped>
+// 第二层：组件映射层 (Component Mapping Layer)
 .tr-drag-overlay {
-  background: rgba(255, 255, 255, 0.8);
+  /* 不影响布局的变量 */
+  --bg-color: var(--tr-drag-overlay-bg-color);
+  --border-color: var(--tr-drag-overlay-border-color);
+  --title-color: var(--tr-drag-overlay-title-color);
+  --title-font-weight: var(--tr-drag-overlay-title-font-weight);
+  --description-color: var(--tr-drag-overlay-description-color);
+  --description-font-weight: var(--tr-drag-overlay-description-font-weight);
+
+  /* 影响布局的变量 */
+  --content-padding: var(--tr-drag-overlay-content-padding);
+  --content-border-width: var(--tr-drag-overlay-content-border-width);
+  --content-border-radius: var(--tr-drag-overlay-content-border-radius);
+  --icon-font-size: var(--tr-drag-overlay-icon-font-size);
+  --icon-margin: var(--tr-drag-overlay-icon-margin);
+  --text-gap: var(--tr-drag-overlay-text-gap);
+  --title-font-size: var(--tr-drag-overlay-title-font-size);
+  --title-line-height: var(--tr-drag-overlay-title-line-height);
+  --description-font-size: var(--tr-drag-overlay-description-font-size);
+  --description-line-height: var(--tr-drag-overlay-description-line-height);
+
+  /* 模式状态覆盖 */
+  &.fullscreen {
+    --content-padding: var(--tr-drag-overlay-content-padding-fullscreen, var(--tr-drag-overlay-content-padding));
+    --content-border-width: var(
+      --tr-drag-overlay-content-border-width-fullscreen,
+      var(--tr-drag-overlay-content-border-width)
+    );
+  }
+}
+
+.tr-drag-overlay {
+  background: var(--bg-color);
   backdrop-filter: blur(15px);
   display: flex;
   align-items: center;
@@ -60,6 +135,7 @@ const overlayStyle = computed((): CSSProperties => {
   pointer-events: none;
   border-radius: inherit;
   transition: opacity 0.2s ease;
+  padding: var(--content-padding);
   z-index: 9999;
 
   &__content {
@@ -69,46 +145,38 @@ const overlayStyle = computed((): CSSProperties => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 40px;
-    border-radius: 40px;
+    border: var(--content-border-width) dashed var(--border-color);
+    border-radius: var(--content-border-radius);
     text-align: center;
   }
 
-  &--fullscreen {
-    padding: 60px 420px;
-
-    .tr-drag-overlay__content {
-      border: 1px dashed #808080;
-    }
-  }
-
   &__icon {
-    margin-bottom: 12px;
-    font-size: 80px;
+    margin-bottom: var(--icon-margin);
+    font-size: var(--icon-font-size);
   }
 
   &__text {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--text-gap);
     justify-content: center;
   }
 
   &__title {
-    color: rgba(0, 0, 0, 1);
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 24px;
+    color: var(--title-color);
+    font-size: var(--title-font-size);
+    font-weight: var(--title-font-weight);
+    line-height: var(--title-line-height);
     letter-spacing: 0;
     text-align: center;
   }
 
   &__description {
     width: 100%;
-    color: #808080;
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 24px;
+    color: var(--description-color);
+    font-size: var(--description-font-size);
+    font-weight: var(--description-font-weight);
+    line-height: var(--description-line-height);
     letter-spacing: 0;
     text-align: center;
     display: flex;
