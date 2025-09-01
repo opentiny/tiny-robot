@@ -31,9 +31,9 @@
     <tr-sender
       v-model="textCustomKeys"
       :suggestions="sampleSuggestions"
-      :activeSuggestionKeys="['Control']"
+      :activeSuggestionKeys="['Tab']"
       mode="single"
-      placeholder="输入'ECS'后按 Ctrl 键选中联想项..."
+      placeholder="输入'ECS'后按 Tab 键选中联想项..."
     ></tr-sender>
     <p>当前输入: {{ textCustomKeys }}</p>
   </div>
