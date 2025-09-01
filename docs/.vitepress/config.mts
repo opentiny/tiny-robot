@@ -69,6 +69,7 @@ export default defineConfig({
             { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
             { text: 'Attachments 附件卡片', link: 'attachments' },
             { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+            { text: 'Theme 主题', link: 'theme' },
           ],
         },
       ],

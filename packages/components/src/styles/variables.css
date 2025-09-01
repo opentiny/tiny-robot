@@ -1,4 +1,5 @@
 :root {
+  /* ===== 层级管理 ===== */
   /* 🧱 基础层级：用于默认或背景元素，确保不遮挡主要内容 */
   --tr-z-index-base: 0;
 
@@ -93,10 +94,10 @@
   --tr-icon-color-link: var(--tr-color-primary);
 
   /* ===== 边框色系 ===== */
-  --tr-border-color-default: #c2c2c2;
+  --tr-border-color-default: var(--tr-text-disabled);
   --tr-border-color-hover: var(--tr-color-primary);
   --tr-border-color-active: var(--tr-color-primary);
-  --tr-border-color-disabled: #dbdbdb;
+  --tr-border-color-disabled: var(--tr-text-disabled);
 
   /* ===== 页面背景 ===== */
   --tr-page-bg-default: #f5f5f5;
@@ -142,10 +143,10 @@
   --tr-icon-color-link: var(--tr-color-primary);
 
   /* ===== 边框色系 ===== */
-  --tr-border-color-default: #808080;
+  --tr-border-color-default: var(--tr-text-disabled);
   --tr-border-color-hover: var(--tr-color-primary);
   --tr-border-color-active: var(--tr-color-primary);
-  --tr-border-color-disabled: rgba(255, 255, 255, 0.2);
+  --tr-border-color-disabled: var(--tr-text-disabled);
 
   /* ===== 页面背景 ===== */
   --tr-page-bg-default: #191919;

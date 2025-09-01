@@ -25,6 +25,10 @@ export interface PromptProps {
    * 提示徽章，显示在提示项的右上角
    */
   badge?: string | VNode
+  /**
+   * 提示项大小。默认 medium
+   */
+  size?: 'small' | 'medium' | 'large'
 }
 
 export interface PromptsProps {

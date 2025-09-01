@@ -1,12 +1,16 @@
 <template>
   <tr-prompts :items="items" wrap item-class="prompt-item">
     <template #footer>
-      <div class="prompts-footer"><span style="font-size: 16px; margin-right: 4px">🔄</span>换一换</div>
+      <div class="prompts-footer">
+        <span style="font-size: 16px; margin-right: 4px"><IconRefresh /></span>
+        <span style="font-size: 12px; line-height: 20px">换一换</span>
+      </div>
     </template>
   </tr-prompts>
 </template>
 
 <script setup lang="ts">
+import { IconRefresh } from '@opentiny/tiny-robot-svgs'
 import { PromptProps, TrPrompts } from '@opentiny/tiny-robot'
 import { CSSProperties, h } from 'vue'
 
@@ -36,6 +40,9 @@ const items: PromptProps[] = [
 .prompts-footer {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  align-items: center;
+  margin-top: 16px;
+  color: var(--tr-text-secondary);
+  cursor: pointer;
 }
 </style>

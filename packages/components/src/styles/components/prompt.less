@@ -1,0 +1,90 @@
+.tr-prompt-vars() {
+  @prefix: tr-prompt;
+
+  @vars: {
+    /* 不影响布局的变量 */
+    bg: var(--tr-container-bg-default);
+    bg-hover: var(--tr-container-bg-hover);
+    bg-active: var(--tr-container-bg-active);
+    bg-disabled: var(--tr-container-bg-disabled);
+    shadow: var(--tr-shadow-sm);
+    title-color: var(--tr-text-primary);
+    description-color: var(--tr-text-secondary);
+    badge-bg: var(--tr-color-error-light);
+    badge-color: var(--tr-color-error);
+    title-font-weight: var(--tr-font-weight-medium);
+    border-radius: var(--tr-radius-xl);
+    /* 影响布局的变量 */
+    // 默认取 medium 的值
+    padding: var(--tr-prompt-padding-medium);
+    title-font-size: var(--tr-prompt-title-font-size-medium);
+    title-line-height: var(--tr-prompt-title-line-height-medium);
+    description-font-size: var(--tr-prompt-description-font-size-medium);
+    description-line-height: var(--tr-prompt-description-line-height-medium);
+    gap: var(--tr-prompt-gap-medium);
+    content-gap: var(--tr-prompt-content-gap-medium);
+    badge-padding: var(--tr-prompt-badge-padding-medium);
+    badge-font-size: var(--tr-prompt-badge-font-size-medium);
+    badge-line-height: var(--tr-prompt-badge-line-height-medium);
+  };
+
+  @small-vars: {
+    padding: 10px var(--tr-spacing-lg);
+    title-font-size: var(--tr-font-size-sm);
+    title-line-height: 24px;
+    description-font-size: var(--tr-font-size-sm);
+    description-line-height: 22px;
+    gap: var(--tr-spacing-md);
+    content-gap: var(--tr-spacing-xs);
+    badge-padding: 0 var(--tr-spacing-md);
+    badge-font-size: var(--tr-font-size-sm);
+    badge-line-height: 22px;
+  };
+
+  @medium-vars: {
+    padding: 14px var(--tr-spacing-2xl);
+    title-font-size: var(--tr-font-size-sm);
+    title-line-height: 24px;
+    description-font-size: var(--tr-font-size-sm);
+    description-line-height: 22px;
+    gap: var(--tr-spacing-md);
+    content-gap: var(--tr-spacing-xs);
+    badge-padding: 0 var(--tr-spacing-md);
+    badge-font-size: var(--tr-font-size-sm);
+    badge-line-height: 22px;
+  };
+
+  @large-vars: {
+    padding: 14px var(--tr-spacing-2xl);
+    title-font-size: var(--tr-font-size-md);
+    title-line-height: 24px;
+    description-font-size: var(--tr-font-size-sm);
+    description-line-height: 22px;
+    gap: var(--tr-spacing-md);
+    content-gap: var(--tr-spacing-xs);
+    badge-padding: 0 var(--tr-spacing-md);
+    badge-font-size: var(--tr-font-size-md);
+    badge-line-height: 22px;
+  };
+
+  :root,
+  [data-tr-theme] {
+    each(@vars, {
+      --@{prefix}-@{key}: @value;
+    });
+
+    each(@small-vars, {
+      --@{prefix}-@{key}-small: @value;
+    });
+
+    each(@medium-vars, {
+      --@{prefix}-@{key}-medium: @value;
+    });
+
+    each(@large-vars, {
+      --@{prefix}-@{key}-large: @value;
+    });
+  }
+}
+
+.tr-prompt-vars();

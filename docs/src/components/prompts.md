@@ -1,5 +1,5 @@
 ---
-outline: deep
+outline: [1, 3]
 ---
 
 # Prompts 提示集组件
@@ -13,6 +13,12 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 基本用法
 
 <demo vue="../../demos/prompts/basic.vue" />
+
+### 大小
+
+使用 `size` 属性，控制 Prompt 项的大小。默认大小为 `medium`，可选值为 `small`、`medium`、`large`。
+
+<demo vue="../../demos/prompts/size.vue" />
 
 ### 禁用状态
 
@@ -92,3 +98,84 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 | 插槽名   | 说明                                       |
 | -------- | ------------------------------------------ |
 | `footer` | 底部插槽，用于在提示列表底部添加自定义内容 |
+
+### CSS 变量
+
+#### Prompt 组件变量
+
+Prompt 根元素
+
+| 变量名                      | 说明             |
+| --------------------------- | ---------------- |
+| `--tr-prompt-bg`            | 提示项背景色     |
+| `--tr-prompt-bg-hover`      | 提示项悬停背景色 |
+| `--tr-prompt-bg-active`     | 提示项激活背景色 |
+| `--tr-prompt-bg-disabled`   | 提示项禁用背景色 |
+| `--tr-prompt-border-radius` | 圆角大小         |
+| `--tr-prompt-shadow`        | 阴影效果         |
+| `--tr-prompt-padding`       | 内边距           |
+| `--tr-prompt-gap`           | 图标与内容间距   |
+
+title 标题
+
+| 变量名                          | 说明         |
+| ------------------------------- | ------------ |
+| `--tr-prompt-title-color`       | 标题文字颜色 |
+| `--tr-prompt-title-font-size`   | 标题字号     |
+| `--tr-prompt-title-line-height` | 标题行高     |
+| `--tr-prompt-title-font-weight` | 标题字重     |
+
+content 内容
+
+| 变量名                    | 说明           |
+| ------------------------- | -------------- |
+| `--tr-prompt-content-gap` | 标题与描述间距 |
+
+description 描述
+
+| 变量名                                | 说明         |
+| ------------------------------------- | ------------ |
+| `--tr-prompt-description-color`       | 描述文字颜色 |
+| `--tr-prompt-description-font-size`   | 描述字号     |
+| `--tr-prompt-description-line-height` | 描述行高     |
+
+badge 徽章
+
+| 变量名                          | 说明         |
+| ------------------------------- | ------------ |
+| `--tr-prompt-badge-bg`          | 徽章背景色   |
+| `--tr-prompt-badge-color`       | 徽章文字颜色 |
+| `--tr-prompt-badge-padding`     | 徽章内边距   |
+| `--tr-prompt-badge-font-size`   | 徽章字号     |
+| `--tr-prompt-badge-line-height` | 徽章行高     |
+
+#### Prompt 组件尺寸变量
+
+Prompt 组件 `size` 属性可选值有 `small`、`medium`、`large`，默认值为 `medium`。不同尺寸对应的变量是如下变量名后缀加上 `-small`、`-medium`、`-large`。
+
+| 变量名                                | 说明       |
+| ------------------------------------- | ---------- |
+| `--tr-prompt-padding`                 | 内边距     |
+| `--tr-prompt-gap`                     | 图标间距   |
+| `--tr-prompt-title-font-size`         | 标题字号   |
+| `--tr-prompt-title-line-height`       | 标题行高   |
+| `--tr-prompt-content-gap`             | 内容间距   |
+| `--tr-prompt-description-font-size`   | 描述字号   |
+| `--tr-prompt-description-line-height` | 描述行高   |
+| `--tr-prompt-badge-padding`           | 徽章内边距 |
+| `--tr-prompt-badge-font-size`         | 徽章字号   |
+| `--tr-prompt-badge-line-height`       | 徽章行高   |
+
+比如 `--tr-prompt-padding` 变量，对应不同尺寸的变量如下：
+
+| 变量名                       | size   |
+| ---------------------------- | ------ |
+| `--tr-prompt-padding-small`  | small  |
+| `--tr-prompt-padding-medium` | medium |
+| `--tr-prompt-padding-large`  | large  |
+
+#### Prompts 容器变量
+
+| 变量名             | 说明             |
+| ------------------ | ---------------- |
+| `--tr-prompts-gap` | 提示项之间的间距 |
