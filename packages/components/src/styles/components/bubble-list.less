@@ -1,0 +1,16 @@
+.tr-bubble-list-vars() {
+  @prefix: tr-bubble-list;
+
+  @vars: {
+    gap: 16px;
+    padding: 16px;
+  };
+
+  :root {
+    each(@vars, {
+    --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-bubble-list-vars();

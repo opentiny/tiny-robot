@@ -160,45 +160,23 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
 </style>
 
 <style module>
-.number {
-  color: #00f;
+.key {
+  color: var(--tr-bubble-tool-key-color);
 }
 
-.key {
-  color: #922;
+.number {
+  color: var(--tr-bubble-tool-number-color);
 }
 
 .string {
-  color: #080;
+  color: var(--tr-bubble-tool-string-color);
 }
 
 .boolean {
-  color: #c60;
+  color: var(--tr-bubble-tool-boolean-color);
 }
 
 .null {
-  color: gray;
-}
-
-[data-tr-color-mode='dark'] {
-  .number {
-    color: #4da6ff;
-  }
-
-  .key {
-    color: #ff6b6b;
-  }
-
-  .string {
-    color: #6bcf7f;
-  }
-
-  .boolean {
-    color: #ffb366;
-  }
-
-  .null {
-    color: #b3b3b3;
-  }
+  color: var(--tr-bubble-tool-null-color);
 }
 </style>

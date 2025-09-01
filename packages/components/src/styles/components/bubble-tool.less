@@ -1,0 +1,39 @@
+.tr-bubble-tool-light-vars() {
+  @prefix: tr-bubble-tool;
+
+  @vars: {
+    key-color: #922;
+    number-color: #00f;
+    string-color: #080;
+    boolean-color: #c60;
+    null-color: gray;
+  };
+
+  :root,
+  [data-tr-color-mode='light'] {
+    each(@vars, {
+    --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-bubble-tool-dark-vars() {
+  @prefix: tr-bubble-tool;
+
+  @vars: {
+    key-color: #ff6b6b;
+    number-color: #4da6ff;
+    string-color: #6bcf7f;
+    boolean-color: #ffb366;
+    null-color: #b3b3b3;
+  };
+
+  [data-tr-color-mode='dark'] {
+    each(@vars, {
+    --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-bubble-tool-light-vars();
+.tr-bubble-tool-dark-vars();

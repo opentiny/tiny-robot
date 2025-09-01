@@ -72,25 +72,6 @@ const loadingBubble = computed(() => {
   </div>
 </template>
 
-<style lang="less">
-.tr-bubble-list-vars() {
-  @prefix: tr-bubble-list;
-
-  @vars: {
-    gap: 16px;
-    padding: 16px;
-  };
-
-  :root {
-    each(@vars, {
-    --@{prefix}-@{key}: @value;
-    });
-  }
-}
-
-.tr-bubble-list-vars();
-</style>
-
 <style lang="less" scoped>
 .tr-bubble-list {
   --gap: var(--tr-bubble-list-gap);
