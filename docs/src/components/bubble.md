@@ -10,7 +10,7 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 ### 基本示例
 
-基本示例。使用 `content` 属性设置气泡内容，使用 css 变量 `--tr-bubble-content-bg-color` 设置气泡内容背景颜色。
+基本示例。使用 `content` 属性设置气泡内容，使用 css 变量 `--tr-bubble-content-bg` 设置气泡内容背景颜色。
 
 > 更多 css 变量请参考 [CSS 变量](#css-变量)
 
@@ -309,7 +309,7 @@ content 内容
 
 | 变量名                              | 说明                                                |
 | ----------------------------------- | --------------------------------------------------- |
-| `--tr-bubble-content-bg-color`      | 内容背景色                                          |
+| `--tr-bubble-content-bg`      | 内容背景色                                          |
 | `--tr-bubble-content-border-radius` | 内容圆角大小                                        |
 | `--tr-bubble-content-box-shadow`    | 内容阴影效果                                        |
 | `--tr-bubble-content-padding`       | 内容内边距                                          |

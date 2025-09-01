@@ -133,7 +133,7 @@ const style = computed(() => {
 
   @vars: {
     /* 不影响布局的变量 */
-    content-bg-color: white;
+    content-bg: white;
     content-border-radius: 24px;
     content-box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
     text-color: rgb(25, 25, 25);
@@ -164,7 +164,7 @@ const style = computed(() => {
 <style lang="less" scoped>
 .tr-bubble {
   /* 不影响布局的变量 */
-  --content-bg-color: var(--tr-bubble-content-bg-color);
+  --content-bg: var(--tr-bubble-content-bg);
   --content-border-radius: var(--tr-bubble-content-border-radius);
   --content-box-shadow: var(--tr-bubble-content-box-shadow);
   --text-color: var(--tr-bubble-text-color);
@@ -221,7 +221,7 @@ const style = computed(() => {
 }
 
 .tr-bubble__content {
-  background-color: var(--content-bg-color);
+  background-color: var(--content-bg);
   padding: var(--content-padding);
   border-radius: var(--content-border-radius);
   box-shadow: var(--content-box-shadow);
