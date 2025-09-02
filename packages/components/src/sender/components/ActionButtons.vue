@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { ActionButtonsProps } from '../index.type'
 import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
+import { delTabIndexDirective } from '../composables/useDelTabIndex'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -169,6 +170,13 @@ const handleUpload = () => {
     emit('trigger-select')
   }
 }
+
+// 注册移除 tabindex 的指令
+defineOptions({
+  directives: {
+    'del-tabindex': delTabIndexDirective,
+  },
+})
 </script>
 
 <template>
@@ -182,6 +190,7 @@ const handleUpload = () => {
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
         <tiny-tooltip
+          v-del-tabindex
           effect="light"
           :placement="filePlacement"
           :render-content="fileTooltipRenderFn"
