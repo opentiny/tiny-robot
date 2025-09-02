@@ -98,6 +98,9 @@ const submitTooltipRenderFn = computed(() => {
   return undefined
 })
 
+const filePlacement = computed(() => props.buttonGroup?.file?.placement || 'top')
+const submitPlacement = computed(() => props.buttonGroup?.submit?.placement || 'top')
+
 /**
  * 是否启用语音功能
  */
@@ -178,7 +181,12 @@ const handleUpload = () => {
     >
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
-        <tiny-tooltip effect="light" placement="top" :render-content="fileTooltipRenderFn" :visible-arrow="false">
+        <tiny-tooltip
+          effect="light"
+          :placement="filePlacement"
+          :render-content="fileTooltipRenderFn"
+          :visible-arrow="false"
+        >
           <div class="action-buttons__button" @click="handleUpload">
             <IconUpload :class="['action-buttons__icon', { 'is-disabled': fileDisabled }]" alt="上传文件" />
           </div>
@@ -211,7 +219,7 @@ const handleUpload = () => {
           <tiny-tooltip
             v-if="!loading"
             effect="light"
-            placement="top"
+            :placement="submitPlacement"
             :render-content="submitTooltipRenderFn"
             :visible-arrow="false"
           >
