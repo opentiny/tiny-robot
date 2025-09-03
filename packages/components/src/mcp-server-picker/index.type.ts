@@ -5,6 +5,8 @@ export interface PluginTool {
   enabled: boolean
 }
 
+export type PluginAddState = 'idle' | 'loading' | 'added'
+
 export interface PluginInfo {
   id: string
   name: string
@@ -13,7 +15,7 @@ export interface PluginInfo {
   enabled: boolean
   expanded?: boolean
   tools: PluginTool[]
-  added?: boolean
+  addState?: PluginAddState
   category?: string
 }
 

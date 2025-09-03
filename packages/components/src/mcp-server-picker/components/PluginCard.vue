@@ -69,10 +69,10 @@ const handleDelete = () => {
 }
 
 // 市场插件添加状态
-const isAdded = computed(() => props.plugin.added || false)
+const addState = computed(() => props.plugin.addState || 'idle')
 
 const handleAdd = (plugin: PluginInfo) => {
-  if (isAdded.value) return
+  if (addState.value !== 'idle') return
   emit('add-plugin', plugin)
 }
 
@@ -132,10 +132,15 @@ const getHoverTitle = (isEnabled: boolean) => {
               <slot name="add-button">
                 <div
                   class="plugin-card__add-button"
-                  :class="{ 'plugin-card__add-button--added': isAdded }"
+                  :class="{
+                    'plugin-card__add-button--loading': addState === 'loading',
+                    'plugin-card__add-button--added': addState === 'added',
+                  }"
                   @click="handleAdd(plugin)"
                 >
-                  <span>{{ isAdded ? '已添加' : '添加' }}</span>
+                  <span v-if="addState === 'idle'">添加</span>
+                  <span v-else-if="addState === 'loading'">添加中</span>
+                  <span v-else>已添加</span>
                 </div>
               </slot>
             </div>
@@ -313,6 +318,14 @@ const getHoverTitle = (isEnabled: boolean) => {
       border: 1px solid #595959;
       cursor: pointer;
       box-sizing: border-box;
+
+      &--loading {
+        width: 78px;
+        background: #e6f4ff;
+        border-color: #1476ff;
+        color: #1476ff;
+        cursor: not-allowed;
+      }
 
       &--added {
         width: 78px;
