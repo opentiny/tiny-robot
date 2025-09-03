@@ -2,7 +2,7 @@
 import { TinySwitch, TinyPopconfirm } from '@opentiny/vue'
 import { computed, ref } from 'vue'
 import { IconDelete, IconArrowRight, IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import type { PluginCardEmits, PluginCardProps } from '../index.type'
+import type { PluginCardEmits, PluginCardProps, PluginInfo } from '../index.type'
 
 const props = withDefaults(defineProps<PluginCardProps>(), {
   mode: 'installed',
@@ -71,9 +71,9 @@ const handleDelete = () => {
 // 市场插件添加状态
 const isAdded = computed(() => props.plugin.added || false)
 
-const handleAdd = () => {
-  const newAddedState = !isAdded.value
-  emit('add-plugin', newAddedState)
+const handleAdd = (plugin: PluginInfo) => {
+  if (isAdded.value) return
+  emit('add-plugin', plugin)
 }
 
 const getHoverTitle = (isEnabled: boolean) => {
@@ -133,7 +133,7 @@ const getHoverTitle = (isEnabled: boolean) => {
                 <div
                   class="plugin-card__add-button"
                   :class="{ 'plugin-card__add-button--added': isAdded }"
-                  @click="handleAdd"
+                  @click="handleAdd(plugin)"
                 >
                   <span>{{ isAdded ? '已添加' : '添加' }}</span>
                 </div>
@@ -316,6 +316,8 @@ const getHoverTitle = (isEnabled: boolean) => {
 
       &--added {
         width: 78px;
+        background: #f0f0f0;
+        cursor: not-allowed;
       }
     }
   }

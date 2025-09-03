@@ -170,32 +170,28 @@ const handlePluginToggle = (plugin: PluginInfo, enabled: boolean) => {
   plugin.enabled = enabled
 }
 
-const handlePluginAdd = (plugin: PluginInfo, added: boolean) => {
+const handlePluginAdd = (plugin: PluginInfo) => {
   const targetPlugin = marketPlugins.value.find((p) => p.id === plugin.id)!
-  targetPlugin.added = added
+  targetPlugin.added = true
 
-  if (added) {
-    // 如果是添加操作，创建新的插件副本并添加到已安装列表
-    const newPlugin: PluginInfo = {
-      ...plugin,
-      id: `${plugin.id}-installed-${Date.now()}`, // 生成新的ID避免冲突
-      enabled: false, // 新添加的插件默认不启用
-      added: true,
-    }
-    installedPlugins.value.push(newPlugin)
-  } else {
-    // 如果是取消添加操作，从已安装列表中移除
-    const index = installedPlugins.value.findIndex((p) => p.name === plugin.name)
-    if (index > -1) {
-      installedPlugins.value.splice(index, 1)
-    }
+  const newPlugin: PluginInfo = {
+    ...plugin,
+    id: `${plugin.id}-installed-${Date.now()}`, // 生成新的ID避免冲突
+    enabled: false, // 新添加的插件默认不启用
+    added: true,
   }
+  installedPlugins.value.push(newPlugin)
 }
 
 const handlePluginDelete = (plugin: PluginInfo) => {
   const index = installedPlugins.value.findIndex((p) => p.id === plugin.id)
   if (index > -1) {
     installedPlugins.value.splice(index, 1)
+  }
+
+  const marketPlugin = marketPlugins.value.find((p) => p.name === plugin.name)
+  if (marketPlugin) {
+    marketPlugin.added = false
   }
 }
 

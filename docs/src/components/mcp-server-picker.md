@@ -91,7 +91,7 @@ MCP Server Picker 组件是一个用于展示和管理插件的组件，支持�
 |--------|------|------|
 | `plugin-toggle` | `(plugin: PluginInfo, enabled: boolean)` | 插件启用/禁用 |
 | `plugin-delete` | `(plugin: PluginInfo)` | 删除插件 |
-| `plugin-add` | `(plugin: PluginInfo, added: boolean)` | 市场插件添加/取消添加 |
+| `plugin-add` | `(plugin: PluginInfo)` | 市场插件添加 |
 | `plugin-create` | `(type: 'form' \| 'code', data: PluginCreationData)` | 插件创建 |
 
 #### 工具操作

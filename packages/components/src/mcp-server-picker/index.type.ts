@@ -28,7 +28,7 @@ export interface PluginCardProps {
 export interface PluginCardEmits {
   (e: 'toggle-plugin', enabled: boolean): void
   (e: 'toggle-tool', toolId: string, enabled: boolean): void
-  (e: 'add-plugin', added: boolean): void
+  (e: 'add-plugin', plugin: PluginInfo): void
   (e: 'delete-plugin'): void
 }
 
@@ -133,7 +133,7 @@ export interface McpServerPickerEmits {
   // 插件操作事件
   (e: 'plugin-toggle', plugin: PluginInfo, enabled: boolean): void
   (e: 'plugin-delete', plugin: PluginInfo): void
-  (e: 'plugin-add', plugin: PluginInfo, added: boolean): void
+  (e: 'plugin-add', plugin: PluginInfo): void
   (e: 'plugin-create', type: 'form' | 'code', data: PluginCreationData): void
 
   // 工具操作事件

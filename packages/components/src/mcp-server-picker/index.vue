@@ -173,9 +173,9 @@ const handleDeletePlugin = (plugin: PluginInfo) => {
   emit('plugin-delete', plugin)
 }
 
-const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
+const handleAddPlugin = (plugin: PluginInfo) => {
   if (!props.allowPluginAdd) return
-  emit('plugin-add', plugin, added)
+  emit('plugin-add', plugin)
 }
 
 const showModal = ref(false)
@@ -373,7 +373,7 @@ const transitionName = computed(() => {
                   mode="market"
                   :expandable="false"
                   :show-tool-count="false"
-                  @add-plugin="(added: boolean) => handleAddPlugin(plugin, added)"
+                  @add-plugin="handleAddPlugin"
                 />
               </template>
             </div>
