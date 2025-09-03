@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TinyTabs, TinyTabItem, TinyInput, TinySelect, TinyOption, TinyModal } from '@opentiny/vue'
+import { TinyTabs, TinyTabItem, TinyInput, TinySelect, TinyOption } from '@opentiny/vue'
 import { ref, computed, watch } from 'vue'
 import { PluginCard, PluginModal, NoData } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
@@ -170,21 +170,11 @@ const handleToolToggle = (plugin: PluginInfo, toolId: string, enabled: boolean) 
 
 const handleDeletePlugin = (plugin: PluginInfo) => {
   if (!props.allowPluginDelete) return
-  TinyModal.message({
-    message: `${plugin.name} 已移除`,
-    status: 'success',
-  })
   emit('plugin-delete', plugin)
 }
 
 const handleAddPlugin = (plugin: PluginInfo, added: boolean) => {
   if (!props.allowPluginAdd) return
-  if (added) {
-    TinyModal.message({
-      message: `${plugin.name} 已添加`,
-      status: 'success',
-    })
-  }
   emit('plugin-add', plugin, added)
 }
 
