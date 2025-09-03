@@ -229,6 +229,10 @@ const getHoverTitle = (isEnabled: boolean) => {
     line-height: 24px;
     color: rgb(25, 25, 25);
     text-align: justify;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__count {
