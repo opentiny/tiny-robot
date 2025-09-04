@@ -1,0 +1,1 @@
+import{I as e}from"./theme.BCteXstO.js";import{d as o,b as n,o as t,k as a}from"./framework.BqbEox01.js";const i=o({__name:"basic",setup(r){return(s,c)=>(t(),n(a(e),{content:"TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"}))}});export{i as default};
