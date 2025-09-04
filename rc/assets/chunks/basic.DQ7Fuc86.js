@@ -1,0 +1,1 @@
+import{G as o}from"./theme.CCqcYixf.js";import{d as t,a4 as s,b as a,o as c,k as e}from"./framework.C4qgKv2O.js";const f=t({__name:"basic",setup(i){const n=s("span",{style:{fontSize:"56px",lineHeight:"64px"}},"🤖");return(r,p)=>(c(),a(e(o),{title:"盘古助手2",description:"您好，我是盘古助手，您专属的华为云专家",icon:e(n)},null,8,["icon"]))}});export{f as default};

@@ -1,0 +1,1 @@
+import{n as o}from"./theme.CCqcYixf.js";import{d as l,c as r,o as a,j as t,G as n,k as s}from"./framework.C4qgKv2O.js";const p={style:{display:"flex","flex-direction":"column",gap:"20px"}},f=l({__name:"Mode",setup(d){return(m,e)=>(a(),r("div",p,[e[0]||(e[0]=t("h4",null,"单行模式",-1)),n(s(o)),e[1]||(e[1]=t("h4",null,"多行模式",-1)),n(s(o),{mode:"multiple"})]))}});export{f as default};
