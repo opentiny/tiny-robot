@@ -114,7 +114,7 @@ const getHoverTitle = (isEnabled: boolean) => {
                 <template #reference>
                   <slot name="delete-icon">
                     <span title="移除插件">
-                      <IconDelete class="common-icon" />
+                      <IconDelete class="common-icon delete" />
                     </span>
                   </slot>
                 </template>
@@ -406,6 +406,10 @@ const getHoverTitle = (isEnabled: boolean) => {
   padding: 4px;
   cursor: pointer;
   box-sizing: border-box;
+
+  &.delete {
+    color: var(--tr-color-error);
+  }
 }
 
 .common-icon:hover {
