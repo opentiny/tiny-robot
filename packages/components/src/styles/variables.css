@@ -104,6 +104,7 @@
 
   /* ===== 容器背景 ===== */
   --tr-container-bg-default: #ffffff;
+  --tr-container-bg-default-2: #fafafa;
   --tr-container-bg-hover: rgba(0, 0, 0, 0.04);
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
@@ -151,11 +152,14 @@
   --tr-page-bg-default: #191919;
 
   /* ===== 容器背景 ===== */
+  /* TODO 和容器组件命名冲突，后续统一改为--tr-bg-x */
   --tr-container-bg-default: #262626;
+  --tr-container-bg-default-2: rgba(255, 255, 255, 0.05);
   --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
   --tr-container-bg-active: rgba(255, 255, 255, 0.15);
   --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
 
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);
+  --tr-shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 }

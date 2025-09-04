@@ -1,0 +1,32 @@
+.tr-bubble-vars() {
+  @prefix: tr-bubble;
+
+  @vars: {
+    /* 不影响布局的变量 */
+    content-bg: var(--tr-container-bg-default);
+    content-border-radius: 24px;
+    content-box-shadow: var(--tr-shadow-md);
+    text-color: var(--tr-text-primary);
+    aborted-color: var(--tr-text-tertiary);
+    /* 影响布局的变量 */
+    gap: var(--tr-spacing-lg);
+    max-width: 80%;
+    avatar-size: 40px;
+    content-padding: 16px 24px;
+    text-font-size: 16px;
+    text-line-height: 26px;
+    loading-size: 24px;
+    aborted-font-size: 14px;
+    content-items-gap: 12px;
+    footer-margin: 12px 0 0 0;
+  };
+
+  :root,
+  [data-tr-theme] {
+    each(@vars, {
+    --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-bubble-vars();

@@ -3,7 +3,7 @@
     <label>加载中插槽</label>
     <tr-bubble :avatar="aiAvatar" :loading="true">
       <template #loading>
-        <div style="display: flex; align-items: center">加载中。。。</div>
+        <img style="height: 40px; margin-left: -25px" :src="loadingImgUrl" />
       </template>
     </tr-bubble>
     <hr />
@@ -25,6 +25,7 @@ import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
+const loadingImgUrl = import.meta.env.BASE_URL + '/wave.webp'
 
 const operations: FeedbackProps['operations'] = [
   {

@@ -9,7 +9,7 @@ const props = withDefaults(defineProps<BubbleProps>(), {
   content: '',
   placement: 'start',
   shape: 'corner',
-  maxWidth: '80%',
+  abortedText: '（用户停止）',
 })
 
 const slots = defineSlots<BubbleSlots>()
@@ -69,6 +69,16 @@ const contentItems = computed(() => {
 })
 
 const placementStart = computed(() => props.placement === 'start')
+
+const style = computed(() => {
+  if (props.maxWidth) {
+    return {
+      '--max-width': toCssUnit(props.maxWidth),
+    }
+  }
+
+  return {}
+})
 </script>
 
 <template>
@@ -80,40 +90,38 @@ const placementStart = computed(() => props.placement === 'start')
         'placement-end': !placementStart,
       },
     ]"
-    :style="{ maxWidth: toCssUnit(props.maxWidth) }"
+    :style="style"
   >
-    <div v-if="props.avatar" class="tr-bubble__avatar">
+    <div v-if="props.avatar" :class="['tr-bubble__avatar']">
       <component :is="props.avatar"></component>
     </div>
-    <div class="tr-bubble__content-wrapper">
-      <slot v-if="props.loading" name="loading" :bubble-props="props">
-        <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-          <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
+    <slot v-if="props.loading" name="loading" :bubble-props="props">
+      <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
+        <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
+      </div>
+    </slot>
+    <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
+      <template v-if="contentItems.length">
+        <div class="tr-bubble__content-items">
+          <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
         </div>
-      </slot>
-      <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <template v-if="contentItems.length">
-          <div class="tr-bubble__content-items">
-            <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
-          </div>
-        </template>
-        <template v-else>
-          <slot :bubble-props="props">
-            <template v-if="contentRenderer">
-              <component
-                v-if="contentRenderer.isComponent"
-                :is="contentRenderer.vNodeOrComponent"
-                v-bind="props"
-              ></component>
-              <component v-else :is="contentRenderer.vNodeOrComponent"></component>
-            </template>
-            <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
-          </slot>
-        </template>
-        <span v-if="props.aborted" class="tr-bubble__aborted">（用户停止）</span>
-        <div v-if="slots.footer" class="tr-bubble__footer">
-          <slot name="footer" :bubble-props="props"></slot>
-        </div>
+      </template>
+      <template v-else>
+        <slot :bubble-props="props">
+          <template v-if="contentRenderer">
+            <component
+              v-if="contentRenderer.isComponent"
+              :is="contentRenderer.vNodeOrComponent"
+              v-bind="props"
+            ></component>
+            <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+          </template>
+          <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
+        </slot>
+      </template>
+      <span v-if="props.aborted" class="tr-bubble__aborted">{{ props.abortedText }}</span>
+      <div v-if="slots.footer" class="tr-bubble__footer">
+        <slot name="footer" :bubble-props="props"></slot>
       </div>
     </div>
   </div>
@@ -121,8 +129,30 @@ const placementStart = computed(() => props.placement === 'start')
 
 <style lang="less" scoped>
 .tr-bubble {
+  /* 不影响布局的变量 */
+  --content-bg: var(--tr-bubble-content-bg);
+  --content-border-radius: var(--tr-bubble-content-border-radius);
+  --content-box-shadow: var(--tr-bubble-content-box-shadow);
+  --text-color: var(--tr-bubble-text-color);
+  --aborted-color: var(--tr-bubble-aborted-color);
+
+  /* 影响布局的变量 */
+  --gap: var(--tr-bubble-gap);
+  --max-width: var(--tr-bubble-max-width);
+  --avatar-size: var(--tr-bubble-avatar-size);
+  --content-padding: var(--tr-bubble-content-padding);
+  --text-font-size: var(--tr-bubble-text-font-size);
+  --text-line-height: var(--tr-bubble-text-line-height);
+  --loading-size: var(--tr-bubble-loading-size);
+  --aborted-font-size: var(--tr-bubble-aborted-font-size);
+  --content-items-gap: var(--tr-bubble-content-items-gap);
+  --footer-margin: var(--tr-bubble-footer-margin);
+}
+
+.tr-bubble {
   display: flex;
-  gap: 16px;
+  gap: var(--gap);
+  max-width: var(--max-width);
 
   &.placement-start {
     flex-direction: row;
@@ -143,8 +173,8 @@ const placementStart = computed(() => props.placement === 'start')
 }
 
 .tr-bubble__avatar {
-  width: 40px;
-  height: 40px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -152,37 +182,37 @@ const placementStart = computed(() => props.placement === 'start')
 }
 
 .tr-bubble__loading {
-  width: 24px;
-  height: 24px;
+  width: var(--loading-size);
+  height: var(--loading-size);
 }
 
 .tr-bubble__content {
-  background-color: white;
-  padding: 16px 24px;
-  border-radius: 24px;
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
+  background-color: var(--content-bg);
+  padding: var(--content-padding);
+  border-radius: var(--content-border-radius);
+  box-shadow: var(--content-box-shadow);
 
   .tr-bubble__content-items {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--content-items-gap);
   }
 
   .tr-bubble__body-text {
-    color: rgb(25, 25, 25);
-    font-size: 16px;
-    line-height: 26px;
+    color: var(--text-color);
+    font-size: var(--text-font-size);
+    line-height: var(--text-line-height);
     word-break: break-word;
     white-space: pre-line;
   }
 
   .tr-bubble__aborted {
-    color: rgb(128, 128, 128);
-    font-size: 14px;
+    color: var(--aborted-color);
+    font-size: var(--aborted-font-size);
   }
 
   .tr-bubble__footer {
-    margin-top: 12px;
+    margin: var(--footer-margin);
   }
 }
 </style>
