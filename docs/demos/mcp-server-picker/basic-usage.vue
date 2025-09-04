@@ -110,15 +110,6 @@ const installedPlugins = ref<PluginInfo[]>([
       },
     ],
   },
-  {
-    id: 'plugin-3',
-    name: 'Telegram 机器人',
-    icon: 'https://telegram.org/favicon.ico',
-    description: 'Telegram 消息推送和自动化',
-    enabled: false,
-    tools: [{ id: 'tool-9', name: '发送消息', description: '发送 Telegram 消息', enabled: false }],
-    category: 'ai',
-  },
 ])
 
 // 市场插件数据 - 演示三种不同的添加状态

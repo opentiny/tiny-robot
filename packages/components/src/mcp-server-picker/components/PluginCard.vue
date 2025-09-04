@@ -329,7 +329,10 @@ const getHoverTitle = (isEnabled: boolean) => {
 
       &--added {
         width: 78px;
-        background: #f0f0f0;
+        color: #c2c2c2;
+        background-color: #f0f0f0;
+        border-color: #dbdbdb;
+        fill: #c2c2c2;
         cursor: not-allowed;
       }
     }
