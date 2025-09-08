@@ -59,12 +59,12 @@
       <!-- accept 属性 -->
       <div class="demo-section-body">
         <label style="margin-right: 8px">accept:</label>
-        <TinySelect v-model="accept">
+        <TinyBaseSelect v-model="accept">
           <TinyOption label="图片" value="image/*" />
           <TinyOption label="视频" value="video/*" />
           <TinyOption label="音频" value="audio/*" />
           <TinyOption label="其他" value="application/*" />
-        </TinySelect>
+        </TinyBaseSelect>
       </div>
 
       <!-- multiple 属性 radio 示例 -->
@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TinySwitch, TinySelect, TinyOption } from '@opentiny/vue'
+import { TinySwitch, TinyBaseSelect, TinyOption } from '@opentiny/vue'
 import { TrDragOverlay, vDropzone, type FileRejection } from '@opentiny/tiny-robot'
 
 interface Event {

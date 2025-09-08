@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TinyTabs, TinyTabItem, TinyInput, TinySelect, TinyOption } from '@opentiny/vue'
+import { TinyTabs, TinyTabItem, TinyInput, TinyBaseSelect, TinyOption } from '@opentiny/vue'
 import { ref, computed, watch } from 'vue'
 import { PluginCard, PluginModal, NoData } from './components'
 import { IconClose, IconSearch, IconPlus } from '@opentiny/tiny-robot-svgs'
@@ -342,7 +342,7 @@ const transitionName = computed(() => {
               v-if="props.enableSearch || props.enableMarketCategoryFilter"
             >
               <div v-if="props.enableMarketCategoryFilter" style="width: 168px">
-                <TinySelect v-model="marketCategory" :placeholder="props.marketCategoryPlaceholder">
+                <TinyBaseSelect v-model="marketCategory" :placeholder="props.marketCategoryPlaceholder">
                   <TinyOption
                     v-for="option in props.marketCategoryOptions"
                     :key="option.value"
@@ -351,7 +351,7 @@ const transitionName = computed(() => {
                   >
                     {{ option.label }}
                   </TinyOption>
-                </TinySelect>
+                </TinyBaseSelect>
               </div>
               <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
                 <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder">
