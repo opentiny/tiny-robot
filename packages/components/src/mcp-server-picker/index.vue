@@ -285,6 +285,11 @@ const transitionName = computed(() => {
   const { type } = props.popupConfig || {}
   return type === 'drawer' ? drawerAnimationClass.value : 'fade'
 })
+
+const SelectDropStyle = {
+  background: 'var(--tr-mcp-server-picker-bg-default)',
+  color: 'var(--tr-text-primary)',
+}
 </script>
 
 <template>
@@ -299,7 +304,7 @@ const transitionName = computed(() => {
         <div class="mcp-server-picker__header-left">{{ props.title }}</div>
         <div class="mcp-server-picker__header-right">
           <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
-            <IconPlus style="font-size: 16px; cursor: pointer" />
+            <IconPlus class="mcp-server-picker__icon" />
             <span>{{ props.customAddButtonText }}</span>
           </div>
           <IconClose class="mcp-server-picker__header-right-close" @click="handleClose" />
@@ -312,7 +317,7 @@ const transitionName = computed(() => {
             <div v-if="props.enableSearch" class="mcp-server-picker__content-installed-search">
               <TinyInput v-model="installedSearch" :placeholder="props.searchPlaceholder">
                 <template #suffix>
-                  <IconSearch style="font-size: 16px; cursor: pointer" />
+                  <IconSearch class="mcp-server-picker__icon" />
                 </template>
               </TinyInput>
             </div>
@@ -342,12 +347,17 @@ const transitionName = computed(() => {
               v-if="props.enableSearch || props.enableMarketCategoryFilter"
             >
               <div v-if="props.enableMarketCategoryFilter" style="width: 168px">
-                <TinyBaseSelect v-model="marketCategory" :placeholder="props.marketCategoryPlaceholder">
+                <TinyBaseSelect
+                  v-model="marketCategory"
+                  :placeholder="props.marketCategoryPlaceholder"
+                  :drop-style="SelectDropStyle"
+                >
                   <TinyOption
                     v-for="option in props.marketCategoryOptions"
                     :key="option.value"
                     :label="option.label"
                     :value="option.value"
+                    class="mcp-server-picker__content-market-header-select-option"
                   >
                     {{ option.label }}
                   </TinyOption>
@@ -356,7 +366,7 @@ const transitionName = computed(() => {
               <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
                 <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder">
                   <template #suffix>
-                    <IconSearch style="font-size: 16px; cursor: pointer" />
+                    <IconSearch class="mcp-server-picker__icon" />
                   </template>
                 </TinyInput>
               </div>
@@ -391,8 +401,8 @@ const transitionName = computed(() => {
 <style lang="less" scoped>
 .mcp-server-picker {
   box-sizing: border-box;
-  background: rgb(255, 255, 255);
-  border: 1px solid rgb(219, 219, 219);
+  background: var(--tr-mcp-server-picker-bg-default);
+  border: 1px solid var(--tr-mcp-server-picker-border-color-default);
   padding: 20px;
   max-width: 482px;
   width: 100%;
@@ -422,7 +432,7 @@ const transitionName = computed(() => {
     flex-shrink: 0;
 
     &-left {
-      color: #191919;
+      color: var(--tr-text-primary);
       font-size: 16px;
       font-weight: 600;
     }
@@ -439,18 +449,18 @@ const transitionName = computed(() => {
         align-items: center;
         gap: 4px;
         cursor: pointer;
-        color: rgb(25, 25, 25);
+        color: var(--tr-text-primary);
         font-size: 12px;
         font-weight: 400;
         line-height: 18px;
         text-align: center;
-        border: 1px solid rgb(89, 89, 89);
+        border: 1px solid var(--tr-text-secondary);
         box-sizing: border-box;
         border-radius: 999px;
         padding: 7px 20px;
 
         &:hover {
-          border-color: rgb(194, 194, 194);
+          border-color: var(--tr-text-disabled);
         }
       }
 
@@ -463,7 +473,7 @@ const transitionName = computed(() => {
       }
 
       &-close:hover {
-        background: #f5f5f5;
+        background: var(--tr-mcp-server-picker-bg-hover);
         border-radius: 8px;
       }
     }
@@ -488,6 +498,14 @@ const transitionName = computed(() => {
       flex-shrink: 0;
     }
 
+    &-market-header-select-option {
+      color: var(--tr-text-primary) !important;
+
+      &.hover {
+        background: var(--tr-mcp-server-picker-bg-hover);
+      }
+    }
+
     &-installed-search {
       margin: 16px 0;
       flex-shrink: 0;
@@ -510,8 +528,14 @@ const transitionName = computed(() => {
     justify-content: center;
     align-items: center;
     padding: 40px 0;
-    color: rgb(89, 89, 89);
+    color: var(--tr-text-secondary);
     font-size: 14px;
+  }
+
+  &__icon {
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--tr-text-primary);
   }
 }
 
@@ -583,7 +607,12 @@ const transitionName = computed(() => {
 
 :deep(.tiny-tabs__item__title) {
   font-size: 14px;
-  color: rgb(25, 25, 25);
+  color: var(--tr-text-primary);
   line-height: 22px;
+}
+
+:deep(.tiny-input__inner) {
+  background: var(--tr-mcp-server-picker-bg-default);
+  color: var(--tr-text-primary);
 }
 </style>

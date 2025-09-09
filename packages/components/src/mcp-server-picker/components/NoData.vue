@@ -27,7 +27,6 @@ const message = computed(() => (hasSearchQuery.value ? '暂无搜索结果' : '�
 <style lang="less" scoped>
 .empty-state {
   --empty-state-illustration-size: 112px;
-  --empty-state-message-color: #191919;
   --empty-state-message-font-size: 12px;
   --empty-state-message-line-height: 24px;
   --empty-state-spacing: 12px;
@@ -48,7 +47,7 @@ const message = computed(() => (hasSearchQuery.value ? '暂无搜索结果' : '�
     margin-top: var(--empty-state-spacing);
     font-size: var(--empty-state-message-font-size);
     line-height: var(--empty-state-message-line-height);
-    color: var(--empty-state-message-color);
+    color: var(--tr-text-primary);
     text-align: center;
   }
 }

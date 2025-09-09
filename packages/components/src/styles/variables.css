@@ -109,6 +109,15 @@
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
 
+  /* ===== MCP Server Picker ===== */
+  --tr-mcp-server-picker-bg-default: #ffffff;
+  --tr-mcp-server-picker-bg-hover: rgba(0, 0, 0, 0.04);
+  --tr-mcp-server-picker-button-bg-disabled: #f0f0f0;
+  --tr-mcp-server-picker-divider-color: rgba(0, 0, 0, 0.1);
+  --tr-mcp-server-picker-tool-count-color: #e6e6e6;
+  --tr-mcp-server-picker-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+  --tr-mcp-server-picker-border-color-default: #dbdbdb;
+
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -162,4 +171,13 @@
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);
   --tr-shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
+
+  /* ===== MCP Server Picker ===== */
+  --tr-mcp-server-picker-bg-default: #262626;
+  --tr-mcp-server-picker-bg-hover: rgba(255, 255, 255, 0.1);
+  --tr-mcp-server-picker-tool-count-color: #333333;
+  --tr-mcp-server-picker-button-bg-disabled: rgba(255, 255, 255, 0.15);
+  --tr-mcp-server-picker-divider-color: rgba(255, 255, 255, 0.1);
+  --tr-mcp-server-picker-shadow: 0px 4px 16px 0px rgba(255, 255, 255, 0.08);
+  --tr-mcp-server-picker-border-color-default: rgba(255, 255, 255, 0.15);
 }

@@ -184,9 +184,9 @@ const getHoverTitle = (isEnabled: boolean) => {
 <style lang="less" scoped>
 .plugin-card {
   position: relative;
-  background: rgb(255, 255, 255);
+  background: var(--tr-mcp-server-picker-bg-default);
   border-radius: 12px;
-  box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--tr-mcp-server-picker-shadow);
 
   &__main {
     display: flex;
@@ -204,7 +204,7 @@ const getHoverTitle = (isEnabled: boolean) => {
     height: 40px;
     border-radius: 8px;
     object-fit: cover;
-    background: rgb(255, 255, 255);
+    background: var(--tr-mcp-server-picker-bg-default);
     flex-shrink: 0;
 
     &--placeholder {
@@ -232,7 +232,7 @@ const getHoverTitle = (isEnabled: boolean) => {
     font-size: 14px;
     font-weight: 600;
     line-height: 24px;
-    color: rgb(25, 25, 25);
+    color: var(--tr-text-primary);
     text-align: justify;
 
     white-space: nowrap;
@@ -245,12 +245,12 @@ const getHoverTitle = (isEnabled: boolean) => {
     padding: 0 6px;
     border-radius: 4px;
     box-sizing: content-box;
-    background: rgb(230, 230, 230);
+    background: var(--tr-mcp-server-picker-tool-count-color);
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;
     text-align: left;
-    color: rgb(25, 25, 25);
+    color: var(--tr-text-primary);
     white-space: nowrap;
   }
 
@@ -259,7 +259,7 @@ const getHoverTitle = (isEnabled: boolean) => {
     font-weight: 400;
     line-height: 24px;
     text-align: justify;
-    color: rgb(89, 89, 89);
+    color: var(--tr-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -312,27 +312,27 @@ const getHoverTitle = (isEnabled: boolean) => {
       line-height: 18px;
       font-size: 12px;
       font-weight: 400;
-      color: #191919;
+      color: var(--tr-text-primary);
       border-radius: 999px;
-      background: #ffffff;
-      border: 1px solid #595959;
+      background: var(--tr-mcp-server-picker-bg-default);
+      border: 1px solid var(--tr-text-secondary);
       cursor: pointer;
       box-sizing: border-box;
 
       &--loading {
         width: 78px;
-        background: #e6f4ff;
-        border-color: #1476ff;
-        color: #1476ff;
+        background: var(--tr-color-primary-light);
+        border-color: var(--tr-color-primary);
+        color: var(--tr-color-primary);
         cursor: not-allowed;
       }
 
       &--added {
         width: 78px;
-        color: #c2c2c2;
-        background-color: #f0f0f0;
-        border-color: #dbdbdb;
-        fill: #c2c2c2;
+        color: var(--tr-text-disabled);
+        background-color: var(--tr-mcp-server-picker-button-bg-disabled);
+        border-color: var(--tr-mcp-server-picker-border-color-default);
+        fill: var(--tr-text-disabled);
         cursor: not-allowed;
       }
     }
@@ -340,7 +340,7 @@ const getHoverTitle = (isEnabled: boolean) => {
 
   // 工具列表样式
   &__tools {
-    background: rgb(255, 255, 255);
+    background: var(--tr-mcp-server-picker-bg-default);
     border-radius: 0 0 16px 16px;
   }
 
@@ -351,7 +351,6 @@ const getHoverTitle = (isEnabled: boolean) => {
     gap: 16px;
     box-sizing: border-box;
     padding: 14px 24px;
-    background: transparent;
     min-height: 68px;
     height: auto;
 
@@ -367,7 +366,7 @@ const getHoverTitle = (isEnabled: boolean) => {
   &__divider {
     width: calc(100% - 32px);
     height: 1px;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--tr-mcp-server-picker-divider-color);
     margin: 0 16px;
     flex-shrink: 0;
   }
@@ -406,6 +405,7 @@ const getHoverTitle = (isEnabled: boolean) => {
   padding: 4px;
   cursor: pointer;
   box-sizing: border-box;
+  color: var(--tr-icon-color-default);
 
   &.delete {
     color: var(--tr-color-error);
@@ -414,6 +414,6 @@ const getHoverTitle = (isEnabled: boolean) => {
 
 .common-icon:hover {
   border-radius: 8px;
-  background: #f5f5f5;
+  background: var(--tr-mcp-server-picker-bg-hover);
 }
 </style>
