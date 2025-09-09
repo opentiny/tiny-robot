@@ -5,9 +5,6 @@ const codeData = defineModel<string>('codeData', { required: true })
 <template>
   <div class="code-editor__container">
     <div class="code-editor__section">
-      <div class="code-editor__header">
-        <span class="code-editor__title">ai_plugin（填写json）</span>
-      </div>
       <div class="code-editor__area">
         <textarea v-model="codeData" class="code-editor__textarea" placeholder="请输入 JSON 配置..."></textarea>
       </div>
@@ -37,13 +34,6 @@ const codeData = defineModel<string>('codeData', { required: true })
     line-height: 22px;
   }
 
-  &__title {
-    font-size: 14px;
-    font-weight: 400;
-    line-height: 22px;
-    color: #191919;
-  }
-
   &__area {
     flex: 1;
     border-radius: 12px;
@@ -52,7 +42,7 @@ const codeData = defineModel<string>('codeData', { required: true })
 
   &__textarea {
     width: 100%;
-    height: 480px;
+    height: 360px;
     border: none;
     outline: none;
     resize: none;
@@ -70,6 +60,16 @@ const codeData = defineModel<string>('codeData', { required: true })
     &:focus {
       box-shadow: none;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .code-editor__area {
+    margin-bottom: 58px;
+  }
+
+  .code-editor__textarea {
+    height: 470px;
   }
 }
 </style>

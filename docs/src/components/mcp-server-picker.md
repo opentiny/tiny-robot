@@ -50,6 +50,9 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 
 <demo vue="../../demos/mcp-server-picker/popup-config.vue" />
 
+## 表单组件
+
+<demo vue="../../demos/mcp-add-form/basic.vue" />
 
 ## API
 
@@ -104,6 +107,14 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | `loading` | `boolean` | `false` | 已安装插件加载状态 |
 | `marketLoading` | `boolean` | `false` | 市场插件加载状态 |
 
+#### 插件表单
+
+| 属性       | 类型             | 默认值 | 说明         |
+| ---------- | ---------------- | ------ | ------------ |
+| `addType`  | `AddType`        | `form` | 当前添加方式 |
+| `formData` | `McpAddFormData` | —      | 表单数据     |
+| `codeData` | `string`         | —      | 代码数据     |
+
 ### Events
 
 #### 搜索与筛选
@@ -132,6 +143,14 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | 事件名 | 参数 | 说明 |
 |--------|------|------|
 | `tool-toggle` | `(plugin: PluginInfo, toolId: string, enabled: boolean)` | 工具启用/禁用 |
+
+#### 插件表单
+
+| 事件名           | 参数                                              | 说明               |
+| ---------------- | ------------------------------------------------- | ------------------ |
+| `update:addType` | `(value: AddType)`                                | 添加方式变化时触发 |
+| `confirm`        | `(type: AddType, data: McpAddFormData \| string)` | 确认添加时触发     |
+| `cancel`         | `-`                                               | 取消添加时触发     |
 
 #### 其他
 | 事件名 | 参数 | 说明 |

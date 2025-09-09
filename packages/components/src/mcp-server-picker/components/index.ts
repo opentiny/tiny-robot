@@ -1,5 +1,3 @@
 export { default as PluginCard } from './PluginCard.vue'
 export { default as PluginModal } from './PluginModal.vue'
-export { default as CodeEditor } from './CodeEditor.vue'
-export { default as FormEditor } from './FormEditor.vue'
 export { default as NoData } from './NoData.vue'

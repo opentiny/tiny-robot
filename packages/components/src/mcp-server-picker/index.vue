@@ -394,6 +394,8 @@ const transitionName = computed(() => {
   background: rgb(255, 255, 255);
   border: 1px solid rgb(219, 219, 219);
   padding: 20px;
+  max-width: 482px;
+  width: 100%;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -401,14 +403,12 @@ const transitionName = computed(() => {
 
   // 默认样式(fixed模式)
   &.popup-type-fixed {
-    width: 482px;
     display: flex;
     flex-direction: column;
   }
 
   // 抽屉模式样式
   &.popup-type-drawer {
-    width: 482px;
     padding-top: 20px;
     display: flex;
     flex-direction: column;

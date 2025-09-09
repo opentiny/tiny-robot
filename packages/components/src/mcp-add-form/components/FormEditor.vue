@@ -2,19 +2,19 @@
 import { TinyRadioGroup } from '@opentiny/vue'
 import { ref, onUnmounted, watch } from 'vue'
 import { useFileDialog } from '@vueuse/core'
-import type { PluginFormData } from '../index.type'
+import type { McpAddFormData } from '../index.type'
 
 // 图片预览相关
 const previewImageUrl = ref<string>('')
 const defaultImageUrl = 'https://res.hc-cdn.com/tinyui-design/1.1.0.20250526191525/home/images/tiny-ng.svg'
 
 // 表单数据
-const formData = defineModel<PluginFormData>('formData', { required: true })
+const formData = defineModel<McpAddFormData>('formData', { required: true })
 
 // 类型选项
 const typeOptions = [
-  { label: 'sse', text: '服务器发送事件（SSE）' },
   { label: 'streamableHttp', text: '流式HTTP（Streamable HTTP）' },
+  { label: 'sse', text: '服务器发送事件（SSE）' },
 ]
 
 const { open: openFileDialog, files } = useFileDialog({
@@ -83,7 +83,7 @@ onUnmounted(() => {
 
     <!-- 类型 -->
     <div class="form-editor__item">
-      <label class="form-editor__label">类型</label>
+      <label class="form-editor__label custom-label">类型</label>
       <tiny-radio-group v-model="formData.type" :options="typeOptions" class="form-editor__radio-group" />
     </div>
 
@@ -105,7 +105,7 @@ onUnmounted(() => {
 
     <!-- 缩略图 -->
     <div class="form-editor__item">
-      <label class="form-editor__label">缩略图</label>
+      <label class="form-editor__label custom-label">缩略图</label>
       <div class="form-editor__file-upload" @click="handleOpenFileDialog">
         <img :src="previewImageUrl || defaultImageUrl" alt="缩略图预览" class="form-editor__file-preview-image" />
         <!-- 悬浮遮罩层 -->
@@ -127,18 +127,24 @@ onUnmounted(() => {
 
   &__item {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 29px;
   }
 
   &__label {
     font-size: 14px;
     font-weight: 500;
     color: #191919;
-    line-height: 22px;
+    line-height: 20px;
+    width: 56px;
+
+    &.custom-label {
+      width: 48px;
+    }
   }
 
   &__input {
+    width: 100%;
     padding: 8px 12px;
     border: 1px solid #d9d9d9;
     border-radius: 6px;
@@ -161,11 +167,18 @@ onUnmounted(() => {
   }
 
   &__radio-group {
-    height: 22px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    :deep(.tiny-radio__label) {
+      line-height: 20px;
+    }
   }
 
   &__textarea {
+    width: 100%;
     padding: 8px 12px;
     border: 1px solid #d9d9d9;
     border-radius: 6px;
@@ -270,6 +283,18 @@ onUnmounted(() => {
     height: 100%;
     object-fit: cover;
     border-radius: 8px;
+  }
+
+  @media (max-width: 768px) {
+    &__item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .plugin-editor__footer > .button {
+      flex: 1;
+    }
   }
 }
 </style>

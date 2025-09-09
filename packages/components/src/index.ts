@@ -18,6 +18,7 @@ import SuggestionPopover from './suggestion-popover'
 import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
+import McpAddForm from './mcp-add-form'
 
 export * from './attachments/index.type'
 export * from './bubble/index.type'
@@ -34,6 +35,7 @@ export * from './suggestion-popover/index.type'
 export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
+export * from './mcp-add-form/index.type'
 
 export { useTheme } from './theme-provider/useTheme'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
@@ -59,6 +61,7 @@ const components = [
   ThemeProvider,
   Welcome,
   McpServerPicker,
+  McpAddForm,
 ]
 
 export default {
@@ -113,4 +116,6 @@ export {
   Welcome as TrWelcome,
   McpServerPicker,
   McpServerPicker as TrMcpServerPicker,
+  McpAddForm,
+  McpAddForm as TrMcpAddForm,
 }
