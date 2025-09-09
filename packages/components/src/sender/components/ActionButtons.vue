@@ -178,7 +178,13 @@ const handleUpload = () => {
     >
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
-        <tiny-tooltip effect="light" placement="top" :render-content="fileTooltipRenderFn" :visible-arrow="false">
+        <tiny-tooltip
+          effect="light"
+          placement="top"
+          :render-content="fileTooltipRenderFn"
+          :visible-arrow="false"
+          popper-class="upload-popup"
+        >
           <div
             class="action-buttons__button"
             @click="handleUpload"
@@ -382,5 +388,11 @@ const handleUpload = () => {
   --tr-sender-action-buttons-icon-hover-size: 28px;
 
   --tr-sender-actions-gap: 10px;
+}
+</style>
+
+<style>
+.upload-popup {
+  top: -4px !important;
 }
 </style>
