@@ -287,7 +287,7 @@ const transitionName = computed(() => {
 })
 
 const SelectDropStyle = {
-  background: 'var(--tr-mcp-server-picker-bg-default)',
+  background: 'var(--tr-mcp-server-picker-bg-default-2)',
   color: 'var(--tr-text-primary)',
 }
 </script>
@@ -612,7 +612,7 @@ const SelectDropStyle = {
 }
 
 :deep(.tiny-input__inner) {
-  background: var(--tr-mcp-server-picker-bg-default);
+  background: var(--tr-mcp-server-picker-bg-default-2);
   color: var(--tr-text-primary);
 }
 </style>

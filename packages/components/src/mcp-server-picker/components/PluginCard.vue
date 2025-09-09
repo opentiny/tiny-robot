@@ -184,7 +184,7 @@ const getHoverTitle = (isEnabled: boolean) => {
 <style lang="less" scoped>
 .plugin-card {
   position: relative;
-  background: var(--tr-mcp-server-picker-bg-default);
+  background: var(--tr-mcp-server-picker-bg-default-2);
   border-radius: 12px;
   box-shadow: var(--tr-mcp-server-picker-shadow);
 
@@ -204,7 +204,7 @@ const getHoverTitle = (isEnabled: boolean) => {
     height: 40px;
     border-radius: 8px;
     object-fit: cover;
-    background: var(--tr-mcp-server-picker-bg-default);
+    background: var(--tr-mcp-server-picker-bg-default-2);
     flex-shrink: 0;
 
     &--placeholder {
@@ -314,7 +314,7 @@ const getHoverTitle = (isEnabled: boolean) => {
       font-weight: 400;
       color: var(--tr-text-primary);
       border-radius: 999px;
-      background: var(--tr-mcp-server-picker-bg-default);
+      background: var(--tr-mcp-server-picker-bg-default-2);
       border: 1px solid var(--tr-text-secondary);
       cursor: pointer;
       box-sizing: border-box;
@@ -340,7 +340,7 @@ const getHoverTitle = (isEnabled: boolean) => {
 
   // 工具列表样式
   &__tools {
-    background: var(--tr-mcp-server-picker-bg-default);
+    background: var(--tr-mcp-server-picker-bg-default-2);
     border-radius: 0 0 16px 16px;
   }
 
