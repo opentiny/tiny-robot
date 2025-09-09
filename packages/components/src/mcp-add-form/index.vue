@@ -95,7 +95,7 @@ const handleUpdateAddType = (type: AddType) => {
     add-type-label-font-size: 14px;
     add-type-label-font-weight: 400;
     add-type-label-line-height: 20px;
-    add-type-label-color: #191919;
+    add-type-label-color: var(--tr-text-primary);
 
     /* 底部区域变量 */
     footer-padding: 0 32px 32px 32px;

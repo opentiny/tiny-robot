@@ -61,7 +61,7 @@ const handleConfirm = (addType: 'form' | 'code', formData: PluginFormData | stri
   transform: translate(-50%, -50%);
   max-width: 570px;
   width: 100%;
-  background-color: #ffffff;
+  background-color: var(--tr-container-bg-default);
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -98,7 +98,7 @@ const handleConfirm = (addType: 'form' | 'code', formData: PluginFormData | stri
 
   &__title {
     margin: 0;
-    color: #191919;
+    color: var(--tr-text-primary);
     font-size: 18px;
     line-height: 24px;
     font-weight: 700;
@@ -113,7 +113,7 @@ const handleConfirm = (addType: 'form' | 'code', formData: PluginFormData | stri
   }
 
   &__close:hover {
-    background: #f5f5f5;
+    background: var(--tr-container-bg-hover);
     border-radius: 8px;
   }
 }

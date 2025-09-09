@@ -123,6 +123,10 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    :deep(.tiny-radio) {
+      --tv-Radio-text-color: var(--tr-text-primary);
+    }
   }
 
   &__item {
@@ -134,7 +138,7 @@ onUnmounted(() => {
   &__label {
     font-size: 14px;
     font-weight: 500;
-    color: #191919;
+    color: var(--tr-text-primary);
     line-height: 20px;
     width: 56px;
 
@@ -146,23 +150,23 @@ onUnmounted(() => {
   &__input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--tr-border-color-disabled);
     border-radius: 6px;
     height: 32px;
     font-size: 14px;
     line-height: 22px;
-    color: #191919;
-    background-color: #ffffff;
+    color: var(--tr-text-primary);
+    background-color: var(--tr-container-bg-default);
     transition: border-color 0.2s;
     box-sizing: border-box;
 
     &:focus {
       outline: none;
-      border-color: #1890ff;
+      border-color: var(--tr-color-primary);
     }
 
     &::placeholder {
-      color: #999999;
+      color: var(--tr-text-tertiary);
     }
   }
 
@@ -180,12 +184,12 @@ onUnmounted(() => {
   &__textarea {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--tr-border-color-disabled);
     border-radius: 6px;
     font-size: 14px;
     line-height: 22px;
-    color: #191919;
-    background-color: #ffffff;
+    color: var(--tr-text-primary);
+    background-color: var(--tr-container-bg-default);
     resize: none;
     height: 60px;
     font-family: inherit;
@@ -194,11 +198,11 @@ onUnmounted(() => {
 
     &:focus {
       outline: none;
-      border-color: #1890ff;
+      border-color: var(--tr-color-primary);
     }
 
     &::placeholder {
-      color: #999999;
+      color: var(--tr-text-tertiary);
     }
   }
 
@@ -263,18 +267,18 @@ onUnmounted(() => {
   &__file-label {
     display: inline-block;
     padding: 8px 16px;
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--tr-border-color-disabled);
     border-radius: 6px;
-    background-color: #fafafa;
+    background-color: var(--tr-container-bg-default-2);
     font-size: 14px;
     line-height: 22px;
-    color: #191919;
+    color: var(--tr-text-primary);
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      border-color: #1890ff;
-      background-color: #f0f9ff;
+      border-color: var(--tr-color-primary);
+      background-color: var(--tr-container-bg-hover);
     }
   }
 

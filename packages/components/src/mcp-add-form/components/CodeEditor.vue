@@ -49,12 +49,12 @@ const codeData = defineModel<string>('codeData', { required: true })
     padding: 12px;
     font-size: 13px;
     line-height: 1.4;
-    color: #191919;
-    background-color: #f5f5f5;
+    color: var(--tr-text-primary);
+    background-color: var(--tr-page-bg-default);
     box-sizing: border-box;
 
     &::placeholder {
-      color: #999999;
+      color: var(--tr-text-tertiary);
     }
 
     &:focus {
