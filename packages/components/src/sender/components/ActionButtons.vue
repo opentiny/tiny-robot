@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { ActionButtonsProps } from '../index.type'
-import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClose } from '@opentiny/tiny-robot-svgs'
+import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -180,10 +180,7 @@ const handleUpload = () => {
       <template v-if="allowFiles && !loading">
         <tiny-tooltip effect="light" placement="top" :render-content="fileTooltipRenderFn" :visible-arrow="false">
           <div class="action-buttons__button" @click="handleUpload">
-            <IconUpload
-              :class="['action-buttons__icon', 'action-buttons__icon--upload', { 'is-disabled': fileDisabled }]"
-              alt="上传文件"
-            />
+            <IconUpload :class="['action-buttons__icon', { 'is-disabled': fileDisabled }]" alt="上传文件" />
           </div>
         </tiny-tooltip>
       </template>
@@ -200,7 +197,7 @@ const handleUpload = () => {
       <template v-if="showClear">
         <tiny-tooltip content="清空内容" placement="top">
           <div class="action-buttons__button" @click="handleClear">
-            <IconClose class="action-buttons__icon action-buttons__icon--clear" />
+            <IconClear class="action-buttons__icon" />
           </div>
         </tiny-tooltip>
       </template>
@@ -257,8 +254,6 @@ const handleUpload = () => {
   --tr-sender-action-buttons-icon-size: 32px;
   --tr-sender-action-buttons-icon-size-send: 36px;
   --tr-sender-action-buttons-icon-size-cancel: 24px;
-  --tr-sender-action-buttons-icon-size-clear: 24px;
-  --tr-sender-action-buttons-icon-size-upload: 20px;
   --tr-sender-action-buttons-border-radius: 8px;
   --tr-sender-action-buttons-cancel-height: 36px;
   --tr-sender-action-buttons-cancel-gap: 4px;
@@ -296,22 +291,6 @@ const handleUpload = () => {
     &:not(&--send):hover {
       border-radius: var(--tr-sender-action-buttons-border-radius);
       background-color: var(--tr-sender-action-buttons-icon-hover-bg-color);
-    }
-
-    /* 关闭图标 */
-    &--clear {
-      width: var(--tr-sender-action-buttons-icon-size);
-      height: var(--tr-sender-action-buttons-icon-size);
-      padding: 4px;
-      font-size: var(--tr-sender-action-buttons-icon-size-clear);
-    }
-
-    /* 上传图标 */
-    &--upload {
-      width: 32px;
-      height: 32px;
-      padding: 6px;
-      font-size: var(--tr-sender-action-buttons-icon-size-upload);
     }
 
     /* 发送图标 */
@@ -393,7 +372,6 @@ const handleUpload = () => {
 .tr-sender-compact {
   --tr-sender-action-buttons-icon-size: 28px;
   --tr-sender-action-buttons-icon-size-send: 32px;
-  --tr-sender-action-buttons-icon-size-clear: 22px;
   --tr-sender-action-buttons-cancel-height: 32px;
   --tr-sender-action-buttons-cancel-font-size: 12px;
   --tr-sender-action-buttons-cancel-padding: 4px 16px 4px 4px;
