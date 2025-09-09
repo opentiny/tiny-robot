@@ -246,7 +246,6 @@ const handleMarketSearchFn = (query: string, item: PluginInfo) => {
 .demo-controls {
   margin-bottom: 20px;
   padding: 16px;
-  background-color: #f8f9fa;
   border-radius: 8px;
 }
 

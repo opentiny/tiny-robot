@@ -583,6 +583,14 @@ const SelectDropStyle = {
 
 :deep(.tiny-tabs__header) {
   flex-shrink: 0;
+
+  .tiny-tabs__active-bar {
+    background: var(--tr-mcp-server-picker-tabs-border-color-active);
+  }
+
+  .tiny-tabs__nav-wrap-not-separator::after {
+    background: var(--tr-mcp-server-picker-tabs-nav-wrap-bg-color);
+  }
 }
 
 :deep(.tiny-tabs__content) {

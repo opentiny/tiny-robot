@@ -112,6 +112,8 @@
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #ffffff;
   --tr-mcp-server-picker-bg-default-2: #ffffff;
+  --tr-mcp-server-picker-tabs-nav-wrap-bg-color: #f0f0f0;
+  --tr-mcp-server-picker-tabs-border-color-active: #191919;
   --tr-mcp-server-picker-bg-hover: rgba(0, 0, 0, 0.04);
   --tr-mcp-server-picker-button-bg-disabled: #f0f0f0;
   --tr-mcp-server-picker-divider-color: rgba(0, 0, 0, 0.1);
@@ -176,6 +178,8 @@
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #191919;
   --tr-mcp-server-picker-bg-default-2: #262626;
+  --tr-mcp-server-picker-tabs-nav-wrap-bg-color: rgba(255, 255, 255, .1);
+  --tr-mcp-server-picker-tabs-border-color-active: #E6E6E6;
   --tr-mcp-server-picker-bg-hover: rgba(255, 255, 255, 0.1);
   --tr-mcp-server-picker-tool-count-color: #333333;
   --tr-mcp-server-picker-button-bg-disabled: rgba(255, 255, 255, 0.15);
