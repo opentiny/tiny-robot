@@ -7,7 +7,7 @@ hero:
   text: "OpenTiny Design 设计体系的 AI 组件库"
   tagline: 只需几步，轻松构建您的AI产品
   image:
-    src: /logo.png
+    src: /favicon.ico
     alt: TinyRobot
   actions:
     - theme: alt
