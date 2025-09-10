@@ -1,3 +1,7 @@
+---
+outline: deep
+---
+
 # AI模型交互工具类 AIClient
 
 客户端类，用于与AI模型交互。

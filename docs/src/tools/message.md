@@ -1,3 +1,7 @@
+---
+outline: deep
+---
+
 # 消息与数据管理 useMessage
 
 ## 示例
