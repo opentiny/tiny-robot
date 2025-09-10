@@ -31,7 +31,7 @@ app.mount('#app')
 <template>
   <tr-bubble-item
     role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由开源团队开发维护。"
   ></tr-bubble-item>
 </template>
 
@@ -67,7 +67,7 @@ app.mount('#app')
 <template>
   <tr-bubble-item
     role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由开源团队开发维护。"
   ></tr-bubble-item>
 </template>
 ```

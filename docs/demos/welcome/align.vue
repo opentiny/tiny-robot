@@ -1,7 +1,7 @@
 <template>
   <tr-welcome
-    title="盘古助手"
-    description="您好，我是盘古助手，您专属的华为云专家"
+    title="TinyRobot"
+    description="您好，我是TinyRobot，您专属的 AI 智能专家"
     :icon="icon"
     :align="align"
   ></tr-welcome>
