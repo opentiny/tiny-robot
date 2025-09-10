@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useAttrs } from 'vue'
+import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { ActionButtonsProps } from '../index.type'
 import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
@@ -167,10 +167,7 @@ const handleUpload = () => {
   }
 }
 
-const uploadPopupClass = computed(() => {
-  const attrs = useAttrs()
-  return (attrs['upload-popup-class'] as string) || 'upload-popper-class'
-})
+const uploadPopupClass = computed(() => props.uploadPopupClass)
 </script>
 
 <template>

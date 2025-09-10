@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   suggestions: () => [],
   suggestionPopupWidth: 400,
   stopText: '',
-  uploadPopupClass: '',
+  uploadPopupClass: 'upload-popper-class',
 })
 
 const emit = defineEmits<SenderEmits>()
