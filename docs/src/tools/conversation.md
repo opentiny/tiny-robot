@@ -1,3 +1,6 @@
+---
+outline: deep
+---
 
 # 对话管理 useConversation
 
@@ -9,7 +12,27 @@
 
 ## API
 
-`useConversation` 返回以下内容：
+### 选项
+```typescript
+interface UseConversationOptions {
+  /** AI客户端实例 */
+  client: AIClient
+  /** 存储策略 */
+  storage?: ConversationStorageStrategy
+  /** 是否自动保存 (default: true) */
+  autoSave?: boolean
+  /** 是否允许空会话 (default: false) */
+  allowEmpty?: boolean
+  /** 是否默认使用流式响应 (default: true)*/
+  useStreamByDefault?: boolean
+  /** 错误消息模板 */
+  errorMessage?: string
+  events?: UseMessageOptions['events']
+}
+```
+
+
+### 返回值
 
 ```typescript
 interface UseConversationReturn {
@@ -38,7 +61,7 @@ interface UseConversationReturn {
 }
 ```
 
-#### 会话状态
+### 会话状态
 
 ```typescript
 interface ConversationState {
@@ -51,7 +74,7 @@ interface ConversationState {
 }
 ```
 
-#### 会话接口
+### 会话接口
 
 ```typescript
 
@@ -72,7 +95,7 @@ interface Conversation {
 ```
 
 
-#### 自定义存储策略
+### 自定义存储策略
 
 默认使用 LocalStorage 存储会话数据，你也可以实现自定义的存储策略：
 

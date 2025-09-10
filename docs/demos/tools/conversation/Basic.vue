@@ -9,9 +9,10 @@
 </template>
 
 <script setup lang="ts">
-import { BubbleRoleConfig } from '@opentiny/tiny-robot'
+import { TrBubbleList, BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { useConversation, AIClient, ConversationStorageStrategy, Conversation } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
+import { TinySelect, TinyButton } from '@opentiny/vue'
 import { computed, h } from 'vue'
 
 class MockStorageStrategy implements ConversationStorageStrategy {

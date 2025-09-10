@@ -87,6 +87,8 @@ export interface UseConversationOptions {
   storage?: ConversationStorageStrategy
   /** 是否自动保存 */
   autoSave?: boolean
+  /** 是否允许空会话 */
+  allowEmpty?: boolean
   /** 是否默认使用流式响应 */
   useStreamByDefault?: boolean
   /** 错误消息模板 */
@@ -141,6 +143,7 @@ export function useConversation(options: UseConversationOptions): UseConversatio
     client,
     storage = new LocalStorageStrategy(),
     autoSave = true,
+    allowEmpty = false,
     useStreamByDefault = true,
     errorMessage = '请求失败，请稍后重试',
   } = options
@@ -183,6 +186,11 @@ export function useConversation(options: UseConversationOptions): UseConversatio
    * 创建新会话
    */
   const createConversation = (title: string = '新会话', metadata: Record<string, unknown> = {}): string => {
+    // 空会话则不再创建新会话
+    if (!allowEmpty && messageManager.messages.value.length === 0 && state.currentId) {
+      return state.currentId
+    }
+
     const id = generateId()
     const newConversation: Conversation = {
       id,
