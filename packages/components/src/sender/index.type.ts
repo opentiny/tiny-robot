@@ -84,6 +84,7 @@ export interface SenderProps {
   theme?: ThemeType // 主题
   templateData?: UserItem[] // 模板数据
   stopText?: string // 停止按钮文字，不传则只显示图标
+  uploadPopupClass?: string // 上传按钮弹出层的自定义样式类名
 }
 
 export interface ActionButtonsProps {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useAttrs } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { ActionButtonsProps } from '../index.type'
 import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
@@ -166,6 +166,11 @@ const handleUpload = () => {
     emit('trigger-select')
   }
 }
+
+const uploadPopupClass = computed(() => {
+  const attrs = useAttrs()
+  return (attrs['upload-popup-class'] as string) || 'upload-popper-class'
+})
 </script>
 
 <template>
@@ -183,7 +188,7 @@ const handleUpload = () => {
           placement="top"
           :render-content="fileTooltipRenderFn"
           :visible-arrow="false"
-          popper-class="upload-popper-class"
+          :popper-class="uploadPopupClass"
         >
           <div
             class="action-buttons__button"
