@@ -183,7 +183,7 @@ const handleUpload = () => {
           placement="top"
           :render-content="fileTooltipRenderFn"
           :visible-arrow="false"
-          popper-class="upload-popup"
+          popper-class="upload-popper-class"
         >
           <div
             class="action-buttons__button"
@@ -388,11 +388,5 @@ const handleUpload = () => {
   --tr-sender-action-buttons-icon-hover-size: 28px;
 
   --tr-sender-actions-gap: 10px;
-}
-</style>
-
-<style>
-.upload-popup {
-  top: -4px !important;
 }
 </style>

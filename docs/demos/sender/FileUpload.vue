@@ -57,3 +57,9 @@ const handleSubmit = (message: string) => {
   console.log('submit', message)
 }
 </script>
+
+<style>
+.upload-popper-class {
+  top: -4px !important;
+}
+</style>

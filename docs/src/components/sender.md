@@ -121,6 +121,8 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 结合 `buttonGroup` 属性，您可以实现更复杂的交互逻辑。例如，通过监听 `files-selected` 事件返回的文件列表，动态地禁用上传按钮或提交按钮，并更新其 `tooltips` 提示信息，以引导用户操作。
 
+可以通过 `upload-popper-class` 类名自定义上传按钮气泡的位置、样式等。
+
 <demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="Sender 组件支持文件上传功能，并可通过 buttonGroup 动态控制按钮状态。" />
 
 #### 模版填充
