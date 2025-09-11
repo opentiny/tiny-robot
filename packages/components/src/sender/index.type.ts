@@ -26,24 +26,9 @@ export type AutoSize = boolean | { minRows: number; maxRows: number }
 
 export type TooltipRender = () => VNode | string
 
-export type TooltipPlacement =
-  | 'top'
-  | 'top-start'
-  | 'top-end'
-  | 'bottom'
-  | 'bottom-start'
-  | 'bottom-end'
-  | 'left'
-  | 'left-start'
-  | 'left-end'
-  | 'right'
-  | 'right-start'
-  | 'right-end'
-
 export interface ControlState {
   tooltips?: string | TooltipRender // 工具提示
   disabled?: boolean // 是否禁用
-  placement?: TooltipPlacement
 }
 
 interface fileUploadConfig {

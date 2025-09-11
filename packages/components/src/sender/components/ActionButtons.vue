@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { ActionButtonsProps } from '../index.type'
 import { IconSend, IconStop, IconUpload, IconVoice, IconLoadingSpeech, IconClear } from '@opentiny/tiny-robot-svgs'
-import { delTabIndexDirective } from '../composables/useDelTabIndex'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -99,9 +98,6 @@ const submitTooltipRenderFn = computed(() => {
   return undefined
 })
 
-const filePlacement = computed(() => props.buttonGroup?.file?.placement || 'top')
-const submitPlacement = computed(() => props.buttonGroup?.submit?.placement || 'top')
-
 /**
  * 是否启用语音功能
  */
@@ -170,13 +166,6 @@ const handleUpload = () => {
     emit('trigger-select')
   }
 }
-
-// 注册移除 tabindex 的指令
-defineOptions({
-  directives: {
-    'del-tabindex': delTabIndexDirective,
-  },
-})
 </script>
 
 <template>
@@ -189,14 +178,12 @@ defineOptions({
     >
       <!-- 文件上传按钮 -->
       <template v-if="allowFiles && !loading">
-        <tiny-tooltip
-          v-del-tabindex
-          effect="light"
-          :placement="filePlacement"
-          :render-content="fileTooltipRenderFn"
-          :visible-arrow="false"
-        >
-          <div class="action-buttons__button" @click="handleUpload">
+        <tiny-tooltip effect="light" placement="top" :render-content="fileTooltipRenderFn" :visible-arrow="false">
+          <div
+            class="action-buttons__button"
+            @click="handleUpload"
+            @focus.capture="(event: FocusEvent) => event.stopPropagation()"
+          >
             <IconUpload :class="['action-buttons__icon', { 'is-disabled': fileDisabled }]" alt="上传文件" />
           </div>
         </tiny-tooltip>
@@ -228,7 +215,7 @@ defineOptions({
           <tiny-tooltip
             v-if="!loading"
             effect="light"
-            :placement="submitPlacement"
+            placement="top"
             :render-content="submitTooltipRenderFn"
             :visible-arrow="false"
           >

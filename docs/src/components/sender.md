@@ -363,24 +363,9 @@ interface SpeechConfig {
 ```
 
 ```typescript
-export type TooltipPlacement =
-  | 'top'
-  | 'top-start'
-  | 'top-end'
-  | 'bottom'
-  | 'bottom-start'
-  | 'bottom-end'
-  | 'left'
-  | 'left-start'
-  | 'left-end'
-  | 'right'
-  | 'right-start'
-  | 'right-end'
-  
 export interface ControlState {
   tooltips?: string | Function // 工具提示
   disabled?: boolean // 是否禁用
-  placement?: TooltipPlacement // 提示位置
 }
 
 interface fileUploadConfig {
