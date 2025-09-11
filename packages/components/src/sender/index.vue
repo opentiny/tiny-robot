@@ -31,7 +31,6 @@ const props = withDefaults(defineProps<SenderProps>(), {
   suggestions: () => [],
   suggestionPopupWidth: 400,
   stopText: '',
-  uploadPopupClass: 'upload-popper-class',
 })
 
 const emit = defineEmits<SenderEmits>()
@@ -558,7 +557,6 @@ defineExpose({
                 :submit-type="submitType"
                 :is-over-limit="isOverLimit"
                 :stop-text="stopText"
-                :upload-popup-class="uploadPopupClass"
                 @clear="clearInput"
                 @toggle-speech="toggleSpeech"
                 @submit="triggerSubmit"
@@ -608,7 +606,6 @@ defineExpose({
                     :submit-type="submitType"
                     :is-over-limit="isOverLimit"
                     :stop-text="stopText"
-                    :upload-popup-class="uploadPopupClass"
                     @clear="clearInput"
                     @toggle-speech="toggleSpeech"
                     @submit="triggerSubmit"

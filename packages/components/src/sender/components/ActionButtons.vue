@@ -166,8 +166,6 @@ const handleUpload = () => {
     emit('trigger-select')
   }
 }
-
-const uploadPopupClass = computed(() => props.uploadPopupClass)
 </script>
 
 <template>
@@ -185,7 +183,7 @@ const uploadPopupClass = computed(() => props.uploadPopupClass)
           placement="top"
           :render-content="fileTooltipRenderFn"
           :visible-arrow="false"
-          :popper-class="uploadPopupClass"
+          popper-class="tr-sender-actions-upload-button-popper"
         >
           <div
             class="action-buttons__button"

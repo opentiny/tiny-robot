@@ -84,7 +84,6 @@ export interface SenderProps {
   theme?: ThemeType // 主题
   templateData?: UserItem[] // 模板数据
   stopText?: string // 停止按钮文字，不传则只显示图标
-  uploadPopupClass?: string // 上传按钮弹出层的自定义样式类名
 }
 
 export interface ActionButtonsProps {
@@ -103,7 +102,6 @@ export interface ActionButtonsProps {
   showShortcuts?: boolean // 是否显示快捷键提示
   isOverLimit?: boolean // 是否超出字数限制
   stopText?: string // 停止按钮文字，不传则只显示图标
-  uploadPopupClass?: string // 上传按钮弹出层的自定义样式类名
 }
 
 // 组件事件定义
