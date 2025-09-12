@@ -1,7 +1,7 @@
 <template>
   <p>单个气泡加载中</p>
   <tr-bubble
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由开源团队开发维护。"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。"
     :avatar="aiAvatar"
     :loading="loading"
     :style="{ marginTop: '16px' }"
@@ -9,7 +9,7 @@
   <hr />
   <p>单个气泡加载中，使用 slots 自定义 loading 内容</p>
   <tr-bubble
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由开源团队开发维护。"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。"
     :avatar="aiAvatar"
     :loading="loading"
     :style="{ marginTop: '16px' }"
