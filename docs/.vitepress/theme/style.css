@@ -1,16 +1,126 @@
+/* ===== 全局样式重置 ===== */
+html,
+body,
+#app {
+  height: 100%;
+  --vp-nav-bottom-height: 48px;
+  --vp-sidebar-nav-padding-top: calc(var(--vp-nav-bottom-height) + var(--vp-nav-height));
+}
+
+* {
+  scrollbar-width: thin;
+}
+
+/* ===== VitePress Demo Plugin 样式 ===== */
 .vitepress-demo-plugin__container {
   background-color: #f5f5f5;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
 .dark .vitepress-demo-plugin__container {
   background-color: #191919;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.vitepress-demo-plugin__container:hover {
+  border-color: rgba(100, 108, 255, 0.3);
 }
 
 .vitepress-demo-plugin__container li + li {
   margin: 0;
 }
 
+/* ===== VitePress 导航覆盖 ===== */
 .VPNav .container {
   width: unset;
   padding: unset;
+}
+
+/* 隐藏默认导航栏，使用自定义导航栏 */
+.VPNav {
+  display: none !important;
+}
+
+/* 确保主内容区域正确定位 */
+/* .VPDoc {
+  padding-top: 24px;
+} */
+
+/* ===== 侧边栏增强样式 ===== */
+.VPSidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vp-c-brand-soft) transparent;
+  background-color: var(--vp-c-bg) !important;
+  border-right: 1px solid var(--vp-c-divider);
+
+  & .curtain {
+    display: none;
+  }
+}
+
+/* 侧边栏项目增强 */
+.VPSidebarItem .link {
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+  margin: 2px 0;
+  padding: 0 8px;
+}
+
+/* 亮色模式下的hover效果 */
+.VPSidebarItem .link:hover {
+  padding: 0 8px;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+/* 亮色模式下的选中效果 */
+.VPSidebarItem.is-active .link {
+  padding: 0 8px;
+  background-color: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+@media (min-width: 960px) {
+  .VPSidebar {
+      padding-top: var(--vp-sidebar-nav-padding-top) !important;
+  }
+}
+
+.VPDocAside {
+  padding-top: 10px;
+}
+
+/* 侧边栏分组标题增强 */
+.VPSidebarGroup .title {
+  font-weight: 700;
+  color: var(--vp-c-brand-1);
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.VPSidebarGroup .title:hover {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+/* ===== 内容区域优化 ===== */
+.VPContent {
+  padding-top: 0 !important;
+}
+
+.VPDoc {
+  padding-top: 2rem;
+}
+
+
+/* ===== 搜索增强 ===== */
+.VPLocalSearchBox {
+  border-radius: 12px;
+  border: 2px solid var(--vp-c-brand-soft);
+  box-shadow: 0 4px 20px var(--vp-c-brand-soft);
 }

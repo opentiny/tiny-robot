@@ -1,4 +1,4 @@
-import pkg from '@opentiny/tiny-robot/package.json' assert { type: 'json' }
+import pkg from '@opentiny/tiny-robot/package.json' with { type: 'json' }
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
@@ -24,8 +24,8 @@ export default defineConfig({
   description: 'TinyRobot',
   srcDir: 'src',
   outDir: 'dist',
-  base: '/cdocs/tiny-robot/',
-  head: [['link', { rel: 'icon', href: '/cdocs/tiny-robot/favicon.ico' }]],
+  base: '/',
+  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
   vite: {
     plugins: [vueJsx()],
     server: { open: true },
@@ -42,14 +42,14 @@ export default defineConfig({
   },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: '/favicon.ico',
+    logo: '/cdocs/tiny-robot/favicon.ico',
     siteTitle: 'TinyRobot',
     nav: [
       { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
       { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
       { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
-      { text: version, link: '/releases/update-log', activeMatch: '/releases/' },
+      { text: `v${version}`, link: '/releases/update-log', activeMatch: '/releases/' },
     ],
     sidebar: {
       '/components/': [
