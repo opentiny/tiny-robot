@@ -602,7 +602,9 @@ onMounted(() => {
 }
 
 .tiny-container {
-  top: 64px;
+  top: 112px;
+
+  height: calc(100vh - 112px);
 
   container-type: inline-size;
 

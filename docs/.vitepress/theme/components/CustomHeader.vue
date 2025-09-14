@@ -35,7 +35,7 @@
         <div class="tools-section">
           <!-- 主题切换 -->
           <button @click="toggleDark" class="tool-button" title="Toggle theme">
-            <svg v-if="isDark" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg v-if="!isDark" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -72,17 +72,12 @@
 
       <!-- 第二行：主导航栏 -->
       <div class="header-bottom">
-        <nav class="main-nav">
-          <a
-            v-for="item in themeConfig.nav"
-            :key="item.text"
-            :href="item.link"
-            class="nav-item"
-            :class="{ 'nav-item-active': isActiveNav(item) }"
-          >
-            {{ item.text }}
-          </a>
-        </nav>
+        <TabNavigation
+          :tabs="navigationTabs"
+          :activeTab="activeNavTab"
+          @tab-change="handleNavTabChange"
+          @tab-click="handleNavTabClick"
+        />
       </div>
     </div>
   </header>
@@ -90,14 +85,66 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
-import { useData, useRoute } from 'vitepress'
+import { useData, useRoute, useRouter } from 'vitepress'
+import TabNavigation from './TabNavigation.vue'
 
 // 获取 VitePress 数据
 const { site, theme } = useData()
 const route = useRoute()
+const router = useRouter()
 
 // 获取主题配置
 const themeConfig = computed(() => theme.value)
+
+interface configNavItem {
+  text: string
+  link: string
+  activeMatch?: string
+}
+
+// 转换导航配置为TabNavigation所需格式
+const navigationTabs = computed(() => {
+  return (
+    themeConfig.value.nav?.map((item: configNavItem) => ({
+      key: item.link || item.text.toLowerCase().replace(/\s+/g, '-'),
+      name: item.text,
+      link: item.link,
+      disabled: false,
+    })) || []
+  )
+})
+
+interface TabItem {
+  key: string
+  name: string
+  link: string
+  disabled?: boolean
+}
+
+// 当前激活的导航标签
+const activeNavTab = computed(() => {
+  const currentTab = navigationTabs.value.find((tab: TabItem) =>
+    isActiveNav({ text: tab.name, link: tab.link, activeMatch: undefined }),
+  )
+  return currentTab?.key || ''
+})
+
+// 处理导航标签变化
+const handleNavTabChange = (tabKey: string) => {
+  const tab = navigationTabs.value.find((t: TabItem) => t.key === tabKey)
+  if (tab?.link) {
+    // 使用 VitePress 路由进行 SPA 导航
+    router.go(tab.link)
+  }
+}
+
+// 处理导航标签点击
+const handleNavTabClick = (tab: TabItem) => {
+  if (tab.link) {
+    // 使用 VitePress 路由进行 SPA 导航
+    router.go(tab.link)
+  }
+}
 
 // 暗色模式状态
 const isDark = ref(false)
@@ -151,14 +198,20 @@ const openSearch = () => {
 
 <style scoped>
 .custom-header {
+  --vp-c-divider: #f9f9f9;
+
   position: sticky;
   top: 0;
   z-index: 50;
   width: 100%;
-  border-bottom: 1px solid #f9f9f9;
+  border-bottom: 1px solid var(--vp-c-divider);
   background-color: var(--vp-c-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+.dark .custom-header {
+  --vp-c-divider: #282c34;
 }
 
 .header-container {
@@ -225,7 +278,6 @@ const openSearch = () => {
   width: 100%;
   height: 40px;
   padding: 0 64px 0 40px;
-  background-color: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
   font-size: 14px;
@@ -291,80 +343,8 @@ const openSearch = () => {
 /* 第二行样式 */
 .header-bottom {
   height: var(--vp-nav-bottom-height);
-  align-items: center;
-  border-top: 1px solid var(--vp-c-divider-light);
-}
-
-.main-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.nav-item {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 16px;
-  color: var(--vp-c-text-2);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.nav-item:hover {
-  background-color: var(--vp-c-bg-soft);
-  color: var(--vp-c-text-1);
-  transform: translateY(-1px);
-}
-
-.nav-item-active {
-  background-color: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  font-weight: 600;
-}
-
-/* 导航栏下划线效果 */
-.nav-item::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 0;
-  height: 2px;
-  background: var(--vp-c-brand-1);
-  border-radius: 1px;
-  transform: translateX(-50%);
-  transition: width 0.3s ease;
-}
-
-.nav-item-active::before,
-.nav-item:hover::before {
-  width: calc(100% - 16px);
-}
-
-/* 激活状态的微光效果 */
-.nav-item-active::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, var(--vp-c-brand-soft), transparent);
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
 }
 
 /* 响应式设计 */
