@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { IconEmptySearch } from '@opentiny/tiny-robot-svgs'
 
-const props = withDefaults(defineProps<{ text: string }>(), {
+const props = withDefaults(defineProps<{ text?: string }>(), {
   text: '暂无内容',
 })
 </script>
@@ -22,8 +22,7 @@ const props = withDefaults(defineProps<{ text: string }>(), {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 84px;
-  padding-bottom: 0;
+  padding: var(--tr-history-empty-padding);
 
   .tr-history__empty-icon {
     font-size: 16px;
@@ -32,7 +31,7 @@ const props = withDefaults(defineProps<{ text: string }>(), {
   .tr-history__empty-text {
     font-size: 12px;
     line-height: 24px;
-    color: rgb(25, 25, 25);
+    color: var(--tr-text-primary);
   }
 }
 </style>

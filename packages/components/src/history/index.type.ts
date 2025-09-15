@@ -1,52 +1,19 @@
-import { CSSProperties } from 'vue'
-
-interface BaseHistoryProps {
-  activeTab?: string
-  searchBar?: boolean
-  searchQuery?: string
-  searchPlaceholder?: string
-  searchFn?: (query: string, item: HistoryItem) => boolean
-  selected?: string
-}
-
-export type SingleTabHistoryProps = {
-  tabTitle: string
-  data: HistoryData
-} & BaseHistoryProps
-
-export type MultiTabHistoryProps = {
-  tabs: {
-    title: string
-    id: string
-  }[]
-  data: Record<string, HistoryData>
-} & BaseHistoryProps
-
-export type HistoryProps = SingleTabHistoryProps | MultiTabHistoryProps
-
-export interface HistoryItemTagProps {
-  text: string
-  type?: 'success' | 'warning' | 'error' | 'info' | 'default'
-  style?: CSSProperties
-}
-
-export interface HistoryItem<T = Record<string, unknown>> {
-  id: string
+export interface HistoryItem {
+  id?: string
   title: string
-  tag?: HistoryItemTagProps
-  data?: T
+  [x: string]: unknown
 }
 
-export interface HistoryGroup<T = Record<string, unknown>> {
+export interface HistoryGroup<T extends HistoryItem> {
   group: string | symbol
-  items: HistoryItem<T>[]
+  items: T[]
 }
 
-export type HistoryData = HistoryItem[] | HistoryGroup[]
+export type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 
-export interface HistoryEvents {
-  (e: 'close'): void
-  (e: 'item-click', item: HistoryItem): void
-  (e: 'item-title-change', newTitle: string, rawData: HistoryItem): void
-  (e: 'item-delete', item: HistoryItem): void
+export type HistoryProps<T extends HistoryItem = HistoryItem> = {
+  data: HistoryData<T>
+  selected?: string
+  showRenameControls?: boolean
+  renameControlOnClickOutside?: 'confirm' | 'cancel' | 'none'
 }
