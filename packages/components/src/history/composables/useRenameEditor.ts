@@ -1,5 +1,5 @@
 import { onClickOutside } from '@vueuse/core'
-import { computed, nextTick, ref, type Ref } from 'vue'
+import { computed, nextTick, ref, watch, type Ref } from 'vue'
 
 export interface UseRenameEditorProps<T extends { title: string }> {
   renameControlOnClickOutside?: 'confirm' | 'cancel' | 'none'
@@ -65,6 +65,26 @@ export const useRenameEditor = <T extends { title: string }>({
       { ignore: [editorCancelRef] },
     )
   }
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleEditConfirm()
+    } else if (e.key === 'Escape') {
+      handleEditCancel()
+    }
+  }
+
+  watch(editorRef, (inputRef, _, onCleanup) => {
+    if (!inputRef) {
+      return
+    }
+
+    inputRef.addEventListener('keydown', handleKeyDown)
+
+    onCleanup(() => {
+      inputRef.removeEventListener('keydown', handleKeyDown)
+    })
+  })
 
   return {
     editingItem,
