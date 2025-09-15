@@ -95,7 +95,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useData, useRoute, useRouter } from 'vitepress'
 import TabNavigation from './TabNavigation.vue'
-import { normalizeLink, isActiveRoute } from '../utils/router'
+import { normalizeLink, isActiveRoute, isHomePage } from '../utils/router'
 
 // 获取 VitePress 数据
 const { site, theme } = useData()
@@ -132,7 +132,7 @@ interface TabItem {
 
 // 是否显示导航栏: 如果当前路径是首页，则不显示导航栏
 const showNavigation = computed(() => {
-  return route.path !== '/'
+  return !isHomePage(route.path, site.value.base)
 })
 
 // 当前激活的导航标签

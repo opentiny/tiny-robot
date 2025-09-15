@@ -57,3 +57,22 @@ export function isActiveRoute(
 
   return cleanCurrentPath.startsWith(cleanTargetPath)
 }
+/**
+ * 检查当前路径是否为首页
+ * @param currentPath 当前路径
+ * @param base 基础路径
+ * @returns 是否为首页
+ */
+export function isHomePage(currentPath: string, base: string = '/'): boolean {
+  // 标准化 base 路径
+  const normalizedBase = base === '/' ? '/' : base.replace(/\/$/, '') + '/'
+
+  // 可能的首页路径
+  const homePaths = [
+    '/', // 根路径
+    normalizedBase, // 带 base 的完整路径 (如 /tiny-robot/alpha/)
+    normalizedBase.replace(/\/$/, ''), // 不带尾部斜杠的路径 (如 /tiny-robot/alpha)
+  ]
+
+  return homePaths.includes(currentPath)
+}
