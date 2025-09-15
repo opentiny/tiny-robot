@@ -25,7 +25,7 @@ export default defineConfig({
   srcDir: 'src',
   outDir: 'dist',
   base: process.env.VITEPRESS_BASE || '/',
-  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: '/logo-mini.svg' }]],
   vite: {
     plugins: [vueJsx()],
     server: { open: true },
@@ -42,7 +42,7 @@ export default defineConfig({
   },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: '/cdocs/tiny-robot/favicon.ico',
+    logo: '/cdocs/tiny-robot/logo-mini.svg',
     siteTitle: 'TinyRobot',
     nav: [
       { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },

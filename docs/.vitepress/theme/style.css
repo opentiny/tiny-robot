@@ -5,6 +5,14 @@ body,
   height: 100%;
   --vp-nav-bottom-height: 48px;
   --vp-sidebar-nav-padding-top: calc(var(--vp-nav-bottom-height) + var(--vp-nav-height));
+
+  --rainbow-prev: #009ff7;
+  --rainbow-next: #c76dd1;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, var(--rainbow-prev) 30%, var(--rainbow-next));
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, var(--rainbow-prev) 30%, var(--rainbow-next));
+  --vp-home-hero-image-filter: blur(80px);
 }
 
 * {
@@ -95,6 +103,10 @@ body,
 /* ===== 主内容区域优化 ===== */
 .VPContent {
   padding-top: 0 !important;
+
+  &.is-home {
+    margin-top: 7%;
+  }
 }
 
 .VPDoc {
@@ -117,7 +129,6 @@ body,
   border-collapse: collapse;
   width: 100%;
   margin: 20px 0;
-  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -157,4 +168,12 @@ body,
   .VPSidebar {
     padding-top: var(--vp-sidebar-nav-padding-top) !important;
   }
+}
+
+.VPFeatures .items .item {
+  transition: transform 0.3s;
+}
+
+.VPFeatures .items .item:hover {
+  transform: translateY(-5px);
 }

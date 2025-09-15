@@ -6,7 +6,7 @@
         <!-- Logo 区域 -->
         <div class="logo-section">
           <a href="/" class="logo-link">
-            <img src="/favicon.ico" alt="TinyRobot" class="logo-icon" />
+            <img src="/logo-mini.svg" alt="TinyRobot" class="logo-icon" />
             <span class="logo-text">{{ site.title }}</span>
           </a>
         </div>
@@ -33,6 +33,14 @@
 
         <!-- 右侧工具栏 -->
         <div class="tools-section">
+          <!-- OpenTiny 链接 -->
+          <a href="https://opentiny.design" title="OpenTiny" class="home-link">
+            <span>OpenTiny</span>
+            <svg width="3" height="24" viewBox="0 -9 3 24" class="h-5 rotate-0 overflow-visible text-white/90">
+              <path d="M0 0L3 3L0 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+            </svg>
+          </a>
+
           <!-- 主题切换 -->
           <button @click="toggleDark" class="tool-button" title="Toggle theme">
             <svg v-if="!isDark" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,7 +79,7 @@
       </div>
 
       <!-- 第二行：主导航栏 -->
-      <div class="header-bottom">
+      <div class="header-bottom" v-if="showNavigation">
         <TabNavigation
           :tabs="navigationTabs"
           :activeTab="activeNavTab"
@@ -121,6 +129,11 @@ interface TabItem {
   link: string
   disabled?: boolean
 }
+
+// 是否显示导航栏: 如果当前路径是首页，则不显示导航栏
+const showNavigation = computed(() => {
+  return route.path !== '/'
+})
 
 // 当前激活的导航标签
 const activeNavTab = computed(() => {
@@ -199,6 +212,7 @@ const openSearch = () => {
 <style scoped>
 .custom-header {
   --vp-c-divider: #f9f9f9;
+  --search-border-color: #dfdfdf;
 
   position: sticky;
   top: 0;
@@ -212,6 +226,7 @@ const openSearch = () => {
 
 .dark .custom-header {
   --vp-c-divider: #282c34;
+  --search-border-color: #a8b1ff;
 }
 
 .header-container {
@@ -278,7 +293,7 @@ const openSearch = () => {
   width: 100%;
   height: 40px;
   padding: 0 64px 0 40px;
-  border: 1px solid var(--vp-c-divider);
+  border: 1px solid var(--search-border-color);
   border-radius: 12px;
   font-size: 14px;
   color: var(--vp-c-text-1);
@@ -318,6 +333,28 @@ const openSearch = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.home-link {
+  --home-link-bg-color: #191919;
+  --home-link-text-color: #ffffff;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--home-link-text-color);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  padding: 4px 16px;
+  border-radius: 25px;
+  background-color: var(--home-link-bg-color);
+}
+
+.dark .home-link {
+  --home-link-bg-color: #ffffff;
+  --home-link-text-color: #191919;
 }
 
 .tool-button {
