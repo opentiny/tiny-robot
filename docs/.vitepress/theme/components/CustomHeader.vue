@@ -87,6 +87,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useData, useRoute, useRouter } from 'vitepress'
 import TabNavigation from './TabNavigation.vue'
+import { normalizeLink, isActiveRoute } from '../utils/router'
 
 // 获取 VitePress 数据
 const { site, theme } = useData()
@@ -133,16 +134,18 @@ const activeNavTab = computed(() => {
 const handleNavTabChange = (tabKey: string) => {
   const tab = navigationTabs.value.find((t: TabItem) => t.key === tabKey)
   if (tab?.link) {
-    // 使用 VitePress 路由进行 SPA 导航
-    router.go(tab.link)
+    // 使用 VitePress 路由进行 SPA 导航，确保使用正确的路径
+    const targetPath = normalizeLink(tab.link, site.value.base)
+    router.go(targetPath)
   }
 }
 
 // 处理导航标签点击
 const handleNavTabClick = (tab: TabItem) => {
   if (tab.link) {
-    // 使用 VitePress 路由进行 SPA 导航
-    router.go(tab.link)
+    // 使用 VitePress 路由进行 SPA 导航，确保使用正确的路径
+    const targetPath = normalizeLink(tab.link, site.value.base)
+    router.go(targetPath)
   }
 }
 
@@ -178,10 +181,7 @@ interface NavItem {
 
 // 判断导航项是否激活
 const isActiveNav = (navItem: NavItem) => {
-  if (navItem.activeMatch) {
-    return new RegExp(navItem.activeMatch).test(route.path)
-  }
-  return route.path.startsWith(navItem.link)
+  return isActiveRoute(route.path, navItem.link, navItem.activeMatch, site.value.base)
 }
 
 // 打开搜索

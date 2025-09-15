@@ -24,7 +24,7 @@ export default defineConfig({
   description: 'TinyRobot',
   srcDir: 'src',
   outDir: 'dist',
-  base: '/',
+  base: process.env.VITEPRESS_BASE || '/',
   head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
   vite: {
     plugins: [vueJsx()],
