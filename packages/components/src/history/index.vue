@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<HistoryProps<T>>(), {
 const emit = defineEmits<{
   'item-click': [item: T]
   'item-title-change': [newTitle: string, item: T]
-  'item-action': [action: { id: string; text: string }, item: T]
+  'item-action': [action: HistoryMenuItem, item: T]
 }>()
 
 const isGroup = <T extends HistoryItem>(data: HistoryData<T>): data is HistoryGroup<T>[] => {
