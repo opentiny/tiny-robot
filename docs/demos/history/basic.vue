@@ -2,7 +2,7 @@
   <tr-history
     :data="data"
     :selected="selected"
-    :show-rename-controls="true"
+    :show-rename-controls="isTouchDevice"
     rename-control-on-click-outside="cancel"
     @item-click="(item) => (selected = item.id)"
     @item-title-change="(newTitle, item) => (item.title = newTitle)"
@@ -20,8 +20,10 @@
 </template>
 
 <script setup lang="ts">
-import { TrHistory } from '@opentiny/tiny-robot'
+import { TrHistory, useTouchDevice } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
+
+const { isTouchDevice } = useTouchDevice()
 
 const data = reactive([
   { title: '如何训练一只聪明的小狗', id: '1' },
