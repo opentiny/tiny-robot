@@ -35,12 +35,7 @@
       </span>
     </template>
     <div :class="{ 'max-container': fullscreen }" v-if="messages.length === 0">
-      <tr-welcome title="盘古助手" description="您好，我是盘古助手，您专属的华为云专家" :icon="welcomeIcon">
-        <template #footer>
-          <div class="welcome-footer">
-            <span>根据相关法律法规要求，您需要先 <a>登录</a>，若没有帐号，您可前往 <a>注册</a></span>
-          </div>
-        </template>
+      <tr-welcome title="TinyRobot" description="您好，我是TinyRobot，您专属的 AI 智能专家" :icon="welcomeIcon">
       </tr-welcome>
       <tr-prompts
         :items="promptItems"
@@ -620,7 +615,9 @@ onMounted(() => {
 }
 
 .tiny-container {
-  top: 64px;
+  top: 112px;
+
+  height: calc(100vh - 112px);
 
   container-type: inline-size;
 
@@ -629,13 +626,6 @@ onMounted(() => {
     align-items: center;
     justify-content: center;
   }
-}
-
-.welcome-footer {
-  margin-top: 12px;
-  color: rgb(128, 128, 128);
-  font-size: 12px;
-  line-height: 20px;
 }
 
 .tiny-prompts {

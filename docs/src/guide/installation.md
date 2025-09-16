@@ -20,7 +20,7 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-s
 ```ts
 import { createApp } from 'vue'
 import App from './App.vue'
-++ import '@opentiny/tiny-robot/dist/style.css'
+import '@opentiny/tiny-robot/dist/style.css' // [!code ++]
 
 const app = createApp(App)
 app.mount('#app')
@@ -31,7 +31,7 @@ app.mount('#app')
 <template>
   <tr-bubble-item
     role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。"
   ></tr-bubble-item>
 </template>
 
@@ -49,11 +49,11 @@ import { TrBubbleItem } from '@opentiny/tiny-robot'
 ```ts
 import { createApp } from 'vue'
 import App from './App.vue'
-++ import TinyRobot from '@opentiny/tiny-robot' # 全量引入组件库
-++ import '@opentiny/tiny-robot/dist/style.css'  # 引入样式
+import TinyRobot from '@opentiny/tiny-robot' # 全量引入组件库 [!code ++]
+import '@opentiny/tiny-robot/dist/style.css'  # 引入样式 [!code ++]
 
 const app = createApp(App)
-++ app.use(TinyRobot)
+app.use(TinyRobot)  // [!code ++]
 
 // 也可以全局按需引入单个组件，例如：
 // import { TrBubbleItem, TrSender } from '@opentiny/tiny-robot'
@@ -67,7 +67,7 @@ app.mount('#app')
 <template>
   <tr-bubble-item
     role="ai"
-    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。"
+    content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。"
   ></tr-bubble-item>
 </template>
 ```

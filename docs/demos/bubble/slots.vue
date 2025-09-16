@@ -10,7 +10,7 @@
     <label>默认插槽 和 footer 插槽</label>
     <tr-bubble :avatar="aiAvatar" :actions="['refresh', 'copy']">
       <span style="color: orange"
-        >TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由华为开源团队开发维护。</span
+        >TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。</span
       >
       <template #footer>
         <tr-feedback :operations="operations" :actions="actions" :sources="sources" />
@@ -25,7 +25,7 @@ import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
-const loadingImgUrl = import.meta.env.BASE_URL + '/wave.webp'
+const loadingImgUrl = import.meta.env.BASE_URL + 'wave.webp'
 
 const operations: FeedbackProps['operations'] = [
   {

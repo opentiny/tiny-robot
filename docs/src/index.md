@@ -3,19 +3,19 @@
 layout: home
 
 hero:
-  name: "TinyRobot"
-  text: "OpenTiny Design 设计体系的 AI 组件库"
+  name: 'TinyRobot'
+  text: 'OpenTiny Design 设计体系的 AI 组件库'
   tagline: 只需几步，轻松构建您的AI产品
   image:
-    src: /logo.png
+    src: /logo-large.svg
     alt: TinyRobot
   actions:
-    - theme: alt
-      text: 指南
-      link: /guide/installation
     - theme: brand
-      text: 组件 API 示例
-      link: /components/bubble
+      text: 开始使用
+      link: /guide/installation
+    - theme: alt
+      text: demo 示例
+      link: /examples/assistant
 
 features:
   - title: AI 组件库
@@ -25,4 +25,3 @@ features:
   - title: 多主题
     details: 支持定制多种主题，让您的产品更加个性化
 ---
-
