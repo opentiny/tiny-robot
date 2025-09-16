@@ -1,16 +1,21 @@
 <script lang="ts" setup generic="T extends HistoryItem">
-import { IconCheck, IconClose, IconMenu2 } from '@opentiny/tiny-robot-svgs'
+import { IconCheck, IconClose, IconDelete, IconEditPen, IconMenu2 } from '@opentiny/tiny-robot-svgs'
 import { computed, ref, type Ref } from 'vue'
 import { useTouchDevice } from '../shared/composables'
 import Empty from './components/Empty.vue'
 import MenuList from './components/MenuList.vue'
 import { useRenameEditor } from './composables/useRenameEditor'
 import { NO_GROUP } from './constants'
-import type { HistoryData, HistoryGroup, HistoryItem, HistoryProps } from './index.type'
+import type { HistoryData, HistoryGroup, HistoryItem, HistoryMenuItem, HistoryProps } from './index.type'
 
 const props = withDefaults(defineProps<HistoryProps<T>>(), {
   showRenameControls: false,
   renameControlOnClickOutside: 'confirm',
+  menuItems: () => [
+    { id: 'rename', text: '重命名', icon: IconEditPen },
+    { id: 'delete', text: '删除', icon: IconDelete },
+  ],
+  menuListGap: 8,
 })
 const emit = defineEmits<{
   'item-click': [item: T]
@@ -74,7 +79,7 @@ const toggleMenu = (ev: MouseEvent, item: T) => {
   }
 }
 
-const handleClickMenuItem = (action: { id: string; text: string }) => {
+const handleClickMenuItem = (action: HistoryMenuItem) => {
   const item = menuTriggerItem.value
 
   if (!item) {
@@ -84,7 +89,7 @@ const handleClickMenuItem = (action: { id: string; text: string }) => {
   if (action.id === 'rename') {
     handleEdit(item)
   }
-  emit('item-action', { id: action.id, text: action.text }, item)
+  emit('item-action', action, item)
 }
 </script>
 
@@ -144,6 +149,8 @@ const handleClickMenuItem = (action: { id: string; text: string }) => {
         v-show="menuTriggerEl"
         v-model:trigger="menuTriggerEl"
         v-model:data="menuTriggerItem"
+        :items="props.menuItems"
+        :menu-list-gap="props.menuListGap"
         @item-click="handleClickMenuItem"
       />
     </template>

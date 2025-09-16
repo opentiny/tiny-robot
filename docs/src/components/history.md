@@ -16,16 +16,24 @@ outline: [1, 3]
 
 <demo vue="../../demos/history/empty.vue" />
 
+### 自定义菜单项
+
+通过 `menuItems` 属性可以自定义历史项的菜单选项。
+
+<demo vue="../../demos/history/custom-menu.vue" />
+
 ## API
 
 ### Props
 
-| 属性                          | 类型                              | 必填 | 默认值      | 说明                                                   |
-| ----------------------------- | --------------------------------- | ---- | ----------- | ------------------------------------------------------ |
-| `data`                        | `HistoryData<T>`                  | 是   | -           | 历史数据（可以是 `HistoryItem[]` 或 `HistoryGroup[]`） |
-| `selected`                    | `string`                          | 否   | -           | 当前选中的历史项ID                                     |
-| `showRenameControls`          | `boolean`                         | 否   | `false`     | 是否显示重命名控制按钮                                 |
-| `renameControlOnClickOutside` | `'confirm' \| 'cancel' \| 'none'` | 否   | `'confirm'` | 点击外部时的重命名控制行为：确认、取消或不处理         |
+| 属性                          | 类型                              | 必填 | 默认值                                                                                                    | 说明                                                   |
+| ----------------------------- | --------------------------------- | ---- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `data`                        | `HistoryData<T>`                  | 是   | -                                                                                                         | 历史数据（可以是 `HistoryItem[]` 或 `HistoryGroup[]`） |
+| `selected`                    | `string`                          | 否   | -                                                                                                         | 当前选中的历史项ID                                     |
+| `showRenameControls`          | `boolean`                         | 否   | `false`                                                                                                   | 是否显示重命名控制按钮                                 |
+| `renameControlOnClickOutside` | `'confirm' \| 'cancel' \| 'none'` | 否   | `'confirm'`                                                                                               | 点击外部时的重命名控制行为：确认、取消或不处理         |
+| `menuItems`                   | `HistoryMenuItem[]`               | 否   | `[{ id: 'rename', text: '重命名', icon: IconEditPen }, { id: 'delete', text: '删除', icon: IconDelete }]` | 自定义菜单项列表                                       |
+| `menuListGap`                 | `number`                          | 否   | `8`                                                                                                       | 菜单项之间的间距（像素）                               |
 
 ### HistoryData
 
@@ -53,13 +61,21 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `title`       | `string`  | 标题             |
 | `[x: string]` | `unknown` | 其他自定义属性   |
 
+### HistoryMenuItem
+
+| 属性   | 类型                 | 说明               |
+| ------ | -------------------- | ------------------ |
+| `id`   | `string`             | 菜单项唯一标识     |
+| `text` | `string`             | 菜单项显示文本     |
+| `icon` | `Component \| VNode` | 菜单项图标（可选） |
+
 ### Events
 
-| 事件名              | 参数                                            | 说明             |
-| ------------------- | ----------------------------------------------- | ---------------- |
-| `item-click`        | `item: T`                                       | 点击历史项时触发 |
-| `item-title-change` | `newTitle: string, item: T`                     | 标题修改时触发   |
-| `item-action`       | `action: { id: string; text: string }, item: T` | 点击菜单项时触发 |
+| 事件名              | 参数                               | 说明             |
+| ------------------- | ---------------------------------- | ---------------- |
+| `item-click`        | `item: T`                          | 点击历史项时触发 |
+| `item-title-change` | `newTitle: string, item: T`        | 标题修改时触发   |
+| `item-action`       | `action: HistoryMenuItem, item: T` | 点击菜单项时触发 |
 
 ### CSS 变量
 

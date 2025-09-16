@@ -1,20 +1,25 @@
 <script setup lang="ts" generic="T">
-import { IconDelete, IconEditPen } from '@opentiny/tiny-robot-svgs'
 import { onClickOutside, useElementBounding, useElementSize, useWindowSize } from '@vueuse/core'
 import { computed, CSSProperties, ref } from 'vue'
 import { toCssUnit } from '../../shared/utils'
+import { HistoryMenuItem } from '../index.type'
 
 const trigger = defineModel<HTMLButtonElement | null>('trigger', { default: null })
 const data = defineModel<T | null>('data', { default: null })
 
-const emit = defineEmits<{
-  'item-click': [item: { id: string; text: string }]
-}>()
+const props = withDefaults(
+  defineProps<{
+    items: HistoryMenuItem[]
+    menuListGap?: number
+  }>(),
+  {
+    menuListGap: 8,
+  },
+)
 
-const items = [
-  { id: 'rename', text: '重命名', icon: IconEditPen },
-  { id: 'delete', text: '删除', icon: IconDelete },
-]
+const emit = defineEmits<{
+  'item-click': [item: HistoryMenuItem]
+}>()
 
 const menuRef = ref<HTMLUListElement | null>(null)
 
@@ -33,7 +38,6 @@ const { top, bottom, left } = useElementBounding(trigger)
 const { width: menuListWidth, height: menuListHeight } = useElementSize(menuRef, undefined, { box: 'border-box' })
 const { height: viewportHeight } = useWindowSize()
 
-const menuListGap = 12
 const threshold = 4
 
 const styles = computed(() => {
@@ -41,9 +45,9 @@ const styles = computed(() => {
     left: `min(${toCssUnit(left.value)}, calc(100% - ${toCssUnit(menuListWidth.value + threshold)}))`,
   }
 
-  const topValue = bottom.value + menuListGap
+  const topValue = bottom.value + props.menuListGap
   if (topValue + menuListHeight.value + threshold > viewportHeight.value) {
-    styles.bottom = `calc(100% - ${toCssUnit(top.value - threshold)})`
+    styles.bottom = `calc(100% - ${toCssUnit(top.value - props.menuListGap)})`
   } else {
     styles.top = toCssUnit(topValue)
   }
@@ -60,7 +64,7 @@ const handleItemClick = (item: { id: string; text: string }) => {
 
 <template>
   <ul class="tr-history__menu-list" ref="menuRef" :style="styles">
-    <li class="tr-history__menu-list__item" v-for="item in items" :key="item.id" @click="handleItemClick(item)">
+    <li class="tr-history__menu-list__item" v-for="item in props.items" :key="item.id" @click="handleItemClick(item)">
       <component :is="item.icon" />
       <span>{{ item.text }}</span>
     </li>
