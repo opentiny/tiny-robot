@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T">
 import { IconDelete, IconEditPen } from '@opentiny/tiny-robot-svgs'
-import { onClickOutside, useElementBounding, useElementSize } from '@vueuse/core'
+import { onClickOutside, useElementBounding, useElementSize, useWindowSize } from '@vueuse/core'
 import { computed, CSSProperties, ref } from 'vue'
 import { toCssUnit } from '../../shared/utils'
 
@@ -31,18 +31,19 @@ onClickOutside(
 
 const { top, bottom, left } = useElementBounding(trigger)
 const { width: menuListWidth, height: menuListHeight } = useElementSize(menuRef, undefined, { box: 'border-box' })
+const { height: viewportHeight } = useWindowSize()
 
 const menuListGap = 12
-const threhold = 4
+const threshold = 4
 
 const styles = computed(() => {
   const styles: CSSProperties = {
-    left: `min(${toCssUnit(left.value)}, calc(100% - ${toCssUnit(menuListWidth.value + threhold)}))`,
+    left: `min(${toCssUnit(left.value)}, calc(100% - ${toCssUnit(menuListWidth.value + threshold)}))`,
   }
 
   const topValue = bottom.value + menuListGap
-  if (topValue + menuListHeight.value + threhold > window.innerHeight) {
-    styles.bottom = `calc(100% - ${toCssUnit(top.value - threhold)})`
+  if (topValue + menuListHeight.value + threshold > viewportHeight.value) {
+    styles.bottom = `calc(100% - ${toCssUnit(top.value - threshold)})`
   } else {
     styles.top = toCssUnit(topValue)
   }
