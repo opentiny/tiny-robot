@@ -55,11 +55,11 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 
 ### Events
 
-| 事件名              | 参数                                 | 说明             |
-| ------------------- | ------------------------------------ | ---------------- |
-| `item-click`        | `item: T`                            | 点击历史项时触发 |
-| `item-title-change` | `newTitle: string, item: T`          | 标题修改时触发   |
-| `item-action`       | `item: { id: string; text: string }` | 点击菜单项时触发 |
+| 事件名              | 参数                                            | 说明             |
+| ------------------- | ----------------------------------------------- | ---------------- |
+| `item-click`        | `item: T`                                       | 点击历史项时触发 |
+| `item-title-change` | `newTitle: string, item: T`                     | 标题修改时触发   |
+| `item-action`       | `action: { id: string; text: string }, item: T` | 点击菜单项时触发 |
 
 ### CSS 变量
 
@@ -112,11 +112,11 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 
 菜单列表
 
-| 变量名                              | 说明           |
-| ----------------------------------- | -------------- |
-| `--tr-history-menu-list-bg`         | 菜单列表背景色 |
+| 变量名                              | 说明             |
+| ----------------------------------- | ---------------- |
+| `--tr-history-menu-list-bg`         | 菜单列表背景色   |
 | `--tr-history-menu-list-bg-hover`   | 菜单项悬停背景色 |
-| `--tr-history-menu-list-box-shadow` | 菜单列表阴影   |
+| `--tr-history-menu-list-box-shadow` | 菜单列表阴影     |
 
 菜单项
 

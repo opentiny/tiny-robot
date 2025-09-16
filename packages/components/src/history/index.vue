@@ -1,6 +1,6 @@
 <script lang="ts" setup generic="T extends HistoryItem">
 import { IconCheck, IconClose, IconMenu2 } from '@opentiny/tiny-robot-svgs'
-import { computed, ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { useTouchDevice } from '../shared/composables'
 import Empty from './components/Empty.vue'
 import MenuList from './components/MenuList.vue'
@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<HistoryProps<T>>(), {
 const emit = defineEmits<{
   'item-click': [item: T]
   'item-title-change': [newTitle: string, item: T]
-  'item-action': [item: { id: string; text: string }]
+  'item-action': [action: { id: string; text: string }, item: T]
 }>()
 
 const isGroup = <T extends HistoryItem>(data: HistoryData<T>): data is HistoryGroup<T>[] => {
@@ -56,7 +56,7 @@ const {
 const { isTouchDevice } = useTouchDevice()
 
 const menuTriggerEl = ref<HTMLButtonElement | null>(null)
-const menuTriggerItem = ref<T | null>(null)
+const menuTriggerItem = ref<T | null>(null) as Ref<T | null>
 
 const toggleMenu = (ev: MouseEvent, item: T) => {
   if (ev.currentTarget instanceof HTMLButtonElement) {
@@ -74,11 +74,17 @@ const toggleMenu = (ev: MouseEvent, item: T) => {
   }
 }
 
-const handleClickMenuItem = (item: { id: string; text: string }) => {
-  if (item.id === 'rename' && menuTriggerItem.value) {
-    handleEdit(menuTriggerItem.value)
+const handleClickMenuItem = (action: { id: string; text: string }) => {
+  const item = menuTriggerItem.value
+
+  if (!item) {
+    return
   }
-  emit('item-action', { id: item.id, text: item.text })
+
+  if (action.id === 'rename') {
+    handleEdit(item)
+  }
+  emit('item-action', { id: action.id, text: action.text }, item)
 }
 </script>
 
