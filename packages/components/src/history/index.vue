@@ -220,9 +220,11 @@ const handleClickMenuItem = (action: { id: string; text: string }) => {
 .tr-history__item-editor {
   flex: 1;
   font-size: var(--tr-history-item-font-size);
+  line-height: var(--tr-history-item-line-height);
   border: var(--tr-history-item-editor-border-width) solid var(--tr-history-item-editor-border-color);
   border-radius: var(--tr-history-item-editor-border-radius);
   padding: var(--tr-history-item-editor-padding);
+  outline: var(--tr-history-item-editor-outline);
 }
 
 .tr-history__item-actions {
@@ -239,6 +241,7 @@ const handleClickMenuItem = (action: { id: string; text: string }) => {
     cursor: pointer;
     padding: 4px;
     border-radius: 8px;
+    display: inline-flex;
 
     &:hover {
       background: var(--tr-history-item-action-bg-hover);

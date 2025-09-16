@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface HistoryItem {
   id?: string
   title: string
-  [x: string]: unknown
+  [x: string]: any
 }
 
 export interface HistoryGroup<T extends HistoryItem> {
