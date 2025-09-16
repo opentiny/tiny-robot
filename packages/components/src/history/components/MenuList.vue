@@ -1,47 +1,70 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 import { IconDelete, IconEditPen } from '@opentiny/tiny-robot-svgs'
+import { onClickOutside, useElementBounding, useElementSize } from '@vueuse/core'
+import { computed, CSSProperties, ref } from 'vue'
+import { toCssUnit } from '../../shared/utils'
+
+const trigger = defineModel<HTMLButtonElement | null>('trigger', { default: null })
+const data = defineModel<T | null>('data', { default: null })
 
 const emit = defineEmits<{
   'item-click': [item: { id: string; text: string }]
 }>()
 
 const items = [
-  {
-    id: 'rename',
-    text: '重命名',
-    icon: IconEditPen,
-  },
-  {
-    id: 'delete',
-    text: '删除',
-    icon: IconDelete,
-  },
+  { id: 'rename', text: '重命名', icon: IconEditPen },
+  { id: 'delete', text: '删除', icon: IconDelete },
 ]
+
+const menuRef = ref<HTMLUListElement | null>(null)
+
+onClickOutside(
+  menuRef,
+  () => {
+    trigger.value = null
+    data.value = null
+  },
+  {
+    ignore: [trigger],
+  },
+)
+
+const { top, bottom, left } = useElementBounding(trigger)
+const { width: menuListWidth, height: menuListHeight } = useElementSize(menuRef, undefined, { box: 'border-box' })
+
+const menuListGap = 12
+const threhold = 4
+
+const styles = computed(() => {
+  const styles: CSSProperties = {
+    left: `min(${toCssUnit(left.value)}, calc(100% - ${toCssUnit(menuListWidth.value + threhold)}))`,
+  }
+
+  const topValue = bottom.value + menuListGap
+  if (topValue + menuListHeight.value + threhold > window.innerHeight) {
+    styles.bottom = `calc(100% - ${toCssUnit(top.value - threhold)})`
+  } else {
+    styles.top = toCssUnit(topValue)
+  }
+
+  return styles
+})
 
 const handleItemClick = (item: { id: string; text: string }) => {
   emit('item-click', item)
+  trigger.value = null
+  data.value = null
 }
 </script>
 
 <template>
-  <ul class="tr-history__menu-list">
+  <ul class="tr-history__menu-list" ref="menuRef" :style="styles">
     <li class="tr-history__menu-list__item" v-for="item in items" :key="item.id" @click="handleItemClick(item)">
       <component :is="item.icon" />
       <span>{{ item.text }}</span>
     </li>
   </ul>
 </template>
-
-<style lang="less">
-:root {
-  --tr-history-menu-list-bg: var(--tr-container-bg-default);
-  --tr-history-menu-list-bg-hover: var(--tr-container-bg-hover);
-  --tr-history-menu-list-box-shadow: var(--tr-shadow-sm);
-
-  --tr-history-menu-item-color: var(--tr-text-primary);
-  --tr-history-menu-item-text-color-hover: var(--tr-color-primary);
-}
-</style>
 
 <style lang="less" scoped>
 .tr-history__menu-list {

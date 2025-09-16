@@ -1,17 +1,28 @@
 import { ref } from 'vue'
 
 const isTouchDevice = ref(false)
-
-const applyTouchDevice = () => {
-  isTouchDevice.value = navigator.maxTouchPoints > 0
-}
-
-if (typeof window !== 'undefined') {
-  applyTouchDevice()
-
-  window.addEventListener('resize', applyTouchDevice)
-}
+let initialized = false
 
 export function useTouchDevice() {
-  return isTouchDevice
+  if (!initialized) {
+    initialized = true
+
+    const mql = window.matchMedia('(hover: none) and (pointer: coarse)')
+    const updatePrimaryInput = () => {
+      isTouchDevice.value = mql.matches
+    }
+    updatePrimaryInput()
+
+    mql.addEventListener('change', updatePrimaryInput)
+
+    const handlePointer = (e: PointerEvent) => {
+      // mouse → 非触控；其他（touch/pen）→ 触控
+      isTouchDevice.value = e.pointerType !== 'mouse'
+    }
+    window.addEventListener('pointerdown', handlePointer, true)
+  }
+
+  return {
+    isTouchDevice,
+  }
 }

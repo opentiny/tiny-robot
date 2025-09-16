@@ -1,10 +1,9 @@
 <script lang="ts" setup generic="T extends HistoryItem">
 import { IconCheck, IconClose, IconMenu2 } from '@opentiny/tiny-robot-svgs'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useTouchDevice } from '../shared/composables'
 import Empty from './components/Empty.vue'
 import MenuList from './components/MenuList.vue'
-import { useMenuList } from './composables/useMenuList'
 import { useRenameEditor } from './composables/useRenameEditor'
 import { NO_GROUP } from './constants'
 import type { HistoryData, HistoryGroup, HistoryItem, HistoryProps } from './index.type'
@@ -34,9 +33,14 @@ const groups = computed(() => {
   return [{ group: NO_GROUP, items: value }]
 })
 
+const isEmpty = computed(() => {
+  return groups.value.length === 0 || groups.value.every((group) => group.items.length === 0)
+})
+
 const {
   editingItem,
   editorRefList,
+  editorConfirmRefList,
   editorCancelRefList,
   editorValue,
   handleEdit,
@@ -49,20 +53,33 @@ const {
   },
 })
 
-const isTouchDevice = useTouchDevice()
+const { isTouchDevice } = useTouchDevice()
 
-const { opendedMenuItem, menuListRef, menuListStyle, handleClickMenu, handleClickMenuItem } = useMenuList<T>({
-  onItemAction: (item, editingItem) => {
-    if (item.id === 'rename') {
-      handleEdit(editingItem)
+const menuTriggerEl = ref<HTMLButtonElement | null>(null)
+const menuTriggerItem = ref<T | null>(null)
+
+const toggleMenu = (ev: MouseEvent, item: T) => {
+  if (ev.currentTarget instanceof HTMLButtonElement) {
+    if (menuTriggerItem.value === item) {
+      menuTriggerEl.value = null
+      menuTriggerItem.value = null
+      return
     }
-    emit('item-action', { id: item.id, text: item.text })
-  },
-})
 
-const isEmpty = computed(() => {
-  return groups.value.length === 0 || groups.value.every((group) => group.items.length === 0)
-})
+    menuTriggerEl.value = ev.currentTarget
+    menuTriggerItem.value = item
+  } else {
+    menuTriggerEl.value = null
+    menuTriggerItem.value = null
+  }
+}
+
+const handleClickMenuItem = (item: { id: string; text: string }) => {
+  if (item.id === 'rename' && menuTriggerItem.value) {
+    handleEdit(menuTriggerItem.value)
+  }
+  emit('item-action', { id: item.id, text: item.text })
+}
 </script>
 
 <template>
@@ -76,7 +93,7 @@ const isEmpty = computed(() => {
             :class="{
               selected: item.id && item.id === props.selected,
               editing: editingItem === item,
-              active: opendedMenuItem === item,
+              active: menuTriggerItem === item,
             }"
             v-for="(item, index) in group.items"
             :key="item.id || index"
@@ -89,12 +106,15 @@ const isEmpty = computed(() => {
               @click.stop
               ref="editorRefList"
               v-model="editorValue"
+              @keydown.enter="handleEditConfirm"
+              @keydown.escape="handleEditCancel"
             />
             <span class="text" v-else :title="item.title">{{ item.title }}</span>
             <span class="tr-history__item-actions" @click.stop>
               <button
                 class="editor-confirm"
                 v-if="props.showRenameControls && editingItem === item"
+                ref="editorConfirmRefList"
                 @click="handleEditConfirm"
               >
                 <IconCheck></IconCheck>
@@ -107,14 +127,19 @@ const isEmpty = computed(() => {
               >
                 <IconClose></IconClose>
               </button>
-              <button class="menu" :class="{ hidden: editingItem === item }" @click="(ev) => handleClickMenu(ev, item)">
+              <button class="menu" :class="{ hidden: editingItem === item }" @click="(ev) => toggleMenu(ev, item)">
                 <IconMenu2></IconMenu2>
               </button>
             </span>
           </div>
         </div>
       </div>
-      <MenuList v-show="opendedMenuItem" ref="menuListRef" :style="menuListStyle" @item-click="handleClickMenuItem" />
+      <MenuList
+        v-show="menuTriggerEl"
+        v-model:trigger="menuTriggerEl"
+        v-model:data="menuTriggerItem"
+        @item-click="handleClickMenuItem"
+      />
     </template>
     <Empty v-else />
   </div>
@@ -161,6 +186,7 @@ const isEmpty = computed(() => {
 
   cursor: pointer;
   display: flex;
+  align-items: center;
   gap: 8px;
 
   &:hover,
@@ -178,7 +204,6 @@ const isEmpty = computed(() => {
   }
 
   & > .text {
-    display: block;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;

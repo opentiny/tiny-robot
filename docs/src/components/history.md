@@ -109,3 +109,18 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | 变量名                       | 说明         |
 | ---------------------------- | ------------ |
 | `--tr-history-empty-padding` | 空状态内边距 |
+
+菜单列表
+
+| 变量名                              | 说明           |
+| ----------------------------------- | -------------- |
+| `--tr-history-menu-list-bg`         | 菜单列表背景色 |
+| `--tr-history-menu-list-bg-hover`   | 菜单项悬停背景色 |
+| `--tr-history-menu-list-box-shadow` | 菜单列表阴影   |
+
+菜单项
+
+| 变量名                                    | 说明               |
+| ----------------------------------------- | ------------------ |
+| `--tr-history-menu-item-color`            | 菜单项文字颜色     |
+| `--tr-history-menu-item-text-color-hover` | 菜单项悬停文字颜色 |

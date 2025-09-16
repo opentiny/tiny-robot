@@ -1,5 +1,5 @@
 import { onClickOutside } from '@vueuse/core'
-import { computed, nextTick, ref, watch, type Ref } from 'vue'
+import { computed, nextTick, ref, type Ref } from 'vue'
 
 export interface UseRenameEditorProps<T extends { title: string }> {
   renameControlOnClickOutside?: 'confirm' | 'cancel' | 'none'
@@ -9,6 +9,7 @@ export interface UseRenameEditorProps<T extends { title: string }> {
 export interface UseRenameEditorReturn<T extends { title: string }> {
   editingItem: Ref<T | undefined>
   editorRefList: Ref<HTMLInputElement[] | null>
+  editorConfirmRefList: Ref<HTMLButtonElement[] | null>
   editorCancelRefList: Ref<HTMLButtonElement[] | null>
   editorValue: Ref<string>
   handleEdit: (item: T) => void
@@ -23,6 +24,8 @@ export const useRenameEditor = <T extends { title: string }>({
   const editingItem = ref<T | undefined>(undefined) as Ref<T | undefined>
   const editorRefList = ref<HTMLInputElement[] | null>(null)
   const editorRef = computed(() => editorRefList.value?.at(0))
+  const editorConfirmRefList = ref<HTMLButtonElement[] | null>(null)
+  const editorConfirmRef = computed(() => editorConfirmRefList.value?.at(0))
   const editorCancelRefList = ref<HTMLButtonElement[] | null>(null)
   const editorCancelRef = computed(() => editorCancelRefList.value?.at(0))
   const editorValue = ref<string>('')
@@ -62,33 +65,14 @@ export const useRenameEditor = <T extends { title: string }>({
           handleEditCancel()
         }
       },
-      { ignore: [editorCancelRef] },
+      { ignore: [editorConfirmRef, editorCancelRef] },
     )
   }
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleEditConfirm()
-    } else if (e.key === 'Escape') {
-      handleEditCancel()
-    }
-  }
-
-  watch(editorRef, (inputRef, _, onCleanup) => {
-    if (!inputRef) {
-      return
-    }
-
-    inputRef.addEventListener('keydown', handleKeyDown)
-
-    onCleanup(() => {
-      inputRef.removeEventListener('keydown', handleKeyDown)
-    })
-  })
 
   return {
     editingItem,
     editorRefList,
+    editorConfirmRefList,
     editorCancelRefList,
     editorValue,
     handleEdit,
