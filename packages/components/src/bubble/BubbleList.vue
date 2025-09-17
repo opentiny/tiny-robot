@@ -41,10 +41,10 @@ const lastBubbleCustomContentLength = computed(() => {
 })
 
 watch(
-  [() => props.items.length, () => lastBubble.value?.content, () => lastBubbleCustomContentLength.value],
-  () => {
+  () => [props.autoScroll, props.items.length, lastBubble.value?.content, lastBubbleCustomContentLength.value] as const,
+  ([autoScroll]) => {
     nextTick(() => {
-      if (!props.autoScroll || !scrollContainerRef.value) {
+      if (!autoScroll || !scrollContainerRef.value) {
         return
       }
 
