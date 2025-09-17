@@ -20,6 +20,8 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
   // 处理流式数据
   const decoder = new TextDecoder()
   let buffer = ''
+  let finishReason: string | undefined
+  let lastestFinishReason: string | undefined
 
   if (signal) {
     signal.addEventListener(
@@ -52,7 +54,11 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
       for (const line of lines) {
         if (line.trim() === '') continue
         if (line.trim() === 'data: [DONE]') {
-          handler.onDone()
+          if (lastestFinishReason) {
+            finishReason = lastestFinishReason
+          }
+
+          handler.onDone(finishReason)
           continue
         }
 
@@ -63,6 +69,7 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
 
           const data = JSON.parse(dataMatch[1]) as ChatCompletionStreamResponse
           handler.onData(data)
+          lastestFinishReason = data.choices?.[0]?.finish_reason || undefined
         } catch (error) {
           console.error('Error parsing SSE message:', error)
         }
@@ -70,7 +77,10 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
     }
 
     if (buffer.trim() === 'data: [DONE]' || signal?.aborted) {
-      handler.onDone()
+      if (signal?.aborted) {
+        finishReason = 'aborted'
+      }
+      handler.onDone(finishReason)
     }
   } catch (error) {
     if (signal?.aborted) return
