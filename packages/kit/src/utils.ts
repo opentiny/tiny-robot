@@ -21,7 +21,7 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
   const decoder = new TextDecoder()
   let buffer = ''
   let finishReason: string | undefined
-  let lastestFinishReason: string | undefined
+  let latestFinishReason: string | undefined
 
   if (signal) {
     signal.addEventListener(
@@ -54,8 +54,8 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
       for (const line of lines) {
         if (line.trim() === '') continue
         if (line.trim() === 'data: [DONE]') {
-          if (lastestFinishReason) {
-            finishReason = lastestFinishReason
+          if (latestFinishReason) {
+            finishReason = latestFinishReason
           }
 
           handler.onDone(finishReason)
@@ -69,7 +69,7 @@ export async function handleSSEStream(response: Response, handler: StreamHandler
 
           const data = JSON.parse(dataMatch[1]) as ChatCompletionStreamResponse
           handler.onData(data)
-          lastestFinishReason = data.choices?.[0]?.finish_reason || undefined
+          latestFinishReason = data.choices?.[0]?.finish_reason || undefined
         } catch (error) {
           console.error('Error parsing SSE message:', error)
         }

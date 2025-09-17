@@ -186,6 +186,9 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
           }
 
           if (!defaultPrevented) {
+            if (finishReason === 'aborted' || messageState.status === STATUS.ABORTED) {
+              return
+            }
             messageState.status = STATUS.FINISHED
           }
         },
