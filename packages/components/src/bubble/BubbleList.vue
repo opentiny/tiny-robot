@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Bubble from './Bubble.vue'
 import { BubbleListProps } from './index.type'
 
@@ -43,11 +43,13 @@ const lastBubbleCustomContentLength = computed(() => {
 watch(
   [() => props.items.length, () => lastBubble.value?.content, () => lastBubbleCustomContentLength.value],
   () => {
-    if (!props.autoScroll || !scrollContainerRef.value) {
-      return
-    }
+    nextTick(() => {
+      if (!props.autoScroll || !scrollContainerRef.value) {
+        return
+      }
 
-    y.value = scrollContainerRef.value.scrollHeight
+      y.value = scrollContainerRef.value.scrollHeight
+    })
   },
   { deep: true },
 )
