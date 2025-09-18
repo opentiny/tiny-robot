@@ -177,3 +177,8 @@ body,
 .VPFeatures .items .item:hover {
   transform: translateY(-5px);
 }
+
+.main-content > .Layout {
+  min-height: calc(100vh - 113px);
+  min-height: calc(100dvh - 113px);
+}

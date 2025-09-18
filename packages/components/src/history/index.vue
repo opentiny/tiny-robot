@@ -181,6 +181,14 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
 
 .tr-history__group {
   margin-block: var(--tr-history-group-space-y);
+
+  &:first-of-type {
+    margin-block-start: 0;
+  }
+
+  &:last-of-type {
+    margin-block-end: 0;
+  }
 }
 
 .tr-history__group-title {
@@ -202,6 +210,15 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
   align-items: center;
   gap: 8px;
 
+  margin-block: var(--tr-history-item-space-y);
+  &:first-of-type {
+    margin-block-start: 0;
+  }
+
+  &:last-of-type {
+    margin-block-end: 0;
+  }
+
   &:hover,
   &.active {
     background: var(--tr-history-item-hover-bg);
@@ -214,6 +231,7 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
 
   &.selected {
     background: var(--tr-history-item-selected-bg);
+    color: var(--tr-history-item-selected-color);
   }
 
   & > .text {
