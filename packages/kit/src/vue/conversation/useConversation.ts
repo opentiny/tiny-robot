@@ -77,6 +77,10 @@ export interface ConversationState {
   loading: boolean
 }
 
+export type UseConversationEvents = UseMessageOptions['events'] & {
+  onLoaded?: (conversations: Conversation[]) => void
+}
+
 /**
  * useConversation选项接口
  */
@@ -93,7 +97,8 @@ export interface UseConversationOptions {
   useStreamByDefault?: boolean
   /** 错误消息模板 */
   errorMessage?: string
-  events?: UseMessageOptions['events']
+  /** 事件回调 */
+  events?: UseConversationEvents
 }
 
 /**
@@ -146,6 +151,7 @@ export function useConversation(options: UseConversationOptions): UseConversatio
     allowEmpty = false,
     useStreamByDefault = true,
     errorMessage = '请求失败，请稍后重试',
+    events,
   } = options
 
   // 会话状态
@@ -155,13 +161,19 @@ export function useConversation(options: UseConversationOptions): UseConversatio
     loading: false,
   })
 
+  // 标记是否已经触发过 onLoaded 回调
+  let hasTriggeredOnLoaded = false
+
   // 消息管理
   const messageManager = useMessage({
     client,
     useStreamByDefault,
     errorMessage,
     initialMessages: [],
-    events: options.events,
+    events: {
+      onReceiveData: events?.onReceiveData,
+      onFinish: events?.onFinish,
+    },
   })
 
   // 监听消息变化，自动更新会话
@@ -302,6 +314,12 @@ export function useConversation(options: UseConversationOptions): UseConversatio
       // 如果有会话，默认选中第一个
       if (conversations.length > 0 && !state.currentId) {
         switchConversation(conversations[0].id)
+      }
+
+      // 仅在第一次加载完成后触发 onLoaded 回调
+      if (!hasTriggeredOnLoaded && events?.onLoaded) {
+        hasTriggeredOnLoaded = true
+        events.onLoaded(conversations)
       }
     } catch (error) {
       console.error('加载会话失败:', error)

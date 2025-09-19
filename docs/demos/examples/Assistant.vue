@@ -448,10 +448,20 @@ const { messageManager, state, createConversation, updateTitle, switchConversati
         // preventDefault()
         console.log(data)
       },
+      onLoaded: (conversations) => {
+        console.log(conversations)
+      },
     },
   })
 
-const { messages, messageState, inputMessage, sendMessage, abortRequest } = messageManager
+const { messages, messageState, inputMessage, sendMessage: _sendMessage, abortRequest } = messageManager
+
+const sendMessage = (...args: Parameters<typeof _sendMessage>) => {
+  if (!state.currentId) {
+    createConversation()
+  }
+  _sendMessage(...args)
+}
 
 const handlePromptItemClick = (ev: unknown, item: { description?: string }) => {
   sendMessage(item.description)
