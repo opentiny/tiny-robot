@@ -121,6 +121,26 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 结合 `buttonGroup` 属性，您可以实现更复杂的交互逻辑。例如，通过监听 `files-selected` 事件返回的文件列表，动态地禁用上传按钮或提交按钮，并更新其 `tooltips` 提示信息，以引导用户操作。
 
+**自定义 Tooltip 位置**
+
+通过 `buttonGroup.file.tooltipPlacement` 属性可以自定义文件上传按钮的 tooltip 弹窗位置：
+
+```vue
+<tr-sender 
+  :allowFiles="true" 
+  :buttonGroup="{
+    file: {
+      tooltips: '点击上传文件',
+      tooltipPlacement: 'bottom' // 自定义 tooltip 位置
+    }
+  }"
+/>
+```
+
+支持的位置选项：`'top'` | `'top-start'` | `'top-end'` | `'bottom'` | `'bottom-start'` | `'bottom-end'` | `'left'` | `'left-start'` | `'left-end'` | `'right'` | `'right-start'` | `'right-end'`
+
+默认值为 `'top'`。
+
 <demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="Sender 组件支持文件上传功能，并可通过 buttonGroup 动态控制按钮状态。" />
 
 #### 模版填充
@@ -370,6 +390,7 @@ interface SpeechConfig {
 export interface ControlState {
   tooltips?: string | Function // 工具提示
   disabled?: boolean // 是否禁用
+  tooltipPlacement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end' | 'right' | 'right-start' | 'right-end' // tooltip 弹窗位置
 }
 
 interface fileUploadConfig {

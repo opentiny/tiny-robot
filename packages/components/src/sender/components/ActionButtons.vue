@@ -166,6 +166,11 @@ const handleUpload = () => {
     emit('trigger-select')
   }
 }
+
+/**
+ * 文件上传按钮 tooltip 位置
+ */
+const fileTooltipPlacement = computed(() => props.buttonGroup?.file?.tooltipPlacement || 'top')
 </script>
 
 <template>
@@ -180,7 +185,7 @@ const handleUpload = () => {
       <template v-if="allowFiles && !loading">
         <tiny-tooltip
           effect="light"
-          placement="top-end"
+          :placement="fileTooltipPlacement"
           :render-content="fileTooltipRenderFn"
           :visible-arrow="false"
           popper-class="tr-sender-actions-upload-button-popper"

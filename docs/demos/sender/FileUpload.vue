@@ -1,12 +1,16 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 20px">
-    <tr-sender
-      mode="multiple"
-      :allow-files="true"
-      :button-group="buttonGroup"
-      @files-selected="handleFilesSelected"
-      @submit="handleSubmit"
-    />
+    <!-- 默认位置 (top) -->
+    <div>
+      <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #666">默认 Tooltip 位置 (top)</h4>
+      <tr-sender
+        mode="multiple"
+        :allow-files="true"
+        :button-group="buttonGroup"
+        @files-selected="handleFilesSelected"
+        @submit="handleSubmit"
+      />
+    </div>
   </div>
 </template>
 
