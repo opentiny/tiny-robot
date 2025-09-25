@@ -5,8 +5,8 @@
       <div class="header-top">
         <!-- Logo 区域 -->
         <div class="logo-section">
-          <a href="/" class="logo-link">
-            <img src="/logo-mini.svg" alt="TinyRobot" class="logo-icon" />
+          <a href="/tiny-robot/" class="logo-link">
+            <img src="/tiny-robot/public/logo-mini.svg" alt="TinyRobot" class="logo-icon" />
             <span class="logo-text">{{ site.title }}</span>
           </a>
         </div>

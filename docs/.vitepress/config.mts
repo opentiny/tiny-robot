@@ -22,7 +22,6 @@ const prodAlias = {
 export default defineConfig({
   title: 'TinyRobot',
   description: 'TinyRobot',
-  srcDir: 'src',
   outDir: 'dist',
   base: process.env.VITEPRESS_BASE || '/',
   head: [['link', { rel: 'icon', href: '/logo-mini.svg' }]],
@@ -45,17 +44,17 @@ export default defineConfig({
     logo: '/cdocs/tiny-robot/logo-mini.svg',
     siteTitle: 'TinyRobot',
     nav: [
-      { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },
-      { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
-      { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
-      { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
-      { text: `v${version}`, link: '/releases/update-log', activeMatch: '/releases/' },
+      { text: '指南', link: '/tiny-robot/guide/installation', activeMatch: '/tiny-robot/guide/' },
+      { text: '组件', link: '/tiny-robot/components/bubble', activeMatch: '/tiny-robot/components/' },
+      { text: '工具', link: '/tiny-robot/tools/ai-client', activeMatch: '/tiny-robot/tools/' },
+      { text: '演示', link: '/tiny-robot/examples/assistant', activeMatch: '/tiny-robot/examples/' },
+      { text: `v${version}`, link: '/tiny-robot/releases/update-log', activeMatch: '/tiny-robot/releases/' },
     ],
     sidebar: {
-      '/components/': [
+      '/tiny-robot/components/': [
         {
           text: '组件',
-          base: '/components/',
+          base: '/tiny-robot/components/',
           items: [
             { text: 'Container 容器', link: 'container' },
             { text: 'Bubble 气泡', link: 'bubble' },
@@ -74,10 +73,10 @@ export default defineConfig({
           ],
         },
       ],
-      '/tools/': [
+      '/tiny-robot/tools/': [
         {
           text: '工具',
-          base: '/tools/',
+          base: '/tiny-robot/tools/',
           items: [
             { text: 'AI模型交互工具类', link: 'ai-client' },
             { text: '消息数据管理', link: 'message' },
