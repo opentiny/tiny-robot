@@ -1,0 +1,1 @@
+import{w as o}from"./theme.DkkYkddJ.js";import{d as l,c as r,o as a,j as t,G as s,k as n}from"./framework.CSeOnaMy.js";const p={style:{display:"flex","flex-direction":"column",gap:"20px"}},f=l({__name:"Mode",setup(d){return(m,e)=>(a(),r("div",p,[e[0]||(e[0]=t("h4",null,"单行模式",-1)),s(n(o)),e[1]||(e[1]=t("h4",null,"多行模式",-1)),s(n(o),{mode:"multiple"})]))}});export{f as default};
