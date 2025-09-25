@@ -1,0 +1,1 @@
+import{_ as i,c as a,o as t,a2 as l}from"./chunks/framework.CSeOnaMy.js";const g=JSON.parse('{"title":"文档","description":"","frontmatter":{},"headers":[],"relativePath":"README.md","filePath":"README.md"}'),n={name:"README.md"};function h(e,s,p,k,E,r){return t(),a("div",null,[...s[0]||(s[0]=[l("",10)])])}const o=i(n,[["render",h]]);export{g as __pageData,o as default};
