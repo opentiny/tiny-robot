@@ -51,7 +51,7 @@ const roles: Record<string, BubbleRoleConfig> = {
       default: ({ bubbleProps }) => {
         return h('div', { style: { color: 'red' } }, bubbleProps.content)
       },
-      footer: ({ bubbleProps }) => {
+      footer: ({ bubbleProps, index }) => {
         return h(TrFeedback, {
           actions: [
             { name: 'refresh', label: '刷新', icon: 'refresh' },
@@ -60,8 +60,12 @@ const roles: Record<string, BubbleRoleConfig> = {
           onAction(name) {
             console.log(name)
             console.log(bubbleProps.content)
+            console.log(index, items[index!])
           },
         })
+      },
+      trailer: ({ index }) => {
+        return h('div', {}, `尾部插槽，列表索引：${index}`)
       },
     },
   },
@@ -69,6 +73,11 @@ const roles: Record<string, BubbleRoleConfig> = {
     placement: 'end',
     avatar: userAvatar,
     maxWidth: '80%',
+    slots: {
+      trailer: ({ index }) => {
+        return h('div', {}, `尾部插槽，列表索引：${index}`)
+      },
+    },
   },
 }
 </script>

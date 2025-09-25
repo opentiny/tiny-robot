@@ -100,29 +100,32 @@ const style = computed(() => {
         <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
       </div>
     </slot>
-    <div v-else :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-      <template v-if="contentItems.length">
-        <div class="tr-bubble__content-items">
-          <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
+    <div v-else class="tr-bubble__content-wrapper">
+      <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
+        <template v-if="contentItems.length">
+          <div class="tr-bubble__content-items">
+            <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
+          </div>
+        </template>
+        <template v-else>
+          <slot :bubble-props="props">
+            <template v-if="contentRenderer">
+              <component
+                v-if="contentRenderer.isComponent"
+                :is="contentRenderer.vNodeOrComponent"
+                v-bind="props"
+              ></component>
+              <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+            </template>
+            <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
+          </slot>
+        </template>
+        <span v-if="props.aborted" class="tr-bubble__aborted">{{ props.abortedText }}</span>
+        <div v-if="slots.footer" class="tr-bubble__footer">
+          <slot name="footer" :bubble-props="props"></slot>
         </div>
-      </template>
-      <template v-else>
-        <slot :bubble-props="props">
-          <template v-if="contentRenderer">
-            <component
-              v-if="contentRenderer.isComponent"
-              :is="contentRenderer.vNodeOrComponent"
-              v-bind="props"
-            ></component>
-            <component v-else :is="contentRenderer.vNodeOrComponent"></component>
-          </template>
-          <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
-        </slot>
-      </template>
-      <span v-if="props.aborted" class="tr-bubble__aborted">{{ props.abortedText }}</span>
-      <div v-if="slots.footer" class="tr-bubble__footer">
-        <slot name="footer" :bubble-props="props"></slot>
       </div>
+      <slot name="trailer" :bubble-props="props"></slot>
     </div>
   </div>
 </template>
@@ -141,6 +144,7 @@ const style = computed(() => {
   --max-width: var(--tr-bubble-max-width);
   --avatar-size: var(--tr-bubble-avatar-size);
   --content-padding: var(--tr-bubble-content-padding);
+  --content-border: var(--tr-bubble-content-border);
   --text-font-size: var(--tr-bubble-text-font-size);
   --text-line-height: var(--tr-bubble-text-line-height);
   --loading-size: var(--tr-bubble-loading-size);
@@ -157,6 +161,10 @@ const style = computed(() => {
   &.placement-start {
     flex-direction: row;
 
+    .tr-bubble__content-wrapper {
+      align-items: flex-start;
+    }
+
     .tr-bubble__content.border-corner {
       border-top-left-radius: 0;
     }
@@ -165,6 +173,10 @@ const style = computed(() => {
   &.placement-end {
     flex-direction: row-reverse;
     margin-left: auto;
+
+    .tr-bubble__content-wrapper {
+      align-items: flex-end;
+    }
 
     .tr-bubble__content.border-corner {
       border-top-right-radius: 0;
@@ -186,11 +198,17 @@ const style = computed(() => {
   height: var(--loading-size);
 }
 
+.tr-bubble__content-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 .tr-bubble__content {
   background-color: var(--content-bg);
   padding: var(--content-padding);
   border-radius: var(--content-border-radius);
   box-shadow: var(--content-box-shadow);
+  border: var(--content-border);
 
   .tr-bubble__content-items {
     display: flex;

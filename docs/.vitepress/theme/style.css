@@ -22,7 +22,7 @@ body,
 
 /* ===== VitePress Demo 插件样式 ===== */
 .vitepress-demo-plugin__container {
-  background-color: #fff;
+  background-color: #fafafa;
   border-radius: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
