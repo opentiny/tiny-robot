@@ -8,7 +8,8 @@ body,
 
   --rainbow-prev: #009ff7;
   --rainbow-next: #c76dd1;
-
+  --vp-c-brand-soft: rgba(25, 25, 52, 0.1);
+  --vp-c-brand-1: #191919;
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: -webkit-linear-gradient(120deg, var(--rainbow-prev) 30%, var(--rainbow-next));
   --vp-home-hero-image-background-image: linear-gradient(-45deg, var(--rainbow-prev) 30%, var(--rainbow-next));
@@ -21,7 +22,7 @@ body,
 
 /* ===== VitePress Demo 插件样式 ===== */
 .vitepress-demo-plugin__container {
-  background-color: #f5f5f5;
+  background-color: #fff;
   border-radius: 0.5rem;
   border: 1px solid rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
@@ -66,26 +67,49 @@ body,
 
 /* 侧边栏项目样式增强 */
 .VPSidebarItem .link {
-  border-radius: 6px;
+  border-radius: 12px;
   transition: all 0.2s ease;
   position: relative;
-  margin: 2px 0;
-  padding: 0 8px;
 }
 
 .VPSidebarItem .link:hover {
-  padding: 0 8px;
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
+  background: rgba(25, 25, 25, 0.05);
+  color: rgb(23, 23, 23);
 }
 
 .VPSidebarItem.is-active .link {
-  padding: 0 8px;
-  background-color: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
+  background-color:#F5FAFF;
   font-weight: 600;
 }
 
+.VPSidebarItem.is-active.level-1 .text {
+  font-weight: 600;
+}
+
+.VPSidebarItem.level-1.is-link.is-active.has-active > .item .link > .text {
+  color: #1476FF;
+}
+.main-content .group{
+  margin-top: 22px;
+}
+
+.main-content .item .text{
+ padding: 0 0 10px;
+}
+.main-content .items{
+  margin-left: -16px;
+  border-radius: 12px;
+}
+.main-content .items .item .link{
+  padding: 0;
+  margin: 0;
+  padding-left: 16px;
+  height: 36px;
+  line-height: 36px;
+}
+.main-content .items .item .text{
+ padding: 0;
+}
 /* 侧边栏分组标题增强 */
 .VPSidebarGroup .title {
   font-weight: 700;
@@ -112,9 +136,25 @@ body,
 .VPDoc {
   padding-top: 2rem;
 }
+.VPDoc .vp-doc .vp-adaptive-theme{
+  background: #ffffff;
+  border: 1px solid #E8E8E8;
+}
 
 .VPDocAside {
   padding-top: 10px;
+}
+.VPDocAside .content{
+  border-left-color: #fff;
+}
+
+.outline-link.active{
+  color: #191919;
+  font-weight: 600;
+}
+
+.outline-marker{
+  display: none;
 }
 
 /* ===== 搜索功能增强 ===== */
@@ -163,12 +203,6 @@ body,
   font-size: 0.9em;
 }
 
-/* ===== 响应式布局 ===== */
-@media (min-width: 960px) {
-  .VPSidebar {
-    padding-top: var(--vp-sidebar-nav-padding-top) !important;
-  }
-}
 
 .VPFeatures .items .item {
   transition: transform 0.3s;
@@ -181,4 +215,11 @@ body,
 .main-content > .Layout {
   min-height: calc(100vh - 113px);
   min-height: calc(100dvh - 113px);
+}
+
+/* ===== 响应式布局 ===== */
+@media (min-width: 960px) {
+  .VPSidebar {
+    padding-top: var(--vp-sidebar-nav-padding-top) !important;
+  }
 }
