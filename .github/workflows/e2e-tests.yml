@@ -24,8 +24,8 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
         uses: actions/checkout@v4
         with:
-          # 当是 PR 时，确保我们检出的是 PR 的最新代码，而不是合并后的代码
-          ref: ${{ github.ref_name }}
+          # 对于源仓库 PR，确认检出最新的代码
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       # 场景 B: 当工作流由外部 fork 仓库的 PR 触发时，执行此步骤
       - name: Checkout for Fork PR
