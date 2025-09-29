@@ -165,5 +165,5 @@ export enum StreamEventType {
 export interface StreamHandler {
   onData: (data: ChatCompletionStreamResponse) => void
   onError: (error: AIAdapterError) => void
-  onDone: () => void
+  onDone: (finishReason?: string) => void
 }

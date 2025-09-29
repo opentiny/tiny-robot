@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useScroll } from '@vueuse/core'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Bubble from './Bubble.vue'
 import { BubbleListProps } from './index.type'
 
@@ -12,37 +12,62 @@ const { y } = useScroll(scrollContainerRef, {
   throttle: 100,
 })
 const lastBubble = computed(() => props.items.at(-1))
+const lastBubbleCustomContentLength = computed(() => {
+  if (!lastBubble.value) {
+    return 0
+  }
 
-watch(
-  [() => props.items.length, () => lastBubble.value?.content],
-  () => {
-    if (!props.autoScroll || !scrollContainerRef.value) {
-      return
+  const customContentField =
+    lastBubble.value.customContentField || props.roles?.[lastBubble.value.role || '']?.customContentField
+
+  if (!customContentField) {
+    return 0
+  }
+
+  const bubble = lastBubble.value as Record<string, unknown>
+
+  if (Array.isArray(bubble[customContentField])) {
+    const lastItem = bubble[customContentField].at(-1)
+    if (lastItem && typeof lastItem === 'object' && 'content' in lastItem) {
+      try {
+        return JSON.stringify(lastItem.content).length
+      } catch {}
     }
 
-    y.value = scrollContainerRef.value.scrollHeight
+    return bubble[customContentField].length
+  }
+
+  return 0
+})
+
+watch(
+  () => [props.autoScroll, props.items.length, lastBubble.value?.content, lastBubbleCustomContentLength.value] as const,
+  ([autoScroll]) => {
+    nextTick(() => {
+      if (!autoScroll || !scrollContainerRef.value) {
+        return
+      }
+
+      y.value = scrollContainerRef.value.scrollHeight
+    })
   },
   { deep: true },
 )
 
 const processedItems = computed(() => {
-  return props.items
-    .map((item) => {
-      const roleConfig = item.role ? props.roles?.[item.role] || {} : {}
-      if (roleConfig.hidden) {
-        return null
-      }
+  return props.items.map((item, index) => {
+    const roleConfig = item.role ? props.roles?.[item.role] || {} : {}
+    const { slots: roleSlots, hidden, ...restConfig } = roleConfig
+    const { slots: itemSlots, ...restItem } = item
 
-      const { slots: roleSlots, hidden: _hidden, ...restConfig } = roleConfig
-      const { slots: itemSlots, ...restItem } = item
-
-      return {
-        id: item.id,
-        props: { ...restConfig, ...restItem, 'data-role': item.role },
-        slots: { ...roleSlots, ...itemSlots },
-      }
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    return {
+      id: item.id,
+      index,
+      hidden: Boolean(hidden),
+      props: { ...restConfig, ...restItem, 'data-role': item.role },
+      slots: { ...roleSlots, ...itemSlots },
+    }
+  })
 })
 
 const loadingBubble = computed(() => {
@@ -58,11 +83,13 @@ const loadingBubble = computed(() => {
 
 <template>
   <div class="tr-bubble-list" ref="scrollContainerRef">
-    <Bubble v-for="(item, index) in processedItems" :key="item.id || index" v-bind="item.props">
-      <template v-for="(slot, slotName) in item.slots" #[slotName]="slotProps" :key="slotName">
-        <component :is="slot" v-bind="slotProps" />
-      </template>
-    </Bubble>
+    <template v-for="(item, index) in processedItems" :key="item.id || index">
+      <Bubble v-if="!item.hidden" v-bind="item.props">
+        <template v-for="(slot, slotName) in item.slots" #[slotName]="slotProps" :key="slotName">
+          <component :is="slot" v-bind="{ ...slotProps, index: item.index }" />
+        </template>
+      </Bubble>
+    </template>
 
     <Bubble v-if="loadingBubble" v-bind="loadingBubble.props">
       <template v-for="(slot, slotName) in loadingBubble.slots" #[slotName]="slotProps" :key="slotName">

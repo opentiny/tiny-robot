@@ -46,9 +46,10 @@ export interface BubbleProps extends BubbleCommonProps {
 }
 
 export interface BubbleSlots {
-  default?: (slotProps: { bubbleProps: BubbleProps }) => unknown
-  footer?: (slotProps: { bubbleProps: BubbleProps }) => unknown
-  loading?: (slotProps: { bubbleProps: BubbleProps }) => unknown
+  default?: (slotProps: { bubbleProps: BubbleProps; index?: number }) => unknown
+  footer?: (slotProps: { bubbleProps: BubbleProps; index?: number }) => unknown
+  loading?: (slotProps: { bubbleProps: BubbleProps; index?: number }) => unknown
+  trailer?: (slotProps: { bubbleProps: BubbleProps; index?: number }) => unknown
 }
 
 export type BubbleRoleConfig = BubbleCommonProps & {

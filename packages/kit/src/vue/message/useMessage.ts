@@ -42,6 +42,11 @@ export interface UseMessageOptions {
   events?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onReceiveData?: <T = any>(data: T, messages: Ref<ChatMessage[]>, preventDefault: () => void) => void
+    onFinish?: (
+      finishReason: string | undefined,
+      context: { messages: Ref<ChatMessage[]>; messageState: Reactive<MessageState> },
+      preventDefault: () => void,
+    ) => void
   }
 }
 
@@ -170,8 +175,22 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
           messageState.errorMsg = errorMessage
           console.error('Stream request error:', error)
         },
-        onDone: () => {
-          messageState.status = STATUS.FINISHED
+        onDone: (finishReason) => {
+          const onFinish = options.events?.onFinish
+
+          let defaultPrevented = false
+          if (onFinish) {
+            onFinish(finishReason, { messages, messageState }, () => {
+              defaultPrevented = true
+            })
+          }
+
+          if (!defaultPrevented) {
+            if (finishReason === 'aborted' || messageState.status === STATUS.ABORTED) {
+              return
+            }
+            messageState.status = STATUS.FINISHED
+          }
         },
       },
     )
@@ -191,7 +210,6 @@ export function useMessage(options: UseMessageOptions): UseMessageReturn {
       } else {
         await chat(abortController)
       }
-      messageState.status = STATUS.FINISHED
     } catch (error) {
       messageState.errorMsg = errorMessage
       messageState.status = STATUS.ERROR

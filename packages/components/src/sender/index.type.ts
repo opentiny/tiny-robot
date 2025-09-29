@@ -29,6 +29,19 @@ export type TooltipRender = () => VNode | string
 export interface ControlState {
   tooltips?: string | TooltipRender // 工具提示
   disabled?: boolean // 是否禁用
+  tooltipPlacement?:
+    | 'top'
+    | 'top-start'
+    | 'top-end'
+    | 'bottom'
+    | 'bottom-start'
+    | 'bottom-end'
+    | 'left'
+    | 'left-start'
+    | 'left-end'
+    | 'right'
+    | 'right-start'
+    | 'right-end' // tooltip 弹窗位置
 }
 
 interface fileUploadConfig {

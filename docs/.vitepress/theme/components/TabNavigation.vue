@@ -164,33 +164,25 @@ onUnmounted(() => {
     position: relative;
     flex-shrink: 0;
     height: var(--vp-nav-bottom-height, 48px);
-    padding: 0 16px;
   }
 
   &__nav {
     height: 100%;
     display: flex;
-    align-items: center;
-    gap: 4px;
-    position: relative;
+    gap: 1.5rem;
   }
 
   &__item {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
     font-weight: 500;
-    font-size: 14px;
-    line-height: 22px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
     color: var(--vp-c-text-2);
+    gap: 0.5rem;
+    align-items: center;
+    height: 100%;
+    position: relative;
+    font-size: 0.875rem;
+    line-height: 48px;
 
     &-title {
-      font-size: 14px;
-      line-height: 22px;
       transition: color 0.2s ease;
       user-select: none;
     }
@@ -201,29 +193,27 @@ onUnmounted(() => {
       bottom: 0;
       width: 0;
       height: 2px;
-      background: var(--vp-c-brand-1);
+      background: #191919;
       border-radius: 1px;
       transition: all 0.3s ease;
       transform: translateX(0);
 
       &--active {
-        background: var(--vp-c-brand-1);
+        background: #191919;
       }
     }
 
     &:hover:not(&--disabled) {
-      background-color: var(--vp-c-bg-soft);
       color: var(--vp-c-text-1);
       transform: translateY(-1px);
     }
 
     &--active {
-      background-color: var(--vp-c-brand-soft);
-      color: var(--vp-c-brand-1);
+      color: #191919;
       font-weight: 600;
 
       .custom-tabs__item-title {
-        color: var(--vp-c-brand-1);
+        color: #191919;
         font-weight: 600;
       }
     }
@@ -264,17 +254,11 @@ onUnmounted(() => {
     color: var(--vp-c-text-2);
 
     &:hover:not(&--disabled) {
-      background-color: var(--vp-c-bg-soft);
       color: var(--vp-c-text-1);
     }
 
     &--active {
-      background-color: var(--vp-c-brand-soft);
-      color: var(--vp-c-brand-1);
-
-      .custom-tabs__item-title {
-        color: var(--vp-c-brand-1);
-      }
+      color: #191919;
     }
 
     &--disabled {

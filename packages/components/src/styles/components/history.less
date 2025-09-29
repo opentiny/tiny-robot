@@ -1,0 +1,58 @@
+.tr-history-vars() {
+  @prefix: tr-history;
+
+  @vars: {
+    /* Group variables */
+    group-space-y: 12px;
+    group-title-font-size: 12px;
+    group-title-line-height: 20px;
+    group-title-padding: 4px 12px;
+    group-title-color: var(--tr-text-tertiary);
+
+    /* Item variables */
+    item-font-size: 14px;
+    item-line-height: 24px;
+    item-color: var(--tr-text-primary);
+    item-padding: 8px 12px;
+    item-padding-editing: 8px 12px;
+    item-hover-bg: var(--tr-container-bg-hover);
+    item-border-radius: 12px;
+    item-selected-bg: var(--tr-container-bg-default);
+    item-selected-color: inherit;
+    item-space-y: 0;
+
+    /* Item actions variables */
+    item-actions-gap: 4px;
+    item-action-bg-hover: var(--tr-container-bg-default-2);
+
+    /* Editor variables */
+    item-editor-border-color: var(--tr-border-color-default);
+    item-editor-border-radius: 4px;
+    item-editor-padding: 0;
+    item-editor-border-width: 0;
+    item-editor-confirm-color: inherit;
+    item-editor-cancel-color: inherit;
+    item-editor-outline: none;
+
+    /* Empty variables */
+    empty-padding: 80px 0;
+
+    /* Menu list variables */
+    menu-list-bg: var(--tr-container-bg-default);
+    menu-list-bg-hover: var(--tr-container-bg-hover);
+    menu-list-box-shadow: var(--tr-shadow-sm);
+
+    /* Menu item variables */
+    menu-item-color: var(--tr-text-primary);
+    menu-item-text-color-hover: var(--tr-color-primary);
+  };
+
+  :root,
+  [data-tr-theme] {
+    each(@vars, {
+      --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-history-vars();

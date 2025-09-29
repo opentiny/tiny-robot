@@ -12,10 +12,10 @@ hero:
   actions:
     - theme: brand
       text: 开始使用
-      link: /guide/installation
+      link: ./guide/installation
     - theme: alt
       text: demo 示例
-      link: /examples/assistant
+      link: ./examples/assistant
 
 features:
   - title: AI 组件库

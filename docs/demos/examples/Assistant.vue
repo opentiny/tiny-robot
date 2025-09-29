@@ -15,16 +15,25 @@
       <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
       <span style="display: inline-flex; line-height: 0; position: relative">
         <tr-icon-button :icon="IconHistory" size="28" svgSize="20" @click="showHistory = true" />
-        <tr-history
-          v-show="showHistory"
-          class="tr-history-demo"
-          tab-title="历史对话"
-          :selected="currentMessageId"
-          :search-bar="true"
-          :data="historyData"
-          @close="showHistory = false"
-          @item-click="handleHistorySelect"
-        ></tr-history>
+        <div v-show="showHistory" class="tr-history-demo-container">
+          <div><h3 style="margin: 0; padding: 0 12px">历史对话</h3></div>
+          <tr-icon-button
+            :icon="IconClose"
+            size="28"
+            svgSize="20"
+            @click="showHistory = false"
+            style="position: absolute; right: 14px; top: 14px"
+          />
+          <tr-history
+            class="tr-history-demo"
+            :selected="state.currentId ?? undefined"
+            :search-bar="true"
+            :data="state.conversations"
+            @item-title-change="handleHistoryTitleChange"
+            @item-click="handleHistorySelect"
+            @item-action="handleHistoryAction"
+          ></tr-history>
+        </div>
       </span>
     </template>
     <div :class="{ 'max-container': fullscreen }" v-if="messages.length === 0">
@@ -118,7 +127,7 @@
 import type {
   BubbleRoleConfig,
   FileRejection,
-  HistoryGroup,
+  HistoryMenuItem,
   PromptProps,
   SuggestionGroup,
   SuggestionItem,
@@ -139,9 +148,10 @@ import {
   TrWelcome,
   vDropzone,
 } from '@opentiny/tiny-robot'
-import { AIClient, ChatMessage, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
+import { AIClient, Conversation, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
 import {
   IconAi,
+  IconClose,
   IconDislike,
   IconEdit,
   IconHistory,
@@ -151,7 +161,7 @@ import {
   IconUser,
 } from '@opentiny/tiny-robot-svgs'
 import { TinySwitch } from '@opentiny/vue'
-import { type CSSProperties, h, markRaw, nextTick, onMounted, reactive, ref, toRaw, watch } from 'vue'
+import { type CSSProperties, h, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 
 const client = new AIClient({
   provider: 'openai',
@@ -429,20 +439,17 @@ const pillItems = [
   },
 ]
 
-const { messageManager, createConversation } = useConversation({
-  client,
-  events: {
-    onReceiveData: (data, _messages, _preventDefault) => {
-      // 执行 preventDefault 可以阻止默认写入消息列表的逻辑
-      // preventDefault()
-      console.log(data)
+const { messageManager, state, createConversation, updateTitle, switchConversation, deleteConversation } =
+  useConversation({
+    client,
+    events: {
+      onReceiveData: (data, _messages, _preventDefault) => {
+        // 执行 preventDefault 可以阻止默认写入消息列表的逻辑
+        // preventDefault()
+        console.log(data)
+      },
     },
-  },
-})
-
-const randomId = () => Math.random().toString(36).substring(2, 15)
-
-const currentMessageId = ref('')
+  })
 
 const { messages, messageState, inputMessage, sendMessage, abortRequest } = messageManager
 
@@ -465,43 +472,19 @@ const roles: Record<string, BubbleRoleConfig> = {
 
 const showHistory = ref(false)
 
-const historyData = reactive<HistoryGroup<ChatMessage[]>[]>([])
+const handleHistoryTitleChange = (newTitle: string, item: Conversation) => {
+  updateTitle(item.id!, newTitle)
+}
 
-watch(
-  () => messages.value[messages.value.length - 1]?.content,
-  () => {
-    if (!messages.value.length) {
-      return
-    }
-
-    if (messages.value.length === 1) {
-      currentMessageId.value = randomId()
-    }
-
-    const allSessions = historyData.flatMap((item) => item.items)
-    const currentSession = allSessions.find((item) => item.id === currentMessageId.value)
-
-    const data = toRaw(messages.value)
-    if (!currentSession) {
-      const today = historyData.find((item) => item.group === '今天')
-      if (today) {
-        today.items.unshift({ title: messages.value[0].content as string, id: currentMessageId.value, data })
-      } else {
-        historyData.unshift({
-          group: '今天',
-          items: [{ title: messages.value[0].content as string, id: currentMessageId.value, data }],
-        })
-      }
-    } else {
-      currentSession.data = data
-    }
-  },
-)
-
-const handleHistorySelect = (item: { id: string; data: ChatMessage[] }) => {
-  currentMessageId.value = item.id
-  messages.value = item.data
+const handleHistorySelect = (item: Conversation) => {
+  switchConversation(item.id)
   showHistory.value = false
+}
+
+const handleHistoryAction = (action: HistoryMenuItem, item: Conversation) => {
+  if (action.id === 'delete') {
+    deleteConversation(item.id)
+  }
 }
 
 const senderRef = ref<InstanceType<typeof TrSender> | null>(null)
@@ -633,7 +616,7 @@ onMounted(() => {
   }
 }
 
-.tr-history-demo {
+.tr-history-demo-container {
   position: absolute;
   right: 100%;
   top: 100%;
@@ -641,5 +624,20 @@ onMounted(() => {
   width: 300px;
   height: 600px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  background-color: var(--tr-container-bg-default);
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .tr-history-demo {
+    overflow-y: auto;
+    flex: 1;
+
+    --tr-history-item-selected-bg: var(--tr-history-item-hover-bg);
+    --tr-history-item-selected-color: var(--tr-color-primary);
+    --tr-history-item-space-y: 4px;
+  }
 }
 </style>

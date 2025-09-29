@@ -6,7 +6,8 @@
     padding: 16px;
   };
 
-  :root {
+  :root,
+  [data-tr-theme] {
     each(@vars, {
     --@{prefix}-@{key}: @value;
     });

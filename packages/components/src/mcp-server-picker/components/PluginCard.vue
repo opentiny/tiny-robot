@@ -186,7 +186,7 @@ const getHoverTitle = (isEnabled: boolean) => {
   position: relative;
   background: var(--tr-mcp-server-picker-bg-default-2);
   border-radius: 12px;
-  box-shadow: var(--tr-mcp-server-picker-shadow);
+  border: 1px solid var(--tr-mcp-server-picker-plugin-card-border-color);
 
   &__main {
     display: flex;

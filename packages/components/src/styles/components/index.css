@@ -2,6 +2,7 @@
 @import './bubble.less';
 @import './bubble-list.less';
 @import './bubble-tool.less';
+@import './history.less';
 @import './prompt.less';
 @import './prompts.less';
 
@@ -12,3 +13,4 @@
 [data-tr-color-mode='dark'] {
   color-scheme: dark;
 }
+

@@ -230,7 +230,7 @@ const openSearch = () => {
 }
 
 .header-container {
-  max-width: 1200px;
+  max-width: 92rem;
   margin: 0 auto;
   width: 100%;
 }
@@ -238,10 +238,10 @@ const openSearch = () => {
 /* 第一行样式 */
 .header-top {
   display: flex;
-  height: 64px;
+  height: 4rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  border-bottom: 1px solid var(--vp-c-divider);
 }
 
 .logo-section {
@@ -258,8 +258,8 @@ const openSearch = () => {
 }
 
 .logo-icon {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
 }
 
 .logo-text {
@@ -291,7 +291,7 @@ const openSearch = () => {
 
 .search-input {
   width: 100%;
-  height: 40px;
+  height: 39px;
   padding: 0 64px 0 40px;
   border: 1px solid var(--search-border-color);
   border-radius: 12px;
@@ -380,14 +380,20 @@ const openSearch = () => {
 /* 第二行样式 */
 .header-bottom {
   height: var(--vp-nav-bottom-height);
-  display: flex;
   align-items: center;
+  padding-left: 3rem;
+  padding-right: 3rem;
 }
 
 /* 响应式设计 */
 @media (min-width: 1024px) {
   .header-bottom {
     display: flex;
+  }
+  .header-top {
+    padding: 0 3rem;
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 

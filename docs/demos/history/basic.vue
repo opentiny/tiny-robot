@@ -1,21 +1,31 @@
 <template>
   <tr-history
-    class="tr-history-demo"
-    tab-title="历史对话"
     :data="data"
     :selected="selected"
-    @item-click="handleItemClick"
-    @close="handleClose"
+    :show-rename-controls="isTouchDevice"
+    rename-control-on-click-outside="cancel"
+    @item-click="(item) => (selected = item.id)"
+    @item-title-change="(newTitle, item) => (item.title = newTitle)"
+    @item-action="(item) => console.log(item)"
+  />
+  <hr />
+  <p>分组数据</p>
+  <tr-history
+    :data="groups"
+    :selected="selected2"
+    @item-click="(item) => (selected2 = item.id)"
+    @item-title-change="(newTitle, item) => (item.title = newTitle)"
+    @item-action="(item) => console.log(item)"
   />
 </template>
 
 <script setup lang="ts">
-import { HistoryItem, TrHistory } from '@opentiny/tiny-robot'
+import { TrHistory, useTouchDevice } from '@opentiny/tiny-robot'
 import { reactive, ref } from 'vue'
 
-const selected = ref('2')
+const { isTouchDevice } = useTouchDevice()
 
-const data: HistoryItem[] = reactive([
+const data = reactive([
   { title: '如何训练一只聪明的小狗', id: '1' },
   { title: 'How to make a perfect soufflé', id: '2' },
   { title: 'The Art of Origami: Advanced Paper Folding', id: '3' },
@@ -28,17 +38,20 @@ const data: HistoryItem[] = reactive([
   { title: '历史对话6', id: '6' },
 ])
 
-const handleItemClick = (item: HistoryItem) => {
-  selected.value = item.id
-}
+const selected = ref<string | undefined>('2')
 
-const handleClose = () => {
-  alert('close')
-}
+const groups = reactive([
+  {
+    group: '今天',
+    items: [{ title: '如何训练一只聪明的小狗', id: '1' }],
+  },
+  {
+    group: '昨天',
+    items: [{ title: 'How to make a perfect soufflé', id: '2' }],
+  },
+])
+
+const selected2 = ref<string | undefined>('2')
 </script>
 
-<style lang="less" scoped>
-.tr-history-demo {
-  height: 400px;
-}
-</style>
+<style lang="less" scoped></style>
