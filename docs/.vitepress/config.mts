@@ -47,10 +47,7 @@ export default defineConfig({
                 // 新增 index.css 文件
                 'src/index.css': `@import '@opentiny/tiny-robot/dist/style.css';
 body {
-  height: 80vh;
-  margin: 20px auto 0;
-  display: flex;
-  align-items: center;
+  margin: 20px;
   background-color: #fafafa;
 }
                 `,
@@ -74,10 +71,7 @@ app.mount('#app');
               files: {
                 // 新增 index.css 文件
                 'src/index.css': `body {
-  height: 80vh;
-  margin: 20px auto 0;
-  display: flex;
-  align-items: center;
+  margin: 20px;
   background-color: #fafafa;
 }
                 `,

@@ -16,6 +16,7 @@
   "dependencies": {
     "@opentiny/tiny-robot": "workspace:^",
     "@opentiny/tiny-robot-kit": "workspace:^",
+    "@opentiny/tiny-robot-playground": "workspace:^",
     "@opentiny/tiny-robot-svgs": "workspace:^",
     "@opentiny/tiny-schema-renderer": "1.0.0-beta.5",
     "@opentiny/vue": "^3.20.0",

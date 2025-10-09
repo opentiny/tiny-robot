@@ -1,5 +1,0 @@
-export { default as PlaygroundHeader } from './PlaygroundHeader.vue'
-export { default as LoadingSpinner } from './LoadingSpinner.vue'
-export { default as DemoSidebar } from './DemoSidebar.vue'
-export { default as DemoActionBar } from './DemoActionBar.vue'
-export { default as DemoPlayground } from './DemoPlayground.vue'

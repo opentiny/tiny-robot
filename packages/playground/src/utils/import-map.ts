@@ -1,31 +1,34 @@
+import { ImportMap } from '@vue/repl'
+
 interface ImportMapOptions {
   tinyRobotVersion: string
-  vueVersion: string
-  typescriptVersion: string
+  builtinImportMap?: ImportMap
 }
 
-export async function generateImportMap(options: ImportMapOptions) {
-  const { tinyRobotVersion, vueVersion } = options
+export function generateImportMap(options: ImportMapOptions) {
+  const { tinyRobotVersion, builtinImportMap } = options
 
-  const vueVersionToUse = vueVersion === 'latest' ? '3.3.11' : vueVersion
-  const tinyRobotVersionToUse = tinyRobotVersion === 'latest' ? '0.3.0-rc.4' : tinyRobotVersion
-
-  return {
+  const importMap: ImportMap = {
     imports: {
-      vue: `https://unpkg.com/vue@${vueVersionToUse}/dist/vue.esm-browser.js`,
-      'vue/server-renderer': `https://unpkg.com/vue@${vueVersionToUse}/server-renderer/index.mjs`,
-      '@vue/shared': `https://unpkg.com/@vue/shared@${vueVersionToUse}/index.js`,
-      '@opentiny/tiny-robot': `https://unpkg.com/@opentiny/tiny-robot@${tinyRobotVersionToUse}/dist/index.js`,
-      '@opentiny/tiny-robot-svgs': `https://unpkg.com/@opentiny/tiny-robot-svgs@${tinyRobotVersionToUse}/dist/tiny-robot-svgs.js`,
-      '@opentiny/tiny-robot-kit': `https://unpkg.com/@opentiny/tiny-robot-kit@${tinyRobotVersionToUse}/dist/index.js`,
-      '@opentiny/vue': `https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-pc.mjs`,
-      '@opentiny/vue-icon': `https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-icon.mjs`,
-      '@opentiny/vue-locale': `https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-locale.mjs`,
-      '@opentiny/vue-common': `https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-common.mjs`,
-      '@vueuse/core': `https://unpkg.com/@vueuse/core@13.1.0/index.mjs`,
-      dompurify: `https://unpkg.com/dompurify@3.2.6/dist/purify.es.js`,
-      'markdown-it': `https://unpkg.com/markdown-it@14.1.0/dist/markdown-it.min.js`,
-      echarts: `https://registry.npmmirror.com/echarts/5.4.1/files/dist/echarts.esm.js`,
+      ...builtinImportMap?.imports,
+      // TinyRobot 相关包 - 使用统一版本号
+      '@opentiny/tiny-robot': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/index.min.js`,
+      '@opentiny/tiny-robot-svgs': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${tinyRobotVersion}/dist/tiny-robot-svgs.min.js`,
+      '@opentiny/tiny-robot-kit': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${tinyRobotVersion}/dist/index.min.js`,
+
+      // TinyVue 相关包
+      '@opentiny/vue': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-pc.mjs',
+      '@opentiny/vue-icon': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-icon.mjs',
+      '@opentiny/vue-locale': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-locale.mjs',
+      '@opentiny/vue-common': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-common.mjs',
+
+      // 其他常用库
+      '@vueuse/core': 'https://cdn.jsdelivr.net/npm/@vueuse/core@13/index.iife.min.js',
+      dompurify: 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js',
+      'markdown-it': 'https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js',
+      echarts: 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js',
     },
   }
+
+  return importMap
 }

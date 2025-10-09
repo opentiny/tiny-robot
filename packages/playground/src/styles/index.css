@@ -1,94 +1,21 @@
-@import './variables.css';
-
-* {
+body {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 #app {
   height: 100vh;
   overflow: hidden;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* Dark theme scrollbar */
-.dark ::-webkit-scrollbar-track {
-  background: #21262d;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #30363d;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
-}
-
-/* Loading animation */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #42b883;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-/* Tooltip styles */
-.tooltip {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 120px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px;
-  position: absolute;
-  z-index: 1;
-  bottom: 125%;
-  left: 50%;
-  margin-left: -60px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  font-size: 12px;
-}
-
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
 }
