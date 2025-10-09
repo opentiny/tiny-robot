@@ -27,10 +27,19 @@ interface UseConversationOptions {
   useStreamByDefault?: boolean
   /** 错误消息模板 */
   errorMessage?: string
-  events?: UseMessageOptions['events']
+  /** 事件回调 */
+  events?: UseConversationEvents
 }
 ```
 
+### 事件类型
+
+```typescript
+type UseConversationEvents = UseMessageOptions['events'] & {
+  /** 会话加载完成回调 */
+  onLoaded?: (conversations: Conversation[]) => void
+}
+```
 
 ### 返回值
 
@@ -41,7 +50,7 @@ interface UseConversationReturn {
   /** 消息管理 */
   messageManager: UseMessageReturn;
   /** 创建新会话 */
-  createConversation: (title?: string, metadata?: Record<string, any>) => string;
+  createConversation: (title?: string, metadata?: Record<string, unknown>) => string;
   /** 切换会话 */
   switchConversation: (id: string) => void;
   /** 删除会话 */
@@ -49,7 +58,7 @@ interface UseConversationReturn {
   /** 更新会话标题 */
   updateTitle: (id: string, title: string) => void;
   /** 更新会话元数据 */
-  updateMetadata: (id: string, metadata: Record<string, any>) => void;
+  updateMetadata: (id: string, metadata: Record<string, unknown>) => void;
   /** 保存会话 */
   saveConversations: () => Promise<void>;
   /** 加载会话 */
@@ -88,7 +97,7 @@ interface Conversation {
   /** 更新时间 */
   updatedAt: number;
   /** 自定义元数据 */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   /** 消息 */
   messages: ChatMessage[];
 }
