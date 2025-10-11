@@ -35,7 +35,7 @@ const show = ref(false)
 const fullscreen = ref(false)
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .content {
   padding: 0 24px;
 }

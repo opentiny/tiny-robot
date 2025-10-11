@@ -1,3 +1,4 @@
+import { generateStore } from '@opentiny/tiny-robot-playground/utils'
 import '@opentiny/tiny-robot-style'
 import DefaultTheme from 'vitepress/theme'
 import { setupDarkModeListener } from './color-mode'
@@ -7,6 +8,7 @@ import './style.css'
 declare global {
   interface Window {
     __SW_REGISTERED__?: boolean
+    __CODE_PLAYGROUND_LISTENED__?: boolean
   }
 }
 
@@ -19,6 +21,7 @@ export default {
     app.mixin({
       mounted() {
         registerServiceWorker()
+        listenCodePlaygroundEvent()
       },
     })
   },
@@ -44,4 +47,43 @@ function registerServiceWorker() {
     .catch((err) => {
       console.log('ServiceWorker registration failed: ', err)
     })
+}
+
+function listenCodePlaygroundEvent() {
+  if (typeof window === 'undefined' || window.__CODE_PLAYGROUND_LISTENED__) {
+    return
+  }
+
+  window.__CODE_PLAYGROUND_LISTENED__ = true
+  document.addEventListener('code-playground', (event) => {
+    const detail = (event as CustomEvent).detail
+    if (!detail) return
+    const { props, currentFiles, activeFile } = detail
+
+    const files: { filename: string; code: string }[] = []
+
+    if (Object.keys(currentFiles).length === 0) {
+      files.push({
+        filename: 'App.vue',
+        code: props.vueCode,
+      })
+    } else {
+      files.push({
+        filename: 'App.vue',
+        code: currentFiles[activeFile].code,
+      })
+
+      Object.entries(currentFiles).forEach(([filename, file]) => {
+        if (filename === activeFile) return
+        files.push({ filename, code: (file as { code: string }).code })
+      })
+    }
+
+    const { store } = generateStore({
+      tinyRobotVersion: '0.3.0-rc.5',
+      files,
+    })
+
+    window.open(`http://localhost:5174/${store.serialize()}`, '_blank')
+  })
 }

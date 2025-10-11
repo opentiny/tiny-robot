@@ -47,5 +47,3 @@ const handleAction = (action: { id: string; text: string }, item: { id?: string;
   }
 }
 </script>
-
-<style lang="less" scoped></style>

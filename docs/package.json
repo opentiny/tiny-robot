@@ -11,7 +11,7 @@
     "cross-env": "^7.0.3",
     "gh-pages": "^2.1.1",
     "vitepress": "^1.6.3",
-    "vitepress-demo-plugin": "^1.4.2"
+    "vitepress-demo-plugin": "1.5.0"
   },
   "dependencies": {
     "@opentiny/tiny-robot": "workspace:^",

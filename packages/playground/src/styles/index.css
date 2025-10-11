@@ -14,8 +14,3 @@ body {
 *::after {
   box-sizing: border-box;
 }
-
-#app {
-  height: 100vh;
-  overflow: hidden;
-}

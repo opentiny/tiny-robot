@@ -2,13 +2,13 @@ import { File, useStore, useVueImportMap } from '@vue/repl'
 import { generateImportMap } from './import-map'
 
 interface GenerateStoreOptions {
-  tinyRobotVersion: string
+  tinyRobotVersion?: string
   vueVersion?: string
   files?: (File | { filename: string; code: string })[]
 }
 
 export const generateStore = (options: GenerateStoreOptions) => {
-  const { files, tinyRobotVersion, vueVersion: vueVersion_ = 'latest' } = options
+  const { files, tinyRobotVersion = 'latest', vueVersion: vueVersion_ = 'latest' } = options
 
   const { importMap: builtinImportMap, vueVersion, productionMode } = useVueImportMap()
 
