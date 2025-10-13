@@ -5,10 +5,11 @@ interface GenerateStoreOptions {
   tinyRobotVersion?: string
   vueVersion?: string
   files?: (File | { filename: string; code: string })[]
+  extraImports?: Record<string, string>
 }
 
 export const generateStore = (options: GenerateStoreOptions) => {
-  const { files, tinyRobotVersion = 'latest', vueVersion: vueVersion_ = 'latest' } = options
+  const { files, tinyRobotVersion = 'latest', vueVersion: vueVersion_ = 'latest', extraImports } = options
 
   const { importMap: builtinImportMap, vueVersion, productionMode } = useVueImportMap()
 
@@ -31,6 +32,7 @@ export const generateStore = (options: GenerateStoreOptions) => {
   const importMap = generateImportMap({
     tinyRobotVersion,
     builtinImportMap: builtinImportMap.value,
+    extraImports,
   })
   store.setImportMap(importMap)
 

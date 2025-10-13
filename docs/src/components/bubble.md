@@ -143,7 +143,7 @@ content 对象中的所有属性都将传递给组件，onXXX会当作事件传�
 
 ### schema 卡片渲染
 
-<demo vue="../../demos/bubble/schema-render.vue" :vueFiles="['../../demos/bubble/schema-render.vue', '../../demos/bubble/schema-card.ce.vue']" />
+<demo vue="../../demos/bubble/schema-render.vue" :vueFiles="['../../demos/bubble/schema-render.vue', '../../demos/bubble/schema-card.ce.vue']" playgroundPackages="@opentiny/tiny-schema-renderer@1.0.0-beta.5/dist/index.min.js,@opentiny/tiny-engine-builtin-component@2.6.0" />
 
 ### 列表
 

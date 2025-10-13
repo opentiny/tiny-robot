@@ -85,9 +85,22 @@ function listenCodePlaygroundEvent() {
       files.push(cssFile)
     }
 
+    const extraPackages: string[] = JSON.parse(decodeURIComponent(props.playground))?.packages || []
+    const extraImports = extraPackages
+      .map((pkgAndVersion) => {
+        const index = pkgAndVersion.lastIndexOf('@')
+        const pkg = pkgAndVersion.slice(0, index)
+        const version = pkgAndVersion.slice(index + 1)
+        return { [pkg]: version }
+      })
+      .reduce((acc, curr) => {
+        return { ...acc, ...curr }
+      }, {})
+
     const { store } = generateStore({
       tinyRobotVersion: '0.3.0-rc.5',
       files,
+      extraImports,
     })
 
     window.open(`${import.meta.env.BASE_URL}/playground/`.replace(/\/+/g, '/') + store.serialize(), '_blank')

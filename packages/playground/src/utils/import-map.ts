@@ -3,10 +3,21 @@ import { ImportMap } from '@vue/repl'
 interface ImportMapOptions {
   tinyRobotVersion: string
   builtinImportMap?: ImportMap
+  extraImports?: Record<string, string>
 }
 
 export function generateImportMap(options: ImportMapOptions) {
-  const { tinyRobotVersion, builtinImportMap } = options
+  const { tinyRobotVersion, builtinImportMap, extraImports } = options
+
+  const extraImportsMap = Object.entries(extraImports || {})
+    .map(([pkg, version]) => {
+      return {
+        [pkg]: `https://cdn.jsdelivr.net/npm/${pkg}@${version}`,
+      }
+    })
+    .reduce((acc, curr) => {
+      return { ...acc, ...curr }
+    }, {})
 
   const importMap: ImportMap = {
     imports: {
@@ -22,13 +33,13 @@ export function generateImportMap(options: ImportMapOptions) {
       '@opentiny/vue-locale': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-locale.mjs',
       '@opentiny/vue-common': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-common.mjs',
 
-      // TODO 特殊包
-
       // 其他常用库
       '@vueuse/core': 'https://cdn.jsdelivr.net/npm/@vueuse/core@13/index.iife.min.js',
       dompurify: 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js',
       'markdown-it': 'https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js',
       echarts: 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js',
+
+      ...extraImportsMap,
     },
   }
 
