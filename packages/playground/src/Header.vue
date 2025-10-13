@@ -1,18 +1,17 @@
 <script setup lang="ts">
+import IconGithub from './components/IconGithub.vue'
+
 // Define props interface for version data
 interface Props {
   tinyRobotVersions: string[]
-  vueVersions: string[]
 }
 
 // Define props with default values
 withDefaults(defineProps<Props>(), {
   tinyRobotVersions: () => ['0.3.0-rc.5'],
-  vueVersions: () => ['latest'],
 })
 
 const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: true })
-const vueVersion = defineModel<string | null>('vueVersion', { required: true })
 </script>
 
 <template>
@@ -22,23 +21,18 @@ const vueVersion = defineModel<string | null>('vueVersion', { required: true })
         <img class="playground-logo" src="/logo.svg" />
         <div class="playground-title">TinyRobot Playground</div>
       </div>
-      <div class="version-selectors">
+      <div class="header-end">
         <div class="version-selector">
-          <label for="tiny-robot-version" class="version-label">TinyRobot Version:</label>
+          <label for="tiny-robot-version" class="version-label">TinyRobot 版本:</label>
           <select id="tiny-robot-version" v-model="tinyRobotVersion" class="version-select">
             <option v-for="version in tinyRobotVersions" :key="version" :value="version">
               {{ version }}
             </option>
           </select>
         </div>
-        <div class="version-selector">
-          <label for="vue-version" class="version-label">Vue Version:</label>
-          <select id="vue-version" v-model="vueVersion" class="version-select">
-            <option v-for="version in vueVersions" :key="version" :value="version">
-              {{ version }}
-            </option>
-          </select>
-        </div>
+        <a class="github-button" href="https://github.com/opentiny/tiny-robot" target="_blank">
+          <IconGithub size="20" />
+        </a>
       </div>
     </div>
   </header>
@@ -77,7 +71,7 @@ const vueVersion = defineModel<string | null>('vueVersion', { required: true })
   color: #2c3e50;
 }
 
-.version-selectors {
+.header-end {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -117,5 +111,19 @@ const vueVersion = defineModel<string | null>('vueVersion', { required: true })
 .version-select:disabled {
   background-color: #e9ecef;
   cursor: not-allowed;
+}
+
+.github-button {
+  background: transparent;
+  border-radius: 999px;
+  color: black;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

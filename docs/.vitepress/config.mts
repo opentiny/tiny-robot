@@ -28,7 +28,10 @@ export default defineConfig({
   head: [['link', { rel: 'icon', href: '/logo-mini.svg' }]],
   vite: {
     plugins: [vueJsx()],
-    server: { open: true },
+    server: {
+      open: true,
+      proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
+    },
     resolve: {
       alias: {
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),

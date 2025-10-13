@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => {
 
   if (!isLib) {
     return {
+      base: process.env.PLAYGROUND_BASE || '/playground',
+      server: { port: 5184 },
       plugins: [vue()],
       optimizeDeps: {
         exclude: ['@vue/repl'],

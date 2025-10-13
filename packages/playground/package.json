@@ -1,19 +1,11 @@
 {
   "name": "@opentiny/tiny-robot-playground",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
     "./utils": {
-      "import": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
+      "import": "./src/utils/index.ts"
     }
   },
   "files": [

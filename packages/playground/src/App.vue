@@ -7,12 +7,11 @@ import { generateImportMap, generateStore, getDefaultFiles, getVersions } from '
 
 const tinyRobotVersion = ref('0.3.0-rc.5')
 
-const vueVersions = ref<string[]>(['latest'])
 const tinyRobotVersions = ref<string[]>([tinyRobotVersion.value])
 
-const { store, builtinImportMap, vueVersion } = generateStore({
+const { store, builtinImportMap } = generateStore({
   tinyRobotVersion: tinyRobotVersion.value,
-  files: getDefaultFiles(),
+  files: location.hash ? [] : getDefaultFiles(),
 })
 
 if (location.hash) {
@@ -36,9 +35,8 @@ watch(tinyRobotVersion, async (newVersion) => {
 // Load available Vue versions on component mount
 onMounted(async () => {
   try {
-    vueVersions.value = await getVersions('vue', { versionSegments: 2, keepPerGroup: 5 })
     tinyRobotVersions.value = await getVersions('@opentiny/tiny-robot', {
-      includePrerelease: true,
+      includePrerelease: ['rc'],
       includeLatest: false, // TODO 替换成 latest
     })
   } catch (error) {
@@ -50,12 +48,7 @@ onMounted(async () => {
 <template>
   <div class="playground-container">
     <!-- Header with Vue version selector -->
-    <Header
-      v-model:tiny-robot-version="tinyRobotVersion"
-      :tiny-robot-versions="tinyRobotVersions"
-      v-model:vue-version="vueVersion"
-      :vue-versions="vueVersions"
-    />
+    <Header v-model:tiny-robot-version="tinyRobotVersion" :tiny-robot-versions="tinyRobotVersions" />
 
     <!-- Main playground area -->
     <main class="playground-main">

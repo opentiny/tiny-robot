@@ -10,7 +10,7 @@
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
 import { BubbleMarkdownContentRenderer, TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { defineCustomElement, h, ref } from 'vue'

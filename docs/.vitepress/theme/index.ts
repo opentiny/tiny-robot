@@ -1,4 +1,4 @@
-import { generateStore } from '@opentiny/tiny-robot-playground/utils'
+import { generateStore, getDefaultFiles } from '@opentiny/tiny-robot-playground/utils'
 import '@opentiny/tiny-robot-style'
 import DefaultTheme from 'vitepress/theme'
 import { setupDarkModeListener } from './color-mode'
@@ -79,11 +79,17 @@ function listenCodePlaygroundEvent() {
       })
     }
 
+    const defaultFiles = getDefaultFiles()
+    const cssFile = defaultFiles.find((file) => file.filename === 'src/index.css')
+    if (cssFile) {
+      files.push(cssFile)
+    }
+
     const { store } = generateStore({
       tinyRobotVersion: '0.3.0-rc.5',
       files,
     })
 
-    window.open(`http://localhost:5174/${store.serialize()}`, '_blank')
+    window.open(`${import.meta.env.BASE_URL}/playground`.replace(/\/+/g, '/') + store.serialize(), '_blank')
   })
 }

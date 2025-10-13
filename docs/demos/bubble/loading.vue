@@ -38,7 +38,7 @@ const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 const loading = ref(true)
 
-const loadingImgUrl = import.meta.env.BASE_URL + 'wave.webp'
+const loadingImgUrl = import.meta.env?.BASE_URL ? import.meta.env.BASE_URL + 'wave.webp' : './wave.webp'
 
 const items = ref<BubbleListProps['items']>([
   {

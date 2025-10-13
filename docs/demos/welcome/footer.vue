@@ -8,7 +8,7 @@
   </tr-welcome>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
 import { TrWelcome } from '@opentiny/tiny-robot'
 import { CSSProperties, h } from 'vue'
 

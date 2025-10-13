@@ -22,6 +22,8 @@ export function generateImportMap(options: ImportMapOptions) {
       '@opentiny/vue-locale': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-locale.mjs',
       '@opentiny/vue-common': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-common.mjs',
 
+      // TODO 特殊包
+
       // 其他常用库
       '@vueuse/core': 'https://cdn.jsdelivr.net/npm/@vueuse/core@13/index.iife.min.js',
       dompurify: 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js',
