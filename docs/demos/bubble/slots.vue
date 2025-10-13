@@ -30,7 +30,7 @@ import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
-const loadingImgUrl = import.meta.env?.BASE_URL ? import.meta.env.BASE_URL + 'wave.webp' : './wave.webp'
+const loadingImgUrl = import.meta.env.BASE_URL + 'wave.webp'
 
 const operations: FeedbackProps['operations'] = [
   {

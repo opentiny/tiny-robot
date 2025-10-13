@@ -16,12 +16,21 @@ import { TrBubble } from '@opentiny/tiny-robot'
     },
     {
       filename: 'src/index.css',
-      code: `@import url('https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.3.0-rc.5/dist/style.css');
-@import url('https://cdn.jsdelivr.net/npm/@opentiny/vue-theme@3.22.0/index.min.css');
+      code: `@import url('https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.3.0-rc.5/dist/style.css') layer(base);
+@import url('https://cdn.jsdelivr.net/npm/@opentiny/vue-theme@3.22.0/index.min.css') layer(base);
 
-body {
-  background-color: #fafafa;
-}`,
+@layer base {
+  body {
+    background-color: #fafafa;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+}
+`,
     },
   ]
 }

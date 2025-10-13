@@ -1,8 +1,6 @@
 interface GetVersionsOptions {
-  versionSegments?: number // 版本号段数，如 2 表示按 major.minor 分组，3 表示按 major.minor.patch 分组
   includePrerelease?: boolean | string[] // 是否包含预发布版本，true=包含所有，false=不包含，数组=包含指定类型
   limit?: number // 限制返回的版本总数量，默认为 20
-  keepPerGroup?: number // 每个版本组保留的版本数量，默认为 1（只保留最新版本）
   includeLatest?: boolean // 是否包含 latest tag，默认为 true
 }
 

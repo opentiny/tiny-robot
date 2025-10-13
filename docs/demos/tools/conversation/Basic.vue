@@ -111,7 +111,7 @@ const options = computed(() =>
 console.log('state: ', state)
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .tiny-select {
   width: 280px;
   margin-left: 4px;

@@ -225,7 +225,7 @@ watch(
 )
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .pills-container {
   display: flex;
   gap: 8px;

@@ -566,7 +566,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="less">
+<style scoped>
 @media (min-width: 1280px) {
   .max-container {
     width: 1280px;

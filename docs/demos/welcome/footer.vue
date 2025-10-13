@@ -15,7 +15,7 @@ import { CSSProperties, h } from 'vue'
 const icon = h('span', { style: { fontSize: '56px', lineHeight: '64px' } as CSSProperties }, '🤖')
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .welcome-footer {
   margin-top: 12px;
   color: rgb(128, 128, 128);

@@ -90,6 +90,6 @@ function listenCodePlaygroundEvent() {
       files,
     })
 
-    window.open(`${import.meta.env.BASE_URL}/playground`.replace(/\/+/g, '/') + store.serialize(), '_blank')
+    window.open(`${import.meta.env.BASE_URL}/playground/`.replace(/\/+/g, '/') + store.serialize(), '_blank')
   })
 }
