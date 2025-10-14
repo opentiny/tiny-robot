@@ -258,6 +258,7 @@ onClickOutside(
         border-radius: 8px;
         transition: background-color 0.3s ease;
         border: 1px solid transparent;
+        background-color: transparent;
 
         &:hover {
           background-color: var(--tr-flow-layout-dropdown-item-hover-bg-color);
