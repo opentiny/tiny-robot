@@ -8,7 +8,7 @@ interface Props {
 
 // Define props with default values
 withDefaults(defineProps<Props>(), {
-  tinyRobotVersions: () => ['0.3.0-rc.5'],
+  tinyRobotVersions: () => [],
 })
 
 const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: true })

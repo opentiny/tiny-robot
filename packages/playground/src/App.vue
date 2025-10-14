@@ -5,13 +5,13 @@ import { nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 import Header from './Header.vue'
 import { generateImportMap, generateStore, getDefaultFiles, getVersions } from './utils'
 
-const tinyRobotVersion = ref('0.3.0-rc.5')
+const tinyRobotVersion = ref('0.3.0-alpha.34')
 
 const tinyRobotVersions = ref<string[]>([tinyRobotVersion.value])
 
 const { store, builtinImportMap } = generateStore({
   tinyRobotVersion: tinyRobotVersion.value,
-  files: location.hash ? [] : getDefaultFiles(),
+  files: location.hash ? [] : getDefaultFiles({ tinyRobotVersion: tinyRobotVersion.value }),
 })
 
 if (location.hash) {
@@ -36,7 +36,7 @@ watch(tinyRobotVersion, async (newVersion) => {
 onMounted(async () => {
   try {
     tinyRobotVersions.value = await getVersions('@opentiny/tiny-robot', {
-      includePrerelease: ['rc'],
+      includePrerelease: true, // TODO 替换成 rc
       includeLatest: false, // TODO 替换成 latest
     })
   } catch (error) {

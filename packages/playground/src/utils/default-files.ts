@@ -1,4 +1,10 @@
-export function getDefaultFiles() {
+interface DefaultFilesOptions {
+  tinyRobotVersion?: string
+}
+
+export function getDefaultFiles(options?: DefaultFilesOptions) {
+  const { tinyRobotVersion = 'latest' } = options || {}
+
   return [
     {
       filename: 'src/App.vue',
@@ -16,7 +22,7 @@ import { TrBubble } from '@opentiny/tiny-robot'
     },
     {
       filename: 'src/index.css',
-      code: `@import url('https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@0.3.0-rc.5/dist/style.css') layer(base);
+      code: `@import url('https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/style.css') layer(base);
 @import url('https://cdn.jsdelivr.net/npm/@opentiny/vue-theme@3.22.0/index.min.css') layer(base);
 
 @layer base {

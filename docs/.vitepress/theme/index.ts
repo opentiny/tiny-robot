@@ -79,7 +79,8 @@ function listenCodePlaygroundEvent() {
       })
     }
 
-    const defaultFiles = getDefaultFiles()
+    const tinyRobotVersion = '0.3.0-alpha.34' // TODO 替换成 latest
+    const defaultFiles = getDefaultFiles({ tinyRobotVersion })
     const cssFile = defaultFiles.find((file) => file.filename === 'src/index.css')
     if (cssFile) {
       files.push(cssFile)
@@ -98,7 +99,7 @@ function listenCodePlaygroundEvent() {
       }, {})
 
     const { store } = generateStore({
-      tinyRobotVersion: '0.3.0-rc.5',
+      tinyRobotVersion,
       files,
       extraImports,
     })

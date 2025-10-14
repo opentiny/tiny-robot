@@ -90,7 +90,7 @@ const client = new AIClient({
   provider: 'openai',
   // apiKey: 'your-api-key',
   defaultModel: 'gpt-3.5-turbo',
-  apiUrl: location.origin + import.meta.env.BASE_URL,
+  apiUrl: window.parent?.location.origin || location.origin + import.meta.env.BASE_URL,
 })
 
 const storage = new MockStorageStrategy()

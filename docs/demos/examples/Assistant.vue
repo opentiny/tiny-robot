@@ -167,7 +167,7 @@ const client = new AIClient({
   provider: 'openai',
   // apiKey: 'your-api-key',
   defaultModel: 'gpt-3.5-turbo',
-  apiUrl: location.origin + import.meta.env.BASE_URL,
+  apiUrl: window.parent?.location.origin || location.origin + import.meta.env.BASE_URL,
 })
 
 const fullscreen = ref(false)
@@ -611,18 +611,10 @@ onMounted(() => {
 .tiny-prompts {
   padding: 16px 24px;
 
-  :deep(.prompt-item) {
-    width: 100%;
-    box-sizing: border-box;
+  --tr-prompt-width: 100%;
 
-    @container (width >=64rem) {
-      width: calc(50% - 8px);
-    }
-
-    .tr-prompt__content-label {
-      font-size: 14px;
-      line-height: 24px;
-    }
+  @container (width >=64rem) {
+    --tr-prompt-width: calc(50% - 8px);
   }
 }
 
