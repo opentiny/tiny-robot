@@ -18,7 +18,7 @@ const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: tru
   <header class="playground-header">
     <div class="header-content">
       <div class="playground-info">
-        <img class="playground-logo" src="/logo.svg" />
+        <img class="playground-logo" src="/logo.svg" alt="TinyRobot logo" />
         <div class="playground-title">TinyRobot Playground</div>
       </div>
       <div class="header-end">
@@ -30,7 +30,13 @@ const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: tru
             </option>
           </select>
         </div>
-        <a class="github-button" href="https://github.com/opentiny/tiny-robot" target="_blank">
+        <a
+          class="github-button"
+          href="https://github.com/opentiny/tiny-robot"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open TinyRobot on GitHub"
+        >
           <IconGithub size="20" />
         </a>
       </div>

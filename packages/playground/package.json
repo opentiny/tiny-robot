@@ -11,9 +11,6 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build && vite build --mode lib",
@@ -21,6 +18,7 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@opentiny/tiny-robot": "workspace:*",
     "@vue/repl": "^4.7.0",
     "vue": "^3.3.11"
   },

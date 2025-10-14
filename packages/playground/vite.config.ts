@@ -1,7 +1,11 @@
-import { defineConfig } from 'vite'
+import pkg from '@opentiny/tiny-robot/package.json' with { type: 'json' }
 import vue from '@vitejs/plugin-vue'
+import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'url'
+import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
-import { resolve } from 'path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const isLib = mode === 'lib'
@@ -13,6 +17,9 @@ export default defineConfig(({ mode }) => {
       plugins: [vue()],
       optimizeDeps: {
         exclude: ['@vue/repl'],
+      },
+      define: {
+        __TINY_ROBOT_VERSION__: JSON.stringify(pkg.version),
       },
     }
   }

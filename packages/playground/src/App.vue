@@ -5,7 +5,11 @@ import { nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 import Header from './Header.vue'
 import { generateImportMap, generateStore, getDefaultFiles, getVersions } from './utils'
 
-const tinyRobotVersion = ref('0.3.0-alpha.34')
+declare global {
+  const __TINY_ROBOT_VERSION__: string
+}
+
+const tinyRobotVersion = ref(__TINY_ROBOT_VERSION__ || 'latest')
 
 const tinyRobotVersions = ref<string[]>([tinyRobotVersion.value])
 

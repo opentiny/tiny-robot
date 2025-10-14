@@ -37,6 +37,9 @@ export default defineConfig({
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
       },
     },
+    define: {
+      __TINY_ROBOT_VERSION__: JSON.stringify(version),
+    },
   },
   markdown: {
     config: (md) => {
