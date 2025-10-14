@@ -113,6 +113,7 @@ Prompt 根元素
 | `--tr-prompt-bg-disabled`   | 提示项禁用背景色 |
 | `--tr-prompt-border-radius` | 圆角大小         |
 | `--tr-prompt-shadow`        | 阴影效果         |
+| `--tr-prompt-width`         | 提示项宽度       |
 | `--tr-prompt-padding`       | 内边距           |
 | `--tr-prompt-gap`           | 图标与内容间距   |
 
