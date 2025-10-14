@@ -40,8 +40,8 @@ watch(tinyRobotVersion, async (newVersion) => {
 onMounted(async () => {
   try {
     tinyRobotVersions.value = await getVersions('@opentiny/tiny-robot', {
-      includePrerelease: true, // TODO 替换成 rc
-      includeLatest: false, // TODO 替换成 latest
+      includePrerelease: true,
+      includeLatest: false,
     })
   } catch (error) {
     console.error('Failed to load Vue versions:', error)
