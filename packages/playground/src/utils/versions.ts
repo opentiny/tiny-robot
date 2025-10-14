@@ -54,7 +54,9 @@ export async function getVersions(pkg: string, options: GetVersionsOptions = {})
 
     // Add latest tag if available and includeLatest is true
     if (includeLatest && data['dist-tags']?.latest) {
-      versions.unshift('latest')
+      if (!versions.includes('latest')) {
+        versions.unshift('latest')
+      }
     }
 
     versionCache.set(cacheKey, versions)

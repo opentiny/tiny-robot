@@ -11,9 +11,6 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build && vite build --mode lib",
