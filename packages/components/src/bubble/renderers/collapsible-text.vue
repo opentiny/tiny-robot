@@ -1,24 +1,42 @@
 <script setup lang="ts">
 import { IconArrowUp } from '@opentiny/tiny-robot-svgs'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+
+const model = defineModel<{ open?: boolean }>({
+  default() {
+    return {}
+  },
+})
 
 const props = defineProps<{
   title: string
   content: string
-  defaultOpen?: boolean
 }>()
 
-const opened = ref(props.defaultOpen ?? false)
+const openInternal = ref(false)
+const modelOpenIsSet = computed<boolean>(() => model.value && model.value.open !== void 0)
+const open = computed<boolean>({
+  get() {
+    return modelOpenIsSet.value ? model.value.open! : openInternal.value
+  },
+  set(value) {
+    if (modelOpenIsSet.value) {
+      model.value.open = value
+    } else {
+      openInternal.value = value
+    }
+  },
+})
 </script>
 
 <template>
   <div class="tr-bubble__step-text">
     <div class="tr-bubble__step-text-title">
       <span>{{ props.title }}</span>
-      <IconArrowUp class="expand-icon" :class="{ 'rotate-180': !opened }" @click="opened = !opened" />
+      <IconArrowUp class="expand-icon" :class="{ 'rotate-180': !open }" @click="open = !open" />
     </div>
     <div class="tr-bubble__step-text-content-wrapper">
-      <div v-show="opened" class="tr-bubble__step-text-content">{{ props.content }}</div>
+      <div v-show="open" class="tr-bubble__step-text-content">{{ props.content }}</div>
     </div>
   </div>
 </template>
