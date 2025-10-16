@@ -28,7 +28,25 @@ export default defineConfig({
   head: [['link', { rel: 'icon', href: '/logo-mini.svg' }]],
   vite: {
     plugins: [vueJsx()],
-    server: { open: true },
+    server: {
+      open: true,
+      proxy: {
+        '/api/aliyun/asr': {
+          target: 'https://nls-gateway-cn-shanghai.aliyuncs.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/aliyun\/asr/, '/stream/v1/asr'),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        },
+        '/api/aliyun/ws': {
+          target: 'wss://nls-gateway.cn-shanghai.aliyuncs.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/aliyun\/ws/, '/ws/v1'),
+          ws: true,
+        },
+      },
+    },
     resolve: {
       alias: {
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),

@@ -103,6 +103,27 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 
 <demo vue="../../demos/sender/voiceInput.vue" title="语音输入" description="可以使用 speech 属性进行配置" />
 
+#### 自定义语音输入
+
+Sender 组件支持自定义语音输入服务，可以集成百度、阿里云、Azure 等第三方语音识别服务。
+
+**基本案例**
+
+<demo vue="../../demos/sender/CustomSpeech.vue" :vueFiles="['../../demos/sender/CustomSpeech.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="模拟语音识别的完整示例，实际项目中可参考 speechHandlers.ts 接入真实的语音识别服务" />
+
+**接入真实服务**
+
+如需接入 阿里云 等真实的语音识别服务，请参考 `speechHandlers.ts` 中的实现：
+
+- `AliyunSpeechHandler`: 阿里云一句话识别
+- `AliyunRealtimeSpeechHandler`: 阿里云实时语音识别（WebSocket）
+
+这些实现展示了如何：
+- 处理录音和音频编码
+- 调用第三方 API
+- 处理实时流式识别
+- 错误处理和资源清理
+
 #### 消息提示
 
 此功能适用于需要在输入框内显示提示信息并引导用户操作的场景，如：
@@ -378,7 +399,23 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 ### Types
 
 ```typescript
+// 语音回调函数集合
+interface SpeechCallbacks {
+  onStart: () => void
+  onInterim: (transcript: string) => void
+  onFinal: (transcript: string) => void
+  onEnd: (transcript?: string) => void
+  onError: (error: Error) => void
+}
+
+// 自定义语音处理器接口
+interface SpeechHandler {
+  start: (callbacks: SpeechCallbacks) => Promise<void> | void
+  stop: () => Promise<void> | void
+  isSupported: () => boolean
+}
 interface SpeechConfig {
+  customHandler?: SpeechHandler // 自定义语音处理器
   lang?: string // 识别语言，默认浏览器语言
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
