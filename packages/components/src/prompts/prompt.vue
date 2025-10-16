@@ -40,6 +40,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
   --badge-color: var(--tr-prompt-badge-color);
 
   /* 影响布局的变量 */
+  --width: var(--tr-prompt-width);
   --padding: var(--tr-prompt-padding);
   --title-font-size: var(--tr-prompt-title-font-size);
   --title-line-height: var(--tr-prompt-title-line-height);
@@ -90,6 +91,7 @@ const props = withDefaults(defineProps<PromptProps>(), {
   cursor: pointer;
   transition: background 0.3s;
   background: var(--bg);
+  width: var(--width);
 
   &:hover {
     background: var(--bg-hover);

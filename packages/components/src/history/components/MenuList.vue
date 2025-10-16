@@ -77,6 +77,7 @@ const handleItemClick = (item: { id: string; text: string }) => {
   z-index: var(--tr-z-index-dropdown);
   list-style: none;
   padding: 8px 0;
+  margin: 0;
   border-radius: 8px;
   background: var(--tr-history-menu-list-bg);
   box-shadow: var(--tr-history-menu-list-box-shadow);
