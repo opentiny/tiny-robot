@@ -347,6 +347,33 @@ const toggleSpeech = () => {
   }
 }
 
+// 处理语音按钮点击事件
+const handleVoiceButtonClick = async () => {
+  const speechConfig = typeof props.speech === 'object' ? props.speech : {}
+  const isRecording = speechState.isRecording
+
+  // 如果配置了拦截器，先调用拦截器
+  if (speechConfig.onVoiceButtonClick) {
+    let defaultPrevented = false
+
+    try {
+      await speechConfig.onVoiceButtonClick(isRecording, () => {
+        defaultPrevented = true
+      })
+    } catch (error) {
+      console.error('语音按钮点击拦截器执行失败:', error)
+    }
+
+    // 如果调用了 preventDefault，不执行默认逻辑
+    if (defaultPrevented) {
+      return
+    }
+  }
+
+  // 执行默认的切换逻辑
+  toggleSpeech()
+}
+
 // 计算字数是否超出限制
 const isOverLimit = computed(() => {
   return props.maxLength !== Infinity && inputValue.value.length > props.maxLength
@@ -500,45 +527,46 @@ defineExpose({
 
           <!-- 内容区域 - 确保最小宽度，不被挤占 -->
           <div class="tiny-sender__content-area">
-            <div v-if="$slots.decorativeContent" class="tiny-sender__decorative-content">
-              <slot name="decorativeContent"></slot>
-            </div>
-
-            <!-- 模板编辑器 -->
-            <template v-if="showTemplateEditor">
-              <TemplateEditor
-                ref="templateEditorRef"
-                :model-value="props.templateData"
-                @update:model-value="handleTemplateUpdate"
-                @submit="triggerSubmit"
-              />
-            </template>
-            <!-- 普通输入框 -->
-            <div v-else class="tiny-sender__input-field-wrapper">
-              <tiny-input
-                ref="inputRef"
-                :autosize="autoSize"
-                :type="currentType"
-                resize="none"
-                v-model="inputValue"
-                :disabled="isDisabled"
-                :placeholder="placeholder"
-                :autofocus="autofocus"
-                @keydown="handleKeyPress"
-                @compositionstart="isComposing = true"
-                @compositionend="handleCompositionEnd"
-                @focus="handleFocus"
-                @blur="handleBlur"
-              />
-              <!-- 补全提示词 -->
-              <div v-if="autoCompleteText && !isComposing" class="tiny-sender__completion-placeholder">
-                <span class="user-input-mirror">{{ inputValue }}</span
-                >{{ autoCompleteText }}
-
-                <!-- Tab Hint -->
-                <div v-if="showTabIndicator" class="tiny-sender__tab-hint">TAB</div>
+            <slot name="content">
+              <div v-if="$slots.decorativeContent" class="tiny-sender__decorative-content">
+                <slot name="decorativeContent"></slot>
               </div>
-            </div>
+
+              <!-- 模板编辑器 -->
+              <template v-if="showTemplateEditor">
+                <TemplateEditor
+                  ref="templateEditorRef"
+                  :model-value="props.templateData"
+                  @update:model-value="handleTemplateUpdate"
+                  @submit="triggerSubmit"
+                />
+              </template>
+              <!-- 普通输入框 -->
+              <div v-else class="tiny-sender__input-field-wrapper">
+                <tiny-input
+                  ref="inputRef"
+                  :autosize="autoSize"
+                  :type="currentType"
+                  resize="none"
+                  v-model="inputValue"
+                  :disabled="isDisabled"
+                  :placeholder="placeholder"
+                  :autofocus="autofocus"
+                  @keydown="handleKeyPress"
+                  @compositionstart="isComposing = true"
+                  @compositionend="handleCompositionEnd"
+                  @focus="handleFocus"
+                  @blur="handleBlur"
+                />
+                <!-- 补全提示词 -->
+                <div v-if="autoCompleteText && !isComposing" class="tiny-sender__completion-placeholder">
+                  <span class="user-input-mirror">{{ inputValue }}</span>
+                  {{ autoCompleteText }}
+                  <!-- Tab Hint -->
+                  <div v-if="showTabIndicator" class="tiny-sender__tab-hint">TAB</div>
+                </div>
+              </div>
+            </slot>
           </div>
 
           <!-- 操作区域/后置插槽 -->
@@ -558,7 +586,7 @@ defineExpose({
                 :is-over-limit="isOverLimit"
                 :stop-text="stopText"
                 @clear="clearInput"
-                @toggle-speech="toggleSpeech"
+                @voice-button-click="handleVoiceButtonClick"
                 @submit="triggerSubmit"
                 @cancel="$emit('cancel')"
                 @trigger-select="openFileDialog"
@@ -607,7 +635,7 @@ defineExpose({
                     :is-over-limit="isOverLimit"
                     :stop-text="stopText"
                     @clear="clearInput"
-                    @toggle-speech="toggleSpeech"
+                    @voice-button-click="handleVoiceButtonClick"
                     @submit="triggerSubmit"
                     @cancel="$emit('cancel')"
                     @trigger-select="openFileDialog"

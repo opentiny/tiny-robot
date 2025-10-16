@@ -1,4 +1,4 @@
-import type { Ref, VNode } from 'vue'
+import type { Ref, VNode, Component } from 'vue'
 import type { TemplateItem, TextItem } from './types/editor.type'
 
 /**
@@ -41,6 +41,7 @@ export interface SpeechConfig {
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
   autoReplace?: boolean // 是否自动替换当前输入内容
+  onVoiceButtonClick?: (isRecording: boolean, preventDefault: () => void) => void | Promise<void> // 录音按钮点击拦截器
 }
 
 export type AutoSize = boolean | { minRows: number; maxRows: number }
@@ -71,9 +72,14 @@ interface fileUploadConfig {
   reset?: boolean // 选择文件后是否重置输入，默认为 true
 }
 
+interface VoiceButtonConfig {
+  icon?: VNode | Component // 自定义语音图标（未录音状态）
+}
+
 export interface ButtonGroupConfig {
   file?: ControlState & fileUploadConfig // 文件上传按钮
   submit?: ControlState // 提交按钮
+  voice?: VoiceButtonConfig // 语音按钮
 }
 // 高亮片段类型
 export interface SuggestionTextPart {
