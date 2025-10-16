@@ -72,11 +72,7 @@ Sender 是一个灵活的输入组件，支持多种输入方式和功能，包�
 
 通过`clearable`属性添加清空按钮，方便用户快速清除输入内容。
 
-<tr-sender :clearable="true" />
-
-```vue
-<tr-sender :clearable="true" />
-```
+<demo vue="../../demos/sender/Clearable.vue" title="清空内容" description="在用户输入内容后才显示，没有内容时自动隐藏" />
 
 ### 高级功能
 
