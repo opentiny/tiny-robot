@@ -1,0 +1,1 @@
+import{K as e}from"./theme.CL4NAtuH.js";import{d as a,b as r,o,k as t}from"./framework.CSeOnaMy.js";const l=a({__name:"Clearable",setup(n){return(s,c)=>(o(),r(t(e),{clearable:""}))}});export{l as default};
