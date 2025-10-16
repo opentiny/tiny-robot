@@ -52,6 +52,13 @@ export default defineConfig({
       { text: `v${version}`, link: '/releases/update-log', activeMatch: '/releases/' },
     ],
     sidebar: {
+      '/guide/': [
+        {
+          text: '指南',
+          base: '/guide/',
+          items: [{ text: '安装', link: 'installation' }],
+        },
+      ],
       '/components/': [
         {
           text: '组件',
@@ -83,6 +90,13 @@ export default defineConfig({
             { text: '消息数据管理', link: 'message' },
             { text: '会话数据管理', link: 'conversation' },
           ],
+        },
+      ],
+      '/examples/': [
+        {
+          text: '演示',
+          base: '/examples/',
+          items: [{ text: '综合示例', link: 'assistant' }],
         },
       ],
     },
