@@ -65,18 +65,18 @@ function listenCodePlaygroundEvent() {
 
     if (Object.keys(currentFiles).length === 0) {
       files.push({
-        filename: 'App.vue',
+        filename: 'src/App.vue',
         code: props.vueCode,
       })
     } else {
       files.push({
-        filename: 'App.vue',
+        filename: 'src/App.vue',
         code: currentFiles[activeFile].code,
       })
 
       Object.entries(currentFiles).forEach(([filename, file]) => {
         if (filename === activeFile) return
-        files.push({ filename, code: (file as { code: string }).code })
+        files.push({ filename: `src/${filename}`, code: (file as { code: string }).code })
       })
     }
 
