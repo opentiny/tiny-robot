@@ -39,10 +39,12 @@ watch(tinyRobotVersion, async (newVersion) => {
   const indexCssFile = store.files['src/index.css']
   if (indexCssFile) {
     const updatedCss = indexCssFile.code.replace(
-      /@opentiny\/tiny-robot@[^']+\/dist\/style\.css/,
+      /@opentiny\/tiny-robot@[^\s'"\/]+\/dist\/style\.css/g,
       `@opentiny/tiny-robot@${newVersion}/dist/style.css`,
     )
-    store.addFile(new File('src/index.css', updatedCss))
+    if (indexCssFile.code !== updatedCss) {
+      store.addFile(new File('src/index.css', updatedCss))
+    }
   }
 })
 
