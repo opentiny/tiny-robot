@@ -56,7 +56,7 @@ export default defineConfig({
     logo: '/cdocs/tiny-robot/logo-mini.svg',
     siteTitle: 'TinyRobot',
     nav: [
-      { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },
+      { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
       { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
       { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
@@ -67,7 +67,7 @@ export default defineConfig({
         {
           text: '指南',
           base: '/guide/',
-          items: [{ text: '快速开始', link: 'installation' }],
+          items: [{ text: '快速开始', link: 'quick-start' }],
         },
       ],
       '/components/': [

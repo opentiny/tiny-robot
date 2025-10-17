@@ -12,7 +12,7 @@ hero:
   actions:
     - theme: brand
       text: 开始使用
-      link: ./guide/installation
+      link: ./guide/quick-start
     - theme: alt
       text: demo 示例
       link: ./examples/assistant
