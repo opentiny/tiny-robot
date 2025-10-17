@@ -25,7 +25,7 @@ export function generateImportMap(options: ImportMapOptions) {
       // TinyRobot 相关包 - 使用统一版本号
       '@opentiny/tiny-robot': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot@${tinyRobotVersion}/dist/index.min.js`,
       '@opentiny/tiny-robot-svgs': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-svgs@${tinyRobotVersion}/dist/tiny-robot-svgs.min.js`,
-      '@opentiny/tiny-robot-kit': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${tinyRobotVersion}/+esm`,
+      '@opentiny/tiny-robot-kit': `https://cdn.jsdelivr.net/npm/@opentiny/tiny-robot-kit@${tinyRobotVersion}/dist/index.mjs`,
 
       // TinyVue 相关包
       '@opentiny/vue': 'https://cdn.jsdelivr.net/npm/@opentiny/vue-runtime@3/dist3/tiny-vue-pc.mjs',

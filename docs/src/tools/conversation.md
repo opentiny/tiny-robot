@@ -8,7 +8,7 @@ outline: deep
 
 ## 示例
 
-<demo vue="../../demos/tools/conversation/Basic.vue" />
+<demo vue="../../demos/tools/conversation/Basic.vue" :vueFiles="['../../demos/tools/conversation/Basic.vue']" />
 
 ## API
 
