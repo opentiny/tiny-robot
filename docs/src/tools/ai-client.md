@@ -11,7 +11,7 @@ outline: deep
 
 ### 创建客户端并发送消息
 
-<demo vue="../../demos/tools/client/Basic.vue" />
+<demo vue="../../demos/tools/client/Basic.vue" :vueFiles="['../../demos/tools/client/Basic.vue']" />
 
 
 ### 使用流式响应
@@ -19,7 +19,7 @@ outline: deep
 - 使用chatStream方法实现流式响应
 - signal参数传递 AbortController用于中断请求
 
-<demo vue="../../demos/tools/client/Stream.vue" />
+<demo vue="../../demos/tools/client/Stream.vue" :vueFiles="['../../demos/tools/client/Stream.vue']" />
 
 
 ## API

@@ -90,7 +90,7 @@ const client = new AIClient({
   provider: 'openai',
   // apiKey: 'your-api-key',
   defaultModel: 'gpt-3.5-turbo',
-  apiUrl: location.origin + import.meta.env.BASE_URL,
+  apiUrl: window.parent?.location.origin || location.origin + import.meta.env.BASE_URL,
 })
 
 const storage = new MockStorageStrategy()
@@ -111,7 +111,7 @@ const options = computed(() =>
 console.log('state: ', state)
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .tiny-select {
   width: 280px;
   margin-left: 4px;

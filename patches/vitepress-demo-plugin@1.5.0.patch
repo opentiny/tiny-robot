@@ -1,0 +1,219 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 2cbca8520f72560e73c2b6eba13eff51484ab3dd..605b59e5c08f46cd6852171d92d7177cde7f7119 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -53,6 +53,14 @@ declare interface VitepressDemoBoxConfig {
+      * @en The configuration of the codeplayer platform
+      */
+     codeplayer?: Platform;
++    /**
++     * @cn playground 配置
++     * @en The configuration of the playground
++     */
++    playground?: {
++        show: boolean;
++        packages?: string[];
++    };
+     /**
+      * @cn vue 展示的代码文件
+      * @en The code files of the vue
+@@ -88,6 +96,11 @@ declare interface VitepressDemoBoxConfig {
+      * @en The locale configuration 'zh-CN' | 'en-US'
+      */
+     locale?: Locale;
++    /**
++     * @cn 代码转换函数
++     * @en The code transformer function
++     */
++    codeTransformer?: (code: string, type: string) => string;
+ }
+ 
+ export declare const vitepressDemoPlugin: (md: default_2 & any, params?: VitepressDemoBoxConfig) => void;
+diff --git a/dist/index.js b/dist/index.js
+index 00b16443191a4aed8cca2a24518ab6320676d5f4..4190083068399d9a025ece1a747f39fd3b4fd5fa 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -2075,7 +2075,7 @@ var ri, vn = function(i) {
+   return typeof i == "string" && bn().test(i);
+ };
+ function bn() {
+-  return ri || (ri = new RegExp(`^[\\s	
++  return ri || (ri = new RegExp(`^[\\s
+ \v\f\r \xA0\u1680\u180E\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028\u2029\uFEFF"]+$`));
+ }
+ /*!
+@@ -2968,6 +2968,24 @@ function Is(n, i) {
+     L("path", { d: "m22 13.29-3.33-10a.42.42 0 0 0-.14-.18.38.38 0 0 0-.22-.11.39.39 0 0 0-.23.07.42.42 0 0 0-.14.18l-2.26 6.67H8.32L6.1 3.26a.42.42 0 0 0-.1-.18.38.38 0 0 0-.26-.08.39.39 0 0 0-.23.07.42.42 0 0 0-.14.18L2 13.29a.74.74 0 0 0 .27.83L12 21l9.69-6.88a.71.71 0 0 0 .31-.83Z" }, null, -1)
+   ]));
+ }
++const playgroundIconProps = {
++  xmlns: "http://www.w3.org/2000/svg",
++  width: "24",
++  height: "24",
++  viewBox: "0 0 24 24",
++  fill: "none",
++  stroke: "currentColor",
++  "stroke-width": "2",
++  "stroke-linecap": "round",
++  "stroke-linejoin": "round",
++  class: "lucide lucide-play-icon lucide-play"
++};
++function playgroundIconVnode(n, i) {
++  return I(), B("svg", playgroundIconProps, i[0] || (i[0] = [
++    L("path", { d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" }, null, -1)
++  ]));
++}
++const playgroundIcon = st({}, [["render", playgroundIconVnode]]);
+ const Ps = /* @__PURE__ */ st(Ds, [["render", Is]]), Bs = {}, Ms = {
+   xmlns: "http://www.w3.org/2000/svg",
+   "xmlns:xlink": "http://www.w3.org/1999/xlink",
+@@ -3079,6 +3097,7 @@ const ue = [], qs = {
+ const lt = /* @__PURE__ */ st(Vs, [["__scopeId", "data-v-588bc5b3"]]), Kt = {
+   openInStackblitz: "\u5728 Stackblitz \u4E2D\u6253\u5F00",
+   openInCodeSandbox: "\u5728 Codesandbox \u4E2D\u6253\u5F00",
++  openInPlayground: "\u5728 Playground \u4E2D\u6253\u5F00",
+   openInGithub: "\u5728 GitHub \u4E2D\u6253\u5F00",
+   openInGitlab: "\u5728 GitLub \u4E2D\u6253\u5F00",
+   collapseCode: "\u6536\u8D77\u4EE3\u7801",
+@@ -3088,6 +3107,7 @@ const lt = /* @__PURE__ */ st(Vs, [["__scopeId", "data-v-588bc5b3"]]), Kt = {
+ }, ji = {
+   openInStackblitz: "Open In Stackblitz",
+   openInCodeSandbox: "Open In Codesandbox",
++  openInPlayground: "Open In Playground",
+   openInGithub: "Open in GitHub",
+   openInGitlab: "Open in GitLab",
+   collapseCode: "Collapse Code",
+@@ -3139,6 +3159,7 @@ const Qs = { style: { "flex-shrink": "0" } }, Js = ["innerHTML"], Zs = ["onClick
+     stackblitz: {},
+     codesandbox: {},
+     codeplayer: {},
++    playground: {},
+     scope: {},
+     files: {},
+     lightTheme: {},
+@@ -3166,6 +3187,7 @@ const Qs = { style: { "flex-shrink": "0" } }, Js = ["innerHTML"], Zs = ["onClick
+     }
+     const u = et(() => JSON.parse(decodeURIComponent(e.stackblitz || "{}"))), d = et(() => JSON.parse(decodeURIComponent(e.codesandbox || "{}")));
+     et(() => JSON.parse(decodeURIComponent(e.codeplayer || "{}")));
++    const playgroundProp = et(() => JSON.parse(decodeURIComponent(e.playground || "{}")));
+     const o = q(""), _ = et(() => {
+       var W;
+       const M = JSON.parse(decodeURIComponent(e.files || "{}"))[c.value];
+@@ -3209,6 +3231,15 @@ const Qs = { style: { "flex-shrink": "0" } }, Js = ["innerHTML"], Zs = ["onClick
+       window.open(e.github, "_blank");
+     }, O = () => {
+       window.open(e.gitlab, "_blank");
++    }, openInPlayground = () => {
++      const R = new CustomEvent("code-playground", {
++        detail: {
++          props: e,
++          currentFiles: _.value,
++          activeFile: o.value
++        }
++      });
++      document.dispatchEvent(R);
+     };
+     at(
+       () => c.value,
+@@ -3427,7 +3458,16 @@ const Qs = { style: { "flex-shrink": "0" } }, Js = ["innerHTML"], Zs = ["onClick
+               tt(Zi, { onClick: s })
+             ]),
+             _: 1
+-          }, 8, ["content"])
++          }, 8, ["content"]),
++          playgroundProp.value.show ? (I(), pt(lt, {
++            key: 6,
++            content: $(J).openInPlayground
++          }, {
++            default: ot(() => [
++              tt(playgroundIcon, { onClick: openInPlayground })
++            ]),
++            _: 1
++          }, 8, ["content"])) : V("", !0)
+         ], 2)
+       ], 2),
+       L("section", {
+@@ -3544,14 +3584,15 @@ const Lr = /* @__PURE__ */ st(ir, [["__scopeId", "data-v-5eb3f8d4"]]), pi = [
+       e.join("-").split(".").slice(0, -1).join(".")
+     )
+   ).replace(/=/g, "Equal");
+-}, or = /title="(.*?)"/, _r = /vue="(.*?)"/, ur = /html="(.*?)"/, lr = /react="(.*?)"/, pr = /description="(.*?)"/, hr = /order="(.*?)"/, cr = /select="(.*?)"/, fr = /github="(.*?)"/, dr = /gitlab="(.*?)"/, mr = /stackblitz="(.*?)"/, gr = /codesandbox="(.*?)"/, vr = /codeplayer="(.*?)"/, br = /scope="(.*?)"/, yr = /vueFiles=("\{((.|\n)*?)\}"|"\[((.|\n)*?)\]")/, wr = /reactFiles=("\{((.|\n)*?)\}"|"\[((.|\n)*?)\]")/, xr = /htmlFiles=("\{((.|\n)*?)\}"|"\[((.|\n)*?)\]")/, Er = /ssg="(.*?)"/, Or = /htmlWriteWay="(.*?)"/, Tr = /background="(.*?)"/, hi = (n, i, e, t) => {
++}, or = /title="(.*?)"/, _r = /vue="(.*?)"/, ur = /html="(.*?)"/, lr = /react="(.*?)"/, pr = /description="(.*?)"/, hr = /order="(.*?)"/, cr = /select="(.*?)"/, fr = /github="(.*?)"/, dr = /gitlab="(.*?)"/, mr = /stackblitz="(.*?)"/, gr = /codesandbox="(.*?)"/, vr = /codeplayer="(.*?)"/, pgdRegex = /playground="(.*?)"/, pgdPkgRegex = /playgroundPackages="(.*?)"/, br = /scope="(.*?)"/, yr = /vueFiles=("\{((.|\n)*?)\}"|"\[((.|\n)*?)\]")/, wr = /reactFiles=("\{((.|\n)*?)\}"|"\[((.|\n)*?)\]")/, xr = /htmlFiles=("\{((.|\n)*?)\}"|"\[((.|\n)*?)\]")/, Er = /ssg="(.*?)"/, Or = /htmlWriteWay="(.*?)"/, Tr = /background="(.*?)"/, hi = (n, i, e, t) => {
+   var Ee, Oe, Te, ke, Re;
+   const {
+     demoDir: a,
+     tab: u = {},
+     stackblitz: d = { show: !1 },
+     codesandbox: o = { show: !1 },
+-    codeplayer: _ = { show: !1 }
++    codeplayer: _ = { show: !1 },
++    codeTransformer = (c) => c,
+   } = t || {};
+   let {
+     order: g = "vue,react,html",
+@@ -3564,10 +3605,20 @@ const Lr = /* @__PURE__ */ st(ir, [["__scopeId", "data-v-5eb3f8d4"]]), pi = [
+     description: "",
+     html: "",
+     react: ""
+-  }, k = i.content.match(or), C = i.content.match(_r), R = i.content.match(ur), h = i.content.match(lr), r = i.content.match(pr), f = i.content.match(hr), T = i.content.match(cr), x = i.content.match(fr), E = i.content.match(dr), l = i.content.match(mr), m = i.content.match(gr), p = i.content.match(vr), O = ((Ee = i.content.match(br)) == null ? void 0 : Ee[1]) || "", s = i.content.match(yr), y = i.content.match(wr), w = i.content.match(xr), A = !!((Oe = i.content.match(Er)) != null && Oe[1]), N = ((Te = i.content.match(Or)) == null ? void 0 : Te[1]) || "write", j = (ke = i.content.match(Tr)) == null ? void 0 : ke[1], P = (Re = e.realPath) != null ? Re : e.path, F = a || K.dirname(P);
++  }, k = i.content.match(or), C = i.content.match(_r), R = i.content.match(ur), h = i.content.match(lr), r = i.content.match(pr), f = i.content.match(hr), T = i.content.match(cr), x = i.content.match(fr), E = i.content.match(dr), l = i.content.match(mr), m = i.content.match(gr), p = i.content.match(vr), pgdV = i.content.match(pgdRegex), pgdPkgV = i.content.match(pgdPkgRegex), O = ((Ee = i.content.match(br)) == null ? void 0 : Ee[1]) || "", s = i.content.match(yr), y = i.content.match(wr), w = i.content.match(xr), A = !!((Oe = i.content.match(Er)) != null && Oe[1]), N = ((Te = i.content.match(Or)) == null ? void 0 : Te[1]) || "write", j = (ke = i.content.match(Tr)) == null ? void 0 : ke[1], P = (Re = e.realPath) != null ? Re : e.path, F = a || K.dirname(P);
+   f != null && f[1] && (g = f[1]), T != null && T[1] && (b = T[1]);
+   let z = "", it = "";
+   x != null && x[1] && (z = x[1]), E != null && E[1] && (it = E[1]), l != null && l[1] && (d.show = l[1] === "true"), m != null && m[1] && (o.show = m[1] === "true"), p != null && p[1] && (_.show = p[1] === "true"), C != null && C[1] && (c.vue = K.join(F, C[1]).replace(/\\/g, "/")), R != null && R[1] && (c.html = K.join(F, R[1]).replace(/\\/g, "/")), h != null && h[1] && (c.react = K.join(F, h[1]).replace(/\\/g, "/")), c.title = k ? k[1] : "", c.description = r ? r[1] : "";
++  const playground = { show: !1, ...t == null ? void 0 : t.playground };
++  pgdV != null && pgdV[1] && (playground.show = pgdV[1] === "true");
++  if (pgdPkgV != null && pgdPkgV[1]) {
++    const packages = pgdPkgV[1].split(",");
++    if(Array.isArray(playground.packages)) {
++      playground.packages = playground.packages.concat(packages);
++    } else {
++      playground.packages = packages;
++    }
++  }
+   const S = c.vue ? K.resolve(
+     a || K.dirname(P),
+     (C == null ? void 0 : C[1]) || "."
+@@ -3663,7 +3714,7 @@ const Lr = /* @__PURE__ */ st(ir, [["__scopeId", "data-v-5eb3f8d4"]]), pi = [
+             const Ce = K.resolve(a || K.dirname(P), Et || ".").replace(/\\/g, "/");
+             if (De.existsSync(Ce)) {
+               const Di = De.readFileSync(Ce, "utf-8");
+-              rt[Z][Y].code = Di;
++              rt[Z][Y].code = codeTransformer(Di, Z);
+             } else
+               delete rt[Z][Y];
+           } else
+@@ -3676,7 +3727,7 @@ const Lr = /* @__PURE__ */ st(ir, [["__scopeId", "data-v-5eb3f8d4"]]), pi = [
+   return (t == null ? void 0 : t.locale) && typeof t.locale == "object" && (xe = encodeURIComponent(JSON.stringify(t.locale))), `
+   ${A ? "" : `<vitepress-demo-placeholder v-show="${_t}" />`}
+   ${A ? "" : "<ClientOnly>"}
+-    <vitepress-demo-box 
++    <vitepress-demo-box
+       title="${c.title}"
+       description="${c.description}"
+       locale="${xe}"
+@@ -3690,6 +3741,7 @@ const Lr = /* @__PURE__ */ st(ir, [["__scopeId", "data-v-5eb3f8d4"]]), pi = [
+       stackblitz="${encodeURIComponent(JSON.stringify(d))}"
+       codesandbox="${encodeURIComponent(JSON.stringify(o))}"
+       codeplayer="${encodeURIComponent(JSON.stringify(_))}"
++      playground="${encodeURIComponent(JSON.stringify(playground))}"
+       files="${encodeURIComponent(JSON.stringify(rt))}"
+       scope="${O || ""}"
+       htmlWriteWay="${N}"
+diff --git a/package.json b/package.json
+index a6ecd225d4b2dd4dff349b3fc20f467305ffeff7..b84f9ccd01f0590be5f19c216fb1e16e5f97cca3 100644
+--- a/package.json
++++ b/package.json
+@@ -23,12 +23,10 @@
+   "type": "module",
+   "exports": {
+     ".": {
+-      "import": "./dist/index.js",
+-      "require": "./dist/index.umd.cjs"
++      "import": "./dist/index.js"
+     },
+     "./dist/style.css": "./dist/style.css"
+   },
+-  "main": "./dist/index.umd.cjs",
+   "module": "./dist/index.js",
+   "types": "./dist/index.d.ts",
+   "files": [

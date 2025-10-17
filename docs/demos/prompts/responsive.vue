@@ -35,12 +35,12 @@ const items: PromptProps[] = [
 ]
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 :deep(.prompt-item) {
   width: 100%;
 
   @media (width >= 40rem) {
-    width: calc(50% - 8px);
+    width: calc(50% - var(--tr-prompts-gap) / 2);
   }
 }
 </style>

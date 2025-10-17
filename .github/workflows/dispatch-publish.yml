@@ -82,11 +82,21 @@ jobs:
           # 使用NPM令牌进行身份验证
           NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}
 
-      # 步骤9: 发布文档到GitHub Pages
+      # 步骤9: 构建 playground
+      - name: Build playground
+        run: pnpm -F @opentiny/tiny-robot-playground build
+        env:
+          PLAYGROUND_BASE: /tiny-robot/${{ inputs.tag }}/playground
+
+      # 步骤10: 构建文档
       - name: Build VitePress
         run: pnpm -F docs build
         env:
           VITEPRESS_BASE: /tiny-robot/${{ inputs.tag }}/
+
+      # 步骤11: 复制 playground 产物到 docs
+      - name: Copy playground to docs/dist/playground
+        run: cp -r packages/playground/dist docs/dist/playground
 
       - name: Verify build output
         run: ls -la ./docs/dist

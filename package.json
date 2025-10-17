@@ -40,5 +40,10 @@
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
     "typescript": "^5.2.2"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "vitepress-demo-plugin@1.5.0": "patches/vitepress-demo-plugin@1.5.0.patch"
+    }
   }
 }

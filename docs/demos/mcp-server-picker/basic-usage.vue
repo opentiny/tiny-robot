@@ -7,7 +7,7 @@
   <div class="demo-controls">
     <TinyButton
       :class="['plugin-common', { 'plugin-active': activeCount > 0 }]"
-      circle
+      round
       size="small"
       @click="handleVisibleToggle"
     >
@@ -242,7 +242,7 @@ const handleMarketSearchFn = (query: string, item: PluginInfo) => {
 }
 </script>
 
-<style lang="less" scoped>
+<style scoped>
 .demo-controls {
   margin-bottom: 20px;
   padding: 16px;
@@ -258,7 +258,7 @@ const handleMarketSearchFn = (query: string, item: PluginInfo) => {
   min-width: 44px;
   box-sizing: content-box;
 
-  &_text {
+  .plugin-common_text {
     font-size: 12px;
     font-weight: 400;
     line-height: 20px;
@@ -266,7 +266,7 @@ const handleMarketSearchFn = (query: string, item: PluginInfo) => {
     text-align: left;
   }
 
-  &_icon {
+  .plugin-common_icon {
     font-size: 16px;
   }
 }
@@ -276,7 +276,7 @@ const handleMarketSearchFn = (query: string, item: PluginInfo) => {
   background-color: #eaf0f8;
   border: 1px solid #1476ff;
 
-  &_count {
+  .plugin-active_count {
     width: 12px;
     height: 12px;
     background: #1476ff;

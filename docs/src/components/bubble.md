@@ -34,7 +34,7 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需要注意的是，列表的加载中气泡实际上并没有新增一条消息，`loading` 设置为 `false` 后，加载中的气泡不会渲染
 
-<demo vue="../../demos/bubble/loading.vue" />
+<demo vue="../../demos/bubble/loading.vue" :vueFiles="['../../demos/bubble/loading.vue']" />
 
 ### 用户停止
 
@@ -139,11 +139,11 @@ content 对象中的所有属性都将传递给组件，onXXX会当作事件传�
 
 气泡组件提供了四个插槽，分别是 默认插槽, `loading` 插槽、`footer` 插槽 和 `trailer` 插槽
 
-<demo vue="../../demos/bubble/slots.vue" />
+<demo vue="../../demos/bubble/slots.vue" :vueFiles="['../../demos/bubble/slots.vue']" />
 
 ### schema 卡片渲染
 
-<demo vue="../../demos/bubble/schema-render.vue" :vueFiles="['../../demos/bubble/schema-render.vue', '../../demos/bubble/schema-card.ce.vue']" />
+<demo vue="../../demos/bubble/schema-render.vue" :vueFiles="['../../demos/bubble/schema-render.vue', '../../demos/bubble/schema-card.ce.vue']" playground="false" />
 
 ### 列表
 

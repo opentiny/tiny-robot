@@ -8,5 +8,3 @@ import { reactive } from 'vue'
 
 const data = reactive([])
 </script>
-
-<style lang="less" scoped></style>

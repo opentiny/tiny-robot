@@ -24,7 +24,7 @@
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
 import { FeedbackProps, TrBubble, TrFeedback } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'

@@ -53,5 +53,3 @@ const groups = reactive([
 
 const selected2 = ref<string | undefined>('2')
 </script>
-
-<style lang="less" scoped></style>

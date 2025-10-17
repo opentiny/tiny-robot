@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Repl } from '@vue/repl'
+import { File, Repl } from '@vue/repl'
 import Monaco from '@vue/repl/monaco-editor'
 import { nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 import Header from './Header.vue'
@@ -34,6 +34,18 @@ watch(tinyRobotVersion, async (newVersion) => {
     builtinImportMap: builtinImportMap.value,
   })
   store.setImportMap(importMap)
+
+  // 修改 src/index.css 中的 tinyRobotVersion
+  const indexCssFile = store.files['src/index.css']
+  if (indexCssFile) {
+    const updatedCss = indexCssFile.code.replace(
+      /@opentiny\/tiny-robot@[^\s'"\/]+\/dist\/style\.css/g,
+      `@opentiny/tiny-robot@${newVersion}/dist/style.css`,
+    )
+    if (indexCssFile.code !== updatedCss) {
+      store.addFile(new File('src/index.css', updatedCss))
+    }
+  }
 })
 
 // Load available Vue versions on component mount

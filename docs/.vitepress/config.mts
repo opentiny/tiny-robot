@@ -28,16 +28,27 @@ export default defineConfig({
   head: [['link', { rel: 'icon', href: '/logo-mini.svg' }]],
   vite: {
     plugins: [vueJsx()],
-    server: { open: true },
+    server: {
+      open: true,
+      proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
+    },
     resolve: {
       alias: {
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
       },
     },
+    define: {
+      __TINY_ROBOT_VERSION__: JSON.stringify(version),
+    },
   },
   markdown: {
     config: (md) => {
-      md.use(vitepressDemoPlugin)
+      md.use(vitepressDemoPlugin, {
+        playground: { show: true },
+        codeTransformer: (code) => {
+          return code.replace(/import\.meta\.env\.BASE_URL/g, `'${process.env.VITEPRESS_BASE || '/'}'`)
+        },
+      })
     },
   },
   themeConfig: {
