@@ -67,7 +67,7 @@ export default defineConfig({
         {
           text: '指南',
           base: '/guide/',
-          items: [{ text: '安装', link: 'installation' }],
+          items: [{ text: '快速开始', link: 'installation' }],
         },
       ],
       '/components/': [
