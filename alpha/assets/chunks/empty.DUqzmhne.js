@@ -1,0 +1,1 @@
+import{H as e}from"./theme.AaxMaJYE.js";import{d as t,a as o,h as r,o as n,x as s}from"./framework.1ofCZuck.js";const u=t({__name:"empty",setup(c){const a=o([]);return(p,m)=>(n(),r(s(e),{data:a},null,8,["data"]))}});export{u as default};
