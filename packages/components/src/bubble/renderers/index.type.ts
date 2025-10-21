@@ -4,7 +4,11 @@ import type { BubbleContentClassRenderer } from './class-renderer'
 
 export type BubbleContentFunctionRenderer = (options: { [key: string]: any }) => VNode
 
-export type BubbleContentRenderer = BubbleContentFunctionRenderer | BubbleContentClassRenderer | Component
+export type BubbleContentRenderer =
+  | BubbleContentFunctionRenderer
+  | BubbleContentClassRenderer
+  | Component
+  | { component: Component; defaultProps: Record<string, unknown> }
 
 export interface BubbleContentItem {
   type: string

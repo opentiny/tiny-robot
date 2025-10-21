@@ -26,6 +26,14 @@ const getVNodeOrComponent = (type: string) => {
     return { isComponent: false, vNodeOrComponent: renderer.render(props.item) }
   }
 
+  if (typeof renderer === 'object' && 'component' in renderer) {
+    return {
+      isComponent: true,
+      vNodeOrComponent: renderer.component,
+      defaultProps: renderer.defaultProps,
+    }
+  }
+
   return { isComponent: true, vNodeOrComponent: renderer }
 }
 
@@ -35,6 +43,10 @@ const contentRenderer = computed(() => {
 </script>
 
 <template>
-  <component v-if="contentRenderer.isComponent" :is="contentRenderer.vNodeOrComponent" v-bind="props.item"></component>
+  <component
+    v-if="contentRenderer.isComponent"
+    :is="contentRenderer.vNodeOrComponent"
+    v-bind="{ ...contentRenderer.defaultProps, ...props.item }"
+  ></component>
   <component v-else :is="contentRenderer.vNodeOrComponent"></component>
 </template>
