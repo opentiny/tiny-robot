@@ -10,6 +10,7 @@
     v-model:fullscreen="fullscreen"
     v-model:show="show"
     class="tiny-container"
+    :style="containerStyles"
   >
     <template #operations>
       <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
@@ -564,6 +565,16 @@ onMounted(() => {
     senderRef.value?.focus()
   }, 500)
 })
+
+const containerStyles =
+  window.self !== window.top
+    ? {
+        height: '100vh',
+      }
+    : {
+        top: '112px',
+        height: 'calc(100vh - 112px)',
+      }
 </script>
 
 <style scoped>
@@ -595,10 +606,6 @@ onMounted(() => {
 }
 
 .tiny-container {
-  top: 112px;
-
-  height: calc(100vh - 112px);
-
   container-type: inline-size;
 
   :deep(.tr-welcome__title-wrapper) {

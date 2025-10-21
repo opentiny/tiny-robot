@@ -8,7 +8,7 @@ outline: deep
 
 ### 基础用法
 
-<demo vue="../../demos/tools/message/Basic.vue" :vueFiles="['../../demos/tools/message/Basic.vue']" playground="false" />
+<demo vue="../../demos/tools/message/Basic.vue" :vueFiles="['../../demos/tools/message/Basic.vue']" />
 
 ### onReceiveData 事件
 

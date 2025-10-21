@@ -56,13 +56,20 @@ export default defineConfig({
     logo: '/cdocs/tiny-robot/logo-mini.svg',
     siteTitle: 'TinyRobot',
     nav: [
-      { text: '指南', link: '/guide/installation', activeMatch: '/guide/' },
+      { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
       { text: '组件', link: '/components/bubble', activeMatch: '/components/' },
       { text: '工具', link: '/tools/ai-client', activeMatch: '/tools/' },
       { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
       { text: `v${version}`, link: '/releases/update-log', activeMatch: '/releases/' },
     ],
     sidebar: {
+      '/guide/': [
+        {
+          text: '指南',
+          base: '/guide/',
+          items: [{ text: '快速开始', link: 'quick-start' }],
+        },
+      ],
       '/components/': [
         {
           text: '组件',
@@ -94,6 +101,13 @@ export default defineConfig({
             { text: '消息数据管理', link: 'message' },
             { text: '会话数据管理', link: 'conversation' },
           ],
+        },
+      ],
+      '/examples/': [
+        {
+          text: '演示',
+          base: '/examples/',
+          items: [{ text: '综合示例', link: 'assistant' }],
         },
       ],
     },

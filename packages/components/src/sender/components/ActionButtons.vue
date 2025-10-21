@@ -208,8 +208,8 @@ const fileTooltipPlacement = computed(() => props.buttonGroup?.file?.tooltipPlac
         </div>
       </template>
 
-      <!-- 清除按钮 -->
-      <template v-if="showClear">
+      <!-- 清除按钮：仅在有内容时显示 -->
+      <template v-if="showClear && hasContent">
         <tiny-tooltip content="清空内容" placement="top">
           <div class="action-buttons__button" @click="handleClear">
             <IconClear class="action-buttons__icon" />
