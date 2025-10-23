@@ -30,7 +30,7 @@ const contentRenderer = computed(() => {
     return { isComponent: false, vNodeOrComponent: renderer.render(props) }
   }
 
-  if (typeof renderer === 'object' && 'component' in renderer) {
+  if (typeof renderer === 'object' && renderer !== null && 'component' in renderer) {
     return { isComponent: true, vNodeOrComponent: renderer.component, defaultProps: renderer.defaultProps }
   }
 
