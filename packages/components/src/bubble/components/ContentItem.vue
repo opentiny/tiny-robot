@@ -26,7 +26,7 @@ const getVNodeOrComponent = (type: string) => {
     return { isComponent: false, vNodeOrComponent: renderer.render(props.item) }
   }
 
-  if (typeof renderer === 'object' && 'component' in renderer) {
+  if (typeof renderer === 'object' && renderer !== null && 'component' in renderer) {
     return {
       isComponent: true,
       vNodeOrComponent: renderer.component,
