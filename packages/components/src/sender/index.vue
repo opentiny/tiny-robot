@@ -537,6 +537,7 @@ defineExpose({
                 <TemplateEditor
                   ref="templateEditorRef"
                   :model-value="props.templateData"
+                  :auto-size="autoSize"
                   @update:model-value="handleTemplateUpdate"
                   @submit="triggerSubmit"
                 />
