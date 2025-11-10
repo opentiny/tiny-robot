@@ -77,7 +77,7 @@ const loadingBubble = computed(() => {
 
   const { slots, ...rest } = props.roles[props.loadingRole]
 
-  return { props: { ...rest, loading: true }, slots }
+  return { props: { ...rest, loading: true, 'data-role': 'loading' }, slots }
 })
 </script>
 

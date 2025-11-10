@@ -203,6 +203,7 @@ const style = computed(() => {
 }
 
 .tr-bubble__content-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
 }
