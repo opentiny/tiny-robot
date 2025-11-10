@@ -6,7 +6,7 @@ import Empty from './components/Empty.vue'
 import MenuList from './components/MenuList.vue'
 import { useRenameEditor } from './composables/useRenameEditor'
 import { NO_GROUP } from './constants'
-import type { HistoryData, HistoryGroup, HistoryItem, HistoryMenuItem, HistoryProps } from './index.type'
+import type { HistoryData, HistoryGroup, HistoryItem, HistoryMenuItem, HistoryProps, HistorySlots } from './index.type'
 
 const props = withDefaults(defineProps<HistoryProps<T>>(), {
   showRenameControls: false,
@@ -22,6 +22,7 @@ const emit = defineEmits<{
   'item-title-change': [newTitle: string, item: T]
   'item-action': [action: HistoryMenuItem, item: T]
 }>()
+defineSlots<HistorySlots<T>>()
 
 const isGroup = <T extends HistoryItem>(data: HistoryData<T>): data is HistoryGroup<T>[] => {
   const typeOfGroup = typeof (data[0] as HistoryGroup<T>)?.group
@@ -110,6 +111,8 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
             :key="item.id || index"
             @click="emit('item-click', item)"
           >
+            <slot name="item-prefix" :item="item"></slot>
+            <component :is="item.icon" v-if="item.icon" />
             <input
               class="tr-history__item-editor"
               v-if="editingItem === item"
@@ -120,7 +123,9 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
               @keydown.enter="handleEditConfirm"
               @keydown.escape="handleEditCancel"
             />
-            <span class="text" v-else :title="item.title">{{ item.title }}</span>
+            <slot v-else name="item-title" :item="item">
+              <span class="text" :title="item.title">{{ item.title }}</span>
+            </slot>
             <span class="tr-history__item-actions" @click.stop>
               <button
                 class="editor-confirm"
