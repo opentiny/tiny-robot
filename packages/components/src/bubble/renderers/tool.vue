@@ -134,6 +134,9 @@ const highlightJSON = <T extends string | object>(json?: T): string => {
   }
 
   .tr-bubble__step-tool-expand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
 
