@@ -134,6 +134,7 @@ export type SenderEmits = {
   (e: 'cancel'): void // 取消发送状态时触发
   (e: 'reset-template'): void // 重置模板状态，退出模板编辑模式
   (e: 'files-selected', files: File[]): void // 文件选择事件
+  (e: 'trigger-char', char: string, position: { top: number; left: number }): void // 触发字符事件（如 @）
 }
 
 // 语音识别状态

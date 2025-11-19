@@ -296,6 +296,10 @@ const handleTemplateUpdate = (data: UserItem[]) => {
   emit('update:templateData', data)
 }
 
+const handleTriggerChar = (char: string, position: { top: number; left: number }) => {
+  emit('trigger-char', char, position)
+}
+
 watch(
   () => props.templateData,
   () => {
@@ -394,6 +398,40 @@ const handleBlur = (event: FocusEvent) => {
   closePopup()
 }
 
+// 处理普通输入框的输入事件，检测触发字符
+const handleInput = (value: string) => {
+  // 检测是否输入了 @ 字符
+  if (value.endsWith('@') && !showTemplateEditor.value) {
+    // 获取输入框位置
+    nextTick(() => {
+      let inputElement: HTMLElement | null = null
+
+      // 尝试从 ref 中获取输入元素
+      if (inputRef.value) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const refElement = inputRef.value as any
+        inputElement =
+          refElement.$el?.querySelector?.('.tiny-input__inner, .tiny-textarea__inner') ||
+          refElement.querySelector?.('.tiny-input__inner, .tiny-textarea__inner')
+      }
+
+      // 如果从 ref 获取失败，尝试从 senderRef 中查找
+      if (!inputElement && senderRef.value) {
+        inputElement = senderRef.value.querySelector('.tiny-input__inner, .tiny-textarea__inner')
+      }
+
+      if (inputElement) {
+        const rect = inputElement.getBoundingClientRect()
+        // 使用 position: fixed 的弹窗，应该使用相对于视口的位置，不需要加上滚动距离
+        emit('trigger-char', '@', {
+          top: rect.bottom,
+          left: rect.left,
+        })
+      }
+    })
+  }
+}
+
 const currentType = computed(() => (currentMode.value === 'multiple' ? 'textarea' : 'text'))
 
 type SlotsType = {
@@ -431,7 +469,7 @@ const handleCompositionEnd = () => {
 }
 
 // 监听输入变化
-watch(inputValue, () => {
+watch(inputValue, (newValue) => {
   // 当输入内容变化时检查是否需要切换模式
   nextTick(checkInputOverflow)
 
@@ -440,6 +478,9 @@ watch(inputValue, () => {
   }
 
   syncAutoComplete()
+
+  // 检测触发字符
+  handleInput(newValue)
 })
 
 // 监听模板编辑器显示状态
@@ -518,6 +559,7 @@ defineExpose({
                 :model-value="props.templateData"
                 @update:model-value="handleTemplateUpdate"
                 @submit="triggerSubmit"
+                @trigger-char="handleTriggerChar"
               />
             </template>
             <!-- 普通输入框 -->

@@ -23,7 +23,7 @@ const attrs = useAttrs()
   <!-- 技能块结构：prefix + skill + suffix -->
   <span :data-id="props.id" data-type="prefix" v-bind="attrs">{{ props.prefix }}</span>
   <span :data-id="props.id" :data-type="props.type" v-bind="attrs">
-    {{ props.label }}
+    {{ `@${props.label}` }}
   </span>
   <span :data-id="props.id" data-type="suffix" v-bind="attrs">{{ props.suffix }}</span>
 </template>

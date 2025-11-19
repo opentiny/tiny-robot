@@ -38,6 +38,7 @@ const model = defineModel<UserItem[]>({ default: () => [] })
 
 const emit = defineEmits<{
   (e: 'submit'): void
+  (e: 'trigger-char', char: string, position: { top: number; left: number }): void
 }>()
 
 const forceRerender = ref(0)
@@ -418,6 +419,20 @@ const handleBeforeInput = (e: Event) => {
   const { inputType } = ev
   // inputData 过滤掉分隔符
   const inputData = (ev.data || ev.dataTransfer?.getData('text/plain') || '').replace(PREFIX, '').replace(SUFFIX, '')
+
+  // 检测触发字符（如 @）
+  if (inputData === '@' && inputType === 'insertText') {
+    const selection = window.getSelection()
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0)
+      const rect = range.getBoundingClientRect()
+      // 使用 position: fixed 的弹窗，应该使用相对于视口的位置，不需要加上滚动距离
+      emit('trigger-char', '@', {
+        top: rect.bottom,
+        left: rect.left,
+      })
+    }
+  }
 
   const range = ev.getTargetRanges()[0] as StaticRange | undefined
 
@@ -991,110 +1006,43 @@ const setCaretToElementEnd = (id: string, type: 'text' | 'template' | 'skill') =
 }
 
 /**
- * 插入技能块
- * @param skill 技能数据
+ * 将光标移动到编辑器末尾
  */
-const insertSkill = (skill: { label: string; value: string }) => {
-  const id = randomId()
-  const skillItem: SkillItem = {
-    id,
-    type: 'skill',
-    label: skill.label,
-    value: skill.value,
-    prefix: PREFIX,
-    suffix: SUFFIX,
-  }
+const focusToEnd = () => {
+  if (!editorRef.value) return
 
-  // 获取当前光标位置
-  const selectionRange = getSelectionRange(editorRef.value!)
-  if (!selectionRange) {
-    // 没有光标位置，追加到末尾
-    setOriginalData([...originalData.value, skillItem])
-    history.commit(serializeWithTimestamp(originalData.value))
-    model.value = transformInternalToUser(originalData.value)
-    nextTick(() => {
-      setCaretToElementEnd(id, 'skill')
-    })
-    return
-  }
-
-  const range = transformRange(selectionRange)
-
-  if (range.startId && range.endId) {
-    // 在光标位置插入
-    const startIndex = originalData.value.findIndex((item) => item.id === range.startId)
-
-    if (startIndex !== -1) {
-      const currentItem = originalData.value[startIndex]
-
-      // 如果当前是文本节点，需要分割
-      if (currentItem.type === 'text') {
-        const beforeText = currentItem.content.slice(0, range.startOffset)
-        const afterText = currentItem.content.slice(range.endOffset)
-
-        const newItems: (TextItem | TemplateItem | SkillItem)[] = []
-
-        if (beforeText) {
-          newItems.push({ ...currentItem, content: beforeText })
-        }
-
-        newItems.push(skillItem)
-
-        if (afterText) {
-          newItems.push({ id: randomId(), type: 'text', content: afterText })
-        }
-
-        rangeMap.set(history.get(), range)
-
-        setOriginalData([
-          ...originalData.value.slice(0, startIndex),
-          ...newItems,
-          ...originalData.value.slice(startIndex + 1),
-        ])
-        history.commit(serializeWithTimestamp(originalData.value))
-      } else if (currentItem.type === 'skill') {
-        // 如果光标在技能块上，在技能块后面插入
-        rangeMap.set(history.get(), range)
-
-        setOriginalData([
-          ...originalData.value.slice(0, startIndex + 1),
-          skillItem,
-          ...originalData.value.slice(startIndex + 1),
-        ])
-        history.commit(serializeWithTimestamp(originalData.value))
-      } else if (currentItem.type === 'template') {
-        // 如果光标在模板块上，根据 startType 判断位置
-        if (range.startType === 'prefix') {
-          // 在模板块前面插入
-          rangeMap.set(history.get(), range)
-
-          setOriginalData([
-            ...originalData.value.slice(0, startIndex),
-            skillItem,
-            ...originalData.value.slice(startIndex),
-          ])
-          history.commit(serializeWithTimestamp(originalData.value))
-        } else {
-          // 在模板块后面插入
-          rangeMap.set(history.get(), range)
-
-          setOriginalData([
-            ...originalData.value.slice(0, startIndex + 1),
-            skillItem,
-            ...originalData.value.slice(startIndex + 1),
-          ])
-          history.commit(serializeWithTimestamp(originalData.value))
-        }
-      }
-    }
-  }
-
-  // 更新 model
-  model.value = transformInternalToUser(originalData.value)
-
-  // 设置光标到技能块后面
   nextTick(() => {
-    setCaretToElementEnd(id, 'skill')
+    // 查找最后一个文本节点
+    const textNodes = editorRef.value!.querySelectorAll('[data-type="text"]')
+    const lastTextNode = textNodes[textNodes.length - 1] as HTMLElement
+
+    if (lastTextNode && lastTextNode.firstChild) {
+      // 设置光标到最后一个文本节点的末尾
+      const textLength = lastTextNode.textContent?.length || 0
+      const range = document.createRange()
+      const sel = window.getSelection()
+
+      range.setStart(lastTextNode.firstChild, textLength)
+      range.collapse(true)
+
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+
+      // 确保编辑器获得焦点
+      editorRef.value!.focus()
+    } else if (lastTextNode) {
+      // 如果没有文本子节点，设置到元素本身
+      const range = document.createRange()
+      const sel = window.getSelection()
+
+      range.selectNodeContents(lastTextNode)
+      range.collapse(false)
+
+      sel?.removeAllRanges()
+      sel?.addRange(range)
+
+      editorRef.value!.focus()
+    }
   })
 }
 
@@ -1203,7 +1151,7 @@ onUnmounted(() => {
 defineExpose({
   clearHistory: handleClearHistory,
   activateFirstField,
-  insertSkill,
+  focusToEnd,
 })
 </script>
 
