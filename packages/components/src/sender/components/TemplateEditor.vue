@@ -4,14 +4,17 @@ import { useUndoRedo } from '../composables/useUndoRedo'
 import type { UserItem } from '../index.type'
 import type {
   CreateItem,
+  DataItem,
   EditorRange,
   ExtendedTextItem,
   SelectedItem,
+  SkillItem,
   StructuredDataItem,
   TemplateItem,
   TextItem,
 } from '../types/editor.type'
 import Block from './Block.vue'
+import Skill from './Skill.vue'
 
 const SUPPORTS_SHADOW_SELECTION = typeof window.ShadowRoot.prototype.getSelection === 'function'
 const SUPPORTS_COMPOSED_RANGES = typeof window.Selection.prototype.getComposedRanges === 'function'
@@ -44,8 +47,18 @@ const forceRerender = ref(0)
  * @param items 用户数据结构
  * @returns 内部数据结构
  */
-const transformUserToInternal = (items: UserItem[]): (TextItem | TemplateItem)[] => {
+const transformUserToInternal = (items: UserItem[]): (TextItem | TemplateItem | SkillItem)[] => {
   return items.map((item) => {
+    if (item.type === 'skill') {
+      return {
+        id: item.id || randomId(),
+        type: 'skill',
+        label: item.label,
+        value: item.value,
+        prefix: PREFIX,
+        suffix: SUFFIX,
+      } as SkillItem
+    }
     return {
       id: item.id || randomId(),
       ...(item.type === 'template' ? { ...item, prefix: PREFIX, suffix: SUFFIX } : item),
@@ -58,34 +71,39 @@ const transformUserToInternal = (items: UserItem[]): (TextItem | TemplateItem)[]
  * @param items 内部数据结构
  * @returns 用户数据结构
  */
-const transformInternalToUser = (items: (TextItem | TemplateItem)[]): UserItem[] => {
-  return items.map((item) => ({ id: item.id, type: item.type, content: item.content }))
+const transformInternalToUser = (items: (TextItem | TemplateItem | SkillItem)[]): UserItem[] => {
+  return items.map((item) => {
+    if (item.type === 'skill') {
+      return { id: item.id, type: item.type, label: item.label, value: item.value }
+    }
+    return { id: item.id, type: item.type, content: item.content }
+  })
 }
 
-const originalData = ref<(TextItem | TemplateItem)[]>(transformUserToInternal(model.value || []))
+const originalData = ref<(TextItem | TemplateItem | SkillItem)[]>(transformUserToInternal(model.value || []))
 
 // 设置originalData实际上是3个步骤
 // 1. 记录旧值的 selectionRange (rangeMap.set)
 // 2. 设置originalData (setOriginalData)
 // 3. 提交历史记录 (history.commit)
 // 特殊情况: 在 history undo redo 中，不需要3步骤。否则历史记录会重复
-const setOriginalData = (items: (TextItem | TemplateItem)[]) => {
+const setOriginalData = (items: (TextItem | TemplateItem | SkillItem)[]) => {
   originalData.value = items
 }
 
 const originalDataForUI = computed(() => {
-  const first: (TextItem | TemplateItem)[] = []
-  const last: (TextItem | TemplateItem)[] = []
+  const first: (TextItem | TemplateItem | SkillItem)[] = []
+  const last: (TextItem | TemplateItem | SkillItem)[] = []
   const items = originalData.value
 
-  // 首尾的空text如果和template相邻，则将空text转换成PLACEHOLDER
+  // 首尾的空text如果和template/skill相邻，则将空text转换成PLACEHOLDER
   if (items.length >= 2) {
     const originalDataFirstItem = items[0]
     const second = items[1]
     if (
       originalDataFirstItem.type === 'text' &&
       originalDataFirstItem.content.length === 0 &&
-      second.type === 'template'
+      (second.type === 'template' || second.type === 'skill')
     ) {
       first.push({ ...originalDataFirstItem, content: PLACEHOLDER })
     }
@@ -95,30 +113,32 @@ const originalDataForUI = computed(() => {
     if (
       originalDataLastItem.type === 'text' &&
       originalDataLastItem.content.length === 0 &&
-      secondLast.type === 'template'
+      (secondLast.type === 'template' || secondLast.type === 'skill')
     ) {
       last.push({ ...originalDataLastItem, content: PLACEHOLDER })
     }
   }
 
-  // 如果第一个元素是template，则添加一个空text
-  if (items.length > 0 && items[0].type === 'template') {
+  // 如果第一个元素是template或skill，则添加一个空text
+  if (items.length > 0 && (items[0].type === 'template' || items[0].type === 'skill')) {
     first.push({ type: 'text', content: PLACEHOLDER, id: randomId() })
   }
 
-  // 如果最后一个元素是template，则添加一个空text
-  if (items.length > 0 && items[items.length - 1].type === 'template') {
+  // 如果最后一个元素是template或skill，则添加一个空text
+  if (items.length > 0 && (items[items.length - 1].type === 'template' || items[items.length - 1].type === 'skill')) {
     last.push({ type: 'text', content: PLACEHOLDER, id: randomId() })
   }
 
   // 如果首尾text有实际内容，则删除placeholder
   const regex = new RegExp(PLACEHOLDER, 'g')
   if (items.length > 0) {
-    if (items[0].content !== PLACEHOLDER) {
-      items[0].content = items[0].content.replace(regex, '')
+    const firstItem = items[0]
+    if (firstItem.type !== 'skill' && firstItem.content !== PLACEHOLDER) {
+      firstItem.content = firstItem.content.replace(regex, '')
     }
-    if (items[items.length - 1].content !== PLACEHOLDER) {
-      items[items.length - 1].content = items[items.length - 1].content.replace(regex, '')
+    const lastItem = items[items.length - 1]
+    if (lastItem.type !== 'skill' && lastItem.content !== PLACEHOLDER) {
+      lastItem.content = lastItem.content.replace(regex, '')
     }
   }
 
@@ -130,9 +150,23 @@ const flattenedData = computed<ExtendedTextItem[]>(() => {
     .map((item) => {
       if (item.type === 'template') {
         return [
-          { id: item.id, type: 'prefix', content: item.prefix },
-          { id: item.id, type: 'template', content: item.content },
-          { id: item.id, type: 'suffix', content: item.suffix },
+          { id: item.id, type: 'prefix' as const, content: item.prefix },
+          { id: item.id, type: 'template' as const, content: item.content, prefix: item.prefix, suffix: item.suffix },
+          { id: item.id, type: 'suffix' as const, content: item.suffix },
+        ] satisfies ExtendedTextItem[]
+      }
+      if (item.type === 'skill') {
+        return [
+          { id: item.id, type: 'prefix' as const, content: item.prefix },
+          {
+            id: item.id,
+            type: 'skill' as const,
+            label: item.label,
+            value: item.value,
+            prefix: item.prefix,
+            suffix: item.suffix,
+          },
+          { id: item.id, type: 'suffix' as const, content: item.suffix },
         ] satisfies ExtendedTextItem[]
       }
       return [item]
@@ -141,11 +175,28 @@ const flattenedData = computed<ExtendedTextItem[]>(() => {
 })
 
 const structuredData = computed<StructuredDataItem[]>(() => {
-  return originalDataForUI.value.map((item) => {
+  return originalDataForUI.value.map((item): StructuredDataItem => {
     if (item.type === 'text') {
-      return item
+      return {
+        id: item.id,
+        type: 'text',
+        content: item.content,
+      }
     }
 
+    // 技能块：直接返回 skill 类型，不嵌套在 block 中
+    if (item.type === 'skill') {
+      return {
+        id: item.id,
+        type: 'skill',
+        label: item.label,
+        value: item.value,
+        prefix: item.prefix,
+        suffix: item.suffix,
+      }
+    }
+
+    // 模板块
     if (isSafariBrowser) {
       return {
         id: item.id,
@@ -157,7 +208,7 @@ const structuredData = computed<StructuredDataItem[]>(() => {
             id: item.id,
             type: 'block',
             content: [
-              { id: item.id, type: 'template', content: item.content },
+              { id: item.id, type: 'template', content: item.content, prefix: item.prefix, suffix: item.suffix },
               { id: item.id, type: 'suffix', content: item.suffix },
             ],
           },
@@ -175,7 +226,7 @@ const structuredData = computed<StructuredDataItem[]>(() => {
           type: 'block',
           content: [
             { id: item.id, type: 'prefix', content: item.prefix },
-            { id: item.id, type: 'template', content: item.content },
+            { id: item.id, type: 'template', content: item.content, prefix: item.prefix, suffix: item.suffix },
           ],
         },
         { id: item.id, type: 'suffix', content: item.suffix },
@@ -341,7 +392,7 @@ const insertNewTextAndSetCaretPosition = (content: string, insertAfter?: string)
       console.warn(`can not find item with id: ${insertAfter}`)
     }
   } else {
-    setOriginalData([textItem as TextItem | TemplateItem].concat(originalData.value))
+    setOriginalData([textItem as TextItem | TemplateItem | SkillItem].concat(originalData.value))
     history.commit(serializeWithTimestamp(originalData.value))
   }
 
@@ -505,8 +556,19 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
             dataItem.content = insertToText(dataItem.content, insertedText, item.startOffset, item.endOffset)
           }
         }
+      } else if (dataItem.type === 'skill') {
+        // 技能块的处理：prefix/suffix 删除整个块，content 也删除整个块
+        if (item.type === 'prefix' || item.type === 'suffix') {
+          if (item.startOffset === 0 && item.endOffset === 1 && insertedText.length === 0) {
+            // 删除 prefix 或 suffix，删除整个技能块
+            toDeletedTemplate.push(dataItem.id)
+          }
+        } else {
+          // 任何对 content 的操作都删除整个技能块
+          toDeletedTemplate.push(dataItem.id)
+        }
       } else {
-        console.warn('dataItem.type is not text or template', dataItem)
+        console.warn('dataItem.type is not text or template or skill', dataItem)
       }
     } else {
       console.warn('can not find dataItem', item)
@@ -516,10 +578,16 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   // 删除template
   let newOriginalData = originalData.value.filter((item) => !toDeletedTemplate.includes(item.id))
 
-  // 下面的逻辑是为了不让template位于首尾
-  // 先删除空template
+  // 下面的逻辑是为了不让template和skill位于首尾
+  // 先删除空template和空skill
   newOriginalData = newOriginalData.filter((item) => {
-    return !(item.type === 'template' && [item.prefix, item.suffix, item.content].join('').length === 0)
+    if (item.type === 'template') {
+      return [item.prefix, item.suffix, item.content].join('').length > 0
+    }
+    if (item.type === 'skill') {
+      return [item.prefix, item.suffix, item.label].join('').length > 0
+    }
+    return true
   })
 
   const toDeletedText = new Set<string>()
@@ -530,7 +598,11 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
         const first = arr[0]
         const second = arr[1]
 
-        if (first.type === 'text' && first.content.length === 0 && second.type === 'template') {
+        if (
+          first.type === 'text' &&
+          first.content.length === 0 &&
+          (second.type === 'template' || second.type === 'skill')
+        ) {
           return
         }
       }
@@ -539,7 +611,11 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
         const last = arr[arr.length - 1]
         const secondLast = arr[arr.length - 2]
 
-        if (last.type === 'text' && last.content.length === 0 && secondLast.type === 'template') {
+        if (
+          last.type === 'text' &&
+          last.content.length === 0 &&
+          (secondLast.type === 'template' || secondLast.type === 'skill')
+        ) {
           return
         }
       }
@@ -553,8 +629,10 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   // 再删除空text
   newOriginalData = newOriginalData.filter((item) => !toDeletedText.has(item.id))
 
-  // 恢复分隔符
-  for (const dataItem of newOriginalData.filter((item): item is TemplateItem => item.type === 'template')) {
+  // 恢复分隔符（模板块和技能块都需要）
+  for (const dataItem of newOriginalData.filter(
+    (item): item is TemplateItem | SkillItem => item.type === 'template' || item.type === 'skill',
+  )) {
     if (dataItem.prefix.length === 0) {
       dataItem.prefix = PREFIX
     }
@@ -621,12 +699,19 @@ const getSelected = (range: EditorRange): SelectedItem[] | null => {
     ]
   }
 
+  const getContentLength = (item: ExtendedTextItem) => {
+    if (item.type === 'skill') {
+      return item.label.length
+    }
+    return item.content.length
+  }
+
   const selected = [
     {
       id: startItem.id,
       type: startItem.type,
       startOffset: range.startOffset,
-      endOffset: startItem.content.length,
+      endOffset: getContentLength(startItem),
     },
   ]
 
@@ -636,7 +721,7 @@ const getSelected = (range: EditorRange): SelectedItem[] | null => {
       id: item.id,
       type: item.type,
       startOffset: 0,
-      endOffset: item.content.length,
+      endOffset: getContentLength(item),
     })
   }
 
@@ -721,13 +806,22 @@ const moveToPrevious = (
   const index = flattenedData.value.findIndex((item) => item.id === selectedItem.id && item.type === selectedItem.type)
   if (index > 0) {
     const previous = flattenedData.value[index - 1]
-    const { id, type, content } = previous
+    const { id, type } = previous
     if (type === 'text' || type === 'template') {
+      const contentLength = previous.content.length
       return {
         id,
         type,
-        startOffset: content.length - deleteCount,
-        endOffset: content.length,
+        startOffset: contentLength - deleteCount,
+        endOffset: contentLength,
+      }
+    } else if (type === 'skill') {
+      const contentLength = previous.label.length
+      return {
+        id,
+        type,
+        startOffset: contentLength - deleteCount,
+        endOffset: contentLength,
       }
     } else if (inputData.length > 0) {
       // 光标在两个分隔符中间，需要新建文本
@@ -760,7 +854,7 @@ const moveToNext = (
   if (index < flattenedData.value.length - 1) {
     const next = flattenedData.value[index + 1]
     const { id, type } = next
-    if (type === 'text' || type === 'template') {
+    if (type === 'text' || type === 'template' || type === 'skill') {
       return {
         id,
         type,
@@ -886,7 +980,7 @@ const restoreDataAndCaretPosition = (historyItem: string) => {
  * @param id 元素id
  * @param type 元素类型
  */
-const setCaretToElementEnd = (id: string, type: 'text' | 'template') => {
+const setCaretToElementEnd = (id: string, type: 'text' | 'template' | 'skill') => {
   // 查找目标元素
   const el = editorRef.value?.querySelector(`[data-id="${id}"][data-type="${type}"]`)
   if (!el) return // 元素不存在则直接返回
@@ -894,6 +988,114 @@ const setCaretToElementEnd = (id: string, type: 'text' | 'template') => {
   // 计算文本长度（作为光标偏移量），设置光标位置
   const offset = el.textContent?.length || 0
   setCaretPosition(el, offset)
+}
+
+/**
+ * 插入技能块
+ * @param skill 技能数据
+ */
+const insertSkill = (skill: { label: string; value: string }) => {
+  const id = randomId()
+  const skillItem: SkillItem = {
+    id,
+    type: 'skill',
+    label: skill.label,
+    value: skill.value,
+    prefix: PREFIX,
+    suffix: SUFFIX,
+  }
+
+  // 获取当前光标位置
+  const selectionRange = getSelectionRange(editorRef.value!)
+  if (!selectionRange) {
+    // 没有光标位置，追加到末尾
+    setOriginalData([...originalData.value, skillItem])
+    history.commit(serializeWithTimestamp(originalData.value))
+    model.value = transformInternalToUser(originalData.value)
+    nextTick(() => {
+      setCaretToElementEnd(id, 'skill')
+    })
+    return
+  }
+
+  const range = transformRange(selectionRange)
+
+  if (range.startId && range.endId) {
+    // 在光标位置插入
+    const startIndex = originalData.value.findIndex((item) => item.id === range.startId)
+
+    if (startIndex !== -1) {
+      const currentItem = originalData.value[startIndex]
+
+      // 如果当前是文本节点，需要分割
+      if (currentItem.type === 'text') {
+        const beforeText = currentItem.content.slice(0, range.startOffset)
+        const afterText = currentItem.content.slice(range.endOffset)
+
+        const newItems: (TextItem | TemplateItem | SkillItem)[] = []
+
+        if (beforeText) {
+          newItems.push({ ...currentItem, content: beforeText })
+        }
+
+        newItems.push(skillItem)
+
+        if (afterText) {
+          newItems.push({ id: randomId(), type: 'text', content: afterText })
+        }
+
+        rangeMap.set(history.get(), range)
+
+        setOriginalData([
+          ...originalData.value.slice(0, startIndex),
+          ...newItems,
+          ...originalData.value.slice(startIndex + 1),
+        ])
+        history.commit(serializeWithTimestamp(originalData.value))
+      } else if (currentItem.type === 'skill') {
+        // 如果光标在技能块上，在技能块后面插入
+        rangeMap.set(history.get(), range)
+
+        setOriginalData([
+          ...originalData.value.slice(0, startIndex + 1),
+          skillItem,
+          ...originalData.value.slice(startIndex + 1),
+        ])
+        history.commit(serializeWithTimestamp(originalData.value))
+      } else if (currentItem.type === 'template') {
+        // 如果光标在模板块上，根据 startType 判断位置
+        if (range.startType === 'prefix') {
+          // 在模板块前面插入
+          rangeMap.set(history.get(), range)
+
+          setOriginalData([
+            ...originalData.value.slice(0, startIndex),
+            skillItem,
+            ...originalData.value.slice(startIndex),
+          ])
+          history.commit(serializeWithTimestamp(originalData.value))
+        } else {
+          // 在模板块后面插入
+          rangeMap.set(history.get(), range)
+
+          setOriginalData([
+            ...originalData.value.slice(0, startIndex + 1),
+            skillItem,
+            ...originalData.value.slice(startIndex + 1),
+          ])
+          history.commit(serializeWithTimestamp(originalData.value))
+        }
+      }
+    }
+  }
+
+  // 更新 model
+  model.value = transformInternalToUser(originalData.value)
+
+  // 设置光标到技能块后面
+  nextTick(() => {
+    setCaretToElementEnd(id, 'skill')
+  })
 }
 
 const activateFirstField = () => {
@@ -904,10 +1106,10 @@ const activateFirstField = () => {
   nextTick(() => {
     const data = originalData.value
 
-    // 场景1：存在template类型的项，定位到第一个template元素后面
-    const firstTemplateItem = data.find((item) => item.type === 'template')
+    // 场景1：存在template或skill类型的项，定位到第一个元素后面
+    const firstTemplateItem = data.find((item) => item.type === 'template' || item.type === 'skill')
     if (firstTemplateItem) {
-      setCaretToElementEnd(firstTemplateItem.id, 'template')
+      setCaretToElementEnd(firstTemplateItem.id, firstTemplateItem.type as 'template' | 'skill')
     }
 
     // 场景2：仅存在一个text类型的项，定位到该text元素后面
@@ -935,14 +1137,41 @@ const handleSelectionChange = () => {
   if (range?.collapsed && originalDataForUI.value.length > 0) {
     const editorRange = transformRange(range)
 
+    // 如果光标在技能块内部，将光标移动到技能块的 suffix（后面）
+    if (editorRange.startType === 'skill' && editorRange.startId) {
+      // 使用 nextTick 确保 DOM 已更新
+      nextTick(() => {
+        const suffixEl = editorRef.value?.querySelector(`[data-id="${editorRange.startId}"][data-type="suffix"]`)
+        if (suffixEl) {
+          // 将光标移动到 suffix 的开始位置（技能块后面）
+          setCaretPosition(suffixEl, 0)
+        } else {
+          // 如果找不到 suffix，尝试查找下一个文本节点
+          const skillIndex = originalData.value.findIndex(
+            (item) => item.id === editorRange.startId && item.type === 'skill',
+          )
+          if (skillIndex !== -1 && skillIndex < originalData.value.length - 1) {
+            const nextItem = originalData.value[skillIndex + 1]
+            if (nextItem.type === 'text') {
+              const nextEl = editorRef.value?.querySelector(`[data-id="${nextItem.id}"][data-type="text"]`)
+              if (nextEl) {
+                setCaretPosition(nextEl, 0)
+              }
+            }
+          }
+        }
+      })
+      return
+    }
+
     // 如果选中的是开头的空text，则将光标移动到空text后
     const first = originalDataForUI.value[0]
     if (
       editorRange.startEl &&
       editorRange.startId === first.id &&
       editorRange.startOffset === 0 &&
-      first.content === PLACEHOLDER &&
-      first.type === 'text'
+      first.type === 'text' &&
+      first.content === PLACEHOLDER
     ) {
       setCaretPosition(editorRange.startEl, 1)
       return
@@ -954,8 +1183,8 @@ const handleSelectionChange = () => {
       editorRange.endEl &&
       editorRange.endId === last.id &&
       editorRange.endOffset === 1 &&
-      last.content === PLACEHOLDER &&
-      last.type === 'text'
+      last.type === 'text' &&
+      last.content === PLACEHOLDER
     ) {
       setCaretPosition(editorRange.endEl, 0)
       return
@@ -974,6 +1203,7 @@ onUnmounted(() => {
 defineExpose({
   clearHistory: handleClearHistory,
   activateFirstField,
+  insertSkill,
 })
 </script>
 
@@ -989,7 +1219,10 @@ defineExpose({
       @compositionend="handleCompositionEnd"
       @keydown="handleKeyDown"
     >
-      <Block v-for="item in structuredData" :key="`${item.id}-${item.type}`" v-bind="item" />
+      <template v-for="item in structuredData" :key="`${item.id}-${item.type}`">
+        <Skill v-if="item.type === 'skill'" v-bind="item" />
+        <Block v-else v-bind="item as DataItem" />
+      </template>
     </div>
   </div>
 </template>

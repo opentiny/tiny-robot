@@ -154,6 +154,42 @@ Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-l
 `UserItem` 的结构为 `{ type: 'text', content: string }` 或 `{ type: 'template', content: string }`。
 当 `type` 为 `'template'` 时，对应的 `content` 会渲染为一个可编辑的模板字段。
 
+#### 技能块
+
+技能块是一种特殊的内容类型，用于在输入框中插入预设的提示词或指令。技能块以蓝色标签形式显示，可以与普通文本混合使用，支持整体删除、撤销等操作。
+
+**核心特性：**
+- **可视化标签**：技能块以蓝色背景标签形式显示，与普通文本区分
+- **整体操作**：按 Backspace 键可整体删除技能块，不会出现删除一半的情况
+- **混合编辑**：技能块可以与普通文本、模板块混合使用
+- **值替换**：发送时技能块的 `label`（显示文本）会被替换为 `value`（实际提示词）
+
+**基础示例**
+
+<demo vue="../../demos/sender/SkillBasic.vue" title="技能块基础用法" description="展示技能块的基本使用方式，包括显示、编辑和发送。" />
+
+**完整示例**
+
+<demo vue="../../demos/sender/Skill.vue" title="技能块完整示例" description="展示如何通过外部按钮添加技能块，以及数据结构的使用。" />
+
+**数据结构**
+
+技能块使用以下数据结构：
+
+```typescript
+{
+  type: 'skill',
+  label: string,  // 显示文本，如 "翻译专家"
+  value: string   // 实际值/提示词，如 "请帮我翻译："
+}
+```
+
+**使用说明：**
+- `label`：在输入框中显示的文本，用户可见
+- `value`：发送时实际使用的内容，通常是完整的提示词
+- 技能块可以通过 `templateData` prop 传入，与文本块、模板块混合使用
+- 支持通过 TemplateEditor 的 `insertSkill` 方法在光标位置插入技能块
+
 #### 输入联想
 
 Sender 组件支持输入联想功能，当用户输入时，可以根据提供的 `suggestions` 列表显示匹配的建议项。此功能有助于提高输入效率和准确性。
@@ -313,7 +349,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | suggestions          | 输入建议列表             | `(string \| SuggestionItem)[]`                          | `[]`              |
 | suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
 | activeSuggestionKeys | 激活建议项的按键         | `string[]`                                              | `['Enter', 'Tab']` |
-| templateData         | 模板数据，用于初始化或 v-model 更新 | `UserItem[]`                                            | `[]`              |
+| templateData         | 模板数据，支持文本、模板和技能块 | `UserItem[]`                                            | `[]`              |
 
 
 ### Events
@@ -417,4 +453,28 @@ type SuggestionItem = string | {
   content: string;  // 建议项文本内容
   highlights?: string[] | HighlightFunction;  // 高亮方式
 }
+```
+
+```typescript
+// 用户数据项类型
+type UserTextItem = {
+  id?: string
+  type: 'text'
+  content: string
+}
+
+type UserTemplateItem = {
+  id?: string
+  type: 'template'
+  content: string
+}
+
+type UserSkillItem = {
+  id?: string
+  type: 'skill'
+  label: string  // 显示文本
+  value: string  // 实际值/提示词
+}
+
+type UserItem = UserTextItem | UserTemplateItem | UserSkillItem
 ``` 

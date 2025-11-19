@@ -299,7 +299,14 @@ const handleTemplateUpdate = (data: UserItem[]) => {
 watch(
   () => props.templateData,
   () => {
-    inputValue.value = props.templateData.map((item) => item.content).join('')
+    inputValue.value = props.templateData
+      .map((item) => {
+        if (item.type === 'skill') {
+          return item.value
+        }
+        return item.content
+      })
+      .join('')
   },
   { deep: true },
 )

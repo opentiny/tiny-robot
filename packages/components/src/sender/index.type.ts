@@ -176,4 +176,11 @@ export type UserTextItem = Omit<TextItem, 'id'> & { id?: TextItem['id'] }
 
 export type UserTemplateItem = Omit<Pick<TemplateItem, 'type' | 'content'>, 'id'> & { id?: TemplateItem['id'] }
 
-export type UserItem = UserTextItem | UserTemplateItem
+export type UserSkillItem = {
+  id?: string
+  type: 'skill'
+  label: string
+  value: string
+}
+
+export type UserItem = UserTextItem | UserTemplateItem | UserSkillItem
