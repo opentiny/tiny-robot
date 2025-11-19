@@ -3,7 +3,7 @@ import './styles/components/index.css'
 
 import { App } from 'vue'
 import Attachments from './attachments'
-import { Bubble, BubbleList, BubbleProvider, BubbleMarkdownContentRenderer, BubbleContentClassRenderer } from './bubble'
+import { Bubble, BubbleList, BubbleMarkdownContentRenderer, BubbleContentClassRenderer } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import DragOverlay from './drag-overlay'
@@ -44,8 +44,6 @@ export { useTouchDevice } from './shared/composables/useTouchDevice'
 const components = [
   Attachments,
   Bubble,
-  BubbleList,
-  BubbleProvider,
   Container,
   Conversations,
   DragOverlay,
@@ -81,8 +79,6 @@ export {
   Bubble as TrBubble,
   BubbleList,
   BubbleList as TrBubbleList,
-  BubbleProvider,
-  BubbleProvider as TrBubbleProvider,
   BubbleMarkdownContentRenderer,
   BubbleContentClassRenderer,
   Container,

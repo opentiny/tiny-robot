@@ -1,241 +1,104 @@
 <script setup lang="ts">
-import { computed, useAttrs } from 'vue'
-import { toCssUnit } from '../shared/utils'
-import { ContentItem } from './components'
-import { BubbleContentFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
-import { BubbleContentClassRenderer } from './renderers'
+import { computed, inject, provide } from 'vue'
+import BubbleRenderer from './BubbleRenderer.vue'
+import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
+import type { BubbleProps } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
-  content: '',
+  polymorphicContentMode: 'split',
   placement: 'start',
   shape: 'corner',
-  abortedText: '（用户停止）',
 })
 
-const slots = defineSlots<BubbleSlots>()
+// 从父级 BubbleItem 注入消息分组
+const messageGroup = inject(BUBBLE_MESSAGE_GROUP_KEY, undefined)
+// Bubble 可能递归渲染，因此在 inject 后立即 provide 空值来阻断无限递归
+provide(BUBBLE_MESSAGE_GROUP_KEY, undefined)
 
-const contentRenderer = computed(() => {
-  const renderer = props.contentRenderer
-
-  if (!renderer) {
-    return null
-  }
-
-  if (typeof renderer === 'function') {
-    const renderFn = renderer as BubbleContentFunctionRenderer
-    return { isComponent: false, vNodeOrComponent: renderFn(props) }
-  }
-
-  if (renderer instanceof BubbleContentClassRenderer) {
-    return { isComponent: false, vNodeOrComponent: renderer.render(props) }
-  }
-
-  if (typeof renderer === 'object' && renderer !== null && 'component' in renderer) {
-    return { isComponent: true, vNodeOrComponent: renderer.component, defaultProps: renderer.defaultProps }
-  }
-
-  return { isComponent: true, vNodeOrComponent: renderer }
+// 判断多态内容是否应以 Split Mode（拆分模式）渲染
+const shouldSplitPolymorphic = computed(() => {
+  return props.polymorphicContentMode === 'split' && (messageGroup?.isPolymorphic || Array.isArray(props.content))
 })
 
-const attrs = useAttrs()
-
-const customContent = computed(() => {
-  if (!props.customContentField) {
-    return null
+// 收集 Split Mode 需要渲染的多态内容项
+const splitedPolymorphicItems = computed(() => {
+  if (messageGroup?.isPolymorphic) {
+    return messageGroup.messages[0].content || []
   }
-
-  const value = attrs[props.customContentField]
-
-  // value 是字符串，或者是数组且长度大于0
-  if (typeof value === 'string' || (Array.isArray(value) && value.length > 0)) {
-    return value
-  }
-
-  return null
+  return Array.isArray(props.content) ? props.content : []
 })
 
-const finalContent = computed(() => customContent.value || props.content)
-
-const bubbleContent = computed(() => {
-  if (Array.isArray(finalContent.value)) {
-    return ''
+// 构建传递给 BubbleRenderer 的消息列表
+const rendererMessages = computed(() => {
+  // 来源：消息分组（普通文本）
+  if (messageGroup && !messageGroup.isPolymorphic) {
+    return messageGroup.messages
   }
 
-  return finalContent.value
-})
-
-const contentItems = computed(() => {
-  if (Array.isArray(finalContent.value)) {
-    return finalContent.value
+  // 来源：消息分组（多态内容，Merged Mode）
+  if (messageGroup?.isPolymorphic) {
+    return (messageGroup.messages[0].content || []).map((content) => ({
+      ...messageGroup.messages[0],
+      content,
+    }))
   }
 
-  return []
-})
-
-const placementStart = computed(() => props.placement === 'start')
-
-const style = computed(() => {
-  if (props.maxWidth) {
-    return {
-      '--max-width': toCssUnit(props.maxWidth),
-    }
+  // 来源：props.content（多态内容，Merged Mode）
+  if (Array.isArray(props.content)) {
+    return props.content.map((content) => ({
+      role: props.role || '',
+      content,
+    }))
   }
 
-  return {}
+  // 来源：props.content（普通文本）
+  return [
+    {
+      role: props.role || '',
+      content: props.content,
+    },
+  ]
 })
 </script>
 
 <template>
-  <div
-    :class="[
-      'tr-bubble',
-      {
-        'placement-start': placementStart,
-        'placement-end': !placementStart,
-      },
-    ]"
-    :style="style"
-  >
-    <div v-if="props.avatar" :class="['tr-bubble__avatar']">
-      <component :is="props.avatar"></component>
-    </div>
-    <slot v-if="props.loading" name="loading" :bubble-props="props">
-      <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
-      </div>
-    </slot>
-    <div v-else class="tr-bubble__content-wrapper">
-      <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <template v-if="contentItems.length">
-          <div class="tr-bubble__content-items">
-            <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
-          </div>
-        </template>
-        <template v-else>
-          <slot :bubble-props="props">
-            <template v-if="contentRenderer">
-              <component
-                v-if="contentRenderer.isComponent"
-                :is="contentRenderer.vNodeOrComponent"
-                v-bind="{ ...contentRenderer.defaultProps, ...props }"
-              ></component>
-              <component v-else :is="contentRenderer.vNodeOrComponent"></component>
-            </template>
-            <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
-          </slot>
-        </template>
-        <span v-if="props.aborted" class="tr-bubble__aborted">{{ props.abortedText }}</span>
-        <div v-if="slots.footer" class="tr-bubble__footer">
-          <slot name="footer" :bubble-props="props"></slot>
-        </div>
-      </div>
-      <slot name="trailer" :bubble-props="props"></slot>
-    </div>
+  <template v-if="shouldSplitPolymorphic">
+    <Bubble
+      v-for="(content, index) in splitedPolymorphicItems"
+      :key="index"
+      v-bind="props"
+      :content="[content]"
+      polymorphic-content-mode="merged"
+    />
+  </template>
+
+  <div v-else class="tr-bubble" :data-role="props.role" :data-placement="props.placement">
+    <component v-if="props.avatar" :is="props.avatar" :class="$style['tr-bubble__avatar']" />
+    <BubbleRenderer :placement="props.placement" :shape="props.shape" :messages="rendererMessages" />
   </div>
 </template>
 
 <style lang="less" scoped>
 .tr-bubble {
-  /* 不影响布局的变量 */
-  --content-bg: var(--tr-bubble-content-bg);
-  --content-border-radius: var(--tr-bubble-content-border-radius);
-  --content-box-shadow: var(--tr-bubble-content-box-shadow);
-  --text-color: var(--tr-bubble-text-color);
-  --aborted-color: var(--tr-bubble-aborted-color);
-
-  /* 影响布局的变量 */
-  --gap: var(--tr-bubble-gap);
-  --max-width: var(--tr-bubble-max-width);
-  --avatar-size: var(--tr-bubble-avatar-size);
-  --content-padding: var(--tr-bubble-content-padding);
-  --content-border: var(--tr-bubble-content-border);
-  --text-font-size: var(--tr-bubble-text-font-size);
-  --text-line-height: var(--tr-bubble-text-line-height);
-  --loading-size: var(--tr-bubble-loading-size);
-  --aborted-font-size: var(--tr-bubble-aborted-font-size);
-  --content-items-gap: var(--tr-bubble-content-items-gap);
-  --footer-margin: var(--tr-bubble-footer-margin);
-}
-
-.tr-bubble {
   display: flex;
-  gap: var(--gap);
-  max-width: var(--max-width);
+  gap: var(--tr-bubble-gap, var(--tr-spacing-sm));
+  max-width: var(--tr-bubble-max-width, 80%);
 
-  &.placement-start {
+  &[data-placement='start'] {
     flex-direction: row;
-
-    .tr-bubble__content-wrapper {
-      align-items: flex-start;
-    }
-
-    .tr-bubble__content.border-corner {
-      border-top-left-radius: 0;
-    }
+    margin-inline-end: auto;
   }
 
-  &.placement-end {
+  &[data-placement='end'] {
     flex-direction: row-reverse;
-    margin-left: auto;
-
-    .tr-bubble__content-wrapper {
-      align-items: flex-end;
-    }
-
-    .tr-bubble__content.border-corner {
-      border-top-right-radius: 0;
-    }
+    margin-inline-start: auto;
   }
 }
+</style>
 
+<style module>
 .tr-bubble__avatar {
-  width: var(--avatar-size);
-  height: var(--avatar-size);
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tr-bubble__loading {
-  width: var(--loading-size);
-  height: var(--loading-size);
-}
-
-.tr-bubble__content-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.tr-bubble__content {
-  background-color: var(--content-bg);
-  padding: var(--content-padding);
-  border-radius: var(--content-border-radius);
-  box-shadow: var(--content-box-shadow);
-  border: var(--content-border);
-
-  .tr-bubble__content-items {
-    display: flex;
-    flex-direction: column;
-    gap: var(--content-items-gap);
-  }
-
-  .tr-bubble__body-text {
-    color: var(--text-color);
-    font-size: var(--text-font-size);
-    line-height: var(--text-line-height);
-    word-break: break-word;
-    white-space: pre-line;
-  }
-
-  .tr-bubble__aborted {
-    color: var(--aborted-color);
-    font-size: var(--aborted-font-size);
-  }
-
-  .tr-bubble__footer {
-    margin: var(--footer-margin);
-  }
+  align-self: flex-start;
 }
 </style>
