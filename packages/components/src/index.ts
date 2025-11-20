@@ -19,6 +19,7 @@ import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
+import ChatInput from './chat-input'
 
 export * from './attachments/index.type'
 export * from './bubble/index.type'
@@ -37,7 +38,11 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
+// ChatInput 类型导出 - 使用命名空间避免与 Sender 冲突
+export type { ChatInputProps, ChatInputEmits, ChatInputSlots, ChatInputContext } from './chat-input/index.type'
+
 export { useTheme } from './theme-provider/useTheme'
+export { useChatInputContext } from './chat-input/context'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useTouchDevice } from './shared/composables/useTouchDevice'
 
@@ -63,6 +68,7 @@ const components = [
   Welcome,
   McpServerPicker,
   McpAddForm,
+  ChatInput,
 ]
 
 export default {
@@ -119,4 +125,6 @@ export {
   McpServerPicker as TrMcpServerPicker,
   McpAddForm,
   McpAddForm as TrMcpAddForm,
+  ChatInput,
+  ChatInput as TrChatInput,
 }

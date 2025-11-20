@@ -1,0 +1,72 @@
+<template>
+  <div class="demo-container">
+    <h3>单行/多行模式</h3>
+    <div class="mode-selector">
+      <button :class="['mode-btn', { active: mode === 'single' }]" @click="mode = 'single'">单行模式</button>
+      <button :class="['mode-btn', { active: mode === 'multiple' }]" @click="mode = 'multiple'">多行模式</button>
+    </div>
+    <ChatInput
+      v-model="content"
+      :mode="mode"
+      placeholder="尝试切换模式..."
+      clearable
+      show-word-limit
+      :max-length="200"
+      @submit="handleSubmit"
+    />
+    <p class="tip">
+      {{ mode === 'single' ? '单行模式：按 Enter 提交' : '多行模式：按 Enter 换行，按 Ctrl+Enter 提交' }}
+    </p>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ChatInput } from '@opentiny/tiny-robot'
+
+const content = ref('')
+const mode = ref<'single' | 'multiple'>('single')
+
+const handleSubmit = (value: string) => {
+  console.log('提交内容:', value)
+  content.value = ''
+}
+</script>
+
+<style scoped>
+.demo-container {
+  padding: 20px;
+}
+
+.mode-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.mode-btn {
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  border-color: #1476ff;
+  color: #1476ff;
+}
+
+.mode-btn.active {
+  background: #1476ff;
+  border-color: #1476ff;
+  color: white;
+}
+
+.tip {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+</style>

@@ -89,6 +89,7 @@ export default defineConfig({
             { text: 'Attachments 附件卡片', link: 'attachments' },
             { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
             { text: 'Theme 主题', link: 'theme' },
+            { text: 'ChatInput 编辑器', link: 'chat-input' },
           ],
         },
       ],

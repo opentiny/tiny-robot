@@ -5,7 +5,7 @@
  * 遵循"组合优于配置"的设计哲学
  */
 
-import type { Editor } from '@tiptap/core'
+import type { Editor } from '@tiptap/vue-3'
 import type { Ref, VNode, Component } from 'vue'
 
 // ============================================
@@ -838,8 +838,9 @@ export interface ChatInputContext {
 
   /**
    * Tiptap 编辑器实例
+   * 注意：Tiptap 的 useEditor 返回 ShallowRef<Editor | undefined>
    */
-  editor: Ref<Editor | null>
+  editor: Ref<Editor | undefined>
 
   /**
    * 编辑器 DOM 引用
@@ -1034,8 +1035,9 @@ export type UseChatInputContextReturn = ChatInputContext
 export interface UseEditorReturn {
   /**
    * 编辑器实例
+   * 注意：Tiptap 的 useEditor 返回 ShallowRef<Editor | undefined>
    */
-  editor: Ref<Editor | null>
+  editor: Ref<Editor | undefined>
 
   /**
    * 编辑器 DOM 引用
