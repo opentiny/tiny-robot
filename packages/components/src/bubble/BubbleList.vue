@@ -118,7 +118,7 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
       :role="group.role"
       :role-config="props.roleConfigs?.[group.role]"
       :message-group="group"
-      :polymorphic-content-mode="props.polymorphicContentMode"
+      :split-polymorphic="props.splitPolymorphic"
     ></BubbleItem>
   </div>
 </template>

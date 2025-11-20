@@ -2,12 +2,12 @@
 import { computed, inject, provide } from 'vue'
 import BubbleRenderer from './BubbleRenderer.vue'
 import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
-import type { BubbleProps } from './index.type'
+import type { BubbleProps, BubbleRendererMessage } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
-  polymorphicContentMode: 'split',
   placement: 'start',
   shape: 'corner',
+  splitPolymorphic: false,
 })
 
 // 从父级 BubbleItem 注入消息分组
@@ -17,7 +17,7 @@ provide(BUBBLE_MESSAGE_GROUP_KEY, undefined)
 
 // 判断多态内容是否应以 Split Mode（拆分模式）渲染
 const shouldSplitPolymorphic = computed(() => {
-  return props.polymorphicContentMode === 'split' && (messageGroup?.isPolymorphic || Array.isArray(props.content))
+  return props.splitPolymorphic && (messageGroup?.isPolymorphic || Array.isArray(props.content))
 })
 
 // 收集 Split Mode 需要渲染的多态内容项
@@ -29,7 +29,7 @@ const splitedPolymorphicItems = computed(() => {
 })
 
 // 构建传递给 BubbleRenderer 的消息列表
-const rendererMessages = computed(() => {
+const rendererMessages = computed<BubbleRendererMessage[]>(() => {
   // 来源：消息分组（普通文本）
   if (messageGroup && !messageGroup.isPolymorphic) {
     return messageGroup.messages
@@ -43,10 +43,10 @@ const rendererMessages = computed(() => {
     }))
   }
 
-  // 来源：props.content（多态内容，Merged Mode）
+  // 来源：props.content（多态内容）
   if (Array.isArray(props.content)) {
     return props.content.map((content) => ({
-      role: props.role || '',
+      ...props,
       content,
     }))
   }
@@ -54,7 +54,7 @@ const rendererMessages = computed(() => {
   // 来源：props.content（普通文本）
   return [
     {
-      role: props.role || '',
+      ...props,
       content: props.content,
     },
   ]
@@ -68,7 +68,7 @@ const rendererMessages = computed(() => {
       :key="index"
       v-bind="props"
       :content="[content]"
-      polymorphic-content-mode="merged"
+      :split-polymorphic="false"
     />
   </template>
 
@@ -81,7 +81,7 @@ const rendererMessages = computed(() => {
 <style lang="less" scoped>
 .tr-bubble {
   display: flex;
-  gap: var(--tr-bubble-gap, var(--tr-spacing-sm));
+  gap: var(--tr-bubble-gap, 16px);
   max-width: var(--tr-bubble-max-width, 80%);
 
   &[data-placement='start'] {
@@ -93,6 +93,10 @@ const rendererMessages = computed(() => {
     flex-direction: row-reverse;
     margin-inline-start: auto;
   }
+}
+
+:not(.tr-bubble-list) > .tr-bubble + .tr-bubble {
+  margin-top: var(--tr-bubble-space-y, 16px);
 }
 </style>
 

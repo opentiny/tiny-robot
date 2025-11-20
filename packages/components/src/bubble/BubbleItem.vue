@@ -7,7 +7,7 @@ import type { BubbleMessageGroup, BubbleRoleConfig, BubbleProps } from './index.
 const props = defineProps<{
   messageGroup: BubbleMessageGroup
   roleConfig?: BubbleRoleConfig
-  polymorphicContentMode?: BubbleProps['polymorphicContentMode']
+  splitPolymorphic?: BubbleProps['splitPolymorphic']
 }>()
 
 // Provide messages for each BubbleItem instance
@@ -15,5 +15,5 @@ provide(BUBBLE_MESSAGE_GROUP_KEY, props.messageGroup)
 </script>
 
 <template>
-  <Bubble v-bind="roleConfig" :role="messageGroup.role" :polymorphic-content-mode="polymorphicContentMode" />
+  <Bubble v-bind="roleConfig" :role="messageGroup.role" :split-polymorphic="splitPolymorphic" />
 </template>

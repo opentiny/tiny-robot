@@ -63,10 +63,7 @@ const handleError = () => {
   .tr-bubble__image {
     border: var(--tr-bubble-image-embedded-border, 1px solid rgba(0, 0, 0, 0.04));
     border-radius: var(--tr-bubble-image-embedded-border-radius, 4px);
-
-    &:last-child {
-      display: inline-block;
-    }
+    margin-block: var(--tr-bubble-image-embedded-margin-block, 4px);
   }
 }
 </style>

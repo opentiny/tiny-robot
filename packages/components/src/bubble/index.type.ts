@@ -53,14 +53,8 @@ export type BubbleShape = 'rounded' | 'corner' | 'none'
  * Bubble 组件 Props
  * 用于渲染单个气泡的外观和内容
  */
-export type BubbleProps = Omit<ChatMessage, 'role'> & {
+export type BubbleProps<T extends Record<string, unknown> = Record<string, unknown>> = Omit<ChatMessage, 'role'> & {
   role?: string
-  /**
-   * 多态内容渲染模式：
-   * - 'split'：每个内容项各自渲染一个气泡
-   * - 'merged'：所有内容项合并在同一个气泡中渲染
-   */
-  polymorphicContentMode?: 'split' | 'merged'
   /**
    * 气泡头像
    */
@@ -85,6 +79,16 @@ export type BubbleProps = Omit<ChatMessage, 'role'> & {
    * 气泡中止文本
    */
   abortedText?: string
+  /**
+   * 是否拆分多态内容（每个内容项各自渲染一个气泡）
+   * - true：每个内容项各自渲染一个气泡
+   * - false：所有内容项合并在同一个气泡中渲染（默认）
+   */
+  splitPolymorphic?: boolean
+  /**
+   * 额外配置
+   */
+  extras?: T
 }
 
 /**
@@ -135,9 +139,9 @@ export interface BubbleListProps {
    */
   roleConfigs?: Record<string, BubbleRoleConfig>
   /**
-   * 多态内容渲染模式配置
+   * 是否拆分多态内容配置
    */
-  polymorphicContentMode?: BubbleProps['polymorphicContentMode']
+  splitPolymorphic?: BubbleProps['splitPolymorphic']
 }
 
 /**
@@ -179,7 +183,10 @@ export type BubbleBoxProps = Pick<BubbleProps, 'placement' | 'shape'>
 /**
  * 渲染器消息（扁平化的单条内容）
  */
-export type BubbleRendererMessage<T = string | ChatMessageItem | undefined> = Omit<BubbleProps, 'content'> & {
+export type BubbleRendererMessage<
+  T = string | ChatMessageItem | undefined,
+  E extends Record<string, unknown> = Record<string, unknown>,
+> = Omit<BubbleProps<E>, 'content'> & {
   content: T
 }
 

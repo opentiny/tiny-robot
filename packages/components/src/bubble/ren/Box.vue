@@ -12,8 +12,8 @@ const props = defineProps<BubbleBoxProps>()
 
 <style>
 :root {
-  --tr-bubble-box-shape-rounded-radius: 16px;
-  --tr-bubble-box-shape-corner-radius: 2px;
+  --tr-bubble-box-shape-rounded-radius: 18px;
+  --tr-bubble-box-shape-corner-radius: 4px;
 }
 </style>
 
@@ -21,7 +21,7 @@ const props = defineProps<BubbleBoxProps>()
 .tr-bubble__box {
   background-color: var(--tr-bubble-box-bg, var(--tr-container-bg-default));
   padding: var(--tr-bubble-box-padding, 8px 16px);
-  border-radius: var(--tr-bubble-box-border-radius, 16px);
+  border-radius: var(--tr-bubble-box-border-radius, 0);
   box-shadow: var(--tr-bubble-box-shadow, var(--tr-shadow-md));
   border: var(--tr-bubble-box-border, none);
   overflow: hidden;
