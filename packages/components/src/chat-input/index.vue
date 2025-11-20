@@ -241,7 +241,6 @@ defineExpose({
   --tr-chat-input-bg-color: var(--tr-container-bg-default, #ffffff);
   --tr-chat-input-text-color: var(--tr-text-primary, #000000);
   --tr-chat-input-placeholder-color: var(--tr-text-tertiary, #999999);
-  --tr-chat-input-border-color: var(--tr-border-default, #e0e0e0);
 
   // 尺寸
   --tr-chat-input-font-size: 16px;
@@ -263,6 +262,9 @@ defineExpose({
   --tr-chat-input-word-limit-color: #808080;
   --tr-chat-input-word-limit-error-color: #f23030;
 
+  // 阴影
+  --tr-chat-input-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
+
   // 动画
   --tr-chat-input-transition-duration: 0.2s;
 }
@@ -273,12 +275,12 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background-color: var(--tr-chat-input-bg-color);
-  border: 1px solid var(--tr-chat-input-border-color);
   border-radius: var(--tr-chat-input-border-radius);
-  transition: border-color var(--tr-chat-input-transition-duration);
+  box-shadow: var(--tr-chat-input-box-shadow);
+  transition: box-shadow var(--tr-chat-input-transition-duration);
 
   &:focus-within {
-    border-color: var(--tr-primary-color, #1476ff);
+    box-shadow: 0 4px 16px 0px rgba(20, 118, 255, 0.15);
   }
 
   // 自动切换模式时的过渡动画
@@ -379,11 +381,11 @@ defineExpose({
 
   // 多行模式
   &--multiple {
-    border-radius: 12px;
-    padding: 15px 20px;
+    border-radius: var(--tr-chat-input-border-radius);
+    padding: 0;
 
     .tr-chat-input-main {
-      padding: 0;
+      padding: 16px 20px 12px;
     }
 
     .tr-chat-input-content {

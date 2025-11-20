@@ -16,7 +16,9 @@ const show = computed(() => showWordLimit.value && maxLength.value !== undefined
 
 <style lang="less" scoped>
 .tr-chat-input-word-counter {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
   color: var(--tr-chat-input-word-limit-color, #808080);
   white-space: nowrap;
 

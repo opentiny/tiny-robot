@@ -36,6 +36,40 @@ export function useModeSwitch(
   }
 
   /**
+   * 计算单行模式下的可用宽度
+   * 无论当前是什么模式，都基于单行模式的布局来计算
+   */
+  const calculateSingleModeAvailableWidth = (): number => {
+    if (!editorRef.value) return 0
+
+    const container = editorRef.value.closest('.tr-chat-input-main') as HTMLElement
+    if (!container) return 0
+
+    // 获取容器的总宽度
+    const containerRect = container.getBoundingClientRect()
+    const containerWidth = containerRect.width
+
+    // 单行模式的布局参数（从样式中获取）
+    // content padding-left: 20px
+    // actions padding-right: 10px (has-content 时)
+    // actions-group gap: 12px
+    const contentPaddingLeft = 20
+    const actionsPaddingRight = 10
+    const actionsGap = 12
+
+    // 估算按钮组宽度
+    // 清除按钮: 32px, 发送按钮: 36px, gap: 12px
+    const clearButtonWidth = 32
+    const submitButtonWidth = 36
+    const buttonsWidth = clearButtonWidth + actionsGap + submitButtonWidth
+
+    // 计算可用宽度
+    const availableWidth = containerWidth - contentPaddingLeft - actionsPaddingRight - buttonsWidth - actionsGap
+
+    return availableWidth
+  }
+
+  /**
    * 检查内容是否溢出
    */
   const checkOverflow = () => {
@@ -48,13 +82,6 @@ export function useModeSwitch(
     const editorElement = editorRef.value.querySelector('.ProseMirror') as HTMLElement
     if (!editorElement) return
 
-    // 获取编辑器容器
-    const container = editorRef.value.closest('.tr-chat-input-main') as HTMLElement
-    if (!container) return
-
-    // 获取按钮容器
-    const actionsContainer = container.querySelector('.tr-chat-input-actions-inline') as HTMLElement
-
     // 获取字体样式
     const fontStyle = window.getComputedStyle(editorElement).font
 
@@ -64,23 +91,21 @@ export function useModeSwitch(
     // 计算文本宽度
     const textWidth = calculateTextWidth(text, fontStyle)
 
-    // 获取容器宽度
-    const containerRect = container.getBoundingClientRect()
-    const actionsRect = actionsContainer?.getBoundingClientRect()
+    // 始终基于单行模式的布局来计算可用宽度
+    const singleModeAvailableWidth = calculateSingleModeAvailableWidth()
 
-    // 计算可用宽度
-    const actionsWidth = actionsRect?.width || 0
-    const availableWidth = containerRect.width - actionsWidth - 40 // 40px 为边距
+    // 使用滞后机制避免临界状态的抖动
+    const threshold = 20 // 20px 的缓冲区
 
-    // 根据文本宽度决定模式切换
-    if (textWidth > availableWidth && availableWidth > 80) {
-      // 文本超出，切换到多行模式
-      if (currentMode.value === 'single') {
+    if (currentMode.value === 'single') {
+      // 单行模式：文本超出时切换到多行
+      if (textWidth > singleModeAvailableWidth && singleModeAvailableWidth > 80) {
         setMode('multiple')
       }
     } else {
-      // 文本未超出，切换回单行模式
-      if (currentMode.value === 'multiple') {
+      // 多行模式：文本明显小于可用宽度时切换回单行
+      // 使用 threshold 避免临界状态的反复切换
+      if (textWidth < singleModeAvailableWidth - threshold) {
         setMode('single')
       }
     }
