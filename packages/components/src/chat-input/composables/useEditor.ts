@@ -22,12 +22,28 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
         placeholder: props.placeholder || '请输入内容...',
       }),
       CharacterCount.configure({
-        limit: props.maxLength,
+        mode: 'textSize',
       }),
     ],
     editorProps: {
       attributes: {
         class: 'tr-chat-input-editor',
+      },
+      // 处理粘贴事件 - 只粘贴纯文本
+      handlePaste(view, event) {
+        const text = event.clipboardData?.getData('text/plain')
+        if (!text) return false
+
+        // 处理文本：单行模式替换换行符，多行模式保留
+        const processedText = props.mode === 'single' ? text.replace(/\r?\n/g, ' ') : text
+
+        // 插入纯文本
+        const { state } = view
+        const { tr } = state
+        tr.insertText(processedText)
+        view.dispatch(tr)
+
+        return true
       },
     },
     onUpdate: (props) => {

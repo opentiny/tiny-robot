@@ -5,12 +5,12 @@ import { useChatInputContext } from '../../context'
 const { characterCount, maxLength, isOverLimit, showWordLimit } = useChatInputContext()
 
 const show = computed(() => showWordLimit.value && maxLength.value !== undefined)
-const text = computed(() => `${characterCount.value}/${maxLength.value}`)
 </script>
 
 <template>
-  <span v-if="show" :class="['tr-chat-input-word-counter', { 'is-over-limit': isOverLimit }]">
-    {{ text }}
+  <span v-if="show" class="tr-chat-input-word-counter">
+    <span :class="{ 'is-over-limit': isOverLimit }">{{ characterCount }}</span>
+    <span>/{{ maxLength }}</span>
   </span>
 </template>
 
@@ -20,7 +20,7 @@ const text = computed(() => `${characterCount.value}/${maxLength.value}`)
   color: var(--tr-chat-input-word-limit-color, #808080);
   white-space: nowrap;
 
-  &.is-over-limit {
+  .is-over-limit {
     color: var(--tr-chat-input-word-limit-error-color, #f23030);
   }
 }

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, provide, ref, toRef } from 'vue'
+import { computed, provide, ref, toRef, watch } from 'vue'
 import { ChatInputProps, ChatInputEmits, InputMode } from './index.type'
 import { CHAT_INPUT_CONTEXT_KEY } from './constants'
 import { ChatInputContext } from './context/types'
 import { useEditor } from './composables/useEditor'
+import { useModeSwitch } from './composables/useModeSwitch'
+import { useAutoSize } from './composables/useAutoSize'
 import EditorContent from './components/editor-content/index.vue'
 import SubmitButton from './components/submit-button/index.vue'
 import ClearButton from './components/clear-button/index.vue'
@@ -28,8 +30,11 @@ const emit = defineEmits<ChatInputEmits>()
 // 初始化编辑器
 const { editor, editorRef } = useEditor(props, emit)
 
-// 状态计算
-const mode = ref<InputMode>(props.mode)
+// 模式切换
+const { currentMode, isAutoSwitching, setMode, checkOverflow } = useModeSwitch(props, editor, editorRef)
+
+// 自动高度调整
+useAutoSize(props, editor, editorRef)
 const hasContent = computed(() => {
   if (!editor.value) return false
   return !editor.value.isEmpty
@@ -37,9 +42,9 @@ const hasContent = computed(() => {
 
 const characterCount = computed(() => {
   if (!editor.value) return 0
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const storage = editor.value.storage as any
-  return storage.characterCount?.characters?.() || 0
+  // 使用 getText 方法获取纯文本长度
+  const text = editor.value.getText()
+  return text.length
 })
 
 const isOverLimit = computed(() => {
@@ -112,15 +117,23 @@ const exitTemplateMode = () => {
   console.log('exitTemplateMode')
 }
 
-const setMode = (newMode: InputMode) => {
-  mode.value = newMode
-}
+// 监听编辑器内容变化，检查是否需要切换模式
+watch(
+  () => editor.value?.state.doc.content,
+  () => {
+    // 使用 setTimeout 确保 DOM 已更新
+    setTimeout(() => {
+      checkOverflow()
+    }, 0)
+  },
+  { deep: true },
+)
 
 // 提供 Context
 const context: ChatInputContext = {
   editor,
   editorRef,
-  mode,
+  mode: currentMode,
   loading: toRef(props, 'loading'),
   disabled: toRef(props, 'disabled'),
   hasContent,
@@ -147,7 +160,7 @@ const context: ChatInputContext = {
   openFileDialog,
   insertTemplate,
   exitTemplateMode,
-  setMode,
+  setMode: (mode: InputMode) => setMode(mode),
 }
 
 provide(CHAT_INPUT_CONTEXT_KEY, context)
@@ -165,7 +178,14 @@ defineExpose({
 </script>
 
 <template>
-  <div :class="['tr-chat-input', `tr-chat-input--${mode}`, `tr-chat-input--${theme}`]">
+  <div
+    :class="[
+      'tr-chat-input',
+      `tr-chat-input--${currentMode}`,
+      `tr-chat-input--${theme}`,
+      { 'is-auto-switching': isAutoSwitching, 'is-over-limit': isOverLimit },
+    ]"
+  >
     <!-- Header 插槽 -->
     <div v-if="$slots.header" class="tr-chat-input-header">
       <slot name="header" />
@@ -186,16 +206,25 @@ defineExpose({
       </div>
 
       <!-- 单行模式操作按钮 -->
-      <div v-if="mode === 'single'" class="tr-chat-input-actions-inline">
+      <div
+        v-if="currentMode === 'single'"
+        :class="['tr-chat-input-actions-inline', { 'has-content': hasContent || loading }]"
+      >
         <slot name="actions-inline">
-          <ClearButton />
-          <SubmitButton />
+          <div v-if="hasContent || loading" class="tr-chat-input-actions-group">
+            <div v-if="clearable && hasContent && !loading" class="tr-chat-input-utility-buttons">
+              <ClearButton />
+            </div>
+            <div class="tr-chat-input-submit-wrapper">
+              <SubmitButton />
+            </div>
+          </div>
         </slot>
       </div>
     </div>
 
     <!-- 底部区域（多行模式） -->
-    <Footer>
+    <Footer v-if="currentMode === 'multiple'">
       <template #footer>
         <slot name="footer" />
       </template>
@@ -246,49 +275,165 @@ defineExpose({
   background-color: var(--tr-chat-input-bg-color);
   border: 1px solid var(--tr-chat-input-border-color);
   border-radius: var(--tr-chat-input-border-radius);
-  padding: var(--tr-chat-input-padding);
   transition: border-color var(--tr-chat-input-transition-duration);
 
   &:focus-within {
     border-color: var(--tr-primary-color, #1476ff);
   }
 
+  // 自动切换模式时的过渡动画
+  &.is-auto-switching {
+    :deep(.ProseMirror) {
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .tr-chat-input-footer,
+    .tr-chat-input-actions-inline {
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+  }
+
   &-header {
     margin-bottom: 12px;
+    padding: 15px 20px 0;
   }
 
   &-main {
     display: flex;
-    align-items: center;
-    gap: var(--tr-chat-input-gap);
+    align-items: flex-start;
   }
 
   &-prefix {
     flex-shrink: 0;
+    padding-left: 20px;
   }
 
   &-content {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
   }
 
   &-actions-inline {
     display: flex;
     align-items: center;
-    gap: 12px;
     flex-shrink: 0;
+    padding-right: 16px;
+
+    &.has-content {
+      padding-right: 10px;
+    }
+  }
+
+  &-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 12px; // 普通按钮组和发送按钮之间的间距
+    padding-left: 12px; // 与编辑框之间的间距
+  }
+
+  &-utility-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &-submit-wrapper {
+    display: flex;
+    align-items: center;
   }
 
   // 单行模式
   &--single {
     .tr-chat-input-main {
       min-height: var(--tr-chat-input-min-height);
+      align-items: center;
+    }
+
+    .tr-chat-input-content {
+      padding: 15px 0 15px 20px;
+    }
+
+    .tr-chat-input-prefix {
+      padding: 15px 0 15px 20px;
+    }
+
+    .tr-chat-input-actions-group {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    :deep(.ProseMirror) {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    // 单行模式下隐藏底部
+    .tr-chat-input-footer {
+      display: none;
     }
   }
 
   // 多行模式
   &--multiple {
     border-radius: 12px;
+    padding: 15px 20px;
+
+    .tr-chat-input-main {
+      padding: 0;
+    }
+
+    .tr-chat-input-content {
+      padding-left: 0;
+    }
+
+    .tr-chat-input-prefix {
+      padding-left: 0;
+    }
+
+    :deep(.ProseMirror) {
+      white-space: pre-wrap;
+      overflow-y: auto;
+      min-height: var(--tr-chat-input-line-height, 26px);
+    }
+
+    // 多行模式下隐藏右侧按钮
+    .tr-chat-input-actions-inline {
+      display: none;
+    }
+
+    // 显示底部
+    .tr-chat-input-footer {
+      display: flex;
+    }
+  }
+}
+
+// 编辑器内容区域样式优化
+:deep(.tr-chat-input-editor-content) {
+  .ProseMirror {
+    transition: height 0.2s ease;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+    }
   }
 }
 </style>

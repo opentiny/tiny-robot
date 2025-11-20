@@ -1035,7 +1035,7 @@ export type UseChatInputContextReturn = ChatInputContext
 export interface UseEditorReturn {
   /**
    * 编辑器实例
-   * 注意：Tiptap 的 useEditor 返回 ShallowRef<Editor | undefined>
+   * 注意:Tiptap 的 useEditor 返回 ShallowRef<Editor | undefined>
    */
   editor: Ref<Editor | undefined>
 
