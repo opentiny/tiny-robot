@@ -1,6 +1,5 @@
 <template>
   <div class="demo-container">
-    <h3>字数限制</h3>
     <ChatInput
       v-model="content"
       placeholder="最多输入 100 个字符..."

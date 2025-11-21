@@ -1,6 +1,5 @@
 <template>
   <div class="demo-container">
-    <h3>方法调用</h3>
     <div class="controls">
       <button @click="handleFocus">聚焦</button>
       <button @click="handleBlur">失焦</button>

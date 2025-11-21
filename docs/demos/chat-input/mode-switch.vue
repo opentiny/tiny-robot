@@ -1,6 +1,5 @@
 <template>
   <div class="demo-container">
-    <h3>单行/多行模式</h3>
     <div class="mode-selector">
       <button :class="['mode-btn', { active: mode === 'single' }]" @click="mode = 'single'">单行模式</button>
       <button :class="['mode-btn', { active: mode === 'multiple' }]" @click="mode = 'multiple'">多行模式</button>

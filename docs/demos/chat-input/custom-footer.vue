@@ -1,6 +1,5 @@
 <template>
   <div class="demo-container">
-    <h3>自定义底部按钮</h3>
     <ChatInput
       v-model="content"
       placeholder="输入内容，可以使用深度思考..."

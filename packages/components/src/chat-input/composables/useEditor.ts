@@ -16,6 +16,18 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
     content: props.modelValue || props.defaultValue || '',
     extensions: [
       StarterKit.configure({
+        // 禁用所有格式化功能，只保留基础文本
+        bold: false,
+        italic: false,
+        strike: false,
+        code: false,
+        codeBlock: false,
+        heading: false,
+        blockquote: false,
+        horizontalRule: false,
+        bulletList: false,
+        orderedList: false,
+        listItem: false,
         hardBreak: false,
       }),
       Placeholder.configure({

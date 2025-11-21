@@ -1,6 +1,5 @@
 <template>
   <div class="demo-container">
-    <h3>加载状态</h3>
     <ChatInput
       v-model="content"
       placeholder="输入内容后提交，模拟加载状态..."
