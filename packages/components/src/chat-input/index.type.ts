@@ -94,11 +94,6 @@ export interface TemplateBlockAttrs {
    * 模板块内容
    */
   content: string
-
-  /**
-   * 是否可编辑
-   */
-  editable: boolean
 }
 
 // ============================================
@@ -994,16 +989,28 @@ export interface ChatInputContext {
   openFileDialog: () => void
 
   /**
-   * 插入模板块
+   * 设置模板数据
    *
-   * @param template - 模板项
+   * @param items - 模板数据
    */
-  insertTemplate: (template: TemplateItem) => void
+  setTemplateData: (items: TemplateItem[]) => void
 
   /**
-   * 退出模板编辑模式
+   * 清空模板数据
    */
-  exitTemplateMode: () => void
+  clearTemplateData: () => void
+
+  /**
+   * 聚焦第一个模板块
+   */
+  focusFirstTemplateBlock: () => void
+
+  /**
+   * 获取模板数据
+   *
+   * @returns 模板数据
+   */
+  getTemplateData: () => TemplateItem[]
 
   /**
    * 设置输入模式
@@ -1180,23 +1187,28 @@ export interface UseFileUploadReturn {
  */
 export interface UseTemplateDataReturn {
   /**
-   * 插入模板块
+   * 设置模板数据
    *
-   * @param template - 模板项
+   * @param items - 模板数据
    */
-  insertTemplate: (template: TemplateItem) => void
+  setTemplateData: (items: TemplateItem[]) => void
 
   /**
-   * 退出模板编辑模式
+   * 清空模板数据
    */
-  exitTemplateMode: () => void
+  clearTemplateData: () => void
 
   /**
-   * 更新模板数据
-   *
-   * @param data - 模板数据
+   * 聚焦第一个模板块
    */
-  updateTemplateData: (data: TemplateItem[]) => void
+  focusFirstTemplateBlock: () => void
+
+  /**
+   * 获取模板数据
+   *
+   * @returns 模板数据
+   */
+  getTemplateData: () => TemplateItem[]
 }
 
 /**

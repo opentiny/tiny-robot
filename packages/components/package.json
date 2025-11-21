@@ -25,6 +25,7 @@
     "@tiptap/core": "^3.11.0",
     "@tiptap/extension-character-count": "^3.11.0",
     "@tiptap/extension-placeholder": "^3.11.0",
+    "@tiptap/pm": "^3.11.0",
     "@tiptap/starter-kit": "^3.11.0",
     "@tiptap/vue-3": "^3.11.0",
     "@vueuse/core": "^13.1.0",

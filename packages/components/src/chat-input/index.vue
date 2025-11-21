@@ -6,6 +6,7 @@ import { ChatInputContext } from './context/types'
 import { useEditor } from './composables/useEditor'
 import { useModeSwitch } from './composables/useModeSwitch'
 import { useAutoSize } from './composables/useAutoSize'
+import { useTemplateData } from './composables/useTemplateData'
 import EditorContent from './components/editor-content/index.vue'
 import SubmitButton from './components/submit-button/index.vue'
 import ClearButton from './components/clear-button/index.vue'
@@ -35,9 +36,18 @@ const { currentMode, isAutoSwitching, setMode, checkOverflow } = useModeSwitch(p
 
 // 自动高度调整
 useAutoSize(props, editor, editorRef)
+
+// 模板数据管理
+const { setTemplateData, clearTemplateData, focusFirstTemplateBlock, getTemplateData } = useTemplateData({
+  templateData: toRef(props, 'templateData'),
+  editor,
+  emit,
+})
 const hasContent = computed(() => {
   if (!editor.value) return false
-  return !editor.value.isEmpty
+  // 检查是否有非空白内容
+  const text = editor.value.getText()
+  return text.trim().length > 0
 })
 
 const characterCount = computed(() => {
@@ -107,16 +117,6 @@ const openFileDialog = () => {
   console.log('openFileDialog')
 }
 
-const insertTemplate = () => {
-  // TODO: 实现模板插入
-  console.log('insertTemplate')
-}
-
-const exitTemplateMode = () => {
-  // TODO: 实现退出模板模式
-  console.log('exitTemplateMode')
-}
-
 // 监听编辑器内容变化，检查是否需要切换模式
 watch(
   () => editor.value?.state.doc.content,
@@ -158,9 +158,12 @@ const context: ChatInputContext = {
   startSpeech,
   stopSpeech,
   openFileDialog,
-  insertTemplate,
-  exitTemplateMode,
   setMode: (mode: InputMode) => setMode(mode),
+  // 模板方法
+  setTemplateData,
+  clearTemplateData,
+  focusFirstTemplateBlock,
+  getTemplateData,
 }
 
 provide(CHAT_INPUT_CONTEXT_KEY, context)
@@ -174,6 +177,11 @@ defineExpose({
   setContent,
   getContent,
   editor,
+  // 模板方法
+  setTemplateData,
+  clearTemplateData,
+  focusFirstTemplateBlock,
+  getTemplateData,
 })
 </script>
 
@@ -399,6 +407,7 @@ defineExpose({
     :deep(.ProseMirror) {
       white-space: pre-wrap;
       overflow-y: auto;
+      word-break: break-all;
       min-height: var(--tr-chat-input-line-height, 26px);
     }
 

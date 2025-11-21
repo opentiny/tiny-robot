@@ -35,6 +35,10 @@
 
 <demo vue="../../demos/chat-input/methods-demo.vue" title="方法调用" description="通过 ref 调用组件方法，如聚焦、设置内容等" />
 
+## 模板编辑器
+
+<demo vue="../../demos/chat-input/template-editor.vue" title="模板编辑器" description="支持插入可编辑的模板块，点击模板块可直接修改内容，适用于快速填充场景" />
+
 ## API
 
 ### Props
@@ -54,12 +58,14 @@
 | submitType | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` | 提交触发方式 |
 | stopText | `string` | - | 停止按钮文字 |
 | theme | `'light' \| 'dark'` | `'light'` | 主题 |
+| templateData | `TemplateItem[]` | `[]` | 模板数据（v-model） |
 
 ### Events
 
 | 事件名 | 参数 | 说明 |
 |--------|------|------|
 | update:modelValue | `(value: string)` | 内容变化 |
+| update:templateData | `(data: TemplateItem[])` | 模板数据变化 |
 | submit | `(value: string)` | 提交内容 |
 | clear | `()` | 清空内容 |
 | focus | `(event: FocusEvent)` | 获得焦点 |
@@ -106,3 +112,19 @@ chatInputRef.value.submit()
 | setContent | `(content: string)` | `void` | 设置内容 |
 | getContent | - | `string` | 获取内容 |
 | setMode | `(mode: InputMode)` | `void` | 设置模式 |
+| setTemplateData | `(items: TemplateItem[])` | `void` | 设置模板数据 |
+| clearTemplateData | - | `void` | 清空模板数据 |
+| focusFirstTemplateBlock | - | `void` | 聚焦第一个模板块 |
+| getTemplateData | - | `TemplateItem[]` | 获取模板数据 |
+
+### 
+类型定义
+
+```typescript
+// 模板项
+interface TemplateItem {
+  id?: string                    // 模板块 ID（可选，自动生成）
+  type: 'text' | 'template'     // 项目类型
+  content: string               // 内容
+}
+```
