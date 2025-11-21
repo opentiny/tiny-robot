@@ -1,12 +1,5 @@
 <script setup lang="ts">
-/**
- * TemplateBlockView 组件
- *
- * 模板块的 Vue 节点视图
- * - 渲染模板块的视觉样式
- * - 内容由 ProseMirror 管理（通过 NodeViewContent）
- */
-
+import { computed } from 'vue'
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/vue-3'
 
 interface NodeAttrs {
@@ -18,20 +11,30 @@ interface NodeAttrs {
 interface Props {
   node: {
     attrs: NodeAttrs
+    textContent?: string
     [key: string]: unknown
   }
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 判断内容是否为空（用于动态设置样式）
+const isEmpty = computed(() => {
+  const content = props.node.textContent || ''
+  // 排除零宽字符
+  return content.length === 0 || content === '\u200B'
+})
 </script>
 
 <template>
-  <NodeViewWrapper as="span" class="template-block" :data-id="node.attrs.id">
+  <NodeViewWrapper as="span" class="template-block" :class="{ 'is-empty': isEmpty }" :data-id="node.attrs.id">
+    <span contenteditable="false" class="template-block__prefix">&nbsp;</span>
     <NodeViewContent as="span" class="template-block__content" />
+    <span contenteditable="false" class="template-block__suffix">&nbsp;</span>
   </NodeViewWrapper>
 </template>
 
-<style scoped>
+<style lang="less" scoped>
 .template-block {
   display: inline;
   color: var(--tr-chat-input-template-color);
@@ -47,20 +50,27 @@ defineProps<Props>()
   overflow-wrap: break-word;
   box-decoration-break: clone;
   vertical-align: baseline;
-  min-width: var(--tr-chat-input-template-min-width);
-}
 
-.template-block__content {
-  outline: none;
-  display: inline;
-  white-space: pre-wrap;
-  word-break: break-all;
-  word-wrap: break-word;
-}
+  &__prefix,
+  &__suffix {
+    vertical-align: top;
+    font-size: 0px;
+    user-select: none;
+  }
 
-/* 空白占位符 */
-.template-block__content:empty::before {
-  content: '\200B'; /* 零宽字符占位 */
-  opacity: 0;
+  /* 空内容时使用 inline-block，确保最小宽度生效 */
+  &.is-empty {
+    display: inline-block;
+    min-width: var(--tr-chat-input-template-min-width);
+    line-height: 1.1em;
+  }
+
+  &__content {
+    outline: none;
+    display: inline;
+    white-space: pre-wrap;
+    word-break: break-all;
+    word-wrap: break-word;
+  }
 }
 </style>

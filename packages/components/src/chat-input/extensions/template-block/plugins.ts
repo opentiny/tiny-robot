@@ -178,6 +178,42 @@ export function keyboardNavigationPlugin() {
           }
         }
 
+        // 处理光标在模板块内部时的方向键导航
+        const currentNode = $from.node()
+        if (currentNode.type.name === 'templateBlock') {
+          const content = currentNode.textContent || ''
+
+          // 场景1: 模板块为空或只有零宽字符时，按左右箭头键直接跳出节点
+          if (content === '' || content === ZERO_WIDTH_CHAR) {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              const pos = event.key === 'ArrowLeft' ? $from.before() : $from.after()
+              // 检查是否需要跳转（避免重复跳转）
+              if (selection.from !== pos) {
+                dispatch(state.tr.setSelection(TextSelection.create(state.doc, pos)))
+                event.preventDefault()
+                return true
+              }
+            }
+          }
+          // 场景2: 模板块有内容时，处理边界的箭头键导航
+          else {
+            // 光标在模板块最左侧，按左箭头，跳出到模板块前
+            if (event.key === 'ArrowLeft' && $from.pos === $from.start()) {
+              const pos = $from.before()
+              dispatch(state.tr.setSelection(TextSelection.create(state.doc, pos)))
+              event.preventDefault()
+              return true
+            }
+            // 光标在模板块最右侧，按右箭头，跳出到模板块后
+            if (event.key === 'ArrowRight' && $from.pos === $from.end()) {
+              const pos = $from.after()
+              dispatch(state.tr.setSelection(TextSelection.create(state.doc, pos)))
+              event.preventDefault()
+              return true
+            }
+          }
+        }
+
         // 处理 Backspace
         if (event.key === 'Backspace' && selection.empty) {
           const currentNode = $from.node()
@@ -261,8 +297,13 @@ export function keyboardNavigationPlugin() {
               event.preventDefault()
               return true
             }
-            // 如果有内容，让 ProseMirror 默认处理（删除最后一个字符）
-            return false
+            // 如果有内容，将光标移动到模板块末尾（进入模板块）
+            else {
+              const targetPos = $from.pos - 1 // 模板块末尾位置
+              dispatch(state.tr.setSelection(TextSelection.create(state.doc, targetPos)))
+              event.preventDefault()
+              return true
+            }
           }
 
           // 删除零宽字符前的模板块
