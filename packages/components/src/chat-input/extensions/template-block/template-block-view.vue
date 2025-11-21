@@ -34,11 +34,11 @@ defineProps<Props>()
 <style scoped>
 .template-block {
   display: inline;
-  color: var(--tr-chat-input-template-color, #1476ff);
-  background: var(--tr-chat-input-template-bg, rgba(20, 118, 255, 0.1));
-  padding: 2px 4px;
-  margin: 0 2px;
-  border-radius: var(--tr-chat-input-template-border-radius, 6px);
+  color: var(--tr-chat-input-template-color);
+  background: var(--tr-chat-input-template-bg);
+  padding: var(--tr-chat-input-template-padding);
+  margin: var(--tr-chat-input-template-margin);
+  border-radius: var(--tr-chat-input-template-border-radius);
   cursor: text;
   white-space: pre-wrap;
   word-break: break-all;
@@ -47,7 +47,7 @@ defineProps<Props>()
   overflow-wrap: break-word;
   box-decoration-break: clone;
   vertical-align: baseline;
-  min-width: 32px; /* 空白时保持最小宽度 */
+  min-width: var(--tr-chat-input-template-min-width);
 }
 
 .template-block__content {

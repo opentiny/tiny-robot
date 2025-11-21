@@ -14,6 +14,7 @@ import TemplateBlockView from './template-block-view.vue'
 import type { TemplateItem } from '../../index.type'
 import { ensureZeroWidthChars, keyboardNavigationPlugin, pasteHandlerPlugin } from './plugins'
 import './commands.d.ts'
+import './index.less'
 
 // ProseMirror Node 类型（文档节点，不是 Tiptap 扩展）
 type PMNode = ReturnType<Editor['state']['doc']['nodeAt']> & { nodeSize: number }

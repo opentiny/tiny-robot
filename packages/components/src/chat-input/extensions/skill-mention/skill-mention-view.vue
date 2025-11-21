@@ -35,8 +35,8 @@ defineProps<Props>()
 <style scoped>
 .skill-mention {
   display: inline;
-  color: var(--tr-chat-input-mention-color, #1476ff);
-  background: var(--tr-chat-input-mention-bg, rgba(20, 118, 255, 0.1));
+  color: var(--tr-chat-input-mention-color);
+  background: var(--tr-chat-input-mention-bg);
   padding: 2px 6px;
   border-radius: 4px;
   cursor: pointer;
@@ -46,6 +46,6 @@ defineProps<Props>()
 }
 
 .skill-mention:hover {
-  background: var(--tr-chat-input-mention-hover-bg, rgba(20, 118, 255, 0.15));
+  background: var(--tr-chat-input-mention-hover-bg);
 }
 </style>

@@ -15,6 +15,7 @@ import SkillMentionView from './skill-mention-view.vue'
 import { createSuggestionPlugin, SkillMentionPluginKey } from './plugins'
 import type { SkillMentionAttrs, SkillMentionOptions } from './types'
 import './commands.d.ts'
+import './index.less'
 
 /**
  * SkillMention 扩展定义

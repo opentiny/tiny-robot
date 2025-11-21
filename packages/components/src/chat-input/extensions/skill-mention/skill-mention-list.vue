@@ -96,11 +96,9 @@ defineExpose({
 
 <style scoped>
 .skill-mention-list {
-  background: var(--tr-chat-input-popup-bg, #ffffff);
+  background: var(--tr-chat-input-mention-list-bg);
   border-radius: 12px;
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.08),
-    0 0 1px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--tr-chat-input-mention-list-shadow);
   padding: 6px;
   max-height: 320px;
   overflow-y: auto;
@@ -127,11 +125,11 @@ defineExpose({
 }
 
 .skill-mention-item:hover {
-  background: var(--tr-chat-input-mention-hover-bg, rgba(0, 0, 0, 0.04));
+  background: var(--tr-chat-input-mention-item-hover-bg);
 }
 
 .skill-mention-item.is-selected {
-  background: var(--tr-chat-input-mention-selected-bg, rgba(20, 118, 255, 0.08));
+  background: var(--tr-chat-input-mention-item-selected-bg);
 }
 
 .skill-icon {
@@ -149,7 +147,7 @@ defineExpose({
   flex: 1;
   font-size: 15px;
   font-weight: 500;
-  color: var(--tr-text-primary, #333);
+  color: var(--tr-chat-input-mention-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -159,7 +157,7 @@ defineExpose({
 .skill-empty {
   padding: 20px 12px;
   text-align: center;
-  color: var(--tr-text-tertiary, #999);
+  color: var(--tr-chat-input-mention-text-tertiary);
   font-size: 14px;
 }
 
@@ -174,44 +172,14 @@ defineExpose({
 }
 
 .skill-mention-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--tr-chat-input-mention-scrollbar-thumb);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .skill-mention-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
-  background-clip: padding-box;
-}
-
-/* 暗色主题 */
-[data-theme='dark'] .skill-mention-list {
-  background: var(--tr-chat-input-popup-bg, #2a2a2a);
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.3),
-    0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .skill-mention-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-[data-theme='dark'] .skill-mention-item.is-selected {
-  background: rgba(74, 158, 255, 0.15);
-}
-
-[data-theme='dark'] .skill-label {
-  color: var(--tr-text-primary, #e0e0e0);
-}
-
-[data-theme='dark'] .skill-mention-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  background-clip: padding-box;
-}
-
-[data-theme='dark'] .skill-mention-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--tr-chat-input-mention-scrollbar-thumb-hover);
   background-clip: padding-box;
 }
 </style>
