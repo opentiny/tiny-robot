@@ -39,6 +39,10 @@
 
 <demo vue="../../demos/chat-input/template-editor.vue" title="模板编辑器" description="支持插入可编辑的模板块，点击模板块可直接修改内容，适用于快速填充场景" />
 
+## 技能提及
+
+<demo vue="../../demos/chat-input/skill-mention.vue" title="技能提及" description="输入 @ 触发技能选择，快速引用预设的技能助手，支持键盘导航和搜索过滤。  按 Backspace 删除技能时会保留 @ 符号，可继续选择其他技能" />
+
 ## API
 
 ### Props
@@ -59,6 +63,7 @@
 | stopText | `string` | - | 停止按钮文字 |
 | theme | `'light' \| 'dark'` | `'light'` | 主题 |
 | templateData | `TemplateItem[]` | `[]` | 模板数据（v-model） |
+| skills | `SkillItem[]` | `[]` | 技能列表（用于 @ 提及） |
 
 ### Events
 
@@ -71,6 +76,7 @@
 | focus | `(event: FocusEvent)` | 获得焦点 |
 | blur | `(event: FocusEvent)` | 失去焦点 |
 | cancel | `()` | 取消操作（加载状态） |
+| skill-select | `(skill: SkillItem)` | 选择技能 |
 
 ### Slots
 
@@ -117,8 +123,7 @@ chatInputRef.value.submit()
 | focusFirstTemplateBlock | - | `void` | 聚焦第一个模板块 |
 | getTemplateData | - | `TemplateItem[]` | 获取模板数据 |
 
-### 
-类型定义
+### 类型定义
 
 ```typescript
 // 模板项
@@ -126,5 +131,12 @@ interface TemplateItem {
   id?: string                    // 模板块 ID（可选，自动生成）
   type: 'text' | 'template'     // 项目类型
   content: string               // 内容
+}
+
+// 技能项
+interface SkillItem {
+  id: string                     // 唯一标识
+  label: string                  // 显示名称，如 "小小画家"
+  preset?: string                // 预设内容（选择后自动填充）
 }
 ```

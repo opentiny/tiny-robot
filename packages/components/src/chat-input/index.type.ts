@@ -97,6 +97,58 @@ export interface TemplateBlockAttrs {
 }
 
 // ============================================
+// 技能 Mention 相关类型
+// ============================================
+
+/**
+ * 技能项
+ *
+ * 用于 @ 提及功能的技能数据
+ */
+export interface SkillItem {
+  /**
+   * 唯一标识（必传）
+   */
+  id: string
+
+  /**
+   * 显示名称，如 "小小画家"（必传）
+   */
+  label: string
+
+  /**
+   * 预设内容（必传）
+   * 选择该技能后会自动填充的内容
+   */
+  preset: string
+
+  /**
+   * 图标（可选）
+   */
+  icon?: string
+}
+
+/**
+ * 技能 Mention 节点属性（内部使用）
+ */
+export interface SkillMentionAttrs {
+  /**
+   * 技能 ID
+   */
+  id: string
+
+  /**
+   * 技能标签
+   */
+  label: string
+
+  /**
+   * 预设内容
+   */
+  preset?: string
+}
+
+// ============================================
 // 输入联想相关类型
 // ============================================
 
@@ -435,6 +487,13 @@ export interface ChatInputProps {
    */
   templateData?: TemplateItem[]
 
+  /**
+   * 技能列表
+   *
+   * 用于 @ 提及功能
+   */
+  skills?: SkillItem[]
+
   // ===== 基础配置 =====
 
   /**
@@ -713,6 +772,15 @@ export interface ChatInputEmits {
    * @param error - 错误对象
    */
   (e: 'speech-error', error: Error): void
+
+  /**
+   * 选择技能
+   *
+   * 用户选择技能 mention 时
+   *
+   * @param skill - 选择的技能
+   */
+  (e: 'skill-select', skill: SkillItem): void
 }
 
 // ============================================

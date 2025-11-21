@@ -1,0 +1,40 @@
+/**
+ * SkillMention 样式
+ */
+
+/* Mention 触发区域高亮 */
+.ProseMirror .mention-trigger {
+  background: var(--tr-chat-input-mention-trigger-bg, rgba(20, 118, 255, 0.05));
+  border-radius: 2px;
+}
+
+/* CSS 变量定义 */
+:root {
+  /* Mention 颜色 */
+  --tr-chat-input-mention-color: #1476ff;
+  --tr-chat-input-mention-bg: rgba(20, 118, 255, 0.1);
+  --tr-chat-input-mention-hover-bg: rgba(0, 0, 0, 0.04);
+  --tr-chat-input-mention-selected-bg: rgba(20, 118, 255, 0.08);
+  --tr-chat-input-mention-trigger-bg: rgba(20, 118, 255, 0.05);
+
+  /* 弹窗背景 */
+  --tr-chat-input-popup-bg: #ffffff;
+
+  /* 文本颜色 */
+  --tr-text-primary: #333;
+  --tr-text-secondary: #666;
+  --tr-text-tertiary: #999;
+}
+
+/* 暗色主题 */
+[data-theme='dark'] {
+  --tr-chat-input-mention-color: #4a9eff;
+  --tr-chat-input-mention-bg: rgba(74, 158, 255, 0.15);
+  --tr-chat-input-mention-hover-bg: rgba(255, 255, 255, 0.06);
+  --tr-chat-input-mention-selected-bg: rgba(74, 158, 255, 0.15);
+  --tr-chat-input-mention-trigger-bg: rgba(74, 158, 255, 0.1);
+  --tr-chat-input-popup-bg: #2a2a2a;
+  --tr-text-primary: #e0e0e0;
+  --tr-text-secondary: #b0b0b0;
+  --tr-text-tertiary: #808080;
+}

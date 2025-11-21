@@ -7,7 +7,7 @@ import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import { TemplateBlock } from '../extensions'
+import { TemplateBlock, SkillMention } from '../extensions'
 import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.type'
 
 export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEditorReturn {
@@ -38,6 +38,11 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
         mode: 'textSize',
       }),
       TemplateBlock,
+      SkillMention.configure({
+        skills: props.skills || [],
+        char: '@',
+        allowSpaces: false,
+      }),
     ],
     editorProps: {
       attributes: {

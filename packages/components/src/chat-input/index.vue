@@ -77,8 +77,28 @@ const speechState = ref({
 // 方法实现
 const submit = () => {
   if (!canSubmit.value) return
-  const content = editor.value?.getHTML() || ''
-  emit('submit', content)
+
+  // 获取 JSON 格式内容以提取技能预设
+  const json = editor.value?.getJSON()
+
+  // 提取所有 skillMention 的预设
+  const presets: string[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const extractPresets = (node: any) => {
+    if (node.type === 'skillMention' && node.attrs?.preset) {
+      presets.push(node.attrs.preset)
+    }
+    if (node.content) {
+      node.content.forEach(extractPresets)
+    }
+  }
+  json?.content?.forEach(extractPresets)
+
+  // 组合最终内容：预设 + 用户输入
+  const userText = editor.value?.getText() || ''
+  const finalContent = presets.length > 0 ? `${presets.join('\n\n')}\n\n${userText}` : userText
+
+  emit('submit', finalContent)
 }
 
 const clear = () => {

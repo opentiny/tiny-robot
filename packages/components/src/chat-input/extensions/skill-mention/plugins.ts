@@ -1,0 +1,353 @@
+/**
+ * SkillMention Suggestion 插件
+ *
+ * 基于 ProseMirror 插件实现
+ * - 监听 @ 字符输入
+ * - 过滤匹配的技能列表
+ * - 使用 @floating-ui/dom 定位弹窗
+ * - 处理键盘导航和选择
+ */
+
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
+import type { EditorState, Transaction } from '@tiptap/pm/state'
+import type { EditorView } from '@tiptap/pm/view'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
+import { VueRenderer } from '@tiptap/vue-3'
+import type { Editor } from '@tiptap/core'
+import SkillMentionList from './skill-mention-list.vue'
+import type { SkillItem, SuggestionState } from './types'
+
+export const SkillMentionPluginKey = new PluginKey<SuggestionState>('skillMention')
+
+interface PluginOptions {
+  editor: Editor
+  char: string
+  skills: SkillItem[]
+  allowSpaces: boolean
+}
+
+/**
+ * 查找触发位置和查询文本
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findSuggestion(state: { selection: any; doc: any }, char: string, allowSpaces: boolean) {
+  const { selection } = state
+  const { $from } = selection
+  const textBefore = $from.nodeBefore?.text || ''
+
+  // 查找最后一个触发字符的位置
+  const lastCharIndex = textBefore.lastIndexOf(char)
+
+  if (lastCharIndex === -1) {
+    return null
+  }
+
+  // 提取查询文本
+  const query = textBefore.slice(lastCharIndex + char.length)
+
+  // 如果不允许空格，检查是否包含空格
+  if (!allowSpaces && query.includes(' ')) {
+    return null
+  }
+
+  // 计算范围
+  const from = $from.pos - textBefore.length + lastCharIndex
+  const to = $from.pos
+
+  return {
+    range: { from, to },
+    query,
+  }
+}
+
+/**
+ * 过滤技能列表
+ */
+function filterSkills(skills: SkillItem[], query: string): SkillItem[] {
+  if (!query) {
+    return skills
+  }
+
+  const lowerQuery = query.toLowerCase()
+
+  return skills.filter((skill) => {
+    // 匹配标签
+    if (skill.label.toLowerCase().includes(lowerQuery)) {
+      return true
+    }
+
+    // 匹配预设内容
+    if (skill.preset?.toLowerCase().includes(lowerQuery)) {
+      return true
+    }
+
+    return false
+  })
+}
+
+/**
+ * 创建 Suggestion 插件
+ */
+export function createSuggestionPlugin(options: PluginOptions): Plugin {
+  const { editor, char, skills, allowSpaces } = options
+
+  let component: VueRenderer | null = null
+  let popup: HTMLElement | null = null
+  let cleanup: (() => void) | null = null
+
+  return new Plugin({
+    key: SkillMentionPluginKey,
+
+    state: {
+      init(): SuggestionState {
+        return {
+          active: false,
+          range: null,
+          query: '',
+          filteredSkills: [],
+        }
+      },
+
+      apply(tr: Transaction, state: SuggestionState): SuggestionState {
+        // 检查是否有 meta 更新
+        const meta = tr.getMeta(SkillMentionPluginKey)
+
+        if (meta) {
+          // 关闭弹窗
+          if (meta.type === 'close') {
+            return {
+              active: false,
+              range: null,
+              query: '',
+              filteredSkills: [],
+            }
+          }
+        }
+
+        // 如果文档没有变化，保持状态
+        if (!tr.docChanged && !tr.selectionSet) {
+          return state
+        }
+
+        // 查找触发
+        const suggestion = findSuggestion({ selection: tr.selection, doc: tr.doc }, char, allowSpaces)
+
+        if (!suggestion) {
+          return {
+            active: false,
+            range: null,
+            query: '',
+            filteredSkills: [],
+          }
+        }
+
+        // 过滤技能
+        const filteredSkills = filterSkills(skills, suggestion.query)
+
+        return {
+          active: filteredSkills.length > 0,
+          range: suggestion.range,
+          query: suggestion.query,
+          filteredSkills,
+        }
+      },
+    },
+
+    props: {
+      // 装饰器：高亮触发区域
+      decorations(state: EditorState): DecorationSet {
+        const pluginState = this.getState(state)
+
+        if (!pluginState?.active || !pluginState.range) {
+          return DecorationSet.empty
+        }
+
+        const decoration = Decoration.inline(pluginState.range.from, pluginState.range.to, {
+          class: 'mention-trigger',
+        })
+
+        return DecorationSet.create(state.doc, [decoration])
+      },
+
+      // 键盘处理
+      handleKeyDown(view: EditorView, event: KeyboardEvent): boolean {
+        const pluginState = SkillMentionPluginKey.getState(view.state)
+
+        // 处理 Backspace：检测是否在技能块右侧
+        if (event.key === 'Backspace') {
+          const { selection } = view.state
+          const { $from } = selection
+
+          // 检查光标前面是否是 skillMention 节点
+          if ($from.nodeBefore && $from.nodeBefore.type.name === 'skillMention') {
+            event.preventDefault()
+
+            const { tr } = view.state
+            const nodePos = $from.pos - $from.nodeBefore.nodeSize
+
+            // 删除技能块
+            tr.delete(nodePos, $from.pos)
+
+            // 插入 @ 字符
+            tr.insertText(char, nodePos)
+
+            // 设置光标位置到 @ 后面
+            tr.setSelection(TextSelection.create(tr.doc, nodePos + 1))
+
+            view.dispatch(tr)
+
+            // 聚焦编辑器
+            view.focus()
+
+            return true
+          }
+        }
+
+        // 如果建议面板未激活，不处理其他键盘事件
+        if (!pluginState?.active) {
+          return false
+        }
+
+        // Esc 关闭
+        if (event.key === 'Escape') {
+          event.preventDefault()
+
+          const tr = view.state.tr
+          tr.setMeta(SkillMentionPluginKey, {
+            type: 'close',
+          })
+          view.dispatch(tr)
+
+          // 销毁组件
+          if (component) {
+            cleanup?.()
+            cleanup = null
+            component.destroy()
+            component = null
+          }
+          if (popup) {
+            popup.remove()
+            popup = null
+          }
+
+          return true
+        }
+
+        // 其他键盘事件交给组件处理
+        return component?.ref?.onKeyDown?.({ event }) || false
+      },
+    },
+
+    view() {
+      return {
+        update(view: EditorView) {
+          const state = SkillMentionPluginKey.getState(view.state)
+
+          if (state?.active && state.filteredSkills.length > 0) {
+            // 创建或更新弹窗
+            if (!component) {
+              component = new VueRenderer(SkillMentionList, {
+                props: {
+                  skills: state.filteredSkills,
+                  command: (props: { id: string; label: string; preset?: string }) => {
+                    const skill: SkillItem = {
+                      id: props.id,
+                      label: props.label,
+                      preset: props.preset || '',
+                    }
+                    if (state.range) {
+                      insertSkillMention(view, state.range, skill)
+                    }
+                  },
+                },
+                editor,
+              })
+
+              popup = component.element as HTMLElement
+              popup.style.position = 'absolute'
+              popup.style.zIndex = '1000'
+              document.body.appendChild(popup)
+            } else {
+              // 更新 props
+              component.updateProps({
+                skills: state.filteredSkills,
+              })
+            }
+
+            // 使用 floating-ui 定位
+            const referenceElement = view.dom.querySelector('.mention-trigger')
+            if (referenceElement && popup) {
+              // 清理旧的自动更新
+              cleanup?.()
+
+              // 设置自动更新
+              cleanup = autoUpdate(referenceElement, popup, () => {
+                computePosition(referenceElement, popup!, {
+                  placement: 'bottom-start',
+                  middleware: [offset(8), flip(), shift({ padding: 8 })],
+                }).then((result: { x: number; y: number }) => {
+                  if (popup) {
+                    Object.assign(popup.style, {
+                      left: `${result.x}px`,
+                      top: `${result.y}px`,
+                    })
+                  }
+                })
+              })
+            }
+          } else {
+            // 销毁弹窗
+            if (component) {
+              cleanup?.()
+              cleanup = null
+              component.destroy()
+              component = null
+            }
+            if (popup) {
+              popup.remove()
+              popup = null
+            }
+          }
+        },
+
+        destroy() {
+          cleanup?.()
+          component?.destroy()
+          popup?.remove()
+        },
+      }
+    },
+  })
+}
+
+/**
+ * 插入技能 mention
+ */
+function insertSkillMention(view: EditorView, range: { from: number; to: number }, skill: SkillItem) {
+  const { state, dispatch } = view
+  const { tr } = state
+
+  // 删除触发文本（包括 @ 字符）
+  tr.delete(range.from, range.to)
+
+  // 插入 skillMention 节点
+  const node = state.schema.nodes.skillMention.create({
+    id: skill.id,
+    label: skill.label,
+    preset: skill.preset || '',
+  })
+
+  tr.insert(range.from, node)
+
+  // 在 mention 后添加空格
+  tr.insertText(' ', range.from + 1)
+
+  // 设置光标位置
+  tr.setSelection(TextSelection.create(tr.doc, range.from + 2))
+
+  dispatch(tr)
+
+  // 聚焦编辑器
+  view.focus()
+}
