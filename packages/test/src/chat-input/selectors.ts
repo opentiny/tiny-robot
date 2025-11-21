@@ -16,8 +16,9 @@ export const CHAT_INPUT_SELECTORS = {
   editor: '.tr-chat-input .ProseMirror',
 
   // 按钮
-  submitButton: '.tr-chat-input button[title="发送"]',
-  clearButton: '.tr-chat-input button[title="清空"]',
+  submitButton: '.tr-chat-input-submit-button',
+  clearButton: '.tr-chat-input-clear-button',
+  loadingButton: '.tr-chat-input-submit-button.is-loading',
 
   // 字数统计
   wordCounter: '.tr-chat-input-word-counter',
@@ -28,6 +29,12 @@ export const CHAT_INPUT_SELECTORS = {
 
   // 结果显示
   resultDisplay: '[data-testid="result-display"]',
+
+  // Mention 功能
+  skillMentionList: '.skill-mention-list',
+  skillMentionItem: '.skill-mention-list button',
+  skillMentionSelected: '.skill-mention-list button.is-selected',
+  skillMentionNode: '.skill-mention',
 } as const
 
 export type ChatInputSelectors = typeof CHAT_INPUT_SELECTORS

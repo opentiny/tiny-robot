@@ -1,5 +1,5 @@
 import { type Page, expect } from '@playwright/test'
-import { CHAT_INPUT_SELECTORS } from './selectors'
+import { CHAT_INPUT_SELECTORS } from '../selectors'
 
 export function createChatInputTestHelper(page: Page) {
   const selectors = CHAT_INPUT_SELECTORS
@@ -31,7 +31,9 @@ export function createChatInputTestHelper(page: Page) {
 
     // 点击提交按钮
     async clickSubmit() {
-      await page.locator(selectors.submitButton).click()
+      const submitBtn = page.locator(selectors.submitButton)
+      await expect(submitBtn).toBeVisible()
+      await submitBtn.click()
     },
 
     // 点击清空按钮
@@ -90,6 +92,16 @@ export function createChatInputTestHelper(page: Page) {
         await expect(clearBtn).toBeVisible()
       } else {
         await expect(clearBtn).not.toBeVisible()
+      }
+    },
+
+    // 验证 loading 按钮可见性
+    async expectLoadingButtonVisible(visible: boolean) {
+      const loadingBtn = page.locator(selectors.loadingButton)
+      if (visible) {
+        await expect(loadingBtn).toBeVisible()
+      } else {
+        await expect(loadingBtn).not.toBeVisible()
       }
     },
 

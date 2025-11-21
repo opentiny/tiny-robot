@@ -39,7 +39,13 @@ export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
 // ChatInput 类型导出 - 使用命名空间避免与 Sender 冲突
-export type { ChatInputProps, ChatInputEmits, ChatInputSlots, ChatInputContext } from './chat-input/index.type'
+export type {
+  ChatInputProps,
+  ChatInputEmits,
+  ChatInputSlots,
+  ChatInputContext,
+  SkillItem,
+} from './chat-input/index.type'
 
 export { useTheme } from './theme-provider/useTheme'
 export { useChatInputContext } from './chat-input/context'

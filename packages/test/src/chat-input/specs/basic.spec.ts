@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { createChatInputTestHelper } from './testHelper'
+import { createChatInputTestHelper } from '../helpers'
 
 test.describe('ChatInput 组件测试', () => {
   let helper: ReturnType<typeof createChatInputTestHelper>
@@ -56,11 +56,14 @@ test.describe('ChatInput 组件测试', () => {
     await helper.wait(100)
 
     // 提交按钮应该变为停止按钮
-    const submitBtn = helper.getChatInput().locator('button').last()
-    await expect(submitBtn).toBeVisible()
+    await helper.expectLoadingButtonVisible(true)
   })
 
   test('Props: maxLength & showWordLimit - 应该显示字数统计', async () => {
+    // 切换到多行模式
+    await helper.toggleMode()
+    await helper.expectResult('模式切换为: multiple')
+
     // 输入内容
     await helper.typeContent('测试')
 
@@ -108,7 +111,7 @@ test.describe('ChatInput 组件测试', () => {
   test('Emits: submit - 应该正确触发提交事件', async () => {
     await helper.typeContent('提交测试')
     await helper.clickSubmit()
-    await helper.expectResult('提交内容: <p>提交测试</p>')
+    await helper.expectResult('提交内容: 提交测试')
   })
 
   test('Emits: clear - 应该正确触发清空事件', async () => {

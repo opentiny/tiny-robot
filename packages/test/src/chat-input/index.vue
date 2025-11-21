@@ -23,25 +23,27 @@
       </div>
     </div>
 
-    <TrChatInput
+    <ChatInput
       ref="chatInputRef"
       v-model="content"
       data-testid="test-chat-input"
       :mode="mode"
       :clearable="clearable"
       :loading="loading"
+      :skills="skills"
       :max-length="100"
       show-word-limit
       placeholder="请输入内容..."
       @submit="handleSubmit"
       @clear="handleClear"
+      @skill-select="handleSkillSelect"
     >
       <template #footer>
         <button data-testid="custom-footer-btn" class="custom-btn" @click="handleCustomAction">自定义按钮</button>
       </template>
-    </TrChatInput>
+    </ChatInput>
 
-    <div v-if="result" class="result-display" data-testid="result-display">
+    <div v-show="result" class="result-display" data-testid="result-display">
       {{ result }}
     </div>
   </div>
@@ -50,7 +52,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import { TrChatInput } from '@opentiny/tiny-robot'
+import { ChatInput } from '@opentiny/tiny-robot'
+import type { SkillItem } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
 const content = ref('')
@@ -90,6 +93,34 @@ const handleFocus = () => {
 
 const handleCustomAction = () => {
   result.value = '自定义按钮被点击'
+}
+
+// 技能列表数据
+const skills = ref([
+  {
+    id: '1',
+    label: '小小画家',
+    preset: '你是一个专业的绘画助手，擅长创作各种风格的艺术作品...',
+  },
+  {
+    id: '2',
+    label: '代码助手',
+    preset: '你是一个专业的编程助手，精通多种编程语言和框架...',
+  },
+  {
+    id: '3',
+    label: '文案大师',
+    preset: '你是一个专业的文案撰写专家，能够创作吸引人的营销文案...',
+  },
+  {
+    id: '4',
+    label: '数据分析',
+    preset: '你是一个专业的数据分析师，擅长从数据中提取有价值的洞察...',
+  },
+])
+
+const handleSkillSelect = (skill: SkillItem) => {
+  result.value = `选择技能: ${skill.label}`
 }
 </script>
 
