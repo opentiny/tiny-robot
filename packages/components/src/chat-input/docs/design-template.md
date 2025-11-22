@@ -5,11 +5,13 @@
 ### 原有实现的问题
 
 1. **光标定位问题**
+
    - 模板块前后无法正确放置光标
    - 连续两个模板块之间无法插入内容
    - 模板块作为段落最后一个节点时，光标无法移出
 
 2. **键盘导航问题**
+
    - 方向键无法正确跳过模板块
    - 在零宽字符和模板块之间导航不流畅
    - 删除操作可能破坏文档结构
@@ -37,6 +39,7 @@
 **功能：** 自动在需要的位置插入/删除零宽字符
 
 **规则：**
+
 - 段落首个节点是模板块 → 在模板块前插入零宽字符
 - 段落末个节点是模板块 → 在模板块后插入零宽字符
 - 连续两个模板块 → 在中间插入零宽字符
@@ -61,28 +64,32 @@ export function ensureZeroWidthChars() {
 **功能：** 处理方向键和删除键的特殊行为
 
 **ArrowLeft 处理：**
+
 ```
 [文本、零宽字符、光标、模板块] → 按左键 → [文本、光标、零宽字符、模板块]
 ```
 
 **ArrowRight 处理：**
+
 ```
 [模板块、零宽字符、光标、文本] → 按右键 → [模板块、零宽字符、光标、文本]
 ```
 
 **Backspace 处理：**
+
 - 删除模板块时，同时删除前后的零宽字符
 - 删除普通字符时，保留必要的零宽字符
 - 选区删除时，扩展选区以包含零宽字符
 
 **关键代码：**
+
 ```typescript
 // 删除模板块
 if (beforeNode && beforeNode.type.name === 'templateBlock') {
   // 检查前后是否有零宽字符，一并删除
   let deleteStart = $from.pos - beforeNode.nodeSize
   let deleteEnd = $from.pos
-  
+
   // 扩展删除范围
   if (prevPrevNode?.text?.endsWith(ZERO_WIDTH_CHAR)) {
     deleteStart -= 1
@@ -90,7 +97,7 @@ if (beforeNode && beforeNode.type.name === 'templateBlock') {
   if (afterNode?.text?.startsWith(ZERO_WIDTH_CHAR)) {
     deleteEnd += 1
   }
-  
+
   dispatch(state.tr.delete(deleteStart, deleteEnd))
 }
 ```
@@ -100,6 +107,7 @@ if (beforeNode && beforeNode.type.name === 'templateBlock') {
 **功能：** 处理粘贴操作，维护零宽字符结构
 
 **策略：**
+
 1. 如果粘贴的是模板块的 HTML → 让 Tiptap 默认处理
 2. 如果粘贴的是纯文本 → 自定义处理：
    - 移除光标周围的零宽字符
@@ -107,6 +115,7 @@ if (beforeNode && beforeNode.type.name === 'templateBlock') {
    - 设置光标到粘贴内容末尾
 
 **关键代码：**
+
 ```typescript
 // 移除光标周围的零宽字符
 if ($from.nodeBefore?.text === ZERO_WIDTH_CHAR) {
@@ -118,10 +127,7 @@ const lines = text.split('\n')
 if (lines.length > 1) {
   // 为每一行创建段落节点
   for (let i = 1; i < lines.length; i++) {
-    const paragraph = state.schema.nodes.paragraph.create(
-      {},
-      lines[i] ? state.schema.text(lines[i]) : null
-    )
+    const paragraph = state.schema.nodes.paragraph.create({}, lines[i] ? state.schema.text(lines[i]) : null)
     tr = tr.insert(pos, paragraph)
     pos += paragraph.nodeSize
   }
@@ -138,12 +144,12 @@ if (lines.length > 1) {
 
 ### 差异之处
 
-| 特性 | Other Design | 当前实现 |
-|------|-------------|----------|
-| 自定义节点类型 | input-slot, select-slot, skill-slot | template-block |
-| 节点可编辑性 | input-slot 可编辑 | template-block 通过 Vue 组件编辑 |
-| 输入法处理 | 有专门的 composition 处理 | 暂未实现（可后续添加） |
-| 节点删除标记 | 使用 `DeleteAble` meta | 直接删除 |
+| 特性           | Other Design                        | 当前实现                         |
+| -------------- | ----------------------------------- | -------------------------------- |
+| 自定义节点类型 | input-slot, select-slot, skill-slot | template-block                   |
+| 节点可编辑性   | input-slot 可编辑                   | template-block 通过 Vue 组件编辑 |
+| 输入法处理     | 有专门的 composition 处理           | 暂未实现（可后续添加）           |
+| 节点删除标记   | 使用 `DeleteAble` meta              | 直接删除                         |
 
 ### 简化之处
 
@@ -221,7 +227,7 @@ export function handleCompositionEndLogic(view: EditorView) {
   const { state, dispatch } = view
   const $from = state.selection.$from
   let tr = state.tr
-  
+
   // 移除输入法产生的零宽字符
   let modified = removeZeroWidthCharForComposition($from, tr)
   if (modified) {
@@ -249,7 +255,7 @@ export function handleCompositionEndLogic(view: EditorView) {
 ✅ **光标可以正确定位** - 零宽字符作为锚点  
 ✅ **键盘导航流畅** - 方向键正确跳转  
 ✅ **删除操作安全** - 自动清理零宽字符  
-✅ **粘贴行为正确** - 维护文档结构  
+✅ **粘贴行为正确** - 维护文档结构
 
 ## 模板编辑器功能详解
 
@@ -270,43 +276,111 @@ export function handleCompositionEndLogic(view: EditorView) {
 #### 1. 光标导航
 
 **插入模板后**
+
 - 光标自动定位到第一个模板块内部
 - 光标在模板块内容末尾
 
 **键盘导航**
+
 - **左箭头 ←**：光标在零宽字符右侧时，进入左侧模板块末尾
 - **右箭头 →**：光标在零宽字符左侧时，进入右侧模板块开头
 - **模板块内左箭头**：光标在开头时跳出到模板块前
 - **模板块内右箭头**：光标在末尾时跳出到模板块后
 
 **鼠标操作**
+
 - 点击模板块可直接进入编辑状态
 - 点击模板块外的文本可正常定位光标
 
 #### 2. 删除规则
 
-**从模板块右侧删除（Backspace）**
-- 有内容：删除最后一个字符
-- 无内容：删除整个模板块
+详细的删除逻辑和测试用例请参考 [delete-logic-summary.md](./delete-logic-summary.md)
 
-**在模板块内部删除（Backspace）**
-- 有内容：删除单个字符
-- 删除最后一个字符：模板块变空但保留（显示最小宽度）
-- 空模板块内继续删除：光标跳出到模板块前，模板块保留
+##### 核心设计原则
 
-**从模板块左侧删除（Delete）**
-- 遵循类似的规则
+1. **保护性删除**：模板块内删除到最后一个字符时，不删除模板块，而是保留零宽字符占位
+2. **渐进式退出**：空模板块内按删除键先跳出，再次按才删除整个块
+3. **智能进入**：有内容的模板块，删除键会进入而非删除
+4. **零宽字符清理**：删除模板块时连带清理前后的零宽字符，保持文档整洁
+5. **边界保护**：防止 ProseMirror 默认行为导致模板块边界被破坏
+
+##### Backspace vs Delete 对比
+
+| 维度               | Backspace                          | Delete                               |
+| ------------------ | ---------------------------------- | ------------------------------------ |
+| **方向**           | ← 向左删除                         | → 向右删除                           |
+| **检查节点**       | `$from.nodeBefore`                 | `$from.nodeAfter`                    |
+| **模板块位置判断** | `$from.pos === $from.end()` (末尾) | `$from.pos === $from.start()` (开头) |
+| **跳出位置**       | `$from.before()` (前面)            | `$from.after()` (后面)               |
+| **进入位置**       | `$from.pos - 1` (末尾)             | `$from.pos + 1` (开头)               |
+| **跳过零宽字符**   | `$from.pos - 2`                    | `$from.pos + 2`                      |
+
+##### 基本交互规则
+
+**从模板块外部删除**
+
+- **Backspace（从右侧）**：
+  - 有内容：进入模板块末尾
+  - 无内容：删除整个模板块和前后零宽字符
+- **Delete（从左侧）**：
+  - 有内容：进入模板块开头
+  - 无内容：删除整个模板块和前后零宽字符
+
+**在模板块内部删除**
+
+- **Backspace**：
+  - 光标在末尾，删除单个字符
+  - 删除最后一个字符时：替换为零宽字符，保留模板块外壳
+  - 空模板块内继续删除：光标跳出到模板块前
+  - 光标在开头：跳出到模板块前（边界保护）
+- **Delete**：
+  - 光标在开头，删除单个字符
+  - 删除最后一个字符时：替换为零宽字符，保留模板块外壳
+  - 空模板块内继续删除：光标跳出到模板块后
+  - 光标在末尾：跳出到模板块后（边界保护）
+
+##### 关键特性
+
+**保护性删除示例**
+
+```
+初始：【三】（光标在 "三" 后）
+  ↓ Backspace
+结果：【​】（变成空模板块，不删除外壳）
+```
+
+**渐进式退出示例**
+
+```
+初始：【​】（光标在内部）
+  ↓ Backspace（第一次）
+结果：|【​】（光标跳出，模板块保留）
+  ↓ Backspace（第二次）
+结果：（整个模板块被删除）
+```
+
+**边界保护示例**（防止文本被吸入模板块）
+
+```
+初始：我是【张三】，来自（光标在 "三" 后）
+  ↓ Delete
+结果：我是【张三】|，来自 ✅（光标跳出，不破坏边界）
+
+修复前问题：我是【张三，】来自 ❌（逗号被吸入模板块）
+```
 
 #### 3. 空白模板块
 
 **显示规则**
+
 - 最小宽度：32px（紧凑模式 24px）
 - 内部自动插入零宽字符占位
 - 保持可点击和可编辑状态
 
 **删除规则**
-- 从外部删除：删除整个模板块
-- 从内部删除：跳出到模板块前，保留模板块
+
+- 从外部删除：直接删除整个模板块
+- 从内部删除：先跳出到模板块前/后，再删除
 
 ### 技术实现
 
@@ -331,145 +405,62 @@ export function handleCompositionEndLogic(view: EditorView) {
 1. 段落首个节点是模板块 → 前面插入
 2. 段落末个节点是模板块 → 后面插入
 3. 连续两个模板块 → 中间插入
-4. 模板块后跟文本 → 中间插入
-5. 模板块内容为空 → 内部插入
+4. 模板块内容为空 → 内部插入
+
+**注意**：当前实现中，模板块和普通文本之间**不插入**零宽字符，这是为了避免零宽字符被合并到文本节点。
 
 #### 光标位置计算
 
-使用 Prootherrror 的 `TextSelection.create()` API：
+使用 ProseMirror 的 `TextSelection.create()` API：
 
 ```typescript
 // 进入模板块末尾
-const nextCursorPos = $from.pos - 2  // 跳过零宽字符
+const nextCursorPos = $from.pos - 2 // 跳过零宽字符
 dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
+
+// 跳出到模板块前
+const nodePos = $from.before()
+dispatch(state.tr.setSelection(TextSelection.create(state.doc, nodePos)))
+
+// 跳出到模板块后
+const nodePos = $from.after()
+dispatch(state.tr.setSelection(TextSelection.create(state.doc, nodePos)))
 ```
 
-### 测试用例
+#### 删除逻辑实现
 
-#### 基础功能测试
+关键代码片段（详见 `plugins.ts`）：
 
-**TC-01: 插入模板**
-- 操作：点击"模板1"按钮
-- 预期：模板内容插入，光标在第一个模板块"张三"内部末尾
+```typescript
+// 边界保护：防止 ProseMirror 默认行为破坏模板块边界
+if ($from.pos === $from.end() && content.length > 0 && content !== ZERO_WIDTH_CHAR) {
+  const nodePos = $from.after()
+  dispatch(state.tr.setSelection(TextSelection.create(state.doc, nodePos)))
+  event.preventDefault()
+  return true
+}
 
-**TC-02: 编辑模板块**
-- 操作：在"张三"模板块内输入文字
-- 预期：内容正常更新，`templateData` 同步变化
+// 保护性删除：删除最后一个字符时保留模板块
+if ($from.pos === $from.end() && content.length === 1 && content !== ZERO_WIDTH_CHAR) {
+  const pos = $from.pos - 1
+  dispatch(state.tr.insertText(ZERO_WIDTH_CHAR, pos, pos + 1))
+  event.preventDefault()
+  return true
+}
 
-**TC-03: 清空模板**
-- 操作：点击"清空"按钮
-- 预期：所有内容清空，`templateData` 变为空数组
+// 零宽字符清理：删除模板块时一并删除周围零宽字符
+if (beforeNode.type.name === 'templateBlock' && isEmpty) {
+  let deleteStart = $from.pos - beforeNode.nodeSize
+  let deleteEnd = $from.pos
 
-#### 光标导航测试
+  if (prevPrevNode?.text?.endsWith(ZERO_WIDTH_CHAR)) deleteStart -= 1
+  if (afterNode?.text?.startsWith(ZERO_WIDTH_CHAR)) deleteEnd += 1
 
-**TC-04: 右箭头进入模板块**
-- 前置：光标在"你好，我是"后面
-- 操作：按右箭头 →
-- 预期：光标进入"张三"模板块开头
-
-**TC-05: 左箭头进入模板块**
-- 前置：光标在"，来自"前面
-- 操作：按左箭头 ←
-- 预期：光标进入"张三"模板块末尾
-
-**TC-06: 模板块内左箭头跳出**
-- 前置：光标在"张三"的"张"前面
-- 操作：按左箭头 ←
-- 预期：光标跳出到"我是"后面
-
-**TC-07: 模板块内右箭头跳出**
-- 前置：光标在"张三"的"三"后面
-- 操作：按右箭头 →
-- 预期：光标跳出到"，来自"前面
-
-**TC-08: 连续导航**
-- 前置：光标在"你好"后面
-- 操作：连续按右箭头 →
-- 预期：光标依次经过"，我是"、进入"张三"、跳出、进入"北京"等
-
-#### 删除功能测试
-
-**TC-09: 删除模板块内字符**
-- 前置：光标在"张三"的"三"后面
-- 操作：按 Backspace
-- 预期：删除"三"，模板块变成"张"
-
-**TC-10: 删除到空模板块**
-- 前置：模板块内容为"张"
-- 操作：按 Backspace
-- 预期：模板块变空，显示最小宽度 32px
-
-**TC-11: 空模板块内删除**
-- 前置：模板块为空，光标在内部
-- 操作：按 Backspace
-- 预期：光标跳出到模板块前，模板块保留
-
-**TC-12: 从右侧删除有内容的模板块**
-- 前置：光标在"张三"后面
-- 操作：按 Backspace
-- 预期：删除"三"，模板块变成"张"
-
-**TC-13: 从右侧删除空模板块（后无内容）**
-- 前置：清空"北京"模板块，光标在"！"前面
-- 操作：按 Backspace
-- 预期：整个空模板块被删除
-
-**TC-14: 从右侧删除空模板块（后有文本）**
-- 前置：清空"张三"模板块，光标在"，来自"的"，"前面
-- 操作：按 Backspace
-- 预期：整个空模板块被删除
-
-**TC-15: 从右侧删除空模板块（后有模板块）**
-- 前置：清空"张三"模板块，光标在"北京"模板块前
-- 操作：按 Backspace
-- 预期：整个空模板块被删除
-
-#### 边界情况测试
-
-**TC-16: 空白占位显示**
-- 前置：清空模板块
-- 预期：模板块保持可见，最小宽度 32px，可点击进入
-
-**TC-17: 多个连续模板块**
-- 前置：插入"[模板1][模板2][模板3]"
-- 操作：使用箭头键导航
-- 预期：可以在所有模板块之间自由移动
-
-**TC-18: 模板块在段落开头**
-- 前置：模板块是段落第一个节点
-- 操作：光标在模板块前，按左箭头
-- 预期：光标移到上一段落
-
-**TC-19: 模板块在段落末尾**
-- 前置：模板块是段落最后一个节点
-- 操作：光标在模板块后，按右箭头
-- 预期：光标移到下一段落
-
-**TC-20: 撤销/重做**
-- 操作：编辑模板块后按 Ctrl+Z / Ctrl+Y
-- 预期：内容正确撤销和重做，零宽字符结构保持正确
-
-#### 数据同步测试
-
-**TC-21: 外部更新 templateData**
-- 操作：通过 `v-model:template-data` 更新数据
-- 预期：编辑器内容同步更新
-
-**TC-22: 内部编辑同步到外部**
-- 操作：在编辑器内修改模板块内容
-- 预期：`templateData` 自动更新
-
-**TC-23: 方法调用 setTemplateData**
-- 操作：调用 `chatInputRef.value.setTemplateData(items)`
-- 预期：内容更新，光标聚焦到第一个模板块
-
-**TC-24: 方法调用 clearTemplateData**
-- 操作：调用 `chatInputRef.value.clearTemplateData()`
-- 预期：所有模板块被清除
-
-**TC-25: 方法调用 getTemplateData**
-- 操作：调用 `chatInputRef.value.getTemplateData()`
-- 预期：返回当前的模板数据数组
+  dispatch(state.tr.delete(deleteStart, deleteEnd))
+  event.preventDefault()
+  return true
+}
+```
 
 ### 已知限制
 
@@ -477,6 +468,7 @@ dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
 2. **不支持格式化** - 模板块内部不支持粗体、斜体等格式
 3. **浏览器兼容性** - 基于现代浏览器的 contenteditable 实现
 4. **性能考虑** - 建议单个输入框中的模板块数量控制在 20 个以内
+5. **模板块与文本粘连** - 当前实现中模板块和文本之间不插入零宽字符，可能导致删除后粘连
 
 ### 常见问题
 
@@ -492,3 +484,8 @@ A: 不支持。模板块是 inline 节点，内部只能包含单行文本。
 **Q: 如何禁用模板功能？**  
 A: 不传递 `template-data` 属性即可，组件会自动禁用模板相关功能。
 
+**Q: 删除模板块后为什么有时会粘连？**  
+A: 这是已知限制，当前实现在模板块和文本之间不插入零宽字符。可以通过修改 `handleZeroWidthCharLogic` 函数解决。
+
+**Q: 如何查看完整的删除逻辑？**  
+A: 请参考 [delete-logic-summary.md](./delete-logic-summary.md) 文档。

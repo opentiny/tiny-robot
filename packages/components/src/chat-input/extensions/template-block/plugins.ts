@@ -239,12 +239,32 @@ export function keyboardNavigationPlugin() {
             // 如果内容只剩零宽字符，再次删除时跳出到模板块前（保留模板块）
             if (content === ZERO_WIDTH_CHAR && event.key === 'Backspace') {
               const nodePos = $from.before()
+              const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
+              dispatch(tr)
+              event.preventDefault()
+              return true
+            }
+
+            // 如果模板块为空，首次按 Backspace 时跳出到模板块前
+            // 注意：此时零宽字符可能还未插入，需要单独处理
+            if (content === '' && event.key === 'Backspace') {
+              const nodePos = $from.before()
+              const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
+              dispatch(tr)
+              event.preventDefault()
+              return true
+            }
+
+            // 如果光标在模板块开头，且有内容，跳出到模板块前
+            // 防止 ProseMirror 默认行为导致前面的文本被吸入模板块
+            if ($from.pos === $from.start() && content.length > 0 && content !== ZERO_WIDTH_CHAR) {
+              const nodePos = $from.before()
               dispatch(state.tr.setSelection(TextSelection.create(state.doc, nodePos)))
               event.preventDefault()
               return true
             }
 
-            // 其他情况：让 ProseMirror 默认处理
+            // 其他情况：让 ProseMirror 默认处理（光标在模板块中间，正常删除字符）
             return false
           }
 
@@ -353,6 +373,180 @@ export function keyboardNavigationPlugin() {
 
         // 处理选区删除
         if (event.key === 'Backspace' && !selection.empty) {
+          let startPos = selection.from
+          let endPos = selection.to
+          const nodeBefore = $from.nodeBefore
+          const nodeAfter = $from.nodeAfter
+
+          // 扩展选区以包含零宽字符
+          if (nodeBefore && nodeBefore.isText && nodeBefore.text?.endsWith(ZERO_WIDTH_CHAR)) {
+            startPos -= 1
+          }
+          if (nodeAfter && nodeAfter.isText && nodeAfter.text?.startsWith(ZERO_WIDTH_CHAR)) {
+            endPos += 1
+          }
+
+          if (startPos !== selection.from || endPos !== selection.to) {
+            const tr = state.tr.delete(startPos, endPos)
+            dispatch(tr)
+            event.preventDefault()
+            return true
+          }
+        }
+
+        // 处理 Delete 键
+        if (event.key === 'Delete' && selection.empty) {
+          const currentNode = $from.node()
+          const afterNode = $from.nodeAfter
+
+          // 如果光标在模板块内部
+          if (currentNode.type.name === 'templateBlock') {
+            const content = currentNode.textContent || ''
+
+            // 删除第一个字符时，插入零宽字符（保留模板块）
+            if (
+              $from.pos === $from.start() &&
+              content.length === 1 &&
+              content !== ZERO_WIDTH_CHAR &&
+              event.key === 'Delete'
+            ) {
+              const pos = $from.pos
+              dispatch(state.tr.insertText(ZERO_WIDTH_CHAR, pos, pos + 1))
+              event.preventDefault()
+              return true
+            }
+
+            // 如果内容只剩零宽字符，再次删除时跳出到模板块后（保留模板块）
+            if (content === ZERO_WIDTH_CHAR && event.key === 'Delete') {
+              const nodePos = $from.after()
+              const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
+              dispatch(tr)
+              event.preventDefault()
+              return true
+            }
+
+            // 如果模板块为空，首次按 Delete 时跳出到模板块后
+            // 注意：此时零宽字符可能还未插入，需要单独处理
+            if (content === '' && event.key === 'Delete') {
+              const nodePos = $from.after()
+              const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
+              dispatch(tr)
+              event.preventDefault()
+              return true
+            }
+
+            // 如果光标在模板块末尾，且有内容，跳出到模板块后
+            // 防止 ProseMirror 默认行为导致后面的文本被吸入模板块
+            if ($from.pos === $from.end() && content.length > 0 && content !== ZERO_WIDTH_CHAR) {
+              const nodePos = $from.after()
+              dispatch(state.tr.setSelection(TextSelection.create(state.doc, nodePos)))
+              event.preventDefault()
+              return true
+            }
+
+            // 其他情况：让 ProseMirror 默认处理（光标在模板块中间，正常删除字符）
+            return false
+          }
+
+          // 删除模板块后的单个字符时，保留零宽字符
+          if (
+            afterNode &&
+            afterNode.isText &&
+            afterNode.text?.length === 1 &&
+            afterNode.text !== ZERO_WIDTH_CHAR &&
+            $from.nodeBefore &&
+            $from.nodeBefore.type.name === 'templateBlock'
+          ) {
+            const begin = $from.pos
+            const end = $from.pos + afterNode.nodeSize
+            let tr = state.tr.delete(begin, end)
+            tr = tr.insertText(ZERO_WIDTH_CHAR, begin, begin)
+            dispatch(tr)
+            event.preventDefault()
+            return true
+          }
+
+          // 从左侧删除模板块
+          if (afterNode && afterNode.type.name === 'templateBlock') {
+            const content = afterNode.textContent || ''
+            // 判断是否为空：排除零宽字符
+            const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
+
+            // 如果模板块无内容，删除整个模板块
+            if (isEmpty) {
+              const parent = $from.parent
+              const index = $from.index()
+              const beforeNode = $from.nodeBefore
+              let deleteStart = $from.pos
+              let deleteEnd = $from.pos + afterNode.nodeSize
+
+              // 检查前面是否有零宽字符
+              if (beforeNode && beforeNode.isText && beforeNode.text?.endsWith(ZERO_WIDTH_CHAR)) {
+                deleteStart = deleteStart - 1
+              }
+
+              // 检查后面是否有零宽字符
+              if (index < parent.childCount - 1) {
+                const nextNextNode = parent.child(index + 1)
+                if (nextNextNode && nextNextNode.isText && nextNextNode.text?.startsWith(ZERO_WIDTH_CHAR)) {
+                  deleteEnd = deleteEnd + 1
+                }
+              }
+
+              dispatch(state.tr.delete(deleteStart, deleteEnd))
+              event.preventDefault()
+              return true
+            }
+            // 如果有内容，将光标移动到模板块开头（进入模板块）
+            else {
+              const targetPos = $from.pos + 1 // 模板块开头位置
+              dispatch(state.tr.setSelection(TextSelection.create(state.doc, targetPos)))
+              event.preventDefault()
+              return true
+            }
+          }
+
+          // 删除零宽字符后的模板块
+          if (afterNode && afterNode.isText) {
+            const parent = $from.parent
+            const index = $from.index()
+
+            // 检查后面是否有模板块（可能隔着零宽字符）
+            if (index < parent.childCount - 1) {
+              const nextNextNode = parent.child(index + 1)
+              if (nextNextNode.type.name === 'templateBlock') {
+                const content = nextNextNode.textContent || ''
+                const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
+
+                // 如果模板块无内容，删除整个模板块和中间的文本节点
+                if (isEmpty) {
+                  let deleteStart = $from.pos
+                  const deleteEnd = $from.pos + afterNode.nodeSize + nextNextNode.nodeSize
+                  const beforeNode = $from.nodeBefore
+
+                  // 检查前面是否有零宽字符
+                  if (beforeNode && beforeNode.isText && beforeNode.text?.endsWith(ZERO_WIDTH_CHAR)) {
+                    deleteStart = deleteStart - 1
+                  }
+
+                  dispatch(state.tr.delete(deleteStart, deleteEnd))
+                  event.preventDefault()
+                  return true
+                }
+                // 如果有内容且后面是零宽字符，跳过零宽字符进入模板块
+                if (afterNode.text === ZERO_WIDTH_CHAR || afterNode.text?.startsWith(ZERO_WIDTH_CHAR)) {
+                  const nextCursorPos = $from.pos + 2
+                  dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
+                  event.preventDefault()
+                  return true
+                }
+              }
+            }
+          }
+        }
+
+        // 处理选区删除（Delete 键）
+        if (event.key === 'Delete' && !selection.empty) {
           let startPos = selection.from
           let endPos = selection.to
           const nodeBefore = $from.nodeBefore

@@ -24,6 +24,7 @@ export type {
   UseFileUploadReturn,
   UseTemplateDataReturn,
   UseKeyboardShortcutsReturn,
+  TemplateItem,
 } from './index.type'
 
 export { useChatInputContext } from './context'
