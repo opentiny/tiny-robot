@@ -15,7 +15,6 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
   allowSpeech: false,
   allowFiles: false,
   submitType: 'enter',
-  theme: 'light',
 })
 
 const emit = defineEmits<ChatInputEmits>()
@@ -32,7 +31,6 @@ defineExpose(expose)
     :class="[
       'tr-chat-input',
       `tr-chat-input--${context.mode.value}`,
-      `tr-chat-input--${theme}`,
       {
         'is-auto-switching': context.isAutoSwitching.value,
         'is-over-limit': context.isOverLimit.value,
@@ -76,41 +74,6 @@ defineExpose(expose)
     </MultiLineLayout>
   </div>
 </template>
-
-<style lang="less">
-:root {
-  // 基础颜色
-  --tr-chat-input-bg-color: var(--tr-container-bg-default, #ffffff);
-  --tr-chat-input-text-color: var(--tr-text-primary, #000000);
-  --tr-chat-input-placeholder-color: var(--tr-text-tertiary, #999999);
-
-  // 尺寸
-  --tr-chat-input-font-size: 16px;
-  --tr-chat-input-line-height: 26px;
-  --tr-chat-input-min-height: 42px;
-  --tr-chat-input-border-radius: 26px;
-
-  // 间距
-  --tr-chat-input-padding: 15px 20px;
-  --tr-chat-input-gap: 8px;
-  --tr-chat-input-footer-gap: 12px;
-
-  // 按钮
-  --tr-chat-input-button-size: 32px;
-  --tr-chat-input-button-hover-bg: rgba(0, 0, 0, 0.08);
-  --tr-chat-input-button-active-bg: rgba(0, 0, 0, 0.12);
-
-  // 字数限制
-  --tr-chat-input-word-limit-color: #808080;
-  --tr-chat-input-word-limit-error-color: #f23030;
-
-  // 阴影
-  --tr-chat-input-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
-
-  // 动画
-  --tr-chat-input-transition-duration: 0.2s;
-}
-</style>
 
 <style lang="less" scoped>
 .tr-chat-input {

@@ -234,8 +234,34 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           return true
         }
 
-        // 其他键盘事件交给组件处理
-        return component?.ref?.onKeyDown?.({ event }) || false
+        // Enter 或 Tab：选择当前高亮的技能
+        if (event.key === 'Enter' || event.key === 'Tab') {
+          event.preventDefault()
+
+          // 尝试通过组件方法选择
+          const handled = component?.ref?.onKeyDown?.({ event })
+          if (handled) {
+            return true
+          }
+
+          // 如果组件方法不可用，直接选择第一个技能（fallback）
+          if (pluginState.filteredSkills.length > 0 && pluginState.range) {
+            const firstSkill = pluginState.filteredSkills[0]
+            insertSkillMention(view, pluginState.range, firstSkill)
+            return true
+          }
+
+          return true
+        }
+
+        // ArrowUp 和 ArrowDown：交给组件处理
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          const handled = component?.ref?.onKeyDown?.({ event })
+          return handled || false
+        }
+
+        // 其他键不处理
+        return false
       },
     },
 

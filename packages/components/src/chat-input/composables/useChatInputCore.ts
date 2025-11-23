@@ -10,6 +10,7 @@
 
 import { computed, provide, ref, toRef, watch } from 'vue'
 import type { ChatInputProps, ChatInputEmits, InputMode, TemplateItem } from '../index.type'
+import { SkillMentionPluginKey } from '../extensions'
 import { CHAT_INPUT_CONTEXT_KEY } from '../constants'
 import type { ChatInputContext } from '../types/context'
 import { useEditor } from './useEditor'
@@ -119,9 +120,11 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
 
     // 组合最终内容：预设 + 用户输入
     const userText = editor.value?.getText() || ''
-    const finalContent = presets.length > 0 ? `${presets.join('\n\n')}\n\n${userText}` : userText
 
-    emit('submit', finalContent)
+    // 默认使用单换行符拼接
+    const finalContent = presets.length > 0 ? `${presets.join('\n')}\n${userText}` : userText
+
+    emit('submit', finalContent, { presets, userText })
   }
 
   // ========================================
@@ -154,7 +157,14 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
         editorInstance.setOptions({
           editorProps: {
             ...editorInstance.options.editorProps,
-            handleKeyDown: (_: unknown, event: KeyboardEvent) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            handleKeyDown: (view: any, event: KeyboardEvent) => {
+              // 0. 检查插件状态 - 如果建议面板激活，不拦截键盘事件
+              const skillMentionState = SkillMentionPluginKey.getState(view.state)
+              if (skillMentionState?.active) {
+                return false // 让插件处理
+              }
+
               // 1. 处理 Shift+Enter 在单行模式下的行为
               const shiftEnterHandled = keyboardHandlers.handleShiftEnterInSingleMode(event)
               if (shiftEnterHandled) {

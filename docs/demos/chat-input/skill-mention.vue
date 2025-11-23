@@ -34,13 +34,14 @@ const skills: SkillItem[] = [
   },
 ]
 
-const handleSubmit = (value: string) => {
-  console.log('提交内容：', value)
-  alert(`提交内容：\n${value}`)
-}
+const handleSubmit = (value: string, context: { presets: string[]; userText: string }) => {
+  console.log('提交内容（默认拼接）：', value)
+  console.log('提交上下文（原始数据）：', context)
 
-const handleSkillSelect = (skill: SkillItem) => {
-  console.log('选择技能：', skill)
+  // 演示：如果想自定义拼接，可以使用 context
+  if (context.presets.length > 0) {
+    console.log('自定义拼接演示：', `[System]\n${context.presets.join('\n')}\n\n[User]\n${context.userText}`)
+  }
 }
 </script>
 
@@ -59,7 +60,6 @@ const handleSkillSelect = (skill: SkillItem) => {
       show-word-limit
       clearable
       @submit="handleSubmit"
-      @skill-select="handleSkillSelect"
     />
 
     <div v-if="content" class="demo-output">

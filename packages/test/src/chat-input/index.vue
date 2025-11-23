@@ -43,7 +43,6 @@
       placeholder="请输入内容..."
       @submit="handleSubmit"
       @clear="handleClear"
-      @skill-select="handleSkillSelect"
     >
       <template #footer>
         <button data-testid="custom-footer-btn" class="custom-btn" @click="handleCustomAction">自定义按钮</button>
@@ -137,7 +136,7 @@ const clearTemplate = () => {
 }
 
 // 技能列表数据
-const skills = ref([
+const skills = ref<SkillItem[]>([
   {
     id: '1',
     label: '小小画家',
@@ -159,10 +158,6 @@ const skills = ref([
     preset: '你是一个专业的数据分析师，擅长从数据中提取有价值的洞察...',
   },
 ])
-
-const handleSkillSelect = (skill: SkillItem) => {
-  result.value = `选择技能: ${skill.label}`
-}
 </script>
 
 <style scoped>

@@ -1,5 +1,6 @@
 import { App } from 'vue'
 import ChatInput from './index.vue'
+import './index.less'
 
 ChatInput.name = 'TrChatInput'
 

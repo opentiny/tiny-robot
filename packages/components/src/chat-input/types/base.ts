@@ -20,11 +20,6 @@ export type InputMode = 'single' | 'multiple'
 export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
 
 /**
- * 主题类型
- */
-export type ThemeType = 'light' | 'dark'
-
-/**
  * Tooltip 位置
  */
 export type TooltipPlacement =
@@ -494,11 +489,6 @@ export interface DefaultConfig {
    * 默认提交触发方式
    */
   submitType: SubmitTrigger
-
-  /**
-   * 默认主题
-   */
-  theme: ThemeType
 
   /**
    * 默认自动高度配置

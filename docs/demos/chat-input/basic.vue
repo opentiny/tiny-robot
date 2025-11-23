@@ -1,6 +1,5 @@
 <template>
   <div class="demo-container">
-    <h3>基础用法</h3>
     <ChatInput
       v-model="content"
       placeholder="请输入内容..."

@@ -5,15 +5,7 @@
  * 遵循"组合优于配置"的设计哲学
  */
 
-import type {
-  InputMode,
-  TemplateItem,
-  SkillItem,
-  SubmitTrigger,
-  ButtonGroupConfig,
-  ThemeType,
-  AutoSize,
-} from './types/base'
+import type { InputMode, TemplateItem, SkillItem, SubmitTrigger, ButtonGroupConfig, AutoSize } from './types/base'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -195,15 +187,6 @@ export interface ChatInputProps {
    * @default 'enter'
    */
   submitType?: SubmitTrigger
-
-  // ===== 主题定制 =====
-
-  /**
-   * 主题
-   *
-   * @default 'light'
-   */
-  theme?: ThemeType
 }
 
 // ============================================
@@ -234,9 +217,10 @@ export interface ChatInputEmits {
    * 提交内容
    *
    * @param e - 事件名
-   * @param value - 提交的内容
+   * @param value - 提交的内容（默认拼接结果）
+   * @param context - 提交上下文（包含原始数据）
    */
-  (e: 'submit', value: string): void
+  (e: 'submit', value: string, context: { presets: string[]; userText: string }): void
 
   /**
    * 聚焦事件

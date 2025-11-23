@@ -25,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Button as TinyButton } from '@opentiny/vue'
 import { ChatInput } from '@opentiny/tiny-robot'
 import type { TemplateItem } from '@opentiny/tiny-robot'
@@ -65,6 +65,11 @@ const clearTemplate = () => {
 const handleSubmit = (text: string) => {
   submittedContent.value = text
 }
+
+onMounted(() => {
+  setTemplate1()
+  chatInputRef?.value?.focus()
+})
 </script>
 
 <style scoped>
