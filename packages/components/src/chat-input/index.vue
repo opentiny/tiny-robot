@@ -4,6 +4,7 @@ import { ChatInputProps, ChatInputEmits, InputMode } from './index.type'
 import { CHAT_INPUT_CONTEXT_KEY } from './constants'
 import { ChatInputContext } from './context/types'
 import { useEditor } from './composables/useEditor'
+import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
 import { useModeSwitch } from './composables/useModeSwitch'
 import { useAutoSize } from './composables/useAutoSize'
 import { useTemplateData } from './composables/useTemplateData'
@@ -100,6 +101,33 @@ const submit = () => {
 
   emit('submit', finalContent)
 }
+
+// 创建键盘快捷键处理器（需要在 useEditor 之前创建，因为要传递给它）
+const keyboardHandlers = useKeyboardShortcuts({
+  submitType: toRef(props, 'submitType'),
+  canSubmit,
+  mode: currentMode,
+  submit,
+  setMode,
+})
+
+// 重新初始化编辑器，传入键盘处理器
+const editorResult = useEditor(props, emit, {
+  checkSubmitShortcut: keyboardHandlers.checkSubmitShortcut,
+  handleShiftEnterInSingleMode: keyboardHandlers.handleShiftEnterInSingleMode,
+  submit,
+})
+// 更新 editor 和 editorRef 的值
+editor.value = editorResult.editor.value
+editorRef.value = editorResult.editorRef.value
+
+// 监听编辑器变化并同步
+watch(editorResult.editor, (newEditor) => {
+  editor.value = newEditor
+})
+watch(editorResult.editorRef, (newRef) => {
+  editorRef.value = newRef
+})
 
 const clear = () => {
   editor.value?.commands.clearContent()

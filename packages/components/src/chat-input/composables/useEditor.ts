@@ -8,9 +8,22 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import { TemplateBlock, SkillMention } from '../extensions'
-import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.type'
+import type { ChatInputProps, ChatInputEmits, UseEditorReturn, KeyboardHandlers } from '../index.type'
 
-export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEditorReturn {
+/**
+ * 编辑器 Hook
+ *
+ * 职责：
+ * - 初始化编辑器
+ * - 管理编辑器状态
+ * - 处理编辑器事件
+ * - 提供编辑器实例
+ */
+export function useEditor(
+  props: ChatInputProps,
+  emit: ChatInputEmits,
+  keyboardHandlers?: KeyboardHandlers,
+): UseEditorReturn {
   const editorRef = ref<HTMLElement | null>(null)
 
   const editor = useTiptapEditor({
@@ -64,6 +77,33 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
         view.dispatch(tr)
 
         return true
+      },
+      // 处理键盘事件
+      handleKeyDown(_, event) {
+        // 如果没有提供键盘处理器，不处理
+        if (!keyboardHandlers) {
+          return false
+        }
+
+        // 1. 处理 Shift+Enter 在单行模式下的行为（切换到多行）
+        const shiftEnterHandled = keyboardHandlers.handleShiftEnterInSingleMode(event)
+        if (shiftEnterHandled) {
+          // 如果返回 true，阻止默认行为
+          event.preventDefault()
+          return true
+        }
+
+        // 2. 检查是否为提交快捷键
+        if (keyboardHandlers.checkSubmitShortcut(event)) {
+          // 阻止默认行为（如换行）
+          event.preventDefault()
+          // 执行提交
+          keyboardHandlers.submit()
+          return true
+        }
+
+        // 不处理，交给 Tiptap 默认处理
+        return false
       },
     },
     onUpdate: (props) => {
