@@ -10,14 +10,18 @@ const { clearable, hasContent, loading } = useChatInputContext()
 <template>
   <div class="tr-chat-input-default-right">
     <WordCounter />
-    <div v-if="hasContent || loading" class="tr-chat-input-action-buttons">
-      <div v-if="clearable && hasContent && !loading" class="tr-chat-input-utility-buttons">
-        <ClearButton />
+    <Transition name="tr-slide-right">
+      <div v-if="hasContent || loading" class="tr-chat-input-action-buttons">
+        <Transition name="tr-slide-right">
+          <div v-if="clearable && hasContent && !loading" class="tr-chat-input-utility-buttons">
+            <ClearButton />
+          </div>
+        </Transition>
+        <div class="tr-chat-input-submit-wrapper">
+          <SubmitButton />
+        </div>
       </div>
-      <div class="tr-chat-input-submit-wrapper">
-        <SubmitButton />
-      </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
@@ -44,5 +48,17 @@ const { clearable, hasContent, loading } = useChatInputContext()
     display: flex;
     align-items: center;
   }
+}
+
+// 动画样式
+.tr-slide-right-enter-active,
+.tr-slide-right-leave-active {
+  transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
+}
+
+.tr-slide-right-enter-from,
+.tr-slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
 }
 </style>

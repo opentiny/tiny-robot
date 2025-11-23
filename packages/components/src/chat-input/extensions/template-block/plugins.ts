@@ -141,7 +141,8 @@ export function keyboardNavigationPlugin() {
               } else if (index === 1 && $from.pos !== 0) {
                 // 跳到上一个段落
                 const nextCursorPos = $from.before() - 1
-                if (nextCursorPos > 0) {
+                // 防止位置越界
+                if (nextCursorPos >= 0) {
                   dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
                   event.preventDefault()
                   return true
@@ -356,17 +357,23 @@ export function keyboardNavigationPlugin() {
                 // 如果有内容且前面是零宽字符，跳过零宽字符进入模板块
                 if (beforeNode.text === ZERO_WIDTH_CHAR || beforeNode.text?.endsWith(ZERO_WIDTH_CHAR)) {
                   const nextCursorPos = $from.pos - 2
-                  dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
-                  event.preventDefault()
-                  return true
+                  // 防止位置越界
+                  if (nextCursorPos >= 0) {
+                    dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
+                    event.preventDefault()
+                    return true
+                  }
                 }
               }
             } else if (index === 1 && $from.pos !== 1 && beforeNode.text === ZERO_WIDTH_CHAR) {
               // 删除换行和零宽字符
               const startPos = selection.from - 1 - 2
-              dispatch(state.tr.delete(startPos, selection.to))
-              event.preventDefault()
-              return true
+              // 防止位置越界
+              if (startPos >= 0) {
+                dispatch(state.tr.delete(startPos, selection.to))
+                event.preventDefault()
+                return true
+              }
             }
           }
         }
