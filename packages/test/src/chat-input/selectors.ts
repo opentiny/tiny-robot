@@ -35,6 +35,16 @@ export const CHAT_INPUT_SELECTORS = {
   skillMentionItem: '.skill-mention-list button',
   skillMentionSelected: '.skill-mention-list button.is-selected',
   skillMentionNode: '.skill-mention',
+
+  // Template Block 功能
+  templateBlock: '.template-block',
+  templateBlockContent: '.template-block__content',
+
+  // 模板测试按钮
+  setTemplateSimpleBtn: '[data-testid="set-template-simple-btn"]',
+  setTemplateEmptyBtn: '[data-testid="set-template-empty-btn"]',
+  setTemplateMultipleBtn: '[data-testid="set-template-multiple-btn"]',
+  clearTemplateBtn: '[data-testid="clear-template-btn"]',
 } as const
 
 export type ChatInputSelectors = typeof CHAT_INPUT_SELECTORS

@@ -1,13 +1,30 @@
 import { test, type Page } from '@playwright/test'
 import { createMentionHelper } from '../../helpers/mention-helper'
 
-test.describe('Mention 功能 - 列表交互', () => {
-  let mentionHelper: ReturnType<typeof createMentionHelper>
+import { createChatInputTestHelper } from '../../helpers/index'
 
-  test.beforeEach(async ({ page }: { page: Page }) => {
+test.describe('Mention 功能 - 列表交互', () => {
+  let page: Page
+  let mentionHelper: ReturnType<typeof createMentionHelper>
+  let basicHelper: ReturnType<typeof createChatInputTestHelper>
+
+  // 只在所有测试开始前创建页面并导航一次
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     mentionHelper = createMentionHelper(page)
+    basicHelper = createChatInputTestHelper(page)
+  })
+
+  // 所有测试结束后关闭页面
+  test.afterAll(async () => {
+    await page.close()
+  })
+
+  // 每个测试前清空编辑器
+  test.beforeEach(async () => {
+    await basicHelper.clearContent()
   })
 
   test('TC-05: 输入文本应该过滤技能列表', async () => {

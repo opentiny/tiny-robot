@@ -2,18 +2,39 @@ import { test, expect, type Page } from '@playwright/test'
 import { createContainerTestHelper } from './testHelper'
 
 test.describe('Container 组件测试', () => {
+  let page: Page
   let helper: ReturnType<typeof createContainerTestHelper>
 
-  test.beforeEach(async ({ page }: { page: Page }) => {
-    // 导航到测试页面
+  // 只在所有测试开始前创建页面并导航一次
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
     await page.goto('/')
-    // 点击 Container 组件链接
     await page.click('text=Container 组件')
-    // 等待页面加载完成
     await expect(page.locator('h2')).toContainText('Container 组件测试')
-
-    // 创建测试辅助实例
     helper = createContainerTestHelper(page)
+  })
+
+  // 所有测试结束后关闭页面
+  test.afterAll(async () => {
+    await page.close()
+  })
+
+  // 每个测试前重置状态：确保容器隐藏且非全屏
+  test.beforeEach(async () => {
+    // 1. 确保容器可见以便检查全屏状态
+    if (!(await helper.getContainer().isVisible())) {
+      await helper.showContainer()
+    }
+
+    // 2. 如果是全屏，则退出全屏
+    const container = helper.getContainer()
+    const isFullscreen = await container.getAttribute('class').then((c) => c?.includes('fullscreen'))
+    if (isFullscreen) {
+      await helper.clickWhenVisible(helper.selectors.toggleFullscreenBtn)
+    }
+
+    // 3. 最后隐藏容器，恢复初始状态
+    await helper.hideContainer()
   })
 
   test('Props: show - 应该正确控制容器显示和隐藏', async () => {

@@ -2,13 +2,26 @@ import { test, expect, type Page } from '@playwright/test'
 import { createChatInputTestHelper } from '../helpers'
 
 test.describe('ChatInput 组件测试', () => {
+  let page: Page
   let helper: ReturnType<typeof createChatInputTestHelper>
 
-  test.beforeEach(async ({ page }: { page: Page }) => {
+  // 只在所有测试开始前创建页面并导航一次
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     await expect(page.locator('h2')).toContainText('ChatInput 组件测试')
     helper = createChatInputTestHelper(page)
+  })
+
+  // 所有测试结束后关闭页面
+  test.afterAll(async () => {
+    await page.close()
+  })
+
+  // 每个测试前清空编辑器
+  test.beforeEach(async () => {
+    await helper.clearContent()
   })
 
   test('基础功能: 应该能够输入和提交内容', async () => {

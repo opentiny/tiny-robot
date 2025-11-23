@@ -3,14 +3,27 @@ import { createMentionHelper } from '../../helpers/mention-helper'
 import { createChatInputTestHelper } from '../../helpers/index'
 
 test.describe('Mention 功能 - 触发机制', () => {
+  let page: Page
   let mentionHelper: ReturnType<typeof createMentionHelper>
   let basicHelper: ReturnType<typeof createChatInputTestHelper>
 
-  test.beforeEach(async ({ page }: { page: Page }) => {
+  // 只在所有测试开始前创建页面并导航一次
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     mentionHelper = createMentionHelper(page)
     basicHelper = createChatInputTestHelper(page)
+  })
+
+  // 所有测试结束后关闭页面
+  test.afterAll(async () => {
+    await page.close()
+  })
+
+  // 每个测试前清空编辑器
+  test.beforeEach(async () => {
+    await basicHelper.clearContent()
   })
 
   test('TC-01: 输入 @ 符号应该触发技能选择面板', async () => {

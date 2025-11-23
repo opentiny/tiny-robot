@@ -3,14 +3,27 @@ import { createMentionHelper } from '../../helpers/mention-helper'
 import { createChatInputTestHelper } from '../../helpers/index'
 
 test.describe('Mention 功能 - Atom 节点行为', () => {
+  let page: Page
   let mentionHelper: ReturnType<typeof createMentionHelper>
   let basicHelper: ReturnType<typeof createChatInputTestHelper>
 
-  test.beforeEach(async ({ page }: { page: Page }) => {
+  // 只在所有测试开始前创建页面并导航一次
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     mentionHelper = createMentionHelper(page)
     basicHelper = createChatInputTestHelper(page)
+  })
+
+  // 所有测试结束后关闭页面
+  test.afterAll(async () => {
+    await page.close()
+  })
+
+  // 每个测试前清空编辑器
+  test.beforeEach(async () => {
+    await basicHelper.clearContent()
   })
 
   test('TC-09: 选中技能后应该插入 Atom 节点', async () => {
@@ -40,7 +53,7 @@ test.describe('Mention 功能 - Atom 节点行为', () => {
     await mentionHelper.expectSkillMentionCount(0)
   })
 
-  test('TC-12: 可以在 Atom 节点后继续输入', async ({ page }) => {
+  test('TC-12: 可以在 Atom 节点后继续输入', async () => {
     await mentionHelper.typeAtSymbol()
     await mentionHelper.pressKey('Enter')
 

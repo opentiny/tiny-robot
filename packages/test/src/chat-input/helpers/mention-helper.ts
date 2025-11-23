@@ -14,33 +14,30 @@ export function createMentionHelper(page: Page) {
     async typeAtSymbol() {
       await this.getEditor().click()
       await page.keyboard.type('@')
-      await page.waitForTimeout(100) // 等待面板出现
+      // 等待面板出现
+      await expect(page.locator(selectors.skillMentionList)).toBeVisible()
     },
 
     // 输入查询文本进行过滤
     async typeQuery(query: string) {
       await page.keyboard.type(query)
-      await page.waitForTimeout(100) // 等待过滤完成
     },
 
     // 按下键盘按键
     async pressKey(key: string) {
       await page.keyboard.press(key)
-      await page.waitForTimeout(50)
     },
 
     // 点击指定索引的技能
     async clickSkill(index: number) {
       const items = page.locator(selectors.skillMentionItem)
       await items.nth(index).click()
-      await page.waitForTimeout(100)
     },
 
     // 鼠标悬停在指定索引的技能上
     async hoverSkill(index: number) {
       const items = page.locator(selectors.skillMentionItem)
       await items.nth(index).hover()
-      await page.waitForTimeout(50)
     },
 
     // 验证技能选择面板可见
@@ -95,21 +92,18 @@ export function createMentionHelper(page: Page) {
     // 删除技能块（模拟 Backspace）
     async deleteSkillMention() {
       await page.keyboard.press('Backspace')
-      await page.waitForTimeout(100)
     },
 
     // 选择技能块
     async selectSkillMention(skillLabel: string) {
       const mention = page.locator(selectors.skillMentionNode).filter({ hasText: skillLabel })
       await mention.click()
-      await page.waitForTimeout(50)
     },
 
     // 验证光标位置在技能块后面（通过输入测试）
     async expectCursorAfterMention() {
       // 输入一个空格看是否在技能块后面
       await page.keyboard.type(' ')
-      await page.waitForTimeout(50)
     },
 
     // 等待

@@ -21,11 +21,18 @@
         <button data-testid="get-content-btn" @click="handleGetContent">获取内容</button>
         <button data-testid="focus-btn" @click="handleFocus">聚焦</button>
       </div>
+      <div class="button-group">
+        <button data-testid="set-template-simple-btn" @click="setTemplateSimple">简单模板</button>
+        <button data-testid="set-template-empty-btn" @click="setTemplateEmpty">空模板块</button>
+        <button data-testid="set-template-multiple-btn" @click="setTemplateMultiple">多模板块</button>
+        <button data-testid="clear-template-btn" @click="clearTemplate">清空模板</button>
+      </div>
     </div>
 
     <ChatInput
       ref="chatInputRef"
       v-model="content"
+      v-model:templateData="templateData"
       data-testid="test-chat-input"
       :mode="mode"
       :clearable="clearable"
@@ -53,10 +60,11 @@
 import { ref, computed } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { ChatInput } from '@opentiny/tiny-robot'
-import type { SkillItem } from '@opentiny/tiny-robot'
+import type { SkillItem, TemplateItem } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
 const content = ref('')
+const templateData = ref<TemplateItem[]>([])
 const isMultipleMode = ref(false)
 const clearable = ref(false)
 const loading = ref(false)
@@ -93,6 +101,39 @@ const handleFocus = () => {
 
 const handleCustomAction = () => {
   result.value = '自定义按钮被点击'
+}
+
+// 模板数据测试方法
+const setTemplateSimple = () => {
+  templateData.value = [
+    { type: 'text', content: '我是' },
+    { type: 'template', content: '张三' },
+    { type: 'text', content: '，来自' },
+  ]
+  result.value = '已设置简单模板'
+}
+
+const setTemplateEmpty = () => {
+  templateData.value = [
+    { type: 'text', content: '我是' },
+    { type: 'template', content: '' },
+    { type: 'text', content: '，来自' },
+  ]
+  result.value = '已设置空模板块'
+}
+
+const setTemplateMultiple = () => {
+  templateData.value = [
+    { type: 'template', content: '姓名' },
+    { type: 'template', content: '年龄' },
+    { type: 'template', content: '城市' },
+  ]
+  result.value = '已设置多个模板块'
+}
+
+const clearTemplate = () => {
+  templateData.value = []
+  result.value = '已清空模板'
 }
 
 // 技能列表数据

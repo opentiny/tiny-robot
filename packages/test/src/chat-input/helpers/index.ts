@@ -39,9 +39,7 @@ export function createChatInputTestHelper(page: Page) {
     // 点击清空按钮
     async clickClear() {
       const clearBtn = page.locator(selectors.clearButton)
-      if (await clearBtn.isVisible()) {
-        await clearBtn.click()
-      }
+      await clearBtn.click()
     },
 
     // 切换模式

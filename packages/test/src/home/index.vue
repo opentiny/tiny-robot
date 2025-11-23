@@ -7,6 +7,7 @@
       <h3>可用测试组件：</h3>
       <ul>
         <li><strong>Container 组件</strong> - 测试容器组件的显示/隐藏、全屏切换、拖拽条等功能</li>
+        <li><strong>ChatInput 组件</strong> - 测试聊天输入组件的模板块、@提及、技能提及等功能</li>
       </ul>
     </div>
 
