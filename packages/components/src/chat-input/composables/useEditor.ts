@@ -107,8 +107,8 @@ export function useEditor(
       },
     },
     onUpdate: (props) => {
-      const html = props.editor.getHTML()
-      emit('update:modelValue', html)
+      const text = props.editor.getText()
+      emit('update:modelValue', text)
     },
     onFocus: (props) => {
       emit('focus', props.event as FocusEvent)
@@ -122,7 +122,7 @@ export function useEditor(
   watch(
     () => props.modelValue,
     (newValue) => {
-      if (editor.value && newValue !== editor.value.getHTML()) {
+      if (editor.value && newValue !== editor.value.getText()) {
         editor.value.commands.setContent(newValue || '', { emitUpdate: false })
       }
     },
