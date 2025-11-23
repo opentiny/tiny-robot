@@ -1,17 +1,8 @@
 <script setup lang="ts">
-import { computed, provide, ref, toRef, watch } from 'vue'
-import { ChatInputProps, ChatInputEmits, InputMode } from './index.type'
-import { CHAT_INPUT_CONTEXT_KEY } from './constants'
-import { ChatInputContext } from './context/types'
-import { useEditor } from './composables/useEditor'
-import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts'
-import { useModeSwitch } from './composables/useModeSwitch'
-import { useAutoSize } from './composables/useAutoSize'
-import { useTemplateData } from './composables/useTemplateData'
-import EditorContent from './components/editor-content/index.vue'
-import SubmitButton from './components/submit-button/index.vue'
-import ClearButton from './components/clear-button/index.vue'
-import Footer from './components/footer/index.vue'
+import { ChatInputProps, ChatInputEmits } from './index.type'
+import { useChatInputCore } from './composables/useChatInputCore'
+import SingleLineLayout from './components/layouts/SingleLineLayout.vue'
+import MultiLineLayout from './components/layouts/MultiLineLayout.vue'
 
 const props = withDefaults(defineProps<ChatInputProps>(), {
   placeholder: '请输入内容...',
@@ -29,269 +20,60 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
 
 const emit = defineEmits<ChatInputEmits>()
 
-// 初始化编辑器
-const { editor, editorRef } = useEditor(props, emit)
+// 核心逻辑一键引入
+const { context, expose } = useChatInputCore(props, emit)
 
-// 模式切换
-const { currentMode, isAutoSwitching, setMode, checkOverflow } = useModeSwitch(props, editor, editorRef)
-
-// 自动高度调整
-useAutoSize(props, editor, editorRef)
-
-// 模板数据管理
-const { setTemplateData, clearTemplateData, focusFirstTemplateBlock, getTemplateData } = useTemplateData({
-  templateData: toRef(props, 'templateData'),
-  editor,
-  emit,
-})
-const hasContent = computed(() => {
-  if (!editor.value) return false
-  // 检查是否有非空白内容
-  const text = editor.value.getText()
-  return text.trim().length > 0
-})
-
-const characterCount = computed(() => {
-  if (!editor.value) return 0
-  // 使用 getText 方法获取纯文本长度
-  const text = editor.value.getText()
-  return text.length
-})
-
-const isOverLimit = computed(() => {
-  if (!props.maxLength) return false
-  return characterCount.value > props.maxLength
-})
-
-const canSubmit = computed(() => {
-  return (
-    !props.disabled && !props.loading && hasContent.value && !isOverLimit.value && !props.buttonGroup?.submit?.disabled
-  )
-})
-
-// 语音状态（简化版）
-const speechState = ref({
-  isRecording: false,
-  isSupported: false,
-})
-
-// 方法实现
-const submit = () => {
-  if (!canSubmit.value) return
-
-  // 获取 JSON 格式内容以提取技能预设
-  const json = editor.value?.getJSON()
-
-  // 提取所有 skillMention 的预设
-  const presets: string[] = []
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const extractPresets = (node: any) => {
-    if (node.type === 'skillMention' && node.attrs?.preset) {
-      presets.push(node.attrs.preset)
-    }
-    if (node.content) {
-      node.content.forEach(extractPresets)
-    }
-  }
-  json?.content?.forEach(extractPresets)
-
-  // 组合最终内容：预设 + 用户输入
-  const userText = editor.value?.getText() || ''
-  const finalContent = presets.length > 0 ? `${presets.join('\n\n')}\n\n${userText}` : userText
-
-  emit('submit', finalContent)
-}
-
-// 创建键盘快捷键处理器（需要在 useEditor 之前创建，因为要传递给它）
-const keyboardHandlers = useKeyboardShortcuts({
-  submitType: toRef(props, 'submitType'),
-  canSubmit,
-  mode: currentMode,
-  submit,
-  setMode,
-})
-
-// 重新初始化编辑器，传入键盘处理器
-const editorResult = useEditor(props, emit, {
-  checkSubmitShortcut: keyboardHandlers.checkSubmitShortcut,
-  handleShiftEnterInSingleMode: keyboardHandlers.handleShiftEnterInSingleMode,
-  submit,
-})
-// 更新 editor 和 editorRef 的值
-editor.value = editorResult.editor.value
-editorRef.value = editorResult.editorRef.value
-
-// 监听编辑器变化并同步
-watch(editorResult.editor, (newEditor) => {
-  editor.value = newEditor
-})
-watch(editorResult.editorRef, (newRef) => {
-  editorRef.value = newRef
-})
-
-const clear = () => {
-  editor.value?.commands.clearContent()
-  emit('clear')
-}
-
-const focus = () => {
-  editor.value?.commands.focus()
-}
-
-const blur = () => {
-  editor.value?.commands.blur()
-}
-
-const setContent = (content: string) => {
-  editor.value?.commands.setContent(content)
-}
-
-const getContent = () => {
-  return editor.value?.getHTML() || ''
-}
-
-const startSpeech = () => {
-  // TODO: 实现语音识别
-  console.log('startSpeech')
-}
-
-const stopSpeech = () => {
-  // TODO: 实现语音识别
-  console.log('stopSpeech')
-}
-
-const openFileDialog = () => {
-  // TODO: 实现文件上传
-  console.log('openFileDialog')
-}
-
-// 监听编辑器内容变化，检查是否需要切换模式
-watch(
-  () => editor.value?.state.doc.content,
-  () => {
-    // 使用 setTimeout 确保 DOM 已更新
-    setTimeout(() => {
-      checkOverflow()
-    }, 0)
-  },
-  { deep: true },
-)
-
-// 提供 Context
-const context: ChatInputContext = {
-  editor,
-  editorRef,
-  mode: currentMode,
-  loading: toRef(props, 'loading'),
-  disabled: toRef(props, 'disabled'),
-  hasContent,
-  canSubmit,
-  isOverLimit,
-  characterCount,
-  maxLength: toRef(props, 'maxLength'),
-  speechState,
-  showWordLimit: toRef(props, 'showWordLimit'),
-  clearable: toRef(props, 'clearable'),
-  allowSpeech: toRef(props, 'allowSpeech'),
-  allowFiles: toRef(props, 'allowFiles'),
-  buttonGroup: toRef(props, 'buttonGroup'),
-  submitType: toRef(props, 'submitType'),
-  stopText: toRef(props, 'stopText'),
-  submit,
-  clear,
-  focus,
-  blur,
-  setContent,
-  getContent,
-  startSpeech,
-  stopSpeech,
-  openFileDialog,
-  setMode: (mode: InputMode) => setMode(mode),
-  // 模板方法
-  setTemplateData,
-  clearTemplateData,
-  focusFirstTemplateBlock,
-  getTemplateData,
-}
-
-provide(CHAT_INPUT_CONTEXT_KEY, context)
-
-// 暴露方法给外部
-defineExpose({
-  submit,
-  clear,
-  focus,
-  blur,
-  setContent,
-  getContent,
-  editor,
-  // 模板方法
-  setTemplateData,
-  clearTemplateData,
-  focusFirstTemplateBlock,
-  getTemplateData,
-})
+// 暴露方法给父组件
+defineExpose(expose)
 </script>
 
 <template>
   <div
     :class="[
       'tr-chat-input',
-      `tr-chat-input--${currentMode}`,
+      `tr-chat-input--${context.mode.value}`,
       `tr-chat-input--${theme}`,
-      { 'is-auto-switching': isAutoSwitching, 'is-over-limit': isOverLimit },
+      {
+        'is-auto-switching': context.isAutoSwitching.value,
+        'is-over-limit': context.isOverLimit.value,
+      },
     ]"
   >
-    <!-- Header 插槽 -->
-    <div v-if="$slots.header" class="tr-chat-input-header">
-      <slot name="header" />
-    </div>
-
-    <!-- 输入行 -->
-    <div class="tr-chat-input-main">
-      <!-- Prefix 插槽 -->
-      <div v-if="$slots.prefix" class="tr-chat-input-prefix">
+    <!-- 布局分发 -->
+    <SingleLineLayout v-if="context.mode.value === 'single'">
+      <!-- 透传所有插槽 -->
+      <template v-if="$slots.header" #header>
+        <slot name="header" />
+      </template>
+      <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />
-      </div>
+      </template>
+      <template v-if="$slots.content" #content="slotProps">
+        <slot name="content" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots['actions-inline']" #actions-inline>
+        <slot name="actions-inline" />
+      </template>
+    </SingleLineLayout>
 
-      <!-- 编辑器内容 -->
-      <div class="tr-chat-input-content">
-        <slot name="content" :editor="editor">
-          <EditorContent />
-        </slot>
-      </div>
-
-      <!-- 单行模式操作按钮 -->
-      <div
-        v-if="currentMode === 'single'"
-        :class="['tr-chat-input-actions-inline', { 'has-content': hasContent || loading }]"
-      >
-        <slot name="actions-inline">
-          <Transition name="tr-slide-right">
-            <div v-if="hasContent || loading" class="tr-chat-input-actions-group">
-              <Transition name="tr-slide-right">
-                <div v-if="clearable && hasContent && !loading" class="tr-chat-input-utility-buttons">
-                  <ClearButton />
-                </div>
-              </Transition>
-              <div class="tr-chat-input-submit-wrapper">
-                <SubmitButton />
-              </div>
-            </div>
-          </Transition>
-        </slot>
-      </div>
-    </div>
-
-    <!-- 底部区域（多行模式） -->
-    <Footer v-if="currentMode === 'multiple'">
-      <template #footer>
+    <MultiLineLayout v-else>
+      <!-- 透传所有插槽 -->
+      <template v-if="$slots.header" #header>
+        <slot name="header" />
+      </template>
+      <template v-if="$slots.prefix" #prefix>
+        <slot name="prefix" />
+      </template>
+      <template v-if="$slots.content" #content="slotProps">
+        <slot name="content" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.footer" #footer>
         <slot name="footer" />
       </template>
-      <template #footer-right>
+      <template v-if="$slots['footer-right']" #footer-right>
         <slot name="footer-right" />
       </template>
-    </Footer>
+    </MultiLineLayout>
   </div>
 </template>
 
@@ -348,130 +130,6 @@ defineExpose({
     :deep(.ProseMirror) {
       transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
-
-    .tr-chat-input-footer,
-    .tr-chat-input-actions-inline {
-      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-  }
-
-  &-header {
-    margin-bottom: 12px;
-    padding: 15px 20px 0;
-  }
-
-  &-main {
-    display: flex;
-    align-items: flex-start;
-  }
-
-  &-prefix {
-    flex-shrink: 0;
-    padding-left: 20px;
-  }
-
-  &-content {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    padding-left: 20px;
-  }
-
-  &-actions-inline {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    padding-right: 16px;
-
-    &.has-content {
-      padding-right: 10px;
-    }
-  }
-
-  &-actions-group {
-    display: flex;
-    align-items: center;
-    gap: 12px; // 普通按钮组和发送按钮之间的间距
-    padding-left: 12px; // 与编辑框之间的间距
-  }
-
-  &-utility-buttons {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  &-submit-wrapper {
-    display: flex;
-    align-items: center;
-  }
-
-  // 单行模式
-  &--single {
-    .tr-chat-input-main {
-      min-height: var(--tr-chat-input-min-height);
-      align-items: center;
-    }
-
-    .tr-chat-input-content {
-      padding: 15px 0 15px 20px;
-    }
-
-    .tr-chat-input-prefix {
-      padding: 15px 0 15px 20px;
-    }
-
-    .tr-chat-input-actions-group {
-      padding-top: 10px;
-      padding-bottom: 10px;
-    }
-
-    :deep(.ProseMirror) {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    // 单行模式下隐藏底部
-    .tr-chat-input-footer {
-      display: none;
-    }
-  }
-
-  // 多行模式
-  &--multiple {
-    border-radius: var(--tr-chat-input-border-radius);
-    padding: 0;
-
-    .tr-chat-input-main {
-      padding: 16px 20px 12px;
-    }
-
-    .tr-chat-input-content {
-      padding-left: 0;
-    }
-
-    .tr-chat-input-prefix {
-      padding-left: 0;
-    }
-
-    :deep(.ProseMirror) {
-      white-space: pre-wrap;
-      overflow-y: auto;
-      word-break: break-all;
-      min-height: var(--tr-chat-input-line-height, 26px);
-    }
-
-    // 多行模式下隐藏右侧按钮
-    .tr-chat-input-actions-inline {
-      display: none;
-    }
-
-    // 显示底部
-    .tr-chat-input-footer {
-      display: flex;
-    }
   }
 }
 
@@ -498,17 +156,5 @@ defineExpose({
       }
     }
   }
-}
-
-// 动画样式
-.tr-slide-right-enter-active,
-.tr-slide-right-leave-active {
-  transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
-}
-
-.tr-slide-right-enter-from,
-.tr-slide-right-leave-to {
-  opacity: 0;
-  transform: translateX(10px);
 }
 </style>

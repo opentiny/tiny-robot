@@ -1,0 +1,219 @@
+import type { Ref } from 'vue'
+import type { Editor } from '@tiptap/vue-3'
+import type { InputMode, SpeechState, ButtonGroupConfig, SubmitTrigger, TemplateItem } from './base'
+
+/**
+ * Chat-Input Context
+ *
+ * 通过 provide/inject 在组件树中共享的状态和方法
+ * 所有子组件都可以通过 inject 获取
+ */
+export interface ChatInputContext {
+  // ===== 编辑器相关 =====
+
+  /**
+   * Tiptap 编辑器实例
+   * 注意：Tiptap 的 useEditor 返回 ShallowRef<Editor | undefined>
+   */
+  editor: Ref<Editor | undefined>
+
+  /**
+   * 编辑器 DOM 引用
+   */
+  editorRef: Ref<HTMLElement | null>
+
+  // ===== 状态相关 =====
+
+  /**
+   * 当前输入模式
+   */
+  mode: Ref<InputMode>
+
+  /**
+   * 是否正在自动切换模式
+   * 用于控制切换时的过渡动画
+   */
+  isAutoSwitching: Ref<boolean>
+
+  /**
+   * 是否加载中
+   */
+  loading: Ref<boolean>
+
+  /**
+   * 是否禁用
+   */
+  disabled: Ref<boolean>
+
+  /**
+   * 是否有内容
+   */
+  hasContent: Ref<boolean>
+
+  /**
+   * 是否可以提交
+   *
+   * 综合判断：
+   * - !disabled
+   * - !loading
+   * - hasContent
+   * - !isOverLimit
+   * - !buttonGroup.submit?.disabled
+   */
+  canSubmit: Ref<boolean>
+
+  /**
+   * 是否超出字数限制
+   */
+  isOverLimit: Ref<boolean>
+
+  // ===== 字数统计 =====
+
+  /**
+   * 当前字符数
+   */
+  characterCount: Ref<number>
+
+  /**
+   * 最大字符数限制
+   */
+  maxLength: Ref<number | undefined>
+
+  // ===== 语音状态 =====
+
+  /**
+   * 语音识别状态
+   */
+  speechState: Ref<SpeechState>
+
+  // ===== 配置相关 =====
+
+  /**
+   * 是否显示字数限制
+   */
+  showWordLimit: Ref<boolean>
+
+  /**
+   * 是否显示清空按钮
+   */
+  clearable: Ref<boolean>
+
+  /**
+   * 是否允许语音输入
+   */
+  allowSpeech: Ref<boolean>
+
+  /**
+   * 是否允许文件上传
+   */
+  allowFiles: Ref<boolean>
+
+  /**
+   * 按钮组配置
+   */
+  buttonGroup: Ref<ButtonGroupConfig | undefined>
+
+  /**
+   * 提交触发方式
+   */
+  submitType: Ref<SubmitTrigger>
+
+  /**
+   * 停止按钮文字
+   */
+  stopText: Ref<string | undefined>
+
+  // ===== 方法相关 =====
+
+  /**
+   * 提交内容
+   */
+  submit: () => void
+
+  /**
+   * 清空内容
+   */
+  clear: () => void
+
+  /**
+   * 聚焦编辑器
+   */
+  focus: () => void
+
+  /**
+   * 失焦编辑器
+   */
+  blur: () => void
+
+  /**
+   * 设置编辑器内容
+   *
+   * @param content - 内容（HTML 或 JSON）
+   */
+  setContent: (content: string) => void
+
+  /**
+   * 获取编辑器内容
+   *
+   * @returns 内容（HTML）
+   */
+  getContent: () => string
+
+  /**
+   * 开始语音识别
+   */
+  startSpeech: () => void
+
+  /**
+   * 停止语音识别
+   */
+  stopSpeech: () => void
+
+  /**
+   * 打开文件选择对话框
+   */
+  openFileDialog: () => void
+
+  /**
+   * 设置模板数据
+   *
+   * @param items - 模板数据
+   */
+  setTemplateData: (items: TemplateItem[]) => void
+
+  /**
+   * 清空模板数据
+   */
+  clearTemplateData: () => void
+
+  /**
+   * 聚焦第一个模板块
+   */
+  focusFirstTemplateBlock: () => void
+
+  /**
+   * 获取模板数据
+   *
+   * @returns 模板数据
+   */
+  getTemplateData: () => TemplateItem[]
+
+  /**
+   * 设置输入模式
+   *
+   * @param mode - 输入模式
+   */
+  setMode: (mode: InputMode) => void
+}
+
+/**
+ * Context Key
+ *
+ * 用于 provide/inject 的 key
+ */
+export const CHAT_INPUT_CONTEXT_KEY = Symbol('chat-input-context')
+
+/**
+ * useChatInputContext 返回类型
+ */
+export type UseChatInputContextReturn = ChatInputContext
