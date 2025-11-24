@@ -11,7 +11,7 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 > [!IMPORTANT]
 > **Breaking Changes**:
-> - **History 历史组件**: Props 参数变更，data 属性数据格式调整以支持分组与非分组场景，请参考文档`--tr-dropdown-menu-min-width` 控制
+> - **History 历史组件**: Props 参数变更，具体迁移请参考最新文档
 
 ### ✨ 新特性
 
@@ -166,7 +166,7 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 `2025-06-28`
 
 > [!IMPORTANT]
-> **Breaking Change**: DropdownMenu 下拉菜单组件默认插槽变更为 `trigger` 插槽；最小宽度不再通过 props 设置，改用 CSS 变量 `--tr-dropdown-menu-min-width` 控制
+> **Breaking Change**: DropdownMenu 下拉菜单组件
 
 ### ✨ 新特性
 

@@ -31,7 +31,7 @@
 import { TrSender, type UserItem } from '@opentiny/tiny-robot'
 import { ref, onMounted } from 'vue'
 
-const senderRef = ref()
+const senderRef = ref<InstanceType<typeof TrSender> | null>(null)
 const templateData = ref<UserItem[]>([])
 const activeIndex = ref(0)
 
