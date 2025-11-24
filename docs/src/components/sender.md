@@ -1,323 +1,200 @@
 ---
-outline: deep
+outline: deep 
 ---
 
-# Sender 消息输入框组件
+# Sender 消息输入框
 
-Sender 是一个灵活的输入组件，支持多种输入方式和功能，包括文本输入、语音输入、模板填充等。具有丰富的功能和自定义选项。适用于聊天界面、评论输入、搜索框等多种场景。
+Sender 是一个功能丰富的输入组件，支持文本输入、语音识别、文件上传、模板填充等多种输入方式。适用于聊天界面、评论输入、表单填写等场景。
 
-## 代码示例
+## 功能导航
 
-### 基础用法
+- [基础功能](#基础功能) - 模式切换、状态控制、内容管理
+- [输入增强](#输入增强) - 语音输入、文件上传、模板填充、智能联想
+- [交互定制](#交互定制) - 快捷键、自定义按钮、插槽布局
+- [样式配置](#样式配置) - 紧凑模式
 
-> 单行模式(`mode="single"`), 适用于简单的输入场景，如搜索框、简短消息输入等。
+## 基础功能
 
-- **换行说明，在单行模式下**：
+### 输入模式
 
-- 1.输入文字超出单行宽度限制时，会自动切换至多行模式。
+Sender 支持单行和多行两种输入模式，通过 `mode` 属性控制。
 
-- 2.使用快捷键组合 `shift+enter` 可以直接切换至多行模式
+:::tip 单行模式自动切换
+在单行模式下，当输入内容超出宽度或按 `Shift+Enter` 时，会自动切换为多行模式。
+:::
 
-> 多行模式(`mode="multiple"`)适用于较长文本输入，如评论、聊天消息等。
-
-<demo vue="../../demos/sender/Mode.vue" title="基础用法" description="Sender 组件的基础用法，支持单行和多行模式。" />
+<demo vue="../../demos/sender/Mode.vue" title="输入模式" description="支持单行和多行模式，单行模式可自动切换为多行。" />
 
 ### 状态控制
 
-#### 加载状态
+通过 `loading` 和 `disabled` 属性控制组件状态。加载状态下可点击图标取消操作。
 
-通过设置`loading`属性控制组件的加载状态，加载状态下输入框将显示加载动画并禁用输入。
-在加载状态下，点击加载图标可以取消发送操作，这会触发 `cancel` 事件。
+<demo vue="../../demos/sender/States.vue" title="加载与禁用状态" description="展示加载和禁用两种状态的表现。" />
 
-<tr-sender :loading="true" stopText="停止回答" />
+### 内容管理
 
-```vue
-<tr-sender :loading="true" stopText="停止回答" />
-```
+#### 字数限制
 
-#### 禁用状态
+通过 `maxLength` 和 `showWordLimit` 属性实现字数限制和统计。
 
-通过设置`disabled`属性禁用整个组件，禁用状态下无法输入内容或触发任何操作。
+:::warning 超出限制行为
+超出字数限制时，不会自动截断内容，但会以红色标示真实字数，且无法提交。
+:::
 
-<tr-sender :disabled="true" />
+<demo vue="../../demos/sender/WordLimit.vue" title="字数限制" description="限制输入字符数并显示字数统计。" />
 
-```vue
-<tr-sender :disabled="true" />
-```
+#### 高度自适应
 
-### 内容控制
+通过 `autoSize` 属性设置输入框根据内容自动调整高度（仅多行模式有效）。
 
-#### 字数限制与统计
+<demo vue="../../demos/sender/AutoSize.vue" title="自动调整高度" description="输入框高度随内容自动调整，可配置最小/最大行数。" />
 
-通过`maxLength`属性限制输入字符数，搭配`showWordLimit`显示字数统计。
-> **注意**：当输入内容超出字数限制时，系统不会自动截断，真实字数会以红色标示，且无法发送。
+#### 快速清空
 
-<tr-sender mode="multiple" :showWordLimit="true" :maxLength="20" defaultValue="测试超出字数限制，当前已经超过了字数限制。"/>
+通过 `clearable` 属性添加清空按钮，有内容时自动显示。
 
-```vue
-<tr-sender mode="multiple" :showWordLimit="true" :maxLength="20" defaultValue="测试超出字数限制，当前已经超过了字数限制。"/>
-```
+<demo vue="../../demos/sender/Clearable.vue" title="清空内容" description="添加清空按钮，快速清除输入内容。" />
 
-#### 自动调整高度
+## 输入增强
 
-通过`autoSize`属性可以设置输入框是否自动调整高度。当设置为`true`时，输入框会根据内容自动调整高度，适用于需要动态适应内容长度的场景。
+### 语音输入
 
-**注意**：只对 mode="multiple" 有效。
+#### 基础语音识别
 
-> 可传入对象，如{ minRows: 2, maxRows: 3 }。
+启用 `allowSpeech` 支持浏览器内置的语音识别功能。
 
-<demo vue="../../demos/sender/AutoSize.vue" title="自动调整高度" description="Sender 组件支持自动调整高度。" />
+<demo vue="../../demos/sender/voiceInput.vue" title="基础语音输入" description="使用浏览器内置语音识别，支持混合输入和连续识别。" />
 
-#### 可清空输入
+#### 自定义语音服务
 
-通过`clearable`属性添加清空按钮，方便用户快速清除输入内容。
+支持集成第三方语音识别服务（如阿里云、百度、Azure 等）。
 
-<demo vue="../../demos/sender/Clearable.vue" title="清空内容" description="在用户输入内容后才显示，没有内容时自动隐藏" />
+<demo vue="../../demos/sender/CustomSpeech.vue" :vueFiles="['../../demos/sender/CustomSpeech.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="集成第三方语音识别服务，参考 speechHandlers.ts 查看完整实现。" />
 
-### 高级功能
+:::tip 参考实现
+`speechHandlers.ts` 提供了阿里云一句话识别和实时识别的完整示例，包括录音处理、API 调用、流式识别等。
+:::
 
-#### 自定义按钮
+#### 自定义录音 UI
 
+支持完全自定义语音录制界面，适用于移动端按住说话等场景。
 
-Sender 组件支持在多行模式下灵活定制底部区域。通过 `footer-left` 和 `footer-right` 插槽，您可以在保留现有功能的同时添加自定义内容。
+<demo vue="../../demos/sender/CustomRecordingUI.vue" title="移动端按住说话" description="自定义录音 UI，展示移动端按住说话的交互模式。" :vueFiles="['../../demos/sender/CustomRecordingUI.vue', '../../demos/sender/PressToTalkOverlay.vue']" />
 
-- `footer-left`: 在字数限制左侧添加自定义内容
-- `footer-right`: 在操作按钮左侧添加自定义内容
-- `footer`: 完全自定义底部区域（会覆盖默认内容，仅用于向后兼容）
+### 文件上传
 
-<demo vue="../../demos/sender/DeepThink.vue" title="自定义按钮" description="Sender 组件支持在多行模式下灵活定制底部区域。" />
+通过 `allowFiles` 启用文件上传，结合 `buttonGroup` 可动态控制按钮状态和提示。
 
-注意：`footer` 插槽与 `footer-left`/`footer-right` 插槽互斥，如果同时使用，将优先显示 `footer-left`/`footer-right` 插槽。
+<demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="支持文件上传，可动态控制按钮状态和 tooltip 位置。" />
 
-#### 语音输入
+### 模板填充
 
-启用`allowSpeech`支持语音输入功能，用户可以通过语音录入文本。
+通过 `v-model:templateData` 实现模板的动态设置，光标自动聚焦到第一个可编辑字段。
 
-- 混合模式：用户可以先用键盘输入部分内容，然后通过语音继续补充，自动停止录音。
+<demo vue="../../demos/sender/Template.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-- 连续语音输入：用户可以连续录入语音，系统会自动将语音转换为文本，点击按钮手动停止录音。
+### 智能联想
 
-<demo vue="../../demos/sender/voiceInput.vue" title="语音输入" description="可以使用 speech 属性进行配置" />
+根据用户输入显示匹配的建议项，支持键盘导航（↑↓ 选择，Enter/Tab 确认）和多种高亮模式。
 
-#### 自定义语音输入
+<demo vue="../../demos/sender/Suggestions.vue" title="智能联想" description="动态切换三种高亮模式，对比不同的高亮效果。" />
 
-Sender 组件支持自定义语音输入服务，可以集成百度、阿里云、Azure 等第三方语音识别服务。
+:::tip 高亮模式
+- **自动匹配**：传入对象数组，自动高亮与输入内容匹配的部分
+- **精确指定**：通过 `highlights` 数组精确指定需要高亮的文本片段
+- **自定义函数**：通过 `highlights` 函数完全控制高亮逻辑，实现复杂的高亮规则
+:::
 
-**基本案例**
-
-<demo vue="../../demos/sender/CustomSpeech.vue" :vueFiles="['../../demos/sender/CustomSpeech.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="模拟语音识别的完整示例，实际项目中可参考 speechHandlers.ts 接入真实的语音识别服务" />
-
-**接入真实服务**
-
-如需接入 阿里云 等真实的语音识别服务，请参考 `speechHandlers.ts` 中的实现：
-
-- `AliyunSpeechHandler`: 阿里云一句话识别
-- `AliyunRealtimeSpeechHandler`: 阿里云实时语音识别（WebSocket）
-
-这些实现展示了如何：
-- 处理录音和音频编码
-- 调用第三方 API
-- 处理实时流式识别
-- 错误处理和资源清理
-
-#### 自定义语音录制
-
-Sender 组件支持完全自定义语音录制 UI，适用于移动端按住说话等场景。
-
-通过 `buttonGroup.voice.icon` 配置可以自定义语音按钮的图标。
-
-<demo vue="../../demos/sender/CustomRecordingUI.vue" title="移动端按住说话" description="展示移动端按住说话的基本 UI 结构和交互流程" :vueFiles="['../../demos/sender/CustomRecordingUI.vue', '../../demos/sender/PressToTalkOverlay.vue']" />
-
-#### 消息提示
-
-此功能适用于需要在输入框内显示提示信息并引导用户操作的场景，如：
-
-- **1. 服务状态提示**
-- **2. 快捷操作链接**
-- **3. 功能引导等**
-
-当使用 `decorativeContent` 插槽时，输入框会自动被禁用，仅展示插槽内容，无法输入文本或触发发送操作。
-
-<demo vue="../../demos/sender/DecorativeContent.vue" title="装饰性内容示例" description="在输入框内显示装饰性内容和可点击链接，可用于服务状态提示、功能引导等场景。" />
-
-#### 文件上传
-
-支持附件上传功能，可通过`allowFiles`控制。
-
-结合 `buttonGroup` 属性，您可以实现更复杂的交互逻辑。例如，通过监听 `files-selected` 事件返回的文件列表，动态地禁用上传按钮或提交按钮，并更新其 `tooltips` 提示信息，以引导用户操作。
-
-**自定义 Tooltip 位置**
-
-通过 `buttonGroup.file.tooltipPlacement` 属性可以自定义文件上传按钮的 tooltip 弹窗位置：
+:::warning 过滤逻辑
+组件**不会自动过滤**联想项，只负责高亮渲染匹配的部分。如需根据输入内容筛选建议项，请在传入 `suggestions` 之前自行过滤数组。
 
 ```vue
-<tr-sender 
-  :allowFiles="true" 
-  :buttonGroup="{
-    file: {
-      tooltips: '点击上传文件',
-      tooltipPlacement: 'bottom' // 自定义 tooltip 位置
-    }
-  }"
-/>
+<script setup>
+import { ref, computed } from 'vue'
+
+const inputText = ref('')
+const allSuggestions = [
+  { content: 'ECS-云服务器卡顿问题' },
+  { content: 'CDN-权限管理' },
+  // ...
+]
+
+// 根据输入内容过滤建议项
+const filteredSuggestions = computed(() => {
+  if (!inputText.value) return allSuggestions
+  return allSuggestions.filter(item => 
+    item.content.toLowerCase().includes(inputText.value.toLowerCase())
+  )
+})
+</script>
+
+<template>
+  <tr-sender v-model="inputText" :suggestions="filteredSuggestions" />
+</template>
 ```
+:::
 
-支持的位置选项：`'top'` | `'top-start'` | `'top-end'` | `'bottom'` | `'bottom-start'` | `'bottom-end'` | `'left'` | `'left-start'` | `'left-end'` | `'right'` | `'right-start'` | `'right-end'`
+:::info 激活按键配置
+默认使用 `Enter` 和 `Tab` 键选中联想项，可通过 `activeSuggestionKeys` 属性自定义激活按键。详见 [快捷键参考](#快捷键参考)。
+:::
 
-默认值为 `'top'`。
+## 交互定制
 
-<demo vue="../../demos/sender/FileUpload.vue" title="文件上传" description="Sender 组件支持文件上传功能，并可通过 buttonGroup 动态控制按钮状态。" />
+### 提交方式
 
-#### 模版填充
+通过 `submitType` 属性控制提交快捷键，支持 `enter`、`ctrlEnter`、`shiftEnter` 三种方式。
 
-通过 `templateData` prop 实现模板的动态设置与双向绑定。推荐使用 `v-model:templateData` 的语法糖。
+<demo vue="../../demos/sender/ShortcutSubmit.vue" title="提交方式" description="支持三种提交快捷键，适应不同使用场景。" />
 
-该功能加载后，光标会自动聚焦在第一个可编辑的模板字段上，方便用户直接开始编辑。
-
-**模板示例**
-
-<demo vue="../../demos/sender/Template.vue" title="模板填充示例" description="Sender 组件支持模板填充，展示动态模板切换功能。" />
-
-**备注**
-`templateData` prop 接收一个 `UserItem[]` 类型的数组。
-`UserItem` 的结构为 `{ type: 'text', content: string }` 或 `{ type: 'template', content: string }`。
-当 `type` 为 `'template'` 时，对应的 `content` 会渲染为一个可编辑的模板字段。
-
-#### 输入联想
-
-Sender 组件支持输入联想功能，当用户输入时，可以根据提供的 `suggestions` 列表显示匹配的建议项。此功能有助于提高输入效率和准确性。
-
-**核心特性:**
-- **Tab 提示器**: 仅在有联想数据且输入框有内容时显示，提示用户可按 Tab 选择。
-- **输入框补全**: 用户输入部分正常显示，联想到的补全部分以半透明灰色文本展示。
-
-- **键盘交互**:
-    - `↑`/`↓`: 在联想弹窗中导航。
-    - `Tab`/`Enter`: 确认当前高亮的联想项（可通过 `activeSuggestionKeys` 属性自定义）。
-    - `Esc`: 关闭联想弹窗。
-
-> **注意**: 输入框内的补全文本特性在匹配到联想项的前置字符时显示，否则不显示。
-
-**高亮匹配模式**
-
-Sender 组件支持三种高亮匹配模式，通过 `suggestions` 属性实现：
-
-1. **自动匹配高亮**（默认）：直接传入字符串数组到 `suggestions` 属性，组件会根据用户输入自动高亮匹配部分。
-   ```vue
-   <tr-sender :suggestions="['你好世界', '你好中国', '你好北京']" />
-   ```
-
-2. **精确指定高亮**：传入对象数组到 `suggestions` 属性，通过 `content` 和 `highlights` 字段精确指定要高亮的文本片段。
-   ```vue
-   <tr-sender :suggestions="[
-     { content: '你好世界', highlights: ['你好'] },
-     { content: '你好中国', highlights: ['中国'] },
-     { content: '你好北京', highlights: ['你好', '北京'] }
-   ]" />
-   ```
-
-3. **完全自定义高亮**：传入对象数组到 `suggestions` 属性，`highlights` 字段为函数，可完全自定义高亮逻辑。
-   ```vue
-   <tr-sender :suggestions="[
-    { 
-      content: '你好世界',
-      // 自定义高亮：根据输入内容高亮匹配部分
-      highlights: (content, input) => {
-        // 简单示例：输入"你"时高亮"你好"
-        if (input === '你') {
-          return [
-            { text: '你', isMatch: true },
-            { text: '好世界', isMatch: false }
-          ]
-        }
-        return [{ text: content, isMatch: false }]
-      }
-    }
-   ]" />
-   ```
-
-> **优先级**：完全自定义高亮 > 精确指定高亮 > 自动匹配高亮
-
-<demo vue="../../demos/sender/Suggestions.vue" title="输入联想示例" description="展示 Sender 组件的输入联想功能。" />
-
-#### 自定义提交方式
-
-通过`submitType`属性控制提交方式，支持多种键盘快捷键组合。
-
-- 提交行为说明：
-- - 当 submitType 为 enter 时：按 Enter 键提交
-- - 当 submitType 为 ctrlEnter 时：按 Ctrl+Enter 提交，单独按 Enter 换行
-- - 当 submitType 为 shiftEnter 时：按 Shift+Enter 提交，单独按 Enter 换行
-
-这些快捷键适用于不同的使用习惯和操作系统，方便用户根据自己的喜好选择提交方式。
-
-<tr-sender submitType="ctrlEnter" mode="multiple" placeholder="按Ctrl+Enter提交" />
-
-```vue
-<tr-sender submitType="ctrlEnter" mode="multiple" placeholder="按Ctrl+Enter提交" />
-```
-
-<tr-sender submitType="shiftEnter" mode="multiple" placeholder="按Shift+Enter提交" />
-
-```vue
-<tr-sender submitType="shiftEnter" mode="multiple" placeholder="按Shift+Enter提交" />
-```
-
-使用不同的提交方式可以适应不同的使用场景：
-
-- 聊天应用通常使用`enter`快速提交消息
-- 多行文本编辑时，使用`ctrl+enter`或`shift+enter`可避免误提交
-- 代码编辑器类应用通常使用`ctrl+enter`提交，保持编辑文本的结构
-
-### 键盘快捷键支持
-
-Sender 组件支持多种键盘快捷键操作，提高用户输入效率：
+### 快捷键参考
 
 | 快捷键      | 功能                      | 适用条件                       |
 | ----------- | ------------------------- | ------------------------------ |
-| Enter       | 提交内容 / 选中联想项     | submitType="enter"（默认） / 联想弹窗开启时 |
-| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"(多行)   |
-| Shift+Enter | 提交内容                  | submitType="shiftEnter"(多行)  |
-| Tab         | 选中联想项                | 联想弹窗开启并有联想数据时     |
-| Esc         | 取消语音/关闭联想/建议    | 对应功能激活时                |
-| ↑ / ↓       | 导航联想项                | 联想弹窗开启时                 |
+| Enter       | 提交内容 / 选中联想项     | submitType="enter" / 联想开启时 |
+| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"         |
+| Shift+Enter | 提交内容                  | submitType="shiftEnter"        |
+| Tab         | 选中联想项                | 联想开启时                     |
+| Esc         | 取消语音/关闭联想         | 对应功能激活时                 |
+| ↑ / ↓       | 导航联想项                | 联想开启时                     |
 
-**自定义选中按键**：可以通过 `activeSuggestionKeys` 属性自定义选中联想项的按键，默认值为 `['Enter', 'Tab']`。例如设置为 `['Tab']` 可仅使用 Tab 键选中联想项。  
-注意：请勿使用纯修饰键（如 `Control`/`Shift`/`Alt`/`Meta`）作为选中按键，否则会劫持常见快捷键（如 Ctrl+C/Ctrl+V/Ctrl+A）。
+:::warning 自定义选中按键
+通过 `activeSuggestionKeys` 可自定义选中联想项的按键，但请勿使用纯修饰键（Ctrl/Shift/Alt/Meta），避免劫持常用快捷键。
+:::
 
-您可以在实际开发中根据应用场景和用户需求选择最适合的快捷键方式。
+### 自定义按钮
 
-### 布局与插槽
+通过 `footer-left` 和 `footer-right` 插槽在底部区域添加自定义按钮。
 
-以下是一个关于插槽的综合使用示例：
+<demo vue="../../demos/sender/DeepThink.vue" title="自定义按钮" description="在底部区域添加自定义按钮，保留原有功能。" />
 
-<demo vue="../../demos/sender/All.vue" />
+### 插槽布局
 
-### 紧凑模式配置
+综合展示各种插槽的使用方式：
 
-Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 `tr-sender-compact` CSS类可以启用紧凑样式。
+<demo vue="../../demos/sender/All.vue" title="插槽综合示例" description="展示 header、prefix、actions、footer 等插槽的使用。" />
 
-紧凑模式的特点：
-- 较小的字体和输入框（14px vs 16px）
-- 更紧凑的内边距和间距
-- 更小的图标尺寸（32px vs 36px）
-- 更小的圆角（24px vs 26px）
+### 装饰性内容
 
-**使用方式：**
+在输入框内显示提示信息，适用于服务状态提示、功能引导等场景。
 
-```vue
-<!-- 默认样式（宽松模式） -->
-<TrSender />
+:::tip 自动禁用
+使用 `decorativeContent` 插槽时，输入框会自动禁用，仅展示插槽内容。
+:::
 
-<!-- 紧凑模式 -->
-<TrSender class="tr-sender-compact" />
-```
+<demo vue="../../demos/sender/DecorativeContent.vue" title="装饰性内容" description="在输入框内显示提示信息和可点击链接。" />
 
-<demo vue="../../demos/sender/CompactMode.vue" />
+## 样式配置
 
-## API 说明
+### 紧凑模式
 
-### Props
+通过添加 `tr-sender-compact` CSS 类启用紧凑模式，适用于空间受限的场景。
+
+<demo vue="../../demos/sender/CompactMode.vue" title="紧凑模式" description="更小的字体、间距和图标，适合空间受限的场景。" />
+
+---
+
+
+## Props
 
 | 属性名               | 说明                     | 类型                                                    | 默认值            |
 | -------------------- | ------------------------ | ------------------------------------------------------- | ----------------- |
@@ -345,7 +222,21 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | templateData         | 模板数据，用于初始化或 v-model 更新 | `UserItem[]`                                            | `[]`              |
 
 
-### Events
+## Slots
+
+
+| 插槽名称          | 描述                             | 默认内容                |
+| ----------------- | -------------------------------- | ----------------------- |
+| `header`          | 头部插槽，位于输入框上方         | 无                      |
+| `prefix`          | 前缀插槽，位于输入框左侧         | 无                      |
+| `actions`         | 后缀插槽，位于输入框右侧         | 单行模式下的操作按钮    |
+| `content`         | 内容插槽                         | 输入内容区域            |
+| `footer-left`     | 底部左侧插槽，保留字数限制       | 字数限制                |
+| `footer-right`    | 底部右侧插槽，保留操作按钮       | 多行模式下的操作按钮    |
+| `footer`          | 底部完全自定义插槽(向后兼容)     | 无 (会覆盖其他底部元素) |
+| `decorativeContent` | 装饰性内容插槽，启用后禁止输入 | 无                      |
+
+## Events
 
 | 事件名            | 说明                       | 回调参数               |
 | ----------------- | -------------------------- | ---------------------- |
@@ -363,7 +254,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | speech-error      | 语音识别错误时触发         | `(error: Error)`       |
 | suggestion-select | 选择输入建议时触发         | `(value: string)`      |
 
-### Methods
+## Methods
 
 | 方法名                     | 说明                     | 参数 | 返回值          |
 | -------------------------- | ------------------------ | ---- | --------------- |
@@ -375,33 +266,7 @@ Sender 组件支持紧凑模式，适用于空间受限的场景。通过添加 
 | stopSpeech                 | 停止语音识别             | -    | `void`          |
 | activateTemplateFirstField | 激活模板的第一个输入字段 | -    | `void`          |
 
-### Slots
-
-组件布局结构如下：
-
-```
-+----------------------+
-|      header slot     |  <!-- 位于内容区域上方 -->
-+----------------------+
-| prefix |   content   | actions  <!-- 横向排列 -->
-| slot   |    area     | slot
-+----------------------+
-|footer-left | footer-right|  <!-- 底部左右两侧区域 -->
-+----------------------+
-```
-
-| 插槽名称          | 描述                             | CSS类名                           | 默认内容                |
-| ----------------- | -------------------------------- | --------------------------------- | ----------------------- |
-| `header`          | 头部插槽，位于输入框上方         | `.tiny-sender__header-slot`       | 无                      |
-| `prefix`          | 前缀插槽，位于输入框左侧         | `.tiny-sender__prefix-slot`       | 无                      |
-| `actions`         | 后缀插槽，位于输入框右侧         | `.tiny-sender__actions-slot`      | 单行模式下的操作按钮    |
-| `content`         | 内容插槽                       | -                                 |  输入内容区域           |
-| `footer-left`     | 底部左侧插槽，保留字数限制       | `.tiny-sender__footer-left`       | 字数限制                |
-| `footer-right`    | 底部右侧插槽，保留操作按钮       | `.tiny-sender__footer-right`      | 多行模式下的操作按钮    |
-| `footer`          | 底部完全自定义插槽(向后兼容)     | `.tiny-sender__footer-slot`       | 无 (会覆盖其他底部元素) |
-| `decorativeContent` | 装饰性内容插槽，启用后禁止输入 | `.tiny-sender__decorative-content` | 无                      |
-
-### Types
+## Types
 ```typescript
 // 语音回调函数集合
 interface SpeechCallbacks {
