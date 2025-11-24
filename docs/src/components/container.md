@@ -12,44 +12,36 @@ outline: [1, 3]
 
 <demo vue="../../demos/container/basic.vue" />
 
-## API
+## Props
 
-### Props
+| 属性               | 类型      | 必填 | 默认值            | 说明         |
+| ------------------ | --------- | ---- | ----------------- | ------------ |
+| `model:show`       | `boolean` | 是   | -                 | 是否显示容器 |
+| `model:fullscreen` | `boolean` | 否   | `false`           | 是否全屏模式 |
+| `title`            | `string`  | 否   | `'OpenTiny NEXT'` | 容器标题     |
 
-| Prop Name          | Description  | Type      | Required | Default           |
-| ------------------ | ------------ | --------- | -------- | ----------------- |
-| `model:show`       | 是否显示容器 | `boolean` | ✅       | —                 |
-| `model:fullscreen` | 是否全屏模式 | `boolean` | ❌       | `false`           |
-| `title`            | 容器标题     | `string`  | ❌       | `'OpenTiny NEXT'` |
+## Slots
 
----
-
-### Slots
-
-| Slot Name    | Description        |
+| 插槽名       | 说明               |
 | ------------ | ------------------ |
 | `default`    | 容器主体内容       |
 | `title`      | 自定义标题区域内容 |
 | `operations` | 标题栏右侧操作区   |
 | `footer`     | 底部操作栏内容     |
 
----
+## Events
 
-### Events
+| 事件名  | 参数 | 说明           |
+| ------- | ---- | -------------- |
+| `close` | -    | 容器关闭时触发 |
 
-| Event Name | Description    | Parameters |
-| ---------- | -------------- | ---------- |
-| `close`    | 容器关闭时触发 | —          |
-
----
-
-### CSS 变量
+## CSS 变量
 
 Container 组件支持以下 CSS 变量来自定义样式：
 
-#### 全局变量 (`:root`)
+**全局变量 (`:root`)**
 
-| 变量名                                 | 描述         |
+| 变量名                                 | 说明         |
 | -------------------------------------- | ------------ |
 | `--tr-container-bg-color`              | 容器背景色   |
 | `--tr-container-border-color`          | 容器边框色   |
@@ -62,15 +54,15 @@ Container 组件支持以下 CSS 变量来自定义样式：
 | `--tr-container-title-line-height`     | 标题行高     |
 | `--tr-container-width`                 | 容器宽度     |
 
-全屏模式下的 CSS 变量：
+**全屏模式变量**
 
-| 变量名                                        | 描述                 |
+| 变量名                                        | 说明                 |
 | --------------------------------------------- | -------------------- |
 | `--tr-container-header-padding-fullscreen`    | 全屏模式头部内边距   |
 | `--tr-container-title-font-size-fullscreen`   | 全屏模式标题字体大小 |
 | `--tr-container-title-line-height-fullscreen` | 全屏模式标题行高     |
 
-#### 变量覆盖
+**变量覆盖示例**
 
 非全屏模式（默认）
 
