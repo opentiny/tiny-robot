@@ -154,8 +154,9 @@ app.mount('#app')
 
 现在你已经成功安装并引入了 TinyRobot，可以：
 
-- 查看[**组件文档**](/components/)了解所有可用组件
-- 浏览[**示例演示**](/demos/)获取更多灵感
-- 阅读[**最佳实践**](/guide/best-practices)学习使用技巧
+- 查看[**主题配置**](/guide/theme-config)了解如何自定义主题样式
+- 浏览[**更新日志**](/guide/update-log)查看最新版本变更
+- 探索[**组件文档**](/components/container)了解所有可用组件
+- 查看[**综合示例**](/examples/assistant)获取完整的应用演示
 
 如果遇到问题，欢迎在 [GitHub Issues](https://github.com/opentiny/tiny-robot/issues) 中反馈。

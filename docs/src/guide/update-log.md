@@ -5,307 +5,338 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
-## 0.3.0-rc.6
+## v0.3.0
 
-`2025-11-10`
+`2025-11-24`
+
+> [!IMPORTANT]
+> **Breaking Changes**:
+> - **History 历史组件**: Props 参数变更，data 属性数据格式调整以支持分组与非分组场景，请参考文档`--tr-dropdown-menu-min-width` 控制
 
 ### ✨ 新特性
 
+**组件**
+
 - **History**: 新增 `item-prefix` 和 `item-title` 插槽，支持自定义历史项渲染 by @Gene in [#256](https://github.com/opentiny/tiny-robot/pull/256)
+- **History**: 重构历史组件以提升移动端友好性 by @Gene in [#227](https://github.com/opentiny/tiny-robot/pull/227)
 - **Bubble**: 支持为渲染组件配置 `defaultProps`，提供默认属性 by @Gene in [#253](https://github.com/opentiny/tiny-robot/pull/253)
 - **Bubble**: 新增 `trailer` 插槽，增强插槽处理逻辑 by @Gene in [#237](https://github.com/opentiny/tiny-robot/pull/237)
 - **Bubble**: 改进气泡组件，优化 trailer 插槽和样式增强 by @Gene in [#257](https://github.com/opentiny/tiny-robot/pull/257)
-- **Sender**: 支持自定义语音输入功能 by @lisong in [#245](https://github.com/opentiny/tiny-robot/pull/245)
-- **Sender**: 支持自定义录音 UI 和节点点击事件 by @lisong in [#246](https://github.com/opentiny/tiny-robot/pull/246)
-- **Sender**: 新增 `tooltipPlacement` 属性，支持配置文件上传按钮提示框位置 by @lisong in [#235](https://github.com/opentiny/tiny-robot/pull/235)
-- **TemplateEditor**: 新增 `autoSize` 属性支持，控制模板编辑器自适应尺寸 by @lisong in [#255](https://github.com/opentiny/tiny-robot/pull/255)
-- **Playground**: 初始化 TinyRobot Playground 项目 by @Gene in [#249](https://github.com/opentiny/tiny-robot/pull/249)
+- **Bubble**: 增强 Bubble 组件，支持 CSS 变量 by @Gene in [#203](https://github.com/opentiny/tiny-robot/pull/203)
+- **Bubble**: 新增自定义内容字段支持 by @Gene in [#186](https://github.com/opentiny/tiny-robot/pull/186)
+- **Bubble**: 支持多种消息格式 by @Gene in [#123](https://github.com/opentiny/tiny-robot/pull/123)
+- **BubbleList**: 新增隐藏角色支持 by @Gene in [#182](https://github.com/opentiny/tiny-robot/pull/182)
+- **Sender**: 支持自定义语音输入功能 by @SonyLeo in [#245](https://github.com/opentiny/tiny-robot/pull/245)
+- **Sender**: 支持自定义录音 UI 和节点点击事件 by @SonyLeo in [#246](https://github.com/opentiny/tiny-robot/pull/246)
+- **Sender**: 新增 `tooltipPlacement` 属性，支持配置文件上传按钮提示框位置 by @SonyLeo in [#235](https://github.com/opentiny/tiny-robot/pull/235)
+- **Sender**: 通过 `upload-popper-class` 自定义弹出框样式 by @SonyLeo in [#221](https://github.com/opentiny/tiny-robot/pull/221)
+- **Sender**: 上传按钮和发送按钮扩展 by @SonyLeo in [#155](https://github.com/opentiny/tiny-robot/pull/155)
+- **Sender**: 更新样式以使用 CSS 变量保持一致性 by @Gene in [#211](https://github.com/opentiny/tiny-robot/pull/211)
+- **Sender**: 支持自定义选择建议项的按键 by @SonyLeo in [#205](https://github.com/opentiny/tiny-robot/pull/205)
+- **Sender**: 新增 `autoSize` 属性支持，控制模板编辑器自适应尺寸 by @SonyLeo in [#255](https://github.com/opentiny/tiny-robot/pull/255)
+- **Container**: 新增 `title` 属性和 `close` 事件 by @Gene in [#195](https://github.com/opentiny/tiny-robot/pull/195)
+- **Container**: 更新样式和变量 by @Gene in [#210](https://github.com/opentiny/tiny-robot/pull/210)
+- **Prompt**: 新增宽度相关的 CSS 变量，优化 UI 一致性 by @Gene in [#248](https://github.com/opentiny/tiny-robot/pull/248)
+- **McpServerPicker**: MCP 服务器选择器组件 by @SonyLeo in [#125](https://github.com/opentiny/tiny-robot/pull/125)
+- **McpServerPicker**: 更新样式以使用 CSS 变量 by @SonyLeo in [#219](https://github.com/opentiny/tiny-robot/pull/219)
+- **McpAddForm**: MCP 添加表单组件及文档 by @SonyLeo in [#215](https://github.com/opentiny/tiny-robot/pull/215)
+- **McpAddForm**: 更新样式以使用 CSS 变量保持一致性 by @Gene in [#218](https://github.com/opentiny/tiny-robot/pull/218)
+- **DragOverlay**: 拖拽浮层组件 by @SonyLeo in [#147](https://github.com/opentiny/tiny-robot/pull/147)
+- **DragOverlay**: 重构组件 CSS 变量和文档 by @SonyLeo in [#201](https://github.com/opentiny/tiny-robot/pull/201)
+- **Attachments**: 附件组件 by @SonyLeo in [#148](https://github.com/opentiny/tiny-robot/pull/148)
+- **SuggestionPopover**: 新增插槽以增强自定义能力 by @Gene in [#150](https://github.com/opentiny/tiny-robot/pull/150)
+- **SuggestionPills**: 使用 useSlotRefs 重构建议按钮组组件 by @Gene in [#154](https://github.com/opentiny/tiny-robot/pull/154)
+- **DropdownMenu**: 改进悬停处理 by @Gene in [#164](https://github.com/opentiny/tiny-robot/pull/164)
+- **BasePopper**: 支持通过 CSS 变量自定义显示区域 by @Gene in [#169](https://github.com/opentiny/tiny-robot/pull/169)
+- **BasePopper**: 暴露 update 方法 by @Gene in [#166](https://github.com/opentiny/tiny-robot/pull/166)
+- **Theme**: 新增主题解决方案，支持多主题切换 by @Gene in [#189](https://github.com/opentiny/tiny-robot/pull/189)
+
+**工具**
+
 - **useConversation**: 增强会话加载功能，新增 `onLoaded` 回调和消息发送逻辑 by @Gene in [#232](https://github.com/opentiny/tiny-robot/pull/232)
+- **useConversation**: 新增 `allowEmpty` 参数 by @Hexqi in [#223](https://github.com/opentiny/tiny-robot/pull/223)
+- **useMessage**: 增强消息处理，新增完成原因支持 by @Gene in [#229](https://github.com/opentiny/tiny-robot/pull/229)
+- **useMessage**: 新增 API `send`，新增选项 `events.onReceiveData` by @Gene in [#185](https://github.com/opentiny/tiny-robot/pull/185)
+- **useMessage**: 增强文档和修复类型定义 by @Gene in [#202](https://github.com/opentiny/tiny-robot/pull/202)
+
+**其他**
+
+- **Playground**: 初始化 TinyRobot Playground 项目 by @Gene in [#249](https://github.com/opentiny/tiny-robot/pull/249)
+- **Docs**: 将 Playground 集成到文档网站 by @Gene in [#247](https://github.com/opentiny/tiny-robot/pull/247)
+- **Docs**: 新增侧边栏导航，增加指南和示例导航分组 by @Gene in [#252](https://github.com/opentiny/tiny-robot/pull/252)
+- **Docs**: TinyRobot 文档样式优化 by @wuyiping in [#236](https://github.com/opentiny/tiny-robot/pull/236)
+- **Docs**: 替换指定文本并优化文档样式 by @SonyLeo in [#226](https://github.com/opentiny/tiny-robot/pull/226)
+- **E2E**: 构建 E2E 测试流程，实现容器组件测试 by @SonyLeo in [#199](https://github.com/opentiny/tiny-robot/pull/199)
 
 ### 🔨 优化改进
 
-- **Prompt**: 新增宽度相关的 CSS 变量，优化 UI 一致性 by @Gene in [#248](https://github.com/opentiny/tiny-robot/pull/248)
-- **McpServerPicker**: 优化插件卡片边框颜色效果 by @lisong in [#233](https://github.com/opentiny/tiny-robot/pull/233)
-- **Sender**: 调整清除按钮的显示时机 by @lisong in [#250](https://github.com/opentiny/tiny-robot/pull/250)
-- **Sender**: 上传提示框默认位置改为 `top-end` by @lisong in [#234](https://github.com/opentiny/tiny-robot/pull/234)
-- **Docs**: 新增侧边栏导航，增加指南和示例导航分组 by @Gene in [#252](https://github.com/opentiny/tiny-robot/pull/252)
-- **Docs**: 将 Playground 集成到文档网站 by @Gene in [#247](https://github.com/opentiny/tiny-robot/pull/247)
-- **Docs**: TinyRobot 文档样式优化 by @wuyiping in [#236](https://github.com/opentiny/tiny-robot/pull/236)
+- **McpServerPicker**: 优化插件卡片边框颜色效果 by @SonyLeo in [#233](https://github.com/opentiny/tiny-robot/pull/233)
+- **McpServerPicker**: 优化 MCP 面板样式和搜索方法 by @SonyLeo in [#192](https://github.com/opentiny/tiny-robot/pull/192)
+- **McpServerPicker**: 新增插件添加状态并优化添加样式 by @SonyLeo in [#208](https://github.com/opentiny/tiny-robot/pull/208)
+- **Sender**: 调整清除按钮的显示时机 by @SonyLeo in [#250](https://github.com/opentiny/tiny-robot/pull/250)
+- **Sender**: 上传提示框默认位置改为 `top-end` by @SonyLeo in [#234](https://github.com/opentiny/tiny-robot/pull/234)
+- **Sender**: 更新操作按钮图标 by @SonyLeo in [#217](https://github.com/opentiny/tiny-robot/pull/217)
+- **Sender**: 移除默认建议过滤器并增强文本高亮功能 by @SonyLeo in [#179](https://github.com/opentiny/tiny-robot/pull/179)
+- **Popper**: 改进 popper 组件响应性并更新演示 by @Gene in [#163](https://github.com/opentiny/tiny-robot/pull/163)
+- **Build**: 外部化 @opentiny/vue 和 @opentiny/tiny-robot-svgs by @Gene in [#191](https://github.com/opentiny/tiny-robot/pull/191)
 
 ### 🐛 问题修复
 
 - **Docs**: 修复文档构建时 'Element is missing end tag' 错误 by @Kagol in [#244](https://github.com/opentiny/tiny-robot/pull/244)
-- **CI**: 修复源仓库 PR 的 E2E 测试流水线失败问题 by @lisong in [#241](https://github.com/opentiny/tiny-robot/pull/241)
 - **Docs**: 修复首页链接错误 by @Kagol in [#239](https://github.com/opentiny/tiny-robot/pull/239)
+- **CI**: 修复源仓库 PR 的 E2E 测试流水线失败问题 by @SonyLeo in [#241](https://github.com/opentiny/tiny-robot/pull/241)
 - **Assistant**: 修复 Assistant 演示会话问题 by @Gene in [#231](https://github.com/opentiny/tiny-robot/pull/231)
+- **Sender**: 修复 Sender 组件工具提示弹出异常和相同文件选择问题 by @SonyLeo in [#206](https://github.com/opentiny/tiny-robot/pull/206)
+- **Sender**: 修复示例项目中 Sender 组件宽度异常 by @SonyLeo in [#204](https://github.com/opentiny/tiny-robot/pull/204)
+- **Sender**: 修复组件 footer-left 插槽位置错误 by @SonyLeo in [#197](https://github.com/opentiny/tiny-robot/pull/197)
+- **McpServerPicker**: 修复暗色模式下标签页颜色异常 by @SonyLeo in [#220](https://github.com/opentiny/tiny-robot/pull/220)
+- **McpServerPicker**: 修复 MCP 组件内置通知并优化插件标题 by @SonyLeo in [#207](https://github.com/opentiny/tiny-robot/pull/207)
+- **McpServerPicker**: 更新 mcp-picker-server 表单类型值 by @SonyLeo in [#173](https://github.com/opentiny/tiny-robot/pull/173)
+- **McpServerPicker**: 修复滚动条仅控制卡片列表显示 by @SonyLeo in [#198](https://github.com/opentiny/tiny-robot/pull/198)
+- **McpServerPicker**: 为卡片描述添加 "title" 属性 by @SonyLeo in [#180](https://github.com/opentiny/tiny-robot/pull/180)
+- **Sender**: 修复模板编辑器仅文本节点失焦问题 by @SonyLeo in [#190](https://github.com/opentiny/tiny-robot/pull/190)
+- **Sender**: 修复提交模板内容时存在零宽字符 by @SonyLeo in [#184](https://github.com/opentiny/tiny-robot/pull/184)
+- **Sender**: 修复模板编辑器光标位置和样式 by @SonyLeo in [#165](https://github.com/opentiny/tiny-robot/pull/165)
+- **Sender**: 修复光标跳动和 IME 焦点丢失 by @Gene in [#176](https://github.com/opentiny/tiny-robot/pull/176)
+- **Sender**: 修复 TS 5.9 及以上版本中 getComposedRanges 的类型兼容性 by @Gene in [#188](https://github.com/opentiny/tiny-robot/pull/188)
+- **Bubble**: 修复函数和类 contentRenderer 不响应数据变化 by @Gene in [#187](https://github.com/opentiny/tiny-robot/pull/187)
+- **History**: 修复 HistoryGroup 组件演示中缺少 TrHistory 导入 by @Gene in [#196](https://github.com/opentiny/tiny-robot/pull/196)
+- **BaseSelect**: 使用 BaseSelect 组件替换 Select by @SonyLeo in [#214](https://github.com/opentiny/tiny-robot/pull/214)
+- **Teleport**: 解决 createTeleport 中潜在的挂载失败 by @Gene in [#170](https://github.com/opentiny/tiny-robot/pull/170)
+- **Compatibility**: 调整视口单位使用以兼容 Chrome < 108 by @Gene in [#167](https://github.com/opentiny/tiny-robot/pull/167)
+- **Build**: 移除构建警告 by @SonyLeo in [#162](https://github.com/opentiny/tiny-robot/pull/162)
 
-## 0.3.0-rc.5
+## v0.2.15
 
-`2025-09-17`
-
-> [!IMPORTANT]
-> **Breaking Change**: History 历史组件 Props 参数变更，请参考文档
+`2025-07-17`
 
 ### 🔨 优化改进
 
-**Bubble 气泡组件**
-- 优化自动滚动逻辑
-
-**History 历史组件**（重构）
-- 优化 Props 参数
-- 新增触摸设备检测，优化移动端交互
-- 新增自定义菜单项配置支持
-
-**Sender 消息输入框**
-- 新增 `upload-popper-class` 属性，支持自定义上传提示框样式
-- 优化工具提示弹出位置和显示逻辑
-
-**useMessage**
-- 新增消息完成原因支持
-- 优化消息状态管理逻辑
-
-**文档**
-- 更新文档网站样式和布局
-- 优化组件示例和说明文档
+- **Sender**: 增强 CSS 变量以改进样式 by @SonyLeo in [#152](https://github.com/opentiny/tiny-robot/pull/152)
+- **SuggestionPopover**: 增强 CSS 变量以改进样式 by @Gene in [#149](https://github.com/opentiny/tiny-robot/pull/149)
 
 ### 🐛 问题修复
 
-- 修复 Sender 组件相同文件上传不触发事件的问题
-- 修复 Sender 组件工具提示弹窗异常显示问题
+- **SuggestionPills**: 优化容器宽度计算 by @Gene in [#144](https://github.com/opentiny/tiny-robot/pull/144)
+- **Docs**: 修复文档导航样式 by @Hexqi in [#151](https://github.com/opentiny/tiny-robot/pull/151)
+- **Docs**: 移除动态导入 enhanceApp mixin 以修复警告 by @Gene in [#157](https://github.com/opentiny/tiny-robot/pull/157)
+- **CI/CD**: 新增 GitHub Pages 文档部署工作流 by @Hexqi in [#153](https://github.com/opentiny/tiny-robot/pull/153)
+- **CI/CD**: 支持发布 alpha、beta、rc、latest 标签版本 by @Hexqi in [#156](https://github.com/opentiny/tiny-robot/pull/156)
 
-## 0.3.0-rc.4
+## v0.2.14
 
-`2025-09-10`
+`2025-07-07`
+
+### 🔨 优化改进
+
+- **BasePopper**: 简化插槽处理 by @Gene in [#128](https://github.com/opentiny/tiny-robot/pull/128)
+- **Components**: 移除已弃用的 Question 和 Suggestion 组件，更新 Assistant 演示以使用 SuggestionPopover 和 SuggestionPills by @Gene in [#141](https://github.com/opentiny/tiny-robot/pull/141)
+
+### 🐛 问题修复
+
+- **Sender**: 修复提交快捷键触发换行 by @SonyLeo in [#140](https://github.com/opentiny/tiny-robot/pull/140)
+
+## v0.2.13
+
+`2025-07-03`
 
 ### ✨ 新特性
 
-**McpAddForm Mcp添加表单**
-- 新增独立的 MCP 插件添加表单组件
-- 支持表单添加和代码添加两种方式
-- 提供完整的表单验证和数据处理功能
-- 支持文件上传和代码编辑器
-- 从 McpServerPicker 组件中抽取，提升代码复用性
+- **DropdownMenu**: 新增 `appendTo` 属性，设置菜单挂载的目标容器 by @Gene in [#137](https://github.com/opentiny/tiny-robot/pull/137)
+
+## v0.2.12
+
+`2025-07-03`
+
+> [!IMPORTANT]
+> **Breaking Change**: Sender 消息输入框模板编辑功能重新设计，相关用法请查看最新文档
+
+### ✨ 新特性
+
+- **Sender**: 模板组件及文档 by @SonyLeo in [#1](https://github.com/opentiny/tiny-robot/pull/1)
 
 ### 🔨 优化改进
 
-**McpServerPicker 插件选择器**
-- 更新样式使用 CSS 变量，增强主题一致性
-- 优化插件卡片和模态框的视觉效果
-- 改进搜索和添加按钮的图标设计
+- **Sender**: 改进模板编辑逻辑 by @gene9831
+- **DropdownMenu**: 新增控制菜单项字重的 CSS 变量 `--tr-dropdown-menu-item-font-weight` by @Gene in [#135](https://github.com/opentiny/tiny-robot/pull/135)
+- **SuggestionPills**: 移除 handleMouseenter 中自动滚动功能的冗余条件 by @Gene in [#133](https://github.com/opentiny/tiny-robot/pull/133)
 
-**Sender 消息输入框**
-- 更新操作按钮图标设计
-- 优化清除和上传按钮的视觉表现
+## v0.2.11
 
-**样式系统**
-- 统一组件间的样式变量使用
-- 提升暗色模式下的显示效果
+`2025-06-28`
 
-**useConversation**
-- 添加 `allowEmpty` 参数，默认不允许重复创建空白会话
+> [!IMPORTANT]
+> **Breaking Change**: DropdownMenu 下拉菜单组件默认插槽变更为 `trigger` 插槽；最小宽度不再通过 props 设置，改用 CSS 变量 `--tr-dropdown-menu-min-width` 控制
 
-**文档**
-- 新增 McpAddForm 组件完整文档和示例
-- 优化 MCP 相关组件的代码结构
-- 更新相关 SVG 图标资源
+### ✨ 新特性
+
+- **DropdownMenu**: 增强悬停触发支持 by @Gene in [#127](https://github.com/opentiny/tiny-robot/pull/127)
+- **SuggestionPills**: 新增溢出模式和自动滚动选项 by @Gene in [#129](https://github.com/opentiny/tiny-robot/pull/129)
+- **ShadowDOM**: 支持 Shadow DOM teleport 兼容性 by @Gene in [#124](https://github.com/opentiny/tiny-robot/pull/124)
+- **Suggestion**: 增强建议组件的事件处理 by @Gene in [#117](https://github.com/opentiny/tiny-robot/pull/117)
+
+## v0.2.10
+
+`2025-06-18`
+
+### 🔨 优化改进
+
+- **Sender**: 优化一些问题，实现输入框在加载状态时可以输入，支持 `stopText` 属性配置停止按钮的文本 by @SonyLeo in [#120](https://github.com/opentiny/tiny-robot/pull/120)
+
+## v0.2.9
+
+`2025-06-16`
 
 ### 🐛 问题修复
 
-- 修复 McpServerPicker 暗色模式下标签页颜色异常问题
+- **SuggestionPills**: 修复点击两次后弹出框才打开的问题 by @Gene in [#115](https://github.com/opentiny/tiny-robot/pull/115)
 
-## 0.2.15 (25.7.17)
+## v0.2.8
 
-组件
+`2025-06-13`
 
-1.【优化】【Sender 组件】增加 css 变量以增强样式扩展性  
-2.【优化】【SuggestionPopover 建议弹出框】增加 css 变量以增强样式扩展性  
-3.【问题】【SuggestionPills 建议按钮组】修复按钮组为空数组时，宽度计算报错的问题
+### 🐛 问题修复
 
-其他
+- **Sender**: 修复样式切换问题 by @SonyLeo in [#113](https://github.com/opentiny/tiny-robot/pull/113)
 
-1.【问题】修复文档网站 header 区域宽度不正确的问题
-2.【问题】修复开发模式下，文档网站大量警告的问题
-3.【CI/CD】增加自动构建文档网站的步骤
-4.【CI/CD】tag 自动发布支持 alpha、beta、rc版本
+## v0.2.7
 
-## 0.2.14 (25.7.7)
+`2025-06-13`
 
-1.【优化】【Sender 组件】优化编辑器仅输入空格时的异常换行  
-2.【移除】 Question 组件和 Suggestion 组件
+### ✨ 新特性
 
-## 0.2.13 (25.7.3)
+- **Docs**: VitePress 文档支持开发模式下的 HMR by @Gene in [#107](https://github.com/opentiny/tiny-robot/pull/107)
 
-1.【特性】【DropdownMenu 下拉菜单】新增 `appendTo` prop，设置菜单挂载的目标容器
+### 🐛 问题修复
 
-## 0.2.12 (25.7.3)
+- **ShadowDOM**: 在 useScroll 中用 watchThrottled 替换 throttle 以兼容 Shadow DOM by @Gene in [#111](https://github.com/opentiny/tiny-robot/pull/111)
 
-> [!IMPORTANT]
-> **Breaking Change**: Sender 消息输入框模板编辑功能重新设计，相关用法请查看最新稳定
+## v0.2.6
 
-1.【优化】【Sender 组件】模板编辑重新设计，优化使用体验  
-2.【优化】【SuggestionPills 建议按钮组】`autoScrollOnHover` 属性现在已经在任意 `overflowMode` 下都支持  
-3.【优化】【DropdownMenu 下拉菜单】增加控制菜单项的字重的 CSS 变量 `--tr-dropdown-menu-item-font-weight`
+`2025-06-12`
 
-## 0.2.11 (25.6.28)
+### ✨ 新特性
 
-> [!IMPORTANT]
-> **Breaking Change**: DropdownMenu 下拉菜单组件
+- **Sender**: 新增侧边栏主题 by @SonyLeo in [#105](https://github.com/opentiny/tiny-robot/pull/105)
+- **SuggestionPills**: 增强点击外部处理和 showAllButtonOn 属性 by @Gene in [#106](https://github.com/opentiny/tiny-robot/pull/106)
 
-1.【特性】【DropdownMenu 下拉菜单】`trigger` 属性新增 `hover`支持  
-2.【特性】【SuggestionPills 建议按钮组】新增属性 `overflowMode`，控制多余项的展示方式：`expand`为展开显示，`scroll`为横向滚动显示；新增属性 `autoScrollOnHover`，鼠标悬停时是否自动滚动到可见区域  
-3.【优化】【DropdownMenu 下拉菜单】默认插槽变更为 `trigger` 插槽；下拉菜单最小宽度不再通过 props 设置，可以通过样式类、内联样式或者 css 变量 `--tr-dropdown-menu-min-width` 控制
+### 🔨 优化改进
 
-## 0.2.10 (25.6.18)
+- **Sender**: 重构紧凑类 by @SonyLeo in [#109](https://github.com/opentiny/tiny-robot/pull/109)
 
-1.【优化】【Sender 消息输入框】实现输入框在加载状态时可以输入  
-2.【优化】【Sender 消息输入框】支持 `stopText` 属性配置停止按钮的文本，如不配置则显示默认图标
+## v0.2.5
 
-## 0.2.9 (25.6.16)
+`2025-06-11`
 
-1.【问题】【SuggestionPills 建议按钮组】修复 ios safari 两次点击才能打开弹出框的问题  
+### 🔨 优化改进
 
-## 0.2.8 (25.6.13)
+- **Sender**: 更新联想交互逻辑 by @SonyLeo in [#101](https://github.com/opentiny/tiny-robot/pull/101)
 
-1.【问题】【Sender 消息输入框】修复宽松和紧凑模式切换时，输入框出现滚动条的问题
+### 🐛 问题修复
 
-## 0.2.7 (25.6.13)
+- **Sender**: 修复模板输入 Shadow DOM 环境问题 by @SonyLeo in [#103](https://github.com/opentiny/tiny-robot/pull/103)
+- **Tooltip**: 改进工具提示延迟处理和可见性逻辑 by @Gene in [#102](https://github.com/opentiny/tiny-robot/pull/102)
 
-### 组件
+## v0.2.4
 
-1.【问题】【Suggestion Popover 建议弹出框】修复了在 shadow dom 中滚动事件可能报错的问题
+`2025-06-09`
 
-## 0.2.6 (25.6.12)
+### 🐛 问题修复
 
-### 组件
+- **Sender**: 修复编辑块与文本垂直对齐 by @SonyLeo in [#98](https://github.com/opentiny/tiny-robot/pull/98)
+- **Sender**: 移除停止生成工具提示 by @SonyLeo in [#99](https://github.com/opentiny/tiny-robot/pull/99)
 
-1.【优化】【Sender 消息输入框】全屏模式和侧边栏模式下的样式调整  
-2.【优化】【SuggestionPills 建议按钮组】增加 `shawAllButtonOn` 属性来决定何时显示“展开全部”按钮
+## v0.2.3
 
-## 0.2.5 (25.6.11)
+`2025-06-09`
 
-### 组件
+### ✨ 新特性
 
-1.【问题】【Sender 消息输入框】模板回填在 shadow dom 环境下表现异常  
-> safari 存在的问题：
->
-> 1.safari 中删除完模板中的字符，模板也不会有 placeholder  
-> 2.不支持模板粘贴
+- **SuggestionPopover**: 增强建议弹出框，新增组件和工具提示功能 by @Gene in [#93](https://github.com/opentiny/tiny-robot/pull/93)
+- **SuggestionPills**: 新增点击外部事件 by @Gene in [#95](https://github.com/opentiny/tiny-robot/pull/95)
 
-2.【优化】【Sender 消息输入框】问题联想功能的交互调整  
-3.【优化】【Suggestion Popover 建议弹出框】优化了 popover 内 tooltip 延时打开的逻辑
+### 🐛 问题修复
 
-## 0.2.4 (25.6.9)
+- **Sender**: 更新组件样式 by @SonyLeo in [#94](https://github.com/opentiny/tiny-robot/pull/94)
+- **Tooltip**: 导出 TooltipContentProps 接口 by @Gene in [#96](https://github.com/opentiny/tiny-robot/pull/96)
 
-### 组件
+## v0.2.2
 
-1.【问题】【Sender 消息输入框】修复一些样式问题  
-2.【问题】【Sender 消息输入框】移除了停止生成的提示语
+`2025-06-05`
 
-## 0.2.3 (25.6.9)
+### 🐛 问题修复
 
-### 组件
+- **Sender**: 修复失焦关闭弹出模态框和样式问题 by @SonyLeo in [#91](https://github.com/opentiny/tiny-robot/pull/91)
+- **SuggestionPills**: 修复显示全部时更改容器宽度导致更多按钮消失 by @Gene in [#90](https://github.com/opentiny/tiny-robot/pull/90)
+- **CI**: 更新环境为 Ubuntu 并更新 checkout action 版本 by @Gene in [#89](https://github.com/opentiny/tiny-robot/pull/89)
+- **CI**: 修复 pnpm 缓存配置 by @ajaxzheng in [#87](https://github.com/opentiny/tiny-robot/pull/87)
 
-1.【问题】【Sender 消息输入框】修复一些样式问题  
-2.【优化】【SuggestionPopover 建议弹出框】增加列表项文本过长弹出 Tooltip 的功能  
-2.【优化】【SuggestionPills 建议按钮组】增加 clickOutside 自动关闭展开的按钮的逻辑
+## v0.2.1
 
-## 0.2.2 (25.6.5)
+`2025-06-04`
 
-### 组件
+### 🐛 问题修复
 
-1.【优化】【Sender 消息输入框】输入框失焦后联想弹窗自动关闭  
-2.【问题】【Sender 消息输入框】修复联想弹窗选项图标未垂直居中对齐的问题  
-3.【问题】【SuggestionPills 建议按钮组】修复按钮组展开全部按钮后，显示全部的按钮可能会因为按钮组容器宽度变化而消失的问题
+- **SuggestionPills**: 修复弹出框在 SuggestionPills 中消失 by @Gene in [#85](https://github.com/opentiny/tiny-robot/pull/85)
+- **CI**: 新增自动发布脚本 by @ajaxzheng in [#81](https://github.com/opentiny/tiny-robot/pull/81)
 
-## 0.2.1 (25.6.4)
+## v0.2.0
 
-1. 【问题】【SuggestionPills】修复 SuggestionPills 中弹出框元素无法显示的问题  
+`2025-06-04`
 
-## 0.2.0 (25.6.4)
+### ✨ 新特性
 
-1.更新版本号为0.2.0正式版本(版本代码与0.2.0-alpha.9一致)  
+**组件**
 
-## 0.2.0-alpha.9（25.6.3）
-
-### 组件
-
-1.【优化】【Sender 消息输入框】更新模板编辑器相关颜色变量  
-2.【问题】【Sender 消息输入框】修复模板编辑块空内容时无法在右侧定位的问题  
-3.【问题】使用了 `Teleport to="body"` 的弹出框的组件，在 shadow dom 中会导致弹出框不显示
-
-## 0.2.0-alpha.8（25.6.3）
-
-### 组件
-
-1.【优化】使用 css 变量统一全局的 z-index 叠层等级。全局 css 变量可在 `packages/components/src/styles/variables.css` 查看  
-2.【问题】【SuggestionPills 建议按钮组】修复按钮组数据长度变更，无法更新 UI 的问题
-
-### Kit
-
-1.【优化】【kit】AIModelConfig 新增 providerImplementation 可选属性，用于扩展 provider
-
-## 0.2.0-alpha.7（25.5.29）
-
-1.【问题】【Sender 消息输入框】修复 输入联想，修改输入框内容后，联想弹窗不展示的问题  
-2.【问题】【Sender 消息输入框】修复了删除当前模板后，选择使用同一模板时输入框无反应的问题  
-3.【变更】【Sender 消息输入框】使用 setTemplate() 函数统一模板设置，替代之前使用 template 和 templateInitialValues 配置  
-4.【优化】【Sender 消息输入框】模板删除逻辑优化；编辑块删除交互优化；模板复制粘贴效果优化  
-5.【优化】【SuggestionPills 建议按钮组】支持显示更多功能；文档与示例优化
-
-## 0.2.0-alpha.6（25.5.28）
-
-### 组件
-1.【问题】修复在 Vue3.4 及更低版本下报错无法使用组件的问题  
-
-## 0.2.0-alpha.5（25.5.28）
-
-### 组件
-1.【特性】【Sender 消息输入框】增强模板编辑功能  
-2.【特性】【Sender 消息输入框】支持输入联想功能  
-3.【优化】【Sender 消息输入框】替换组件按钮图标、调整按钮样式；自定义按钮 及 布局与插槽 案例中 - 深度思考 按钮样式修复；样式与设计稿对齐  
-4.【特性】新增 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件  
-5.【特性】新增 DropdownMenu 下拉菜单 组件  
-6.【变更】Suggestion 快捷指令 与 Question 快捷问题 改为弃用状态，建议使用 SuggestionPills 建议按钮组 与 SuggestionPopover 建议弹出框 组件  
-
-## 0.2.0-alpha.4（25.5.21）
-
-### 组件
-1.【特性】【Sender 消息输入框】优化单行模式与多行模式的切换逻辑：初始单行状态下支持快捷键切换多行及输入时自动切换多行  
-2.【特性】【Sender 消息输入框】增加多行模式下具体的操作插槽(footer-left,footer-right)，更新自定义按钮使用示例 (深度思考按钮)  
-3.【问题】【Sender 消息输入框】解决输入后行高跳跃的问题  
-4.【特性】【Sender 消息输入框】语音输入支持配置输入模式为追加模式或替换模式，支持配置语音识别结果及时返回(中间结果返回，可能会被后续更新修正)或最终结果返回(停止说话后返回)  
-5.【特性】【Sender 消息输入框】增加 decorativeContent 插槽，存在该插槽时，自动禁用输入和发送功能。可用于 服务状态提示、功能引导等场景  
-6.【问题】【Sender 消息输入框】修复文字垂直不居中的问题  
-7.【特性】【Sender 消息输入框】调整文字字数限制功能：默认位置调整到右下角，超出限制，真实字数标红，输入内容不截断，无法发送  
-8.【问题】【Question 快捷问题】优化布局样式对齐设计稿：文本宽度自适应、未展开状态下平铺一行，超出范围的渐变隐藏、hover时展示展开收起按钮、展开状态下，自适应宽度排列开  
-9.【文档】【Suggestion 快捷指令】修正 Suggestion 快捷指令组件 文档函数名category-select拼写错误问题，更新示例参数调用错误问题  
-
-
-
-## 0.2.0-alpha.3（25.5.17）
-
-### 组件
-- 重构History历史组件，调整data属性数据格式，支持分组与非分组场景
-- Bubble气泡组件增加卡片渲染Demo
-
-### 其他
-- 更新vitepress-demo-plugin解决文档构建报错问题
-- 解决未指定版本安装报错问题
-- 优化构建脚本
-- 优化文档
-
-## 0.2.0-alpha.2（25.4.30）
-- 增强ActionGroup的Tooltip提示支持,并重构IconButton组件的使用
-- 修复气泡列表组件自动滚动不起作用
-- 气泡组件添加插槽，移除内置的底部操作，改成使用feedback组件来给气泡底部添加操作
-- 重构Sender组件模板输入编辑功能
-
-## 0.2.0-alpha.1 （25.4.29）
-- 添加Feedback/Suggestion/History组件
-- 添加useConversations工具
-- 修复若干问题，优化代码
-
-## 0.2.0-alpha.0 （25.4.24）
-- 支持Bubble/Container/Sender/Conversations/Prompts/Question/Welcome 7个基础组件
-- 支持AiClient、useMessage工具
-- 官网添加综合示例
+- **Sender**: 支持模板输入功能 by @SonyLeo in [#33](https://github.com/opentiny/tiny-robot/pull/33)
+- **Sender**: 重构模板输入功能 by @SonyLeo in [#60](https://github.com/opentiny/tiny-robot/pull/60)
+- **Sender**: 支持输入联想功能 by @SonyLeo in [#52](https://github.com/opentiny/tiny-robot/pull/52)
+- **Sender**: 单行模式自动切换和快捷键切换 by @SonyLeo in [#40](https://github.com/opentiny/tiny-robot/pull/40)
+- **Sender**: 更新语音输入功能 by @SonyLeo in [#42](https://github.com/opentiny/tiny-robot/pull/42)
+- **Sender**: 固定发送状态服务文本 by @SonyLeo in [#46](https://github.com/opentiny/tiny-robot/pull/46)
+- **Bubble**: 增强气泡组件，支持插槽并移除未使用的操作 by @Gene in [#34](https://github.com/opentiny/tiny-robot/pull/34)
+- **History**: 新增历史组件及文档 by @Gene in [#29](https://github.com/opentiny/tiny-robot/pull/29)
+- **Feedback**: 新增反馈组件及相关文档 by @Gene in [#32](https://github.com/opentiny/tiny-robot/pull/32)
+- **Suggestion**: 新增建议组件及文档 by @SonyLeo in [#31](https://github.com/opentiny/tiny-robot/pull/31)
+- **SuggestionPopover**: 新增建议弹出框组件及文档 by @Gene in [#59](https://github.com/opentiny/tiny-robot/pull/59)
+- **SuggestionPills**: 新增建议按钮组组件 by @Gene in [#61](https://github.com/opentiny/tiny-robot/pull/61)
+- **SuggestionPills**: 增强显示更多功能 by @Gene in [#70](https://github.com/opentiny/tiny-robot/pull/70)
+- **DropdownMenu**: 新增下拉菜单组件及文档 by @Gene in [#61](https://github.com/opentiny/tiny-robot/pull/61)
+- **ActionGroup**: 增强操作组，支持工具提示并重构图标按钮使用 by @Gene in [#36](https://github.com/opentiny/tiny-robot/pull/36)
+
+**工具**
+
+- **useConversation**: 新增会话管理工具 by @Hexqi in [#27](https://github.com/opentiny/tiny-robot/pull/27)
+
+**其他**
+
+- **Docs**: 新增 schema 卡片渲染演示 by @Gene in [#47](https://github.com/opentiny/tiny-robot/pull/47)
+
+### 🔨 优化改进
+
+- **History**: 更新历史数据结构，使用 'group' 替代 'date' 并增强文档 by @Gene in [#44](https://github.com/opentiny/tiny-robot/pull/44)
+- **Sender**: 重构模板输入切换 content-editable 逻辑 by @SonyLeo in [#38](https://github.com/opentiny/tiny-robot/pull/38)
+- **Sender**: 组件替换图标并解决一些审查意见 by @SonyLeo in [#58](https://github.com/opentiny/tiny-robot/pull/58)
+- **Bubble**: 简化 VNode 属性处理 by @Gene in [#30](https://github.com/opentiny/tiny-robot/pull/30)
+- **Icons**: 更新 SVG 图标和样式以保持一致性 by @Gene in [#25](https://github.com/opentiny/tiny-robot/pull/25)
+- **Z-index**: 更新 z-index 值以使用 CSS 变量以便更好地维护 by @Gene in [#74](https://github.com/opentiny/tiny-robot/pull/74)
+- **Sender**: 更新模板编辑器颜色 by @SonyLeo in [#77](https://github.com/opentiny/tiny-robot/pull/77)
+- **Sender**: 优化模板删除位置逻辑 by @SonyLeo in [#78](https://github.com/opentiny/tiny-robot/pull/78)
+- **Deprecation**: 标记 Question 和 Suggestion 组件为弃用状态 by @Gene in [#65](https://github.com/opentiny/tiny-robot/pull/65)
+- **Build**: 构建和打包优化 by @Hexqi in [#49](https://github.com/opentiny/tiny-robot/pull/49)
+- **Docs**: 修复和更新文档 by @Hexqi in [#51](https://github.com/opentiny/tiny-robot/pull/51)
+
+### 🐛 问题修复
+
+- **Sender**: 修复模板输入编辑问题 by @SonyLeo in [#68](https://github.com/opentiny/tiny-robot/pull/68)
+- **Sender**: 修复问题联想弹出窗口显示时机 by @SonyLeo in [#69](https://github.com/opentiny/tiny-robot/pull/69)
+- **Sender**: 修复文本宽度自适应和超出隐藏 by @SonyLeo in [#56](https://github.com/opentiny/tiny-robot/pull/56)
+- **Sender**: 修复字数限制位置和超出标记 by @SonyLeo in [#55](https://github.com/opentiny/tiny-robot/pull/55)
+- **Sender**: 更新 Sender 组件文档和样式问题 by @SonyLeo in [#28](https://github.com/opentiny/tiny-robot/pull/28)
+- **Sender**: 修复文档和函数调用 by @SonyLeo in [#54](https://github.com/opentiny/tiny-robot/pull/54)
+- **BubbleList**: 修复气泡列表自动滚动不工作 by @Gene in [#37](https://github.com/opentiny/tiny-robot/pull/37)
+- **DropdownMenu**: 移除 Teleport to="body" 以兼容 Shadow DOM by @Gene in [#79](https://github.com/opentiny/tiny-robot/pull/79)
+- **Style**: 修复一些样式问题并添加全局根 CSS by @Gene in [#72](https://github.com/opentiny/tiny-robot/pull/72)
+- **AIModelConfig**: 添加可选属性以扩展 provider 并修复 handleSSEStream 相关问题 by @shenjunjian [#75](https://github.com/opentiny/tiny-robot/pull/75)
+- **Compatibility**: 使用 ref 替换 useTemplateRef 以兼容 Vue 3.4 by @Gene in [#66](https://github.com/opentiny/tiny-robot/pull/66)
+- **Docs**: 更新 vitepress-demo-plugin 以修复构建文档错误 by @Gene in [#45](https://github.com/opentiny/tiny-robot/pull/45)
