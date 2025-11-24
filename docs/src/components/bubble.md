@@ -155,22 +155,9 @@ content 对象中的所有属性都将传递给组件，onXXX会当作事件传�
 
 <demo vue="../../demos/bubble/list-hidden.vue" />
 
-## API
+## Props
 
-### BubblePlacement
-
-气泡位置类型：
-
-```typescript
-type BubblePlacement = 'start' | 'end'
-```
-
-- `'start'`: 气泡位于左侧/起始位置
-- `'end'`: 气泡位于右侧/结束位置
-
-### BubbleCommonProps
-
-气泡通用属性配置。
+**BubbleCommonProps** - 气泡通用属性配置
 
 | 属性                 | 类型                    | 默认值           | 说明                                                                                                          |
 | -------------------- | ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -179,12 +166,10 @@ type BubblePlacement = 'start' | 'end'
 | `shape`              | `'rounded' \| 'corner'` | `'corner'`       | 气泡形状                                                                                                      |
 | `contentRenderer`    | `BubbleContentRenderer` | -                | 气泡内容渲染器（当 content 是非空数组时无效，使用 BubbleProvider 注册的渲染器）                               |
 | `customContentField` | `string`                | -                | 自定义气泡内容字段。比如 customContentField 设置为 'my-content'，则 Bubble 优先渲染 my-content 属性到气泡内容 |
-| `abortedText`        | `string`                | -                | 气泡中止文本                                                                                                  |
-| `maxWidth`           | `string \| number`      | `'（用户停止）'` | 气泡内容的最大宽度                                                                                            |
+| `abortedText`        | `string`                | `'（用户停止）'` | 气泡中止文本                                                                                                  |
+| `maxWidth`           | `string \| number`      | -                | 气泡内容的最大宽度                                                                                            |
 
-### BubbleProps
-
-单个气泡的属性配置（继承自 BubbleCommonProps）。
+**BubbleProps** - 单个气泡的属性配置（继承自 BubbleCommonProps）
 
 | 属性      | 类型                            | 默认值  | 说明                                |
 | --------- | ------------------------------- | ------- | ----------------------------------- |
@@ -194,33 +179,7 @@ type BubblePlacement = 'start' | 'end'
 | `loading` | `boolean`                       | `false` | 是否显示加载状态                    |
 | `aborted` | `boolean`                       | `false` | 是否显示为已中止状态                |
 
----
-
-### BubbleSlots
-
-气泡组件的插槽定义。
-
-| 插槽名    | 参数                                           | 说明                                 |
-| --------- | ---------------------------------------------- | ------------------------------------ |
-| `default` | `{ bubbleProps: BubbleProps; index?: number }` | 默认内容插槽，用于自定义气泡内容     |
-| `footer`  | `{ bubbleProps: BubbleProps; index?: number }` | 底部插槽，用于在气泡底部添加内容     |
-| `loading` | `{ bubbleProps: BubbleProps; index?: number }` | 加载状态插槽，用于自定义加载状态显示 |
-| `trailer` | `{ bubbleProps: BubbleProps; index?: number }` | 尾部插槽，用于在气泡内容外部添加内容 |
-
-### BubbleRoleConfig
-
-角色配置类型（继承自 BubbleCommonProps）。
-
-```ts
-type BubbleRoleConfig = BubbleCommonProps & {
-  hidden?: boolean
-  slots?: BubbleSlots
-}
-```
-
-### BubbleListProps
-
-气泡列表组件的属性配置。
+**BubbleListProps** - 气泡列表组件的属性配置
 
 | 属性          | 类型                                        | 默认值  | 说明                         |
 | ------------- | ------------------------------------------- | ------- | ---------------------------- |
@@ -230,7 +189,7 @@ type BubbleRoleConfig = BubbleCommonProps & {
 | `loadingRole` | `string`                                    | -       | 指定哪个角色可以有加载中状态 |
 | `autoScroll`  | `boolean`                                   | `false` | 是否自动滚动到最新内容       |
 
-### BubbleProviderProps
+**BubbleProviderProps**
 
 ```ts
 type BubbleProviderProps = {
@@ -238,9 +197,36 @@ type BubbleProviderProps = {
 }
 ```
 
-### BubbleContentItem
+## Slots
 
-单条消息对象的结构。
+| 插槽名    | 参数                                           | 说明                                 |
+| --------- | ---------------------------------------------- | ------------------------------------ |
+| `default` | `{ bubbleProps: BubbleProps; index?: number }` | 默认内容插槽，用于自定义气泡内容     |
+| `footer`  | `{ bubbleProps: BubbleProps; index?: number }` | 底部插槽，用于在气泡底部添加内容     |
+| `loading` | `{ bubbleProps: BubbleProps; index?: number }` | 加载状态插槽，用于自定义加载状态显示 |
+| `trailer` | `{ bubbleProps: BubbleProps; index?: number }` | 尾部插槽，用于在气泡内容外部添加内容 |
+
+## Types
+
+**BubblePlacement** - 气泡位置类型
+
+```typescript
+type BubblePlacement = 'start' | 'end'
+```
+
+- `'start'`: 气泡位于左侧/起始位置
+- `'end'`: 气泡位于右侧/结束位置
+
+**BubbleRoleConfig** - 角色配置类型（继承自 BubbleCommonProps）
+
+```ts
+type BubbleRoleConfig = BubbleCommonProps & {
+  hidden?: boolean
+  slots?: BubbleSlots
+}
+```
+
+**BubbleContentItem** - 单条消息对象的结构
 
 ```typescript
 interface BubbleContentItem {
@@ -254,9 +240,7 @@ interface BubbleContentItem {
 | `type`          | `string` | 消息类型，用于选择对应的渲染器                   |
 | `[key: string]` | `any`    | 其他字段可自由扩展，用于携带消息所需的自定义数据 |
 
-### BubbleContentRenderer
-
-用于渲染气泡消息内容的渲染器类型。
+**BubbleContentRenderer** - 用于渲染气泡消息内容的渲染器类型
 
 ```typescript
 type BubbleContentRenderer = BubbleContentFunctionRenderer | BubbleContentClassRenderer | Component
@@ -266,9 +250,7 @@ type BubbleContentRenderer = BubbleContentFunctionRenderer | BubbleContentClassR
 - `BubbleContentClassRenderer`: 基于类的渲染器，需实现 `.render()` 方法
 - `Component`: 任意 Vue 组件，也可以用作渲染器
 
-### BubbleContentFunctionRenderer
-
-函数式消息渲染器：
+**BubbleContentFunctionRenderer** - 函数式消息渲染器
 
 ```typescript
 type BubbleContentFunctionRenderer = (options: { [key: string]: any }) => VNode
@@ -279,9 +261,7 @@ type BubbleContentFunctionRenderer = (options: { [key: string]: any }) => VNode
 | `options` | `{ [key: string]: any }` | 与消息类型 (`BubbleContentItem`) 对应的数据 |
 | 返回值    | `VNode`                  | 渲染结果                                    |
 
-### BubbleContentClassRenderer
-
-基于类的消息渲染器：
+**BubbleContentClassRenderer** - 基于类的消息渲染器
 
 ```typescript
 abstract class BubbleContentClassRenderer {
@@ -289,24 +269,22 @@ abstract class BubbleContentClassRenderer {
 }
 ```
 
-### CSS 变量
+## CSS 变量
 
-#### Bubble 组件变量
-
-Bubble 根元素
+**Bubble 根元素**
 
 | 变量名                  | 说明           |
 | ----------------------- | -------------- |
 | `--tr-bubble-gap`       | 头像与内容间距 |
 | `--tr-bubble-max-width` | 气泡最大宽度   |
 
-avatar 头像
+**avatar 头像**
 
 | 变量名                    | 说明     |
 | ------------------------- | -------- |
 | `--tr-bubble-avatar-size` | 头像尺寸 |
 
-content 内容
+**content 内容**
 
 | 变量名                              | 说明                                                |
 | ----------------------------------- | --------------------------------------------------- |
@@ -317,7 +295,7 @@ content 内容
 | `--tr-bubble-content-border`        | 内容边框样式                                        |
 | `--tr-bubble-content-items-gap`     | 内容项之间的间距（仅当 `content` 属性是数组时有效） |
 
-text 文本（仅当 `content` 属性是字符串时有效）
+**text 文本**（仅当 `content` 属性是字符串时有效）
 
 | 变量名                         | 说明         |
 | ------------------------------ | ------------ |
@@ -325,26 +303,26 @@ text 文本（仅当 `content` 属性是字符串时有效）
 | `--tr-bubble-text-font-size`   | 文本字号     |
 | `--tr-bubble-text-line-height` | 文本行高     |
 
-loading 加载
+**loading 加载**
 
 | 变量名                     | 说明         |
 | -------------------------- | ------------ |
 | `--tr-bubble-loading-size` | 加载图标尺寸 |
 
-aborted 中止状态
+**aborted 中止状态**
 
 | 变量名                          | 说明         |
 | ------------------------------- | ------------ |
 | `--tr-bubble-aborted-color`     | 中止文字颜色 |
 | `--tr-bubble-aborted-font-size` | 中止文字字号 |
 
-footer 底部
+**footer 底部**
 
 | 变量名                      | 说明       |
 | --------------------------- | ---------- |
 | `--tr-bubble-footer-margin` | 底部外边距 |
 
-#### BubbleList 容器变量
+**BubbleList 容器变量**
 
 | 变量名                     | 说明             |
 | -------------------------- | ---------------- |
