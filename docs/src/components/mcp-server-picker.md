@@ -1,5 +1,5 @@
 ---
-outline: deep
+outline: [1, 3]
 ---
 
 # MCP Server Picker 插件选择器
@@ -51,96 +51,55 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 <demo vue="../../demos/mcp-server-picker/popup-config.vue" />
 
 
-## API
+## Props
 
-### Props
+| 属性                       | 类型                      | 默认值                                                            | 说明                                         |
+| -------------------------- | ------------------------- | ----------------------------------------------------------------- | -------------------------------------------- |
+| installedPlugins           | `PluginInfo[]`            | `[]`                                                              | 已安装插件列表                               |
+| marketPlugins              | `PluginInfo[]`            | `[]`                                                              | 市场插件列表                                 |
+| enableSearch               | `boolean`                 | `true`                                                            | 是否启用搜索功能                             |
+| searchPlaceholder          | `string`                  | `'搜索插件'`                                                      | 搜索框占位符                                 |
+| enableMarketCategoryFilter | `boolean`                 | `true`                                                            | 是否启用市场分类筛选功能                     |
+| marketCategoryOptions      | `MarketCategoryOption[]`  | `[]`                                                              | 市场分类选项列表                             |
+| marketCategoryPlaceholder  | `string`                  | `'按照分类筛选'`                                                  | 分类筛选下拉框占位符                         |
+| visible                    | `boolean`                 | `false`                                                           | 是否显示整个组件面板（支持 v-model:visible） |
+| activeCount                | `number`                  | -                                                                 | 激活插件数量（支持 v-model:activeCount）     |
+| defaultActiveTab           | `'installed' \| 'market'` | `'installed'`                                                     | 默认激活的标签页                             |
+| showInstalledTab           | `boolean`                 | `true`                                                            | 是否显示已安装标签页                         |
+| showMarketTab              | `boolean`                 | `true`                                                            | 是否显示市场标签页                           |
+| installedTabTitle          | `string`                  | `'已安装插件'`                                                    | 已安装标签页标题                             |
+| marketTabTitle             | `string`                  | `'市场'`                                                          | 市场标签页标题                               |
+| popupConfig                | `PopupConfig`             | `{ type: 'fixed', position: {}, drawer: { direction: 'right' } }` | 弹出配置对象                                 |
+| title                      | `string`                  | `'插件'`                                                          | 组件标题                                     |
+| showCustomAddButton        | `boolean`                 | `true`                                                            | 是否显示自定义添加按钮                       |
+| customAddButtonText        | `string`                  | `'自定义添加'`                                                    | 自定义添加按钮文本                           |
+| allowPluginToggle          | `boolean`                 | `true`                                                            | 是否允许切换插件状态                         |
+| allowToolToggle            | `boolean`                 | `true`                                                            | 是否允许切换工具状态                         |
+| allowPluginDelete          | `boolean`                 | `true`                                                            | 是否允许删除插件                             |
+| allowPluginAdd             | `boolean`                 | `true`                                                            | 是否允许添加插件                             |
+| loading                    | `boolean`                 | `false`                                                           | 已安装插件加载状态                           |
+| marketLoading              | `boolean`                 | `false`                                                           | 市场插件加载状态                             |
 
-#### 数据源配置
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `installedPlugins` | `PluginInfo[]` | `[]` | 已安装插件列表 |
-| `marketPlugins` | `PluginInfo[]` | `[]` | 市场插件列表 |
+## Events
 
-#### 搜索与筛选
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `enableSearch` | `boolean` | `true` | 是否启用搜索功能 |
-| `searchPlaceholder` | `string` | `'搜索插件'` | 搜索框占位符 |
-| `enableMarketCategoryFilter` | `boolean` | `true` | 是否启用市场分类筛选功能 |
-| `marketCategoryOptions` | `MarketCategoryOption[]` | `[]` | 市场分类选项列表 |
-| `marketCategoryPlaceholder` | `string` | `'按照分类筛选'` | 分类筛选下拉框占位符 |
+| 事件名                   | 说明                   | 回调参数                                                |
+| ------------------------ | ---------------------- | ------------------------------------------------------- |
+| market-category-change   | 市场分类筛选变化       | `(category: string)`                                    |
+| installedSearchFn        | 已添加插件搜索函数     | `(query: string, item: PluginInfo) => boolean`          |
+| marketSearchFn           | 市场插件搜索函数       | `(query: string, item: PluginInfo) => boolean`          |
+| update:visible           | 面板显示状态变化       | `(visible: boolean)`                                    |
+| update:activeCount       | 激活插件数量变化       | `(count: number)`                                       |
+| tab-change               | 标签页切换             | `(activeTab: 'installed' \| 'market')`                  |
+| plugin-toggle            | 插件启用/禁用          | `(plugin: PluginInfo, enabled: boolean)`                |
+| plugin-delete            | 删除插件               | `(plugin: PluginInfo)`                                  |
+| plugin-add               | 市场插件添加           | `(plugin: PluginInfo)`                                  |
+| plugin-create            | 插件创建               | `(type: 'form' \| 'code', data: PluginCreationData)`    |
+| tool-toggle              | 工具启用/禁用          | `(plugin: PluginInfo, toolId: string, enabled: boolean)` |
+| refresh                  | 刷新请求               | `(tab: 'installed' \| 'market')`                        |
 
-#### 面板控制
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `visible` | `boolean` | `false` | 是否显示整个组件面板（支持 v-model:visible） |
-| `activeCount` | `number` | - | 激活插件数量（支持 v-model:activeCount） |
-| `defaultActiveTab` | `'installed' \| 'market'` | `'installed'` | 默认激活的标签页 |
-| `showInstalledTab` | `boolean` | `true` | 是否显示已安装标签页 |
-| `showMarketTab` | `boolean` | `true` | 是否显示市场标签页 |
-| `installedTabTitle` | `string` | `'已安装插件'` | 已安装标签页标题 |
-| `marketTabTitle` | `string` | `'市场'` | 市场标签页标题 |
-| `popupConfig` | `PopupConfig` | `{ type: 'fixed', position: {}, drawer: { direction: 'right' } }` | 弹出配置对象 |
+## Types
 
-
-#### 头部配置
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `title` | `string` | `'插件'` | 组件标题 |
-| `showCustomAddButton` | `boolean` | `true` | 是否显示自定义添加按钮 |
-| `customAddButtonText` | `string` | `'自定义添加'` | 自定义添加按钮文本 |
-
-#### 行为控制
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `allowPluginToggle` | `boolean` | `true` | 是否允许切换插件状态 |
-| `allowToolToggle` | `boolean` | `true` | 是否允许切换工具状态 |
-| `allowPluginDelete` | `boolean` | `true` | 是否允许删除插件 |
-| `allowPluginAdd` | `boolean` | `true` | 是否允许添加插件 |
-
-#### 状态控制
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `loading` | `boolean` | `false` | 已安装插件加载状态 |
-| `marketLoading` | `boolean` | `false` | 市场插件加载状态 |
-
-### Events
-
-#### 搜索与筛选
-| 事件名 | 参数 | 默认 | 说明 |
-|--------|------|------|------|
-| `market-category-change` | `(category: string)` | 无 | 市场分类筛选变化 |
-| `installedSearchFn` | `(query: string, item: PluginInfo) => boolean` | `默认按 name 包含匹配` | 已添加插件搜索函数 |
-| `marketSearchFn` | `(query: string, item: PluginInfo) => boolean` | `默认按 name 包含匹配` | 市场插件搜索函数 |
-
-#### 面板控制
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| `update:visible` | `(visible: boolean)` | 面板显示状态变化 |
-| `update:activeCount` | `(count: number)` | 激活插件数量变化 |
-| `tab-change` | `(activeTab: 'installed' \| 'market')` | 标签页切换 |
-
-#### 插件操作
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| `plugin-toggle` | `(plugin: PluginInfo, enabled: boolean)` | 插件启用/禁用 |
-| `plugin-delete` | `(plugin: PluginInfo)` | 删除插件 |
-| `plugin-add` | `(plugin: PluginInfo)` | 市场插件添加 |
-| `plugin-create` | `(type: 'form' \| 'code', data: PluginCreationData)` | 插件创建 |
-
-#### 工具操作
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| `tool-toggle` | `(plugin: PluginInfo, toolId: string, enabled: boolean)` | 工具启用/禁用 |
-
-#### 其他
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| `refresh` | `(tab: 'installed' \| 'market')` | 刷新请求 |
-
-### Types
-
-#### PluginInfo
+**PluginInfo**
 
 插件信息类型：
 
@@ -160,7 +119,7 @@ interface PluginInfo {
 }
 ```
 
-#### PluginTool
+**PluginTool**
 
 插件工具类型：
 
@@ -173,7 +132,7 @@ interface PluginTool {
 }
 ```
 
-#### MarketCategoryOption
+**MarketCategoryOption**
 
 市场分类选项类型：
 
@@ -184,7 +143,7 @@ interface MarketCategoryOption {
 }
 ```
 
-#### PluginFormData
+**PluginFormData**
 
 表单方式添加插件数据类型：
 
@@ -199,7 +158,7 @@ interface PluginFormData {
 }
 ```
 
-#### PluginCreationData
+**PluginCreationData**
 
 PluginCreationData 类型是 PluginFormData 或 string 的联合类型，用于表示插件创建的数据。
 
@@ -207,7 +166,7 @@ PluginCreationData 类型是 PluginFormData 或 string 的联合类型，用于�
 type PluginCreationData = PluginFormData | string
 ```
 
-#### PopupConfig
+**PopupConfig**
 
 弹窗配置类型：
 
