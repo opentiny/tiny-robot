@@ -23,7 +23,11 @@ const sharedSidebarItems = [
   {
     text: '指南',
     base: '/guide/',
-    items: [{ text: '快速开始', link: 'quick-start' }],
+    items: [
+      { text: '快速开始', link: 'quick-start' },
+      { text: '主题配置', link: 'theme-config' },
+      { text: '更新日志', link: 'update-log' },
+    ],
   },
   {
     text: '组件',
@@ -53,11 +57,6 @@ const sharedSidebarItems = [
       { text: '消息数据管理', link: 'message' },
       { text: '会话数据管理', link: 'conversation' },
     ],
-  },
-  {
-    text: '更新',
-    base: '/releases/',
-    items: [{ text: '更新日志', link: 'update-log' }],
   },
 ]
 
@@ -106,7 +105,6 @@ export default defineConfig({
       '/guide/': sharedSidebarItems,
       '/components/': sharedSidebarItems,
       '/tools/': sharedSidebarItems,
-      '/releases/': sharedSidebarItems,
       '/examples/': [
         {
           text: '演示',

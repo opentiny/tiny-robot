@@ -1,137 +1,117 @@
 
-# 版本更新日志
+# 更新日志
 
-## 0.3.0-rc.6 (25.11.10)
+TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
-组件
+在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
-1.【特性】【History 历史组件】新增自定义历史项渲染支持
+## 0.3.0-rc.6
 
-- 新增 `item-prefix` 插槽，支持自定义历史项前缀图标
-- 新增 `item-title` 插槽，支持自定义历史项标题渲染
+`2025-11-10`
 
-2.【特性】【Bubble 气泡组件】增强内容渲染器能力
+### ✨ 新特性
 
-- 支持为渲染组件配置 `defaultProps`，提供默认属性
-- 新增 `trailer` 插槽，支持在气泡内容底部添加自定义内容
-- 优化插槽处理逻辑
+- **History**: 新增 `item-prefix` 和 `item-title` 插槽，支持自定义历史项渲染 by @Gene in [#256](https://github.com/opentiny/tiny-robot/pull/256)
+- **Bubble**: 支持为渲染组件配置 `defaultProps`，提供默认属性 by @Gene in [#253](https://github.com/opentiny/tiny-robot/pull/253)
+- **Bubble**: 新增 `trailer` 插槽，增强插槽处理逻辑 by @Gene in [#237](https://github.com/opentiny/tiny-robot/pull/237)
+- **Bubble**: 改进气泡组件，优化 trailer 插槽和样式增强 by @Gene in [#257](https://github.com/opentiny/tiny-robot/pull/257)
+- **Sender**: 支持自定义语音输入功能 by @lisong in [#245](https://github.com/opentiny/tiny-robot/pull/245)
+- **Sender**: 支持自定义录音 UI 和节点点击事件 by @lisong in [#246](https://github.com/opentiny/tiny-robot/pull/246)
+- **Sender**: 新增 `tooltipPlacement` 属性，支持配置文件上传按钮提示框位置 by @lisong in [#235](https://github.com/opentiny/tiny-robot/pull/235)
+- **TemplateEditor**: 新增 `autoSize` 属性支持，控制模板编辑器自适应尺寸 by @lisong in [#255](https://github.com/opentiny/tiny-robot/pull/255)
+- **Playground**: 初始化 TinyRobot Playground 项目 by @Gene in [#249](https://github.com/opentiny/tiny-robot/pull/249)
+- **useConversation**: 增强会话加载功能，新增 `onLoaded` 回调和消息发送逻辑 by @Gene in [#232](https://github.com/opentiny/tiny-robot/pull/232)
 
-3.【特性】【Sender 组件】语音输入功能增强
+### 🔨 优化改进
 
-- 支持自定义语音输入功能，可配置自定义语音识别服务
-- 支持自定义录音 UI 和节点点击事件
-- 新增 `tooltipPlacement` 属性，支持配置文件上传按钮提示框位置
-- 优化清除按钮的显示逻辑
-- 优化上传提示框默认位置为 `top-end`
+- **Prompt**: 新增宽度相关的 CSS 变量，优化 UI 一致性 by @Gene in [#248](https://github.com/opentiny/tiny-robot/pull/248)
+- **McpServerPicker**: 优化插件卡片边框颜色效果 by @lisong in [#233](https://github.com/opentiny/tiny-robot/pull/233)
+- **Sender**: 调整清除按钮的显示时机 by @lisong in [#250](https://github.com/opentiny/tiny-robot/pull/250)
+- **Sender**: 上传提示框默认位置改为 `top-end` by @lisong in [#234](https://github.com/opentiny/tiny-robot/pull/234)
+- **Docs**: 新增侧边栏导航，增加指南和示例导航分组 by @Gene in [#252](https://github.com/opentiny/tiny-robot/pull/252)
+- **Docs**: 将 Playground 集成到文档网站 by @Gene in [#247](https://github.com/opentiny/tiny-robot/pull/247)
+- **Docs**: TinyRobot 文档样式优化 by @wuyiping in [#236](https://github.com/opentiny/tiny-robot/pull/236)
 
-4.【特性】【模板编辑器】新增 `autoSize` 属性支持，控制模板编辑器自适应尺寸
+### 🐛 问题修复
 
-5.【优化】【Prompt 提示词组件】增强样式扩展性
+- **Docs**: 修复文档构建时 'Element is missing end tag' 错误 by @Kagol in [#244](https://github.com/opentiny/tiny-robot/pull/244)
+- **CI**: 修复源仓库 PR 的 E2E 测试流水线失败问题 by @lisong in [#241](https://github.com/opentiny/tiny-robot/pull/241)
+- **Docs**: 修复首页链接错误 by @Kagol in [#239](https://github.com/opentiny/tiny-robot/pull/239)
+- **Assistant**: 修复 Assistant 演示会话问题 by @Gene in [#231](https://github.com/opentiny/tiny-robot/pull/231)
 
-- 新增宽度相关的 CSS 变量
-- 优化 UI 一致性
+## 0.3.0-rc.5
 
-6.【优化】【McpServerPicker Mcp插件选择器】优化插件卡片边框颜色效果
-
-工具
-
-1.【特性】【useConversation】增强会话加载功能
-
-- 新增 `onLoaded` 回调函数，支持会话加载完成后的回调处理
-- 优化消息发送逻辑
-
-其他
-
-1.【特性】【Playground】新增 TinyRobot Playground 在线演练场项目
-
-- 创建独立的 Playground 项目
-- 集成到文档网站中，提供在线体验功能
-
-2.【文档】优化文档结构和样式
-
-- 新增侧边栏导航，增加指南和示例导航分组
-- 优化文档样式，提升阅读体验
-
-3.【问题】修复多个问题
-
-- 修复文档构建时 'Element is missing end tag' 错误
-- 修复源仓库 PR 的 E2E 测试流水线失败问题
-- 修复首页链接错误
-- 修复 Assistant 演示会话问题
-
-## 0.3.0-rc.5 (25.9.17)
+`2025-09-17`
 
 > [!IMPORTANT]
 > **Breaking Change**: History 历史组件 Props 参数变更，请参考文档
 
-组件
+### 🔨 优化改进
 
-1.【优化】【Bubble 气泡组件】优化自动滚动逻辑
+**Bubble 气泡组件**
+- 优化自动滚动逻辑
 
-2.【重构】【History 历史组件】移动端友好性重构
-
+**History 历史组件**（重构）
 - 优化 Props 参数
 - 新增触摸设备检测，优化移动端交互
 - 新增自定义菜单项配置支持
 
-3.【优化】【Sender 组件】
-
+**Sender 消息输入框**
 - 新增 `upload-popper-class` 属性，支持自定义上传提示框样式
-- 修复相同文件上传不触发事件的问题
 - 优化工具提示弹出位置和显示逻辑
-- 修复工具提示弹窗异常显示问题
 
-工具
-
-1.【优化】【useMessage】增强消息处理能力
-
+**useMessage**
 - 新增消息完成原因支持
 - 优化消息状态管理逻辑
 
-其他
-
-1.【文档】优化文档样式和内容
-
+**文档**
 - 更新文档网站样式和布局
 - 优化组件示例和说明文档
 
-## 0.3.0-rc.4 (25.9.10)
+### 🐛 问题修复
 
-组件
+- 修复 Sender 组件相同文件上传不触发事件的问题
+- 修复 Sender 组件工具提示弹窗异常显示问题
 
-1.【特性】【McpAddForm Mcp添加表单】新增独立的 MCP 插件添加表单组件
+## 0.3.0-rc.4
 
+`2025-09-10`
+
+### ✨ 新特性
+
+**McpAddForm Mcp添加表单**
+- 新增独立的 MCP 插件添加表单组件
 - 支持表单添加和代码添加两种方式
 - 提供完整的表单验证和数据处理功能
 - 支持文件上传和代码编辑器
 - 从 McpServerPicker 组件中抽取，提升代码复用性
 
-2.【优化】【McpServerPicker Mcp插件选择器】
+### 🔨 优化改进
 
+**McpServerPicker 插件选择器**
 - 更新样式使用 CSS 变量，增强主题一致性
 - 优化插件卡片和模态框的视觉效果
 - 改进搜索和添加按钮的图标设计
-- 修复暗色模式下标签页颜色异常问题
 
-3.【优化】【Sender 组件】
-
+**Sender 消息输入框**
 - 更新操作按钮图标设计
 - 优化清除和上传按钮的视觉表现
 
-4.【优化】【样式系统】
-
+**样式系统**
 - 统一组件间的样式变量使用
 - 提升暗色模式下的显示效果
 
-工具
+**useConversation**
+- 添加 `allowEmpty` 参数，默认不允许重复创建空白会话
 
-1.【优化】【useConversation】添加 allowEmpty 参数，默认不允许重复创建空白会话
+**文档**
+- 新增 McpAddForm 组件完整文档和示例
+- 优化 MCP 相关组件的代码结构
+- 更新相关 SVG 图标资源
 
-其他
+### 🐛 问题修复
 
-1.【文档】新增 McpAddForm 组件完整文档和示例  
-2.【重构】优化 MCP 相关组件的代码结构  
-3.【图标】更新相关 SVG 图标资源
+- 修复 McpServerPicker 暗色模式下标签页颜色异常问题
 
 ## 0.2.15 (25.7.17)
 
