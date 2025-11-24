@@ -77,11 +77,21 @@ setTheme('custom-theme') // 设置主题
 
 <demo vue="../../demos/theme-provider/Storage.vue" :vueFiles="['../../demos/theme-provider/Storage.vue', '../../demos/theme-provider/StorageComp.vue']" />
 
-## API
+## Props
 
-### ColorMode
+**ThemeProviderProps** - ThemeProvider 组件的属性配置
 
-颜色模式类型：
+| 属性            | 类型           | 必填 | 默认值                    | 说明                                                              |
+| --------------- | -------------- | ---- | ------------------------- | ----------------------------------------------------------------- |
+| `colorMode`     | `ColorMode`    | 否   | `'auto'`                  | 颜色模式，支持 v-model 双向绑定                                   |
+| `targetElement` | `string`       | 否   | `'html'`                  | 应用主题属性选择器的目标元素，主题只会影响 targetElement 下的元素 |
+| `theme`         | `string`       | 否   | `''`                      | 主题名称，支持 v-model 双向绑定                                   |
+| `storage`       | `ThemeStorage` | 否   | -                         | 主题数据存储实现，用于持久化主题设置                              |
+| `storageKey`    | `string`       | 否   | `'tiny-robot-theme-data'` | 存储键名，用于在 storage 中标识主题数据                           |
+
+## Types
+
+**ColorMode** - 颜色模式类型
 
 ```typescript
 type ColorMode = 'light' | 'dark' | 'auto'
@@ -91,9 +101,7 @@ type ColorMode = 'light' | 'dark' | 'auto'
 - `'dark'`: 暗色模式
 - `'auto'`: 自动模式，跟随系统设置
 
-### ThemeStorage
-
-主题存储接口类型：
+**ThemeStorage** - 主题存储接口类型
 
 ```typescript
 type ThemeStorage = Pick<Storage, 'getItem' | 'setItem'>
@@ -104,26 +112,14 @@ type ThemeStorage = Pick<Storage, 'getItem' | 'setItem'>
 | `getItem` | `function` | 获取存储项的方法 |
 | `setItem` | `function` | 设置存储项的方法 |
 
-### ThemeProviderProps
+## Composables
 
-ThemeProvider 组件的属性配置。
-
-| 属性            | 类型           | 默认值                    | 说明                                                              |
-| --------------- | -------------- | ------------------------- | ----------------------------------------------------------------- |
-| `colorMode`     | `ColorMode`    | `'auto'`                  | 颜色模式，支持 v-model 双向绑定                                   |
-| `targetElement` | `string`       | `'html'`                  | 应用主题属性选择器的目标元素，主题只会影响 targetElement 下的元素 |
-| `theme`         | `string`       | `''`                      | 主题名称，支持 v-model 双向绑定                                   |
-| `storage`       | `ThemeStorage` | -                         | 主题数据存储实现，用于持久化主题设置                              |
-| `storageKey`    | `string`       | `'tiny-robot-theme-data'` | 存储键名，用于在 storage 中标识主题数据                           |
-
-### useTheme
-
-主题相关的组合式函数，提供主题和颜色模式的操作 API。
+**useTheme** - 主题相关的组合式函数，提供主题和颜色模式的操作 API
 
 > [!IMPORTANT]
 > `useTheme` 只能在 `ThemeProvider` 包裹的组件中使用。如果在没有 `ThemeProvider` 的组件中使用，相关方法会返回 `false` 并在控制台输出警告信息。
 
-useTheme 返回值
+**返回值**
 
 ```typescript
 const { theme, colorMode, resolvedColorMode, systemColorMode, setTheme, toggleColorMode, setColorMode } = useTheme()
