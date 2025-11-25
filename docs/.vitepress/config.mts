@@ -103,7 +103,7 @@ export default defineConfig({
   },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: '/cdocs/tiny-robot/logo-mini.svg',
+    logo: '/logo-mini.svg',
     siteTitle: 'TinyRobot',
     nav: [
       { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
