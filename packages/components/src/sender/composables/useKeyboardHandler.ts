@@ -81,29 +81,70 @@ export function useKeyboardHandler(
   }
 
   /**
+   * 在光标位置插入换行符
+   * @param target 输入框元素
+   */
+  const insertNewLine = (target: HTMLTextAreaElement) => {
+    const cursorPosition = target.selectionStart
+    const currentValue = inputValue.value
+
+    // 在光标位置插入换行符
+    inputValue.value = currentValue.substring(0, cursorPosition) + '\n' + currentValue.substring(cursorPosition)
+
+    // 设置光标位置到换行符之后，并滚动到光标位置
+    setTimeout(() => {
+      target.selectionStart = target.selectionEnd = cursorPosition + 1
+      // 滚动到光标所在位置，确保光标可见
+      target.scrollTop = target.scrollHeight
+    }, 0)
+  }
+
+  /**
+   * 处理换行操作（仅在 submitType='enter' 时生效）
+   * @param event 键盘事件
+   * @returns 是否已处理换行
+   */
+  const handleNewLine = (event: KeyboardEvent): boolean => {
+    // 只在 submitType='enter' 时支持 Ctrl+Enter 和 Shift+Enter 换行
+    if (props.submitType !== 'enter' || event.key !== 'Enter') return false
+
+    const isCtrlEnter = event.ctrlKey && !event.shiftKey
+    const isShiftEnter = event.shiftKey && !event.ctrlKey
+
+    if (!isCtrlEnter && !isShiftEnter) return false
+
+    event.preventDefault()
+    const target = event.target as HTMLTextAreaElement
+
+    // Ctrl+Enter: 单行模式切换到多行，多行模式直接换行
+    if (isCtrlEnter) {
+      if (currentMode?.value === 'single' && setMultipleMode) {
+        setMultipleMode()
+      }
+      insertNewLine(target)
+      return true
+    }
+
+    // Shift+Enter: 单行模式切换到多行，多行模式直接换行
+    if (isShiftEnter) {
+      if (currentMode?.value === 'single' && setMultipleMode) {
+        setMultipleMode()
+      }
+      insertNewLine(target)
+      return true
+    }
+
+    return false
+  }
+
+  /**
    * 处理键盘按下事件
    */
   const handleKeyPress = (event: KeyboardEvent) => {
     if (isComposing.value) return // 阻止输入法状态下的提交
 
-    // 处理 Shift+Enter - 单行模式切换到多行模式并添加换行
-    if (event.key === 'Enter' && event.shiftKey && currentMode?.value === 'single' && setMultipleMode) {
-      event.preventDefault()
-      // 首先切换到多行模式
-      setMultipleMode()
-      // 然后在当前输入内容的光标位置添加换行符
-      const target = event.target as HTMLTextAreaElement
-      const cursorPosition = target.selectionStart
-      const currentValue = inputValue.value
-
-      // 在光标位置插入换行符
-      inputValue.value = currentValue.substring(0, cursorPosition) + '\n' + currentValue.substring(cursorPosition)
-
-      // 设置光标位置到换行符之后
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = cursorPosition + 1
-      }, 0)
-
+    // 优先处理换行操作
+    if (handleNewLine(event)) {
       return
     }
 
