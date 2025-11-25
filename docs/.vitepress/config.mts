@@ -67,7 +67,15 @@ export default defineConfig({
   srcDir: 'src',
   outDir: 'dist',
   base: process.env.VITEPRESS_BASE || '/',
-  head: [['link', { rel: 'icon', href: '/logo-mini.svg' }]],
+  head: [
+    [
+      'link',
+      {
+        rel: 'icon',
+        href: `${process.env.VITEPRESS_BASE ? process.env.VITEPRESS_BASE.replace(/\/$/, '') : ''}/logo-mini.svg`,
+      },
+    ],
+  ],
   vite: {
     plugins: [vueJsx()],
     server: {
