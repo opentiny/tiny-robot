@@ -4,6 +4,7 @@ import type { Component, VNode } from 'vue'
 export interface HistoryItem {
   id?: string
   title: string
+  icon?: Component | VNode
   [x: string]: any
 }
 
@@ -27,4 +28,9 @@ export type HistoryProps<T extends HistoryItem = HistoryItem> = {
   renameControlOnClickOutside?: 'confirm' | 'cancel' | 'none'
   menuItems?: HistoryMenuItem[]
   menuListGap?: number
+}
+
+export interface HistorySlots<T extends HistoryItem = HistoryItem> {
+  'item-prefix'?: (slotProps: { item: T }) => VNode | VNode[]
+  'item-title'?: (slotProps: { item: T }) => VNode | VNode[]
 }

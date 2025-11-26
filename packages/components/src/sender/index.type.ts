@@ -1,4 +1,4 @@
-import type { Ref, VNode } from 'vue'
+import type { Ref, VNode, Component } from 'vue'
 import type { TemplateItem, TextItem } from './types/editor.type'
 
 /**
@@ -14,12 +14,34 @@ export type InputMode = 'single' | 'multiple'
 // 提交触发方式
 export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
 
+// 语音回调函数集合
+export interface SpeechCallbacks {
+  onStart: () => void
+  onInterim: (transcript: string) => void
+  onFinal: (transcript: string) => void
+  onEnd: (transcript?: string) => void
+  onError: (error: Error) => void
+}
+
+// 语音处理器接口（统一接口，支持内置和自定义实现）
+// 职责说明：
+// - start: 启动语音识别，接收 callbacks 用于通知识别过程中的各种事件
+// - stop: 清理资源
+// - isSupported: 检查当前环境是否支持该语音识别方式
+export interface SpeechHandler {
+  start: (callbacks: SpeechCallbacks) => Promise<void> | void
+  stop: () => Promise<void> | void
+  isSupported: () => boolean
+}
+
 // 语音识别配置
 export interface SpeechConfig {
+  customHandler?: SpeechHandler // 自定义语音处理器（传入则使用自定义，否则使用内置）
   lang?: string // 识别语言，默认浏览器语言
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
   autoReplace?: boolean // 是否自动替换当前输入内容
+  onVoiceButtonClick?: (isRecording: boolean, preventDefault: () => void) => void | Promise<void> // 录音按钮点击拦截器
 }
 
 export type AutoSize = boolean | { minRows: number; maxRows: number }
@@ -50,9 +72,14 @@ interface fileUploadConfig {
   reset?: boolean // 选择文件后是否重置输入，默认为 true
 }
 
+interface VoiceButtonConfig {
+  icon?: VNode | Component // 自定义语音图标（未录音状态）
+}
+
 export interface ButtonGroupConfig {
   file?: ControlState & fileUploadConfig // 文件上传按钮
   submit?: ControlState // 提交按钮
+  voice?: VoiceButtonConfig // 语音按钮
 }
 // 高亮片段类型
 export interface SuggestionTextPart {
@@ -167,7 +194,7 @@ export interface KeyboardHandler {
 }
 
 // 语音识别Hook返回类型
-export interface SpeechHandler {
+export interface SpeechHandlerResult {
   speechState: SpeechState
   start: () => void
   stop: () => void

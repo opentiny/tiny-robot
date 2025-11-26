@@ -1,63 +1,63 @@
 <template>
-  <div style="display: flex; flex-direction: column; gap: 20px">
-    <!-- 默认位置 (top) -->
-    <div>
-      <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #666">默认 Tooltip 位置 (top)</h4>
-      <tr-sender
-        mode="multiple"
-        :allow-files="true"
-        :button-group="buttonGroup"
-        @files-selected="handleFilesSelected"
-        @submit="handleSubmit"
-      />
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+      <span style="font-weight: 500">Tooltip 位置：</span>
+      <label style="display: flex; align-items: center; gap: 4px; cursor: pointer">
+        <input type="radio" value="top" v-model="tooltipPlacement" style="cursor: pointer" />
+        <span>top</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 4px; cursor: pointer">
+        <input type="radio" value="bottom" v-model="tooltipPlacement" style="cursor: pointer" />
+        <span>bottom</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 4px; cursor: pointer">
+        <input type="radio" value="left" v-model="tooltipPlacement" style="cursor: pointer" />
+        <span>left</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 4px; cursor: pointer">
+        <input type="radio" value="right" v-model="tooltipPlacement" style="cursor: pointer" />
+        <span>right</span>
+      </label>
     </div>
+    <div style="padding: 8px 12px; background: #f5f7fa; border-radius: 4px; font-size: 13px; color: #666">
+      通过
+      <code style="background: #e8e8e8; padding: 2px 6px; border-radius: 3px">buttonGroup.file.tooltipPlacement</code>
+      配置 tooltip 位置，支持 top、top-start、top-end、bottom、bottom-start、bottom-end、left、right 等方向
+    </div>
+    <tr-sender
+      :key="tooltipPlacement"
+      mode="multiple"
+      :allow-files="true"
+      :button-group="buttonGroup"
+      @files-selected="handleFilesSelected"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 
+type TooltipPlacement = 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'right'
+const tooltipPlacement = ref<TooltipPlacement>('top')
+
 const renderTooltip = () => {
-  return h(
-    'div',
-    {
-      style: {
-        fontSize: '12px',
-        maxWidth: '200px',
-      },
-    },
-    [h('div', null, '• 支持最多上传3个图片（每个 10MB 以内）'), h('div', null, '• 支持图片格式JPG、PNG')],
-  )
+  return h('div', { style: { fontSize: '12px', maxWidth: '200px' } }, [
+    h('div', null, '• 支持图片格式 JPG、PNG'),
+    h('div', null, '• 单个文件不超过 10MB'),
+  ])
 }
 
-const buttonGroup = ref({
+const buttonGroup = computed(() => ({
   file: {
     tooltips: renderTooltip,
+    tooltipPlacement: tooltipPlacement.value,
     disabled: false,
     accept: 'image/jpeg, image/png',
   },
-  submit: {
-    tooltips: '',
-    disabled: false,
-  },
-})
+}))
 
 const handleFilesSelected = (files: File[]) => {
-  console.log(files)
-  // 文件数量大于3无法继续上传，禁用上传按钮并提示
-  if (files.length > 3) {
-    buttonGroup.value.file.disabled = true
-    buttonGroup.value.submit.disabled = true
-    buttonGroup.value.submit.tooltips = '请上传完再发送'
-  } else {
-    buttonGroup.value.file.disabled = false
-    buttonGroup.value.submit.disabled = false
-    buttonGroup.value.submit.tooltips = ''
-  }
-}
-
-const handleSubmit = (message: string) => {
-  console.log('submit', message)
+  console.log('选择的文件:', files)
 }
 </script>

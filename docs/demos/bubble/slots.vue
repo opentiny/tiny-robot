@@ -7,8 +7,8 @@
       </template>
     </tr-bubble>
     <hr />
-    <label>默认插槽、footer 插槽 和 trailer 插槽</label>
-    <tr-bubble :avatar="aiAvatar" :actions="['refresh', 'copy']">
+    <label>默认插槽、footer 插槽 和 trailer 插槽（鼠标hover气泡内容显示）</label>
+    <tr-bubble class="bubble" :avatar="aiAvatar" :actions="['refresh', 'copy']">
       <span style="color: orange"
         >TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。</span
       >
@@ -16,8 +16,10 @@
         <tr-feedback :operations="operations" :actions="actions" :sources="sources" />
       </template>
       <template #trailer>
-        <div>
-          <span>尾部插槽</span>
+        <div class="trailer-slot">
+          <IconButton :icon="IconCopy" />
+          <IconButton :icon="IconLike" />
+          <IconButton :icon="IconDislike" />
         </div>
       </template>
     </tr-bubble>
@@ -25,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-import { FeedbackProps, TrBubble, TrFeedback } from '@opentiny/tiny-robot'
-import { IconAi } from '@opentiny/tiny-robot-svgs'
+import { FeedbackProps, IconButton, TrBubble, TrFeedback } from '@opentiny/tiny-robot'
+import { IconAi, IconCopy, IconDislike, IconLike } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
@@ -68,3 +70,24 @@ const sources: FeedbackProps['sources'] = [
   },
 ]
 </script>
+
+<style scoped>
+.trailer-slot {
+  position: absolute;
+  top: 100%;
+  padding-top: 4px;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.bubble:hover .trailer-slot {
+  opacity: 1;
+  pointer-events: auto;
+}
+</style>

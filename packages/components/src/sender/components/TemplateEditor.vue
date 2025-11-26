@@ -34,6 +34,13 @@ const PLACEHOLDER = ZERO_WIDTH_CHAR
 const PREFIX = ZERO_WIDTH_CHAR
 const SUFFIX = ZERO_WIDTH_CHAR
 
+// 默认行高：16px(默认字号) * 2.5(line-height) = 40px
+const DEFAULT_LINE_HEIGHT = 40
+
+const props = defineProps<{
+  autoSize: boolean | { minRows: number; maxRows: number }
+}>()
+
 const model = defineModel<UserItem[]>({ default: () => [] })
 
 const emit = defineEmits<{
@@ -238,6 +245,67 @@ const structuredData = computed<StructuredDataItem[]>(() => {
 
 const editorRef = ref<HTMLDivElement | null>(null)
 
+const computedLineHeight = ref<number>(DEFAULT_LINE_HEIGHT)
+
+// 计算实际行高
+const calculateLineHeight = () => {
+  if (!editorRef.value) return
+
+  const styles = window.getComputedStyle(editorRef.value)
+  const fontSize = parseFloat(styles.fontSize)
+  const lineHeightValue = parseFloat(styles.lineHeight)
+
+  computedLineHeight.value = isNaN(lineHeightValue) ? fontSize * 2.5 : lineHeightValue
+}
+
+// 计算 autoSize 相关的样式
+const autoSizeStyle = computed(() => {
+  if (!props.autoSize) {
+    return {}
+  }
+
+  // 如果是 boolean 类型，使用默认配置
+  const config = typeof props.autoSize === 'boolean' ? { minRows: 1, maxRows: 3 } : props.autoSize
+
+  const minHeight = config.minRows * computedLineHeight.value
+  const maxHeight = config.maxRows * computedLineHeight.value
+
+  return {
+    minHeight: `${minHeight}px`,
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto' as const,
+    overflowX: 'hidden' as const,
+  }
+})
+
+// 滚动到光标位置
+const scrollToCaret = () => {
+  if (!editorRef.value) return
+
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return
+
+  const range = selection.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+  const editorRect = editorRef.value.getBoundingClientRect()
+
+  // 计算光标相对于编辑器的位置
+  const caretTop = rect.top - editorRect.top
+  const caretBottom = rect.bottom - editorRect.top
+
+  const scrollTop = editorRef.value.scrollTop
+  const editorHeight = editorRef.value.clientHeight
+
+  // 如果光标在可视区域下方，向下滚动
+  if (caretBottom > editorHeight) {
+    editorRef.value.scrollTop = scrollTop + (caretBottom - editorHeight) + 10
+  }
+  // 如果光标在可视区域上方，向上滚动
+  else if (caretTop < 0) {
+    editorRef.value.scrollTop = scrollTop + caretTop - 10
+  }
+}
+
 const serializeWithTimestamp = (obj: unknown) => {
   const timestamp = Date.now()
   const data = JSON.stringify(obj)
@@ -367,12 +435,15 @@ const setCaretPosition = (startEl: Element, startOffset: number, endEl?: Element
 
   if (!endEl) {
     selection.setBaseAndExtent(startNode, startNodeOffset, startNode, startNodeOffset)
-    return
+  } else {
+    const { node: endNode, offset: endNodeOffset } = getNodeAndOffset(endEl, endOffset ?? 0)
+    selection.setBaseAndExtent(startNode, startNodeOffset, endNode, endNodeOffset)
   }
 
-  const { node: endNode, offset: endNodeOffset } = getNodeAndOffset(endEl, endOffset ?? 0)
-
-  selection.setBaseAndExtent(startNode, startNodeOffset, endNode, endNodeOffset)
+  // 设置光标后滚动到可视区域
+  nextTick(() => {
+    scrollToCaret()
+  })
 }
 
 const insertNewTextAndSetCaretPosition = (content: string, insertAfter?: string) => {
@@ -665,6 +736,11 @@ const processInput = (range: EditorRange, inputType: string, inputData: string) 
   }
 
   model.value = transformInternalToUser(originalData.value)
+
+  // 输入后滚动到光标位置
+  nextTick(() => {
+    scrollToCaret()
+  })
 }
 
 // 光标定位
@@ -918,6 +994,11 @@ const handleCompositionEnd = (e: CompositionEvent) => {
 
     // 由于 composition 事件导致 dom 结构变化，Vue 无法控制，需要强制重新渲染
     forceRerender.value++
+
+    // composition 输入结束后滚动到光标位置
+    nextTick(() => {
+      scrollToCaret()
+    })
   } else {
     console.warn('range is null, compositionEnd:', e)
   }
@@ -1142,6 +1223,11 @@ const handleSelectionChange = () => {
 
 onMounted(() => {
   document.addEventListener('selectionchange', handleSelectionChange)
+
+  // 计算实际行高
+  nextTick(() => {
+    calculateLineHeight()
+  })
 })
 
 onUnmounted(() => {
@@ -1162,6 +1248,7 @@ defineExpose({
       ref="editorRef"
       :key="forceRerender"
       class="editor"
+      :style="autoSizeStyle"
       @beforeinput="handleBeforeInput"
       @compositionstart="handleCompositionStart"
       @compositionend="handleCompositionEnd"
@@ -1186,10 +1273,12 @@ defineExpose({
 
 <style lang="less" scoped>
 .editor-container {
+  width: 100%;
+  box-sizing: border-box;
+
   [contenteditable] {
     display: block;
     width: 100%;
-    min-height: 26px;
     font-size: var(--tr-sender-template-editor-font-size);
     line-height: 2.5;
     border-radius: 4px;
@@ -1203,6 +1292,12 @@ defineExpose({
     &:focus {
       outline: none;
       border: none;
+    }
+
+    // 确保内部元素也不会导致横向溢出
+    * {
+      max-width: 100%;
+      box-sizing: border-box;
     }
   }
 }

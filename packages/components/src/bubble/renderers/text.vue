@@ -10,8 +10,8 @@ const props = defineProps<{ content: string }>()
 .tr-bubble__text {
   color: var(--tr-text-primary);
   display: block;
-  font-size: 14px;
-  line-height: 24px;
+  font-size: var(--tr-bubble-text-font-size);
+  line-height: var(--tr-bubble-text-line-height);
   word-break: break-word;
   white-space: pre-line;
 }
