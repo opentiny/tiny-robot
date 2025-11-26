@@ -391,7 +391,7 @@ const isOverLimit = computed(() => {
 })
 
 // 键盘处理
-const { handleKeyPress }: KeyboardHandler = useKeyboardHandler(
+const { handleKeyPress, triggerSubmit }: KeyboardHandler = useKeyboardHandler(
   props,
   emit,
   inputValue,
@@ -409,29 +409,6 @@ const { handleKeyPress }: KeyboardHandler = useKeyboardHandler(
   showTemplateEditor,
   exitTemplateMode,
 )
-
-// 包装 triggerSubmit，在清空前保存并传递 templateData
-const triggerSubmit = () => {
-  if (!canSubmit.value) return
-
-  // 在清空之前保存 templateData 的深拷贝，并移除内部使用的 id
-  const templateDataSnapshot = showTemplateEditor.value
-    ? JSON.parse(JSON.stringify(props.templateData)).map((item: UserItem) => {
-        // 移除 id 字段，只保留用户需要的数据
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, ...rest } = item as Record<string, unknown>
-        return rest
-      })
-    : []
-
-  // 如果是模板模式，退出并清空
-  if (showTemplateEditor.value) {
-    exitTemplateMode()
-  }
-
-  // 触发 submit 事件，同时传递 inputValue 和 templateData（不含 id）
-  emit('submit', inputValue.value.trim(), templateDataSnapshot)
-}
 
 // 处理焦点事件
 const handleFocus = (event: FocusEvent) => {
