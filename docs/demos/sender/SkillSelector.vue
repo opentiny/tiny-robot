@@ -4,7 +4,6 @@ import { computed, ref, watch, nextTick } from 'vue'
 export interface SkillOption {
   label: string
   value: string
-  description?: string
 }
 
 interface Props {
@@ -72,13 +71,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
       activeIndex.value = (activeIndex.value - 1 + filteredSkills.value.length) % filteredSkills.value.length
       scrollToActive()
       break
-    case 'Enter':
-      e.preventDefault()
-      e.stopPropagation()
-      if (filteredSkills.value[activeIndex.value]) {
-        selectSkill(filteredSkills.value[activeIndex.value])
-      }
-      break
     case 'Escape':
       e.preventDefault()
       emit('close')
@@ -118,7 +110,6 @@ defineExpose({
           @mouseenter="activeIndex = index"
         >
           <div class="skill-selector__item-label">{{ skill.label }}</div>
-          <div v-if="skill.description" class="skill-selector__item-desc">{{ skill.description }}</div>
         </div>
       </div>
     </div>

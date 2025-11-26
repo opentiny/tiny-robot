@@ -92,41 +92,15 @@ Sender 支持单行和多行两种输入模式，通过 `mode` 属性控制。
 <demo vue="../../demos/sender/Template.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
 
-### 技能参考
+### 技能块
 
-技能块是一种特殊的内容类型，用于在输入框中插入预设的提示词或指令。技能块以蓝色标签形式显示，可以与普通文本混合使用，支持整体删除、撤销等操作。
+通过 `v-model:templateData` 插入技能块，以蓝色标签形式显示预设提示词。发送时 `label` 会被替换为 `value`。
 
-**核心特性：**
-- **可视化标签**：技能块以蓝色背景标签形式显示，与普通文本区分
-- **整体操作**：按 Backspace 键可整体删除技能块，不会出现删除一半的情况
-- **混合编辑**：技能块可以与普通文本、模板块混合使用
-- **值替换**：发送时技能块的 `label`（显示文本）会被替换为 `value`（实际提示词）
+<demo vue="../../demos/sender/SkillBasic.vue" title="技能块" description="插入预设提示词，支持与文本混合使用，整体删除。" />
 
-**基础示例**
-
-<demo vue="../../demos/sender/SkillBasic.vue" title="技能块基础用法" description="展示技能块的基本使用方式，包括显示、编辑和发送。" />
-
-**完整示例**
-
-<demo vue="../../demos/sender/Skill.vue" title="技能块完整示例" description="展示如何通过外部按钮添加技能块，以及数据结构的使用。" />
-
-**数据结构**
-
-技能块使用以下数据结构：
-
-```typescript
-{
-  type: 'skill',
-  label: string,  // 显示文本，如 "翻译专家"
-  value: string   // 实际值/提示词，如 "请帮我翻译："
-}
-```
-
-**使用说明：**
-- `label`：在输入框中显示的文本，用户可见
-- `value`：发送时实际使用的内容，通常是完整的提示词
-- 技能块可以通过 `templateData` prop 传入，与文本块、模板块混合使用
-- 支持通过 TemplateEditor 的 `insertSkill` 方法在光标位置插入技能块
+:::tip 数据结构
+技能块使用 `{ type: 'skill', label: '显示文本', value: '实际提示词' }` 格式，可与文本块、模板块混合使用。
+:::
 
 ### 智能联想
 
