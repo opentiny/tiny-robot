@@ -84,20 +84,10 @@ jobs:
 
       # 步骤9: 构建文档
       - name: Build VitePress
-        run: pnpm build:docs
+        run: pnpm build:docs --nocomponents
         env:
           VITEPRESS_BASE: /tiny-robot/${{ inputs.tag }}/
           PLAYGROUND_BASE: /tiny-robot/${{ inputs.tag }}/playground
-
-      # 步骤10: 构建 playground
-      # - name: Build playground
-      #   run: pnpm -F @opentiny/tiny-robot-playground build
-      #   env:
-      #     PLAYGROUND_BASE: /tiny-robot/${{ inputs.tag }}/playground
-
-      # 步骤11: 复制 playground 产物到 docs
-      # - name: Copy playground to docs/dist/playground
-      #   run: node scripts/copy-playground.js packages/playground/dist docs/dist/playground
 
       - name: Verify build output
         run: ls -la ./docs/dist
