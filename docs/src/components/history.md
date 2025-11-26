@@ -38,9 +38,7 @@ outline: [1, 3]
 
 <demo vue="../../demos/history/slot-item-title.vue" />
 
-## API
-
-### Props
+## Props
 
 | 属性                          | 类型                              | 必填 | 默认值                                                                                                    | 说明                                                   |
 | ----------------------------- | --------------------------------- | ---- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
@@ -51,7 +49,24 @@ outline: [1, 3]
 | `menuItems`                   | `HistoryMenuItem[]`               | 否   | `[{ id: 'rename', text: '重命名', icon: IconEditPen }, { id: 'delete', text: '删除', icon: IconDelete }]` | 自定义菜单项列表                                       |
 | `menuListGap`                 | `number`                          | 否   | `8`                                                                                                       | 菜单项之间的间距（像素）                               |
 
-### HistoryData
+## Slots
+
+| 插槽名        | 参数       | 说明                                       |
+| ------------- | ---------- | ------------------------------------------ |
+| `item-prefix` | `{ item }` | 自定义历史项的前置内容，例如图标、复选框等 |
+| `item-title`  | `{ item }` | 自定义历史项的标题显示内容                 |
+
+## Events
+
+| 事件名              | 参数                               | 说明             |
+| ------------------- | ---------------------------------- | ---------------- |
+| `item-click`        | `item: T`                          | 点击历史项时触发 |
+| `item-title-change` | `newTitle: string, item: T`        | 标题修改时触发   |
+| `item-action`       | `action: HistoryMenuItem, item: T` | 点击菜单项时触发 |
+
+## Types
+
+**HistoryData** - 历史数据类型
 
 ```typescript
 type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
@@ -62,14 +77,14 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 1. 直接的历史项数组 `T[]`
 2. 分组的历史项数组 `HistoryGroup<T>[]`
 
-### HistoryGroup
+**HistoryGroup** - 历史分组类型
 
 | 属性    | 类型               | 必填 | 说明                 |
 | ------- | ------------------ | ---- | -------------------- |
 | `group` | `string \| symbol` | 是   | 分组标识             |
 | `items` | `T[]`              | 是   | 该分组下的历史项列表 |
 
-### HistoryItem
+**HistoryItem** - 历史项类型
 
 | 属性          | 类型                 | 必填 | 说明           |
 | ------------- | -------------------- | ---- | -------------- |
@@ -78,7 +93,7 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `icon`        | `Component \| VNode` | 否   | 前置图标       |
 | `[x: string]` | `any`                | 否   | 其他自定义属性 |
 
-### HistoryMenuItem
+**HistoryMenuItem** - 菜单项类型
 
 | 属性   | 类型                 | 必填 | 说明           |
 | ------ | -------------------- | ---- | -------------- |
@@ -86,24 +101,9 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `text` | `string`             | 是   | 菜单项显示文本 |
 | `icon` | `Component \| VNode` | 否   | 菜单项图标     |
 
-### Events
+## CSS 变量
 
-| 事件名              | 参数                               | 说明             |
-| ------------------- | ---------------------------------- | ---------------- |
-| `item-click`        | `item: T`                          | 点击历史项时触发 |
-| `item-title-change` | `newTitle: string, item: T`        | 标题修改时触发   |
-| `item-action`       | `action: HistoryMenuItem, item: T` | 点击菜单项时触发 |
-
-### Slots
-
-| 插槽名        | 参数       | 说明                                       |
-| ------------- | ---------- | ------------------------------------------ |
-| `item-prefix` | `{ item }` | 自定义历史项的前置内容，例如图标、复选框等 |
-| `item-title`  | `{ item }` | 自定义历史项的标题显示内容                 |
-
-### CSS 变量
-
-分组
+**分组**
 
 | 变量名                                 | 说明               |
 | -------------------------------------- | ------------------ |
@@ -113,7 +113,7 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `--tr-history-group-title-padding`     | 分组标题内边距     |
 | `--tr-history-group-title-color`       | 分组标题颜色       |
 
-历史项
+**历史项**
 
 | 变量名                              | 说明                 |
 | ----------------------------------- | -------------------- |
@@ -128,14 +128,14 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `--tr-history-item-selected-bg`     | 选中背景色           |
 | `--tr-history-item-selected-color`  | 选中文字颜色         |
 
-操作按钮
+**操作按钮**
 
 | 变量名                              | 说明               |
 | ----------------------------------- | ------------------ |
 | `--tr-history-item-actions-gap`     | 操作按钮之间的间距 |
 | `--tr-history-item-action-bg-hover` | 按钮悬停背景色     |
 
-编辑器
+**编辑器**
 
 | 变量名                                   | 说明           |
 | ---------------------------------------- | -------------- |
@@ -147,13 +147,13 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `--tr-history-item-editor-confirm-color` | 确认按钮颜色   |
 | `--tr-history-item-editor-cancel-color`  | 取消按钮颜色   |
 
-空状态
+**空状态**
 
 | 变量名                       | 说明         |
 | ---------------------------- | ------------ |
 | `--tr-history-empty-padding` | 空状态内边距 |
 
-菜单列表
+**菜单列表**
 
 | 变量名                              | 说明             |
 | ----------------------------------- | ---------------- |
@@ -161,7 +161,7 @@ type HistoryData<T extends HistoryItem> = T[] | HistoryGroup<T>[]
 | `--tr-history-menu-list-bg-hover`   | 菜单项悬停背景色 |
 | `--tr-history-menu-list-box-shadow` | 菜单列表阴影     |
 
-菜单项
+**菜单项**
 
 | 变量名                                    | 说明               |
 | ----------------------------------------- | ------------------ |

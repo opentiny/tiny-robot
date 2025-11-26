@@ -56,11 +56,9 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 
 <demo vue="../../demos/prompts/footer.vue" />
 
-## API
+## Props
 
-### PromptProps
-
-单个提示项的属性配置。
+**PromptProps** - 单个提示项的属性配置
 
 | 属性          | 类型              | 必填 | 说明                                                                                 |
 | ------------- | ----------------- | ---- | ------------------------------------------------------------------------------------ |
@@ -71,9 +69,7 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 | `disabled`    | `boolean`         | 否   | 是否禁用，默认 `false`                                                               |
 | `badge`       | `string \| VNode` | 否   | 提示徽章，显示在提示项的右上角                                                       |
 
-### PromptsProps
-
-提示列表组件的属性配置。
+**PromptsProps** - 提示列表组件的属性配置
 
 | 属性        | 类型                      | 必填 | 说明                                 |
 | ----------- | ------------------------- | ---- | ------------------------------------ |
@@ -83,27 +79,21 @@ Prompts 是一个用于展示提示列表的通用组件，包含多个提示项
 | `vertical`  | `boolean`                 | 否   | 提示列表是否垂直排列，默认 `false`   |
 | `wrap`      | `boolean`                 | 否   | 提示列表是否折行，默认 `false`       |
 
-### PromptsEvents
-
-提示列表组件的事件定义。
-
-| 事件名       | 参数                                  | 说明               |
-| ------------ | ------------------------------------- | ------------------ |
-| `item-click` | `(ev: MouseEvent, item: PromptProps)` | 当点击提示项时触发 |
-
-### PromptsSlots
-
-提示列表组件的插槽定义。
+## Slots
 
 | 插槽名   | 说明                                       |
 | -------- | ------------------------------------------ |
 | `footer` | 底部插槽，用于在提示列表底部添加自定义内容 |
 
-### CSS 变量
+## Events
 
-#### Prompt 组件变量
+| 事件名       | 参数                                  | 说明               |
+| ------------ | ------------------------------------- | ------------------ |
+| `item-click` | `(ev: MouseEvent, item: PromptProps)` | 当点击提示项时触发 |
 
-Prompt 根元素
+## CSS 变量
+
+**Prompt 根元素**
 
 | 变量名                      | 说明             |
 | --------------------------- | ---------------- |
@@ -117,7 +107,7 @@ Prompt 根元素
 | `--tr-prompt-padding`       | 内边距           |
 | `--tr-prompt-gap`           | 图标与内容间距   |
 
-title 标题
+**title 标题**
 
 | 变量名                          | 说明         |
 | ------------------------------- | ------------ |
@@ -126,13 +116,13 @@ title 标题
 | `--tr-prompt-title-line-height` | 标题行高     |
 | `--tr-prompt-title-font-weight` | 标题字重     |
 
-content 内容
+**content 内容**
 
 | 变量名                    | 说明           |
 | ------------------------- | -------------- |
 | `--tr-prompt-content-gap` | 标题与描述间距 |
 
-description 描述
+**description 描述**
 
 | 变量名                                | 说明         |
 | ------------------------------------- | ------------ |
@@ -140,7 +130,7 @@ description 描述
 | `--tr-prompt-description-font-size`   | 描述字号     |
 | `--tr-prompt-description-line-height` | 描述行高     |
 
-badge 徽章
+**badge 徽章**
 
 | 变量名                          | 说明         |
 | ------------------------------- | ------------ |
@@ -150,7 +140,7 @@ badge 徽章
 | `--tr-prompt-badge-font-size`   | 徽章字号     |
 | `--tr-prompt-badge-line-height` | 徽章行高     |
 
-#### Prompt 组件尺寸变量
+**Prompt 组件尺寸变量**
 
 Prompt 组件 `size` 属性可选值有 `small`、`medium`、`large`，默认值为 `medium`。不同尺寸对应的变量是如下变量名后缀加上 `-small`、`-medium`、`-large`。
 
@@ -175,7 +165,7 @@ Prompt 组件 `size` 属性可选值有 `small`、`medium`、`large`，默认值
 | `--tr-prompt-padding-medium` | medium |
 | `--tr-prompt-padding-large`  | large  |
 
-#### Prompts 容器变量
+**Prompts 容器变量**
 
 | 变量名             | 说明             |
 | ------------------ | ---------------- |
