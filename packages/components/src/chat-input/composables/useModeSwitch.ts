@@ -94,18 +94,14 @@ export function useModeSwitch(
     // 始终基于单行模式的布局来计算可用宽度
     const singleModeAvailableWidth = calculateSingleModeAvailableWidth()
 
-    // 使用滞后机制避免临界状态的抖动
-    const threshold = 20 // 20px 的缓冲区
-
     if (currentMode.value === 'single') {
       // 单行模式：文本超出时切换到多行
       if (textWidth > singleModeAvailableWidth && singleModeAvailableWidth > 80) {
         setMode('multiple')
       }
     } else {
-      // 多行模式：文本明显小于可用宽度时切换回单行
-      // 使用 threshold 避免临界状态的反复切换
-      if (textWidth < singleModeAvailableWidth - threshold) {
+      // 清空文本后切换回单行模式
+      if (!text.length) {
         setMode('single')
       }
     }
