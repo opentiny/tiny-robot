@@ -12,15 +12,14 @@ try {
     console.log('Skipping components build (--nocomponents flag detected)')
   }
 
-  // Build docs
-  execSync('pnpm -F docs build', { stdio: 'inherit' })
-
   // Build playground
   execSync('pnpm build:playground', { stdio: 'inherit' })
+
+  // Build docs
+  execSync('pnpm -F docs build', { stdio: 'inherit' })
 
   console.log('✓ Docs build completed successfully')
 } catch (error) {
   console.error('Error building docs:', error.message)
   process.exit(1)
 }
-
