@@ -1,9 +1,20 @@
 <template>
   <div class="demo-container">
+    <div class="controls">
+      <div class="control-item">
+        <label>Loading:</label>
+        <tiny-switch v-model="loading"></tiny-switch>
+      </div>
+      <div class="control-item">
+        <label>Disabled:</label>
+        <tiny-switch v-model="isDisabled"></tiny-switch>
+      </div>
+    </div>
     <ChatInput
       v-model="content"
       placeholder="输入内容后提交，模拟加载状态..."
       :loading="loading"
+      :disabled="isDisabled"
       stop-text="停止生成"
       clearable
       @submit="handleSubmit"
@@ -16,9 +27,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChatInput } from '@opentiny/tiny-robot'
+import { Switch as TinySwitch } from '@opentiny/vue'
 
 const content = ref('')
 const loading = ref(false)
+const isDisabled = ref(false)
 
 const handleSubmit = (value: string) => {
   console.log('提交内容:', value)
@@ -40,6 +53,18 @@ const handleCancel = () => {
 <style scoped>
 .demo-container {
   padding: 20px;
+}
+
+.controls {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .loading-tip {

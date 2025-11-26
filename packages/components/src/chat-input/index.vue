@@ -34,6 +34,7 @@ defineExpose(expose)
       {
         'is-auto-switching': context.isAutoSwitching.value,
         'is-over-limit': context.isOverLimit.value,
+        'is-disabled': context.disabled.value,
       },
     ]"
   >
@@ -86,6 +87,27 @@ defineExpose(expose)
 
   &:focus-within {
     box-shadow: 0 4px 16px 0px rgba(20, 118, 255, 0.15);
+  }
+
+  // 禁用状态样式
+  &.is-disabled {
+    background-color: var(--tr-chat-input-bg-color-disabled);
+    cursor: not-allowed;
+    box-shadow: none;
+
+    :deep(.ProseMirror) {
+      cursor: not-allowed;
+      pointer-events: none;
+      -webkit-text-fill-color: var(--tr-chat-input-text-color-disabled);
+      color: var(--tr-chat-input-text-color-disabled);
+      opacity: 1;
+
+      &.is-empty::before {
+        -webkit-text-fill-color: var(--tr-chat-input-placeholder-color-disabled);
+        color: var(--tr-chat-input-placeholder-color-disabled);
+        opacity: 1;
+      }
+    }
   }
 
   // 自动切换模式时的过渡动画
