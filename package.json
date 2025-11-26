@@ -1,5 +1,5 @@
 {
-  "name": "root",
+  "name": "robot-root",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
