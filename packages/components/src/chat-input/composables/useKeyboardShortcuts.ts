@@ -14,7 +14,7 @@ import type { UseKeyboardShortcutsParams, UseKeyboardShortcutsReturn } from '../
  * 提供统一的键盘快捷键逻辑
  */
 export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKeyboardShortcutsReturn {
-  const { submitType, mode, setMode } = params
+  const { submitType } = params
 
   /**
    * 检查是否为指定的提交快捷键
@@ -47,39 +47,32 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKey
   }
 
   /**
-   * 处理 Shift+Enter 在单行模式下的行为
-   *
-   * 单行模式下，按 Shift+Enter 应该切换到多行模式并插入换行符
-   * 但有一个例外：如果 submitType 是 'shiftEnter'，则不切换模式，而是提交
+   * 检查是否为换行键（非提交键）
    *
    * @param event - 键盘事件
-   * @returns 是否已处理（true 表示已处理，阻止默认行为）
+   * @returns 是否为换行键
+   *
+   * 换行键说明：
+   * - submitType 为 'enter' 时：Shift+Enter 或 Ctrl+Enter
+   * - submitType 为 'ctrlEnter' 时：Enter（不带修饰键）
+   * - submitType 为 'shiftEnter' 时：Enter（不带修饰键）
    */
-  const handleShiftEnterInSingleMode = (event: KeyboardEvent): boolean => {
-    // 只处理 Shift+Enter
-    if (event.key !== 'Enter' || !event.shiftKey) {
-      return false
+  const checkNewlineShortcut = (event: KeyboardEvent): boolean => {
+    if (event.key !== 'Enter') return false
+
+    switch (submitType.value) {
+      case 'enter':
+        return event.shiftKey || event.ctrlKey || event.metaKey
+      case 'ctrlEnter':
+      case 'shiftEnter':
+        return !event.shiftKey && !event.ctrlKey && !event.metaKey
+      default:
+        return false
     }
-
-    // 只在单行模式下处理
-    if (mode.value !== 'single') {
-      return false
-    }
-
-    // 如果 submitType 是 'shiftEnter'，则不处理（让提交逻辑处理）
-    if (submitType.value === 'shiftEnter') {
-      return false
-    }
-
-    // 切换到多行模式
-    setMode('multiple')
-
-    // 返回 false，让 Tiptap 自动处理换行
-    return false
   }
 
   return {
     checkSubmitShortcut,
-    handleShiftEnterInSingleMode,
+    checkNewlineShortcut,
   }
 }

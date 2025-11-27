@@ -11,7 +11,7 @@ import type { InputMode, SubmitTrigger, TemplateItem, SpeechState } from './base
  */
 export interface KeyboardHandlers {
   checkSubmitShortcut: (event: KeyboardEvent) => boolean
-  handleShiftEnterInSingleMode: (event: KeyboardEvent) => boolean
+  checkNewlineShortcut: (event: KeyboardEvent) => boolean
   submit: () => void
 }
 
@@ -31,7 +31,7 @@ export interface UseKeyboardShortcutsParams {
  */
 export interface UseKeyboardShortcutsReturn {
   checkSubmitShortcut: (event: KeyboardEvent) => boolean
-  handleShiftEnterInSingleMode: (event: KeyboardEvent) => boolean
+  checkNewlineShortcut: (event: KeyboardEvent) => boolean
 }
 
 /**

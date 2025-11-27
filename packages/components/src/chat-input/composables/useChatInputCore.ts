@@ -8,6 +8,7 @@
  * - 作为逻辑层与视图层的桥梁
  */
 
+import { EditorView } from '@tiptap/pm/view'
 import { computed, provide, ref, toRef, watch } from 'vue'
 import type { ChatInputProps, ChatInputEmits, InputMode, TemplateItem } from '../index.type'
 import { SkillMentionPluginKey } from '../extensions'
@@ -157,25 +158,34 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
         editorInstance.setOptions({
           editorProps: {
             ...editorInstance.options.editorProps,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            handleKeyDown: (view: any, event: KeyboardEvent) => {
+            handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
               // 0. 检查插件状态 - 如果建议面板激活，不拦截键盘事件
               const skillMentionState = SkillMentionPluginKey.getState(view.state)
               if (skillMentionState?.active) {
                 return false // 让插件处理
               }
 
-              // 1. 处理 Shift+Enter 在单行模式下的行为
-              const shiftEnterHandled = keyboardHandlers.handleShiftEnterInSingleMode(event)
-              if (shiftEnterHandled) {
-                event.preventDefault()
-                return true
-              }
-
-              // 2. 检查是否为提交快捷键
+              // 1. 检查是否为提交快捷键（优先检查，避免误触发换行）
               if (keyboardHandlers.checkSubmitShortcut(event)) {
                 event.preventDefault()
                 submit()
+                return true
+              }
+
+              // 2. 处理换行键
+              if (keyboardHandlers.checkNewlineShortcut(event)) {
+                event.preventDefault()
+                // 如果在单行模式，先切换到多行
+                if (currentMode.value === 'single') {
+                  setMode('multiple')
+                  // 延迟执行换行，确保模式切换完成
+                  setTimeout(() => {
+                    editorInstance.commands.splitBlock()
+                    editorInstance.commands.focus()
+                  }, 0)
+                } else {
+                  editorInstance.commands.splitBlock()
+                }
                 return true
               }
 

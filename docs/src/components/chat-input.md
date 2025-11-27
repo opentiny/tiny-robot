@@ -18,7 +18,9 @@ outline: [1, 3]
 `ChatInput` 支持单行和多行两种输入模式，通过 `mode` 属性控制。
 
 :::tip 单行模式自动切换
-在单行模式下，当输入内容超出宽度或按 `Shift+Enter` 时，会自动切换为多行模式。
+在单行模式下，当输入内容超出宽度时，会自动切换为多行模式。
+
+当 `submitType="enter"` 时，按 `Ctrl+Enter` 或 `Shift+Enter` 也会自动切换为多行模式并换行。
 :::
 
 <demo vue="../../demos/chat-input/mode-switch.vue" title="输入模式" description="支持单行和多行模式，单行模式可自动切换为多行。" />
@@ -69,17 +71,25 @@ outline: [1, 3]
 
 ### 快捷键参考
 
-| 快捷键      | 功能                      | 适用条件                |
-| ----------- | ------------------------- | ----------------------- |
-| Enter       | 提交内容                  | submitType="enter"      |
-| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"  |
-| Shift+Enter | 提交内容                  | submitType="shiftEnter" |
-| ↑ / ↓       | 导航技能联想项            | 技能联想开启时          |
-| Esc         | 关闭技能联想              | 技能联想开启时          |
-| Backspace   | 删除技能后保留 @          | 技能提及时              |
+| 快捷键      | 功能                      | 适用条件                                    |
+| ----------- | ------------------------- | ------------------------------------------- |
+| Enter       | 提交内容 / 换行           | submitType="enter"                          |
+| Ctrl+Enter  | 提交内容 / 换行           | submitType="ctrlEnter" / submitType="enter" |
+| Shift+Enter | 提交内容 / 换行           | submitType="shiftEnter" / submitType="enter"|
+| Tab         | 选中联想项                | 联想开启时                                  |
+| Esc         | 关闭联想                  | 联想开启时                                  |
+| ↑ / ↓       | 导航联想项                | 联想开启时                                  |
+
+:::info 换行与提交行为说明
+- **`submitType="enter"`** 时：按 `Enter` 提交，按 `Ctrl+Enter` 或 `Shift+Enter` 换行
+- **`submitType="ctrlEnter"`** 时：按 `Ctrl+Enter` 提交，按 `Enter` 换行
+- **`submitType="shiftEnter"`** 时：按 `Shift+Enter` 提交，按 `Enter` 换行
+
+在单行模式下使用换行快捷键时，会自动切换为多行模式。
+:::
 
 :::warning 自定义选中按键
-目前不支持自定义选中技能联想项的按键。
+当 `activeSuggestionKeys` 可配置时，可自定义选中联想项的按键（Ctrl/Shift/Alt/Meta）。默认支持 `Enter` 和 `Tab`。
 :::
 
 <h3>自定义底部</h3>
