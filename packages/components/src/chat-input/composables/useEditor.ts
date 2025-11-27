@@ -7,7 +7,7 @@ import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import { TemplateBlock, SkillMention } from '../extensions'
+import { TemplateBlock, SkillMention, Suggestion } from '../extensions'
 import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.type'
 
 /**
@@ -53,6 +53,22 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
         char: '@',
         allowSpaces: false,
       }),
+      // 添加 Suggestion 插件（始终注册，即使初始时没有 suggestions）
+      Suggestion.configure({
+        char: props.suggestionChar ?? null,
+        suggestions: props.suggestions || [],
+        activeSuggestionKeys: props.activeSuggestionKeys ?? ['Enter', 'Tab'],
+        popupWidth: props.suggestionPopupWidth ?? 400,
+        showAutoComplete: props.showAutoComplete ?? true,
+        controlled: props.suggestionControlled ?? false,
+        query: props.suggestionQuery,
+        onQueryChange: (query) => {
+          emit('suggestion-query-change', query)
+        },
+        onSelect: (item) => {
+          emit('suggestion-select', item.content)
+        },
+      }),
     ],
     editorProps: {
       attributes: {
@@ -94,6 +110,55 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
     (newValue) => {
       if (editor.value && newValue !== editor.value.getText()) {
         editor.value.commands.setContent(newValue || '', { emitUpdate: false })
+      }
+    },
+  )
+
+  // 监听 editor 初始化完成
+  watch(
+    editor,
+    (editorInstance) => {
+      if (editorInstance) {
+        const suggestionExtension = editorInstance.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
+        if (suggestionExtension) {
+          suggestionExtension.options.suggestions = props.suggestions || []
+        }
+      }
+    },
+    { immediate: true },
+  )
+
+  // 监听 suggestions 变化，动态更新插件配置
+  watch(
+    () => props.suggestions,
+    (newSuggestions) => {
+      if (editor.value) {
+        const suggestionExtension = editor.value.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
+        if (suggestionExtension) {
+          suggestionExtension.options.suggestions = newSuggestions || []
+          // 触发编辑器更新
+          if (editor.value.view) {
+            editor.value.view.dispatch(editor.value.view.state.tr)
+          }
+        }
+      }
+    },
+    { deep: true },
+  )
+
+  // 监听 suggestionQuery 变化（受控模式）
+  watch(
+    () => props.suggestionQuery,
+    (newQuery) => {
+      if (editor.value && props.suggestionControlled) {
+        const suggestionExtension = editor.value.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
+        if (suggestionExtension) {
+          suggestionExtension.options.query = newQuery
+          // 触发编辑器更新
+          if (editor.value.view) {
+            editor.value.view.dispatch(editor.value.view.state.tr)
+          }
+        }
       }
     },
   )

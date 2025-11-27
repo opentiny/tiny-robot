@@ -1,0 +1,485 @@
+/**
+ * Suggestion ProseMirror 插件
+ *
+ * 实现建议列表的显示、过滤、选中等核心逻辑
+ */
+
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+import type { Transaction } from '@tiptap/pm/state'
+import type { EditorView } from '@tiptap/pm/view'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { VueRenderer } from '@tiptap/vue-3'
+import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
+import type { Editor } from '@tiptap/core'
+import SuggestionList from './suggestion-list.vue'
+import { filterSuggestions, syncAutoComplete } from './utils/filter'
+import type { SuggestionOptions, SuggestionState, SuggestionItem } from './types'
+
+/**
+ * 插件 Key，用于访问插件状态
+ */
+export const SuggestionPluginKey = new PluginKey<SuggestionState>('suggestion')
+
+/**
+ * 插件配置接口
+ */
+interface PluginOptions extends SuggestionOptions {
+  editor: Editor
+}
+
+/**
+ * 创建 Suggestion 插件
+ *
+ * @param options - 插件配置
+ * @returns ProseMirror 插件
+ */
+export function createSuggestionPlugin(options: PluginOptions): Plugin {
+  const {
+    editor,
+    activeSuggestionKeys = ['Enter', 'Tab'],
+    popupWidth = 400,
+    showAutoComplete = true,
+    controlled = false,
+    filterFn,
+    highlightFn: _highlightFn, // TODO: 实现自定义高亮逻辑
+    onQueryChange,
+    onSelect,
+  } = options
+
+  let component: VueRenderer | null = null
+  let popup: HTMLElement | null = null
+  let cleanup: (() => void) | null = null
+
+  /**
+   * 获取当前的 suggestions（动态从 editor 的 extensionManager 中获取）
+   */
+  function getCurrentSuggestions(): SuggestionItem[] {
+    const suggestionExtension = editor.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
+    const suggestions = (suggestionExtension?.options?.suggestions as SuggestionItem[]) || []
+    return suggestions
+  }
+
+  /**
+   * 过滤建议项
+   */
+  function doFilterSuggestions(query: string): SuggestionItem[] {
+    const suggestions = getCurrentSuggestions()
+
+    // 受控模式：直接返回用户传入的列表（已过滤）
+    if (controlled) {
+      return suggestions
+    }
+
+    // 自动模式：组件内部过滤
+    return filterFn ? filterFn(suggestions, query) : filterSuggestions(suggestions, query)
+  }
+
+  /**
+   * 获取当前查询文本
+   * 受控模式下使用传入的 query，自动模式下使用文档内容
+   */
+  function getCurrentQuery(docQuery: string): string {
+    if (controlled) {
+      // 从 editor 的 extension options 中获取 query
+      const suggestionExtension = editor.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
+      return (suggestionExtension?.options?.query as string) || docQuery
+    }
+    return docQuery
+  }
+
+  /**
+   * 计算补全文本
+   */
+  function getAutoComplete(
+    selectedIndex: number,
+    query: string,
+    filteredSuggestions: SuggestionItem[],
+  ): { text: string; show: boolean; showTab: boolean } {
+    if (selectedIndex === -1 || !filteredSuggestions[selectedIndex]) {
+      return { text: '', show: false, showTab: false }
+    }
+
+    const selectedItem = filteredSuggestions[selectedIndex]
+    return syncAutoComplete(selectedItem.content, query)
+  }
+
+  /**
+   * 插入建议内容
+   */
+  function insertSuggestion(_view: EditorView, range: { from: number; to: number } | null, content: string) {
+    if (!range) return
+
+    editor.commands.setContent(content)
+
+    // 触发回调
+    if (onSelect) {
+      onSelect({ content } as SuggestionItem)
+    }
+  }
+
+  /**
+   * 定位弹窗
+   */
+  function positionPopup(view: EditorView, popup: HTMLElement) {
+    // 清理旧的自动更新
+    cleanup?.()
+
+    // 查找编辑器包装容器（tr-chat-input-editor-wrapper）
+    const editorWrapper = view.dom.closest('.tr-chat-input')
+    const referenceElement = (editorWrapper as HTMLElement) || view.dom
+
+    // 设置自动更新
+    cleanup = autoUpdate(referenceElement, popup, () => {
+      computePosition(referenceElement, popup, {
+        placement: 'top-start',
+        middleware: [
+          offset(8),
+          flip({
+            fallbackPlacements: ['bottom-start', 'top-start'],
+          }),
+          shift({ padding: 8 }),
+        ],
+      }).then(({ x, y }) => {
+        Object.assign(popup.style, {
+          position: 'absolute',
+          left: `${x}px`,
+          top: `${y}px`,
+          zIndex: '2000',
+        })
+      })
+    })
+  }
+
+  /**
+   * 创建自动补全装饰器
+   */
+  function createAutoCompleteDecorations(state: SuggestionState): DecorationSet {
+    if (!showAutoComplete || !state.active || !state.autoCompleteText || !state.range) {
+      return DecorationSet.empty
+    }
+
+    const doc = editor.state.doc
+    const { selection } = editor.state
+    const cursorPos = selection.$head.pos
+
+    // 在全局模式下，只有当光标在文档末尾时才显示补全提示
+    // 这样可以避免用户移动光标时出现补全文本插入到中间的问题
+    const isAtEnd = cursorPos >= doc.content.size - 1
+    if (!isAtEnd) {
+      return DecorationSet.empty
+    }
+
+    // 创建补全提示元素
+    const widget = Decoration.widget(
+      cursorPos,
+      () => {
+        const container = document.createElement('span')
+        container.className = 'suggestion-autocomplete'
+        container.contentEditable = 'false'
+
+        // 补全文本
+        const complete = document.createElement('span')
+        complete.className = 'autocomplete-text'
+        complete.textContent = state.autoCompleteText
+        container.appendChild(complete)
+
+        // Tab 提示
+        if (state.showTabIndicator) {
+          const tabHint = document.createElement('span')
+          tabHint.className = 'tab-hint'
+          tabHint.textContent = 'TAB'
+          container.appendChild(tabHint)
+        }
+
+        return container
+      },
+      {
+        side: 1, // 显示在光标右侧
+      },
+    )
+
+    return DecorationSet.create(doc, [widget])
+  }
+
+  return new Plugin({
+    key: SuggestionPluginKey,
+
+    state: {
+      init(): SuggestionState {
+        return {
+          active: false,
+          range: null,
+          query: '',
+          filteredSuggestions: [],
+          selectedIndex: -1,
+          autoCompleteText: '',
+          showTabIndicator: false,
+        }
+      },
+
+      apply(tr: Transaction, state: SuggestionState): SuggestionState {
+        // 检查是否有 meta 更新
+        const meta = tr.getMeta(SuggestionPluginKey)
+
+        if (meta) {
+          // 关闭建议列表
+          if (meta.type === 'close') {
+            return {
+              active: false,
+              range: null,
+              query: '',
+              filteredSuggestions: [],
+              selectedIndex: -1,
+              autoCompleteText: '',
+              showTabIndicator: false,
+            }
+          }
+
+          // 更新选中索引
+          if (meta.type === 'updateIndex') {
+            const newState = { ...state, selectedIndex: meta.index }
+            const autoComplete = getAutoComplete(meta.index, state.query, state.filteredSuggestions)
+            return {
+              ...newState,
+              autoCompleteText: autoComplete.text,
+              showTabIndicator: autoComplete.showTab,
+            }
+          }
+        }
+
+        // 如果文档没有变化，保持状态
+        if (!tr.docChanged && !tr.selectionSet) {
+          return state
+        }
+
+        // 全局模式：提取完整文本
+        const docQuery = tr.doc.textContent.trim()
+
+        // 触发查询变化回调（受控模式）
+        if (controlled && onQueryChange && docQuery !== state.query) {
+          onQueryChange(docQuery)
+        }
+
+        // 获取当前查询文本
+        const query = getCurrentQuery(docQuery)
+
+        // 如果输入框为空，关闭建议列表
+        if (!query) {
+          return {
+            active: false,
+            range: null,
+            query: '',
+            filteredSuggestions: [],
+            selectedIndex: -1,
+            autoCompleteText: '',
+            showTabIndicator: false,
+          }
+        }
+
+        // 过滤建议项
+        const filteredSuggestions = doFilterSuggestions(query)
+
+        // 如果没有匹配项，关闭建议列表
+        if (filteredSuggestions.length === 0) {
+          return {
+            active: false,
+            range: null,
+            query: '',
+            filteredSuggestions: [],
+            selectedIndex: -1,
+            autoCompleteText: '',
+            showTabIndicator: false,
+          }
+        }
+
+        // 计算补全文本
+        const autoComplete = getAutoComplete(0, query, filteredSuggestions)
+
+        return {
+          active: true,
+          range: { from: 0, to: tr.doc.content.size },
+          query,
+          filteredSuggestions,
+          selectedIndex: 0,
+          autoCompleteText: autoComplete.text,
+          showTabIndicator: autoComplete.showTab,
+        }
+      },
+    },
+
+    props: {
+      decorations(state) {
+        const pluginState = this.getState(state)
+        return createAutoCompleteDecorations(
+          pluginState || {
+            active: false,
+            range: null,
+            query: '',
+            filteredSuggestions: [],
+            selectedIndex: -1,
+            autoCompleteText: '',
+            showTabIndicator: false,
+          },
+        )
+      },
+
+      handleKeyDown(view: EditorView, event: KeyboardEvent): boolean {
+        const state = SuggestionPluginKey.getState(view.state)
+
+        if (!state?.active) {
+          return false
+        }
+
+        // Tab 键：应用补全
+        if (event.key === 'Tab' && state.autoCompleteText) {
+          event.preventDefault()
+
+          // 构建完整文本
+          const fullText = state.query + state.autoCompleteText
+
+          // 插入文本
+          insertSuggestion(view, state.range, fullText)
+
+          // 关闭建议列表
+          const tr = view.state.tr
+          tr.setMeta(SuggestionPluginKey, { type: 'close' })
+          view.dispatch(tr)
+
+          return true
+        }
+
+        // ↑↓ 键：导航
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          event.preventDefault()
+
+          const direction = event.key === 'ArrowDown' ? 1 : -1
+          const length = state.filteredSuggestions.length
+
+          // 计算新索引（循环）
+          let newIndex = state.selectedIndex + direction
+          if (newIndex < 0) {
+            newIndex = length - 1
+          } else if (newIndex >= length) {
+            newIndex = 0
+          }
+
+          // 更新状态
+          const tr = view.state.tr
+          tr.setMeta(SuggestionPluginKey, {
+            type: 'updateIndex',
+            index: newIndex,
+          })
+          view.dispatch(tr)
+
+          return true
+        }
+
+        // Enter 键：选中
+        if (event.key === 'Enter' && activeSuggestionKeys.includes('Enter')) {
+          event.preventDefault()
+
+          const selectedItem = state.filteredSuggestions[state.selectedIndex]
+          if (selectedItem) {
+            insertSuggestion(view, state.range, selectedItem.content)
+
+            // 关闭建议列表
+            const tr = view.state.tr
+            tr.setMeta(SuggestionPluginKey, { type: 'close' })
+            view.dispatch(tr)
+          }
+
+          return true
+        }
+
+        // Esc 键：关闭
+        if (event.key === 'Escape') {
+          event.preventDefault()
+
+          const tr = view.state.tr
+          tr.setMeta(SuggestionPluginKey, { type: 'close' })
+          view.dispatch(tr)
+
+          return true
+        }
+
+        return false
+      },
+    },
+
+    view() {
+      return {
+        update(view: EditorView) {
+          const state = SuggestionPluginKey.getState(view.state)
+
+          if (state?.active && state.filteredSuggestions.length > 0) {
+            // 创建或更新弹窗
+            if (!component) {
+              component = new VueRenderer(SuggestionList, {
+                props: {
+                  show: state.active && state.filteredSuggestions.length > 0,
+                  suggestions: state.filteredSuggestions,
+                  popupStyle: {
+                    width: typeof popupWidth === 'number' ? `${popupWidth}px` : popupWidth,
+                    maxWidth: '100%',
+                  },
+                  activeKeyboardIndex: state.selectedIndex,
+                  activeMouseIndex: -1,
+                  inputValue: state.query,
+                  onSelect: (content: string) => {
+                    insertSuggestion(view, state.range, content)
+                    const tr = view.state.tr
+                    tr.setMeta(SuggestionPluginKey, { type: 'close' })
+                    view.dispatch(tr)
+                  },
+                  onMouseEnter: (index: number) => {
+                    const tr = view.state.tr
+                    tr.setMeta(SuggestionPluginKey, { type: 'updateIndex', index })
+                    view.dispatch(tr)
+                  },
+                  onMouseLeave: () => {
+                    // 鼠标离开时不做处理，保持当前选中状态
+                  },
+                },
+                editor,
+              })
+
+              popup = component.element as HTMLElement
+              document.body.appendChild(popup)
+            } else {
+              // 更新 props
+              component.updateProps({
+                show: state.active && state.filteredSuggestions.length > 0,
+                suggestions: state.filteredSuggestions,
+                activeKeyboardIndex: state.selectedIndex,
+                inputValue: state.query,
+              })
+            }
+
+            // 定位弹窗
+            if (popup) {
+              positionPopup(view, popup)
+            }
+          } else {
+            // 销毁弹窗
+            if (component) {
+              cleanup?.()
+              cleanup = null
+              component.destroy()
+              component = null
+            }
+            if (popup) {
+              popup.remove()
+              popup = null
+            }
+          }
+        },
+
+        destroy() {
+          cleanup?.()
+          component?.destroy()
+          popup?.remove()
+        },
+      }
+    },
+  })
+}

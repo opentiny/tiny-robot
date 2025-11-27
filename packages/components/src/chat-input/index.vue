@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
   allowSpeech: false,
   allowFiles: false,
   submitType: 'enter',
+  showAutoComplete: true,
 })
 
 const emit = defineEmits<ChatInputEmits>()

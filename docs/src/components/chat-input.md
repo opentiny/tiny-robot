@@ -61,6 +61,55 @@ outline: [1, 3]
 
 <demo vue="../../demos/chat-input/skill-mention.vue" title="技能提及" description="输入 @ 触发技能选择，快速引用预设的技能助手，支持键盘导航和搜索过滤。" />
 
+### 智能联想
+
+根据用户输入显示匹配的建议项，支持键盘导航（↑↓ 选择，Enter/Tab 确认）和自动补全提示。
+
+:::tip 自动补全提示
+当通过键盘导航选中某个建议项时，输入框中会以灰色文本显示剩余未输入的部分，并显示 "TAB" 提示标签，按 Tab 键可快速应用补全。
+:::
+
+<demo vue="../../demos/chat-input/suggestion.vue" title="智能联想" description="根据输入内容显示匹配的建议项，支持键盘导航和自动补全。" />
+
+#### 高亮模式
+
+支持三种高亮模式，满足不同的使用场景：
+
+1. **自动匹配**：传入对象数组，自动高亮与输入内容匹配的部分
+2. **精确指定**：通过 `highlights` 数组精确指定需要高亮的文本片段
+3. **自定义函数**：通过 `highlights` 函数完全控制高亮逻辑，实现复杂的高亮规则
+
+<demo vue="../../demos/chat-input/suggestion-highlight.vue" title="高亮模式" description="动态切换三种高亮模式，对比不同的高亮效果。" />
+
+:::warning 过滤逻辑
+组件**不会自动过滤**联想项，只负责高亮渲染匹配的部分。如需根据输入内容筛选建议项，请在传入 `suggestions` 之前自行过滤数组。
+
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+
+const inputText = ref('')
+const allSuggestions = [
+  { content: 'ECS-云服务器卡顿问题' },
+  { content: 'CDN-权限管理' },
+  // ...
+]
+
+// 根据输入内容过滤建议项
+const filteredSuggestions = computed(() => {
+  if (!inputText.value) return allSuggestions
+  return allSuggestions.filter(item => 
+    item.content.toLowerCase().includes(inputText.value.toLowerCase())
+  )
+})
+</script>
+
+<template>
+  <tr-chat-input v-model="inputText" :suggestions="filteredSuggestions" />
+</template>
+```
+:::
+
 <h2>交互定制</h2>
 
 ### 提交方式
@@ -136,6 +185,11 @@ outline: [1, 3]
 | stopText      | 停止按钮文字             | `string`                                           | `仅显示图标`      |
 | templateData  | 模板数据，用于初始化或 v-model 更新 | `TemplateItem[]`                                   | `[]`              |
 | skills        | 技能列表，用于 `@` 提及   | `SkillItem[]`                                      | `[]`              |
+| suggestions   | 建议列表，提供智能联想功能 | `SuggestionItem[]`                                 | `[]`              |
+| suggestionChar | 建议触发字符（null 为全局匹配） | `string \| null`                              | `null`            |
+| suggestionPopupWidth | 建议弹窗宽度       | `number \| string`                                 | `400`             |
+| activeSuggestionKeys | 激活建议项的按键   | `string[]`                                         | `['Enter', 'Tab']` |
+| showAutoComplete | 是否显示自动补全提示   | `boolean`                                          | `true`            |
 | theme         | 主题样式                 | `'light' \| 'dark'`                                | `'light'`         |
 
 ## Slots
@@ -159,6 +213,7 @@ outline: [1, 3]
 | submit            | 提交内容时触发             | `(value: string, context: { presets: string[], userText: string })`     |
 | clear             | 清空内容时触发             | `()`                                                                    |
 | cancel            | 取消发送（加载状态）时触发 | `()`                                                                    |
+| suggestion-select | 选择建议项时触发           | `(value: string)`                                                       |
 
 ## Methods
 
@@ -198,3 +253,20 @@ interface SkillItem {
 
 // 输入模式
 type InputMode = 'single' | 'multiple';
+
+// 建议项
+interface SuggestionItem {
+  content: string; // 建议项内容（必填）
+  label?: string; // 显示标签（可选，默认使用 content）
+  highlights?: string[] | HighlightFunction; // 高亮方式（可选）
+  data?: Record<string, unknown>; // 自定义数据（可选）
+}
+
+// 高亮函数类型
+type HighlightFunction = (suggestionText: string, inputText: string) => SuggestionTextPart[];
+
+// 高亮文本片段
+interface SuggestionTextPart {
+  text: string; // 文本片段
+  isMatch: boolean; // 是否高亮
+}

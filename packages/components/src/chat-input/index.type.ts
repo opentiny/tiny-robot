@@ -6,12 +6,14 @@
  */
 
 import type { InputMode, TemplateItem, SkillItem, SubmitTrigger, ButtonGroupConfig, AutoSize } from './types/base'
+import type { SuggestionItem } from './extensions/suggestion'
 
 // 导出所有子模块类型
 export * from './types/base'
 export * from './types/composables'
 export * from './types/components'
 export * from './types/context'
+export type { SuggestionItem } from './extensions/suggestion'
 
 // ============================================
 // 主组件 Props
@@ -156,7 +158,54 @@ export interface ChatInputProps {
    *
    * 提供输入联想功能
    */
-  suggestions?: string[]
+  suggestions?: SuggestionItem[]
+
+  /**
+   * 建议触发字符
+   *
+   * - null: 全局匹配模式（默认）
+   * - string: 字符触发模式（如 '/'）
+   *
+   * @default null
+   */
+  suggestionChar?: string | null
+
+  /**
+   * 建议弹窗宽度
+   *
+   * @default 400
+   */
+  suggestionPopupWidth?: number | string
+
+  /**
+   * 激活建议项的按键
+   *
+   * @default ['Enter', 'Tab']
+   */
+  activeSuggestionKeys?: string[]
+
+  /**
+   * 是否显示自动补全提示
+   *
+   * @default true
+   */
+  showAutoComplete?: boolean
+
+  /**
+   * 是否为受控模式
+   *
+   * - false (默认): 组件内部自动过滤
+   * - true: 用户自己控制过滤，传入已过滤的列表
+   *
+   * @default false
+   */
+  suggestionControlled?: boolean
+
+  /**
+   * 当前输入的查询文本（受控模式下使用）
+   * 用于计算自动补全时的前缀匹配
+   */
+  suggestionQuery?: string
 
   // ===== 样式定制 =====
 
@@ -252,6 +301,22 @@ export interface ChatInputEmits {
    * @param value - 当前内容
    */
   (e: 'input', value: string): void
+
+  /**
+   * 选择建议项时触发
+   *
+   * @param e - 事件名
+   * @param value - 选中的建议内容
+   */
+  (e: 'suggestion-select', value: string): void
+
+  /**
+   * 查询文本变化时触发（受控模式下使用）
+   *
+   * @param e - 事件名
+   * @param query - 当前查询文本
+   */
+  (e: 'suggestion-query-change', query: string): void
 }
 
 // ============================================
