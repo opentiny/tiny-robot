@@ -96,7 +96,7 @@ Sender 支持单行和多行两种输入模式，通过 `mode` 属性控制。
 
 通过 `v-model:templateData` 插入技能块，以蓝色标签形式显示预设提示词。发送时 `label` 会被替换为 `value`。
 
-<demo vue="../../demos/sender/SkillBasic.vue" title="技能块" description="插入预设提示词，支持与文本混合使用，整体删除。" />
+<demo vue="../../demos/sender/SkillBasic.vue" :vueFiles="['../../demos/sender/SkillBasic.vue', '../../demos/sender/SkillSelector.vue']" title="技能块" description="插入预设提示词，支持与文本混合使用，整体删除。" />
 
 :::tip 数据结构
 技能块使用 `{ type: 'skill', label: '显示文本', value: '实际提示词' }` 格式，可与文本块、模板块混合使用。
