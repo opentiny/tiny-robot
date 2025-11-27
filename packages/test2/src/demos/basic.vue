@@ -81,8 +81,8 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref } from 'vue'
 import { Bubble } from '@opentiny/tiny-robot'
+import { h, ref } from 'vue'
 import Avatar from './Avatar.vue'
 
 const placement = ref<'start' | 'end'>('start')
@@ -93,7 +93,7 @@ const Divider = h('hr', { style: { border: 'none', borderTop: '1px solid #ddd', 
 
 const extras = ref({
   thinking: false,
-  reasoningExpandDefault: true,
+  open: true,
 })
 </script>
 

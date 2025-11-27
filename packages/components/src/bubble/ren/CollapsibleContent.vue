@@ -1,23 +1,42 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
-import { ref } from 'vue'
+import { inject, ref } from 'vue'
+import { BUBBLE_CONTENT_MESSAGE_KEY } from '../constants'
 import { BubbleRendererMessage } from '../index.type'
 
-const props = defineProps<BubbleRendererMessage<unknown, { detail: string; title?: string; defaultOpen?: boolean }>>()
+const props = defineProps<
+  BubbleRendererMessage<
+    unknown,
+    {
+      detail: string
+      title?: string
+      open?: boolean
+    }
+  >
+>()
 
-const opened = ref(props.extras?.defaultOpen ?? false)
+const message = inject(BUBBLE_CONTENT_MESSAGE_KEY)
+
+const open = ref(props.extras?.open ?? false)
+
+const handleClick = () => {
+  open.value = !open.value
+  if (message?.extras) {
+    message.extras.open = open.value
+  }
+}
 </script>
 
 <template>
-  <div class="tr-bubble__toggle-content">
-    <div class="tr-bubble__toggle-content-head">
+  <div class="tr-bubble__collapsible-content">
+    <div class="tr-bubble__collapsible-content-head">
       <IconAtom />
       <span class="title">{{ props.extras?.title || 'Untitled' }}</span>
-      <button class="icon-btn expand" :class="{ 'rotate-180': !opened }" @click="opened = !opened">
+      <button class="icon-btn expand" :class="{ 'rotate-180': !open }" @click="handleClick">
         <IconArrowDown />
       </button>
     </div>
-    <div v-show="opened" class="tr-bubble__toggle-content-detail">
+    <div v-show="open" class="tr-bubble__collapsible-content-detail">
       <div class="side-border">
         <div class="dot-wrapper">
           <div class="dot"></div>
@@ -30,7 +49,7 @@ const opened = ref(props.extras?.defaultOpen ?? false)
 </template>
 
 <style lang="less" scoped>
-.tr-bubble__toggle-content-head {
+.tr-bubble__collapsible-content-head {
   font-size: 16px;
   line-height: 1.5;
   color: var(--tr-text-secondary);
@@ -39,7 +58,7 @@ const opened = ref(props.extras?.defaultOpen ?? false)
   gap: 8px;
 }
 
-.tr-bubble__toggle-content-detail {
+.tr-bubble__collapsible-content-detail {
   font-size: 14px;
   line-height: 16px;
   color: var(--tr-text-secondary);

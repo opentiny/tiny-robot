@@ -191,8 +191,8 @@ export type BubbleRendererMessage<
 }
 
 /**
- * 渲染器组件 Props
+ * ContentBox 组件 Props
  */
-export type BubbleRendererProps = BubbleBoxProps & {
+export type BubbleContentBoxProps = BubbleBoxProps & {
   messages: BubbleRendererMessage[]
 }

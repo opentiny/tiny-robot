@@ -11,19 +11,20 @@ Bubble 组件系列用于构建 AI 对话界面的消息气泡，支持文本和
 ```txt
 BubbleList (消息流管理)
   └─ BubbleItem (分组提供)
-      └─ Bubble (气泡渲染)
-          └─ BubbleRenderer (内容分发)
-              ├─ Box / ImageBox (容器)
-              ├─ Text (文本渲染器)
-              └─ Image (图片渲染器)
+      └─ Bubble (气泡渲染 + 内容分发)
+          ├─ Box / ImageBox (容器)
+          │   └─ BubbleContent (消息提供)
+          │       ├─ Text (文本渲染器)
+          │       ├─ Image (图片渲染器)
+          │       └─ Reasoning (推理渲染器)
 ```
 
 **职责划分：**
 
 - `BubbleList`: 管理消息数组，根据策略分组
 - `BubbleItem`: 通过 provide/inject 传递分组数据
-- `Bubble`: 渲染气泡外观（头像、容器），处理多态消息展开
-- `BubbleRenderer`: 根据内容类型选择渲染器和容器
+- `Bubble`: 渲染气泡外观（头像、容器），处理多态消息展开，选择内容渲染器
+- `BubbleContent`: 为每个消息 provide 上下文，使子孙组件可直接访问和修改消息数据
 
 ### 消息类型
 
@@ -230,8 +231,8 @@ defineProps<{ content: { type: 'audio', audio_url: string } }>()
 ```
 
 ```typescript
-// BubbleRenderer.vue
-import Audio from './ren/Audio.vue'
+// ren/renderers.ts
+import Audio from './Audio.vue'
 
 const contentRendererMatches = [
   {
@@ -245,7 +246,7 @@ const contentRendererMatches = [
 ### 添加新容器渲染器
 
 ```typescript
-// BubbleRenderer.vue
+// ren/renderers.ts
 const boxRendererMatches = [
   {
     find: (props) => props.messages.length === 1 && props.messages[0].content?.type === 'video',

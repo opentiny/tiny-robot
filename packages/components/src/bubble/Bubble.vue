@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue'
-import BubbleRenderer from './BubbleRenderer.vue'
+import BubbleContent from './BubbleContent.vue'
 import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
 import type { BubbleProps, BubbleRendererMessage } from './index.type'
+import { getBoxRenderer } from './ren/renderers'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   placement: 'start',
@@ -28,7 +29,7 @@ const splitedPolymorphicItems = computed(() => {
   return Array.isArray(props.content) ? props.content : []
 })
 
-// 构建传递给 BubbleRenderer 的消息列表
+// 构建消息列表
 const rendererMessages = computed<BubbleRendererMessage[]>(() => {
   // 来源：消息分组（普通文本）
   if (messageGroup && !messageGroup.isPolymorphic) {
@@ -74,7 +75,13 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
 
   <div v-else class="tr-bubble" :data-role="props.role" :data-placement="props.placement">
     <component v-if="props.avatar" :is="props.avatar" :class="$style['tr-bubble__avatar']" />
-    <BubbleRenderer :placement="props.placement" :shape="props.shape" :messages="rendererMessages" />
+    <component
+      :is="getBoxRenderer({ placement: props.placement, shape: props.shape, messages: rendererMessages })"
+      :placement="props.placement"
+      :shape="props.shape"
+    >
+      <BubbleContent v-for="(message, index) in rendererMessages" :key="index" :message="message" />
+    </component>
   </div>
 </template>
 
