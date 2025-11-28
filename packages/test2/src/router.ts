@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Basic from './demos/basic.vue'
+import Bubble from './demos/bubble.vue'
 import List from './demos/list.vue'
 
 const router = createRouter({
@@ -7,11 +7,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/basic',
+      redirect: '/bubble',
     },
     {
-      path: '/basic',
-      component: Basic,
+      path: '/bubble',
+      component: Bubble,
     },
     {
       path: '/list',

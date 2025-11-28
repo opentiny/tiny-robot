@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
-import { inject, ref } from 'vue'
-import { BUBBLE_CONTENT_MESSAGE_KEY } from '../constants'
+import { ref, watchEffect } from 'vue'
+import { useBubbleContentMessage } from '../composables/useContentMessage'
 import { BubbleRendererMessage } from '../index.type'
 
 const props = defineProps<
@@ -15,9 +15,13 @@ const props = defineProps<
   >
 >()
 
-const message = inject(BUBBLE_CONTENT_MESSAGE_KEY)
+const message = useBubbleContentMessage()
 
-const open = ref(props.extras?.open ?? false)
+const open = ref(false)
+
+watchEffect(() => {
+  open.value = props.extras?.open ?? false
+})
 
 const handleClick = () => {
   open.value = !open.value
@@ -28,15 +32,13 @@ const handleClick = () => {
 </script>
 
 <template>
-  <div class="tr-bubble__collapsible-content">
-    <div class="tr-bubble__collapsible-content-head">
+  <div class="tr-bubble__collapsible-content" data-type="collapsible-content">
+    <div class="header" @click="handleClick">
       <IconAtom />
       <span class="title">{{ props.extras?.title || 'Untitled' }}</span>
-      <button class="icon-btn expand" :class="{ 'rotate-180': !open }" @click="handleClick">
-        <IconArrowDown />
-      </button>
+      <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !open }" />
     </div>
-    <div v-show="open" class="tr-bubble__collapsible-content-detail">
+    <div v-show="open" class="detail">
       <div class="side-border">
         <div class="dot-wrapper">
           <div class="dot"></div>
@@ -49,23 +51,34 @@ const handleClick = () => {
 </template>
 
 <style lang="less" scoped>
-.tr-bubble__collapsible-content-head {
+.header {
   font-size: 16px;
   line-height: 1.5;
   color: var(--tr-text-secondary);
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--tr-text-primary);
+  }
+
+  .expand-icon.-rotate-90 {
+    transform: rotate(-90deg);
+  }
 }
 
-.tr-bubble__collapsible-content-detail {
+.detail {
   font-size: 14px;
   line-height: 16px;
   color: var(--tr-text-secondary);
-  padding-left: 12px;
-  margin-block: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
   white-space: pre-line;
-  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 
   p.detail {
     margin: 0;
@@ -77,12 +90,12 @@ const handleClick = () => {
   }
 
   .side-border {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
+    width: 16px;
+    flex-shrink: 0;
+    align-self: stretch;
     display: flex;
     flex-direction: column;
+    align-items: center;
 
     .dot-wrapper {
       width: 4px;
@@ -101,38 +114,10 @@ const handleClick = () => {
 
     .border-line {
       flex: 1;
-      width: 2px;
+      width: 1.5px;
       background-color: var(--tr-border-color-disabled);
-      margin-left: 1px;
       border-radius: 1px;
     }
-  }
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: var(--tr-container-bg-hover);
-  }
-  &:active {
-    background-color: var(--tr-container-bg-active);
-  }
-
-  svg {
-    font-size: 16px;
-  }
-
-  &.expand.rotate-180 {
-    transform: rotate(-90deg);
   }
 }
 </style>

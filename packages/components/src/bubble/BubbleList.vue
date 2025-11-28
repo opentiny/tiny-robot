@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import BubbleItem from './BubbleItem.vue'
 import type {
-  BubbleMessage,
   BubbleListProps,
+  BubbleMessage,
   BubbleMessageGroup,
   BubblePlainMessage,
   BubblePolymorphicMessage,

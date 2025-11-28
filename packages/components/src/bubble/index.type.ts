@@ -6,11 +6,12 @@ export * from './renderers/index.type'
  */
 export interface ToolCall {
   id: string
-  type: 'function'
+  type: 'function' | string
   function: {
     name: string
     arguments: string
   }
+  [x: string]: unknown
 }
 
 /**

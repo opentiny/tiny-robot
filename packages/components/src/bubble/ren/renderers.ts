@@ -1,10 +1,11 @@
 import { Component } from 'vue'
-import type { BubbleRendererMessage, BubbleContentBoxProps } from '../index.type'
+import type { BubbleContentBoxProps, BubbleRendererMessage } from '../index.type'
 import Box from './Box.vue'
 import Image from './Image.vue'
 import ImageBox from './ImageBox.vue'
 import Reasoning from './Reasoning.vue'
 import Text from './Text.vue'
+import Tools from './Tools.vue'
 
 const boxRendererMatches: Array<{
   find: (props: BubbleContentBoxProps) => boolean
@@ -33,8 +34,8 @@ const contentRendererMatches: Array<{
     renderer: Reasoning,
   },
   {
-    find: (message) => typeof message.content === 'string',
-    renderer: Text,
+    find: (message) => Array.isArray(message.tool_calls) && message.tool_calls.length > 0,
+    renderer: Tools,
   },
 ]
 

@@ -4,7 +4,7 @@
   <div>
     <header>
       <nav>
-        <router-link to="/basic">Basic</router-link>
+        <router-link to="/bubble">Bubble</router-link>
         <router-link to="/list">List</router-link>
       </nav>
     </header>
