@@ -18,6 +18,13 @@ import type { Editor } from '@tiptap/core'
 import SkillMentionList from './skill-mention-list.vue'
 import type { SkillItem, SuggestionState } from './types'
 
+/**
+ * 生成唯一 ID
+ */
+function generateId(): string {
+  return `skill_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
 export const SkillMentionPluginKey = new PluginKey<SuggestionState>('skillMention')
 
 interface PluginOptions {
@@ -369,7 +376,7 @@ function insertSkillMention(view: EditorView, range: { from: number; to: number 
 
   // 插入 skillMention 节点
   const node = state.schema.nodes.skillMention.create({
-    id: skill.id,
+    id: skill.id || generateId(),
     label: skill.label,
     preset: skill.preset || '',
   })

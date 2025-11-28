@@ -84,6 +84,36 @@ export interface TemplateBlockAttrs {
 }
 
 // ============================================
+// 内容节点相关类型
+// ============================================
+
+/**
+ * 内容节点
+ *
+ * 编辑器内容的结构化表示
+ * 用于 submit 事件返回的结构化数据
+ */
+export interface ContentNode {
+  /**
+   * 节点类型
+   * - text: 普通文本
+   * - skillMention: 技能提及
+   * - hardBreak: 换行符
+   */
+  type: 'text' | 'skillMention' | 'hardBreak'
+
+  /**
+   * 节点内容
+   */
+  content: string
+
+  /**
+   * 预设内容（仅 skillMention 类型有效）
+   */
+  preset?: string
+}
+
+// ============================================
 // 技能 Mention 相关类型
 // ============================================
 
@@ -94,9 +124,10 @@ export interface TemplateBlockAttrs {
  */
 export interface SkillItem {
   /**
-   * 唯一标识（必传）
+   * 唯一标识（可选）
+   * 如果不提供，组件会自动生成
    */
-  id: string
+  id?: string
 
   /**
    * 显示名称，如 "小小画家"（必传）

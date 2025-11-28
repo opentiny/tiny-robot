@@ -26,6 +26,8 @@ export type {
   UseTemplateDataReturn,
   UseKeyboardShortcutsReturn,
   TemplateItem,
+  SkillItem,
+  ContentNode,
 } from './index.type'
 
 export { useChatInputContext } from './context'

@@ -5,7 +5,15 @@
  * 遵循"组合优于配置"的设计哲学
  */
 
-import type { InputMode, TemplateItem, SkillItem, SubmitTrigger, ButtonGroupConfig, AutoSize } from './types/base'
+import type {
+  InputMode,
+  TemplateItem,
+  SkillItem,
+  SubmitTrigger,
+  ButtonGroupConfig,
+  AutoSize,
+  ContentNode,
+} from './types/base'
 import type { SuggestionItem } from './extensions/suggestion'
 
 // 导出所有子模块类型
@@ -266,10 +274,10 @@ export interface ChatInputEmits {
    * 提交内容
    *
    * @param e - 事件名
-   * @param value - 提交的内容（默认拼接结果）
-   * @param context - 提交上下文（包含原始数据）
+   * @param textContent - 提交的内容（纯文本）
+   * @param structureContent - 结构化内容数组
    */
-  (e: 'submit', value: string, context: { presets: string[]; userText: string }): void
+  (e: 'submit', textContent: string, structureContent: ContentNode[]): void
 
   /**
    * 聚焦事件

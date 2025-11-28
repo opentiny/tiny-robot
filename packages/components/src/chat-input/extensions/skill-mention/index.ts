@@ -18,6 +18,13 @@ import './commands.d.ts'
 import './index.less'
 
 /**
+ * 生成唯一 ID
+ */
+function generateId(): string {
+  return `skill_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+/**
  * SkillMention 扩展定义
  */
 export const SkillMention = Node.create<SkillMentionOptions>({
@@ -135,7 +142,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
           return commands.insertContent({
             type: 'skillMention',
             attrs: {
-              id: attrs.id || '',
+              id: attrs.id || generateId(),
               label: attrs.label || '',
               preset: attrs.preset,
             },

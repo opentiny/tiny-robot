@@ -1,47 +1,37 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChatInput } from '@opentiny/tiny-robot'
-import type { SkillItem } from '@opentiny/tiny-robot'
+import type { SkillItem, ContentNode } from '@opentiny/tiny-robot'
 
 const content = ref('')
 
-// 技能列表
+// 技能列表（id 可选，组件会自动生成）
 const skills: SkillItem[] = [
   {
-    id: '1',
     label: '小小画家',
     preset: '你是一个专业的绘画助手，擅长帮助用户进行艺术创作和绘画指导。',
   },
   {
-    id: '2',
     label: '代码助手',
     preset: '你是一个专业的编程助手，精通多种编程语言，能够帮助用户解决编程问题。',
   },
   {
-    id: '3',
     label: '文案大师',
     preset: '你是一个专业的文案撰写专家，擅长创作各类营销文案和创意内容。',
   },
   {
-    id: '4',
     label: '数据分析师',
     preset: '你是一个专业的数据分析师，擅长数据处理、统计分析和可视化。',
   },
   {
-    id: '5',
     label: '翻译专家',
     preset: '你是一个专业的翻译专家，精通多国语言，能够提供准确流畅的翻译服务。',
   },
 ]
 
-const handleSubmit = (value: string, context: { presets: string[]; userText: string }) => {
+const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
   console.log('提交内容（默认拼接）：', value)
-  console.log('提交上下文（原始数据）：', context)
-
-  // 演示：如果想自定义拼接，可以使用 context
-  if (context.presets.length > 0) {
-    console.log('自定义拼接演示：', `[System]\n${context.presets.join('\n')}\n\n[User]\n${context.userText}`)
-  }
+  console.log('提交结构数据（原始数据）：', structuredContent)
 }
 </script>
 

@@ -210,7 +210,7 @@ const filteredSuggestions = computed(() => {
 | update:modelValue | 输入值变化时触发(v-model)  | `(value: string)`                                                       |
 | blur              | 输入框失去焦点时触发       | `(event: FocusEvent)`                                                   |
 | focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`                                                   |
-| submit            | 提交内容时触发             | `(value: string, context: { presets: string[], userText: string })`     |
+| submit            | 提交内容时触发             | `(textContent: string, structureContent: ContentNode[])`                |
 | clear             | 清空内容时触发             | `()`                                                                    |
 | cancel            | 取消发送（加载状态）时触发 | `()`                                                                    |
 | suggestion-select | 选择建议项时触发           | `(value: string)`                                                       |
@@ -246,13 +246,20 @@ interface TemplateItem {
 
 // 技能项
 interface SkillItem {
-  id: string; // 唯一标识
+  id?: string; // 唯一标识（可选，自动生成）
   label: string; // 显示名称，如 "小小画家"
-  preset?: string; // 预设内容（选择后自动填充到输入框）
+  preset: string; // 预设内容（选择后自动填充到输入框）
 }
 
 // 输入模式
 type InputMode = 'single' | 'multiple';
+
+// 内容节点（submit 事件返回的结构化数据）
+interface ContentNode {
+  type: 'text' | 'skillMention' | 'hardBreak'; // 节点类型
+  content: string; // 节点内容
+  preset?: string; // 预设内容（仅 skillMention 类型有效）
+}
 
 // 建议项
 interface SuggestionItem {

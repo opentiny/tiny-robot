@@ -10,7 +10,7 @@
 
 import { EditorView } from '@tiptap/pm/view'
 import { computed, provide, ref, toRef, watch } from 'vue'
-import type { ChatInputProps, ChatInputEmits, InputMode, TemplateItem } from '../index.type'
+import type { ChatInputProps, ChatInputEmits, InputMode, TemplateItem, ContentNode } from '../index.type'
 import { SkillMentionPluginKey, SuggestionPluginKey } from '../extensions'
 import { CHAT_INPUT_CONTEXT_KEY } from '../constants'
 import type { ChatInputContext } from '../types/context'
@@ -103,29 +103,44 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   const submit = () => {
     if (!canSubmit.value) return
 
-    // 获取 JSON 格式内容以提取技能预设
+    // 获取编辑器的纯文本内容（第一个参数）
+    const textContent = editor.value?.getText() || ''
+
+    // 获取 JSON 格式内容以提取结构化数据
     const json = editor.value?.getJSON()
 
-    // 提取所有 skillMention 的预设
-    const presets: string[] = []
+    // 构建结构化内容
+    const structureContent: ContentNode[] = []
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const extractPresets = (node: any) => {
-      if (node.type === 'skillMention' && node.attrs?.preset) {
-        presets.push(node.attrs.preset)
+    const extractNodes = (node: any) => {
+      if (node.type === 'skillMention') {
+        structureContent.push({
+          type: 'skillMention',
+          content: node.attrs?.label || '',
+          preset: node.attrs?.preset || '',
+        })
+      } else if (node.type === 'text') {
+        structureContent.push({
+          type: 'text',
+          content: node.text || '',
+        })
+      } else if (node.type === 'hardBreak') {
+        structureContent.push({
+          type: 'hardBreak',
+          content: '\n',
+        })
       }
+
+      // 递归处理子节点
       if (node.content) {
-        node.content.forEach(extractPresets)
+        node.content.forEach(extractNodes)
       }
     }
-    json?.content?.forEach(extractPresets)
 
-    // 组合最终内容：预设 + 用户输入
-    const userText = editor.value?.getText() || ''
+    json?.content?.forEach(extractNodes)
 
-    // 默认使用单换行符拼接
-    const finalContent = presets.length > 0 ? `${presets.join('\n')}\n${userText}` : userText
-
-    emit('submit', finalContent, { presets, userText })
+    emit('submit', textContent, structureContent)
   }
 
   // ========================================

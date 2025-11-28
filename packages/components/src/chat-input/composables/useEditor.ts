@@ -49,7 +49,10 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
       }),
       TemplateBlock,
       SkillMention.configure({
-        skills: props.skills || [],
+        skills: (props.skills || []).map((skill) => ({
+          ...skill,
+          id: skill.id || `skill_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        })),
         char: '@',
         allowSpaces: false,
       }),

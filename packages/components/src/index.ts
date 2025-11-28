@@ -46,6 +46,7 @@ export type {
   ChatInputContext,
   SkillItem,
   TemplateItem,
+  ContentNode,
 } from './chat-input/index.type'
 
 export { useTheme } from './theme-provider/useTheme'
