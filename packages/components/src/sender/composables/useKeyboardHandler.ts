@@ -111,22 +111,11 @@ export function useKeyboardHandler(
     const isCtrlEnter = event.ctrlKey && !event.shiftKey
     const isShiftEnter = event.shiftKey && !event.ctrlKey
 
-    if (!isCtrlEnter && !isShiftEnter) return false
+    // Ctrl+Enter 或 Shift+Enter: 单行模式切换到多行，多行模式直接换行
+    if (isCtrlEnter || isShiftEnter) {
+      event.preventDefault()
+      const target = event.target as HTMLTextAreaElement
 
-    event.preventDefault()
-    const target = event.target as HTMLTextAreaElement
-
-    // Ctrl+Enter: 单行模式切换到多行，多行模式直接换行
-    if (isCtrlEnter) {
-      if (currentMode?.value === 'single' && setMultipleMode) {
-        setMultipleMode()
-      }
-      insertNewLine(target)
-      return true
-    }
-
-    // Shift+Enter: 单行模式切换到多行，多行模式直接换行
-    if (isShiftEnter) {
       if (currentMode?.value === 'single' && setMultipleMode) {
         setMultipleMode()
       }
@@ -189,16 +178,9 @@ export function useKeyboardHandler(
     }
 
     // 检查是否匹配当前的提交快捷键
-    const shouldSubmit = checkSubmitShortcut(event, props.submitType as SubmitTrigger)
-
-    if (shouldSubmit) {
-      // 只要是提交快捷键，就阻止默认行为（比如换行）
+    if (checkSubmitShortcut(event, props.submitType as SubmitTrigger) && canSubmit.value) {
       event.preventDefault()
-
-      // 如果验证通过，则执行提交
-      if (canSubmit.value) {
-        triggerSubmit()
-      }
+      triggerSubmit()
     }
   }
 
