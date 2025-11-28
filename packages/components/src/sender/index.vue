@@ -306,7 +306,7 @@ watch(
     inputValue.value = props.templateData
       .map((item) => {
         if (item.type === 'skill') {
-          return item.value
+          return `@${item.label}`
         }
         return item.content
       })
