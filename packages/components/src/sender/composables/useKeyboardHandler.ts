@@ -85,15 +85,17 @@ export function useKeyboardHandler(
    * @param target 输入框元素
    */
   const insertNewLine = (target: HTMLTextAreaElement) => {
-    const cursorPosition = target.selectionStart
+    const start = target.selectionStart ?? 0
+    const end = target.selectionEnd ?? start
     const currentValue = inputValue.value
 
-    // 在光标位置插入换行符
-    inputValue.value = currentValue.substring(0, cursorPosition) + '\n' + currentValue.substring(cursorPosition)
+    // 使用选区范围插入换行符，保持与原生 textarea 行为一致（替换选中文本）
+    inputValue.value = currentValue.substring(0, start) + '\n' + currentValue.substring(end)
 
     // 设置光标位置到换行符之后，并滚动到光标位置
     setTimeout(() => {
-      target.selectionStart = target.selectionEnd = cursorPosition + 1
+      const newCursorPos = start + 1
+      target.selectionStart = target.selectionEnd = newCursorPos
       // 滚动到光标所在位置，确保光标可见
       target.scrollTop = target.scrollHeight
     }, 0)
