@@ -7,7 +7,7 @@ outline: [1, 3]
 `ChatInput` 是一个基于 [Tiptap](https://tiptap.dev/) 构建的高度可组合聊天输入组件，它是 `Sender` 组件的重构版本，专注于提供更强大的富文本编辑能力和灵活的扩展性。它不仅支持文本输入、模板填充、技能提及等功能，还拥有强大的插槽系统，适用于聊天界面、评论输入、表单填写等多种富文本输入场景。
 
 - [代码示例](#代码示例) - 模式切换、状态控制、内容管理
-- [输入增强](#输入增强) - 模板填充、技能提及
+- [输入增强](#输入增强) - 模板填充、提及功能
 - [交互定制](#交互定制) - 快捷键、自定义底部、方法调用
 - [样式配置](#样式配置) - 主题、紧凑模式
 
@@ -51,15 +51,15 @@ outline: [1, 3]
 
 <demo vue="../../demos/chat-input/template-editor.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-### 技能提及
+### 提及功能
 
-输入 `@` 触发技能选择，快速引用预设的技能助手，支持键盘导航和搜索过滤。
+输入 `@` 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。
 
-:::tip 删除技能
-按 `Backspace` 删除技能时会保留 `@` 符号，可继续选择其他技能。
+:::tip 删除提及
+按 `Backspace` 删除提及项时会保留 `@` 符号，可继续选择其他项。
 :::
 
-<demo vue="../../demos/chat-input/skill-mention.vue" title="技能提及" description="输入 @ 触发技能选择，快速引用预设的技能助手，支持键盘导航和搜索过滤。" />
+<demo vue="../../demos/chat-input/mention.vue" title="提及功能" description="输入 @ 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。" />
 
 ### 智能联想
 
@@ -98,9 +98,7 @@ const allSuggestions = [
 // 根据输入内容过滤建议项
 const filteredSuggestions = computed(() => {
   if (!inputText.value) return allSuggestions
-  return allSuggestions.filter(item => 
-    item.content.toLowerCase().includes(inputText.value.toLowerCase())
-  )
+  return allSuggestions.filter((item) => item.content.toLowerCase().includes(inputText.value.toLowerCase()))
 })
 </script>
 
@@ -108,6 +106,7 @@ const filteredSuggestions = computed(() => {
   <tr-chat-input v-model="inputText" :suggestions="filteredSuggestions" />
 </template>
 ```
+
 :::
 
 <h2>交互定制</h2>
@@ -120,16 +119,17 @@ const filteredSuggestions = computed(() => {
 
 ### 快捷键参考
 
-| 快捷键      | 功能                      | 适用条件                                    |
-| ----------- | ------------------------- | ------------------------------------------- |
-| Enter       | 提交内容 / 换行           | submitType="enter"                          |
-| Ctrl+Enter  | 提交内容 / 换行           | submitType="ctrlEnter" / submitType="enter" |
-| Shift+Enter | 提交内容 / 换行           | submitType="shiftEnter" / submitType="enter"|
-| Tab         | 选中联想项                | 联想开启时                                  |
-| Esc         | 关闭联想                  | 联想开启时                                  |
-| ↑ / ↓       | 导航联想项                | 联想开启时                                  |
+| 快捷键      | 功能            | 适用条件                                     |
+| ----------- | --------------- | -------------------------------------------- |
+| Enter       | 提交内容 / 换行 | submitType="enter"                           |
+| Ctrl+Enter  | 提交内容 / 换行 | submitType="ctrlEnter" / submitType="enter"  |
+| Shift+Enter | 提交内容 / 换行 | submitType="shiftEnter" / submitType="enter" |
+| Tab         | 选中联想项      | 联想开启时                                   |
+| Esc         | 关闭联想        | 联想开启时                                   |
+| ↑ / ↓       | 导航联想项      | 联想开启时                                   |
 
 :::info 换行与提交行为说明
+
 - **`submitType="enter"`** 时：按 `Enter` 提交，按 `Ctrl+Enter` 或 `Shift+Enter` 换行
 - **`submitType="ctrlEnter"`** 时：按 `Ctrl+Enter` 提交，按 `Enter` 换行
 - **`submitType="shiftEnter"`** 时：按 `Shift+Enter` 提交，按 `Enter` 换行
@@ -169,51 +169,51 @@ const filteredSuggestions = computed(() => {
 
 ## Props
 
-| 属性名        | 说明                     | 类型                                               | 默认值            |
-| ------------- | ------------------------ | -------------------------------------------------- | ----------------- |
-| modelValue    | 绑定值(v-model)          | `string`                                           | `''`              |
-| defaultValue  | 默认值(非响应式)         | `string`                                           | `''`              |
-| placeholder   | 输入框占位文本           | `string`                                           | `'请输入内容...'` |
-| disabled      | 是否禁用                 | `boolean`                                          | `false`           |
-| loading       | 是否加载中               | `boolean`                                          | `false`           |
-| autofocus     | 自动获取焦点             | `boolean`                                          | `false`           |
-| mode          | 输入框类型               | `'single' \| 'multiple'`                           | `'single'`        |
-| maxLength     | 最大输入长度             | `number`                                           | `Infinity`        |
-| showWordLimit | 是否显示字数统计         | `boolean`                                          | `false`           |
-| clearable     | 是否可清空               | `boolean`                                          | `false`           |
-| submitType    | 提交方式                 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'`           | `'enter'`         |
-| stopText      | 停止按钮文字             | `string`                                           | `仅显示图标`      |
-| templateData  | 模板数据，用于初始化或 v-model 更新 | `TemplateItem[]`                                   | `[]`              |
-| skills        | 技能列表，用于 `@` 提及   | `SkillItem[]`                                      | `[]`              |
-| suggestions   | 建议列表，提供智能联想功能 | `SuggestionItem[]`                                 | `[]`              |
-| suggestionChar | 建议触发字符（null 为全局匹配） | `string \| null`                              | `null`            |
-| suggestionPopupWidth | 建议弹窗宽度       | `number \| string`                                 | `400`             |
-| activeSuggestionKeys | 激活建议项的按键   | `string[]`                                         | `['Enter', 'Tab']` |
-| showAutoComplete | 是否显示自动补全提示   | `boolean`                                          | `true`            |
-| theme         | 主题样式                 | `'light' \| 'dark'`                                | `'light'`         |
+| 属性名               | 说明                                | 类型                                     | 默认值             |
+| -------------------- | ----------------------------------- | ---------------------------------------- | ------------------ |
+| modelValue           | 绑定值(v-model)                     | `string`                                 | `''`               |
+| defaultValue         | 默认值(非响应式)                    | `string`                                 | `''`               |
+| placeholder          | 输入框占位文本                      | `string`                                 | `'请输入内容...'`  |
+| disabled             | 是否禁用                            | `boolean`                                | `false`            |
+| loading              | 是否加载中                          | `boolean`                                | `false`            |
+| autofocus            | 自动获取焦点                        | `boolean`                                | `false`            |
+| mode                 | 输入框类型                          | `'single' \| 'multiple'`                 | `'single'`         |
+| maxLength            | 最大输入长度                        | `number`                                 | `Infinity`         |
+| showWordLimit        | 是否显示字数统计                    | `boolean`                                | `false`            |
+| clearable            | 是否可清空                          | `boolean`                                | `false`            |
+| submitType           | 提交方式                            | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`          |
+| stopText             | 停止按钮文字                        | `string`                                 | `仅显示图标`       |
+| templateData         | 模板数据，用于初始化或 v-model 更新 | `TemplateItem[]`                         | `[]`               |
+| mentions             | 提及列表，用于 `@` 提及             | `MentionItem[]`                          | `[]`               |
+| suggestions          | 建议列表，提供智能联想功能          | `SuggestionItem[]`                       | `[]`               |
+| suggestionChar       | 建议触发字符（null 为全局匹配）     | `string \| null`                         | `null`             |
+| suggestionPopupWidth | 建议弹窗宽度                        | `number \| string`                       | `400`              |
+| activeSuggestionKeys | 激活建议项的按键                    | `string[]`                               | `['Enter', 'Tab']` |
+| showAutoComplete     | 是否显示自动补全提示                | `boolean`                                | `true`             |
+| theme                | 主题样式                            | `'light' \| 'dark'`                      | `'light'`          |
 
 ## Slots
 
-| 插槽名称       | 描述                             | 默认内容                 | 作用域参数   |
-| -------------- | -------------------------------- | ------------------------ | ------------ |
-| `header`       | 头部插槽，位于输入框上方         | 无                       | -            |
-| `prefix`       | 前缀插槽，位于输入框左侧         | 无                       | -            |
-| `content`      | 内容插槽，用于完全自定义编辑器内容 | 输入内容区域             | `{ editor }` |
-| `actions-inline` | 单行模式下的操作按钮区域       | 提交按钮、技能按钮等     | -            |
-| `footer`       | 底部完全自定义插槽               | 字数限制、多行模式操作按钮 | -            |
-| `footer-right` | 底部右侧插槽，保留字数限制       | 多行模式下的操作按钮     | -            |
+| 插槽名称         | 描述                               | 默认内容                   | 作用域参数   |
+| ---------------- | ---------------------------------- | -------------------------- | ------------ |
+| `header`         | 头部插槽，位于输入框上方           | 无                         | -            |
+| `prefix`         | 前缀插槽，位于输入框左侧           | 无                         | -            |
+| `content`        | 内容插槽，用于完全自定义编辑器内容 | 输入内容区域               | `{ editor }` |
+| `actions-inline` | 单行模式下的操作按钮区域           | 提交按钮、技能按钮等       | -            |
+| `footer`         | 底部完全自定义插槽                 | 字数限制、多行模式操作按钮 | -            |
+| `footer-right`   | 底部右侧插槽，保留字数限制         | 多行模式下的操作按钮       | -            |
 
 ## Events
 
-| 事件名            | 说明                       | 回调参数                                                                |
-| ----------------- | -------------------------- | ----------------------------------------------------------------------- |
-| update:modelValue | 输入值变化时触发(v-model)  | `(value: string)`                                                       |
-| blur              | 输入框失去焦点时触发       | `(event: FocusEvent)`                                                   |
-| focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`                                                   |
-| submit            | 提交内容时触发             | `(textContent: string, structureContent: ContentNode[])`                |
-| clear             | 清空内容时触发             | `()`                                                                    |
-| cancel            | 取消发送（加载状态）时触发 | `()`                                                                    |
-| suggestion-select | 选择建议项时触发           | `(value: string)`                                                       |
+| 事件名            | 说明                       | 回调参数                                                 |
+| ----------------- | -------------------------- | -------------------------------------------------------- |
+| update:modelValue | 输入值变化时触发(v-model)  | `(value: string)`                                        |
+| blur              | 输入框失去焦点时触发       | `(event: FocusEvent)`                                    |
+| focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`                                    |
+| submit            | 提交内容时触发             | `(textContent: string, structureContent: ContentNode[])` |
+| clear             | 清空内容时触发             | `()`                                                     |
+| cancel            | 取消发送（加载状态）时触发 | `()`                                                     |
+| suggestion-select | 选择建议项时触发           | `(value: string)`                                        |
 
 ## Methods
 
@@ -234,46 +234,48 @@ const filteredSuggestions = computed(() => {
 | getTemplateData         | 获取模板数据             | -                         | `TemplateItem[]` |
 
 ```
+
 ## Types
 
 ```typescript
 // 模板项
 interface TemplateItem {
-  id?: string; // 模板块 ID（可选，自动生成）
-  type: 'text' | 'template'; // 项目类型，'text' 为普通文本，'template' 为可编辑模板块
-  content: string; // 内容
+  id?: string // 模板块 ID（可选，自动生成）
+  type: 'text' | 'template' // 项目类型，'text' 为普通文本，'template' 为可编辑模板块
+  content: string // 内容
 }
 
-// 技能项
-interface SkillItem {
-  id?: string; // 唯一标识（可选，自动生成）
-  label: string; // 显示名称，如 "小小画家"
-  preset: string; // 预设内容（选择后自动填充到输入框）
+// 提及项
+interface MentionItem {
+  id?: string // 唯一标识（可选，自动生成）
+  label: string // 显示名称，如 "小小画家"
+  preset: string // 预设内容（选择后自动填充到输入框）
 }
 
 // 输入模式
-type InputMode = 'single' | 'multiple';
+type InputMode = 'single' | 'multiple'
 
 // 内容节点（submit 事件返回的结构化数据）
 interface ContentNode {
-  type: 'text' | 'skillMention' | 'hardBreak'; // 节点类型
-  content: string; // 节点内容
-  preset?: string; // 预设内容（仅 skillMention 类型有效）
+  type: 'text' | 'mention' | 'hardBreak' // 节点类型
+  content: string // 节点内容
+  preset?: string // 预设内容（仅 mention 类型有效）
 }
 
 // 建议项
 interface SuggestionItem {
-  content: string; // 建议项内容（必填）
-  label?: string; // 显示标签（可选，默认使用 content）
-  highlights?: string[] | HighlightFunction; // 高亮方式（可选）
-  data?: Record<string, unknown>; // 自定义数据（可选）
+  content: string // 建议项内容（必填）
+  label?: string // 显示标签（可选，默认使用 content）
+  highlights?: string[] | HighlightFunction // 高亮方式（可选）
+  data?: Record<string, unknown> // 自定义数据（可选）
 }
 
 // 高亮函数类型
-type HighlightFunction = (suggestionText: string, inputText: string) => SuggestionTextPart[];
+type HighlightFunction = (suggestionText: string, inputText: string) => SuggestionTextPart[]
 
 // 高亮文本片段
 interface SuggestionTextPart {
-  text: string; // 文本片段
-  isMatch: boolean; // 是否高亮
+  text: string // 文本片段
+  isMatch: boolean // 是否高亮
 }
+```

@@ -11,7 +11,7 @@
 import { EditorView } from '@tiptap/pm/view'
 import { computed, provide, ref, toRef, watch } from 'vue'
 import type { ChatInputProps, ChatInputEmits, InputMode, TemplateItem, ContentNode } from '../index.type'
-import { SkillMentionPluginKey, SuggestionPluginKey } from '../extensions'
+import { MentionPluginKey, SuggestionPluginKey } from '../extensions'
 import { CHAT_INPUT_CONTEXT_KEY } from '../constants'
 import type { ChatInputContext } from '../types/context'
 import { useEditor } from './useEditor'
@@ -114,9 +114,9 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const extractNodes = (node: any) => {
-      if (node.type === 'skillMention') {
+      if (node.type === 'mention') {
         structureContent.push({
-          type: 'skillMention',
+          type: 'mention',
           content: node.attrs?.label || '',
           preset: node.attrs?.preset || '',
         })
@@ -175,10 +175,10 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
             ...editorInstance.options.editorProps,
             handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
               // 0. 检查插件状态 - 如果建议面板激活，不拦截键盘事件
-              const skillMentionState = SkillMentionPluginKey.getState(view.state)
+              const mentionState = MentionPluginKey.getState(view.state)
               const suggestionState = SuggestionPluginKey.getState(view.state)
 
-              if (skillMentionState?.active || suggestionState?.active) {
+              if (mentionState?.active || suggestionState?.active) {
                 return false // 让插件处理
               }
 

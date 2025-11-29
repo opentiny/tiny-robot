@@ -44,7 +44,7 @@ export type {
   ChatInputEmits,
   ChatInputSlots,
   ChatInputContext,
-  SkillItem,
+  MentionItem,
   TemplateItem,
   ContentNode,
 } from './chat-input/index.type'

@@ -1,18 +1,18 @@
 <script setup lang="ts">
 /**
- * SkillMentionList 组件
+ * MentionList 组件
  *
- * 技能建议列表
- * - 显示过滤后的技能列表
+ * 提及建议列表
+ * - 显示过滤后的提及项列表
  * - 支持键盘和鼠标交互
  * - 简洁的 UI，只显示图标和标签
  */
 
 import { ref, watch } from 'vue'
-import type { SkillItem } from './types'
+import type { MentionItem } from './types'
 
 interface Props {
-  skills: SkillItem[]
+  items: MentionItem[]
   command: (props: { id: string; label: string; preset?: string }) => void
 }
 
@@ -21,9 +21,9 @@ const props = defineProps<Props>()
 // 内部管理选中索引
 const selectedIndex = ref(0)
 
-// 监听技能列表变化，重置索引
+// 监听提及项列表变化，重置索引
 watch(
-  () => props.skills,
+  () => props.items,
   () => {
     selectedIndex.value = 0
   },
@@ -37,7 +37,7 @@ function onKeyDown({ event }: { event: KeyboardEvent }): boolean {
   }
 
   if (event.key === 'ArrowDown') {
-    selectedIndex.value = Math.min(props.skills.length - 1, selectedIndex.value + 1)
+    selectedIndex.value = Math.min(props.items.length - 1, selectedIndex.value + 1)
     return true
   }
 
@@ -49,14 +49,14 @@ function onKeyDown({ event }: { event: KeyboardEvent }): boolean {
   return false
 }
 
-// 选择技能
+// 选择提及项
 function selectItem(index: number) {
-  const skill = props.skills[index]
-  if (skill) {
+  const item = props.items[index]
+  if (item) {
     props.command({
-      id: skill.id,
-      label: skill.label,
-      preset: skill.preset,
+      id: item.id,
+      label: item.label,
+      preset: item.preset,
     })
   }
 }
@@ -73,29 +73,29 @@ defineExpose({
 </script>
 
 <template>
-  <div class="skill-mention-list">
-    <!-- 技能列表 -->
+  <div class="mention-list">
+    <!-- 提及项列表 -->
     <button
-      v-for="(skill, index) in skills"
-      :key="skill.id"
+      v-for="(item, index) in items"
+      :key="item.id"
       type="button"
-      :class="['skill-mention-item', { 'is-selected': index === selectedIndex }]"
+      :class="['mention-item', { 'is-selected': index === selectedIndex }]"
       @click="selectItem(index)"
       @mouseenter="onHover(index)"
     >
-      <span v-if="skill.icon" class="skill-icon">{{ skill.icon }}</span>
-      <span class="skill-label">{{ skill.label }}</span>
+      <span v-if="item.icon" class="mention-icon">{{ item.icon }}</span>
+      <span class="mention-label">{{ item.label }}</span>
     </button>
 
     <!-- 空状态 -->
-    <div v-if="skills.length === 0" class="skill-empty">
-      <span>未找到匹配的技能</span>
+    <div v-if="items.length === 0" class="mention-empty">
+      <span>未找到匹配的提及项</span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.skill-mention-list {
+.mention-list {
   background: var(--tr-chat-input-mention-list-bg);
   border-radius: 12px;
   box-shadow: var(--tr-chat-input-mention-list-shadow);
@@ -105,7 +105,7 @@ defineExpose({
   max-width: 320px;
 }
 
-.skill-mention-item {
+.mention-item {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -124,15 +124,15 @@ defineExpose({
   font-weight: 500;
 }
 
-.skill-mention-item:hover {
+.mention-item:hover {
   background: var(--tr-chat-input-mention-item-hover-bg);
 }
 
-.skill-mention-item.is-selected {
+.mention-item.is-selected {
   background: var(--tr-chat-input-mention-item-selected-bg);
 }
 
-.skill-icon {
+.mention-icon {
   font-size: 22px;
   line-height: 1;
   flex-shrink: 0;
@@ -143,7 +143,7 @@ defineExpose({
   justify-content: center;
 }
 
-.skill-label {
+.mention-label {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
@@ -154,7 +154,7 @@ defineExpose({
   line-height: 1.4;
 }
 
-.skill-empty {
+.mention-empty {
   padding: 20px 12px;
   text-align: center;
   color: var(--tr-chat-input-mention-text-tertiary);
@@ -162,23 +162,23 @@ defineExpose({
 }
 
 /* 滚动条样式 */
-.skill-mention-list::-webkit-scrollbar {
+.mention-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.skill-mention-list::-webkit-scrollbar-track {
+.mention-list::-webkit-scrollbar-track {
   background: transparent;
   margin: 6px 0;
 }
 
-.skill-mention-list::-webkit-scrollbar-thumb {
+.mention-list::-webkit-scrollbar-thumb {
   background: var(--tr-chat-input-mention-scrollbar-thumb);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-.skill-mention-list::-webkit-scrollbar-thumb:hover {
+.mention-list::-webkit-scrollbar-thumb:hover {
   background: var(--tr-chat-input-mention-scrollbar-thumb-hover);
   background-clip: padding-box;
 }

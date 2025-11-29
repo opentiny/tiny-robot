@@ -97,10 +97,10 @@ export interface ContentNode {
   /**
    * 节点类型
    * - text: 普通文本
-   * - skillMention: 技能提及
+   * - mention: 提及
    * - hardBreak: 换行符
    */
-  type: 'text' | 'skillMention' | 'hardBreak'
+  type: 'text' | 'mention' | 'hardBreak'
 
   /**
    * 节点内容
@@ -108,21 +108,21 @@ export interface ContentNode {
   content: string
 
   /**
-   * 预设内容（仅 skillMention 类型有效）
+   * 预设内容（仅 mention 类型有效）
    */
   preset?: string
 }
 
 // ============================================
-// 技能 Mention 相关类型
+// Mention 相关类型
 // ============================================
 
 /**
- * 技能项
+ * 提及项
  *
- * 用于 @ 提及功能的技能数据
+ * 用于 @ 提及功能的数据
  */
-export interface SkillItem {
+export interface MentionItem {
   /**
    * 唯一标识（可选）
    * 如果不提供，组件会自动生成
@@ -136,7 +136,7 @@ export interface SkillItem {
 
   /**
    * 预设内容（必传）
-   * 选择该技能后会自动填充的内容
+   * 选择该项后会自动填充的内容
    */
   preset: string
 
@@ -147,16 +147,16 @@ export interface SkillItem {
 }
 
 /**
- * 技能 Mention 节点属性（内部使用）
+ * Mention 节点属性（内部使用）
  */
-export interface SkillMentionAttrs {
+export interface MentionAttrs {
   /**
-   * 技能 ID
+   * ID
    */
   id: string
 
   /**
-   * 技能标签
+   * 标签
    */
   label: string
 

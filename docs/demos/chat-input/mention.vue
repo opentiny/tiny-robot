@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChatInput } from '@opentiny/tiny-robot'
-import type { SkillItem, ContentNode } from '@opentiny/tiny-robot'
+import type { MentionItem, ContentNode } from '@opentiny/tiny-robot'
 
 const content = ref('')
 
-// 技能列表（id 可选，组件会自动生成）
-const skills: SkillItem[] = [
+// 提及列表（id 可选，组件会自动生成）
+const mentions: MentionItem[] = [
   {
     label: '小小画家',
     preset: '你是一个专业的绘画助手，擅长帮助用户进行艺术创作和绘画指导。',
@@ -36,15 +36,15 @@ const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
 </script>
 
 <template>
-  <div class="skill-mention-demo">
+  <div class="mention-demo">
     <div class="demo-tip">
-      <p>💡 输入 <code>@</code> 触发技能选择，支持键盘导航（↑↓）和 Enter/Tab 选择</p>
+      <p>💡 输入 <code>@</code> 触发提及选择，支持键盘导航（↑↓）和 Enter/Tab 选择</p>
     </div>
 
     <ChatInput
       v-model="content"
-      :skills="skills"
-      placeholder="输入 @ 选择技能助手..."
+      :mentions="mentions"
+      placeholder="输入 @ 选择助手..."
       mode="multiple"
       :max-length="500"
       show-word-limit
@@ -60,7 +60,7 @@ const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
 </template>
 
 <style scoped>
-.skill-mention-demo {
+.mention-demo {
   width: 100%;
   max-width: 800px;
 }

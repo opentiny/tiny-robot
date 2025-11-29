@@ -1,11 +1,11 @@
 /**
- * SkillMention 扩展类型定义
+ * Mention 扩展类型定义
  */
 
 /**
- * 技能项数据结构
+ * 提及项数据结构
  */
-export interface SkillItem {
+export interface MentionItem {
   /**
    * 唯一标识（必传）
    */
@@ -28,22 +28,22 @@ export interface SkillItem {
 }
 
 /**
- * SkillMention 节点属性
+ * Mention 节点属性
  */
-export interface SkillMentionAttrs {
+export interface MentionAttrs {
   id: string
   label: string
   preset?: string
 }
 
 /**
- * Suggestion 配置选项
+ * Mention 配置选项
  */
-export interface SkillMentionOptions {
+export interface MentionOptions {
   /**
-   * 技能列表
+   * 提及项列表
    */
-  skills: SkillItem[]
+  items: MentionItem[]
 
   /**
    * 触发字符，默认 '@'
@@ -62,9 +62,9 @@ export interface SkillMentionOptions {
 }
 
 /**
- * Suggestion 插件状态
+ * Mention Suggestion 插件状态
  */
-export interface SuggestionState {
+export interface MentionSuggestionState {
   /**
    * 是否激活
    */
@@ -81,7 +81,7 @@ export interface SuggestionState {
   query: string
 
   /**
-   * 过滤后的技能列表
+   * 过滤后的提及项列表
    */
-  filteredSkills: SkillItem[]
+  filteredItems: MentionItem[]
 }

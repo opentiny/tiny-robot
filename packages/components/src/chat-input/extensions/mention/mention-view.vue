@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * SkillMentionView 组件
+ * MentionView 组件
  *
- * 技能 Mention 的 Vue 节点视图
- * - 渲染技能 mention 的视觉样式
+ * Mention 的 Vue 节点视图
+ * - 渲染 mention 的视觉样式
  * - 作为 atom 节点，不可编辑
  */
 
@@ -27,13 +27,13 @@ defineProps<Props>()
 </script>
 
 <template>
-  <NodeViewWrapper as="span" class="skill-mention" :data-id="node.attrs.id" :data-preset="node.attrs.preset"
+  <NodeViewWrapper as="span" class="mention" :data-id="node.attrs.id" :data-preset="node.attrs.preset"
     >@{{ node.attrs.label }}</NodeViewWrapper
   >
 </template>
 
 <style scoped>
-.skill-mention {
+.mention {
   display: inline;
   color: var(--tr-chat-input-mention-color);
   background: var(--tr-chat-input-mention-bg);
@@ -45,7 +45,7 @@ defineProps<Props>()
   transition: background 0.2s;
 }
 
-.skill-mention:hover {
+.mention:hover {
   background: var(--tr-chat-input-mention-hover-bg);
 }
 </style>

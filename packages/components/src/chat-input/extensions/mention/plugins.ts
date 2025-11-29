@@ -1,9 +1,9 @@
 /**
- * SkillMention Suggestion 插件
+ * Mention Suggestion 插件
  *
  * 基于 ProseMirror 插件实现
  * - 监听 @ 字符输入
- * - 过滤匹配的技能列表
+ * - 过滤匹配的提及项列表
  * - 使用 @floating-ui/dom 定位弹窗
  * - 处理键盘导航和选择
  */
@@ -15,22 +15,22 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
 import { VueRenderer } from '@tiptap/vue-3'
 import type { Editor } from '@tiptap/core'
-import SkillMentionList from './skill-mention-list.vue'
-import type { SkillItem, SuggestionState } from './types'
+import MentionList from './mention-list.vue'
+import type { MentionItem, MentionSuggestionState } from './types'
 
 /**
  * 生成唯一 ID
  */
 function generateId(): string {
-  return `skill_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  return `mention_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
-export const SkillMentionPluginKey = new PluginKey<SuggestionState>('skillMention')
+export const MentionPluginKey = new PluginKey<MentionSuggestionState>('mention')
 
 interface PluginOptions {
   editor: Editor
   char: string
-  skills: SkillItem[]
+  items: MentionItem[]
   allowSpaces: boolean
 }
 
@@ -79,23 +79,23 @@ function findSuggestion(selection: Selection, char: string, allowSpaces: boolean
 }
 
 /**
- * 过滤技能列表
+ * 过滤提及项列表
  */
-function filterSkills(skills: SkillItem[], query: string): SkillItem[] {
+function filterItems(items: MentionItem[], query: string): MentionItem[] {
   if (!query) {
-    return skills
+    return items
   }
 
   const lowerQuery = query.toLowerCase()
 
-  return skills.filter((skill) => {
+  return items.filter((item) => {
     // 匹配标签
-    if (skill.label.toLowerCase().includes(lowerQuery)) {
+    if (item.label.toLowerCase().includes(lowerQuery)) {
       return true
     }
 
     // 匹配预设内容
-    if (skill.preset?.toLowerCase().includes(lowerQuery)) {
+    if (item.preset?.toLowerCase().includes(lowerQuery)) {
       return true
     }
 
@@ -107,28 +107,28 @@ function filterSkills(skills: SkillItem[], query: string): SkillItem[] {
  * 创建 Suggestion 插件
  */
 export function createSuggestionPlugin(options: PluginOptions): Plugin {
-  const { editor, char, skills, allowSpaces } = options
+  const { editor, char, items, allowSpaces } = options
 
   let component: VueRenderer | null = null
   let popup: HTMLElement | null = null
   let cleanup: (() => void) | null = null
 
   return new Plugin({
-    key: SkillMentionPluginKey,
+    key: MentionPluginKey,
 
     state: {
-      init(): SuggestionState {
+      init(): MentionSuggestionState {
         return {
           active: false,
           range: null,
           query: '',
-          filteredSkills: [],
+          filteredItems: [],
         }
       },
 
-      apply(tr: Transaction, state: SuggestionState): SuggestionState {
+      apply(tr: Transaction, state: MentionSuggestionState): MentionSuggestionState {
         // 检查是否有 meta 更新
-        const meta = tr.getMeta(SkillMentionPluginKey)
+        const meta = tr.getMeta(MentionPluginKey)
 
         if (meta) {
           // 关闭弹窗
@@ -137,7 +137,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               active: false,
               range: null,
               query: '',
-              filteredSkills: [],
+              filteredItems: [],
             }
           }
         }
@@ -155,18 +155,18 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
             active: false,
             range: null,
             query: '',
-            filteredSkills: [],
+            filteredItems: [],
           }
         }
 
-        // 过滤技能
-        const filteredSkills = filterSkills(skills, suggestion.query)
+        // 过滤提及项
+        const filteredItems = filterItems(items, suggestion.query)
 
         return {
-          active: filteredSkills.length > 0,
+          active: filteredItems.length > 0,
           range: suggestion.range,
           query: suggestion.query,
-          filteredSkills,
+          filteredItems,
         }
       },
     },
@@ -189,21 +189,21 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
 
       // 键盘处理
       handleKeyDown(view: EditorView, event: KeyboardEvent): boolean {
-        const pluginState = SkillMentionPluginKey.getState(view.state)
+        const pluginState = MentionPluginKey.getState(view.state)
 
-        // 处理 Backspace：检测是否在技能块右侧
+        // 处理 Backspace：检测是否在 mention 节点右侧
         if (event.key === 'Backspace') {
           const { selection } = view.state
           const { $from } = selection
 
-          // 检查光标前面是否是 skillMention 节点
-          if ($from.nodeBefore && $from.nodeBefore.type.name === 'skillMention') {
+          // 检查光标前面是否是 mention 节点
+          if ($from.nodeBefore && $from.nodeBefore.type.name === 'mention') {
             event.preventDefault()
 
             const { tr } = view.state
             const nodePos = $from.pos - $from.nodeBefore.nodeSize
 
-            // 删除技能块
+            // 删除 mention 节点
             tr.delete(nodePos, $from.pos)
 
             // 插入 @ 字符
@@ -231,7 +231,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           event.preventDefault()
 
           const tr = view.state.tr
-          tr.setMeta(SkillMentionPluginKey, {
+          tr.setMeta(MentionPluginKey, {
             type: 'close',
           })
           view.dispatch(tr)
@@ -251,7 +251,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           return true
         }
 
-        // Enter 或 Tab：选择当前高亮的技能
+        // Enter 或 Tab：选择当前高亮的提及项
         if (event.key === 'Enter' || event.key === 'Tab') {
           event.preventDefault()
 
@@ -261,10 +261,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
             return true
           }
 
-          // 如果组件方法不可用，直接选择第一个技能（fallback）
-          if (pluginState.filteredSkills.length > 0 && pluginState.range) {
-            const firstSkill = pluginState.filteredSkills[0]
-            insertSkillMention(view, pluginState.range, firstSkill)
+          // 如果组件方法不可用，直接选择第一个提及项（fallback）
+          if (pluginState.filteredItems.length > 0 && pluginState.range) {
+            const firstItem = pluginState.filteredItems[0]
+            insertMention(view, pluginState.range, firstItem)
             return true
           }
 
@@ -285,22 +285,22 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
     view() {
       return {
         update(view: EditorView) {
-          const state = SkillMentionPluginKey.getState(view.state)
+          const state = MentionPluginKey.getState(view.state)
 
-          if (state?.active && state.filteredSkills.length > 0) {
+          if (state?.active && state.filteredItems.length > 0) {
             // 创建或更新弹窗
             if (!component) {
-              component = new VueRenderer(SkillMentionList, {
+              component = new VueRenderer(MentionList, {
                 props: {
-                  skills: state.filteredSkills,
+                  items: state.filteredItems,
                   command: (props: { id: string; label: string; preset?: string }) => {
-                    const skill: SkillItem = {
+                    const item: MentionItem = {
                       id: props.id,
                       label: props.label,
                       preset: props.preset || '',
                     }
                     if (state.range) {
-                      insertSkillMention(view, state.range, skill)
+                      insertMention(view, state.range, item)
                     }
                   },
                 },
@@ -314,7 +314,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
             } else {
               // 更新 props
               component.updateProps({
-                skills: state.filteredSkills,
+                items: state.filteredItems,
               })
             }
 
@@ -365,20 +365,20 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
 }
 
 /**
- * 插入技能 mention
+ * 插入 mention
  */
-function insertSkillMention(view: EditorView, range: { from: number; to: number }, skill: SkillItem) {
+function insertMention(view: EditorView, range: { from: number; to: number }, item: MentionItem) {
   const { state, dispatch } = view
   const { tr } = state
 
   // 删除触发文本（包括 @ 字符）
   tr.delete(range.from, range.to)
 
-  // 插入 skillMention 节点
-  const node = state.schema.nodes.skillMention.create({
-    id: skill.id || generateId(),
-    label: skill.label,
-    preset: skill.preset || '',
+  // 插入 mention 节点
+  const node = state.schema.nodes.mention.create({
+    id: item.id || generateId(),
+    label: item.label,
+    preset: item.preset || '',
   })
 
   tr.insert(range.from, node)

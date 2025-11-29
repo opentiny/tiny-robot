@@ -1,7 +1,7 @@
 /**
- * SkillMention 扩展
+ * Mention 扩展
  *
- * 技能提及功能，用于 @某种技能 的场景
+ * 提及功能，用于 @提及某项 的场景
  * - 定义为 inline + atom 节点
  * - 支持 @ 触发建议列表
  * - 使用 @floating-ui/dom 定位弹窗
@@ -11,9 +11,9 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import type { Editor } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import SkillMentionView from './skill-mention-view.vue'
-import { createSuggestionPlugin, SkillMentionPluginKey } from './plugins'
-import type { SkillMentionAttrs, SkillMentionOptions } from './types'
+import MentionView from './mention-view.vue'
+import { createSuggestionPlugin, MentionPluginKey } from './plugins'
+import type { MentionAttrs, MentionOptions } from './types'
 import './commands.d.ts'
 import './index.less'
 
@@ -21,14 +21,14 @@ import './index.less'
  * 生成唯一 ID
  */
 function generateId(): string {
-  return `skill_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  return `mention_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }
 
 /**
- * SkillMention 扩展定义
+ * Mention 扩展定义
  */
-export const SkillMention = Node.create<SkillMentionOptions>({
-  name: 'skillMention',
+export const Mention = Node.create<MentionOptions>({
+  name: 'mention',
 
   // 节点配置
   group: 'inline',
@@ -83,7 +83,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
   parseHTML() {
     return [
       {
-        tag: 'span[data-skill-mention]',
+        tag: 'span[data-mention]',
       },
     ]
   },
@@ -93,7 +93,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
     return [
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        'data-skill-mention': '',
+        'data-mention': '',
         'data-id': node.attrs.id as string,
         'data-label': node.attrs.label as string,
         'data-preset': node.attrs.preset as string,
@@ -105,7 +105,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
   // 使用 Vue 组件渲染
   addNodeView() {
     // @ts-expect-error - Vue SFC type compatibility
-    return VueNodeViewRenderer(SkillMentionView)
+    return VueNodeViewRenderer(MentionView)
   },
 
   // 添加 Suggestion 插件
@@ -114,7 +114,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
       createSuggestionPlugin({
         editor: this.editor,
         char: this.options.char,
-        skills: this.options.skills,
+        items: this.options.items,
         allowSpaces: this.options.allowSpaces,
       }),
     ]
@@ -123,7 +123,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
   // 配置选项
   addOptions() {
     return {
-      skills: [],
+      items: [],
       char: '@',
       allowSpaces: false,
       HTMLAttributes: {},
@@ -134,13 +134,13 @@ export const SkillMention = Node.create<SkillMentionOptions>({
   addCommands() {
     return {
       /**
-       * 插入技能 mention
+       * 插入 mention
        */
-      insertSkillMention:
-        (attrs: Partial<SkillMentionAttrs>) =>
+      insertMention:
+        (attrs: Partial<MentionAttrs>) =>
         ({ commands }: { commands: Editor['commands'] }) => {
           return commands.insertContent({
-            type: 'skillMention',
+            type: 'mention',
             attrs: {
               id: attrs.id || generateId(),
               label: attrs.label || '',
@@ -150,15 +150,15 @@ export const SkillMention = Node.create<SkillMentionOptions>({
         },
 
       /**
-       * 删除技能 mention
+       * 删除 mention
        */
-      deleteSkillMention:
+      deleteMention:
         (id: string) =>
         ({ tr, state }: { tr: Editor['state']['tr']; state: Editor['state'] }) => {
           let deleted = false
 
           state.doc.descendants((node, pos) => {
-            if (node.type.name === 'skillMention' && node.attrs.id === id) {
+            if (node.type.name === 'mention' && node.attrs.id === id) {
               tr.delete(pos, pos + node.nodeSize)
               deleted = true
               return false
@@ -171,7 +171,7 @@ export const SkillMention = Node.create<SkillMentionOptions>({
   },
 })
 
-export default SkillMention
-export { SkillMentionPluginKey }
-export type { SkillMentionAttrs, SkillMentionOptions }
+export default Mention
+export { MentionPluginKey }
+export type { MentionAttrs, MentionOptions }
 export * from './types'

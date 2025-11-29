@@ -8,7 +8,7 @@
 import type {
   InputMode,
   TemplateItem,
-  SkillItem,
+  MentionItem,
   SubmitTrigger,
   ButtonGroupConfig,
   AutoSize,
@@ -55,11 +55,11 @@ export interface ChatInputProps {
   templateData?: TemplateItem[]
 
   /**
-   * 技能列表
+   * 提及项列表
    *
    * 用于 @ 提及功能
    */
-  skills?: SkillItem[]
+  mentions?: MentionItem[]
 
   // ===== 基础配置 =====
 
