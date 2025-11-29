@@ -26,7 +26,7 @@ export type {
   UseTemplateDataReturn,
   UseKeyboardShortcutsReturn,
   TemplateItem,
-  SkillItem,
+  MentionItem,
   ContentNode,
 } from './index.type'
 

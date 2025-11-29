@@ -31,10 +31,10 @@ export const CHAT_INPUT_SELECTORS = {
   resultDisplay: '[data-testid="result-display"]',
 
   // Mention 功能
-  skillMentionList: '.skill-mention-list',
-  skillMentionItem: '.skill-mention-list button',
-  skillMentionSelected: '.skill-mention-list button.is-selected',
-  skillMentionNode: '.skill-mention',
+  mentionList: '.mention-list',
+  mentionItem: '.mention-list button',
+  mentionSelected: '.mention-list button.is-selected',
+  mentionNode: '.mention',
 
   // Template Block 功能
   templateBlock: '.template-block',

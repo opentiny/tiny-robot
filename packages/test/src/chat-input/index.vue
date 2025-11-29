@@ -37,7 +37,7 @@
       :mode="mode"
       :clearable="clearable"
       :loading="loading"
-      :skills="skills"
+      :mentions="mentions"
       :max-length="100"
       show-word-limit
       placeholder="请输入内容..."
@@ -59,7 +59,7 @@
 import { ref, computed } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { ChatInput } from '@opentiny/tiny-robot'
-import type { SkillItem, TemplateItem } from '@opentiny/tiny-robot'
+import type { MentionItem, TemplateItem } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
 const content = ref('')
@@ -135,25 +135,21 @@ const clearTemplate = () => {
   result.value = '已清空模板'
 }
 
-// 技能列表数据
-const skills = ref<SkillItem[]>([
+// 提及列表数据
+const mentions = ref<MentionItem[]>([
   {
-    id: '1',
     label: '小小画家',
     preset: '你是一个专业的绘画助手，擅长创作各种风格的艺术作品...',
   },
   {
-    id: '2',
     label: '代码助手',
     preset: '你是一个专业的编程助手，精通多种编程语言和框架...',
   },
   {
-    id: '3',
     label: '文案大师',
     preset: '你是一个专业的文案撰写专家，能够创作吸引人的营销文案...',
   },
   {
-    id: '4',
     label: '数据分析',
     preset: '你是一个专业的数据分析师，擅长从数据中提取有价值的洞察...',
   },

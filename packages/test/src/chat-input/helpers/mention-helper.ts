@@ -10,12 +10,12 @@ export function createMentionHelper(page: Page) {
       return page.locator(selectors.editor)
     },
 
-    // 输入 @ 符号触发技能选择面板
+    // 输入 @ 符号触发提及选择面板
     async typeAtSymbol() {
       await this.getEditor().click()
       await page.keyboard.type('@')
       // 等待面板出现
-      await expect(page.locator(selectors.skillMentionList)).toBeVisible()
+      await expect(page.locator(selectors.mentionList)).toBeVisible()
     },
 
     // 输入查询文本进行过滤
@@ -28,21 +28,21 @@ export function createMentionHelper(page: Page) {
       await page.keyboard.press(key)
     },
 
-    // 点击指定索引的技能
-    async clickSkill(index: number) {
-      const items = page.locator(selectors.skillMentionItem)
+    // 点击指定索引的提及项
+    async clickItem(index: number) {
+      const items = page.locator(selectors.mentionItem)
       await items.nth(index).click()
     },
 
-    // 鼠标悬停在指定索引的技能上
-    async hoverSkill(index: number) {
-      const items = page.locator(selectors.skillMentionItem)
+    // 鼠标悬停在指定索引的提及项上
+    async hoverItem(index: number) {
+      const items = page.locator(selectors.mentionItem)
       await items.nth(index).hover()
     },
 
-    // 验证技能选择面板可见
+    // 验证提及选择面板可见
     async expectMentionListVisible(visible: boolean = true) {
-      const list = page.locator(selectors.skillMentionList)
+      const list = page.locator(selectors.mentionList)
       if (visible) {
         await expect(list).toBeVisible()
       } else {
@@ -50,31 +50,31 @@ export function createMentionHelper(page: Page) {
       }
     },
 
-    // 验证技能选择面板中的技能数量
-    async expectSkillCount(count: number) {
-      const items = page.locator(selectors.skillMentionItem)
+    // 验证提及选择面板中的项数量
+    async expectItemCount(count: number) {
+      const items = page.locator(selectors.mentionItem)
       await expect(items).toHaveCount(count)
     },
 
-    // 验证选中的技能索引
-    async expectSelectedSkillIndex(index: number) {
-      const selected = page.locator(selectors.skillMentionSelected)
-      const allItems = page.locator(selectors.skillMentionItem)
+    // 验证选中的项索引
+    async expectSelectedItemIndex(index: number) {
+      const selected = page.locator(selectors.mentionSelected)
+      const allItems = page.locator(selectors.mentionItem)
       const selectedItem = allItems.nth(index)
       await expect(selected).toHaveCount(1)
       await expect(selectedItem).toHaveClass(/is-selected/)
     },
 
-    // 验证编辑器中包含技能块
-    async expectSkillMentionExists(skillLabel: string) {
-      const mention = page.locator(selectors.skillMentionNode)
+    // 验证编辑器中包含 mention 节点
+    async expectMentionExists(label: string) {
+      const mention = page.locator(selectors.mentionNode)
       await expect(mention).toBeVisible()
-      await expect(mention).toContainText(skillLabel)
+      await expect(mention).toContainText(label)
     },
 
-    // 验证编辑器中技能块数量
-    async expectSkillMentionCount(count: number) {
-      const mentions = page.locator(selectors.skillMentionNode)
+    // 验证编辑器中 mention 节点数量
+    async expectMentionCount(count: number) {
+      const mentions = page.locator(selectors.mentionNode)
       if (count === 0) {
         await expect(mentions).toHaveCount(0)
       } else {
@@ -82,21 +82,24 @@ export function createMentionHelper(page: Page) {
       }
     },
 
-    // 验证技能列表中包含特定文本
-    async expectSkillListContains(text: string) {
-      const items = page.locator(selectors.skillMentionItem)
+    // 验证提及列表中包含特定文本
+    async expectListContains(text: string) {
+      const items = page.locator(selectors.mentionItem)
       const firstItem = items.first()
       await expect(firstItem).toContainText(text)
     },
 
-    // 删除技能块（模拟 Backspace）
-    async deleteSkillMention() {
-      await page.keyboard.press('Backspace')
+    // 删除 mention 节点（模拟 Backspace）
+    // 注意：mention 插入时会自动在后面添加空格，所以需要按两次 Backspace
+    // 第一次删除空格，第二次删除节点
+    async deleteMention() {
+      await page.keyboard.press('Backspace') // 删除空格
+      await page.keyboard.press('Backspace') // 删除节点
     },
 
-    // 选择技能块
-    async selectSkillMention(skillLabel: string) {
-      const mention = page.locator(selectors.skillMentionNode).filter({ hasText: skillLabel })
+    // 选择 mention 节点
+    async selectMention(label: string) {
+      const mention = page.locator(selectors.mentionNode).filter({ hasText: label })
       await mention.click()
     },
 

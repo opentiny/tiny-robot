@@ -26,10 +26,10 @@ test.describe('Mention 功能 - 触发机制', () => {
     await basicHelper.clearContent()
   })
 
-  test('TC-01: 输入 @ 符号应该触发技能选择面板', async () => {
+  test('TC-01: 输入 @ 符号应该触发提及选择面板', async () => {
     await mentionHelper.typeAtSymbol()
     await mentionHelper.expectMentionListVisible(true)
-    await mentionHelper.expectSkillCount(4) // 默认有4个技能
+    await mentionHelper.expectItemCount(4) // 默认有4个提及项
   })
 
   test('TC-02: 输入非 @ 字符不应该触发面板', async () => {
@@ -47,7 +47,7 @@ test.describe('Mention 功能 - 触发机制', () => {
     await mentionHelper.typeAtSymbol()
     await mentionHelper.expectMentionListVisible(true)
 
-    await mentionHelper.deleteSkillMention() // 这里其实是删除字符
+    await mentionHelper.deleteMention() // 这里其实是删除字符
     await mentionHelper.expectMentionListVisible(false)
   })
 })

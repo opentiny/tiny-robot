@@ -26,19 +26,19 @@ test.describe('Mention 功能 - Atom 节点行为', () => {
     await basicHelper.clearContent()
   })
 
-  test('TC-09: 选中技能后应该插入 Atom 节点', async () => {
+  test('TC-09: 选中提及项后应该插入 Atom 节点', async () => {
     await mentionHelper.typeAtSymbol()
     await mentionHelper.pressKey('Enter') // 选中第一个
 
-    await mentionHelper.expectSkillMentionExists('小小画家')
+    await mentionHelper.expectMentionExists('小小画家')
     await mentionHelper.expectMentionListVisible(false)
   })
 
-  test('TC-10: 鼠标点击选中技能应该插入 Atom 节点', async () => {
+  test('TC-10: 鼠标点击选中提及项应该插入 Atom 节点', async () => {
     await mentionHelper.typeAtSymbol()
-    await mentionHelper.clickSkill(1) // 点击第二个 "代码助手"
+    await mentionHelper.clickItem(1) // 点击第二个 "代码助手"
 
-    await mentionHelper.expectSkillMentionExists('代码助手')
+    await mentionHelper.expectMentionExists('代码助手')
     await mentionHelper.expectMentionListVisible(false)
   })
 
@@ -46,11 +46,11 @@ test.describe('Mention 功能 - Atom 节点行为', () => {
     // 插入节点
     await mentionHelper.typeAtSymbol()
     await mentionHelper.pressKey('Enter')
-    await mentionHelper.expectSkillMentionExists('小小画家')
+    await mentionHelper.expectMentionExists('小小画家')
 
     // 删除
-    await mentionHelper.deleteSkillMention()
-    await mentionHelper.expectSkillMentionCount(0)
+    await mentionHelper.deleteMention()
+    await mentionHelper.expectMentionCount(0)
   })
 
   test('TC-12: 可以在 Atom 节点后继续输入', async () => {
