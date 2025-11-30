@@ -125,9 +125,10 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
     if (items && isRef(items)) {
       watch(
         items,
-        (newItems) => {
-          if (newItems && newItems.length > 0) {
-            this.editor.commands.setTemplateData(newItems)
+        () => {
+          const currentItems = isRef(items) ? items.value : items
+          if (currentItems !== null && currentItems !== undefined) {
+            this.editor.commands.setTemplateData(currentItems)
           }
         },
         { deep: true, immediate: true },

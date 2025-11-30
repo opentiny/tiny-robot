@@ -50,7 +50,7 @@ export interface TemplateBlockOptions {
    * })
    * ```
    */
-  items?: TemplateItem[] | Ref<TemplateItem[]>
+  items?: TemplateItem[] | Ref<TemplateItem[], TemplateItem[]>
 
   /**
    * HTML 属性
