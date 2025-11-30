@@ -95,6 +95,15 @@ export function useTemplateData(options: UseTemplateDataOptions): UseTemplateDat
    */
   const setTemplateData = (items: TemplateItem[]) => {
     if (!editor.value) {
+      console.warn('[useTemplateData] Editor not initialized')
+      return
+    }
+
+    // ✅ 检查命令是否存在
+    if (typeof editor.value.commands.setTemplateData !== 'function') {
+      console.error(
+        '[useTemplateData] setTemplateData command not found. Make sure TemplateBlock extension is registered.',
+      )
       return
     }
 
@@ -145,7 +154,10 @@ export function useTemplateData(options: UseTemplateDataOptions): UseTemplateDat
       return
     }
 
-    editor.value.commands.focusFirstTemplateBlock()
+    // ✅ 检查命令是否存在
+    if (typeof editor.value.commands.focusFirstTemplateBlock === 'function') {
+      editor.value.commands.focusFirstTemplateBlock()
+    }
   }
 
   /**
@@ -159,12 +171,49 @@ export function useTemplateData(options: UseTemplateDataOptions): UseTemplateDat
     return extractTemplateData(editor.value)
   }
 
-  // 监听外部模板数据变化
+  // 监听编辑器初始化完成
+  watch(
+    editor,
+    (newEditor) => {
+      if (!newEditor) return
+
+      // ✅ 编辑器初始化完成后，设置初始模板数据
+      if (templateData?.value && templateData.value.length > 0) {
+        // 使用 nextTick 确保编辑器完全就绪
+        nextTick(() => {
+          if (editor.value && typeof editor.value.commands.setTemplateData === 'function') {
+            setTemplateData(templateData.value!)
+          }
+        })
+      }
+
+      // ✅ 监听编辑器内容变化
+      newEditor.on('update', () => {
+        if (isInternalUpdate.value) {
+          return
+        }
+
+        // 提取模板数据并 emit
+        const data = getTemplateData()
+        emit('update:templateData', data)
+      })
+    },
+    { immediate: true },
+  )
+
+  // 监听外部模板数据变化（编辑器初始化后）
   if (templateData) {
     watch(
       templateData,
       (newData) => {
+        // ✅ 确保编辑器已初始化且命令存在
         if (!newData || newData.length === 0 || !editor.value || isInternalUpdate.value) {
+          return
+        }
+
+        // ✅ 检查命令是否存在
+        if (typeof editor.value.commands.setTemplateData !== 'function') {
+          console.warn('[useTemplateData] setTemplateData command not available yet')
           return
         }
 
@@ -182,25 +231,6 @@ export function useTemplateData(options: UseTemplateDataOptions): UseTemplateDat
       { deep: true },
     )
   }
-
-  // 监听编辑器内容变化
-  watch(
-    editor,
-    (newEditor) => {
-      if (!newEditor) return
-
-      newEditor.on('update', () => {
-        if (isInternalUpdate.value) {
-          return
-        }
-
-        // 提取模板数据并 emit
-        const data = getTemplateData()
-        emit('update:templateData', data)
-      })
-    },
-    { immediate: true },
-  )
 
   return {
     setTemplateData,

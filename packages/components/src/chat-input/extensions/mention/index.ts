@@ -11,9 +11,10 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import type { Editor } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
+import { watch, isRef } from 'vue'
 import MentionView from './mention-view.vue'
 import { createSuggestionPlugin, MentionPluginKey } from './plugins'
-import type { MentionAttrs, MentionOptions } from './types'
+import type { MentionAttrs, MentionOptions, MentionItem } from './types'
 import './commands.d.ts'
 import './index.less'
 
@@ -22,6 +23,28 @@ import './index.less'
  */
 function generateId(): string {
   return `mention_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+}
+
+/**
+ * 获取所有 mention 节点（辅助函数）
+ *
+ * 返回文档中所有的 mention 节点数据
+ */
+export function getMentions(editor: Editor): MentionItem[] {
+  const mentions: MentionItem[] = []
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editor.state.doc.descendants((node: any) => {
+    if (node.type.name === 'mention') {
+      mentions.push({
+        id: node.attrs.id as string,
+        label: node.attrs.label as string,
+        preset: (node.attrs.preset as string) || '',
+      })
+    }
+  })
+
+  return mentions
 }
 
 /**
@@ -106,6 +129,29 @@ export const Mention = Node.create<MentionOptions>({
   addNodeView() {
     // @ts-expect-error - Vue SFC type compatibility
     return VueNodeViewRenderer(MentionView)
+  },
+
+  onCreate() {
+    const { items } = this.options
+
+    // 如果是响应式数据，监听变化
+    if (isRef(items)) {
+      watch(
+        items,
+        () => {
+          // 触发一次事务，使插件重新计算状态
+          // 我们发送一个空的 meta 事务来触发插件的 apply 方法
+          const tr = this.editor.state.tr
+          tr.setMeta('mention-update', true)
+          this.editor.view.dispatch(tr)
+        },
+        { deep: true },
+      )
+    }
+  },
+
+  onUpdate() {
+    // 暂不需要
   },
 
   // 添加 Suggestion 插件

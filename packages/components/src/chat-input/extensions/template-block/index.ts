@@ -10,22 +10,16 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import type { Editor } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
+import { watch, isRef } from 'vue'
 import TemplateBlockView from './template-block-view.vue'
 import type { TemplateItem } from '../../index.type'
 import { ensureZeroWidthChars, keyboardNavigationPlugin, pasteHandlerPlugin } from './plugins'
+import type { TemplateBlockOptions, TemplateBlockAttrs } from './types'
 import './commands.d.ts'
 import './index.less'
 
 // ProseMirror Node 类型（文档节点，不是 Tiptap 扩展）
 type PMNode = ReturnType<Editor['state']['doc']['nodeAt']> & { nodeSize: number }
-
-/**
- * 模板块属性
- */
-export interface TemplateBlockAttrs {
-  id: string
-  content: string
-}
 
 /**
  * 生成唯一 ID
@@ -66,9 +60,47 @@ function getAllTemplateBlocks(editor: Editor): Array<{ node: PMNode; pos: number
 }
 
 /**
+ * 获取结构化数据（辅助函数）
+ *
+ * 返回包含文本和模板块的结构化数组
+ */
+export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
+  const items: TemplateItem[] = []
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editor.state.doc.descendants((node: any) => {
+    if (node.type.name === 'templateBlock') {
+      // 模板块节点
+      items.push({
+        type: 'template',
+        id: node.attrs.id as string,
+        content: node.attrs.content as string,
+      })
+    } else if (node.type.name === 'text') {
+      // 文本节点
+      const text = node.text || ''
+      if (text) {
+        // 合并连续的文本节点
+        const lastItem = items[items.length - 1]
+        if (lastItem && lastItem.type === 'text') {
+          lastItem.content += text
+        } else {
+          items.push({
+            type: 'text',
+            content: text,
+          })
+        }
+      }
+    }
+  })
+
+  return items
+}
+
+/**
  * TemplateBlock 扩展定义
  */
-export const TemplateBlock = Node.create({
+export const TemplateBlock = Node.create<TemplateBlockOptions>({
   name: 'templateBlock',
 
   // 节点配置
@@ -78,6 +110,30 @@ export const TemplateBlock = Node.create({
   atom: false, // 不是 atom 节点，允许光标进入
   selectable: true,
   draggable: false,
+
+  // 配置选项
+  addOptions() {
+    return {
+      items: undefined,
+      HTMLAttributes: {},
+    }
+  },
+
+  onCreate() {
+    const { items } = this.options
+
+    if (items && isRef(items)) {
+      watch(
+        items,
+        (newItems) => {
+          if (newItems && newItems.length > 0) {
+            this.editor.commands.setTemplateData(newItems)
+          }
+        },
+        { deep: true, immediate: true },
+      )
+    }
+  },
 
   // 节点属性
   addAttributes() {
@@ -327,3 +383,4 @@ export const TemplateBlock = Node.create({
 })
 
 export default TemplateBlock
+export type { TemplateBlockOptions, TemplateBlockAttrs } from './types'

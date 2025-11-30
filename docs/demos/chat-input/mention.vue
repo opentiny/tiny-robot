@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-import type { MentionItem, ContentNode } from '@opentiny/tiny-robot'
+import { ChatInput, Mention } from '@opentiny/tiny-robot'
+import type { MentionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const content = ref('')
+const submittedContent = ref('')
 
 // 提及列表（id 可选，组件会自动生成）
 const mentions: MentionItem[] = [
@@ -29,9 +30,19 @@ const mentions: MentionItem[] = [
   },
 ]
 
-const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
-  console.log('提交内容（默认拼接）：', value)
-  console.log('提交结构数据（原始数据）：', structuredContent)
+// ✅ 使用新的 extensions API
+const extensions = [
+  Mention.configure({
+    items: mentions,
+    char: '@',
+  }),
+]
+
+const handleSubmit = (text: string, data?: StructuredData) => {
+  submittedContent.value = text
+
+  console.log('📝 提交内容（纯文本）：', text)
+  console.log('📋 结构化数据：', data)
 }
 </script>
 
@@ -43,7 +54,7 @@ const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
 
     <ChatInput
       v-model="content"
-      :mentions="mentions"
+      :extensions="extensions"
       placeholder="输入 @ 选择助手..."
       mode="multiple"
       :max-length="500"
@@ -52,17 +63,18 @@ const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
       @submit="handleSubmit"
     />
 
-    <div v-if="content" class="demo-output">
-      <h4>当前内容：</h4>
-      <pre>{{ content }}</pre>
+    <div v-if="submittedContent" class="result">
+      <div class="result-title">提交的内容（纯文本）：</div>
+      <div class="result-content">{{ submittedContent }}</div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .mention-demo {
-  width: 100%;
-  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .demo-tip {
@@ -89,30 +101,25 @@ const handleSubmit = (value: string, structuredContent: ContentNode[]) => {
   font-size: 13px;
 }
 
-.demo-output {
-  margin-top: 16px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
-}
-
-.demo-output h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.demo-output pre {
-  margin: 0;
+.result {
   padding: 12px;
-  background: white;
-  border-radius: 4px;
-  font-size: 13px;
+  background: var(--vp-c-bg-soft);
+  border-radius: 8px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.result-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-text-1);
+  margin-bottom: 8px;
+}
+
+.result-content {
+  font-size: 14px;
+  color: var(--vp-c-text-2);
   line-height: 1.6;
-  color: #666;
-  overflow-x: auto;
   white-space: pre-wrap;
-  word-wrap: break-word;
+  word-break: break-word;
 }
 </style>

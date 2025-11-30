@@ -9,11 +9,11 @@
  */
 
 import { EditorView } from '@tiptap/pm/view'
+import type { Editor } from '@tiptap/core'
 import { computed, provide, ref, toRef, watch } from 'vue'
-import type { ChatInputProps, ChatInputEmits, InputMode, TemplateItem, ContentNode } from '../index.type'
-import { MentionPluginKey, SuggestionPluginKey } from '../extensions'
-import { CHAT_INPUT_CONTEXT_KEY } from '../constants'
-import type { ChatInputContext } from '../types/context'
+import type { ChatInputProps, ChatInputEmits, InputMode, StructuredData, TemplateItem } from '../index.type'
+import { MentionPluginKey, SuggestionPluginKey, getTemplateStructuredData, getMentions } from '../extensions'
+import { CHAT_INPUT_CONTEXT_KEY, type ChatInputContext } from '../types/context'
 import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useModeSwitch } from './useModeSwitch'
@@ -101,46 +101,66 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   // ========================================
 
   const submit = () => {
-    if (!canSubmit.value) return
+    if (!canSubmit.value || !editor.value) return
 
-    // 获取编辑器的纯文本内容（第一个参数）
-    const textContent = editor.value?.getText() || ''
+    // 构建结构化数据（第二个参数，可选）
+    // 注意：TemplateBlock 和 Mention 是互斥的使用场景，直接返回数据数组
+    let structuredData: StructuredData | undefined
+    let textContent = ''
 
-    // 获取 JSON 格式内容以提取结构化数据
-    const json = editor.value?.getJSON()
-
-    // 构建结构化内容
-    const structureContent: ContentNode[] = []
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const extractNodes = (node: any) => {
-      if (node.type === 'mention') {
-        structureContent.push({
-          type: 'mention',
-          content: node.attrs?.label || '',
-          preset: node.attrs?.preset || '',
-        })
-      } else if (node.type === 'text') {
-        structureContent.push({
-          type: 'text',
-          content: node.text || '',
-        })
-      } else if (node.type === 'hardBreak') {
-        structureContent.push({
-          type: 'hardBreak',
-          content: '\n',
-        })
-      }
-
-      // 递归处理子节点
-      if (node.content) {
-        node.content.forEach(extractNodes)
+    // 优先检查 TemplateBlock（模板场景）
+    if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'templateBlock')) {
+      const templateItems = getTemplateStructuredData(editor.value)
+      if (templateItems.length > 0) {
+        structuredData = templateItems.map((item) => ({
+          type: item.type,
+          content: item.content,
+        }))
+        textContent = templateItems.map((item) => item.content).join('')
       }
     }
+    // 其次检查 Mention（提及场景）
+    else if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'mention')) {
+      const mentions = getMentions(editor.value)
+      if (mentions.length > 0) {
+        structuredData = mentions.map((item) => ({
+          label: item.label,
+          preset: item.preset,
+        }))
+      }
+      textContent = getTextWithMentions(editor.value)
+    }
 
-    json?.content?.forEach(extractNodes)
+    // 如果没有扩展，使用默认的纯文本
+    if (!textContent) {
+      textContent = editor.value.getText()
+    }
 
-    emit('submit', textContent, structureContent)
+    // 触发 submit 事件
+    emit('submit', textContent, structuredData)
+  }
+
+  /**
+   * 获取包含 mention 标签的完整文本
+   *
+   * 例如：@代码分析 hello world @文本分析 12315
+   */
+  const getTextWithMentions = (editor: Editor): string => {
+    let text = ''
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    editor.state.doc.descendants((node: any) => {
+      if (node.type.name === 'mention') {
+        // Mention 节点 (atom: true)：手动添加 @label
+        // 因为 atom 节点在 getText() 中会被跳过
+        text += `@${node.attrs.label as string}`
+      } else if (node.type.name === 'text') {
+        // 文本节点：直接添加文本
+        text += node.text || ''
+      }
+    })
+
+    return text.trim()
   }
 
   // ========================================

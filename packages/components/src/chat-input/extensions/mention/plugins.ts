@@ -15,6 +15,8 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
 import { VueRenderer } from '@tiptap/vue-3'
 import type { Editor } from '@tiptap/core'
+import { isRef } from 'vue'
+import type { Ref } from 'vue'
 import MentionList from './mention-list.vue'
 import type { MentionItem, MentionSuggestionState } from './types'
 
@@ -30,7 +32,7 @@ export const MentionPluginKey = new PluginKey<MentionSuggestionState>('mention')
 interface PluginOptions {
   editor: Editor
   char: string
-  items: MentionItem[]
+  items: MentionItem[] | Ref<MentionItem[]>
   allowSpaces: boolean
 }
 
@@ -160,7 +162,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // 过滤提及项
-        const filteredItems = filterItems(items, suggestion.query)
+        const currentItems = isRef(items) ? items.value : items
+        const filteredItems = filterItems(currentItems, suggestion.query)
 
         return {
           active: filteredItems.length > 0,

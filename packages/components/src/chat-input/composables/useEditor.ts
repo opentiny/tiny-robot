@@ -7,7 +7,7 @@ import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import { TemplateBlock, Mention, Suggestion } from '../extensions'
+import type { Extension } from '@tiptap/core'
 import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.type'
 
 /**
@@ -23,9 +23,14 @@ import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.t
 export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEditorReturn {
   const editorRef = ref<HTMLElement | null>(null)
 
-  const editor = useTiptapEditor({
-    content: props.modelValue || props.defaultValue || '',
-    extensions: [
+  /**
+   * 构建扩展列表
+   *
+   * 基础扩展 + 用户传入的扩展
+   */
+  const buildExtensions = (): Extension[] => {
+    const extensions: Extension[] = [
+      // 基础扩展（必需）
       StarterKit.configure({
         // 禁用所有格式化功能，只保留基础文本
         bold: false,
@@ -47,32 +52,19 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
       CharacterCount.configure({
         mode: 'textSize',
       }),
-      TemplateBlock,
-      Mention.configure({
-        items: (props.mentions || []).map((item) => ({
-          ...item,
-          id: item.id || `mention_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-        })),
-        char: '@',
-        allowSpaces: false,
-      }),
-      // 添加 Suggestion 插件（始终注册，即使初始时没有 suggestions）
-      Suggestion.configure({
-        char: props.suggestionChar ?? null,
-        suggestions: props.suggestions || [],
-        activeSuggestionKeys: props.activeSuggestionKeys ?? ['Enter', 'Tab'],
-        popupWidth: props.suggestionPopupWidth ?? 400,
-        showAutoComplete: props.showAutoComplete ?? true,
-        controlled: props.suggestionControlled ?? false,
-        query: props.suggestionQuery,
-        onQueryChange: (query) => {
-          emit('suggestion-query-change', query)
-        },
-        onSelect: (item) => {
-          emit('suggestion-select', item.content)
-        },
-      }),
-    ],
+    ]
+
+    // ✅ 动态添加用户传入的扩展
+    if (props.extensions?.length) {
+      extensions.push(...props.extensions)
+    }
+
+    return extensions
+  }
+
+  const editor = useTiptapEditor({
+    content: props.modelValue || props.defaultValue || '',
+    extensions: buildExtensions(),
     editorProps: {
       attributes: {
         class: 'tr-chat-input-editor',
@@ -113,55 +105,6 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
     (newValue) => {
       if (editor.value && newValue !== editor.value.getText()) {
         editor.value.commands.setContent(newValue || '', { emitUpdate: false })
-      }
-    },
-  )
-
-  // 监听 editor 初始化完成
-  watch(
-    editor,
-    (editorInstance) => {
-      if (editorInstance) {
-        const suggestionExtension = editorInstance.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
-        if (suggestionExtension) {
-          suggestionExtension.options.suggestions = props.suggestions || []
-        }
-      }
-    },
-    { immediate: true },
-  )
-
-  // 监听 suggestions 变化，动态更新插件配置
-  watch(
-    () => props.suggestions,
-    (newSuggestions) => {
-      if (editor.value) {
-        const suggestionExtension = editor.value.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
-        if (suggestionExtension) {
-          suggestionExtension.options.suggestions = newSuggestions || []
-          // 触发编辑器更新
-          if (editor.value.view) {
-            editor.value.view.dispatch(editor.value.view.state.tr)
-          }
-        }
-      }
-    },
-    { deep: true },
-  )
-
-  // 监听 suggestionQuery 变化（受控模式）
-  watch(
-    () => props.suggestionQuery,
-    (newQuery) => {
-      if (editor.value && props.suggestionControlled) {
-        const suggestionExtension = editor.value.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
-        if (suggestionExtension) {
-          suggestionExtension.options.query = newQuery
-          // 触发编辑器更新
-          if (editor.value.view) {
-            editor.value.view.dispatch(editor.value.view.state.tr)
-          }
-        }
       }
     },
   )

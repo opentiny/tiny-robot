@@ -13,7 +13,7 @@ import type { MentionItem } from './types'
 
 interface Props {
   items: MentionItem[]
-  command: (props: { id: string; label: string; preset?: string }) => void
+  command: (props: { id?: string; label: string; preset?: string }) => void
 }
 
 const props = defineProps<Props>()

@@ -1,5 +1,6 @@
 import type { VNode, Component } from 'vue'
-import type { TooltipPlacement, SuggestionItem } from './base'
+import type { TooltipPlacement } from './base'
+import type { SuggestionItem } from '../extensions/suggestion/types'
 
 // ============================================
 // 组件 Props 类型

@@ -55,8 +55,16 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
    */
   function getCurrentSuggestions(): SuggestionItem[] {
     const suggestionExtension = editor.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
-    const suggestions = (suggestionExtension?.options?.suggestions as SuggestionItem[]) || []
-    return suggestions
+    const options = suggestionExtension?.options
+    const items = options?.items || options?.suggestions || []
+
+    // 处理 Ref (简单的 value 检查，避免引入 vue 依赖导致类型问题)
+    if (items && typeof items === 'object' && 'value' in items) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (items as any).value
+    }
+
+    return items as SuggestionItem[]
   }
 
   /**

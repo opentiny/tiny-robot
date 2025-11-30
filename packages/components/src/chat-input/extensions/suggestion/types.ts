@@ -127,6 +127,8 @@ export interface SuggestionState {
   showTabIndicator: boolean
 }
 
+import type { Ref } from 'vue'
+
 /**
  * 插件配置选项
  */
@@ -145,6 +147,13 @@ export interface SuggestionOptions {
    * 建议项列表
    *
    * @default []
+   */
+  items?: SuggestionItem[] | Ref<SuggestionItem[]>
+
+  /**
+   * 建议项列表（旧版兼容）
+   *
+   * @deprecated 请使用 items
    */
   suggestions?: SuggestionItem[]
 

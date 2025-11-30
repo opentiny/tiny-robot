@@ -3,7 +3,7 @@
  */
 
 import { inject } from 'vue'
-import { CHAT_INPUT_CONTEXT_KEY } from '../constants'
+import { CHAT_INPUT_CONTEXT_KEY } from '../types/context'
 import { ChatInputContext } from './types'
 
 /**

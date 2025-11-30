@@ -3,13 +3,17 @@
  */
 
 /**
- * 提及项数据结构
+ * 提及项数据结构（用户侧）
+ *
+ * 用户传入的数据格式，id 可选，插件会自动生成
  */
 export interface MentionItem {
   /**
-   * 唯一标识（必传）
+   * 唯一标识（可选）
+   *
+   * 如果不提供，插件会自动生成
    */
-  id: string
+  id?: string
 
   /**
    * 显示名称，如 "小小画家"（必传）
@@ -28,22 +32,39 @@ export interface MentionItem {
 }
 
 /**
- * Mention 节点属性
+ * Mention 节点属性（内部使用）
+ *
+ * ProseMirror 节点的属性，id 必填（由插件保证）
  */
 export interface MentionAttrs {
+  /**
+   * 唯一标识（必填）
+   *
+   * 由插件自动生成或使用用户提供的值
+   */
   id: string
+
+  /**
+   * 显示名称
+   */
   label: string
+
+  /**
+   * 预设内容（可选）
+   */
   preset?: string
 }
 
 /**
  * Mention 配置选项
  */
+import type { Ref } from 'vue'
+
 export interface MentionOptions {
   /**
    * 提及项列表
    */
-  items: MentionItem[]
+  items: MentionItem[] | Ref<MentionItem[]>
 
   /**
    * 触发字符，默认 '@'

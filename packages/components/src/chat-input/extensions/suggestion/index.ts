@@ -21,7 +21,8 @@
  */
 
 import { Extension } from '@tiptap/core'
-import { createSuggestionPlugin } from './plugins'
+import { watch, isRef } from 'vue'
+import { createSuggestionPlugin, SuggestionPluginKey } from './plugins'
 import type { SuggestionOptions } from './types'
 import './index.less'
 
@@ -36,6 +37,7 @@ export const Suggestion = Extension.create<SuggestionOptions>({
   addOptions() {
     return {
       char: null,
+      items: [],
       suggestions: [],
       activeSuggestionKeys: ['Enter', 'Tab'],
       allowSpaces: true,
@@ -46,11 +48,31 @@ export const Suggestion = Extension.create<SuggestionOptions>({
     }
   },
 
+  onCreate() {
+    const items = this.options.items || this.options.suggestions
+
+    if (isRef(items)) {
+      watch(
+        items,
+        () => {
+          // 触发更新
+          const tr = this.editor.state.tr
+          // 使用一个特殊的 meta 来触发插件更新，虽然实际上只要有 dispatch 就会触发 apply
+          tr.setMeta(SuggestionPluginKey, { type: 'update' })
+          this.editor.view.dispatch(tr)
+        },
+        { deep: true },
+      )
+    }
+  },
+
   addProseMirrorPlugins() {
     return [
       createSuggestionPlugin({
         editor: this.editor,
         ...this.options,
+        // 确保传递 items
+        items: this.options.items || this.options.suggestions || [],
       }),
     ]
   },

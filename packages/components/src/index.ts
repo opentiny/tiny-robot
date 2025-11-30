@@ -20,6 +20,7 @@ import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
 import ChatInput from './chat-input'
+import { TemplateBlock, Mention, Suggestion } from './chat-input/extensions'
 
 export * from './attachments/index.type'
 export * from './bubble/index.type'
@@ -44,10 +45,22 @@ export type {
   ChatInputEmits,
   ChatInputSlots,
   ChatInputContext,
-  MentionItem,
   TemplateItem,
-  ContentNode,
+  StructuredData,
 } from './chat-input/index.type'
+
+export type {
+  TemplateBlockAttrs,
+  TemplateBlockOptions,
+  MentionOptions,
+  MentionAttrs,
+  MentionItem,
+  SuggestionOptions,
+  SuggestionItem,
+  SuggestionState,
+  SuggestionTextPart,
+  HighlightFunction,
+} from './chat-input/extensions'
 
 export { useTheme } from './theme-provider/useTheme'
 export { useChatInputContext } from './chat-input/context'
@@ -135,4 +148,10 @@ export {
   McpAddForm as TrMcpAddForm,
   ChatInput,
   ChatInput as TrChatInput,
+  TemplateBlock,
+  TemplateBlock as TrTemplateBlock,
+  Mention,
+  Mention as TrMention,
+  Suggestion,
+  Suggestion as TrSuggestion,
 }

@@ -5,23 +5,26 @@
  * 遵循"组合优于配置"的设计哲学
  */
 
-import type {
-  InputMode,
-  TemplateItem,
-  MentionItem,
-  SubmitTrigger,
-  ButtonGroupConfig,
-  AutoSize,
-  ContentNode,
-} from './types/base'
-import type { SuggestionItem } from './extensions/suggestion'
+import type { Extension } from '@tiptap/core'
+import type { InputMode, TemplateItem, SubmitTrigger, ButtonGroupConfig, AutoSize, StructuredData } from './types/base'
 
 // 导出所有子模块类型
 export * from './types/base'
 export * from './types/composables'
 export * from './types/components'
 export * from './types/context'
-export type { SuggestionItem } from './extensions/suggestion'
+
+// 导出扩展类型（供用户使用）
+export type { SuggestionItem } from './extensions/suggestion/types'
+export type { MentionItem } from './extensions/mention'
+
+// 导出配置类型
+export interface DefaultConfig {
+  placeholder: string
+  mode: InputMode
+  submitType: SubmitTrigger
+  autoSize: { minRows: number; maxRows: number }
+}
 
 // ============================================
 // 主组件 Props
@@ -50,16 +53,12 @@ export interface ChatInputProps {
   /**
    * 模板数据（双向绑定）
    *
+   * 仅在使用 TemplateBlock 扩展时有效
+   * 用于运行时双向绑定
+   *
    * 支持 v-model:templateData
    */
   templateData?: TemplateItem[]
-
-  /**
-   * 提及项列表
-   *
-   * 用于 @ 提及功能
-   */
-  mentions?: MentionItem[]
 
   // ===== 基础配置 =====
 
@@ -159,61 +158,37 @@ export interface ChatInputProps {
    */
   allowFiles?: boolean
 
-  // ===== 输入联想 =====
+  // ===== 扩展配置 =====
 
   /**
-   * 建议列表
+   * Tiptap 扩展配置
    *
-   * 提供输入联想功能
+   * 用于添加增强输入能力，如 TemplateBlock、Mention、Suggestion 等
+   *
+   * @example 基础使用
+   * ```typescript
+   * import { TemplateBlock } from '@tiny-robot/components/chat-input/extensions'
+   *
+   * <ChatInput :extensions="[TemplateBlock]" />
+   * ```
+   *
+   * @example 带配置的扩展（响应式推荐）
+   * ```typescript
+   * import { Mention, Suggestion } from '@tiny-robot/components/chat-input/extensions'
+   *
+   * const mentions = ref([...])
+   * const suggestions = ref([...])
+   *
+   * const extensions = [
+   *   Mention.configure({ items: mentions }),
+   *   Suggestion.configure({ items: suggestions })
+   * ]
+   *
+   * <ChatInput :extensions="extensions" />
+   * ```
    */
-  suggestions?: SuggestionItem[]
-
-  /**
-   * 建议触发字符
-   *
-   * - null: 全局匹配模式（默认）
-   * - string: 字符触发模式（如 '/'）
-   *
-   * @default null
-   */
-  suggestionChar?: string | null
-
-  /**
-   * 建议弹窗宽度
-   *
-   * @default 400
-   */
-  suggestionPopupWidth?: number | string
-
-  /**
-   * 激活建议项的按键
-   *
-   * @default ['Enter', 'Tab']
-   */
-  activeSuggestionKeys?: string[]
-
-  /**
-   * 是否显示自动补全提示
-   *
-   * @default true
-   */
-  showAutoComplete?: boolean
-
-  /**
-   * 是否为受控模式
-   *
-   * - false (默认): 组件内部自动过滤
-   * - true: 用户自己控制过滤，传入已过滤的列表
-   *
-   * @default false
-   */
-  suggestionControlled?: boolean
-
-  /**
-   * 当前输入的查询文本（受控模式下使用）
-   * 用于计算自动补全时的前缀匹配
-   */
-  suggestionQuery?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extensions?: Extension[] | any[]
 
   // ===== 样式定制 =====
 
@@ -271,13 +246,30 @@ export interface ChatInputEmits {
   (e: 'update:templateData', value: TemplateItem[]): void
 
   /**
-   * 提交内容
+   * 提交内容（增强版）
    *
    * @param e - 事件名
-   * @param textContent - 提交的内容（纯文本）
-   * @param structureContent - 结构化内容数组
+   * @param textContent - 提交的内容（纯文本，如 "帮我分析 @张三 的周报"）
+   * @param structuredData - 结构化数据（可选）
+   *
+   * @example
+   * ```typescript
+   * function handleSubmit(text: string, data?: StructuredData) {
+   *   console.log('纯文本:', text)
+   *
+   *   if (data?.template) {
+   *     // TemplateBlock 场景
+   *     console.log('模板数据:', data.template)
+   *   }
+   *
+   *   if (data?.mentions) {
+   *     // Mention 场景
+   *     console.log('提及的人:', data.mentions)
+   *   }
+   * }
+   * ```
    */
-  (e: 'submit', textContent: string, structureContent: ContentNode[]): void
+  (e: 'submit', textContent: string, structuredData?: StructuredData): void
 
   /**
    * 聚焦事件
@@ -309,22 +301,6 @@ export interface ChatInputEmits {
    * @param value - 当前内容
    */
   (e: 'input', value: string): void
-
-  /**
-   * 选择建议项时触发
-   *
-   * @param e - 事件名
-   * @param value - 选中的建议内容
-   */
-  (e: 'suggestion-select', value: string): void
-
-  /**
-   * 查询文本变化时触发（受控模式下使用）
-   *
-   * @param e - 事件名
-   * @param query - 当前查询文本
-   */
-  (e: 'suggestion-query-change', query: string): void
 }
 
 // ============================================

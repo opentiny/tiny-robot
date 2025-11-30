@@ -1,3 +1,63 @@
+<script setup lang="ts">
+import { onMounted, ref, computed } from 'vue'
+import { Button as TinyButton } from '@opentiny/vue'
+import { ChatInput, TemplateBlock } from '@opentiny/tiny-robot'
+import type { TemplateItem, StructuredData } from '@opentiny/tiny-robot'
+
+const chatInputRef = ref()
+const content = ref('')
+const submittedContent = ref('')
+
+const templateData = ref<TemplateItem[]>([])
+
+// 通过 items 传入响应式数据
+const extensions = computed(() => [
+  TemplateBlock.configure({
+    items: templateData,
+  }),
+])
+
+const setTemplate1 = () => {
+  templateData.value = [
+    { type: 'text', content: '你好，我是' },
+    { type: 'template', content: '张三' },
+    { type: 'text', content: '，来自' },
+    { type: 'template', content: '北京' },
+    { type: 'text', content: '，很高兴认识你！' },
+  ]
+}
+
+const setTemplate2 = () => {
+  templateData.value = [
+    { type: 'text', content: '请帮我写一份关于' },
+    { type: 'template', content: '人工智能' },
+    { type: 'text', content: '的' },
+    { type: 'template', content: '技术报告' },
+    { type: 'text', content: '，字数要求' },
+    { type: 'template', content: '3000字' },
+    { type: 'text', content: '。' },
+  ]
+}
+
+const clearTemplate = () => {
+  templateData.value = []
+  content.value = ''
+  submittedContent.value = ''
+}
+
+const handleSubmit = (text: string, data?: StructuredData) => {
+  submittedContent.value = text
+
+  console.log('📝 提交内容（纯文本）：', text)
+  console.log('📋 结构化数据：', data)
+}
+
+onMounted(() => {
+  setTemplate1()
+  chatInputRef?.value?.focus()
+})
+</script>
+
 <template>
   <div class="template-demo">
     <div class="template-buttons">
@@ -10,7 +70,7 @@
       ref="chatInputRef"
       mode="multiple"
       v-model="content"
-      v-model:template-data="templateData"
+      :extensions="extensions"
       placeholder="点击上方按钮插入模板，或直接输入..."
       :max-length="500"
       show-word-limit
@@ -18,59 +78,11 @@
     />
 
     <div v-if="submittedContent" class="result">
-      <div class="result-title">提交的内容：</div>
+      <div class="result-title">提交的内容（纯文本）：</div>
       <div class="result-content">{{ submittedContent }}</div>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { Button as TinyButton } from '@opentiny/vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-import type { TemplateItem } from '@opentiny/tiny-robot'
-
-const chatInputRef = ref()
-const content = ref('')
-const templateData = ref<TemplateItem[]>([])
-const submittedContent = ref('')
-
-const setTemplate1 = () => {
-  templateData.value = [
-    { type: 'text', content: '你好，我是 ' },
-    { type: 'template', content: '张三' },
-    { type: 'text', content: '，来自 ' },
-    { type: 'template', content: '北京' },
-    { type: 'text', content: '，很高兴认识你！' },
-  ]
-}
-
-const setTemplate2 = () => {
-  templateData.value = [
-    { type: 'text', content: '请帮我写一份关于 ' },
-    { type: 'template', content: '人工智能' },
-    { type: 'text', content: ' 的 ' },
-    { type: 'template', content: '技术报告' },
-    { type: 'text', content: '，字数要求 ' },
-    { type: 'template', content: '3000字' },
-    { type: 'text', content: '。' },
-  ]
-}
-
-const clearTemplate = () => {
-  chatInputRef.value?.clearTemplateData()
-  content.value = ''
-}
-
-const handleSubmit = (text: string) => {
-  submittedContent.value = text
-}
-
-onMounted(() => {
-  setTemplate1()
-  chatInputRef?.value?.focus()
-})
-</script>
 
 <style scoped>
 .template-demo {
