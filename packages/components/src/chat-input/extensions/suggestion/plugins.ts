@@ -136,6 +136,25 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
     const editorWrapper = view.dom.closest('.tr-chat-input')
     const referenceElement = (editorWrapper as HTMLElement) || view.dom
 
+    // 计算弹窗宽度（基于输入框宽度）
+    const calculatePopupWidth = (): string => {
+      if (typeof popupWidth === 'number') {
+        return `${popupWidth}px`
+      }
+
+      // 如果是百分比或 '100%'，基于 referenceElement 的宽度计算
+      if (typeof popupWidth === 'string') {
+        if (popupWidth.endsWith('%')) {
+          const percentage = parseFloat(popupWidth) / 100
+          const referenceWidth = referenceElement.offsetWidth
+          return `${referenceWidth * percentage}px`
+        }
+        return popupWidth
+      }
+
+      return '400px' // 默认值
+    }
+
     // 设置自动更新
     cleanup = autoUpdate(referenceElement, popup, () => {
       computePosition(referenceElement, popup, {
@@ -148,12 +167,12 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           shift({ padding: 8 }),
         ],
       }).then(({ x, y }) => {
-        Object.assign(popup.style, {
-          position: 'absolute',
-          left: `${x}px`,
-          top: `${y}px`,
-          zIndex: '2000',
-        })
+        // 设置定位和宽度样式
+        popup.style.position = 'absolute'
+        popup.style.left = `${x}px`
+        popup.style.top = `${y}px`
+        popup.style.zIndex = '2000'
+        popup.style.width = calculatePopupWidth() // 基于输入框宽度计算
       })
     })
   }
@@ -271,8 +290,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         // 获取当前查询文本
         const query = getCurrentQuery(docQuery)
 
-        // 如果输入框为空，关闭建议列表
-        if (!query) {
+        // ✅ 如果输入框为空，关闭建议列表（所有模式都适用）
+        if (!docQuery) {
           return {
             active: false,
             range: null,
@@ -292,7 +311,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           return {
             active: false,
             range: null,
-            query: '',
+            query: controlled ? query : '',
             filteredSuggestions: [],
             selectedIndex: -1,
             autoCompleteText: '',
@@ -427,7 +446,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
                   show: state.active && state.filteredSuggestions.length > 0,
                   suggestions: state.filteredSuggestions,
                   popupStyle: {
-                    width: typeof popupWidth === 'number' ? `${popupWidth}px` : popupWidth,
+                    // 宽度在 computePosition 回调中动态设置，这里只设置 maxWidth
                     maxWidth: '100%',
                   },
                   activeKeyboardIndex: state.selectedIndex,
@@ -458,6 +477,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               component.updateProps({
                 show: state.active && state.filteredSuggestions.length > 0,
                 suggestions: state.filteredSuggestions,
+                popupStyle: {
+                  // 宽度在 computePosition 回调中动态设置，这里只设置 maxWidth
+                  maxWidth: '100%',
+                },
                 activeKeyboardIndex: state.selectedIndex,
                 inputValue: state.query,
               })

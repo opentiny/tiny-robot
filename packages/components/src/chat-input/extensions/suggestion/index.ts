@@ -36,11 +36,9 @@ export const Suggestion = Extension.create<SuggestionOptions>({
 
   addOptions() {
     return {
-      char: null,
       items: [],
       suggestions: [],
       activeSuggestionKeys: ['Enter', 'Tab'],
-      allowSpaces: true,
       popupWidth: 400,
       showAutoComplete: true,
       filterFn: undefined,

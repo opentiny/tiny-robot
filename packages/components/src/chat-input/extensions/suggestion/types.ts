@@ -134,16 +134,6 @@ import type { Ref } from 'vue'
  */
 export interface SuggestionOptions {
   /**
-   * 触发字符
-   *
-   * - null: 全局匹配模式（默认）
-   * - string: 字符触发模式（如 '/'）
-   *
-   * @default null
-   */
-  char?: string | null
-
-  /**
    * 建议项列表
    *
    * @default []
@@ -163,15 +153,6 @@ export interface SuggestionOptions {
    * @default ['Enter', 'Tab']
    */
   activeSuggestionKeys?: string[]
-
-  /**
-   * 是否允许查询文本包含空格
-   *
-   * 仅在字符触发模式下有效
-   *
-   * @default true
-   */
-  allowSpaces?: boolean
 
   /**
    * 弹窗宽度
