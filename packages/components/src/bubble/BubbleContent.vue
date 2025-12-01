@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { provide } from 'vue'
+import { useBubbleContentRenderer } from './composables/useBubbleContentRenderer'
 import { BUBBLE_CONTENT_MESSAGE_KEY } from './constants'
 import type { BubbleRendererMessage } from './index.type'
-import { getContentRenderer } from './ren/renderers'
 
 // Accept a single message as props
 const props = defineProps<{
@@ -15,8 +15,10 @@ const props = defineProps<{
  * 而无需显式的 prop drilling 或 event emission
  */
 provide(BUBBLE_CONTENT_MESSAGE_KEY, props.message)
+
+const renderer = useBubbleContentRenderer(props.message)
 </script>
 
 <template>
-  <component :is="getContentRenderer(props.message)" v-bind="props.message"></component>
+  <component :is="renderer" v-bind="props.message"></component>
 </template>

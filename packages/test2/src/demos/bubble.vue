@@ -2,6 +2,8 @@
   <div class="basic-demos">
     <TextMessage />
     <Divider />
+    <LoadingMessage />
+    <Divider />
     <PolymorphicMessage />
     <Divider />
     <ReasoningMessage />
@@ -12,9 +14,10 @@
 
 <script setup lang="ts">
 import { h } from 'vue'
-import TextMessage from './bubble/TextMessage.vue'
+import LoadingMessage from './bubble/LoadingMessage.vue.vue'
 import PolymorphicMessage from './bubble/PolymorphicMessage.vue'
 import ReasoningMessage from './bubble/ReasoningMessage.vue'
+import TextMessage from './bubble/TextMessage.vue'
 import ToolCallMessage from './bubble/ToolCallMessage.vue'
 
 const Divider = h('hr', { style: { width: '100%', border: 'none', borderTop: '1px solid #ddd', marginBlock: '16px' } })

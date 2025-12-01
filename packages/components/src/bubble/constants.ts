@@ -1,5 +1,10 @@
-import { InjectionKey } from 'vue'
-import { BubbleMessageGroup, BubbleRendererMessage } from './index.type'
+import type { Component, InjectionKey, MaybeRefOrGetter } from 'vue'
+import {
+  BubbleBoxRendererMatch,
+  BubbleContentRendererMatch,
+  BubbleMessageGroup,
+  BubbleRendererMessage,
+} from './index.type'
 
 /**
  * Injection key for bubble message group
@@ -12,3 +17,16 @@ export const BUBBLE_MESSAGE_GROUP_KEY: InjectionKey<BubbleMessageGroup | undefin
  * Used to provide/inject current message between BubbleContent and renderer components
  */
 export const BUBBLE_CONTENT_MESSAGE_KEY: InjectionKey<BubbleRendererMessage> = Symbol('bubble-content-message')
+
+export const BUBBLE_BOX_RENDERER_MATCHES_KEY: InjectionKey<MaybeRefOrGetter<Array<BubbleBoxRendererMatch>>> =
+  Symbol('bubble-box-renderer-matches')
+
+export const BUBBLE_CONTENT_RENDERER_MATCHES_KEY: InjectionKey<MaybeRefOrGetter<Array<BubbleContentRendererMatch>>> =
+  Symbol('bubble-content-renderer-matches')
+
+export const BUBBLE_FALLBACK_BOX_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component>> =
+  Symbol('bubble-fallback-box-renderer')
+
+export const BUBBLE_FALLBACK_CONTENT_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component>> = Symbol(
+  'bubble-fallback-content-renderer',
+)

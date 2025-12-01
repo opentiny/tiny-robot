@@ -54,7 +54,7 @@ export type BubbleShape = 'rounded' | 'corner' | 'none'
  * Bubble 组件 Props
  * 用于渲染单个气泡的外观和内容
  */
-export type BubbleProps<T extends Record<string, unknown> = Record<string, unknown>> = Omit<ChatMessage, 'role'> & {
+export type BubbleProps = Omit<ChatMessage, 'role'> & {
   role?: string
   /**
    * 气泡头像
@@ -73,14 +73,6 @@ export type BubbleProps<T extends Record<string, unknown> = Record<string, unkno
    */
   loading?: boolean
   /**
-   * 气泡中止状态
-   */
-  aborted?: boolean
-  /**
-   * 气泡中止文本
-   */
-  abortedText?: string
-  /**
    * 是否拆分多态内容（每个内容项各自渲染一个气泡）
    * - true：每个内容项各自渲染一个气泡
    * - false：所有内容项合并在同一个气泡中渲染（默认）
@@ -89,7 +81,7 @@ export type BubbleProps<T extends Record<string, unknown> = Record<string, unkno
   /**
    * 额外配置
    */
-  extras?: T
+  extras?: Record<string, unknown>
 }
 
 /**
@@ -187,8 +179,9 @@ export type BubbleBoxProps = Pick<BubbleProps, 'placement' | 'shape'>
 export type BubbleRendererMessage<
   T = string | ChatMessageItem | undefined,
   E extends Record<string, unknown> = Record<string, unknown>,
-> = Omit<BubbleProps<E>, 'content'> & {
+> = Omit<BubbleProps, 'content' | 'extras'> & {
   content: T
+  extras?: E
 }
 
 /**
@@ -196,4 +189,23 @@ export type BubbleRendererMessage<
  */
 export type BubbleContentBoxProps = BubbleBoxProps & {
   messages: BubbleRendererMessage[]
+}
+
+export interface BubbleProviderProps {
+  boxRendererMatches?: BubbleBoxRendererMatch[]
+  contentRendererMatches?: BubbleContentRendererMatch[]
+  fallbackBoxRenderer?: Component
+  fallbackContentRenderer?: Component
+}
+
+export type BubbleBoxRendererMatch = {
+  find: (props: BubbleContentBoxProps) => boolean
+  renderer: Component
+  priority?: number
+}
+
+export type BubbleContentRendererMatch = {
+  find: (message: BubbleRendererMessage) => boolean
+  renderer: Component
+  priority?: number
 }

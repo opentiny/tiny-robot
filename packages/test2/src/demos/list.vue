@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BubbleList, Bubble, type BubbleMessage, type BubbleRoleConfig } from '@opentiny/tiny-robot'
+import { BubbleList, type BubbleMessage, type BubbleRoleConfig } from '@opentiny/tiny-robot'
 import Avatar from './Avatar.vue'
 
 const messages: BubbleMessage[] = [
@@ -46,47 +46,17 @@ const roleConfigs: Record<string, BubbleRoleConfig> = {
   user: {
     avatar: Avatar,
     placement: 'end',
-    shape: 'corner',
+    shape: 'rounded',
   },
   assistant: {
     avatar: Avatar,
     placement: 'start',
-    shape: 'rounded',
+    shape: 'corner',
   },
 }
 </script>
 
 <template>
-  <Bubble role="user" content="Hello, world!" placement="end" :avatar="Avatar" />
-  <hr />
-  <div>
-    <Bubble
-      :content="[
-        { type: 'text', text: '图片描述的是什么' },
-        { type: 'image_url', image_url: 'https://picsum.photos/400' },
-      ]"
-      :avatar="Avatar"
-    />
-  </div>
-  <hr />
-  <div>
-    <Bubble
-      :content="[
-        { type: 'text', text: '图片描述的是什么' },
-        { type: 'image_url', image_url: 'https://picsum.photos/400' },
-      ]"
-      :avatar="Avatar"
-    />
-    <Bubble
-      :content="[
-        { type: 'image_url', image_url: 'https://picsum.photos/400' },
-        { type: 'text', text: '图片描述的是什么' },
-      ]"
-      :avatar="Avatar"
-      placement="end"
-    />
-  </div>
-  <hr />
   <BubbleList :messages="messages" :role-configs="roleConfigs"></BubbleList>
 </template>
 

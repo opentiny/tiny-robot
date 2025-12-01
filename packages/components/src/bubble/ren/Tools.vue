@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { BubbleRendererMessage } from '../index.type'
-import { getContentRenderer } from './renderers'
+import { useBubbleContentRenderer } from '../composables/useBubbleContentRenderer'
+import { BubbleRendererMessage, ChatMessageItem } from '../index.type'
 import Tool from './Tool.vue'
 
-const props = defineProps<BubbleRendererMessage>()
+const props = defineProps<BubbleRendererMessage<string | ChatMessageItem>>()
 
-const renderer = computed(() => {
+const renderer = useBubbleContentRenderer(() => {
   const { tool_calls: _, ...restProps } = props
-  return getContentRenderer(restProps)
+  return restProps
 })
 </script>
 

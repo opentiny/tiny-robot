@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useBubbleContentRenderer } from '../composables/useBubbleContentRenderer'
 import { BubbleRendererMessage, ChatMessageItem } from '../index.type'
 import CollapsibleContent from './CollapsibleContent.vue'
-import { getContentRenderer } from './renderers'
 
 const props = defineProps<
   BubbleRendererMessage<
@@ -14,9 +13,9 @@ const props = defineProps<
   >
 >()
 
-const renderer = computed(() => {
+const renderer = useBubbleContentRenderer(() => {
   const { reasoning_content: _, ...restProps } = props
-  return getContentRenderer(restProps)
+  return restProps
 })
 </script>
 

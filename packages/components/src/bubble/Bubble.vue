@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue'
+import BubbleBox from './BubbleBox.vue'
 import BubbleContent from './BubbleContent.vue'
 import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
 import type { BubbleProps, BubbleRendererMessage } from './index.type'
-import { getBoxRenderer } from './ren/renderers'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   placement: 'start',
@@ -75,13 +75,9 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
 
   <div v-else class="tr-bubble" :data-role="props.role" :data-placement="props.placement">
     <component v-if="props.avatar" :is="props.avatar" :class="$style['tr-bubble__avatar']" />
-    <component
-      :is="getBoxRenderer({ placement: props.placement, shape: props.shape, messages: rendererMessages })"
-      :placement="props.placement"
-      :shape="props.shape"
-    >
+    <BubbleBox :placement="props.placement" :shape="props.shape" :messages="rendererMessages">
       <BubbleContent v-for="(message, index) in rendererMessages" :key="index" :message="message" />
-    </component>
+    </BubbleBox>
   </div>
 </template>
 
