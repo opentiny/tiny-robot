@@ -1,5 +1,4 @@
 import { Component, VNode } from 'vue'
-export * from './renderers/index.type'
 
 /**
  * 工具调用接口（支持 OpenAI 格式）

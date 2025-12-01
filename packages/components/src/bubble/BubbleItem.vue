@@ -2,7 +2,7 @@
 import { provide } from 'vue'
 import Bubble from './Bubble.vue'
 import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
-import type { BubbleMessageGroup, BubbleRoleConfig, BubbleProps } from './index.type'
+import type { BubbleMessageGroup, BubbleProps, BubbleRoleConfig } from './index.type'
 
 const props = defineProps<{
   messageGroup: BubbleMessageGroup

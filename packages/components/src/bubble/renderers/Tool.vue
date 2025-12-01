@@ -72,12 +72,26 @@ const highlightJSON = <T extends string | object>(json: T, space = 2): string =>
 
 const detail = ref('')
 
-watchEffect(async () => {
+// Lazy load jsonrepair module (only import once, cached by module system)
+let jsonrepairPromise: Promise<typeof import('jsonrepair')> | null = null
+const getJsonrepair = () => {
+  if (!jsonrepairPromise) {
+    jsonrepairPromise = import('jsonrepair')
+  }
+  return jsonrepairPromise
+}
+
+watchEffect(() => {
   const args = props.extras?.tool_call.function.arguments
 
-  const { jsonrepair } = await import('jsonrepair')
-  const repairedArgs = jsonrepair(typeof args === 'string' ? args : JSON.stringify(args))
-  detail.value = highlightJSON({ arguments: JSON.parse(repairedArgs) }, 2)
+  getJsonrepair()
+    .then(({ jsonrepair }) => {
+      const repairedArgs = jsonrepair(typeof args === 'string' ? args || '{}' : JSON.stringify(args))
+      detail.value = highlightJSON({ arguments: JSON.parse(repairedArgs) }, 2)
+    })
+    .catch((error) => {
+      console.warn(error)
+    })
 })
 
 const message = useBubbleContentMessage()

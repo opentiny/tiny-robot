@@ -2,7 +2,7 @@ import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
 import { computed, inject, toValue } from 'vue'
 import { BUBBLE_CONTENT_RENDERER_MATCHES_KEY, BUBBLE_FALLBACK_CONTENT_RENDERER_KEY } from '../constants'
 import type { BubbleRendererMessage } from '../index.type'
-import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '../ren/defaultRenderers'
+import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '../renderers/defaultRenderers'
 
 /**
  * Composable for nested content renderer matching

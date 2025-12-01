@@ -2,7 +2,7 @@ import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
 import { computed, inject, toValue } from 'vue'
 import { BUBBLE_BOX_RENDERER_MATCHES_KEY, BUBBLE_FALLBACK_BOX_RENDERER_KEY } from '../constants'
 import type { BubbleContentBoxProps } from '../index.type'
-import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../ren/defaultRenderers'
+import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 
 /**
  * Composable for box renderer matching

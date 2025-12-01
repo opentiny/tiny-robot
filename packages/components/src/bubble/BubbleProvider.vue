@@ -12,7 +12,7 @@ import {
   defaultContentRendererMatches,
   defaultFallbackBoxRenderer,
   defaultFallbackContentRenderer,
-} from './ren/defaultRenderers'
+} from './renderers/defaultRenderers'
 
 const props = defineProps<BubbleProviderProps>()
 

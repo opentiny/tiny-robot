@@ -9,22 +9,24 @@ Bubble 组件系列用于构建 AI 对话界面的消息气泡，支持文本和
 ### 分层架构
 
 ```txt
-BubbleList (消息流管理)
-  └─ BubbleItem (分组提供)
-      └─ Bubble (气泡渲染 + 内容分发)
-          ├─ Box / ImageBox (容器)
-          │   └─ BubbleContent (消息提供)
-          │       ├─ Text (文本渲染器)
-          │       ├─ Image (图片渲染器)
-          │       └─ Reasoning (推理渲染器)
+BubbleProvider (渲染器注册)
+  └─ BubbleList (消息流管理)
+      └─ BubbleItem (分组提供)
+          └─ Bubble (气泡渲染 + 内容分发)
+              ├─ Box / ImageBox (容器)
+              │   └─ BubbleContentWrapper (消息提供)
+              │       ├─ Text (文本渲染器)
+              │       ├─ Image (图片渲染器)
+              │       └─ Reasoning (推理渲染器)
 ```
 
 **职责划分：**
 
+- `BubbleProvider`: 注册/合并 Box 与内容渲染器匹配关系，并提供 fallback 渲染器
 - `BubbleList`: 管理消息数组，根据策略分组
 - `BubbleItem`: 通过 provide/inject 传递分组数据
-- `Bubble`: 渲染气泡外观（头像、容器），处理多态消息展开，选择内容渲染器
-- `BubbleContent`: 为每个消息 provide 上下文，使子孙组件可直接访问和修改消息数据
+- `Bubble`: 渲染气泡外观（头像、容器），处理多态消息拆分，选择内容渲染器
+- `BubbleContentWrapper`: 为每个消息 provide 上下文，使子孙组件可直接访问和修改消息数据
 
 ### 消息类型
 
@@ -72,11 +74,11 @@ BubbleList (消息流管理)
     },
     { role: 'assistant', content: 'I see a cat.' },
   ]"
-  polymorphic-content-mode="split"
+  :split-polymorphic="true"
 />
 ```
 
-**渲染效果：** 每个内容项渲染为独立气泡
+**渲染效果：** 开启 `split-polymorphic` 后，每个内容项渲染为独立气泡
 
 ### 场景 3：多模态内容（Merged 模式）
 
@@ -91,11 +93,11 @@ BubbleList (消息流管理)
       ],
     },
   ]"
-  polymorphic-content-mode="merged"
+  :split-polymorphic="false"
 />
 ```
 
-**渲染效果：** 所有内容在同一气泡内
+**渲染效果：** 关闭 `split-polymorphic`，所有内容在同一气泡内
 
 ### 场景 4：独立使用 Bubble
 
@@ -220,7 +222,7 @@ Output: [
 ### 添加新内容渲染器
 
 ```vue
-<!-- ren/Audio.vue -->
+<!-- renderers/Audio.vue -->
 <script setup>
 defineProps<{ content: { type: 'audio', audio_url: string } }>()
 </script>
@@ -231,107 +233,53 @@ defineProps<{ content: { type: 'audio', audio_url: string } }>()
 ```
 
 ```typescript
-// ren/renderers.ts
-import Audio from './Audio.vue'
+// 在业务侧通过 BubbleProvider 注入匹配项
+import { markRaw } from 'vue'
+import Audio from './renderers/Audio.vue'
 
-const contentRendererMatches = [
+const audioRendererMatches = [
   {
     find: (message) => message.content?.type === 'audio',
-    renderer: Audio,
+    renderer: markRaw(Audio),
+    priority: 5,
   },
-  // ... existing matchers
 ]
 ```
+
+```vue
+<script setup lang="ts">
+import { BubbleProvider, BubbleList } from '@opentiny/tiny-robot'
+import { audioRendererMatches } from './matches'
+</script>
+
+<template>
+  <BubbleProvider :content-renderer-matches="audioRendererMatches">
+    <BubbleList :messages="messages" />
+  </BubbleProvider>
+</template>
+```
+
+`BubbleProvider` 会将自定义匹配与默认匹配合并，并按 `priority` 从小到大排序，当 `find` 返回 `true` 时使用对应渲染器；若无匹配则回退到 `fallback-content-renderer`。
 
 ### 添加新容器渲染器
 
 ```typescript
-// ren/renderers.ts
-const boxRendererMatches = [
+import { markRaw } from 'vue'
+import VideoBox from './renderers/VideoBox.vue'
+
+const videoBoxMatches = [
   {
     find: (props) => props.messages.length === 1 && props.messages[0].content?.type === 'video',
-    renderer: VideoBox,
+    renderer: markRaw(VideoBox),
+    priority: 5,
   },
-  // ... existing matchers
 ]
 ```
 
----
-
-## 实现机制
-
-### Provide/Inject 数据传递
-
-```typescript
-// BubbleItem: Provide message group
-provide(BUBBLE_MESSAGE_GROUP_KEY, props.messageGroup)
-
-// Bubble: Inject and immediately provide undefined to prevent recursion
-const messageGroup = inject(BUBBLE_MESSAGE_GROUP_KEY)
-provide(BUBBLE_MESSAGE_GROUP_KEY, undefined)
-```
-
-### 递归渲染保护
-
-Split 模式下，多态消息会递归渲染 Bubble：
-
 ```vue
-<template v-if="shouldSplitPolymorphic">
-  <Bubble
-    v-for="(content, index) in splitedPolymorphicItems"
-    :key="index"
-    :content="[content]"
-    polymorphic-content-mode="merged"
-  />
-</template>
+<BubbleProvider :box-renderer-matches="videoBoxMatches">
+  <BubbleList :messages="messages" />
+</BubbleProvider>
 ```
 
-通过 provide `undefined` 阻止无限递归。
-
-### 分组密封逻辑
-
-```typescript
-// Check if can merge into last group
-if (lastGroup && lastGroup.role === message.role && !lastGroup.isPolymorphic) {
-  lastGroup.messages.push(message)
-} else {
-  // Create new group
-}
-```
-
----
-
-## 样式定制
-
-### CSS 变量
-
-```css
-/* List spacing */
---tr-bubble-list-gap: 16px;
---tr-bubble-list-padding: 16px;
-
-/* Bubble layout */
---tr-bubble-gap: 8px;
---tr-bubble-max-width: 80%;
-
-/* Box appearance */
---tr-bubble-box-bg: #f5f5f5;
---tr-bubble-box-padding: 8px 16px;
---tr-bubble-box-border-radius: 18px;
-```
-
-### 形状选项
-
-- `rounded`: 全圆角
-- `corner`: 顶部小圆角（对话感）
-- `none`: 无圆角
-
----
-
-## 设计优势
-
-1. **灵活性** - 支持 BubbleList 整体管理或 Bubble 独立使用
-2. **类型安全** - TypeScript 类型定义，`isPolymorphic` 标记
-3. **扩展性** - 渲染器匹配机制，易于添加新内容类型
-4. **性能** - 计算属性缓存，递归保护
-5. **关注点分离** - 清晰的职责划分
+同理，可以通过 `fallback-box-renderer` 覆盖容器回退渲染器。

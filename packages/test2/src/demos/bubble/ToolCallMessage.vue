@@ -14,7 +14,8 @@ const toolCalls = ref([
   {
     id: 'call_01_ZaQqGi3jCXr1iJ308Yu1hJkj',
     type: 'function',
-    function: { name: 'multiply', arguments: '{"a": 4, "b": 4' },
+    function: { name: 'multiply', arguments: '{"a": 4, "b": 4}' },
+    open: true,
   },
 ])
 
@@ -30,6 +31,23 @@ const handleChangeToolCallArguments = () => {
   const parsedArgs = JSON.parse(args)
   parsedArgs.a = parsedArgs.a + 1
   toolCalls.value[0]!.function.arguments = JSON.stringify(parsedArgs)
+}
+
+const isReplaying = ref(false)
+
+const handleReplaySecondToolCall = async () => {
+  const originalArguments = toolCalls.value[1]!.function.arguments
+
+  isReplaying.value = true
+  toolCalls.value[1]!.function.arguments = ''
+  toolCalls.value[1]!.status = 'running'
+  for (const char of originalArguments) {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    toolCalls.value[1]!.function.arguments += char
+  }
+
+  isReplaying.value = false
+  toolCalls.value[1]!.status = 'success'
 }
 </script>
 
@@ -49,6 +67,9 @@ const handleChangeToolCallArguments = () => {
       </div>
       <div>
         <button @click="handleChangeToolCallArguments">Change First Tool Call Arguments</button>
+      </div>
+      <div>
+        <button @click="handleReplaySecondToolCall" :disabled="isReplaying">Replay Second Tool Call</button>
       </div>
     </div>
 
