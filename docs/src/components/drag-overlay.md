@@ -27,40 +27,38 @@ outline: [1, 3]
 
 <demo vue="../../demos/drag-overlay/disabled.vue" />
 
-## API
-
-### Attributes
+## Attributes
 
 **v-dropzone** 指令传递的参数
 
-| 名称          | 类型                                 | 说明                                                           |
-| ------------- | ------------------------------------ | -------------------------------------------------------------- |
-| accept        | `string`                             | 文件类型过滤规则（如 `'.png,.jpg'`），默认接收所有类型。       |
-| multiple      | `boolean`                            | 是否允许多文件拖拽，默认 `true`。                              |
-| maxSize       | `number`                             | 最大文件大小（字节），默认 `10485760`（10 MB）。               |
-| maxFiles      | `number`                             | 最大文件数量，默认 `3`。                                       |
-| disabled      | `boolean`                            | 是否禁用拖拽，默认 `false`。                                   |
-| onDrop        | `(files: File[]) => void`            | **必须**。当符合条件的文件被放下时触发的回调。                 |
-| onError       | `(rejection: FileRejection) => void` | **必须**。当文件被拒绝或发生错误时触发的回调。                 |
-| onDraggingChange | `(dragging: boolean, element: HTMLElement \| null) => void` | 拖拽状态变化时触发的回调。 |
+| 名称             | 类型                                                                 | 默认值      | 说明                                   |
+| ---------------- | -------------------------------------------------------------------- | ----------- | -------------------------------------- |
+| accept           | `string`                                                             | `''`        | 文件类型过滤规则（如 `'.png,.jpg'`）   |
+| multiple         | `boolean`                                                            | `true`      | 是否允许多文件拖拽                     |
+| maxSize          | `number`                                                             | `10485760`  | 最大文件大小（字节，默认 10 MB）       |
+| maxFiles         | `number`                                                             | `3`         | 最大文件数量                           |
+| disabled         | `boolean`                                                            | `false`     | 是否禁用拖拽                           |
+| onDrop           | `(files: File[]) => void`                                            | -           | 当符合条件的文件被放下时触发的回调（必需） |
+| onError          | `(rejection: FileRejection) => void`                                 | -           | 当文件被拒绝或发生错误时触发的回调（必需） |
+| onDraggingChange | `(dragging: boolean, element: HTMLElement \| null) => void`          | -           | 拖拽状态变化时触发的回调               |
 
-### Props
+## Props
 
-| 名称                | 类型              | 默认值  | 说明                                     |
+| 属性                | 类型              | 默认值  | 说明                                     |
 | ------------------- | ----------------- | ------- | ---------------------------------------- |
-| is-dragging         | `boolean`         | `false` | 是否显示拖拽浮层。                       |
-| drag-target         | `Element \| null` | `null`  | 目标元素的 Element，用于定位覆盖层。     |
-| overlay-title       | `string`          | `''`    | 浮层的主标题。                           |
-| overlay-description | `string[]`        | `[]`    | 浮层的描述文本，数组中的每个元素为一行。 |
-| fullscreen          | `boolean`         | `false` | 是否全屏模式，控制覆盖层的边框显示。     |
+| is-dragging         | `boolean`         | `false` | 是否显示拖拽浮层                         |
+| drag-target         | `Element \| null` | `null`  | 目标元素的 Element，用于定位覆盖层       |
+| overlay-title       | `string`          | `''`    | 浮层的主标题                             |
+| overlay-description | `string[]`        | `[]`    | 浮层的描述文本，数组中的每个元素为一行   |
+| fullscreen          | `boolean`         | `false` | 是否全屏模式，控制覆盖层的边框显示       |
 
-### Slots
+## Slots
 
-| 名称    | 说明             |
+| 插槽名  | 说明             |
 | ------- | ---------------- |
-| overlay | 自定义浮层内容。 |
+| overlay | 自定义浮层内容   |
 
-### Types
+## Types
 
 **FileRejection**
 
@@ -75,39 +73,41 @@ export interface FileRejection extends RejectionReason {
 }
 ```
 
-### CSS 变量
+## CSS 变量
 
-#### 全局变量 (`:root`)
+DragOverlay 组件支持以下 CSS 变量来自定义样式：
 
-| 变量名                                          | 描述                 |
-| ----------------------------------------------- | -------------------- |
-| `--tr-drag-overlay-bg-color`                    | 背景颜色             |
-| `--tr-drag-overlay-border-color`                | 边框颜色             |
-| `--tr-drag-overlay-title-color`                 | 标题文字颜色         |
-| `--tr-drag-overlay-title-font-weight`           | 标题字体粗细         |
-| `--tr-drag-overlay-description-color`           | 描述文字颜色         |
-| `--tr-drag-overlay-description-font-weight`     | 描述字体粗细         |
-| `--tr-drag-overlay-content-padding`             | 内容区域内边距       |
-| `--tr-drag-overlay-content-border-width`        | 内容边框宽度         |
-| `--tr-drag-overlay-content-border-radius`       | 内容边框圆角         |
-| `--tr-drag-overlay-icon-font-size`              | 图标字体大小         |
-| `--tr-drag-overlay-icon-margin`                 | 图标外边距           |
-| `--tr-drag-overlay-text-gap`                    | 文本区域间距         |
-| `--tr-drag-overlay-title-font-size`             | 标题字体大小         |
-| `--tr-drag-overlay-title-line-height`           | 标题行高             |
-| `--tr-drag-overlay-description-font-size`       | 描述字体大小         |
-| `--tr-drag-overlay-description-line-height`     | 描述行高             |
+**全局变量 (`:root`)**
 
-全屏模式下的 CSS 变量：
+| 变量名                                              | 说明                 |
+| --------------------------------------------------- | -------------------- |
+| `--tr-drag-overlay-bg-color`                        | 背景颜色             |
+| `--tr-drag-overlay-border-color`                    | 边框颜色             |
+| `--tr-drag-overlay-title-color`                     | 标题文字颜色         |
+| `--tr-drag-overlay-title-font-weight`               | 标题字体粗细         |
+| `--tr-drag-overlay-description-color`               | 描述文字颜色         |
+| `--tr-drag-overlay-description-font-weight`         | 描述字体粗细         |
+| `--tr-drag-overlay-content-padding`                 | 内容区域内边距       |
+| `--tr-drag-overlay-content-border-width`            | 内容边框宽度         |
+| `--tr-drag-overlay-content-border-radius`           | 内容边框圆角         |
+| `--tr-drag-overlay-icon-font-size`                  | 图标字体大小         |
+| `--tr-drag-overlay-icon-margin`                     | 图标外边距           |
+| `--tr-drag-overlay-text-gap`                        | 文本区域间距         |
+| `--tr-drag-overlay-title-font-size`                 | 标题字体大小         |
+| `--tr-drag-overlay-title-line-height`               | 标题行高             |
+| `--tr-drag-overlay-description-font-size`           | 描述字体大小         |
+| `--tr-drag-overlay-description-line-height`         | 描述行高             |
 
-| 变量名                                         | 描述                   |
-| ---------------------------------------------- | ---------------------- |
-| `--tr-drag-overlay-content-padding-fullscreen` | 全屏模式内容区域内边距 |
-| `--tr-drag-overlay-content-border-width-fullscreen` | 全屏模式内容边框宽度 |
+**全屏模式变量**
 
-#### 变量覆盖
+| 变量名                                                  | 说明                     |
+| ------------------------------------------------------- | ------------------------ |
+| `--tr-drag-overlay-content-padding-fullscreen`          | 全屏模式内容区域内边距   |
+| `--tr-drag-overlay-content-border-width-fullscreen`     | 全屏模式内容边框宽度     |
 
-**基础样式自定义**
+**变量覆盖示例**
+
+基础样式自定义
 
 ```css
 :root {
@@ -117,7 +117,7 @@ export interface FileRejection extends RejectionReason {
 }
 ```
 
-**全屏模式自定义**
+全屏模式自定义
 
 ```css
 :root {
