@@ -5,7 +5,14 @@
 
 ## Bubble 气泡重构
 
-- 气泡平铺
-- 添加status状态？？
-- 尽量不改变原始数据
-- user 发送的 content 数组类型（多态消息）
+- [x] 气泡平铺
+- [x] 添加status状态？？
+- [ ] 尽量不改变原始数据
+- [x] user 发送的 content 数组类型（多态消息）
+- [ ] Tool 消息如何联动
+
+## kit支持tool
+
+## 对话套件
+
+## Bubble markdown优化
