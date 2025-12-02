@@ -158,6 +158,8 @@ outline: [1, 3]
 
 通过添加 `tr-chat-input-compact` CSS 类启用紧凑模式，适用于空间受限的场景。
 
+<demo vue="../../demos/chat-input/compact-mode.vue" title="紧凑模式" description="更小的字体、间距和图标，适合空间受限的场景。" />
+
 ## Props
 
 #### Basic

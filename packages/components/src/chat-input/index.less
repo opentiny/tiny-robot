@@ -27,9 +27,14 @@
   --tr-chat-input-padding: 15px 20px;
   --tr-chat-input-gap: 8px;
   --tr-chat-input-footer-gap: 12px;
+  --tr-chat-input-header-padding: 15px 20px 0;
+  --tr-chat-input-multi-main-padding: 16px 20px 12px;
+  --tr-chat-input-footer-padding: 0 10px 10px;
 
   // 按钮
   --tr-chat-input-button-size: 32px;
+  --tr-chat-input-button-size-submit: 36px;
+  --tr-chat-input-button-size-clear: 28px;
   --tr-chat-input-button-hover-bg: rgba(0, 0, 0, 0.08);
   --tr-chat-input-button-active-bg: rgba(0, 0, 0, 0.12);
 
@@ -39,4 +44,26 @@
 
   // 动画
   --tr-chat-input-transition-duration: 0.2s;
+}
+
+// 紧凑模式 - 通过添加 tr-chat-input-compact 类启用
+.tr-chat-input-compact {
+  // 字体和行高
+  --tr-chat-input-font-size: 14px;
+  --tr-chat-input-line-height: 22px;
+  --tr-chat-input-min-height: 36px;
+  --tr-chat-input-border-radius: 22px;
+
+  // 间距
+  --tr-chat-input-padding: 12px 16px;
+  --tr-chat-input-gap: 6px;
+  --tr-chat-input-footer-gap: 8px;
+  --tr-chat-input-header-padding: 12px 16px 0;
+  --tr-chat-input-multi-main-padding: 14px 16px 8px;
+  --tr-chat-input-footer-padding: 0 8px 10px;
+
+  // 按钮
+  --tr-chat-input-button-size: 28px;
+  --tr-chat-input-button-size-submit: 32px;
+  --tr-chat-input-button-size-clear: 24px;
 }

@@ -22,7 +22,7 @@ const show = computed(() => clearable.value && hasContent.value)
   cursor: pointer;
 
   &__icon {
-    font-size: 32px;
+    font-size: var(--tr-chat-input-button-size-clear, 28px);
     color: var(--tr-text-secondary, #606266);
     border-radius: 8px;
     transition: background-color 0.2s;

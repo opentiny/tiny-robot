@@ -47,9 +47,9 @@ const handleClick = () => {
   user-select: none;
 
   &__icon {
-    font-size: 36px;
+    font-size: var(--tr-chat-input-button-size-submit, 36px);
     color: var(--tr-color-primary, #1476ff);
-    border-radius: 18px;
+    border-radius: 50%;
     transition: color 0.2s;
   }
 

@@ -23,8 +23,8 @@ const { mode } = useChatInputContext()
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px 10px;
-  gap: var(--tr-chat-input-footer-gap, 12px);
+  padding: var(--tr-chat-input-footer-padding);
+  gap: var(--tr-chat-input-footer-gap);
 
   &-left {
     display: flex;

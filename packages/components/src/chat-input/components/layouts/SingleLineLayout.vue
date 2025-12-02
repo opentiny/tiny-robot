@@ -58,7 +58,7 @@ const context = useChatInputContext()
 .tr-chat-input-single-layout {
   .tr-chat-input-header {
     margin-bottom: 12px;
-    padding: 15px 20px 0;
+    padding: var(--tr-chat-input-header-padding);
   }
 
   .tr-chat-input-main {
@@ -69,7 +69,7 @@ const context = useChatInputContext()
 
   .tr-chat-input-prefix {
     flex-shrink: 0;
-    padding: 15px 0 15px 20px;
+    padding: var(--tr-chat-input-padding);
   }
 
   .tr-chat-input-content {
@@ -77,7 +77,7 @@ const context = useChatInputContext()
     min-width: 0;
     display: flex;
     align-items: center;
-    padding: 15px 0 15px 20px;
+    padding: var(--tr-chat-input-padding);
 
     :deep(.ProseMirror) {
       white-space: nowrap;
@@ -100,16 +100,14 @@ const context = useChatInputContext()
   .tr-chat-input-actions-group {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--tr-chat-input-gap);
     padding-left: 12px;
-    padding-top: 10px;
-    padding-bottom: 10px;
   }
 
   .tr-chat-input-utility-buttons {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--tr-chat-input-gap);
   }
 
   .tr-chat-input-submit-wrapper {

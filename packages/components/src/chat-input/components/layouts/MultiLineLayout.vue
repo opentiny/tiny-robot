@@ -46,13 +46,13 @@ const context = useChatInputContext()
 
   .tr-chat-input-header {
     margin-bottom: 12px;
-    padding: 15px 20px 0;
+    padding: var(--tr-chat-input-header-padding);
   }
 
   .tr-chat-input-main {
     display: flex;
     align-items: flex-start;
-    padding: 16px 20px 12px;
+    padding: var(--tr-chat-input-multi-main-padding);
   }
 
   .tr-chat-input-prefix {
