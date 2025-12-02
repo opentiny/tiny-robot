@@ -57,7 +57,7 @@ outline: [1, 3]
 
 <demo vue="../../demos/chat-input/template-editor.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-**配置详见**：[扩展属性 - TemplateBlock](#templateblock-扩展)
+**配置详见**：[扩展属性 - TemplateBlock](#templateblock)
 
 ### 提及功能
 
@@ -69,7 +69,7 @@ outline: [1, 3]
 
 <demo vue="../../demos/chat-input/mention.vue" title="提及功能" description="输入 @ 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。" />
 
-**配置详见**：[扩展属性 - Mention](#mention-扩展)
+**配置详见**：[扩展属性 - Mention](#mention)
 
 ### 智能联想
 
@@ -101,18 +101,18 @@ outline: [1, 3]
 
 <demo vue="../../demos/chat-input/suggestion-highlight.vue" title="高亮模式" description="动态切换三种高亮模式，对比不同的高亮效果。" />
 
-**配置详见**：[扩展属性 - Suggestion](#suggestion-扩展)
+**配置详见**：[扩展属性 - Suggestion](#suggestion)
 
 
 ### 交互定制
 
-### 提交方式
+#### 提交方式
 
 通过 `submitType` 属性控制提交快捷键，支持 `enter`、`ctrlEnter`、`shiftEnter` 三种方式。
 
 <demo vue="../../demos/chat-input/submit-type.vue" title="提交方式" description="支持三种提交快捷键，适应不同使用场景。" />
 
-### 快捷键参考
+#### 快捷键参考
 
 | 快捷键      | 功能            | 适用条件                                     |
 | ----------- | --------------- | -------------------------------------------- |
@@ -136,31 +136,31 @@ outline: [1, 3]
 当 `activeSuggestionKeys` 可配置时，可自定义选中联想项的按键（Ctrl/Shift/Alt/Meta）。默认支持 `Enter` 和 `Tab`。
 :::
 
-<h3>自定义底部</h3>
+#### 自定义底部
 
 通过 `footer` 和 `footer-right` 插槽在底部区域添加自定义按钮。
 
 <demo vue="../../demos/chat-input/custom-footer.vue" title="自定义底部按钮" description="在底部区域添加自定义按钮，如深度思考、表情等。" />
 
-<h3>方法调用</h3>
+#### 方法调用
 
 <demo vue="../../demos/chat-input/methods-demo.vue" title="方法调用" description="通过 ref 调用组件方法，如聚焦、设置内容等。" />
 
 ### 样式配置
 
-<h2>主题支持</h2>
+#### 主题支持
 
 :::tip 主题继承
 主题会根据父级 `ThemeProvider` 的配置自动继承，无需重复设置。
 :::
 
-<h3>紧凑模式</h3>
+#### 紧凑模式
 
 通过添加 `tr-chat-input-compact` CSS 类启用紧凑模式，适用于空间受限的场景。
 
 ## Props
 
-### 基础属性
+#### Basic
 
 | 属性名        | 说明                   | 类型                                     | 默认值            |
 | ------------- | ---------------------- | ---------------------------------------- | ----------------- |
@@ -177,7 +177,7 @@ outline: [1, 3]
 | submitType    | 提交方式               | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
 | stopText      | 停止按钮文字           | `string`                                 | `仅显示图标`      |
 
-### 扩展属性
+#### Extension
 
 | 属性名     | 说明                                                   | 类型          | 默认值 |
 | ---------- | ------------------------------------------------------ | ------------- | ------ |
@@ -196,7 +196,6 @@ outline: [1, 3]
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
 | `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | `[]` | 模板数据列表，支持响应式 ref |
-| `onUpdate` | `Function` | - | 模板内容更新时的回调 |
 
 **配置示例**：
 

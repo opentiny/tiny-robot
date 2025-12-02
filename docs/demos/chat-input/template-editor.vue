@@ -54,7 +54,6 @@ const handleSubmit = (text: string, data?: StructuredData) => {
 
 onMounted(() => {
   setTemplate1()
-  chatInputRef?.value?.focus()
 })
 </script>
 

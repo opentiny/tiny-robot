@@ -129,6 +129,7 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
           const currentItems = isRef(items) ? items.value : items
           if (currentItems !== null && currentItems !== undefined) {
             this.editor.commands.setTemplateData(currentItems)
+            this.editor.commands.focusFirstTemplateBlock()
           }
         },
         { deep: true, immediate: true },
