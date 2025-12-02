@@ -54,11 +54,11 @@ export function useKeyboardHandler(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         templateForSubmit = props.templateData.map(({ id, ...rest }) => rest)
       }
-
-      exitTemplateMode?.()
     }
 
     emit('submit', trimmedInputValue, templateForSubmit)
+
+    exitTemplateMode?.()
   }
 
   /**
