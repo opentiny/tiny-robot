@@ -4,10 +4,13 @@
 
 import { ref, watch, onBeforeUnmount } from 'vue'
 import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
-import StarterKit from '@tiptap/starter-kit'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Text from '@tiptap/extension-text'
+import History from '@tiptap/extension-history'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import type { Extension } from '@tiptap/core'
+import type { AnyExtension } from '@tiptap/core'
 import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.type'
 
 /**
@@ -28,24 +31,12 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
    *
    * 基础扩展 + 用户传入的扩展
    */
-  const buildExtensions = (): Extension[] => {
-    const extensions: Extension[] = [
-      // 基础扩展（必需）
-      StarterKit.configure({
-        // 禁用所有格式化功能，只保留基础文本
-        bold: false,
-        italic: false,
-        strike: false,
-        code: false,
-        codeBlock: false,
-        heading: false,
-        blockquote: false,
-        horizontalRule: false,
-        bulletList: false,
-        orderedList: false,
-        listItem: false,
-        hardBreak: false,
-      }),
+  const buildExtensions = (): AnyExtension[] => {
+    const extensions: AnyExtension[] = [
+      Document,
+      Paragraph,
+      Text,
+      History, // 提供 undo/redo 功能
       Placeholder.configure({
         placeholder: props.placeholder || '请输入内容...',
       }),
@@ -54,7 +45,6 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
       }),
     ]
 
-    // ✅ 动态添加用户传入的扩展
     if (props.extensions?.length) {
       extensions.push(...props.extensions)
     }
