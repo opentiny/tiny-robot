@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import type { InputMode, SpeechState, ButtonGroupConfig, SubmitTrigger, TemplateItem } from './base'
+import type { InputMode, SpeechState, ButtonGroupConfig, SubmitTrigger } from './base'
 
 /**
  * Chat-Input Context
@@ -99,16 +99,6 @@ export interface ChatInputContext {
   clearable: Ref<boolean>
 
   /**
-   * 是否允许语音输入
-   */
-  allowSpeech: Ref<boolean>
-
-  /**
-   * 是否允许文件上传
-   */
-  allowFiles: Ref<boolean>
-
-  /**
    * 按钮组配置
    */
   buttonGroup: Ref<ButtonGroupConfig | undefined>
@@ -173,37 +163,6 @@ export interface ChatInputContext {
    * 打开文件选择对话框
    */
   openFileDialog: () => void
-
-  /**
-   * 设置模板数据
-   *
-   * @param items - 模板数据
-   */
-  setTemplateData: (items: TemplateItem[]) => void
-
-  /**
-   * 清空模板数据
-   */
-  clearTemplateData: () => void
-
-  /**
-   * 聚焦第一个模板块
-   */
-  focusFirstTemplateBlock: () => void
-
-  /**
-   * 获取模板数据
-   *
-   * @returns 模板数据
-   */
-  getTemplateData: () => TemplateItem[]
-
-  /**
-   * 设置输入模式
-   *
-   * @param mode - 输入模式
-   */
-  setMode: (mode: InputMode) => void
 }
 
 /**

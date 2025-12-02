@@ -6,7 +6,7 @@
  */
 
 import type { Extension } from '@tiptap/core'
-import type { InputMode, TemplateItem, SubmitTrigger, ButtonGroupConfig, AutoSize, StructuredData } from './types/base'
+import type { InputMode, SubmitTrigger, ButtonGroupConfig, AutoSize, StructuredData } from './types/base'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -49,16 +49,6 @@ export interface ChatInputProps {
    * 仅在初始化时使用
    */
   defaultValue?: string
-
-  /**
-   * 模板数据（双向绑定）
-   *
-   * 仅在使用 TemplateBlock 扩展时有效
-   * 用于运行时双向绑定
-   *
-   * 支持 v-model:templateData
-   */
-  templateData?: TemplateItem[]
 
   // ===== 基础配置 =====
 
@@ -142,22 +132,6 @@ export interface ChatInputProps {
    */
   clearable?: boolean
 
-  // ===== 功能开关 =====
-
-  /**
-   * 是否允许语音输入
-   *
-   * @default false
-   */
-  allowSpeech?: boolean
-
-  /**
-   * 是否允许文件上传
-   *
-   * @default false
-   */
-  allowFiles?: boolean
-
   // ===== 扩展配置 =====
 
   /**
@@ -205,7 +179,7 @@ export interface ChatInputProps {
    * 按钮组配置
    *
    * 用于细粒度控制各个按钮的行为
-   * 注意：当前主要使用 submit 配置，file 和 voice 配置需要配合 allowFiles 和 allowSpeech 使用
+   * 注意：当前主要使用 submit 配置
    *
    * @default undefined
    */
@@ -236,14 +210,6 @@ export interface ChatInputEmits {
    * @param value - 新内容
    */
   (e: 'update:modelValue', value: string): void
-
-  /**
-   * 更新模板数据
-   *
-   * @param e - 事件名
-   * @param value - 新模板数据
-   */
-  (e: 'update:templateData', value: TemplateItem[]): void
 
   /**
    * 提交内容（增强版）

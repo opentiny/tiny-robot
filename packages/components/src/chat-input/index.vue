@@ -12,10 +12,7 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
   mode: 'single',
   showWordLimit: false,
   clearable: false,
-  allowSpeech: false,
-  allowFiles: false,
   submitType: 'enter',
-  showAutoComplete: true,
   extensions: () => [],
 })
 

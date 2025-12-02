@@ -23,7 +23,6 @@ export type {
   UseSuggestionReturn,
   UseSpeechReturn,
   UseFileUploadReturn,
-  UseTemplateDataReturn,
   UseKeyboardShortcutsReturn,
   TemplateItem,
   MentionItem,

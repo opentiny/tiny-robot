@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import type { InputMode, SubmitTrigger, TemplateItem, SpeechState } from './base'
+import type { InputMode, SubmitTrigger, SpeechState } from './base'
 
 // ============================================
 // Composables 相关类型
@@ -178,33 +178,4 @@ export interface UseFileUploadReturn {
    * 选择的文件列表
    */
   files: Ref<File[]>
-}
-
-/**
- * useTemplateData 返回类型
- */
-export interface UseTemplateDataReturn {
-  /**
-   * 设置模板数据
-   *
-   * @param items - 模板数据
-   */
-  setTemplateData: (items: TemplateItem[]) => void
-
-  /**
-   * 清空模板数据
-   */
-  clearTemplateData: () => void
-
-  /**
-   * 聚焦第一个模板块
-   */
-  focusFirstTemplateBlock: () => void
-
-  /**
-   * 获取模板数据
-   *
-   * @returns 模板数据
-   */
-  getTemplateData: () => TemplateItem[]
 }

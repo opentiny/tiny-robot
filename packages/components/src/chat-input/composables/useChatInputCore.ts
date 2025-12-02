@@ -11,14 +11,13 @@
 import { EditorView } from '@tiptap/pm/view'
 import type { Editor } from '@tiptap/core'
 import { computed, provide, ref, toRef, watch } from 'vue'
-import type { ChatInputProps, ChatInputEmits, InputMode, StructuredData, TemplateItem } from '../index.type'
+import type { ChatInputProps, ChatInputEmits, StructuredData } from '../index.type'
 import { MentionPluginKey, SuggestionPluginKey, getTemplateStructuredData, getMentions } from '../extensions'
 import { CHAT_INPUT_CONTEXT_KEY, type ChatInputContext } from '../types/context'
 import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useModeSwitch } from './useModeSwitch'
 import { useAutoSize } from './useAutoSize'
-import { useTemplateData } from './useTemplateData'
 
 /**
  * useChatInputCore 返回类型
@@ -40,10 +39,6 @@ export interface UseChatInputCoreReturn {
     setContent: (content: string) => void
     getContent: () => string
     editor: ChatInputContext['editor']
-    setTemplateData: (items: TemplateItem[]) => void
-    clearTemplateData: () => void
-    focusFirstTemplateBlock: () => void
-    getTemplateData: () => TemplateItem[]
   }
 }
 
@@ -242,13 +237,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   // 自动高度调整
   useAutoSize(props, editor, editorRef)
 
-  // 模板数据管理
-  const { setTemplateData, clearTemplateData, focusFirstTemplateBlock, getTemplateData } = useTemplateData({
-    templateData: toRef(props, 'templateData'),
-    editor,
-    emit,
-  })
-
   // 监听编辑器内容变化，检查是否需要切换模式
   watch(
     () => editor.value?.state.doc.content,
@@ -319,8 +307,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     speechState,
     showWordLimit: computed(() => props.showWordLimit ?? false),
     clearable: computed(() => props.clearable ?? false),
-    allowSpeech: computed(() => props.allowSpeech ?? false),
-    allowFiles: computed(() => props.allowFiles ?? false),
     buttonGroup: toRef(props, 'buttonGroup'),
     submitType: computed(() => props.submitType ?? 'enter'),
     stopText: toRef(props, 'stopText'),
@@ -333,11 +319,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     startSpeech,
     stopSpeech,
     openFileDialog,
-    setMode: (mode: InputMode) => setMode(mode),
-    setTemplateData,
-    clearTemplateData,
-    focusFirstTemplateBlock,
-    getTemplateData,
   }
 
   // 提供 Context
@@ -357,10 +338,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
       setContent,
       getContent,
       editor,
-      setTemplateData,
-      clearTemplateData,
-      focusFirstTemplateBlock,
-      getTemplateData,
     },
   }
 }

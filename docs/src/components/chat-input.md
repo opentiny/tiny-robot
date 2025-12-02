@@ -1,5 +1,5 @@
 ---
-outline: [1, 4]
+outline: [1, 3]
 ---
 
 # ChatInput 聊天输入框
@@ -57,32 +57,7 @@ outline: [1, 4]
 
 <demo vue="../../demos/chat-input/template-editor.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-**插件配置**：
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | `[]` | 模板数据列表，支持响应式 ref |
-| `onUpdate` | `Function` | - | 模板内容更新时的回调 |
-
-**配置示例**：
-
-```typescript
-import { ref } from 'vue'
-import { TemplateBlock } from '@opentiny/tiny-robot'
-
-const templateData = ref([
-  { type: 'text', content: '你好，我是 ' },
-  { type: 'template', content: '张三' },
-  { type: 'text', content: '，来自 ' },
-  { type: 'template', content: '北京' }
-])
-
-const extensions = [
-  TemplateBlock.configure({
-    items: templateData  // 传入响应式 ref，数据变化时自动更新
-  })
-]
-```
+**配置详见**：[扩展属性 - TemplateBlock](#templateblock-扩展)
 
 ### 提及功能
 
@@ -94,34 +69,7 @@ const extensions = [
 
 <demo vue="../../demos/chat-input/mention.vue" title="提及功能" description="输入 @ 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。" />
 
-**插件配置**：
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `items` | `MentionItem[]` | `[]` | 提及项列表（必填） |
-| `char` | `string` | `'@'` | 触发提及的字符 |
-| `onSelect` | `Function` | - | 选中提及项时的回调 |
-
-**配置示例**：
-
-```typescript
-import { Mention } from '@opentiny/tiny-robot'
-
-const mentions = [
-  { label: '小小画家', preset: '你是一个绘画助手...' },
-  { label: '代码助手', preset: '你是一个编程助手...' }
-]
-
-const extensions = [
-  Mention.configure({
-    items: mentions,
-    char: '@',  // 输入 @ 触发
-    onSelect: (item) => {
-      console.log('选中了:', item.label)
-    }
-  })
-]
-```
+**配置详见**：[扩展属性 - Mention](#mention-扩展)
 
 ### 智能联想
 
@@ -143,20 +91,6 @@ const extensions = [
 
 <demo vue="../../demos/chat-input/suggestion-uncontrolled.vue" title="非受控模式" description="组件内部自动过滤，支持自定义过滤逻辑。" />
 
-**配置示例**：
-
-```typescript
-Suggestion.configure({
-  items: allSuggestions,        // 完整的建议列表
-  filterFn: (suggestions, query) => {
-    // 自定义过滤逻辑（可选，不设置则使用默认模糊匹配）
-    return suggestions.filter(item => 
-      item.content.toLowerCase().includes(query.toLowerCase())
-    )
-  }
-})
-```
-
 #### 高亮模式
 
 支持三种高亮模式，满足不同的使用场景：
@@ -167,40 +101,10 @@ Suggestion.configure({
 
 <demo vue="../../demos/chat-input/suggestion-highlight.vue" title="高亮模式" description="动态切换三种高亮模式，对比不同的高亮效果。" />
 
-**配置示例**：
-
-```typescript
-// 自动匹配
-{ content: 'ECS-云服务器' }
-
-// 精确指定
-{ content: 'ECS-云服务器', highlights: ['ECS', '云服务器'] }
-
-// 自定义函数
-{ 
-  content: 'ECS-云服务器',
-  highlights: (text, query) => [
-    { text: 'ECS', isMatch: true },
-    { text: '-云服务器', isMatch: false }
-  ]
-}
-```
-
-#### 插件配置
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `items` | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]` | 建议项列表（必填），支持响应式 ref |
-| `controlled` | `boolean` | `false` | **受控模式**：`true` = 用户控制过滤，`false` = 组件自动过滤 |
-| `filterFn` | `Function` | 内置模糊匹配 | **非受控模式**专用：自定义过滤函数 |
-| `onSelect` | `Function` | - | 选中建议时的回调 |
-| `onQueryChange` | `Function` | - | **受控模式**专用：查询文本变化时的回调 |
-| `showAutoComplete` | `boolean` | `true` | 显示自动补全提示 |
-| `activeSuggestionKeys` | `string[]` | `['Enter', 'Tab']` | 激活建议的按键 |
-| `popupWidth` | `number` \| `string` | `400` | 弹窗宽度。支持数字（如 `500`）、百分比（如 `'100%'`，基于输入框宽度）、CSS 单位（如 `'20rem'`） |
+**配置详见**：[扩展属性 - Suggestion](#suggestion-扩展)
 
 
-<h2>交互定制</h2>
+### 交互定制
 
 ### 提交方式
 
@@ -242,11 +146,9 @@ Suggestion.configure({
 
 <demo vue="../../demos/chat-input/methods-demo.vue" title="方法调用" description="通过 ref 调用组件方法，如聚焦、设置内容等。" />
 
-<h2>样式配置</h2>
+### 样式配置
 
-<h3>主题支持</h3>
-
-`ChatInput` 支持 `light` 和 `dark` 两种主题模式，通过 `theme` 属性配置。
+<h2>主题支持</h2>
 
 :::tip 主题继承
 主题会根据父级 `ThemeProvider` 的配置自动继承，无需重复设置。
@@ -255,8 +157,6 @@ Suggestion.configure({
 <h3>紧凑模式</h3>
 
 通过添加 `tr-chat-input-compact` CSS 类启用紧凑模式，适用于空间受限的场景。
-
----
 
 ## Props
 
@@ -276,7 +176,6 @@ Suggestion.configure({
 | clearable     | 是否可清空             | `boolean`                                | `false`           |
 | submitType    | 提交方式               | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
 | stopText      | 停止按钮文字           | `string`                                 | `仅显示图标`      |
-| theme         | 主题样式               | `'light' \| 'dark'`                      | `'light'`         |
 
 ### 扩展属性
 
@@ -285,24 +184,132 @@ Suggestion.configure({
 | extensions | 扩展列表，用于添加功能（TemplateBlock、Mention、Suggestion 等） | `Extension[]` | `[]`   |
 
 :::tip 扩展系统
-推荐使用 `extensions` 属性配置功能扩展，提供更灵活的配置和更好的类型支持。
-
-旧版 API（`templateData`、`mentions`、`suggestions` 等）仍然支持，但建议迁移到新的扩展系统。
+使用 `extensions` 属性配置功能扩展，提供灵活的配置和完整的类型支持。
 :::
 
-### 旧版属性（兼容性）
+#### TemplateBlock
 
-以下属性仍然支持，但建议使用 `extensions` 替代：
+模板填充功能扩展，支持动态设置模板内容。
 
-| 属性名               | 说明                                | 类型                 | 默认值             | 替代方案                                |
-| -------------------- | ----------------------------------- | -------------------- | ------------------ | --------------------------------------- |
-| templateData         | 模板数据，用于初始化或 v-model 更新 | `TemplateItem[]`     | `[]`               | `TemplateBlock.configure({ items })`    |
-| mentions             | 提及列表，用于 `@` 提及             | `MentionItem[]`      | `[]`               | `Mention.configure({ items })`          |
-| suggestions          | 建议列表，提供智能联想功能          | `SuggestionItem[]`   | `[]`               | `Suggestion.configure({ items })`       |
-| suggestionChar       | 建议触发字符（null 为全局匹配）     | `string \| null`     | `null`             | `Suggestion.configure({ char })`        |
-| suggestionPopupWidth | 建议弹窗宽度（支持百分比，基于输入框宽度） | `number \| string`   | `400`              | `Suggestion.configure({ popupWidth })`  |
-| activeSuggestionKeys | 激活建议项的按键                    | `string[]`           | `['Enter', 'Tab']` | `Suggestion.configure({ activeSuggestionKeys })` |
-| showAutoComplete     | 是否显示自动补全提示                | `boolean`            | `true`             | `Suggestion.configure({ showAutoComplete })` |
+**配置项**：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | `[]` | 模板数据列表，支持响应式 ref |
+| `onUpdate` | `Function` | - | 模板内容更新时的回调 |
+
+**配置示例**：
+
+```typescript
+import { ref } from 'vue'
+import { TemplateBlock } from '@opentiny/tiny-robot'
+
+const templateData = ref([
+  { type: 'text', content: '你好，我是 ' },
+  { type: 'template', content: '张三' },
+  { type: 'text', content: '，来自 ' },
+  { type: 'template', content: '北京' }
+])
+
+const extensions = [
+  TemplateBlock.configure({
+    items: templateData  // 传入响应式 ref，数据变化时自动更新
+  })
+]
+```
+
+#### Mention
+
+@提及功能扩展，支持快速引用预设的助手或对象。
+
+**配置项**：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表（必填），支持响应式 ref |
+| `char` | `string` | `'@'` | 触发提及的字符 |
+| `onSelect` | `Function` | - | 选中提及项时的回调 |
+
+**配置示例**：
+
+```typescript
+import { Mention } from '@opentiny/tiny-robot'
+
+const mentions = [
+  { label: '小小画家', preset: '你是一个绘画助手...' },
+  { label: '代码助手', preset: '你是一个编程助手...' }
+]
+
+const extensions = [
+  Mention.configure({
+    items: mentions,
+    char: '@',  // 输入 @ 触发
+    onSelect: (item) => {
+      console.log('选中了:', item.label)
+    }
+  })
+]
+```
+
+#### Suggestion
+
+智能联想功能扩展，支持受控/非受控模式和多种高亮方式。
+
+**配置项**：
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `items` | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]` | 建议项列表（必填），支持响应式 ref |
+| `controlled` | `boolean` | `false` | **受控模式**：`true` = 用户控制过滤，`false` = 组件自动过滤 |
+| `filterFn` | `Function` | 内置模糊匹配 | **非受控模式**专用：自定义过滤函数 |
+| `onSelect` | `Function` | - | 选中建议时的回调 |
+| `onQueryChange` | `Function` | - | **受控模式**专用：查询文本变化时的回调 |
+| `showAutoComplete` | `boolean` | `true` | 显示自动补全提示 |
+| `activeSuggestionKeys` | `string[]` | `['Enter', 'Tab']` | 激活建议的按键 |
+| `popupWidth` | `number` \| `string` | `400` | 弹窗宽度。支持数字（如 `500`）、百分比（如 `'100%'`，基于输入框宽度）、CSS 单位（如 `'20rem'`） |
+
+**配置示例**：
+
+```typescript
+import { Suggestion } from '@opentiny/tiny-robot'
+
+// 非受控模式 - 自定义过滤
+Suggestion.configure({
+  items: allSuggestions,
+  filterFn: (suggestions, query) => {
+    return suggestions.filter(item => 
+      item.content.toLowerCase().includes(query.toLowerCase())
+    )
+  }
+})
+
+// 受控模式 - 用户控制过滤
+Suggestion.configure({
+  items: filteredSuggestions,  // 已过滤的列表
+  controlled: true,
+  onQueryChange: (query) => {
+    // 根据 query 更新 filteredSuggestions
+  }
+})
+
+// 高亮配置
+const suggestions = [
+  // 自动匹配
+  { content: 'ECS-云服务器' },
+  
+  // 精确指定
+  { content: 'ECS-云服务器', highlights: ['ECS', '云服务器'] },
+  
+  // 自定义函数
+  { 
+    content: 'ECS-云服务器',
+    highlights: (text, query) => [
+      { text: 'ECS', isMatch: true },
+      { text: '-云服务器', isMatch: false }
+    ]
+  }
+]
+```
 
 ## Slots
 
@@ -324,28 +331,18 @@ Suggestion.configure({
 | focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`                                    |
 | submit            | 提交内容时触发             | `(text: string, data?: StructuredData)`                  |
 | clear             | 清空内容时触发             | `()`                                                     |
-| cancel            | 取消发送（加载状态）时触发 | `()`                                                     |
-| suggestion-select | 选择建议项时触发           | `(value: string)`                                        |
+| input             | 输入内容变化时触发         | `(value: string)`                                        |
 
 ## Methods
 
-```
-
-| 方法名                  | 说明                     | 参数                      | 返回值           |
-| ----------------------- | ------------------------ | ------------------------- | ---------------- |
-| focus                   | 使输入框获取焦点         | -                         | `void`           |
-| blur                    | 使输入框失去焦点         | -                         | `void`           |
-| clear                   | 清空输入内容             | -                         | `void`           |
-| submit                  | 手动触发提交事件         | -                         | `void`           |
-| setContent              | 设置编辑器内容           | `(content: string)`       | `void`           |
-| getContent              | 获取编辑器内容           | -                         | `string`         |
-| setMode                 | 设置输入模式             | `(mode: InputMode)`       | `void`           |
-| setTemplateData         | 设置模板数据             | `(items: TemplateItem[])` | `void`           |
-| clearTemplateData       | 清空模板数据             | -                         | `void`           |
-| focusFirstTemplateBlock | 激活模板的第一个输入字段 | -                         | `void`           |
-| getTemplateData         | 获取模板数据             | -                         | `TemplateItem[]` |
-
-```
+| 方法名     | 说明             | 参数                | 返回值   |
+| ---------- | ---------------- | ------------------- | -------- |
+| focus      | 使输入框获取焦点 | -                   | `void`   |
+| blur       | 使输入框失去焦点 | -                   | `void`   |
+| clear      | 清空输入内容     | -                   | `void`   |
+| submit     | 手动触发提交事件 | -                   | `void`   |
+| setContent | 设置编辑器内容   | `(content: string)` | `void`   |
+| getContent | 获取编辑器内容   | -                   | `string` |
 
 ## Types
 
@@ -386,7 +383,3 @@ type InputMode = 'single' | 'multiple'
 // 扩展类型
 import type { Extension } from '@tiptap/core'
 ```
-
-:::tip 类型变更
-新版本的结构化数据不再包含 `id` 字段，简化了数据结构。如果需要唯一标识，请在应用层自行管理。
-:::
