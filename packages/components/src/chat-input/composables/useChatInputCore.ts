@@ -282,7 +282,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   }
 
   const getContent = () => {
-    return editor.value?.getHTML() || ''
+    return editor.value?.getText() || ''
   }
 
   const startSpeech = () => {
