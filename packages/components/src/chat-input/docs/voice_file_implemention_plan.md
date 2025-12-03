@@ -9,11 +9,13 @@
 ### 为什么这个方案更好？
 
 1. **职责更清晰**
+
    - ChatInput 只负责文本编辑
    - VoiceInput 和 FileUpload 是独立的功能组件
    - 用户可以自由组合
 
 2. **更灵活**
+
    - 用户可以选择不使用这些组件
    - 用户可以自定义实现
    - 用户可以放在任何插槽位置
@@ -83,7 +85,7 @@
 
 /**
  * ChatInput 插槽作用域
- * 
+ *
  * 通过插槽作用域暴露给外部组件的状态和方法
  */
 export interface ChatInputSlotScope {
@@ -154,7 +156,7 @@ export interface ChatInputSlotScope {
 
 #### 1.2 更新插槽定义
 
-```typescript
+````typescript
 // index.type.ts
 
 export interface ChatInputSlots {
@@ -175,7 +177,7 @@ export interface ChatInputSlots {
 
   /**
    * 单行模式内联操作按钮插槽
-   * 
+   *
    * @example
    * ```vue
    * <chat-input>
@@ -198,7 +200,7 @@ export interface ChatInputSlots {
    */
   'footer-right'?: (scope: ChatInputSlotScope) => unknown
 }
-```
+````
 
 ### 阶段 2：实现独立的 VoiceInput 组件（2 天）
 
@@ -327,11 +329,13 @@ const isSupported = ref(false)
 const error = ref<Error>()
 
 // 创建语音处理器
-const handler = props.handler ?? createSpeechHandler({
-  lang: props.lang,
-  continuous: props.continuous,
-  interimResults: props.interimResults,
-})
+const handler =
+  props.handler ??
+  createSpeechHandler({
+    lang: props.lang,
+    continuous: props.continuous,
+    interimResults: props.interimResults,
+  })
 
 // 检查浏览器支持
 isSupported.value = handler.isSupported()
@@ -427,7 +431,8 @@ defineExpose({
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
@@ -571,7 +576,7 @@ const createFileInput = () => {
 // 处理文件选择
 const handleFileChange = (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files ?? [])
-  
+
   if (files.length === 0) return
 
   // 文件数量验证
@@ -584,12 +589,10 @@ const handleFileChange = (e: Event) => {
   // 文件大小验证
   if (props.maxSize) {
     const maxBytes = props.maxSize * 1024 * 1024
-    const oversized = files.filter(f => f.size > maxBytes)
-    
+    const oversized = files.filter((f) => f.size > maxBytes)
+
     if (oversized.length > 0) {
-      const error = new Error(
-        `以下文件超过 ${props.maxSize}MB 限制: ${oversized.map(f => f.name).join(', ')}`
-      )
+      const error = new Error(`以下文件超过 ${props.maxSize}MB 限制: ${oversized.map((f) => f.name).join(', ')}`)
       emit('error', error, oversized[0])
       return
     }
@@ -790,25 +793,25 @@ export { FileUpload } from './file-upload'
 
 ### Props
 
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| disabled | boolean | false | 是否禁用 |
-| lang | string | 'zh-CN' | 语音识别语言 |
-| continuous | boolean | false | 是否连续识别 |
-| interimResults | boolean | true | 是否返回临时结果 |
-| handler | SpeechHandler | - | 自定义语音识别处理器 |
-| tooltip | string | - | 按钮提示文本 |
-| size | number \| string | - | 按钮尺寸 |
+| 属性           | 类型             | 默认值  | 说明                 |
+| -------------- | ---------------- | ------- | -------------------- |
+| disabled       | boolean          | false   | 是否禁用             |
+| lang           | string           | 'zh-CN' | 语音识别语言         |
+| continuous     | boolean          | false   | 是否连续识别         |
+| interimResults | boolean          | true    | 是否返回临时结果     |
+| handler        | SpeechHandler    | -       | 自定义语音识别处理器 |
+| tooltip        | string           | -       | 按钮提示文本         |
+| size           | number \| string | -       | 按钮尺寸             |
 
 ### Events
 
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| start | - | 开始录音 |
-| interim | transcript: string | 临时识别结果 |
-| result | transcript: string | 最终识别结果 |
-| end | transcript?: string | 结束录音 |
-| error | error: Error | 识别错误 |
+| 事件名  | 参数                | 说明         |
+| ------- | ------------------- | ------------ |
+| start   | -                   | 开始录音     |
+| interim | transcript: string  | 临时识别结果 |
+| result  | transcript: string  | 最终识别结果 |
+| end     | transcript?: string | 结束录音     |
+| error   | error: Error        | 识别错误     |
 ```
 
 创建 `docs/src/components/file-upload.md`：
@@ -830,23 +833,23 @@ export { FileUpload } from './file-upload'
 
 ### Props
 
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| disabled | boolean | false | 是否禁用 |
-| accept | string | '*' | 接受的文件类型 |
-| multiple | boolean | false | 是否支持多选 |
-| maxSize | number | - | 文件大小限制（MB） |
-| maxCount | number | - | 最大文件数量 |
-| tooltip | string | - | 按钮提示文本 |
-| size | number \| string | - | 按钮尺寸 |
-| icon | Component | - | 自定义图标 |
+| 属性     | 类型             | 默认值 | 说明               |
+| -------- | ---------------- | ------ | ------------------ |
+| disabled | boolean          | false  | 是否禁用           |
+| accept   | string           | '\*'   | 接受的文件类型     |
+| multiple | boolean          | false  | 是否支持多选       |
+| maxSize  | number           | -      | 文件大小限制（MB） |
+| maxCount | number           | -      | 最大文件数量       |
+| tooltip  | string           | -      | 按钮提示文本       |
+| size     | number \| string | -      | 按钮尺寸           |
+| icon     | Component        | -      | 自定义图标         |
 
 ### Events
 
-| 事件名 | 参数 | 说明 |
-|--------|------|------|
-| select | files: File[] | 文件选择 |
-| error | error: Error, file?: File | 文件验证失败 |
+| 事件名 | 参数                      | 说明         |
+| ------ | ------------------------- | ------------ |
+| select | files: File[]             | 文件选择     |
+| error  | error: Error, file?: File | 文件验证失败 |
 ```
 
 #### 6.2 创建示例
@@ -857,10 +860,7 @@ export { FileUpload } from './file-upload'
 <template>
   <chat-input v-model="content" mode="single">
     <template #actions-inline="{ insert, disabled }">
-      <voice-input 
-        :disabled="disabled"
-        @result="handleVoiceResult"
-      />
+      <voice-input :disabled="disabled" @result="handleVoiceResult" />
     </template>
   </chat-input>
 </template>
@@ -884,7 +884,7 @@ const handleVoiceResult = (text: string) => {
 <template>
   <chat-input v-model="content" mode="single">
     <template #actions-inline="{ disabled }">
-      <file-upload 
+      <file-upload
         :disabled="disabled"
         accept="image/*"
         :max-size="10"
@@ -916,15 +916,15 @@ const handleError = (error: Error) => {
 
 ## 📈 实施时间表
 
-| 阶段 | 任务 | 时间 | 负责人 |
-|------|------|------|--------|
-| **阶段 1** | 优化 ChatInput 插槽作用域 | 1 天 | - |
-| **阶段 2** | 实现独立的 VoiceInput 组件 | 2 天 | - |
-| **阶段 3** | 实现独立的 FileUpload 组件 | 2 天 | - |
-| **阶段 4** | 更新 ChatInput 插槽实现 | 1 天 | - |
-| **阶段 5** | 导出独立组件 | 1 天 | - |
-| **阶段 6** | 文档和示例 | 2 天 | - |
-| **总计** | | **9 天** | |
+| 阶段       | 任务                       | 时间     | 负责人 |
+| ---------- | -------------------------- | -------- | ------ |
+| **阶段 1** | 优化 ChatInput 插槽作用域  | 1 天     | -      |
+| **阶段 2** | 实现独立的 VoiceInput 组件 | 2 天     | -      |
+| **阶段 3** | 实现独立的 FileUpload 组件 | 2 天     | -      |
+| **阶段 4** | 更新 ChatInput 插槽实现    | 1 天     | -      |
+| **阶段 5** | 导出独立组件               | 1 天     | -      |
+| **阶段 6** | 文档和示例                 | 2 天     | -      |
+| **总计**   |                            | **9 天** |        |
 
 ---
 
@@ -1008,29 +1008,34 @@ const handleError = (error: Error) => {
 ### 为什么这个方案是最优的？
 
 1. **完全符合"组合优于配置"设计思想**
+
    - ChatInput 保持纯净，不包含语音和文件上传逻辑
    - VoiceInput 和 FileUpload 是完全独立的组件
    - 通过插槽组合，而非配置启用
 
 2. **职责清晰**
+
    - ChatInput 只负责文本编辑
    - VoiceInput 只负责语音识别
    - FileUpload 只负责文件选择
    - 各组件可独立使用和测试
 
 3. **灵活性强**
+
    - 用户可以选择不使用这些组件
    - 用户可以自定义实现替代组件
    - 用户可以将组件放在任何插槽位置
    - 组件可以在 ChatInput 外部独立使用
 
 4. **易于维护和扩展**
+
    - 代码解耦，修改一个组件不影响其他
    - 新增功能只需创建新的独立组件
    - 社区可以贡献第三方组件
    - 单元测试更简单
 
 5. **性能优化**
+
    - 按需导入，不使用不加载
    - 减少 ChatInput 的代码量
    - 组件懒加载更容易实现
@@ -1043,14 +1048,71 @@ const handleError = (error: Error) => {
 
 ### 与配置方案的对比
 
-| 维度 | 独立组件方案 ✅ | 配置方案 ❌ |
-|------|----------------|------------|
-| 设计思想 | 组合优于配置 | 配置优于组合 |
+| 维度             | 独立组件方案 ✅              | 配置方案 ❌            |
+| ---------------- | ---------------------------- | ---------------------- |
+| 设计思想         | 组合优于配置                 | 配置优于组合           |
 | ChatInput 复杂度 | 低（无需知道语音和文件上传） | 高（需要集成插件系统） |
-| 组件独立性 | 完全独立 | 依赖 ChatInput |
-| 灵活性 | 高（可放任何位置） | 中（固定位置） |
-| 扩展性 | 高（创建新组件） | 中（需修改插件系统） |
-| 学习成本 | 低（标准 Vue 组件） | 中（需理解插件配置） |
-| 代码量 | 少（无插件系统） | 多（需插件系统） |
+| 组件独立性       | 完全独立                     | 依赖 ChatInput         |
+| 灵活性           | 高（可放任何位置）           | 中（固定位置）         |
+| 扩展性           | 高（创建新组件）             | 中（需修改插件系统）   |
+| 学习成本         | 低（标准 Vue 组件）          | 中（需理解插件配置）   |
+| 代码量           | 少（无插件系统）             | 多（需插件系统）       |
 
 ### 建议立即开始实施 ✅
+
+## 🔮 未来优化建议
+
+以下是后期可以考虑的增强功能，暂不纳入初版实施范围。
+
+### 插槽作用域 `insert` 方法增强
+
+**当前实现**：
+
+```typescript
+insert: (content: string) => {
+  context.editor.value?.commands.insertContent(content + ' ')
+  context.focus()
+}
+```
+
+**增强版本**：
+
+```typescript
+interface InsertOptions {
+  appendSpace?: boolean // 是否追加空格
+  appendNewline?: boolean // 是否追加换行
+  focus?: boolean // 是否聚焦
+}
+
+insert: (content: string, options?: InsertOptions) => {
+  const { appendSpace = true, appendNewline = false, focus = true } = options ?? {}
+
+  let finalContent = content
+  if (appendNewline) finalContent += '\n'
+  if (appendSpace) finalContent += ' '
+
+  context.editor.value?.commands.insertContent(finalContent)
+  if (focus) context.focus()
+}
+```
+
+**优势**：
+
+- ✅ 更灵活的内容插入控制
+- ✅ 支持不同场景的格式需求
+- ✅ 向后兼容（默认行为不变）
+
+**使用示例**：
+
+````vue
+<!-- 语音输入：追加空格 -->
+<voice-input @result="(text) => insert(text)" />
+
+<!-- 文件名插入：追加换行 -->
+<file-upload @select="(files) => insert(files[0].name, { appendSpace: false, appendNewline: true })" />
+
+<!-- 代码片段插入：不聚焦 -->
+<template #actions-inline="{ insert }">
+  <button @click="() => insert('```\ncode\n```', { focus: false })">插入代码</button>
+</template>
+````

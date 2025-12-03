@@ -20,6 +20,7 @@ import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
 import ChatInput from './chat-input'
+import { TrFileUpload } from './file-upload'
 
 export * from './attachments/index.type'
 export * from './bubble/index.type'
@@ -61,6 +62,8 @@ export type {
   HighlightFunction,
 } from './chat-input/extensions'
 
+export type { FileUploadProps, FileUploadEmits } from './file-upload/index.type'
+
 export { useTheme } from './theme-provider/useTheme'
 export { useChatInputContext } from './chat-input/context'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
@@ -89,6 +92,7 @@ const components = [
   McpServerPicker,
   McpAddForm,
   ChatInput,
+  TrFileUpload,
 ]
 
 export default {
@@ -147,4 +151,5 @@ export {
   McpAddForm as TrMcpAddForm,
   ChatInput,
   ChatInput as TrChatInput,
+  TrFileUpload,
 }

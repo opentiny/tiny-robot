@@ -13,6 +13,10 @@ export * from './types/base'
 export * from './types/composables'
 export * from './types/components'
 export * from './types/context'
+export * from './types/slots'
+
+// 导入插槽作用域类型
+import type { ChatInputSlotScope } from './types/slots'
 
 // 导出扩展类型（供用户使用）
 export type { SuggestionItem } from './extensions/suggestion/types'
@@ -307,16 +311,26 @@ export interface ChatInputSlots {
 
   /**
    * 单行模式内联操作按钮插槽
+   *
+   * @example
+   * ```vue
+   * <chat-input>
+   *   <template #actions-inline="{ insert, focus, disabled }">
+   *     <voice-input @result="insert" :disabled="disabled" />
+   *     <file-upload @select="handleFiles" />
+   *   </template>
+   * </chat-input>
+   * ```
    */
-  'actions-inline'?: () => unknown
+  'actions-inline'?: (scope: ChatInputSlotScope) => unknown
 
   /**
    * 底部插槽（多行模式）
    */
-  footer?: () => unknown
+  footer?: (scope: ChatInputSlotScope) => unknown
 
   /**
    * 底部右侧插槽（多行模式）
    */
-  'footer-right'?: () => unknown
+  'footer-right'?: (scope: ChatInputSlotScope) => unknown
 }

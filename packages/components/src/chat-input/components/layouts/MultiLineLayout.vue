@@ -23,10 +23,10 @@
     <!-- 底部区域 -->
     <Footer>
       <template #footer>
-        <slot name="footer" />
+        <slot name="footer" v-bind="slotScope" />
       </template>
       <template #footer-right>
-        <slot name="footer-right" />
+        <slot name="footer-right" v-bind="slotScope" />
       </template>
     </Footer>
   </div>
@@ -34,10 +34,13 @@
 
 <script setup lang="ts">
 import { useChatInputContext } from '../../context'
+import { useSlotScope } from '../../composables/useSlotScope'
 import EditorContent from '../editor-content/index.vue'
 import Footer from '../footer/index.vue'
 
 const context = useChatInputContext()
+
+const slotScope = useSlotScope()
 </script>
 
 <style lang="less" scoped>
