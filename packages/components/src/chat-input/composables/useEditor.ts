@@ -55,6 +55,7 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
   const editor = useTiptapEditor({
     content: props.modelValue || props.defaultValue || '',
     extensions: buildExtensions(),
+    autofocus: props.autofocus ? 'end' : false,
     editorProps: {
       attributes: {
         class: 'tr-chat-input-editor',

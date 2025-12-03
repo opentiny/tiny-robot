@@ -9,7 +9,7 @@ outline: [1, 3]
 - [代码示例](#代码示例) - 模式切换、状态控制、内容管理
 - [输入增强](#输入增强) - 模板填充、提及功能
 - [交互定制](#交互定制) - 快捷键、自定义底部、方法调用
-- [样式配置](#样式配置) - 主题、紧凑模式
+- [样式配置](#样式配置) - 主题、组件尺寸
 
 ## 代码示例
 
@@ -172,11 +172,11 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 主题会根据父级 `ThemeProvider` 的配置自动继承，无需重复设置。
 :::
 
-#### 紧凑模式
+#### 组件尺寸
 
-通过添加 `tr-chat-input-compact` CSS 类启用紧凑模式，适用于空间受限的场景。
+通过 `size` 属性控制组件尺寸，支持 `normal`（默认）和 `small`（紧凑）两种尺寸。
 
-<demo vue="../../demos/chat-input/compact-mode.vue" title="紧凑模式" description="更小的字体、间距和图标，适合空间受限的场景。" />
+<demo vue="../../demos/chat-input/size.vue" title="组件尺寸" description="支持正常和紧凑两种尺寸，适应不同的使用场景。" />
 
 ## Props
 
@@ -191,6 +191,7 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 | loading       | 是否加载中             | `boolean`                                | `false`           |
 | autofocus     | 自动获取焦点           | `boolean`                                | `false`           |
 | mode          | 输入框类型             | `'single' \| 'multiple'`                 | `'single'`        |
+| size          | 组件尺寸               | `'normal' \| 'small'`                    | `'normal'`        |
 | maxLength     | 最大输入长度           | `number`                                 | `Infinity`        |
 | showWordLimit | 是否显示字数统计       | `boolean`                                | `false`           |
 | clearable     | 是否可清空             | `boolean`                                | `false`           |

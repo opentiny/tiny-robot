@@ -6,7 +6,7 @@
 
 **设计原则**：
 - 所有样式通过 CSS 变量控制
-- 避免使用 `:root.tr-chat-input-compact &` 嵌套选择器
+- 避免使用 `:root.tr-chat-input--small &` 嵌套选择器
 - 在主样式文件中集中定义所有变量
 - 子组件直接使用 CSS 变量，无需额外的紧凑模式样式
 
@@ -31,7 +31,7 @@
 
 **紧凑模式变量覆盖**：
 ```less
-.tr-chat-input-compact {
+.tr-chat-input--small {
   --tr-chat-input-font-size: 14px;
   --tr-chat-input-line-height: 22px;
   --tr-chat-input-min-height: 36px;
@@ -104,9 +104,9 @@
 ```
 
 ### 3. Demo 示例
-创建了 `docs/demos/chat-input/compact-mode.vue`，展示了：
-- 默认模式（宽松模式）的单行和多行输入框
-- 紧凑模式的单行和多行输入框
+创建了 `docs/demos/chat-input/size.vue`，展示了：
+- 正常尺寸（size="normal"）的单行和多行输入框
+- 紧凑尺寸（size="small"）的单行和多行输入框
 - 对比效果
 
 ### 4. 文档更新
@@ -116,8 +116,8 @@
 
 ```vue
 <template>
-  <!-- 添加 tr-chat-input-compact 类启用紧凑模式 -->
-  <ChatInput class="tr-chat-input-compact" mode="single" />
+  <!-- 使用 size="small" 启用紧凑模式 -->
+  <ChatInput size="small" mode="single" />
 </template>
 ```
 
@@ -140,8 +140,8 @@
 3. **与 Sender 保持一致**：使用相同的实现模式，统一的代码风格
 4. **易于维护**：样式集中在主样式文件中，便于后续调整
 5. **性能优化**：使用 CSS 变量，无需 JavaScript 计算
-6. **避免嵌套选择器**：不使用 `:root.tr-chat-input-compact &`，代码更清晰
-7. **扩展性好**：未来添加其他模式（如超紧凑模式）只需添加新的 CSS 类
+6. **避免嵌套选择器**：不使用 `:root.tr-chat-input--small &`，代码更清晰
+7. **扩展性好**：未来添加其他尺寸（如 large）只需添加新的 size 值
 
 ## 问题修复
 

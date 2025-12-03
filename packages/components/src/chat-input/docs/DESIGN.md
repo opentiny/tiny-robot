@@ -1419,7 +1419,7 @@ Enter:
 ### 9.3 紧凑模式
 
 ```less
-.tr-chat-input-compact {
+.tr-chat-input--small {
   --tr-chat-input-font-size: 14px;
   --tr-chat-input-line-height: 24px;
   --tr-chat-input-min-height: 36px;

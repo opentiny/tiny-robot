@@ -305,6 +305,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     characterCount,
     maxLength: toRef(props, 'maxLength'),
     speechState,
+    size: computed(() => props.size ?? 'normal'),
     showWordLimit: computed(() => props.showWordLimit ?? false),
     clearable: computed(() => props.clearable ?? false),
     buttonGroup: toRef(props, 'buttonGroup'),

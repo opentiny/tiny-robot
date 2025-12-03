@@ -86,6 +86,13 @@ export interface ChatInputContext {
    */
   speechState: Ref<SpeechState>
 
+  // 尺寸
+
+  /**
+   * 组件的尺寸
+   */
+  size: Ref<'small' | 'normal'>
+
   // ===== 配置相关 =====
 
   /**

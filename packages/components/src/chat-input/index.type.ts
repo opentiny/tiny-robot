@@ -167,6 +167,16 @@ export interface ChatInputProps {
   // ===== 样式定制 =====
 
   /**
+   * 组件尺寸
+   *
+   * - normal: 正常尺寸（默认）
+   * - small: 紧凑模式，更小的字体、间距和图标
+   *
+   * @default 'normal'
+   */
+  size?: 'normal' | 'small'
+
+  /**
    * 停止按钮文字
    *
    * @default '停止响应'

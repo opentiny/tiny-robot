@@ -459,6 +459,6 @@ chatInputRef.value?.focus()
 
 - `mention.vue` - Mention 扩展示例
 - `template-editor.vue` - TemplateBlock 扩展示例
-- `suggestion.vue` - Suggestion 基础示例
-- `suggestion-controlled.vue` - Suggestion 受控模式示例
+- `suggestion-basic.vue` - Suggestion 基础示例
+- `suggestion-filter.vue` - Suggestion 自定义过滤示例
 - `suggestion-highlight.vue` - Suggestion 高亮模式示例

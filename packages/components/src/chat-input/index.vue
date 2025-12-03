@@ -6,12 +6,8 @@ import MultiLineLayout from './components/layouts/MultiLineLayout.vue'
 
 const props = withDefaults(defineProps<ChatInputProps>(), {
   placeholder: '请输入内容...',
-  disabled: false,
-  loading: false,
-  autofocus: false,
   mode: 'single',
-  showWordLimit: false,
-  clearable: false,
+  size: 'normal',
   submitType: 'enter',
   extensions: () => [],
 })
@@ -30,6 +26,7 @@ defineExpose(expose)
     :class="[
       'tr-chat-input',
       `tr-chat-input--${context.mode.value}`,
+      `tr-chat-input--${context.size.value}`,
       {
         'is-auto-switching': context.isAutoSwitching.value,
         'is-over-limit': context.isOverLimit.value,
