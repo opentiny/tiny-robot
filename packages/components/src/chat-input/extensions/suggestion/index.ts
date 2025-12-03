@@ -37,7 +37,6 @@ export const Suggestion = Extension.create<SuggestionOptions>({
   addOptions() {
     return {
       items: [],
-      suggestions: [],
       activeSuggestionKeys: ['Enter', 'Tab'],
       popupWidth: 400,
       showAutoComplete: true,
@@ -47,11 +46,9 @@ export const Suggestion = Extension.create<SuggestionOptions>({
   },
 
   onCreate() {
-    const items = this.options.items || this.options.suggestions
-
-    if (isRef(items)) {
+    if (isRef(this.options.items)) {
       watch(
-        items,
+        this.options.items,
         () => {
           // 触发更新
           const tr = this.editor.state.tr
@@ -69,8 +66,6 @@ export const Suggestion = Extension.create<SuggestionOptions>({
       createSuggestionPlugin({
         editor: this.editor,
         ...this.options,
-        // 确保传递 items
-        items: this.options.items || this.options.suggestions || [],
       }),
     ]
   },

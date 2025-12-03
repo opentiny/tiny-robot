@@ -47,6 +47,24 @@ outline: [1, 3]
 
 `ChatInput` 采用可插拔的扩展架构，通过 `extensions` prop 灵活添加功能。所有扩展都支持响应式数据自动同步。
 
+### 扩展使用
+
+提供两种集成方式：
+
+```typescript
+import { ChatInput } from '@opentiny/tiny-robot'
+
+// 便捷函数（推荐）
+ChatInput.mention(mentions, '@')
+ChatInput.suggestion(suggestions)  // 不过滤
+ChatInput.suggestion(suggestions, { filterFn: customFilter })  // 自定义过滤
+ChatInput.template(templates)
+
+// 标准配置（用于复杂场景）
+ChatInput.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
+ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
+```
+
 ### 模板编辑
 
 使用 `TemplateBlock` 扩展实现模板填充功能，支持动态设置模板内容，光标自动聚焦到第一个可编辑字段。
@@ -79,17 +97,17 @@ outline: [1, 3]
 选中建议项时，输入框会以灰色文本显示剩余部分，并显示 "TAB" 提示，按 Tab 键快速应用补全。
 :::
 
-#### 受控模式
+#### 基础用法
 
-用户完全控制显示的建议列表，组件不做任何过滤。适用于后端搜索、复杂业务逻辑等场景。
+不传 `filterFn` 时，直接显示所有建议项，不做任何过滤。
 
-<demo vue="../../demos/chat-input/suggestion-controled.vue" title="受控模式" description="用户控制建议列表，组件只负责渲染，不做过滤。" />
+<demo vue="../../demos/chat-input/suggestion-basic.vue" title="基础用法" description="直接显示所有建议项，不过滤。" />
 
-#### 非受控模式
+#### 自定义过滤
 
-组件内部自动过滤，支持自定义过滤逻辑。适用于前端过滤场景。
+通过 `filterFn` 自定义过滤逻辑，实现模糊匹配、前缀匹配等。
 
-<demo vue="../../demos/chat-input/suggestion-uncontrolled.vue" title="非受控模式" description="组件内部自动过滤，支持自定义过滤逻辑。" />
+<demo vue="../../demos/chat-input/suggestion-filter.vue" title="自定义过滤" description="使用 filterFn 实现自定义过滤逻辑。" />
 
 #### 高亮模式
 
@@ -132,8 +150,8 @@ outline: [1, 3]
 在单行模式下使用换行快捷键时，会自动切换为多行模式。
 :::
 
-:::warning 自定义选中按键
-当 `activeSuggestionKeys` 可配置时，可自定义选中联想项的按键（Ctrl/Shift/Alt/Meta）。默认支持 `Enter` 和 `Tab`。
+:::tip 自定义选中按键
+通过 `activeSuggestionKeys` 可自定义选中联想项的按键。默认支持 `Enter` 和 `Tab`。
 :::
 
 #### 自定义底部
@@ -193,123 +211,73 @@ outline: [1, 3]
 
 模板填充功能扩展，支持动态设置模板内容。
 
-**配置项**：
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | `[]` | 模板数据列表，支持响应式 ref |
-
-**配置示例**：
-
 ```typescript
-import { ref } from 'vue'
-import { TemplateBlock } from '@opentiny/tiny-robot'
+// 便捷函数
+ChatInput.template(templates)
 
-const templateData = ref([
-  { type: 'text', content: '你好，我是 ' },
-  { type: 'template', content: '张三' },
-  { type: 'text', content: '，来自 ' },
-  { type: 'template', content: '北京' }
-])
-
-const extensions = [
-  TemplateBlock.configure({
-    items: templateData  // 传入响应式 ref，数据变化时自动更新
-  })
-]
+// 标准配置
+ChatInput.TemplateBlock.configure({ items: templates })
 ```
+
+| 配置项 | 类型 | 说明 |
+|--------|------|------|
+| `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | 模板数据列表 |
 
 #### Mention
 
 @提及功能扩展，支持快速引用预设的助手或对象。
 
-**配置项**：
+```typescript
+// 便捷函数
+ChatInput.mention(mentions, '@')
+
+// 标准配置
+ChatInput.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
+```
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表（必填），支持响应式 ref |
-| `char` | `string` | `'@'` | 触发提及的字符 |
-| `onSelect` | `Function` | - | 选中提及项时的回调 |
-
-**配置示例**：
-
-```typescript
-import { Mention } from '@opentiny/tiny-robot'
-
-const mentions = [
-  { label: '小小画家', preset: '你是一个绘画助手...' },
-  { label: '代码助手', preset: '你是一个编程助手...' }
-]
-
-const extensions = [
-  Mention.configure({
-    items: mentions,
-    char: '@',  // 输入 @ 触发
-    onSelect: (item) => {
-      console.log('选中了:', item.label)
-    }
-  })
-]
-```
+| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表 |
+| `char` | `string` | `'@'` | 触发字符 |
+| `allowSpaces` | `boolean` | `false` | 允许空格 |
+| `onSelect` | `Function` | - | 选中回调 |
 
 #### Suggestion
 
-智能联想功能扩展，支持受控/非受控模式和多种高亮方式。
+智能联想功能扩展，支持自动过滤、自定义过滤和多种高亮方式。
 
-**配置项**：
+```typescript
+// 便捷函数
+ChatInput.suggestion(suggestions)  // 不过滤，显示所有项
+ChatInput.suggestion(suggestions, { filterFn: customFilter })  // 自定义过滤
+
+// 标准配置
+ChatInput.Suggestion.configure({
+  items: suggestions,
+  filterFn: (items, query) => items.filter(item => item.content.includes(query)),
+  showAutoComplete: true
+})
+```
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `items` | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]` | 建议项列表（必填），支持响应式 ref |
-| `controlled` | `boolean` | `false` | **受控模式**：`true` = 用户控制过滤，`false` = 组件自动过滤 |
-| `filterFn` | `Function` | 内置模糊匹配 | **非受控模式**专用：自定义过滤函数 |
-| `onSelect` | `Function` | - | 选中建议时的回调 |
-| `onQueryChange` | `Function` | - | **受控模式**专用：查询文本变化时的回调 |
-| `showAutoComplete` | `boolean` | `true` | 显示自动补全提示 |
-| `activeSuggestionKeys` | `string[]` | `['Enter', 'Tab']` | 激活建议的按键 |
-| `popupWidth` | `number` \| `string` | `400` | 弹窗宽度。支持数字（如 `500`）、百分比（如 `'100%'`，基于输入框宽度）、CSS 单位（如 `'20rem'`） |
+| `items` | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]` | 建议项列表 |
+| `filterFn` | `Function` | `undefined` | 过滤函数（不传则不过滤） |
+| `showAutoComplete` | `boolean` | `true` | 自动补全 |
+| `activeSuggestionKeys` | `string[]` | `['Enter', 'Tab']` | 激活按键 |
+| `popupWidth` | `number` \| `string` | `400` | 弹窗宽度|
+| `onSelect` | `Function` | - | 选中回调 |
 
-**配置示例**：
+:::tip popupWidth 格式
+支持数字（如 `500`）、百分比（如 `'100%'`）、CSS 单位（如 `'20rem'`）
+:::
+
+**高亮方式**：
 
 ```typescript
-import { Suggestion } from '@opentiny/tiny-robot'
-
-// 非受控模式 - 自定义过滤
-Suggestion.configure({
-  items: allSuggestions,
-  filterFn: (suggestions, query) => {
-    return suggestions.filter(item => 
-      item.content.toLowerCase().includes(query.toLowerCase())
-    )
-  }
-})
-
-// 受控模式 - 用户控制过滤
-Suggestion.configure({
-  items: filteredSuggestions,  // 已过滤的列表
-  controlled: true,
-  onQueryChange: (query) => {
-    // 根据 query 更新 filteredSuggestions
-  }
-})
-
-// 高亮配置
-const suggestions = [
-  // 自动匹配
-  { content: 'ECS-云服务器' },
-  
-  // 精确指定
-  { content: 'ECS-云服务器', highlights: ['ECS', '云服务器'] },
-  
-  // 自定义函数
-  { 
-    content: 'ECS-云服务器',
-    highlights: (text, query) => [
-      { text: 'ECS', isMatch: true },
-      { text: '-云服务器', isMatch: false }
-    ]
-  }
-]
+{ content: 'ECS-云服务器' }  // 自动匹配
+{ content: 'RDS-数据库', highlights: ['RDS', '数据库'] }  // 精确指定
+{ content: 'OSS-存储', highlights: (text, query) => [...] }  // 自定义函数
 ```
 
 ## Slots

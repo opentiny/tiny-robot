@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Button as TinyButton } from '@opentiny/vue'
-import { ChatInput, TemplateBlock } from '@opentiny/tiny-robot'
+import { ChatInput } from '@opentiny/tiny-robot'
 import type { TemplateItem, StructuredData } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
@@ -11,11 +11,7 @@ const submittedContent = ref('')
 const templateData = ref<TemplateItem[]>([])
 
 // 通过 items 传入响应式数据
-const extensions = computed(() => [
-  TemplateBlock.configure({
-    items: templateData,
-  }),
-])
+const extensions = [ChatInput.template(templateData)]
 
 const setTemplate1 = () => {
   templateData.value = [

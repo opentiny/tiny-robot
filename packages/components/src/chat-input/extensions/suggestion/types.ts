@@ -134,18 +134,52 @@ import type { Ref } from 'vue'
  */
 export interface SuggestionOptions {
   /**
-   * 建议项列表
+   * 建议项列表（必填）
    *
-   * @default []
+   * @example
+   * ```typescript
+   * const items = ref([
+   *   { content: 'ECS-云服务器' },
+   *   { content: 'RDS-数据库' }
+   * ])
+   * ```
    */
   items?: SuggestionItem[] | Ref<SuggestionItem[]>
 
   /**
-   * 建议项列表（旧版兼容）
+   * 自定义过滤函数（可选）
    *
-   * @deprecated 请使用 items
+   * - 不传：不过滤，直接显示所有项
+   * - 传入：使用自定义过滤逻辑
+   *
+   * @default undefined（不过滤）
+   *
+   * @example 模糊匹配过滤
+   * ```typescript
+   * filterFn: (items, query) => {
+   *   return items.filter(item =>
+   *     item.content.toLowerCase().includes(query.toLowerCase())
+   *   )
+   * }
+   * ```
+   *
+   * @example 前缀匹配过滤
+   * ```typescript
+   * filterFn: (items, query) => {
+   *   return items.filter(item =>
+   *     item.content.toLowerCase().startsWith(query.toLowerCase())
+   *   )
+   * }
+   * ```
    */
-  suggestions?: SuggestionItem[]
+  filterFn?: (suggestions: SuggestionItem[], query: string) => SuggestionItem[]
+
+  /**
+   * 自定义高亮函数（可选）
+   *
+   * @default 默认前缀匹配高亮
+   */
+  highlightFn?: (item: SuggestionItem, query: string) => SuggestionTextPart[]
 
   /**
    * 激活建议项的按键
@@ -167,40 +201,6 @@ export interface SuggestionOptions {
    * @default true
    */
   showAutoComplete?: boolean
-
-  /**
-   * 是否为受控模式
-   *
-   * - false (默认): 组件内部自动过滤
-   * - true: 用户自己控制过滤，传入已过滤的列表
-   *
-   * @default false
-   */
-  controlled?: boolean
-
-  /**
-   * 当前输入的查询文本（受控模式下使用）
-   * 用于计算自动补全时的前缀匹配
-   */
-  query?: string
-
-  /**
-   * 自定义过滤函数（自动模式下使用）
-   *
-   * @default 内置模糊匹配
-   */
-  filterFn?: (suggestions: SuggestionItem[], query: string) => SuggestionItem[]
-
-  /**
-   * 自定义高亮函数（可选）
-   * 如果不提供，使用默认的前缀匹配高亮
-   */
-  highlightFn?: (item: SuggestionItem, query: string) => SuggestionTextPart[]
-
-  /**
-   * 查询文本变化回调（受控模式下使用）
-   */
-  onQueryChange?: (query: string) => void
 
   /**
    * 选中建议项的回调

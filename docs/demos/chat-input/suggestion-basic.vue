@@ -1,11 +1,11 @@
 <template>
   <div class="demo-suggestion">
     <h3>基础用法</h3>
-    <p class="demo-description">输入 "ECS" 或 "CDN" 查看建议，支持键盘导航和自动补全</p>
+    <p class="demo-description">输入任意内容查看建议，支持键盘导航和自动补全</p>
     <ChatInput
       v-model="input"
       :extensions="extensions"
-      placeholder="输入 任意内容 查看建议..."
+      placeholder="输入 ECS 或 CDN 查看建议..."
       @submit="handleSubmit"
     />
 
@@ -15,14 +15,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput, Suggestion } from '@opentiny/tiny-robot'
+import { ChatInput } from '@opentiny/tiny-robot'
 import type { SuggestionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const selectedItem = ref('')
 
-// 所有建议项
-const allSuggestions: SuggestionItem[] = [
+// 建议列表
+const suggestions: SuggestionItem[] = [
   { content: 'ECS-云服务器卡顿问题' },
   { content: 'ECS-备份弹性云服务器' },
   { content: 'ECS-实例无法启动' },
@@ -31,22 +31,8 @@ const allSuggestions: SuggestionItem[] = [
   { content: 'OSS-存储桶访问控制' },
 ]
 
-// ✅ 受控模式：直接传入要显示的建议列表
-// 组件只负责渲染，不做任何过滤
-// 用户可以在外部控制这个列表（过滤、排序、异步加载等）
-const displayedSuggestions = ref<SuggestionItem[]>(allSuggestions)
-
-// ✅ 使用受控模式的 extensions API
-const extensions = [
-  Suggestion.configure({
-    items: displayedSuggestions,
-    controlled: true, // 受控模式：不做任何过滤，直接显示传入的数据
-    onSelect: (item) => {
-      selectedItem.value = item.content
-      console.log('选中建议:', item.content)
-    },
-  }),
-]
+// 配置 Suggestion 扩展
+const extensions = [ChatInput.suggestion(suggestions)]
 
 const handleSubmit = (text: string, data?: StructuredData) => {
   console.log('📝 提交内容：', text)

@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChatInput, Suggestion } from '@opentiny/tiny-robot'
+import { ChatInput } from '@opentiny/tiny-robot'
 import type { SuggestionItem, SuggestionTextPart, StructuredData } from '@opentiny/tiny-robot'
 
 const input = ref('')
@@ -142,17 +142,15 @@ const currentSuggestions = computed(() => {
   }
 })
 
-// ✅ 使用新的 extensions API
+// 配置 Suggestion 扩展
 // 高亮模式说明：
-// - 所有模式都使用受控模式（controlled: true），显示完整的建议列表
 // - 区别在于 item.highlights 的配置：
-//   * 自动匹配：不设置 highlights，根据用户输入（inputValue）自动高亮
+//   * 自动匹配：不设置 highlights，根据用户输入自动高亮
 //   * 精确指定：highlights 为数组，指定要高亮的文本片段
 //   * 自定义函数：highlights 为函数，完全控制高亮逻辑
 const extensions = [
-  Suggestion.configure({
+  ChatInput.Suggestion.configure({
     items: currentSuggestions,
-    controlled: true, // 使用受控模式，不过滤建议项
     onSelect: (item) => {
       console.log('选中建议:', item.content)
     },

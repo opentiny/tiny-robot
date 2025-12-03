@@ -12,7 +12,7 @@ import { VueRenderer } from '@tiptap/vue-3'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
 import type { Editor } from '@tiptap/core'
 import SuggestionList from './suggestion-list.vue'
-import { filterSuggestions, syncAutoComplete } from './utils/filter'
+import { syncAutoComplete } from './utils/filter'
 import type { SuggestionOptions, SuggestionState, SuggestionItem } from './types'
 
 /**
@@ -39,10 +39,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
     activeSuggestionKeys = ['Enter', 'Tab'],
     popupWidth = 400,
     showAutoComplete = true,
-    controlled = false,
     filterFn,
     highlightFn: _highlightFn, // TODO: 实现自定义高亮逻辑
-    onQueryChange,
     onSelect,
   } = options
 
@@ -73,25 +71,15 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   function doFilterSuggestions(query: string): SuggestionItem[] {
     const suggestions = getCurrentSuggestions()
 
-    // 受控模式：直接返回用户传入的列表（已过滤）
-    if (controlled) {
-      return suggestions
-    }
-
-    // 自动模式：组件内部过滤
-    return filterFn ? filterFn(suggestions, query) : filterSuggestions(suggestions, query)
+    // 如果提供了 filterFn，使用自定义过滤
+    // 否则不过滤，直接返回所有项
+    return filterFn ? filterFn(suggestions, query) : suggestions
   }
 
   /**
    * 获取当前查询文本
-   * 受控模式下使用传入的 query，自动模式下使用文档内容
    */
   function getCurrentQuery(docQuery: string): string {
-    if (controlled) {
-      // 从 editor 的 extension options 中获取 query
-      const suggestionExtension = editor.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
-      return (suggestionExtension?.options?.query as string) || docQuery
-    }
     return docQuery
   }
 
@@ -282,10 +270,8 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         // 全局模式：提取完整文本
         const docQuery = tr.doc.textContent.trim()
 
-        // 触发查询变化回调（受控模式）
-        if (controlled && onQueryChange && docQuery !== state.query) {
-          onQueryChange(docQuery)
-        }
+        // 查询变化逻辑已移除
+        // 用户可以通过监听 v-model 来实现相同功能
 
         // 获取当前查询文本
         const query = getCurrentQuery(docQuery)
@@ -311,7 +297,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           return {
             active: false,
             range: null,
-            query: controlled ? query : '',
+            query: '',
             filteredSuggestions: [],
             selectedIndex: -1,
             autoCompleteText: '',

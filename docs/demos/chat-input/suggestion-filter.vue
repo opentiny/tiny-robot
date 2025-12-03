@@ -1,5 +1,5 @@
 <template>
-  <div class="demo-uncontrolled">
+  <div class="demo-filter">
     <div class="filter-selector">
       <label>
         <input type="radio" v-model="filterMode" value="default" />
@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChatInput, Suggestion } from '@opentiny/tiny-robot'
+import { ChatInput } from '@opentiny/tiny-robot'
 import type { SuggestionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const input = ref('')
@@ -51,8 +51,8 @@ const modeDescription = computed(() => {
   }
 })
 
-// 所有建议项
-const allSuggestions: SuggestionItem[] = [
+// 建议列表
+const suggestions: SuggestionItem[] = [
   { content: 'ECS-云服务器卡顿问题' },
   { content: 'ECS-备份弹性云服务器' },
   { content: 'ECS-实例无法启动' },
@@ -61,31 +61,31 @@ const allSuggestions: SuggestionItem[] = [
   { content: 'OSS-存储桶访问控制' },
 ]
 
-// ✅ 非受控模式：自定义过滤逻辑
+// 配置 Suggestion 扩展，使用自定义过滤函数
 const extensions = computed(() => [
-  Suggestion.configure({
-    items: allSuggestions,
-    // 自定义过滤函数
-    filterFn: (suggestions: SuggestionItem[], query: string) => {
-      if (!query) return suggestions
+  ChatInput.Suggestion.configure({
+    items: suggestions,
+    // 自定义过滤逻辑
+    filterFn: (items: SuggestionItem[], query: string) => {
+      if (!query) return items
 
       const lowerQuery = query.toLowerCase()
 
       switch (filterMode.value) {
         case 'prefix':
           // 前缀匹配
-          return suggestions.filter((item) => item.content.toLowerCase().startsWith(lowerQuery))
+          return items.filter((item) => item.content.toLowerCase().startsWith(lowerQuery))
 
         case 'category':
           // 分类匹配（只匹配 - 前面的部分）
-          return suggestions.filter((item) => {
+          return items.filter((item) => {
             const category = item.content.split('-')[0].toLowerCase()
             return category.includes(lowerQuery)
           })
 
         default:
           // 默认模糊匹配
-          return suggestions.filter((item) => item.content.toLowerCase().includes(lowerQuery))
+          return items.filter((item) => item.content.toLowerCase().includes(lowerQuery))
       }
     },
     onSelect: (item) => {
@@ -102,7 +102,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
 </script>
 
 <style scoped>
-.demo-uncontrolled {
+.demo-filter {
   padding: 20px;
 }
 

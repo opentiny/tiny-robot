@@ -6,7 +6,6 @@ import type { MentionItem, StructuredData } from '@opentiny/tiny-robot'
 const content = ref('')
 const submittedContent = ref('')
 
-// 提及列表（id 可选，组件会自动生成）
 const items: MentionItem[] = [
   {
     label: '小小画家',
@@ -30,16 +29,7 @@ const items: MentionItem[] = [
   },
 ]
 
-// ✅ 方式 1：便捷函数（推荐用于简单场景）
 const extensions = [ChatInput.mention(items, '#')]
-
-// ✅ 方式 2：静态属性（用于需要扩展继承的场景）
-// const extensions = [
-//   ChatInput.Mention.configure({
-//     items,
-//     char: '#',
-//   })
-// ]
 
 const handleSubmit = (text: string, data?: StructuredData) => {
   submittedContent.value = text
