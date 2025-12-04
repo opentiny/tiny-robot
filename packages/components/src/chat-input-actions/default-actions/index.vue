@@ -26,6 +26,7 @@ const { hasContent, loading } = useChatInputContext()
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: var(--tr-chat-input-button-size-submit);
 
   .tr-action-buttons-group {
     display: flex;

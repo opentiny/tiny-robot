@@ -1,12 +1,4 @@
 <script setup lang="ts">
-/**
- * MentionView 组件
- *
- * Mention 的 Vue 节点视图
- * - 渲染 mention 的视觉样式
- * - 作为 atom 节点，不可编辑
- */
-
 import { NodeViewWrapper } from '@tiptap/vue-3'
 
 interface NodeAttrs {

@@ -1,10 +1,10 @@
 ---
-outline: [1, 3]
+outline: [1, 4]
 ---
 
 # ChatInput 聊天输入框
 
-`ChatInput` 是一个基于 [Tiptap](https://tiptap.dev/) 构建的高度可组合聊天输入组件，它是 `Sender` 组件的重构版本，专注于提供更强大的富文本编辑能力和灵活的扩展性。它不仅支持文本输入、模板填充、技能提及等功能，还拥有强大的插槽系统，适用于聊天界面、评论输入、表单填写等多种富文本输入场景。
+`ChatInput` 是一个基于 [Tiptap](https://tiptap.dev/) 构建的高度可组合聊天输入组件。
 
 - [代码示例](#代码示例) - 模式切换、状态控制、内容管理
 - [输入增强](#输入增强) - 模板填充、提及功能
@@ -154,11 +154,12 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 通过 `activeSuggestionKeys` 可自定义选中联想项的按键。默认支持 `Enter` 和 `Tab`。
 :::
 
-#### 自定义底部
+#### 自定义插槽
 
+通过 `header` 插槽在顶部区域添加自定义内容
 通过 `footer` 和 `footer-right` 插槽在底部区域添加自定义按钮。
 
-<demo vue="../../demos/chat-input/custom-footer.vue" title="自定义底部按钮" description="在底部区域添加自定义按钮，如深度思考、表情等。" />
+<demo vue="../../demos/chat-input/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、表情等。" />
 
 #### 方法调用
 

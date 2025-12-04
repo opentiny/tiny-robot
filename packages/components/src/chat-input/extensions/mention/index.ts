@@ -150,10 +150,6 @@ export const Mention = Node.create<MentionOptions>({
     }
   },
 
-  onUpdate() {
-    // 暂不需要
-  },
-
   // 添加 Suggestion 插件
   addProseMirrorPlugins() {
     return [

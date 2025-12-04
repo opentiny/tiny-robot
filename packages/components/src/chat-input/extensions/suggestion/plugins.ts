@@ -270,9 +270,6 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         // 全局模式：提取完整文本
         const docQuery = tr.doc.textContent.trim()
 
-        // 查询变化逻辑已移除
-        // 用户可以通过监听 v-model 来实现相同功能
-
         // 获取当前查询文本
         const query = getCurrentQuery(docQuery)
 

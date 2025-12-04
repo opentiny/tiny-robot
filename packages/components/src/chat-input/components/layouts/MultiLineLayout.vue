@@ -47,8 +47,18 @@ const slotScope = useSlotScope()
   padding: 0;
 
   .tr-chat-input-header {
-    margin-bottom: 12px;
+    position: relative;
     padding: var(--tr-chat-input-header-padding);
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: var(--tr-chat-input-header-divider-inset);
+      right: var(--tr-chat-input-header-divider-inset);
+      height: 0;
+      border-bottom: var(--tr-chat-input-header-border-bottom, none);
+    }
   }
 
   .tr-chat-input-main {

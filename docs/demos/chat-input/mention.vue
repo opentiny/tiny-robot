@@ -29,7 +29,7 @@ const items: MentionItem[] = [
   },
 ]
 
-const extensions = [ChatInput.mention(items, '#')]
+const extensions = [ChatInput.mention(items)]
 
 const handleSubmit = (text: string, data?: StructuredData) => {
   submittedContent.value = text

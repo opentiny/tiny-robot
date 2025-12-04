@@ -78,7 +78,7 @@ const sizeStyle = computed(() => {
 <style lang="less" scoped>
 .tr-action-button-wrapper {
   position: relative;
-  display: inline-flex;
+  display: flex;
 }
 
 .tr-action-button {
@@ -119,14 +119,14 @@ const sizeStyle = computed(() => {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 6px 12px;
-  background-color: rgba(0, 0, 0, 0.85);
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: var(--tr-action-button-tooltip-padding, 6px 12px);
+  background-color: var(--tr-action-button-tooltip-bg-color, rgba(0, 0, 0, 0.85));
+  color: var(--tr-action-button-tooltip-color, white);
+  border-radius: var(--tr-action-button-tooltip-border-radius, 4px);
+  font-size: var(--tr-action-button-tooltip-font-size, 12px);
   white-space: nowrap;
   pointer-events: none;
-  z-index: 1000;
+  z-index: var(--tr-action-button-tooltip-z-index, 1000);
 }
 
 /* Vue Transition 类名 */

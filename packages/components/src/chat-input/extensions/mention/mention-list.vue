@@ -1,13 +1,4 @@
 <script setup lang="ts">
-/**
- * MentionList 组件
- *
- * 提及建议列表
- * - 显示过滤后的提及项列表
- * - 支持键盘和鼠标交互
- * - 简洁的 UI，只显示图标和标签
- */
-
 import { ref, watch } from 'vue'
 import type { MentionItem } from './types'
 
