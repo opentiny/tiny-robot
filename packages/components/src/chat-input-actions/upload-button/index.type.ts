@@ -1,13 +1,6 @@
-/**
- * FileUpload 组件类型定义
- */
+import { Component } from 'vue'
 
-import type { Component } from 'vue'
-
-/**
- * FileUpload 组件 Props
- */
-export interface FileUploadProps {
+export interface UploadButtonProps {
   /**
    * 是否禁用
    */
@@ -16,7 +9,6 @@ export interface FileUploadProps {
   /**
    * 接受的文件类型
    * @default '*'
-   * @example 'image/*,.pdf,.doc'
    */
   accept?: string
 
@@ -56,22 +48,21 @@ export interface FileUploadProps {
    * 自定义图标
    */
   icon?: Component
+
+  /**
+   * Tooltip 位置
+   */
+  tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
 }
 
-/**
- * FileUpload 组件 Emits
- */
-export interface FileUploadEmits {
+export interface UploadButtonEmits {
   /**
    * 文件选择
-   * @param files - 选择的文件列表
    */
   (e: 'select', files: File[]): void
 
   /**
    * 文件验证失败
-   * @param error - 错误信息
-   * @param file - 验证失败的文件
    */
   (e: 'error', error: Error, file?: File): void
 }

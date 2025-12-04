@@ -1,39 +1,31 @@
-<template>
-  <action-button
-    :icon="icon ?? IconUpload"
-    :disabled="disabled"
-    :size="size"
-    :tooltip="computedTooltip"
-    @click="handleClick"
-  />
-</template>
-
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useFileDialog } from '@vueuse/core'
-import type { FileUploadProps, FileUploadEmits } from './index.type'
-import ActionButton from '../chat-input/components/action-button/index.vue'
+import { useChatInputContext } from '../../chat-input/context'
+import type { UploadButtonProps, UploadButtonEmits } from './index.type'
+import ActionButton from '../action-button/index.vue'
 import { IconUpload } from '@opentiny/tiny-robot-svgs'
 
-const props = withDefaults(defineProps<FileUploadProps>(), {
+const props = withDefaults(defineProps<UploadButtonProps>(), {
   accept: '*',
   multiple: false,
   reset: true,
+  tooltip: '上传文件',
+  tooltipPlacement: 'top',
 })
 
-const emit = defineEmits<FileUploadEmits>()
+const emit = defineEmits<UploadButtonEmits>()
+
+// 从 context 获取 disabled 状态
+const { disabled: contextDisabled } = useChatInputContext()
+
+const isDisabled = computed(() => props.disabled || contextDisabled.value)
 
 // 使用 vueuse 的 useFileDialog
 const { open, files } = useFileDialog({
   accept: props.accept,
   multiple: props.multiple,
   reset: props.reset,
-})
-
-// 计算提示文本
-const computedTooltip = computed(() => {
-  if (props.disabled) return '文件上传已禁用'
-  return props.tooltip ?? '上传文件'
 })
 
 // 处理文件选择
@@ -67,7 +59,7 @@ watch(files, (selectedFiles) => {
 
 // 处理按钮点击
 const handleClick = () => {
-  if (props.disabled) return
+  if (isDisabled.value) return
   open()
 }
 
@@ -76,3 +68,14 @@ defineExpose({
   open,
 })
 </script>
+
+<template>
+  <ActionButton
+    :icon="icon ?? IconUpload"
+    :disabled="isDisabled"
+    :size="size"
+    :tooltip="tooltip"
+    :tooltip-placement="tooltipPlacement"
+    @click="handleClick"
+  />
+</template>

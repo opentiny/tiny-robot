@@ -20,7 +20,14 @@ import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
 import ChatInput from './chat-input'
-import { TrFileUpload } from './file-upload'
+import {
+  ActionButton,
+  SubmitButton,
+  ClearButton,
+  UploadButton,
+  WordCounter,
+  DefaultActionButtons,
+} from './chat-input-actions'
 
 export * from './attachments/index.type'
 export * from './bubble/index.type'
@@ -62,7 +69,9 @@ export type {
   HighlightFunction,
 } from './chat-input/extensions'
 
-export type { FileUploadProps, FileUploadEmits } from './file-upload/index.type'
+// ChatInputActions 类型导出
+export type { ActionButtonProps } from './chat-input-actions'
+export type { UploadButtonProps, UploadButtonEmits } from './chat-input-actions'
 
 export { useTheme } from './theme-provider/useTheme'
 export { useChatInputContext } from './chat-input/context'
@@ -92,7 +101,12 @@ const components = [
   McpServerPicker,
   McpAddForm,
   ChatInput,
-  TrFileUpload,
+  ActionButton,
+  SubmitButton,
+  ClearButton,
+  UploadButton,
+  WordCounter,
+  DefaultActionButtons,
 ]
 
 export default {
@@ -151,5 +165,16 @@ export {
   McpAddForm as TrMcpAddForm,
   ChatInput,
   ChatInput as TrChatInput,
-  TrFileUpload,
+  ActionButton,
+  ActionButton as TrActionButton,
+  SubmitButton,
+  SubmitButton as TrSubmitButton,
+  ClearButton,
+  ClearButton as TrClearButton,
+  UploadButton,
+  UploadButton as TrUploadButton,
+  WordCounter,
+  WordCounter as TrWordCounter,
+  DefaultActionButtons,
+  DefaultActionButtons as TrDefaultActionButtons,
 }

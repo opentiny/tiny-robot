@@ -23,23 +23,9 @@
       <div
         :class="['tr-chat-input-actions-inline', { 'has-content': context.hasContent.value || context.loading.value }]"
       >
-        <slot name="actions-inline" v-bind="slotScope">
-          <Transition name="tr-slide-right">
-            <div v-if="context.hasContent.value || context.loading.value" class="tr-chat-input-actions-group">
-              <Transition name="tr-slide-right">
-                <div
-                  v-if="context.clearable.value && context.hasContent.value && !context.loading.value"
-                  class="tr-chat-input-utility-buttons"
-                >
-                  <ClearButton />
-                </div>
-              </Transition>
-              <div class="tr-chat-input-submit-wrapper">
-                <SubmitButton />
-              </div>
-            </div>
-          </Transition>
-        </slot>
+        <WordCounter v-if="context.showWordLimit && context.maxLength" />
+        <slot name="actions-inline" v-bind="slotScope" />
+        <DefaultActionButtons />
       </div>
     </div>
   </div>
@@ -49,11 +35,9 @@
 import { useChatInputContext } from '../../context'
 import { useSlotScope } from '../../composables/useSlotScope'
 import EditorContent from '../editor-content/index.vue'
-import SubmitButton from '../submit-button/index.vue'
-import ClearButton from '../clear-button/index.vue'
+import { DefaultActionButtons, WordCounter } from '../../../chat-input-actions/index'
 
 const context = useChatInputContext()
-
 const slotScope = useSlotScope()
 </script>
 
@@ -91,6 +75,7 @@ const slotScope = useSlotScope()
 
   .tr-chat-input-actions-inline {
     display: flex;
+    gap: var(--tr-chat-input-gap);
     align-items: center;
     flex-shrink: 0;
     padding-right: 16px;
@@ -98,24 +83,6 @@ const slotScope = useSlotScope()
     &.has-content {
       padding-right: 10px;
     }
-  }
-
-  .tr-chat-input-actions-group {
-    display: flex;
-    align-items: center;
-    gap: var(--tr-chat-input-gap);
-    padding-left: 12px;
-  }
-
-  .tr-chat-input-utility-buttons {
-    display: flex;
-    align-items: center;
-    gap: var(--tr-chat-input-gap);
-  }
-
-  .tr-chat-input-submit-wrapper {
-    display: flex;
-    align-items: center;
   }
 }
 

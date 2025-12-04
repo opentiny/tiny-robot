@@ -39,7 +39,6 @@ import EditorContent from '../editor-content/index.vue'
 import Footer from '../footer/index.vue'
 
 const context = useChatInputContext()
-
 const slotScope = useSlotScope()
 </script>
 

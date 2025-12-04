@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useChatInputContext } from '../../context'
+import { useChatInputContext } from '../../chat-input/context'
 import { IconClear } from '@opentiny/tiny-robot-svgs'
 
-const { hasContent, clearable, clear } = useChatInputContext()
+const { hasContent, clearable, clear, loading } = useChatInputContext()
 
-const show = computed(() => clearable.value && hasContent.value)
+// 在 loading 时不显示清空按钮
+const show = computed(() => clearable.value && hasContent.value && !loading.value)
 </script>
 
 <template>
@@ -22,14 +23,14 @@ const show = computed(() => clearable.value && hasContent.value)
   cursor: pointer;
 
   &__icon {
-    font-size: var(--tr-chat-input-button-size-clear, 28px);
-    color: var(--tr-text-secondary, #606266);
+    font-size: var(--tr-chat-input-button-size);
+    color: var(--tr-text-secondary);
     border-radius: 8px;
     transition: background-color 0.2s;
   }
 
   &:hover &__icon {
-    background-color: var(--tr-container-bg-hover, rgba(0, 0, 0, 0.08));
+    background-color: var(--tr-chat-input-button-hover-bg);
   }
 }
 </style>

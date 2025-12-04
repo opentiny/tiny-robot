@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useChatInputContext } from '../../context'
+import { useChatInputContext } from '../../chat-input/context'
 import { IconSend, IconStop } from '@opentiny/tiny-robot-svgs'
 
 const { canSubmit, loading, submit, stopText } = useChatInputContext()
@@ -9,7 +9,7 @@ const isDisabled = computed(() => !canSubmit.value && !loading.value)
 
 const handleClick = () => {
   if (loading.value) {
-    // 触发 cancel 事件
+    // TODO: 触发 cancel 事件
     return
   }
   submit()

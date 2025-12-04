@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useChatInputContext } from '../../context'
+import { useChatInputContext } from '../../chat-input/context'
 
 const { characterCount, maxLength, isOverLimit, showWordLimit } = useChatInputContext()
 

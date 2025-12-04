@@ -25,7 +25,7 @@
   --tr-chat-input-footer-padding: 0 10px 10px;
   --tr-chat-input-button-size: 32px;
   --tr-chat-input-button-size-submit: 36px;
-  --tr-chat-input-button-size-clear: 28px;
+  --tr-chat-input-button-size: 28px;
 }
 ```
 
@@ -91,7 +91,7 @@
 #### ClearButton
 ```less
 &__icon {
-  font-size: var(--tr-chat-input-button-size-clear);
+  font-size: var(--tr-chat-input-button-size);
 }
 ```
 
