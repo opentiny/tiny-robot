@@ -7,7 +7,10 @@ const { editor, editorRef } = useChatInputContext()
 
 <template>
   <div ref="editorRef" class="tr-chat-input-editor-wrapper">
-    <TiptapEditorContent v-if="editor" :editor="editor" class="tr-chat-input-editor-content" />
+    <!-- 新增：滚动容器，用于控制高度和滚动 -->
+    <div class="tr-chat-input-editor-scroll">
+      <TiptapEditorContent v-if="editor" :editor="editor" class="tr-chat-input-editor-content" />
+    </div>
   </div>
 </template>
 
@@ -16,6 +19,31 @@ const { editor, editorRef } = useChatInputContext()
   flex: 1;
   min-width: 0;
   display: flex;
+}
+
+// 滚动容器：高度和滚动由 useAutoSize 控制
+.tr-chat-input-editor-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-y: hidden; // 默认隐藏，由 JS 控制
+
+  // 滚动条样式
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.25);
+    }
+  }
 }
 
 .tr-chat-input-editor-content {
@@ -28,7 +56,7 @@ const { editor, editorRef } = useChatInputContext()
     font-size: var(--tr-chat-input-font-size, 16px);
     color: var(--tr-chat-input-text-color);
     white-space: pre-wrap; // ProseMirror 推荐使用 pre-wrap
-    overflow: hidden;
+    min-height: var(--tr-chat-input-line-height, 26px);
 
     p.is-editor-empty:first-child::before {
       content: attr(data-placeholder);

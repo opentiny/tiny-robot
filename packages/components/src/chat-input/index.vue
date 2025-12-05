@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
   size: 'normal',
   submitType: 'enter',
   extensions: () => [],
+  autoSize: () => ({ minRows: 1, maxRows: 3 }),
 })
 
 const emit = defineEmits<ChatInputEmits>()
@@ -119,6 +120,7 @@ defineExpose(expose)
   .ProseMirror {
     transition: height 0.2s ease;
     overflow-y: auto;
+    overflow-x: hidden;
 
     &::-webkit-scrollbar {
       width: 8px;

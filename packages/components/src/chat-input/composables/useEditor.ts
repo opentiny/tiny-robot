@@ -2,7 +2,7 @@
  * 编辑器初始化和管理
  */
 
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
 import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -59,7 +59,6 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
     editorProps: {
       attributes: {
         class: 'tr-chat-input-editor',
-        style: 'white-space: pre-wrap;',
       },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
@@ -74,6 +73,10 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
         const { tr } = state
         tr.insertText(processedText)
         view.dispatch(tr)
+
+        nextTick(() => {
+          editor.value?.commands.scrollIntoView()
+        })
 
         return true
       },

@@ -76,12 +76,12 @@ const slotScope = useSlotScope()
     flex: 1;
     min-width: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding-left: 0;
 
     :deep(.ProseMirror) {
+      width: 100%;
       white-space: pre-wrap;
-      overflow-y: auto;
       word-break: break-all;
       min-height: var(--tr-chat-input-line-height, 26px);
     }

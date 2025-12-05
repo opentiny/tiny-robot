@@ -1,79 +1,51 @@
 /**
- * 自动高度调整
- * 根据内容自动调整编辑器高度
+ * 自动高度调整 - 核心思路：
+ * 1. 监听真正的当前模式（currentMode）
+ * 2. 操作滚动容器的 min-height 和 max-height
+ * 3. 让浏览器自动处理滚动
  */
 
 import { watch, nextTick, type Ref } from 'vue'
-import type { Editor } from '@tiptap/vue-3'
-import type { ChatInputProps } from '../index.type'
+import type { InputMode } from '../index.type'
 
-export function useAutoSize(
-  props: ChatInputProps,
-  editor: Ref<Editor | undefined>,
-  editorRef: Ref<HTMLElement | null>,
-) {
+export function useAutoSize(currentMode: Ref<InputMode>, editorRef: Ref<HTMLElement | null>) {
   /**
-   * 计算并设置编辑器高度
+   * 更新滚动容器高度
    */
   const updateHeight = () => {
-    if (!editor.value || !editorRef.value) return
-    if (props.mode !== 'multiple') return
+    if (!editorRef.value) return
 
-    const editorElement = editorRef.value.querySelector('.ProseMirror') as HTMLElement
-    if (!editorElement) return
-
-    // 获取 autoSize 配置
-    const autoSize = props.autoSize
-    if (!autoSize) return
-
-    const config = typeof autoSize === 'boolean' ? { minRows: 1, maxRows: 3 } : autoSize
-
-    // 计算行高
-    const lineHeight = parseInt(window.getComputedStyle(editorElement).lineHeight || '26')
-
-    // 计算最小和最大高度
-    const minHeight = lineHeight * config.minRows
-    const maxHeight = lineHeight * config.maxRows
-
-    // 重置高度以获取真实的 scrollHeight
-    editorElement.style.height = 'auto'
-
-    // 获取内容高度
-    const scrollHeight = editorElement.scrollHeight
-
-    // 设置新高度
-    let newHeight = scrollHeight
-    if (newHeight < minHeight) {
-      newHeight = minHeight
-    } else if (newHeight > maxHeight) {
-      newHeight = maxHeight
-      editorElement.style.overflowY = 'auto'
-    } else {
-      editorElement.style.overflowY = 'hidden'
+    const scrollContainer = editorRef.value.querySelector('.tr-chat-input-editor-scroll') as HTMLElement
+    if (!scrollContainer) {
+      console.warn('⚠️ 找不到滚动容器')
+      return
     }
 
-    editorElement.style.height = `${newHeight}px`
+    // 多行模式：设置高度限制
+    if (currentMode.value === 'multiple') {
+      const lineHeight = 26
+      const minHeight = lineHeight * 1 // minRows
+      const maxHeight = lineHeight * 3 // maxRows
+
+      scrollContainer.style.minHeight = `${minHeight}px`
+      scrollContainer.style.maxHeight = `${maxHeight}px`
+      scrollContainer.style.overflowY = 'auto'
+    } else {
+      // 单行模式：清除高度限制
+      scrollContainer.style.minHeight = ''
+      scrollContainer.style.maxHeight = ''
+      scrollContainer.style.overflowY = 'hidden'
+    }
   }
 
-  // 监听编辑器内容变化
   watch(
-    () => editor.value?.state.doc.content,
+    currentMode,
     () => {
       nextTick(() => {
         updateHeight()
       })
     },
-    { deep: true },
-  )
-
-  // 监听模式变化
-  watch(
-    () => props.mode,
-    () => {
-      nextTick(() => {
-        updateHeight()
-      })
-    },
+    { immediate: true },
   )
 
   return {

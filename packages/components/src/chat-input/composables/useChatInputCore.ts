@@ -235,7 +235,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   // ========================================
 
   // 自动高度调整
-  useAutoSize(props, editor, editorRef)
+  useAutoSize(currentMode, editorRef)
 
   // 监听编辑器内容变化，检查是否需要切换模式
   watch(
@@ -252,13 +252,14 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   // 8. 定义其他方法
   // ========================================
 
-  const clear = () => {
-    editor.value?.commands.clearContent()
-    emit('clear')
-  }
-
   const focus = () => {
     editor.value?.commands.focus()
+  }
+
+  const clear = () => {
+    editor.value?.commands.clearContent()
+    editor.value?.commands.focus()
+    emit('clear')
   }
 
   const blur = () => {
