@@ -13,6 +13,11 @@ interface Props {
     attrs: NodeAttrs
     [key: string]: unknown
   }
+  extension: {
+    options: {
+      char: string // 触发字符，插件默认为 '@'
+    }
+  }
 }
 
 defineProps<Props>()
@@ -20,7 +25,7 @@ defineProps<Props>()
 
 <template>
   <NodeViewWrapper as="span" class="mention" :data-id="node.attrs.id" :data-preset="node.attrs.preset"
-    >@{{ node.attrs.label }}</NodeViewWrapper
+    >{{ extension.options.char }}{{ node.attrs.label }}</NodeViewWrapper
   >
 </template>
 

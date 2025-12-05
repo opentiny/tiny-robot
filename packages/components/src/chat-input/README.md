@@ -151,7 +151,7 @@ const mentions: MentionItem[] = [
 const extensions = [
   Mention.configure({
     items: mentions,
-    char: '@'  // 触发字符
+    char: '@'  // 触发字符，默认为 '@'
   })
 ]
 
@@ -161,6 +161,30 @@ const handleSubmit = (text: string, data?: StructuredData) => {
 }
 </script>
 ```
+
+#### 自定义触发字符
+
+支持自定义触发字符，例如使用 `#` 代替 `@`：
+
+```vue
+<script setup lang="ts">
+import { ChatInput, Mention } from '@opentiny/tiny-robot'
+
+const mentions = [
+  { label: '标签1', preset: '...' },
+  { label: '标签2', preset: '...' }
+]
+
+const extensions = [
+  Mention.configure({
+    items: mentions,
+    char: '#'  // 自定义触发字符为 '#'
+  })
+]
+</script>
+```
+
+输入 `#` 后会触发提及列表，选中后显示为 `#标签1` 的格式。
 
 #### MentionItem 类型
 
@@ -175,9 +199,9 @@ type MentionItem = {
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `items` | `MentionItem[]` | `[]` | 提及项列表（必填） |
-| `char` | `string` | `'@'` | 触发提及的字符 |
-| `onSelect` | `Function` | - | 选中提及项时的回调 |
+| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表（必填），支持响应式 ref |
+| `char` | `string` | `'@'` | 触发提及的字符，支持任意字符（如 `'@'`、`'#'`、`'!'` 等） |
+| `allowSpaces` | `boolean` | `false` | 是否允许在触发字符后输入空格 |
 
 ### 3. Suggestion 扩展
 

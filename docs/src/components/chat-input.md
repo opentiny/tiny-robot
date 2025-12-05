@@ -79,10 +79,14 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 ### 提及功能
 
-使用 `Mention` 扩展实现 @提及功能，输入 `@` 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。
+使用 `Mention` 扩展实现 @提及功能，输入触发字符（默认 `@`）触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。
+
+:::tip 自定义触发字符
+支持自定义触发字符，例如使用 `#` 代替 `@`。配置 `char: '#'` 后，输入 `#` 即可触发提及列表，选中后显示为 `#标签名` 的格式。
+:::
 
 :::tip 删除提及
-按 `Backspace` 删除提及项时会保留 `@` 符号，可继续选择其他项。
+按 `Backspace` 删除提及项时会保留触发字符（如 `@` 或 `#`），可继续选择其他项。
 :::
 
 <demo vue="../../demos/chat-input/mention.vue" title="提及功能" description="输入 @ 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。" />
@@ -227,11 +231,14 @@ ChatInput.TemplateBlock.configure({ items: templates })
 
 #### Mention
 
-@提及功能扩展，支持快速引用预设的助手或对象。
+@提及功能扩展，支持快速引用预设的助手或对象，支持自定义触发字符。
 
 ```typescript
-// 便捷函数
-ChatInput.mention(mentions, '@')
+// 便捷函数（使用默认 '@' 触发）
+ChatInput.mention(mentions)
+
+// 便捷函数（自定义触发字符）
+ChatInput.mention(mentions, '#')  // 使用 '#' 触发
 
 // 标准配置
 ChatInput.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
@@ -239,10 +246,10 @@ ChatInput.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |--------|------|--------|------|
-| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表 |
-| `char` | `string` | `'@'` | 触发字符 |
-| `allowSpaces` | `boolean` | `false` | 允许空格 |
-| `onSelect` | `Function` | - | 选中回调 |
+| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表，支持响应式 ref |
+| `char` | `string` | `'@'` | 触发字符，支持任意字符（如 `'@'`、`'#'`、`'!'` 等） |
+| `allowSpaces` | `boolean` | `false` | 是否允许在触发字符后输入空格 |
+| `onSelect` | `Function` | - | 选中提及项时的回调函数 |
 
 #### Suggestion
 

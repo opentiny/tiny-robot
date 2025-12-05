@@ -128,7 +128,13 @@ export const Mention = Node.create<MentionOptions>({
   // 使用 Vue 组件渲染
   addNodeView() {
     // @ts-expect-error - Vue SFC type compatibility
-    return VueNodeViewRenderer(MentionView)
+    return VueNodeViewRenderer(MentionView, {
+      extension: {
+        options: {
+          char: this.options.char,
+        },
+      },
+    })
   },
 
   onCreate() {
