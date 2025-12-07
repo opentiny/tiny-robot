@@ -58,7 +58,7 @@
 import { ref, computed } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { ChatInput } from '@opentiny/tiny-robot'
-import type { MentionItem, TemplateItem } from '@opentiny/tiny-robot'
+import type { MentionItem, TemplateItem, SuggestionItem } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
 const content = ref('')
@@ -154,9 +154,17 @@ const mentions = ref<MentionItem[]>([
   },
 ])
 
-// 配置扩展
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const extensions = [ChatInput.mention(mentions as any), ChatInput.template(templateData as any)]
+// 建议列表数据
+const suggestions = ref<SuggestionItem[]>([
+  { content: 'Java' },
+  { content: 'JavaScript' },
+  { content: 'TypeScript' },
+  { content: 'Python' },
+  { content: 'C++' },
+  { content: 'Golang' },
+])
+
+const extensions = [ChatInput.mention(mentions), ChatInput.template(templateData), ChatInput.suggestion(suggestions)]
 </script>
 
 <style scoped>

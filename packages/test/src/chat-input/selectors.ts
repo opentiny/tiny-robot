@@ -45,6 +45,11 @@ export const CHAT_INPUT_SELECTORS = {
   setTemplateEmptyBtn: '[data-testid="set-template-empty-btn"]',
   setTemplateMultipleBtn: '[data-testid="set-template-multiple-btn"]',
   clearTemplateBtn: '[data-testid="clear-template-btn"]',
+
+  // Suggestion 功能
+  suggestionList: '.suggestion-list',
+  suggestionItem: '.suggestion-list__item',
+  suggestionHighlighted: '.suggestion-list__item.highlighted',
 } as const
 
 export type ChatInputSelectors = typeof CHAT_INPUT_SELECTORS
