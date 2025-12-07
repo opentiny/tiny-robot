@@ -25,6 +25,7 @@ import {
   SubmitButton,
   ClearButton,
   UploadButton,
+  VoiceButton,
   WordCounter,
   DefaultActionButtons,
 } from './chat-input-actions'
@@ -72,6 +73,7 @@ export type {
 // ChatInputActions 类型导出
 export type { ActionButtonProps } from './chat-input-actions'
 export type { UploadButtonProps, UploadButtonEmits } from './chat-input-actions'
+export type { VoiceButtonProps, VoiceButtonEmits } from './chat-input-actions'
 
 export { useTheme } from './theme-provider/useTheme'
 export { useChatInputContext } from './chat-input/context'
@@ -105,6 +107,7 @@ const components = [
   SubmitButton,
   ClearButton,
   UploadButton,
+  VoiceButton,
   WordCounter,
   DefaultActionButtons,
 ]
@@ -173,6 +176,8 @@ export {
   ClearButton as TrClearButton,
   UploadButton,
   UploadButton as TrUploadButton,
+  VoiceButton,
+  VoiceButton as TrVoiceButton,
   WordCounter,
   WordCounter as TrWordCounter,
   DefaultActionButtons,

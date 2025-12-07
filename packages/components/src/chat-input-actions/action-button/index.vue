@@ -62,7 +62,10 @@ const sizeStyle = computed(() => {
 <template>
   <div class="tr-action-button-wrapper">
     <button ref="buttonRef" :class="['tr-action-button', { active: props.active }]" :disabled="props.disabled">
-      <component :is="props.icon" :style="sizeStyle" />
+      <!-- 优先使用插槽，如果没有插槽则使用 icon prop -->
+      <slot name="icon">
+        <component :is="props.icon" :style="sizeStyle" />
+      </slot>
     </button>
 
     <Teleport to="body">

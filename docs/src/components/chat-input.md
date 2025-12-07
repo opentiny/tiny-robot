@@ -56,8 +56,8 @@ import { ChatInput } from '@opentiny/tiny-robot'
 
 // 便捷函数（推荐）
 ChatInput.mention(mentions, '@')
-ChatInput.suggestion(suggestions)  // 不过滤
-ChatInput.suggestion(suggestions, { filterFn: customFilter })  // 自定义过滤
+ChatInput.suggestion(suggestions) // 不过滤
+ChatInput.suggestion(suggestions, { filterFn: customFilter }) // 自定义过滤
 ChatInput.template(templates)
 
 // 标准配置（用于复杂场景）
@@ -125,6 +125,37 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 **配置详见**：[扩展属性 - Suggestion](#suggestion)
 
+### 语音输入
+
+通过 `VoiceButton` 组件实现语音输入功能，支持浏览器内置语音识别和第三方语音识别服务。
+
+:::tip 组件化设计
+语音输入功能通过独立的 `VoiceButton` 组件实现，可按需添加到 `footer` 插槽中，无需额外配置。
+:::
+
+#### 基础语音识别
+
+使用浏览器内置的语音识别功能，支持混合输入和连续识别两种模式。
+
+<demo vue="../../demos/chat-input/voice-input.vue" title="基础语音输入" description="使用浏览器内置语音识别，支持混合输入和连续识别。" />
+
+#### 自定义语音服务
+
+支持集成第三方语音识别服务（如阿里云、百度、Azure 等）。
+
+<demo vue="../../demos/chat-input/voice-custom.vue" title="自定义语音识别" description="集成第三方语音识别服务，参考 speechHandlers.ts 查看完整实现。" />
+
+:::tip 参考实现
+`speechHandlers.ts` 提供了阿里云一句话识别和实时识别的完整示例，包括录音处理、API 调用、流式识别等。
+:::
+
+#### 自定义录音 UI
+
+支持完全自定义语音录制界面，适用于移动端按住说话等场景。
+
+<demo vue="../../demos/chat-input/voice-custom-ui.vue" title="移动端按住说话" description="自定义录音 UI，展示移动端按住说话的交互模式。" />
+
+**配置详见**：[VoiceButton 属性](#voicebutton)
 
 ### 交互定制
 
@@ -185,28 +216,28 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 ## Props
 
-#### Basic
+#### BasicInput
 
-| 属性名        | 说明                   | 类型                                     | 默认值            |
-| ------------- | ---------------------- | ---------------------------------------- | ----------------- |
-| modelValue    | 绑定值(v-model)        | `string`                                 | `''`              |
-| defaultValue  | 默认值(非响应式)       | `string`                                 | `''`              |
-| placeholder   | 输入框占位文本         | `string`                                 | `'请输入内容...'` |
-| disabled      | 是否禁用               | `boolean`                                | `false`           |
-| loading       | 是否加载中             | `boolean`                                | `false`           |
-| autofocus     | 自动获取焦点           | `boolean`                                | `false`           |
-| mode          | 输入框类型             | `'single' \| 'multiple'`                 | `'single'`        |
-| size          | 组件尺寸               | `'normal' \| 'small'`                    | `'normal'`        |
-| maxLength     | 最大输入长度           | `number`                                 | `Infinity`        |
-| showWordLimit | 是否显示字数统计       | `boolean`                                | `false`           |
-| clearable     | 是否可清空             | `boolean`                                | `false`           |
-| submitType    | 提交方式               | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
-| stopText      | 停止按钮文字           | `string`                                 | `仅显示图标`      |
+| 属性名        | 说明             | 类型                                     | 默认值            |
+| ------------- | ---------------- | ---------------------------------------- | ----------------- |
+| modelValue    | 绑定值(v-model)  | `string`                                 | `''`              |
+| defaultValue  | 默认值(非响应式) | `string`                                 | `''`              |
+| placeholder   | 输入框占位文本   | `string`                                 | `'请输入内容...'` |
+| disabled      | 是否禁用         | `boolean`                                | `false`           |
+| loading       | 是否加载中       | `boolean`                                | `false`           |
+| autofocus     | 自动获取焦点     | `boolean`                                | `false`           |
+| mode          | 输入框类型       | `'single' \| 'multiple'`                 | `'single'`        |
+| size          | 组件尺寸         | `'normal' \| 'small'`                    | `'normal'`        |
+| maxLength     | 最大输入长度     | `number`                                 | `Infinity`        |
+| showWordLimit | 是否显示字数统计 | `boolean`                                | `false`           |
+| clearable     | 是否可清空       | `boolean`                                | `false`           |
+| submitType    | 提交方式         | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
+| stopText      | 停止按钮文字     | `string`                                 | `仅显示图标`      |
 
 #### Extension
 
-| 属性名     | 说明                                                   | 类型          | 默认值 |
-| ---------- | ------------------------------------------------------ | ------------- | ------ |
+| 属性名     | 说明                                                            | 类型          | 默认值 |
+| ---------- | --------------------------------------------------------------- | ------------- | ------ |
 | extensions | 扩展列表，用于添加功能（TemplateBlock、Mention、Suggestion 等） | `Extension[]` | `[]`   |
 
 :::tip 扩展系统
@@ -225,8 +256,8 @@ ChatInput.template(templates)
 ChatInput.TemplateBlock.configure({ items: templates })
 ```
 
-| 配置项 | 类型 | 说明 |
-|--------|------|------|
+| 配置项  | 类型                                      | 说明         |
+| ------- | ----------------------------------------- | ------------ |
 | `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | 模板数据列表 |
 
 #### Mention
@@ -238,18 +269,18 @@ ChatInput.TemplateBlock.configure({ items: templates })
 ChatInput.mention(mentions)
 
 // 便捷函数（自定义触发字符）
-ChatInput.mention(mentions, '#')  // 使用 '#' 触发
+ChatInput.mention(mentions, '#') // 使用 '#' 触发
 
 // 标准配置
 ChatInput.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
 ```
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `items` | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]` | 提及项列表，支持响应式 ref |
-| `char` | `string` | `'@'` | 触发字符，支持任意字符（如 `'@'`、`'#'`、`'!'` 等） |
-| `allowSpaces` | `boolean` | `false` | 是否允许在触发字符后输入空格 |
-| `onSelect` | `Function` | - | 选中提及项时的回调函数 |
+| 配置项        | 类型                                    | 默认值  | 说明                                                |
+| ------------- | --------------------------------------- | ------- | --------------------------------------------------- |
+| `items`       | `MentionItem[]` \| `Ref<MentionItem[]>` | `[]`    | 提及项列表，支持响应式 ref                          |
+| `char`        | `string`                                | `'@'`   | 触发字符，支持任意字符（如 `'@'`、`'#'`、`'!'` 等） |
+| `allowSpaces` | `boolean`                               | `false` | 是否允许在触发字符后输入空格                        |
+| `onSelect`    | `Function`                              | -       | 选中提及项时的回调函数                              |
 
 #### Suggestion
 
@@ -257,25 +288,25 @@ ChatInput.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
 
 ```typescript
 // 便捷函数
-ChatInput.suggestion(suggestions)  // 不过滤，显示所有项
-ChatInput.suggestion(suggestions, { filterFn: customFilter })  // 自定义过滤
+ChatInput.suggestion(suggestions) // 不过滤，显示所有项
+ChatInput.suggestion(suggestions, { filterFn: customFilter }) // 自定义过滤
 
 // 标准配置
 ChatInput.Suggestion.configure({
   items: suggestions,
-  filterFn: (items, query) => items.filter(item => item.content.includes(query)),
-  showAutoComplete: true
+  filterFn: (items, query) => items.filter((item) => item.content.includes(query)),
+  showAutoComplete: true,
 })
 ```
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `items` | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]` | 建议项列表 |
-| `filterFn` | `Function` | `undefined` | 过滤函数（不传则不过滤） |
-| `showAutoComplete` | `boolean` | `true` | 自动补全 |
-| `activeSuggestionKeys` | `string[]` | `['Enter', 'Tab']` | 激活按键 |
-| `popupWidth` | `number` \| `string` | `400` | 弹窗宽度|
-| `onSelect` | `Function` | - | 选中回调 |
+| 配置项                 | 类型                                          | 默认值             | 说明                     |
+| ---------------------- | --------------------------------------------- | ------------------ | ------------------------ |
+| `items`                | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]`               | 建议项列表               |
+| `filterFn`             | `Function`                                    | `undefined`        | 过滤函数（不传则不过滤） |
+| `showAutoComplete`     | `boolean`                                     | `true`             | 自动补全                 |
+| `activeSuggestionKeys` | `string[]`                                    | `['Enter', 'Tab']` | 激活按键                 |
+| `popupWidth`           | `number` \| `string`                          | `400`              | 弹窗宽度                 |
+| `onSelect`             | `Function`                                    | -                  | 选中回调                 |
 
 :::tip popupWidth 格式
 支持数字（如 `500`）、百分比（如 `'100%'`）、CSS 单位（如 `'20rem'`）
@@ -288,6 +319,19 @@ ChatInput.Suggestion.configure({
 { content: 'RDS-数据库', highlights: ['RDS', '数据库'] }  // 精确指定
 { content: 'OSS-存储', highlights: (text, query) => [...] }  // 自定义函数
 ```
+
+#### VoiceButton
+
+| 属性名           | 说明                         | 类型                  | 默认值       |
+| ---------------- | ---------------------------- | --------------------- | ------------ |
+| icon             | 自定义图标                   | `VNode \| Component`  | `IconVoice`  |
+| disabled         | 是否禁用                     | `boolean`             | `false`      |
+| size             | 按钮尺寸                     | `'small' \| 'normal'` | `'normal'`   |
+| tooltip          | Tooltip 文本                 | `string`              | `'语音输入'` |
+| tooltipPlacement | Tooltip 位置                 | `TooltipPlacement`    | `'top'`      |
+| speechConfig     | 语音配置                     | `SpeechConfig`        | -            |
+| autoInsert       | 是否自动插入识别结果到编辑器 | `boolean`             | `true`       |
+| onButtonClick    | 按钮点击拦截器               | `Function`            | -            |
 
 ## Slots
 
@@ -302,16 +346,30 @@ ChatInput.Suggestion.configure({
 
 ## Events
 
-| 事件名            | 说明                       | 回调参数                                                 |
-| ----------------- | -------------------------- | -------------------------------------------------------- |
-| update:modelValue | 输入值变化时触发(v-model)  | `(value: string)`                                        |
-| blur              | 输入框失去焦点时触发       | `(event: FocusEvent)`                                    |
-| focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`                                    |
-| submit            | 提交内容时触发             | `(text: string, data?: StructuredData)`                  |
-| clear             | 清空内容时触发             | `()`                                                     |
-| input             | 输入内容变化时触发         | `(value: string)`                                        |
+#### BasicInput
+
+| 事件名            | 说明                      | 回调参数                                |
+| ----------------- | ------------------------- | --------------------------------------- |
+| update:modelValue | 输入值变化时触发(v-model) | `(value: string)`                       |
+| blur              | 输入框失去焦点时触发      | `(event: FocusEvent)`                   |
+| focus             | 输入框获得焦点时触发      | `(event: FocusEvent)`                   |
+| submit            | 提交内容时触发            | `(text: string, data?: StructuredData)` |
+| clear             | 清空内容时触发            | `()`                                    |
+| input             | 输入内容变化时触发        | `(value: string)`                       |
+
+#### VoiceButton
+
+| 事件名         | 说明     | 回调参数                |
+| -------------- | -------- | ----------------------- |
+| speech-start   | 开始录音 | `()`                    |
+| speech-interim | 中间结果 | `(transcript: string)`  |
+| speech-final   | 最终结果 | `(transcript: string)`  |
+| speech-end     | 结束录音 | `(transcript?: string)` |
+| speech-error   | 识别错误 | `(error: Error)`        |
 
 ## Methods
+
+#### BasicInput
 
 | 方法名     | 说明             | 参数                | 返回值   |
 | ---------- | ---------------- | ------------------- | -------- |
@@ -322,9 +380,26 @@ ChatInput.Suggestion.configure({
 | setContent | 设置编辑器内容   | `(content: string)` | `void`   |
 | getContent | 获取编辑器内容   | -                   | `string` |
 
+#### VoiceButton
+
+| 方法名 | 说明     | 参数 | 返回值 |
+| ------ | -------- | ---- | ------ |
+| start  | 开始录音 | -    | `void` |
+| stop   | 停止录音 | -    | `void` |
+
 ## Types
 
 ```typescript
+// SpeechConfig 语音配置
+interface SpeechConfig {
+  customHandler?: SpeechHandler // 自定义语音处理器
+  lang?: string // 识别语言，默认浏览器语言
+  continuous?: boolean // 是否持续识别
+  interimResults?: boolean // 是否返回中间结果
+  autoReplace?: boolean // 是否自动替换内容
+  onVoiceButtonClick?: (isRecording, preventDefault) => void // 按钮点击拦截器
+}
+
 // 模板项
 interface TemplateItem {
   type: 'text' | 'template' // 项目类型，'text' 为普通文本，'template' 为可编辑模板块

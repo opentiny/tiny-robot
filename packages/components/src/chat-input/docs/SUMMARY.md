@@ -4,13 +4,13 @@
 
 本目录包含 Chat-Input 组件的完整设计文档：
 
-| 文档 | 内容 | 适用人群 |
-|------|------|---------|
-| **[README.md](./README.md)** | 组件概览、快速开始、使用示例 | 所有人 |
-| **[DESIGN.md](./DESIGN.md)** | 完整的架构设计、插槽系统、Context 设计 | 开发者 |
-| **[index.type.ts](./index.type.ts)** | 详细的 TypeScript 类型定义 | 开发者 |
-| **[FEASIBILITY.md](./FEASIBILITY.md)** | Tiptap 重构可行性评估 | 决策者、架构师 |
-| **[SUMMARY.md](./SUMMARY.md)** | 本文档，设计总结 | 所有人 |
+| 文档                                   | 内容                                   | 适用人群       |
+| -------------------------------------- | -------------------------------------- | -------------- |
+| **[README.md](./README.md)**           | 组件概览、快速开始、使用示例           | 所有人         |
+| **[DESIGN.md](./DESIGN.md)**           | 完整的架构设计、插槽系统、Context 设计 | 开发者         |
+| **[index.type.ts](./index.type.ts)**   | 详细的 TypeScript 类型定义             | 开发者         |
+| **[FEASIBILITY.md](./FEASIBILITY.md)** | Tiptap 重构可行性评估                  | 决策者、架构师 |
+| **[SUMMARY.md](./SUMMARY.md)**         | 本文档，设计总结                       | 所有人         |
 
 ---
 
@@ -154,14 +154,14 @@ chat-input 组件结构：
 
 ### 插槽使用频率
 
-| 插槽 | 使用频率 | 说明 |
-|------|---------|------|
-| `footer` | **90%** | 最常用，添加自定义按钮 |
-| `actions-inline` | 15% | 单行模式自定义按钮 |
-| `footer-right` | 5% | 完全自定义右侧 |
-| `header` | 5% | 自定义头部 |
-| `prefix` | 3% | 输入框前缀 |
-| `content` | <1% | 完全自定义编辑器 |
+| 插槽             | 使用频率 | 说明                   |
+| ---------------- | -------- | ---------------------- |
+| `footer`         | **90%**  | 最常用，添加自定义按钮 |
+| `actions-inline` | 15%      | 单行模式自定义按钮     |
+| `footer-right`   | 5%       | 完全自定义右侧         |
+| `header`         | 5%       | 自定义头部             |
+| `prefix`         | 3%       | 输入框前缀             |
+| `content`        | <1%      | 完全自定义编辑器       |
 
 ### 设计优化
 
@@ -180,6 +180,7 @@ chat-input 组件结构：
 ```
 
 **优势：**
+
 - ✅ 符合 90% 的使用场景
 - ✅ 命名更简洁直观
 - ✅ 减少插槽优先级判断
@@ -196,7 +197,7 @@ interface ChatInputContext {
   // 编辑器
   editor: Ref<Editor | null>
   editorRef: Ref<HTMLElement | null>
-  
+
   // 状态
   mode: Ref<'single' | 'multiple'>
   loading: Ref<boolean>
@@ -207,14 +208,14 @@ interface ChatInputContext {
   characterCount: Ref<number>
   maxLength: Ref<number | undefined>
   speechState: Ref<SpeechState>
-  
+
   // 配置
   showWordLimit: Ref<boolean>
   clearable: Ref<boolean>
   allowSpeech: Ref<boolean>
   allowFiles: Ref<boolean>
   buttonGroup: Ref<ButtonGroupConfig | undefined>
-  
+
   // 方法
   submit: () => void
   clear: () => void
@@ -234,12 +235,14 @@ interface ChatInputContext {
 ### Context 使用
 
 **提供 Context (主容器)：**
+
 ```typescript
 // 在 index.vue 中
 provide(CHAT_INPUT_CONTEXT_KEY, context)
 ```
 
 **注入 Context (子组件)：**
+
 ```typescript
 // 在子组件中
 const { canSubmit, submit } = useChatInputContext()
@@ -251,24 +254,24 @@ const { canSubmit, submit } = useChatInputContext()
 
 ### 原子组件列表
 
-| 组件 | 职责 | 依赖 Context |
-|------|------|-------------|
-| EditorContent | 渲染编辑器 | editor |
-| SubmitButton | 提交按钮 | canSubmit, loading, submit |
-| ClearButton | 清空按钮 | hasContent, clearable, clear |
-| VoiceButton | 语音按钮 | allowSpeech, speechState, startSpeech, stopSpeech |
-| FileButton | 文件按钮 | allowFiles, openFileDialog |
-| WordCounter | 字数统计 | characterCount, maxLength, isOverLimit |
-| SuggestionList | 建议列表 | 无（通过 props） |
+| 组件           | 职责       | 依赖 Context                                      |
+| -------------- | ---------- | ------------------------------------------------- |
+| EditorContent  | 渲染编辑器 | editor                                            |
+| SubmitButton   | 提交按钮   | canSubmit, loading, submit                        |
+| ClearButton    | 清空按钮   | hasContent, clearable, clear                      |
+| VoiceButton    | 语音按钮   | allowSpeech, speechState, startSpeech, stopSpeech |
+| FileButton     | 文件按钮   | allowFiles, openFileDialog                        |
+| WordCounter    | 字数统计   | characterCount, maxLength, isOverLimit            |
+| SuggestionList | 建议列表   | 无（通过 props）                                  |
 
 ### Tiptap 扩展列表
 
-| 扩展 | 类型 | 职责 |
-|------|------|------|
-| TemplateBlock | Node | 模板块节点 |
-| SingleLineMode | Extension | 单行模式 |
-| Suggestion | Extension | 输入联想 |
-| CharacterCount | Extension | 字数统计 |
+| 扩展           | 类型      | 职责       |
+| -------------- | --------- | ---------- |
+| TemplateBlock  | Node      | 模板块节点 |
+| SingleLineMode | Extension | 单行模式   |
+| Suggestion     | Extension | 输入联想   |
+| CharacterCount | Extension | 字数统计   |
 
 ---
 
@@ -276,16 +279,17 @@ const { canSubmit, submit } = useChatInputContext()
 
 ### 代码量对比
 
-| 模块 | Sender | Chat-Input | 减少 |
-|------|--------|-----------|------|
-| 模板编辑器 | 1130 行 | 300-400 行 | **60-70%** |
-| 光标管理 | 手动实现 | Tiptap 自动 | **90%** |
-| 撤销/重做 | 手动实现 | Tiptap 内置 | **100%** |
-| Shadow DOM | 手动兼容 | Tiptap 支持 | **100%** |
+| 模块       | Sender   | Chat-Input  | 减少       |
+| ---------- | -------- | ----------- | ---------- |
+| 模板编辑器 | 1130 行  | 300-400 行  | **60-70%** |
+| 光标管理   | 手动实现 | Tiptap 自动 | **90%**    |
+| 撤销/重做  | 手动实现 | Tiptap 内置 | **100%**   |
+| Shadow DOM | 手动兼容 | Tiptap 支持 | **100%**   |
 
 ### 功能覆盖
 
 **✅ Tiptap 完美覆盖：**
+
 - 富文本编辑
 - 占位符
 - 撤销/重做
@@ -296,6 +300,7 @@ const { canSubmit, submit } = useChatInputContext()
 - Vue 集成
 
 **⚠️ 需要额外实现：**
+
 - 单行/多行模式切换（中等复杂度）
 - 字数限制验证（低复杂度）
 - 输入联想（中等复杂度）
@@ -306,16 +311,19 @@ const { canSubmit, submit } = useChatInputContext()
 ### 风险评估
 
 **🔴 高风险：**
+
 - 单行模式实现
 - 自动模式切换
 - API 兼容性
 
 **🟡 中风险：**
+
 - 输入联想
 - 模板数据转换
 - 性能优化
 
 **🟢 低风险：**
+
 - 模板块编辑
 - 撤销/重做
 - Vue 集成
@@ -335,15 +343,13 @@ const { canSubmit, submit } = useChatInputContext()
 ### 1. 组合优于配置
 
 **错误方式：**
+
 ```vue
-<chat-input
-  :show-clear="true"
-  :show-voice="true"
-  :show-file="false"
-/>
+<chat-input :show-clear="true" :show-voice="true" :show-file="false" />
 ```
 
 **正确方式：**
+
 ```vue
 <chat-input>
   <template #footer>
@@ -406,16 +412,19 @@ const { canSubmit, submit } = useChatInputContext()
 ### 立即开始
 
 1. **阅读完整设计文档**
+
    - [DESIGN.md](./DESIGN.md) - 详细设计
    - [index.type.ts](./index.type.ts) - 类型定义
    - [FEASIBILITY.md](./FEASIBILITY.md) - 可行性评估
 
 2. **搭建项目结构**
+
    - 创建目录
    - 配置 TypeScript
    - 安装依赖
 
 3. **实现核心功能**
+
    - 基础编辑器
    - 模板块节点
    - Context 系统
@@ -428,11 +437,13 @@ const { canSubmit, submit } = useChatInputContext()
 ### 持续优化
 
 1. **性能监控**
+
    - 包体积
    - 加载时间
    - 运行时性能
 
 2. **用户反馈**
+
    - 收集使用问题
    - 优化用户体验
    - 迭代改进
