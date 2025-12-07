@@ -1,14 +1,14 @@
 /**
- * TemplateBlock 扩展类型定义
+ * Template 扩展类型定义
  */
 
 import type { Ref } from 'vue'
 import type { TemplateItem } from '../../index.type'
 
 /**
- * TemplateBlock 节点属性
+ * Template 节点属性
  */
-export interface TemplateBlockAttrs {
+export interface TemplateAttrs {
   /**
    * 模板块 ID
    */
@@ -21,9 +21,9 @@ export interface TemplateBlockAttrs {
 }
 
 /**
- * TemplateBlock 配置选项
+ * Template 配置选项
  */
-export interface TemplateBlockOptions {
+export interface TemplateOptions {
   /**
    * 模板数据列表（推荐使用 ref 实现响应式）
    *
@@ -37,12 +37,12 @@ export interface TemplateBlockOptions {
    *   { type: 'text', content: '帮我分析' },
    *   { type: 'template', content: '' }
    * ])
-   * TemplateBlock.configure({ items })  // 传入 ref，自动双向绑定
+   * Template.configure({ items })  // 传入 ref，自动双向绑定
    * ```
    *
    * @example 静态配置
    * ```typescript
-   * TemplateBlock.configure({
+   * Template.configure({
    *   items: [
    *     { type: 'text', content: '帮我分析' },
    *     { type: 'template', content: '' }

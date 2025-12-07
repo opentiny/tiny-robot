@@ -67,7 +67,7 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 ### 模板编辑
 
-使用 `TemplateBlock` 扩展实现模板填充功能，支持动态设置模板内容，光标自动聚焦到第一个可编辑字段。
+使用 `Template` 扩展实现模板填充功能，支持动态设置模板内容，光标自动聚焦到第一个可编辑字段。
 
 :::tip 响应式数据
 通过 `items` 配置项传入响应式 ref，模板数据变化时会自动更新编辑器内容。
@@ -75,7 +75,7 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 <demo vue="../../demos/chat-input/template-editor.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-**配置详见**：[扩展属性 - TemplateBlock](#templateblock)
+**配置详见**：[扩展属性 - Template](#templateblock)
 
 ### 提及功能
 
@@ -238,13 +238,13 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 | 属性名     | 说明                                                            | 类型          | 默认值 |
 | ---------- | --------------------------------------------------------------- | ------------- | ------ |
-| extensions | 扩展列表，用于添加功能（TemplateBlock、Mention、Suggestion 等） | `Extension[]` | `[]`   |
+| extensions | 扩展列表，用于添加功能（Template、Mention、Suggestion 等） | `Extension[]` | `[]`   |
 
 :::tip 扩展系统
 使用 `extensions` 属性配置功能扩展，提供灵活的配置和完整的类型支持。
 :::
 
-#### TemplateBlock
+#### Template
 
 模板填充功能扩展，支持动态设置模板内容。
 
@@ -253,7 +253,7 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 ChatInput.template(templates)
 
 // 标准配置
-ChatInput.TemplateBlock.configure({ items: templates })
+ChatInput.Template.configure({ items: templates })
 ```
 
 | 配置项  | 类型                                      | 说明         |

@@ -1,11 +1,11 @@
 import { test, type Page } from '@playwright/test'
 import { createChatInputTestHelper } from '../../helpers'
-import { createTemplateBlockTestHelper } from '../../helpers/template-block-helper'
+import { createTemplateTestHelper } from '../../helpers/template-helper'
 
 test.describe('Template Block - Backspace 删除逻辑', () => {
   let page: Page
   let helper: ReturnType<typeof createChatInputTestHelper>
-  let templateHelper: ReturnType<typeof createTemplateBlockTestHelper>
+  let templateHelper: ReturnType<typeof createTemplateTestHelper>
 
   // 只在所有测试开始前创建页面并导航一次
   test.beforeAll(async ({ browser }) => {
@@ -13,7 +13,7 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     helper = createChatInputTestHelper(page)
-    templateHelper = createTemplateBlockTestHelper(page)
+    templateHelper = createTemplateTestHelper(page)
   })
 
   // 所有测试结束后关闭页面
@@ -31,13 +31,13 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await templateHelper.setSimpleTemplate()
 
     // 点击模板块，光标移到末尾
-    await templateHelper.focusTemplateBlockEnd(0)
+    await templateHelper.focusTemplateEnd(0)
 
     // 按 Backspace 删除 "三"
     await templateHelper.pressBackspace()
 
     // 验证：模板块变成 "张"
-    await templateHelper.expectTemplateBlockText(0, '张')
+    await templateHelper.expectTemplateText(0, '张')
   })
 
   test('TC-BS-02: 删除最后一个字符时应该保留模板块', async () => {
@@ -45,14 +45,14 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await templateHelper.setSimpleTemplate()
 
     // 删除 "三"
-    await templateHelper.focusTemplateBlockEnd(0)
+    await templateHelper.focusTemplateEnd(0)
     await templateHelper.pressBackspace()
 
     // 删除 "张"
     await templateHelper.pressBackspace()
 
     // 验证：模板块仍然存在（空模板块）
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-BS-03: 空模板块内按 Backspace 应该跳出模板块', async () => {
@@ -60,28 +60,28 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await templateHelper.setEmptyTemplate()
 
     // 点击进入空模板块
-    await templateHelper.clickTemplateBlock(0)
+    await templateHelper.clickTemplate(0)
     await templateHelper.wait(100)
 
     // 按 Backspace
     await templateHelper.pressBackspace()
 
     // 验证：模板块仍然存在
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-BS-04: 模板块开头按 Backspace 应该跳出不吸入文本', async () => {
     await templateHelper.setSimpleTemplate()
 
     // 聚焦到模板块开头
-    await templateHelper.focusTemplateBlockStart(0)
+    await templateHelper.focusTemplateStart(0)
 
     // 按 Backspace
     await templateHelper.pressBackspace()
 
     // 验证：文本 "我是" 仍然在，没有被吸入模板块
     await templateHelper.expectEditorToContainText('我是')
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-BS-05: 从模板块右侧按 Backspace 应该进入模板块', async () => {
@@ -98,8 +98,8 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await templateHelper.pressBackspace()
 
     // 验证：模板块仍然存在且内容完整
-    await templateHelper.expectTemplateBlockCount(1)
-    await templateHelper.expectTemplateBlockText(0, '张三')
+    await templateHelper.expectTemplateCount(1)
+    await templateHelper.expectTemplateText(0, '张三')
   })
 
   test('TC-BS-06: 从右侧删除空模板块需要多次操作', async () => {
@@ -123,7 +123,7 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await templateHelper.wait(100)
 
     // 验证：模板块被删除
-    await templateHelper.expectTemplateBlockCount(0)
+    await templateHelper.expectTemplateCount(0)
   })
 
   test('TC-BS-07: 选区删除应该包含模板块', async () => {
@@ -138,6 +138,6 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
 
     // 验证：所有内容被删除
     await helper.expectEditorEmpty()
-    await templateHelper.expectTemplateBlockCount(0)
+    await templateHelper.expectTemplateCount(0)
   })
 })

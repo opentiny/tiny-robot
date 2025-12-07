@@ -1,12 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import { createChatInputTestHelper } from '../../helpers'
-import { createTemplateBlockTestHelper } from '../../helpers/template-block-helper'
+import { createTemplateTestHelper } from '../../helpers/template-helper'
 
 test.describe('Template Block - 边界情况测试', () => {
   let page: Page
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let helper: ReturnType<typeof createChatInputTestHelper>
-  let templateHelper: ReturnType<typeof createTemplateBlockTestHelper>
+  let templateHelper: ReturnType<typeof createTemplateTestHelper>
 
   // 只在所有测试开始前创建页面并导航一次
   test.beforeAll(async ({ browser }) => {
@@ -14,7 +14,7 @@ test.describe('Template Block - 边界情况测试', () => {
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     helper = createChatInputTestHelper(page)
-    templateHelper = createTemplateBlockTestHelper(page)
+    templateHelper = createTemplateTestHelper(page)
   })
 
   // 所有测试结束后关闭页面
@@ -33,23 +33,23 @@ test.describe('Template Block - 边界情况测试', () => {
     // 【姓名】【年龄】【城市】
 
     // 验证初始状态：3个模板块
-    await templateHelper.expectTemplateBlockCount(3)
+    await templateHelper.expectTemplateCount(3)
 
     // 聚焦到最后一个模板块并删除所有字符，确保光标回到最前面
     await templateHelper.clearAllTemplatesContent(15)
 
     // 验证内容被清空，但模板块还在（变为空块）
-    await templateHelper.expectTemplateBlockCount(3)
-    await templateHelper.expectTemplateBlockText(0, '')
-    await templateHelper.expectTemplateBlockText(1, '')
-    await templateHelper.expectTemplateBlockText(2, '')
+    await templateHelper.expectTemplateCount(3)
+    await templateHelper.expectTemplateText(0, '')
+    await templateHelper.expectTemplateText(1, '')
+    await templateHelper.expectTemplateText(2, '')
 
     // 使用 Delete 删除所有空模板块
     await templateHelper.deleteEmptyTemplates(3)
     await templateHelper.wait(100)
 
     // 验证：0个模板块
-    await templateHelper.expectTemplateBlockCount(0)
+    await templateHelper.expectTemplateCount(0)
   })
 
   test('TC-BD-02: 模板块与文本粘连检测', async () => {
@@ -61,32 +61,32 @@ test.describe('Template Block - 边界情况测试', () => {
     await templateHelper.expectEditorToContainText('，来自')
 
     // 模板块应该可见且独立
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-BD-03: 应该能够在模板块内编辑内容', async () => {
     await templateHelper.setSimpleTemplate()
 
     // 清空模板块
-    await templateHelper.focusTemplateBlockEnd(0)
+    await templateHelper.focusTemplateEnd(0)
     await templateHelper.pressBackspace(2) // 删除 "三" 和 "张"
 
     // 输入新内容
-    await templateHelper.typeInTemplateBlock(0, '李四')
+    await templateHelper.typeInTemplate(0, '李四')
     await templateHelper.wait(100)
 
     // 验证
-    await templateHelper.expectTemplateBlockText(0, '李四')
+    await templateHelper.expectTemplateText(0, '李四')
   })
 
   test('TC-BD-04: 应该能够处理连续的多个模板块', async () => {
     await templateHelper.setMultipleTemplates()
 
     // 验证：3个模板块都存在
-    await templateHelper.expectTemplateBlockCount(3)
-    await templateHelper.expectTemplateBlockText(0, '姓名')
-    await templateHelper.expectTemplateBlockText(1, '年龄')
-    await templateHelper.expectTemplateBlockText(2, '城市')
+    await templateHelper.expectTemplateCount(3)
+    await templateHelper.expectTemplateText(0, '姓名')
+    await templateHelper.expectTemplateText(1, '年龄')
+    await templateHelper.expectTemplateText(2, '城市')
   })
 
   test('TC-BD-05: 模板块前后的空格应该保留', async () => {

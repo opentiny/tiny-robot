@@ -40,7 +40,7 @@
 └── SuggestionList (建议列表)
 
 Tiptap 扩展
-├── TemplateBlock (模板块)
+├── Template (模板块)
 ├── SingleLineMode (单行模式)
 ├── Suggestion (输入联想)
 └── CharacterCount (字数统计)

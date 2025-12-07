@@ -95,10 +95,10 @@ export type { MentionItem }
  * - 第二个参数 `data`：结构化数据数组，直接使用无需解包
  *
  * **类型说明**：
- * - `TemplateItem[]`: 使用 TemplateBlock 扩展时返回
+ * - `TemplateItem[]`: 使用 Template 扩展时返回
  * - `MentionItem[]`: 使用 Mention 扩展时返回
  *
- * @example TemplateBlock 场景
+ * @example Template 场景
  * ```typescript
  * function handleSubmit(text: string, data?: StructuredData) {
  *   // text: "帮我分析 的周报"
@@ -109,7 +109,7 @@ export type { MentionItem }
  *   // ]
  *
  *   if (data && data[0]?.type) {
- *     // TemplateBlock 场景：数组元素有 type 字段
+ *     // Template 场景：数组元素有 type 字段
  *     const templates = data.filter(item => item.type === 'template')
  *     console.log('模板变量:', templates)
  *   }

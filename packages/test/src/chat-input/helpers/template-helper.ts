@@ -4,7 +4,7 @@ import { CHAT_INPUT_SELECTORS } from '../selectors'
 /**
  * 模板块测试辅助函数
  */
-export function createTemplateBlockTestHelper(page: Page) {
+export function createTemplateTestHelper(page: Page) {
   const selectors = CHAT_INPUT_SELECTORS
 
   return {
@@ -20,22 +20,22 @@ export function createTemplateBlockTestHelper(page: Page) {
     /**
      * 获取所有模板块
      */
-    getTemplateBlocks() {
-      return page.locator(selectors.templateBlock)
+    getTemplates() {
+      return page.locator(selectors.template)
     },
 
     /**
      * 根据索引获取模板块
      */
-    getTemplateBlock(index: number) {
-      return this.getTemplateBlocks().nth(index)
+    getTemplate(index: number) {
+      return this.getTemplates().nth(index)
     },
 
     /**
      * 获取模板块内的可编辑内容元素
      */
-    getTemplateBlockContent(index: number) {
-      return this.getTemplateBlock(index).locator(selectors.templateBlockContent)
+    getTemplateContent(index: number) {
+      return this.getTemplate(index).locator(selectors.templateContent)
     },
 
     /**
@@ -45,7 +45,7 @@ export function createTemplateBlockTestHelper(page: Page) {
     async setSimpleTemplate() {
       await page.click(selectors.setTemplateSimpleBtn)
       // 等待至少一个模板块出现
-      await expect(this.getTemplateBlocks().first()).toBeVisible()
+      await expect(this.getTemplates().first()).toBeVisible()
     },
 
     /**
@@ -55,7 +55,7 @@ export function createTemplateBlockTestHelper(page: Page) {
     async setEmptyTemplate() {
       await page.click(selectors.setTemplateEmptyBtn)
       // 等待至少一个模板块出现
-      await expect(this.getTemplateBlocks().first()).toBeVisible()
+      await expect(this.getTemplates().first()).toBeVisible()
     },
 
     /**
@@ -65,7 +65,7 @@ export function createTemplateBlockTestHelper(page: Page) {
     async setMultipleTemplates() {
       await page.click(selectors.setTemplateMultipleBtn)
       // 等待至少3个模板块出现
-      await expect(this.getTemplateBlocks()).toHaveCount(3)
+      await expect(this.getTemplates()).toHaveCount(3)
     },
 
     /**
@@ -74,7 +74,7 @@ export function createTemplateBlockTestHelper(page: Page) {
     async clearTemplates() {
       await page.click(selectors.clearTemplateBtn)
       // 等待模板块数量归零
-      await expect(this.getTemplateBlocks()).toHaveCount(0)
+      await expect(this.getTemplates()).toHaveCount(0)
     },
 
     /**
@@ -90,31 +90,31 @@ export function createTemplateBlockTestHelper(page: Page) {
     /**
      * 获取模板块数量
      */
-    async getTemplateBlockCount() {
-      return await this.getTemplateBlocks().count()
+    async getTemplateCount() {
+      return await this.getTemplates().count()
     },
 
     /**
      * 获取指定模板块的文本内容
      */
-    async getTemplateBlockText(index: number) {
-      const block = this.getTemplateBlock(index)
+    async getTemplateText(index: number) {
+      const block = this.getTemplate(index)
       return await block.textContent()
     },
 
     /**
      * 点击进入模板块编辑
      */
-    async clickTemplateBlock(index: number) {
-      const block = this.getTemplateBlock(index)
+    async clickTemplate(index: number) {
+      const block = this.getTemplate(index)
       await block.click()
     },
 
     /**
      * 聚焦到模板块内容末尾
      */
-    async focusTemplateBlockEnd(index: number) {
-      const content = this.getTemplateBlockContent(index)
+    async focusTemplateEnd(index: number) {
+      const content = this.getTemplateContent(index)
       await content.click()
       // 移动光标到末尾
       await page.keyboard.press('End')
@@ -123,8 +123,8 @@ export function createTemplateBlockTestHelper(page: Page) {
     /**
      * 聚焦到模板块内容开头
      */
-    async focusTemplateBlockStart(index: number) {
-      const content = this.getTemplateBlockContent(index)
+    async focusTemplateStart(index: number) {
+      const content = this.getTemplateContent(index)
       await content.click()
       // 移动光标到开头
       await page.keyboard.press('Home')
@@ -133,8 +133,8 @@ export function createTemplateBlockTestHelper(page: Page) {
     /**
      * 在模板块中输入文本
      */
-    async typeInTemplateBlock(index: number, text: string) {
-      const content = this.getTemplateBlockContent(index)
+    async typeInTemplate(index: number, text: string) {
+      const content = this.getTemplateContent(index)
       await content.click()
       await content.type(text)
     },
@@ -195,15 +195,15 @@ export function createTemplateBlockTestHelper(page: Page) {
     /**
      * 验证模板块数量
      */
-    async expectTemplateBlockCount(count: number) {
-      await expect(this.getTemplateBlocks()).toHaveCount(count)
+    async expectTemplateCount(count: number) {
+      await expect(this.getTemplates()).toHaveCount(count)
     },
 
     /**
      * 验证模板块文本内容
      */
-    async expectTemplateBlockText(index: number, text: string) {
-      const block = this.getTemplateBlock(index)
+    async expectTemplateText(index: number, text: string) {
+      const block = this.getTemplate(index)
       await expect(block).toContainText(text)
     },
 
@@ -227,9 +227,9 @@ export function createTemplateBlockTestHelper(page: Page) {
      */
     async clearAllTemplatesContent(backspaceCount: number) {
       // 聚焦到最后一个模板块末尾
-      const count = await this.getTemplateBlockCount()
+      const count = await this.getTemplateCount()
       if (count > 0) {
-        await this.focusTemplateBlockEnd(count - 1)
+        await this.focusTemplateEnd(count - 1)
         await this.pressBackspace(backspaceCount)
       }
     },

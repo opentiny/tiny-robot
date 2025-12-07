@@ -102,8 +102,8 @@
 // Sender: 1130 行复杂的 contenteditable 操作
 // Tiptap: 约 100-150 行的 Node 定义
 
-const TemplateBlock = Node.create({
-  name: 'templateBlock',
+const Template = Node.create({
+  name: 'template',
   group: 'inline',
   inline: true,
   atom: true,
@@ -117,7 +117,7 @@ const TemplateBlock = Node.create({
   },
   
   addNodeView() {
-    return VueNodeViewRenderer(TemplateBlockView)
+    return VueNodeViewRenderer(TemplateView)
   }
 })
 ```
@@ -137,7 +137,7 @@ const TemplateBlock = Node.create({
 ```typescript
 // Tiptap 提供丰富的命令 API
 editor.commands.setTextSelection(10)
-editor.commands.insertContent({ type: 'templateBlock', attrs: {...} })
+editor.commands.insertContent({ type: 'template', attrs: {...} })
 editor.commands.focus()
 editor.commands.blur()
 
@@ -158,7 +158,7 @@ import { useEditor, EditorContent } from '@tiptap/vue-3'
 
 const editor = useEditor({
   content: props.modelValue,
-  extensions: [StarterKit, TemplateBlock],
+  extensions: [StarterKit, Template],
   onUpdate: () => {
     emit('update:modelValue', editor.getHTML())
   }
@@ -355,8 +355,8 @@ const SuggestionPlugin = new Plugin({
 
 1. **节点定义（约 100 行）**
    ```typescript
-   const TemplateBlock = Node.create({
-     name: 'templateBlock',
+   const Template = Node.create({
+     name: 'template',
      group: 'inline',
      inline: true,
      atom: true,
@@ -371,7 +371,7 @@ const SuggestionPlugin = new Plugin({
    ```vue
    <template>
      <node-view-wrapper>
-       <span class="template-block">
+       <span class="template">
          {{ node.attrs.content }}
        </span>
      </node-view-wrapper>
@@ -383,7 +383,7 @@ const SuggestionPlugin = new Plugin({
    const editor = useEditor({
      extensions: [
        StarterKit,
-       TemplateBlock,
+       Template,
        // 其他扩展
      ]
    })
@@ -394,7 +394,7 @@ const SuggestionPlugin = new Plugin({
    // 插入、删除、更新模板块
    const insertTemplate = (template) => {
      editor.commands.insertContent({
-       type: 'templateBlock',
+       type: 'template',
        attrs: template
      })
    }

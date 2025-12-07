@@ -51,12 +51,12 @@ MyComponent.Plugin
 ### **方案 1：独立导出（当前方案）**
 
 ```typescript
-import { ChatInput, Mention, Suggestion, TemplateBlock } from '@opentiny/tiny-robot'
+import { ChatInput, Mention, Suggestion, Template } from '@opentiny/tiny-robot'
 
 const extensions = [
   Mention.configure({ items: mentions, char: '@' }),
   Suggestion.configure({ items: suggestions }),
-  TemplateBlock.configure({ items: templates })
+  Template.configure({ items: templates })
 ]
 ```
 
@@ -81,7 +81,7 @@ import { ChatInput } from '@opentiny/tiny-robot'
 const extensions = [
   ChatInput.Mention.configure({ items: mentions, char: '@' }),
   ChatInput.Suggestion.configure({ items: suggestions }),
-  ChatInput.TemplateBlock.configure({ items: templates })
+  ChatInput.Template.configure({ items: templates })
 ]
 ```
 
@@ -225,22 +225,22 @@ const extensions = [ChatInput.Mention.configure({ ... })]
 ```typescript
 // src/chat-input/index.ts
 import ChatInput from './index.vue'
-import { Mention, Suggestion, TemplateBlock } from './extensions'
+import { Mention, Suggestion, Template } from './extensions'
 
 // 静态属性
 ChatInput.Mention = Mention
 ChatInput.Suggestion = Suggestion
-ChatInput.TemplateBlock = TemplateBlock
+ChatInput.Template = Template
 
 // 工厂函数
 ChatInput.mention = (items, options) => Mention.configure({ items, ...options })
 ChatInput.suggestion = (items, options) => Suggestion.configure({ items, ...options })
-ChatInput.template = (items, options) => TemplateBlock.configure({ items, ...options })
+ChatInput.template = (items, options) => Template.configure({ items, ...options })
 
 export default ChatInput
 
 // 也导出扩展类（向后兼容）
-export { Mention, Suggestion, TemplateBlock }
+export { Mention, Suggestion, Template }
 ```
 
 ### **类型声明**
@@ -248,19 +248,19 @@ export { Mention, Suggestion, TemplateBlock }
 ```typescript
 // src/chat-input/index.type.ts
 import type { Component } from 'vue'
-import type { Mention, Suggestion, TemplateBlock } from './extensions'
+import type { Mention, Suggestion, Template } from './extensions'
 
 declare module './index.vue' {
   interface ChatInputComponent extends Component {
     // 静态属性
     Mention: typeof Mention
     Suggestion: typeof Suggestion
-    TemplateBlock: typeof TemplateBlock
+    Template: typeof Template
     
     // 工厂函数
     mention: (items: MentionItem[], options?: Partial<MentionOptions>) => Extension
     suggestion: (items: SuggestionItem[], options?: Partial<SuggestionOptions>) => Extension
-    template: (items: TemplateItem[], options?: Partial<TemplateBlockOptions>) => Extension
+    template: (items: TemplateItem[], options?: Partial<TemplateOptions>) => Extension
   }
 }
 ```
@@ -412,7 +412,7 @@ const extensions = [ChatInput.Mention.configure({ ... })]
 
 // 打包结果（配置 sideEffects: false）
 // ✅ 只包含 ChatInput + Mention
-// ✅ Suggestion 和 TemplateBlock 不会被打包
+// ✅ Suggestion 和 Template 不会被打包
 ```
 
 ---
@@ -422,12 +422,12 @@ const extensions = [ChatInput.Mention.configure({ ... })]
 ```typescript
 // src/chat-input/index.ts
 import ChatInput from './index.vue'
-import { Mention, Suggestion, TemplateBlock } from './extensions'
+import { Mention, Suggestion, Template } from './extensions'
 
 // 静态属性（用于扩展继承）
 ChatInput.Mention = Mention
 ChatInput.Suggestion = Suggestion
-ChatInput.TemplateBlock = TemplateBlock
+ChatInput.Template = Template
 
 // 便捷函数（用于简单场景）
 ChatInput.mention = (items, char = '@', options) => 
@@ -437,7 +437,7 @@ ChatInput.suggestion = (items, options) =>
   Suggestion.configure({ items, ...options })
 
 ChatInput.template = (items, options) => 
-  TemplateBlock.configure({ items, ...options })
+  Template.configure({ items, ...options })
 
 export default ChatInput
 ```

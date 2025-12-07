@@ -85,7 +85,7 @@ export function ensureZeroWidthChars() {
 
 ```typescript
 // 删除模板块
-if (beforeNode && beforeNode.type.name === 'templateBlock') {
+if (beforeNode && beforeNode.type.name === 'template') {
   // 检查前后是否有零宽字符，一并删除
   let deleteStart = $from.pos - beforeNode.nodeSize
   let deleteEnd = $from.pos
@@ -146,8 +146,8 @@ if (lines.length > 1) {
 
 | 特性           | Other Design                        | 当前实现                         |
 | -------------- | ----------------------------------- | -------------------------------- |
-| 自定义节点类型 | input-slot, select-slot, skill-slot | template-block                   |
-| 节点可编辑性   | input-slot 可编辑                   | template-block 通过 Vue 组件编辑 |
+| 自定义节点类型 | input-slot, select-slot, skill-slot | template                   |
+| 节点可编辑性   | input-slot 可编辑                   | template 通过 Vue 组件编辑 |
 | 输入法处理     | 有专门的 composition 处理           | 暂未实现（可后续添加）           |
 | 节点删除标记   | 使用 `DeleteAble` meta              | 直接删除                         |
 
@@ -155,7 +155,7 @@ if (lines.length > 1) {
 
 当前实现相比 Other Design 更简洁：
 
-1. **单一节点类型** - 只有 `template-block`，逻辑更简单
+1. **单一节点类型** - 只有 `template`，逻辑更简单
 2. **无需 placeholder** - 模板块内容由 Vue 组件管理
 3. **更少的边界情况** - 不需要处理多种 slot 类型的交互
 
@@ -164,12 +164,12 @@ if (lines.length > 1) {
 ### 基本使用
 
 ```typescript
-import { TemplateBlock } from './extensions/template-block'
+import { Template } from './extensions/template'
 
 const editor = useEditor({
   extensions: [
     StarterKit,
-    TemplateBlock, // 自动包含所有插件
+    Template, // 自动包含所有插件
   ],
 })
 ```
@@ -390,7 +390,7 @@ export function handleCompositionEndLogic(view: EditorView) {
 
 ```typescript
 {
-  name: 'templateBlock',
+  name: 'template',
   group: 'inline',
   inline: true,
   content: 'text*',  // 允许内部有文本
@@ -449,7 +449,7 @@ if ($from.pos === $from.end() && content.length === 1 && content !== ZERO_WIDTH_
 }
 
 // 零宽字符清理：删除模板块时一并删除周围零宽字符
-if (beforeNode.type.name === 'templateBlock' && isEmpty) {
+if (beforeNode.type.name === 'template' && isEmpty) {
   let deleteStart = $from.pos - beforeNode.nodeSize
   let deleteEnd = $from.pos
 
@@ -476,7 +476,7 @@ if (beforeNode.type.name === 'templateBlock' && isEmpty) {
 A: 零宽字符用于光标定位，正常情况下不可见。如果可见，可能是字体渲染问题。
 
 **Q: 如何自定义模板块样式？**  
-A: 通过 CSS 变量或覆盖 `.template-block` 类样式。
+A: 通过 CSS 变量或覆盖 `.template` 类样式。
 
 **Q: 模板块可以包含换行吗？**  
 A: 不支持。模板块是 inline 节点，内部只能包含单行文本。

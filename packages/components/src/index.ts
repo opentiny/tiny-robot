@@ -58,8 +58,8 @@ export type {
 } from './chat-input/index.type'
 
 export type {
-  TemplateBlockAttrs,
-  TemplateBlockOptions,
+  TemplateAttrs,
+  TemplateOptions,
   MentionOptions,
   MentionAttrs,
   MentionItem,

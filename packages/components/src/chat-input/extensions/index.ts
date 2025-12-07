@@ -2,8 +2,8 @@
  * Tiptap 扩展统一导出
  */
 
-export { TemplateBlock, getTemplateStructuredData } from './template-block'
-export type { TemplateBlockAttrs, TemplateBlockOptions } from './template-block'
+export { Template, getTemplateStructuredData } from './template'
+export type { TemplateAttrs, TemplateOptions } from './template'
 
 export { Mention, MentionPluginKey, getMentions } from './mention'
 export type { MentionAttrs, MentionOptions, MentionItem } from './mention'

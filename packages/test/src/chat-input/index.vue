@@ -32,12 +32,11 @@
     <ChatInput
       ref="chatInputRef"
       v-model="content"
-      v-model:templateData="templateData"
       data-testid="test-chat-input"
       :mode="mode"
       :clearable="clearable"
       :loading="loading"
-      :mentions="mentions"
+      :extensions="extensions"
       :max-length="100"
       show-word-limit
       placeholder="请输入内容..."
@@ -154,6 +153,10 @@ const mentions = ref<MentionItem[]>([
     preset: '你是一个专业的数据分析师，擅长从数据中提取有价值的洞察...',
   },
 ])
+
+// 配置扩展
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const extensions = [ChatInput.mention(mentions as any), ChatInput.template(templateData as any)]
 </script>
 
 <style scoped>

@@ -83,7 +83,7 @@ chat-input/
 │   └── index.ts                # ChatInputContext
 │
 ├── extensions/                 # Tiptap 扩展
-│   ├── template-block/         # 模板块扩展
+│   ├── template/         # 模板块扩展
 │   ├── single-line-mode/       # 单行模式扩展
 │   ├── suggestion/             # 输入联想扩展
 │   └── character-count/        # 字数统计扩展
@@ -268,7 +268,7 @@ const { canSubmit, submit } = useChatInputContext()
 
 | 扩展           | 类型      | 职责       |
 | -------------- | --------- | ---------- |
-| TemplateBlock  | Node      | 模板块节点 |
+| Template  | Node      | 模板块节点 |
 | SingleLineMode | Extension | 单行模式   |
 | Suggestion     | Extension | 输入联想   |
 | CharacterCount | Extension | 字数统计   |

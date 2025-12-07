@@ -1,5 +1,5 @@
 /**
- * TemplateBlock 扩展
+ * Template 扩展
  *
  * 模板块节点，用于模板填充功能
  * - 定义为 inline + atom 节点
@@ -14,7 +14,7 @@ import { watch, isRef } from 'vue'
 import TemplateBlockView from './template-block-view.vue'
 import type { TemplateItem } from '../../index.type'
 import { ensureZeroWidthChars, keyboardNavigationPlugin, pasteHandlerPlugin } from './plugins'
-import type { TemplateBlockOptions, TemplateBlockAttrs } from './types'
+import type { TemplateOptions, TemplateAttrs } from './types'
 import './commands.d.ts'
 import './index.less'
 
@@ -31,11 +31,11 @@ function generateId(): string {
 /**
  * 查找模板块节点
  */
-function findTemplateBlock(editor: Editor, id: string): { node: PMNode; pos: number } | null {
+function findTemplate(editor: Editor, id: string): { node: PMNode; pos: number } | null {
   let result: { node: PMNode; pos: number } | null = null
 
   editor.state.doc.descendants((node, pos) => {
-    if (node.type.name === 'templateBlock' && node.attrs.id === id) {
+    if (node.type.name === 'template' && node.attrs.id === id) {
       result = { node, pos }
       return false // 停止遍历
     }
@@ -47,11 +47,11 @@ function findTemplateBlock(editor: Editor, id: string): { node: PMNode; pos: num
 /**
  * 获取所有模板块节点
  */
-function getAllTemplateBlocks(editor: Editor): Array<{ node: PMNode; pos: number }> {
+function getAllTemplates(editor: Editor): Array<{ node: PMNode; pos: number }> {
   const blocks: Array<{ node: PMNode; pos: number }> = []
 
   editor.state.doc.descendants((node, pos) => {
-    if (node.type.name === 'templateBlock') {
+    if (node.type.name === 'template') {
       blocks.push({ node, pos })
     }
   })
@@ -69,7 +69,7 @@ export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any) => {
-    if (node.type.name === 'templateBlock') {
+    if (node.type.name === 'template') {
       // 模板块节点
       items.push({
         type: 'template',
@@ -98,10 +98,10 @@ export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
 }
 
 /**
- * TemplateBlock 扩展定义
+ * Template 扩展定义
  */
-export const TemplateBlock = Node.create<TemplateBlockOptions>({
-  name: 'templateBlock',
+export const Template = Node.create<TemplateOptions>({
+  name: 'template',
 
   // 节点配置
   group: 'inline',
@@ -129,7 +129,7 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
           const currentItems = isRef(items) ? items.value : items
           if (currentItems !== null && currentItems !== undefined) {
             this.editor.commands.setTemplateData(currentItems)
-            this.editor.commands.focusFirstTemplateBlock()
+            this.editor.commands.focusFirstTemplate()
           }
         },
         { deep: true, immediate: true },
@@ -168,7 +168,7 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
   parseHTML() {
     return [
       {
-        tag: 'span[data-template-block]',
+        tag: 'span[data-template]',
       },
     ]
   },
@@ -178,7 +178,7 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
-        'data-template-block': '',
+        'data-template': '',
         'data-id': node.attrs.id as string,
         'data-content': node.attrs.content as string,
       }),
@@ -224,7 +224,7 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
             } else if (item.type === 'template') {
               // 添加模板块节点（内部包含文本）
               content.push({
-                type: 'templateBlock',
+                type: 'template',
                 attrs: {
                   id: item.id || generateId(),
                   content: item.content,
@@ -255,11 +255,11 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
       /**
        * 插入模板块
        */
-      insertTemplateBlock:
-        (attrs: Partial<TemplateBlockAttrs>) =>
+      insertTemplate:
+        (attrs: Partial<TemplateAttrs>) =>
         ({ commands }: { commands: Editor['commands'] }) => {
           return commands.insertContent({
-            type: 'templateBlock',
+            type: 'template',
             attrs: {
               id: attrs.id || generateId(),
               content: attrs.content || '',
@@ -270,10 +270,10 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
       /**
        * 更新模板块
        */
-      updateTemplateBlock:
+      updateTemplate:
         (id: string, content: string) =>
         ({ editor, tr }: { editor: Editor; tr: Editor['state']['tr'] }) => {
-          const result = findTemplateBlock(editor, id)
+          const result = findTemplate(editor, id)
           if (!result) {
             return false
           }
@@ -290,10 +290,10 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
       /**
        * 删除模板块
        */
-      deleteTemplateBlock:
+      deleteTemplate:
         (id: string) =>
         ({ editor, tr }: { editor: Editor; tr: Editor['state']['tr'] }) => {
-          const result = findTemplateBlock(editor, id)
+          const result = findTemplate(editor, id)
           if (!result) {
             return false
           }
@@ -307,10 +307,10 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
       /**
        * 聚焦到模板块
        */
-      focusTemplateBlock:
+      focusTemplate:
         (id: string, position: 'start' | 'end' | number = 'end') =>
         ({ editor, commands }: { editor: Editor; commands: Editor['commands'] }) => {
-          const result = findTemplateBlock(editor, id)
+          const result = findTemplate(editor, id)
           if (!result) {
             return false
           }
@@ -332,10 +332,10 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
       /**
        * 聚焦到第一个模板块
        */
-      focusFirstTemplateBlock:
+      focusFirstTemplate:
         () =>
         ({ editor }: { editor: Editor }) => {
-          const blocks = getAllTemplateBlocks(editor)
+          const blocks = getAllTemplates(editor)
           if (blocks.length === 0) {
             return false
           }
@@ -368,10 +368,10 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
       /**
        * 聚焦到最后一个模板块
        */
-      focusLastTemplateBlock:
+      focusLastTemplate:
         () =>
         ({ editor, commands }: { editor: Editor; commands: Editor['commands'] }) => {
-          const blocks = getAllTemplateBlocks(editor)
+          const blocks = getAllTemplates(editor)
           if (blocks.length === 0) {
             return false
           }
@@ -384,5 +384,5 @@ export const TemplateBlock = Node.create<TemplateBlockOptions>({
   },
 })
 
-export default TemplateBlock
-export type { TemplateBlockOptions, TemplateBlockAttrs } from './types'
+export default Template
+export type { TemplateOptions, TemplateAttrs } from './types'

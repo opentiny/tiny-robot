@@ -110,9 +110,9 @@ packages/components/src/chat-input/
 │   └── types.ts                      # Context 相关类型
 │
 ├── extensions/                       # Tiptap 扩展
-│   ├── template-block/              
+│   ├── template/              
 │   │   ├── index.ts                 # 模板块扩展定义
-│   │   ├── template-block-view.vue  # 模板块视图组件
+│   │   ├── template-view.vue  # 模板块视图组件
 │   │   ├── types.ts                 # 模板块类型定义
 │   │   └── index.less               # 模板块样式
 │   │
@@ -975,7 +975,7 @@ ChatInputContext
 - CharacterCount (字数统计)
 
 可选扩展：
-- TemplateBlock (模板块)
+- Template (模板块)
 - SingleLineMode (单行模式)
 - Suggestion (输入联想)
 ```
@@ -1226,7 +1226,7 @@ Esc:
 
 ### 8.2 核心扩展
 
-#### 8.2.1 TemplateBlock
+#### 8.2.1 Template
 
 **职责：** 模板块节点
 
@@ -1250,9 +1250,9 @@ Esc:
 
 **命令：**
 ```typescript
-insertTemplateBlock(attrs: TemplateBlockAttrs): Command
-deleteTemplateBlock(id: string): Command
-updateTemplateBlock(id: string, content: string): Command
+insertTemplate(attrs: TemplateAttrs): Command
+deleteTemplate(id: string): Command
+updateTemplate(id: string, content: string): Command
 ```
 
 **实现要点：**
@@ -1263,7 +1263,7 @@ updateTemplateBlock(id: string, content: string): Command
 
 **节点定义：**
 ```
-name: 'templateBlock'
+name: 'template'
 group: 'inline'
 inline: true
 atom: true

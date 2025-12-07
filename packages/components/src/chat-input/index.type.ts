@@ -141,13 +141,13 @@ export interface ChatInputProps {
   /**
    * Tiptap 扩展配置
    *
-   * 用于添加增强输入能力，如 TemplateBlock、Mention、Suggestion 等
+   * 用于添加增强输入能力，如 Template、Mention、Suggestion 等
    *
    * @example 基础使用
    * ```typescript
-   * import { TemplateBlock } from '@tiny-robot/components/chat-input/extensions'
+   * import { Template } from '@tiny-robot/components/chat-input/extensions'
    *
-   * <ChatInput :extensions="[TemplateBlock]" />
+   * <ChatInput :extensions="[Template]" />
    * ```
    *
    * @example 带配置的扩展（响应式推荐）
@@ -238,7 +238,7 @@ export interface ChatInputEmits {
    *   console.log('纯文本:', text)
    *
    *   if (data?.template) {
-   *     // TemplateBlock 场景
+   *     // Template 场景
    *     console.log('模板数据:', data.template)
    *   }
    *

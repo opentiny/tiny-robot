@@ -37,8 +37,8 @@ export const CHAT_INPUT_SELECTORS = {
   mentionNode: '.mention',
 
   // Template Block 功能
-  templateBlock: '.template-block',
-  templateBlockContent: '.template-block__content',
+  template: '.template-block',
+  templateContent: '.template-block__content',
 
   // 模板测试按钮
   setTemplateSimpleBtn: '[data-testid="set-template-simple-btn"]',

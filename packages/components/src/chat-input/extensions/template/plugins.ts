@@ -1,5 +1,5 @@
 /**
- * TemplateBlock 插件
+ * Template 插件
  * 管理零宽字符和光标行为
  */
 
@@ -24,12 +24,12 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
       const { lastChild, firstChild } = node
 
       // 如果第一个 child 是模板块，在其前添加零宽字符
-      if (firstChild && firstChild.type.name === 'templateBlock') {
+      if (firstChild && firstChild.type.name === 'template') {
         todoPositions.push(pos + 1)
       }
 
       // 如果最后一个 child 是模板块，在其后添加零宽字符
-      if (lastChild && lastChild.type.name === 'templateBlock') {
+      if (lastChild && lastChild.type.name === 'template') {
         const paragraphEndPos = pos + node.nodeSize - 1
         const prevChar = tr.doc.textBetween(paragraphEndPos - 1, paragraphEndPos, '', '')
         if (prevChar !== ZERO_WIDTH_CHAR) {
@@ -44,12 +44,12 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
     }
 
     // 如果模板块内容为空，插入零宽字符占位
-    if (node.type.name === 'templateBlock' && node.content.size === 0) {
+    if (node.type.name === 'template' && node.content.size === 0) {
       todoPositions.push(pos + 1)
     }
 
     // 如果模板块后面有其他节点，在中间插入零宽字符
-    if (node.type.name === 'templateBlock' && parent) {
+    if (node.type.name === 'template' && parent) {
       let nodeIndex = -1
       parent.forEach((child: PMNode, _offset: number, i: number) => {
         if (child === node) {
@@ -61,7 +61,7 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
         const nextSibling = parent.child(nodeIndex + 1)
         // 只在连续两个模板块之间插入零宽字符
         // 不在模板块和文本之间插入，避免零宽字符被合并到文本节点
-        if (nextSibling.type.name === 'templateBlock') {
+        if (nextSibling.type.name === 'template') {
           const nextPos = pos + node.nodeSize
           // 检查是否已经有零宽字符
           const existingChar = tr.doc.textBetween(nextPos, nextPos + 1, '', '')
@@ -99,7 +99,7 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
  */
 export function ensureZeroWidthChars() {
   return new Plugin({
-    key: new PluginKey('template-block-zero-width'),
+    key: new PluginKey('template-zero-width'),
     appendTransaction(transactions: readonly Transaction[], _oldState: EditorState, newState: EditorState) {
       // 只在内容发生变化时修正
       const docChanged = transactions.some((tr) => tr.docChanged)
@@ -115,7 +115,7 @@ export function ensureZeroWidthChars() {
  */
 export function keyboardNavigationPlugin() {
   return new Plugin({
-    key: new PluginKey('template-block-keyboard'),
+    key: new PluginKey('template-keyboard'),
     props: {
       handleKeyDown(view: EditorView, event: KeyboardEvent) {
         const { state, dispatch } = view
@@ -131,7 +131,7 @@ export function keyboardNavigationPlugin() {
 
               if (index >= 2) {
                 const secondBeforeCursorNode = parent.child(index - 2)
-                if (secondBeforeCursorNode.type.name === 'templateBlock') {
+                if (secondBeforeCursorNode.type.name === 'template') {
                   // 进入模板块末尾（跳过零宽字符，进入节点内部）
                   const nextCursorPos = $from.pos - 2
                   dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
@@ -161,7 +161,7 @@ export function keyboardNavigationPlugin() {
 
               if (index < parent.childCount - 1) {
                 const secondAfterCursorNode = parent.child(index + 1)
-                if (secondAfterCursorNode.type.name === 'templateBlock') {
+                if (secondAfterCursorNode.type.name === 'template') {
                   // 进入模板块开头（跳过零宽字符，进入节点内部）
                   const newPos = $from.pos + 2
                   dispatch(state.tr.setSelection(TextSelection.create(state.doc, newPos)))
@@ -181,7 +181,7 @@ export function keyboardNavigationPlugin() {
 
         // 处理光标在模板块内部时的方向键导航
         const currentNode = $from.node()
-        if (currentNode.type.name === 'templateBlock') {
+        if (currentNode.type.name === 'template') {
           const content = currentNode.textContent || ''
 
           // 场景1: 模板块为空或只有零宽字符时，按左右箭头键直接跳出节点
@@ -221,7 +221,7 @@ export function keyboardNavigationPlugin() {
           const beforeNode = $from.nodeBefore
 
           // 如果光标在模板块内部
-          if (currentNode.type.name === 'templateBlock') {
+          if (currentNode.type.name === 'template') {
             const content = currentNode.textContent || ''
 
             // 删除最后一个字符时，插入零宽字符（保留模板块）
@@ -276,7 +276,7 @@ export function keyboardNavigationPlugin() {
             beforeNode.text?.length === 1 &&
             beforeNode.text !== ZERO_WIDTH_CHAR &&
             $from.nodeAfter &&
-            $from.nodeAfter.type.name === 'templateBlock'
+            $from.nodeAfter.type.name === 'template'
           ) {
             const begin = $from.pos - beforeNode.nodeSize
             const end = $from.pos
@@ -288,7 +288,7 @@ export function keyboardNavigationPlugin() {
           }
 
           // 从右侧删除模板块
-          if (beforeNode && beforeNode.type.name === 'templateBlock') {
+          if (beforeNode && beforeNode.type.name === 'template') {
             const content = beforeNode.textContent || ''
             // 判断是否为空：排除零宽字符
             const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
@@ -335,7 +335,7 @@ export function keyboardNavigationPlugin() {
             // 检查前面是否有模板块（可能隔着零宽字符）
             if (index > 1) {
               const prevPrevNode = parent.child(index - 2)
-              if (prevPrevNode.type.name === 'templateBlock') {
+              if (prevPrevNode.type.name === 'template') {
                 const content = prevPrevNode.textContent || ''
                 const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
 
@@ -407,7 +407,7 @@ export function keyboardNavigationPlugin() {
           const afterNode = $from.nodeAfter
 
           // 如果光标在模板块内部
-          if (currentNode.type.name === 'templateBlock') {
+          if (currentNode.type.name === 'template') {
             const content = currentNode.textContent || ''
 
             // 删除第一个字符时，插入零宽字符（保留模板块）
@@ -462,7 +462,7 @@ export function keyboardNavigationPlugin() {
             afterNode.text?.length === 1 &&
             afterNode.text !== ZERO_WIDTH_CHAR &&
             $from.nodeBefore &&
-            $from.nodeBefore.type.name === 'templateBlock'
+            $from.nodeBefore.type.name === 'template'
           ) {
             const begin = $from.pos
             const end = $from.pos + afterNode.nodeSize
@@ -474,7 +474,7 @@ export function keyboardNavigationPlugin() {
           }
 
           // 从左侧删除模板块
-          if (afterNode && afterNode.type.name === 'templateBlock') {
+          if (afterNode && afterNode.type.name === 'template') {
             const content = afterNode.textContent || ''
             // 判断是否为空：排除零宽字符
             const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
@@ -521,7 +521,7 @@ export function keyboardNavigationPlugin() {
             // 检查后面是否有模板块（可能隔着零宽字符）
             if (index < parent.childCount - 1) {
               const nextNextNode = parent.child(index + 1)
-              if (nextNextNode.type.name === 'templateBlock') {
+              if (nextNextNode.type.name === 'template') {
                 const content = nextNextNode.textContent || ''
                 const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
 
@@ -586,7 +586,7 @@ export function keyboardNavigationPlugin() {
  */
 export function pasteHandlerPlugin() {
   return new Plugin({
-    key: new PluginKey('template-block-paste'),
+    key: new PluginKey('template-paste'),
     props: {
       handlePaste(view: EditorView, event: ClipboardEvent) {
         const types = event.clipboardData?.types || []
@@ -594,7 +594,7 @@ export function pasteHandlerPlugin() {
 
         // 如果包含模板块的 HTML，让 Tiptap 默认处理
         if (
-          (types.includes('text/html') && html?.includes('data-template-block')) ||
+          (types.includes('text/html') && html?.includes('data-template')) ||
           types.includes('application/x-prosemirror-slice')
         ) {
           return false

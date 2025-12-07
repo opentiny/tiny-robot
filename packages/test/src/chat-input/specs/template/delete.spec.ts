@@ -1,11 +1,11 @@
 import { test, type Page } from '@playwright/test'
 import { createChatInputTestHelper } from '../../helpers'
-import { createTemplateBlockTestHelper } from '../../helpers/template-block-helper'
+import { createTemplateTestHelper } from '../../helpers/template-helper'
 
 test.describe('Template Block - Delete 删除逻辑', () => {
   let page: Page
   let helper: ReturnType<typeof createChatInputTestHelper>
-  let templateHelper: ReturnType<typeof createTemplateBlockTestHelper>
+  let templateHelper: ReturnType<typeof createTemplateTestHelper>
 
   // 只在所有测试开始前创建页面并导航一次
   test.beforeAll(async ({ browser }) => {
@@ -13,7 +13,7 @@ test.describe('Template Block - Delete 删除逻辑', () => {
     await page.goto('/')
     await page.click('text=ChatInput 组件')
     helper = createChatInputTestHelper(page)
-    templateHelper = createTemplateBlockTestHelper(page)
+    templateHelper = createTemplateTestHelper(page)
   })
 
   // 所有测试结束后关闭页面
@@ -30,55 +30,55 @@ test.describe('Template Block - Delete 删除逻辑', () => {
     await templateHelper.setSimpleTemplate()
 
     // 聚焦到模板块开头
-    await templateHelper.focusTemplateBlockStart(0)
+    await templateHelper.focusTemplateStart(0)
 
     // 按 Delete 删除 "张"
     await templateHelper.pressDelete()
 
     // 验证：模板块变成 "三"
-    await templateHelper.expectTemplateBlockText(0, '三')
+    await templateHelper.expectTemplateText(0, '三')
   })
 
   test('TC-DL-02: 删除最后一个字符时应该保留模板块', async () => {
     await templateHelper.setSimpleTemplate()
 
     // 删除 "张"
-    await templateHelper.focusTemplateBlockStart(0)
+    await templateHelper.focusTemplateStart(0)
     await templateHelper.pressDelete()
 
     // 删除 "三"
     await templateHelper.pressDelete()
 
     // 验证：模板块仍然存在（空模板块）
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-DL-03: 空模板块内按 Delete 应该跳出模板块', async () => {
     await templateHelper.setEmptyTemplate()
 
     // 点击进入空模板块
-    await templateHelper.clickTemplateBlock(0)
+    await templateHelper.clickTemplate(0)
     await templateHelper.wait(100)
 
     // 按 Delete
     await templateHelper.pressDelete()
 
     // 验证：模板块仍然存在
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-DL-04: 模板块末尾按 Delete 应该跳出不吸入文本', async () => {
     await templateHelper.setSimpleTemplate()
 
     // 聚焦到模板块末尾
-    await templateHelper.focusTemplateBlockEnd(0)
+    await templateHelper.focusTemplateEnd(0)
 
     // 按 Delete
     await templateHelper.pressDelete()
 
     // 验证：文本 "，来自" 仍然在，没有被吸入模板块
     await templateHelper.expectEditorToContainText('，来自')
-    await templateHelper.expectTemplateBlockCount(1)
+    await templateHelper.expectTemplateCount(1)
   })
 
   test('TC-DL-05: 从模板块左侧按 Delete 应该进入模板块', async () => {
@@ -95,8 +95,8 @@ test.describe('Template Block - Delete 删除逻辑', () => {
     await templateHelper.pressDelete()
 
     // 验证：模板块仍然存在且内容完整
-    await templateHelper.expectTemplateBlockCount(1)
-    await templateHelper.expectTemplateBlockText(0, '张三')
+    await templateHelper.expectTemplateCount(1)
+    await templateHelper.expectTemplateText(0, '张三')
   })
 
   test('TC-DL-06: 从左侧删除空模板块需要多次操作', async () => {
@@ -136,6 +136,6 @@ test.describe('Template Block - Delete 删除逻辑', () => {
 
     // 验证：所有内容被删除
     await helper.expectEditorEmpty()
-    await templateHelper.expectTemplateBlockCount(0)
+    await templateHelper.expectTemplateCount(0)
   })
 })

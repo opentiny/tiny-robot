@@ -5,11 +5,11 @@
  */
 
 import type { Ref } from 'vue'
-import { Mention, Suggestion, TemplateBlock } from '../extensions'
+import { Mention, Suggestion, Template } from '../extensions'
 import type { MentionItem, MentionOptions } from '../extensions/mention'
 import type { SuggestionItem, SuggestionOptions } from '../extensions/suggestion'
 import type { TemplateItem } from '../index.type'
-import type { TemplateBlockOptions } from '../extensions/template-block'
+import type { TemplateOptions } from '../extensions/template'
 
 /**
  * 创建 Mention 扩展（便捷函数）
@@ -62,7 +62,7 @@ export function suggestion(
 }
 
 /**
- * 创建 TemplateBlock 扩展（便捷函数）
+ * 创建 Template 扩展（便捷函数）
  *
  * @param items - 模板项列表
  * @param options - 其他配置项
@@ -74,9 +74,9 @@ export function suggestion(
  */
 export function template(
   items: TemplateItem[] | Ref<TemplateItem[]>,
-  options?: Partial<Omit<TemplateBlockOptions, 'items'>>,
+  options?: Partial<Omit<TemplateOptions, 'items'>>,
 ) {
-  return TemplateBlock.configure({
+  return Template.configure({
     items,
     ...options,
   })

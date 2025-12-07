@@ -850,7 +850,7 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits) {
     Placeholder.configure({
       placeholder: props.placeholder
     }),
-    TemplateBlock,
+    Template,
     SkillMention.configure({
       skills: props.skills || []
     }),

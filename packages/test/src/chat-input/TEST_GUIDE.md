@@ -13,13 +13,13 @@ packages/test/src/chat-input/
 │   ├── mention/            # 复杂特性按目录分层
 │   │   ├── trigger.spec.ts # 触发逻辑
 │   │   └── list.spec.ts    # 列表交互
-│   └── template-block/     # 模板块特性
+│   └── template/     # 模板块特性
 │       ├── backspace.spec.ts
 │       └── delete.spec.ts
 ├── helpers/                # 测试辅助函数 (Page Object 模式)
 │   ├── index.ts            # 通用 helper
 │   ├── mention-helper.ts   # 特性专用 helper
-│   └── template-block-helper.ts
+│   └── template-helper.ts
 ├── selectors.ts            # 统一管理 CSS 选择器
 └── index.vue               # 测试 Demo 页面
 ```
@@ -28,9 +28,9 @@ packages/test/src/chat-input/
 
 为避免单文件过大，应按**功能模块**和**操作类型**进行分层：
 
-- **模块级**：每个独立特性（如 Mention, TemplateBlock）应在 `specs/` 下拥有独立目录。
+- **模块级**：每个独立特性（如 Mention, Template）应在 `specs/` 下拥有独立目录。
 - **文件级**：按用户交互行为拆分文件。
-  - ❌ `template-block.spec.ts` (包含所有增删改查，太杂)
+  - ❌ `template.spec.ts` (包含所有增删改查，太杂)
   - ✅ `backspace.spec.ts` (专注退格删除逻辑)
   - ✅ `delete.spec.ts` (专注 Delete 键逻辑)
   - ✅ `boundary.spec.ts` (专注边界情况)
@@ -95,11 +95,11 @@ test('TC-BS-01: 应该能够删除模板块内的字符', async () => {
   await helper.setSimpleTemplate()
 
   // 2. Act
-  await helper.focusTemplateBlockEnd(0)
+  await helper.focusTemplateEnd(0)
   await helper.pressBackspace()
 
   // 3. Assert
-  await helper.expectTemplateBlockText(0, '张')
+  await helper.expectTemplateText(0, '张')
 })
 ```
 

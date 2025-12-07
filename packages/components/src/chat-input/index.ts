@@ -8,7 +8,7 @@
 
 import type { App } from 'vue'
 import ChatInputComponent from './index.vue'
-import { Mention, Suggestion, TemplateBlock } from './extensions'
+import { Mention, Suggestion, Template } from './extensions'
 import { mention, suggestion, template } from './helpers/extension-helpers'
 import './index.less'
 
@@ -26,7 +26,7 @@ const ChatInput = Object.assign(ChatInputComponent, {
   // 扩展类（用于继承）
   Mention,
   Suggestion,
-  TemplateBlock,
+  Template,
   // 便捷函数（用于简单场景）
   mention,
   suggestion,
@@ -53,7 +53,7 @@ export type {
 export { useChatInputContext } from './context'
 
 // ========== 扩展类型导出 ==========
-export type { TemplateBlockAttrs, TemplateBlockOptions } from './extensions/template-block'
+export type { TemplateAttrs, TemplateOptions } from './extensions/template'
 export type { MentionAttrs, MentionOptions } from './extensions/mention'
 export type {
   SuggestionItem,

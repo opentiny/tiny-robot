@@ -11,7 +11,7 @@
 import { EditorView } from '@tiptap/pm/view'
 import type { Editor } from '@tiptap/core'
 import { computed, provide, ref, toRef, watch } from 'vue'
-import type { ChatInputProps, ChatInputEmits, StructuredData } from '../index.type'
+import type { ChatInputProps, ChatInputEmits, StructuredData, TemplateItem } from '../index.type'
 import { MentionPluginKey, SuggestionPluginKey, getTemplateStructuredData, getMentions } from '../extensions'
 import { CHAT_INPUT_CONTEXT_KEY, type ChatInputContext } from '../types/context'
 import { useEditor } from './useEditor'
@@ -99,19 +99,19 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     if (!canSubmit.value || !editor.value) return
 
     // 构建结构化数据（第二个参数，可选）
-    // 注意：TemplateBlock 和 Mention 是互斥的使用场景，直接返回数据数组
+    // 注意：Template 和 Mention 是互斥的使用场景，直接返回数据数组
     let structuredData: StructuredData | undefined
     let textContent = ''
 
-    // 优先检查 TemplateBlock（模板场景）
-    if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'templateBlock')) {
+    // 优先检查 Template（模板场景）
+    if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'template')) {
       const templateItems = getTemplateStructuredData(editor.value)
       if (templateItems.length > 0) {
-        structuredData = templateItems.map((item) => ({
+        structuredData = templateItems.map((item: TemplateItem) => ({
           type: item.type,
           content: item.content,
         }))
-        textContent = templateItems.map((item) => item.content).join('')
+        textContent = templateItems.map((item: TemplateItem) => item.content).join('')
       }
     }
     // 其次检查 Mention（提及场景）

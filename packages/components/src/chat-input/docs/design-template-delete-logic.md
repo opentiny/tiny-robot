@@ -2,7 +2,7 @@
 
 ## 📋 总览
 
-本文档详细说明模板块（template-block）的 **Backspace** 和 **Delete** 删除逻辑，包括所有场景、边界情况处理和可能存在的问题。
+本文档详细说明模板块（template）的 **Backspace** 和 **Delete** 删除逻辑，包括所有场景、边界情况处理和可能存在的问题。
 
 ## 🎯 核心设计原则
 
@@ -125,7 +125,7 @@ if ($from.pos === $from.end() && content.length > 0 && content !== ZERO_WIDTH_CH
 
 ```typescript
 // Backspace：从右侧删除空模板块
-if (beforeNode.type.name === 'templateBlock' && isEmpty) {
+if (beforeNode.type.name === 'template' && isEmpty) {
   // 计算删除范围，包括前后零宽字符
   let deleteStart = $from.pos - beforeNode.nodeSize
   let deleteEnd = $from.pos
