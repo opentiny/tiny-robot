@@ -27,7 +27,6 @@ const slotScope = useSlotScope()
   justify-content: space-between;
   padding: var(--tr-chat-input-footer-padding);
   gap: var(--tr-chat-input-footer-gap);
-  min-height: calc(var(--tr-chat-input-button-size-submit) + 10px);
 
   &-left {
     display: flex;
