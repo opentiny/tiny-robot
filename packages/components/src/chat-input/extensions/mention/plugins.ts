@@ -209,10 +209,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
             // 删除 mention 节点
             tr.delete(nodePos, $from.pos)
 
-            // 插入触发字符
+            // 插入触发字符（统一行为：第一次删除转换为 @，第二次删除才删除 @）
             tr.insertText(char, nodePos)
 
-            // 设置光标位置到 @ 后面
+            // 设置光标位置到触发字符后面
             tr.setSelection(TextSelection.create(tr.doc, nodePos + 1))
 
             view.dispatch(tr)
@@ -371,29 +371,32 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
  * 插入 mention
  */
 function insertMention(view: EditorView, range: { from: number; to: number }, item: MentionItem) {
+  view.focus()
+
   const { state, dispatch } = view
   const { tr } = state
 
-  // 删除触发文本（包括触发字符）
-  tr.delete(range.from, range.to)
-
-  // 插入 mention 节点
-  const node = state.schema.nodes.mention.create({
+  const mentionNode = state.schema.nodes.mention.create({
     id: item.id || generateId(),
     label: item.label,
     preset: item.preset || '',
   })
 
-  tr.insert(range.from, node)
+  // 创建空格文本节点
+  const spaceNode = state.schema.text(' ')
 
-  // 在 mention 后添加空格
-  tr.insertText(' ', range.from + 1)
+  // 删除触发文本（包括触发字符）
+  tr.delete(range.from, range.to)
 
-  // 设置光标位置
-  tr.setSelection(TextSelection.create(tr.doc, range.from + 2))
+  // 插入 mention 节点和空格
+  tr.insert(range.from, [mentionNode, spaceNode])
+
+  // 设置光标到空格之后（mention 节点 + 空格 = +2）
+  const cursorPos = range.from + 2
+  tr.setSelection(TextSelection.create(tr.doc, cursorPos))
+
+  // 滚动到视图
+  tr.scrollIntoView()
 
   dispatch(tr)
-
-  // 聚焦编辑器
-  view.focus()
 }

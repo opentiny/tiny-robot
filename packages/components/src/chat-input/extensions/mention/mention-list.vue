@@ -71,7 +71,7 @@ defineExpose({
       :key="item.id"
       type="button"
       :class="['mention-item', { 'is-selected': index === selectedIndex }]"
-      @click="selectItem(index)"
+      @mousedown.prevent="selectItem(index)"
       @mouseenter="onHover(index)"
     >
       <span v-if="item.icon" class="mention-icon">{{ item.icon }}</span>
