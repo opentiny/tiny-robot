@@ -74,5 +74,5 @@ export const Suggestion = Extension.create<SuggestionOptions>({
 // 导出类型和工具函数
 export * from './types'
 export { SuggestionPluginKey } from './plugins'
-export { filterSuggestions, syncAutoComplete } from './utils/filter'
+export { syncAutoComplete } from './utils/filter'
 export { processHighlights, highlightSuggestionText, convertHighlightsArrayToTextParts } from './utils/highlight'
