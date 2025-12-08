@@ -2,13 +2,14 @@
  * Tiptap 扩展统一导出
  */
 
-export { Template, getTemplateStructuredData, getTextWithTemplates } from './template'
-export type { TemplateAttrs, TemplateOptions } from './template'
-
-export { Mention, MentionPluginKey, getMentions, getMentionStructuredData, getTextWithMentions } from './mention'
+// ===== Mention =====
+export { Mention, mention, MentionPluginKey } from './mention'
+export { getMentions, getTextWithMentions, getMentionStructuredData } from './mention'
 export type { MentionAttrs, MentionOptions, MentionItem, MentionStructuredItem } from './mention'
 
-export { Suggestion, SuggestionPluginKey } from './suggestion'
+// ===== Suggestion =====
+export { Suggestion, suggestion, SuggestionPluginKey } from './suggestion'
+export { syncAutoComplete, processHighlights, highlightSuggestionText } from './suggestion'
 export type {
   SuggestionItem,
   SuggestionOptions,
@@ -16,3 +17,8 @@ export type {
   SuggestionTextPart,
   HighlightFunction,
 } from './suggestion'
+
+// ===== Template =====
+export { Template, template } from './template'
+export { getTemplateStructuredData, getTextWithTemplates } from './template'
+export type { TemplateAttrs, TemplateOptions } from './template'

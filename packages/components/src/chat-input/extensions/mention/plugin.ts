@@ -9,7 +9,7 @@
  */
 
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
-import type { EditorState, Selection, Transaction } from '@tiptap/pm/state'
+import type { EditorState, Transaction } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
@@ -17,15 +17,9 @@ import { VueRenderer } from '@tiptap/vue-3'
 import type { Editor } from '@tiptap/core'
 import { isRef } from 'vue'
 import type { Ref } from 'vue'
-import MentionList from './mention-list.vue'
+import MentionList from './components/mention-list.vue'
+import { findTextRange, generateId } from '../utils'
 import type { MentionItem, MentionSuggestionState } from './types'
-
-/**
- * 生成唯一 ID
- */
-function generateId(): string {
-  return `mention_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
-}
 
 export const MentionPluginKey = new PluginKey<MentionSuggestionState>('mention')
 
@@ -34,50 +28,6 @@ interface PluginOptions {
   char: string
   items: MentionItem[] | Ref<MentionItem[]>
   allowSpaces: boolean
-}
-
-/**
- * 查找触发位置和查询文本
- *
- * @param selection 当前光标位置
- * @param char 触发字符
- * @param allowSpaces 是否允许空格
- */
-function findSuggestion(selection: Selection, char: string, allowSpaces: boolean) {
-  const { $from } = selection
-
-  // 光标不在文本节点或选区不为空时，不触发
-  if (!selection.empty || !$from.parent.isTextblock) {
-    return null
-  }
-
-  // 获取光标前的文本内容（从当前文本块开始到光标位置）
-  const textBefore = $from.parent.textBetween(0, $from.parentOffset, undefined, '\ufffc')
-
-  // 查找最后一个触发字符的位置
-  const lastCharIndex = textBefore.lastIndexOf(char)
-
-  // 未找到触发字符
-  if (lastCharIndex === -1) {
-    return null
-  }
-
-  // 提取查询文本（触发字符之后的内容）
-  const query = textBefore.slice(lastCharIndex + char.length)
-
-  // 如果不允许空格且查询包含空格，则不触发
-  if (!allowSpaces && query.includes(' ')) {
-    return null
-  }
-
-  // 计算绝对位置范围
-  const from = $from.start() + lastCharIndex
-  const to = $from.pos
-
-  return {
-    range: { from, to },
-    query,
-  }
 }
 
 /**
@@ -150,7 +100,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // 查找触发
-        const suggestion = findSuggestion(tr.selection, char, allowSpaces)
+        const suggestion = findTextRange(tr.selection, char, allowSpaces)
 
         if (!suggestion) {
           return {
@@ -377,7 +327,7 @@ function insertMention(view: EditorView, range: { from: number; to: number }, it
   const { tr } = state
 
   const mentionNode = state.schema.nodes.mention.create({
-    id: item.id || generateId(),
+    id: item.id || generateId('mention'),
     label: item.label,
     preset: item.preset || '',
   })

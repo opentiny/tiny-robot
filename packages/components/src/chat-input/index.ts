@@ -8,8 +8,7 @@
 
 import type { App } from 'vue'
 import ChatInputComponent from './index.vue'
-import { Mention, Suggestion, Template } from './extensions'
-import { mention, suggestion, template } from './helpers/extension-helpers'
+import { Mention, Suggestion, Template, mention, suggestion, template } from './extensions'
 import './index.less'
 
 // 设置组件名称

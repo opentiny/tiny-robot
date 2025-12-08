@@ -2,77 +2,39 @@
  * Suggestion 扩展
  *
  * 为 ChatInput 提供智能联想功能
+ */
+
+import type { Ref } from 'vue'
+import { Suggestion } from './extension'
+import type { SuggestionItem, SuggestionOptions } from './types'
+
+// ===== 导出扩展类和工具 =====
+export { Suggestion } from './extension'
+export { SuggestionPluginKey } from './plugin'
+export * from './types'
+export { syncAutoComplete } from './utils/filter'
+export { processHighlights, highlightSuggestionText, convertHighlightsArrayToTextParts } from './utils/highlight'
+
+// ===== 便捷函数 =====
+
+/**
+ * 创建 Suggestion 扩展的便捷函数
+ *
+ * @param items - 建议项列表
+ * @param options - 其他配置项
  *
  * @example
  * ```typescript
- * import { Suggestion } from '@opentiny/vue-robot'
- *
- * const editor = useEditor({
- *   extensions: [
- *     Suggestion.configure({
- *       suggestions: [
- *         { content: 'ECS-云服务器' },
- *         { content: 'CDN-权限管理' }
- *       ]
- *     })
- *   ]
- * })
+ * const extensions = [suggestion(suggestions)]
+ * const extensions = [suggestion(suggestions, { popupWidth: 500 })]
  * ```
  */
-
-import { Extension } from '@tiptap/core'
-import { watch, isRef } from 'vue'
-import { createSuggestionPlugin, SuggestionPluginKey } from './plugins'
-import type { SuggestionOptions } from './types'
-import './index.less'
-
-/**
- * Suggestion 扩展定义
- *
- * 支持全局匹配模式的智能联想功能
- */
-export const Suggestion = Extension.create<SuggestionOptions>({
-  name: 'suggestion',
-
-  addOptions() {
-    return {
-      items: [],
-      activeSuggestionKeys: ['Enter', 'Tab'],
-      popupWidth: 400,
-      showAutoComplete: true,
-      filterFn: undefined,
-      onSelect: undefined,
-    }
-  },
-
-  onCreate() {
-    if (isRef(this.options.items)) {
-      watch(
-        this.options.items,
-        () => {
-          // 触发更新
-          const tr = this.editor.state.tr
-          // 使用一个特殊的 meta 来触发插件更新，虽然实际上只要有 dispatch 就会触发 apply
-          tr.setMeta(SuggestionPluginKey, { type: 'update' })
-          this.editor.view.dispatch(tr)
-        },
-        { deep: true },
-      )
-    }
-  },
-
-  addProseMirrorPlugins() {
-    return [
-      createSuggestionPlugin({
-        editor: this.editor,
-        ...this.options,
-      }),
-    ]
-  },
-})
-
-// 导出类型和工具函数
-export * from './types'
-export { SuggestionPluginKey } from './plugins'
-export { syncAutoComplete } from './utils/filter'
-export { processHighlights, highlightSuggestionText, convertHighlightsArrayToTextParts } from './utils/highlight'
+export function suggestion(
+  items: SuggestionItem[] | Ref<SuggestionItem[]>,
+  options?: Partial<Omit<SuggestionOptions, 'items'>>,
+) {
+  return Suggestion.configure({
+    items,
+    ...options,
+  })
+}

@@ -2,6 +2,11 @@
  * Mention 扩展类型定义
  */
 
+import type { Ref } from 'vue'
+import '@tiptap/core'
+
+// ===== 类型定义 =====
+
 /**
  * 提及项数据结构（用户侧）
  *
@@ -74,8 +79,6 @@ export interface MentionAttrs {
 /**
  * Mention 配置选项
  */
-import type { Ref } from 'vue'
-
 export interface MentionOptions {
   /**
    * 提及项列表
@@ -121,4 +124,27 @@ export interface MentionSuggestionState {
    * 过滤后的提及项列表
    */
   filteredItems: MentionItem[]
+}
+
+// ===== 模块扩展声明 =====
+
+/**
+ * 扩展 Tiptap Commands 接口
+ *
+ * 使 TypeScript 能够识别自定义命令
+ */
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    mention: {
+      /**
+       * 插入 mention 节点
+       */
+      insertMention: (attrs: Partial<MentionAttrs>) => ReturnType
+
+      /**
+       * 删除 mention 节点
+       */
+      deleteMention: (id: string) => ReturnType
+    }
+  }
 }
