@@ -1,8 +1,23 @@
 import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
-import { computed, inject, toValue } from 'vue'
+import { computed, inject, provide, toValue } from 'vue'
 import { BUBBLE_CONTENT_RENDERER_MATCHES_KEY, BUBBLE_FALLBACK_CONTENT_RENDERER_KEY } from '../constants'
-import type { BubbleRendererMessage } from '../index.type'
+import type { BubbleContentRendererMatch, BubbleRendererMessage } from '../index.type'
 import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '../renderers/defaultRenderers'
+
+/**
+ * Setup bubble content renderer
+ * Call this function to provide content renderer matches and fallback renderer
+ *
+ * @param contentRendererMatches - Array of content renderer matches, can be a ref or getter
+ * @param fallbackContentRenderer - Fallback content renderer component, can be a ref or getter
+ */
+export function setupBubbleContentRenderer(
+  contentRendererMatches: MaybeRefOrGetter<Array<BubbleContentRendererMatch>>,
+  fallbackContentRenderer: MaybeRefOrGetter<Component>,
+): void {
+  provide(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, contentRendererMatches)
+  provide(BUBBLE_FALLBACK_CONTENT_RENDERER_KEY, fallbackContentRenderer)
+}
 
 /**
  * Composable for nested content renderer matching
@@ -23,10 +38,9 @@ export function useBubbleContentRenderer(message: MaybeRefOrGetter<BubbleRendere
   const fallbackContentRenderer = inject(BUBBLE_FALLBACK_CONTENT_RENDERER_KEY, defaultFallbackContentRenderer)
 
   return computed(() => {
-    const restProps = toValue(message)
+    const msg = toValue(message)
     return (
-      toValue(contentRendererMatches).find((match) => match.find(restProps))?.renderer ||
-      toValue(fallbackContentRenderer)
+      toValue(contentRendererMatches).find((match) => match.find(msg))?.renderer || toValue(fallbackContentRenderer)
     )
   })
 }

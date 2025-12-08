@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BubbleItem from './BubbleItem.vue'
+import { setupBubbleStore } from './composables'
 import type {
   BubbleListProps,
   BubbleMessage,
@@ -13,6 +14,9 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
   dividerRole: 'user',
 })
+
+// Provide bubble store if not already provided
+setupBubbleStore()
 
 /**
  * 按角色分组

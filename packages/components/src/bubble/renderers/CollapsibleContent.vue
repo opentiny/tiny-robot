@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
 import { ref, watchEffect } from 'vue'
-import { useBubbleContentMessage } from '../composables/useContentMessage'
+import { useBubbleContentMessage } from '../composables'
 import { BubbleRendererMessage } from '../index.type'
 
 const props = defineProps<

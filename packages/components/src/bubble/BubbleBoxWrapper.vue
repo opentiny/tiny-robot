@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBubbleBoxRenderer } from './composables/useBubbleBoxRenderer'
+import { useBubbleBoxRenderer } from './composables'
 import type { BubbleContentBoxProps } from './index.type'
 
 const props = defineProps<BubbleContentBoxProps>()

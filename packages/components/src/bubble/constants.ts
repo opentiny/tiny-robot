@@ -30,3 +30,9 @@ export const BUBBLE_FALLBACK_BOX_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Com
 export const BUBBLE_FALLBACK_CONTENT_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component>> = Symbol(
   'bubble-fallback-content-renderer',
 )
+
+/**
+ * Injection key for bubble store
+ * Used to provide/inject a global store for sharing data between BubbleList and Bubble components
+ */
+export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('bubble-store')

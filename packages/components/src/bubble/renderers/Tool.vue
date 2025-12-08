@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
 import { type Component, computed, ref, useCssModule, watchEffect } from 'vue'
-import { useBubbleContentMessage } from '../composables/useContentMessage'
+import { useBubbleContentMessage, useBubbleStore } from '../composables'
 import { BubbleRendererMessage, ToolCall } from '../index.type'
 
 const toolCallStatus = ['running', 'success', 'failed', 'cancelled'] as const
@@ -81,13 +81,29 @@ const getJsonrepair = () => {
   return jsonrepairPromise
 }
 
+const store = useBubbleStore<{ toolCallResult?: Record<string, string> }>()
+const toolCallResult = computed(() => {
+  const toolCallId = props.extras?.tool_call.id
+  if (!toolCallId) {
+    return undefined
+  }
+  return store.toolCallResult?.[toolCallId]
+})
+
 watchEffect(() => {
   const args = props.extras?.tool_call.function.arguments
+  const result = toolCallResult.value
 
   getJsonrepair()
     .then(({ jsonrepair }) => {
       const repairedArgs = jsonrepair(typeof args === 'string' ? args || '{}' : JSON.stringify(args))
-      detail.value = highlightJSON({ arguments: JSON.parse(repairedArgs) }, 2)
+      detail.value = highlightJSON(
+        {
+          arguments: JSON.parse(repairedArgs),
+          result: result ? JSON.parse(jsonrepair(result || '{}')) : undefined,
+        },
+        2,
+      )
     })
     .catch((error) => {
       console.warn(error)

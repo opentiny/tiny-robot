@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBubbleContentRenderer } from '../composables/useBubbleContentRenderer'
+import { useBubbleContentRenderer } from '../composables'
 import { BubbleRendererMessage, ChatMessageItem } from '../index.type'
 import Tool from './Tool.vue'
 

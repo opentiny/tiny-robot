@@ -34,3 +34,5 @@ BubbleProviderComp.install = bubbleProviderInstall
 export const BubbleProvider = BubbleProviderComp as typeof BubbleProviderComp & {
   install: typeof bubbleProviderInstall
 }
+
+export { default as BubbleBasicBox } from './renderers/Box.vue'

@@ -16,7 +16,7 @@ export interface ToolCall {
 /**
  * 聊天消息接口（支持 OpenAI 格式）
  */
-export interface ChatMessage {
+interface ChatMessage {
   role: string
   content?: string | ChatMessageItem[]
   reasoning_content?: string
@@ -41,15 +41,6 @@ export interface ChatMessageItem {
 }
 
 /**
- * 气泡对齐位置
- */
-export type BubblePlacement = 'start' | 'end'
-/**
- * 气泡形状
- */
-export type BubbleShape = 'rounded' | 'corner' | 'none'
-
-/**
  * Bubble 组件 Props
  * 用于渲染单个气泡的外观和内容
  */
@@ -62,15 +53,19 @@ export type BubbleProps = Omit<ChatMessage, 'role'> & {
   /**
    * 气泡对齐位置，默认 'start'
    */
-  placement?: BubblePlacement
+  placement?: 'start' | 'end'
   /**
    * 气泡形状，默认 'corner'
    */
-  shape?: BubbleShape
+  shape?: 'rounded' | 'corner' | 'none'
   /**
    * 气泡加载状态
    */
   loading?: boolean
+  /**
+   * 是否隐藏气泡
+   */
+  hidden?: boolean
   /**
    * 是否拆分多态内容（每个内容项各自渲染一个气泡）
    * - true：每个内容项各自渲染一个气泡
@@ -83,10 +78,17 @@ export type BubbleProps = Omit<ChatMessage, 'role'> & {
   extras?: Record<string, unknown>
 }
 
+export interface BubbleSlots {
+  prefix?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
+  suffix?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
+  'content-footer'?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
+  after?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
+}
+
 /**
  * 基础消息类型（移除了样式相关属性）
  */
-export type BubbleBaseMessage = Omit<BubbleProps, 'content' | 'role' | 'avatar' | 'placement' | 'shape'> & {
+type BubbleBaseMessage = Omit<BubbleProps, 'content' | 'role' | 'avatar' | 'placement' | 'shape'> & {
   role: string
 }
 
@@ -140,12 +142,12 @@ export interface BubbleListProps {
  * 角色配置
  * 用于配置不同角色的气泡样式
  */
-export type BubbleRoleConfig = Pick<BubbleProps, 'avatar' | 'placement' | 'shape'>
+export type BubbleRoleConfig = Pick<BubbleProps, 'avatar' | 'placement' | 'shape' | 'hidden'>
 
 /**
  * 普通消息分组（内容为字符串）
  */
-export type BubblePlainMessageGroup = {
+type BubblePlainMessageGroup = {
   role: string
   messages: BubblePlainMessage[]
   isPolymorphic: false
@@ -154,7 +156,7 @@ export type BubblePlainMessageGroup = {
 /**
  * 多态消息分组（内容为 ChatMessageItem 数组）
  */
-export type BubblePolymorphicMessageGroup = {
+type BubblePolymorphicMessageGroup = {
   role: string
   messages: BubblePolymorphicMessage[]
   isPolymorphic: true
@@ -167,7 +169,7 @@ export type BubbleMessageGroup = BubblePlainMessageGroup | BubblePolymorphicMess
 /**
  * 自定义分组函数类型
  */
-export type BubbleGroupFunction = (messages: BubbleMessage[], dividerRole?: string) => BubbleMessageGroup[]
+type BubbleGroupFunction = (messages: BubbleMessage[], dividerRole?: string) => BubbleMessageGroup[]
 /**
  * 气泡容器属性
  */
