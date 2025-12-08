@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useBubbleContentRenderer } from '../composables'
-import { BubbleRendererMessage, ChatMessageItem } from '../index.type'
+import { BubbleChatMessageItem, BubbleRendererMessage } from '../index.type'
 import CollapsibleContent from './CollapsibleContent.vue'
 
 const props = defineProps<
   BubbleRendererMessage<
-    string | ChatMessageItem,
+    string | BubbleChatMessageItem,
     {
       thinking: boolean
       open?: boolean

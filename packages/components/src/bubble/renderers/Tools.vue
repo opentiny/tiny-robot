@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useBubbleContentRenderer } from '../composables'
-import { BubbleRendererMessage, ChatMessageItem } from '../index.type'
+import { BubbleChatMessageItem, BubbleRendererMessage } from '../index.type'
 import Tool from './Tool.vue'
 
-const props = defineProps<BubbleRendererMessage<string | ChatMessageItem>>()
+const props = defineProps<BubbleRendererMessage<string | BubbleChatMessageItem>>()
 
 const renderer = useBubbleContentRenderer(() => {
   const { tool_calls: _, ...restProps } = props

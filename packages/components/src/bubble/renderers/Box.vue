@@ -10,20 +10,13 @@ const props = defineProps<BubbleBoxProps>()
   </div>
 </template>
 
-<style>
-:root {
-  --tr-bubble-box-shape-rounded-radius: 18px;
-  --tr-bubble-box-shape-corner-radius: 4px;
-}
-</style>
-
 <style scoped lang="less">
 .tr-bubble__box {
-  background-color: var(--tr-bubble-box-bg, var(--tr-container-bg-default));
-  padding: var(--tr-bubble-box-padding, 8px 16px);
-  border-radius: var(--tr-bubble-box-border-radius, 0);
-  box-shadow: var(--tr-bubble-box-shadow, var(--tr-shadow-md));
-  border: var(--tr-bubble-box-border, none);
+  background-color: var(--tr-bubble-box-bg);
+  padding: var(--tr-bubble-box-padding);
+  border-radius: var(--tr-bubble-box-border-radius);
+  box-shadow: var(--tr-bubble-box-shadow);
+  border: var(--tr-bubble-box-border);
   overflow: hidden;
 
   &[data-shape='rounded'] {

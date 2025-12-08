@@ -14,11 +14,11 @@ defineProps<BubbleRendererMessage>()
 <style scoped lang="less">
 .tr-bubble__loading {
   display: flex;
-  animation: spin 1s linear infinite;
 
   svg {
-    color: var(--tr-text-secondary);
-    font-size: var(--tr-bubble-loading-size, 24px);
+    color: var(--tr-bubble-loading-color);
+    font-size: var(--tr-bubble-loading-size);
+    animation: spin 1s linear infinite;
   }
 }
 </style>

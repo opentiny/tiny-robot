@@ -2,19 +2,43 @@
   @prefix: tr-bubble;
 
   @vars: {
-    /* 不影响布局的变量 */
-    aborted-color: var(--tr-text-tertiary);
-    /* 影响布局的变量 */
+    // Layout & sizing
+    max-width: 80%;
+    gap: 16px;
+    // Text
+    text-font-size: inherit;
+    text-line-height: 1.5;
+    text-color: var(--tr-text-primary);
+    // Loading
+    loading-color: var(--tr-text-secondary);
     loading-size: 24px;
-    aborted-font-size: 14px;
-    content-items-gap: 12px;
-    footer-margin: 12px 0 0 0;
+    // Box renderer
+    box-bg: var(--tr-container-bg-default);
+    box-padding: 8px 16px;
+    box-border-radius: 0;
+    box-shadow: var(--tr-shadow-md);
+    box-border: none;
+    box-shape-rounded-radius: 18px;
+    box-shape-corner-radius: 4px;
+    box-image-border-color: transparent;
+    box-image-border: 4px solid var(--tr-bubble-box-image-border-color);
+    box-image-padding: 0;
+    // Image renderer
+    image-max-width: 100%;
+    image-max-height: 240px;
+    image-border-radius: 2px;
+    image-space-y: 8px;
+    image-embedded-border: 1px solid rgba(0, 0, 0, 0.04);
+    image-embedded-border-radius: 4px;
+    image-embedded-margin-block: 4px;
+    // Tool renderer
+    tool-call-space-y: 8px;
   };
 
   :root,
   [data-tr-theme] {
     each(@vars, {
-    --@{prefix}-@{key}: @value;
+     --@{prefix}-@{key}: @value;
     });
   }
 }

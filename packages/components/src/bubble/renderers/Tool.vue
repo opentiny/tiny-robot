@@ -156,7 +156,7 @@ const handleClick = () => {
   color: var(--tr-text-secondary);
   background-color: var(--tr-container-bg-default-2);
   border-radius: 12px;
-  margin-block: var(--tr-bubble-tool-call-space-y, 8px);
+  margin-block: var(--tr-bubble-tool-call-space-y);
 
   &:first-child {
     margin-top: 0;

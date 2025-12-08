@@ -35,6 +35,14 @@ const splitedPolymorphicItems = computed(() => {
   return Array.isArray(props.content) ? props.content : []
 })
 
+const splitedPolymorphicItemProps = computed(() => {
+  if (messageGroup?.isPolymorphic) {
+    const { content: _, ...rest } = messageGroup.messages[0]
+    return rest
+  }
+  return {}
+})
+
 // 构建消息列表
 const rendererMessages = computed<BubbleRendererMessage[]>(() => {
   // 来源：消息分组（普通文本）
@@ -50,10 +58,13 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
     }))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { avatar, placement, shape, splitPolymorphic, ...rest } = props
+
   // 来源：props.content（多态内容）
   if (Array.isArray(props.content)) {
     return props.content.map((content) => ({
-      ...props,
+      ...rest,
       content,
     }))
   }
@@ -61,7 +72,7 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
   // 来源：props.content（普通文本）
   return [
     {
-      ...props,
+      ...rest,
       content: props.content,
     },
   ]
@@ -70,6 +81,10 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
 const role = computed(() => {
   return messageGroup?.role || props.role
 })
+
+const hidden = computed(() => {
+  return props.hidden || rendererMessages.value.every((message) => message.hidden)
+})
 </script>
 
 <template>
@@ -77,14 +92,51 @@ const role = computed(() => {
     <Bubble
       v-for="(content, index) in splitedPolymorphicItems"
       :key="index"
-      v-bind="{ ...props, ...$attrs }"
+      v-bind="{ ...props, ...splitedPolymorphicItemProps, ...$attrs }"
       :content="[content]"
       :split-polymorphic="false"
-    />
+    >
+      <template #prefix="slotProps">
+        <slot
+          name="prefix"
+          v-bind="slotProps"
+          :isPolymorphic="true"
+          :isFirstPolymorphic="index === 0"
+          :polymorphicIndex="index"
+        ></slot>
+      </template>
+      <template #suffix="slotProps">
+        <slot
+          name="suffix"
+          v-bind="slotProps"
+          :isPolymorphic="true"
+          :isFirstPolymorphic="index === 0"
+          :polymorphicIndex="index"
+        ></slot>
+      </template>
+      <template #content-footer="slotProps">
+        <slot
+          name="content-footer"
+          v-bind="slotProps"
+          :isPolymorphic="true"
+          :isFirstPolymorphic="index === 0"
+          :polymorphicIndex="index"
+        ></slot>
+      </template>
+      <template #after="slotProps">
+        <slot
+          name="after"
+          v-bind="slotProps"
+          :isPolymorphic="true"
+          :isFirstPolymorphic="index === 0"
+          :polymorphicIndex="index"
+        ></slot>
+      </template>
+    </Bubble>
   </template>
 
-  <div v-else class="tr-bubble" v-show="!props.hidden" :data-role="props.role" :data-placement="props.placement">
-    <slot name="prefix" :messages="rendererMessages" :role="role"></slot>
+  <div v-else class="tr-bubble" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
+    <slot name="prefix" :rendererMessages="rendererMessages" :role="role"></slot>
     <div class="tr-bubble__body">
       <component v-if="props.avatar" :is="props.avatar" :class="$style['tr-bubble__avatar']" />
       <BubbleBoxWrapper
@@ -94,19 +146,20 @@ const role = computed(() => {
         :messages="rendererMessages"
       >
         <BubbleContentWrapper v-for="(message, index) in rendererMessages" :key="index" :message="message" />
-        <slot name="content-footer" :messages="rendererMessages" :role="role"></slot>
+        <slot name="content-footer" :rendererMessages="rendererMessages" :role="role"></slot>
       </BubbleBoxWrapper>
       <div class="tr-bubble__after">
-        <slot name="after" :messages="rendererMessages" :role="role"></slot>
+        <slot name="after" :rendererMessages="rendererMessages" :role="role"></slot>
       </div>
     </div>
-    <slot name="suffix" :messages="rendererMessages" :role="role"></slot>
+    <slot name="suffix" :rendererMessages="rendererMessages" :role="role"></slot>
   </div>
 </template>
 
 <style lang="less" scoped>
 .tr-bubble {
   display: flex;
+  align-items: flex-start;
 }
 
 .tr-bubble__body {
@@ -118,13 +171,14 @@ const role = computed(() => {
 }
 
 .tr-bubble__box {
-  max-width: var(--tr-bubble-max-width, 80%);
+  max-width: var(--tr-bubble-max-width);
   width: fit-content;
   grid-area: 1 / 2;
 }
 
 .tr-bubble__after {
   grid-area: 2 / 2;
+  position: relative;
 }
 
 [data-placement='end'] {
@@ -148,12 +202,12 @@ const role = computed(() => {
 
 <style module>
 [data-placement='start'] .tr-bubble__avatar {
-  margin-right: var(--tr-bubble-gap, 16px);
+  margin-right: var(--tr-bubble-gap);
   grid-area: 1 / 1;
 }
 
 [data-placement='end'] .tr-bubble__avatar {
-  margin-left: var(--tr-bubble-gap, 16px);
+  margin-left: var(--tr-bubble-gap);
   grid-area: 1 / 2;
 }
 </style>

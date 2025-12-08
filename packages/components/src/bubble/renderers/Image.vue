@@ -41,16 +41,16 @@ const handleError = () => {
 
 <style scoped lang="less">
 .tr-bubble__image {
-  max-width: var(--tr-bubble-image-max-width, 100%);
-  max-height: var(--tr-bubble-image-max-height, 240px);
+  max-width: var(--tr-bubble-image-max-width);
+  max-height: var(--tr-bubble-image-max-height);
   min-width: 120px;
   min-height: 120px;
   height: auto;
   display: block;
-  border-radius: var(--tr-bubble-image-border-radius, 2px);
+  border-radius: var(--tr-bubble-image-border-radius);
 
   & + .tr-bubble__image {
-    margin-top: var(--tr-bubble-image-space-y, 8px);
+    margin-top: var(--tr-bubble-image-space-y);
   }
 
   &.loading {
@@ -61,9 +61,9 @@ const handleError = () => {
 
 [data-box-type]:not([data-box-type='image']) {
   .tr-bubble__image {
-    border: var(--tr-bubble-image-embedded-border, 1px solid rgba(0, 0, 0, 0.04));
-    border-radius: var(--tr-bubble-image-embedded-border-radius, 4px);
-    margin-block: var(--tr-bubble-image-embedded-margin-block, 4px);
+    border: var(--tr-bubble-image-embedded-border);
+    border-radius: var(--tr-bubble-image-embedded-border-radius);
+    margin-block: var(--tr-bubble-image-embedded-margin-block);
   }
 }
 </style>

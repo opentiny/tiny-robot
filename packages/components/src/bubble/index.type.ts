@@ -16,9 +16,9 @@ export interface ToolCall {
 /**
  * 聊天消息接口（支持 OpenAI 格式）
  */
-interface ChatMessage {
+export interface BubbleChatMessage {
   role: string
-  content?: string | ChatMessageItem[]
+  content?: string | BubbleChatMessageItem[]
   reasoning_content?: string
   tool_calls?: ToolCall[]
   tool_call_id?: string
@@ -29,7 +29,7 @@ interface ChatMessage {
  * 多态内容项
  * 用于支持多种内容类型（文本、图片、音频等）
  */
-export interface ChatMessageItem {
+export interface BubbleChatMessageItem {
   /**
    * 内容类型标识符（例如：'text'、'image_url' 等）
    */
@@ -44,7 +44,7 @@ export interface ChatMessageItem {
  * Bubble 组件 Props
  * 用于渲染单个气泡的外观和内容
  */
-export type BubbleProps = Omit<ChatMessage, 'role'> & {
+export type BubbleProps = Omit<BubbleChatMessage, 'role'> & {
   role?: string
   /**
    * 气泡头像
@@ -78,17 +78,36 @@ export type BubbleProps = Omit<ChatMessage, 'role'> & {
   extras?: Record<string, unknown>
 }
 
+type BubbleSlotProps =
+  | {
+      rendererMessages: BubbleRendererMessage[]
+      role?: string
+      isPolymorphic?: undefined
+      isFirstPolymorphic?: undefined
+      polymorphicIndex?: undefined
+    }
+  | {
+      rendererMessages: BubbleRendererMessage[]
+      role?: string
+      isPolymorphic: boolean
+      isFirstPolymorphic: boolean
+      polymorphicIndex: number
+    }
+
 export interface BubbleSlots {
-  prefix?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
-  suffix?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
-  'content-footer'?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
-  after?: (slotProps: { messages: BubbleRendererMessage[]; role?: string }) => VNode | VNode[]
+  prefix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
+  suffix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
+  'content-footer'?: (slotProps: BubbleSlotProps) => VNode | VNode[]
+  after?: (slotProps: BubbleSlotProps) => VNode | VNode[]
 }
 
 /**
  * 基础消息类型（移除了样式相关属性）
  */
-type BubbleBaseMessage = Omit<BubbleProps, 'content' | 'role' | 'avatar' | 'placement' | 'shape'> & {
+type BubbleBaseMessage = Omit<
+  BubbleProps,
+  'content' | 'role' | 'avatar' | 'placement' | 'shape' | 'splitPolymorphic'
+> & {
   role: string
 }
 
@@ -99,7 +118,7 @@ export type BubblePlainMessage = BubbleBaseMessage & { content: string }
 /**
  * 多态消息（数组内容）
  */
-export type BubblePolymorphicMessage = BubbleBaseMessage & { content: ChatMessageItem[] }
+export type BubblePolymorphicMessage = BubbleBaseMessage & { content: BubbleChatMessageItem[] }
 /**
  * 统一消息类型
  */
@@ -138,6 +157,28 @@ export interface BubbleListProps {
   splitPolymorphic?: BubbleProps['splitPolymorphic']
 }
 
+type BubbleItemSlotProps = BubbleSlotProps & {
+  messages: BubbleMessage[]
+}
+
+export interface BubbleItemSlot {
+  prefix?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
+  suffix?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
+  'content-footer'?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
+  after?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
+}
+
+type BubbleListSlotProps = BubbleItemSlotProps & {
+  index: number
+}
+
+export interface BubbleListSlots {
+  prefix?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
+  suffix?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
+  'content-footer'?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
+  after?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
+}
+
 /**
  * 角色配置
  * 用于配置不同角色的气泡样式
@@ -154,7 +195,7 @@ type BubblePlainMessageGroup = {
 }
 
 /**
- * 多态消息分组（内容为 ChatMessageItem 数组）
+ * 多态消息分组（内容为 BubbleChatMessageItem 数组）
  */
 type BubblePolymorphicMessageGroup = {
   role: string
@@ -178,9 +219,10 @@ export type BubbleBoxProps = Pick<BubbleProps, 'placement' | 'shape'>
  * 渲染器消息（扁平化的单条内容）
  */
 export type BubbleRendererMessage<
-  T = string | ChatMessageItem | undefined,
+  T = string | BubbleChatMessageItem | undefined,
   E extends Record<string, unknown> = Record<string, unknown>,
-> = Omit<BubbleProps, 'content' | 'extras'> & {
+> = Omit<BubbleBaseMessage, 'role'> & {
+  role?: string
   content: T
   extras?: E
 }

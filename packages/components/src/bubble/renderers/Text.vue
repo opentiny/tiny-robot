@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BubbleRendererMessage, ChatMessageItem } from '../index.type'
+import { BubbleChatMessageItem, BubbleRendererMessage } from '../index.type'
 
-const props = defineProps<BubbleRendererMessage<string | ChatMessageItem | undefined>>()
+const props = defineProps<BubbleRendererMessage<string | BubbleChatMessageItem | undefined>>()
 
 const content = computed(() => {
   if (typeof props.content === 'string') {
@@ -19,9 +19,9 @@ const content = computed(() => {
 
 <style scoped lang="less">
 .tr-bubble__text {
-  font-size: var(--tr-bubble-text-font-size, inherit);
-  line-height: var(--tr-bubble-text-line-height, 1.5);
-  color: var(--tr-bubble-text-color, var(--tr-text-primary));
+  font-size: var(--tr-bubble-text-font-size);
+  line-height: var(--tr-bubble-text-line-height);
+  color: var(--tr-bubble-text-color);
 }
 
 p.tr-bubble__text {

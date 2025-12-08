@@ -13,17 +13,13 @@ const props = defineProps<BubbleBoxProps>()
 
 <style>
 :root {
-  --tr-bubble-box-image-border: 4px solid var(--tr-bubble-box-image-border-color, transparent);
+  --tr-bubble-box-image-border: 4px solid var(--tr-bubble-box-image-border-color);
 }
 </style>
 
 <style scoped lang="less">
 .tr-bubble__image-box {
-  padding: var(--tr-bubble-box-image-padding, 0);
+  padding: var(--tr-bubble-box-image-padding);
   border: var(--tr-bubble-box-image-border);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

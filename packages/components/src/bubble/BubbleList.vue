@@ -4,6 +4,7 @@ import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore } from './composables'
 import type {
   BubbleListProps,
+  BubbleListSlots,
   BubbleMessage,
   BubbleMessageGroup,
   BubblePlainMessage,
@@ -14,6 +15,8 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
   dividerRole: 'user',
 })
+
+defineSlots<BubbleListSlots>()
 
 // Provide bubble store if not already provided
 setupBubbleStore()
@@ -123,7 +126,14 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
       :role-config="props.roleConfigs?.[group.role]"
       :message-group="group"
       :split-polymorphic="props.splitPolymorphic"
-    ></BubbleItem>
+    >
+      <template #prefix="slotProps"> <slot name="prefix" v-bind="slotProps" :index="index"></slot> </template>
+      <template #suffix="slotProps"> <slot name="suffix" v-bind="slotProps" :index="index"></slot> </template>
+      <template #content-footer="slotProps">
+        <slot name="content-footer" v-bind="slotProps" :index="index"></slot>
+      </template>
+      <template #after="slotProps"> <slot name="after" v-bind="slotProps" :index="index"></slot> </template>
+    </BubbleItem>
   </div>
 </template>
 
