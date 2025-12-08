@@ -45,6 +45,7 @@ export type {
   UseKeyboardShortcutsReturn,
   TemplateItem,
   MentionItem,
+  ActionsConfig,
 } from './index.type'
 
 export { useChatInputContext } from './context'

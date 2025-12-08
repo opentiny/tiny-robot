@@ -157,7 +157,35 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 **配置详见**：[VoiceButton 属性](#voicebutton)
 
+### 按钮配置
+
+#### 默认按钮配置
+
+通过 `actionsConfig` 属性统一配置默认按钮（Clear、Submit）的状态和提示。
+
+<demo vue="../../demos/chat-input/actions-config-basic.vue" title="默认按钮配置" description="通过 actionsConfig 统一配置默认按钮的状态和提示。" />
+
+:::tip 配置优先级
+按钮的配置优先级：**props > actionsConfig > 默认值**
+
+- 通过 props 传递的配置优先级最高
+- 其次是 `actionsConfig` 的配置
+- 最后是组件的默认值
+:::
+
+#### 增强按钮
+
+通过插槽添加增强按钮（Upload、Voice 等），每个按钮都有独立的配置。
+
+<demo vue="../../demos/chat-input/actions-enhanced.vue" title="增强按钮" description="通过插槽添加 Upload、Voice 等增强按钮。" />
+
 ### 交互定制
+
+#### 取消操作
+
+在 loading 状态下，点击停止按钮会触发 `cancel` 事件，用于取消正在进行的操作（如 AI 响应）。
+
+<demo vue="../../demos/chat-input/cancel-event.vue" title="取消操作" description="loading 状态下点击停止按钮触发 cancel 事件。" />
 
 #### 提交方式
 
@@ -218,21 +246,22 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### BasicInput
 
-| 属性名        | 说明             | 类型                                     | 默认值            |
-| ------------- | ---------------- | ---------------------------------------- | ----------------- |
-| modelValue    | 绑定值(v-model)  | `string`                                 | `''`              |
-| defaultValue  | 默认值(非响应式) | `string`                                 | `''`              |
-| placeholder   | 输入框占位文本   | `string`                                 | `'请输入内容...'` |
-| disabled      | 是否禁用         | `boolean`                                | `false`           |
-| loading       | 是否加载中       | `boolean`                                | `false`           |
-| autofocus     | 自动获取焦点     | `boolean`                                | `false`           |
-| mode          | 输入框类型       | `'single' \| 'multiple'`                 | `'single'`        |
-| size          | 组件尺寸         | `'normal' \| 'small'`                    | `'normal'`        |
-| maxLength     | 最大输入长度     | `number`                                 | `Infinity`        |
-| showWordLimit | 是否显示字数统计 | `boolean`                                | `false`           |
-| clearable     | 是否可清空       | `boolean`                                | `false`           |
-| submitType    | 提交方式         | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
-| stopText      | 停止按钮文字     | `string`                                 | `仅显示图标`      |
+| 属性名        | 说明                                                         | 类型                                     | 默认值            |
+| ------------- | ------------------------------------------------------------ | ---------------------------------------- | ----------------- |
+| modelValue    | 绑定值(v-model)                                              | `string`                                 | `''`              |
+| defaultValue  | 默认值(非响应式)                                             | `string`                                 | `''`              |
+| placeholder   | 输入框占位文本                                               | `string`                                 | `'请输入内容...'` |
+| disabled      | 是否禁用                                                     | `boolean`                                | `false`           |
+| loading       | 是否加载中                                                   | `boolean`                                | `false`           |
+| autofocus     | 自动获取焦点                                                 | `boolean`                                | `false`           |
+| mode          | 输入框类型                                                   | `'single' \| 'multiple'`                 | `'single'`        |
+| size          | 组件尺寸                                                     | `'normal' \| 'small'`                    | `'normal'`        |
+| maxLength     | 最大输入长度                                                 | `number`                                 | `Infinity`        |
+| showWordLimit | 是否显示字数统计                                             | `boolean`                                | `false`           |
+| clearable     | 是否可清空                                                   | `boolean`                                | `false`           |
+| submitType    | 提交方式                                                     | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
+| stopText      | 停止按钮文字                                                 | `string`                                 | `仅显示图标`      |
+| actionsConfig | 默认操作按钮配置，用于统一配置默认按钮（Clear、Submit）的状态和提示 | `ActionsConfig`                          | `undefined`       |
 
 #### Extension
 
@@ -320,7 +349,26 @@ ChatInput.Suggestion.configure({
 { content: 'OSS-存储', highlights: (text, query) => [...] }  // 自定义函数
 ```
 
+#### UploadButton
+
+文件上传按钮组件，支持文件类型过滤、大小限制和数量限制。
+
+| 属性名           | 说明                     | 类型                 | 默认值       |
+| ---------------- | ------------------------ | -------------------- | ------------ |
+| disabled         | 是否禁用                 | `boolean`            | `false`      |
+| accept           | 接受的文件类型           | `string`             | `'*'`        |
+| multiple         | 是否支持多选             | `boolean`            | `false`      |
+| reset            | 选择后是否重置 input     | `boolean`            | `true`       |
+| maxSize          | 文件大小限制（MB）       | `number`             | -            |
+| maxCount         | 最大文件数量             | `number`             | -            |
+| tooltip          | Tooltip 文本             | `string`             | `'上传文件'` |
+| tooltipPlacement | Tooltip 位置             | `TooltipPlacement`   | `'top'`      |
+| icon             | 自定义图标               | `VNode \| Component` | `IconUpload` |
+| size             | 按钮尺寸                 | `number \| string`   | `32`         |
+
 #### VoiceButton
+
+语音输入按钮组件，支持浏览器内置语音识别和第三方语音识别服务。
 
 | 属性名           | 说明                         | 类型                  | 默认值       |
 | ---------------- | ---------------------------- | --------------------- | ------------ |
@@ -348,14 +396,22 @@ ChatInput.Suggestion.configure({
 
 #### BasicInput
 
-| 事件名            | 说明                      | 回调参数                                |
-| ----------------- | ------------------------- | --------------------------------------- |
-| update:modelValue | 输入值变化时触发(v-model) | `(value: string)`                       |
-| blur              | 输入框失去焦点时触发      | `(event: FocusEvent)`                   |
-| focus             | 输入框获得焦点时触发      | `(event: FocusEvent)`                   |
-| submit            | 提交内容时触发            | `(text: string, data?: StructuredData)` |
-| clear             | 清空内容时触发            | `()`                                    |
-| input             | 输入内容变化时触发        | `(value: string)`                       |
+| 事件名            | 说明                                                         | 回调参数                                |
+| ----------------- | ------------------------------------------------------------ | --------------------------------------- |
+| update:modelValue | 输入值变化时触发(v-model)                                    | `(value: string)`                       |
+| blur              | 输入框失去焦点时触发                                         | `(event: FocusEvent)`                   |
+| focus             | 输入框获得焦点时触发                                         | `(event: FocusEvent)`                   |
+| submit            | 提交内容时触发                                               | `(text: string, data?: StructuredData)` |
+| clear             | 清空内容时触发                                               | `()`                                    |
+| cancel            | 在 loading 状态下点击停止按钮时触发，用于取消正在进行的操作（如 AI 响应） | `()`                                    |
+| input             | 输入内容变化时触发                                           | `(value: string)`                       |
+
+#### UploadButton
+
+| 事件名 | 说明         | 回调参数                        |
+| ------ | ------------ | ------------------------------- |
+| select | 文件选择成功 | `(files: File[])`               |
+| error  | 文件验证失败 | `(error: Error, file?: File)`   |
 
 #### VoiceButton
 
@@ -371,14 +427,21 @@ ChatInput.Suggestion.configure({
 
 #### BasicInput
 
-| 方法名     | 说明             | 参数                | 返回值   |
-| ---------- | ---------------- | ------------------- | -------- |
-| focus      | 使输入框获取焦点 | -                   | `void`   |
-| blur       | 使输入框失去焦点 | -                   | `void`   |
-| clear      | 清空输入内容     | -                   | `void`   |
-| submit     | 手动触发提交事件 | -                   | `void`   |
-| setContent | 设置编辑器内容   | `(content: string)` | `void`   |
-| getContent | 获取编辑器内容   | -                   | `string` |
+| 方法名     | 说明                                                       | 参数                | 返回值   |
+| ---------- | ---------------------------------------------------------- | ------------------- | -------- |
+| focus      | 使输入框获取焦点                                           | -                   | `void`   |
+| blur       | 使输入框失去焦点                                           | -                   | `void`   |
+| clear      | 清空输入内容                                               | -                   | `void`   |
+| submit     | 手动触发提交事件                                           | -                   | `void`   |
+| cancel     | 手动触发取消事件，用于在 loading 状态下取消正在进行的操作 | -                   | `void`   |
+| setContent | 设置编辑器内容                                             | `(content: string)` | `void`   |
+| getContent | 获取编辑器内容                                             | -                   | `string` |
+
+#### UploadButton
+
+| 方法名 | 说明           | 参数 | 返回值 |
+| ------ | -------------- | ---- | ------ |
+| open   | 打开文件选择器 | -    | `void` |
 
 #### VoiceButton
 
@@ -390,6 +453,35 @@ ChatInput.Suggestion.configure({
 ## Types
 
 ```typescript
+// ActionsConfig 默认按钮配置
+interface ActionsConfig {
+  submit?: {
+    disabled?: boolean // 是否禁用提交按钮
+    tooltip?: string // 提交按钮提示文本
+    tooltipPlacement?: TooltipPlacement // Tooltip 位置
+  }
+  clear?: {
+    disabled?: boolean // 是否禁用清空按钮
+    tooltip?: string // 清空按钮提示文本
+    tooltipPlacement?: TooltipPlacement // Tooltip 位置
+  }
+}
+
+// Tooltip 位置
+type TooltipPlacement =
+  | 'top'
+  | 'top-start'
+  | 'top-end'
+  | 'bottom'
+  | 'bottom-start'
+  | 'bottom-end'
+  | 'left'
+  | 'left-start'
+  | 'left-end'
+  | 'right'
+  | 'right-start'
+  | 'right-end'
+
 // SpeechConfig 语音配置
 interface SpeechConfig {
   customHandler?: SpeechHandler // 自定义语音处理器

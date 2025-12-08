@@ -6,7 +6,7 @@
  */
 
 import type { Extension } from '@tiptap/core'
-import type { InputMode, SubmitTrigger, ButtonGroupConfig, AutoSize, StructuredData } from './types/base'
+import type { InputMode, SubmitTrigger, ActionsConfig, AutoSize, StructuredData } from './types/base'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -187,17 +187,42 @@ export interface ChatInputProps {
    */
   stopText?: string
 
-  // ===== 按钮组 =====
+  // ===== 默认按钮配置 =====
 
   /**
-   * 按钮组配置
+   * 默认操作按钮配置
    *
-   * 用于细粒度控制各个按钮的行为
-   * 注意：当前主要使用 submit 配置
+   * 用于统一配置默认按钮（Clear、Submit）的状态和提示
+   *
+   * @example 基础使用
+   * ```vue
+   * <ChatInput
+   *   :actions-config="{
+   *     submit: { disabled: !isValid, tooltip: '请完善表单' }
+   *   }"
+   * />
+   * ```
+   *
+   * @example 动态配置
+   * ```vue
+   * <script setup>
+   * const actionsConfig = computed(() => ({
+   *   submit: {
+   *     disabled: !canSubmit.value,
+   *     tooltip: canSubmit.value ? '发送' : '请输入内容'
+   *   },
+   *   clear: { tooltip: '清空输入' }
+   * }))
+   * </script>
+   *
+   * <template>
+   *   <ChatInput :actions-config="actionsConfig" />
+   * </template>
+   * ```
    *
    * @default undefined
    */
-  buttonGroup?: ButtonGroupConfig
+  actionsConfig?: ActionsConfig
 
   // ===== 提交配置 =====
 
@@ -273,6 +298,16 @@ export interface ChatInputEmits {
    * @param e - 事件名
    */
   (e: 'clear'): void
+
+  /**
+   * 取消事件
+   *
+   * 在 loading 状态下点击停止按钮时触发
+   * 用于取消正在进行的操作（如 AI 响应）
+   *
+   * @param e - 事件名
+   */
+  (e: 'cancel'): void
 
   /**
    * 输入事件

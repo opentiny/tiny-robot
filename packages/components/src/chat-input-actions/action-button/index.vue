@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watchEffect } from 'vue'
-import { computePosition, autoUpdate, offset, flip, shift } from '@floating-ui/dom'
-import { useElementHover } from '@vueuse/core'
+import { computed } from 'vue'
+import { TinyTooltip } from '@opentiny/vue'
 import type { ActionButtonProps } from './index.type'
 
 const props = withDefaults(defineProps<ActionButtonProps>(), {
@@ -11,48 +10,6 @@ const props = withDefaults(defineProps<ActionButtonProps>(), {
   tooltipPlacement: 'top',
 })
 
-const buttonRef = ref<HTMLElement | null>(null)
-const tooltipRef = ref<HTMLElement | null>(null)
-
-const isHovered = useElementHover(buttonRef)
-
-const showTooltip = computed(() => isHovered.value && !!props.tooltip)
-
-const tooltipStyles = ref<Record<string, string>>({})
-
-const updatePosition = () => {
-  if (buttonRef.value && tooltipRef.value) {
-    computePosition(buttonRef.value, tooltipRef.value, {
-      placement: props.tooltipPlacement,
-      middleware: [offset(8), flip(), shift({ padding: 8 })],
-    }).then(({ x, y }) => {
-      tooltipStyles.value = {
-        left: `${x}px`,
-        top: `${y}px`,
-      }
-    })
-  }
-}
-
-let cleanup: (() => void) | null = null
-
-watchEffect((onCleanup) => {
-  if (showTooltip.value && buttonRef.value && tooltipRef.value) {
-    // 立即更新一次位置
-    updatePosition()
-
-    // 启动自动更新
-    cleanup = autoUpdate(buttonRef.value, tooltipRef.value, updatePosition)
-  }
-
-  onCleanup(() => {
-    if (cleanup) {
-      cleanup()
-      cleanup = null
-    }
-  })
-})
-
 const sizeStyle = computed(() => {
   const size = typeof props.size === 'number' ? `${props.size}px` : props.size
   return { fontSize: size }
@@ -60,30 +17,35 @@ const sizeStyle = computed(() => {
 </script>
 
 <template>
-  <div class="tr-action-button-wrapper">
-    <button ref="buttonRef" :class="['tr-action-button', { active: props.active }]" :disabled="props.disabled">
+  <tiny-tooltip
+    v-if="props.tooltip"
+    :content="props.tooltip"
+    :placement="props.tooltipPlacement"
+    effect="light"
+    :visible-arrow="false"
+    popper-class="tr-action-button-tooltip-popper"
+  >
+    <button
+      :class="['tr-action-button', { active: props.active }]"
+      :disabled="props.disabled"
+      @focus.capture="(event: FocusEvent) => event.stopPropagation()"
+    >
       <!-- 优先使用插槽，如果没有插槽则使用 icon prop -->
       <slot name="icon">
         <component :is="props.icon" :style="sizeStyle" />
       </slot>
     </button>
+  </tiny-tooltip>
 
-    <Teleport to="body">
-      <Transition name="tr-tooltip-fade">
-        <div v-if="showTooltip" ref="tooltipRef" class="tr-action-button-tooltip" :style="tooltipStyles">
-          {{ props.tooltip }}
-        </div>
-      </Transition>
-    </Teleport>
-  </div>
+  <!-- 无 tooltip 时直接渲染按钮 -->
+  <button v-else :class="['tr-action-button', { active: props.active }]" :disabled="props.disabled">
+    <slot name="icon">
+      <component :is="props.icon" :style="sizeStyle" />
+    </slot>
+  </button>
 </template>
 
 <style lang="less" scoped>
-.tr-action-button-wrapper {
-  position: relative;
-  display: flex;
-}
-
 .tr-action-button {
   display: inline-flex;
   align-items: center;
@@ -113,42 +75,5 @@ const sizeStyle = computed(() => {
     opacity: 0.4;
     cursor: not-allowed;
   }
-}
-</style>
-
-<style lang="less">
-/* 全局样式，因为 tooltip 通过 Teleport 挂载到 body */
-.tr-action-button-tooltip {
-  position: absolute;
-  top: 0;
-  left: 0;
-  padding: var(--tr-action-button-tooltip-padding, 6px 12px);
-  background-color: var(--tr-action-button-tooltip-bg-color, rgba(0, 0, 0, 0.85));
-  color: var(--tr-action-button-tooltip-color, white);
-  border-radius: var(--tr-action-button-tooltip-border-radius, 4px);
-  font-size: var(--tr-action-button-tooltip-font-size, 12px);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: var(--tr-action-button-tooltip-z-index, 1000);
-}
-
-/* Vue Transition 类名 */
-.tr-tooltip-fade-enter-active,
-.tr-tooltip-fade-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.tr-tooltip-fade-enter-from,
-.tr-tooltip-fade-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-.tr-tooltip-fade-enter-to,
-.tr-tooltip-fade-leave-from {
-  opacity: 1;
-  transform: scale(1);
 }
 </style>

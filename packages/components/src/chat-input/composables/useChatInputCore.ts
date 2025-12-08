@@ -40,6 +40,7 @@ export interface UseChatInputCoreReturn {
   expose: {
     submit: () => void
     clear: () => void
+    cancel: () => void
     focus: () => void
     blur: () => void
     setContent: (content: string) => void
@@ -87,7 +88,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
       !props.loading &&
       hasContent.value &&
       !isOverLimit.value &&
-      !props.buttonGroup?.submit?.disabled
+      !props.actionsConfig?.submit?.disabled
     )
   })
 
@@ -233,6 +234,10 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     emit('clear')
   }
 
+  const cancel = () => {
+    emit('cancel')
+  }
+
   const blur = () => {
     editor.value?.commands.blur()
   }
@@ -264,11 +269,12 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     size: computed(() => props.size ?? 'normal'),
     showWordLimit: computed(() => props.showWordLimit ?? false),
     clearable: computed(() => props.clearable ?? false),
-    buttonGroup: toRef(props, 'buttonGroup'),
+    actionsConfig: toRef(props, 'actionsConfig'),
     submitType: computed(() => props.submitType ?? 'enter'),
     stopText: toRef(props, 'stopText'),
     submit,
     clear,
+    cancel,
     focus,
     blur,
     setContent,
@@ -287,6 +293,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     expose: {
       submit,
       clear,
+      cancel,
       focus,
       blur,
       setContent,

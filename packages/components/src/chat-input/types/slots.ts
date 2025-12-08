@@ -10,13 +10,17 @@ import type { Editor } from '@tiptap/core'
  * ChatInput 插槽作用域
  *
  * 通过插槽作用域暴露给外部组件的状态和方法
+ * 主要为增强按钮（Upload、Voice 等）提供便捷的操作方法
  */
 export interface ChatInputSlotScope {
+  // ===== 编辑器实例 =====
   /**
-   * 编辑器实例
+   * Tiptap 编辑器实例
+   * 用于高级操作
    */
   editor: Editor | undefined
 
+  // ===== 基础操作 =====
   /**
    * 聚焦编辑器
    */
@@ -27,51 +31,50 @@ export interface ChatInputSlotScope {
    */
   blur: () => void
 
+  // ===== 内容操作（为增强按钮设计）=====
   /**
-   * 插入内容到编辑器
-   * @param content - 要插入的内容（文本或 HTML）
+   * 插入内容到当前光标位置
+   *
+   * 适用场景：语音输入、快捷短语插入
+   *
+   * @param content - 要插入的内容
+   * @example
+   * ```vue
+   * <template #actions-inline="{ insert }">
+   *   <VoiceButton @speech-final="insert" />
+   * </template>
+   * ```
    */
   insert: (content: string) => void
 
   /**
    * 追加内容到编辑器末尾
+   *
+   * 适用场景：连续语音输入、批量添加内容
+   *
    * @param content - 要追加的内容
    */
   append: (content: string) => void
 
   /**
    * 替换编辑器全部内容
+   *
+   * 适用场景：模板填充、内容重置
+   *
    * @param content - 新内容
    */
   replace: (content: string) => void
 
-  /**
-   * 获取编辑器内容
-   */
-  getContent: () => string
-
-  /**
-   * 清空编辑器
-   */
-  clear: () => void
-
+  // ===== 常用状态（便捷访问）=====
   /**
    * 是否禁用
+   * 用于控制自定义按钮状态
    */
   disabled: boolean
 
   /**
-   * 是否加载中
-   */
-  loading: boolean
-
-  /**
    * 是否有内容
+   * 用于控制按钮显示/隐藏
    */
   hasContent: boolean
-
-  /**
-   * 当前字符数
-   */
-  characterCount: number
 }

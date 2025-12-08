@@ -11,15 +11,22 @@ import type { ChatInputSlotScope } from '../types/slots'
 /**
  * 使用插槽作用域
  *
+ * 为增强按钮提供便捷的操作方法和常用状态
+ *
  * @returns ChatInputSlotScope computed 对象
  */
 export function useSlotScope(): ComputedRef<ChatInputSlotScope> {
   const context = useChatInputContext()
 
   return computed<ChatInputSlotScope>(() => ({
+    // 编辑器实例
     editor: context.editor.value,
+
+    // 基础操作
     focus: context.focus,
     blur: context.blur,
+
+    // 内容操作（为增强按钮设计）
     insert: (content: string) => {
       context.editor.value?.commands.insertContent(content + ' ')
       context.focus()
@@ -36,11 +43,9 @@ export function useSlotScope(): ComputedRef<ChatInputSlotScope> {
       context.setContent(content)
       context.focus()
     },
-    getContent: context.getContent,
-    clear: context.clear,
+
+    // 常用状态
     disabled: context.disabled.value,
-    loading: context.loading.value,
     hasContent: context.hasContent.value,
-    characterCount: context.characterCount.value,
   }))
 }

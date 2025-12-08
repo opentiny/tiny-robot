@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import type { InputMode, ButtonGroupConfig, SubmitTrigger } from './base'
+import type { InputMode, ActionsConfig, SubmitTrigger } from './base'
 
 /**
  * Chat-Input Context
@@ -58,7 +58,7 @@ export interface ChatInputContext {
    * - !loading
    * - hasContent
    * - !isOverLimit
-   * - !buttonGroup.submit?.disabled
+   * - !actionsConfig.submit?.disabled
    */
   canSubmit: Ref<boolean>
 
@@ -99,9 +99,9 @@ export interface ChatInputContext {
   clearable: Ref<boolean>
 
   /**
-   * 按钮组配置
+   * 默认操作按钮配置
    */
-  buttonGroup: Ref<ButtonGroupConfig | undefined>
+  actionsConfig: Ref<ActionsConfig | undefined>
 
   /**
    * 提交触发方式
@@ -124,6 +124,13 @@ export interface ChatInputContext {
    * 清空内容
    */
   clear: () => void
+
+  /**
+   * 取消操作
+   *
+   * 在 loading 状态下触发，用于取消正在进行的操作
+   */
+  cancel: () => void
 
   /**
    * 聚焦编辑器

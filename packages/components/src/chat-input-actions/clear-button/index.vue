@@ -2,35 +2,64 @@
 import { computed } from 'vue'
 import { useChatInputContext } from '../../chat-input/context'
 import { IconClear } from '@opentiny/tiny-robot-svgs'
+import ActionButton from '../action-button/index.vue'
+import type { TooltipPlacement } from '../../chat-input/types/base'
 
-const { hasContent, clearable, clear, loading } = useChatInputContext()
+/**
+ * ClearButton Props
+ *
+ * 支持通过 props 覆盖 actionsConfig 的配置
+ */
+const props = defineProps<{
+  disabled?: boolean
+  tooltip?: string
+  tooltipPlacement?: TooltipPlacement
+}>()
 
-// 在 loading 时不显示清空按钮
-const show = computed(() => clearable.value && hasContent.value && !loading.value)
+// 从 Context 读取状态和配置
+const { hasContent, clearable, clear, loading, actionsConfig } = useChatInputContext()
+
+/**
+ * 是否禁用
+ */
+const isDisabled = computed(() => {
+  if (props.disabled !== undefined) return props.disabled
+  if (actionsConfig.value?.clear?.disabled !== undefined) {
+    return actionsConfig.value.clear.disabled
+  }
+  return false
+})
+
+const tooltip = computed(() => props.tooltip ?? actionsConfig.value?.clear?.tooltip)
+
+const tooltipPlacement = computed(() => props.tooltipPlacement ?? actionsConfig.value?.clear?.tooltipPlacement ?? 'top')
+
+/**
+ * 显示条件
+ * - clearable: 允许清空
+ * - hasContent: 有内容
+ * - !loading: 非加载中
+ * - !isDisabled: 非禁用
+ */
+const show = computed(() => clearable.value && hasContent.value && !loading.value && !isDisabled.value)
+
+/**
+ * 点击处理
+ */
+const handleClick = () => {
+  if (!isDisabled.value) {
+    clear()
+  }
+}
 </script>
 
 <template>
-  <div v-if="show" class="tr-chat-input-clear-button" @click="clear" title="清空">
-    <IconClear class="tr-chat-input-clear-button__icon" />
-  </div>
+  <ActionButton
+    v-if="show"
+    :icon="IconClear"
+    :disabled="isDisabled"
+    :tooltip="tooltip"
+    :tooltip-placement="tooltipPlacement"
+    @click="handleClick"
+  />
 </template>
-
-<style lang="less" scoped>
-.tr-chat-input-clear-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-
-  &__icon {
-    font-size: var(--tr-chat-input-button-size);
-    color: var(--tr-text-secondary);
-    border-radius: 8px;
-    transition: background-color 0.2s;
-  }
-
-  &:hover &__icon {
-    background-color: var(--tr-chat-input-button-hover-bg);
-  }
-}
-</style>

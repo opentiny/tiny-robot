@@ -1,4 +1,3 @@
-import type { VNode, Component } from 'vue'
 import type { MentionItem, MentionStructuredItem } from '../extensions/mention/types'
 
 // ============================================
@@ -145,44 +144,32 @@ export type StructuredData = TemplateItem[] | MentionStructuredItem[]
 // ============================================
 
 /**
- * 按钮组配置
+ * 默认操作按钮配置
  *
- * 用于细粒度控制各个按钮的行为
+ * 用于统一配置 ChatInput 的默认按钮（Clear、Submit）
+ *
+ * @example
+ * ```typescript
+ * const actionsConfig = {
+ *   submit: { disabled: !isValid, tooltip: '请完善表单' },
+ *   clear: { tooltip: '清空内容' }
+ * }
+ * ```
  */
-export interface ButtonGroupConfig {
-  /**
-   * 文件上传按钮配置
-   */
-  file?: {
-    /**
-     * 工具提示
-     */
-    tooltips?: string
-
-    /**
-     * 是否禁用
-     */
-    disabled?: boolean
-
-    /**
-     * Tooltip 位置
-     */
-    tooltipPlacement?: TooltipPlacement
-  }
-
+export interface ActionsConfig {
   /**
    * 提交按钮配置
    */
   submit?: {
     /**
-     * 工具提示
-     */
-    tooltips?: string
-
-    /**
      * 是否禁用
      */
     disabled?: boolean
+
+    /**
+     * 工具提示
+     */
+    tooltip?: string
 
     /**
      * Tooltip 位置
@@ -191,13 +178,23 @@ export interface ButtonGroupConfig {
   }
 
   /**
-   * 语音按钮配置
+   * 清空按钮配置
    */
-  voice?: {
+  clear?: {
     /**
-     * 自定义语音图标（未录音状态）
+     * 是否禁用
      */
-    icon?: VNode | Component
+    disabled?: boolean
+
+    /**
+     * 工具提示
+     */
+    tooltip?: string
+
+    /**
+     * Tooltip 位置
+     */
+    tooltipPlacement?: TooltipPlacement
   }
 }
 

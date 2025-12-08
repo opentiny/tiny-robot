@@ -1,23 +1,74 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { TinyTooltip } from '@opentiny/vue'
 import { useChatInputContext } from '../../chat-input/context'
+import type { TooltipPlacement } from '../../chat-input/types/base'
 import { IconSend, IconStop } from '@opentiny/tiny-robot-svgs'
 
-const { canSubmit, loading, submit, stopText } = useChatInputContext()
+// 支持 props 覆盖
+const props = defineProps<{
+  disabled?: boolean
+  tooltip?: string
+  tooltipPlacement?: TooltipPlacement
+}>()
 
-const isDisabled = computed(() => !canSubmit.value && !loading.value)
+const { canSubmit, loading, actionsConfig, submit, cancel, stopText } = useChatInputContext()
 
+const isDisabled = computed(() => {
+  if (actionsConfig.value?.submit?.disabled) {
+    return true
+  }
+
+  return !canSubmit.value && !loading.value
+})
+
+const tooltip = computed(() => props.tooltip ?? actionsConfig.value?.submit?.tooltip)
+
+const tooltipPlacement = computed(
+  () => props.tooltipPlacement ?? actionsConfig.value?.submit?.tooltipPlacement ?? 'top',
+)
+
+/**
+ * 点击处理
+ * - loading 时：触发 cancel 事件（停止响应）
+ * - 非 loading 时：触发 submit 事件（提交内容）
+ */
 const handleClick = () => {
   if (loading.value) {
-    // TODO: 触发 cancel 事件
-    return
+    cancel()
+  } else {
+    submit()
   }
-  submit()
 }
 </script>
 
 <template>
+  <tiny-tooltip
+    v-if="tooltip && !loading"
+    :content="tooltip"
+    :placement="tooltipPlacement"
+    effect="light"
+    :visible-arrow="false"
+    popper-class="tr-submit-button-tooltip-popper"
+  >
+    <div
+      :class="[
+        'tr-chat-input-submit-button',
+        {
+          'is-disabled': isDisabled,
+          'is-loading': loading,
+        },
+      ]"
+      @click="handleClick"
+    >
+      <!-- 发送图标 -->
+      <IconSend class="tr-chat-input-submit-button__icon" />
+    </div>
+  </tiny-tooltip>
+
+  <!-- 无 tooltip 或 loading 时直接渲染 -->
   <div
+    v-else
     :class="[
       'tr-chat-input-submit-button',
       {
@@ -95,6 +146,20 @@ const handleClick = () => {
     color: var(--tr-color-primary, #1476ff);
     line-height: 24px;
     height: 24px;
+  }
+}
+</style>
+
+<style lang="less">
+/* 全局样式：自定义 TinyTooltip 样式 */
+.tr-submit-button-tooltip-popper {
+  .tiny-tooltip__popper {
+    padding: 6px 12px;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 }
 </style>
