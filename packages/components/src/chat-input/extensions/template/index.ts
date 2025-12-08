@@ -60,6 +60,16 @@ function getAllTemplates(editor: Editor): Array<{ node: PMNode; pos: number }> {
 }
 
 /**
+ * 获取包含 template 的完整文本
+ *
+ * 例如：请帮我分析 [模板内容1] 和 [模板内容2]
+ */
+export function getTextWithTemplates(editor: Editor): string {
+  const items = getTemplateStructuredData(editor)
+  return items.map((item) => item.content).join('')
+}
+
+/**
  * 获取结构化数据（辅助函数）
  *
  * 返回包含文本和模板块的结构化数组
@@ -76,7 +86,6 @@ export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
         const content = (node.textContent || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')
         items.push({
           type: 'template',
-          id: node.attrs.id as string,
           content,
         })
       } else if (node.type.name === 'text') {

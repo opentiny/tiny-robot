@@ -2,7 +2,7 @@
  * Mention Suggestion 插件
  *
  * 基于 ProseMirror 插件实现
- * - 监听 @ 字符输入
+ * - 监听触发字符输入（可配置，默认为 @）
  * - 过滤匹配的提及项列表
  * - 使用 @floating-ui/dom 定位弹窗
  * - 处理键盘导航和选择
@@ -209,7 +209,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
             // 删除 mention 节点
             tr.delete(nodePos, $from.pos)
 
-            // 插入 @ 字符
+            // 插入触发字符
             tr.insertText(char, nodePos)
 
             // 设置光标位置到 @ 后面
@@ -374,7 +374,7 @@ function insertMention(view: EditorView, range: { from: number; to: number }, it
   const { state, dispatch } = view
   const { tr } = state
 
-  // 删除触发文本（包括 @ 字符）
+  // 删除触发文本（包括触发字符）
   tr.delete(range.from, range.to)
 
   // 插入 mention 节点

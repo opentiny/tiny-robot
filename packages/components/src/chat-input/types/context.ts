@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import type { InputMode, SpeechState, ButtonGroupConfig, SubmitTrigger } from './base'
+import type { InputMode, ButtonGroupConfig, SubmitTrigger } from './base'
 
 /**
  * Chat-Input Context
@@ -79,14 +79,7 @@ export interface ChatInputContext {
    */
   maxLength: Ref<number | undefined>
 
-  // ===== 语音状态 =====
-
-  /**
-   * 语音识别状态
-   */
-  speechState: Ref<SpeechState>
-
-  // 尺寸
+  // ===== 样式相关 =====
 
   /**
    * 组件的尺寸
@@ -155,21 +148,6 @@ export interface ChatInputContext {
    * @returns 内容（HTML）
    */
   getContent: () => string
-
-  /**
-   * 开始语音识别
-   */
-  startSpeech: () => void
-
-  /**
-   * 停止语音识别
-   */
-  stopSpeech: () => void
-
-  /**
-   * 打开文件选择对话框
-   */
-  openFileDialog: () => void
 }
 
 /**

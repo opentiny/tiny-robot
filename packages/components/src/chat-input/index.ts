@@ -43,8 +43,6 @@ export type {
   UseEditorReturn,
   UseModeSwitchReturn,
   UseSuggestionReturn,
-  UseSpeechReturn,
-  UseFileUploadReturn,
   UseKeyboardShortcutsReturn,
   TemplateItem,
   MentionItem,

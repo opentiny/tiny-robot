@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import type { InputMode, SubmitTrigger, SpeechState } from './base'
+import type { InputMode, SubmitTrigger } from './base'
 
 // ============================================
 // Composables 相关类型
@@ -143,39 +143,4 @@ export interface UseSuggestionReturn {
    * 关闭弹窗
    */
   closePopup: () => void
-}
-
-/**
- * useSpeech 返回类型
- */
-export interface UseSpeechReturn {
-  /**
-   * 语音状态
-   */
-  speechState: Ref<SpeechState>
-
-  /**
-   * 开始语音识别
-   */
-  start: () => void
-
-  /**
-   * 停止语音识别
-   */
-  stop: () => void
-}
-
-/**
- * useFileUpload 返回类型
- */
-export interface UseFileUploadReturn {
-  /**
-   * 打开文件选择对话框
-   */
-  openFileDialog: () => void
-
-  /**
-   * 选择的文件列表
-   */
-  files: Ref<File[]>
 }

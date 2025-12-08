@@ -9,10 +9,16 @@
  */
 
 import { EditorView } from '@tiptap/pm/view'
-import type { Editor } from '@tiptap/core'
-import { computed, provide, ref, toRef, watch } from 'vue'
-import type { ChatInputProps, ChatInputEmits, StructuredData, TemplateItem } from '../index.type'
-import { MentionPluginKey, SuggestionPluginKey, getTemplateStructuredData, getMentions } from '../extensions'
+import { computed, provide, toRef, watch } from 'vue'
+import type { ChatInputProps, ChatInputEmits, StructuredData } from '../index.type'
+import {
+  MentionPluginKey,
+  SuggestionPluginKey,
+  getTemplateStructuredData,
+  getTextWithTemplates,
+  getMentionStructuredData,
+  getTextWithMentions,
+} from '../extensions'
 import { CHAT_INPUT_CONTEXT_KEY, type ChatInputContext } from '../types/context'
 import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
@@ -85,12 +91,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     )
   })
 
-  // 语音状态（简化版）
-  const speechState = ref({
-    isRecording: false,
-    isSupported: false,
-  })
-
   // ========================================
   // 3. 定义核心方法（submit 需要在键盘处理器之前定义）
   // ========================================
@@ -99,29 +99,23 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     if (!canSubmit.value || !editor.value) return
 
     // 构建结构化数据（第二个参数，可选）
-    // 注意：Template 和 Mention 是互斥的使用场景，直接返回数据数组
+    // 注意：Template 和 Mention 是互斥的使用场景
     let structuredData: StructuredData | undefined
     let textContent = ''
 
-    // 优先检查 Template（模板场景）
+    // Template（模板场景）
     if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'template')) {
-      const templateItems = getTemplateStructuredData(editor.value)
-      if (templateItems.length > 0) {
-        structuredData = templateItems.map((item: TemplateItem) => ({
-          type: item.type,
-          content: item.content,
-        }))
-        textContent = templateItems.map((item: TemplateItem) => item.content).join('')
+      const templateStructuredData = getTemplateStructuredData(editor.value)
+      if (templateStructuredData.length > 0) {
+        structuredData = templateStructuredData as StructuredData
       }
+      textContent = getTextWithTemplates(editor.value)
     }
-    // 其次检查 Mention（提及场景）
+    // Mention（提及场景）
     else if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'mention')) {
-      const mentions = getMentions(editor.value)
-      if (mentions.length > 0) {
-        structuredData = mentions.map((item) => ({
-          label: item.label,
-          preset: item.preset,
-        }))
+      const mentionStructuredData = getMentionStructuredData(editor.value)
+      if (mentionStructuredData.length > 0) {
+        structuredData = mentionStructuredData as StructuredData
       }
       textContent = getTextWithMentions(editor.value)
     }
@@ -133,29 +127,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
 
     // 触发 submit 事件
     emit('submit', textContent, structuredData)
-  }
-
-  /**
-   * 获取包含 mention 标签的完整文本
-   *
-   * 例如：@代码分析 hello world @文本分析 12315
-   */
-  const getTextWithMentions = (editor: Editor): string => {
-    let text = ''
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    editor.state.doc.descendants((node: any) => {
-      if (node.type.name === 'mention') {
-        // Mention 节点 (atom: true)：手动添加 @label
-        // 因为 atom 节点在 getText() 中会被跳过
-        text += `@${node.attrs.label as string}`
-      } else if (node.type.name === 'text') {
-        // 文本节点：直接添加文本
-        text += node.text || ''
-      }
-    })
-
-    return text.trim()
   }
 
   // ========================================
@@ -274,21 +245,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     return editor.value?.getText() || ''
   }
 
-  const startSpeech = () => {
-    // TODO: 实现语音识别
-    console.log('startSpeech')
-  }
-
-  const stopSpeech = () => {
-    // TODO: 实现语音识别
-    console.log('stopSpeech')
-  }
-
-  const openFileDialog = () => {
-    // TODO: 实现文件上传
-    console.log('openFileDialog')
-  }
-
   // ========================================
   // 9. 自动组装 Context
   // ========================================
@@ -305,7 +261,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     isOverLimit,
     characterCount,
     maxLength: toRef(props, 'maxLength'),
-    speechState,
     size: computed(() => props.size ?? 'normal'),
     showWordLimit: computed(() => props.showWordLimit ?? false),
     clearable: computed(() => props.clearable ?? false),
@@ -318,9 +273,6 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     blur,
     setContent,
     getContent,
-    startSpeech,
-    stopSpeech,
-    openFileDialog,
   }
 
   // 提供 Context

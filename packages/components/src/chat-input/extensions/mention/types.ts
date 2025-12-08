@@ -32,6 +32,22 @@ export interface MentionItem {
 }
 
 /**
+ * 结构化数据项（提交时返回）
+ *
+ * 用于表示文本和 mention 的混合结构
+ */
+export type MentionStructuredItem =
+  | {
+      type: 'text'
+      content: string
+    }
+  | {
+      type: 'mention'
+      content: string // 显示名称
+      preset: string // 预设内容
+    }
+
+/**
  * Mention 节点属性（内部使用）
  *
  * ProseMirror 节点的属性，id 必填（由插件保证）

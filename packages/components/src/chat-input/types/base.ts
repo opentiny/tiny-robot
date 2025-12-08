@@ -1,5 +1,5 @@
 import type { VNode, Component } from 'vue'
-import type { MentionItem } from '../extensions/mention/types'
+import type { MentionItem, MentionStructuredItem } from '../extensions/mention/types'
 
 // ============================================
 // 基础类型
@@ -95,8 +95,8 @@ export type { MentionItem }
  * - 第二个参数 `data`：结构化数据数组，直接使用无需解包
  *
  * **类型说明**：
- * - `TemplateItem[]`: 使用 Template 扩展时返回
- * - `MentionItem[]`: 使用 Mention 扩展时返回
+ * - `TemplateItem[]`: 使用 Template 扩展时返回（混合结构）
+ * - `MentionStructuredItem[]`: 使用 Mention 扩展时返回（混合结构）
  *
  * @example Template 场景
  * ```typescript
@@ -104,12 +104,11 @@ export type { MentionItem }
  *   // text: "帮我分析 的周报"
  *   // data: [
  *   //   { type: 'text', content: '帮我分析 ' },
- *   //   { type: 'template', id: 't1', content: '张三' },
+ *   //   { type: 'template', content: '张三' },
  *   //   { type: 'text', content: ' 的周报' }
  *   // ]
  *
- *   if (data && data[0]?.type) {
- *     // Template 场景：数组元素有 type 字段
+ *   if (data && data[0]?.type === 'template') {
  *     const templates = data.filter(item => item.type === 'template')
  *     console.log('模板变量:', templates)
  *   }
@@ -120,41 +119,26 @@ export type { MentionItem }
  * ```typescript
  * function handleSubmit(text: string, data?: StructuredData) {
  *   // text: "帮我分析 @张三 的周报"
- *   // data: [{ id: 'm1', label: '张三', preset: '...' }]
+ *   // data: [
+ *   //   { type: 'text', content: '帮我分析 ' },
+ *   //   { type: 'mention', content: '张三', preset: '...' },
+ *   //   { type: 'text', content: ' 的周报' }
+ *   // ]
  *
- *   if (data && data[0]?.label) {
- *     // Mention 场景：数组元素有 label 字段
- *     const mentionedUsers = data.map(m => m.label)
- *     console.log('提及的人:', mentionedUsers)
+ *   // 统一使用 content 属性
+ *   const allContent = data?.map(item => item.content).join('')
+ *   console.log('完整内容:', allContent)
+ *
+ *   // 提取 mention
+ *   if (data && data[0]?.type === 'mention') {
+ *     const mentions = data.filter(item => item.type === 'mention')
+ *     console.log('提及的人:', mentions.map(m => m.content))
+ *     console.log('预设内容:', mentions.map(m => m.preset))
  *   }
  * }
  * ```
  */
-export type StructuredData = TemplateItem[] | MentionItem[]
-
-// ============================================
-// 语音输入相关类型
-// ============================================
-
-/**
- * 语音识别状态
- */
-export interface SpeechState {
-  /**
-   * 是否正在录音
-   */
-  isRecording: boolean
-
-  /**
-   * 是否支持语音识别
-   */
-  isSupported: boolean
-
-  /**
-   * 错误信息
-   */
-  error?: Error
-}
+export type StructuredData = TemplateItem[] | MentionStructuredItem[]
 
 // ============================================
 // 按钮配置相关类型

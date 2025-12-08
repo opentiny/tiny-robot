@@ -1,9 +1,9 @@
 /**
  * Mention 扩展
  *
- * 提及功能，用于 @提及某项 的场景
+ * 提及功能，用于提及某项的场景（如 @用户、#标签 等）
  * - 定义为 inline + atom 节点
- * - 支持 @ 触发建议列表
+ * - 支持自定义触发字符（默认为 @）
  * - 使用 @floating-ui/dom 定位弹窗
  * - 支持键盘和鼠标交互
  */
@@ -14,7 +14,7 @@ import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import { watch, isRef } from 'vue'
 import MentionView from './mention-view.vue'
 import { createSuggestionPlugin, MentionPluginKey } from './plugins'
-import type { MentionAttrs, MentionOptions, MentionItem } from './types'
+import type { MentionAttrs, MentionOptions, MentionItem, MentionStructuredItem } from './types'
 import './commands.d.ts'
 import './index.less'
 
@@ -45,6 +45,88 @@ export function getMentions(editor: Editor): MentionItem[] {
   })
 
   return mentions
+}
+
+/**
+ * 获取包含 mention 标签的完整文本
+ *
+ * 自动从编辑器中获取 mention 扩展的 char 配置
+ *
+ * @param editor - 编辑器实例
+ *
+ * @example
+ * getTextWithMentions(editor) // @代码分析 hello world @文本分析 12315
+ * // 如果配置了 char: '#'，则返回：#代码分析 hello world #文本分析 12315
+ */
+export function getTextWithMentions(editor: Editor): string {
+  // 获取 mention 扩展的 char 配置
+  const mentionExt = editor.extensionManager.extensions.find((ext) => ext.name === 'mention')
+  const char = mentionExt?.options?.char || '@'
+
+  let text = ''
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editor.state.doc.descendants((node: any) => {
+    if (node.type.name === 'mention') {
+      // Mention 节点 (atom: true)：手动添加 char + label
+      // 因为 atom 节点在 getText() 中会被跳过
+      text += `${char}${node.attrs.label as string}`
+    } else if (node.type.name === 'text') {
+      // 文本节点：直接添加文本
+      text += node.text || ''
+    }
+  })
+
+  return text.trim()
+}
+
+/**
+ * 获取结构化数据（包含文本和 mention 的混合结构）
+ *
+ * 返回按顺序排列的文本和 mention 节点，用于确认内容和顺序
+ *
+ * @example
+ * 输入：帮我分析 @张三 的周报（或 #标签 等，取决于 char 配置）
+ * 返回：[
+ *   { type: 'text', content: '帮我分析 ' },
+ *   { type: 'mention', content: '张三', preset: '...' },
+ *   { type: 'text', content: ' 的周报' }
+ * ]
+ */
+export function getMentionStructuredData(editor: Editor): MentionStructuredItem[] {
+  const items: MentionStructuredItem[] = []
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  editor.state.doc.descendants((node: any, _pos: number, parent: any) => {
+    // 只处理段落的直接子节点，避免重复收集
+    if (parent && parent.type.name === 'paragraph') {
+      if (node.type.name === 'mention') {
+        // Mention 节点
+        items.push({
+          type: 'mention',
+          content: node.attrs.label as string,
+          preset: (node.attrs.preset as string) || '',
+        })
+      } else if (node.type.name === 'text') {
+        // 文本节点
+        const text = node.text || ''
+        if (text) {
+          // 合并连续的文本节点
+          const lastItem = items[items.length - 1]
+          if (lastItem && lastItem.type === 'text') {
+            lastItem.content = (lastItem.content || '') + text
+          } else {
+            items.push({
+              type: 'text',
+              content: text,
+            })
+          }
+        }
+      }
+    }
+  })
+
+  return items
 }
 
 /**
@@ -121,7 +203,7 @@ export const Mention = Node.create<MentionOptions>({
         'data-label': node.attrs.label as string,
         'data-preset': node.attrs.preset as string,
       }),
-      `@${node.attrs.label as string}`,
+      `${this.options.char}${node.attrs.label as string}`,
     ]
   },
 
