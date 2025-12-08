@@ -66,29 +66,32 @@ function getAllTemplates(editor: Editor): Array<{ node: PMNode; pos: number }> {
  */
 export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
   const items: TemplateItem[] = []
+  const ZERO_WIDTH_CHAR = '\u200B'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  editor.state.doc.descendants((node: any) => {
-    if (node.type.name === 'template') {
-      // 模板块节点
-      items.push({
-        type: 'template',
-        id: node.attrs.id as string,
-        content: node.attrs.content as string,
-      })
-    } else if (node.type.name === 'text') {
-      // 文本节点
-      const text = node.text || ''
-      if (text) {
-        // 合并连续的文本节点
-        const lastItem = items[items.length - 1]
-        if (lastItem && lastItem.type === 'text') {
-          lastItem.content += text
-        } else {
-          items.push({
-            type: 'text',
-            content: text,
-          })
+  editor.state.doc.descendants((node: any, _pos: number, parent: any) => {
+    // 只处理段落的直接子节点，避免重复收集模板块内部的文本
+    if (parent && parent.type.name === 'paragraph') {
+      if (node.type.name === 'template') {
+        const content = (node.textContent || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')
+        items.push({
+          type: 'template',
+          id: node.attrs.id as string,
+          content,
+        })
+      } else if (node.type.name === 'text') {
+        const text = (node.text || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')
+        if (text) {
+          // 合并连续的文本节点
+          const lastItem = items[items.length - 1]
+          if (lastItem && lastItem.type === 'text') {
+            lastItem.content += text
+          } else {
+            items.push({
+              type: 'text',
+              content: text,
+            })
+          }
         }
       }
     }
@@ -175,14 +178,15 @@ export const Template = Node.create<TemplateOptions>({
 
   // HTML 渲染
   renderHTML({ node, HTMLAttributes }) {
+    const content = node.textContent || ''
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
         'data-template': '',
         'data-id': node.attrs.id as string,
-        'data-content': node.attrs.content as string,
+        'data-content': content,
       }),
-      (node.attrs.content as string) || '',
+      content,
     ]
   },
 
@@ -258,12 +262,21 @@ export const Template = Node.create<TemplateOptions>({
       insertTemplate:
         (attrs: Partial<TemplateAttrs>) =>
         ({ commands }: { commands: Editor['commands'] }) => {
+          const content = attrs.content || ''
           return commands.insertContent({
             type: 'template',
             attrs: {
               id: attrs.id || generateId(),
-              content: attrs.content || '',
+              content,
             },
+            content: content
+              ? [
+                  {
+                    type: 'text',
+                    text: content,
+                  },
+                ]
+              : [],
           })
         },
 
@@ -278,11 +291,16 @@ export const Template = Node.create<TemplateOptions>({
             return false
           }
 
-          const { pos } = result
-          tr.setNodeMarkup(pos, undefined, {
-            id,
-            content,
-          })
+          const { node, pos } = result
+          // 替换节点内容
+          const from = pos + 1
+          const to = pos + node.nodeSize - 1
+
+          if (content) {
+            tr.replaceWith(from, to, editor.schema.text(content))
+          } else {
+            tr.delete(from, to)
+          }
 
           return true
         },
