@@ -175,13 +175,6 @@ export interface SuggestionOptions {
   filterFn?: (suggestions: SuggestionItem[], query: string) => SuggestionItem[]
 
   /**
-   * 自定义高亮函数（可选）
-   *
-   * @default 默认前缀匹配高亮
-   */
-  highlightFn?: (item: SuggestionItem, query: string) => SuggestionTextPart[]
-
-  /**
    * 激活建议项的按键
    *
    * @default ['Enter', 'Tab']

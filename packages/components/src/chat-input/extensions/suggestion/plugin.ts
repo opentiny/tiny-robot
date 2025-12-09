@@ -40,7 +40,6 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
     popupWidth = 400,
     showAutoComplete = true,
     filterFn,
-    highlightFn: _highlightFn, // TODO: 实现自定义高亮逻辑
     onSelect,
   } = options
 
