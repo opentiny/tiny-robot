@@ -70,6 +70,7 @@ const slotScope = useSlotScope()
   .tr-chat-input-prefix {
     flex-shrink: 0;
     padding-left: 0;
+    padding-right: var(--tr-chat-input-prefix-padding-right);
   }
 
   .tr-chat-input-content {

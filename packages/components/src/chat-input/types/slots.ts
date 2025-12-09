@@ -73,6 +73,12 @@ export interface ChatInputSlotScope {
   disabled: boolean
 
   /**
+   * 是否加载中
+   * 用于控制按钮加载状态和禁用
+   */
+  loading: boolean
+
+  /**
    * 是否有内容
    * 用于控制按钮显示/隐藏
    */

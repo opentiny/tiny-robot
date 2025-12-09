@@ -211,10 +211,18 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 自定义插槽
 
-通过 `header` 插槽在顶部区域添加自定义内容
-通过 `footer` 和 `footer-right` 插槽在底部区域添加自定义按钮。
+ChatInput 提供了多个插槽位置，方便扩展功能：
 
-<demo vue="../../demos/chat-input/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、表情等。" />
+- **`header`** - 顶部区域，可添加标题、提示信息等
+- **`prefix`** - 输入框前缀区域，可添加图标、标签等（位于输入框内部）
+- **`footer`** - 底部左侧区域，可添加功能按钮
+- **`footer-right`** - 底部右侧区域，可添加操作按钮
+
+:::tip 插槽作用域
+`footer` 和 `footer-right` 插槽提供了作用域数据，包括 `editor`、`hasContent`、`disabled`、`loading` 等状态，以及 `focus`、`insert`、`append`、`replace` 等操作方法，可用于实现自定义功能按钮。
+:::
+
+<demo vue="../../demos/chat-input/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
 
 #### 方法调用
 

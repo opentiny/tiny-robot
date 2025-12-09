@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChatInput, UploadButton } from '@opentiny/tiny-robot'
-import { IconSearch, IconThink } from '@opentiny/tiny-robot-svgs'
+import { IconSearch, IconThink, IconAi } from '@opentiny/tiny-robot-svgs'
 
 const content = ref('')
 const message = ref('')
@@ -47,6 +47,9 @@ const handleEmoji = () => {
         </button>
       </template>
 
+      <template #prefix>
+        <IconAi :style="{ fontSize: '28px' }" />
+      </template>
       <template #footer-right>
         <UploadButton tooltip="文件上传" tooltip-placement="top" />
       </template>

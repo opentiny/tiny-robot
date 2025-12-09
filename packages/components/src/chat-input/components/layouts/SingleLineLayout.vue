@@ -62,11 +62,13 @@ const slotScope = useSlotScope()
     display: flex;
     align-items: center;
     min-height: var(--tr-chat-input-min-height);
+    padding: var(--tr-chat-input-padding);
   }
 
   .tr-chat-input-prefix {
     flex-shrink: 0;
-    padding: var(--tr-chat-input-padding);
+    padding-left: 0;
+    padding-right: var(--tr-chat-input-prefix-padding-right);
   }
 
   .tr-chat-input-content {
@@ -74,7 +76,7 @@ const slotScope = useSlotScope()
     min-width: 0;
     display: flex;
     align-items: center;
-    padding: var(--tr-chat-input-padding);
+    padding-left: 0;
 
     :deep(.ProseMirror) {
       white-space: nowrap;

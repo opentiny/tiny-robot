@@ -46,6 +46,7 @@ export function useSlotScope(): ComputedRef<ChatInputSlotScope> {
 
     // 常用状态
     disabled: context.disabled.value,
+    loading: context.loading.value,
     hasContent: context.hasContent.value,
   }))
 }
