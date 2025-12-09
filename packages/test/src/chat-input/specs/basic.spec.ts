@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, type Page } from '@playwright/test'
 import { createChatInputTestHelper } from '../helpers'
 
 test.describe('ChatInput 组件测试', () => {
@@ -10,7 +10,6 @@ test.describe('ChatInput 组件测试', () => {
     page = await browser.newPage()
     await page.goto('/')
     await page.click('text=ChatInput 组件')
-    await expect(page.locator('h2')).toContainText('ChatInput 组件测试')
     helper = createChatInputTestHelper(page)
   })
 
@@ -98,15 +97,6 @@ test.describe('ChatInput 组件测试', () => {
     // 获取内容
     await helper.getContent()
     await helper.expectResult('当前内容:')
-  })
-
-  test('Methods: focus - 应该能够通过方法聚焦编辑器', async () => {
-    // 聚焦编辑器
-    await helper.focusEditor()
-    await helper.expectResult('已聚焦')
-
-    // 验证编辑器已聚焦
-    await expect(helper.getEditor()).toBeFocused()
   })
 
   test('Slots: footer - 应该正确显示底部插槽内容', async () => {

@@ -57,6 +57,51 @@ export function createChatInputTestHelper(page: Page) {
       await page.locator(selectors.toggleLoadingBtn).click()
     },
 
+    // 切换 disabled
+    async toggleDisabled() {
+      await page.locator(selectors.toggleDisabledBtn).click()
+    },
+
+    // 切换 showWordLimit
+    async toggleWordLimit() {
+      await page.locator(selectors.toggleWordLimitBtn).click()
+    },
+
+    // 切换 size
+    async toggleSize() {
+      await page.locator(selectors.toggleSizeBtn).click()
+    },
+
+    // 设置 submitType
+    async setSubmitType(type: 'enter' | 'ctrlEnter' | 'shiftEnter') {
+      await page.locator(selectors.submitTypeSelect).selectOption(type)
+    },
+
+    // 设置 maxLength
+    async setMaxLength(length: number) {
+      await page.locator(selectors.maxLengthInput).fill(String(length))
+    },
+
+    // 设置 placeholder
+    async setPlaceholder(text: string) {
+      await page.locator(selectors.placeholderInput).fill(text)
+    },
+
+    // 切换 mention 插件
+    async toggleMention() {
+      await page.locator(selectors.toggleMentionBtn).click()
+    },
+
+    // 切换 template 插件
+    async toggleTemplate() {
+      await page.locator(selectors.toggleTemplateBtn).click()
+    },
+
+    // 切换 suggestion 插件
+    async toggleSuggestion() {
+      await page.locator(selectors.toggleSuggestionBtn).click()
+    },
+
     // 设置内容
     async setContent() {
       await page.locator(selectors.setContentBtn).click()
@@ -70,6 +115,21 @@ export function createChatInputTestHelper(page: Page) {
     // 聚焦编辑器
     async focusEditor() {
       await page.locator(selectors.focusBtn).click()
+    },
+
+    // 失焦编辑器
+    async blurEditor() {
+      await page.locator(selectors.blurBtn).click()
+    },
+
+    // 清空编辑器（方法调用）
+    async clearEditor() {
+      await page.locator(selectors.clearBtn).click()
+    },
+
+    // 提交编辑器（方法调用）
+    async submitEditor() {
+      await page.locator(selectors.submitBtn).click()
     },
 
     // 验证编辑器内容

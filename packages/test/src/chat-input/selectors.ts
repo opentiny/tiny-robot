@@ -3,13 +3,29 @@
  */
 
 export const CHAT_INPUT_SELECTORS = {
-  // 主要控制按钮
+  // 基础属性控制按钮
   toggleModeBtn: '[data-testid="toggle-mode-btn"]',
   toggleClearableBtn: '[data-testid="toggle-clearable-btn"]',
   toggleLoadingBtn: '[data-testid="toggle-loading-btn"]',
+  toggleDisabledBtn: '[data-testid="toggle-disabled-btn"]',
+  toggleWordLimitBtn: '[data-testid="toggle-word-limit-btn"]',
+  toggleSizeBtn: '[data-testid="toggle-size-btn"]',
+  submitTypeSelect: '[data-testid="submit-type-select"]',
+  maxLengthInput: '[data-testid="max-length-input"]',
+  placeholderInput: '[data-testid="placeholder-input"]',
+
+  // 方法调用按钮
   setContentBtn: '[data-testid="set-content-btn"]',
   getContentBtn: '[data-testid="get-content-btn"]',
   focusBtn: '[data-testid="focus-btn"]',
+  blurBtn: '[data-testid="blur-btn"]',
+  clearBtn: '[data-testid="clear-btn"]',
+  submitBtn: '[data-testid="submit-btn"]',
+
+  // 插件开关按钮
+  toggleMentionBtn: '[data-testid="toggle-mention-btn"]',
+  toggleTemplateBtn: '[data-testid="toggle-template-btn"]',
+  toggleSuggestionBtn: '[data-testid="toggle-suggestion-btn"]',
 
   // ChatInput 组件
   chatInput: '[data-testid="test-chat-input"]',
@@ -17,7 +33,7 @@ export const CHAT_INPUT_SELECTORS = {
 
   // 按钮
   submitButton: '.tr-chat-input-submit-button',
-  clearButton: '.tr-chat-input-clear-button',
+  clearButton: '.tr-action-buttons-group .tr-action-button', // 更新：使用通用组件后的选择器
   loadingButton: '.tr-chat-input-submit-button.is-loading',
 
   // 字数统计
@@ -29,6 +45,7 @@ export const CHAT_INPUT_SELECTORS = {
 
   // 结果显示
   resultDisplay: '[data-testid="result-display"]',
+  modeDisplay: '[data-testid="mode-display"]',
 
   // Mention 功能
   mentionList: '.mention-list',
