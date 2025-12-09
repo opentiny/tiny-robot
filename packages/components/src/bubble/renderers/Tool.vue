@@ -3,6 +3,7 @@ import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from
 import { type Component, computed, ref, useCssModule, watchEffect } from 'vue'
 import { useBubbleContentMessage, useBubbleStore } from '../composables'
 import { BubbleRendererMessage, ToolCall } from '../index.type'
+import { getJsonrepair } from '../utils'
 
 const toolCallStatus = ['running', 'success', 'failed', 'cancelled'] as const
 type ToolCallStatus = (typeof toolCallStatus)[number]
@@ -71,15 +72,6 @@ const highlightJSON = <T extends string | object>(json: T, space = 2): string =>
 }
 
 const detail = ref('')
-
-// Lazy load jsonrepair module (only import once, cached by module system)
-let jsonrepairPromise: Promise<typeof import('jsonrepair')> | null = null
-const getJsonrepair = () => {
-  if (!jsonrepairPromise) {
-    jsonrepairPromise = import('jsonrepair')
-  }
-  return jsonrepairPromise
-}
 
 const store = useBubbleStore<{ toolCallResult?: Record<string, string> }>()
 const toolCallResult = computed(() => {
@@ -157,6 +149,8 @@ const handleClick = () => {
   background-color: var(--tr-container-bg-default-2);
   border-radius: 12px;
   margin-block: var(--tr-bubble-tool-call-space-y);
+  min-width: var(--tr-bubble-tool-call-min-width);
+  max-width: var(--tr-bubble-tool-call-max-width);
 
   &:first-child {
     margin-top: 0;

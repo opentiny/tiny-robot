@@ -241,6 +241,7 @@ export interface BubbleProviderProps {
   contentRendererMatches?: BubbleContentRendererMatch[]
   fallbackBoxRenderer?: Component
   fallbackContentRenderer?: Component
+  initialStore?: Record<string, unknown>
 }
 
 export type BubbleBoxRendererMatch = {

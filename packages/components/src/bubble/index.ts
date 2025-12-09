@@ -36,3 +36,4 @@ export const BubbleProvider = BubbleProviderComp as typeof BubbleProviderComp & 
 }
 
 export { default as BubbleBasicBox } from './renderers/Box.vue'
+export { default as BubbleMarkdownRenderer } from './renderers/Markdown.vue'

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { setupBubbleBoxRenderer } from './composables/useBubbleBoxRenderer'
-import { setupBubbleContentRenderer } from './composables/useBubbleContentRenderer'
+import { setupBubbleBoxRenderer, setupBubbleContentRenderer, setupBubbleStore } from './composables'
 import type { BubbleProviderProps } from './index.type'
 import {
   defaultBoxRendererMatches,
@@ -11,6 +10,8 @@ import {
 } from './renderers/defaultRenderers'
 
 const props = defineProps<BubbleProviderProps>()
+
+setupBubbleStore(props.initialStore)
 
 const boxRendererMatches = computed(() => {
   return (props.boxRendererMatches || [])

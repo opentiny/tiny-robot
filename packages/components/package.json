@@ -17,15 +17,15 @@
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
+    "dompurify": "^3.3.1",
+    "markdown-it": "^14.1.0",
     "vue": "^3.3.11"
   },
   "dependencies": {
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@opentiny/vue": "^3.20.0",
     "@vueuse/core": "^13.1.0",
-    "dompurify": "^3.2.6",
-    "jsonrepair": "^3.13.1",
-    "markdown-it": "^14.1.0"
+    "jsonrepair": "^3.13.1"
   },
   "devDependencies": {
     "@types/dom-speech-recognition": "^0.0.6",
@@ -34,7 +34,9 @@
     "@types/node": "^22.13.17",
     "@vitejs/plugin-vue": "^4.5.2",
     "@vitejs/plugin-vue-jsx": "^4.1.2",
+    "dompurify": "^3.3.1",
     "less": "^4.2.2",
+    "markdown-it": "^14.1.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vite-plugin-dts": "^4.5.3",
