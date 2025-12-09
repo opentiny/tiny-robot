@@ -169,7 +169,7 @@ export interface BubbleItemSlot {
 }
 
 type BubbleListSlotProps = BubbleItemSlotProps & {
-  index: number
+  messageIndexes: number[]
 }
 
 export interface BubbleListSlots {
@@ -192,6 +192,7 @@ type BubblePlainMessageGroup = {
   role: string
   messages: BubblePlainMessage[]
   isPolymorphic: false
+  messageIndexes: number[]
 }
 
 /**
@@ -201,6 +202,7 @@ type BubblePolymorphicMessageGroup = {
   role: string
   messages: BubblePolymorphicMessage[]
   isPolymorphic: true
+  messageIndexes: number[]
 }
 
 /**

@@ -29,7 +29,7 @@ setupBubbleStore()
 const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
 
-  for (const message of messages) {
+  for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
     const isArrayContent = Array.isArray(message.content)
 
@@ -39,17 +39,20 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
         role: message.role,
         messages: [message as BubblePolymorphicMessage],
         isPolymorphic: true,
+        messageIndexes: [index],
       })
     }
     // 如果上一组的角色相同，且上一组不是多态分组，则添加到该组
     else if (lastGroup && lastGroup.role === message.role && !lastGroup.isPolymorphic) {
       ;(lastGroup.messages as BubblePlainMessage[]).push(message as BubblePlainMessage)
+      lastGroup.messageIndexes.push(index)
     } else {
       // 创建新的分组
       groups.push({
         role: message.role,
         messages: [message as BubblePlainMessage],
         isPolymorphic: false,
+        messageIndexes: [index],
       })
     }
   }
@@ -66,7 +69,7 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
 const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
 
-  for (const message of messages) {
+  for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
     const isDivider = message.role === dividerRole
     const isArrayContent = Array.isArray(message.content)
@@ -77,17 +80,20 @@ const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleM
         role: message.role,
         messages: [message as BubblePolymorphicMessage],
         isPolymorphic: true,
+        messageIndexes: [index],
       })
     }
     // 如果上一组与当前消息的分割/非分割类型相同，且上一组不是多态分组，则添加到该组
     else if (lastGroup && (lastGroup.role === dividerRole) === isDivider && !lastGroup.isPolymorphic) {
       ;(lastGroup.messages as BubblePlainMessage[]).push(message as BubblePlainMessage)
+      lastGroup.messageIndexes.push(index)
     } else {
       // 创建新的分组
       groups.push({
         role: isDivider ? dividerRole : message.role,
         messages: [message as BubblePlainMessage],
         isPolymorphic: false,
+        messageIndexes: [index],
       })
     }
   }
@@ -127,12 +133,18 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
       :message-group="group"
       :split-polymorphic="props.splitPolymorphic"
     >
-      <template #prefix="slotProps"> <slot name="prefix" v-bind="slotProps" :index="index"></slot> </template>
-      <template #suffix="slotProps"> <slot name="suffix" v-bind="slotProps" :index="index"></slot> </template>
-      <template #content-footer="slotProps">
-        <slot name="content-footer" v-bind="slotProps" :index="index"></slot>
+      <template #prefix="slotProps">
+        <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
       </template>
-      <template #after="slotProps"> <slot name="after" v-bind="slotProps" :index="index"></slot> </template>
+      <template #suffix="slotProps">
+        <slot name="suffix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+      </template>
+      <template #content-footer="slotProps">
+        <slot name="content-footer" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+      </template>
+      <template #after="slotProps">
+        <slot name="after" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+      </template>
     </BubbleItem>
   </div>
 </template>
