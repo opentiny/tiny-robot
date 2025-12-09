@@ -1,4 +1,5 @@
 import { Component } from 'vue'
+import { TooltipContent, TooltipPlacement } from '../types/common'
 
 export interface UploadButtonProps {
   /**
@@ -37,7 +38,7 @@ export interface UploadButtonProps {
   /**
    * 按钮提示文本
    */
-  tooltip?: string
+  tooltip?: TooltipContent
 
   /**
    * 按钮尺寸
@@ -52,7 +53,7 @@ export interface UploadButtonProps {
   /**
    * Tooltip 位置
    */
-  tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right'
+  tooltipPlacement?: TooltipPlacement
 }
 
 export interface UploadButtonEmits {

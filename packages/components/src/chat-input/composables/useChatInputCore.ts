@@ -88,7 +88,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
       !props.loading &&
       hasContent.value &&
       !isOverLimit.value &&
-      !props.actionsConfig?.submit?.disabled
+      !props.defaultActions?.submit?.disabled
     )
   })
 
@@ -269,7 +269,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
     size: computed(() => props.size ?? 'normal'),
     showWordLimit: computed(() => props.showWordLimit ?? false),
     clearable: computed(() => props.clearable ?? false),
-    actionsConfig: toRef(props, 'actionsConfig'),
+    defaultActions: toRef(props, 'defaultActions'),
     submitType: computed(() => props.submitType ?? 'enter'),
     stopText: toRef(props, 'stopText'),
     submit,

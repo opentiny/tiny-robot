@@ -27,11 +27,6 @@ const handleCancel = () => {
 
 <template>
   <div class="demo-container">
-    <div class="demo-info">
-      <p>在 loading 状态下，点击停止按钮会触发 cancel 事件</p>
-      <p>当前状态: {{ loading ? '⏳ 处理中...' : '✅ 就绪' }}</p>
-    </div>
-
     <ChatInput
       v-model="content"
       :loading="loading"
@@ -51,19 +46,6 @@ const handleCancel = () => {
 <style scoped>
 .demo-container {
   padding: 20px;
-}
-
-.demo-info {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.demo-info p {
-  margin: 4px 0;
 }
 
 .message {

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
-import type { ActionButtonProps } from './index.type'
+import type { ActionButtonProps } from '../types/common'
+import { normalizeTooltipContent } from '../utils/tooltip'
 
 const props = withDefaults(defineProps<ActionButtonProps>(), {
   disabled: false,
@@ -9,6 +10,8 @@ const props = withDefaults(defineProps<ActionButtonProps>(), {
   size: 32,
   tooltipPlacement: 'top',
 })
+
+const tooltipRenderFn = computed(() => normalizeTooltipContent(props.tooltip))
 
 const sizeStyle = computed(() => {
   const size = typeof props.size === 'number' ? `${props.size}px` : props.size
@@ -19,7 +22,7 @@ const sizeStyle = computed(() => {
 <template>
   <tiny-tooltip
     v-if="props.tooltip"
-    :content="props.tooltip"
+    :render-content="tooltipRenderFn"
     :placement="props.tooltipPlacement"
     effect="light"
     :visible-arrow="false"

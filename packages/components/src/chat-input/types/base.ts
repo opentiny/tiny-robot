@@ -1,3 +1,4 @@
+import type { TooltipContent, TooltipPlacement } from '../../chat-input-actions/types/common'
 import type { MentionItem, MentionStructuredItem } from '../extensions/mention/types'
 
 // ============================================
@@ -18,23 +19,6 @@ export type InputMode = 'single' | 'multiple'
  * - shiftEnter: Shift+Enter 提交
  */
 export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
-
-/**
- * Tooltip 位置
- */
-export type TooltipPlacement =
-  | 'top'
-  | 'top-start'
-  | 'top-end'
-  | 'bottom'
-  | 'bottom-start'
-  | 'bottom-end'
-  | 'left'
-  | 'left-start'
-  | 'left-end'
-  | 'right'
-  | 'right-start'
-  | 'right-end'
 
 // ============================================
 // 模板相关类型
@@ -150,13 +134,13 @@ export type StructuredData = TemplateItem[] | MentionStructuredItem[]
  *
  * @example
  * ```typescript
- * const actionsConfig = {
+ * const defaultActions = {
  *   submit: { disabled: !isValid, tooltip: '请完善表单' },
  *   clear: { tooltip: '清空内容' }
  * }
  * ```
  */
-export interface ActionsConfig {
+export interface DefaultActions {
   /**
    * 提交按钮配置
    */
@@ -168,8 +152,10 @@ export interface ActionsConfig {
 
     /**
      * 工具提示
+     * - string: 简单文本
+     * - () => string | VNode: 渲染函数，支持复杂内容
      */
-    tooltip?: string
+    tooltip?: TooltipContent
 
     /**
      * Tooltip 位置
@@ -188,8 +174,10 @@ export interface ActionsConfig {
 
     /**
      * 工具提示
+     * - string: 简单文本
+     * - () => string | VNode: 渲染函数，支持复杂内容
      */
-    tooltip?: string
+    tooltip?: TooltipContent
 
     /**
      * Tooltip 位置

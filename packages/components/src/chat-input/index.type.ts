@@ -6,7 +6,7 @@
  */
 
 import type { Extension } from '@tiptap/core'
-import type { InputMode, SubmitTrigger, ActionsConfig, AutoSize, StructuredData } from './types/base'
+import type { InputMode, SubmitTrigger, DefaultActions, AutoSize, StructuredData } from './types/base'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -206,7 +206,7 @@ export interface ChatInputProps {
    * @example 动态配置
    * ```vue
    * <script setup>
-   * const actionsConfig = computed(() => ({
+   * const defaultActions = computed(() => ({
    *   submit: {
    *     disabled: !canSubmit.value,
    *     tooltip: canSubmit.value ? '发送' : '请输入内容'
@@ -216,13 +216,13 @@ export interface ChatInputProps {
    * </script>
    *
    * <template>
-   *   <ChatInput :actions-config="actionsConfig" />
+   *   <ChatInput :actions-config="defaultActions" />
    * </template>
    * ```
    *
    * @default undefined
    */
-  actionsConfig?: ActionsConfig
+  defaultActions?: DefaultActions
 
   // ===== 提交配置 =====
 

@@ -3,36 +3,24 @@ import { computed } from 'vue'
 import { useChatInputContext } from '../../chat-input/context'
 import { IconClear } from '@opentiny/tiny-robot-svgs'
 import ActionButton from '../action-button/index.vue'
-import type { TooltipPlacement } from '../../chat-input/types/base'
-
-/**
- * ClearButton Props
- *
- * 支持通过 props 覆盖 actionsConfig 的配置
- */
-const props = defineProps<{
-  disabled?: boolean
-  tooltip?: string
-  tooltipPlacement?: TooltipPlacement
-}>()
+import { normalizeTooltipContent } from '../utils/tooltip'
 
 // 从 Context 读取状态和配置
-const { hasContent, clearable, clear, loading, actionsConfig } = useChatInputContext()
+const { hasContent, clearable, clear, loading, defaultActions } = useChatInputContext()
 
 /**
  * 是否禁用
  */
 const isDisabled = computed(() => {
-  if (props.disabled !== undefined) return props.disabled
-  if (actionsConfig.value?.clear?.disabled !== undefined) {
-    return actionsConfig.value.clear.disabled
+  if (defaultActions.value?.clear?.disabled !== undefined) {
+    return defaultActions.value.clear.disabled
   }
   return false
 })
 
-const tooltip = computed(() => props.tooltip ?? actionsConfig.value?.clear?.tooltip)
+const tooltipRenderFn = computed(() => normalizeTooltipContent(defaultActions.value?.clear?.tooltip))
 
-const tooltipPlacement = computed(() => props.tooltipPlacement ?? actionsConfig.value?.clear?.tooltipPlacement ?? 'top')
+const tooltipPlacement = computed(() => defaultActions.value?.clear?.tooltipPlacement ?? 'top')
 
 /**
  * 显示条件
@@ -58,7 +46,7 @@ const handleClick = () => {
     v-if="show"
     :icon="IconClear"
     :disabled="isDisabled"
-    :tooltip="tooltip"
+    :tooltip="tooltipRenderFn"
     :tooltip-placement="tooltipPlacement"
     @click="handleClick"
   />

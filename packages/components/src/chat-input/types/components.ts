@@ -1,47 +1,8 @@
-import type { VNode, Component } from 'vue'
-import type { TooltipPlacement } from './base'
 import type { SuggestionItem } from '../extensions/suggestion/types'
 
 // ============================================
 // 组件 Props 类型
 // ============================================
-
-/**
- * ActionButton Props
- *
- * 基础操作按钮的 Props
- */
-export interface ActionButtonProps {
-  /**
-   * 按钮图标
-   */
-  icon: VNode | Component
-
-  /**
-   * 是否禁用
-   */
-  disabled?: boolean
-
-  /**
-   * 是否激活状态
-   */
-  active?: boolean
-
-  /**
-   * 工具提示
-   */
-  tooltip?: string
-
-  /**
-   * Tooltip 位置
-   */
-  tooltipPlacement?: TooltipPlacement
-
-  /**
-   * 按钮大小
-   */
-  size?: string | number
-}
 
 /**
  * WordCounter Props

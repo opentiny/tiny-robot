@@ -10,7 +10,6 @@ const props = withDefaults(defineProps<UploadButtonProps>(), {
   accept: '*',
   multiple: false,
   reset: true,
-  tooltip: '上传文件',
   tooltipPlacement: 'top',
 })
 

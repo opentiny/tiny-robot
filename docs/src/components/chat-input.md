@@ -161,17 +161,9 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 默认按钮配置
 
-通过 `actionsConfig` 属性统一配置默认按钮（Clear、Submit）的状态和提示。
+通过 `defaultActions` 属性统一配置默认按钮（Clear、Submit）的状态和提示。
 
-<demo vue="../../demos/chat-input/actions-config-basic.vue" title="默认按钮配置" description="通过 actionsConfig 统一配置默认按钮的状态和提示。" />
-
-:::tip 配置优先级
-按钮的配置优先级：**props > actionsConfig > 默认值**
-
-- 通过 props 传递的配置优先级最高
-- 其次是 `actionsConfig` 的配置
-- 最后是组件的默认值
-:::
+<demo vue="../../demos/chat-input/actions-config-basic.vue" title="默认按钮配置" description="通过 defaultActions 统一配置默认按钮的状态和提示。" />
 
 #### 增强按钮
 
@@ -246,22 +238,23 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### BasicInput
 
-| 属性名        | 说明                                                         | 类型                                     | 默认值            |
-| ------------- | ------------------------------------------------------------ | ---------------------------------------- | ----------------- |
-| modelValue    | 绑定值(v-model)                                              | `string`                                 | `''`              |
-| defaultValue  | 默认值(非响应式)                                             | `string`                                 | `''`              |
-| placeholder   | 输入框占位文本                                               | `string`                                 | `'请输入内容...'` |
-| disabled      | 是否禁用                                                     | `boolean`                                | `false`           |
-| loading       | 是否加载中                                                   | `boolean`                                | `false`           |
-| autofocus     | 自动获取焦点                                                 | `boolean`                                | `false`           |
-| mode          | 输入框类型                                                   | `'single' \| 'multiple'`                 | `'single'`        |
-| size          | 组件尺寸                                                     | `'normal' \| 'small'`                    | `'normal'`        |
-| maxLength     | 最大输入长度                                                 | `number`                                 | `Infinity`        |
-| showWordLimit | 是否显示字数统计                                             | `boolean`                                | `false`           |
-| clearable     | 是否可清空                                                   | `boolean`                                | `false`           |
-| submitType    | 提交方式                                                     | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`         |
-| stopText      | 停止按钮文字                                                 | `string`                                 | `仅显示图标`      |
-| actionsConfig | 默认操作按钮配置，用于统一配置默认按钮（Clear、Submit）的状态和提示 | `ActionsConfig`                          | `undefined`       |
+| 属性名        | 说明                                                         | 类型                                     | 默认值                       |
+| ------------- | ------------------------------------------------------------ | ---------------------------------------- | ---------------------------- |
+| modelValue    | 绑定值(v-model)                                              | `string`                                 | `''`                         |
+| defaultValue  | 默认值(非响应式)                                             | `string`                                 | `''`                         |
+| placeholder   | 输入框占位文本                                               | `string`                                 | `'请输入内容...'`            |
+| mode          | 输入模式                                                     | `'single' \| 'multiple'`                 | `'single'`                   |
+| size          | 组件尺寸                                                     | `'normal' \| 'small'`                    | `'normal'`                   |
+| disabled      | 是否禁用                                                     | `boolean`                                | `false`                      |
+| loading       | 是否加载中                                                   | `boolean`                                | `false`                      |
+| autofocus     | 自动获取焦点                                                 | `boolean`                                | `false`                      |
+| autoSize      | 自动调整高度，仅在 mode === 'multiple' 时有效              | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 3 }` |
+| clearable     | 是否可清空                                                   | `boolean`                                | `false`                      |
+| maxLength     | 最大输入长度                                                 | `number`                                 | `Infinity`                   |
+| showWordLimit | 是否显示字数统计                                             | `boolean`                                | `false`                      |
+| submitType    | 提交方式                                                     | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'`                    |
+| stopText      | 停止按钮文字                                                 | `string`                                 | `'停止响应'`                 |
+| defaultActions | 默认操作按钮配置，用于统一配置默认按钮（Clear、Submit）的状态和提示 | `DefaultActions`                          | `undefined`                  |
 
 #### Extension
 
@@ -361,7 +354,7 @@ ChatInput.Suggestion.configure({
 | reset            | 选择后是否重置 input     | `boolean`            | `true`       |
 | maxSize          | 文件大小限制（MB）       | `number`             | -            |
 | maxCount         | 最大文件数量             | `number`             | -            |
-| tooltip          | Tooltip 文本             | `string`             | `'上传文件'` |
+| tooltip          | Tooltip                 | `TooltipContent`     | `-`          |
 | tooltipPlacement | Tooltip 位置             | `TooltipPlacement`   | `'top'`      |
 | icon             | 自定义图标               | `VNode \| Component` | `IconUpload` |
 | size             | 按钮尺寸                 | `number \| string`   | `32`         |
@@ -375,7 +368,7 @@ ChatInput.Suggestion.configure({
 | icon             | 自定义图标                   | `VNode \| Component`  | `IconVoice`  |
 | disabled         | 是否禁用                     | `boolean`             | `false`      |
 | size             | 按钮尺寸                     | `'small' \| 'normal'` | `'normal'`   |
-| tooltip          | Tooltip 文本                 | `string`              | `'语音输入'` |
+| tooltip          | Tooltip                     | `TooltipContent`      | `-`          |
 | tooltipPlacement | Tooltip 位置                 | `TooltipPlacement`    | `'top'`      |
 | speechConfig     | 语音配置                     | `SpeechConfig`        | -            |
 | autoInsert       | 是否自动插入识别结果到编辑器 | `boolean`             | `true`       |
@@ -453,8 +446,8 @@ ChatInput.Suggestion.configure({
 ## Types
 
 ```typescript
-// ActionsConfig 默认按钮配置
-interface ActionsConfig {
+// DefaultActions 默认按钮配置
+interface DefaultActions {
   submit?: {
     disabled?: boolean // 是否禁用提交按钮
     tooltip?: string // 提交按钮提示文本
@@ -466,6 +459,9 @@ interface ActionsConfig {
     tooltipPlacement?: TooltipPlacement // Tooltip 位置
   }
 }
+
+// ToolTip 内容
+type TooltipContent = string | (() => string | VNode)
 
 // Tooltip 位置
 type TooltipPlacement =

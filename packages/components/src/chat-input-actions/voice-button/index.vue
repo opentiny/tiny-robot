@@ -7,7 +7,6 @@ import { IconVoice } from '@opentiny/tiny-robot-svgs'
 import type { VoiceButtonProps, VoiceButtonEmits } from './index.type'
 
 const props = withDefaults(defineProps<VoiceButtonProps>(), {
-  tooltip: '语音输入',
   tooltipPlacement: 'top',
   autoInsert: true,
 })

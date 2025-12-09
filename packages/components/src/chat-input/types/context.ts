@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import type { Editor } from '@tiptap/vue-3'
-import type { InputMode, ActionsConfig, SubmitTrigger } from './base'
+import type { InputMode, DefaultActions, SubmitTrigger } from './base'
 
 /**
  * Chat-Input Context
@@ -58,7 +58,7 @@ export interface ChatInputContext {
    * - !loading
    * - hasContent
    * - !isOverLimit
-   * - !actionsConfig.submit?.disabled
+   * - !defaultActions.submit?.disabled
    */
   canSubmit: Ref<boolean>
 
@@ -101,7 +101,7 @@ export interface ChatInputContext {
   /**
    * 默认操作按钮配置
    */
-  actionsConfig: Ref<ActionsConfig | undefined>
+  defaultActions: Ref<DefaultActions | undefined>
 
   /**
    * 提交触发方式

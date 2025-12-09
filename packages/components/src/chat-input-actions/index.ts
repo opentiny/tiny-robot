@@ -17,10 +17,15 @@ export { default as UploadButton } from './upload-button/index.vue'
 export { default as VoiceButton } from './voice-button/index.vue'
 export { default as WordCounter } from './word-counter/index.vue'
 export { default as DefaultActionButtons } from './default-actions/index.vue'
+
 // 导出语音相关 Hook 和类型（供高级用户使用）
 export { useSpeechHandler } from './voice-button/useSpeechHandler'
 export { WebSpeechHandler } from './voice-button/webSpeechHandler'
-export type { ActionButtonProps, TooltipPlacement } from './action-button/index.type.js'
+
+// 导出共享类型
+export type { TooltipPlacement, TooltipContent, ActionButtonProps } from './types/common'
+
+// 导出组件特有类型
 export type { UploadButtonProps, UploadButtonEmits } from './upload-button/index.type.js'
 export type { VoiceButtonProps, VoiceButtonEmits } from './voice-button/index.type.js'
 export type {

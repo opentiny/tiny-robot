@@ -2,31 +2,22 @@
 import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { useChatInputContext } from '../../chat-input/context'
-import type { TooltipPlacement } from '../../chat-input/types/base'
 import { IconSend, IconStop } from '@opentiny/tiny-robot-svgs'
+import { normalizeTooltipContent } from '../utils/tooltip'
 
-// 支持 props 覆盖
-const props = defineProps<{
-  disabled?: boolean
-  tooltip?: string
-  tooltipPlacement?: TooltipPlacement
-}>()
-
-const { canSubmit, loading, actionsConfig, submit, cancel, stopText } = useChatInputContext()
+const { canSubmit, loading, defaultActions, submit, cancel, stopText } = useChatInputContext()
 
 const isDisabled = computed(() => {
-  if (actionsConfig.value?.submit?.disabled) {
+  if (defaultActions.value?.submit?.disabled) {
     return true
   }
 
   return !canSubmit.value && !loading.value
 })
 
-const tooltip = computed(() => props.tooltip ?? actionsConfig.value?.submit?.tooltip)
+const tooltipRenderFn = computed(() => normalizeTooltipContent(defaultActions.value?.submit?.tooltip))
 
-const tooltipPlacement = computed(
-  () => props.tooltipPlacement ?? actionsConfig.value?.submit?.tooltipPlacement ?? 'top',
-)
+const tooltipPlacement = computed(() => defaultActions.value?.submit?.tooltipPlacement ?? 'top')
 
 /**
  * 点击处理
@@ -44,8 +35,8 @@ const handleClick = () => {
 
 <template>
   <tiny-tooltip
-    v-if="tooltip && !loading"
-    :content="tooltip"
+    v-if="tooltipRenderFn && !loading"
+    :render-content="tooltipRenderFn"
     :placement="tooltipPlacement"
     effect="light"
     :visible-arrow="false"

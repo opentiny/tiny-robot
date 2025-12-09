@@ -8,9 +8,9 @@ const content = ref('')
 const isValid = computed(() => content.value.length >= 5)
 
 // 按钮配置
-const actionsConfig = computed(() => ({
+const defaultActions = computed(() => ({
   submit: {
-    disabled: true,
+    disabled: !isValid.value,
     tooltip: isValid.value ? '发送消息' : '请输入至少 5 个字符',
   },
   clear: {
@@ -30,7 +30,7 @@ const handleSubmit = (text: string) => {
 
     <ChatInput
       v-model="content"
-      :actions-config="actionsConfig"
+      :default-actions="defaultActions"
       placeholder="请输入至少 5 个字符..."
       clearable
       @submit="handleSubmit"
@@ -47,5 +47,12 @@ const handleSubmit = (text: string) => {
   margin-bottom: 12px;
   font-size: 14px;
   color: #606266;
+}
+</style>
+
+<style>
+.tr-submit-button-tooltip-popper,
+.tr-action-button-tooltip-popper {
+  top: -10px !important;
 }
 </style>

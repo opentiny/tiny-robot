@@ -1,6 +1,6 @@
 import type { VNode, Component } from 'vue'
 import type { SpeechConfig } from './speech.types'
-import type { TooltipPlacement } from '../action-button/index.type'
+import type { TooltipPlacement, TooltipContent } from '../types/common'
 /**
  * VoiceButton 组件 Props
  */
@@ -20,7 +20,7 @@ export interface VoiceButtonProps {
   /**
    * Tooltip 文本
    */
-  tooltip?: string
+  tooltip?: TooltipContent
   /**
    * Tooltip 位置
    */

@@ -23,10 +23,6 @@ const handleVoiceFinal = (text: string) => {
 
 <template>
   <div class="demo-container">
-    <div class="demo-info">
-      <p>通过插槽添加增强按钮（Upload、Voice），每个按钮都有独立的配置</p>
-    </div>
-
     <ChatInput
       v-model="content"
       placeholder="输入内容，或使用语音/上传文件..."
@@ -56,19 +52,6 @@ const handleVoiceFinal = (text: string) => {
 <style scoped>
 .demo-container {
   padding: 20px;
-}
-
-.demo-info {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.demo-info p {
-  margin: 4px 0;
 }
 
 .message {
