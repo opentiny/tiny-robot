@@ -1,0 +1,11 @@
+@import 'github-markdown-css/github-markdown.css';
+
+*,
+*::after,
+*::before {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}

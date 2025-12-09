@@ -16,3 +16,5 @@
 ## 对话套件
 
 ## Bubble markdown优化
+
+- useConversation 支持后台多会话

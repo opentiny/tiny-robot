@@ -43,5 +43,3 @@ pnpm-lock.yaml
 yarn.lock
 packages/svgs/src/components
 cui.config.js
-
-packages/test2
