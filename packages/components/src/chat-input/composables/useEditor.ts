@@ -2,7 +2,7 @@
  * 编辑器初始化和管理
  */
 
-import { ref, watch, onBeforeUnmount, nextTick } from 'vue'
+import { ref, watch, onBeforeUnmount, nextTick, toRef } from 'vue'
 import { useEditor as useTiptapEditor } from '@tiptap/vue-3'
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -26,6 +26,9 @@ import type { ChatInputProps, ChatInputEmits, UseEditorReturn } from '../index.t
 export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEditorReturn {
   const editorRef = ref<HTMLElement | null>(null)
 
+  // 将 placeholder 转换为响应式引用
+  const placeholderRef = toRef(props, 'placeholder')
+
   /**
    * 构建扩展列表
    *
@@ -38,7 +41,7 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
       Text,
       History, // 提供 undo/redo 功能
       Placeholder.configure({
-        placeholder: props.placeholder || '请输入内容...',
+        placeholder: () => placeholderRef.value || '请输入内容...',
       }),
       CharacterCount.configure({
         mode: 'textSize',
@@ -99,6 +102,18 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
     (newValue) => {
       if (editor.value && newValue !== editor.value.getText()) {
         editor.value.commands.setContent(newValue || '', { emitUpdate: false })
+      }
+    },
+  )
+
+  // 监听 placeholder 变化，强制更新视图
+  watch(
+    () => props.placeholder,
+    () => {
+      if (editor.value) {
+        const { state } = editor.value
+        const tr = state.tr
+        editor.value.view.dispatch(tr)
       }
     },
   )

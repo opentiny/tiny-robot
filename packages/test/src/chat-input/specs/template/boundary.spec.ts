@@ -4,7 +4,7 @@ import { createTemplateTestHelper } from '../../helpers/template-helper'
 
 test.describe('Template Block - 边界情况测试', () => {
   let page: Page
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   let helper: ReturnType<typeof createChatInputTestHelper>
   let templateHelper: ReturnType<typeof createTemplateTestHelper>
 
@@ -15,10 +15,16 @@ test.describe('Template Block - 边界情况测试', () => {
     await page.click('text=ChatInput 组件')
     helper = createChatInputTestHelper(page)
     templateHelper = createTemplateTestHelper(page)
+
+    // 打开 template 插件开关
+    await helper.toggleTemplate()
+    await helper.wait(300) // 等待组件重新渲染
   })
 
   // 所有测试结束后关闭页面
   test.afterAll(async () => {
+    // 关闭 template 插件开关
+    await helper.toggleTemplate()
     await page.close()
   })
 

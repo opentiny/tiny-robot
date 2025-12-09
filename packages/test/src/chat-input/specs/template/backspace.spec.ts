@@ -14,10 +14,16 @@ test.describe('Template Block - Backspace 删除逻辑', () => {
     await page.click('text=ChatInput 组件')
     helper = createChatInputTestHelper(page)
     templateHelper = createTemplateTestHelper(page)
+
+    // 打开 template 插件开关
+    await helper.toggleTemplate()
+    await helper.wait(300) // 等待组件重新渲染
   })
 
   // 所有测试结束后关闭页面
   test.afterAll(async () => {
+    // 关闭 template 插件开关
+    await helper.toggleTemplate()
     await page.close()
   })
 

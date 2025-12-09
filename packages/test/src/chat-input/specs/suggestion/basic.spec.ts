@@ -14,10 +14,16 @@ test.describe('ChatInput Suggestion', () => {
     await page.click('text=ChatInput 组件')
     helper = createChatInputTestHelper(page)
     suggestionHelper = createSuggestionHelper(page)
+
+    // 打开 suggestion 插件开关
+    await helper.toggleSuggestion()
+    await helper.wait(300) // 等待组件重新渲染
   })
 
   // 所有测试结束后关闭页面
   test.afterAll(async () => {
+    // 关闭 suggestion 插件开关
+    await helper.toggleSuggestion()
     await page.close()
   })
 
