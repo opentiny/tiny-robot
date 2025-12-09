@@ -48,7 +48,7 @@ const handleEmoji = () => {
       </template>
 
       <template #prefix>
-        <IconAi :style="{ fontSize: '28px' }" />
+        <IconAi :style="{ fontSize: '26px' }" />
       </template>
       <template #footer-right>
         <UploadButton tooltip="文件上传" tooltip-placement="top" />

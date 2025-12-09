@@ -5,18 +5,21 @@
       <slot name="header" />
     </div>
 
-    <!-- 主输入行 -->
-    <div class="tr-chat-input-main">
-      <!-- Prefix 插槽 -->
-      <div v-if="$slots.prefix" class="tr-chat-input-prefix">
-        <slot name="prefix" />
-      </div>
+    <!-- 输入区域容器 -->
+    <div class="tr-chat-input-container">
+      <!-- 主输入区（前缀 + 内容） -->
+      <div class="tr-chat-input-main">
+        <!-- Prefix 插槽 -->
+        <div v-if="$slots.prefix" class="tr-chat-input-prefix">
+          <slot name="prefix" />
+        </div>
 
-      <!-- 编辑器内容 -->
-      <div class="tr-chat-input-content">
-        <slot name="content" :editor="context.editor">
-          <EditorContent />
-        </slot>
+        <!-- 编辑器内容 -->
+        <div class="tr-chat-input-content">
+          <slot name="content" :editor="context.editor">
+            <EditorContent />
+          </slot>
+        </div>
       </div>
 
       <!-- 单行模式操作按钮 -->
@@ -58,16 +61,21 @@ const slotScope = useSlotScope()
     }
   }
 
+  .tr-chat-input-container {
+    display: flex;
+    align-items: center;
+  }
+
   .tr-chat-input-main {
     display: flex;
     align-items: center;
-    min-height: var(--tr-chat-input-min-height);
+    flex: 1;
+    min-width: 0;
     padding: var(--tr-chat-input-padding);
   }
 
   .tr-chat-input-prefix {
     flex-shrink: 0;
-    padding-left: 0;
     padding-right: var(--tr-chat-input-prefix-padding-right);
   }
 
@@ -76,9 +84,9 @@ const slotScope = useSlotScope()
     min-width: 0;
     display: flex;
     align-items: center;
-    padding-left: 0;
 
     :deep(.ProseMirror) {
+      width: 100%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -90,23 +98,7 @@ const slotScope = useSlotScope()
     gap: var(--tr-chat-input-gap);
     align-items: center;
     flex-shrink: 0;
-    padding-right: 16px;
-
-    &.has-content {
-      padding-right: 10px;
-    }
+    padding-right: var(--tr-chat-input-actions-padding-right);
   }
-}
-
-// 动画样式
-.tr-slide-right-enter-active,
-.tr-slide-right-leave-active {
-  transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
-}
-
-.tr-slide-right-enter-from,
-.tr-slide-right-leave-to {
-  opacity: 0;
-  transform: translateX(10px);
 }
 </style>
