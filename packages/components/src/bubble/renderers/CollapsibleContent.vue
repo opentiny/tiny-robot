@@ -27,6 +27,8 @@ const handleClick = () => {
   open.value = !open.value
   if (message?.extras) {
     message.extras.open = open.value
+  } else if (message) {
+    message.extras = { open: open.value }
   }
 }
 </script>
@@ -51,6 +53,10 @@ const handleClick = () => {
 </template>
 
 <style lang="less" scoped>
+.tr-bubble__collapsible-content {
+  margin-bottom: 16px;
+}
+
 .header {
   font-size: 16px;
   line-height: 1.5;
@@ -74,7 +80,6 @@ const handleClick = () => {
   line-height: 16px;
   color: var(--tr-text-secondary);
   margin-top: 8px;
-  margin-bottom: 16px;
   white-space: pre-line;
   display: flex;
   gap: 8px;

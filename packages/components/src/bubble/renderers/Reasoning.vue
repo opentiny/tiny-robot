@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useBubbleContentRenderer } from '../composables'
 import { BubbleChatMessageItem, BubbleRendererMessage } from '../index.type'
 import CollapsibleContent from './CollapsibleContent.vue'
@@ -13,10 +14,12 @@ const props = defineProps<
   >
 >()
 
-const renderer = useBubbleContentRenderer(() => {
-  const { reasoning_content: _, ...restProps } = props
-  return restProps
+const restProps = computed(() => {
+  const { reasoning_content: _, ...rest } = props
+  return rest
 })
+
+const renderer = useBubbleContentRenderer(restProps)
 </script>
 
 <template>
@@ -29,5 +32,5 @@ const renderer = useBubbleContentRenderer(() => {
       open: props.extras?.open,
     }"
   />
-  <component :is="renderer" v-bind="props" />
+  <component :is="renderer" v-bind="restProps" />
 </template>
