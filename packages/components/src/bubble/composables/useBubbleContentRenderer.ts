@@ -11,12 +11,17 @@ import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '.
  * @param contentRendererMatches - Array of content renderer matches, can be a ref or getter
  * @param fallbackContentRenderer - Fallback content renderer component, can be a ref or getter
  */
-export function setupBubbleContentRenderer(
-  contentRendererMatches: MaybeRefOrGetter<Array<BubbleContentRendererMatch>>,
-  fallbackContentRenderer: MaybeRefOrGetter<Component>,
-): void {
-  provide(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, contentRendererMatches)
-  provide(BUBBLE_FALLBACK_CONTENT_RENDERER_KEY, fallbackContentRenderer)
+export function setupBubbleContentRenderer(renderers: {
+  contentRendererMatches?: MaybeRefOrGetter<Array<BubbleContentRendererMatch>>
+  fallbackContentRenderer?: MaybeRefOrGetter<Component>
+}): void {
+  const { contentRendererMatches, fallbackContentRenderer } = renderers
+  if (contentRendererMatches) {
+    provide(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, contentRendererMatches)
+  }
+  if (fallbackContentRenderer) {
+    provide(BUBBLE_FALLBACK_CONTENT_RENDERER_KEY, fallbackContentRenderer)
+  }
 }
 
 /**
@@ -33,14 +38,20 @@ export function setupBubbleContentRenderer(
  *   return rest
  * })
  */
-export function useBubbleContentRenderer(message: MaybeRefOrGetter<BubbleRendererMessage>): ComputedRef<Component> {
+export function useBubbleContentRenderer(
+  message: MaybeRefOrGetter<BubbleRendererMessage>,
+  fallbackRenderer?: MaybeRefOrGetter<Component>,
+): ComputedRef<Component> {
   const contentRendererMatches = inject(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, defaultContentRendererMatches)
-  const fallbackContentRenderer = inject(BUBBLE_FALLBACK_CONTENT_RENDERER_KEY, defaultFallbackContentRenderer)
+  const fallbackContentRenderer = inject(BUBBLE_FALLBACK_CONTENT_RENDERER_KEY)
 
   return computed(() => {
     const msg = toValue(message)
     return (
-      toValue(contentRendererMatches).find((match) => match.find(msg))?.renderer || toValue(fallbackContentRenderer)
+      toValue(contentRendererMatches).find((match) => match.find(msg))?.renderer ||
+      toValue(fallbackRenderer) ||
+      toValue(fallbackContentRenderer) ||
+      defaultFallbackContentRenderer
     )
   })
 }

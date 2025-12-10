@@ -72,6 +72,9 @@ export type BubbleProps = Omit<BubbleChatMessage, 'role'> & {
    * - false：所有内容项合并在同一个气泡中渲染（默认）
    */
   splitPolymorphic?: boolean
+
+  fallbackBoxRenderer?: Component
+  fallbackContentRenderer?: Component
   /**
    * 额外配置
    */
@@ -102,13 +105,21 @@ export interface BubbleSlots {
 }
 
 /**
- * 基础消息类型（移除了样式相关属性）
+ * 基础消息类型
  */
 type BubbleBaseMessage = Omit<
   BubbleProps,
-  'content' | 'role' | 'avatar' | 'placement' | 'shape' | 'splitPolymorphic'
+  | 'content'
+  | 'role'
+  | 'avatar'
+  | 'placement'
+  | 'shape'
+  | 'splitPolymorphic'
+  | 'fallbackBoxRenderer'
+  | 'fallbackContentRenderer'
 > & {
   role: string
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -183,7 +194,10 @@ export interface BubbleListSlots {
  * 角色配置
  * 用于配置不同角色的气泡样式
  */
-export type BubbleRoleConfig = Pick<BubbleProps, 'avatar' | 'placement' | 'shape' | 'hidden'>
+export type BubbleRoleConfig = Pick<
+  BubbleProps,
+  'avatar' | 'placement' | 'shape' | 'hidden' | 'fallbackBoxRenderer' | 'fallbackContentRenderer'
+>
 
 /**
  * 普通消息分组（内容为字符串）
@@ -229,13 +243,6 @@ export type BubbleRendererMessage<
   extras?: E
 }
 
-/**
- * ContentBox 组件 Props
- */
-export type BubbleContentBoxProps = BubbleBoxProps & {
-  messages: BubbleRendererMessage[]
-}
-
 export interface BubbleProviderProps {
   boxRendererMatches?: BubbleBoxRendererMatch[]
   contentRendererMatches?: BubbleContentRendererMatch[]
@@ -245,7 +252,7 @@ export interface BubbleProviderProps {
 }
 
 export type BubbleBoxRendererMatch = {
-  find: (props: BubbleContentBoxProps) => boolean
+  find: (messages: BubbleRendererMessage[]) => boolean
   renderer: Component
   priority?: number
 }

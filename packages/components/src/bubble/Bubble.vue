@@ -58,8 +58,9 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
     }))
   }
 
+  // 移除不需要的 props，与 BubbleRendererMessage 类型保持一致
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { avatar, placement, shape, splitPolymorphic, ...rest } = props
+  const { avatar, placement, shape, splitPolymorphic, fallbackBoxRenderer, fallbackContentRenderer, ...rest } = props
 
   // 来源：props.content（多态内容）
   if (Array.isArray(props.content)) {
@@ -144,8 +145,14 @@ const hidden = computed(() => {
         :placement="props.placement"
         :shape="props.shape"
         :messages="rendererMessages"
+        :fallback-renderer="props.fallbackBoxRenderer"
       >
-        <BubbleContentWrapper v-for="(message, index) in rendererMessages" :key="index" :message="message" />
+        <BubbleContentWrapper
+          v-for="(message, index) in rendererMessages"
+          :key="index"
+          :message="message"
+          :fallback-renderer="props.fallbackContentRenderer"
+        />
         <slot name="content-footer" :rendererMessages="rendererMessages" :role="role"></slot>
       </BubbleBoxWrapper>
       <div class="tr-bubble__after">

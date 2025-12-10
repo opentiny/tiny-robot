@@ -3,7 +3,14 @@ import './styles/components/index.css'
 
 import { App } from 'vue'
 import Attachments from './attachments'
-import { Bubble, BubbleList, BubbleProvider, BubbleBasicBox, BubbleMarkdownRenderer } from './bubble'
+import {
+  Bubble,
+  BubbleList,
+  BubbleProvider,
+  BubbleBasicBox,
+  BubbleMarkdownRenderer,
+  BubbleRendererMatchPriority,
+} from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import DragOverlay from './drag-overlay'
@@ -87,6 +94,8 @@ export {
   BubbleBasicBox as TrBubbleBasicBox,
   BubbleMarkdownRenderer,
   BubbleMarkdownRenderer as TrBubbleMarkdownRenderer,
+  BubbleRendererMatchPriority,
+  BubbleRendererMatchPriority as TrBubbleRendererMatchPriority,
   Container,
   Container as TrContainer,
   Conversations,

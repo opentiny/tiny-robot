@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { useBubbleContentRenderer, setupBubbleContentMessage } from './composables'
+import { type Component } from 'vue'
+import { setupBubbleContentMessage, setupBubbleContentRenderer, useBubbleContentRenderer } from './composables'
 import type { BubbleRendererMessage } from './index.type'
 
 // Accept a single message as props
 const props = defineProps<{
   message: BubbleRendererMessage
+  fallbackRenderer?: Component
 }>()
 
 /**
@@ -14,7 +16,14 @@ const props = defineProps<{
  */
 setupBubbleContentMessage(props.message)
 
-const renderer = useBubbleContentRenderer(() => props.message)
+// 更新子孙 renderer 组件的 fallback renderer
+setupBubbleContentRenderer({ fallbackContentRenderer: () => props.fallbackRenderer })
+
+// 由于 provide 不会在当前组件中生效，因此需要手动提供 fallback renderer
+const renderer = useBubbleContentRenderer(
+  () => props.message,
+  () => props.fallbackRenderer,
+)
 </script>
 
 <template>
