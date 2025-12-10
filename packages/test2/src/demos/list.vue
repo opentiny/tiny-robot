@@ -1,9 +1,7 @@
 <template>
   <div style="padding: 0 16px">
-    <div>
-      <input id="use-markdown-renderer" type="checkbox" v-model="useMarkdownRenderer" style="margin-right: 14px" />
-      <label for="use-markdown-renderer">使用Markdown渲染器</label>
-    </div>
+    <p><strong>列表消息</strong></p>
+    <blockquote>assistant的文本消息使用Markdown渲染器，用户的消息使用普通文本渲染器。</blockquote>
     <div>
       <input id="enable-html-in-markdown" type="checkbox" v-model="enableHtmlInMarkdown" style="margin-right: 14px" />
       <label for="enable-html-in-markdown">启用HTML标签</label>
@@ -20,7 +18,7 @@
       <label for="all-selection">全选</label>
     </div>
   </div>
-  <BubbleProvider :content-renderer-matches="contentRendererMatches" :initial-store="bubbleStore">
+  <BubbleProvider :initial-store="bubbleStore">
     <BubbleList class="bubble-list" :messages="messages" :role-configs="roleConfigs" :split-polymorphic="true">
       <template #prefix="slotProps">
         <input
@@ -40,11 +38,10 @@ import {
   BubbleList,
   BubbleMarkdownRenderer,
   BubbleProvider,
-  type BubbleContentRendererMatch,
   type BubbleMessage,
   type BubbleRoleConfig,
 } from '@opentiny/tiny-robot'
-import { computed, h, markRaw, reactive, ref, watchEffect } from 'vue'
+import { computed, h, reactive, ref, watchEffect } from 'vue'
 import Avatar from './Avatar.vue'
 
 const Divider = h('hr', { style: { width: '100%', border: 'none', borderTop: '1px solid #ddd', marginBlock: '16px' } })
@@ -71,7 +68,6 @@ const reasoningMessage = {
   },
 }
 
-const useMarkdownRenderer = ref(false)
 const bubbleStore = reactive({ mdConfig: { html: false } })
 
 const enableHtmlInMarkdown = computed({
@@ -81,20 +77,6 @@ const enableHtmlInMarkdown = computed({
   set(value) {
     bubbleStore.mdConfig.html = value
   },
-})
-
-const contentRendererMatches = computed<BubbleContentRendererMatch[]>(() => {
-  if (!useMarkdownRenderer.value) {
-    return []
-  }
-
-  return [
-    {
-      find: (message) => message.role === 'assistant',
-      renderer: markRaw(BubbleMarkdownRenderer),
-      priority: 30,
-    },
-  ]
 })
 
 const messages = computed(() => {
@@ -163,6 +145,7 @@ const roleConfigs: Record<string, BubbleRoleConfig> = {
   assistant: {
     placement: 'start',
     shape: 'none',
+    fallbackContentRenderer: BubbleMarkdownRenderer,
   },
 }
 

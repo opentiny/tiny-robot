@@ -10,6 +10,8 @@
     <Divider />
     <Polymorphic />
     <Divider />
+    <Markdown />
+    <Divider />
     <Reasoning />
     <Divider />
     <ToolCall />
@@ -20,6 +22,7 @@
 import { h } from 'vue'
 import Hidden from './bubble/Hidden.vue'
 import Loading from './bubble/Loading.vue'
+import Markdown from './bubble/Markdown.vue'
 import Polymorphic from './bubble/Polymorphic.vue'
 import Reasoning from './bubble/Reasoning.vue'
 import Slots from './bubble/Slots.vue'

@@ -9,7 +9,7 @@ import UserRound from '../icons/UserRound.vue'
 <style scoped>
 .avatar {
   padding: 6px;
-  background-color: var(--tr-bubble-box-bg);
+  background-color: #f0f0f0;
   border-radius: 999px;
   box-sizing: content-box;
 }
