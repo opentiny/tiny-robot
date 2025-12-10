@@ -101,6 +101,7 @@ const messages = computed(() => {
           id: 'call_00_wy0r2VgGNvzUp1tIfCfSnGPO',
           type: 'function',
           function: { name: 'add', arguments: '{"a": 4, "b": 4}' },
+          status: 'running',
         },
         {
           id: 'call_01_ZaQqGi3jCXr1iJ308Yu1hJkj',

@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, inject, provide } from 'vue'
+import { computed, toValue } from 'vue'
 import BubbleBoxWrapper from './BubbleBoxWrapper.vue'
 import BubbleContentWrapper from './BubbleContentWrapper.vue'
-import { setupBubbleStore } from './composables'
-import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
+import { setupBubbleMessageGroup, setupBubbleStore, useBubbleMessageGroup } from './composables'
 import type { BubbleProps, BubbleRendererMessage, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -18,26 +17,30 @@ defineSlots<BubbleSlots>()
 setupBubbleStore()
 
 // 从父级 BubbleItem 注入消息分组
-const messageGroup = inject(BUBBLE_MESSAGE_GROUP_KEY, undefined)
+const messageGroup = useBubbleMessageGroup()
 // Bubble 可能递归渲染，因此在 inject 后立即 provide 空值来阻断无限递归
-provide(BUBBLE_MESSAGE_GROUP_KEY, undefined)
+setupBubbleMessageGroup(undefined)
 
 // 判断多态内容是否应以 Split Mode（拆分模式）渲染
 const shouldSplitPolymorphic = computed(() => {
-  return props.splitPolymorphic && (messageGroup?.isPolymorphic || Array.isArray(props.content))
+  return props.splitPolymorphic && (toValue(messageGroup)?.isPolymorphic || Array.isArray(props.content))
 })
 
 // 收集 Split Mode 需要渲染的多态内容项
 const splitedPolymorphicItems = computed(() => {
-  if (messageGroup?.isPolymorphic) {
-    return messageGroup.messages[0].content || []
+  const msgGroup = toValue(messageGroup)
+
+  if (msgGroup?.isPolymorphic) {
+    return msgGroup.messages[0].content || []
   }
   return Array.isArray(props.content) ? props.content : []
 })
 
 const splitedPolymorphicItemProps = computed(() => {
-  if (messageGroup?.isPolymorphic) {
-    const { content: _, ...rest } = messageGroup.messages[0]
+  const msgGroup = toValue(messageGroup)
+
+  if (msgGroup?.isPolymorphic) {
+    const { content: _, ...rest } = msgGroup.messages[0]
     return rest
   }
   return {}
@@ -45,15 +48,17 @@ const splitedPolymorphicItemProps = computed(() => {
 
 // 构建消息列表
 const rendererMessages = computed<BubbleRendererMessage[]>(() => {
+  const msgGroup = toValue(messageGroup)
+
   // 来源：消息分组（普通文本）
-  if (messageGroup && !messageGroup.isPolymorphic) {
-    return messageGroup.messages
+  if (msgGroup && !msgGroup.isPolymorphic) {
+    return msgGroup.messages
   }
 
   // 来源：消息分组（多态内容，Merged Mode）
-  if (messageGroup && messageGroup.isPolymorphic) {
-    return (messageGroup.messages[0].content || []).map((content) => ({
-      ...messageGroup.messages[0],
+  if (msgGroup && msgGroup.isPolymorphic) {
+    return (msgGroup.messages[0].content || []).map((content) => ({
+      ...msgGroup.messages[0],
       content,
     }))
   }
@@ -80,7 +85,7 @@ const rendererMessages = computed<BubbleRendererMessage[]>(() => {
 })
 
 const role = computed(() => {
-  return messageGroup?.role || props.role
+  return toValue(messageGroup)?.role || props.role
 })
 
 const hidden = computed(() => {

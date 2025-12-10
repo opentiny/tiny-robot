@@ -19,10 +19,24 @@ const props = defineProps<
   >
 >()
 
+const store = useBubbleStore<{
+  toolCallResults?: Record<string, string>
+  toolCallDefaultOpen?: boolean
+  toolCallDefaultStatus?: ToolCallStatus
+}>()
+
 const status = computed(() => {
-  return props.extras?.tool_call.status && toolCallStatus.includes(props.extras.tool_call.status as ToolCallStatus)
-    ? (props.extras.tool_call.status as ToolCallStatus)
-    : 'success'
+  const statusFromToolCall = props.extras?.tool_call.status as ToolCallStatus
+
+  if (statusFromToolCall && toolCallStatus.includes(statusFromToolCall)) {
+    return statusFromToolCall
+  }
+
+  if (store.toolCallDefaultStatus && toolCallStatus.includes(store.toolCallDefaultStatus)) {
+    return store.toolCallDefaultStatus
+  }
+
+  return ''
 })
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
@@ -73,18 +87,17 @@ const highlightJSON = <T extends string | object>(json: T, space = 2): string =>
 
 const detail = ref('')
 
-const store = useBubbleStore<{ toolCallResult?: Record<string, string> }>()
-const toolCallResult = computed(() => {
+const toolCallResults = computed(() => {
   const toolCallId = props.extras?.tool_call.id
   if (!toolCallId) {
     return undefined
   }
-  return store.toolCallResult?.[toolCallId]
+  return store.toolCallResults?.[toolCallId]
 })
 
 watchEffect(() => {
   const args = props.extras?.tool_call.function.arguments
-  const result = toolCallResult.value
+  const result = toolCallResults.value
 
   getJsonrepair()
     .then(({ jsonrepair }) => {
@@ -107,7 +120,7 @@ const message = useBubbleContentMessage()
 const open = ref(false)
 
 watchEffect(() => {
-  open.value = Boolean(props.extras?.tool_call.open)
+  open.value = Boolean(props.extras?.tool_call.open ?? store.toolCallDefaultOpen)
 })
 
 const handleClick = () => {

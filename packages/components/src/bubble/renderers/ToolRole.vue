@@ -5,18 +5,18 @@ import { useBubbleStore } from '../composables'
 
 const props = defineProps<BubbleRendererMessage<string>>()
 
-const store = useBubbleStore<{ toolCallResult?: Record<string, string> }>()
+const store = useBubbleStore<{ toolCallResults?: Record<string, string> }>()
 
 watchEffect(() => {
   if (!props.tool_call_id) {
     return
   }
 
-  if (!store.toolCallResult) {
-    store.toolCallResult = {}
+  if (!store.toolCallResults) {
+    store.toolCallResults = {}
   }
 
-  store.toolCallResult[props.tool_call_id] = props.content
+  store.toolCallResults[props.tool_call_id] = props.content
 })
 </script>
 

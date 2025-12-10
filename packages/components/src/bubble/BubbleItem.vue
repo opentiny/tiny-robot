@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { provide } from 'vue'
 import Bubble from './Bubble.vue'
-import { BUBBLE_MESSAGE_GROUP_KEY } from './constants'
+import { setupBubbleMessageGroup } from './composables'
 import type { BubbleItemSlot, BubbleMessageGroup, BubbleProps, BubbleRoleConfig } from './index.type'
 
 const props = defineProps<{
@@ -13,7 +12,7 @@ const props = defineProps<{
 defineSlots<BubbleItemSlot>()
 
 // Provide messages for each BubbleItem instance
-provide(BUBBLE_MESSAGE_GROUP_KEY, props.messageGroup)
+setupBubbleMessageGroup(() => props.messageGroup)
 </script>
 
 <template>
