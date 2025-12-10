@@ -36,7 +36,7 @@ interface PluginOptions extends SuggestionOptions {
 export function createSuggestionPlugin(options: PluginOptions): Plugin {
   const {
     editor,
-    activeSuggestionKeys = ['Enter', 'Tab'],
+    activeSuggestionKeys = ['Enter'],
     popupWidth = 400,
     showAutoComplete = true,
     filterFn,
@@ -46,6 +46,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   let component: VueRenderer | null = null
   let popup: HTMLElement | null = null
   let cleanup: (() => void) | null = null
+  let justClosed = false
 
   /**
    * 获取当前的 suggestions（动态从 editor 的 extensionManager 中获取）
@@ -101,15 +102,32 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   /**
    * 插入建议内容
    */
-  function insertSuggestion(_view: EditorView, range: { from: number; to: number } | null, content: string) {
+  function insertSuggestion(_view: EditorView, range: { from: number; to: number } | null, item: SuggestionItem) {
     if (!range) return
 
-    editor.commands.setContent(content)
+    // 触发回调，返回 false 可阻止默认回填
+    const shouldInsert = onSelect?.(item) !== false
 
-    // 触发回调
-    if (onSelect) {
-      onSelect({ content } as SuggestionItem)
+    if (shouldInsert) {
+      editor.commands.setContent(item.content)
     }
+
+    editor.commands.focus()
+  }
+
+  /**
+   * 选中并关闭建议列表
+   */
+  function selectAndClose(view: EditorView, state: SuggestionState) {
+    const selectedItem = state.filteredSuggestions[state.selectedIndex]
+    if (selectedItem) {
+      insertSuggestion(view, state.range, selectedItem)
+    }
+
+    // 关闭建议列表
+    const tr = view.state.tr
+    tr.setMeta(SuggestionPluginKey, { type: 'close' })
+    view.dispatch(tr)
   }
 
   /**
@@ -238,6 +256,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         if (meta) {
           // 关闭建议列表
           if (meta.type === 'close') {
+            justClosed = true
+            setTimeout(() => {
+              justClosed = false
+            }, 0)
             return {
               active: false,
               range: null,
@@ -259,6 +281,11 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               showTabIndicator: autoComplete.showTab,
             }
           }
+        }
+
+        // 保持关闭状态，防止立即重新打开
+        if (justClosed) {
+          return state
         }
 
         // 如果文档没有变化，保持状态
@@ -339,21 +366,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           return false
         }
 
-        // Tab 键：应用补全
+        // Tab 键：应用自动补全
         if (event.key === 'Tab' && state.autoCompleteText) {
           event.preventDefault()
-
-          // 构建完整文本
-          const fullText = state.query + state.autoCompleteText
-
-          // 插入文本
-          insertSuggestion(view, state.range, fullText)
-
-          // 关闭建议列表
-          const tr = view.state.tr
-          tr.setMeta(SuggestionPluginKey, { type: 'close' })
-          view.dispatch(tr)
-
+          selectAndClose(view, state)
           return true
         }
 
@@ -383,20 +399,10 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
           return true
         }
 
-        // Enter 键：选中
-        if (event.key === 'Enter' && activeSuggestionKeys.includes('Enter')) {
+        // 快捷键选中建议项
+        if (activeSuggestionKeys.includes(event.key)) {
           event.preventDefault()
-
-          const selectedItem = state.filteredSuggestions[state.selectedIndex]
-          if (selectedItem) {
-            insertSuggestion(view, state.range, selectedItem.content)
-
-            // 关闭建议列表
-            const tr = view.state.tr
-            tr.setMeta(SuggestionPluginKey, { type: 'close' })
-            view.dispatch(tr)
-          }
-
+          selectAndClose(view, state)
           return true
         }
 
@@ -435,18 +441,20 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
                   activeMouseIndex: -1,
                   inputValue: state.query,
                   onSelect: (content: string) => {
-                    insertSuggestion(view, state.range, content)
-                    const tr = view.state.tr
-                    tr.setMeta(SuggestionPluginKey, { type: 'close' })
-                    view.dispatch(tr)
+                    const selectedItem = state.filteredSuggestions.find((item) => item.content === content)
+                    if (selectedItem) {
+                      insertSuggestion(view, state.range, selectedItem)
+
+                      // 关闭建议列表
+                      const tr = view.state.tr
+                      tr.setMeta(SuggestionPluginKey, { type: 'close' })
+                      view.dispatch(tr)
+                    }
                   },
                   onMouseEnter: (index: number) => {
                     const tr = view.state.tr
                     tr.setMeta(SuggestionPluginKey, { type: 'updateIndex', index })
                     view.dispatch(tr)
-                  },
-                  onMouseLeave: () => {
-                    // 鼠标离开时不做处理，保持当前选中状态
                   },
                 },
                 editor,

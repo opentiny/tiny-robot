@@ -19,11 +19,9 @@ export const Suggestion = Extension.create<SuggestionOptions>({
   addOptions() {
     return {
       items: [],
-      activeSuggestionKeys: ['Enter', 'Tab'],
+      activeSuggestionKeys: ['Enter'],
       popupWidth: 400,
       showAutoComplete: true,
-      filterFn: undefined,
-      onSelect: undefined,
     }
   },
 

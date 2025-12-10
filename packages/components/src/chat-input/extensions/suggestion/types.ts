@@ -175,9 +175,26 @@ export interface SuggestionOptions {
   filterFn?: (suggestions: SuggestionItem[], query: string) => SuggestionItem[]
 
   /**
-   * 激活建议项的按键
+   * 选中建议项的按键
    *
-   * @default ['Enter', 'Tab']
+   * 注意：Tab 键用于自动补全，不受此配置控制
+   *
+   * @default ['Enter']
+   *
+   * @example 只允许 Enter 选中
+   * ```typescript
+   * activeSuggestionKeys: ['Enter']
+   * ```
+   *
+   * @example 允许 Enter 和 Space 选中
+   * ```typescript
+   * activeSuggestionKeys: ['Enter', ' ']  // 注意：空格键是 ' '
+   * ```
+   *
+   * @example 禁用所有选中按键（只能点击）
+   * ```typescript
+   * activeSuggestionKeys: []
+   * ```
    */
   activeSuggestionKeys?: string[]
 
@@ -197,8 +214,38 @@ export interface SuggestionOptions {
 
   /**
    * 选中建议项的回调
+   *
+   * @param item - 选中的建议项（包含完整的 SuggestionItem 信息）
+   * @returns 返回 false 可阻止默认回填行为
+   *
+   * @example 默认行为（自动回填）
+   * ```typescript
+   * onSelect: (item) => {
+   *   console.log('Selected:', item)
+   *   // 不返回 false，内容会自动回填
+   * }
+   * ```
+   *
+   * @example 阻止默认行为并自定义回填
+   * ```typescript
+   * onSelect: (item) => {
+   *   editor.commands.setContent(`前缀-${item.content}-后缀`)
+   *   return false // 阻止默认回填
+   * }
+   * ```
+   *
+   * @example 条件性阻止
+   * ```typescript
+   * onSelect: (item) => {
+   *   if (item.data?.needsValidation) {
+   *     validateAndFill(item)
+   *     return false
+   *   }
+   *   // 否则使用默认回填
+   * }
+   * ```
    */
-  onSelect?: (item: SuggestionItem) => void | Promise<void>
+  onSelect?: (item: SuggestionItem) => void | false
 }
 
 /**

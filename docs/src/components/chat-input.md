@@ -95,7 +95,7 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 ### 智能联想
 
-使用 `Suggestion` 扩展实现智能联想功能，支持键盘导航（↑↓ 选择，Enter/Tab 确认）和自动补全提示。
+使用 `Suggestion` 扩展实现智能联想功能，支持键盘导航（↑↓ 选择，Enter 确认）和自动补全提示。
 
 :::tip 自动补全提示
 选中建议项时，输入框会以灰色文本显示剩余部分，并显示 "TAB" 提示，按 Tab 键快速应用补全。
@@ -334,9 +334,9 @@ ChatInput.Suggestion.configure({
 | `items`                | `SuggestionItem[]` \| `Ref<SuggestionItem[]>` | `[]`               | 建议项列表               |
 | `filterFn`             | `Function`                                    | `undefined`        | 过滤函数（不传则不过滤） |
 | `showAutoComplete`     | `boolean`                                     | `true`             | 自动补全                 |
-| `activeSuggestionKeys` | `string[]`                                    | `['Enter', 'Tab']` | 激活按键                 |
+| `activeSuggestionKeys` | `string[]`                                    | `['Enter']` | 激活按键                 |
 | `popupWidth`           | `number` \| `string`                          | `400`              | 弹窗宽度                 |
-| `onSelect`             | `Function`                                    | -                  | 选中回调                 |
+| `onSelect`             | `(item) => void \| false`                     | -                  | 选中回调，返回 false 阻止默认回填 |
 
 :::tip popupWidth 格式
 支持数字（如 `500`）、百分比（如 `'100%'`）、CSS 单位（如 `'20rem'`）
@@ -349,6 +349,37 @@ ChatInput.Suggestion.configure({
 { content: 'RDS-数据库', highlights: ['RDS', '数据库'] }  // 精确指定
 { content: 'OSS-存储', highlights: (text, query) => [...] }  // 自定义函数
 ```
+
+**onSelect 回调**：
+
+选中建议项时触发，返回 `false` 可阻止默认回填行为：
+
+```typescript
+// 默认行为：自动回填
+onSelect: (item) => {
+  console.log('Selected:', item)
+  // 不返回 false，内容会自动回填到编辑器
+}
+
+// 阻止默认回填并自定义
+onSelect: (item) => {
+  editor.commands.setContent(`前缀-${item.content}-后缀`)
+  return false // 阻止默认回填
+}
+
+// 条件性阻止
+onSelect: (item) => {
+  if (item.data?.needsValidation) {
+    validateAndFill(item)
+    return false
+  }
+  // 否则使用默认回填
+}
+```
+
+:::tip 回调参数
+`item` 包含完整的 `SuggestionItem` 信息（`content`、`label`、`data`、`highlights`），可用于业务逻辑处理。
+:::
 
 #### UploadButton
 
