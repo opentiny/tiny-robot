@@ -1,10 +1,5 @@
-export { AIClient } from './client'
-
-export { BaseModelProvider } from './providers/base'
-export { OpenAIProvider } from './providers/openai'
-
-export { formatMessages, extractTextFromResponse, handleSSEStream } from './utils'
-
-export * from './vue'
-
-export * from './types'
+export * from './vue/conversation/types'
+export * from './vue/conversation/useConversation'
+export * from './vue/message/plugins'
+export * from './vue/message/types'
+export * from './vue/message/useMessage'
