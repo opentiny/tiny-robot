@@ -81,7 +81,7 @@ export const Mention = Node.create<MentionOptions>({
   renderHTML({ node, HTMLAttributes }) {
     return [
       'span',
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+      mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes, {
         'data-mention': '',
         'data-id': node.attrs.id as string,
         'data-label': node.attrs.label as string,
@@ -123,7 +123,7 @@ export const Mention = Node.create<MentionOptions>({
         editor: this.editor,
         char: this.options.char,
         items: this.options.items,
-        allowSpaces: this.options.allowSpaces,
+        allowSpaces: this.options.allowSpaces || false,
       }),
     ]
   },
@@ -133,8 +133,6 @@ export const Mention = Node.create<MentionOptions>({
     return {
       items: [],
       char: '@',
-      allowSpaces: false,
-      HTMLAttributes: {},
     }
   },
 

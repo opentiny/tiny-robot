@@ -25,14 +25,6 @@ export const Template = Node.create<TemplateOptions>({
   selectable: true,
   draggable: false,
 
-  // 配置选项
-  addOptions() {
-    return {
-      items: undefined,
-      HTMLAttributes: {},
-    }
-  },
-
   onCreate() {
     const { items } = this.options
 
@@ -92,7 +84,7 @@ export const Template = Node.create<TemplateOptions>({
     const content = node.textContent || ''
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
+      mergeAttributes(this.options.HTMLAttributes || {}, HTMLAttributes, {
         'data-template': '',
         'data-id': node.attrs.id as string,
         'data-content': content,

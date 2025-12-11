@@ -91,14 +91,14 @@ export interface MentionOptions {
   char: string
 
   /**
-   * 是否允许空格
+   * 是否允许空格，默认 false
    */
-  allowSpaces: boolean
+  allowSpaces?: boolean
 
   /**
    * HTML 属性
    */
-  HTMLAttributes: Record<string, unknown>
+  HTMLAttributes?: Record<string, unknown>
 }
 
 /**
