@@ -227,9 +227,3 @@ if (beforeNode.type.name === 'template' && isEmpty) {
 | **进入位置**       | `$from.pos - 1` (末尾)             | `$from.pos + 1` (开头)               |
 | **跳过零宽字符**   | `$from.pos - 2`                    | `$from.pos + 2`                      |
 | **删除范围扩展**   | 检查前面和后面的零宽字符           | 检查前面和后面的零宽字符             |
-
----
-
-**文档版本**：1.0  
-**最后更新**：2025-11-22  
-**维护者**：Tiny Robot Team

@@ -1,28 +1,37 @@
 # Chat-Input 组件设计文档
 
+> 本文档说明 Chat-Input 组件的设计思想、架构设计和 API 定义。
+> 
+> **相关文档：**
+> - [IMPLEMENTATION.md](./IMPLEMENTATION.md) - 具体实现方式
+> - [design-template.md](./design-template.md) - 模板功能详细设计
+> - [design-mention.md](./design-mention.md) - Mention 功能详细设计
+
+---
+
 ## 一、设计概述
 
 ### 1.1 设计哲学
 
-Chat-Input 组件基于 **"组合优于配置"** 的核心设计哲学，采用 Tiptap 编辑器作为底层实现，构建一个高度可组合、易于扩展的输入组件系统。
+Chat-Input 基于 **"组合优于配置"** 的核心设计哲学，采用 Tiptap 编辑器作为底层实现。
 
 **核心原则：**
-- **拒绝布尔值地狱**：避免使用大量布尔 props 控制渲染逻辑
-- **插槽优先**：组件结构由使用者通过插槽明确定义
+- **拒绝布尔值地狱**：避免使用大量布尔 props 控制渲染
+- **插槽优先**：组件结构由使用者通过插槽定义
 - **哑容器 + 聪明子组件**：主容器提供结构和状态，子组件独立可复用
 - **Context 共享**：使用 provide/inject 避免 props drilling
 
 ### 1.2 组件定位
 
 Chat-Input 是 Sender 组件的重构版本，主要改进：
-- 使用 Tiptap 替代原生 contenteditable
+- 使用 Tiptap 替代原生 contenteditable（代码量减少 60-70%）
 - 更清晰的插槽系统
 - 更好的模板编辑体验
 - 更强的扩展性
 
 ### 1.3 技术栈
 
-- **编辑器核心**：Tiptap (基于 ProseMirror)
+- **编辑器核心**：Tiptap 3.x (基于 ProseMirror)
 - **框架**：Vue 3 Composition API
 - **类型**：TypeScript
 - **样式**：Less + CSS Variables
@@ -38,57 +47,46 @@ Chat-Input 是 Sender 组件的重构版本，主要改进：
 │                  index.vue                          │
 │              (主容器 - 哑组件)                       │
 │  ┌───────────────────────────────────────────────┐  │
-│  │  provide: ChatInputContext                    │  │
-│  │  - editor 实例                                │  │
-│  │  - 状态管理                                   │  │
-│  │  - 方法暴露                                   │  │
+│  │  useChatInputCore()                           │  │
+│  │  - 统一管理所有 Hook 初始化                   │  │
+│  │  - 自动组装 Context                           │  │
+│  │  - 暴露方法给父组件                           │  │
 │  └───────────────────────────────────────────────┘  │
 │                                                     │
 │  ┌───────────────────────────────────────────────┐  │
-│  │  插槽系统                                     │  │
-│  │  - header                                     │  │
-│  │  - prefix                                     │  │
-│  │  - content (编辑器)                           │  │
-│  │  - actions-inline (单行模式)                  │  │
-│  │  - footer (多行模式左侧)                      │  │
-│  │  - footer-right (多行模式右侧)                │  │
+│  │  布局分发                                     │  │
+│  │  - SingleLineLayout (单行模式)                │  │
+│  │  - MultiLineLayout (多行模式)                 │  │
 │  └───────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────┘
                         ↓ inject
 ┌─────────────────────────────────────────────────────┐
-│              原子子组件 (聪明组件)                   │
-│  - EditorContent                                    │
-│  - SubmitButton                                     │
-│  - ClearButton                                      │
-│  - VoiceButton                                      │
-│  - FileButton                                       │
-│  - WordCounter                                      │
-│  - SuggestionList                                   │
+│              原子子组件                              │
+│  - EditorContent, SubmitButton, ClearButton         │
+│  - WordCounter, 布局组件                            │
 └─────────────────────────────────────────────────────┘
 ```
 
-### 2.2 层次划分
+### 2.2 四层架构
 
+**表现层** (index.vue)
+- 根据 mode 分发到不同布局组件
+- 透传所有插槽
+- 应用样式类
 
-**1. 表现层 (Presentation Layer)**
-- 主容器组件 (index.vue)
-- 插槽系统定义
-- 基础样式和布局
+**逻辑层** (useChatInputCore)
+- 统一管理所有 Hook 的初始化顺序
+- 解决循环依赖问题
+- 自动组装 Context 和 Expose
 
-**2. 逻辑层 (Logic Layer)**
-- Composables (组合式函数)
-- Context 管理
-- 状态计算和方法封装
+**扩展层** (extensions/)
+- Template: 模板块节点 + 3个插件
+- Mention: 提及节点 + Suggestion 插件
+- Suggestion: 输入联想扩展
 
-**3. 扩展层 (Extension Layer)**
-- Tiptap 扩展
-- 自定义节点和插件
-- 编辑器行为定制
-
-**4. 组件层 (Component Layer)**
-- 原子组件
-- 独立可复用
-- 通过 inject 获取状态
+**组件层** (components/)
+- 原子组件：通过 inject 获取 Context
+- 布局组件：管理插槽和结构
 
 ---
 
@@ -102,135 +100,118 @@ packages/components/src/chat-input/
 ├── index.vue                         # 主容器组件
 ├── index.type.ts                     # 类型定义
 ├── index.less                        # 容器样式
-├── DESIGN.md                         # 设计文档
 ├── README.md                         # 使用文档
+│
+├── docs/                             # 文档目录
+│   ├── DESIGN.md                     # 设计文档
+│   ├── IMPLEMENTATION.md             # 实现文档
+│   ├── design-template.md            # 模板功能设计
+│   ├── design-mention.md             # Mention 功能设计
+│   └── design-suggestion.md          # Suggestion 功能设计
 │
 ├── context/                          # Context 定义
 │   ├── index.ts                      # ChatInputContext 定义和实现
 │   └── types.ts                      # Context 相关类型
 │
+├── types/                            # 类型定义
+│   ├── base.ts                       # 基础类型
+│   ├── components.ts                 # 组件类型
+│   ├── composables.ts                # Composables 类型
+│   ├── context.ts                    # Context 类型
+│   └── slots.ts                      # 插槽类型
+│
 ├── extensions/                       # Tiptap 扩展
-│   ├── template/              
-│   │   ├── index.ts                 # 模板块扩展定义
-│   │   ├── template-view.vue  # 模板块视图组件
-│   │   ├── types.ts                 # 模板块类型定义
-│   │   └── index.less               # 模板块样式
+│   ├── index.ts                      # 扩展导出
 │   │
-│   ├── single-line-mode/            
-│   │   ├── index.ts                 # 单行模式扩展
-│   │   └── types.ts                 # 单行模式类型
+│   ├── template/                     # 模板块扩展
+│   │   ├── index.ts                  # 导出
+│   │   ├── extension.ts              # 扩展定义
+│   │   ├── commands.ts               # 命令定义
+│   │   ├── plugins.ts                # 插件定义
+│   │   ├── template-block-view.vue   # 视图组件
+│   │   ├── types.ts                  # 类型定义
+│   │   ├── utils.ts                  # 工具函数
+│   │   └── index.less                # 样式
 │   │
-│   ├── suggestion/                   
-│   │   ├── index.ts                 # 输入联想扩展
-│   │   ├── suggestion-plugin.ts     # ProseMirror 插件
-│   │   └── types.ts                 # 联想相关类型
+│   ├── mention/                      # Mention 扩展
+│   │   ├── index.ts                  # 导出
+│   │   ├── extension.ts              # 扩展定义
+│   │   ├── commands.ts               # 命令定义
+│   │   ├── plugin.ts                 # 插件定义
+│   │   ├── components/               # 组件目录
+│   │   ├── types.ts                  # 类型定义
+│   │   ├── utils.ts                  # 工具函数
+│   │   └── index.less                # 样式
 │   │
-│   └── character-count/              
-│       ├── index.ts                 # 字数统计扩展
-│       └── types.ts                 # 字数统计类型
+│   ├── suggestion/                   # Suggestion 扩展
+│   │   ├── index.ts                  # 导出
+│   │   ├── extension.ts              # 扩展定义
+│   │   ├── plugin.ts                 # 插件定义
+│   │   ├── suggestion-list.vue       # 列表组件
+│   │   ├── types.ts                  # 类型定义
+│   │   ├── utils/                    # 工具函数
+│   │   └── index.less                # 样式
+│   │
+│   └── utils/                        # 扩展工具函数
+│       ├── index.ts                  # 导出
+│       ├── id-generator.ts           # ID 生成器
+│       └── position.ts               # 位置计算
 │
 ├── components/                       # 原子子组件
-│   ├── editor-content/              
-│   │   ├── index.vue                # 编辑器内容区
-│   │   └── index.less
+│   ├── editor-content/               # 编辑器内容区
+│   │   └── index.vue
 │   │
-│   ├── footer/                      
-│   │   ├── index.vue                # 底部容器
-│   │   ├── default-right.vue        # 默认右侧内容
-│   │   └── index.less
+│   ├── footer/                       # 底部容器
+│   │   └── index.vue
 │   │
-│   ├── action-button/               
-│   │   ├── index.vue                # 基础操作按钮
-│   │   ├── index.type.ts
-│   │   └── index.less
-│   │
-│   ├── submit-button/               
-│   │   ├── index.vue
-│   │   └── index.less
-│   │
-│   ├── clear-button/                
-│   │   ├── index.vue
-│   │   └── index.less
-│   │
-│   ├── voice-button/                
-│   │   ├── index.vue
-│   │   └── index.less
-│   │
-│   ├── file-button/                 
-│   │   ├── index.vue
-│   │   └── index.less
-│   │
-│   ├── word-counter/                
-│   │   ├── index.vue
-│   │   └── index.less
-│   │
-│   ├── suggestion-list/             
-│   │   ├── index.vue
-│   │   ├── suggestion-item.vue
-│   │   ├── index.type.ts
-│   │   └── index.less
-│   │
-│   └── tab-indicator/               
-│       ├── index.vue
-│       └── index.less
+│   └── layouts/                      # 布局组件
+│       ├── SingleLineLayout.vue      # 单行布局
+│       └── MultiLineLayout.vue       # 多行布局
 │
-├── composables/                      # 组合式函数
-│   ├── useChatInputContext.ts       # 获取 Context
-│   ├── useEditor.ts                 # 编辑器初始化
-│   ├── useModeSwitch.ts             # 模式切换
-│   ├── useSuggestion.ts             # 输入联想
-│   ├── useSpeech.ts                 # 语音输入
-│   ├── useFileUpload.ts             # 文件上传
-│   ├── useTemplateData.ts           # 模板数据
-│   └── useKeyboardShortcuts.ts      # 键盘快捷键
-│
-├── utils/                            # 工具函数
-│   ├── template-converter.ts         # 模板格式转换
-│   ├── content-validator.ts          # 内容验证
-│   └── dom-helpers.ts                # DOM 辅助
-│
-└── constants/                        # 常量定义
-    └── index.ts                      # 默认配置
+└── composables/                      # 组合式函数
+    ├── index.ts                      # 导出
+    ├── useChatInputCore.ts           # 核心逻辑
+    ├── useEditor.ts                  # 编辑器初始化
+    ├── useModeSwitch.ts              # 模式切换
+    ├── useAutoSize.ts                # 自动高度
+    ├── useKeyboardShortcuts.ts       # 键盘快捷键
+    └── useSlotScope.ts               # 插槽作用域
 ```
 
 ### 3.2 目录职责说明
 
-
 **根目录文件：**
-- `index.ts`: 组件导出，包括组件本身、类型、常量等
-- `index.vue`: 主容器组件，负责布局、插槽定义、Context 提供
-- `index.type.ts`: 所有公开的类型定义
-- `index.less`: 主容器样式，包括 CSS 变量定义
+- `index.ts`: 组件导出
+- `index.vue`: 主容器组件，负责布局分发和 Context 提供
+- `index.type.ts`: 公开的类型定义
+- `index.less`: 主容器样式和 CSS 变量定义
+
+**docs/：** 文档目录
+- 设计文档、实现文档、功能设计文档
 
 **context/：** Context 相关
-- 定义 ChatInputContext 接口
-- 实现 provide/inject 逻辑
-- 管理全局状态和方法
+- ChatInputContext 接口定义
+- provide/inject 实现
+- 全局状态和方法管理
+
+**types/：** 类型定义
+- 按模块拆分的类型定义
+- 基础类型、组件类型、Context 类型等
 
 **extensions/：** Tiptap 扩展
-- 每个扩展一个独立目录
-- 包含扩展定义、视图组件、类型、样式
-- 扩展之间相互独立
+- 每个扩展独立目录
+- 包含扩展定义、命令、插件、视图组件、类型、样式
+- 扩展之间相互独立，通过 extensions/index.ts 统一导出
 
 **components/：** 原子组件
-- 每个组件一个独立目录
-- 通过 inject 获取 Context
-- 可在 chat-input 外部独立使用
+- editor-content: 编辑器内容区
+- footer: 底部容器
+- layouts: 单行/多行布局组件
 
 **composables/：** 组合式函数
 - 封装可复用的逻辑
 - 返回响应式状态和方法
-- 可被主组件或子组件使用
-
-**utils/：** 纯函数工具
-- 无副作用的工具函数
-- 数据转换、验证等
-- 不依赖 Vue 响应式系统
-
-**constants/：** 常量定义
-- 默认配置
-- 枚举值
-- 魔法数字的语义化
+- 通过 composables/index.ts 统一导出
 
 ---
 
@@ -336,7 +317,7 @@ chat-input 组件结构：
 
 **默认内容：**
 ```
-[ClearButton] [FileButton] [VoiceButton] [SubmitButton]
+[ClearButton] [SubmitButton]
 ```
 
 #### 4.2.5 footer 插槽
@@ -377,7 +358,7 @@ chat-input 组件结构：
 
 **默认内容：**
 ```
-[WordCounter] [ClearButton] [FileButton] [VoiceButton] [SubmitButton]
+[WordCounter] [ClearButton] [SubmitButton]
 ```
 
 **注意事项：**
@@ -506,11 +487,10 @@ speechState: Ref<SpeechState>
 // 显示配置
 showWordLimit: Ref<boolean>
 clearable: Ref<boolean>
-allowSpeech: Ref<boolean>
-allowFiles: Ref<boolean>
+size: Ref<'normal' | 'small'>
 
-// 按钮配置
-buttonGroup: Ref<ButtonGroupConfig | undefined>
+// 默认按钮配置
+defaultActions: Ref<DefaultActions | undefined>
 
 // 提交配置
 submitType: Ref<'enter' | 'ctrlEnter' | 'shiftEnter'>
@@ -520,9 +500,8 @@ stopText: Ref<string | undefined>
 **说明：**
 - showWordLimit: 是否显示字数限制
 - clearable: 是否显示清空按钮
-- allowSpeech: 是否允许语音输入
-- allowFiles: 是否允许文件上传
-- buttonGroup: 按钮组详细配置
+- size: 组件尺寸（normal/small）
+- defaultActions: 默认按钮配置（Submit、Clear）
 - submitType: 提交快捷键类型
 - stopText: 停止按钮文本
 
@@ -675,7 +654,7 @@ const { canSubmit, submit } = context
 **职责：** 提交按钮
 
 **依赖：**
-- Context: canSubmit, loading, submit, buttonGroup
+- Context: canSubmit, loading, submit, defaultActions
 
 **Props：** 无
 
@@ -685,13 +664,13 @@ const { canSubmit, submit } = context
 - 根据 canSubmit 控制禁用状态
 - 根据 loading 显示加载状态或停止图标
 - 点击时调用 context.submit()
-- 支持通过 buttonGroup.submit 自定义配置
+- 支持通过 defaultActions.submit 自定义配置
 
 **状态判断：**
 ```
 按钮禁用条件：
 - !canSubmit
-- buttonGroup.submit?.disabled
+- defaultActions.submit?.disabled
 
 按钮显示：
 - loading === true: 显示停止图标
@@ -703,7 +682,7 @@ const { canSubmit, submit } = context
 **职责：** 清空按钮
 
 **依赖：**
-- Context: hasContent, clearable, clear, buttonGroup
+- Context: hasContent, clearable, clear, defaultActions
 
 **Props：** 无
 
@@ -712,66 +691,33 @@ const { canSubmit, submit } = context
 **实现要点：**
 - 根据 hasContent && clearable 控制显示
 - 点击时调用 context.clear()
-- 支持通过 buttonGroup.clear 自定义配置
+- 支持通过 defaultActions.clear 自定义配置
 
 **显示条件：**
 ```
 显示清空按钮：
 - clearable === true
 - hasContent === true
-- !buttonGroup.clear?.disabled
+- !defaultActions.clear?.disabled
 ```
 
 #### 6.2.4 VoiceButton
 
-**职责：** 语音输入按钮
+**职责：** 语音输入按钮（通过插槽自定义）
 
-**依赖：**
-- Context: allowSpeech, speechState, startSpeech, stopSpeech, buttonGroup
-
-**Props：** 无
-
-**Emits：** 无
-
-**实现要点：**
-- 根据 allowSpeech 控制显示
-- 根据 speechState.isRecording 切换图标
-- 点击时调用 startSpeech 或 stopSpeech
-- 支持通过 buttonGroup.voice 自定义图标
-
-**状态判断：**
-```
-显示语音按钮：
-- allowSpeech === true
-- speechState.isSupported === true
-
-按钮状态：
-- speechState.isRecording === true: 显示停止图标，激活状态
-- speechState.isRecording === false: 显示麦克风图标，普通状态
-```
+**说明：**
+- 语音功能不是内置按钮
+- 通过 footer 或 actions-inline 插槽添加
+- 使用独立的 VoiceInput 组件实现
 
 #### 6.2.5 FileButton
 
-**职责：** 文件上传按钮
+**职责：** 文件上传按钮（通过插槽自定义）
 
-**依赖：**
-- Context: allowFiles, openFileDialog, buttonGroup
-
-**Props：** 无
-
-**Emits：** 无
-
-**实现要点：**
-- 根据 allowFiles 控制显示
-- 点击时调用 context.openFileDialog()
-- 支持通过 buttonGroup.file 自定义配置
-
-**显示条件：**
-```
-显示文件按钮：
-- allowFiles === true
-- !buttonGroup.file?.disabled
-```
+**说明：**
+- 文件上传功能不是内置按钮
+- 通过 footer 或 actions-inline 插槽添加
+- 使用独立的 FileUpload 组件实现
 
 #### 6.2.6 WordCounter
 
@@ -800,7 +746,7 @@ const { canSubmit, submit } = context
 - isOverLimit === false: 普通样式
 ```
 
-#### 6.2.7 SuggestionList
+#### 6.2.6 SuggestionList
 
 **职责：** 输入联想列表
 
@@ -824,7 +770,7 @@ const { canSubmit, submit } = context
 - 支持鼠标悬停高亮
 - 支持自定义高亮规则
 
-#### 6.2.8 TabIndicator
+#### 6.2.7 TabIndicator
 
 **职责：** Tab 键提示器
 
@@ -887,8 +833,8 @@ const { canSubmit, submit } = context
 **Emits：** 无
 
 **实现要点：**
-- 包含 WordCounter 和所有默认按钮
-- 按钮顺序：Clear, File, Voice, Submit
+- 包含 WordCounter 和默认按钮
+- 按钮顺序：Clear, Submit
 - 自动处理按钮间距
 
 **渲染结构：**
@@ -897,8 +843,6 @@ const { canSubmit, submit } = context
   <WordCounter v-if="showWordLimit && maxLength" />
   <div class="action-buttons">
     <ClearButton />
-    <FileButton />
-    <VoiceButton />
     <SubmitButton />
   </div>
 </div>
@@ -1076,67 +1020,7 @@ onBlur: emit('blur', event)
 ```
 
 
-#### 7.2.5 useSpeech
-
-**职责：** 管理语音输入功能
-
-**参数：**
-```typescript
-{
-  options: SpeechHookOptions
-}
-```
-
-**返回：**
-```typescript
-{
-  speechState: Ref<SpeechState>
-  start: () => void
-  stop: () => void
-}
-```
-
-**实现要点：**
-- 检测浏览器支持
-- 管理语音识别生命周期
-- 处理识别结果
-- 支持自定义语音处理器
-
-**状态管理：**
-```
-speechState: {
-  isRecording: boolean
-  isSupported: boolean
-  error?: Error
-}
-```
-
-#### 7.2.6 useFileUpload
-
-**职责：** 管理文件上传功能
-
-**参数：**
-```typescript
-{
-  buttonGroup: Ref<ButtonGroupConfig | undefined>
-  emit: ChatInputEmits
-}
-```
-
-**返回：**
-```typescript
-{
-  openFileDialog: () => void
-  files: Ref<File[]>
-}
-```
-
-**实现要点：**
-- 使用 useFileDialog 创建文件选择
-- 根据 buttonGroup.file 配置 accept, multiple
-- 监听文件选择并 emit 事件
-
-#### 7.2.7 useTemplateData
+#### 7.2.5 useTemplateData
 
 **职责：** 管理模板数据转换
 
@@ -1162,7 +1046,7 @@ speechState: {
 - 插入模板块到编辑器
 - 监听模板变化并同步
 
-#### 7.2.8 useKeyboardShortcuts
+#### 7.2.6 useKeyboardShortcuts
 
 **职责：** 管理键盘快捷键
 
@@ -1363,8 +1247,8 @@ Enter:
 **设计原则：**
 1. 所有可定制的样式使用 CSS 变量
 2. 变量命名遵循 BEM 规范
-3. 提供 light 和 dark 主题
-4. 支持紧凑模式
+3. 通过全局 CSS 变量系统自动适配主题
+4. 支持紧凑模式（size="small"）
 
 **变量命名规范：**
 ```
@@ -1382,317 +1266,82 @@ Enter:
 :root {
   // ===== 基础颜色 =====
   --tr-chat-input-bg-color: var(--tr-container-bg-default);
+  --tr-chat-input-bg-color-disabled: #f0f0f0;
   --tr-chat-input-text-color: var(--tr-text-primary);
+  --tr-chat-input-text-color-disabled: #a0a0a0;
   --tr-chat-input-placeholder-color: var(--tr-text-tertiary);
-  --tr-chat-input-border-color: var(--tr-border-default);
-  
-  // ===== 尺寸 =====
+  --tr-chat-input-placeholder-color-disabled: #c0c0c0;
+
+  // ===== 阴影 =====
+  --tr-chat-input-box-shadow: 0 4px 16px 0px rgba(0, 0, 0, 0.08);
+
+  // ===== 尺寸（默认 normal）=====
   --tr-chat-input-font-size: 16px;
   --tr-chat-input-line-height: 26px;
-  --tr-chat-input-min-height: 42px;
   --tr-chat-input-border-radius: 26px;
-  
-  // ===== 间距 =====
+
+  // ===== 间距（默认 normal）=====
   --tr-chat-input-padding: 15px 20px;
   --tr-chat-input-gap: 8px;
   --tr-chat-input-footer-gap: 12px;
-  
-  // ===== 按钮 =====
+
+  // ===== Header 区域 =====
+  --tr-chat-input-header-padding: 12px 20px;
+  --tr-chat-input-header-divider-inset: 20px;
+  --tr-chat-input-header-border-bottom: 1px solid #e0e0e0;
+  --tr-chat-input-multi-main-padding: 16px 20px 12px;
+
+  // ===== Footer 区域 =====
+  --tr-chat-input-footer-padding: 0 10px 10px;
+
+  // ===== 前缀和操作区 =====
+  --tr-chat-input-prefix-padding-right: 4px;
+  --tr-chat-input-actions-padding-right: 10px;
+
+  // ===== 按钮（默认 normal）=====
   --tr-chat-input-button-size: 32px;
-  --tr-chat-input-button-hover-bg: rgba(0, 0, 0, 0.08);
+  --tr-chat-input-button-size-submit: 36px;
+  --tr-chat-input-button-hover-bg: var(--tr-container-bg-hover);
   --tr-chat-input-button-active-bg: rgba(0, 0, 0, 0.12);
-  
+
   // ===== 字数限制 =====
   --tr-chat-input-word-limit-color: #808080;
   --tr-chat-input-word-limit-error-color: #f23030;
-  
-  // ===== 模板块 =====
-  --tr-chat-input-template-bg: rgba(20, 118, 255, 0.1);
-  --tr-chat-input-template-color: #1476ff;
-  --tr-chat-input-template-border-radius: 6px;
-  
+
   // ===== 动画 =====
   --tr-chat-input-transition-duration: 0.2s;
 }
 ```
 
-### 9.3 紧凑模式
+### 9.3 紧凑模式（size="small"）
+
+通过 `.tr-chat-input--small` 类覆盖变量：
 
 ```less
 .tr-chat-input--small {
   --tr-chat-input-font-size: 14px;
-  --tr-chat-input-line-height: 24px;
-  --tr-chat-input-min-height: 36px;
-  --tr-chat-input-border-radius: 24px;
+  --tr-chat-input-line-height: 22px;
+  --tr-chat-input-border-radius: 22px;
   --tr-chat-input-padding: 12px 16px;
+  --tr-chat-input-gap: 6px;
+  --tr-chat-input-footer-gap: 8px;
+  --tr-chat-input-header-padding: 12px 16px;
+  --tr-chat-input-multi-main-padding: 14px 16px 10px;
+  --tr-chat-input-footer-padding: 0 10px 8px;
   --tr-chat-input-button-size: 28px;
+  --tr-chat-input-button-size-submit: 32px;
+  --tr-chat-input-prefix-padding-right: 4px;
+  --tr-chat-input-actions-padding-right: 8px;
 }
 ```
 
-### 9.4 主题支持
+### 9.4 主题适配
 
-```less
-[data-theme="dark"] {
-  --tr-chat-input-bg-color: #1a1a1a;
-  --tr-chat-input-text-color: #ffffff;
-  --tr-chat-input-placeholder-color: #666666;
-  --tr-chat-input-border-color: #333333;
-}
-```
+暗色模式和其他主题通过全局 CSS 变量系统自动适配：
 
----
+- `--tr-container-bg-default`：容器背景色
+- `--tr-text-primary`：主文本颜色
+- `--tr-text-tertiary`：占位符颜色
+- `--tr-container-bg-hover`：按钮悬停背景色
 
-## 十、类型系统设计
-
-详见 `index.type.ts` 文件
-
----
-
-## 十一、使用场景和最佳实践
-
-### 11.1 常见使用场景
-
-#### 场景 1：基础聊天输入（90%）
-
-**需求：**
-- 单行输入，自动切换多行
-- 显示字数限制
-- 支持清空、语音、提交
-
-**实现：**
-```
-<chat-input
-  v-model="content"
-  :max-length="500"
-  show-word-limit
-  clearable
-  allow-speech
-  @submit="handleSubmit"
-/>
-```
-
-#### 场景 2：添加自定义按钮（常见）
-
-**需求：**
-- 在底部左侧添加深度思考按钮
-- 保留默认的右侧按钮
-
-**实现：**
-```
-<chat-input v-model="content">
-  <template #footer>
-    <deep-think-button />
-  </template>
-</chat-input>
-```
-
-#### 场景 3：模板填充
-
-**需求：**
-- 支持模板块编辑
-- 模板块可编辑和删除
-
-**实现：**
-```
-<chat-input
-  v-model="content"
-  :template-data="templates"
-  @update:template-data="handleTemplateUpdate"
-/>
-```
-
-#### 场景 4：输入联想
-
-**需求：**
-- 输入时显示建议
-- 支持键盘和鼠标选择
-
-**实现：**
-```
-<chat-input
-  v-model="content"
-  :suggestions="suggestions"
-  @suggestion-select="handleSelect"
-/>
-```
-
-### 11.2 最佳实践
-
-**1. 状态管理**
-- 使用 v-model 双向绑定内容
-- 使用 ref 获取组件实例调用方法
-- 监听事件处理业务逻辑
-
-**2. 性能优化**
-- 大量建议项使用虚拟滚动
-- 模板数据使用 shallowRef
-- 避免频繁的 setContent
-
-**3. 可访问性**
-- 提供合适的 aria 标签
-- 支持键盘导航
-- 提供清晰的视觉反馈
-
-**4. 错误处理**
-- 捕获编辑器错误
-- 提供降级方案
-- 显示友好的错误提示
-
----
-
-## 十二、迁移指南
-
-### 12.1 从 Sender 迁移
-
-**主要变化：**
-
-1. **组件名称**
-   - `TrSender` → `ChatInput`
-
-2. **插槽变化**
-   - `footer-left` → `footer`
-   - `footer-right` → `footer-right` (保持)
-   - 移除 `footer` 完全覆盖插槽
-
-3. **Props 变化**
-   - 基本保持一致
-   - 新增部分 Tiptap 相关配置
-
-4. **事件变化**
-   - 基本保持一致
-
-**迁移步骤：**
-
-```
-步骤 1: 更新组件引用
-import { TrSender } from '@opentiny/tiny-robot'
-↓
-import { ChatInput } from '@opentiny/tiny-robot'
-
-步骤 2: 更新插槽名称
-<template #footer-left>
-↓
-<template #footer>
-
-步骤 3: 测试功能
-- 验证所有功能正常
-- 检查样式是否一致
-- 测试边缘情况
-```
-
----
-
-## 十三、开发规范
-
-### 13.1 代码规范
-
-1. **TypeScript**
-   - 所有代码使用 TypeScript
-   - 避免使用 any
-   - 提供完整的类型定义
-
-2. **Vue 3**
-   - 使用 Composition API
-   - 使用 `<script setup>`
-   - 合理使用 ref 和 reactive
-
-3. **命名规范**
-   - 组件：PascalCase
-   - 文件：kebab-case
-   - 变量：camelCase
-   - 常量：UPPER_SNAKE_CASE
-
-4. **注释规范**
-   - 所有公开 API 添加 JSDoc
-   - 复杂逻辑添加行内注释
-   - 类型定义添加说明注释
-
-### 13.2 测试规范
-
-1. **单元测试**
-   - 所有 composables 需要单元测试
-   - 所有工具函数需要单元测试
-   - 测试覆盖率 > 80%
-
-2. **组件测试**
-   - 测试组件渲染
-   - 测试用户交互
-   - 测试事件触发
-
-3. **集成测试**
-   - 测试完整使用场景
-   - 测试组件组合
-   - 测试边缘情况
-
-### 13.3 文档规范
-
-1. **组件文档**
-   - Props 说明
-   - Events 说明
-   - Slots 说明
-   - 使用示例
-
-2. **API 文档**
-   - 类型定义
-   - 方法说明
-   - 参数说明
-   - 返回值说明
-
-3. **更新日志**
-   - 记录所有变更
-   - 标注破坏性变更
-   - 提供迁移指南
-
----
-
-## 十四、未来扩展
-
-### 14.1 计划功能
-
-1. **富文本支持**
-   - 加粗、斜体、下划线
-   - 列表、引用
-   - 代码块
-
-2. **协作编辑**
-   - 多人实时编辑
-   - 光标位置同步
-   - 冲突解决
-
-3. **AI 集成**
-   - AI 补全
-   - AI 改写
-   - AI 总结
-
-4. **更多扩展**
-   - Markdown 支持
-   - 表情选择器
-   - @提及功能
-
-### 14.2 扩展接口
-
-组件提供扩展接口，支持：
-- 自定义 Tiptap 扩展
-- 自定义按钮组件
-- 自定义样式主题
-- 自定义快捷键
-
----
-
-## 十五、总结
-
-Chat-Input 组件采用"组合优于配置"的设计哲学，通过：
-- 清晰的插槽系统
-- 强大的 Context 机制
-- 独立的原子组件
-- 灵活的 Tiptap 扩展
-
-构建了一个高度可组合、易于扩展、易于维护的输入组件系统。
-
-**核心优势：**
-- ✅ 简单场景简单使用
-- ✅ 复杂场景灵活定制
-- ✅ 组件独立可复用
-- ✅ 类型安全完整
-- ✅ 性能优秀
-- ✅ 易于测试和维护
+无需在组件内部单独配置主题。

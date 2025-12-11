@@ -488,4 +488,4 @@ A: 不传递 `template-data` 属性即可，组件会自动禁用模板相关功
 A: 这是已知限制，当前实现在模板块和文本之间不插入零宽字符。可以通过修改 `handleZeroWidthCharLogic` 函数解决。
 
 **Q: 如何查看完整的删除逻辑？**  
-A: 请参考 [delete-logic-summary.md](./delete-logic-summary.md) 文档。
+A: 请参考 [delete-logic-summary.md](./design-template-delete-logic) 文档。
