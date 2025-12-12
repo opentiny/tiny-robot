@@ -1,0 +1,1 @@
+import{H as e}from"./theme.BEDZEJEx.js";import{d as t,an as o,b as n,o as r,k as s}from"./framework.GjWN715o.js";const u=t({__name:"empty",setup(c){const a=o([]);return(p,m)=>(r(),n(s(e),{data:a},null,8,["data"]))}});export{u as default};
