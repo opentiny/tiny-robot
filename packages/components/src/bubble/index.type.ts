@@ -10,7 +10,8 @@ export interface ToolCall {
     name: string
     arguments: string
   }
-  [x: string]: unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [x: string]: any
 }
 
 /**
@@ -37,7 +38,8 @@ export interface BubbleChatMessageItem {
   /**
    * 内容类型特定的附加属性
    */
-  [key: string]: unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any
 }
 
 /**
