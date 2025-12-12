@@ -95,7 +95,7 @@ export interface StreamChunk {
   usage?: Usage
 }
 
-export interface useMessageOptions {
+export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
   requestMessageFields?: (keyof ChatMessage)[]
   plugins?: useMessagePlugin[]
@@ -120,7 +120,7 @@ export interface UseMessageReturn {
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
   abortRequest: () => void
-  setResponseProvider: (provider: useMessageOptions['responseProvider']) => void
+  setResponseProvider: (provider: UseMessageOptions['responseProvider']) => void
 }
 
 export interface BasePluginContext {

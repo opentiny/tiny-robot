@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { ChatMessage, useMessageOptions, UseMessageReturn } from '../message/types'
+import { ChatMessage, UseMessageOptions, UseMessageReturn } from '../message/types'
 import { useMessage } from '../message/useMessage'
 import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
 
@@ -36,7 +36,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Ensure an engine instance exists for the given conversation id.
    * If not, it will be created using stored messages (when storage is available).
    */
-  const ensureEngine = async (id: string, overrideOptions?: useMessageOptions): Promise<UseMessageReturn> => {
+  const ensureEngine = async (id: string, overrideOptions?: UseMessageOptions): Promise<UseMessageReturn> => {
     const existing = engines.get(id)
     if (existing) return existing
 
@@ -65,7 +65,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   const createConversation = (params?: {
     id?: string
     title?: string
-    useMessageOptions?: useMessageOptions
+    useMessageOptions?: UseMessageOptions
   }): Conversation => {
     const { id = crypto.randomUUID(), title, useMessageOptions } = params || {}
 

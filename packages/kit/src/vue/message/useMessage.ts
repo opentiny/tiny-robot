@@ -6,12 +6,12 @@ import type {
   MessageRequestBody,
   RequestProcessingState,
   RequestState,
-  useMessageOptions,
+  UseMessageOptions,
   UseMessageReturn,
 } from './types'
 import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, pickFields } from './utils'
 
-export const useMessage = (options: useMessageOptions): UseMessageReturn => {
+export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const {
     initialMessages = [],
     requestMessageFields = ['role', 'content', 'tool_calls', 'tool_call_id'],
@@ -102,7 +102,7 @@ export const useMessage = (options: useMessageOptions): UseMessageReturn => {
    * Update response provider at runtime.
    * New provider will be used for subsequent requests.
    */
-  const setResponseProvider = (provider: useMessageOptions['responseProvider']) => {
+  const setResponseProvider = (provider: UseMessageOptions['responseProvider']) => {
     responseProviderRef.value = provider
   }
 

@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
 import { MaybePromise } from '../../types'
-import { ChatMessage, useMessageOptions, UseMessageReturn } from '../message/types'
+import { ChatMessage, UseMessageOptions, UseMessageReturn } from '../message/types'
 
 export interface ConversationInfo {
   id: string
@@ -42,7 +42,7 @@ export interface UseConversationOptions {
    * Base useMessage options for all conversations.
    * Per-conversation options passed to createConversation will be merged on top of this.
    */
-  useMessageOptions: useMessageOptions
+  useMessageOptions: UseMessageOptions
   /**
    * Optional storage strategy for conversations and messages.
    * When provided, conversation list and messages can be loaded and persisted.
@@ -54,7 +54,7 @@ export interface UseConversationReturn {
   conversations: Ref<ConversationInfo[]>
   activeConversationId: Ref<string | null>
   activeConversation: ComputedRef<Conversation | null>
-  createConversation: (params?: { id?: string; title?: string; useMessageOptions?: useMessageOptions }) => Conversation
+  createConversation: (params?: { id?: string; title?: string; useMessageOptions?: UseMessageOptions }) => Conversation
   switchConversation: (id: string) => Promise<void>
   deleteConversation: (id: string) => void
   updateConversationTitle: (id: string, title?: string) => void
