@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useAttrs } from 'vue'
+import { computed, h, useAttrs } from 'vue'
 import { toCssUnit } from '../shared/utils'
 import { ContentItem } from './components'
 import { BubbleContentFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
@@ -23,14 +23,14 @@ const contentRenderer = computed(() => {
 
   if (typeof renderer === 'function') {
     const renderFn = renderer as BubbleContentFunctionRenderer
-    return { isComponent: false, vNodeOrComponent: renderFn(props) }
+    return h(() => renderFn(props))
   }
 
   if (renderer instanceof BubbleContentClassRenderer) {
-    return { isComponent: false, vNodeOrComponent: renderer.render(props) }
+    return h(() => renderer.render(props))
   }
 
-  return { isComponent: true, vNodeOrComponent: renderer }
+  return h(renderer, props)
 })
 
 const attrs = useAttrs()
@@ -109,12 +109,7 @@ const style = computed(() => {
       <template v-else>
         <slot :bubble-props="props">
           <template v-if="contentRenderer">
-            <component
-              v-if="contentRenderer.isComponent"
-              :is="contentRenderer.vNodeOrComponent"
-              v-bind="props"
-            ></component>
-            <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+            <component :is="contentRenderer"></component>
           </template>
           <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
         </slot>

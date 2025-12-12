@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, h, inject } from 'vue'
 import { BubbleContentClassRenderer } from '../renderers/class-renderer'
 import {
   defaultContentRendererMap,
@@ -19,14 +19,14 @@ const getVNodeOrComponent = (type: string) => {
 
   if (typeof renderer === 'function') {
     const renderFn = renderer as BubbleContentFunctionRenderer
-    return { isComponent: false, vNodeOrComponent: renderFn(props.item) }
+    return h(() => renderFn(props.item))
   }
 
   if (renderer instanceof BubbleContentClassRenderer) {
-    return { isComponent: false, vNodeOrComponent: renderer.render(props.item) }
+    return h(() => renderer.render(props.item))
   }
 
-  return { isComponent: true, vNodeOrComponent: renderer }
+  return h(renderer, props.item)
 }
 
 const contentRenderer = computed(() => {
@@ -35,6 +35,5 @@ const contentRenderer = computed(() => {
 </script>
 
 <template>
-  <component v-if="contentRenderer.isComponent" :is="contentRenderer.vNodeOrComponent" v-bind="props.item"></component>
-  <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+  <component :is="contentRenderer"></component>
 </template>
