@@ -1,3 +1,13 @@
+<script setup lang="ts">
+import { useChatInputContext } from '../../context'
+import { useSlotScope } from '../../composables/useSlotScope'
+import EditorContent from '../editor-content/index.vue'
+import Footer from '../footer/index.vue'
+
+const context = useChatInputContext()
+const slotScope = useSlotScope()
+</script>
+
 <template>
   <div class="tr-chat-input-multi-layout">
     <!-- Header 插槽 -->
@@ -31,16 +41,6 @@
     </Footer>
   </div>
 </template>
-
-<script setup lang="ts">
-import { useChatInputContext } from '../../context'
-import { useSlotScope } from '../../composables/useSlotScope'
-import EditorContent from '../editor-content/index.vue'
-import Footer from '../footer/index.vue'
-
-const context = useChatInputContext()
-const slotScope = useSlotScope()
-</script>
 
 <style lang="less" scoped>
 .tr-chat-input-multi-layout {

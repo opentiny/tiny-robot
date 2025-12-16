@@ -2,7 +2,7 @@
 import { EditorContent as TiptapEditorContent } from '@tiptap/vue-3'
 import { useChatInputContext } from '../../context'
 
-const { editor, editorRef } = useChatInputContext()
+const { editor } = useChatInputContext()
 </script>
 
 <template>

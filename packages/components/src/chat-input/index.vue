@@ -30,7 +30,6 @@ defineExpose(expose)
       `tr-chat-input--${context.size.value}`,
       {
         'is-auto-switching': context.isAutoSwitching.value,
-        'is-over-limit': context.isOverLimit.value,
         'is-disabled': context.disabled.value,
       },
     ]"

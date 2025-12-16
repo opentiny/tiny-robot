@@ -1,3 +1,13 @@
+<script setup lang="ts">
+import { useChatInputContext } from '../../context'
+import { useSlotScope } from '../../composables/useSlotScope'
+import EditorContent from '../editor-content/index.vue'
+import { DefaultActionButtons, WordCounter } from '../../../chat-input-actions/index'
+
+const context = useChatInputContext()
+const slotScope = useSlotScope()
+</script>
+
 <template>
   <div class="tr-chat-input-single-layout">
     <!-- Header 插槽 -->
@@ -33,16 +43,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { useChatInputContext } from '../../context'
-import { useSlotScope } from '../../composables/useSlotScope'
-import EditorContent from '../editor-content/index.vue'
-import { DefaultActionButtons, WordCounter } from '../../../chat-input-actions/index'
-
-const context = useChatInputContext()
-const slotScope = useSlotScope()
-</script>
 
 <style lang="less" scoped>
 .tr-chat-input-single-layout {

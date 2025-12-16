@@ -136,18 +136,6 @@ watch(
   </Transition>
 </template>
 
-<style lang="less">
-:root {
-  --tr-suggestion-bg-color: #fff;
-  --tr-suggestion-box-shadow-color: rgba(0, 0, 0, 0.1);
-  --tr-suggestion-hover-bg-color: rgba(0, 0, 0, 0.04);
-  --tr-suggestion-item-font-size: 14px;
-  --tr-suggestion-item-icon-size: 16px;
-  --tr-suggestion-scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
-  --tr-suggestion-scrollbar-thumb-hover-color: rgba(0, 0, 0, 0.3);
-}
-</style>
-
 <style lang="less" scoped>
 .suggestion-list {
   background: var(--tr-suggestion-bg-color);
