@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { Button as TinyButton } from '@opentiny/vue'
 import { ChatInput } from '@opentiny/tiny-robot'
 import type { TemplateItem, StructuredData } from '@opentiny/tiny-robot'
 
-const chatInputRef = ref()
 const content = ref('')
 const submittedContent = ref('')
 
@@ -16,9 +15,9 @@ const extensions = [ChatInput.template(templateData)]
 const setTemplate1 = () => {
   templateData.value = [
     { type: 'text', content: '你好，我是' },
-    { type: 'template', content: '张三' },
+    { type: 'block', content: '张三' },
     { type: 'text', content: '，来自' },
-    { type: 'template', content: '北京' },
+    { type: 'block', content: '北京' },
     { type: 'text', content: '，很高兴认识你！' },
   ]
 }
@@ -26,19 +25,52 @@ const setTemplate1 = () => {
 const setTemplate2 = () => {
   templateData.value = [
     { type: 'text', content: '请帮我写一份关于' },
-    { type: 'template', content: '人工智能' },
+    { type: 'block', content: '人工智能' },
     { type: 'text', content: '的' },
-    { type: 'template', content: '技术报告' },
+    { type: 'block', content: '技术报告' },
     { type: 'text', content: '，字数要求' },
-    { type: 'template', content: '3000字' },
+    { type: 'block', content: '3000字' },
     { type: 'text', content: '。' },
   ]
 }
 
-const clearTemplate = () => {
-  templateData.value = []
-  content.value = ''
-  submittedContent.value = ''
+const setTemplate3 = () => {
+  templateData.value = [
+    { type: 'text', content: 'Write an essay about ' },
+    {
+      type: 'select',
+      placeholder: 'Select a topic',
+      options: [
+        { label: 'Campus Life', value: 'campus life' },
+        { label: 'Travel Experience', value: 'travel experience' },
+        { label: 'Reading Habits', value: 'reading habits' },
+        { label: 'Technology', value: 'technology' },
+      ],
+      content: '',
+    },
+    { type: 'text', content: '. The requirement is ' },
+    { type: 'block', content: '800' },
+    { type: 'text', content: ' words.' },
+  ]
+}
+
+const setTemplate4 = () => {
+  templateData.value = [
+    { type: 'text', content: '请帮我' },
+    {
+      type: 'select',
+      placeholder: '选择操作',
+      options: [
+        { label: '分析', value: '分析' },
+        { label: '总结', value: '总结' },
+        { label: '翻译', value: '翻译' },
+        { label: '优化', value: '优化' },
+      ],
+      content: '',
+    },
+    { type: 'text', content: '以下内容：' },
+    { type: 'block', content: '' },
+  ]
 }
 
 const handleSubmit = (text: string, data?: StructuredData) => {
@@ -47,10 +79,6 @@ const handleSubmit = (text: string, data?: StructuredData) => {
   console.log('📝 提交内容（纯文本）：', text)
   console.log('📋 结构化数据：', data)
 }
-
-onMounted(() => {
-  setTemplate1()
-})
 </script>
 
 <template>
@@ -58,17 +86,18 @@ onMounted(() => {
     <div class="template-buttons">
       <tiny-button size="small" @click="setTemplate1"> 模板1：自我介绍 </tiny-button>
       <tiny-button size="small" @click="setTemplate2"> 模板2：写报告 </tiny-button>
-      <tiny-button size="small" @click="clearTemplate"> 清空 </tiny-button>
+      <tiny-button size="small" @click="setTemplate3"> 模板3：英文作文（带选择器） </tiny-button>
+      <tiny-button size="small" @click="setTemplate4"> 模板4：混合模板 </tiny-button>
     </div>
 
     <ChatInput
-      ref="chatInputRef"
       mode="multiple"
       v-model="content"
       :extensions="extensions"
       placeholder="点击上方按钮插入模板，或直接输入..."
       :max-length="500"
       show-word-limit
+      clearable
       @submit="handleSubmit"
     />
 

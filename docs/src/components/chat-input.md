@@ -75,7 +75,7 @@ ChatInput.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 <demo vue="../../demos/chat-input/template-editor.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-**配置详见**：[扩展属性 - Template](#templateblock)
+**配置详见**：[扩展属性 - Template](#template)
 
 ### 提及功能
 
@@ -527,10 +527,31 @@ interface SpeechConfig {
   onVoiceButtonClick?: (isRecording, preventDefault) => void // 按钮点击拦截器
 }
 
-// 模板项
-interface TemplateItem {
-  type: 'text' | 'template' // 项目类型，'text' 为普通文本，'template' 为可编辑模板块
-  content: string // 内容
+// 模板项（联合类型）
+type TemplateItem =
+  | {
+      id?: string // 模板 ID（可选，组件会自动生成）
+      type: 'text' // 类型：普通文本
+      content: string // 内容
+    }
+  | {
+      id?: string // 模板 ID（可选，组件会自动生成）
+      type: 'block' // 类型：模板块（可编辑）
+      content: string // 内容
+    }
+  | {
+      id?: string // 模板 ID（可选，组件会自动生成）
+      type: 'select' // 类型：选择器
+      content: string // 内容（选中的值）
+      placeholder?: string // 占位文字（仅用于输入配置）
+      options?: SelectOption[] // 选项列表（仅用于输入配置）
+      value?: string // 当前选中的值（仅用于输入配置）
+    }
+
+// 选择器选项
+interface SelectOption {
+  label: string // 显示文本
+  value: string // 选择后的值
 }
 
 // 提及项
