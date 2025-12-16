@@ -87,6 +87,7 @@ export function useEditor(props: ChatInputProps, emit: ChatInputEmits): UseEdito
     onUpdate: (props) => {
       const text = props.editor.getText()
       emit('update:modelValue', text)
+      emit('input', text)
     },
     onFocus: (props) => {
       emit('focus', props.event as FocusEvent)

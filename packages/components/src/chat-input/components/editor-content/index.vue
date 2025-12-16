@@ -2,7 +2,8 @@
 import { EditorContent as TiptapEditorContent } from '@tiptap/vue-3'
 import { useChatInputContext } from '../../context'
 
-const { editor } = useChatInputContext()
+// editorRef 在模板中通过 ref="editorRef" 使用
+const { editor, editorRef } = useChatInputContext()
 </script>
 
 <template>
