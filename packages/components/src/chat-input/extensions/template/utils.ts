@@ -6,6 +6,13 @@ import type { Editor } from '@tiptap/core'
 import type { TemplateItem } from '../../index.type'
 
 /**
+ * 零宽字符常量
+ * Unicode: U+200B (Zero Width Space)
+ * HTML Entity: &#8203;
+ */
+export const ZERO_WIDTH_CHAR = '\u200B'
+
+/**
  * 获取包含 template 的完整文本
  *
  * 例如：请帮我分析 [模板内容1] 和 [模板内容2]
@@ -22,7 +29,6 @@ export function getTextWithTemplates(editor: Editor): string {
  */
 export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
   const items: TemplateItem[] = []
-  const ZERO_WIDTH_CHAR = '\u200B'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any, _pos: number, parent: any) => {
@@ -31,7 +37,16 @@ export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
       if (node.type.name === 'template') {
         const content = (node.textContent || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')
         items.push({
-          type: 'template',
+          type: 'block',
+          content,
+        })
+      } else if (node.type.name === 'templateSelect') {
+        // 获取选中的值
+        const selectedOption = node.attrs.options.find((opt: { value: string }) => opt.value === node.attrs.value)
+        const content = selectedOption?.value || ''
+
+        items.push({
+          type: 'select',
           content,
         })
       } else if (node.type.name === 'text') {

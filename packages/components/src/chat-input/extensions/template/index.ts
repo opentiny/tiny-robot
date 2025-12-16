@@ -10,9 +10,11 @@ import type { TemplateItem, TemplateOptions } from './types'
 
 // ===== 导出扩展类和工具 =====
 export { Template } from './extension'
+export { TemplateSelect } from './select/extension'
 export { templateCommands } from './commands'
 export * from './types'
 export { getTextWithTemplates, getTemplateStructuredData } from './utils'
+export { TemplateSelectDropdownPluginKey } from './select/plugins'
 
 // ===== 便捷函数 =====
 

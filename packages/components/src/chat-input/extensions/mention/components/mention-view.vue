@@ -29,7 +29,7 @@ defineProps<Props>()
   >
 </template>
 
-<style scoped>
+<style lang="less" scoped>
 .mention {
   display: inline;
   color: var(--tr-chat-input-mention-color);
@@ -40,9 +40,9 @@ defineProps<Props>()
   font-weight: 500;
   white-space: nowrap;
   transition: background 0.2s;
-}
 
-.mention:hover {
-  background: var(--tr-chat-input-mention-hover-bg);
+  &:hover {
+    background: var(--tr-chat-input-mention-hover-bg);
+  }
 }
 </style>

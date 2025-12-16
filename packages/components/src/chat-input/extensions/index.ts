@@ -20,5 +20,5 @@ export type {
 
 // ===== Template =====
 export { Template, template } from './template'
-export { getTemplateStructuredData, getTextWithTemplates } from './template'
+export { getTemplateStructuredData, getTextWithTemplates, TemplateSelectDropdownPluginKey } from './template'
 export type { TemplateAttrs, TemplateOptions } from './template'

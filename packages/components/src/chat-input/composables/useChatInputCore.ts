@@ -14,6 +14,7 @@ import type { ChatInputProps, ChatInputEmits, StructuredData } from '../index.ty
 import {
   MentionPluginKey,
   SuggestionPluginKey,
+  TemplateSelectDropdownPluginKey,
   getTemplateStructuredData,
   getTextWithTemplates,
   getMentionStructuredData,
@@ -161,12 +162,13 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
           editorProps: {
             ...editorInstance.options.editorProps,
             handleKeyDown: (view: EditorView, event: KeyboardEvent) => {
-              // 0. 检查插件状态 - 如果建议面板激活，不拦截键盘事件
+              // 0. 检查插件状态 - 如果建议面板激活或下拉菜单打开，不拦截键盘事件
               const mentionState = MentionPluginKey.getState(view.state)
               const suggestionState = SuggestionPluginKey.getState(view.state)
+              const templateDropdownState = TemplateSelectDropdownPluginKey.getState(view.state)
 
-              if (mentionState?.active || suggestionState?.active) {
-                return false // 让插件处理
+              if (mentionState?.active || suggestionState?.active || templateDropdownState?.isOpen) {
+                return false // 让插件/组件处理
               }
 
               // 1. 检查是否为提交快捷键（优先检查，避免误触发换行）

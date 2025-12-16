@@ -10,6 +10,51 @@ import '@tiptap/core'
 export type { TemplateItem }
 
 /**
+ * 选择器选项
+ */
+export interface SelectOption {
+  /**
+   * 显示文本
+   */
+  label: string
+
+  /**
+   * 选择后的值
+   */
+  value: string
+
+  /**
+   * 自定义数据（可选）
+   */
+  data?: string
+}
+
+/**
+ * TemplateSelect 节点属性
+ */
+export interface TemplateSelectAttrs {
+  /**
+   * 唯一标识
+   */
+  id: string
+
+  /**
+   * 占位文字（未选择时显示）
+   */
+  placeholder: string
+
+  /**
+   * 选项列表
+   */
+  options: SelectOption[]
+
+  /**
+   * 当前选中的值（可选）
+   */
+  value?: string
+}
+
+/**
  * Template 节点属性
  */
 export interface TemplateAttrs {
@@ -83,29 +128,14 @@ declare module '@tiptap/core' {
       insertTemplate: (attrs: Partial<TemplateAttrs>) => ReturnType
 
       /**
-       * 更新模板块
-       */
-      updateTemplate: (id: string, content: string) => ReturnType
-
-      /**
-       * 删除模板块
-       */
-      deleteTemplate: (id: string) => ReturnType
-
-      /**
-       * 聚焦到模板块
-       */
-      focusTemplate: (id: string, position?: 'start' | 'end' | number) => ReturnType
-
-      /**
        * 聚焦到第一个模板块
        */
       focusFirstTemplate: () => ReturnType
 
       /**
-       * 聚焦到最后一个模板块
+       * 插入选择器
        */
-      focusLastTemplate: () => ReturnType
+      insertTemplateSelect: (attrs: Partial<TemplateSelectAttrs>) => ReturnType
     }
   }
 }

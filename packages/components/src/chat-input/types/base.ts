@@ -25,30 +25,98 @@ export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
 // ============================================
 
 /**
+ * 选择器选项
+ */
+export interface SelectOption {
+  /**
+   * 显示文本
+   */
+  label: string
+
+  /**
+   * 选择后的值
+   */
+  value: string
+
+  /**
+   * 自定义数据（可选）
+   */
+  data?: string
+}
+
+/**
  * 模板项（用户侧）
  *
  * 用户传入的模板数据格式
  * 组件内部会转换为 Tiptap 节点格式
  */
-export interface TemplateItem {
-  /**
-   * 模板 ID，可选
-   * 如果不提供，组件会自动生成
-   */
-  id?: string
+export type TemplateItem =
+  | {
+      /**
+       * 模板 ID，可选
+       * 如果不提供，组件会自动生成
+       */
+      id?: string
 
-  /**
-   * 类型
-   * - text: 普通文本
-   * - template: 模板块
-   */
-  type: 'text' | 'template'
+      /**
+       * 类型：普通文本
+       */
+      type: 'text'
 
-  /**
-   * 内容
-   */
-  content: string
-}
+      /**
+       * 内容
+       */
+      content: string
+    }
+  | {
+      /**
+       * 模板 ID，可选
+       * 如果不提供，组件会自动生成
+       */
+      id?: string
+
+      /**
+       * 类型：模板块（可编辑）
+       */
+      type: 'block'
+
+      /**
+       * 内容
+       */
+      content: string
+    }
+  | {
+      /**
+       * 模板 ID，可选
+       * 如果不提供，组件会自动生成
+       */
+      id?: string
+
+      /**
+       * 类型：选择器
+       */
+      type: 'select'
+
+      /**
+       * 内容（选中的值）
+       */
+      content: string
+
+      /**
+       * 占位文字（未选择时显示）
+       */
+      placeholder?: string
+
+      /**
+       * 选项列表
+       */
+      options?: SelectOption[]
+
+      /**
+       * 当前选中的值
+       */
+      value?: string
+    }
 
 // ============================================
 // Mention 相关类型（从扩展导入）
