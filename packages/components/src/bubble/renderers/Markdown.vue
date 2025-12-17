@@ -3,18 +3,18 @@ import type { Config as DOMPurifyConfig } from 'dompurify'
 import type { Options as MarkdownItOptions } from 'markdown-it'
 import { computed, onMounted, ref, watchEffect } from 'vue'
 import { useBubbleStore } from '../composables'
-import { BubbleChatMessageItem, BubbleRendererMessage } from '../index.type'
-import Text from './Text.vue'
+import { BubbleContentRendererProps } from '../index.type'
 import { getMarkdownItAndDompurify } from '../utils'
+import Text from './Text.vue'
 
-const props = defineProps<BubbleRendererMessage<string | BubbleChatMessageItem | undefined>>()
+const props = defineProps<BubbleContentRendererProps>()
 
 const content = computed(() => {
-  if (typeof props.content === 'string') {
-    return props.content
+  if (typeof props.message.content === 'string') {
+    return props.message.content
   }
 
-  return props.content?.text || ''
+  return props.message.content?.[props.contentIndex ?? 0].text
 })
 
 const markdownItAndDompurify = ref<Awaited<ReturnType<typeof getMarkdownItAndDompurify>>>(null)

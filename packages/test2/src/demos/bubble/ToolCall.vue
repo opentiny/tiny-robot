@@ -5,25 +5,31 @@ import Avatar from '../Avatar.vue'
 
 const toolCalls = ref([
   {
-    id: 'call_00_wy0r2VgGNvzUp1tIfCfSnGPO',
+    id: 'call_0',
     type: 'function',
     function: { name: 'add', arguments: '{"a": 4, "b": 4}' },
-    status: 'running',
-    open: true,
   },
   {
-    id: 'call_01_ZaQqGi3jCXr1iJ308Yu1hJkj',
+    id: 'call_1',
     type: 'function',
     function: { name: 'multiply', arguments: '{"a": 4, "b": 4}' },
-    open: true,
   },
 ])
 
+const state = ref<{
+  toolCall: Record<string, { status?: string; open?: boolean }>
+}>({
+  toolCall: {
+    call_0: { status: 'running', open: true },
+    call_1: { open: true },
+  },
+})
+
 const handleChangeToolCallStatus = () => {
-  const allStatus = ['running', 'success', 'failed', 'cancelled'] as const
-  const currentStatus = toolCalls.value[0]!.status as (typeof allStatus)[number]
+  const allStatus = ['running', 'success', 'failed', 'cancelled']
+  const currentStatus = state.value.toolCall.call_0!.status!
   const nextStatus = allStatus[(allStatus.indexOf(currentStatus) + 1) % allStatus.length]
-  toolCalls.value[0]!.status = nextStatus
+  state.value.toolCall.call_0!.status = nextStatus
 }
 
 const handleChangeToolCallArguments = () => {
@@ -40,14 +46,14 @@ const handleReplaySecondToolCall = async () => {
 
   isReplaying.value = true
   toolCalls.value[1]!.function.arguments = ''
-  toolCalls.value[1]!.status = 'running'
+  state.value.toolCall.call_1!.status = 'running'
   for (const char of originalArguments) {
     await new Promise((resolve) => setTimeout(resolve, 100))
     toolCalls.value[1]!.function.arguments += char
   }
 
   isReplaying.value = false
-  toolCalls.value[1]!.status = 'success'
+  state.value.toolCall.call_1!.status = 'success'
 }
 </script>
 
@@ -58,7 +64,7 @@ const handleReplaySecondToolCall = async () => {
     <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
       <div>
         <label>
-          <input type="checkbox" v-model="toolCalls[0]!.open" />
+          <input type="checkbox" v-model="state.toolCall.call_0!.open" />
           First Tool Call Expanded
         </label>
       </div>
@@ -73,6 +79,6 @@ const handleReplaySecondToolCall = async () => {
       </div>
     </div>
 
-    <Bubble content="我来帮您同时计算这两个算式。" :tool_calls="toolCalls" :avatar="Avatar"> </Bubble>
+    <Bubble content="我来帮您同时计算这两个算式。" :tool_calls="toolCalls" :avatar="Avatar" :state="state"> </Bubble>
   </section>
 </template>

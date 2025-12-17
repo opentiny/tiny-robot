@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { watchEffect } from 'vue'
-import { BubbleRendererMessage } from '../index.type'
 import { useBubbleStore } from '../composables'
+import { BubbleContentRendererProps } from '../index.type'
 
-const props = defineProps<BubbleRendererMessage<string>>()
+const props = defineProps<BubbleContentRendererProps<string>>()
 
 const store = useBubbleStore<{ toolCallResults?: Record<string, string> }>()
 
 watchEffect(() => {
-  if (!props.tool_call_id) {
+  if (!props.message.tool_call_id) {
     return
   }
 
@@ -16,10 +16,10 @@ watchEffect(() => {
     store.toolCallResults = {}
   }
 
-  store.toolCallResults[props.tool_call_id] = props.content
+  store.toolCallResults[props.message.tool_call_id] = props.message.content ?? ''
 })
 </script>
 
 <template>
-  <div style="display: none">{{ props.content }}</div>
+  <div style="display: none">{{ props.message.content }}</div>
 </template>

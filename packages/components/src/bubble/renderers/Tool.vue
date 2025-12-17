@@ -1,23 +1,34 @@
 <script setup lang="ts">
 import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
 import { type Component, computed, ref, useCssModule, watchEffect } from 'vue'
-import { useBubbleContentMessage, useBubbleStore } from '../composables'
-import { BubbleRendererMessage, ToolCall } from '../index.type'
+import { useBubbleStore } from '../composables'
+import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 import { getJsonrepair } from '../utils'
 
 const toolCallStatus = ['running', 'success', 'failed', 'cancelled'] as const
 type ToolCallStatus = (typeof toolCallStatus)[number]
 
 const props = defineProps<
-  BubbleRendererMessage<
-    unknown,
+  BubbleContentRendererProps<
+    ChatMessageContent,
     {
-      tool_call: ToolCall
-      status?: ToolCallStatus
-      open?: boolean
+      toolCall?: Record<string, { status?: ToolCallStatus; open?: boolean }>
     }
-  >
+  > & { toolIndex: number }
 >()
+
+const toolCall = computed(() => {
+  return props.message?.tool_calls?.[props.toolIndex]
+})
+
+const toolCallState = computed(() => {
+  const toolCallId = toolCall.value?.id
+  if (!toolCallId) {
+    return null
+  }
+
+  return props.message.state?.toolCall?.[toolCallId]
+})
 
 const store = useBubbleStore<{
   toolCallResults?: Record<string, string>
@@ -26,7 +37,7 @@ const store = useBubbleStore<{
 }>()
 
 const status = computed(() => {
-  const statusFromToolCall = props.extras?.tool_call.status as ToolCallStatus
+  const statusFromToolCall = toolCallState.value?.status
 
   if (statusFromToolCall && toolCallStatus.includes(statusFromToolCall)) {
     return statusFromToolCall
@@ -88,7 +99,7 @@ const highlightJSON = <T extends string | object>(json: T, space = 2): string =>
 const detail = ref('')
 
 const toolCallResults = computed(() => {
-  const toolCallId = props.extras?.tool_call.id
+  const toolCallId = toolCall.value?.id
   if (!toolCallId) {
     return undefined
   }
@@ -96,7 +107,7 @@ const toolCallResults = computed(() => {
 })
 
 watchEffect(() => {
-  const args = props.extras?.tool_call.function.arguments
+  const args = toolCall.value?.function.arguments
   const result = toolCallResults.value
 
   getJsonrepair()
@@ -115,22 +126,14 @@ watchEffect(() => {
     })
 })
 
-const message = useBubbleContentMessage()
-
 const open = ref(false)
 
 watchEffect(() => {
-  open.value = Boolean(props.extras?.tool_call.open ?? store.toolCallDefaultOpen)
+  open.value = Boolean(toolCallState.value?.open ?? store.toolCallDefaultOpen)
 })
 
 const handleClick = () => {
   open.value = !open.value
-  if (message?.tool_calls) {
-    const toolCall = message.tool_calls.find((tool) => tool.id === props.extras?.tool_call.id)
-    if (toolCall) {
-      toolCall.open = open.value
-    }
-  }
 }
 </script>
 
@@ -141,7 +144,7 @@ const handleClick = () => {
         <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${status}`" />
         <span>
           <span>{{ textAndIcon.text }}&nbsp;</span>
-          <span class="title">{{ props.extras?.tool_call.function.name || 'Untitled' }} </span>
+          <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
         </span>
       </div>
       <div class="header-right">

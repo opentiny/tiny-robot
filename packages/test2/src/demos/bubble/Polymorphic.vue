@@ -3,7 +3,7 @@ import { Bubble } from '@opentiny/tiny-robot'
 import { ref } from 'vue'
 import Avatar from '../Avatar.vue'
 
-const splitPolymorphic = ref(false)
+const splitRenderMode = ref(true)
 </script>
 
 <template>
@@ -13,7 +13,7 @@ const splitPolymorphic = ref(false)
     <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
       <div>
         <label>
-          <input type="checkbox" v-model="splitPolymorphic" />
+          <input type="checkbox" v-model="splitRenderMode" />
           Split Polymorphic
         </label>
       </div>
@@ -29,7 +29,7 @@ const splitPolymorphic = ref(false)
         { type: 'text', text: '这是什么品种' },
       ]"
       :avatar="Avatar"
-      :split-polymorphic="splitPolymorphic"
+      :content-render-mode="splitRenderMode ? 'split' : 'single'"
     >
     </Bubble>
   </section>

@@ -19,7 +19,7 @@
     </div>
   </div>
   <BubbleProvider :initial-store="bubbleStore">
-    <BubbleList class="bubble-list" :messages="messages" :role-configs="roleConfigs" :split-polymorphic="true">
+    <BubbleList class="bubble-list" :messages="messages" :role-configs="roleConfigs" content-render-mode="split">
       <template #prefix="slotProps">
         <input
           class="checkbox"
@@ -38,7 +38,7 @@ import {
   BubbleList,
   BubbleMarkdownRenderer,
   BubbleProvider,
-  type BubbleMessage,
+  type BubbleContent,
   type BubbleRoleConfig,
 } from '@opentiny/tiny-robot'
 import { computed, h, reactive, ref, watchEffect } from 'vue'
@@ -80,7 +80,7 @@ const enableHtmlInMarkdown = computed({
 })
 
 const messages = computed(() => {
-  const msgs: BubbleMessage[] = [
+  const msgs: BubbleContent[] = [
     { role: 'system', content: '你是一个数学老师，擅长计算和解答数学问题。' },
     {
       role: 'user',
@@ -188,7 +188,8 @@ const isIndeterminate = computed(() => {
 })
 
 const selectedMessages = computed(() => {
-  return selection.value.map((index) => messages.value[index])
+  // Sort selected indexes to maintain original order
+  return [...selection.value].sort((a, b) => a - b).map((index) => messages.value[index])
 })
 
 watchEffect(() => {
@@ -209,6 +210,10 @@ watchEffect(() => {
 
   :deep(.tr-bubble) {
     position: relative;
+  }
+
+  :deep(.markdown-body) {
+    background-color: transparent;
   }
 }
 

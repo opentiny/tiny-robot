@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { BubbleRendererMessage } from '../index.type'
+import type { BubbleContentRendererProps } from '../index.type'
 
-defineProps<BubbleRendererMessage>()
+defineProps<BubbleContentRendererProps>()
 </script>
 
 <template>

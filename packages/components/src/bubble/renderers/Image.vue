@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import type { BubbleRendererMessage } from '../index.type'
+import { computed, ref, watch } from 'vue'
+import type { BubbleContentRendererProps } from '../index.type'
 
-const props = defineProps<BubbleRendererMessage<{ image_url: string; text?: string }>>()
+const props = defineProps<BubbleContentRendererProps>()
 
 const isLoaded = ref(false)
 const hasError = ref(false)
 
+const content = computed(() => {
+  if (!Array.isArray(props.message.content)) {
+    return null
+  }
+
+  return props.message.content[props.contentIndex ?? 0]
+})
+
 watch(
-  () => props.content.image_url,
+  () => content.value?.image_url,
   () => {
     isLoaded.value = false
     hasError.value = false
@@ -30,8 +38,8 @@ const handleError = () => {
   <img
     class="tr-bubble__image"
     :class="{ loading: !isLoaded }"
-    :src="props.content.image_url"
-    :alt="props.content.text"
+    :src="content?.image_url"
+    :alt="content?.text"
     loading="lazy"
     @load="handleLoad"
     @error="handleError"

@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BubbleChatMessageItem, BubbleRendererMessage } from '../index.type'
+import { BubbleContentRendererProps } from '../index.type'
 
-const props = defineProps<BubbleRendererMessage<string | BubbleChatMessageItem | undefined>>()
+const props = defineProps<BubbleContentRendererProps>()
 
 const content = computed(() => {
-  if (typeof props.content === 'string') {
-    return props.content
+  if (typeof props.message.content === 'string') {
+    return props.message.content
   }
 
-  return props.content?.text
+  return props.message.content?.[props.contentIndex ?? 0].text
 })
 </script>
 
 <template>
-  <p class="tr-bubble__text" data-type="text">{{ content }}</p>
+  <p v-if="content" class="tr-bubble__text" data-type="text">{{ content }}</p>
 </template>
 
 <style scoped lang="less">

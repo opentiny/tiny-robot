@@ -2,14 +2,7 @@
 import { computed } from 'vue'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore } from './composables'
-import type {
-  BubbleListProps,
-  BubbleListSlots,
-  BubbleMessage,
-  BubbleMessageGroup,
-  BubblePlainMessage,
-  BubblePolymorphicMessage,
-} from './index.type'
+import type { BubbleContent, BubbleListProps, BubbleListSlots, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
@@ -26,7 +19,7 @@ setupBubbleStore()
  * 连续相同角色的消息会被合并到一组
  * 如果消息的 content 是数组，则该消息单独作为一组，且后续消息不能添加到这个组
  */
-const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
+const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
 
   for (const [index, message] of messages.entries()) {
@@ -36,23 +29,23 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
     // 如果 content 是数组，则单独作为一组
     if (isArrayContent) {
       groups.push({
-        role: message.role,
-        messages: [message as BubblePolymorphicMessage],
-        isPolymorphic: true,
+        role: message.role || '',
+        messages: [message],
         messageIndexes: [index],
+        isPolymorphic: true,
       })
     }
     // 如果上一组的角色相同，且上一组不是多态分组，则添加到该组
     else if (lastGroup && lastGroup.role === message.role && !lastGroup.isPolymorphic) {
-      ;(lastGroup.messages as BubblePlainMessage[]).push(message as BubblePlainMessage)
+      lastGroup.messages.push(message)
       lastGroup.messageIndexes.push(index)
     } else {
       // 创建新的分组
       groups.push({
-        role: message.role,
-        messages: [message as BubblePlainMessage],
-        isPolymorphic: false,
+        role: message.role || '',
+        messages: [message],
         messageIndexes: [index],
+        isPolymorphic: false,
       })
     }
   }
@@ -66,7 +59,7 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
  * - 非分割角色消息会被分到一组，直到遇到下一个分割角色消息
  * - 如果消息的 content 是数组，则该消息单独作为一组，且后续消息不能添加到这个组
  */
-const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleMessageGroup[] => {
+const groupByDivider = (messages: BubbleContent[], dividerRole: string): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
 
   for (const [index, message] of messages.entries()) {
@@ -77,21 +70,21 @@ const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleM
     // 如果 content 是数组，则单独作为一组
     if (isArrayContent) {
       groups.push({
-        role: message.role,
-        messages: [message as BubblePolymorphicMessage],
+        role: message.role || '',
+        messages: [message],
         isPolymorphic: true,
         messageIndexes: [index],
       })
     }
     // 如果上一组与当前消息的分割/非分割类型相同，且上一组不是多态分组，则添加到该组
     else if (lastGroup && (lastGroup.role === dividerRole) === isDivider && !lastGroup.isPolymorphic) {
-      ;(lastGroup.messages as BubblePlainMessage[]).push(message as BubblePlainMessage)
+      lastGroup.messages.push(message)
       lastGroup.messageIndexes.push(index)
     } else {
       // 创建新的分组
       groups.push({
-        role: isDivider ? dividerRole : message.role,
-        messages: [message as BubblePlainMessage],
+        role: isDivider ? dividerRole : message.role || '',
+        messages: [message],
         isPolymorphic: false,
         messageIndexes: [index],
       })
@@ -131,7 +124,7 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
       :role="group.role"
       :role-config="props.roleConfigs?.[group.role]"
       :message-group="group"
-      :split-polymorphic="props.splitPolymorphic"
+      :content-render-mode="props.contentRenderMode"
     >
       <template #prefix="slotProps">
         <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
@@ -140,7 +133,7 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
         <slot name="suffix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
       </template>
       <template #content-footer="slotProps">
-        <slot name="content-footer" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
+        <slot name="content-footer" v-bind="slotProps"></slot>
       </template>
       <template #after="slotProps">
         <slot name="after" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>

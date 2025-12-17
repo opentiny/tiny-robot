@@ -5,7 +5,7 @@
     <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
       <div>
         <label>
-          <input type="checkbox" v-model="reasoningExtras.open" />
+          <input type="checkbox" v-model="reasoningState.open" />
           Expanded
         </label>
       </div>
@@ -14,8 +14,7 @@
       </div>
     </div>
 
-    <Bubble :content="content" :reasoning_content="reasoningContent" :extras="reasoningExtras" :avatar="Avatar">
-    </Bubble>
+    <Bubble :content="content" :reasoning_content="reasoningContent" :avatar="Avatar" :state="reasoningState"> </Bubble>
   </section>
 </template>
 
@@ -39,13 +38,13 @@ const rawReasoningContent = `首先，用户的问题是：“二进制中1+1的
 const content = ref(rawContent)
 const reasoningContent = ref(rawReasoningContent)
 
-const reasoningExtras = ref({
+const reasoningState = ref({
   thinking: false,
   open: true,
 })
 
 const replayThinking = async () => {
-  reasoningExtras.value.thinking = true
+  reasoningState.value.thinking = true
   reasoningContent.value = ''
   content.value = ''
 
@@ -54,7 +53,7 @@ const replayThinking = async () => {
     reasoningContent.value += char
   }
 
-  reasoningExtras.value.thinking = false
+  reasoningState.value.thinking = false
 
   for (const char of rawContent) {
     await new Promise((resolve) => setTimeout(resolve, 10))
