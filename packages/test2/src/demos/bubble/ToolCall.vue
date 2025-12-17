@@ -55,6 +55,12 @@ const handleReplaySecondToolCall = async () => {
   isReplaying.value = false
   state.value.toolCall.call_1!.status = 'success'
 }
+
+const handleStateChange = (payload: { key: string; value: unknown }) => {
+  if (payload.key === 'toolCall') {
+    state.value.toolCall = payload.value as typeof state.value.toolCall
+  }
+}
 </script>
 
 <template>
@@ -79,6 +85,13 @@ const handleReplaySecondToolCall = async () => {
       </div>
     </div>
 
-    <Bubble content="我来帮您同时计算这两个算式。" :tool_calls="toolCalls" :avatar="Avatar" :state="state"> </Bubble>
+    <Bubble
+      content="我来帮您同时计算这两个算式。"
+      :tool_calls="toolCalls"
+      :avatar="Avatar"
+      :state="state"
+      @update:state="handleStateChange"
+    >
+    </Bubble>
   </section>
 </template>

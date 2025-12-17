@@ -14,7 +14,14 @@
       </div>
     </div>
 
-    <Bubble :content="content" :reasoning_content="reasoningContent" :avatar="Avatar" :state="reasoningState"> </Bubble>
+    <Bubble
+      :content="content"
+      :reasoning_content="reasoningContent"
+      :avatar="Avatar"
+      :state="reasoningState"
+      @update:state="handleStateChange"
+    >
+    </Bubble>
   </section>
 </template>
 
@@ -38,7 +45,7 @@ const rawReasoningContent = `首先，用户的问题是：“二进制中1+1的
 const content = ref(rawContent)
 const reasoningContent = ref(rawReasoningContent)
 
-const reasoningState = ref({
+const reasoningState = ref<Record<string, unknown>>({
   thinking: false,
   open: true,
 })
@@ -59,5 +66,9 @@ const replayThinking = async () => {
     await new Promise((resolve) => setTimeout(resolve, 10))
     content.value += char
   }
+}
+
+const handleStateChange = (payload: { key: string; value: unknown }) => {
+  reasoningState.value[payload.key] = payload.value
 }
 </script>

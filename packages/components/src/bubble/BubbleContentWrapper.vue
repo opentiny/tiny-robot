@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBubbleContentRenderer } from './composables'
+import { setupBubbleStateChangeFn, useBubbleContentRenderer } from './composables'
 import type { BubbleContent } from './index.type'
 
 const props = defineProps<{
@@ -8,6 +8,16 @@ const props = defineProps<{
 }>()
 
 const renderer = useBubbleContentRenderer(() => props.message, props.contentIndex)
+
+const emit = defineEmits<{
+  (e: 'update:state', payload: { key: string; value: unknown }): void
+}>()
+
+const handleStateChange = (key: string, value: unknown) => {
+  emit('update:state', { key, value })
+}
+
+setupBubbleStateChangeFn(handleStateChange)
 </script>
 
 <template>

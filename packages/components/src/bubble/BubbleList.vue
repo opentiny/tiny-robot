@@ -11,6 +11,10 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
 
 defineSlots<BubbleListSlots>()
 
+const emit = defineEmits<{
+  (e: 'update:state', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+}>()
+
 // Provide bubble store if not already provided
 setupBubbleStore()
 
@@ -33,6 +37,7 @@ const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
         messages: [message],
         messageIndexes: [index],
         isPolymorphic: true,
+        startIndex: index,
       })
     }
     // 如果上一组的角色相同，且上一组不是多态分组，则添加到该组
@@ -46,6 +51,7 @@ const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
         messages: [message],
         messageIndexes: [index],
         isPolymorphic: false,
+        startIndex: index,
       })
     }
   }
@@ -74,6 +80,7 @@ const groupByDivider = (messages: BubbleContent[], dividerRole: string): BubbleM
         messages: [message],
         isPolymorphic: true,
         messageIndexes: [index],
+        startIndex: index,
       })
     }
     // 如果上一组与当前消息的分割/非分割类型相同，且上一组不是多态分组，则添加到该组
@@ -87,6 +94,7 @@ const groupByDivider = (messages: BubbleContent[], dividerRole: string): BubbleM
         messages: [message],
         isPolymorphic: false,
         messageIndexes: [index],
+        startIndex: index,
       })
     }
   }
@@ -125,6 +133,7 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
       :role-config="props.roleConfigs?.[group.role]"
       :message-group="group"
       :content-render-mode="props.contentRenderMode"
+      @update:state="emit('update:state', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
     >
       <template #prefix="slotProps">
         <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
@@ -133,7 +142,7 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
         <slot name="suffix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
       </template>
       <template #content-footer="slotProps">
-        <slot name="content-footer" v-bind="slotProps"></slot>
+        <slot name="content-footer" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
       </template>
       <template #after="slotProps">
         <slot name="after" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
-import { type Component, computed, ref, useCssModule, watchEffect } from 'vue'
-import { useBubbleStore } from '../composables'
+import { type Component, computed, ref, toRaw, useCssModule, watchEffect } from 'vue'
+import { useBubbleStateChangeFn, useBubbleStore } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 import { getJsonrepair } from '../utils'
 
@@ -132,8 +132,18 @@ watchEffect(() => {
   open.value = Boolean(toolCallState.value?.open ?? store.toolCallDefaultOpen)
 })
 
+const handleStateChange = useBubbleStateChangeFn()
+
 const handleClick = () => {
   open.value = !open.value
+
+  const toolCallId = toolCall.value?.id
+  if (toolCallId) {
+    handleStateChange?.('toolCall', {
+      ...toRaw(props.message.state?.toolCall),
+      [toolCallId]: { ...toolCallState.value, open: open.value },
+    })
+  }
 }
 </script>
 

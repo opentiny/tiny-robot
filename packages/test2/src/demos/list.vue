@@ -19,7 +19,13 @@
     </div>
   </div>
   <BubbleProvider :initial-store="bubbleStore">
-    <BubbleList class="bubble-list" :messages="messages" :role-configs="roleConfigs" content-render-mode="split">
+    <BubbleList
+      class="bubble-list"
+      :messages="messages"
+      :role-configs="roleConfigs"
+      content-render-mode="split"
+      @update:state="handleStateChange"
+    >
       <template #prefix="slotProps">
         <input
           class="checkbox"
@@ -62,7 +68,7 @@ const reasoningMessage = {
   role: 'assistant',
   content: rawContent,
   reasoning_content: rawReasoningContent,
-  extras: {
+  state: {
     thinking: false,
     open: true,
   },
@@ -195,6 +201,11 @@ const selectedMessages = computed(() => {
 watchEffect(() => {
   console.log(selectedMessages.value)
 })
+
+const handleStateChange = (payload: { messageIndex: number; [key: string]: unknown }) => {
+  console.log(payload)
+  console.log(messages.value[payload.messageIndex])
+}
 </script>
 
 <style lang="less" scoped>

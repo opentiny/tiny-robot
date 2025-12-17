@@ -18,6 +18,10 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 
 defineSlots<BubbleSlots>()
 
+const emit = defineEmits<{
+  (e: 'update:state', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+}>()
+
 // Provide bubble store if not already provided
 setupBubbleStore()
 
@@ -73,27 +77,36 @@ const shouldSplit = computed(() => {
             :messages="messages"
             :content-index="index"
           >
-            <BubbleContentWrapper :message="messages[0]" :content-index="index"></BubbleContentWrapper>
-            <slot name="content-footer" :message="messages[0]" :content-index="index" :role="props.role"></slot>
+            <BubbleContentWrapper
+              :message="messages[0]"
+              :content-index="index"
+              @update:state="emit('update:state', { ...$event, messageIndex: 0, contentIndex: index })"
+            ></BubbleContentWrapper>
+            <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
         </template>
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
-            <template v-for="(message, index) in messages" :key="`message-${index}`">
+            <template v-for="(message, msgIndex) in messages" :key="`message-${msgIndex}`">
               <template v-if="Array.isArray(message.content)">
                 <BubbleContentWrapper
-                  v-for="(_, index) in message.content"
-                  :key="`content-${index}`"
+                  v-for="(_, contentIndex) in message.content"
+                  :key="`content-${contentIndex}`"
                   :message="message"
-                  :content-index="index"
+                  :content-index="contentIndex"
+                  @update:state="
+                    emit('update:state', { ...$event, messageIndex: msgIndex, contentIndex: contentIndex })
+                  "
                 ></BubbleContentWrapper>
-                <slot name="content-footer" :message="message" :content-index="index" :role="props.role"></slot>
               </template>
               <template v-else>
-                <BubbleContentWrapper :message="message"></BubbleContentWrapper>
-                <slot name="content-footer" :message="message" :role="props.role"></slot>
+                <BubbleContentWrapper
+                  :message="message"
+                  @update:state="emit('update:state', { ...$event, messageIndex: msgIndex })"
+                ></BubbleContentWrapper>
               </template>
             </template>
+            <slot name="content-footer" :messages="messages" :role="props.role"></slot>
           </BubbleBoxWrapper>
         </template>
       </div>

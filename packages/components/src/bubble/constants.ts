@@ -1,5 +1,5 @@
 import type { Component, InjectionKey, MaybeRefOrGetter } from 'vue'
-import { BubbleBoxRendererMatch, BubbleContent, BubbleContentRendererMatch, BubbleMessageGroup } from './index.type'
+import { BubbleBoxRendererMatch, BubbleContentRendererMatch, BubbleMessageGroup } from './index.type'
 
 /**
  * Injection key for bubble message group
@@ -7,12 +7,6 @@ import { BubbleBoxRendererMatch, BubbleContent, BubbleContentRendererMatch, Bubb
  */
 export const BUBBLE_MESSAGE_GROUP_KEY: InjectionKey<MaybeRefOrGetter<BubbleMessageGroup | undefined>> =
   Symbol('bubble-message-group')
-
-/**
- * Injection key for bubble content message
- * Used to provide/inject current message between BubbleContent and renderer components
- */
-export const BUBBLE_CONTENT_MESSAGE_KEY: InjectionKey<BubbleContent> = Symbol('bubble-content-message')
 
 export const BUBBLE_BOX_RENDERER_MATCHES_KEY: InjectionKey<MaybeRefOrGetter<Array<BubbleBoxRendererMatch>>> =
   Symbol('bubble-box-renderer-matches')
@@ -40,6 +34,9 @@ export const BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrG
  * Used to provide/inject a global store for sharing data between BubbleList and Bubble components
  */
 export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('bubble-store')
+
+export const BUBBLE_STATE_CHANGE_FN_KEY: InjectionKey<(key: string, value: unknown) => void> =
+  Symbol('bubble-state-change-fn')
 
 export const BubbleRendererMatchPriority = {
   LOADING: -1,
