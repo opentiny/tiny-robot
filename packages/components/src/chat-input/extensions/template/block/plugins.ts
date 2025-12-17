@@ -299,10 +299,11 @@ export function keyboardNavigationPlugin() {
               let deleteStart = $from.pos - beforeNode.nodeSize
               let deleteEnd = $from.pos
 
-              // 检查前面是否有零宽字符
+              // 只删除模板块前的零宽字符，不删除其他文本节点
+              // 检查前面是否有零宽字符（必须是零宽字符，不能是其他文本）
               if (index > 1) {
                 const prevPrevNode = parent.child(index - 2)
-                if (prevPrevNode && prevPrevNode.isText && prevPrevNode.text?.endsWith(ZERO_WIDTH_CHAR)) {
+                if (prevPrevNode && prevPrevNode.isText && prevPrevNode.text === ZERO_WIDTH_CHAR) {
                   deleteStart = deleteStart - 1
                 }
               }
@@ -330,36 +331,40 @@ export function keyboardNavigationPlugin() {
             const parent = $from.parent
             const index = $from.index()
 
-            // 检查前面是否有模板块（可能隔着零宽字符）
-            if (index > 1) {
-              const prevPrevNode = parent.child(index - 2)
-              if (prevPrevNode.type.name === 'template') {
-                const content = prevPrevNode.textContent || ''
-                const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
+            // 只处理纯零宽字符的情况，不处理包含实际文本的节点
+            if (beforeNode.text === ZERO_WIDTH_CHAR) {
+              // 检查前面是否有模板块（隔着零宽字符）
+              if (index > 1) {
+                const prevPrevNode = parent.child(index - 2)
 
-                // 如果模板块无内容，删除整个模板块和中间的文本节点
-                if (isEmpty) {
-                  const deleteStart = $from.pos - beforeNode.nodeSize - prevPrevNode.nodeSize
-                  const afterNode = $from.nodeAfter
-                  let deleteEnd = $from.pos
+                if (prevPrevNode.type.name === 'template') {
+                  const content = prevPrevNode.textContent || ''
+                  const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
 
-                  // 检查后面是否有零宽字符
-                  if (afterNode && afterNode.isText && afterNode.text?.startsWith(ZERO_WIDTH_CHAR)) {
-                    deleteEnd = deleteEnd + 1
-                  }
+                  // 如果模板块无内容，删除整个模板块和零宽字符
+                  if (isEmpty) {
+                    const deleteStart = $from.pos - beforeNode.nodeSize - prevPrevNode.nodeSize
+                    const afterNode = $from.nodeAfter
+                    let deleteEnd = $from.pos
 
-                  dispatch(state.tr.delete(deleteStart, deleteEnd))
-                  event.preventDefault()
-                  return true
-                }
-                // 如果有内容且前面是零宽字符，跳过零宽字符进入模板块
-                if (beforeNode.text === ZERO_WIDTH_CHAR || beforeNode.text?.endsWith(ZERO_WIDTH_CHAR)) {
-                  const nextCursorPos = $from.pos - 2
-                  // 防止位置越界
-                  if (nextCursorPos >= 0) {
-                    dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
+                    // 检查后面是否有零宽字符
+                    if (afterNode && afterNode.isText && afterNode.text === ZERO_WIDTH_CHAR) {
+                      deleteEnd = deleteEnd + 1
+                    }
+
+                    dispatch(state.tr.delete(deleteStart, deleteEnd))
                     event.preventDefault()
                     return true
+                  }
+                  // 如果有内容，跳过零宽字符进入模板块
+                  else {
+                    const nextCursorPos = $from.pos - 2
+                    // 防止位置越界
+                    if (nextCursorPos >= 0) {
+                      dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
+                      event.preventDefault()
+                      return true
+                    }
                   }
                 }
               }
@@ -485,15 +490,16 @@ export function keyboardNavigationPlugin() {
               let deleteStart = $from.pos
               let deleteEnd = $from.pos + afterNode.nodeSize
 
-              // 检查前面是否有零宽字符
-              if (beforeNode && beforeNode.isText && beforeNode.text?.endsWith(ZERO_WIDTH_CHAR)) {
+              // 只删除模板块后的零宽字符，不删除其他文本节点
+              // 检查前面是否有零宽字符（必须是零宽字符，不能是其他文本）
+              if (beforeNode && beforeNode.isText && beforeNode.text === ZERO_WIDTH_CHAR) {
                 deleteStart = deleteStart - 1
               }
 
               // 检查后面是否有零宽字符
               if (index < parent.childCount - 1) {
                 const nextNextNode = parent.child(index + 1)
-                if (nextNextNode && nextNextNode.isText && nextNextNode.text?.startsWith(ZERO_WIDTH_CHAR)) {
+                if (nextNextNode && nextNextNode.isText && nextNextNode.text === ZERO_WIDTH_CHAR) {
                   deleteEnd = deleteEnd + 1
                 }
               }

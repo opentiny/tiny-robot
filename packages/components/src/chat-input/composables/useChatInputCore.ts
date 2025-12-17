@@ -68,13 +68,13 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
 
   const hasContent = computed(() => {
     if (!editor.value) return false
-    const text = editor.value.getText()
+    const text = getTextWithTemplates(editor.value)
     return text.trim().length > 0
   })
 
   const characterCount = computed(() => {
     if (!editor.value) return 0
-    const text = editor.value.getText()
+    const text = getTextWithTemplates(editor.value)
     return text.length
   })
 
