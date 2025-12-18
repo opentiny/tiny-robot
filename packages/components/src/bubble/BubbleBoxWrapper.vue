@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useBubbleBoxRenderer } from './composables'
-import type { BubbleContent, BubbleProps } from './index.type'
+import type { BubbleMessage, BubbleProps } from './index.type'
 
 const props = defineProps<
   Pick<BubbleProps, 'role' | 'placement' | 'shape'> & {
-    messages: BubbleContent[]
+    messages: BubbleMessage[]
     contentIndex?: number
   }
 >()

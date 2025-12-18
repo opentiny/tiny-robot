@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore } from './composables'
-import type { BubbleContent, BubbleListProps, BubbleListSlots, BubbleMessageGroup } from './index.type'
+import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
@@ -23,8 +23,9 @@ setupBubbleStore()
  * 连续相同角色的消息会被合并到一组
  * 如果消息的 content 是数组，则该消息单独作为一组，且后续消息不能添加到这个组
  */
-const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
+const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
+  let isLastGroupSealed = false
 
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
@@ -36,12 +37,12 @@ const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
         role: message.role || '',
         messages: [message],
         messageIndexes: [index],
-        isPolymorphic: true,
         startIndex: index,
       })
+      isLastGroupSealed = true
     }
-    // 如果上一组的角色相同，且上一组不是多态分组，则添加到该组
-    else if (lastGroup && lastGroup.role === message.role && !lastGroup.isPolymorphic) {
+    // 如果上一组的角色相同，且上一组未被密封，则添加到该组
+    else if (lastGroup && lastGroup.role === message.role && !isLastGroupSealed) {
       lastGroup.messages.push(message)
       lastGroup.messageIndexes.push(index)
     } else {
@@ -50,9 +51,9 @@ const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
         role: message.role || '',
         messages: [message],
         messageIndexes: [index],
-        isPolymorphic: false,
         startIndex: index,
       })
+      isLastGroupSealed = false
     }
   }
 
@@ -65,8 +66,9 @@ const groupByRole = (messages: BubbleContent[]): BubbleMessageGroup[] => {
  * - 非分割角色消息会被分到一组，直到遇到下一个分割角色消息
  * - 如果消息的 content 是数组，则该消息单独作为一组，且后续消息不能添加到这个组
  */
-const groupByDivider = (messages: BubbleContent[], dividerRole: string): BubbleMessageGroup[] => {
+const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
+  let isLastGroupSealed = false
 
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
@@ -78,13 +80,13 @@ const groupByDivider = (messages: BubbleContent[], dividerRole: string): BubbleM
       groups.push({
         role: message.role || '',
         messages: [message],
-        isPolymorphic: true,
         messageIndexes: [index],
         startIndex: index,
       })
+      isLastGroupSealed = true
     }
-    // 如果上一组与当前消息的分割/非分割类型相同，且上一组不是多态分组，则添加到该组
-    else if (lastGroup && (lastGroup.role === dividerRole) === isDivider && !lastGroup.isPolymorphic) {
+    // 如果上一组与当前消息的分割/非分割类型相同，且上一组未被密封，则添加到该组
+    else if (lastGroup && (lastGroup.role === dividerRole) === isDivider && !isLastGroupSealed) {
       lastGroup.messages.push(message)
       lastGroup.messageIndexes.push(index)
     } else {
@@ -92,10 +94,10 @@ const groupByDivider = (messages: BubbleContent[], dividerRole: string): BubbleM
       groups.push({
         role: isDivider ? dividerRole : message.role || '',
         messages: [message],
-        isPolymorphic: false,
         messageIndexes: [index],
         startIndex: index,
       })
+      isLastGroupSealed = false
     }
   }
 

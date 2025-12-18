@@ -3,7 +3,7 @@ import { Component, VNode } from 'vue'
 /**
  * 工具调用接口（支持 OpenAI 格式）
  */
-export interface ToolCall {
+interface ToolCall {
   id: string
   type: 'function' | string
   function: {
@@ -33,7 +33,7 @@ type ChatMessageWithOptionalRole<T extends ChatMessageContent = ChatMessageConte
   role?: string
 }
 
-export type BubbleContent<
+export type BubbleMessage<
   T extends ChatMessageContent = ChatMessageContent,
   S extends Record<string, unknown> = Record<string, unknown>,
 > = ChatMessageWithOptionalRole<T> & {
@@ -43,33 +43,32 @@ export type BubbleContent<
   state?: S
 }
 
-export type BubbleProps = BubbleContent & {
+export type BubbleProps = BubbleMessage & {
   avatar?: VNode | Component
   placement?: 'start' | 'end'
   shape?: 'corner' | 'rounded' | 'none'
   contentRenderMode?: 'single' | 'split'
-  fallbackBoxRenderer?: Component
-  fallbackContentRenderer?: Component
+  fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
+  fallbackContentRenderer?: Component<BubbleContentRendererProps>
 }
 
 export type BubbleMessageGroup = {
   role: string
-  messages: BubbleContent[]
-  isPolymorphic: boolean
+  messages: BubbleMessage[]
   messageIndexes: number[]
   startIndex: number
 }
 
 export type BubbleBoxRendererMatch = {
-  find: (messages: BubbleContent[], contentIndex?: number) => boolean
-  renderer: Component
+  find: (messages: BubbleMessage[], contentIndex?: number) => boolean
+  renderer: Component<BubbleBoxRendererProps>
   priority?: number
   attributes?: Record<string, string>
 }
 
 export type BubbleContentRendererMatch = {
-  find: (message: BubbleContent, contentIndex?: number) => boolean
-  renderer: Component
+  find: (message: BubbleMessage, contentIndex?: number) => boolean
+  renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: Record<string, string>
 }
@@ -80,11 +79,11 @@ export type BubbleContentRendererProps<
   T extends ChatMessageContent = ChatMessageContent,
   S extends Record<string, unknown> = Record<string, unknown>,
 > = {
-  message: BubbleContent<T, S>
+  message: BubbleMessage<T, S>
   contentIndex?: number
 }
 
-type BubbleSlotProps = { messages: BubbleContent[]; role?: string }
+type BubbleSlotProps = { messages: BubbleMessage[]; role?: string }
 
 export interface BubbleSlots {
   prefix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
@@ -105,10 +104,10 @@ export type BubbleRoleConfig = Pick<
 /**
  * 自定义分组函数类型
  */
-type BubbleGroupFunction = (messages: BubbleContent[], dividerRole?: string) => BubbleMessageGroup[]
+type BubbleGroupFunction = (messages: BubbleMessage[], dividerRole?: string) => BubbleMessageGroup[]
 
 export interface BubbleListProps {
-  messages: BubbleContent[]
+  messages: BubbleMessage[]
   /**
    * 分组策略：
    * - 'consecutive': 连续相同角色的消息合并为一组
@@ -136,8 +135,8 @@ export interface BubbleListProps {
 export interface BubbleProviderProps {
   boxRendererMatches?: BubbleBoxRendererMatch[]
   contentRendererMatches?: BubbleContentRendererMatch[]
-  fallbackBoxRenderer?: Component
-  fallbackContentRenderer?: Component
+  fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
+  fallbackContentRenderer?: Component<BubbleContentRendererProps>
   initialStore?: Record<string, unknown>
 }
 

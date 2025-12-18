@@ -5,7 +5,7 @@ import {
   BUBBLE_CONTENT_FALLBACK_RENDERER_KEY,
   BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY,
 } from '../constants'
-import type { BubbleContent, BubbleContentRendererMatch } from '../index.type'
+import type { BubbleMessage, BubbleContentRendererMatch } from '../index.type'
 import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '../renderers/defaultRenderers'
 
 export function setupBubbleContentRenderer(renderers: {
@@ -35,7 +35,7 @@ export function setupBubblePropContentRenderer(renderers: {
 }
 
 export function useBubbleContentRenderer(
-  message: MaybeRefOrGetter<BubbleContent>,
+  message: MaybeRefOrGetter<BubbleMessage>,
   contentIndex?: number,
 ): ComputedRef<Component> {
   const contentRendererMatches = inject(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, defaultContentRendererMatches)

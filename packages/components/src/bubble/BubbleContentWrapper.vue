@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { setupBubbleStateChangeFn, useBubbleContentRenderer } from './composables'
-import type { BubbleContent } from './index.type'
+import type { BubbleMessage } from './index.type'
 
 const props = defineProps<{
-  message: BubbleContent
+  message: BubbleMessage
   contentIndex?: number
 }>()
 

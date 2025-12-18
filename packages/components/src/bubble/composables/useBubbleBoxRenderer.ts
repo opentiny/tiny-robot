@@ -5,7 +5,7 @@ import {
   BUBBLE_BOX_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
 } from '../constants'
-import type { BubbleBoxRendererMatch, BubbleContent } from '../index.type'
+import type { BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 
 export function setupBubbleBoxRenderer(renderers: {
@@ -35,7 +35,7 @@ export function setupBubblePropBoxRenderer(renderers: {
 }
 
 export function useBubbleBoxRenderer(
-  messages: MaybeRefOrGetter<BubbleContent[]>,
+  messages: MaybeRefOrGetter<BubbleMessage[]>,
   contentIndex?: number,
 ): ComputedRef<{
   renderer: Component

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
-import { type Component, computed, ref, toRaw, useCssModule, watchEffect } from 'vue'
+import { type Component, computed, ref, useCssModule, watchEffect } from 'vue'
 import { useBubbleStateChangeFn, useBubbleStore } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 import { getJsonrepair } from '../utils'
@@ -140,7 +140,7 @@ const handleClick = () => {
   const toolCallId = toolCall.value?.id
   if (toolCallId) {
     handleStateChange?.('toolCall', {
-      ...toRaw(props.message.state?.toolCall),
+      ...props.message.state?.toolCall,
       [toolCallId]: { ...toolCallState.value, open: open.value },
     })
   }
