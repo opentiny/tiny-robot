@@ -4,6 +4,10 @@ outline: [1, 3]
 
 # Sender 消息输入框
 
+:::warning 迁移提示
+Sender 组件正在迁移到 ChatInput。过渡期（1个月），建议使用 `TrSenderCompat` 快速迁移，或直接使用 `TrChatInput` 获得更好的功能和性能。详见 [兼容组件用法](./sender-compact.md)。
+:::
+
 Sender 是一个功能丰富的输入组件，支持文本输入、语音识别、文件上传、模板填充等多种输入方式。适用于聊天界面、评论输入、表单填写等场景。
 
 - [代码示例](#代码示例) - 模式切换、状态控制、内容管理
@@ -198,7 +202,7 @@ const filteredSuggestions = computed(() => {
 | -------------------- | ------------------------ | ------------------------------------------------------- | ----------------- |
 | autofocus            | 自动获取焦点             | `boolean`                                               | `false`           |
 | autoSize             | 自动调整高度             | `boolean \| { minRows: number, maxRows: number }` | `false`           |
-| allowSpeech          | 是否开启语音输入         | `boolean`                                               | `false`           |
+| allowSpeech          | **@deprecated** 是否开启语音输入。改用 `footer` 插槽 + `VoiceButton` | `boolean`                                               | `false`           |
 | allowFiles           | 是否允许文件上传         | `boolean`                                               | `true`            |
 | clearable            | 是否可清空               | `boolean`                                               | `false`           |
 | disabled             | 是否禁用                 | `boolean`                                               | `false`           |
@@ -207,17 +211,17 @@ const filteredSuggestions = computed(() => {
 | loading              | 是否加载中               | `boolean`                                               | `false`           |
 | mode                 | 输入框类型               | `'single' \| 'multiple'`                                | `'single'`        |
 | maxLength            | 最大输入长度             | `number`                                                | `Infinity`        |
-| buttonGroup          | 按钮组配置               | `ButtonGroupConfig`                                     | `{}`              |
+| buttonGroup          | **@deprecated** 按钮组配置。改用 `defaultActions` 和插槽 | `ButtonGroupConfig`                                     | `{}`              |
 | placeholder          | 输入框占位文本           | `string`                                                | `'请输入内容...'` |
-| speech               | 语音识别配置             | `'boolean' \| 'SpeechConfig'`                           | 无                |
+| speech               | **@deprecated** 语音识别配置。改用 `VoiceButton` 的 `speechConfig` | `'boolean' \| 'SpeechConfig'`                           | 无                |
 | showWordLimit        | 是否显示字数统计         | `boolean`                                               | `false`           |
 | stopText             | 停止按钮文字             | `string`                                                | `仅显示图标`      |
 | submitType           | 提交方式                 | `'enter' \| 'ctrl+enter' \| 'shift+enter'`              | `'enter'`         |
-| theme                | 主题样式                 | `'light' \| 'dark'`                                     | `'light'`         |
-| suggestions          | 输入建议列表             | `(string \| SuggestionItem)[]`                          | `[]`              |
-| suggestionPopupWidth | 输入建议弹窗宽度         | `'number' \| 'string'`                                                 | `400px`             |
-| activeSuggestionKeys | 激活建议项的按键         | `string[]`                                              | `['Enter', 'Tab']` |
-| templateData         | 模板数据，用于初始化或 v-model 更新 | `UserItem[]`                                            | `[]`              |
+| theme                | **@deprecated** 主题样式。改用 `ThemeProvider` 包裹 | `'light' \| 'dark'`                                     | `'light'`         |
+| suggestions          | **@deprecated** 输入建议列表。改用 `extensions: [Suggestion.configure()]` | `(string \| SuggestionItem)[]`                          | `[]`              |
+| suggestionPopupWidth | **@deprecated** 输入建议弹窗宽度。改用 `Suggestion` 扩展配置 | `'number' \| 'string'`                                                 | `400px`             |
+| activeSuggestionKeys | **@deprecated** 激活建议项的按键。改用 `Suggestion` 扩展配置 | `string[]`                                              | `['Enter', 'Tab']` |
+| templateData         | **@deprecated** 模板数据。改用 `extensions: [Template.configure()]` | `UserItem[]`                                            | `[]`              |
 
 
 ## Slots
@@ -227,12 +231,12 @@ const filteredSuggestions = computed(() => {
 | ----------------- | -------------------------------- | ----------------------- |
 | `header`          | 头部插槽，位于输入框上方         | 无                      |
 | `prefix`          | 前缀插槽，位于输入框左侧         | 无                      |
-| `actions`         | 后缀插槽，位于输入框右侧         | 单行模式下的操作按钮    |
+| `actions`         | **@deprecated** 后缀插槽。改用 `actions-inline` | 单行模式下的操作按钮    |
 | `content`         | 内容插槽                         | 输入内容区域            |
-| `footer-left`     | 底部左侧插槽，保留字数限制       | 字数限制                |
+| `footer-left`     | **@deprecated** 底部左侧插槽。改用 `footer` | 字数限制                |
 | `footer-right`    | 底部右侧插槽，保留操作按钮       | 多行模式下的操作按钮    |
 | `footer`          | 底部完全自定义插槽(向后兼容)     | 无 (会覆盖其他底部元素) |
-| `decorativeContent` | 装饰性内容插槽，启用后禁止输入 | 无                      |
+| `decorativeContent` | **@deprecated** 装饰性内容插槽。改用 `disabled` + `content` 插槽 | 无                      |
 
 ## Events
 
@@ -240,17 +244,18 @@ const filteredSuggestions = computed(() => {
 | ----------------- | -------------------------- | ---------------------- |
 | update:modelValue | 输入值变化时触发(v-model)  | `(value: string)`      |
 | blur              | 输入框失去焦点时触发       | `(event: FocusEvent)`  |
-| change            | 输入值改变且失焦时触发     | `(value: string)`      |
+| change            | **@deprecated** 输入值改变且失焦时触发。改用 `blur` 事件 | `(value: string)`      |
 | focus             | 输入框获得焦点时触发       | `(event: FocusEvent)`  |
 | input             | 输入值改变时触发           | `(value: string)`      |
 | submit            | 提交内容时触发             | `(value: string)`      |
 | clear             | 清空内容时触发             | `()`                   |
 | cancel            | 取消发送（加载状态）时触发 | `()`                   |
-| speech-start      | 语音识别开始时触发         | `()`                   |
-| speech-end        | 语音识别结束时触发         | `(transcript: string)` |
-| speech-interim    | 语音识别中间结果时触发     | `(transcript: string)` |
-| speech-error      | 语音识别错误时触发         | `(error: Error)`       |
-| suggestion-select | 选择输入建议时触发         | `(value: string)`      |
+| files-selected    | **@deprecated** 文件选择时触发。改用 `UploadButton` 的 `select` | `(files: File[])`      |
+| speech-start      | **@deprecated** 语音识别开始时触发。改用 `VoiceButton` 的 `speech-start` | `()`                   |
+| speech-end        | **@deprecated** 语音识别结束时触发。改用 `VoiceButton` 的 `speech-end` | `(transcript: string)` |
+| speech-interim    | **@deprecated** 语音识别中间结果时触发。改用 `VoiceButton` 的 `speech-interim` | `(transcript: string)` |
+| speech-error      | **@deprecated** 语音识别错误时触发。改用 `VoiceButton` 的 `speech-error` | `(error: Error)`       |
+| suggestion-select | **@deprecated** 选择输入建议时触发。改用 `Suggestion` 扩展的 `onSelect` | `(value: string)`      |
 
 ## Methods
 
@@ -260,9 +265,9 @@ const filteredSuggestions = computed(() => {
 | blur                       | 使输入框失去焦点         | -    | `void`          |
 | clear                      | 清空输入内容             | -    | `void`          |
 | submit                     | 手动触发提交事件         | -    | `void`          |
-| startSpeech                | 开始语音识别             | -    | `Promise<void>` |
-| stopSpeech                 | 停止语音识别             | -    | `void`          |
-| activateTemplateFirstField | 激活模板的第一个输入字段 | -    | `void`          |
+| startSpeech                | **@deprecated** 开始语音识别。改用 `VoiceButton.start()` | -    | `Promise<void>` |
+| stopSpeech                 | **@deprecated** 停止语音识别。改用 `VoiceButton.stop()` | -    | `void`          |
+| activateTemplateFirstField | **@deprecated** 激活模板的第一个输入字段。模板扩展自动处理，无需调用 | -    | `void`          |
 
 ## Types
 ```typescript
