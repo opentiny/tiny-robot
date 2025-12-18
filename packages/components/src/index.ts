@@ -13,6 +13,7 @@ import History from './history'
 import IconButton from './icon-button'
 import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
+import SenderCompat from './sender-compat'
 import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
 import SuggestionPopover from './suggestion-popover'
 import ThemeProvider from './theme-provider'
@@ -95,6 +96,7 @@ const components = [
   Prompt,
   Prompts,
   Sender,
+  SenderCompat,
   SuggestionPills,
   SuggestionPillButton,
   SuggestionPopover,
@@ -152,6 +154,8 @@ export {
   Prompts as TrPrompts,
   Sender,
   Sender as TrSender,
+  SenderCompat,
+  SenderCompat as TrSenderCompat,
   SuggestionPillButton,
   SuggestionPillButton as TrSuggestionPillButton,
   SuggestionPills,
