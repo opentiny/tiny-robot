@@ -139,7 +139,7 @@ const handleClick = () => {
 
   const toolCallId = toolCall.value?.id
   if (toolCallId) {
-    handleStateChange?.('toolCall', {
+    handleStateChange('toolCall', {
       ...props.message.state?.toolCall,
       [toolCallId]: { ...toolCallState.value, open: open.value },
     })

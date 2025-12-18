@@ -44,7 +44,7 @@ import {
   BubbleList,
   BubbleMarkdownRenderer,
   BubbleProvider,
-  type BubbleContent,
+  type BubbleMessage,
   type BubbleRoleConfig,
 } from '@opentiny/tiny-robot'
 import { computed, h, reactive, ref, watchEffect } from 'vue'
@@ -86,7 +86,7 @@ const enableHtmlInMarkdown = computed({
 })
 
 const messages = computed(() => {
-  const msgs: BubbleContent[] = [
+  const msgs: BubbleMessage[] = [
     { role: 'system', content: '你是一个数学老师，擅长计算和解答数学问题。' },
     {
       role: 'user',

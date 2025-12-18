@@ -80,7 +80,7 @@ const shouldSplit = computed(() => {
             <BubbleContentWrapper
               :message="messages[0]"
               :content-index="index"
-              @update:state="emit('update:state', { ...$event, messageIndex: 0, contentIndex: index })"
+              @update:state="emit('update:state', { ...$event, messageIndex: 0 })"
             ></BubbleContentWrapper>
             <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
@@ -94,9 +94,7 @@ const shouldSplit = computed(() => {
                   :key="`content-${contentIndex}`"
                   :message="message"
                   :content-index="contentIndex"
-                  @update:state="
-                    emit('update:state', { ...$event, messageIndex: msgIndex, contentIndex: contentIndex })
-                  "
+                  @update:state="emit('update:state', { ...$event, messageIndex: msgIndex })"
                 ></BubbleContentWrapper>
               </template>
               <template v-else>

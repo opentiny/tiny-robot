@@ -38,6 +38,16 @@ export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('b
 export const BUBBLE_STATE_CHANGE_FN_KEY: InjectionKey<(key: string, value: unknown) => void> =
   Symbol('bubble-state-change-fn')
 
+/**
+ * 气泡渲染器匹配优先级常量
+ *
+ * 用于定义不同类型渲染器的匹配优先级，数值越小优先级越高
+ *
+ * - LOADING: 通常基于 message.loading 判断。比如: `{ loading: true }`
+ * - NORMAL: 普通渲染器的默认优先级
+ * - CONTENT: 通常基于 message.content 判断。比如: `{ content: [{ type: 'image_url', image_url: 'xxx' }] }`
+ * - ROLE: 通常基于 message.role 判断。比如: `{ role: 'tool' }`
+ */
 export const BubbleRendererMatchPriority = {
   LOADING: -1,
   NORMAL: 0,

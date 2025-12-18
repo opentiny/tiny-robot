@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
-import { computed, ref, watchEffect } from 'vue'
-import { useBubbleContentRenderer, useBubbleStateChangeFn } from '../composables'
+import { ref, watchEffect } from 'vue'
+import { useBubbleContentRenderer, useBubbleStateChangeFn, useOmitMessageFields } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 
 const props = defineProps<
@@ -14,10 +14,7 @@ const props = defineProps<
   >
 >()
 
-const restMessage = computed(() => {
-  const { reasoning_content: _, ...rest } = props.message
-  return rest
-})
+const { restMessage, restProps } = useOmitMessageFields(props, ['reasoning_content'])
 
 const renderer = useBubbleContentRenderer(restMessage, props.contentIndex)
 
@@ -31,7 +28,7 @@ const handleStateChange = useBubbleStateChangeFn()
 
 const handleClick = () => {
   open.value = !open.value
-  handleStateChange?.('open', open.value)
+  handleStateChange('open', open.value)
 }
 </script>
 
@@ -52,7 +49,7 @@ const handleClick = () => {
       <p class="detail">{{ props.message.reasoning_content }}</p>
     </div>
   </div>
-  <component :is="renderer" :message="restMessage" :content-index="props.contentIndex" />
+  <component :is="renderer" v-bind="restProps" />
 </template>
 
 <style lang="less" scoped>

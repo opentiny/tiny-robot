@@ -88,8 +88,8 @@ type BubbleSlotProps = { messages: BubbleMessage[]; role?: string }
 export interface BubbleSlots {
   prefix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
   suffix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
-  'content-footer'?: (slotProps: BubbleSlotProps & { contentIndex?: number }) => VNode | VNode[]
   after?: (slotProps: BubbleSlotProps) => VNode | VNode[]
+  'content-footer'?: (slotProps: BubbleSlotProps & { contentIndex?: number }) => VNode | VNode[]
 }
 
 /**
@@ -147,6 +147,6 @@ type BubbleListSlotProps = BubbleSlotProps & {
 export interface BubbleListSlots {
   prefix?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
   suffix?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
-  'content-footer'?: (slotProps: BubbleListSlotProps & { contentIndex?: number }) => VNode | VNode[]
   after?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
+  'content-footer'?: (slotProps: BubbleListSlotProps & { contentIndex?: number }) => VNode | VNode[]
 }

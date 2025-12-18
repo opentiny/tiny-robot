@@ -6,5 +6,7 @@ export function setupBubbleStateChangeFn(fn: (key: string, value: unknown) => vo
 }
 
 export function useBubbleStateChangeFn() {
-  return inject(BUBBLE_STATE_CHANGE_FN_KEY, undefined)
+  return inject(BUBBLE_STATE_CHANGE_FN_KEY, (key: string, _value: unknown) => {
+    console.warn(`[Bubble] State change function not found for key: ${key}`)
+  })
 }
