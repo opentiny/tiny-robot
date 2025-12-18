@@ -209,7 +209,7 @@ export function useChatInputCore(props: ChatInputProps, emit: ChatInputEmits): U
   // ========================================
 
   // 自动高度调整
-  useAutoSize(currentMode, editorRef)
+  useAutoSize(currentMode, editorRef, props.autoSize)
 
   // 监听编辑器内容变化，检查是否需要切换模式
   watch(

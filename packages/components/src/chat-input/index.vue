@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
   size: 'normal',
   submitType: 'enter',
   extensions: () => [],
-  autoSize: () => ({ minRows: 1, maxRows: 3 }),
+  autoSize: () => ({ minRows: 1, maxRows: 5 }),
 })
 
 const emit = defineEmits<ChatInputEmits>()

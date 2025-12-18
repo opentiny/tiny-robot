@@ -256,7 +256,7 @@ ChatInput 提供了多个插槽位置，方便扩展功能：
 | disabled      | 是否禁用                                                     | `boolean`                                | `false`                      |
 | loading       | 是否加载中                                                   | `boolean`                                | `false`                      |
 | autofocus     | 自动获取焦点                                                 | `boolean`                                | `false`                      |
-| autoSize      | 自动调整高度，仅在 mode === 'multiple' 时有效              | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 3 }` |
+| autoSize      | 自动调整高度，仅在 mode === 'multiple' 时有效              | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 5 }` |
 | clearable     | 是否可清空                                                   | `boolean`                                | `false`                      |
 | maxLength     | 最大输入长度                                                 | `number`                                 | `Infinity`                   |
 | showWordLimit | 是否显示字数统计                                             | `boolean`                                | `false`                      |
