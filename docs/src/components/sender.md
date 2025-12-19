@@ -5,7 +5,18 @@ outline: [1, 3]
 # Sender 消息输入框
 
 :::warning 迁移提示
-Sender 组件正在迁移到 ChatInput。过渡期（1个月），建议使用 `TrSenderCompat` 快速迁移，或直接使用 `TrChatInput` 获得更好的功能和性能。详见 [兼容组件用法](./sender-compact.md)。
+Sender 组件正在进行架构升级，迁移分为两个阶段：
+
+**第一阶段（当前）：兼容层过渡**
+- 使用 `TrSenderCompat` 进行快速迁移，保持现有代码最小改动
+- 新项目建议直接使用 `TrChatInput`，获得更好的功能和性能
+- Sender 部分 API 已标记为 `@deprecated`，建议尽快迁移
+
+详见 [兼容组件用法](./sender-compat.md)。
+
+**第二阶段：完全整合**
+- Sender 将完全切换至 ChatInput 实现，移除旧代码
+- ChatInput 组件及相关文档将被移除，最终仅保留 Sender 组件
 :::
 
 Sender 是一个功能丰富的输入组件，支持文本输入、语音识别、文件上传、模板填充等多种输入方式。适用于聊天界面、评论输入、表单填写等场景。
