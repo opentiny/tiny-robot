@@ -81,10 +81,6 @@ defineExpose(expose)
   box-shadow: var(--tr-chat-input-box-shadow);
   transition: box-shadow var(--tr-chat-input-transition-duration);
 
-  &:focus-within {
-    box-shadow: 0 4px 16px 0px rgba(20, 118, 255, 0.15);
-  }
-
   // 禁用状态样式
   &.is-disabled {
     background-color: var(--tr-chat-input-bg-color-disabled);

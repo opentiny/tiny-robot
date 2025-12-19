@@ -177,13 +177,14 @@ watch(
 
     &.highlighted {
       background-color: var(--tr-suggestion-hover-bg-color);
-      border-radius: 8px;
+      border-radius: 4px;
     }
   }
 
   &__icon {
     font-size: var(--tr-suggestion-item-icon-size);
     text-align: center;
+    color: var(--tr-suggestion-text-color);
   }
 
   &__text {
@@ -191,6 +192,7 @@ watch(
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--tr-suggestion-text-color);
 
     &--match {
       font-weight: 600;
