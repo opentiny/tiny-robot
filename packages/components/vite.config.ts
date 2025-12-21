@@ -50,7 +50,8 @@ export default defineConfig({
         '@opentiny/tiny-robot-svgs',
         '@tiptap/core',
         '@tiptap/vue-3',
-        '@tiptap/pm',
+        // 使用正则匹配 @tiptap/pm 及其子模块（state/view/model等）
+        /^@tiptap\/pm(\/.*)?$/,
         '@tiptap/extension-document',
         '@tiptap/extension-paragraph',
         '@tiptap/extension-text',
