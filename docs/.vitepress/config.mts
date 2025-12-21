@@ -3,6 +3,8 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
+import { createSidebarItems } from './theme/utils/sidebar-badge-helper'
+import { versionBadgePlugin } from './theme/utils/version-badge-plugin'
 
 const { version } = pkg
 
@@ -32,7 +34,7 @@ const sharedSidebarItems = [
   {
     text: '组件',
     base: '/components/',
-    items: [
+    items: createSidebarItems([
       { text: 'Container 容器', link: 'container' },
       { text: 'Bubble 气泡', link: 'bubble' },
       { text: 'Sender 消息输入框', link: 'sender' },
@@ -48,7 +50,7 @@ const sharedSidebarItems = [
       { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
       { text: 'ChatInput 编辑器', link: 'chat-input' },
-    ],
+    ]),
   },
   {
     text: '工具',
@@ -100,6 +102,8 @@ export default defineConfig({
           return code.replace(/import\.meta\.env\.BASE_URL/g, `'${process.env.VITEPRESS_BASE || '/'}'`)
         },
       })
+      // 添加版本标记插件
+      md.use(versionBadgePlugin)
     },
   },
   themeConfig: {
