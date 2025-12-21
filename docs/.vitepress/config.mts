@@ -37,7 +37,7 @@ const sharedSidebarItems = [
     items: createSidebarItems([
       { text: 'Container 容器', link: 'container' },
       { text: 'Bubble 气泡', link: 'bubble' },
-      { text: 'Sender 消息输入框', link: 'sender' },
+      { text: 'Sender 消息输入框', badge: '0.4.0', link: 'sender' },
       { text: 'Prompts 提示集', link: 'prompts' },
       { text: 'Welcome 欢迎', link: 'welcome' },
       { text: 'Feedback 气泡反馈', link: 'feedback' },
@@ -49,7 +49,6 @@ const sharedSidebarItems = [
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
-      { text: 'ChatInput 编辑器', link: 'chat-input' },
     ]),
   },
   {

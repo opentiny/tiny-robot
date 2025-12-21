@@ -1,238 +1,673 @@
-# TrSenderCompat - 过渡期兼容组件
+# SenderCompat - 快速迁移组件
 
-## 概述
+:::info 组件定位
+`SenderCompat` 是为 v0.3.0 用户提供的**过渡期兼容组件**。
 
-`TrSenderCompat` 是基于 `ChatInput` 实现的 `TrSender` 兼容层，用于在迁移期间提供平滑的过渡。
+它内部基于 ChatInput 实现，但保留了 v0.3.0 的大部分 API，让你：
+- ✅ 快速升级到 v0.4.0 的底层实现
+- ✅ 保持现有代码最小改动（只需改导入语句）
+- ✅ 为将来完全升级到 v0.4.0 Sender 做准备
 
-## 快速迁移
+**推荐迁移路径：** v0.3.0 Sender → SenderCompat (快速) → v0.4.0 Sender (最终)
+:::
 
-只需更新导入语句即可完成迁移：
+## 快速开始
+
+### 从 v0.3.0 迁移到 SenderCompat
+
+只需修改导入语句即可：
 
 ```typescript
-// 旧代码
+// ❌ 旧代码 (v0.3.0)
 import { TrSender } from '@opentiny/tiny-robot'
 
-// 新代码
+// ✅ 新代码 (使用 SenderCompat)
 import { TrSenderCompat as TrSender } from '@opentiny/tiny-robot'
 ```
 
+就这么简单！你的大部分代码都可以继续运行。
+
+---
+
+## API 兼容性说明
+
+### 完全支持的 Props
+
+以下属性在 SenderCompat 中**完全兼容** v0.3.0，无需任何修改：
+
+| 属性名 | 说明 | 类型 | 默认值 |
+|-------|------|------|--------|
+| modelValue | 绑定值(v-model) | `string` | `''` |
+| defaultValue | 默认值(非响应式) | `string` | `''` |
+| placeholder | 输入框占位文本 | `string` | `'请输入内容...'` |
+| mode | 输入模式 | `'single' \| 'multiple'` | `'single'` |
+| disabled | 是否禁用 | `boolean` | `false` |
+| loading | 是否加载中 | `boolean` | `false` |
+| autofocus | 自动获取焦点 | `boolean` | `false` |
+| autoSize | 自动调整高度 | `boolean \| { minRows: number, maxRows: number }` | `false` |
+| clearable | 是否可清空 | `boolean` | `false` |
+| maxLength | 最大输入长度 | `number` | `Infinity` |
+| showWordLimit | 是否显示字数统计 | `boolean` | `false` |
+| submitType | 提交方式 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` |
+| stopText | 停止按钮文字 | `string` | `'停止响应'` |
+
+### 通过适配层支持的 Props
+
+以下属性通过适配层支持，行为基本一致，但建议迁移到新 API：
+
+| 属性名 | 说明 | 类型 | 默认值 | 适配说明 |
+|-------|------|------|--------|----------|
+| allowSpeech | 是否开启语音输入 | `boolean` | `false` | ⚠️ 通过适配层支持 |
+| speech | 语音识别配置 | `boolean \| SpeechConfig` | - | ⚠️ 通过适配层支持 |
+| allowFiles | 是否允许文件上传 | `boolean` | `true` | ⚠️ 通过适配层支持 |
+| buttonGroup | 按钮组配置 | `ButtonGroupConfig` | `{}` | ⚠️ 通过适配层支持 |
+| theme | 主题样式 | `'light' \| 'dark'` | `'light'` | ⚠️ 通过适配层支持 |
+| suggestions | 输入建议列表 | `array` | `[]` | ⚠️ 通过适配层支持 |
+| suggestionPopupWidth | 建议弹窗宽度 | `number \| string` | `400px` | ⚠️ 通过适配层支持 |
+| activeSuggestionKeys | 激活建议项的按键 | `string[]` | `['Enter', 'Tab']` | ⚠️ 通过适配层支持 |
+| templateData | 模板数据 | `array` | `[]` | ⚠️ 通过适配层支持，建议改用 `v-model:templateData` |
+
+### 完全支持的 Slots
+
+| 插槽名称 | 描述 |
+|---------|------|
+| `header` | 头部插槽，位于输入框上方 |
+| `prefix` | 前缀插槽，位于输入框左侧 |
+| `footer` | 底部自定义区域 |
+| `footer-right` | 底部右侧区域 |
+
+### 完全支持的 Events
+
+| 事件名 | 说明 | 回调参数 |
+|-------|------|----------|
+| update:modelValue | 内容更新 | `(value: string)` |
+| submit | 提交内容 | `(value: string)` |
+| clear | 清空内容 | `()` |
+| focus | 获得焦点 | `(event: FocusEvent)` |
+| blur | 失去焦点 | `(event: FocusEvent)` |
+| input | 输入变化 | `(value: string)` |
+
+### 通过适配层支持的 Events
+
+| 事件名 | 说明 | 回调参数 |
+|-------|------|----------|
+| change | 输入值改变且失焦时触发 | `(value: string)` |
+| files-selected | 文件选择时触发 | `(files: File[])` |
+| speech-start | 语音识别开始时触发 | `()` |
+| speech-end | 语音识别结束时触发 | `(transcript: string)` |
+| speech-interim | 语音识别中间结果时触发 | `(transcript: string)` |
+| speech-error | 语音识别错误时触发 | `(error: Error)` |
+| suggestion-select | 选择输入建议时触发 | `(value: string)` |
+
+### 完全支持的 Methods
+
+| 方法名 | 说明 | 参数 |
+|-------|------|------|
+| focus | 使输入框获取焦点 | - |
+| blur | 使输入框失去焦点 | - |
+| clear | 清空输入内容 | - |
+| submit | 手动触发提交 | - |
+
+### 通过适配层支持的 Methods
+
+| 方法名 | 说明 | 参数 |
+|-------|------|------|
+| startSpeech | 开始语音识别 | - |
+| stopSpeech | 停止语音识别 | - |
+| activateTemplateFirstField | 激活模板的第一个输入字段 | - |
+
+---
+
 ## 破坏性变更
 
-### 1. 紧凑模式实现方式
+虽然 SenderCompat 兼容 v0.3.0 的大部分 API，但仍有以下破坏性变更需要注意：
 
-**变更原因**：统一组件尺寸控制方式，使用标准 prop 替代 CSS 类
+### 1. 紧凑模式实现方式 ⚠️
 
+**v0.3.0 用法：**
 ```vue
-<!-- 旧用法 -->
 <tr-sender class="tr-sender-compact" mode="single" />
+```
 
-<!-- 新用法 -->
+**SenderCompat 用法：**
+```vue
+<tr-sender-compat size="small" mode="single" />
+<!-- 或使用别名 -->
 <tr-sender size="small" mode="single" />
 ```
 
-### 2. 插槽名称变更
+**变更原因：** 统一组件尺寸控制方式，使用标准 prop 替代 CSS 类。
 
-**变更原因**：简化命名，语义更清晰
+---
 
+### 2. 装饰性内容插槽 ⚠️
+
+**v0.3.0 用法：**
 ```vue
-<!-- 旧用法 -->
 <tr-sender :allow-speech="false">
   <template #decorativeContent>
     缴费服务正在进行中，<a href="#">点击前往</a>
   </template>
 </tr-sender>
+```
 
-<!-- 新用法 -->
-<tr-sender :disabled="true">
+**SenderCompat 用法：**
+```vue
+<tr-sender-compat :disabled="true">
   <template #content>
     缴费服务正在进行中，<a href="#">点击前往</a>
+  </template>
+</tr-sender-compat>
+```
+
+**变更原因：** 简化命名，语义更清晰（禁用状态 + 自定义内容）。
+
+---
+
+### 3. 模板数据设置方法 ⚠️
+
+**v0.3.0 用法：**
+```typescript
+// 方式1：直接修改 prop
+templateData.value = data
+senderRef.value?.activateTemplateFirstField()
+
+// 方式2：使用 v-model
+<tr-sender v-model:template-data="templateData" />
+```
+
+**SenderCompat 用法：**
+```typescript
+// 推荐：使用新增的便捷方法
+senderRef.value?.setTemplateData(data)
+```
+
+**变更原因：** 简化操作流程，一次调用完成数据设置和字段激活。
+
+---
+
+### 4. 插槽名称变更 ⚠️
+
+| v0.3.0 插槽 | SenderCompat 替代方案 | 说明 |
+|------------|----------------------|------|
+| `#actions` | `#actions-inline` | 单行模式操作按钮区域 |
+| `#footer-left` | `#footer` | 底部左侧区域 |
+| `#decorativeContent` | `#content` (需配合 `disabled`) | 自定义编辑器内容 |
+
+**示例：**
+
+```vue
+<!-- ❌ v0.3.0 -->
+<tr-sender>
+  <template #actions>
+    <custom-button />
+  </template>
+</tr-sender>
+
+<!-- ✅ SenderCompat -->
+<tr-sender-compat>
+  <template #actions-inline>
+    <custom-button />
+  </template>
+</tr-sender-compat>
+```
+
+---
+
+### 5. 移除不必要的 key 绑定 ⚠️
+
+**v0.3.0 用法：**
+```vue
+<!-- 模式切换时需要强制重新渲染 -->
+<tr-sender :key="mode" :mode="mode" />
+```
+
+**SenderCompat 用法：**
+```vue
+<!-- 内部已优化，无需 key -->
+<tr-sender-compat :mode="mode" />
+```
+
+**变更原因：** 内部优化了模式切换逻辑，无需强制重新渲染。
+
+---
+
+## 完整迁移方案 {#完整迁移方案}
+
+如果你准备好完全升级到 v0.4.0 Sender，这里是详细的迁移方案。
+
+### 迁移路径对比
+
+```
+方案 A：快速迁移（当前）
+v0.3.0 Sender → SenderCompat (改导入，小调整)
+
+方案 B：完全升级（目标）
+SenderCompat → v0.4.0 Sender (使用新 API)
+```
+
+---
+
+### 1. 语音输入迁移 {#语音输入迁移}
+
+**SenderCompat（当前）：**
+```vue
+<template>
+  <tr-sender-compat 
+    :allow-speech="true"
+    :speech="{ lang: 'zh-CN', continuous: true }"
+    @speech-start="onStart"
+    @speech-end="onEnd"
+    @speech-error="onError"
+  />
+</template>
+
+<script setup>
+const onStart = () => { console.log('开始录音') }
+const onEnd = (transcript) => { console.log('识别结果:', transcript) }
+const onError = (error) => { console.error('识别错误:', error) }
+</script>
+```
+
+**v0.4.0 Sender（目标）：**
+```vue
+<template>
+  <tr-sender>
+    <template #footer>
+      <voice-button
+        :speech-config="{ lang: 'zh-CN', continuous: true }"
+        @speech-start="onStart"
+        @speech-end="onEnd"
+        @speech-error="onError"
+      />
+    </template>
+  </tr-sender>
+</template>
+
+<script setup>
+import { VoiceButton } from '@opentiny/tiny-robot'
+
+const onStart = () => { console.log('开始录音') }
+const onEnd = (transcript) => { console.log('识别结果:', transcript) }
+const onError = (error) => { console.error('识别错误:', error) }
+</script>
+```
+
+**变更说明：**
+- ❌ 移除 `allow-speech` prop
+- ❌ 移除 `speech` prop
+- ❌ 移除 `@speech-*` 事件
+- ✅ 导入并使用独立的 `VoiceButton` 组件
+- ✅ 通过 `footer` 插槽添加
+- ✅ 使用 `speech-config` prop 替代 `speech`
+- ✅ 事件绑定在 `VoiceButton` 上
+
+---
+
+### 2. 文件上传迁移 {#文件上传迁移}
+
+**SenderCompat（当前）：**
+```vue
+<template>
+  <tr-sender-compat 
+    :allow-files="true"
+    :button-group="{ file: { accept: 'image/*', multiple: true } }"
+    @files-selected="onFilesSelected"
+  />
+</template>
+
+<script setup>
+const onFilesSelected = (files) => {
+  console.log('选择的文件:', files)
+}
+</script>
+```
+
+**v0.4.0 Sender（目标）：**
+```vue
+<template>
+  <tr-sender>
+    <template #footer>
+      <upload-button
+        accept="image/*"
+        :multiple="true"
+        @select="onFilesSelected"
+      />
+    </template>
+  </tr-sender>
+</template>
+
+<script setup>
+import { UploadButton } from '@opentiny/tiny-robot'
+
+const onFilesSelected = (files) => {
+  console.log('选择的文件:', files)
+}
+</script>
+```
+
+**变更说明：**
+- ❌ 移除 `allow-files` prop
+- ❌ 移除 `button-group.file` 配置
+- ❌ 移除 `@files-selected` 事件
+- ✅ 导入并使用独立的 `UploadButton` 组件
+- ✅ 配置项扁平化（accept、multiple 作为独立 prop）
+- ✅ 使用 `@select` 事件替代 `@files-selected`
+
+---
+
+### 3. 按钮配置迁移 {#按钮配置迁移}
+
+**SenderCompat（当前）：**
+```vue
+<tr-sender-compat 
+  :button-group="{
+    submit: { disabled: true, tooltip: '请先输入内容' },
+    voice: { icon: customIcon }
+  }"
+/>
+```
+
+**v0.4.0 Sender（目标）：**
+```vue
+<tr-sender 
+  :default-actions="{
+    submit: { disabled: true, tooltip: '请先输入内容' }
+  }"
+>
+  <template #footer>
+    <voice-button :icon="customIcon" />
   </template>
 </tr-sender>
 ```
 
-### 3. 模板数据设置方法
+**变更说明：**
+- ❌ 移除 `button-group` prop
+- ✅ 使用 `default-actions` 配置默认按钮（clear、submit）
+- ✅ 增强按钮（voice、upload）通过插槽添加
 
-**变更原因**：简化操作流程，一次调用完成数据设置和字段激活
+---
 
-```typescript
-// 旧方式
-templateData.value = data
-senderRef.value?.activateTemplateFirstField()
+### 4. 智能联想迁移 {#联想迁移}
 
-// 新方式
-senderRef.value?.setTemplateData(data)
-```
-
-### 4. 移除不必要的 key 绑定
-
-**变更原因**：内部已优化模式切换逻辑，无需强制重新渲染
-
+**SenderCompat（当前）：**
 ```vue
-<!-- 旧代码 -->
-<tr-sender :key="mode" :mode="mode" />
+<template>
+  <tr-sender-compat 
+    v-model="inputText"
+    :suggestions="filteredSuggestions"
+    :suggestion-popup-width="500"
+    :active-suggestion-keys="['Enter']"
+    @suggestion-select="onSelect"
+  />
+</template>
 
-<!-- 新代码 -->
-<tr-sender :mode="mode" />
-```
-
-## API 兼容性
-
-### 完全支持的 Props
-
-| Props | 类型 | 默认值 | 说明 |
-|-------|------|--------|------|
-| `modelValue` | `string` | `''` | 双向绑定值 |
-| `placeholder` | `string` | `'请输入...'` | 占位符 |
-| `disabled` | `boolean` | `false` | 禁用状态 |
-| `loading` | `boolean` | `false` | 加载状态 |
-| `mode` | `'single' \| 'multiple'` | `'single'` | 输入模式 |
-| `submitType` | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'ctrlEnter'` | 提交触发方式 |
-| `maxLength` | `number` | - | 最大字符数 |
-| `showWordLimit` | `boolean` | `false` | 显示字数限制 |
-| `autoSize` | `boolean \| object` | `false` | 自动调整高度 |
-| `clearable` | `boolean` | `false` | 显示清空按钮 |
-| `autofocus` | `boolean` | `false` | 自动聚焦 |
-| `stopText` | `string` | `'停止'` | 停止按钮文字 |
-| `size` | `'default' \| 'small'` | `'default'` | 组件尺寸 ⚠️ 新增 |
-
-### 适配层处理的 Props
-
-以下 Props 在 `TrSenderCompat` 中通过适配层支持，迁移到 `TrChatInput` 时需要调整：
-
-| Props | 迁移方式 |
-|-------|---------|
-| `allowSpeech` | 改用 `footer` 插槽 + `VoiceButton` |
-| `speech` | 改用 `VoiceButton` 的 `speechConfig` |
-| `allowFiles` | 改用 `footer` 插槽 + `UploadButton` |
-| `buttonGroup` | 拆分为 `defaultActions` 和插槽 |
-| `suggestions` | 改用 `extensions: [Suggestion.configure()]` |
-| `templateData` | 改用 `extensions: [Template.configure()]` |
-
-### 完全支持的 Events
-
-| Events | 说明 |
-|--------|------|
-| `update:modelValue` | 内容更新 |
-| `submit` | 提交 |
-| `clear` | 清空 |
-| `cancel` | 取消 |
-| `focus` | 聚焦 |
-| `blur` | 失焦 |
-
-### 适配层处理的 Events
-
-| Events | 迁移方式 |
-|--------|---------|
-| `speech-start` / `speech-end` / `speech-interim` / `speech-error` | 改用 `VoiceButton` 的对应事件 |
-| `suggestion-select` | 改用 `Suggestion` 扩展的 `onSelect` |
-| `files-selected` | 改用 `UploadButton` 的 `select` |
-
-### 完全支持的 Methods
-
-| Methods | 说明 |
-|---------|------|
-| `focus()` | 聚焦 |
-| `blur()` | 失焦 |
-| `clear()` | 清空 |
-| `submit()` | 提交 |
-| `setTemplateData(data)` | 设置模板数据并激活首个字段 ⚠️ 新增 |
-
-### 已废弃的功能
-
-| 废弃项 | 替代方案 |
-|--------|---------|
-| `#decorativeContent` 插槽 | 使用 `#content` 插槽 |
-| `class="tr-sender-compact"` | 使用 `size="small"` prop |
-| `activateTemplateFirstField()` 方法 | 使用 `setTemplateData()` 方法 |
-| `@change` 事件 | 使用 `@blur` 事件 |
-
-## 迁移示例
-
-### 语音输入
-
-```vue
-<!-- TrSenderCompat（过渡期） -->
-<TrSenderCompat 
-  :allow-speech="true"
-  :speech="{ lang: 'zh-CN', continuous: true }"
-  @speech-start="onStart"
-/>
-
-<!-- TrChatInput（最终目标） -->
-<TrChatInput>
-  <template #footer>
-    <VoiceButton
-      :speech-config="{ lang: 'zh-CN', continuous: true }"
-      @speech-start="onStart"
-    />
-  </template>
-</TrChatInput>
-```
-
-### 文件上传
-
-```vue
-<!-- TrSenderCompat（过渡期） -->
-<TrSenderCompat 
-  :allow-files="true"
-  :button-group="{ file: { accept: 'image/*', multiple: true } }"
-  @files-selected="onFiles"
-/>
-
-<!-- TrChatInput（最终目标） -->
-<TrChatInput>
-  <template #footer>
-    <UploadButton
-      accept="image/*"
-      :multiple="true"
-      @select="onFiles"
-    />
-  </template>
-</TrChatInput>
-```
-
-### 建议列表
-
-```vue
-<!-- TrSenderCompat（过渡期） -->
-<TrSenderCompat 
-  :suggestions="suggestions"
-  @suggestion-select="onSelect"
-/>
-
-<!-- TrChatInput（最终目标） -->
 <script setup>
+import { ref, computed } from 'vue'
+
+const inputText = ref('')
+const allSuggestions = [
+  { content: 'ECS-云服务器卡顿问题' },
+  { content: 'CDN-权限管理' }
+]
+
+const filteredSuggestions = computed(() => {
+  if (!inputText.value) return []
+  return allSuggestions.filter(s => 
+    s.content.includes(inputText.value)
+  )
+})
+
+const onSelect = (value) => {
+  console.log('选中:', value)
+}
+</script>
+```
+
+**v0.4.0 Sender（目标）：**
+```vue
+<template>
+  <tr-sender 
+    v-model="inputText"
+    :extensions="extensions"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
 import { ChatInput } from '@opentiny/tiny-robot'
+
+const inputText = ref('')
+const allSuggestions = [
+  { content: 'ECS-云服务器卡顿问题' },
+  { content: 'CDN-权限管理' }
+]
 
 const extensions = [
   ChatInput.Suggestion.configure({
     items: allSuggestions,
-    filterFn: (items, query) => items.filter(s => s.content.includes(query)),
-    onSelect: onSelect
+    filterFn: (items, query) => {
+      if (!query) return []
+      return items.filter(s => s.content.includes(query))
+    },
+    popupWidth: 500,
+    activeSuggestionKeys: ['Enter'],
+    onSelect: (item) => {
+      console.log('选中:', item.content)
+    }
   })
 ]
 </script>
-
-<TrChatInput :extensions="extensions" />
 ```
+
+**变更说明：**
+- ❌ 移除 `suggestions` prop
+- ❌ 移除 `suggestion-popup-width` prop
+- ❌ 移除 `active-suggestion-keys` prop
+- ❌ 移除 `@suggestion-select` 事件
+- ✅ 使用 `extensions` + `Suggestion.configure()` 配置
+- ✅ 过滤逻辑通过 `filterFn` 实现
+- ✅ 使用 `onSelect` 回调替代事件
+
+---
+
+### 5. 模板填充迁移 {#模板迁移}
+
+**SenderCompat（当前）：**
+```vue
+<template>
+  <tr-sender-compat 
+    ref="senderRef"
+    v-model:template-data="templateData"
+  />
+  <button @click="setTemplate">设置模板</button>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const senderRef = ref()
+const templateData = ref([])
+
+const setTemplate = () => {
+  // 方式1：使用便捷方法（推荐）
+  senderRef.value?.setTemplateData([
+    { type: 'text', content: '请帮我' },
+    { type: 'block', content: '翻译' }
+  ])
+  
+  // 方式2：使用 v-model（兼容）
+  // templateData.value = [...]
+  // senderRef.value?.activateTemplateFirstField()
+}
+</script>
+```
+
+**v0.4.0 Sender（目标）：**
+```vue
+<template>
+  <tr-sender :extensions="extensions" />
+  <button @click="setTemplate">设置模板</button>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { ChatInput } from '@opentiny/tiny-robot'
+
+const templateData = ref([])
+
+const extensions = [
+  ChatInput.Template.configure({
+    items: templateData  // 响应式 ref，自动同步
+  })
+]
+
+const setTemplate = () => {
+  templateData.value = [
+    { type: 'text', content: '请帮我' },
+    { type: 'block', content: '翻译' }
+  ]
+  // ✅ 自动激活第一个字段，无需手动调用
+}
+</script>
+```
+
+**变更说明：**
+- ❌ 移除 `v-model:template-data`
+- ❌ 移除 `activateTemplateFirstField()` 方法
+- ❌ 移除 `setTemplateData()` 便捷方法
+- ✅ 使用 `extensions` + `Template.configure()` 配置
+- ✅ 支持响应式 ref，数据变化自动更新
+- ✅ 自动激活第一个可编辑字段
+
+---
+
+### 6. 主题配置迁移 {#主题迁移}
+
+**SenderCompat（当前）：**
+```vue
+<tr-sender-compat theme="dark" />
+```
+
+**v0.4.0 Sender（目标）：**
+```vue
+<template>
+  <theme-provider theme="dark">
+    <tr-sender />
+  </theme-provider>
+</template>
+
+<script setup>
+import { ThemeProvider } from '@opentiny/tiny-robot'
+</script>
+```
+
+**变更说明：**
+- ❌ 移除 `theme` prop
+- ✅ 使用 `ThemeProvider` 包裹组件
+- ✅ 支持全局主题配置，所有子组件自动继承
+
+---
+
+## v0.3.0 完整 API 参考
+
+以下是 v0.3.0 Sender 的完整 API 文档，供 SenderCompat 用户参考。
+
+### Props 完整列表
+
+| 属性名 | 说明 | 类型 | 默认值 |
+|-------|------|------|--------|
+| autofocus | 自动获取焦点 | `boolean` | `false` |
+| autoSize | 自动调整高度 | `boolean \| { minRows: number, maxRows: number }` | `false` |
+| allowSpeech | 是否开启语音输入 | `boolean` | `false` |
+| allowFiles | 是否允许文件上传 | `boolean` | `true` |
+| clearable | 是否可清空 | `boolean` | `false` |
+| disabled | 是否禁用 | `boolean` | `false` |
+| modelValue | 绑定值(v-model) | `string` | `''` |
+| defaultValue | 默认值(非响应式) | `string` | `''` |
+| loading | 是否加载中 | `boolean` | `false` |
+| mode | 输入模式 | `'single' \| 'multiple'` | `'single'` |
+| maxLength | 最大输入长度 | `number` | `Infinity` |
+| buttonGroup | 按钮组配置 | `ButtonGroupConfig` | `{}` |
+| placeholder | 输入框占位文本 | `string` | `'请输入内容...'` |
+| speech | 语音识别配置 | `boolean \| SpeechConfig` | - |
+| showWordLimit | 是否显示字数统计 | `boolean` | `false` |
+| stopText | 停止按钮文字 | `string` | `'停止响应'` |
+| submitType | 提交方式 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` |
+| theme | 主题样式 | `'light' \| 'dark'` | `'light'` |
+| suggestions | 输入建议列表 | `(string \| SuggestionItem)[]` | `[]` |
+| suggestionPopupWidth | 输入建议弹窗宽度 | `number \| string` | `400px` |
+| activeSuggestionKeys | 激活建议项的按键 | `string[]` | `['Enter', 'Tab']` |
+| templateData | 模板数据 | `TemplateItem[]` | `[]` |
+
+### Slots 完整列表
+
+| 插槽名称 | 描述 | 默认内容 |
+|---------|------|----------|
+| `header` | 头部插槽，位于输入框上方 | 无 |
+| `prefix` | 前缀插槽，位于输入框左侧 | 无 |
+| `actions` | 后缀插槽，位于输入框右侧 | 单行模式下的操作按钮 |
+| `content` | 内容插槽 | 输入内容区域 |
+| `footer-left` | 底部左侧插槽 | 字数限制 |
+| `footer-right` | 底部右侧插槽，保留操作按钮 | 多行模式下的操作按钮 |
+| `footer` | 底部完全自定义插槽(向后兼容) | 无 (会覆盖其他底部元素) |
+| `decorativeContent` | 装饰性内容插槽 | 无 |
+
+### Events 完整列表
+
+| 事件名 | 说明 | 回调参数 |
+|-------|------|----------|
+| update:modelValue | 输入值变化时触发(v-model) | `(value: string)` |
+| blur | 输入框失去焦点时触发 | `(event: FocusEvent)` |
+| change | 输入值改变且失焦时触发 | `(value: string)` |
+| focus | 输入框获得焦点时触发 | `(event: FocusEvent)` |
+| input | 输入值改变时触发 | `(value: string)` |
+| submit | 提交内容时触发 | `(value: string)` |
+| clear | 清空内容时触发 | `()` |
+| cancel | 取消发送（加载状态）时触发 | `()` |
+| files-selected | 文件选择时触发 | `(files: File[])` |
+| speech-start | 语音识别开始时触发 | `()` |
+| speech-end | 语音识别结束时触发 | `(transcript: string)` |
+| speech-interim | 语音识别中间结果时触发 | `(transcript: string)` |
+| speech-error | 语音识别错误时触发 | `(error: Error)` |
+| suggestion-select | 选择输入建议时触发 | `(value: string)` |
+
+### Methods 完整列表
+
+| 方法名 | 说明 | 参数 | 返回值 |
+|-------|------|------|--------|
+| focus | 使输入框获取焦点 | - | `void` |
+| blur | 使输入框失去焦点 | - | `void` |
+| clear | 清空输入内容 | - | `void` |
+| submit | 手动触发提交事件 | - | `void` |
+| startSpeech | 开始语音识别 | - | `Promise<void>` |
+| stopSpeech | 停止语音识别 | - | `void` |
+| activateTemplateFirstField | 激活模板的第一个输入字段 | - | `void` |
+| setTemplateData (新增) | 设置模板数据并激活首个字段 | `(data: TemplateItem[])` | `void` |
+
+---
 
 ## 常见问题
 
 ### Q: 我应该使用哪个组件？
 
 **A**: 
-- **TrSender**（旧实现）：仅用于维护旧项目
-- **TrSenderCompat**（过渡期）：快速迁移，保持旧 API ✅ 推荐
-- **TrChatInput**（新实现）：新项目使用，功能更强大
+- **v0.3.0 Sender**：仅用于维护旧项目，不建议新使用
+- **SenderCompat**：✅ 推荐作为过渡，快速迁移保持 API 兼容
+- **v0.4.0 Sender**：新项目或准备完全重构时使用，功能更强大
 
-### Q: TrSenderCompat 的性能如何？
+### Q: SenderCompat 的性能如何？
 
-**A**: 性能损耗 < 10%，它只是一个薄适配层，核心逻辑完全使用 ChatInput。
+**A**: 性能损耗 < 10%，它只是一个薄适配层，核心逻辑完全使用 ChatInput，相比 v0.3.0 甚至有性能提升。
 
-### Q: 可以混合使用吗？
+### Q: SenderCompat 会一直维护吗？
 
-**A**: 可以。在过渡期，你可以在旧项目中继续使用 TrSender，在新项目中使用 TrChatInput。
+**A**: SenderCompat 是过渡期组件，会在未来版本（如 v1.0.0）中废弃。建议逐步迁移到 v0.4.0 Sender。
 
-### Q: 最终会发生什么？
+### Q: 可以混合使用 SenderCompat 和 v0.4.0 Sender 吗？
 
-**A**: TrSender 会完全替换为 ChatInput 实现，API 会有 Breaking Changes。我们会提供详细的迁移指南。
+**A**: 可以。在同一项目中，新页面使用 v0.4.0 Sender，旧页面继续使用 SenderCompat，逐步迁移。
+
+### Q: 我的项目中使用了自定义插槽，会受影响吗？
+
+**A**: 大部分插槽保持兼容，但 `#actions`、`#footer-left`、`#decorativeContent` 需要调整。详见 [破坏性变更](#破坏性变更)。
