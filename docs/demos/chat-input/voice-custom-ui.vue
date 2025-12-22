@@ -63,13 +63,7 @@ const handleTouchEnd = () => {
         @mousemove.prevent="handleTouchMove"
         @mouseup.prevent="handleTouchEnd"
       >
-        <tr-chat-input
-          v-show="!showMobileVoiceUI"
-          ref="TrSenderRef"
-          v-model="inputText"
-          mode="single"
-          class="chat-input"
-        >
+        <tr-sender v-show="!showMobileVoiceUI" ref="TrSenderRef" v-model="inputText" mode="single" class="chat-input">
           <!-- PC 端：使用 VoiceButton -->
           <template v-if="!isMobile" #actions-inline>
             <VoiceButton ref="voiceButtonRef" />
@@ -85,7 +79,7 @@ const handleTouchEnd = () => {
               按住说话
             </div>
           </template>
-        </tr-chat-input>
+        </tr-sender>
 
         <!-- 录音浮层：显示录音动画和提示 -->
         <PressToTalkOverlay
