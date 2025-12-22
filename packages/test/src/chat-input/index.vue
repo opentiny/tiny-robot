@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-import type { MentionItem, TemplateItem, SuggestionItem } from '@opentiny/tiny-robot'
+import { TrSender as ChatInput } from '@opentiny/tiny-robot'
+import type { MentionItem, TemplateItem, SenderSuggestionItem } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
 const content = ref('')
@@ -94,7 +94,7 @@ const handleSubmitMethod = () => {
 const setTemplateSimple = () => {
   templateData.value = [
     { type: 'text', content: '我是' },
-    { type: 'template', content: '张三' },
+    { type: 'block', content: '张三' },
     { type: 'text', content: '，来自' },
   ]
   result.value = '已设置简单模板'
@@ -103,7 +103,7 @@ const setTemplateSimple = () => {
 const setTemplateEmpty = () => {
   templateData.value = [
     { type: 'text', content: '我是' },
-    { type: 'template', content: '' },
+    { type: 'block', content: '' },
     { type: 'text', content: '，来自' },
   ]
   result.value = '已设置空模板块'
@@ -111,9 +111,9 @@ const setTemplateEmpty = () => {
 
 const setTemplateMultiple = () => {
   templateData.value = [
-    { type: 'template', content: '姓名' },
-    { type: 'template', content: '年龄' },
-    { type: 'template', content: '城市' },
+    { type: 'block', content: '姓名' },
+    { type: 'block', content: '年龄' },
+    { type: 'block', content: '城市' },
   ]
   result.value = '已设置多个模板块'
 }
@@ -144,7 +144,7 @@ const mentions = ref<MentionItem[]>([
 ])
 
 // 建议列表数据
-const suggestions = ref<SuggestionItem[]>([
+const suggestions = ref<SenderSuggestionItem[]>([
   { content: 'Java' },
   { content: 'JavaScript' },
   { content: 'TypeScript' },
