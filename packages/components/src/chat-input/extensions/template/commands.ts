@@ -123,15 +123,6 @@ export const templateCommands = {
     () =>
     ({ editor }: { editor: Editor }) => {
       const blocks = getAllTemplates(editor)
-      if (blocks.length === 0) {
-        return false
-      }
-
-      const { node, pos } = blocks[0]
-      const contentLength = node.textContent?.length || 0
-
-      // 计算目标位置：pos 是节点起始位置，pos + 1 是节点内部起始，pos + 1 + contentLength 是内容末尾
-      const targetPos = pos + 1 + contentLength
 
       // 使用 setTimeout 确保在文档更新后执行
       setTimeout(() => {
@@ -139,6 +130,18 @@ export const templateCommands = {
         const tr = state.tr
 
         try {
+          let targetPos: number
+
+          if (blocks.length === 0) {
+            // 没有模板块时，聚焦到文档末尾
+            targetPos = state.doc.content.size - 1
+          } else {
+            // 有模板块时，聚焦到第一个模板块的末尾
+            const { node, pos } = blocks[0]
+            const contentLength = node.textContent?.length || 0
+            targetPos = pos + 1 + contentLength
+          }
+
           // 使用 ProseMirror 的 TextSelection 精确设置光标位置
           const selection = TextSelection.create(state.doc, targetPos)
           tr.setSelection(selection)

@@ -55,22 +55,7 @@ const setTemplate3 = () => {
 }
 
 const setTemplate4 = () => {
-  templateData.value = [
-    { type: 'text', content: '请帮我' },
-    {
-      type: 'select',
-      placeholder: '选择操作',
-      options: [
-        { label: '分析', value: '分析' },
-        { label: '总结', value: '总结' },
-        { label: '翻译', value: '翻译' },
-        { label: '优化', value: '优化' },
-      ],
-      content: '',
-    },
-    { type: 'text', content: '以下内容：' },
-    { type: 'block', content: '' },
-  ]
+  templateData.value = [{ type: 'text', content: '这是一个晴朗的好天气。' }]
 }
 
 const handleSubmit = (text: string, data?: StructuredData) => {
@@ -87,7 +72,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
       <tiny-button size="small" @click="setTemplate1"> 模板1：自我介绍 </tiny-button>
       <tiny-button size="small" @click="setTemplate2"> 模板2：写报告 </tiny-button>
       <tiny-button size="small" @click="setTemplate3"> 模板3：英文作文（带选择器） </tiny-button>
-      <tiny-button size="small" @click="setTemplate4"> 模板4：混合模板 </tiny-button>
+      <tiny-button size="small" @click="setTemplate4"> 模板4：文字模板 </tiny-button>
     </div>
 
     <tr-sender
