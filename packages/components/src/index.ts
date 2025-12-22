@@ -30,6 +30,9 @@ import {
   DefaultActionButtons,
 } from './chat-input-actions'
 
+// ============================================
+// 组件类型导出
+// ============================================
 export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -46,25 +49,7 @@ export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
-
-// 扩展类型导出（供 Sender 使用）
-export type { TemplateAttrs, TemplateOptions } from './chat-input/extensions/template'
-export type { MentionAttrs, MentionOptions, MentionItem } from './chat-input/extensions/mention'
-export type {
-  SuggestionItem,
-  SuggestionOptions,
-  SuggestionState,
-  SuggestionTextPart,
-  HighlightFunction,
-} from './chat-input/extensions/suggestion'
-
-// 其他 ChatInput 相关类型
-export type { TemplateItem, DefaultActions } from './chat-input/index.type'
-
-// ChatInputActions 类型导出
-export type { ActionButtonProps } from './chat-input-actions'
-export type { UploadButtonProps, UploadButtonEmits } from './chat-input-actions'
-export type { VoiceButtonProps, VoiceButtonEmits } from './chat-input-actions'
+export * from './chat-input-actions'
 
 export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'

@@ -1,3 +1,17 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrSender, type SubmitTrigger } from '@opentiny/tiny-robot'
+
+const content = ref('')
+const submittedContent = ref('')
+const submitType = ref<SubmitTrigger>('enter')
+
+const handleSubmit = (value: string) => {
+  submittedContent.value = value
+  console.log('提交内容:', value)
+}
+</script>
+
 <template>
   <div class="demo-container">
     <div class="options-panel">
@@ -9,7 +23,7 @@
       </div>
     </div>
 
-    <ChatInput v-model="content" :submitType="submitType" placeholder="请输入内容..." @submit="handleSubmit" />
+    <tr-sender v-model="content" :submitType="submitType" placeholder="请输入内容..." @submit="handleSubmit" />
 
     <div v-if="submittedContent" class="result">
       <strong>已提交: </strong>
@@ -17,20 +31,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { ChatInput, type SubmitTrigger } from '@opentiny/tiny-robot'
-
-const content = ref('')
-const submittedContent = ref('')
-const submitType = ref<SubmitTrigger>('enter')
-
-const handleSubmit = (value: string) => {
-  submittedContent.value = value
-  console.log('提交内容:', value)
-}
-</script>
 
 <style scoped>
 .demo-container {

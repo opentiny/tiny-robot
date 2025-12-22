@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput, UploadButton, VoiceButton } from '@opentiny/tiny-robot'
+import { TrSender, UploadButton, VoiceButton } from '@opentiny/tiny-robot'
 
 const content = ref('')
 const message = ref('')
@@ -23,7 +23,7 @@ const handleVoiceFinal = (text: string) => {
 
 <template>
   <div class="demo-container">
-    <ChatInput
+    <tr-sender
       v-model="content"
       placeholder="输入内容，或使用语音/上传文件..."
       mode="multiple"
@@ -43,7 +43,7 @@ const handleVoiceFinal = (text: string) => {
         <!-- 语音按钮 -->
         <VoiceButton tooltip="语音输入" tooltip-placement="top" @speech-final="handleVoiceFinal" />
       </template>
-    </ChatInput>
+    </tr-sender>
 
     <div v-if="message" class="message">{{ message }}</div>
   </div>

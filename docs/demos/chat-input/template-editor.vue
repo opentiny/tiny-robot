@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Button as TinyButton } from '@opentiny/vue'
-import { ChatInput } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 import type { TemplateItem, StructuredData } from '@opentiny/tiny-robot'
 
 const content = ref('')
@@ -10,7 +10,7 @@ const submittedContent = ref('')
 const templateData = ref<TemplateItem[]>([])
 
 // 通过 items 传入响应式数据
-const extensions = [ChatInput.template(templateData)]
+const extensions = [TrSender.template(templateData)]
 
 const setTemplate1 = () => {
   templateData.value = [
@@ -90,7 +90,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
       <tiny-button size="small" @click="setTemplate4"> 模板4：混合模板 </tiny-button>
     </div>
 
-    <ChatInput
+    <tr-sender
       mode="multiple"
       v-model="content"
       :extensions="extensions"

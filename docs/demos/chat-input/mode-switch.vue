@@ -1,10 +1,23 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrSender } from '@opentiny/tiny-robot'
+
+const content = ref('')
+const mode = ref<'single' | 'multiple'>('single')
+
+const handleSubmit = (value: string) => {
+  console.log('提交内容:', value)
+  content.value = ''
+}
+</script>
+
 <template>
   <div class="demo-container">
     <div class="mode-selector">
       <button :class="['mode-btn', { active: mode === 'single' }]" @click="mode = 'single'">单行模式</button>
       <button :class="['mode-btn', { active: mode === 'multiple' }]" @click="mode = 'multiple'">多行模式</button>
     </div>
-    <ChatInput
+    <tr-sender
       v-model="content"
       :mode="mode"
       placeholder="尝试切换模式..."
@@ -18,19 +31,6 @@
     </p>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-
-const content = ref('')
-const mode = ref<'single' | 'multiple'>('single')
-
-const handleSubmit = (value: string) => {
-  console.log('提交内容:', value)
-  content.value = ''
-}
-</script>
 
 <style scoped>
 .demo-container {

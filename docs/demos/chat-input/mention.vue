@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 import type { MentionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const content = ref('')
@@ -29,7 +29,7 @@ const items: MentionItem[] = [
   },
 ]
 
-const extensions = [ChatInput.mention(items)]
+const extensions = [TrSender.mention(items)]
 
 const handleSubmit = (text: string, data?: StructuredData) => {
   submittedContent.value = text
@@ -45,7 +45,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
       <p>💡 输入 <code>@</code> 触发提及选择，支持键盘导航（↑↓）和 Enter/Tab 选择</p>
     </div>
 
-    <ChatInput
+    <tr-sender
       v-model="content"
       :extensions="extensions"
       placeholder="输入 @ 选择助手..."

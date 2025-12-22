@@ -1,61 +1,10 @@
-<template>
-  <div style="display: flex; flex-direction: column; gap: 20px">
-    <!-- 语音录制 UI -->
-    <div>
-      <h4>{{ isMobile ? '移动端' : 'PC 端' }} 语音录制</h4>
-      <div
-        class="chat-input-container"
-        @touchmove.prevent="handleTouchMove"
-        @touchend.prevent="handleTouchEnd"
-        @mousemove.prevent="handleTouchMove"
-        @mouseup.prevent="handleTouchEnd"
-      >
-        <tr-chat-input
-          v-show="!showMobileVoiceUI"
-          ref="chatInputRef"
-          v-model="inputText"
-          mode="single"
-          class="chat-input"
-        >
-          <!-- PC 端：使用 VoiceButton -->
-          <template v-if="!isMobile" #actions-inline>
-            <VoiceButton ref="voiceButtonRef" />
-          </template>
-
-          <!-- 移动端：使用自定义"按住说话"区域替换编辑器 -->
-          <template v-else #content>
-            <div
-              class="press-to-talk-area"
-              @touchstart.prevent="handleTouchStart"
-              @mousedown.prevent="handleTouchStart"
-            >
-              按住说话
-            </div>
-          </template>
-        </tr-chat-input>
-
-        <!-- 录音浮层：显示录音动画和提示 -->
-        <PressToTalkOverlay
-          v-model:visible="showMobileVoiceUI"
-          :isCanceling="isCanceling"
-          :cancelThreshold="cancelThreshold"
-        />
-      </div>
-    </div>
-    <div>
-      <span style="margin-right: 20px">是否是移动端</span>
-      <tiny-switch v-model="isMobile"></tiny-switch>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import { TrChatInput, VoiceButton } from '@opentiny/tiny-robot'
+import { TrSender, VoiceButton } from '@opentiny/tiny-robot'
 import PressToTalkOverlay from '../sender/PressToTalkOverlay.vue'
 
-const chatInputRef = ref<InstanceType<typeof TrChatInput>>()
+const TrSenderRef = ref<InstanceType<typeof TrSender>>()
 const voiceButtonRef = ref<InstanceType<typeof VoiceButton>>()
 const inputText = ref('')
 const showMobileVoiceUI = ref(false)
@@ -92,7 +41,7 @@ const handleTouchEnd = () => {
   } else {
     // 正常结束，如果有识别内容则提交
     if (inputText.value.trim()) {
-      chatInputRef.value?.submit()
+      TrSenderRef.value?.submit()
     }
   }
 
@@ -101,6 +50,57 @@ const handleTouchEnd = () => {
   isCanceling.value = false
 }
 </script>
+
+<template>
+  <div style="display: flex; flex-direction: column; gap: 20px">
+    <!-- 语音录制 UI -->
+    <div>
+      <h4>{{ isMobile ? '移动端' : 'PC 端' }} 语音录制</h4>
+      <div
+        class="chat-input-container"
+        @touchmove.prevent="handleTouchMove"
+        @touchend.prevent="handleTouchEnd"
+        @mousemove.prevent="handleTouchMove"
+        @mouseup.prevent="handleTouchEnd"
+      >
+        <tr-chat-input
+          v-show="!showMobileVoiceUI"
+          ref="TrSenderRef"
+          v-model="inputText"
+          mode="single"
+          class="chat-input"
+        >
+          <!-- PC 端：使用 VoiceButton -->
+          <template v-if="!isMobile" #actions-inline>
+            <VoiceButton ref="voiceButtonRef" />
+          </template>
+
+          <!-- 移动端：使用自定义"按住说话"区域替换编辑器 -->
+          <template v-else #content>
+            <div
+              class="press-to-talk-area"
+              @touchstart.prevent="handleTouchStart"
+              @mousedown.prevent="handleTouchStart"
+            >
+              按住说话
+            </div>
+          </template>
+        </tr-chat-input>
+
+        <!-- 录音浮层：显示录音动画和提示 -->
+        <PressToTalkOverlay
+          v-model:visible="showMobileVoiceUI"
+          :isCanceling="isCanceling"
+          :cancelThreshold="cancelThreshold"
+        />
+      </div>
+    </div>
+    <div>
+      <span style="margin-right: 20px">是否是移动端</span>
+      <tiny-switch v-model="isMobile"></tiny-switch>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .chat-input-container {

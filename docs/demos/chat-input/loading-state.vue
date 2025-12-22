@@ -10,7 +10,7 @@
         <tiny-switch v-model="isDisabled"></tiny-switch>
       </div>
     </div>
-    <ChatInput
+    <tr-sender
       v-model="content"
       placeholder="输入内容后提交，模拟加载状态..."
       :loading="loading"
@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 import { Switch as TinySwitch } from '@opentiny/vue'
 
 const content = ref('')

@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import { TrSender } from '@opentiny/tiny-robot'
+
+const message = 'Hello TinyRobot'
+</script>
+
 <template>
   <div style="display: flex; gap: 24px; flex-wrap: wrap">
     <!-- 正常尺寸 -->
@@ -6,8 +12,8 @@
         正常尺寸（<code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px">size="normal"</code>）
       </h4>
       <div style="display: flex; flex-direction: column; gap: 12px">
-        <ChatInput :default-value="message" size="normal" mode="single" placeholder="正常单行模式..." />
-        <ChatInput
+        <tr-sender :default-value="message" size="normal" mode="single" placeholder="正常单行模式..." />
+        <tr-sender
           :default-value="message"
           size="normal"
           mode="multiple"
@@ -24,8 +30,8 @@
         紧凑尺寸（<code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px">size="small"</code>）
       </h4>
       <div style="display: flex; flex-direction: column; gap: 12px">
-        <ChatInput :default-value="message" size="small" mode="single" placeholder="紧凑单行模式..." />
-        <ChatInput
+        <tr-sender :default-value="message" size="small" mode="single" placeholder="紧凑单行模式..." />
+        <tr-sender
           :default-value="message"
           size="small"
           mode="multiple"
@@ -37,9 +43,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ChatInput } from '@opentiny/tiny-robot'
-
-const message = 'Hello TinyRobot'
-</script>

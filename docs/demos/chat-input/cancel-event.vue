@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 
 const content = ref('')
 const loading = ref(false)
@@ -27,7 +27,7 @@ const handleCancel = () => {
 
 <template>
   <div class="demo-container">
-    <ChatInput
+    <tr-sender
       v-model="content"
       :loading="loading"
       placeholder="输入内容后提交，观察 loading 状态..."

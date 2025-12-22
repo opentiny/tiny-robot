@@ -1,28 +1,6 @@
-<template>
-  <div class="demo-container">
-    <div class="controls">
-      <button @click="handleFocus">聚焦</button>
-      <button @click="handleBlur">失焦</button>
-      <button @click="handleSetContent">设置内容</button>
-      <button @click="handleGetContent">获取内容</button>
-      <button @click="handleClear">清空</button>
-      <button @click="handleSubmit">提交</button>
-    </div>
-    <ChatInput
-      ref="chatInputRef"
-      v-model="content"
-      placeholder="通过上方按钮控制输入框..."
-      mode="multiple"
-      clearable
-      @submit="onSubmit"
-    />
-    <div v-if="result" class="result">{{ result }}</div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 
 const chatInputRef = ref()
 const content = ref('')
@@ -39,7 +17,7 @@ const handleBlur = () => {
 }
 
 const handleSetContent = () => {
-  chatInputRef.value?.setContent('<p>这是通过方法设置的内容</p>')
+  chatInputRef.value?.setContent('这是通过方法设置的内容')
   result.value = '已设置内容'
 }
 
@@ -61,6 +39,28 @@ const onSubmit = (value: string) => {
   result.value = `已提交: ${value}`
 }
 </script>
+
+<template>
+  <div class="demo-container">
+    <div class="controls">
+      <button @click="handleFocus">聚焦</button>
+      <button @click="handleBlur">失焦</button>
+      <button @click="handleSetContent">设置内容</button>
+      <button @click="handleGetContent">获取内容</button>
+      <button @click="handleClear">清空</button>
+      <button @click="handleSubmit">提交</button>
+    </div>
+    <tr-sender
+      ref="chatInputRef"
+      v-model="content"
+      placeholder="通过上方按钮控制输入框..."
+      mode="multiple"
+      clearable
+      @submit="onSubmit"
+    />
+    <div v-if="result" class="result">{{ result }}</div>
+  </div>
+</template>
 
 <style scoped>
 .demo-container {

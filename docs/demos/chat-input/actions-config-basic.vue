@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
 
 const content = ref('')
 
@@ -28,7 +28,7 @@ const handleSubmit = (text: string) => {
   <div class="demo-container">
     <p class="tip">输入至少 5 个字符后，提交按钮才会启用（{{ content.length }}/5）</p>
 
-    <ChatInput
+    <tr-sender
       v-model="content"
       :default-actions="defaultActions"
       placeholder="请输入至少 5 个字符..."

@@ -1,37 +1,7 @@
-<template>
-  <div class="demo-filter">
-    <div class="filter-selector">
-      <label>
-        <input type="radio" v-model="filterMode" value="default" />
-        默认过滤
-      </label>
-      <label>
-        <input type="radio" v-model="filterMode" value="prefix" />
-        前缀匹配
-      </label>
-      <label>
-        <input type="radio" v-model="filterMode" value="category" />
-        分类匹配
-      </label>
-    </div>
-
-    <p class="mode-description">{{ modeDescription }}</p>
-
-    <ChatInput
-      v-model="input"
-      :extensions="extensions"
-      placeholder="输入 ECS 或 CDN 查看建议..."
-      @submit="handleSubmit"
-    />
-
-    <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-import type { SuggestionItem, StructuredData } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
+import type { SenderSuggestionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const selectedItem = ref('')
@@ -52,7 +22,7 @@ const modeDescription = computed(() => {
 })
 
 // 建议列表
-const suggestions: SuggestionItem[] = [
+const suggestions: SenderSuggestionItem[] = [
   { content: 'ECS-云服务器卡顿问题' },
   { content: 'ECS-备份弹性云服务器' },
   { content: 'ECS-实例无法启动' },
@@ -63,10 +33,10 @@ const suggestions: SuggestionItem[] = [
 
 // 配置 Suggestion 扩展，使用自定义过滤函数
 const extensions = computed(() => [
-  ChatInput.Suggestion.configure({
+  TrSender.Suggestion.configure({
     items: suggestions,
     // 自定义过滤逻辑
-    filterFn: (items: SuggestionItem[], query: string) => {
+    filterFn: (items: SenderSuggestionItem[], query: string) => {
       if (!query) return items
 
       const lowerQuery = query.toLowerCase()
@@ -100,6 +70,36 @@ const handleSubmit = (text: string, data?: StructuredData) => {
   console.log('📋 结构化数据：', data)
 }
 </script>
+
+<template>
+  <div class="demo-filter">
+    <div class="filter-selector">
+      <label>
+        <input type="radio" v-model="filterMode" value="default" />
+        默认过滤
+      </label>
+      <label>
+        <input type="radio" v-model="filterMode" value="prefix" />
+        前缀匹配
+      </label>
+      <label>
+        <input type="radio" v-model="filterMode" value="category" />
+        分类匹配
+      </label>
+    </div>
+
+    <p class="mode-description">{{ modeDescription }}</p>
+
+    <tr-sender
+      v-model="input"
+      :extensions="extensions"
+      placeholder="输入 ECS 或 CDN 查看建议..."
+      @submit="handleSubmit"
+    />
+
+    <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
+  </div>
+</template>
 
 <style scoped>
 .demo-filter {

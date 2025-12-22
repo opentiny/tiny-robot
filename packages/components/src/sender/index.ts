@@ -4,7 +4,7 @@
  */
 import ChatInput from '../chat-input'
 
-const Sender = ChatInput
+const Sender = ChatInput as typeof ChatInput
 Sender.name = 'TrSender'
 
 export default Sender

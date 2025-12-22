@@ -1,3 +1,10 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrSender, VoiceButton } from '@opentiny/tiny-robot'
+
+const voiceMode = ref<'mixed' | 'continuous'>('mixed')
+</script>
+
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
     <div style="display: flex; align-items: center; gap: 12px">
@@ -14,7 +21,7 @@
     <div style="padding: 8px 12px; background: #f5f7fa; border-radius: 4px; font-size: 13px; color: #666">
       {{ voiceMode === 'mixed' ? '语音识别结果追加到输入框，可继续编辑' : '持续识别语音并自动替换内容' }}
     </div>
-    <tr-chat-input
+    <tr-sender
       :key="voiceMode"
       mode="multiple"
       :placeholder="voiceMode === 'mixed' ? '点击麦克风说话，识别结果会追加到此处...' : '点击麦克风开始连续识别...'"
@@ -28,13 +35,6 @@
           "
         />
       </template>
-    </tr-chat-input>
+    </tr-sender>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { TrChatInput, VoiceButton } from '@opentiny/tiny-robot'
-
-const voiceMode = ref<'mixed' | 'continuous'>('mixed')
-</script>

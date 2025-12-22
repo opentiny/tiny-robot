@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput, UploadButton } from '@opentiny/tiny-robot'
+import { TrSender, UploadButton } from '@opentiny/tiny-robot'
 import { IconSearch, IconThink, IconAi } from '@opentiny/tiny-robot-svgs'
 
 const content = ref('')
@@ -24,7 +24,7 @@ const handleEmoji = () => {
 
 <template>
   <div class="demo-container">
-    <ChatInput
+    <tr-sender
       v-model="content"
       placeholder="输入内容，可以使用深度思考..."
       mode="multiple"
@@ -53,7 +53,7 @@ const handleEmoji = () => {
       <template #footer-right>
         <UploadButton tooltip="文件上传" tooltip-placement="top" />
       </template>
-    </ChatInput>
+    </tr-sender>
     <div v-if="message" class="message">{{ message }}</div>
   </div>
 </template>

@@ -1,28 +1,13 @@
-<template>
-  <div class="demo-suggestion">
-    <h3>基础用法</h3>
-    <p class="demo-description">输入任意内容查看建议，支持键盘导航和自动补全</p>
-    <ChatInput
-      v-model="input"
-      :extensions="extensions"
-      placeholder="输入 ECS 或 CDN 查看建议..."
-      @submit="handleSubmit"
-    />
-
-    <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-import type { SuggestionItem, StructuredData } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
+import type { SenderSuggestionItem, StructuredData } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const selectedItem = ref('')
 
 // 建议列表
-const suggestions: SuggestionItem[] = [
+const suggestions: SenderSuggestionItem[] = [
   { content: 'ECS-云服务器卡顿问题' },
   { content: 'ECS-备份弹性云服务器' },
   { content: 'ECS-实例无法启动' },
@@ -32,13 +17,28 @@ const suggestions: SuggestionItem[] = [
 ]
 
 // 配置 Suggestion 扩展
-const extensions = [ChatInput.suggestion(suggestions)]
+const extensions = [TrSender.suggestion(suggestions)]
 
 const handleSubmit = (text: string, data?: StructuredData) => {
   console.log('📝 提交内容：', text)
   console.log('📋 结构化数据：', data)
 }
 </script>
+
+<template>
+  <div class="demo-suggestion">
+    <h3>基础用法</h3>
+    <p class="demo-description">输入任意内容查看建议，支持键盘导航和自动补全</p>
+    <tr-sender
+      v-model="input"
+      :extensions="extensions"
+      placeholder="输入 ECS 或 CDN 查看建议..."
+      @submit="handleSubmit"
+    />
+
+    <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
+  </div>
+</template>
 
 <style scoped>
 .demo-suggestion {

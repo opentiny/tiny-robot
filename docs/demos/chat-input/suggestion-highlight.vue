@@ -1,37 +1,7 @@
-<template>
-  <div class="demo-highlight">
-    <h3>高亮模式对比</h3>
-
-    <div class="mode-selector">
-      <label>
-        <input type="radio" v-model="highlightMode" value="auto" />
-        自动匹配
-      </label>
-      <label>
-        <input type="radio" v-model="highlightMode" value="precise" />
-        精确指定
-      </label>
-      <label>
-        <input type="radio" v-model="highlightMode" value="custom" />
-        自定义函数
-      </label>
-    </div>
-
-    <p class="mode-description">{{ modeDescription }}</p>
-
-    <ChatInput
-      v-model="input"
-      :extensions="extensions"
-      placeholder="输入 ECS 或 CDN 查看不同高亮效果..."
-      @submit="handleSubmit"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChatInput } from '@opentiny/tiny-robot'
-import type { SuggestionItem, SuggestionTextPart, StructuredData } from '@opentiny/tiny-robot'
+import { TrSender } from '@opentiny/tiny-robot'
+import type { SenderSuggestionItem, SuggestionTextPart, StructuredData } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const highlightMode = ref<'auto' | 'precise' | 'custom'>('auto')
@@ -51,7 +21,7 @@ const modeDescription = computed(() => {
 })
 
 // 自动匹配模式的建议项
-const autoSuggestions: SuggestionItem[] = [
+const autoSuggestions: SenderSuggestionItem[] = [
   { content: 'ECS-云服务器卡顿问题' },
   { content: 'ECS-备份弹性云服务器' },
   { content: 'CDN-权限管理配置' },
@@ -59,7 +29,7 @@ const autoSuggestions: SuggestionItem[] = [
 ]
 
 // 精确指定模式的建议项
-const preciseSuggestions: SuggestionItem[] = [
+const preciseSuggestions: SenderSuggestionItem[] = [
   {
     content: 'ECS-云服务器卡顿问题',
     highlights: ['ECS', '云服务器'],
@@ -79,7 +49,7 @@ const preciseSuggestions: SuggestionItem[] = [
 ]
 
 // 自定义函数模式的建议项
-const customSuggestions: SuggestionItem[] = [
+const customSuggestions: SenderSuggestionItem[] = [
   {
     content: 'ECS-云服务器卡顿问题',
     highlights: (text: string, _query: string): SuggestionTextPart[] => {
@@ -149,7 +119,7 @@ const currentSuggestions = computed(() => {
 //   * 精确指定：highlights 为数组，指定要高亮的文本片段
 //   * 自定义函数：highlights 为函数，完全控制高亮逻辑
 const extensions = [
-  ChatInput.Suggestion.configure({
+  TrSender.Suggestion.configure({
     items: currentSuggestions,
     onSelect: (item) => {
       console.log('选中建议:', item.content)
@@ -163,6 +133,36 @@ const handleSubmit = (text: string, data?: StructuredData) => {
   console.log('🎨 当前高亮模式：', highlightMode.value)
 }
 </script>
+
+<template>
+  <div class="demo-highlight">
+    <h3>高亮模式对比</h3>
+
+    <div class="mode-selector">
+      <label>
+        <input type="radio" v-model="highlightMode" value="auto" />
+        自动匹配
+      </label>
+      <label>
+        <input type="radio" v-model="highlightMode" value="precise" />
+        精确指定
+      </label>
+      <label>
+        <input type="radio" v-model="highlightMode" value="custom" />
+        自定义函数
+      </label>
+    </div>
+
+    <p class="mode-description">{{ modeDescription }}</p>
+
+    <tr-sender
+      v-model="input"
+      :extensions="extensions"
+      placeholder="输入 ECS 或 CDN 查看不同高亮效果..."
+      @submit="handleSubmit"
+    />
+  </div>
+</template>
 
 <style scoped>
 .demo-highlight {
