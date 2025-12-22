@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import ChatInput, { TemplateItem } from '../chat-input/index'
 import { UploadButton, VoiceButton } from '../chat-input-actions/index'
-import type { SenderProps, SenderEmits, UserTemplateItem } from '../sender/index.type'
+import type { SenderProps, SenderEmits, UserTemplateItem } from './index.type'
 
 const props = withDefaults(defineProps<SenderProps>(), {
   mode: 'single',

@@ -1,12 +1,35 @@
-import { App } from 'vue'
-import Sender from './index.vue'
+/**
+ * Sender 组件入口（v0.4.0+）
+ * Sender 是 ChatInput 的对外名称
+ */
+import ChatInput from '../chat-input'
 
+const Sender = ChatInput
 Sender.name = 'TrSender'
 
-const install = function <T>(app: App<T>) {
-  app.component(Sender.name!, Sender)
-}
+export default Sender
 
-Sender.install = install
+// 重新导出类型
+export type {
+  ChatInputProps as SenderProps,
+  ChatInputEmits as SenderEmits,
+  ChatInputSlots as SenderSlots,
+  ChatInputContext as SenderContext,
+  TemplateItem,
+  MentionItem,
+  DefaultActions,
+} from '../chat-input/index.type'
 
-export default Sender as typeof Sender & { install: typeof install }
+export type {
+  TemplateAttrs,
+  TemplateOptions,
+  MentionAttrs,
+  MentionOptions,
+  SuggestionItem,
+  SuggestionOptions,
+  SuggestionState,
+  SuggestionTextPart,
+  HighlightFunction,
+} from '../chat-input/extensions'
+
+export { useChatInputContext as useSenderContext } from '../chat-input/context'
