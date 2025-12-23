@@ -52,6 +52,7 @@ export function versionBadgePlugin(md: any) {
 
     // 如果包含版本标记，进行替换
     if (VERSION_BADGE_RE.test(content)) {
+      VERSION_BADGE_RE.lastIndex = 0
       content = content.replace(VERSION_BADGE_RE, (_: any, version: any) => {
         return createBadgeHTML(version)
       })
