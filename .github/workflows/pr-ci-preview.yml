@@ -1,0 +1,155 @@
+name: 'CI: Preview'
+
+on:
+  workflow_call:
+
+jobs:
+  preview-job:
+    name: preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: packages
+
+      - name: Build docs only (components already built)
+        run: pnpm -F docs build
+
+      - name: Comment build generating
+        if: github.event_name == 'pull_request'
+        uses: actions-cool/maintain-one-comment@v3.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            [<img width="400" src="https://github.com/user-attachments/assets/c25bbbe4-0cf5-4aca-b4b3-db49e7a264d9">](#)
+            
+            🔨 Building packages...
+            <!-- TINY_ROBOT_BUILD -->
+          body-include: '<!-- TINY_ROBOT_BUILD -->'
+          number: ${{ github.event.number }}
+
+      - name: Publish to pkg.pr.new
+        id: pkg-pr-new
+        run: |
+          npx pkg-pr-new publish \
+            ./packages/components \
+            ./packages/kit \
+            ./packages/svgs \
+            --pnpm \
+            --json output.json \
+            --comment=off
+
+      - name: Post or update pkg.pr.new comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const output = JSON.parse(fs.readFileSync('output.json', 'utf8'));
+            
+            const sha = context.payload.pull_request.head.sha.substring(0, 7);
+            
+            const packages = output.packages.map((p) => {
+              const shortUrl = p.url.replace(/@[a-f0-9]{40}/, '@' + sha);
+              return 'pnpm add ' + shortUrl;
+            }).join('\n\n');
+            
+            const commitUrl = 'https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/commit/' + sha;
+            
+            const body = '## 📦 Package Preview\n\n' + packages + '\n\n**commit:** [' + sha + '](' + commitUrl + ')\n\n<!-- PKG_PR_NEW_COMMENT -->';
+            const botCommentIdentifier = '<!-- PKG_PR_NEW_COMMENT -->';
+            
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const existingComment = comments.data.find((comment) =>
+              comment.body.includes(botCommentIdentifier)
+            );
+            
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body,
+              });
+            }
+
+      - name: Deploy Site to Surge
+        id: deploy
+        run: |
+          DEPLOY_DOMAIN=preview-${{ github.event.number }}-tiny-robot.surge.sh
+          echo "Deploying to: https://$DEPLOY_DOMAIN"
+          npx surge --project ./docs/dist --domain $DEPLOY_DOMAIN --token $SURGE_TOKEN
+          echo "url=https://$DEPLOY_DOMAIN" >> $GITHUB_OUTPUT
+        env:
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+
+      - name: Comment build success
+        if: ${{ success() && github.event_name == 'pull_request' }}
+        uses: actions-cool/maintain-one-comment@v3.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            [<img width="400" src="https://github.com/user-attachments/assets/2a0bb639-dfaf-4384-8d73-cec616ea4b97">](https://preview-${{ github.event.number }}-tiny-robot.surge.sh)
+            
+            ✅ Preview build completed successfully!
+            
+            > Click the image above to preview. 
+            > Preview will be automatically removed when this PR is closed.  
+            <!-- TINY_ROBOT_BUILD -->
+          body-include: '<!-- TINY_ROBOT_BUILD -->'
+          number: ${{ github.event.number }}
+
+      - name: Comment build failed
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: actions-cool/maintain-one-comment@v3.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            [<img width="400" src="https://github.com/user-attachments/assets/acfe799d-40be-4ffb-8190-da33f84056dc">](#)
+            
+            ❌ Build failed. Please check the logs for details.
+            <!-- TINY_ROBOT_BUILD -->
+          body-include: '<!-- TINY_ROBOT_BUILD -->'
+          number: ${{ github.event.number }}
