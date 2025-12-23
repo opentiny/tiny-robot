@@ -33,6 +33,8 @@ jobs:
     needs: [build]
     if: github.event_name == 'pull_request'
     uses: ./.github/workflows/pr-ci-preview.yml
+    with:
+      pr-number: ${{ github.event.pull_request.number }}
     secrets: inherit
 
   # E2E 测试（依赖构建，与预览并行）

@@ -2,6 +2,11 @@ name: 'CI: Preview'
 
 on:
   workflow_call:
+    inputs:
+      pr-number:
+        description: 'Pull Request number'
+        type: number
+        required: true
 
 jobs:
   preview-job:
@@ -25,7 +30,7 @@ jobs:
         run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
@@ -55,7 +60,7 @@ jobs:
             🔨 Building packages...
             <!-- TINY_ROBOT_BUILD -->
           body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ github.event.number }}
+          number: ${{ inputs.pr-number }}
 
       - name: Publish to pkg.pr.new
         id: pkg-pr-new
@@ -118,7 +123,7 @@ jobs:
       - name: Deploy Site to Surge
         id: deploy
         run: |
-          DEPLOY_DOMAIN=preview-${{ github.event.number }}-tiny-robot.surge.sh
+          DEPLOY_DOMAIN=preview-${{ inputs.pr-number }}-tiny-robot.surge.sh
           echo "Deploying to: https://$DEPLOY_DOMAIN"
           npx surge --project ./docs/dist --domain $DEPLOY_DOMAIN --token $SURGE_TOKEN
           echo "url=https://$DEPLOY_DOMAIN" >> $GITHUB_OUTPUT
@@ -131,7 +136,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            [<img width="400" src="https://github.com/user-attachments/assets/2a0bb639-dfaf-4384-8d73-cec616ea4b97">](https://preview-${{ github.event.number }}-tiny-robot.surge.sh)
+            [<img width="400" src="https://github.com/user-attachments/assets/2a0bb639-dfaf-4384-8d73-cec616ea4b97">](https://preview-${{ inputs.pr-number }}-tiny-robot.surge.sh)
             
             ✅ Preview build completed successfully!
             
@@ -139,7 +144,7 @@ jobs:
             > Preview will be automatically removed when this PR is closed.  
             <!-- TINY_ROBOT_BUILD -->
           body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ github.event.number }}
+          number: ${{ inputs.pr-number }}
 
       - name: Comment build failed
         if: ${{ failure() && github.event_name == 'pull_request' }}
@@ -152,4 +157,4 @@ jobs:
             ❌ Build failed. Please check the logs for details.
             <!-- TINY_ROBOT_BUILD -->
           body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ github.event.number }}
+          number: ${{ inputs.pr-number }}
