@@ -33,7 +33,7 @@ const BADGE_TEXT: Record<string, string> = {
 }
 
 function createBadgeHTML(version: string): string {
-  const isVersionNumber = /^[\d.]+/.test(version)
+  const isVersionNumber = /^[\d.]+(?:[-+][a-zA-Z0-9.]+)?$/.test(version)
   const badgeType = isVersionNumber ? 'new' : version
   const badgeText = isVersionNumber ? version : BADGE_TEXT[badgeType] || badgeType
   const badgeClass = BADGE_CLASSES[badgeType] || BADGE_CLASSES.new
