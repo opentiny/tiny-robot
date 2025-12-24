@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { useScroll } from '@vueuse/core'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import useAutoScroll from '../shared/composables/useAutoScoll'
 import Bubble from './Bubble.vue'
 import { BubbleListProps } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {})
 
 const scrollContainerRef = ref<HTMLDivElement | null>(null)
-const { y } = useScroll(scrollContainerRef, {
-  behavior: 'smooth',
-  throttle: 100,
-})
+
 const lastBubble = computed(() => props.items.at(-1))
 const lastBubbleCustomContentLength = computed(() => {
   if (!lastBubble.value) {
@@ -40,19 +37,19 @@ const lastBubbleCustomContentLength = computed(() => {
   return 0
 })
 
+const autoScrollSource = ref(0)
+
 watch(
   () => [props.autoScroll, props.items.length, lastBubble.value?.content, lastBubbleCustomContentLength.value] as const,
   ([autoScroll]) => {
-    nextTick(() => {
-      if (!autoScroll || !scrollContainerRef.value) {
-        return
-      }
-
-      y.value = scrollContainerRef.value.scrollHeight
-    })
+    if (autoScroll) {
+      autoScrollSource.value++
+    }
   },
   { deep: true },
 )
+
+const { scrollToBottom } = useAutoScroll(scrollContainerRef, autoScrollSource)
 
 const processedItems = computed(() => {
   return props.items.map((item, index) => {
@@ -78,6 +75,10 @@ const loadingBubble = computed(() => {
   const { slots, ...rest } = props.roles[props.loadingRole]
 
   return { props: { ...rest, loading: true, 'data-role': 'loading' }, slots }
+})
+
+defineExpose({
+  scrollToBottom,
 })
 </script>
 
