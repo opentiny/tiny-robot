@@ -49,7 +49,9 @@ watch(
   { deep: true },
 )
 
-const { scrollToBottom } = useAutoScroll(scrollContainerRef, autoScrollSource)
+const { scrollToBottom } = useAutoScroll(scrollContainerRef, autoScrollSource, {
+  scrollOnMount: props.autoScroll,
+})
 
 const processedItems = computed(() => {
   return props.items.map((item, index) => {
