@@ -1,5 +1,15 @@
 import { type MaybeComputedElementRef, unrefElement, useEventListener, useScroll, watchThrottled } from '@vueuse/core'
-import { type MaybeRefOrGetter, nextTick, onMounted, type Ref, ref, toValue, watch } from 'vue'
+import {
+  type MaybeRefOrGetter,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  type Ref,
+  ref,
+  toValue,
+  watch,
+  WatchHandle,
+} from 'vue'
 
 /**
  * 监听下降沿 (True -> False)，且只触发一次
@@ -40,6 +50,7 @@ export function useAutoScroll(
 
   const autoScrollEnabled = ref(true)
   let scheduled = false
+  const stopWatches = new Set<WatchHandle>()
 
   const targetElement = () => unrefElement(target)
 
@@ -58,9 +69,11 @@ export function useAutoScroll(
     el.scrollTo({ top: el.scrollHeight, behavior })
 
     if (behavior === 'smooth' && !isNearBottom(el as HTMLElement)) {
-      useOnceFallingEdge(isScrolling, () => {
+      const stopWatch = useOnceFallingEdge(isScrolling, () => {
         scrollToBottom('auto')
+        stopWatches.delete(stopWatch)
       })
+      stopWatches.add(stopWatch)
     }
   }
 
@@ -100,12 +113,21 @@ export function useAutoScroll(
     }
   })
 
+  onUnmounted(() => {
+    stopWatches.forEach((stopWatch) => {
+      stopWatch()
+    })
+    stopWatches.clear()
+  })
+
   // 处理用户按下 End 键的滚动行为
   useEventListener('keydown', (e) => {
     if (e.key === 'End') {
-      useOnceFallingEdge(isScrolling, () => {
+      const stopWatch = useOnceFallingEdge(isScrolling, () => {
         scrollToBottom('smooth')
+        stopWatches.delete(stopWatch)
       })
+      stopWatches.add(stopWatch)
     }
   })
 

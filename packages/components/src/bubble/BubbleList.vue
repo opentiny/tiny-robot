@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import useAutoScroll from '../shared/composables/useAutoScoll'
+import useAutoScroll from '../shared/composables/useAutoScroll'
 import Bubble from './Bubble.vue'
 import { BubbleListProps } from './index.type'
 
