@@ -7,6 +7,7 @@ import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGrou
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
   dividerRole: 'user',
+  fallbackRole: 'assistant',
 })
 
 defineSlots<BubbleListSlots>()
@@ -131,8 +132,8 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
     <BubbleItem
       v-for="(group, index) in messageGroups"
       :key="index"
-      :role="group.role"
-      :role-config="props.roleConfigs?.[group.role]"
+      :role="group.role || props.fallbackRole"
+      :role-config="props.roleConfigs?.[group.role || props.fallbackRole]"
       :message-group="group"
       :content-render-mode="props.contentRenderMode"
       @update:state="emit('update:state', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"

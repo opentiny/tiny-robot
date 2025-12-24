@@ -15,7 +15,9 @@ interface ToolCall {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ChatMessageContent = string | { type: string; [key: string]: any }[]
+export type ChatMessageContentItem = { type: string; [key: string]: any }
+
+export type ChatMessageContent = string | ChatMessageContentItem[]
 
 /**
  * 聊天消息接口（支持 OpenAI 格式）
@@ -39,11 +41,11 @@ export type BubbleMessage<
 > = ChatMessageWithOptionalRole<T> & {
   id?: string
   loading?: boolean
-  hidden?: boolean
   state?: S
 }
 
 export type BubbleProps = BubbleMessage & {
+  hidden?: boolean
   avatar?: VNode | Component
   placement?: 'start' | 'end'
   shape?: 'corner' | 'rounded' | 'none'
@@ -125,6 +127,7 @@ export interface BubbleListProps {
    * @default 'user'
    */
   dividerRole?: string
+  fallbackRole?: string
   /**
    * 角色配置（头像、位置、形状）
    */

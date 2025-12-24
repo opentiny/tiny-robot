@@ -43,7 +43,7 @@ export interface MessageRequestBody {
 
 // Define different states for the request process
 export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
-export type RequestProcessingState = 'requesting' | 'streaming' | string
+export type RequestProcessingState = 'requesting' | 'completing' | string
 
 export interface ToolCall {
   index: number
@@ -68,30 +68,42 @@ export interface Usage {
   prompt_cache_miss_tokens?: number
 }
 
-// Delta content for streaming responses
-export interface Delta {
-  role?: string
-  content?: string
-  tool_calls?: ToolCall[]
-  [key: string]: any
-}
-
-// Choice item in streaming response
+// Choice item with complete message in response
 export interface Choice {
   index: number
-  delta: Delta
+  message: {
+    role: string
+    content?: string
+    tool_calls?: ToolCall[]
+    [key: string]: any
+  }
+  delta: undefined
   logprobs: any
   finish_reason: string | null
 }
 
-// SSE chunk data structure for streaming responses
-export interface StreamChunk {
+export interface DeltaChoice {
+  index: number
+  message: undefined
+  delta: {
+    role?: string
+    content?: string
+    tool_calls?: ToolCall[]
+    [key: string]: any
+  }
+  logprobs: any
+  finish_reason: string | null
+}
+
+export type CompletionChoice = Choice | DeltaChoice
+
+export interface ChatCompletion {
   id: string
   object: string
   created: number
   model: string
   system_fingerprint: string | null
-  choices: Choice[]
+  choices: CompletionChoice[]
   usage?: Usage
 }
 
@@ -99,14 +111,19 @@ export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
   requestMessageFields?: (keyof ChatMessage)[]
   plugins?: useMessagePlugin[]
-  responseProvider: <T = StreamChunk>(
+  responseProvider: <T = ChatCompletion>(
     requestBody: MessageRequestBody,
     abortSignal: AbortSignal,
   ) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
-  onStreamChunk?: (
+  /**
+   * 全局的数据块处理钩子，在接收到每个响应数据块时触发。
+   * 注意：此钩子与插件中的 onCompletionChunk 有区别。
+   * 如果传入了此参数，默认的 chunk 处理逻辑不会自动执行，需要手动调用 runDefault 来执行默认处理逻辑。
+   */
+  onCompletionChunk?: (
     context: BasePluginContext & {
       currentMessage: ChatMessage
-      chunk: StreamChunk
+      chunk: ChatCompletion
     },
     runDefault: () => void,
   ) => void
@@ -116,11 +133,11 @@ export interface UseMessageReturn {
   requestState: Ref<RequestState>
   processingState: Ref<RequestProcessingState | undefined>
   messages: Ref<ChatMessage[]>
+  responseProvider: Ref<UseMessageOptions['responseProvider']>
   isProcessing: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
   abortRequest: () => void
-  setResponseProvider: (provider: UseMessageOptions['responseProvider']) => void
 }
 
 export interface BasePluginContext {
@@ -169,19 +186,21 @@ export interface useMessagePlugin {
   onAfterRequest?: (
     context: BasePluginContext & {
       currentMessage: ChatMessage
-      lastChoiceChunk?: Choice
+      lastChoice?: CompletionChoice
       appendMessage: (message: ChatMessage | ChatMessage[]) => void
       requestNext: () => void
     },
   ) => MaybePromise<void>
   /**
-   * SSE 数据块处理钩子，在接收到每个数据块时触发。
+   * 数据块处理钩子，在接收到每个响应数据块时触发。
+   * 无论是流式响应（多个增量数据块）还是非流式响应（单个完整数据块），都会触发此钩子。
    * 用途：自定义增量合并、实时 UI 效果等。
    */
-  onStreamChunk?: (
+  onCompletionChunk?: (
     context: BasePluginContext & {
       currentMessage: ChatMessage
-      chunk: StreamChunk
+      choice?: CompletionChoice
+      chunk: ChatCompletion
     },
   ) => void
   onError?: (context: BasePluginContext & { error: unknown }) => void

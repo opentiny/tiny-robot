@@ -37,7 +37,13 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
-export { BubbleRendererMatchPriority, useBubbleStateChangeFn, useOmitMessageFields } from './bubble'
+export {
+  BubbleRendererMatchPriority,
+  useBubbleBoxRenderer,
+  useBubbleContentRenderer,
+  useBubbleStateChangeFn,
+  useOmitMessageFields,
+} from './bubble'
 export { useTheme } from './theme-provider/useTheme'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useTouchDevice } from './shared/composables/useTouchDevice'

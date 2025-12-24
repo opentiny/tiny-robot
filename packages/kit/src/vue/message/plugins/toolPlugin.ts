@@ -138,7 +138,10 @@ export const toolPlugin = (
      * @param toolCall - 工具调用对象
      * @param context - 插件上下文，包含当前工具消息
      */
-    onToolCallStart?: (toolCall: ToolCall, context: BasePluginContext & { currentMessage: ChatMessage }) => void
+    onToolCallStart?: (
+      toolCall: ToolCall,
+      context: BasePluginContext & { primaryMessage: ChatMessage; toolMessage: ChatMessage },
+    ) => void
     /**
      * 工具调用结束时的回调函数。
      * 触发时机：工具调用完成（成功、失败或取消）时触发。
@@ -150,7 +153,8 @@ export const toolPlugin = (
     onToolCallEnd?: (
       toolCall: ToolCall,
       context: BasePluginContext & {
-        currentMessage: ChatMessage
+        primaryMessage: ChatMessage
+        toolMessage: ChatMessage
         status: 'success' | 'failed' | 'cancelled'
         error?: Error
       },
@@ -195,14 +199,18 @@ export const toolPlugin = (
   const DO_NOT_SEND = Symbol('doNotSend')
 
   const toolCallStart = (...args: Parameters<NonNullable<typeof onToolCallStart>>) => {
-    const [toolCall] = args
-    ;(toolCall as any).status = 'running'
+    const [toolCall, { primaryMessage }] = args
+
+    primaryMessage.state.toolCall[toolCall.id].status = 'running'
+
     onToolCallStart?.(...args)
   }
 
   const toolCallEnd = (...args: Parameters<NonNullable<typeof onToolCallEnd>>) => {
-    const [toolCall, { status }] = args
-    ;(toolCall as any).status = status
+    const [toolCall, { status, primaryMessage }] = args
+
+    primaryMessage.state.toolCall[toolCall.id].status = status
+
     onToolCallEnd?.(...args)
   }
 
@@ -238,9 +246,9 @@ export const toolPlugin = (
       return restOptions.onBeforeRequest?.(context)
     },
     onAfterRequest: async (context) => {
-      const { currentMessage, lastChoiceChunk, appendMessage, abortSignal, setRequestState, requestNext } = context
+      const { currentMessage, lastChoice, appendMessage, abortSignal, setRequestState, requestNext } = context
 
-      if (lastChoiceChunk?.finish_reason !== 'tool_calls' || !currentMessage.tool_calls?.length) {
+      if (lastChoice?.finish_reason !== 'tool_calls' || !currentMessage.tool_calls?.length) {
         return
       }
 
@@ -266,7 +274,7 @@ export const toolPlugin = (
 
         appendMessage(toolMessage)
 
-        const contextWithToolMessage = { ...context, currentMessage: toolMessage }
+        const contextWithToolMessage = { ...context, primaryMessage: currentMessage, toolMessage }
 
         toolCallStart(toolCall, contextWithToolMessage)
         try {
@@ -320,6 +328,23 @@ export const toolPlugin = (
       requestNext()
 
       return restOptions.onAfterRequest?.(context)
+    },
+    onCompletionChunk: (context) => {
+      const { currentMessage } = context
+
+      if (Array.isArray(currentMessage.tool_calls)) {
+        for (const toolCall of currentMessage.tool_calls) {
+          if (currentMessage.state?.toolCall?.[toolCall.id]?.status) {
+            continue
+          }
+
+          currentMessage.state ??= {}
+          currentMessage.state.toolCall ??= {}
+          currentMessage.state.toolCall[toolCall.id] ??= {}
+        }
+      }
+
+      return restOptions.onCompletionChunk?.(context)
     },
   }
 }

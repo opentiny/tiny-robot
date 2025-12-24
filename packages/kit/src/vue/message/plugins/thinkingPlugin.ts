@@ -2,24 +2,25 @@ import type { useMessagePlugin } from '../types'
 
 export const thinkingPlugin = (options: useMessagePlugin = {}): useMessagePlugin => {
   return {
-    name: 'length',
+    name: 'thinking',
     ...options,
-    onStreamChunk(context) {
-      const { chunk, currentMessage } = context
-      const reasoning_content = chunk.choices?.find((choice) => choice.index === 0)?.delta.reasoning_content
-      const thinking = typeof reasoning_content === 'string' ? true : undefined
-      if (currentMessage.extras) {
-        currentMessage.extras.thinking = thinking
+    onCompletionChunk(context) {
+      const { choice, currentMessage } = context
+      const reasoning_content = choice?.message?.reasoning_content || choice?.delta?.reasoning_content
+      const thinking = typeof reasoning_content === 'string'
+      if (currentMessage.state) {
+        currentMessage.state.thinking = thinking
       } else {
-        currentMessage.extras = { thinking }
+        currentMessage.state = { thinking }
       }
 
-      return options.onStreamChunk?.(context)
+      return options.onCompletionChunk?.(context)
     },
     onTurnEnd(context) {
+      // 如果不是流式数据或者请求被中断，thinking 状态可能不会被更新，在 onTurnEnd 中手动更新
       const lastMessage = context.currentTurn.slice(-1)[0]
-      if (lastMessage?.extras) {
-        lastMessage.extras.thinking = undefined
+      if (lastMessage?.state) {
+        lastMessage.state.thinking = undefined
       }
       return options.onTurnEnd?.(context)
     },

@@ -2,7 +2,7 @@ import { computed, reactive, ref } from 'vue'
 import type {
   BasePluginContext,
   ChatMessage,
-  Choice,
+  CompletionChoice,
   MessageRequestBody,
   RequestProcessingState,
   RequestState,
@@ -16,8 +16,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages = [],
     requestMessageFields = ['role', 'content', 'tool_calls', 'tool_call_id'],
     plugins = [],
-    responseProvider,
-    onStreamChunk,
+    onCompletionChunk,
   } = options
 
   const requestState = ref<RequestState>('idle')
@@ -26,14 +25,14 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   /**
    * Current response provider, can be updated at runtime to switch data sources.
    */
-  const responseProviderRef = ref(responseProvider)
+  const responseProvider = ref(options.responseProvider)
   let abortController: AbortController | null = null
   let currentTurn: ChatMessage[] = []
 
   // Computed properties for UI state
   const isProcessing = computed(() => requestState.value === 'processing')
 
-  // Function to handle sending message with streaming
+  // Function to handle sending message
   const sendMessage = async (content: string) => {
     // Validate input content
     if (!content || !content.trim()) {
@@ -98,15 +97,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     setRequestState,
   })
 
-  /**
-   * Update response provider at runtime.
-   * New provider will be used for subsequent requests.
-   */
-  const setResponseProvider = (provider: UseMessageOptions['responseProvider']) => {
-    responseProviderRef.value = provider
-  }
-
-  const executeRequest = async (abortSignal: AbortSignal) => {
+  const executeRequest = async (responseProvider: UseMessageOptions['responseProvider'], abortSignal: AbortSignal) => {
     setRequestState('processing', 'requesting')
 
     const requestBody = new Proxy<MessageRequestBody>(
@@ -133,22 +124,22 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const message: ChatMessage = reactive({ role: '', content: '', loading: true })
     innerAppendMessage(message)
 
-    let lastChoiceChunk: Choice | undefined = undefined
+    let lastChoice: CompletionChoice | undefined = undefined
 
-    const result = responseProviderRef.value(requestBody, abortSignal)
-    const stream = normalizeToAsyncGenerator(result)
+    const result = responseProvider(requestBody, abortSignal)
+    const completionGenerator = normalizeToAsyncGenerator(result)
 
-    for await (const chunk of stream) {
-      setRequestState('processing', 'streaming')
+    for await (const chunk of completionGenerator) {
+      setRequestState('processing', 'completing')
 
       if (message.loading) {
         message.loading = undefined
       }
 
-      // 目前只选择index为0的choice
+      // TODO 目前只选择index为0的choice
       const choice = chunk.choices?.find((choice) => choice.index === 0)
       if (choice) {
-        lastChoiceChunk = choice
+        lastChoice = choice
 
         const runDefault = () => {
           // Ensure metadata exists
@@ -161,12 +152,12 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
           message.metadata.updatedAt = Math.floor(Date.now() / 1000)
           Object.assign(message.metadata, rest)
 
-          combileDeltaData(message, choice.delta)
+          combileDeltaData(message, choice.message || choice.delta)
         }
 
-        if (onStreamChunk) {
+        if (onCompletionChunk) {
           const baseContext = getBaseContext()
-          onStreamChunk({ ...baseContext, abortSignal, chunk, currentMessage: message }, runDefault)
+          onCompletionChunk({ ...baseContext, abortSignal, chunk, currentMessage: message }, runDefault)
         } else {
           runDefault()
         }
@@ -174,16 +165,19 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
       const baseContext = getBaseContext()
       for (const plugin of plugins) {
-        plugin.onStreamChunk?.({ ...baseContext, abortSignal, chunk, currentMessage: message })
+        plugin.onCompletionChunk?.({ ...baseContext, abortSignal, chunk, choice, currentMessage: message })
       }
     }
 
-    await postRequest(message, abortSignal, lastChoiceChunk)
+    await postRequest(message, responseProvider, abortSignal, lastChoice)
   }
 
   const tryExecuteRequest = async () => {
     const ac = new AbortController()
     abortController = ac
+    // Snapshot the current response provider at the start of the turn
+    // to prevent inconsistencies if it changes during the request
+    const turnResponseProvider = responseProvider.value
 
     try {
       setRequestState('processing', 'requesting')
@@ -195,7 +189,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
       // 2) 主流程执行，有错误则中断（不包括中止错误）
       try {
-        await executeRequest(ac.signal)
+        await executeRequest(turnResponseProvider, ac.signal)
         setRequestState('completed')
       } catch (err) {
         // 检查是否是中止错误：优先检查当前使用的 AbortController 的信号状态
@@ -236,7 +230,12 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     abortController?.abort()
   }
 
-  const postRequest = async (currentMessage: ChatMessage, abortSignal: AbortSignal, lastChoiceChunk?: Choice) => {
+  const postRequest = async (
+    currentMessage: ChatMessage,
+    responseProvider: UseMessageOptions['responseProvider'],
+    abortSignal: AbortSignal,
+    lastChoice?: CompletionChoice,
+  ) => {
     let shouldRequest = false
 
     const baseContext = getBaseContext()
@@ -259,7 +258,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
           ...baseContext,
           abortSignal,
           currentMessage,
-          lastChoiceChunk,
+          lastChoice,
           appendMessage,
           requestNext,
         })
@@ -270,7 +269,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     await makeAbortable(Promise.all(tasks), abortSignal)
 
     if (shouldRequest) {
-      await executeRequest(abortSignal)
+      await executeRequest(responseProvider, abortSignal)
     }
   }
 
@@ -286,6 +285,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     requestState,
     processingState,
     messages,
+    responseProvider,
 
     // Computed
     isProcessing,
@@ -294,6 +294,5 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     sendMessage,
     send,
     abortRequest,
-    setResponseProvider,
   }
 }

@@ -34,9 +34,8 @@ const messages = computed(() => {
     return messageGroup.value.messages
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { avatar, placement, shape, contentRenderMode, fallbackBoxRenderer, fallbackContentRenderer, ...rest } = props
-  return [rest]
+  const { role, content, reasoning_content, tool_calls, tool_call_id, name, id, loading, state } = props
+  return [{ role, content, reasoning_content, tool_calls, tool_call_id, name, id, loading, state }]
 })
 
 // Setup prop-level fallback renderers for responsive tracking
@@ -44,15 +43,11 @@ setupBubblePropBoxRenderer({ fallbackBoxRenderer: () => props.fallbackBoxRendere
 setupBubblePropContentRenderer({ fallbackContentRenderer: () => props.fallbackContentRenderer })
 
 const hidden = computed(() => {
-  if (props.hidden) {
-    return true
-  }
-
   if (messages.value.length === 0) {
     return true
   }
 
-  return messages.value.every((message) => message.hidden)
+  return props.hidden
 })
 
 const shouldSplit = computed(() => {
@@ -64,7 +59,12 @@ const shouldSplit = computed(() => {
   <div class="tr-bubble" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
     <slot name="prefix" :messages="messages" :role="role"></slot>
     <div class="tr-bubble__body">
-      <component v-if="props.avatar" :is="props.avatar" :class="$style['tr-bubble__avatar']" />
+      <component
+        v-if="props.avatar"
+        :is="props.avatar"
+        class="tr-bubble__avatar"
+        :class="$style['tr-bubble__avatar']"
+      />
       <div class="tr-bubble__content">
         <template v-if="shouldSplit">
           <BubbleBoxWrapper

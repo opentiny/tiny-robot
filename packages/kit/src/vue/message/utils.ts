@@ -107,7 +107,7 @@ const isObjectWithIndex = (value: any): value is ObjectWithIndex => {
 }
 
 /**
- * Merge delta data from streaming responses
+ * Merge delta data from completion responses
  * Handles string concatenation, object merging, and array merging by index
  *
  * @param target - Target object to merge into
