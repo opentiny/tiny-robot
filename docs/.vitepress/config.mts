@@ -3,8 +3,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
-import { versionBadgePlugin } from './theme/utils/version-badge-plugin'
-import { AutoBadgePlugin } from './plugins/auto-badge-plugin'
+import { SidebarBadgePlugin, MarkdownBadgePlugin } from './plugins/badge'
 
 const { version } = pkg
 
@@ -79,7 +78,7 @@ export default defineConfig({
     ],
   ],
   vite: {
-    plugins: [vueJsx(), AutoBadgePlugin({ debug: true })],
+    plugins: [vueJsx(), SidebarBadgePlugin()],
     server: {
       open: true,
       proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
@@ -101,8 +100,8 @@ export default defineConfig({
           return code.replace(/import\.meta\.env\.BASE_URL/g, `'${process.env.VITEPRESS_BASE || '/'}'`)
         },
       })
-      // 添加版本标记插件
-      md.use(versionBadgePlugin)
+      // 添加 Markdown 内容中的版本标记支持
+      md.use(MarkdownBadgePlugin)
     },
   },
   themeConfig: {
