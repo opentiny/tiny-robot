@@ -296,7 +296,9 @@ export function useConversation(options: UseConversationOptions): UseConversatio
    */
   const saveConversations = async (): Promise<void> => {
     try {
-      await storage.saveConversations(state.conversations)
+      // 将响应式对象转换为普通对象，避免 IndexedDB 的 DataCloneError
+      const plainConversations = JSON.parse(JSON.stringify(state.conversations))
+      await storage.saveConversations(plainConversations)
     } catch (error) {
       console.error('保存会话失败:', error)
     }
