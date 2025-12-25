@@ -34,10 +34,15 @@ export const BADGE_CLASS_MAP: Record<BadgeType, string> = {
 
 /**
  * 版本号正则表达式（支持 v0.4.0 或 0.4.0 格式）
+ * 格式：\d+ - 至少一个数字开头
+ *       (?:\.\d+)* - 零或多个 .数字 组合
+ *       (?:[-+][a-zA-Z0-9.]+)? - 可选的预发布版本或构建元数据
+ * 有效：1, 1.2, 1.2.3, v1.2.3-beta.1
+ * 无效：..., 1.., .1., 1.
  */
-export const VERSION_NUMBER_REGEX = /^v?[\d.]+(?:[-+][a-zA-Z0-9.]+)?$/
+export const VERSION_NUMBER_REGEX = /^v?\d+(?:\.\d+)*(?:[-+][a-zA-Z0-9.]+)?$/
 
 /**
  * Markdown 中的版本标记正则表达式（用于 @new、@1.2.0 等）
  */
-export const MARKDOWN_BADGE_REGEX = /@(new|deprecated|beta|alpha|[\d.]+(?:[-+][a-zA-Z0-9.]+)?)/g
+export const MARKDOWN_BADGE_REGEX = /@(new|deprecated|beta|alpha|\d+(?:\.\d+)*(?:[-+][a-zA-Z0-9.]+)?)/g

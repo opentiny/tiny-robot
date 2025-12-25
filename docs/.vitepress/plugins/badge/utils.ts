@@ -6,6 +6,20 @@ import type { BadgeType, BadgeValue } from './constants'
 import { BADGE_TEXT_MAP, BADGE_CLASS_MAP, VERSION_NUMBER_REGEX } from './constants'
 
 /**
+ * 转义 HTML 特殊字符以防止 XSS
+ */
+function escapeHtml(text: string): string {
+  const htmlEscapeMap: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }
+  return text.replace(/[&<>"']/g, (char) => htmlEscapeMap[char])
+}
+
+/**
  * 判断是否为版本号
  */
 export function isVersionNumber(badge: string): boolean {
@@ -41,7 +55,7 @@ export function getBadgeClass(badge: BadgeValue): string {
  * 创建 Badge HTML
  */
 export function createBadgeHTML(badge: BadgeValue): string {
-  const badgeText = getBadgeText(badge)
+  const badgeText = escapeHtml(getBadgeText(badge))
   const badgeClass = getBadgeClass(badge)
   return `<span class="${badgeClass}">${badgeText}</span>`
 }

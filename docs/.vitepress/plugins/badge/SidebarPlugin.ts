@@ -77,15 +77,16 @@ export function SidebarBadgePlugin(options?: SidebarBadgeOptions): any {
  */
 function processSidebar(sidebar: any, rootDir: string, srcDir: string, matter: any, debug: boolean): number {
   let count = 0
+  const processedItems = new Set<any>()
 
   if (Array.isArray(sidebar)) {
-    count = processSidebarArray(sidebar, rootDir, srcDir, matter, debug)
+    count = processSidebarArray(sidebar, rootDir, srcDir, matter, debug, processedItems)
   } else if (typeof sidebar === 'object') {
     Object.keys(sidebar).forEach((key) => {
       const sidebarConfig = sidebar[key]
       if (Array.isArray(sidebarConfig)) {
         const dirName = key.replace(/^\//, '').replace(/\/$/, '')
-        count += processSidebarArray(sidebarConfig, rootDir, srcDir, matter, debug, dirName)
+        count += processSidebarArray(sidebarConfig, rootDir, srcDir, matter, debug, processedItems, dirName)
       }
     })
   }
@@ -102,6 +103,7 @@ function processSidebarArray(
   srcDir: string,
   matter: any,
   debug: boolean,
+  processedItems: Set<any>,
   dirName?: string,
 ): number {
   let count = 0
@@ -113,8 +115,9 @@ function processSidebarArray(
       group.items.forEach((item: any) => {
         if (item.link) {
           const badge = readBadgeFromFrontmatter(item.link, rootDir, srcDir, baseDir || '', matter, debug)
-          if (badge && !item.text.includes('version-badge')) {
+          if (badge && !processedItems.has(item)) {
             item.text = withBadge(item.text, badge)
+            processedItems.add(item)
             count++
             if (debug) {
               console.log(`[SidebarBadge] ✓ ${item.link}: ${badge}`)
