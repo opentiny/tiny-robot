@@ -1,0 +1,31 @@
+name: PR Docs Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove Surge deployment
+        run: |
+          DEPLOY_DOMAIN=preview-${{ github.event.pull_request.number }}-tiny-robot.surge.sh
+          echo "Removing deployment: $DEPLOY_DOMAIN"
+          npx surge teardown $DEPLOY_DOMAIN --token $SURGE_TOKEN
+        env:
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+        continue-on-error: true
+
+      - name: Comment cleanup status
+        uses: actions-cool/maintain-one-comment@v3.1.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            ## 🧹 Preview Cleaned Up
+
+            The preview deployment has been removed.
+
+            <!-- DEPLOY_PREVIEW -->
+          body-include: '<!-- DEPLOY_PREVIEW -->'
+          number: ${{ github.event.pull_request.number }}
