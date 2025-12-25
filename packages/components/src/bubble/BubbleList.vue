@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import useAutoScroll from '../shared/composables/useAutoScroll'
 import Bubble from './Bubble.vue'
 import { BubbleListProps } from './index.type'
@@ -52,6 +52,17 @@ watch(
 const { scrollToBottom } = useAutoScroll(scrollContainerRef, autoScrollSource, {
   scrollOnMount: props.autoScroll,
 })
+
+watch(
+  () => lastBubble.value?.role,
+  async (role) => {
+    // 用户发送消息时，平滑滚动到最底部
+    if (role === 'user') {
+      await nextTick()
+      scrollToBottom('smooth')
+    }
+  },
+)
 
 const processedItems = computed(() => {
   return props.items.map((item, index) => {
