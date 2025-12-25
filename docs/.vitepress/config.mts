@@ -3,8 +3,8 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
-import { createSidebarItems } from './theme/utils/sidebar-badge-helper'
 import { versionBadgePlugin } from './theme/utils/version-badge-plugin'
+import { AutoBadgePlugin } from './plugins/auto-badge-plugin'
 
 const { version } = pkg
 
@@ -34,7 +34,7 @@ const sharedSidebarItems = [
   {
     text: '组件',
     base: '/components/',
-    items: createSidebarItems([
+    items: [
       { text: 'Container 容器', link: 'container' },
       { text: 'Bubble 气泡', link: 'bubble' },
       { text: 'Sender 消息输入框', link: 'sender' },
@@ -49,7 +49,7 @@ const sharedSidebarItems = [
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
-    ]),
+    ],
   },
   {
     text: '工具',
@@ -79,7 +79,7 @@ export default defineConfig({
     ],
   ],
   vite: {
-    plugins: [vueJsx()],
+    plugins: [vueJsx(), AutoBadgePlugin({ debug: true })],
     server: {
       open: true,
       proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,
