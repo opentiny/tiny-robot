@@ -22,13 +22,13 @@ export type UseConversationEvents = UseMessageOptions['events'] & {
 export interface UseConversationOptions {
   /** AI客户端实例 */
   client: AIClient
-  /** 存储策略（可选，默认使用 LocalStorage） */
+  /** 存储策略 */
   storage?: ConversationStorageStrategy
-  /** 是否自动保存 (default: true) */
+  /** 是否自动保存 */
   autoSave?: boolean
-  /** 是否允许空会话 (default: false) */
+  /** 是否允许空会话 */
   allowEmpty?: boolean
-  /** 是否默认使用流式响应 (default: true)*/
+  /** 是否默认使用流式响应 */
   useStreamByDefault?: boolean
   /** 错误消息模板 */
   errorMessage?: string

@@ -1,5 +1,5 @@
-export { LocalStorageStrategy } from './LocalStorageStrategy'
-export { IndexedDBStrategy } from './IndexedDBStrategy'
+export { LocalStorageStrategy } from './localStorageStrategy'
+export { IndexedDBStrategy } from './indexedDBStrategy'
 export {
   localStorageStrategyFactory,
   indexedDBStorageStrategyFactory,

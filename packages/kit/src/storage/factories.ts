@@ -1,5 +1,5 @@
-import { LocalStorageStrategy } from './LocalStorageStrategy'
-import { IndexedDBStrategy } from './IndexedDBStrategy'
+import { LocalStorageStrategy } from './localStorageStrategy'
+import { IndexedDBStrategy } from './indexedDBStrategy'
 import type { ConversationStorageStrategy } from './types'
 
 export interface LocalStorageConfig {
