@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore } from './composables'
 import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
@@ -18,6 +19,30 @@ const emit = defineEmits<{
 
 // Provide bubble store if not already provided
 setupBubbleStore()
+
+const listRef = ref<HTMLDivElement | null>(null)
+let scrollToBottomFn: (behavior?: ScrollBehavior) => Promise<void> = async () => {}
+
+if (props.autoScroll) {
+  const lastMessage = computed(() => props.messages.at(-1))
+
+  const { scrollToBottom } = useAutoScroll(listRef, () => [
+    props.messages.length,
+    lastMessage.value?.content,
+    lastMessage.value?.reasoning_content,
+  ])
+  scrollToBottomFn = scrollToBottom
+
+  watch(
+    () => lastMessage.value?.role,
+    async (role) => {
+      if (role === 'user') {
+        await nextTick()
+        scrollToBottom('smooth')
+      }
+    },
+  )
+}
 
 /**
  * 按角色分组
@@ -125,10 +150,14 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
     return groupByDivider(props.messages, props.dividerRole)
   }
 })
+
+defineExpose({
+  scrollToBottom: scrollToBottomFn,
+})
 </script>
 
 <template>
-  <div class="tr-bubble-list">
+  <div class="tr-bubble-list" ref="listRef">
     <BubbleItem
       v-for="(group, index) in messageGroups"
       :key="index"

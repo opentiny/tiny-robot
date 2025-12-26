@@ -1,6 +1,6 @@
-import type { useMessagePlugin } from '../types'
+import type { UseMessagePlugin } from '../types'
 
-export const lengthPlugin = (options: useMessagePlugin & { continueContent?: string } = {}): useMessagePlugin => {
+export const lengthPlugin = (options: UseMessagePlugin & { continueContent?: string } = {}): UseMessagePlugin => {
   const { continueContent = 'Please continue with your previous answer.', ...restOptions } = options
 
   return {

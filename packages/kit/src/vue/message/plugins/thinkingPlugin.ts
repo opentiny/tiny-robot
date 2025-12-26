@@ -1,6 +1,6 @@
-import type { useMessagePlugin } from '../types'
+import type { UseMessagePlugin } from '../types'
 
-export const thinkingPlugin = (options: useMessagePlugin = {}): useMessagePlugin => {
+export const thinkingPlugin = (options: UseMessagePlugin = {}): UseMessagePlugin => {
   return {
     name: 'thinking',
     ...options,

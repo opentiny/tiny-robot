@@ -1,4 +1,5 @@
 import { computed, reactive, ref } from 'vue'
+import { fallbackRolePlugin, lengthPlugin, thinkingPlugin } from './plugins'
 import type {
   BasePluginContext,
   ChatMessage,
@@ -7,15 +8,41 @@ import type {
   RequestProcessingState,
   RequestState,
   UseMessageOptions,
+  UseMessagePlugin,
   UseMessageReturn,
 } from './types'
 import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, pickFields } from './utils'
+
+/**
+ * 插件去重，处理重复的插件名。
+ * 如果插件有名字且存在重复，后面的插件会覆盖前面的插件。
+ * 没有名字的插件总是会被添加。
+ *
+ * @param plugins - 插件数组
+ * @returns 去重后的插件数组
+ */
+const deduplicatePlugins = (plugins: UseMessagePlugin[]): UseMessagePlugin[] => {
+  const result: UseMessagePlugin[] = []
+
+  for (const plugin of plugins) {
+    // 如果插件有名字，则检查是否重复，如果重复则先删除原来的，再添加新的
+    if (plugin.name) {
+      const existingIndex = result.findIndex((p) => p.name === plugin.name)
+      if (existingIndex !== -1) {
+        result.splice(existingIndex, 1)
+      }
+    }
+    result.push(plugin)
+  }
+
+  return result
+}
 
 export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const {
     initialMessages = [],
     requestMessageFields = ['role', 'content', 'tool_calls', 'tool_call_id'],
-    plugins = [],
+    plugins: pluginsFromOptions = [],
     onCompletionChunk,
   } = options
 
@@ -26,8 +53,14 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
    * Current response provider, can be updated at runtime to switch data sources.
    */
   const responseProvider = ref(options.responseProvider)
+
   let abortController: AbortController | null = null
   let currentTurn: ChatMessage[] = []
+  // Custom context data that can be set by plugins
+  let customContext: Record<string, unknown> = {}
+
+  const defaultPlugins = [fallbackRolePlugin(), thinkingPlugin(), lengthPlugin()]
+  const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
 
   // Computed properties for UI state
   const isProcessing = computed(() => requestState.value === 'processing')
@@ -86,6 +119,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     }
   }
 
+  // Function to set custom context data
+  const setCustomContext = (data: Record<string, unknown>) => {
+    Object.assign(customContext, data)
+  }
+
   // Create base context for plugins
   const getBaseContext = (): Omit<BasePluginContext, 'abortSignal'> => ({
     messages: messages.value,
@@ -95,6 +133,8 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     requestMessageFields,
     plugins,
     setRequestState,
+    customContext,
+    setCustomContext,
   })
 
   const executeRequest = async (responseProvider: UseMessageOptions['responseProvider'], abortSignal: AbortSignal) => {
@@ -117,7 +157,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
     // Allow plugins to modify request body (e.g., add tools)
     const baseContext = getBaseContext()
-    for (const plugin of plugins) {
+    for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
       await plugin.onBeforeRequest?.({ ...baseContext, abortSignal, requestBody })
     }
 
@@ -164,7 +204,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       }
 
       const baseContext = getBaseContext()
-      for (const plugin of plugins) {
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
         plugin.onCompletionChunk?.({ ...baseContext, abortSignal, chunk, choice, currentMessage: message })
       }
     }
@@ -178,12 +218,14 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     // Snapshot the current response provider at the start of the turn
     // to prevent inconsistencies if it changes during the request
     const turnResponseProvider = responseProvider.value
+    // Reset custom context at the start of each turn
+    customContext = {}
 
     try {
       setRequestState('processing', 'requesting')
       // 1) onTurnStart 串行执行，有错误则中断
       const baseContextAtStart = getBaseContext()
-      for (const plugin of plugins) {
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
         await plugin.onTurnStart?.({ ...baseContextAtStart, abortSignal: ac.signal })
       }
 
@@ -204,14 +246,14 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
       // 3) onTurnEnd 串行执行，有错误则中断
       const baseContextAtEnd = getBaseContext()
-      for (const plugin of plugins) {
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
         await plugin.onTurnEnd?.({ ...baseContextAtEnd, abortSignal: ac.signal })
       }
     } catch (err) {
       setRequestState('error')
 
       const context = getBaseContext()
-      for (const plugin of plugins) {
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
         plugin.onError?.({ ...context, abortSignal: ac.signal, error: err })
       }
 
@@ -241,6 +283,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const baseContext = getBaseContext()
 
     const tasks = plugins
+      .filter((plugin) => !plugin.disabled)
       .map((plugin) => {
         if (!plugin.onAfterRequest) {
           return null

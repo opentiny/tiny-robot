@@ -127,12 +127,24 @@ export interface BubbleListProps {
    * @default 'user'
    */
   dividerRole?: string
+  /**
+   * 当消息没有角色或角色为空时，使用此角色
+   * @default 'assistant'
+   */
   fallbackRole?: string
   /**
    * 角色配置（头像、位置、形状）
    */
   roleConfigs?: Record<string, BubbleRoleConfig>
   contentRenderMode?: BubbleProps['contentRenderMode']
+  /**
+   * 是否自动滚动到底部。需要满足以下条件：
+   * - BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）
+   * - 滚动容器接近底部
+   *
+   * @default false
+   */
+  autoScroll?: boolean
 }
 
 export interface BubbleProviderProps {

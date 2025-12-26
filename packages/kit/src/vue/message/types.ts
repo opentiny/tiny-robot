@@ -110,7 +110,7 @@ export interface ChatCompletion {
 export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
   requestMessageFields?: (keyof ChatMessage)[]
-  plugins?: useMessagePlugin[]
+  plugins?: UseMessagePlugin[]
   responseProvider: <T = ChatCompletion>(
     requestBody: MessageRequestBody,
     abortSignal: AbortSignal,
@@ -146,16 +146,28 @@ export interface BasePluginContext {
   requestState: RequestState
   processingState?: RequestProcessingState
   requestMessageFields: (keyof ChatMessage)[]
-  plugins: useMessagePlugin[]
+  plugins: UseMessagePlugin[]
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   abortSignal: AbortSignal
+  /**
+   * Custom context data that can be set by plugins
+   */
+  customContext: Record<string, unknown>
+  /**
+   * Set custom context data. Can be used to store plugin-specific data that needs to be shared across hooks.
+   */
+  setCustomContext: (data: Record<string, unknown>) => void
 }
 
-export interface useMessagePlugin {
+export interface UseMessagePlugin {
   /**
    * 插件名称。
    */
   name?: string
+  /**
+   * 是否禁用插件。useMessage 可能会内置一些默认插件，如果需要禁用，可以设置为 true。
+   */
+  disabled?: boolean
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { reactive } from 'vue'
-import type { BasePluginContext, ChatMessage, Tool, ToolCall, useMessagePlugin } from '../types'
+import type { BasePluginContext, ChatMessage, Tool, ToolCall, UseMessagePlugin } from '../types'
 import { combileDeltaData, normalizeToAsyncGenerator } from '../utils'
 
 /**
@@ -113,7 +113,7 @@ function processExcludedToolMessages(
 }
 
 export const toolPlugin = (
-  options: useMessagePlugin & {
+  options: UseMessagePlugin & {
     /**
      * 获取工具列表的函数。
      */
@@ -181,7 +181,7 @@ export const toolPlugin = (
      */
     excludeToolMessagesNextTurn?: boolean | typeof EXCLUDE_MODE_REMOVE
   },
-): useMessagePlugin => {
+): UseMessagePlugin => {
   const {
     getTools,
     beforeCallTools,
