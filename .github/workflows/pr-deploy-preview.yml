@@ -1,95 +1,80 @@
-name: 'CI: Preview'
+name: 'CI: Deploy Preview'
 
 on:
-  workflow_call:
-    inputs:
-      pr-number:
-        description: 'Pull Request number'
-        type: number
-        required: true
+  workflow_run:
+    workflows: ["ci"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write
+  actions: read
+  contents: read
 
 jobs:
-  preview-job:
-    name: preview
+  deploy:
+    # 只在 PR 触发且 CI 成功时运行
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm i --no-frozen-lockfile
-
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: build-${{ github.sha }}
-          path: packages
+          name: build-${{ github.event.workflow_run.head_sha }}
+          path: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Build docs only (components already built)
-        run: pnpm -F docs build
+      - name: Read PR Number
+        id: pr
+        run: |
+          if [ -f artifacts/pr_number.txt ]; then
+            echo "number=$(cat artifacts/pr_number.txt)" >> $GITHUB_OUTPUT
+          else
+            echo "PR number file not found"
+            exit 1
+          fi
+
+      - name: Download pkg.pr.new output
+        uses: actions/download-artifact@v4
+        with:
+          name: pkg-pr-new-output-${{ github.event.workflow_run.head_sha }}
+          path: pkg-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+        continue-on-error: true
 
       - name: Comment build generating
-        if: github.event_name == 'pull_request'
         uses: actions-cool/maintain-one-comment@v3.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             [<img width="400" src="https://github.com/user-attachments/assets/c25bbbe4-0cf5-4aca-b4b3-db49e7a264d9">](#)
             
-            🔨 Building packages...
+            🔨 Deploying preview...
             <!-- TINY_ROBOT_BUILD -->
           body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ inputs.pr-number }}
-
-      - name: Publish to pkg.pr.new
-        id: pkg-pr-new
-        run: |
-          npx pkg-pr-new publish \
-            ./packages/components \
-            ./packages/kit \
-            ./packages/svgs \
-            --pnpm \
-            --json output.json \
-            --comment=off
+          number: ${{ steps.pr.outputs.number }}
 
       - name: Post or update pkg.pr.new comment
-        if: github.event_name == 'pull_request'
+        if: hashFiles('pkg-artifacts/pkg-pr-new-output.json') != ''
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const output = JSON.parse(fs.readFileSync('output.json', 'utf8'));
+            const output = JSON.parse(fs.readFileSync('pkg-artifacts/pkg-pr-new-output.json', 'utf8'));
             
-            const sha = context.payload.pull_request.head.sha.substring(0, 7);
+            const sha = '${{ github.event.workflow_run.head_sha }}'.substring(0, 7);
             
             const packages = output.packages.map((p) => {
               const shortUrl = p.url.replace(/@[a-f0-9]{40}/, '@' + sha);
               return 'pnpm add ' + shortUrl;
             }).join('\n\n');
             
-            const commitUrl = 'https://github.com/' + context.repo.owner + '/' + context.repo.repo + '/commit/' + sha;
+            const commitUrl = 'https://github.com/${{ github.repository }}/commit/' + sha;
             
             const body = '## 📦 Package Preview\n\n' + packages + '\n\n**commit:** [' + sha + '](' + commitUrl + ')\n\n<!-- PKG_PR_NEW_COMMENT -->';
             const botCommentIdentifier = '<!-- PKG_PR_NEW_COMMENT -->';
@@ -97,7 +82,7 @@ jobs:
             const comments = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: ${{ steps.pr.outputs.number }},
             });
             
             const existingComment = comments.data.find((comment) =>
@@ -113,7 +98,7 @@ jobs:
               });
             } else {
               await github.rest.issues.createComment({
-                issue_number: context.issue.number,
+                issue_number: ${{ steps.pr.outputs.number }},
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: body,
@@ -123,20 +108,20 @@ jobs:
       - name: Deploy Site to Surge
         id: deploy
         run: |
-          DEPLOY_DOMAIN=preview-${{ inputs.pr-number }}-tiny-robot.surge.sh
+          DEPLOY_DOMAIN=preview-${{ steps.pr.outputs.number }}-tiny-robot.surge.sh
           echo "Deploying to: https://$DEPLOY_DOMAIN"
-          npx surge --project ./docs/dist --domain $DEPLOY_DOMAIN --token $SURGE_TOKEN
+          npx surge --project ./artifacts/docs/dist --domain $DEPLOY_DOMAIN --token $SURGE_TOKEN
           echo "url=https://$DEPLOY_DOMAIN" >> $GITHUB_OUTPUT
         env:
           SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
 
       - name: Comment build success
-        if: ${{ success() && github.event_name == 'pull_request' }}
+        if: success()
         uses: actions-cool/maintain-one-comment@v3.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            [<img width="400" src="https://github.com/user-attachments/assets/2a0bb639-dfaf-4384-8d73-cec616ea4b97">](https://preview-${{ inputs.pr-number }}-tiny-robot.surge.sh)
+            [<img width="400" src="https://github.com/user-attachments/assets/2a0bb639-dfaf-4384-8d73-cec616ea4b97">](https://preview-${{ steps.pr.outputs.number }}-tiny-robot.surge.sh)
             
             ✅ Preview build completed successfully!
             
@@ -144,17 +129,17 @@ jobs:
             > Preview will be automatically removed when this PR is closed.  
             <!-- TINY_ROBOT_BUILD -->
           body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ inputs.pr-number }}
+          number: ${{ steps.pr.outputs.number }}
 
       - name: Comment build failed
-        if: ${{ failure() && github.event_name == 'pull_request' }}
+        if: failure()
         uses: actions-cool/maintain-one-comment@v3.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             [<img width="400" src="https://github.com/user-attachments/assets/acfe799d-40be-4ffb-8190-da33f84056dc">](#)
             
-            ❌ Build failed. Please check the logs for details.
+            ❌ Deploy failed. Please check the logs for details.
             <!-- TINY_ROBOT_BUILD -->
           body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ inputs.pr-number }}
+          number: ${{ steps.pr.outputs.number }}
