@@ -37,32 +37,27 @@ const lastBubbleCustomContentLength = computed(() => {
   return 0
 })
 
-const autoScrollSource = ref(0)
+let scrollToBottom: (behavior?: ScrollBehavior) => Promise<void> = async () => {}
 
-watch(
-  () => [props.items.length, lastBubble.value?.content, lastBubbleCustomContentLength.value] as const,
-  () => {
-    if (props.autoScroll) {
-      autoScrollSource.value++
-    }
-  },
-  { deep: true },
-)
+if (props.autoScroll) {
+  const { scrollToBottom: autoScrollScrollToBottom } = useAutoScroll(scrollContainerRef, () => [
+    props.items.length,
+    lastBubble.value?.content,
+    lastBubbleCustomContentLength.value,
+  ])
+  scrollToBottom = autoScrollScrollToBottom
 
-const { scrollToBottom } = useAutoScroll(scrollContainerRef, autoScrollSource, {
-  scrollOnMount: props.autoScroll,
-})
-
-watch(
-  () => lastBubble.value?.role,
-  async (role) => {
-    if (props.autoScroll && role === 'user') {
-      // 用户发送消息时，平滑滚动到最底部
-      await nextTick()
-      scrollToBottom('smooth')
-    }
-  },
-)
+  watch(
+    () => lastBubble.value?.role,
+    async (role) => {
+      if (role === 'user') {
+        // 用户发送消息时，平滑滚动到最底部
+        await nextTick()
+        autoScrollScrollToBottom('smooth')
+      }
+    },
+  )
+}
 
 const processedItems = computed(() => {
   return props.items.map((item, index) => {
