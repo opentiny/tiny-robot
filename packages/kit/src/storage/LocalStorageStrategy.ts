@@ -1,4 +1,4 @@
-import type { Conversation } from '../types'
+import type { Conversation } from '../vue/conversation/types'
 import type { ConversationStorageStrategy } from './types'
 
 /**

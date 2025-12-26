@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { Conversation } from '../types'
+import type { Conversation } from '../vue/conversation/types'
 import type { ConversationStorageStrategy } from './types'
 
 /**

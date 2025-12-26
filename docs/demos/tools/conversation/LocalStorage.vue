@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { TrBubbleList, TrSender, BubbleRoleConfig } from '@opentiny/tiny-robot'
-import { useConversation, AIClient, GeneratingStatus } from '@opentiny/tiny-robot-kit'
+import { useConversation, AIClient, GeneratingStatus, localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { TinySelect, TinyButton } from '@opentiny/vue'
 import { computed, h } from 'vue'
@@ -58,10 +58,9 @@ const {
   switchConversation,
 } = useConversation({
   client,
-  storageType: 'localStorage',
-  storageConfig: {
+  storage: localStorageStrategyFactory({
     key: 'demo-conversations-localstorage', // 自定义存储键名
-  },
+  }),
   events: {
     onLoaded(conversations) {
       if (conversations.length === 0) {

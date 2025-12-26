@@ -33,12 +33,8 @@ outline: deep
 interface UseConversationOptions {
   /** AI客户端实例 */
   client: AIClient
-  /** 存储类型 (default: 'localStorage') */
-  storageType?: 'localStorage' | 'indexedDB'
-  /** 自定义存储策略（优先级高于 storageType） */
+  /** 存储策略（可选，默认使用 LocalStorage） */
   storage?: ConversationStorageStrategy
-  /** 存储配置 */
-  storageConfig?: StorageConfig
   /** 是否自动保存 (default: true) */
   autoSave?: boolean
   /** 是否允许空会话 (default: false) */
@@ -49,15 +45,6 @@ interface UseConversationOptions {
   errorMessage?: string
   /** 事件回调 */
   events?: UseConversationEvents
-}
-
-interface StorageConfig {
-  /** LocalStorage 的存储键名 */
-  key?: string
-  /** IndexedDB 的数据库名称 */
-  dbName?: string
-  /** IndexedDB 的数据库版本 */
-  dbVersion?: number
 }
 ```
 
@@ -144,14 +131,18 @@ const conversationManager = useConversation({
   client,
   // 默认使用 LocalStorage，无需配置
 });
+```
 
-// 或自定义存储键名
+#### 使用 LocalStorage 自定义配置
+
+```typescript
+import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
+
 const conversationManager = useConversation({
   client,
-  storageType: 'localStorage',
-  storageConfig: {
+  storage: localStorageStrategyFactory({
     key: 'my-app-conversations'
-  }
+  })
 });
 ```
 
@@ -160,19 +151,14 @@ const conversationManager = useConversation({
 IndexedDB 相比 LocalStorage 具有更大的存储容量（>50MB）和更好的性能，适合存储大量会话数据：
 
 ```typescript
-const conversationManager = useConversation({
-  client,
-  storageType: 'indexedDB'
-});
+import { indexedDBStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
 
-// 或自定义数据库配置
 const conversationManager = useConversation({
   client,
-  storageType: 'indexedDB',
-  storageConfig: {
+  storage: indexedDBStorageStrategyFactory({
     dbName: 'my-chat-app-db',
     dbVersion: 1
-  }
+  })
 });
 ```
 

@@ -8,15 +8,9 @@ import type { ChatMessage } from '../../types'
 import { useMessage, type UseMessageOptions, type UseMessageReturn } from '../message/useMessage'
 import type { AIClient } from '../../client'
 import type { Conversation, ConversationState } from './types'
-import {
-  createStorageStrategy,
-  type ConversationStorageStrategy,
-  type StorageConfig,
-  type StorageType,
-} from './storage'
+import { localStorageStrategyFactory, type ConversationStorageStrategy } from '../../storage'
 
 export type { Conversation, ConversationState } from './types'
-export type { StorageConfig, StorageType } from './storage'
 
 export type UseConversationEvents = UseMessageOptions['events'] & {
   onLoaded?: (conversations: Conversation[]) => void
@@ -28,17 +22,13 @@ export type UseConversationEvents = UseMessageOptions['events'] & {
 export interface UseConversationOptions {
   /** AI客户端实例 */
   client: AIClient
-  /** 存储类型 (default: 'localStorage') */
-  storageType?: StorageType
-  /** 自定义存储策略（优先级高于 storageType） */
+  /** 存储策略（可选，默认使用 LocalStorage） */
   storage?: ConversationStorageStrategy
-  /** 存储配置 */
-  storageConfig?: StorageConfig
-  /** 是否自动保存 */
+  /** 是否自动保存 (default: true) */
   autoSave?: boolean
-  /** 是否允许空会话 */
+  /** 是否允许空会话 (default: false) */
   allowEmpty?: boolean
-  /** 是否默认使用流式响应 */
+  /** 是否默认使用流式响应 (default: true)*/
   useStreamByDefault?: boolean
   /** 错误消息模板 */
   errorMessage?: string
@@ -92,8 +82,6 @@ export function useConversation(options: UseConversationOptions): UseConversatio
   const {
     client,
     storage,
-    storageType,
-    storageConfig,
     autoSave = true,
     allowEmpty = false,
     useStreamByDefault = true,
@@ -102,7 +90,7 @@ export function useConversation(options: UseConversationOptions): UseConversatio
   } = options
 
   // 使用自定义策略或创建默认策略
-  const storageInstance = storage || createStorageStrategy(storageType, storageConfig)
+  const storageInstance = storage || localStorageStrategyFactory()
 
   // 会话状态
   const state = reactive<ConversationState>({
