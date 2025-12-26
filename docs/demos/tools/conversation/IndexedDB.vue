@@ -1,9 +1,5 @@
 <template>
   <div>
-    <div class="storage-info">
-      <span class="badge">IndexedDB</span>
-      <span class="info-text">数据存储在浏览器 IndexedDB 中，支持更大容量和更好性能</span>
-    </div>
     <tr-bubble-list :items="messages" :roles="roles"></tr-bubble-list>
 
     <!-- 消息输入区域 -->
@@ -101,32 +97,6 @@ const clearStorage = async () => {
 </script>
 
 <style scoped>
-.storage-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: #f0fdf4;
-  border-left: 4px solid #10b981;
-  border-radius: 4px;
-  margin-bottom: 16px;
-}
-
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #10b981;
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-}
-
-.info-text {
-  color: #065f46;
-  font-size: 14px;
-}
-
 .tiny-select {
   width: 280px;
   margin-left: 4px;
