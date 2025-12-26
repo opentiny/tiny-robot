@@ -40,9 +40,9 @@ const lastBubbleCustomContentLength = computed(() => {
 const autoScrollSource = ref(0)
 
 watch(
-  () => [props.autoScroll, props.items.length, lastBubble.value?.content, lastBubbleCustomContentLength.value] as const,
-  ([autoScroll]) => {
-    if (autoScroll) {
+  () => [props.items.length, lastBubble.value?.content, lastBubbleCustomContentLength.value] as const,
+  () => {
+    if (props.autoScroll) {
       autoScrollSource.value++
     }
   },
@@ -56,8 +56,8 @@ const { scrollToBottom } = useAutoScroll(scrollContainerRef, autoScrollSource, {
 watch(
   () => lastBubble.value?.role,
   async (role) => {
-    // 用户发送消息时，平滑滚动到最底部
-    if (role === 'user') {
+    if (props.autoScroll && role === 'user') {
+      // 用户发送消息时，平滑滚动到最底部
       await nextTick()
       scrollToBottom('smooth')
     }

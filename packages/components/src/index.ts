@@ -39,7 +39,7 @@ export * from './mcp-add-form/index.type'
 
 export { useTheme } from './theme-provider/useTheme'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
-export { useTouchDevice } from './shared/composables/useTouchDevice'
+export { useAutoScroll, useTouchDevice } from './shared/composables'
 
 const components = [
   Attachments,

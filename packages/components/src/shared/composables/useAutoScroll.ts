@@ -28,8 +28,7 @@ function useOnceFallingEdge(source: Ref<boolean>, cb: () => void) {
 }
 
 /**
- * 自动滚动到底部的 composable。
- * 当源数据变化时自动滚动到底部，支持用户手动滚动时暂停自动滚动
+ * 当目标滚动容器 `target` 接近底部时，且源数据 `source` 变化，自动滚动到底部
  * @param target 目标滚动容器的元素引用
  * @param source 监听的源数据，当该数据变化时会触发自动滚动
  * @param options 配置选项
