@@ -303,6 +303,7 @@ const SelectDropStyle = {
       <div class="mcp-server-picker__header">
         <div class="mcp-server-picker__header-left">{{ props.title }}</div>
         <div class="mcp-server-picker__header-right">
+          <slot name="header-actions" />
           <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
             <IconPlus class="mcp-server-picker__icon" />
             <span>{{ props.customAddButtonText }}</span>
