@@ -7,11 +7,11 @@ const props = defineProps<BubbleContentRendererProps>()
 const renderer = useBubbleContentRenderer(() => props.message, props.contentIndex)
 
 const emit = defineEmits<{
-  (e: 'update:state', payload: { key: string; value: unknown; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; contentIndex?: number }): void
 }>()
 
 const handleStateChange = (key: string, value: unknown) => {
-  emit('update:state', {
+  emit('state-change', {
     key,
     value,
     contentIndex: props.contentIndex,

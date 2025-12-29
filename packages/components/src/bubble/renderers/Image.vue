@@ -15,13 +15,22 @@ const content = computed(() => {
   return props.message.content[props.contentIndex ?? 0]
 })
 
-watch(
-  () => content.value?.image_url,
-  () => {
-    isLoaded.value = false
-    hasError.value = false
-  },
-)
+const imageUrl = computed(() => {
+  if (!content.value) {
+    return null
+  }
+
+  if (typeof content.value.image_url === 'string') {
+    return content.value.image_url
+  }
+
+  return content.value.image_url.url
+})
+
+watch(imageUrl, () => {
+  isLoaded.value = false
+  hasError.value = false
+})
 
 const handleLoad = () => {
   isLoaded.value = true
@@ -38,7 +47,7 @@ const handleError = () => {
   <img
     class="tr-bubble__image"
     :class="{ loading: !isLoaded }"
-    :src="content?.image_url"
+    :src="imageUrl"
     :alt="content?.text"
     loading="lazy"
     @load="handleLoad"

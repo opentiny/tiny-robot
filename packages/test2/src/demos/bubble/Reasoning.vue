@@ -19,7 +19,7 @@
       :reasoning_content="reasoningContent"
       :avatar="Avatar"
       :state="reasoningState"
-      @update:state="handleStateChange"
+      @state-change="handleStateChange"
     >
     </Bubble>
   </section>

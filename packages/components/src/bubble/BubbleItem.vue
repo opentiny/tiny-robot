@@ -12,7 +12,7 @@ const props = defineProps<{
 defineSlots<BubbleSlots>()
 
 const emit = defineEmits<{
-  (e: 'update:state', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
 }>()
 
 // Provide messages for each BubbleItem instance
@@ -24,7 +24,7 @@ setupBubbleMessageGroup(() => props.messageGroup)
     v-bind="roleConfig"
     :role="messageGroup.role"
     :content-render-mode="contentRenderMode"
-    @update:state="emit('update:state', $event)"
+    @state-change="emit('state-change', $event)"
   >
     <template #prefix="slotProps">
       <slot name="prefix" v-bind="slotProps"></slot>

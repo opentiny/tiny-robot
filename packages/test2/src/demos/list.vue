@@ -24,7 +24,7 @@
       :messages="messages"
       :role-configs="roleConfigs"
       content-render-mode="split"
-      @update:state="handleStateChange"
+      @state-change="handleStateChange"
     >
       <template #prefix="slotProps">
         <input
@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import {
   BubbleList,
-  BubbleMarkdownRenderer,
+  BubbleRenderers,
   BubbleProvider,
   type BubbleMessage,
   type BubbleRoleConfig,
@@ -152,7 +152,7 @@ const roleConfigs: Record<string, BubbleRoleConfig> = {
   assistant: {
     placement: 'start',
     shape: 'none',
-    fallbackContentRenderer: BubbleMarkdownRenderer,
+    fallbackContentRenderer: BubbleRenderers.Markdown,
   },
 }
 

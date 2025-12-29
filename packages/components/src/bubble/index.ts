@@ -42,5 +42,4 @@ export {
   useOmitMessageFields,
 } from './composables'
 export { BubbleRendererMatchPriority } from './constants'
-export { default as BubbleBasicBox } from './renderers/Box.vue'
-export { default as BubbleMarkdownRenderer } from './renderers/Markdown.vue'
+export { BubbleRenderers } from './renderers/allRenderers'

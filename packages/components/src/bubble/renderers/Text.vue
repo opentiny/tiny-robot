@@ -29,7 +29,7 @@ p.tr-bubble__text {
   white-space: pre-wrap;
 
   & + p.tr-bubble__text {
-    margin-top: 1em;
+    margin-top: 0.5em;
   }
 }
 </style>

@@ -137,7 +137,7 @@ export interface UseMessageReturn {
   isProcessing: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
-  abortRequest: () => void
+  abortRequest: () => Promise<void>
 }
 
 export interface BasePluginContext {

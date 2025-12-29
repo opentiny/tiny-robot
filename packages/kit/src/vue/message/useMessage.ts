@@ -1,4 +1,4 @@
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { fallbackRolePlugin, lengthPlugin, thinkingPlugin } from './plugins'
 import type {
   BasePluginContext,
@@ -267,9 +267,25 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     }
   }
 
-  // Function to cancel the current message request
-  const abortRequest = () => {
+  // 取消当前消息请求的函数
+  const abortRequest = async () => {
     abortController?.abort()
+
+    // 等待直到 isProcessing 变为 false
+    if (isProcessing.value) {
+      await new Promise<void>((resolve) => {
+        const stopWatcher = watch(
+          isProcessing,
+          (value) => {
+            if (!value) {
+              stopWatcher()
+              resolve()
+            }
+          },
+          { immediate: true },
+        )
+      })
+    }
   }
 
   const postRequest = async (

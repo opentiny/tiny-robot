@@ -231,7 +231,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     // Abort running request when closing this conversation.
     const engine = workingEngines.get(id)
-    engine?.abortRequest()
+    await engine?.abortRequest()
 
     // Stop auto-save watcher before removing engine
     stopAutoSave(id)
@@ -274,8 +274,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   /**
    * Convenience method: abort request of active conversation.
    */
-  const abortActiveRequest = () => {
-    activeConversation.value?.engine.abortRequest()
+  const abortActiveRequest = async () => {
+    await activeConversation.value?.engine.abortRequest()
   }
 
   return {

@@ -90,7 +90,7 @@ const handleStateChange = (payload: { key: string; value: unknown }) => {
       :tool_calls="toolCalls"
       :avatar="Avatar"
       :state="state"
-      @update:state="handleStateChange"
+      @state-change="handleStateChange"
     >
     </Bubble>
   </section>

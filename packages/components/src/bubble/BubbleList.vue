@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
 defineSlots<BubbleListSlots>()
 
 const emit = defineEmits<{
-  (e: 'update:state', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
 }>()
 
 // Provide bubble store if not already provided
@@ -165,7 +165,7 @@ defineExpose({
       :role-config="props.roleConfigs?.[group.role || props.fallbackRole]"
       :message-group="group"
       :content-render-mode="props.contentRenderMode"
-      @update:state="emit('update:state', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
+      @state-change="emit('state-change', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
     >
       <template #prefix="slotProps">
         <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>

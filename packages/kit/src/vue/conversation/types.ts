@@ -89,5 +89,5 @@ export interface UseConversationReturn {
   updateConversationTitle: (id: string, title?: string) => void
   saveMessages: (id?: string) => void
   sendMessage: (content: string) => void
-  abortActiveRequest: () => void
+  abortActiveRequest: () => Promise<void>
 }

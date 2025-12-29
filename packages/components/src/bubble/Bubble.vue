@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 defineSlots<BubbleSlots>()
 
 const emit = defineEmits<{
-  (e: 'update:state', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
 }>()
 
 // Provide bubble store if not already provided
@@ -80,7 +80,7 @@ const shouldSplit = computed(() => {
             <BubbleContentWrapper
               :message="messages[0]"
               :content-index="index"
-              @update:state="emit('update:state', { ...$event, messageIndex: 0 })"
+              @state-change="emit('state-change', { ...$event, messageIndex: 0 })"
             ></BubbleContentWrapper>
             <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
@@ -94,13 +94,13 @@ const shouldSplit = computed(() => {
                   :key="`content-${contentIndex}`"
                   :message="message"
                   :content-index="contentIndex"
-                  @update:state="emit('update:state', { ...$event, messageIndex: msgIndex })"
+                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
                 ></BubbleContentWrapper>
               </template>
               <template v-else>
                 <BubbleContentWrapper
                   :message="message"
-                  @update:state="emit('update:state', { ...$event, messageIndex: msgIndex })"
+                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
                 ></BubbleContentWrapper>
               </template>
             </template>
