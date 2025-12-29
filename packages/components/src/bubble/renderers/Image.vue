@@ -12,7 +12,7 @@ const content = computed(() => {
     return null
   }
 
-  return props.message.content[props.contentIndex ?? 0]
+  return props.message.content.at(props.contentIndex ?? 0)
 })
 
 const imageUrl = computed(() => {

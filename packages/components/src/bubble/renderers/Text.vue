@@ -9,7 +9,7 @@ const content = computed(() => {
     return props.message.content
   }
 
-  return props.message.content?.[props.contentIndex ?? 0].text
+  return props.message.content?.at(props.contentIndex ?? 0)?.text
 })
 </script>
 

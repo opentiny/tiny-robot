@@ -40,7 +40,9 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
   },
   {
     find: (message, contentIndex) =>
-      Array.isArray(message.content) && message.content[contentIndex ?? 0].type === 'image_url',
+      Array.isArray(message.content) &&
+      typeof contentIndex === 'number' &&
+      message.content[contentIndex].type === 'image_url',
     renderer: markRaw(Image),
     priority: BubbleRendererMatchPriority.CONTENT,
   },
