@@ -1,14 +1,19 @@
 import { cpSync, existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { resolve, dirname } from 'node:path'
 
-// Get the project root directory
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const projectRoot = join(__dirname, '..')
+// Get command line arguments
+const args = process.argv.slice(2)
 
-// Source and destination paths
-const source = join(projectRoot, 'packages/playground/dist')
-const dest = join(projectRoot, 'docs/dist/playground')
+if (args.length < 2) {
+  console.error('Usage: node copy-playground.js <source> <dest>')
+  console.error('Example: node copy-playground.js packages/playground/dist docs/dist/playground')
+  process.exit(1)
+}
+
+// Source and destination paths from arguments
+// resolve() automatically handles both absolute and relative paths
+const source = resolve(args[0])
+const dest = resolve(args[1])
 
 try {
   // Check if source exists

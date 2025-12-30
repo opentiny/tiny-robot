@@ -1,5 +1,5 @@
 {
-  "name": "root",
+  "name": "robot-root",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
@@ -7,8 +7,8 @@
     "dev": "pnpm build:svgs && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
-    "build:docs": "pnpm build:components && pnpm build:playground && pnpm -F docs build",
-    "postbuild:docs": "node scripts/copy-playground.js",
+    "build:docs": "node scripts/build-docs.js",
+    "postbuild:docs": "node scripts/copy-playground.js packages/playground/dist docs/dist/playground",
     "dev:playground": "pnpm -F @opentiny/tiny-robot-playground dev",
     "build:playground": "pnpm -F @opentiny/tiny-robot-playground build",
     "build:deps": "pnpm -F @opentiny/tiny-robot-* -F \"!@opentiny/tiny-robot-playground\" build",
