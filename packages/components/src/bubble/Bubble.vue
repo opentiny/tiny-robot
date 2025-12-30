@@ -1,241 +1,187 @@
 <script setup lang="ts">
-import { computed, useAttrs } from 'vue'
-import { toCssUnit } from '../shared/utils'
-import { ContentItem } from './components'
-import { BubbleContentFunctionRenderer, BubbleProps, BubbleSlots } from './index.type'
-import { BubbleContentClassRenderer } from './renderers'
+import { computed, toValue } from 'vue'
+import BubbleBoxWrapper from './BubbleBoxWrapper.vue'
+import BubbleContentWrapper from './BubbleContentWrapper.vue'
+import {
+  resolveMessageContent,
+  setupBubblePropBoxRenderer,
+  setupBubblePropContentRenderer,
+  setupBubbleStore,
+  useBubbleMessageGroup,
+} from './composables'
+import type { BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
-  content: '',
   placement: 'start',
   shape: 'corner',
-  abortedText: '（用户停止）',
+  contentRenderMode: 'single',
 })
 
-const slots = defineSlots<BubbleSlots>()
+defineSlots<BubbleSlots>()
 
-const contentRenderer = computed(() => {
-  const renderer = props.contentRenderer
+const emit = defineEmits<{
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+}>()
 
-  if (!renderer) {
-    return null
+// Provide bubble store if not already provided
+setupBubbleStore()
+
+// 从父级 BubbleItem 注入消息分组
+const messageGroup_ = useBubbleMessageGroup()
+const messageGroup = computed(() => toValue(messageGroup_) as BubbleMessageGroup | undefined)
+
+const messages = computed(() => {
+  if (messageGroup.value?.messages.length) {
+    return messageGroup.value.messages
   }
 
-  if (typeof renderer === 'function') {
-    const renderFn = renderer as BubbleContentFunctionRenderer
-    return { isComponent: false, vNodeOrComponent: renderFn(props) }
-  }
-
-  if (renderer instanceof BubbleContentClassRenderer) {
-    return { isComponent: false, vNodeOrComponent: renderer.render(props) }
-  }
-
-  if (typeof renderer === 'object' && renderer !== null && 'component' in renderer) {
-    return { isComponent: true, vNodeOrComponent: renderer.component, defaultProps: renderer.defaultProps }
-  }
-
-  return { isComponent: true, vNodeOrComponent: renderer }
+  const { role, content, reasoning_content, tool_calls, tool_call_id, name, id, loading, state } = props
+  return [{ role, content, reasoning_content, tool_calls, tool_call_id, name, id, loading, state }]
 })
 
-const attrs = useAttrs()
+// Setup prop-level fallback renderers for responsive tracking
+setupBubblePropBoxRenderer({ fallbackBoxRenderer: () => props.fallbackBoxRenderer })
+setupBubblePropContentRenderer({ fallbackContentRenderer: () => props.fallbackContentRenderer })
 
-const customContent = computed(() => {
-  if (!props.customContentField) {
-    return null
+const hidden = computed(() => {
+  if (messages.value.length === 0) {
+    return true
   }
 
-  const value = attrs[props.customContentField]
-
-  // value 是字符串，或者是数组且长度大于0
-  if (typeof value === 'string' || (Array.isArray(value) && value.length > 0)) {
-    return value
-  }
-
-  return null
+  return props.hidden
 })
 
-const finalContent = computed(() => customContent.value || props.content)
-
-const bubbleContent = computed(() => {
-  if (Array.isArray(finalContent.value)) {
-    return ''
-  }
-
-  return finalContent.value
-})
-
-const contentItems = computed(() => {
-  if (Array.isArray(finalContent.value)) {
-    return finalContent.value
-  }
-
-  return []
-})
-
-const placementStart = computed(() => props.placement === 'start')
-
-const style = computed(() => {
-  if (props.maxWidth) {
-    return {
-      '--max-width': toCssUnit(props.maxWidth),
-    }
-  }
-
-  return {}
+const shouldSplit = computed(() => {
+  return (
+    props.contentRenderMode === 'split' &&
+    messages.value.length === 1 &&
+    Array.isArray(resolveMessageContent(messages.value[0]))
+  )
 })
 </script>
 
 <template>
-  <div
-    :class="[
-      'tr-bubble',
-      {
-        'placement-start': placementStart,
-        'placement-end': !placementStart,
-      },
-    ]"
-    :style="style"
-  >
-    <div v-if="props.avatar" :class="['tr-bubble__avatar']">
-      <component :is="props.avatar"></component>
-    </div>
-    <slot v-if="props.loading" name="loading" :bubble-props="props">
-      <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <img src="../assets/loading.webp" alt="loading" class="tr-bubble__loading" />
-      </div>
-    </slot>
-    <div v-else class="tr-bubble__content-wrapper">
-      <div :class="['tr-bubble__content', { 'border-corner': props.shape === 'corner' }]">
-        <template v-if="contentItems.length">
-          <div class="tr-bubble__content-items">
-            <ContentItem v-for="(item, index) in contentItems" :key="index" :item="item" />
-          </div>
+  <div class="tr-bubble" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
+    <slot name="prefix" :messages="messages" :role="role"></slot>
+    <div class="tr-bubble__body">
+      <component
+        v-if="props.avatar"
+        :is="props.avatar"
+        class="tr-bubble__avatar"
+        :class="$style['tr-bubble__avatar']"
+      />
+      <div class="tr-bubble__content">
+        <template v-if="shouldSplit">
+          <BubbleBoxWrapper
+            v-for="(_, index) in resolveMessageContent(messages[0])"
+            :key="index"
+            class="tr-bubble__box"
+            :role="props.role"
+            :placement="props.placement"
+            :shape="props.shape"
+            :messages="messages"
+            :content-index="index"
+          >
+            <BubbleContentWrapper
+              :message="messages[0]"
+              :content-index="index"
+              @state-change="emit('state-change', { ...$event, messageIndex: 0 })"
+            ></BubbleContentWrapper>
+            <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
+          </BubbleBoxWrapper>
         </template>
         <template v-else>
-          <slot :bubble-props="props">
-            <template v-if="contentRenderer">
-              <component
-                v-if="contentRenderer.isComponent"
-                :is="contentRenderer.vNodeOrComponent"
-                v-bind="{ ...contentRenderer.defaultProps, ...props }"
-              ></component>
-              <component v-else :is="contentRenderer.vNodeOrComponent"></component>
+          <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
+            <template v-for="(message, msgIndex) in messages" :key="`message-${msgIndex}`">
+              <template v-if="Array.isArray(resolveMessageContent(message))">
+                <BubbleContentWrapper
+                  v-for="(_, contentIndex) in resolveMessageContent(message)"
+                  :key="`content-${contentIndex}`"
+                  :message="message"
+                  :content-index="contentIndex"
+                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
+                ></BubbleContentWrapper>
+              </template>
+              <template v-else>
+                <BubbleContentWrapper
+                  :message="message"
+                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
+                ></BubbleContentWrapper>
+              </template>
             </template>
-            <span v-else class="tr-bubble__body-text">{{ bubbleContent }}</span>
-          </slot>
+            <slot name="content-footer" :messages="messages" :role="props.role"></slot>
+          </BubbleBoxWrapper>
         </template>
-        <span v-if="props.aborted" class="tr-bubble__aborted">{{ props.abortedText }}</span>
-        <div v-if="slots.footer" class="tr-bubble__footer">
-          <slot name="footer" :bubble-props="props"></slot>
-        </div>
       </div>
-      <slot name="trailer" :bubble-props="props"></slot>
+      <div class="tr-bubble__after">
+        <slot name="after" :messages="messages" :role="role"></slot>
+      </div>
     </div>
+    <slot name="suffix" :messages="messages" :role="role"></slot>
   </div>
 </template>
 
 <style lang="less" scoped>
 .tr-bubble {
-  /* 不影响布局的变量 */
-  --content-bg: var(--tr-bubble-content-bg);
-  --content-border-radius: var(--tr-bubble-content-border-radius);
-  --content-box-shadow: var(--tr-bubble-content-box-shadow);
-  --text-color: var(--tr-bubble-text-color);
-  --aborted-color: var(--tr-bubble-aborted-color);
-
-  /* 影响布局的变量 */
-  --gap: var(--tr-bubble-gap);
-  --max-width: var(--tr-bubble-max-width);
-  --avatar-size: var(--tr-bubble-avatar-size);
-  --content-padding: var(--tr-bubble-content-padding);
-  --content-border: var(--tr-bubble-content-border);
-  --text-font-size: var(--tr-bubble-text-font-size);
-  --text-line-height: var(--tr-bubble-text-line-height);
-  --loading-size: var(--tr-bubble-loading-size);
-  --aborted-font-size: var(--tr-bubble-aborted-font-size);
-  --content-items-gap: var(--tr-bubble-content-items-gap);
-  --footer-margin: var(--tr-bubble-footer-margin);
-}
-
-.tr-bubble {
   display: flex;
-  gap: var(--gap);
-  max-width: var(--max-width);
-
-  &.placement-start {
-    flex-direction: row;
-
-    .tr-bubble__content-wrapper {
-      align-items: flex-start;
-    }
-
-    .tr-bubble__content.border-corner {
-      border-top-left-radius: 0;
-    }
-  }
-
-  &.placement-end {
-    flex-direction: row-reverse;
-    margin-left: auto;
-
-    .tr-bubble__content-wrapper {
-      align-items: flex-end;
-    }
-
-    .tr-bubble__content.border-corner {
-      border-top-right-radius: 0;
-    }
-  }
+  align-items: flex-start;
 }
 
-.tr-bubble__avatar {
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.tr-bubble__body {
+  flex: 1;
 
-.tr-bubble__loading {
-  width: var(--loading-size);
-  height: var(--loading-size);
-}
-
-.tr-bubble__content-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 1fr; /* 左侧头像，右侧内容 */
+  grid-template-rows: auto auto;
 }
 
 .tr-bubble__content {
-  background-color: var(--content-bg);
-  padding: var(--content-padding);
-  border-radius: var(--content-border-radius);
-  box-shadow: var(--content-box-shadow);
-  border: var(--content-border);
+  grid-area: 1 / 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
 
-  .tr-bubble__content-items {
-    display: flex;
-    flex-direction: column;
-    gap: var(--content-items-gap);
+.tr-bubble__box {
+  max-width: var(--tr-bubble-max-width);
+  width: fit-content;
+}
+
+.tr-bubble__after {
+  grid-area: 2 / 2;
+  position: relative;
+}
+
+[data-placement='end'] {
+  .tr-bubble__body {
+    grid-template-columns: 1fr auto; /* 左侧内容，右侧头像 */
+
+    & > * {
+      justify-self: end;
+    }
   }
 
-  .tr-bubble__body-text {
-    color: var(--text-color);
-    font-size: var(--text-font-size);
-    line-height: var(--text-line-height);
-    word-break: break-word;
-    white-space: pre-line;
+  .tr-bubble__content {
+    grid-area: 1 / 1;
+    align-items: flex-end;
   }
 
-  .tr-bubble__aborted {
-    color: var(--aborted-color);
-    font-size: var(--aborted-font-size);
+  .tr-bubble__after {
+    grid-area: 2 / 1;
   }
+}
+</style>
 
-  .tr-bubble__footer {
-    margin: var(--footer-margin);
-  }
+<style module>
+[data-placement='start'] .tr-bubble__avatar {
+  margin-right: var(--tr-bubble-gap);
+  grid-area: 1 / 1;
+}
+
+[data-placement='end'] .tr-bubble__avatar {
+  margin-left: var(--tr-bubble-gap);
+  grid-area: 1 / 2;
 }
 </style>

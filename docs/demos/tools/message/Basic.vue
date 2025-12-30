@@ -1,5 +1,5 @@
 <template>
-  <tr-bubble-list :items="messages" :roles="roles"></tr-bubble-list>
+  <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
   <tr-sender
     v-model="inputMessage"
     :placeholder="messageState.status === STATUS.PROCESSING ? '正在思考中...' : '请输入您的问题'"
@@ -42,12 +42,10 @@ const roles: Record<string, BubbleRoleConfig> = {
   assistant: {
     placement: 'start',
     avatar: aiAvatar,
-    maxWidth: '80%',
   },
   user: {
     placement: 'end',
     avatar: userAvatar,
-    maxWidth: '80%',
   },
 }
 </script>

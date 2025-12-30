@@ -14,19 +14,13 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 > 更多 css 变量请参考 [CSS 变量](#css-变量)
 
-<demo vue="../../demos/bubble/basic.vue" />
-
 ### 头像和位置
 
 通过 `avatar` 设置自定义头像，通过 `placement` 设置位置，提供了 `start`、`end` 两个选项
 
-<demo vue="../../demos/bubble/avatar-and-placement.vue" />
-
 ### 气泡形状
 
 通过 `shape` 设置气泡形状。目前提供了 `rounded` 和 `corner` 两个选项。默认为 `corner`
-
-<demo vue="../../demos/bubble/shape.vue" />
 
 ### 加载中
 
@@ -34,29 +28,19 @@ Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位�
 
 BubbleList 除了需要设置 `loading`，还需要设置 `loading-role`。需要注意的是，列表的加载中气泡实际上并没有新增一条消息，`loading` 设置为 `false` 后，加载中的气泡不会渲染
 
-<demo vue="../../demos/bubble/loading.vue" :vueFiles="['../../demos/bubble/loading.vue']" />
-
 ### 用户停止
 
 通过 `aborted` 设置用户停止状态
-
-<demo vue="../../demos/bubble/aborted.vue" />
 
 ### 最大宽度
 
 通过 `maxWidth` 设置气泡最大宽度
 
-<demo vue="../../demos/bubble/max-width.vue" />
-
 ### 渲染 markdown
-
-<demo vue="../../demos/bubble/markdown.vue" />
 
 ### 流式文本
 
 `content` 属性是响应式的，动态设置 `content` 即可实现流式文本
-
-<demo vue="../../demos/bubble/streaming.vue" />
 
 ### 多种消息格式
 
@@ -127,33 +111,19 @@ content 对象中的所有属性都将传递给组件，onXXX会当作事件传�
 
 - `BubbleMarkdownContentRenderer` 类渲染器
 
-<demo vue="../../demos/bubble/messages.vue" />
-
 ### 指定渲染属性
 
 和大模型交互数据时，交互的原始数据中的 content 字段可能需要经过前端二次处理再展示到UI上，但此时我们又不想改动原始的 content 字段。此时可以通过 `customContentField` 属性来在前端指定你需要渲染的属性
-
-<demo vue="../../demos/bubble/custom-content-field.vue" />
 
 ### 插槽
 
 气泡组件提供了四个插槽，分别是 默认插槽, `loading` 插槽、`footer` 插槽 和 `trailer` 插槽
 
-<demo vue="../../demos/bubble/slots.vue" :vueFiles="['../../demos/bubble/slots.vue']" />
-
-### schema 卡片渲染
-
-<demo vue="../../demos/bubble/schema-render.vue" :vueFiles="['../../demos/bubble/schema-render.vue', '../../demos/bubble/schema-card.ce.vue']" playground="false" />
-
 ### 列表
-
-<demo vue="../../demos/bubble/list.vue" />
 
 ### 隐藏角色
 
 角色配置中使用 `hidden` 来隐藏这个角色的所有消息
-
-<demo vue="../../demos/bubble/list-hidden.vue" />
 
 ## Props
 

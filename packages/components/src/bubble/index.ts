@@ -2,7 +2,6 @@ import { App } from 'vue'
 import BubbleComp from './Bubble.vue'
 import BubbleListComp from './BubbleList.vue'
 import BubbleProviderComp from './BubbleProvider.vue'
-export { BubbleMarkdownContentRenderer, BubbleContentClassRenderer } from './renderers'
 
 BubbleComp.name = 'TrBubble'
 
@@ -35,3 +34,13 @@ BubbleProviderComp.install = bubbleProviderInstall
 export const BubbleProvider = BubbleProviderComp as typeof BubbleProviderComp & {
   install: typeof bubbleProviderInstall
 }
+
+export {
+  useBubbleBoxRenderer,
+  useBubbleContentRenderer,
+  useBubbleStateChangeFn,
+  useMessageContent,
+  useOmitMessageFields,
+} from './composables'
+export { BubbleRendererMatchPriority } from './constants'
+export { BubbleRenderers } from './renderers/allRenderers'

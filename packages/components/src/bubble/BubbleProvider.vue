@@ -1,34 +1,40 @@
 <script setup lang="ts">
-import { provide } from 'vue'
+import { computed } from 'vue'
+import { setupBubbleBoxRenderer, setupBubbleContentRenderer, setupBubbleStore } from './composables'
+import type { BubbleProviderProps } from './index.type'
 import {
-  BubbleContentRenderer,
-  BubbleTextContentRenderer,
-  defaultContentRendererMap,
-  FALLBACK_RENDERER_PROVIDER_KEY,
-  RENDERER_MAP_PROVIDER_KEY,
-} from './renderers'
+  defaultBoxRendererMatches,
+  defaultContentRendererMatches,
+  defaultFallbackBoxRenderer,
+  defaultFallbackContentRenderer,
+} from './renderers/defaultRenderers'
 
-const props = withDefaults(
-  defineProps<{
-    contentRenderers?: Record<string, BubbleContentRenderer>
-  }>(),
-  {
-    contentRenderers: () => ({}),
-  },
-)
+const props = defineProps<BubbleProviderProps>()
 
-const bubbleContentRendererMap = new Map<string, BubbleContentRenderer>()
+setupBubbleStore(props.store)
 
-for (const [type, renderer] of defaultContentRendererMap.entries()) {
-  bubbleContentRendererMap.set(type, renderer)
-}
+const boxRendererMatches = computed(() => {
+  return (props.boxRendererMatches || [])
+    .concat(defaultBoxRendererMatches)
+    .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+})
 
-for (const [type, renderer] of Object.entries(props.contentRenderers)) {
-  bubbleContentRendererMap.set(type, renderer)
-}
+const contentRendererMatches = computed(() => {
+  return (props.contentRendererMatches || [])
+    .concat(defaultContentRendererMatches)
+    .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+})
 
-provide(RENDERER_MAP_PROVIDER_KEY, bubbleContentRendererMap)
-provide(FALLBACK_RENDERER_PROVIDER_KEY, BubbleTextContentRenderer)
+const fallbackBoxRenderer = computed(() => {
+  return props.fallbackBoxRenderer || defaultFallbackBoxRenderer
+})
+
+const fallbackContentRenderer = computed(() => {
+  return props.fallbackContentRenderer || defaultFallbackContentRenderer
+})
+
+setupBubbleBoxRenderer({ boxRendererMatches, fallbackBoxRenderer })
+setupBubbleContentRenderer({ contentRendererMatches, fallbackContentRenderer })
 </script>
 
 <template>

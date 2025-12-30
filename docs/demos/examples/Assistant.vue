@@ -51,8 +51,8 @@
     <tr-bubble-list
       :class="{ 'max-container': fullscreen }"
       v-else
-      :items="messages"
-      :roles="roles"
+      :messages="messages"
+      :role-configs="roles"
       auto-scroll
     ></tr-bubble-list>
 
@@ -472,12 +472,10 @@ const roles: Record<string, BubbleRoleConfig> = {
   assistant: {
     placement: 'start',
     avatar: aiAvatar,
-    maxWidth: '80%',
   },
   user: {
     placement: 'end',
     avatar: userAvatar,
-    maxWidth: '80%',
   },
 }
 
