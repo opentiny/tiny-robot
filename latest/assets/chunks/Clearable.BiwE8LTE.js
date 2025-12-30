@@ -1,0 +1,1 @@
+import{F as e}from"./theme.BUO7p23S.js";import{d as a,h as r,o,x as t}from"./framework.rwg-_Kqy.js";const _=a({__name:"Clearable",setup(n){return(s,c)=>(o(),r(t(e),{clearable:""}))}});export{_ as default};
