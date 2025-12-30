@@ -18,7 +18,9 @@ Sender 是一个功能丰富的输入组件，支持文本输入、语音识别�
 Sender 支持单行和多行两种输入模式，通过 `mode` 属性控制。
 
 :::tip 单行模式自动切换
-在单行模式下，当输入内容超出宽度或按 `Shift+Enter` 时，会自动切换为多行模式。
+在单行模式下，当输入内容超出宽度时，会自动切换为多行模式。
+
+当 `submitType="enter"` 时，按 `Ctrl+Enter` 或 `Shift+Enter` 也会自动切换为多行模式并换行。
 :::
 
 <demo vue="../../demos/sender/Mode.vue" title="输入模式" description="支持单行和多行模式，单行模式可自动切换为多行。" />
@@ -144,16 +146,32 @@ const filteredSuggestions = computed(() => {
 
 <demo vue="../../demos/sender/ShortcutSubmit.vue" title="提交方式" description="支持三种提交快捷键，适应不同使用场景。" />
 
+:::info 提交与换行说明
+- **submitType="enter"**：按 `Enter` 提交，按 `Ctrl+Enter` 或 `Shift+Enter` 换行
+- **submitType="ctrlEnter"**：按 `Ctrl+Enter` 提交，按 `Enter` 换行
+- **submitType="shiftEnter"**：按 `Shift+Enter` 提交，按 `Enter` 换行
+
+在单行模式下使用换行快捷键时，会自动切换为多行模式。
+:::
+
 ### 快捷键参考
 
 | 快捷键      | 功能                      | 适用条件                       |
 | ----------- | ------------------------- | ------------------------------ |
 | Enter       | 提交内容 / 选中联想项     | submitType="enter" / 联想开启时 |
-| Ctrl+Enter  | 提交内容                  | submitType="ctrlEnter"         |
-| Shift+Enter | 提交内容                  | submitType="shiftEnter"        |
+| Ctrl+Enter  | 提交内容 / 换行           | submitType="ctrlEnter" / submitType="enter" |
+| Shift+Enter | 提交内容 / 换行           | submitType="shiftEnter" / submitType="enter" |
 | Tab         | 选中联想项                | 联想开启时                     |
 | Esc         | 取消语音/关闭联想         | 对应功能激活时                 |
 | ↑ / ↓       | 导航联想项                | 联想开启时                     |
+
+:::tip 换行快捷键说明
+**当 `submitType="enter"` 时**，支持以下换行方式：
+- **Ctrl+Enter**：插入换行符（单行模式会自动切换为多行模式）
+- **Shift+Enter**：插入换行符（单行模式会自动切换为多行模式）
+
+**当 `submitType="ctrlEnter"` 或 `submitType="shiftEnter"` 时**，单独按 `Enter` 键即可换行。
+:::
 
 :::warning 自定义选中按键
 通过 `activeSuggestionKeys` 可自定义选中联想项的按键，但请勿使用纯修饰键（Ctrl/Shift/Alt/Meta），避免劫持常用快捷键。
