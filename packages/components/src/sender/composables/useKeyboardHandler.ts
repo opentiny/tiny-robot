@@ -81,29 +81,61 @@ export function useKeyboardHandler(
   }
 
   /**
+   * 在光标位置插入换行符
+   * @param target 输入框元素
+   */
+  const insertNewLine = (target: HTMLTextAreaElement) => {
+    const start = target.selectionStart ?? 0
+    const end = target.selectionEnd ?? start
+    const currentValue = inputValue.value
+
+    // 使用选区范围插入换行符，保持与原生 textarea 行为一致（替换选中文本）
+    inputValue.value = currentValue.substring(0, start) + '\n' + currentValue.substring(end)
+
+    // 设置光标位置到换行符之后，并滚动到光标位置
+    setTimeout(() => {
+      const newCursorPos = start + 1
+      target.selectionStart = target.selectionEnd = newCursorPos
+      // 滚动到光标所在位置，确保光标可见
+      target.scrollTop = target.scrollHeight
+    }, 0)
+  }
+
+  /**
+   * 处理换行操作（仅在 submitType='enter' 时生效）
+   * @param event 键盘事件
+   * @returns 是否已处理换行
+   */
+  const handleNewLine = (event: KeyboardEvent): boolean => {
+    // 只在 submitType='enter' 时支持 Ctrl+Enter 和 Shift+Enter 换行
+    if (props.submitType !== 'enter' || event.key !== 'Enter') return false
+
+    const isCtrlEnter = event.ctrlKey && !event.shiftKey
+    const isShiftEnter = event.shiftKey && !event.ctrlKey
+
+    // Ctrl+Enter 或 Shift+Enter: 单行模式切换到多行，多行模式直接换行
+    if (isCtrlEnter || isShiftEnter) {
+      event.preventDefault()
+      const target = event.target as HTMLTextAreaElement
+
+      if (currentMode?.value === 'single' && setMultipleMode) {
+        setMultipleMode()
+      }
+      insertNewLine(target)
+      return true
+    }
+
+    return false
+  }
+
+  /**
    * 处理键盘按下事件
    */
   const handleKeyPress = (event: KeyboardEvent) => {
     if (isComposing.value) return // 阻止输入法状态下的提交
 
-    // 处理 Shift+Enter - 单行模式切换到多行模式并添加换行
-    if (event.key === 'Enter' && event.shiftKey && currentMode?.value === 'single' && setMultipleMode) {
-      event.preventDefault()
-      // 首先切换到多行模式
-      setMultipleMode()
-      // 然后在当前输入内容的光标位置添加换行符
-      const target = event.target as HTMLTextAreaElement
-      const cursorPosition = target.selectionStart
-      const currentValue = inputValue.value
-
-      // 在光标位置插入换行符
-      inputValue.value = currentValue.substring(0, cursorPosition) + '\n' + currentValue.substring(cursorPosition)
-
-      // 设置光标位置到换行符之后
-      setTimeout(() => {
-        target.selectionStart = target.selectionEnd = cursorPosition + 1
-      }, 0)
-
+    // 优先处理换行操作
+    if (handleNewLine(event)) {
       return
     }
 
@@ -148,16 +180,9 @@ export function useKeyboardHandler(
     }
 
     // 检查是否匹配当前的提交快捷键
-    const shouldSubmit = checkSubmitShortcut(event, props.submitType as SubmitTrigger)
-
-    if (shouldSubmit) {
-      // 只要是提交快捷键，就阻止默认行为（比如换行）
+    if (checkSubmitShortcut(event, props.submitType as SubmitTrigger) && canSubmit.value) {
       event.preventDefault()
-
-      // 如果验证通过，则执行提交
-      if (canSubmit.value) {
-        triggerSubmit()
-      }
+      triggerSubmit()
     }
   }
 
