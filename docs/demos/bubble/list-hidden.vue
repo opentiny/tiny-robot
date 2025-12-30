@@ -1,5 +1,5 @@
 <template>
-  <tr-bubble-list :items="items" :roles="roles"></tr-bubble-list>
+  <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
 </template>
 
 <script setup lang="ts">
@@ -10,7 +10,7 @@ import { h } from 'vue'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
-const items: BubbleListProps['items'] = [
+const messages: BubbleListProps['messages'] = [
   {
     role: 'user',
     content: '简单介绍 TinyVue',

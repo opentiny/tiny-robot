@@ -1,24 +1,23 @@
 <template>
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <label>使用插槽渲染运行时渲染</label>
-    <tr-bubble :avatar="aiAvatar">
-      <schema-card :schema="schemaObj"></schema-card>
-    </tr-bubble>
-
-    <label>使用markdown渲染运行时渲染（webcomponent）</label>
-    <tr-bubble :avatar="aiAvatar" :content="mdContent" :content-renderer="markdownRenderer"></tr-bubble>
-  </div>
+  <div style="margin-bottom: 16px"><label>使用markdown渲染运行时渲染（webcomponent）</label></div>
+  <tr-bubble-provider :store="bubbleStore">
+    <tr-bubble
+      :avatar="aiAvatar"
+      :content="mdContent"
+      :fallback-content-renderer="BubbleRenderers.Markdown"
+    ></tr-bubble>
+  </tr-bubble-provider>
 </template>
 
 <script setup lang="ts">
-import { BubbleMarkdownContentRenderer, TrBubble } from '@opentiny/tiny-robot'
+import { BubbleRenderers, TrBubble, TrBubbleProvider } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
-import { defineCustomElement, h, ref } from 'vue'
+import { defineCustomElement, h, reactive, ref } from 'vue'
 import SchemaCard from './schema-card.ce.vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
-const markdownRenderer = new BubbleMarkdownContentRenderer({
+const bubbleStore = reactive({
   mdConfig: { html: true },
   dompurifyConfig: { ADD_TAGS: ['schema-card'], ADD_ATTR: ['schema'] },
 })
