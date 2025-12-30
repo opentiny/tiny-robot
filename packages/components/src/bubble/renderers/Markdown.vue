@@ -1,21 +1,15 @@
 <script setup lang="ts">
 import type { Config as DOMPurifyConfig } from 'dompurify'
 import type { Options as MarkdownItOptions } from 'markdown-it'
-import { computed, onMounted, ref, watchEffect } from 'vue'
-import { useBubbleStore } from '../composables'
+import { onMounted, ref, watchEffect } from 'vue'
+import { useBubbleStore, useMessageContent } from '../composables'
 import { BubbleContentRendererProps } from '../index.type'
 import { getMarkdownItAndDompurify } from '../utils'
 import Text from './Text.vue'
 
 const props = defineProps<BubbleContentRendererProps>()
 
-const content = computed(() => {
-  if (typeof props.message.content === 'string') {
-    return props.message.content
-  }
-
-  return props.message.content?.at(props.contentIndex ?? 0)?.text
-})
+const content = useMessageContent(() => props.message, props.contentIndex)
 
 const markdownItAndDompurify = ref<Awaited<ReturnType<typeof getMarkdownItAndDompurify>>>(null)
 
@@ -33,7 +27,9 @@ const markdownContent = ref('')
 watchEffect(() => {
   if (markdownItAndDompurify.value) {
     const { markdown, dompurify } = markdownItAndDompurify.value
-    markdownContent.value = markdown(mdConfig || {}).render(String(content.value))
+    markdownContent.value = markdown(mdConfig || {}).render(
+      String(typeof content.value === 'string' ? content.value : content.value?.text),
+    )
     dompurify.sanitize(markdownContent.value, dompurifyConfig)
   }
 })

@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useMessageContent } from '../composables'
 import { BubbleContentRendererProps } from '../index.type'
 
 const props = defineProps<BubbleContentRendererProps>()
 
-const content = computed(() => {
-  if (typeof props.message.content === 'string') {
-    return props.message.content
-  }
-
-  return props.message.content?.at(props.contentIndex ?? 0)?.text
-})
+const content = useMessageContent(() => props.message, props.contentIndex)
 </script>
 
 <template>
-  <p v-if="content" class="tr-bubble__text" data-type="text">{{ content }}</p>
+  <p v-if="content" class="tr-bubble__text" data-type="text">
+    {{ typeof content === 'string' ? content : content?.text }}
+  </p>
 </template>
 
 <style scoped lang="less">
@@ -27,6 +23,7 @@ const content = computed(() => {
 p.tr-bubble__text {
   margin: 0;
   white-space: pre-wrap;
+  word-break: break-word;
 
   & + p.tr-bubble__text {
     margin-top: 0.5em;

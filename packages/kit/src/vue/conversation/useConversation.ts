@@ -191,6 +191,20 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     return activeConversation.value!
   }
 
+  const clearInactiveEngines = (options?: { excludeId?: string }) => {
+    const { excludeId } = options || {}
+
+    workingEngines.forEach((engine, key) => {
+      if (excludeId && key === excludeId) return
+
+      const isProcessing = engine.isProcessing?.value
+      if (!isProcessing) {
+        stopAutoSave(key)
+        workingEngines.delete(key)
+      }
+    })
+  }
+
   /**
    * Switch active conversation by id.
    */
@@ -207,15 +221,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     // Cleanup engines that are not active and not processing.
     // This helps to release memory for engines that are no longer in use.
-    workingEngines.forEach((engine, key) => {
-      if (key === id) return
-
-      const isProcessing = engine.isProcessing?.value
-      if (!isProcessing) {
-        stopAutoSave(key)
-        workingEngines.delete(key)
-      }
-    })
+    clearInactiveEngines({ excludeId: id })
 
     activeConversationId.value = id
 
@@ -241,14 +247,10 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     options.storage?.deleteConversation?.(id)
 
-    // If deleting the active conversation, switch to another or clear
+    // If deleting the active conversation, switch to new conversation
     if (activeConversationId.value === id) {
-      const nextConversation = conversations.value[0]
-      if (nextConversation) {
-        await switchConversation(nextConversation.id)
-      } else {
-        activeConversationId.value = null
-      }
+      activeConversationId.value = null
+      clearInactiveEngines()
     }
   }
 

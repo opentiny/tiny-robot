@@ -1,4 +1,5 @@
 import { markRaw } from 'vue'
+import { resolveMessageContent } from '../composables'
 import { BubbleRendererMatchPriority } from '../constants'
 import type { BubbleBoxRendererMatch, BubbleContentRendererMatch } from '../index.type'
 import Box from './Box.vue'
@@ -11,11 +12,15 @@ import Tools from './Tools.vue'
 
 export const defaultBoxRendererMatches: Array<BubbleBoxRendererMatch> = [
   {
-    find: (messages, contentIndex) =>
-      messages.length === 1 &&
-      Array.isArray(messages[0].content) &&
-      typeof contentIndex === 'number' &&
-      messages[0].content[contentIndex].type === 'image_url',
+    find: (messages, contentIndex) => {
+      const content = resolveMessageContent(messages[0])
+      return (
+        messages.length === 1 &&
+        Array.isArray(content) &&
+        typeof contentIndex === 'number' &&
+        content[contentIndex].type === 'image_url'
+      )
+    },
     renderer: markRaw(Box),
     priority: BubbleRendererMatchPriority.NORMAL,
     attributes: { 'data-box-type': 'image' },
@@ -39,10 +44,10 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.NORMAL,
   },
   {
-    find: (message, contentIndex) =>
-      Array.isArray(message.content) &&
-      typeof contentIndex === 'number' &&
-      message.content[contentIndex].type === 'image_url',
+    find: (message, contentIndex) => {
+      const content = resolveMessageContent(message)
+      return Array.isArray(content) && typeof contentIndex === 'number' && content[contentIndex].type === 'image_url'
+    },
     renderer: markRaw(Image),
     priority: BubbleRendererMatchPriority.CONTENT,
   },

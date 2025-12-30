@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
-import { setupBubbleStore } from './composables'
+import { resolveMessageContent, setupBubbleStore } from './composables'
 import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
@@ -55,7 +55,7 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
 
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
-    const isArrayContent = Array.isArray(message.content)
+    const isArrayContent = Array.isArray(resolveMessageContent(message))
 
     // 如果 content 是数组，则单独作为一组
     if (isArrayContent) {
@@ -99,7 +99,7 @@ const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleM
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
     const isDivider = message.role === dividerRole
-    const isArrayContent = Array.isArray(message.content)
+    const isArrayContent = Array.isArray(resolveMessageContent(message))
 
     // 如果 content 是数组，则单独作为一组
     if (isArrayContent) {

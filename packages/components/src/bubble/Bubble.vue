@@ -3,6 +3,7 @@ import { computed, toValue } from 'vue'
 import BubbleBoxWrapper from './BubbleBoxWrapper.vue'
 import BubbleContentWrapper from './BubbleContentWrapper.vue'
 import {
+  resolveMessageContent,
   setupBubblePropBoxRenderer,
   setupBubblePropContentRenderer,
   setupBubbleStore,
@@ -51,7 +52,11 @@ const hidden = computed(() => {
 })
 
 const shouldSplit = computed(() => {
-  return props.contentRenderMode === 'split' && messages.value.length === 1 && Array.isArray(messages.value[0].content)
+  return (
+    props.contentRenderMode === 'split' &&
+    messages.value.length === 1 &&
+    Array.isArray(resolveMessageContent(messages.value[0]))
+  )
 })
 </script>
 
@@ -68,7 +73,7 @@ const shouldSplit = computed(() => {
       <div class="tr-bubble__content">
         <template v-if="shouldSplit">
           <BubbleBoxWrapper
-            v-for="(_, index) in messages[0].content"
+            v-for="(_, index) in resolveMessageContent(messages[0])"
             :key="index"
             class="tr-bubble__box"
             :role="props.role"
@@ -88,9 +93,9 @@ const shouldSplit = computed(() => {
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
             <template v-for="(message, msgIndex) in messages" :key="`message-${msgIndex}`">
-              <template v-if="Array.isArray(message.content)">
+              <template v-if="Array.isArray(resolveMessageContent(message))">
                 <BubbleContentWrapper
-                  v-for="(_, contentIndex) in message.content"
+                  v-for="(_, contentIndex) in resolveMessageContent(message)"
                   :key="`content-${contentIndex}`"
                   :message="message"
                   :content-index="contentIndex"
