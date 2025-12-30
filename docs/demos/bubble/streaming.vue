@@ -1,17 +1,15 @@
 <template>
-  <tr-bubble :content="streamContent" :avatar="aiAvatar" :content-renderer="markdownRenderer" />
+  <tr-bubble :content="streamContent" :avatar="aiAvatar" :fallback-content-renderer="BubbleRenderers.Markdown" />
   <hr />
   <button @click="resetStreamContent">点击展示流式文本</button>
 </template>
 
 <script setup lang="ts">
-import { BubbleMarkdownContentRenderer, TrBubble } from '@opentiny/tiny-robot'
+import { BubbleRenderers, TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
-
-const markdownRenderer = new BubbleMarkdownContentRenderer()
 
 const mdContent = `# h1 Heading
 ## Emphasis

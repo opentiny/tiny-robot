@@ -11,7 +11,7 @@ import {
 
 const props = defineProps<BubbleProviderProps>()
 
-setupBubbleStore(props.initialStore)
+setupBubbleStore(props.store)
 
 const boxRendererMatches = computed(() => {
   return (props.boxRendererMatches || [])

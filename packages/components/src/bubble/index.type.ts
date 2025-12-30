@@ -152,7 +152,7 @@ export interface BubbleProviderProps {
   contentRendererMatches?: BubbleContentRendererMatch[]
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
-  initialStore?: Record<string, unknown>
+  store?: Record<string, unknown>
 }
 
 type BubbleListSlotProps = BubbleSlotProps & {
