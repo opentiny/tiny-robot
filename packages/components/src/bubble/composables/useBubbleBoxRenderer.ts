@@ -1,16 +1,13 @@
 import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
 import { computed, inject, provide, toValue } from 'vue'
-import { BUBBLE_BOX_RENDERER_MATCHES_KEY, BUBBLE_FALLBACK_BOX_RENDERER_KEY } from '../constants'
-import type { BubbleBoxRendererMatch, BubbleRendererMessage } from '../index.type'
+import {
+  BUBBLE_BOX_RENDERER_MATCHES_KEY,
+  BUBBLE_BOX_FALLBACK_RENDERER_KEY,
+  BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
+} from '../constants'
+import type { BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 
-/**
- * Setup bubble box renderer
- * Call this function to provide box renderer matches and fallback renderer
- *
- * @param boxRendererMatches - Array of box renderer matches, can be a ref or getter
- * @param fallbackBoxRenderer - Fallback box renderer component, can be a ref or getter
- */
 export function setupBubbleBoxRenderer(renderers: {
   boxRendererMatches?: MaybeRefOrGetter<Array<BubbleBoxRendererMatch>>
   fallbackBoxRenderer?: MaybeRefOrGetter<Component>
@@ -20,34 +17,49 @@ export function setupBubbleBoxRenderer(renderers: {
     provide(BUBBLE_BOX_RENDERER_MATCHES_KEY, boxRendererMatches)
   }
   if (fallbackBoxRenderer) {
-    provide(BUBBLE_FALLBACK_BOX_RENDERER_KEY, fallbackBoxRenderer)
+    provide(BUBBLE_BOX_FALLBACK_RENDERER_KEY, fallbackBoxRenderer)
   }
 }
 
 /**
- * Composable for box renderer matching
- * Used to match and get the appropriate box renderer component based on messages
- *
- * @param messages - The messages to match against, can be BubbleRendererMessage[], a function that returns it, or a computed ref
- * @returns A computed ref of the matched renderer component
- *
- * @example
- * const renderer = useBubbleBoxRenderer(() => messages)
+ * Setup prop-level fallback box renderer
+ * Used in Bubble component to provide prop-level configuration that won't override parent provider
  */
+export function setupBubblePropBoxRenderer(renderers: {
+  fallbackBoxRenderer?: MaybeRefOrGetter<Component | undefined>
+}): void {
+  const { fallbackBoxRenderer } = renderers
+  if (fallbackBoxRenderer) {
+    provide(BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY, fallbackBoxRenderer)
+  }
+}
+
 export function useBubbleBoxRenderer(
-  messages: MaybeRefOrGetter<BubbleRendererMessage[]>,
-  fallbackRenderer?: MaybeRefOrGetter<Component>,
-): ComputedRef<Component> {
+  messages: MaybeRefOrGetter<BubbleMessage[]>,
+  contentIndex?: number,
+): ComputedRef<{
+  renderer: Component
+  attributes?: Record<string, string>
+}> {
   const boxRendererMatches = inject(BUBBLE_BOX_RENDERER_MATCHES_KEY, defaultBoxRendererMatches)
-  const fallbackBoxRenderer = inject(BUBBLE_FALLBACK_BOX_RENDERER_KEY)
+  const fallbackBoxRenderer = inject(BUBBLE_BOX_FALLBACK_RENDERER_KEY, undefined)
+  const propFallbackBoxRenderer = inject(BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY, undefined)
 
   return computed(() => {
     const msgs = toValue(messages)
-    return (
-      toValue(boxRendererMatches).find((match) => match.find(msgs))?.renderer ||
-      toValue(fallbackRenderer) ||
-      toValue(fallbackBoxRenderer) ||
-      defaultFallbackBoxRenderer
-    )
+
+    const match = toValue(boxRendererMatches).find((match) => match.find(msgs, contentIndex))
+
+    if (match) {
+      return {
+        renderer: match.renderer,
+        attributes: match.attributes,
+      }
+    }
+
+    // Priority: prop-level > provider-level > default
+    return {
+      renderer: toValue(propFallbackBoxRenderer) || toValue(fallbackBoxRenderer) || defaultFallbackBoxRenderer,
+    }
   })
 }

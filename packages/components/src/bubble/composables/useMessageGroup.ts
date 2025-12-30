@@ -6,6 +6,6 @@ export function setupBubbleMessageGroup(messageGroup: MaybeRefOrGetter<BubbleMes
   provide(BUBBLE_MESSAGE_GROUP_KEY, messageGroup)
 }
 
-export function useBubbleMessageGroup() {
-  return inject(BUBBLE_MESSAGE_GROUP_KEY)
+export function useBubbleMessageGroup(): MaybeRefOrGetter<BubbleMessageGroup | undefined> {
+  return inject(BUBBLE_MESSAGE_GROUP_KEY, undefined)
 }

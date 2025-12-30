@@ -1,19 +1,31 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import type { BubbleRendererMessage } from '../index.type'
+import { computed, ref, watch } from 'vue'
+import { useMessageContent } from '../composables'
+import type { BubbleContentRendererProps, ChatMessageContentItem } from '../index.type'
 
-const props = defineProps<BubbleRendererMessage<{ image_url: string; text?: string }>>()
+const props = defineProps<BubbleContentRendererProps>()
 
 const isLoaded = ref(false)
 const hasError = ref(false)
 
-watch(
-  () => props.content.image_url,
-  () => {
-    isLoaded.value = false
-    hasError.value = false
-  },
-)
+const content = useMessageContent<ChatMessageContentItem | undefined>(() => props.message, props.contentIndex)
+
+const imageUrl = computed(() => {
+  if (!content.value) {
+    return null
+  }
+
+  if (typeof content.value.image_url === 'string') {
+    return content.value.image_url
+  }
+
+  return content.value.image_url.url
+})
+
+watch(imageUrl, () => {
+  isLoaded.value = false
+  hasError.value = false
+})
 
 const handleLoad = () => {
   isLoaded.value = true
@@ -30,8 +42,8 @@ const handleError = () => {
   <img
     class="tr-bubble__image"
     :class="{ loading: !isLoaded }"
-    :src="props.content.image_url"
-    :alt="props.content.text"
+    :src="imageUrl"
+    :alt="content?.text"
     loading="lazy"
     @load="handleLoad"
     @error="handleError"

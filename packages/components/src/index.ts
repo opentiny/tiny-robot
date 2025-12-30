@@ -3,14 +3,7 @@ import './styles/components/index.css'
 
 import { App } from 'vue'
 import Attachments from './attachments'
-import {
-  Bubble,
-  BubbleList,
-  BubbleProvider,
-  BubbleBasicBox,
-  BubbleMarkdownRenderer,
-  BubbleRendererMatchPriority,
-} from './bubble'
+import { Bubble, BubbleList, BubbleProvider } from './bubble'
 import Container from './container'
 import Conversations from './conversations'
 import DragOverlay from './drag-overlay'
@@ -44,9 +37,18 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
+export {
+  BubbleRendererMatchPriority,
+  BubbleRenderers,
+  useBubbleBoxRenderer,
+  useBubbleContentRenderer,
+  useBubbleStateChangeFn,
+  useMessageContent,
+  useOmitMessageFields,
+} from './bubble'
 export { useTheme } from './theme-provider/useTheme'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
-export { useTouchDevice } from './shared/composables/useTouchDevice'
+export { useAutoScroll, useTouchDevice } from './shared/composables'
 
 const components = [
   Attachments,
@@ -90,12 +92,6 @@ export {
   BubbleList as TrBubbleList,
   BubbleProvider,
   BubbleProvider as TrBubbleProvider,
-  BubbleBasicBox,
-  BubbleBasicBox as TrBubbleBasicBox,
-  BubbleMarkdownRenderer,
-  BubbleMarkdownRenderer as TrBubbleMarkdownRenderer,
-  BubbleRendererMatchPriority,
-  BubbleRendererMatchPriority as TrBubbleRendererMatchPriority,
   Container,
   Container as TrContainer,
   Conversations,

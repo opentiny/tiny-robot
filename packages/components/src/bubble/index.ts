@@ -35,6 +35,12 @@ export const BubbleProvider = BubbleProviderComp as typeof BubbleProviderComp & 
   install: typeof bubbleProviderInstall
 }
 
-export { default as BubbleBasicBox } from './renderers/Box.vue'
-export { default as BubbleMarkdownRenderer } from './renderers/Markdown.vue'
+export {
+  useBubbleBoxRenderer,
+  useBubbleContentRenderer,
+  useBubbleStateChangeFn,
+  useMessageContent,
+  useOmitMessageFields,
+} from './composables'
 export { BubbleRendererMatchPriority } from './constants'
+export { BubbleRenderers } from './renderers/allRenderers'

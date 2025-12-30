@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { IconLoading } from '@opentiny/tiny-robot-svgs'
-import { BubbleRendererMessage } from '../index.type'
+import { BubbleContentRendererProps } from '../index.type'
 
-defineProps<BubbleRendererMessage>()
+defineProps<BubbleContentRendererProps>()
 </script>
 
 <template>

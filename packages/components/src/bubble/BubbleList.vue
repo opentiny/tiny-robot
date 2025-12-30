@@ -1,25 +1,48 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
-import { setupBubbleStore } from './composables'
-import type {
-  BubbleListProps,
-  BubbleListSlots,
-  BubbleMessage,
-  BubbleMessageGroup,
-  BubblePlainMessage,
-  BubblePolymorphicMessage,
-} from './index.type'
+import { resolveMessageContent, setupBubbleStore } from './composables'
+import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
   dividerRole: 'user',
+  fallbackRole: 'assistant',
 })
 
 defineSlots<BubbleListSlots>()
 
+const emit = defineEmits<{
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+}>()
+
 // Provide bubble store if not already provided
 setupBubbleStore()
+
+const listRef = ref<HTMLDivElement | null>(null)
+let scrollToBottomFn: (behavior?: ScrollBehavior) => Promise<void> = async () => {}
+
+if (props.autoScroll) {
+  const lastMessage = computed(() => props.messages.at(-1))
+
+  const { scrollToBottom } = useAutoScroll(listRef, () => [
+    props.messages.length,
+    lastMessage.value?.content,
+    lastMessage.value?.reasoning_content,
+  ])
+  scrollToBottomFn = scrollToBottom
+
+  watch(
+    () => lastMessage.value?.role,
+    async (role) => {
+      if (role === 'user') {
+        await nextTick()
+        scrollToBottom('smooth')
+      }
+    },
+  )
+}
 
 /**
  * 按角色分组
@@ -28,32 +51,35 @@ setupBubbleStore()
  */
 const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
+  let isLastGroupSealed = false
 
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
-    const isArrayContent = Array.isArray(message.content)
+    const isArrayContent = Array.isArray(resolveMessageContent(message))
 
     // 如果 content 是数组，则单独作为一组
     if (isArrayContent) {
       groups.push({
-        role: message.role,
-        messages: [message as BubblePolymorphicMessage],
-        isPolymorphic: true,
+        role: message.role || '',
+        messages: [message],
         messageIndexes: [index],
+        startIndex: index,
       })
+      isLastGroupSealed = true
     }
-    // 如果上一组的角色相同，且上一组不是多态分组，则添加到该组
-    else if (lastGroup && lastGroup.role === message.role && !lastGroup.isPolymorphic) {
-      ;(lastGroup.messages as BubblePlainMessage[]).push(message as BubblePlainMessage)
+    // 如果上一组的角色相同，且上一组未被密封，则添加到该组
+    else if (lastGroup && lastGroup.role === message.role && !isLastGroupSealed) {
+      lastGroup.messages.push(message)
       lastGroup.messageIndexes.push(index)
     } else {
       // 创建新的分组
       groups.push({
-        role: message.role,
-        messages: [message as BubblePlainMessage],
-        isPolymorphic: false,
+        role: message.role || '',
+        messages: [message],
         messageIndexes: [index],
+        startIndex: index,
       })
+      isLastGroupSealed = false
     }
   }
 
@@ -68,33 +94,36 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
  */
 const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleMessageGroup[] => {
   const groups: BubbleMessageGroup[] = []
+  let isLastGroupSealed = false
 
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
     const isDivider = message.role === dividerRole
-    const isArrayContent = Array.isArray(message.content)
+    const isArrayContent = Array.isArray(resolveMessageContent(message))
 
     // 如果 content 是数组，则单独作为一组
     if (isArrayContent) {
       groups.push({
-        role: message.role,
-        messages: [message as BubblePolymorphicMessage],
-        isPolymorphic: true,
+        role: message.role || '',
+        messages: [message],
         messageIndexes: [index],
+        startIndex: index,
       })
+      isLastGroupSealed = true
     }
-    // 如果上一组与当前消息的分割/非分割类型相同，且上一组不是多态分组，则添加到该组
-    else if (lastGroup && (lastGroup.role === dividerRole) === isDivider && !lastGroup.isPolymorphic) {
-      ;(lastGroup.messages as BubblePlainMessage[]).push(message as BubblePlainMessage)
+    // 如果上一组与当前消息的分割/非分割类型相同，且上一组未被密封，则添加到该组
+    else if (lastGroup && (lastGroup.role === dividerRole) === isDivider && !isLastGroupSealed) {
+      lastGroup.messages.push(message)
       lastGroup.messageIndexes.push(index)
     } else {
       // 创建新的分组
       groups.push({
-        role: isDivider ? dividerRole : message.role,
-        messages: [message as BubblePlainMessage],
-        isPolymorphic: false,
+        role: isDivider ? dividerRole : message.role || '',
+        messages: [message],
         messageIndexes: [index],
+        startIndex: index,
       })
+      isLastGroupSealed = false
     }
   }
 
@@ -121,17 +150,22 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
     return groupByDivider(props.messages, props.dividerRole)
   }
 })
+
+defineExpose({
+  scrollToBottom: scrollToBottomFn,
+})
 </script>
 
 <template>
-  <div class="tr-bubble-list">
+  <div class="tr-bubble-list" ref="listRef">
     <BubbleItem
       v-for="(group, index) in messageGroups"
       :key="index"
-      :role="group.role"
-      :role-config="props.roleConfigs?.[group.role]"
+      :role="group.role || props.fallbackRole"
+      :role-config="props.roleConfigs?.[group.role || props.fallbackRole]"
       :message-group="group"
-      :split-polymorphic="props.splitPolymorphic"
+      :content-render-mode="props.contentRenderMode"
+      @state-change="emit('state-change', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
     >
       <template #prefix="slotProps">
         <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>

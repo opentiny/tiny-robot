@@ -3,142 +3,111 @@ import { Component, VNode } from 'vue'
 /**
  * 工具调用接口（支持 OpenAI 格式）
  */
-export interface ToolCall {
+interface ToolCall {
   id: string
   type: 'function' | string
   function: {
     name: string
     arguments: string
   }
-  [x: string]: unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [x: string]: any
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ChatMessageContentItem = { type: string; [key: string]: any }
+
+export type ChatMessageContent = string | ChatMessageContentItem[]
 
 /**
  * 聊天消息接口（支持 OpenAI 格式）
  */
-export interface BubbleChatMessage {
+interface ChatMessage<T extends ChatMessageContent = ChatMessageContent> {
   role: string
-  content?: string | BubbleChatMessageItem[]
+  content?: T
   reasoning_content?: string
   tool_calls?: ToolCall[]
   tool_call_id?: string
   name?: string
 }
 
-/**
- * 多态内容项
- * 用于支持多种内容类型（文本、图片、音频等）
- */
-export interface BubbleChatMessageItem {
-  /**
-   * 内容类型标识符（例如：'text'、'image_url' 等）
-   */
-  type?: string
-  /**
-   * 内容类型特定的附加属性
-   */
-  [key: string]: unknown
-}
-
-/**
- * Bubble 组件 Props
- * 用于渲染单个气泡的外观和内容
- */
-export type BubbleProps = Omit<BubbleChatMessage, 'role'> & {
+type ChatMessageWithOptionalRole<T extends ChatMessageContent = ChatMessageContent> = Omit<ChatMessage<T>, 'role'> & {
   role?: string
-  /**
-   * 气泡头像
-   */
-  avatar?: VNode | Component
-  /**
-   * 气泡对齐位置，默认 'start'
-   */
-  placement?: 'start' | 'end'
-  /**
-   * 气泡形状，默认 'corner'
-   */
-  shape?: 'rounded' | 'corner' | 'none'
-  /**
-   * 气泡加载状态
-   */
-  loading?: boolean
-  /**
-   * 是否隐藏气泡
-   */
-  hidden?: boolean
-  /**
-   * 是否拆分多态内容（每个内容项各自渲染一个气泡）
-   * - true：每个内容项各自渲染一个气泡
-   * - false：所有内容项合并在同一个气泡中渲染（默认）
-   */
-  splitPolymorphic?: boolean
-
-  fallbackBoxRenderer?: Component
-  fallbackContentRenderer?: Component
-  /**
-   * 额外配置
-   */
-  extras?: Record<string, unknown>
 }
 
-type BubbleSlotProps =
-  | {
-      rendererMessages: BubbleRendererMessage[]
-      role?: string
-      isPolymorphic?: undefined
-      isFirstPolymorphic?: undefined
-      polymorphicIndex?: undefined
-    }
-  | {
-      rendererMessages: BubbleRendererMessage[]
-      role?: string
-      isPolymorphic: boolean
-      isFirstPolymorphic: boolean
-      polymorphicIndex: number
-    }
+export type BubbleMessage<
+  T extends ChatMessageContent = ChatMessageContent,
+  S extends Record<string, unknown> = Record<string, unknown>,
+> = ChatMessageWithOptionalRole<T> & {
+  id?: string
+  loading?: boolean
+  state?: S
+}
+
+export type BubbleProps = BubbleMessage & {
+  hidden?: boolean
+  avatar?: VNode | Component
+  placement?: 'start' | 'end'
+  shape?: 'corner' | 'rounded' | 'none'
+  contentRenderMode?: 'single' | 'split'
+  fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
+  fallbackContentRenderer?: Component<BubbleContentRendererProps>
+}
+
+export type BubbleMessageGroup = {
+  role: string
+  messages: BubbleMessage[]
+  messageIndexes: number[]
+  startIndex: number
+}
+
+export type BubbleBoxRendererMatch = {
+  find: (messages: BubbleMessage[], contentIndex?: number) => boolean
+  renderer: Component<BubbleBoxRendererProps>
+  priority?: number
+  attributes?: Record<string, string>
+}
+
+export type BubbleContentRendererMatch = {
+  find: (message: BubbleMessage, contentIndex?: number) => boolean
+  renderer: Component<BubbleContentRendererProps>
+  priority?: number
+  attributes?: Record<string, string>
+}
+
+export type BubbleBoxRendererProps = Pick<BubbleProps, 'placement' | 'shape'>
+
+export type BubbleContentRendererProps<
+  T extends ChatMessageContent = ChatMessageContent,
+  S extends Record<string, unknown> = Record<string, unknown>,
+> = {
+  message: BubbleMessage<T, S>
+  contentIndex?: number
+}
+
+type BubbleSlotProps = { messages: BubbleMessage[]; role?: string }
 
 export interface BubbleSlots {
   prefix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
   suffix?: (slotProps: BubbleSlotProps) => VNode | VNode[]
-  'content-footer'?: (slotProps: BubbleSlotProps) => VNode | VNode[]
   after?: (slotProps: BubbleSlotProps) => VNode | VNode[]
+  'content-footer'?: (slotProps: BubbleSlotProps & { contentIndex?: number }) => VNode | VNode[]
 }
 
 /**
- * 基础消息类型
+ * 角色配置
+ * 用于配置不同角色的气泡样式
  */
-type BubbleBaseMessage = Omit<
+export type BubbleRoleConfig = Pick<
   BubbleProps,
-  | 'content'
-  | 'role'
-  | 'avatar'
-  | 'placement'
-  | 'shape'
-  | 'splitPolymorphic'
-  | 'fallbackBoxRenderer'
-  | 'fallbackContentRenderer'
-> & {
-  role: string
-  metadata?: Record<string, unknown>
-}
+  'avatar' | 'placement' | 'shape' | 'hidden' | 'fallbackBoxRenderer' | 'fallbackContentRenderer'
+>
 
 /**
- * 普通消息（字符串内容）
+ * 自定义分组函数类型
  */
-export type BubblePlainMessage = BubbleBaseMessage & { content: string }
-/**
- * 多态消息（数组内容）
- */
-export type BubblePolymorphicMessage = BubbleBaseMessage & { content: BubbleChatMessageItem[] }
-/**
- * 统一消息类型
- */
-export type BubbleMessage = BubblePlainMessage | BubblePolymorphicMessage
+type BubbleGroupFunction = (messages: BubbleMessage[], dividerRole?: string) => BubbleMessageGroup[]
 
-/**
- * BubbleList 组件 Props
- * 用于管理消息流和分组策略
- */
 export interface BubbleListProps {
   messages: BubbleMessage[]
   /**
@@ -159,106 +128,40 @@ export interface BubbleListProps {
    */
   dividerRole?: string
   /**
+   * 当消息没有角色或角色为空时，使用此角色
+   * @default 'assistant'
+   */
+  fallbackRole?: string
+  /**
    * 角色配置（头像、位置、形状）
    */
   roleConfigs?: Record<string, BubbleRoleConfig>
+  contentRenderMode?: BubbleProps['contentRenderMode']
   /**
-   * 是否拆分多态内容配置
+   * 是否自动滚动到底部。需要满足以下条件：
+   * - BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）
+   * - 滚动容器接近底部
+   *
+   * @default false
    */
-  splitPolymorphic?: BubbleProps['splitPolymorphic']
+  autoScroll?: boolean
 }
 
-type BubbleItemSlotProps = BubbleSlotProps & {
-  messages: BubbleMessage[]
+export interface BubbleProviderProps {
+  boxRendererMatches?: BubbleBoxRendererMatch[]
+  contentRendererMatches?: BubbleContentRendererMatch[]
+  fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
+  fallbackContentRenderer?: Component<BubbleContentRendererProps>
+  initialStore?: Record<string, unknown>
 }
 
-export interface BubbleItemSlot {
-  prefix?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
-  suffix?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
-  'content-footer'?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
-  after?: (slotProps: BubbleItemSlotProps) => VNode | VNode[]
-}
-
-type BubbleListSlotProps = BubbleItemSlotProps & {
+type BubbleListSlotProps = BubbleSlotProps & {
   messageIndexes: number[]
 }
 
 export interface BubbleListSlots {
   prefix?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
   suffix?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
-  'content-footer'?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
   after?: (slotProps: BubbleListSlotProps) => VNode | VNode[]
-}
-
-/**
- * 角色配置
- * 用于配置不同角色的气泡样式
- */
-export type BubbleRoleConfig = Pick<
-  BubbleProps,
-  'avatar' | 'placement' | 'shape' | 'hidden' | 'fallbackBoxRenderer' | 'fallbackContentRenderer'
->
-
-/**
- * 普通消息分组（内容为字符串）
- */
-type BubblePlainMessageGroup = {
-  role: string
-  messages: BubblePlainMessage[]
-  isPolymorphic: false
-  messageIndexes: number[]
-}
-
-/**
- * 多态消息分组（内容为 BubbleChatMessageItem 数组）
- */
-type BubblePolymorphicMessageGroup = {
-  role: string
-  messages: BubblePolymorphicMessage[]
-  isPolymorphic: true
-  messageIndexes: number[]
-}
-
-/**
- * 统一分组类型
- */
-export type BubbleMessageGroup = BubblePlainMessageGroup | BubblePolymorphicMessageGroup
-/**
- * 自定义分组函数类型
- */
-type BubbleGroupFunction = (messages: BubbleMessage[], dividerRole?: string) => BubbleMessageGroup[]
-/**
- * 气泡容器属性
- */
-export type BubbleBoxProps = Pick<BubbleProps, 'placement' | 'shape'>
-/**
- * 渲染器消息（扁平化的单条内容）
- */
-export type BubbleRendererMessage<
-  T = string | BubbleChatMessageItem | undefined,
-  E extends Record<string, unknown> = Record<string, unknown>,
-> = Omit<BubbleBaseMessage, 'role'> & {
-  role?: string
-  content: T
-  extras?: E
-}
-
-export interface BubbleProviderProps {
-  boxRendererMatches?: BubbleBoxRendererMatch[]
-  contentRendererMatches?: BubbleContentRendererMatch[]
-  fallbackBoxRenderer?: Component
-  fallbackContentRenderer?: Component
-  initialStore?: Record<string, unknown>
-}
-
-export type BubbleBoxRendererMatch = {
-  find: (messages: BubbleRendererMessage[]) => boolean
-  renderer: Component
-  priority?: number
-}
-
-export type BubbleContentRendererMatch = {
-  find: (message: BubbleRendererMessage) => boolean
-  renderer: Component
-  priority?: number
+  'content-footer'?: (slotProps: BubbleListSlotProps & { contentIndex?: number }) => VNode | VNode[]
 }

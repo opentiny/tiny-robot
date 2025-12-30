@@ -1,33 +1,42 @@
 <script setup lang="ts">
 import Bubble from './Bubble.vue'
 import { setupBubbleMessageGroup } from './composables'
-import type { BubbleItemSlot, BubbleMessageGroup, BubbleProps, BubbleRoleConfig } from './index.type'
+import type { BubbleMessageGroup, BubbleProps, BubbleRoleConfig, BubbleSlots } from './index.type'
 
 const props = defineProps<{
   messageGroup: BubbleMessageGroup
   roleConfig?: BubbleRoleConfig
-  splitPolymorphic?: BubbleProps['splitPolymorphic']
+  contentRenderMode?: BubbleProps['contentRenderMode']
 }>()
 
-defineSlots<BubbleItemSlot>()
+defineSlots<BubbleSlots>()
+
+const emit = defineEmits<{
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+}>()
 
 // Provide messages for each BubbleItem instance
 setupBubbleMessageGroup(() => props.messageGroup)
 </script>
 
 <template>
-  <Bubble v-bind="roleConfig" :role="messageGroup.role" :split-polymorphic="splitPolymorphic">
+  <Bubble
+    v-bind="roleConfig"
+    :role="messageGroup.role"
+    :content-render-mode="contentRenderMode"
+    @state-change="emit('state-change', $event)"
+  >
     <template #prefix="slotProps">
-      <slot name="prefix" v-bind="slotProps" :messages="messageGroup.messages"></slot>
+      <slot name="prefix" v-bind="slotProps"></slot>
     </template>
     <template #suffix="slotProps">
-      <slot name="suffix" v-bind="slotProps" :messages="messageGroup.messages"></slot>
+      <slot name="suffix" v-bind="slotProps"></slot>
     </template>
     <template #content-footer="slotProps">
-      <slot name="content-footer" v-bind="slotProps" :messages="messageGroup.messages"></slot>
+      <slot name="content-footer" v-bind="slotProps"></slot>
     </template>
     <template #after="slotProps">
-      <slot name="after" v-bind="slotProps" :messages="messageGroup.messages"></slot>
+      <slot name="after" v-bind="slotProps"></slot>
     </template>
   </Bubble>
 </template>

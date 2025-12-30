@@ -1,22 +1,25 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-import { setupBubbleBoxRenderer, useBubbleBoxRenderer } from './composables'
-import type { BubbleBoxProps, BubbleRendererMessage } from './index.type'
+import { useBubbleBoxRenderer } from './composables'
+import type { BubbleMessage, BubbleProps } from './index.type'
 
-const props = defineProps<BubbleBoxProps & { messages: BubbleRendererMessage[]; fallbackRenderer?: Component }>()
+const props = defineProps<
+  Pick<BubbleProps, 'role' | 'placement' | 'shape'> & {
+    messages: BubbleMessage[]
+    contentIndex?: number
+  }
+>()
 
-// 更新子孙 renderer 组件的 fallback renderer
-setupBubbleBoxRenderer({ fallbackBoxRenderer: () => props.fallbackRenderer })
-
-// 由于 provide 不会在当前组件中生效，因此需要手动提供 fallback renderer
-const renderer = useBubbleBoxRenderer(
-  () => props.messages,
-  () => props.fallbackRenderer,
-)
+const renderer = useBubbleBoxRenderer(() => props.messages, props.contentIndex)
 </script>
 
 <template>
-  <component :is="renderer" :placement="props.placement" :shape="props.shape">
+  <component
+    :is="renderer.renderer"
+    :data-role="props.role"
+    :data-placement="props.placement"
+    :data-shape="props.shape"
+    v-bind="renderer.attributes"
+  >
     <slot />
   </component>
 </template>

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { BubbleBoxProps } from '../index.type'
+import type { BubbleBoxRendererProps } from '../index.type'
 
-const props = defineProps<BubbleBoxProps>()
+defineProps<BubbleBoxRendererProps>()
 </script>
 
 <template>
-  <div class="tr-bubble__box" :data-shape="props.shape" :data-placement="props.placement" data-box-type="box">
+  <div class="tr-bubble__box" data-box-type="box">
     <slot />
   </div>
 </template>
@@ -33,6 +33,11 @@ const props = defineProps<BubbleBoxProps>()
     &[data-placement='end'] {
       border-top-right-radius: var(--tr-bubble-box-shape-corner-radius);
     }
+  }
+
+  &[data-box-type='image'] {
+    padding: var(--tr-bubble-box-image-padding);
+    border: var(--tr-bubble-box-image-border);
   }
 }
 </style>
