@@ -8,7 +8,23 @@ outline: deep
 
 ## 示例
 
+### 基础示例
+
+使用 Mock 存储策略的基础示例，适合快速了解功能：
+
 <demo vue="../../demos/tools/conversation/Basic.vue" :vueFiles="['../../demos/tools/conversation/Basic.vue']" />
+
+### LocalStorage 策略
+
+使用浏览器 LocalStorage 存储会话数据，刷新页面后数据仍然保留：
+
+<demo vue="../../demos/tools/conversation/LocalStorage.vue" :vueFiles="['../../demos/tools/conversation/LocalStorage.vue']" />
+
+### IndexedDB 策略
+
+使用浏览器 IndexedDB 存储会话数据，支持更大容量和更好性能：
+
+<demo vue="../../demos/tools/conversation/IndexedDB.vue" :vueFiles="['../../demos/tools/conversation/IndexedDB.vue']" />
 
 ## API
 
@@ -17,7 +33,7 @@ outline: deep
 interface UseConversationOptions {
   /** AI客户端实例 */
   client: AIClient
-  /** 存储策略 */
+  /** 存储策略（可选，默认使用 LocalStorage） */
   storage?: ConversationStorageStrategy
   /** 是否自动保存 (default: true) */
   autoSave?: boolean
@@ -104,9 +120,111 @@ interface Conversation {
 ```
 
 
-### 自定义存储策略
+### 存储策略
 
-默认使用 LocalStorage 存储会话数据，你也可以实现自定义的存储策略：
+#### 使用 LocalStorage（默认）
+
+默认情况下，会话数据存储在浏览器的 LocalStorage 中：
+
+```typescript
+const conversationManager = useConversation({
+  client,
+  // 默认使用 LocalStorage，无需配置
+});
+```
+
+#### 使用 LocalStorage 自定义配置
+
+```typescript
+import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
+
+const conversationManager = useConversation({
+  client,
+  storage: localStorageStrategyFactory({
+    key: 'my-app-conversations'
+  })
+});
+```
+
+#### 使用 IndexedDB
+
+IndexedDB 相比 LocalStorage 具有更大的存储容量（>50MB）和更好的性能，适合存储大量会话数据：
+
+```typescript
+import { indexedDBStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
+
+const conversationManager = useConversation({
+  client,
+  storage: indexedDBStorageStrategyFactory({
+    dbName: 'my-chat-app-db',
+    dbVersion: 1
+  })
+});
+```
+
+#### 存储策略对比
+
+| 特性 | LocalStorage | IndexedDB |
+|------|-------------|-----------|
+| 存储容量 | ~5-10MB | >50MB |
+| 性能 | 同步操作 | 异步操作，不阻塞主线程 |
+| 数据类型 | 仅字符串（需 JSON 序列化） | 支持对象、数组、二进制 |
+| 查询能力 | 简单 key-value | 支持索引和复杂查询 |
+| 浏览器支持 | 所有现代浏览器 | 所有现代浏览器（不支持 IE） |
+| 隐私模式 | ✅ 支持 | ⚠️ 受限（见下方说明） |
+| 适用场景 | 少量会话（<100个） | 大量会话或长对话历史 |
+
+#### 重要提示：隐私/无痕模式限制
+
+**IndexedDB 在隐私模式下的行为**：
+
+不同浏览器在隐私/无痕模式下对 IndexedDB 的支持有所不同：
+
+- **Chrome/Edge 隐私模式**：IndexedDB 可用，但数据在关闭浏览器后会被清除
+- **Firefox 隐私模式**：IndexedDB 可用，但存储配额较小
+- **Safari 隐私模式**：IndexedDB **完全不可用**，会抛出错误
+
+#### 自定义存储策略
+
+你也可以实现自定义的存储策略，例如将数据保存到远程服务器：
+
+```typescript
+import type { ConversationStorageStrategy, Conversation } from '@tiny-robot/kit';
+
+// 远程存储策略示例
+class RemoteStorageStrategy implements ConversationStorageStrategy {
+  private apiUrl: string;
+
+  constructor(apiUrl: string) {
+    this.apiUrl = apiUrl;
+  }
+
+  async saveConversations(conversations: Conversation[]): Promise<void> {
+    await fetch(`${this.apiUrl}/conversations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(conversations)
+    });
+  }
+
+  async loadConversations(): Promise<Conversation[]> {
+    const response = await fetch(`${this.apiUrl}/conversations`);
+    return response.json();
+  }
+
+  async clear(): Promise<void> {
+    await fetch(`${this.apiUrl}/conversations`, { method: 'DELETE' });
+  }
+}
+
+// 使用自定义存储策略
+const conversationManager = useConversation({
+  client,
+  storage: new RemoteStorageStrategy('https://api.example.com')
+});
+```
+
+### 存储策略接口
 
 ```typescript
 interface ConversationStorageStrategy {
@@ -114,23 +232,7 @@ interface ConversationStorageStrategy {
   saveConversations: (conversations: Conversation[]) => Promise<void> | void;
   /** 加载会话列表 */
   loadConversations: () => Promise<Conversation[]> | Conversation[];
+  /** 清空所有会话（可选） */
+  clear?: () => Promise<void> | void;
 }
-
-// 自定义存储策略示例
-class CustomStorageStrategy implements ConversationStorageStrategy {
-  async saveConversations(conversations: Conversation[]) {
-    // 实现自定义存储逻辑
-  }
-
-  async loadConversations(): Promise<Conversation[]> {
-    // 实现自定义加载逻辑
-    return [];
-  }
-}
-
-// 使用自定义存储策略
-const conversationManager = useConversation({
-  client,
-  storage: new CustomStorageStrategy(),
-});
 ```

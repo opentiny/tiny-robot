@@ -232,3 +232,66 @@ div:has(h1[id='bubble-气泡组件']) {
     padding-top: var(--vp-sidebar-nav-padding-top) !important;
   }
 }
+
+/* ===== 版本标记样式 ===== */
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.version-badge--new {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border: 1px solid #d9ecff;
+}
+
+.version-badge--deprecated {
+  background-color: #fef0f0;
+  color: #f56c6c;
+  border: 1px solid #fde2e2;
+}
+
+.version-badge--beta {
+  background-color: #fdf6ec;
+  color: #e6a23c;
+  border: 1px solid #faecd8;
+}
+
+.version-badge--alpha {
+  background-color: #f4f4f5;
+  color: #909399;
+  border: 1px solid #e9e9eb;
+}
+
+/* 暗黑模式适配 */
+.dark .version-badge--new {
+  background-color: rgba(64, 158, 255, 0.15);
+  color: #79bbff;
+  border-color: rgba(64, 158, 255, 0.25);
+}
+
+.dark .version-badge--deprecated {
+  background-color: rgba(245, 108, 108, 0.15);
+  color: #f89898;
+  border-color: rgba(245, 108, 108, 0.25);
+}
+
+.dark .version-badge--beta {
+  background-color: rgba(230, 162, 60, 0.15);
+  color: #ebb563;
+  border-color: rgba(230, 162, 60, 0.25);
+}
+
+.dark .version-badge--alpha {
+  background-color: rgba(144, 147, 153, 0.15);
+  color: #a8abb2;
+  border-color: rgba(144, 147, 153, 0.25);
+}
