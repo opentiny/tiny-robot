@@ -103,21 +103,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-      # 步骤10: 构建 playground
-      - name: Build playground
-        run: pnpm -F @opentiny/tiny-robot-playground build
-        env:
-          PLAYGROUND_BASE: /tiny-robot/${{steps.parse_tag.outputs.dist_tag}}/playground
-
-      # 步骤11: 构建文档
+      # 步骤10: 构建文档
       - name: Build VitePress
-        run: pnpm -F docs build
+        run: pnpm build:docs --nocomponents
         env:
           VITEPRESS_BASE: /tiny-robot/${{steps.parse_tag.outputs.dist_tag}}/
-
-      # 步骤12: 复制 playground 产物到 docs
-      - name: Copy playground to docs/dist/playground
-        run: cp -r packages/playground/dist docs/dist/playground
+          PLAYGROUND_BASE: /tiny-robot/${{steps.parse_tag.outputs.dist_tag}}/playground
 
       - name: Verify build output
         run: ls -la ./docs/dist
