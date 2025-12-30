@@ -7,75 +7,10 @@ import { reactive, watch } from 'vue'
 import type { ChatMessage } from '../../types'
 import { useMessage, type UseMessageOptions, type UseMessageReturn } from '../message/useMessage'
 import type { AIClient } from '../../client'
+import type { Conversation, ConversationState } from './types'
+import { localStorageStrategyFactory, type ConversationStorageStrategy } from '../../storage'
 
-/**
- * 会话接口
- */
-export interface Conversation {
-  /** 会话ID */
-  id: string
-  /** 会话标题 */
-  title: string
-  /** 创建时间 */
-  createdAt: number
-  /** 更新时间 */
-  updatedAt: number
-  /** 自定义元数据 */
-  metadata?: Record<string, unknown>
-  /** 会话消息 */
-  messages: ChatMessage[]
-}
-
-/**
- * 存储策略接口
- */
-export interface ConversationStorageStrategy {
-  /** 保存会话列表 */
-  saveConversations: (conversations: Conversation[]) => Promise<void> | void
-  /** 加载会话列表 */
-  loadConversations: () => Promise<Conversation[]> | Conversation[]
-}
-
-/**
- * 本地存储策略
- */
-export class LocalStorageStrategy implements ConversationStorageStrategy {
-  private storageKey: string
-
-  constructor(storageKey: string = 'tiny-robot-ai-conversations') {
-    this.storageKey = storageKey
-  }
-
-  saveConversations(conversations: Conversation[]): void {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(conversations))
-    } catch (error) {
-      console.error('保存会话失败:', error)
-    }
-  }
-
-  loadConversations(): Conversation[] {
-    try {
-      const data = localStorage.getItem(this.storageKey)
-      return data ? JSON.parse(data) : []
-    } catch (error) {
-      console.error('加载会话失败:', error)
-      return []
-    }
-  }
-}
-
-/**
- * 会话状态接口
- */
-export interface ConversationState {
-  /** 会话列表 */
-  conversations: Conversation[]
-  /** 当前会话ID */
-  currentId: string | null
-  /** 是否正在加载 */
-  loading: boolean
-}
+export type { Conversation, ConversationState } from './types'
 
 export type UseConversationEvents = UseMessageOptions['events'] & {
   onLoaded?: (conversations: Conversation[]) => void
@@ -146,13 +81,16 @@ function generateId(): string {
 export function useConversation(options: UseConversationOptions): UseConversationReturn {
   const {
     client,
-    storage = new LocalStorageStrategy(),
+    storage,
     autoSave = true,
     allowEmpty = false,
     useStreamByDefault = true,
     errorMessage = '请求失败，请稍后重试',
     events,
   } = options
+
+  // 使用自定义策略或创建默认策略
+  const storageInstance = storage || localStorageStrategyFactory()
 
   // 会话状态
   const state = reactive<ConversationState>({
@@ -296,7 +234,9 @@ export function useConversation(options: UseConversationOptions): UseConversatio
    */
   const saveConversations = async (): Promise<void> => {
     try {
-      await storage.saveConversations(state.conversations)
+      // 将响应式对象转换为普通对象，避免 IndexedDB 的 DataCloneError
+      const plainConversations = JSON.parse(JSON.stringify(state.conversations))
+      await storageInstance.saveConversations(plainConversations)
     } catch (error) {
       console.error('保存会话失败:', error)
     }
@@ -308,7 +248,7 @@ export function useConversation(options: UseConversationOptions): UseConversatio
   const loadConversations = async (): Promise<void> => {
     state.loading = true
     try {
-      const conversations = await storage.loadConversations()
+      const conversations = await storageInstance.loadConversations()
       state.conversations = conversations
 
       // 如果有会话，默认选中第一个

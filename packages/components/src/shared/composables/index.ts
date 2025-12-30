@@ -1,4 +1,5 @@
 export * from './createTeleport'
+export * from './useAutoScroll'
 export * from './useSlotRefs'
 export * from './useTeleportTarget'
 export * from './useTouchDevice'
