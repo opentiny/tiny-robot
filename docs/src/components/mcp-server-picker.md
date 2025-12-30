@@ -80,6 +80,13 @@ const handlePluginAdd = (plugin: PluginInfo) => {
 | loading                    | `boolean`                 | `false`                                                           | 已安装插件加载状态                           |
 | marketLoading              | `boolean`                 | `false`                                                           | 市场插件加载状态                             |
 
+
+## Slots
+
+| 插槽名称          | 描述                             | 默认内容                |
+| ----------------- | -------------------------------- | ----------------------- |
+| `header-actions`   | 头部右侧操作区插槽               | 无                      |
+
 ## Events
 
 | 事件名                   | 说明                   | 回调参数                                                |
