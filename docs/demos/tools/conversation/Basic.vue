@@ -1,6 +1,6 @@
 <template>
   <h1>会话</h1>
-  <tr-bubble-list :items="messages" :roles="roles"></tr-bubble-list>
+  <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
   <div class="actions">
     <span><b>切换会话</b></span
     ><tiny-select :modelValue="state.currentId" :options="options" @change="switchConversation($event)"></tiny-select>
@@ -77,12 +77,10 @@ const roles: Record<string, BubbleRoleConfig> = {
   assistant: {
     placement: 'start',
     avatar: aiAvatar,
-    maxWidth: '80%',
   },
   user: {
     placement: 'end',
     avatar: userAvatar,
-    maxWidth: '80%',
   },
 }
 
