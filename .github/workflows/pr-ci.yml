@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# 取消同一 PR 的旧运行
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 构建组件
+  build:
+    # 跳过不需要构建的 PR（仅检查 PR 标题）
+    if: |
+      !(
+        github.event_name == 'pull_request' && (
+          contains(github.event.pull_request.title, 'docs:') ||
+          contains(github.event.pull_request.title, 'chore: release') ||
+          startsWith(github.event.pull_request.title, 'v') ||
+          startsWith(github.event.pull_request.title, 'V')
+        )
+      )
+    uses: ./.github/workflows/pr-ci-build.yml
+    with:
+      skip-playground: true
+
+  # 发布包预览（依赖构建，仅 PR 事件）
+  publish-packages:
+    needs: [build]
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/pr-ci-publish-packages.yml
+    with:
+      pr-number: ${{ github.event.pull_request.number }}
+    secrets: inherit
+
+  # E2E 测试（依赖构建）
+  e2e-test:
+    needs: [build]
+    uses: ./.github/workflows/pr-ci-e2e-test.yml
