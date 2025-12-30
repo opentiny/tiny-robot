@@ -1,0 +1,72 @@
+name: 'CI: Publish Packages'
+
+on:
+  workflow_call:
+    inputs:
+      pr-number:
+        description: 'Pull Request number'
+        type: number
+        required: true
+
+jobs:
+  preview-job:
+    name: preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm i --no-frozen-lockfile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .
+
+      - name: Publish to pkg.pr.new
+        id: pkg-pr-new
+        run: |
+          npx pkg-pr-new publish \
+            ./packages/components \
+            ./packages/kit \
+            ./packages/svgs \
+            --pnpm \
+            --json output.json \
+            --comment=off
+
+      - name: Save pkg.pr.new output
+        run: |
+          if [ -f output.json ]; then
+            cp output.json pkg-pr-new-output.json
+          fi
+
+      - name: Upload pkg.pr.new output
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkg-pr-new-output-${{ github.event.pull_request.head.sha || github.sha }}
+          path: pkg-pr-new-output.json
+          retention-days: 1
+          if-no-files-found: ignore
