@@ -5,6 +5,27 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+## v0.3.1
+
+`2025-12-30`
+
+### ✨ 新特性
+
+**组件**
+
+- **BubbleList**: `autoScroll` 功能启用后，新增支持用户手势打断和手动控制滚动到底部，自动滚动优化 by @Gene in [#270](https://github.com/opentiny/tiny-robot/pull/270)
+
+**工具**
+
+- **useConversation**: 添加可插拔存储策略，支持 LocalStorage 和 IndexedDB by @SonyLeo in [#275](https://github.com/opentiny/tiny-robot/pull/275)
+
+### 🐛 问题修复
+
+- **useConversation**: 修复保存会话时响应式对象转换问题 by @SonyLeo in [#271](https://github.com/opentiny/tiny-robot/pull/271)
+
+
+
+
 ## v0.3.0
 
 `2025-11-24`
