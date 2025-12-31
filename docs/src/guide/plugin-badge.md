@@ -9,6 +9,7 @@ TinyRobot 文档支持在 Markdown 表格中添加版本标记，用于标识属
 在 `.vitepress/config.mts` 中配置 `MarkdownBadgePlugin` 以支持文档内容中的版本标记：
 
 ```typescript
+
 import { defineConfig } from 'vitepress'
 import { MarkdownBadgePlugin } from './.vitepress/plugins/badge'
 
