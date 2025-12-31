@@ -2,7 +2,7 @@ name: Auto Deploy Docs
 
 on:
   push:
-    branches: [develop]
+    branches: [release/v0.3.x]
     paths:
       - 'docs/**'
 

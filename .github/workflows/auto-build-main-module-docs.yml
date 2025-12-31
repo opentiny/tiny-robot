@@ -2,11 +2,11 @@ name: Auto Build Main Module Docs
 
 on:
   pull_request:
-    branches: [develop]
+    branches: [release/v0.3.x]
     paths:
       - 'docs/**'
   push:
-    branches: [develop]
+    branches: [release/v0.3.x]
     paths:
       - 'docs/**'
 
