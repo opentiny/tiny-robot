@@ -1,333 +1,297 @@
-/**
- * useConversation composable
- * 提供会话管理和持久化功能
- */
+import { computed, ref, watch, WatchStopHandle } from 'vue'
+import { ChatMessage, UseMessageOptions, UseMessageReturn } from '../message/types'
+import { useMessage } from '../message/useMessage'
+import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
+import { useThrottleFn } from './useThrottleFn'
 
-import { reactive, watch } from 'vue'
-import type { ChatMessage } from '../../types'
-import { useMessage, type UseMessageOptions, type UseMessageReturn } from '../message/useMessage'
-import type { AIClient } from '../../client'
-import type { Conversation, ConversationState } from './types'
-import { localStorageStrategyFactory, type ConversationStorageStrategy } from '../../storage'
-
-export type { Conversation, ConversationState } from './types'
-
-export type UseConversationEvents = UseMessageOptions['events'] & {
-  onLoaded?: (conversations: Conversation[]) => void
-}
-
-/**
- * useConversation选项接口
- */
-export interface UseConversationOptions {
-  /** AI客户端实例 */
-  client: AIClient
-  /** 存储策略 */
-  storage?: ConversationStorageStrategy
-  /** 是否自动保存 */
-  autoSave?: boolean
-  /** 是否允许空会话 */
-  allowEmpty?: boolean
-  /** 是否默认使用流式响应 */
-  useStreamByDefault?: boolean
-  /** 错误消息模板 */
-  errorMessage?: string
-  /** 事件回调 */
-  events?: UseConversationEvents
-}
-
-/**
- * useConversation返回值接口
- */
-export interface UseConversationReturn {
-  /** 会话状态 */
-  state: ConversationState
-  /** 消息管理 */
-  messageManager: UseMessageReturn
-  /** 创建新会话 */
-  createConversation: (title?: string, metadata?: Record<string, unknown>) => string
-  /** 切换会话 */
-  switchConversation: (id: string) => void
-  /** 删除会话 */
-  deleteConversation: (id: string) => void
-  /** 更新会话标题 */
-  updateTitle: (id: string, title: string) => void
-  /** 更新会话元数据 */
-  updateMetadata: (id: string, metadata: Record<string, unknown>) => void
-  /** 保存会话 */
-  saveConversations: () => Promise<void>
-  /** 加载会话 */
-  loadConversations: () => Promise<void>
-  /** 生成会话标题 */
-  generateTitle: (id: string) => Promise<string>
-  /** 获取当前会话 */
-  getCurrentConversation: () => Conversation | null
-}
-
-/**
- * 生成唯一ID
- */
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9)
-}
-
-/**
- * useConversation composable
- * 提供会话管理和持久化功能
- *
- * @param options useConversation选项
- * @returns UseConversationReturn
- */
-export function useConversation(options: UseConversationOptions): UseConversationReturn {
-  const {
-    client,
-    storage,
-    autoSave = true,
-    allowEmpty = false,
-    useStreamByDefault = true,
-    errorMessage = '请求失败，请稍后重试',
-    events,
-  } = options
-
-  // 使用自定义策略或创建默认策略
-  const storageInstance = storage || localStorageStrategyFactory()
-
-  // 会话状态
-  const state = reactive<ConversationState>({
-    conversations: [],
-    currentId: null,
-    loading: false,
-  })
-
-  // 标记是否已经触发过 onLoaded 回调
-  let hasTriggeredOnLoaded = false
-
-  // 消息管理
-  const messageManager = useMessage({
-    client,
-    useStreamByDefault,
-    errorMessage,
-    initialMessages: [],
-    events: {
-      onReceiveData: events?.onReceiveData,
-      onFinish: events?.onFinish,
-    },
-  })
-
-  // 监听消息变化，自动更新会话
-  watch(
-    () => messageManager.messages.value,
-    (messages: ChatMessage[]) => {
-      if (state.currentId && messages.length > 0) {
-        const index = state.conversations.findIndex((row: Conversation) => row.id === state.currentId)
-        if (index !== -1) {
-          state.conversations[index].messages = [...messages]
-          state.conversations[index].updatedAt = Date.now()
-          if (autoSave) {
-            saveConversations()
-          }
-        }
-      }
-    },
-    { deep: true },
-  )
+export const useConversation = (options: UseConversationOptions): UseConversationReturn => {
+  /**
+   * All conversations.
+   */
+  const conversations = ref<ConversationInfo[]>([])
 
   /**
-   * 创建新会话
+   * Runtime engines cache, only keeps active and background-running conversations.
    */
-  const createConversation = (title: string = '新会话', metadata: Record<string, unknown> = {}): string => {
-    // 空会话则不再创建新会话
-    if (!allowEmpty && messageManager.messages.value.length === 0 && state.currentId) {
-      return state.currentId
+  const workingEngines = new Map<string, UseMessageReturn>()
+
+  /**
+   * Watch stop handles for each engine's messages, used for auto-save.
+   */
+  const watchers = new Map<string, WatchStopHandle>()
+
+  /**
+   * Currently active conversation id.
+   */
+  const activeConversationId = ref<string | null>(null)
+
+  /**
+   * Get current active conversation object.
+   * Computed from activeConversationId, automatically syncs with state changes.
+   */
+  const activeConversation = computed<Conversation | null>(() => {
+    const id = activeConversationId.value
+    if (!id) return null
+
+    const info = conversations.value.find((c) => c.id === id)
+    if (!info) return null
+
+    const engine = workingEngines.get(id)
+    if (!engine) return null
+
+    return { ...info, engine }
+  })
+
+  /**
+   * 保存指定会话的消息到存储层。
+   *
+   * 注意：此函数只会对已加载到内存中的会话生效。如果会话尚未被打开或切换过，
+   * 其消息引擎不在内存中，调用此函数不会有任何效果。
+   *
+   * @param id - 会话 ID，如果不提供则使用当前活跃会话
+   */
+  const saveMessages = (id?: string) => {
+    if (!options.storage?.saveMessages) return
+    const conversationId = id || activeConversationId.value
+
+    const conversation = conversations.value.find((c) => c.id === conversationId)
+    if (!conversation) return
+
+    conversation.updatedAt = Date.now()
+    options.storage?.saveConversation?.(conversation)
+
+    const engine = workingEngines.get(conversation.id)
+    if (!engine) return
+
+    options.storage.saveMessages(conversation.id, engine.messages.value)
+  }
+
+  /**
+   * 为引擎设置自动保存监听器
+   */
+  const setupAutoSave = (id: string, engine: UseMessageReturn) => {
+    if (!options.autoSaveMessages || !options.storage?.saveMessages) return
+
+    // 停止已存在的监听器（如果有）
+    const existingWatcher = watchers.get(id)
+    if (existingWatcher) {
+      existingWatcher()
     }
 
-    const id = generateId()
-    const newConversation: Conversation = {
+    // 创建节流保存函数
+    const throttleTime = options.autoSaveThrottle ?? 1000
+    const throttledSave = useThrottleFn(
+      () => {
+        saveMessages(id)
+      },
+      throttleTime,
+      true, // trailing: 在节流周期结束时执行
+      true, // leading: 在节流周期开始时执行
+    )
+
+    // 监听消息变化并自动保存
+    const stopHandle = watch(engine.messages, throttledSave, { deep: true })
+
+    watchers.set(id, stopHandle)
+  }
+
+  /**
+   * 停止引擎的自动保存监听器
+   */
+  const stopAutoSave = (id: string) => {
+    const watcher = watchers.get(id)
+    if (watcher) {
+      watcher()
+      watchers.delete(id)
+    }
+  }
+
+  /**
+   * Load initial conversation list from storage (if provided).
+   */
+  if (options.storage?.loadConversations) {
+    Promise.resolve(options.storage.loadConversations())
+      .then((list) => {
+        conversations.value = list
+      })
+      .catch((error) => {
+        console.error('[useConversation] loadConversations failed:', error)
+      })
+  }
+
+  /**
+   * Ensure an engine instance exists for the given conversation id.
+   * If not, it will be created using stored messages (when storage is available).
+   */
+  const ensureEngine = async (id: string, overrideOptions?: UseMessageOptions): Promise<UseMessageReturn> => {
+    const existing = workingEngines.get(id)
+    if (existing) return existing
+
+    let initialMessages: ChatMessage[] =
+      overrideOptions?.initialMessages ?? options.useMessageOptions.initialMessages ?? []
+
+    if (options.storage?.loadMessages) {
+      try {
+        initialMessages = await options.storage.loadMessages(id)
+      } catch (error) {
+        console.error('[useConversation] loadMessages failed:', error)
+      }
+    }
+
+    const engine = useMessage({
+      ...options.useMessageOptions,
+      ...overrideOptions,
+      initialMessages,
+    })
+
+    workingEngines.set(id, engine)
+    setupAutoSave(id, engine)
+
+    return engine
+  }
+
+  /**
+   * 生成唯一ID
+   */
+  function generateId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2, 9)
+  }
+
+  const createConversation = (params?: {
+    id?: string
+    title?: string
+    metadata?: Record<string, unknown>
+    useMessageOptions?: Partial<UseMessageOptions>
+  }): Conversation => {
+    const { id = generateId(), title, metadata, useMessageOptions } = params || {}
+
+    const now = Date.now()
+    const info: ConversationInfo = {
       id,
       title,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      messages: [],
+      createdAt: now,
+      updatedAt: now,
       metadata,
     }
+    conversations.value.unshift(info)
 
-    state.conversations.unshift(newConversation)
-    switchConversation(id)
+    const engine = useMessage({
+      ...options.useMessageOptions,
+      ...useMessageOptions,
+    })
+    workingEngines.set(id, engine)
+    setupAutoSave(id, engine)
 
-    if (autoSave) {
-      saveConversations()
-    }
+    // Persist new conversation and its initial messages.
+    options.storage?.saveConversation?.(info)
+    options.storage?.saveMessages?.(id, engine.messages.value)
 
-    return id
+    activeConversationId.value = id
+
+    return activeConversation.value!
+  }
+
+  const clearInactiveEngines = (options?: { excludeId?: string }) => {
+    const { excludeId } = options || {}
+
+    workingEngines.forEach((engine, key) => {
+      if (excludeId && key === excludeId) return
+
+      const isProcessing = engine.isProcessing?.value
+      if (!isProcessing) {
+        stopAutoSave(key)
+        workingEngines.delete(key)
+      }
+    })
   }
 
   /**
-   * 切换会话
+   * Switch active conversation by id.
    */
-  const switchConversation = (id: string): void => {
-    const conversation = state.conversations.find((conv: Conversation) => conv.id === id)
-    if (conversation) {
-      state.currentId = id
-      messageManager.clearMessages()
-      if (conversation.messages.length > 0) {
-        conversation.messages.forEach((msg: ChatMessage) => messageManager.addMessage(msg))
-      }
-    }
+  const switchConversation = async (id: string): Promise<Conversation | null> => {
+    if (!id) return null
+
+    if (activeConversationId.value === id) return activeConversation.value
+
+    const conversation = conversations.value.find((c) => c.id === id)
+    if (!conversation) return null
+
+    // Ensure active conversation has an engine (lazy creation from storage).
+    await ensureEngine(id)
+
+    // Cleanup engines that are not active and not processing.
+    // This helps to release memory for engines that are no longer in use.
+    clearInactiveEngines({ excludeId: id })
+
+    activeConversationId.value = id
+
+    return activeConversation.value
   }
 
   /**
-   * 删除会话
+   * Close a conversation and optionally fall back to another one.
    */
-  const deleteConversation = (id: string): void => {
-    const index = state.conversations.findIndex((conv: Conversation) => conv.id === id)
-    if (index !== -1) {
-      state.conversations.splice(index, 1)
+  const deleteConversation = async (id: string) => {
+    const idx = conversations.value.findIndex((c) => c.id === id)
+    if (idx === -1) return
 
-      // 如果删除的是当前会话，切换到第一个会话或清空
-      if (state.currentId === id) {
-        if (state.conversations.length > 0) {
-          switchConversation(state.conversations[0].id)
-        } else {
-          state.currentId = null
-          messageManager.clearMessages()
-        }
-      }
+    // Abort running request when closing this conversation.
+    const engine = workingEngines.get(id)
+    await engine?.abortRequest()
 
-      if (autoSave) {
-        saveConversations()
-      }
-    }
-  }
+    // Stop auto-save watcher before removing engine
+    stopAutoSave(id)
+    workingEngines.delete(id)
 
-  /**
-   * 更新会话标题
-   */
-  const updateTitle = (id: string, title: string): void => {
-    const conversation = state.conversations.find((conv: Conversation) => conv.id === id)
-    if (conversation) {
-      conversation.title = title
-      conversation.updatedAt = Date.now()
+    conversations.value.splice(idx, 1)
 
-      if (autoSave) {
-        saveConversations()
-      }
-    }
-  }
+    options.storage?.deleteConversation?.(id)
 
-  /**
-   * 更新会话元数据
-   */
-  const updateMetadata = (id: string, metadata: Record<string, unknown>): void => {
-    const conversation = state.conversations.find((conv: Conversation) => conv.id === id)
-    if (conversation) {
-      conversation.metadata = { ...conversation.metadata, ...metadata }
-      conversation.updatedAt = Date.now()
-
-      if (autoSave) {
-        saveConversations()
-      }
-    }
-  }
-
-  /**
-   * 保存会话
-   */
-  const saveConversations = async (): Promise<void> => {
-    try {
-      // 将响应式对象转换为普通对象，避免 IndexedDB 的 DataCloneError
-      const plainConversations = JSON.parse(JSON.stringify(state.conversations))
-      await storageInstance.saveConversations(plainConversations)
-    } catch (error) {
-      console.error('保存会话失败:', error)
+    // If deleting the active conversation, switch to new conversation
+    if (activeConversationId.value === id) {
+      activeConversationId.value = null
+      clearInactiveEngines()
     }
   }
 
   /**
-   * 加载会话
+   * Update conversation title and persist it via storage.
    */
-  const loadConversations = async (): Promise<void> => {
-    state.loading = true
-    try {
-      const conversations = await storageInstance.loadConversations()
-      state.conversations = conversations
+  const updateConversationTitle = (id: string, title?: string) => {
+    const info = conversations.value.find((c) => c.id === id)
+    if (!info) return
 
-      // 如果有会话，默认选中第一个
-      if (conversations.length > 0 && !state.currentId) {
-        switchConversation(conversations[0].id)
-      }
-
-      // 仅在第一次加载完成后触发 onLoaded 回调
-      if (!hasTriggeredOnLoaded && events?.onLoaded) {
-        hasTriggeredOnLoaded = true
-        events.onLoaded(conversations)
-      }
-    } catch (error) {
-      console.error('加载会话失败:', error)
-    } finally {
-      state.loading = false
-    }
+    info.title = title
+    info.updatedAt = Date.now()
+    options.storage?.saveConversation?.(info)
   }
 
   /**
-   * 生成会话标题
-   * 基于会话内容自动生成标题
+   * Convenience method: send message to active conversation.
    */
-  const generateTitle = async (id: string): Promise<string> => {
-    const conversation = state.conversations.find((conv: Conversation) => conv.id === id)
-    if (!conversation || conversation.messages.length < 2) {
-      return conversation?.title || '新会话'
-    }
-
-    try {
-      // 构建生成标题的提示
-      const prompt: ChatMessage = {
-        role: 'system',
-        content:
-          '请根据以下对话内容，生成一个简短的标题（不超过20个字符）。只需要返回标题文本，不需要任何解释或额外内容。',
-      }
-
-      // 获取前几条消息用于生成标题
-      const contextMessages = conversation.messages.slice(0, Math.min(4, conversation.messages.length))
-
-      const response = await client.chat({
-        messages: [prompt, ...contextMessages],
-        options: {
-          stream: false,
-          max_tokens: 30,
-        },
-      })
-
-      const title = response.choices[0].message.content.trim()
-      updateTitle(id, title)
-      return title
-    } catch (error) {
-      console.error('生成标题失败:', error)
-      return conversation.title
-    }
+  const sendMessage = (content: string) => {
+    activeConversation.value?.engine.sendMessage(content)
   }
 
   /**
-   * 获取当前会话
+   * Convenience method: abort request of active conversation.
    */
-  const getCurrentConversation = (): Conversation | null => {
-    if (!state.currentId) return null
-    return state.conversations.find((conv: Conversation) => conv.id === state.currentId) || null
+  const abortActiveRequest = async () => {
+    await activeConversation.value?.engine.abortRequest()
   }
-
-  // 初始加载会话
-  loadConversations()
 
   return {
-    state,
-    messageManager,
+    conversations,
+    activeConversationId,
+    activeConversation,
+
     createConversation,
     switchConversation,
     deleteConversation,
-    updateTitle,
-    updateMetadata,
-    saveConversations,
-    loadConversations,
-    generateTitle,
-    getCurrentConversation,
+    updateConversationTitle,
+    saveMessages,
+
+    sendMessage,
+    abortActiveRequest,
   }
 }

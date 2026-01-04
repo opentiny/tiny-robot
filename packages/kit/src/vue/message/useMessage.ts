@@ -1,305 +1,357 @@
-/**
- * useMessage composable
- * 提供消息管理和状态控制功能
- */
-
-import { reactive, Reactive, ref, toRaw, type Ref } from 'vue'
-import type { AIClient } from '../../client'
-import type { ChatCompletionResponse, ChatCompletionStreamResponse, ChatMessage } from '../../types'
-
-export enum STATUS {
-  INIT = 'init', // 初始状态
-  PROCESSING = 'processing', // AI请求正在处理中, 还未响应，显示加载动画
-  STREAMING = 'streaming', // 流式响应中分块数据返回中
-  FINISHED = 'finished', // AI请求已完成
-  ABORTED = 'aborted', // 用户中止请求
-  ERROR = 'error', // AI请求发生错误
-}
-
-export const GeneratingStatus = [STATUS.PROCESSING, STATUS.STREAMING]
-export const FinalStatus = [STATUS.FINISHED, STATUS.ABORTED, STATUS.ERROR]
+import { computed, reactive, ref, watch } from 'vue'
+import { fallbackRolePlugin, lengthPlugin, thinkingPlugin } from './plugins'
+import type {
+  BasePluginContext,
+  ChatMessage,
+  CompletionChoice,
+  MessageRequestBody,
+  RequestProcessingState,
+  RequestState,
+  UseMessageOptions,
+  UseMessagePlugin,
+  UseMessageReturn,
+} from './types'
+import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, pickFields } from './utils'
 
 /**
- * 消息状态接口
- */
-export interface MessageState {
-  status: STATUS
-  errorMsg: string | null
-}
-
-/**
- * useMessage选项接口
- */
-export interface UseMessageOptions {
-  /** AI客户端实例 */
-  client: AIClient
-  /** 是否默认使用流式响应 */
-  useStreamByDefault?: boolean
-  /** 错误消息模板 */
-  errorMessage?: string
-  /** 初始消息列表 */
-  initialMessages?: ChatMessage[]
-  events?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onReceiveData?: <T = any>(data: T, messages: Ref<ChatMessage[]>, preventDefault: () => void) => void
-    onFinish?: (
-      finishReason: string | undefined,
-      context: { messages: Ref<ChatMessage[]>; messageState: Reactive<MessageState> },
-      preventDefault: () => void,
-    ) => void
-  }
-}
-
-/**
- * useMessage返回值接口
- */
-export interface UseMessageReturn {
-  messages: Ref<ChatMessage[]>
-  /** 消息状态 */
-  messageState: Reactive<MessageState>
-  /** 输入消息 */
-  inputMessage: Ref<string>
-  /** 是否使用流式响应 */
-  useStream: Ref<boolean>
-  /** 发送消息 */
-  sendMessage: (content?: ChatMessage['content'], clearInput?: boolean) => Promise<void>
-  /** 手动执行addMessage添加消息后，可以执行send发送消息 */
-  send: () => Promise<void>
-  /** 清空消息 */
-  clearMessages: () => void
-  /** 添加消息 */
-  addMessage: (message: ChatMessage | ChatMessage[]) => void
-  /** 中止请求 */
-  abortRequest: () => void
-  /** 重试请求 */
-  retryRequest: (msgIndex: number) => Promise<void>
-}
-
-/**
- * useMessage composable
- * 提供消息管理和状态控制功能
+ * 插件去重，处理重复的插件名。
+ * 如果插件有名字且存在重复，后面的插件会覆盖前面的插件。
+ * 没有名字的插件总是会被添加。
  *
- * @param options useMessage选项
- * @returns UseMessageReturn
+ * @param plugins - 插件数组
+ * @returns 去重后的插件数组
  */
-export function useMessage(options: UseMessageOptions): UseMessageReturn {
-  const { client, useStreamByDefault = true, errorMessage = '请求失败，请稍后重试', initialMessages = [] } = options
+const deduplicatePlugins = (plugins: UseMessagePlugin[]): UseMessagePlugin[] => {
+  const result: UseMessagePlugin[] = []
 
-  // 消息列表
-  const messages = ref<ChatMessage[]>([...initialMessages])
+  for (const plugin of plugins) {
+    // 如果插件有名字，则检查是否重复，如果重复则先删除原来的，再添加新的
+    if (plugin.name) {
+      const existingIndex = result.findIndex((p) => p.name === plugin.name)
+      if (existingIndex !== -1) {
+        result.splice(existingIndex, 1)
+      }
+    }
+    result.push(plugin)
+  }
 
-  // 输入消息
-  const inputMessage = ref('')
+  return result
+}
 
-  // 是否使用流式响应
-  const useStream = ref(useStreamByDefault)
+export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
+  const {
+    initialMessages = [],
+    requestMessageFields = ['role', 'content', 'tool_calls', 'tool_call_id'],
+    plugins: pluginsFromOptions = [],
+    onCompletionChunk,
+  } = options
 
-  // 请求控制器
+  const requestState = ref<RequestState>('idle')
+  const processingState = ref<RequestProcessingState | undefined>(undefined)
+  const messages = ref<ChatMessage[]>(initialMessages)
+  /**
+   * Current response provider, can be updated at runtime to switch data sources.
+   */
+  const responseProvider = ref(options.responseProvider)
+
   let abortController: AbortController | null = null
+  let currentTurn: ChatMessage[] = []
+  // Custom context data that can be set by plugins
+  let customContext: Record<string, unknown> = {}
 
-  // 消息状态
-  const messageState = reactive<MessageState>({
-    status: STATUS.INIT,
-    errorMsg: null,
+  const defaultPlugins = [fallbackRolePlugin(), thinkingPlugin(), lengthPlugin()]
+  const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
+
+  // Computed properties for UI state
+  const isProcessing = computed(() => requestState.value === 'processing')
+
+  // Function to handle sending message
+  const sendMessage = async (content: string) => {
+    // Validate input content
+    if (!content || !content.trim()) {
+      console.warn('Cannot send empty message')
+      return
+    }
+
+    // Validate current state - only allow sending when not processing
+    if (isProcessing.value) {
+      console.warn('Cannot send message while processing is in progress')
+      return
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    // Add user message to conversation
+    messages.value.push({
+      role: 'user',
+      content: content.trim(),
+      metadata: { createdAt: now, updatedAt: now },
+    })
+    currentTurn.push(messages.value[messages.value.length - 1])
+
+    // Execute the request
+    await tryExecuteRequest()
+  }
+
+  const send = async (...msgs: ChatMessage[]) => {
+    // Validate current state - only allow sending when not processing
+    if (isProcessing.value) {
+      console.warn('Cannot send message while processing is in progress')
+      return
+    }
+
+    messages.value.push(...msgs)
+    currentTurn.push(...msgs)
+
+    // Execute the request
+    await tryExecuteRequest()
+  }
+
+  const sanitizeMessages = (messages: ChatMessage[]) => {
+    return messages.map((message) => pickFields(message, requestMessageFields))
+  }
+
+  const setRequestState = (state: RequestState, pState?: RequestProcessingState) => {
+    requestState.value = state
+    if (state === 'processing') {
+      processingState.value = pState || 'requesting'
+    } else {
+      processingState.value = undefined
+    }
+  }
+
+  // Function to set custom context data
+  const setCustomContext = (data: Record<string, unknown>) => {
+    Object.assign(customContext, data)
+  }
+
+  // Create base context for plugins
+  const getBaseContext = (): Omit<BasePluginContext, 'abortSignal'> => ({
+    messages: messages.value,
+    currentTurn,
+    requestState: requestState.value,
+    processingState: processingState.value,
+    requestMessageFields,
+    plugins,
+    setRequestState,
+    customContext,
+    setCustomContext,
   })
 
-  const chatOnReceiveData = (data: ChatCompletionResponse) => {
-    const onReceiveData = options.events?.onReceiveData
-    let defaultPrevented = false
-    if (onReceiveData) {
-      onReceiveData(data, messages, () => {
-        defaultPrevented = true
-      })
-    }
+  const executeRequest = async (responseProvider: UseMessageOptions['responseProvider'], abortSignal: AbortSignal) => {
+    setRequestState('processing', 'requesting')
 
-    if (!defaultPrevented) {
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: data.choices[0].message.content,
-      }
-      messages.value.push(assistantMessage)
-    }
-  }
-
-  // 普通请求
-  const chat = async (abortController: AbortController) => {
-    const response = await client.chat({
-      messages: toRaw(messages.value),
-      options: {
-        stream: false,
-        signal: abortController.signal,
-      },
-    })
-
-    chatOnReceiveData(response)
-  }
-
-  const streamChatOnReceiveData = (data: ChatCompletionStreamResponse) => {
-    const onReceiveData = options.events?.onReceiveData
-    let defaultPrevented = false
-    if (onReceiveData) {
-      onReceiveData(data, messages, () => {
-        defaultPrevented = true
-      })
-    }
-
-    if (!defaultPrevented) {
-      if (messages.value[messages.value.length - 1].role === 'user') {
-        messages.value.push({ role: 'assistant', content: '' })
-      }
-      const choice = data.choices?.[0]
-      if (choice && choice.delta.content) {
-        messages.value[messages.value.length - 1].content += choice.delta.content
-      }
-    }
-  }
-
-  // 流式请求
-  const streamChat = async (abortController: AbortController) => {
-    await client.chatStream(
+    const requestBody = new Proxy<MessageRequestBody>(
+      { messages: sanitizeMessages(messages.value) },
       {
-        messages: toRaw(messages.value),
-        options: {
-          stream: true,
-          signal: abortController.signal,
-        },
-      },
-      {
-        onData: (data) => {
-          messageState.status = STATUS.STREAMING
-
-          streamChatOnReceiveData(data)
-        },
-        onError: (error) => {
-          messageState.status = STATUS.ERROR
-          messageState.errorMsg = errorMessage
-          console.error('Stream request error:', error)
-        },
-        onDone: (finishReason) => {
-          const onFinish = options.events?.onFinish
-
-          let defaultPrevented = false
-          if (onFinish) {
-            onFinish(finishReason, { messages, messageState }, () => {
-              defaultPrevented = true
-            })
+        set(obj, prop, value) {
+          if (prop === 'messages') {
+            // 赋值 messages 时自动执行 sanitizeMessages
+            obj.messages = sanitizeMessages(value)
+            return true
           }
-
-          if (!defaultPrevented) {
-            if (finishReason === 'aborted' || messageState.status === STATUS.ABORTED) {
-              return
-            }
-            messageState.status = STATUS.FINISHED
-          }
+          ;(obj as Record<string, unknown>)[prop as string] = value
+          return true
         },
       },
     )
+
+    // Allow plugins to modify request body (e.g., add tools)
+    const baseContext = getBaseContext()
+    for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
+      await plugin.onBeforeRequest?.({ ...baseContext, abortSignal, requestBody })
+    }
+
+    const message: ChatMessage = reactive({ role: '', content: '', loading: true })
+    innerAppendMessage(message)
+
+    let lastChoice: CompletionChoice | undefined = undefined
+
+    const result = responseProvider(requestBody, abortSignal)
+    const completionGenerator = normalizeToAsyncGenerator(result)
+
+    for await (const chunk of completionGenerator) {
+      setRequestState('processing', 'completing')
+
+      if (message.loading) {
+        message.loading = undefined
+      }
+
+      // TODO 目前只选择index为0的choice
+      const choice = chunk.choices?.find((choice) => choice.index === 0)
+      if (choice) {
+        lastChoice = choice
+
+        const runDefault = () => {
+          // Ensure metadata exists
+          if (!message.metadata) {
+            message.metadata = {}
+          }
+
+          const { created, ...rest } = chunk
+          message.metadata.createdAt = created
+          message.metadata.updatedAt = Math.floor(Date.now() / 1000)
+          Object.assign(message.metadata, rest)
+
+          combileDeltaData(message, choice.message || choice.delta)
+        }
+
+        if (onCompletionChunk) {
+          const baseContext = getBaseContext()
+          onCompletionChunk({ ...baseContext, abortSignal, chunk, currentMessage: message }, runDefault)
+        } else {
+          runDefault()
+        }
+      }
+
+      const baseContext = getBaseContext()
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
+        plugin.onCompletionChunk?.({ ...baseContext, abortSignal, chunk, choice, currentMessage: message })
+      }
+    }
+
+    await postRequest(message, responseProvider, abortSignal, lastChoice)
   }
 
-  const chatRequest = async () => {
-    // 更新状态
-    messageState.status = STATUS.PROCESSING
-    messageState.errorMsg = null
-
-    // 创建中止控制器
-    abortController = new AbortController()
+  const tryExecuteRequest = async () => {
+    const ac = new AbortController()
+    abortController = ac
+    // Snapshot the current response provider at the start of the turn
+    // to prevent inconsistencies if it changes during the request
+    const turnResponseProvider = responseProvider.value
+    // Reset custom context at the start of each turn
+    customContext = {}
 
     try {
-      if (useStream.value) {
-        await streamChat(abortController)
-      } else {
-        await chat(abortController)
+      setRequestState('processing', 'requesting')
+      // 1) onTurnStart 串行执行，有错误则中断
+      const baseContextAtStart = getBaseContext()
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
+        await plugin.onTurnStart?.({ ...baseContextAtStart, abortSignal: ac.signal })
       }
-    } catch (error) {
-      messageState.errorMsg = errorMessage
-      messageState.status = STATUS.ERROR
-      console.error('Send message error:', error)
+
+      // 2) 主流程执行，有错误则中断（不包括中止错误）
+      try {
+        await executeRequest(turnResponseProvider, ac.signal)
+        setRequestState('completed')
+      } catch (err) {
+        // 检查是否是中止错误：优先检查当前使用的 AbortController 的信号状态
+        // 然后检查错误类型（instanceof 检查最准确）
+        // 最后通过 name 属性作为后备检查（处理跨模块/序列化等边界情况）
+        if (ac.signal.aborted || err instanceof AbortError || (err instanceof Error && err.name === 'AbortError')) {
+          setRequestState('aborted')
+        } else {
+          throw err
+        }
+      }
+
+      // 3) onTurnEnd 串行执行，有错误则中断
+      const baseContextAtEnd = getBaseContext()
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
+        await plugin.onTurnEnd?.({ ...baseContextAtEnd, abortSignal: ac.signal })
+      }
+    } catch (err) {
+      setRequestState('error')
+
+      const context = getBaseContext()
+      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
+        plugin.onError?.({ ...context, abortSignal: ac.signal, error: err })
+      }
+
+      throw err
     } finally {
       abortController = null
+      if (currentTurn.slice(-1)[0]) {
+        currentTurn.slice(-1)[0].loading = undefined
+      }
+      currentTurn = []
     }
   }
 
-  // 发送消息
-  const sendMessage = async (content: ChatMessage['content'] = inputMessage.value, clearInput: boolean = true) => {
-    if (GeneratingStatus.includes(messageState.status)) {
-      return
-    }
+  // 取消当前消息请求的函数
+  const abortRequest = async () => {
+    abortController?.abort()
 
-    if (!content) {
-      return
-    }
-
-    if (typeof content === 'string' && !content.trim()) {
-      return
-    }
-
-    if (Array.isArray(content) && content.length === 0) {
-      return
-    }
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content,
-    }
-    messages.value.push(userMessage)
-    if (clearInput) {
-      inputMessage.value = ''
-    }
-
-    await chatRequest()
-  }
-
-  const send = async () => {
-    if (GeneratingStatus.includes(messageState.status)) {
-      return
-    }
-
-    await chatRequest()
-  }
-
-  // 中止请求
-  const abortRequest = () => {
-    if (abortController) {
-      abortController.abort()
-      abortController = null
-      messageState.status = STATUS.ABORTED
+    // 等待直到 isProcessing 变为 false
+    if (isProcessing.value) {
+      await new Promise<void>((resolve) => {
+        const stopWatcher = watch(
+          isProcessing,
+          (value) => {
+            if (!value) {
+              stopWatcher()
+              resolve()
+            }
+          },
+          { immediate: true },
+        )
+      })
     }
   }
 
-  // 重试请求
-  const retryRequest = async (msgIndex: number) => {
-    if (msgIndex === 0 || !messages.value[msgIndex] || messages.value[msgIndex].role === 'user') {
-      return
+  const postRequest = async (
+    currentMessage: ChatMessage,
+    responseProvider: UseMessageOptions['responseProvider'],
+    abortSignal: AbortSignal,
+    lastChoice?: CompletionChoice,
+  ) => {
+    let shouldRequest = false
+
+    const baseContext = getBaseContext()
+
+    const tasks = plugins
+      .filter((plugin) => !plugin.disabled)
+      .map((plugin) => {
+        if (!plugin.onAfterRequest) {
+          return null
+        }
+
+        const appendMessage = (message: ChatMessage | ChatMessage[]) => {
+          innerAppendMessage(message)
+        }
+
+        const requestNext = () => {
+          shouldRequest = true
+        }
+
+        return plugin.onAfterRequest({
+          ...baseContext,
+          abortSignal,
+          currentMessage,
+          lastChoice,
+          appendMessage,
+          requestNext,
+        })
+      })
+      .filter((task): task is Promise<void> => task !== null)
+
+    // 并行执行所有 onAfterRequest 钩子
+    await makeAbortable(Promise.all(tasks), abortSignal)
+
+    if (shouldRequest) {
+      await executeRequest(responseProvider, abortSignal)
     }
-    messages.value.splice(msgIndex)
-    await chatRequest()
   }
 
-  //清空消息
-  const clearMessages = () => {
-    messages.value = []
-    messageState.errorMsg = null
-  }
+  const innerAppendMessage = (message: ChatMessage | ChatMessage[]) => {
+    const msgs = Array.isArray(message) ? message : [message]
 
-  // 添加消息
-  const addMessage = (message: ChatMessage | ChatMessage[]) => {
-    if (Array.isArray(message)) {
-      messages.value.push(...message)
-    } else {
-      messages.value.push(message)
-    }
+    messages.value.push(...msgs)
+    currentTurn.push(...msgs)
   }
 
   return {
+    // State
+    requestState,
+    processingState,
     messages,
-    messageState,
-    inputMessage,
-    useStream,
+    responseProvider,
+
+    // Computed
+    isProcessing,
+
+    // Methods
     sendMessage,
     send,
-    clearMessages,
-    addMessage,
     abortRequest,
-    retryRequest,
   }
 }

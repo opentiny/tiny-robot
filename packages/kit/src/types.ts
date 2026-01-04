@@ -1,5 +1,7 @@
 import { BaseModelProvider } from './providers/base'
 
+export type MaybePromise<T> = T | Promise<T>
+
 /**
  * 消息角色类型
  */
