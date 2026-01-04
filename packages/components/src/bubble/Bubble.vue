@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toValue } from 'vue'
+import { computed, inject, ref, toValue } from 'vue'
 import BubbleBoxWrapper from './BubbleBoxWrapper.vue'
 import BubbleContentWrapper from './BubbleContentWrapper.vue'
 import {
@@ -8,7 +8,9 @@ import {
   setupBubblePropContentRenderer,
   setupBubbleStore,
   useBubbleMessageGroup,
+  useCopyCleanup,
 } from './composables'
+import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
 import type { BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
@@ -58,10 +60,19 @@ const shouldSplit = computed(() => {
     Array.isArray(resolveMessageContent(messages.value[0]))
   )
 })
+
+// 检查 Bubble 是否在 BubbleList 下
+const isInBubbleList = inject(BUBBLE_LIST_CONTEXT_KEY, false)
+const bubbleRef = ref<HTMLDivElement | null>(null)
+
+// 只有当 Bubble 不在 BubbleList 下时才使用 useCopyCleanup
+if (!isInBubbleList) {
+  useCopyCleanup(bubbleRef)
+}
 </script>
 
 <template>
-  <div class="tr-bubble" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
+  <div class="tr-bubble" ref="bubbleRef" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
     <slot name="prefix" :messages="messages" :role="role"></slot>
     <div class="tr-bubble__body">
       <component
@@ -142,11 +153,13 @@ const shouldSplit = computed(() => {
   align-items: flex-start;
   gap: 8px;
   width: 100%;
+  user-select: none;
 }
 
 .tr-bubble__box {
   max-width: var(--tr-bubble-max-width);
   width: fit-content;
+  user-select: text;
 }
 
 .tr-bubble__after {

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, provide, ref, watch } from 'vue'
 import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
-import { resolveMessageContent, setupBubbleStore } from './composables'
+import { resolveMessageContent, setupBubbleStore, useCopyCleanup } from './composables'
+import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
 import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
@@ -19,6 +20,9 @@ const emit = defineEmits<{
 
 // Provide bubble store if not already provided
 setupBubbleStore()
+
+// 提供 bubble list 上下文，标识 Bubble 组件在 BubbleList 下
+provide(BUBBLE_LIST_CONTEXT_KEY, true)
 
 const listRef = ref<HTMLDivElement | null>(null)
 let scrollToBottomFn: (behavior?: ScrollBehavior) => Promise<void> = async () => {}
@@ -43,6 +47,9 @@ if (props.autoScroll) {
     },
   )
 }
+
+// 设置复制事件处理器，清理复制文本中的多余换行
+useCopyCleanup(listRef)
 
 /**
  * 按角色分组
