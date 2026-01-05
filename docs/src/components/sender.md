@@ -558,11 +558,16 @@ interface SelectOption {
   value: string // 选择后的值
 }
 
-// 提及项
+// 提及项（输入配置）
 interface MentionItem {
   label: string // 显示名称，如 "小小画家"
-  preset: string // 预设内容
+  value: string // 关联值
 }
+
+// 提及项（输出结构）
+type MentionStructuredItem = 
+  | { type: 'text', content: string }
+  | { type: 'mention', content: string, value: string }
 
 // 建议项
 interface SuggestionItem {
@@ -580,7 +585,7 @@ interface SuggestionTextPart {
 }
 
 // 结构化数据（submit 事件返回）
-type StructuredData = TemplateItem[] | MentionItem[]
+type StructuredData = TemplateItem[] | MentionStructuredItem[]
 
 // 输入模式
 type InputMode = 'single' | 'multiple'

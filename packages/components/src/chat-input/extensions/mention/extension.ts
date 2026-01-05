@@ -53,15 +53,15 @@ export const Mention = Node.create<MentionOptions>({
           }
         },
       },
-      preset: {
+      value: {
         default: null,
-        parseHTML: (element) => element.getAttribute('data-preset'),
+        parseHTML: (element) => element.getAttribute('data-value'),
         renderHTML: (attributes) => {
-          if (!attributes.preset) {
+          if (!attributes.value) {
             return {}
           }
           return {
-            'data-preset': attributes.preset,
+            'data-value': attributes.value,
           }
         },
       },
@@ -85,7 +85,7 @@ export const Mention = Node.create<MentionOptions>({
         'data-mention': '',
         'data-id': node.attrs.id as string,
         'data-label': node.attrs.label as string,
-        'data-preset': node.attrs.preset as string,
+        'data-value': node.attrs.value as string,
       }),
       `${this.options.char}${node.attrs.label as string}`,
     ]

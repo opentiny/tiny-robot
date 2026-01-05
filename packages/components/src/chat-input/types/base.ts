@@ -172,7 +172,7 @@ export type { MentionItem }
  *   // text: "帮我分析 @张三 的周报"
  *   // data: [
  *   //   { type: 'text', content: '帮我分析 ' },
- *   //   { type: 'mention', content: '张三', preset: '...' },
+ *   //   { type: 'mention', content: '张三', value: '...' },
  *   //   { type: 'text', content: ' 的周报' }
  *   // ]
  *
@@ -184,7 +184,7 @@ export type { MentionItem }
  *   if (data && data[0]?.type === 'mention') {
  *     const mentions = data.filter(item => item.type === 'mention')
  *     console.log('提及的人:', mentions.map(m => m.content))
- *     console.log('预设内容:', mentions.map(m => m.preset))
+ *     console.log('关联值:', mentions.map(m => m.value))
  *   }
  * }
  * ```

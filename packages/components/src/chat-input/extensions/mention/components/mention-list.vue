@@ -4,7 +4,7 @@ import type { MentionItem } from '../types'
 
 interface Props {
   items: MentionItem[]
-  command: (props: { id?: string; label: string; preset?: string }) => void
+  command: (props: { id?: string; label: string; value?: string }) => void
 }
 
 const props = defineProps<Props>()
@@ -62,7 +62,7 @@ function selectItem(index: number) {
     props.command({
       id: item.id,
       label: item.label,
-      preset: item.preset,
+      value: item.value,
     })
   }
 }

@@ -46,8 +46,8 @@ function filterItems(items: MentionItem[], query: string): MentionItem[] {
       return true
     }
 
-    // 匹配预设内容
-    if (item.preset?.toLowerCase().includes(lowerQuery)) {
+    // 匹配关联值
+    if (item.value?.toLowerCase().includes(lowerQuery)) {
       return true
     }
 
@@ -246,11 +246,11 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
               component = new VueRenderer(MentionList, {
                 props: {
                   items: state.filteredItems,
-                  command: (props: { id: string; label: string; preset?: string }) => {
+                  command: (props: { id: string; label: string; value?: string }) => {
                     const item: MentionItem = {
                       id: props.id,
                       label: props.label,
-                      preset: props.preset || '',
+                      value: props.value || '',
                     }
                     if (state.range) {
                       insertMention(view, state.range, item)
@@ -329,7 +329,7 @@ function insertMention(view: EditorView, range: { from: number; to: number }, it
   const mentionNode = state.schema.nodes.mention.create({
     id: item.id || generateId('mention'),
     label: item.label,
-    preset: item.preset || '',
+    value: item.value || '',
   })
 
   // 创建空格文本节点

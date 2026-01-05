@@ -26,9 +26,11 @@ export interface MentionItem {
   label: string
 
   /**
-   * 预设内容（必传）
+   * 关联值（必传）
+   *
+   * 可以是任意字符串值，如 AI 提示词、用户 ID、标签内容等
    */
-  preset: string
+  value: string
 
   /**
    * 图标（可选）
@@ -49,7 +51,7 @@ export type MentionStructuredItem =
   | {
       type: 'mention'
       content: string // 显示名称
-      preset: string // 预设内容
+      value: string // 关联值
     }
 
 /**
@@ -71,9 +73,9 @@ export interface MentionAttrs {
   label: string
 
   /**
-   * 预设内容（可选）
+   * 关联值（可选）
    */
-  preset?: string
+  value?: string
 }
 
 /**

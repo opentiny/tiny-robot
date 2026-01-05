@@ -21,7 +21,7 @@ export const mentionCommands = {
         attrs: {
           id: attrs.id || generateId('mention'),
           label: attrs.label || '',
-          preset: attrs.preset,
+          value: attrs.value,
         },
       })
     },

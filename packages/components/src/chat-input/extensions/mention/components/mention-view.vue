@@ -4,7 +4,7 @@ import { NodeViewWrapper } from '@tiptap/vue-3'
 interface NodeAttrs {
   id: string
   label: string
-  preset?: string
+  value?: string
   [key: string]: unknown
 }
 
@@ -24,7 +24,7 @@ defineProps<Props>()
 </script>
 
 <template>
-  <NodeViewWrapper as="span" class="mention" :data-id="node.attrs.id" :data-preset="node.attrs.preset"
+  <NodeViewWrapper as="span" class="mention" :data-id="node.attrs.id" :data-value="node.attrs.value"
     >{{ extension.options.char }}{{ node.attrs.label }}</NodeViewWrapper
   >
 </template>

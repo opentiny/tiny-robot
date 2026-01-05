@@ -19,7 +19,7 @@ export function getMentions(editor: Editor): MentionItem[] {
       mentions.push({
         id: node.attrs.id as string,
         label: node.attrs.label as string,
-        preset: (node.attrs.preset as string) || '',
+        value: (node.attrs.value as string) || '',
       })
     }
   })
@@ -69,7 +69,7 @@ export function getTextWithMentions(editor: Editor): string {
  * 输入：帮我分析 @张三 的周报（或 #标签 等，取决于 char 配置）
  * 返回：[
  *   { type: 'text', content: '帮我分析 ' },
- *   { type: 'mention', content: '张三', preset: '...' },
+ *   { type: 'mention', content: '张三', value: '...' },
  *   { type: 'text', content: ' 的周报' }
  * ]
  */
@@ -85,7 +85,7 @@ export function getMentionStructuredData(editor: Editor): MentionStructuredItem[
         items.push({
           type: 'mention',
           content: node.attrs.label as string,
-          preset: (node.attrs.preset as string) || '',
+          value: (node.attrs.value as string) || '',
         })
       } else if (node.type.name === 'text') {
         // 文本节点

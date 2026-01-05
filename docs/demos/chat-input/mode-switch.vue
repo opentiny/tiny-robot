@@ -26,9 +26,6 @@ const handleSubmit = (value: string) => {
       :max-length="200"
       @submit="handleSubmit"
     />
-    <p class="tip">
-      {{ mode === 'single' ? '单行模式：按 Enter 提交' : '多行模式：按 Enter 换行，按 Ctrl+Enter 提交' }}
-    </p>
   </div>
 </template>
 
@@ -61,11 +58,5 @@ const handleSubmit = (value: string) => {
   background: #1476ff;
   border-color: #1476ff;
   color: white;
-}
-
-.tip {
-  margin-top: 10px;
-  color: #666;
-  font-size: 14px;
 }
 </style>
