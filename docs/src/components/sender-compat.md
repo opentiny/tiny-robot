@@ -86,6 +86,18 @@ senderRef.value?.activateTemplateFirstField()
 senderRef.value?.setTemplateData(data)
 ```
 
+:::tip 数据结构说明
+SenderCompat 保持 v0.3.0 的数据结构：
+```typescript
+// ✅ SenderCompat 使用
+{ type: 'template', content: '...' }
+
+// ⚠️ v0.4.0 Sender 使用（注意类型名变更）
+{ type: 'block', content: '...' }
+```
+详见 [模板填充迁移](#模板迁移)
+:::
+
 ---
 
 #### 4. 插槽名称变更
@@ -390,15 +402,10 @@ const senderRef = ref()
 const templateData = ref([])
 
 const setTemplate = () => {
-  // 方式1：使用便捷方法（推荐）
   senderRef.value?.setTemplateData([
     { type: 'text', content: '请帮我' },
-    { type: 'block', content: '翻译' }
+    { type: 'template', content: '翻译' }
   ])
-  
-  // 方式2：使用 v-model（兼容）
-  // templateData.value = [...]
-  // senderRef.value?.activateTemplateFirstField()
 }
 </script>
 ```
@@ -425,7 +432,7 @@ const extensions = [
 const setTemplate = () => {
   templateData.value = [
     { type: 'text', content: '请帮我' },
-    { type: 'block', content: '翻译' }
+    { type: 'block', content: '翻译' }  // ⚠️ 注意：type 从 'template' 改为 'block'
   ]
   // ✅ 自动激活第一个字段，无需手动调用
 }
@@ -439,6 +446,7 @@ const setTemplate = () => {
 - ✅ 使用 `extensions` + `Template.configure()` 配置
 - ✅ 支持响应式 ref，数据变化自动更新
 - ✅ 自动激活第一个可编辑字段
+- ⚠️ **数据结构变更**：`type: 'template'` → `type: 'block'`
 
 ---
 
