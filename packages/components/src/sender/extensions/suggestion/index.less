@@ -1,0 +1,46 @@
+/**
+ * Suggestion 插件样式
+ *
+ * 包含建议列表和自动补全提示的样式
+ * CSS 变量统一在 src/styles/variables.css 中定义
+ */
+
+/**
+ * 自动补全提示
+ *
+ * 通过 Decoration.widget 插入到文档中
+ */
+.suggestion-autocomplete {
+  display: inline-block;
+  height: 16px;
+  pointer-events: none;
+  user-select: none;
+  color: var(--tr-suggestion-autocomplete-color);
+  white-space: nowrap;
+
+  /**
+   * 补全文本
+   *
+   * 灰色显示，表示待输入内容
+   */
+  .autocomplete-text {
+    color: inherit;
+  }
+
+  /**
+   * Tab 按键提示
+   *
+   * 虚线边框，提示用户可按 Tab 应用补全
+   */
+  .tab-hint {
+    display: inline;
+    margin-left: 8px;
+    padding: 4px 6px;
+    border: 1px dashed var(--tr-suggestion-tab-hint-border);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--tr-suggestion-tab-hint-color);
+    background: var(--tr-suggestion-tab-hint-bg);
+    vertical-align: middle;
+  }
+}

@@ -43,7 +43,24 @@ export default defineConfig({
     },
     minify: true,
     rollupOptions: {
-      external: ['vue', 'vue-router', '@opentiny/vue', '@opentiny/tiny-robot-svgs', 'markdown-it', 'dompurify'],
+      external: [
+        'vue',
+        'vue-router',
+        '@opentiny/vue',
+        '@opentiny/tiny-robot-svgs',
+        'markdown-it',
+        'dompurify',
+        '@tiptap/core',
+        '@tiptap/vue-3',
+        // 使用正则匹配 @tiptap/pm 及其子模块（state/view/model等）
+        /^@tiptap\/pm(\/.*)?$/,
+        '@tiptap/extension-document',
+        '@tiptap/extension-paragraph',
+        '@tiptap/extension-text',
+        '@tiptap/extension-history',
+        '@tiptap/extension-placeholder',
+        '@tiptap/extension-character-count',
+      ],
       input: entries,
       output: {
         format: 'es',

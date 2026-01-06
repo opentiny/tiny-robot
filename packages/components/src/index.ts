@@ -13,13 +13,26 @@ import History from './history'
 import IconButton from './icon-button'
 import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
+import SenderCompat from './sender-compat'
 import SuggestionPills, { SuggestionPillButton } from './suggestion-pills'
 import SuggestionPopover from './suggestion-popover'
 import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
+import {
+  ActionButton,
+  SubmitButton,
+  ClearButton,
+  UploadButton,
+  VoiceButton,
+  WordCounter,
+  DefaultActionButtons,
+} from './sender-actions'
 
+// ============================================
+// 组件类型导出
+// ============================================
 export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
@@ -30,6 +43,7 @@ export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
+export * from './sender-actions/index.type'
 export * from './suggestion-pills/index.type'
 export * from './suggestion-popover/index.type'
 export * from './theme-provider/index.type'
@@ -47,6 +61,7 @@ export {
   useOmitMessageFields,
 } from './bubble'
 export { useTheme } from './theme-provider/useTheme'
+export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
 
@@ -65,6 +80,7 @@ const components = [
   Prompt,
   Prompts,
   Sender,
+  SenderCompat,
   SuggestionPills,
   SuggestionPillButton,
   SuggestionPopover,
@@ -72,6 +88,13 @@ const components = [
   Welcome,
   McpServerPicker,
   McpAddForm,
+  ActionButton,
+  SubmitButton,
+  ClearButton,
+  UploadButton,
+  VoiceButton,
+  WordCounter,
+  DefaultActionButtons,
 ]
 
 export default {
@@ -112,6 +135,8 @@ export {
   Prompts as TrPrompts,
   Sender,
   Sender as TrSender,
+  SenderCompat,
+  SenderCompat as TrSenderCompat,
   SuggestionPillButton,
   SuggestionPillButton as TrSuggestionPillButton,
   SuggestionPills,
@@ -126,4 +151,18 @@ export {
   McpServerPicker as TrMcpServerPicker,
   McpAddForm,
   McpAddForm as TrMcpAddForm,
+  ActionButton,
+  ActionButton as TrActionButton,
+  SubmitButton,
+  SubmitButton as TrSubmitButton,
+  ClearButton,
+  ClearButton as TrClearButton,
+  UploadButton,
+  UploadButton as TrUploadButton,
+  VoiceButton,
+  VoiceButton as TrVoiceButton,
+  WordCounter,
+  WordCounter as TrWordCounter,
+  DefaultActionButtons,
+  DefaultActionButtons as TrDefaultActionButtons,
 }
