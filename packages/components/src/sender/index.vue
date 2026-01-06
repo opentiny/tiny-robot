@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, useSlots } from 'vue'
+import { computed, ref, watch, nextTick, useSlots, toRef } from 'vue'
 import { TinyInput } from '@opentiny/vue'
 import { useFileDialog } from '@vueuse/core'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler, UserItem } from './index.type'
@@ -479,9 +479,11 @@ const activateTemplateFirstField = () => {
   }
 }
 
-const { accept = '*', multiple = true, reset = true } = props.buttonGroup?.file || {}
-
-const { open: openFileDialog, files } = useFileDialog({ accept, multiple, reset })
+const { open: openFileDialog, files } = useFileDialog({
+  accept: toRef(() => props.buttonGroup?.file?.accept ?? '*'),
+  multiple: toRef(() => props.buttonGroup?.file?.multiple ?? true),
+  reset: toRef(() => props.buttonGroup?.file?.reset ?? true),
+})
 
 watch(files, (selectedFiles) => {
   if (selectedFiles && selectedFiles.length > 0) {
