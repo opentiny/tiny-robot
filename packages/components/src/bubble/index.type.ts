@@ -50,6 +50,7 @@ export type BubbleProps = BubbleMessage & {
   placement?: 'start' | 'end'
   shape?: 'corner' | 'rounded' | 'none'
   contentRenderMode?: 'single' | 'split'
+  contentResolver?: (message: BubbleMessage) => ChatMessageContent | undefined
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
 }
@@ -62,14 +63,32 @@ export type BubbleMessageGroup = {
 }
 
 export type BubbleBoxRendererMatch = {
-  find: (messages: BubbleMessage[], contentIndex?: number) => boolean
+  /**
+   * 匹配函数，用于判断是否应该使用此渲染器
+   * @param messages - 消息数组
+   * @param resolvedContents - 每个消息经过 contentResolver 解析后的内容数组，与 messages 一一对应
+   * @param contentIndex - 内容索引，用于指定要渲染的内容项（当 content 为数组时）
+   * @returns 如果匹配则返回 true，否则返回 false
+   */
+  find: (
+    messages: BubbleMessage[],
+    resolvedContents: BubbleMessage['content'][],
+    contentIndex: number | undefined,
+  ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
   attributes?: Record<string, string>
 }
 
 export type BubbleContentRendererMatch = {
-  find: (message: BubbleMessage, contentIndex?: number) => boolean
+  /**
+   * 匹配函数，用于判断是否应该使用此渲染器
+   * @param message - 消息对象
+   * @param resolvedContent - 消息经过 contentResolver 解析后的内容
+   * @param contentIndex - 内容索引，用于指定要渲染的内容项（当 content 为数组时）
+   * @returns 如果匹配则返回 true，否则返回 false
+   */
+  find: (message: BubbleMessage, resolvedContent: BubbleMessage['content'], contentIndex: number | undefined) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: Record<string, string>
@@ -137,6 +156,7 @@ export interface BubbleListProps {
    */
   roleConfigs?: Record<string, BubbleRoleConfig>
   contentRenderMode?: BubbleProps['contentRenderMode']
+  contentResolver?: BubbleProps['contentResolver']
   /**
    * 是否自动滚动到底部。需要满足以下条件：
    * - BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）

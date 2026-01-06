@@ -3,12 +3,12 @@ import { computed, ref, watch } from 'vue'
 import { useMessageContent } from '../composables'
 import type { BubbleContentRendererProps, ChatMessageContentItem } from '../index.type'
 
-const props = defineProps<BubbleContentRendererProps>()
+const props = defineProps<BubbleContentRendererProps<ChatMessageContentItem[]>>()
 
 const isLoaded = ref(false)
 const hasError = ref(false)
 
-const content = useMessageContent<ChatMessageContentItem | undefined>(() => props.message, props.contentIndex)
+const { contentItem: content } = useMessageContent(props)
 
 const imageUrl = computed(() => {
   if (!content.value) {

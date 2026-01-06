@@ -3,23 +3,26 @@ import { computed, inject, ref, toValue } from 'vue'
 import BubbleBoxWrapper from './BubbleBoxWrapper.vue'
 import BubbleContentWrapper from './BubbleContentWrapper.vue'
 import {
-  resolveMessageContent,
   setupBubblePropBoxRenderer,
   setupBubblePropContentRenderer,
   setupBubbleStore,
   useBubbleMessageGroup,
+  useContentResolver,
   useCopyCleanup,
 } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
-import type { BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
+import type { BubbleMessage, BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   placement: 'start',
   shape: 'corner',
   contentRenderMode: 'single',
+  contentResolver: (message: BubbleMessage) => message.content,
 })
 
 defineSlots<BubbleSlots>()
+
+const contentResolver = useContentResolver(() => props.contentResolver)
 
 const emit = defineEmits<{
   (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
@@ -53,12 +56,15 @@ const hidden = computed(() => {
   return props.hidden
 })
 
-const shouldSplit = computed(() => {
-  return (
-    props.contentRenderMode === 'split' &&
-    messages.value.length === 1 &&
-    Array.isArray(resolveMessageContent(messages.value[0]))
-  )
+const shouldSplitedContent = computed(() => {
+  if (props.contentRenderMode === 'split' && messages.value.length === 1) {
+    const content = contentResolver(messages.value.at(0)!)
+    if (Array.isArray(content)) {
+      return content
+    }
+  }
+
+  return null
 })
 
 // 检查 Bubble 是否在 BubbleList 下
@@ -82,9 +88,9 @@ if (!isInBubbleList) {
         :class="$style['tr-bubble__avatar']"
       />
       <div class="tr-bubble__content">
-        <template v-if="shouldSplit">
+        <template v-if="shouldSplitedContent">
           <BubbleBoxWrapper
-            v-for="(_, index) in resolveMessageContent(messages[0])"
+            v-for="(_, index) in shouldSplitedContent"
             :key="index"
             class="tr-bubble__box"
             :role="props.role"
@@ -94,7 +100,7 @@ if (!isInBubbleList) {
             :content-index="index"
           >
             <BubbleContentWrapper
-              :message="messages[0]"
+              :message="messages.at(0)!"
               :content-index="index"
               @state-change="emit('state-change', { ...$event, messageIndex: 0 })"
             ></BubbleContentWrapper>
@@ -104,9 +110,9 @@ if (!isInBubbleList) {
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
             <template v-for="(message, msgIndex) in messages" :key="`message-${msgIndex}`">
-              <template v-if="Array.isArray(resolveMessageContent(message))">
+              <template v-if="Array.isArray(contentResolver(message))">
                 <BubbleContentWrapper
-                  v-for="(_, contentIndex) in resolveMessageContent(message)"
+                  v-for="(_, contentIndex) in contentResolver(message)"
                   :key="`content-${contentIndex}`"
                   :message="message"
                   :content-index="contentIndex"

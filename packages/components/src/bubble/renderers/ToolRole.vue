@@ -21,5 +21,5 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div v-if="false">{{ props.message.content }}</div>
+  <div v-if="false"></div>
 </template>

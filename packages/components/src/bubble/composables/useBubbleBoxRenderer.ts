@@ -1,12 +1,13 @@
 import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
 import { computed, inject, provide, toValue } from 'vue'
 import {
-  BUBBLE_BOX_RENDERER_MATCHES_KEY,
   BUBBLE_BOX_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
+  BUBBLE_BOX_RENDERER_MATCHES_KEY,
 } from '../constants'
 import type { BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
+import { useContentResolver } from './useContentResolver'
 
 export function setupBubbleBoxRenderer(renderers: {
   boxRendererMatches?: MaybeRefOrGetter<Array<BubbleBoxRendererMatch>>
@@ -44,11 +45,18 @@ export function useBubbleBoxRenderer(
   const boxRendererMatches = inject(BUBBLE_BOX_RENDERER_MATCHES_KEY, defaultBoxRendererMatches)
   const fallbackBoxRenderer = inject(BUBBLE_BOX_FALLBACK_RENDERER_KEY, undefined)
   const propFallbackBoxRenderer = inject(BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY, undefined)
+  const contentResolver = useContentResolver()
 
   return computed(() => {
     const msgs = toValue(messages)
 
-    const match = toValue(boxRendererMatches).find((match) => match.find(msgs, contentIndex))
+    const match = toValue(boxRendererMatches).find((match) =>
+      match.find(
+        msgs,
+        msgs.map((msg) => contentResolver(msg)),
+        contentIndex,
+      ),
+    )
 
     if (match) {
       return {

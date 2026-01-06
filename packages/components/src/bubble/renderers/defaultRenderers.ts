@@ -1,5 +1,4 @@
 import { markRaw } from 'vue'
-import { resolveMessageContent } from '../composables'
 import { BubbleRendererMatchPriority } from '../constants'
 import type { BubbleBoxRendererMatch, BubbleContentRendererMatch } from '../index.type'
 import Box from './Box.vue'
@@ -12,10 +11,10 @@ import Tools from './Tools.vue'
 
 export const defaultBoxRendererMatches: Array<BubbleBoxRendererMatch> = [
   {
-    find: (messages, contentIndex) => {
-      const content = resolveMessageContent(messages[0])
+    find: (_, contents, contentIndex) => {
+      const content = contents.at(0)
       return (
-        messages.length === 1 &&
+        contents.length === 1 &&
         Array.isArray(content) &&
         typeof contentIndex === 'number' &&
         content[contentIndex].type === 'image_url'
@@ -44,8 +43,7 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.NORMAL,
   },
   {
-    find: (message, contentIndex) => {
-      const content = resolveMessageContent(message)
+    find: (_, content, contentIndex) => {
       return Array.isArray(content) && typeof contentIndex === 'number' && content[contentIndex].type === 'image_url'
     },
     renderer: markRaw(Image),

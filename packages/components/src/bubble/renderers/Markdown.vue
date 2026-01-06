@@ -9,7 +9,7 @@ import Text from './Text.vue'
 
 const props = defineProps<BubbleContentRendererProps>()
 
-const content = useMessageContent(() => props.message, props.contentIndex)
+const { contentText: content } = useMessageContent(props)
 
 const markdownItAndDompurify = ref<Awaited<ReturnType<typeof getMarkdownItAndDompurify>>>(null)
 
@@ -27,9 +27,7 @@ const markdownContent = ref('')
 watchEffect(() => {
   if (markdownItAndDompurify.value) {
     const { markdown, dompurify } = markdownItAndDompurify.value
-    markdownContent.value = markdown(mdConfig || {}).render(
-      String(typeof content.value === 'string' ? content.value : content.value?.text),
-    )
+    markdownContent.value = markdown(mdConfig || {}).render(content.value)
     dompurify.sanitize(markdownContent.value, dompurifyConfig)
   }
 })

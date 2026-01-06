@@ -1,22 +1,27 @@
-import type { ComputedRef, MaybeRefOrGetter } from 'vue'
-import { computed, toValue } from 'vue'
-import { BubbleMessage, ChatMessageContent, ChatMessageContentItem } from '../index.type'
+import { computed } from 'vue'
+import { BubbleContentRendererProps, ChatMessageContent, ChatMessageContentItem } from '../index.type'
+import { useContentResolver } from './useContentResolver'
 
-export const resolveMessageContent = (message: BubbleMessage) => {
-  return (message.state?.content as ChatMessageContent | undefined) ?? message.content
-}
-
-export const useMessageContent = <T = string | ChatMessageContentItem | undefined>(
-  message: MaybeRefOrGetter<BubbleMessage>,
-  contentIndex?: number,
+export const useMessageContent = <T extends ChatMessageContent = ChatMessageContent>(
+  props: Readonly<BubbleContentRendererProps<T>>,
 ) => {
-  return computed(() => {
-    const content = resolveMessageContent(toValue(message))
+  const contentResolver = useContentResolver()
 
-    if (Array.isArray(content)) {
-      return content.at(contentIndex ?? 0)
-    }
+  const content = computed(() => contentResolver(props.message))
 
-    return content
-  }) as ComputedRef<T>
+  const contentItem = computed(() => {
+    const c = content.value
+    return Array.isArray(c) ? (c.at(props.contentIndex ?? 0) as ChatMessageContentItem | undefined) : undefined
+  })
+
+  const contentText = computed(() => {
+    const c = content.value
+    return Array.isArray(c) ? String(c.at(props.contentIndex ?? 0)?.text || '') : c || ''
+  })
+
+  return {
+    content,
+    contentItem,
+    contentText,
+  }
 }
