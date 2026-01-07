@@ -226,9 +226,9 @@ defineExpose({
 
     <!-- 映射 actions -> actions-inline -->
     <template #actions-inline="slotProps">
-      <!-- 根据 allowFiles 自动注入 -->
+      <!-- 单行模式：根据 allowFiles 自动注入 -->
       <UploadButton
-        v-if="allowFiles"
+        v-if="allowFiles && mode === 'single'"
         v-bind="{
           ...buttonGroup?.file,
           tooltip: buttonGroup?.file?.tooltips,
@@ -236,9 +236,9 @@ defineExpose({
         @select="handleFilesSelected"
       />
 
-      <!-- 根据 allowSpeech 自动注入 -->
+      <!-- 单行模式：根据 allowSpeech 自动注入 -->
       <VoiceButton
-        v-if="allowSpeech"
+        v-if="allowSpeech && mode === 'single'"
         ref="voiceRef"
         :speech-config="voiceConfig"
         :icon="buttonGroup?.voice?.icon"
@@ -262,9 +262,9 @@ defineExpose({
     <template #footer-right="slotProps">
       <slot v-if="$slots['footer-right']" name="footer-right" v-bind="slotProps" />
 
-      <!-- 根据 allowFiles 自动注入 -->
+      <!-- 多行模式：根据 allowFiles 自动注入 -->
       <UploadButton
-        v-if="allowFiles"
+        v-if="allowFiles && mode === 'multiple'"
         v-bind="{
           ...buttonGroup?.file,
           tooltip: buttonGroup?.file?.tooltips,
@@ -272,9 +272,10 @@ defineExpose({
         @select="handleFilesSelected"
       />
 
-      <!-- 根据 allowSpeech 自动注入 -->
+      <!-- 多行模式：根据 allowSpeech 自动注入 -->
       <VoiceButton
-        v-if="allowSpeech"
+        v-if="allowSpeech && mode === 'multiple'"
+        ref="voiceRef"
         :speech-config="voiceConfig"
         :icon="buttonGroup?.voice?.icon"
         @speech-start="handleSpeechStart"
