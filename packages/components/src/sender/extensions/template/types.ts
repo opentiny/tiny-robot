@@ -3,31 +3,11 @@
  */
 
 import type { Ref } from 'vue'
-import type { TemplateItem } from '../../index.type'
+import type { TemplateItem, SelectOption } from '../../index.type'
 import '@tiptap/core'
 
-// 重新导出 TemplateItem 以便外部使用
-export type { TemplateItem }
-
-/**
- * 选择器选项
- */
-export interface SelectOption {
-  /**
-   * 显示文本
-   */
-  label: string
-
-  /**
-   * 选择后的值
-   */
-  value: string
-
-  /**
-   * 自定义数据（可选）
-   */
-  data?: string
-}
+// 重新导出 TemplateItem 和 SelectOption 以便外部使用
+export type { TemplateItem, SelectOption }
 
 /**
  * TemplateSelect 节点属性
@@ -99,7 +79,7 @@ export interface TemplateOptions {
    * })
    * ```
    */
-  items?: TemplateItem[] | Ref<TemplateItem[], TemplateItem[]>
+  items?: TemplateItem[] | Ref<TemplateItem[]>
 
   /**
    * HTML 属性

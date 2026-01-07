@@ -69,13 +69,6 @@ const defaultActions = computed(() => {
     actions.submit = props.buttonGroup.submit
   }
 
-  if (props.buttonGroup?.file) {
-    actions.clear = {
-      disabled: props.buttonGroup.file.disabled,
-      tooltip: props.buttonGroup.file.disabled ? '无法清空' : '清空输入',
-    }
-  }
-
   return Object.keys(actions).length > 0 ? actions : undefined
 })
 

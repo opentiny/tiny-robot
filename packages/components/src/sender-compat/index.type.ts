@@ -4,43 +4,11 @@
  */
 
 import type { VNode, Component } from 'vue'
+import type { InputMode, SubmitTrigger, AutoSize } from '../sender/types/base'
+import type { SpeechConfig } from '../sender-actions/voice-button/speech.types'
 
 // 主题类型
 export type ThemeType = 'light' | 'dark'
-
-// 输入模式类型
-export type InputMode = 'single' | 'multiple'
-
-// 提交触发方式
-export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
-
-// 语音回调函数集合
-export interface SpeechCallbacks {
-  onStart: () => void
-  onInterim: (transcript: string) => void
-  onFinal: (transcript: string) => void
-  onEnd: (transcript?: string) => void
-  onError: (error: Error) => void
-}
-
-// 语音处理器接口
-export interface SpeechHandler {
-  start: (callbacks: SpeechCallbacks) => Promise<void> | void
-  stop: () => Promise<void> | void
-  isSupported: () => boolean
-}
-
-// 语音识别配置
-export interface SpeechConfig {
-  customHandler?: SpeechHandler
-  lang?: string
-  continuous?: boolean
-  interimResults?: boolean
-  autoReplace?: boolean
-  onVoiceButtonClick?: (isRecording: boolean, preventDefault: () => void) => void | Promise<void>
-}
-
-export type AutoSize = boolean | { minRows: number; maxRows: number }
 
 export type TooltipRender = () => VNode | string
 
@@ -77,6 +45,11 @@ export interface ButtonGroupConfig {
   submit?: ControlState
   voice?: VoiceButtonConfig
 }
+
+// ============================================
+// 建议项相关类型（旧版兼容层专用）
+// 注意：这些类型与新版 sender 的 SuggestionItem 不同，仅用于兼容旧版 API
+// ============================================
 
 // 高亮片段类型
 export interface SuggestionTextPart {
@@ -138,21 +111,27 @@ export type SenderEmits = {
   (e: 'files-selected', files: File[]): void
 }
 
-// UserItem 相关类型
-export interface TextItem {
+// ============================================
+// UserItem 相关类型（旧版兼容层专用）
+// 注意：这些类型与新版 sender 的 TemplateItem 不同，仅用于兼容旧版 API
+// ============================================
+
+export interface CompatTextItem {
   id: string
   type: 'text'
   content: string
 }
 
-export interface TemplateItem {
+export interface CompatTemplateItem {
   id: string
   type: 'template' | 'block'
   content: string
 }
 
-export type UserTextItem = Omit<TextItem, 'id'> & { id?: TextItem['id'] }
+export type UserTextItem = Omit<CompatTextItem, 'id'> & { id?: CompatTextItem['id'] }
 
-export type UserTemplateItem = Omit<Pick<TemplateItem, 'type' | 'content'>, 'id'> & { id?: TemplateItem['id'] }
+export type UserTemplateItem = Omit<Pick<CompatTemplateItem, 'type' | 'content'>, 'id'> & {
+  id?: CompatTemplateItem['id']
+}
 
 export type UserItem = UserTextItem | UserTemplateItem
