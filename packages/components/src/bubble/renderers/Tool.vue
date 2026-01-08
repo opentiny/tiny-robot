@@ -172,7 +172,7 @@ const handleClick = () => {
   line-height: 24px;
   padding: 12px;
   color: var(--tr-text-secondary);
-  background-color: var(--tr-container-bg-default-2);
+  background-color: var(--tr-bubble-tool-call-bg);
   border-radius: 12px;
   margin-block: var(--tr-bubble-tool-call-space-y);
   min-width: var(--tr-bubble-tool-call-min-width);

@@ -164,6 +164,7 @@ if (!isInBubbleList) {
 
 .tr-bubble__box {
   max-width: var(--tr-bubble-max-width);
+  min-width: var(--tr-bubble-min-width);
   width: fit-content;
   user-select: text;
 }

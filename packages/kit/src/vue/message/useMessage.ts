@@ -125,17 +125,25 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   }
 
   // Create base context for plugins
-  const getBaseContext = (): Omit<BasePluginContext, 'abortSignal'> => ({
+  const getBaseContext = (abortSignal: AbortSignal): BasePluginContext => ({
     messages: messages.value,
     currentTurn,
     requestState: requestState.value,
     processingState: processingState.value,
     requestMessageFields,
     plugins,
+    abortSignal,
     setRequestState,
     customContext,
     setCustomContext,
   })
+
+  const isPluginDisabled = (plugin: UseMessagePlugin, context: BasePluginContext) => {
+    if (typeof plugin.disabled === 'function') {
+      return plugin.disabled(context)
+    }
+    return Boolean(plugin.disabled)
+  }
 
   const executeRequest = async (responseProvider: UseMessageOptions['responseProvider'], abortSignal: AbortSignal) => {
     setRequestState('processing', 'requesting')
@@ -156,9 +164,9 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     )
 
     // Allow plugins to modify request body (e.g., add tools)
-    const baseContext = getBaseContext()
-    for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
-      await plugin.onBeforeRequest?.({ ...baseContext, abortSignal, requestBody })
+    const baseContext = getBaseContext(abortSignal)
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
+      await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
     }
 
     const message: ChatMessage = reactive({ role: '', content: '', loading: true })
@@ -196,15 +204,15 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
         }
 
         if (onCompletionChunk) {
-          const baseContext = getBaseContext()
-          onCompletionChunk({ ...baseContext, abortSignal, chunk, currentMessage: message }, runDefault)
+          const baseContext = getBaseContext(abortSignal)
+          onCompletionChunk({ ...baseContext, chunk, choice, currentMessage: message }, runDefault)
         } else {
           runDefault()
         }
       }
 
-      const baseContext = getBaseContext()
-      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
+      const baseContext = getBaseContext(abortSignal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
         plugin.onCompletionChunk?.({ ...baseContext, abortSignal, chunk, choice, currentMessage: message })
       }
     }
@@ -224,9 +232,9 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     try {
       setRequestState('processing', 'requesting')
       // 1) onTurnStart 串行执行，有错误则中断
-      const baseContextAtStart = getBaseContext()
-      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
-        await plugin.onTurnStart?.({ ...baseContextAtStart, abortSignal: ac.signal })
+      const baseContextAtStart = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtStart))) {
+        await plugin.onTurnStart?.(baseContextAtStart)
       }
 
       // 2) 主流程执行，有错误则中断（不包括中止错误）
@@ -245,20 +253,29 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       }
 
       // 3) onTurnEnd 串行执行，有错误则中断
-      const baseContextAtEnd = getBaseContext()
-      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
-        await plugin.onTurnEnd?.({ ...baseContextAtEnd, abortSignal: ac.signal })
+      const baseContextAtEnd = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtEnd))) {
+        await plugin.onTurnEnd?.(baseContextAtEnd)
       }
     } catch (err) {
       setRequestState('error')
 
-      const context = getBaseContext()
-      for (const plugin of plugins.filter((plugin) => !plugin.disabled)) {
-        plugin.onError?.({ ...context, abortSignal: ac.signal, error: err })
+      const context = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        plugin.onError?.({ ...context, error: err })
       }
 
       throw err
     } finally {
+      const context = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        try {
+          plugin.onFinally?.(context)
+        } catch (err) {
+          console.error(`Error in onFinally hook for plugin ${plugin.name || 'Anonymous'}:`, err)
+        }
+      }
+
       abortController = null
       if (currentTurn.slice(-1)[0]) {
         currentTurn.slice(-1)[0].loading = undefined
@@ -296,10 +313,10 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   ) => {
     let shouldRequest = false
 
-    const baseContext = getBaseContext()
+    const baseContext = getBaseContext(abortSignal)
 
     const tasks = plugins
-      .filter((plugin) => !plugin.disabled)
+      .filter((plugin) => !isPluginDisabled(plugin, baseContext))
       .map((plugin) => {
         if (!plugin.onAfterRequest) {
           return null
@@ -315,7 +332,6 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
         return plugin.onAfterRequest({
           ...baseContext,
-          abortSignal,
           currentMessage,
           lastChoice,
           appendMessage,

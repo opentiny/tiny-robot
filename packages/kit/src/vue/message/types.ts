@@ -123,6 +123,7 @@ export interface UseMessageOptions {
   onCompletionChunk?: (
     context: BasePluginContext & {
       currentMessage: ChatMessage
+      choice: CompletionChoice
       chunk: ChatCompletion
     },
     runDefault: () => void,
@@ -167,7 +168,7 @@ export interface UseMessagePlugin {
   /**
    * 是否禁用插件。useMessage 可能会内置一些默认插件，如果需要禁用，可以设置为 true。
    */
-  disabled?: boolean
+  disabled?: boolean | ((context: BasePluginContext) => boolean)
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。
@@ -216,4 +217,5 @@ export interface UseMessagePlugin {
     },
   ) => void
   onError?: (context: BasePluginContext & { error: unknown }) => void
+  onFinally?: (context: BasePluginContext) => void
 }
