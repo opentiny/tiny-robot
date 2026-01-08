@@ -155,13 +155,20 @@ export type { MentionItem }
  *   // text: "帮我分析 的周报"
  *   // data: [
  *   //   { type: 'text', content: '帮我分析 ' },
- *   //   { type: 'template', content: '张三' },
+ *   //   { type: 'block', content: '张三' },
  *   //   { type: 'text', content: ' 的周报' }
  *   // ]
  *
- *   if (data && data[0]?.type === 'template') {
- *     const templates = data.filter(item => item.type === 'template')
- *     console.log('模板变量:', templates)
+ *   // 提取模板块（可编辑部分）
+ *   if (data && data.some(item => item.type === 'block')) {
+ *     const blocks = data.filter(item => item.type === 'block')
+ *     console.log('模板块:', blocks)
+ *   }
+ *
+ *   // 提取选择器
+ *   if (data && data.some(item => item.type === 'select')) {
+ *     const selects = data.filter(item => item.type === 'select')
+ *     console.log('选择器:', selects)
  *   }
  * }
  * ```
@@ -180,8 +187,8 @@ export type { MentionItem }
  *   const allContent = data?.map(item => item.content).join('')
  *   console.log('完整内容:', allContent)
  *
- *   // 提取 mention
- *   if (data && data[0]?.type === 'mention') {
+ *   // 提取 mention（正确的类型守卫）
+ *   if (data && data.some(item => item.type === 'mention')) {
  *     const mentions = data.filter(item => item.type === 'mention')
  *     console.log('提及的人:', mentions.map(m => m.content))
  *     console.log('关联值:', mentions.map(m => m.value))

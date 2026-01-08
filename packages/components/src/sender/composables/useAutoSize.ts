@@ -30,6 +30,13 @@ export function useAutoSize(currentMode: Ref<InputMode>, editorRef: Ref<HTMLElem
       return null
     }
 
+    if (autoSize === true) {
+      return {
+        minRows: 1,
+        maxRows: 5,
+      }
+    }
+
     if (typeof autoSize === 'object') {
       return {
         minRows: autoSize.minRows,

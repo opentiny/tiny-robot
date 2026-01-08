@@ -5,6 +5,7 @@
 import type { Editor } from '@tiptap/core'
 import { generateId } from '../utils'
 import type { MentionAttrs } from './types'
+import { NODE_TYPE_NAMES } from '../constants'
 
 /**
  * Mention 命令集合
@@ -17,7 +18,7 @@ export const mentionCommands = {
     (attrs: Partial<MentionAttrs>) =>
     ({ commands }: { commands: Editor['commands'] }) => {
       return commands.insertContent({
-        type: 'mention',
+        type: NODE_TYPE_NAMES.MENTION,
         attrs: {
           id: attrs.id || generateId('mention'),
           label: attrs.label || '',
@@ -34,7 +35,7 @@ export const mentionCommands = {
     ({ tr, state }: { tr: Editor['state']['tr']; state: Editor['state'] }) => {
       let deleted = false
       state.doc.descendants((node, pos) => {
-        if (node.type.name === 'mention' && node.attrs.id === id) {
+        if (node.type.name === NODE_TYPE_NAMES.MENTION && node.attrs.id === id) {
           tr.delete(pos, pos + node.nodeSize)
           deleted = true
           return false

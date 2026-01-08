@@ -7,12 +7,13 @@ import { VueNodeViewRenderer } from '@tiptap/vue-3'
 import type { TemplateSelectAttrs } from '../types'
 import TemplateSelectView from './template-select-view.vue'
 import { selectDropdownStatePlugin, selectZeroWidthPlugin, selectKeyboardPlugin } from './plugins'
+import { NODE_TYPE_NAMES } from '../../constants'
 
 /**
  * TemplateSelect 节点定义
  */
 export const TemplateSelect = Node.create<Record<string, unknown>>({
-  name: 'templateSelect',
+  name: NODE_TYPE_NAMES.TEMPLATE_SELECT,
 
   // 节点配置
   group: 'inline',
@@ -43,7 +44,14 @@ export const TemplateSelect = Node.create<Record<string, unknown>>({
         default: [],
         parseHTML: (element) => {
           const optionsStr = element.getAttribute('data-options')
-          return optionsStr ? JSON.parse(optionsStr) : []
+          if (!optionsStr) return []
+
+          try {
+            return JSON.parse(optionsStr)
+          } catch (error) {
+            console.warn('Failed to parse template select options:', error)
+            return []
+          }
         },
         renderHTML: (attributes) => {
           return { 'data-options': JSON.stringify(attributes.options) }

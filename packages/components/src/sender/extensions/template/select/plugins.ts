@@ -7,6 +7,8 @@ import type { EditorState, Transaction } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { ZERO_WIDTH_CHAR } from '../utils'
+import { NODE_TYPE_NAMES, PLUGIN_KEY_NAMES } from '../../constants'
+import { isAnyKey, isKey } from '../../utils'
 
 /**
  * Template Select 下拉菜单状态
@@ -25,7 +27,9 @@ interface TemplateSelectDropdownState {
 /**
  * Template Select 下拉菜单状态插件 Key
  */
-export const TemplateSelectDropdownPluginKey = new PluginKey<TemplateSelectDropdownState>('templateSelectDropdown')
+export const TemplateSelectDropdownPluginKey = new PluginKey<TemplateSelectDropdownState>(
+  PLUGIN_KEY_NAMES.TEMPLATE_SELECT_DROPDOWN,
+)
 
 /**
  * 下拉菜单状态管理插件
@@ -75,7 +79,7 @@ export function selectDropdownStatePlugin() {
  */
 export function selectZeroWidthPlugin() {
   return new Plugin({
-    key: new PluginKey('templateSelectZeroWidth'),
+    key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_SELECT_ZERO_WIDTH),
 
     appendTransaction(transactions: readonly Transaction[], _oldState: EditorState, newState: EditorState) {
       // 只在内容发生变化时修正
@@ -87,7 +91,7 @@ export function selectZeroWidthPlugin() {
       let { tr } = newState
 
       newState.doc.descendants((node: PMNode, pos: number) => {
-        if (node.type.name === 'paragraph' && node.childCount > 0) {
+        if (node.type.name === NODE_TYPE_NAMES.PARAGRAPH && node.childCount > 0) {
           const { lastChild, firstChild } = node
           // 如果段落只有一个零宽字符，删除它
           if (lastChild === firstChild && lastChild && lastChild.isText && lastChild.text === ZERO_WIDTH_CHAR) {
@@ -113,7 +117,7 @@ export function selectZeroWidthPlugin() {
  */
 export function selectKeyboardPlugin() {
   return new Plugin({
-    key: new PluginKey('templateSelectKeyboard'),
+    key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_SELECT_KEYBOARD),
 
     props: {
       handleKeyDown(view: EditorView, event: KeyboardEvent) {
@@ -124,7 +128,7 @@ export function selectKeyboardPlugin() {
         // 如果有下拉菜单打开，拦截键盘事件让 Vue 组件处理
         const dropdownState = TemplateSelectDropdownPluginKey.getState(view.state)
         if (dropdownState?.isOpen) {
-          if (event.key === 'Enter' || event.key === 'ArrowUp' || event.key === 'ArrowDown' || event.key === 'Escape') {
+          if (isAnyKey(event, ['ENTER', 'ARROW_UP', 'ARROW_DOWN', 'ESCAPE'])) {
             // 返回 true 表示"已处理"，阻止事件继续传播到 useSenderCore
             return true
           }
@@ -132,13 +136,13 @@ export function selectKeyboardPlugin() {
 
         // 处理 Backspace 删除选择器
         // 注意：零宽字符现在由 Vue 组件渲染，总是存在于 templateSelect 前后
-        if (event.key === 'Backspace' && selection.empty) {
+        if (isKey(event, 'BACKSPACE') && selection.empty) {
           const beforeNode = $from.nodeBefore
           const afterNode = $from.nodeAfter
 
           // 场景1：光标前面直接是 templateSelect 节点
           // 删除整个选择器（包括内置的零宽字符）
-          if (beforeNode?.type.name === 'templateSelect') {
+          if (beforeNode?.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
             dispatch(state.tr.delete($from.pos - beforeNode.nodeSize, $from.pos))
             event.preventDefault()
             return true
@@ -153,7 +157,7 @@ export function selectKeyboardPlugin() {
             const nodeBeforeZeroWidth = $posBeforeZeroWidth.nodeBefore
 
             // 如果零宽字符前面是 templateSelect，删除 templateSelect + 零宽字符
-            if (nodeBeforeZeroWidth?.type.name === 'templateSelect') {
+            if (nodeBeforeZeroWidth?.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
               const deleteFrom = posBeforeZeroWidth - nodeBeforeZeroWidth.nodeSize
               const deleteTo = $from.pos // 包括零宽字符
               dispatch(state.tr.delete(deleteFrom, deleteTo))
@@ -164,7 +168,7 @@ export function selectKeyboardPlugin() {
 
           // 场景3：光标后面是 templateSelect，前面是普通文本
           // 删除文本的最后一个字符
-          if (afterNode?.type.name === 'templateSelect') {
+          if (afterNode?.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
             // 如果前面是普通文本（非零宽字符）
             if (beforeNode?.isText && beforeNode.text !== ZERO_WIDTH_CHAR) {
               dispatch(state.tr.delete($from.pos - 1, $from.pos))
@@ -172,7 +176,7 @@ export function selectKeyboardPlugin() {
               return true
             }
             // 如果前面是 template 节点，不处理，让 TemplateBlock 插件处理
-            if (beforeNode?.type.name === 'template') {
+            if (beforeNode?.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
               return false
             }
           }
@@ -188,13 +192,13 @@ export function selectKeyboardPlugin() {
 
         // 处理 Delete 删除选择器
         // 注意：零宽字符现在由 Vue 组件渲染，总是存在于 templateSelect 前后
-        if (event.key === 'Delete' && selection.empty) {
+        if (isKey(event, 'DELETE') && selection.empty) {
           const afterNode = $from.nodeAfter
           const beforeNode = $from.nodeBefore
 
           // 场景1：光标后面直接是 templateSelect 节点
           // 删除整个选择器（包括内置的零宽字符）
-          if (afterNode?.type.name === 'templateSelect') {
+          if (afterNode?.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
             dispatch(state.tr.delete($from.pos, $from.pos + afterNode.nodeSize))
             event.preventDefault()
             return true
@@ -209,7 +213,7 @@ export function selectKeyboardPlugin() {
             const nodeAfterZeroWidth = $posAfterZeroWidth.nodeAfter
 
             // 如果零宽字符后面是 templateSelect，删除零宽字符 + templateSelect
-            if (nodeAfterZeroWidth?.type.name === 'templateSelect') {
+            if (nodeAfterZeroWidth?.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
               const deleteTo = posAfterZeroWidth + nodeAfterZeroWidth.nodeSize
               dispatch(state.tr.delete($from.pos, deleteTo))
               event.preventDefault()
@@ -219,7 +223,7 @@ export function selectKeyboardPlugin() {
 
           // 场景3：光标前面是 templateSelect，后面是普通文本
           // 删除文本的第一个字符
-          if (beforeNode?.type.name === 'templateSelect') {
+          if (beforeNode?.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
             // 如果后面是普通文本（非零宽字符）
             if (afterNode?.isText && afterNode.text !== ZERO_WIDTH_CHAR) {
               dispatch(state.tr.delete($from.pos, $from.pos + 1))
@@ -227,7 +231,7 @@ export function selectKeyboardPlugin() {
               return true
             }
             // 如果后面是 template 节点，不处理，让 TemplateBlock 插件处理
-            if (afterNode?.type.name === 'template') {
+            if (afterNode?.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
               return false
             }
           }

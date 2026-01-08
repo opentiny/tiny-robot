@@ -14,11 +14,13 @@ import type { Editor } from '@tiptap/core'
 import SuggestionList from './suggestion-list.vue'
 import { syncAutoComplete } from './utils/filter'
 import type { SuggestionOptions, SuggestionState, SuggestionItem } from './types'
+import { PLUGIN_KEY_NAMES, EXTENSION_NAMES } from '../constants'
+import { isKey, isAnyKey } from '../utils'
 
 /**
  * 插件 Key，用于访问插件状态
  */
-export const SuggestionPluginKey = new PluginKey<SuggestionState>('suggestion')
+export const SuggestionPluginKey = new PluginKey<SuggestionState>(PLUGIN_KEY_NAMES.SUGGESTION)
 
 /**
  * 插件配置接口
@@ -52,7 +54,9 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
    * 获取当前的 suggestions（动态从 editor 的 extensionManager 中获取）
    */
   function getCurrentSuggestions(): SuggestionItem[] {
-    const suggestionExtension = editor.extensionManager.extensions.find((ext) => ext.name === 'suggestion')
+    const suggestionExtension = editor.extensionManager.extensions.find(
+      (ext) => ext.name === EXTENSION_NAMES.SUGGESTION,
+    )
     const options = suggestionExtension?.options
     const items = options?.items || options?.suggestions || []
 
@@ -367,17 +371,17 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // Tab 键：应用自动补全
-        if (event.key === 'Tab' && state.autoCompleteText) {
+        if (isKey(event, 'TAB') && state.autoCompleteText) {
           event.preventDefault()
           selectAndClose(view, state)
           return true
         }
 
         // ↑↓ 键：导航
-        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        if (isAnyKey(event, ['ARROW_UP', 'ARROW_DOWN'])) {
           event.preventDefault()
 
-          const direction = event.key === 'ArrowDown' ? 1 : -1
+          const direction = isKey(event, 'ARROW_DOWN') ? 1 : -1
           const length = state.filteredSuggestions.length
 
           // 计算新索引（循环）
@@ -407,7 +411,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // Esc 键：关闭
-        if (event.key === 'Escape') {
+        if (isKey(event, 'ESCAPE')) {
           event.preventDefault()
 
           const tr = view.state.tr

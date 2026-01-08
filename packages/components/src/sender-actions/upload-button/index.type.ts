@@ -65,5 +65,5 @@ export interface UploadButtonEmits {
   /**
    * 文件验证失败
    */
-  (e: 'error', error: Error, file?: File): void
+  (e: 'error', error: Error, files?: File[]): void
 }

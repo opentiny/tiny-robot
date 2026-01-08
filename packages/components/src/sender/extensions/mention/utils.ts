@@ -4,6 +4,7 @@
 
 import type { Editor } from '@tiptap/core'
 import type { MentionItem, MentionStructuredItem } from './types'
+import { EXTENSION_NAMES, NODE_TYPE_NAMES, USER_API_TYPES } from '../constants'
 
 /**
  * 获取所有 mention 节点（辅助函数）
@@ -15,7 +16,7 @@ export function getMentions(editor: Editor): MentionItem[] {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any) => {
-    if (node.type.name === 'mention') {
+    if (node.type.name === NODE_TYPE_NAMES.MENTION) {
       mentions.push({
         id: node.attrs.id as string,
         label: node.attrs.label as string,
@@ -40,18 +41,18 @@ export function getMentions(editor: Editor): MentionItem[] {
  */
 export function getTextWithMentions(editor: Editor): string {
   // 获取 mention 扩展的 char 配置
-  const mentionExt = editor.extensionManager.extensions.find((ext) => ext.name === 'mention')
+  const mentionExt = editor.extensionManager.extensions.find((ext) => ext.name === EXTENSION_NAMES.MENTION)
   const char = mentionExt?.options?.char || '@'
 
   let text = ''
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any) => {
-    if (node.type.name === 'mention') {
+    if (node.type.name === NODE_TYPE_NAMES.MENTION) {
       // Mention 节点 (atom: true)：手动添加 char + label
       // 因为 atom 节点在 getText() 中会被跳过
       text += `${char}${node.attrs.label as string}`
-    } else if (node.type.name === 'text') {
+    } else if (node.type.name === NODE_TYPE_NAMES.TEXT) {
       // 文本节点：直接添加文本
       text += node.text || ''
     }
@@ -79,25 +80,25 @@ export function getMentionStructuredData(editor: Editor): MentionStructuredItem[
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any, _pos: number, parent: any) => {
     // 只处理段落的直接子节点，避免重复收集
-    if (parent && parent.type.name === 'paragraph') {
-      if (node.type.name === 'mention') {
+    if (parent && parent.type.name === NODE_TYPE_NAMES.PARAGRAPH) {
+      if (node.type.name === NODE_TYPE_NAMES.MENTION) {
         // Mention 节点
         items.push({
-          type: 'mention',
+          type: USER_API_TYPES.MENTION,
           content: node.attrs.label as string,
           value: (node.attrs.value as string) || '',
         })
-      } else if (node.type.name === 'text') {
+      } else if (node.type.name === NODE_TYPE_NAMES.TEXT) {
         // 文本节点
         const text = node.text || ''
         if (text) {
           // 合并连续的文本节点
           const lastItem = items[items.length - 1]
-          if (lastItem && lastItem.type === 'text') {
+          if (lastItem && lastItem.type === USER_API_TYPES.TEXT) {
             lastItem.content = (lastItem.content || '') + text
           } else {
             items.push({
-              type: 'text',
+              type: USER_API_TYPES.TEXT,
               content: text,
             })
           }

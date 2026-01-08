@@ -8,12 +8,13 @@ import { watch, isRef } from 'vue'
 import type { TemplateOptions } from '../types'
 import TemplateBlockView from './template-block-view.vue'
 import { ensureZeroWidthChars, keyboardNavigationPlugin, pasteHandlerPlugin } from './plugins'
+import { NODE_TYPE_NAMES } from '../../constants'
 
 /**
  * TemplateBlock 节点定义（可编辑块）
  */
 export const TemplateBlock = Node.create<TemplateOptions>({
-  name: 'template',
+  name: NODE_TYPE_NAMES.TEMPLATE_BLOCK,
 
   // 节点配置
   group: 'inline',

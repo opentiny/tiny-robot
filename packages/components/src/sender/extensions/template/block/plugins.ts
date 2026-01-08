@@ -8,6 +8,8 @@ import type { EditorState, Transaction } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { ZERO_WIDTH_CHAR } from '../utils'
+import { NODE_TYPE_NAMES, PLUGIN_KEY_NAMES } from '../../constants'
+import { isKey, isAnyKey } from '../../utils'
 
 /**
  * 处理零宽字符逻辑
@@ -18,16 +20,16 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
   let { tr } = newState
 
   newState.doc.descendants((node: PMNode, pos: number, parent: PMNode | null) => {
-    if (node.type.name === 'paragraph' && node.childCount > 0) {
+    if (node.type.name === NODE_TYPE_NAMES.PARAGRAPH && node.childCount > 0) {
       const { lastChild, firstChild } = node
 
       // 如果第一个 child 是模板块，在其前添加零宽字符
-      if (firstChild && firstChild.type.name === 'template') {
+      if (firstChild && firstChild.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
         todoPositions.push(pos + 1)
       }
 
       // 如果最后一个 child 是模板块，在其后添加零宽字符
-      if (lastChild && lastChild.type.name === 'template') {
+      if (lastChild && lastChild.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
         const paragraphEndPos = pos + node.nodeSize - 1
         const prevChar = tr.doc.textBetween(paragraphEndPos - 1, paragraphEndPos, '', '')
         if (prevChar !== ZERO_WIDTH_CHAR) {
@@ -42,12 +44,12 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
     }
 
     // 如果模板块内容为空，插入零宽字符占位
-    if (node.type.name === 'template' && node.content.size === 0) {
+    if (node.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK && node.content.size === 0) {
       todoPositions.push(pos + 1)
     }
 
     // 如果模板块后面有其他节点，在中间插入零宽字符
-    if (node.type.name === 'template' && parent) {
+    if (node.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK && parent) {
       let nodeIndex = -1
       parent.forEach((child: PMNode, _offset: number, i: number) => {
         if (child === node) {
@@ -59,7 +61,7 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
         const nextSibling = parent.child(nodeIndex + 1)
         // 只在连续两个模板块之间插入零宽字符
         // 不在模板块和文本之间插入，避免零宽字符被合并到文本节点
-        if (nextSibling.type.name === 'template') {
+        if (nextSibling.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
           const nextPos = pos + node.nodeSize
           // 检查是否已经有零宽字符
           const existingChar = tr.doc.textBetween(nextPos, nextPos + 1, '', '')
@@ -97,7 +99,7 @@ function handleZeroWidthCharLogic(newState: EditorState): Transaction | null {
  */
 export function ensureZeroWidthChars() {
   return new Plugin({
-    key: new PluginKey('template-zero-width'),
+    key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_BLOCK_ZERO_WIDTH),
     appendTransaction(transactions: readonly Transaction[], _oldState: EditorState, newState: EditorState) {
       // 只在内容发生变化时修正
       const docChanged = transactions.some((tr) => tr.docChanged)
@@ -113,7 +115,7 @@ export function ensureZeroWidthChars() {
  */
 export function keyboardNavigationPlugin() {
   return new Plugin({
-    key: new PluginKey('template-keyboard'),
+    key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_BLOCK_KEYBOARD),
     props: {
       handleKeyDown(view: EditorView, event: KeyboardEvent) {
         const { state, dispatch } = view
@@ -121,7 +123,7 @@ export function keyboardNavigationPlugin() {
         const { $from } = selection
 
         // 处理左箭头
-        if (event.key === 'ArrowLeft') {
+        if (isKey(event, 'ARROW_LEFT')) {
           if ($from.nodeBefore && $from.nodeBefore.isText && $from.nodeBefore.text) {
             if ($from.nodeBefore.text === ZERO_WIDTH_CHAR) {
               const parent = $from.parent
@@ -129,7 +131,7 @@ export function keyboardNavigationPlugin() {
 
               if (index >= 2) {
                 const secondBeforeCursorNode = parent.child(index - 2)
-                if (secondBeforeCursorNode.type.name === 'template') {
+                if (secondBeforeCursorNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
                   // 进入模板块末尾（跳过零宽字符，进入节点内部）
                   const nextCursorPos = $from.pos - 2
                   dispatch(state.tr.setSelection(TextSelection.create(state.doc, nextCursorPos)))
@@ -151,7 +153,7 @@ export function keyboardNavigationPlugin() {
         }
 
         // 处理右箭头
-        if (event.key === 'ArrowRight') {
+        if (isKey(event, 'ARROW_RIGHT')) {
           if ($from.nodeAfter && $from.nodeAfter.isText) {
             if ($from.nodeAfter.text === ZERO_WIDTH_CHAR) {
               const parent = $from.parent
@@ -159,7 +161,7 @@ export function keyboardNavigationPlugin() {
 
               if (index < parent.childCount - 1) {
                 const secondAfterCursorNode = parent.child(index + 1)
-                if (secondAfterCursorNode.type.name === 'template') {
+                if (secondAfterCursorNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
                   // 进入模板块开头（跳过零宽字符，进入节点内部）
                   const newPos = $from.pos + 2
                   dispatch(state.tr.setSelection(TextSelection.create(state.doc, newPos)))
@@ -179,13 +181,13 @@ export function keyboardNavigationPlugin() {
 
         // 处理光标在模板块内部时的方向键导航
         const currentNode = $from.node()
-        if (currentNode.type.name === 'template') {
+        if (currentNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
           const content = currentNode.textContent || ''
 
           // 场景1: 模板块为空或只有零宽字符时，按左右箭头键直接跳出节点
           if (content === '' || content === ZERO_WIDTH_CHAR) {
-            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-              const pos = event.key === 'ArrowLeft' ? $from.before() : $from.after()
+            if (isAnyKey(event, ['ARROW_LEFT', 'ARROW_RIGHT'])) {
+              const pos = isKey(event, 'ARROW_LEFT') ? $from.before() : $from.after()
               // 检查是否需要跳转（避免重复跳转）
               if (selection.from !== pos) {
                 dispatch(state.tr.setSelection(TextSelection.create(state.doc, pos)))
@@ -197,14 +199,14 @@ export function keyboardNavigationPlugin() {
           // 场景2: 模板块有内容时，处理边界的箭头键导航
           else {
             // 光标在模板块最左侧，按左箭头，跳出到模板块前
-            if (event.key === 'ArrowLeft' && $from.pos === $from.start()) {
+            if (isKey(event, 'ARROW_LEFT') && $from.pos === $from.start()) {
               const pos = $from.before()
               dispatch(state.tr.setSelection(TextSelection.create(state.doc, pos)))
               event.preventDefault()
               return true
             }
             // 光标在模板块最右侧，按右箭头，跳出到模板块后
-            if (event.key === 'ArrowRight' && $from.pos === $from.end()) {
+            if (isKey(event, 'ARROW_RIGHT') && $from.pos === $from.end()) {
               const pos = $from.after()
               dispatch(state.tr.setSelection(TextSelection.create(state.doc, pos)))
               event.preventDefault()
@@ -214,12 +216,12 @@ export function keyboardNavigationPlugin() {
         }
 
         // 处理 Backspace
-        if (event.key === 'Backspace' && selection.empty) {
+        if (isKey(event, 'BACKSPACE') && selection.empty) {
           const currentNode = $from.node()
           const beforeNode = $from.nodeBefore
 
           // 如果光标在模板块内部
-          if (currentNode.type.name === 'template') {
+          if (currentNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
             const content = currentNode.textContent || ''
 
             // 删除最后一个字符时，插入零宽字符（保留模板块）
@@ -227,7 +229,7 @@ export function keyboardNavigationPlugin() {
               $from.pos === $from.end() &&
               content.length === 1 &&
               content !== ZERO_WIDTH_CHAR &&
-              event.key === 'Backspace'
+              isKey(event, 'BACKSPACE')
             ) {
               const pos = $from.pos - 1
               dispatch(state.tr.insertText(ZERO_WIDTH_CHAR, pos, pos + 1))
@@ -236,7 +238,7 @@ export function keyboardNavigationPlugin() {
             }
 
             // 如果内容只剩零宽字符，再次删除时跳出到模板块前（保留模板块）
-            if (content === ZERO_WIDTH_CHAR && event.key === 'Backspace') {
+            if (content === ZERO_WIDTH_CHAR && isKey(event, 'BACKSPACE')) {
               const nodePos = $from.before()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -246,7 +248,7 @@ export function keyboardNavigationPlugin() {
 
             // 如果模板块为空，首次按 Backspace 时跳出到模板块前
             // 注意：此时零宽字符可能还未插入，需要单独处理
-            if (content === '' && event.key === 'Backspace') {
+            if (content === '' && isKey(event, 'BACKSPACE')) {
               const nodePos = $from.before()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -274,7 +276,7 @@ export function keyboardNavigationPlugin() {
             beforeNode.text?.length === 1 &&
             beforeNode.text !== ZERO_WIDTH_CHAR &&
             $from.nodeAfter &&
-            $from.nodeAfter.type.name === 'template'
+            $from.nodeAfter.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK
           ) {
             const begin = $from.pos - beforeNode.nodeSize
             const end = $from.pos
@@ -286,7 +288,7 @@ export function keyboardNavigationPlugin() {
           }
 
           // 从右侧删除模板块
-          if (beforeNode && beforeNode.type.name === 'template') {
+          if (beforeNode && beforeNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
             const content = beforeNode.textContent || ''
             // 判断是否为空：排除零宽字符
             const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
@@ -337,7 +339,7 @@ export function keyboardNavigationPlugin() {
               if (index > 1) {
                 const prevPrevNode = parent.child(index - 2)
 
-                if (prevPrevNode.type.name === 'template') {
+                if (prevPrevNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
                   const content = prevPrevNode.textContent || ''
                   const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
 
@@ -382,7 +384,7 @@ export function keyboardNavigationPlugin() {
         }
 
         // 处理选区删除
-        if (event.key === 'Backspace' && !selection.empty) {
+        if (isKey(event, 'BACKSPACE') && !selection.empty) {
           let startPos = selection.from
           let endPos = selection.to
           const nodeBefore = $from.nodeBefore
@@ -405,12 +407,12 @@ export function keyboardNavigationPlugin() {
         }
 
         // 处理 Delete 键
-        if (event.key === 'Delete' && selection.empty) {
+        if (isKey(event, 'DELETE') && selection.empty) {
           const currentNode = $from.node()
           const afterNode = $from.nodeAfter
 
           // 如果光标在模板块内部
-          if (currentNode.type.name === 'template') {
+          if (currentNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
             const content = currentNode.textContent || ''
 
             // 删除第一个字符时，插入零宽字符（保留模板块）
@@ -418,7 +420,7 @@ export function keyboardNavigationPlugin() {
               $from.pos === $from.start() &&
               content.length === 1 &&
               content !== ZERO_WIDTH_CHAR &&
-              event.key === 'Delete'
+              isKey(event, 'DELETE')
             ) {
               const pos = $from.pos
               dispatch(state.tr.insertText(ZERO_WIDTH_CHAR, pos, pos + 1))
@@ -427,7 +429,7 @@ export function keyboardNavigationPlugin() {
             }
 
             // 如果内容只剩零宽字符，再次删除时跳出到模板块后（保留模板块）
-            if (content === ZERO_WIDTH_CHAR && event.key === 'Delete') {
+            if (content === ZERO_WIDTH_CHAR && isKey(event, 'DELETE')) {
               const nodePos = $from.after()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -437,7 +439,7 @@ export function keyboardNavigationPlugin() {
 
             // 如果模板块为空，首次按 Delete 时跳出到模板块后
             // 注意：此时零宽字符可能还未插入，需要单独处理
-            if (content === '' && event.key === 'Delete') {
+            if (content === '' && isKey(event, 'DELETE')) {
               const nodePos = $from.after()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -465,7 +467,7 @@ export function keyboardNavigationPlugin() {
             afterNode.text?.length === 1 &&
             afterNode.text !== ZERO_WIDTH_CHAR &&
             $from.nodeBefore &&
-            $from.nodeBefore.type.name === 'template'
+            $from.nodeBefore.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK
           ) {
             const begin = $from.pos
             const end = $from.pos + afterNode.nodeSize
@@ -477,7 +479,7 @@ export function keyboardNavigationPlugin() {
           }
 
           // 从左侧删除模板块
-          if (afterNode && afterNode.type.name === 'template') {
+          if (afterNode && afterNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
             const content = afterNode.textContent || ''
             // 判断是否为空：排除零宽字符
             const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
@@ -525,7 +527,7 @@ export function keyboardNavigationPlugin() {
             // 检查后面是否有模板块（可能隔着零宽字符）
             if (index < parent.childCount - 1) {
               const nextNextNode = parent.child(index + 1)
-              if (nextNextNode.type.name === 'template') {
+              if (nextNextNode.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
                 const content = nextNextNode.textContent || ''
                 const isEmpty = content.length === 0 || content === ZERO_WIDTH_CHAR
 
@@ -557,7 +559,7 @@ export function keyboardNavigationPlugin() {
         }
 
         // 处理选区删除（Delete 键）
-        if (event.key === 'Delete' && !selection.empty) {
+        if (isKey(event, 'DELETE') && !selection.empty) {
           let startPos = selection.from
           let endPos = selection.to
           const nodeBefore = $from.nodeBefore
@@ -590,7 +592,7 @@ export function keyboardNavigationPlugin() {
  */
 export function pasteHandlerPlugin() {
   return new Plugin({
-    key: new PluginKey('template-paste'),
+    key: new PluginKey(PLUGIN_KEY_NAMES.TEMPLATE_BLOCK_PASTE),
     props: {
       handlePaste(view: EditorView, event: ClipboardEvent) {
         const types = event.clipboardData?.types || []

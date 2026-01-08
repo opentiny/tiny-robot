@@ -6,9 +6,10 @@
 
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import { watch, isRef } from 'vue'
+import { watch, isRef, type WatchStopHandle } from 'vue'
 import MentionView from './components/mention-view.vue'
-import { createSuggestionPlugin } from './plugin'
+import { createSuggestionPlugin, MentionPluginKey } from './plugin'
+import { EXTENSION_NAMES } from '../constants'
 import type { MentionOptions } from './types'
 import { mentionCommands } from './commands'
 import './index.less'
@@ -17,7 +18,7 @@ import './index.less'
  * Mention 扩展定义
  */
 export const Mention = Node.create<MentionOptions>({
-  name: 'mention',
+  name: EXTENSION_NAMES.MENTION,
 
   // 节点配置
   group: 'inline',
@@ -97,22 +98,37 @@ export const Mention = Node.create<MentionOptions>({
     return VueNodeViewRenderer(MentionView)
   },
 
+  // 添加 storage 用于存储实例状态
+  addStorage() {
+    return {
+      watchStopHandle: null as WatchStopHandle | null,
+    }
+  },
+
   onCreate() {
     const { items } = this.options
 
     // 如果是响应式数据，监听变化
     if (isRef(items)) {
-      watch(
+      // 保存到实例 storage
+      this.storage.watchStopHandle = watch(
         items,
         () => {
           // 触发一次事务，使插件重新计算状态
-          // 我们发送一个空的 meta 事务来触发插件的 apply 方法
+          // 使用 MentionPluginKey 而非字符串，确保插件能正确接收更新
           const tr = this.editor.state.tr
-          tr.setMeta('mention-update', true)
+          tr.setMeta(MentionPluginKey, { type: 'mention-update' })
           this.editor.view.dispatch(tr)
         },
         { deep: true },
       )
+    }
+  },
+
+  onDestroy() {
+    if (this.storage.watchStopHandle) {
+      this.storage.watchStopHandle()
+      this.storage.watchStopHandle = null
     }
   },
 

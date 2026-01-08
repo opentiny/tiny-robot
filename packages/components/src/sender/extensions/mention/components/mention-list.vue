@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
+import { isKey, isAnyKey } from '../../utils'
 import type { MentionItem } from '../types'
 
 interface Props {
@@ -12,6 +13,8 @@ const props = defineProps<Props>()
 // 内部管理选中索引
 const selectedIndex = ref(0)
 
+const listRef = ref<HTMLElement | null>(null)
+
 // 监听提及项列表变化，重置索引
 watch(
   () => props.items,
@@ -22,19 +25,19 @@ watch(
 
 // 键盘导航处理（暴露给插件调用）
 function onKeyDown({ event }: { event: KeyboardEvent }): boolean {
-  if (event.key === 'ArrowUp') {
+  if (isKey(event, 'ARROW_UP')) {
     selectedIndex.value = Math.max(0, selectedIndex.value - 1)
     scrollToSelected()
     return true
   }
 
-  if (event.key === 'ArrowDown') {
+  if (isKey(event, 'ARROW_DOWN')) {
     selectedIndex.value = Math.min(props.items.length - 1, selectedIndex.value + 1)
     scrollToSelected()
     return true
   }
 
-  if (event.key === 'Enter' || event.key === 'Tab') {
+  if (isAnyKey(event, ['ENTER', 'TAB'])) {
     selectItem(selectedIndex.value)
     return true
   }
@@ -45,7 +48,7 @@ function onKeyDown({ event }: { event: KeyboardEvent }): boolean {
 // 滚动到选中项
 function scrollToSelected() {
   nextTick(() => {
-    const selectedElement = document.querySelector('.mention-item.is-selected')
+    const selectedElement = listRef.value?.querySelector('.mention-item.is-selected')
     if (selectedElement) {
       selectedElement.scrollIntoView({
         block: 'nearest',
@@ -79,7 +82,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="mention-list">
+  <div ref="listRef" class="mention-list">
     <!-- 提及项列表 -->
     <button
       v-for="(item, index) in items"

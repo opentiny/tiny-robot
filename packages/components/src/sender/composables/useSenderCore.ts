@@ -20,6 +20,7 @@ import {
   getMentionStructuredData,
   getTextWithMentions,
 } from '../extensions'
+import { EXTENSION_NAMES } from '../extensions/constants'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
 import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
@@ -106,7 +107,7 @@ export function useSenderCore(props: SenderProps, emit: SenderEmits): UseSenderC
     let textContent = ''
 
     // Template（模板场景）
-    if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'template')) {
+    if (editor.value.extensionManager.extensions.some((ext) => ext.name === EXTENSION_NAMES.TEMPLATE)) {
       const templateStructuredData = getTemplateStructuredData(editor.value)
       if (templateStructuredData.length > 0) {
         structuredData = templateStructuredData as StructuredData
@@ -114,7 +115,7 @@ export function useSenderCore(props: SenderProps, emit: SenderEmits): UseSenderC
       textContent = getTextWithTemplates(editor.value)
     }
     // Mention（提及场景）
-    else if (editor.value.extensionManager.extensions.some((ext) => ext.name === 'mention')) {
+    else if (editor.value.extensionManager.extensions.some((ext) => ext.name === EXTENSION_NAMES.MENTION)) {
       const mentionStructuredData = getMentionStructuredData(editor.value)
       if (mentionStructuredData.length > 0) {
         structuredData = mentionStructuredData as StructuredData

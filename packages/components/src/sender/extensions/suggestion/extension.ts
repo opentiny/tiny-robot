@@ -3,9 +3,10 @@
  */
 
 import { Extension } from '@tiptap/core'
-import { watch, isRef } from 'vue'
+import { watch, isRef, type WatchStopHandle } from 'vue'
 import { createSuggestionPlugin, SuggestionPluginKey } from './plugin'
 import type { SuggestionOptions } from './types'
+import { EXTENSION_NAMES } from '../constants'
 import './index.less'
 
 /**
@@ -14,7 +15,7 @@ import './index.less'
  * 支持全局匹配模式的智能联想功能
  */
 export const Suggestion = Extension.create<SuggestionOptions>({
-  name: 'suggestion',
+  name: EXTENSION_NAMES.SUGGESTION,
 
   addOptions() {
     return {
@@ -25,19 +26,34 @@ export const Suggestion = Extension.create<SuggestionOptions>({
     }
   },
 
+  // 添加 storage 用于存储实例状态
+  addStorage() {
+    return {
+      watchStopHandle: null as WatchStopHandle | null,
+    }
+  },
+
   onCreate() {
     if (isRef(this.options.items)) {
-      watch(
+      // 保存到实例 storage
+      this.storage.watchStopHandle = watch(
         this.options.items,
         () => {
           // 触发更新
           const tr = this.editor.state.tr
-          // 使用一个特殊的 meta 来触发插件更新，虽然实际上只要有 dispatch 就会触发 apply
+          // 使用 SuggestionPluginKey 确保插件能正确接收更新
           tr.setMeta(SuggestionPluginKey, { type: 'update' })
           this.editor.view.dispatch(tr)
         },
         { deep: true },
       )
+    }
+  },
+
+  onDestroy() {
+    if (this.storage.watchStopHandle) {
+      this.storage.watchStopHandle()
+      this.storage.watchStopHandle = null
     }
   },
 

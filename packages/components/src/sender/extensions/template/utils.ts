@@ -4,6 +4,7 @@
 
 import type { Editor } from '@tiptap/core'
 import type { TemplateItem } from '../../index.type'
+import { NODE_TYPE_NAMES, USER_API_TYPES } from '../constants'
 
 /**
  * 零宽字符常量
@@ -33,32 +34,32 @@ export function getTemplateStructuredData(editor: Editor): TemplateItem[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   editor.state.doc.descendants((node: any, _pos: number, parent: any) => {
     // 只处理段落的直接子节点，避免重复收集模板块内部的文本
-    if (parent && parent.type.name === 'paragraph') {
-      if (node.type.name === 'template') {
+    if (parent && parent.type.name === NODE_TYPE_NAMES.PARAGRAPH) {
+      if (node.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
         const content = (node.textContent || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')
         items.push({
-          type: 'block',
+          type: USER_API_TYPES.BLOCK,
           content,
         })
-      } else if (node.type.name === 'templateSelect') {
+      } else if (node.type.name === NODE_TYPE_NAMES.TEMPLATE_SELECT) {
         // 获取选中的值
         const selectedOption = node.attrs.options.find((opt: { value: string }) => opt.value === node.attrs.value)
         const content = selectedOption?.value || ''
 
         items.push({
-          type: 'select',
+          type: USER_API_TYPES.SELECT,
           content,
         })
-      } else if (node.type.name === 'text') {
+      } else if (node.type.name === NODE_TYPE_NAMES.TEXT) {
         const text = (node.text || '').replace(new RegExp(ZERO_WIDTH_CHAR, 'g'), '')
         if (text) {
           // 合并连续的文本节点
           const lastItem = items[items.length - 1]
-          if (lastItem && lastItem.type === 'text') {
+          if (lastItem && lastItem.type === USER_API_TYPES.TEXT) {
             lastItem.content += text
           } else {
             items.push({
-              type: 'text',
+              type: USER_API_TYPES.TEXT,
               content: text,
             })
           }

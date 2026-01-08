@@ -6,6 +6,7 @@ import type { Editor } from '@tiptap/core'
 import { TextSelection } from '@tiptap/pm/state'
 import { generateId } from '../utils'
 import type { TemplateItem, TemplateAttrs, TemplateSelectAttrs } from './types'
+import { NODE_TYPE_NAMES, USER_API_TYPES } from '../constants'
 
 // ProseMirror Node 类型
 type PMNode = ReturnType<Editor['state']['doc']['nodeAt']> & { nodeSize: number }
@@ -17,7 +18,7 @@ function getAllTemplates(editor: Editor): Array<{ node: PMNode; pos: number }> {
   const blocks: Array<{ node: PMNode; pos: number }> = []
 
   editor.state.doc.descendants((node, pos) => {
-    if (node.type.name === 'template') {
+    if (node.type.name === NODE_TYPE_NAMES.TEMPLATE_BLOCK) {
       blocks.push({ node, pos })
     }
   })
@@ -42,18 +43,18 @@ export const templateCommands = {
       const content: Array<Record<string, unknown>> = []
 
       items.forEach((item) => {
-        if (item.type === 'text') {
+        if (item.type === USER_API_TYPES.TEXT) {
           // 添加文本节点
           if (item.content) {
             content.push({
-              type: 'text',
+              type: NODE_TYPE_NAMES.TEXT,
               text: item.content,
             })
           }
-        } else if (item.type === 'block') {
+        } else if (item.type === USER_API_TYPES.BLOCK) {
           // 添加模板块节点（内部包含文本）
           content.push({
-            type: 'template',
+            type: NODE_TYPE_NAMES.TEMPLATE_BLOCK,
             attrs: {
               id: item.id || generateId('template'),
               content: item.content,
@@ -61,16 +62,16 @@ export const templateCommands = {
             content: item.content
               ? [
                   {
-                    type: 'text',
+                    type: NODE_TYPE_NAMES.TEXT,
                     text: item.content,
                   },
                 ]
               : [],
           })
-        } else if (item.type === 'select') {
+        } else if (item.type === USER_API_TYPES.SELECT) {
           // 添加选择器节点
           content.push({
-            type: 'templateSelect',
+            type: NODE_TYPE_NAMES.TEMPLATE_SELECT,
             attrs: {
               id: item.id || generateId('select'),
               placeholder: item.placeholder,
@@ -84,7 +85,7 @@ export const templateCommands = {
       // 如果有内容，插入到段落中
       if (content.length > 0) {
         commands.insertContent({
-          type: 'paragraph',
+          type: NODE_TYPE_NAMES.PARAGRAPH,
           content,
         })
       }
@@ -100,7 +101,7 @@ export const templateCommands = {
     ({ commands }: { commands: Editor['commands'] }) => {
       const content = attrs.content || ''
       return commands.insertContent({
-        type: 'template',
+        type: NODE_TYPE_NAMES.TEMPLATE_BLOCK,
         attrs: {
           id: attrs.id || generateId('template'),
           content,
@@ -108,7 +109,7 @@ export const templateCommands = {
         content: content
           ? [
               {
-                type: 'text',
+                type: NODE_TYPE_NAMES.TEXT,
                 text: content,
               },
             ]
@@ -162,7 +163,7 @@ export const templateCommands = {
     (attrs: Partial<TemplateSelectAttrs>) =>
     ({ commands }: { commands: Editor['commands'] }) => {
       return commands.insertContent({
-        type: 'templateSelect',
+        type: NODE_TYPE_NAMES.TEMPLATE_SELECT,
         attrs: {
           id: attrs.id || generateId('select'),
           placeholder: attrs.placeholder || 'Please select',

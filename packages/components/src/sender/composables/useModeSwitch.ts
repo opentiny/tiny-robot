@@ -4,7 +4,7 @@
  */
 
 import { ref, watch, nextTick, computed, type Ref } from 'vue'
-import { useResizeObserver } from '@vueuse/core'
+import { useResizeObserver, useTimeoutFn } from '@vueuse/core'
 import type { Editor } from '@tiptap/vue-3'
 import type { SenderProps, UseModeSwitchReturn, InputMode } from '../index.type'
 
@@ -16,6 +16,14 @@ export function useModeSwitch(
   const currentMode = ref<InputMode>(props.mode || 'single')
   const isAutoSwitching = ref(false)
   const initialMode = ref<InputMode>(props.mode || 'single')
+
+  const { start: startAutoSwitchingTimeout, stop: stopAutoSwitchingTimeout } = useTimeoutFn(
+    () => {
+      isAutoSwitching.value = false
+    },
+    300,
+    { immediate: false },
+  )
 
   // 获取容器元素
   const containerRef = computed(() => {
@@ -67,9 +75,8 @@ export function useModeSwitch(
         editor.value.commands.focus('end')
       }
 
-      setTimeout(() => {
-        isAutoSwitching.value = false
-      }, 300)
+      stopAutoSwitchingTimeout()
+      startAutoSwitchingTimeout()
     })
   }
 

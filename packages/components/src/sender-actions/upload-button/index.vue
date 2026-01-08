@@ -49,7 +49,7 @@ watch(files, (selectedFiles) => {
 
     if (oversized.length > 0) {
       const error = new Error(`以下文件超过 ${props.maxSize}MB 限制: ${oversized.map((f) => f.name).join(', ')}`)
-      emit('error', error, oversized[0])
+      emit('error', error, oversized) // 传递所有超限文件
       return
     }
   }

@@ -6,6 +6,7 @@
  * - 处理模式切换逻辑
  */
 
+import { isKey } from '../extensions/utils'
 import type { UseKeyboardShortcutsParams, UseKeyboardShortcutsReturn } from '../index.type'
 
 /**
@@ -28,8 +29,7 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKey
    * - 当 submitType 为 'shiftEnter' 时：按 Shift+Enter 提交，单独按 Enter 换行
    */
   const checkSubmitShortcut = (event: KeyboardEvent): boolean => {
-    const isEnter = event.key === 'Enter'
-    if (!isEnter) return false
+    if (!isKey(event, 'ENTER')) return false
 
     switch (submitType.value) {
       case 'enter':
@@ -58,7 +58,7 @@ export function useKeyboardShortcuts(params: UseKeyboardShortcutsParams): UseKey
    * - submitType 为 'shiftEnter' 时：Enter（不带修饰键）
    */
   const checkNewlineShortcut = (event: KeyboardEvent): boolean => {
-    if (event.key !== 'Enter') return false
+    if (!isKey(event, 'ENTER')) return false
 
     switch (submitType.value) {
       case 'enter':

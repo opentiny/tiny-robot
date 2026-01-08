@@ -18,10 +18,11 @@ import type { Editor } from '@tiptap/core'
 import { isRef } from 'vue'
 import type { Ref } from 'vue'
 import MentionList from './components/mention-list.vue'
-import { findTextRange, generateId } from '../utils'
+import { findTextRange, generateId, isKey, isAnyKey } from '../utils'
 import type { MentionItem, MentionSuggestionState } from './types'
+import { PLUGIN_KEY_NAMES, NODE_TYPE_NAMES } from '../constants'
 
-export const MentionPluginKey = new PluginKey<MentionSuggestionState>('mention')
+export const MentionPluginKey = new PluginKey<MentionSuggestionState>(PLUGIN_KEY_NAMES.MENTION)
 
 interface PluginOptions {
   editor: Editor
@@ -145,12 +146,12 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         const pluginState = MentionPluginKey.getState(view.state)
 
         // 处理 Backspace：检测是否在 mention 节点右侧
-        if (event.key === 'Backspace') {
+        if (isKey(event, 'BACKSPACE')) {
           const { selection } = view.state
           const { $from } = selection
 
           // 检查光标前面是否是 mention 节点
-          if ($from.nodeBefore && $from.nodeBefore.type.name === 'mention') {
+          if ($from.nodeBefore && $from.nodeBefore.type.name === NODE_TYPE_NAMES.MENTION) {
             event.preventDefault()
 
             const { tr } = view.state
@@ -180,7 +181,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // Esc 关闭
-        if (event.key === 'Escape') {
+        if (isKey(event, 'ESCAPE')) {
           event.preventDefault()
 
           const tr = view.state.tr
@@ -205,7 +206,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // Enter 或 Tab：选择当前高亮的提及项
-        if (event.key === 'Enter' || event.key === 'Tab') {
+        if (isAnyKey(event, ['ENTER', 'TAB'])) {
           event.preventDefault()
 
           // 尝试通过组件方法选择
@@ -225,7 +226,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
         }
 
         // ArrowUp 和 ArrowDown：交给组件处理
-        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        if (isAnyKey(event, ['ARROW_UP', 'ARROW_DOWN'])) {
           const handled = component?.ref?.onKeyDown?.({ event })
           return handled || false
         }
