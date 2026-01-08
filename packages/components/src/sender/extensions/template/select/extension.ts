@@ -54,7 +54,12 @@ export const TemplateSelect = Node.create<Record<string, unknown>>({
           }
         },
         renderHTML: (attributes) => {
-          return { 'data-options': JSON.stringify(attributes.options) }
+          try {
+            return { 'data-options': JSON.stringify(attributes.options) }
+          } catch (error) {
+            console.error('Failed to stringify template select options:', error)
+            return { 'data-options': '[]' }
+          }
         },
       },
       value: {
@@ -84,13 +89,20 @@ export const TemplateSelect = Node.create<Record<string, unknown>>({
     )
     const displayText = selectedOption?.label || node.attrs.placeholder
 
+    let optionsStr = '[]'
+    try {
+      optionsStr = JSON.stringify(node.attrs.options)
+    } catch (error) {
+      console.error('Failed to stringify template select options in renderHTML:', error)
+    }
+
     return [
       'span',
       mergeAttributes(HTMLAttributes, {
         'data-template-select': '',
         'data-id': node.attrs.id as string,
         'data-placeholder': node.attrs.placeholder as string,
-        'data-options': JSON.stringify(node.attrs.options),
+        'data-options': optionsStr,
         'data-value': (node.attrs.value as string) || '',
       }),
       displayText,
