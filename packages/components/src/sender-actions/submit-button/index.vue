@@ -21,10 +21,16 @@ const tooltipPlacement = computed(() => defaultActions.value?.submit?.tooltipPla
 
 /**
  * 点击处理
+ * - disabled 时：不执行任何操作
  * - loading 时：触发 cancel 事件（停止响应）
  * - 非 loading 时：触发 submit 事件（提交内容）
  */
 const handleClick = () => {
+  // 禁用状态下不响应点击
+  if (isDisabled.value) {
+    return
+  }
+
   if (loading.value) {
     cancel()
   } else {

@@ -4,7 +4,7 @@ import { useSlotScope } from '../../composables/useSlotScope'
 import EditorContent from '../editor-content/index.vue'
 import { DefaultActionButtons, WordCounter } from '../../../sender-actions/index'
 
-const context = useSenderContext()
+const { editor, hasContent, loading, showWordLimit, maxLength } = useSenderContext()
 const slotScope = useSlotScope()
 </script>
 
@@ -26,15 +26,15 @@ const slotScope = useSlotScope()
 
         <!-- 编辑器内容 -->
         <div class="tr-sender-content">
-          <slot name="content" :editor="context.editor">
+          <slot name="content" :editor="editor">
             <EditorContent />
           </slot>
         </div>
       </div>
 
       <!-- 单行模式操作按钮 -->
-      <div :class="['tr-sender-actions-inline', { 'has-content': context.hasContent.value || context.loading.value }]">
-        <WordCounter v-if="context.showWordLimit && context.maxLength" />
+      <div :class="['tr-sender-actions-inline', { 'has-content': hasContent || loading }]">
+        <WordCounter v-if="showWordLimit && maxLength" />
         <slot name="actions-inline" v-bind="slotScope" />
         <DefaultActionButtons />
       </div>

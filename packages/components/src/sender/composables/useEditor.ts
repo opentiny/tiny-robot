@@ -56,7 +56,7 @@ export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorRetur
   }
 
   const editor = useTiptapEditor({
-    content: props.modelValue || props.defaultValue || '',
+    content: props.modelValue ?? props.defaultValue ?? '',
     extensions: buildExtensions(),
     autofocus: props.autofocus ? 'end' : false,
     editorProps: {
@@ -102,7 +102,7 @@ export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorRetur
     () => props.modelValue,
     (newValue) => {
       if (editor.value && newValue !== editor.value.getText()) {
-        editor.value.commands.setContent(newValue || '', { emitUpdate: false })
+        editor.value.commands.setContent(newValue ?? '', { emitUpdate: false })
       }
     },
   )

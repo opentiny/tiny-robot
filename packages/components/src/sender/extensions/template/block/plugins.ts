@@ -225,12 +225,7 @@ export function keyboardNavigationPlugin() {
             const content = currentNode.textContent || ''
 
             // 删除最后一个字符时，插入零宽字符（保留模板块）
-            if (
-              $from.pos === $from.end() &&
-              content.length === 1 &&
-              content !== ZERO_WIDTH_CHAR &&
-              isKey(event, 'BACKSPACE')
-            ) {
+            if ($from.pos === $from.end() && content.length === 1 && content !== ZERO_WIDTH_CHAR) {
               const pos = $from.pos - 1
               dispatch(state.tr.insertText(ZERO_WIDTH_CHAR, pos, pos + 1))
               event.preventDefault()
@@ -238,7 +233,7 @@ export function keyboardNavigationPlugin() {
             }
 
             // 如果内容只剩零宽字符，再次删除时跳出到模板块前（保留模板块）
-            if (content === ZERO_WIDTH_CHAR && isKey(event, 'BACKSPACE')) {
+            if (content === ZERO_WIDTH_CHAR) {
               const nodePos = $from.before()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -248,7 +243,7 @@ export function keyboardNavigationPlugin() {
 
             // 如果模板块为空，首次按 Backspace 时跳出到模板块前
             // 注意：此时零宽字符可能还未插入，需要单独处理
-            if (content === '' && isKey(event, 'BACKSPACE')) {
+            if (content === '') {
               const nodePos = $from.before()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -416,12 +411,7 @@ export function keyboardNavigationPlugin() {
             const content = currentNode.textContent || ''
 
             // 删除第一个字符时，插入零宽字符（保留模板块）
-            if (
-              $from.pos === $from.start() &&
-              content.length === 1 &&
-              content !== ZERO_WIDTH_CHAR &&
-              isKey(event, 'DELETE')
-            ) {
+            if ($from.pos === $from.start() && content.length === 1 && content !== ZERO_WIDTH_CHAR) {
               const pos = $from.pos
               dispatch(state.tr.insertText(ZERO_WIDTH_CHAR, pos, pos + 1))
               event.preventDefault()
@@ -429,7 +419,7 @@ export function keyboardNavigationPlugin() {
             }
 
             // 如果内容只剩零宽字符，再次删除时跳出到模板块后（保留模板块）
-            if (content === ZERO_WIDTH_CHAR && isKey(event, 'DELETE')) {
+            if (content === ZERO_WIDTH_CHAR) {
               const nodePos = $from.after()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)
@@ -439,7 +429,7 @@ export function keyboardNavigationPlugin() {
 
             // 如果模板块为空，首次按 Delete 时跳出到模板块后
             // 注意：此时零宽字符可能还未插入，需要单独处理
-            if (content === '' && isKey(event, 'DELETE')) {
+            if (content === '') {
               const nodePos = $from.after()
               const tr = state.tr.setSelection(TextSelection.create(state.doc, nodePos))
               dispatch(tr)

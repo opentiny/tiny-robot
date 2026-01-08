@@ -209,7 +209,6 @@ defineExpose({
     @cancel="handleCancel"
     @focus="handleFocus"
     @blur="handleBlur"
-    @update:model-value="(val) => (modelValue = val)"
   >
     <!-- 透传插槽 -->
     <template v-if="$slots.header" #header>

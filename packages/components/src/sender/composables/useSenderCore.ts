@@ -168,7 +168,12 @@ export function useSenderCore(props: SenderProps, emit: SenderEmits): UseSenderC
               const suggestionState = SuggestionPluginKey.getState(view.state)
               const templateDropdownState = TemplateSelectDropdownPluginKey.getState(view.state)
 
-              if (mentionState?.active || suggestionState?.active || templateDropdownState?.isOpen) {
+              // 防御性检查：确保插件存在且状态激活
+              if (
+                (mentionState && mentionState.active) ||
+                (suggestionState && suggestionState.active) ||
+                (templateDropdownState && templateDropdownState.isOpen)
+              ) {
                 return false // 让插件/组件处理
               }
 
