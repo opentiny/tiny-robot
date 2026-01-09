@@ -11,7 +11,7 @@ import type {
   UseMessagePlugin,
   UseMessageReturn,
 } from './types'
-import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, pickFields } from './utils'
+import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, omitFields, pickFields } from './utils'
 
 /**
  * 插件去重，处理重复的插件名。
@@ -41,7 +41,8 @@ const deduplicatePlugins = (plugins: UseMessagePlugin[]): UseMessagePlugin[] => 
 export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const {
     initialMessages = [],
-    requestMessageFields = ['role', 'content', 'tool_calls', 'tool_call_id'],
+    requestMessageFields = [],
+    requestMessageFieldsExclude = ['state', 'metadata', 'loading'],
     plugins: pluginsFromOptions = [],
     onCompletionChunk,
   } = options
@@ -107,7 +108,17 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   }
 
   const sanitizeMessages = (messages: ChatMessage[]) => {
-    return messages.map((message) => pickFields(message, requestMessageFields))
+    let result: Partial<ChatMessage>[] = messages
+
+    if (requestMessageFields.length) {
+      result = result.map((message) => pickFields(message, requestMessageFields))
+    }
+
+    if (requestMessageFieldsExclude.length) {
+      result = result.map((message) => omitFields(message, requestMessageFieldsExclude))
+    }
+
+    return result
   }
 
   const setRequestState = (state: RequestState, pState?: RequestProcessingState) => {
@@ -130,7 +141,6 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     currentTurn,
     requestState: requestState.value,
     processingState: processingState.value,
-    requestMessageFields,
     plugins,
     abortSignal,
     setRequestState,

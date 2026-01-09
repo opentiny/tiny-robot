@@ -59,9 +59,25 @@ export function makeAbortable<T>(originalPromise: Promise<T>, signal: AbortSigna
  */
 export function pickFields<T extends Record<string, unknown>, K extends keyof T>(obj: T, fields: K[]): Pick<T, K> {
   const result = {} as Pick<T, K>
-  for (const field of fields) {
-    if (field in obj) {
-      result[field] = obj[field]
+  for (const key in obj) {
+    if (fields.includes(key as unknown as K)) {
+      ;(result as Record<string, unknown>)[key] = obj[key]
+    }
+  }
+  return result
+}
+
+/**
+ * 从对象中排除指定字段，返回一个新对象
+ * @param obj 源对象
+ * @param fields 要排除的字段数组
+ * @returns 排除指定字段的新对象
+ */
+export function omitFields<T extends Record<string, unknown>, K extends keyof T>(obj: T, fields: K[]): Omit<T, K> {
+  const result = {} as Omit<T, K>
+  for (const key in obj) {
+    if (!fields.includes(key as unknown as K)) {
+      ;(result as Record<string, unknown>)[key] = obj[key]
     }
   }
   return result

@@ -28,6 +28,7 @@ export interface MessageMetadata {
 export interface ChatMessage {
   role: string
   content: string
+  reasoning_content?: string
   metadata?: MessageMetadata
   tool_calls?: ToolCall[]
   tool_call_id?: string
@@ -109,7 +110,16 @@ export interface ChatCompletion {
 
 export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
-  requestMessageFields?: (keyof ChatMessage)[]
+  /**
+   * 请求消息时，要包含的字段（白名单）。默认包含所有字段。
+   * 如果 `requestMessageFieldsExclude` 存在，会先取 `requestMessageFields` 中的字段，再排除 `requestMessageFieldsExclude` 中的字段
+   */
+  requestMessageFields?: string[]
+  /**
+   * 请求消息时，要排除的字段（黑名单）。默认会排除 `state`、`metadata`、`loading` 字段（这几个字段是给UI展示用的）。
+   * 如果 `requestMessageFields` 存在，会先取 `requestMessageFields` 中的字段，再排除 `requestMessageFieldsExclude` 中的字段
+   */
+  requestMessageFieldsExclude?: string[]
   plugins?: UseMessagePlugin[]
   responseProvider: <T = ChatCompletion>(
     requestBody: MessageRequestBody,
@@ -146,7 +156,6 @@ export interface BasePluginContext {
   currentTurn: ChatMessage[]
   requestState: RequestState
   processingState?: RequestProcessingState
-  requestMessageFields: (keyof ChatMessage)[]
   plugins: UseMessagePlugin[]
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   abortSignal: AbortSignal
