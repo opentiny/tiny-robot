@@ -1,3 +1,10 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrSender, VoiceButton } from '@opentiny/tiny-robot'
+
+const voiceMode = ref<'mixed' | 'continuous'>('mixed')
+</script>
+
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
     <div style="display: flex; align-items: center; gap: 12px">
@@ -17,18 +24,17 @@
     <tr-sender
       :key="voiceMode"
       mode="multiple"
-      :allowSpeech="true"
-      :speech="
-        voiceMode === 'mixed' ? { autoReplace: false, interimResults: true } : { autoReplace: true, continuous: true }
-      "
       :placeholder="voiceMode === 'mixed' ? '点击麦克风说话，识别结果会追加到此处...' : '点击麦克风开始连续识别...'"
-    />
+    >
+      <template #footer-right>
+        <VoiceButton
+          :speech-config="
+            voiceMode === 'mixed'
+              ? { autoReplace: false, interimResults: true }
+              : { autoReplace: true, continuous: true }
+          "
+        />
+      </template>
+    </tr-sender>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { TrSender } from '@opentiny/tiny-robot'
-
-const voiceMode = ref<'mixed' | 'continuous'>('mixed')
-</script>

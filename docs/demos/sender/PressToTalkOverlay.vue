@@ -1,24 +1,3 @@
-<template>
-  <div v-if="visible" class="mobile-voice-overlay">
-    <!-- 录音动画区域 -->
-    <div class="recording-wave active">
-      <slot name="recording-icon">
-        <img src="../../../packages/components/src/assets/wave.webp" alt="Recording Wave" class="wave-image" />
-      </slot>
-    </div>
-
-    <!-- 提示文本 -->
-    <div class="voice-hint" :class="{ cancel: isCanceling }">
-      {{ hintText }}
-    </div>
-
-    <!-- 按钮 -->
-    <button class="voice-btn recording" :class="{ cancel: isCanceling }">
-      <slot name="button-text">按住说话</slot>
-    </button>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed } from 'vue'
 
@@ -46,6 +25,27 @@ const hintText = computed(() => {
   return props.recordingText
 })
 </script>
+
+<template>
+  <div v-if="visible" class="mobile-voice-overlay">
+    <!-- 录音动画区域 -->
+    <div class="recording-wave active">
+      <slot name="recording-icon">
+        <img src="../../../packages/components/src/assets/wave.webp" alt="Recording Wave" class="wave-image" />
+      </slot>
+    </div>
+
+    <!-- 提示文本 -->
+    <div class="voice-hint" :class="{ cancel: isCanceling }">
+      {{ hintText }}
+    </div>
+
+    <!-- 按钮 -->
+    <button class="voice-btn recording" :class="{ cancel: isCanceling }">
+      <slot name="button-text">按住说话</slot>
+    </button>
+  </div>
+</template>
 
 <style scoped>
 .mobile-voice-overlay {
