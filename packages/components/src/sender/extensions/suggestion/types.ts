@@ -134,7 +134,11 @@ import type { Ref } from 'vue'
  */
 export interface SuggestionOptions {
   /**
-   * 建议项列表（必填）
+   * 建议项列表（可选）
+   *
+   * 不传或传空数组时，建议功能不会显示
+   *
+   * @default []
    *
    * @example
    * ```typescript

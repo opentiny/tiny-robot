@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, toRaw } from 'vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
 import { processHighlights } from './utils/highlight'
 import type { SenderSuggestionItem } from './types'
@@ -41,7 +41,7 @@ export interface Props {
   /**
    * 选择回调函数
    */
-  onSelect?: (content: string) => void
+  onSelect?: (item: SenderSuggestionItem) => void
 
   /**
    * 鼠标进入回调函数
@@ -82,8 +82,11 @@ const handleItemLeave = () => {
 /**
  * 处理项选择
  */
-const handleSelect = (content: string) => {
-  props.onSelect?.(content)
+const handleSelect = (index: number) => {
+  const item = props.suggestions[index]
+  if (item) {
+    props.onSelect?.(toRaw(item))
+  }
 }
 
 /**
@@ -117,7 +120,7 @@ watch(
         :class="{ highlighted: isItemHighlighted(index) }"
         @mouseenter="handleItemHover(index)"
         @mouseleave="handleItemLeave"
-        @click="handleSelect(item.content)"
+        @click="handleSelect(index)"
       >
         <IconAssociate class="suggestion-list__icon" />
         <span class="suggestion-list__text">

@@ -444,16 +444,13 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
                   activeKeyboardIndex: state.selectedIndex,
                   activeMouseIndex: -1,
                   inputValue: state.query,
-                  onSelect: (content: string) => {
-                    const selectedItem = state.filteredSuggestions.find((item) => item.content === content)
-                    if (selectedItem) {
-                      insertSuggestion(view, state.range, selectedItem)
+                  onSelect: (item: SenderSuggestionItem) => {
+                    insertSuggestion(view, state.range, item)
 
-                      // 关闭建议列表
-                      const tr = view.state.tr
-                      tr.setMeta(SuggestionPluginKey, { type: 'close' })
-                      view.dispatch(tr)
-                    }
+                    // 关闭建议列表
+                    const tr = view.state.tr
+                    tr.setMeta(SuggestionPluginKey, { type: 'close' })
+                    view.dispatch(tr)
                   },
                   onMouseEnter: (index: number) => {
                     const tr = view.state.tr

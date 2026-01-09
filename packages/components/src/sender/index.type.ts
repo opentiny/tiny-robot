@@ -21,14 +21,6 @@ export type {
   HighlightFunction,
 } from './extensions/suggestion'
 
-// 导出配置类型
-export interface DefaultConfig {
-  placeholder: string
-  mode: InputMode
-  submitType: SubmitTrigger
-  autoSize: { minRows: number; maxRows: number }
-}
-
 // ============================================
 // 主组件 Props
 // ============================================
