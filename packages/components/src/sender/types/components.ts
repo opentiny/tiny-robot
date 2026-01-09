@@ -1,4 +1,4 @@
-import type { SuggestionItem } from '../extensions/suggestion/types'
+import type { SenderSuggestionItem } from '../extensions/suggestion/types'
 
 // ============================================
 // 组件 Props 类型
@@ -36,7 +36,7 @@ export interface SuggestionListProps {
   /**
    * 建议列表
    */
-  suggestions: SuggestionItem[]
+  suggestions: SenderSuggestionItem[]
 
   /**
    * 键盘激活索引

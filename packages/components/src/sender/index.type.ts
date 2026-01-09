@@ -13,6 +13,13 @@ import type { SenderSlotScope } from './types/slots'
 
 // 导出扩展类型（供用户使用）
 export type { MentionItem } from './extensions/mention'
+export type {
+  SenderSuggestionItem,
+  SuggestionOptions,
+  SuggestionState,
+  SuggestionTextPart,
+  HighlightFunction,
+} from './extensions/suggestion'
 
 // 导出配置类型
 export interface DefaultConfig {

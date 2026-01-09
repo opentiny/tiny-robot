@@ -45,7 +45,7 @@ export type HighlightFunction = (suggestionText: string, inputText: string) => S
  * }
  * ```
  */
-export interface SuggestionItem {
+export interface SenderSuggestionItem {
   /**
    * 建议项内容（必填）
    */
@@ -105,7 +105,7 @@ export interface SuggestionState {
   /**
    * 过滤后的建议项
    */
-  filteredSuggestions: SuggestionItem[]
+  filteredSuggestions: SenderSuggestionItem[]
 
   /**
    * 当前选中的建议项索引
@@ -144,7 +144,7 @@ export interface SuggestionOptions {
    * ])
    * ```
    */
-  items?: SuggestionItem[] | Ref<SuggestionItem[]>
+  items?: SenderSuggestionItem[] | Ref<SenderSuggestionItem[]>
 
   /**
    * 自定义过滤函数（可选）
@@ -172,7 +172,7 @@ export interface SuggestionOptions {
    * }
    * ```
    */
-  filterFn?: (suggestions: SuggestionItem[], query: string) => SuggestionItem[]
+  filterFn?: (suggestions: SenderSuggestionItem[], query: string) => SenderSuggestionItem[]
 
   /**
    * 选中建议项的按键
@@ -215,7 +215,7 @@ export interface SuggestionOptions {
   /**
    * 选中建议项的回调
    *
-   * @param item - 选中的建议项（包含完整的 SuggestionItem 信息）
+   * @param item - 选中的建议项（包含完整的 SenderSuggestionItem 信息）
    * @returns 返回 false 可阻止默认回填行为
    *
    * @example 默认行为（自动回填）
@@ -245,7 +245,7 @@ export interface SuggestionOptions {
    * }
    * ```
    */
-  onSelect?: (item: SuggestionItem) => void | false
+  onSelect?: (item: SenderSuggestionItem) => void | false
 }
 
 /**

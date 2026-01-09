@@ -6,7 +6,7 @@
 
 import type { Ref } from 'vue'
 import { Suggestion } from './extension'
-import type { SuggestionItem, SuggestionOptions } from './types'
+import type { SenderSuggestionItem, SuggestionOptions } from './types'
 
 // ===== 导出扩展类和工具 =====
 export { Suggestion } from './extension'
@@ -30,7 +30,7 @@ export { processHighlights, highlightSuggestionText, convertHighlightsArrayToTex
  * ```
  */
 export function suggestion(
-  items: SuggestionItem[] | Ref<SuggestionItem[]>,
+  items: SenderSuggestionItem[] | Ref<SenderSuggestionItem[]>,
   options?: Partial<Omit<SuggestionOptions, 'items'>>,
 ) {
   return Suggestion.configure({

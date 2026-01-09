@@ -54,7 +54,7 @@ export { useSenderContext } from './context'
 export type { TemplateAttrs, TemplateOptions } from './extensions/template'
 export type { MentionAttrs, MentionOptions } from './extensions/mention'
 export type {
-  SuggestionItem,
+  SenderSuggestionItem,
   SuggestionOptions,
   SuggestionState,
   SuggestionTextPart,

@@ -11,7 +11,7 @@ export type { MentionAttrs, MentionOptions, MentionItem, MentionStructuredItem }
 export { Suggestion, suggestion, SuggestionPluginKey } from './suggestion'
 export { syncAutoComplete, processHighlights, highlightSuggestionText } from './suggestion'
 export type {
-  SuggestionItem,
+  SenderSuggestionItem,
   SuggestionOptions,
   SuggestionState,
   SuggestionTextPart,

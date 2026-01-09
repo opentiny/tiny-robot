@@ -7,7 +7,7 @@
  * 3. 自定义函数：完全自定义高亮逻辑
  */
 
-import type { SuggestionItem, SuggestionTextPart } from '../types'
+import type { SenderSuggestionItem, SuggestionTextPart } from '../types'
 
 /**
  * 将预定义的高亮字符串数组转换为文本片段
@@ -170,7 +170,7 @@ export const highlightSuggestionText = (suggestionText: string, inputText: strin
  * )
  * ```
  */
-export const processHighlights = (item: SuggestionItem, inputText: string): SuggestionTextPart[] => {
+export const processHighlights = (item: SenderSuggestionItem, inputText: string): SuggestionTextPart[] => {
   const { content, highlights } = item
 
   // 情况1：使用自定义高亮函数

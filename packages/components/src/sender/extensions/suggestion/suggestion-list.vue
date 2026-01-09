@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { IconAssociate } from '@opentiny/tiny-robot-svgs'
 import { processHighlights } from './utils/highlight'
-import type { SuggestionItem } from './types'
+import type { SenderSuggestionItem } from './types'
 
 /**
  * 建议列表组件 Props
@@ -16,7 +16,7 @@ export interface Props {
   /**
    * 建议项列表
    */
-  suggestions: SuggestionItem[]
+  suggestions: SenderSuggestionItem[]
 
   /**
    * 弹窗样式

@@ -13,7 +13,7 @@ import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/d
 import type { Editor } from '@tiptap/core'
 import SuggestionList from './suggestion-list.vue'
 import { syncAutoComplete } from './utils/filter'
-import type { SuggestionOptions, SuggestionState, SuggestionItem } from './types'
+import type { SuggestionOptions, SuggestionState, SenderSuggestionItem } from './types'
 import { PLUGIN_KEY_NAMES, EXTENSION_NAMES } from '../constants'
 import { isKey, isAnyKey } from '../utils'
 
@@ -53,7 +53,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   /**
    * 获取当前的 suggestions（动态从 editor 的 extensionManager 中获取）
    */
-  function getCurrentSuggestions(): SuggestionItem[] {
+  function getCurrentSuggestions(): SenderSuggestionItem[] {
     const suggestionExtension = editor.extensionManager.extensions.find(
       (ext) => ext.name === EXTENSION_NAMES.SUGGESTION,
     )
@@ -66,13 +66,13 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
       return (items as any).value
     }
 
-    return items as SuggestionItem[]
+    return items as SenderSuggestionItem[]
   }
 
   /**
    * 过滤建议项
    */
-  function doFilterSuggestions(query: string): SuggestionItem[] {
+  function doFilterSuggestions(query: string): SenderSuggestionItem[] {
     const suggestions = getCurrentSuggestions()
 
     // 如果提供了 filterFn，使用自定义过滤
@@ -93,7 +93,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   function getAutoComplete(
     selectedIndex: number,
     query: string,
-    filteredSuggestions: SuggestionItem[],
+    filteredSuggestions: SenderSuggestionItem[],
   ): { text: string; show: boolean; showTab: boolean } {
     if (selectedIndex === -1 || !filteredSuggestions[selectedIndex]) {
       return { text: '', show: false, showTab: false }
@@ -106,7 +106,7 @@ export function createSuggestionPlugin(options: PluginOptions): Plugin {
   /**
    * 插入建议内容
    */
-  function insertSuggestion(_view: EditorView, range: { from: number; to: number } | null, item: SuggestionItem) {
+  function insertSuggestion(_view: EditorView, range: { from: number; to: number } | null, item: SenderSuggestionItem) {
     if (!range) return
 
     // 触发回调，返回 false 可阻止默认回填
