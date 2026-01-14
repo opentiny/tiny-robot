@@ -2,7 +2,7 @@
 import { computed, isVNode } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { ActionButtonsProps } from '../index.type'
-import { IconSend, IconStop, IconUpload, IconVoice, IconClear } from '@opentiny/tiny-robot-svgs'
+import { IconSend, IconStop, IconUpload, IconVoice, IconRecordingWave, IconClear } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<ActionButtonsProps>(), {
   /**
@@ -221,7 +221,8 @@ const fileTooltipPlacement = computed(() => props.buttonGroup?.file?.tooltipPlac
           :class="{ 'is-recording': isSpeechRecording }"
         >
           <component v-if="!isSpeechRecording" :is="VoiceIconComponent" class="action-buttons__icon" alt="录音" />
-          <img v-else class="action-buttons__recording" src="../../assets/wave.webp" alt="语音中" />
+          <!-- 录音时显示波形图标 -->
+          <IconRecordingWave v-else class="action-buttons__icon" alt="语音中" />
         </div>
       </template>
 
@@ -306,11 +307,6 @@ const fileTooltipPlacement = computed(() => props.buttonGroup?.file?.tooltipPlac
   gap: var(--tr-sender-actions-gap);
   border-radius: 26px;
   align-items: center;
-
-  &__recording {
-    width: 140px;
-    height: 18px;
-  }
 
   /* 公共按钮样式 */
   &__button {
