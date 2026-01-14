@@ -222,7 +222,7 @@ const fileTooltipPlacement = computed(() => props.buttonGroup?.file?.tooltipPlac
         >
           <component v-if="!isSpeechRecording" :is="VoiceIconComponent" class="action-buttons__icon" alt="录音" />
           <!-- 录音时显示波形图标 -->
-          <IconRecordingWave v-else class="action-buttons__icon action-buttons__icon--recording" alt="语音中" />
+          <IconRecordingWave v-else class="action-buttons__icon" alt="语音中" />
         </div>
       </template>
 
@@ -341,11 +341,6 @@ const fileTooltipPlacement = computed(() => props.buttonGroup?.file?.tooltipPlac
     &--cancel {
       color: var(--tr-sender-action-buttons-cancel-icon-color);
       font-size: var(--tr-sender-action-buttons-icon-size-cancel);
-    }
-
-    /* 录音波形图标 */
-    &--recording {
-      color: var(--tr-sender-action-buttons-icon-color);
     }
   }
 
