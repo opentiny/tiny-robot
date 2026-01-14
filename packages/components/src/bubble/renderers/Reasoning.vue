@@ -53,8 +53,10 @@ watch(
 <template>
   <div class="tr-bubble__reasoning" data-type="reasoning">
     <div class="header" @click="handleClick">
-      <IconAtom />
-      <span class="title">{{ props.message.state?.thinking ? '正在思考' : '已思考' }}</span>
+      <div class="icon-and-text" :class="{ thinking: props.message.state?.thinking }">
+        <IconAtom />
+        <span class="title">{{ props.message.state?.thinking ? '正在思考' : '已思考' }}</span>
+      </div>
       <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !open }" />
     </div>
     <div v-show="open" class="detail">
@@ -88,9 +90,31 @@ watch(
     color: var(--tr-text-primary);
   }
 
+  .icon-and-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .expand-icon.-rotate-90 {
     transform: rotate(-90deg);
   }
+}
+
+@keyframes thinking-pulse {
+  20% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  80% {
+    opacity: 1;
+  }
+}
+
+.thinking {
+  animation: thinking-pulse 1.5s infinite linear;
 }
 
 .detail {
