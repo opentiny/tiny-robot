@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useSenderContext } from '../../sender/context'
 import { useSpeechHandler } from './useSpeechHandler'
 import ActionButton from '../action-button/index.vue'
-import { IconVoice } from '@opentiny/tiny-robot-svgs'
+import { IconVoice, IconRecordingWave } from '@opentiny/tiny-robot-svgs'
 import type { VoiceButtonProps, VoiceButtonEmits } from './index.type'
 
 const props = withDefaults(defineProps<VoiceButtonProps>(), {
@@ -72,6 +72,9 @@ const handleClick = async () => {
 // 图标组件
 const VoiceIcon = computed(() => props.icon ?? IconVoice)
 
+// 录音中的图标
+const RecordingIcon = computed(() => props.recordingIcon ?? IconRecordingWave)
+
 // 暴露方法
 defineExpose({
   start,
@@ -92,9 +95,11 @@ defineExpose({
     :class="{ 'is-recording': speechState.isRecording }"
     @click="handleClick"
   >
-    <!-- 录音中使用插槽替换图标 -->
-    <template v-if="speechState.isRecording" #icon>
-      <img class="tr-voice-button-wave" src="../../assets/wave.webp" alt="录音中" />
+    <template v-if="$slots.icon" #icon>
+      <slot name="icon" :is-recording="speechState.isRecording" />
+    </template>
+    <template v-else-if="speechState.isRecording" #icon>
+      <component :is="RecordingIcon" />
     </template>
   </ActionButton>
   <!-- 自定义录音 UI (插槽) -->

@@ -7,15 +7,17 @@ import { normalizeTooltipContent } from '../utils/tooltip'
 const props = withDefaults(defineProps<ActionButtonProps>(), {
   disabled: false,
   active: false,
-  size: 32,
   tooltipPlacement: 'top',
 })
 
 const tooltipRenderFn = computed(() => normalizeTooltipContent(props.tooltip))
 
 const sizeStyle = computed(() => {
-  const size = typeof props.size === 'number' ? `${props.size}px` : props.size
-  return { fontSize: size }
+  if (props.size) {
+    const finalSize = typeof props.size === 'number' ? `${props.size}px` : props.size
+    return { fontSize: finalSize }
+  }
+  return {}
 })
 </script>
 
@@ -60,6 +62,10 @@ const sizeStyle = computed(() => {
   padding: 0;
   transition: background-color 0.2s;
   color: var(--tr-text-secondary);
+
+  :deep(svg) {
+    font-size: var(--tr-sender-button-size);
+  }
 
   &:hover:not(:disabled) {
     background-color: var(--tr-sender-button-hover-bg, rgba(0, 0, 0, 0.08));
