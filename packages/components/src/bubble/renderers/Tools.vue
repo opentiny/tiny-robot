@@ -12,5 +12,5 @@ const renderer = useBubbleContentRenderer(restMessage, props.contentIndex)
 
 <template>
   <component :is="renderer" v-bind="restProps" />
-  <Tool v-for="(tool, index) in props.message.tool_calls" :key="tool.id" v-bind="props" :tool-index="index" />
+  <Tool v-for="(tool, index) in props.message.tool_calls" :key="tool.id" v-bind="props" :tool-call-index="index" />
 </template>

@@ -41,6 +41,7 @@ export {
   useBubbleStateChangeFn,
   useMessageContent,
   useOmitMessageFields,
+  useToolCall,
 } from './composables'
 export { BubbleRendererMatchPriority } from './constants'
 export { BubbleRenderers } from './renderers/allRenderers'

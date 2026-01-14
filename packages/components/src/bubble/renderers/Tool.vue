@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
-import { type Component, computed, ref, useCssModule, watchEffect } from 'vue'
-import { useBubbleStateChangeFn, useBubbleStore } from '../composables'
+import { type Component, computed, nextTick, ref, useCssModule, watch, watchEffect } from 'vue'
+import { ToolCallStatus, useBubbleStateChangeFn, useToolCall } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
-import { getJsonrepair } from '../utils'
-
-const toolCallStatus = ['running', 'success', 'failed', 'cancelled'] as const
-type ToolCallStatus = (typeof toolCallStatus)[number]
 
 const props = defineProps<
   BubbleContentRendererProps<
@@ -14,41 +10,10 @@ const props = defineProps<
     {
       toolCall?: Record<string, { status?: ToolCallStatus; open?: boolean }>
     }
-  > & { toolIndex: number }
+  > & { toolCallIndex: number }
 >()
 
-const toolCall = computed(() => {
-  return props.message?.tool_calls?.[props.toolIndex]
-})
-
-const toolCallState = computed(() => {
-  const toolCallId = toolCall.value?.id
-  if (!toolCallId) {
-    return null
-  }
-
-  return props.message.state?.toolCall?.[toolCallId]
-})
-
-const store = useBubbleStore<{
-  toolCallResults?: Record<string, string>
-  toolCallDefaultOpen?: boolean
-  toolCallDefaultStatus?: ToolCallStatus
-}>()
-
-const status = computed(() => {
-  const statusFromToolCall = toolCallState.value?.status
-
-  if (statusFromToolCall && toolCallStatus.includes(statusFromToolCall)) {
-    return statusFromToolCall
-  }
-
-  if (store.toolCallDefaultStatus && toolCallStatus.includes(store.toolCallDefaultStatus)) {
-    return store.toolCallDefaultStatus
-  }
-
-  return ''
-})
+const { toolCall, toolCallWithResult, state } = useToolCall(props)
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['running', { text: '正在调用', icon: IconLoading }],
@@ -58,16 +23,10 @@ const textAndIconMap = new Map<string, { text: string; icon: Component }>([
 ])
 
 const textAndIcon = computed(() => {
-  return textAndIconMap.get(status.value) || { text: '', icon: IconPlugin }
+  return textAndIconMap.get(state.value?.status || '') || { text: '', icon: IconPlugin }
 })
 
-const classes = useCssModule()
-
-const highlightJSON = <T extends string | object>(json: T, space = 2): string => {
-  if (!json) {
-    return ''
-  }
-
+const prettyJSON = (json: unknown, space = 2) => {
   let prettyJson = ''
 
   try {
@@ -78,7 +37,19 @@ const highlightJSON = <T extends string | object>(json: T, space = 2): string =>
     }
   } catch {}
 
-  prettyJson = prettyJson.replace(
+  return prettyJson
+}
+
+const classes = useCssModule()
+
+const highlightJSON = (json: string): string => {
+  if (!json) {
+    return ''
+  }
+
+  let jsonStr = json
+
+  jsonStr = jsonStr.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
     (match) => {
       let className = 'number'
@@ -93,43 +64,40 @@ const highlightJSON = <T extends string | object>(json: T, space = 2): string =>
     },
   )
 
-  return prettyJson
+  return jsonStr
 }
 
-const detail = ref('')
-
-const toolCallResults = computed(() => {
-  const toolCallId = toolCall.value?.id
-  if (!toolCallId) {
-    return undefined
-  }
-  return store.toolCallResults?.[toolCallId]
+const jsonStr = computed(() => {
+  return prettyJSON(toolCallWithResult.value, 2)
 })
 
-watchEffect(() => {
-  const args = toolCall.value?.function.arguments
-  const result = toolCallResults.value
+const detail = computed(() => {
+  return highlightJSON(jsonStr.value)
+})
 
-  getJsonrepair()
-    .then(({ jsonrepair }) => {
-      const repairedArgs = jsonrepair(typeof args === 'string' ? args || '{}' : JSON.stringify(args))
-      detail.value = highlightJSON(
-        {
-          arguments: JSON.parse(repairedArgs),
-          result: result ? JSON.parse(jsonrepair(result || '{}')) : undefined,
-        },
-        2,
-      )
+const detailRef = ref<HTMLDivElement | null>(null)
+
+watch(jsonStr, (_, oldValue) => {
+  if (oldValue === '' || oldValue === '{}') {
+    return
+  }
+
+  nextTick(() => {
+    if (!detailRef.value) {
+      return
+    }
+
+    detailRef.value.scrollTo({
+      top: detailRef.value.scrollHeight,
+      behavior: 'smooth',
     })
-    .catch((error) => {
-      console.warn(error)
-    })
+  })
 })
 
 const open = ref(false)
 
 watchEffect(() => {
-  open.value = Boolean(toolCallState.value?.open ?? store.toolCallDefaultOpen)
+  open.value = state.value.open ?? false
 })
 
 const handleStateChange = useBubbleStateChangeFn()
@@ -141,7 +109,7 @@ const handleClick = () => {
   if (toolCallId) {
     handleStateChange('toolCall', {
       ...props.message.state?.toolCall,
-      [toolCallId]: { ...toolCallState.value, open: open.value },
+      [toolCallId]: { ...state.value, open: open.value },
     })
   }
 }
@@ -151,7 +119,7 @@ const handleClick = () => {
   <div class="tr-bubble__tool-call" data-type="tool-call">
     <div class="header">
       <div class="header-left">
-        <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${status}`" />
+        <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${state.status}`" />
         <span>
           <span>{{ textAndIcon.text }}&nbsp;</span>
           <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
@@ -162,7 +130,7 @@ const handleClick = () => {
       </div>
     </div>
     <div v-show="open" class="divider"></div>
-    <div v-show="open" class="detail" v-html="detail"></div>
+    <div v-show="open" class="detail" v-html="detail" ref="detailRef"></div>
   </div>
 </template>
 
@@ -249,6 +217,8 @@ const handleClick = () => {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: monospace;
+  max-height: var(--tr-bubble-tool-call-max-height, 300px);
+  overflow-y: auto;
 }
 </style>
 

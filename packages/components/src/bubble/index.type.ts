@@ -3,7 +3,7 @@ import { Component, VNode } from 'vue'
 /**
  * 工具调用接口（支持 OpenAI 格式）
  */
-interface ToolCall {
+export interface ToolCall {
   id: string
   type: 'function' | string
   function: {

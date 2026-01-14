@@ -233,10 +233,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const tryExecuteRequest = async () => {
     const ac = new AbortController()
     abortController = ac
-    // Snapshot the current response provider at the start of the turn
-    // to prevent inconsistencies if it changes during the request
-    const turnResponseProvider = responseProvider.value
-    // Reset custom context at the start of each turn
+    // 在每个回合开始时重置自定义上下文
     customContext = {}
 
     try {
@@ -246,6 +243,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtStart))) {
         await plugin.onTurnStart?.(baseContextAtStart)
       }
+
+      // 在 onTurnStart 之后快照当前的 response provider
+      // 允许插件在 onTurnStart 钩子中修改 responseProvider
+      // 并在整个 turn 请求过程中防止因它发生变化而导致的不一致
+      const turnResponseProvider = responseProvider.value
 
       // 2) 主流程执行，有错误则中断（不包括中止错误）
       try {
@@ -270,12 +272,18 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     } catch (err) {
       setRequestState('error')
 
+      let hasOnError = false
+
       const context = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        hasOnError = true
         plugin.onError?.({ ...context, error: err })
       }
 
-      throw err
+      // 如果没有任何插件实现了 onError 钩子，则抛出错误
+      if (!hasOnError) {
+        throw err
+      }
     } finally {
       const context = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
