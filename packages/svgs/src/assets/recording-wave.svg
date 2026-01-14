@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32" fill="none" stroke="rgb(20, 118, 255)" stroke-width="1.48" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 第一根线 -->
+  <line x1="8" y1="18.67" x2="8" y2="13.33">
+    <animate attributeName="y1" values="18.67;10.67;18.67" keyTimes="0;0.5;1" dur="1.2s" begin="0s" repeatCount="indefinite"></animate>
+    <animate attributeName="y2" values="13.33;21.33;13.33" keyTimes="0;0.5;1" dur="1.2s" begin="0s" repeatCount="indefinite"></animate>
+  </line>
+  
+  <!-- 第二根线 -->
+  <line x1="12" y1="21.33" x2="12" y2="10.67">
+    <animate attributeName="y1" values="21.33;13.33;21.33" keyTimes="0;0.5;1" dur="1.2s" begin="0.2s" repeatCount="indefinite"></animate>
+    <animate attributeName="y2" values="10.67;18.67;10.67" keyTimes="0;0.5;1" dur="1.2s" begin="0.2s" repeatCount="indefinite"></animate>
+  </line>
+  
+  <!-- 第三根线 -->
+  <line x1="16" y1="24" x2="16" y2="8">
+    <animate attributeName="y1" values="24;16;24" keyTimes="0;0.5;1" dur="1.2s" begin="0.4s" repeatCount="indefinite"></animate>
+    <animate attributeName="y2" values="8;16;8" keyTimes="0;0.5;1" dur="1.2s" begin="0.4s" repeatCount="indefinite"></animate>
+  </line>
+  
+  <!-- 第四根线 -->
+  <line x1="20" y1="20" x2="20" y2="12">
+    <animate attributeName="y1" values="20;12;20" keyTimes="0;0.5;1" dur="1.2s" begin="0.6s" repeatCount="indefinite"></animate>
+    <animate attributeName="y2" values="12;20;12" keyTimes="0;0.5;1" dur="1.2s" begin="0.6s" repeatCount="indefinite"></animate>
+  </line>
+  
+  <!-- 第五根线 -->
+  <line x1="24" y1="21.33" x2="24" y2="10.67">
+    <animate attributeName="y1" values="21.33;13.33;21.33" keyTimes="0;0.5;1" dur="1.2s" begin="0.8s" repeatCount="indefinite"></animate>
+    <animate attributeName="y2" values="10.67;18.67;10.67" keyTimes="0;0.5;1" dur="1.2s" begin="0.8s" repeatCount="indefinite"></animate>
+  </line>
+</svg>
