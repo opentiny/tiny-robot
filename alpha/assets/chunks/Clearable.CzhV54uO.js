@@ -1,0 +1,1 @@
+import{F as e}from"./theme.BKU-i5Nn.js";import{d as a,h as r,o,x as t}from"./framework.CjJItH0B.js";const l=a({__name:"Clearable",setup(n){return(s,c)=>(o(),r(t(e),{clearable:""}))}});export{l as default};
