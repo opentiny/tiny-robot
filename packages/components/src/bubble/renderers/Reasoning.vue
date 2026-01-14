@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
-import { ref, watchEffect } from 'vue'
+import { nextTick, ref, watch, watchEffect } from 'vue'
 import { useBubbleContentRenderer, useBubbleStateChangeFn, useOmitMessageFields } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 
@@ -30,6 +30,24 @@ const handleClick = () => {
   open.value = !open.value
   handleStateChange('open', open.value)
 }
+
+const detailRef = ref<HTMLParagraphElement | null>(null)
+
+watch(
+  () => props.message.reasoning_content,
+  () => {
+    nextTick(() => {
+      if (!detailRef.value) {
+        return
+      }
+
+      detailRef.value.scrollTo({
+        top: detailRef.value.scrollHeight,
+        behavior: 'smooth',
+      })
+    })
+  },
+)
 </script>
 
 <template>
@@ -46,7 +64,7 @@ const handleClick = () => {
         </div>
         <div class="border-line"></div>
       </div>
-      <p class="detail">{{ props.message.reasoning_content }}</p>
+      <p class="detail-content" ref="detailRef">{{ props.message.reasoning_content }}</p>
     </div>
   </div>
   <component :is="renderer" v-bind="restProps" />
@@ -76,8 +94,6 @@ const handleClick = () => {
 }
 
 .detail {
-  font-size: 14px;
-  line-height: 16px;
   color: var(--tr-text-secondary);
   margin-block: 8px;
   white-space: pre-line;
@@ -85,11 +101,16 @@ const handleClick = () => {
   gap: 8px;
   align-items: center;
 
-  p.detail {
+  p.detail-content {
+    font-size: 14px;
+    line-height: 16px;
     margin: 0;
     white-space: pre-wrap;
+    word-break: break-word;
+    max-height: var(--tr-bubble-reasoning-max-height, 300px);
+    overflow-y: auto;
 
-    & + p.detail {
+    & + p.detail-content {
       margin-top: 1em;
     }
   }
