@@ -1,4 +1,4 @@
-export { createSSEStreamGenerator } from './utils'
+export { sseStreamToGenerator } from './utils'
 export * from './vue/conversation/types'
 export * from './vue/conversation/useConversation'
 export * from './vue/message/plugins'

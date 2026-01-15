@@ -141,9 +141,19 @@ function createAbortError(message = 'The operation was aborted'): Error {
   return error
 }
 
-// Async generator function that yields SSE data
+/**
+ * 将 SSE 流转换为异步生成器。
+ * 将服务器发送事件（SSE）流式响应转换为异步生成器，逐个产出解析后的数据
+ *
+ * 当取消信号被触发时，会抛出 name 为 'AbortError' 的错误
+ * @param response fetch 响应对象
+ * @param options 配置选项
+ * @param options.signal 可选的取消信号，用于中断流处理
+ * @returns 异步生成器，产出类型为 T 的数据
+ * @template T 生成器产出的数据类型，默认为 any
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function* createSSEStreamGenerator<T = any>(
+export async function* sseStreamToGenerator<T = any>(
   response: Response,
   options: { signal?: AbortSignal } = {},
 ): AsyncGenerator<T, void, unknown> {
