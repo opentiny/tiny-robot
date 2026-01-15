@@ -1,0 +1,130 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 114 24" width="114.000000" height="24.000000" fill="none" customFrame="#000000">
+  <defs>
+    <linearGradient id="paint_linear_1" x1="118" x2="0" y1="0" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="rgb(255,73,69)" offset="0" stop-opacity="1"/>
+      <stop stop-color="rgb(255,147,147)" offset="0.5" stop-opacity="1"/>
+      <stop stop-color="rgb(255,73,69)" offset="1" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 线条组1 - 最左边短线条 -->
+  <line x1="3" y1="11.5" x2="3" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="7" y1="11.5" x2="7" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.1s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.1s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="11" y1="11.5" x2="11" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- 线条组2 - 稍高线条 -->
+  <line x1="16" y1="10.5" x2="16" y2="13.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="10.5;9;10.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.3s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="13.5;15;13.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.3s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="20" y1="9.5" x2="20" y2="14.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="9.5;7.5;9.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="14.5;16.5;14.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="24" y1="11.5" x2="24" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.05s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.05s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="28" y1="10.5" x2="28" y2="13.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="10.5;9;10.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.15s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="13.5;15;13.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.15s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- 线条组3 - 中间较高线条 -->
+  <line x1="33" y1="7.5" x2="33" y2="16.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="7.5;5.5;7.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.25s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="16.5;18.5;16.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.25s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="38" y1="9.5" x2="38" y2="14.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="9.5;7.5;9.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.35s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="14.5;16.5;14.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.35s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- 线条组4 - 中间最高线条 -->
+  <line x1="44" y1="6" x2="44" y2="18" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="6;4;6" keyTimes="0;0.5;1" dur="0.6s" begin="0s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="18;20;18" keyTimes="0;0.5;1" dur="0.6s" begin="0s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="49" y1="3" x2="49" y2="21" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="3;1;3" keyTimes="0;0.5;1" dur="0.6s" begin="0.1s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="21;23;21" keyTimes="0;0.5;1" dur="0.6s" begin="0.1s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="54" y1="6" x2="54" y2="18" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="6;4;6" keyTimes="0;0.5;1" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="18;20;18" keyTimes="0;0.5;1" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="59" y1="8.5" x2="59" y2="15.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="8.5;6.5;8.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.3s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="15.5;17.5;15.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.3s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="64" y1="6" x2="64" y2="18" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="6;4;6" keyTimes="0;0.5;1" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="18;20;18" keyTimes="0;0.5;1" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- 线条组5 - 右边较高线条 -->
+  <line x1="69" y1="11.5" x2="69" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.05s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.05s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="74" y1="8.5" x2="74" y2="15.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="8.5;6.5;8.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.15s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="15.5;17.5;15.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.15s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="79" y1="7.5" x2="79" y2="16.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="7.5;5.5;7.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.25s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="16.5;18.5;16.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.25s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="84" y1="10.5" x2="84" y2="13.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="10.5;9;10.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.35s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="13.5;15;13.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.35s" repeatCount="indefinite"/>
+  </line>
+  
+  <!-- 线条组6 - 右边短线条 -->
+  <line x1="89" y1="10.5" x2="89" y2="13.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="10.5;9;10.5" keyTimes="0;0.5;1" dur="0.6s" begin="0s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="13.5;15;13.5" keyTimes="0;0.5;1" dur="0.6s" begin="0s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="94" y1="11.5" x2="94" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.1s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.1s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="99" y1="11.5" x2="99" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.2s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="104" y1="11.5" x2="104" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.3s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.3s" repeatCount="indefinite"/>
+  </line>
+  
+  <line x1="109" y1="11.5" x2="109" y2="12.5" stroke="url(#paint_linear_1)" stroke-width="2" stroke-linecap="round">
+    <animate attributeName="y1" values="11.5;10.5;11.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="12.5;13.5;12.5" keyTimes="0;0.5;1" dur="0.6s" begin="0.4s" repeatCount="indefinite"/>
+  </line>
+</svg>
