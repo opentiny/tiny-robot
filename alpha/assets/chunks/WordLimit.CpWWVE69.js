@@ -1,0 +1,1 @@
+import{F as e}from"./theme.DoJc4qWh.js";import{d as o,h as t,o as r,x as a}from"./framework.BOI_CI0O.js";const u=o({__name:"WordLimit",setup(m){return(n,s)=>(r(),t(a(e),{mode:"multiple",showWordLimit:!0,maxLength:20,defaultValue:"测试超出字数限制，当前已经超过了字数限制。"}))}});export{u as default};
