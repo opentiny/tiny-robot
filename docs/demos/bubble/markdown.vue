@@ -9,15 +9,11 @@ import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
-const mdContent = `# h1 Heading
-## Emphasis
+const mdContent = `# 标题
 
-**This is bold text**
+**加粗文本** *斜体文本* ~~删除线~~
 
-*This is italic text*
-
-_This is italic text_
-
-~~Strikethrough~~
+- 列表项 1
+- 列表项 2
 `
 </script>

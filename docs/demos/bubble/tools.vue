@@ -66,25 +66,15 @@ const handleStateChange = (payload: { key: string; value: unknown }) => {
 </script>
 
 <template>
-  <section>
-    <p><strong>工具调用消息</strong></p>
-
-    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
-      <div>
-        <label>
-          <input type="checkbox" v-model="state.toolCall.call_0!.open" />
-          First Tool Call Expanded
-        </label>
-      </div>
-      <div>
-        <button @click="handleChangeToolCallStatus">Change First Tool Call Status</button>
-      </div>
-      <div>
-        <button @click="handleChangeToolCallArguments">Change First Tool Call Arguments</button>
-      </div>
-      <div>
-        <button @click="handleReplaySecondToolCall" :disabled="isReplaying">Replay Second Tool Call</button>
-      </div>
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+      <label>
+        <input type="checkbox" v-model="state.toolCall.call_0!.open" />
+        展开第一个工具调用
+      </label>
+      <button @click="handleChangeToolCallStatus">切换状态</button>
+      <button @click="handleChangeToolCallArguments">修改参数</button>
+      <button @click="handleReplaySecondToolCall" :disabled="isReplaying">重放第二个工具调用</button>
     </div>
 
     <Bubble
@@ -93,7 +83,6 @@ const handleStateChange = (payload: { key: string; value: unknown }) => {
       :avatar="aiAvatar"
       :state="state"
       @state-change="handleStateChange"
-    >
-    </Bubble>
-  </section>
+    ></Bubble>
+  </div>
 </template>

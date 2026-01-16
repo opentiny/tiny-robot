@@ -1,12 +1,14 @@
 <template>
-  <div style="margin-bottom: 16px"><label>使用markdown渲染运行时渲染（webcomponent）</label></div>
-  <tr-bubble-provider :store="bubbleStore">
-    <tr-bubble
-      :avatar="aiAvatar"
-      :content="mdContent"
-      :fallback-content-renderer="BubbleRenderers.Markdown"
-    ></tr-bubble>
-  </tr-bubble-provider>
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <p style="font-size: 12px; color: #666; margin: 0">使用 Markdown 渲染器渲染运行时组件（WebComponent）</p>
+    <tr-bubble-provider :store="bubbleStore">
+      <tr-bubble
+        :avatar="aiAvatar"
+        :content="mdContent"
+        :fallback-content-renderer="BubbleRenderers.Markdown"
+      ></tr-bubble>
+    </tr-bubble-provider>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -24,10 +26,7 @@ const bubbleStore = reactive({
 
 const schemaObj = ref(
   JSON.stringify({
-    state: {},
-    methods: {},
     componentName: 'Page',
-    props: {},
     children: [
       { componentName: 'Text', props: { text: '运行时渲染器文本' } },
       { componentName: 'Button', props: { text: '运行时渲染器按钮' } },
@@ -35,17 +34,15 @@ const schemaObj = ref(
   }),
 )
 
-// 下面的代码应放在应用挂载前执行
+// 注册自定义元素
 if (!customElements.get('schema-card')) {
-  // 将 Vue 组件转为自定义元素类。
   const CardElement = defineCustomElement(SchemaCard)
-  // 在浏览器中注册元素类。
   customElements.define('schema-card', CardElement)
 }
 
 const mdContent = `# Markdown 标题
 
-**Markdown 加粗文本**
+**加粗文本**
 
 <schema-card schema='${schemaObj.value}'></schema-card>
 `

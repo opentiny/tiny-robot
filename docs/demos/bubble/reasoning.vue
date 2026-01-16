@@ -1,17 +1,11 @@
 <template>
-  <section>
-    <p><strong>推理消息</strong></p>
-
-    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px">
-      <div>
-        <label>
-          <input type="checkbox" v-model="reasoningState.open" />
-          Expanded
-        </label>
-      </div>
-      <div>
-        <button @click="replayThinking">Replay Thinking</button>
-      </div>
+  <div style="display: flex; flex-direction: column; gap: 16px">
+    <div style="display: flex; gap: 8px; align-items: center">
+      <label>
+        <input type="checkbox" v-model="reasoningState.open" />
+        展开推理过程
+      </label>
+      <button @click="replayThinking">重放推理</button>
     </div>
 
     <Bubble
@@ -20,9 +14,8 @@
       :avatar="aiAvatar"
       :state="reasoningState"
       @state-change="handleStateChange"
-    >
-    </Bubble>
-  </section>
+    ></Bubble>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -53,6 +46,9 @@ const reasoningState = ref<Record<string, unknown>>({
 })
 
 const replayThinking = async () => {
+  if (reasoningState.value.thinking) {
+    return
+  }
   reasoningState.value.thinking = true
   reasoningContent.value = ''
   content.value = ''

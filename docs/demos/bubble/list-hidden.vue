@@ -11,22 +11,10 @@ const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
 const messages: BubbleListProps['messages'] = [
-  {
-    role: 'user',
-    content: '简单介绍 TinyVue',
-  },
-  {
-    role: 'ai',
-    content: 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。',
-  },
-  {
-    role: 'user',
-    content: '简单介绍 TinyVue',
-  },
-  {
-    role: 'ai',
-    content: 'TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。',
-  },
+  { role: 'user', content: '用户消息 1' },
+  { role: 'ai', content: 'AI 回复 1' },
+  { role: 'user', content: '用户消息 2' },
+  { role: 'ai', content: 'AI 回复 2' },
 ]
 
 const roles: Record<string, BubbleRoleConfig> = {
