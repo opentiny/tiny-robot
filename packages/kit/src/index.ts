@@ -1,3 +1,6 @@
+export { AIClient } from './client'
+export * from './storage'
+export * from './types'
 export { sseStreamToGenerator } from './utils'
 export * from './vue/conversation/types'
 export * from './vue/conversation/useConversation'

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { MaybePromise } from '../../types'
 import { ComputedRef, Ref } from 'vue'
+import { ChatMessage, MaybePromise, ToolCall } from '../../types'
 
 export interface Tool {
   type: 'function'
@@ -15,27 +15,6 @@ export interface Tool {
   [key: string]: any
 }
 
-// Message metadata interface
-export interface MessageMetadata {
-  createdAt?: number
-  updatedAt?: number
-  id?: string
-  model?: string
-  [key: string]: any
-}
-
-// Base message interface
-export interface ChatMessage {
-  role: string
-  content: string
-  reasoning_content?: string
-  metadata?: MessageMetadata
-  tool_calls?: ToolCall[]
-  tool_call_id?: string
-  [key: string]: any
-  [key: symbol]: any
-}
-
 // Request body for plugins - only contains messages and additional parameters
 export interface MessageRequestBody {
   messages: Partial<ChatMessage>[]
@@ -45,17 +24,6 @@ export interface MessageRequestBody {
 // Define different states for the request process
 export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
-
-export interface ToolCall {
-  index: number
-  id: string
-  type: 'function'
-  function: {
-    name: string
-    arguments: string // JSON string
-    result?: string
-  }
-}
 
 // Usage information for API response
 export interface Usage {

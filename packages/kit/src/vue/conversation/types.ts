@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
-import { MaybePromise } from '../../types'
-import { ChatMessage, UseMessageOptions, UseMessageReturn } from '../message/types'
+import { ConversationStorageStrategy } from '../../storage'
+import { UseMessageOptions, UseMessageReturn } from '../message/types'
 
 export interface ConversationInfo {
   /** 会话ID */
@@ -20,29 +20,6 @@ export interface Conversation extends ConversationInfo {
    * Message engine instance created by useMessage.
    */
   engine: UseMessageReturn
-}
-
-export interface ConversationStorageStrategy {
-  /**
-   * Load all conversations (id and title only).
-   */
-  loadConversations?: () => MaybePromise<ConversationInfo[]>
-  /**
-   * Load all messages for a given conversation.
-   */
-  loadMessages?: (conversationId: string) => MaybePromise<ChatMessage[]>
-  /**
-   * Persist conversation metadata (create or update).
-   */
-  saveConversation?: (conversation: ConversationInfo) => MaybePromise<void>
-  /**
-   * Persist messages for a given conversation.
-   */
-  saveMessages?: (conversationId: string, messages: ChatMessage[]) => MaybePromise<void>
-  /**
-   * Optional method to delete a conversation and its messages.
-   */
-  deleteConversation?: (conversationId: string) => MaybePromise<void>
 }
 
 export interface UseConversationOptions {
@@ -86,6 +63,7 @@ export interface UseConversationReturn {
   }) => Conversation
   switchConversation: (id: string) => Promise<Conversation | null>
   deleteConversation: (id: string) => Promise<void>
+  clear: () => void
   updateConversationTitle: (id: string, title?: string) => void
   saveMessages: (id?: string) => void
   sendMessage: (content: string) => void

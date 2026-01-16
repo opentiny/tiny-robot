@@ -4,6 +4,10 @@ outline: deep
 
 # AI模型交互工具类 AIClient
 
+::: warning 已废弃
+`AIClient` 类已被标记为废弃。建议使用 `useMessage` 和 `useConversation` 组合式函数来替代。
+:::
+
 客户端类，用于与AI模型交互。
 
 
@@ -80,7 +84,7 @@ declare class AIClient {
 interface StreamHandler {
     onData: (data: ChatCompletionStreamResponse) => void;
     onError: (error: AIAdapterError) => void;
-    onDone: () => void;
+    onDone: (finishReason?: string) => void;
 }
 
 ```

@@ -1,10 +1,14 @@
 import { computed, ref, watch, WatchStopHandle } from 'vue'
-import { ChatMessage, UseMessageOptions, UseMessageReturn } from '../message/types'
+import { ChatMessage } from '../../types'
+import { UseMessageOptions, UseMessageReturn } from '../message/types'
 import { useMessage } from '../message/useMessage'
 import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
 import { useThrottleFn } from './useThrottleFn'
+import { localStorageStrategyFactory } from '../../storage/factories'
 
 export const useConversation = (options: UseConversationOptions): UseConversationReturn => {
+  // 如果没有提供存储策略，使用默认的 LocalStorage 策略
+  const storage = options.storage || localStorageStrategyFactory()
   /**
    * All conversations.
    */
@@ -51,26 +55,26 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
   const saveMessages = (id?: string) => {
-    if (!options.storage?.saveMessages) return
+    if (!storage?.saveMessages) return
     const conversationId = id || activeConversationId.value
 
     const conversation = conversations.value.find((c) => c.id === conversationId)
     if (!conversation) return
 
     conversation.updatedAt = Date.now()
-    options.storage?.saveConversation?.(conversation)
+    storage?.saveConversation?.(conversation)
 
     const engine = workingEngines.get(conversation.id)
     if (!engine) return
 
-    options.storage.saveMessages(conversation.id, engine.messages.value)
+    storage.saveMessages(conversation.id, engine.messages.value)
   }
 
   /**
    * 为引擎设置自动保存监听器
    */
   const setupAutoSave = (id: string, engine: UseMessageReturn) => {
-    if (!options.autoSaveMessages || !options.storage?.saveMessages) return
+    if (!options.autoSaveMessages || !storage?.saveMessages) return
 
     // 停止已存在的监听器（如果有）
     const existingWatcher = watchers.get(id)
@@ -109,8 +113,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   /**
    * Load initial conversation list from storage (if provided).
    */
-  if (options.storage?.loadConversations) {
-    Promise.resolve(options.storage.loadConversations())
+  if (storage?.loadConversations) {
+    Promise.resolve(storage.loadConversations())
       .then((list) => {
         conversations.value = list
       })
@@ -130,9 +134,9 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     let initialMessages: ChatMessage[] =
       overrideOptions?.initialMessages ?? options.useMessageOptions.initialMessages ?? []
 
-    if (options.storage?.loadMessages) {
+    if (storage?.loadMessages) {
       try {
-        initialMessages = await options.storage.loadMessages(id)
+        initialMessages = await storage.loadMessages(id)
       } catch (error) {
         console.error('[useConversation] loadMessages failed:', error)
       }
@@ -183,8 +187,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     setupAutoSave(id, engine)
 
     // Persist new conversation and its initial messages.
-    options.storage?.saveConversation?.(info)
-    options.storage?.saveMessages?.(id, engine.messages.value)
+    storage?.saveConversation?.(info)
+    storage?.saveMessages?.(id, engine.messages.value)
 
     activeConversationId.value = id
 
@@ -245,13 +249,33 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     conversations.value.splice(idx, 1)
 
-    options.storage?.deleteConversation?.(id)
+    storage?.deleteConversation?.(id)
 
     // If deleting the active conversation, switch to new conversation
     if (activeConversationId.value === id) {
       activeConversationId.value = null
       clearInactiveEngines()
     }
+  }
+
+  /**
+   * Clear all conversations and their messages.
+   */
+  const clear = () => {
+    const ids = conversations.value.map((c) => c.id)
+    ids.forEach((id) => {
+      storage?.deleteConversation?.(id)
+    })
+    workingEngines.forEach((engine) => {
+      engine.abortRequest()
+    })
+    watchers.forEach((watcher) => {
+      watcher()
+    })
+    conversations.value = []
+    workingEngines.clear()
+    watchers.clear()
+    activeConversationId.value = null
   }
 
   /**
@@ -263,7 +287,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     info.title = title
     info.updatedAt = Date.now()
-    options.storage?.saveConversation?.(info)
+    storage?.saveConversation?.(info)
   }
 
   /**
@@ -288,6 +312,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     createConversation,
     switchConversation,
     deleteConversation,
+    clear,
     updateConversationTitle,
     saveMessages,
 

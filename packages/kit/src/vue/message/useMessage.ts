@@ -1,8 +1,8 @@
 import { computed, reactive, ref, watch } from 'vue'
+import { ChatMessage } from '../../types'
 import { fallbackRolePlugin, lengthPlugin, thinkingPlugin } from './plugins'
 import type {
   BasePluginContext,
-  ChatMessage,
   CompletionChoice,
   MessageRequestBody,
   RequestProcessingState,

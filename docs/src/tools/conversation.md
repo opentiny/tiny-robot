@@ -6,54 +6,43 @@ outline: deep
 
 `useConversation` 是一个对话管理工具，它可以帮助你管理对话的状态和历史记录。
 
+默认情况下，`useConversation` 会使用 LocalStorage 策略来持久化会话和消息数据。如果你需要更大的存储容量或更好的性能，可以切换到 IndexedDB 策略。关于存储策略的详细说明，请参考 [存储策略文档](./storage.md)。
+
 ## 示例
 
 ### 基础示例
 
-使用 Mock 存储策略的基础示例，适合快速了解功能：
-
 <demo vue="../../demos/tools/conversation/Basic.vue" :vueFiles="['../../demos/tools/conversation/Basic.vue']" />
-
-### LocalStorage 策略
-
-使用浏览器 LocalStorage 存储会话数据，刷新页面后数据仍然保留：
-
-<demo vue="../../demos/tools/conversation/LocalStorage.vue" :vueFiles="['../../demos/tools/conversation/LocalStorage.vue']" />
-
-### IndexedDB 策略
-
-使用浏览器 IndexedDB 存储会话数据，支持更大容量和更好性能：
-
-<demo vue="../../demos/tools/conversation/IndexedDB.vue" :vueFiles="['../../demos/tools/conversation/IndexedDB.vue']" />
 
 ## API
 
 ### 选项
+
 ```typescript
 interface UseConversationOptions {
-  /** AI客户端实例 */
-  client: AIClient
-  /** 存储策略（可选，默认使用 LocalStorage） */
+  /**
+   * 所有会话的基础 useMessage 选项。
+   * 传递给 createConversation 的每个会话选项会在此基础上合并。
+   */
+  useMessageOptions: UseMessageOptions
+  /**
+   * 是否在消息变更时自动保存。
+   * @default false
+   */
+  autoSaveMessages?: boolean
+  /**
+   * 自动保存操作的节流时间（毫秒）。
+   * 确保在流式更新期间，每个时间间隔内最多保存一次消息。
+   * 仅在 autoSaveMessages 为 true 时生效。
+   * @default 1000
+   */
+  autoSaveThrottle?: number
+  /**
+   * 可选的存储策略，用于会话和消息的持久化。
+   * 如果不提供，默认使用 LocalStorage 策略。
+   * 当提供时，会话列表和消息可以被加载和持久化。
+   */
   storage?: ConversationStorageStrategy
-  /** 是否自动保存 (default: true) */
-  autoSave?: boolean
-  /** 是否允许空会话 (default: false) */
-  allowEmpty?: boolean
-  /** 是否默认使用流式响应 (default: true)*/
-  useStreamByDefault?: boolean
-  /** 错误消息模板 */
-  errorMessage?: string
-  /** 事件回调 */
-  events?: UseConversationEvents
-}
-```
-
-### 事件类型
-
-```typescript
-type UseConversationEvents = UseMessageOptions['events'] & {
-  /** 会话加载完成回调 */
-  onLoaded?: (conversations: Conversation[]) => void
 }
 ```
 
@@ -61,178 +50,60 @@ type UseConversationEvents = UseMessageOptions['events'] & {
 
 ```typescript
 interface UseConversationReturn {
-  /** 会话状态 */
-  state: ConversationState;
-  /** 消息管理 */
-  messageManager: UseMessageReturn;
-  /** 创建新会话 */
-  createConversation: (title?: string, metadata?: Record<string, unknown>) => string;
-  /** 切换会话 */
-  switchConversation: (id: string) => void;
-  /** 删除会话 */
-  deleteConversation: (id: string) => void;
-  /** 更新会话标题 */
-  updateTitle: (id: string, title: string) => void;
-  /** 更新会话元数据 */
-  updateMetadata: (id: string, metadata: Record<string, unknown>) => void;
-  /** 保存会话 */
-  saveConversations: () => Promise<void>;
-  /** 加载会话 */
-  loadConversations: () => Promise<void>;
-  /** 生成会话标题 */
-  generateTitle: (id: string) => Promise<string>;
-  /** 获取当前会话 */
-  getCurrentConversation: () => Conversation | null;
-}
-```
-
-### 会话状态
-
-```typescript
-interface ConversationState {
   /** 会话列表 */
-  conversations: Conversation[];
+  conversations: Ref<ConversationInfo[]>
   /** 当前会话ID */
-  currentId: string | null;
-  /** 是否正在加载 */
-  loading: boolean;
+  activeConversationId: Ref<string | null>
+  /** 当前活跃会话 */
+  activeConversation: ComputedRef<Conversation | null>
+  /** 创建新会话 */
+  createConversation: (params?: {
+    /** 会话ID，不提供则自动生成 */
+    id?: string
+    /** 会话标题 */
+    title?: string
+    /** 自定义元数据 */
+    metadata?: Record<string, unknown>
+    /** 覆盖默认的消息选项 */
+    useMessageOptions?: Partial<UseMessageOptions>
+  }) => Conversation
+  /** 切换会话 */
+  switchConversation: (id: string) => Promise<Conversation | null>
+  /** 删除会话 */
+  deleteConversation: (id: string) => Promise<void>
+  /** 清空所有会话 */
+  clear: () => void
+  /** 更新会话标题 */
+  updateConversationTitle: (id: string, title?: string) => void
+  /** 保存指定会话的消息 */
+  saveMessages: (id?: string) => void
+  /** 发送消息到当前活跃会话 */
+  sendMessage: (content: string) => void
+  /** 中止当前活跃会话的请求 */
+  abortActiveRequest: () => Promise<void>
 }
 ```
 
 ### 会话接口
 
 ```typescript
-
-interface Conversation {
+interface ConversationInfo {
   /** 会话ID */
-  id: string;
+  id: string
   /** 会话标题 */
-  title: string;
+  title?: string
   /** 创建时间 */
-  createdAt: number;
+  createdAt: number
   /** 更新时间 */
-  updatedAt: number;
+  updatedAt: number
   /** 自定义元数据 */
-  metadata?: Record<string, unknown>;
-  /** 消息 */
-  messages: ChatMessage[];
-}
-```
-
-
-### 存储策略
-
-#### 使用 LocalStorage（默认）
-
-默认情况下，会话数据存储在浏览器的 LocalStorage 中：
-
-```typescript
-const conversationManager = useConversation({
-  client,
-  // 默认使用 LocalStorage，无需配置
-});
-```
-
-#### 使用 LocalStorage 自定义配置
-
-```typescript
-import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
-
-const conversationManager = useConversation({
-  client,
-  storage: localStorageStrategyFactory({
-    key: 'my-app-conversations'
-  })
-});
-```
-
-#### 使用 IndexedDB
-
-IndexedDB 相比 LocalStorage 具有更大的存储容量（>50MB）和更好的性能，适合存储大量会话数据：
-
-```typescript
-import { indexedDBStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
-
-const conversationManager = useConversation({
-  client,
-  storage: indexedDBStorageStrategyFactory({
-    dbName: 'my-chat-app-db',
-    dbVersion: 1
-  })
-});
-```
-
-#### 存储策略对比
-
-| 特性 | LocalStorage | IndexedDB |
-|------|-------------|-----------|
-| 存储容量 | ~5-10MB | >50MB |
-| 性能 | 同步操作 | 异步操作，不阻塞主线程 |
-| 数据类型 | 仅字符串（需 JSON 序列化） | 支持对象、数组、二进制 |
-| 查询能力 | 简单 key-value | 支持索引和复杂查询 |
-| 浏览器支持 | 所有现代浏览器 | 所有现代浏览器（不支持 IE） |
-| 隐私模式 | ✅ 支持 | ⚠️ 受限（见下方说明） |
-| 适用场景 | 少量会话（<100个） | 大量会话或长对话历史 |
-
-#### 重要提示：隐私/无痕模式限制
-
-**IndexedDB 在隐私模式下的行为**：
-
-不同浏览器在隐私/无痕模式下对 IndexedDB 的支持有所不同：
-
-- **Chrome/Edge 隐私模式**：IndexedDB 可用，但数据在关闭浏览器后会被清除
-- **Firefox 隐私模式**：IndexedDB 可用，但存储配额较小
-- **Safari 隐私模式**：IndexedDB **完全不可用**，会抛出错误
-
-#### 自定义存储策略
-
-你也可以实现自定义的存储策略，例如将数据保存到远程服务器：
-
-```typescript
-import type { ConversationStorageStrategy, Conversation } from '@tiny-robot/kit';
-
-// 远程存储策略示例
-class RemoteStorageStrategy implements ConversationStorageStrategy {
-  private apiUrl: string;
-
-  constructor(apiUrl: string) {
-    this.apiUrl = apiUrl;
-  }
-
-  async saveConversations(conversations: Conversation[]): Promise<void> {
-    await fetch(`${this.apiUrl}/conversations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(conversations)
-    });
-  }
-
-  async loadConversations(): Promise<Conversation[]> {
-    const response = await fetch(`${this.apiUrl}/conversations`);
-    return response.json();
-  }
-
-  async clear(): Promise<void> {
-    await fetch(`${this.apiUrl}/conversations`, { method: 'DELETE' });
-  }
+  metadata?: Record<string, unknown>
 }
 
-// 使用自定义存储策略
-const conversationManager = useConversation({
-  client,
-  storage: new RemoteStorageStrategy('https://api.example.com')
-});
-```
-
-### 存储策略接口
-
-```typescript
-interface ConversationStorageStrategy {
-  /** 保存会话列表 */
-  saveConversations: (conversations: Conversation[]) => Promise<void> | void;
-  /** 加载会话列表 */
-  loadConversations: () => Promise<Conversation[]> | Conversation[];
-  /** 清空所有会话（可选） */
-  clear?: () => Promise<void> | void;
+interface Conversation extends ConversationInfo {
+  /**
+   * 由 useMessage 创建的消息引擎实例。
+   */
+  engine: UseMessageReturn
 }
 ```

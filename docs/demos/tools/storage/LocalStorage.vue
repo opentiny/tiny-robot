@@ -2,7 +2,6 @@
   <div>
     <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
 
-    <!-- 消息输入区域 -->
     <tr-sender
       v-model="inputMessage"
       :placeholder="isProcessing ? '正在思考中...' : '请输入您的问题'"
@@ -56,6 +55,7 @@ const {
   createConversation,
   switchConversation,
   abortActiveRequest,
+  clear,
 } = useConversation({
   useMessageOptions: {
     responseProvider: async (requestBody, abortSignal) => {
@@ -70,6 +70,7 @@ const {
   storage: localStorageStrategyFactory({
     key: 'demo-conversations-localstorage', // 自定义存储键名
   }),
+  autoSaveMessages: true, // 启用自动保存消息
 })
 
 const messages = computed(() => activeConversation.value?.engine?.messages.value || [])
@@ -79,11 +80,12 @@ const inputMessage = ref('')
 
 const sendMessage = (content: string) => {
   activeConversation.value?.engine?.sendMessage(content)
+  inputMessage.value = ''
 }
 
 const options = computed(() =>
   conversations.value.map((conversation) => ({
-    label: conversation.title,
+    label: conversation.title || `会话 ${conversation.id.slice(0, 8)}`,
     value: conversation.id,
   })),
 )
@@ -91,8 +93,7 @@ const options = computed(() =>
 // 清空存储
 const clearStorage = () => {
   if (confirm('确定要清空所有会话数据吗？')) {
-    localStorage.removeItem('demo-conversations-localstorage')
-    location.reload()
+    clear()
   }
 }
 </script>

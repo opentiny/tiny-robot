@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { reactive } from 'vue'
-import type { BasePluginContext, ChatMessage, Tool, ToolCall, UseMessagePlugin } from '../types'
+import { ChatMessage, ToolCall } from '../../../types'
+import { BasePluginContext, Tool, UseMessagePlugin } from '../types'
 import { combileDeltaData, normalizeToAsyncGenerator } from '../utils'
 
 /**

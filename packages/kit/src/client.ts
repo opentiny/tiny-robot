@@ -8,6 +8,7 @@ import type { BaseModelProvider } from './providers/base'
 import { OpenAIProvider } from './providers/openai'
 
 /**
+ * @deprecated
  * AI客户端类
  */
 export class AIClient {

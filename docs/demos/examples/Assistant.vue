@@ -13,7 +13,7 @@
     :style="containerStyles"
   >
     <template #operations>
-      <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="createConversation()" />
+      <tr-icon-button :icon="IconNewSession" size="28" svgSize="20" @click="activeConversationId = null" />
       <span style="display: inline-flex; line-height: 0; position: relative">
         <tr-icon-button :icon="IconHistory" size="28" svgSize="20" @click="showHistory = true" />
         <div v-show="showHistory" class="tr-history-demo-container">
@@ -27,9 +27,9 @@
           />
           <tr-history
             class="tr-history-demo"
-            :selected="state.currentId ?? undefined"
+            :selected="activeConversationId ?? undefined"
             :search-bar="true"
-            :data="state.conversations"
+            :data="historyData"
             @item-title-change="handleHistoryTitleChange"
             @item-click="handleHistorySelect"
             @item-action="handleHistoryAction"
@@ -91,14 +91,14 @@
           mode="single"
           v-model="inputMessage"
           :class="{ 'tr-sender-compact': !fullscreen }"
-          :placeholder="GeneratingStatus.includes(messageState.status) ? '正在思考中...' : '请输入您的问题'"
+          :placeholder="isProcessing ? '正在思考中...' : '请输入您的问题'"
           :clearable="true"
-          :loading="GeneratingStatus.includes(messageState.status)"
+          :loading="isProcessing"
           :showWordLimit="true"
           :maxLength="1000"
           v-model:template-data="currentTemplate"
           @submit="handleSendMessage"
-          @cancel="abortRequest"
+          @cancel="abortActiveRequest"
           @reset-template="clearTemplate"
         ></tr-sender>
       </div>
@@ -149,7 +149,7 @@ import {
   TrWelcome,
   vDropzone,
 } from '@opentiny/tiny-robot'
-import { AIClient, Conversation, GeneratingStatus, useConversation } from '@opentiny/tiny-robot-kit'
+import { ConversationInfo, sseStreamToGenerator, useConversation } from '@opentiny/tiny-robot-kit'
 import {
   IconAi,
   IconClose,
@@ -162,14 +162,7 @@ import {
   IconUser,
 } from '@opentiny/tiny-robot-svgs'
 import { TinySwitch } from '@opentiny/vue'
-import { type CSSProperties, h, markRaw, nextTick, onMounted, ref, watch } from 'vue'
-
-const client = new AIClient({
-  provider: 'openai',
-  // apiKey: 'your-api-key',
-  defaultModel: 'gpt-3.5-turbo',
-  apiUrl: window.parent?.location.origin || location.origin + import.meta.env.BASE_URL,
-})
+import { computed, type CSSProperties, h, markRaw, nextTick, onMounted, ref, watch } from 'vue'
 
 const fullscreen = ref(false)
 const show = ref(true)
@@ -440,31 +433,48 @@ const pillItems = [
   },
 ]
 
-const { messageManager, state, createConversation, updateTitle, switchConversation, deleteConversation } =
-  useConversation({
-    client,
-    events: {
-      onReceiveData: (data, _messages, _preventDefault) => {
-        // 执行 preventDefault 可以阻止默认写入消息列表的逻辑
-        // preventDefault()
-        console.log(data)
-      },
-      onLoaded: (conversations) => {
-        console.log(conversations)
-      },
+const {
+  activeConversation,
+  activeConversationId,
+  conversations,
+  createConversation,
+  switchConversation,
+  deleteConversation,
+  updateConversationTitle,
+  abortActiveRequest,
+} = useConversation({
+  useMessageOptions: {
+    responseProvider: async (requestBody, abortSignal) => {
+      const response = await fetch('/api/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ ...requestBody, stream: true }),
+        signal: abortSignal,
+      })
+      return sseStreamToGenerator(response, { signal: abortSignal })
     },
-  })
+  },
+})
 
-const { messages, messageState, inputMessage, sendMessage: _sendMessage, abortRequest } = messageManager
+const historyData = computed(() =>
+  conversations.value.map((item) => ({
+    ...item,
+    title: item.title || '',
+  })),
+)
 
-const sendMessage = (...args: Parameters<typeof _sendMessage>) => {
-  if (!state.currentId) {
-    createConversation()
+const messageEngine = computed(() => activeConversation.value?.engine)
+const messages = computed(() => messageEngine.value?.messages.value || [])
+const isProcessing = computed(() => messageEngine.value?.isProcessing.value)
+
+const sendMessage = (content: string) => {
+  if (!activeConversationId.value) {
+    createConversation({ title: content.slice(0, 10) })
   }
-  _sendMessage(...args)
+  messageEngine.value?.sendMessage(content)
 }
 
 const handlePromptItemClick = (ev: unknown, item: { description?: string }) => {
+  if (!item.description) return
   sendMessage(item.description)
 }
 
@@ -481,22 +491,23 @@ const roles: Record<string, BubbleRoleConfig> = {
 
 const showHistory = ref(false)
 
-const handleHistoryTitleChange = (newTitle: string, item: Conversation) => {
-  updateTitle(item.id!, newTitle)
+const handleHistoryTitleChange = (newTitle: string, item: ConversationInfo) => {
+  updateConversationTitle(item.id, newTitle)
 }
 
-const handleHistorySelect = (item: Conversation) => {
+const handleHistorySelect = (item: ConversationInfo) => {
   switchConversation(item.id)
   showHistory.value = false
 }
 
-const handleHistoryAction = (action: HistoryMenuItem, item: Conversation) => {
+const handleHistoryAction = (action: HistoryMenuItem, item: ConversationInfo) => {
   if (action.id === 'delete') {
     deleteConversation(item.id)
   }
 }
 
 const senderRef = ref<InstanceType<typeof TrSender> | null>(null)
+const inputMessage = ref('')
 const currentTemplate = ref<UserItem[]>([])
 const suggestionOpen = ref(false)
 
