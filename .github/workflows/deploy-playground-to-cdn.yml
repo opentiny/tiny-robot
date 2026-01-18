@@ -133,7 +133,7 @@ jobs:
         with:
           name: playground-dist
           path: ./packages/playground/dist/
-
+      
       - name: Install obsutil
         run: |
           curl -o obsutil.tar.gz https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_amd64.tar.gz
@@ -147,9 +147,9 @@ jobs:
                          -k=${{ env.HUAWEI_CLOUD_SK }} \
                          -e=${{ env.HUAWEI_CLOUD_ENDPOINT }}
           # Upload to versioned path
-          obsutil cp ./packages/playground/dist/ \
+          obsutil cp ./packages/playground/dist \
                     obs://${{ env.HUAWEI_CLOUD_BUCKET }}/${{ needs.build.outputs.obs-path }} \
-                    -r -f
+                    -r -f -flat
 
           echo "Uploaded to: obs://${{ env.HUAWEI_CLOUD_BUCKET }}/${{ needs.build.outputs.obs-path }}"
           echo "CDN URL: https://res-static.opentiny.design/${{ needs.build.outputs.obs-path }}"
