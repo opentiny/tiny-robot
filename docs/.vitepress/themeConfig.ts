@@ -45,6 +45,7 @@ const sharedSidebarItems = [
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
   { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
+  { text: '迁移指南', link: '/migration/bubble-migration', activeMatch: '/migration/' },
 ]
 
 const sidebar = {
@@ -56,6 +57,16 @@ const sidebar = {
       text: '演示',
       base: '/examples/',
       items: [{ text: '综合示例', link: 'assistant' }],
+    },
+  ],
+  '/migration/': [
+    {
+      text: '迁移指南',
+      base: '/migration/',
+      items: [
+        { text: 'Bubble 气泡', link: 'bubble-migration' },
+        { text: 'Kit 工具集', link: 'kit-migration' },
+      ],
     },
   ],
 }

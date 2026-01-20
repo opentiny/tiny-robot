@@ -12,7 +12,12 @@
       ref="containerRef"
       style="height: 300px; border: 1px solid #ddd; border-radius: 4px; overflow-y: auto; padding: 8px"
     >
-      <tr-bubble-list :messages="messages" :role-configs="roles" :auto-scroll="autoScroll"></tr-bubble-list>
+      <tr-bubble-list
+        :messages="messages"
+        :role-configs="roles"
+        :auto-scroll="autoScroll"
+        style="max-height: 100%"
+      ></tr-bubble-list>
     </div>
   </div>
 </template>

@@ -31,6 +31,6 @@ const roles: Record<string, BubbleRoleConfig> = {
 
 <style scoped>
 :deep([data-role='user']) {
-  --tr-bubble-content-bg: var(--tr-color-primary-light);
+  --tr-bubble-box-bg: var(--tr-color-primary-light);
 }
 </style>
