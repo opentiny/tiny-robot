@@ -1,15 +1,13 @@
 ---
 outline: [1, 3]
-
-badge: 1.4.0
 ---
 
 # Sender 消息输入框
 
-:::danger 重大版本升级 v0.4.0
-Sender 在 v0.4.0 进行了重大升级。
+:::danger 重大版本升级 v0.4
+Sender 在 v0.4 进行了重大升级。
 
-**从 v0.3.0 升级？选择你的迁移方式：**
+**从 v0.3.x 升级？选择你的迁移方式：**
 
 **方式一：快速迁移（推荐）** 🚀
 - 使用 `SenderCompat` 组件，保持大部分 API 兼容
@@ -17,12 +15,12 @@ Sender 在 v0.4.0 进行了重大升级。
 - 👉 查看 [SenderCompat 快速迁移指南](./sender-compat.md)
 
 **方式二：完全升级** 📖
-- 直接升级到 v0.4.0，使用全新 API
+- 直接升级到 v0.4，使用全新 API
 - 需要调整代码，但能获得更好的功能和性能
 - ⚠️ 部分 API 已被移除，详见下方 [已移除的 API](#已移除的-api)
 - 👉 查看 [完整迁移方案](./sender-compat.md#完整迁移方案)
 
-**新项目：** 直接使用下方 v0.4.0 的 API 和示例即可。
+**新项目：** 直接使用下方 v0.4 的 API 和示例即可。
 :::
 
 Sender 是一个高度可组合的聊天输入组件，支持文本输入、自动联想、提及功能、模板填充、语音输入和文件上传等多种功能。
@@ -276,7 +274,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | defaultValue | 默认值(非响应式) | `string` | `''` |
 | placeholder | 输入框占位文本 | `string` | `'请输入内容...'` |
 | mode | 输入模式 | `'single' \| 'multiple'` | `'single'` |
-| size @0.4.0 | 组件尺寸 | `'normal' \| 'small'` | `'normal'` |
+| size @0.4 | 组件尺寸 | `'normal' \| 'small'` | `'normal'` |
 | disabled | 是否禁用 | `boolean` | `false` |
 | loading | 是否加载中 | `boolean` | `false` |
 | autofocus | 自动获取焦点 | `boolean` | `false` |
@@ -286,8 +284,8 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | showWordLimit | 是否显示字数统计 | `boolean` | `false` |
 | submitType | 提交方式 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` |
 | stopText | 停止按钮文字 | `string` | `'停止响应'` |
-| defaultActions @0.4.0 | 默认操作按钮配置 | `DefaultActions` | `undefined` |
-| extensions @0.4.0 | 扩展列表 (Template, Mention, Suggestion 等) | `Extension[]` | `[]` |
+| defaultActions @0.4 | 默认操作按钮配置 | `DefaultActions` | `undefined` |
+| extensions @0.4 | 扩展列表 (Template, Mention, Suggestion 等) | `Extension[]` | `[]` |
 
 :::tip 扩展系统
 使用 `extensions` 属性配置功能扩展，提供灵活的配置和完整的类型支持。
@@ -438,8 +436,8 @@ onSelect: (item) => {
 |---------|------|-----------|
 | header | 头部插槽，位于输入框上方 | - |
 | prefix | 前缀插槽，位于输入框左侧 | - |
-| content @0.4.0 | 内容插槽，用于完全自定义编辑器内容 | `{ editor }` |
-| actions-inline @0.4.0 | 单行模式下的操作按钮区域 | - |
+| content @0.4 | 内容插槽，用于完全自定义编辑器内容 | `{ editor }` |
+| actions-inline @0.4 | 单行模式下的操作按钮区域 | - |
 | footer | 底部自定义区域 | `{ editor, hasContent, disabled, loading }` |
 | footer-right | 底部右侧区域 | - |
 
@@ -453,7 +451,7 @@ onSelect: (item) => {
 | focus             | 获得焦点                                                             | `(event: FocusEvent)`                   |
 | blur              | 失去焦点                                                             | `(event: FocusEvent)`                   |
 | input             | 输入变化                                                             | `(value: string)`                       |
-| cancel @0.4.0     | 在 loading 状态下点击停止按钮时触发，用于取消正在进行的操作（如 AI 响应） | `()`                                    |
+| cancel @0.4     | 在 loading 状态下点击停止按钮时触发，用于取消正在进行的操作（如 AI 响应） | `()`                                    |
 
 :::tip submit 事件参数说明
 - **text**：纯文本内容，适用于简单场景（如直接发送给 AI）
@@ -491,9 +489,9 @@ onSelect: (item) => {
 | blur              | 使输入框失去焦点 | -                   | `void`   |
 | clear             | 清空输入内容     | -                   | `void`   |
 | submit            | 手动触发提交     | -                   | `void`   |
-| setContent @0.4.0 | 设置编辑器内容   | `(content: string)` | `void`   |
-| getContent @0.4.0 | 获取编辑器内容   | -                   | `string` |
-| cancel @0.4.0     | 手动触发取消     | -                   | `void`   |
+| setContent @0.4 | 设置编辑器内容   | `(content: string)` | `void`   |
+| getContent @0.4 | 获取编辑器内容   | -                   | `string` |
+| cancel @0.4     | 手动触发取消     | -                   | `void`   |
 
 #### UploadButton Methods
 
@@ -745,7 +743,7 @@ Sender 组件提供了丰富的 CSS 变量用于自定义样式。
 
 ## 已移除的 API {#已移除的-api}
 
-以下 API 在 v0.4.0 中已被移除，请参考替代方案进行迁移。
+以下 API 在 v0.4 中已被移除，请参考替代方案进行迁移。
 
 ### Props
 

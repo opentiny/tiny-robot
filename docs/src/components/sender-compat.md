@@ -5,14 +5,14 @@ outline: [1, 3]
 # SenderCompat - 快速迁移组件
 
 :::info 组件定位
-`SenderCompat` 是为 v0.3.0 用户提供的**过渡期兼容组件**。
+`SenderCompat` 是为 v0.3.x 用户提供的**过渡期兼容组件**。
 
-它保留了 v0.3.0 的大部分 API，让你：
-- ✅ 快速升级到 v0.4.0 的底层实现
+它保留了 v0.3.x 的大部分 API，让你：
+- ✅ 快速升级到 v0.4 的底层实现
 - ✅ 保持现有代码最小改动
-- ✅ 为将来完全升级到 v0.4.0 Sender 做准备
+- ✅ 为将来完全升级到 v0.4 Sender 做准备
 
-**推荐迁移路径：** v0.3.0 Sender → SenderCompat (快速) → v0.4.0 Sender (最终)
+**推荐迁移路径：** v0.3.x Sender → SenderCompat (快速) → v0.4 Sender (最终)
 :::
 
 ## 快速开始
@@ -20,7 +20,7 @@ outline: [1, 3]
 ### 第一步：修改导入语句
 
 ```typescript
-// ❌ 旧代码 (v0.3.0)
+// ❌ 旧代码 (v0.3.x)
 import { TrSender } from '@opentiny/tiny-robot'
 
 // ✅ 新代码 (使用 SenderCompat)
@@ -35,7 +35,7 @@ import { TrSenderCompat as TrSender } from '@opentiny/tiny-robot'
 
 #### 1. 紧凑模式实现方式
 
-**v0.3.0 用法：**
+**v0.3.x 用法：**
 ```vue
 <tr-sender class="tr-sender-compact" mode="single" />
 ```
@@ -51,7 +51,7 @@ import { TrSenderCompat as TrSender } from '@opentiny/tiny-robot'
 
 #### 2. 装饰性内容插槽
 
-**v0.3.0 用法：**
+**v0.3.x 用法：**
 ```vue
 <tr-sender :allow-speech="false">
   <template #decorativeContent>
@@ -73,7 +73,7 @@ import { TrSenderCompat as TrSender } from '@opentiny/tiny-robot'
 
 #### 3. 模板数据设置方法
 
-**v0.3.0 用法：**
+**v0.3.x 用法：**
 ```typescript
 // 推荐：修改 templateData 的值
 templateData.value = data
@@ -87,12 +87,12 @@ senderRef.value?.setTemplateData(data)
 ```
 
 :::tip 数据结构说明
-SenderCompat 保持 v0.3.0 的数据结构：
+SenderCompat 保持 v0.3.x 的数据结构：
 ```typescript
 // ✅ SenderCompat 使用
 { type: 'template', content: '...' }
 
-// ⚠️ v0.4.0 Sender 使用（注意类型名变更）
+// ⚠️ v0.4 Sender 使用（注意类型名变更）
 { type: 'block', content: '...' }
 ```
 详见 [模板填充迁移](#模板迁移)
@@ -102,7 +102,7 @@ SenderCompat 保持 v0.3.0 的数据结构：
 
 #### 4. 插槽名称变更
 
-| v0.3.0 插槽 | SenderCompat 替代方案 | 说明 |
+| v0.3.x 插槽 | SenderCompat 替代方案 | 说明 |
 |------------|----------------------|------|
 | `#actions` | `#actions-inline` | 单行模式操作按钮区域 |
 | `#footer-left` | `#footer` | 底部左侧区域 |
@@ -111,7 +111,7 @@ SenderCompat 保持 v0.3.0 的数据结构：
 **示例：**
 
 ```vue
-<!-- ❌ v0.3.0 -->
+<!-- ❌ v0.3.x -->
 <tr-sender>
   <template #actions>
     <custom-button />
@@ -130,7 +130,7 @@ SenderCompat 保持 v0.3.0 的数据结构：
 
 #### 5. 移除不必要的 key 绑定
 
-**v0.3.0 用法：**
+**v0.3.x 用法：**
 ```vue
 <!-- 模式切换时需要强制重新渲染 -->
 <tr-sender :key="mode" :mode="mode" />
@@ -146,16 +146,16 @@ SenderCompat 保持 v0.3.0 的数据结构：
 
 ## 完整迁移方案 {#完整迁移方案}
 
-如果你准备好完全升级到 v0.4.0 Sender，这里是详细的迁移方案。
+如果你准备好完全升级到 v0.4 Sender，这里是详细的迁移方案。
 
 ### 迁移路径对比
 
 ```
 方案 A：快速迁移（当前）
-v0.3.0 Sender → SenderCompat (改导入，小调整)
+v0.3.x Sender → SenderCompat (改导入，小调整)
 
 方案 B：完全升级（目标）
-SenderCompat → v0.4.0 Sender (使用新 API)
+SenderCompat → v0.4 Sender (使用新 API)
 ```
 
 ---
@@ -181,7 +181,7 @@ const onError = (error) => { console.error('识别错误:', error) }
 </script>
 ```
 
-**v0.4.0 Sender（目标）：**
+**v0.4 Sender（目标）：**
 ```vue
 <template>
   <tr-sender>
@@ -235,7 +235,7 @@ const onFilesSelected = (files) => {
 </script>
 ```
 
-**v0.4.0 Sender（目标）：**
+**v0.4 Sender（目标）：**
 ```vue
 <template>
   <tr-sender>
@@ -280,7 +280,7 @@ const onFilesSelected = (files) => {
 />
 ```
 
-**v0.4.0 Sender（目标）：**
+**v0.4 Sender（目标）：**
 ```vue
 <tr-sender 
   :default-actions="{
@@ -336,7 +336,7 @@ const onSelect = (value) => {
 </script>
 ```
 
-**v0.4.0 Sender（目标）：**
+**v0.4 Sender（目标）：**
 ```vue
 <template>
   <tr-sender 
@@ -410,7 +410,7 @@ const setTemplate = () => {
 </script>
 ```
 
-**v0.4.0 Sender（目标）：**
+**v0.4 Sender（目标）：**
 ```vue
 <template>
   <tr-sender :extensions="extensions" />
@@ -452,7 +452,7 @@ const setTemplate = () => {
 
 ### 6. 主题配置迁移 {#主题迁移}
 
-**v0.4.0 Sender（目标）：**
+**v0.4 Sender（目标）：**
 ```vue
 <template>
   <theme-provider theme="dark">
@@ -555,21 +555,21 @@ import { ThemeProvider } from '@opentiny/tiny-robot'
 ### Q: 我应该使用哪个组件？
 
 **A**: 
-- **v0.3.0 Sender**：仅用于维护旧项目，不建议新使用
+- **v0.3.x Sender**：仅用于维护旧项目，不建议新使用
 - **SenderCompat**：✅ 推荐作为过渡，快速迁移保持 API 兼容
-- **v0.4.0 Sender**：新项目或准备完全重构时使用，功能更强大
+- **v0.4 Sender**：新项目或准备完全重构时使用，功能更强大
 
 ### Q: SenderCompat 的性能如何？
 
-**A**: 性能损耗 < 10%，它只是一个薄适配层，相比 v0.3.0 甚至有性能提升。
+**A**: 性能损耗 < 10%，它只是一个薄适配层，相比 v0.3.x 甚至有性能提升。
 
 ### Q: SenderCompat 会一直维护吗？
 
-**A**: SenderCompat 是过渡期组件，会在未来版本（如 v1.0.0）中废弃。建议逐步迁移到 v0.4.0 Sender。
+**A**: SenderCompat 是过渡期组件，会在未来版本（如 v1.0.0）中废弃。建议逐步迁移到 v0.4 Sender。
 
-### Q: 可以混合使用 SenderCompat 和 v0.4.0 Sender 吗？
+### Q: 可以混合使用 SenderCompat 和 v0.4 Sender 吗？
 
-**A**: 可以。在同一项目中，新页面使用 v0.4.0 Sender，旧页面继续使用 SenderCompat，逐步迁移。
+**A**: 可以。在同一项目中，新页面使用 v0.4 Sender，旧页面继续使用 SenderCompat，逐步迁移。
 
 ### Q: 我的项目中使用了自定义插槽，会受影响吗？
 
