@@ -43,7 +43,15 @@ export default defineConfig({
     },
     minify: true,
     rollupOptions: {
-      external: ['vue', 'vue-router', '@opentiny/vue', '@opentiny/tiny-robot-svgs', 'markdown-it', 'dompurify'],
+      external: [
+        'vue',
+        'vue-router',
+        '@opentiny/vue',
+        '@opentiny/tiny-robot-svgs',
+        'markdown-it',
+        'dompurify',
+        /^@tiptap.*/,
+      ],
       input: entries,
       output: {
         format: 'es',
