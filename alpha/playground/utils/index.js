@@ -7,7 +7,7 @@ function M(s) {
       code: `<template>
   <tr-bubble
     content="TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。"
-    style="--tr-bubble-content-bg: var(--tr-color-primary-light)"
+    style="--tr-bubble-box-bg: var(--tr-color-primary-light)"
   ></tr-bubble>
 </template>
 
@@ -61,7 +61,7 @@ function j(s) {
     }
   };
 }
-const V = (s) => {
+const x = (s) => {
   const { files: e, tinyRobotVersion: t = "latest", vueVersion: p = "latest", extraImports: a } = s, { importMap: c, vueVersion: n, productionMode: r } = b();
   n.value = p, r.value = !0;
   const o = h({
@@ -85,7 +85,7 @@ const V = (s) => {
     vueVersion: n
   };
 }, y = /* @__PURE__ */ new Map();
-async function x(s, e = {}) {
+async function V(s, e = {}) {
   var r;
   const { includePrerelease: t = !1, limit: p = 20, includeLatest: a = !0 } = e, c = Array.isArray(t) ? t.join(",") : t, n = `${s}-${c}-${p}-${a}`;
   if (y.has(n))
@@ -109,7 +109,7 @@ async function x(s, e = {}) {
 }
 export {
   j as generateImportMap,
-  V as generateStore,
+  x as generateStore,
   M as getDefaultFiles,
-  x as getVersions
+  V as getVersions
 };
