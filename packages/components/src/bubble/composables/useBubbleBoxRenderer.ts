@@ -54,17 +54,25 @@ export function useBubbleBoxRenderer(
     }
   }
 
+  const getContentAndIndex = (msgs: BubbleMessage[]) => {
+    if (msgs.length !== 1) {
+      return { content: undefined, index: undefined }
+    }
+    const resolvedContent = contentResolver(msgs.at(0)!)
+    return {
+      content: Array.isArray(resolvedContent)
+        ? (resolvedContent.at(contentIndex ?? 0) as ChatMessageContentItem)
+        : { type: 'text', text: resolvedContent || '' },
+      index: contentIndex ?? 0,
+    }
+  }
+
   return computed(() => {
     const msgs = toValue(messages)
 
-    const resolvedContent = typeof contentIndex === 'number' ? contentResolver(msgs.at(0)!) : undefined
-    const content = Array.isArray(resolvedContent)
-      ? (resolvedContent.at(contentIndex ?? 0) as ChatMessageContentItem)
-      : { type: 'text', text: resolvedContent || '' }
+    const { content, index } = getContentAndIndex(msgs)
 
-    const match = toValue(boxRendererMatches).find((match) =>
-      match.find(msgs, typeof contentIndex === 'number' ? content : undefined, contentIndex),
-    )
+    const match = toValue(boxRendererMatches).find((match) => match.find(msgs, content, index))
 
     if (match) {
       return {
