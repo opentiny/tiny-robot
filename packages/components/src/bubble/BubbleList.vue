@@ -77,7 +77,7 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
 
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
-    const isArrayContent = Array.isArray(contentResolver(message))
+    const isArrayContent = message.role === 'user' && Array.isArray(contentResolver(message))
     const messageRole = message.role || ''
     const isMessageHidden = isRoleHidden(message.role)
 
@@ -134,7 +134,7 @@ const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleM
   for (const [index, message] of messages.entries()) {
     const lastGroup = groups[groups.length - 1]
     const isDivider = message.role === dividerRole
-    const isArrayContent = Array.isArray(contentResolver(message))
+    const isArrayContent = message.role === 'user' && Array.isArray(contentResolver(message))
     const messageRole = message.role || ''
     const isMessageHidden = isRoleHidden(message.role)
 

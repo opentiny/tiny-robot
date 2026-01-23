@@ -136,7 +136,7 @@ export interface BubbleListProps {
    * - 自定义函数: (messages, dividerRole) => BubbleMessageGroup[]
    *
    * 特殊情况：
-   * - 当 message 的 content 为数组时，该 message 会被单独作为一个独立分组
+   * - 当 message 的 content 为数组时，且 message.role === 'user'，该 message 会被单独作为一个独立分组
    * - 该独立分组会被"密封"，后续的消息（即使角色相同）也不会被添加到这个分组中
    */
   groupStrategy?: 'consecutive' | 'divider' | BubbleGroupFunction
