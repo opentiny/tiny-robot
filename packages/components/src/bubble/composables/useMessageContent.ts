@@ -10,7 +10,7 @@ export const useMessageContent = <T extends ChatMessageContent = ChatMessageCont
   const content = computed(() => {
     const resolvedContent = contentResolver(props.message)
     return Array.isArray(resolvedContent)
-      ? (resolvedContent.at(props.contentIndex ?? 0) as ChatMessageContentItem)
+      ? (resolvedContent.at(props.contentIndex) as ChatMessageContentItem)
       : { type: 'text', text: resolvedContent || '' }
   })
 

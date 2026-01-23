@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
 defineSlots<BubbleListSlots>()
 
 const emit = defineEmits<{
-  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
 }>()
 
 // Provide bubble store if not already provided

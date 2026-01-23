@@ -37,7 +37,7 @@ export function setupBubblePropContentRenderer(renderers: {
 
 export function useBubbleContentRenderer(
   message: MaybeRefOrGetter<BubbleMessage>,
-  contentIndex?: number,
+  contentIndex: number,
 ): ComputedRef<Component> {
   const contentRendererMatches = inject(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, defaultContentRendererMatches)
   const fallbackContentRenderer = inject(BUBBLE_CONTENT_FALLBACK_RENDERER_KEY, undefined)

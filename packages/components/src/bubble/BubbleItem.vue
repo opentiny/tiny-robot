@@ -13,7 +13,7 @@ const props = defineProps<{
 defineSlots<BubbleSlots>()
 
 const emit = defineEmits<{
-  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
 }>()
 
 // Provide messages for each BubbleItem instance

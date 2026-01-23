@@ -85,10 +85,10 @@ export type BubbleContentRendererMatch = {
    * 匹配函数，用于判断是否应该使用此渲染器
    * @param message - 消息对象
    * @param content - 要渲染的内容项。为当前消息经过 contentResolver 解析并统一化后的内容项：若解析结果为数组，则取对应索引的内容项（由 contentIndex 指定）；若为字符串，则转为 { type: 'text', text: string }。统一化为 ChatMessageContentItem 对象格式
-   * @param contentIndex - 内容索引。由 contentResolver 的解析结果为数组时使用
+   * @param contentIndex - 内容索引。由 contentResolver 的解析结果为数组时使用。若 contentResolver 解析结果为字符串，content 会转换为对象，此时 contentIndex 为 0
    * @returns 如果匹配则返回 true，否则返回 false
    */
-  find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number | undefined) => boolean
+  find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: Record<string, string>
@@ -101,7 +101,7 @@ export type BubbleContentRendererProps<
   S extends Record<string, unknown> = Record<string, unknown>,
 > = {
   message: BubbleMessage<T, S>
-  contentIndex?: number
+  contentIndex: number
 }
 
 type BubbleSlotProps = { messages: BubbleMessage[]; role?: string }
