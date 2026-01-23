@@ -44,6 +44,14 @@ const messages = computed(() => {
   return [{ role, content, reasoning_content, tool_calls, tool_call_id, name, id, loading, state }]
 })
 
+const getContentItems = (message: BubbleMessage) => {
+  const content = contentResolver(message)
+  if (Array.isArray(content)) {
+    return content
+  }
+  return [{ type: 'text', text: content || '' }]
+}
+
 // Setup prop-level fallback renderers for responsive tracking
 setupBubblePropBoxRenderer({ fallbackBoxRenderer: () => props.fallbackBoxRenderer })
 setupBubblePropContentRenderer({ fallbackContentRenderer: () => props.fallbackContentRenderer })
@@ -88,6 +96,7 @@ if (!isInBubbleList) {
         :class="$style['tr-bubble__avatar']"
       />
       <div class="tr-bubble__content">
+        <!-- 在 contentRenderMode 为 split 情况下，如果一个气泡内只有一条消息，且 content 为数组，对每个 content 数组的项都渲染一个 box -->
         <template v-if="shouldSplitedContent">
           <BubbleBoxWrapper
             v-for="(_, index) in shouldSplitedContent"
@@ -110,21 +119,13 @@ if (!isInBubbleList) {
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
             <template v-for="(message, msgIndex) in messages" :key="`message-${msgIndex}`">
-              <template v-if="Array.isArray(contentResolver(message))">
-                <BubbleContentWrapper
-                  v-for="(_, contentIndex) in contentResolver(message)"
-                  :key="`content-${contentIndex}`"
-                  :message="message"
-                  :content-index="contentIndex"
-                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
-                ></BubbleContentWrapper>
-              </template>
-              <template v-else>
-                <BubbleContentWrapper
-                  :message="message"
-                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
-                ></BubbleContentWrapper>
-              </template>
+              <BubbleContentWrapper
+                v-for="(_, contentIndex) in getContentItems(message)"
+                :key="`content-${contentIndex}`"
+                :message="message"
+                :content-index="contentIndex"
+                @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
+              ></BubbleContentWrapper>
             </template>
             <slot name="content-footer" :messages="messages" :role="props.role"></slot>
           </BubbleBoxWrapper>

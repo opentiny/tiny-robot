@@ -8,7 +8,7 @@ const props = defineProps<BubbleContentRendererProps<ChatMessageContentItem[]>>(
 const isLoaded = ref(false)
 const hasError = ref(false)
 
-const { contentItem: content } = useMessageContent(props)
+const { content } = useMessageContent(props)
 
 const imageUrl = computed(() => {
   if (!content.value) {

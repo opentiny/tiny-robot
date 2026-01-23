@@ -11,15 +11,7 @@ import Tools from './Tools.vue'
 
 export const defaultBoxRendererMatches: Array<BubbleBoxRendererMatch> = [
   {
-    find: (_, contents, contentIndex) => {
-      const content = contents.at(0)
-      return (
-        contents.length === 1 &&
-        Array.isArray(content) &&
-        typeof contentIndex === 'number' &&
-        content[contentIndex].type === 'image_url'
-      )
-    },
+    find: (_, content) => content?.type === 'image_url',
     renderer: markRaw(Box),
     priority: BubbleRendererMatchPriority.NORMAL,
     attributes: { 'data-box-type': 'image' },
@@ -43,9 +35,7 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.NORMAL,
   },
   {
-    find: (_, content, contentIndex) => {
-      return Array.isArray(content) && typeof contentIndex === 'number' && content[contentIndex].type === 'image_url'
-    },
+    find: (_, content) => content.type === 'image_url',
     renderer: markRaw(Image),
     priority: BubbleRendererMatchPriority.CONTENT,
   },

@@ -66,13 +66,13 @@ export type BubbleBoxRendererMatch = {
   /**
    * 匹配函数，用于判断是否应该使用此渲染器
    * @param messages - 消息数组
-   * @param resolvedContents - 每个消息经过 contentResolver 解析后的内容数组，与 messages 一一对应
-   * @param contentIndex - 内容索引，用于指定要渲染的内容项（当 content 为数组时）
+   * @param content - 要渲染的内容项。仅在 `split` 模式下（contentIndex 为数字）才会传入；为当前消息（messages[0]）经过 `contentResolver` 解析后的内容；`messages[0].content` 一定是一个数组，`content` 则为对应索引的内容项，即 `messages[0].content[contentIndex]`；当 contentIndex 为 undefined 时，content 也为 undefined
+   * @param contentIndex - 内容索引，用于指定要渲染的内容项。仅在 split 模式下才会传入（为数字），此时 messages 数组长度为 1
    * @returns 如果匹配则返回 true，否则返回 false
    */
   find: (
     messages: BubbleMessage[],
-    resolvedContents: BubbleMessage['content'][],
+    content: ChatMessageContentItem | undefined,
     contentIndex: number | undefined,
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
@@ -84,11 +84,11 @@ export type BubbleContentRendererMatch = {
   /**
    * 匹配函数，用于判断是否应该使用此渲染器
    * @param message - 消息对象
-   * @param resolvedContent - 消息经过 contentResolver 解析后的内容
-   * @param contentIndex - 内容索引，用于指定要渲染的内容项（当 content 为数组时）
+   * @param content - 要渲染的内容项。为当前消息经过 contentResolver 解析并统一化后的内容项：若解析结果为数组，则取对应索引的内容项（由 contentIndex 指定）；若为字符串，则转为 { type: 'text', text: string }。统一化为 ChatMessageContentItem 对象格式
+   * @param contentIndex - 内容索引。由 contentResolver 的解析结果为数组时使用
    * @returns 如果匹配则返回 true，否则返回 false
    */
-  find: (message: BubbleMessage, resolvedContent: BubbleMessage['content'], contentIndex: number | undefined) => boolean
+  find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number | undefined) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: Record<string, string>

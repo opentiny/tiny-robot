@@ -5,7 +5,7 @@ import {
   BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_RENDERER_MATCHES_KEY,
 } from '../constants'
-import type { BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
+import type { BubbleBoxRendererMatch, BubbleMessage, ChatMessageContentItem } from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 import { useContentResolver } from './useContentResolver'
 
@@ -47,15 +47,23 @@ export function useBubbleBoxRenderer(
   const propFallbackBoxRenderer = inject(BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY, undefined)
   const contentResolver = useContentResolver()
 
+  // 如果 contentIndex 为数字，说明是 split 模式，当前 messages 数组长度为 1
+  if (typeof contentIndex === 'number') {
+    if (toValue(messages).length !== 1) {
+      throw new Error('[BubbleBoxRenderer] When contentIndex is a number, messages array length must be 1')
+    }
+  }
+
   return computed(() => {
     const msgs = toValue(messages)
 
+    const resolvedContent = typeof contentIndex === 'number' ? contentResolver(msgs.at(0)!) : undefined
+    const content = Array.isArray(resolvedContent)
+      ? (resolvedContent.at(contentIndex ?? 0) as ChatMessageContentItem)
+      : { type: 'text', text: resolvedContent || '' }
+
     const match = toValue(boxRendererMatches).find((match) =>
-      match.find(
-        msgs,
-        msgs.map((msg) => contentResolver(msg)),
-        contentIndex,
-      ),
+      match.find(msgs, typeof contentIndex === 'number' ? content : undefined, contentIndex),
     )
 
     if (match) {
