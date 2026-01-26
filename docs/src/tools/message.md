@@ -4,6 +4,14 @@ outline: deep
 
 # 消息与数据管理 useMessage
 
+:::danger 重大版本升级 v0.4
+useMessage 在 v0.4 进行了重大升级，`client` 改为 `responseProvider`，状态与插件体系有变。
+
+**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/use-message-migration)。
+
+**新项目：** 直接使用下方 v0.4 的 API 和示例即可。
+:::
+
 `useMessage` 是一个用于管理消息状态和处理 AI 响应的组合式函数。它提供了完整的消息管理功能，包括发送消息、处理流式响应、管理请求状态等。
 
 ## 示例
@@ -107,7 +115,7 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 
 ### 插件系统
 
-`useMessage` 支持插件系统，可以通过插件扩展功能。插件提供了多个生命周期钩子：
+`useMessage` 支持插件系统，可以通过插件扩展功能。内置插件：`fallbackRolePlugin`、`thinkingPlugin`、`lengthPlugin`；工具调用可使用 `toolPlugin`。可通过 `plugins` 选项追加或覆盖。插件提供了多个生命周期钩子：
 
 ```typescript
 interface UseMessagePlugin {

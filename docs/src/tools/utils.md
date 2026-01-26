@@ -4,7 +4,15 @@ outline: deep
 
 # 工具函数 Utils
 
-工具函数模块提供了一些实用的辅助函数，用于处理流式响应和消息格式化。
+:::danger 重大版本升级 v0.4
+v0.4 根导出仅保留 `sseStreamToGenerator`；`formatMessages`、`extractTextFromResponse`、`handleSSEStream` 已从根导出移除。
+
+**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/use-message-migration)。
+
+**新项目：** 直接使用下方 v0.4 的 API 即可。
+:::
+
+工具函数模块提供了一些实用的辅助函数，用于处理流式响应。
 
 ## 示例
 

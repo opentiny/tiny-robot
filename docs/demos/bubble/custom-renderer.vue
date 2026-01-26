@@ -43,7 +43,7 @@ const CodeBlockRenderer = defineComponent({
   },
   setup(props: BubbleContentRendererProps) {
     // 使用 useMessageContent 来正确处理数组内容和 contentIndex
-    const { contentItem } = useMessageContent(props)
+    const { content: contentItem } = useMessageContent(props)
 
     return () => {
       const content = contentItem.value as unknown as CodeMessage

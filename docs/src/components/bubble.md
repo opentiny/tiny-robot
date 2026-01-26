@@ -4,11 +4,17 @@ outline: [1, 3]
 
 # Bubble 气泡组件
 
+:::danger 重大版本升级 v0.4
+Bubble 在 v0.4 进行了重大升级。
+
+**从 v0.3.x 升级？** 请查看 [Bubble 迁移指南](../migration/bubble-migration)。
+
+**新项目：** 直接使用下方 v0.4 的 API 和示例即可。
+:::
+
 Bubble 气泡组件用于展示消息气泡，支持流式文本、头像、位置、加载中、终止状态、操作按钮等功能。组件采用渲染器架构，支持灵活的内容渲染和自定义扩展。
 
-## 组件简介
-
-Bubble 组件是一个用于聊天场景的消息气泡组件，主要解决以下问题：
+主要解决以下问题：
 
 - **消息展示**：支持文本、图片、Markdown 等多种内容类型的渲染
 - **流式输出**：支持流式文本展示，适用于 AI 对话场景
@@ -77,6 +83,7 @@ pnpm add markdown-it dompurify
 Bubble 组件支持渲染图片内容。当 `content` 为数组且包含 `type: 'image_url'` 的内容项时，会自动使用 Image 渲染器。
 
 图文混合时，可以通过 `contentRenderMode` 控制渲染方式：
+
 - `'single'` 模式：文本和图片在同一个 box 中渲染
 - `'split'` 模式：每个内容项（文本或图片）单独一个 box
 
@@ -133,13 +140,13 @@ BubbleList 支持多种分组策略：
 
 **数组内容的分组**
 
-当消息的 `content` 为数组时，该消息会被单独作为一个独立分组（密封），后续的消息（即使角色相同）也不会被添加到这个分组中。
+当 `message.role === 'user'` 且 `content` 为数组时，该消息会被单独作为一个独立分组（密封），后续的消息（即使角色相同）也不会被添加到这个分组中。
 
 <demo vue="../../demos/bubble/list-array-content.vue" />
 
 > **注意**：分组策略的特殊处理规则：
 >
-> - 当消息的 `content` 为数组时，该消息会被单独作为一个独立分组（密封），后续的消息（即使角色相同）也不会被添加到这个分组中
+> - 当 `message.role === 'user'` 且 `content` 为数组时，该消息会被单独作为一个独立分组（密封），后续的消息（即使角色相同）也不会被添加到这个分组中
 > - `hidden` 消息的分组规则：连续的 `hidden` 消息可以同一组
 
 ### 隐藏角色
@@ -159,7 +166,6 @@ BubbleList 支持多种分组策略：
 > 1. **常规自动滚动**：当消息内容变化时（如消息数量、内容、推理内容），如果满足以下条件会自动滚动：
 >    - BubbleList 必须是可滚动容器（`scrollHeight > clientHeight`）
 >    - 滚动容器需要接近底部
->
 > 2. **用户消息特殊处理**：当最后一条消息的 `role` 为 `'user'` 时，会立即使用平滑滚动（`smooth`）滚动到底部，无需满足上述条件。这确保了用户发送消息后能立即看到自己发送的内容。
 
 ### 自定义渲染器
@@ -317,8 +323,9 @@ defineProps<BubbleBoxRendererProps>()
 
 - 使用 `markRaw` 包装渲染器组件，避免 Vue 的响应式处理
 - 为了不修改源数据内部内容和结构，UI 相关的数据应放在消息的 `state` 属性中
-- Box 渲染器的 `find` 函数接收 `messages` 数组和 `resolvedContents` 数组
-- Content 渲染器的 `find` 函数接收单个 `message` 和 `resolvedContent`
+- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex) => boolean`，其中 `content` 仅在 split 模式有值
+- Content 渲染器的 `find` 函数签名：`(message, content, contentIndex) => boolean`，`content` 为统一化后的 `ChatMessageContentItem`
+- 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
 
 ```vue
 <template>
@@ -355,7 +362,7 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 | `tool_calls`              | `ToolCall[]`                                                  | -                              | 工具调用列表（用于 Tool 渲染器）                                                         |
 | `tool_call_id`            | `string`                                                      | -                              | 工具调用 ID                                                                              |
 | `name`                    | `string`                                                      | -                              | 消息名称                                                                                 |
-| `id`                      | `string \| number \| symbol`                                  | -                              | 气泡唯一标识                                                                             |
+| `id`                      | `string`                                                      | -                              | 气泡唯一标识                                                                             |
 | `loading`                 | `boolean`                                                     | `false`                        | 是否显示加载状态                                                                         |
 | `state`                   | `Record<string, unknown>`                                     | -                              | 消息状态数据（用于存储 UI 相关的数据，不会影响消息内容）                                 |
 | `hidden`                  | `boolean`                                                     | `false`                        | 是否隐藏气泡                                                                             |
@@ -369,16 +376,22 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 
 **BubbleListProps** - 气泡列表组件的属性配置
 
-| 属性                | 类型                                                          | 默认值                         | 说明                                                                                                                              |
-| ------------------- | ------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `messages`          | `BubbleMessage[]`                                             | -                              | **必填**，消息数组                                                                                                                |
-| `groupStrategy`     | `'consecutive' \| 'divider' \| BubbleGroupFunction`           | `'divider'`                    | 分组策略：<br/>- `'consecutive'`: 连续相同角色的消息合并为一组<br/>- `'divider'`: 按分割角色分组<br/>- 自定义函数: 自定义分组逻辑 |
-| `dividerRole`       | `string`                                                      | `'user'`                       | `'divider'` 策略的分割角色，具有此角色的消息将作为分割线                                                                          |
-| `fallbackRole`      | `string`                                                      | `'assistant'`                  | 当消息没有角色或角色为空时，使用此角色                                                                                            |
-| `roleConfigs`       | `Record<string, BubbleRoleConfig>`                            | -                              | 每个角色的默认配置项（头像、位置、形状等）                                                                                        |
-| `contentRenderMode` | `'single' \| 'split'`                                         | -                              | 内容渲染模式                                                                                                                      |
-| `contentResolver`   | `(message: BubbleMessage) => ChatMessageContent \| undefined` | `(message) => message.content` | 内容解析函数，用于解析消息内容                                                                                                    |
-| `autoScroll`        | `boolean`                                                     | `false`                        | 是否自动滚动到底部。需要满足以下条件：<br/>- BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）<br/>- 滚动容器接近底部   |
+| 属性                | 类型                                                          | 默认值                         | 说明                                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `messages`          | `BubbleMessage[]`                                             | -                              | **必填**，消息数组                                                                                                                                                                                              |
+| `groupStrategy`     | `'consecutive' \| 'divider' \| BubbleGroupFunction`           | `'divider'`                    | 分组策略：<br/>- `'consecutive'`: 连续相同角色的消息合并为一组<br/>- `'divider'`: 按分割角色分组（连续的分割角色在一组，其他消息在另一组）<br/>- 自定义函数: `(messages, dividerRole?) => BubbleMessageGroup[]` |
+| `dividerRole`       | `string`                                                      | `'user'`                       | `'divider'` 策略的分割角色，具有此角色的消息将作为分割线                                                                                                                                                        |
+| `fallbackRole`      | `string`                                                      | `'assistant'`                  | 当消息没有角色或角色为空时，使用此角色                                                                                                                                                                          |
+| `roleConfigs`       | `Record<string, BubbleRoleConfig>`                            | -                              | 每个角色的默认配置项（头像、位置、形状等）                                                                                                                                                                      |
+| `contentRenderMode` | `'single' \| 'split'`                                         | -                              | 内容渲染模式                                                                                                                                                                                                    |
+| `contentResolver`   | `(message: BubbleMessage) => ChatMessageContent \| undefined` | `(message) => message.content` | 内容解析函数，用于解析消息内容                                                                                                                                                                                  |
+| `autoScroll`        | `boolean`                                                     | `false`                        | 是否自动滚动到底部。需要满足以下条件：<br/>- BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）<br/>- 滚动容器接近底部                                                                                 |
+
+**BubbleList Expose**
+
+| 方法             | 签名                                           | 说明                                                                                  |
+| ---------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 滚动到底部。传入 `'smooth'` 可平滑滚动。若未启用 `autoScroll`，调用后无实际滚动效果。 |
 
 **BubbleProviderProps** - 气泡提供者组件的属性配置
 
@@ -394,9 +407,9 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 
 **Bubble 和 BubbleList 组件的事件**
 
-| 事件名         | 参数类型                                                                       | 说明                                                                                                                   |
-| -------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `state-change` | `{ key: string; value: unknown; messageIndex: number; contentIndex?: number }` | 当消息状态改变时触发。`key` 为状态键名，`value` 为状态值，`messageIndex` 为消息索引，`contentIndex` 为内容索引（可选） |
+| 事件名         | 参数类型                                                                      | 说明                                                                                                           |
+| -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `state-change` | `{ key: string; value: unknown; messageIndex: number; contentIndex: number }` | 当消息状态改变时触发。`key` 为状态键名，`value` 为状态值，`messageIndex` 为消息索引，`contentIndex` 为内容索引 |
 
 ## Slots
 
@@ -433,7 +446,7 @@ interface BubbleMessage<
   tool_calls?: ToolCall[]
   tool_call_id?: string
   name?: string
-  id?: string | number | symbol
+  id?: string
   loading?: boolean
   state?: S
 }
@@ -488,7 +501,7 @@ type BubbleRoleConfig = Pick<
 type BubbleBoxRendererMatch = {
   find: (
     messages: BubbleMessage[],
-    resolvedContents: BubbleMessage['content'][],
+    content: ChatMessageContentItem | undefined,
     contentIndex: number | undefined,
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
@@ -497,16 +510,22 @@ type BubbleBoxRendererMatch = {
 }
 ```
 
+- `content`: 仅在 `split` 模式（`contentIndex` 为数字）时传入，为当前消息经 `contentResolver` 解析后对应索引的内容项；`contentIndex` 为 `undefined` 时 `content` 也为 `undefined`
+- `contentIndex`: 仅在 split 模式下传入，此时 `messages` 长度为 1
+
 **BubbleContentRendererMatch** - 内容渲染器匹配规则
 
 ```typescript
 type BubbleContentRendererMatch = {
-  find: (message: BubbleMessage, resolvedContent: BubbleMessage['content'], contentIndex: number | undefined) => boolean
+  find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: Record<string, string>
 }
 ```
+
+- `content`: 当前消息经 `contentResolver` 解析并统一化后的内容项；若为数组则取 `contentIndex` 对应项，若为字符串则转为 `{ type: 'text', text: string }`
+- `contentIndex`: 内容索引，字符串解析时为 0
 
 **BubbleBoxRendererProps** - Box 渲染器属性
 
@@ -522,7 +541,7 @@ type BubbleContentRendererProps<
   S extends Record<string, unknown> = Record<string, unknown>,
 > = {
   message: BubbleMessage<T, S>
-  contentIndex?: number
+  contentIndex: number
 }
 ```
 

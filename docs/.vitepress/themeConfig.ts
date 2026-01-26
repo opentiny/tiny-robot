@@ -65,7 +65,8 @@ const sidebar = {
       base: '/migration/',
       items: [
         { text: 'Bubble 气泡', link: 'bubble-migration' },
-        { text: 'Kit 工具集', link: 'kit-migration' },
+        { text: 'useMessage 迁移', link: 'use-message-migration' },
+        { text: 'useConversation 迁移', link: 'use-conversation-migration' },
       ],
     },
   ],

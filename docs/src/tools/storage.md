@@ -4,6 +4,14 @@ outline: deep
 
 # 存储策略 Storage
 
+:::danger 重大版本升级 v0.4
+存储策略接口在 v0.4 有变更（如 `loadConversations` / `loadMessages` 等拆分）。
+
+**从 v0.3.x 升级？** 请查看 [useConversation 迁移](../migration/use-conversation-migration)。
+
+**新项目：** 直接使用下方 v0.4 的 API 即可。
+:::
+
 存储策略模块提供了多种方式来持久化会话和消息数据。支持 LocalStorage 和 IndexedDB 两种存储方式，也可以实现自定义存储策略。
 
 ## 示例

@@ -4,6 +4,14 @@ outline: deep
 
 # 对话管理 useConversation
 
+:::danger 重大版本升级 v0.4
+useConversation 在 v0.4 进行了重大升级，`client` 改为 `useMessageOptions`，存储与引擎懒加载有变。
+
+**从 v0.3.x 升级？** 请查看 [useConversation 迁移](../migration/use-conversation-migration)。
+
+**新项目：** 直接使用下方 v0.4 的 API 和示例即可。
+:::
+
 `useConversation` 是一个对话管理工具，它可以帮助你管理对话的状态和历史记录。
 
 默认情况下，`useConversation` 会使用 LocalStorage 策略来持久化会话和消息数据。如果你需要更大的存储容量或更好的性能，可以切换到 IndexedDB 策略。关于存储策略的详细说明，请参考 [存储策略文档](./storage.md)。
