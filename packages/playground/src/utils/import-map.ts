@@ -39,6 +39,21 @@ export function generateImportMap(options: ImportMapOptions) {
       'markdown-it': 'https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js',
       echarts: 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js',
 
+      // Tiptap 编辑器相关包 (用于 Sender 组件)
+      // 使用 esm.sh CDN，自动处理子路径导入和依赖解析
+      // 添加 ?external=vue 参数，避免 Vue 版本冲突
+      '@tiptap/core': 'https://esm.sh/@tiptap/core@3.11.0',
+      '@tiptap/vue-3': 'https://esm.sh/@tiptap/vue-3@3.11.0?external=vue',
+      '@tiptap/pm/state': 'https://esm.sh/@tiptap/pm@3.11.0/state',
+      '@tiptap/pm/view': 'https://esm.sh/@tiptap/pm@3.11.0/view',
+      '@tiptap/pm/model': 'https://esm.sh/@tiptap/pm@3.11.0/model',
+      '@tiptap/extension-document': 'https://esm.sh/@tiptap/extension-document@3.11.0',
+      '@tiptap/extension-paragraph': 'https://esm.sh/@tiptap/extension-paragraph@3.11.0',
+      '@tiptap/extension-text': 'https://esm.sh/@tiptap/extension-text@3.11.0',
+      '@tiptap/extension-history': 'https://esm.sh/@tiptap/extension-history@3.11.0',
+      '@tiptap/extension-placeholder': 'https://esm.sh/@tiptap/extension-placeholder@3.11.0',
+      '@tiptap/extension-character-count': 'https://esm.sh/@tiptap/extension-character-count@3.11.0',
+
       ...extraImportsMap,
     },
   }
