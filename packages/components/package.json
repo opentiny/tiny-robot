@@ -17,9 +17,16 @@
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
-    "dompurify": "^3.3.1",
-    "markdown-it": "^14.1.0",
     "vue": "^3.3.11",
+    "dompurify": "^3.3.1",
+    "markdown-it": "^14.1.0"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.0",
+    "@opentiny/tiny-robot-svgs": "workspace:*",
+    "@opentiny/vue": "^3.20.0",
+    "@vueuse/core": "^13.1.0",
+    "jsonrepair": "^3.13.1",
     "@tiptap/core": "^3.11.0",
     "@tiptap/vue-3": "^3.11.0",
     "@tiptap/pm": "^3.11.0",
@@ -29,13 +36,6 @@
     "@tiptap/extension-history": "^3.11.0",
     "@tiptap/extension-placeholder": "^3.11.0",
     "@tiptap/extension-character-count": "^3.11.0"
-  },
-  "dependencies": {
-    "@floating-ui/dom": "^1.6.0",
-    "@opentiny/tiny-robot-svgs": "workspace:*",
-    "@opentiny/vue": "^3.20.0",
-    "@vueuse/core": "^13.1.0",
-    "jsonrepair": "^3.13.1"
   },
   "devDependencies": {
     "@types/dom-speech-recognition": "^0.0.6",
