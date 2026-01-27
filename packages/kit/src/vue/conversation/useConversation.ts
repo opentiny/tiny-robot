@@ -116,7 +116,30 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   if (storage?.loadConversations) {
     Promise.resolve(storage.loadConversations())
       .then((list) => {
-        conversations.value = list
+        // 如果加载的列表为空，直接返回
+        if (!list?.length) return
+
+        // 如果当前内存中的会话列表为空，直接使用加载的列表
+        if (conversations.value.length === 0) {
+          conversations.value = list
+          return
+        }
+
+        // 合并策略：内存数据优先于存储数据
+        // 1. 保留内存中已存在的会话（不会被存储数据覆盖）
+        // 2. 添加存储中存在但内存中不存在的会话
+        // 这样可以避免覆盖在 loadConversations 完成之前通过 createConversation 创建的会话
+        const merged = new Map(conversations.value.map((c) => [c.id, c]))
+        list.forEach((c) => {
+          if (!merged.has(c.id)) {
+            merged.set(c.id, c)
+          }
+        })
+        conversations.value = Array.from(merged.values())
+
+        // 确保 activeConversation 对应的会话在合并后的列表中
+        // 如果 activeConversationId 存在但对应的会话不在列表中，说明可能被意外删除
+        // 这种情况下，activeConversation 会自动变为 null（通过 computed 属性）
       })
       .catch((error) => {
         console.error('[useConversation] loadConversations failed:', error)
