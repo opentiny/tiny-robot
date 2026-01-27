@@ -7,9 +7,9 @@ export const fallbackRolePlugin = (options: UseMessagePlugin & { fallbackRole?: 
     name: 'fallbackRole',
     ...restOptions,
     onBeforeRequest(context) {
-      const { requestBody, messages } = context
+      const { requestBody } = context
       // 如果消息的 role 为空，则使用 fallbackRole
-      requestBody.messages = messages.map((message) => {
+      requestBody.messages = requestBody.messages.map((message) => {
         return {
           ...message,
           role: message.role || fallbackRole,

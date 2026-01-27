@@ -276,8 +276,10 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
       const context = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        hasOnError = true
-        plugin.onError?.({ ...context, error: err })
+        if (plugin.onError) {
+          hasOnError = true
+          plugin.onError({ ...context, error: err })
+        }
       }
 
       // 如果没有任何插件实现了 onError 钩子，则抛出错误

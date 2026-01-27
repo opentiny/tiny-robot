@@ -42,12 +42,22 @@ const prettyJSON = (json: unknown, space = 2) => {
 
 const classes = useCssModule()
 
+// Escape HTML entities to prevent XSS attacks when rendering with v-html
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
 const highlightJSON = (json: string): string => {
   if (!json) {
     return ''
   }
 
-  let jsonStr = json
+  // Escape HTML entities first to prevent XSS attacks
+  let jsonStr = escapeHtml(json)
 
   jsonStr = jsonStr.replace(
     /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,

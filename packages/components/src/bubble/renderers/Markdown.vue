@@ -27,8 +27,8 @@ const markdownContent = ref('')
 watchEffect(() => {
   if (markdownItAndDompurify.value) {
     const { markdown, dompurify } = markdownItAndDompurify.value
-    markdownContent.value = markdown(mdConfig || {}).render(content.value)
-    dompurify.sanitize(markdownContent.value, dompurifyConfig)
+    const rendered = markdown(mdConfig || {}).render(content.value)
+    markdownContent.value = dompurify.sanitize(rendered, dompurifyConfig)
   }
 })
 </script>

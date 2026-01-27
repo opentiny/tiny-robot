@@ -5,7 +5,7 @@ import {
   BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_RENDERER_MATCHES_KEY,
 } from '../constants'
-import type { BubbleBoxRendererMatch, BubbleMessage, ChatMessageContentItem } from '../index.type'
+import type { BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 import { useContentResolver } from './useContentResolver'
 
@@ -61,7 +61,7 @@ export function useBubbleBoxRenderer(
     const resolvedContent = contentResolver(msgs.at(0)!)
     return {
       content: Array.isArray(resolvedContent)
-        ? (resolvedContent.at(contentIndex ?? 0) as ChatMessageContentItem)
+        ? resolvedContent.at(contentIndex ?? 0)!
         : { type: 'text', text: resolvedContent || '' },
       index: contentIndex ?? 0,
     }

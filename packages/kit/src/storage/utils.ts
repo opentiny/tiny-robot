@@ -7,10 +7,10 @@ import { ChatMessage } from '../types'
  * 同时移除不可序列化的内容（函数、Symbol 等）
  *
  * @param value - 要解包的值
- * @param visited - 用于检测循环引用的 WeakSet
+ * @param visited - 用于检测循环引用和共享引用的 WeakMap，映射原始对象到其克隆对象
  * @returns 解包后的普通对象
  */
-export function unwrapProxy<T>(value: T, visited: WeakSet<object> = new WeakSet()): T {
+export function unwrapProxy<T>(value: T, visited: WeakMap<object, any> = new WeakMap()): T {
   // 处理 null 和 undefined
   if (value === null || value === undefined) {
     return value
@@ -21,22 +21,23 @@ export function unwrapProxy<T>(value: T, visited: WeakSet<object> = new WeakSet(
     return value
   }
 
-  // 处理循环引用
-  if (visited.has(value as object)) {
-    // 遇到循环引用时返回空对象或空数组
-    return (Array.isArray(value) ? [] : {}) as T
-  }
-
-  // 标记为已访问
-  visited.add(value as object)
-
   try {
     // 使用 Vue 的 toRaw 解包响应式对象
     const rawValue: any = toRaw(value)
 
+    // 如果已经处理过该对象，返回之前创建的克隆对象（处理循环引用和共享引用）
+    if (visited.has(rawValue)) {
+      return visited.get(rawValue)
+    }
+
     // 处理数组
     if (Array.isArray(rawValue)) {
-      return rawValue.map((item) => unwrapProxy(item, visited)) as T
+      // 先创建空数组并存储到 visited，避免循环引用问题
+      const arr: any[] = []
+      visited.set(rawValue, arr)
+      // 然后填充数组内容
+      arr.push(...rawValue.map((item: any) => unwrapProxy(item, visited)))
+      return arr as T
     }
 
     // 处理 Date 对象
@@ -55,13 +56,12 @@ export function unwrapProxy<T>(value: T, visited: WeakSet<object> = new WeakSet(
     }
 
     // 处理普通对象
+    // 先创建空对象并存储到 visited，避免循环引用问题
     const result: any = {}
-    for (const key in rawValue) {
-      // 跳过 Symbol 键
-      if (typeof key === 'symbol') {
-        continue
-      }
+    visited.set(rawValue, result)
 
+    // 使用 Object.keys 而不是 for...in，确保只处理自有属性
+    for (const key of Object.keys(rawValue)) {
       const descriptor = Object.getOwnPropertyDescriptor(rawValue, key)
       if (!descriptor) {
         continue
