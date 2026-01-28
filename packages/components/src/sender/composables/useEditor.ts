@@ -62,8 +62,7 @@ export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorRetur
     editorProps: {
       attributes: {
         class: 'tr-sender-editor',
-        // 移动端虚拟键盘回车键提示
-        ...(props.enterkeyhint && { enterkeyhint: props.enterkeyhint }),
+        enterkeyhint: props.enterkeyhint as string,
       },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
