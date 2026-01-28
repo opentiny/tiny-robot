@@ -5,6 +5,37 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+
+## v0.3.2
+
+`2026-01-28`
+
+### ✨ 新特性
+
+**组件**
+
+- **Sender**: 支持 Ctrl+Enter 和 Shift+Enter 在输入框中插入换行 by @lisong in [#263](https://github.com/opentiny/tiny-robot/pull/263)
+- **McpServerPicker**: 新增 `header-actions` 插槽，支持自定义操作 by @lisong in [#274](https://github.com/opentiny/tiny-robot/pull/274)
+
+**文档**
+
+- **Docs**: 将主题配置提取到单独文件并更新 vitepress 配置 by @Gene in [#265](https://github.com/opentiny/tiny-robot/pull/265)
+- **Docs**: 工作流支持依赖预览和在线文档 by @lisong in [#268](https://github.com/opentiny/tiny-robot/pull/268)
+- **Docs**: 支持版本徽章在 markdown 表格和侧边栏中显示 by @lisong in [#269](https://github.com/opentiny/tiny-robot/pull/269)
+- **Docs**: 新增自动构建主模块文档和自动部署文档的工作流 by @wuyiping in [#280](https://github.com/opentiny/tiny-robot/pull/280)
+
+
+### 🔨 优化改进
+
+- **Sender**: 使用 IconRecordingWave 图标替换波形图片，优化构建体积 by @lisong in [#284](https://github.com/opentiny/tiny-robot/pull/284)
+- **Build**: 更新构建脚本并改进 copy-playground 脚本 by @Gene in [#264](https://github.com/opentiny/tiny-robot/pull/264)
+
+
+### 🐛 问题修复
+
+- **Sender**: 使用响应式 refs 处理文件对话框选项 by @lisong in [#282](https://github.com/opentiny/tiny-robot/pull/282)
+- **CI**: 重构工作流以安全支持 fork PR 的预览和清理 by @lisong in [#272](https://github.com/opentiny/tiny-robot/pull/272)
+
 ## v0.3.1
 
 `2025-12-30`
