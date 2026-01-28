@@ -9,6 +9,7 @@ const props = withDefaults(defineProps<SenderProps>(), {
   mode: 'single',
   size: 'normal',
   submitType: 'enter',
+  enterkeyhint: 'send',
   extensions: () => [],
   autoSize: () => ({ minRows: 1, maxRows: 5 }),
 })

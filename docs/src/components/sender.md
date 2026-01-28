@@ -278,6 +278,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | disabled | 是否禁用 | `boolean` | `false` |
 | loading | 是否加载中 | `boolean` | `false` |
 | autofocus | 自动获取焦点 | `boolean` | `false` |
+| enterkeyhint @0.4 | 移动端虚拟键盘回车键提示 | `EnterKeyHint` | `'send'` |
 | autoSize | 自动调整高度 | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 5 }` |
 | clearable | 是否可清空 | `boolean` | `false` |
 | maxLength | 最大输入长度 | `number` | `Infinity` |
@@ -662,6 +663,9 @@ type StructuredData = TemplateItem[] | MentionStructuredItem[]
 
 // 输入模式
 type InputMode = 'single' | 'multiple'
+
+// 移动端虚拟键盘回车键提示
+type EnterKeyHint = 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'
 
 // 扩展类型
 import type { Extension } from '@tiptap/core'

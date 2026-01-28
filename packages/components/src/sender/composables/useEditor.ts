@@ -62,6 +62,8 @@ export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorRetur
     editorProps: {
       attributes: {
         class: 'tr-sender-editor',
+        // 移动端虚拟键盘回车键提示
+        ...(props.enterkeyhint && { enterkeyhint: props.enterkeyhint }),
       },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
@@ -115,6 +117,21 @@ export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorRetur
         const { state } = editor.value
         const tr = state.tr
         editor.value.view.dispatch(tr)
+      }
+    },
+  )
+
+  // 监听 enterkeyhint 变化，动态更新属性
+  watch(
+    () => props.enterkeyhint,
+    (newHint) => {
+      if (editor.value) {
+        const editorElement = editor.value.view.dom
+        if (newHint) {
+          editorElement.setAttribute('enterkeyhint', newHint)
+        } else {
+          editorElement.removeAttribute('enterkeyhint')
+        }
       }
     },
   )
