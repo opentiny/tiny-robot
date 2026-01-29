@@ -14,12 +14,12 @@ const props = withDefaults(defineProps<SenderProps>(), {
   autoSize: () => ({ minRows: 1, maxRows: 5 }),
 })
 
+export type SenderPropsWithDefaults = typeof props
+
 const emit = defineEmits<SenderEmits>()
 
-// 核心逻辑一键引入
 const { context, expose } = useSenderCore(props, emit)
 
-// 暴露方法给父组件
 defineExpose(expose)
 </script>
 

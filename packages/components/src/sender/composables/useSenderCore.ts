@@ -10,7 +10,8 @@
 
 import { EditorView } from '@tiptap/pm/view'
 import { computed, provide, toRef, watch } from 'vue'
-import type { SenderProps, SenderEmits, StructuredData } from '../index.type'
+import type { SenderEmits, StructuredData } from '../index.type'
+import type { SenderPropsWithDefaults } from '../index.vue'
 import {
   MentionPluginKey,
   SuggestionPluginKey,
@@ -56,7 +57,7 @@ export interface UseSenderCoreReturn {
  *
  * 一键获取完整的 context 和 expose 对象
  */
-export function useSenderCore(props: SenderProps, emit: SenderEmits): UseSenderCoreReturn {
+export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits): UseSenderCoreReturn {
   // ========================================
   // 1. 初始化编辑器（必须最先初始化，因为其他逻辑依赖它）
   // ========================================

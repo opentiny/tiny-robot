@@ -11,7 +11,8 @@ import History from '@tiptap/extension-history'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import type { AnyExtension } from '@tiptap/core'
-import type { SenderProps, SenderEmits, UseEditorReturn } from '../index.type'
+import type { SenderEmits, UseEditorReturn } from '../index.type'
+import type { SenderPropsWithDefaults } from '../index.vue'
 
 /**
  * 编辑器 Hook
@@ -23,7 +24,7 @@ import type { SenderProps, SenderEmits, UseEditorReturn } from '../index.type'
  * - 提供编辑器实例
  *
  */
-export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorReturn {
+export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): UseEditorReturn {
   const editorRef = ref<HTMLElement | null>(null)
 
   // 将 placeholder 转换为响应式引用
@@ -62,7 +63,7 @@ export function useEditor(props: SenderProps, emit: SenderEmits): UseEditorRetur
     editorProps: {
       attributes: {
         class: 'tr-sender-editor',
-        enterkeyhint: props.enterkeyhint as string,
+        enterkeyhint: props.enterkeyhint,
       },
       // 处理粘贴事件 - 只粘贴纯文本
       handlePaste(view, event) {
