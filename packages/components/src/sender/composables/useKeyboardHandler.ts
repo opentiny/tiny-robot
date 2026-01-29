@@ -1,5 +1,5 @@
 import { ComputedRef, Ref } from 'vue'
-import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger } from '../index.type'
+import type { SenderProps, SenderEmits, SpeechState, SubmitTrigger, UserItem } from '../index.type'
 
 /**
  * 键盘处理Hook
@@ -46,11 +46,19 @@ export function useKeyboardHandler(
   const triggerSubmit = () => {
     if (!canSubmit.value) return
 
+    const trimmedInputValue = inputValue.value.trim()
+    let templateForSubmit: UserItem[] = []
+
     if (isTemplateMode?.value) {
-      exitTemplateMode?.()
+      if (props.templateData && Array.isArray(props.templateData)) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        templateForSubmit = props.templateData.map(({ id, ...rest }) => rest)
+      }
     }
 
-    emit('submit', inputValue.value.trim())
+    emit('submit', trimmedInputValue, templateForSubmit)
+
+    exitTemplateMode?.()
   }
 
   /**
