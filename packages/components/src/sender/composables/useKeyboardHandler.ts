@@ -46,11 +46,15 @@ export function useKeyboardHandler(
   const triggerSubmit = () => {
     if (!canSubmit.value) return
 
-    if (isTemplateMode?.value) {
-      exitTemplateMode?.()
-    }
+    const trimmedInputValue = inputValue.value.trim()
 
-    emit('submit', inputValue.value.trim())
+    if (isTemplateMode?.value && Array.isArray(props.templateData)) {
+      const templateForSubmit = props.templateData.map(({ id: _, ...rest }) => rest)
+      emit('submit', trimmedInputValue, templateForSubmit)
+      exitTemplateMode?.()
+    } else {
+      emit('submit', trimmedInputValue)
+    }
   }
 
   /**

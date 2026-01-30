@@ -148,7 +148,7 @@ export interface ActionButtonsProps {
 export type SenderEmits = {
   (e: 'update:modelValue', value: string): void
   (e: 'update:templateData', value: UserItem[]): void
-  (e: 'submit', value: string): void
+  (e: 'submit', value: string, templateData?: UserItem[]): void
   (e: 'clear'): void
   (e: 'speech-start'): void
   (e: 'speech-end', transcript?: string): void
