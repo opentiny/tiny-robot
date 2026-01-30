@@ -37,7 +37,8 @@ const { messages, isProcessing, sendMessage, abortRequest, requestState, process
 const inputMessage = ref('')
 
 function handleSubmit(content: string) {
-  sendMessage(content)
+  if (!content?.trim() || isProcessing.value) return
+  sendMessage(content.trim())
   inputMessage.value = ''
 }
 

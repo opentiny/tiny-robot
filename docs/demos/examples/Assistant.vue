@@ -447,9 +447,13 @@ const {
     responseProvider: async (requestBody, abortSignal) => {
       const response = await fetch('/api/chat/completions', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...requestBody, stream: true }),
         signal: abortSignal,
       })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
       return sseStreamToGenerator(response, { signal: abortSignal })
     },
   },

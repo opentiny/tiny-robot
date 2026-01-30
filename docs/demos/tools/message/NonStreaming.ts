@@ -19,9 +19,13 @@ export function useMessageNonStreaming() {
     responseProvider: async (requestBody, abortSignal): Promise<ChatCompletion> => {
       const response = await fetch(`${apiUrl}/api/chat/completions`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...requestBody, stream: false }),
         signal: abortSignal,
       })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
       return response.json()
     },
     initialMessages: [
