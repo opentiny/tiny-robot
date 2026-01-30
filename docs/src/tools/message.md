@@ -161,7 +161,13 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 
 ### 插件系统
 
-`useMessage` 支持插件系统，可以通过插件扩展功能。内置插件：`fallbackRolePlugin`、`thinkingPlugin`、`lengthPlugin`；工具调用可使用 `toolPlugin`。可通过 `plugins` 选项追加或覆盖。插件提供了多个生命周期钩子：
+`useMessage` 支持插件系统，可以通过插件扩展功能。
+
+**默认激活的插件**：`fallbackRolePlugin`、`thinkingPlugin`、`lengthPlugin`（无需显式添加，已自动注入）。可通过插件的 `disabled` 参数禁用，例如 `thinkingPlugin({ disabled: true })`。
+
+**内置可选插件**：`toolPlugin`（工具调用，需添加到 `plugins` 数组中才会生效）
+
+可通过 `plugins` 选项追加或覆盖默认插件。插件提供了多个生命周期钩子：
 
 ```typescript
 interface UseMessagePlugin {
@@ -207,7 +213,7 @@ interface UseMessagePlugin {
 
 #### fallbackRolePlugin
 
-在请求前为 `role` 为空的消息补全角色，默认使用 `assistant`。可用于兜底上游未设置 role 的消息。
+在请求前为 `role` 为空的消息补全角色，默认使用 `assistant`。可用于兜底上游未设置 role 的消息。**已默认激活**；若需自定义配置，可显式传入覆盖：
 
 ```typescript
 import { fallbackRolePlugin, useMessage } from '@opentiny/tiny-robot-kit'
@@ -222,7 +228,7 @@ useMessage({
 
 #### lengthPlugin
 
-当模型返回 `finish_reason === 'length'`（达到 max_tokens 或上下文限制）时，自动追加一条 user 消息（如 "Please continue with your previous answer."）并调用 `requestNext()` 继续请求，实现“自动续写”。
+当模型返回 `finish_reason === 'length'`（达到 max_tokens 或上下文限制）时，自动追加一条 user 消息（如 "Please continue with your previous answer."）并调用 `requestNext()` 继续请求，实现“自动续写”。**已默认激活**；若需自定义配置，可显式传入覆盖：
 
 ```typescript
 import { lengthPlugin, useMessage } from '@opentiny/tiny-robot-kit'
@@ -239,21 +245,20 @@ useMessage({
 
 #### thinkingPlugin
 
-根据流式响应中的 `reasoning_content`（或 `choice.delta.reasoning_content`）更新当前消息的 `state.thinking`，用于展示“思考中”等 UI；在回合结束时清除该状态。
+根据流式响应中的 `reasoning_content`（或 `choice.delta.reasoning_content`）更新当前消息的 `state.thinking`，用于展示“思考中”等 UI；在回合结束时清除该状态。**已默认激活**；若需禁用或自定义配置，可显式传入覆盖：
 
 ```typescript
 import { thinkingPlugin, useMessage } from '@opentiny/tiny-robot-kit'
 
 useMessage({
   responseProvider,
-  // thinkingPlugin 已默认注入，无需显式添加；若需覆盖配置可传入
-  plugins: [thinkingPlugin()],
+  plugins: [thinkingPlugin({ /* 自定义选项 */ })],
 })
 ```
 
 #### toolPlugin（工具调用）
 
-用于接入模型返回的 `tool_calls`：在请求前注入 `tools` 列表，在请求完成后解析 `tool_calls`、执行 `callTool`、追加 tool 消息并自动发起下一轮请求。支持取消/失败时补充或标记 tool 消息、下一轮是否排除 tool 消息等。
+用于接入模型返回的 `tool_calls`：在请求前注入 `tools` 列表，在请求完成后解析 `tool_calls`、执行 `callTool`、追加 tool 消息并自动发起下一轮请求。支持取消/失败时补充或标记 tool 消息、下一轮是否排除 tool 消息等。**需显式添加到 `plugins` 数组才会生效**。
 
 **必选参数：**
 
