@@ -20,6 +20,23 @@ export type InputMode = 'single' | 'multiple'
  */
 export type SubmitTrigger = 'enter' | 'ctrlEnter' | 'shiftEnter'
 
+/**
+ * 移动端虚拟键盘回车键提示
+ *
+ * 用于自定义移动端虚拟键盘上回车键的显示文本或图标
+ *
+ * - `enter`: 插入换行
+ * - `done`: 完成
+ * - `go`: 前往
+ * - `next`: 下一项
+ * - `previous`: 上一项
+ * - `search`: 搜索
+ * - `send`: 发送（推荐用于聊天场景）
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/enterkeyhint
+ */
+export type EnterKeyHint = 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'
+
 // ============================================
 // 模板相关类型
 // ============================================

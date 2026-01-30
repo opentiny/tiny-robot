@@ -1,5 +1,5 @@
 import type { Extension } from '@tiptap/core'
-import type { InputMode, SubmitTrigger, DefaultActions, AutoSize, StructuredData } from './types/base'
+import type { InputMode, SubmitTrigger, DefaultActions, AutoSize, StructuredData, EnterKeyHint } from './types/base'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -76,6 +76,15 @@ export interface SenderProps {
    * @default false
    */
   autofocus?: boolean
+
+  /**
+   * 移动端虚拟键盘回车键提示
+   *
+   * 用于自定义移动端虚拟键盘上回车键的显示文本或图标
+   *
+   * @default 'send'
+   */
+  enterkeyhint?: EnterKeyHint
 
   // ===== 模式控制 =====
 
