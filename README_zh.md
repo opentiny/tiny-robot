@@ -36,18 +36,32 @@ TinyRobot 是一个 monorepo，包含以下包：
 
 ### 安装
 
-安装所有必需的包：
+**核心包** — `@opentiny/tiny-robot` 是主包。
 
 ```bash
 # 使用 pnpm（推荐）
-pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
+pnpm add @opentiny/tiny-robot
 
 # 使用 npm
-npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
+npm install @opentiny/tiny-robot
 
 # 使用 yarn
-yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
+yarn add @opentiny/tiny-robot
 ```
+
+**可选包**：
+
+- `@opentiny/tiny-robot-kit` — 仅在需要 AI 模型请求或数据处理功能时使用。需要时添加：
+
+  ```bash
+  pnpm add @opentiny/tiny-robot-kit
+  ```
+
+- `@opentiny/tiny-robot-svgs` — 可选。仅在需要单独使用 SVG 图标库或自定义图标时单独安装：
+
+  ```bash
+  pnpm add @opentiny/tiny-robot-svgs
+  ```
 
 ### 基本用法
 
@@ -81,11 +95,11 @@ import { TrBubble } from '@opentiny/tiny-robot'
 
 ## 📚 文档
 
-- 📖 [完整文档](https://opentiny.github.io/tiny-robot/) - 完整的 API 参考和指南
-- 🎯 [快速开始指南](https://opentiny.github.io/tiny-robot/latest/guide/quick-start) - 几分钟内快速上手
-- 🎨 [主题配置](https://opentiny.github.io/tiny-robot/latest/guide/theme-config) - 自定义主题
-- 📝 [更新日志](https://opentiny.github.io/tiny-robot/latest/guide/update-log) - 版本历史和迁移指南
-- 💡 [示例](https://opentiny.github.io/tiny-robot/latest/examples/assistant) - 完整的应用示例
+- 📖 [完整文档](https://docs.opentiny.design/tiny-robot/) - 完整的 API 参考和指南
+- 🎯 [快速开始指南](https://docs.opentiny.design/tiny-robot/guide/quick-start) - 几分钟内快速上手
+- 🎨 [主题配置](https://docs.opentiny.design/tiny-robot/guide/theme-config) - 自定义主题
+- 📝 [更新日志](https://docs.opentiny.design/tiny-robot/guide/update-log) - 版本历史
+- 💡 [示例](https://docs.opentiny.design/tiny-robot/examples/assistant) - 完整的应用示例
 
 ## 🏗️ 项目结构
 
@@ -161,7 +175,7 @@ MIT 许可证 - 查看 [LICENSE](./LICENSE) 文件了解详情。
 
 ## 📞 支持
 
-- 📖 [文档](https://opentiny.github.io/tiny-robot/)
+- 📖 [文档](https://docs.opentiny.design/tiny-robot/)
 - 🐛 [问题追踪](https://github.com/opentiny/tiny-robot/issues)
 - 💬 [讨论](https://github.com/opentiny/tiny-robot/discussions)
 

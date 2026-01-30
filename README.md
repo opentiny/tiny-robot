@@ -36,18 +36,32 @@ TinyRobot is a monorepo containing the following packages:
 
 ### Installation
 
-Install all required packages:
+**Core package** — `@opentiny/tiny-robot` is the main package.
 
 ```bash
 # Using pnpm (recommended)
-pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
+pnpm add @opentiny/tiny-robot
 
 # Using npm
-npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
+npm install @opentiny/tiny-robot
 
 # Using yarn
-yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit @opentiny/tiny-robot-svgs
+yarn add @opentiny/tiny-robot
 ```
+
+**Optional packages**:
+
+- `@opentiny/tiny-robot-kit` — Only needed if you use AI model request or data-processing features. Add it when required:
+
+  ```bash
+  pnpm add @opentiny/tiny-robot-kit
+  ```
+
+- `@opentiny/tiny-robot-svgs` — Optional. Install separately only if you need to use the SVG icon library standalone or with custom icons:
+
+  ```bash
+  pnpm add @opentiny/tiny-robot-svgs
+  ```
 
 ### Basic Usage
 
@@ -81,11 +95,11 @@ import { TrBubble } from '@opentiny/tiny-robot'
 
 ## 📚 Documentation
 
-- 📖 [Full Documentation](https://opentiny.github.io/tiny-robot/) - Complete API reference and guides
-- 🎯 [Quick Start Guide](https://opentiny.github.io/tiny-robot/latest/guide/quick-start) - Get started in minutes
-- 🎨 [Theme Configuration](https://opentiny.github.io/tiny-robot/latest/guide/theme-config) - Customize themes
-- 📝 [Update Log](https://opentiny.github.io/tiny-robot/latest/guide/update-log) - Version history and migration guides
-- 💡 [Examples](https://opentiny.github.io/tiny-robot/latest/examples/assistant) - Complete application examples
+- 📖 [Full Documentation](https://docs.opentiny.design/tiny-robot/) - Complete API reference and guides
+- 🎯 [Quick Start Guide](https://docs.opentiny.design/tiny-robot/guide/quick-start) - Get started in minutes
+- 🎨 [Theme Configuration](https://docs.opentiny.design/tiny-robot/guide/theme-config) - Customize themes
+- 📝 [Update Log](https://docs.opentiny.design/tiny-robot/guide/update-log) - Version history
+- 💡 [Examples](https://docs.opentiny.design/tiny-robot/examples/assistant) - Complete application examples
 
 ## 🏗️ Project Structure
 
@@ -161,7 +175,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📞 Support
 
-- 📖 [Documentation](https://opentiny.github.io/tiny-robot/)
+- 📖 [Documentation](https://docs.opentiny.design/tiny-robot/)
 - 🐛 [Issue Tracker](https://github.com/opentiny/tiny-robot/issues)
 - 💬 [Discussions](https://github.com/opentiny/tiny-robot/discussions)
 
