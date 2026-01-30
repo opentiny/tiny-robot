@@ -2,7 +2,7 @@
 outline: [1, 3]
 ---
 
-# 对话管理 useConversation
+# useConversation 会话数据管理
 
 :::danger 重大版本升级 v0.4
 useConversation 在 v0.4 进行了重大升级，`client` 改为 `useMessageOptions`，存储与引擎懒加载有变。

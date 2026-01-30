@@ -2,7 +2,7 @@
 outline: deep
 ---
 
-# AI模型交互工具类 AIClient
+# AIClient 模型交互工具类
 
 :::danger 重大版本升级 v0.4
 `AIClient` 已废弃，推荐使用 `useMessage` + `responseProvider`。

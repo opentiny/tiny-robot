@@ -2,7 +2,7 @@
 outline: [1, 3]
 ---
 
-# 消息与数据管理 useMessage
+# useMessage 消息数据管理
 
 :::danger 重大版本升级 v0.4
 useMessage 在 v0.4 进行了重大升级，`client` 改为 `responseProvider`，状态与插件体系有变。
