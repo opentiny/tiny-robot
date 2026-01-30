@@ -62,7 +62,7 @@ v0.3.x 的 storage 更偏「保存整个 conversations」；0.4.x 的 `Conversat
 - `saveConversation(conversation)`：保存会话元信息
 - `saveMessages(conversationId, messages)`：保存 messages
 
-如有自定义存储，实现 0.4.x 的 `ConversationStorageStrategy` 即可（可复用既有持久化介质）。详见 [存储策略](/tools/storage)。
+如有自定义存储，实现 0.4.x 的 `ConversationStorageStrategy` 即可（可复用既有持久化介质）。详见 [会话数据管理 - 存储策略](/tools/conversation#存储策略接口)。
 
 ## 迁移检查清单
 
