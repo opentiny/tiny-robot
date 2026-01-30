@@ -1,93 +1,50 @@
 <template>
-  <div style="display: flex; flex-direction: column; gap: 16px">
-    <label>加载中插槽</label>
-    <tr-bubble :avatar="aiAvatar" :loading="true">
-      <template #loading>
-        <img style="height: 40px; margin-left: -25px" :src="loadingImgUrl" />
-      </template>
-    </tr-bubble>
-    <hr />
-    <label>默认插槽、footer 插槽 和 trailer 插槽（鼠标hover气泡内容显示）</label>
-    <tr-bubble class="bubble" :avatar="aiAvatar" :actions="['refresh', 'copy']">
-      <span style="color: orange"
-        >TinyVue 是一个轻量级、高性能的 Vue 3 组件库，专为企业级应用设计，由 OpenTiny 开源团队开发维护。</span
+  <tr-bubble content="消息内容" :avatar="aiAvatar">
+    <template #prefix>
+      <div style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; font-size: 12px">
+        前缀插槽
+      </div>
+    </template>
+    <template #suffix>
+      <div style="background: #f3e5f5; color: #7b1fa2; padding: 4px 8px; border-radius: 4px; font-size: 12px">
+        后缀插槽
+      </div>
+    </template>
+    <template #content-footer>
+      <div
+        style="
+          background: #e8f5e9;
+          color: #388e3c;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          margin-top: 8px;
+        "
       >
-      <template #footer>
-        <tr-feedback :operations="operations" :actions="actions" :sources="sources" />
-      </template>
-      <template #trailer>
-        <div class="trailer-slot">
-          <IconButton :icon="IconCopy" />
-          <IconButton :icon="IconLike" />
-          <IconButton :icon="IconDislike" />
-        </div>
-      </template>
-    </tr-bubble>
-  </div>
+        内容底部插槽
+      </div>
+    </template>
+    <template #after>
+      <div
+        style="
+          background: #fff3e0;
+          color: #f57c00;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          margin-top: 8px;
+        "
+      >
+        后置插槽
+      </div>
+    </template>
+  </tr-bubble>
 </template>
 
 <script setup lang="ts">
-import { FeedbackProps, IconButton, TrBubble, TrFeedback } from '@opentiny/tiny-robot'
-import { IconAi, IconCopy, IconDislike, IconLike } from '@opentiny/tiny-robot-svgs'
+import { TrBubble } from '@opentiny/tiny-robot'
+import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
-const loadingImgUrl = import.meta.env.BASE_URL + 'wave.webp'
-
-const operations: FeedbackProps['operations'] = [
-  {
-    name: 'edit',
-    label: '编辑',
-    onClick: () => console.log('点击了编辑按钮'),
-  },
-  {
-    name: 'delete',
-    label: '删除',
-  },
-]
-
-const actions: FeedbackProps['actions'] = [
-  {
-    name: 'copy',
-    label: '复制',
-    icon: 'copy',
-  },
-  {
-    name: 'refresh',
-    label: '刷新',
-    icon: 'refresh',
-  },
-]
-
-const sources: FeedbackProps['sources'] = [
-  {
-    label: '数据来源1',
-    link: 'https://example.com/source1',
-  },
-  {
-    label: '数据来源2',
-    link: 'https://example.com/source2',
-  },
-]
 </script>
-
-<style scoped>
-.trailer-slot {
-  position: absolute;
-  top: 100%;
-  padding-top: 4px;
-
-  display: flex;
-  align-items: center;
-  gap: 4px;
-
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-.bubble:hover .trailer-slot {
-  opacity: 1;
-  pointer-events: auto;
-}
-</style>

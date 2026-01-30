@@ -1,18 +1,45 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BaseModelProvider } from './providers/base'
+
+export type MaybePromise<T> = T | Promise<T>
 
 /**
  * 消息角色类型
  */
 export type MessageRole = 'system' | 'user' | 'assistant'
 
+export interface ToolCall {
+  index: number
+  id: string
+  type: 'function'
+  function: {
+    name: string
+    arguments: string // JSON string
+    result?: string
+  }
+}
+
+// Message metadata interface
+export interface MessageMetadata {
+  createdAt?: number
+  updatedAt?: number
+  id?: string
+  model?: string
+  [key: string]: any
+}
+
 /**
  * 聊天消息接口
  */
 export interface ChatMessage {
-  role: MessageRole
-  content: string | { type: string; [x: string]: unknown }[]
-  name?: string
-  [x: string]: unknown
+  role: string
+  content: string
+  reasoning_content?: string
+  metadata?: MessageMetadata
+  tool_calls?: ToolCall[]
+  tool_call_id?: string
+  [key: string]: any
+  [key: symbol]: any
 }
 
 /**

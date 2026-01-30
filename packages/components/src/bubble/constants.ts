@@ -39,6 +39,12 @@ export const BUBBLE_STATE_CHANGE_FN_KEY: InjectionKey<(key: string, value: unkno
   Symbol('bubble-state-change-fn')
 
 /**
+ * Bubble list 上下文的注入键
+ * 用于标识 Bubble 组件是否在 BubbleList 下
+ */
+export const BUBBLE_LIST_CONTEXT_KEY: InjectionKey<boolean> = Symbol('bubble-list-context')
+
+/**
  * 气泡渲染器匹配优先级常量
  *
  * 用于定义不同类型渲染器的匹配优先级，数值越小优先级越高

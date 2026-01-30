@@ -59,6 +59,7 @@ export {
   useBubbleStateChangeFn,
   useMessageContent,
   useOmitMessageFields,
+  useToolCall,
 } from './bubble'
 export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'

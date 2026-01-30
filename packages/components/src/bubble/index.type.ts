@@ -3,7 +3,7 @@ import { Component, VNode } from 'vue'
 /**
  * 工具调用接口（支持 OpenAI 格式）
  */
-interface ToolCall {
+export interface ToolCall {
   id: string
   type: 'function' | string
   function: {
@@ -50,6 +50,7 @@ export type BubbleProps = BubbleMessage & {
   placement?: 'start' | 'end'
   shape?: 'corner' | 'rounded' | 'none'
   contentRenderMode?: 'single' | 'split'
+  contentResolver?: (message: BubbleMessage) => ChatMessageContent | undefined
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
 }
@@ -62,14 +63,32 @@ export type BubbleMessageGroup = {
 }
 
 export type BubbleBoxRendererMatch = {
-  find: (messages: BubbleMessage[], contentIndex?: number) => boolean
+  /**
+   * 匹配函数，用于判断是否应该使用此渲染器
+   * @param messages - 消息数组
+   * @param content - 要渲染的内容项。仅在 `split` 模式下（contentIndex 为数字）才会传入；为当前消息（messages[0]）经过 `contentResolver` 解析后的内容；`messages[0].content` 一定是一个数组，`content` 则为对应索引的内容项，即 `messages[0].content[contentIndex]`；当 contentIndex 为 undefined 时，content 也为 undefined
+   * @param contentIndex - 内容索引，用于指定要渲染的内容项。仅在 split 模式下才会传入（为数字），此时 messages 数组长度为 1
+   * @returns 如果匹配则返回 true，否则返回 false
+   */
+  find: (
+    messages: BubbleMessage[],
+    content: ChatMessageContentItem | undefined,
+    contentIndex: number | undefined,
+  ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
   attributes?: Record<string, string>
 }
 
 export type BubbleContentRendererMatch = {
-  find: (message: BubbleMessage, contentIndex?: number) => boolean
+  /**
+   * 匹配函数，用于判断是否应该使用此渲染器
+   * @param message - 消息对象
+   * @param content - 要渲染的内容项。为当前消息经过 contentResolver 解析并统一化后的内容项：若解析结果为数组，则取对应索引的内容项（由 contentIndex 指定）；若为字符串，则转为 { type: 'text', text: string }。统一化为 ChatMessageContentItem 对象格式
+   * @param contentIndex - 内容索引。由 contentResolver 的解析结果为数组时使用。若 contentResolver 解析结果为字符串，content 会转换为对象，此时 contentIndex 为 0
+   * @returns 如果匹配则返回 true，否则返回 false
+   */
+  find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
   attributes?: Record<string, string>
@@ -82,7 +101,7 @@ export type BubbleContentRendererProps<
   S extends Record<string, unknown> = Record<string, unknown>,
 > = {
   message: BubbleMessage<T, S>
-  contentIndex?: number
+  contentIndex: number
 }
 
 type BubbleSlotProps = { messages: BubbleMessage[]; role?: string }
@@ -117,7 +136,7 @@ export interface BubbleListProps {
    * - 自定义函数: (messages, dividerRole) => BubbleMessageGroup[]
    *
    * 特殊情况：
-   * - 当 message 的 content 为数组时，该 message 会被单独作为一个独立分组
+   * - 当 message 的 content 为数组时，且 message.role === 'user'，该 message 会被单独作为一个独立分组
    * - 该独立分组会被"密封"，后续的消息（即使角色相同）也不会被添加到这个分组中
    */
   groupStrategy?: 'consecutive' | 'divider' | BubbleGroupFunction
@@ -137,6 +156,7 @@ export interface BubbleListProps {
    */
   roleConfigs?: Record<string, BubbleRoleConfig>
   contentRenderMode?: BubbleProps['contentRenderMode']
+  contentResolver?: BubbleProps['contentResolver']
   /**
    * 是否自动滚动到底部。需要满足以下条件：
    * - BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）

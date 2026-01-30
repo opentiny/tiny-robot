@@ -54,7 +54,7 @@ export function useAutoScroll(
 
   const targetElement = () => unrefElement(target)
 
-  const { y, isScrolling } = useScroll(targetElement, { throttle: scrollThrottle })
+  const { y, isScrolling, arrivedState } = useScroll(targetElement, { throttle: scrollThrottle })
 
   /** 判断是否接近底部 */
   const isNearBottom = (el: HTMLElement) => {
@@ -133,6 +133,7 @@ export function useAutoScroll(
 
   return {
     scrollToBottom,
+    arrivedState,
   }
 }
 

@@ -1,11 +1,5 @@
-export * from './message/useMessage'
+export * from './conversation/types'
 export * from './conversation/useConversation'
-export {
-  LocalStorageStrategy,
-  IndexedDBStrategy,
-  localStorageStrategyFactory,
-  indexedDBStorageStrategyFactory,
-  type LocalStorageConfig,
-  type IndexedDBConfig,
-  type ConversationStorageStrategy,
-} from '../storage'
+export * from './message/plugins'
+export * from './message/types'
+export * from './message/useMessage'

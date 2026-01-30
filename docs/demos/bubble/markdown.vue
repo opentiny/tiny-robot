@@ -1,25 +1,19 @@
 <template>
-  <tr-bubble :content="mdContent" :avatar="aiAvatar" :content-renderer="markdownRenderer"></tr-bubble>
+  <tr-bubble :content="mdContent" :avatar="aiAvatar" :fallback-content-renderer="BubbleRenderers.Markdown"></tr-bubble>
 </template>
 
 <script setup lang="ts">
-import { BubbleMarkdownContentRenderer, TrBubble } from '@opentiny/tiny-robot'
+import { BubbleRenderers, TrBubble } from '@opentiny/tiny-robot'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { h } from 'vue'
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
-const markdownRenderer = new BubbleMarkdownContentRenderer()
+const mdContent = `# 标题
 
-const mdContent = `# h1 Heading
-## Emphasis
+**加粗文本** *斜体文本* ~~删除线~~
 
-**This is bold text**
-
-*This is italic text*
-
-_This is italic text_
-
-~~Strikethrough~~
+- 列表项 1
+- 列表项 2
 `
 </script>

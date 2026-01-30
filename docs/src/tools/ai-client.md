@@ -4,7 +4,13 @@ outline: deep
 
 # AI模型交互工具类 AIClient
 
-客户端类，用于与AI模型交互。
+:::danger 重大版本升级 v0.4
+`AIClient` 已废弃，推荐使用 `useMessage` + `responseProvider`。
+
+**从 v0.3.x 升级？** 请查看 [useMessage 迁移](../migration/use-message-migration)。
+:::
+
+客户端类，用于与 AI 模型交互（已废弃，仅作兼容保留）。
 
 
 ## 用法示例
@@ -80,7 +86,7 @@ declare class AIClient {
 interface StreamHandler {
     onData: (data: ChatCompletionStreamResponse) => void;
     onError: (error: AIAdapterError) => void;
-    onDone: () => void;
+    onDone: (finishReason?: string) => void;
 }
 
 ```

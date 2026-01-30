@@ -36,6 +36,7 @@ const sharedSidebarItems = [
       { text: 'AI模型交互工具类', link: 'ai-client' },
       { text: '消息数据管理', link: 'message' },
       { text: '会话数据管理', link: 'conversation' },
+      { text: '工具函数', link: 'utils' },
     ],
   },
 ]
@@ -43,6 +44,7 @@ const sharedSidebarItems = [
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
   { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
+  { text: '迁移指南', link: '/migration/bubble-migration', activeMatch: '/migration/' },
 ]
 
 const sidebar = {
@@ -54,6 +56,17 @@ const sidebar = {
       text: '演示',
       base: '/examples/',
       items: [{ text: '综合示例', link: 'assistant' }],
+    },
+  ],
+  '/migration/': [
+    {
+      text: '迁移指南',
+      base: '/migration/',
+      items: [
+        { text: 'Bubble 气泡', link: 'bubble-migration' },
+        { text: 'useMessage 迁移', link: 'use-message-migration' },
+        { text: 'useConversation 迁移', link: 'use-conversation-migration' },
+      ],
     },
   ],
 }

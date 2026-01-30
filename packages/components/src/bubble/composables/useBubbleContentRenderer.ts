@@ -1,12 +1,13 @@
 import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
 import { computed, inject, provide, toValue } from 'vue'
 import {
-  BUBBLE_CONTENT_RENDERER_MATCHES_KEY,
   BUBBLE_CONTENT_FALLBACK_RENDERER_KEY,
   BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY,
+  BUBBLE_CONTENT_RENDERER_MATCHES_KEY,
 } from '../constants'
-import type { BubbleMessage, BubbleContentRendererMatch } from '../index.type'
+import type { BubbleContentRendererMatch, BubbleMessage, ChatMessageContentItem } from '../index.type'
 import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '../renderers/defaultRenderers'
+import { useContentResolver } from './useContentResolver'
 
 export function setupBubbleContentRenderer(renderers: {
   contentRendererMatches?: MaybeRefOrGetter<Array<BubbleContentRendererMatch>>
@@ -36,16 +37,20 @@ export function setupBubblePropContentRenderer(renderers: {
 
 export function useBubbleContentRenderer(
   message: MaybeRefOrGetter<BubbleMessage>,
-  contentIndex?: number,
+  contentIndex: number,
 ): ComputedRef<Component> {
   const contentRendererMatches = inject(BUBBLE_CONTENT_RENDERER_MATCHES_KEY, defaultContentRendererMatches)
   const fallbackContentRenderer = inject(BUBBLE_CONTENT_FALLBACK_RENDERER_KEY, undefined)
   const propFallbackContentRenderer = inject(BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY, undefined)
+  const contentResolver = useContentResolver()
 
   return computed(() => {
     const msg = toValue(message)
-
-    const match = toValue(contentRendererMatches).find((match) => match.find(msg, contentIndex))
+    const resolvedContent = contentResolver(msg)
+    const content = Array.isArray(resolvedContent)
+      ? (resolvedContent.at(contentIndex ?? 0) as ChatMessageContentItem)
+      : { type: 'text', text: resolvedContent || '' }
+    const match = toValue(contentRendererMatches).find((match) => match.find(msg, content, contentIndex))
     if (match) {
       return match.renderer
     }

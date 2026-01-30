@@ -4,12 +4,12 @@ import { BubbleContentRendererProps } from '../index.type'
 
 const props = defineProps<BubbleContentRendererProps>()
 
-const content = useMessageContent(() => props.message, props.contentIndex)
+const { contentText: content } = useMessageContent(props)
 </script>
 
 <template>
   <p v-if="content" class="tr-bubble__text" data-type="text">
-    {{ typeof content === 'string' ? content : content?.text }}
+    {{ content }}
   </p>
 </template>
 

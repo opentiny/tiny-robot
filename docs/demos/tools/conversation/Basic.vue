@@ -1,73 +1,72 @@
 <template>
-  <h1>会话</h1>
-  <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
-  <div class="actions">
-    <span><b>切换会话</b></span
-    ><tiny-select :modelValue="state.currentId" :options="options" @change="switchConversation($event)"></tiny-select>
-    <tiny-button type="info" @click="createConversation()">创建新对话</tiny-button>
+  <div>
+    <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
+    <tr-sender
+      v-model="inputMessage"
+      :placeholder="isProcessing ? '模拟回复中...' : '请输入您的问题'"
+      :clearable="true"
+      :loading="isProcessing"
+      @submit="handleSubmit"
+      @cancel="abortActiveRequest"
+    ></tr-sender>
+    <div class="actions">
+      <span><b>切换会话</b></span>
+      <tiny-select
+        :modelValue="activeConversationId"
+        :options="options"
+        @change="switchConversation($event)"
+      ></tiny-select>
+      <tiny-button type="info" @click="createConversation()">创建新对话</tiny-button>
+      <tiny-button type="danger" :disabled="!activeConversationId" @click="handleDeleteConversation">
+        删除当前会话
+      </tiny-button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { TrBubbleList, BubbleRoleConfig } from '@opentiny/tiny-robot'
-import { useConversation, AIClient, ConversationStorageStrategy, Conversation } from '@opentiny/tiny-robot-kit'
+import { BubbleRoleConfig, TrBubbleList, TrSender } from '@opentiny/tiny-robot'
+import type { UseMessageOptions } from '@opentiny/tiny-robot-kit'
+import { useConversation } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
-import { TinySelect, TinyButton } from '@opentiny/vue'
-import { computed, h } from 'vue'
+import { TinyButton, TinySelect } from '@opentiny/vue'
+import { computed, h, ref } from 'vue'
+import { mockResponseProvider } from './mockResponseProvider'
+import { MockStorageStrategy } from './mockStorageStrategy'
 
-class MockStorageStrategy implements ConversationStorageStrategy {
-  mockData: Conversation[] = [
-    {
-      id: 'm9zfbomexdm9pza',
-      title: '安排日程',
-      createdAt: 1745744706662,
-      updatedAt: 1745744717297,
-      messages: [
-        {
-          role: 'user',
-          content: '今天需要我帮你安排日程，规划旅行，还是起草一封邮件？',
-        },
-        {
-          role: 'assistant',
-          content: '这是对 "今天需要我帮你安排日程，规划旅行，还是起草一封邮件？" 的模拟回复。',
-        },
-      ],
-      metadata: {},
-    },
-    {
-      id: 'm9zefqta1rihhpj',
-      title: '写段文案',
-      createdAt: 1745743216510,
-      updatedAt: 1745744704671,
-      messages: [
-        {
-          role: 'user',
-          content: '想写段文案、起个名字，还是来点灵感？',
-        },
-        {
-          role: 'assistant',
-          content: '这是对 "想写段文案、起个名字，还是来点灵感？" 的模拟回复。',
-        },
-        {
-          role: 'user',
-          content: 'hello',
-        },
-        {
-          role: 'assistant',
-          content: '你好！我是TinyRobot搭建的AI助手。你可以问我任何问题，我会尽力回答。',
-        },
-      ],
-      metadata: {},
-    },
-  ]
+// useConversation basic usage: useMessageOptions.responseProvider + storage
+const {
+  activeConversation,
+  activeConversationId,
+  conversations,
+  createConversation,
+  switchConversation,
+  deleteConversation,
+  abortActiveRequest,
+} = useConversation({
+  useMessageOptions: {
+    responseProvider: mockResponseProvider as UseMessageOptions['responseProvider'],
+  },
+  storage: new MockStorageStrategy(),
+})
 
-  async saveConversations(conversations: Conversation[]) {
-    this.mockData = conversations
-  }
+const messages = computed(() => activeConversation.value?.engine?.messages.value || [])
+const isProcessing = computed(() => activeConversation.value?.engine?.isProcessing.value ?? false)
+const options = computed(() => conversations.value.map((c) => ({ label: c.title, value: c.id })))
 
-  async loadConversations(): Promise<Conversation[]> {
-    return this.mockData || []
-  }
+const inputMessage = ref('')
+
+function handleSubmit(content: string) {
+  // Auto-create conversation if none exists
+  const conversation = activeConversation.value ?? createConversation()
+  conversation?.engine?.sendMessage(content)
+  inputMessage.value = ''
+}
+
+async function handleDeleteConversation() {
+  const id = activeConversationId.value
+  if (!id) return
+  await deleteConversation(id)
 }
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
@@ -83,30 +82,6 @@ const roles: Record<string, BubbleRoleConfig> = {
     avatar: userAvatar,
   },
 }
-
-const client = new AIClient({
-  provider: 'openai',
-  // apiKey: 'your-api-key',
-  defaultModel: 'gpt-3.5-turbo',
-  apiUrl: window.parent?.location.origin || location.origin + import.meta.env.BASE_URL,
-})
-
-const storage = new MockStorageStrategy()
-const {
-  state,
-  messageManager: { messages }, // 与 useMessage 返回一致，具体查看useMessage
-  createConversation,
-  switchConversation,
-} = useConversation({ client, storage })
-
-const options = computed(() =>
-  state.conversations.map((conversation) => ({
-    label: conversation.title,
-    value: conversation.id,
-  })),
-)
-
-console.log('state: ', state)
 </script>
 
 <style scoped>
@@ -122,6 +97,8 @@ console.log('state: ', state)
 .actions {
   display: flex;
   align-items: center;
-  margin-top: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 </style>

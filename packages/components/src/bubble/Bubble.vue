@@ -1,26 +1,31 @@
 <script setup lang="ts">
-import { computed, toValue } from 'vue'
+import { computed, inject, ref, toValue } from 'vue'
 import BubbleBoxWrapper from './BubbleBoxWrapper.vue'
 import BubbleContentWrapper from './BubbleContentWrapper.vue'
 import {
-  resolveMessageContent,
   setupBubblePropBoxRenderer,
   setupBubblePropContentRenderer,
   setupBubbleStore,
   useBubbleMessageGroup,
+  useContentResolver,
+  useCopyCleanup,
 } from './composables'
-import type { BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
+import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
+import type { BubbleMessage, BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   placement: 'start',
   shape: 'corner',
   contentRenderMode: 'single',
+  contentResolver: (message: BubbleMessage) => message.content,
 })
 
 defineSlots<BubbleSlots>()
 
+const contentResolver = useContentResolver(() => props.contentResolver)
+
 const emit = defineEmits<{
-  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex?: number }): void
+  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
 }>()
 
 // Provide bubble store if not already provided
@@ -39,6 +44,14 @@ const messages = computed(() => {
   return [{ role, content, reasoning_content, tool_calls, tool_call_id, name, id, loading, state }]
 })
 
+const getContentItems = (message: BubbleMessage) => {
+  const content = contentResolver(message)
+  if (Array.isArray(content)) {
+    return content
+  }
+  return [{ type: 'text', text: content || '' }]
+}
+
 // Setup prop-level fallback renderers for responsive tracking
 setupBubblePropBoxRenderer({ fallbackBoxRenderer: () => props.fallbackBoxRenderer })
 setupBubblePropContentRenderer({ fallbackContentRenderer: () => props.fallbackContentRenderer })
@@ -51,17 +64,29 @@ const hidden = computed(() => {
   return props.hidden
 })
 
-const shouldSplit = computed(() => {
-  return (
-    props.contentRenderMode === 'split' &&
-    messages.value.length === 1 &&
-    Array.isArray(resolveMessageContent(messages.value[0]))
-  )
+const shouldSplitedContent = computed(() => {
+  if (props.contentRenderMode === 'split' && messages.value.length === 1) {
+    const content = contentResolver(messages.value.at(0)!)
+    if (Array.isArray(content)) {
+      return content
+    }
+  }
+
+  return null
 })
+
+// 检查 Bubble 是否在 BubbleList 下
+const isInBubbleList = inject(BUBBLE_LIST_CONTEXT_KEY, false)
+const bubbleRef = ref<HTMLDivElement | null>(null)
+
+// 只有当 Bubble 不在 BubbleList 下时才使用 useCopyCleanup
+if (!isInBubbleList) {
+  useCopyCleanup(bubbleRef)
+}
 </script>
 
 <template>
-  <div class="tr-bubble" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
+  <div class="tr-bubble" ref="bubbleRef" v-show="!hidden" :data-role="props.role" :data-placement="props.placement">
     <slot name="prefix" :messages="messages" :role="role"></slot>
     <div class="tr-bubble__body">
       <component
@@ -71,9 +96,10 @@ const shouldSplit = computed(() => {
         :class="$style['tr-bubble__avatar']"
       />
       <div class="tr-bubble__content">
-        <template v-if="shouldSplit">
+        <!-- 在 contentRenderMode 为 split 情况下，如果一个气泡内只有一条消息，且 content 为数组，对每个 content 数组的项都渲染一个 box -->
+        <template v-if="shouldSplitedContent">
           <BubbleBoxWrapper
-            v-for="(_, index) in resolveMessageContent(messages[0])"
+            v-for="(_, index) in shouldSplitedContent"
             :key="index"
             class="tr-bubble__box"
             :role="props.role"
@@ -83,7 +109,7 @@ const shouldSplit = computed(() => {
             :content-index="index"
           >
             <BubbleContentWrapper
-              :message="messages[0]"
+              :message="messages.at(0)!"
               :content-index="index"
               @state-change="emit('state-change', { ...$event, messageIndex: 0 })"
             ></BubbleContentWrapper>
@@ -93,21 +119,13 @@ const shouldSplit = computed(() => {
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
             <template v-for="(message, msgIndex) in messages" :key="`message-${msgIndex}`">
-              <template v-if="Array.isArray(resolveMessageContent(message))">
-                <BubbleContentWrapper
-                  v-for="(_, contentIndex) in resolveMessageContent(message)"
-                  :key="`content-${contentIndex}`"
-                  :message="message"
-                  :content-index="contentIndex"
-                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
-                ></BubbleContentWrapper>
-              </template>
-              <template v-else>
-                <BubbleContentWrapper
-                  :message="message"
-                  @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
-                ></BubbleContentWrapper>
-              </template>
+              <BubbleContentWrapper
+                v-for="(_, contentIndex) in getContentItems(message)"
+                :key="`content-${contentIndex}`"
+                :message="message"
+                :content-index="contentIndex"
+                @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
+              ></BubbleContentWrapper>
             </template>
             <slot name="content-footer" :messages="messages" :role="props.role"></slot>
           </BubbleBoxWrapper>
@@ -142,11 +160,14 @@ const shouldSplit = computed(() => {
   align-items: flex-start;
   gap: 8px;
   width: 100%;
+  user-select: none;
 }
 
 .tr-bubble__box {
   max-width: var(--tr-bubble-max-width);
+  min-width: var(--tr-bubble-min-width);
   width: fit-content;
+  user-select: text;
 }
 
 .tr-bubble__after {
