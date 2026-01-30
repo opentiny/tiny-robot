@@ -6,6 +6,15 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
 
+
+## v0.3.3
+
+`2026-01-30`
+
+### 🐛 问题修复
+
+- **Sender**: 修复提交事件和模板数据清理逻辑，确保非模板模式下不发送空数组和不触发退出模板模式 by @lisong in [#293](https://github.com/opentiny/tiny-robot/pull/293)
+
 ## v0.3.2
 
 `2026-01-28`
