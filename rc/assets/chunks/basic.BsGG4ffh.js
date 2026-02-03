@@ -1,0 +1,1 @@
+import{a0 as n}from"./theme.i2e4G7nn.js";import{N as e,a6 as a,aL as i,t as s,bk as o}from"./framework.D9iQNV5u.js";const f=e({__name:"basic",setup(c){const t=a("span",{style:{fontSize:"56px",lineHeight:"64px"}},"🤖");return(r,p)=>(i(),s(o(n),{title:"TinyRobot2",description:"您好，我是TinyRobot，您专属的 AI 智能专家",icon:o(t)},null,8,["icon"]))}});export{f as default};
