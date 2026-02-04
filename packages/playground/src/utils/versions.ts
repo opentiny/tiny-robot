@@ -4,16 +4,18 @@ interface GetVersionsOptions {
   includeLatest?: boolean // 是否包含 latest tag，默认为 true
 }
 
-const versionCache = new Map<string, string[]>()
+type VersionsResult = { versions: string[]; lastVersion: string | undefined }
+const versionCache = new Map<string, VersionsResult>()
 
-export async function getVersions(pkg: string, options: GetVersionsOptions = {}): Promise<string[]> {
+export async function getVersions(pkg: string, options: GetVersionsOptions = {}): Promise<VersionsResult> {
   const { includePrerelease = false, limit = 20, includeLatest = true } = options
   // 生成缓存键，处理 includePrerelease 可能是数组的情况
   const prereleaseKey = Array.isArray(includePrerelease) ? includePrerelease.join(',') : includePrerelease
   const cacheKey = `${pkg}-${prereleaseKey}-${limit}-${includeLatest}`
 
-  if (versionCache.has(cacheKey)) {
-    return versionCache.get(cacheKey)!
+  const cached = versionCache.get(cacheKey)
+  if (cached) {
+    return cached
   }
 
   try {
@@ -22,6 +24,7 @@ export async function getVersions(pkg: string, options: GetVersionsOptions = {})
     const data = await response.json()
 
     const time: Record<string, string> = data?.time || {}
+    const lastVersion = data['dist-tags']?.latest as string | undefined
     const allVersions = Object.entries(time)
       .filter(([key]) => key !== 'created' && key !== 'modified')
       .slice()
@@ -59,10 +62,11 @@ export async function getVersions(pkg: string, options: GetVersionsOptions = {})
       }
     }
 
-    versionCache.set(cacheKey, versions)
-    return versions
+    const result: VersionsResult = { versions, lastVersion }
+    versionCache.set(cacheKey, result)
+    return result
   } catch (error) {
     console.error(`Failed to fetch versions for ${pkg}:`, error)
-    return ['latest']
+    return { versions: ['latest'], lastVersion: undefined }
   }
 }

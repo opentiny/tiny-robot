@@ -1,4 +1,3 @@
-import pkg from '@opentiny/tiny-robot/package.json' with { type: 'json' }
 import vue from '@vitejs/plugin-vue'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
@@ -17,9 +16,6 @@ export default defineConfig(({ mode }) => {
       plugins: [vue()],
       optimizeDeps: {
         exclude: ['@vue/repl'],
-      },
-      define: {
-        __TINY_ROBOT_VERSION__: JSON.stringify(pkg.version),
       },
     }
   }

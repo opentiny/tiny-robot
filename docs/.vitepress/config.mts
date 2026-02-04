@@ -1,12 +1,9 @@
-import pkg from '@opentiny/tiny-robot/package.json' with { type: 'json' }
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { fileURLToPath } from 'url'
 import { defineConfig } from 'vitepress'
 import { vitepressDemoPlugin } from 'vitepress-demo-plugin'
-import { SidebarBadgePlugin, MarkdownBadgePlugin } from './plugins/badge'
+import { MarkdownBadgePlugin, SidebarBadgePlugin } from './plugins/badge'
 import { themeConfig } from './themeConfig'
-
-const { version } = pkg
 
 const devAlias = {
   '@opentiny/tiny-robot': fileURLToPath(new URL('../../packages/components/src', import.meta.url)),
@@ -46,9 +43,6 @@ export default defineConfig({
       alias: {
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
       },
-    },
-    define: {
-      __TINY_ROBOT_VERSION__: JSON.stringify(version),
     },
   },
   markdown: {
