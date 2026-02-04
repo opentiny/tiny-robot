@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import IconGithub from './components/IconGithub.vue'
+import IconShare from './components/IconShare.vue'
+import { notify } from './utils/notify'
 
 // Define props interface for version data
 interface Props {
@@ -13,6 +15,51 @@ withDefaults(defineProps<Props>(), {
 })
 
 const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: true })
+
+// Compute a shareable URL. When embedded in an iframe, prefer using the
+// full parent page URL (from document.referrer) but replace its hash with
+// the current playground hash, so the internal playground state is encoded
+// in the parent page URL.
+const getShareUrl = () => {
+  if (typeof window === 'undefined') return ''
+
+  const { location } = window
+  const currentHash = location.hash
+
+  try {
+    const referrer = typeof document !== 'undefined' ? document.referrer : ''
+    if (referrer) {
+      const url = new URL(referrer)
+      // When embedded in an iframe, always share the parent origin with a fixed
+      // playground path, and apply the current playground hash.
+      url.pathname = '/tiny-robot.html'
+      url.hash = currentHash
+      return url.toString()
+    }
+  } catch {
+    // Ignore errors and fall back to the current window URL.
+  }
+
+  // Fallback: use the playground's own URL as-is.
+  return location.href
+}
+
+// Handle click on the share URL button: copy the URL to clipboard or show it as a fallback.
+const handleShareClick = async () => {
+  const url = getShareUrl()
+  if (!url) return
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url)
+      // Notify user that the URL has been copied successfully.
+      notify('链接已复制到剪贴板')
+      return
+    }
+  } catch {
+    // If clipboard access fails, fall back to showing the URL in a prompt.
+  }
+}
 </script>
 
 <template>
@@ -31,6 +78,9 @@ const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: tru
             </option>
           </select>
         </div>
+        <button type="button" class="share-button" @click="handleShareClick" aria-label="Copy share URL">
+          <IconShare size="20" />
+        </button>
         <a
           class="github-button"
           href="https://github.com/opentiny/tiny-robot"
@@ -82,6 +132,27 @@ const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: tru
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.share-button {
+  background: transparent;
+  border-radius: 999px;
+  color: #333;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-button:hover {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 .version-selector {
