@@ -4,6 +4,7 @@ import IconGithub from './components/IconGithub.vue'
 // Define props interface for version data
 interface Props {
   tinyRobotVersions: string[]
+  tinyRobotLatestVersion?: string
 }
 
 // Define props with default values
@@ -26,7 +27,7 @@ const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: tru
           <label for="tiny-robot-version" class="version-label">TinyRobot 版本:</label>
           <select id="tiny-robot-version" v-model="tinyRobotVersion" class="version-select">
             <option v-for="version in tinyRobotVersions" :key="version" :value="version">
-              {{ version }}
+              {{ version }}{{ version === 'latest' && tinyRobotLatestVersion ? ` (${tinyRobotLatestVersion})` : '' }}
             </option>
           </select>
         </div>
@@ -96,6 +97,7 @@ const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: tru
 }
 
 .version-select {
+  min-width: 130px;
   padding: 0.375rem 0.75rem;
   border: 1px solid #ced4da;
   border-radius: 0.375rem;

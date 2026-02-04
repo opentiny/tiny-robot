@@ -10,7 +10,6 @@ declare global {
     __SW_REGISTERED__?: boolean
     __CODE_PLAYGROUND_LISTENED__?: boolean
   }
-  const __TINY_ROBOT_VERSION__: string
 }
 
 export default {
@@ -80,7 +79,7 @@ function listenCodePlaygroundEvent() {
       })
     }
 
-    const tinyRobotVersion = __TINY_ROBOT_VERSION__ || 'latest'
+    const tinyRobotVersion = 'latest'
     const defaultFiles = getDefaultFiles({ tinyRobotVersion })
     const cssFile = defaultFiles.find((file) => file.filename === 'src/index.css')
     if (cssFile) {
