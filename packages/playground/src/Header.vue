@@ -16,10 +16,9 @@ withDefaults(defineProps<Props>(), {
 
 const tinyRobotVersion = defineModel<string>('tinyRobotVersion', { required: true })
 
-// Compute a shareable URL. When embedded in an iframe, prefer using the
-// full parent page URL (from document.referrer) but replace its hash with
-// the current playground hash, so the internal playground state is encoded
-// in the parent page URL.
+// 获取分享链接
+// 1. 如果当前页面是 iframe，则使用 document.referrer 获取父页面 URL
+// 2. 如果当前页面不是 iframe，则使用当前页面 URL
 const getShareUrl = () => {
   if (typeof window === 'undefined') return ''
 
@@ -30,17 +29,13 @@ const getShareUrl = () => {
     const referrer = typeof document !== 'undefined' ? document.referrer : ''
     if (referrer) {
       const url = new URL(referrer)
-      // When embedded in an iframe, always share the parent origin with a fixed
-      // playground path, and apply the current playground hash.
+      // 这里写死 pathname。https://playground.opentiny.design/tiny-robot.html
       url.pathname = '/tiny-robot.html'
       url.hash = currentHash
       return url.toString()
     }
-  } catch {
-    // Ignore errors and fall back to the current window URL.
-  }
+  } catch {}
 
-  // Fallback: use the playground's own URL as-is.
   return location.href
 }
 
@@ -52,13 +47,9 @@ const handleShareClick = async () => {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(url)
-      // Notify user that the URL has been copied successfully.
       notify('链接已复制到剪贴板')
-      return
     }
-  } catch {
-    // If clipboard access fails, fall back to showing the URL in a prompt.
-  }
+  } catch {}
 }
 </script>
 

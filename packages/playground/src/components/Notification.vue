@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 // Props for a simple top-centered notification
 const props = withDefaults(
@@ -17,19 +17,37 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false)
+let showFrameId: number | null = null
+let hideTimer: ReturnType<typeof setTimeout> | null = null
+let closeTimer: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   // Show with a small delay to ensure transition works
-  requestAnimationFrame(() => {
+  showFrameId = requestAnimationFrame(() => {
     visible.value = true
   })
 
   // Auto hide after specified duration
-  window.setTimeout(() => {
+  hideTimer = setTimeout(() => {
     visible.value = false
     // Give transition time before unmounting
-    window.setTimeout(() => emit('close'), 200)
+    closeTimer = setTimeout(() => emit('close'), 200)
   }, props.duration)
+})
+
+onUnmounted(() => {
+  if (showFrameId !== null) {
+    cancelAnimationFrame(showFrameId)
+    showFrameId = null
+  }
+  if (hideTimer) {
+    clearTimeout(hideTimer)
+    hideTimer = null
+  }
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
 })
 </script>
 
