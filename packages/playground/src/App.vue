@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Repl } from '@vue/repl'
 import Monaco from '@vue/repl/monaco-editor'
-import { nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
+import { nextTick, onMounted, ref, watch, watchEffect } from 'vue'
 import Header from './Header.vue'
 import { generateImportMap, generateStore, getDefaultFiles, getVersions } from './utils'
 
@@ -139,38 +139,6 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load TinyRobot versions:', error)
   }
-})
-
-function onHostMessage(event: MessageEvent) {
-  // Security: only accept messages from trusted origins.
-  if (!isAllowedMessageOrigin(event.origin)) {
-    return
-  }
-
-  if (typeof event.data === 'object' && event.data?.type === 'playground-parent-url') {
-    const parentUrl = String(event.data?.url || '')
-
-    // Extract the hash, then `store.deserialize(hash)` and sync `tinyRobotVersion`.
-    try {
-      const url = new URL(parentUrl)
-      const hash = url.hash
-      if (hash) {
-        store.deserialize(hash)
-        syncTinyRobotVersionFromImportMap()
-        triggerFullRecompile()
-      }
-    } catch {
-      // Ignore invalid URLs.
-    }
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('message', onHostMessage)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('message', onHostMessage)
 })
 </script>
 
