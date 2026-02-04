@@ -48,6 +48,37 @@ function triggerFullRecompile() {
   store.setFiles(store.getFiles(), store.mainFile)
 }
 
+// Listen for messages from the host app (useful when embedded in an iframe).
+const ALLOWED_ORIGINS = ['https://playground.opentiny.design'] as const
+
+function isAllowedMessageOrigin(origin: string): boolean {
+  // Allow local dev (any port) and the official playground domain.
+  if (!origin) return false
+  if (ALLOWED_ORIGINS.includes(origin as (typeof ALLOWED_ORIGINS)[number])) return true
+
+  try {
+    const url = new URL(origin)
+    const host = url.hostname.toLowerCase()
+    if (host === 'localhost' || host === '127.0.0.1') return true
+    return false
+  } catch {
+    return false
+  }
+}
+
+// 使用 document.referrer 推导父页面的 origin，在跨域场景下无法直接访问 window.parent.location
+function getParentOrigin(): string | null {
+  try {
+    const referrer = document.referrer
+    if (!referrer) return null
+    const url = new URL(referrer)
+    const origin = url.origin
+    return isAllowedMessageOrigin(origin) ? origin : null
+  } catch {
+    return null
+  }
+}
+
 if (location.hash) {
   try {
     store.deserialize(location.hash)
@@ -62,7 +93,13 @@ watchEffect(() => {
   const serialized = store.serialize()
   history.replaceState({}, '', serialized)
   if (window.self !== window.top) {
-    window.parent.postMessage({ type: 'playground-hash-change', url: window.location.href, hash: serialized }, '*')
+    const targetOrigin = getParentOrigin()
+    if (targetOrigin) {
+      window.parent.postMessage(
+        { type: 'playground-hash-change', url: window.location.href, hash: serialized },
+        targetOrigin,
+      )
+    }
   }
 })
 
@@ -103,24 +140,6 @@ onMounted(async () => {
     console.error('Failed to load TinyRobot versions:', error)
   }
 })
-
-// Listen for messages from the host app (useful when embedded in an iframe).
-const ALLOWED_ORIGINS = ['https://playground.opentiny.design'] as const
-
-function isAllowedMessageOrigin(origin: string): boolean {
-  // Allow local dev (any port) and the official playground domain.
-  if (!origin) return false
-  if (ALLOWED_ORIGINS.includes(origin as (typeof ALLOWED_ORIGINS)[number])) return true
-
-  try {
-    const url = new URL(origin)
-    const host = url.hostname.toLowerCase()
-    if (host === 'localhost' || host === '127.0.0.1') return true
-    return false
-  } catch {
-    return false
-  }
-}
 
 function onHostMessage(event: MessageEvent) {
   // Security: only accept messages from trusted origins.
