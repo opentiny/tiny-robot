@@ -1,5 +1,11 @@
 # TinyRobot
 
+<p align="center">
+  <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
+    <img alt="OpenTiny Logo" src="logo.svg" height="100" style="max-width:100%;">
+  </a>
+</p>
+
 [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -15,6 +21,10 @@
 - 📦 **Tree Shaking**: Optimized for tree shaking, import only what you need
 - 🔄 **Streaming Support**: Built-in support for streaming AI responses
 - 💾 **Storage Strategy**: Flexible storage strategies (LocalStorage, IndexedDB, custom)
+
+English | [简体中文](README_zh.md)
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
 
 ## 📦 Packages
 

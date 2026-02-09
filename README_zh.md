@@ -1,5 +1,11 @@
 # TinyRobot
 
+<p align="center">
+  <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
+    <img alt="OpenTiny Logo" src="logo.svg" height="100" style="max-width:100%;">
+  </a>
+</p>
+
 [![npm version](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -16,15 +22,19 @@
 - 🔄 **流式支持**：内置流式 AI 响应支持
 - 💾 **存储策略**：灵活的存储策略（LocalStorage、IndexedDB、自定义）
 
+[English](README.md) | 简体中文
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
+
 ## 📦 包说明
 
 TinyRobot 是一个 monorepo，包含以下包：
 
-| 包                                                      | 说明                                           | 版本                                                                                                                       |
-| ------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| [`@opentiny/tiny-robot`](./packages/components)         | 核心组件库，包含所有 AI 交互组件               | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)      |
-| [`@opentiny/tiny-robot-kit`](./packages/kit)            | 工具函数和 AI 客户端工具，用于模型交互         | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit) |
-| [`@opentiny/tiny-robot-svgs`](./packages/svgs)          | SVG 图标库，包含所有组件所需的图标             | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
+| 包                                              | 说明                                   | 版本                                                                                                                          |
+| ----------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| [`@opentiny/tiny-robot`](./packages/components) | 核心组件库，包含所有 AI 交互组件       | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)           |
+| [`@opentiny/tiny-robot-kit`](./packages/kit)    | 工具函数和 AI 客户端工具，用于模型交互 | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit)   |
+| [`@opentiny/tiny-robot-svgs`](./packages/svgs)  | SVG 图标库，包含所有组件所需的图标     | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
 
 ## 🚀 快速开始
 
