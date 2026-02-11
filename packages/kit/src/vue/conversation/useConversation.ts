@@ -1,10 +1,10 @@
 import { computed, ref, watch, WatchStopHandle } from 'vue'
+import { localStorageStrategyFactory } from '../../storage/factories'
 import { ChatMessage } from '../../types'
 import { UseMessageOptions, UseMessageReturn } from '../message/types'
 import { useMessage } from '../message/useMessage'
 import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
 import { useThrottleFn } from './useThrottleFn'
-import { localStorageStrategyFactory } from '../../storage/factories'
 
 export const useConversation = (options: UseConversationOptions): UseConversationReturn => {
   // 如果没有提供存储策略，使用默认的 LocalStorage 策略
@@ -117,11 +117,15 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     Promise.resolve(storage.loadConversations())
       .then((list) => {
         // 如果加载的列表为空，直接返回
-        if (!list?.length) return
+        if (!list?.length) {
+          options.onLoad?.([])
+          return
+        }
 
         // 如果当前内存中的会话列表为空，直接使用加载的列表
         if (conversations.value.length === 0) {
           conversations.value = list
+          options.onLoad?.(conversations.value)
           return
         }
 
@@ -136,6 +140,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
           }
         })
         conversations.value = Array.from(merged.values())
+        options.onLoad?.(conversations.value)
 
         // 确保 activeConversation 对应的会话在合并后的列表中
         // 如果 activeConversationId 存在但对应的会话不在列表中，说明可能被意外删除
