@@ -124,7 +124,7 @@ Bubble 组件支持渲染图片内容。当 `content` 为数组且包含 `type: 
 
 ### 分组策略
 
-BubbleList 支持多种分组策略：
+BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会归为同一组。
 
 **连续分组（consecutive）**
 
@@ -138,16 +138,16 @@ BubbleList 支持多种分组策略：
 
 <demo vue="../../demos/bubble/list-custom-group.vue" />
 
-**数组内容的分组**
+**数组内容的展示**
 
-当 `message.role === 'user'` 且 `content` 为数组时，该消息会被单独作为一个独立分组（密封），后续的消息（即使角色相同）也不会被添加到这个分组中。
+当消息的 `content` 为数组时，每一项的渲染方式由 `contentRenderMode` 与**当前组的消息条数**共同决定：
+
+- 若 `contentRenderMode` 为 `'split'` **且** 当前组仅包含 1 条消息，则数组的每一项会单独渲染为一个 box。
+- 若不满足上述条件（例如为 `'single'` 模式，或组内有多条消息），则不会按数组项拆成多个 box，所有内容在同一 box 内渲染。
+
+下方示例中，第一个气泡为单条消息且 `content` 为数组、`contentRenderMode="split"`，因此出现多个 box；其余气泡为单条消息且 `content` 为字符串，或组内有多条消息，因此每个气泡一个 box。
 
 <demo vue="../../demos/bubble/list-array-content.vue" />
-
-> **注意**：分组策略的特殊处理规则：
->
-> - 当 `message.role === 'user'` 且 `content` 为数组时，该消息会被单独作为一个独立分组（密封），后续的消息（即使角色相同）也不会被添加到这个分组中
-> - `hidden` 消息的分组规则：连续的 `hidden` 消息可以同一组
 
 ### 隐藏角色
 
@@ -379,7 +379,7 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 | 属性                | 类型                                                          | 默认值                         | 说明                                                                                                                                                                                                            |
 | ------------------- | ------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `messages`          | `BubbleMessage[]`                                             | -                              | **必填**，消息数组                                                                                                                                                                                              |
-| `groupStrategy`     | `'consecutive' \| 'divider' \| BubbleGroupFunction`           | `'divider'`                    | 分组策略：<br/>- `'consecutive'`: 连续相同角色的消息合并为一组<br/>- `'divider'`: 按分割角色分组（连续的分割角色在一组，其他消息在另一组）<br/>- 自定义函数: `(messages, dividerRole?) => BubbleMessageGroup[]` |
+| `groupStrategy`     | `'consecutive' \| 'divider' \| BubbleGroupFunction`           | `'divider'`                    | 分组策略：<br/>- `'consecutive'`: 连续相同角色的消息合并为一组<br/>- `'divider'`: 按分割角色分组（每条分割角色消息单独成组，其他消息在两个分割角色之间合并为一组）<br/>- 自定义函数: `(messages, dividerRole?) => BubbleMessageGroup[]` |
 | `dividerRole`       | `string`                                                      | `'user'`                       | `'divider'` 策略的分割角色，具有此角色的消息将作为分割线                                                                                                                                                        |
 | `fallbackRole`      | `string`                                                      | `'assistant'`                  | 当消息没有角色或角色为空时，使用此角色                                                                                                                                                                          |
 | `roleConfigs`       | `Record<string, BubbleRoleConfig>`                            | -                              | 每个角色的默认配置项（头像、位置、形状等）                                                                                                                                                                      |

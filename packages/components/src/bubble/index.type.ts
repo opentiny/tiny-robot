@@ -132,12 +132,11 @@ export interface BubbleListProps {
   /**
    * 分组策略：
    * - 'consecutive': 连续相同角色的消息合并为一组
-   * - 'divider': 按分割角色分组（连续的分割角色在一组，其他消息在另一组）
+   * - 'divider': 按分割角色分组（每条分割角色消息单独成组，其他消息在两个分割角色之间合并为一组）
    * - 自定义函数: (messages, dividerRole) => BubbleMessageGroup[]
    *
    * 特殊情况：
-   * - 当 message 的 content 为数组时，且 message.role === 'user'，该 message 会被单独作为一个独立分组
-   * - 该独立分组会被"密封"，后续的消息（即使角色相同）也不会被添加到这个分组中
+   * - hidden 的消息需要单独分组，连续的 hidden 可以同一组
    */
   groupStrategy?: 'consecutive' | 'divider' | BubbleGroupFunction
   /**

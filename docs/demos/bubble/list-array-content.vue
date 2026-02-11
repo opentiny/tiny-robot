@@ -1,9 +1,10 @@
 <template>
   <div style="display: flex; flex-direction: column; gap: 16px">
     <p style="font-size: 12px; color: #666; margin: 0">
-      当 message.role === 'user' 且 content 为数组时，该消息会被单独分组（密封），后续消息不会合并到该组。
+      满足「contentRenderMode 为 split 且组内只有 1 条消息」时，数组 content 的每一项会单独渲染为一个 box； 否则在同一
+      box 内渲染。下例中第一个气泡满足该条件（单条消息 + 数组 content + split），故出现多个 box。
     </p>
-    <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
+    <tr-bubble-list :messages="messages" :role-configs="roles" content-render-mode="split"></tr-bubble-list>
   </div>
 </template>
 
@@ -15,24 +16,24 @@ import { h } from 'vue'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
+// 第一个气泡：单条消息 + content 为数组，且 contentRenderMode="split" → 每项单独一个 box
+// 第二、三个气泡：单条消息 + content 为字符串 → 各一个 box
 const messages: BubbleListProps['messages'] = [
   {
     role: 'user',
-    // role 为 user 且 content 为数组时，会被单独分组（密封）
     content: [
-      { type: 'text', text: '第一部分' },
-      { type: 'text', text: '第二部分' },
+      { type: 'text', text: '数组第一项' },
+      { type: 'text', text: '数组第二项' },
+      { type: 'text', text: '数组第三项' },
     ],
   },
   {
     role: 'ai',
-    // 上一条为 user+数组（密封），所以这条单独成组
-    content: '第二条消息（单独成组）',
+    content: '单条消息，字符串 content，一个 box',
   },
   {
-    role: 'ai',
-    // 与上一条角色相同且上一条非密封，合并到同一组
-    content: '第三条消息（与第二条合并）',
+    role: 'user',
+    content: '单条消息，字符串 content，一个 box',
   },
 ]
 
