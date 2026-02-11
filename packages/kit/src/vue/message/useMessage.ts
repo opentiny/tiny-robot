@@ -155,6 +155,14 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     return Boolean(plugin.disabled)
   }
 
+  // If object is not empty and at least one property converts to truthy boolean, return true
+  const objectDataIsValid = (obj: Record<string, unknown> | null | undefined) => {
+    if (!obj || Object.keys(obj).length === 0) {
+      return false
+    }
+    return Object.values(obj).some((value) => Boolean(value))
+  }
+
   const executeRequest = async (responseProvider: UseMessageOptions['responseProvider'], abortSignal: AbortSignal) => {
     setRequestState('processing', 'requesting')
 
@@ -210,7 +218,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
           message.metadata.updatedAt = Math.floor(Date.now() / 1000)
           Object.assign(message.metadata, rest)
 
-          combileDeltaData(message, choice.message || choice.delta)
+          // choice.message 和 choice.delta 可能同时存在
+          let data = objectDataIsValid(choice.delta) ? choice.delta : choice.message
+          if (!data) {
+            data = choice.delta || choice.message || {}
+          }
+
+          combileDeltaData(message, data)
         }
 
         if (onCompletionChunk) {
