@@ -26,7 +26,7 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 **工具**
 
 - **useMessage**: 引入插件体系与生命周期钩子，支持在请求前、流式响应等阶段扩展处理逻辑。 by @Gene in [#286](https://github.com/opentiny/tiny-robot/pull/286)
-- **useConversation**: 新增 `onLoad` 回调，在初始会话列表加载完成后触发。 by @Gene in [#304](https://github.com/opentiny/tiny-robot/pull/304)
+- **useConversation**: 重构会话管理架构，将会话列表 `conversations` 与消息 `messages` 解耦，读取会话列表时不再一次性加载全部消息，并通过后台引擎池支持多个对话同时“在后台运行”且随时切换。 by @Gene in [#304](https://github.com/opentiny/tiny-robot/pull/304)
 - **Kit 存储**: 抽象统一存储策略接口与工具函数；优化 LocalStorage 与 IndexedDB 实现。 by @Gene in [#286](https://github.com/opentiny/tiny-robot/pull/286)
 
 ### 🔨 优化改进
