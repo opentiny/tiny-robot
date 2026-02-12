@@ -29,7 +29,7 @@ body:
     attributes:
       label: Link to minimal reproduction
       description: |
-        **Provide a streamlined CodePen / CodeSandbox or GitHub repository link as much as possible. Please don't fill in a link randomly, it will only close your issue directly.**
+        **Whenever possible, provide a minimal reproduction using the TinyRobot Playground at https://playground.opentiny.design/tiny-robot.html. Please do not paste random links, as this will lead to the issue being closed.**
       placeholder: Please Input
     validations:
       required: true
