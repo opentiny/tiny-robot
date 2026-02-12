@@ -5,6 +5,65 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+## v0.4.0
+
+`2026-02-12`
+
+> [!IMPORTANT]
+> **Breaking Changes**:
+> - **Bubble / Sender / Kit**: 气泡组件、消息发送组件和消息工具整体重构，内部结构与部分类型定义有较大调整，升级时请参考最新文档与迁移指引。
+
+### ✨ 新特性
+
+**组件**
+
+- **Sender**: 支持通过 `enterkeyhint` 属性自定义移动端虚拟键盘回车键提示，提升移动端输入体验 by @SonyLeo in [#292](https://github.com/opentiny/tiny-robot/pull/292)
+- **Sender**: 支持使用 `Ctrl+Enter` 与 `Shift+Enter` 在输入框中插入换行，使快捷键行为更加灵活可控 by @SonyLeo in [#263](https://github.com/opentiny/tiny-robot/pull/263)
+- **Sender**: 使用 `IconRecordingWave` 图标替换原有波形图片资源，提升语音输入按钮的一致性与可定制性 by @SonyLeo in [#285](https://github.com/opentiny/tiny-robot/pull/285)
+- **Bubble**: 气泡组件支持 OpenAI 风格消息结构（包括 `tool_calls`、`reasoning_content` 等），新增 `contentRenderMode`、`contentResolver` 与可配置渲染器匹配规则，增强复杂内容展示能力 by @Gene in [#266](https://github.com/opentiny/tiny-robot/pull/266) [#286](https://github.com/opentiny/tiny-robot/pull/286)
+- **BubbleList**: 扩展分组策略，支持按连续角色分组、分割角色分组与自定义分组函数，并在隐藏消息场景下保持分组正确性 by @Gene in [#305](https://github.com/opentiny/tiny-robot/pull/305)
+- **McpServerPicker**: 新增 `header-actions` 插槽，支持在面板头部区域注入自定义操作按钮或链接 by @SonyLeo in [#274](https://github.com/opentiny/tiny-robot/pull/274)
+
+**工具**
+
+- **useMessage**: 引入插件体系与默认插件（`fallbackRolePlugin`、`thinkingPlugin`、`lengthPlugin`），支持在请求前与流式响应过程中扩展行为和自定义上下文 by @Gene in [#286](https://github.com/opentiny/tiny-robot/pull/286)
+- **useConversation**: 新增 `onLoad` 回调，在初始会话列表加载完成后触发，便于在加载完成后执行自定义初始化逻辑 by @Gene in [#304](https://github.com/opentiny/tiny-robot/pull/304)
+- **Kit 存储**: 优化本地存储策略实现，统一 LocalStorage 与 IndexedDB 策略类型和工具函数 by @Gene in [#286](https://github.com/opentiny/tiny-robot/pull/286)
+
+### 🔨 优化改进
+
+- **Sender**: 消息发送组件整体重构，拆分动作按钮、扩展与上下文管理模块，改进类型定义与内部结构，提高可维护性与可扩展性 by @SonyLeo in [#283](https://github.com/opentiny/tiny-robot/pull/283)
+- **Bubble**: 重构气泡组件与渲染器实现，优化样式与动画，并提升多种内容类型组合展示时的稳定性 by @Gene in [#266](https://github.com/opentiny/tiny-robot/pull/266) [#286](https://github.com/opentiny/tiny-robot/pull/286)
+- **BubbleList**: 简化并优化分组逻辑，在多角色与隐藏消息混合场景下保持渲染结果一致且易于控制 by @Gene in [#305](https://github.com/opentiny/tiny-robot/pull/305)
+
+### 🐛 问题修复
+
+- **useMessage**: 修复流式响应中 `choice.delta` 与 `choice.message` 同时存在时的数据合并逻辑，避免内容缺失或覆盖异常 by @Gene in [#297](https://github.com/opentiny/tiny-robot/pull/297)
+
+## v0.3.3
+
+`2026-01-29`
+
+### 🐛 问题修复
+
+- **Sender**: 更新提交事件与模板数据清理逻辑，修复在部分场景下存在模板残留或重复提交的问题 by @SonyLeo in [#293](https://github.com/opentiny/tiny-robot/pull/293)
+
+## v0.3.2
+
+`2026-01-28`
+
+### ✨ 新特性
+
+**组件**
+
+- **Sender**: 支持使用 `Ctrl+Enter` 与 `Shift+Enter` 在输入框中插入换行，改善多行编辑体验 by @SonyLeo in [#263](https://github.com/opentiny/tiny-robot/pull/263)
+- **Sender**: 使用 `IconRecordingWave` 图标替换原有波形图片资源，优化语音输入按钮视觉效果 by @SonyLeo in [#284](https://github.com/opentiny/tiny-robot/pull/284)
+- **McpServerPicker**: 新增 `header-actions` 插槽，允许在面板头部区域自定义操作入口 by @SonyLeo in [#274](https://github.com/opentiny/tiny-robot/pull/274)
+
+### 🐛 问题修复
+
+- **Sender**: 使用响应式 ref 管理文件选择对话框选项，修复文件上传配置在部分场景下不同步的问题 by @SonyLeo in [#282](https://github.com/opentiny/tiny-robot/pull/282)
+
 ## v0.3.1
 
 `2025-12-30`
