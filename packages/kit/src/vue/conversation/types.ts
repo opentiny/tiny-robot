@@ -45,6 +45,11 @@ export interface UseConversationOptions {
    * When provided, conversation list and messages can be loaded and persisted.
    */
   storage?: ConversationStorageStrategy
+  /**
+   * Called when the initial conversation list has been loaded from storage.
+   * Only fired when storage.loadConversations is available and has completed.
+   */
+  onLoad?: (conversations: ConversationInfo[]) => void
 }
 
 export interface UseConversationReturn {
