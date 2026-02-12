@@ -33,9 +33,9 @@ const sharedSidebarItems = [
     text: '工具',
     base: '/tools/',
     items: [
-      { text: 'AI模型交互工具类', link: 'ai-client' },
-      { text: '消息数据管理', link: 'message' },
-      { text: '会话数据管理', link: 'conversation' },
+      { text: 'useMessage 消息数据管理', link: 'message' },
+      { text: 'useConversation 会话数据管理', link: 'conversation' },
+      { text: 'AIClient 模型交互工具类', link: 'ai-client' },
       { text: '工具函数', link: 'utils' },
     ],
   },
