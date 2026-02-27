@@ -11,9 +11,9 @@
 
 完整 API 请参考文档：
 
-- `useMessage`：`docs/src/tools/message.md`
-- `useConversation`：`docs/src/tools/conversation.md`
-- 工具函数：`docs/src/tools/utils.md`
+- `useMessage`：<https://docs.opentiny.design/tiny-robot/tools/message>
+- `useConversation`：<https://docs.opentiny.design/tiny-robot/tools/conversation>
+- 工具函数：<https://docs.opentiny.design/tiny-robot/tools/utils>
 
 ## 安装
 
@@ -48,7 +48,7 @@ const message = useMessage({
 })
 ```
 
-更多进阶用法（流式响应、插件、自定义分块（chunk）处理、工具调用等），请查看 `docs/src/tools/message.md`。
+更多进阶用法（流式响应、插件、自定义分块（chunk）处理、工具调用等），请查看 <https://docs.opentiny.design/tiny-robot/tools/message>。
 
 ### useConversation —— 管理多会话
 
@@ -72,7 +72,7 @@ const { conversations, activeConversation, createConversation, switchConversatio
 })
 ```
 
-例如 `localStorageStrategyFactory` 和 `indexedDBStorageStrategyFactory` 等存储策略的详细用法，请参考 `docs/src/tools/conversation.md`。
+例如 `localStorageStrategyFactory` 和 `indexedDBStorageStrategyFactory` 等存储策略的详细用法，请参考 <https://docs.opentiny.design/tiny-robot/tools/conversation>。
 
 ### 工具函数 Utils —— 处理 SSE 与响应
 
@@ -83,4 +83,4 @@ Utils 模块提供了一些与 `useMessage` 搭配使用的常用工具函数：
 - `extractTextFromResponse`：从大模型响应中提取纯文本内容。
 - `handleSSEStream`：通过回调方式消费 SSE 流式响应。
 
-详细函数签名与行为说明，请查看 `docs/src/tools/utils.md`。
+详细函数签名与行为说明，请查看 <https://docs.opentiny.design/tiny-robot/tools/utils>。
