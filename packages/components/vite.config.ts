@@ -1,9 +1,28 @@
 import vue from '@vitejs/plugin-vue'
 import vuejsx from '@vitejs/plugin-vue-jsx'
-import { readdirSync } from 'fs'
+import { readdirSync, copyFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, Plugin } from 'vite'
 import dts from 'vite-plugin-dts'
+
+function copyRootReadmeToComponents(): Plugin {
+  return {
+    name: 'copy-root-readme-to-components',
+    apply: 'build' as const,
+    closeBundle() {
+      const rootReadme = resolve(__dirname, '../../README.md')
+      const targetReadme = resolve(__dirname, 'README.md')
+
+      if (!existsSync(rootReadme)) {
+        console.warn('[tiny-robot] Root README.md not found:', rootReadme)
+        return
+      }
+
+      copyFileSync(rootReadme, targetReadme)
+      console.log('[tiny-robot] Copied root README.md to packages/components/README.md')
+    },
+  }
+}
 
 // 构建入口
 const entries = {
@@ -31,6 +50,7 @@ export default defineConfig({
       entryRoot: 'src',
       tsconfigPath: './tsconfig.json',
     }),
+    copyRootReadmeToComponents(),
   ],
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],

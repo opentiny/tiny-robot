@@ -1,10 +1,36 @@
 {
   "name": "@opentiny/tiny-robot-kit",
   "version": "0.4.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opentiny/tiny-robot.git",
+    "homepage": "https://docs.opentiny.design/tiny-robot/"
+  },
+  "bugs": {
+    "url": "https://github.com/opentiny/tiny-robot/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
   "description": "AI大模型请求与数据处理工具包",
+  "keywords": [
+    "vue",
+    "vue3",
+    "ai",
+    "ai-client",
+    "ai-sdk",
+    "chat",
+    "chatbot",
+    "llm",
+    "openai",
+    "assistant",
+    "streaming",
+    "composables",
+    "conversation",
+    "model-provider",
+    "tiny-robot",
+    "opentiny"
+  ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
