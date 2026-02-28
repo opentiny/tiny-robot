@@ -37,7 +37,8 @@
   "module": "./dist/index.js",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "README*"
   ],
   "scripts": {
     "dev": "vue-tsc && vite build --watch",
