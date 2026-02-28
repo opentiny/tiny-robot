@@ -10,16 +10,18 @@ function copyRootReadmeToComponents(): Plugin {
     name: 'copy-root-readme-to-components',
     apply: 'build' as const,
     closeBundle() {
-      const rootReadme = resolve(__dirname, '../../README.md')
-      const targetReadme = resolve(__dirname, 'README.md')
+      const rootFiles = ['README.md', 'README_zh.md', 'LICENSE']
 
-      if (!existsSync(rootReadme)) {
-        console.warn('[tiny-robot] Root README.md not found:', rootReadme)
-        return
+      for (const file of rootFiles) {
+        const rootFile = resolve(__dirname, `../../${file}`)
+        const targetFile = resolve(__dirname, `./${file}`)
+
+        if (!existsSync(rootFile)) {
+          console.warn(`[tiny-robot] Root ${file} not found: ${rootFile}`)
+          continue
+        }
+        copyFileSync(rootFile, targetFile)
       }
-
-      copyFileSync(rootReadme, targetReadme)
-      console.log('[tiny-robot] Copied root README.md to packages/components/README.md')
     },
   }
 }

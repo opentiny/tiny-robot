@@ -2,10 +2,10 @@
   "name": "@opentiny/tiny-robot-svgs",
   "version": "0.4.0",
   "license": "MIT",
+  "homepage": "https://docs.opentiny.design/tiny-robot/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/opentiny/tiny-robot.git",
-    "homepage": "https://docs.opentiny.design/tiny-robot/"
+    "url": "git+https://github.com/opentiny/tiny-robot.git"
   },
   "bugs": {
     "url": "https://github.com/opentiny/tiny-robot/issues"
