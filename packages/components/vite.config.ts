@@ -10,7 +10,7 @@ function copyRootReadmeToComponents(): Plugin {
     name: 'copy-root-readme-to-components',
     apply: 'build' as const,
     closeBundle() {
-      const rootFiles = ['README.md', 'README_zh.md', 'LICENSE']
+      const rootFiles = ['README.md', 'README.zh-CN.md', 'LICENSE']
 
       for (const file of rootFiles) {
         const rootFile = resolve(__dirname, `../../${file}`)

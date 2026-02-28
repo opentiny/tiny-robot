@@ -22,7 +22,7 @@
 - 🔄 **Streaming Support**: Built-in support for streaming AI responses
 - 💾 **Storage Strategy**: Flexible storage strategies (LocalStorage, IndexedDB, custom)
 
-English | [简体中文](README_zh.md)
+English | [简体中文](README.zh-CN.md)
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
 
