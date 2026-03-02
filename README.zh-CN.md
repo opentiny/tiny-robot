@@ -175,7 +175,7 @@ MIT 许可证 - 查看 [LICENSE](https://github.com/opentiny/tiny-robot/blob/HEA
 
 ## 🤝 贡献
 
-欢迎贡献！请阅读[贡献指南](./CONTRIBUTING_zh.md)了解推荐的工作流程、Commit 规范以及如何提交 Issue 和 Pull Request。
+欢迎贡献！请阅读[贡献指南](https://github.com/opentiny/tiny-robot/blob/HEAD/CONTRIBUTING_zh.md)了解推荐的工作流程、Commit 规范以及如何提交 Issue 和 Pull Request。
 
 ## 📞 支持
 

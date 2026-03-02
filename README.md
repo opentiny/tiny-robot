@@ -175,7 +175,7 @@ MIT License - see [LICENSE](https://github.com/opentiny/tiny-robot/blob/HEAD/LIC
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) to understand the recommended workflow, commit message conventions, and how to submit Issues and Pull Requests.
+Contributions are welcome! Please read our [Contributing Guide](https://github.com/opentiny/tiny-robot/blob/HEAD/CONTRIBUTING.md) to understand the recommended workflow, commit message conventions, and how to submit Issues and Pull Requests.
 
 ## 📞 Support
 
