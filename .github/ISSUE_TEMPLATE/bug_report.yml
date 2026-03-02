@@ -1,0 +1,69 @@
+name: '🐛 Bug report'
+description: Create a report to help us improve Tiny Robot
+title: '🐛 [Bug]: '
+labels: ['🐛 bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please fill out the following carefully in order to better fix the problem.
+  - type: input
+    id: tiny-robot-version
+    attributes:
+      label: Tiny Robot Version
+      description: |
+        ### **Check if the issue is reproducible with the latest stable version.**
+        You can use the command `npm ls @opentiny/tiny-robot` to view it
+      placeholder: latest
+    validations:
+      required: true
+  - type: input
+    id: vue-version
+    attributes:
+      label: Vue Version
+      placeholder: latest
+    validations:
+      required: true
+  - type: textarea
+    id: minimal-repo
+    attributes:
+      label: Link to minimal reproduction
+      description: |
+        **Whenever possible, provide a minimal reproduction using the TinyRobot Playground at https://playground.opentiny.design/tiny-robot.html. Please do not paste random links, as this will lead to the issue being closed.**
+      placeholder: Please Input
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: |
+        **What actions should we perform to reproduce the bug? Clear and concise steps can help us locate the problem more quickly. Please clearly describe the steps to reproduce the issue. Issues without clear reproduction steps will not be addressed. Issues marked with 'need reproduction' that do not provide relevant steps within 7 days will be closed.**
+      placeholder: Please Input
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What is expected
+      placeholder: Please Input
+  - type: textarea
+    id: actually
+    attributes:
+      label: What is actually happening
+      placeholder: Please Input
+  - type: input
+    id: project-name
+    attributes:
+      label: What is your project name
+      description: We also welcome you to share more detailed project information here to help us understand your scenario better.
+      placeholder: Please Input
+    validations:
+      required: true
+  - type: textarea
+    id: additional-comments
+    attributes:
+      label: Any additional comments (optional)
+      description: |
+        **Some background / context of how you ran into this bug.**
+      placeholder: Please Input
