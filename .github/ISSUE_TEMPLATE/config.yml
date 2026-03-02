@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: 💬 Questions & Discussions
+    url: https://github.com/opentiny/tiny-robot/discussions
+    about: Ask questions or discuss ideas (not bugs or features)

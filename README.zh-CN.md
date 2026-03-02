@@ -175,13 +175,7 @@ MIT 许可证 - 查看 [LICENSE](https://github.com/opentiny/tiny-robot/blob/HEA
 
 ## 🤝 贡献
 
-欢迎贡献！请随时提交 Pull Request。
-
-1. Fork 本仓库
-2. 创建你的功能分支（`git checkout -b feature/AmazingFeature`）
-3. 提交你的更改（`git commit -m 'Add some AmazingFeature'`）
-4. 推送到分支（`git push origin feature/AmazingFeature`）
-5. 发起 Pull Request
+欢迎贡献！请阅读[贡献指南](./CONTRIBUTING_zh.md)了解推荐的工作流程、Commit 规范以及如何提交 Issue 和 Pull Request。
 
 ## 📞 支持
 
