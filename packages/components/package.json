@@ -1,6 +1,34 @@
 {
   "name": "@opentiny/tiny-robot",
   "version": "0.4.0",
+  "license": "MIT",
+  "description": "TinyRobot 是一个 AI 对话组件库，提供了丰富的 AI 交互组件，助力开发者快速构建企业级 AI 应用；同时也是一个智能助手，支持普通 AI 问答、也支持集成 MCP Server，让 AI 真正帮人“干活”。",
+  "homepage": "https://docs.opentiny.design/tiny-robot/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opentiny/tiny-robot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/opentiny/tiny-robot/issues"
+  },
+  "keywords": [
+    "vue",
+    "vue3",
+    "vue-components",
+    "component-library",
+    "ai",
+    "ai-components",
+    "chat",
+    "chat-ui",
+    "chatbot",
+    "llm",
+    "openai",
+    "assistant",
+    "streaming",
+    "conversation",
+    "tiny-robot",
+    "opentiny"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -9,7 +37,8 @@
   "module": "./dist/index.js",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "README*"
   ],
   "scripts": {
     "dev": "vue-tsc && vite build --watch",

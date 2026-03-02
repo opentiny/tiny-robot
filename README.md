@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://opentiny.design" target="_blank" rel="noopener noreferrer">
-    <img alt="OpenTiny Logo" src="logo.svg" height="100" style="max-width:100%;">
+    <img alt="OpenTiny Logo" src="https://raw.githubusercontent.com/opentiny/tiny-robot/HEAD/logo.svg" height="100" style="max-width:100%;">
   </a>
 </p>
 
@@ -22,7 +22,7 @@
 - 🔄 **Streaming Support**: Built-in support for streaming AI responses
 - 💾 **Storage Strategy**: Flexible storage strategies (LocalStorage, IndexedDB, custom)
 
-English | [简体中文](README_zh.md)
+English | [简体中文](https://github.com/opentiny/tiny-robot/blob/HEAD/README.zh-CN.md)
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/opentiny/tiny-robot)
 
@@ -30,11 +30,11 @@ English | [简体中文](README_zh.md)
 
 TinyRobot is a monorepo containing the following packages:
 
-| Package                                         | Description                                                  | Version                                                                                                                       |
-| ----------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| [`@opentiny/tiny-robot`](./packages/components) | Core component library with all AI interaction components    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)           |
-| [`@opentiny/tiny-robot-kit`](./packages/kit)    | Utility functions and AI client tools for model interactions | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit)   |
-| [`@opentiny/tiny-robot-svgs`](./packages/svgs)  | SVG icon library with all component icons                    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
+| Package                     | Description                                                  | Version                                                                                                                       |
+| --------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `@opentiny/tiny-robot`      | Core component library with all AI interaction components    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot)           |
+| `@opentiny/tiny-robot-kit`  | Utility functions and AI client tools for model interactions | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-kit.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-kit)   |
+| `@opentiny/tiny-robot-svgs` | SVG icon library with all component icons                    | [![npm](https://img.shields.io/npm/v/@opentiny/tiny-robot-svgs.svg)](https://www.npmjs.com/package/@opentiny/tiny-robot-svgs) |
 
 ## 🚀 Quick Start
 
@@ -171,11 +171,11 @@ pnpm dev
 
 ## 📄 License
 
-MIT License - see [LICENSE](./LICENSE) file for details.
+MIT License - see [LICENSE](https://github.com/opentiny/tiny-robot/blob/HEAD/LICENSE) file for details.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](./CONTRIBUTING.md) to understand the recommended workflow, commit message conventions, and how to submit Issues and Pull Requests.
+Contributions are welcome! Please read our [Contributing Guide](https://github.com/opentiny/tiny-robot/blob/HEAD/CONTRIBUTING.md) to understand the recommended workflow, commit message conventions, and how to submit Issues and Pull Requests.
 
 ## 📞 Support
 
