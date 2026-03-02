@@ -1,9 +1,16 @@
-
 # 更新日志
 
 TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
+
+## v0.4.1
+
+`2026-03-02`
+
+### 📝 文档
+
+- 新增 Issue 模板与贡献指南，更新 README 文档与包元数据。 by @Gene in [#307](https://github.com/opentiny/tiny-robot/pull/307) [#309](https://github.com/opentiny/tiny-robot/pull/309)
 
 ## v0.4.0
 
@@ -80,9 +87,6 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 ### 🐛 问题修复
 
 - **useConversation**: 修复保存会话时响应式对象转换问题 by @SonyLeo in [#271](https://github.com/opentiny/tiny-robot/pull/271)
-
-
-
 
 ## v0.3.0
 
@@ -419,3 +423,4 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 - **AIModelConfig**: 添加可选属性以扩展 provider 并修复 handleSSEStream 相关问题 by @shenjunjian [#75](https://github.com/opentiny/tiny-robot/pull/75)
 - **Compatibility**: 使用 ref 替换 useTemplateRef 以兼容 Vue 3.4 by @Gene in [#66](https://github.com/opentiny/tiny-robot/pull/66)
 - **Docs**: 更新 vitepress-demo-plugin 以修复构建文档错误 by @Gene in [#45](https://github.com/opentiny/tiny-robot/pull/45)
+
