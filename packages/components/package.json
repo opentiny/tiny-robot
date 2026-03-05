@@ -35,7 +35,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "sideEffects": false,
+  "sideEffects": ["**/*.css"],
   "files": [
     "dist",
     "README*"
