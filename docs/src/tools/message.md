@@ -148,3 +148,107 @@ interface UseMessagePlugin {
   onFinally?: (context: BasePluginContext) => void
 }
 ```
+
+### 内置插件
+
+#### fallbackRolePlugin
+
+在请求前为 `role` 为空的消息补全角色，默认使用 `assistant`。可用于兜底上游未设置 role 的消息。**已默认激活**；若需自定义配置，可显式传入覆盖：
+
+```typescript
+import { fallbackRolePlugin, useMessage } from '@opentiny/tiny-robot-kit'
+
+useMessage({
+  responseProvider,
+  plugins: [
+    fallbackRolePlugin({ fallbackRole: 'assistant' }), // 可选，默认即为 'assistant'
+  ],
+})
+```
+
+#### lengthPlugin
+
+当模型返回 `finish_reason === 'length'`（达到 max_tokens 或上下文限制）时，自动追加一条 user 消息（如 "Please continue with your previous answer."）并调用 `requestNext()` 继续请求，实现“自动续写”。**已默认激活**；若需自定义配置，可显式传入覆盖：
+
+```typescript
+import { lengthPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+
+useMessage({
+  responseProvider,
+  plugins: [
+    lengthPlugin({
+      continueContent: 'Please continue with your previous answer.', // 可选，默认即为此句
+    }),
+  ],
+})
+```
+
+#### thinkingPlugin
+
+根据流式响应中的 `reasoning_content`（或 `choice.delta.reasoning_content`）更新当前消息的 `state.thinking` 与 `state.open`；思考中时自动展开思考过程，结束后自动收起。若需禁用或自定义配置，可显式传入覆盖：
+
+```typescript
+import { thinkingPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+
+useMessage({
+  responseProvider,
+  plugins: [thinkingPlugin({ /* 自定义选项 */ })],
+})
+```
+
+#### toolPlugin（工具调用）
+
+用于接入模型返回的 `tool_calls`：在请求前注入 `tools` 列表，在请求完成后解析 `tool_calls`、执行 `callTool`、追加 tool 消息并自动发起下一轮请求。支持取消/失败时补充或标记 tool 消息、下一轮是否排除 tool 消息等。**需显式添加到 `plugins` 数组才会生效**。
+
+**必选参数：**
+
+- `getTools(): Promise<Tool[]>` — 返回当前轮次要传给 API 的工具列表（OpenAI 格式）。
+- `callTool(toolCall, context): Promise<string | Record<string, any>> | AsyncGenerator<...>` — 执行单个工具调用，返回结果字符串或可流式返回的对象（会合并到对应 tool 消息的 content）。
+
+**可选参数：**
+
+| 参数                          | 类型                                    | 说明                                                                                                                        |
+| ----------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `beforeCallTools`             | `(toolCalls, context) => Promise<void>` | 在真正执行工具前调用，可用于校验或打点。                                                                                    |
+| `onToolCallStart`             | `(toolCall, context) => void`           | 单个工具开始执行时回调。                                                                                                    |
+| `onToolCallEnd`               | `(toolCall, context) => void`           | 单个工具结束时的回调；`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，失败时可有 `context.error`。              |
+| `toolCallCancelledContent`    | `string`                                | 请求被中止时，为未执行的 tool 消息填充的内容，默认 `'Tool call cancelled.'`。                                               |
+| `toolCallFailedContent`       | `string`                                | 工具执行抛错时，为对应 tool 消息填充的内容，默认 `'Tool call failed.'`。                                                    |
+| `autoFillMissingToolMessages` | `boolean`                               | 请求被中止时是否自动补全缺失的 tool 消息（用 `toolCallCancelledContent`），默认 `false`。                                   |
+| `excludeToolMessagesNextTurn` | `boolean \| 'remove'`                   | 下一轮请求是否排除带 tool_calls 的 assistant 消息及对应 tool 消息：`true` 仅不发送，`'remove'` 从列表中移除，默认 `false`。 |
+
+```typescript
+import { toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+
+useMessage({
+  responseProvider,
+  plugins: [
+    toolPlugin({
+      getTools: async () => [
+        {
+          type: 'function',
+          function: {
+            name: 'get_weather',
+            description: 'Get weather by city name.',
+            parameters: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+            },
+          },
+        },
+      ],
+      callTool: async (toolCall, context) => {
+        const args = JSON.parse(toolCall.function?.arguments || '{}')
+        return `Weather of ${args.city}: Sunny.`
+      },
+      onToolCallStart: (toolCall) => console.log('Tool start:', toolCall.function?.name),
+      onToolCallEnd: (toolCall, { status }) => console.log('Tool end:', status),
+      toolCallCancelledContent: 'Tool call cancelled.',
+      toolCallFailedContent: 'Tool call failed.',
+    }),
+  ],
+})
+```
+
+工具调用示例（含 `toolPlugin` 的完整对话流程）见上方示例中的「工具调用」。

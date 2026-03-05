@@ -611,9 +611,11 @@ type BubbleMessageGroup = {
 
 **reasoning 推理**
 
-| 变量名                             | 说明                           |
-| ---------------------------------- | ------------------------------ |
-| `--tr-bubble-reasoning-max-height` | 推理内容最大高度（默认 300px） |
+| 变量名                                      | 说明                                               |
+| ------------------------------------------- | -------------------------------------------------- |
+| `--tr-bubble-reasoning-max-height`           | 推理内容最大高度（默认 300px）                     |
+| `--tr-bubble-reasoning-side-border-width`   | 推理内容左侧边线宽度（默认 1.5px）                 |
+| `--tr-bubble-reasoning-side-border-color`   | 推理内容左侧边线颜色（默认使用 `--tr-border-color-disabled`） |
 
 **BubbleList 容器变量**
 
