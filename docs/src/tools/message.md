@@ -245,7 +245,7 @@ useMessage({
 
 #### thinkingPlugin
 
-根据流式响应中的 `reasoning_content`（或 `choice.delta.reasoning_content`）更新当前消息的 `state.thinking`，用于展示“思考中”等 UI；在回合结束时清除该状态。**已默认激活**；若需禁用或自定义配置，可显式传入覆盖：
+根据流式响应中的 `reasoning_content`（或 `choice.delta.reasoning_content`）更新当前消息的 `state.thinking` 与 `state.open`；思考中时自动展开思考过程，结束后自动收起。若需禁用或自定义配置，可显式传入覆盖：
 
 ```typescript
 import { thinkingPlugin, useMessage } from '@opentiny/tiny-robot-kit'
