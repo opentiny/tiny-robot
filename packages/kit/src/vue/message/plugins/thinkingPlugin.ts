@@ -21,8 +21,8 @@ export const thinkingPlugin = (options: UseMessagePlugin = {}): UseMessagePlugin
       // 如果不是流式数据或者请求被中断，thinking 状态可能不会被更新，在 onTurnEnd 中手动更新
       const lastMessage = context.currentTurn.slice(-1)[0]
       if (lastMessage?.state?.thinking) {
-        lastMessage.state.thinking = undefined
-        lastMessage.state.open = undefined
+        lastMessage.state.thinking = false
+        lastMessage.state.open = false
       }
       return options.onTurnEnd?.(context)
     },
