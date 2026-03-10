@@ -148,7 +148,7 @@ app.mount('#app')
 
 4. **TypeScript 支持**：TinyRobot 完全支持 TypeScript，提供了完整的类型定义
 
-5. **组件命名**：所有组件都以 `Tr` 前缀开头（TinyRobot 的缩写），例如 `TrBubbleItem`、`TrSender` 等
+5. **组件命名**：所有组件都以 `Tr` 前缀开头（TinyRobot 的缩写），例如 `TrBubble`、`TrSender` 等
 
 ## 下一步
 
