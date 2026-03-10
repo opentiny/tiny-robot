@@ -72,11 +72,11 @@ app.mount('#app')
 ```vue
 <template>
   <div class="chat-container">
-    <tr-bubble-item
+    <tr-bubble
       role="ai"
       content="TinyRobot 是一个专为 AI 应用设计的 Vue 3 组件库，提供了丰富的对话、输入、展示等交互组件。"
     />
-    <tr-bubble-item
+    <tr-bubble
       role="user"
       content="听起来很不错，我想了解更多！"
     />
@@ -84,7 +84,7 @@ app.mount('#app')
 </template>
 
 <script setup>
-import { TrBubbleItem } from '@opentiny/tiny-robot'
+import { TrBubble } from '@opentiny/tiny-robot'
 </script>
 
 <style scoped>
@@ -123,7 +123,7 @@ app.mount('#app')
 ```vue
 <template>
   <div class="chat-app">
-    <tr-bubble-item
+    <tr-bubble
       role="ai"
       content="全局引入后，所有组件都可以直接使用，无需单独引入。"
     />  
