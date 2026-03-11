@@ -5,7 +5,11 @@ export function useChat() {
     initialMessages: [{ role: 'assistant', content: '你好！我是 TinyRobot 示例助手。' }],
     responseProvider: async (requestBody, abortSignal) => {
       // 替换为你的大模型 API 地址
-      const url = 'https://api.deepseek.com/chat/completions'
+      const url = import.meta.env.VITE_API_URL
+
+      if (!url) {
+        throw new Error('api url is not set')
+      }
 
       // 替换为你的大模型 API 密钥
       const apiKey = import.meta.env.VITE_API_KEY

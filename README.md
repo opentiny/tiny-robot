@@ -18,10 +18,18 @@ A simple chat demo built with [@opentiny/tiny-robot](https://www.npmjs.com/packa
    pnpm install
    ```
 
-2. Create `.env.local` and add your API key:
+2. Create `.env.local` , add your API key and API URL:
 
    ```txt
+   VITE_API_URL=your_api_url
    VITE_API_KEY=your_api_key
+   ```
+
+   for example:
+
+   ```txt
+   VITE_API_URL=https://api.deepseek.com/chat/completions
+   VITE_API_KEY=sk-xxxx
    ```
 
 3. Run dev server:
