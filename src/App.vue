@@ -1,6 +1,9 @@
 <template>
   <div class="chat-demo">
-    <tr-bubble-list class="chat-list" :messages="messages" :role-configs="roles" auto-scroll />
+    <!-- 在 BubbleList 上配置其他渲染器，需要使用 BubbleProvider 包裹 -->
+    <tr-bubble-provider :fallback-content-renderer="BubbleRenderers.Markdown">
+      <tr-bubble-list class="chat-list" :messages="messages" :role-configs="roles" auto-scroll />
+    </tr-bubble-provider>
     <tr-sender
       v-model="inputMessage"
       :placeholder="isProcessing ? '正在思考中...' : '请输入问题'"
@@ -13,9 +16,9 @@
 </template>
 
 <script setup lang="ts">
-import { TrBubbleList, TrSender, type BubbleRoleConfig } from "@opentiny/tiny-robot";
+import { BubbleRenderers, TrBubbleList, TrBubbleProvider, TrSender, type BubbleRoleConfig } from "@opentiny/tiny-robot";
 import { IconAi, IconUser } from "@opentiny/tiny-robot-svgs";
-import { ref, h } from "vue";
+import { h, ref } from "vue";
 import { useChat } from "./useChat";
 
 const { messages, isProcessing, sendMessage, abortRequest } = useChat();
@@ -46,5 +49,10 @@ const roles: Record<string, BubbleRoleConfig> = {
 }
 .chat-list {
   height: 400px;
+}
+
+/* 使用 data-type 选择器可以匹配不同类型的渲染器 */
+:deep([data-type="markdown"]) p {
+  margin: 0;
 }
 </style>
