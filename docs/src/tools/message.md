@@ -215,6 +215,10 @@ interface UseMessagePlugin {
 
 在请求前为 `role` 为空的消息补全角色，默认使用 `assistant`。可用于兜底上游未设置 role 的消息。**已默认激活**；若需自定义配置，可显式传入覆盖：
 
+| 参数           | 类型     | 默认值        | 说明                                 |
+| -------------- | -------- | ------------- | ------------------------------------ |
+| `fallbackRole` | `string` | `'assistant'` | 当消息 `role` 为空时使用的兜底角色。 |
+
 ```typescript
 import { fallbackRolePlugin, useMessage } from '@opentiny/tiny-robot-kit'
 
@@ -229,6 +233,10 @@ useMessage({
 #### lengthPlugin
 
 当模型返回 `finish_reason === 'length'`（达到 max_tokens 或上下文限制）时，自动追加一条 user 消息（如 "Please continue with your previous answer."）并调用 `requestNext()` 继续请求，实现“自动续写”。**已默认激活**；若需自定义配置，可显式传入覆盖：
+
+| 参数              | 类型     | 默认值                                         | 说明                                 |
+| ----------------- | -------- | ---------------------------------------------- | ------------------------------------ |
+| `continueContent` | `string` | `'Please continue with your previous answer.'` | 触发自动续写时追加的 user 消息内容。 |
 
 ```typescript
 import { lengthPlugin, useMessage } from '@opentiny/tiny-robot-kit'
@@ -252,7 +260,11 @@ import { thinkingPlugin, useMessage } from '@opentiny/tiny-robot-kit'
 
 useMessage({
   responseProvider,
-  plugins: [thinkingPlugin({ /* 自定义选项 */ })],
+  plugins: [
+    thinkingPlugin({
+      /* 自定义选项 */
+    }),
+  ],
 })
 ```
 
@@ -260,22 +272,30 @@ useMessage({
 
 用于接入模型返回的 `tool_calls`：在请求前注入 `tools` 列表，在请求完成后解析 `tool_calls`、执行 `callTool`、追加 tool 消息并自动发起下一轮请求。支持取消/失败时补充或标记 tool 消息、下一轮是否排除 tool 消息等。**需显式添加到 `plugins` 数组才会生效**。
 
-**必选参数：**
+| 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getTools`                    | `() => Promise<Tool[]>`                                                                                          | 是   | -                        | 返回当前轮次要传给 API 的工具列表（OpenAI 格式）。                                                                                                                   |
+| `callTool`                    | `(toolCall, context) => Promise<string \| Record<string, any>> \| AsyncGenerator<string \| Record<string, any>>` | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。                                                                         |
+| `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。`context.currentMessage` 为当前 assistant 消息。                                                                   |
+| `onToolCallStart`             | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具开始执行时触发。此时对应的 tool 消息已经创建并追加到 `messages` 中；`context` 额外包含 `primaryMessage` 和 `toolMessage`。                                   |
+| `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，并额外包含 `primaryMessage`、`toolMessage`，失败或取消时可能有 `context.error`。 |
+| `toolCallCancelledContent`    | `string`                                                                                                         | 否   | `'Tool call cancelled.'` | 请求被中止且需要补全缺失 tool 消息时，填入该默认内容。                                                                                                               |
+| `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行抛错且当前 tool 消息内容仍为空时，写入该失败提示。                                                                                                           |
+| `autoFillMissingToolMessages` | `boolean`                                                                                                        | 否   | `false`                  | 在下一轮开始前，自动补齐上一次被取消但尚未写入的 tool 消息。                                                                                                         |
+| `excludeToolMessagesNextTurn` | `boolean \| 'remove'`                                                                                            | 否   | `false`                  | 下一轮请求是否排除带 `tool_calls` 的 assistant 消息及对应 tool 消息。`true` 表示仅从请求体中过滤；`'remove'` 表示直接从 `messages` 中移除。                          |
 
-- `getTools(): Promise<Tool[]>` — 返回当前轮次要传给 API 的工具列表（OpenAI 格式）。
-- `callTool(toolCall, context): Promise<string | Record<string, any>> | AsyncGenerator<...>` — 执行单个工具调用，返回结果字符串或可流式返回的对象（会合并到对应 tool 消息的 content）。
+**回调上下文补充：**
 
-**可选参数：**
+| 回调              | 额外上下文字段                                      | 说明                                                                                                                                                                           |
+| ----------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `beforeCallTools` | `currentMessage`                                    | 在 `BasePluginContext` 基础上额外包含 `currentMessage`，表示当前这条包含 `tool_calls` 的 assistant 消息。                                                                      |
+| `callTool`        | `currentMessage`                                    | 在 `BasePluginContext` 基础上额外包含 `currentMessage`，表示当前这条包含 `tool_calls` 的 assistant 消息。                                                                      |
+| `onToolCallStart` | `primaryMessage`、`toolMessage`                     | 在 `BasePluginContext` 基础上额外包含 `primaryMessage` 和 `toolMessage`。其中 `primaryMessage` 是触发当前工具调用的 assistant 消息，`toolMessage` 是当前工具对应的 tool 消息。 |
+| `onToolCallEnd`   | `primaryMessage`、`toolMessage`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 `primaryMessage`、`toolMessage` 和 `status`；当工具执行失败或被取消时，还可能包含 `error`。                                              |
 
-| 参数                          | 类型                                    | 说明                                                                                                                        |
-| ----------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `beforeCallTools`             | `(toolCalls, context) => Promise<void>` | 在真正执行工具前调用，可用于校验或打点。                                                                                    |
-| `onToolCallStart`             | `(toolCall, context) => void`           | 单个工具开始执行时回调。                                                                                                    |
-| `onToolCallEnd`               | `(toolCall, context) => void`           | 单个工具结束时的回调；`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，失败时可有 `context.error`。              |
-| `toolCallCancelledContent`    | `string`                                | 请求被中止时，为未执行的 tool 消息填充的内容，默认 `'Tool call cancelled.'`。                                               |
-| `toolCallFailedContent`       | `string`                                | 工具执行抛错时，为对应 tool 消息填充的内容，默认 `'Tool call failed.'`。                                                    |
-| `autoFillMissingToolMessages` | `boolean`                               | 请求被中止时是否自动补全缺失的 tool 消息（用 `toolCallCancelledContent`），默认 `false`。                                   |
-| `excludeToolMessagesNextTurn` | `boolean \| 'remove'`                   | 下一轮请求是否排除带 tool_calls 的 assistant 消息及对应 tool 消息：`true` 仅不发送，`'remove'` 从列表中移除，默认 `false`。 |
+##### 基础示例
+
+基础示例展示了 `toolPlugin` 的基础接入方式，涵盖工具声明、工具执行以及执行结果状态回调。
 
 ```typescript
 import { toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
@@ -298,17 +318,95 @@ useMessage({
           },
         },
       ],
-      callTool: async (toolCall, context) => {
+      callTool: async (toolCall) => {
         const args = JSON.parse(toolCall.function?.arguments || '{}')
         return `Weather of ${args.city}: Sunny.`
       },
-      onToolCallStart: (toolCall) => console.log('Tool start:', toolCall.function?.name),
       onToolCallEnd: (toolCall, { status }) => console.log('Tool end:', status),
-      toolCallCancelledContent: 'Tool call cancelled.',
-      toolCallFailedContent: 'Tool call failed.',
     }),
   ],
 })
 ```
 
-工具调用示例（含 `toolPlugin` 的完整对话流程）见上方示例中的「工具调用」。
+##### 搭配 MCP 服务
+
+`toolPlugin` 可以搭配 MCP（Model Context Protocol）服务使用，扩展 AI 的工具调用能力。以下示例展示如何接入高德地图 MCP 服务。
+
+```bash
+# 使用 @modelcontextprotocol/sdk 接入 MCP 服务
+pnpm add @modelcontextprotocol/sdk
+```
+
+```typescript
+// mcp-amap.ts
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
+
+const amapMcpServer = {
+  type: 'sse',
+  url: 'https://dashscope.aliyuncs.com/api/v1/mcps/amap-maps/sse',
+  headers: {
+    Authorization: `Bearer ${import.meta.env.VITE_MCP_API_KEY}`,
+  },
+}
+
+let client: Client | null = null
+
+async function connect() {
+  if (client) {
+    return client
+  }
+
+  client = new Client({
+    name: 'mcp-client',
+    version: '1.0.0',
+  })
+
+  const transport = new SSEClientTransport(new URL(amapMcpServer.url), {
+    requestInit: {
+      headers: amapMcpServer.headers,
+    },
+  })
+
+  await client.connect(transport)
+  return client
+}
+
+async function getTools() {
+  const client = await connect()
+  const response = await client.listTools()
+  return response.tools.map((tool) => ({
+    type: 'function' as const,
+    function: tool,
+  }))
+}
+
+async function callTool(name: string, args: Record<string, unknown> = {}) {
+  const client = await connect()
+  const response = await client.callTool({
+    name,
+    arguments: args,
+  })
+  return response
+}
+
+export { getTools, callTool }
+```
+
+```typescript
+// 主文件
+import { toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+import { getTools, callTool } from './mcp-amap'
+
+useMessage({
+  responseProvider,
+  plugins: [
+    toolPlugin({
+      getTools: async () => getTools(),
+      callTool: async (toolCall) => {
+        return await callTool(toolCall.function.name, JSON.parse(toolCall.function.arguments))
+      },
+    }),
+  ],
+})
+```

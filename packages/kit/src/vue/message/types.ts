@@ -6,11 +6,12 @@ export interface Tool {
   type: 'function'
   function: {
     name: string
-    description: string
+    description?: string
     /**
      * function 的输入参数，以 JSON Schema 对象描述
      */
-    parameters: any
+    parameters?: any
+    inputSchema?: any
   }
   [key: string]: any
 }
