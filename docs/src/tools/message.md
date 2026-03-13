@@ -337,6 +337,8 @@ useMessage({
 pnpm add @modelcontextprotocol/sdk
 ```
 
+> 示例使用的 `SSEClientTransport` sse 协议，如果要使用 streamable 协议，直接替换成 `StreamableHTTPClientTransport` 即可。
+
 ```typescript
 // mcp-amap.ts
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
