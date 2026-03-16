@@ -18,10 +18,11 @@ const { restMessage, restProps } = useOmitMessageFields(props, ['reasoning_conte
 
 const renderer = useBubbleContentRenderer(restMessage, props.contentIndex)
 
-const open = ref(false)
+const open = ref(true)
 
 watchEffect(() => {
-  open.value = props.message.state?.open ?? false
+  // 思考过程默认展开
+  open.value = props.message.state?.open ?? true
 })
 
 const handleStateChange = useBubbleStateChangeFn()
@@ -164,8 +165,8 @@ watch(
 
     .border-line {
       flex: 1;
-      width: 1.5px;
-      background-color: var(--tr-border-color-disabled);
+      width: var(--tr-bubble-reasoning-side-border-width, 1.5px);
+      background-color: var(--tr-bubble-reasoning-side-border-color, var(--tr-border-color-disabled));
       border-radius: 1px;
     }
   }

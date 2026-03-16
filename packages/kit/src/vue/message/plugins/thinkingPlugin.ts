@@ -10,8 +10,9 @@ export const thinkingPlugin = (options: UseMessagePlugin = {}): UseMessagePlugin
       const thinking = typeof reasoning_content === 'string'
       if (currentMessage.state) {
         currentMessage.state.thinking = thinking
+        currentMessage.state.open = thinking
       } else {
-        currentMessage.state = { thinking }
+        currentMessage.state = { thinking, open: thinking }
       }
 
       return options.onCompletionChunk?.(context)
@@ -19,8 +20,9 @@ export const thinkingPlugin = (options: UseMessagePlugin = {}): UseMessagePlugin
     onTurnEnd(context) {
       // 如果不是流式数据或者请求被中断，thinking 状态可能不会被更新，在 onTurnEnd 中手动更新
       const lastMessage = context.currentTurn.slice(-1)[0]
-      if (lastMessage?.state) {
-        lastMessage.state.thinking = undefined
+      if (lastMessage?.state?.thinking) {
+        lastMessage.state.thinking = false
+        lastMessage.state.open = false
       }
       return options.onTurnEnd?.(context)
     },
