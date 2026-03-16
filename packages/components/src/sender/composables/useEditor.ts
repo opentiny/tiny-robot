@@ -13,6 +13,7 @@ import CharacterCount from '@tiptap/extension-character-count'
 import type { AnyExtension } from '@tiptap/core'
 import type { SenderEmits, UseEditorReturn } from '../index.type'
 import type { SenderPropsWithDefaults } from '../index.vue'
+import { countGraphemes } from '../utils/countGraphemes'
 
 /**
  * 编辑器 Hook
@@ -46,6 +47,7 @@ export function useEditor(props: SenderPropsWithDefaults, emit: SenderEmits): Us
       }),
       CharacterCount.configure({
         mode: 'textSize',
+        textCounter: countGraphemes,
       }),
     ]
 

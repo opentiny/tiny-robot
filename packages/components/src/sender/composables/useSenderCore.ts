@@ -27,6 +27,7 @@ import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useModeSwitch } from './useModeSwitch'
 import { useAutoSize } from './useAutoSize'
+import { countGraphemes } from '../utils/countGraphemes'
 
 /**
  * useSenderCore 返回类型
@@ -76,8 +77,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
 
   const characterCount = computed(() => {
     if (!editor.value) return 0
-    const text = getTextWithTemplates(editor.value)
-    return text.length
+    return countGraphemes(getTextWithTemplates(editor.value))
   })
 
   const isOverLimit = computed(() => {
