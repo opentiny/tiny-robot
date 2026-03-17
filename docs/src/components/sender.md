@@ -155,9 +155,22 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 基础语音识别
 
-使用浏览器内置的语音识别功能，支持混合输入和连续识别两种模式。
+使用浏览器内置的语音识别功能，支持混合输入和连续识别两种模式。可通过 `speechConfig.lang` 显式指定识别语言。
 
 <demo vue="../../demos/sender/voice-input.vue" title="基础语音输入" description="使用浏览器内置语音识别，支持混合输入和连续识别。" />
+
+:::tip lang 语言说明
+`lang` 用于指定语音识别语言，建议显式传入，并与页面的 `html lang` 保持一致，避免页面语言和浏览器环境语言不一致时出现识别偏差。
+
+常见取值示例：
+
+| 值 | 说明 |
+| --- | --- |
+| `en` | 英语 |
+| `zh` | 中文 |
+| `zh-CN` | 简体中文 |
+| `en-US` | 美式英语 |
+:::
 
 #### 自定义语音服务
 
@@ -597,7 +610,7 @@ type TooltipPlacement =
 // SpeechConfig 语音配置
 interface SpeechConfig {
   customHandler?: SpeechHandler // 自定义语音处理器
-  lang?: string // 识别语言，默认浏览器语言
+  lang?: string // 识别语言，建议显式配置并与 html lang 保持一致；未传入时由浏览器环境决定
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
   autoReplace?: boolean // 是否自动替换内容

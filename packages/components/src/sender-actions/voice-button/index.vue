@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useSenderContext } from '../../sender/context'
 import { useSpeechHandler } from './useSpeechHandler'
 import ActionButton from '../action-button/index.vue'
@@ -16,24 +16,53 @@ const emit = defineEmits<VoiceButtonEmits>()
 // 从 Context 获取最小依赖：只需要 editor 和 disabled
 const { editor, disabled: contextDisabled } = useSenderContext()
 const isDisabled = computed(() => props.disabled || contextDisabled.value)
+const speechRange = ref<{ from: number; to: number } | null>(null)
+
+const resetSpeechRange = () => {
+  speechRange.value = null
+}
+
+const insertTranscript = (transcript: string) => {
+  if (!props.autoInsert || !editor.value || !transcript) return
+
+  const editorInstance = editor.value
+  const autoReplace = props.speechConfig?.autoReplace ?? false
+
+  if (!autoReplace) {
+    editorInstance.commands.insertContent(transcript + ' ')
+    editorInstance.commands.focus('end')
+    return
+  }
+
+  // 在单次录音会话期间，持续替换当前的语音插入范围
+  const range = speechRange.value ?? {
+    from: editorInstance.state.selection.from,
+    to: editorInstance.state.selection.to,
+  }
+  const tr = editorInstance.state.tr.insertText(transcript, range.from, range.to)
+  editorInstance.view.dispatch(tr)
+  speechRange.value = {
+    from: range.from,
+    to: range.from + transcript.length,
+  }
+  editorInstance.commands.focus('end')
+}
 
 // 语音配置 - 使用普通对象而不是 computed，避免每次都创建新对象
 const speechOptions = {
   ...props.speechConfig,
   onStart: () => {
+    resetSpeechRange()
     emit('speech-start')
   },
   onInterim: (transcript: string) => {
+    if (props.speechConfig?.autoReplace) {
+      insertTranscript(transcript)
+    }
     emit('speech-interim', transcript)
   },
   onFinal: (transcript: string) => {
-    // 自动插入到编辑器(可配置)
-    if (props.autoInsert && editor.value) {
-      // 插入内容
-      editor.value.commands.insertContent(transcript + ' ')
-      // 确保光标在内容末尾
-      editor.value.commands.focus('end')
-    }
+    insertTranscript(transcript)
     emit('speech-final', transcript)
   },
   onEnd: (transcript?: string) => {
@@ -41,9 +70,11 @@ const speechOptions = {
     if (editor.value) {
       editor.value.commands.focus('end')
     }
+    resetSpeechRange()
     emit('speech-end', transcript)
   },
   onError: (error: Error) => {
+    resetSpeechRange()
     emit('speech-error', error)
   },
 }
