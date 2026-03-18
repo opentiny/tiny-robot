@@ -34,16 +34,24 @@ const insertTranscript = (transcript: string) => {
     return
   }
 
-  // 在单次录音会话期间，持续替换当前的语音插入范围
-  const range = speechRange.value ?? {
-    from: editorInstance.state.selection.from,
-    to: editorInstance.state.selection.to,
+  // autoReplace 模式：替换整个输入框内容
+  if (speechRange.value === null) {
+    // 首次插入，记录起始位置为 0
+    speechRange.value = {
+      from: 0,
+      to: 0,
+    }
   }
-  const tr = editorInstance.state.tr.insertText(transcript, range.from, range.to)
+
+  // 替换从起始位置到当前内容末尾的所有文本
+  const docSize = editorInstance.state.doc.content.size
+  const tr = editorInstance.state.tr.insertText(transcript, speechRange.value.from, docSize)
   editorInstance.view.dispatch(tr)
+
+  // 更新范围，保持起始位置不变，更新结束位置
   speechRange.value = {
-    from: range.from,
-    to: range.from + transcript.length,
+    from: speechRange.value.from,
+    to: speechRange.value.from + transcript.length,
   }
   editorInstance.commands.focus('end')
 }
@@ -62,7 +70,9 @@ const speechOptions = {
     emit('speech-interim', transcript)
   },
   onFinal: (transcript: string) => {
-    insertTranscript(transcript)
+    if (!props.speechConfig?.autoReplace) {
+      insertTranscript(transcript)
+    }
     emit('speech-final', transcript)
   },
   onEnd: (transcript?: string) => {
