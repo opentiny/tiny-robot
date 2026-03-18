@@ -1,4 +1,4 @@
----
+﻿---
 outline: [1, 3]
 ---
 
@@ -442,7 +442,7 @@ onSelect: (item) => {
 | tooltipPlacement | Tooltip 位置                 | `TooltipPlacement`    | `'top'`     |
 | speechConfig     | 语音配置                     | `SpeechConfig`        | -           |
 | autoInsert       | 是否自动插入识别结果到编辑器 | `boolean`             | `true`      |
-| onButtonClick    | 按钮点击拦截器               | `Function`            | -           |
+| onButtonClick    | 按钮点击拦截器               | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | - |
 
 ## Slots
 
@@ -610,11 +610,10 @@ type TooltipPlacement =
 // SpeechConfig 语音配置
 interface SpeechConfig {
   customHandler?: SpeechHandler // 自定义语音处理器
-  lang?: string // 识别语言，建议显式配置并与 html lang 保持一致；未传入时由浏览器环境决定
-  continuous?: boolean // 是否持续识别
-  interimResults?: boolean // 是否返回中间结果
-  autoReplace?: boolean // 是否自动替换内容
-  onVoiceButtonClick?: (isRecording, preventDefault) => void // 按钮点击拦截器
+  lang?: string // 内置 Web Speech 的识别语言；未传入时使用 navigator.language
+  continuous?: boolean // 内置 Web Speech 是否持续识别
+  interimResults?: boolean // 内置 Web Speech 是否返回中间结果
+  autoReplace?: boolean // 是否在本次录音期间用最新识别结果替换当前语音插入内容
 }
 
 // 模板项（联合类型）

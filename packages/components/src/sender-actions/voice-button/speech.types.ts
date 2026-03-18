@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 语音识别相关类型定义
  */
 // 语音回调函数集合
@@ -28,7 +28,6 @@ export interface SpeechConfig {
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
   autoReplace?: boolean // 是否在本次录音期间自动替换语音插入内容
-  onVoiceButtonClick?: (isRecording: boolean, preventDefault: () => void) => void | Promise<void> // 录音按钮点击拦截器
 }
 
 // 语音识别状态
