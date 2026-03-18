@@ -59,6 +59,7 @@
     "@tiptap/core": "3.17.1",
     "@tiptap/vue-3": "3.17.1",
     "@tiptap/pm": "3.17.1",
+    "@tiptap/extensions": "3.17.1",
     "@tiptap/extension-document": "3.17.1",
     "@tiptap/extension-paragraph": "3.17.1",
     "@tiptap/extension-text": "3.17.1",
@@ -81,5 +82,9 @@
     "vite-plugin-dts": "^4.5.3",
     "vue": "^3.3.11",
     "vue-tsc": "^2.2.8"
+  },
+  "optionalDependencies": {
+    "@tiptap/extension-bubble-menu": "3.17.1",
+    "@tiptap/extension-floating-menu": "3.17.1"
   }
 }
