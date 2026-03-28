@@ -1,26 +1,25 @@
 <template>
   <div class="home">
     <h2>欢迎使用 Tiny Robot E2E 测试应用</h2>
-    <p>这是一个用于测试 Tiny Robot 组件的演示应用。</p>
+    <p>这里会挂载组件的交互演示页，供 Playwright 用例直接操作和断言。</p>
 
     <div class="test-info">
-      <h3>可用测试组件：</h3>
+      <h3>可用测试组件</h3>
       <ul>
-        <li><strong>Container 组件</strong> - 测试容器组件的显示/隐藏、全屏切换、拖拽条等功能</li>
+        <li><strong>Container 组件</strong> - 验证容器组件的显示、隐藏、全屏切换等行为。</li>
+        <li><strong>Sender 组件</strong> - 验证输入、提交、Mention、Template、Suggestion 等行为。</li>
       </ul>
     </div>
 
     <div class="instructions">
-      <h3>测试说明：</h3>
-      <p>点击导航栏中的组件链接来查看和测试不同的组件。</p>
-      <p>每个组件页面都包含了相应的交互元素，用于 E2E 测试。</p>
+      <h3>测试说明</h3>
+      <p>点击上方导航可以切换到具体组件页面。</p>
+      <p>每个页面都会暴露稳定的测试按钮和 `data-testid`，便于 E2E 用例编写与维护。</p>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-// 首页组件，用于显示测试应用的基本信息
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
 .home {
