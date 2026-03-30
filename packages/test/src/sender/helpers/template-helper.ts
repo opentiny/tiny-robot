@@ -142,7 +142,6 @@ export function createTemplateTestHelper(page: Page) {
     async pressBackspace(times: number = 1) {
       for (let i = 0; i < times; i++) {
         await page.keyboard.press('Backspace')
-        await page.waitForTimeout(50) // 等待 DOM 更新
       }
     },
 
@@ -152,7 +151,6 @@ export function createTemplateTestHelper(page: Page) {
     async pressDelete(times: number = 1) {
       for (let i = 0; i < times; i++) {
         await page.keyboard.press('Delete')
-        await page.waitForTimeout(50) // 等待 DOM 更新
       }
     },
 
@@ -162,7 +160,6 @@ export function createTemplateTestHelper(page: Page) {
     async pressArrowLeft(times: number = 1) {
       for (let i = 0; i < times; i++) {
         await page.keyboard.press('ArrowLeft')
-        await page.waitForTimeout(30)
       }
     },
 
@@ -172,7 +169,6 @@ export function createTemplateTestHelper(page: Page) {
     async pressArrowRight(times: number = 1) {
       for (let i = 0; i < times; i++) {
         await page.keyboard.press('ArrowRight')
-        await page.waitForTimeout(30)
       }
     },
 
@@ -184,8 +180,7 @@ export function createTemplateTestHelper(page: Page) {
         // 全选
         await page.keyboard.press('Control+A')
       } else {
-        // TODO: 实现指定范围的选择
-        await page.keyboard.press('Control+A')
+        throw new Error('selectText(range) is not implemented yet')
       }
     },
 

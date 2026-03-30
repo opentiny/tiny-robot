@@ -5,9 +5,9 @@ import { createSenderTestHelper } from '../../helpers'
 test.describe('Mention 功能 - 触发机制', () => {
   test.describe.configure({ mode: 'serial' })
 
-  let page: Page
-  let mentionHelper: ReturnType<typeof createMentionHelper>
-  let basicHelper: ReturnType<typeof createSenderTestHelper>
+  let page: Page | undefined
+  let mentionHelper: ReturnType<typeof createMentionHelper> | undefined
+  let basicHelper: ReturnType<typeof createSenderTestHelper> | undefined
 
   test.beforeAll(async ({ browser }) => {
     page = await browser.newPage()
@@ -21,36 +21,38 @@ test.describe('Mention 功能 - 触发机制', () => {
   })
 
   test.afterAll(async () => {
-    await basicHelper.toggleMention()
-    await page.close()
+    if (basicHelper) {
+      await basicHelper.toggleMention()
+    }
+    await page?.close()
   })
 
   test.beforeEach(async () => {
-    await basicHelper.clearContent()
+    await basicHelper!.clearContent()
   })
 
   test('TC-01: 输入 @ 符号应该触发提及面板', async () => {
-    await mentionHelper.typeAtSymbol()
-    await mentionHelper.expectMentionListVisible(true)
-    await mentionHelper.expectItemCount(4)
+    await mentionHelper!.typeAtSymbol()
+    await mentionHelper!.expectMentionListVisible(true)
+    await mentionHelper!.expectItemCount(4)
   })
 
   test('TC-02: 输入普通文本不应该触发提及面板', async () => {
-    await basicHelper.typeContent('Hello')
-    await mentionHelper.expectMentionListVisible(false)
+    await basicHelper!.typeContent('Hello')
+    await mentionHelper!.expectMentionListVisible(false)
   })
 
   test('TC-03: 在已有文本后输入 @ 应该触发面板', async () => {
-    await basicHelper.typeContent('Hello ')
-    await mentionHelper.typeAtSymbol()
-    await mentionHelper.expectMentionListVisible(true)
+    await basicHelper!.typeContent('Hello ')
+    await mentionHelper!.typeAtSymbol()
+    await mentionHelper!.expectMentionListVisible(true)
   })
 
   test('TC-04: 删除 @ 符号应该关闭面板', async () => {
-    await mentionHelper.typeAtSymbol()
-    await mentionHelper.expectMentionListVisible(true)
+    await mentionHelper!.typeAtSymbol()
+    await mentionHelper!.expectMentionListVisible(true)
 
-    await mentionHelper.pressKey('Backspace')
-    await mentionHelper.expectMentionListVisible(false)
+    await mentionHelper!.pressKey('Backspace')
+    await mentionHelper!.expectMentionListVisible(false)
   })
 })

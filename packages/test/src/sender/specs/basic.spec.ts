@@ -1,4 +1,4 @@
-import { test, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { createSenderTestHelper } from '../helpers'
 
 test.describe('Sender 组件测试', () => {
@@ -80,7 +80,7 @@ test.describe('Sender 组件测试', () => {
     await helper.expectEditorContent('Enter提交')
     await helper.getEditor().click()
     await page.keyboard.press('Enter')
-    await helper.expectResult('提交内容: Enter提交')
+    await helper.expectResultExact('提交内容: Enter提交')
 
     await helper.clearContent()
     await helper.setSubmitType('ctrlEnter')
@@ -94,7 +94,7 @@ test.describe('Sender 组件测试', () => {
 
     await helper.getEditor().click()
     await page.keyboard.press('Control+Enter')
-    await helper.expectResult('提交内容')
+    await helper.expectResultExact('提交内容: Ctrl+Enter提交')
   })
 
   test('Props: size - 应该支持不同的组件尺寸', async () => {
@@ -105,12 +105,14 @@ test.describe('Sender 组件测试', () => {
     await helper.expectResult('尺寸切换为: normal')
   })
 
-  test('Props: maxLength - 应该正确限制输入长度', async () => {
+  test('Props: maxLength - 超出限制时应该标记超限并禁用提交', async () => {
     await helper.setMaxLength(10)
     await helper.wait(10)
 
     await helper.typeContent('这是一段超过十个字符的测试内容')
-    await helper.expectWordCounter('/')
+    await helper.expectWordCounter('15')
+    await helper.expectWordCounter('/10')
+    await helper.expectSubmitButtonDisabled(true)
   })
 
   test('Props: maxLength & showWordLimit - 应该显示字数统计', async () => {
@@ -199,31 +201,40 @@ test.describe('Sender 组件测试', () => {
 
   test('Props: autoSize - 应该在多行模式下自动调整高度', async () => {
     await helper.toggleMode()
-    await helper.wait(10)
+    await helper.expectMode('multiple')
+
+    const editor = helper.getEditor()
+    const initialHeight = await editor.evaluate((el) => el.getBoundingClientRect().height)
 
     await helper.typeContent('第一行')
-    await page.keyboard.press('Enter')
+    await page.keyboard.press('Control+Enter')
     await page.keyboard.type('第二行')
-    await page.keyboard.press('Enter')
+    await page.keyboard.press('Control+Enter')
     await page.keyboard.type('第三行')
 
     await helper.expectEditorContent('第一行')
     await helper.expectEditorContent('第二行')
     await helper.expectEditorContent('第三行')
+
+    await expect
+      .poll(async () => editor.evaluate((el) => el.getBoundingClientRect().height))
+      .toBeGreaterThan(initialHeight)
   })
 
   test('交互: 单行模式下按换行键应自动切换到多行模式', async () => {
+    await expect(helper.getSender()).toHaveClass(/tr-sender--single/)
+
     const modeDisplay = await page.locator(helper.selectors.modeDisplay).textContent()
     if (modeDisplay !== 'single') {
       await helper.toggleMode()
-      await helper.wait(10)
+      await helper.expectMode('single')
+      await expect(helper.getSender()).toHaveClass(/tr-sender--single/)
     }
 
     await helper.typeContent('测试自动切换')
     await page.keyboard.press('Control+Enter')
-    await helper.wait(200)
 
-    await page.locator(helper.selectors.modeDisplay).textContent()
+    await expect(helper.getSender()).toHaveClass(/tr-sender--multiple/)
   })
 
   test('边界: 快速连续输入和删除应该正常工作', async () => {

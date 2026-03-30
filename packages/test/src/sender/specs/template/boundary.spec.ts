@@ -64,9 +64,11 @@ test.describe('Template Block - 边界情况测试', () => {
   test('TC-BD-05: 模板块前后的空格应该保留', async () => {
     await templateHelper.setSimpleTemplate()
     const text = await templateHelper.getEditorText()
+    const normalizedText = text
+      .replace(/\u200b/g, '')
+      .replace(/\u00a0/g, ' ')
+      .trim()
 
-    expect(text).toContain('我是')
-    expect(text).toContain('张三')
-    expect(text).toContain('来自')
+    expect(normalizedText).toBe('我是 张三 ，来自')
   })
 })

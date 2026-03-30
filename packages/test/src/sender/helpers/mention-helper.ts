@@ -84,9 +84,8 @@ export function createMentionHelper(page: Page) {
 
     // 验证提及列表中包含特定文本
     async expectListContains(text: string) {
-      const items = page.locator(selectors.mentionItem)
-      const firstItem = items.first()
-      await expect(firstItem).toContainText(text)
+      const matchingItem = page.locator(selectors.mentionItem).filter({ hasText: text }).first()
+      await expect(matchingItem).toBeVisible()
     },
 
     // 删除 mention 节点（模拟 Backspace）

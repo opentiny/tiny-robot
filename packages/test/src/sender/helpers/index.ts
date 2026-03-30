@@ -15,6 +15,10 @@ export function createSenderTestHelper(page: Page) {
       return page.locator(selectors.sender)
     },
 
+    getEditorScroll() {
+      return page.locator(selectors.editorScroll)
+    },
+
     async typeContent(text: string) {
       await this.getEditor().click()
       await page.keyboard.type(text)
@@ -146,6 +150,23 @@ export function createSenderTestHelper(page: Page) {
 
     async expectResult(text: string) {
       await expect(page.locator(selectors.resultDisplay)).toContainText(text)
+    },
+
+    async expectResultExact(text: string) {
+      await expect(page.locator(selectors.resultDisplay)).toHaveText(text)
+    },
+
+    async expectMode(mode: 'single' | 'multiple') {
+      await expect(page.locator(selectors.modeDisplay)).toHaveText(mode)
+    },
+
+    async expectSubmitButtonDisabled(disabled: boolean) {
+      const submitBtn = page.locator(selectors.submitButton)
+      if (disabled) {
+        await expect(submitBtn).toHaveClass(/is-disabled/)
+      } else {
+        await expect(submitBtn).not.toHaveClass(/is-disabled/)
+      }
     },
 
     async expectFooterSlot() {

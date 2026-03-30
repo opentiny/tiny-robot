@@ -26,6 +26,7 @@ export const SENDER_SELECTORS = {
 
   sender: '[data-testid="test-sender"]',
   editor: '[data-testid="test-sender"] .ProseMirror',
+  editorScroll: '[data-testid="test-sender"] .tr-sender-editor-scroll',
 
   submitButton: '.tr-sender-submit-button',
   clearButton: '.tr-action-buttons-group .tr-action-button',
