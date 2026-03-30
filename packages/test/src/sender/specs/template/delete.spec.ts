@@ -76,7 +76,7 @@ test.describe('Template Block - Delete 删除逻辑', () => {
     await templateHelper!.expectTemplateText(0, '张三')
   })
 
-  test('TC-DL-06: 选区删除应该包含模板块', async () => {
+  test('TC-DL-07: 选区删除应该包含模板块', async () => {
     await templateHelper!.setSimpleTemplate()
     await helper!.getEditor().click()
     await templateHelper!.selectText()
