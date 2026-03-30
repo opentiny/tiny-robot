@@ -175,7 +175,7 @@ import { callMcpTool, MCP_TOOLS } from './mockMcp'
 import { assistantResponseProvider } from './responseProvider'
 
 const fullscreen = ref(false)
-const show = ref(true)
+const show = ref(false)
 
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
