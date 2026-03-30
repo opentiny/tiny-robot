@@ -66,14 +66,18 @@ test.describe('Template Block - Delete 删除逻辑', () => {
 
   test('TC-DL-05: 从模板块左侧按 Delete 应该进入模板块', async () => {
     await templateHelper!.setSimpleTemplate()
-    await helper!.getEditor().click()
-    await templateHelper!.wait(100)
-    await helper!.getEditor().press('Home')
-    await templateHelper!.pressArrowRight(2)
-    await templateHelper!.pressDelete()
+    await templateHelper!.pressDeleteBeforeTemplate(0)
 
     await templateHelper!.expectTemplateCount(1)
     await templateHelper!.expectTemplateText(0, '张三')
+  })
+
+  test('TC-DL-06: 从左侧按 Delete 应稳定删除空模板块', async () => {
+    await templateHelper!.setEmptyTemplate()
+    await templateHelper!.pressDeleteBeforeTemplate(0)
+
+    await templateHelper!.expectTemplateCount(0)
+    await templateHelper!.expectNormalizedEditorText('我是，来自')
   })
 
   test('TC-DL-07: 选区删除应该包含模板块', async () => {
