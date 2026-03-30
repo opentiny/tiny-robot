@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
 import { Sender } from '@opentiny/tiny-robot'
 import type { MentionItem, TemplateItem, SenderSuggestionItem } from '@opentiny/tiny-robot'
+
+declare global {
+  interface Window {
+    __senderTestApi?: {
+      moveCursorBeforeTemplate: (index: number) => boolean
+      pressDeleteBeforeTemplate: (index: number) => boolean
+    }
+  }
+}
 
 const senderRef = ref()
 const content = ref('')
@@ -156,6 +165,58 @@ const extensions = computed(() => {
     exts.push(Sender.suggestion(suggestions))
   }
   return exts
+})
+
+const moveCursorBeforeTemplate = (index: number) => {
+  const exposedEditor = senderRef.value?.editor
+  const editor = exposedEditor?.value ?? exposedEditor
+  if (!editor) return false
+
+  let currentIndex = 0
+  let templatePosition: number | null = null
+
+  editor.state.doc.descendants((node: { type: { name: string } }, pos: number) => {
+    if (node.type.name === 'templateBlock') {
+      if (currentIndex === index) {
+        templatePosition = pos
+        return false
+      }
+      currentIndex += 1
+    }
+    return true
+  })
+
+  if (templatePosition === null) return false
+
+  editor.commands.setTextSelection(templatePosition)
+  editor.commands.focus(templatePosition)
+
+  return editor.state.selection.$from.nodeAfter?.type?.name === 'templateBlock'
+}
+
+const pressDeleteBeforeTemplate = (index: number) => {
+  const exposedEditor = senderRef.value?.editor
+  const editor = exposedEditor?.value ?? exposedEditor
+  if (!editor || !moveCursorBeforeTemplate(index)) return false
+
+  const deleteEvent = new KeyboardEvent('keydown', {
+    key: 'Delete',
+    bubbles: true,
+    cancelable: true,
+  })
+
+  return editor.view.dom.dispatchEvent(deleteEvent) === false
+}
+
+onMounted(() => {
+  window.__senderTestApi = {
+    moveCursorBeforeTemplate,
+    pressDeleteBeforeTemplate,
+  }
+})
+
+onBeforeUnmount(() => {
+  delete window.__senderTestApi
 })
 </script>
 

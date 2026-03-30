@@ -6,6 +6,18 @@ import { SENDER_SELECTORS } from '../selectors'
  */
 export function createTemplateTestHelper(page: Page) {
   const selectors = SENDER_SELECTORS
+  const normalizeEditorText = async () => {
+    const text = await page.evaluate(() => {
+      const editor = document.querySelector('[data-testid="test-sender"] .ProseMirror')
+      return editor?.textContent || ''
+    })
+
+    return text
+      .replace(/\u200b/g, '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
 
   return {
     selectors,
@@ -111,6 +123,17 @@ export function createTemplateTestHelper(page: Page) {
     },
 
     /**
+     * 从模板块左侧触发 Delete，避免依赖外层键盘时序
+     */
+    async pressDeleteBeforeTemplate(index: number) {
+      const handled = await page.evaluate((templateIndex) => {
+        return window.__senderTestApi?.pressDeleteBeforeTemplate(templateIndex) ?? false
+      }, index)
+
+      expect(handled).toBe(true)
+    },
+
+    /**
      * 聚焦到模板块内容末尾
      */
     async focusTemplateEnd(index: number) {
@@ -204,6 +227,13 @@ export function createTemplateTestHelper(page: Page) {
      */
     async expectEditorToContainText(text: string) {
       await expect(this.getEditor()).toContainText(text)
+    },
+
+    /**
+     * 验证去除零宽字符后的编辑器文本完全匹配
+     */
+    async expectNormalizedEditorText(text: string) {
+      await expect.poll(async () => normalizeEditorText()).toBe(text)
     },
 
     /**
