@@ -9,12 +9,6 @@ on:
         default: true
         type: boolean
 
-env:
-  HUAWEI_CLOUD_AK: ${{ secrets.HUAWEI_CLOUD_AK }}
-  HUAWEI_CLOUD_SK: ${{ secrets.HUAWEI_CLOUD_SK }}
-  HUAWEI_CLOUD_ENDPOINT: ${{ secrets.HUAWEI_CLOUD_ENDPOINT }}
-  HUAWEI_CLOUD_BUCKET: ${{ secrets.HUAWEI_CLOUD_BUCKET }}
-
 jobs:
   check-secrets:
     runs-on: ubuntu-latest
@@ -154,13 +148,18 @@ jobs:
           sudo mv obsutil_linux_amd64_*/obsutil /usr/local/bin/obsutil
 
       - name: Configure and Upload to OBS
+        env:
+          HUAWEI_CLOUD_AK: ${{ secrets.HUAWEI_CLOUD_AK }}
+          HUAWEI_CLOUD_SK: ${{ secrets.HUAWEI_CLOUD_SK }}
+          HUAWEI_CLOUD_ENDPOINT: ${{ secrets.HUAWEI_CLOUD_ENDPOINT }}
+          HUAWEI_CLOUD_BUCKET: ${{ secrets.HUAWEI_CLOUD_BUCKET }}
         run: |
-          obsutil config -i=${{ env.HUAWEI_CLOUD_AK }} \
-                         -k=${{ env.HUAWEI_CLOUD_SK }} \
-                         -e=${{ env.HUAWEI_CLOUD_ENDPOINT }}
+          obsutil config -i=$HUAWEI_CLOUD_AK \
+                         -k=$HUAWEI_CLOUD_SK \
+                         -e=$HUAWEI_CLOUD_ENDPOINT
           # Upload to versioned path
           obsutil cp ./packages/playground/dist \
-                    obs://${{ env.HUAWEI_CLOUD_BUCKET }}/${{ needs.build.outputs.obs-path }} \
+                    obs://$HUAWEI_CLOUD_BUCKET/${{ needs.build.outputs.obs-path }} \
                     -r -f -flat
 
           # If is_latest_release is true, also upload to latest path
@@ -169,9 +168,9 @@ jobs:
             find ./packages/playground/dist -type f \( -name "*.html" -o -name "*.js" -o -name "*.mjs" -o -name "*.css" \) \
               -exec sed -i "s|${{ needs.build.outputs.cdn-base }}|${{ needs.build.outputs.cdn-base-latest }}|g" {} +
             obsutil cp ./packages/playground/dist \
-                      obs://${{ env.HUAWEI_CLOUD_BUCKET }}/${{ needs.build.outputs.obs-path-latest }} \
+                      obs://$HUAWEI_CLOUD_BUCKET/${{ needs.build.outputs.obs-path-latest }} \
                       -r -f -flat
           fi
 
-          echo "Uploaded to: obs://${{ env.HUAWEI_CLOUD_BUCKET }}/${{ needs.build.outputs.obs-path }}"
+          echo "Uploaded to: obs://$HUAWEI_CLOUD_BUCKET/${{ needs.build.outputs.obs-path }}"
           echo "CDN URL: https://res-static.opentiny.design/${{ needs.build.outputs.obs-path }}"
