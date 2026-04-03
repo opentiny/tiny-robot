@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot-cli",
-  "version": "0.1.0",
+  "version": "0.4.2",
   "description": "CLI to scaffold TinyRobot product projects",
   "type": "module",
   "bin": {
