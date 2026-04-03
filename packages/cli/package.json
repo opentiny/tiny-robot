@@ -1,8 +1,16 @@
 {
   "name": "@opentiny/tiny-robot-cli",
-  "version": "0.4.2",
+  "version": "0.4.2-alpha.0",
   "description": "CLI to scaffold TinyRobot product projects",
   "type": "module",
+  "homepage": "https://docs.opentiny.design/tiny-robot/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opentiny/tiny-robot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/opentiny/tiny-robot/issues"
+  },
   "bin": {
     "tiny-robot-cli": "./bin/cli.js"
   },
@@ -11,6 +19,9 @@
     "templates",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node ./bin/cli.js"
   },
