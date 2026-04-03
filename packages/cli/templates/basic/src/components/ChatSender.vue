@@ -32,6 +32,7 @@
           <IconWebSearch :size="16" class="sender-action-btn__icon" />
           联网搜索
         </button>
+        <McpServerPickerButton />
         <tr-dropdown-menu :items="modelMenuItems" trigger="click" @item-click="handleModelSelect">
           <template #trigger>
             <button class="sender-action-btn sender-model-btn" type="button">
@@ -50,6 +51,7 @@ import { TrDropdownMenu, TrSender } from '@opentiny/tiny-robot'
 import { computed } from 'vue'
 import { useChat } from '../composables/useChat'
 import { useModel } from '../composables/useModel'
+import McpServerPickerButton from './McpServerPickerButton.vue'
 import { IconDeepThink, IconWebSearch } from './icons'
 
 const { inputMessage, isProcessing, sendMessage, abortActiveRequest } = useChat()

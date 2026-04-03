@@ -1,10 +1,14 @@
-import { sseStreamToGenerator, useConversation } from '@opentiny/tiny-robot-kit'
+import { sseStreamToGenerator, toolPlugin, useConversation } from '@opentiny/tiny-robot-kit'
 import { computed, ref } from 'vue'
+import type { McpServerKey } from '../mcpServers'
+import { useMcp } from './useMcp'
 import { useModel } from './useModel'
 
 function createChatStore() {
   const inputMessage = ref('')
   const modelStore = useModel()
+  const mcpStore = useMcp()
+  const { listTools, callTool } = mcpStore
   const { selectedModel, getSelectedModelParams } = modelStore
 
   const useConversationReturn = useConversation({
@@ -46,6 +50,36 @@ function createChatStore() {
         },
       ],
       plugins: [
+        toolPlugin({
+          getTools: async () => {
+            const mcpTools = await listTools()
+            return mcpTools.map((tool) => ({
+              type: 'function',
+              function: {
+                name: tool.name,
+                description: tool.description || '',
+                parameters: (tool.inputSchema as Record<string, unknown> | undefined) || {
+                  type: 'object',
+                  properties: {},
+                },
+              },
+            }))
+          },
+          callTool: async (toolCall) => {
+            const toolName = toolCall.function?.name
+            if (!toolName || !toolName.includes('__')) {
+              throw new Error(`Unknown MCP tool name: ${toolName || '(empty)'}`)
+            }
+            const [serverKeyPart, ...nameParts] = toolName.split('__')
+            const originalToolName = nameParts.join('__')
+            const serverKey = serverKeyPart as McpServerKey
+            if (!originalToolName) {
+              throw new Error(`Unknown MCP tool name: ${toolName}`)
+            }
+            const args = JSON.parse(toolCall.function?.arguments || '{}') as Record<string, unknown>
+            return await callTool(serverKey, originalToolName, args)
+          },
+        }),
         {
           onError({ currentTurn, error }) {
             console.error(error)

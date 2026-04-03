@@ -118,63 +118,70 @@ function replaceProjectName(targetDir, projectName) {
   }
 }
 
-function run() {
+async function createProject(initialProjectName, initialTemplateName, skipPrompts) {
   const availableTemplates = getAvailableTemplates()
   if (availableTemplates.length === 0) {
     console.error('Error: no templates found.')
     process.exit(1)
   }
 
+  const projectName = await resolveProjectName(initialProjectName, skipPrompts)
+  const templateName = await resolveTemplateName(initialTemplateName, availableTemplates, skipPrompts)
+
+  if (!validateProjectName(projectName)) {
+    console.error('Error: project name can only contain lowercase letters, numbers, and dashes.')
+    process.exit(1)
+  }
+
+  const templateDir = getTemplateDir(templateName)
+  const targetDir = path.resolve(process.cwd(), projectName)
+
+  if (!fs.existsSync(templateDir)) {
+    console.error(`Error: template "${templateName}" does not exist. Available: ${availableTemplates.join(', ')}`)
+    process.exit(1)
+  }
+
+  if (fs.existsSync(targetDir)) {
+    console.error(`Error: target directory already exists: ${targetDir}`)
+    process.exit(1)
+  }
+
+  copyTemplate(templateDir, targetDir)
+  renameSpecialFiles(targetDir)
+  replaceProjectName(targetDir, projectName)
+
+  console.log('\nProject created successfully!')
+  console.log(`\nNext steps:`)
+  console.log(`  cd ${projectName}`)
+  console.log('  pnpm install')
+  console.log('  pnpm dev\n')
+}
+
+function run() {
   const program = new Command()
   program
-    .name('create-tiny-robot')
+    .name('tiny-robot-cli')
     .description('CLI to scaffold TinyRobot product projects')
-    .argument('[project-name]', 'project directory name')
-    .option('-t, --template <name>', 'template name')
     .showHelpAfterError()
-    .parse(process.argv)
 
-  const initialProjectName = program.args[0] ?? ''
-  const initialTemplateName = program.opts().template ?? ''
-  const skipPrompts = !process.stdout.isTTY
-
-  Promise.resolve()
-    .then(async () => {
-      const projectName = await resolveProjectName(initialProjectName, skipPrompts)
-      const templateName = await resolveTemplateName(initialTemplateName, availableTemplates, skipPrompts)
-
-      if (!validateProjectName(projectName)) {
-        console.error('Error: project name can only contain lowercase letters, numbers, and dashes.')
+  program
+    .command('create [project-name]')
+    .description('Create a TinyRobot project from template')
+    .option('-t, --template <name>', 'template name')
+    .action((projectName, options) => {
+      const skipPrompts = !process.stdout.isTTY
+      createProject(projectName ?? '', options.template ?? '', skipPrompts).catch((error) => {
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
         process.exit(1)
-      }
-
-      const templateDir = getTemplateDir(templateName)
-      const targetDir = path.resolve(process.cwd(), projectName)
-
-      if (!fs.existsSync(templateDir)) {
-        console.error(`Error: template "${templateName}" does not exist. Available: ${availableTemplates.join(', ')}`)
-        process.exit(1)
-      }
-
-      if (fs.existsSync(targetDir)) {
-        console.error(`Error: target directory already exists: ${targetDir}`)
-        process.exit(1)
-      }
-
-      copyTemplate(templateDir, targetDir)
-      renameSpecialFiles(targetDir)
-      replaceProjectName(targetDir, projectName)
-
-      console.log('\nProject created successfully!')
-      console.log(`\nNext steps:`)
-      console.log(`  cd ${projectName}`)
-      console.log('  pnpm install')
-      console.log('  pnpm dev\n')
+      })
     })
-    .catch((error) => {
-      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
-      process.exit(1)
-    })
+
+  if (process.argv.length <= 2) {
+    program.outputHelp()
+    return
+  }
+
+  program.parse(process.argv)
 }
 
 run()

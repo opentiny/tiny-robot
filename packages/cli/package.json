@@ -1,10 +1,10 @@
 {
-  "name": "create-tiny-robot",
+  "name": "@opentiny/tiny-robot-cli",
   "version": "0.1.0",
   "description": "CLI to scaffold TinyRobot product projects",
   "type": "module",
   "bin": {
-    "create-tiny-robot": "./bin/cli.js"
+    "tiny-robot-cli": "./bin/cli.js"
   },
   "files": [
     "bin",
