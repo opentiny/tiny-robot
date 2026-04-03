@@ -1,0 +1,25 @@
+{
+  "name": "@opentiny/tiny-robot-cli",
+  "version": "0.4.2",
+  "description": "CLI to scaffold TinyRobot product projects",
+  "type": "module",
+  "bin": {
+    "tiny-robot-cli": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node ./bin/cli.js"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.13.0"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.3.2",
+    "commander": "^14.0.3"
+  }
+}
