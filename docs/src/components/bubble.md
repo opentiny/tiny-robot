@@ -388,12 +388,14 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 | `contentRenderMode` | `'single' \| 'split'`                                         | -                              | 内容渲染模式                                                                                                                                                                                                                            |
 | `contentResolver`   | `(message: BubbleMessage) => ChatMessageContent \| undefined` | `(message) => message.content` | 内容解析函数，用于解析消息内容                                                                                                                                                                                                          |
 | `autoScroll`        | `boolean`                                                     | `false`                        | 是否自动滚动到底部。需要满足以下条件：<br/>- BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）<br/>- 滚动容器接近底部                                                                                                         |
+| `contentNav`        | `boolean \| BubbleListContentNavOptions`                      | `false`                        | 是否启用最小版内容导航集成。开启后，`BubbleList` 会基于分组结果生成可供 `getContentNavSource()` 读取的导航源                                                                                                                          |
 
 **BubbleList Expose**
 
 | 方法             | 签名                                           | 说明                                                                                  |
 | ---------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 滚动到底部。传入 `'smooth'` 可平滑滚动。若未启用 `autoScroll`，调用后无实际滚动效果。 |
+| `getContentNavSource` | `() => ContentNavSource \| undefined`        | 返回当前导航源。目录项基于 `messageGroups` 生成，目标 DOM 直接绑定在真实的 `.tr-bubble` 根节点上。 |
 
 **BubbleProviderProps** - 气泡提供者组件的属性配置
 

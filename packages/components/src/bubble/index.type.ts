@@ -1,4 +1,5 @@
 import { Component, VNode } from 'vue'
+import type { ContentNavItem } from '../shared/content-nav.type'
 
 /**
  * 工具调用接口（支持 OpenAI 格式）
@@ -127,6 +128,14 @@ export type BubbleRoleConfig = Pick<
  */
 type BubbleGroupFunction = (messages: BubbleMessage[], dividerRole?: string) => BubbleMessageGroup[]
 
+export interface BubbleListContentNavOptions {
+  itemResolver?: (context: {
+    group: BubbleMessageGroup
+    groupIndex: number
+    dividerRole: string
+  }) => ContentNavItem | false
+}
+
 export interface BubbleListProps {
   messages: BubbleMessage[]
   /**
@@ -164,6 +173,7 @@ export interface BubbleListProps {
    * @default false
    */
   autoScroll?: boolean
+  contentNav?: boolean | BubbleListContentNavOptions
 }
 
 export interface BubbleProviderProps {

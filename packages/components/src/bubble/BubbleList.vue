@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, provide, ref, watch } from 'vue'
+import { computed, nextTick, provide, ref, toRefs, watch } from 'vue'
 import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore, useCopyCleanup } from './composables'
+import { useBubbleContentNav } from './composables/useBubbleContentNav'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
 import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
@@ -169,8 +170,21 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
   }
 })
 
+const { contentNav, contentResolver, dividerRole, fallbackRole } = toRefs(props)
+
+const { contentNavEntries, contentNavSource, bindGroupTarget } = useBubbleContentNav({
+  contentNav,
+  messageGroups,
+  dividerRole,
+  fallbackRole,
+  contentResolver,
+})
+
+const getContentNavSourceFn = () => contentNavSource.value
+
 defineExpose({
   scrollToBottom: scrollToBottomFn,
+  getContentNavSource: getContentNavSourceFn,
 })
 </script>
 
@@ -179,6 +193,8 @@ defineExpose({
     <BubbleItem
       v-for="(group, index) in messageGroups"
       :key="index"
+      :ref="bindGroupTarget(contentNavEntries[index]?.id)"
+      :data-content-nav-id="contentNavEntries[index]?.id || undefined"
       :role="group.role || props.fallbackRole"
       :role-config="props.roleConfigs?.[group.role || props.fallbackRole]"
       :message-group="group"

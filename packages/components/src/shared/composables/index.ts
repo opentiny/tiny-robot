@@ -1,4 +1,5 @@
 export * from './createTeleport'
+export * from './useTargetRegistry'
 export * from './useAutoScroll'
 export * from './useSlotRefs'
 export * from './useTeleportTarget'
