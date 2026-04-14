@@ -62,6 +62,14 @@ export type BubbleMessageGroup = {
   startIndex: number
 }
 
+export type BubbleBoxRendererAttributeMap = Record<string, string | undefined>
+
+export type BubbleBoxRendererAttributesResolver = (
+  messages: BubbleMessage[],
+  content: ChatMessageContentItem | undefined,
+  contentIndex: number | undefined,
+) => BubbleBoxRendererAttributeMap | undefined
+
 export type BubbleBoxRendererMatch = {
   /**
    * 匹配函数，用于判断是否应该使用此渲染器
@@ -77,7 +85,7 @@ export type BubbleBoxRendererMatch = {
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
-  attributes?: Record<string, string>
+  attributes?: BubbleBoxRendererAttributeMap | BubbleBoxRendererAttributesResolver
 }
 
 export type BubbleContentRendererMatch = {
