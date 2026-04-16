@@ -1,5 +1,35 @@
 import type { SpeechCallbacks, SpeechHandler, SpeechConfig } from './speech.types'
 
+interface ParsedSpeechResult {
+  finalTranscript: string
+  interimTranscript: string
+}
+
+export function parseSpeechRecognitionResult(event: SpeechRecognitionEvent): ParsedSpeechResult {
+  let finalTranscript = ''
+  let interimTranscript = ''
+
+  for (let index = event.resultIndex; index < event.results.length; index++) {
+    const result = event.results[index]
+    const transcript = result[0]?.transcript ?? ''
+
+    if (!transcript) {
+      continue
+    }
+
+    if (result.isFinal) {
+      finalTranscript += transcript
+    } else {
+      interimTranscript += transcript
+    }
+  }
+
+  return {
+    finalTranscript,
+    interimTranscript,
+  }
+}
+
 /**
  * 内置 Web Speech API 处理器
  * 基于浏览器原生 Web Speech API 实现的语音识别
@@ -7,6 +37,11 @@ import type { SpeechCallbacks, SpeechHandler, SpeechConfig } from './speech.type
 export class WebSpeechHandler implements SpeechHandler {
   private recognition?: SpeechRecognition
   private options: SpeechConfig
+  private finalizedTranscript: string = ''
+
+  private resetSessionTranscript(): void {
+    this.finalizedTranscript = ''
+  }
 
   /**
    * 初始化语音识别实例
@@ -45,25 +80,33 @@ export class WebSpeechHandler implements SpeechHandler {
    */
   private setupEventHandlers(callbacks: SpeechCallbacks): void {
     if (!this.recognition || !callbacks) return
+
     this.recognition.onstart = () => {
+      this.resetSessionTranscript()
       callbacks.onStart()
     }
+
     this.recognition.onend = () => {
-      callbacks.onEnd()
+      callbacks.onEnd(this.finalizedTranscript || undefined)
+      this.resetSessionTranscript()
     }
+
     this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript)
-        .join('')
-      const current = event.results[event.resultIndex]
-      if (current?.isFinal) {
-        callbacks.onFinal(transcript)
-      } else {
-        callbacks.onInterim(transcript)
+      const { finalTranscript, interimTranscript } = parseSpeechRecognitionResult(event)
+
+      if (finalTranscript) {
+        this.finalizedTranscript += finalTranscript
+        callbacks.onFinal(finalTranscript)
+      }
+
+      if (interimTranscript) {
+        callbacks.onInterim(this.finalizedTranscript + interimTranscript)
       }
     }
+
     this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       callbacks.onError(new Error(event.error))
+      this.resetSessionTranscript()
       this.cleanup()
     }
   }
@@ -88,8 +131,10 @@ export class WebSpeechHandler implements SpeechHandler {
       callbacks.onError(new Error('浏览器不支持语音识别'))
       return
     }
-    // 绑定事件处理器
+
+    this.resetSessionTranscript()
     this.setupEventHandlers(callbacks)
+
     try {
       this.recognition.start()
     } catch (error) {
@@ -102,7 +147,10 @@ export class WebSpeechHandler implements SpeechHandler {
    */
   stop(): void {
     if (!this.recognition) return
+
     this.cleanup()
+    this.resetSessionTranscript()
+
     try {
       this.recognition.stop()
     } catch (error) {

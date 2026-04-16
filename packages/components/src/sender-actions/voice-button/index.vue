@@ -16,75 +16,123 @@ const emit = defineEmits<VoiceButtonEmits>()
 // 从 Context 获取最小依赖：只需要 editor 和 disabled
 const { editor, disabled: contextDisabled } = useSenderContext()
 const isDisabled = computed(() => props.disabled || contextDisabled.value)
+const isAutoReplace = computed(() => props.speechConfig?.autoReplace ?? false)
 const speechRange = ref<{ from: number; to: number } | null>(null)
+const committedTranscript = ref('')
+const speechPrefix = ref('')
 
-const resetSpeechRange = () => {
+const resetSpeechSession = () => {
   speechRange.value = null
+  committedTranscript.value = ''
+  speechPrefix.value = ''
 }
 
-const insertTranscript = (transcript: string) => {
-  if (!props.autoInsert || !editor.value || !transcript) return
+const ensureSpeechRange = () => {
+  if (speechRange.value || !editor.value) {
+    return speechRange.value
+  }
 
-  const editorInstance = editor.value
-  const autoReplace = props.speechConfig?.autoReplace ?? false
+  const { from, to } = editor.value.state.selection
+  const previousText = from === to ? (editor.value.state.doc.resolve(from).nodeBefore?.textContent ?? '') : ''
 
-  if (!autoReplace) {
-    editorInstance.commands.insertContent(transcript + ' ')
-    editorInstance.commands.focus('end')
+  speechPrefix.value = previousText && /\S$/.test(previousText) ? ' ' : ''
+  speechRange.value = {
+    from,
+    to,
+  }
+
+  return speechRange.value
+}
+
+const focusEditor = () => {
+  if (!editor.value) return
+
+  if (isAutoReplace.value && speechRange.value) {
+    editor.value.commands.focus(speechRange.value.to)
     return
   }
 
-  // autoReplace 模式：替换整个输入框内容
-  if (speechRange.value === null) {
-    // 首次插入，记录起始位置为 0
-    speechRange.value = {
-      from: 0,
-      to: 0,
-    }
+  editor.value.commands.focus('end')
+}
+
+const appendTranscript = (transcript: string) => {
+  if (!props.autoInsert || !editor.value || !transcript) return
+
+  editor.value.commands.insertContent(transcript + ' ')
+  focusEditor()
+}
+
+const replaceTranscript = (transcript: string) => {
+  if (!props.autoInsert || !editor.value || !transcript) return
+
+  const range = ensureSpeechRange()
+  const nextTranscript = `${speechPrefix.value}${transcript}`
+
+  if (!range) {
+    return
   }
 
-  // 替换从起始位置到当前内容末尾的所有文本
-  const docSize = editorInstance.state.doc.content.size
-  const tr = editorInstance.state.tr.insertText(transcript, speechRange.value.from, docSize)
-  editorInstance.view.dispatch(tr)
+  const tr = editor.value.state.tr.insertText(nextTranscript, range.from, range.to)
+  editor.value.view.dispatch(tr)
 
-  // 更新范围，保持起始位置不变，更新结束位置
   speechRange.value = {
-    from: speechRange.value.from,
-    to: speechRange.value.from + transcript.length,
+    from: range.from,
+    to: range.from + nextTranscript.length,
   }
-  editorInstance.commands.focus('end')
+
+  focusEditor()
+}
+
+const mergeCommittedTranscript = (transcript: string) => {
+  if (!transcript) {
+    return committedTranscript.value
+  }
+
+  if (!committedTranscript.value || transcript.startsWith(committedTranscript.value)) {
+    committedTranscript.value = transcript
+    return committedTranscript.value
+  }
+
+  if (committedTranscript.value !== transcript && !committedTranscript.value.endsWith(transcript)) {
+    committedTranscript.value += transcript
+  }
+
+  return committedTranscript.value
 }
 
 // 语音配置 - 使用普通对象而不是 computed，避免每次都创建新对象
 const speechOptions = {
   ...props.speechConfig,
   onStart: () => {
-    resetSpeechRange()
+    resetSpeechSession()
+    if (isAutoReplace.value) {
+      ensureSpeechRange()
+    }
     emit('speech-start')
   },
   onInterim: (transcript: string) => {
-    if (props.speechConfig?.autoReplace) {
-      insertTranscript(transcript)
+    if (isAutoReplace.value) {
+      replaceTranscript(transcript)
     }
     emit('speech-interim', transcript)
   },
   onFinal: (transcript: string) => {
-    if (!props.speechConfig?.autoReplace) {
-      insertTranscript(transcript)
+    if (isAutoReplace.value) {
+      replaceTranscript(mergeCommittedTranscript(transcript))
+    } else {
+      appendTranscript(transcript)
     }
     emit('speech-final', transcript)
   },
   onEnd: (transcript?: string) => {
-    // 结束后聚焦编辑器，确保光标可见
     if (editor.value) {
-      editor.value.commands.focus('end')
+      focusEditor()
     }
-    resetSpeechRange()
+    resetSpeechSession()
     emit('speech-end', transcript)
   },
   onError: (error: Error) => {
-    resetSpeechRange()
+    resetSpeechSession()
     emit('speech-error', error)
   },
 }

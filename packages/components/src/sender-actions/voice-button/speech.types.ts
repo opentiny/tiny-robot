@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 语音识别相关类型定义
  */
 // 语音回调函数集合
@@ -27,7 +27,7 @@ export interface SpeechConfig {
   lang?: string // 识别语言，默认浏览器语言
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
-  autoReplace?: boolean // 是否在本次录音期间自动替换语音插入内容
+  autoReplace?: boolean // 是否在本次录音期间仅替换语音写入的内容区间
 }
 
 // 语音识别状态

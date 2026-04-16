@@ -22,7 +22,7 @@ const voiceMode = ref<'append' | 'replace'>('append')
       {{
         voiceMode === 'append'
           ? '追加模式：每次语音识别结果会追加到输入框末尾，适合混合输入'
-          : '替换模式：每次语音识别会替换输入框全部内容，适合纯语音输入'
+          : '替换模式：在同一次录音会话内持续识别，并用最新结果更新本次语音输入内容'
       }}
     </div>
     <tr-sender
@@ -31,7 +31,7 @@ const voiceMode = ref<'append' | 'replace'>('append')
       :placeholder="
         voiceMode === 'append'
           ? '可以打字或点击麦克风说话，语音内容会追加...'
-          : '点击麦克风说话，每次识别会替换全部内容...'
+          : '点击麦克风连续说话，本次语音内容会持续更新...'
       "
     >
       <template #footer-right>
@@ -39,7 +39,7 @@ const voiceMode = ref<'append' | 'replace'>('append')
           :speech-config="
             voiceMode === 'append'
               ? { autoReplace: false, interimResults: true }
-              : { autoReplace: true, interimResults: true }
+              : { autoReplace: true, continuous: true, interimResults: true }
           "
         />
       </template>
