@@ -1,4 +1,4 @@
----
+﻿---
 outline: [1, 3]
 ---
 
@@ -158,6 +158,12 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 使用浏览器内置的语音识别功能，支持追加写入和整框替换两种体验。可通过 `speechConfig.lang` 显式指定识别语言，并结合 `speechConfig.continuous` 控制是否持续识别。
 
 <demo vue="../../demos/sender/voice-input.vue" title="基础语音输入" description="使用浏览器内置语音识别，展示追加写入和整框替换两种体验。" />
+
+:::tip 替换模式说明
+当 `speechConfig.autoReplace` 为 `true` 时，输入框会被当前录音结果整框替换。
+
+如果同时开启 `speechConfig.continuous`，替换进去的是“当前录音会话的累计识别结果”，也就是后续说出的内容会和前面已确认的内容一起更新，而不是仅保留最后一句。
+:::
 
 :::tip lang 语言说明
 `lang` 用于指定语音识别语言，建议显式传入，并与页面的 `html lang` 保持一致，避免页面语言和浏览器环境语言不一致时出现识别偏差。

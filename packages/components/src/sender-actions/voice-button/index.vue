@@ -5,6 +5,7 @@ import { useSpeechHandler } from './useSpeechHandler'
 import ActionButton from '../action-button/index.vue'
 import { IconVoice, IconRecordingWave } from '@opentiny/tiny-robot-svgs'
 import type { VoiceButtonProps, VoiceButtonEmits } from './index.type'
+import type { SpeechHookOptions } from './speech.types'
 
 const props = withDefaults(defineProps<VoiceButtonProps>(), {
   tooltipPlacement: 'top',
@@ -59,8 +60,7 @@ const mergeCommittedTranscript = (transcript: string) => {
   return committedTranscript.value
 }
 
-// 语音配置 - 使用普通对象而不是 computed，避免每次都创建新对象
-const speechOptions = {
+const getSpeechOptions = (): SpeechHookOptions => ({
   ...props.speechConfig,
   onStart: () => {
     resetSpeechSession()
@@ -91,10 +91,10 @@ const speechOptions = {
     resetSpeechSession()
     emit('speech-error', error)
   },
-}
+})
 
 // 使用语音 Hook
-const { speechState, start, stop } = useSpeechHandler(speechOptions)
+const { speechState, start, stop } = useSpeechHandler(getSpeechOptions)
 
 // 处理点击
 const handleClick = async () => {

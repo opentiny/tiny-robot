@@ -88,6 +88,7 @@ export class WebSpeechHandler implements SpeechHandler {
 
     this.recognition.onend = () => {
       callbacks.onEnd(this.finalizedTranscript || undefined)
+      this.cleanup()
       this.resetSessionTranscript()
     }
 
@@ -148,12 +149,11 @@ export class WebSpeechHandler implements SpeechHandler {
   stop(): void {
     if (!this.recognition) return
 
-    this.cleanup()
-    this.resetSessionTranscript()
-
     try {
       this.recognition.stop()
     } catch (error) {
+      this.cleanup()
+      this.resetSessionTranscript()
       console.warn('停止语音识别时发生错误:', error)
     }
   }

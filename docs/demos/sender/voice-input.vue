@@ -22,24 +22,22 @@ const voiceMode = ref<'append' | 'replace'>('append')
       {{
         voiceMode === 'append'
           ? '追加模式：每次语音识别结果会追加到输入框末尾，适合混合输入'
-          : '替换模式：在录音期间使用最新识别结果直接替换整个输入框内容'
+          : '替换模式：在录音期间使用识别结果持续替换整个输入框内容'
       }}
     </div>
     <tr-sender
       :key="voiceMode"
       mode="multiple"
       :placeholder="
-        voiceMode === 'append'
-          ? '可以打字或点击麦克风说话，语音内容会追加...'
-          : '点击麦克风连续说话，输入框内容会被语音结果持续替换...'
+        voiceMode === 'append' ? '可以打字或点击麦克风说话，语音内容会追加...' : '点击麦克风说话，输入框内容持续替换...'
       "
     >
       <template #footer-right>
         <VoiceButton
           :speech-config="
             voiceMode === 'append'
-              ? { autoReplace: false, interimResults: true }
-              : { autoReplace: true, continuous: true, interimResults: true }
+              ? { autoReplace: false, continuous: true, interimResults: true }
+              : { autoReplace: true, interimResults: true }
           "
         />
       </template>
