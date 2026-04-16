@@ -1,4 +1,4 @@
-﻿---
+---
 outline: [1, 3]
 ---
 
@@ -155,9 +155,9 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 #### 基础语音识别
 
-使用浏览器内置的语音识别功能，支持追加写入和替换写入两种体验。可通过 `speechConfig.lang` 显式指定识别语言，并结合 `speechConfig.continuous` 控制是否持续识别。
+使用浏览器内置的语音识别功能，支持追加写入和整框替换两种体验。可通过 `speechConfig.lang` 显式指定识别语言，并结合 `speechConfig.continuous` 控制是否持续识别。
 
-<demo vue="../../demos/sender/voice-input.vue" title="基础语音输入" description="使用浏览器内置语音识别，展示追加写入和连续替换两种体验。" />
+<demo vue="../../demos/sender/voice-input.vue" title="基础语音输入" description="使用浏览器内置语音识别，展示追加写入和整框替换两种体验。" />
 
 :::tip lang 语言说明
 `lang` 用于指定语音识别语言，建议显式传入，并与页面的 `html lang` 保持一致，避免页面语言和浏览器环境语言不一致时出现识别偏差。
@@ -170,7 +170,6 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 | `zh` | 中文 |
 | `zh-CN` | 简体中文 |
 | `en-US` | 美式英语 |
-:::
 
 #### 自定义语音服务
 
@@ -613,7 +612,7 @@ interface SpeechConfig {
   lang?: string // 内置 Web Speech 的识别语言；未传入时使用 navigator.language
   continuous?: boolean // 内置 Web Speech 是否持续识别
   interimResults?: boolean // 内置 Web Speech 是否返回中间结果
-  autoReplace?: boolean // 是否在本次录音期间仅用最新识别结果替换语音写入的内容区间
+  autoReplace?: boolean // 是否在录音期间用识别结果替换整个输入框内容
 }
 
 // 模板项（联合类型）

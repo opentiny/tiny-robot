@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { useSenderContext } from '../../sender/context'
 import { useSpeechHandler } from './useSpeechHandler'
 import ActionButton from '../action-button/index.vue'
@@ -17,41 +17,14 @@ const emit = defineEmits<VoiceButtonEmits>()
 const { editor, disabled: contextDisabled } = useSenderContext()
 const isDisabled = computed(() => props.disabled || contextDisabled.value)
 const isAutoReplace = computed(() => props.speechConfig?.autoReplace ?? false)
-const speechRange = ref<{ from: number; to: number } | null>(null)
-const committedTranscript = ref('')
-const speechPrefix = ref('')
+const committedTranscript = shallowRef('')
 
 const resetSpeechSession = () => {
-  speechRange.value = null
   committedTranscript.value = ''
-  speechPrefix.value = ''
-}
-
-const ensureSpeechRange = () => {
-  if (speechRange.value || !editor.value) {
-    return speechRange.value
-  }
-
-  const { from, to } = editor.value.state.selection
-  const previousText = from === to ? (editor.value.state.doc.resolve(from).nodeBefore?.textContent ?? '') : ''
-
-  speechPrefix.value = previousText && /\S$/.test(previousText) ? ' ' : ''
-  speechRange.value = {
-    from,
-    to,
-  }
-
-  return speechRange.value
 }
 
 const focusEditor = () => {
   if (!editor.value) return
-
-  if (isAutoReplace.value && speechRange.value) {
-    editor.value.commands.focus(speechRange.value.to)
-    return
-  }
-
   editor.value.commands.focus('end')
 }
 
@@ -65,21 +38,7 @@ const appendTranscript = (transcript: string) => {
 const replaceTranscript = (transcript: string) => {
   if (!props.autoInsert || !editor.value || !transcript) return
 
-  const range = ensureSpeechRange()
-  const nextTranscript = `${speechPrefix.value}${transcript}`
-
-  if (!range) {
-    return
-  }
-
-  const tr = editor.value.state.tr.insertText(nextTranscript, range.from, range.to)
-  editor.value.view.dispatch(tr)
-
-  speechRange.value = {
-    from: range.from,
-    to: range.from + nextTranscript.length,
-  }
-
+  editor.value.commands.setContent(transcript)
   focusEditor()
 }
 
@@ -105,9 +64,6 @@ const speechOptions = {
   ...props.speechConfig,
   onStart: () => {
     resetSpeechSession()
-    if (isAutoReplace.value) {
-      ensureSpeechRange()
-    }
     emit('speech-start')
   },
   onInterim: (transcript: string) => {
