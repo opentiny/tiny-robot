@@ -1,3 +1,5 @@
+import { ChatCompletion, ChatCompletionChunk } from 'openai/resources/index'
+import { lengthPlugin, thinkingPlugin } from '../plugins'
 import {
   BasePluginContext,
   ChatMessage,
@@ -14,8 +16,10 @@ import {
   RequestProcessingState,
   RequestState,
   ResponseProvider,
-} from './type'
-import { AbortError, combileDeltaData, normalizeToAsyncGenerator, omitFields, pickFields } from './utils'
+} from './types'
+import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, omitFields, pickFields } from './utils'
+
+type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
 
 const defaultResponseProvider: ResponseProvider = async () => {
   throw new Error('Response provider is not set')
@@ -83,7 +87,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
     responseProvider: initialResponseProvider,
   }
 
-  const defaultPlugins: MessageEnginePlugin[] = []
+  const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
   const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
 
   const listeners = new Set<{
@@ -216,9 +220,19 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
     abortSignal: AbortSignal,
     options: { setAssistantMessage?: (message: ChatMessage) => void } = {},
   ) {
+    // executeRequest 可能递归调用，需要再设置 requesting 状态
+    // 加上判断避免重复设置状态（runTurn 中也会设置 requesting 状态）
+    if (!(state.requestState === 'processing' && state.processingState === 'requesting')) {
+      setRequestState('processing', 'requesting')
+    }
+
     const requestBody: MessageRequestBody = { messages: state.messages }
 
-    // TODO onBeforeRequest plugin hook
+    // Allow plugins to modify request body (e.g., add tools)
+    const baseContext = getBaseContext(abortSignal)
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
+      await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
+    }
 
     // 请求前对消息进行清洗，去掉不必要的字段
     requestBody.messages = sanitizeMessages(requestBody.messages)
@@ -230,7 +244,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
     const result = responseProvider(requestBody, abortSignal)
     const chunks = normalizeToAsyncGenerator(result)
 
-    // let lastChoice: ChatCompletion.Choice | ChatCompletionChunk.Choice | undefined = undefined
+    let lastChoice: ChatCompletionChoice | undefined = undefined
 
     for await (const chunk of chunks) {
       setRequestState('processing', 'completing')
@@ -249,7 +263,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
         continue
       }
 
-      // lastChoice = choice
+      lastChoice = choice
 
       const runDefault = () => {
         mutate('messages', () => {
@@ -281,13 +295,14 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
         })
       }
 
+      const updateCurrentMessage = (recipe: (message: ChatMessage) => void) => {
+        mutate('messages', () => {
+          recipe(assistantMessage)
+        })
+      }
+
       if (onCompletionChunk) {
         const baseContext = getBaseContext(abortSignal)
-        const updateCurrentMessage = (recipe: (message: ChatMessage) => void) => {
-          mutate('messages', () => {
-            recipe(assistantMessage)
-          })
-        }
 
         onCompletionChunk(
           {
@@ -299,16 +314,74 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
           },
           runDefault,
         )
+      } else {
+        runDefault()
+      }
+
+      const baseContext = getBaseContext(abortSignal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
+        plugin.onCompletionChunk?.({
+          ...baseContext,
+          abortSignal,
+          chunk,
+          choice,
+          currentMessage: assistantMessage,
+          updateCurrentMessage,
+        })
       }
     }
 
-    // TODO postRequest
+    await postRequest(assistantMessage, responseProvider, abortSignal, lastChoice, options)
+  }
+
+  async function postRequest(
+    currentMessage: ChatMessage,
+    responseProvider: ResponseProvider,
+    abortSignal: AbortSignal,
+    lastChoice?: ChatCompletionChoice,
+    options?: { setAssistantMessage?: (message: ChatMessage) => void },
+  ) {
+    let shouldRequest = false
+
+    const baseContext = getBaseContext(abortSignal)
+
+    const tasks = plugins
+      .filter((plugin) => !isPluginDisabled(plugin, baseContext))
+      .map((plugin) => {
+        if (!plugin.onAfterRequest) {
+          return null
+        }
+
+        const _appendMessage = (message: ChatMessage | ChatMessage[]) => {
+          appendMessages(...(Array.isArray(message) ? message : [message]))
+        }
+
+        const requestNext = () => {
+          shouldRequest = true
+        }
+
+        return plugin.onAfterRequest({
+          ...baseContext,
+          currentMessage,
+          lastChoice,
+          appendMessage: _appendMessage,
+          requestNext,
+        })
+      })
+      .filter((task): task is Promise<void> => task !== null)
+
+    // 并行执行所有 onAfterRequest 钩子
+    await makeAbortable(Promise.all(tasks), abortSignal)
+
+    if (shouldRequest) {
+      await executeRequest(responseProvider, abortSignal, options)
+    }
   }
 
   async function runTurn() {
     const ac = new AbortController()
     runtime.abortController = ac
-    runtime.currentTurn = []
+    // 在每个回合开始时重置自定义上下文
     runtime.customContext = {}
 
     // 记录当前请求的 assistantMessage，方便在 finally 中进行状态清理（如将 loading 置为 false）

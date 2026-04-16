@@ -1,15 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageParam } from 'openai/resources/index'
+import {
+  ChatCompletion,
+  ChatCompletionChunk,
+  ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
+} from 'openai/resources/index'
 import { MaybePromise } from '../../types'
+
+export type DeepReadonly<T> = T extends (...args: any[]) => any
+  ? T
+  : T extends Array<infer U>
+    ? ReadonlyArray<DeepReadonly<U>>
+    : T extends object
+      ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+      : T
 
 // Define different states for the request process
 export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
 
-export type ChatMessage = ChatCompletionMessageParam & {
+export type ChatMessage<
+  Metadata extends object = Record<string, unknown>,
+  State extends object = Record<string, unknown>,
+> = ChatCompletionMessageParam & {
+  tool_calls?: Array<ChatCompletionMessageToolCall>
   loading?: boolean
-  metadata?: Record<string, unknown>
-  state?: Record<string, unknown>
+  metadata?: Metadata
+  state?: State
   [key: string]: any
   [key: symbol]: any
 }
@@ -77,14 +94,14 @@ export interface BeforeRequestContext extends BasePluginContext {
 }
 
 export interface AfterRequestContext extends BasePluginContext {
-  currentMessage: ChatMessage
+  currentMessage: DeepReadonly<ChatMessage>
   lastChoice?: ChatCompletion.Choice | ChatCompletionChunk.Choice
   appendMessage: (message: ChatMessage | ChatMessage[]) => void
   requestNext: () => void
 }
 
 export interface CompletionChunkContext extends BasePluginContext {
-  currentMessage: ChatMessage
+  currentMessage: DeepReadonly<ChatMessage>
   updateCurrentMessage: (recipe: (message: ChatMessage) => void) => void
   choice: ChatCompletion.Choice | ChatCompletionChunk.Choice
   chunk: ChatCompletion | ChatCompletionChunk
