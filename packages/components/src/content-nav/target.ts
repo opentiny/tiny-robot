@@ -1,12 +1,20 @@
 export const CONTENT_NAV_TARGET_ATTRIBUTE = 'data-content-nav-id'
 export const CONTENT_NAV_TARGET_SELECTOR = `[${CONTENT_NAV_TARGET_ATTRIBUTE}]`
+export const CONTENT_NAV_ITEM_ATTRIBUTE = 'data-item-id'
+export const CONTENT_NAV_ITEM_SELECTOR = `[${CONTENT_NAV_ITEM_ATTRIBUTE}]`
 
-export function queryContentNavTargetById(root: ParentNode, id: string) {
+function queryByDataAttribute(root: ParentNode, selector: string, attribute: string, datasetKey: string, id: string) {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
-    return root.querySelector<HTMLElement>(`[${CONTENT_NAV_TARGET_ATTRIBUTE}="${CSS.escape(id)}"]`)
+    return root.querySelector<HTMLElement>(`[${attribute}="${CSS.escape(id)}"]`)
   }
 
-  return Array.from(root.querySelectorAll<HTMLElement>(CONTENT_NAV_TARGET_SELECTOR)).find(
-    (entry) => entry.dataset.contentNavId === id,
-  )
+  return Array.from(root.querySelectorAll<HTMLElement>(selector)).find((entry) => entry.dataset[datasetKey] === id)
+}
+
+export function queryContentNavTargetById(root: ParentNode, id: string) {
+  return queryByDataAttribute(root, CONTENT_NAV_TARGET_SELECTOR, CONTENT_NAV_TARGET_ATTRIBUTE, 'contentNavId', id)
+}
+
+export function queryContentNavItemById(root: ParentNode, id: string) {
+  return queryByDataAttribute(root, CONTENT_NAV_ITEM_SELECTOR, CONTENT_NAV_ITEM_ATTRIBUTE, 'itemId', id)
 }

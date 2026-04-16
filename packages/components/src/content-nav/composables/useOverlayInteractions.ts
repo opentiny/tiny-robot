@@ -1,4 +1,5 @@
 import { nextTick } from 'vue'
+import { queryContentNavItemById } from '../target'
 import type { ContentNavOverlayInteractionsOptions } from '../internal.type'
 
 export function useOverlayInteractions(options: ContentNavOverlayInteractionsOptions) {
@@ -18,12 +19,13 @@ export function useOverlayInteractions(options: ContentNavOverlayInteractionsOpt
   function focusHighlightedItem() {
     nextTick(() => {
       const id = options.highlightedId.value
-      if (!id) {
+      const navEl = options.overlay.value?.navEl
+
+      if (!id || !navEl) {
         return
       }
 
-      const escapedId = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(id) : id
-      options.overlay.value?.navEl?.querySelector<HTMLElement>(`[data-item-id="${escapedId}"]`)?.focus()
+      queryContentNavItemById(navEl, id)?.focus()
     })
   }
 

@@ -27,23 +27,27 @@ export const defaultContentNavSearchMatcher: ContentNavSearchMatcher = (item, ra
 }
 
 export function defaultContentNavActiveResolver(options: {
-  container: HTMLElement
+  viewport: {
+    top: number
+    scrollTop: number
+    clientHeight: number
+    scrollHeight: number
+  }
   anchors: Array<{ id: string; el: HTMLElement }>
   items: ContentNavItem[]
 }) {
-  const { container, anchors, items } = options
+  const { viewport, anchors, items } = options
 
   if (!anchors.length || !items.length) {
     return items[0]?.id
   }
 
-  const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 2
+  const isAtBottom = viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 2
   if (isAtBottom) {
     return items[items.length - 1]?.id
   }
 
-  const containerRect = container.getBoundingClientRect()
-  const threshold = containerRect.top + 120
+  const threshold = viewport.top + 120
   let activeId = items[0]?.id
 
   for (const anchor of anchors) {
@@ -59,7 +63,7 @@ export function defaultContentNavActiveResolver(options: {
 }
 
 export function ensureContentNavSegments(item: ContentNavItem, segments: false | ContentNavHighlightSegment[]) {
-  if (!segments) {
+  if (!segments || segments.length === 0) {
     return [{ text: item.label, highlighted: false }]
   }
 

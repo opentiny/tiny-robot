@@ -2,6 +2,14 @@ import { usePreferredReducedMotion } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { defaultContentNavActiveResolver } from '../defaults'
 import type { ContentNavActiveSyncOptions } from '../internal.type'
+import {
+  getContentNavClientHeight,
+  getContentNavScrollHeight,
+  getContentNavScrollTop,
+  getContentNavViewportTop,
+  resolveContentNavScrollRoot,
+  scrollContentNavTo,
+} from '../scroll'
 
 export function useActiveSync(options: ContentNavActiveSyncOptions) {
   const scrollSyncTolerance = 2
@@ -52,13 +60,15 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
   }
 
   function sync() {
-    const container = options.container.value
-    if (!container) {
+    const scrollRoot = resolveContentNavScrollRoot(options.container.value)
+    if (!scrollRoot) {
       return
     }
 
+    const currentScrollTop = getContentNavScrollTop(scrollRoot)
+
     if (pendingProgrammaticScroll) {
-      const reachedTarget = Math.abs(container.scrollTop - pendingProgrammaticScroll.top) <= scrollSyncTolerance
+      const reachedTarget = Math.abs(currentScrollTop - pendingProgrammaticScroll.top) <= scrollSyncTolerance
       const timedOut = Date.now() - pendingProgrammaticScroll.startedAt > maxProgrammaticScrollDuration
 
       if (!reachedTarget && !timedOut) {
@@ -75,7 +85,12 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
       }),
     )
     const nextId = defaultContentNavActiveResolver({
-      container,
+      viewport: {
+        top: getContentNavViewportTop(scrollRoot),
+        scrollTop: currentScrollTop,
+        clientHeight: getContentNavClientHeight(scrollRoot),
+        scrollHeight: getContentNavScrollHeight(scrollRoot),
+      },
       anchors,
       items: options.items.value,
     })
@@ -86,17 +101,17 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
   }
 
   function scrollTo(id: string) {
-    const container = options.container.value
+    const scrollRoot = resolveContentNavScrollRoot(options.container.value)
     const target = options.resolveTarget(id)
 
-    if (!container || !target) {
+    if (!scrollRoot || !target) {
       return
     }
 
+    const currentScrollTop = getContentNavScrollTop(scrollRoot)
     const targetRect = target.getBoundingClientRect()
-    const containerRect = container.getBoundingClientRect()
-    const targetTop = container.scrollTop + (targetRect.top - containerRect.top) - getScrollOffset(target)
-    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+    const targetTop = currentScrollTop + targetRect.top - getContentNavViewportTop(scrollRoot) - getScrollOffset(target)
+    const maxScrollTop = Math.max(0, getContentNavScrollHeight(scrollRoot) - getContentNavClientHeight(scrollRoot))
     const nextTop = Math.max(0, Math.min(targetTop, maxScrollTop))
 
     pendingProgrammaticScroll = {
@@ -105,10 +120,7 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
     }
     setActiveId(id)
 
-    container.scrollTo({
-      top: nextTop,
-      behavior: preferredReducedMotion.value === 'reduce' ? 'auto' : 'smooth',
-    })
+    scrollContentNavTo(scrollRoot, nextTop, preferredReducedMotion.value === 'reduce' ? 'auto' : 'smooth')
   }
 
   watch(

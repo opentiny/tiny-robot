@@ -25,7 +25,8 @@ export function useNavState(options: ContentNavStateOptions) {
     return options.items.value
       .map((item) => {
         const segments = matcher.value(item, keyword)
-        if (keyword && !segments) {
+        const hasMatchedSegments = Array.isArray(segments) && segments.length > 0
+        if (keyword && !hasMatchedSegments) {
           return null
         }
 

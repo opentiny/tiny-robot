@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
 import ContentNavList from './components/ContentNavList.vue'
 import ContentNavOverlay from './components/ContentNavOverlay.vue'
 import ContentNavSearch from './components/ContentNavSearch.vue'
+import { resolveContentNavScrollRoot } from './scroll'
 import { queryContentNavTargetById } from './target'
 import type { ContentNavOverlayExpose } from './internal.type'
 import { useActiveSync, useFloatingOffset, useNavState, useOverlayInteractions } from './composables/index'
@@ -65,6 +66,7 @@ const state = useNavState({
 const shouldRender = computed(() => itemsRef.value.length > 0)
 const hasSearchSection = computed(() => Boolean(resolvedSearchOptions.value) && state.expanded.value)
 const shouldAutoToggleExpanded = computed(() => expandTrigger.value === 'hover')
+const scrollEventTarget = computed(() => resolveContentNavScrollRoot(scrollContainer.value))
 const floating = useFloatingOffset({
   container: scrollContainer,
   host: hostRef,
@@ -114,7 +116,7 @@ function scheduleMeasure() {
   })
 }
 
-useEventListener(scrollContainer, 'scroll', scheduleMeasure, { passive: true })
+useEventListener(scrollEventTarget, 'scroll', scheduleMeasure, { passive: true })
 useEventListener('resize', scheduleMeasure, { passive: true })
 useResizeObserver(scrollContainer, () => {
   scheduleMeasure()
