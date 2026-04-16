@@ -126,9 +126,7 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
   watch(
     () => options.activeId?.value,
     (value) => {
-      if (value !== undefined) {
-        localActiveId.value = value
-      }
+      localActiveId.value = value
     },
   )
 
