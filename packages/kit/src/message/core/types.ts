@@ -36,7 +36,7 @@ export interface MessageRequestBody {
   [key: string]: any
 }
 
-export type ResponseProvider = <T = ChatCompletion | ChatCompletionChunk>(
+export type ResponseProvider<T extends ChatCompletion | ChatCompletionChunk = ChatCompletion | ChatCompletionChunk> = (
   requestBody: MessageRequestBody,
   abortSignal: AbortSignal,
 ) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>

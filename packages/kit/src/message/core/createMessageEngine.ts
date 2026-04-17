@@ -190,7 +190,12 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
   }
 
   const setRequestState = (requestState: RequestState, processingState?: RequestProcessingState) => {
-    mutate('requestState', (draft) => {
+    mutate('requestState', (draft, skipNotify) => {
+      if (draft.requestState === requestState && draft.processingState === processingState) {
+        skipNotify()
+        return
+      }
+
       draft.requestState = requestState
       draft.processingState = requestState === 'processing' ? (processingState ?? 'requesting') : undefined
     })
@@ -221,10 +226,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
     options: { setAssistantMessage?: (message: ChatMessage) => void } = {},
   ) {
     // executeRequest 可能递归调用，需要再设置 requesting 状态
-    // 加上判断避免重复设置状态（runTurn 中也会设置 requesting 状态）
-    if (!(state.requestState === 'processing' && state.processingState === 'requesting')) {
-      setRequestState('processing', 'requesting')
-    }
+    setRequestState('processing', 'requesting')
 
     const requestBody: MessageRequestBody = { messages: state.messages }
 

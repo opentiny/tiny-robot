@@ -52,7 +52,9 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsup src/index.ts src/core.ts --format cjs,esm --dts --minify",
-    "dev": "tsup src/index.ts src/core.ts --format cjs,esm --dts --watch"
+    "dev": "tsup src/index.ts src/core.ts --format cjs,esm --dts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "MIT",
@@ -60,7 +62,8 @@
     "@types/node": "^22.13.17",
     "openai": "^6.34.0",
     "tsup": "^8.0.1",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.4"
   },
   "peerDependencies": {
     "vue": ">=3.0.0"
