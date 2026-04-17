@@ -49,10 +49,3 @@ const handleSubmit = (text: string) => {
   color: #606266;
 }
 </style>
-
-<style>
-.tr-submit-button-tooltip-popper,
-.tr-action-button-tooltip-popper {
-  top: -10px !important;
-}
-</style>

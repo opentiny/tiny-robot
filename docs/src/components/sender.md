@@ -724,9 +724,14 @@ Sender 组件提供了丰富的 CSS 变量用于自定义样式。
 | -------------------------------- | ------------ |
 | `--tr-sender-button-size`        | 按钮尺寸     |
 | `--tr-sender-button-size-submit` | 提交按钮尺寸 |
+| `--tr-sender-tooltip-gap`        | 按钮 Tooltip 与触发按钮的间距 |
 
 :::tip 尺寸变体
 所有变量都支持通过 `size` 属性自动切换。当 `size="small"` 时，组件会使用对应的 `-small` 变体（如 `--tr-sender-font-size-small`）。
+:::
+
+:::tip Tooltip 间距
+Sender 按钮的 Tooltip 间距可通过 `--tr-sender-tooltip-gap` 全局自定义，默认值为 `8px`。由于 Tooltip 弹层通常挂载在全局层级，建议在 `:root` 或全局主题作用域下设置该变量。
 :::
 
 :::tip 使用示例
@@ -741,6 +746,11 @@ Sender 组件提供了丰富的 CSS 变量用于自定义样式。
 .my-sender {
   --tr-sender-button-size: 40px;
   --tr-sender-button-size-submit: 44px;
+}
+
+/* 全局调整 Sender 按钮 Tooltip 间距 */
+:root {
+  --tr-sender-tooltip-gap: 10px;
 }
 ```
 :::
