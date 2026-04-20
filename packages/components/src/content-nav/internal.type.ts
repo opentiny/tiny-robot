@@ -52,6 +52,7 @@ export interface ContentNavListProps {
   expanded: boolean
   highlightedIndex: number
   placement: ContentNavPlacement
+  tooltipDelay: number
   emptyText: string
 }
 
@@ -71,6 +72,7 @@ export interface ContentNavItemProps {
   expanded: boolean
   highlighted: boolean
   placement: ContentNavPlacement
+  tooltipDelay: number
 }
 
 export interface ContentNavItemEmits {
@@ -105,7 +107,7 @@ export interface ContentNavOverlayInteractionsOptions {
   setExpanded: (value: boolean) => void
 }
 
-export interface ContentNavStateOptions {
+export interface ContentNavControllerOptions {
   items: Ref<ContentNavItem[]>
   activeId: Ref<string | undefined>
   expanded: Ref<boolean | undefined>
@@ -114,4 +116,10 @@ export interface ContentNavStateOptions {
   search?: Ref<ContentNavSearchOptions | false | undefined>
   onUpdateExpanded?: (value: boolean) => void
   onUpdateQuery?: (value: string) => void
+}
+
+export interface ContentNavTargetFeedbackOptions {
+  resolveTarget: (id: string) => HTMLElement | null
+  activeClass: Ref<string | undefined>
+  activeDuration: Ref<number | undefined>
 }

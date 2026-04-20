@@ -4,11 +4,17 @@ import { computed, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
 import ContentNavList from './components/ContentNavList.vue'
 import ContentNavOverlay from './components/ContentNavOverlay.vue'
 import ContentNavSearch from './components/ContentNavSearch.vue'
-import { resolveContentNavScrollRoot } from './scroll'
-import { queryContentNavTargetById } from './target'
 import type { ContentNavOverlayExpose } from './internal.type'
-import { useActiveSync, useFloatingOffset, useNavState, useOverlayInteractions } from './composables/index'
+import {
+  useActiveSync,
+  useFloatingOffset,
+  useNavController,
+  useOverlayInteractions,
+  useTargetFeedback,
+} from './composables/index'
 import type { ContentNavEmits, ContentNavProps, ContentNavSearchOptions, ContentNavSlots } from './index.type'
+import { resolveContentNavScrollRoot } from './utils/scroll'
+import { queryContentNavTargetById } from './utils/target'
 
 defineOptions({
   name: 'TrContentNav',
@@ -19,13 +25,28 @@ const props = withDefaults(defineProps<ContentNavProps>(), {
   placement: 'right',
   expandTrigger: 'hover',
   search: false,
+  tooltipDelay: 260,
+  targetActiveDuration: 700,
   emptyText: 'No matching items',
 })
 
 const emit = defineEmits<ContentNavEmits>()
 defineSlots<ContentNavSlots>()
 const attrs = useAttrs()
-const { activeId, emptyText, expandTrigger, expanded, items, placement, query, scrollContainer, search } = toRefs(props)
+const {
+  activeId,
+  emptyText,
+  expandTrigger,
+  expanded,
+  items,
+  placement,
+  query,
+  scrollContainer,
+  search,
+  targetActiveClass,
+  targetActiveDuration,
+  tooltipDelay,
+} = toRefs(props)
 
 const overlayShellRef = ref<ContentNavOverlayExpose | null>(null)
 
@@ -52,7 +73,7 @@ const active = useActiveSync({
   onUpdateActiveId: (value) => emit('update:activeId', value),
 })
 
-const state = useNavState({
+const controller = useNavController({
   items: itemsRef,
   activeId: active.activeId,
   expanded,
@@ -64,20 +85,25 @@ const state = useNavState({
 })
 
 const shouldRender = computed(() => itemsRef.value.length > 0)
-const hasSearchSection = computed(() => Boolean(resolvedSearchOptions.value) && state.expanded.value)
+const hasSearchSection = computed(() => Boolean(resolvedSearchOptions.value) && controller.expanded.value)
 const shouldAutoToggleExpanded = computed(() => expandTrigger.value === 'hover')
 const scrollEventTarget = computed(() => resolveContentNavScrollRoot(scrollContainer.value))
 const floating = useFloatingOffset({
   container: scrollContainer,
   host: hostRef,
 })
+const targetFeedback = useTargetFeedback({
+  resolveTarget: resolveTargetFromItems,
+  activeClass: targetActiveClass,
+  activeDuration: targetActiveDuration,
+})
 
 function setExpanded(value: boolean) {
-  state.setExpanded(value)
+  controller.setExpanded(value)
 }
 
 function setQuery(value: string) {
-  state.setQuery(value)
+  controller.setQuery(value)
 }
 
 function handleSelect(itemId: string) {
@@ -87,6 +113,7 @@ function handleSelect(itemId: string) {
   }
 
   active.scrollTo(itemId)
+  targetFeedback.activate(itemId)
   scheduleMeasure()
   emit('select', target)
   emit('activate', target)
@@ -94,10 +121,10 @@ function handleSelect(itemId: string) {
 
 const interactions = useOverlayInteractions({
   overlay: overlayShellRef,
-  highlightedId: state.highlightedId,
+  highlightedId: controller.highlightedId,
   shouldAutoCollapse: shouldAutoToggleExpanded,
-  handleNavigationKeydown: state.handleNavigationKeydown,
-  getHighlightedItem: state.getHighlightedItem,
+  handleNavigationKeydown: controller.handleNavigationKeydown,
+  getHighlightedItem: controller.getHighlightedItem,
   onSelectItem: handleSelect,
   setExpanded,
 })
@@ -164,7 +191,7 @@ onBeforeUnmount(() => {
     v-if="shouldRender"
     ref="overlayShellRef"
     v-bind="attrs"
-    :expanded="state.expanded.value"
+    :expanded="controller.expanded.value"
     :placement="placement"
     :floating-offset="floating.offset.value"
     @mouseenter="shouldAutoToggleExpanded && setExpanded(true)"
@@ -174,17 +201,18 @@ onBeforeUnmount(() => {
     @keydown="interactions.handleKeydown"
   >
     <template v-if="hasSearchSection" #search>
-      <slot name="search" :query="state.query.value" :setQuery="setQuery" :options="searchSlotOptions">
-        <ContentNavSearch :query="state.query.value" :options="searchSlotOptions" @update:query="setQuery" />
+      <slot name="search" :query="controller.query.value" :setQuery="setQuery" :options="searchSlotOptions">
+        <ContentNavSearch :query="controller.query.value" :options="searchSlotOptions" @update:query="setQuery" />
       </slot>
     </template>
 
     <ContentNavList
-      :items="state.filteredItems.value"
+      :items="controller.filteredItems.value"
       :active-id="active.activeId.value"
-      :expanded="state.expanded.value"
-      :highlighted-index="state.highlightedIndex.value"
+      :expanded="controller.expanded.value"
+      :highlighted-index="controller.highlightedIndex.value"
       :placement="placement"
+      :tooltip-delay="tooltipDelay"
       :empty-text="emptyText"
       @select="handleSelect($event.id)"
     >

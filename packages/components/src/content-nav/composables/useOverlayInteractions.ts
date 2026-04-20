@@ -1,6 +1,6 @@
 import { nextTick } from 'vue'
-import { queryContentNavItemById } from '../target'
 import type { ContentNavOverlayInteractionsOptions } from '../internal.type'
+import { queryContentNavItemById } from '../utils/target'
 
 export function useOverlayInteractions(options: ContentNavOverlayInteractionsOptions) {
   function isEditableEventTarget(target: EventTarget | null) {

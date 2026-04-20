@@ -33,6 +33,9 @@ export interface ContentNavProps {
   placement?: ContentNavPlacement
   expandTrigger?: ContentNavExpandTrigger
   search?: false | ContentNavSearchOptions
+  tooltipDelay?: number
+  targetActiveClass?: string
+  targetActiveDuration?: number
   emptyText?: string
 }
 

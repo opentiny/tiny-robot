@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { useTimeoutFn } from '@vueuse/core'
+import { computed, ref, watch } from 'vue'
 import type { ContentNavItemEmits, ContentNavItemProps, ContentNavItemSlots } from '../internal.type'
 
 defineOptions({ name: 'ContentNavItem' })
@@ -8,9 +9,18 @@ const props = defineProps<ContentNavItemProps>()
 const emit = defineEmits<ContentNavItemEmits>()
 defineSlots<ContentNavItemSlots>()
 
+const itemButtonRef = ref<HTMLButtonElement | null>(null)
 const isHovered = ref(false)
-const isFocused = ref(false)
 const tooltipVisible = ref(false)
+const { start: startTooltipTimer, stop: stopTooltipTimer } = useTimeoutFn(
+  () => {
+    requestAnimationFrame(() => {
+      measureTooltipVisibility()
+    })
+  },
+  () => Math.max(0, props.tooltipDelay),
+  { immediate: false },
+)
 
 const active = computed(() => props.entry.item.id === props.activeId)
 const itemClass = computed(() => [
@@ -28,49 +38,76 @@ function isTextTruncated(element: HTMLElement | null | undefined) {
   return Boolean(element && element.scrollWidth > element.clientWidth)
 }
 
-function updateTooltipState(event: MouseEvent | FocusEvent) {
-  const currentTarget = event.currentTarget as HTMLElement | null
-  const labelEl = currentTarget?.querySelector<HTMLElement>('.tr-content-nav__item-label')
-  tooltipVisible.value = isTextTruncated(labelEl)
+function getLabelElement() {
+  return itemButtonRef.value?.querySelector<HTMLElement>('.tr-content-nav__item-label') ?? null
+}
+
+function measureTooltipVisibility() {
+  tooltipVisible.value = props.expanded && isHovered.value && isTextTruncated(getLabelElement())
+}
+
+function scheduleTooltipVisibility() {
+  stopTooltipTimer()
+  tooltipVisible.value = false
+
+  if (!props.expanded || !isHovered.value) {
+    return
+  }
+
+  startTooltipTimer()
 }
 
 function clearTooltipState() {
+  stopTooltipTimer()
   tooltipVisible.value = false
 }
+
+function handleMouseEnter() {
+  isHovered.value = true
+  scheduleTooltipVisibility()
+}
+
+function handleMouseLeave() {
+  isHovered.value = false
+  clearTooltipState()
+}
+
+function handleLabelTransitionEnd(event: TransitionEvent) {
+  if (event.propertyName !== 'max-width') {
+    return
+  }
+
+  if (isHovered.value) {
+    measureTooltipVisibility()
+  }
+}
+
+watch(
+  () => props.expanded,
+  (expanded) => {
+    if (!expanded) {
+      clearTooltipState()
+      return
+    }
+
+    if (isHovered.value) {
+      scheduleTooltipVisibility()
+    }
+  },
+)
 </script>
 
 <template>
   <li :class="itemClass" :data-tooltip="entry.item.tooltipText || entry.item.label">
     <button
+      ref="itemButtonRef"
       type="button"
       class="tr-content-nav__item"
       :data-item-id="entry.item.id"
       :aria-current="active ? 'location' : undefined"
       :tabindex="highlighted ? 0 : -1"
-      @mouseenter="
-        (event) => {
-          isHovered = true
-          updateTooltipState(event)
-        }
-      "
-      @mouseleave="
-        () => {
-          isHovered = false
-          clearTooltipState()
-        }
-      "
-      @focus="
-        (event) => {
-          isFocused = true
-          updateTooltipState(event)
-        }
-      "
-      @blur="
-        () => {
-          isFocused = false
-          clearTooltipState()
-        }
-      "
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
       @click="emit('select', entry.item)"
     >
       <span class="tr-content-nav__marker-slot">
@@ -86,9 +123,9 @@ function clearTooltipState() {
           :segments="entry.segments"
           :active="active"
           :expanded="expanded"
-          :highlighted="props.highlighted || isHovered || isFocused"
+          :highlighted="props.highlighted || isHovered"
         >
-          <span class="tr-content-nav__item-label">
+          <span class="tr-content-nav__item-label" @transitionend="handleLabelTransitionEnd">
             <template v-for="(segment, segmentIndex) in entry.segments" :key="`${entry.item.id}-${segmentIndex}`">
               <mark v-if="segment.highlighted" class="tr-content-nav__highlight">{{ segment.text }}</mark>
               <template v-else>{{ segment.text }}</template>
@@ -240,6 +277,10 @@ function clearTooltipState() {
 
   &__item-label {
     flex: 1;
+    font-size: var(--tr-content-nav-item-label-font-size);
+    font-weight: var(--tr-content-nav-item-label-font-weight);
+    line-height: var(--tr-content-nav-item-label-line-height);
+    letter-spacing: var(--tr-content-nav-item-label-letter-spacing);
     overflow: hidden;
     max-width: 0;
     opacity: 0;

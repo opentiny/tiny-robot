@@ -23,6 +23,7 @@ defineSlots<ContentNavListSlots>()
       :expanded="expanded"
       :highlighted="index === highlightedIndex"
       :placement="placement"
+      :tooltip-delay="tooltipDelay"
       @select="emit('select', $event)"
     >
       <template v-if="$slots.item" #item="slotProps">

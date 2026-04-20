@@ -1,8 +1,8 @@
 import { computed, ref, watch } from 'vue'
 import { defaultContentNavSearchMatcher, ensureContentNavSegments } from '../defaults'
-import type { ContentNavFilteredItem, ContentNavStateOptions } from '../internal.type'
+import type { ContentNavControllerOptions, ContentNavFilteredItem } from '../internal.type'
 
-export function useNavState(options: ContentNavStateOptions) {
+export function useNavController(options: ContentNavControllerOptions) {
   const localExpanded = ref(false)
   const localQuery = ref('')
   const keyboardHighlightedItemId = ref<string | undefined>(undefined)

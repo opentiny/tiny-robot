@@ -9,7 +9,7 @@ import {
   getContentNavViewportTop,
   resolveContentNavScrollRoot,
   scrollContentNavTo,
-} from '../scroll'
+} from '../utils/scroll'
 
 export function useActiveSync(options: ContentNavActiveSyncOptions) {
   const scrollSyncTolerance = 2
