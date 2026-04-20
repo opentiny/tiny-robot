@@ -51,7 +51,14 @@ const {
 const overlayShellRef = ref<ContentNavOverlayExpose | null>(null)
 
 const hostRef = computed(() => overlayShellRef.value?.hostEl ?? null)
-const resolvedSearchOptions = computed(() => (search.value ? search.value : undefined))
+const resolvedSearchOptions = computed<ContentNavSearchOptions | undefined>(() => {
+  const value = search.value
+  if (value === false || value == null) {
+    return undefined
+  }
+
+  return typeof value === 'object' ? value : {}
+})
 const searchSlotOptions = computed<ContentNavSearchOptions>(() => resolvedSearchOptions.value ?? {})
 
 function resolveTargetFromItems(id: string) {
