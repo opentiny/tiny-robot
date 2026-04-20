@@ -68,9 +68,7 @@ const { normalizeAttachments } = useFileType({
 watch(
   () => props.items,
   (newItems) => {
-    if (newItems && newItems.length > 0) {
-      fileList.value = normalizeAttachments(newItems)
-    }
+    fileList.value = normalizeAttachments(newItems || [])
   },
   { deep: true, immediate: true },
 )
