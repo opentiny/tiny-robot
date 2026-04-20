@@ -6,6 +6,7 @@
     <div class="test-info">
       <h3>可用测试组件</h3>
       <ul>
+        <li><strong>Attachments 组件</strong> - 验证附件列表的数据规范化、渲染和清空同步行为。</li>
         <li><strong>Container 组件</strong> - 验证容器组件的显示、隐藏、全屏切换等行为。</li>
         <li><strong>Sender 组件</strong> - 验证输入、提交、Mention、Template、Suggestion 等行为。</li>
       </ul>
