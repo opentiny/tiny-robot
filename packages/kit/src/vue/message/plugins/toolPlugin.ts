@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
 import { MessageEnginePlugin } from '../../../message/types'
+import { normalizeToAsyncGenerator } from '../../../message/utils'
 import { ChatMessage, ToolCall } from '../../../types'
 import { BasePluginContext, Tool, UseMessagePlugin } from '../types'
-import { normalizeToAsyncGenerator } from '../utils'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage

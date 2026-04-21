@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatCompletionMessageToolCall, ChatCompletionTool } from 'openai/resources/index'
-import { combileDeltaData, normalizeToAsyncGenerator } from '../core/utils'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
+import { combileDeltaData, normalizeToAsyncGenerator } from '../utils'
 
 type AssistantMessageWithState = ChatMessage<
   Record<string, unknown>,

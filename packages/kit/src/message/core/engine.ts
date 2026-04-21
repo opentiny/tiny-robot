@@ -14,7 +14,14 @@ import {
   RequestState,
   ResponseProvider,
 } from '../types'
-import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, omitFields, pickFields } from './utils'
+import {
+  AbortError,
+  combileDeltaData,
+  makeAbortable,
+  normalizeToAsyncGenerator,
+  omitFields,
+  pickFields,
+} from '../utils'
 
 type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
 

@@ -1,6 +1,6 @@
 import type { ChatCompletionChunk } from 'openai/resources/index'
-import { AbortError } from '../core/utils'
 import type { ResponseProvider } from '../types'
+import { AbortError } from '../utils'
 
 type ItemOrItems<T> = T | Array<T>
 
