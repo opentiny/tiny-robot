@@ -1,34 +1,10 @@
-import type { ChatCompletionChunk } from 'openai/resources/index'
 import { describe, expect, it } from 'vitest'
 import { toRaw, watch } from 'vue'
+import { createVueMessageAdapter } from '../adapters/vue'
 import { createMessageEngine } from '../core/engine'
 import { lengthPlugin, thinkingPlugin } from '../plugins'
-import type { ChatMessage, ResponseProvider } from '../types'
-import { createVueMessageAdapter } from './vue'
-
-async function* mockStreamOneAssistantReply(content: string | string[]): AsyncGenerator<ChatCompletionChunk> {
-  const contents = Array.isArray(content) ? content : [content]
-
-  for (let index = 0; index < contents.length; index++) {
-    yield {
-      id: 'test-chunk',
-      object: 'chat.completion.chunk',
-      created: Math.floor(Date.now() / 1000),
-      model: 'mock',
-      choices: [
-        {
-          index: 0,
-          delta: { role: 'assistant', content: contents[index] },
-          finish_reason: index === contents.length - 1 ? 'stop' : null,
-        },
-      ],
-    } as ChatCompletionChunk
-  }
-}
-
-function mockResponseProvider(content: string | string[]): ResponseProvider {
-  return async (_body, _abortSignal) => mockStreamOneAssistantReply(content)
-}
+import type { ChatMessage } from '../types'
+import { mockResponseProvider } from './mockResponseProvider'
 
 const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
 

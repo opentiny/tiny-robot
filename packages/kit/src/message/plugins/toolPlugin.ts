@@ -72,13 +72,12 @@ function fillMissingToolMessages({
     }
   }
 
-  // 第二阶段：从后往前插入，这样不会影响已记录的索
-  mutate('messages', (draft, skipNotify) => {
-    if (insertInfos.length === 0) {
-      skipNotify()
-      return
-    }
+  if (insertInfos.length === 0) {
+    return
+  }
 
+  // 第二阶段：从后往前插入，这样不会影响已记录的索
+  mutate('messages', (draft) => {
     for (let i = insertInfos.length - 1; i >= 0; i--) {
       const { insertAfterIndex, missingToolCallIds } = insertInfos[i]
       const cancelledMessages: ChatMessage[] = missingToolCallIds.map((toolCallId) => ({

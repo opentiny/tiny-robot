@@ -1,6 +1,10 @@
 import type { MessageEnginePlugin } from '../types'
 
 export const thinkingPlugin = (options: MessageEnginePlugin = {}): MessageEnginePlugin => {
+  const stateShouldUpdate = (state: Record<string, unknown>, thinking: boolean) => {
+    return Boolean(state.thinking) !== thinking || Boolean(state.open) !== thinking
+  }
+
   return {
     name: 'thinking',
     ...options,
@@ -11,28 +15,51 @@ export const thinkingPlugin = (options: MessageEnginePlugin = {}): MessageEngine
       const reasoning_content = c?.message?.reasoning_content || c?.delta?.reasoning_content
       const thinking = typeof reasoning_content === 'string'
 
-      if (currentMessage.state) {
-        if (Boolean(currentMessage.state.thinking) !== thinking || Boolean(currentMessage.state.open) !== thinking) {
+      if (thinking) {
+        if (currentMessage.state && typeof currentMessage.state === 'object') {
+          if (stateShouldUpdate(currentMessage.state, thinking)) {
+            updateCurrentMessage((message) => {
+              message.state!.thinking = true
+              message.state!.open = true
+            })
+          }
+        } else {
           updateCurrentMessage((message) => {
-            message.state!.thinking = thinking
-            message.state!.open = thinking
+            message.state = { thinking, open: thinking }
           })
         }
-      } else {
+      } else if (
+        currentMessage.state &&
+        typeof currentMessage.state === 'object' &&
+        'thinking' in currentMessage.state &&
+        stateShouldUpdate(currentMessage.state, thinking)
+      ) {
         updateCurrentMessage((message) => {
-          message.state = { thinking, open: thinking }
+          message.state!.thinking = false
+          message.state!.open = false
         })
       }
 
       return options.onCompletionChunk?.(context)
     },
     onTurnEnd(context) {
+      const { currentTurn, mutate } = context
+
       // 如果不是流式数据或者请求被中断，thinking 状态可能不会被更新，在 onTurnEnd 中手动更新
-      const lastMessage = context.currentTurn.at(-1)
-      if (lastMessage?.state?.thinking) {
-        lastMessage.state.thinking = false
-        lastMessage.state.open = false
+      const lastMessage = currentTurn.at(-1)
+
+      if (
+        lastMessage?.state &&
+        typeof lastMessage.state === 'object' &&
+        'thinking' in lastMessage.state &&
+        stateShouldUpdate(lastMessage.state, Boolean(lastMessage.state.thinking))
+      ) {
+        mutate('messages', () => {
+          lastMessage.state!.thinking = false
+          lastMessage.state!.open = false
+        })
       }
+
       return options.onTurnEnd?.(context)
     },
   }

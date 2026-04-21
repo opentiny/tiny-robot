@@ -1,55 +1,15 @@
-import type { ChatCompletionChunk } from 'openai/resources/index'
 import { describe, expect, it, vi } from 'vitest'
+import { createNativeMessageAdapter } from '../adapters/native'
 import { createMessageEngine } from '../core/engine'
+import { lengthPlugin, thinkingPlugin } from '../plugins'
 import type {
   ChatMessage,
   CreateMessageEngineOptions,
   PublicMessageState,
   RequestProcessingState,
   RequestState,
-  ResponseProvider,
 } from '../types'
-import { AbortError } from '../core/utils'
-import { lengthPlugin, thinkingPlugin } from '../plugins'
-import { createNativeMessageAdapter } from './native'
-
-/** Yields one SSE-style chunk with assistant text and finish_reason stop. */
-async function* mockStreamOneAssistantReplyWithDelay(
-  content: string | string[],
-  { abortSignal, delay = 0 }: { delay: number; abortSignal: AbortSignal },
-): AsyncGenerator<ChatCompletionChunk> {
-  const contents = Array.isArray(content) ? content : [content]
-
-  for (let i = 0; i < contents.length; i++) {
-    const content = contents[i]
-
-    if (abortSignal.aborted) {
-      throw new AbortError('Request aborted')
-    }
-
-    if (delay > 0) {
-      await new Promise((resolve) => setTimeout(resolve, delay))
-    }
-
-    yield {
-      id: 'test-chunk',
-      object: 'chat.completion.chunk',
-      created: Math.floor(Date.now() / 1000),
-      model: 'mock',
-      choices: [
-        {
-          index: 0,
-          delta: { role: 'assistant', content },
-          finish_reason: i === contents.length - 1 ? 'stop' : null,
-        },
-      ],
-    } as ChatCompletionChunk
-  }
-}
-
-function mockResponseProvider(content: string | string[], delay: number = 0): ResponseProvider {
-  return (_body, abortSignal) => mockStreamOneAssistantReplyWithDelay(content, { abortSignal, delay })
-}
+import { mockResponseProvider } from './mockResponseProvider'
 
 /** Default engine plugins add thinking/length behavior; disable them for predictable assertions. */
 const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
@@ -147,10 +107,10 @@ describe('createMessageEngine', () => {
     ]
 
     // Expect message snapshots to match the expected sequence
-    expect(snapshotsForMessages).toHaveLength(expectedMessageSnapshots.length)
-    snapshotsForMessages.forEach((snapshot, idx) => {
-      expect(snapshot).toMatchObject(expectedMessageSnapshots[idx])
+    expectedMessageSnapshots.forEach((expected, idx) => {
+      expect(snapshotsForMessages[idx], `messages snapshot mismatch at index ${idx}`).toMatchObject(expected)
     })
+    expect(snapshotsForMessages).toHaveLength(expectedMessageSnapshots.length)
 
     // Expected snapshots for request state
     const expectedRequestStateSequence: [RequestState, RequestProcessingState | undefined][] = [
@@ -161,10 +121,10 @@ describe('createMessageEngine', () => {
     ]
 
     // Expect request state snapshots to match the expected sequence
-    expect(snapshotsForRequestState).toHaveLength(expectedRequestStateSequence.length)
-    snapshotsForRequestState.forEach((snapshot, idx) => {
-      expect(snapshot).toEqual(expectedRequestStateSequence[idx])
+    expectedRequestStateSequence.forEach((expected, idx) => {
+      expect(snapshotsForRequestState[idx], `request state snapshot mismatch at index ${idx}`).toEqual(expected)
     })
+    expect(snapshotsForRequestState).toHaveLength(expectedRequestStateSequence.length)
   })
 
   it('runs onBeforeRequest with current request body before assistant is appended', async () => {
@@ -289,5 +249,81 @@ describe('createMessageEngine', () => {
     expect(requestState).toBe('aborted')
     expect(messages).toHaveLength(2)
     expect(messages[1]).toMatchObject({ role: 'assistant', content: 'first chunk', loading: undefined })
+  })
+
+  it('thinking plugin should update thinking state correctly', async () => {
+    const engine = createTestMessageEngine({
+      plugins: [...silentDefaultPlugins, thinkingPlugin()],
+      responseProvider: mockResponseProvider([
+        { reasoning_content: 'thinking...' },
+        { reasoning_content: ' thinking done' },
+        { content: 'hello' },
+        { content: ' world' },
+      ]),
+    })
+
+    const snapshots: ChatMessage[][] = []
+    engine.subscribe('messages', (state) => {
+      snapshots.push(structuredClone(state.messages))
+    })
+
+    await engine.sendMessage('hello')
+
+    const expectedMessageSnapshots: ChatMessage[][] = [
+      [],
+      [{ role: 'user', content: 'hello' }],
+      [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: '', loading: true },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: '', loading: undefined },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', reasoning_content: 'thinking...' },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', reasoning_content: 'thinking...', state: { thinking: true, open: true } },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', reasoning_content: 'thinking... thinking done', state: { thinking: true, open: true } },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        {
+          role: 'assistant',
+          content: 'hello',
+          reasoning_content: 'thinking... thinking done',
+          state: { thinking: true, open: true },
+        },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        {
+          role: 'assistant',
+          content: 'hello',
+          reasoning_content: 'thinking... thinking done',
+          state: { thinking: false, open: false },
+        },
+      ],
+      [
+        { role: 'user', content: 'hello' },
+        {
+          role: 'assistant',
+          content: 'hello world',
+          reasoning_content: 'thinking... thinking done',
+          state: { thinking: false, open: false },
+        },
+      ],
+    ]
+
+    expectedMessageSnapshots.forEach((expected, idx) => {
+      expect(snapshots[idx], `messages snapshot mismatch at index ${idx}`).toMatchObject(expected)
+    })
+    expect(snapshots).toHaveLength(expectedMessageSnapshots.length)
   })
 })
