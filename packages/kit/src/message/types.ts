@@ -5,7 +5,7 @@ import {
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
 } from 'openai/resources/index'
-import { MaybePromise } from '../../types'
+import { MaybePromise } from '../types'
 
 export type DeepReadonly<T> = T extends (...args: any[]) => any
   ? T
@@ -28,7 +28,6 @@ export type ChatMessage<
   metadata?: Metadata
   state?: State
   [key: string]: any
-  [key: symbol]: any
 }
 
 export interface MessageRequestBody {
@@ -79,8 +78,19 @@ export interface MutateMessageStateFn {
   (kinds: MessageUpdateKinds, recipe: MessageMutationRecipe): void
 }
 
+export interface MessageStateAdapter {
+  initialize(initialState: InternalMessageState): void
+  getState(): PublicMessageState
+  mutate: MutateMessageStateFn
+  subscribe(listener: (state: PublicMessageState) => void): () => void
+  subscribe(kinds: MessageUpdateKinds, listener: (state: PublicMessageState) => void): () => void
+}
+
 export interface BasePluginContext {
   getState(): PublicMessageState
+  /**
+   * 使用 mutate 函数修改消息，才能正常触发消息更新通知。
+   */
   mutate: MutateMessageStateFn
   abortSignal: AbortSignal
   currentTurn: ChatMessage[]
@@ -96,12 +106,21 @@ export interface BeforeRequestContext extends BasePluginContext {
 export interface AfterRequestContext extends BasePluginContext {
   currentMessage: DeepReadonly<ChatMessage>
   lastChoice?: ChatCompletion.Choice | ChatCompletionChunk.Choice
+  /**
+   * 使用 appendMessage 函数追加消息，可触发消息更新通知。
+   */
   appendMessage: (message: ChatMessage | ChatMessage[]) => void
   requestNext: () => void
 }
 
 export interface CompletionChunkContext extends BasePluginContext {
+  /**
+   * 当前消息，只读。需要使用 updateCurrentMessage 函数修改当前消息，才能正常触发消息更新通知。
+   */
   currentMessage: DeepReadonly<ChatMessage>
+  /**
+   * 使用 updateCurrentMessage 函数修改当前消息，才能正常触发消息更新通知。
+   */
   updateCurrentMessage: (recipe: (message: ChatMessage) => void) => void
   choice: ChatCompletion.Choice | ChatCompletionChunk.Choice
   chunk: ChatCompletion | ChatCompletionChunk

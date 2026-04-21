@@ -1,4 +1,4 @@
-import type { MessageEnginePlugin } from '../core/types'
+import type { MessageEnginePlugin } from '../types'
 
 export const thinkingPlugin = (options: MessageEnginePlugin = {}): MessageEnginePlugin => {
   return {

@@ -1,4 +1,4 @@
-import type { MessageEnginePlugin } from '../core/types'
+import type { MessageEnginePlugin } from '../types'
 
 export const lengthPlugin = (options: MessageEnginePlugin & { continueContent?: string } = {}): MessageEnginePlugin => {
   const { continueContent = 'Please continue with your previous answer.', ...restOptions } = options

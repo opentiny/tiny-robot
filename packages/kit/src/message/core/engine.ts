@@ -9,14 +9,11 @@ import {
   MessageEnginePlugin,
   MessageRequestBody,
   MessageRuntime,
-  MessageUpdateKind,
-  MessageUpdateKinds,
-  MutateMessageStateFn,
-  PublicMessageState,
+  MessageStateAdapter,
   RequestProcessingState,
   RequestState,
   ResponseProvider,
-} from './types'
+} from '../types'
 import { AbortError, combileDeltaData, makeAbortable, normalizeToAsyncGenerator, omitFields, pickFields } from './utils'
 
 type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
@@ -54,17 +51,14 @@ const isPluginDisabled = (plugin: MessageEnginePlugin, context: BasePluginContex
   if (typeof plugin.disabled === 'function') {
     return plugin.disabled(context)
   }
+
   return Boolean(plugin.disabled)
 }
 
-const toPublicState = (state: InternalMessageState): PublicMessageState => ({
-  requestState: state.requestState,
-  processingState: state.processingState,
-  messages: state.messages,
-  isProcessing: state.requestState === 'processing',
-})
-
-export const createMessageEngine = (options: CreateMessageEngineOptions = {}): MessageEngine => {
+export const createMessageEngine = (
+  adapter: MessageStateAdapter,
+  options: CreateMessageEngineOptions = {},
+): MessageEngine => {
   const {
     initialMessages = [],
     requestMessageFields = [],
@@ -74,11 +68,13 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
     plugins: pluginsFromOptions = [],
   } = options
 
-  const state: InternalMessageState = {
+  const initialState: InternalMessageState = {
     requestState: 'idle',
     processingState: undefined,
     messages: [...initialMessages],
   }
+
+  adapter.initialize(initialState)
 
   const runtime: MessageRuntime = {
     currentTurn: [],
@@ -90,18 +86,15 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
   const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
   const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
 
-  const listeners = new Set<{
-    kinds: Set<MessageUpdateKind> | null
-    listener: (state: PublicMessageState) => void
-  }>()
+  const getState = () => adapter.getState()
+  const subscribe = adapter.subscribe
+  const mutate = adapter.mutate
 
-  const getState = () => toPublicState(state)
-
-  // If object is not empty and at least one property converts to truthy boolean, return true
   const objectDataIsValid = (obj: object | null | undefined) => {
     if (!obj || Object.keys(obj).length === 0) {
       return false
     }
+
     return Object.values(obj).some((value) => Boolean(value))
   }
 
@@ -122,71 +115,6 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
   // Function to set custom context data
   const setCustomContext = (data: Record<string, unknown>) => {
     Object.assign(runtime.customContext, data)
-  }
-
-  const notifyListeners = (kind: MessageUpdateKinds) => {
-    const kinds = new Set(Array.isArray(kind) ? kind : [kind])
-    const snapshot = toPublicState(state)
-    for (const entry of listeners) {
-      if (entry.kinds) {
-        let matched = false
-        for (const item of entry.kinds) {
-          if (kinds.has(item)) {
-            matched = true
-            break
-          }
-        }
-        if (!matched) {
-          continue
-        }
-      }
-      entry.listener(snapshot)
-    }
-  }
-
-  function subscribe(
-    kindsOrListener: MessageUpdateKinds | ((state: PublicMessageState) => void),
-    maybeListener?: (state: PublicMessageState) => void,
-  ) {
-    const listener = typeof kindsOrListener === 'function' ? kindsOrListener : maybeListener
-    // kinds 为 null 表示不区分更新类型，所有更新都通知；kindsOrListener 是数组且长度为 0 时，视为 null
-    const kinds =
-      typeof kindsOrListener === 'function'
-        ? null
-        : Array.isArray(kindsOrListener)
-          ? kindsOrListener.length > 0
-            ? new Set(kindsOrListener)
-            : null
-          : new Set([kindsOrListener])
-
-    if (!listener) {
-      throw new Error('subscribe listener is required')
-    }
-
-    const entry = {
-      kinds,
-      listener,
-    }
-
-    listeners.add(entry)
-    listener(getState())
-
-    return () => {
-      listeners.delete(entry)
-    }
-  }
-
-  const mutate: MutateMessageStateFn = (kind, recipe) => {
-    let notifySkipped = false
-    const skipNotify = () => {
-      notifySkipped = true
-    }
-
-    recipe(state, skipNotify)
-
-    if (!notifySkipped) {
-      notifyListeners(kind)
-    }
   }
 
   const setRequestState = (requestState: RequestState, processingState?: RequestProcessingState) => {
@@ -228,7 +156,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
     // executeRequest 可能递归调用，需要再设置 requesting 状态
     setRequestState('processing', 'requesting')
 
-    const requestBody: MessageRequestBody = { messages: state.messages }
+    const requestBody: MessageRequestBody = { messages: getState().messages }
 
     // Allow plugins to modify request body (e.g., add tools)
     const baseContext = getBaseContext(abortSignal)
@@ -304,11 +232,10 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
       }
 
       if (onCompletionChunk) {
-        const baseContext = getBaseContext(abortSignal)
-
+        const currentContext = getBaseContext(abortSignal)
         onCompletionChunk(
           {
-            ...baseContext,
+            ...currentContext,
             chunk,
             choice,
             currentMessage: assistantMessage,
@@ -320,10 +247,10 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
         runDefault()
       }
 
-      const baseContext = getBaseContext(abortSignal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
+      const currentContext = getBaseContext(abortSignal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, currentContext))) {
         plugin.onCompletionChunk?.({
-          ...baseContext,
+          ...currentContext,
           abortSignal,
           chunk,
           choice,
@@ -354,7 +281,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
           return null
         }
 
-        const _appendMessage = (message: ChatMessage | ChatMessage[]) => {
+        const appendMessage = (message: ChatMessage | ChatMessage[]) => {
           appendMessages(...(Array.isArray(message) ? message : [message]))
         }
 
@@ -366,7 +293,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
           ...baseContext,
           currentMessage,
           lastChoice,
-          appendMessage: _appendMessage,
+          appendMessage,
           requestNext,
         })
       })
@@ -405,18 +332,21 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
       // 并在整个 turn 请求过程中防止因它发生变化而导致的不一致
       const turnResponseProvider = runtime.responseProvider
 
-      // 2) 主流程执行，有错误则中断（不包括中止错误）
       try {
         await executeRequest(turnResponseProvider, ac.signal, { setAssistantMessage })
         setRequestState('completed')
-      } catch (err) {
+      } catch (error) {
         // 检查是否是中止错误：优先检查当前使用的 AbortController 的信号状态
         // 然后检查错误类型（instanceof 检查最准确）
         // 最后通过 name 属性作为后备检查（处理跨模块/序列化等边界情况）
-        if (ac.signal.aborted || err instanceof AbortError || (err instanceof Error && err.name === 'AbortError')) {
+        if (
+          ac.signal.aborted ||
+          error instanceof AbortError ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
           setRequestState('aborted')
         } else {
-          throw err
+          throw error
         }
       }
 
@@ -429,8 +359,8 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
       setRequestState('error')
 
       let hasOnError = false
-
       const context = getBaseContext(ac.signal)
+
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
         if (plugin.onError) {
           hasOnError = true
@@ -447,8 +377,8 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
         try {
           plugin.onFinally?.(context)
-        } catch (err) {
-          console.error(`Error in onFinally hook for plugin [${plugin.name || 'Anonymous'}]:`, err)
+        } catch (error) {
+          console.error(`Error in onFinally hook for plugin [${plugin.name || 'Anonymous'}]:`, error)
         }
       }
 
@@ -473,7 +403,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
       return
     }
 
-    if (state.requestState === 'processing') {
+    if (getState().requestState === 'processing') {
       console.warn('Cannot send message while processing is in progress')
       return
     }
@@ -490,7 +420,7 @@ export const createMessageEngine = (options: CreateMessageEngineOptions = {}): M
 
   async function send(...msgs: ChatMessage[]) {
     // Validate current state - only allow sending when not processing
-    if (state.requestState === 'processing') {
+    if (getState().requestState === 'processing') {
       console.warn('Cannot send message while processing is in progress')
       return
     }

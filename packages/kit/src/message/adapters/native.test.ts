@@ -1,9 +1,17 @@
 import type { ChatCompletionChunk } from 'openai/resources/index'
 import { describe, expect, it, vi } from 'vitest'
+import { createMessageEngine } from '../core/engine'
+import type {
+  ChatMessage,
+  CreateMessageEngineOptions,
+  PublicMessageState,
+  RequestProcessingState,
+  RequestState,
+  ResponseProvider,
+} from '../types'
+import { AbortError } from '../core/utils'
 import { lengthPlugin, thinkingPlugin } from '../plugins'
-import { createMessageEngine } from './createMessageEngine'
-import type { ChatMessage, PublicMessageState, RequestProcessingState, RequestState, ResponseProvider } from './types'
-import { AbortError } from './utils'
+import { createNativeMessageAdapter } from './native'
 
 /** Yields one SSE-style chunk with assistant text and finish_reason stop. */
 async function* mockStreamOneAssistantReplyWithDelay(
@@ -20,7 +28,6 @@ async function* mockStreamOneAssistantReplyWithDelay(
     }
 
     if (delay > 0) {
-      // 等待指定的延迟时间再返回 chunk
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
 
@@ -47,9 +54,12 @@ function mockResponseProvider(content: string | string[], delay: number = 0): Re
 /** Default engine plugins add thinking/length behavior; disable them for predictable assertions. */
 const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
 
+const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
+  createMessageEngine(createNativeMessageAdapter(), options)
+
 describe('createMessageEngine', () => {
   it('exposes initial messages and idle state', () => {
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       initialMessages: [{ role: 'user', content: 'hi' }],
       plugins: silentDefaultPlugins,
       responseProvider: mockResponseProvider('noop'),
@@ -62,7 +72,7 @@ describe('createMessageEngine', () => {
   })
 
   it('sendMessage runs responseProvider and appends assistant content', async () => {
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       plugins: silentDefaultPlugins,
       responseProvider: mockResponseProvider('assistant reply'),
     })
@@ -104,7 +114,7 @@ describe('createMessageEngine', () => {
     ])
 
     // Setup message engine and subscribe to events
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       plugins: silentDefaultPlugins,
       responseProvider: mockResponseProvider(['hello', ' world']),
     })
@@ -124,7 +134,7 @@ describe('createMessageEngine', () => {
       ],
       [
         { role: 'user', content: 'ping' },
-        { role: 'assistant', content: '' },
+        { role: 'assistant', content: '', loading: undefined },
       ],
       [
         { role: 'user', content: 'ping' },
@@ -159,7 +169,7 @@ describe('createMessageEngine', () => {
 
   it('runs onBeforeRequest with current request body before assistant is appended', async () => {
     const onBeforeRequest = vi.fn()
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         {
@@ -180,7 +190,7 @@ describe('createMessageEngine', () => {
   it('later plugin with same name replaces earlier (deduplication)', async () => {
     const first = vi.fn()
     const second = vi.fn()
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       plugins: [...silentDefaultPlugins, { name: 'dup', onTurnStart: first }, { name: 'dup', onTurnStart: second }],
       responseProvider: mockResponseProvider('y'),
     })
@@ -195,7 +205,7 @@ describe('createMessageEngine', () => {
     const completionChunk = vi.fn()
     const afterRequest = vi.fn()
 
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         {
@@ -226,10 +236,8 @@ describe('createMessageEngine', () => {
       responseProvider: mockResponseProvider('assistant reply'),
     })
 
-    // 发送消息并等待请求完成
     await engine.sendMessage('hello')
 
-    // 验证插件钩子执行顺序
     expect(beforeRequest).toHaveBeenNthCalledWith(1, 'plugin1', 1)
     expect(beforeRequest).toHaveBeenNthCalledWith(2, 'plugin2', 1)
 
@@ -264,7 +272,7 @@ describe('createMessageEngine', () => {
   })
 
   it('should handle abort correctly during message processing with delayed chunks', async () => {
-    const engine = createMessageEngine({
+    const engine = createTestMessageEngine({
       plugins: silentDefaultPlugins,
       responseProvider: mockResponseProvider(['first chunk', ' second chunk'], 100),
     })
