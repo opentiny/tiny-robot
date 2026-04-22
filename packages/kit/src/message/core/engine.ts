@@ -438,10 +438,6 @@ export const createMessageEngine = (
       return
     }
 
-    if (msgs.length === 0) {
-      return
-    }
-
     appendMessages(...msgs)
 
     await runTurn()
