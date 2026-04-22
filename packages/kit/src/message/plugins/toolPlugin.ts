@@ -23,10 +23,12 @@ type ToolCallContext = BasePluginContext & {
 function fillMissingToolMessages({
   messages,
   cancelledContent,
+  createMessage,
   mutate,
 }: {
   messages: ChatMessage[]
   cancelledContent: string
+  createMessage: BasePluginContext['createMessage']
   mutate: MutateMessageStateFn
 }): void {
   // 第一阶段：从首位开始遍历，收集需要插入的信息
@@ -80,11 +82,13 @@ function fillMissingToolMessages({
   mutate('messages', (draft) => {
     for (let i = insertInfos.length - 1; i >= 0; i--) {
       const { insertAfterIndex, missingToolCallIds } = insertInfos[i]
-      const cancelledMessages: ChatMessage[] = missingToolCallIds.map((toolCallId) => ({
-        role: 'tool',
-        tool_call_id: toolCallId,
-        content: cancelledContent,
-      }))
+      const cancelledMessages: ChatMessage[] = missingToolCallIds.map((toolCallId) =>
+        createMessage({
+          role: 'tool',
+          tool_call_id: toolCallId,
+          content: cancelledContent,
+        }),
+      )
 
       // 在 assistant 消息之后插入所有取消消息
       draft.messages.splice(insertAfterIndex + 1, 0, ...cancelledMessages)
@@ -197,11 +201,11 @@ export const toolPlugin = (
     name: 'tool',
     ...restOptions,
     onTurnStart: (context) => {
-      const { getState, mutate } = context
+      const { getState, createMessage, mutate } = context
       const messages = getState().messages
 
       if (autoFillMissingToolMessages) {
-        fillMissingToolMessages({ messages, cancelledContent: toolCallCancelledContent, mutate })
+        fillMissingToolMessages({ messages, cancelledContent: toolCallCancelledContent, createMessage, mutate })
       }
 
       return restOptions.onTurnStart?.(context)
@@ -217,7 +221,16 @@ export const toolPlugin = (
       return restOptions.onBeforeRequest?.(context)
     },
     onAfterRequest: async (context) => {
-      const { currentMessage, lastChoice, appendMessage, abortSignal, setRequestState, requestNext, mutate } = context
+      const {
+        currentMessage,
+        lastChoice,
+        appendMessage,
+        abortSignal,
+        setRequestState,
+        requestNext,
+        mutate,
+        createMessage,
+      } = context
 
       if (lastChoice?.finish_reason !== 'tool_calls' || !currentMessage.tool_calls?.length) {
         return
@@ -231,7 +244,7 @@ export const toolPlugin = (
 
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
-        const toolMessage: ChatMessage = {
+        const toolMessage: ChatMessage = createMessage({
           role: 'tool',
           tool_call_id: toolCall.id,
           content: '',
@@ -239,7 +252,7 @@ export const toolPlugin = (
             createdAt: now,
             updatedAt: now,
           },
-        }
+        })
 
         appendMessage(toolMessage)
 

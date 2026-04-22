@@ -75,12 +75,32 @@ export type MessageUpdateKinds = MessageUpdateKind | MessageUpdateKind[]
 export type MessageMutationRecipe = (draft: InternalMessageState, skipNotify: () => void) => void
 
 export interface MutateMessageStateFn {
+  /**
+   * 在受控上下文中修改消息状态，并按声明的更新类型分发状态变更通知。
+   *
+   * 这里的“通知”语义对应 `subscribe` 订阅链路，用于驱动依赖 engine 状态快照的观察者；
+   * 它并不等同于具体框架的响应式更新机制。对于 Vue 等运行时，界面更新可能同时依赖
+   * 框架自身的响应式追踪与 `subscribe` 侧的状态通知，两者职责不同，不应混用。
+   */
   (kinds: MessageUpdateKinds, recipe: MessageMutationRecipe): void
 }
 
 export interface MessageStateAdapter {
   initialize(initialState: InternalMessageState): void
   getState(): PublicMessageState
+  /**
+   * 创建一条适配当前运行时的消息对象。
+   *
+   * engine 和 core 插件里凡是“新建消息”的入口，都应统一走这个方法，
+   * 以便不同平台注入各自的运行时能力。
+   *
+   * 例如：
+   * - native/纯 TS 场景：直接返回原对象即可
+   *   `createMessage(message) { return message }`
+   * - Vue 场景：返回 reactive proxy，使后续对 message.content / message.state 的原地修改能够被追踪
+   *   `createMessage(message) { return reactive(message) }`
+   */
+  createMessage<T extends ChatMessage>(message: T): T
   mutate: MutateMessageStateFn
   subscribe(listener: (state: PublicMessageState) => void): () => void
   subscribe(kinds: MessageUpdateKinds, listener: (state: PublicMessageState) => void): () => void
@@ -89,7 +109,21 @@ export interface MessageStateAdapter {
 export interface BasePluginContext {
   getState(): PublicMessageState
   /**
-   * 使用 mutate 函数修改消息，才能正常触发消息更新通知。
+   * 创建一条适配当前运行时的消息对象。
+   *
+   * 插件在运行过程中如果需要主动创建并追加消息，应统一通过此接口构造消息实例，
+   * 而不是直接持有普通对象字面量。这样可以确保消息对象具备当前平台所要求的运行时能力。
+   *
+   * 对于采用响应式机制的平台（例如 Vue），该接口通常会返回带有响应式包装的消息实例。
+   * 如果插件绕过此接口直接创建普通对象，再参与后续的状态更新或原地字段修改，
+   * 可能导致消息内容、状态字段等变更无法被正确追踪。
+   */
+  createMessage<T extends ChatMessage>(message: T): T
+  /**
+   * 在受控上下文中修改状态，并触发与 `subscribe` 对应的状态更新通知。
+   *
+   * 该通知机制面向 engine 的订阅接口，而不是具体框架的响应式系统本身。
+   * 因此，在需要让 `subscribe` 观察者感知到变更时，应通过此接口完成状态写入。
    */
   mutate: MutateMessageStateFn
   abortSignal: AbortSignal

@@ -87,4 +87,41 @@ describe('createVueMessageAdapter', () => {
       expect(snapshot).toMatchObject(expectedMessageSnapshots[idx])
     })
   })
+
+  it('updates nested message content through the reactive assistant message reference', async () => {
+    const adapter = createVueMessageAdapter()
+    const engine = createMessageEngine(adapter, {
+      plugins: silentDefaultPlugins,
+      responseProvider: mockResponseProvider(['hello', ' world']),
+    })
+
+    const contentSnapshots: string[] = []
+    let stopWatch = () => {}
+
+    watch(
+      adapter.messages,
+      (messages) => {
+        const assistantMessage = messages.find((message) => message.role === 'assistant')
+        stopWatch()
+        if (!assistantMessage) {
+          return
+        }
+
+        stopWatch = watch(
+          () => assistantMessage.content,
+          (content) => {
+            contentSnapshots.push(content as string)
+          },
+          { flush: 'sync', immediate: true },
+        )
+      },
+      { flush: 'sync', immediate: true },
+    )
+
+    await engine.sendMessage('ping')
+    stopWatch()
+
+    const distinctSnapshots = contentSnapshots.filter((content, index) => content !== contentSnapshots[index - 1])
+    expect(distinctSnapshots).toEqual(['', 'hello', 'hello world'])
+  })
 })

@@ -55,8 +55,12 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
 
     requestState.value = initialState.requestState
     processingState.value = initialState.processingState
-    messages.value.push(...initialState.messages)
+    messages.value = initialState.messages.map(toReactiveMessage)
     initialized = true
+  }
+
+  const createMessage = <T extends ChatMessage>(message: T): T => {
+    return toReactiveMessage(message) as T
   }
 
   const getState = () => {
@@ -94,7 +98,7 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
         return messages.value
       },
       set messages(value) {
-        messages.value = value.map(toReactiveMessage)
+        messages.value = value.map(createMessage)
       },
     }
 
@@ -177,6 +181,7 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     isProcessing,
     initialize,
     getState,
+    createMessage,
     mutate,
     subscribe,
   }

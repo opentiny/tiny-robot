@@ -116,6 +116,9 @@ export const createNativeMessageAdapter = (): MessageStateAdapter => {
   return {
     initialize,
     getState,
+    createMessage(message) {
+      return message
+    },
     mutate,
     subscribe,
   }

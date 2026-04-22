@@ -94,6 +94,7 @@ export const createMessageEngine = (
   const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
 
   const getState = () => adapter.getState()
+  const createMessage = <T extends ChatMessage>(message: T): T => adapter.createMessage(message)
   const subscribe = adapter.subscribe
   const mutate = adapter.mutate
 
@@ -137,16 +138,21 @@ export const createMessageEngine = (
   }
 
   const appendMessages = (...messages: ChatMessage[]) => {
+    const runtimeMessages = messages.map((message) => createMessage(message))
+
     mutate('messages', (draft) => {
-      draft.messages.push(...messages)
+      draft.messages.push(...runtimeMessages)
     })
 
-    runtime.currentTurn.push(...messages)
+    runtime.currentTurn.push(...runtimeMessages)
+
+    return runtimeMessages
   }
 
   // Create base context for plugins
   const getBaseContext = (abortSignal: AbortSignal): BasePluginContext => ({
     getState,
+    createMessage,
     mutate,
     abortSignal,
     currentTurn: runtime.currentTurn,
@@ -174,9 +180,9 @@ export const createMessageEngine = (
     // 请求前对消息进行清洗，去掉不必要的字段
     requestBody.messages = sanitizeMessages(requestBody.messages)
 
-    const assistantMessage = { role: 'assistant', content: '', loading: true } as ChatMessage
+    let assistantMessage = { role: 'assistant', content: '', loading: true } as ChatMessage
+    ;[assistantMessage] = appendMessages(assistantMessage)
     options.setAssistantMessage?.(assistantMessage)
-    appendMessages(assistantMessage)
 
     const result = responseProvider(requestBody, abortSignal)
     const chunks = normalizeToAsyncGenerator(result)
@@ -194,7 +200,7 @@ export const createMessageEngine = (
         }
       })
 
-      const choice = chunk.choices.find((item) => item.index === 0) ?? chunk.choices[0]
+      const choice = (chunk.choices || []).find((item) => item.index === 0) ?? chunk.choices?.[0]
 
       if (!choice) {
         continue
