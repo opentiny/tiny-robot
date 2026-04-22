@@ -60,7 +60,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     }
   }
 
-  const createCorePluginFromVuePlugin = (plugin: UseMessagePlugin): MessageEnginePlugin => {
+  const createCorePlugin = (plugin: UseMessagePlugin): MessageEnginePlugin => {
     const basePlugin = plugin as UseMessagePlugin & {
       __corePluginFactory?: (runtime: VuePluginRuntime) => MessageEnginePlugin
     }
@@ -85,49 +85,68 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       onFinally,
     } = plugin
 
-    return {
-      name,
-      disabled: typeof disabled === 'function' ? (context) => disabled(createVueBaseContext(context)) : disabled,
-      onTurnStart: onTurnStart ? (context) => onTurnStart!(createVueBaseContext(context)) : undefined,
-      onTurnEnd: onTurnEnd ? (context) => onTurnEnd!(createVueBaseContext(context)) : undefined,
-      onBeforeRequest: onBeforeRequest
-        ? (context: CoreBeforeRequestContext) =>
-            onBeforeRequest({
-              ...createVueBaseContext(context),
-              requestBody: context.requestBody as MessageRequestBody,
-            })
-        : undefined,
-      onAfterRequest: onAfterRequest
-        ? (context: CoreAfterRequestContext) =>
-            onAfterRequest({
-              ...createVueBaseContext(context),
-              currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),
-              lastChoice: context.lastChoice as CompletionChoice,
-              appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
-              requestNext: context.requestNext,
-            })
-        : undefined,
-      onCompletionChunk: onCompletionChunk
-        ? (context: CoreCompletionChunkContext) =>
-            onCompletionChunk({
-              ...createVueBaseContext(context),
-              currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),
-              choice: context.choice as CompletionChoice,
-              chunk: context.chunk as ChatCompletion,
-            })
-        : undefined,
-      onError: onError
-        ? (context) =>
-            onError({
-              ...createVueBaseContext(context),
-              error: context.error,
-            })
-        : undefined,
-      onFinally: onFinally ? (context) => onFinally(createVueBaseContext(context)) : undefined,
-    }
-  }
+    const corePlugin: MessageEnginePlugin = {}
 
-  const createCorePlugin = (plugin: UseMessagePlugin) => createCorePluginFromVuePlugin(plugin)
+    if (name !== undefined) {
+      corePlugin.name = name
+    }
+
+    if (disabled !== undefined) {
+      corePlugin.disabled =
+        typeof disabled === 'function' ? (context) => disabled(createVueBaseContext(context)) : disabled
+    }
+
+    if (onTurnStart) {
+      corePlugin.onTurnStart = (context) => onTurnStart(createVueBaseContext(context))
+    }
+
+    if (onTurnEnd) {
+      corePlugin.onTurnEnd = (context) => onTurnEnd(createVueBaseContext(context))
+    }
+
+    if (onBeforeRequest) {
+      corePlugin.onBeforeRequest = (context: CoreBeforeRequestContext) =>
+        onBeforeRequest({
+          ...createVueBaseContext(context),
+          requestBody: context.requestBody as MessageRequestBody,
+        })
+    }
+
+    if (onAfterRequest) {
+      corePlugin.onAfterRequest = (context: CoreAfterRequestContext) =>
+        onAfterRequest({
+          ...createVueBaseContext(context),
+          currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),
+          lastChoice: context.lastChoice as CompletionChoice,
+          appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
+          requestNext: context.requestNext,
+        })
+    }
+
+    if (onCompletionChunk) {
+      corePlugin.onCompletionChunk = (context: CoreCompletionChunkContext) =>
+        onCompletionChunk({
+          ...createVueBaseContext(context),
+          currentMessage: resolveReactiveMessage(context.currentMessage as ChatMessage),
+          choice: context.choice as CompletionChoice,
+          chunk: context.chunk as ChatCompletion,
+        })
+    }
+
+    if (onError) {
+      corePlugin.onError = (context) =>
+        onError({
+          ...createVueBaseContext(context),
+          error: context.error,
+        })
+    }
+
+    if (onFinally) {
+      corePlugin.onFinally = (context) => onFinally(createVueBaseContext(context))
+    }
+
+    return corePlugin
+  }
 
   const onCompletionChunkHandler: CreateMessageEngineOptions['onCompletionChunk'] = (context, runDefault) => {
     if (!onCompletionChunk) {
@@ -151,7 +170,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     requestMessageFieldsExclude,
     responseProvider: initialResponseProvider as CoreResponseProvider,
     onCompletionChunk: onCompletionChunk ? onCompletionChunkHandler : undefined,
-    plugins: plugins.map((plugin) => createCorePluginFromVuePlugin(plugin)),
+    plugins: plugins.map((plugin) => createCorePlugin(plugin)),
   })
 
   const responseProvider = ref(initialResponseProvider)
