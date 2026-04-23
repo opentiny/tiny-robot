@@ -33,8 +33,16 @@ const fallbackContentRenderer = computed(() => {
   return props.fallbackContentRenderer || defaultFallbackContentRenderer
 })
 
-setupBubbleBoxRenderer({ boxRendererMatches, fallbackBoxRenderer })
-setupBubbleContentRenderer({ contentRendererMatches, fallbackContentRenderer })
+setupBubbleBoxRenderer({
+  boxRendererMatches,
+  boxAttributes: () => props.boxAttributes,
+  fallbackBoxRenderer,
+})
+setupBubbleContentRenderer({
+  contentRendererMatches,
+  contentAttributes: () => props.contentAttributes,
+  fallbackContentRenderer,
+})
 </script>
 
 <template>

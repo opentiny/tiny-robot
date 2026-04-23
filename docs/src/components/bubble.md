@@ -1,5 +1,5 @@
 ---
-outline: [1, 3]
+outline: [1, 4]
 ---
 
 # Bubble 气泡组件
@@ -210,6 +210,20 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 <demo vue="../../demos/bubble/provider-renderer.vue" />
 
+#### 通过 BubbleProvider 统一注入 attributes
+
+除了配置渲染器，`BubbleProvider` 还支持通过 `box-attributes` 和 `content-attributes` 为 Box / Content 统一注入 attributes。
+
+- `box-attributes` 的作用域是一个 Box，对应参数为 `(messages, content, contentIndex)`
+- `content-attributes` 的作用域是单个 Content，对应参数为 `(message, content, contentIndex)`
+- 两个属性都支持传入静态对象，或返回 attributes 的函数
+
+适合用于统一添加 `data-*` 标记、埋点字段、测试选择器等通用属性，而不需要依赖所有消息都匹配某个自定义渲染器。
+
+<demo vue="../../demos/bubble/provider-attributes.vue" />
+
+> `BubbleProvider` 注入的 attributes 会在对应的 Box / Content 上统一生效；如果某个匹配规则本身也配置了 `attributes`，会在 Provider attributes 的基础上继续合并。
+
 #### 渲染器匹配优先级
 
 匹配规则可以使用 `priority` 属性来设置优先级，值越小优先级越高。系统提供了以下优先级常量：
@@ -401,6 +415,8 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 | ------------------------- | --------------------------------------- | ------ | ---------------------------------------------------------- |
 | `boxRendererMatches`      | `BubbleBoxRendererMatch[]`              | -      | Box 渲染器匹配规则数组                                     |
 | `contentRendererMatches`  | `BubbleContentRendererMatch[]`          | -      | 内容渲染器匹配规则数组                                     |
+| `boxAttributes`           | `BubbleBoxAttributesConfig`             | -      | 统一注入到 Box 的 attributes，支持静态对象或 resolver 函数 |
+| `contentAttributes`       | `BubbleContentAttributesConfig`         | -      | 统一注入到 Content 的 attributes，支持静态对象或 resolver 函数 |
 | `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`     | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）          |
 | `fallbackContentRenderer` | `Component<BubbleContentRendererProps>` | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）           |
 | `store`                   | `Record<string, unknown>`               | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据 |
