@@ -13,7 +13,7 @@ export const thinkingPlugin = (options: MessageEnginePlugin = {}): MessageEngine
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = choice as any
       const reasoning_content = c?.message?.reasoning_content || c?.delta?.reasoning_content
-      const thinking = typeof reasoning_content === 'string'
+      const thinking = typeof reasoning_content === 'string' && reasoning_content.trim() !== ''
 
       if (thinking) {
         if (currentMessage.state && typeof currentMessage.state === 'object') {
@@ -52,7 +52,7 @@ export const thinkingPlugin = (options: MessageEnginePlugin = {}): MessageEngine
         lastMessage?.state &&
         typeof lastMessage.state === 'object' &&
         'thinking' in lastMessage.state &&
-        stateShouldUpdate(lastMessage.state, Boolean(lastMessage.state.thinking))
+        stateShouldUpdate(lastMessage.state, false)
       ) {
         mutate('messages', () => {
           lastMessage.state!.thinking = false

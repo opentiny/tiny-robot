@@ -213,7 +213,7 @@ export const toolPlugin = (
     onBeforeRequest: async (context) => {
       const { requestBody } = context
 
-      const tools = await getTools?.()
+      const tools = await getTools()
       if (tools && tools.length > 0) {
         requestBody.tools = tools
       }
@@ -244,6 +244,7 @@ export const toolPlugin = (
 
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
+        let hasMeaningfulResult = false
         const toolMessage: ChatMessage = createMessage({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -272,6 +273,13 @@ export const toolPlugin = (
           // 迭代并逐步拼接内容到 content
           for await (const chunk of iterator) {
             mutate('messages', () => {
+              if (
+                (typeof chunk === 'string' && chunk.length > 0) ||
+                (chunk && typeof chunk === 'object' && Object.keys(chunk).length > 0)
+              ) {
+                hasMeaningfulResult = true
+              }
+
               // 字符串拼接或 JSON 合并
               if (typeof chunk === 'string') {
                 toolMessage.content += chunk
@@ -307,9 +315,10 @@ export const toolPlugin = (
           // 其他错误视为工具调用失败，则将工具消息内容设置为失败内容
           console.error(error)
 
-          if (toolMessage.content.length === 0) {
+          if (!hasMeaningfulResult) {
             mutate('messages', () => {
               toolMessage.content = toolCallFailedContent
+              toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
             })
           }
 
@@ -318,7 +327,9 @@ export const toolPlugin = (
       })
 
       await Promise.all(toolCallPromises)
-      requestNext()
+      if (!abortSignal.aborted) {
+        requestNext()
+      }
 
       return restOptions.onAfterRequest?.(context)
     },

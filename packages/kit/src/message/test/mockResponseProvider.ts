@@ -11,7 +11,7 @@ export type MockContent =
 /** Yields one SSE-style chunk with assistant text and finish_reason stop. */
 async function* mockStreamOneAssistantReplyWithDelay(
   content: MockContent,
-  { abortSignal, delay = 0 }: { delay: number; abortSignal: AbortSignal },
+  { abortSignal, delay = 0 }: { delay?: number; abortSignal: AbortSignal },
 ): AsyncGenerator<ChatCompletionChunk> {
   const contents = Array.isArray(content) ? content : [content]
   const createdAt = Math.floor(Date.now() / 1000)
