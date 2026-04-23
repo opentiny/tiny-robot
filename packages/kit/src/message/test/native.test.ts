@@ -18,6 +18,24 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 describe('createMessageEngine', () => {
+  it('throws when adapter is initialized more than once', () => {
+    const adapter = createNativeMessageAdapter()
+
+    adapter.initialize({
+      requestState: 'idle',
+      processingState: undefined,
+      messages: [],
+    })
+
+    expect(() =>
+      adapter.initialize({
+        requestState: 'completed',
+        processingState: undefined,
+        messages: [{ role: 'user', content: 'unexpected' }],
+      }),
+    ).toThrow('Message state adapter is already initialized')
+  })
+
   it('exposes initial messages and idle state', () => {
     const engine = createTestMessageEngine({
       initialMessages: [{ role: 'user', content: 'hi' }],

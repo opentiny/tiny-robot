@@ -16,7 +16,7 @@ import {
 } from '../types'
 import {
   AbortError,
-  combileDeltaData,
+  combineDeltaData,
   makeAbortable,
   normalizeToAsyncGenerator,
   omitFields,
@@ -233,7 +233,7 @@ export const createMessageEngine = (
 
           if (data) {
             const { role: _role, ...restData } = data
-            combileDeltaData(assistantMessage, restData)
+            combineDeltaData(assistantMessage, restData)
           }
         })
       }

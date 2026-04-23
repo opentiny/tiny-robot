@@ -1,15 +1,14 @@
-import { ComputedRef, Ref, computed, isProxy, reactive, ref, toRaw, watch } from 'vue'
+import { ComputedRef, Ref, computed, isProxy, reactive, ref, toRaw } from 'vue'
 import {
   ChatMessage,
   InternalMessageState,
   MessageStateAdapter,
-  MessageUpdateKind,
-  MessageUpdateKinds,
   MutateMessageStateFn,
   PublicMessageState,
   RequestProcessingState,
   RequestState,
 } from '../types'
+import { createStateSubscriptionController } from './shared'
 
 export interface VueMessageStateAdapter extends MessageStateAdapter {
   requestState: Ref<RequestState>
@@ -50,7 +49,7 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
 
   const initialize = (initialState: InternalMessageState) => {
     if (initialized) {
-      return
+      throw new Error('Message state adapter is already initialized')
     }
 
     requestState.value = initialState.requestState
@@ -75,6 +74,8 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
       isProcessing: isProcessing.value,
     } satisfies PublicMessageState
   }
+
+  const subscriptions = createStateSubscriptionController(getState)
 
   const mutate: MutateMessageStateFn = (kinds, recipe) => {
     if (!initialized) {
@@ -117,61 +118,8 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     if (updateKinds.includes('messages')) {
       messages.value = [...messages.value]
     }
-  }
 
-  const getWatchSources = (kinds: Set<MessageUpdateKind> | null) => {
-    if (!kinds) {
-      return [requestState, processingState, messages]
-    }
-
-    const sources = []
-
-    if (kinds.has('requestState')) {
-      sources.push(requestState, processingState)
-    }
-
-    if (kinds.has('messages')) {
-      sources.push(messages)
-    }
-
-    return sources
-  }
-
-  const subscribe = (
-    kindsOrListener: MessageUpdateKinds | ((currentState: PublicMessageState) => void),
-    maybeListener?: (currentState: PublicMessageState) => void,
-  ) => {
-    if (!initialized) {
-      throw new Error('Message state adapter is not initialized')
-    }
-
-    const listener = typeof kindsOrListener === 'function' ? kindsOrListener : maybeListener
-    const kinds =
-      typeof kindsOrListener === 'function'
-        ? null
-        : Array.isArray(kindsOrListener)
-          ? kindsOrListener.length > 0
-            ? new Set(kindsOrListener)
-            : null
-          : new Set([kindsOrListener])
-
-    if (!listener) {
-      throw new Error('subscribe listener is required')
-    }
-
-    const stopWatcher = watch(
-      getWatchSources(kinds),
-      () => {
-        listener(getState())
-      },
-      { flush: 'sync' },
-    )
-
-    listener(getState())
-
-    return () => {
-      stopWatcher()
-    }
+    subscriptions.notify(kinds)
   }
 
   return {
@@ -183,6 +131,6 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     getState,
     createMessage,
     mutate,
-    subscribe,
+    subscribe: subscriptions.subscribe,
   }
 }

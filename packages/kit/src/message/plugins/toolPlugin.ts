@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatCompletionMessageToolCall, ChatCompletionTool } from 'openai/resources/index'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
-import { combileDeltaData, normalizeToAsyncGenerator } from '../utils'
+import { combineDeltaData, normalizeToAsyncGenerator } from '../utils'
 
 type AssistantMessageWithState = ChatMessage<
   Record<string, unknown>,
@@ -285,7 +285,7 @@ export const toolPlugin = (
                 } catch (error) {
                   console.warn(error)
                 }
-                toolMessage.content = JSON.stringify(combileDeltaData(parsedContent, chunk))
+                toolMessage.content = JSON.stringify(combineDeltaData(parsedContent, chunk))
               }
 
               toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)

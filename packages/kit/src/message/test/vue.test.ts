@@ -9,6 +9,24 @@ import { mockResponseProvider } from './mockResponseProvider'
 const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
 
 describe('createVueMessageAdapter', () => {
+  it('throws when adapter is initialized more than once', () => {
+    const adapter = createVueMessageAdapter()
+
+    adapter.initialize({
+      requestState: 'idle',
+      processingState: undefined,
+      messages: [],
+    })
+
+    expect(() =>
+      adapter.initialize({
+        requestState: 'completed',
+        processingState: undefined,
+        messages: [{ role: 'user', content: 'unexpected' }],
+      }),
+    ).toThrow('Message state adapter is already initialized')
+  })
+
   it('exposes vue refs that stay in sync with engine state', async () => {
     const adapter = createVueMessageAdapter()
     const engine = createMessageEngine(adapter, {
