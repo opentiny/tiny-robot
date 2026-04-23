@@ -20,6 +20,14 @@ const normalizeKinds = (kindsOrListener: MessageUpdateKinds | ((currentState: Pu
 export const createStateSubscriptionController = (getState: () => PublicMessageState) => {
   const listeners = new Set<ListenerEntry>()
 
+  const dispatch = (entry: ListenerEntry, snapshot: PublicMessageState) => {
+    try {
+      entry.listener(snapshot)
+    } catch (error) {
+      console.error('Error in message state subscriber:', error)
+    }
+  }
+
   const notify = (kindsOrKind: MessageUpdateKinds) => {
     const kinds = new Set(Array.isArray(kindsOrKind) ? kindsOrKind : [kindsOrKind])
     const snapshot = getState()
@@ -40,7 +48,7 @@ export const createStateSubscriptionController = (getState: () => PublicMessageS
         }
       }
 
-      entry.listener(snapshot)
+      dispatch(entry, snapshot)
     }
   }
 
@@ -60,7 +68,7 @@ export const createStateSubscriptionController = (getState: () => PublicMessageS
     }
 
     listeners.add(entry)
-    listener(getState())
+    dispatch(entry, getState())
 
     return () => {
       listeners.delete(entry)

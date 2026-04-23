@@ -145,6 +145,46 @@ describe('createMessageEngine', () => {
     expect(snapshotsForRequestState).toHaveLength(expectedRequestStateSequence.length)
   })
 
+  it('keeps notifying other subscribers when one subscriber throws', () => {
+    const adapter = createNativeMessageAdapter()
+    adapter.initialize({
+      requestState: 'idle',
+      processingState: undefined,
+      messages: [],
+    })
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const healthyListener = vi.fn()
+
+    adapter.subscribe('requestState', () => {
+      throw new Error('subscriber failed')
+    })
+    adapter.subscribe('requestState', healthyListener)
+
+    adapter.mutate('requestState', (draft) => {
+      draft.requestState = 'processing'
+      draft.processingState = 'requesting'
+    })
+
+    expect(healthyListener).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        requestState: 'idle',
+        processingState: undefined,
+      }),
+    )
+    expect(healthyListener).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        requestState: 'processing',
+        processingState: 'requesting',
+      }),
+    )
+    expect(errorSpy).toHaveBeenCalled()
+
+    errorSpy.mockRestore()
+  })
+
   it('runs onBeforeRequest with current request body before assistant is appended', async () => {
     const onBeforeRequest = vi.fn()
     const engine = createTestMessageEngine({
