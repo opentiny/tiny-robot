@@ -19,6 +19,7 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
     top: number
     startedAt: number
   } | null = null
+  let lockedSelectionId: string | null = null
 
   const activeId = computed(() => options.activeId?.value ?? localActiveId.value)
   const preferredReducedMotion = usePreferredReducedMotion()
@@ -33,6 +34,28 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
 
   function clearPendingScroll() {
     pendingProgrammaticScroll = null
+  }
+
+  function clearLockedSelection() {
+    lockedSelectionId = null
+  }
+
+  function releaseSelectionLock() {
+    clearPendingScroll()
+    clearLockedSelection()
+  }
+
+  function isEditableEventTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) {
+      return false
+    }
+
+    return (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      target.isContentEditable
+    )
   }
 
   function sortAnchors(anchors: Array<{ id: string; el: HTMLElement }>) {
@@ -66,6 +89,9 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
     }
 
     const currentScrollTop = getContentNavScrollTop(scrollRoot)
+    const viewportTop = getContentNavViewportTop(scrollRoot)
+    const viewportBottom = viewportTop + getContentNavClientHeight(scrollRoot)
+    const activeThreshold = viewportTop + Math.max(0, options.activeOffset?.value ?? 120)
 
     if (pendingProgrammaticScroll) {
       const reachedTarget = Math.abs(currentScrollTop - pendingProgrammaticScroll.top) <= scrollSyncTolerance
@@ -78,21 +104,41 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
       clearPendingScroll()
     }
 
+    if (lockedSelectionId) {
+      const lockedTarget = options.resolveTarget(lockedSelectionId)
+      if (lockedTarget?.isConnected) {
+        const rect = lockedTarget.getBoundingClientRect()
+        const isAboveActiveZone = rect.bottom <= activeThreshold
+        const isBelowViewport = rect.top >= viewportBottom
+
+        if (!isAboveActiveZone && !isBelowViewport) {
+          setActiveId(lockedSelectionId)
+          return
+        }
+      }
+
+      if (lockedSelectionId) {
+        clearLockedSelection()
+      }
+    }
+
     const anchors = sortAnchors(
       options.items.value.flatMap((item) => {
         const target = options.resolveTarget(item.id)
         return target ? [{ id: item.id, el: target }] : []
       }),
     )
+
     const nextId = defaultContentNavActiveResolver({
       viewport: {
-        top: getContentNavViewportTop(scrollRoot),
+        top: viewportTop,
         scrollTop: currentScrollTop,
         clientHeight: getContentNavClientHeight(scrollRoot),
         scrollHeight: getContentNavScrollHeight(scrollRoot),
       },
       anchors,
       items: options.items.value,
+      activeOffset: options.activeOffset?.value,
     })
 
     if (nextId !== undefined) {
@@ -118,20 +164,51 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
       top: nextTop,
       startedAt: Date.now(),
     }
+    lockedSelectionId = id
     setActiveId(id)
 
     scrollContentNavTo(scrollRoot, nextTop, preferredReducedMotion.value === 'reduce' ? 'auto' : 'smooth')
+  }
+
+  function handleUserScrollIntent() {
+    releaseSelectionLock()
+  }
+
+  function handleScrollIntentKeydown(event: KeyboardEvent) {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+      return
+    }
+
+    const hostEl = options.host?.value
+    if (hostEl && event.target instanceof Node && hostEl.contains(event.target)) {
+      return
+    }
+
+    if (isEditableEventTarget(event.target)) {
+      return
+    }
+
+    if (!['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) {
+      return
+    }
+
+    releaseSelectionLock()
   }
 
   watch(
     () => options.activeId?.value,
     (value) => {
       localActiveId.value = value
+
+      if (lockedSelectionId && value !== lockedSelectionId) {
+        clearLockedSelection()
+      }
     },
   )
 
   onBeforeUnmount(() => {
     clearPendingScroll()
+    clearLockedSelection()
   })
 
   return {
@@ -139,5 +216,8 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
     scrollTo,
     sync,
     clearPendingScroll,
+    releaseSelectionLock,
+    handleUserScrollIntent,
+    handleScrollIntentKeydown,
   }
 }

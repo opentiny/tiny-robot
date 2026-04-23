@@ -26,12 +26,12 @@ export interface ContentNavMarkerSlotProps {
 }
 
 export interface ContentNavSearchProps {
-  query: string
-  options?: ContentNavSearchOptions
+  searchQuery: string
+  searchOptions?: ContentNavSearchOptions
 }
 
 export interface ContentNavSearchEmits {
-  'update:query': [value: string]
+  'update:searchQuery': [value: string]
 }
 
 export interface ContentNavOverlayProps {
@@ -88,7 +88,9 @@ export interface ContentNavActiveSyncOptions {
   items: Ref<ContentNavItem[]>
   resolveTarget: (id: string) => HTMLElement | null
   container: Ref<HTMLElement | null | undefined>
+  host?: Ref<HTMLElement | null | undefined>
   activeId?: Ref<string | undefined>
+  activeOffset?: Ref<number | undefined>
   onUpdateActiveId?: (value: string | undefined) => void
 }
 
@@ -112,14 +114,14 @@ export interface ContentNavControllerOptions {
   activeId: Ref<string | undefined>
   expanded: Ref<boolean | undefined>
   expandTrigger: Ref<ContentNavExpandTrigger>
-  query?: Ref<string | undefined>
-  search?: Ref<ContentNavSearchOptions | false | undefined>
+  searchQuery?: Ref<string | undefined>
+  searchOptions?: Ref<ContentNavSearchOptions | undefined>
   onUpdateExpanded?: (value: boolean) => void
-  onUpdateQuery?: (value: string) => void
+  onUpdateSearchQuery?: (value: string) => void
 }
 
 export interface ContentNavTargetFeedbackOptions {
   resolveTarget: (id: string) => HTMLElement | null
-  activeClass: Ref<string | undefined>
-  activeDuration: Ref<number | undefined>
+  feedbackClass: Ref<string | undefined>
+  feedbackDuration: Ref<number | undefined>
 }

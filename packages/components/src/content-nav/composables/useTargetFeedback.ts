@@ -26,7 +26,7 @@ export function useTargetFeedback(options: ContentNavTargetFeedbackOptions) {
     () => {
       resetActiveTarget()
     },
-    () => Math.max(0, options.activeDuration.value ?? 0),
+    () => Math.max(0, options.feedbackDuration.value ?? 0),
     { immediate: false },
   )
 
@@ -36,7 +36,7 @@ export function useTargetFeedback(options: ContentNavTargetFeedbackOptions) {
   }
 
   function activate(id: string) {
-    const classNames = normalizeClassNames(options.activeClass.value)
+    const classNames = normalizeClassNames(options.feedbackClass.value)
     clear()
 
     if (!classNames.length) {
@@ -59,7 +59,7 @@ export function useTargetFeedback(options: ContentNavTargetFeedbackOptions) {
   }
 
   watch(
-    () => options.activeClass.value,
+    () => options.feedbackClass.value,
     () => {
       clear()
     },

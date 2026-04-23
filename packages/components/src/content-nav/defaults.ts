@@ -35,6 +35,7 @@ export function defaultContentNavActiveResolver(options: {
   }
   anchors: Array<{ id: string; el: HTMLElement }>
   items: ContentNavItem[]
+  activeOffset?: number
 }) {
   const { viewport, anchors, items } = options
 
@@ -47,7 +48,7 @@ export function defaultContentNavActiveResolver(options: {
     return items[items.length - 1]?.id
   }
 
-  const threshold = viewport.top + 120
+  const threshold = viewport.top + Math.max(0, options.activeOffset ?? 120)
   let activeId = items[0]?.id
 
   for (const anchor of anchors) {

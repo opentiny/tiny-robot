@@ -4,23 +4,20 @@ import type { ContentNavControllerOptions, ContentNavFilteredItem } from '../int
 
 export function useNavController(options: ContentNavControllerOptions) {
   const localExpanded = ref(false)
-  const localQuery = ref('')
+  const localSearchQuery = ref('')
   const keyboardHighlightedItemId = ref<string | undefined>(undefined)
   const isKeyboardNavigating = ref(false)
 
-  const search = computed(() => {
-    const value = options.search?.value
-    return value || undefined
-  })
+  const searchOptions = computed(() => options.searchOptions?.value)
   const isManualExpandTrigger = computed(() => options.expandTrigger.value === 'manual')
-  const expanded = computed(() =>
+  const expanded = computed<boolean>(() =>
     isManualExpandTrigger.value ? (options.expanded.value ?? false) : localExpanded.value,
   )
-  const query = computed(() => options.query?.value ?? localQuery.value)
-  const matcher = computed(() => search.value?.matcher ?? defaultContentNavSearchMatcher)
+  const searchQuery = computed(() => options.searchQuery?.value ?? localSearchQuery.value)
+  const matcher = computed(() => searchOptions.value?.matcher ?? defaultContentNavSearchMatcher)
 
   const filteredItems = computed<ContentNavFilteredItem[]>(() => {
-    const keyword = query.value.trim()
+    const keyword = searchQuery.value.trim()
 
     return options.items.value
       .map((item) => {
@@ -74,17 +71,17 @@ export function useNavController(options: ContentNavControllerOptions) {
 
     options.onUpdateExpanded?.(value)
 
-    if (!value && search.value?.clearOnCollapse && query.value) {
-      setQuery('')
+    if (!value && searchOptions.value?.clearOnCollapse && searchQuery.value) {
+      setSearchQuery('')
     }
   }
 
-  function setQuery(value: string) {
-    if (options.query?.value === undefined) {
-      localQuery.value = value
+  function setSearchQuery(value: string) {
+    if (options.searchQuery?.value === undefined) {
+      localSearchQuery.value = value
     }
 
-    options.onUpdateQuery?.(value)
+    options.onUpdateSearchQuery?.(value)
   }
 
   function clampHighlightedIndex(nextIndex: number) {
@@ -180,12 +177,12 @@ export function useNavController(options: ContentNavControllerOptions) {
 
   return {
     expanded,
-    query,
+    searchQuery,
     filteredItems,
     highlightedIndex,
     highlightedId,
     setExpanded,
-    setQuery,
+    setSearchQuery,
     getHighlightedItem,
     handleNavigationKeydown,
   }

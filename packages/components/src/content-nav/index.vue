@@ -24,9 +24,9 @@ defineOptions({
 const props = withDefaults(defineProps<ContentNavProps>(), {
   placement: 'right',
   expandTrigger: 'hover',
-  search: false,
+  activeOffset: 120,
   tooltipDelay: 260,
-  targetActiveDuration: 700,
+  targetFeedbackDuration: 700,
   emptyText: 'No matching items',
 })
 
@@ -35,30 +35,24 @@ defineSlots<ContentNavSlots>()
 const attrs = useAttrs()
 const {
   activeId,
+  activeOffset,
   emptyText,
   expandTrigger,
   expanded,
   items,
   placement,
-  query,
+  searchOptions,
+  searchQuery,
   scrollContainer,
-  search,
-  targetActiveClass,
-  targetActiveDuration,
+  targetFeedbackClass,
+  targetFeedbackDuration,
   tooltipDelay,
 } = toRefs(props)
 
 const overlayShellRef = ref<ContentNavOverlayExpose | null>(null)
 
 const hostRef = computed(() => overlayShellRef.value?.hostEl ?? null)
-const resolvedSearchOptions = computed<ContentNavSearchOptions | undefined>(() => {
-  const value = search.value
-  if (value === false || value == null) {
-    return undefined
-  }
-
-  return typeof value === 'object' ? value : {}
-})
+const resolvedSearchOptions = computed<ContentNavSearchOptions | undefined>(() => searchOptions.value)
 const searchSlotOptions = computed<ContentNavSearchOptions>(() => resolvedSearchOptions.value ?? {})
 
 function resolveTargetFromItems(id: string) {
@@ -76,7 +70,9 @@ const active = useActiveSync({
   items: itemsRef,
   resolveTarget: resolveTargetFromItems,
   container: scrollContainer,
+  host: hostRef,
   activeId,
+  activeOffset,
   onUpdateActiveId: (value) => emit('update:activeId', value),
 })
 
@@ -85,10 +81,10 @@ const controller = useNavController({
   activeId: active.activeId,
   expanded,
   expandTrigger,
-  query,
-  search,
+  searchQuery,
+  searchOptions,
   onUpdateExpanded: (value) => emit('update:expanded', value),
-  onUpdateQuery: (value) => emit('update:query', value),
+  onUpdateSearchQuery: (value) => emit('update:searchQuery', value),
 })
 
 const shouldRender = computed(() => itemsRef.value.length > 0)
@@ -101,16 +97,16 @@ const floating = useFloatingOffset({
 })
 const targetFeedback = useTargetFeedback({
   resolveTarget: resolveTargetFromItems,
-  activeClass: targetActiveClass,
-  activeDuration: targetActiveDuration,
+  feedbackClass: targetFeedbackClass,
+  feedbackDuration: targetFeedbackDuration,
 })
 
 function setExpanded(value: boolean) {
   controller.setExpanded(value)
 }
 
-function setQuery(value: string) {
-  controller.setQuery(value)
+function setSearchQuery(value: string) {
+  controller.setSearchQuery(value)
 }
 
 function handleSelect(itemId: string) {
@@ -123,7 +119,6 @@ function handleSelect(itemId: string) {
   targetFeedback.activate(itemId)
   scheduleMeasure()
   emit('select', target)
-  emit('activate', target)
 }
 
 const interactions = useOverlayInteractions({
@@ -151,6 +146,9 @@ function scheduleMeasure() {
 }
 
 useEventListener(scrollEventTarget, 'scroll', scheduleMeasure, { passive: true })
+useEventListener(scrollEventTarget, 'wheel', active.handleUserScrollIntent, { passive: true })
+useEventListener(scrollEventTarget, 'touchmove', active.handleUserScrollIntent, { passive: true })
+useEventListener('keydown', active.handleScrollIntentKeydown)
 useEventListener('resize', scheduleMeasure, { passive: true })
 useResizeObserver(scrollContainer, () => {
   scheduleMeasure()
@@ -208,8 +206,17 @@ onBeforeUnmount(() => {
     @keydown="interactions.handleKeydown"
   >
     <template v-if="hasSearchSection" #search>
-      <slot name="search" :query="controller.query.value" :setQuery="setQuery" :options="searchSlotOptions">
-        <ContentNavSearch :query="controller.query.value" :options="searchSlotOptions" @update:query="setQuery" />
+      <slot
+        name="search"
+        :searchQuery="controller.searchQuery.value"
+        :setSearchQuery="setSearchQuery"
+        :searchOptions="searchSlotOptions"
+      >
+        <ContentNavSearch
+          :search-query="controller.searchQuery.value"
+          :search-options="searchSlotOptions"
+          @update:search-query="setSearchQuery"
+        />
       </slot>
     </template>
 

@@ -11,11 +11,11 @@ const emit = defineEmits<ContentNavSearchEmits>()
   <input
     class="tr-content-nav__search"
     type="search"
-    :value="props.query"
-    :placeholder="props.options?.placeholder ?? 'Search'"
-    :aria-label="props.options?.placeholder ?? 'Search content navigation'"
+    :value="props.searchQuery"
+    :placeholder="props.searchOptions?.placeholder ?? 'Search'"
+    :aria-label="props.searchOptions?.placeholder ?? 'Search content navigation'"
     data-testid="content-nav-search"
-    @input="emit('update:query', ($event.target as HTMLInputElement).value)"
+    @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
   />
 </template>
 

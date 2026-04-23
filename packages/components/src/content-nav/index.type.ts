@@ -13,7 +13,10 @@ export interface ContentNavHighlightSegment {
   highlighted: boolean
 }
 
-export type ContentNavSearchMatcher = (item: ContentNavItem, query: string) => false | ContentNavHighlightSegment[]
+export type ContentNavSearchMatcher = (
+  item: ContentNavItem,
+  searchQuery: string,
+) => false | ContentNavHighlightSegment[]
 
 export type ContentNavPlacement = 'left' | 'right'
 export type ContentNavExpandTrigger = 'hover' | 'manual'
@@ -28,23 +31,23 @@ export interface ContentNavProps {
   items: ContentNavItem[]
   scrollContainer?: HTMLElement | null
   activeId?: string
+  activeOffset?: number
   expanded?: boolean
-  query?: string
+  searchQuery?: string
   placement?: ContentNavPlacement
   expandTrigger?: ContentNavExpandTrigger
-  search?: false | ContentNavSearchOptions
+  searchOptions?: ContentNavSearchOptions
   tooltipDelay?: number
-  targetActiveClass?: string
-  targetActiveDuration?: number
+  targetFeedbackClass?: string
+  targetFeedbackDuration?: number
   emptyText?: string
 }
 
 export interface ContentNavEmits {
   'update:activeId': [value: string | undefined]
   'update:expanded': [value: boolean]
-  'update:query': [value: string]
+  'update:searchQuery': [value: string]
   select: [item: ContentNavItem]
-  activate: [item: ContentNavItem]
 }
 
 export interface ContentNavSlots {
@@ -57,9 +60,9 @@ export interface ContentNavSlots {
   }) => VNode | VNode[]
   marker?: (slotProps: { item: ContentNavItem; active: boolean }) => VNode | VNode[]
   search?: (slotProps: {
-    query: string
-    setQuery: (value: string) => void
-    options: ContentNavSearchOptions
+    searchQuery: string
+    setSearchQuery: (value: string) => void
+    searchOptions: ContentNavSearchOptions
   }) => VNode | VNode[]
   empty?: () => VNode | VNode[]
 }
