@@ -25,7 +25,7 @@ export const defaultContentRendererMatches: Array<BubbleContentRendererMatch> = 
     priority: BubbleRendererMatchPriority.LOADING,
   },
   {
-    find: (message) => typeof message.reasoning_content === 'string',
+    find: (message) => typeof message.reasoning_content === 'string' && message.reasoning_content.trim() !== '',
     renderer: markRaw(Reasoning),
     priority: BubbleRendererMatchPriority.NORMAL,
   },
