@@ -34,22 +34,22 @@ export function defaultContentNavActiveResolver(options: {
     scrollHeight: number
   }
   anchors: Array<{ id: string; el: HTMLElement }>
-  items: ContentNavItem[]
   activeOffset?: number
 }) {
-  const { viewport, anchors, items } = options
+  const { viewport, anchors } = options
 
-  if (!anchors.length || !items.length) {
-    return items[0]?.id
+  if (!anchors.length) {
+    return
   }
 
+  const canScroll = viewport.scrollHeight - viewport.clientHeight > 2
   const isAtBottom = viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - 2
-  if (isAtBottom) {
-    return items[items.length - 1]?.id
+  if (canScroll && isAtBottom) {
+    return anchors[anchors.length - 1]?.id
   }
 
   const threshold = viewport.top + Math.max(0, options.activeOffset ?? 120)
-  let activeId = items[0]?.id
+  let activeId = anchors[0]?.id
 
   for (const anchor of anchors) {
     const rect = anchor.el.getBoundingClientRect()

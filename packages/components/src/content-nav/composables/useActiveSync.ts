@@ -25,6 +25,10 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
   const preferredReducedMotion = usePreferredReducedMotion()
 
   function setActiveId(value: string | undefined) {
+    if (activeId.value === value) {
+      return
+    }
+
     if (options.activeId?.value === undefined) {
       localActiveId.value = value
     }
@@ -137,7 +141,6 @@ export function useActiveSync(options: ContentNavActiveSyncOptions) {
         scrollHeight: getContentNavScrollHeight(scrollRoot),
       },
       anchors,
-      items: options.items.value,
       activeOffset: options.activeOffset?.value,
     })
 
