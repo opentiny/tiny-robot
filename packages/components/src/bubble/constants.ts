@@ -1,5 +1,11 @@
 import type { Component, InjectionKey, MaybeRefOrGetter } from 'vue'
-import { BubbleBoxRendererMatch, BubbleContentRendererMatch, BubbleMessageGroup } from './index.type'
+import {
+  BubbleBoxAttributesConfig,
+  BubbleBoxRendererMatch,
+  BubbleContentAttributesConfig,
+  BubbleContentRendererMatch,
+  BubbleMessageGroup,
+} from './index.type'
 
 /**
  * Injection key for bubble message group
@@ -14,6 +20,9 @@ export const BUBBLE_BOX_RENDERER_MATCHES_KEY: InjectionKey<MaybeRefOrGetter<Arra
 export const BUBBLE_BOX_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component>> =
   Symbol('bubble-box-fallback-renderer')
 
+export const BUBBLE_BOX_ATTRIBUTES_KEY: InjectionKey<MaybeRefOrGetter<BubbleBoxAttributesConfig | undefined>> =
+  Symbol('bubble-box-attributes')
+
 export const BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component | undefined>> = Symbol(
   'bubble-box-prop-fallback-renderer',
 )
@@ -24,6 +33,9 @@ export const BUBBLE_CONTENT_RENDERER_MATCHES_KEY: InjectionKey<MaybeRefOrGetter<
 export const BUBBLE_CONTENT_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component>> = Symbol(
   'bubble-content-fallback-renderer',
 )
+
+export const BUBBLE_CONTENT_ATTRIBUTES_KEY: InjectionKey<MaybeRefOrGetter<BubbleContentAttributesConfig | undefined>> =
+  Symbol('bubble-content-attributes')
 
 export const BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component | undefined>> = Symbol(
   'bubble-content-prop-fallback-renderer',
