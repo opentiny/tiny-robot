@@ -1,5 +1,5 @@
 ---
-outline: [1, 3]
+outline: [1, 4]
 ---
 
 # Bubble 气泡组件
@@ -210,6 +210,20 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 <demo vue="../../demos/bubble/provider-renderer.vue" />
 
+#### 通过 BubbleProvider 统一注入 attributes
+
+除了配置渲染器，`BubbleProvider` 还支持通过 `box-attributes` 和 `content-attributes` 为 Box / Content 统一注入 attributes。
+
+- `box-attributes` 的作用域是一个 Box，对应参数为 `(messages, content, contentIndex)`
+- `content-attributes` 的作用域是单个 Content，对应参数为 `(message, content, contentIndex)`
+- 两个属性都支持传入静态对象，或返回 attributes 的函数
+
+适合用于统一添加 `data-*` 标记、埋点字段、测试选择器等通用属性，而不需要依赖所有消息都匹配某个自定义渲染器。
+
+<demo vue="../../demos/bubble/provider-attributes.vue" />
+
+> `BubbleProvider` 注入的 attributes 会在对应的 Box / Content 上统一生效；如果某个匹配规则本身也配置了 `attributes`，会在 Provider attributes 的基础上继续合并。
+
 #### 渲染器匹配优先级
 
 匹配规则可以使用 `priority` 属性来设置优先级，值越小优先级越高。系统提供了以下优先级常量：
@@ -252,44 +266,35 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 #### 实现自定义渲染器
 
-**Content 渲染器示例**
+**Content 渲染器**
 
-Content 渲染器接收 `BubbleContentRendererProps` 作为 props，包含 `message` 和可选的 `contentIndex`。
-
-```vue
-<script setup lang="ts">
-import type { BubbleContentRendererProps } from '@opentiny/tiny-robot'
-import { defineComponent, markRaw, h } from 'vue'
-
-// 方式一：使用 defineComponent
-const CustomContentRenderer = defineComponent({
-  props: {
-    message: { type: Object, required: true },
-    contentIndex: Number,
-  },
-  setup(props: BubbleContentRendererProps) {
-    return () => h('div', { class: 'custom-content' }, props.message.content)
-  },
-})
-</script>
-```
-
-或者使用 `.vue` 文件：
+Content 渲染器接收 `BubbleContentRendererProps` 作为 props，包含 `message` 和 `contentIndex`。最简单的渲染器只需要消费当前消息内容，并把外部传入的 attributes 绑定到自己的根节点上。
 
 ```vue
-<!-- CustomRenderer.vue -->
-<template>
-  <div class="custom-content">
-    {{ message.content }}
-  </div>
-</template>
-
+<!-- CustomContentRenderer.vue -->
 <script setup lang="ts">
 import type { BubbleContentRendererProps } from '@opentiny/tiny-robot'
 
 defineProps<BubbleContentRendererProps>()
 </script>
+
+<template>
+  <div class="custom-content" v-bind="$attrs">
+    {{ message.content }}
+  </div>
+</template>
 ```
+
+当一个渲染器会拆出部分字段单独渲染，同时还要继续渲染剩余内容时，可以实现为复合渲染器。典型场景是 `reasoning_content + content` 或 `tool_calls + content`：
+
+- 使用 `useOmitMessageFields(props, fields)` 从消息中剥离已经消费的字段，避免递归时再次命中同一个渲染器
+- 使用 `useBubbleContentRenderer(restMessage, contentIndex)` 为剩余消息重新选择渲染器
+- 内部递归渲染时传入 `renderer.attributes`，保证 `BubbleProvider` / match 注入的 attributes 不丢失
+- 多根节点组件需要 `inheritAttrs: false`，并把 `$attrs` 显式绑定到当前渲染器真正代表的 DOM 节点上
+
+下方示例中，`contentAttributes` 使用函数形式，并根据 `message.reasoning_content` 分发不同属性；match 的 `attributes` 会落到自定义推理块上，递归渲染普通 `content` 时会重新计算并传递新的 `contentAttributes`。
+
+<demo vue="../../demos/bubble/custom-composite-renderer.vue" :vueFiles="['../../demos/bubble/custom-composite-renderer.vue', '../../demos/bubble/RecursiveReasoningRenderer.vue']" />
 
 **Box 渲染器示例**
 
@@ -328,21 +333,7 @@ defineProps<BubbleBoxRendererProps>()
 - Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex) => boolean`，其中 `content` 仅在 split 模式有值
 - Content 渲染器的 `find` 函数签名：`(message, content, contentIndex) => boolean`，`content` 为统一化后的 `ChatMessageContentItem`
 - 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
-
-```vue
-<template>
-  <div>
-    <div>这是自定义 content 渲染器</div>
-    <div>{{ props.message.content }}</div>
-  </div>
-</template>
-
-<script setup lang="ts">
-import type { BubbleContentRendererProps } from '@opentiny/tiny-robot'
-
-const props = defineProps<BubbleContentRendererProps>()
-</script>
-```
+- 多根节点或复合渲染器应使用 `inheritAttrs: false`，并显式决定 `$attrs` 绑定到哪个节点；不要把同一份 attributes 复制到多个兄弟节点上，避免重复 `id`、ARIA 或测试选择器
 
 ### 状态管理
 
@@ -397,13 +388,15 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 
 **BubbleProviderProps** - 气泡提供者组件的属性配置
 
-| 属性                      | 类型                                    | 默认值 | 说明                                                       |
-| ------------------------- | --------------------------------------- | ------ | ---------------------------------------------------------- |
-| `boxRendererMatches`      | `BubbleBoxRendererMatch[]`              | -      | Box 渲染器匹配规则数组                                     |
-| `contentRendererMatches`  | `BubbleContentRendererMatch[]`          | -      | 内容渲染器匹配规则数组                                     |
-| `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`     | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）          |
-| `fallbackContentRenderer` | `Component<BubbleContentRendererProps>` | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）           |
-| `store`                   | `Record<string, unknown>`               | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据 |
+| 属性                      | 类型                                    | 默认值 | 说明                                                           |
+| ------------------------- | --------------------------------------- | ------ | -------------------------------------------------------------- |
+| `boxRendererMatches`      | `BubbleBoxRendererMatch[]`              | -      | Box 渲染器匹配规则数组                                         |
+| `contentRendererMatches`  | `BubbleContentRendererMatch[]`          | -      | 内容渲染器匹配规则数组                                         |
+| `boxAttributes`           | `BubbleBoxAttributesConfig`             | -      | 统一注入到 Box 的 attributes，支持静态对象或 resolver 函数     |
+| `contentAttributes`       | `BubbleContentAttributesConfig`         | -      | 统一注入到 Content 的 attributes，支持静态对象或 resolver 函数 |
+| `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`     | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）              |
+| `fallbackContentRenderer` | `Component<BubbleContentRendererProps>` | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）               |
+| `store`                   | `Record<string, unknown>`               | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据     |
 
 ## Emits
 
