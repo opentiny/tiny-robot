@@ -64,7 +64,8 @@
     "@tiptap/extension-text": "^3.11.0",
     "@tiptap/extension-history": "^3.11.0",
     "@tiptap/extension-placeholder": "^3.11.0",
-    "@tiptap/extension-character-count": "^3.11.0"
+    "@tiptap/extension-character-count": "^3.11.0",
+    "unicode-segmenter": "^0.14.5"
   },
   "devDependencies": {
     "@types/dom-speech-recognition": "^0.0.6",
