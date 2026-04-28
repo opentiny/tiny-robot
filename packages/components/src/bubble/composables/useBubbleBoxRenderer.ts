@@ -6,7 +6,13 @@ import {
   BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_RENDERER_MATCHES_KEY,
 } from '../constants'
-import type { BubbleAttributes, BubbleBoxAttributesConfig, BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
+import type {
+  BubbleAttributes,
+  BubbleBoxAttributesConfig,
+  BubbleBoxRendererAttributeMap,
+  BubbleBoxRendererMatch,
+  BubbleMessage,
+} from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 import { useContentResolver } from './useContentResolver'
 
@@ -73,6 +79,19 @@ export function useBubbleBoxRenderer(
     }
   }
 
+  const resolveMatchAttributes = (
+    match: BubbleBoxRendererMatch,
+    msgs: BubbleMessage[],
+    content: ReturnType<typeof getContentAndIndex>['content'],
+    index: ReturnType<typeof getContentAndIndex>['index'],
+  ): BubbleBoxRendererAttributeMap | undefined => {
+    if (typeof match.attributes === 'function') {
+      return match.attributes(msgs, content, index)
+    }
+
+    return match.attributes
+  }
+
   return computed(() => {
     const msgs = toValue(messages)
 
@@ -92,7 +111,7 @@ export function useBubbleBoxRenderer(
         renderer: match.renderer,
         attributes: {
           ...resolvedBoxAttributes,
-          ...match.attributes,
+          ...resolveMatchAttributes(match, msgs, content, index),
         },
       }
     }

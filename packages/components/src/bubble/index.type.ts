@@ -64,6 +64,14 @@ export type BubbleMessageGroup = {
 
 export type BubbleAttributes = Record<string, unknown>
 
+export type BubbleBoxRendererAttributeMap = BubbleAttributes
+
+export type BubbleBoxRendererAttributesResolver = (
+  messages: BubbleMessage[],
+  content: ChatMessageContentItem | undefined,
+  contentIndex: number | undefined,
+) => BubbleBoxRendererAttributeMap | undefined
+
 export type BubbleBoxAttributesResolver = (
   messages: BubbleMessage[],
   content: ChatMessageContentItem | undefined,
@@ -94,7 +102,7 @@ export type BubbleBoxRendererMatch = {
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
-  attributes?: BubbleAttributes
+  attributes?: BubbleBoxRendererAttributeMap | BubbleBoxRendererAttributesResolver
 }
 
 export type BubbleContentRendererMatch = {

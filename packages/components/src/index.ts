@@ -5,6 +5,7 @@ import { App } from 'vue'
 import Attachments from './attachments'
 import { Bubble, BubbleList, BubbleProvider } from './bubble'
 import Container from './container'
+import ContentNav from './content-nav'
 import Conversations from './conversations'
 import DragOverlay from './drag-overlay'
 import DropdownMenu from './dropdown-menu'
@@ -36,6 +37,7 @@ import {
 export * from './attachments/index.type'
 export * from './bubble/index.type'
 export * from './container/index.type'
+export * from './content-nav/index.type'
 export * from './drag-overlay/index.type'
 export * from './dropdown-menu/index.type'
 export * from './feedback/index.type'
@@ -72,6 +74,7 @@ const components = [
   BubbleList,
   BubbleProvider,
   Container,
+  ContentNav,
   Conversations,
   DragOverlay,
   DropdownMenu,
@@ -118,6 +121,8 @@ export {
   BubbleProvider as TrBubbleProvider,
   Container,
   Container as TrContainer,
+  ContentNav,
+  ContentNav as TrContentNav,
   Conversations,
   Conversations as TrConversations,
   DragOverlay,
