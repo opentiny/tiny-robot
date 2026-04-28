@@ -58,7 +58,12 @@ export function useOverlayInteractions(options: ContentNavOverlayInteractionsOpt
     const overlayEl = options.overlay.value?.overlayEl ?? null
     const activeElement = document.activeElement
 
-    if (overlayEl && activeElement instanceof Node && overlayEl.contains(activeElement)) {
+    if (
+      overlayEl &&
+      activeElement instanceof HTMLElement &&
+      overlayEl.contains(activeElement) &&
+      isEditableEventTarget(activeElement)
+    ) {
       return
     }
 
