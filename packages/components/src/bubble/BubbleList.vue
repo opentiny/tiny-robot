@@ -170,7 +170,6 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
 })
 
 defineExpose({
-  rootEl: listRef,
   scrollToBottom: scrollToBottomFn,
 })
 </script>
