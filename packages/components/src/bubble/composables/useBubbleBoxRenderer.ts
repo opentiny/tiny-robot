@@ -1,21 +1,32 @@
 import type { Component, ComputedRef, MaybeRefOrGetter } from 'vue'
 import { computed, inject, provide, toValue } from 'vue'
 import {
+  BUBBLE_BOX_ATTRIBUTES_KEY,
   BUBBLE_BOX_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY,
   BUBBLE_BOX_RENDERER_MATCHES_KEY,
 } from '../constants'
-import type { BubbleBoxRendererMatch, BubbleMessage } from '../index.type'
+import type {
+  BubbleAttributes,
+  BubbleBoxAttributesConfig,
+  BubbleBoxRendererAttributeMap,
+  BubbleBoxRendererMatch,
+  BubbleMessage,
+} from '../index.type'
 import { defaultBoxRendererMatches, defaultFallbackBoxRenderer } from '../renderers/defaultRenderers'
 import { useContentResolver } from './useContentResolver'
 
 export function setupBubbleBoxRenderer(renderers: {
   boxRendererMatches?: MaybeRefOrGetter<Array<BubbleBoxRendererMatch>>
+  boxAttributes?: MaybeRefOrGetter<BubbleBoxAttributesConfig | undefined>
   fallbackBoxRenderer?: MaybeRefOrGetter<Component>
 }): void {
-  const { boxRendererMatches, fallbackBoxRenderer } = renderers
+  const { boxRendererMatches, boxAttributes, fallbackBoxRenderer } = renderers
   if (boxRendererMatches) {
     provide(BUBBLE_BOX_RENDERER_MATCHES_KEY, boxRendererMatches)
+  }
+  if (boxAttributes) {
+    provide(BUBBLE_BOX_ATTRIBUTES_KEY, boxAttributes)
   }
   if (fallbackBoxRenderer) {
     provide(BUBBLE_BOX_FALLBACK_RENDERER_KEY, fallbackBoxRenderer)
@@ -40,9 +51,10 @@ export function useBubbleBoxRenderer(
   contentIndex?: number,
 ): ComputedRef<{
   renderer: Component
-  attributes?: Record<string, string>
+  attributes?: BubbleAttributes
 }> {
   const boxRendererMatches = inject(BUBBLE_BOX_RENDERER_MATCHES_KEY, defaultBoxRendererMatches)
+  const boxAttributes = inject(BUBBLE_BOX_ATTRIBUTES_KEY, undefined)
   const fallbackBoxRenderer = inject(BUBBLE_BOX_FALLBACK_RENDERER_KEY, undefined)
   const propFallbackBoxRenderer = inject(BUBBLE_BOX_PROP_FALLBACK_RENDERER_KEY, undefined)
   const contentResolver = useContentResolver()
@@ -67,23 +79,47 @@ export function useBubbleBoxRenderer(
     }
   }
 
+  const resolveMatchAttributes = (
+    match: BubbleBoxRendererMatch,
+    msgs: BubbleMessage[],
+    content: ReturnType<typeof getContentAndIndex>['content'],
+    index: ReturnType<typeof getContentAndIndex>['index'],
+  ): BubbleBoxRendererAttributeMap | undefined => {
+    if (typeof match.attributes === 'function') {
+      return match.attributes(msgs, content, index)
+    }
+
+    return match.attributes
+  }
+
   return computed(() => {
     const msgs = toValue(messages)
 
     const { content, index } = getContentAndIndex(msgs)
+    const resolvedBoxAttributes = (() => {
+      const attrs = toValue(boxAttributes)
+      if (!attrs) {
+        return undefined
+      }
+      return typeof attrs === 'function' ? attrs(msgs, content, index) : attrs
+    })()
 
     const match = toValue(boxRendererMatches).find((match) => match.find(msgs, content, index))
 
     if (match) {
       return {
         renderer: match.renderer,
-        attributes: match.attributes,
+        attributes: {
+          ...resolvedBoxAttributes,
+          ...resolveMatchAttributes(match, msgs, content, index),
+        },
       }
     }
 
     // Priority: prop-level > provider-level > default
     return {
       renderer: toValue(propFallbackBoxRenderer) || toValue(fallbackBoxRenderer) || defaultFallbackBoxRenderer,
+      attributes: resolvedBoxAttributes,
     }
   })
 }

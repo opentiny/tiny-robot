@@ -15,10 +15,10 @@ const renderer = useBubbleBoxRenderer(() => props.messages, props.contentIndex)
 <template>
   <component
     :is="renderer.renderer"
+    v-bind="renderer.attributes"
     :data-role="props.role"
     :data-placement="props.placement"
     :data-shape="props.shape"
-    v-bind="renderer.attributes"
   >
     <slot />
   </component>

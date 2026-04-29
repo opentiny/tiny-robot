@@ -62,6 +62,31 @@ export type BubbleMessageGroup = {
   startIndex: number
 }
 
+export type BubbleAttributes = Record<string, unknown>
+
+export type BubbleBoxRendererAttributeMap = BubbleAttributes
+
+export type BubbleBoxRendererAttributesResolver = (
+  messages: BubbleMessage[],
+  content: ChatMessageContentItem | undefined,
+  contentIndex: number | undefined,
+) => BubbleBoxRendererAttributeMap | undefined
+
+export type BubbleBoxAttributesResolver = (
+  messages: BubbleMessage[],
+  content: ChatMessageContentItem | undefined,
+  contentIndex: number | undefined,
+) => BubbleAttributes | undefined
+
+export type BubbleContentAttributesResolver = (
+  message: BubbleMessage,
+  content: ChatMessageContentItem,
+  contentIndex: number,
+) => BubbleAttributes | undefined
+
+export type BubbleBoxAttributesConfig = BubbleAttributes | BubbleBoxAttributesResolver
+export type BubbleContentAttributesConfig = BubbleAttributes | BubbleContentAttributesResolver
+
 export type BubbleBoxRendererMatch = {
   /**
    * 匹配函数，用于判断是否应该使用此渲染器
@@ -77,7 +102,7 @@ export type BubbleBoxRendererMatch = {
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
-  attributes?: Record<string, string>
+  attributes?: BubbleBoxRendererAttributeMap | BubbleBoxRendererAttributesResolver
 }
 
 export type BubbleContentRendererMatch = {
@@ -91,7 +116,7 @@ export type BubbleContentRendererMatch = {
   find: (message: BubbleMessage, content: ChatMessageContentItem, contentIndex: number) => boolean
   renderer: Component<BubbleContentRendererProps>
   priority?: number
-  attributes?: Record<string, string>
+  attributes?: BubbleAttributes
 }
 
 export type BubbleBoxRendererProps = Pick<BubbleProps, 'placement' | 'shape'>
@@ -169,6 +194,8 @@ export interface BubbleListProps {
 export interface BubbleProviderProps {
   boxRendererMatches?: BubbleBoxRendererMatch[]
   contentRendererMatches?: BubbleContentRendererMatch[]
+  boxAttributes?: BubbleBoxAttributesConfig
+  contentAttributes?: BubbleContentAttributesConfig
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
   store?: Record<string, unknown>
