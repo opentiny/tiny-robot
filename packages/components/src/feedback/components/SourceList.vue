@@ -71,6 +71,10 @@ const setPillRef = (el: HTMLElement | null, idx: number) => {
 
 <style lang="less" scoped>
 .tr-feedback__source-list {
+  --tr-feedback-source-pill-bg: rgba(20, 118, 255, 0.06);
+  --tr-feedback-source-pill-bg-hover: rgba(20, 118, 255, 0.12);
+  --tr-feedback-source-pill-color: var(--tr-text-link);
+
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -81,8 +85,8 @@ const setPillRef = (el: HTMLElement | null, idx: number) => {
     line-height: 20px;
     border-radius: 999px;
     border: none;
-    background-color: rgba(20, 118, 255, 0.06);
-    color: rgb(20, 118, 255);
+    background-color: var(--tr-feedback-source-pill-bg);
+    color: var(--tr-feedback-source-pill-color);
     cursor: pointer;
 
     &:hover {
@@ -105,8 +109,13 @@ const setPillRef = (el: HTMLElement | null, idx: number) => {
     transition: background-color 0.3s ease;
 
     &:hover {
-      background-color: rgba(20, 118, 255, 0.12);
+      background-color: var(--tr-feedback-source-pill-bg-hover);
     }
   }
+}
+
+:global([data-tr-color-mode='dark']) .tr-feedback__source-list {
+  --tr-feedback-source-pill-bg: rgba(82, 145, 255, 0.16);
+  --tr-feedback-source-pill-bg-hover: rgba(82, 145, 255, 0.24);
 }
 </style>
