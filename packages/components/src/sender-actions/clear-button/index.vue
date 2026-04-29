@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { useSenderContext } from '../../sender/context'
 import { IconClear } from '@opentiny/tiny-robot-svgs'
 import ActionButton from '../action-button/index.vue'
-import { normalizeTooltipContent } from '../utils/tooltip'
 
 // 从 Context 读取状态和配置
 const { hasContent, clearable, clear, loading, defaultActions } = useSenderContext()
@@ -18,7 +17,7 @@ const isDisabled = computed(() => {
   return false
 })
 
-const tooltipRenderFn = computed(() => normalizeTooltipContent(defaultActions.value?.clear?.tooltip))
+const tooltip = computed(() => defaultActions.value?.clear?.tooltip)
 
 const tooltipPlacement = computed(() => defaultActions.value?.clear?.tooltipPlacement ?? 'top')
 
@@ -46,7 +45,7 @@ const handleClick = () => {
     v-if="show"
     :icon="IconClear"
     :disabled="isDisabled"
-    :tooltip="tooltipRenderFn"
+    :tooltip="tooltip"
     :tooltip-placement="tooltipPlacement"
     @click="handleClick"
   />

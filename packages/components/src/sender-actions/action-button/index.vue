@@ -86,3 +86,11 @@ const sizeStyle = computed(() => {
   }
 }
 </style>
+
+<style lang="less">
+@import '../styles/tooltip.less';
+
+.tiny-tooltip.tiny-tooltip__popper.tr-action-button-tooltip-popper {
+  .tr-sender-tooltip-light-popper-mixin();
+}
+</style>
