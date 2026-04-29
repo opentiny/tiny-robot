@@ -1,17 +1,13 @@
 import { lengthPlugin as createCoreLengthPlugin } from '../../../message/plugins'
-import { MessageEnginePlugin } from '../../../message/types'
+import type { VueMessagePluginRuntime } from '../types.internal'
 import type { UseMessagePlugin } from '../types'
-
-type VuePluginRuntime = {
-  createCorePlugin: (plugin: UseMessagePlugin) => MessageEnginePlugin
-}
 
 export const lengthPlugin = (options: UseMessagePlugin & { continueContent?: string } = {}): UseMessagePlugin => {
   const { continueContent = 'Please continue with your previous answer.', ...restOptions } = options
 
   return {
     name: 'length',
-    __corePluginFactory(runtime: VuePluginRuntime) {
+    __corePluginFactory(runtime: VueMessagePluginRuntime) {
       return createCoreLengthPlugin({
         ...runtime.createCorePlugin(restOptions),
         continueContent,

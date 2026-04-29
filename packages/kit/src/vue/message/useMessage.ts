@@ -12,6 +12,7 @@ import {
   MessageEnginePlugin,
 } from '../../message/types'
 import { ChatMessage } from '../../types'
+import type { VueMessagePluginRuntime } from './types.internal'
 import {
   ChatCompletion,
   CompletionChoice,
@@ -21,12 +22,6 @@ import {
   UseMessageReturn,
   BasePluginContext as VueBasePluginContext,
 } from './types'
-
-type VuePluginRuntime = {
-  createCorePlugin: (plugin: UseMessagePlugin) => MessageEnginePlugin
-  createVueBaseContext: (context: CoreBasePluginContext) => VueBasePluginContext
-  resolveReactiveMessage: (message: ChatMessage) => ChatMessage
-}
 
 export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
   const {
@@ -62,7 +57,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
   const createCorePlugin = (plugin: UseMessagePlugin): MessageEnginePlugin => {
     const basePlugin = plugin as UseMessagePlugin & {
-      __corePluginFactory?: (runtime: VuePluginRuntime) => MessageEnginePlugin
+      __corePluginFactory?: (runtime: VueMessagePluginRuntime) => MessageEnginePlugin
     }
 
     if (typeof basePlugin.__corePluginFactory === 'function') {

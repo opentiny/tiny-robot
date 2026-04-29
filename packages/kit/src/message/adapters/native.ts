@@ -26,7 +26,7 @@ export const createNativeMessageAdapter = (): MessageStateAdapter => {
     return {
       requestState: state.requestState,
       processingState: state.processingState,
-      messages: state.messages,
+      messages: [...state.messages],
       isProcessing: state.requestState === 'processing',
     } satisfies PublicMessageState
   }

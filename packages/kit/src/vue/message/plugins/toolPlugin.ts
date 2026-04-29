@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
-import { MessageEnginePlugin } from '../../../message/types'
 import { normalizeToAsyncGenerator } from '../../../message/utils'
 import { ChatMessage, ToolCall } from '../../../types'
+import type { VueMessagePluginRuntime } from '../types.internal'
 import { BasePluginContext, Tool, UseMessagePlugin } from '../types'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
@@ -24,12 +24,6 @@ export interface UseMessageToolCallContext extends BasePluginContext {
    */
   primaryMessage: ChatMessage
   toolMessage: ChatMessage
-}
-
-type VueToolPluginRuntime = {
-  createCorePlugin: (plugin: UseMessagePlugin) => MessageEnginePlugin
-  createVueBaseContext: (context: any) => BasePluginContext
-  resolveReactiveMessage: (message: ChatMessage) => ChatMessage
 }
 
 export const toolPlugin = (
@@ -101,7 +95,7 @@ export const toolPlugin = (
 
   return {
     name: 'tool',
-    __corePluginFactory(runtime: VueToolPluginRuntime) {
+    __corePluginFactory(runtime: VueMessagePluginRuntime) {
       const wrappedRestOptions = runtime.createCorePlugin(restOptions)
 
       return createCoreToolPlugin({
