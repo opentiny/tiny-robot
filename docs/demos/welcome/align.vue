@@ -6,7 +6,7 @@
     :align="align"
   ></tr-welcome>
   <hr />
-  <div style="display: flex; align-items: center">
+  <div class="align-controls">
     <label>对齐方向：</label>
     <tiny-radio-group v-model="align">
       <tiny-radio label="left">left</tiny-radio>
@@ -25,3 +25,15 @@ const icon = h('span', { style: { fontSize: '56px', lineHeight: '64px' } as CSSP
 
 const align = ref('left')
 </script>
+
+<style lang="less" scoped>
+.align-controls {
+  display: flex;
+  align-items: center;
+  color: var(--tr-text-primary);
+
+  :deep(.tiny-radio) {
+    --tv-Radio-text-color: var(--tr-text-primary);
+  }
+}
+</style>

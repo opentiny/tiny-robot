@@ -109,6 +109,14 @@ const handleSourceList = () => {
 
 <style lang="less" scoped>
 .tr-feedback {
+  --tr-feedback-source-color: var(--tr-text-tertiary);
+  --tr-feedback-button-bg: var(--tr-container-bg-default);
+  --tr-feedback-button-border-color: var(--tr-border-color-default);
+  --tr-feedback-button-text-color: var(--tr-text-primary);
+  --tr-feedback-button-bg-hover: var(--tr-container-bg-hover);
+  --tr-feedback-button-border-color-hover: var(--tr-border-color-hover);
+  --tr-feedback-button-text-color-hover: var(--tr-text-primary);
+
   .tr-feedback__operations {
     display: flex;
     justify-content: space-between;
@@ -131,6 +139,16 @@ const handleSourceList = () => {
       }
     }
 
+    :deep(.tiny-button.tiny-button--default) {
+      --tv-Button-bg-color-default: var(--tr-feedback-button-bg);
+      --tv-Button-border-color-default: var(--tr-feedback-button-border-color);
+      --tv-Button-text-color-default: var(--tr-feedback-button-text-color);
+      --tv-Button-icon-color-default: var(--tr-feedback-button-text-color);
+      --tv-Button-bg-color-active-default: var(--tr-feedback-button-bg-hover);
+      --tv-Button-border-color-active-default: var(--tr-feedback-button-border-color-hover);
+      --tv-Button-text-color-active-default: var(--tr-feedback-button-text-color-hover);
+    }
+
     .tr-feedback__operations-right {
       display: flex;
       align-items: center;
@@ -150,7 +168,7 @@ const handleSourceList = () => {
     align-items: center;
     font-size: 12px;
     line-height: 20px;
-    color: rgb(128, 128, 128);
+    color: var(--tr-feedback-source-color);
     cursor: pointer;
     gap: 2px;
 

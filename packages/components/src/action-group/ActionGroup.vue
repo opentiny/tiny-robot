@@ -154,6 +154,12 @@ watch(windowHeight, () => {
 
 <style lang="less" scoped>
 .tr-action-group {
+  --tr-action-group-dropdown-bg: var(--tr-container-bg-default);
+  --tr-action-group-dropdown-shadow: var(--tr-sender-box-shadow);
+  --tr-action-group-dropdown-item-bg-hover: var(--tr-container-bg-hover);
+  --tr-action-group-dropdown-item-bg-active: var(--tr-container-bg-active);
+  --tr-action-group-dropdown-item-text-color: var(--tr-text-primary);
+
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -162,6 +168,18 @@ watch(windowHeight, () => {
     display: inline-flex;
     line-height: 0;
     position: relative;
+
+    :deep(.tr-icon-button) {
+      color: var(--tr-icon-color-default);
+
+      &:hover {
+        color: var(--tr-icon-color-hover);
+      }
+
+      &:active {
+        color: var(--tr-icon-color-active);
+      }
+    }
   }
 
   .tr-action-group__dropdown {
@@ -169,10 +187,10 @@ watch(windowHeight, () => {
     position: absolute;
     z-index: var(--tr-z-index-dropdown);
     right: 0;
-    background-color: white;
+    background-color: var(--tr-action-group-dropdown-bg);
     padding: 4px;
     border-radius: 12px;
-    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+    box-shadow: var(--tr-action-group-dropdown-shadow);
 
     &.placement-top {
       bottom: calc(100% + 8px);
@@ -198,11 +216,11 @@ watch(windowHeight, () => {
       }
 
       &:hover {
-        background-color: rgba(0, 0, 0, 0.04);
+        background-color: var(--tr-action-group-dropdown-item-bg-hover);
       }
 
       &:active {
-        background-color: rgba(0, 0, 0, 0.15);
+        background-color: var(--tr-action-group-dropdown-item-bg-active);
       }
 
       & > * {
@@ -216,7 +234,7 @@ watch(windowHeight, () => {
       .tr-action-group__dropdown-item-text {
         font-size: 12px;
         line-height: 20px;
-        color: rgb(25, 25, 25);
+        color: var(--tr-action-group-dropdown-item-text-color);
       }
 
       :deep(button) {
