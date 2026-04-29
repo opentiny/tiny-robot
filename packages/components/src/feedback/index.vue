@@ -114,7 +114,6 @@ const handleSourceList = () => {
   --tr-feedback-button-border-color: var(--tr-border-color-default);
   --tr-feedback-button-text-color: var(--tr-text-primary);
   --tr-feedback-button-bg-hover: var(--tr-container-bg-hover);
-  --tr-feedback-button-border-color-hover: var(--tr-border-color-hover);
   --tr-feedback-button-text-color-hover: var(--tr-text-primary);
 
   .tr-feedback__operations {
@@ -145,7 +144,6 @@ const handleSourceList = () => {
       --tv-Button-text-color-default: var(--tr-feedback-button-text-color);
       --tv-Button-icon-color-default: var(--tr-feedback-button-text-color);
       --tv-Button-bg-color-active-default: var(--tr-feedback-button-bg-hover);
-      --tv-Button-border-color-active-default: var(--tr-feedback-button-border-color-hover);
       --tv-Button-text-color-active-default: var(--tr-feedback-button-text-color-hover);
     }
 
