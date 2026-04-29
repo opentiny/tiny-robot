@@ -92,14 +92,8 @@ interface UseMessageOptions {
   requestMessageFieldsExclude?: string[]
   /** 插件列表 */
   plugins?: UseMessagePlugin[]
-  /**
-   * 响应提供者函数，负责发起请求并返回响应。
-   * 可返回 Promise、AsyncGenerator 或 Promise<AsyncGenerator>
-   */
-  responseProvider: <T = ChatCompletion>(
-    requestBody: MessageRequestBody,
-    abortSignal: AbortSignal,
-  ) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+  /** 响应提供者函数，负责发起请求并返回响应。 */
+  responseProvider: ResponseProvider
   /**
    * 全局的数据块处理钩子，在接收到每个响应数据块时触发。
    * 注意：此钩子与插件中的 onCompletionChunk 有区别。
@@ -163,9 +157,9 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 
 `useMessage` 支持插件系统，可以通过插件扩展功能。
 
-**默认激活的插件**：`fallbackRolePlugin`、`thinkingPlugin`、`lengthPlugin`（无需显式添加，已自动注入）。可通过插件的 `disabled` 参数禁用，例如 `thinkingPlugin({ disabled: true })`。
+**默认激活的插件**：`thinkingPlugin`、`lengthPlugin`（无需显式添加，已自动注入）。可通过插件的 `disabled` 参数禁用，例如 `thinkingPlugin({ disabled: true })`。
 
-**内置可选插件**：`toolPlugin`（工具调用，需添加到 `plugins` 数组中才会生效）
+**内置可选插件**：`toolPlugin`（需添加到 `plugins` 数组中才会生效）
 
 可通过 `plugins` 选项追加或覆盖默认插件。插件提供了多个生命周期钩子：
 
@@ -211,25 +205,6 @@ interface UseMessagePlugin {
 
 ### 内置插件
 
-#### fallbackRolePlugin
-
-在请求前为 `role` 为空的消息补全角色，默认使用 `assistant`。可用于兜底上游未设置 role 的消息。**已默认激活**；若需自定义配置，可显式传入覆盖：
-
-| 参数           | 类型     | 默认值        | 说明                                 |
-| -------------- | -------- | ------------- | ------------------------------------ |
-| `fallbackRole` | `string` | `'assistant'` | 当消息 `role` 为空时使用的兜底角色。 |
-
-```typescript
-import { fallbackRolePlugin, useMessage } from '@opentiny/tiny-robot-kit'
-
-useMessage({
-  responseProvider,
-  plugins: [
-    fallbackRolePlugin({ fallbackRole: 'assistant' }), // 可选，默认即为 'assistant'
-  ],
-})
-```
-
 #### lengthPlugin
 
 当模型返回 `finish_reason === 'length'`（达到 max_tokens 或上下文限制）时，自动追加一条 user 消息（如 "Please continue with your previous answer."）并调用 `requestNext()` 继续请求，实现“自动续写”。**已默认激活**；若需自定义配置，可显式传入覆盖：
@@ -272,26 +247,25 @@ useMessage({
 
 用于接入模型返回的 `tool_calls`：在请求前注入 `tools` 列表，在请求完成后解析 `tool_calls`、执行 `callTool`、追加 tool 消息并自动发起下一轮请求。支持取消/失败时补充或标记 tool 消息、下一轮是否排除 tool 消息等。**需显式添加到 `plugins` 数组才会生效**。
 
-| 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                 |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getTools`                    | `() => Promise<Tool[]>`                                                                                          | 是   | -                        | 返回当前轮次要传给 API 的工具列表（OpenAI 格式）。                                                                                                                   |
-| `callTool`                    | `(toolCall, context) => Promise<string \| Record<string, any>> \| AsyncGenerator<string \| Record<string, any>>` | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。                                                                         |
-| `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。`context.currentMessage` 为当前 assistant 消息。                                                                   |
-| `onToolCallStart`             | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具开始执行时触发。此时对应的 tool 消息已经创建并追加到 `messages` 中；`context` 额外包含 `primaryMessage` 和 `toolMessage`。                                   |
-| `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，并额外包含 `primaryMessage`、`toolMessage`，失败或取消时可能有 `context.error`。 |
-| `toolCallCancelledContent`    | `string`                                                                                                         | 否   | `'Tool call cancelled.'` | 请求被中止且需要补全缺失 tool 消息时，填入该默认内容。                                                                                                               |
-| `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行抛错且当前 tool 消息内容仍为空时，写入该失败提示。                                                                                                           |
-| `autoFillMissingToolMessages` | `boolean`                                                                                                        | 否   | `false`                  | 在下一轮开始前，自动补齐上一次被取消但尚未写入的 tool 消息。                                                                                                         |
-| `excludeToolMessagesNextTurn` | `boolean \| 'remove'`                                                                                            | 否   | `false`                  | 下一轮请求是否排除带 `tool_calls` 的 assistant 消息及对应 tool 消息。`true` 表示仅从请求体中过滤；`'remove'` 表示直接从 `messages` 中移除。                          |
+| 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getTools`                    | `() => Promise<Tool[]>`                                                                                          | 是   | -                        | 返回当前轮次要传给 API 的工具列表（OpenAI 格式）。                                                                                                                                                    |
+| `callTool`                    | `(toolCall, context) => Promise<string \| Record<string, any>> \| AsyncGenerator<string \| Record<string, any>>` | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。                                                                                                          |
+| `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。新字段为 `context.assistantMessage`；`context.currentMessage` 继续保留，但已弃用。                                                                  |
+| `onToolCallStart`             | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具开始执行时触发。此时对应的 tool 消息已经创建并追加到 `messages` 中；`context` 额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`。                                     |
+| `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，并额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`，失败或取消时可能有 `context.error`。 |
+| `toolCallCancelledContent`    | `string`                                                                                                         | 否   | `'Tool call cancelled.'` | 请求被中止且需要补全缺失 tool 消息时，填入该默认内容。                                                                                                                                                |
+| `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行抛错且当前 tool 消息内容仍为空时，写入该失败提示。                                                                                                                                            |
+| `autoFillMissingToolMessages` | `boolean`                                                                                                        | 否   | `false`                  | 在下一轮开始前，自动补齐上一次被取消但尚未写入的 tool 消息。                                                                                                                                          |
 
 **回调上下文补充：**
 
-| 回调              | 额外上下文字段                                      | 说明                                                                                                                                                                           |
-| ----------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `beforeCallTools` | `currentMessage`                                    | 在 `BasePluginContext` 基础上额外包含 `currentMessage`，表示当前这条包含 `tool_calls` 的 assistant 消息。                                                                      |
-| `callTool`        | `currentMessage`                                    | 在 `BasePluginContext` 基础上额外包含 `currentMessage`，表示当前这条包含 `tool_calls` 的 assistant 消息。                                                                      |
-| `onToolCallStart` | `primaryMessage`、`toolMessage`                     | 在 `BasePluginContext` 基础上额外包含 `primaryMessage` 和 `toolMessage`。其中 `primaryMessage` 是触发当前工具调用的 assistant 消息，`toolMessage` 是当前工具对应的 tool 消息。 |
-| `onToolCallEnd`   | `primaryMessage`、`toolMessage`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 `primaryMessage`、`toolMessage` 和 `status`；当工具执行失败或被取消时，还可能包含 `error`。                                              |
+| 回调              | 额外上下文字段                                                                      | 说明                                                                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `beforeCallTools` | `assistantMessage`、`currentMessage`（已弃用）                                      | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。                                               |
+| `callTool`        | `assistantMessage`、`currentMessage`（已弃用）、`toolMessage`                       | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息，以及当前工具对应的 `toolMessage`。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。             |
+| `onToolCallStart` | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`                     | 在 `BasePluginContext` 基础上额外包含触发当前工具调用的 assistant 消息和当前 tool 消息。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。                                       |
+| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息和执行状态；当工具执行失败或被取消时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
 
 ##### 基础示例
 

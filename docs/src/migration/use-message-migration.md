@@ -9,7 +9,7 @@ outline: [1, 3]
 ## 概述
 
 - **v0.3.x**：`useMessage({ client, useStreamByDefault, events... })`，内部直接调用 `client.chat` / `client.chatStream`
-- **0.4.x**：`useMessage({ responseProvider, plugins... })`，由你提供数据源（Promise 或 AsyncGenerator），框架负责状态机、合并与扩展点；内置 `fallbackRolePlugin`、`thinkingPlugin`、`lengthPlugin`，工具调用使用 `toolPlugin`
+- **0.4.x**：`useMessage({ responseProvider, plugins... })`，由你提供数据源（Promise 或 AsyncGenerator），框架负责状态机、合并与扩展点；内置 `thinkingPlugin`、`lengthPlugin`，工具调用使用 `toolPlugin`
 
 ## v0.3.x 用法
 
@@ -97,7 +97,7 @@ const engine = useMessage({ responseProvider })
 
 ## 插件迁移建议
 
-0.4.x 默认会注入基础插件（role fallback、thinking、length 等）。可通过 `plugins` 追加能力，或通过同名插件覆盖/禁用默认行为。
+0.4.x 默认会注入基础插件（thinking、length）。可通过 `plugins` 追加能力，或通过同名插件覆盖/禁用默认行为。
 
 工具调用推荐使用内置 `toolPlugin`：
 

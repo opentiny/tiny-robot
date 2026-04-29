@@ -77,6 +77,11 @@ export interface ChatCompletion {
   usage?: Usage
 }
 
+export type ResponseProvider<T = ChatCompletion> = (
+  requestBody: MessageRequestBody,
+  abortSignal: AbortSignal,
+) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+
 export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
   /**
@@ -90,10 +95,7 @@ export interface UseMessageOptions {
    */
   requestMessageFieldsExclude?: string[]
   plugins?: UseMessagePlugin[]
-  responseProvider: <T = ChatCompletion>(
-    requestBody: MessageRequestBody,
-    abortSignal: AbortSignal,
-  ) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+  responseProvider: ResponseProvider
   /**
    * 全局的数据块处理钩子，在接收到每个响应数据块时触发。
    * 注意：此钩子与插件中的 onCompletionChunk 有区别。

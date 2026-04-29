@@ -130,7 +130,7 @@ const isObjectWithIndex = (value: any): value is ObjectWithIndex => {
  * @param source - Source object to merge from
  * @returns Merged target object
  */
-export const combileDeltaData = (target: Record<string, any>, source: Record<string, any>) => {
+export const combineDeltaData = (target: Record<string, any>, source: Record<string, any>) => {
   for (const [sourceKey, sourceValue] of Object.entries(source)) {
     const targetValue = target[sourceKey]
 
@@ -155,7 +155,7 @@ export const combileDeltaData = (target: Record<string, any>, source: Record<str
             if (targetMap.has(index)) {
               // Objects with same index, recursively merge
               const targetItem = targetMap.get(index)!
-              targetMap.set(index, combileDeltaData(targetItem, sourceItem) as ObjectWithIndex)
+              targetMap.set(index, combineDeltaData(targetItem, sourceItem) as ObjectWithIndex)
             } else {
               // New index, add directly
               targetMap.set(index, sourceItem)
@@ -178,7 +178,7 @@ export const combileDeltaData = (target: Record<string, any>, source: Record<str
         }
       } else if (isObject(targetValue) && isObject(sourceValue)) {
         // Both are objects, recursively merge
-        target[sourceKey] = combileDeltaData(targetValue, sourceValue)
+        target[sourceKey] = combineDeltaData(targetValue, sourceValue)
       }
     } else {
       // Property doesn't exist, assign directly

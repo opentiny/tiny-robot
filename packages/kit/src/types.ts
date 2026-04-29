@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BaseModelProvider } from './providers/base'
+import { type BaseModelProvider } from './providers/base'
 
 export type MaybePromise<T> = T | Promise<T>
 
