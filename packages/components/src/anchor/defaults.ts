@@ -1,6 +1,6 @@
-import type { ContentNavHighlightSegment, ContentNavItem, ContentNavSearchMatcher } from './index.type'
+import type { AnchorHighlightSegment, AnchorItem, AnchorSearchMatcher } from './index.type'
 
-export const defaultContentNavSearchMatcher: ContentNavSearchMatcher = (item, rawQuery) => {
+export const defaultAnchorSearchMatcher: AnchorSearchMatcher = (item, rawQuery) => {
   const query = rawQuery.trim().toLowerCase()
   const source = (item.searchText || item.label).trim()
 
@@ -26,7 +26,7 @@ export const defaultContentNavSearchMatcher: ContentNavSearchMatcher = (item, ra
   return false
 }
 
-export function defaultContentNavActiveResolver(options: {
+export function defaultAnchorActiveResolver(options: {
   viewport: {
     top: number
     scrollTop: number
@@ -63,7 +63,7 @@ export function defaultContentNavActiveResolver(options: {
   return activeId
 }
 
-export function ensureContentNavSegments(item: ContentNavItem, segments: false | ContentNavHighlightSegment[]) {
+export function ensureAnchorSegments(item: AnchorItem, segments: false | AnchorHighlightSegment[]) {
   if (!segments || segments.length === 0) {
     return [{ text: item.label, highlighted: false }]
   }

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
-import type { ContentNavFloatingOffsetOptions } from '../internal.type'
+import type { AnchorFloatingOffsetOptions } from '../internal.type'
 
-export function useFloatingOffset(options: ContentNavFloatingOffsetOptions) {
+export function useFloatingOffset(options: AnchorFloatingOffsetOptions) {
   const offset = ref(0)
 
   function getFloatingNodes() {
@@ -17,8 +17,8 @@ export function useFloatingOffset(options: ContentNavFloatingOffsetOptions) {
     }
 
     const measuredEl =
-      floatingEl.querySelector<HTMLElement>('.tr-content-nav__surface') ??
-      floatingEl.querySelector<HTMLElement>('.tr-content-nav__panel') ??
+      floatingEl.querySelector<HTMLElement>('.tr-anchor__surface') ??
+      floatingEl.querySelector<HTMLElement>('.tr-anchor__panel') ??
       floatingEl
 
     return {

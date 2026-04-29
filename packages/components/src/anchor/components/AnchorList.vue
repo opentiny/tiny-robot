@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import ContentNavItem from './ContentNavItem.vue'
-import type { ContentNavListEmits, ContentNavListProps, ContentNavListSlots } from '../internal.type'
+import AnchorItem from './AnchorItem.vue'
+import type { AnchorListEmits, AnchorListProps, AnchorListSlots } from '../internal.type'
 
-defineOptions({ name: 'ContentNavList' })
+defineOptions({ name: 'AnchorList' })
 
-defineProps<ContentNavListProps>()
-const emit = defineEmits<ContentNavListEmits>()
-defineSlots<ContentNavListSlots>()
+defineProps<AnchorListProps>()
+const emit = defineEmits<AnchorListEmits>()
+defineSlots<AnchorListSlots>()
 </script>
 
 <template>
-  <ul class="tr-content-nav__list" role="list">
-    <li v-if="expanded && items.length === 0" class="tr-content-nav__empty" aria-live="polite">
+  <ul class="tr-anchor__list" role="list">
+    <li v-if="expanded && items.length === 0" class="tr-anchor__empty" aria-live="polite">
       <slot name="empty">{{ emptyText }}</slot>
     </li>
 
-    <ContentNavItem
+    <AnchorItem
       v-for="(entry, index) in items"
       :key="entry.item.id"
       :entry="entry"
@@ -33,12 +33,12 @@ defineSlots<ContentNavListSlots>()
       <template v-if="$slots.marker" #marker="slotProps">
         <slot name="marker" v-bind="slotProps" />
       </template>
-    </ContentNavItem>
+    </AnchorItem>
   </ul>
 </template>
 
 <style lang="less" scoped>
-.tr-content-nav {
+.tr-anchor {
   &__list {
     position: relative;
     z-index: 1;
@@ -51,7 +51,7 @@ defineSlots<ContentNavListSlots>()
 
   &__empty {
     padding: 20px 12px;
-    color: var(--tr-content-nav-empty-color);
+    color: var(--tr-anchor-empty-color);
     font-size: var(--tr-font-size-sm);
     text-align: center;
   }

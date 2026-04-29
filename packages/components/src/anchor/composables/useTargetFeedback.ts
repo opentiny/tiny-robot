@@ -1,6 +1,6 @@
 import { useTimeoutFn } from '@vueuse/core'
 import { onBeforeUnmount, watch } from 'vue'
-import type { ContentNavTargetFeedbackOptions } from '../internal.type'
+import type { AnchorTargetFeedbackOptions } from '../internal.type'
 
 function normalizeClassNames(value: string | undefined) {
   return (value ?? '')
@@ -9,7 +9,7 @@ function normalizeClassNames(value: string | undefined) {
     .filter(Boolean)
 }
 
-export function useTargetFeedback(options: ContentNavTargetFeedbackOptions) {
+export function useTargetFeedback(options: AnchorTargetFeedbackOptions) {
   let activeTarget: HTMLElement | null = null
   let activeClassNames: string[] = []
 

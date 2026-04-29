@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, useSlots } from 'vue'
-import type { ContentNavOverlayProps } from '../internal.type'
+import type { AnchorOverlayProps } from '../internal.type'
 
-defineOptions({ name: 'ContentNavOverlay' })
+defineOptions({ name: 'AnchorOverlay' })
 
-const props = withDefaults(defineProps<ContentNavOverlayProps>(), {
+const props = withDefaults(defineProps<AnchorOverlayProps>(), {
   floatingOffset: 0,
 })
 
@@ -14,7 +14,7 @@ const navEl = ref<HTMLElement | null>(null)
 const slots = useSlots()
 
 const rootClass = computed(() => [
-  'tr-content-nav',
+  'tr-anchor',
   `is-${props.placement}`,
   {
     'is-expanded': props.expanded,
@@ -35,13 +35,13 @@ defineExpose({
 
 <template>
   <div ref="hostEl" :class="rootClass" :style="floatingStyle">
-    <div ref="overlayEl" class="tr-content-nav__overlay" data-testid="content-nav-overlay">
-      <div v-if="$slots.search" class="tr-content-nav__search-cap">
+    <div ref="overlayEl" class="tr-anchor__overlay" data-testid="anchor-overlay">
+      <div v-if="$slots.search" class="tr-anchor__search-cap">
         <slot name="search" />
       </div>
 
-      <div class="tr-content-nav__surface">
-        <nav ref="navEl" class="tr-content-nav__panel" aria-label="Content navigation">
+      <div class="tr-anchor__surface">
+        <nav ref="navEl" class="tr-anchor__panel" aria-label="Content navigation">
           <slot />
         </nav>
       </div>
@@ -50,11 +50,11 @@ defineExpose({
 </template>
 
 <style lang="less" scoped>
-.tr-content-nav {
+.tr-anchor {
   pointer-events: none;
   z-index: var(--tr-z-index-fixed);
-  inline-size: var(--tr-content-nav-width-collapsed);
-  min-inline-size: var(--tr-content-nav-width-collapsed);
+  inline-size: var(--tr-anchor-width-collapsed);
+  min-inline-size: var(--tr-anchor-width-collapsed);
 
   position: absolute;
   top: 0;
@@ -71,8 +71,8 @@ defineExpose({
   &__overlay {
     position: absolute;
     top: 0;
-    inline-size: var(--tr-content-nav-width-collapsed);
-    width: var(--tr-content-nav-width-collapsed);
+    inline-size: var(--tr-anchor-width-collapsed);
+    width: var(--tr-anchor-width-collapsed);
     overflow: visible;
     box-sizing: border-box;
     pointer-events: auto;
@@ -91,15 +91,15 @@ defineExpose({
   }
 
   &.is-expanded &__overlay {
-    inline-size: var(--tr-content-nav-width-expanded);
-    width: var(--tr-content-nav-width-expanded);
+    inline-size: var(--tr-anchor-width-expanded);
+    width: var(--tr-anchor-width-expanded);
   }
 
   &__surface {
     width: 100%;
     overflow: visible;
     border: 1px solid transparent;
-    border-radius: var(--tr-content-nav-surface-radius);
+    border-radius: var(--tr-anchor-surface-radius);
     box-sizing: border-box;
     transition:
       background-color 0.22s ease,
@@ -108,13 +108,13 @@ defineExpose({
   }
 
   &.is-expanded &__surface {
-    background: var(--tr-content-nav-bg);
-    border: 1px solid var(--tr-content-nav-border);
-    box-shadow: var(--tr-content-nav-shadow);
+    background: var(--tr-anchor-bg);
+    border: 1px solid var(--tr-anchor-border);
+    box-shadow: var(--tr-anchor-shadow);
   }
 
   &.is-expanded.has-search-cap &__surface {
-    border-radius: 0 0 var(--tr-content-nav-surface-radius) var(--tr-content-nav-surface-radius);
+    border-radius: 0 0 var(--tr-anchor-surface-radius) var(--tr-anchor-surface-radius);
   }
 
   &__search-cap {
@@ -122,10 +122,10 @@ defineExpose({
     inset-inline: 0;
     bottom: calc(100% - 1px);
     padding: 10px 10px 8px;
-    background: var(--tr-content-nav-bg);
-    border: 1px solid var(--tr-content-nav-border);
+    background: var(--tr-anchor-bg);
+    border: 1px solid var(--tr-anchor-border);
     border-bottom: 0;
-    border-radius: var(--tr-content-nav-surface-radius) var(--tr-content-nav-surface-radius) 0 0;
+    border-radius: var(--tr-anchor-surface-radius) var(--tr-anchor-surface-radius) 0 0;
     box-sizing: border-box;
   }
 

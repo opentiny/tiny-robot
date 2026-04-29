@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { useTimeoutFn } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
-import type { ContentNavItemEmits, ContentNavItemProps, ContentNavItemSlots } from '../internal.type'
+import type { AnchorItemEmits, AnchorItemProps, AnchorItemSlots } from '../internal.type'
 
-defineOptions({ name: 'ContentNavItem' })
+defineOptions({ name: 'AnchorItem' })
 
-const props = defineProps<ContentNavItemProps>()
-const emit = defineEmits<ContentNavItemEmits>()
-defineSlots<ContentNavItemSlots>()
+const props = defineProps<AnchorItemProps>()
+const emit = defineEmits<AnchorItemEmits>()
+defineSlots<AnchorItemSlots>()
 
 const itemButtonRef = ref<HTMLButtonElement | null>(null)
 const isHovered = ref(false)
@@ -24,7 +24,7 @@ const { start: startTooltipTimer, stop: stopTooltipTimer } = useTimeoutFn(
 
 const active = computed(() => props.entry.item.id === props.activeId)
 const itemClass = computed(() => [
-  'tr-content-nav__list-item',
+  'tr-anchor__list-item',
   `is-${props.placement}`,
   {
     'is-active': active.value,
@@ -39,7 +39,7 @@ function isTextTruncated(element: HTMLElement | null | undefined) {
 }
 
 function getLabelElement() {
-  return itemButtonRef.value?.querySelector<HTMLElement>('.tr-content-nav__item-label') ?? null
+  return itemButtonRef.value?.querySelector<HTMLElement>('.tr-anchor__item-label') ?? null
 }
 
 function measureTooltipVisibility() {
@@ -102,7 +102,7 @@ watch(
     <button
       ref="itemButtonRef"
       type="button"
-      class="tr-content-nav__item"
+      class="tr-anchor__item"
       :data-item-id="entry.item.id"
       :aria-current="active ? 'location' : undefined"
       :tabindex="highlighted ? 0 : -1"
@@ -110,13 +110,13 @@ watch(
       @mouseleave="handleMouseLeave"
       @click="emit('select', entry.item)"
     >
-      <span class="tr-content-nav__marker-slot">
+      <span class="tr-anchor__marker-slot">
         <slot name="marker" :item="entry.item" :active="active">
-          <span class="tr-content-nav__marker" />
+          <span class="tr-anchor__marker" />
         </slot>
       </span>
 
-      <span class="tr-content-nav__item-content">
+      <span class="tr-anchor__item-content">
         <slot
           name="item"
           :item="entry.item"
@@ -125,9 +125,9 @@ watch(
           :expanded="expanded"
           :highlighted="props.highlighted || isHovered"
         >
-          <span class="tr-content-nav__item-label" @transitionend="handleLabelTransitionEnd">
+          <span class="tr-anchor__item-label" @transitionend="handleLabelTransitionEnd">
             <template v-for="(segment, segmentIndex) in entry.segments" :key="`${entry.item.id}-${segmentIndex}`">
-              <mark v-if="segment.highlighted" class="tr-content-nav__highlight">{{ segment.text }}</mark>
+              <mark v-if="segment.highlighted" class="tr-anchor__highlight">{{ segment.text }}</mark>
               <template v-else>{{ segment.text }}</template>
             </template>
           </span>
@@ -138,7 +138,7 @@ watch(
 </template>
 
 <style lang="less" scoped>
-.tr-content-nav {
+.tr-anchor {
   &__list-item {
     position: relative;
 
@@ -153,9 +153,9 @@ watch(
       pointer-events: none;
       padding: 6px 12px;
       border-radius: var(--tr-radius-md);
-      background: var(--tr-content-nav-tooltip-bg);
-      color: var(--tr-content-nav-tooltip-color);
-      box-shadow: var(--tr-content-nav-tooltip-shadow);
+      background: var(--tr-anchor-tooltip-bg);
+      color: var(--tr-anchor-tooltip-color);
+      box-shadow: var(--tr-anchor-tooltip-shadow);
       transition: opacity 0.15s ease;
       font-size: var(--tr-font-size-sm);
       line-height: 1.5;
@@ -180,13 +180,13 @@ watch(
       opacity: 1;
     }
 
-    &.is-active .tr-content-nav__marker {
-      background: var(--tr-content-nav-marker-color-active);
+    &.is-active .tr-anchor__marker {
+      background: var(--tr-anchor-marker-color-active);
       transform: scale(1.25);
     }
 
-    &.is-active .tr-content-nav__item-label {
-      color: var(--tr-content-nav-item-color-active);
+    &.is-active .tr-anchor__item-label {
+      color: var(--tr-anchor-item-color-active);
     }
   }
 
@@ -199,9 +199,9 @@ watch(
     column-gap: 0;
     padding: 6px 11px;
     border: 0;
-    border-radius: var(--tr-content-nav-item-radius);
+    border-radius: var(--tr-anchor-item-radius);
     background: transparent;
-    color: var(--tr-content-nav-item-color);
+    color: var(--tr-anchor-item-color);
     cursor: pointer;
     text-align: left;
     transition:
@@ -209,8 +209,8 @@ watch(
       color 0.18s ease;
 
     &:focus-visible {
-      background: var(--tr-content-nav-item-bg-hover);
-      outline: 2px solid var(--tr-content-nav-focus-ring);
+      background: var(--tr-anchor-item-bg-hover);
+      outline: 2px solid var(--tr-anchor-focus-ring);
       outline-offset: 0;
     }
   }
@@ -228,7 +228,7 @@ watch(
   }
 
   &__list-item.is-expanded:hover &__item {
-    background: var(--tr-content-nav-item-bg-hover);
+    background: var(--tr-anchor-item-bg-hover);
   }
 
   &__list-item.is-expanded &__item {
@@ -240,9 +240,9 @@ watch(
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    inline-size: var(--tr-content-nav-marker-track-size);
-    min-inline-size: var(--tr-content-nav-marker-track-size);
-    block-size: var(--tr-content-nav-marker-track-size);
+    inline-size: var(--tr-anchor-marker-track-size);
+    min-inline-size: var(--tr-anchor-marker-track-size);
+    block-size: var(--tr-anchor-marker-track-size);
   }
 
   &__list-item.is-right &__marker-slot {
@@ -254,10 +254,10 @@ watch(
   }
 
   &__marker {
-    width: var(--tr-content-nav-marker-width);
-    height: var(--tr-content-nav-marker-height);
-    border-radius: var(--tr-content-nav-marker-radius);
-    background: var(--tr-content-nav-marker-color);
+    width: var(--tr-anchor-marker-width);
+    height: var(--tr-anchor-marker-height);
+    border-radius: var(--tr-anchor-marker-radius);
+    background: var(--tr-anchor-marker-color);
     transition:
       background-color 0.18s ease,
       transform 0.18s ease;
@@ -277,10 +277,10 @@ watch(
 
   &__item-label {
     flex: 1;
-    font-size: var(--tr-content-nav-item-label-font-size);
-    font-weight: var(--tr-content-nav-item-label-font-weight);
-    line-height: var(--tr-content-nav-item-label-line-height);
-    letter-spacing: var(--tr-content-nav-item-label-letter-spacing);
+    font-size: var(--tr-anchor-item-label-font-size);
+    font-weight: var(--tr-anchor-item-label-font-weight);
+    line-height: var(--tr-anchor-item-label-line-height);
+    letter-spacing: var(--tr-anchor-item-label-letter-spacing);
     overflow: hidden;
     max-width: 0;
     opacity: 0;
@@ -293,12 +293,12 @@ watch(
   }
 
   &__list-item.is-expanded &__item-label {
-    max-width: calc(var(--tr-content-nav-width-expanded) - 48px);
+    max-width: calc(var(--tr-anchor-width-expanded) - 48px);
     opacity: 1;
   }
 
   &__highlight {
-    color: var(--tr-content-nav-highlight-color);
+    color: var(--tr-anchor-highlight-color);
     background: transparent;
     font-weight: var(--tr-font-weight-semibold);
   }

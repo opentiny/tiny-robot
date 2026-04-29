@@ -1,6 +1,6 @@
-export type ContentNavScrollRoot = HTMLElement | Window
+export type AnchorScrollRoot = HTMLElement | Window
 
-function isHTMLElement(value: ContentNavScrollRoot | null): value is HTMLElement {
+function isHTMLElement(value: AnchorScrollRoot | null): value is HTMLElement {
   return typeof HTMLElement !== 'undefined' && value instanceof HTMLElement
 }
 
@@ -12,7 +12,7 @@ function getScrollingElement() {
   return document.scrollingElement ?? document.documentElement ?? document.body ?? null
 }
 
-export function resolveContentNavScrollRoot(container: HTMLElement | null | undefined): ContentNavScrollRoot | null {
+export function resolveAnchorScrollRoot(container: HTMLElement | null | undefined): AnchorScrollRoot | null {
   if (container) {
     return container
   }
@@ -20,7 +20,7 @@ export function resolveContentNavScrollRoot(container: HTMLElement | null | unde
   return typeof window !== 'undefined' ? window : null
 }
 
-export function getContentNavScrollTop(root: ContentNavScrollRoot | null) {
+export function getAnchorScrollTop(root: AnchorScrollRoot | null) {
   if (!root) {
     return 0
   }
@@ -33,7 +33,7 @@ export function getContentNavScrollTop(root: ContentNavScrollRoot | null) {
   return root.scrollY || root.pageYOffset || scrollingElement?.scrollTop || 0
 }
 
-export function getContentNavClientHeight(root: ContentNavScrollRoot | null) {
+export function getAnchorClientHeight(root: AnchorScrollRoot | null) {
   if (!root) {
     return 0
   }
@@ -41,7 +41,7 @@ export function getContentNavClientHeight(root: ContentNavScrollRoot | null) {
   return isHTMLElement(root) ? root.clientHeight : root.innerHeight
 }
 
-export function getContentNavScrollHeight(root: ContentNavScrollRoot | null) {
+export function getAnchorScrollHeight(root: AnchorScrollRoot | null) {
   if (!root) {
     return 0
   }
@@ -57,7 +57,7 @@ export function getContentNavScrollHeight(root: ContentNavScrollRoot | null) {
   return Math.max(scrollingElement?.scrollHeight || 0, documentElement?.scrollHeight || 0, body?.scrollHeight || 0)
 }
 
-export function getContentNavViewportTop(root: ContentNavScrollRoot | null) {
+export function getAnchorViewportTop(root: AnchorScrollRoot | null) {
   if (!root) {
     return 0
   }
@@ -65,7 +65,7 @@ export function getContentNavViewportTop(root: ContentNavScrollRoot | null) {
   return isHTMLElement(root) ? root.getBoundingClientRect().top : 0
 }
 
-export function scrollContentNavTo(root: ContentNavScrollRoot | null, top: number, behavior: ScrollBehavior) {
+export function scrollAnchorTo(root: AnchorScrollRoot | null, top: number, behavior: ScrollBehavior) {
   if (!root) {
     return
   }

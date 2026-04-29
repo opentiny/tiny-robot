@@ -1,5 +1,5 @@
-.tr-content-nav-vars() {
-  @prefix: tr-content-nav;
+.tr-anchor-vars() {
+  @prefix: tr-anchor;
 
   @vars: {
     width-collapsed: 32px;
@@ -44,17 +44,17 @@
   }
 }
 
-.tr-content-nav-vars();
+.tr-anchor-vars();
 
-.tr-content-nav-target--flash {
-  animation: tr-content-nav-target-flash 0.7s ease-out;
+.tr-anchor-target--flash {
+  animation: tr-anchor-target-flash 0.7s ease-out;
 }
 
-.tr-content-nav-target--outline {
-  animation: tr-content-nav-target-outline 0.9s ease-out;
+.tr-anchor-target--outline {
+  animation: tr-anchor-target-outline 0.9s ease-out;
 }
 
-@keyframes tr-content-nav-target-flash {
+@keyframes tr-anchor-target-flash {
   0% {
     background-color: color-mix(in srgb, var(--tr-color-primary) 12%, transparent);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--tr-color-primary) 20%, transparent);
@@ -66,7 +66,7 @@
   }
 }
 
-@keyframes tr-content-nav-target-outline {
+@keyframes tr-anchor-target-outline {
   0% {
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--tr-color-primary) 42%, transparent);
   }

@@ -1,8 +1,8 @@
 import { computed, ref, watch } from 'vue'
-import { defaultContentNavSearchMatcher, ensureContentNavSegments } from '../defaults'
-import type { ContentNavControllerOptions, ContentNavFilteredItem } from '../internal.type'
+import { defaultAnchorSearchMatcher, ensureAnchorSegments } from '../defaults'
+import type { AnchorControllerOptions, AnchorFilteredItem } from '../internal.type'
 
-export function useNavController(options: ContentNavControllerOptions) {
+export function useNavController(options: AnchorControllerOptions) {
   const localExpanded = ref(false)
   const localSearchQuery = ref('')
   const keyboardHighlightedItemId = ref<string | undefined>(undefined)
@@ -14,9 +14,9 @@ export function useNavController(options: ContentNavControllerOptions) {
     isManualExpandTrigger.value ? (options.expanded.value ?? false) : localExpanded.value,
   )
   const searchQuery = computed(() => options.searchQuery?.value ?? localSearchQuery.value)
-  const matcher = computed(() => searchOptions.value?.matcher ?? defaultContentNavSearchMatcher)
+  const matcher = computed(() => searchOptions.value?.matcher ?? defaultAnchorSearchMatcher)
 
-  const filteredItems = computed<ContentNavFilteredItem[]>(() => {
+  const filteredItems = computed<AnchorFilteredItem[]>(() => {
     const keyword = searchQuery.value.trim()
 
     return options.items.value
@@ -29,10 +29,10 @@ export function useNavController(options: ContentNavControllerOptions) {
 
         return {
           item,
-          segments: ensureContentNavSegments(item, segments),
+          segments: ensureAnchorSegments(item, segments),
         }
       })
-      .filter((entry): entry is ContentNavFilteredItem => entry !== null)
+      .filter((entry): entry is AnchorFilteredItem => entry !== null)
   })
   const activeHighlightedId = computed(
     () => filteredItems.value.find((entry) => entry.item.id === options.activeId.value)?.item.id,

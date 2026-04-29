@@ -1,8 +1,8 @@
 import { nextTick } from 'vue'
-import type { ContentNavOverlayInteractionsOptions } from '../internal.type'
-import { queryContentNavItemById } from '../utils/target'
+import type { AnchorOverlayInteractionsOptions } from '../internal.type'
+import { queryAnchorItemById } from '../utils/target'
 
-export function useOverlayInteractions(options: ContentNavOverlayInteractionsOptions) {
+export function useOverlayInteractions(options: AnchorOverlayInteractionsOptions) {
   function isEditableEventTarget(target: EventTarget | null) {
     if (!(target instanceof HTMLElement)) {
       return false
@@ -25,7 +25,7 @@ export function useOverlayInteractions(options: ContentNavOverlayInteractionsOpt
         return
       }
 
-      queryContentNavItemById(navEl, id)?.focus()
+      queryAnchorItemById(navEl, id)?.focus()
     })
   }
 

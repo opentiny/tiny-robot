@@ -1,6 +1,6 @@
 import type { VNode } from 'vue'
 
-export interface ContentNavItem {
+export interface AnchorItem {
   id: string
   label: string
   searchText?: string
@@ -8,61 +8,58 @@ export interface ContentNavItem {
   meta?: Record<string, unknown>
 }
 
-export interface ContentNavHighlightSegment {
+export interface AnchorHighlightSegment {
   text: string
   highlighted: boolean
 }
 
-export type ContentNavSearchMatcher = (
-  item: ContentNavItem,
-  searchQuery: string,
-) => false | ContentNavHighlightSegment[]
+export type AnchorSearchMatcher = (item: AnchorItem, searchQuery: string) => false | AnchorHighlightSegment[]
 
-export type ContentNavPlacement = 'left' | 'right'
-export type ContentNavExpandTrigger = 'hover' | 'manual'
+export type AnchorPlacement = 'left' | 'right'
+export type AnchorExpandTrigger = 'hover' | 'manual'
 
-export interface ContentNavSearchOptions {
+export interface AnchorSearchOptions {
   placeholder?: string
-  matcher?: ContentNavSearchMatcher
+  matcher?: AnchorSearchMatcher
   clearOnCollapse?: boolean
 }
 
-export interface ContentNavProps {
-  items: ContentNavItem[]
+export interface AnchorProps {
+  items: AnchorItem[]
   scrollContainer?: HTMLElement | null
   activeId?: string
   activeOffset?: number
   expanded?: boolean
   searchQuery?: string
-  placement?: ContentNavPlacement
-  expandTrigger?: ContentNavExpandTrigger
-  searchOptions?: ContentNavSearchOptions
+  placement?: AnchorPlacement
+  expandTrigger?: AnchorExpandTrigger
+  searchOptions?: AnchorSearchOptions
   tooltipDelay?: number
   targetFeedbackClass?: string
   targetFeedbackDuration?: number
   emptyText?: string
 }
 
-export interface ContentNavEmits {
+export interface AnchorEmits {
   'update:activeId': [value: string | undefined]
   'update:expanded': [value: boolean]
   'update:searchQuery': [value: string]
-  select: [item: ContentNavItem]
+  select: [item: AnchorItem]
 }
 
-export interface ContentNavSlots {
+export interface AnchorSlots {
   item?: (slotProps: {
-    item: ContentNavItem
-    segments: ContentNavHighlightSegment[]
+    item: AnchorItem
+    segments: AnchorHighlightSegment[]
     active: boolean
     expanded: boolean
     highlighted: boolean
   }) => VNode | VNode[]
-  marker?: (slotProps: { item: ContentNavItem; active: boolean }) => VNode | VNode[]
+  marker?: (slotProps: { item: AnchorItem; active: boolean }) => VNode | VNode[]
   search?: (slotProps: {
     searchQuery: string
     setSearchQuery: (value: string) => void
-    searchOptions: ContentNavSearchOptions
+    searchOptions: AnchorSearchOptions
   }) => VNode | VNode[]
   empty?: () => VNode | VNode[]
 }

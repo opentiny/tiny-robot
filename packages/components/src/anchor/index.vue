@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useEventListener, useResizeObserver } from '@vueuse/core'
 import { computed, onBeforeUnmount, ref, toRefs, useAttrs, watch } from 'vue'
-import ContentNavList from './components/ContentNavList.vue'
-import ContentNavOverlay from './components/ContentNavOverlay.vue'
-import ContentNavSearch from './components/ContentNavSearch.vue'
-import type { ContentNavOverlayExpose } from './internal.type'
+import AnchorList from './components/AnchorList.vue'
+import AnchorOverlay from './components/AnchorOverlay.vue'
+import AnchorSearch from './components/AnchorSearch.vue'
+import type { AnchorOverlayExpose } from './internal.type'
 import {
   useActiveSync,
   useFloatingOffset,
@@ -12,16 +12,16 @@ import {
   useOverlayInteractions,
   useTargetFeedback,
 } from './composables/index'
-import type { ContentNavEmits, ContentNavProps, ContentNavSearchOptions, ContentNavSlots } from './index.type'
-import { resolveContentNavScrollRoot } from './utils/scroll'
-import { queryContentNavTargetById } from './utils/target'
+import type { AnchorEmits, AnchorProps, AnchorSearchOptions, AnchorSlots } from './index.type'
+import { resolveAnchorScrollRoot } from './utils/scroll'
+import { queryAnchorTargetById } from './utils/target'
 
 defineOptions({
-  name: 'TrContentNav',
+  name: 'TrAnchor',
   inheritAttrs: false,
 })
 
-const props = withDefaults(defineProps<ContentNavProps>(), {
+const props = withDefaults(defineProps<AnchorProps>(), {
   placement: 'right',
   expandTrigger: 'hover',
   activeOffset: 120,
@@ -30,8 +30,8 @@ const props = withDefaults(defineProps<ContentNavProps>(), {
   emptyText: 'No matching items',
 })
 
-const emit = defineEmits<ContentNavEmits>()
-defineSlots<ContentNavSlots>()
+const emit = defineEmits<AnchorEmits>()
+defineSlots<AnchorSlots>()
 const attrs = useAttrs()
 const {
   activeId,
@@ -49,19 +49,19 @@ const {
   tooltipDelay,
 } = toRefs(props)
 
-const overlayShellRef = ref<ContentNavOverlayExpose | null>(null)
+const overlayShellRef = ref<AnchorOverlayExpose | null>(null)
 
 const hostRef = computed(() => overlayShellRef.value?.hostEl ?? null)
-const resolvedSearchOptions = computed<ContentNavSearchOptions | undefined>(() => searchOptions.value)
-const searchSlotOptions = computed<ContentNavSearchOptions>(() => resolvedSearchOptions.value ?? {})
+const resolvedSearchOptions = computed<AnchorSearchOptions | undefined>(() => searchOptions.value)
+const searchSlotOptions = computed<AnchorSearchOptions>(() => resolvedSearchOptions.value ?? {})
 
 function resolveTargetFromItems(id: string) {
   const container = scrollContainer.value
   if (container) {
-    return queryContentNavTargetById(container, id) ?? null
+    return queryAnchorTargetById(container, id) ?? null
   }
 
-  return queryContentNavTargetById(document, id) ?? null
+  return queryAnchorTargetById(document, id) ?? null
 }
 
 const itemsRef = computed(() => items.value)
@@ -90,7 +90,7 @@ const controller = useNavController({
 const shouldRender = computed(() => itemsRef.value.length > 0)
 const hasSearchSection = computed(() => Boolean(resolvedSearchOptions.value) && controller.expanded.value)
 const shouldAutoToggleExpanded = computed(() => expandTrigger.value === 'hover')
-const scrollEventTarget = computed(() => resolveContentNavScrollRoot(scrollContainer.value))
+const scrollEventTarget = computed(() => resolveAnchorScrollRoot(scrollContainer.value))
 const floating = useFloatingOffset({
   container: scrollContainer,
   host: hostRef,
@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ContentNavOverlay
+  <AnchorOverlay
     v-if="shouldRender"
     ref="overlayShellRef"
     v-bind="attrs"
@@ -212,7 +212,7 @@ onBeforeUnmount(() => {
         :setSearchQuery="setSearchQuery"
         :searchOptions="searchSlotOptions"
       >
-        <ContentNavSearch
+        <AnchorSearch
           :search-query="controller.searchQuery.value"
           :search-options="searchSlotOptions"
           @update:search-query="setSearchQuery"
@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
       </slot>
     </template>
 
-    <ContentNavList
+    <AnchorList
       :items="controller.filteredItems.value"
       :active-id="active.activeId.value"
       :expanded="controller.expanded.value"
@@ -241,6 +241,6 @@ onBeforeUnmount(() => {
       <template v-if="$slots.empty" #empty>
         <slot name="empty" />
       </template>
-    </ContentNavList>
-  </ContentNavOverlay>
+    </AnchorList>
+  </AnchorOverlay>
 </template>
