@@ -1,4 +1,4 @@
-const FILE_NAME_QUERY_KEYS = ['filename', 'fileName', 'name'] as const
+const FILE_NAME_QUERY_KEYS = ['filename', 'fileName'] as const
 const ABSOLUTE_URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/
 const PROTOCOL_RELATIVE_URL_RE = /^\/\//
 

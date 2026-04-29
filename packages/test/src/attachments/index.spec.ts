@@ -4,7 +4,7 @@ test.describe('Attachments 组件测试', () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.goto('/')
     await page.click('text=Attachments 组件')
-    await expect(page.locator('h2')).toContainText('Attachments 组件测试')
+    await expect(page.getByRole('heading', { level: 2, name: 'Attachments 组件测试' })).toBeVisible()
   })
 
   test('应支持仅传入 url 的远程附件', async ({ page }) => {
