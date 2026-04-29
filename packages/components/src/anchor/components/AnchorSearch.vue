@@ -13,7 +13,7 @@ const emit = defineEmits<AnchorSearchEmits>()
     type="search"
     :value="props.searchQuery"
     :placeholder="props.searchOptions?.placeholder ?? 'Search'"
-    :aria-label="props.searchOptions?.placeholder ?? 'Search content navigation'"
+    :aria-label="props.searchOptions?.placeholder?.trim() || 'Search content navigation'"
     data-testid="anchor-search"
     @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
   />
