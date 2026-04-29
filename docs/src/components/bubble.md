@@ -501,7 +501,13 @@ type BubbleBoxRendererMatch = {
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
-  attributes?: Record<string, string>
+  attributes?:
+    | Record<string, string | undefined>
+    | ((
+        messages: BubbleMessage[],
+        content: ChatMessageContentItem | undefined,
+        contentIndex: number | undefined,
+      ) => Record<string, string | undefined> | undefined)
 }
 ```
 
