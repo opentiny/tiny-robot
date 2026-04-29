@@ -114,7 +114,7 @@ export interface BaseAttachment {
 // URL 文件类型 - 已有远程URL的文件
 export interface UrlAttachment extends BaseAttachment {
   url: string
-  size: number
+  size?: number
   rawFile?: File
 }
 
