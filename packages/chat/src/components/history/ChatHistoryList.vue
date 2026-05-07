@@ -74,6 +74,7 @@ function isItemSelected(itemId: string): boolean {
         <input
           type="checkbox"
           :checked="isItemSelected(item.id!)"
+          @click.stop
           @change="historyState.toggleItemSelection(item.id!)"
           class="item-checkbox"
           :data-item-id="item.id"

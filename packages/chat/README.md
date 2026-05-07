@@ -5,21 +5,22 @@
 
 ## 安装
 
-```bash
-pnpm add @opentiny/tiny-robot-chat
-```
-
-需要同时安装 peer dependencies：
+首次接入时，请同时安装以下依赖：
 
 ```bash
-pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-kit vue markstream-vue
+pnpm add @opentiny/tiny-robot-chat @opentiny/tiny-robot @opentiny/tiny-robot-kit vue markstream-vue
 ```
+
+如果项目里已经安装了其中一部分，可以跳过重复安装；仅安装 `@opentiny/tiny-robot-chat` 不足以运行示例。
 
 ## 基本用法
 
 ### 引入样式
 
+在应用入口同时引入基础样式和 chat 样式：
+
 ```ts
+import '@opentiny/tiny-robot/dist/style.css'
 import '@opentiny/tiny-robot-chat/style'
 ```
 

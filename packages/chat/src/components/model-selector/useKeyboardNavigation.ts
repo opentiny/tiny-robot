@@ -77,14 +77,26 @@ export function useKeyboardNavigation(options: UseKeyboardNavigationOptions): Us
     if (count <= 0) return
 
     let target = highlightedIndex.value
-    do {
-      if (isNext) {
-        target = loop ? (target + 1) % count : Math.min(target + 1, count - 1)
-      } else {
-        target = loop ? (target - 1 + count) % count : Math.max(target - 1, 0)
+
+    for (let attempts = 0; attempts < count; attempts += 1) {
+      const nextTarget = isNext
+        ? loop
+          ? (target + 1) % count
+          : Math.min(target + 1, count - 1)
+        : loop
+          ? (target - 1 + count) % count
+          : Math.max(target - 1, 0)
+
+      if (nextTarget === target) {
+        return
       }
-    } while (isItemDisabled?.(target) && target !== highlightedIndex.value)
-    highlightedIndex.value = target
+
+      target = nextTarget
+      if (!isItemDisabled?.(target)) {
+        highlightedIndex.value = target
+        return
+      }
+    }
   }
 
   whenever(
