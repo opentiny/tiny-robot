@@ -1,0 +1,53 @@
+{
+  "name": "@opentiny/tiny-robot-chat",
+  "version": "0.4.2",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./internal": {
+      "import": "./dist/internal.js",
+      "types": "./dist/internal.d.ts"
+    },
+    "./style": {
+      "default": "./dist/style.css"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "./dist/style.css"
+  ],
+  "scripts": {
+    "dev": "vue-tsc && vite build --watch",
+    "build": "vue-tsc && vite build",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.11",
+    "markstream-vue": "^0.0.9-beta.0",
+    "@opentiny/tiny-robot": "workspace:*",
+    "@opentiny/tiny-robot-kit": "workspace:*"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.7.5",
+    "@opentiny/tiny-robot-svgs": "workspace:*",
+    "@vueuse/core": "^13.1.0",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "less": "^4.2.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vite-plugin-dts": "^4.5.3",
+    "vue": "^3.3.11",
+    "vue-tsc": "^2.2.8"
+  }
+}

@@ -39,8 +39,8 @@ jobs:
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
 
-      - name: Build components
-        run: pnpm build
+      - name: Build packages
+        run: pnpm build:packages
 
       - name: Build docs
         run: pnpm -F docs build
@@ -55,6 +55,7 @@ jobs:
           name: build-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             packages/components/dist
+            packages/chat/dist
             packages/kit/dist
             packages/svgs/dist
             docs/dist

@@ -1,0 +1,11 @@
+@import './tokens.css';
+@import './layout.css';
+@import './drawer.css';
+@import './mcp-trigger.css';
+@import './model-selector.css';
+
+/* Hide Sender header container when slot content is empty (e.g. Attachments with v-if).
+   Temporary fix until the Sender component in packages/components handles this natively. */
+.tr-sender-header:not(:has(> *)) {
+  display: none;
+}

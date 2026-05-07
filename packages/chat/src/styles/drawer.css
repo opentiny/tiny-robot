@@ -1,0 +1,33 @@
+.tr-chat-drawer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--chat-drawer-z-index) - 1);
+  background: var(--chat-drawer-overlay-bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--chat-drawer-transition);
+}
+
+.tr-chat-drawer-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tr-chat-drawer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  width: var(--chat-drawer-width);
+  height: 100%;
+  flex-direction: column;
+  z-index: var(--chat-drawer-z-index);
+  background: var(--chat-drawer-bg);
+  box-shadow: var(--chat-drawer-shadow);
+  transform: translateX(-100%);
+  transition: transform var(--chat-drawer-transition);
+}
+
+.tr-chat-drawer.is-open {
+  transform: translateX(0);
+}

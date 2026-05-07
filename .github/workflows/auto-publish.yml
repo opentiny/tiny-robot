@@ -52,9 +52,9 @@ jobs:
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
 
-      # 步骤7: 构建组件
-      - name: Run Build Components
-        run: pnpm build
+      # 步骤7: 构建发布包
+      - name: Run Build Packages
+        run: pnpm build:packages
 
       - name: Parse Publish tag
         id: parse_tag

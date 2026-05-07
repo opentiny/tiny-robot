@@ -51,6 +51,7 @@ jobs:
         run: |
           npx pkg-pr-new publish \
             ./packages/components \
+            ./packages/chat \
             ./packages/kit \
             ./packages/svgs \
             --pnpm \
