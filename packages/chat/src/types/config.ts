@@ -3,7 +3,7 @@ import type {
   BrandConfig,
   ChatAppearanceConfig,
   ChatContentLayout,
-  ChatMessageActionDefinition,
+  ChatMessageActionsInput,
   ChatMessageActionsMode,
   ChatMessageTransforms,
 } from './core'
@@ -96,7 +96,7 @@ export interface TrChatWorkspaceConfig {
 }
 
 export interface TrChatMessagesConfig {
-  actions?: ChatMessageActionDefinition[]
+  actions?: ChatMessageActionsInput
   actionMode?: ChatMessageActionsMode
   renderers?: ChatBubbleRenderers
   feedback?: { enabled?: boolean }

@@ -119,7 +119,8 @@ export function useChatFeedback(options: UseChatFeedbackOptions) {
     messageIndex: messageIndexes[messageIndexes.length - 1],
     messageId: primaryMessageId.value,
     runtime,
-    conversationId: runtime ? undefined : (fallbackRuntime?.activeConversationId.value ?? undefined),
+    conversationId:
+      runtime?.history?.activeConversationId.value ?? fallbackRuntime?.activeConversationId.value ?? undefined,
   }))
 
   // --- Visibility ---
@@ -183,8 +184,8 @@ export function useChatFeedback(options: UseChatFeedbackOptions) {
     if (messageActions) {
       return typeof messageActions === 'function' ? messageActions(actionContext.value) : messageActions
     }
-    if (runtime?.message.getActions && primaryMessageId.value) {
-      return runtime.message.getActions(primaryMessageId.value) ?? []
+    if (runtime?.message.getActions) {
+      return runtime.message.getActions(actionContext.value) ?? []
     }
     return []
   })

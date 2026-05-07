@@ -1,6 +1,13 @@
 import type { Ref } from 'vue'
 import type { Attachment } from '@opentiny/tiny-robot'
-import type { ChatMessageActionDefinition, ChatMessageActionsMode, ChatMessageTransforms, ChatStatus } from './core'
+import type {
+  ChatMessageActionContext,
+  ChatMessageActionDefinition,
+  ChatMessageActionsInput,
+  ChatMessageActionsMode,
+  ChatMessageTransforms,
+  ChatStatus,
+} from './core'
 import type { ModelOption } from './model'
 import type {
   ChatAttachmentsListConfig,
@@ -58,13 +65,13 @@ export interface ChatSenderRuntime {
 
 export interface ChatMessageRuntime {
   getViewState: (messageId: string) => ChatMessageViewState | undefined
-  getActions?: (messageId: string) => ChatMessageActionDefinition[]
+  getActions?: (context: ChatMessageActionContext) => ChatMessageActionDefinition[]
   startEdit: (messageId: string) => void
   cancelEdit: (messageId: string) => void
   commitEdit: (messageId: string, nextContent: string) => Promise<boolean> | boolean
   copy: (messageId: string) => Promise<void> | void
   config?: {
-    actions?: ChatMessageActionDefinition[]
+    actions?: ChatMessageActionsInput
     actionMode?: ChatMessageActionsMode
     renderers?: ChatBubbleRenderers
     feedback?: { enabled?: boolean }
