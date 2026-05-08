@@ -111,12 +111,20 @@
 
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #ffffff;
-  --tr-mcp-server-picker-bg-default-2: #ffffff;
-  --tr-mcp-server-picker-tabs-nav-wrap-bg-color: #f0f0f0;
-  --tr-mcp-server-picker-plugin-card-border-color: #e6e6e6;
   --tr-mcp-server-picker-tabs-border-color-active: #191919;
+  --tr-mcp-server-picker-tabs-divider-color: rgba(0, 0, 0, 0.1);
+  --tr-mcp-server-picker-field-bg-color: var(--tr-mcp-server-picker-bg-default);
+  --tr-mcp-server-picker-field-border-color: #dbdbdb;
+  --tr-mcp-server-picker-muted-icon-color: #808080;
+  --tr-mcp-server-picker-field-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
+  --tr-mcp-server-picker-card-bg-color: #f8f8f8;
   --tr-mcp-server-picker-bg-hover: rgba(0, 0, 0, 0.04);
-  --tr-mcp-server-picker-button-bg-disabled: #f0f0f0;
+  --tr-mcp-server-picker-header-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-border-color-hover: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-text-color: var(--tr-text-primary);
+  --tr-mcp-server-picker-header-button-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
+  --tr-mcp-server-picker-market-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-market-button-added-bg-color: #f0f0f0;
   --tr-mcp-server-picker-divider-color: rgba(0, 0, 0, 0.1);
   --tr-mcp-server-picker-tool-count-color: #e6e6e6;
   --tr-mcp-server-picker-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
@@ -240,13 +248,21 @@
 
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #191919;
-  --tr-mcp-server-picker-bg-default-2: #262626;
-  --tr-mcp-server-picker-tabs-nav-wrap-bg-color: rgba(255, 255, 255, .1);
-  --tr-mcp-server-picker-plugin-card-border-color: #4a4a4a;
   --tr-mcp-server-picker-tabs-border-color-active: #E6E6E6;
+  --tr-mcp-server-picker-tabs-divider-color: rgba(255, 255, 255, 0.1);
+  --tr-mcp-server-picker-field-bg-color: var(--tr-mcp-server-picker-bg-default);
+  --tr-mcp-server-picker-field-border-color: #4d4d4d;
+  --tr-mcp-server-picker-muted-icon-color: #808080;
+  --tr-mcp-server-picker-field-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
+  --tr-mcp-server-picker-card-bg-color: rgba(255, 255, 255, 0.05);
   --tr-mcp-server-picker-bg-hover: rgba(255, 255, 255, 0.1);
+  --tr-mcp-server-picker-header-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-border-color-hover: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-text-color: var(--tr-text-primary);
+  --tr-mcp-server-picker-header-button-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
   --tr-mcp-server-picker-tool-count-color: #333333;
-  --tr-mcp-server-picker-button-bg-disabled: rgba(255, 255, 255, 0.15);
+  --tr-mcp-server-picker-market-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-market-button-added-bg-color: rgba(255, 255, 255, 0.1);
   --tr-mcp-server-picker-divider-color: rgba(255, 255, 255, 0.1);
   --tr-mcp-server-picker-shadow: 0px 4px 16px 0px rgba(255, 255, 255, 0.08);
   --tr-mcp-server-picker-border-color-default: rgba(255, 255, 255, 0.15);
