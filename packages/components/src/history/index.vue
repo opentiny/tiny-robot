@@ -1,5 +1,5 @@
 <script lang="ts" setup generic="T extends HistoryItem">
-import { IconCheck, IconClose, IconDelete, IconEditPen, IconMenu2 } from '@opentiny/tiny-robot-svgs'
+import { IconCheck, IconClose, IconDelete, IconEditPen, IconMore } from '@opentiny/tiny-robot-svgs'
 import { computed, ref, type Ref } from 'vue'
 import { useTouchDevice } from '../shared/composables'
 import Empty from './components/Empty.vue'
@@ -144,7 +144,7 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
                 <IconClose></IconClose>
               </button>
               <button class="menu" :class="{ hidden: editingItem === item }" @click="(ev) => toggleMenu(ev, item)">
-                <IconMenu2></IconMenu2>
+                <IconMore></IconMore>
               </button>
             </span>
           </div>

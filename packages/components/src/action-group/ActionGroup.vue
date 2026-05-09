@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconMenu } from '@opentiny/tiny-robot-svgs'
+import { IconMoreCircle } from '@opentiny/tiny-robot-svgs'
 import { TinyTooltip } from '@opentiny/vue'
 import { onClickOutside, useWindowSize } from '@vueuse/core'
 import { computed, nextTick, ref, VNode, watch } from 'vue'
@@ -132,7 +132,7 @@ watch(windowHeight, () => {
     >
       <span ref="moreBtnRef" class="tr-action-group__btn-wrapper" @click="handleMoreClick">
         <slot name="moreBtn">
-          <icon-button :icon="IconMenu" />
+          <icon-button :icon="IconMoreCircle" />
         </slot>
         <transition name="tr-action-group-dropdown">
           <ul v-show="showDropdown" ref="dropDownRef" :class="['tr-action-group__dropdown', dropDownPlacement]">
