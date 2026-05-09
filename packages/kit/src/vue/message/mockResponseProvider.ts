@@ -1,4 +1,4 @@
-import type { ChatCompletionChunk } from 'openai/resources/index'
+import type { ChatCompletionChunk } from 'openai/resources'
 import type { ToolCall } from '../../types'
 import type { MessageRequestBody, ResponseProvider } from './types'
 

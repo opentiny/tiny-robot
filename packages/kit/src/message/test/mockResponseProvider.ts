@@ -1,4 +1,4 @@
-import type { ChatCompletionChunk } from 'openai/resources/index'
+import type { ChatCompletionChunk } from 'openai/resources'
 import type { ResponseProvider } from '../types'
 import { AbortError } from '../utils'
 
