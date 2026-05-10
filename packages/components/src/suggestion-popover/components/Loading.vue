@@ -9,7 +9,6 @@
 
 <style lang="less">
 :root {
-  --tr-suggestion-popover-loading-color: #808080;
   --tr-suggestion-popover-loading-font-size: 12px;
   --tr-suggestion-popover-loading-line-height: 24px;
 }

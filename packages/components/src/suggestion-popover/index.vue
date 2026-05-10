@@ -278,24 +278,12 @@ defineExpose({
 
 <style lang="less">
 :root {
-  --tr-suggestion-popover-bg-color: #ffffff;
-  --tr-suggestion-popover-box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
-  --tr-suggestion-popover-color: rgb(25, 25, 25);
   --tr-suggestion-popover-width: 540px;
   --tr-suggestion-popover-height: 464px;
-  --tr-suggestion-popover-backdrop-color: rgba(0, 0, 0, 0.15);
-  --tr-suggestion-popover-scrollbar-color: #dbdbdb;
 
   // 列表项
   --tr-suggestion-popover-item-font-size: 14px;
   --tr-suggestion-popover-item-line-height: 24px;
-  --tr-suggestion-popover-item-hover-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --tr-suggestion-popover-item-border-color: rgb(240, 240, 240);
-
-  // 关闭按钮
-  --tr-suggestion-popover-close-bg-color: var(--tr-icon-button-bg);
-  --tr-suggestion-popover-close-hover-bg-color: var(--tr-icon-button-hover-bg);
-  --tr-suggestion-popover-close-color: #595959;
 }
 
 .tr-question-popover {
@@ -438,6 +426,8 @@ defineExpose({
 }
 
 .tr-question-popover__close {
+  --tr-icon-button-bg: var(--tr-suggestion-popover-close-bg-color);
+  --tr-icon-button-hover-bg: var(--tr-suggestion-popover-close-hover-bg-color);
   background-color: var(--tr-suggestion-popover-close-bg-color);
   color: var(--tr-suggestion-popover-close-color);
   top: 22px;

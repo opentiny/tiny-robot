@@ -24,15 +24,6 @@ const onlyIcon = computed(() => hasIcon.value && !hasText.value)
   </button>
 </template>
 
-<style lang="less">
-:root {
-  --tr-suggestion-pill-button-bg-color: rgb(255, 255, 255);
-  --tr-suggestion-pill-button-hover-bg-color: rgb(235, 235, 235);
-  --tr-suggestion-pill-button-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  --tr-suggestion-pill-button-color: rgb(25, 25, 25);
-}
-</style>
-
 <style lang="less" scoped>
 .tr-suggestion-pills__item {
   display: flex;
@@ -58,6 +49,7 @@ const onlyIcon = computed(() => hasIcon.value && !hasText.value)
   .tr-suggestion-pills__item_icon {
     width: 16px;
     height: 16px;
+    color: inherit;
   }
 }
 </style>
