@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename)
 
 const svgDir = path.join(__dirname, '..', 'src/assets')
 const outputDir = path.join(__dirname, '..', 'src/components')
+const illustrationAssetNames = new Set(['empty-file', 'empty-search', 'no-data'])
 
 /**
  * 将短横线分隔的名称转换为大写驼峰格式
@@ -22,6 +23,30 @@ function toCamelCase(name: string): string {
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('')
+}
+
+function normalizeRootSize(svgCode: string, preserveOriginalSize: boolean): string {
+  if (preserveOriginalSize) {
+    return svgCode
+  }
+
+  return svgCode.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    let normalizedAttrs = attrs
+
+    if (/\bwidth="[^"]*"/i.test(normalizedAttrs)) {
+      normalizedAttrs = normalizedAttrs.replace(/\bwidth="[^"]*"/i, 'width="1em"')
+    } else {
+      normalizedAttrs += ' width="1em"'
+    }
+
+    if (/\bheight="[^"]*"/i.test(normalizedAttrs)) {
+      normalizedAttrs = normalizedAttrs.replace(/\bheight="[^"]*"/i, 'height="1em"')
+    } else {
+      normalizedAttrs += ' height="1em"'
+    }
+
+    return `<svg${normalizedAttrs}>`
+  })
 }
 
 // 确保输出目录存在
@@ -51,9 +76,10 @@ async function convertSvgFiles() {
       continue
     }
 
-    const svgCode = fs
-      .readFileSync(path.join(svgDir, file), 'utf8')
-      .replace('<?xml version="1.0" encoding="utf-8"?>', '')
+    const svgCode = normalizeRootSize(
+      fs.readFileSync(path.join(svgDir, file), 'utf8').replace('<?xml version="1.0" encoding="utf-8"?>', ''),
+      illustrationAssetNames.has(baseName),
+    )
     const componentCode = await transform(
       svgCode,
       {

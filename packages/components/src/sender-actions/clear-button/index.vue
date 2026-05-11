@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSenderContext } from '../../sender/context'
-import { IconClear } from '@opentiny/tiny-robot-svgs'
+import { IconClose } from '@opentiny/tiny-robot-svgs'
 import ActionButton from '../action-button/index.vue'
 
 // 从 Context 读取状态和配置
@@ -43,7 +43,7 @@ const handleClick = () => {
 <template>
   <ActionButton
     v-if="show"
-    :icon="IconClear"
+    :icon="IconClose"
     :disabled="isDisabled"
     :tooltip="tooltip"
     :tooltip-placement="tooltipPlacement"

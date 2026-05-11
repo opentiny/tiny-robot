@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrSender, UploadButton } from '@opentiny/tiny-robot'
-import { IconSearch, IconThink, IconAi } from '@opentiny/tiny-robot-svgs'
+import { IconSearch, IconDeepThink, IconAi } from '@opentiny/tiny-robot-svgs'
 
 const content = ref('')
 const message = ref('')
@@ -38,7 +38,7 @@ const handleEmoji = () => {
       </template>
       <template #footer>
         <button class="deep-think-btn" @click="handleDeepThink">
-          <IconThink />
+          <IconDeepThink />
           深度思考
         </button>
         <button class="search-btn" @click="handleEmoji">

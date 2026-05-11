@@ -303,6 +303,8 @@ async function copyName(name: string) {
 
 .icon-gallery__icon {
   font-size: 24px;
+  transition: all 0.4s;
+  transform-origin: center;
 }
 
 .icon-gallery__icon--illustration {
@@ -311,6 +313,14 @@ async function copyName(name: string) {
   width: auto;
   height: auto;
   font-size: 16px;
+}
+
+.icon-gallery__icon:hover {
+  transform: scale(1.5);
+}
+
+.icon-gallery__icon--illustration:hover {
+  transform: none;
 }
 
 .icon-gallery__name {
