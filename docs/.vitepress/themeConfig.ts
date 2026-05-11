@@ -43,8 +43,7 @@ const sharedSidebarItems = [
   },
   {
     text: '图标',
-    base: '/icons/',
-    items: [{ text: 'SVG 图标', link: 'index' }],
+    items: [{ text: 'SVG 图标', link: '/icons/' }],
   },
 ]
 
