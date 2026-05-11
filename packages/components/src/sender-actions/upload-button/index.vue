@@ -4,7 +4,7 @@ import { useFileDialog } from '@vueuse/core'
 import { useSenderContext } from '../../sender/context'
 import type { UploadButtonProps, UploadButtonEmits } from './index.type'
 import ActionButton from '../action-button/index.vue'
-import { IconUpload } from '@opentiny/tiny-robot-svgs'
+import { IconImageUpload } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<UploadButtonProps>(), {
   accept: '*',
@@ -72,7 +72,7 @@ defineExpose({
 
 <template>
   <ActionButton
-    :icon="icon ?? IconUpload"
+    :icon="icon ?? IconImageUpload"
     :disabled="isDisabled"
     :size="size"
     :tooltip="tooltip"

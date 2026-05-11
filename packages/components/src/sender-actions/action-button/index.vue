@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import type { ActionButtonProps } from '../types/common'
 import { normalizeTooltipContent } from '../utils/tooltip'
+import { toCssUnit } from '../../shared/utils'
 
 const props = withDefaults(defineProps<ActionButtonProps>(), {
   disabled: false,
@@ -10,13 +11,38 @@ const props = withDefaults(defineProps<ActionButtonProps>(), {
   tooltipPlacement: 'top',
 })
 
+const ACTION_BUTTON_ICON_GAP = 'var(--tr-action-button-icon-gap)'
+
 const tooltipRenderFn = computed(() => normalizeTooltipContent(props.tooltip))
 
-const sizeStyle = computed(() => {
-  if (props.size) {
-    const finalSize = typeof props.size === 'number' ? `${props.size}px` : props.size
-    return { fontSize: finalSize }
+const resolveButtonStyle = (size: ActionButtonProps['size']) => {
+  if (size === 'small') {
+    return {
+      '--tr-action-button-size': 'var(--tr-sender-button-size-small)',
+      '--tr-action-button-icon-size': `calc(var(--tr-sender-button-size-small) - ${ACTION_BUTTON_ICON_GAP})`,
+    }
   }
+
+  if (size === 'normal') {
+    return {
+      '--tr-action-button-size': 'var(--tr-sender-button-size)',
+      '--tr-action-button-icon-size': `calc(var(--tr-sender-button-size) - ${ACTION_BUTTON_ICON_GAP})`,
+    }
+  }
+
+  const finalSize = toCssUnit(size)
+
+  return {
+    '--tr-action-button-size': finalSize,
+    '--tr-action-button-icon-size': `calc(${finalSize} - ${ACTION_BUTTON_ICON_GAP})`,
+  }
+}
+
+const buttonStyle = computed(() => {
+  if (props.size) {
+    return resolveButtonStyle(props.size)
+  }
+
   return {}
 })
 </script>
@@ -32,29 +58,39 @@ const sizeStyle = computed(() => {
   >
     <button
       :class="['tr-action-button', { active: props.active }]"
+      :style="buttonStyle"
       :disabled="props.disabled"
       @focus.capture="(event: FocusEvent) => event.stopPropagation()"
     >
       <!-- 优先使用插槽，如果没有插槽则使用 icon prop -->
       <slot name="icon">
-        <component :is="props.icon" :style="sizeStyle" />
+        <component :is="props.icon" />
       </slot>
     </button>
   </tiny-tooltip>
 
   <!-- 无 tooltip 时直接渲染按钮 -->
-  <button v-else :class="['tr-action-button', { active: props.active }]" :disabled="props.disabled">
+  <button
+    v-else
+    :class="['tr-action-button', { active: props.active }]"
+    :style="buttonStyle"
+    :disabled="props.disabled"
+  >
     <slot name="icon">
-      <component :is="props.icon" :style="sizeStyle" />
+      <component :is="props.icon" />
     </slot>
   </button>
 </template>
 
 <style lang="less" scoped>
 .tr-action-button {
+  --tr-action-button-icon-gap: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: var(--tr-action-button-size, var(--tr-sender-button-size));
+  height: var(--tr-action-button-size, var(--tr-sender-button-size));
+  box-sizing: border-box;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -64,7 +100,11 @@ const sizeStyle = computed(() => {
   color: var(--tr-text-secondary);
 
   :deep(svg) {
-    font-size: var(--tr-sender-button-size);
+    width: var(--tr-action-button-icon-size, calc(var(--tr-sender-button-size) - var(--tr-action-button-icon-gap)));
+    height: var(--tr-action-button-icon-size, calc(var(--tr-sender-button-size) - var(--tr-action-button-icon-gap)));
+    font-size: var(--tr-action-button-icon-size, calc(var(--tr-sender-button-size) - var(--tr-action-button-icon-gap)));
+    display: block;
+    flex-shrink: 0;
   }
 
   &:hover:not(:disabled) {
