@@ -14,7 +14,6 @@ export const iconCategoryGroups: IconCategoryGroup[] = [
     title: '会话与 AI',
     keywords: ['会话', 'chat', 'conversation', 'assistant', 'ai', 'robot'],
     icons: [
-      'IconAi',
       'IconAgent',
       'IconConsultation',
       'IconDeepThink',
@@ -132,7 +131,7 @@ export const iconCategoryGroups: IconCategoryGroup[] = [
   {
     title: '品牌',
     keywords: ['品牌', 'brand', 'logo'],
-    icons: ['IconLogo'],
+    icons: ['IconLogo', 'IconAi'],
   },
   {
     title: '插画与场景态',

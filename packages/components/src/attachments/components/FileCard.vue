@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { TinyTooltip } from '@opentiny/vue'
 import { useFileType, useFileCard } from '../composables'
 import type { FileType, FileCardProps } from '../index.type'
-import { IconFileRemove, IconUploadLoading, IconImageWarning } from '@opentiny/tiny-robot-svgs'
+import { IconFileRemove, IconUploadLoading, IconError } from '@opentiny/tiny-robot-svgs'
 
 const props = withDefaults(defineProps<FileCardProps>(), {
   variant: 'card',
@@ -83,7 +83,7 @@ const cardClasses = computed(() => {
 
           <!-- 上传失败状态 -->
           <TinyTooltip v-else-if="isUploadFailed" content="解析失败" placement="top" effect="light">
-            <IconImageWarning class="tr-file-card__status-icon tr-file-card__status-icon--error" />
+            <IconError class="tr-file-card__status-icon tr-file-card__status-icon--error" />
           </TinyTooltip>
         </div>
       </div>
@@ -113,7 +113,7 @@ const cardClasses = computed(() => {
               </div>
 
               <!-- 上传失败状态 -->
-              <IconImageWarning
+              <IconError
                 v-else-if="isUploadFailed"
                 class="tr-file-card__status-icon tr-file-card__status-icon--error"
               />
@@ -380,7 +380,7 @@ const cardClasses = computed(() => {
     }
 
     &--error {
-      color: #ff4d4f;
+      color: #ffffff;
     }
   }
 

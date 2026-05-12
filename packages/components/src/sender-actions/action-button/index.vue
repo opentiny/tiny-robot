@@ -11,22 +11,31 @@ const props = withDefaults(defineProps<ActionButtonProps>(), {
   tooltipPlacement: 'top',
 })
 
-const ACTION_BUTTON_ICON_GAP = 'var(--tr-action-button-icon-gap)'
+const ACTION_BUTTON_SIZE_MAP = {
+  normal: {
+    button: '32px',
+    padding: '4px',
+  },
+  small: {
+    button: '28px',
+    padding: '3px',
+  },
+} as const
 
 const tooltipRenderFn = computed(() => normalizeTooltipContent(props.tooltip))
 
 const resolveButtonStyle = (size: ActionButtonProps['size']) => {
   if (size === 'small') {
     return {
-      '--tr-action-button-size': 'var(--tr-sender-button-size-small)',
-      '--tr-action-button-icon-size': `calc(var(--tr-sender-button-size-small) - ${ACTION_BUTTON_ICON_GAP})`,
+      '--tr-action-button-size': ACTION_BUTTON_SIZE_MAP.small.button,
+      '--tr-action-button-padding': ACTION_BUTTON_SIZE_MAP.small.padding,
     }
   }
 
   if (size === 'normal') {
     return {
-      '--tr-action-button-size': 'var(--tr-sender-button-size)',
-      '--tr-action-button-icon-size': `calc(var(--tr-sender-button-size) - ${ACTION_BUTTON_ICON_GAP})`,
+      '--tr-action-button-size': ACTION_BUTTON_SIZE_MAP.normal.button,
+      '--tr-action-button-padding': ACTION_BUTTON_SIZE_MAP.normal.padding,
     }
   }
 
@@ -34,7 +43,6 @@ const resolveButtonStyle = (size: ActionButtonProps['size']) => {
 
   return {
     '--tr-action-button-size': finalSize,
-    '--tr-action-button-icon-size': `calc(${finalSize} - ${ACTION_BUTTON_ICON_GAP})`,
   }
 }
 
@@ -84,25 +92,26 @@ const buttonStyle = computed(() => {
 
 <style lang="less" scoped>
 .tr-action-button {
-  --tr-action-button-icon-gap: 8px;
+  --tr-action-button-size: var(--tr-sender-action-button-size, var(--tr-sender-button-size, 32px));
+  --tr-action-button-padding: var(--tr-sender-action-button-padding, 4px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--tr-action-button-size, var(--tr-sender-button-size));
-  height: var(--tr-action-button-size, var(--tr-sender-button-size));
+  width: var(--tr-action-button-size);
+  height: var(--tr-action-button-size);
   box-sizing: border-box;
   border: none;
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  padding: 0;
+  padding: var(--tr-action-button-padding);
   transition: background-color 0.2s;
   color: var(--tr-text-secondary);
 
   :deep(svg) {
-    width: var(--tr-action-button-icon-size, calc(var(--tr-sender-button-size) - var(--tr-action-button-icon-gap)));
-    height: var(--tr-action-button-icon-size, calc(var(--tr-sender-button-size) - var(--tr-action-button-icon-gap)));
-    font-size: var(--tr-action-button-icon-size, calc(var(--tr-sender-button-size) - var(--tr-action-button-icon-gap)));
+    width: calc(var(--tr-action-button-size) - (var(--tr-action-button-padding) * 2));
+    height: calc(var(--tr-action-button-size) - (var(--tr-action-button-padding) * 2));
+    font-size: calc(var(--tr-action-button-size) - (var(--tr-action-button-padding) * 2));
     display: block;
     flex-shrink: 0;
   }

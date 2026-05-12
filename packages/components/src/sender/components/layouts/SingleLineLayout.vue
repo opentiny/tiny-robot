@@ -35,8 +35,11 @@ const slotScope = useSlotScope()
       <!-- 单行模式操作按钮 -->
       <div :class="['tr-sender-actions-inline', { 'has-content': hasContent || loading }]">
         <WordCounter v-if="showWordLimit && maxLength" />
-        <slot name="actions-inline" v-bind="slotScope" />
-        <DefaultActionButtons />
+        <DefaultActionButtons>
+          <template v-if="$slots['actions-inline']" #prepend>
+            <slot name="actions-inline" v-bind="slotScope" />
+          </template>
+        </DefaultActionButtons>
       </div>
     </div>
   </div>
