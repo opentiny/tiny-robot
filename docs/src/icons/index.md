@@ -83,6 +83,18 @@ const item = {
 - 本页下面的图标集合基于 `@opentiny/tiny-robot-svgs` 的公共导出生成。
 - 插画型和场景态图标会在独立分组中展示，并使用单独的预览尺寸，避免影响常用图标浏览体验。
 
+### 兼容导出说明
+
+本版本保留了一组旧图标名的兼容导出，便于平滑升级；这些旧名会在下个版本移除，建议尽快切换到新名字：
+
+- `IconAccessory` -> `IconUpload`
+- `IconClear` -> `IconClose`
+- `IconFullScreen` -> `IconEnterFullScreen`
+- `IconCancelFullScreen` -> `IconExitFullScreen`
+- `IconImageLoading` -> `IconUploadLoading`
+- `IconMenu` -> `IconMoreCircle`
+- `IconMenu2` -> `IconMore`
+
 ## 图标集合
 
 图标集合按常用场景分类展示，支持按图标名、分类名和关键词筛选；点击图标卡片可以快速复制图标名称。

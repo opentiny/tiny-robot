@@ -7,7 +7,18 @@ export interface IconCategoryGroup {
   previewLayout?: 'regular' | 'illustration'
 }
 
-export const hiddenIconNames = new Set<string>()
+// 兼容旧版导出名仅用于平滑升级，不在图标文档中展示。
+export const compatibilityAliasIconNames = new Set<string>([
+  'IconAccessory',
+  'IconCancelFullScreen',
+  'IconClear',
+  'IconFullScreen',
+  'IconImageLoading',
+  'IconMenu',
+  'IconMenu2',
+])
+
+export const hiddenIconNames = new Set<string>(compatibilityAliasIconNames)
 
 export const iconCategoryGroups: IconCategoryGroup[] = [
   {
@@ -16,7 +27,7 @@ export const iconCategoryGroups: IconCategoryGroup[] = [
     icons: [
       'IconAgent',
       'IconConsultation',
-      'IconDeepThink',
+      'IconThink',
       'IconGenerativeUi',
       'IconHistory',
       'IconNewSession',

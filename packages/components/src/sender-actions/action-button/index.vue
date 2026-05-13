@@ -12,14 +12,8 @@ const props = withDefaults(defineProps<ActionButtonProps>(), {
 })
 
 const ACTION_BUTTON_SIZE_MAP = {
-  normal: {
-    button: '32px',
-    padding: '4px',
-  },
-  small: {
-    button: '28px',
-    padding: '3px',
-  },
+  normal: '32px',
+  small: '28px',
 } as const
 
 const tooltipRenderFn = computed(() => normalizeTooltipContent(props.tooltip))
@@ -27,15 +21,13 @@ const tooltipRenderFn = computed(() => normalizeTooltipContent(props.tooltip))
 const resolveButtonStyle = (size: ActionButtonProps['size']) => {
   if (size === 'small') {
     return {
-      '--tr-action-button-size': ACTION_BUTTON_SIZE_MAP.small.button,
-      '--tr-action-button-padding': ACTION_BUTTON_SIZE_MAP.small.padding,
+      '--tr-action-button-size': ACTION_BUTTON_SIZE_MAP.small,
     }
   }
 
   if (size === 'normal') {
     return {
-      '--tr-action-button-size': ACTION_BUTTON_SIZE_MAP.normal.button,
-      '--tr-action-button-padding': ACTION_BUTTON_SIZE_MAP.normal.padding,
+      '--tr-action-button-size': ACTION_BUTTON_SIZE_MAP.normal,
     }
   }
 
