@@ -1,5 +1,6 @@
 import { generateStore, getDefaultFiles } from '@opentiny/tiny-robot-playground/utils'
 import '@opentiny/tiny-robot-style'
+import '@opentiny/vue-theme/dark-theme-index.css'
 import DefaultTheme from 'vitepress/theme'
 import { setupDarkModeListener } from './color-mode'
 import Layout from './Layout.vue'

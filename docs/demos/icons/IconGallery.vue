@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
+import { TinyModal } from '@opentiny/vue'
 import * as exportedIcons from '@opentiny/tiny-robot-svgs'
 import { hiddenIconNames, iconCategoryGroups, iconMetadataMap, uncategorizedTitle } from './iconMeta'
 
@@ -86,6 +87,11 @@ async function copyName(name: string) {
     }
 
     copiedName.value = name
+    TinyModal.message({
+      message: `${name} 图标已复制`,
+      status: 'success',
+      duration: 2000,
+    })
 
     if (resetTimer) {
       clearTimeout(resetTimer)
@@ -114,8 +120,6 @@ async function copyName(name: string) {
       </label>
       <div class="icon-gallery__meta">
         <span>当前展示 {{ filteredCount }} / {{ iconEntries.length }}</span>
-        <span v-if="copiedName">已复制 {{ copiedName }}</span>
-        <span v-else>点击卡片可复制图标名称</span>
       </div>
     </div>
 
@@ -134,6 +138,7 @@ async function copyName(name: string) {
             :class="[
               'icon-gallery__card',
               { 'icon-gallery__card--illustration': section.previewLayout === 'illustration' },
+              { 'icon-gallery__card--copied': copiedName === icon.name },
             ]"
             type="button"
             @click="copyName(icon.name)"
@@ -251,6 +256,7 @@ async function copyName(name: string) {
 }
 
 .icon-gallery__card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -275,6 +281,12 @@ async function copyName(name: string) {
   min-height: 220px;
 }
 
+.icon-gallery__card--copied {
+  border-color: color-mix(in srgb, #1476ff 48%, var(--vp-c-divider));
+  background: color-mix(in srgb, #1476ff 7%, var(--vp-c-bg));
+  box-shadow: 0 0 0 2px color-mix(in srgb, #1476ff 14%, transparent);
+}
+
 .icon-gallery__card:hover {
   background: var(--vp-c-bg-soft);
 }
@@ -292,6 +304,9 @@ async function copyName(name: string) {
   width: 44px;
   height: 44px;
   border-radius: 6px;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
 .icon-gallery__icon-preview--illustration {

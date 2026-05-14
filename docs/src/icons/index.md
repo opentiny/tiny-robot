@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # SVG 图标
 
-`@opentiny/tiny-robot-svgs` 是 TinyRobot 的独立图标包。包内图标由 SVG 资源统一生成 Vue 组件，既可以单独安装使用，也可以和 `@opentiny/tiny-robot` 组合使用。
+`@opentiny/tiny-robot-svgs` 提供了一组可直接使用的 SVG 图标组件。
 
 ## 安装
 
@@ -24,66 +24,46 @@ npm install @opentiny/tiny-robot-svgs
 
 :::
 
-## 基本用法
+## 示例
 
-图标包中的每一个导出都是 Vue 组件，可以像普通组件一样直接渲染，也可以作为 props 或 VNode 传递给其他 TinyRobot 组件。
-
-<demo vue="../../demos/icons/BasicUsage.vue" />
-
-常见用法有 3 种：
-
-1. 直接在模板中渲染：`<IconAi />`
-2. 作为组件 props 传递：`<TrIconButton :icon="IconNewSession" />`
-3. 在需要 VNode 的场景中，使用 `h(IconCheck, { style: { fontSize: '16px' } })`
+下面展示几种最常见的使用方式。
 
 ### 直接引入与渲染
 
-```vue
-<script setup lang="ts">
-import { IconAi, IconSparkles } from '@opentiny/tiny-robot-svgs'
-</script>
+适合直接在页面中摆放独立图标，通过 `fontSize` 和 `color` 控制尺寸与颜色即可。
 
-<template>
-  <IconAi :style="{ fontSize: '28px' }" />
-  <IconSparkles :style="{ fontSize: '20px', color: '#1476ff' }" />
-</template>
-```
+<demo vue="../../demos/icons/DirectRender.vue" />
 
 ### 作为组件 props 传递
 
-```vue
-<script setup lang="ts">
-import { TrIconButton } from '@opentiny/tiny-robot'
-import { IconNewSession } from '@opentiny/tiny-robot-svgs'
-</script>
+适合 `TrIconButton`、`TrSender`、`TrHistory` 等支持 `icon` 属性的组件。
 
-<template>
-  <TrIconButton size="32" svg-size="18" :icon="IconNewSession" />
-</template>
-```
+<demo vue="../../demos/icons/PropsUsage.vue" />
 
 ### 作为 VNode 传递
 
-```ts
-import { h } from 'vue'
-import { IconCheck } from '@opentiny/tiny-robot-svgs'
+适合 icon 需要在运行时动态组装，或者第三方/业务组件要求接收 VNode 的场景。
 
-const item = {
-  id: '1',
-  title: '已选中会话',
-  icon: h(IconCheck, { style: { fontSize: '16px' } }),
-}
-```
+<demo vue="../../demos/icons/VNodeUsage.vue" />
 
-## 样式与命名
+## 图标集合
 
-- 所有公开图标均以 `Icon` 作为前缀，例如 `IconSend`、`IconHistory`、`IconPlugin`。
-- 图标尺寸建议通过 `fontSize`、`width` 或 `height` 控制。
-- 图标颜色可优先通过 `color` 或 `fill` 调整，具体效果取决于 SVG 本身的配色方式。
-- 本页下面的图标集合基于 `@opentiny/tiny-robot-svgs` 的公共导出生成。
-- 插画型和场景态图标会在独立分组中展示，并使用单独的预览尺寸，避免影响常用图标浏览体验。
+图标集合按常用场景分类展示，支持按图标名、分类名和关键词筛选。点击图标卡片可以快速复制图标名称；插画型和场景态图标会单独分组展示。
 
-### 兼容导出说明
+<demo vue="../../demos/icons/IconGallery.vue" />
+
+## 常用属性
+
+常规图标默认以 `1em` 渲染，插画型图标保留原始尺寸，可按下面方式控制样式：
+
+| 属性 | 说明 | 默认 |
+| --- | --- | --- |
+| `font-size` | 控制常规图标整体尺寸 | 继承当前字号 |
+| `color` | 控制使用 `currentColor` 的单色图标颜色 | 跟随当前颜色 |
+| `width` / `height` | 显式指定展示尺寸，插画型图标更常用 | 未设置时使用图标默认尺寸 |
+| `class` / `style` | 追加自定义样式 | `-` |
+
+## 兼容导出说明
 
 本版本保留了一组旧图标名的兼容导出，便于平滑升级；这些旧名会在下个版本移除，建议尽快切换到新名字：
 
@@ -94,9 +74,3 @@ const item = {
 - `IconImageLoading` -> `IconUploadLoading`
 - `IconMenu` -> `IconMoreCircle`
 - `IconMenu2` -> `IconMore`
-
-## 图标集合
-
-图标集合按常用场景分类展示，支持按图标名、分类名和关键词筛选；点击图标卡片可以快速复制图标名称。
-
-<demo vue="../../demos/icons/IconGallery.vue" />
