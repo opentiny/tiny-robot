@@ -12,16 +12,37 @@ const __dirname = path.dirname(__filename)
 
 const svgDir = path.join(__dirname, '..', 'src/assets')
 const outputDir = path.join(__dirname, '..', 'src/components')
+const illustrationAssetNames = new Set(['empty-file', 'empty-search', 'no-data'])
 
-/**
- * 将短横线分隔的名称转换为大写驼峰格式
- * 例如: full-screen -> FullScreen
- */
 function toCamelCase(name: string): string {
   return name
     .split('-')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join('')
+}
+
+function normalizeRootSize(svgCode: string, preserveOriginalSize: boolean): string {
+  if (preserveOriginalSize) {
+    return svgCode
+  }
+
+  return svgCode.replace(/<svg\b([^>]*)>/i, (_match, attrs: string) => {
+    let normalizedAttrs = attrs
+
+    if (/\bwidth="[^"]*"/i.test(normalizedAttrs)) {
+      normalizedAttrs = normalizedAttrs.replace(/\bwidth="[^"]*"/i, 'width="1em"')
+    } else {
+      normalizedAttrs += ' width="1em"'
+    }
+
+    if (/\bheight="[^"]*"/i.test(normalizedAttrs)) {
+      normalizedAttrs = normalizedAttrs.replace(/\bheight="[^"]*"/i, 'height="1em"')
+    } else {
+      normalizedAttrs += ' height="1em"'
+    }
+
+    return `<svg${normalizedAttrs}>`
+  })
 }
 
 // 确保输出目录存在
@@ -31,11 +52,9 @@ if (!fs.existsSync(outputDir)) {
 
 // 默认跳过已存在的组件，-F 参数强制覆盖
 const forceOverwrite = process.argv.includes('--force') || process.argv.includes('-F')
-
 // 存储所有生成的组件名，用于后续生成index.ts
 const generatedComponents: string[] = []
 
-// 转换SVG文件为Vue组件
 async function convertSvgFiles() {
   const svgFiles = fs.readdirSync(svgDir).filter((file) => path.extname(file) === '.svg')
 
@@ -44,16 +63,16 @@ async function convertSvgFiles() {
     const componentName = `Icon${toCamelCase(baseName)}`
     const outputFile = path.join(outputDir, `${componentName}.vue`)
 
-    // 检查组件是否已存在，如果存在且不强制覆盖则跳过
     if (fs.existsSync(outputFile) && !forceOverwrite) {
       console.log(`组件 ${componentName} 已存在，跳过生成`)
       generatedComponents.push(componentName)
       continue
     }
 
-    const svgCode = fs
-      .readFileSync(path.join(svgDir, file), 'utf8')
-      .replace('<?xml version="1.0" encoding="utf-8"?>', '')
+    const svgCode = normalizeRootSize(
+      fs.readFileSync(path.join(svgDir, file), 'utf8').replace('<?xml version="1.0" encoding="utf-8"?>', ''),
+      illustrationAssetNames.has(baseName),
+    )
     const componentCode = await transform(
       svgCode,
       {
@@ -62,10 +81,6 @@ async function convertSvgFiles() {
       { componentName },
     )
 
-    // 创建Vue单文件组件
-    //     const vueComponent = `<template>
-    // ${componentCode.trim()}
-    // </template>`
     const vueComponent = `<template>
 ${componentCode.trim()}
 </template>
@@ -76,16 +91,15 @@ export default {
 };
 </script>
 `
+
     fs.writeFileSync(outputFile, vueComponent)
     console.log(`生成组件: ${componentName}`)
     generatedComponents.push(componentName)
   }
 
-  // 生成index.ts文件，导出所有组件
   generateIndexFile()
 }
 
-// 生成index.ts文件，导出所有组件
 function generateIndexFile() {
   const indexContent = generatedComponents
     .map((name) => `export { default as ${name} } from './${name}.vue';`)
@@ -99,7 +113,6 @@ function generateIndexFile() {
   console.log(`生成index.ts文件，共导出 ${generatedComponents.length} 个组件`)
 }
 
-// 运行转换脚本
 convertSvgFiles().catch((err) => {
   console.error('转换SVG文件时出错:', err)
   process.exit(1)

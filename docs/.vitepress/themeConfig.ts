@@ -41,6 +41,10 @@ const sharedSidebarItems = [
       { text: 'CLI 命令行工具', link: 'cli' },
     ],
   },
+  {
+    text: '图标',
+    items: [{ text: 'SVG 图标', link: '/icons/' }],
+  },
 ]
 
 const nav = [
@@ -53,6 +57,7 @@ const sidebar = {
   '/guide/': sharedSidebarItems,
   '/components/': sharedSidebarItems,
   '/tools/': sharedSidebarItems,
+  '/icons/': sharedSidebarItems,
   '/examples/': [
     {
       text: '演示',

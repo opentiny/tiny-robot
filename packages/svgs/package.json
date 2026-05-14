@@ -24,7 +24,7 @@
     "dev": "vite",
     "build": "npm run convert && vue-tsc && vite build",
     "type-check": "vue-tsc --noEmit",
-    "convert": "tsx ./scripts/convert.ts -F"
+    "convert": "tsx ./scripts/convert.ts -F && tsx ./scripts/append-compat-aliases.ts"
   },
   "keywords": [
     "vue",
