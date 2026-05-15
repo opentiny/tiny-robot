@@ -77,7 +77,7 @@ div:has(h1[id='bubble-气泡组件']) {
 /* 侧边栏项目样式增强 */
 .VPSidebarItem .link {
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   position: relative;
 }
 
