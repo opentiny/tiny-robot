@@ -1,7 +1,6 @@
 import type { ChatCompletionFunctionTool } from 'openai/resources'
 import { parse as parseYaml } from 'yaml'
-import type { SkillDefinition } from '../plugins/skillPlugin'
-import type { SkillFile, SkillFileResource } from './types'
+import type { SkillDefinition, SkillFile, SkillFileResource } from './types'
 import { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'
 
 export interface SkillLoaderWarning {

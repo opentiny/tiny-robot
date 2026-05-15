@@ -1,11 +1,11 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { loadSkillFilesFromFs } from '../skills/fsSkillLoader'
-import { SkillLoader } from '../skills/skillLoader'
+import { loadSkillFilesFromFs } from '../fsSkillLoader'
+import { SkillLoader } from '../skillLoader'
 
 describe('SkillLoader', () => {
   it('loads weather skill directory as SkillDefinition', async () => {
-    const skillDirectory = fileURLToPath(new URL('./fixtures/skills/weather', import.meta.url))
+    const skillDirectory = fileURLToPath(new URL('./.cache/weather', import.meta.url))
     const files = await loadSkillFilesFromFs(skillDirectory)
     const loadedSkill = new SkillLoader().load(files)
     const { skill } = loadedSkill
@@ -18,7 +18,7 @@ describe('SkillLoader', () => {
   })
 
   it('loads multi-file skill references as files', async () => {
-    const skillDirectory = fileURLToPath(new URL('./fixtures/skills/vue-best-practices', import.meta.url))
+    const skillDirectory = fileURLToPath(new URL('./.cache/vue-best-practices', import.meta.url))
     const files = await loadSkillFilesFromFs(skillDirectory)
     const loadedSkill = new SkillLoader().load(files)
     const { skill } = loadedSkill

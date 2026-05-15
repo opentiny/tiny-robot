@@ -1,17 +1,17 @@
 import type { SkillFile } from './types'
 import { isTextSkillFilePath, normalizeSkillPath } from './utils'
 
-type BrowserFile = Pick<File, 'arrayBuffer' | 'lastModified' | 'name' | 'size' | 'text' | 'type'> & {
+export type BrowserFile = Pick<File, 'arrayBuffer' | 'lastModified' | 'name' | 'size' | 'text' | 'type'> & {
   webkitRelativePath?: string
 }
 
-type BrowserFileHandle = {
+export type BrowserFileHandle = {
   kind: 'file'
   name: string
   getFile: () => Promise<BrowserFile>
 }
 
-type BrowserDirectoryHandle = {
+export type BrowserDirectoryHandle = {
   kind: 'directory'
   name: string
   entries: () => AsyncIterable<[string, BrowserFileHandle | BrowserDirectoryHandle]>

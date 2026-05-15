@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createNativeMessageAdapter } from '../adapters/native'
-import { createMessageEngine } from '../core/engine'
-import { lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../plugins'
-import type { CreateMessageEngineOptions, MessageRequestBody } from '../types'
-import { mockResponseProvider } from './mockResponseProvider'
+import { createNativeMessageAdapter } from '../../message/adapters/native'
+import { createMessageEngine } from '../../message/core/engine'
+import { lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../../message/plugins'
+import type { SkillDefinition } from '../types'
+import type { CreateMessageEngineOptions, MessageRequestBody } from '../../message/types'
+import { mockResponseProvider } from '../../message/test/mockResponseProvider'
 
 const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
 
@@ -11,7 +12,7 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 describe('skillPlugin', () => {
-  it('injects active skill instructions and tools before request', async () => {
+  it('injects skill instructions and tools before request', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
     const skillTool = {
       type: 'function',
@@ -24,20 +25,18 @@ describe('skillPlugin', () => {
         },
       },
     } as const
+    const weatherSkill: SkillDefinition = {
+      name: 'weather',
+      description: 'Weather skill',
+      instructions: 'Use wttr.in for weather requests.',
+      tools: [skillTool],
+    }
 
     const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         skillPlugin({
-          skills: [
-            {
-              name: 'weather',
-              description: 'Weather skill',
-              instructions: 'Use wttr.in for weather requests.',
-              tools: [skillTool],
-            },
-          ],
-          getActiveSkills: () => ['weather'],
+          getSkills: () => [weatherSkill],
         }),
         toolPlugin({
           getTools: async () => [],
@@ -60,32 +59,30 @@ describe('skillPlugin', () => {
 
   it('resolves dynamic skill instructions and tools with runtime context', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const dynamicSkill: SkillDefinition = {
+      name: 'dynamic',
+      description: 'Dynamic skill',
+      instructions: ({ skill, skills }) => `${skill.name}:${skills.length}`,
+      tools: ({ skill }) => [
+        {
+          type: 'function',
+          function: {
+            name: `${skill.name}_tool`,
+            description: 'Dynamic tool',
+            parameters: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        },
+      ],
+    }
 
     const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         skillPlugin({
-          skills: [
-            {
-              name: 'dynamic',
-              description: 'Dynamic skill',
-              instructions: ({ skill, activeSkills }) => `${skill.name}:${activeSkills.length}`,
-              tools: ({ skill }) => [
-                {
-                  type: 'function',
-                  function: {
-                    name: `${skill.name}_tool`,
-                    description: 'Dynamic tool',
-                    parameters: {
-                      type: 'object',
-                      properties: {},
-                    },
-                  },
-                },
-              ],
-            },
-          ],
-          getActiveSkills: () => ['dynamic'],
+          getSkills: () => [dynamicSkill],
         }),
         toolPlugin({
           getTools: async () => [],
@@ -103,26 +100,25 @@ describe('skillPlugin', () => {
   })
 
   it('throws duplicate tool names through toolPlugin when skill tools conflict', async () => {
+    const duplicateSkill: SkillDefinition = {
+      name: 'duplicate-skill',
+      description: 'Duplicate skill',
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'duplicate_tool',
+            description: 'Duplicated skill tool',
+          },
+        },
+      ],
+    }
+
     const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         skillPlugin({
-          skills: [
-            {
-              name: 'duplicate-skill',
-              description: 'Duplicate skill',
-              tools: [
-                {
-                  type: 'function',
-                  function: {
-                    name: 'duplicate_tool',
-                    description: 'Duplicated skill tool',
-                  },
-                },
-              ],
-            },
-          ],
-          getActiveSkills: () => ['duplicate-skill'],
+          getSkills: () => [duplicateSkill],
         }),
         toolPlugin({
           getTools: async () => [
@@ -147,30 +143,28 @@ describe('skillPlugin', () => {
     )
   })
 
-  it('exposes built-in skill file runtime tools when active skills have files', async () => {
+  it('exposes built-in skill file runtime tools when skills have files', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const vueSkill: SkillDefinition = {
+      name: 'vue-best-practices',
+      description: 'Vue skill',
+      instructions: 'Follow Vue best practices.',
+      files: [
+        {
+          id: 'references/reactivity.md',
+          path: 'references/reactivity.md',
+          kind: 'text',
+          content: '# Reactivity',
+          mimeType: 'text/markdown',
+        },
+      ],
+    }
 
     const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         skillPlugin({
-          skills: [
-            {
-              name: 'vue-best-practices',
-              description: 'Vue skill',
-              instructions: 'Follow Vue best practices.',
-              files: [
-                {
-                  id: 'references/reactivity.md',
-                  path: 'references/reactivity.md',
-                  kind: 'text',
-                  content: '# Reactivity',
-                  mimeType: 'text/markdown',
-                },
-              ],
-            },
-          ],
-          getActiveSkills: () => ['vue-best-practices'],
+          getSkills: () => [vueSkill],
         }),
         toolPlugin({
           getTools: async () => [],
@@ -200,21 +194,19 @@ describe('skillPlugin', () => {
     })
   })
 
-  it('does not expose built-in skill file runtime tools when active skills have no files', async () => {
+  it('does not expose built-in skill file runtime tools when skills have no files', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const plainSkill: SkillDefinition = {
+      name: 'plain',
+      description: 'Plain skill',
+      instructions: 'No files here.',
+    }
 
     const engine = createTestMessageEngine({
       plugins: [
         ...silentDefaultPlugins,
         skillPlugin({
-          skills: [
-            {
-              name: 'plain',
-              description: 'Plain skill',
-              instructions: 'No files here.',
-            },
-          ],
-          getActiveSkills: () => ['plain'],
+          getSkills: () => [plainSkill],
         }),
         toolPlugin({
           getTools: async () => [],
@@ -292,6 +284,20 @@ describe('skillPlugin', () => {
         ],
       }
     })
+    const vueSkill: SkillDefinition = {
+      name: 'vue-best-practices',
+      description: 'Vue skill',
+      instructions: 'Follow Vue best practices.',
+      files: [
+        {
+          id: 'references/reactivity.md',
+          path: 'references/reactivity.md',
+          kind: 'text',
+          content: '# Reactivity',
+          mimeType: 'text/markdown',
+        },
+      ],
+    }
 
     const engine = createTestMessageEngine({
       plugins: [
@@ -303,23 +309,7 @@ describe('skillPlugin', () => {
           },
         }),
         skillPlugin({
-          skills: [
-            {
-              name: 'vue-best-practices',
-              description: 'Vue skill',
-              instructions: 'Follow Vue best practices.',
-              files: [
-                {
-                  id: 'references/reactivity.md',
-                  path: 'references/reactivity.md',
-                  kind: 'text',
-                  content: '# Reactivity',
-                  mimeType: 'text/markdown',
-                },
-              ],
-            },
-          ],
-          getActiveSkills: () => ['vue-best-practices'],
+          getSkills: () => [vueSkill],
         }),
       ],
       responseProvider,

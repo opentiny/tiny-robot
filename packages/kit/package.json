@@ -53,6 +53,8 @@
   "scripts": {
     "build": "tsup src/index.ts src/core.ts --format cjs,esm --dts --minify",
     "dev": "tsup src/index.ts src/core.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src",
+    "pretest": "node scripts/download-skill-fixtures.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
