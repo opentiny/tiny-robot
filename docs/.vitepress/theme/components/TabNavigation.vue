@@ -156,6 +156,8 @@ onUnmounted(() => {
 
 <style lang="less" scoped>
 .custom-tabs {
+  --custom-tabs-active-color: var(--vp-c-text-1);
+  --custom-tabs-active-indicator: var(--custom-tabs-active-color);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -193,13 +195,13 @@ onUnmounted(() => {
       bottom: 0;
       width: 0;
       height: 2px;
-      background: #191919;
+      background: var(--custom-tabs-active-indicator);
       border-radius: 1px;
       transition: all 0.3s ease;
       transform: translateX(0);
 
       &--active {
-        background: #191919;
+        background: var(--custom-tabs-active-indicator);
       }
     }
 
@@ -209,11 +211,11 @@ onUnmounted(() => {
     }
 
     &--active {
-      color: #191919;
+      color: var(--custom-tabs-active-color);
       font-weight: 600;
 
       .custom-tabs__item-title {
-        color: #191919;
+        color: var(--custom-tabs-active-color);
         font-weight: 600;
       }
     }
@@ -258,7 +260,11 @@ onUnmounted(() => {
     }
 
     &--active {
-      color: #191919;
+      color: var(--custom-tabs-active-color);
+
+      .custom-tabs__item-title {
+        color: var(--custom-tabs-active-color);
+      }
     }
 
     &--disabled {

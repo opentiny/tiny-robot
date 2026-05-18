@@ -77,7 +77,7 @@ div:has(h1[id='bubble-气泡组件']) {
 /* 侧边栏项目样式增强 */
 .VPSidebarItem .link {
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
   position: relative;
 }
 
@@ -98,6 +98,21 @@ div:has(h1[id='bubble-气泡组件']) {
 .VPSidebarItem.level-1.is-link.is-active.has-active > .item .link > .text {
   color: #1476ff;
 }
+
+.dark .VPSidebarItem .link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--vp-c-text-1);
+}
+
+.dark .VPSidebarItem.is-active .link {
+  background-color: rgba(20, 118, 255, 0.14);
+  border: 1px solid rgba(20, 118, 255, 0.2);
+}
+
+.dark .VPSidebarItem.level-1.is-link.is-active.has-active > .item .link > .text {
+  color: var(--vp-c-brand-1);
+}
+
 .main-content .group {
   margin-top: 22px;
 }
@@ -146,8 +161,8 @@ div:has(h1[id='bubble-气泡组件']) {
   padding-top: 2rem;
 }
 .VPDoc .vp-doc .vp-adaptive-theme {
-  background: #ffffff;
-  border: 1px solid #e8e8e8;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
 }
 
 .VPDocAside {
