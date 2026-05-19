@@ -3,48 +3,45 @@ import { parse as parseYaml } from 'yaml'
 import type { SkillDefinition, SkillFile, SkillFileResource } from './types'
 import { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'
 
-export interface SkillLoaderWarning {
+export interface SkillLoaderResult {
   /**
-   * 警告类型，便于 UI 或日志分类。
-   */
-  code: string
-  /**
-   * 人类可读的警告说明。
-   */
-  message: string
-  /**
-   * 关联文件路径。
-   */
-  path?: string
-}
-
-export interface LoadedSkill {
-  /**
-   * 从文件列表解析出的 SkillDefinition。
+   * 从源文件解析出的 skill 定义。
    */
   skill: SkillDefinition
   /**
-   * 加载过程中的非致命问题。
+   * 非致命的加载警告。
    */
-  warnings: SkillLoaderWarning[]
+  warnings: Array<{
+    /**
+     * 用于 UI 和日志分类的警告编码。
+     */
+    code: string
+    /**
+     * 人类可读的警告信息。
+     */
+    message: string
+    /**
+     * 关联的 skill 文件路径。
+     */
+    path?: string
+  }>
 }
 
 export interface SkillLoaderOptions {
   /**
-   * Skill 入口文件名。
+   * skill 入口文件名。
    */
   entryFile?: string
   /**
-   * 严格模式。开启后，tools.json 等关键文件解析失败会直接抛错。
+   * 启用后，警告会直接抛出为错误。
    */
   strict?: boolean
 }
 
 /**
- * 将标准化后的 skill 文件列表解析为 SkillDefinition。
+ * 将标准化后的 skill 文件转换为 SkillDefinition。
  *
- * 该类不关心文件来自前端 FileSystemHandle、后端 fs、zip 还是远程接口；
- * 调用方只需要先把文件来源适配为 SkillFile[]。
+ * 文件来源适配器负责提供 SkillFile[]；该 loader 负责解析入口文件、工具声明和资源文件。
  */
 export class SkillLoader {
   private entryFile: string
@@ -55,8 +52,8 @@ export class SkillLoader {
     this.strict = options.strict ?? false
   }
 
-  load(files: SkillFile[]): LoadedSkill {
-    const warnings: SkillLoaderWarning[] = []
+  load(files: SkillFile[]): SkillLoaderResult {
+    const warnings: SkillLoaderResult['warnings'] = []
     const normalizedFiles = this.normalizeFiles(files, warnings)
     const entryFile = normalizedFiles.find((file) => file.path === this.entryFile)
 
@@ -69,6 +66,12 @@ export class SkillLoader {
     }
 
     const { frontmatter, body } = parseMarkdownFrontmatter(entryFile.content)
+    const instructions = body.trim()
+
+    if (!instructions) {
+      throw new Error(`Skill entry file "${this.entryFile}" must contain instructions.`)
+    }
+
     const frontmatterMetadata = getRecord(frontmatter.metadata)
     const skillFiles: SkillFileResource[] = []
     const tools: ChatCompletionFunctionTool[] = []
@@ -118,7 +121,7 @@ export class SkillLoader {
       skill: {
         name: getString(frontmatter.name) || getFallbackSkillName(this.entryFile),
         description: getString(frontmatter.description) || '',
-        instructions: body.trim(),
+        instructions,
         tools: tools.length ? tools : undefined,
         files: skillFiles.length ? skillFiles : undefined,
         metadata: {
@@ -131,7 +134,7 @@ export class SkillLoader {
     }
   }
 
-  private normalizeFiles(files: SkillFile[], warnings: SkillLoaderWarning[]) {
+  private normalizeFiles(files: SkillFile[], warnings: SkillLoaderResult['warnings']) {
     const result: SkillFile[] = []
     const seenPaths = new Set<string>()
 
@@ -163,7 +166,7 @@ export class SkillLoader {
     return result.sort((a, b) => a.path.localeCompare(b.path))
   }
 
-  private handleWarning(warnings: SkillLoaderWarning[], warning: SkillLoaderWarning) {
+  private handleWarning(warnings: SkillLoaderResult['warnings'], warning: SkillLoaderResult['warnings'][number]) {
     if (this.strict) {
       throw new Error(warning.path ? `${warning.path}: ${warning.message}` : warning.message)
     }

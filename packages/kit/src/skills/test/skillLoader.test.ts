@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { loadSkillFilesFromFs } from '../fsSkillLoader'
+import { loadSkillFilesFromFs } from '../fsSkillFiles'
 import { SkillLoader } from '../skillLoader'
 
 describe('SkillLoader', () => {
@@ -85,5 +85,143 @@ describe('SkillLoader', () => {
       },
     ])
     expect(loadedSkill.warnings).toEqual([])
+  })
+
+  it('throws when the entry file is missing', () => {
+    expect(() => new SkillLoader().load([])).toThrow('Skill entry file "SKILL.md" is missing.')
+  })
+
+  it('throws when the entry file is binary', () => {
+    expect(() =>
+      new SkillLoader().load([
+        {
+          path: 'SKILL.md',
+          kind: 'binary',
+          content: new Uint8Array([1, 2, 3]),
+        },
+      ]),
+    ).toThrow('Skill entry file "SKILL.md" must be a text file.')
+  })
+
+  it('throws when the entry file has no instructions', () => {
+    expect(() =>
+      new SkillLoader().load([
+        {
+          path: 'SKILL.md',
+          kind: 'text',
+          content: ['---', 'name: empty-skill', 'description: Empty skill', '---', ''].join('\n'),
+        },
+      ]),
+    ).toThrow('Skill entry file "SKILL.md" must contain instructions.')
+  })
+
+  it('reports duplicate and unsupported file warnings', () => {
+    const loadedSkill = new SkillLoader().load([
+      {
+        path: 'SKILL.md',
+        kind: 'text',
+        content: ['---', 'name: warning-skill', 'description: Warning skill', '---', '', '# Warning'].join('\n'),
+      },
+      {
+        path: 'notes.md',
+        kind: 'text',
+        content: 'first',
+      },
+      {
+        path: 'notes.md',
+        kind: 'text',
+        content: 'second',
+      },
+      {
+        path: 'script.ts',
+        kind: 'text',
+        content: 'export {}',
+      },
+    ])
+
+    expect(loadedSkill.warnings).toEqual([
+      {
+        code: 'duplicate-path',
+        message: 'Duplicate skill file path: notes.md',
+        path: 'notes.md',
+      },
+      {
+        code: 'unsupported-text-file-ignored',
+        message: 'Only markdown, text, and json files are converted to text skill files.',
+        path: 'script.ts',
+      },
+    ])
+    expect(loadedSkill.skill.files?.map((file) => file.path)).toEqual(['notes.md'])
+  })
+
+  it('throws warnings as errors in strict mode', () => {
+    expect(() =>
+      new SkillLoader({ strict: true }).load([
+        {
+          path: 'SKILL.md',
+          kind: 'text',
+          content: ['---', 'name: strict-skill', 'description: Strict skill', '---', '', '# Strict'].join('\n'),
+        },
+        {
+          path: 'notes.md',
+          kind: 'text',
+          content: 'first',
+        },
+        {
+          path: 'notes.md',
+          kind: 'text',
+          content: 'second',
+        },
+      ]),
+    ).toThrow('notes.md: Duplicate skill file path: notes.md')
+  })
+
+  it('parses valid tools and reports invalid tools', () => {
+    const loadedSkill = new SkillLoader().load([
+      {
+        path: 'SKILL.md',
+        kind: 'text',
+        content: ['---', 'name: tool-skill', 'description: Tool skill', '---', '', '# Tool'].join('\n'),
+      },
+      {
+        path: 'tools.json',
+        kind: 'text',
+        content: JSON.stringify({
+          type: 'function',
+          function: {
+            name: 'run_tool',
+            description: 'Run tool',
+            parameters: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        }),
+      },
+    ])
+
+    expect(loadedSkill.skill.tools?.map((tool) => tool.function.name)).toEqual(['run_tool'])
+    expect(loadedSkill.warnings).toEqual([])
+
+    const invalidSkill = new SkillLoader().load([
+      {
+        path: 'SKILL.md',
+        kind: 'text',
+        content: ['---', 'name: invalid-tool-skill', 'description: Invalid tool skill', '---', '', '# Tool'].join('\n'),
+      },
+      {
+        path: 'tools.json',
+        kind: 'text',
+        content: JSON.stringify({ type: 'invalid' }),
+      },
+    ])
+
+    expect(invalidSkill.skill.tools).toBeUndefined()
+    expect(invalidSkill.warnings).toMatchObject([
+      {
+        code: 'tools-parse-failed',
+        path: 'tools.json',
+      },
+    ])
   })
 })

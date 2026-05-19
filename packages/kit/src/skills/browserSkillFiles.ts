@@ -18,9 +18,7 @@ export type BrowserDirectoryHandle = {
 }
 
 /**
- * 前端 FileList 适配器。
- *
- * 支持 <input type="file" webkitdirectory> 选出的文件列表。
+ * Browser FileList 适配器，用于读取文件选择器选中的 skill 目录。
  */
 export const loadSkillFilesFromFileList = async (fileList: ArrayLike<BrowserFile>): Promise<SkillFile[]> => {
   const files = Array.from({ length: fileList.length }, (_, index) => fileList[index]).filter(
@@ -36,9 +34,7 @@ export const loadSkillFilesFromFileList = async (fileList: ArrayLike<BrowserFile
 }
 
 /**
- * 前端 FileSystemDirectoryHandle 适配器。
- *
- * 支持 window.showDirectoryPicker() 返回的目录句柄。
+ * Browser FileSystemDirectoryHandle 适配器，用于读取 window.showDirectoryPicker() 选中的目录。
  */
 export const loadSkillFilesFromDirectoryHandle = async (
   directoryHandle: BrowserDirectoryHandle,

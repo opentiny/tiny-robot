@@ -57,171 +57,6 @@ describe('skillPlugin', () => {
     expect(requestBody.tools).toEqual([skillTool])
   })
 
-  it('resolves dynamic skill instructions and tools with runtime context', async () => {
-    const responseProvider = vi.fn(mockResponseProvider('ok'))
-    const dynamicSkill: SkillDefinition = {
-      name: 'dynamic',
-      description: 'Dynamic skill',
-      instructions: ({ skill, skills }) => `${skill.name}:${skills.length}`,
-      tools: ({ skill }) => [
-        {
-          type: 'function',
-          function: {
-            name: `${skill.name}_tool`,
-            description: 'Dynamic tool',
-            parameters: {
-              type: 'object',
-              properties: {},
-            },
-          },
-        },
-      ],
-    }
-
-    const engine = createTestMessageEngine({
-      plugins: [
-        ...silentDefaultPlugins,
-        skillPlugin({
-          getSkills: () => [dynamicSkill],
-        }),
-        toolPlugin({
-          getTools: async () => [],
-          callTool: async () => 'fallback',
-        }),
-      ],
-      responseProvider,
-    })
-
-    await engine.sendMessage('run dynamic skill')
-
-    const requestBody = responseProvider.mock.calls[0]?.[0]
-    expect(requestBody.messages[0].content).toContain('dynamic:1')
-    expect(requestBody.tools![0].function.name).toBe('dynamic_tool')
-  })
-
-  it('throws duplicate tool names through toolPlugin when skill tools conflict', async () => {
-    const duplicateSkill: SkillDefinition = {
-      name: 'duplicate-skill',
-      description: 'Duplicate skill',
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'duplicate_tool',
-            description: 'Duplicated skill tool',
-          },
-        },
-      ],
-    }
-
-    const engine = createTestMessageEngine({
-      plugins: [
-        ...silentDefaultPlugins,
-        skillPlugin({
-          getSkills: () => [duplicateSkill],
-        }),
-        toolPlugin({
-          getTools: async () => [
-            {
-              type: 'function',
-              function: {
-                name: 'duplicate_tool',
-                description: 'Duplicated user tool',
-              },
-            },
-          ],
-          callTool: async () => 'fallback',
-        }),
-      ],
-      responseProvider: async () => {
-        throw new Error('responseProvider should not be called')
-      },
-    })
-
-    await expect(engine.sendMessage('trigger duplicate tool')).rejects.toThrow(
-      'Duplicate tool name "duplicate_tool" detected.',
-    )
-  })
-
-  it('exposes built-in skill file runtime tools when skills have files', async () => {
-    const responseProvider = vi.fn(mockResponseProvider('ok'))
-    const vueSkill: SkillDefinition = {
-      name: 'vue-best-practices',
-      description: 'Vue skill',
-      instructions: 'Follow Vue best practices.',
-      files: [
-        {
-          id: 'references/reactivity.md',
-          path: 'references/reactivity.md',
-          kind: 'text',
-          content: '# Reactivity',
-          mimeType: 'text/markdown',
-        },
-      ],
-    }
-
-    const engine = createTestMessageEngine({
-      plugins: [
-        ...silentDefaultPlugins,
-        skillPlugin({
-          getSkills: () => [vueSkill],
-        }),
-        toolPlugin({
-          getTools: async () => [],
-          callTool: async () => 'fallback',
-        }),
-      ],
-      responseProvider,
-    })
-
-    await engine.sendMessage('review this Vue component')
-
-    const requestBody = responseProvider.mock.calls[0]?.[0]
-    expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
-    expect(requestBody.tools?.[0].function.parameters).toMatchObject({
-      type: 'object',
-      properties: {
-        skillName: expect.objectContaining({ type: 'string' }),
-      },
-    })
-    expect(requestBody.tools?.[1].function.parameters).toMatchObject({
-      type: 'object',
-      required: ['skillName', 'path'],
-      properties: {
-        skillName: expect.objectContaining({ type: 'string' }),
-        path: expect.objectContaining({ type: 'string' }),
-      },
-    })
-  })
-
-  it('does not expose built-in skill file runtime tools when skills have no files', async () => {
-    const responseProvider = vi.fn(mockResponseProvider('ok'))
-    const plainSkill: SkillDefinition = {
-      name: 'plain',
-      description: 'Plain skill',
-      instructions: 'No files here.',
-    }
-
-    const engine = createTestMessageEngine({
-      plugins: [
-        ...silentDefaultPlugins,
-        skillPlugin({
-          getSkills: () => [plainSkill],
-        }),
-        toolPlugin({
-          getTools: async () => [],
-          callTool: async () => 'fallback',
-        }),
-      ],
-      responseProvider,
-    })
-
-    await engine.sendMessage('run plain skill')
-
-    const requestBody = responseProvider.mock.calls[0]?.[0]
-    expect(requestBody.tools).toBeUndefined()
-  })
-
   it('executes built-in skill file runtime tools from turn state', async () => {
     const responseProvider = vi.fn(async (requestBody: MessageRequestBody) => {
       const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
@@ -322,5 +157,65 @@ describe('skillPlugin', () => {
       role: 'assistant',
       content: 'done',
     })
+  })
+
+  it('does not inject instructions or tools when getSkills returns undefined', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          getSkills: () => undefined,
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('hello')
+
+    const requestBody = responseProvider.mock.calls[0]?.[0]
+    expect(requestBody.messages[0]).toMatchObject({ role: 'user', content: 'hello' })
+    expect(requestBody.tools).toBeUndefined()
+  })
+
+  it('resolves compiler state before running custom turn hooks', async () => {
+    const resolvedState = vi.fn()
+    const turnStart = vi.fn()
+    const weatherSkill: SkillDefinition = {
+      name: 'weather',
+      description: 'Weather skill',
+      instructions: 'Use wttr.in.',
+    }
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          getSkills: () => [weatherSkill],
+          onSkillsResolved: (state) => {
+            resolvedState(state.skillNames)
+          },
+          onTurnStart: (context) => {
+            turnStart(context.customContext.__tiny_robot_skill)
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('weather')
+
+    expect(resolvedState).toHaveBeenCalledWith(['weather'])
+    expect(turnStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [weatherSkill],
+        skillNames: ['weather'],
+      }),
+    )
+    expect(resolvedState.mock.invocationCallOrder[0]).toBeLessThan(turnStart.mock.invocationCallOrder[0])
   })
 })

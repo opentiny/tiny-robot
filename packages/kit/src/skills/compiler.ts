@@ -1,19 +1,18 @@
-import type { ChatCompletionFunctionTool } from 'openai/resources'
-import type { BasePluginContext, BeforeRequestContext } from '../message/types'
+import type { ChatCompletionSystemMessageParam } from 'openai/resources'
 import type { RuntimeTool, ToolProviderItem } from '../message/plugins/toolPlugin'
-import type { SkillDefinition, SkillFileResource, SkillRuntimeContext } from './types'
+import type { SkillDefinition, SkillFileResource } from './types'
 
 export interface SkillCompilerState {
   /**
-   * 当前 turn 的 skill 定义。
+   * 编译输入中的 skill 定义。
    */
   skills: SkillDefinition[]
   /**
-   * 当前 turn 的 skill 名称。便于展示、日志和序列化。
+   * 从编译输入中提取的 skill 名称。
    */
   skillNames: string[]
   /**
-   * 当前 turn 的运行时工具。
+   * 根据 skill 资源生成的运行时工具。
    */
   runtimeTools?: RuntimeTool[]
 }
@@ -81,8 +80,6 @@ const skillFileTools: Array<RuntimeTool['tool']> = [
   },
 ]
 
-const hasSkillFiles = (skills: SkillDefinition[]) => skills.some((skill) => Boolean(skill.files?.length))
-
 const getSkillFileSummary = (skillName: string, file: SkillFileResource) => ({
   skillName,
   id: file.id,
@@ -108,8 +105,13 @@ const parseSkillToolArguments = (toolCall: Parameters<RuntimeTool['handler']>[0]
   }
 }
 
+/**
+ * 创建基础的 skill 文件工具，用于列出和读取 skill 携带的文件资源。
+ */
 export const createSkillFileRuntimeTools = (skills: SkillDefinition[]): RuntimeTool[] => {
-  if (!hasSkillFiles(skills)) {
+  const hasSkillFiles = skills.some((skill) => Boolean(skill.files?.length))
+
+  if (!hasSkillFiles) {
     return []
   }
 
@@ -183,68 +185,30 @@ export const createSkillCompilerState = (skills: SkillDefinition[]): SkillCompil
   }
 }
 
-const resolveSkillInstructions = async (skill: SkillDefinition, context: SkillRuntimeContext) => {
-  if (!skill.instructions) {
-    return ''
-  }
-
-  const instructions = typeof skill.instructions === 'function' ? await skill.instructions(context) : skill.instructions
-  return instructions.trim()
-}
-
-const resolveSkillTools = async (skill: SkillDefinition, context: SkillRuntimeContext) => {
-  if (!skill.tools) {
-    return []
-  }
-
-  return typeof skill.tools === 'function' ? await skill.tools(context) : skill.tools
-}
-
 export const compileSkillInstructions = async (
-  state: Pick<SkillCompilerState, 'skills'>,
-  context: BeforeRequestContext,
-) => {
+  skills: SkillDefinition[],
+): Promise<ChatCompletionSystemMessageParam | undefined> => {
   const instructions: string[] = []
 
-  for (const skill of state.skills) {
-    const runtimeContext: SkillRuntimeContext = {
-      ...context,
-      skill,
-      skills: state.skills,
-    }
-
-    const instruction = await resolveSkillInstructions(skill, runtimeContext)
+  for (const skill of skills) {
+    const instruction = skill.instructions?.trim()
     if (instruction) {
       instructions.push(`## ${skill.name}\n\n${instruction}`)
     }
   }
 
-  if (instructions.length > 0) {
-    context.requestBody.messages = [
-      {
-        role: 'system',
-        content: ['Apply these skill instructions when generating the response.', ...instructions].join('\n\n'),
-      },
-      ...context.requestBody.messages,
-    ]
+  if (instructions.length === 0) {
+    return undefined
+  }
+
+  return {
+    role: 'system',
+    content: ['Apply these skill instructions when generating the response.', ...instructions].join('\n\n'),
   }
 }
 
-export const compileSkillTools = async (
-  state: Pick<SkillCompilerState, 'skills' | 'runtimeTools'>,
-  context: BasePluginContext,
-): Promise<ToolProviderItem[]> => {
-  const skillTools: ChatCompletionFunctionTool[] = []
-
-  for (const skill of state.skills) {
-    const runtimeContext: SkillRuntimeContext = {
-      ...context,
-      skill,
-      skills: state.skills,
-    }
-
-    skillTools.push(...(await resolveSkillTools(skill, runtimeContext)))
-  }
+export const compileSkillTools = (state: Pick<SkillCompilerState, 'skills' | 'runtimeTools'>): ToolProviderItem[] => {
+  const skillTools = state.skills.flatMap((skill) => skill.tools ?? [])
 
   return [...(state.runtimeTools ?? []), ...skillTools]
 }
