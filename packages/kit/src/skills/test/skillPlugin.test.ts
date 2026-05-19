@@ -170,7 +170,121 @@ describe('skillPlugin', () => {
     expect(requestBody.tools).toBeUndefined()
   })
 
-  it('resolves compiler state before running custom turn hooks', async () => {
+  it('executes skill command runtime tools through the provided executor', async () => {
+    const executeSkillCommand = vi.fn(async (request) => ({
+      ok: true,
+      skillName: request.skillName,
+      command: request.command,
+      args: request.args,
+      runtime: request.skill.metadata?.runtime,
+    }))
+    const responseProvider = vi.fn(async (requestBody: MessageRequestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        expect(requestBody.tools?.map((tool) => tool.function.name)).toContain('execute_skill_command')
+
+        return {
+          id: 'command-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-1',
+                    type: 'function',
+                    function: {
+                      name: 'execute_skill_command',
+                      arguments: JSON.stringify({
+                        skillName: 'ppt',
+                        command: 'ppt-render',
+                        args: ['--input', 'deck.pptx'],
+                      }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        }
+      }
+
+      expect(JSON.parse(requestBody.messages.at(-1)?.content as string)).toMatchObject({
+        ok: true,
+        skillName: 'ppt',
+        command: 'ppt-render',
+        args: ['--input', 'deck.pptx'],
+      })
+
+      return {
+        id: 'final-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'done',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      }
+    })
+    const pptSkill: SkillDefinition = {
+      name: 'ppt',
+      description: 'Presentation skill',
+      instructions: 'Use ppt commands.',
+      metadata: {
+        runtime: {
+          id: 'ppt-runtime',
+        },
+      },
+    }
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => {
+            throw new Error('fallback should not run')
+          },
+        }),
+        skillPlugin({
+          getSkills: () => [pptSkill],
+          executeSkillCommand,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('render ppt')
+
+    expect(executeSkillCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skill: pptSkill,
+        skillName: 'ppt',
+        command: 'ppt-render',
+        args: ['--input', 'deck.pptx'],
+      }),
+      expect.objectContaining({
+        customContext: expect.any(Object),
+      }),
+    )
+    expect(responseProvider).toHaveBeenCalledTimes(2)
+  })
+
+  it('resolves plugin state before running custom turn hooks', async () => {
     const resolvedState = vi.fn()
     const turnStart = vi.fn()
     const weatherSkill: SkillDefinition = {

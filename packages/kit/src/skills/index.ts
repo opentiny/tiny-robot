@@ -1,6 +1,12 @@
 export { loadSkillFilesFromDirectoryHandle, loadSkillFilesFromFileList } from './browserSkillFiles'
 export type { BrowserDirectoryHandle, BrowserFile, BrowserFileHandle } from './browserSkillFiles'
-export { compileSkillInstructions, createSkillFileRuntimeTools } from './compiler'
+export { compileSkillInstructions, createSkillRuntimeTools } from './compiler'
+export type {
+  SkillCommandExecutor,
+  SkillCommandRequest,
+  SkillCommandResult,
+  SkillRuntimeToolsOptions,
+} from './compiler'
 export { SkillManager } from './manager'
 export type { SkillManagerOptions } from './manager'
 export { SkillLoader } from './skillLoader'

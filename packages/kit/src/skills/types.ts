@@ -48,7 +48,7 @@ export type SkillFileResource = SkillFile & {
 /**
  * skill 能力模板。
  *
- * skill 可以提供指令、工具和文件资源，并被编译到消息请求中。
+ * skill 可以提供指令和文件资源，并被编译到消息请求中。
  */
 export interface SkillDefinition {
   /**

@@ -1,11 +1,12 @@
-import { isRef, unref } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
-import { skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
+import { isRef, unref } from 'vue'
 import type { SkillPluginState } from '../../../message/plugins'
-import type { MaybePromise } from '../../../types'
+import { skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
+import type { SkillCommandRequest, SkillCommandResult } from '../../../skills/compiler'
 import type { SkillDefinition } from '../../../skills/types'
-import type { VueMessagePluginRuntime } from '../types.internal'
+import type { MaybePromise } from '../../../types'
 import type { BasePluginContext, UseMessagePlugin } from '../types'
+import type { VueMessagePluginRuntime } from '../types.internal'
 
 export type VueSkillSource = SkillDefinition[] | undefined
 export type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueSkillSource>
@@ -20,6 +21,12 @@ export type UseMessageSkillPluginOptions = UseMessagePlugin & {
    */
   getSkills?: (context: BasePluginContext) => MaybePromise<VueSkillSourceRef>
   /**
+   * 执行模型为某个 skill 规划的后端命令。
+   *
+   * @experimental 该 API 仍在设计和验证中，命令协议、返回结构和安全边界后续可能调整。
+   */
+  executeSkillCommand?: (request: SkillCommandRequest, context: BasePluginContext) => MaybePromise<SkillCommandResult>
+  /**
    * skills 解析并转换为插件状态后触发。
    */
   onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
@@ -30,7 +37,7 @@ const resolveSkillSource = (source: VueSkillSourceRef): VueSkillSource => {
 }
 
 export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePlugin => {
-  const { skills, getSkills, onSkillsResolved, ...restOptions } = options
+  const { skills, getSkills, executeSkillCommand, onSkillsResolved, ...restOptions } = options
 
   return {
     name: 'skill',
@@ -42,6 +49,9 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
           const skillSource = getSkills ? await getSkills(vueContext) : skills
           return resolveSkillSource(skillSource)
         },
+        executeSkillCommand: executeSkillCommand
+          ? (request, context) => executeSkillCommand(request, runtime.createVueBaseContext(context))
+          : undefined,
         onSkillsResolved: onSkillsResolved
           ? (state, context) => onSkillsResolved(state, runtime.createVueBaseContext(context))
           : undefined,

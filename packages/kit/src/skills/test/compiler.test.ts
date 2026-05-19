@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { compileSkillInstructions, createSkillFileRuntimeTools } from '../compiler'
+import { compileSkillInstructions, createSkillRuntimeTools } from '../compiler'
 
 describe('skill compiler', () => {
   it('creates file runtime tools when skills have files', () => {
-    const runtimeTools = createSkillFileRuntimeTools([
+    const runtimeTools = createSkillRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
@@ -32,7 +32,7 @@ describe('skill compiler', () => {
 
   it('returns no runtime file tools when skills have no files', () => {
     expect(
-      createSkillFileRuntimeTools([{ name: 'plain', description: 'Plain skill', instructions: 'Use plain skill.' }]),
+      createSkillRuntimeTools([{ name: 'plain', description: 'Plain skill', instructions: 'Use plain skill.' }]),
     ).toEqual([])
   })
 
@@ -69,7 +69,7 @@ describe('skill compiler', () => {
   })
 
   it('lists and reads files through built-in runtime tools', () => {
-    const [listFiles, readFile] = createSkillFileRuntimeTools([
+    const [listFiles, readFile] = createSkillRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
@@ -131,7 +131,7 @@ describe('skill compiler', () => {
   })
 
   it('filters listed files by skill name', () => {
-    const [listFiles] = createSkillFileRuntimeTools([
+    const [listFiles] = createSkillRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
@@ -171,7 +171,7 @@ describe('skill compiler', () => {
   })
 
   it('returns stable errors when reading skill files with invalid arguments', () => {
-    const [, readFile] = createSkillFileRuntimeTools([
+    const [, readFile] = createSkillRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
@@ -200,6 +200,84 @@ describe('skill compiler', () => {
       error: 'file_not_found',
       skillName: 'docs',
       path: 'missing.md',
+    })
+  })
+
+  it('creates a skill command runtime tool when an executor is provided', async () => {
+    const [executeCommand] = createSkillRuntimeTools(
+      [
+        {
+          name: 'ppt',
+          description: 'Presentation skill',
+          instructions: 'Use ppt commands.',
+          metadata: {
+            runtime: {
+              id: 'ppt-runtime',
+            },
+          },
+        },
+      ],
+      {
+        executeSkillCommand: async (request) => ({
+          ok: true,
+          runtimeId: request.skill.metadata?.runtime,
+          command: request.command,
+          args: request.args,
+        }),
+      },
+    )
+
+    expect(executeCommand.tool.function.name).toBe('execute_skill_command')
+    await expect(
+      executeCommand.handler(
+        createToolCall('execute_skill_command', {
+          skillName: 'ppt',
+          command: 'ppt-render',
+          args: ['--input', 'deck.pptx'],
+        }),
+        {} as never,
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      command: 'ppt-render',
+      args: ['--input', 'deck.pptx'],
+    })
+  })
+
+  it('does not create a skill command runtime tool without an executor', () => {
+    expect(
+      createSkillRuntimeTools([{ name: 'ppt', description: 'Presentation skill', instructions: 'Use ppt.' }]),
+    ).toEqual([])
+  })
+
+  it('returns stable errors when executing skill commands with invalid arguments', async () => {
+    const [executeCommand] = createSkillRuntimeTools(
+      [{ name: 'ppt', description: 'Presentation skill', instructions: 'Use ppt.' }],
+      {
+        executeSkillCommand: async () => ({ ok: true }),
+      },
+    )
+
+    await expect(
+      executeCommand.handler(createToolCall('execute_skill_command', { command: 'ppt-render', args: [] }), {} as never),
+    ).resolves.toEqual({
+      error: 'skill_not_found',
+    })
+    await expect(
+      executeCommand.handler(createToolCall('execute_skill_command', { skillName: 'ppt', args: [] }), {} as never),
+    ).resolves.toEqual({
+      error: 'command_required',
+      skillName: 'ppt',
+    })
+    await expect(
+      executeCommand.handler(
+        createToolCall('execute_skill_command', { skillName: 'ppt', command: 'ppt-render', args: '--input' }),
+        {} as never,
+      ),
+    ).resolves.toEqual({
+      error: 'args_required',
+      skillName: 'ppt',
+      command: 'ppt-render',
     })
   })
 })

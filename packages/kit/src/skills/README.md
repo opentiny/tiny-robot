@@ -103,14 +103,18 @@ manager 不负责编译 instructions 或 runtime tools。
 compiler 层只保留两个纯转换函数：
 
 - `compileSkillInstructions(skills)`
-- `createSkillFileRuntimeTools(skills)`
+- `createSkillRuntimeTools(skills, options?)`
 
 `compileSkillInstructions` 将已选择的 skills 转换为 system message。
 
-`createSkillFileRuntimeTools` 根据 `skill.files` 创建基础文件工具：
+`createSkillRuntimeTools` 根据 `skill.files` 创建基础文件工具：
 
 - `list_skill_files`
 - `read_skill_file`
+
+当传入 `options.executeSkillCommand` 时，它会额外创建命令执行工具：
+
+- `execute_skill_command`
 
 compiler 不负责：
 
@@ -135,7 +139,7 @@ message 接入代码不放在 `src/skills` 下：
 `skillPlugin` 的职责是把调用方传入的当前 skills 接入 message 生命周期：
 
 1. `onTurnStart` 读取 `getSkills()` 或 Vue 侧响应式 `skills`。
-2. 创建 `runtimeTools = createSkillFileRuntimeTools(skills)`。
+2. 创建 `runtimeTools = createSkillRuntimeTools(skills, options)`。
 3. 将 `{ skills, skillNames, runtimeTools }` 写入 `customContext.__tiny_robot_skill`。
 4. `provideTools` 暴露 `runtimeTools`。
 5. `onBeforeRequest` 调用 `compileSkillInstructions(skills)` 并 prepend system message。
@@ -151,10 +155,112 @@ flowchart TD
   C -->|"SkillDefinition"| D["SkillManager"]
   D -->|"selected SkillDefinition[]"| E["skillPlugin"]
   E --> F["compileSkillInstructions"]
-  E --> G["createSkillFileRuntimeTools"]
+  E --> G["createSkillRuntimeTools"]
   F --> H["system message"]
   G --> I["runtime tools"]
 ```
+
+## Sandbox Command Execution
+
+部分 skill 需要专门的后端运行环境才能执行命令，例如 PPT、PDF、浏览器自动化或文档处理。`kit` 不内置这些后端能力；当前设计是让模型根据已启用 skill 的 instructions 自行规划命令和参数，再由应用侧 executor 转发到后端沙箱执行。
+
+推荐工具形态：
+
+```ts
+execute_skill_command({
+  skillName: string
+  command: string
+  args: string[]
+})
+```
+
+该阶段不要求从 `SKILL.md` 提取命令 allowlist，也不要求 compiler 生成命令枚举。`SKILL.md` 仍然是自然语言说明，模型可以根据说明决定 `command` 和 `args`。
+
+职责边界：
+
+- `createSkillRuntimeTools(skills, { executeSkillCommand })` 创建 `execute_skill_command` runtime tool。
+- `skillPlugin` 在传入 `executeSkillCommand` 时暴露 `execute_skill_command`。
+- 应用侧 executor 负责选择后端运行环境、鉴权、沙箱、超时、日志、产物管理和错误返回。
+- 后端必须把模型返回的 `command` / `args` 视为不可信输入。
+
+后端执行约束：
+
+- 在隔离环境中执行，例如容器、临时 workspace、受限用户或专用任务服务。
+- 使用 argv 方式执行命令，例如 `spawn(command, args, { shell: false })`。
+- 不把 `command` 和 `args` 拼接成 shell 字符串执行。
+- 设置超时、输出大小限制和并发限制。
+- 限制可访问的文件目录和网络能力。
+- 对危险命令、高成本命令或写入性操作保留业务侧确认能力。
+
+推荐返回结构：
+
+```ts
+type SkillArtifact = {
+  id: string
+  name: string
+  mimeType?: string
+  size?: number
+  url?: string
+  textAvailable?: boolean
+  previewAvailable?: boolean
+  metadata?: Record<string, unknown>
+}
+
+type SkillCommandResult = {
+  ok: boolean
+  exitCode?: number
+  stdout?: string
+  stderr?: string
+  artifacts?: SkillArtifact[]
+  error?: {
+    code: string
+    message: string
+  }
+}
+```
+
+### Artifact 产物模型
+
+命令执行可能生成 PDF、PPTX、图片、压缩包等二进制文件。这些内容不应通过 tool message 直接传给模型，也不应以 base64 放进 `stdout`。后端沙箱应把文件写入受控的 artifact store，再在 `SkillCommandResult.artifacts` 中返回引用信息。
+
+artifact store 可以是：
+
+- 应用后端的临时目录和下载接口。
+- 对象存储，例如 S3、OSS、MinIO。
+- 专用任务服务提供的产物访问接口。
+
+artifact 必须绑定用户、会话、请求或 sandbox run，不能只依赖裸 `artifactId` 做访问控制。`url` 应由应用侧决定是内部代理地址、短期 signed URL，还是仅供前端预览使用的下载地址。
+
+推荐链路：
+
+```mermaid
+sequenceDiagram
+  participant Model as 大模型
+  participant App as kit / 应用侧 executor
+  participant Sandbox as 后端沙箱
+  participant Store as Artifact store
+
+  Model->>App: execute_skill_command(skillName, command, args)
+  App->>Sandbox: 按 skill runtime 执行 argv 命令
+  Sandbox->>Store: 写入二进制产物
+  Store-->>Sandbox: artifact metadata / url
+  Sandbox-->>App: stdout / stderr / artifacts
+  App-->>Model: tool result: artifact 引用和摘要
+  Model->>App: 可选：读取 artifact 文本或摘要
+  App->>Store: 可选：读取已提取文本 / 预览信息
+  Store-->>App: artifact text / info
+  App-->>Model: 可选：artifact text / info
+```
+
+后续如果模型需要继续理解产物内容，可以在 `createSkillRuntimeTools` 中扩展 artifact 读取能力，例如：
+
+- `list_skill_artifacts`
+- `get_skill_artifact_info`
+- `read_skill_artifact_text`
+
+这些工具应返回文本、摘要或元数据，不返回原始二进制内容。第一阶段可以只让 `execute_skill_command` 返回 `artifacts` 引用，由前端或应用侧负责展示、下载和预览。
+
+后续如果 skill 命令逐渐稳定，可以再引入机器可读 manifest，把自由命令收敛为 command allowlist 和参数 schema。这个 manifest 属于后续增强，不影响当前基于沙箱的第一阶段设计。
 
 ## Auto Skill Selection
 

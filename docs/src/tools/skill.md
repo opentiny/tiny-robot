@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # Skill 技能工具链
 
-Skill 是一组可复用的能力模板。一个 skill 至少包含名称、描述和指令，也可以携带工具声明和文件资源。`@opentiny/tiny-robot-kit` 中的 skill 工具链分为三层：
+Skill 是一组可复用的能力模板。一个 skill 至少包含名称、描述和指令，也可以携带文件资源。`@opentiny/tiny-robot-kit` 中的 skill 工具链分为三层：
 
 - **File Adapters**：把不同平台的文件来源转换为统一的 `SkillFile[]`。
 - **Loader / Manager**：把 `SkillFile[]` 解析为 `SkillDefinition`，并管理 skill 集合与选择状态。
@@ -242,9 +242,9 @@ const systemMessage = await compileSkillInstructions([weatherSkill, vueSkill])
 ### 创建基础文件工具
 
 ```typescript
-import { createSkillFileRuntimeTools } from '@opentiny/tiny-robot-kit/core'
+import { createSkillRuntimeTools } from '@opentiny/tiny-robot-kit/core'
 
-const runtimeTools = createSkillFileRuntimeTools([docsSkill])
+const runtimeTools = createSkillRuntimeTools([docsSkill])
 ```
 
 当任意 skill 带有 `files` 时，会生成两个基础 runtime tools：
@@ -253,9 +253,9 @@ const runtimeTools = createSkillFileRuntimeTools([docsSkill])
 - `read_skill_file`：按 `skillName` 和相对路径读取文本文件内容。
 
 ```typescript
-import { createSkillFileRuntimeTools } from '@opentiny/tiny-robot-kit/core'
+import { createSkillRuntimeTools } from '@opentiny/tiny-robot-kit/core'
 
-const runtimeTools = createSkillFileRuntimeTools([docsSkill])
+const runtimeTools = createSkillRuntimeTools([docsSkill])
 const [listFiles, readFile] = runtimeTools
 
 const listed = await listFiles.handler(

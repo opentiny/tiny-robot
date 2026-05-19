@@ -4,13 +4,13 @@
 
 The active development track is the skill toolchain in `packages/kit`.
 
-The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from files, managed by a manager, and compiled into prompt instructions plus built-in file tools for the message engine.
+The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from files, managed by a manager, and compiled into prompt instructions plus runtime tools for the message engine.
 
 ## Current Architecture
 
 - `packages/kit/src/skills`
   - Core skill toolchain modules.
-  - Owns skill loading, skill types, compiler helpers, fixtures, and skill tests.
+  - Owns skill loading, skill types, compiler helpers, file adapters, manager, and skill tests.
   - Browser-safe skill APIs are exported from `@opentiny/tiny-robot-kit/core`.
   - Node-only file adapters are exported from `@opentiny/tiny-robot-kit/node`.
 - `packages/kit/src/message/plugins/skillPlugin.ts`
@@ -33,7 +33,7 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
   - Converts `SkillFile[]` into `SkillDefinition`.
   - Lives in `packages/kit/src/skills/skillLoader.ts`.
 - Compiler
-  - Converts `SkillDefinition[]` into request instructions, built-in file runtime tools, and compiler state.
+  - Converts `SkillDefinition[]` into request instructions, built-in file runtime tools, and optional command runtime tools.
   - Lives in `packages/kit/src/skills/compiler.ts`.
 - Plugin Adapter
   - Connects skill compiler output to message engine lifecycle.
@@ -41,7 +41,7 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
 - Manager
   - Lives in `packages/kit/src/skills/manager.ts`.
   - Owns write/remove/list/import/select skills.
-  - Must not compile request messages or tools.
+  - Must not compile request instructions or runtime tools.
 
 ## Hard Rules
 
@@ -49,23 +49,37 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
 - `skillPlugin` must not own, cache, query, mutate, or manage skill collections.
 - `skillPlugin` receives the current turn's skills through `getSkills()`.
 - Do not use `activeSkills` naming in the skill plugin/compiler. The plugin receives skills that are already selected by outside logic.
-- Compiler may compile prompts/tools/runtime tools, but must not manage persistence, selection state, or storage.
+- Compiler may compile instructions and runtime tools, but must not manage persistence, selection state, or storage.
 - File adapters may read platform file sources, but must not parse skill semantics.
 - Loader may parse/import skill files into a skill definition, but must not own skill collections.
-- Manager may call loaders to import skills and may track selected skills, but must not compile request messages/tools.
+- Manager may call loaders to import skills and may track selected skills, but must not compile request instructions or runtime tools.
 - Public skill APIs should be exported from `packages/kit/src/skills/index.ts`.
 - Node-only skill APIs should use dedicated subpath exports instead of the browser package root.
 - `message/plugins/index.ts` must only export message plugin APIs; skill core APIs belong to `src/skills`.
+- Skill command execution uses `executeSkillCommand` on `skillPlugin`. Do not add PPT/PDF/browser/document backends to kit; route command tool calls to application-provided sandbox executors.
 
 ## Current Public API Shape
 
 ```ts
 skillPlugin({
   getSkills: () => [skill],
+  executeSkillCommand: async ({ skill, command, args }) => {
+    return sandboxExecutor.execute({ skill, command, args })
+  },
 })
 ```
 
-Compiler state uses:
+Vue adapter also accepts reactive selected skills:
+
+```ts
+skillPlugin({
+  skills: selectedSkills,
+})
+```
+
+`SkillDefinition` currently contains `name`, `description`, `instructions`, optional `files`, and optional `metadata`.
+
+Plugin state uses:
 
 ```ts
 pluginState.skills
@@ -87,7 +101,6 @@ pluginState.runtimeTools
 - `packages/kit/src/skills/test/skillLoader.test.ts`
 - `packages/kit/src/skills/test/skillManager.test.ts`
 - `packages/kit/src/skills/test/skillPlugin.test.ts`
-- `packages/kit/src/skills/test/fixtures`
 - `packages/kit/src/message/plugins/skillPlugin.ts`
 
 ## Validation
@@ -104,5 +117,5 @@ pnpm build
 
 - Add `read_skill_file` size limits and truncation strategy.
 - Decide where duplicate skill name diagnostics belong, preferably in manager or selection logic rather than compiler.
-- Decide which Manager TODO items in `packages/kit/src/skills/README.md` should be promoted into implementation.
+- Decide whether auto skill selection needs an independent selector layer.
 - Keep manager boundaries separate from compiler boundaries.

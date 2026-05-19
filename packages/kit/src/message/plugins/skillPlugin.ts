@@ -1,4 +1,5 @@
-import { compileSkillInstructions, createSkillFileRuntimeTools } from '../../skills/compiler'
+import { compileSkillInstructions, createSkillRuntimeTools } from '../../skills/compiler'
+import type { SkillCommandRequest, SkillCommandResult } from '../../skills/compiler'
 import type { SkillDefinition } from '../../skills/types'
 import type { MaybePromise } from '../../types'
 import type { BasePluginContext, MessageEnginePlugin } from '../types'
@@ -26,7 +27,15 @@ export type SkillPluginOptions = MessageEnginePlugin & {
    */
   getSkills?: (context: BasePluginContext) => MaybePromise<SkillDefinition[] | undefined>
   /**
-   * skills 解析并规整为编译状态后触发。
+   * 执行模型为某个 skill 规划的后端命令。
+   *
+   * @experimental 该 API 仍在设计和验证中，命令协议、返回结构和安全边界后续可能调整。
+   *
+   * 插件只负责暴露 execute_skill_command 并转发参数；沙箱、镜像和权限控制由调用方实现。
+   */
+  executeSkillCommand?: (request: SkillCommandRequest, context: BasePluginContext) => MaybePromise<SkillCommandResult>
+  /**
+   * skills 解析并规整为插件状态后触发。
    */
   onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
 }
@@ -34,7 +43,7 @@ export type SkillPluginOptions = MessageEnginePlugin & {
 const skillPluginContextKey = '__tiny_robot_skill'
 
 export const skillPlugin = (options: SkillPluginOptions): MessageEnginePlugin & ToolProvider => {
-  const { getSkills, onSkillsResolved, ...restOptions } = options
+  const { getSkills, executeSkillCommand, onSkillsResolved, ...restOptions } = options
 
   return {
     name: 'skill',
@@ -48,7 +57,9 @@ export const skillPlugin = (options: SkillPluginOptions): MessageEnginePlugin & 
       const state: SkillPluginState = {
         skills,
         skillNames: skills.map((skill) => skill.name),
-        runtimeTools: createSkillFileRuntimeTools(skills),
+        runtimeTools: createSkillRuntimeTools(skills, {
+          executeSkillCommand: executeSkillCommand && ((request) => executeSkillCommand(request, context)),
+        }),
       }
 
       context.setCustomContext({ [skillPluginContextKey]: state })
