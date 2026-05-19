@@ -32,7 +32,3 @@
   border-radius: 12px;
   background: var(--anchor-demo-stage-bg, #fff);
 }
-
-.nav {
-  top: 0;
-}

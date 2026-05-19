@@ -33,7 +33,7 @@
         :search-options="searchOptions"
         v-model:active-id="activeId"
         v-model:search-query="searchQuery"
-        :target-feedback-class="styles.userBubbleActive"
+        target-feedback-class="user-bubble-active"
         :target-feedback-duration="1800"
       />
     </div>
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, ref, useCssModule, watch } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import {
   TrBubbleList,
   TrBubbleProvider,
@@ -52,8 +52,6 @@ import {
 } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { controlledSearchMessages } from './controlled-search.messages'
-
-const styles = useCssModule()
 
 const messages = controlledSearchMessages
 
@@ -112,47 +110,23 @@ const boxAttributes: BubbleBoxAttributesConfig = (groupedMessages) => {
   }
 
   return {
-    class: styles.userBubbleTarget,
+    class: 'user-bubble-target',
     'data-anchor-id': firstMessage.id,
   }
 }
 </script>
 
-<style module lang="less">
-.userBubbleTarget {
-  --tr-bubble-box-bg: var(--tr-color-primary-light);
-  scroll-margin-top: 20px;
-}
+<style scoped src="./demo-shell.css"></style>
 
-.userBubbleActive {
-  animation: bubble-active 1.8s ease-out !important;
-}
-
-@keyframes bubble-active {
-  0%,
-  25% {
-    background-color: #b9d7ff;
-  }
-  45% {
-    background-color: var(--tr-color-primary-light);
-  }
-  65%,
-  85% {
-    background-color: #b9d7ff;
-  }
-  100% {
-    background-color: var(--tr-color-primary-light);
-  }
-}
-</style>
-
-<style lang="less" scoped>
-@import './demo-shell.less';
-
+<style scoped>
 .demo {
   --anchor-demo-gap: 16px;
   --anchor-demo-controls-gap: 12px 16px;
   --anchor-demo-stage-height: 480px;
+}
+
+.nav {
+  top: 0;
 }
 
 .placement {
@@ -168,13 +142,37 @@ const boxAttributes: BubbleBoxAttributesConfig = (groupedMessages) => {
   height: 100%;
 }
 
-.nav {
-  &.is-right {
-    right: 16px;
-  }
+.nav.is-right {
+  right: 16px;
+}
 
-  &.is-left {
-    left: 16px;
+.nav.is-left {
+  left: 16px;
+}
+
+:deep(.user-bubble-target) {
+  --tr-bubble-box-bg: var(--tr-color-primary-light);
+  scroll-margin-top: 20px;
+}
+
+:deep(.user-bubble-active) {
+  animation: user-bubble-active-flash 1.8s ease-out !important;
+}
+
+@keyframes user-bubble-active-flash {
+  0%,
+  25% {
+    background-color: #b9d7ff;
+  }
+  45% {
+    background-color: var(--tr-color-primary-light);
+  }
+  65%,
+  85% {
+    background-color: #b9d7ff;
+  }
+  100% {
+    background-color: var(--tr-color-primary-light);
   }
 }
 </style>
