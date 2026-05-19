@@ -1,15 +1,6 @@
 export { loadSkillFilesFromDirectoryHandle, loadSkillFilesFromFileList } from './browserSkillFiles'
 export type { BrowserDirectoryHandle, BrowserFile, BrowserFileHandle } from './browserSkillFiles'
-export {
-  compileSkillInstructions,
-  compileSkillTools,
-  createSkillCompilerState,
-  createSkillFileRuntimeTools,
-  uniqueSkills,
-} from './compiler'
-export type { SkillCompilerState } from './compiler'
-export { loadSkillFilesFromFs } from './fsSkillFiles'
-export type { FsSkillFilesOptions } from './fsSkillFiles'
+export { compileSkillInstructions, createSkillFileRuntimeTools } from './compiler'
 export { SkillManager } from './manager'
 export type { SkillManagerOptions } from './manager'
 export { SkillLoader } from './skillLoader'

@@ -1,4 +1,3 @@
-import type { ChatCompletionFunctionTool } from 'openai/resources'
 import { parse as parseYaml } from 'yaml'
 import type { SkillDefinition, SkillFile, SkillFileResource } from './types'
 import { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'
@@ -41,7 +40,7 @@ export interface SkillLoaderOptions {
 /**
  * 将标准化后的 skill 文件转换为 SkillDefinition。
  *
- * 文件来源适配器负责提供 SkillFile[]；该 loader 负责解析入口文件、工具声明和资源文件。
+ * 文件来源适配器负责提供 SkillFile[]；该 loader 负责解析入口文件和资源文件。
  */
 export class SkillLoader {
   private entryFile: string
@@ -74,7 +73,6 @@ export class SkillLoader {
 
     const frontmatterMetadata = getRecord(frontmatter.metadata)
     const skillFiles: SkillFileResource[] = []
-    const tools: ChatCompletionFunctionTool[] = []
 
     for (const file of normalizedFiles) {
       if (file.path === this.entryFile) {
@@ -98,19 +96,6 @@ export class SkillLoader {
         continue
       }
 
-      if (isToolsFile(file.path)) {
-        try {
-          tools.push(...parseTools(file.content))
-        } catch (error) {
-          this.handleWarning(warnings, {
-            code: 'tools-parse-failed',
-            message: error instanceof Error ? error.message : String(error),
-            path: file.path,
-          })
-        }
-        continue
-      }
-
       skillFiles.push({
         ...file,
         id: file.path,
@@ -122,7 +107,6 @@ export class SkillLoader {
         name: getString(frontmatter.name) || getFallbackSkillName(this.entryFile),
         description: getString(frontmatter.description) || '',
         instructions,
-        tools: tools.length ? tools : undefined,
         files: skillFiles.length ? skillFiles : undefined,
         metadata: {
           ...frontmatterMetadata,
@@ -209,37 +193,6 @@ const getString = (value: unknown) => (typeof value === 'string' ? value : undef
 
 const getRecord = (value: unknown) =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined
-
-const isToolsFile = (path: string) => {
-  const normalizedPath = path.toLowerCase()
-  return normalizedPath === 'tools.json' || normalizedPath.startsWith('tools/')
-}
-
-const parseTools = (content: string): ChatCompletionFunctionTool[] => {
-  const data = JSON.parse(content)
-  const tools = Array.isArray(data) ? data : [data]
-  return tools.map((tool, index) => {
-    if (!isChatCompletionFunctionTool(tool)) {
-      throw new Error(`Invalid function tool at index ${index}. Skill tools must be ChatCompletionFunctionTool.`)
-    }
-
-    return tool
-  })
-}
-
-const isChatCompletionFunctionTool = (tool: unknown): tool is ChatCompletionFunctionTool => {
-  if (!tool || typeof tool !== 'object') {
-    return false
-  }
-
-  const candidate = tool as Partial<ChatCompletionFunctionTool>
-  return (
-    candidate.type === 'function' &&
-    Boolean(candidate.function) &&
-    typeof candidate.function === 'object' &&
-    typeof candidate.function.name === 'string'
-  )
-}
 
 const getResourceTitle = (path: string) => {
   const filename = path.split('/').at(-1) || path

@@ -4,13 +4,15 @@
 
 The active development track is the skill toolchain in `packages/kit`.
 
-The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from files, managed later by a manager, and compiled into prompt instructions plus tools for the message engine.
+The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from files, managed by a manager, and compiled into prompt instructions plus built-in file tools for the message engine.
 
 ## Current Architecture
 
 - `packages/kit/src/skills`
   - Core skill toolchain modules.
   - Owns skill loading, skill types, compiler helpers, fixtures, and skill tests.
+  - Browser-safe skill APIs are exported from `@opentiny/tiny-robot-kit/core`.
+  - Node-only file adapters are exported from `@opentiny/tiny-robot-kit/node`.
 - `packages/kit/src/message/plugins/skillPlugin.ts`
   - Message runtime adapter only.
   - Bridges `getSkills()` into message engine hooks.
@@ -31,7 +33,7 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
   - Converts `SkillFile[]` into `SkillDefinition`.
   - Lives in `packages/kit/src/skills/skillLoader.ts`.
 - Compiler
-  - Converts `SkillDefinition[]` into request instructions, tool schemas, runtime tools, and compiler state.
+  - Converts `SkillDefinition[]` into request instructions, built-in file runtime tools, and compiler state.
   - Lives in `packages/kit/src/skills/compiler.ts`.
 - Plugin Adapter
   - Connects skill compiler output to message engine lifecycle.
@@ -52,6 +54,7 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
 - Loader may parse/import skill files into a skill definition, but must not own skill collections.
 - Manager may call loaders to import skills and may track selected skills, but must not compile request messages/tools.
 - Public skill APIs should be exported from `packages/kit/src/skills/index.ts`.
+- Node-only skill APIs should use dedicated subpath exports instead of the browser package root.
 - `message/plugins/index.ts` must only export message plugin APIs; skill core APIs belong to `src/skills`.
 
 ## Current Public API Shape
@@ -65,9 +68,9 @@ skillPlugin({
 Compiler state uses:
 
 ```ts
-state.skills
-state.skillNames
-state.runtimeTools
+pluginState.skills
+pluginState.skillNames
+pluginState.runtimeTools
 ```
 
 ## Important Files

@@ -1,36 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import {
-  compileSkillInstructions,
-  compileSkillTools,
-  createSkillCompilerState,
-  createSkillFileRuntimeTools,
-  uniqueSkills,
-} from '../compiler'
-
-const tool = (name: string) =>
-  ({
-    type: 'function',
-    function: {
-      name,
-      description: `${name} tool`,
-      parameters: {
-        type: 'object',
-        properties: {},
-      },
-    },
-  }) as const
+import { compileSkillInstructions, createSkillFileRuntimeTools } from '../compiler'
 
 describe('skill compiler', () => {
-  it('deduplicates skills by first matching name', () => {
-    const first = { name: 'weather', description: 'first', instructions: 'first instructions' }
-    const second = { name: 'weather', description: 'second', instructions: 'second instructions' }
-    const other = { name: 'vue', description: 'other', instructions: 'other instructions' }
-
-    expect(uniqueSkills([first, second, other])).toEqual([first, other])
-  })
-
-  it('creates compiler state with skill names and file runtime tools', () => {
-    const state = createSkillCompilerState([
+  it('creates file runtime tools when skills have files', () => {
+    const runtimeTools = createSkillFileRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
@@ -51,9 +24,7 @@ describe('skill compiler', () => {
       },
     ])
 
-    expect(state.skills.map((skill) => skill.name)).toEqual(['docs', 'plain'])
-    expect(state.skillNames).toEqual(['docs', 'plain'])
-    expect(state.runtimeTools?.map((runtimeTool) => runtimeTool.tool.function.name)).toEqual([
+    expect(runtimeTools.map((runtimeTool) => runtimeTool.tool.function.name)).toEqual([
       'list_skill_files',
       'read_skill_file',
     ])
@@ -95,49 +66,6 @@ describe('skill compiler', () => {
     await expect(
       compileSkillInstructions([{ name: 'plain', description: 'Plain skill', instructions: '   ' }]),
     ).resolves.toBeUndefined()
-  })
-
-  it('compiles skill tools after runtime tools', () => {
-    const runtimeTools = createSkillFileRuntimeTools([
-      {
-        name: 'docs',
-        description: 'Docs skill',
-        instructions: 'Use docs.',
-        files: [
-          {
-            id: 'guide.md',
-            path: 'guide.md',
-            kind: 'text',
-            content: '# Guide',
-          },
-        ],
-      },
-    ])
-
-    const compiledTools = compileSkillTools({
-      runtimeTools,
-      skills: [
-        {
-          name: 'static',
-          description: 'Static skill',
-          instructions: 'Use static skill.',
-          tools: [tool('static_tool')],
-        },
-        {
-          name: 'extra',
-          description: 'Extra skill',
-          instructions: 'Use extra skill.',
-          tools: [tool('extra_tool')],
-        },
-      ],
-    })
-
-    expect(compiledTools.map((toolItem) => ('tool' in toolItem ? toolItem.tool : toolItem).function.name)).toEqual([
-      'list_skill_files',
-      'read_skill_file',
-      'static_tool',
-      'extra_tool',
-    ])
   })
 
   it('lists and reads files through built-in runtime tools', () => {

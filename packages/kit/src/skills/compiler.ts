@@ -1,37 +1,6 @@
 import type { ChatCompletionSystemMessageParam } from 'openai/resources'
-import type { RuntimeTool, ToolProviderItem } from '../message/plugins/toolPlugin'
+import type { RuntimeTool } from '../message/plugins/toolPlugin'
 import type { SkillDefinition, SkillFileResource } from './types'
-
-export interface SkillCompilerState {
-  /**
-   * 编译输入中的 skill 定义。
-   */
-  skills: SkillDefinition[]
-  /**
-   * 从编译输入中提取的 skill 名称。
-   */
-  skillNames: string[]
-  /**
-   * 根据 skill 资源生成的运行时工具。
-   */
-  runtimeTools?: RuntimeTool[]
-}
-
-export const uniqueSkills = (skills: SkillDefinition[]) => {
-  const result: SkillDefinition[] = []
-  const names = new Set<string>()
-
-  for (const skill of skills) {
-    if (names.has(skill.name)) {
-      continue
-    }
-
-    names.add(skill.name)
-    result.push(skill)
-  }
-
-  return result
-}
 
 const skillFileToolNames = {
   listSkillFiles: 'list_skill_files',
@@ -174,17 +143,6 @@ export const createSkillFileRuntimeTools = (skills: SkillDefinition[]): RuntimeT
   ]
 }
 
-export const createSkillCompilerState = (skills: SkillDefinition[]): SkillCompilerState => {
-  const uniqueSkillList = uniqueSkills(skills)
-  const runtimeTools = createSkillFileRuntimeTools(uniqueSkillList)
-
-  return {
-    skills: uniqueSkillList,
-    skillNames: uniqueSkillList.map((skill) => skill.name),
-    runtimeTools: runtimeTools.length ? runtimeTools : undefined,
-  }
-}
-
 export const compileSkillInstructions = async (
   skills: SkillDefinition[],
 ): Promise<ChatCompletionSystemMessageParam | undefined> => {
@@ -205,10 +163,4 @@ export const compileSkillInstructions = async (
     role: 'system',
     content: ['Apply these skill instructions when generating the response.', ...instructions].join('\n\n'),
   }
-}
-
-export const compileSkillTools = (state: Pick<SkillCompilerState, 'skills' | 'runtimeTools'>): ToolProviderItem[] => {
-  const skillTools = state.skills.flatMap((skill) => skill.tools ?? [])
-
-  return [...(state.runtimeTools ?? []), ...skillTools]
 }

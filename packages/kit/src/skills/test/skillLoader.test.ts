@@ -176,7 +176,7 @@ describe('SkillLoader', () => {
     ).toThrow('notes.md: Duplicate skill file path: notes.md')
   })
 
-  it('parses valid tools and reports invalid tools', () => {
+  it('keeps json files as regular skill files', () => {
     const loadedSkill = new SkillLoader().load([
       {
         path: 'SKILL.md',
@@ -184,7 +184,7 @@ describe('SkillLoader', () => {
         content: ['---', 'name: tool-skill', 'description: Tool skill', '---', '', '# Tool'].join('\n'),
       },
       {
-        path: 'tools.json',
+        path: 'references/weather-format.json',
         kind: 'text',
         content: JSON.stringify({
           type: 'function',
@@ -200,28 +200,7 @@ describe('SkillLoader', () => {
       },
     ])
 
-    expect(loadedSkill.skill.tools?.map((tool) => tool.function.name)).toEqual(['run_tool'])
+    expect(loadedSkill.skill.files?.map((file) => file.path)).toEqual(['references/weather-format.json'])
     expect(loadedSkill.warnings).toEqual([])
-
-    const invalidSkill = new SkillLoader().load([
-      {
-        path: 'SKILL.md',
-        kind: 'text',
-        content: ['---', 'name: invalid-tool-skill', 'description: Invalid tool skill', '---', '', '# Tool'].join('\n'),
-      },
-      {
-        path: 'tools.json',
-        kind: 'text',
-        content: JSON.stringify({ type: 'invalid' }),
-      },
-    ])
-
-    expect(invalidSkill.skill.tools).toBeUndefined()
-    expect(invalidSkill.warnings).toMatchObject([
-      {
-        code: 'tools-parse-failed',
-        path: 'tools.json',
-      },
-    ])
   })
 })

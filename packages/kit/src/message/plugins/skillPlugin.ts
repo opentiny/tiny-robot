@@ -1,16 +1,19 @@
+import { compileSkillInstructions, createSkillFileRuntimeTools } from '../../skills/compiler'
+import type { SkillDefinition } from '../../skills/types'
 import type { MaybePromise } from '../../types'
 import type { BasePluginContext, MessageEnginePlugin } from '../types'
-import { compileSkillInstructions, compileSkillTools, createSkillCompilerState } from '../../skills/compiler'
-import type { SkillCompilerState } from '../../skills/compiler'
-import type { SkillDefinition } from '../../skills/types'
-import type { ToolProvider } from './toolPlugin'
+import type { RuntimeTool, ToolProvider } from './toolPlugin'
 
 /**
  * Skill 插件的转换状态。
  *
  * 该状态会写入 customContext.__tiny_robot_skill，供消息钩子和插件回调读取同一份编译结果。
  */
-export type SkillPluginState = SkillCompilerState
+export interface SkillPluginState {
+  skills: SkillDefinition[]
+  skillNames: string[]
+  runtimeTools: RuntimeTool[]
+}
 
 /**
  * 将已选择的 skills 转换为消息指令和工具的配置项。
@@ -38,10 +41,15 @@ export const skillPlugin = (options: SkillPluginOptions): MessageEnginePlugin & 
     ...restOptions,
     provideTools: async (context: BasePluginContext) => {
       const state = context.customContext[skillPluginContextKey] as SkillPluginState | undefined
-      return state ? compileSkillTools(state) : []
+      return state?.runtimeTools ?? []
     },
     onTurnStart: async (context) => {
-      const state = createSkillCompilerState((await getSkills?.(context)) ?? [])
+      const skills = (await getSkills?.(context)) ?? []
+      const state: SkillPluginState = {
+        skills,
+        skillNames: skills.map((skill) => skill.name),
+        runtimeTools: createSkillFileRuntimeTools(skills),
+      }
 
       context.setCustomContext({ [skillPluginContextKey]: state })
 

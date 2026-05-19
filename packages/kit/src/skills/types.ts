@@ -1,5 +1,3 @@
-import type { ChatCompletionFunctionTool } from 'openai/resources'
-
 export type SkillFileKind = 'text' | 'binary'
 
 /**
@@ -65,10 +63,6 @@ export interface SkillDefinition {
    * 注入模型请求的指令。
    */
   instructions: string
-  /**
-   * skill 暴露的函数工具。
-   */
-  tools?: ChatCompletionFunctionTool[]
   /**
    * 可供 skill 文件运行时工具读取的文件。
    */

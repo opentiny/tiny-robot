@@ -12,24 +12,12 @@ const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
 
 describe('skillPlugin', () => {
-  it('injects skill instructions and tools before request', async () => {
+  it('injects skill instructions before request', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
-    const skillTool = {
-      type: 'function',
-      function: {
-        name: 'get_weather',
-        description: 'Get weather',
-        parameters: {
-          type: 'object',
-          properties: {},
-        },
-      },
-    } as const
     const weatherSkill: SkillDefinition = {
       name: 'weather',
       description: 'Weather skill',
       instructions: 'Use wttr.in for weather requests.',
-      tools: [skillTool],
     }
 
     const engine = createTestMessageEngine({
@@ -54,7 +42,7 @@ describe('skillPlugin', () => {
       content: expect.stringContaining('Use wttr.in for weather requests.'),
     })
     expect(requestBody.messages[1]).toMatchObject({ role: 'user', content: 'weather in London' })
-    expect(requestBody.tools).toEqual([skillTool])
+    expect(requestBody.tools).toBeUndefined()
   })
 
   it('executes built-in skill file runtime tools from turn state', async () => {
