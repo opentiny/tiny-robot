@@ -12,7 +12,7 @@ outline: [1, 3]
 
 <demo
   vue="../../demos/anchor/controlled-search.vue"
-  :vueFiles="['../../demos/anchor/controlled-search.vue', '../../demos/anchor/controlled-search.messages.ts']"
+  :vueFiles="['../../demos/anchor/controlled-search.vue', '../../demos/anchor/controlled-search.messages.ts', '../../demos/anchor/demo-shell.css']"
 />
 
 使用要点：
@@ -28,7 +28,7 @@ outline: [1, 3]
 
 <demo
   vue="../../demos/anchor/basic-source.vue"
-  :vueFiles="['../../demos/anchor/basic-source.vue', '../../demos/anchor/basic-source.messages.ts']"
+  :vueFiles="['../../demos/anchor/basic-source.vue', '../../demos/anchor/basic-source.messages.ts', '../../demos/anchor/demo-shell.css']"
 />
 
 使用要点：
