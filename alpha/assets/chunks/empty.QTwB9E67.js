@@ -1,0 +1,1 @@
+import{N as a}from"./theme.BrKp_t0z.js";import{Y as t,b1 as o,z as r,bH as n,b9 as s}from"./framework.Ck99i4t_.js";const u=t({__name:"empty",setup(c){const e=s([]);return(p,m)=>(o(),r(n(a),{data:e},null,8,["data"]))}});export{u as default};
