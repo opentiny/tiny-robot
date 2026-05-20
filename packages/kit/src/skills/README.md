@@ -17,7 +17,7 @@ interface SkillDefinition {
   name: string
   description: string
   instructions: string
-  files?: SkillFileResource[]
+  files?: SkillFile[]
   metadata?: Record<string, unknown>
 }
 ```
@@ -36,7 +36,6 @@ interface SkillDefinition {
 
 - `SkillDefinition`
 - `SkillFile`
-- `SkillFileResource`
 - 文本和二进制 skill 文件类型
 
 该文件不包含运行逻辑。

@@ -113,7 +113,6 @@ describe('skillPlugin', () => {
       instructions: 'Follow Vue best practices.',
       files: [
         {
-          id: 'references/reactivity.md',
           path: 'references/reactivity.md',
           kind: 'text',
           content: '# Reactivity',
@@ -298,8 +297,8 @@ describe('skillPlugin', () => {
         ...silentDefaultPlugins,
         skillPlugin({
           getSkills: () => [weatherSkill],
-          onSkillsResolved: (state) => {
-            resolvedState(state.skillNames)
+          onSkillsResolved: (skillContext) => {
+            resolvedState(skillContext.skillNames)
           },
           onTurnStart: (context) => {
             turnStart(context.customContext.__tiny_robot_skill)

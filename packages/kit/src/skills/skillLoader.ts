@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml'
-import type { SkillDefinition, SkillFile, SkillFileResource } from './types'
+import type { SkillDefinition, SkillFile } from './types'
 import { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'
 
 export interface SkillLoaderResult {
@@ -72,7 +72,7 @@ export class SkillLoader {
     }
 
     const frontmatterMetadata = getRecord(frontmatter.metadata)
-    const skillFiles: SkillFileResource[] = []
+    const skillFiles: SkillFile[] = []
 
     for (const file of normalizedFiles) {
       if (file.path === this.entryFile) {
@@ -80,10 +80,7 @@ export class SkillLoader {
       }
 
       if (file.kind === 'binary') {
-        skillFiles.push({
-          ...file,
-          id: file.path,
-        })
+        skillFiles.push(file)
         continue
       }
 
@@ -96,10 +93,7 @@ export class SkillLoader {
         continue
       }
 
-      skillFiles.push({
-        ...file,
-        id: file.path,
-      })
+      skillFiles.push(file)
     }
 
     return {

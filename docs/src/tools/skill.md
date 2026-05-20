@@ -17,7 +17,7 @@ interface SkillDefinition {
   name: string
   description: string
   instructions: string
-  files?: SkillFileResource[]
+  files?: SkillFile[]
   metadata?: Record<string, unknown>
 }
 ```
@@ -354,15 +354,11 @@ interface BinarySkillFile extends BaseSkillFile {
 
 type SkillFile = TextSkillFile | BinarySkillFile
 
-type SkillFileResource = SkillFile & {
-  id: string
-}
-
 interface SkillDefinition {
   name: string
   description: string
   instructions: string
-  files?: SkillFileResource[]
+  files?: SkillFile[]
   metadata?: Record<string, unknown>
 }
 ```
@@ -453,7 +449,7 @@ function createSkillRuntimeTools(skills: SkillDefinition[]): RuntimeTool[]
 ### skillPlugin
 
 ```typescript
-interface SkillPluginState {
+interface SkillRequestContext {
   skills: SkillDefinition[]
   skillNames: string[]
   runtimeTools: RuntimeTool[]
@@ -461,7 +457,7 @@ interface SkillPluginState {
 
 interface SkillPluginOptions extends MessageEnginePlugin {
   getSkills?: (context: BasePluginContext) => MaybePromise<SkillDefinition[] | undefined>
-  onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
+  onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
 }
 
 function skillPlugin(options: SkillPluginOptions): MessageEnginePlugin & ToolProvider
@@ -476,6 +472,6 @@ type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueS
 interface UseMessageSkillPluginOptions extends UseMessagePlugin {
   skills?: VueSkillSourceRef
   getSkills?: (context: BasePluginContext) => MaybePromise<VueSkillSourceRef>
-  onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
+  onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
 }
 ```

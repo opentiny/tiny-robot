@@ -32,7 +32,7 @@ describe('SkillLoader', () => {
     })
     expect(skill.files).toBeDefined()
     expect(skill.files).toHaveLength(files.length - 1)
-    expect(skill.files?.map((file) => file.id)).toEqual(
+    expect(skill.files?.map((file) => file.path)).toEqual(
       expect.arrayContaining([
         'references/reactivity.md',
         'references/sfc.md',
@@ -40,7 +40,7 @@ describe('SkillLoader', () => {
         'references/composables.md',
       ]),
     )
-    expect(skill.files?.find((file) => file.id === 'references/reactivity.md')).toMatchObject({
+    expect(skill.files?.find((file) => file.path === 'references/reactivity.md')).toMatchObject({
       path: 'references/reactivity.md',
       kind: 'text',
       content: expect.stringContaining('# Reactivity'),
@@ -75,7 +75,6 @@ describe('SkillLoader', () => {
 
     expect(loadedSkill.skill.files).toEqual([
       {
-        id: 'assets/icon.png',
         path: 'assets/icon.png',
         kind: 'binary',
         content: image,

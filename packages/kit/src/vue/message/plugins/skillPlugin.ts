@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
-import type { SkillPluginState } from '../../../message/plugins'
+import type { SkillRequestContext } from '../../../message/plugins'
 import { skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
 import type { SkillCommandRequest, SkillCommandResult } from '../../../skills/compiler'
 import type { SkillDefinition } from '../../../skills/types'
@@ -27,9 +27,9 @@ export type UseMessageSkillPluginOptions = UseMessagePlugin & {
    */
   executeSkillCommand?: (request: SkillCommandRequest, context: BasePluginContext) => MaybePromise<SkillCommandResult>
   /**
-   * skills 解析并转换为插件状态后触发。
+   * skills 解析并转换为请求上下文后触发。
    */
-  onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
+  onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
 }
 
 const resolveSkillSource = (source: VueSkillSourceRef): VueSkillSource => {
@@ -53,7 +53,7 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
           ? (request, context) => executeSkillCommand(request, runtime.createVueBaseContext(context))
           : undefined,
         onSkillsResolved: onSkillsResolved
-          ? (state, context) => onSkillsResolved(state, runtime.createVueBaseContext(context))
+          ? (skillContext, context) => onSkillsResolved(skillContext, runtime.createVueBaseContext(context))
           : undefined,
       })
     },

@@ -1,7 +1,7 @@
 import type { ChatCompletionSystemMessageParam } from 'openai/resources'
 import type { RuntimeTool } from '../message/plugins/toolPlugin'
 import type { MaybePromise } from '../types'
-import type { SkillDefinition, SkillFileResource } from './types'
+import type { SkillDefinition, SkillFile } from './types'
 
 const skillFileToolNames = {
   listSkillFiles: 'list_skill_files',
@@ -100,9 +100,8 @@ const skillCommandTool: RuntimeTool['tool'] = {
   },
 }
 
-const getSkillFileSummary = (skillName: string, file: SkillFileResource) => ({
+const getSkillFileSummary = (skillName: string, file: SkillFile) => ({
   skillName,
-  id: file.id,
   path: file.path,
   kind: file.kind,
   mimeType: file.mimeType,

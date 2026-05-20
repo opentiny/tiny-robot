@@ -38,13 +38,6 @@ export interface BinarySkillFile extends BaseSkillFile {
 
 export type SkillFile = TextSkillFile | BinarySkillFile
 
-export type SkillFileResource = SkillFile & {
-  /**
-   * 所属 skill 内唯一的文件标识。
-   */
-  id: string
-}
-
 /**
  * skill 能力模板。
  *
@@ -66,7 +59,7 @@ export interface SkillDefinition {
   /**
    * 可供 skill 文件运行时工具读取的文件。
    */
-  files?: SkillFileResource[]
+  files?: SkillFile[]
   /**
    * 应用侧自定义元数据。
    */

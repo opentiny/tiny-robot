@@ -63,7 +63,6 @@ const allSkills: SkillDefinition[] = [
     instructions: 'Use weather references when the user asks about weather. Keep the answer concise.',
     files: [
       {
-        id: 'references/weather-format.md',
         path: 'references/weather-format.md',
         kind: 'text',
         content: 'Return current condition first, then one short forecast point.',

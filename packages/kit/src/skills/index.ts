@@ -11,13 +11,5 @@ export { SkillManager } from './manager'
 export type { SkillManagerOptions } from './manager'
 export { SkillLoader } from './skillLoader'
 export type { SkillLoaderOptions, SkillLoaderResult } from './skillLoader'
-export type {
-  BaseSkillFile,
-  BinarySkillFile,
-  SkillDefinition,
-  SkillFile,
-  SkillFileKind,
-  SkillFileResource,
-  TextSkillFile,
-} from './types'
+export type { BaseSkillFile, BinarySkillFile, SkillDefinition, SkillFile, SkillFileKind, TextSkillFile } from './types'
 export { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'

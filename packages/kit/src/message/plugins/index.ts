@@ -1,6 +1,6 @@
 export { lengthPlugin } from './lengthPlugin'
 export { skillPlugin } from './skillPlugin'
-export type { SkillPluginOptions, SkillPluginState } from './skillPlugin'
+export type { SkillPluginOptions, SkillRequestContext } from './skillPlugin'
 export { thinkingPlugin } from './thinkingPlugin'
 export { toolPlugin } from './toolPlugin'
 export type { RuntimeTool, ToolCallContext, ToolProvider, ToolProviderItem, ToolSource } from './toolPlugin'

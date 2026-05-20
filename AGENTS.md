@@ -79,12 +79,12 @@ skillPlugin({
 
 `SkillDefinition` currently contains `name`, `description`, `instructions`, optional `files`, and optional `metadata`.
 
-Plugin state uses:
+Skill request context uses:
 
 ```ts
-pluginState.skills
-pluginState.skillNames
-pluginState.runtimeTools
+skillContext.skills
+skillContext.skillNames
+skillContext.runtimeTools
 ```
 
 ## Important Files

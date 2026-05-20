@@ -10,7 +10,6 @@ describe('skill compiler', () => {
         instructions: 'Use docs.',
         files: [
           {
-            id: 'guide.md',
             path: 'guide.md',
             kind: 'text',
             content: '# Guide',
@@ -76,14 +75,12 @@ describe('skill compiler', () => {
         instructions: 'Use docs.',
         files: [
           {
-            id: 'guide.md',
             path: 'guide.md',
             kind: 'text',
             content: '# Guide',
             mimeType: 'text/markdown',
           },
           {
-            id: 'icon.png',
             path: 'icon.png',
             kind: 'binary',
             content: new Uint8Array([1, 2, 3]),
@@ -138,7 +135,6 @@ describe('skill compiler', () => {
         instructions: 'Use docs.',
         files: [
           {
-            id: 'guide.md',
             path: 'guide.md',
             kind: 'text',
             content: '# Guide',
@@ -151,7 +147,6 @@ describe('skill compiler', () => {
         instructions: 'Use Vue.',
         files: [
           {
-            id: 'sfc.md',
             path: 'sfc.md',
             kind: 'text',
             content: '# SFC',
@@ -178,7 +173,6 @@ describe('skill compiler', () => {
         instructions: 'Use docs.',
         files: [
           {
-            id: 'guide.md',
             path: 'guide.md',
             kind: 'text',
             content: '# Guide',

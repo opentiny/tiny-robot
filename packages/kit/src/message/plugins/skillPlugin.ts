@@ -6,11 +6,11 @@ import type { BasePluginContext, MessageEnginePlugin } from '../types'
 import type { RuntimeTool, ToolProvider } from './toolPlugin'
 
 /**
- * Skill 插件的转换状态。
+ * 当前请求的 skill 上下文。
  *
- * 该状态会写入 customContext.__tiny_robot_skill，供消息钩子和插件回调读取同一份编译结果。
+ * 该上下文会写入 customContext.__tiny_robot_skill，供消息钩子和插件回调读取同一份请求级数据。
  */
-export interface SkillPluginState {
+export interface SkillRequestContext {
   skills: SkillDefinition[]
   skillNames: string[]
   runtimeTools: RuntimeTool[]
@@ -35,9 +35,9 @@ export type SkillPluginOptions = MessageEnginePlugin & {
    */
   executeSkillCommand?: (request: SkillCommandRequest, context: BasePluginContext) => MaybePromise<SkillCommandResult>
   /**
-   * skills 解析并规整为插件状态后触发。
+   * skills 解析并规整为请求上下文后触发。
    */
-  onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
+  onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
 }
 
 const skillPluginContextKey = '__tiny_robot_skill'
@@ -49,12 +49,12 @@ export const skillPlugin = (options: SkillPluginOptions): MessageEnginePlugin & 
     name: 'skill',
     ...restOptions,
     provideTools: async (context: BasePluginContext) => {
-      const state = context.customContext[skillPluginContextKey] as SkillPluginState | undefined
-      return state?.runtimeTools ?? []
+      const skillContext = context.customContext[skillPluginContextKey] as SkillRequestContext | undefined
+      return skillContext?.runtimeTools ?? []
     },
     onTurnStart: async (context) => {
       const skills = (await getSkills?.(context)) ?? []
-      const state: SkillPluginState = {
+      const skillContext: SkillRequestContext = {
         skills,
         skillNames: skills.map((skill) => skill.name),
         runtimeTools: createSkillRuntimeTools(skills, {
@@ -62,16 +62,16 @@ export const skillPlugin = (options: SkillPluginOptions): MessageEnginePlugin & 
         }),
       }
 
-      context.setCustomContext({ [skillPluginContextKey]: state })
+      context.setCustomContext({ [skillPluginContextKey]: skillContext })
 
-      await onSkillsResolved?.(state, context)
+      await onSkillsResolved?.(skillContext, context)
       return restOptions.onTurnStart?.(context)
     },
     onBeforeRequest: async (context) => {
-      const state = context.customContext[skillPluginContextKey] as SkillPluginState | undefined
+      const skillContext = context.customContext[skillPluginContextKey] as SkillRequestContext | undefined
 
-      if (state) {
-        const skillInstructions = await compileSkillInstructions(state.skills)
+      if (skillContext) {
+        const skillInstructions = await compileSkillInstructions(skillContext.skills)
         if (skillInstructions) {
           context.requestBody.messages = [skillInstructions, ...context.requestBody.messages]
         }
