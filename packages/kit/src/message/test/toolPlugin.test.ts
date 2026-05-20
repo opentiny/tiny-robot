@@ -107,6 +107,7 @@ describe('toolPlugin', () => {
       }),
       expect.objectContaining({
         toolMessage: expect.objectContaining({ role: 'tool' }),
+        toolSource: { type: 'toolPlugin' },
       }),
     )
     expect(fallbackCall).not.toHaveBeenCalled()
@@ -196,10 +197,44 @@ describe('toolPlugin', () => {
     )
   })
 
-  it('loads tools provided by other plugins', async () => {
-    const responseProvider = vi.fn(async () => {
+  it('loads tools provided by other plugins and passes provider source to fallback tool calls', async () => {
+    const fallbackCall = vi.fn(async () => 'provider result')
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['provided_tool'])
+
+        return {
+          id: 'provider-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-provider',
+                    type: 'function',
+                    function: {
+                      name: 'provided_tool',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
       return {
-        id: 'answer',
+        id: 'final-answer',
         object: 'chat.completion',
         created: Math.floor(Date.now() / 1000),
         model: 'mock',
@@ -217,7 +252,7 @@ describe('toolPlugin', () => {
     })
 
     const providerPlugin: MessageEnginePlugin & ToolProvider = {
-      name: 'provider',
+      name: 'external-tool-provider',
       provideTools: async () => [
         {
           type: 'function',
@@ -235,14 +270,24 @@ describe('toolPlugin', () => {
         providerPlugin,
         toolPlugin({
           getTools: async () => [],
-          callTool: async () => 'fallback',
+          callTool: fallbackCall,
         }),
       ],
       responseProvider,
     })
 
-    await engine.sendMessage('use provided tool')
+    await engine.sendMessage('call provided tool')
 
-    expect(responseProvider.mock.calls[0]?.[0].tools?.map((tool) => tool.function.name)).toEqual(['provided_tool'])
+    expect(fallbackCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'call-provider',
+      }),
+      expect.objectContaining({
+        toolSource: {
+          type: 'toolProvider',
+          pluginName: 'external-tool-provider',
+        },
+      }),
+    )
   })
 })

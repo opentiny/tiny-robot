@@ -27,6 +27,20 @@ interface SkillDefinition {
 - `instructions`：注入模型请求的核心指令，必填。
 - `files`：skill 目录中的附加文件资源，可通过基础文件工具读取。
 
+## 完整示例
+
+下面的示例把 loader、manager、compiler 放在同一条链路中展示：导入 skill 目录后，loader 解析出 `SkillDefinition`，manager 保存并选择 skill，compiler 输出最终会注入给模型的 system message 和基础文件工具。
+
+<demo
+  vue="../../demos/tools/skill/SkillInspector.vue"
+  :vueFiles="[
+    '../../demos/tools/skill/SkillInspector.vue',
+    '../../demos/tools/skill/useSkillInspector.ts',
+    '../../demos/tools/skill/exampleSkillFiles.ts',
+    '../../demos/tools/skill/SkillInspector.css'
+  ]"
+/>
+
 ## Loader
 
 Loader 的职责是把标准化后的 `SkillFile[]` 解析为 `SkillDefinition`。它不负责读取本地文件、浏览器文件或远程资源；这些工作由 file adapters 完成。
@@ -134,7 +148,7 @@ console.log(manager.list())
 manager.remove('weather')
 ```
 
-`set(skill)` 是唯一写入入口：不存在时新增，同名存在时覆盖。
+`set(skill)` 是直接写入入口：不存在时新增，同名存在时覆盖。需要从 `SkillFile[]` 解析并写入时，使用下面的 `import(files)`。
 
 ### 选择本次请求使用的 skills
 
@@ -258,6 +272,8 @@ import { createSkillRuntimeTools } from '@opentiny/tiny-robot-kit/core'
 const runtimeTools = createSkillRuntimeTools([docsSkill])
 const [listFiles, readFile] = runtimeTools
 
+// handler 的第一个参数来自模型返回的 tool_calls。
+// 这里手动构造该参数，只是为了展示工具执行效果。
 const listed = await listFiles.handler(
   {
     id: 'call_1',
@@ -309,4 +325,157 @@ useMessage({
     }),
   ],
 })
+```
+
+## API
+
+### 核心类型
+
+```typescript
+type SkillFileKind = 'text' | 'binary'
+
+interface BaseSkillFile {
+  path: string
+  mimeType?: string
+  size?: number
+  lastModified?: number
+  metadata?: Record<string, unknown>
+}
+
+interface TextSkillFile extends BaseSkillFile {
+  kind: 'text'
+  content: string
+}
+
+interface BinarySkillFile extends BaseSkillFile {
+  kind: 'binary'
+  content: ArrayBuffer | Uint8Array
+}
+
+type SkillFile = TextSkillFile | BinarySkillFile
+
+type SkillFileResource = SkillFile & {
+  id: string
+}
+
+interface SkillDefinition {
+  name: string
+  description: string
+  instructions: string
+  files?: SkillFileResource[]
+  metadata?: Record<string, unknown>
+}
+```
+
+### 文件适配器
+
+浏览器安全的文件适配器从 `@opentiny/tiny-robot-kit/core` 导出：
+
+```typescript
+function loadSkillFilesFromFileList(fileList: ArrayLike<BrowserFile>): Promise<SkillFile[]>
+
+function loadSkillFilesFromDirectoryHandle(directoryHandle: BrowserDirectoryHandle): Promise<SkillFile[]>
+```
+
+Node.js 文件系统适配器从 `@opentiny/tiny-robot-kit/node` 导出：
+
+```typescript
+interface FsSkillFilesOptions {
+  ignoredDirectories?: string[]
+}
+
+function loadSkillFilesFromFs(root: string, options?: FsSkillFilesOptions): Promise<SkillFile[]>
+```
+
+### SkillLoader
+
+```typescript
+interface SkillLoaderOptions {
+  entryFile?: string
+  strict?: boolean
+}
+
+interface SkillLoaderResult {
+  skill: SkillDefinition
+  warnings: Array<{
+    code: string
+    message: string
+    path?: string
+  }>
+}
+
+class SkillLoader {
+  constructor(options?: SkillLoaderOptions)
+  load(files: SkillFile[]): SkillLoaderResult
+}
+```
+
+### SkillManager
+
+```typescript
+interface SkillManagerOptions {
+  skills?: SkillDefinition[]
+  selectedSkillNames?: string[]
+}
+
+class SkillManager {
+  constructor(options?: SkillManagerOptions)
+
+  set(skill: SkillDefinition): SkillDefinition
+  remove(name: string): SkillDefinition | undefined
+  clear(): void
+
+  get(name: string): SkillDefinition | undefined
+  has(name: string): boolean
+  list(): SkillDefinition[]
+
+  select(names: string | string[]): void
+  unselect(names: string | string[]): void
+  getSelectedSkillNames(): string[]
+  getSelectedSkills(): SkillDefinition[]
+
+  import(files: SkillFile[], options?: SkillLoaderOptions): SkillLoaderResult
+}
+```
+
+### Compiler
+
+```typescript
+function compileSkillInstructions(
+  skills: SkillDefinition[],
+): Promise<ChatCompletionSystemMessageParam | undefined>
+
+function createSkillRuntimeTools(skills: SkillDefinition[]): RuntimeTool[]
+```
+
+`compileSkillInstructions` 会把 skill instructions 编译成 system message。`createSkillRuntimeTools` 会根据 `files` 生成基础文件 runtime tools；如果没有任何可用文件，则返回空数组。
+
+### skillPlugin
+
+```typescript
+interface SkillPluginState {
+  skills: SkillDefinition[]
+  skillNames: string[]
+  runtimeTools: RuntimeTool[]
+}
+
+interface SkillPluginOptions extends MessageEnginePlugin {
+  getSkills?: (context: BasePluginContext) => MaybePromise<SkillDefinition[] | undefined>
+  onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
+}
+
+function skillPlugin(options: SkillPluginOptions): MessageEnginePlugin & ToolProvider
+```
+
+Vue 入口还支持直接传入响应式的 `skills`：
+
+```typescript
+type VueSkillSource = SkillDefinition[] | undefined
+type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueSkillSource>
+
+interface UseMessageSkillPluginOptions extends UseMessagePlugin {
+  skills?: VueSkillSourceRef
+  getSkills?: (context: BasePluginContext) => MaybePromise<VueSkillSourceRef>
+  onSkillsResolved?: (state: SkillPluginState, context: BasePluginContext) => MaybePromise<void>
+}
 ```

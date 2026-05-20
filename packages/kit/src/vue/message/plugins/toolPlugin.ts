@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
-import type { ToolProviderItem } from '../../../message/plugins'
+import type { ToolProviderItem, ToolSource } from '../../../message/plugins'
 import { normalizeToAsyncGenerator } from '../../../message/utils'
 import { ChatMessage, ToolCall } from '../../../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
@@ -8,6 +8,10 @@ import { BasePluginContext, UseMessagePlugin } from '../types'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage
+  /**
+   * 当前工具的来源。
+   */
+  toolSource?: ToolSource
   /**
    * @deprecated use `assistantMessage` instead
    */
@@ -20,6 +24,10 @@ export interface UseMessageCallToolContext extends UseMessageToolActionContext {
 
 export interface UseMessageToolCallContext extends BasePluginContext {
   assistantMessage: ChatMessage
+  /**
+   * 当前工具的来源。
+   */
+  toolSource: ToolSource
   /**
    * @deprecated use `assistantMessage` instead
    */
@@ -124,6 +132,7 @@ export const toolPlugin = (
               assistantMessage,
               currentMessage: assistantMessage,
               toolMessage,
+              toolSource: context.toolSource,
             } as UseMessageCallToolContext,
           )
 
@@ -141,6 +150,7 @@ export const toolPlugin = (
                 assistantMessage,
                 primaryMessage: assistantMessage,
                 toolMessage,
+                toolSource: context.toolSource,
               })
             }
           : undefined,
@@ -154,6 +164,7 @@ export const toolPlugin = (
                 assistantMessage,
                 primaryMessage: assistantMessage,
                 toolMessage,
+                toolSource: context.toolSource,
                 status: context.status,
                 error: context.error,
               })

@@ -1,7 +1,7 @@
 import {
   SkillManager,
   compileSkillInstructions,
-  createSkillFileRuntimeTools,
+  createSkillRuntimeTools,
   loadSkillFilesFromFileList,
 } from '@opentiny/tiny-robot-kit/core'
 import type { SkillDefinition, SkillFile } from '@opentiny/tiny-robot-kit/core'
@@ -94,7 +94,7 @@ export const useSkillInspector = () => {
   const inspectedDefinitionJson = computed(() => JSON.stringify(inspectedSkill.value ?? null, null, 2))
 
   const compiledToolsJson = computed(() => {
-    const tools = createSkillFileRuntimeTools(selectedSkills.value).map((runtimeTool) => runtimeTool.tool)
+    const tools = createSkillRuntimeTools(selectedSkills.value).map((runtimeTool) => runtimeTool.tool)
     return JSON.stringify(tools, null, 2)
   })
 

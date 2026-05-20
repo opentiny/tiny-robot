@@ -13,9 +13,15 @@ type AssistantMessageWithState = ChatMessage<
   { toolCall?: Record<string, Record<string, unknown>> }
 >
 
+export type ToolSource = { type: 'toolPlugin' } | { type: 'toolProvider'; pluginName?: string } | { type: 'unknown' }
+
 export type ToolCallContext = BasePluginContext & {
   assistantMessage: AssistantMessageWithState
   toolMessage: ChatMessage
+  /**
+   * 当前工具的来源。
+   */
+  toolSource: ToolSource
 }
 
 type ToolCallResult = string | Record<string, any>
@@ -236,21 +242,36 @@ export const toolPlugin = (
   }
 
   const resolveTools = async (context: BasePluginContext, existingTools: ChatCompletionFunctionTool[] = []) => {
-    const providedToolItems: ToolProviderItem[] = []
+    const providedToolItems: Array<{ item: ToolProviderItem; source: ToolSource }> = []
 
     for (const plugin of context.plugins) {
       const toolProvider = getToolProvider(plugin)
       if (!isPluginDisabled(plugin, context) && toolProvider) {
-        providedToolItems.push(...(await toolProvider.provideTools(context)))
+        providedToolItems.push(
+          ...(await toolProvider.provideTools(context)).map((item) => ({
+            item,
+            source: {
+              type: 'toolProvider' as const,
+              pluginName: plugin.name,
+            },
+          })),
+        )
       }
     }
 
-    const toolItems = [...providedToolItems, ...(await getTools(context))]
+    const toolItems = [
+      ...providedToolItems,
+      ...(await getTools(context)).map((item) => ({
+        item,
+        source: { type: 'toolPlugin' as const },
+      })),
+    ]
     const tools: ChatCompletionFunctionTool[] = []
     const runtimeToolMap = new Map<string, RuntimeTool>()
+    const toolSourceMap = new Map<string, ToolSource>()
     const seenToolNames = new Set<string>()
 
-    const trackToolName = (tool: ChatCompletionFunctionTool) => {
+    const registerToolName = (tool: ChatCompletionFunctionTool) => {
       const toolName = tool.function.name
 
       if (seenToolNames.has(toolName)) {
@@ -262,12 +283,13 @@ export const toolPlugin = (
       seenToolNames.add(toolName)
     }
 
-    existingTools.forEach(trackToolName)
+    existingTools.forEach(registerToolName)
 
-    for (const toolItem of toolItems) {
+    for (const { item: toolItem, source } of toolItems) {
       const tool = isRuntimeTool(toolItem) ? toolItem.tool : toolItem
 
-      trackToolName(tool)
+      registerToolName(tool)
+      toolSourceMap.set(tool.function.name, source)
 
       if (isRuntimeTool(toolItem)) {
         tools.push(toolItem.tool)
@@ -277,7 +299,7 @@ export const toolPlugin = (
       }
     }
 
-    return { tools, runtimeToolMap }
+    return { tools, runtimeToolMap, toolSourceMap }
   }
 
   return {
@@ -326,7 +348,7 @@ export const toolPlugin = (
         assistantMessage: currentMessage as AssistantMessageWithState,
       })
 
-      const { runtimeToolMap } = await resolveTools(context)
+      const { runtimeToolMap, toolSourceMap } = await resolveTools(context)
 
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
@@ -343,15 +365,20 @@ export const toolPlugin = (
 
         appendMessage(toolMessage)
 
-        const contextWithToolMessage = {
+        const functionToolCall = isFunctionToolCall(toolCall) ? toolCall : undefined
+        const toolSource = functionToolCall
+          ? (toolSourceMap.get(functionToolCall.function.name) ?? { type: 'unknown' as const })
+          : { type: 'unknown' as const }
+
+        const contextWithToolMessage: ToolCallContext = {
           ...context,
           assistantMessage: currentMessage as AssistantMessageWithState,
           toolMessage,
+          toolSource,
         }
 
         toolCallStart(toolCall, contextWithToolMessage)
         try {
-          const functionToolCall = isFunctionToolCall(toolCall) ? toolCall : undefined
           const runtimeTool = functionToolCall ? runtimeToolMap.get(functionToolCall.function.name) : undefined
           const result =
             runtimeTool && functionToolCall
