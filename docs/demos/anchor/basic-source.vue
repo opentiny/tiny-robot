@@ -90,9 +90,9 @@ const items = sections.map((section) => ({
 }))
 </script>
 
-<style lang="less" scoped>
-@import './demo-shell.less';
+<style scoped src="./demo-shell.css"></style>
 
+<style scoped>
 .demo {
   --anchor-demo-gap: 14px;
   --anchor-demo-controls-gap: 10px 12px;
@@ -156,6 +156,7 @@ const items = sections.map((section) => ({
 }
 
 .nav {
+  top: 0;
   right: 16px;
 }
 </style>

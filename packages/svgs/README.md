@@ -3,6 +3,8 @@
 `@opentiny/tiny-robot-svgs` 是 TinyRobot 使用的 SVG 图标库。  
 它将每一个图标都封装为独立的 Vue 3 组件，方便在 TinyRobot 内外复用同一套图标资源。
 
+更完整的使用说明和图标集合可以查看文档站的 [SVG 图标](https://docs.opentiny.design/tiny-robot/icons/) 页面。
+
 ## 安装
 
 ```bash

@@ -30,7 +30,7 @@ const getShareUrl = () => {
     if (referrer) {
       const url = new URL(referrer)
       // 这里写死 pathname。https://playground.opentiny.design/tiny-robot.html
-      url.pathname = '/tiny-robot.html'
+      url.pathname = import.meta.env.VITE_PLAYGROUND_SHARE_PATH || '/tiny-robot.html'
       url.hash = currentHash
       return url.toString()
     }

@@ -24,6 +24,8 @@ TinyRobot 由以下几个核心包组成：
 - `@opentiny/tiny-robot-kit`：工具函数库，提供常用的辅助方法和工具
 - `@opentiny/tiny-robot-svgs`：图标库，包含组件所需的 SVG 图标资源
 
+如果你需要单独使用图标或查看图标集合，可以直接跳转到 [SVG 图标](/icons/) 文档。
+
 ### 安装命令
 
 在项目的根目录中，打开控制台，执行以下命令安装 TinyRobot 组件库：
@@ -157,6 +159,7 @@ app.mount('#app')
 - 查看[**主题配置**](/guide/theme-config)了解如何自定义主题样式
 - 浏览[**更新日志**](/guide/update-log)查看最新版本变更
 - 探索[**组件文档**](/components/container)了解所有可用组件
+- 查看[**SVG 图标**](/icons/)了解独立图标包的用法与图标集合
 - 查看[**综合示例**](/examples/assistant)获取完整的应用演示
 
 如果遇到问题，欢迎在 [GitHub Issues](https://github.com/opentiny/tiny-robot/issues) 中反馈。
