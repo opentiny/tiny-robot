@@ -109,6 +109,16 @@
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
 
+  /* ===== Anchor ===== */
+  --tr-anchor-bg: #ffffff;
+  --tr-anchor-border: transparent;
+  --tr-anchor-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-anchor-item-color: var(--tr-text-primary);
+  --tr-anchor-marker-color: var(--tr-text-disabled);
+  --tr-anchor-tooltip-bg: #ffffff;
+  --tr-anchor-tooltip-color: var(--tr-text-primary);
+  --tr-anchor-tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #ffffff;
   --tr-mcp-server-picker-bg-default-2: #ffffff;
@@ -233,6 +243,16 @@
   --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
   --tr-container-bg-active: rgba(255, 255, 255, 0.15);
   --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
+
+  /* ===== Anchor ===== */
+  --tr-anchor-bg: #333333;
+  --tr-anchor-border: transparent;
+  --tr-anchor-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-anchor-item-color: var(--tr-text-primary);
+  --tr-anchor-marker-color: var(--tr-text-secondary);
+  --tr-anchor-tooltip-bg: #484848;
+  --tr-anchor-tooltip-color: var(--tr-text-primary);
+  --tr-anchor-tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);

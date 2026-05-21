@@ -100,7 +100,7 @@ const items = sections.map((section) => ({
 
 .tip {
   margin: 0;
-  color: #4f647a;
+  color: var(--tr-text-secondary);
   line-height: 1.5;
 }
 
@@ -110,13 +110,14 @@ const items = sections.map((section) => ({
   height: 100%;
   overflow: auto;
   padding: 24px 28px;
+  color: #191919;
 }
 
 .article-section {
   padding: 20px 24px;
-  border: 1px solid #eef3f8;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  background: #fff;
+  color: var(--tr-text-secondary);
   scroll-margin-top: 16px;
 }
 
@@ -130,14 +131,14 @@ const items = sections.map((section) => ({
     background-color: #b9d7ff;
   }
   45% {
-    background-color: #fff;
+    background-color: var(--vp-c-bg);
   }
   65%,
   85% {
     background-color: #b9d7ff;
   }
   100% {
-    background-color: #fff;
+    background-color: var(--vp-c-bg);
   }
 }
 
