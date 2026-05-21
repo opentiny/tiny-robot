@@ -353,3 +353,12 @@ selectionStatus: 'pending' | 'done'
 - 为 `read_skill_file` 增加大小限制和截断策略。
 - 为重复 skill 名称增加诊断能力，优先放在 manager 或选择逻辑中。
 - 评估 auto skill selection 是否需要独立 selector 层。
+- search text tool
+- 消息模型
+  system skill name + description, prompt提示当前环境
+  user message
+  llm select，直接获取skill file
+- mcp沙盒
+- 手动@选择一个skill，system prompt提示优先使用当前skill
+- 文件存储 storageStrategy
+- 文档描述优化
