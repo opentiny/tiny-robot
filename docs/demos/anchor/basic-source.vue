@@ -110,7 +110,6 @@ const items = sections.map((section) => ({
   height: 100%;
   overflow: auto;
   padding: 24px 28px;
-  color: #191919;
 }
 
 .article-section {
