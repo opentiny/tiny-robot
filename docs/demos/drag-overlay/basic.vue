@@ -134,7 +134,7 @@ function handleFilesRejected(rejection: FileRejection) {
 .demo-section {
   margin-bottom: 10px;
   padding: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
 }
 
@@ -152,19 +152,18 @@ function handleFilesRejected(rejection: FileRejection) {
 
 .demo-section h3 {
   margin-top: 0;
-  color: #333;
+  color: var(--vp-c-text-1);
 }
 
 .demo-section p {
-  color: #666;
+  color: var(--vp-c-text-1);
   margin-bottom: 16px;
 }
 
 /* 聊天容器样式 */
 .chat-container {
-  border: 1px solid #ddd;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
-  background: white;
   min-height: 300px;
   display: flex;
   flex-direction: column;
@@ -174,8 +173,7 @@ function handleFilesRejected(rejection: FileRejection) {
 
 .chat-header {
   padding: 12px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  border: 1px solid var(--vp-c-divider);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -183,7 +181,7 @@ function handleFilesRejected(rejection: FileRejection) {
 
 .chat-header h4 {
   margin: 0;
-  color: #333;
+  color: var(--vp-c-text-1);
 }
 
 .drag-indicator {
@@ -213,8 +211,8 @@ function handleFilesRejected(rejection: FileRejection) {
 }
 
 .message-content {
-  background: #f1f3f4;
   padding: 8px 12px;
+  background-color: var(--tr-bubble-box-bg);
   border-radius: 18px;
   display: inline-block;
   max-width: 70%;
@@ -222,7 +220,7 @@ function handleFilesRejected(rejection: FileRejection) {
 
 .chat-input {
   padding: 12px 16px;
-  border-top: 1px solid #e9ecef;
+  border: 1px solid var(--vp-c-divider);
   display: flex;
   gap: 8px;
 }
@@ -230,7 +228,7 @@ function handleFilesRejected(rejection: FileRejection) {
 .chat-input input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 20px;
   outline: none;
 }
