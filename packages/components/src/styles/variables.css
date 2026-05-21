@@ -122,7 +122,7 @@
   --tr-attachments-action-hover-bg: transparent;
   --tr-attachments-retry-color: var(--tr-color-primary);
   --tr-attachments-retry-hover-bg: rgba(20, 118, 255, 0.05);
-  --tr-attachments-close-icon-color: var(--tr-text-secondary);
+  --tr-attachments-close-icon-color: #c2c2c2;
   --tr-attachments-close-icon-hover-color: var(--tr-text-primary);
   --tr-attachments-status-overlay-bg: rgba(0, 0, 0, 0.4);
   --tr-attachments-picture-overlay-color: #ffffff;
@@ -267,7 +267,7 @@
   --tr-attachments-action-hover-bg: transparent;
   --tr-attachments-retry-color: var(--tr-color-primary);
   --tr-attachments-retry-hover-bg: rgba(82, 145, 255, 0.12);
-  --tr-attachments-close-icon-color: var(--tr-text-secondary);
+  --tr-attachments-close-icon-color: #4d4d4d;
   --tr-attachments-close-icon-hover-color: var(--tr-text-primary);
   --tr-attachments-status-overlay-bg: rgba(0, 0, 0, 0.4);
   --tr-attachments-picture-overlay-color: #ffffff;
