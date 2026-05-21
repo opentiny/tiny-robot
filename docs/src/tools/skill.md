@@ -10,6 +10,16 @@ Skill 是一组可复用的能力模板。一个 skill 至少包含名称、描�
 - **Loader / Manager**：把 `SkillFile[]` 解析为 `SkillDefinition`，并管理 skill 集合与选择状态。
 - **Compiler**：把已选 `SkillDefinition[]` 编译为 message engine 可消费的 instructions 和运行时文件工具。
 
+`SkillManager` 是可选中间层。如果业务侧已经有自己的状态管理，可以直接把 `SkillDefinition[]` 交给 compiler 或 `skillPlugin`。
+
+```text
+File Adapter -> Loader -------> SkillDefinition[] -> Compiler -> message engine
+                  |                   ^
+                  | optional          |
+                  v                   |
+              SkillManager -----------+
+```
+
 ## 基本数据模型
 
 ```typescript
