@@ -136,10 +136,17 @@ const boxAttributes: BubbleBoxAttributesConfig = (groupedMessages) => {
 }
 
 .conversation-list {
+  --anchor-bubble-bg: var(--tr-color-primary-light);
+  --anchor-bubble-active-bg: #b9d7ff;
   --tr-bubble-list-gap: 16px;
   --tr-bubble-list-padding: 24px 72px 40px;
   --tr-bubble-max-width: 560px;
   height: 100%;
+}
+
+:global([data-tr-color-mode='dark'] .conversation-list) {
+  --anchor-bubble-bg: color-mix(in srgb, #317af7 30%, var(--tr-container-bg-default));
+  --anchor-bubble-active-bg: color-mix(in srgb, #317af7 40%, var(--tr-container-bg-default));
 }
 
 .nav.is-right {
@@ -151,7 +158,7 @@ const boxAttributes: BubbleBoxAttributesConfig = (groupedMessages) => {
 }
 
 :deep(.user-bubble-target) {
-  --tr-bubble-box-bg: var(--tr-color-primary-light);
+  --tr-bubble-box-bg: var(--anchor-bubble-bg);
   scroll-margin-top: 20px;
 }
 
@@ -162,17 +169,17 @@ const boxAttributes: BubbleBoxAttributesConfig = (groupedMessages) => {
 @keyframes user-bubble-active-flash {
   0%,
   25% {
-    background-color: #b9d7ff;
+    background-color: var(--anchor-bubble-active-bg);
   }
   45% {
-    background-color: var(--tr-color-primary-light);
+    background-color: var(--anchor-bubble-bg);
   }
   65%,
   85% {
-    background-color: #b9d7ff;
+    background-color: var(--anchor-bubble-active-bg);
   }
   100% {
-    background-color: var(--tr-color-primary-light);
+    background-color: var(--anchor-bubble-bg);
   }
 }
 </style>

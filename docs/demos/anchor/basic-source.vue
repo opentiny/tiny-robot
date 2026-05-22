@@ -105,11 +105,16 @@ const items = sections.map((section) => ({
 }
 
 .article {
+  --anchor-section-active-bg: #b9d7ff;
   display: grid;
   gap: 16px;
   height: 100%;
   overflow: auto;
   padding: 24px 28px;
+}
+
+:global([data-tr-color-mode='dark'] .article) {
+  --anchor-section-active-bg: color-mix(in srgb, #317af7 40%, var(--vp-c-bg));
 }
 
 .article-section {
@@ -127,14 +132,14 @@ const items = sections.map((section) => ({
 @keyframes section-active {
   0%,
   25% {
-    background-color: #b9d7ff;
+    background-color: var(--anchor-section-active-bg);
   }
   45% {
     background-color: var(--vp-c-bg);
   }
   65%,
   85% {
-    background-color: #b9d7ff;
+    background-color: var(--anchor-section-active-bg);
   }
   100% {
     background-color: var(--vp-c-bg);
