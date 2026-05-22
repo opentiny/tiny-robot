@@ -149,6 +149,62 @@ export const createMessageEngine = (
     return runtimeMessages
   }
 
+  const findLastAssistantMessageWithToolCalls = () => {
+    const messages = getState().messages
+    const lastAssistant = messages
+      .map((message, index) => ({ message, index }))
+      .slice()
+      .reverse()
+      .find(({ message }) => message.role === 'assistant')
+
+    return lastAssistant?.message.tool_calls?.length ? lastAssistant : undefined
+  }
+
+  const getToolMessagesAfter = (index: number) => {
+    const messages = getState().messages
+    const nextMessages = messages.slice(index + 1)
+    const nextAssistantIndex = nextMessages.findIndex((message) => message.role === 'assistant')
+    const messagesBeforeNextAssistant =
+      nextAssistantIndex === -1 ? nextMessages : nextMessages.slice(0, nextAssistantIndex)
+
+    return messagesBeforeNextAssistant.filter((message) => message.role === 'tool')
+  }
+
+  const allToolCallsHaveResults = (assistantMessage: ChatMessage, toolMessages: ChatMessage[]) => {
+    const expectedIds = assistantMessage.tool_calls?.map((toolCall) => toolCall.id) ?? []
+    const resultIds = new Set(toolMessages.map((message) => message.tool_call_id).filter(Boolean))
+
+    return expectedIds.length > 0 && expectedIds.every((id) => resultIds.has(id))
+  }
+
+  const updateSubmittedToolCallStates = (assistantMessageIndex: number, toolMessages: ChatMessage[]) => {
+    mutate('messages', (draft) => {
+      const assistantMessage = draft.messages[assistantMessageIndex]
+      if (!assistantMessage) {
+        return
+      }
+
+      assistantMessage.state ??= {}
+      const state = assistantMessage.state as Record<string, unknown>
+      state.toolCall ??= {}
+      const toolCallState = state.toolCall as Record<string, Record<string, unknown>>
+
+      for (const toolMessage of toolMessages) {
+        const toolCallId = toolMessage.tool_call_id
+        if (!toolCallId) {
+          continue
+        }
+
+        toolCallState[toolCallId] ??= {}
+        const currentStatus = toolCallState[toolCallId].status
+        toolCallState[toolCallId].status =
+          toolMessage.metadata?.toolCallStatus ??
+          (currentStatus === 'awaiting-approval' ? 'success' : currentStatus) ??
+          'success'
+      }
+    })
+  }
+
   // Create base context for plugins
   const getBaseContext = (abortSignal: AbortSignal): BasePluginContext => ({
     getState,
@@ -443,6 +499,44 @@ export const createMessageEngine = (
     await runTurn()
   }
 
+  async function submitToolResult(message: ChatMessage | ChatMessage[]) {
+    if (getState().requestState === 'processing') {
+      console.warn('Cannot submit tool result while processing is in progress')
+      return
+    }
+
+    const messages = Array.isArray(message) ? message : [message]
+    if (messages.some((item) => item.role !== 'tool')) {
+      console.warn('submitToolResult only accepts messages with role "tool"')
+      return
+    }
+
+    const pendingAssistant = findLastAssistantMessageWithToolCalls()
+    if (!pendingAssistant) {
+      console.warn('Cannot submit tool result without a pending assistant tool call')
+      return
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    appendMessages(
+      ...messages.map((item) => ({
+        ...item,
+        metadata: {
+          createdAt: now,
+          updatedAt: now,
+          ...item.metadata,
+        },
+      })),
+    )
+
+    const toolMessages = getToolMessagesAfter(pendingAssistant.index)
+    updateSubmittedToolCallStates(pendingAssistant.index, toolMessages)
+
+    if (allToolCallsHaveResults(pendingAssistant.message, toolMessages)) {
+      await runTurn()
+    }
+  }
+
   async function abort() {
     runtime.abortController?.abort()
 
@@ -465,6 +559,7 @@ export const createMessageEngine = (
     subscribe,
     sendMessage,
     send,
+    submitToolResult,
     abort,
     setResponseProvider(provider) {
       runtime.responseProvider = provider

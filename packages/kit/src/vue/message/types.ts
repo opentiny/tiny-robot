@@ -119,6 +119,7 @@ export interface UseMessageReturn {
   isProcessing: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
+  submitToolResult: (message: ChatMessage | ChatMessage[]) => Promise<void>
   abortRequest: () => Promise<void>
 }
 

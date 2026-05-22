@@ -186,6 +186,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     isProcessing: adapter.isProcessing,
     sendMessage: engine.sendMessage,
     send: engine.send,
+    submitToolResult: engine.submitToolResult,
     abortRequest: engine.abort,
   } as UseMessageReturn
 }

@@ -302,6 +302,15 @@ useMessage({
 })
 ```
 
+##### 工具调用确认示例
+
+当工具调用需要用户确认时，可以使用 `confirmToolCall` 将单个工具调用标记为等待确认。内置 Tool 渲染器会在
+`state.toolCall[toolCallId].status === 'awaiting-approval'` 时展示“允许 / 拒绝”按钮；按钮点击后通过
+Bubble 的 `state-change` 事件触发 `toolCallDecision`，业务侧执行或拒绝工具调用，并通过 `submitToolResult`
+提交对应的 `role: 'tool'` 结果消息。上一个 assistant message 的全部 `tool_calls` 都有结果后，kit 会继续发起下一轮请求。
+
+<demo vue="../../demos/tools/message/ToolCallConfirm.vue" :vueFiles="['../../demos/tools/message/ToolCallConfirm.ts', '../../demos/tools/message/ToolCallConfirm.vue']" />
+
 ##### 搭配 MCP 服务
 
 `toolPlugin` 可以搭配 MCP（Model Context Protocol）服务使用，扩展 AI 的工具调用能力。以下示例展示如何接入高德地图 MCP 服务。

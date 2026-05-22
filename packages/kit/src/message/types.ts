@@ -66,6 +66,7 @@ export interface MessageEngine {
   subscribe(kinds: MessageUpdateKinds, listener: (state: PublicMessageState) => void): () => void
   sendMessage(content: string): Promise<void>
   send(...msgs: ChatMessage[]): Promise<void>
+  submitToolResult(message: ChatMessage | ChatMessage[]): Promise<void>
   abort(): Promise<void>
   setResponseProvider(provider: ResponseProvider): void
 }

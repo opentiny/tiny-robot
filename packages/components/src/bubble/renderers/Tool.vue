@@ -16,10 +16,12 @@ const props = defineProps<
 const { toolCall, toolCallWithResult, state } = useToolCall(props)
 
 const textAndIconMap = new Map<string, { text: string; icon: Component }>([
+  ['awaiting-approval', { text: '等待确认', icon: IconPlugin }],
   ['running', { text: '正在调用', icon: IconLoading }],
   ['success', { text: '已调用', icon: IconPlugin }],
   ['failed', { text: '调用失败', icon: IconError }],
   ['cancelled', { text: '已取消', icon: IconCancelled }],
+  ['denied', { text: '已拒绝', icon: IconCancelled }],
 ])
 
 const textAndIcon = computed(() => {
@@ -86,6 +88,7 @@ const detail = computed(() => {
 })
 
 const detailRef = ref<HTMLDivElement | null>(null)
+const approvalSubmitted = ref(false)
 
 watch(jsonStr, (_, oldValue) => {
   if (oldValue === '' || oldValue === '{}') {
@@ -108,6 +111,10 @@ const open = ref(false)
 
 watchEffect(() => {
   open.value = state.value.open ?? false
+
+  if (state.value.status !== 'awaiting-approval') {
+    approvalSubmitted.value = false
+  }
 })
 
 const handleStateChange = useBubbleStateChangeFn()
@@ -123,6 +130,19 @@ const handleClick = () => {
     })
   }
 }
+
+const handleDecision = (action: 'allow' | 'deny') => {
+  const toolCallId = toolCall.value?.id
+  if (!toolCallId) {
+    return
+  }
+
+  approvalSubmitted.value = true
+  handleStateChange('toolCallDecision', {
+    toolCallId,
+    decision: { action },
+  })
+}
 </script>
 
 <template>
@@ -136,6 +156,14 @@ const handleClick = () => {
         </span>
       </div>
       <div class="header-right">
+        <div v-if="state.status === 'awaiting-approval' && !approvalSubmitted" class="approval-actions">
+          <button class="approval-button approval-button--allow" type="button" @click.stop="handleDecision('allow')">
+            允许
+          </button>
+          <button class="approval-button approval-button--deny" type="button" @click.stop="handleDecision('deny')">
+            拒绝
+          </button>
+        </div>
         <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !open }" @click="handleClick" />
       </div>
     </div>
@@ -187,6 +215,7 @@ const handleClick = () => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    gap: 8px;
   }
 
   .header-icon {
@@ -198,12 +227,14 @@ const handleClick = () => {
       animation: spin 1s linear infinite;
     }
 
+    &.icon-awaiting-approval,
     &.icon-success {
       color: #898989;
     }
 
     &.icon-failed,
-    &.icon-cancelled {
+    &.icon-cancelled,
+    &.icon-denied {
       color: var(--tr-color-error);
     }
   }
@@ -215,6 +246,34 @@ const handleClick = () => {
     &.-rotate-90 {
       transform: rotate(-90deg);
     }
+  }
+}
+
+.approval-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.approval-button {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--tr-border-color-default);
+  background: var(--tr-container-bg-default);
+  color: var(--tr-text-primary);
+  font-size: 12px;
+  line-height: 22px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--tr-color-primary);
+    color: var(--tr-color-primary);
+  }
+
+  &--deny:hover {
+    border-color: var(--tr-color-error);
+    color: var(--tr-color-error);
   }
 }
 

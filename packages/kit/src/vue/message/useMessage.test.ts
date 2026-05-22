@@ -1,10 +1,22 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
+
+const waitFor = async (condition: () => boolean, timeout = 1000) => {
+  const startedAt = Date.now()
+
+  while (!condition()) {
+    if (Date.now() - startedAt > timeout) {
+      throw new Error('Timed out waiting for condition')
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+  }
+}
 
 describe('useMessage', () => {
   it('uses the core vue adapter while keeping the original return shape', async () => {
@@ -187,6 +199,244 @@ describe('useMessage', () => {
       content: 'prefix result',
     })
     expect(engine.messages.value[3]).toMatchObject({
+      role: 'assistant',
+      content: 'done',
+    })
+  })
+
+  it('waits for submitted tool results before continuing confirmed tool calls', async () => {
+    const callTool = vi.fn()
+    const secondRequestToolMessages: ChatMessage[] = []
+    let requestCount = 0
+
+    const responseProvider = mockSequentialResponseProvider([
+      {
+        finish_reason: 'tool_calls',
+        content: '',
+        tool_calls: [
+          {
+            index: 0,
+            id: 'call-allow',
+            type: 'function',
+            function: {
+              name: 'lookup',
+              arguments: '{}',
+            },
+          },
+          {
+            index: 1,
+            id: 'call-deny',
+            type: 'function',
+            function: {
+              name: 'delete',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        content: 'done',
+        onRequest(requestBody) {
+          requestCount += 1
+          secondRequestToolMessages.push(
+            ...(requestBody.messages.filter((message) => message.role === 'tool') as ChatMessage[]),
+          )
+        },
+      },
+    ])
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          async getTools() {
+            return [
+              {
+                type: 'function',
+                function: {
+                  name: 'lookup',
+                },
+              },
+              {
+                type: 'function',
+                function: {
+                  name: 'delete',
+                },
+              },
+            ]
+          },
+          confirmToolCall(toolCall, context) {
+            expect(context.assistantMessage.tool_calls?.some((item) => item.id === toolCall.id)).toBe(true)
+            return true
+          },
+          callTool,
+        }),
+      ],
+    })
+
+    await engine.sendMessage('ping')
+
+    await waitFor(() => engine.messages.value[1]?.state?.toolCall?.['call-allow']?.status === 'awaiting-approval')
+    expect(engine.messages.value[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-allow': { status: 'awaiting-approval' },
+          'call-deny': { status: 'awaiting-approval' },
+        },
+      },
+    })
+    expect(callTool).not.toHaveBeenCalled()
+    expect(engine.messages.value).toHaveLength(2)
+
+    await engine.submitToolResult({
+      role: 'tool',
+      tool_call_id: 'call-allow',
+      content: 'result:call-allow',
+      metadata: { toolCallStatus: 'success' },
+    })
+
+    expect(requestCount).toBe(0)
+    expect(engine.messages.value[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-allow': { status: 'success' },
+          'call-deny': { status: 'awaiting-approval' },
+        },
+      },
+    })
+
+    await engine.submitToolResult({
+      role: 'tool',
+      tool_call_id: 'call-deny',
+      content: 'Tool call denied.',
+      metadata: { toolCallStatus: 'denied' },
+    })
+
+    expect(requestCount).toBe(1)
+    expect(secondRequestToolMessages).toMatchObject([
+      {
+        role: 'tool',
+        tool_call_id: 'call-allow',
+        content: 'result:call-allow',
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'call-deny',
+        content: 'Tool call denied.',
+      },
+    ])
+    expect(engine.messages.value[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-allow': { status: 'success' },
+          'call-deny': { status: 'denied' },
+        },
+      },
+    })
+    expect(engine.messages.value.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'done',
+    })
+  })
+
+  it('continues after submitToolResult receives every tool call result at once', async () => {
+    const secondRequestToolMessages: ChatMessage[] = []
+    let requestCount = 0
+
+    const responseProvider = mockSequentialResponseProvider([
+      {
+        finish_reason: 'tool_calls',
+        content: '',
+        tool_calls: [
+          {
+            index: 0,
+            id: 'call-a',
+            type: 'function',
+            function: {
+              name: 'lookup',
+              arguments: '{}',
+            },
+          },
+          {
+            index: 1,
+            id: 'call-b',
+            type: 'function',
+            function: {
+              name: 'lookup',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        content: 'done',
+        onRequest(requestBody) {
+          requestCount += 1
+          secondRequestToolMessages.push(
+            ...(requestBody.messages.filter((message) => message.role === 'tool') as ChatMessage[]),
+          )
+        },
+      },
+    ])
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          async getTools() {
+            return [
+              {
+                type: 'function',
+                function: {
+                  name: 'lookup',
+                },
+              },
+            ]
+          },
+          confirmToolCall() {
+            return true
+          },
+          async callTool() {
+            return 'unused'
+          },
+        }),
+      ],
+    })
+
+    await engine.sendMessage('ping')
+
+    await waitFor(() => engine.messages.value[1]?.state?.toolCall?.['call-a']?.status === 'awaiting-approval')
+    await engine.submitToolResult([
+      {
+        role: 'tool',
+        tool_call_id: 'call-a',
+        content: 'result:a',
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'call-b',
+        content: 'result:b',
+      },
+    ])
+
+    expect(requestCount).toBe(1)
+    expect(secondRequestToolMessages).toMatchObject([
+      { role: 'tool', tool_call_id: 'call-a', content: 'result:a' },
+      { role: 'tool', tool_call_id: 'call-b', content: 'result:b' },
+    ])
+    expect(engine.messages.value[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-a': { status: 'success' },
+          'call-b': { status: 'success' },
+        },
+      },
+    })
+    expect(engine.messages.value.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
     })

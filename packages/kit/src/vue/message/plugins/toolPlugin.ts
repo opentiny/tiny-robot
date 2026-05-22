@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
 import { normalizeToAsyncGenerator } from '../../../message/utils'
-import { ChatMessage, ToolCall } from '../../../types'
+import { ChatMessage, MaybePromise, ToolCall } from '../../../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 import { BasePluginContext, Tool, UseMessagePlugin } from '../types'
 
@@ -44,6 +44,13 @@ export const toolPlugin = (
       context: UseMessageCallToolContext,
     ) => Promise<string | Record<string, any>> | AsyncGenerator<string | Record<string, any>>
     /**
+     * 判断当前工具调用是否需要外部确认。
+     *
+     * 返回 true 时，工具调用会停在 `awaiting-approval` 状态。业务侧确认后应调用
+     * `submitToolResult` 提交对应的 `role: 'tool'` 结果消息。
+     */
+    confirmToolCall?: (toolCall: ToolCall, context: UseMessageToolActionContext) => MaybePromise<boolean>
+    /**
      * 工具调用开始时的回调函数。
      * 触发时机：工具消息已创建并追加后，调用 callTool 之前触发。
      * @param toolCall - 工具调用对象
@@ -55,13 +62,13 @@ export const toolPlugin = (
      * 触发时机：工具调用完成（成功、失败或取消）时触发。
      * @param toolCall - 工具调用对象
      * @param context - 插件上下文，包含当前工具消息、状态和错误信息
-     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled'
+     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied'
      * @param context.error - 当状态为 'failed' 或 'cancelled' 时，可能包含错误信息
      */
     onToolCallEnd?: (
       toolCall: ToolCall,
       context: UseMessageToolCallContext & {
-        status: 'success' | 'failed' | 'cancelled'
+        status: 'success' | 'failed' | 'cancelled' | 'denied'
         error?: Error
       },
     ) => void
@@ -74,6 +81,10 @@ export const toolPlugin = (
      */
     toolCallFailedContent?: string
     /**
+     * 当工具调用被拒绝时使用的默认消息内容。
+     */
+    toolCallDeniedContent?: string
+    /**
      * 是否在请求前自动补充缺失的 tool 消息。
      * 当 assistant 响应了 tool_calls 但未追加对应的 tool 消息时，
      * 插件将自动补充"工具调用已取消"的 tool 消息。默认：false。
@@ -85,10 +96,12 @@ export const toolPlugin = (
     getTools,
     beforeCallTools,
     callTool,
+    confirmToolCall,
     onToolCallStart,
     onToolCallEnd,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
+    toolCallDeniedContent = 'Tool call denied.',
     autoFillMissingToolMessages = false,
     ...restOptions
   } = options
@@ -130,6 +143,17 @@ export const toolPlugin = (
             yield chunk
           }
         },
+        confirmToolCall: confirmToolCall
+          ? (toolCall, context) => {
+              const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
+
+              return confirmToolCall(toolCall as unknown as ToolCall, {
+                ...runtime.createVueBaseContext(context),
+                assistantMessage,
+                currentMessage: assistantMessage,
+              })
+            }
+          : undefined,
         onToolCallStart: onToolCallStart
           ? (toolCall, context) => {
               const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
@@ -160,6 +184,7 @@ export const toolPlugin = (
           : undefined,
         toolCallCancelledContent,
         toolCallFailedContent,
+        toolCallDeniedContent,
         autoFillMissingToolMessages,
       })
     },

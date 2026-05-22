@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ChatCompletionMessageToolCall, ChatCompletionTool } from 'openai/resources/index'
+import type { MaybePromise } from '../../types'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
 import { combineDeltaData, normalizeToAsyncGenerator } from '../utils'
 
@@ -12,6 +13,29 @@ type ToolCallContext = BasePluginContext & {
   assistantMessage: AssistantMessageWithState
   toolMessage: ChatMessage
 }
+
+type ToolCallConfirmContext = BasePluginContext & {
+  assistantMessage: AssistantMessageWithState
+}
+
+export type ToolCallDecision =
+  | {
+      /**
+       * 允许当前工具调用继续执行。
+       *
+       * 后续可扩展的候选动作：
+       * - `{ action: 'allow_session' }`：允许当前会话中匹配的工具调用。
+       * - `{ action: 'respond'; message: string }`：跳过工具执行，并将引导信息返回给模型。
+       */
+      action: 'allow'
+    }
+  | {
+      /**
+       * 拒绝当前工具调用，并可将 message 作为工具结果返回给模型。
+       */
+      action: 'deny'
+      message?: string
+    }
 
 /**
  * 补全缺失的工具消息
@@ -117,6 +141,22 @@ export const toolPlugin = (
       context: ToolCallContext,
     ) => Promise<string | Record<string, any>> | AsyncGenerator<string | Record<string, any>>
     /**
+     * 判断当前工具调用是否需要外部确认。
+     *
+     * 返回 true 时，工具调用会停在 `awaiting-approval` 状态，不会创建空的 tool message，也不会执行 `callTool`。
+     * 业务侧确认后应调用 `submitToolResult` 补齐对应的 `role: 'tool'` 结果消息；当上一个 assistant message
+     * 的全部 `tool_calls` 都有结果后，kit 会继续下一轮请求。
+     *
+     * 未传入时默认不需要确认，会直接执行 `callTool`。
+     *
+     * TODO(v2): 当前只支持“本次允许/拒绝并提交结果”。后续可在消息状态和提交 API 上扩展
+     * allow_session、respond/tell ai how to do 等动作，并支持按会话持久化授权策略。
+     */
+    confirmToolCall?: (
+      toolCall: ChatCompletionMessageToolCall,
+      context: ToolCallConfirmContext,
+    ) => MaybePromise<boolean>
+    /**
      * 工具调用开始时的回调函数。
      * 触发时机：工具消息已创建并追加后，调用 callTool 之前触发。
      * @param toolCall - 工具调用对象
@@ -128,13 +168,13 @@ export const toolPlugin = (
      * 触发时机：工具调用完成（成功、失败或取消）时触发。
      * @param toolCall - 工具调用对象
      * @param context - 插件上下文，包含当前工具消息、状态和错误信息
-     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled'
+     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied'
      * @param context.error - 当状态为 'failed' 或 'cancelled' 时，可能包含错误信息
      */
     onToolCallEnd?: (
       toolCall: ChatCompletionMessageToolCall,
       context: ToolCallContext & {
-        status: 'success' | 'failed' | 'cancelled'
+        status: 'success' | 'failed' | 'cancelled' | 'denied'
         error?: Error
       },
     ) => void
@@ -147,6 +187,10 @@ export const toolPlugin = (
      */
     toolCallFailedContent?: string
     /**
+     * 当工具调用被拒绝时使用的默认消息内容。
+     */
+    toolCallDeniedContent?: string
+    /**
      * 是否在请求前自动补充缺失的 tool 消息。
      * 当 assistant 响应了 tool_calls 但未追加对应的 tool 消息时，
      * 插件将自动补充"工具调用已取消"的 tool 消息。默认：false。
@@ -158,10 +202,12 @@ export const toolPlugin = (
     getTools,
     beforeCallTools,
     callTool,
+    confirmToolCall,
     onToolCallStart,
     onToolCallEnd,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
+    toolCallDeniedContent: _toolCallDeniedContent = 'Tool call denied.',
     autoFillMissingToolMessages = false,
     ...restOptions
   } = options
@@ -184,6 +230,15 @@ export const toolPlugin = (
     })
 
     onToolCallStart?.(...args)
+  }
+
+  const toolCallAwaitApproval = (toolCall: ChatCompletionMessageToolCall, context: ToolCallConfirmContext) => {
+    const { assistantMessage, mutate } = context
+
+    mutate('messages', () => {
+      const message = ensureToolCallState(assistantMessage, toolCall.id)
+      message.state.toolCall[toolCall.id].status = 'awaiting-approval'
+    })
   }
 
   const toolCallEnd = (...args: Parameters<NonNullable<typeof onToolCallEnd>>) => {
@@ -237,35 +292,56 @@ export const toolPlugin = (
       }
 
       setRequestState('processing', 'calling-tools')
+      const assistantMessage = currentMessage as AssistantMessageWithState
+      const contextWithAssistant = {
+        ...context,
+        assistantMessage,
+      }
+
       await beforeCallTools?.(currentMessage.tool_calls as ChatCompletionMessageToolCall[], {
         ...context,
-        assistantMessage: currentMessage as AssistantMessageWithState,
+        assistantMessage,
       })
 
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
         let hasMeaningfulResult = false
-        const toolMessage: ChatMessage = createMessage({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: '',
-          metadata: {
-            createdAt: now,
-            updatedAt: now,
-          },
-        })
+        let toolMessage: ChatMessage | undefined
+        let contextWithToolMessage: ToolCallContext | undefined
 
-        appendMessage(toolMessage)
-
-        const contextWithToolMessage = {
-          ...context,
-          assistantMessage: currentMessage as AssistantMessageWithState,
-          toolMessage,
-        }
-
-        toolCallStart(toolCall, contextWithToolMessage)
         try {
-          const result = callTool(toolCall, contextWithToolMessage)
+          const requiresApproval = confirmToolCall
+            ? await Promise.resolve(confirmToolCall(toolCall, contextWithAssistant))
+            : false
+
+          if (requiresApproval) {
+            toolCallAwaitApproval(toolCall, contextWithAssistant)
+            return 'pending' as const
+          }
+
+          toolMessage = createMessage({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: '',
+            metadata: {
+              createdAt: now,
+              updatedAt: now,
+            },
+          })
+
+          appendMessage(toolMessage)
+
+          contextWithToolMessage = {
+            ...context,
+            assistantMessage,
+            toolMessage,
+          }
+          const activeToolMessage = toolMessage
+          const activeContextWithToolMessage = contextWithToolMessage
+
+          toolCallStart(toolCall, activeContextWithToolMessage)
+
+          const result = callTool(toolCall, activeContextWithToolMessage)
 
           // 将 Promise 或异步迭代器统一转换为异步生成器
           const iterator = normalizeToAsyncGenerator(result)
@@ -282,34 +358,52 @@ export const toolPlugin = (
 
               // 字符串拼接或 JSON 合并
               if (typeof chunk === 'string') {
-                toolMessage.content += chunk
+                activeToolMessage.content += chunk
               } else {
                 let parsedContent: Record<string, any> = {}
                 try {
-                  const content = Array.isArray(toolMessage.content)
-                    ? toolMessage.content.map((item) => item.text).join('')
-                    : toolMessage.content
+                  const content = Array.isArray(activeToolMessage.content)
+                    ? activeToolMessage.content.map((item: any) => item.text).join('')
+                    : activeToolMessage.content
                   parsedContent = JSON.parse(content || '{}')
                 } catch (error) {
                   console.warn(error)
                 }
-                toolMessage.content = JSON.stringify(combineDeltaData(parsedContent, chunk))
+                activeToolMessage.content = JSON.stringify(combineDeltaData(parsedContent, chunk))
               }
 
-              toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
+              activeToolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
             })
           }
 
-          toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'success' })
+          toolCallEnd(toolCall, { ...activeContextWithToolMessage, status: 'success' })
         } catch (error) {
           const err = error instanceof Error ? error : new Error(String(error))
+
+          if (!toolMessage || !contextWithToolMessage) {
+            console.error(error)
+            mutate('messages', () => {
+              const message = ensureToolCallState(assistantMessage, toolCall.id)
+              message.state.toolCall[toolCall.id].status = 'failed'
+            })
+            return 'handled' as const
+          }
+          const activeToolMessage = toolMessage
+          const activeContextWithToolMessage = contextWithToolMessage
 
           // 如果被 abort ，则抛出错误，主流程会处理状态
           // 也可以不抛出错误，直接返回，主流程会自动处理 abort 场景
           if (abortSignal.aborted) {
-            toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'cancelled', error: err })
+            if (!hasMeaningfulResult) {
+              mutate('messages', () => {
+                activeToolMessage.content = toolCallCancelledContent
+                activeToolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
+              })
+            }
+
+            toolCallEnd(toolCall, { ...activeContextWithToolMessage, status: 'cancelled', error: err })
             // throw error
-            return
+            return 'handled' as const
           }
 
           // 其他错误视为工具调用失败，则将工具消息内容设置为失败内容
@@ -317,17 +411,19 @@ export const toolPlugin = (
 
           if (!hasMeaningfulResult) {
             mutate('messages', () => {
-              toolMessage.content = toolCallFailedContent
-              toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
+              activeToolMessage.content = toolCallFailedContent
+              activeToolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
             })
           }
 
-          toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'failed', error: err })
+          toolCallEnd(toolCall, { ...activeContextWithToolMessage, status: 'failed', error: err })
         }
+
+        return 'handled' as const
       })
 
-      await Promise.all(toolCallPromises)
-      if (!abortSignal.aborted) {
+      const toolCallResults = await Promise.all(toolCallPromises)
+      if (!abortSignal.aborted && toolCallResults.every((result) => result !== 'pending')) {
         requestNext()
       }
 
