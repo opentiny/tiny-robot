@@ -17,7 +17,7 @@ export type DeepReadonly<T> = T extends (...args: any[]) => any
 
 // Define different states for the request process
 export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
-export type RequestProcessingState = 'requesting' | 'completing' | string
+export type RequestProcessingState = 'requesting' | 'completing' | 'calling-tools' | 'awaiting-tool-results' | string
 
 export type ChatMessage<
   Metadata extends object = Record<string, unknown>,
@@ -57,6 +57,7 @@ export interface MessageRuntime {
   currentTurn: ChatMessage[]
   customContext: Record<string, unknown>
   abortController: AbortController | null
+  currentTurnResponseProvider: ResponseProvider | null
   responseProvider: ResponseProvider
 }
 

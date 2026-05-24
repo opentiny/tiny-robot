@@ -46,8 +46,9 @@ export const toolPlugin = (
     /**
      * 判断当前工具调用是否需要外部确认。
      *
-     * 返回 true 时，工具调用会停在 `awaiting-approval` 状态。业务侧确认后应调用
-     * `submitToolResult` 提交对应的 `role: 'tool'` 结果消息。
+     * 传入该函数时，工具调用会停在 `awaiting-approval` 状态。业务侧确认后应调用
+     * `submitToolResult` 提交对应的 `role: 'tool'` 结果消息。返回值保留用于业务侧兼容，
+     * 不再控制是否暂停。
      */
     confirmToolCall?: (toolCall: ToolCall, context: UseMessageToolActionContext) => MaybePromise<boolean>
     /**

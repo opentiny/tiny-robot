@@ -24,7 +24,7 @@ export interface MessageRequestBody {
 
 // Define different states for the request process
 export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
-export type RequestProcessingState = 'requesting' | 'completing' | string
+export type RequestProcessingState = 'requesting' | 'completing' | 'calling-tools' | 'awaiting-tool-results' | string
 
 // Usage information for API response
 export interface Usage {

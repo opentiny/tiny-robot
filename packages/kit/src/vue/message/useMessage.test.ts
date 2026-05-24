@@ -277,6 +277,9 @@ describe('useMessage', () => {
     await engine.sendMessage('ping')
 
     await waitFor(() => engine.messages.value[1]?.state?.toolCall?.['call-allow']?.status === 'awaiting-approval')
+    expect(engine.requestState.value).toBe('processing')
+    expect(engine.processingState.value).toBe('awaiting-tool-results')
+    expect(engine.isProcessing.value).toBe(true)
     expect(engine.messages.value[1]).toMatchObject({
       role: 'assistant',
       state: {
@@ -289,6 +292,12 @@ describe('useMessage', () => {
     expect(callTool).not.toHaveBeenCalled()
     expect(engine.messages.value).toHaveLength(2)
 
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await engine.sendMessage('should be blocked while awaiting tool results')
+    expect(warnSpy).toHaveBeenCalledWith('Cannot send message while processing is in progress')
+    warnSpy.mockRestore()
+    expect(engine.messages.value).toHaveLength(2)
+
     await engine.submitToolResult({
       role: 'tool',
       tool_call_id: 'call-allow',
@@ -297,6 +306,8 @@ describe('useMessage', () => {
     })
 
     expect(requestCount).toBe(0)
+    expect(engine.requestState.value).toBe('processing')
+    expect(engine.processingState.value).toBe('awaiting-tool-results')
     expect(engine.messages.value[1]).toMatchObject({
       role: 'assistant',
       state: {
@@ -315,6 +326,9 @@ describe('useMessage', () => {
     })
 
     expect(requestCount).toBe(1)
+    expect(engine.requestState.value).toBe('completed')
+    expect(engine.processingState.value).toBeUndefined()
+    expect(engine.isProcessing.value).toBe(false)
     expect(secondRequestToolMessages).toMatchObject([
       {
         role: 'tool',

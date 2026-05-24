@@ -87,6 +87,7 @@ export const createMessageEngine = (
     currentTurn: [],
     customContext: {},
     abortController: null,
+    currentTurnResponseProvider: null,
     responseProvider: initialResponseProvider,
   }
 
@@ -175,6 +176,11 @@ export const createMessageEngine = (
     const resultIds = new Set(toolMessages.map((message) => message.tool_call_id).filter(Boolean))
 
     return expectedIds.length > 0 && expectedIds.every((id) => resultIds.has(id))
+  }
+
+  const isAwaitingToolResults = () => {
+    const state = getState()
+    return state.requestState === 'processing' && state.processingState === 'awaiting-tool-results'
   }
 
   const updateSubmittedToolCallStates = (assistantMessageIndex: number, toolMessages: ChatMessage[]) => {
@@ -376,14 +382,105 @@ export const createMessageEngine = (
     }
   }
 
+  async function runTurnEnd(abortSignal: AbortSignal) {
+    const baseContextAtEnd = getBaseContext(abortSignal)
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtEnd))) {
+      await plugin.onTurnEnd?.(baseContextAtEnd)
+    }
+  }
+
+  function cleanupTurn(abortSignal: AbortSignal, assistantMessage: ChatMessage | null) {
+    const context = getBaseContext(abortSignal)
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+      try {
+        plugin.onFinally?.(context)
+      } catch (error) {
+        console.error(`Error in onFinally hook for plugin [${plugin.name || 'Anonymous'}]:`, error)
+      }
+    }
+
+    runtime.abortController = null
+    runtime.currentTurnResponseProvider = null
+    runtime.currentTurn = []
+
+    // 如果请求立即出错，loading 可能一直为 true，这时需要手动将其置为 false
+    mutate('messages', (_, skipNotify) => {
+      if (assistantMessage?.loading) {
+        assistantMessage.loading = undefined
+      } else {
+        skipNotify()
+      }
+    })
+  }
+
+  async function continueTurn() {
+    const ac = runtime.abortController ?? new AbortController()
+    runtime.abortController = ac
+
+    let assistantMessage: ChatMessage | null = null
+    let paused = false
+    const setAssistantMessage = (message: ChatMessage) => {
+      assistantMessage = message
+    }
+
+    try {
+      const turnResponseProvider = runtime.currentTurnResponseProvider ?? runtime.responseProvider
+
+      try {
+        await executeRequest(turnResponseProvider, ac.signal, { setAssistantMessage })
+
+        if (isAwaitingToolResults()) {
+          paused = true
+          return
+        }
+
+        setRequestState('completed')
+      } catch (error) {
+        if (
+          ac.signal.aborted ||
+          error instanceof AbortError ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          setRequestState('aborted')
+        } else {
+          throw error
+        }
+      }
+
+      await runTurnEnd(ac.signal)
+    } catch (error) {
+      setRequestState('error')
+
+      let hasOnError = false
+      const context = getBaseContext(ac.signal)
+
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        if (plugin.onError) {
+          hasOnError = true
+          plugin.onError({ ...context, error })
+        }
+      }
+
+      if (!hasOnError) {
+        throw error
+      }
+    } finally {
+      if (!paused) {
+        cleanupTurn(ac.signal, assistantMessage)
+      }
+    }
+  }
+
   async function runTurn() {
     const ac = new AbortController()
     runtime.abortController = ac
     // 在每个回合开始时重置自定义上下文
     runtime.customContext = {}
+    runtime.currentTurnResponseProvider = null
 
     // 记录当前请求的 assistantMessage，方便在 finally 中进行状态清理（如将 loading 置为 false）
     let assistantMessage: ChatMessage | null = null
+    let paused = false
     const setAssistantMessage = (message: ChatMessage) => {
       assistantMessage = message
     }
@@ -400,9 +497,16 @@ export const createMessageEngine = (
       // 允许插件在 onTurnStart 钩子中修改 responseProvider
       // 并在整个 turn 请求过程中防止因它发生变化而导致的不一致
       const turnResponseProvider = runtime.responseProvider
+      runtime.currentTurnResponseProvider = turnResponseProvider
 
       try {
         await executeRequest(turnResponseProvider, ac.signal, { setAssistantMessage })
+
+        if (isAwaitingToolResults()) {
+          paused = true
+          return
+        }
+
         setRequestState('completed')
       } catch (error) {
         // 检查是否是中止错误：优先检查当前使用的 AbortController 的信号状态
@@ -420,10 +524,7 @@ export const createMessageEngine = (
       }
 
       // 3) onTurnEnd 串行执行，有错误则中断
-      const baseContextAtEnd = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtEnd))) {
-        await plugin.onTurnEnd?.(baseContextAtEnd)
-      }
+      await runTurnEnd(ac.signal)
     } catch (error) {
       setRequestState('error')
 
@@ -442,26 +543,9 @@ export const createMessageEngine = (
         throw error
       }
     } finally {
-      const context = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        try {
-          plugin.onFinally?.(context)
-        } catch (error) {
-          console.error(`Error in onFinally hook for plugin [${plugin.name || 'Anonymous'}]:`, error)
-        }
+      if (!paused) {
+        cleanupTurn(ac.signal, assistantMessage)
       }
-
-      runtime.abortController = null
-      runtime.currentTurn = []
-
-      // 如果请求立即出错，loading 可能一直为 true，这时需要手动将其置为 false
-      mutate('messages', (_, skipNotify) => {
-        if (assistantMessage?.loading) {
-          assistantMessage.loading = undefined
-        } else {
-          skipNotify()
-        }
-      })
     }
   }
 
@@ -500,7 +584,8 @@ export const createMessageEngine = (
   }
 
   async function submitToolResult(message: ChatMessage | ChatMessage[]) {
-    if (getState().requestState === 'processing') {
+    const state = getState()
+    if (state.requestState === 'processing' && state.processingState !== 'awaiting-tool-results') {
       console.warn('Cannot submit tool result while processing is in progress')
       return
     }
@@ -533,11 +618,27 @@ export const createMessageEngine = (
     updateSubmittedToolCallStates(pendingAssistant.index, toolMessages)
 
     if (allToolCallsHaveResults(pendingAssistant.message, toolMessages)) {
-      await runTurn()
+      if (isAwaitingToolResults()) {
+        await continueTurn()
+      } else {
+        await runTurn()
+      }
+    } else {
+      setRequestState('processing', 'awaiting-tool-results')
     }
   }
 
   async function abort() {
+    if (isAwaitingToolResults()) {
+      const ac = runtime.abortController ?? new AbortController()
+      runtime.abortController = ac
+      ac.abort()
+      setRequestState('aborted')
+      await runTurnEnd(ac.signal)
+      cleanupTurn(ac.signal, null)
+      return
+    }
+
     runtime.abortController?.abort()
 
     // 等待直到 isProcessing 变为 false

@@ -143,11 +143,11 @@ export const toolPlugin = (
     /**
      * 判断当前工具调用是否需要外部确认。
      *
-     * 返回 true 时，工具调用会停在 `awaiting-approval` 状态，不会创建空的 tool message，也不会执行 `callTool`。
+     * 传入该函数时，工具调用会停在 `awaiting-approval` 状态，不会创建空的 tool message，也不会执行 `callTool`。
      * 业务侧确认后应调用 `submitToolResult` 补齐对应的 `role: 'tool'` 结果消息；当上一个 assistant message
      * 的全部 `tool_calls` 都有结果后，kit 会继续下一轮请求。
      *
-     * 未传入时默认不需要确认，会直接执行 `callTool`。
+     * 未传入时默认不需要确认，会直接执行 `callTool`。返回值保留用于业务侧兼容，但不再控制是否暂停。
      *
      * TODO(v2): 当前只支持“本次允许/拒绝并提交结果”。后续可在消息状态和提交 API 上扩展
      * allow_session、respond/tell ai how to do 等动作，并支持按会话持久化授权策略。
@@ -310,11 +310,8 @@ export const toolPlugin = (
         let contextWithToolMessage: ToolCallContext | undefined
 
         try {
-          const requiresApproval = confirmToolCall
-            ? await Promise.resolve(confirmToolCall(toolCall, contextWithAssistant))
-            : false
-
-          if (requiresApproval) {
+          if (confirmToolCall) {
+            await Promise.resolve(confirmToolCall(toolCall, contextWithAssistant))
             toolCallAwaitApproval(toolCall, contextWithAssistant)
             return 'pending' as const
           }
@@ -423,7 +420,13 @@ export const toolPlugin = (
       })
 
       const toolCallResults = await Promise.all(toolCallPromises)
-      if (!abortSignal.aborted && toolCallResults.every((result) => result !== 'pending')) {
+      if (abortSignal.aborted) {
+        return restOptions.onAfterRequest?.(context)
+      }
+
+      if (toolCallResults.some((result) => result === 'pending')) {
+        setRequestState('processing', 'awaiting-tool-results')
+      } else {
         requestNext()
       }
 
