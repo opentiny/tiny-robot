@@ -264,6 +264,8 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 <demo vue="../../demos/bubble/tools.vue" />
 
+<demo vue="../../demos/bubble/tool-choice.vue" />
+
 #### 实现自定义渲染器
 
 **Content 渲染器**
