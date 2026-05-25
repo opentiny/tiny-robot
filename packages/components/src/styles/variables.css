@@ -109,6 +109,26 @@
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
 
+  /* ===== Attachments ===== */
+  --tr-attachments-card-bg: #ffffff;
+  --tr-attachments-card-border-color: #f0f0f0;
+  --tr-attachments-card-hover-bg: #ffffff;
+  --tr-attachments-card-hover-border-color: #f0f0f0;
+  --tr-attachments-card-hover-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-attachments-title-color: var(--tr-text-primary);
+  --tr-attachments-meta-color: var(--tr-text-tertiary);
+  --tr-attachments-action-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-bg: transparent;
+  --tr-attachments-retry-color: var(--tr-color-primary);
+  --tr-attachments-retry-hover-bg: rgba(20, 118, 255, 0.05);
+  --tr-attachments-close-icon-color: #c2c2c2;
+  --tr-attachments-close-icon-hover-color: var(--tr-text-primary);
+  --tr-attachments-status-overlay-bg: rgba(0, 0, 0, 0.4);
+  --tr-attachments-picture-overlay-color: #ffffff;
+  --tr-attachments-error-color:  var(--tr-color-error);
+  --tr-attachments-loading-text-color: #ffffff;
+
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #ffffff;
   --tr-mcp-server-picker-tabs-border-color-active: #191919;
@@ -292,6 +312,26 @@
   --tr-container-bg-hover: rgba(255, 255, 255, 0.1);
   --tr-container-bg-active: rgba(255, 255, 255, 0.15);
   --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
+
+  /* ===== Attachments ===== */
+  --tr-attachments-card-bg: transparent;
+  --tr-attachments-card-border-color: rgba(255, 255, 255, 0.15);
+  --tr-attachments-card-hover-bg: rgba(255, 255, 255, 0.05);
+  --tr-attachments-card-hover-border-color: transparent;
+  --tr-attachments-card-hover-shadow: none;
+  --tr-attachments-title-color: var(--tr-text-primary);
+  --tr-attachments-meta-color: var(--tr-text-tertiary);
+  --tr-attachments-action-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-bg: transparent;
+  --tr-attachments-retry-color: var(--tr-color-primary);
+  --tr-attachments-retry-hover-bg: rgba(82, 145, 255, 0.12);
+  --tr-attachments-close-icon-color: #4d4d4d;
+  --tr-attachments-close-icon-hover-color: var(--tr-text-primary);
+  --tr-attachments-status-overlay-bg: rgba(0, 0, 0, 0.4);
+  --tr-attachments-picture-overlay-color: #ffffff;
+  --tr-attachments-error-color:  var(--tr-color-error);
+  --tr-attachments-loading-text-color: #ffffff;
 
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);
