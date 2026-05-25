@@ -100,11 +100,7 @@ defineExpose({
 
 <style lang="less">
 :root {
-  --tr-dropdown-menu-bg-color: #ffffff;
-  --tr-dropdown-menu-box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
   --tr-dropdown-menu-min-width: 130px;
-  --tr-dropdown-menu-item-color: rgb(25, 25, 25);
-  --tr-dropdown-menu-item-hover-bg-color: #f5f5f5;
   --tr-dropdown-menu-item-font-weight: normal;
 
   --tr-dropdown-menu-min-top: 0px;
@@ -152,7 +148,21 @@ defineExpose({
   margin: 0;
   list-style: none;
   scrollbar-width: thin;
-  scrollbar-color: #dbdbdb transparent;
+  scrollbar-color: var(--tr-dropdown-menu-scrollbar-thumb-color) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--tr-dropdown-menu-scrollbar-thumb-color);
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
   .tr-dropdown-menu__list-item {
     color: var(--tr-dropdown-menu-item-color);

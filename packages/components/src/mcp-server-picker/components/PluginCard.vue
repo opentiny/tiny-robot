@@ -113,8 +113,8 @@ const getHoverTitle = (isEnabled: boolean) => {
               >
                 <template #reference>
                   <slot name="delete-icon">
-                    <span title="移除插件">
-                      <IconDelete class="common-icon delete" />
+                    <span class="plugin-card__delete-trigger" title="移除插件">
+                      <IconDelete class="common-icon" />
                     </span>
                   </slot>
                 </template>
@@ -183,32 +183,44 @@ const getHoverTitle = (isEnabled: boolean) => {
 
 <style lang="less" scoped>
 .plugin-card {
+  --plugin-card-padding-inline: 24px;
+  --plugin-card-padding-block: 14px;
+  --plugin-card-icon-size: 40px;
+  --plugin-card-row-gap: 16px;
+  --plugin-card-divider-inset-start: calc(
+    var(--plugin-card-padding-inline) + var(--plugin-card-icon-size) + var(--plugin-card-row-gap)
+  );
+  --plugin-card-divider-inset-end: var(--plugin-card-padding-inline);
+
   position: relative;
-  background: var(--tr-mcp-server-picker-bg-default-2);
+  background: var(--tr-mcp-server-picker-card-bg-color);
   border-radius: 12px;
-  border: 1px solid var(--tr-mcp-server-picker-plugin-card-border-color);
+
+  &--installed:hover,
+  &--installed:focus-within {
+    .plugin-card__delete-trigger {
+      visibility: visible;
+    }
+  }
 
   &__main {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--plugin-card-row-gap);
     box-sizing: border-box;
     border-radius: 16px;
-    padding: 14px 24px;
-    background: transparent;
+    padding: var(--plugin-card-padding-block) var(--plugin-card-padding-inline);
     transition: border-radius 0.3s ease;
   }
 
   &__icon {
-    width: 40px;
-    height: 40px;
+    width: var(--plugin-card-icon-size);
+    height: var(--plugin-card-icon-size);
     border-radius: 8px;
     object-fit: cover;
-    background: var(--tr-mcp-server-picker-bg-default-2);
     flex-shrink: 0;
 
     &--placeholder {
-      background: transparent;
       border: none;
       opacity: 0;
     }
@@ -297,6 +309,13 @@ const getHoverTitle = (isEnabled: boolean) => {
     }
   }
 
+  &__delete-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+  }
+
   &__add {
     display: flex;
     justify-content: flex-end;
@@ -305,22 +324,24 @@ const getHoverTitle = (isEnabled: boolean) => {
     padding: 16px 0;
 
     &-button {
-      width: 64px;
-      height: 24px;
-      padding: 3px 16px;
-      text-align: center;
-      line-height: 18px;
+      min-width: 64px;
+      height: 28px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-size: 12px;
       font-weight: 400;
+      line-height: 18px;
+      text-align: center;
       color: var(--tr-text-primary);
       border-radius: 999px;
-      background: var(--tr-mcp-server-picker-bg-default-2);
-      border: 1px solid var(--tr-text-secondary);
+      white-space: nowrap;
+      border: 1px solid var(--tr-mcp-server-picker-market-button-border-color);
       cursor: pointer;
       box-sizing: border-box;
 
       &--loading {
-        width: 78px;
         background: var(--tr-color-primary-light);
         border-color: var(--tr-color-primary);
         color: var(--tr-color-primary);
@@ -328,10 +349,9 @@ const getHoverTitle = (isEnabled: boolean) => {
       }
 
       &--added {
-        width: 78px;
         color: var(--tr-text-disabled);
-        background-color: var(--tr-mcp-server-picker-button-bg-disabled);
-        border-color: var(--tr-mcp-server-picker-border-color-default);
+        background-color: var(--tr-mcp-server-picker-market-button-added-bg-color);
+        border-color: transparent;
         fill: var(--tr-text-disabled);
         cursor: not-allowed;
       }
@@ -340,7 +360,6 @@ const getHoverTitle = (isEnabled: boolean) => {
 
   // 工具列表样式
   &__tools {
-    background: var(--tr-mcp-server-picker-bg-default-2);
     border-radius: 0 0 16px 16px;
   }
 
@@ -348,9 +367,9 @@ const getHoverTitle = (isEnabled: boolean) => {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--plugin-card-row-gap);
     box-sizing: border-box;
-    padding: 14px 24px;
+    padding: var(--plugin-card-padding-block) var(--plugin-card-padding-inline);
     min-height: 68px;
     height: auto;
 
@@ -364,10 +383,10 @@ const getHoverTitle = (isEnabled: boolean) => {
 
   // 分割线样式
   &__divider {
-    width: calc(100% - 32px);
     height: 1px;
     background: var(--tr-mcp-server-picker-divider-color);
-    margin: 0 16px;
+    margin-left: var(--plugin-card-divider-inset-start);
+    margin-right: var(--plugin-card-divider-inset-end);
     flex-shrink: 0;
   }
 }
@@ -406,10 +425,6 @@ const getHoverTitle = (isEnabled: boolean) => {
   cursor: pointer;
   box-sizing: border-box;
   color: var(--tr-icon-color-default);
-
-  &.delete {
-    color: var(--tr-color-error);
-  }
 }
 
 .common-icon:hover {

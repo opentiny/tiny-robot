@@ -38,6 +38,7 @@ export function generateImportMap(options: ImportMapOptions) {
       dompurify: 'https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js',
       'markdown-it': 'https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js',
       echarts: 'https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js',
+      idb: 'https://cdn.jsdelivr.net/npm/idb@8/+esm',
 
       // Tiptap 编辑器相关包 (用于 Sender 组件)
       // 使用 esm.sh CDN，自动处理子路径导入和依赖解析
