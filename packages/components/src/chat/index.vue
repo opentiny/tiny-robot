@@ -289,7 +289,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   --tr-chat-scrollbar-thumb: color-mix(in srgb, var(--tr-text-secondary) 30%, transparent);
   --tr-chat-scrollbar-thumb-hover: color-mix(in srgb, var(--tr-text-primary) 42%, transparent);
   background: var(--tr-chat-surface-bg);
-  border-color: var(--tr-chat-surface-border);
+  border: none;
   box-shadow:
     -18px 0 52px rgba(15, 23, 42, 0.12),
     0 6px 18px rgba(15, 23, 42, 0.06);

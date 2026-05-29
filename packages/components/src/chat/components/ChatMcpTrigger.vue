@@ -148,6 +148,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
 }
 
 :deep(.mcp-server-picker.popup-type-drawer) {
+  border-left: none !important;
   width: min(420px, 100vw);
   max-width: none;
   z-index: var(--tr-z-index-modal);
