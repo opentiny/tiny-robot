@@ -48,7 +48,7 @@ export default defineConfig({
     vuejsx(),
     dts({
       outDir: 'dist',
-      rollupTypes: true,
+      rollupTypes: false,
       entryRoot: 'src',
       tsconfigPath: './tsconfig.json',
     }),
@@ -69,6 +69,7 @@ export default defineConfig({
         'vue',
         'vue-router',
         '@opentiny/vue',
+        '@opentiny/tiny-robot-kit',
         '@opentiny/tiny-robot-svgs',
         'markdown-it',
         'dompurify',

@@ -35,6 +35,22 @@
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./experimental": {
+      "types": "./dist/experimental/index.d.ts",
+      "import": "./dist/experimental/index.js"
+    },
+    "./dist/style.css": "./dist/style.css",
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "import": "./dist/*/index.js"
+    }
+  },
   "sideEffects": ["**/*.css"],
   "files": [
     "dist",
@@ -52,6 +68,8 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.0",
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@opentiny/vue": "^3.20.0",
     "@vueuse/core": "^13.1.0",
