@@ -1,0 +1,1 @@
+import{N as a}from"./theme.CG-bv-bL.js";import{Y as t,b1 as o,z as r,bH as n,b9 as s}from"./framework.6DE2p-7l.js";const u=t({__name:"empty",setup(c){const e=s([]);return(p,m)=>(o(),r(n(a),{data:e},null,8,["data"]))}});export{u as default};
