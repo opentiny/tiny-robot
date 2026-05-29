@@ -42,9 +42,10 @@
       "import": "./dist/index.js"
     },
     "./experimental": {
-      "types": "./dist/experimental/index.d.ts",
-      "import": "./dist/experimental/index.js"
+      "types": "./dist/chat/index.d.ts",
+      "import": "./dist/chat/index.js"
     },
+    "./chat": null,
     "./dist/style.css": "./dist/style.css",
     "./*": {
       "types": "./dist/*/index.d.ts",
