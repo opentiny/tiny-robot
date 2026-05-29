@@ -256,13 +256,7 @@ export function useChatMcp(options: UseChatMcpOptions) {
     }
 
     setServerEnabled(serverId, true)
-
-    try {
-      await ensureServerTools(serverId)
-    } catch (error) {
-      removeServer(serverId)
-      throw error
-    }
+    await ensureServerTools(serverId).catch(() => undefined)
   }
 
   function removeServer(serverId: string) {
@@ -418,7 +412,7 @@ export function useChatMcp(options: UseChatMcpOptions) {
     }
 
     if (enabled) {
-      await ensureServerTools(plugin.id)
+      await ensureServerTools(plugin.id).catch(() => undefined)
       setServerEnabled(plugin.id, true)
       return
     }

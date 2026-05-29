@@ -10,6 +10,8 @@ import type { ChatEmits, ChatProps, ChatSlots } from './index.type'
 import ChatConversation from './components/ChatConversation.vue'
 import ChatLauncherButton from './components/ChatLauncherButton.vue'
 import ChatThemeToggleButton from './components/ChatThemeToggleButton.vue'
+import { CHAT_BUILTIN_LOCALES } from './locale'
+import { CHAT_BUILTIN_MARKET_MCP_SERVER_IDS, CHAT_BUILTIN_MCP_SERVERS } from './mcpServers'
 import { useChatConversation } from './composables/useChatConversation'
 import { useChatMcp } from './composables/useChatMcp'
 import { useChatModel } from './composables/useChatModel'
@@ -17,19 +19,12 @@ import { useChatModel } from './composables/useChatModel'
 const props = withDefaults(defineProps<ChatProps>(), {
   show: false,
   fullscreen: false,
-  title: 'AI Assistant',
+  lang: 'zh-CN',
   storageKey: 'tiny-robot-chat-conversations',
   activeConversationStorageKey: 'tiny-robot-chat-active-conversation',
   mcpStorageKey: 'tiny-robot-chat-mcp',
-  systemPrompt: 'You are a helpful assistant.',
   launcher: true,
-  launcherAriaLabel: 'Open chat panel',
-  modelPlaceholder: 'Select model',
-  mcpServers: () => ({}),
   defaultInstalledMcpServerIds: () => [],
-  marketMcpServerIds: () => [],
-  welcomeTitle: 'Assistant Panel',
-  welcomeDescription: 'Chat first, then bring in MCP tools only when the task needs them.',
   promptItems: () => [],
   locale: () => ({}),
 })
@@ -41,28 +36,23 @@ const show = defineModel<boolean>('show', { default: false })
 const fullscreen = defineModel<boolean>('fullscreen', { default: false })
 const selectedModelId = defineModel<string>('selectedModelId', { default: '' })
 
+const builtinLocale = computed(() => CHAT_BUILTIN_LOCALES[props.lang])
+
 const localeText = computed(() => ({
-  newConversation: props.locale?.newConversation || 'New conversation',
-  historyTitle: props.locale?.historyTitle || 'History',
-  closeHistory: props.locale?.closeHistory || 'Close history',
-  openHistory: props.locale?.openHistory || 'Open history',
-  openMcp: props.locale?.openMcp || 'Extensions',
-  mcpTitle: props.locale?.mcpTitle || 'Extensions',
-  installedTabTitle: props.locale?.installedTabTitle || 'Installed',
-  marketTabTitle: props.locale?.marketTabTitle || 'Market',
-  searchPluginsPlaceholder: props.locale?.searchPluginsPlaceholder || 'Search plugins',
-  marketCategoryPlaceholder: props.locale?.marketCategoryPlaceholder || 'Filter by category',
-  missingProviderConfig:
-    props.locale?.missingProviderConfig || 'Missing provider keys. Update your model config before sending messages.',
-  unavailableModelConfig:
-    props.locale?.unavailableModelConfig || 'Current model has no API key. Switch to an available model.',
-  unavailableModelPrompt: props.locale?.unavailableModelPrompt || 'Current model is unavailable.',
-  missingProviderPrompt: props.locale?.missingProviderPrompt || 'Fill provider keys first.',
-  thinkingPrompt: props.locale?.thinkingPrompt || 'Assistant is thinking...',
-  defaultPrompt: props.locale?.defaultPrompt || 'Ask anything...',
-  selectModel: props.locale?.selectModel || props.modelPlaceholder,
-  fallbackConversationTitle: props.locale?.fallbackConversationTitle || 'New conversation',
+  ...builtinLocale.value.messages,
+  ...props.locale,
+  selectModel: props.modelPlaceholder || props.locale?.selectModel || builtinLocale.value.modelPlaceholder,
 }))
+
+const resolvedTitle = computed(() => props.title || builtinLocale.value.title)
+const resolvedLauncherAriaLabel = computed(() => props.launcherAriaLabel || builtinLocale.value.launcherAriaLabel)
+const resolvedWelcomeTitle = computed(() => props.welcomeTitle || builtinLocale.value.welcomeTitle)
+const resolvedWelcomeDescription = computed(() => props.welcomeDescription || builtinLocale.value.welcomeDescription)
+const resolvedMcpServers = computed(() => ({
+  ...CHAT_BUILTIN_MCP_SERVERS,
+  ...(props.mcpServers || {}),
+}))
+const resolvedMarketMcpServerIds = computed(() => props.marketMcpServerIds || CHAT_BUILTIN_MARKET_MCP_SERVER_IDS)
 
 const { modelOptions, selectedModel, hasApiConfig, availableModelCount } = useChatModel(
   () => props.modelOptions,
@@ -70,14 +60,14 @@ const { modelOptions, selectedModel, hasApiConfig, availableModelCount } = useCh
 )
 const mcpStore = useChatMcp({
   storageKey: props.mcpStorageKey,
-  mcpServers: props.mcpServers,
+  mcpServers: resolvedMcpServers.value,
   defaultInstalledServerIds: props.defaultInstalledMcpServerIds,
-  marketServerIds: props.marketMcpServerIds,
+  marketServerIds: resolvedMarketMcpServerIds.value,
 })
 const chatStore = useChatConversation({
   storageKey: props.storageKey,
   activeConversationStorageKey: props.activeConversationStorageKey,
-  systemPrompt: props.systemPrompt,
+  systemPrompt: props.systemPrompt || builtinLocale.value.systemPrompt,
   selectedModel: () => selectedModel.value,
   hasApiConfig: () => hasApiConfig.value,
   getEnabledTools: mcpStore.getEnabledTools,
@@ -86,7 +76,7 @@ const chatStore = useChatConversation({
 
 const historyDrawerOpen = ref(false)
 
-const panelTitle = computed(() => chatStore.currentConversationTitle.value || props.title)
+const panelTitle = computed(() => chatStore.currentConversationTitle.value || resolvedTitle.value)
 const historyData = computed(() =>
   chatStore.conversations.value.map((item) => ({
     id: item.id,
@@ -169,7 +159,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
     v-if="launcher"
     :show="show"
     :icon="launcherIcon"
-    :ariaLabel="launcherAriaLabel"
+    :ariaLabel="resolvedLauncherAriaLabel"
     @open="show = true"
   />
 
@@ -234,10 +224,11 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
         </Transition>
       </div>
 
-      <ChatThemeToggleButton />
+      <ChatThemeToggleButton :light-label="localeText.themeLightMode" :dark-label="localeText.themeDarkMode" />
     </template>
 
     <ChatConversation
+      :lang="lang"
       :fullscreen="fullscreen"
       :input-message="chatStore.inputMessage.value"
       :messages="chatStore.messages.value"
@@ -247,8 +238,8 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
       :available-model-count="availableModelCount"
       :model-options="modelOptions"
       :selected-model="selectedModel"
-      :title="welcomeTitle"
-      :description="welcomeDescription"
+      :title="resolvedWelcomeTitle"
+      :description="resolvedWelcomeDescription"
       :welcome-icon="welcomeIcon"
       :prompt-items="promptItems"
       :model-placeholder="localeText.selectModel"
@@ -286,7 +277,30 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
 
 <style scoped lang="less">
 .tr-chat {
-  box-shadow: -12px 0 40px rgba(15, 23, 42, 0.08);
+  --tr-chat-surface-bg: var(--tr-container-bg-default);
+  --tr-chat-surface-bg-elevated: var(--tr-container-bg-default);
+  --tr-chat-surface-border: color-mix(in srgb, var(--tr-border-color-default) 72%, transparent);
+  --tr-chat-surface-border-strong: color-mix(in srgb, var(--tr-border-color-default) 88%, transparent);
+  --tr-chat-assistant-bubble-bg: color-mix(in srgb, var(--tr-container-bg-default) 88%, #ffffff 12%);
+  --tr-chat-assistant-bubble-border: color-mix(in srgb, var(--tr-border-color-default) 22%, transparent);
+  --tr-chat-user-bubble-bg: color-mix(in srgb, var(--tr-color-primary-light) 92%, var(--tr-container-bg-default) 8%);
+  --tr-chat-scrollbar-size: 10px;
+  --tr-chat-scrollbar-track: transparent;
+  --tr-chat-scrollbar-thumb: color-mix(in srgb, var(--tr-text-secondary) 30%, transparent);
+  --tr-chat-scrollbar-thumb-hover: color-mix(in srgb, var(--tr-text-primary) 42%, transparent);
+  background: var(--tr-chat-surface-bg);
+  border-color: var(--tr-chat-surface-border);
+  box-shadow:
+    -18px 0 52px rgba(15, 23, 42, 0.12),
+    0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.tr-chat :deep(.tr-container__dragging-bar-wrapper) {
+  padding-bottom: 4px;
+}
+
+.tr-chat :deep(.tr-container__dragging-bar) {
+  background: color-mix(in srgb, var(--tr-text-tertiary) 28%, transparent);
 }
 
 .tr-chat :deep(.tr-container__header) {
@@ -294,6 +308,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   column-gap: 12px;
+  padding-bottom: 14px;
 }
 
 .tr-chat :deep(.tr-container__title) {
@@ -306,6 +321,10 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
 
 .tr-chat :deep(.tr-container__header-operations) {
   flex-shrink: 0;
+}
+
+.tr-chat :deep(.tr-container__header + .tr-chat-conversation) {
+  overflow: hidden !important;
 }
 
 .tr-chat__history-anchor {
@@ -328,21 +347,24 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   width: min(300px, calc(100vw - 40px));
   max-height: min(560px, calc(100vh - 140px));
   padding: 18px 16px 16px;
-  background: var(--tr-container-bg-default);
-  border: 1px solid color-mix(in srgb, var(--tr-border-color-disabled) 84%, transparent);
+  background: var(--tr-chat-surface-bg-elevated);
+  border: 1px solid var(--tr-chat-surface-border-strong);
   border-radius: 24px;
   box-shadow:
-    0 18px 40px rgba(15, 23, 42, 0.14),
+    0 20px 44px rgba(15, 23, 42, 0.16),
     0 2px 10px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: hidden;
 }
 
 .tr-chat__history-popover-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--tr-chat-surface-border);
 }
 
 .tr-chat__history-popover-title {
@@ -354,9 +376,18 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   flex: 1;
   min-height: 0;
   overflow: auto;
-  --tr-history-item-selected-bg: var(--tr-history-item-hover-bg);
-  --tr-history-item-selected-color: var(--tr-color-primary);
+  --tr-history-group-title-padding: 4px 12px 6px;
+  --tr-history-item-padding: 10px 12px;
+  --tr-history-item-padding-editing: 10px 12px;
+  --tr-history-item-border-radius: 16px;
+  --tr-history-item-hover-bg: var(--tr-container-bg-hover);
+  --tr-history-item-selected-bg: var(--tr-container-bg-default-2);
+  --tr-history-item-selected-color: var(--tr-text-primary);
   --tr-history-item-space-y: 4px;
+  --tr-history-item-action-bg-hover: var(--tr-container-bg-hover);
+  --tr-history-menu-list-bg: var(--tr-chat-surface-bg-elevated);
+  --tr-history-menu-list-bg-hover: var(--tr-container-bg-hover);
+  --tr-history-menu-list-box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16), 0 2px 10px rgba(15, 23, 42, 0.08);
 }
 
 .tr-chat__history-popover-list :deep(.tr-history) {
@@ -365,6 +396,73 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
 
 .tr-chat__history-popover-list :deep(.tr-history__search) {
   margin-bottom: 8px;
+}
+
+.tr-chat__history-popover-list :deep(.tr-history__item) {
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tr-chat__history-popover-list :deep(.tr-history__item.selected) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tr-border-color-hover) 22%, transparent);
+}
+
+.tr-chat__history-popover-list :deep(.tr-history__item-actions > button) {
+  color: var(--tr-text-secondary);
+}
+
+.tr-chat__history-popover-list::-webkit-scrollbar,
+.tr-chat :deep(.tr-chat-conversation__list)::-webkit-scrollbar,
+.tr-chat :deep(.mcp-server-picker__content-list)::-webkit-scrollbar,
+.tr-chat :deep(.tr-sender-editor-content .ProseMirror)::-webkit-scrollbar {
+  width: var(--tr-chat-scrollbar-size);
+  height: var(--tr-chat-scrollbar-size);
+}
+
+.tr-chat__history-popover-list::-webkit-scrollbar-track,
+.tr-chat :deep(.tr-chat-conversation__list)::-webkit-scrollbar-track,
+.tr-chat :deep(.mcp-server-picker__content-list)::-webkit-scrollbar-track,
+.tr-chat :deep(.tr-sender-editor-content .ProseMirror)::-webkit-scrollbar-track {
+  background: var(--tr-chat-scrollbar-track);
+}
+
+.tr-chat__history-popover-list::-webkit-scrollbar-button,
+.tr-chat :deep(.tr-chat-conversation__list)::-webkit-scrollbar-button,
+.tr-chat :deep(.mcp-server-picker__content-list)::-webkit-scrollbar-button,
+.tr-chat :deep(.tr-sender-editor-content .ProseMirror)::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.tr-chat__history-popover-list::-webkit-scrollbar-thumb,
+.tr-chat :deep(.tr-chat-conversation__list)::-webkit-scrollbar-thumb,
+.tr-chat :deep(.mcp-server-picker__content-list)::-webkit-scrollbar-thumb,
+.tr-chat :deep(.tr-sender-editor-content .ProseMirror)::-webkit-scrollbar-thumb {
+  background: var(--tr-chat-scrollbar-thumb);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.tr-chat__history-popover-list::-webkit-scrollbar-thumb:hover,
+.tr-chat :deep(.tr-chat-conversation__list)::-webkit-scrollbar-thumb:hover,
+.tr-chat :deep(.mcp-server-picker__content-list)::-webkit-scrollbar-thumb:hover,
+.tr-chat :deep(.tr-sender-editor-content .ProseMirror)::-webkit-scrollbar-thumb:hover {
+  background: var(--tr-chat-scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .tr-chat__history-popover-list,
+  .tr-chat :deep(.tr-chat-conversation__list),
+  .tr-chat :deep(.mcp-server-picker__content-list),
+  .tr-chat :deep(.tr-sender-editor-content .ProseMirror) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--tr-chat-scrollbar-thumb) var(--tr-chat-scrollbar-track);
+  }
 }
 
 .tr-chat-history-popover-enter-active,
@@ -405,7 +503,8 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
     inset: 0;
     display: block;
     border: none;
-    background: transparent;
+    background: rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(8px);
     cursor: pointer;
   }
 

@@ -50,7 +50,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
 </script>
 
 <template>
-  <div>
+  <div class="tr-chat-mcp" :class="{ 'tr-chat-mcp--compact': compact }">
     <div
       class="tr-chat-mcp-trigger"
       :class="{ 'is-active': pickerVisible || activePluginCount > 0, 'tr-chat-mcp-trigger--compact': compact }"
@@ -88,7 +88,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   min-width: 88px;
   height: 32px;
   padding: 0 10px 0 2px;
-  border: 1px solid var(--tr-border-color-disabled);
+  border: 1px solid color-mix(in srgb, var(--tr-border-color-disabled) 82%, transparent);
   border-radius: var(--tr-radius-full);
   background: var(--tr-container-bg-default);
   color: var(--tr-text-secondary);
@@ -97,6 +97,10 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   justify-content: center;
   gap: 6px;
   cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .tr-chat-mcp-trigger--compact {
@@ -113,7 +117,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
 .tr-chat-mcp-trigger.is-active {
   color: var(--tr-color-primary);
   border-color: var(--tr-color-primary);
-  background: color-mix(in srgb, var(--tr-color-primary) 8%, var(--tr-container-bg-default));
+  background: var(--tr-container-bg-default-2);
 }
 
 .tr-chat-mcp-trigger__text {
@@ -147,5 +151,38 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   width: min(420px, 100vw);
   max-width: none;
   z-index: var(--tr-z-index-modal);
+  padding: 22px 20px 18px;
+  overflow: hidden;
+  background: var(--tr-container-bg-default);
+  box-shadow:
+    -24px 0 56px rgba(15, 23, 42, 0.18),
+    -4px 0 14px rgba(15, 23, 42, 0.06);
+  --tr-mcp-server-picker-field-bg-color: var(--tr-container-bg-default);
+  --tr-mcp-server-picker-card-bg-color: var(--tr-container-bg-default-2);
+  --tr-mcp-server-picker-bg-hover: var(--tr-container-bg-hover);
+}
+
+.tr-chat-mcp--compact :deep(.mcp-server-picker.popup-type-drawer) {
+  width: var(--width, min(420px, 100vw));
+}
+
+:deep(.mcp-server-picker.popup-type-drawer .mcp-server-picker__content-market-search) {
+  width: 100%;
+}
+
+:deep(.mcp-server-picker.popup-type-drawer .mcp-server-picker__content-list) {
+  padding-top: 2px;
+  padding-right: 4px;
+}
+
+:deep(.mcp-server-picker.popup-type-drawer .mcp-server-picker__header-right-close) {
+  border-radius: 10px;
+}
+
+@media (max-width: 767px) {
+  :deep(.mcp-server-picker.popup-type-drawer) {
+    width: 100vw;
+    padding: 18px 14px 14px;
+  }
 }
 </style>

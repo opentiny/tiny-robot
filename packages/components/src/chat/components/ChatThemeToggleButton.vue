@@ -3,10 +3,15 @@ import { computed, h } from 'vue'
 import IconButton from '../../icon-button'
 import { useTheme } from '../../theme-provider/useTheme'
 
+const props = defineProps<{
+  lightLabel: string
+  darkLabel: string
+}>()
+
 const { resolvedColorMode, toggleColorMode } = useTheme()
 
 const isDark = computed(() => resolvedColorMode?.value === 'dark')
-const themeLabel = computed(() => (isDark.value ? 'Dark mode' : 'Light mode'))
+const themeLabel = computed(() => (isDark.value ? props.darkLabel : props.lightLabel))
 
 const SunIcon = {
   render() {
@@ -37,7 +42,7 @@ const MoonIcon = {
       },
       [
         h('path', {
-          d: 'M14.5 2.75c-3.9 1.12-6.75 4.72-6.75 9 0 5.18 4.2 9.38 9.38 9.38 1.26 0 2.47-.25 3.57-.7-1.37 1.03-3.07 1.64-4.92 1.64-4.69 0-8.5-3.81-8.5-8.5 0-4 2.77-7.35 6.49-8.27.25-.06.5.11.48.37-.13.98-.03 2.01.25 3.08z',
+          d: 'M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401',
         }),
       ],
     )

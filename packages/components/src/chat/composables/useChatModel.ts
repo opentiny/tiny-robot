@@ -1,11 +1,13 @@
 import { computed, type Ref, watch } from 'vue'
 import type { ChatModelOption } from '../index.type'
+import { resolveChatModelIcon } from '../components/icons'
 
 export function useChatModel(getModelOptions: () => ChatModelOption[], selectedModelId: Ref<string>) {
   const normalizedModelOptions = computed(() =>
     getModelOptions().map((item) => ({
       ...item,
       apiKey: item.apiKey?.trim(),
+      icon: item.icon || resolveChatModelIcon(item.provider),
     })),
   )
   const fallbackSelectedModelId = computed(

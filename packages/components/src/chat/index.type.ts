@@ -1,6 +1,8 @@
 import type { Component, VNode } from 'vue'
 import type { PluginInfo } from '../mcp-server-picker/index.type'
 
+export type ChatLang = 'zh-CN' | 'en-US'
+
 export interface ChatModelCapabilities {
   thinking?: Record<string, unknown> | false
   search?: Record<string, unknown> | false
@@ -57,12 +59,15 @@ export interface ChatLocale {
   defaultPrompt?: string
   selectModel?: string
   fallbackConversationTitle?: string
+  themeLightMode?: string
+  themeDarkMode?: string
 }
 
 export interface ChatProps {
   show?: boolean
   fullscreen?: boolean
   selectedModelId?: string
+  lang?: ChatLang
   title?: string
   storageKey?: string
   activeConversationStorageKey?: string
