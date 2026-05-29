@@ -1,0 +1,1 @@
+import{U as e}from"./theme.BDSlIIn-.js";import{Y as o,b1 as s,G as a,Q as c,bH as t,n}from"./framework.6DE2p-7l.js";const r={class:"form-container"},_=o({__name:"basic",setup(p){return(d,i)=>(s(),a("div",r,[c(t(e))]))}}),l=n(_,[["__scopeId","data-v-d15cc8d6"]]);export{l as default};
