@@ -295,7 +295,7 @@ async function addFeature(targetDir, type) {
 
   console.log('\nChange Results\n')
 
-  let mainImportChanged = false
+  let needsManualStyleImport = false
   let envChanged = false
   let dependencyChanged = false
 
@@ -311,6 +311,8 @@ async function addFeature(targetDir, type) {
   })
 
   if (!mainFile?.target) {
+    needsManualStyleImport = true
+
     logUnavailable('main entry style import (main.ts/js not found)')
   } else {
     if (isSelected(selectedFiles, mainFile.label)) {
@@ -318,8 +320,6 @@ async function addFeature(targetDir, type) {
 
       switch (result.type) {
         case 'inserted':
-          mainImportChanged = true
-
           logSuccess('Inserted TinyRobot style import')
           break
 
@@ -328,6 +328,8 @@ async function addFeature(targetDir, type) {
           break
       }
     } else {
+      needsManualStyleImport = true
+
       logSkippedSelection(mainFile.label)
     }
   }
@@ -379,27 +381,52 @@ async function addFeature(targetDir, type) {
   console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
 
   printNextSteps({
-    mainImportChanged,
+    needsManualStyleImport,
     envChanged,
     dependencyChanged,
   })
 }
 
-function printNextSteps({ mainImportChanged, envChanged, dependencyChanged }) {
+function printNextSteps({ needsManualStyleImport, envChanged, dependencyChanged }) {
   const steps = []
 
-  if (!mainImportChanged) {
-    steps.push(`Add "${STYLE_IMPORT}" to your application entry file.`)
+  if (needsManualStyleImport) {
+    steps.push(
+      ['Import TinyRobot styles in your application entry file.', '', 'Example:', '', `  ${STYLE_IMPORT}`].join('\n'),
+    )
   }
 
-  steps.push('Render <TinyRobotChat /> near your main application component.')
+  steps.push(
+    [
+      'Render <TinyRobotChat /> near your main application component.',
+      '',
+      "Example ('src/App.vue'):",
+      '',
+      '  <script setup>',
+      "  import TinyRobotChat from './TinyRobotChat.vue'",
+      '  </script>',
+      '',
+      '  <template>',
+      '    <YourAppComponent />',
+      '    <TinyRobotChat />',
+      '  </template>',
+    ].join('\n'),
+  )
 
   if (envChanged) {
-    steps.push('Fill in your API key in .env.')
+    steps.push(
+      [
+        'Configure your AI provider API key in the .env file.',
+        '',
+        'Example:',
+        '',
+        '  VITE_DEEPSEEK_API_KEY=your_api_key',
+      ].join('\n'),
+    )
   }
 
   if (dependencyChanged) {
-    steps.push('Run npm/pnpm install to update dependencies.')
+    steps.push(['Install or update project dependencies.', '', 'Example:', '', '  pnpm install'].join('\n'))
   }
 
   if (steps.length === 0) {
@@ -409,7 +436,7 @@ function printNextSteps({ mainImportChanged, envChanged, dependencyChanged }) {
   console.log('\nNext Steps\n')
 
   for (const [index, step] of steps.entries()) {
-    console.log(`${index + 1}. ${step}`)
+    console.log(`${index + 1}. ${step}\n`)
   }
 }
 

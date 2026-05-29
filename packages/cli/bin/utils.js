@@ -326,7 +326,9 @@ export function mergeEnvFile(templateFile, targetFile) {
     }
   }
 
-  const nextContent = [targetContent.trimEnd(), '', ...appendLines, ''].join('\n')
+  const targetTrimmed = targetContent.replace(/\s*$/, '')
+
+  const nextContent = targetTrimmed ? `${targetTrimmed}\n${appendLines.join('\n')}\n` : `${appendLines.join('\n')}\n`
 
   fs.writeFileSync(targetFile, nextContent)
 
