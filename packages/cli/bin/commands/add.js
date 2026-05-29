@@ -20,7 +20,7 @@ import {
 } from '../utils.js'
 
 const DEP_NAME = '@opentiny/tiny-robot'
-const TARGET_VERSION = '0.4.2-alpha.5'
+const TARGET_VERSION = '0.4.2-alpha.6'
 const STYLE_IMPORT = "import '@opentiny/tiny-robot/dist/style.css'"
 
 function logUnavailable(label) {
@@ -154,17 +154,20 @@ function ensureDependency(pkg, name, targetVersion) {
 
   const currentVersion = pkg.dependencies[name]
 
+  // 1. 不存在 => 新增（使用 ordered insert）
   if (!currentVersion) {
     pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetVersion)
 
     return {
       type: 'added',
+      to: targetVersion,
     }
   }
 
-  const validVersion = semver.minVersion(currentVersion)
+  // 2. 已存在 => 只更新版本，不调整顺序
+  const current = semver.valid(semver.coerce(currentVersion)?.version)
 
-  if (validVersion && semver.lt(validVersion.version, targetVersion)) {
+  if (current && current !== targetVersion) {
     pkg.dependencies[name] = targetVersion
 
     return {
@@ -174,6 +177,7 @@ function ensureDependency(pkg, name, targetVersion) {
     }
   }
 
+  // 3. 完全一致 => 跳过
   return {
     type: 'skipped',
   }
