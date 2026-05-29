@@ -7,6 +7,7 @@ const sharedSidebarItems = [
       { text: '快速开始', link: 'quick-start' },
       { text: '主题配置', link: 'theme-config' },
       { text: '更新日志', link: 'update-log' },
+      { text: 'CLI 接入', link: 'cli-integration' },
     ],
   },
   {
