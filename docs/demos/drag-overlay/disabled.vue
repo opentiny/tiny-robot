@@ -23,7 +23,7 @@ import { vDropzone } from '@opentiny/tiny-robot'
 .demo-section {
   margin-bottom: 40px;
   padding: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
 }
 
@@ -39,13 +39,13 @@ import { vDropzone } from '@opentiny/tiny-robot'
 
 /* 禁用状态样式 */
 .disabled-area {
-  border: 2px solid #ccc;
+  border: 2px solid var(--vp-c-divider);
   border-radius: 8px;
   min-height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--vp-c-bg);
 }
 
 .disabled-area.disabled {
