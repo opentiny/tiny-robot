@@ -91,12 +91,14 @@ function validateCreateOptions(options) {
 
   invariant(validateProjectName(projectName), 'project name can only contain lowercase letters, numbers, and dashes.')
 
-  const templateDir = getTemplateDir(templateName)
-
   invariant(
-    exists(templateDir),
+    availableTemplates.includes(templateName),
     `template "${templateName}" does not exist. Available: ${availableTemplates.join(', ')}`,
   )
+
+  const templateDir = getTemplateDir(templateName)
+
+  invariant(exists(templateDir), `template directory missing: ${templateDir}`)
 
   const targetDir = path.resolve(process.cwd(), projectName)
 
@@ -136,9 +138,12 @@ export function registerCreateCommand(program) {
       const skipPrompt = !process.stdout.isTTY
 
       createProject(projectName ?? '', options.template ?? '', skipPrompt).catch((error) => {
-        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        if (error instanceof Error && error.name === 'ExitPromptError') {
+          console.error('\nOperation cancelled.')
+          process.exit(1)
+        }
 
-        process.exit(1)
+        throw error
       })
     })
 }

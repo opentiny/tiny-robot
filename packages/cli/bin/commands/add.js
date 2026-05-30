@@ -165,9 +165,9 @@ function ensureDependency(pkg, name, targetVersion) {
   }
 
   // 2. 已存在 => 只更新版本，不调整顺序
-  const current = semver.valid(semver.coerce(currentVersion)?.version)
+  const current = semver.valid(currentVersion)
 
-  if (current && current !== targetVersion) {
+  if (current !== targetVersion) {
     pkg.dependencies[name] = targetVersion
 
     return {

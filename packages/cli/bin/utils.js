@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import pc from 'picocolors'
+import yaml from 'yaml'
 
 const TEMPLATE_PLACEHOLDER = '__PROJECT_NAME__'
 
@@ -181,42 +182,19 @@ export function findWorkspacePackages(workspaceRoot) {
     return []
   }
 
-  const content = fs.readFileSync(workspaceFile, 'utf-8')
+  try {
+    const content = fs.readFileSync(workspaceFile, 'utf8')
 
-  const packages = []
+    const config = yaml.parse(content)
 
-  let inPackages = false
-
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim()
-
-    if (trimmed === 'packages:') {
-      inPackages = true
-      continue
-    }
-
-    if (!inPackages) {
-      continue
-    }
-
-    const match = trimmed.match(/^-\s+(.+)$/)
-
-    if (match) {
-      const pattern = match[1]
-
-      if (!pattern.startsWith('!')) {
-        packages.push(pattern)
-      }
-
-      continue
-    }
-
-    if (trimmed && !trimmed.startsWith('#')) {
-      break
-    }
+    return Array.isArray(config?.packages)
+      ? config.packages.filter(
+          (pattern) => typeof pattern === 'string' && pattern.length > 0 && !pattern.startsWith('!'),
+        )
+      : []
+  } catch {
+    return []
   }
-
-  return packages
 }
 
 function normalizeWorkspacePattern(pattern) {
