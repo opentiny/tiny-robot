@@ -39,7 +39,6 @@ const sharedSidebarItems = [
       { text: 'useConversation 会话数据管理', link: 'conversation' },
       { text: 'AIClient 模型交互工具类', link: 'ai-client' },
       { text: '工具函数', link: 'utils' },
-      { text: 'CLI 命令行工具', link: 'cli' },
     ],
   },
   {

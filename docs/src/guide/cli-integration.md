@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # CLI 接入
 
-TinyRobot 提供官方 CLI 工具 [@opentiny/tiny-robot-cli](https://www.npmjs.com/package/@opentiny/tiny-robot-cli)，用于：
+TinyRobot 提供官方 CLI 工具 [`@opentiny/tiny-robot-cli`](https://www.npmjs.com/package/@opentiny/tiny-robot-cli)，用于：
 
 - `create` 创建完整的 TinyRobot 示例工程
 - `add` 向现有 Vue 项目快速注入聊天能力
@@ -101,16 +101,17 @@ import '@opentiny/tiny-robot/dist/style.css'
 
 在你的主业务组件中，添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
 
-```diff
-// src/App.vue
+```vue
+<!-- src/App.vue -->
 <script setup lang="ts">
 import HelloWord from './components/HelloWorld.vue'
-+ import HelloWord from './TinyRobotChat.vue'
+import TinyRobotChat from './TinyRobotChat.vue' // [!code ++]
 </script>
 
 <template>
   <HelloWorld />
-+ <TinyRobotChat />
+  <!-- [!code ++] -->
+  <TinyRobotChat />
 </template>
 ```
 
