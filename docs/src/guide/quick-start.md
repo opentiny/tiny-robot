@@ -172,7 +172,7 @@ npx @opentiny/tiny-robot-cli add chat
 - 安装 TinyRobot 依赖
 - 导入样式文件
 - 创建聊天组件
-- 配置环境变量
+- 环境变量模板
 
 👉 更多功能请查看 [CLI 接入](./cli-integration)
 

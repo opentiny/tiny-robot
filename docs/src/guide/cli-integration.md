@@ -117,7 +117,7 @@ import TinyRobotChat from './TinyRobotChat.vue' // [!code ++]
 
 **配置 API_KEY**
 
-在 `.env` 文件里面配置大模型的 `API_KEY`
+在 `.env` 文件里面配置大模型的 `API_KEY`。比如
 
 ```shell
 # .env
