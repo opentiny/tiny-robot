@@ -461,7 +461,8 @@ export function registerAddCommand(program) {
           process.exit(1)
         }
 
-        throw error
+        console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
+        process.exit(1)
       }
     })
 }
