@@ -64,7 +64,7 @@ export const ModelConfigs: Record<string, ProviderModelConfig> = {
     ],
   },
   deepseek: {
-    apiUrl: 'https://api.deepseek.com/v1',
+    apiUrl: 'https://api.deepseek.com/chat/completions',
     icon: IconModelDeepseek,
     apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY,
     models: [
