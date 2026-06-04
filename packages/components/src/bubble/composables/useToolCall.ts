@@ -3,7 +3,7 @@ import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 import { getJsonrepair } from '../utils'
 import { useBubbleStore } from './useBubbleStore'
 
-const toolCallStatus = ['running', 'success', 'failed', 'cancelled'] as const
+const toolCallStatus = ['running', 'success', 'failed', 'cancelled', 'awaiting-approval'] as const
 export type ToolCallStatus = (typeof toolCallStatus)[number]
 
 export const useToolCall = (

@@ -71,8 +71,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const {
       name,
       disabled,
+      commands,
       onTurnStart,
       onTurnEnd,
+      onTurnResume,
+      onTurnPause,
       onBeforeRequest,
       onAfterRequest,
       onCompletionChunk,
@@ -91,12 +94,34 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
         typeof disabled === 'function' ? (context) => disabled(createVueBaseContext(context)) : disabled
     }
 
+    if (commands) {
+      corePlugin.commands = Object.fromEntries(
+        Object.entries(commands).map(([commandName, handler]) => [
+          commandName,
+          (payload, context) =>
+            handler(payload, {
+              ...createVueBaseContext(context),
+              appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
+              requestNext: context.requestNext,
+            }),
+        ]),
+      )
+    }
+
     if (onTurnStart) {
       corePlugin.onTurnStart = (context) => onTurnStart(createVueBaseContext(context))
     }
 
+    if (onTurnResume) {
+      corePlugin.onTurnResume = (context) => onTurnResume(createVueBaseContext(context))
+    }
+
     if (onTurnEnd) {
       corePlugin.onTurnEnd = (context) => onTurnEnd(createVueBaseContext(context))
+    }
+
+    if (onTurnPause) {
+      corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
     }
 
     if (onBeforeRequest) {
@@ -187,5 +212,6 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     sendMessage: engine.sendMessage,
     send: engine.send,
     abortRequest: engine.abort,
+    runPluginCommand: engine.runPluginCommand,
   } as UseMessageReturn
 }

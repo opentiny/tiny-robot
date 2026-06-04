@@ -13,6 +13,28 @@ type ToolCallContext = BasePluginContext & {
   toolMessage: ChatMessage
 }
 
+const hasMeaningfulToolContent = (content: ChatMessage['content']) => {
+  if (typeof content === 'string') {
+    return content.trim().length > 0
+  }
+
+  if (Array.isArray(content)) {
+    return content.some((item) => {
+      if (!item || typeof item !== 'object') {
+        return false
+      }
+
+      if ('text' in item && typeof item.text === 'string') {
+        return item.text.trim().length > 0
+      }
+
+      return Object.keys(item).length > 0
+    })
+  }
+
+  return Boolean(content)
+}
+
 /**
  * 补全缺失的工具消息
  * 遍历所有 messages，找到所有 role 为 assistant 并且 tool_calls 数组不为空的 message。
@@ -138,6 +160,10 @@ export const toolPlugin = (
         error?: Error
       },
     ) => void
+    shouldPauseToolCall?: (
+      toolCall: ChatCompletionMessageToolCall,
+      context: ToolCallContext,
+    ) => boolean | Promise<boolean>
     /**
      * 当请求被中止时用于工具调用取消的消息内容。
      */
@@ -160,6 +186,7 @@ export const toolPlugin = (
     callTool,
     onToolCallStart,
     onToolCallEnd,
+    shouldPauseToolCall,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
     autoFillMissingToolMessages = false,
@@ -197,9 +224,188 @@ export const toolPlugin = (
     onToolCallEnd?.(...args)
   }
 
+  const processToolCall = async (toolCall: ChatCompletionMessageToolCall, contextWithToolMessage: ToolCallContext) => {
+    const { toolMessage: _toolMessage, abortSignal, mutate } = contextWithToolMessage
+    const toolMessage = _toolMessage as Extract<ChatMessage, { role: 'tool' }>
+    let hasMeaningfulResult = false
+
+    toolCallStart(toolCall, contextWithToolMessage)
+    try {
+      const result = callTool(toolCall, contextWithToolMessage)
+
+      // 将 Promise 或异步迭代器统一转换为异步生成器
+      const iterator = normalizeToAsyncGenerator(result)
+
+      // 迭代并逐步拼接内容到 content
+      for await (const chunk of iterator) {
+        mutate('messages', () => {
+          if (
+            (typeof chunk === 'string' && chunk.length > 0) ||
+            (chunk && typeof chunk === 'object' && Object.keys(chunk).length > 0)
+          ) {
+            hasMeaningfulResult = true
+          }
+
+          // 字符串拼接或 JSON 合并
+          if (typeof chunk === 'string') {
+            toolMessage.content += chunk
+          } else {
+            let parsedContent: Record<string, any> = {}
+            try {
+              const content = Array.isArray(toolMessage.content)
+                ? toolMessage.content.map((item) => item.text).join('')
+                : toolMessage.content
+              parsedContent = JSON.parse(content || '{}')
+            } catch (error) {
+              console.warn(error)
+            }
+            toolMessage.content = JSON.stringify(combineDeltaData(parsedContent, chunk))
+          }
+
+          toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
+        })
+      }
+
+      toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'success' })
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error))
+
+      // 如果被 abort ，则抛出错误，主流程会处理状态
+      // 也可以不抛出错误，直接返回，主流程会自动处理 abort 场景
+      if (abortSignal.aborted) {
+        toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'cancelled', error: err })
+        // throw error
+        return
+      }
+
+      // 其他错误视为工具调用失败，则将工具消息内容设置为失败内容
+      console.error(error)
+
+      if (!hasMeaningfulResult) {
+        mutate('messages', () => {
+          toolMessage.content = toolCallFailedContent
+          toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
+        })
+      }
+
+      toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'failed', error: err })
+    }
+  }
+
+  const pauseToolCall = (...args: Parameters<NonNullable<typeof shouldPauseToolCall>>) => {
+    const [toolCall, { assistantMessage, mutate, setRequestState }] = args
+
+    mutate('messages', () => {
+      const message = ensureToolCallState(assistantMessage, toolCall.id)
+      message.state.toolCall[toolCall.id].status = 'awaiting-approval'
+    })
+
+    setRequestState('paused')
+  }
+
+  const findPendingToolCall = (messages: ChatMessage[]) => {
+    // resume 只处理最新的 assistant + 连续 tool 消息尾部结构。
+    let i = messages.length - 1
+
+    // 收集末尾连续的 tool messages
+    const toolMessages: ChatMessage[] = []
+
+    while (i >= 0 && messages[i].role === 'tool') {
+      toolMessages.unshift(messages[i])
+      i--
+    }
+
+    // 前面必须是 assistant
+    const assistantMessage = messages[i]
+    if (!assistantMessage || assistantMessage.role !== 'assistant') {
+      return null
+    }
+
+    // 必须存在非空 tool_calls
+    if (!Array.isArray(assistantMessage.tool_calls) || assistantMessage.tool_calls.length === 0) {
+      return null
+    }
+
+    return {
+      assistantMessage,
+      toolMessages: toolMessages as Extract<ChatMessage, { role: 'tool' }>[],
+    }
+  }
+
+  const isAllToolCallsCompleted = (
+    assistantMessage: Extract<ChatMessage, { role: 'assistant' }> & AssistantMessageWithState,
+    toolMessages: Extract<ChatMessage, { role: 'tool' }>[],
+  ): boolean => {
+    // 判断所有 tool_call 是否完成：running / awaiting-approval 不算完成；缺少 status 时用 tool 消息内容兜底。
+    const toolMessageMap = new Map(toolMessages.map((msg) => [msg.tool_call_id, msg]))
+    const toolCallState = assistantMessage.state?.toolCall as Record<string, Record<string, unknown>> | undefined
+
+    return (
+      assistantMessage.tool_calls?.every((toolCall) => {
+        const toolMessage = toolMessageMap.get(toolCall.id)
+        const toolCallStatus = toolCallState?.[toolCall.id]?.status
+
+        if (!toolMessage || toolCallStatus === 'running' || toolCallStatus === 'awaiting-approval') {
+          return false
+        }
+
+        return typeof toolCallStatus === 'string' || hasMeaningfulToolContent(toolMessage.content)
+      }) ?? false
+    )
+  }
+
+  let hasPausedToolCall = false
+
   return {
     name: 'tool',
     ...restOptions,
+    commands: {
+      async resumeToolCall(payload, context) {
+        const { toolCallId } = payload as { toolCallId: string }
+        const { getState, createMessage, appendMessage, requestNext } = context
+
+        const { assistantMessage, toolMessages } = findPendingToolCall(getState().messages) || {}
+
+        if (!assistantMessage || !toolMessages) {
+          return
+        }
+
+        const toolCall = assistantMessage.tool_calls?.find((call) => call.id === toolCallId)
+
+        // 无效的 toolCallId
+        if (!toolCall) {
+          return
+        }
+
+        let toolMessage = toolMessages.find((msg) => msg.tool_call_id === toolCallId)
+
+        // 此时 toolMessage 可能还没创建
+        if (!toolMessage) {
+          const now = Math.floor(Date.now() / 1000)
+          const toolMsg: ChatMessage = createMessage({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: '',
+            metadata: {
+              createdAt: now,
+              updatedAt: now,
+            },
+          })
+
+          appendMessage(toolMsg)
+          toolMessage = toolMsg
+        }
+
+        await processToolCall(toolCall, { ...context, assistantMessage, toolMessage: toolMessage })
+
+        const { toolMessages: newToolMessages } = findPendingToolCall(getState().messages) || {}
+
+        if (isAllToolCallsCompleted(assistantMessage, newToolMessages ?? [])) {
+          requestNext({ resume: true })
+        }
+      },
+      ...restOptions.commands,
+    },
     onTurnStart: (context) => {
       const { getState, createMessage, mutate } = context
       const messages = getState().messages
@@ -208,7 +414,14 @@ export const toolPlugin = (
         fillMissingToolMessages({ messages, cancelledContent: toolCallCancelledContent, createMessage, mutate })
       }
 
+      hasPausedToolCall = false
+
       return restOptions.onTurnStart?.(context)
+    },
+    onTurnResume: (context) => {
+      hasPausedToolCall = false
+
+      return restOptions.onTurnResume?.(context)
     },
     onBeforeRequest: async (context) => {
       const { requestBody } = context
@@ -221,16 +434,8 @@ export const toolPlugin = (
       return restOptions.onBeforeRequest?.(context)
     },
     onAfterRequest: async (context) => {
-      const {
-        currentMessage,
-        lastChoice,
-        appendMessage,
-        abortSignal,
-        setRequestState,
-        requestNext,
-        mutate,
-        createMessage,
-      } = context
+      const { currentMessage, lastChoice, appendMessage, abortSignal, setRequestState, requestNext, createMessage } =
+        context
 
       if (lastChoice?.finish_reason !== 'tool_calls' || !currentMessage.tool_calls?.length) {
         return
@@ -244,7 +449,6 @@ export const toolPlugin = (
 
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
-        let hasMeaningfulResult = false
         const toolMessage: ChatMessage = createMessage({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -263,71 +467,18 @@ export const toolPlugin = (
           toolMessage,
         }
 
-        toolCallStart(toolCall, contextWithToolMessage)
-        try {
-          const result = callTool(toolCall, contextWithToolMessage)
-
-          // 将 Promise 或异步迭代器统一转换为异步生成器
-          const iterator = normalizeToAsyncGenerator(result)
-
-          // 迭代并逐步拼接内容到 content
-          for await (const chunk of iterator) {
-            mutate('messages', () => {
-              if (
-                (typeof chunk === 'string' && chunk.length > 0) ||
-                (chunk && typeof chunk === 'object' && Object.keys(chunk).length > 0)
-              ) {
-                hasMeaningfulResult = true
-              }
-
-              // 字符串拼接或 JSON 合并
-              if (typeof chunk === 'string') {
-                toolMessage.content += chunk
-              } else {
-                let parsedContent: Record<string, any> = {}
-                try {
-                  const content = Array.isArray(toolMessage.content)
-                    ? toolMessage.content.map((item) => item.text).join('')
-                    : toolMessage.content
-                  parsedContent = JSON.parse(content || '{}')
-                } catch (error) {
-                  console.warn(error)
-                }
-                toolMessage.content = JSON.stringify(combineDeltaData(parsedContent, chunk))
-              }
-
-              toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
-            })
-          }
-
-          toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'success' })
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error))
-
-          // 如果被 abort ，则抛出错误，主流程会处理状态
-          // 也可以不抛出错误，直接返回，主流程会自动处理 abort 场景
-          if (abortSignal.aborted) {
-            toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'cancelled', error: err })
-            // throw error
-            return
-          }
-
-          // 其他错误视为工具调用失败，则将工具消息内容设置为失败内容
-          console.error(error)
-
-          if (!hasMeaningfulResult) {
-            mutate('messages', () => {
-              toolMessage.content = toolCallFailedContent
-              toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
-            })
-          }
-
-          toolCallEnd(toolCall, { ...contextWithToolMessage, status: 'failed', error: err })
+        if (shouldPauseToolCall && (await shouldPauseToolCall(toolCall, contextWithToolMessage))) {
+          pauseToolCall(toolCall, contextWithToolMessage)
+          hasPausedToolCall = true
+          return
         }
+
+        return processToolCall(toolCall, contextWithToolMessage)
       })
 
       await Promise.all(toolCallPromises)
-      if (!abortSignal.aborted) {
+
+      if (!abortSignal.aborted && !hasPausedToolCall) {
         requestNext()
       }
 

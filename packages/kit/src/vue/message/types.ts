@@ -23,7 +23,7 @@ export interface MessageRequestBody {
 }
 
 // Define different states for the request process
-export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+export type RequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
 
 // Usage information for API response
@@ -120,6 +120,7 @@ export interface UseMessageReturn {
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
   abortRequest: () => Promise<void>
+  runPluginCommand: <T = unknown>(pluginName: string, commandName: string, payload?: unknown) => Promise<T>
 }
 
 export interface BasePluginContext {
@@ -140,6 +141,22 @@ export interface BasePluginContext {
   setCustomContext: (data: Record<string, unknown>) => void
 }
 
+export interface RequestNextOptions {
+  /**
+   * 标记后续请求是从暂停状态恢复触发的请求。
+   * 设置为 true 时，后续 turn 会触发 `onTurnResume`，不会触发 `onTurnStart`。
+   */
+  resume?: boolean
+}
+
+export type UseMessagePluginCommandHandler = (
+  payload: unknown,
+  context: BasePluginContext & {
+    appendMessage: (message: ChatMessage | ChatMessage[]) => void
+    requestNext: (options?: RequestNextOptions) => void
+  },
+) => unknown | Promise<unknown>
+
 export interface UseMessagePlugin {
   /**
    * 插件名称。
@@ -150,16 +167,31 @@ export interface UseMessagePlugin {
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /**
+   * 插件注册的命令。命令按插件名称分组，只有声明了 `name` 的插件才会被注册。
+   */
+  commands?: Record<string, UseMessagePluginCommandHandler>
+  /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。
    */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
+  /**
+   * 一次对话回合（turn）从暂停状态恢复后的生命周期钩子。
+   * 与 `onTurnStart` 互斥：resume 触发的后续请求只触发 `onTurnResume`。
+   */
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）结束的生命周期钩子。
    * 触发时机：本轮对话完成（成功、被中止）后
    * 执行策略：按插件注册顺序串行执行，有错误则中断流程
    */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
+  /**
+   * 一次对话回合（turn）暂停钩子。
+   * 触发时机：本轮请求进入 `paused` 状态后，例如工具调用等待人工确认。
+   * 与 `onTurnEnd` 互斥：暂停的 turn 只触发 `onTurnPause`，不会触发 `onTurnEnd`。
+   */
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 请求开始前的生命周期钩子。
    * 触发时机：已组装 requestBody，正式发起请求之前。

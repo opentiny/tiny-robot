@@ -63,6 +63,7 @@
     "openai": "^6.34.0",
     "tsup": "^8.0.1",
     "typescript": "^5.8.2",
+    "vite": "^6.0.0",
     "vitest": "^4.1.4"
   },
   "peerDependencies": {
