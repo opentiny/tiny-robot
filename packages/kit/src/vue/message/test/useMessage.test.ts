@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { ChatMessage } from '../../types'
+import type { ChatMessage } from '../../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './helpers'
-import { lengthPlugin } from './plugins/lengthPlugin'
-import { toolPlugin } from './plugins/toolPlugin'
-import type { ResponseProvider } from './types'
-import { useMessage } from './useMessage'
+import { lengthPlugin } from '../plugins/lengthPlugin'
+import { toolPlugin } from '../plugins/toolPlugin'
+import type { ResponseProvider } from '../types'
+import { useMessage } from '../useMessage'
 
 describe('useMessage', () => {
   it('uses the core vue adapter while keeping the original return shape', async () => {

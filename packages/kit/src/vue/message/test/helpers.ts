@@ -1,5 +1,5 @@
-import type { ToolCall } from '../../types'
-import type { ChatCompletion, MessageRequestBody, ResponseProvider } from './types'
+import type { ToolCall } from '../../../types'
+import type { ChatCompletion, MessageRequestBody, ResponseProvider } from '../types'
 
 type ItemOrItems<T> = T | Array<T>
 
