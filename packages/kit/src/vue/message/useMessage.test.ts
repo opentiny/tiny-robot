@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessage } from '../../types'
-import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
+import { mockResponseProvider, mockSequentialResponseProvider } from './helpers'
 import { lengthPlugin } from './plugins/lengthPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'

@@ -1,6 +1,5 @@
-import type { ChatCompletionChunk } from 'openai/resources/index'
 import type { ToolCall } from '../../types'
-import type { MessageRequestBody, ResponseProvider } from './types'
+import type { ChatCompletion, MessageRequestBody, ResponseProvider } from './types'
 
 type ItemOrItems<T> = T | Array<T>
 
@@ -16,7 +15,7 @@ export interface MockResponseStep {
   onRequest?: (requestBody: MessageRequestBody) => void
 }
 
-async function* mockStreamOneAssistantReply(content: MockContent): AsyncGenerator<ChatCompletionChunk> {
+async function* mockStreamOneAssistantReply(content: MockContent): AsyncGenerator<ChatCompletion> {
   const contents = Array.isArray(content) ? content : [content]
   const createdAt = Math.floor(Date.now() / 1000)
 
@@ -28,14 +27,17 @@ async function* mockStreamOneAssistantReply(content: MockContent): AsyncGenerato
       object: 'chat.completion.chunk',
       created: createdAt,
       model: 'mock',
+      system_fingerprint: null,
       choices: [
         {
           index: 0,
+          message: undefined,
           delta: { role: 'assistant', ...(typeof item === 'string' ? { content: item } : item) },
+          logprobs: null,
           finish_reason: index === contents.length - 1 ? 'stop' : null,
         },
       ],
-    } as ChatCompletionChunk
+    }
   }
 }
 

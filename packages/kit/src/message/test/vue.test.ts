@@ -2,11 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { toRaw, watch } from 'vue'
 import { createVueMessageAdapter } from '../adapters/vue'
 import { createMessageEngine } from '../core/engine'
-import { lengthPlugin, thinkingPlugin } from '../plugins'
 import type { ChatMessage } from '../types'
-import { mockResponseProvider } from './mockResponseProvider'
-
-const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
+import { mockResponseProvider, silentDefaultPlugins } from './helpers'
 
 describe('createVueMessageAdapter', () => {
   it('throws when adapter is initialized more than once', () => {

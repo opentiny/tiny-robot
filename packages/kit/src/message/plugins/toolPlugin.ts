@@ -262,6 +262,7 @@ export const toolPlugin = (
             toolMessage.content = JSON.stringify(combineDeltaData(parsedContent, chunk))
           }
 
+          toolMessage.metadata ??= {}
           toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
         })
       }
@@ -284,6 +285,7 @@ export const toolPlugin = (
       if (!hasMeaningfulResult) {
         mutate('messages', () => {
           toolMessage.content = toolCallFailedContent
+          toolMessage.metadata ??= {}
           toolMessage.metadata!.updatedAt = Math.floor(Date.now() / 1000)
         })
       }
