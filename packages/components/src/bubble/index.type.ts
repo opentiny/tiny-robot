@@ -191,6 +191,21 @@ export interface BubbleListProps {
   autoScroll?: boolean
 }
 
+export type BubbleStateUpdateEvent = {
+  name: 'state:update'
+  payload: {
+    key: string
+    value: unknown
+  }
+}
+
+export type BubbleEvent =
+  | BubbleStateUpdateEvent
+  | {
+      name: string
+      payload?: unknown
+    }
+
 export interface BubbleProviderProps {
   boxRendererMatches?: BubbleBoxRendererMatch[]
   contentRendererMatches?: BubbleContentRendererMatch[]

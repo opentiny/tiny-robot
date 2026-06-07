@@ -4,7 +4,7 @@ import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore, useCopyCleanup } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
-import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
+import type { BubbleEvent, BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
@@ -17,6 +17,7 @@ defineSlots<BubbleListSlots>()
 
 const emit = defineEmits<{
   (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
+  (e: 'bubble-event', payload: BubbleEvent & { messageIndex: number; contentIndex: number }): void
 }>()
 
 // Provide bubble store if not already provided
@@ -185,6 +186,7 @@ defineExpose({
       :content-render-mode="props.contentRenderMode"
       :content-resolver="props.contentResolver"
       @state-change="emit('state-change', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
+      @bubble-event="emit('bubble-event', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
     >
       <template #prefix="slotProps">
         <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>

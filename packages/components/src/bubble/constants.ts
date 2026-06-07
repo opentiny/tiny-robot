@@ -4,6 +4,7 @@ import {
   BubbleBoxRendererMatch,
   BubbleContentAttributesConfig,
   BubbleContentRendererMatch,
+  BubbleEvent,
   BubbleMessageGroup,
 } from './index.type'
 
@@ -49,6 +50,8 @@ export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('b
 
 export const BUBBLE_STATE_CHANGE_FN_KEY: InjectionKey<(key: string, value: unknown) => void> =
   Symbol('bubble-state-change-fn')
+
+export const BUBBLE_EVENT_FN_KEY: InjectionKey<(event: BubbleEvent) => void> = Symbol('bubble-event-fn')
 
 /**
  * Bubble list 上下文的注入键

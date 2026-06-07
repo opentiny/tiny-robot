@@ -58,6 +58,7 @@ export {
   BubbleRenderers,
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
+  useBubbleEventFn,
   useBubbleStateChangeFn,
   useMessageContent,
   useOmitMessageFields,
