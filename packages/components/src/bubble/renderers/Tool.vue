@@ -15,16 +15,34 @@ const props = defineProps<
 
 const { toolCall, toolCallWithResult, state } = useToolCall(props)
 
-const textAndIconMap = new Map<string, { text: string; icon: Component }>([
-  ['running', { text: '正在调用', icon: IconLoading }],
-  ['success', { text: '已调用', icon: IconPlugin }],
-  ['failed', { text: '调用失败', icon: IconError }],
-  ['cancelled', { text: '已取消', icon: IconCancelled }],
+const textAndIconMap = new Map<
+  ToolCallStatus,
+  { prefixText: string; suffixText?: string; allowText?: string; denyText?: string; icon: Component }
+>([
+  [
+    'awaiting-approval',
+    {
+      prefixText: '即将调用',
+      suffixText: '工具，请问是否同意？',
+      allowText: '同意',
+      denyText: '拒绝',
+      icon: IconPlugin,
+    },
+  ],
+  ['running', { prefixText: '正在调用', icon: IconLoading }],
+  ['success', { prefixText: '已调用', icon: IconPlugin }],
+  ['failed', { prefixText: '调用失败', icon: IconError }],
+  ['cancelled', { prefixText: '已取消', icon: IconCancelled }],
+  ['denied', { prefixText: '已拒绝', icon: IconCancelled }],
 ])
 
 const textAndIcon = computed(() => {
-  return textAndIconMap.get(state.value?.status || '') || { text: '', icon: IconPlugin }
+  return state.value?.status
+    ? textAndIconMap.get(state.value.status) || { prefixText: '', icon: IconPlugin }
+    : { prefixText: '', icon: IconPlugin }
 })
+
+const isAwaitingApproval = computed(() => state.value.status === 'awaiting-approval')
 
 const prettyJSON = (json: unknown, space = 2) => {
   let prettyJson = ''
@@ -129,21 +147,62 @@ const handleClick = () => {
     })
   }
 }
+
+const handleDecision = (decision: 'allow' | 'deny') => {
+  const toolCallId = toolCall.value?.id
+  if (!toolCallId) {
+    return
+  }
+
+  const nextStatus: ToolCallStatus = decision === 'allow' ? 'running' : 'denied'
+
+  handleBubbleEvent({
+    name: 'state:update',
+    payload: {
+      key: 'toolCall',
+      value: {
+        ...props.message.state?.toolCall,
+        [toolCallId]: {
+          ...state.value,
+          status: nextStatus,
+          open: open.value,
+        },
+      },
+    },
+  })
+
+  handleBubbleEvent({
+    name: 'tool-call:decision',
+    payload: {
+      decision,
+      toolCallId,
+    },
+  })
+}
 </script>
 
 <template>
   <div class="tr-bubble__tool-call" data-type="tool-call">
-    <div class="header">
+    <div class="header" :class="{ 'is-approval': isAwaitingApproval }">
       <div class="header-left">
         <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${state.status}`" />
         <span>
-          <span>{{ textAndIcon.text }}&nbsp;</span>
-          <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
+          <span>{{ textAndIcon.prefixText }}&nbsp;</span>
+          <span class="title">{{ toolCall?.function.name || 'Untitled' }}</span>
+          <span v-if="textAndIcon.suffixText">&nbsp;{{ textAndIcon.suffixText }}</span>
         </span>
       </div>
       <div class="header-right">
         <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !open }" @click="handleClick" />
       </div>
+    </div>
+    <div v-if="isAwaitingApproval" class="approval-actions">
+      <button class="approval-button approval-button--allow" type="button" @click.stop="handleDecision('allow')">
+        {{ textAndIcon.allowText }}
+      </button>
+      <button class="approval-button approval-button--deny" type="button" @click.stop="handleDecision('deny')">
+        {{ textAndIcon.denyText }}
+      </button>
     </div>
     <div v-show="open" class="divider"></div>
     <div v-show="open" class="detail" v-html="detail" ref="detailRef"></div>
@@ -193,6 +252,7 @@ const handleClick = () => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    gap: 8px;
   }
 
   .header-icon {
@@ -204,12 +264,14 @@ const handleClick = () => {
       animation: spin 1s linear infinite;
     }
 
+    &.icon-awaiting-approval,
     &.icon-success {
       color: #898989;
     }
 
     &.icon-failed,
-    &.icon-cancelled {
+    &.icon-cancelled,
+    &.icon-denied {
       color: var(--tr-color-error);
     }
   }
@@ -220,6 +282,52 @@ const handleClick = () => {
 
     &.-rotate-90 {
       transform: rotate(-90deg);
+    }
+  }
+}
+
+.header.is-approval {
+  .header-left {
+    color: var(--tr-text-secondary);
+  }
+
+  .header-icon {
+    color: var(--tr-icon-color-default);
+  }
+}
+
+.approval-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 28px;
+  margin-top: 8px;
+}
+
+.approval-button {
+  height: 24px;
+  min-width: 56px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--tr-text-secondary);
+  background: transparent;
+  color: var(--tr-text-primary);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--tr-text-primary);
+  }
+
+  &--allow {
+    border-color: var(--tr-text-primary);
+    background: var(--tr-text-primary);
+    color: var(--tr-container-bg-default);
+
+    &:hover {
+      background: var(--tr-text-secondary);
+      border-color: var(--tr-text-secondary);
     }
   }
 }

@@ -377,6 +377,12 @@ emitBubbleEvent({
 
 <demo vue="../../demos/bubble/state-change.vue" />
 
+#### 工具调用确认
+
+内置 Tool 渲染器可以通过 `message.state.toolCall[toolCallId].status = 'awaiting-approval'` 展示需要用户确认的工具调用。用户点击同意或拒绝时，Tool 渲染器会触发 `state:update` 更新工具调用状态，并触发 `tool-call:decision` 事件，业务侧可以在 `bubble-event` 中继续执行工具调用、拒绝调用或记录日志。
+
+<demo vue="../../demos/bubble/tool-approval.vue" />
+
 > **注意**：`state-change` 是针对 `bubble-event` 中 `state:update` 提供的便捷事件，只负责通知外部更新 UI 状态。若状态没有同步回传给消息的 `state` 属性，渲染器下一次渲染时不会保留该状态。
 
 ## Props

@@ -1,6 +1,6 @@
 <template>
   <tr-bubble-provider :content-renderer-matches="contentRendererMatches">
-    <div style="display: flex; flex-direction: column; gap: 16px">
+    <div class="state-change-demo">
       <tr-bubble
         :content="messageContent"
         :avatar="aiAvatar"
@@ -9,13 +9,13 @@
         @state-change="handleStateChange"
       ></tr-bubble>
 
-      <div style="font-size: 12px; color: #666">
-        <div style="display: flex; align-items: center; gap: 8px">
+      <div class="event-log">
+        <div class="event-log__header">
           <span>外部收到的事件：</span>
-          <button type="button" style="padding: 2px 8px; font-size: 12px" @click="resetEventLogs">重置日志</button>
+          <button class="event-log__reset" type="button" @click="resetEventLogs">重置日志</button>
         </div>
-        <pre style="margin: 8px 0 0; padding: 8px; background: #f5f5f5; border-radius: 6px">{{ bubbleEventLog }}</pre>
-        <pre style="margin: 8px 0 0; padding: 8px; background: #f5f5f5; border-radius: 6px">{{ stateChangeLog }}</pre>
+        <pre class="event-log__content">{{ bubbleEventLog }}</pre>
+        <pre class="event-log__content">{{ stateChangeLog }}</pre>
       </div>
     </div>
   </tr-bubble-provider>
@@ -89,12 +89,15 @@ const StateDemoRenderer = defineComponent({
         h('div', { style: 'display: flex; gap: 8px' }, [
           button(expanded.value ? '收起详情' : '展开详情', toggleExpanded),
           button(liked.value ? '取消点赞' : '点赞', toggleLiked),
-          button('发送普通事件', sendCustomEvent),
+          button('发送事件', sendCustomEvent),
         ]),
         expanded.value
           ? h(
               'div',
-              { style: 'padding: 8px; background: #f5f5f5; border-radius: 6px; color: #666; font-size: 12px' },
+              {
+                style:
+                  'padding: 8px; background: var(--vp-c-bg-soft); border-radius: 6px; color: var(--vp-c-text-2); font-size: 12px',
+              },
               detailText,
             )
           : null,
@@ -125,3 +128,42 @@ const resetEventLogs = () => {
   stateChangeLog.value = 'state-change 尚未触发'
 }
 </script>
+
+<style scoped>
+.state-change-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.event-log {
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+}
+
+.event-log__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-log__reset {
+  padding: 2px 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.event-log__content {
+  padding: 8px;
+  margin: 8px 0 0;
+  overflow: auto;
+  color: var(--vp-c-text-1);
+  background: var(--vp-c-bg-soft);
+  border-radius: 6px;
+  white-space: pre;
+}
+</style>
