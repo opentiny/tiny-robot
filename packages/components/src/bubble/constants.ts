@@ -48,9 +48,6 @@ export const BUBBLE_CONTENT_PROP_FALLBACK_RENDERER_KEY: InjectionKey<MaybeRefOrG
  */
 export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('bubble-store')
 
-export const BUBBLE_STATE_CHANGE_FN_KEY: InjectionKey<(key: string, value: unknown) => void> =
-  Symbol('bubble-state-change-fn')
-
 export const BUBBLE_EVENT_FN_KEY: InjectionKey<(event: BubbleEvent) => void> = Symbol('bubble-event-fn')
 
 /**

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { setupBubbleEventFn, useBubbleContentRenderer } from './composables'
-import type { BubbleContentRendererProps, BubbleEvent, BubbleStateUpdateEvent } from './index.type'
+import type { BubbleContentRendererProps, BubbleEvent } from './index.type'
 
 const props = defineProps<BubbleContentRendererProps>()
 
@@ -24,7 +24,16 @@ const handleBubbleEvent = (event: BubbleEvent) => {
   })
 
   if (event.name === 'state:update') {
-    const payload = event.payload as BubbleStateUpdateEvent['payload']
+    const payload = event.payload
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      !('key' in payload) ||
+      typeof payload.key !== 'string' ||
+      !('value' in payload)
+    ) {
+      return
+    }
 
     emit('state-change', {
       key: payload.key,

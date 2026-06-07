@@ -596,7 +596,11 @@ type BubbleMessageGroup = {
   role: string
   messages: BubbleMessage[]
   messageIndexes: number[]
-  startIndex: number
+  /**
+   * @deprecated 自定义分组中的消息可能不连续，使用 startIndex + 局部索引推导全局索引可能出错。
+   * 请以 messageIndexes 作为局部索引到全局索引的映射依据。
+   */
+  startIndex?: number
 }
 ```
 

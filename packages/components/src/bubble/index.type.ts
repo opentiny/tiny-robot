@@ -59,7 +59,11 @@ export type BubbleMessageGroup = {
   role: string
   messages: BubbleMessage[]
   messageIndexes: number[]
-  startIndex: number
+  /**
+   * @deprecated For custom groups with non-contiguous messages, deriving the global index from
+   * startIndex plus a local index can be incorrect. Use messageIndexes for index mapping instead.
+   */
+  startIndex?: number
 }
 
 export type BubbleAttributes = Record<string, unknown>
@@ -191,16 +195,14 @@ export interface BubbleListProps {
   autoScroll?: boolean
 }
 
-export type BubbleStateUpdateEvent = {
-  name: 'state:update'
-  payload: {
-    key: string
-    value: unknown
-  }
-}
-
 export type BubbleEvent =
-  | BubbleStateUpdateEvent
+  | {
+      name: 'state:update'
+      payload: {
+        key: string
+        value: unknown
+      }
+    }
   | {
       name: string
       payload?: unknown
