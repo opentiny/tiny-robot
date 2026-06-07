@@ -21,7 +21,8 @@ outline: [1, 3]
   - 0.4.x `BubbleList` 默认会把消息**按策略分组**（同角色连续/分割角色/自定义函数）
   - 插槽从“单条 bubble”切换为“分组 messages / messageIndexes”语义
 - **能力增强**：
-  - 新增 `state` + `state-change`（存储 UI 状态且不污染原始消息）
+  - 新增 `bubble-event`（Bubble 内部渲染器向外抛出的通用事件）
+  - 新增 `state` + `state-change`（存储 UI 状态且不污染原始消息；`state-change` 是针对 `bubble-event` 中 `state:update` 提供的便捷事件）
   - 新增 `contentResolver` / `contentRenderMode`（支持从任意字段解析内容、支持数组内容 split 渲染）
   - 新增内置 renderers：`Image / Markdown / Loading / Reasoning / Tool / Tools / ToolRole ...`
 

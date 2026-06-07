@@ -96,7 +96,6 @@ const groupByTime = (msgs: BubbleMessage[]): BubbleMessageGroup[] => {
         role: message.role || 'assistant',
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       })
     } else {
       lastGroup.messages.push(message)
@@ -123,7 +122,6 @@ const groupByTurn = (msgs: BubbleMessage[]): BubbleMessageGroup[] => {
         role,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       }
       groups.push(currentGroup)
     } else if (currentGroup) {
@@ -136,7 +134,6 @@ const groupByTurn = (msgs: BubbleMessage[]): BubbleMessageGroup[] => {
         role,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       }
       groups.push(fallbackGroup)
       currentGroup = fallbackGroup

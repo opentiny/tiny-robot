@@ -335,13 +335,49 @@ defineProps<BubbleBoxRendererProps>()
 - 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
 - 多根节点或复合渲染器应使用 `inheritAttrs: false`，并显式决定 `$attrs` 绑定到哪个节点；不要把同一份 attributes 复制到多个兄弟节点上，避免重复 `id`、ARIA 或测试选择器
 
-### 状态管理
+### 状态和事件管理
 
-Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `state-change` 事件来更新状态。这对于实现交互功能（如展开/收起、点赞等）非常有用。
+如果你希望在 Bubble 内部（例如自定义 Content 渲染器中）向外通知交互行为，可以使用 `useBubbleEventFn()` 触发 `bubble-event`。事件会从当前渲染器逐层透传到外层的 `Bubble` / `BubbleList`，业务侧可以统一监听并处理。
+
+Bubble 也支持通过 `state` 属性存储 UI 相关的数据，例如展开状态、点赞状态等。这些状态不会写入消息内容本身，适合放置只影响渲染表现的交互数据。
+
+Bubble 内部统一通过 `bubble-event` 抛出渲染器交互事件。状态变化本身也是一种特定事件，事件名为 `state:update`；对于常见的 UI 状态更新场景，可以使用 `useBubbleStateChangeFn()` 这个便捷 API，它会自动触发 `name` 为 `state:update` 的 `bubble-event`：
+
+```ts
+const handleStateChange = useBubbleStateChangeFn()
+
+handleStateChange('expanded', true)
+```
+
+这等价于发出：
+
+```ts
+const emitBubbleEvent = useBubbleEventFn()
+
+emitBubbleEvent({
+  name: 'state:update',
+  payload: { key: 'expanded', value: true },
+})
+```
+
+外层 `Bubble` / `BubbleList` 会收到 `bubble-event`；当事件名为 `state:update` 时，还会额外触发 `state-change` 这个便捷事件，业务侧可以直接在事件回调中把新的 `key` / `value` 同步回消息的 `state`。
+
+如果渲染器需要抛出不直接修改 UI 状态的普通交互事件，可以使用 `useBubbleEventFn()`：
+
+```ts
+const emitBubbleEvent = useBubbleEventFn()
+
+emitBubbleEvent({
+  name: 'demo:apply-to-input',
+  payload: { text: '...' },
+})
+```
+
+组件内置的部分渲染器也会使用同一事件机制触发状态更新，例如 Reasoning 渲染器的展开/收起、Tool 渲染器的详情展开/收起。
 
 <demo vue="../../demos/bubble/state-change.vue" />
 
-> **注意**：消息的 `state` 属性用于存储 UI 相关的数据，不会影响消息内容。可以通过 `state-change` 事件来更新状态。
+> **注意**：`state-change` 是针对 `bubble-event` 中 `state:update` 提供的便捷事件，只负责通知外部更新 UI 状态。若状态没有同步回传给消息的 `state` 属性，渲染器下一次渲染时不会保留该状态。
 
 ## Props
 
@@ -405,6 +441,7 @@ Bubble 组件支持通过 `state` 属性存储 UI 相关的数据，并通过 `s
 | 事件名         | 参数类型                                                                      | 说明                                                                                                           |
 | -------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `state-change` | `{ key: string; value: unknown; messageIndex: number; contentIndex: number }` | 当消息状态改变时触发。`key` 为状态键名，`value` 为状态值，`messageIndex` 为消息索引，`contentIndex` 为内容索引 |
+| `bubble-event` | `BubbleEvent & { messageIndex: number; contentIndex: number }`                | Bubble 内部交互事件。状态更新会以 `name: 'state:update'` 触发，并额外派发 `state-change` 便捷事件              |
 
 ## Slots
 
@@ -559,7 +596,11 @@ type BubbleMessageGroup = {
   role: string
   messages: BubbleMessage[]
   messageIndexes: number[]
-  startIndex: number
+  /**
+   * @deprecated 自定义分组中的消息可能不连续，使用 startIndex + 局部索引推导全局索引可能出错。
+   * 请以 messageIndexes 作为局部索引到全局索引的映射依据。
+   */
+  startIndex?: number
 }
 ```
 
