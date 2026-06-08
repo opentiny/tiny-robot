@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ComputedRef, Ref } from 'vue'
 import { ChatMessage, MaybePromise, ToolCall } from '../../types'
+import type { PluginCommandResult } from '../../message/types'
 
 export interface Tool {
   type: 'function'
@@ -120,7 +121,11 @@ export interface UseMessageReturn {
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
   abortRequest: () => Promise<void>
-  runPluginCommand: <T = unknown>(pluginName: string, commandName: string, payload?: unknown) => Promise<T>
+  runPluginCommand: <T = unknown>(
+    pluginName: string,
+    commandName: string,
+    payload?: unknown,
+  ) => Promise<PluginCommandResult<T>>
 }
 
 export interface BasePluginContext {

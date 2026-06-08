@@ -364,19 +364,27 @@ export const toolPlugin = (
     commands: {
       async resumeToolCall(payload, context) {
         const { toolCallId } = payload as { toolCallId: string }
-        const { getState, createMessage, appendMessage, requestNext } = context
+        const { getState, createMessage, appendMessage, requestNext, setRequestState } = context
 
         const { assistantMessage, toolMessages } = findPendingToolCall(getState().messages) || {}
 
         if (!assistantMessage || !toolMessages) {
-          return
+          throw new Error('No pending tool call group found')
         }
 
         const toolCall = assistantMessage.tool_calls?.find((call) => call.id === toolCallId)
 
         // 无效的 toolCallId
         if (!toolCall) {
-          return
+          throw new Error(`Tool call not found: ${toolCallId}`)
+        }
+
+        const toolCallStatus = (assistantMessage.state?.toolCall as Record<string, { status?: string }> | undefined)?.[
+          toolCallId
+        ]?.status
+
+        if (toolCallStatus !== 'awaiting-approval') {
+          throw new Error(`Tool call is not awaiting approval: ${toolCallId}`)
         }
 
         let toolMessage = toolMessages.find((msg) => msg.tool_call_id === toolCallId)
@@ -398,12 +406,15 @@ export const toolPlugin = (
           toolMessage = toolMsg
         }
 
+        setRequestState('processing', 'calling-tools')
         await processToolCall(toolCall, { ...context, assistantMessage, toolMessage: toolMessage })
 
         const { toolMessages: newToolMessages } = findPendingToolCall(getState().messages) || {}
 
         if (isAllToolCallsCompleted(assistantMessage, newToolMessages ?? [])) {
           requestNext({ resume: true })
+        } else {
+          setRequestState('paused')
         }
       },
       ...restOptions.commands,

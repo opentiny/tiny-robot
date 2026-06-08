@@ -11,6 +11,7 @@ import {
   MessageRequestBody,
   MessageRuntime,
   MessageStateAdapter,
+  PluginCommandResult,
   RequestProcessingState,
   RequestNextOptions,
   RequestState,
@@ -509,18 +510,25 @@ export const createMessageEngine = (
     }
   }
 
-  async function runPluginCommand<T = unknown>(pluginName: string, commandName: string, payload?: unknown): Promise<T> {
+  async function runPluginCommand<T = unknown>(
+    pluginName: string,
+    commandName: string,
+    payload?: unknown,
+  ): Promise<PluginCommandResult<T>> {
     const handler = pluginCommands.get(pluginName)?.[commandName]
 
     if (typeof handler !== 'function') {
-      throw new Error(`Plugin command not found: ${pluginName}.${commandName}`)
+      return { success: false, error: new Error(`Plugin command not found: ${pluginName}.${commandName}`) }
     }
 
-    const previousAbortController = runtime.abortController
-    const ac = previousAbortController || new AbortController()
-    if (!previousAbortController) {
-      runtime.abortController = ac
+    if (getState().requestState === 'processing') {
+      const error = new Error('Cannot run plugin command while processing is in progress')
+      console.warn(error.message)
+      return { success: false, error }
     }
+
+    const ac = new AbortController()
+    runtime.abortController = ac
 
     let shouldRequest = false
     let requestNextOptions: RequestNextOptions | undefined
@@ -539,18 +547,22 @@ export const createMessageEngine = (
       }
 
       result = (await handler(payload, { ...baseContext, appendMessage, requestNext })) as T
-    } finally {
-      if (!previousAbortController) {
-        runtime.abortController = null
-        runtime.currentTurn = []
-      }
+    } catch (error) {
+      runtime.abortController = null
+      runtime.currentTurn = []
+      return { success: false, error }
     }
 
-    if (shouldRequest && !ac.signal.aborted) {
-      await runTurnLifecycle({ resume: requestNextOptions?.resume })
+    runtime.abortController = null
+
+    const shouldContinue = shouldRequest && !ac.signal.aborted
+    if (shouldContinue) {
+      runTurnLifecycle({ resume: requestNextOptions?.resume })
+    } else {
+      runtime.currentTurn = []
     }
 
-    return result
+    return { success: true, result }
   }
 
   return {

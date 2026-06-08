@@ -312,6 +312,53 @@ describe('createMessageEngine', () => {
     expect(messages[1]).toMatchObject({ role: 'assistant', content: 'first chunk', loading: undefined })
   })
 
+  it('does not run plugin commands while processing is in progress', async () => {
+    let releaseResponse: () => void = () => {}
+    const responseStarted = new Promise<void>((resolve) => {
+      releaseResponse = resolve
+    })
+    const responseProvider = vi.fn(async () => {
+      await responseStarted
+      return createAssistantCompletion('done')
+    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const commandHandler = vi.fn((_payload, { appendMessage, requestNext }) => {
+      appendMessage({ role: 'user', content: 'queued by command' })
+      requestNext()
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          name: 'command',
+          commands: {
+            continue: commandHandler,
+          },
+        },
+      ],
+      responseProvider,
+    })
+
+    const sendMessagePromise = engine.sendMessage('ping')
+
+    await vi.waitFor(() => {
+      expect(engine.getState().requestState).toBe('processing')
+    })
+
+    const commandResult = await engine.runPluginCommand('command', 'continue')
+    releaseResponse()
+    await sendMessagePromise
+
+    expect(commandResult.success).toBe(false)
+    expect(responseProvider).toHaveBeenCalledTimes(1)
+    expect(commandHandler).not.toHaveBeenCalled()
+    expect(engine.getState().messages.map((message) => message.content)).not.toContain('queued by command')
+    expect(warnSpy).toHaveBeenCalledWith('Cannot run plugin command while processing is in progress')
+
+    warnSpy.mockRestore()
+  })
+
   it('pauses a tool call before callTool and keeps displayable pending state', async () => {
     const callTool = vi.fn(async () => 'tool result')
     const responseProvider = vi.fn(async () => createToolCallsCompletion([createToolCall('call-1')]))
@@ -370,7 +417,13 @@ describe('createMessageEngine', () => {
     })
 
     await engine.sendMessage('lookup')
-    await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-1' })
+    const commandResult = await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-1' })
+
+    expect(commandResult.success).toBe(true)
+    await vi.waitFor(() => {
+      expect(responseProvider).toHaveBeenCalledTimes(2)
+      expect(engine.getState().requestState).toBe('completed')
+    })
 
     const { messages, requestState } = engine.getState()
     const secondRequestBody = responseProvider.mock.calls[1]?.[0]
@@ -398,11 +451,17 @@ describe('createMessageEngine', () => {
     })
   })
 
-  it('keeps a mixed tool-call group paused until the pending call is resumed', async () => {
+  it('keeps a mixed tool-call group paused until all pending calls are resumed', async () => {
     const callTool = vi.fn(async (toolCall: ChatCompletionMessageToolCall) => `result:${toolCall.id}`)
     const responseProvider = vi
       .fn()
-      .mockResolvedValueOnce(createToolCallsCompletion([createToolCall('call-run'), createToolCall('call-pause')]))
+      .mockResolvedValueOnce(
+        createToolCallsCompletion([
+          createToolCall('call-run'),
+          createToolCall('call-pause-1'),
+          createToolCall('call-pause-2'),
+        ]),
+      )
       .mockResolvedValueOnce(createAssistantCompletion('all done'))
 
     const engine = createTestMessageEngine({
@@ -410,7 +469,7 @@ describe('createMessageEngine', () => {
         ...silentDefaultPlugins,
         toolPlugin({
           getTools: async () => [testTool],
-          shouldPauseToolCall: async (toolCall) => toolCall.id === 'call-pause',
+          shouldPauseToolCall: async (toolCall) => toolCall.id !== 'call-run',
           callTool,
         }),
       ],
@@ -427,21 +486,54 @@ describe('createMessageEngine', () => {
       state: {
         toolCall: {
           'call-run': { status: 'success' },
-          'call-pause': { status: 'awaiting-approval' },
+          'call-pause-1': { status: 'awaiting-approval' },
+          'call-pause-2': { status: 'awaiting-approval' },
         },
       },
     })
 
-    await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-pause' })
+    const firstCommandResult = await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-pause-1' })
 
-    expect(engine.getState().requestState).toBe('completed')
+    expect(firstCommandResult.success).toBe(true)
+    expect(engine.getState().requestState).toBe('paused')
     expect(callTool).toHaveBeenCalledTimes(2)
-    expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(responseProvider).toHaveBeenCalledTimes(1)
     expect(engine.getState().messages[1]).toMatchObject({
       state: {
         toolCall: {
           'call-run': { status: 'success' },
-          'call-pause': { status: 'success' },
+          'call-pause-1': { status: 'success' },
+          'call-pause-2': { status: 'awaiting-approval' },
+        },
+      },
+    })
+
+    const repeatedCommandResult = await engine.runPluginCommand('tool', 'resumeToolCall', {
+      toolCallId: 'call-pause-1',
+    })
+
+    expect(repeatedCommandResult.success).toBe(false)
+    expect(repeatedCommandResult.error).toBeInstanceOf(Error)
+    expect((repeatedCommandResult.error as Error).message).toBe('Tool call is not awaiting approval: call-pause-1')
+    expect(engine.getState().requestState).toBe('paused')
+    expect(callTool).toHaveBeenCalledTimes(2)
+    expect(responseProvider).toHaveBeenCalledTimes(1)
+
+    const secondCommandResult = await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-pause-2' })
+
+    expect(secondCommandResult.success).toBe(true)
+    await vi.waitFor(() => {
+      expect(responseProvider).toHaveBeenCalledTimes(2)
+      expect(engine.getState().requestState).toBe('completed')
+    })
+
+    expect(callTool).toHaveBeenCalledTimes(3)
+    expect(engine.getState().messages[1]).toMatchObject({
+      state: {
+        toolCall: {
+          'call-run': { status: 'success' },
+          'call-pause-1': { status: 'success' },
+          'call-pause-2': { status: 'success' },
         },
       },
     })
@@ -490,7 +582,13 @@ describe('createMessageEngine', () => {
       responseProvider,
     })
 
-    await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-restored' })
+    const commandResult = await engine.runPluginCommand('tool', 'resumeToolCall', { toolCallId: 'call-restored' })
+
+    expect(commandResult.success).toBe(true)
+    await vi.waitFor(() => {
+      expect(responseProvider).toHaveBeenCalledTimes(1)
+      expect(engine.getState().requestState).toBe('completed')
+    })
 
     const { messages, requestState } = engine.getState()
 
@@ -498,7 +596,6 @@ describe('createMessageEngine', () => {
     expect(onTurnStart).not.toHaveBeenCalled()
     expect(onTurnResume).toHaveBeenCalledWith(['user', 'assistant', 'tool'])
     expect(callTool).toHaveBeenCalledTimes(1)
-    expect(responseProvider).toHaveBeenCalledTimes(1)
     const firstRequestBody = responseProvider.mock.calls[0]?.[0]
     expect(firstRequestBody?.messages).toMatchObject([
       { role: 'user', content: 'lookup after reload' },

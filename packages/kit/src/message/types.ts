@@ -68,8 +68,14 @@ export interface MessageEngine {
   send(...msgs: ChatMessage[]): Promise<void>
   abort(): Promise<void>
   setResponseProvider(provider: ResponseProvider): void
-  runPluginCommand<T = unknown>(pluginName: string, commandName: string, payload?: unknown): Promise<T>
+  runPluginCommand<T = unknown>(
+    pluginName: string,
+    commandName: string,
+    payload?: unknown,
+  ): Promise<PluginCommandResult<T>>
 }
+
+export type PluginCommandResult<T = unknown> = { success: true; result: T } | { success: false; error: unknown }
 
 export interface RequestNextOptions {
   /**
