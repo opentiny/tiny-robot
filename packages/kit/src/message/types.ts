@@ -193,7 +193,14 @@ export interface MessageEnginePlugin {
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /**
-   * 插件注册的命令。命令按插件名称分组，只有声明了 `name` 的插件才会被注册。
+   * 插件注册的命令，用于向外暴露需要由外部触发的插件级操作。
+   *
+   * 例如工具调用要求手动确认后再恢复执行。
+   *
+   * 注意事项：
+   * - 命令按插件名称分组，只有声明了 `name` 的插件才会被注册。
+   * - 命令不会在 engine 处于 `processing` 状态时执行，避免与请求流程并发修改消息状态。
+   * - 如果命令执行后需要继续请求模型，应通过 handler context 中的 `requestNext` 触发后续请求流程。
    */
   commands?: Record<string, MessagePluginCommandHandler>
   /**

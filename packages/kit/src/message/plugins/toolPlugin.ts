@@ -295,14 +295,12 @@ export const toolPlugin = (
   }
 
   const pauseToolCall = (...args: Parameters<NonNullable<typeof shouldPauseToolCall>>) => {
-    const [toolCall, { assistantMessage, mutate, setRequestState }] = args
+    const [toolCall, { assistantMessage, mutate }] = args
 
     mutate('messages', () => {
       const message = ensureToolCallState(assistantMessage, toolCall.id)
       message.state.toolCall[toolCall.id].status = 'awaiting-approval'
     })
-
-    setRequestState('paused')
   }
 
   const findPendingToolCall = (messages: ChatMessage[]) => {
@@ -491,8 +489,12 @@ export const toolPlugin = (
 
       await Promise.all(toolCallPromises)
 
-      if (!abortSignal.aborted && !hasPausedToolCall) {
-        requestNext()
+      if (!abortSignal.aborted) {
+        if (hasPausedToolCall) {
+          setRequestState('paused')
+        } else {
+          requestNext()
+        }
       }
 
       return restOptions.onAfterRequest?.(context)

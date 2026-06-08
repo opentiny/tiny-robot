@@ -452,13 +452,23 @@ describe('createMessageEngine', () => {
   })
 
   it('keeps a mixed tool-call group paused until all pending calls are resumed', async () => {
-    const callTool = vi.fn(async (toolCall: ChatCompletionMessageToolCall) => `result:${toolCall.id}`)
+    let releaseRunningTool: () => void = () => {}
+    const runningToolStarted = new Promise<void>((resolve) => {
+      releaseRunningTool = resolve
+    })
+    const callTool = vi.fn(async (toolCall: ChatCompletionMessageToolCall) => {
+      if (toolCall.id === 'call-run') {
+        await runningToolStarted
+      }
+
+      return `result:${toolCall.id}`
+    })
     const responseProvider = vi
       .fn()
       .mockResolvedValueOnce(
         createToolCallsCompletion([
-          createToolCall('call-run'),
           createToolCall('call-pause-1'),
+          createToolCall('call-run'),
           createToolCall('call-pause-2'),
         ]),
       )
@@ -476,7 +486,22 @@ describe('createMessageEngine', () => {
       responseProvider,
     })
 
-    await engine.sendMessage('lookup two things')
+    const sendMessagePromise = engine.sendMessage('lookup two things')
+
+    await vi.waitFor(() => {
+      expect(engine.getState().messages[1]).toMatchObject({
+        state: {
+          toolCall: {
+            'call-pause-1': { status: 'awaiting-approval' },
+            'call-pause-2': { status: 'awaiting-approval' },
+          },
+        },
+      })
+      expect(engine.getState().requestState).toBe('processing')
+    })
+
+    releaseRunningTool()
+    await sendMessagePromise
 
     expect(engine.getState().requestState).toBe('paused')
     expect(responseProvider).toHaveBeenCalledTimes(1)
