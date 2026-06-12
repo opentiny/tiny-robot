@@ -1,0 +1,155 @@
+.tr-layout-vars() {
+  @layout-prefix: tr-layout;
+  @floating-prefix: tr-layout-frame;
+  @main-prefix: tr-layout-main;
+
+  @layout-vars: {
+    bg: var(--tr-container-bg-default);
+    left-bg: var(--tr-container-bg-default);
+    right-bg: var(--tr-container-bg-default);
+    header-bg: var(--tr-container-bg-default);
+    main-bg: var(--tr-container-bg-default);
+    footer-bg: var(--tr-container-bg-default);
+    divider-color: var(--tr-border-color-disabled);
+    content-max-width: 960px;
+    inner-padding-inline: 16px;
+    inner-padding-block: 12px;
+    main-min-width: 320px;
+    panel-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+    overlay-bg: rgba(15, 23, 42, 0.42);
+  };
+
+  @floating-vars: {
+    z-index: calc(var(--tr-z-index-drawer, 1000) + 1);
+    radius: 24px;
+    shadow: 0 28px 72px rgba(15, 23, 42, 0.2);
+  };
+
+  @main-vars: {
+    scrollbar-width: 12px;
+    scrollbar-thumb-bg: color-mix(in srgb, var(--tr-text-primary, #111827) 18%, transparent);
+    scrollbar-thumb-bg-hover: color-mix(in srgb, var(--tr-text-primary, #111827) 28%, transparent);
+    scrollbar-thumb-bg-active: color-mix(in srgb, var(--tr-text-primary, #111827) 36%, transparent);
+  };
+
+  @layout-private-vars: {
+    overlay-z-index: var(--tr-z-index-drawer, 1000);
+    transition-duration: 220ms;
+    transition-easing: ease;
+    left-dock-width: 300px;
+    right-dock-width: 320px;
+  };
+
+  @floating-frame-private-vars: {
+    border-color: color-mix(in srgb, var(--tr-text-primary, #111827) 6%, transparent);
+    outline-color: color-mix(in srgb, var(--tr-container-bg-default, #ffffff) 52%, transparent);
+    drag-bar-top: 8px;
+    drag-hit-width: 56px;
+    drag-hit-height: 18px;
+    drag-pill-width: 40px;
+    drag-pill-height: 5px;
+    drag-pill-bg: color-mix(in srgb, var(--tr-text-primary, #111827) 16%, transparent);
+    drag-pill-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+    drag-hover-bg: color-mix(in srgb, var(--tr-container-bg-default, #ffffff) 88%, transparent);
+    drag-hover-border: color-mix(in srgb, var(--tr-text-primary, #111827) 8%, transparent);
+    drag-hover-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  };
+
+  @resize-trigger-private-vars: {
+    trigger-size: 6px;
+    line-color: transparent;
+    line-hover-color: color-mix(in srgb, var(--tr-color-primary, #1476ff) 32%, transparent);
+    line-active-color: color-mix(in srgb, var(--tr-color-primary, #1476ff) 66%, transparent);
+    indicator-width: 6px;
+    indicator-height: 22px;
+    indicator-bg: var(--tr-container-bg-default, #ffffff);
+    indicator-border: color-mix(in srgb, var(--tr-text-primary, #111827) 10%, transparent);
+    indicator-active-bg: color-mix(
+      in srgb,
+      var(--tr-color-primary, #1476ff) 72%,
+      var(--tr-container-bg-default, #ffffff)
+    );
+    indicator-active-border: color-mix(
+      in srgb,
+      var(--tr-color-primary, #1476ff) 88%,
+      var(--tr-container-bg-default, #ffffff)
+    );
+    indicator-active-shadow: 0 0 0 4px color-mix(in srgb, var(--tr-color-primary-light, #deecff) 56%, transparent);
+    indicator-idle-opacity: 0;
+    indicator-idle-offset: 4px;
+  };
+
+  @floating-resize-private-vars: {
+    hit-area-size: 12px;
+    indicator-width: 6px;
+    indicator-height: 22px;
+    indicator-bg: var(--tr-container-bg-default, #ffffff);
+    indicator-border: color-mix(in srgb, var(--tr-text-primary, #111827) 10%, transparent);
+    indicator-active-bg: color-mix(
+      in srgb,
+      var(--tr-color-primary, #1476ff) 72%,
+      var(--tr-container-bg-default, #ffffff)
+    );
+    indicator-active-border: color-mix(
+      in srgb,
+      var(--tr-color-primary, #1476ff) 88%,
+      var(--tr-container-bg-default, #ffffff)
+    );
+    indicator-active-shadow: 0 0 0 4px color-mix(in srgb, var(--tr-color-primary-light, #deecff) 56%, transparent);
+    indicator-idle-opacity: 0;
+    indicator-hover-opacity: 1;
+    indicator-idle-offset: 6px;
+  };
+
+  @main-private-vars: {
+    scrollbar-inline-end: 4px;
+    scrollbar-thumb-inset: 2px;
+  };
+
+  :root,
+  [data-tr-theme] {
+    each(@layout-vars, {
+      --@{layout-prefix}-@{key}: @value;
+    });
+
+    each(@floating-vars, {
+      --@{floating-prefix}-@{key}: @value;
+    });
+
+    each(@main-vars, {
+      --@{main-prefix}-@{key}: @value;
+    });
+  }
+
+  .tr-layout {
+    each(@layout-private-vars, {
+      --@{key}: @value;
+    });
+  }
+
+  .tr-layout-frame {
+    each(@floating-frame-private-vars, {
+      --@{key}: @value;
+    });
+  }
+
+  .tr-layout__resize-trigger {
+    each(@resize-trigger-private-vars, {
+      --@{key}: @value;
+    });
+  }
+
+  .tr-layout-frame__resize-trigger {
+    each(@floating-resize-private-vars, {
+      --@{key}: @value;
+    });
+  }
+
+  .tr-layout-main {
+    each(@main-private-vars, {
+      --@{key}: @value;
+    });
+  }
+}
+
+.tr-layout-vars();
