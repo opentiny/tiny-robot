@@ -170,7 +170,6 @@ onKeyDown('Escape', (event) => {
   &--floating {
     position: fixed;
     overflow: visible;
-    border: 1px solid var(--border-color);
     border-radius: var(--tr-layout-floating-radius);
     box-shadow: var(--tr-layout-floating-shadow);
     z-index: var(--tr-layout-floating-z-index);
@@ -314,19 +313,6 @@ onKeyDown('Escape', (event) => {
     position: relative;
     overflow: hidden;
     background: var(--tr-layout-main-bg);
-
-    :deep([data-tr-layout-scroll-target]) {
-      width: 100%;
-      height: 100%;
-      min-height: 100%;
-      box-sizing: border-box;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-
-      &::-webkit-scrollbar {
-        display: none;
-      }
-    }
   }
 
   &__footer {

@@ -23,7 +23,7 @@ export interface LayoutFloatingOptions {
   maxHeight?: number
 }
 
-export type LayoutFloatingResizeHandle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+export type LayoutFloatingResizeHandle = 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
 export interface LayoutAsideOpenEventDetail {
   placement: LayoutPlacement

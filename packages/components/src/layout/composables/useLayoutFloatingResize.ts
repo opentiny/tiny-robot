@@ -30,10 +30,10 @@ interface FloatingResizeState {
   bodyState: BodyInteractionState
 }
 
-const RESIZE_HANDLES: LayoutFloatingResizeHandle[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
+const RESIZE_HANDLES: LayoutFloatingResizeHandle[] = ['s', 'e', 'w', 'ne', 'nw', 'se', 'sw']
 
 function resolveResizeCursor(handle: LayoutFloatingResizeHandle): string {
-  if (handle === 'n' || handle === 's') {
+  if (handle === 's') {
     return 'ns-resize'
   }
 

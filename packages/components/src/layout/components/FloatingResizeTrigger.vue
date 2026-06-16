@@ -18,7 +18,7 @@ const emit = defineEmits<{
 }>()
 
 const cursorClass = computed(() => {
-  if (props.handle === 'n' || props.handle === 's') {
+  if (props.handle === 's') {
     return 'tr-layout__floating-resize-trigger--ns'
   }
 

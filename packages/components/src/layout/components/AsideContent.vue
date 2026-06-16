@@ -87,7 +87,7 @@ const { draggingPlacement, startResize } = useLayoutAsideResize({
     --tr-layout-aside-hidden-transform: translateX(calc(-100% - var(--hidden-offset, 12px)));
 
     grid-area: left;
-    background: var(--tr-layout-left-bg);
+    background: var(--tr-layout-left-aside-bg);
     border-inline-end: 1px solid var(--tr-layout-divider-color);
   }
 
@@ -101,7 +101,7 @@ const { draggingPlacement, startResize } = useLayoutAsideResize({
     --tr-layout-aside-hidden-transform: translateX(calc(100% + var(--hidden-offset, 12px)));
 
     grid-area: right;
-    background: var(--tr-layout-right-bg);
+    background: var(--tr-layout-right-aside-bg);
     border-inline-start: 1px solid var(--tr-layout-divider-color);
   }
 
