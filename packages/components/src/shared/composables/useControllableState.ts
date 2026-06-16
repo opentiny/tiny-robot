@@ -1,4 +1,4 @@
-import { computed, shallowRef, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
+import { computed, shallowRef, toValue, watchEffect, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 
 interface UseControllableStateOptions<T> {
   value: MaybeRefOrGetter<T | undefined>
@@ -16,6 +16,15 @@ interface UseControllableStateResult<T> {
 export function useControllableState<T>(options: UseControllableStateOptions<T>): UseControllableStateResult<T> {
   const internalState = shallowRef<T | undefined>(toValue(options.defaultValue))
   const isControlled = computed(() => toValue(options.isControlled))
+
+  watchEffect(() => {
+    if (!isControlled.value) {
+      return
+    }
+
+    internalState.value = toValue(options.value)
+  })
+
   const resolvedState = computed(() => (isControlled.value ? toValue(options.value) : internalState.value))
 
   function commit(nextValue: T, commitOptions?: { notify?: boolean }): void {
