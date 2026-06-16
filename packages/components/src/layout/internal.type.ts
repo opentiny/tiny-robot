@@ -1,12 +1,12 @@
-import type { ComponentPublicInstance, ComputedRef, MaybeRefOrGetter } from 'vue'
+import type { ComponentPublicInstance, ComputedRef, ShallowRef } from 'vue'
 import type {
   LayoutAsideCollapseEffect,
   LayoutAsideMode,
-  LayoutAsidePanelsProps,
   LayoutFloatingOptions,
   LayoutFloatingState,
   LayoutMode,
   LayoutPlacement,
+  LayoutProps,
 } from './index.type'
 
 export type LayoutResolvedFloating = LayoutFloatingState & LayoutFloatingOptions
@@ -21,76 +21,83 @@ export type LayoutFloatingRect = Omit<
   height: number
 }
 
-export interface LayoutRuntimeProps extends LayoutAsidePanelsProps {
-  mode: LayoutMode
-  floatingState?: LayoutFloatingState
-  defaultFloatingState?: LayoutFloatingState
-  floatingOptions?: LayoutFloatingOptions
-}
+export type LayoutRuntimeProps = LayoutProps
 
-export type LayoutMainScrollHostComponent = Pick<ComponentPublicInstance, '$el'>
+export type LayoutScrollTargetComponent = Pick<ComponentPublicInstance, '$el'>
 
-export type LayoutMainScrollHost = HTMLElement | LayoutMainScrollHostComponent | null | undefined
+export type LayoutScrollTarget = HTMLElement | LayoutScrollTargetComponent | null | undefined
 
 export interface LayoutAsideToggleProps {
   placement: LayoutPlacement
 }
 
-export interface LayoutMainProps {
-  scrollHost?: LayoutMainScrollHost
+export interface LayoutProxyScrollbarProps {
+  scrollTarget?: LayoutScrollTarget
 }
 
-type ToMaybeRefFields<T> = {
-  [K in keyof T]: MaybeRefOrGetter<T[K]>
-}
-
-interface LayoutPanelValue {
+export interface LayoutPanelState {
   placement: LayoutPlacement
-  layoutMode: LayoutAsideMode
-  isOpen: boolean
-  width: number | undefined
-  collapsedWidth: number | undefined
-  collapseEffect: LayoutAsideCollapseEffect
-  minWidth: number
-  maxWidth: number
-  resizable: boolean
+  layoutMode: ComputedRef<LayoutAsideMode>
+  isOpen: ComputedRef<boolean>
+  width: ComputedRef<number>
+  collapsedWidth: ComputedRef<number>
+  collapseEffect: ComputedRef<LayoutAsideCollapseEffect>
+  minWidth: ComputedRef<number>
+  maxWidth: ComputedRef<number>
+  resizable: ComputedRef<boolean>
+  isDock: ComputedRef<boolean>
+  isDrawer: ComputedRef<boolean>
+  isRail: ComputedRef<boolean>
+  isHidden: ComputedRef<boolean>
+  canResize: ComputedRef<boolean>
 }
 
-interface LayoutPanelMutations {
+export interface LayoutPanelActions {
+  open: () => void
+  close: () => void
+  toggle: () => void
   setOpen: (nextOpen: boolean) => void
   setWidth: (nextWidth: number) => void
 }
 
-interface LayoutPanelDerived {
-  isDock: boolean
-  isDrawer: boolean
-  isRail: boolean
-  isHidden: boolean
-  canResize: boolean
+export interface LayoutPanelContext {
+  el: ShallowRef<HTMLElement | null>
+  state: LayoutPanelState
+  actions: LayoutPanelActions
 }
 
-export type LayoutPanelState = ToMaybeRefFields<LayoutPanelValue> & LayoutPanelMutations
+export interface LayoutFloatingStateContext {
+  mode: ComputedRef<LayoutMode>
+  value: ComputedRef<LayoutFloatingState | undefined>
+  resolved: ComputedRef<LayoutResolvedFloating | undefined>
+}
 
-export interface LayoutPanelApi extends LayoutPanelValue, LayoutPanelDerived, LayoutPanelMutations {
-  isRegistered: boolean
-  open: () => void
-  close: () => void
-  toggle: () => void
+export interface LayoutFloatingActions {
+  initialize: (nextFloating: LayoutFloatingState) => void
+  commit: (nextFloating: LayoutFloatingState) => void
+}
+
+export interface LayoutFloatingContext {
+  state: LayoutFloatingStateContext
+  actions: LayoutFloatingActions
 }
 
 export interface LayoutContext {
-  left: LayoutPanelApi
-  right: LayoutPanelApi
-  isDrawerVisible: boolean
-  closeDrawers: () => void
+  rootEl: ShallowRef<HTMLElement | null>
+  dragHandleEl: ShallowRef<HTMLElement | null>
+  left: LayoutPanelContext
+  right: LayoutPanelContext
+  floating: LayoutFloatingContext
+  ui: {
+    isDrawerVisible: ComputedRef<boolean>
+  }
+  actions: {
+    closeDrawers: () => void
+  }
 }
 
 export interface UseLayoutRootStateResult {
-  resolvedMode: ComputedRef<LayoutMode>
-  resolvedFloatingState: ComputedRef<LayoutFloatingState | undefined>
-  resolvedFloating: ComputedRef<LayoutResolvedFloating | undefined>
-  commitFloatingState: (nextFloating: LayoutFloatingState) => void
-  initializeFloatingState: (nextFloating: LayoutFloatingState) => void
-  leftAside: LayoutPanelState
-  rightAside: LayoutPanelState
+  leftPanel: LayoutPanelContext
+  rightPanel: LayoutPanelContext
+  floating: LayoutFloatingContext
 }

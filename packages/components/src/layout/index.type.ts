@@ -25,9 +25,22 @@ export interface LayoutFloatingOptions {
 
 export type LayoutFloatingResizeHandle = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
+export interface LayoutAsideOpenEventDetail {
+  placement: LayoutPlacement
+  open: boolean
+}
+
+export interface LayoutAsideSideOpenEventDetail {
+  open: boolean
+}
+
 export interface LayoutAsideResizeEventDetail {
   placement: LayoutPlacement
-  width: number
+  expandedWidth: number
+}
+
+export interface LayoutAsideSideResizeEventDetail {
+  expandedWidth: number
 }
 
 export type LayoutFloatingDragEventDetail = LayoutFloatingState
@@ -60,11 +73,11 @@ export interface LayoutNormalProps extends LayoutAsidePanelsProps {
 
 type LayoutFloatingStateControlProps =
   | {
-      floatingState: LayoutFloatingState | undefined
-      defaultFloatingState?: never
+      floatingState: LayoutFloatingState
+      defaultFloatingState: never
     }
   | {
-      floatingState?: undefined
+      floatingState: never
       defaultFloatingState?: LayoutFloatingState
     }
 
@@ -76,13 +89,7 @@ export type LayoutFloatingProps = LayoutAsidePanelsProps &
 
 export type LayoutProps = LayoutNormalProps | LayoutFloatingProps
 
-export interface LayoutAsideState {
-  open: boolean
-  expandedWidth: number | undefined
-}
 export interface LayoutEmits {
-  'left-aside-state-change': [value: LayoutAsideState]
-  'right-aside-state-change': [value: LayoutAsideState]
   'update:floatingState': [value: LayoutFloatingState]
   'floating-drag-start': [detail: LayoutFloatingDragEventDetail]
   'floating-drag': [detail: LayoutFloatingDragEventDetail]
@@ -90,16 +97,26 @@ export interface LayoutEmits {
   'floating-resize-start': [detail: LayoutFloatingResizeEventDetail]
   'floating-resize': [detail: LayoutFloatingResizeEventDetail]
   'floating-resize-end': [detail: LayoutFloatingResizeEventDetail]
+
+  'aside-open-change': [detail: LayoutAsideOpenEventDetail]
   'aside-resize-start': [detail: LayoutAsideResizeEventDetail]
   'aside-resize': [detail: LayoutAsideResizeEventDetail]
   'aside-resize-end': [detail: LayoutAsideResizeEventDetail]
+  'left-aside-open-change': [detail: LayoutAsideSideOpenEventDetail]
+  'left-aside-resize-start': [detail: LayoutAsideSideResizeEventDetail]
+  'left-aside-resize': [detail: LayoutAsideSideResizeEventDetail]
+  'left-aside-resize-end': [detail: LayoutAsideSideResizeEventDetail]
+  'right-aside-open-change': [detail: LayoutAsideSideOpenEventDetail]
+  'right-aside-resize-start': [detail: LayoutAsideSideResizeEventDetail]
+  'right-aside-resize': [detail: LayoutAsideSideResizeEventDetail]
+  'right-aside-resize-end': [detail: LayoutAsideSideResizeEventDetail]
 }
 
 export interface LayoutAsideSlotProps {
   placement: LayoutPlacement
   mode: LayoutAsideMode
   open: boolean
-  expandedWidth: number | undefined
+  expandedWidth: number
   collapsedWidth: number | undefined
   resizable: boolean
   isRail: boolean

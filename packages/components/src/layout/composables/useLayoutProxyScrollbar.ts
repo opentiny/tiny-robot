@@ -1,11 +1,11 @@
 import { useEventListener, useMutationObserver, useResizeObserver } from '@vueuse/core'
 import { computed, onBeforeUnmount, shallowRef, watch, type CSSProperties, type Ref } from 'vue'
-import { resolveCssLengthToPx } from '../utils/cssLength'
 import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from '../utils/domInteraction'
 import { clamp } from '../utils/math'
 
-interface UseLayoutMainScrollbarOptions {
-  scrollHostRef: Ref<HTMLElement | null>
+interface UseLayoutProxyScrollbarOptions {
+  scrollTargetRef: Ref<HTMLElement | null>
+  containerRef: Ref<HTMLElement | null>
 }
 
 interface ScrollMetrics {
@@ -40,47 +40,41 @@ function createEmptyMetrics(): ScrollMetrics {
   }
 }
 
-function resolveTrackHeight(scrollHost: HTMLElement, clientHeight: number): number {
-  const mainEl = scrollHost.closest('.tr-layout-main')
-
-  if (!(mainEl instanceof HTMLElement)) {
-    return clientHeight
+function resolveTrackHeight(containerEl: HTMLElement | null, fallbackHeight: number): number {
+  if (!(containerEl instanceof HTMLElement)) {
+    return fallbackHeight
   }
 
-  const styles = window.getComputedStyle(mainEl)
-  const insetBlock = resolveCssLengthToPx(
-    styles.getPropertyValue('--tr-layout-inner-padding-block').trim(),
-    mainEl,
-    0,
-    'height',
-  )
-  return Math.max(clientHeight - insetBlock * 2, 0)
+  return Math.max(containerEl.clientHeight, 0)
 }
 
-export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
+export function useLayoutProxyScrollbar(options: UseLayoutProxyScrollbarOptions) {
   const metrics = shallowRef<ScrollMetrics>(createEmptyMetrics())
   const thumbDragState = shallowRef<ThumbDragState | null>(null)
-  const isHovering = shallowRef(false)
+  const isTargetHovering = shallowRef(false)
+  const isTrackHovering = shallowRef(false)
   const pointerTarget = typeof window === 'undefined' ? undefined : window
   let frameId: number | null = null
 
-  const showScrollbar = computed(() => metrics.value.isScrollable)
+  const isScrollable = computed(() => metrics.value.isScrollable)
   const isDraggingThumb = computed(() => thumbDragState.value !== null)
-  const scrollbarVisible = computed(() => showScrollbar.value && (isHovering.value || isDraggingThumb.value))
+  const scrollbarVisible = computed(
+    () => isScrollable.value && (isTargetHovering.value || isTrackHovering.value || isDraggingThumb.value),
+  )
 
   function syncMetrics(): void {
     frameId = null
 
-    const scrollHost = options.scrollHostRef.value
-    if (!scrollHost) {
+    const scrollTarget = options.scrollTargetRef.value
+    if (!scrollTarget) {
       metrics.value = createEmptyMetrics()
       return
     }
 
-    const clientHeight = scrollHost.clientHeight
-    const scrollHeight = scrollHost.scrollHeight
-    const scrollTop = scrollHost.scrollTop
-    const trackHeight = resolveTrackHeight(scrollHost, clientHeight)
+    const clientHeight = scrollTarget.clientHeight
+    const scrollHeight = scrollTarget.scrollHeight
+    const scrollTop = scrollTarget.scrollTop
+    const trackHeight = resolveTrackHeight(options.containerRef.value, clientHeight)
     const isScrollable = scrollHeight - clientHeight > 1
 
     if (!isScrollable) {
@@ -136,12 +130,12 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
   }
 
   function startThumbDrag(event: PointerEvent): void {
-    const scrollHost = options.scrollHostRef.value
-    if (!scrollHost || !metrics.value.isScrollable || event.button !== 0 || !event.isPrimary) {
+    const scrollTarget = options.scrollTargetRef.value
+    if (!scrollTarget || !metrics.value.isScrollable || event.button !== 0 || !event.isPrimary) {
       return
     }
 
-    const bodyEl = scrollHost.ownerDocument.body
+    const bodyEl = scrollTarget.ownerDocument.body
     if (!(bodyEl instanceof HTMLBodyElement)) {
       return
     }
@@ -150,25 +144,33 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
     thumbDragState.value = {
       pointerId: event.pointerId,
       startY: event.clientY,
-      startScrollTop: scrollHost.scrollTop,
+      startScrollTop: scrollTarget.scrollTop,
       bodyEl,
       bodyState: lockBodyInteraction(bodyEl, 'grabbing'),
     }
   }
 
-  useEventListener(options.scrollHostRef, 'scroll', () => {
+  useEventListener(options.scrollTargetRef, 'scroll', () => {
     scheduleSync()
   })
 
-  useEventListener(options.scrollHostRef, 'wheel', () => {
+  useEventListener(options.scrollTargetRef, 'wheel', () => {
     scheduleSync()
+  })
+
+  useEventListener(options.scrollTargetRef, 'mouseenter', () => {
+    isTargetHovering.value = true
+  })
+
+  useEventListener(options.scrollTargetRef, 'mouseleave', () => {
+    isTargetHovering.value = false
   })
 
   useEventListener(pointerTarget, 'pointermove', (event: PointerEvent) => {
     const dragState = thumbDragState.value
-    const scrollHost = options.scrollHostRef.value
+    const scrollTarget = options.scrollTargetRef.value
     const currentMetrics = metrics.value
-    if (!dragState || !scrollHost || event.pointerId !== dragState.pointerId || !currentMetrics.isScrollable) {
+    if (!dragState || !scrollTarget || event.pointerId !== dragState.pointerId || !currentMetrics.isScrollable) {
       return
     }
 
@@ -176,7 +178,7 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
     const scrollRange = currentMetrics.scrollHeight - currentMetrics.clientHeight
     const thumbTravel = currentMetrics.trackHeight - currentMetrics.thumbHeight
     const ratio = thumbTravel > 0 ? scrollRange / thumbTravel : 0
-    scrollHost.scrollTop = dragState.startScrollTop + deltaY * ratio
+    scrollTarget.scrollTop = dragState.startScrollTop + deltaY * ratio
     scheduleSync()
   })
 
@@ -188,12 +190,16 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
     stopThumbDrag(event.pointerId)
   })
 
-  useResizeObserver(options.scrollHostRef, () => {
+  useResizeObserver(options.scrollTargetRef, () => {
+    scheduleSync()
+  })
+
+  useResizeObserver(options.containerRef, () => {
     scheduleSync()
   })
 
   useMutationObserver(
-    options.scrollHostRef,
+    options.scrollTargetRef,
     () => {
       scheduleSync()
     },
@@ -201,15 +207,21 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
   )
 
   watch(
-    options.scrollHostRef,
-    (nextHost, prevHost) => {
+    options.scrollTargetRef,
+    (nextTarget, prevTarget) => {
       stopThumbDrag()
-      prevHost?.removeAttribute('data-tr-layout-scroll-host')
-      nextHost?.setAttribute('data-tr-layout-scroll-host', '')
+      isTargetHovering.value = false
+      isTrackHovering.value = false
+      prevTarget?.removeAttribute('data-tr-layout-scroll-target')
+      nextTarget?.setAttribute('data-tr-layout-scroll-target', '')
       scheduleSync()
     },
     { immediate: true },
   )
+
+  watch(options.containerRef, () => {
+    scheduleSync()
+  })
 
   onBeforeUnmount(() => {
     if (frameId !== null && typeof window !== 'undefined') {
@@ -217,7 +229,7 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
     }
 
     stopThumbDrag()
-    options.scrollHostRef.value?.removeAttribute('data-tr-layout-scroll-host')
+    options.scrollTargetRef.value?.removeAttribute('data-tr-layout-scroll-target')
   })
 
   const thumbStyle = computed<CSSProperties>(() => ({
@@ -226,16 +238,16 @@ export function useLayoutMainScrollbar(options: UseLayoutMainScrollbarOptions) {
   }))
 
   const rootClass = computed(() => ({
-    'tr-layout-main--scrollbar-visible': scrollbarVisible.value,
-    'tr-layout-main--dragging-thumb': isDraggingThumb.value,
+    'tr-layout-proxy-scrollbar--visible': scrollbarVisible.value,
+    'tr-layout-proxy-scrollbar--dragging-thumb': isDraggingThumb.value,
   }))
 
   return {
-    showScrollbar,
+    isScrollable,
     rootClass,
     thumbStyle,
-    setHovering: (value: boolean) => {
-      isHovering.value = value
+    setTrackHovering: (value: boolean) => {
+      isTrackHovering.value = value
     },
     startThumbDrag,
   }

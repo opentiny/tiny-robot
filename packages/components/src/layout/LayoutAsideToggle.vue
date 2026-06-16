@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useLayoutPanel } from './composables/useLayoutPanel'
+import { useLayoutContext } from './composables/useLayoutContext'
 import type { LayoutAsideToggleProps } from './internal.type'
 
 defineOptions({
@@ -9,10 +9,11 @@ defineOptions({
 
 const props = defineProps<LayoutAsideToggleProps>()
 
-const { isOpen, toggle } = useLayoutPanel(() => props.placement)
+const layout = useLayoutContext()
+const panel = computed(() => (props.placement === 'left' ? layout.left : layout.right))
 
 const slotProps = computed(() => ({
-  isOpen: isOpen.value,
+  isOpen: panel.value.state.isOpen.value,
 }))
 
 const fallbackTexts = {
@@ -28,12 +29,12 @@ const fallbackTexts = {
 
 const fallbackText = computed(() => {
   const text = fallbackTexts[props.placement]
-  return isOpen.value ? text.expanded : text.collapsed
+  return panel.value.state.isOpen.value ? text.expanded : text.collapsed
 })
 </script>
 
 <template>
-  <button class="tr-layout-aside-toggle" type="button" @click="toggle">
+  <button class="tr-layout-aside-toggle" type="button" @click="panel.actions.toggle">
     <slot v-bind="slotProps">
       {{ fallbackText }}
     </slot>

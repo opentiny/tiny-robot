@@ -1,72 +1,20 @@
-import { computed, getCurrentInstance } from 'vue'
+import { computed, shallowRef } from 'vue'
+import type { LayoutAsideProps, LayoutFloatingState, LayoutPlacement, LayoutProps } from '../index.type'
 import type {
-  LayoutAsideProps,
-  LayoutAsideState,
-  LayoutEmits,
-  LayoutFloatingState,
-  LayoutMode,
-  LayoutPlacement,
-  LayoutProps,
-} from '../index.type'
-import type {
-  LayoutPanelState,
+  LayoutFloatingContext,
+  LayoutPanelContext,
   LayoutResolvedFloating,
-  LayoutRuntimeProps,
   UseLayoutRootStateResult,
 } from '../internal.type'
 import { clamp } from '../utils/math'
-import { getDefaultAsideMaxWidth, getDefaultAsideMinWidth, getDefaultAsideOpen } from '../utils/asideDefaults'
+import {
+  getDefaultAsideExpandedWidth,
+  getDefaultAsideMaxWidth,
+  getDefaultAsideMinWidth,
+  getDefaultAsideOpen,
+} from '../utils/asideDefaults'
+import { emitAsideOpenChange, type LayoutEmitFn } from '../utils/emitAsideEvents'
 import { useControllableState } from '../../shared/composables/useControllableState'
-
-type EmitFn = <K extends keyof LayoutEmits>(event: K, ...args: LayoutEmits[K]) => void
-
-const hasAsideField = (aside: LayoutAsideProps | undefined, field: keyof LayoutAsideProps): boolean =>
-  aside !== undefined && Object.prototype.hasOwnProperty.call(aside, field)
-
-function hasFloatingStateProp(): boolean {
-  const rawProps = getCurrentInstance()?.vnode.props as Record<string, unknown> | null | undefined
-
-  if (!rawProps) {
-    return false
-  }
-
-  return (
-    Object.prototype.hasOwnProperty.call(rawProps, 'floatingState') ||
-    Object.prototype.hasOwnProperty.call(rawProps, 'floating-state')
-  )
-}
-
-function resolveLayoutRuntimeProps(props: LayoutProps): LayoutRuntimeProps {
-  return {
-    get mode() {
-      return props.mode === 'floating' ? 'floating' : 'normal'
-    },
-    get leftAside() {
-      return props.leftAside
-    },
-    get rightAside() {
-      return props.rightAside
-    },
-    get floatingState() {
-      return props.mode === 'floating' ? props.floatingState : undefined
-    },
-    get defaultFloatingState() {
-      return props.mode === 'floating' ? props.defaultFloatingState : undefined
-    },
-    get floatingOptions() {
-      return props.mode === 'floating' ? props.floatingOptions : undefined
-    },
-  }
-}
-
-function emitAsideStateChange(emit: EmitFn, placement: LayoutPlacement, value: LayoutAsideState): void {
-  if (placement === 'left') {
-    emit('left-aside-state-change', value)
-    return
-  }
-
-  emit('right-aside-state-change', value)
-}
 
 function isFloatingStateEqual(left: LayoutFloatingState | undefined, right: LayoutFloatingState | undefined): boolean {
   return (
@@ -82,14 +30,14 @@ function resolveFiniteNumber(value: number | undefined, fallback: number): numbe
   return value === undefined || !Number.isFinite(value) ? fallback : value
 }
 
-function createLayoutAsideState(
+function createPanelContext(
   placement: LayoutPlacement,
   aside: () => LayoutAsideProps | undefined,
-  emit: EmitFn,
-): LayoutPanelState {
+  emit: LayoutEmitFn,
+): LayoutPanelContext {
   const asideValue = computed(() => aside())
   const layoutMode = computed(() => asideValue.value?.mode ?? 'dock')
-  const collapsedWidth = computed(() => asideValue.value?.collapsedWidth)
+  const collapsedWidth = computed(() => resolveFiniteNumber(asideValue.value?.collapsedWidth, 0))
   const collapseEffect = computed(() => asideValue.value?.collapseEffect ?? 'overlay')
   const resizable = computed(() => asideValue.value?.resizable ?? false)
   const minWidth = computed(() =>
@@ -102,32 +50,29 @@ function createLayoutAsideState(
 
   const openState = useControllableState<boolean>({
     value: () => asideValue.value?.open,
-    defaultValue: () =>
-      hasAsideField(asideValue.value, 'defaultOpen') ? asideValue.value?.defaultOpen : getDefaultAsideOpen(placement),
-    isControlled: () => hasAsideField(asideValue.value, 'open'),
-    onChange: (nextOpen) =>
-      emitAsideStateChange(emit, placement, { open: nextOpen, expandedWidth: resolvedWidth.value }),
+    defaultValue: () => asideValue.value?.defaultOpen ?? getDefaultAsideOpen(placement),
+    isControlled: () => asideValue.value?.open !== undefined,
+    onChange: (nextOpen) => emitAsideOpenChange(emit, { placement, open: nextOpen }),
   })
 
   const widthState = useControllableState<number | undefined>({
     value: () => asideValue.value?.expandedWidth,
     defaultValue: () =>
-      hasAsideField(asideValue.value, 'defaultExpandedWidth') ? asideValue.value?.defaultExpandedWidth : undefined,
-    isControlled: () => hasAsideField(asideValue.value, 'expandedWidth'),
-    onChange: (nextWidth) =>
-      emitAsideStateChange(emit, placement, { open: resolvedOpen.value, expandedWidth: nextWidth }),
+      resolveFiniteNumber(asideValue.value?.defaultExpandedWidth, getDefaultAsideExpandedWidth(placement)),
+    isControlled: () => asideValue.value?.expandedWidth !== undefined,
   })
 
   const resolvedOpen = computed(() => openState.resolvedState.value ?? getDefaultAsideOpen(placement))
   const resolvedWidth = computed(() => {
-    const nextWidth = widthState.resolvedState.value
-
-    if (nextWidth === undefined || !Number.isFinite(nextWidth)) {
-      return undefined
-    }
-
+    const nextWidth = resolveFiniteNumber(widthState.resolvedState.value, getDefaultAsideExpandedWidth(placement))
     return clamp(nextWidth, minWidth.value, maxWidth.value)
   })
+
+  const isDock = computed(() => layoutMode.value === 'dock')
+  const isDrawer = computed(() => layoutMode.value === 'drawer')
+  const isRail = computed(() => isDock.value && !resolvedOpen.value && collapsedWidth.value > 0)
+  const isHidden = computed(() => !resolvedOpen.value && (isDrawer.value || !isRail.value))
+  const canResize = computed(() => isDock.value && resolvedOpen.value && resizable.value)
 
   function setOpen(nextOpen: boolean): void {
     if (resolvedOpen.value === nextOpen) {
@@ -147,36 +92,46 @@ function createLayoutAsideState(
   }
 
   return {
-    placement,
-    layoutMode,
-    isOpen: resolvedOpen,
-    width: resolvedWidth,
-    collapsedWidth,
-    collapseEffect,
-    minWidth,
-    maxWidth,
-    resizable,
-    setOpen,
-    setWidth,
+    el: shallowRef<HTMLElement | null>(null),
+    state: {
+      placement,
+      layoutMode,
+      isOpen: resolvedOpen,
+      width: resolvedWidth,
+      collapsedWidth,
+      collapseEffect,
+      minWidth,
+      maxWidth,
+      resizable,
+      isDock,
+      isDrawer,
+      isRail,
+      isHidden,
+      canResize,
+    },
+    actions: {
+      open: () => setOpen(true),
+      close: () => setOpen(false),
+      toggle: () => setOpen(!resolvedOpen.value),
+      setOpen,
+      setWidth,
+    },
   }
 }
 
-export function useLayoutRootState(props: LayoutProps, emit: EmitFn): UseLayoutRootStateResult {
-  const runtimeProps = resolveLayoutRuntimeProps(props)
-  const floatingStateProvided = hasFloatingStateProp()
-
+export function useLayoutRootState(props: LayoutProps, emit: LayoutEmitFn): UseLayoutRootStateResult {
   const floatingState = useControllableState<LayoutFloatingState | undefined>({
-    value: () => runtimeProps.floatingState,
-    defaultValue: () => runtimeProps.defaultFloatingState,
-    isControlled: floatingStateProvided,
+    value: () => (props.mode === 'floating' ? props.floatingState : undefined),
+    defaultValue: () => (props.mode === 'floating' ? props.defaultFloatingState : undefined),
+    isControlled: () => props.mode === 'floating' && props.floatingState !== undefined,
     onChange: (nextFloatingState) => nextFloatingState && emit('update:floatingState', nextFloatingState),
   })
 
-  const resolvedMode = computed<LayoutMode>(() => runtimeProps.mode)
+  const resolvedMode = computed(() => (props.mode === 'floating' ? 'floating' : 'normal'))
   const resolvedFloatingState = computed(() => floatingState.resolvedState.value)
   const resolvedFloating = computed<LayoutResolvedFloating | undefined>(() => {
     const nextFloatingState = resolvedFloatingState.value
-    const nextFloatingOptions = runtimeProps.floatingOptions
+    const nextFloatingOptions = props.mode === 'floating' ? props.floatingOptions : undefined
 
     if (!nextFloatingState && !nextFloatingOptions) {
       return undefined
@@ -188,29 +143,33 @@ export function useLayoutRootState(props: LayoutProps, emit: EmitFn): UseLayoutR
     }
   })
 
-  function initializeFloatingState(nextFloatingState: LayoutFloatingState): void {
-    if (isFloatingStateEqual(resolvedFloatingState.value, nextFloatingState)) {
-      return
-    }
+  const floating: LayoutFloatingContext = {
+    state: {
+      mode: resolvedMode,
+      value: resolvedFloatingState,
+      resolved: resolvedFloating,
+    },
+    actions: {
+      initialize: (nextFloatingState) => {
+        if (isFloatingStateEqual(resolvedFloatingState.value, nextFloatingState)) {
+          return
+        }
 
-    floatingState.commit(nextFloatingState, { notify: false })
-  }
+        floatingState.commit(nextFloatingState, { notify: false })
+      },
+      commit: (nextFloatingState) => {
+        if (isFloatingStateEqual(resolvedFloatingState.value, nextFloatingState)) {
+          return
+        }
 
-  function commitFloatingState(nextFloatingState: LayoutFloatingState): void {
-    if (isFloatingStateEqual(resolvedFloatingState.value, nextFloatingState)) {
-      return
-    }
-
-    floatingState.commit(nextFloatingState)
+        floatingState.commit(nextFloatingState)
+      },
+    },
   }
 
   return {
-    resolvedMode,
-    resolvedFloatingState,
-    resolvedFloating,
-    commitFloatingState,
-    initializeFloatingState,
-    leftAside: createLayoutAsideState('left', () => runtimeProps.leftAside, emit),
-    rightAside: createLayoutAsideState('right', () => runtimeProps.rightAside, emit),
+    leftPanel: createPanelContext('left', () => props.leftAside, emit),
+    rightPanel: createPanelContext('right', () => props.rightAside, emit),
+    floating,
   }
 }

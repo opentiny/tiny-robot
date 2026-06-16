@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, useAttrs, useSlots, type ComponentPublicInstance, type Ref } from 'vue'
+import { onKeyDown } from '@vueuse/core'
+import { ref, useAttrs } from 'vue'
 import AsideContent from './components/AsideContent.vue'
 import FloatingResizeTrigger from './components/FloatingResizeTrigger.vue'
-import { createLayoutContext } from './composables/createLayoutContext'
-import { useLayoutAsideInteractions } from './composables/useLayoutAsideInteractions'
-import { provideLayoutContext } from './composables/useLayoutContext'
-import { useLayoutFloatingSurface } from './composables/useLayoutFloatingSurface'
+import { createLayoutContext, provideLayoutContext } from './composables/useLayoutContext'
+import { useLayoutFloating } from './composables/useLayoutFloating'
 import { useLayoutRenderState } from './composables/useLayoutRenderState'
 import { useLayoutRootState } from './composables/useLayoutRootState'
-import type { LayoutEmits, LayoutProps } from './index.type'
+import type { LayoutAsideResizeEventDetail, LayoutEmits, LayoutProps } from './index.type'
+import { emitAsideResizeEvent } from './utils/emitAsideEvents'
 
 defineOptions({
   name: 'Layout',
@@ -19,56 +19,35 @@ const props = defineProps<LayoutProps>()
 const emit = defineEmits<LayoutEmits>()
 const attrs = useAttrs()
 
-const {
-  resolvedMode,
-  resolvedFloatingState,
-  resolvedFloating,
-  commitFloatingState,
-  initializeFloatingState,
-  leftAside,
-  rightAside,
-} = useLayoutRootState(props, emit)
+const { leftPanel, rightPanel, floating } = useLayoutRootState(props, emit)
 
-const frameRef = ref<HTMLElement | null>(null)
 const layoutRootRef = ref<HTMLElement | null>(null)
-const frameDragHandleRef = ref<HTMLElement | null>(null)
-const leftAsideRef = ref<HTMLElement | null>(null)
-const rightAsideRef = ref<HTMLElement | null>(null)
-
-function assignElementRef(target: Ref<HTMLElement | null>) {
-  return (element: Element | ComponentPublicInstance | null) => {
-    target.value = element instanceof HTMLElement ? element : null
-  }
-}
-
-const leftAsideVNodeRef = assignElementRef(leftAsideRef)
-const rightAsideVNodeRef = assignElementRef(rightAsideRef)
-
-const layoutContext = createLayoutContext(leftAside, rightAside)
+const dragBarRef = ref<HTMLElement | null>(null)
+const layoutContext = createLayoutContext({
+  rootEl: layoutRootRef,
+  dragHandleEl: dragBarRef,
+  left: leftPanel,
+  right: rightPanel,
+  floating,
+})
 
 provideLayoutContext(layoutContext)
 
-const slots = useSlots()
-const { closeDrawers, left, right } = layoutContext
-const isDrawerVisible = computed(() => layoutContext.isDrawerVisible)
+const isAsideResizing = ref(false)
 
-const {
-  isResizing: isAsideResizing,
-  draggingPlacement,
-  leftHandleProps,
-  rightHandleProps,
-} = useLayoutAsideInteractions({
-  rootRef: layoutRootRef,
-  leftAsideRef,
-  rightAsideRef,
-  left,
-  right,
-  isDrawerVisible,
-  closeDrawers,
-  onResizeStart: (detail) => emit('aside-resize-start', detail),
-  onResize: (detail) => emit('aside-resize', detail),
-  onResizeEnd: (detail) => emit('aside-resize-end', detail),
-})
+function onAsideResizeStart(detail: LayoutAsideResizeEventDetail): void {
+  isAsideResizing.value = true
+  emitAsideResizeEvent(emit, 'start', detail)
+}
+
+function onAsideResize(detail: LayoutAsideResizeEventDetail): void {
+  emitAsideResizeEvent(emit, 'progress', detail)
+}
+
+function onAsideResizeEnd(detail: LayoutAsideResizeEventDetail): void {
+  isAsideResizing.value = false
+  emitAsideResizeEvent(emit, 'end', detail)
+}
 
 const {
   hasHeader,
@@ -80,20 +59,12 @@ const {
   layoutStyle,
   layoutClass,
 } = useLayoutRenderState({
-  slots,
-  left,
-  right,
+  context: layoutContext,
   isResizing: isAsideResizing,
 })
 
-const { isFloating, showDragBar, frameClass, frameStyle, dragBarClass, resizeHandles } = useLayoutFloatingSurface({
-  mode: resolvedMode,
-  floatingState: resolvedFloatingState,
-  floating: resolvedFloating,
-  commitFloatingState,
-  initializeFloatingState,
-  frameRef,
-  dragHandleRef: frameDragHandleRef,
+const { isFloating, showDragBar, floatingClass, floatingStyle, dragBarClass, resizeHandles } = useLayoutFloating({
+  context: layoutContext,
   onFloatingDragStart: (detail) => emit('floating-drag-start', detail),
   onFloatingDrag: (detail) => emit('floating-drag', detail),
   onFloatingDragEnd: (detail) => emit('floating-drag-end', detail),
@@ -101,12 +72,69 @@ const { isFloating, showDragBar, frameClass, frameStyle, dragBarClass, resizeHan
   onFloatingResize: (detail) => emit('floating-resize', detail),
   onFloatingResizeEnd: (detail) => emit('floating-resize-end', detail),
 })
+
+onKeyDown('Escape', (event) => {
+  if (event.defaultPrevented || !layoutContext.ui.isDrawerVisible.value) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  layoutContext.actions.closeDrawers()
+})
 </script>
 
 <template>
   <Teleport to="body" :disabled="!isFloating">
-    <div v-bind="attrs" ref="frameRef" class="tr-layout-frame" :class="frameClass" :style="frameStyle">
-      <div v-if="showDragBar" ref="frameDragHandleRef" class="tr-layout-frame__drag-bar" :class="dragBarClass" />
+    <div
+      v-bind="attrs"
+      ref="layoutRootRef"
+      class="tr-layout"
+      :class="[layoutClass, floatingClass]"
+      :style="[layoutStyle, floatingStyle]"
+    >
+      <div v-if="showDragBar" ref="dragBarRef" class="tr-layout__drag-bar" :class="dragBarClass" />
+
+      <div class="tr-layout__body">
+        <AsideContent
+          v-if="hasLeftAside"
+          placement="left"
+          @aside-resize-start="onAsideResizeStart"
+          @aside-resize="onAsideResize"
+          @aside-resize-end="onAsideResizeEnd"
+        >
+          <slot name="left-aside" v-bind="leftAsideSlotProps" />
+        </AsideContent>
+
+        <header v-if="hasHeader" class="tr-layout__header">
+          <slot name="header" />
+        </header>
+
+        <main class="tr-layout__main">
+          <slot name="main" />
+        </main>
+
+        <footer v-if="hasFooter" class="tr-layout__footer">
+          <slot name="footer" />
+        </footer>
+
+        <AsideContent
+          v-if="hasRightAside"
+          placement="right"
+          @aside-resize-start="onAsideResizeStart"
+          @aside-resize="onAsideResize"
+          @aside-resize-end="onAsideResizeEnd"
+        >
+          <slot name="right-aside" v-bind="rightAsideSlotProps" />
+        </AsideContent>
+
+        <div
+          v-if="layoutContext.ui.isDrawerVisible.value"
+          class="tr-layout__backdrop"
+          aria-hidden="true"
+          @pointerdown="layoutContext.actions.closeDrawers"
+        />
+      </div>
 
       <FloatingResizeTrigger
         v-for="resizeHandle in resizeHandles"
@@ -115,91 +143,43 @@ const { isFloating, showDragBar, frameClass, frameStyle, dragBarClass, resizeHan
         :active="resizeHandle.active"
         @pointerdown="resizeHandle.onPointerdown"
       />
-
-      <div
-        ref="layoutRootRef"
-        class="tr-layout"
-        :class="[layoutClass, { 'tr-layout--floating': isFloating }]"
-        :style="layoutStyle"
-      >
-        <AsideContent
-          v-if="hasLeftAside"
-          :panel="left"
-          :aside-ref="leftAsideVNodeRef"
-          :dragging-placement="draggingPlacement"
-          @resize-pointerdown="leftHandleProps.onPointerdown"
-        >
-          <slot name="left-aside" v-bind="leftAsideSlotProps" />
-        </AsideContent>
-
-        <header v-if="hasHeader" class="tr-layout__header-shell">
-          <div class="tr-layout__header-inner">
-            <slot name="header" />
-          </div>
-        </header>
-
-        <main class="tr-layout__main-shell">
-          <div class="tr-layout__main-inner">
-            <slot name="main" />
-          </div>
-        </main>
-
-        <footer v-if="hasFooter" class="tr-layout__footer-shell">
-          <div class="tr-layout__footer-inner">
-            <slot name="footer" />
-          </div>
-        </footer>
-
-        <AsideContent
-          v-if="hasRightAside"
-          :panel="right"
-          :aside-ref="rightAsideVNodeRef"
-          :dragging-placement="draggingPlacement"
-          @resize-pointerdown="rightHandleProps.onPointerdown"
-        >
-          <slot name="right-aside" v-bind="rightAsideSlotProps" />
-        </AsideContent>
-
-        <div v-if="isDrawerVisible" class="tr-layout__backdrop" aria-hidden="true" @pointerdown="closeDrawers" />
-      </div>
     </div>
   </Teleport>
 </template>
 
 <style lang="less" scoped>
-.tr-layout-frame {
+.tr-layout {
+  --left-width: 0px;
+  --right-width: 0px;
+  --left-collapsed-width: 0px;
+  --right-collapsed-width: 0px;
+  --tr-layout-aside-body-transition:
+    width var(--transition-duration) var(--transition-easing),
+    transform var(--transition-duration) var(--transition-easing);
+
   position: relative;
   box-sizing: border-box;
   width: 100%;
   min-height: 0;
   height: var(--tr-layout-height, 100vh);
   height: var(--tr-layout-height, 100dvh);
-  overflow: hidden;
-  background: var(--tr-layout-bg);
+  isolation: isolate;
+  overflow: visible;
   color: var(--tr-text-primary);
-
-  > .tr-layout {
-    height: 100%;
-  }
 
   &--floating {
     position: fixed;
     overflow: visible;
     border: 1px solid var(--border-color);
-    border-radius: var(--tr-layout-frame-radius);
-    box-shadow: var(--tr-layout-frame-shadow);
-    z-index: var(--tr-layout-frame-z-index);
+    border-radius: var(--tr-layout-floating-radius);
+    box-shadow: var(--tr-layout-floating-shadow);
+    z-index: var(--tr-layout-floating-z-index);
     outline: 1px solid var(--outline-color);
     outline-offset: -1px;
-
-    > .tr-layout {
-      border-radius: inherit;
-      padding-top: calc(var(--drag-hit-height) + var(--drag-bar-top));
-    }
   }
 
   &--floating-dragging {
-    :deep(.tr-layout-frame__resize-trigger) {
+    :deep(.tr-layout__floating-resize-trigger) {
       pointer-events: none;
     }
   }
@@ -210,10 +190,68 @@ const { isFloating, showDragBar, frameClass, frameStyle, dragBarClass, resizeHan
       user-select: none;
     }
 
-    .tr-layout-frame__drag-bar--draggable {
+    .tr-layout__drag-bar--draggable {
       cursor: default;
       pointer-events: none;
     }
+  }
+
+  &--resizing {
+    --tr-layout-aside-body-transition: none;
+
+    cursor: col-resize;
+    transition: none;
+
+    &,
+    * {
+      user-select: none;
+    }
+  }
+
+  &--left-dock&--left-expanded {
+    --left-width: var(--left-dock-width);
+  }
+
+  &--left-dock&--left-rail {
+    --left-width: var(--left-collapsed-width);
+  }
+
+  &--right-dock&--right-expanded {
+    --right-width: var(--right-dock-width);
+  }
+
+  &--right-dock&--right-rail {
+    --right-width: var(--right-collapsed-width);
+  }
+
+  &__body,
+  &__drag-bar,
+  &__header,
+  &__main,
+  &__footer {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__body {
+    position: relative;
+    display: grid;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    grid-template-columns:
+      var(--left-width)
+      minmax(var(--tr-layout-main-min-width, 320px), 1fr)
+      var(--right-width);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'left header right'
+      'left main right'
+      'left footer right';
+    overflow: hidden;
+    background: var(--tr-layout-bg);
+    border-radius: inherit;
+    transition: grid-template-columns var(--transition-duration) var(--transition-easing);
   }
 
   &__drag-bar {
@@ -226,8 +264,8 @@ const { isFloating, showDragBar, frameClass, frameStyle, dragBarClass, resizeHan
     justify-content: center;
     width: var(--drag-hit-width);
     height: var(--drag-hit-height);
-    transform: translateX(-50%);
     touch-action: none;
+    transform: translateX(-50%);
     user-select: none;
 
     &::before {
@@ -265,112 +303,35 @@ const { isFloating, showDragBar, frameClass, frameStyle, dragBarClass, resizeHan
   &--floating-dragging &__drag-bar--draggable {
     cursor: grabbing;
   }
-}
 
-.tr-layout {
-  --left-width: 0px;
-  --right-width: 0px;
-  --left-collapsed-width: 0px;
-  --right-collapsed-width: 0px;
-  --tr-layout-aside-body-transition:
-    width var(--transition-duration) var(--transition-easing),
-    transform var(--transition-duration) var(--transition-easing);
-
-  position: relative;
-  display: grid;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 0;
-  height: var(--tr-layout-height, 100vh);
-  height: var(--tr-layout-height, 100dvh);
-  grid-template-columns:
-    var(--left-width)
-    minmax(var(--tr-layout-main-min-width, 320px), 1fr)
-    var(--right-width);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    'left header right'
-    'left main right'
-    'left footer right';
-  isolation: isolate;
-  overflow: hidden;
-  background: var(--tr-layout-bg);
-  color: var(--tr-text-primary);
-  transition: grid-template-columns var(--transition-duration) var(--transition-easing);
-
-  &--resizing {
-    --tr-layout-aside-body-transition: none;
-
-    cursor: col-resize;
-    transition: none;
-
-    &,
-    * {
-      user-select: none;
-    }
-  }
-
-  &--left-dock&--left-expanded {
-    --left-width: var(--left-dock-width);
-  }
-
-  &--left-dock&--left-rail {
-    --left-width: var(--left-collapsed-width);
-  }
-
-  &--right-dock&--right-expanded {
-    --right-width: var(--right-dock-width);
-  }
-
-  &--right-dock&--right-rail {
-    --right-width: var(--right-collapsed-width);
-  }
-
-  &__header-shell,
-  &__main-shell,
-  &__footer-shell {
-    min-width: 0;
-    min-height: 0;
-  }
-
-  &__header-shell {
+  &__header {
     grid-area: header;
     background: var(--tr-layout-header-bg);
   }
 
-  &__main-shell {
+  &__main {
     grid-area: main;
+    position: relative;
     overflow: hidden;
     background: var(--tr-layout-main-bg);
+
+    :deep([data-tr-layout-scroll-target]) {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      box-sizing: border-box;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
   }
 
-  &__footer-shell {
+  &__footer {
     grid-area: footer;
     background: var(--tr-layout-footer-bg);
-  }
-
-  &__header-inner,
-  &__main-inner,
-  &__footer-inner {
-    box-sizing: border-box;
-    max-width: var(--tr-layout-content-max-width, 960px);
-    margin-inline: auto;
-    padding-inline: var(--tr-layout-inner-padding-inline);
-  }
-
-  &__header-inner {
-    padding-top: max(var(--tr-layout-inner-padding-block), env(safe-area-inset-top));
-    padding-bottom: var(--tr-layout-inner-padding-block);
-  }
-
-  &__main-inner {
-    height: 100%;
-    min-height: 100%;
-  }
-
-  &__footer-inner {
-    padding-top: var(--tr-layout-inner-padding-block);
-    padding-bottom: max(var(--tr-layout-inner-padding-block), env(safe-area-inset-bottom));
   }
 
   &__backdrop {

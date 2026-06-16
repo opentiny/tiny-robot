@@ -10,6 +10,11 @@ const DEFAULT_ASIDE_MIN_WIDTH = {
   right: 240,
 } as const
 
+const DEFAULT_ASIDE_EXPANDED_WIDTH = {
+  left: 300,
+  right: 320,
+} as const
+
 const DEFAULT_ASIDE_MAX_WIDTH = {
   left: 560,
   right: 640,
@@ -21,6 +26,10 @@ export function getDefaultAsideOpen(placement: LayoutPlacement): boolean {
 
 export function getDefaultAsideMinWidth(placement: LayoutPlacement): number {
   return DEFAULT_ASIDE_MIN_WIDTH[placement]
+}
+
+export function getDefaultAsideExpandedWidth(placement: LayoutPlacement): number {
+  return DEFAULT_ASIDE_EXPANDED_WIDTH[placement]
 }
 
 export function getDefaultAsideMaxWidth(placement: LayoutPlacement): number {

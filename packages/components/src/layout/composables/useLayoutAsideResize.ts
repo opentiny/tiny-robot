@@ -1,19 +1,15 @@
 import { useEventListener } from '@vueuse/core'
-import { computed, onBeforeUnmount, shallowRef, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
-import type { LayoutAsideResizeEventDetail, LayoutPlacement } from '../index.type'
-import type { LayoutPanelApi } from '../internal.type'
+import { computed, onBeforeUnmount, shallowRef } from 'vue'
+import type { LayoutAsideResizeEventDetail } from '../index.type'
+import type { LayoutContext, LayoutPanelContext } from '../internal.type'
+import type { LayoutPlacement } from '../index.type'
 import { resolveCssLengthToPx } from '../utils/cssLength'
 import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from '../utils/domInteraction'
 import { clamp } from '../utils/math'
 
-interface UseLayoutAsideInteractionsOptions {
-  rootRef: Ref<HTMLElement | null>
-  leftAsideRef: Ref<HTMLElement | null>
-  rightAsideRef: Ref<HTMLElement | null>
-  left: LayoutPanelApi
-  right: LayoutPanelApi
-  isDrawerVisible: MaybeRefOrGetter<boolean>
-  closeDrawers: () => void
+interface UseLayoutAsideResizeOptions {
+  context: LayoutContext
+  panel: LayoutPanelContext
   onResizeStart?: (detail: LayoutAsideResizeEventDetail) => void
   onResize?: (detail: LayoutAsideResizeEventDetail) => void
   onResizeEnd?: (detail: LayoutAsideResizeEventDetail) => void
@@ -22,7 +18,7 @@ interface UseLayoutAsideInteractionsOptions {
 interface ResizeState {
   pointerId: number
   handleEl: HTMLElement
-  panel: LayoutPanelApi
+  panel: LayoutPanelContext
   placement: LayoutPlacement
   startX: number
   startWidth: number
@@ -34,20 +30,19 @@ interface ResizeState {
   bodyState: BodyInteractionState
 }
 
-function getDockedAsideWidth(panel: LayoutPanelApi, asideEl: HTMLElement | null | undefined): number {
-  if (!panel.isDock || panel.isHidden || !asideEl) {
+function getDockedAsideWidth(panel: LayoutPanelContext, asideEl: HTMLElement | null | undefined): number {
+  if (!panel.state.isDock.value || panel.state.isHidden.value || !asideEl) {
     return 0
   }
 
   return asideEl.getBoundingClientRect().width
 }
 
-export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOptions) {
+export function useLayoutAsideResize(options: UseLayoutAsideResizeOptions) {
   const activeResize = shallowRef<ResizeState | null>(null)
   const isResizing = computed(() => activeResize.value !== null)
   const draggingPlacement = computed(() => activeResize.value?.placement ?? null)
   const pointerTarget = typeof window === 'undefined' ? undefined : window
-  const keyboardTarget = typeof window === 'undefined' ? undefined : window
 
   function scheduleWidth(nextWidth: number): void {
     const state = activeResize.value
@@ -74,10 +69,10 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
         return
       }
 
-      current.panel.setWidth(current.pendingWidth)
+      current.panel.actions.setWidth(current.pendingWidth)
       options.onResize?.({
         placement: current.placement,
-        width: current.pendingWidth,
+        expandedWidth: current.pendingWidth,
       })
       current.pendingWidth = null
     })
@@ -95,10 +90,10 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
     }
 
     if (state.pendingWidth !== null) {
-      state.panel.setWidth(state.pendingWidth)
+      state.panel.actions.setWidth(state.pendingWidth)
       options.onResize?.({
         placement: state.placement,
-        width: state.pendingWidth,
+        expandedWidth: state.pendingWidth,
       })
       state.pendingWidth = null
     }
@@ -111,31 +106,34 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
 
     options.onResizeEnd?.({
       placement: state.placement,
-      width: state.currentWidth,
+      expandedWidth: state.currentWidth,
     })
 
     activeResize.value = null
   }
 
-  function startResize(panel: LayoutPanelApi, event: PointerEvent): void {
-    if (activeResize.value || !event.isPrimary || event.button !== 0 || !panel.canResize) {
+  function startResize(event: PointerEvent): void {
+    const panel = options.panel
+
+    if (activeResize.value || !event.isPrimary || event.button !== 0 || !panel.state.canResize.value) {
       return
     }
 
-    const rootEl = options.rootRef.value
+    const rootEl = options.context.rootEl.value
     const handleEl = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
-    const asideEl = panel.placement === 'left' ? options.leftAsideRef.value : options.rightAsideRef.value
+    const asideEl = panel.el.value
 
     if (!rootEl || !handleEl || !asideEl) {
       return
     }
 
-    const oppositePanel = panel.placement === 'left' ? options.right : options.left
-    const oppositeAsideEl = panel.placement === 'left' ? options.rightAsideRef.value : options.leftAsideRef.value
+    const isLeft = panel.state.placement === 'left'
+    const oppositePanel = isLeft ? options.context.right : options.context.left
+    const oppositeAsideEl = oppositePanel.el.value
     const rootRect = rootEl.getBoundingClientRect()
     const startWidth = asideEl.getBoundingClientRect().width
-    const maxWidth = panel.maxWidth
-    const minWidth = panel.minWidth
+    const maxWidth = panel.state.maxWidth.value
+    const minWidth = panel.state.minWidth.value
     const mainMinWidth = resolveCssLengthToPx(
       getComputedStyle(rootEl).getPropertyValue('--tr-layout-main-min-width').trim() || '320px',
       rootEl,
@@ -151,7 +149,7 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
       pointerId: event.pointerId,
       handleEl,
       panel,
-      placement: panel.placement,
+      placement: panel.state.placement,
       startX: event.clientX,
       startWidth,
       currentWidth: startWidth,
@@ -163,8 +161,8 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
     }
 
     options.onResizeStart?.({
-      placement: panel.placement,
-      width: startWidth,
+      placement: panel.state.placement,
+      expandedWidth: startWidth,
     })
   }
 
@@ -187,16 +185,6 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
     stopResize(event.pointerId)
   })
 
-  useEventListener(keyboardTarget, 'keydown', (event: KeyboardEvent) => {
-    if (event.defaultPrevented || event.key !== 'Escape' || !toValue(options.isDrawerVisible)) {
-      return
-    }
-
-    event.preventDefault()
-    event.stopPropagation()
-    options.closeDrawers()
-  })
-
   onBeforeUnmount(() => {
     stopResize()
   })
@@ -204,11 +192,6 @@ export function useLayoutAsideInteractions(options: UseLayoutAsideInteractionsOp
   return {
     isResizing,
     draggingPlacement,
-    leftHandleProps: {
-      onPointerdown: (event: PointerEvent) => startResize(options.left, event),
-    },
-    rightHandleProps: {
-      onPointerdown: (event: PointerEvent) => startResize(options.right, event),
-    },
+    startResize,
   }
 }

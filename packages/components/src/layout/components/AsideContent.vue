@@ -1,44 +1,66 @@
 <script setup lang="ts">
-import { computed, type VNodeRef } from 'vue'
+import { computed, type ComponentPublicInstance } from 'vue'
 import AsideResizeTrigger from './AsideResizeTrigger.vue'
-import type { LayoutPanelApi } from '../internal.type'
+import { useLayoutContext } from '../composables/useLayoutContext'
+import { useLayoutAsideResize } from '../composables/useLayoutAsideResize'
+import type { LayoutAsideResizeEventDetail, LayoutPlacement } from '../index.type'
 
 defineOptions({
   name: 'LayoutAsideContent',
 })
 
 interface LayoutAsideContentProps {
-  panel: LayoutPanelApi
-  draggingPlacement?: LayoutPanelApi['placement'] | null
-  asideRef?: VNodeRef
+  placement: LayoutPlacement
 }
 
 const props = defineProps<LayoutAsideContentProps>()
 
 const emit = defineEmits<{
-  (event: 'resize-pointerdown', value: PointerEvent): void
+  (event: 'aside-resize-start', value: LayoutAsideResizeEventDetail): void
+  (event: 'aside-resize', value: LayoutAsideResizeEventDetail): void
+  (event: 'aside-resize-end', value: LayoutAsideResizeEventDetail): void
 }>()
 
+const layout = useLayoutContext()
+const panel = computed(() => (props.placement === 'left' ? layout.left : layout.right))
+
 const asideClass = computed(() => [
-  `tr-layout__aside--${props.panel.placement}`,
-  `tr-layout__aside--effect-${props.panel.collapseEffect}`,
+  `tr-layout__aside--${panel.value.state.placement}`,
+  `tr-layout__aside--effect-${panel.value.state.collapseEffect.value}`,
   {
-    'tr-layout__aside--dock': props.panel.isDock,
-    'tr-layout__aside--drawer': props.panel.isDrawer,
-    'tr-layout__aside--expanded': props.panel.isOpen,
-    'tr-layout__aside--rail': props.panel.isRail,
-    'tr-layout__aside--hidden': props.panel.isHidden,
+    'tr-layout__aside--dock': panel.value.state.isDock.value,
+    'tr-layout__aside--drawer': panel.value.state.isDrawer.value,
+    'tr-layout__aside--expanded': panel.value.state.isOpen.value,
+    'tr-layout__aside--rail': panel.value.state.isRail.value,
+    'tr-layout__aside--hidden': panel.value.state.isHidden.value,
   },
 ])
+
+function setAsideElement(element: Element | ComponentPublicInstance | null): void {
+  panel.value.el.value = element instanceof HTMLElement ? element : null
+}
+
+const { draggingPlacement, startResize } = useLayoutAsideResize({
+  context: layout,
+  panel: panel.value,
+  onResizeStart: (detail) => emit('aside-resize-start', detail),
+  onResize: (detail) => emit('aside-resize', detail),
+  onResizeEnd: (detail) => emit('aside-resize-end', detail),
+})
 </script>
 
 <template>
-  <aside :ref="asideRef" class="tr-layout__aside" :class="asideClass" :inert="panel.isHidden || undefined">
+  <aside
+    :ref="setAsideElement"
+    class="tr-layout__aside"
+    :class="asideClass"
+    :inert="panel.state.isHidden.value || undefined"
+  >
     <AsideResizeTrigger
-      v-if="panel.canResize"
-      :placement="panel.placement"
+      v-if="panel.state.canResize.value"
+      :placement="props.placement"
       :dragging-placement="draggingPlacement"
-      @pointerdown="emit('resize-pointerdown', $event)"
+      @pointerdown="startResize"
     />
     <div class="tr-layout__aside-mask">
       <div class="tr-layout__aside-body">

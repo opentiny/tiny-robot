@@ -19,34 +19,34 @@ const emit = defineEmits<{
 
 const cursorClass = computed(() => {
   if (props.handle === 'n' || props.handle === 's') {
-    return 'tr-layout-frame__resize-trigger--ns'
+    return 'tr-layout__floating-resize-trigger--ns'
   }
 
   if (props.handle === 'e' || props.handle === 'w') {
-    return 'tr-layout-frame__resize-trigger--ew'
+    return 'tr-layout__floating-resize-trigger--ew'
   }
 
   if (props.handle === 'ne' || props.handle === 'sw') {
-    return 'tr-layout-frame__resize-trigger--nesw'
+    return 'tr-layout__floating-resize-trigger--nesw'
   }
 
-  return 'tr-layout-frame__resize-trigger--nwse'
+  return 'tr-layout__floating-resize-trigger--nwse'
 })
 </script>
 
 <template>
   <div
-    class="tr-layout-frame__resize-trigger"
-    :class="[`tr-layout-frame__resize-trigger--${handle}`, cursorClass, { 'is-active': active }]"
+    class="tr-layout__floating-resize-trigger"
+    :class="[`tr-layout__floating-resize-trigger--${handle}`, cursorClass, { 'is-active': active }]"
     aria-hidden="true"
     @pointerdown="emit('pointerdown', $event)"
   >
-    <span class="tr-layout-frame__resize-trigger-indicator" aria-hidden="true" />
+    <span class="tr-layout__floating-resize-trigger-indicator" aria-hidden="true" />
   </div>
 </template>
 
 <style lang="less" scoped>
-.tr-layout-frame__resize-trigger {
+.tr-layout__floating-resize-trigger {
   position: absolute;
   padding: 0;
   outline: 0;
@@ -152,35 +152,35 @@ const cursorClass = computed(() => {
     z-index: 1;
   }
 
-  &--n .tr-layout-frame__resize-trigger-indicator,
-  &--s .tr-layout-frame__resize-trigger-indicator {
+  &--n .tr-layout__floating-resize-trigger-indicator,
+  &--s .tr-layout__floating-resize-trigger-indicator {
     width: 28px;
     height: 6px;
   }
 
-  &--e .tr-layout-frame__resize-trigger-indicator,
-  &--w .tr-layout-frame__resize-trigger-indicator {
+  &--e .tr-layout__floating-resize-trigger-indicator,
+  &--w .tr-layout__floating-resize-trigger-indicator {
     width: 6px;
     height: 28px;
   }
 
-  &--ne .tr-layout-frame__resize-trigger-indicator,
-  &--nw .tr-layout-frame__resize-trigger-indicator,
-  &--se .tr-layout-frame__resize-trigger-indicator,
-  &--sw .tr-layout-frame__resize-trigger-indicator {
+  &--ne .tr-layout__floating-resize-trigger-indicator,
+  &--nw .tr-layout__floating-resize-trigger-indicator,
+  &--se .tr-layout__floating-resize-trigger-indicator,
+  &--sw .tr-layout__floating-resize-trigger-indicator {
     width: 10px;
     height: 10px;
     border-radius: 3px;
   }
 
   &:hover {
-    .tr-layout-frame__resize-trigger-indicator {
+    .tr-layout__floating-resize-trigger-indicator {
       opacity: var(--indicator-hover-opacity);
     }
   }
 
   &.is-active {
-    .tr-layout-frame__resize-trigger-indicator {
+    .tr-layout__floating-resize-trigger-indicator {
       opacity: 1;
       background: var(--indicator-active-bg);
       border-color: var(--indicator-active-border);
