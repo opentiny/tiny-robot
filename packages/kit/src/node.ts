@@ -1,2 +1,9 @@
-export { loadSkillFilesFromFs } from './skills/fsSkillFiles'
-export type { FsSkillFilesOptions } from './skills/fsSkillFiles'
+export { loadSkill } from './skills/loader/node'
+export type {
+  FsSkillLoadOptions,
+  GithubSkillLoadOptions,
+  SkillLoadJob,
+  SkillLoadOptions,
+  SkillLoadResult,
+} from './skills/loader/node'
+export * from './skills/storage/node'

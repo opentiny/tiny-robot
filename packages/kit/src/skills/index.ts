@@ -1,15 +1,28 @@
-export { loadSkillFilesFromDirectoryHandle, loadSkillFilesFromFileList } from './browserSkillFiles'
-export type { BrowserDirectoryHandle, BrowserFile, BrowserFileHandle } from './browserSkillFiles'
-export { compileSkillInstructions, createSkillRuntimeTools } from './compiler'
+export { compileSkillInstructions } from './instructions'
+export { createSkillResourceInstructionsMessage, createSkillResourceRuntimeTools } from './capabilities/resources'
+export { createSkillSelectionInstructionsMessage, createSkillSelectionRuntimeTools } from './capabilities/selection'
+export type { SkillCommandExecutor, SkillCommandRequest, SkillCommandResult } from './capabilities/commands'
+export { loadSkill } from './loader'
 export type {
-  SkillCommandExecutor,
-  SkillCommandRequest,
-  SkillCommandResult,
-  SkillRuntimeToolsOptions,
-} from './compiler'
-export { SkillManager } from './manager'
-export type { SkillManagerOptions } from './manager'
-export { SkillLoader } from './skillLoader'
-export type { SkillLoaderOptions, SkillLoaderResult } from './skillLoader'
-export type { BaseSkillFile, BinarySkillFile, SkillDefinition, SkillFile, SkillFileKind, TextSkillFile } from './types'
+  BrowserSkillLoadOptions,
+  GithubSkillLoadOptions,
+  SkillLoadJob,
+  SkillLoadOptions,
+  SkillLoadResult,
+} from './loader'
+export {
+  createIndexedDBSkillStorage,
+  createMemorySkillStorage,
+  IndexedDBSkillStorage,
+  importSkill,
+  MemorySkillStorage,
+} from './storage'
+export type {
+  IndexedDBSkillStorageOptions,
+  SkillStorage,
+  SkillImportJob,
+  SkillImportOptions,
+  SkillImportResult,
+} from './storage'
+export type { SkillCandidate, SkillDefinition, SkillFileKind, SkillResourceDescriptor } from './types'
 export { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'

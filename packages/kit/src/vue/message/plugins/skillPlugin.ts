@@ -1,17 +1,35 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
-import type { SkillRequestContext } from '../../../message/plugins'
+import type { SkillRequestContext, SkillSelection } from '../../../message/plugins'
 import { skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
-import type { SkillCommandRequest, SkillCommandResult } from '../../../skills/compiler'
-import type { SkillDefinition } from '../../../skills/types'
+import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
+import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
 import type { MaybePromise } from '../../../types'
 import type { BasePluginContext, UseMessagePlugin } from '../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 
-export type VueSkillSource = SkillDefinition[] | undefined
-export type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueSkillSource>
+type VueSkillSource = SkillDefinition[] | undefined
+type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueSkillSource>
+
+type VueSkillSelectionOptions =
+  | {
+      mode: 'manual'
+      skillNames: string[]
+    }
+  | {
+      mode: 'auto'
+      preferredSkillNames?: string[]
+      maxSelectedSkills?: number
+    }
+  | {
+      mode: 'none'
+    }
 
 export type UseMessageSkillPluginOptions = UseMessagePlugin & {
+  /**
+   * Controls how skills are selected for the current turn.
+   */
+  selection?: VueSkillSelectionOptions | ((context: BasePluginContext) => MaybePromise<VueSkillSelectionOptions>)
   /**
    * 当前请求要使用的 skills。支持普通数组、ref 或 computed。
    */
@@ -21,11 +39,13 @@ export type UseMessageSkillPluginOptions = UseMessagePlugin & {
    */
   getSkills?: (context: BasePluginContext) => MaybePromise<VueSkillSourceRef>
   /**
-   * 执行模型为某个 skill 规划的后端命令。
-   *
-   * @experimental 该 API 仍在设计和验证中，命令协议、返回结构和安全边界后续可能调整。
+   * 自动选择时提供候选摘要。
    */
-  executeSkillCommand?: (request: SkillCommandRequest, context: BasePluginContext) => MaybePromise<SkillCommandResult>
+  getSkillCandidates?: (context: BasePluginContext) => MaybePromise<SkillCandidate[]>
+  /**
+   * 根据 name 解析完整 skill。manual 和 auto 最终都会通过它取得 SkillDefinition。
+   */
+  getSkillByName?: (name: string, context: BasePluginContext) => MaybePromise<SkillDefinition | undefined>
   /**
    * skills 解析并转换为请求上下文后触发。
    */
@@ -37,23 +57,65 @@ const resolveSkillSource = (source: VueSkillSourceRef): VueSkillSource => {
 }
 
 export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePlugin => {
-  const { skills, getSkills, executeSkillCommand, onSkillsResolved, ...restOptions } = options
+  const { selection, skills, getSkills, getSkillCandidates, getSkillByName, onSkillsResolved, ...restOptions } = options
 
   return {
     name: 'skill',
     __corePluginFactory(runtime: VueMessagePluginRuntime) {
+      const toVueContext = (context: CoreBasePluginContext) => runtime.createVueBaseContext(context)
+      const resolveSelection = async (context: CoreBasePluginContext): Promise<SkillSelection> => {
+        const vueContext = toVueContext(context)
+        const vueSelection = typeof selection === 'function' ? await selection(vueContext) : selection
+
+        if (!vueSelection) {
+          const skillSource = getSkills ? await getSkills(vueContext) : skills
+          const resolvedSkills = resolveSkillSource(skillSource) ?? []
+
+          return {
+            mode: 'manual',
+            skillNames: resolvedSkills.map((skill) => skill.name),
+          }
+        }
+
+        if (vueSelection.mode === 'manual') {
+          return {
+            mode: 'manual',
+            skillNames: vueSelection.skillNames,
+          }
+        }
+
+        if (vueSelection.mode === 'auto') {
+          return {
+            mode: 'auto',
+            preferredSkillNames: vueSelection.preferredSkillNames,
+            maxSelectedSkills: vueSelection.maxSelectedSkills,
+          }
+        }
+
+        return {
+          mode: 'none',
+        }
+      }
+
       return createCoreSkillPlugin({
         ...runtime.createCorePlugin(restOptions),
-        getSkills: async (context) => {
-          const vueContext = runtime.createVueBaseContext(context)
-          const skillSource = getSkills ? await getSkills(vueContext) : skills
-          return resolveSkillSource(skillSource)
-        },
-        executeSkillCommand: executeSkillCommand
-          ? (request, context) => executeSkillCommand(request, runtime.createVueBaseContext(context))
-          : undefined,
+        selection: resolveSelection,
+        getSkillCandidates: getSkillCandidates
+          ? (context) => getSkillCandidates(toVueContext(context))
+          : async (context) => {
+              const vueContext = toVueContext(context)
+              const skillSource = getSkills ? await getSkills(vueContext) : skills
+              return resolveSkillSource(skillSource) ?? []
+            },
+        getSkillByName: getSkillByName
+          ? (name, context) => getSkillByName(name, toVueContext(context))
+          : async (name, context) => {
+              const vueContext = toVueContext(context)
+              const skillSource = getSkills ? await getSkills(vueContext) : skills
+              return resolveSkillSource(skillSource)?.find((skill) => skill.name === name)
+            },
         onSkillsResolved: onSkillsResolved
-          ? (skillContext, context) => onSkillsResolved(skillContext, runtime.createVueBaseContext(context))
+          ? (skillContext, context) => onSkillsResolved(skillContext, toVueContext(context))
           : undefined,
       })
     },

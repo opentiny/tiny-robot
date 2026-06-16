@@ -4,39 +4,39 @@
 
 ## 目标
 
-skill 是一组可复用的能力模板。它可以从文件加载，被业务侧管理和选择，并在请求前转换为模型可消费的 instructions 和基础文件工具。
+skill 是一组可复用的能力模板。它可以从文件加载，被 storage 持久化或恢复，被业务侧选择，并在请求前转换为模型可消费的 instructions 和基础文件工具。
 
 skill 核心能力不依赖 Vue，浏览器安全 API 从 `@opentiny/tiny-robot-kit/core` 导出；Node 文件系统能力从 `@opentiny/tiny-robot-kit/node` 导出。
 
 ## 核心数据
 
-`SkillDefinition` 是 loader、manager、compiler 之间流转的核心数据结构：
+`SkillDefinition` 是 loader、storage、instructions、tools 之间流转的核心数据结构：
 
 ```ts
 interface SkillDefinition {
   name: string
   description: string
   instructions: string
-  files?: SkillFile[]
+  resources?: SkillResourceDescriptor[]
   metadata?: Record<string, unknown>
 }
 ```
 
-- `name`：skill 唯一名称，由 manager 负责集合层面的覆盖和选择。
+- `name`：skill 唯一名称，由 storage 或业务侧集合负责覆盖和去重。
 - `description`：用于展示、搜索或后续自动选择。
 - `instructions`：注入模型请求的核心指令。
-- `files`：随 skill 携带的附加文件资源，可由基础文件工具读取。
+- `resources`：随 skill 携带的附加文件资源，可由基础文件工具读取。
 - `metadata`：应用侧和 loader 保留的扩展信息。
 
 ## 模块职责
 
-### `types.ts`
+### `types/index.ts`
 
 定义 skill 工具链的共享类型：
 
 - `SkillDefinition`
-- `SkillFile`
-- 文本和二进制 skill 文件类型
+- `SkillResourceDescriptor`
+- `SkillFileKind`
 
 该文件不包含运行逻辑。
 
@@ -50,72 +50,87 @@ interface SkillDefinition {
 
 这些工具只处理文件路径和扩展名，不解析 skill 语义。
 
-### `browserSkillFiles.ts`
+### `loader/browser.ts`
 
-浏览器文件适配器。负责把浏览器文件来源转换为标准 `SkillFile[]`：
+浏览器文件适配器。负责把浏览器文件来源转换为标准 `LoadableSkillFile[]`：
 
-- `loadSkillFilesFromFileList`
-- `loadSkillFilesFromDirectoryHandle`
+- `loadBrowserSkillFiles`
 
 该模块只读取文件内容并标准化路径，不解析 `SKILL.md`。
 
-### `fsSkillFiles.ts`
+### `loader/fs.ts`
 
-Node 文件适配器。负责把本地目录转换为标准 `SkillFile[]`：
+Node 文件适配器。负责把本地目录转换为标准 `LoadableSkillFile[]`：
 
-- `loadSkillFilesFromFs`
+- `loadFsSkillFiles`
 
 该模块依赖 Node `fs/path`，只能从 `@opentiny/tiny-robot-kit/node` 子入口导出，不能从浏览器根入口导出。
 
-### `skillLoader.ts`
+### `loader/definition.ts`
 
-loader 层。负责把 `SkillFile[]` 解析为 `SkillDefinition`：
+definition loader 层。负责把 `LoadableSkillFile[]` 解析为 `SkillDefinition`：
 
 - 查找入口文件，默认 `SKILL.md`
 - 解析 frontmatter
 - 将正文转换为必填 `instructions`
-- 将其他支持的文件转换为 `files`
+- 将其他支持的文件转换为 `resources`
 - 收集非致命 warnings
 
-loader 不负责：
+definition loader 不负责：
 
 - 读取文件系统或浏览器文件
 - 保存 skill 集合
 - 选择 skill
 - 编译 message 请求
 
-### `manager.ts`
+### `instructions.ts`
 
-manager 层。负责 skill 集合和选择状态：
-
-- `set(skill)`：新增或覆盖同名 skill
-- `remove(name)` / `clear()`
-- `get(name)` / `has(name)` / `list()`
-- `select(names)` / `unselect(names)`
-- `getSelectedSkillNames()` / `getSelectedSkills()`
-- `import(files, options)`：通过 `SkillLoader` 导入 skill
-
-manager 不负责编译 instructions 或 runtime tools。
-
-### `compiler.ts`
-
-compiler 层只保留两个纯转换函数：
+instructions 层负责将已选择的 skills 转换为 system message：
 
 - `compileSkillInstructions(skills)`
-- `createSkillRuntimeTools(skills, options?)`
 
-`compileSkillInstructions` 将已选择的 skills 转换为 system message。
+instructions 不负责：
 
-`createSkillRuntimeTools` 根据 `skill.files` 创建基础文件工具：
+- skill 去重
+- 选择状态
+- 持久化
+- 集合管理
+- runtime tools
+
+### `capabilities/selection.ts`
+
+selection capability 负责自动选择阶段的 instructions 和 runtime tool：
+
+- `createSkillSelectionInstructionsMessage({ candidates, preferredSkillNames })`
+- `createSkillSelectionRuntimeTools(candidates, options?)`
+
+该 capability 提供：
+
+- `select_skills`
+
+### `capabilities/resources.ts`
+
+resources capability 负责已启用 skill 的资源读取 instructions 和 runtime tools：
+
+- `createSkillResourceInstructionsMessage(skills)`
+- `createSkillResourceRuntimeTools(skills)`
+
+该 capability 提供：
 
 - `list_skill_files`
 - `read_skill_file`
 
-当传入 `options.executeSkillCommand` 时，它会额外创建命令执行工具：
+### `capabilities/commands.ts`
 
-- `execute_skill_command`
+commands capability 目前只提供类型：
 
-compiler 不负责：
+- `SkillCommandRequest`
+- `SkillCommandResult`
+- `SkillCommandExecutor`
+
+`execute_skill_command` runtime tool 暂不实现。
+
+capabilities 不负责：
 
 - skill 去重
 - 选择状态
@@ -135,35 +150,180 @@ message 接入代码不放在 `src/skills` 下：
 - core message adapter：`packages/kit/src/message/plugins/skillPlugin.ts`
 - Vue message adapter：`packages/kit/src/vue/message/plugins/skillPlugin.ts`
 
-`skillPlugin` 的职责是把调用方传入的当前 skills 接入 message 生命周期：
+`skillPlugin` 的职责是把调用方传入的当前 selection 快照接入 message 生命周期：
 
-1. `onTurnStart` 读取 `getSkills()` 或 Vue 侧响应式 `skills`。
-2. 创建 `runtimeTools = createSkillRuntimeTools(skills, options)`。
-3. 将 `{ skills, skillNames, runtimeTools }` 写入 `customContext.__tiny_robot_skill`。
-4. `provideTools` 暴露 `runtimeTools`。
-5. `onBeforeRequest` 调用 `compileSkillInstructions(skills)` 并 prepend system message。
+1. `onTurnStart` 读取 `selection`，或将 Vue 侧响应式 `skills` 映射为 `manual` selection。
+2. 通过 `getSkillByName(name)` 将最终启用的 names 解析为 `SkillDefinition[]`。
+3. 创建 `runtimeTools = createSkillResourceRuntimeTools(skills)`。
+4. 将 `{ skills, skillNames, requestedSkillNames, unresolvedSkillNames, runtimeTools }` 写入 `customContext.__tiny_robot_skill`。
+5. `provideTools` 暴露 `runtimeTools`。
+6. `onBeforeRequest` 调用 `compileSkillInstructions(skills)` 和 capability instructions，并 prepend system message。
 
-`skillPlugin` 不加载、不缓存、不选择、不管理 skill 集合。
+`skillPlugin` 不加载、不缓存、不持久化、不管理 skill 集合。它只在 auto 模式下提供 `select_skills` runtime tool，让模型从候选摘要中选择 names。
 
-## 数据流
+## Skill 启用模式
+
+### 手动指定
+
+手动指定适合用户通过 `@skillName`、下拉选择或业务按钮明确启用某个 skill 的场景。通常一次只启用一个 skill，也可以由业务侧按需启用多个。
+
+该模式不需要 selection 阶段。应用侧只传入最终 selected skill names；插件再通过顶层 `getSkillByName` 解析完整 `SkillDefinition`：
+
+```ts
+skillPlugin({
+  selection: {
+    mode: 'manual',
+    skillNames: requestedSkillNames,
+  },
+  getSkillByName: (name) => storage.get(name),
+})
+```
+
+`skillPlugin` 会把 selected skills 的 `instructions` 编译进 system prompt，并暴露基础文件工具。只有 `instructions` 直接进入 system prompt；`resources` 不默认展开，模型需要细节时通过 `list_skill_files` / `read_skill_file` 按需读取。
 
 ```mermaid
-flowchart TD
-  A["File source<br/>FileList / DirectoryHandle / fs directory"] --> B["file adapter"]
-  B -->|"SkillFile[]"| C["SkillLoader"]
-  C -->|"SkillDefinition"| D["SkillManager"]
-  D -->|"selected SkillDefinition[]"| E["skillPlugin"]
-  E --> F["compileSkillInstructions"]
-  E --> G["createSkillRuntimeTools"]
-  F --> H["system message"]
-  G --> I["runtime tools"]
+sequenceDiagram
+  participant App
+  participant Plugin as skillPlugin
+  participant Instructions
+  participant Tools
+  participant Engine as Message Engine
+
+  App->>Plugin: selection = manual mode
+  Plugin->>App: getSkillByName(name, context)
+  App-->>Plugin: SkillDefinition[]
+  Plugin->>Instructions: Create selected skill instructions
+  Instructions-->>Plugin: System message
+  Plugin->>Tools: Create selected skill runtime tools
+  Tools-->>Plugin: Runtime tools
+  Plugin->>Engine: Continue request with selected skills
+```
+
+### 自动选择
+
+自动选择适合应用有多个候选 skills，但用户没有明确指定 skill 的场景。该模式应拆成 selecting 和 ready 两个请求级阶段。
+
+selecting 阶段只给模型候选摘要：
+
+```txt
+Available skills:
+- weather: Get current weather information.
+- vue-best-practices: Vue.js best practices workflow.
+```
+
+该阶段不提供完整 `instructions`，也不提供 skill resource tools。模型只负责调用 `select_skills` 产出 selected skill names。
+
+`select_skills` 完成后进入 ready 阶段。插件根据 selected skill names 读取完整 `SkillDefinition[]`，再编译 selected skill instructions 和 resource tools：
+
+```ts
+skillPlugin({
+  selection: {
+    mode: 'auto',
+    preferredSkillNames: currentPreferredSkillNames,
+  },
+  getSkillCandidates: () => storage.list(),
+  getSkillByName: (name) => storage.get(name),
+})
+```
+
+这样可以避免把所有 candidate skill instructions 一次性塞进 system prompt，减少 token 成本，也避免多个 skill 指令互相干扰。若 `getSkillByName` 找不到或解析某个 requested skill 失败，该 skill 会被跳过，并在 `select_skills` 的 tool result 中返回 `unresolvedSkillNames`。
+
+`select_skills` 工具固定接收：
+
+```ts
+select_skills({
+  skillNames: string[]
+})
+```
+
+工具 JSON schema 应使用候选 skill names 限制可选范围：
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "skillNames": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["weather", "vue-best-practices"]
+      }
+    }
+  },
+  "required": ["skillNames"],
+  "additionalProperties": false
+}
+```
+
+selection 工具返回结构化结果，便于模型了解选择和实际启用情况：
+
+```json
+{
+  "requestedSkillNames": ["weather", "vue-best-practices"],
+  "enabledSkillNames": ["weather"],
+  "unresolvedSkillNames": ["vue-best-practices"]
+}
+```
+
+```mermaid
+sequenceDiagram
+  participant App
+  participant Plugin as skillPlugin
+  participant Model
+  participant Instructions
+  participant Tools
+  participant Engine as Message Engine
+
+  App->>Plugin: selection = auto mode
+  opt preferredSkillNames is provided
+    App-->>Plugin: Preferred skill names in selection snapshot
+  end
+  Plugin->>App: getSkillCandidates(context)
+  App-->>Plugin: Candidate summaries
+  Plugin->>Model: Candidate summaries + optional preferred names + select_skills tool
+  Model->>Plugin: select_skills({ skillNames })
+  loop For each selected skill name
+    Plugin->>App: getSkillByName(name, context)
+    App-->>Plugin: SkillDefinition
+  end
+  Plugin->>Instructions: Create selected skill instructions
+  Instructions-->>Plugin: System message
+  Plugin->>Tools: Create selected skill runtime tools
+  Tools-->>Plugin: Runtime tools
+  Plugin->>Engine: Continue request with selected skills
+```
+
+如果 UI 支持随时在手动和自动之间切换，推荐让 `selection` 成为一个返回当前快照的函数。同一份 UI selected names 在 manual 模式下是最终启用项，在 auto 模式下是 preferred bias：
+
+```ts
+skillPlugin({
+  selection: () => {
+    if (mode === 'manual') {
+      return {
+        mode: 'manual',
+        skillNames: requestedSkillNames,
+      }
+    }
+
+    if (mode === 'auto') {
+      return {
+        mode: 'auto',
+        preferredSkillNames: requestedSkillNames,
+      }
+    }
+
+    return { mode: 'none' }
+  },
+  getSkillCandidates: () => storage.list(),
+  getSkillByName: (name) => storage.get(name),
+})
 ```
 
 ## Sandbox Command Execution
 
-部分 skill 需要专门的后端运行环境才能执行命令，例如 PPT、PDF、浏览器自动化或文档处理。`kit` 不内置这些后端能力；当前设计是让模型根据已启用 skill 的 instructions 自行规划命令和参数，再由应用侧 executor 转发到后端沙箱执行。
+部分 skill 需要专门的后端运行环境才能执行命令，例如 PPT、PDF、浏览器自动化或文档处理。`kit` 暂不实现 `execute_skill_command` runtime tool，目前只保留命令请求和结果类型，后续再接入应用侧 executor 和后端沙箱。
 
-推荐工具形态：
+预留工具形态：
 
 ```ts
 execute_skill_command({
@@ -173,12 +333,12 @@ execute_skill_command({
 })
 ```
 
-该阶段不要求从 `SKILL.md` 提取命令 allowlist，也不要求 compiler 生成命令枚举。`SKILL.md` 仍然是自然语言说明，模型可以根据说明决定 `command` 和 `args`。
+该阶段不要求从 `SKILL.md` 提取命令 allowlist，也不要求 tools 层生成命令枚举。`SKILL.md` 仍然是自然语言说明，模型可以根据说明决定 `command` 和 `args`。
 
-职责边界：
+当前职责边界：
 
-- `createSkillRuntimeTools(skills, { executeSkillCommand })` 创建 `execute_skill_command` runtime tool。
-- `skillPlugin` 在传入 `executeSkillCommand` 时暴露 `execute_skill_command`。
+- `capabilities/commands.ts` 只定义命令请求/结果类型。
+- `skillPlugin` 暂不暴露 `execute_skill_command`。
 - 应用侧 executor 负责选择后端运行环境、鉴权、沙箱、超时、日志、产物管理和错误返回。
 - 后端必须把模型返回的 `command` / `args` 视为不可信输入。
 
@@ -230,135 +390,39 @@ artifact store 可以是：
 
 artifact 必须绑定用户、会话、请求或 sandbox run，不能只依赖裸 `artifactId` 做访问控制。`url` 应由应用侧决定是内部代理地址、短期 signed URL，还是仅供前端预览使用的下载地址。
 
-推荐链路：
+推荐链路是：模型调用 `execute_skill_command`，应用侧 executor 在后端沙箱中按 argv 执行命令，沙箱把二进制产物写入 artifact store，再把 stdout、stderr 和 artifacts 引用返回给模型。后续如果模型需要理解产物内容，应用侧可以再提供读取 artifact 文本、摘要或预览信息的工具。
 
-```mermaid
-sequenceDiagram
-  participant Model as 大模型
-  participant App as kit / 应用侧 executor
-  participant Sandbox as 后端沙箱
-  participant Store as Artifact store
-
-  Model->>App: execute_skill_command(skillName, command, args)
-  App->>Sandbox: 按 skill runtime 执行 argv 命令
-  Sandbox->>Store: 写入二进制产物
-  Store-->>Sandbox: artifact metadata / url
-  Sandbox-->>App: stdout / stderr / artifacts
-  App-->>Model: tool result: artifact 引用和摘要
-  Model->>App: 可选：读取 artifact 文本或摘要
-  App->>Store: 可选：读取已提取文本 / 预览信息
-  Store-->>App: artifact text / info
-  App-->>Model: 可选：artifact text / info
-```
-
-后续如果模型需要继续理解产物内容，可以在 `createSkillRuntimeTools` 中扩展 artifact 读取能力，例如：
+后续如果模型需要继续理解产物内容，可以在 command/artifact capability 中扩展 artifact 读取能力，例如：
 
 - `list_skill_artifacts`
 - `get_skill_artifact_info`
 - `read_skill_artifact_text`
 
-这些工具应返回文本、摘要或元数据，不返回原始二进制内容。第一阶段可以只让 `execute_skill_command` 返回 `artifacts` 引用，由前端或应用侧负责展示、下载和预览。
+这些工具应返回文本、摘要或元数据，不返回原始二进制内容。后续可以只让 `execute_skill_command` 返回 `artifacts` 引用，由前端或应用侧负责展示、下载和预览。
 
 后续如果 skill 命令逐渐稳定，可以再引入机器可读 manifest，把自由命令收敛为 command allowlist 和参数 schema。这个 manifest 属于后续增强，不影响当前基于沙箱的第一阶段设计。
 
-## Auto Skill Selection
-
-auto skill selection 是一个未来的 selector 层能力，用于让模型根据用户问题从候选 skills 中选择本次请求要启用的 skills。它不属于 `skillPlugin`、compiler 或 manager 的当前职责。
-
-推荐链路：
-
-```mermaid
-sequenceDiagram
-  participant App as 用户 / 应用
-  participant Model as 大模型
-
-  App->>Model: 用户问题 + 候选 skill descriptions
-  Model->>App: 调用 selectSkills(skillNames)
-  App->>App: 记录请求级 selected skill names
-  App->>App: skillPlugin 编译已选 skills
-  App->>Model: execution turn + instructions + 基础文件工具
-  Model->>App: 基于已启用 skills 生成回答
-```
-
-职责边界：
-
-- `SkillManager` 管理全部可用 skills。
-- `SkillSelector` 根据用户问题和候选 skill descriptions 产出本次请求的 selected skill names。
-- `skillPlugin` 只读取 selected `SkillDefinition[]`，并编译 instructions 和基础文件工具。
-- auto selection 的结果应写入请求级状态，例如 `customContext.__tiny_robot_selected_skills`，不能直接写入 manager 的长期选择状态。
-
-selector 阶段只提供候选摘要，不提供完整 instructions：
-
-```txt
-Available skills:
-- weather: Get current weather information.
-- vue-best-practices: Vue.js best practices workflow.
-```
-
-selector 工具可以设计为：
-
-```ts
-selectSkills({
-  skillNames: string[]
-})
-```
-
-工具 JSON schema 应使用候选 skill names 限制可选范围：
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "skillNames": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["weather", "vue-best-practices"]
-      }
-    }
-  },
-  "required": ["skillNames"],
-  "additionalProperties": false
-}
-```
-
-selector 工具返回值建议是结构化结果，便于调试和日志记录：
-
-```json
-{
-  "selectedSkillNames": ["vue-best-practices"]
-}
-```
-
-execution 阶段再把 selected skill definitions 交给 `skillPlugin`：
-
-```ts
-skillPlugin({
-  getSkills: (context) => context.customContext.__tiny_robot_selected_skills ?? [],
-})
-```
-
-为了避免循环调用，selector 层应维护请求级状态，例如：
-
-```ts
-selectionStatus: 'pending' | 'done'
-```
-
-- `pending` 阶段提供 `selectSkills` 工具。
-- `done` 阶段不再提供 selector 工具。
-- `selectSkills` 每个请求最多调用一次。
-
 ## 后续事项
 
-- 为 `read_skill_file` 增加大小限制和截断策略。
-- 为重复 skill 名称增加诊断能力，优先放在 manager 或选择逻辑中。
-- 评估 auto skill selection 是否需要独立 selector 层。
-- search text tool
-- 消息模型
-  system skill name + description, prompt提示当前环境
-  user message
-  llm select，直接获取skill file
-- mcp沙盒
-- 手动@选择一个skill，system prompt提示优先使用当前skill
-- 文件存储 storageStrategy
-- 文档描述优化
+### 优先补
+
+- 为 `read_skill_file` 增加大小限制和截断策略，避免大文件直接进入 tool result。建议返回 `truncated`、`originalSize` 等诊断字段。
+
+### 中期补
+
+- 收敛 public export，确认 `createSkillSelectionRuntimeTools` 这类带内部编排回调的 capability factory 是否应该继续从 `skills/index.ts` 对外暴露。
+- 优化 storage/list candidate 体验。`SkillCandidate` 当前只包含 `name`、`description`、`metadata`；后续可按需要增加搜索、分页、标签或来源信息。
+- 为重复 skill name 增加更明确的 diagnostics。优先放在 storage 或 selection 逻辑中，不放在 instructions 或 capabilities 中。
+
+### 暂不急
+
+- 暂不实现 `execute_skill_command` runtime tool。命令执行涉及 sandbox、安全、artifact store、权限和运行环境，应保持为应用侧能力。
+- 暂不恢复 manager/selection set。业务侧可通过 storage `list/get` 和自己的 selected names 管理长期选择状态。
+
+### 已完成
+
+- [x] 评估 auto skill selection 是否需要独立 selector 层。
+- [x] auto 模式在类型层要求提供 `getSkillCandidates`，运行时也保留错误兜底。
+- [x] 在 `SkillRequestContext` 中记录 `requestedSkillNames` 和 `unresolvedSkillNames`，方便业务侧展示哪些 requested skills 未成功启用。
+- [x] 文件存储。
+- [x] 文档描述优化。

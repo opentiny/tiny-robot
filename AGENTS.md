@@ -4,21 +4,21 @@
 
 The active development track is the skill toolchain in `packages/kit`.
 
-The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from files, managed by a manager, and compiled into prompt instructions plus runtime tools for the message engine.
+The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from sources, persisted or restored by storage, selected by application state, and compiled into prompt instructions plus runtime tools for the message engine.
 
 ## Current Architecture
 
 - `packages/kit/src/skills`
   - Core skill toolchain modules.
-  - Owns skill loading, skill types, compiler helpers, file adapters, manager, and skill tests.
+  - Owns skill loading, skill types, instructions, capabilities, storage, and skill tests.
   - Browser-safe skill APIs are exported from `@opentiny/tiny-robot-kit/core`.
-  - Node-only file adapters are exported from `@opentiny/tiny-robot-kit/node`.
+  - Node-only skill loaders and storage APIs are exported from `@opentiny/tiny-robot-kit/node`.
 - `packages/kit/src/message/plugins/skillPlugin.ts`
   - Message runtime adapter only.
-  - Bridges `getSkills()` into message engine hooks.
+  - Bridges request-level skill selection into message engine hooks.
 - `packages/kit/src/message/plugins`
   - Message plugins and runtime protocols.
-  - Must not own or re-export skill core logic.
+  - Must not own or re-export skill core logic, but may export message plugin APIs and plugin option types.
 
 ## Package Manager
 
@@ -26,46 +26,78 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
 
 ## Skill Layers
 
-- File Adapters
-  - Convert platform-specific file sources into `SkillFile[]`.
-  - Examples: `loadSkillFilesFromFs`, `loadSkillFilesFromFileList`, `loadSkillFilesFromDirectoryHandle`.
+- Definition
+  - `SkillDefinition` is the runtime contract for an AI-usable skill.
+  - It contains `name`, `description`, `instructions`, optional `resources`, and optional `metadata`.
+  - Runtime code should consume `SkillDefinition`, regardless of whether it came from a loader, storage, or in-memory state.
 - Loader
-  - Converts `SkillFile[]` into `SkillDefinition`.
-  - Lives in `packages/kit/src/skills/skillLoader.ts`.
-- Compiler
-  - Converts `SkillDefinition[]` into request instructions, built-in file runtime tools, and optional command runtime tools.
-  - Lives in `packages/kit/src/skills/compiler.ts`.
+  - Converts platform-specific sources directly into `SkillDefinition`.
+  - Browser-safe loader entry lives in `packages/kit/src/skills/loader/index.ts`.
+  - Node-only loader entry lives in `packages/kit/src/skills/loader/node.ts`.
+  - Browser sources use `{ source: 'browser', fileList }` or `{ source: 'browser', directoryHandle }`.
+  - Node sources use `{ source: 'fs', root }` through the node subpath.
+  - GitHub sources use `{ source: 'github', repo, ref?, path }`.
+  - Source adapters inside loader may produce internal `LoadableSkillFile[]`, but `createSkillDefinition` is called by the loader entry, not by each adapter.
+  - Loader owns source parsing, but must not own persistence, skill collections, or selection state.
+- Storage
+  - Persists and restores `SkillDefinition`; storage is a `SkillDefinition` provider parallel to loader.
+  - `storage.add(skill)` stores an already loaded complete `SkillDefinition`.
+  - `storage.import(options)` is a convenience composition of loader plus add; it must call loader logic rather than reimplement source parsing.
+  - Browser-safe storage import uses browser/core loader sources. Node-only storage capabilities should live behind node-only entry points.
+  - Storage may restore resources lazily through `resourceId`, `readText`, and `readBinary`.
+  - Loader output usually keeps full resource data in memory through `text` and `binary`.
+- Instructions
+  - Converts selected `SkillDefinition[]` into request system instructions.
+  - Lives in `packages/kit/src/skills/instructions.ts`.
+- Capabilities
+  - Convert selected skills or candidate summaries into runtime tools and capability-specific instructions.
+  - Selection capability lives in `packages/kit/src/skills/capabilities/selection.ts` and provides `select_skills`.
+  - Resource capability lives in `packages/kit/src/skills/capabilities/resources.ts` and provides `list_skill_files` / `read_skill_file`.
+  - Command capability currently only provides command-related types; `execute_skill_command` is not implemented.
 - Plugin Adapter
-  - Connects skill compiler output to message engine lifecycle.
+  - Connects skill instructions and capabilities to message engine lifecycle.
   - Lives in `packages/kit/src/message/plugins/skillPlugin.ts`.
-- Manager
-  - Lives in `packages/kit/src/skills/manager.ts`.
-  - Owns write/remove/list/import/select skills.
-  - Must not compile request instructions or runtime tools.
+- Selection
+  - Long-lived selection state is application-owned, typically a selected skill name array or selected `SkillDefinition[]`.
+  - Kit does not need a manager layer for selection; applications can combine `storage.list()` / `storage.get()` with their own selected names.
+  - `skillPlugin` supports request-level `manual`, `auto`, and `none` selection snapshots.
+  - Auto selection is a message interaction flow: candidate summaries plus `select_skills`, followed by resolving selected names into full `SkillDefinition[]`.
+  - Storage must not own selection state.
 
 ## Hard Rules
 
 - Do not move skill core modules back under `packages/kit/src/message`.
 - `skillPlugin` must not own, cache, query, mutate, or manage skill collections.
-- `skillPlugin` receives the current turn's skills through `getSkills()`.
-- Do not use `activeSkills` naming in the skill plugin/compiler. The plugin receives skills that are already selected by outside logic.
-- Compiler may compile instructions and runtime tools, but must not manage persistence, selection state, or storage.
-- File adapters may read platform file sources, but must not parse skill semantics.
-- Loader may parse/import skill files into a skill definition, but must not own skill collections.
-- Manager may call loaders to import skills and may track selected skills, but must not compile request instructions or runtime tools.
+- `skillPlugin` receives a request-level `selection` snapshot and resolves skills through caller-provided `getSkillByName` / `getSkillCandidates`.
+- Do not use `activeSkills` naming in the skill plugin or capabilities. Use selected/enabled skill terminology.
+- Instructions and capabilities may compile prompt instructions and runtime tools, but must not manage persistence, long-lived selection state, or storage.
+- Loader source adapters may read platform file sources, but must not create `SkillDefinition`; loader entries call `createSkillDefinition`.
+- Loader may parse/import skill sources into a `SkillDefinition`, but must not own skill collections or persistence.
+- Storage may persist and restore `SkillDefinition`, but source import paths must reuse loader logic.
+- Selection state belongs to application code; kit core should not reintroduce a manager that owns skill collections or long-lived selection state.
 - Public skill APIs should be exported from `packages/kit/src/skills/index.ts`.
 - Node-only skill APIs should use dedicated subpath exports instead of the browser package root.
-- `message/plugins/index.ts` must only export message plugin APIs; skill core APIs belong to `src/skills`.
-- Skill command execution uses `executeSkillCommand` on `skillPlugin`. Do not add PPT/PDF/browser/document backends to kit; route command tool calls to application-provided sandbox executors.
+- `message/plugins/index.ts` must only export message plugin APIs and plugin option types; skill core APIs belong to `src/skills`.
+- Skill command execution is not implemented in `skillPlugin`. Do not add PPT/PDF/browser/document backends to kit; future command execution should route tool calls to application-provided sandbox executors.
 
 ## Current Public API Shape
 
 ```ts
 skillPlugin({
-  getSkills: () => [skill],
-  executeSkillCommand: async ({ skill, command, args }) => {
-    return sandboxExecutor.execute({ skill, command, args })
+  selection: {
+    mode: 'manual',
+    skillNames: requestedSkillNames,
   },
+  getSkillByName: (name) => storage.get(name),
+})
+
+skillPlugin({
+  selection: {
+    mode: 'auto',
+    preferredSkillNames,
+  },
+  getSkillCandidates: () => storage.list(),
+  getSkillByName: (name) => storage.get(name),
 })
 ```
 
@@ -77,29 +109,47 @@ skillPlugin({
 })
 ```
 
-`SkillDefinition` currently contains `name`, `description`, `instructions`, optional `files`, and optional `metadata`.
+`SkillDefinition` currently contains `name`, `description`, `instructions`, optional `resources`, and optional `metadata`.
+
+Resources can hold eager in-memory content with `text` / `binary`, lazy readers with `readText` / `readBinary`, or both. These fields do not need to be mutually exclusive; consumers should prefer eager content when available and fall back to readers.
 
 Skill request context uses:
 
 ```ts
 skillContext.skills
 skillContext.skillNames
+skillContext.requestedSkillNames
+skillContext.unresolvedSkillNames
 skillContext.runtimeTools
+skillContext.selection
 ```
 
 ## Important Files
 
-- `packages/kit/src/skills/types.ts`
-- `packages/kit/src/skills/compiler.ts`
-- `packages/kit/src/skills/skillLoader.ts`
-- `packages/kit/src/skills/manager.ts`
-- `packages/kit/src/skills/fsSkillFiles.ts`
-- `packages/kit/src/skills/browserSkillFiles.ts`
+- `packages/kit/src/skills/types/index.ts`
+- `packages/kit/src/skills/loader/index.ts`
+- `packages/kit/src/skills/loader/node.ts`
+- `packages/kit/src/skills/loader/browser.ts`
+- `packages/kit/src/skills/loader/fs.ts`
+- `packages/kit/src/skills/loader/github.ts`
+- `packages/kit/src/skills/loader/definition.ts`
+- `packages/kit/src/skills/loader/type.ts`
+- `packages/kit/src/skills/loader/utils.ts`
+- `packages/kit/src/skills/storage/index.ts`
+- `packages/kit/src/skills/storage/node.ts`
+- `packages/kit/src/skills/storage/importSkill.ts`
+- `packages/kit/src/skills/storage/memory.ts`
+- `packages/kit/src/skills/storage/types.ts`
+- `packages/kit/src/skills/instructions.ts`
+- `packages/kit/src/skills/capabilities/selection.ts`
+- `packages/kit/src/skills/capabilities/resources.ts`
+- `packages/kit/src/skills/capabilities/commands.ts`
 - `packages/kit/src/skills/index.ts`
 - `packages/kit/src/skills/README.md`
 - `packages/kit/src/skills/test/compiler.test.ts`
-- `packages/kit/src/skills/test/skillLoader.test.ts`
-- `packages/kit/src/skills/test/skillManager.test.ts`
+- `packages/kit/src/skills/test/loaderDefinition.test.ts`
+- `packages/kit/src/skills/test/loaderNode.test.ts`
+- `packages/kit/src/skills/test/memoryStorage.test.ts`
 - `packages/kit/src/skills/test/skillPlugin.test.ts`
 - `packages/kit/src/message/plugins/skillPlugin.ts`
 
@@ -116,6 +166,6 @@ pnpm build
 ## Near-Term Next Steps
 
 - Add `read_skill_file` size limits and truncation strategy.
-- Decide where duplicate skill name diagnostics belong, preferably in manager or selection logic rather than compiler.
-- Decide whether auto skill selection needs an independent selector layer.
-- Keep manager boundaries separate from compiler boundaries.
+- Keep duplicate skill name diagnostics in storage or selection logic, not instructions or capabilities.
+- Keep selection boundaries separate from storage and loader boundaries.
+- Keep command execution as an application-provided sandbox concern.

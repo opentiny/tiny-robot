@@ -67,6 +67,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.13.17",
+    "fake-indexeddb": "^6.2.5",
     "openai": "^6.34.0",
     "tsup": "^8.0.1",
     "typescript": "^5.8.2",

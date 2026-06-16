@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { compileSkillInstructions, createSkillRuntimeTools } from '../compiler'
+import { createSkillResourceRuntimeTools } from '../capabilities/resources'
+import { compileSkillInstructions } from '../instructions'
 
-describe('skill compiler', () => {
-  it('creates file runtime tools when skills have files', () => {
-    const runtimeTools = createSkillRuntimeTools([
+describe('skill instructions and tools', () => {
+  it('creates file runtime tools when skills have resources', () => {
+    const runtimeTools = createSkillResourceRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
         instructions: 'Use docs.',
-        files: [
+        resources: [
           {
             path: 'guide.md',
             kind: 'text',
-            content: '# Guide',
+            resourceId: 'guide.md',
+            text: '# Guide',
           },
         ],
       },
@@ -31,7 +33,9 @@ describe('skill compiler', () => {
 
   it('returns no runtime file tools when skills have no files', () => {
     expect(
-      createSkillRuntimeTools([{ name: 'plain', description: 'Plain skill', instructions: 'Use plain skill.' }]),
+      createSkillResourceRuntimeTools([
+        { name: 'plain', description: 'Plain skill', instructions: 'Use plain skill.' },
+      ]),
     ).toEqual([])
   })
 
@@ -67,23 +71,25 @@ describe('skill compiler', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('lists and reads files through built-in runtime tools', () => {
-    const [listFiles, readFile] = createSkillRuntimeTools([
+  it('lists and reads files through built-in runtime tools', async () => {
+    const [listFiles, readFile] = createSkillResourceRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
         instructions: 'Use docs.',
-        files: [
+        resources: [
           {
             path: 'guide.md',
             kind: 'text',
-            content: '# Guide',
+            resourceId: 'guide.md',
+            text: '# Guide',
             mimeType: 'text/markdown',
           },
           {
             path: 'icon.png',
             kind: 'binary',
-            content: new Uint8Array([1, 2, 3]),
+            resourceId: 'icon.png',
+            binary: new Uint8Array([1, 2, 3]),
           },
         ],
       },
@@ -105,7 +111,7 @@ describe('skill compiler', () => {
     })
 
     expect(
-      readFile.handler(createToolCall('read_skill_file', { skillName: 'docs', path: 'guide.md' }), {} as never),
+      await readFile.handler(createToolCall('read_skill_file', { skillName: 'docs', path: 'guide.md' }), {} as never),
     ).toMatchObject({
       file: {
         skillName: 'docs',
@@ -116,7 +122,7 @@ describe('skill compiler', () => {
     })
 
     expect(
-      readFile.handler(createToolCall('read_skill_file', { skillName: 'docs', path: 'icon.png' }), {} as never),
+      await readFile.handler(createToolCall('read_skill_file', { skillName: 'docs', path: 'icon.png' }), {} as never),
     ).toMatchObject({
       error: 'binary_file_not_readable',
       file: {
@@ -128,16 +134,17 @@ describe('skill compiler', () => {
   })
 
   it('filters listed files by skill name', () => {
-    const [listFiles] = createSkillRuntimeTools([
+    const [listFiles] = createSkillResourceRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
         instructions: 'Use docs.',
-        files: [
+        resources: [
           {
             path: 'guide.md',
             kind: 'text',
-            content: '# Guide',
+            resourceId: 'guide.md',
+            text: '# Guide',
           },
         ],
       },
@@ -145,11 +152,12 @@ describe('skill compiler', () => {
         name: 'vue',
         description: 'Vue skill',
         instructions: 'Use Vue.',
-        files: [
+        resources: [
           {
             path: 'sfc.md',
             kind: 'text',
-            content: '# SFC',
+            resourceId: 'sfc.md',
+            text: '# SFC',
           },
         ],
       },
@@ -165,113 +173,38 @@ describe('skill compiler', () => {
     })
   })
 
-  it('returns stable errors when reading skill files with invalid arguments', () => {
-    const [, readFile] = createSkillRuntimeTools([
+  it('returns stable errors when reading skill files with invalid arguments', async () => {
+    const [, readFile] = createSkillResourceRuntimeTools([
       {
         name: 'docs',
         description: 'Docs skill',
         instructions: 'Use docs.',
-        files: [
+        resources: [
           {
             path: 'guide.md',
             kind: 'text',
-            content: '# Guide',
+            resourceId: 'guide.md',
+            text: '# Guide',
           },
         ],
       },
     ])
 
-    expect(readFile.handler(createToolCallWithArguments('read_skill_file', '{'), {} as never)).toEqual({
+    await expect(readFile.handler(createToolCallWithArguments('read_skill_file', '{'), {} as never)).resolves.toEqual({
       error: 'skill_not_found',
     })
-    expect(readFile.handler(createToolCall('read_skill_file', { skillName: 'docs' }), {} as never)).toEqual({
+    await expect(
+      readFile.handler(createToolCall('read_skill_file', { skillName: 'docs' }), {} as never),
+    ).resolves.toEqual({
       error: 'file_path_required',
       skillName: 'docs',
     })
-    expect(
+    await expect(
       readFile.handler(createToolCall('read_skill_file', { skillName: 'docs', path: 'missing.md' }), {} as never),
-    ).toEqual({
+    ).resolves.toEqual({
       error: 'file_not_found',
       skillName: 'docs',
       path: 'missing.md',
-    })
-  })
-
-  it('creates a skill command runtime tool when an executor is provided', async () => {
-    const [executeCommand] = createSkillRuntimeTools(
-      [
-        {
-          name: 'ppt',
-          description: 'Presentation skill',
-          instructions: 'Use ppt commands.',
-          metadata: {
-            runtime: {
-              id: 'ppt-runtime',
-            },
-          },
-        },
-      ],
-      {
-        executeSkillCommand: async (request) => ({
-          ok: true,
-          runtimeId: request.skill.metadata?.runtime,
-          command: request.command,
-          args: request.args,
-        }),
-      },
-    )
-
-    expect(executeCommand.tool.function.name).toBe('execute_skill_command')
-    await expect(
-      executeCommand.handler(
-        createToolCall('execute_skill_command', {
-          skillName: 'ppt',
-          command: 'ppt-render',
-          args: ['--input', 'deck.pptx'],
-        }),
-        {} as never,
-      ),
-    ).resolves.toMatchObject({
-      ok: true,
-      command: 'ppt-render',
-      args: ['--input', 'deck.pptx'],
-    })
-  })
-
-  it('does not create a skill command runtime tool without an executor', () => {
-    expect(
-      createSkillRuntimeTools([{ name: 'ppt', description: 'Presentation skill', instructions: 'Use ppt.' }]),
-    ).toEqual([])
-  })
-
-  it('returns stable errors when executing skill commands with invalid arguments', async () => {
-    const [executeCommand] = createSkillRuntimeTools(
-      [{ name: 'ppt', description: 'Presentation skill', instructions: 'Use ppt.' }],
-      {
-        executeSkillCommand: async () => ({ ok: true }),
-      },
-    )
-
-    await expect(
-      executeCommand.handler(createToolCall('execute_skill_command', { command: 'ppt-render', args: [] }), {} as never),
-    ).resolves.toEqual({
-      error: 'skill_not_found',
-    })
-    await expect(
-      executeCommand.handler(createToolCall('execute_skill_command', { skillName: 'ppt', args: [] }), {} as never),
-    ).resolves.toEqual({
-      error: 'command_required',
-      skillName: 'ppt',
-    })
-    await expect(
-      executeCommand.handler(
-        createToolCall('execute_skill_command', { skillName: 'ppt', command: 'ppt-render', args: '--input' }),
-        {} as never,
-      ),
-    ).resolves.toEqual({
-      error: 'args_required',
-      skillName: 'ppt',
-      command: 'ppt-render',
     })
   })
 })

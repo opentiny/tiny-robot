@@ -201,12 +201,12 @@ describe('useMessage', () => {
         name: 'docs',
         description: 'Docs skill',
         instructions: 'Use docs references.',
-        files: [
+        resources: [
           {
-            id: 'guide.md',
             path: 'guide.md',
             kind: 'text',
-            content: '# Guide',
+            resourceId: 'guide.md',
+            text: '# Guide',
           },
         ],
       },
