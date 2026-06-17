@@ -1,12 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
+import type { ToolProviderItem, ToolSource } from '../../../message/plugins'
 import { normalizeToAsyncGenerator } from '../../../message/utils'
 import { ChatMessage, ToolCall } from '../../../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
-import { BasePluginContext, Tool, UseMessagePlugin } from '../types'
+import { BasePluginContext, UseMessagePlugin } from '../types'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage
+  /**
+   * 当前工具的来源。
+   */
+  toolSource?: ToolSource
   /**
    * @deprecated use `assistantMessage` instead
    */
@@ -20,6 +25,10 @@ export interface UseMessageCallToolContext extends UseMessageToolActionContext {
 export interface UseMessageToolCallContext extends BasePluginContext {
   assistantMessage: ChatMessage
   /**
+   * 当前工具的来源。
+   */
+  toolSource: ToolSource
+  /**
    * @deprecated use `assistantMessage` instead
    */
   primaryMessage: ChatMessage
@@ -31,7 +40,7 @@ export const toolPlugin = (
     /**
      * 获取工具列表的函数。
      */
-    getTools: () => Promise<Tool[]>
+    getTools: (context: BasePluginContext) => Promise<ToolProviderItem[]>
     /**
      * 在处理包含 tool_calls 的响应前调用。
      */
@@ -100,7 +109,7 @@ export const toolPlugin = (
 
       return createCoreToolPlugin({
         ...wrappedRestOptions,
-        getTools: async () => (await getTools()) as any,
+        getTools: async (context) => getTools(runtime.createVueBaseContext(context)),
         beforeCallTools: beforeCallTools
           ? async (toolCalls, context) => {
               const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
@@ -123,6 +132,7 @@ export const toolPlugin = (
               assistantMessage,
               currentMessage: assistantMessage,
               toolMessage,
+              toolSource: context.toolSource,
             } as UseMessageCallToolContext,
           )
 
@@ -140,6 +150,7 @@ export const toolPlugin = (
                 assistantMessage,
                 primaryMessage: assistantMessage,
                 toolMessage,
+                toolSource: context.toolSource,
               })
             }
           : undefined,
@@ -153,6 +164,7 @@ export const toolPlugin = (
                 assistantMessage,
                 primaryMessage: assistantMessage,
                 toolMessage,
+                toolSource: context.toolSource,
                 status: context.status,
                 error: context.error,
               })

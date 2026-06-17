@@ -2,9 +2,10 @@
 import {
   ChatCompletion,
   ChatCompletionChunk,
+  ChatCompletionFunctionTool,
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
-} from 'openai/resources/index'
+} from 'openai/resources'
 import { MaybePromise } from '../types'
 
 export type DeepReadonly<T> = T extends (...args: any[]) => any
@@ -32,6 +33,7 @@ export type ChatMessage<
 
 export interface MessageRequestBody {
   messages: Array<ChatMessage>
+  tools?: Array<ChatCompletionFunctionTool>
   [key: string]: any
 }
 
@@ -128,6 +130,12 @@ export interface BasePluginContext {
   mutate: MutateMessageStateFn
   abortSignal: AbortSignal
   currentTurn: ChatMessage[]
+  /**
+   * 当前 engine 中已注册的插件列表。
+   *
+   * 插件可基于该列表发现其他插件暴露的轻量协议，例如 toolPlugin 收集 provideTools。
+   */
+  plugins: readonly MessageEnginePlugin[]
   customContext: Record<string, unknown>
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   setCustomContext: (data: Record<string, unknown>) => void

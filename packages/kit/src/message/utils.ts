@@ -84,7 +84,7 @@ export function omitFields<T extends Record<string, unknown>, K extends keyof T>
 }
 
 export async function* normalizeToAsyncGenerator<T>(
-  result: Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>,
+  result: T | Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>,
 ): AsyncGenerator<T> {
   // 情况 1：是 async generator 或 sync generator
   if (isAsyncGenerator(result)) {

@@ -247,10 +247,14 @@ useMessage({
 
 用于接入模型返回的 `tool_calls`：在请求前注入 `tools` 列表，在请求完成后解析 `tool_calls`、执行 `callTool`、追加 tool 消息并自动发起下一轮请求。支持取消/失败时补充或标记 tool 消息、下一轮是否排除 tool 消息等。**需显式添加到 `plugins` 数组才会生效**。
 
+`toolPlugin` 也是 message 插件体系中的工具聚合入口。除自身的 `getTools` 外，具备工具能力的插件可以通过 `ToolProvider` 协议暴露 `provideTools(context)`，让 `toolPlugin` 在 `onBeforeRequest` 阶段统一收集并写入最终发送给模型的 `requestBody.tools`。这适合让能力型插件按自己的状态提供工具，例如 skill 文件工具、运行时工具或业务上下文相关工具。
+
+工具来源会写入工具调用上下文的 `toolSource` 字段，便于在 `callTool`、`onToolCallStart`、`onToolCallEnd` 中做日志、分流或调试。`toolPlugin.getTools` 提供的工具来源为 `{ type: 'toolPlugin' }`；其他插件通过 `ToolProvider.provideTools` 提供的工具来源为 `{ type: 'toolProvider', pluginName?: string }`；无法识别来源时为 `{ type: 'unknown' }`。
+
 | 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getTools`                    | `() => Promise<Tool[]>`                                                                                          | 是   | -                        | 返回当前轮次要传给 API 的工具列表（OpenAI 格式）。                                                                                                                                                    |
-| `callTool`                    | `(toolCall, context) => Promise<string \| Record<string, any>> \| AsyncGenerator<string \| Record<string, any>>` | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。                                                                                                          |
+| `getTools`                    | `() => Promise<Array<Tool \| RuntimeTool>>`                                                                      | 是   | -                        | 返回当前轮次要传给 API 的工具列表。可以返回普通 OpenAI tool schema，也可以返回带执行函数的 runtime tool。                                                                                             |
+| `callTool`                    | `(toolCall, context) => Promise<string \| Record<string, any>> \| AsyncGenerator<string \| Record<string, any>>` | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。可通过 `context.toolSource` 判断工具来源。                                                                |
 | `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。新字段为 `context.assistantMessage`；`context.currentMessage` 继续保留，但已弃用。                                                                  |
 | `onToolCallStart`             | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具开始执行时触发。此时对应的 tool 消息已经创建并追加到 `messages` 中；`context` 额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`。                                     |
 | `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，并额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`，失败或取消时可能有 `context.error`。 |
@@ -263,9 +267,20 @@ useMessage({
 | 回调              | 额外上下文字段                                                                      | 说明                                                                                                                                                                                           |
 | ----------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `beforeCallTools` | `assistantMessage`、`currentMessage`（已弃用）                                      | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。                                               |
-| `callTool`        | `assistantMessage`、`currentMessage`（已弃用）、`toolMessage`                       | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息，以及当前工具对应的 `toolMessage`。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。             |
-| `onToolCallStart` | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`                     | 在 `BasePluginContext` 基础上额外包含触发当前工具调用的 assistant 消息和当前 tool 消息。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。                                       |
-| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息和执行状态；当工具执行失败或被取消时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
+| `callTool`        | `assistantMessage`、`currentMessage`（已弃用）、`toolMessage`、`toolSource`         | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息、当前工具对应的 `toolMessage` 和工具来源。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。     |
+| `onToolCallStart` | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`       | 在 `BasePluginContext` 基础上额外包含触发当前工具调用的 assistant 消息、当前 tool 消息和工具来源。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。                             |
+| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息、工具来源和执行状态；当工具执行失败或被取消时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
+
+`toolSource` 类型：
+
+```typescript
+type ToolSource =
+  | { type: 'toolPlugin' }
+  | { type: 'toolProvider'; pluginName?: string }
+  | { type: 'unknown' }
+```
+
+`ToolProvider` 是供插件扩展使用的高级协议。对于使用 `toolPlugin` 的业务代码，通常只需要通过 `getTools` 和 `callTool` 接入工具；当插件本身需要按内部状态向模型暴露工具时，再实现 `provideTools(context)`。
 
 ##### 基础示例
 
@@ -292,8 +307,9 @@ useMessage({
           },
         },
       ],
-      callTool: async (toolCall) => {
+      callTool: async (toolCall, context) => {
         const args = JSON.parse(toolCall.function?.arguments || '{}')
+        console.log('Tool source:', context.toolSource)
         return `Weather of ${args.city}: Sunny.`
       },
       onToolCallEnd: (toolCall, { status }) => console.log('Tool end:', status),

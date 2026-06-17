@@ -1,4 +1,4 @@
-import { ChatCompletion, ChatCompletionChunk } from 'openai/resources/index'
+import { ChatCompletion, ChatCompletionChunk } from 'openai/resources'
 import { lengthPlugin, thinkingPlugin } from '../plugins'
 import {
   BasePluginContext,
@@ -156,6 +156,7 @@ export const createMessageEngine = (
     mutate,
     abortSignal,
     currentTurn: runtime.currentTurn,
+    plugins,
     customContext: runtime.customContext,
     setRequestState,
     setCustomContext,
