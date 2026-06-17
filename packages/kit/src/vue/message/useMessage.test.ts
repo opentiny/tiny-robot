@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
+import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
+import { skillPlugin } from './plugins/skillPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
@@ -190,5 +193,134 @@ describe('useMessage', () => {
       role: 'assistant',
       content: 'done',
     })
+  })
+
+  it('uses vue skillPlugin with reactive skills', async () => {
+    const skills = ref<SkillDefinition[]>([
+      {
+        name: 'docs',
+        description: 'Docs skill',
+        instructions: 'Use docs references.',
+        resources: [
+          {
+            path: 'guide.md',
+            kind: 'text',
+            resourceId: 'guide.md',
+            text: '# Guide',
+          },
+        ],
+      },
+    ])
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({ skills }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    const requestBody = responseProvider.mock.calls[0]?.[0]
+    expect(requestBody.messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+    expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
+  })
+
+  it('uses reactive manual vue skillPlugin skillNames', async () => {
+    const mode = ref<'manual'>('manual')
+    const skillNames = ref(['docs'])
+    const skills: SkillDefinition[] = [
+      {
+        name: 'docs',
+        description: 'Docs skill',
+        instructions: 'Use docs references.',
+      },
+    ]
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode,
+          skillNames,
+          getSkillByName: async (name) => skills.find((skill) => skill.name === name),
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+  })
+
+  it('uses core-compatible vue skillPlugin selection with inline skills', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          selection: {
+            mode: 'manual',
+            skills: [
+              {
+                name: 'docs',
+                description: 'Docs skill',
+                instructions: 'Use docs references.',
+              },
+            ],
+          },
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+  })
+
+  it('uses reactive preferred skill names in auto mode', async () => {
+    const preferredSkillNames = ref(['docs'])
+    const responseProvider = vi.fn((requestBody) => {
+      expect(requestBody.messages[0]).toMatchObject({
+        role: 'system',
+        content: expect.stringContaining('Preferred skill names: docs'),
+      })
+      return mockResponseProvider('ok')(requestBody)
+    })
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+          preferredSkillNames,
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
   })
 })
