@@ -109,18 +109,107 @@
   --tr-container-bg-active: rgba(0, 0, 0, 0.15);
   --tr-container-bg-disabled: rgba(0, 0, 0, 0.04);
 
+  /* ===== Attachments ===== */
+  --tr-attachments-card-bg: #ffffff;
+  --tr-attachments-card-border-color: #f0f0f0;
+  --tr-attachments-card-hover-bg: #ffffff;
+  --tr-attachments-card-hover-border-color: #f0f0f0;
+  --tr-attachments-card-hover-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-attachments-title-color: var(--tr-text-primary);
+  --tr-attachments-meta-color: var(--tr-text-tertiary);
+  --tr-attachments-action-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-bg: transparent;
+  --tr-attachments-retry-color: var(--tr-color-primary);
+  --tr-attachments-retry-hover-bg: rgba(20, 118, 255, 0.05);
+  --tr-attachments-close-icon-color: #c2c2c2;
+  --tr-attachments-close-icon-hover-color: var(--tr-text-primary);
+  --tr-attachments-status-overlay-bg: rgba(0, 0, 0, 0.4);
+  --tr-attachments-picture-overlay-color: #ffffff;
+  --tr-attachments-error-color:  var(--tr-color-error);
+  --tr-attachments-loading-text-color: #ffffff;
+
+  /* ===== Anchor ===== */
+  --tr-anchor-bg: #ffffff;
+  --tr-anchor-border: transparent;
+  --tr-anchor-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-anchor-item-color: var(--tr-text-primary);
+  --tr-anchor-marker-color: var(--tr-text-disabled);
+  --tr-anchor-tooltip-bg: #ffffff;
+  --tr-anchor-tooltip-color: var(--tr-text-primary);
+  --tr-anchor-tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #ffffff;
-  --tr-mcp-server-picker-bg-default-2: #ffffff;
-  --tr-mcp-server-picker-tabs-nav-wrap-bg-color: #f0f0f0;
-  --tr-mcp-server-picker-plugin-card-border-color: #e6e6e6;
   --tr-mcp-server-picker-tabs-border-color-active: #191919;
+  --tr-mcp-server-picker-tabs-divider-color: rgba(0, 0, 0, 0.1);
+  --tr-mcp-server-picker-field-bg-color: var(--tr-mcp-server-picker-bg-default);
+  --tr-mcp-server-picker-field-border-color: #dbdbdb;
+  --tr-mcp-server-picker-muted-icon-color: #808080;
+  --tr-mcp-server-picker-field-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
+  --tr-mcp-server-picker-card-bg-color: #f8f8f8;
   --tr-mcp-server-picker-bg-hover: rgba(0, 0, 0, 0.04);
-  --tr-mcp-server-picker-button-bg-disabled: #f0f0f0;
+  --tr-mcp-server-picker-header-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-border-color-hover: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-text-color: var(--tr-text-primary);
+  --tr-mcp-server-picker-header-button-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
+  --tr-mcp-server-picker-market-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-market-button-added-bg-color: #f0f0f0;
   --tr-mcp-server-picker-divider-color: rgba(0, 0, 0, 0.1);
   --tr-mcp-server-picker-tool-count-color: #e6e6e6;
   --tr-mcp-server-picker-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
   --tr-mcp-server-picker-border-color-default: #dbdbdb;
+
+  /* ===== Dropdown Menu ===== */
+  --tr-dropdown-menu-bg-color: #ffffff;
+  --tr-dropdown-menu-box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  --tr-dropdown-menu-item-color: var(--tr-text-primary);
+  --tr-dropdown-menu-item-hover-bg-color: #f5f5f5;
+  --tr-dropdown-menu-scrollbar-thumb-color: rgba(0, 0, 0, 0.2);
+
+  /* ===== Flow Layout Buttons ===== */
+  --tr-flow-layout-item-bg-color: rgba(0, 0, 0, 0.04);
+  --tr-flow-layout-item-border-color: transparent;
+  --tr-flow-layout-item-color: var(--tr-text-primary);
+  --tr-flow-layout-item-hover-bg-color: rgba(0, 0, 0, 0.08);
+  --tr-flow-layout-item-selected-bg-color: #ffffff;
+  --tr-flow-layout-item-selected-border-color: #191919;
+  --tr-flow-layout-dropdown-bg-color: #ffffff;
+  --tr-flow-layout-dropdown-box-shadow: 0 0 16px rgba(0, 0, 0, 0.08);
+  --tr-flow-layout-dropdown-item-color: var(--tr-text-primary);
+  --tr-flow-layout-dropdown-selected-bg-color: #ffffff;
+  --tr-flow-layout-dropdown-selected-border-color: #191919;
+  --tr-flow-layout-dropdown-item-hover-bg-color: rgba(0, 0, 0, 0.04);
+
+  /* ===== Suggestion Popover ===== */
+  --tr-suggestion-popover-bg-color: #ffffff;
+  --tr-suggestion-popover-box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  --tr-suggestion-popover-color: var(--tr-text-primary);
+  --tr-suggestion-popover-backdrop-color: rgba(0, 0, 0, 0.15);
+  --tr-suggestion-popover-scrollbar-color: #dbdbdb;
+  --tr-suggestion-popover-item-hover-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-suggestion-popover-item-border-color: #f0f0f0;
+  --tr-suggestion-popover-close-bg-color: var(--tr-icon-button-bg);
+  --tr-suggestion-popover-close-hover-bg-color: var(--tr-icon-button-hover-bg);
+  --tr-suggestion-popover-close-color: var(--tr-text-secondary);
+  --tr-suggestion-popover-loading-color: var(--tr-text-tertiary);
+  --tr-suggestion-popover-no-data-color: var(--tr-text-primary);
+  --tr-suggestion-popover-header-icon-color: var(--tr-color-primary);
+
+  /* ===== Tooltip ===== */
+  --tr-tooltip-bg-color: #ffffff;
+  --tr-tooltip-color: var(--tr-text-primary);
+  --tr-tooltip-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
+
+  /* ===== Suggestion Pills ===== */
+  --tr-suggestion-pill-button-bg-color: #ffffff;
+  --tr-suggestion-pill-button-hover-bg-color: #ebebeb;
+  --tr-suggestion-pill-button-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  --tr-suggestion-pill-button-color: var(--tr-text-primary);
+  --tr-suggestion-pills-expand-color: var(--tr-text-secondary);
+  --tr-suggestion-pills-expand-bg-color: #ffffff;
+  --tr-suggestion-pills-expand-hover-bg-color: #ebebeb;
+  --tr-suggestion-pills-expand-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
@@ -234,22 +323,111 @@
   --tr-container-bg-active: rgba(255, 255, 255, 0.15);
   --tr-container-bg-disabled: rgba(255, 255, 255, 0.06);
 
+  /* ===== Attachments ===== */
+  --tr-attachments-card-bg: transparent;
+  --tr-attachments-card-border-color: rgba(255, 255, 255, 0.15);
+  --tr-attachments-card-hover-bg: rgba(255, 255, 255, 0.05);
+  --tr-attachments-card-hover-border-color: transparent;
+  --tr-attachments-card-hover-shadow: none;
+  --tr-attachments-title-color: var(--tr-text-primary);
+  --tr-attachments-meta-color: var(--tr-text-tertiary);
+  --tr-attachments-action-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-color: var(--tr-color-primary);
+  --tr-attachments-action-hover-bg: transparent;
+  --tr-attachments-retry-color: var(--tr-color-primary);
+  --tr-attachments-retry-hover-bg: rgba(82, 145, 255, 0.12);
+  --tr-attachments-close-icon-color: #4d4d4d;
+  --tr-attachments-close-icon-hover-color: var(--tr-text-primary);
+  --tr-attachments-status-overlay-bg: rgba(0, 0, 0, 0.4);
+  --tr-attachments-picture-overlay-color: #ffffff;
+  --tr-attachments-error-color:  var(--tr-color-error);
+  --tr-attachments-loading-text-color: #ffffff;
+
+  /* ===== Anchor ===== */
+  --tr-anchor-bg: #333333;
+  --tr-anchor-border: transparent;
+  --tr-anchor-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --tr-anchor-item-color: var(--tr-text-primary);
+  --tr-anchor-marker-color: var(--tr-text-secondary);
+  --tr-anchor-tooltip-bg: #484848;
+  --tr-anchor-tooltip-color: var(--tr-text-primary);
+  --tr-anchor-tooltip-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
   /* ===== 阴影系统 ===== */
   --tr-shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.48);
   --tr-shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.02);
 
   /* ===== MCP Server Picker ===== */
   --tr-mcp-server-picker-bg-default: #191919;
-  --tr-mcp-server-picker-bg-default-2: #262626;
-  --tr-mcp-server-picker-tabs-nav-wrap-bg-color: rgba(255, 255, 255, .1);
-  --tr-mcp-server-picker-plugin-card-border-color: #4a4a4a;
   --tr-mcp-server-picker-tabs-border-color-active: #E6E6E6;
+  --tr-mcp-server-picker-tabs-divider-color: rgba(255, 255, 255, 0.1);
+  --tr-mcp-server-picker-field-bg-color: var(--tr-mcp-server-picker-bg-default);
+  --tr-mcp-server-picker-field-border-color: #4d4d4d;
+  --tr-mcp-server-picker-muted-icon-color: #808080;
+  --tr-mcp-server-picker-field-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
+  --tr-mcp-server-picker-card-bg-color: rgba(255, 255, 255, 0.05);
   --tr-mcp-server-picker-bg-hover: rgba(255, 255, 255, 0.1);
+  --tr-mcp-server-picker-header-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-border-color-hover: var(--tr-border-color-default);
+  --tr-mcp-server-picker-header-button-text-color: var(--tr-text-primary);
+  --tr-mcp-server-picker-header-button-icon-color: var(--tr-mcp-server-picker-muted-icon-color);
   --tr-mcp-server-picker-tool-count-color: #333333;
-  --tr-mcp-server-picker-button-bg-disabled: rgba(255, 255, 255, 0.15);
+  --tr-mcp-server-picker-market-button-border-color: var(--tr-border-color-default);
+  --tr-mcp-server-picker-market-button-added-bg-color: rgba(255, 255, 255, 0.1);
   --tr-mcp-server-picker-divider-color: rgba(255, 255, 255, 0.1);
   --tr-mcp-server-picker-shadow: 0px 4px 16px 0px rgba(255, 255, 255, 0.08);
   --tr-mcp-server-picker-border-color-default: rgba(255, 255, 255, 0.15);
+
+  /* ===== Dropdown Menu ===== */
+  --tr-dropdown-menu-bg-color: #333333;
+  --tr-dropdown-menu-box-shadow: 0 0 20px rgba(0, 0, 0, 0.48);
+  --tr-dropdown-menu-item-color: var(--tr-text-primary);
+  --tr-dropdown-menu-item-hover-bg-color: #262626;
+  --tr-dropdown-menu-scrollbar-thumb-color: rgba(255, 255, 255, 0.2);
+
+  /* ===== Flow Layout Buttons ===== */
+  --tr-flow-layout-item-bg-color: rgba(255, 255, 255, 0.08);
+  --tr-flow-layout-item-border-color: transparent;
+  --tr-flow-layout-item-color: var(--tr-text-primary);
+  --tr-flow-layout-item-hover-bg-color: rgba(255, 255, 255, 0.12);
+  --tr-flow-layout-item-selected-bg-color: #262626;
+  --tr-flow-layout-item-selected-border-color: rgba(255, 255, 255, 0.15);
+  --tr-flow-layout-dropdown-bg-color: #333333;
+  --tr-flow-layout-dropdown-box-shadow: 0 0 16px rgba(0, 0, 0, 0.48);
+  --tr-flow-layout-dropdown-item-color: var(--tr-text-primary);
+  --tr-flow-layout-dropdown-selected-bg-color: #262626;
+  --tr-flow-layout-dropdown-selected-border-color: rgba(255, 255, 255, 0.15);
+  --tr-flow-layout-dropdown-item-hover-bg-color: #262626;
+
+  /* ===== Suggestion Popover ===== */
+  --tr-suggestion-popover-bg-color: #333333;
+  --tr-suggestion-popover-box-shadow: 0 0 20px rgba(0, 0, 0, 0.48);
+  --tr-suggestion-popover-color: var(--tr-text-primary);
+  --tr-suggestion-popover-backdrop-color: rgba(0, 0, 0, 0.4);
+  --tr-suggestion-popover-scrollbar-color: rgba(255, 255, 255, 0.2);
+  --tr-suggestion-popover-item-hover-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.48);
+  --tr-suggestion-popover-item-border-color: rgba(255, 255, 255, 0.08);
+  --tr-suggestion-popover-close-bg-color: var(--tr-icon-button-bg);
+  --tr-suggestion-popover-close-hover-bg-color: var(--tr-icon-button-hover-bg);
+  --tr-suggestion-popover-close-color: var(--tr-text-secondary);
+  --tr-suggestion-popover-loading-color: var(--tr-text-tertiary);
+  --tr-suggestion-popover-no-data-color: var(--tr-text-primary);
+  --tr-suggestion-popover-header-icon-color: var(--tr-color-primary);
+
+  /* ===== Tooltip ===== */
+  --tr-tooltip-bg-color: #262626;
+  --tr-tooltip-color: var(--tr-text-primary);
+  --tr-tooltip-shadow: 0 2px 12px rgba(0, 0, 0, 0.48);
+
+  /* ===== Suggestion Pills ===== */
+  --tr-suggestion-pill-button-bg-color: #262626;
+  --tr-suggestion-pill-button-hover-bg-color: #333333;
+  --tr-suggestion-pill-button-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.48);
+  --tr-suggestion-pill-button-color: var(--tr-text-primary);
+  --tr-suggestion-pills-expand-color: var(--tr-text-secondary);
+  --tr-suggestion-pills-expand-bg-color: rgba(255, 255, 255, 0.08);
+  --tr-suggestion-pills-expand-hover-bg-color: rgba(255, 255, 255, 0.12);
+  --tr-suggestion-pills-expand-box-shadow: 0 4px 16px rgba(0, 0, 0, 0.48);
 
   /* ===== Sender 输入框 ===== */
   --tr-sender-bg-color-disabled: rgba(255, 255, 255, 0.06);

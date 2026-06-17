@@ -47,16 +47,47 @@ jobs:
         continue-on-error: true
 
       - name: Comment build generating
-        uses: actions-cool/maintain-one-comment@v3.1.1
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          body: |
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = process.env.COMMENT_MARKER;
+            const body = process.env.COMMENT_BODY;
+            const issue_number = Number(process.env.PR_NUMBER);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existingComment = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes(marker)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          COMMENT_MARKER: '<!-- TINY_ROBOT_BUILD -->'
+          COMMENT_BODY: |
             [<img width="400" src="https://github.com/user-attachments/assets/c25bbbe4-0cf5-4aca-b4b3-db49e7a264d9">](#)
             
             🔨 Deploying preview...
             <!-- TINY_ROBOT_BUILD -->
-          body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ steps.pr.outputs.number }}
 
       - name: Post or update pkg.pr.new comment
         if: hashFiles('pkg-artifacts/pkg-pr-new-output.json') != ''
@@ -86,7 +117,8 @@ jobs:
             });
             
             const existingComment = comments.data.find((comment) =>
-              comment.body.includes(botCommentIdentifier)
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes(botCommentIdentifier)
             );
             
             if (existingComment) {
@@ -117,10 +149,43 @@ jobs:
 
       - name: Comment build success
         if: success()
-        uses: actions-cool/maintain-one-comment@v3.1.1
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          body: |
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = process.env.COMMENT_MARKER;
+            const body = process.env.COMMENT_BODY;
+            const issue_number = Number(process.env.PR_NUMBER);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existingComment = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes(marker)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          COMMENT_MARKER: '<!-- TINY_ROBOT_BUILD -->'
+          COMMENT_BODY: |
             [<img width="400" src="https://github.com/user-attachments/assets/2a0bb639-dfaf-4384-8d73-cec616ea4b97">](https://preview-${{ steps.pr.outputs.number }}-tiny-robot.surge.sh)
             
             ✅ Preview build completed successfully!
@@ -128,18 +193,47 @@ jobs:
             > Click the image above to preview. 
             > Preview will be automatically removed when this PR is closed.  
             <!-- TINY_ROBOT_BUILD -->
-          body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ steps.pr.outputs.number }}
 
       - name: Comment build failed
         if: failure()
-        uses: actions-cool/maintain-one-comment@v3.1.1
+        uses: actions/github-script@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          body: |
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = process.env.COMMENT_MARKER;
+            const body = process.env.COMMENT_BODY;
+            const issue_number = Number(process.env.PR_NUMBER);
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existingComment = comments.find((comment) =>
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes(marker)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          COMMENT_MARKER: '<!-- TINY_ROBOT_BUILD -->'
+          COMMENT_BODY: |
             [<img width="400" src="https://github.com/user-attachments/assets/acfe799d-40be-4ffb-8190-da33f84056dc">](#)
             
             ❌ Deploy failed. Please check the logs for details.
             <!-- TINY_ROBOT_BUILD -->
-          body-include: '<!-- TINY_ROBOT_BUILD -->'
-          number: ${{ steps.pr.outputs.number }}

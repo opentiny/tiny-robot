@@ -100,11 +100,12 @@ const items = sections.map((section) => ({
 
 .tip {
   margin: 0;
-  color: #4f647a;
+  color: var(--tr-text-secondary);
   line-height: 1.5;
 }
 
 .article {
+  --anchor-section-active-bg: #b9d7ff;
   display: grid;
   gap: 16px;
   height: 100%;
@@ -112,11 +113,15 @@ const items = sections.map((section) => ({
   padding: 24px 28px;
 }
 
+:global([data-tr-color-mode='dark'] .article) {
+  --anchor-section-active-bg: color-mix(in srgb, #317af7 40%, var(--vp-c-bg));
+}
+
 .article-section {
   padding: 20px 24px;
-  border: 1px solid #eef3f8;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  background: #fff;
+  color: var(--tr-text-secondary);
   scroll-margin-top: 16px;
 }
 
@@ -127,17 +132,17 @@ const items = sections.map((section) => ({
 @keyframes section-active {
   0%,
   25% {
-    background-color: #b9d7ff;
+    background-color: var(--anchor-section-active-bg);
   }
   45% {
-    background-color: #fff;
+    background-color: var(--vp-c-bg);
   }
   65%,
   85% {
-    background-color: #b9d7ff;
+    background-color: var(--anchor-section-active-bg);
   }
   100% {
-    background-color: #fff;
+    background-color: var(--vp-c-bg);
   }
 }
 

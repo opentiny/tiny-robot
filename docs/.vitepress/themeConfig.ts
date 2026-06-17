@@ -7,6 +7,7 @@ const sharedSidebarItems = [
       { text: '快速开始', link: 'quick-start' },
       { text: '主题配置', link: 'theme-config' },
       { text: '更新日志', link: 'update-log' },
+      { text: 'CLI 接入', link: 'cli-integration' },
     ],
   },
   {
@@ -39,7 +40,6 @@ const sharedSidebarItems = [
       { text: 'Skill 技能工具链', link: 'skill' },
       { text: 'AIClient 模型交互工具类', link: 'ai-client' },
       { text: '工具函数', link: 'utils' },
-      { text: 'CLI 命令行工具', link: 'cli' },
     ],
   },
   {

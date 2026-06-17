@@ -93,9 +93,6 @@ const handleMouseleave = (event: MouseEvent) => {
 
 <style lang="less">
 :root {
-  --tr-tooltip-bg-color: rgb(255, 255, 255);
-  --tr-tooltip-color: rgb(25, 25, 25);
-  --tr-tooltip-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
   --tr-tooltip-font-size: 14px;
   --tr-tooltip-line-height: 22px;
 }

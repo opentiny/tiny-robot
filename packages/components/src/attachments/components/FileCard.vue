@@ -193,10 +193,13 @@ const cardClasses = computed(() => {
     border-radius: 8px;
     margin-right: 8px;
     margin-bottom: 8px;
-    transition: all 0.3s ease;
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
     box-sizing: border-box;
-    background: rgb(255, 255, 255);
-    border: 1px solid rgb(240, 240, 240);
+    background: var(--tr-attachments-card-bg);
+    border: 1px solid var(--tr-attachments-card-border-color);
   }
 
   // 默认卡片样式
@@ -208,8 +211,9 @@ const cardClasses = computed(() => {
     padding: 8px 12px 8px 8px;
 
     &:hover {
-      background: rgb(255, 255, 255);
-      box-shadow: 0px 4px 16px 0px rgba(0, 0, 0, 0.08);
+      background: var(--tr-attachments-card-hover-bg);
+      border-color: var(--tr-attachments-card-hover-border-color);
+      box-shadow: var(--tr-attachments-card-hover-shadow);
     }
   }
 
@@ -223,7 +227,7 @@ const cardClasses = computed(() => {
 
   &--uploading {
     .tr-file-card__status {
-      color: #808080;
+      color: var(--tr-attachments-meta-color);
     }
   }
 
@@ -234,10 +238,21 @@ const cardClasses = computed(() => {
     z-index: 20;
     border: none;
     background: transparent;
+    color: var(--tr-attachments-close-icon-color);
     cursor: pointer;
     border-radius: 50%;
-    transition: opacity 0.2s;
+    transition:
+      opacity 0.2s ease,
+      color 0.2s ease;
     opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+
+    &:hover {
+      color: var(--tr-attachments-close-icon-hover-color);
+    }
 
     // 悬浮时显示
     .tr-file-card:hover &,
@@ -273,8 +288,8 @@ const cardClasses = computed(() => {
     width: 100%;
     height: 100%;
     border-radius: inherit;
-    background-color: rgba(0, 0, 0, 0.4);
-    color: white;
+    background-color: var(--tr-attachments-status-overlay-bg);
+    color: var(--tr-attachments-picture-overlay-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -351,12 +366,12 @@ const cardClasses = computed(() => {
 
     // 卡片模式
     &--icon {
-      background-color: rgba(0, 0, 0, 0.4);
+      background-color: var(--tr-attachments-status-overlay-bg);
     }
 
     // 图片模式
     &--picture {
-      background-color: rgba(0, 0, 0, 0.4);
+      background-color: var(--tr-attachments-status-overlay-bg);
       z-index: 2;
     }
   }
@@ -375,12 +390,12 @@ const cardClasses = computed(() => {
         height: 17px;
         text-align: center;
         font-size: 12px;
-        color: #fff;
+        color: var(--tr-attachments-loading-text-color);
       }
     }
 
     &--error {
-      color: #ffffff;
+      color: #fff;
     }
   }
 
@@ -407,7 +422,7 @@ const cardClasses = computed(() => {
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;
-    color: rgb(25, 25, 25);
+    color: var(--tr-attachments-title-color);
 
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -421,7 +436,7 @@ const cardClasses = computed(() => {
     font-size: 12px;
     font-weight: 400;
     line-height: 18px;
-    color: rgb(128, 128, 128);
+    color: var(--tr-attachments-meta-color);
 
     // 成功状态容器
     &-success {
@@ -483,22 +498,22 @@ const cardClasses = computed(() => {
   }
 
   &__file-type {
-    color: rgb(128, 128, 128);
+    color: var(--tr-attachments-meta-color);
   }
 
   &__file-size {
-    color: rgb(128, 128, 128);
+    color: var(--tr-attachments-meta-color);
   }
 
   // 上传中文本
   &__uploading-text {
-    color: rgb(128, 128, 128);
+    color: var(--tr-attachments-meta-color);
     font-size: 12px;
   }
 
   // 错误文本
   &__error-text {
-    color: #f23030;
+    color: var(--tr-attachments-error-color);
     font-size: 12px;
   }
 
@@ -506,7 +521,7 @@ const cardClasses = computed(() => {
   &__retry-btn {
     background: transparent;
     border: none;
-    color: #1476ff;
+    color: var(--tr-attachments-retry-color);
     cursor: pointer;
     font-size: 12px;
     padding: 2px 6px;
@@ -514,29 +529,37 @@ const cardClasses = computed(() => {
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: rgba(20, 118, 255, 0.05);
+      background-color: var(--tr-attachments-retry-hover-bg);
     }
   }
 
   &__action-btn {
-    height: 18px;
-    border: none;
-    background: transparent;
-    color: #616161;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+
+    > a,
+    > button {
+      height: 18px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--tr-attachments-action-color);
+      cursor: pointer;
+      border-radius: 4px;
+      transition:
+        color 0.2s ease,
+        background-color 0.2s ease;
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 18px;
+      text-decoration: none;
+    }
 
     &--preview,
     &--download {
-      color: rgb(20, 118, 255);
-      font-size: 12px;
-
       &:hover {
-        color: #1476ff;
-        background-color: rgba(0, 0, 0, 0.04);
+        color: var(--tr-attachments-action-hover-color);
+        background-color: var(--tr-attachments-action-hover-bg);
       }
     }
   }

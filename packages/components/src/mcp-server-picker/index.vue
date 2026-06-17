@@ -287,7 +287,7 @@ const transitionName = computed(() => {
 })
 
 const SelectDropStyle = {
-  background: 'var(--tr-mcp-server-picker-bg-default-2)',
+  background: 'var(--tr-container-bg-default)',
   color: 'var(--tr-text-primary)',
 }
 </script>
@@ -305,7 +305,7 @@ const SelectDropStyle = {
         <div class="mcp-server-picker__header-right">
           <slot name="header-actions" />
           <div v-if="props.showCustomAddButton" class="mcp-server-picker__header-right-item" @click="handleCustomAdd">
-            <IconPlus class="mcp-server-picker__icon" />
+            <IconPlus class="mcp-server-picker__icon mcp-server-picker__header-right-item-icon" />
             <span>{{ props.customAddButtonText }}</span>
           </div>
           <IconClose class="mcp-server-picker__header-right-close" @click="handleClose" />
@@ -347,7 +347,7 @@ const SelectDropStyle = {
               class="mcp-server-picker__content-market-header"
               v-if="props.enableSearch || props.enableMarketCategoryFilter"
             >
-              <div v-if="props.enableMarketCategoryFilter" style="width: 168px">
+              <div v-if="props.enableMarketCategoryFilter" class="mcp-server-picker__content-market-filter">
                 <TinyBaseSelect
                   v-model="marketCategory"
                   :placeholder="props.marketCategoryPlaceholder"
@@ -364,7 +364,7 @@ const SelectDropStyle = {
                   </TinyOption>
                 </TinyBaseSelect>
               </div>
-              <div v-if="props.enableSearch" style="width: 264px; flex-shrink: 0">
+              <div v-if="props.enableSearch" class="mcp-server-picker__content-market-search">
                 <TinyInput v-model="marketSearch" :placeholder="currentSearchPlaceholder">
                   <template #suffix>
                     <IconSearch class="mcp-server-picker__icon" />
@@ -450,18 +450,22 @@ const SelectDropStyle = {
         align-items: center;
         gap: 4px;
         cursor: pointer;
-        color: var(--tr-text-primary);
+        color: var(--tr-mcp-server-picker-header-button-text-color);
         font-size: 12px;
         font-weight: 400;
         line-height: 18px;
         text-align: center;
-        border: 1px solid var(--tr-text-secondary);
+        border: 1px solid var(--tr-mcp-server-picker-header-button-border-color);
         box-sizing: border-box;
         border-radius: 999px;
-        padding: 7px 20px;
+        padding: 4px 15px;
 
         &:hover {
-          border-color: var(--tr-text-disabled);
+          border-color: var(--tr-mcp-server-picker-header-button-border-color-hover);
+        }
+
+        &-icon {
+          color: var(--tr-mcp-server-picker-header-button-icon-color);
         }
       }
 
@@ -496,6 +500,16 @@ const SelectDropStyle = {
       display: flex;
       padding: 16px 0;
       justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    &-market-filter {
+      width: 168px;
+      flex-shrink: 0;
+    }
+
+    &-market-search {
+      width: 264px;
       flex-shrink: 0;
     }
 
@@ -536,7 +550,7 @@ const SelectDropStyle = {
   &__icon {
     font-size: 16px;
     cursor: pointer;
-    color: var(--tr-text-primary);
+    color: var(--tr-mcp-server-picker-field-icon-color);
   }
 }
 
@@ -584,13 +598,10 @@ const SelectDropStyle = {
 
 :deep(.tiny-tabs__header) {
   flex-shrink: 0;
+  --tv-Tabs-border-color: var(--tr-mcp-server-picker-tabs-divider-color);
 
   .tiny-tabs__active-bar {
     background: var(--tr-mcp-server-picker-tabs-border-color-active);
-  }
-
-  .tiny-tabs__nav-wrap-not-separator::after {
-    background: var(--tr-mcp-server-picker-tabs-nav-wrap-bg-color);
   }
 }
 
@@ -620,8 +631,23 @@ const SelectDropStyle = {
   line-height: 22px;
 }
 
-:deep(.tiny-input__inner) {
-  background: var(--tr-mcp-server-picker-bg-default-2);
-  color: var(--tr-text-primary);
+:deep(.tiny-input) {
+  --tv-Input-text-color: var(--tr-text-primary);
+  --tv-Input-bg-color: var(--tr-mcp-server-picker-field-bg-color);
+  --tv-Input-border-color: var(--tr-mcp-server-picker-field-border-color);
+  --tv-Input-hover-border-color: var(--tr-mcp-server-picker-field-border-color);
+  --tv-Input-active-border-color: var(--tr-mcp-server-picker-field-border-color);
+  --tv-Input-icon-color: var(--tr-mcp-server-picker-field-icon-color);
+  --tv-Input-icon-color-hover: var(--tr-mcp-server-picker-field-icon-color);
+  --tv-Input-focus-icon-color: var(--tr-mcp-server-picker-field-icon-color);
+  --tv-Input-suffix-icon-color: var(--tr-mcp-server-picker-field-icon-color);
+  --tv-Input-placeholder-text-color: var(--tr-text-tertiary);
+}
+
+:deep(.tiny-base-select) {
+  --tv-BaseSelect-text-color: var(--tr-text-primary);
+  --tv-BaseSelect-input-border-color-active: var(--tr-mcp-server-picker-field-border-color);
+  --tv-BaseSelect-icon-color: var(--tr-mcp-server-picker-field-icon-color);
+  --tv-BaseSelect-icon-color-hover: var(--tr-mcp-server-picker-field-icon-color);
 }
 </style>

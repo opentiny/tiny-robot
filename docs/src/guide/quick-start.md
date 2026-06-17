@@ -1,5 +1,5 @@
 ---
-outline: deep
+outline: [1, 3]
 ---
 
 # 快速开始
@@ -15,6 +15,15 @@ TinyRobot 是符合 OpenTiny Design 设计体系的 AI 组件库，提供了丰�
 - 包管理器：npm、yarn 或 pnpm
 
 ## 安装
+
+::: tip 推荐
+TinyRobot 提供官方 CLI 工具，可快速创建示例项目或向现有 Vue 项目注入聊天能力。
+
+- 查看 [CLI 快速接入](#cli-快速接入)
+- 查看 [CLI 详细文档](./cli-integration)
+
+如果你是首次体验 TinyRobot，推荐优先使用 CLI。
+:::
 
 ### 依赖说明
 
@@ -110,10 +119,10 @@ import { TrBubble } from '@opentiny/tiny-robot'
 import { createApp } from 'vue'
 import App from './App.vue'
 import TinyRobot from '@opentiny/tiny-robot' // 全量引入组件库 [!code ++]
-import '@opentiny/tiny-robot/dist/style.css'  // 引入样式 [!code ++]
+import '@opentiny/tiny-robot/dist/style.css' // 引入样式 [!code ++]
 
 const app = createApp(App)
-app.use(TinyRobot)  // 注册所有组件 [!code ++]
+app.use(TinyRobot) // 注册所有组件 [!code ++]
 
 app.mount('#app')
 ```
@@ -134,6 +143,38 @@ app.mount('#app')
 
 <!-- 无需在 script 中引入组件 -->
 ```
+
+## CLI 快速接入
+
+除了手动安装和配置组件，TinyRobot 还提供了官方 CLI 工具，可以帮助你快速创建 AI 应用或向现有 Vue 项目注入聊天能力。
+
+### 创建示例项目
+
+```bash
+npx @opentiny/tiny-robot-cli create my-app --template basic
+```
+
+自动生成：
+
+- Vue 工程结构
+- TinyRobot 聊天示例
+- 环境变量模板
+- 开箱即用的演示页面
+
+### 接入现有项目
+
+```bash
+npx @opentiny/tiny-robot-cli add chat
+```
+
+自动完成：
+
+- 安装 TinyRobot 依赖
+- 导入样式文件
+- 创建聊天组件
+- 环境变量模板
+
+👉 更多功能请查看 [CLI 接入](./cli-integration)
 
 ## 注意事项
 

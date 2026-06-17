@@ -70,7 +70,7 @@ function handleImageError(rejection: FileRejection) {
 .demo-section {
   margin-bottom: 40px;
   padding: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 8px;
 }
 
@@ -86,7 +86,7 @@ function handleImageError(rejection: FileRejection) {
 
 /* 图片上传区域样式 */
 .image-upload-area {
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--vp-c-divider);
   border-radius: 8px;
   min-height: 200px;
   display: flex;
@@ -140,7 +140,7 @@ function handleImageError(rejection: FileRejection) {
   text-align: center;
   color: white;
   padding: 20px;
-  border: 2px dashed white;
+  border: 2px dashed var(--vp-c-divider);
   border-radius: 8px;
 }
 

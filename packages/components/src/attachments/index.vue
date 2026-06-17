@@ -105,7 +105,7 @@ watch(
 .tr-attachments {
   position: relative;
   border-radius: 8px;
-  color: rgb(25, 25, 25);
+  color: var(--tr-attachments-title-color);
 
   // 文件列表容器
   &__file-list {
