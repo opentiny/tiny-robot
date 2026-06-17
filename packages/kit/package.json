@@ -44,6 +44,11 @@
       "types": "./dist/core.d.ts",
       "import": "./dist/core.mjs",
       "require": "./dist/core.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.mjs",
+      "require": "./dist/node.js"
     }
   },
   "files": [
@@ -51,8 +56,10 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts src/core.ts --format cjs,esm --dts --minify",
-    "dev": "tsup src/index.ts src/core.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts src/core.ts src/node.ts --format cjs,esm --dts --minify",
+    "dev": "tsup src/index.ts src/core.ts src/node.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src",
+    "pretest": "node scripts/download-skill-fixtures.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -69,6 +76,7 @@
     "vue": ">=3.0.0"
   },
   "dependencies": {
-    "idb": "^8.0.3"
+    "idb": "^8.0.3",
+    "yaml": "^2.8.3"
   }
 }
