@@ -1,4 +1,4 @@
-import type { SkillDefinition } from '@opentiny/tiny-robot-kit/core'
+import type { SkillDefinition } from '@opentiny/tiny-robot-kit'
 
 export const exampleSkills: SkillDefinition[] = [
   {
@@ -14,6 +14,13 @@ Always mention the target location and keep the answer concise.`,
         kind: 'text',
         resourceId: 'references/weather-format.md',
         text: 'Return current condition first, then list the next forecast point when available.',
+        mimeType: 'text/markdown',
+      },
+      {
+        path: 'references/examples/current-weather.md',
+        kind: 'text',
+        resourceId: 'references/examples/current-weather.md',
+        text: 'Example: Shanghai is cloudy, 24°C. Light rain is possible tonight.',
         mimeType: 'text/markdown',
       },
     ],

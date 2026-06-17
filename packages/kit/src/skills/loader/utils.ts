@@ -1,6 +1,6 @@
 import { parse as parseYaml } from 'yaml'
 import { getExtension, isTextSkillFilePath, normalizeSkillPath } from '../utils'
-import type { SkillLoadBaseOptions, SkillLoadContext, SkillLoadJob, SkillLoadResult, SkillLoadWarning } from './type'
+import type { SkillLoadBaseOptions, SkillLoadContext, SkillLoadJob, SkillLoadWarning } from './type'
 
 class SkillLoadCancelledError extends Error {
   constructor() {
@@ -29,7 +29,7 @@ const normalizeAbortError = (error: unknown): never => {
   throw error
 }
 
-export function createSkillLoadJob(load: (context: SkillLoadContext) => Promise<SkillLoadResult>): SkillLoadJob {
+export function createSkillLoadJob<T>(load: (context: SkillLoadContext) => Promise<T>): SkillLoadJob<T> {
   const controller = new AbortController()
 
   const job = (async () => {
@@ -41,7 +41,7 @@ export function createSkillLoadJob(load: (context: SkillLoadContext) => Promise<
     } catch (error) {
       normalizeAbortError(error)
     }
-  })() as SkillLoadJob
+  })() as SkillLoadJob<T>
 
   job.cancel = () => {
     controller.abort(new SkillLoadCancelledError())

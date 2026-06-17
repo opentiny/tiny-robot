@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction } from 'idb'
-import { loadSkill } from '../loader'
+import { loadSkillWithDetails } from '../loader'
 import type { SkillLoadOptions } from '../loader'
 import type { SkillDefinition, SkillResourceDescriptor } from '../types'
 import { createImportSkill } from './importSkill'
@@ -63,7 +63,7 @@ type IndexedDBSkillStorageTransaction = IDBPTransaction<
 >
 
 type SkillImportOptions = SkillLoadOptions
-const importSkill = createImportSkill<SkillImportOptions>(loadSkill)
+const importSkill = createImportSkill<SkillImportOptions>(loadSkillWithDetails)
 
 export class IndexedDBSkillStorage<TImportOptions = SkillImportOptions> implements SkillStorage<TImportOptions> {
   readonly databaseName: string

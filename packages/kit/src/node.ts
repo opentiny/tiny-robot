@@ -1,4 +1,4 @@
-export { loadSkill } from './skills/loader/node'
+export { loadSkill, loadSkillWithDetails } from './skills/loader/node'
 export type {
   FsSkillLoadOptions,
   GithubSkillLoadOptions,

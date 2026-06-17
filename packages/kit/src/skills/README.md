@@ -6,7 +6,7 @@
 
 skill 是一组可复用的能力模板。它可以从文件加载，被 storage 持久化或恢复，被业务侧选择，并在请求前转换为模型可消费的 instructions 和基础文件工具。
 
-skill 核心能力不依赖 Vue，浏览器安全 API 从 `@opentiny/tiny-robot-kit/core` 导出；Node 文件系统能力从 `@opentiny/tiny-robot-kit/node` 导出。
+skill 核心能力不依赖 Vue，浏览器安全 API 从 `@opentiny/tiny-robot-kit` 和 `@opentiny/tiny-robot-kit/core` 导出；Node 文件系统能力从 `@opentiny/tiny-robot-kit/node` 导出。
 
 ## 核心数据
 
@@ -129,7 +129,7 @@ capability factory 是 `skillPlugin` 的内部组装能力，不从 `skills/inde
 
 ### `index.ts`
 
-skill core 的统一导出口。该入口会被 `@opentiny/tiny-robot-kit/core` 重新导出。
+skill core 的统一导出口。该入口会被 `@opentiny/tiny-robot-kit` 和 `@opentiny/tiny-robot-kit/core` 重新导出。
 
 不要在这里导出 Node-only API，例如 `loadSkill({ source: 'fs', root })` 或 `createFsSkillStorage`。
 

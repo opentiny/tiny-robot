@@ -1,5 +1,4 @@
-export type { SkillCommandExecutor, SkillCommandRequest, SkillCommandResult } from './capabilities/commands'
-export { loadSkill } from './loader'
+export { loadSkill, loadSkillWithDetails } from './loader'
 export type {
   BrowserSkillLoadOptions,
   GithubSkillLoadOptions,
@@ -14,12 +13,6 @@ export {
   importSkill,
   MemorySkillStorage,
 } from './storage'
-export type {
-  IndexedDBSkillStorageOptions,
-  SkillStorage,
-  SkillImportJob,
-  SkillImportOptions,
-  SkillImportResult,
-} from './storage'
-export type { SkillCandidate, SkillDefinition, SkillFileKind, SkillResourceDescriptor } from './types'
+export type { IndexedDBSkillStorageOptions, SkillStorage, SkillImportJob, SkillImportResult } from './storage'
+export type { SkillCandidate, SkillDefinition, SkillResourceDescriptor } from './types'
 export { getExtension, isTextSkillFilePath, normalizeSkillPath } from './utils'

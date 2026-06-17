@@ -1,8 +1,8 @@
-import type { SkillLoadJob } from '../loader/type'
+import type { SkillLoadJob, SkillLoadResult } from '../loader/type'
 import type { SkillImporter, SkillImportJob, SkillImportResult } from './types'
 
 export function createImportSkill<TImportOptions>(
-  loadSkill: (options: TImportOptions) => SkillLoadJob,
+  loadSkill: (options: TImportOptions) => SkillLoadJob<SkillLoadResult>,
 ): SkillImporter<TImportOptions> {
   return (options) => {
     const loadJob = loadSkill(options)

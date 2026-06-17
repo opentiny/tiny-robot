@@ -1,7 +1,7 @@
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'
 import { stringify as stringifyYaml } from 'yaml'
-import { loadSkill } from '../loader/node'
+import { loadSkillWithDetails } from '../loader/node'
 import type { SkillLoadOptions } from '../loader/node'
 import {
   getRecord,
@@ -22,7 +22,7 @@ export interface FsSkillStorageOptions {
 }
 
 const entryFile = 'SKILL.md'
-const importSkill = createImportSkill<SkillLoadOptions>(loadSkill)
+const importSkill = createImportSkill<SkillLoadOptions>(loadSkillWithDetails)
 
 export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
   readonly root: string

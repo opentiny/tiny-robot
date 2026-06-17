@@ -8,16 +8,16 @@ Skill 是一组可复用的能力模板。一个 skill 至少包含名称、描�
 
 - **Loader**：从浏览器文件、GitHub 或 Node 文件系统来源加载 skill，输出 `SkillDefinition`。
 - **Storage**：持久化和恢复 `SkillDefinition`。storage 与 loader 平级，二者最终都提供 `SkillDefinition`。
-- **skillPlugin**：message runtime adapter，把本次请求的 skill selection 接入 message engine。
+- **skillPlugin**：把本次请求要启用的 skill 接入对话请求。
 
-kit 不再提供 manager 层。长期的 skill 集合、UI 选择状态和 selected names 应由业务侧管理；业务侧可以把 `storage.list()` / `storage.get()` 和自己的状态组合起来。
+Kit 只负责加载、保存和在请求中启用 skill；具体展示哪些 skill、用户选中了哪些 skill，由业务界面自己维护。
 
-```text
-source -> loader  -> SkillDefinition
-               \              \
-                \              v
-                 -> storage -> SkillDefinition -> skillPlugin -> message engine
-```
+常见接入方式分为两条链路：
+
+- **Loader -> skillPlugin**：临时使用时，通过 loader 得到 `SkillDefinition` 后交给 `skillPlugin`。
+- **Storage -> skillPlugin**：需要跨会话保留 skill 时，把 storage 作为 `SkillDefinition` provider，从 storage 读取后交给 `skillPlugin`。storage 的优势是支持持久化和按需恢复资源内容；`storage.import(...)` 是把外部 source 导入 storage 的快捷入口，内部包含 loader 流程。
+
+想先看如何把 skill 接入对话请求，可以直接查看 [skillPlugin](#skillplugin) 章节，那里按手动选择和自动选择给出了完整示例。
 
 ## 基本数据模型
 
@@ -73,37 +73,36 @@ Loader 的职责是把平台相关 source 直接转换为 `SkillDefinition`。�
 const job = loadSkill(options)
 job.cancel()
 
-const result = await job
-console.log(result.skill)
-console.log(result.warnings)
+const skill = await job
+console.log(skill.name)
 ```
 
 ### Browser 加载
 
-浏览器安全入口从 `@opentiny/tiny-robot-kit/core` 导出。可以从 `<input type="file" webkitdirectory>` 或 `showDirectoryPicker()` 加载。
+浏览器安全入口从 `@opentiny/tiny-robot-kit` 导出。可以从 `<input type="file" webkitdirectory>` 或 `showDirectoryPicker()` 加载。
 
 ```typescript
-import { loadSkill } from '@opentiny/tiny-robot-kit/core'
+import { loadSkill } from '@opentiny/tiny-robot-kit'
 
 async function importFromInput(input: HTMLInputElement) {
   if (!input.files) {
     return
   }
 
-  const result = await loadSkill({
+  const skill = await loadSkill({
     source: 'browser',
     fileList: input.files,
   })
 
-  return result.skill
+  return skill
 }
 ```
 
 ```typescript
-import { loadSkill } from '@opentiny/tiny-robot-kit/core'
+import { loadSkill } from '@opentiny/tiny-robot-kit'
 
 const directoryHandle = await window.showDirectoryPicker()
-const result = await loadSkill({
+const skill = await loadSkill({
   source: 'browser',
   directoryHandle,
 })
@@ -114,9 +113,9 @@ const result = await loadSkill({
 浏览器和 Node 入口都支持 GitHub source：
 
 ```typescript
-import { loadSkill } from '@opentiny/tiny-robot-kit/core'
+import { loadSkill } from '@opentiny/tiny-robot-kit'
 
-const result = await loadSkill({
+const skill = await loadSkill({
   source: 'github',
   repo: 'openclaw/openclaw',
   // 可选，支持 branch、tag 或 commit SHA；省略时使用仓库默认分支。
@@ -132,7 +131,7 @@ Node-only loader 从 `@opentiny/tiny-robot-kit/node` 导出：
 ```typescript
 import { loadSkill } from '@opentiny/tiny-robot-kit/node'
 
-const result = await loadSkill({
+const skill = await loadSkill({
   source: 'fs',
   root: '/path/to/weather-skill',
 })
@@ -140,10 +139,10 @@ const result = await loadSkill({
 
 ### Warning 和严格模式
 
-非致命问题会放到 `warnings` 中。启用 `strict` 后，非致命问题会直接抛出为错误。
+需要读取非致命问题时，使用 `loadSkillWithDetails`。启用 `strict` 后，非致命问题会直接抛出为错误。
 
 ```typescript
-const result = await loadSkill({
+const { skill, warnings } = await loadSkillWithDetails({
   source: 'browser',
   fileList,
   strict: true,
@@ -170,7 +169,7 @@ interface SkillStorage<TImportOptions> {
 ### Browser IndexedDB Storage
 
 ```typescript
-import { createIndexedDBSkillStorage } from '@opentiny/tiny-robot-kit/core'
+import { createIndexedDBSkillStorage } from '@opentiny/tiny-robot-kit'
 
 const storage = createIndexedDBSkillStorage({
   databaseName: 'tiny-robot-skills',
@@ -195,7 +194,7 @@ IndexedDB storage 会把 resource 内容持久化到 IndexedDB。后续 `get(nam
 Memory storage 适合测试、临时预览或业务侧已经有其他持久化方案的场景。
 
 ```typescript
-import { createMemorySkillStorage } from '@opentiny/tiny-robot-kit/core'
+import { createMemorySkillStorage } from '@opentiny/tiny-robot-kit'
 
 const storage = createMemorySkillStorage()
 
@@ -219,33 +218,41 @@ const summaries = await storage.list()
 const weather = await storage.get('weather')
 ```
 
+下面示例展示从示例或本地目录导入 skill，使用 storage 保存，再选择本次请求启用的 skill。
+
+<demo
+  vue="../../demos/tools/skill/SkillInspector.vue"
+  :vueFiles="[
+    '../../demos/tools/skill/SkillInspector.vue',
+    '../../demos/tools/skill/useSkillInspector.ts',
+    '../../demos/tools/skill/exampleSkillFiles.ts',
+    '../../demos/tools/skill/SkillInspector.css'
+  ]"
+/>
+
 ## skillPlugin
 
-`skillPlugin` 是 message runtime adapter。它不加载、不缓存、不持久化、不管理 skill 集合，只把本次请求的 selection 快照接入 message 生命周期。
+`skillPlugin` 用来把本次请求要启用的 skill 接入对话。它不加载、不缓存、不持久化、不管理 skill 集合，只根据当前请求的选择配置启用对应的 skill。
 
 本文档默认展示 Vue 入口的 `skillPlugin` 参数。Vue 入口支持顶层响应式配置，`mode` 默认是 `manual`。`mode`、`skills`、`skillNames`、`preferredSkillNames` 和 `maxSelectedSkills` 都可以传普通值、`ref` 或 `computed`。`selection` 是高级入口，直接返回本次请求的选择配置；如果需要响应式 selection，请传函数并在函数内读取 ref。
 
 由于这些字段都可以是动态 `ref` 或 `computed`，TypeScript 不能可靠地静态判断所有组合。实际使用时按下面的属性组合传参。
 
-内部流程：
-
-1. `onTurnStart` 读取 `selection`。
-2. manual 模式直接启用传入的 skills，或通过 `getSkillByName` 解析 `skillNames`。
-3. auto 模式先通过 `getSkillCandidates` 提供候选摘要和 `select_skills` 工具，模型选择 names 后再通过 `getSkillByName` 解析完整 `SkillDefinition`。
-4. 插件创建 resource runtime tools，并把 `SkillRequestContext` 写入 `customContext.__tiny_robot_skill`。
-5. `provideTools` 暴露当前阶段的 runtime tools。
-6. `onBeforeRequest` 把 skill instructions，以及资源读取或自动选择所需的系统提示追加到 system message。
-
 ### 手动选择
 
 手动选择适合用户通过 `@skillName`、下拉选择或业务按钮明确启用 skill 的场景。
 
-手动选择 + 完整 skills：`mode: 'manual'` + `skills`。适合业务侧已经持有完整 selected skills，不需要 `getSkillByName`。
+使用完整 skills：`mode: 'manual'` + `skills`。适合业务侧已经持有完整 `SkillDefinition[]`，不需要 `getSkillByName`。
 
 ```typescript
+const skill = await loadSkill({
+  source: 'browser',
+  fileList,
+})
+
 skillPlugin({
   mode: manualMode, // 可传 ref / computed，默认 manual 时也可以省略
-  skills: selectedSkills, // 可传 ref / computed
+  skills: [skill], // 也可传 ref / computed
 })
 ```
 
@@ -259,16 +266,35 @@ skillPlugin({
 })
 ```
 
+下面示例展示 Vue `skillPlugin` 如何根据响应式 selected names 启用 skill instructions 和资源读取工具。
+
+<demo
+  vue="../../demos/tools/skill/VueSkillPlugin.vue"
+  :vueFiles="[
+    '../../demos/tools/skill/VueSkillPlugin.vue',
+    '../../demos/tools/skill/VueSkillPlugin.css'
+  ]"
+/>
+
 ### 自动选择
 
 自动选择适合应用有多个候选 skills，但用户没有明确指定 skill 的场景。
 
-自动选择 + 完整 skills：`mode: 'auto'` + `skills`。`skills` 作为候选集合，同时作为默认 `getSkillByName` 来源。
+使用完整 skills：`mode: 'auto'` + `skills`。适合业务侧已经持有完整 `SkillDefinition[]`，并把它作为自动选择候选集合。
 
 ```typescript
+const weather = await loadSkill({
+  source: 'browser',
+  fileList: weatherFileList,
+})
+const docs = await loadSkill({
+  source: 'browser',
+  fileList: docsFileList,
+})
+
 skillPlugin({
   mode: autoMode, // 可传 ref / computed
-  skills: availableSkills, // 可传 ref / computed
+  skills: [weather, docs], // 也可传 ref / computed
   preferredSkillNames, // 可传 ref / computed
   maxSelectedSkills, // 可传 ref / computed
 })
@@ -321,7 +347,7 @@ skillPlugin({
 ```
 
 :::info 资源文件工具
-当已启用的 skill 带有 `resources` 时，`skillPlugin` 会自动提供 `list_skill_files` 和 `read_skill_file`。插件注入的 system instructions 会要求模型先调用 `list_skill_files` 查看文件列表，再根据明确的 `skillName` 和相对路径调用 `read_skill_file`；二进制资源不会通过 `read_skill_file` 返回原始内容。
+当已启用的 skill 带有 `resources` 时，`skillPlugin` 会自动提供 `list_skill_files` 和 `read_skill_file`。插件注入的 system instructions 会要求模型先调用 `list_skill_files` 查看文件列表，再根据明确的 `skillName` 和相对路径调用 `read_skill_file`；`read_skill_file` 用于读取文本资源内容。
 :::
 
 ## SkillRequestContext
@@ -368,7 +394,7 @@ interface SkillRequestContext {
 - `skillNames`：成功启用的 skill names。
 - `requestedSkillNames`：manual 或 auto 请求启用的 skill names。
 - `unresolvedSkillNames`：请求启用但没有成功解析的 skill names。
-- `runtimeTools`：当前请求阶段暴露给模型的 runtime tools。
+- `runtimeTools`：当前请求阶段提供给模型使用的工具。
 - `selection`：当前 selection 阶段状态。
 
 auto 模式下还可以监听模型的选择事件：
@@ -389,7 +415,7 @@ skillPlugin({
 ### Loader
 
 ```typescript
-type SkillLoadJob = Promise<SkillLoadResult> & {
+type SkillLoadJob<T = SkillDefinition> = Promise<T> & {
   cancel(): void
 }
 
@@ -403,12 +429,14 @@ interface SkillLoadResult {
 }
 
 function loadSkill(options: BrowserSkillLoadOptions | GithubSkillLoadOptions): SkillLoadJob
+function loadSkillWithDetails(options: BrowserSkillLoadOptions | GithubSkillLoadOptions): SkillLoadJob<SkillLoadResult>
 ```
 
 Node 子入口额外支持 `source: 'fs'`：
 
 ```typescript
 function loadSkill(options: FsSkillLoadOptions | GithubSkillLoadOptions): SkillLoadJob
+function loadSkillWithDetails(options: FsSkillLoadOptions | GithubSkillLoadOptions): SkillLoadJob<SkillLoadResult>
 ```
 
 ### Storage

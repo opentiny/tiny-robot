@@ -1,18 +1,23 @@
 <template>
   <div class="skill-inspector">
-    <section class="panel import-panel">
+    <section class="panel storage-panel">
       <div class="panel-heading">
         <div>
-          <h3>导入与管理</h3>
-          <p>从示例或本地目录导入 skill，使用 storage 保存，再选择本次请求启用的 skill。</p>
+          <h3>Storage 管理</h3>
+          <p>演示 add、get、list、delete，以及从本地目录导入后写入 storage。</p>
         </div>
-        <button type="button" class="primary-action" @click="loadExampleSkill">导入示例 skill</button>
+        <button type="button" class="primary-action" @click="resetExampleSkills">重置示例</button>
       </div>
 
-      <label class="directory-picker">
-        <input type="file" webkitdirectory directory multiple @change="handleDirectoryChange" />
-        <span>选择本地 skill 目录</span>
-      </label>
+      <div class="action-row">
+        <label class="directory-picker">
+          <input type="file" webkitdirectory directory multiple @change="importDirectory" />
+          <span>导入本地 skill 目录</span>
+        </label>
+        <button type="button" class="danger-action" :disabled="!inspectedSkill" @click="deleteInspectedSkill">
+          删除当前
+        </button>
+      </div>
 
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
@@ -28,72 +33,41 @@
           @keydown.enter.prevent="inspectSkill(skill.name)"
           @keydown.space.prevent="inspectSkill(skill.name)"
         >
-          <input
-            type="checkbox"
-            :checked="selectedSkillNames.includes(skill.name)"
-            @click.stop
-            @change="toggleSkillFromEvent(skill.name, $event)"
-          />
           <span>
             <strong>{{ skill.name }}</strong>
             <small>{{ skill.description }}</small>
           </span>
+          <em>{{ skill.resources?.length ?? 0 }} files</em>
         </div>
       </div>
     </section>
 
-    <div class="output-stack">
-      <section class="panel right-panel">
-        <div class="right-tab-header">
-          <button type="button" :class="{ active: rightTab === 'skill' }" @click="rightTab = 'skill'">
-            当前 Skill
-          </button>
-          <button type="button" :class="{ active: rightTab === 'output' }" @click="rightTab = 'output'">
-            请求输出
-          </button>
-        </div>
-
-        <div v-if="rightTab === 'skill'" class="right-tab-content">
-          <div class="summary-grid">
-            <div>
-              <span>Name</span>
-              <strong>{{ inspectedSkill?.name || '-' }}</strong>
-            </div>
-            <div>
-              <span>Files</span>
-              <strong>{{ inspectedSkill?.resources?.length ?? 0 }}</strong>
-            </div>
-          </div>
-
-          <pre>{{ inspectedDefinitionJson }}</pre>
-        </div>
-
-        <div v-else class="right-tab-content">
-          <div class="selected-skills">
-            <span>Selected skills</span>
-            <div>
-              <strong v-for="skillName in selectedSkillNames" :key="skillName">{{ skillName }}</strong>
-              <em v-if="selectedSkillNames.length === 0">None</em>
-            </div>
-          </div>
-
-          <div class="tabs">
+    <section class="panel detail-panel">
+      <div class="storage-viewer">
+        <section class="file-tree">
+          <h4>目录结构</h4>
+          <div class="file-node-list">
             <button
-              v-for="tab in outputTabs"
-              :key="tab.value"
+              v-for="node in fileNodes"
+              :key="node.path"
               type="button"
-              :class="{ active: outputTab === tab.value }"
-              @click="outputTab = tab.value"
+              class="file-node"
+              :class="{ active: selectedFilePath === node.path, folder: node.kind === 'folder' }"
+              :style="{ paddingLeft: `${10 + node.depth * 14}px` }"
+              @click="node.kind !== 'folder' && selectFile(node.path)"
             >
-              {{ tab.label }}
+              <span>{{ node.label }}</span>
+              <em>{{ node.kind }}</em>
             </button>
           </div>
+        </section>
 
-          <pre v-if="outputTab === 'instructions'">{{ compiledInstructionsText }}</pre>
-          <pre v-else>{{ compiledToolsJson }}</pre>
-        </div>
-      </section>
-    </div>
+        <section class="resource-text">
+          <h4>{{ selectedFilePath || '资源内容' }}</h4>
+          <pre>{{ selectedFileText }}</pre>
+        </section>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -102,20 +76,17 @@ import './SkillInspector.css'
 import { useSkillInspector } from './useSkillInspector'
 
 const {
-  outputTab,
-  outputTabs,
-  compiledInstructionsText,
-  compiledToolsJson,
+  deleteInspectedSkill,
   errorMessage,
-  handleDirectoryChange,
+  fileNodes,
+  importDirectory,
   inspectSkill,
-  inspectedDefinitionJson,
   inspectedSkill,
   inspectedSkillName,
-  loadExampleSkill,
-  rightTab,
-  selectedSkillNames,
+  resetExampleSkills,
+  selectFile,
+  selectedFilePath,
+  selectedFileText,
   skills,
-  toggleSkillFromEvent,
 } = useSkillInspector()
 </script>

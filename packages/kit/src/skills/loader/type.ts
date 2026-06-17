@@ -11,7 +11,7 @@ export type SkillLoadResult = {
   warnings: SkillLoadWarning[]
 }
 
-export type SkillLoadJob = Promise<SkillLoadResult> & {
+export type SkillLoadJob<T = SkillDefinition> = Promise<T> & {
   cancel(): void
 }
 

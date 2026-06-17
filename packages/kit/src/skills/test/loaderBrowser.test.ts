@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { loadSkill } from '../loader'
+import { loadSkill, loadSkillWithDetails } from '../loader'
 
 type TestFile = File & {
   webkitRelativePath?: string
@@ -30,10 +30,10 @@ describe('browser loadSkill', () => {
       ],
     })
 
-    expect(loadedSkill.skill.name).toBe('weather')
-    expect(loadedSkill.skill.instructions).toContain('# Weather Skill')
-    expect(loadedSkill.skill.resources?.map((resource) => resource.path)).toEqual(['references/usage.md'])
-    await expect(loadedSkill.skill.resources?.[0]?.readText?.()).resolves.toBe('# Usage')
+    expect(loadedSkill.name).toBe('weather')
+    expect(loadedSkill.instructions).toContain('# Weather Skill')
+    expect(loadedSkill.resources?.map((resource) => resource.path)).toEqual(['references/usage.md'])
+    await expect(loadedSkill.resources?.[0]?.readText?.()).resolves.toBe('# Usage')
   })
 
   it('loads binary browser resources', async () => {
@@ -50,7 +50,7 @@ describe('browser loadSkill', () => {
       ],
     })
 
-    expect(loadedSkill.skill.resources).toEqual([
+    expect(loadedSkill.resources).toEqual([
       expect.objectContaining({
         path: 'assets/icon.png',
         kind: 'binary',
@@ -73,8 +73,24 @@ describe('browser loadSkill', () => {
       fileList: [file],
     })
 
-    expect(loadedSkill.skill.name).toBe('single-file')
-    expect(loadedSkill.skill.resources).toBeUndefined()
+    expect(loadedSkill.name).toBe('single-file')
+    expect(loadedSkill.resources).toBeUndefined()
+  })
+
+  it('loads skill details with warnings', async () => {
+    const loadedSkill = await loadSkillWithDetails({
+      source: 'browser',
+      fileList: [
+        createTestFile(
+          'weather/SKILL.md',
+          ['---', 'name: weather', 'description: Weather skill', '---', '', '# Weather Skill'].join('\n'),
+          'text/markdown',
+        ),
+      ],
+    })
+
+    expect(loadedSkill.skill.name).toBe('weather')
+    expect(loadedSkill.warnings).toEqual([])
   })
 
   it('returns a cancellable load job', async () => {

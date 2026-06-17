@@ -1,4 +1,4 @@
-import { loadSkill } from '../loader/node'
+import { loadSkillWithDetails } from '../loader/node'
 import type { SkillLoadOptions } from '../loader/node'
 import type { SkillStorage as SkillStorageBase } from './types'
 import { createImportSkill } from './importSkill'
@@ -9,7 +9,7 @@ export type SkillImportOptions = SkillLoadOptions
 export type SkillStorage = SkillStorageBase<SkillImportOptions>
 export { MemorySkillStorage } from './memory'
 
-export const importSkill = createImportSkill<SkillImportOptions>(loadSkill)
+export const importSkill = createImportSkill<SkillImportOptions>(loadSkillWithDetails)
 
 export function createMemorySkillStorage() {
   return createMemorySkillStorageBase<SkillImportOptions>(importSkill)
