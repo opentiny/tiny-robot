@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createSkillResourceRuntimeTools } from '../capabilities/resources'
-import { compileSkillInstructions } from '../instructions'
 
-describe('skill instructions and tools', () => {
+describe('skill resource tools', () => {
   it('creates file runtime tools when skills have resources', () => {
     const runtimeTools = createSkillResourceRuntimeTools([
       {
@@ -37,38 +36,6 @@ describe('skill instructions and tools', () => {
         { name: 'plain', description: 'Plain skill', instructions: 'Use plain skill.' },
       ]),
     ).toEqual([])
-  })
-
-  it('compiles instructions into a system message', async () => {
-    const message = await compileSkillInstructions([
-      {
-        name: 'weather',
-        description: 'Weather skill',
-        instructions: 'Use wttr.in.',
-      },
-      {
-        name: 'vue',
-        description: 'Vue skill',
-        instructions: 'Use Vue best practices.',
-      },
-      {
-        name: 'empty',
-        description: 'Empty skill',
-        instructions: '   ',
-      },
-    ])
-
-    expect(message).toMatchObject({ role: 'system' })
-    expect(message?.content).toContain('Apply these skill instructions')
-    expect(message?.content).toContain('## weather\n\nUse wttr.in.')
-    expect(message?.content).toContain('## vue\n\nUse Vue best practices.')
-    expect(message?.content).not.toContain('## empty')
-  })
-
-  it('does not compile an instruction message when no skill has instructions', async () => {
-    await expect(
-      compileSkillInstructions([{ name: 'plain', description: 'Plain skill', instructions: '   ' }]),
-    ).resolves.toBeUndefined()
   })
 
   it('lists and reads files through built-in runtime tools', async () => {

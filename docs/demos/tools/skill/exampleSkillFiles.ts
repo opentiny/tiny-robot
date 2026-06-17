@@ -1,22 +1,21 @@
-import type { SkillFile } from '@opentiny/tiny-robot-kit/core'
+import type { SkillDefinition } from '@opentiny/tiny-robot-kit/core'
 
-export const exampleSkillFiles: SkillFile[] = [
+export const exampleSkills: SkillDefinition[] = [
   {
-    path: 'SKILL.md',
-    kind: 'text',
-    content: `---
-name: weather
-description: Answer weather questions with concise current conditions and forecast guidance.
----
-
-# Weather Skill
+    name: 'weather',
+    description: 'Answer weather questions with concise current conditions and forecast guidance.',
+    instructions: `# Weather Skill
 
 Use this skill when the user asks about weather, temperature, rain, wind, or forecast.
 Always mention the target location and keep the answer concise.`,
-  },
-  {
-    path: 'references/weather-format.md',
-    kind: 'text',
-    content: 'Return current condition first, then list the next forecast point when available.',
+    resources: [
+      {
+        path: 'references/weather-format.md',
+        kind: 'text',
+        resourceId: 'references/weather-format.md',
+        text: 'Return current condition first, then list the next forecast point when available.',
+        mimeType: 'text/markdown',
+      },
+    ],
   },
 ]

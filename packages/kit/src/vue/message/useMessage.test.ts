@@ -233,4 +233,94 @@ describe('useMessage', () => {
     })
     expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
   })
+
+  it('uses reactive manual vue skillPlugin skillNames', async () => {
+    const mode = ref<'manual'>('manual')
+    const skillNames = ref(['docs'])
+    const skills: SkillDefinition[] = [
+      {
+        name: 'docs',
+        description: 'Docs skill',
+        instructions: 'Use docs references.',
+      },
+    ]
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode,
+          skillNames,
+          getSkillByName: async (name) => skills.find((skill) => skill.name === name),
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+  })
+
+  it('uses core-compatible vue skillPlugin selection with inline skills', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          selection: {
+            mode: 'manual',
+            skills: [
+              {
+                name: 'docs',
+                description: 'Docs skill',
+                instructions: 'Use docs references.',
+              },
+            ],
+          },
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+  })
+
+  it('uses reactive preferred skill names in auto mode', async () => {
+    const preferredSkillNames = ref(['docs'])
+    const responseProvider = vi.fn((requestBody) => {
+      expect(requestBody.messages[0]).toMatchObject({
+        role: 'system',
+        content: expect.stringContaining('Preferred skill names: docs'),
+      })
+      return mockResponseProvider('ok')(requestBody)
+    })
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+          preferredSkillNames,
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+  })
 })

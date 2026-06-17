@@ -83,20 +83,6 @@ definition loader 不负责：
 - 选择 skill
 - 编译 message 请求
 
-### `instructions.ts`
-
-instructions 层负责将已选择的 skills 转换为 system message：
-
-- `compileSkillInstructions(skills)`
-
-instructions 不负责：
-
-- skill 去重
-- 选择状态
-- 持久化
-- 集合管理
-- runtime tools
-
 ### `capabilities/selection.ts`
 
 selection capability 负责自动选择阶段的 instructions 和 runtime tool：
@@ -120,6 +106,8 @@ resources capability 负责已启用 skill 的资源读取 instructions 和 runt
 - `list_skill_files`
 - `read_skill_file`
 
+resources capability 的基础目标是让模型按需读取 skill 附加文件，而不是把所有 resources 一次性注入 prompt。模型应先通过 `list_skill_files` 查看文件列表和大小，再根据明确的 `skillName` 和相对路径调用 `read_skill_file`。
+
 ### `capabilities/commands.ts`
 
 commands capability 目前只提供类型：
@@ -137,11 +125,13 @@ capabilities 不负责：
 - 持久化
 - 集合管理
 
+capability factory 是 `skillPlugin` 的内部组装能力，不从 `skills/index.ts` 对外导出。
+
 ### `index.ts`
 
 skill core 的统一导出口。该入口会被 `@opentiny/tiny-robot-kit/core` 重新导出。
 
-不要在这里导出 Node-only API，例如 `loadSkillFilesFromFs`。
+不要在这里导出 Node-only API，例如 `loadSkill({ source: 'fs', root })` 或 `createFsSkillStorage`。
 
 ## Message 接入
 
@@ -157,7 +147,7 @@ message 接入代码不放在 `src/skills` 下：
 3. 创建 `runtimeTools = createSkillResourceRuntimeTools(skills)`。
 4. 将 `{ skills, skillNames, requestedSkillNames, unresolvedSkillNames, runtimeTools }` 写入 `customContext.__tiny_robot_skill`。
 5. `provideTools` 暴露 `runtimeTools`。
-6. `onBeforeRequest` 调用 `compileSkillInstructions(skills)` 和 capability instructions，并 prepend system message。
+6. `onBeforeRequest` 将 selected skill instructions 和 capability instructions prepend 到 system message。
 
 `skillPlugin` 不加载、不缓存、不持久化、不管理 skill 集合。它只在 auto 模式下提供 `select_skills` runtime tool，让模型从候选摘要中选择 names。
 
@@ -180,6 +170,97 @@ skillPlugin({
 ```
 
 `skillPlugin` 会把 selected skills 的 `instructions` 编译进 system prompt，并暴露基础文件工具。只有 `instructions` 直接进入 system prompt；`resources` 不默认展开，模型需要细节时通过 `list_skill_files` / `read_skill_file` 按需读取。
+
+### Resource 读取策略
+
+skill resources 可能包含较大的文档、代码或数据文件。大文件内容不应由模型盲目读取，避免单次 tool result 占用过多上下文。当前 resources capability 只提供列表和读取两个工具，因此 system instructions 应明确要求模型优先按以下顺序使用：
+
+1. 先调用 `list_skill_files` 查看可用文件清单和基础元数据，包括 `skillName`、`path`、`kind`、`mimeType`、`size`、`lastModified`。
+2. 根据文件名、类型和大小判断目标文件。
+3. 只有已经明确需要某个文件内容时，才调用 `read_skill_file`。
+
+`read_skill_file` 当前固定接收：
+
+```ts
+read_skill_file({
+  skillName: string
+  path: string
+})
+```
+
+后续如果需要支持更大的文件，可以在 `read_skill_file` 上增加大小限制、截断诊断和范围读取能力。binary resource 不通过 `read_skill_file` 返回原始二进制。
+
+### Resource 大文件定位规划
+
+未来如果 resource 文件较大、目标内容不明确，单靠 `list_skill_files` 和 `read_skill_file` 仍然不够精确。可以增加 `search_skill_files` 作为大文件定位工具，但在实现前不要把它写入 runtime tools 或当前 system instructions。
+
+规划中的使用流程：
+
+1. 模型先调用 `list_skill_files` 查看文件列表和 size。
+2. 如果文件较大或不知道目标内容在哪个位置，调用 `search_skill_files` 搜索关键词。
+3. `search_skill_files` 返回多个匹配结果，每个结果包含文件路径、文本索引和部分片段。
+4. 模型根据匹配结果选择目标位置，再调用支持 `offset` / `length` 的 `read_skill_file` 读取上下文。
+
+规划中的 `search_skill_files` 参数形态：
+
+```ts
+search_skill_files({
+  query: string
+  skillName?: string
+  maxResults?: number
+})
+```
+
+推荐返回结构：
+
+```ts
+type SearchSkillFilesResult = {
+  matches: Array<{
+    skillName: string
+    path: string
+    line?: number
+    offset: number
+    length: number
+    snippet: string
+  }>
+}
+```
+
+- `offset` 使用后续 `read_skill_file` 可复用的文本索引。第一阶段可按 JavaScript string offset 处理。
+- `length` 表示命中关键词长度。
+- `snippet` 是命中附近的一小段文本，应优先让关键词处于片段中间；如果命中靠近文件开头或结尾，可以自然偏移。
+- `line` 只作为辅助展示和模型判断，不作为后续读取的主索引。
+
+配套的 `read_skill_file` 范围读取参数形态：
+
+```ts
+read_skill_file({
+  skillName: string
+  path: string
+  offset?: number
+  length?: number
+})
+```
+
+推荐返回结构：
+
+```ts
+type ReadSkillFileResult = {
+  file: {
+    skillName: string
+    path: string
+    kind?: string
+    mimeType?: string
+    size?: number
+  }
+  content: string
+  offset: number
+  returnedLength: number
+  originalLength: number
+  truncated: boolean
+  nextOffset?: number
+}
+```
 
 ```mermaid
 sequenceDiagram
@@ -293,7 +374,7 @@ sequenceDiagram
   Plugin->>Engine: Continue request with selected skills
 ```
 
-如果 UI 支持随时在手动和自动之间切换，推荐让 `selection` 成为一个返回当前快照的函数。同一份 UI selected names 在 manual 模式下是最终启用项，在 auto 模式下是 preferred bias：
+如果 UI 支持随时在手动和自动之间切换，推荐让 `selection` 成为一个返回当前快照的函数。同一份 UI selected names 在 manual 模式下是最终启用项，在 auto 模式下是 preferred skill names：
 
 ```ts
 skillPlugin({
@@ -404,13 +485,9 @@ artifact 必须绑定用户、会话、请求或 sandbox run，不能只依赖�
 
 ## 后续事项
 
-### 优先补
-
-- 为 `read_skill_file` 增加大小限制和截断策略，避免大文件直接进入 tool result。建议返回 `truncated`、`originalSize` 等诊断字段。
-
 ### 中期补
 
-- 收敛 public export，确认 `createSkillSelectionRuntimeTools` 这类带内部编排回调的 capability factory 是否应该继续从 `skills/index.ts` 对外暴露。
+- 为 resource tools 增加大文件读取保护和定位能力。`list_skill_files` 提供 size 等元数据；未来可增加 `search_skill_files`，返回多个命中结果、文本 offset 和关键词居中的 snippet；`read_skill_file` 支持大小限制、`offset` / `length` 范围读取，并返回 `truncated`、`originalLength`、`nextOffset` 等诊断字段。
 - 优化 storage/list candidate 体验。`SkillCandidate` 当前只包含 `name`、`description`、`metadata`；后续可按需要增加搜索、分页、标签或来源信息。
 - 为重复 skill name 增加更明确的 diagnostics。优先放在 storage 或 selection 逻辑中，不放在 instructions 或 capabilities 中。
 
@@ -424,5 +501,6 @@ artifact 必须绑定用户、会话、请求或 sandbox run，不能只依赖�
 - [x] 评估 auto skill selection 是否需要独立 selector 层。
 - [x] auto 模式在类型层要求提供 `getSkillCandidates`，运行时也保留错误兜底。
 - [x] 在 `SkillRequestContext` 中记录 `requestedSkillNames` 和 `unresolvedSkillNames`，方便业务侧展示哪些 requested skills 未成功启用。
+- [x] capability factory 不再从 public `skills/index.ts` 对外导出。
 - [x] 文件存储。
 - [x] 文档描述优化。

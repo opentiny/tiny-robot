@@ -8,93 +8,154 @@ import type { MaybePromise } from '../../../types'
 import type { BasePluginContext, UseMessagePlugin } from '../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 
-type VueSkillSource = SkillDefinition[] | undefined
-type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueSkillSource>
-
-type VueSkillSelectionOptions =
-  | {
-      mode: 'manual'
-      skillNames: string[]
-    }
-  | {
-      mode: 'auto'
-      preferredSkillNames?: string[]
-      maxSelectedSkills?: number
-    }
-  | {
-      mode: 'none'
-    }
+type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
 
 export type UseMessageSkillPluginOptions = UseMessagePlugin & {
   /**
-   * Controls how skills are selected for the current turn.
+   * 当前 skill 选择模式，默认 manual。支持普通值、ref 或 computed。
    */
-  selection?: VueSkillSelectionOptions | ((context: BasePluginContext) => MaybePromise<VueSkillSelectionOptions>)
+  mode?: MaybeRef<'manual' | 'auto' | 'none' | undefined>
   /**
-   * 当前请求要使用的 skills。支持普通数组、ref 或 computed。
+   * skills 支持普通数组、ref 或 computed。
+   *
+   * manual 模式下表示已经选中的完整 skills，不建议和 skillNames 同时传。
+   * auto 模式下表示候选 skill 集合，同时作为默认 getSkillByName 来源，不建议和 getSkillCandidates / getSkillByName 同时传。
+   * 传入 selection 时，skills 只作为默认候选集合和 getSkillByName 来源。
    */
-  skills?: VueSkillSourceRef
+  skills?: MaybeRef<SkillDefinition[] | undefined>
   /**
-   * 动态返回当前请求要使用的 skills。
+   * manual 模式下最终启用的 skill names。支持普通数组、ref 或 computed。
+   *
+   * 只用于 manual 模式。使用 skillNames 时需要提供 getSkillByName。
+   * auto 模式请使用 preferredSkillNames。
    */
-  getSkills?: (context: BasePluginContext) => MaybePromise<VueSkillSourceRef>
+  skillNames?: MaybeRef<string[] | undefined>
   /**
-   * 自动选择时提供候选摘要。
+   * auto 模式下的 preferred skill names。支持普通数组、ref 或 computed。
+   */
+  preferredSkillNames?: MaybeRef<string[] | undefined>
+  /**
+   * auto 模式下最多启用的 skill 数。支持普通值、ref 或 computed。
+   */
+  maxSelectedSkills?: MaybeRef<number | undefined>
+  /**
+   * 高级入口，类型与 core skillPlugin 的 selection 一致。
+   *
+   * 传入后会覆盖顶层 mode / skillNames / preferredSkillNames / maxSelectedSkills 配置。
+   * 需要响应式时请使用 getter，在函数内读取 ref；静态配置可直接传 plain object。
+   */
+  selection?: SkillSelection | ((context: BasePluginContext) => MaybePromise<SkillSelection>)
+  /**
+   * auto 模式下提供候选摘要。不建议和 skills 同时传。
    */
   getSkillCandidates?: (context: BasePluginContext) => MaybePromise<SkillCandidate[]>
   /**
-   * 根据 name 解析完整 skill。manual 和 auto 最终都会通过它取得 SkillDefinition。
+   * 根据 name 解析完整 skill。
+   *
+   * manual + skillNames、auto + getSkillCandidates 时需要提供。
+   * 如果传了 skills 且没有传 getSkillByName，会默认从 skills 中按 name 查找。
    */
   getSkillByName?: (name: string, context: BasePluginContext) => MaybePromise<SkillDefinition | undefined>
   /**
    * skills 解析并转换为请求上下文后触发。
    */
   onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
+  /**
+   * auto 模式下，模型通过 select_skills 工具选择 skill names 后触发。
+   */
+  onSkillSelectionResolved?: (
+    event: {
+      mode: 'auto'
+      candidates: SkillCandidate[]
+      preferredSkillNames?: string[]
+      requestedSkillNames: string[]
+    },
+    context: BasePluginContext,
+  ) => MaybePromise<void>
 }
 
-const resolveSkillSource = (source: VueSkillSourceRef): VueSkillSource => {
-  return isRef(source) ? (unref(source) as VueSkillSource) : source
+const resolveSkillSource = (source: MaybeRef<SkillDefinition[] | undefined>) => {
+  return isRef(source) ? (unref(source) as SkillDefinition[] | undefined) : source
+}
+
+const resolveRef = <T>(source: MaybeRef<T> | undefined): T | undefined => {
+  if (source === undefined) {
+    return undefined
+  }
+
+  return isRef(source) ? (unref(source) as T) : source
+}
+
+const resolveTopLevelSelection = (options: {
+  mode: MaybeRef<'manual' | 'auto' | 'none' | undefined> | undefined
+  skillNames: MaybeRef<string[] | undefined> | undefined
+  skills: MaybeRef<SkillDefinition[] | undefined> | undefined
+  preferredSkillNames: MaybeRef<string[] | undefined> | undefined
+  maxSelectedSkills: MaybeRef<number | undefined> | undefined
+}): SkillSelection => {
+  const resolvedMode = resolveRef(options.mode) ?? 'manual'
+
+  if (resolvedMode === 'manual') {
+    const resolvedSkillNames = resolveRef(options.skillNames)
+
+    if (resolvedSkillNames !== undefined) {
+      return {
+        mode: 'manual',
+        skillNames: resolvedSkillNames,
+      }
+    }
+
+    return {
+      mode: 'manual',
+      skills: resolveSkillSource(options.skills) ?? [],
+    }
+  }
+
+  if (resolvedMode === 'auto') {
+    return {
+      mode: 'auto',
+      preferredSkillNames: resolveRef(options.preferredSkillNames),
+      maxSelectedSkills: resolveRef(options.maxSelectedSkills),
+    }
+  }
+
+  return {
+    mode: 'none',
+  }
 }
 
 export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePlugin => {
-  const { selection, skills, getSkills, getSkillCandidates, getSkillByName, onSkillsResolved, ...restOptions } = options
+  const {
+    selection,
+    mode,
+    skillNames,
+    preferredSkillNames,
+    maxSelectedSkills,
+    skills,
+    getSkillCandidates,
+    getSkillByName,
+    onSkillsResolved,
+    onSkillSelectionResolved,
+    ...restOptions
+  } = options
 
   return {
     name: 'skill',
     __corePluginFactory(runtime: VueMessagePluginRuntime) {
       const toVueContext = (context: CoreBasePluginContext) => runtime.createVueBaseContext(context)
       const resolveSelection = async (context: CoreBasePluginContext): Promise<SkillSelection> => {
-        const vueContext = toVueContext(context)
-        const vueSelection = typeof selection === 'function' ? await selection(vueContext) : selection
-
-        if (!vueSelection) {
-          const skillSource = getSkills ? await getSkills(vueContext) : skills
-          const resolvedSkills = resolveSkillSource(skillSource) ?? []
-
-          return {
-            mode: 'manual',
-            skillNames: resolvedSkills.map((skill) => skill.name),
-          }
+        if (selection) {
+          const vueContext = toVueContext(context)
+          return typeof selection === 'function' ? await selection(vueContext) : selection
         }
 
-        if (vueSelection.mode === 'manual') {
-          return {
-            mode: 'manual',
-            skillNames: vueSelection.skillNames,
-          }
-        }
-
-        if (vueSelection.mode === 'auto') {
-          return {
-            mode: 'auto',
-            preferredSkillNames: vueSelection.preferredSkillNames,
-            maxSelectedSkills: vueSelection.maxSelectedSkills,
-          }
-        }
-
-        return {
-          mode: 'none',
-        }
+        return resolveTopLevelSelection({
+          mode,
+          skillNames,
+          skills,
+          preferredSkillNames,
+          maxSelectedSkills,
+        })
       }
 
       return createCoreSkillPlugin({
@@ -102,20 +163,15 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
         selection: resolveSelection,
         getSkillCandidates: getSkillCandidates
           ? (context) => getSkillCandidates(toVueContext(context))
-          : async (context) => {
-              const vueContext = toVueContext(context)
-              const skillSource = getSkills ? await getSkills(vueContext) : skills
-              return resolveSkillSource(skillSource) ?? []
-            },
+          : () => resolveSkillSource(skills) ?? [],
         getSkillByName: getSkillByName
           ? (name, context) => getSkillByName(name, toVueContext(context))
-          : async (name, context) => {
-              const vueContext = toVueContext(context)
-              const skillSource = getSkills ? await getSkills(vueContext) : skills
-              return resolveSkillSource(skillSource)?.find((skill) => skill.name === name)
-            },
+          : (name) => resolveSkillSource(skills)?.find((skill) => skill.name === name),
         onSkillsResolved: onSkillsResolved
           ? (skillContext, context) => onSkillsResolved(skillContext, toVueContext(context))
+          : undefined,
+        onSkillSelectionResolved: onSkillSelectionResolved
+          ? (event, context) => onSkillSelectionResolved(event, toVueContext(context))
           : undefined,
       })
     },

@@ -4,20 +4,19 @@ outline: [1, 3]
 
 # Skill 技能工具链
 
-Skill 是一组可复用的能力模板。一个 skill 至少包含名称、描述和指令，也可以携带文件资源。`@opentiny/tiny-robot-kit` 中的 skill 工具链分为三层：
+Skill 是一组可复用的能力模板。一个 skill 至少包含名称、描述和指令，也可以携带资源文件。`@opentiny/tiny-robot-kit` 面向使用者主要暴露三层：
 
-- **File Adapters**：把不同平台的文件来源转换为统一的 `SkillFile[]`。
-- **Loader / Manager**：把 `SkillFile[]` 解析为 `SkillDefinition`，并管理 skill 集合与选择状态。
-- **Compiler**：把已选 `SkillDefinition[]` 编译为 message engine 可消费的 instructions 和运行时文件工具。
+- **Loader**：从浏览器文件、GitHub 或 Node 文件系统来源加载 skill，输出 `SkillDefinition`。
+- **Storage**：持久化和恢复 `SkillDefinition`。storage 与 loader 平级，二者最终都提供 `SkillDefinition`。
+- **skillPlugin**：message runtime adapter，把本次请求的 skill selection 接入 message engine。
 
-`SkillManager` 是可选中间层。如果业务侧已经有自己的状态管理，可以直接把 `SkillDefinition[]` 交给 compiler 或 `skillPlugin`。
+kit 不再提供 manager 层。长期的 skill 集合、UI 选择状态和 selected names 应由业务侧管理；业务侧可以把 `storage.list()` / `storage.get()` 和自己的状态组合起来。
 
 ```text
-File Adapter -> Loader -------> SkillDefinition[] -> Compiler -> message engine
-                  |                   ^
-                  | optional          |
-                  v                   |
-              SkillManager -----------+
+source -> loader  -> SkillDefinition
+               \              \
+                \              v
+                 -> storage -> SkillDefinition -> skillPlugin -> message engine
 ```
 
 ## 基本数据模型
@@ -27,381 +26,374 @@ interface SkillDefinition {
   name: string
   description: string
   instructions: string
-  files?: SkillFile[]
+  resources?: SkillResourceDescriptor[]
   metadata?: Record<string, unknown>
 }
 ```
 
-- `name`：skill 唯一名称，用于去重、选择和读取文件资源。
-- `description`：能力描述，适合用于 UI 展示、搜索或后续自动选择 skill。
-- `instructions`：注入模型请求的核心指令，必填。
-- `files`：skill 目录中的附加文件资源，可通过基础文件工具读取。
+- `name`：skill 名称。去重和冲突处理由 storage 或业务侧集合负责。
+- `description`：能力描述，适合 UI 展示、搜索或自动选择候选摘要。
+- `instructions`：注入模型请求的核心指令。
+- `resources`：skill 附加文件资源，可通过资源工具按需读取。
+- `metadata`：应用侧和 loader 保留的扩展信息。
 
-## 完整示例
+资源可以是 eager 内容，也可以是 lazy reader：
 
-下面的示例把 loader、manager、compiler 放在同一条链路中展示：导入 skill 目录后，loader 解析出 `SkillDefinition`，manager 保存并选择 skill，compiler 输出最终会注入给模型的 system message 和基础文件工具。
+```typescript
+type SkillResourceDescriptor =
+  | {
+      path: string
+      kind: 'text'
+      resourceId: string
+      text?: string
+      readText?: () => Promise<string>
+      mimeType?: string
+      size?: number
+      lastModified?: number
+    }
+  | {
+      path: string
+      kind: 'binary'
+      resourceId: string
+      binary?: Uint8Array
+      readBinary?: () => Promise<Uint8Array>
+      mimeType?: string
+      size?: number
+      lastModified?: number
+    }
+```
 
-<demo
-  vue="../../demos/tools/skill/SkillInspector.vue"
-  :vueFiles="[
-    '../../demos/tools/skill/SkillInspector.vue',
-    '../../demos/tools/skill/useSkillInspector.ts',
-    '../../demos/tools/skill/exampleSkillFiles.ts',
-    '../../demos/tools/skill/SkillInspector.css'
-  ]"
-/>
+`text` / `readText` 至少提供一个，`binary` / `readBinary` 至少提供一个。storage 恢复资源时通常使用 lazy reader，避免把所有文件内容一次性放入内存。
 
 ## Loader
 
-Loader 的职责是把标准化后的 `SkillFile[]` 解析为 `SkillDefinition`。它不负责读取本地文件、浏览器文件或远程资源；这些工作由 file adapters 完成。
-
-### Node.js 目录加载
-
-`loadSkillFilesFromFs` 会把本地目录读取为 `SkillFile[]`，再交给 `SkillLoader` 解析。
+Loader 的职责是把平台相关 source 直接转换为 `SkillDefinition`。加载结果是一个可取消的 job：
 
 ```typescript
-import { SkillLoader } from '@opentiny/tiny-robot-kit/core'
-import { loadSkillFilesFromFs } from '@opentiny/tiny-robot-kit/node'
+const job = loadSkill(options)
+job.cancel()
 
-const files = await loadSkillFilesFromFs('/path/to/weather-skill')
-const result = new SkillLoader().load(files)
-
-console.log(result.skill.name)
-console.log(result.skill.description)
-console.log(result.skill.instructions)
+const result = await job
+console.log(result.skill)
 console.log(result.warnings)
 ```
 
-### Browser 文件加载
+### Browser 加载
 
-浏览器侧可以把 `<input type="file" webkitdirectory>` 选择出的文件列表转换为 `SkillFile[]`。
+浏览器安全入口从 `@opentiny/tiny-robot-kit/core` 导出。可以从 `<input type="file" webkitdirectory>` 或 `showDirectoryPicker()` 加载。
 
 ```typescript
-import { SkillLoader, loadSkillFilesFromFileList } from '@opentiny/tiny-robot-kit/core'
+import { loadSkill } from '@opentiny/tiny-robot-kit/core'
 
 async function importFromInput(input: HTMLInputElement) {
   if (!input.files) {
     return
   }
 
-  const files = await loadSkillFilesFromFileList(input.files)
-  return new SkillLoader().load(files)
+  const result = await loadSkill({
+    source: 'browser',
+    fileList: input.files,
+  })
+
+  return result.skill
 }
 ```
 
-如果使用 `window.showDirectoryPicker()`，可以使用 `loadSkillFilesFromDirectoryHandle`：
-
 ```typescript
-import { SkillLoader, loadSkillFilesFromDirectoryHandle } from '@opentiny/tiny-robot-kit/core'
+import { loadSkill } from '@opentiny/tiny-robot-kit/core'
 
 const directoryHandle = await window.showDirectoryPicker()
-const files = await loadSkillFilesFromDirectoryHandle(directoryHandle)
-const result = new SkillLoader().load(files)
+const result = await loadSkill({
+  source: 'browser',
+  directoryHandle,
+})
 ```
 
-### SKILL.md 结构
+### GitHub 加载
 
-`SkillLoader` 默认读取 `SKILL.md` 作为入口文件。frontmatter 中的 `name` 和 `description` 会写入 `SkillDefinition`，正文会作为必填 `instructions`。
+浏览器和 Node 入口都支持 GitHub source：
 
-````markdown
----
-name: weather
-description: Get current weather and forecast information.
-homepage: https://wttr.in/:help
----
+```typescript
+import { loadSkill } from '@opentiny/tiny-robot-kit/core'
 
-# Weather Skill
+const result = await loadSkill({
+  source: 'github',
+  repo: 'openclaw/openclaw',
+  // 可选，支持 branch、tag 或 commit SHA；省略时使用仓库默认分支。
+  ref: '58672075219d09495de6489ad0821d276ac84f13',
+  path: 'skills/weather',
+})
+```
 
-Use wttr.in when the user asks about current weather or forecasts.
-Prefer concise answers and include the location in the response.
-````
+### Node 文件系统加载
+
+Node-only loader 从 `@opentiny/tiny-robot-kit/node` 导出：
+
+```typescript
+import { loadSkill } from '@opentiny/tiny-robot-kit/node'
+
+const result = await loadSkill({
+  source: 'fs',
+  root: '/path/to/weather-skill',
+})
+```
 
 ### Warning 和严格模式
 
-非致命问题会放到 `SkillLoaderResult.warnings` 中，例如重复路径、无法解析工具文件等。
+非致命问题会放到 `warnings` 中。启用 `strict` 后，非致命问题会直接抛出为错误。
 
 ```typescript
-const result = new SkillLoader().load(files)
-
-for (const warning of result.warnings) {
-  console.warn(warning.code, warning.path, warning.message)
-}
-```
-
-如果希望 warning 直接抛出为错误，可以启用严格模式：
-
-```typescript
-const result = new SkillLoader({ strict: true }).load(files)
-```
-
-## Manager
-
-`SkillManager` 是框架无关的 skill 集合管理工具。它只负责保存、删除、导入、选择 skills，不编译 prompt 或 tools，也不接入 message 生命周期。
-
-### 管理 skill 集合
-
-```typescript
-import { SkillManager } from '@opentiny/tiny-robot-kit/core'
-
-const manager = new SkillManager()
-
-manager.set({
-  name: 'weather',
-  description: 'Get current weather information.',
-  instructions: 'Use weather context when the user asks about weather.',
-})
-
-console.log(manager.has('weather')) // true
-console.log(manager.get('weather'))
-console.log(manager.list())
-
-manager.remove('weather')
-```
-
-`set(skill)` 是直接写入入口：不存在时新增，同名存在时覆盖。需要从 `SkillFile[]` 解析并写入时，使用下面的 `import(files)`。
-
-### 选择本次请求使用的 skills
-
-manager 内部可以维护选择状态。这个状态适合由 UI 或业务逻辑驱动，再交给 `skillPlugin` 读取。
-
-```typescript
-manager.set(weatherSkill)
-manager.set(vueSkill)
-
-manager.select(['weather', 'vue-best-practices'])
-
-const selectedSkills = manager.getSelectedSkills()
-const selectedSkillNames = manager.getSelectedSkillNames()
-
-manager.unselect('weather')
-```
-
-选择不存在的 skill 会抛错：
-
-```typescript
-manager.select('missing-skill') // throws
-```
-
-### 导入 skill
-
-`SkillManager.import()` 会复用 `SkillLoader`，把 `SkillFile[]` 导入为 skill 并写入 manager。
-
-```typescript
-import { SkillManager } from '@opentiny/tiny-robot-kit/core'
-import { loadSkillFilesFromFs } from '@opentiny/tiny-robot-kit/node'
-
-const manager = new SkillManager()
-const files = await loadSkillFilesFromFs('/path/to/weather-skill')
-const result = manager.import(files)
-
-console.log(result.skill.name)
-console.log(manager.get(result.skill.name))
-```
-
-可以透传 `SkillLoaderOptions`：
-
-```typescript
-manager.import(files, {
-  entryFile: 'README.md',
+const result = await loadSkill({
+  source: 'browser',
+  fileList,
   strict: true,
 })
 ```
 
-### 搭配 skillPlugin
+## Storage
 
-`SkillManager` 可以和 `skillPlugin` 一起使用。manager 负责选择，`skillPlugin` 负责把已选 skills 编译进 message engine。
-
-```typescript
-import { skillPlugin, useMessage } from '@opentiny/tiny-robot-kit'
-import { SkillManager } from '@opentiny/tiny-robot-kit/core'
-
-const manager = new SkillManager({
-  skills: [weatherSkill, vueSkill],
-  selectedSkillNames: ['weather'],
-})
-
-const message = useMessage({
-  responseProvider,
-  plugins: [
-    skillPlugin({
-      getSkills: () => manager.getSelectedSkills(),
-    }),
-  ],
-})
-```
-
-在 Vue 中也可以直接传入响应式的 skills：
-
-<demo
-  vue="../../demos/tools/skill/VueSkillPlugin.vue"
-  :vueFiles="[
-    '../../demos/tools/skill/VueSkillPlugin.vue',
-    '../../demos/tools/skill/VueSkillPlugin.css'
-  ]"
-/>
-
-## Compiler
-
-Compiler 是纯转换层：输入 `SkillDefinition[]`，输出 message engine 可消费的 instructions 和运行时文件工具。
-
-### 编译 instructions
+Storage 负责持久化和恢复 `SkillDefinition`。它不管理长期选择状态，也不决定本次请求启用哪些 skill。
 
 ```typescript
-import { compileSkillInstructions } from '@opentiny/tiny-robot-kit/core'
-
-const systemMessage = await compileSkillInstructions([weatherSkill, vueSkill])
-```
-
-编译后的结果是一个 system message：
-
-```typescript
-{
-  role: 'system',
-  content: 'Apply these skill instructions when generating the response.\n\n## weather\n\n...'
+interface SkillStorage<TImportOptions> {
+  add(skill: SkillDefinition): Promise<SkillDefinition>
+  get(name: string): Promise<SkillDefinition | undefined>
+  has(name: string): Promise<boolean>
+  delete(name: string): Promise<boolean>
+  list(): Promise<SkillSummary[]>
+  import(options: TImportOptions): SkillImportJob
 }
 ```
 
-空白 instructions 会被忽略。如果没有任何可用 instructions，则返回 `undefined`。
+`add(skill)` 存储已经完整加载好的 `SkillDefinition`。`import(options)` 是 `loader + add` 的快捷组合，会复用 loader 逻辑。
 
-### 创建基础文件工具
-
-```typescript
-import { createSkillRuntimeTools } from '@opentiny/tiny-robot-kit/core'
-
-const runtimeTools = createSkillRuntimeTools([docsSkill])
-```
-
-当任意 skill 带有 `files` 时，会生成两个基础 runtime tools：
-
-- `list_skill_files`：列出当前 skills 携带的文件资源。
-- `read_skill_file`：按 `skillName` 和相对路径读取文本文件内容。
+### Browser IndexedDB Storage
 
 ```typescript
-import { createSkillRuntimeTools } from '@opentiny/tiny-robot-kit/core'
+import { createIndexedDBSkillStorage } from '@opentiny/tiny-robot-kit/core'
 
-const runtimeTools = createSkillRuntimeTools([docsSkill])
-const [listFiles, readFile] = runtimeTools
+const storage = createIndexedDBSkillStorage({
+  databaseName: 'tiny-robot-skills',
+})
 
-// handler 的第一个参数来自模型返回的 tool_calls。
-// 这里手动构造该参数，只是为了展示工具执行效果。
-const listed = await listFiles.handler(
-  {
-    id: 'call_1',
-    type: 'function',
-    function: {
-      name: 'list_skill_files',
-      arguments: JSON.stringify({ skillName: 'docs' }),
-    },
-  },
-  {} as never,
-)
+const importJob = storage.import({
+  source: 'browser',
+  fileList,
+})
 
-const content = await readFile.handler(
-  {
-    id: 'call_2',
-    type: 'function',
-    function: {
-      name: 'read_skill_file',
-      arguments: JSON.stringify({
-        skillName: 'docs',
-        path: 'references/guide.md',
-      }),
-    },
-  },
-  {} as never,
-)
+const { skill, warnings } = await importJob
+
+console.log(skill.name, warnings)
+console.log(await storage.list())
+console.log(await storage.get(skill.name))
 ```
 
-二进制文件不会返回内容，只返回文件摘要和 `binary_file_not_readable` 错误。
+IndexedDB storage 会把 resource 内容持久化到 IndexedDB。后续 `get(name)` 恢复出的 resources 会优先提供 lazy reader，适合在模型真正调用资源工具时再读取内容。
 
-## 与 message 插件体系的关系
+### Memory Storage
 
-`skillPlugin` 是 message runtime adapter。它不加载、不选择、不缓存、不管理 skills，只通过 `getSkills()` 接收本次请求要使用的 skills。
+Memory storage 适合测试、临时预览或业务侧已经有其他持久化方案的场景。
+
+```typescript
+import { createMemorySkillStorage } from '@opentiny/tiny-robot-kit/core'
+
+const storage = createMemorySkillStorage()
+
+await storage.add(weatherSkill)
+const weather = await storage.get('weather')
+```
+
+### Node Fs Storage
+
+Node-only storage 从 `@opentiny/tiny-robot-kit/node` 导出。Fs storage 保持原生 skill 目录结构，因此一个已有的 skills 目录可以直接作为 storage root 使用。
+
+```typescript
+import { createFsSkillStorage } from '@opentiny/tiny-robot-kit/node'
+
+const storage = createFsSkillStorage({
+  root: '/path/to/skills',
+})
+
+await storage.add(weatherSkill)
+const summaries = await storage.list()
+const weather = await storage.get('weather')
+```
+
+## skillPlugin
+
+`skillPlugin` 是 message runtime adapter。它不加载、不缓存、不持久化、不管理 skill 集合，只把本次请求的 selection 快照接入 message 生命周期。
+
+本文档默认展示 Vue 入口的 `skillPlugin` 参数。Vue 入口支持顶层响应式配置，`mode` 默认是 `manual`。`mode`、`skills`、`skillNames`、`preferredSkillNames` 和 `maxSelectedSkills` 都可以传普通值、`ref` 或 `computed`。`selection` 是高级入口，直接返回本次请求的选择配置；如果需要响应式 selection，请传函数并在函数内读取 ref。
+
+由于这些字段都可以是动态 `ref` 或 `computed`，TypeScript 不能可靠地静态判断所有组合。实际使用时按下面的属性组合传参。
 
 内部流程：
 
-1. `onTurnStart`：读取 `getSkills()`，创建基础文件工具，并把 skills 与 runtime tools 写入 `customContext.__tiny_robot_skill`。
-2. `provideTools`：从插件状态中读取 runtime tools，并暴露给 message engine。
-3. `onBeforeRequest`：调用 `compileSkillInstructions(skills)`，把 system message 插入到请求消息最前面。
+1. `onTurnStart` 读取 `selection`。
+2. manual 模式直接启用传入的 skills，或通过 `getSkillByName` 解析 `skillNames`。
+3. auto 模式先通过 `getSkillCandidates` 提供候选摘要和 `select_skills` 工具，模型选择 names 后再通过 `getSkillByName` 解析完整 `SkillDefinition`。
+4. 插件创建 resource runtime tools，并把 `SkillRequestContext` 写入 `customContext.__tiny_robot_skill`。
+5. `provideTools` 暴露当前阶段的 runtime tools。
+6. `onBeforeRequest` 把 skill instructions，以及资源读取或自动选择所需的系统提示追加到 system message。
+
+### 手动选择
+
+手动选择适合用户通过 `@skillName`、下拉选择或业务按钮明确启用 skill 的场景。
+
+手动选择 + 完整 skills：`mode: 'manual'` + `skills`。适合业务侧已经持有完整 selected skills，不需要 `getSkillByName`。
 
 ```typescript
-import { skillPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+skillPlugin({
+  mode: manualMode, // 可传 ref / computed，默认 manual 时也可以省略
+  skills: selectedSkills, // 可传 ref / computed
+})
+```
 
-useMessage({
-  responseProvider,
-  plugins: [
-    skillPlugin({
-      getSkills: () => manager.getSelectedSkills(),
-    }),
-  ],
+使用 storage：`mode: 'manual'` + `skillNames` + `getSkillByName`。`skillNames` 保存 UI 选中的 names，`getSkillByName` 按 name 从 storage 读取完整定义。
+
+```typescript
+skillPlugin({
+  mode: manualMode, // 可传 ref / computed，默认 manual 时也可以省略
+  skillNames: selectedSkillNames, // 可传 ref / computed
+  getSkillByName: (name) => storage.get(name),
+})
+```
+
+### 自动选择
+
+自动选择适合应用有多个候选 skills，但用户没有明确指定 skill 的场景。
+
+自动选择 + 完整 skills：`mode: 'auto'` + `skills`。`skills` 作为候选集合，同时作为默认 `getSkillByName` 来源。
+
+```typescript
+skillPlugin({
+  mode: autoMode, // 可传 ref / computed
+  skills: availableSkills, // 可传 ref / computed
+  preferredSkillNames, // 可传 ref / computed
+  maxSelectedSkills, // 可传 ref / computed
+})
+```
+
+使用 storage：`mode: 'auto'` + `getSkillCandidates` + `getSkillByName`。`getSkillCandidates` 从 storage 读取候选摘要，`getSkillByName` 按 name 读取完整定义。
+
+```typescript
+skillPlugin({
+  mode: autoMode, // 可传 ref / computed
+  getSkillCandidates: () => storage.list(),
+  getSkillByName: (name) => storage.get(name),
+  preferredSkillNames, // 可传 ref / computed
+  maxSelectedSkills, // 可传 ref / computed
+})
+```
+
+auto 模式会先让模型看到候选 skill 的 `name` / `description` / `metadata`，并提供 `select_skills` 工具。模型选择后，插件再解析完整 skill，并把所选 skill 的 `instructions` 和 resource tools 提供给后续请求阶段。
+
+`preferredSkillNames` 是自动选择的偏好，不是最终启用结果。最终启用结果以 `select_skills` 和 `getSkillByName` 的解析结果为准。
+
+### 使用 selection
+
+`selection` 适合在每次请求前动态返回完整选择配置。传入 `selection` 后，会覆盖顶层的 `mode`、`skills`、`skillNames`、`preferredSkillNames` 和 `maxSelectedSkills`。
+
+手动选择：
+
+```typescript
+skillPlugin({
+  selection: () => ({
+    mode: 'manual',
+    skillNames: selectedSkillNames.value,
+  }),
+  getSkillByName: (name) => storage.get(name),
+})
+```
+
+自动选择：
+
+```typescript
+skillPlugin({
+  selection: () => ({
+    mode: 'auto',
+    preferredSkillNames: preferredSkillNames.value,
+    maxSelectedSkills: maxSelectedSkills.value,
+  }),
+  getSkillCandidates: () => storage.list(),
+  getSkillByName: (name) => storage.get(name),
+})
+```
+
+:::info 资源文件工具
+当已启用的 skill 带有 `resources` 时，`skillPlugin` 会自动提供 `list_skill_files` 和 `read_skill_file`。插件注入的 system instructions 会要求模型先调用 `list_skill_files` 查看文件列表，再根据明确的 `skillName` 和相对路径调用 `read_skill_file`；二进制资源不会通过 `read_skill_file` 返回原始内容。
+:::
+
+## SkillRequestContext
+
+`onSkillsResolved` 可以读取当前请求的 skill 解析结果：
+
+```typescript
+skillPlugin({
+  mode: 'manual',
+  skillNames: ['weather', 'missing-skill'],
+  getSkillByName: (name) => storage.get(name),
+  onSkillsResolved(skillContext) {
+    console.log(skillContext.skillNames)
+    console.log(skillContext.requestedSkillNames)
+    console.log(skillContext.unresolvedSkillNames)
+  },
+})
+```
+
+```typescript
+interface SkillRequestContext {
+  skills: SkillDefinition[]
+  skillNames: string[]
+  requestedSkillNames: string[]
+  unresolvedSkillNames: string[]
+  runtimeTools: RuntimeTool[]
+  selection:
+    | { mode: 'manual' | 'none'; phase: 'ready' }
+    | {
+        mode: 'auto'
+        phase: 'selecting'
+        candidates: SkillCandidate[]
+        preferredSkillNames?: string[]
+      }
+    | {
+        mode: 'auto'
+        phase: 'ready'
+        candidates: SkillCandidate[]
+        preferredSkillNames?: string[]
+      }
+}
+```
+
+- `skillNames`：成功启用的 skill names。
+- `requestedSkillNames`：manual 或 auto 请求启用的 skill names。
+- `unresolvedSkillNames`：请求启用但没有成功解析的 skill names。
+- `runtimeTools`：当前请求阶段暴露给模型的 runtime tools。
+- `selection`：当前 selection 阶段状态。
+
+auto 模式下还可以监听模型的选择事件：
+
+```typescript
+skillPlugin({
+  mode: 'auto',
+  getSkillCandidates: () => storage.list(),
+  getSkillByName: (name) => storage.get(name),
+  onSkillSelectionResolved(event) {
+    console.log(event.requestedSkillNames)
+  },
 })
 ```
 
 ## API
 
-### 核心类型
+### Loader
 
 ```typescript
-type SkillFileKind = 'text' | 'binary'
-
-interface BaseSkillFile {
-  path: string
-  mimeType?: string
-  size?: number
-  lastModified?: number
-  metadata?: Record<string, unknown>
+type SkillLoadJob = Promise<SkillLoadResult> & {
+  cancel(): void
 }
 
-interface TextSkillFile extends BaseSkillFile {
-  kind: 'text'
-  content: string
-}
-
-interface BinarySkillFile extends BaseSkillFile {
-  kind: 'binary'
-  content: ArrayBuffer | Uint8Array
-}
-
-type SkillFile = TextSkillFile | BinarySkillFile
-
-interface SkillDefinition {
-  name: string
-  description: string
-  instructions: string
-  files?: SkillFile[]
-  metadata?: Record<string, unknown>
-}
-```
-
-### 文件适配器
-
-浏览器安全的文件适配器从 `@opentiny/tiny-robot-kit/core` 导出：
-
-```typescript
-function loadSkillFilesFromFileList(fileList: ArrayLike<BrowserFile>): Promise<SkillFile[]>
-
-function loadSkillFilesFromDirectoryHandle(directoryHandle: BrowserDirectoryHandle): Promise<SkillFile[]>
-```
-
-Node.js 文件系统适配器从 `@opentiny/tiny-robot-kit/node` 导出：
-
-```typescript
-interface FsSkillFilesOptions {
-  ignoredDirectories?: string[]
-}
-
-function loadSkillFilesFromFs(root: string, options?: FsSkillFilesOptions): Promise<SkillFile[]>
-```
-
-### SkillLoader
-
-```typescript
-interface SkillLoaderOptions {
-  entryFile?: string
-  strict?: boolean
-}
-
-interface SkillLoaderResult {
+interface SkillLoadResult {
   skill: SkillDefinition
   warnings: Array<{
     code: string
@@ -410,78 +402,94 @@ interface SkillLoaderResult {
   }>
 }
 
-class SkillLoader {
-  constructor(options?: SkillLoaderOptions)
-  load(files: SkillFile[]): SkillLoaderResult
-}
+function loadSkill(options: BrowserSkillLoadOptions | GithubSkillLoadOptions): SkillLoadJob
 ```
 
-### SkillManager
+Node 子入口额外支持 `source: 'fs'`：
 
 ```typescript
-interface SkillManagerOptions {
-  skills?: SkillDefinition[]
-  selectedSkillNames?: string[]
-}
-
-class SkillManager {
-  constructor(options?: SkillManagerOptions)
-
-  set(skill: SkillDefinition): SkillDefinition
-  remove(name: string): SkillDefinition | undefined
-  clear(): void
-
-  get(name: string): SkillDefinition | undefined
-  has(name: string): boolean
-  list(): SkillDefinition[]
-
-  select(names: string | string[]): void
-  unselect(names: string | string[]): void
-  getSelectedSkillNames(): string[]
-  getSelectedSkills(): SkillDefinition[]
-
-  import(files: SkillFile[], options?: SkillLoaderOptions): SkillLoaderResult
-}
+function loadSkill(options: FsSkillLoadOptions | GithubSkillLoadOptions): SkillLoadJob
 ```
 
-### Compiler
+### Storage
 
 ```typescript
-function compileSkillInstructions(
-  skills: SkillDefinition[],
-): Promise<ChatCompletionSystemMessageParam | undefined>
+interface SkillSummary {
+  name: string
+  description: string
+  resourceCount: number
+  metadata?: Record<string, unknown>
+}
 
-function createSkillRuntimeTools(skills: SkillDefinition[]): RuntimeTool[]
+interface SkillImportResult {
+  name: string
+  skill: SkillDefinition
+  warnings: SkillLoadWarning[]
+}
+
+type SkillImportJob = Promise<SkillImportResult> & {
+  cancel(): void
+}
+
+interface SkillStorage<TImportOptions> {
+  add(skill: SkillDefinition): Promise<SkillDefinition>
+  get(name: string): Promise<SkillDefinition | undefined>
+  has(name: string): Promise<boolean>
+  delete(name: string): Promise<boolean>
+  list(): Promise<SkillSummary[]>
+  import(options: TImportOptions): SkillImportJob
+}
 ```
-
-`compileSkillInstructions` 会把 skill instructions 编译成 system message。`createSkillRuntimeTools` 会根据 `files` 生成基础文件 runtime tools；如果没有任何可用文件，则返回空数组。
 
 ### skillPlugin
 
 ```typescript
-interface SkillRequestContext {
-  skills: SkillDefinition[]
-  skillNames: string[]
-  runtimeTools: RuntimeTool[]
-}
+type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
 
-interface SkillPluginOptions extends MessageEnginePlugin {
-  getSkills?: (context: BasePluginContext) => MaybePromise<SkillDefinition[] | undefined>
+type SkillSelection =
+  | { mode: 'manual'; skills: SkillDefinition[] }
+  | { mode: 'manual'; skillNames: string[] }
+  | { mode: 'auto'; preferredSkillNames?: string[]; maxSelectedSkills?: number }
+  | { mode: 'none' }
+
+interface UseMessageSkillPluginOptions {
+  /**
+   * 默认 manual。支持普通值、ref 或 computed。
+   */
+  mode?: MaybeRef<'manual' | 'auto' | 'none' | undefined>
+  /**
+   * manual 模式下表示已选中的完整 skills。
+   * auto 模式下表示候选 skill 集合，同时作为默认 getSkillByName 来源。
+   */
+  skills?: MaybeRef<SkillDefinition[] | undefined>
+  /**
+   * manual 模式下的已选 skill names。使用时需要提供 getSkillByName。
+   */
+  skillNames?: MaybeRef<string[] | undefined>
+  /**
+   * auto 模式下的选择偏好，不是最终启用结果。
+   */
+  preferredSkillNames?: MaybeRef<string[] | undefined>
+  /**
+   * auto 模式下最多启用的 skill 数。
+   */
+  maxSelectedSkills?: MaybeRef<number | undefined>
+  /**
+   * 高级入口。传入后会覆盖顶层 mode / skills / skillNames / preferredSkillNames 配置。
+   * plain object 不解包 ref；需要响应式 selection 时请传函数。
+   */
+  selection?: SkillSelection | ((context: BasePluginContext) => MaybePromise<SkillSelection>)
+  getSkillCandidates?: (context: BasePluginContext) => MaybePromise<SkillCandidate[]>
+  getSkillByName?: (name: string, context: BasePluginContext) => MaybePromise<SkillDefinition | undefined>
   onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
-}
-
-function skillPlugin(options: SkillPluginOptions): MessageEnginePlugin & ToolProvider
-```
-
-Vue 入口还支持直接传入响应式的 `skills`：
-
-```typescript
-type VueSkillSource = SkillDefinition[] | undefined
-type VueSkillSourceRef = VueSkillSource | Ref<VueSkillSource> | ComputedRef<VueSkillSource>
-
-interface UseMessageSkillPluginOptions extends UseMessagePlugin {
-  skills?: VueSkillSourceRef
-  getSkills?: (context: BasePluginContext) => MaybePromise<VueSkillSourceRef>
-  onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
+  onSkillSelectionResolved?: (
+    event: {
+      mode: 'auto'
+      candidates: SkillCandidate[]
+      preferredSkillNames?: string[]
+      requestedSkillNames: string[]
+    },
+    context: BasePluginContext,
+  ) => MaybePromise<void>
 }
 ```

@@ -4,7 +4,7 @@
       <div class="panel-heading">
         <div>
           <h3>导入与管理</h3>
-          <p>从示例或本地目录导入 skill，再用 manager 选择本次要编译的 skill。</p>
+          <p>从示例或本地目录导入 skill，使用 storage 保存，再选择本次请求启用的 skill。</p>
         </div>
         <button type="button" class="primary-action" @click="loadExampleSkill">导入示例 skill</button>
       </div>
@@ -48,8 +48,8 @@
           <button type="button" :class="{ active: rightTab === 'skill' }" @click="rightTab = 'skill'">
             当前 Skill
           </button>
-          <button type="button" :class="{ active: rightTab === 'compiler' }" @click="rightTab = 'compiler'">
-            Compiler 输出
+          <button type="button" :class="{ active: rightTab === 'output' }" @click="rightTab = 'output'">
+            请求输出
           </button>
         </div>
 
@@ -61,7 +61,7 @@
             </div>
             <div>
               <span>Files</span>
-              <strong>{{ inspectedSkill?.files?.length ?? 0 }}</strong>
+              <strong>{{ inspectedSkill?.resources?.length ?? 0 }}</strong>
             </div>
           </div>
 
@@ -79,17 +79,17 @@
 
           <div class="tabs">
             <button
-              v-for="tab in compilerTabs"
+              v-for="tab in outputTabs"
               :key="tab.value"
               type="button"
-              :class="{ active: compilerTab === tab.value }"
-              @click="compilerTab = tab.value"
+              :class="{ active: outputTab === tab.value }"
+              @click="outputTab = tab.value"
             >
               {{ tab.label }}
             </button>
           </div>
 
-          <pre v-if="compilerTab === 'instructions'">{{ compiledInstructionsText }}</pre>
+          <pre v-if="outputTab === 'instructions'">{{ compiledInstructionsText }}</pre>
           <pre v-else>{{ compiledToolsJson }}</pre>
         </div>
       </section>
@@ -102,8 +102,8 @@ import './SkillInspector.css'
 import { useSkillInspector } from './useSkillInspector'
 
 const {
-  compilerTab,
-  compilerTabs,
+  outputTab,
+  outputTabs,
   compiledInstructionsText,
   compiledToolsJson,
   errorMessage,

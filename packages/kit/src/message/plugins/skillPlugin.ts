@@ -1,4 +1,3 @@
-import { compileSkillInstructions } from '../../skills/instructions'
 import {
   createSkillResourceInstructionsMessage,
   createSkillResourceRuntimeTools,
@@ -34,7 +33,7 @@ type ManualSkillSelection =
 interface AutoSkillSelection {
   mode: 'auto'
   /**
-   * User-preferred skill names as an automatic selection bias.
+   * User-preferred skill names as an automatic selection preference.
    * These are not final selected skills; the selector still decides the final skill set.
    */
   preferredSkillNames?: string[]
@@ -152,6 +151,26 @@ export type SkillPluginOptions<S extends SkillSelection = SkillSelection> = Skil
   }
 
 const skillPluginContextKey = '__tiny_robot_skill'
+
+const createSkillInstructionsMessage = (skills: SkillDefinition[]): ChatMessage | undefined => {
+  const instructions: string[] = []
+
+  for (const skill of skills) {
+    const instruction = skill.instructions?.trim()
+    if (instruction) {
+      instructions.push(`## ${skill.name}\n\n${instruction}`)
+    }
+  }
+
+  if (instructions.length === 0) {
+    return undefined
+  }
+
+  return {
+    role: 'system',
+    content: ['Apply these skill instructions when generating the response.', ...instructions].join('\n\n'),
+  }
+}
 
 const appendSystemInstructions = (messages: ChatMessage[], instructions: ChatMessage[]): ChatMessage[] => {
   if (instructions.length === 0) {
@@ -423,11 +442,11 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
           }),
         ])
       } else if (skillContext?.skills.length) {
-        const skillInstructions = await compileSkillInstructions(skillContext.skills)
+        const skillInstructions = createSkillInstructionsMessage(skillContext.skills)
         const resourceInstructions = createSkillResourceInstructionsMessage(skillContext.skills)
         const instructions: ChatMessage[] = []
         if (skillInstructions) {
-          instructions.push(skillInstructions as ChatMessage)
+          instructions.push(skillInstructions)
         }
         if (resourceInstructions) {
           instructions.push(resourceInstructions as ChatMessage)

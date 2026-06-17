@@ -4,13 +4,13 @@
 
 The active development track is the skill toolchain in `packages/kit`.
 
-The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from sources, persisted or restored by storage, selected by application state, and compiled into prompt instructions plus runtime tools for the message engine.
+The goal is to make skills a standalone capability template, not a sub-feature of `message`. A skill can be loaded from sources, persisted or restored by storage, selected by application state, and connected to prompt instructions plus runtime tools for the message engine.
 
 ## Current Architecture
 
 - `packages/kit/src/skills`
   - Core skill toolchain modules.
-  - Owns skill loading, skill types, instructions, capabilities, storage, and skill tests.
+  - Owns skill loading, skill types, capabilities, storage, and skill tests.
   - Browser-safe skill APIs are exported from `@opentiny/tiny-robot-kit/core`.
   - Node-only skill loaders and storage APIs are exported from `@opentiny/tiny-robot-kit/node`.
 - `packages/kit/src/message/plugins/skillPlugin.ts`
@@ -46,9 +46,6 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
   - Browser-safe storage import uses browser/core loader sources. Node-only storage capabilities should live behind node-only entry points.
   - Storage may restore resources lazily through `resourceId`, `readText`, and `readBinary`.
   - Loader output usually keeps full resource data in memory through `text` and `binary`.
-- Instructions
-  - Converts selected `SkillDefinition[]` into request system instructions.
-  - Lives in `packages/kit/src/skills/instructions.ts`.
 - Capabilities
   - Convert selected skills or candidate summaries into runtime tools and capability-specific instructions.
   - Selection capability lives in `packages/kit/src/skills/capabilities/selection.ts` and provides `select_skills`.
@@ -70,7 +67,9 @@ This repository uses pnpm for dependency and script management. Prefer `pnpm` co
 - `skillPlugin` must not own, cache, query, mutate, or manage skill collections.
 - `skillPlugin` receives a request-level `selection` snapshot and resolves skills through caller-provided `getSkillByName` / `getSkillCandidates`.
 - Do not use `activeSkills` naming in the skill plugin or capabilities. Use selected/enabled skill terminology.
-- Instructions and capabilities may compile prompt instructions and runtime tools, but must not manage persistence, long-lived selection state, or storage.
+- Capabilities may compile capability-specific prompt instructions and runtime tools, but must not manage persistence, long-lived selection state, or storage.
+- Capability factories are internal to `skillPlugin`; do not export `createSkillResource*` or `createSkillSelection*` from public skill APIs.
+- Selected skill instructions are injected inside `skillPlugin`; do not reintroduce a public skill instruction compiler unless there is a clear non-plugin use case.
 - Loader source adapters may read platform file sources, but must not create `SkillDefinition`; loader entries call `createSkillDefinition`.
 - Loader may parse/import skill sources into a `SkillDefinition`, but must not own skill collections or persistence.
 - Storage may persist and restore `SkillDefinition`, but source import paths must reuse loader logic.
@@ -140,13 +139,12 @@ skillContext.selection
 - `packages/kit/src/skills/storage/importSkill.ts`
 - `packages/kit/src/skills/storage/memory.ts`
 - `packages/kit/src/skills/storage/types.ts`
-- `packages/kit/src/skills/instructions.ts`
 - `packages/kit/src/skills/capabilities/selection.ts`
 - `packages/kit/src/skills/capabilities/resources.ts`
 - `packages/kit/src/skills/capabilities/commands.ts`
 - `packages/kit/src/skills/index.ts`
 - `packages/kit/src/skills/README.md`
-- `packages/kit/src/skills/test/compiler.test.ts`
+- `packages/kit/src/skills/test/resourceCapability.test.ts`
 - `packages/kit/src/skills/test/loaderDefinition.test.ts`
 - `packages/kit/src/skills/test/loaderNode.test.ts`
 - `packages/kit/src/skills/test/memoryStorage.test.ts`
@@ -165,7 +163,7 @@ pnpm build
 
 ## Near-Term Next Steps
 
-- Add `read_skill_file` size limits and truncation strategy.
+- Keep resource usage conservative: model instructions should list files before reading. Future large-file support may add `search_skill_files` for centered snippets and offsets, plus read size limits, truncation diagnostics, and optional range reads.
 - Keep duplicate skill name diagnostics in storage or selection logic, not instructions or capabilities.
 - Keep selection boundaries separate from storage and loader boundaries.
 - Keep command execution as an application-provided sandbox concern.

@@ -51,9 +51,8 @@ import { TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import type { ChatCompletion, MessageRequestBody } from '@opentiny/tiny-robot-kit'
 import { skillPlugin, toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
 import type { SkillDefinition } from '@opentiny/tiny-robot-kit/core'
-import { SkillManager } from '@opentiny/tiny-robot-kit/core'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
-import { computed, h, ref } from 'vue'
+import { h, ref } from 'vue'
 import './VueSkillPlugin.css'
 
 const allSkills: SkillDefinition[] = [
@@ -61,11 +60,13 @@ const allSkills: SkillDefinition[] = [
     name: 'weather',
     description: '回答天气、温度、降雨和预报相关问题。',
     instructions: 'Use weather references when the user asks about weather. Keep the answer concise.',
-    files: [
+    resources: [
       {
         path: 'references/weather-format.md',
         kind: 'text',
-        content: 'Return current condition first, then one short forecast point.',
+        resourceId: 'references/weather-format.md',
+        text: 'Return current condition first, then one short forecast point.',
+        mimeType: 'text/markdown',
       },
     ],
   },
@@ -76,11 +77,6 @@ const allSkills: SkillDefinition[] = [
   },
 ]
 
-const manager = new SkillManager({
-  skills: allSkills,
-  selectedSkillNames: ['weather'],
-})
-
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
@@ -90,28 +86,16 @@ const roles: Record<string, BubbleRoleConfig> = {
 }
 
 const inputMessage = ref('')
-const selectedSkillNames = ref(manager.getSelectedSkillNames())
+const selectedSkillNames = ref(['weather'])
 const systemMessageContent = ref('发送一次消息后查看注入结果。')
 const toolNamesList = ref('[]')
 
-const selectedSkills = computed(() =>
-  selectedSkillNames.value.flatMap((skillName) => {
-    const skill = manager.get(skillName)
-    return skill ? [skill] : []
-  }),
-)
-
-const syncSelectedSkillNames = () => {
-  selectedSkillNames.value = manager.getSelectedSkillNames()
-}
-
 const toggleSkill = (skillName: string, event: Event) => {
   if ((event.target as HTMLInputElement).checked) {
-    manager.select(skillName)
+    selectedSkillNames.value = [...new Set([...selectedSkillNames.value, skillName])]
   } else {
-    manager.unselect(skillName)
+    selectedSkillNames.value = selectedSkillNames.value.filter((name) => name !== skillName)
   }
-  syncSelectedSkillNames()
 }
 
 const responseProvider = async (requestBody: MessageRequestBody): Promise<ChatCompletion> => {
@@ -156,7 +140,9 @@ const { isProcessing, messages, sendMessage, abortRequest } = useMessage({
   responseProvider,
   plugins: [
     skillPlugin({
-      skills: selectedSkills,
+      mode: 'manual',
+      skillNames: selectedSkillNames,
+      getSkillByName: async (name) => allSkills.find((skill) => skill.name === name),
     }),
     toolPlugin({
       getTools: async () => [],

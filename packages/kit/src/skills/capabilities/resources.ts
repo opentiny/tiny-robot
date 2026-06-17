@@ -82,8 +82,9 @@ export const createSkillResourceInstructionsMessage = (
     role: 'system',
     content: [
       'Some enabled skills include resource files.',
-      'Use list_skill_files to inspect available files before reading skill resources.',
+      'Start by calling list_skill_files before reading skill resources, unless the needed file path is already known from the current conversation.',
       'Use read_skill_file with a skillName and relative path when you need file details.',
+      'For large files or unknown locations, inspect the file list first and prefer targeted reads instead of reading unrelated files.',
       'Do not guess file paths. Binary files cannot be read as text through read_skill_file.',
     ].join('\n'),
   }

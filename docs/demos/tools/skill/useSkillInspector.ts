@@ -1,50 +1,71 @@
-import {
-  SkillManager,
-  compileSkillInstructions,
-  createSkillRuntimeTools,
-  loadSkillFilesFromFileList,
-} from '@opentiny/tiny-robot-kit/core'
-import type { SkillDefinition, SkillFile } from '@opentiny/tiny-robot-kit/core'
+import { createMemorySkillStorage, loadSkill } from '@opentiny/tiny-robot-kit/core'
+import type { SkillDefinition } from '@opentiny/tiny-robot-kit/core'
 import { computed, ref, watch } from 'vue'
-import { exampleSkillFiles } from './exampleSkillFiles'
+import { exampleSkills } from './exampleSkillFiles'
 
-export const compilerOutputTabs = [
+export const requestOutputTabs = [
   { label: 'Instructions', value: 'instructions' },
   { label: 'Runtime tools', value: 'tools' },
 ] as const
 
-type CompilerOutputTab = (typeof compilerOutputTabs)[number]['value']
+type RequestOutputTab = (typeof requestOutputTabs)[number]['value']
+
+const createSkillInstructionsPreview = (skills: SkillDefinition[]) => {
+  const instructions = skills
+    .map((skill) => {
+      const instruction = skill.instructions.trim()
+      return instruction ? `## ${skill.name}\n\n${instruction}` : ''
+    })
+    .filter(Boolean)
+
+  if (instructions.length === 0) {
+    return undefined
+  }
+
+  return {
+    role: 'system',
+    content: ['Apply these skill instructions when generating the response.', ...instructions].join('\n\n'),
+  }
+}
 
 export const useSkillInspector = () => {
-  const manager = new SkillManager()
+  const storage = createMemorySkillStorage()
   const skills = ref<SkillDefinition[]>([])
   const selectedSkillNames = ref<string[]>([])
   const inspectedSkillName = ref('')
-  const compilerTab = ref<CompilerOutputTab>('instructions')
-  const rightTab = ref<'skill' | 'compiler'>('skill')
+  const outputTab = ref<RequestOutputTab>('instructions')
+  const rightTab = ref<'skill' | 'output'>('skill')
   const errorMessage = ref('')
   const compiledInstructionsText = ref('')
 
-  const syncManagerState = () => {
-    skills.value = manager.list()
-    selectedSkillNames.value = manager.getSelectedSkillNames()
+  const syncStorageState = async () => {
+    const summaries = await storage.list()
+    const loadedSkills = await Promise.all(summaries.map((summary) => storage.get(summary.name)))
+    skills.value = loadedSkills.filter((skill): skill is SkillDefinition => Boolean(skill))
+    selectedSkillNames.value = selectedSkillNames.value.filter((skillName) =>
+      skills.value.some((skill) => skill.name === skillName),
+    )
   }
 
-  const importSkillFiles = (files: SkillFile[]) => {
+  const addSkill = async (skill: SkillDefinition) => {
+    await storage.add(skill)
+    if (!selectedSkillNames.value.includes(skill.name)) {
+      selectedSkillNames.value = [...selectedSkillNames.value, skill.name]
+    }
+    inspectedSkillName.value = skill.name
+    await syncStorageState()
+  }
+
+  const loadExampleSkill = async () => {
     errorMessage.value = ''
 
     try {
-      const result = manager.import(files)
-      manager.select(result.skill.name)
-      inspectedSkillName.value = result.skill.name
-      syncManagerState()
+      for (const skill of exampleSkills) {
+        await addSkill(skill)
+      }
     } catch (error) {
       errorMessage.value = error instanceof Error ? error.message : String(error)
     }
-  }
-
-  const loadExampleSkill = () => {
-    importSkillFiles(exampleSkillFiles)
   }
 
   const handleDirectoryChange = async (event: Event) => {
@@ -54,7 +75,12 @@ export const useSkillInspector = () => {
     }
 
     try {
-      importSkillFiles(await loadSkillFilesFromFileList(input.files))
+      errorMessage.value = ''
+      const { skill } = await loadSkill({
+        source: 'browser',
+        fileList: input.files,
+      })
+      await addSkill(skill)
     } catch (error) {
       errorMessage.value = error instanceof Error ? error.message : String(error)
     } finally {
@@ -64,12 +90,10 @@ export const useSkillInspector = () => {
 
   const toggleSkill = (skillName: string, checked: boolean) => {
     if (checked) {
-      manager.select(skillName)
+      selectedSkillNames.value = [...new Set([...selectedSkillNames.value, skillName])]
     } else {
-      manager.unselect(skillName)
+      selectedSkillNames.value = selectedSkillNames.value.filter((name) => name !== skillName)
     }
-
-    syncManagerState()
   }
 
   const inspectSkill = (skillName: string) => {
@@ -82,26 +106,44 @@ export const useSkillInspector = () => {
 
   const selectedSkills = computed(() =>
     selectedSkillNames.value.flatMap((skillName) => {
-      const skill = manager.get(skillName)
+      const skill = skills.value.find((item) => item.name === skillName)
       return skill ? [skill] : []
     }),
   )
 
   const inspectedSkill = computed(() => {
-    return manager.get(inspectedSkillName.value) ?? skills.value[0]
+    return skills.value.find((skill) => skill.name === inspectedSkillName.value) ?? skills.value[0]
   })
 
   const inspectedDefinitionJson = computed(() => JSON.stringify(inspectedSkill.value ?? null, null, 2))
 
   const compiledToolsJson = computed(() => {
-    const tools = createSkillRuntimeTools(selectedSkills.value).map((runtimeTool) => runtimeTool.tool)
+    const hasResources = selectedSkills.value.some((skill) => skill.resources?.length)
+    const tools = hasResources
+      ? [
+          {
+            type: 'function',
+            function: {
+              name: 'list_skill_files',
+              description: 'List files available from the current skills.',
+            },
+          },
+          {
+            type: 'function',
+            function: {
+              name: 'read_skill_file',
+              description: 'Read a file from a current skill by skill name and relative path.',
+            },
+          },
+        ]
+      : []
     return JSON.stringify(tools, null, 2)
   })
 
   watch(
     selectedSkills,
-    async (currentSkills) => {
-      const message = await compileSkillInstructions(currentSkills)
+    (currentSkills) => {
+      const message = createSkillInstructionsPreview(currentSkills)
       compiledInstructionsText.value = message ? JSON.stringify(message, null, 2) : 'undefined'
     },
     { immediate: true },
@@ -110,8 +152,8 @@ export const useSkillInspector = () => {
   loadExampleSkill()
 
   return {
-    compilerTab,
-    compilerTabs: compilerOutputTabs,
+    outputTab,
+    outputTabs: requestOutputTabs,
     compiledInstructionsText,
     compiledToolsJson,
     errorMessage,

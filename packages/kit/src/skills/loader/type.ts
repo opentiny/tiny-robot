@@ -54,7 +54,9 @@ export type SkillLoadBaseOptions = {
    */
   strict?: boolean
   /**
-   * 加载进度回调。事件是 best-effort，不保证所有 source 都能提供 total。
+   * @experimental
+   *
+   * 加载进度回调预留。当前 loader 暂未实现进度事件上报。
    */
   onProgress?: (event: SkillLoadProgressEvent) => void
 }
