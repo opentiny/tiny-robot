@@ -2,6 +2,9 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadSkill, loadSkillWithDetails } from '../loader/node'
 
+const runNetworkTests = process.env.RUN_NETWORK_TESTS === '1'
+const itNetwork = runNetworkTests ? it : it.skip
+
 const createResponse = (
   status: number,
   body: unknown,
@@ -61,7 +64,7 @@ describe('node loadSkill', () => {
     })
   })
 
-  it('loads weather skill from GitHub over the network', async () => {
+  itNetwork('loads weather skill from GitHub over the network', async () => {
     const expectedRoot = fileURLToPath(new URL('./.cache/weather', import.meta.url))
     const expectedSkill = await loadSkill({ source: 'fs', root: expectedRoot })
     const loadedSkill = await loadSkill({
@@ -118,6 +121,26 @@ describe('node loadSkill', () => {
       description: 'Retry weather skill',
       instructions: expect.stringContaining('# Retry'),
     })
+    expect(fetch).toHaveBeenCalledTimes(5)
+  })
+
+  it('caps transient GitHub fetch retries at five attempts', async () => {
+    vi.useFakeTimers()
+    const fetch = vi.fn().mockResolvedValue(createResponse(500, { message: 'server error' }))
+
+    vi.stubGlobal('fetch', fetch)
+
+    const job = loadSkill({
+      source: 'github',
+      repo: 'openclaw/openclaw',
+      ref: '58672075219d09495de6489ad0821d276ac84f13',
+      path: 'skills/weather',
+    })
+    const rejectedJob = expect(job).rejects.toThrow('GitHub request failed with 500')
+
+    await vi.advanceTimersByTimeAsync(200 + 400 + 800 + 1600)
+
+    await rejectedJob
     expect(fetch).toHaveBeenCalledTimes(5)
   })
 

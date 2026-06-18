@@ -125,6 +125,26 @@ describe('createSkillDefinition', () => {
     expect(() => createSkillDefinition([], {})).toThrow('Skill entry file "SKILL.md" is missing.')
   })
 
+  it('normalizes custom entry file paths before lookup', () => {
+    const loadedSkill = createSkillDefinition(
+      [
+        {
+          path: 'custom/SKILL.md',
+          kind: 'text',
+          content: ['---', 'name: custom-entry', 'description: Custom entry skill', '---', '', '# Custom'].join('\n'),
+        },
+      ],
+      { entryFile: '.\\custom\\SKILL.md' },
+    )
+
+    expect(loadedSkill.skill.name).toBe('custom-entry')
+    expect(loadedSkill.skill.instructions).toBe('# Custom')
+  })
+
+  it('throws when the custom entry file path is invalid', () => {
+    expect(() => createSkillDefinition([], { entryFile: './' })).toThrow('Invalid skill entry file path: "./".')
+  })
+
   it('throws when the entry file is binary', () => {
     expect(() =>
       createSkillDefinition(

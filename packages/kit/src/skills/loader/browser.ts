@@ -10,11 +10,21 @@ export async function loadBrowserSkillFiles(
   context: SkillLoadContext,
 ): Promise<LoadableSkillFile[]> {
   if ('fileList' in options && options.fileList) {
-    return Promise.all(
-      Array.from(options.fileList)
-        .filter((file): file is FileWithRelativePath => Boolean(file))
-        .map((file) => loadBrowserFile(file, stripRootDirectory(file.webkitRelativePath || file.name), context)),
-    )
+    const files: LoadableSkillFile[] = []
+
+    for (const file of Array.from(options.fileList)) {
+      if (!file) {
+        continue
+      }
+
+      throwIfSkillLoadCancelled(context.signal)
+      const fileWithRelativePath = file as FileWithRelativePath
+      const path = stripRootDirectory(fileWithRelativePath.webkitRelativePath || file.name)
+
+      files.push(await loadBrowserFile(file, path, context))
+    }
+
+    return files
   }
 
   const result: LoadableSkillFile[] = []

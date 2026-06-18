@@ -123,7 +123,7 @@ async function fetchGithubWithRetry(
 ): Promise<Response> {
   let lastError: unknown
 
-  for (let retryCount = 0; retryCount <= maxGithubFetchRetries; retryCount += 1) {
+  for (let retryCount = 0; retryCount < maxGithubFetchRetries; retryCount += 1) {
     try {
       const response = await fetch(url, {
         ...init,
@@ -143,7 +143,7 @@ async function fetchGithubWithRetry(
       lastError = error
     }
 
-    if (retryCount < maxGithubFetchRetries) {
+    if (retryCount < maxGithubFetchRetries - 1) {
       await waitForGithubFetchRetry(retryCount, context)
     }
   }
