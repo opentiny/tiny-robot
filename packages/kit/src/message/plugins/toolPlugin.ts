@@ -4,7 +4,7 @@ import {
   ChatCompletionMessageFunctionToolCall,
   ChatCompletionMessageToolCall,
 } from 'openai/resources'
-import type { MaybePromise } from '../../types'
+import type { MaybePromise, MaybeStreamableResult } from '../../types'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
 import { combineDeltaData, normalizeToAsyncGenerator } from '../utils'
 
@@ -24,12 +24,12 @@ export type ToolCallContext = BasePluginContext & {
   toolSource: ToolSource
 }
 
-type ToolCallResult = string | Record<string, any>
-type ToolCallReturn = ToolCallResult | Promise<ToolCallResult> | AsyncGenerator<ToolCallResult>
-
 export interface RuntimeTool {
   tool: ChatCompletionFunctionTool
-  handler: (toolCall: ChatCompletionMessageFunctionToolCall, context: ToolCallContext) => ToolCallReturn
+  handler: (
+    toolCall: ChatCompletionMessageFunctionToolCall,
+    context: ToolCallContext,
+  ) => MaybeStreamableResult<string | Record<string, any>>
 }
 
 export type ToolProviderItem = ChatCompletionFunctionTool | RuntimeTool
@@ -140,7 +140,7 @@ export const toolPlugin = (
     callTool: (
       toolCall: ChatCompletionMessageToolCall,
       context: ToolCallContext,
-    ) => Promise<ToolCallResult> | AsyncGenerator<ToolCallResult>
+    ) => MaybeStreamableResult<string | Record<string, any>>
     /**
      * 工具调用开始时的回调函数。
      * 触发时机：工具消息已创建并追加后，调用 callTool 之前触发。

@@ -2,9 +2,9 @@
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
 import type { ToolProviderItem, ToolSource } from '../../../message/plugins'
 import { normalizeToAsyncGenerator } from '../../../message/utils'
-import { ChatMessage, ToolCall } from '../../../types'
+import type { ChatMessage, MaybePromise, MaybeStreamableResult, ToolCall } from '../../../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
-import { BasePluginContext, UseMessagePlugin } from '../types'
+import type { BasePluginContext, UseMessagePlugin } from '../types'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage
@@ -40,7 +40,7 @@ export const toolPlugin = (
     /**
      * 获取工具列表的函数。
      */
-    getTools: (context: BasePluginContext) => Promise<ToolProviderItem[]>
+    getTools: (context: BasePluginContext) => MaybePromise<ToolProviderItem[]>
     /**
      * 在处理包含 tool_calls 的响应前调用。
      */
@@ -51,7 +51,7 @@ export const toolPlugin = (
     callTool: (
       toolCall: ToolCall,
       context: UseMessageCallToolContext,
-    ) => Promise<string | Record<string, any>> | AsyncGenerator<string | Record<string, any>>
+    ) => MaybeStreamableResult<string | Record<string, any>>
     /**
      * 工具调用开始时的回调函数。
      * 触发时机：工具消息已创建并追加后，调用 callTool 之前触发。
