@@ -77,6 +77,11 @@ interface MarkdownLink {
   referenceId?: string;
 }
 
+interface MarkdownScanContext {
+  closingBracketByOpeningIndex: Map<number, number>;
+  closingParenthesisByOpeningIndex: Map<number, number>;
+}
+
 type LocalPathResult =
   | { value: string }
   | { error: "empty" | "malformed-percent-encoding" | "unsafe" };
@@ -489,6 +494,7 @@ function findReferenceDefinitions(body: string): Map<string, string> {
 function findMarkdownLinks(body: string): MarkdownLink[] {
   // 仅扫描 inline、full reference 与 collapsed reference，输出目标或 reference id 供后续统一校验。
   const links: MarkdownLink[] = [];
+  const context = createMarkdownScanContext(body);
 
   for (let index = 0; index < body.length; index += 1) {
     if (body[index] !== "[" || isEscaped(body, index)) {
@@ -502,17 +508,18 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
       continue;
     }
 
-    const label = parseBracketValue(body, index);
+    const labelEndIndex = context.closingBracketByOpeningIndex.get(index);
 
-    if (!label.closed) {
-      index = label.endIndex;
+    if (labelEndIndex === undefined) {
       continue;
     }
+
+    const label = parseBracketValue(body, index, labelEndIndex);
 
     const suffixIndex = label.endIndex + 1;
 
     if (body[suffixIndex] === "(") {
-      const destination = parseMarkdownDestination(body, suffixIndex + 1);
+      const destination = parseMarkdownDestination(body, suffixIndex + 1, context);
 
       if (destination) {
         links.push({ target: destination.value.trim() });
@@ -527,12 +534,13 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
       continue;
     }
 
-    const reference = parseBracketValue(body, suffixIndex);
+    const referenceEndIndex = context.closingBracketByOpeningIndex.get(suffixIndex);
 
-    if (!reference.closed) {
-      index = reference.endIndex;
+    if (referenceEndIndex === undefined) {
       continue;
     }
+
+    const reference = parseBracketValue(body, suffixIndex, referenceEndIndex);
 
     links.push({
       referenceId: (reference.value.length === 0 ? label.value : reference.value).trim()
@@ -630,20 +638,27 @@ async function validateMarkdownImages(
 
 function findMarkdownImages(body: string): Array<{ alt: string; path: string }> {
   const images: Array<{ alt: string; path: string }> = [];
+  const context = createMarkdownScanContext(body);
 
   for (let index = 0; index < body.length - 1; index += 1) {
     if (body[index] !== "!" || body[index + 1] !== "[" || isEscaped(body, index)) {
       continue;
     }
 
-    const alt = parseBracketValue(body, index + 1);
+    const altEndIndex = context.closingBracketByOpeningIndex.get(index + 1);
 
-    if (!alt.closed || body[alt.endIndex + 1] !== "(") {
+    if (altEndIndex === undefined) {
+      continue;
+    }
+
+    const alt = parseBracketValue(body, index + 1, altEndIndex);
+
+    if (body[alt.endIndex + 1] !== "(") {
       index = alt.endIndex;
       continue;
     }
 
-    const destination = parseMarkdownDestination(body, alt.endIndex + 2);
+    const destination = parseMarkdownDestination(body, alt.endIndex + 2, context);
 
     if (!destination) {
       continue;
@@ -656,11 +671,15 @@ function findMarkdownImages(body: string): Array<{ alt: string; path: string }> 
   return images;
 }
 
-function parseBracketValue(markdown: string, startIndex: number): ParsedBracketValue {
+function parseBracketValue(
+  markdown: string,
+  startIndex: number,
+  knownEndIndex = markdown.length - 1
+): ParsedBracketValue {
   let depth = 0;
   let value = "";
 
-  for (let index = startIndex + 1; index < markdown.length; index += 1) {
+  for (let index = startIndex + 1; index <= knownEndIndex; index += 1) {
     const character = markdown[index];
 
     if (character === "\\" && isAsciiPunctuation(markdown[index + 1])) {
@@ -682,14 +701,22 @@ function parseBracketValue(markdown: string, startIndex: number): ParsedBracketV
   return { value, endIndex: markdown.length - 1, closed: false };
 }
 
-function parseMarkdownDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+function parseMarkdownDestination(
+  markdown: string,
+  startIndex: number,
+  context?: MarkdownScanContext
+): ParsedMarkdownValue | undefined {
   const destinationStart = skipMarkdownWhitespace(markdown, startIndex);
 
   if (markdown[destinationStart] === "<") {
     return parseAngleDestination(markdown, destinationStart + 1);
   }
 
-  return parseBareDestination(markdown, destinationStart);
+  return parseBareDestination(
+    markdown,
+    destinationStart,
+    context?.closingParenthesisByOpeningIndex
+  );
 }
 
 function parseAngleDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
@@ -715,7 +742,11 @@ function parseAngleDestination(markdown: string, startIndex: number): ParsedMark
   return undefined;
 }
 
-function parseBareDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+function parseBareDestination(
+  markdown: string,
+  startIndex: number,
+  closingParenthesisByOpeningIndex?: Map<number, number>
+): ParsedMarkdownValue | undefined {
   let depth = 0;
   let value = "";
 
@@ -726,6 +757,14 @@ function parseBareDestination(markdown: string, startIndex: number): ParsedMarkd
       value += markdown[index + 1];
       index += 1;
     } else if (character === "(") {
+      if (
+        closingParenthesisByOpeningIndex &&
+        !closingParenthesisByOpeningIndex.has(index)
+      ) {
+        // 当前 bare destination 已进入无法闭合的嵌套括号，继续扫描只会重复处理同一后缀。
+        return undefined;
+      }
+
       depth += 1;
       value += character;
     } else if (character === ")" && depth > 0) {
@@ -806,6 +845,38 @@ function isAsciiPunctuation(character: string | undefined): boolean {
   );
 }
 
+function createMarkdownScanContext(markdown: string): MarkdownScanContext {
+  // 预先配对 delimiter，扫描器可常数时间判断闭合状态且不必跳过后续 opener。
+  const bracketStack: number[] = [];
+  const parenthesisStack: number[] = [];
+  const closingBracketByOpeningIndex = new Map<number, number>();
+  const closingParenthesisByOpeningIndex = new Map<number, number>();
+
+  for (let index = 0; index < markdown.length; index += 1) {
+    const character = markdown[index];
+
+    if (character !== "[" && character !== "]" && character !== "(" && character !== ")") {
+      continue;
+    }
+
+    if (isEscaped(markdown, index)) {
+      continue;
+    }
+
+    if (character === "[") {
+      bracketStack.push(index);
+    } else if (character === "]" && bracketStack.length > 0) {
+      closingBracketByOpeningIndex.set(bracketStack.pop()!, index);
+    } else if (character === "(") {
+      parenthesisStack.push(index);
+    } else if (character === ")" && parenthesisStack.length > 0) {
+      closingParenthesisByOpeningIndex.set(parenthesisStack.pop()!, index);
+    }
+  }
+
+  return { closingBracketByOpeningIndex, closingParenthesisByOpeningIndex };
+}
+
 function removeFencedCodeBlocks(body: string): string {
   let openFence: { marker: "`" | "~"; length: number } | undefined;
   const lines: string[] = [];
@@ -851,6 +922,10 @@ function removeInlineCodeSpans(body: string): string {
 
     while (index + 1 < body.length && body[index + 1] === "`") {
       index += 1;
+    }
+
+    if (isEscaped(body, start)) {
+      continue;
     }
 
     runs.push({ start, length: index - start + 1 });

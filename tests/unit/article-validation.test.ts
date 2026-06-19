@@ -481,6 +481,31 @@ describe("article validation", () => {
     expect(result.blocking_issues).toEqual([]);
   });
 
+  test("escaped backtick 不会遮蔽真实链接", async () => {
+    const articleFile = writeVariant(
+      "escaped-backtick-around-link",
+      (content) => `${content}\n\n\\\`[真实链接](missing.md)\\\`\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地链接文件不存在：missing.md");
+  });
+
+  test.each([
+    ["链接", "[未闭合\n[真实链接](missing.md)", "本地链接文件不存在：missing.md"],
+    ["图片", "![未闭合\n![中文图](missing.png)", "本地图片文件不存在：missing.png"]
+  ])("未闭合%s bracket 不会跳过后续真实资源", async (_, markdown, expectedIssue) => {
+    const articleFile = writeVariant(
+      "unclosed-bracket-before-resource",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain(expectedIssue);
+  });
+
   test("图片语法不会重复作为普通链接校验", async () => {
     const articleFile = writeVariant(
       "image-not-link",
@@ -504,6 +529,23 @@ describe("article validation", () => {
 
       expect(result.valid).toBe(true);
       expect(issueMessages(result).filter((message) => /链接|reference/.test(message))).toEqual([]);
+    },
+    10_000
+  );
+
+  test(
+    "大量 malformed destination 保持有界并校验后续真实资源",
+    async () => {
+      const articleFile = writeVariant(
+        "many-malformed-destinations",
+        (content) =>
+          `${content}\n\n${"[x](".repeat(30_000)}[真实链接](missing.md) ![中文图](missing.png)\n`
+      );
+
+      const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+      expect(issueMessages(result)).toContain("本地链接文件不存在：missing.md");
+      expect(issueMessages(result)).toContain("本地图片文件不存在：missing.png");
     },
     10_000
   );
