@@ -418,7 +418,7 @@ async function validateMarkdownImages(
   body: string,
   blockingIssues: ArticleValidationIssue[]
 ): Promise<void> {
-  for (const image of findMarkdownImages(body)) {
+  for (const image of findMarkdownImages(removeFencedCodeBlocks(body))) {
     validateImageAlt(image.alt, blockingIssues);
 
     if (isExternalPath(image.path)) {
@@ -460,6 +460,38 @@ function findMarkdownImages(body: string): Array<{ alt: string; path: string }> 
     alt: match[1].trim(),
     path: match[2].trim()
   }));
+}
+
+function removeFencedCodeBlocks(body: string): string {
+  let openFence: { marker: "`" | "~"; length: number } | undefined;
+  const lines: string[] = [];
+
+  for (const line of body.split(/\r?\n/)) {
+    const fence = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+
+    if (!fence) {
+      lines.push(openFence ? "" : line);
+      continue;
+    }
+
+    const marker = fence[2][0] as "`" | "~";
+    const length = fence[2].length;
+
+    if (!openFence) {
+      openFence = { marker, length };
+      lines.push("");
+      continue;
+    }
+
+    if (marker === openFence.marker && length >= openFence.length) {
+      openFence = undefined;
+    }
+
+    // 代码块中的图片语法是示例文本，不能作为正文素材引用参与校验。
+    lines.push("");
+  }
+
+  return lines.join("\n");
 }
 
 function validateImageAlt(alt: string, blockingIssues: ArticleValidationIssue[]): void {
@@ -568,7 +600,15 @@ async function validatePngDimensions(
   displayPath: string,
   blockingIssues: ArticleValidationIssue[]
 ): Promise<void> {
-  const png = await readFile(pngPath);
+  let png: Buffer;
+
+  try {
+    png = await readFile(pngPath);
+  } catch {
+    blockingIssues.push({ message: `PNG 图片无法解码或尺寸无效：${displayPath}` });
+    return;
+  }
+
   const validSignature =
     png.length >= 24 &&
     png[0] === 0x89 &&

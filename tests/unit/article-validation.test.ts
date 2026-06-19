@@ -358,4 +358,30 @@ describe("article validation", () => {
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("PNG 图片无法解码或尺寸无效：assets/images/bad.png");
   });
+
+  test("PNG 路径指向目录时以阻断问题返回", async () => {
+    const articleFile = writeArticleWithAssets(
+      "png-directory",
+      (content) => `${content}\n\n![中文截图](assets/images/demo.png)\n`,
+      {}
+    );
+    mkdirSync(path.join(path.dirname(articleFile), "assets/images/demo.png"), { recursive: true });
+
+    await expect(validateArticleFile({ articleFile, configPath, dryRun: false })).resolves.toMatchObject({
+      valid: false,
+      blocking_issues: [{ message: "PNG 图片无法解码或尺寸无效：assets/images/demo.png" }]
+    });
+  });
+
+  test("fenced code block 中的图片语法不会触发素材校验", async () => {
+    const articleFile = writeVariant(
+      "image-in-code-fence",
+      (content) => `${content}\n\n\`\`\`md\n![Demo screenshot](missing.png)\n\`\`\`\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
 });
