@@ -1,4 +1,4 @@
-import { access, readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
@@ -60,8 +60,12 @@ const placeholderPatterns = [
   { token: "待补充", pattern: /待补充/ },
   { token: "lorem ipsum", pattern: /lorem ipsum/i }
 ];
-const markdownImagePattern = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
 const chineseTextPattern = /[\u3400-\u9fff]/;
+
+interface ParsedMarkdownValue {
+  value: string;
+  endIndex: number;
+}
 
 /**
  * 校验阶段 A 文章的 Front Matter、Markdown 与本地素材契约。
@@ -388,7 +392,7 @@ function validateCodeFences(body: string, blockingIssues: ArticleValidationIssue
       continue;
     }
 
-    if (marker === openFence.marker && length >= openFence.length) {
+    if (marker === openFence.marker && length >= openFence.length && fence[3].trim().length === 0) {
       openFence = undefined;
     }
   }
@@ -456,10 +460,180 @@ async function validateMarkdownImages(
 }
 
 function findMarkdownImages(body: string): Array<{ alt: string; path: string }> {
-  return Array.from(body.matchAll(markdownImagePattern), (match) => ({
-    alt: match[1].trim(),
-    path: match[2].trim()
-  }));
+  const images: Array<{ alt: string; path: string }> = [];
+
+  for (let index = 0; index < body.length - 1; index += 1) {
+    if (body[index] !== "!" || body[index + 1] !== "[" || isEscaped(body, index)) {
+      continue;
+    }
+
+    const alt = parseBracketValue(body, index + 1);
+
+    if (!alt || body[alt.endIndex + 1] !== "(") {
+      continue;
+    }
+
+    const destination = parseImageDestination(body, alt.endIndex + 2);
+
+    if (!destination) {
+      continue;
+    }
+
+    images.push({ alt: alt.value.trim(), path: destination.value.trim() });
+    index = destination.endIndex;
+  }
+
+  return images;
+}
+
+function parseBracketValue(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+  let depth = 0;
+  let value = "";
+
+  for (let index = startIndex + 1; index < markdown.length; index += 1) {
+    const character = markdown[index];
+
+    if (character === "\\" && isAsciiPunctuation(markdown[index + 1])) {
+      value += markdown[index + 1];
+      index += 1;
+    } else if (character === "[") {
+      depth += 1;
+      value += character;
+    } else if (character === "]" && depth > 0) {
+      depth -= 1;
+      value += character;
+    } else if (character === "]") {
+      return { value, endIndex: index };
+    } else {
+      value += character;
+    }
+  }
+
+  return undefined;
+}
+
+function parseImageDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+  const destinationStart = skipMarkdownWhitespace(markdown, startIndex);
+
+  if (markdown[destinationStart] === "<") {
+    return parseAngleDestination(markdown, destinationStart + 1);
+  }
+
+  return parseBareDestination(markdown, destinationStart);
+}
+
+function parseAngleDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+  let value = "";
+
+  for (let index = startIndex; index < markdown.length; index += 1) {
+    const character = markdown[index];
+
+    if (character === "\n" || character === "\r" || character === "<") {
+      return undefined;
+    }
+
+    if (character === "\\" && isAsciiPunctuation(markdown[index + 1])) {
+      value += markdown[index + 1];
+      index += 1;
+    } else if (character === ">") {
+      return finishImageDestination(markdown, index + 1, value);
+    } else {
+      value += character;
+    }
+  }
+
+  return undefined;
+}
+
+function parseBareDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+  let depth = 0;
+  let value = "";
+
+  for (let index = startIndex; index < markdown.length; index += 1) {
+    const character = markdown[index];
+
+    if (character === "\\" && isAsciiPunctuation(markdown[index + 1])) {
+      value += markdown[index + 1];
+      index += 1;
+    } else if (character === "(") {
+      depth += 1;
+      value += character;
+    } else if (character === ")" && depth > 0) {
+      depth -= 1;
+      value += character;
+    } else if (character === ")") {
+      return { value, endIndex: index };
+    } else if (/\s/.test(character) && depth === 0) {
+      return finishImageDestination(markdown, index, value);
+    } else {
+      value += character;
+    }
+  }
+
+  return undefined;
+}
+
+function finishImageDestination(
+  markdown: string,
+  startIndex: number,
+  value: string
+): ParsedMarkdownValue | undefined {
+  let index = skipMarkdownWhitespace(markdown, startIndex);
+
+  if (markdown[index] === ")") {
+    return { value, endIndex: index };
+  }
+
+  const titleEnd = markdown[index] === "(" ? ")" : markdown[index];
+
+  if (titleEnd !== "\"" && titleEnd !== "'" && titleEnd !== ")") {
+    return undefined;
+  }
+
+  for (index += 1; index < markdown.length; index += 1) {
+    if (markdown[index] === "\\" && isAsciiPunctuation(markdown[index + 1])) {
+      index += 1;
+    } else if (markdown[index] === titleEnd) {
+      index = skipMarkdownWhitespace(markdown, index + 1);
+      return markdown[index] === ")" ? { value, endIndex: index } : undefined;
+    }
+  }
+
+  return undefined;
+}
+
+function skipMarkdownWhitespace(markdown: string, startIndex: number): number {
+  let index = startIndex;
+
+  while (index < markdown.length && /\s/.test(markdown[index])) {
+    index += 1;
+  }
+
+  return index;
+}
+
+function isEscaped(markdown: string, index: number): boolean {
+  let slashCount = 0;
+
+  for (let cursor = index - 1; cursor >= 0 && markdown[cursor] === "\\"; cursor -= 1) {
+    slashCount += 1;
+  }
+
+  return slashCount % 2 === 1;
+}
+
+function isAsciiPunctuation(character: string | undefined): boolean {
+  if (!character) {
+    return false;
+  }
+
+  const code = character.charCodeAt(0);
+  return (
+    (code >= 0x21 && code <= 0x2f) ||
+    (code >= 0x3a && code <= 0x40) ||
+    (code >= 0x5b && code <= 0x60) ||
+    (code >= 0x7b && code <= 0x7e)
+  );
 }
 
 function removeFencedCodeBlocks(body: string): string {
@@ -483,7 +657,7 @@ function removeFencedCodeBlocks(body: string): string {
       continue;
     }
 
-    if (marker === openFence.marker && length >= openFence.length) {
+    if (marker === openFence.marker && length >= openFence.length && fence[3].trim().length === 0) {
       openFence = undefined;
     }
 
@@ -501,7 +675,7 @@ function validateImageAlt(alt: string, blockingIssues: ArticleValidationIssue[])
 }
 
 function isExternalPath(imagePath: string): boolean {
-  return /^[a-z][a-z0-9+.-]*:\/\//i.test(imagePath) || imagePath.startsWith("//");
+  return /^https?:\/\//i.test(imagePath) || imagePath.startsWith("//");
 }
 
 function normalizeLocalAssetPath(imagePath: string): string | undefined {
@@ -521,6 +695,7 @@ function normalizeLocalAssetPath(imagePath: string): string | undefined {
   }
 
   if (
+    /^[a-z][a-z0-9+.-]*:/i.test(decodedPath) ||
     decodedPath.startsWith("/") ||
     path.win32.isAbsolute(decodedPath) ||
     decodedPath.split(/[\\/]+/).includes("..")
@@ -582,16 +757,10 @@ async function validateDiagramDerivatives(
 
 async function fileExists(targetPath: string): Promise<boolean> {
   try {
-    await access(targetPath);
-    return true;
-  } catch (error) {
-    const nodeError = error as NodeJS.ErrnoException;
-
-    if (nodeError.code === "ENOENT") {
-      return false;
-    }
-
-    throw error;
+    return (await stat(targetPath)).isFile();
+  } catch {
+    // 文件系统失败由调用方转换为素材 blocking issue，避免泄漏底层异常。
+    return false;
   }
 }
 
@@ -609,8 +778,8 @@ async function validatePngDimensions(
     return;
   }
 
-  const validSignature =
-    png.length >= 24 &&
+  const validHeader =
+    png.length >= 33 &&
     png[0] === 0x89 &&
     png[1] === 0x50 &&
     png[2] === 0x4e &&
@@ -619,14 +788,15 @@ async function validatePngDimensions(
     png[5] === 0x0a &&
     png[6] === 0x1a &&
     png[7] === 0x0a &&
+    png.readUInt32BE(8) === 13 &&
     png.toString("ascii", 12, 16) === "IHDR";
 
-  if (!validSignature) {
+  if (!validHeader) {
     blockingIssues.push({ message: `PNG 图片无法解码或尺寸无效：${displayPath}` });
     return;
   }
 
-  // PNG 宽高位于 IHDR 数据头；读取前 24 字节即可拒绝空尺寸和明显损坏文件。
+  // PNG 宽高位于固定长度的 IHDR 数据头；不满足最小 chunk 结构时不能读取尺寸。
   const width = png.readUInt32BE(16);
   const height = png.readUInt32BE(20);
 

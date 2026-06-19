@@ -369,7 +369,7 @@ describe("article validation", () => {
 
     await expect(validateArticleFile({ articleFile, configPath, dryRun: false })).resolves.toMatchObject({
       valid: false,
-      blocking_issues: [{ message: "PNG 图片无法解码或尺寸无效：assets/images/demo.png" }]
+      blocking_issues: [{ message: "本地图片文件不存在：assets/images/demo.png" }]
     });
   });
 
@@ -383,5 +383,104 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(true);
     expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("带尾随文本的 fence 行不会关闭代码块", async () => {
+    const articleFile = writeVariant(
+      "non-closing-fence",
+      (content) =>
+        `${content}\n\n\`\`\`md\n\`\`\`not-close\n![中文示例](ignored.png)\n\`\`\`\n![中文正文图](assets/images/real.png)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地图片文件不存在：assets/images/real.png");
+    expect(issueMessages(result)).not.toContain("本地图片文件不存在：ignored.png");
+  });
+
+  test("angle-bracket destination 支持包含空格的本地路径", async () => {
+    const articleFile = writeVariant(
+      "angle-image-destination",
+      (content) => `${content}\n\n![中文截图](<assets/images/my image.png>)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地图片文件不存在：assets/images/my image.png");
+  });
+
+  test.each([
+    ["平衡括号", "assets/images/demo(1).png", "assets/images/demo(1).png"],
+    ["反斜杠转义", "assets/images/demo\\(2\\).png", "assets/images/demo(2).png"]
+  ])("图片 destination 支持%s", async (_, markdownPath, expectedPath) => {
+    const articleFile = writeVariant(
+      "structured-image-destination",
+      (content) => `${content}\n\n![中文截图](${markdownPath})\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain(`本地图片文件不存在：${expectedPath}`);
+  });
+
+  test("file URL 不能绕过本地图片路径限制", async () => {
+    const imagePath = "file:///tmp/demo.png";
+    const articleFile = writeVariant(
+      "file-url-image",
+      (content) => `${content}\n\n![中文截图](${imagePath})\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain(`本地图片路径必须相对文章目录且不能穿越：${imagePath}`);
+  });
+
+  test("普通图片路径指向目录时按文件不存在阻断", async () => {
+    const articleFile = writeArticleWithAssets(
+      "image-directory",
+      (content) => `${content}\n\n![中文截图](assets/images/demo.jpg)\n`,
+      {}
+    );
+    mkdirSync(path.join(path.dirname(articleFile), "assets/images/demo.jpg"), { recursive: true });
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地图片文件不存在：assets/images/demo.jpg");
+  });
+
+  test.each(["svg", "png"])("diagram %s 目录不能冒充同名文件", async (extension) => {
+    const companionAssets =
+      extension === "svg"
+        ? { "assets/diagrams/flow.mmd": "graph TD\nA-->B\n", "assets/diagrams/flow.png": validPng }
+        : {
+            "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
+            "assets/diagrams/flow.svg": '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+          };
+    const articleFile = writeArticleWithAssets("diagram-directory", (content) => content, companionAssets);
+    mkdirSync(path.join(path.dirname(articleFile), `assets/diagrams/flow.${extension}`), { recursive: true });
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain(
+      `Mermaid 源文件缺少同名 ${extension.toUpperCase()}：assets/diagrams/flow.${extension}`
+    );
+  });
+
+  test("IHDR chunk 长度不是 13 的 PNG 会阻断", async () => {
+    const malformedPng = Buffer.alloc(33);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(malformedPng);
+    malformedPng.writeUInt32BE(1, 8);
+    malformedPng.write("IHDR", 12, "ascii");
+    malformedPng.writeUInt32BE(1, 16);
+    malformedPng.writeUInt32BE(1, 20);
+    const articleFile = writeArticleWithAssets(
+      "invalid-ihdr-length",
+      (content) => `${content}\n\n![中文截图](assets/images/malformed.png)\n`,
+      { "assets/images/malformed.png": malformedPng }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("PNG 图片无法解码或尺寸无效：assets/images/malformed.png");
   });
 });
