@@ -493,20 +493,50 @@ function validateMarkdownBoundary(
 }
 
 function validateMdxEsm(body: string, blockingIssues: ArticleValidationIssue[]): void {
-  for (const line of body.split(/\r?\n/)) {
-    const trimmedLine = line.trim();
+  const lines = body.split(/\r?\n/);
 
-    if (
-      /^import\s+(?:type\s+)?(?:[\w*{}\s,$]+from\s+)?["'][^"']+["']\s*;?$/.test(
-        trimmedLine
-      ) ||
-      /^export\s+(?:default\b|async\s+function\b|(?:const|let|var|function|class)\b|\{[^}\r\n]*\}(?:\s+from\s+["'][^"']+["'])?|\*\s+(?:as\s+[A-Za-z_$][\w$]*\s+)?from\s+["'][^"']+["'])/.test(
-        trimmedLine
-      )
-    ) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const trimmedLine = lines[index].trim();
+
+    if (!/^(?:import|export)\b/.test(trimmedLine)) {
+      continue;
+    }
+
+    if (isMdxEsmStatement(collectMdxEsmStatement(lines, index))) {
       blockingIssues.push({ message: "正文禁止 MDX ESM import/export" });
     }
   }
+}
+
+function collectMdxEsmStatement(lines: string[], startIndex: number): string {
+  const parts: string[] = [];
+
+  for (let index = startIndex; index < lines.length; index += 1) {
+    const trimmedLine = lines[index].trim();
+
+    if (trimmedLine.length === 0) {
+      break;
+    }
+
+    parts.push(trimmedLine);
+
+    if (/[;}]\s*;?$/.test(trimmedLine) || /["']\s*;?$/.test(trimmedLine)) {
+      break;
+    }
+  }
+
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function isMdxEsmStatement(statement: string): boolean {
+  return (
+    /^import\s+(?:type\s+)?(?:[\w*{}\s,$]+from\s+)?["'][^"']+["']\s*;?$/.test(
+      statement
+    ) ||
+    /^export\s+(?:default\b|async\s+function\b|(?:const|let|var|function|class)\b|\{[^}]*\}(?:\s+from\s+["'][^"']+["'])?|\*\s+(?:as\s+[A-Za-z_$][\w$]*\s+)?from\s+["'][^"']+["'])/.test(
+      statement
+    )
+  );
 }
 
 function validateMdxJsxExpressions(
@@ -517,52 +547,43 @@ function validateMdxJsxExpressions(
   const bodyWithoutHtmlTags = body.replace(createHtmlTagPattern(), (tag) =>
     tag.replace(/[^\r\n]/g, " ")
   );
+  const closingBraceByOpeningIndex = createBraceScanContext(bodyWithoutHtmlTags);
 
   for (let index = 0; index < bodyWithoutHtmlTags.length; index += 1) {
     if (bodyWithoutHtmlTags[index] !== "{" || isEscaped(bodyWithoutHtmlTags, index)) {
       continue;
     }
 
-    const expression = readMdxJsxExpression(bodyWithoutHtmlTags, index);
+    const endIndex = closingBraceByOpeningIndex.get(index);
 
-    if (expression && expression.value.trim().length > 0) {
+    if (
+      endIndex !== undefined &&
+      bodyWithoutHtmlTags.slice(index + 1, endIndex).trim().length > 0
+    ) {
       pushUniqueIssue(reportedMessages, blockingIssues, "正文禁止 MDX/JSX 表达式");
-      index = expression.endIndex;
+      index = endIndex;
     }
   }
 }
 
-function readMdxJsxExpression(
-  body: string,
-  startIndex: number
-): ParsedMarkdownValue | undefined {
-  let depth = 0;
+function createBraceScanContext(body: string): Map<number, number> {
+  const braceStack: number[] = [];
+  const closingBraceByOpeningIndex = new Map<number, number>();
 
-  for (let index = startIndex; index < body.length; index += 1) {
+  for (let index = 0; index < body.length; index += 1) {
     const character = body[index];
 
-    if (character === "\n" || character === "\r") {
-      return undefined;
-    }
-
     if (character === "{" && !isEscaped(body, index)) {
-      depth += 1;
+      braceStack.push(index);
       continue;
     }
 
-    if (character === "}" && !isEscaped(body, index)) {
-      depth -= 1;
-
-      if (depth === 0) {
-        return {
-          value: body.slice(startIndex + 1, index),
-          endIndex: index
-        };
-      }
+    if (character === "}" && !isEscaped(body, index) && braceStack.length > 0) {
+      closingBraceByOpeningIndex.set(braceStack.pop()!, index);
     }
   }
 
-  return undefined;
+  return closingBraceByOpeningIndex;
 }
 
 function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]): void {

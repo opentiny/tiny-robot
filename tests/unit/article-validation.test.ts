@@ -286,7 +286,9 @@ describe("article validation", () => {
     ["MDX export", "export const metadata = { title: 'Demo' };"],
     ["MDX named export", 'export { Notice } from "./Notice.mdx";'],
     ["MDX async function export", "export async function loadData() {}"],
-    ["MDX namespace export", 'export * as Docs from "./docs.mdx";']
+    ["MDX namespace export", 'export * as Docs from "./docs.mdx";'],
+    ["MDX multiline import", 'import {\n  Notice\n} from "./Notice.mdx";'],
+    ["MDX multiline export", 'export {\n  Notice\n} from "./Notice.mdx";']
   ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
     const articleFile = writeVariant(
       "mdx-esm",
@@ -328,7 +330,8 @@ describe("article validation", () => {
 
   test.each([
     ["HTML 标签体内 JSX 表达式", "<span>{version}</span>"],
-    ["独立 JSX 表达式", "{version}"]
+    ["独立 JSX 表达式", "{version}"],
+    ["多行 JSX 表达式", "{\n  version\n}"]
   ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
     const articleFile = writeVariant(
       "jsx-body-expression",
