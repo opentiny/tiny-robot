@@ -534,6 +534,10 @@ function collectMdxEsmStatement(
       break;
     }
 
+    if (index > startIndex && /^(?:import|export)\b/.test(trimmedLine)) {
+      break;
+    }
+
     parts.push(trimmedLine);
     endIndex = index;
 
@@ -915,19 +919,21 @@ function isExecutableHtmlUrl(value: string): boolean {
 }
 
 function decodeHtmlCharacterReferences(value: string): string {
-  return value.replace(/&#(?:x([0-9a-fA-F]+)|([0-9]+));?/g, (match, hex, decimal) => {
-    const codePoint = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
+  return value
+    .replace(/&colon;/gi, ":")
+    .replace(/&#(?:x([0-9a-fA-F]+)|([0-9]+));?/g, (match, hex, decimal) => {
+      const codePoint = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
 
-    if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
-      return match;
-    }
+      if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+        return match;
+      }
 
-    try {
-      return String.fromCodePoint(codePoint);
-    } catch {
-      return match;
-    }
-  });
+      try {
+        return String.fromCodePoint(codePoint);
+      } catch {
+        return match;
+      }
+    });
 }
 
 function pushUniqueIssue(

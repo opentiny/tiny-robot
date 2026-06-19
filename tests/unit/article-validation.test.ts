@@ -306,7 +306,8 @@ describe("article validation", () => {
 
   test.each([
     ["hex reference", '<q cite="jav&#x61;script:alert(1)">正文</q>'],
-    ["decimal reference", '<q cite="java&#115;cript:alert(1)">正文</q>']
+    ["decimal reference", '<q cite="java&#115;cript:alert(1)">正文</q>'],
+    ["named colon reference", '<q cite="javascript&colon;alert(1)">正文</q>']
   ])("URL 属性中的 HTML character reference 会先解码：%s", async (_, markdown) => {
     const articleFile = writeVariant(
       "html-url-character-reference",
@@ -330,6 +331,21 @@ describe("article validation", () => {
   ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
     const articleFile = writeVariant(
       "mdx-esm",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
+  });
+
+  test.each([
+    ["export default", "import broken\nexport default 1;"],
+    ["export function", "import broken\nexport function demo() {}"]
+  ])("malformed MDX import 不会遮蔽后续 %s", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "malformed-import-before-export",
       (content) => `${content}\n\n${markdown}\n`
     );
 
