@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -17,6 +17,21 @@ const validPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64"
 );
+const temporaryDirectories = new Set<string>();
+
+afterEach(() => {
+  for (const directory of temporaryDirectories) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+
+  temporaryDirectories.clear();
+});
+
+function createTemporaryDirectory(): string {
+  const directory = mkdtempSync(path.join(os.tmpdir(), "article validation cli "));
+  temporaryDirectories.add(directory);
+  return directory;
+}
 
 function runCli(args: string[]) {
   return spawnSync(process.execPath, ["--import", "tsx", cliPath, ...args], {
@@ -26,7 +41,7 @@ function runCli(args: string[]) {
 }
 
 function writeArticleWithLocalPng(): string {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation cli "));
+  const tmp = createTemporaryDirectory();
   const assetPath = path.join(tmp, "assets/images/demo.png");
   mkdirSync(path.dirname(assetPath), { recursive: true });
   writeFileSync(assetPath, validPng);
@@ -42,7 +57,7 @@ function writeArticleWithLocalPng(): string {
 }
 
 function writeArticleWithLocalLink(): string {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation cli "));
+  const tmp = createTemporaryDirectory();
   const linkedFile = path.join(tmp, "docs/guide.md");
   mkdirSync(path.dirname(linkedFile), { recursive: true });
   writeFileSync(linkedFile, "# 使用说明\n", "utf8");

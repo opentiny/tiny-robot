@@ -1,9 +1,9 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { validateArticleFile } from "../../src/domain/article-validation.js";
 
@@ -17,9 +17,24 @@ const validPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64"
 );
+const temporaryDirectories = new Set<string>();
+
+afterEach(() => {
+  for (const directory of temporaryDirectories) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+
+  temporaryDirectories.clear();
+});
+
+function createTemporaryDirectory(prefix = "article validation "): string {
+  const directory = mkdtempSync(path.join(os.tmpdir(), prefix));
+  temporaryDirectories.add(directory);
+  return directory;
+}
 
 function writeVariant(name: string, transform: (content: string) => string): string {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation "));
+  const tmp = createTemporaryDirectory();
   const target = path.join(tmp, `${name}.md`);
   writeFileSync(target, transform(readFileSync(validArticlePath, "utf8")), "utf8");
   return target;
@@ -30,7 +45,7 @@ function writeArticleWithAssets(
   transform: (content: string) => string,
   assets: Record<string, string | Buffer>
 ): string {
-  const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation "));
+  const tmp = createTemporaryDirectory();
   const target = path.join(tmp, "article.md");
 
   for (const [assetPath, content] of Object.entries(assets)) {
@@ -337,6 +352,38 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("本地链接文件不存在：docs/guide");
   });
 
+  test("本地链接拒绝指向文章目录外文件的 symlink", async () => {
+    const outsideDirectory = createTemporaryDirectory("article validation outside ");
+    const outsideFile = path.join(outsideDirectory, "outside.md");
+    writeFileSync(outsideFile, "# 外部文件\n", "utf8");
+    const articleFile = writeArticleWithAssets(
+      "external-link-symlink",
+      (content) => `${content}\n\n[本地文档](docs/guide.md)\n`,
+      {}
+    );
+    const symlinkPath = path.join(path.dirname(articleFile), "docs/guide.md");
+    mkdirSync(path.dirname(symlinkPath), { recursive: true });
+    symlinkSync(outsideFile, symlinkPath, "file");
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地链接文件不存在：docs/guide.md");
+  });
+
+  test("本地链接允许指向文章目录内文件的 symlink", async () => {
+    const articleFile = writeArticleWithAssets(
+      "internal-link-symlink",
+      (content) => `${content}\n\n[本地文档](docs/guide-link.md)\n`,
+      { "docs/guide.md": "# 使用说明\n" }
+    );
+    symlinkSync("guide.md", path.join(path.dirname(articleFile), "docs/guide-link.md"), "file");
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
   test.each([
     ["full reference", "[参考资料][guide]"],
     ["collapsed reference", "[guide][]"]
@@ -363,6 +410,19 @@ describe("article validation", () => {
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
     expect(result.valid).toBe(true);
+  });
+
+  test("escaped reference label 的定义与引用使用相同 normalization", async () => {
+    const articleFile = writeArticleWithAssets(
+      "escaped-reference-label",
+      (content) => `${content}\n\n[引用][a\\]b]\n\n[a\\]b]: docs/guide.md\n`,
+      { "docs/guide.md": "# 使用说明\n" }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
   });
 
   test("未定义的 reference link 会阻断", async () => {
@@ -403,6 +463,24 @@ describe("article validation", () => {
     expect(result.blocking_issues).toEqual([]);
   });
 
+  test.each([
+    ["单 backtick", "`[链接](missing.md) [参考][missing] [^1] ![中文图](missing.png)`"],
+    [
+      "多 backtick",
+      "``[链接](missing-2.md) [参考][missing-2] [^2] ![中文图](missing-2.png)``"
+    ]
+  ])("%s code span 中的 Markdown 示例不会触发校验", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "markdown-in-code-span",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
   test("图片语法不会重复作为普通链接校验", async () => {
     const articleFile = writeVariant(
       "image-not-link",
@@ -413,6 +491,22 @@ describe("article validation", () => {
 
     expect(issueMessages(result)).toEqual(["本地图片文件不存在：assets/images/missing.png"]);
   });
+
+  test(
+    "大量未闭合 bracket 不会重复扫描或产生链接问题",
+    async () => {
+      const articleFile = writeVariant(
+        "many-unclosed-brackets",
+        (content) => `${content}\n\n${"[".repeat(30_000)}\n`
+      );
+
+      const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+      expect(result.valid).toBe(true);
+      expect(issueMessages(result).filter((message) => /链接|reference/.test(message))).toEqual([]);
+    },
+    10_000
+  );
 
   test("合法本地 PNG 图片通过校验", async () => {
     const articleFile = writeArticleWithAssets(
@@ -425,6 +519,24 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(true);
     expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("本地图片拒绝指向文章目录外文件的 symlink", async () => {
+    const outsideDirectory = createTemporaryDirectory("article validation outside ");
+    const outsideFile = path.join(outsideDirectory, "outside.png");
+    writeFileSync(outsideFile, validPng);
+    const articleFile = writeArticleWithAssets(
+      "external-image-symlink",
+      (content) => `${content}\n\n![中文截图](assets/images/demo.png)\n`,
+      {}
+    );
+    const symlinkPath = path.join(path.dirname(articleFile), "assets/images/demo.png");
+    mkdirSync(path.dirname(symlinkPath), { recursive: true });
+    symlinkSync(outsideFile, symlinkPath, "file");
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地图片文件不存在：assets/images/demo.png");
   });
 
   test("图片 alt 不能为空", async () => {

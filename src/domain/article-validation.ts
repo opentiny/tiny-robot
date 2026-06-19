@@ -1,5 +1,5 @@
 import { constants } from "node:fs";
-import { access, readdir, readFile, stat } from "node:fs/promises";
+import { access, readdir, readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
@@ -68,6 +68,10 @@ interface ParsedMarkdownValue {
   endIndex: number;
 }
 
+interface ParsedBracketValue extends ParsedMarkdownValue {
+  closed: boolean;
+}
+
 interface MarkdownLink {
   target?: string;
   referenceId?: string;
@@ -101,8 +105,9 @@ export async function validateArticleFile(
     validatePlaceholders(parsed.frontMatterSource, blockingIssues);
     validatePlaceholders(parsed.body, blockingIssues);
     const bodyWithoutFencedCodeBlocks = removeFencedCodeBlocks(parsed.body);
-    await validateMarkdownLinks(options.articleFile, bodyWithoutFencedCodeBlocks, blockingIssues);
-    await validateArticleAssets(options.articleFile, bodyWithoutFencedCodeBlocks, blockingIssues);
+    const bodyWithoutCode = removeInlineCodeSpans(bodyWithoutFencedCodeBlocks);
+    await validateMarkdownLinks(options.articleFile, bodyWithoutCode, blockingIssues);
+    await validateArticleAssets(options.articleFile, bodyWithoutCode, blockingIssues);
   }
 
   return {
@@ -451,20 +456,26 @@ function findReferenceDefinitions(body: string): Map<string, string> {
   const definitions = new Map<string, string>();
 
   for (const line of body.split(/\r?\n/)) {
-    const match = /^ {0,3}\[([^\]\r\n]+)\]:[ \t]*(.*)$/.exec(line);
+    const labelStart = /^ {0,3}\[/.exec(line)?.[0].length;
 
-    if (!match || match[1].startsWith("^")) {
+    if (labelStart === undefined) {
       continue;
     }
 
-    const wrappedDestination = `(${match[2]})`;
+    const label = parseBracketValue(line, labelStart - 1);
+
+    if (!label.closed || line[label.endIndex + 1] !== ":" || label.value.startsWith("^")) {
+      continue;
+    }
+
+    const wrappedDestination = `(${line.slice(label.endIndex + 2)})`;
     const destination = parseMarkdownDestination(wrappedDestination, 1);
 
     if (!destination) {
       continue;
     }
 
-    const id = normalizeReferenceId(match[1]);
+    const id = normalizeReferenceId(label.value);
 
     // GFM 使用首次出现的定义，后续重复定义不能静默改变既有引用目标。
     if (!definitions.has(id)) {
@@ -493,7 +504,8 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
 
     const label = parseBracketValue(body, index);
 
-    if (!label) {
+    if (!label.closed) {
+      index = label.endIndex;
       continue;
     }
 
@@ -511,12 +523,14 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
     }
 
     if (body[suffixIndex] !== "[") {
+      index = label.endIndex;
       continue;
     }
 
     const reference = parseBracketValue(body, suffixIndex);
 
-    if (!reference) {
+    if (!reference.closed) {
+      index = reference.endIndex;
       continue;
     }
 
@@ -556,7 +570,7 @@ async function validateLinkTarget(
 
   const absolutePath = path.join(path.dirname(articleFile), ...localPath.value.split("/"));
 
-  if (!(await isReadableFile(absolutePath))) {
+  if (!(await isReadableFileWithin(path.dirname(articleFile), absolutePath))) {
     blockingIssues.push({ message: `本地链接文件不存在：${target}` });
   }
 }
@@ -603,7 +617,7 @@ async function validateMarkdownImages(
 
     const absolutePath = path.join(articleDirectory, ...localPath.value.split("/"));
 
-    if (!(await fileExists(absolutePath))) {
+    if (!(await isReadableFileWithin(articleDirectory, absolutePath))) {
       blockingIssues.push({ message: `本地图片文件不存在：${image.path}` });
       continue;
     }
@@ -624,7 +638,8 @@ function findMarkdownImages(body: string): Array<{ alt: string; path: string }> 
 
     const alt = parseBracketValue(body, index + 1);
 
-    if (!alt || body[alt.endIndex + 1] !== "(") {
+    if (!alt.closed || body[alt.endIndex + 1] !== "(") {
+      index = alt.endIndex;
       continue;
     }
 
@@ -641,7 +656,7 @@ function findMarkdownImages(body: string): Array<{ alt: string; path: string }> 
   return images;
 }
 
-function parseBracketValue(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+function parseBracketValue(markdown: string, startIndex: number): ParsedBracketValue {
   let depth = 0;
   let value = "";
 
@@ -658,13 +673,13 @@ function parseBracketValue(markdown: string, startIndex: number): ParsedMarkdown
       depth -= 1;
       value += character;
     } else if (character === "]") {
-      return { value, endIndex: index };
+      return { value, endIndex: index, closed: true };
     } else {
       value += character;
     }
   }
 
-  return undefined;
+  return { value, endIndex: markdown.length - 1, closed: false };
 }
 
 function parseMarkdownDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
@@ -691,7 +706,7 @@ function parseAngleDestination(markdown: string, startIndex: number): ParsedMark
       value += markdown[index + 1];
       index += 1;
     } else if (character === ">") {
-      return finishImageDestination(markdown, index + 1, value);
+      return finishMarkdownDestination(markdown, index + 1, value);
     } else {
       value += character;
     }
@@ -719,7 +734,7 @@ function parseBareDestination(markdown: string, startIndex: number): ParsedMarkd
     } else if (character === ")") {
       return { value, endIndex: index };
     } else if (/\s/.test(character) && depth === 0) {
-      return finishImageDestination(markdown, index, value);
+      return finishMarkdownDestination(markdown, index, value);
     } else {
       value += character;
     }
@@ -728,7 +743,7 @@ function parseBareDestination(markdown: string, startIndex: number): ParsedMarkd
   return undefined;
 }
 
-function finishImageDestination(
+function finishMarkdownDestination(
   markdown: string,
   startIndex: number,
   value: string
@@ -816,11 +831,60 @@ function removeFencedCodeBlocks(body: string): string {
       openFence = undefined;
     }
 
-    // 代码块中的图片语法是示例文本，不能作为正文素材引用参与校验。
+    // 代码块中的 Markdown 语法是示例文本，不能作为正文内容参与校验。
     lines.push("");
   }
 
   return lines.join("\n");
+}
+
+function removeInlineCodeSpans(body: string): string {
+  // 先建立 backtick run 的同长度后继，再遮蔽可闭合 span，避免逐 opener 重扫正文。
+  const runs: Array<{ start: number; length: number; nextSameLength?: number }> = [];
+
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "`") {
+      continue;
+    }
+
+    const start = index;
+
+    while (index + 1 < body.length && body[index + 1] === "`") {
+      index += 1;
+    }
+
+    runs.push({ start, length: index - start + 1 });
+  }
+
+  const nextRunByLength = new Map<number, number>();
+  for (let index = runs.length - 1; index >= 0; index -= 1) {
+    runs[index].nextSameLength = nextRunByLength.get(runs[index].length);
+    nextRunByLength.set(runs[index].length, index);
+  }
+
+  const ranges: Array<{ start: number; end: number }> = [];
+  for (let index = 0; index < runs.length; index += 1) {
+    const closingIndex = runs[index].nextSameLength;
+
+    if (closingIndex === undefined) {
+      continue;
+    }
+
+    const closingRun = runs[closingIndex];
+    ranges.push({ start: runs[index].start, end: closingRun.start + closingRun.length });
+    index = closingIndex;
+  }
+
+  let result = "";
+  let cursor = 0;
+
+  for (const range of ranges) {
+    result += body.slice(cursor, range.start);
+    result += body.slice(range.start, range.end).replace(/[^\r\n]/g, " ");
+    cursor = range.end;
+  }
+
+  return result + body.slice(cursor);
 }
 
 function validateImageAlt(alt: string, blockingIssues: ArticleValidationIssue[]): void {
@@ -874,17 +938,25 @@ function normalizeLocalPath(target: string): LocalPathResult {
   return { value: normalizedPath };
 }
 
-async function isReadableFile(targetPath: string): Promise<boolean> {
+async function isReadableFileWithin(rootDirectory: string, targetPath: string): Promise<boolean> {
   try {
-    const targetStat = await stat(targetPath);
+    const [realRoot, realTarget] = await Promise.all([realpath(rootDirectory), realpath(targetPath)]);
+    const relative = path.relative(realRoot, realTarget);
+
+    if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      return false;
+    }
+
+    const targetStat = await stat(realTarget);
 
     if (!targetStat.isFile()) {
       return false;
     }
 
-    await access(targetPath, constants.R_OK);
+    await access(realTarget, constants.R_OK);
     return true;
   } catch {
+    // 文件系统失败由调用方转换为 blocking issue，避免泄漏底层异常。
     return false;
   }
 }
@@ -917,27 +989,23 @@ async function validateDiagramDerivatives(
     const svgPath = `assets/diagrams/${baseName}.svg`;
     const pngPath = `assets/diagrams/${baseName}.png`;
 
-    if (!(await fileExists(path.join(diagramsDirectory, `${baseName}.svg`)))) {
+    if (
+      !(await isReadableFileWithin(
+        articleDirectory,
+        path.join(diagramsDirectory, `${baseName}.svg`)
+      ))
+    ) {
       blockingIssues.push({ message: `Mermaid 源文件缺少同名 SVG：${svgPath}` });
     }
 
     const absolutePngPath = path.join(diagramsDirectory, `${baseName}.png`);
 
-    if (!(await fileExists(absolutePngPath))) {
+    if (!(await isReadableFileWithin(articleDirectory, absolutePngPath))) {
       blockingIssues.push({ message: `Mermaid 源文件缺少同名 PNG：${pngPath}` });
       continue;
     }
 
     await validatePngDimensions(absolutePngPath, pngPath, blockingIssues);
-  }
-}
-
-async function fileExists(targetPath: string): Promise<boolean> {
-  try {
-    return (await stat(targetPath)).isFile();
-  } catch {
-    // 文件系统失败由调用方转换为素材 blocking issue，避免泄漏底层异常。
-    return false;
   }
 }
 
