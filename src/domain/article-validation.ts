@@ -143,6 +143,24 @@ interface HtmlTagScanResult {
   endIndex: number;
 }
 
+interface HtmlTagPrefix {
+  tagName: string;
+  closingTag: boolean;
+  attributeStart: number;
+}
+
+interface MarkdownAutolink {
+  value: string;
+  email: boolean;
+  endIndex: number;
+}
+
+interface MarkdownFence {
+  marker: "`" | "~";
+  length: number;
+  trailing: string;
+}
+
 type LocalPathResult =
   | { value: string }
   | { error: "empty" | "malformed-percent-encoding" | "unsafe" };
@@ -458,28 +476,52 @@ function validateCodeFences(body: string, blockingIssues: ArticleValidationIssue
   let openFence: { marker: "`" | "~"; length: number } | undefined;
 
   for (const line of body.split(/\r?\n/)) {
-    const fence = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+    const fence = readMarkdownFence(line);
 
     if (!fence) {
       continue;
     }
 
-    const marker = fence[2][0] as "`" | "~";
-    const length = fence[2].length;
-
     if (!openFence) {
-      if (fence[3].trim().length === 0) {
+      if (!canOpenMarkdownFence(fence)) {
+        continue;
+      }
+
+      if (fence.trailing.trim().length === 0) {
         blockingIssues.push({ message: "fenced code block 必须标注语言" });
       }
 
-      openFence = { marker, length };
+      openFence = { marker: fence.marker, length: fence.length };
       continue;
     }
 
-    if (marker === openFence.marker && length >= openFence.length && fence[3].trim().length === 0) {
+    if (
+      fence.marker === openFence.marker &&
+      fence.length >= openFence.length &&
+      fence.trailing.trim().length === 0
+    ) {
       openFence = undefined;
     }
   }
+}
+
+function readMarkdownFence(line: string): MarkdownFence | undefined {
+  const match = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+
+  if (!match) {
+    return undefined;
+  }
+
+  return {
+    marker: match[2][0] as "`" | "~",
+    length: match[2].length,
+    trailing: match[3]
+  };
+}
+
+function canOpenMarkdownFence(fence: MarkdownFence): boolean {
+  // CommonMark 禁止 backtick fence 的 info string 再包含 backtick，否则该行只是普通文本。
+  return fence.marker === "~" || !fence.trailing.includes("`");
 }
 
 function validatePlaceholders(body: string, blockingIssues: ArticleValidationIssue[]): void {
@@ -495,9 +537,30 @@ function validateMarkdownBoundary(
   blockingIssues: ArticleValidationIssue[]
 ): void {
   validateMdxEsm(body, blockingIssues);
+  validateAutolinks(body, blockingIssues);
   validateMdxFragments(body, blockingIssues);
   validateMdxJsxExpressions(body, blockingIssues);
   validateHtmlTags(body, blockingIssues);
+}
+
+function validateAutolinks(body: string, blockingIssues: ArticleValidationIssue[]): void {
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "<" || isEscaped(body, index)) {
+      continue;
+    }
+
+    const autolink = readMarkdownAutolink(body, index);
+
+    if (!autolink) {
+      continue;
+    }
+
+    if (!autolink.email && isExecutableHtmlUrl(autolink.value)) {
+      blockingIssues.push({ message: "自动链接不允许使用可执行 URL" });
+    }
+
+    index = autolink.endIndex;
+  }
 }
 
 function validateMdxEsm(body: string, blockingIssues: ArticleValidationIssue[]): void {
@@ -526,38 +589,165 @@ function collectMdxEsmStatement(
 ): { value: string; endIndex: number } {
   const parts: string[] = [];
   let endIndex = startIndex;
+  let inBlockComment = false;
 
   for (let index = startIndex; index < lines.length; index += 1) {
     const trimmedLine = lines[index].trim();
 
-    if (trimmedLine.length === 0) {
+    if (trimmedLine.length === 0 && !inBlockComment) {
       break;
     }
 
-    if (index > startIndex && /^(?:import|export)\b/.test(trimmedLine)) {
+    const startsInBlockComment = inBlockComment;
+    const scannedLine = scanMdxEsmLine(lines[index], inBlockComment);
+    const trimmedCode = scannedLine.value.trim();
+
+    if (
+      index > startIndex &&
+      !startsInBlockComment &&
+      /^(?:import|export)\b/.test(trimmedCode)
+    ) {
       break;
     }
 
     parts.push(trimmedLine);
     endIndex = index;
+    inBlockComment = scannedLine.inBlockComment;
 
-    if (/[;}]\s*;?$/.test(trimmedLine) || /["']\s*;?$/.test(trimmedLine)) {
+    if (
+      !inBlockComment &&
+      (/[;}]\s*;?$/.test(trimmedCode) || /["']\s*;?$/.test(trimmedCode))
+    ) {
       break;
     }
   }
 
-  return { value: parts.join(" ").replace(/\s+/g, " ").trim(), endIndex };
+  return { value: parts.join("\n").trim(), endIndex };
+}
+
+function scanMdxEsmLine(
+  line: string,
+  startsInBlockComment: boolean
+): { value: string; inBlockComment: boolean } {
+  // 为 statement collector 提供线性词法视图，避免 comment 内容伪造新候选或终止符。
+  let value = "";
+  let inBlockComment = startsInBlockComment;
+  let quote: "\"" | "'" | "`" | undefined;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+
+    if (inBlockComment) {
+      if (character === "*" && line[index + 1] === "/") {
+        inBlockComment = false;
+        value += " ";
+        index += 1;
+      }
+
+      continue;
+    }
+
+    if (quote) {
+      value += character;
+
+      if (character === "\\") {
+        value += line[index + 1] ?? "";
+        index += 1;
+      } else if (character === quote) {
+        quote = undefined;
+      }
+
+      continue;
+    }
+
+    if (character === "\"" || character === "'" || character === "`") {
+      quote = character;
+      value += character;
+    } else if (character === "/" && line[index + 1] === "*") {
+      inBlockComment = true;
+      value += " ";
+      index += 1;
+    } else if (character === "/" && line[index + 1] === "/") {
+      break;
+    } else {
+      value += character;
+    }
+  }
+
+  return { value, inBlockComment };
 }
 
 function isMdxEsmStatement(statement: string): boolean {
+  const normalizedStatement = stripMdxEsmComments(statement)
+    .replace(/\s+/g, " ")
+    .trim();
+
   return (
     /^import\s+(?:type\s+)?(?:[\w*{}\s,$]+from\s+)?["'][^"']+["']\s*;?$/.test(
-      statement
+      normalizedStatement
     ) ||
     /^export\s+(?:default\b|async\s+function\b|(?:const|let|var|function|class)\b|\{[^}]*\}(?:\s+from\s+["'][^"']+["'])?|\*\s+(?:as\s+[A-Za-z_$][\w$]*\s+)?from\s+["'][^"']+["'])/.test(
-      statement
+      normalizedStatement
     )
   );
+}
+
+function stripMdxEsmComments(statement: string): string {
+  // 只移除字符串外的 JS comment，保留换行与字符串内容供后续 ESM 形态判断。
+  let result = "";
+  let quote: "\"" | "'" | "`" | undefined;
+
+  for (let index = 0; index < statement.length; index += 1) {
+    const character = statement[index];
+
+    if (quote) {
+      result += character;
+
+      if (character === "\\") {
+        result += statement[index + 1] ?? "";
+        index += 1;
+      } else if (character === quote) {
+        quote = undefined;
+      }
+
+      continue;
+    }
+
+    if (character === "\"" || character === "'" || character === "`") {
+      quote = character;
+      result += character;
+      continue;
+    }
+
+    if (character === "/" && statement[index + 1] === "*") {
+      const commentEnd = statement.indexOf("*/", index + 2);
+
+      // 未闭合 comment 不能吞掉后续独立 ESM 候选，保留换行以维持语句边界。
+      if (commentEnd === -1) {
+        return `${result} ${statement.slice(index).replace(/[^\r\n]/g, " ")}`;
+      }
+
+      result += " ";
+      index = commentEnd + 1;
+      continue;
+    }
+
+    if (character === "/" && statement[index + 1] === "/") {
+      const lineEnd = statement.indexOf("\n", index + 2);
+
+      if (lineEnd === -1) {
+        return result;
+      }
+
+      result += "\n";
+      index = lineEnd;
+      continue;
+    }
+
+    result += character;
+  }
+
+  return result;
 }
 
 function validateMdxFragments(body: string, blockingIssues: ArticleValidationIssue[]): void {
@@ -621,11 +811,45 @@ function createBraceScanContext(body: string): Map<number, number> {
 }
 
 function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]): void {
+  // 单遍分类 autolink、HTML 与 JSX；forbidden tag 仅凭可信前缀即可 fail closed。
   const reportedMessages = new Set<string>();
 
-  for (const tag of findHtmlTags(body)) {
-    const tagName = tag.tagName;
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "<" || isEscaped(body, index)) {
+      continue;
+    }
+
+    const autolink = readMarkdownAutolink(body, index);
+
+    if (autolink) {
+      index = autolink.endIndex;
+      continue;
+    }
+
+    const prefix = readHtmlTagPrefix(body, index);
+
+    if (!prefix) {
+      continue;
+    }
+
+    const tagName = prefix.tagName;
     const tagKey = tagName.toLowerCase();
+    const tag = readHtmlTag(body, index, prefix);
+
+    if (forbiddenHtmlTags.has(tagKey)) {
+      // 浏览器可把后续畸形内容继续吸收到 raw text tag 中，已识别前缀后必须 fail closed。
+      pushUniqueIssue(reportedMessages, blockingIssues, `HTML 标签不允许使用：${tagKey}`);
+
+      if (tag) {
+        index = tag.endIndex;
+      }
+
+      continue;
+    }
+
+    if (!tag) {
+      continue;
+    }
 
     if (isMdxComponentTag(tagName)) {
       pushUniqueIssue(
@@ -633,11 +857,7 @@ function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]
         blockingIssues,
         `正文禁止 MDX/JSX 自定义组件：${tagName}`
       );
-      continue;
-    }
-
-    if (forbiddenHtmlTags.has(tagKey)) {
-      pushUniqueIssue(reportedMessages, blockingIssues, `HTML 标签不允许使用：${tagKey}`);
+      index = tag.endIndex;
       continue;
     }
 
@@ -647,12 +867,15 @@ function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]
         blockingIssues,
         `HTML 标签不在阶段 A allowlist：${tagName}`
       );
+      index = tag.endIndex;
       continue;
     }
 
     if (!tag.closingTag) {
       validateHtmlAttributes(tagKey, tag.attributeSource, reportedMessages, blockingIssues);
     }
+
+    index = tag.endIndex;
   }
 }
 
@@ -680,66 +903,117 @@ function removeHtmlTags(body: string): string {
   return result + body.slice(cursor);
 }
 
-function findHtmlTags(body: string): HtmlTagScanResult[] {
-  const tags: HtmlTagScanResult[] = [];
-
-  for (let index = 0; index < body.length; index += 1) {
-    if (body[index] !== "<" || isEscaped(body, index)) {
-      continue;
-    }
-
-    const tag = readHtmlTag(body, index);
-
-    if (tag) {
-      tags.push(tag);
-      index = tag.endIndex;
-    }
-  }
-
-  return tags;
-}
-
-function readHtmlTag(body: string, startIndex: number): HtmlTagScanResult | undefined {
-  let index = startIndex + 1;
-
-  while (index < body.length && /\s/.test(body[index])) {
-    index += 1;
-  }
-
-  const closingTag = body[index] === "/";
-
-  if (closingTag) {
-    index += 1;
-  }
-
-  while (index < body.length && /\s/.test(body[index])) {
-    index += 1;
-  }
-
-  if (!/[A-Za-z]/.test(body[index] ?? "")) {
+function readHtmlTag(
+  body: string,
+  startIndex: number,
+  knownPrefix = readHtmlTagPrefix(body, startIndex)
+): HtmlTagScanResult | undefined {
+  if (readMarkdownAutolink(body, startIndex) || !knownPrefix) {
     return undefined;
   }
 
-  const tagStart = index;
-
-  while (index < body.length && /[A-Za-z0-9.:-]/.test(body[index])) {
-    index += 1;
-  }
-
-  const tagName = body.slice(tagStart, index);
-  const attributeStart = index;
-  const tagEnd = findHtmlTagEnd(body, index);
+  const tagEnd = findHtmlTagEnd(body, knownPrefix.attributeStart);
 
   if (tagEnd === undefined) {
     return undefined;
   }
 
   return {
-    tagName,
-    attributeSource: body.slice(attributeStart, tagEnd),
-    closingTag,
+    tagName: knownPrefix.tagName,
+    attributeSource: body.slice(knownPrefix.attributeStart, tagEnd),
+    closingTag: knownPrefix.closingTag,
     endIndex: tagEnd
   };
+}
+
+function readHtmlTagPrefix(body: string, startIndex: number): HtmlTagPrefix | undefined {
+  let index = startIndex + 1;
+  const closingTag = body[index] === "/";
+
+  if (closingTag) {
+    index += 1;
+  }
+
+  const identifierStartLength = readJsxIdentifierCodeUnitLength(body, index, true);
+
+  if (identifierStartLength === 0) {
+    return undefined;
+  }
+
+  const tagStart = index;
+  index += identifierStartLength;
+
+  while (index < body.length) {
+    const identifierPartLength = readJsxIdentifierCodeUnitLength(body, index, false);
+
+    if (identifierPartLength === 0) {
+      break;
+    }
+
+    index += identifierPartLength;
+  }
+
+  return {
+    tagName: body.slice(tagStart, index),
+    closingTag,
+    attributeStart: index
+  };
+}
+
+function readJsxIdentifierCodeUnitLength(
+  source: string,
+  index: number,
+  identifierStart: boolean
+): number {
+  const codePoint = source.codePointAt(index);
+
+  if (codePoint === undefined) {
+    return 0;
+  }
+
+  const character = String.fromCodePoint(codePoint);
+  const pattern = identifierStart
+    ? /^[$_\p{ID_Start}]$/u
+    : /^[$\u200c\u200d\p{ID_Continue}.:-]$/u;
+
+  return pattern.test(character) ? character.length : 0;
+}
+
+function readMarkdownAutolink(
+  body: string,
+  startIndex: number
+): MarkdownAutolink | undefined {
+  let endIndex = startIndex + 1;
+
+  while (endIndex < body.length && body[endIndex] !== ">") {
+    const codePoint = body.charCodeAt(endIndex);
+
+    if (body[endIndex] === "<" || codePoint <= 0x20 || codePoint === 0x7f) {
+      return undefined;
+    }
+
+    endIndex += 1;
+  }
+
+  if (body[endIndex] !== ">") {
+    return undefined;
+  }
+
+  const value = body.slice(startIndex + 1, endIndex);
+
+  if (/^[A-Za-z][A-Za-z0-9+.-]{1,31}:[^<>]*$/.test(value)) {
+    return { value, email: false, endIndex };
+  }
+
+  if (
+    /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/.test(
+      value
+    )
+  ) {
+    return { value, email: true, endIndex };
+  }
+
+  return undefined;
 }
 
 function findHtmlTagEnd(body: string, startIndex: number): number | undefined {
@@ -891,7 +1165,7 @@ function readHtmlAttributeValue(
 
   let index = startIndex;
 
-  while (index < source.length && !/\s/.test(source[index]) && source[index] !== "/") {
+  while (index < source.length && !/\s/.test(source[index])) {
     index += 1;
   }
 
@@ -901,39 +1175,89 @@ function readHtmlAttributeValue(
 }
 
 function isMdxComponentTag(tagName: string): boolean {
-  return /^[A-Z]/.test(tagName) || tagName.includes(".") || tagName.includes(":");
+  return !/^[a-z]/.test(tagName) || tagName.includes(".") || tagName.includes(":");
 }
 
 function isExecutableHtmlUrl(value: string): boolean {
-  const normalizedValue = decodeHtmlCharacterReferences(value)
+  const normalizedValue = decodeHtmlNumericCharacterReferences(value)
     .trim()
     .replace(/[\u0000-\u0020]+/g, "")
     .toLowerCase();
 
-  return (
-    normalizedValue.startsWith("javascript:") ||
-    normalizedValue.startsWith("vbscript:") ||
-    normalizedValue.startsWith("data:text/html") ||
-    normalizedValue.startsWith("data:application/xhtml+xml")
+  return [
+    "javascript:",
+    "vbscript:",
+    "data:text/html",
+    "data:application/xhtml+xml"
+  ].some(
+    (prefix) =>
+      normalizedValue.startsWith(prefix) ||
+      canNamedCharacterReferencesFormPrefix(normalizedValue, prefix)
   );
 }
 
-function decodeHtmlCharacterReferences(value: string): string {
-  return value
-    .replace(/&colon;/gi, ":")
-    .replace(/&#(?:x([0-9a-fA-F]+)|([0-9]+));?/g, (match, hex, decimal) => {
-      const codePoint = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
+function decodeHtmlNumericCharacterReferences(value: string): string {
+  return value.replace(/&#(?:x([0-9a-fA-F]+)|([0-9]+));?/g, (match, hex, decimal) => {
+    const codePoint = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
 
-      if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
-        return match;
+    if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+      return match;
+    }
+
+    try {
+      return String.fromCodePoint(codePoint);
+    } catch {
+      return match;
+    }
+  });
+}
+
+function canNamedCharacterReferencesFormPrefix(value: string, prefix: string): boolean {
+  // 将 named reference 视为 0-2 个未知码点，保守判断是否可能还原危险 URL 前缀。
+  let states = new Set([0]);
+
+  for (let index = 0; index < value.length && states.size > 0; index += 1) {
+    if (states.has(prefix.length)) {
+      return true;
+    }
+
+    if (value[index] === "&" && /[A-Za-z]/.test(value[index + 1] ?? "")) {
+      let referenceEnd = index + 2;
+
+      while (/[A-Za-z0-9]/.test(value[referenceEnd] ?? "")) {
+        referenceEnd += 1;
       }
 
-      try {
-        return String.fromCodePoint(codePoint);
-      } catch {
-        return match;
+      if (value[referenceEnd] === ";") {
+        referenceEnd += 1;
       }
-    });
+
+      const nextStates = new Set<number>();
+
+      // HTML5 named reference 最多解码为两个码点；空白码点归一化后也可能等价于零字符。
+      for (const state of states) {
+        for (let decodedLength = 0; decodedLength <= 2; decodedLength += 1) {
+          nextStates.add(Math.min(prefix.length, state + decodedLength));
+        }
+      }
+
+      states = nextStates;
+      index = referenceEnd - 1;
+      continue;
+    }
+
+    const nextStates = new Set<number>();
+
+    for (const state of states) {
+      if (state < prefix.length && value[index] === prefix[state]) {
+        nextStates.add(state + 1);
+      }
+    }
+
+    states = nextStates;
+  }
+
+  return states.has(prefix.length);
 }
 
 function pushUniqueIssue(
@@ -1397,23 +1721,29 @@ function removeFencedCodeBlocks(body: string): string {
   const lines: string[] = [];
 
   for (const line of body.split(/\r?\n/)) {
-    const fence = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
+    const fence = readMarkdownFence(line);
 
     if (!fence) {
       lines.push(openFence ? "" : line);
       continue;
     }
 
-    const marker = fence[2][0] as "`" | "~";
-    const length = fence[2].length;
-
     if (!openFence) {
-      openFence = { marker, length };
+      if (!canOpenMarkdownFence(fence)) {
+        lines.push(line);
+        continue;
+      }
+
+      openFence = { marker: fence.marker, length: fence.length };
       lines.push("");
       continue;
     }
 
-    if (marker === openFence.marker && length >= openFence.length && fence[3].trim().length === 0) {
+    if (
+      fence.marker === openFence.marker &&
+      fence.length >= openFence.length &&
+      fence.trailing.trim().length === 0
+    ) {
       openFence = undefined;
     }
 
@@ -1429,6 +1759,18 @@ function removeInlineCodeSpans(body: string): string {
   const runs: Array<{ start: number; length: number; nextSameLength?: number }> = [];
 
   for (let index = 0; index < body.length; index += 1) {
+    if (body[index] === "<" && !isEscaped(body, index)) {
+      const autolink = readMarkdownAutolink(body, index);
+      const htmlTag = autolink ? undefined : readHtmlTag(body, index);
+      const tokenEnd = autolink?.endIndex ?? htmlTag?.endIndex;
+
+      if (tokenEnd !== undefined) {
+        // Inline HTML 与 autolink 的 token 优先于 code span，内部 backtick 不能充当 delimiter。
+        index = tokenEnd;
+        continue;
+      }
+    }
+
     if (body[index] !== "`") {
       continue;
     }

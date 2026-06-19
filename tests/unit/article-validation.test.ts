@@ -304,10 +304,64 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain(message);
   });
 
+  test("raw HTML 属性中的 backtick 不会形成 code span", async () => {
+    const articleFile = writeVariant(
+      "backtick-in-html-attribute",
+      (content) =>
+        `${content}\n\n<span title="\`" onclick="alert(1)" data-x="\`">正文</span>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain(
+      "HTML 属性不允许使用事件 handler：span.onclick"
+    );
+  });
+
+  test("非法 backtick fence opener 不会遮蔽后续 script", async () => {
+    const articleFile = writeVariant(
+      "invalid-backtick-fence-opener",
+      (content) =>
+        `${content}\n\n\`\`\`md\`x\n<script>globalThis.__probe = 1</script>\n\`\`\`\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("HTML 标签不允许使用：script");
+  });
+
+  test("已识别的 forbidden tag 前缀在畸形输入中 fail closed", async () => {
+    const articleFile = writeVariant(
+      "malformed-forbidden-tag",
+      (content) => `${content}\n\n<script <span>globalThis.__probe = 1\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("HTML 标签不允许使用：script");
+  });
+
+  test("普通小于号文本不会被当作畸形 HTML 标签", async () => {
+    const articleFile = writeVariant(
+      "plain-less-than-text",
+      (content) => `${content}\n\n版本 1 < 2，script 只是普通文本。\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
   test.each([
     ["hex reference", '<q cite="jav&#x61;script:alert(1)">正文</q>'],
     ["decimal reference", '<q cite="java&#115;cript:alert(1)">正文</q>'],
-    ["named colon reference", '<q cite="javascript&colon;alert(1)">正文</q>']
+    ["named colon reference", '<q cite="javascript&colon;alert(1)">正文</q>'],
+    ["named tab reference", '<q cite="java&Tab;script:alert(1)">正文</q>'],
+    ["named newline reference", '<q cite="java&NewLine;script:alert(1)">正文</q>']
   ])("URL 属性中的 HTML character reference 会先解码：%s", async (_, markdown) => {
     const articleFile = writeVariant(
       "html-url-character-reference",
@@ -318,6 +372,47 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("HTML 属性不允许使用可执行 URL：q.cite");
+  });
+
+  test("URL query 中的 named character reference 保持合法", async () => {
+    const articleFile = writeVariant(
+      "safe-html-url-character-reference",
+      (content) =>
+        `${content}\n\n<q cite="https://example.com/docs?a=1&amp;b=2">正文</q>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test.each([
+    ["import leading comment", 'import /*comment*/ Notice from "./Notice.mdx";'],
+    ["export leading comment", "export /*comment*/ default 1;"],
+    [
+      "multiline import comments",
+      'import /* first\nsecond */ {\n  Notice\n} /* before from */ from "./Notice.mdx";'
+    ],
+    [
+      "keyword inside block comment",
+      'import /* first\nexport\n*/ Notice from "./Notice.mdx";'
+    ],
+    [
+      "blank line inside block comment",
+      'import /* first\n\nsecond */ Notice from "./Notice.mdx";'
+    ],
+    ["multiline export comments", "export /* first */\n/* second */ default 1;"]
+  ])("合法 comment 位置中的 %s 仍按 MDX ESM 阻断", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "mdx-esm-comments",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
   });
 
   test.each([
@@ -376,7 +471,11 @@ describe("article validation", () => {
 
   test.each([
     ["PascalCase component", "<Alert>只适用于官网渲染。</Alert>", "Alert"],
-    ["namespace component", "<Docs.Alert>只适用于官网渲染。</Docs.Alert>", "Docs.Alert"]
+    ["namespace component", "<Docs.Alert>只适用于官网渲染。</Docs.Alert>", "Docs.Alert"],
+    ["underscore component", "<_Alert />", "_Alert"],
+    ["dollar component", "<$Alert />", "$Alert"],
+    ["Unicode component", "<提示 />", "提示"],
+    ["astral Unicode component", "<𐐀Alert />", "𐐀Alert"]
   ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown, componentName) => {
     const articleFile = writeVariant(
       "mdx-custom-component",
@@ -387,6 +486,74 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain(`正文禁止 MDX/JSX 自定义组件：${componentName}`);
+  });
+
+  test.each([
+    ["URI autolink", "<https://example.com/docs>"],
+    ["email autolink", "<docs@example.com>"]
+  ])("合法 CommonMark %s 不会被当作 JSX 或 HTML", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "commonmark-autolink",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("可执行 URI autolink 仍会被 Markdown 边界阻断", async () => {
+    const articleFile = writeVariant(
+      "executable-uri-autolink",
+      (content) => `${content}\n\n<javascript:alert(1)>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("自动链接不允许使用可执行 URL");
+  });
+
+  test("autolink 与相邻 JSX component 按各自语法分类", async () => {
+    const articleFile = writeVariant(
+      "autolink-next-to-jsx",
+      (content) => `${content}\n\n<https://example.com/docs> <_Alert />\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toEqual(["正文禁止 MDX/JSX 自定义组件：_Alert"]);
+  });
+
+  test("unquoted attribute value 中的斜杠不会拆出伪事件属性", async () => {
+    const articleFile = writeVariant(
+      "unquoted-attribute-slash",
+      (content) => `${content}\n\n<q cite=https://example.com/onload=docs>正文</q>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test.each([
+    ["普通结束标签", "<span data-x=value onclick=alert(1)>正文</span>"],
+    ["self-closing marker", "<span data-x=value onload=alert(1) />"]
+  ])("真正的 unquoted %s 事件属性仍会阻断", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "unquoted-event-attribute",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result).some((message) => message.includes("事件 handler"))).toBe(
+      true
+    );
   });
 
   test("JSX fragment 会被阶段 A Markdown 边界阻断", async () => {
@@ -434,6 +601,19 @@ describe("article validation", () => {
       "markdown-boundary-in-code",
       (content) =>
         `${content}\n\n\`<Alert>示例</Alert>\`\n\n\`\`\`mdx\nimport Alert from "./Alert.mdx";\n<script>alert("xss")</script>\n<Docs.Alert />\n\`\`\`\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("code span 中带 backtick 的 raw HTML 示例继续豁免", async () => {
+    const articleFile = writeVariant(
+      "raw-html-with-backtick-in-code-span",
+      (content) =>
+        `${content}\n\n\`\`<span title="\`" onclick="alert(1)">示例</span>\`\`\n`
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
