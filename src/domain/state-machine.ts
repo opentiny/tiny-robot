@@ -29,14 +29,6 @@ export interface StateMutationDecision {
   labelsToAdd: string[];
 }
 
-const aiStatusLabels = new Set<AiStatusLabel>([
-  "AI：等待执行",
-  "AI：处理中",
-  "AI：等待人工",
-  "AI：失败",
-  "AI：已暂停"
-]);
-
 const terminalPhaseLabels = new Set<PhaseLabel>([
   "阶段：待发布",
   "阶段：已发布",
@@ -68,11 +60,7 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
   return {
     mutationAllowed: true,
     blockedReason: null,
-    labelsToRemove: phase
-      ? input.labels.filter((label): label is AiStatusLabel =>
-          aiStatusLabels.has(label as AiStatusLabel)
-        )
-      : [],
+    labelsToRemove: phase ? input.labels.filter((label) => label.startsWith("AI：")) : [],
     labelsToAdd: []
   };
 }

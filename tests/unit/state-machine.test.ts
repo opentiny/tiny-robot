@@ -21,14 +21,14 @@ describe("decideStateMutation", () => {
   test("终止或完成状态必须清理 AI 活动状态", () => {
     expect(
       decideStateMutation({
-        labels: ["阶段：已终止", "AI：处理中", "AI：等待人工", "其他"],
+        labels: ["阶段：已终止", "AI：处理中", "AI：旧状态", "AI：等待人工", "其他"],
         expectedHeadSha: "a".repeat(40),
         currentHeadSha: "a".repeat(40)
       })
     ).toEqual({
       mutationAllowed: true,
       blockedReason: null,
-      labelsToRemove: ["AI：处理中", "AI：等待人工"],
+      labelsToRemove: ["AI：处理中", "AI：旧状态", "AI：等待人工"],
       labelsToAdd: []
     });
   });
