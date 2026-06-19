@@ -75,6 +75,33 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
   });
 
+  test.each([
+    [
+      "schema_version",
+      (content: string) =>
+        content.replace("schema_version: article-hub.article.v1", "schema_version: article-hub.article.v0"),
+      "Front Matter schema_version 必须是 article-hub.article.v1"
+    ],
+    [
+      "summary 类型",
+      (content: string) =>
+        content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的阶段 A 写作链路。", "summary: 12"),
+      "Front Matter summary 必须是非空字符串"
+    ],
+    [
+      "approved_plan.hash 长度",
+      (content: string) => content.replace("hash: ab12cd34", "hash: ab12"),
+      "approved_plan.hash 长度不能小于 8"
+    ]
+  ])("Front Matter schema 约束会阻断 %s 漂移", async (_, transform, message) => {
+    const articleFile = writeVariant("frontmatter-schema-drift", transform);
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain(message);
+  });
+
   test("缺少 YAML Front Matter 会阻断", async () => {
     const articleFile = writeVariant("missing-frontmatter", () => "# WebMCP SDK 实践指南\n");
 

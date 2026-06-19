@@ -45,6 +45,7 @@ const requiredFrontMatterFields = [
   "approved_plan",
   "article_date"
 ] as const;
+const articleSchemaVersion = "article-hub.article.v1";
 const allowedArticleTypes = new Set(["release", "practical-guide", "source-analysis", "case-study"]);
 const allowedStyleProfiles = new Set([
   "official-balanced",
@@ -152,6 +153,10 @@ function validateFrontMatter(
     }
   }
 
+  validateSchemaVersion(frontMatter.schema_version, blockingIssues);
+  validateNonEmptyString(frontMatter.title, "title", blockingIssues);
+  validateNonEmptyString(frontMatter.summary, "summary", blockingIssues);
+  validateNonEmptyString(frontMatter.article_date, "article_date", blockingIssues);
   validateKnownProject(frontMatter.project, allowedProjects, blockingIssues);
   validateEnum(frontMatter.article_type, allowedArticleTypes, "article_type", blockingIssues);
   validateEnum(frontMatter.style_profile, allowedStyleProfiles, "style_profile", blockingIssues);
@@ -159,12 +164,57 @@ function validateFrontMatter(
   validateSources(frontMatter.sources, blockingIssues);
 }
 
+function validateSchemaVersion(
+  schemaVersion: unknown,
+  blockingIssues: ArticleValidationIssue[]
+): void {
+  if (isMissing(schemaVersion)) {
+    return;
+  }
+
+  if (schemaVersion !== articleSchemaVersion) {
+    blockingIssues.push({
+      field: "schema_version",
+      message: `Front Matter schema_version 必须是 ${articleSchemaVersion}`
+    });
+  }
+}
+
+function validateNonEmptyString(
+  value: unknown,
+  field: string,
+  blockingIssues: ArticleValidationIssue[]
+): void {
+  if (isMissing(value)) {
+    return;
+  }
+
+  if (typeof value !== "string" || value.length === 0) {
+    blockingIssues.push({
+      field,
+      message: `Front Matter ${field} 必须是非空字符串`
+    });
+  }
+}
+
 function validateKnownProject(
   project: unknown,
   allowedProjects: string[],
   blockingIssues: ArticleValidationIssue[]
 ): void {
-  if (typeof project !== "string" || project.length === 0) {
+  if (isMissing(project)) {
+    return;
+  }
+
+  if (typeof project !== "string") {
+    blockingIssues.push({
+      field: "project",
+      message: "Front Matter project 必须是字符串"
+    });
+    return;
+  }
+
+  if (project.length === 0) {
     return;
   }
 
@@ -182,7 +232,19 @@ function validateEnum(
   field: string,
   blockingIssues: ArticleValidationIssue[]
 ): void {
-  if (typeof value !== "string" || value.length === 0) {
+  if (isMissing(value)) {
+    return;
+  }
+
+  if (typeof value !== "string") {
+    blockingIssues.push({
+      field,
+      message: `Front Matter ${field} 必须是字符串`
+    });
+    return;
+  }
+
+  if (value.length === 0) {
     return;
   }
 
@@ -216,12 +278,27 @@ function validateApprovedPlan(
       field: "approved_plan.version",
       message: "approved_plan 缺少 version"
     });
+  } else if (!isIntegerOrString(plan.version)) {
+    blockingIssues.push({
+      field: "approved_plan.version",
+      message: "approved_plan.version 必须是整数或字符串"
+    });
   }
 
   if (isMissing(plan.hash)) {
     blockingIssues.push({
       field: "approved_plan.hash",
       message: "approved_plan 缺少 hash"
+    });
+  } else if (typeof plan.hash !== "string") {
+    blockingIssues.push({
+      field: "approved_plan.hash",
+      message: "approved_plan.hash 必须是字符串"
+    });
+  } else if (plan.hash.length < 8) {
+    blockingIssues.push({
+      field: "approved_plan.hash",
+      message: "approved_plan.hash 长度不能小于 8"
     });
   }
 }
@@ -327,4 +404,8 @@ function isMissing(value: unknown): boolean {
 
 function hasAnyString(source: Record<string, unknown>, fields: string[]): boolean {
   return fields.some((field) => typeof source[field] === "string" && source[field].length > 0);
+}
+
+function isIntegerOrString(value: unknown): boolean {
+  return typeof value === "string" || (typeof value === "number" && Number.isInteger(value));
 }
