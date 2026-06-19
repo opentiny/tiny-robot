@@ -1,0 +1,19 @@
+schema_version: article-hub.projects.v1
+projects:
+  - project_id: webmcp-sdk
+    display_name: WebMCP SDK
+    docs:
+      site_url: null
+      source_path: docs/
+    demo:
+      url: null
+    deepwiki:
+      url: null
+    terminology:
+      source: null
+    repositories:
+      - name: ../escape
+        url: https://github.com/opentiny/webmcp-sdk.git
+        default_ref: dev
+        role: primary-source
+        source_type: source

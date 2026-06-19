@@ -1,0 +1,75 @@
+schema_version: article-hub.projects.v1
+projects:
+  - project_id: webmcp-sdk
+    display_name: WebMCP SDK
+    docs:
+      site_url: https://opentiny.github.io/
+      source_path: docs/
+    demo:
+      url: null
+    deepwiki:
+      url: null
+    terminology:
+      source: null
+    repositories:
+      - name: webmcp-sdk
+        url: https://github.com/opentiny/webmcp-sdk.git
+        default_ref: dev
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs
+  - project_id: genui-sdk
+    display_name: OpenTiny MCP/GenUI
+    docs:
+      site_url: https://opentiny.github.io/
+      source_path: docs/
+    demo:
+      url: null
+    deepwiki:
+      url: null
+    terminology:
+      source: null
+    repositories:
+      - name: genui-sdk
+        url: https://github.com/opentiny/genui-sdk.git
+        default_ref: dev
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs
+  - project_id: tiny-robot
+    display_name: TinyRobot
+    docs:
+      site_url: https://opentiny.github.io/
+      source_path: docs/
+    demo:
+      url: null
+    deepwiki:
+      url: null
+    terminology:
+      source: null
+    repositories:
+      - name: tiny-robot
+        url: https://github.com/opentiny/tiny-robot.git
+        default_ref: develop
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs
+      - name: shuorenhua
+        url: https://github.com/MrGeDiao/shuorenhua.git
+        ref: 0d214c8f0b44ce5e2c923b38ee00ea5356f91a60
+        required_commit: 0d214c8f0b44ce5e2c923b38ee00ea5356f91a60
+        role: polish-upstream
+        source_type: upstream-license
+        license: MIT

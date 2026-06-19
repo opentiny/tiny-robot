@@ -8,8 +8,13 @@ export type ErrorCode =
   | "INVALID_JSON"
   | "PLAN_FILE_NOT_FOUND"
   | "STATE_FILE_NOT_FOUND"
+  | "PROJECT_CONFIG_NOT_FOUND"
   | "INVALID_PLAN"
-  | "INVALID_STATE";
+  | "INVALID_STATE"
+  | "INVALID_PROJECT_CONFIG"
+  | "UNKNOWN_PROJECT"
+  | "UNSAFE_PATH"
+  | "GIT_COMMAND_FAILED";
 
 /**
  * CLI 可预期错误，携带稳定错误码和进程退出码。

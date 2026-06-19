@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { inspectIssue } from "./commands/inspect-issue.js";
 import { approvePlanFile, comparePlanFiles, hashPlan } from "./commands/plan.js";
+import { checkoutSources } from "./commands/checkout-sources.js";
+import { listProjects, validateProjects } from "./commands/projects.js";
 import { decideState } from "./commands/state.js";
 import { ArticleHubError, toArticleHubError } from "./infrastructure/errors.js";
 import { serializeJson } from "./infrastructure/json-output.js";
@@ -36,6 +38,28 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (parsed.command === "plan") {
       const envelope = await runPlanCommand(parsed.args, parsed.context);
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "projects") {
+      const envelope = await runProjectsCommand(parsed.args, parsed.context);
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "checkout-sources") {
+      const configPath = readRequiredOption(parsed.args, "--config");
+      const projectId = readRequiredOption(parsed.args, "--project");
+      const cacheDir = readRequiredOption(parsed.args, "--cache-dir");
+      assertNoUnexpectedArgs(parsed.args, new Set(["--config", "--project", "--cache-dir"]));
+      const envelope = await checkoutSources({
+        configPath,
+        projectId,
+        cacheDir,
+        dryRun: parsed.context.dryRun
+      });
+
       process.stdout.write(serializeJson(envelope));
       return 0;
     }
@@ -118,6 +142,32 @@ async function runPlanCommand(args: string[], context: CliContext): Promise<unkn
   }
 
   throw new ArticleHubError("UNKNOWN_COMMAND", `未知 plan 子命令：${subcommand ?? ""}`, 2);
+}
+
+async function runProjectsCommand(args: string[], context: CliContext): Promise<unknown> {
+  const subcommand = args.shift();
+
+  if (subcommand === "list") {
+    const configPath = readRequiredOption(args, "--config");
+    assertNoUnexpectedArgs(args, new Set(["--config"]));
+
+    return listProjects({
+      configPath,
+      dryRun: context.dryRun
+    });
+  }
+
+  if (subcommand === "validate") {
+    const configPath = readRequiredOption(args, "--config");
+    assertNoUnexpectedArgs(args, new Set(["--config"]));
+
+    return validateProjects({
+      configPath,
+      dryRun: context.dryRun
+    });
+  }
+
+  throw new ArticleHubError("UNKNOWN_COMMAND", `未知 projects 子命令：${subcommand ?? ""}`, 2);
 }
 
 async function runStateCommand(args: string[], context: CliContext): Promise<unknown> {
