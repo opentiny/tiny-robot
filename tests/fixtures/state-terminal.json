@@ -1,0 +1,5 @@
+{
+  "labels": ["阶段：已终止", "AI：处理中", "AI：等待人工", "other-label"],
+  "expected_head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "current_head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

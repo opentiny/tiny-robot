@@ -1,0 +1,32 @@
+{
+  "sources": [
+    {
+      "commit": "1111111111111111111111111111111111111111",
+      "url": "https://github.com/opentiny/webmcp-sdk",
+      "kind": "repository"
+    }
+  ],
+  "outline": [
+    {
+      "points": ["场景", "限制"],
+      "title": "为什么需要 webmcp-sdk"
+    },
+    {
+      "points": ["安装", "初始化", "验证"],
+      "title": "五分钟接入"
+    }
+  ],
+  "audience": {
+    "knowledge": ["Vue", "TypeScript"],
+    "role": "前端开发者"
+  },
+  "goal": "介绍 webmcp-sdk 五分钟接入流程",
+  "style_profile": "developer-friendly",
+  "article_type": "practical-guide",
+  "project": "webmcp-sdk",
+  "display_markdown": "# 改了展示 Markdown",
+  "updated_at": "2026-06-19T12:00:00+08:00",
+  "plan_hash": "ignored",
+  "plan_hash_prefix": "ignored",
+  "plan_version": 2
+}

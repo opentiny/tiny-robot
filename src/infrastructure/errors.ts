@@ -5,7 +5,11 @@ export type ErrorCode =
   | "MISSING_ARGUMENT"
   | "MISSING_ISSUE_FILE"
   | "ISSUE_FILE_NOT_FOUND"
-  | "INVALID_JSON";
+  | "INVALID_JSON"
+  | "PLAN_FILE_NOT_FOUND"
+  | "STATE_FILE_NOT_FOUND"
+  | "INVALID_PLAN"
+  | "INVALID_STATE";
 
 /**
  * CLI 可预期错误，携带稳定错误码和进程退出码。
