@@ -4,6 +4,7 @@ import { approvePlanFile, comparePlanFiles, hashPlan } from "./commands/plan.js"
 import { checkoutSources } from "./commands/checkout-sources.js";
 import { listProjects, validateProjects } from "./commands/projects.js";
 import { decideState } from "./commands/state.js";
+import { validateArticle } from "./commands/validate-article.js";
 import { ArticleHubError, toArticleHubError } from "./infrastructure/errors.js";
 import { serializeJson } from "./infrastructure/json-output.js";
 
@@ -66,6 +67,12 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (parsed.command === "state") {
       const envelope = await runStateCommand(parsed.args, parsed.context);
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "validate") {
+      const envelope = await runValidateCommand(parsed.args, parsed.context);
       process.stdout.write(serializeJson(envelope));
       return 0;
     }
@@ -184,6 +191,24 @@ async function runStateCommand(args: string[], context: CliContext): Promise<unk
   }
 
   throw new ArticleHubError("UNKNOWN_COMMAND", `未知 state 子命令：${subcommand ?? ""}`, 2);
+}
+
+async function runValidateCommand(args: string[], context: CliContext): Promise<unknown> {
+  const subcommand = args.shift();
+
+  if (subcommand === "article") {
+    const articleFile = readRequiredOption(args, "--article-file");
+    const configPath = readRequiredOption(args, "--config");
+    assertNoUnexpectedArgs(args, new Set(["--article-file", "--config"]));
+
+    return validateArticle({
+      articleFile,
+      configPath,
+      dryRun: context.dryRun
+    });
+  }
+
+  throw new ArticleHubError("UNKNOWN_COMMAND", `未知 validate 子命令：${subcommand ?? ""}`, 2);
 }
 
 function parseCli(argv: string[]): ParsedCli {
