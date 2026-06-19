@@ -488,6 +488,7 @@ function validateMarkdownBoundary(
   blockingIssues: ArticleValidationIssue[]
 ): void {
   validateMdxEsm(body, blockingIssues);
+  validateMdxFragments(body, blockingIssues);
   validateMdxJsxExpressions(body, blockingIssues);
   validateHtmlTags(body, blockingIssues);
 }
@@ -537,6 +538,21 @@ function isMdxEsmStatement(statement: string): boolean {
       statement
     )
   );
+}
+
+function validateMdxFragments(body: string, blockingIssues: ArticleValidationIssue[]): void {
+  const reportedMessages = new Set<string>();
+
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "<" || isEscaped(body, index)) {
+      continue;
+    }
+
+    if (body[index + 1] === ">" || (body[index + 1] === "/" && body[index + 2] === ">")) {
+      pushUniqueIssue(reportedMessages, blockingIssues, "正文禁止 MDX/JSX fragment");
+      return;
+    }
+  }
 }
 
 function validateMdxJsxExpressions(

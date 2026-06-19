@@ -316,6 +316,18 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain(`正文禁止 MDX/JSX 自定义组件：${componentName}`);
   });
 
+  test("JSX fragment 会被阶段 A Markdown 边界阻断", async () => {
+    const articleFile = writeVariant(
+      "jsx-fragment",
+      (content) => `${content}\n\n<><span>官网专属片段</span></>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文禁止 MDX/JSX fragment");
+  });
+
   test("JSX 表达式属性会被阶段 A Markdown 边界阻断", async () => {
     const articleFile = writeVariant(
       "jsx-expression-attribute",
