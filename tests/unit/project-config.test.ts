@@ -57,4 +57,28 @@ describe("project config", () => {
       code: "INVALID_PROJECT_CONFIG"
     });
   });
+
+  test.each([".", ".."])("拒绝路径折叠 repo name：%s", (repoName) => {
+    expect(() => {
+      safeCheckoutPath(path.join(repositoryRoot, "tmp/source cache"), {
+        name: repoName,
+        url: "https://github.com/opentiny/webmcp-sdk.git",
+        default_ref: "dev",
+        role: "primary-source",
+        source_type: "source"
+      });
+    }).toThrowError(/路径片段/);
+  });
+
+  test.each([".", ".."])("拒绝路径折叠 GitHub owner：%s", (owner) => {
+    expect(() => {
+      safeCheckoutPath(path.join(repositoryRoot, "tmp/source cache"), {
+        name: "webmcp-sdk",
+        url: `https://github.com/${owner}/webmcp-sdk.git`,
+        default_ref: "dev",
+        role: "primary-source",
+        source_type: "source"
+      });
+    }).toThrowError(/路径片段/);
+  });
 });

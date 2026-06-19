@@ -87,6 +87,8 @@ export function safeCheckoutPath(
   repository: ProjectRepositoryConfig
 ): string {
   const namespace = repositoryNamespace(repository.url);
+  assertSafePathSegment(namespace, "namespace");
+  assertSafePathSegment(repository.name, "name");
   const checkoutPath = path.resolve(cacheRoot, namespace, repository.name);
   const resolvedRoot = path.resolve(cacheRoot);
 
@@ -227,12 +229,22 @@ function readObject(value: unknown, fieldName: string, projectId: string): Recor
 }
 
 function assertSafeSegment(value: unknown, fieldName: string, projectId: string): asserts value is string {
-  if (typeof value !== "string" || !safeSegmentPattern.test(value)) {
+  if (typeof value !== "string" || !isSafePathSegment(value)) {
     throw new ArticleHubError(
       "INVALID_PROJECT_CONFIG",
       `字段 ${fieldName} 不是安全路径片段：${projectId}`
     );
   }
+}
+
+function assertSafePathSegment(value: string, fieldName: string): void {
+  if (!isSafePathSegment(value)) {
+    throw new ArticleHubError("UNSAFE_PATH", `字段 ${fieldName} 不是安全路径片段`);
+  }
+}
+
+function isSafePathSegment(value: string): boolean {
+  return value !== "." && value !== ".." && safeSegmentPattern.test(value);
 }
 
 function repositoryNamespace(url: string): string {
