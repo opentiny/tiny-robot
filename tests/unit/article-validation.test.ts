@@ -233,6 +233,110 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
   });
 
+  test("标准 HTML 展示标签在阶段 A Markdown 边界内通过", async () => {
+    const articleFile = writeVariant(
+      "standard-html",
+      (content) =>
+        `${content}\n\n<details><summary>适用场景</summary><p>用于说明阶段 A 的人工验收边界。</p></details>\n\n<kbd>Ctrl</kbd> + <kbd>K</kbd>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("script HTML 标签会被阶段 A Markdown 边界阻断", async () => {
+    const articleFile = writeVariant(
+      "script-html",
+      (content) => `${content}\n\n<script>alert("xss")</script>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("HTML 标签不允许使用：script");
+  });
+
+  test.each([
+    [
+      "事件属性",
+      '<span onclick="alert(1)">官方链接</span>',
+      "HTML 属性不允许使用事件 handler：span.onclick"
+    ],
+    [
+      "可执行 URL",
+      '<q cite="javascript:alert(1)">官方链接</q>',
+      "HTML 属性不允许使用可执行 URL：q.cite"
+    ]
+  ])("不安全 HTML %s 会被阶段 A Markdown 边界阻断", async (_, markdown, message) => {
+    const articleFile = writeVariant(
+      "unsafe-html-attribute",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain(message);
+  });
+
+  test.each([
+    ["MDX import", 'import Notice from "./Notice.mdx";'],
+    ["MDX export", "export const metadata = { title: 'Demo' };"],
+    ["MDX named export", 'export { Notice } from "./Notice.mdx";']
+  ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "mdx-esm",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
+  });
+
+  test.each([
+    ["PascalCase component", "<Alert>只适用于官网渲染。</Alert>", "Alert"],
+    ["namespace component", "<Docs.Alert>只适用于官网渲染。</Docs.Alert>", "Docs.Alert"]
+  ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown, componentName) => {
+    const articleFile = writeVariant(
+      "mdx-custom-component",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain(`正文禁止 MDX/JSX 自定义组件：${componentName}`);
+  });
+
+  test("JSX 表达式属性会被阶段 A Markdown 边界阻断", async () => {
+    const articleFile = writeVariant(
+      "jsx-expression-attribute",
+      (content) => `${content}\n\n<span data-version={version}>版本说明</span>\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("HTML/JSX 属性不允许使用表达式：span.data-version");
+  });
+
+  test("code 中的 MDX 和 script 示例不会触发阶段 A Markdown 边界", async () => {
+    const articleFile = writeVariant(
+      "markdown-boundary-in-code",
+      (content) =>
+        `${content}\n\n\`<Alert>示例</Alert>\`\n\n\`\`\`mdx\nimport Alert from "./Alert.mdx";\n<script>alert("xss")</script>\n<Docs.Alert />\n\`\`\`\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
   test("http(s) 外链通过且不发起网络请求", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const articleFile = writeVariant(

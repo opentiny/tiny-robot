@@ -62,6 +62,60 @@ const placeholderPatterns = [
   { token: "lorem ipsum", pattern: /lorem ipsum/i }
 ];
 const chineseTextPattern = /[\u3400-\u9fff]/;
+const allowedHtmlTags = new Set([
+  "abbr",
+  "b",
+  "br",
+  "caption",
+  "cite",
+  "col",
+  "colgroup",
+  "dd",
+  "del",
+  "details",
+  "div",
+  "dl",
+  "dt",
+  "em",
+  "figcaption",
+  "figure",
+  "i",
+  "ins",
+  "kbd",
+  "mark",
+  "p",
+  "q",
+  "s",
+  "small",
+  "span",
+  "strong",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "tr",
+  "u"
+]);
+const forbiddenHtmlTags = new Set([
+  "base",
+  "button",
+  "embed",
+  "form",
+  "iframe",
+  "input",
+  "link",
+  "meta",
+  "object",
+  "script",
+  "style",
+  "textarea"
+]);
+const executableUrlAttributes = new Set(["action", "cite", "formaction", "href", "src", "xlink:href"]);
 
 interface ParsedMarkdownValue {
   value: string;
@@ -111,6 +165,7 @@ export async function validateArticleFile(
     validatePlaceholders(parsed.body, blockingIssues);
     const bodyWithoutFencedCodeBlocks = removeFencedCodeBlocks(parsed.body);
     const bodyWithoutCode = removeInlineCodeSpans(bodyWithoutFencedCodeBlocks);
+    validateMarkdownBoundary(bodyWithoutCode, blockingIssues);
     await validateMarkdownLinks(options.articleFile, bodyWithoutCode, blockingIssues);
     await validateArticleAssets(options.articleFile, bodyWithoutCode, blockingIssues);
   }
@@ -425,6 +480,224 @@ function validatePlaceholders(body: string, blockingIssues: ArticleValidationIss
     if (placeholder.pattern.test(body)) {
       blockingIssues.push({ message: `文章包含阻断占位符：${placeholder.token}` });
     }
+  }
+}
+
+function validateMarkdownBoundary(
+  body: string,
+  blockingIssues: ArticleValidationIssue[]
+): void {
+  validateMdxEsm(body, blockingIssues);
+  validateHtmlTags(body, blockingIssues);
+}
+
+function validateMdxEsm(body: string, blockingIssues: ArticleValidationIssue[]): void {
+  for (const line of body.split(/\r?\n/)) {
+    const trimmedLine = line.trim();
+
+    if (
+      /^import\s+(?:type\s+)?(?:[\w*{}\s,$]+from\s+)?["'][^"']+["']\s*;?$/.test(
+        trimmedLine
+      ) ||
+      /^export\s+(?:default\b|(?:const|let|var|function|class)\b|\{[^}\r\n]*\}(?:\s+from\s+["'][^"']+["'])?|\*\s+from\s+["'][^"']+["'])/.test(
+        trimmedLine
+      )
+    ) {
+      blockingIssues.push({ message: "正文禁止 MDX ESM import/export" });
+    }
+  }
+}
+
+function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]): void {
+  const tagPattern =
+    /<\s*\/?\s*([A-Za-z][A-Za-z0-9]*(?:[.:-][A-Za-z][A-Za-z0-9-]*)*)([\s/>][^<>]*)?>/g;
+  const reportedMessages = new Set<string>();
+
+  for (const match of body.matchAll(tagPattern)) {
+    const tagName = match[1];
+    const tagKey = tagName.toLowerCase();
+    const attributeSource = match[2] ?? "";
+    const closingTag = /^<\s*\//.test(match[0]);
+
+    if (isMdxComponentTag(tagName)) {
+      pushUniqueIssue(
+        reportedMessages,
+        blockingIssues,
+        `正文禁止 MDX/JSX 自定义组件：${tagName}`
+      );
+      continue;
+    }
+
+    if (forbiddenHtmlTags.has(tagKey)) {
+      pushUniqueIssue(reportedMessages, blockingIssues, `HTML 标签不允许使用：${tagKey}`);
+      continue;
+    }
+
+    if (!allowedHtmlTags.has(tagKey)) {
+      pushUniqueIssue(
+        reportedMessages,
+        blockingIssues,
+        `HTML 标签不在阶段 A allowlist：${tagName}`
+      );
+      continue;
+    }
+
+    if (!closingTag) {
+      validateHtmlAttributes(tagKey, attributeSource, reportedMessages, blockingIssues);
+    }
+  }
+}
+
+function validateHtmlAttributes(
+  tagName: string,
+  attributeSource: string,
+  reportedMessages: Set<string>,
+  blockingIssues: ArticleValidationIssue[]
+): void {
+  let index = 0;
+
+  while (index < attributeSource.length) {
+    while (index < attributeSource.length && /[\s/]/.test(attributeSource[index])) {
+      index += 1;
+    }
+
+    if (index >= attributeSource.length) {
+      return;
+    }
+
+    if (attributeSource[index] === "{") {
+      pushUniqueIssue(
+        reportedMessages,
+        blockingIssues,
+        `HTML/JSX 属性不允许使用表达式：${tagName}`
+      );
+      index += 1;
+      continue;
+    }
+
+    const attributeStart = index;
+
+    while (index < attributeSource.length && !/[\s=/]/.test(attributeSource[index])) {
+      index += 1;
+    }
+
+    const attributeName = attributeSource.slice(attributeStart, index);
+
+    if (attributeName.length === 0) {
+      index += 1;
+      continue;
+    }
+
+    while (index < attributeSource.length && /\s/.test(attributeSource[index])) {
+      index += 1;
+    }
+
+    let value = "";
+    let expressionValue = false;
+
+    if (attributeSource[index] === "=") {
+      index += 1;
+
+      while (index < attributeSource.length && /\s/.test(attributeSource[index])) {
+        index += 1;
+      }
+
+      const parsedValue = readHtmlAttributeValue(attributeSource, index);
+      value = parsedValue.value;
+      expressionValue = parsedValue.expression;
+      index = parsedValue.endIndex;
+    }
+
+    const attributeKey = attributeName.toLowerCase();
+
+    if (attributeKey.startsWith("on")) {
+      pushUniqueIssue(
+        reportedMessages,
+        blockingIssues,
+        `HTML 属性不允许使用事件 handler：${tagName}.${attributeKey}`
+      );
+    }
+
+    if (expressionValue) {
+      pushUniqueIssue(
+        reportedMessages,
+        blockingIssues,
+        `HTML/JSX 属性不允许使用表达式：${tagName}.${attributeName}`
+      );
+    }
+
+    if (executableUrlAttributes.has(attributeKey) && isExecutableHtmlUrl(value)) {
+      pushUniqueIssue(
+        reportedMessages,
+        blockingIssues,
+        `HTML 属性不允许使用可执行 URL：${tagName}.${attributeKey}`
+      );
+    }
+  }
+}
+
+function readHtmlAttributeValue(
+  source: string,
+  startIndex: number
+): { value: string; endIndex: number; expression: boolean } {
+  if (source[startIndex] === "{" || source[startIndex] === undefined) {
+    const endIndex = source.indexOf("}", startIndex + 1);
+    return {
+      value: source.slice(startIndex, endIndex === -1 ? source.length : endIndex + 1),
+      endIndex: endIndex === -1 ? source.length : endIndex + 1,
+      expression: source[startIndex] === "{"
+    };
+  }
+
+  if (source[startIndex] === "\"" || source[startIndex] === "'") {
+    const quote = source[startIndex];
+    let index = startIndex + 1;
+
+    while (index < source.length && source[index] !== quote) {
+      index += 1;
+    }
+
+    return {
+      value: source.slice(startIndex + 1, index),
+      endIndex: index < source.length ? index + 1 : index,
+      expression: false
+    };
+  }
+
+  let index = startIndex;
+
+  while (index < source.length && !/\s/.test(source[index]) && source[index] !== "/") {
+    index += 1;
+  }
+
+  const value = source.slice(startIndex, index);
+
+  return { value, endIndex: index, expression: value.startsWith("{") };
+}
+
+function isMdxComponentTag(tagName: string): boolean {
+  return /^[A-Z]/.test(tagName) || tagName.includes(".") || tagName.includes(":");
+}
+
+function isExecutableHtmlUrl(value: string): boolean {
+  const normalizedValue = value.trim().replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+
+  return (
+    normalizedValue.startsWith("javascript:") ||
+    normalizedValue.startsWith("vbscript:") ||
+    normalizedValue.startsWith("data:text/html") ||
+    normalizedValue.startsWith("data:application/xhtml+xml")
+  );
+}
+
+function pushUniqueIssue(
+  reportedMessages: Set<string>,
+  blockingIssues: ArticleValidationIssue[],
+  message: string
+): void {
+  if (!reportedMessages.has(message)) {
+    reportedMessages.add(message);
+    blockingIssues.push({ message });
   }
 }
 
