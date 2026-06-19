@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
+import path from "node:path";
 
 import { parse } from "yaml";
 
@@ -59,10 +60,12 @@ const placeholderPatterns = [
   { token: "待补充", pattern: /待补充/ },
   { token: "lorem ipsum", pattern: /lorem ipsum/i }
 ];
+const markdownImagePattern = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
+const chineseTextPattern = /[\u3400-\u9fff]/;
 
 /**
- * 校验阶段 A 文章的 Front Matter 与 Markdown 基础契约。
- * 该函数只返回阻断项和 warning，不执行 Git、GitHub、图片解码或 Mermaid 派生产物校验。
+ * 校验阶段 A 文章的 Front Matter、Markdown 与本地素材契约。
+ * 该函数只读取文章目录内文件，不执行 Git、GitHub、外链下载或派生产物生成。
  *
  * @param options 文章路径、项目配置路径和 dry-run 标记。
  * @returns 版本化校验 envelope；文章不合法时通过 `valid=false` 和阻断项表达。
@@ -83,6 +86,7 @@ export async function validateArticleFile(
     validateCodeFences(parsed.body, blockingIssues);
     validatePlaceholders(parsed.frontMatterSource, blockingIssues);
     validatePlaceholders(parsed.body, blockingIssues);
+    await validateArticleAssets(options.articleFile, parsed.body, blockingIssues);
   }
 
   return {
@@ -395,6 +399,199 @@ function validatePlaceholders(body: string, blockingIssues: ArticleValidationIss
     if (placeholder.pattern.test(body)) {
       blockingIssues.push({ message: `文章包含阻断占位符：${placeholder.token}` });
     }
+  }
+}
+
+async function validateArticleAssets(
+  articleFile: string,
+  body: string,
+  blockingIssues: ArticleValidationIssue[]
+): Promise<void> {
+  const articleDirectory = path.dirname(articleFile);
+
+  await validateMarkdownImages(articleDirectory, body, blockingIssues);
+  await validateDiagramDerivatives(articleDirectory, blockingIssues);
+}
+
+async function validateMarkdownImages(
+  articleDirectory: string,
+  body: string,
+  blockingIssues: ArticleValidationIssue[]
+): Promise<void> {
+  for (const image of findMarkdownImages(body)) {
+    validateImageAlt(image.alt, blockingIssues);
+
+    if (isExternalPath(image.path)) {
+      continue;
+    }
+
+    const localPath = normalizeLocalAssetPath(image.path);
+
+    if (!localPath) {
+      blockingIssues.push({
+        message: `本地图片路径必须相对文章目录且不能穿越：${image.path}`
+      });
+      continue;
+    }
+
+    const extension = path.posix.extname(localPath).toLowerCase();
+
+    if (extension === ".mmd" || extension === ".svg") {
+      blockingIssues.push({
+        message: `正文图片必须引用 PNG，不能直接引用 ${extension}：${image.path}`
+      });
+    }
+
+    const absolutePath = path.join(articleDirectory, ...localPath.split("/"));
+
+    if (!(await fileExists(absolutePath))) {
+      blockingIssues.push({ message: `本地图片文件不存在：${image.path}` });
+      continue;
+    }
+
+    if (extension === ".png") {
+      await validatePngDimensions(absolutePath, image.path, blockingIssues);
+    }
+  }
+}
+
+function findMarkdownImages(body: string): Array<{ alt: string; path: string }> {
+  return Array.from(body.matchAll(markdownImagePattern), (match) => ({
+    alt: match[1].trim(),
+    path: match[2].trim()
+  }));
+}
+
+function validateImageAlt(alt: string, blockingIssues: ArticleValidationIssue[]): void {
+  if (alt.length === 0 || !chineseTextPattern.test(alt)) {
+    blockingIssues.push({ message: "图片 alt 必须是非空且包含中文" });
+  }
+}
+
+function isExternalPath(imagePath: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(imagePath) || imagePath.startsWith("//");
+}
+
+function normalizeLocalAssetPath(imagePath: string): string | undefined {
+  const [pathWithoutHash] = imagePath.split("#", 1);
+  const [pathWithoutQuery] = pathWithoutHash.split("?", 1);
+
+  if (pathWithoutQuery.length === 0) {
+    return undefined;
+  }
+
+  let decodedPath: string;
+
+  try {
+    decodedPath = decodeURIComponent(pathWithoutQuery);
+  } catch {
+    return undefined;
+  }
+
+  if (
+    decodedPath.startsWith("/") ||
+    path.win32.isAbsolute(decodedPath) ||
+    decodedPath.split(/[\\/]+/).includes("..")
+  ) {
+    return undefined;
+  }
+
+  const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, "/"));
+
+  if (normalizedPath === "." || normalizedPath.startsWith("../")) {
+    return undefined;
+  }
+
+  return normalizedPath;
+}
+
+async function validateDiagramDerivatives(
+  articleDirectory: string,
+  blockingIssues: ArticleValidationIssue[]
+): Promise<void> {
+  const diagramsDirectory = path.join(articleDirectory, "assets", "diagrams");
+  let entries: string[];
+
+  try {
+    entries = await readdir(diagramsDirectory);
+  } catch (error) {
+    const nodeError = error as NodeJS.ErrnoException;
+
+    if (nodeError.code === "ENOENT") {
+      return;
+    }
+
+    throw error;
+  }
+
+  for (const entryName of entries) {
+    if (path.extname(entryName) !== ".mmd") {
+      continue;
+    }
+
+    const baseName = entryName.slice(0, -".mmd".length);
+    const svgPath = `assets/diagrams/${baseName}.svg`;
+    const pngPath = `assets/diagrams/${baseName}.png`;
+
+    if (!(await fileExists(path.join(diagramsDirectory, `${baseName}.svg`)))) {
+      blockingIssues.push({ message: `Mermaid 源文件缺少同名 SVG：${svgPath}` });
+    }
+
+    const absolutePngPath = path.join(diagramsDirectory, `${baseName}.png`);
+
+    if (!(await fileExists(absolutePngPath))) {
+      blockingIssues.push({ message: `Mermaid 源文件缺少同名 PNG：${pngPath}` });
+      continue;
+    }
+
+    await validatePngDimensions(absolutePngPath, pngPath, blockingIssues);
+  }
+}
+
+async function fileExists(targetPath: string): Promise<boolean> {
+  try {
+    await access(targetPath);
+    return true;
+  } catch (error) {
+    const nodeError = error as NodeJS.ErrnoException;
+
+    if (nodeError.code === "ENOENT") {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+async function validatePngDimensions(
+  pngPath: string,
+  displayPath: string,
+  blockingIssues: ArticleValidationIssue[]
+): Promise<void> {
+  const png = await readFile(pngPath);
+  const validSignature =
+    png.length >= 24 &&
+    png[0] === 0x89 &&
+    png[1] === 0x50 &&
+    png[2] === 0x4e &&
+    png[3] === 0x47 &&
+    png[4] === 0x0d &&
+    png[5] === 0x0a &&
+    png[6] === 0x1a &&
+    png[7] === 0x0a &&
+    png.toString("ascii", 12, 16) === "IHDR";
+
+  if (!validSignature) {
+    blockingIssues.push({ message: `PNG 图片无法解码或尺寸无效：${displayPath}` });
+    return;
+  }
+
+  // PNG 宽高位于 IHDR 数据头；读取前 24 字节即可拒绝空尺寸和明显损坏文件。
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+
+  if (width === 0 || height === 0) {
+    blockingIssues.push({ message: `PNG 图片无法解码或尺寸无效：${displayPath}` });
   }
 }
 

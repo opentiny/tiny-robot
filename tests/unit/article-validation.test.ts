@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,10 +13,32 @@ const repositoryRoot = path.resolve(
 );
 const validArticlePath = path.join(repositoryRoot, "tests/fixtures/articles/valid-article.md");
 const configPath = path.join(repositoryRoot, "tests/fixtures/projects-valid.yml");
+const validPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+  "base64"
+);
 
 function writeVariant(name: string, transform: (content: string) => string): string {
   const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation "));
   const target = path.join(tmp, `${name}.md`);
+  writeFileSync(target, transform(readFileSync(validArticlePath, "utf8")), "utf8");
+  return target;
+}
+
+function writeArticleWithAssets(
+  name: string,
+  transform: (content: string) => string,
+  assets: Record<string, string | Buffer>
+): string {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation "));
+  const target = path.join(tmp, "article.md");
+
+  for (const [assetPath, content] of Object.entries(assets)) {
+    const targetAsset = path.join(tmp, assetPath);
+    mkdirSync(path.dirname(targetAsset), { recursive: true });
+    writeFileSync(targetAsset, content);
+  }
+
   writeFileSync(target, transform(readFileSync(validArticlePath, "utf8")), "utf8");
   return target;
 }
@@ -194,5 +216,146 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
+  });
+
+  test("合法本地 PNG 图片通过校验", async () => {
+    const articleFile = writeArticleWithAssets(
+      "valid-local-png",
+      (content) => `${content}\n\n![中文截图](assets/images/demo.png)\n`,
+      { "assets/images/demo.png": validPng }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("图片 alt 不能为空", async () => {
+    const articleFile = writeVariant(
+      "empty-image-alt",
+      (content) => `${content}\n\n![](https://example.com/demo.png)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("图片 alt 必须是非空且包含中文");
+  });
+
+  test("图片 alt 必须包含中文", async () => {
+    const articleFile = writeVariant(
+      "non-chinese-image-alt",
+      (content) => `${content}\n\n![Demo screenshot](https://example.com/demo.png)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("图片 alt 必须是非空且包含中文");
+  });
+
+  test("缺失本地图片文件会阻断", async () => {
+    const articleFile = writeVariant(
+      "missing-local-image",
+      (content) => `${content}\n\n![中文截图](assets/images/missing.png)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("本地图片文件不存在：assets/images/missing.png");
+  });
+
+  test.each([
+    ["绝对路径", "/tmp/demo.png"],
+    ["路径穿越", "../demo.png"]
+  ])("本地图片禁止%s", async (_, imagePath) => {
+    const articleFile = writeVariant(
+      "unsafe-local-image-path",
+      (content) => `${content}\n\n![中文截图](${imagePath})\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain(`本地图片路径必须相对文章目录且不能穿越：${imagePath}`);
+  });
+
+  test("正文不得直接引用 Mermaid 源文件", async () => {
+    const articleFile = writeArticleWithAssets(
+      "markdown-references-mmd",
+      (content) => `${content}\n\n![中文流程图](assets/diagrams/flow.mmd)\n`,
+      {
+        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
+        "assets/diagrams/flow.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>",
+        "assets/diagrams/flow.png": validPng
+      }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文图片必须引用 PNG，不能直接引用 .mmd：assets/diagrams/flow.mmd");
+  });
+
+  test("正文不得直接引用 SVG 图片", async () => {
+    const articleFile = writeArticleWithAssets(
+      "markdown-references-svg",
+      (content) => `${content}\n\n![中文流程图](assets/diagrams/flow.svg)\n`,
+      {
+        "assets/diagrams/flow.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+      }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文图片必须引用 PNG，不能直接引用 .svg：assets/diagrams/flow.svg");
+  });
+
+  test("Mermaid 源文件缺少同名 SVG 会阻断", async () => {
+    const articleFile = writeArticleWithAssets(
+      "mmd-without-svg",
+      (content) => content,
+      {
+        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
+        "assets/diagrams/flow.png": validPng
+      }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("Mermaid 源文件缺少同名 SVG：assets/diagrams/flow.svg");
+  });
+
+  test("Mermaid 源文件缺少同名 PNG 会阻断", async () => {
+    const articleFile = writeArticleWithAssets(
+      "mmd-without-png",
+      (content) => content,
+      {
+        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
+        "assets/diagrams/flow.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
+      }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("Mermaid 源文件缺少同名 PNG：assets/diagrams/flow.png");
+  });
+
+  test("坏 PNG 会阻断", async () => {
+    const articleFile = writeArticleWithAssets(
+      "bad-png",
+      (content) => `${content}\n\n![中文截图](assets/images/bad.png)\n`,
+      { "assets/images/bad.png": Buffer.from("not a png") }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("PNG 图片无法解码或尺寸无效：assets/images/bad.png");
   });
 });
