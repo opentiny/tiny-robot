@@ -834,6 +834,13 @@ function isExternalPath(imagePath: string): boolean {
 }
 
 function normalizeLocalPath(target: string): LocalPathResult {
+  try {
+    decodeURIComponent(target);
+  } catch {
+    // query 与 fragment 不参与文件定位，但完整 target 仍必须满足 percent-encoding 语法。
+    return { error: "malformed-percent-encoding" };
+  }
+
   const [pathWithoutHash] = target.split("#", 1);
   const [pathWithoutQuery] = pathWithoutHash.split("?", 1);
 

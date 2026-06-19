@@ -306,6 +306,24 @@ describe("article validation", () => {
     });
   });
 
+  test.each([
+    ["query", "docs/guide.md?x=%ZZ"],
+    ["fragment", "docs/guide.md#%ZZ"]
+  ])("%s 中的 malformed percent-encoding 以阻断问题返回", async (_, target) => {
+    const articleFile = writeArticleWithAssets(
+      "malformed-percent-encoding-suffix",
+      (content) => `${content}\n\n[本地文档](${target})\n`,
+      { "docs/guide.md": "# 使用说明\n" }
+    );
+
+    await expect(
+      validateArticleFile({ articleFile, configPath, dryRun: false })
+    ).resolves.toMatchObject({
+      valid: false,
+      blocking_issues: [{ message: `本地链接 percent-encoding 无效：${target}` }]
+    });
+  });
+
   test("本地链接目标必须是可读取文件", async () => {
     const articleFile = writeArticleWithAssets(
       "local-link-directory",
