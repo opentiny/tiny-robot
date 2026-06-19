@@ -514,9 +514,7 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
       continue;
     }
 
-    const label = parseBracketValue(body, index, labelEndIndex);
-
-    const suffixIndex = label.endIndex + 1;
+    const suffixIndex = labelEndIndex + 1;
 
     if (body[suffixIndex] === "(") {
       const destination = parseMarkdownDestination(body, suffixIndex + 1, context);
@@ -530,7 +528,6 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
     }
 
     if (body[suffixIndex] !== "[") {
-      index = label.endIndex;
       continue;
     }
 
@@ -540,6 +537,7 @@ function findMarkdownLinks(body: string): MarkdownLink[] {
       continue;
     }
 
+    const label = parseBracketValue(body, index, labelEndIndex);
     const reference = parseBracketValue(body, suffixIndex, referenceEndIndex);
 
     links.push({
@@ -651,14 +649,12 @@ function findMarkdownImages(body: string): Array<{ alt: string; path: string }> 
       continue;
     }
 
-    const alt = parseBracketValue(body, index + 1, altEndIndex);
-
-    if (body[alt.endIndex + 1] !== "(") {
-      index = alt.endIndex;
+    if (body[altEndIndex + 1] !== "(") {
       continue;
     }
 
-    const destination = parseMarkdownDestination(body, alt.endIndex + 2, context);
+    const alt = parseBracketValue(body, index + 1, altEndIndex);
+    const destination = parseMarkdownDestination(body, altEndIndex + 2, context);
 
     if (!destination) {
       continue;
@@ -924,11 +920,14 @@ function removeInlineCodeSpans(body: string): string {
       index += 1;
     }
 
-    if (isEscaped(body, start)) {
+    // 反斜杠只转义首个 backtick，剩余部分仍按连续 run 参与同长度配对。
+    const delimiterStart = isEscaped(body, start) ? start + 1 : start;
+
+    if (delimiterStart > index) {
       continue;
     }
 
-    runs.push({ start, length: index - start + 1 });
+    runs.push({ start: delimiterStart, length: index - delimiterStart + 1 });
   }
 
   const nextRunByLength = new Map<number, number>();

@@ -493,6 +493,33 @@ describe("article validation", () => {
   });
 
   test.each([
+    ["reviewer case", "\\``[真实链接](missing.md)`"],
+    ["更长 run", "\\```[真实链接](missing.md)``"]
+  ])("escaped 多 backtick 的剩余%s 仍可组成 code span", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "escaped-backtick-prefix-in-run",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("escaped 多 backtick 的剩余 run 仅按实际长度配对", async () => {
+    const markdown = "\\```[真实链接](missing.md)`";
+    const articleFile = writeVariant(
+      "mismatched-run-after-escaped-backtick",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地链接文件不存在：missing.md");
+  });
+
+  test.each([
     ["链接", "[未闭合\n[真实链接](missing.md)", "本地链接文件不存在：missing.md"],
     ["图片", "![未闭合\n![中文图](missing.png)", "本地图片文件不存在：missing.png"]
   ])("未闭合%s bracket 不会跳过后续真实资源", async (_, markdown, expectedIssue) => {
@@ -504,6 +531,28 @@ describe("article validation", () => {
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
     expect(issueMessages(result)).toContain(expectedIssue);
+  });
+
+  test.each([
+    [
+      "链接",
+      "[普通外层 [真实链接](missing.md)]",
+      "本地链接文件不存在：missing.md"
+    ],
+    [
+      "图片",
+      "![普通外层 ![中文图](missing.png)]",
+      "本地图片文件不存在：missing.png"
+    ]
+  ])("无 suffix 的普通外层%s bracket 不会跳过内部资源", async (_, markdown, expectedIssue) => {
+    const articleFile = writeVariant(
+      "plain-outer-bracket-around-resource",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toEqual([expectedIssue]);
   });
 
   test("图片语法不会重复作为普通链接校验", async () => {
