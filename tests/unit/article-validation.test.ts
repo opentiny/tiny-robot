@@ -282,6 +282,44 @@ describe("article validation", () => {
   });
 
   test.each([
+    [
+      "事件属性",
+      '<span title="1 > 0" onclick="alert(1)">正文</span>',
+      "HTML 属性不允许使用事件 handler：span.onclick"
+    ],
+    [
+      "可执行 URL",
+      '<q title="1 > 0" cite="javascript:alert(1)">正文</q>',
+      "HTML 属性不允许使用可执行 URL：q.cite"
+    ]
+  ])("quoted attribute 中的 > 不会跳过后续不安全 HTML %s", async (_, markdown, message) => {
+    const articleFile = writeVariant(
+      "html-quoted-greater-than",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain(message);
+  });
+
+  test.each([
+    ["hex reference", '<q cite="jav&#x61;script:alert(1)">正文</q>'],
+    ["decimal reference", '<q cite="java&#115;cript:alert(1)">正文</q>']
+  ])("URL 属性中的 HTML character reference 会先解码：%s", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "html-url-character-reference",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("HTML 属性不允许使用可执行 URL：q.cite");
+  });
+
+  test.each([
     ["MDX import", 'import Notice from "./Notice.mdx";'],
     ["MDX export", "export const metadata = { title: 'Demo' };"],
     ["MDX named export", 'export { Notice } from "./Notice.mdx";'],
@@ -300,6 +338,25 @@ describe("article validation", () => {
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
   });
+
+  test(
+    "大量无终止符的 malformed MDX import 保持有界扫描",
+    async () => {
+      const malformedImports = Array.from(
+        { length: 6_000 },
+        (_, index) => `import broken${index}`
+      ).join("\n");
+      const articleFile = writeVariant(
+        "many-malformed-mdx-imports",
+        (content) => `${content}\n\n${malformedImports}\n`
+      );
+
+      const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+      expect(result.valid).toBe(true);
+    },
+    1_000
+  );
 
   test.each([
     ["PascalCase component", "<Alert>只适用于官网渲染。</Alert>", "Alert"],

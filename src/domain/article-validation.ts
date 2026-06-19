@@ -136,6 +136,13 @@ interface MarkdownScanContext {
   closingParenthesisByOpeningIndex: Map<number, number>;
 }
 
+interface HtmlTagScanResult {
+  tagName: string;
+  attributeSource: string;
+  closingTag: boolean;
+  endIndex: number;
+}
+
 type LocalPathResult =
   | { value: string }
   | { error: "empty" | "malformed-percent-encoding" | "unsafe" };
@@ -503,14 +510,22 @@ function validateMdxEsm(body: string, blockingIssues: ArticleValidationIssue[]):
       continue;
     }
 
-    if (isMdxEsmStatement(collectMdxEsmStatement(lines, index))) {
+    const statement = collectMdxEsmStatement(lines, index);
+
+    if (isMdxEsmStatement(statement.value)) {
       blockingIssues.push({ message: "正文禁止 MDX ESM import/export" });
     }
+
+    index = statement.endIndex;
   }
 }
 
-function collectMdxEsmStatement(lines: string[], startIndex: number): string {
+function collectMdxEsmStatement(
+  lines: string[],
+  startIndex: number
+): { value: string; endIndex: number } {
   const parts: string[] = [];
+  let endIndex = startIndex;
 
   for (let index = startIndex; index < lines.length; index += 1) {
     const trimmedLine = lines[index].trim();
@@ -520,13 +535,14 @@ function collectMdxEsmStatement(lines: string[], startIndex: number): string {
     }
 
     parts.push(trimmedLine);
+    endIndex = index;
 
     if (/[;}]\s*;?$/.test(trimmedLine) || /["']\s*;?$/.test(trimmedLine)) {
       break;
     }
   }
 
-  return parts.join(" ").replace(/\s+/g, " ").trim();
+  return { value: parts.join(" ").replace(/\s+/g, " ").trim(), endIndex };
 }
 
 function isMdxEsmStatement(statement: string): boolean {
@@ -560,9 +576,7 @@ function validateMdxJsxExpressions(
   blockingIssues: ArticleValidationIssue[]
 ): void {
   const reportedMessages = new Set<string>();
-  const bodyWithoutHtmlTags = body.replace(createHtmlTagPattern(), (tag) =>
-    tag.replace(/[^\r\n]/g, " ")
-  );
+  const bodyWithoutHtmlTags = removeHtmlTags(body);
   const closingBraceByOpeningIndex = createBraceScanContext(bodyWithoutHtmlTags);
 
   for (let index = 0; index < bodyWithoutHtmlTags.length; index += 1) {
@@ -605,11 +619,9 @@ function createBraceScanContext(body: string): Map<number, number> {
 function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]): void {
   const reportedMessages = new Set<string>();
 
-  for (const match of body.matchAll(createHtmlTagPattern())) {
-    const tagName = match[1];
+  for (const tag of findHtmlTags(body)) {
+    const tagName = tag.tagName;
     const tagKey = tagName.toLowerCase();
-    const attributeSource = match[2] ?? "";
-    const closingTag = /^<\s*\//.test(match[0]);
 
     if (isMdxComponentTag(tagName)) {
       pushUniqueIssue(
@@ -634,14 +646,127 @@ function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]
       continue;
     }
 
-    if (!closingTag) {
-      validateHtmlAttributes(tagKey, attributeSource, reportedMessages, blockingIssues);
+    if (!tag.closingTag) {
+      validateHtmlAttributes(tagKey, tag.attributeSource, reportedMessages, blockingIssues);
     }
   }
 }
 
-function createHtmlTagPattern(): RegExp {
-  return /<\s*\/?\s*([A-Za-z][A-Za-z0-9]*(?:[.:-][A-Za-z][A-Za-z0-9-]*)*)([\s/>][^<>]*)?>/g;
+function removeHtmlTags(body: string): string {
+  let result = "";
+  let cursor = 0;
+
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "<" || isEscaped(body, index)) {
+      continue;
+    }
+
+    const tag = readHtmlTag(body, index);
+
+    if (!tag) {
+      continue;
+    }
+
+    result += body.slice(cursor, index);
+    result += body.slice(index, tag.endIndex + 1).replace(/[^\r\n]/g, " ");
+    cursor = tag.endIndex + 1;
+    index = tag.endIndex;
+  }
+
+  return result + body.slice(cursor);
+}
+
+function findHtmlTags(body: string): HtmlTagScanResult[] {
+  const tags: HtmlTagScanResult[] = [];
+
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "<" || isEscaped(body, index)) {
+      continue;
+    }
+
+    const tag = readHtmlTag(body, index);
+
+    if (tag) {
+      tags.push(tag);
+      index = tag.endIndex;
+    }
+  }
+
+  return tags;
+}
+
+function readHtmlTag(body: string, startIndex: number): HtmlTagScanResult | undefined {
+  let index = startIndex + 1;
+
+  while (index < body.length && /\s/.test(body[index])) {
+    index += 1;
+  }
+
+  const closingTag = body[index] === "/";
+
+  if (closingTag) {
+    index += 1;
+  }
+
+  while (index < body.length && /\s/.test(body[index])) {
+    index += 1;
+  }
+
+  if (!/[A-Za-z]/.test(body[index] ?? "")) {
+    return undefined;
+  }
+
+  const tagStart = index;
+
+  while (index < body.length && /[A-Za-z0-9.:-]/.test(body[index])) {
+    index += 1;
+  }
+
+  const tagName = body.slice(tagStart, index);
+  const attributeStart = index;
+  const tagEnd = findHtmlTagEnd(body, index);
+
+  if (tagEnd === undefined) {
+    return undefined;
+  }
+
+  return {
+    tagName,
+    attributeSource: body.slice(attributeStart, tagEnd),
+    closingTag,
+    endIndex: tagEnd
+  };
+}
+
+function findHtmlTagEnd(body: string, startIndex: number): number | undefined {
+  let quote: "\"" | "'" | undefined;
+
+  for (let index = startIndex; index < body.length; index += 1) {
+    const character = body[index];
+
+    if (quote) {
+      if (character === quote) {
+        quote = undefined;
+      }
+
+      continue;
+    }
+
+    if (character === "\"" || character === "'") {
+      quote = character;
+      continue;
+    }
+
+    if (character === ">") {
+      return index;
+    }
+
+    if (character === "<") {
+      return undefined;
+    }
+  }
+
+  return undefined;
 }
 
 function validateHtmlAttributes(
@@ -776,7 +901,10 @@ function isMdxComponentTag(tagName: string): boolean {
 }
 
 function isExecutableHtmlUrl(value: string): boolean {
-  const normalizedValue = value.trim().replace(/[\u0000-\u0020]+/g, "").toLowerCase();
+  const normalizedValue = decodeHtmlCharacterReferences(value)
+    .trim()
+    .replace(/[\u0000-\u0020]+/g, "")
+    .toLowerCase();
 
   return (
     normalizedValue.startsWith("javascript:") ||
@@ -784,6 +912,22 @@ function isExecutableHtmlUrl(value: string): boolean {
     normalizedValue.startsWith("data:text/html") ||
     normalizedValue.startsWith("data:application/xhtml+xml")
   );
+}
+
+function decodeHtmlCharacterReferences(value: string): string {
+  return value.replace(/&#(?:x([0-9a-fA-F]+)|([0-9]+));?/g, (match, hex, decimal) => {
+    const codePoint = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
+
+    if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+      return match;
+    }
+
+    try {
+      return String.fromCodePoint(codePoint);
+    } catch {
+      return match;
+    }
+  });
 }
 
 function pushUniqueIssue(
