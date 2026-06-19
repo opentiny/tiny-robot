@@ -284,7 +284,9 @@ describe("article validation", () => {
   test.each([
     ["MDX import", 'import Notice from "./Notice.mdx";'],
     ["MDX export", "export const metadata = { title: 'Demo' };"],
-    ["MDX named export", 'export { Notice } from "./Notice.mdx";']
+    ["MDX named export", 'export { Notice } from "./Notice.mdx";'],
+    ["MDX async function export", "export async function loadData() {}"],
+    ["MDX namespace export", 'export * as Docs from "./docs.mdx";']
   ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
     const articleFile = writeVariant(
       "mdx-esm",
@@ -322,6 +324,21 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("HTML/JSX 属性不允许使用表达式：span.data-version");
+  });
+
+  test.each([
+    ["HTML 标签体内 JSX 表达式", "<span>{version}</span>"],
+    ["独立 JSX 表达式", "{version}"]
+  ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "jsx-body-expression",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("正文禁止 MDX/JSX 表达式");
   });
 
   test("code 中的 MDX 和 script 示例不会触发阶段 A Markdown 边界", async () => {

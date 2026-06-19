@@ -488,6 +488,7 @@ function validateMarkdownBoundary(
   blockingIssues: ArticleValidationIssue[]
 ): void {
   validateMdxEsm(body, blockingIssues);
+  validateMdxJsxExpressions(body, blockingIssues);
   validateHtmlTags(body, blockingIssues);
 }
 
@@ -499,7 +500,7 @@ function validateMdxEsm(body: string, blockingIssues: ArticleValidationIssue[]):
       /^import\s+(?:type\s+)?(?:[\w*{}\s,$]+from\s+)?["'][^"']+["']\s*;?$/.test(
         trimmedLine
       ) ||
-      /^export\s+(?:default\b|(?:const|let|var|function|class)\b|\{[^}\r\n]*\}(?:\s+from\s+["'][^"']+["'])?|\*\s+from\s+["'][^"']+["'])/.test(
+      /^export\s+(?:default\b|async\s+function\b|(?:const|let|var|function|class)\b|\{[^}\r\n]*\}(?:\s+from\s+["'][^"']+["'])?|\*\s+(?:as\s+[A-Za-z_$][\w$]*\s+)?from\s+["'][^"']+["'])/.test(
         trimmedLine
       )
     ) {
@@ -508,12 +509,66 @@ function validateMdxEsm(body: string, blockingIssues: ArticleValidationIssue[]):
   }
 }
 
+function validateMdxJsxExpressions(
+  body: string,
+  blockingIssues: ArticleValidationIssue[]
+): void {
+  const reportedMessages = new Set<string>();
+  const bodyWithoutHtmlTags = body.replace(createHtmlTagPattern(), (tag) =>
+    tag.replace(/[^\r\n]/g, " ")
+  );
+
+  for (let index = 0; index < bodyWithoutHtmlTags.length; index += 1) {
+    if (bodyWithoutHtmlTags[index] !== "{" || isEscaped(bodyWithoutHtmlTags, index)) {
+      continue;
+    }
+
+    const expression = readMdxJsxExpression(bodyWithoutHtmlTags, index);
+
+    if (expression && expression.value.trim().length > 0) {
+      pushUniqueIssue(reportedMessages, blockingIssues, "正文禁止 MDX/JSX 表达式");
+      index = expression.endIndex;
+    }
+  }
+}
+
+function readMdxJsxExpression(
+  body: string,
+  startIndex: number
+): ParsedMarkdownValue | undefined {
+  let depth = 0;
+
+  for (let index = startIndex; index < body.length; index += 1) {
+    const character = body[index];
+
+    if (character === "\n" || character === "\r") {
+      return undefined;
+    }
+
+    if (character === "{" && !isEscaped(body, index)) {
+      depth += 1;
+      continue;
+    }
+
+    if (character === "}" && !isEscaped(body, index)) {
+      depth -= 1;
+
+      if (depth === 0) {
+        return {
+          value: body.slice(startIndex + 1, index),
+          endIndex: index
+        };
+      }
+    }
+  }
+
+  return undefined;
+}
+
 function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]): void {
-  const tagPattern =
-    /<\s*\/?\s*([A-Za-z][A-Za-z0-9]*(?:[.:-][A-Za-z][A-Za-z0-9-]*)*)([\s/>][^<>]*)?>/g;
   const reportedMessages = new Set<string>();
 
-  for (const match of body.matchAll(tagPattern)) {
+  for (const match of body.matchAll(createHtmlTagPattern())) {
     const tagName = match[1];
     const tagKey = tagName.toLowerCase();
     const attributeSource = match[2] ?? "";
@@ -546,6 +601,10 @@ function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]
       validateHtmlAttributes(tagKey, attributeSource, reportedMessages, blockingIssues);
     }
   }
+}
+
+function createHtmlTagPattern(): RegExp {
+  return /<\s*\/?\s*([A-Za-z][A-Za-z0-9]*(?:[.:-][A-Za-z][A-Za-z0-9-]*)*)([\s/>][^<>]*)?>/g;
 }
 
 function validateHtmlAttributes(
