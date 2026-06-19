@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { validateArticleFile } from "../../src/domain/article-validation.js";
 
@@ -216,6 +216,184 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
+  });
+
+  test("http(s) 外链通过且不发起网络请求", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const articleFile = writeVariant(
+      "external-links",
+      (content) => `${content}\n\n[HTTP](http://example.com/a) [HTTPS](https://example.com/b)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
+  test.each([
+    ["protocol-relative URL", "//example.com/docs"],
+    ["同页 anchor", "#section"]
+  ])("合法%s链接通过", async (_, target) => {
+    const articleFile = writeVariant(
+      "allowed-link-target",
+      (content) => `${content}\n\n[文档](${target})\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("存在的本地文件链接通过并忽略 query 与 fragment", async () => {
+    const articleFile = writeArticleWithAssets(
+      "local-link",
+      (content) => `${content}\n\n[本地文档](docs/guide.md?mode=raw#usage)\n`,
+      { "docs/guide.md": "# 使用说明\n" }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("缺失的本地文件链接会阻断", async () => {
+    const articleFile = writeVariant(
+      "missing-local-link",
+      (content) => `${content}\n\n[本地文档](docs/missing.md)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地链接文件不存在：docs/missing.md");
+  });
+
+  test.each([
+    ["POSIX 绝对路径", "/tmp/secret.md"],
+    ["Windows 绝对路径", "C:/secret.md"],
+    ["file URL", "file:///tmp/secret.md"],
+    ["file scheme", "file:secret.md"],
+    ["原始路径穿越", "../secret.md"],
+    ["嵌套路径穿越", "docs/../secret.md"],
+    ["decode 后路径穿越", "%2e%2e/secret.md"]
+  ])("本地链接拒绝%s", async (_, target) => {
+    const articleFile = writeVariant(
+      "unsafe-local-link",
+      (content) => `${content}\n\n[本地文档](${target})\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain(
+      `本地链接路径必须相对文章目录且不能穿越：${target}`
+    );
+  });
+
+  test("malformed percent-encoding 以阻断问题返回", async () => {
+    const articleFile = writeVariant(
+      "malformed-percent-encoding",
+      (content) => `${content}\n\n[本地文档](docs/%ZZ.md)\n`
+    );
+
+    await expect(
+      validateArticleFile({ articleFile, configPath, dryRun: false })
+    ).resolves.toMatchObject({
+      valid: false,
+      blocking_issues: [{ message: "本地链接 percent-encoding 无效：docs/%ZZ.md" }]
+    });
+  });
+
+  test("本地链接目标必须是可读取文件", async () => {
+    const articleFile = writeArticleWithAssets(
+      "local-link-directory",
+      (content) => `${content}\n\n[本地文档](docs/guide)\n`,
+      {}
+    );
+    mkdirSync(path.join(path.dirname(articleFile), "docs/guide"), { recursive: true });
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("本地链接文件不存在：docs/guide");
+  });
+
+  test.each([
+    ["full reference", "[参考资料][guide]"],
+    ["collapsed reference", "[guide][]"]
+  ])("已定义的%s链接通过", async (_, reference) => {
+    const articleFile = writeArticleWithAssets(
+      "defined-reference-link",
+      (content) => `${content}\n\n${reference}\n\n[guide]: docs/guide.md\n`,
+      { "docs/guide.md": "# 使用说明\n" }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("reference id 按大小写与连续空白归一化", async () => {
+    const articleFile = writeArticleWithAssets(
+      "normalized-reference-link",
+      (content) => `${content}\n\n[参考资料][Guide   Doc]\n\n[guide doc]: docs/guide.md\n`,
+      { "docs/guide.md": "# 使用说明\n" }
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+  });
+
+  test("未定义的 reference link 会阻断", async () => {
+    const articleFile = writeVariant(
+      "undefined-reference-link",
+      (content) => `${content}\n\n[参考资料][missing]\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("未定义的 reference link：missing");
+  });
+
+  test.each([
+    ["脚注引用", "正文结论[^1]。"],
+    ["脚注定义", "[^note]: 参考资料"]
+  ])("正文禁止学术式%s", async (_, markdown) => {
+    const articleFile = writeVariant(
+      "academic-footnote",
+      (content) => `${content}\n\n${markdown}\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toContain("正文禁止学术式脚注");
+  });
+
+  test("fenced code block 中的链接和脚注示例不会触发校验", async () => {
+    const articleFile = writeVariant(
+      "links-in-code-fence",
+      (content) =>
+        `${content}\n\n\`\`\`md\n[缺失文件](missing.md)\n[参考][missing]\n正文[^1]\n[^1]: 示例\n\`\`\`\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
+  });
+
+  test("图片语法不会重复作为普通链接校验", async () => {
+    const articleFile = writeVariant(
+      "image-not-link",
+      (content) => `${content}\n\n![中文截图](assets/images/missing.png)\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(issueMessages(result)).toEqual(["本地图片文件不存在：assets/images/missing.png"]);
   });
 
   test("合法本地 PNG 图片通过校验", async () => {

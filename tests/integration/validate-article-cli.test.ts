@@ -41,6 +41,22 @@ function writeArticleWithLocalPng(): string {
   return target;
 }
 
+function writeArticleWithLocalLink(): string {
+  const tmp = mkdtempSync(path.join(os.tmpdir(), "article validation cli "));
+  const linkedFile = path.join(tmp, "docs/guide.md");
+  mkdirSync(path.dirname(linkedFile), { recursive: true });
+  writeFileSync(linkedFile, "# 使用说明\n", "utf8");
+
+  const target = path.join(tmp, "article.md");
+  writeFileSync(
+    target,
+    `${readFileSync(articleFile, "utf8")}\n\n[使用说明][guide]\n\n[guide]: docs/guide.md\n`,
+    "utf8"
+  );
+
+  return target;
+}
+
 describe("validate article CLI", () => {
   test("validate article 输出稳定 JSON envelope 并保留 dry_run 标记", () => {
     const result = runCli([
@@ -79,6 +95,29 @@ describe("validate article CLI", () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toMatchObject({
+      ok: true,
+      schema_version: "article-hub.validate-article.v1",
+      valid: true,
+      blocking_issues: [],
+      warnings: [],
+      dry_run: true
+    });
+  });
+
+  test("validate article CLI 保持 envelope 并接受合法本地 reference link", () => {
+    const result = runCli([
+      "--dry-run",
+      "validate",
+      "article",
+      "--article-file",
+      writeArticleWithLocalLink(),
+      "--config",
+      configPath
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toEqual({
       ok: true,
       schema_version: "article-hub.validate-article.v1",
       valid: true,

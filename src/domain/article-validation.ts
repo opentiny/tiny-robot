@@ -1,4 +1,5 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
@@ -67,6 +68,15 @@ interface ParsedMarkdownValue {
   endIndex: number;
 }
 
+interface MarkdownLink {
+  target?: string;
+  referenceId?: string;
+}
+
+type LocalPathResult =
+  | { value: string }
+  | { error: "empty" | "malformed-percent-encoding" | "unsafe" };
+
 /**
  * 校验阶段 A 文章的 Front Matter、Markdown 与本地素材契约。
  * 该函数只读取文章目录内文件，不执行 Git、GitHub、外链下载或派生产物生成。
@@ -90,7 +100,9 @@ export async function validateArticleFile(
     validateCodeFences(parsed.body, blockingIssues);
     validatePlaceholders(parsed.frontMatterSource, blockingIssues);
     validatePlaceholders(parsed.body, blockingIssues);
-    await validateArticleAssets(options.articleFile, parsed.body, blockingIssues);
+    const bodyWithoutFencedCodeBlocks = removeFencedCodeBlocks(parsed.body);
+    await validateMarkdownLinks(options.articleFile, bodyWithoutFencedCodeBlocks, blockingIssues);
+    await validateArticleAssets(options.articleFile, bodyWithoutFencedCodeBlocks, blockingIssues);
   }
 
   return {
@@ -406,6 +418,149 @@ function validatePlaceholders(body: string, blockingIssues: ArticleValidationIss
   }
 }
 
+async function validateMarkdownLinks(
+  articleFile: string,
+  body: string,
+  blockingIssues: ArticleValidationIssue[]
+): Promise<void> {
+  if (/\[\^[^\]\r\n]+\]/.test(body)) {
+    blockingIssues.push({ message: "正文禁止学术式脚注" });
+  }
+
+  const definitions = findReferenceDefinitions(body);
+
+  for (const link of findMarkdownLinks(body)) {
+    if (link.referenceId !== undefined) {
+      const normalizedId = normalizeReferenceId(link.referenceId);
+      const target = definitions.get(normalizedId);
+
+      if (target === undefined) {
+        blockingIssues.push({ message: `未定义的 reference link：${link.referenceId}` });
+        continue;
+      }
+
+      await validateLinkTarget(articleFile, target, blockingIssues);
+      continue;
+    }
+
+    await validateLinkTarget(articleFile, link.target ?? "", blockingIssues);
+  }
+}
+
+function findReferenceDefinitions(body: string): Map<string, string> {
+  const definitions = new Map<string, string>();
+
+  for (const line of body.split(/\r?\n/)) {
+    const match = /^ {0,3}\[([^\]\r\n]+)\]:[ \t]*(.*)$/.exec(line);
+
+    if (!match || match[1].startsWith("^")) {
+      continue;
+    }
+
+    const wrappedDestination = `(${match[2]})`;
+    const destination = parseMarkdownDestination(wrappedDestination, 1);
+
+    if (!destination) {
+      continue;
+    }
+
+    const id = normalizeReferenceId(match[1]);
+
+    // GFM 使用首次出现的定义，后续重复定义不能静默改变既有引用目标。
+    if (!definitions.has(id)) {
+      definitions.set(id, destination.value.trim());
+    }
+  }
+
+  return definitions;
+}
+
+function findMarkdownLinks(body: string): MarkdownLink[] {
+  // 仅扫描 inline、full reference 与 collapsed reference，输出目标或 reference id 供后续统一校验。
+  const links: MarkdownLink[] = [];
+
+  for (let index = 0; index < body.length; index += 1) {
+    if (body[index] !== "[" || isEscaped(body, index)) {
+      continue;
+    }
+
+    const previousIndex = index - 1;
+
+    // 图片由素材校验器负责，避免同一 destination 同时产生图片与普通链接问题。
+    if (body[previousIndex] === "!" && !isEscaped(body, previousIndex)) {
+      continue;
+    }
+
+    const label = parseBracketValue(body, index);
+
+    if (!label) {
+      continue;
+    }
+
+    const suffixIndex = label.endIndex + 1;
+
+    if (body[suffixIndex] === "(") {
+      const destination = parseMarkdownDestination(body, suffixIndex + 1);
+
+      if (destination) {
+        links.push({ target: destination.value.trim() });
+        index = destination.endIndex;
+      }
+
+      continue;
+    }
+
+    if (body[suffixIndex] !== "[") {
+      continue;
+    }
+
+    const reference = parseBracketValue(body, suffixIndex);
+
+    if (!reference) {
+      continue;
+    }
+
+    links.push({
+      referenceId: (reference.value.length === 0 ? label.value : reference.value).trim()
+    });
+    index = reference.endIndex;
+  }
+
+  return links;
+}
+
+function normalizeReferenceId(id: string): string {
+  return id.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+async function validateLinkTarget(
+  articleFile: string,
+  target: string,
+  blockingIssues: ArticleValidationIssue[]
+): Promise<void> {
+  if (isExternalPath(target) || target.startsWith("#")) {
+    return;
+  }
+
+  const localPath = normalizeLocalPath(target);
+
+  if ("error" in localPath) {
+    blockingIssues.push({
+      message:
+        localPath.error === "malformed-percent-encoding"
+          ? `本地链接 percent-encoding 无效：${target}`
+          : `本地链接路径必须相对文章目录且不能穿越：${target}`
+    });
+    return;
+  }
+
+  const absolutePath = path.join(path.dirname(articleFile), ...localPath.value.split("/"));
+
+  if (!(await isReadableFile(absolutePath))) {
+    blockingIssues.push({ message: `本地链接文件不存在：${target}` });
+  }
+}
+
 async function validateArticleAssets(
   articleFile: string,
   body: string,
@@ -422,23 +577,23 @@ async function validateMarkdownImages(
   body: string,
   blockingIssues: ArticleValidationIssue[]
 ): Promise<void> {
-  for (const image of findMarkdownImages(removeFencedCodeBlocks(body))) {
+  for (const image of findMarkdownImages(body)) {
     validateImageAlt(image.alt, blockingIssues);
 
     if (isExternalPath(image.path)) {
       continue;
     }
 
-    const localPath = normalizeLocalAssetPath(image.path);
+    const localPath = normalizeLocalPath(image.path);
 
-    if (!localPath) {
+    if ("error" in localPath) {
       blockingIssues.push({
         message: `本地图片路径必须相对文章目录且不能穿越：${image.path}`
       });
       continue;
     }
 
-    const extension = path.posix.extname(localPath).toLowerCase();
+    const extension = path.posix.extname(localPath.value).toLowerCase();
 
     if (extension === ".mmd" || extension === ".svg") {
       blockingIssues.push({
@@ -446,7 +601,7 @@ async function validateMarkdownImages(
       });
     }
 
-    const absolutePath = path.join(articleDirectory, ...localPath.split("/"));
+    const absolutePath = path.join(articleDirectory, ...localPath.value.split("/"));
 
     if (!(await fileExists(absolutePath))) {
       blockingIssues.push({ message: `本地图片文件不存在：${image.path}` });
@@ -473,7 +628,7 @@ function findMarkdownImages(body: string): Array<{ alt: string; path: string }> 
       continue;
     }
 
-    const destination = parseImageDestination(body, alt.endIndex + 2);
+    const destination = parseMarkdownDestination(body, alt.endIndex + 2);
 
     if (!destination) {
       continue;
@@ -512,7 +667,7 @@ function parseBracketValue(markdown: string, startIndex: number): ParsedMarkdown
   return undefined;
 }
 
-function parseImageDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
+function parseMarkdownDestination(markdown: string, startIndex: number): ParsedMarkdownValue | undefined {
   const destinationStart = skipMarkdownWhitespace(markdown, startIndex);
 
   if (markdown[destinationStart] === "<") {
@@ -678,12 +833,12 @@ function isExternalPath(imagePath: string): boolean {
   return /^https?:\/\//i.test(imagePath) || imagePath.startsWith("//");
 }
 
-function normalizeLocalAssetPath(imagePath: string): string | undefined {
-  const [pathWithoutHash] = imagePath.split("#", 1);
+function normalizeLocalPath(target: string): LocalPathResult {
+  const [pathWithoutHash] = target.split("#", 1);
   const [pathWithoutQuery] = pathWithoutHash.split("?", 1);
 
   if (pathWithoutQuery.length === 0) {
-    return undefined;
+    return { error: "empty" };
   }
 
   let decodedPath: string;
@@ -691,7 +846,7 @@ function normalizeLocalAssetPath(imagePath: string): string | undefined {
   try {
     decodedPath = decodeURIComponent(pathWithoutQuery);
   } catch {
-    return undefined;
+    return { error: "malformed-percent-encoding" };
   }
 
   if (
@@ -700,16 +855,31 @@ function normalizeLocalAssetPath(imagePath: string): string | undefined {
     path.win32.isAbsolute(decodedPath) ||
     decodedPath.split(/[\\/]+/).includes("..")
   ) {
-    return undefined;
+    return { error: "unsafe" };
   }
 
   const normalizedPath = path.posix.normalize(decodedPath.replace(/\\/g, "/"));
 
   if (normalizedPath === "." || normalizedPath.startsWith("../")) {
-    return undefined;
+    return { error: "unsafe" };
   }
 
-  return normalizedPath;
+  return { value: normalizedPath };
+}
+
+async function isReadableFile(targetPath: string): Promise<boolean> {
+  try {
+    const targetStat = await stat(targetPath);
+
+    if (!targetStat.isFile()) {
+      return false;
+    }
+
+    await access(targetPath, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function validateDiagramDerivatives(
