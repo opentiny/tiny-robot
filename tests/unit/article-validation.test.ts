@@ -64,6 +64,17 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("Front Matter 缺少必填字段：summary");
   });
 
+  test("Front Matter 残留占位符会阻断", async () => {
+    const articleFile = writeVariant("frontmatter-placeholder", (content) =>
+      content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的阶段 A 写作链路。", "summary: TODO")
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
+  });
+
   test("缺少 YAML Front Matter 会阻断", async () => {
     const articleFile = writeVariant("missing-frontmatter", () => "# WebMCP SDK 实践指南\n");
 
@@ -128,6 +139,17 @@ describe("article validation", () => {
     const articleFile = writeVariant(
       "tilde-code-without-language",
       (content) => `${content}\n\n~~~\nconst missing = true;\n~~~\n`
+    );
+
+    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+    expect(result.valid).toBe(false);
+    expect(issueMessages(result)).toContain("fenced code block 必须标注语言");
+  });
+
+  test("带 1-3 个前导空格的 fenced code block 也必须标注语言", async () => {
+    const articleFile = writeVariant("indented-code-without-language", (content) =>
+      content.replace("```ts", "  ```").replace("\n```\n", "\n  ```\n")
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });

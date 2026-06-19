@@ -80,6 +80,7 @@ export async function validateArticleFile(
     validateFrontMatter(parsed.frontMatter, projectConfig.projects.map((project) => project.project_id), blockingIssues);
     validateHeading(parsed.body, parsed.frontMatter, blockingIssues);
     validateCodeFences(parsed.body, blockingIssues);
+    validatePlaceholders(parsed.frontMatterSource, blockingIssues);
     validatePlaceholders(parsed.body, blockingIssues);
   }
 
@@ -110,7 +111,7 @@ async function readArticleFile(articleFile: string): Promise<string> {
 function parseArticle(
   markdown: string,
   blockingIssues: ArticleValidationIssue[]
-): { frontMatter: Record<string, unknown>; body: string } | undefined {
+): { frontMatter: Record<string, unknown>; frontMatterSource: string; body: string } | undefined {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(markdown);
 
   if (!match) {
@@ -128,6 +129,7 @@ function parseArticle(
 
     return {
       frontMatter: parsed as Record<string, unknown>,
+      frontMatterSource: match[1],
       body: match[2]
     };
   } catch {
@@ -287,17 +289,17 @@ function validateCodeFences(body: string, blockingIssues: ArticleValidationIssue
   let openFence: { marker: "`" | "~"; length: number } | undefined;
 
   for (const line of body.split(/\r?\n/)) {
-    const fence = /^(`{3,}|~{3,})(.*)$/.exec(line);
+    const fence = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(line);
 
     if (!fence) {
       continue;
     }
 
-    const marker = fence[1][0] as "`" | "~";
-    const length = fence[1].length;
+    const marker = fence[2][0] as "`" | "~";
+    const length = fence[2].length;
 
     if (!openFence) {
-      if (fence[2].trim().length === 0) {
+      if (fence[3].trim().length === 0) {
         blockingIssues.push({ message: "fenced code block 必须标注语言" });
       }
 
