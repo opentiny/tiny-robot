@@ -1,5 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { parse } from "yaml";
@@ -9,19 +8,7 @@ import { ArticleHubError } from "../infrastructure/errors.js";
 import { runCommand } from "../infrastructure/process.js";
 
 interface ArticleFrontMatter {
-  title?: unknown;
   project?: unknown;
-  article_type?: unknown;
-  style_profile?: unknown;
-  article_date?: unknown;
-  summary?: unknown;
-  approved_plan?: unknown;
-  sources?: unknown;
-}
-
-interface ApprovedPlan {
-  version?: unknown;
-  hash?: unknown;
 }
 
 interface PrOperation {
@@ -29,8 +16,11 @@ interface PrOperation {
   [key: string]: unknown;
 }
 
+// slug 会进入分支名，限制为小写字母、数字和连字符，且必须以字母或数字开头。
 const safeSlugPattern = /^[a-z0-9][a-z0-9-]*$/;
+// repository 会传给 GitHub CLI，要求为 owner/name 形式，且两段仅允许仓库名常见安全字符。
 const safeRepositoryPattern = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+// base 是远端分支引用，允许斜杠分层，但排除空白、shell 元字符和反斜杠路径。
 const safeBasePattern = /^[A-Za-z0-9._/-]+$/;
 
 /**
@@ -48,6 +38,7 @@ export async function createPullRequest(options: {
   base: string;
   slug: string;
   title: string;
+  bodyFile: string;
   dryRun: boolean;
 }): Promise<unknown> {
   assertSafeCreatePrInput(options);
@@ -67,21 +58,16 @@ export async function createPullRequest(options: {
 
   const frontMatter = await readArticleFrontMatter(options.articleFile);
   const project = readRequiredString(frontMatter.project, "project");
-  const title = options.title || readRequiredString(frontMatter.title, "title");
+  const title = options.title;
   const articleDirectory = path.dirname(options.articleFile);
   const branch = `article/${options.issueNumber}-${project}-${options.slug}`;
-  const prBody = renderPullRequestBody({
-    issueNumber: options.issueNumber,
-    title,
-    frontMatter,
-    articleFile: options.articleFile
-  });
   const operations = plannedCreatePrOperations({
     articleDirectory,
     branch,
     repository: options.repository,
     base: options.base,
-    title
+    title,
+    bodyFile: options.bodyFile
   });
 
   if (!options.dryRun) {
@@ -91,7 +77,7 @@ export async function createPullRequest(options: {
       repository: options.repository,
       base: options.base,
       title,
-      body: prBody
+      bodyFile: options.bodyFile
     });
   }
 
@@ -111,7 +97,8 @@ export async function createPullRequest(options: {
     pull_request: {
       repository: options.repository,
       base: options.base,
-      title
+      title,
+      body_file: options.bodyFile
     },
     validation: {
       blocking_issues: validation.blocking_issues,
@@ -129,6 +116,7 @@ function assertSafeCreatePrInput(options: {
   base: string;
   slug: string;
   title: string;
+  bodyFile: string;
 }): void {
   if (!Number.isSafeInteger(options.issueNumber) || options.issueNumber <= 0) {
     throw new ArticleHubError("MISSING_ARGUMENT", "参数值必须是正整数：--issue-number", 2);
@@ -148,6 +136,10 @@ function assertSafeCreatePrInput(options: {
 
   if (options.title.trim().length === 0) {
     throw new ArticleHubError("MISSING_ARGUMENT", "参数值不能为空：--title", 2);
+  }
+
+  if (options.bodyFile.trim().length === 0) {
+    throw new ArticleHubError("MISSING_ARGUMENT", "参数值不能为空：--body-file", 2);
   }
 }
 
@@ -182,6 +174,7 @@ function plannedCreatePrOperations(options: {
   repository: string;
   base: string;
   title: string;
+  bodyFile: string;
 }): PrOperation[] {
   return [
     {
@@ -205,45 +198,10 @@ function plannedCreatePrOperations(options: {
       repository: options.repository,
       base: options.base,
       branch: options.branch,
-      draft: true
+      draft: true,
+      body_file: options.bodyFile
     }
   ];
-}
-
-function renderPullRequestBody(options: {
-  issueNumber: number;
-  title: string;
-  frontMatter: ArticleFrontMatter;
-  articleFile: string;
-}): string {
-  const approvedPlan = options.frontMatter.approved_plan as ApprovedPlan | undefined;
-  const sources = Array.isArray(options.frontMatter.sources) ? options.frontMatter.sources : [];
-
-  return [
-    "<!-- article-hub:managed:start -->",
-    `## ${options.title}`,
-    "",
-    `- 来源 Issue：#${options.issueNumber}`,
-    `- 写作计划：v${String(approvedPlan?.version ?? "")} ${String(approvedPlan?.hash ?? "")}`,
-    `- 文章类型：${String(options.frontMatter.article_type ?? "")}`,
-    `- 文风：${String(options.frontMatter.style_profile ?? "")}`,
-    `- 文章文件：${path.relative(process.cwd(), options.articleFile)}`,
-    `- 来源快照数量：${sources.length}`,
-    "",
-    "### 人工验收",
-    "",
-    "- [ ] 核对关键事实、术语和来源快照",
-    "- [ ] 确认截图、封面或图片缺口",
-    "",
-    "### AI 修改",
-    "",
-    "在 PR 评论中以 `/ai` 开头描述修改要求。",
-    "<!-- article-hub:managed:end -->",
-    "",
-    "<!-- article-hub:human:start -->",
-    "<!-- 人工补充说明保留在此区域。 -->",
-    "<!-- article-hub:human:end -->"
-  ].join("\n");
 }
 
 async function applyCreatePrOperations(options: {
@@ -252,7 +210,7 @@ async function applyCreatePrOperations(options: {
   repository: string;
   base: string;
   title: string;
-  body: string;
+  bodyFile: string;
 }): Promise<void> {
   await runCommand("git", ["checkout", "-B", options.branch]);
   await runCommand("git", ["add", options.articleDirectory]);
@@ -276,13 +234,22 @@ async function applyCreatePrOperations(options: {
 
   await runCommand("git", ["push", "-u", "origin", `HEAD:${options.branch}`]);
 
-  const bodyFile = await writeTemporaryPrBody(options.body);
   const existingPr = await findExistingPullRequest(options.repository, options.branch);
 
   if (existingPr) {
     await runCommand(
       "gh",
-      ["pr", "edit", String(existingPr.number), "--repo", options.repository, "--title", options.title, "--body-file", bodyFile],
+      [
+        "pr",
+        "edit",
+        String(existingPr.number),
+        "--repo",
+        options.repository,
+        "--title",
+        options.title,
+        "--body-file",
+        options.bodyFile
+      ],
       { errorCode: "GITHUB_COMMAND_FAILED" }
     );
     return;
@@ -303,18 +270,10 @@ async function applyCreatePrOperations(options: {
       "--title",
       options.title,
       "--body-file",
-      bodyFile
+      options.bodyFile
     ],
     { errorCode: "GITHUB_COMMAND_FAILED" }
   );
-}
-
-async function writeTemporaryPrBody(body: string): Promise<string> {
-  const directory = await mkdtemp(path.join(tmpdir(), "article-hub-pr-body-"));
-  const bodyFile = path.join(directory, "body.md");
-
-  await writeFile(bodyFile, body);
-  return bodyFile;
 }
 
 async function findExistingPullRequest(

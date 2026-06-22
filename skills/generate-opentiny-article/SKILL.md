@@ -73,7 +73,8 @@ description: 从已批准的 OpenTiny 文章 Issue 本地生成初稿、校验�
      --repository hexqi/ai-article-hub \
      --base main \
      --slug <slug> \
-     --title "<final-title>"
+     --title "<final-title>" \
+     --body-file <pr-body.md>
    ```
 
 9. 更新 Issue 状态：

@@ -220,7 +220,8 @@ article-hub create-pr \
   --repository <owner/repo> \
   --base <branch> \
   --slug <slug> \
-  --title <title>
+  --title <title> \
+  --body-file <path>
 ```
 
 | 参数 | 必填 | 说明 |
@@ -232,6 +233,7 @@ article-hub create-pr \
 | `--base` | ✅ | PR 的基础分支 |
 | `--slug` | ✅ | 文章 slug |
 | `--title` | ✅ | PR 标题 |
+| `--body-file` | ✅ | PR 描述 Markdown 文件路径；调用方负责根据 `.github/pull_request_template.md` 生成完整内容 |
 
 ---
 

@@ -88,6 +88,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       const base = readRequiredOption(parsed.args, "--base");
       const slug = readRequiredOption(parsed.args, "--slug");
       const title = readRequiredOption(parsed.args, "--title");
+      const bodyFile = readRequiredOption(parsed.args, "--body-file");
 
       if (!Number.isSafeInteger(issueNumber)) {
         throw new ArticleHubError("MISSING_ARGUMENT", "参数值必须是整数：--issue-number", 2);
@@ -102,7 +103,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           "--repository",
           "--base",
           "--slug",
-          "--title"
+          "--title",
+          "--body-file"
         ])
       );
 
@@ -114,6 +116,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         base,
         slug,
         title,
+        bodyFile,
         dryRun: parsed.context.dryRun
       });
 

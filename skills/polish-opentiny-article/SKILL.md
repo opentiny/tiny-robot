@@ -95,7 +95,8 @@ article-hub create-pr \
   --repository hexqi/ai-article-hub \
   --base main \
   --slug <slug> \
-  --title "<final-title>"
+  --title "<final-title>" \
+  --body-file <pr-body.md>
 ```
 
 如需回写 Issue 状态：

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -18,6 +18,9 @@ const validArticleFixture = path.join(
 );
 
 interface CreatePrOutput {
+  pull_request: {
+    body_file: string;
+  };
   mutation_plan: {
     operations: Array<{ kind: string }>;
   };
@@ -30,16 +33,18 @@ async function createArticleFixture() {
     "articles/webmcp-sdk/2026-06-19-webmcp-sdk-practice"
   );
   const articleFile = path.join(articleDir, "article.md");
+  const bodyFile = path.join(root, "pr-body.md");
 
   await mkdir(articleDir, { recursive: true });
   await copyFile(validArticleFixture, articleFile);
+  await writeFile(bodyFile, "# WebMCP SDK 实践指南\n");
 
-  return { articleDir, articleFile };
+  return { articleDir, articleFile, bodyFile };
 }
 
 describe("article-hub create-pr CLI", () => {
   test("dry-run validates article and prints the branch/PR mutation plan", async () => {
-    const { articleDir, articleFile } = await createArticleFixture();
+    const { articleDir, articleFile, bodyFile } = await createArticleFixture();
     const result = runArticleHubCli([
       "--dry-run",
       "create-pr",
@@ -56,7 +61,9 @@ describe("article-hub create-pr CLI", () => {
       "--slug",
       "webmcp-sdk-practice",
       "--title",
-      "WebMCP SDK 实践指南"
+      "WebMCP SDK 实践指南",
+      "--body-file",
+      bodyFile
     ]);
 
     const output = expectSuccessfulEnvelope<CreatePrOutput>(
@@ -76,7 +83,8 @@ describe("article-hub create-pr CLI", () => {
         pull_request: {
           repository: "hexqi/ai-article-hub",
           base: "main",
-          title: "WebMCP SDK 实践指南"
+          title: "WebMCP SDK 实践指南",
+          body_file: bodyFile
         }
       }
     );
@@ -90,7 +98,7 @@ describe("article-hub create-pr CLI", () => {
   });
 
   test("dry-run rejects unsafe slug before planning a GitHub mutation", async () => {
-    const { articleFile } = await createArticleFixture();
+    const { articleFile, bodyFile } = await createArticleFixture();
     const result = runArticleHubCli([
       "--dry-run",
       "create-pr",
@@ -107,7 +115,9 @@ describe("article-hub create-pr CLI", () => {
       "--slug",
       "../escape",
       "--title",
-      "WebMCP SDK 实践指南"
+      "WebMCP SDK 实践指南",
+      "--body-file",
+      bodyFile
     ]);
 
     expectErrorEnvelope(result, "UNSAFE_PATH", 2);
