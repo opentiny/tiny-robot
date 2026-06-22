@@ -1,6 +1,8 @@
 # article-hub CLI 参考文档
 
-`article-hub` 是 AI 文章生成流水线的核心命令行工具。所有命令的 stdout 仅输出机器可解析的 JSON，人类可读的错误信息输出到 stderr。
+`article-hub` 是 AI 文章生成流水线的确定性流程原语，不是 `gh` 命令的便利封装。CLI 固定状态、校验、安全和幂等规则；Skill 负责调研、写作、润色和流程编排。
+
+所有命令的 stdout 仅输出机器可解析的 JSON，人类可读的错误信息输出到 stderr。命令边界见 [`cli-boundary-design.md`](./cli-boundary-design.md)。
 
 ## 安装与运行
 
@@ -32,20 +34,20 @@ npx article-hub <command> [options]
 
 | 命令 | 说明 |
 |------|------|
-| [`inspect-issue`](#inspect-issue) | 解析 Issue 文件，提取结构化信息 |
-| [`plan hash`](#plan-hash) | 计算计划文件的哈希值 |
-| [`plan compare`](#plan-compare) | 对比两个计划文件的差异 |
-| [`plan approve`](#plan-approve) | 校验审批命令并返回审批快照 |
-| [`projects list`](#projects-list) | 列出配置中的所有项目 |
-| [`projects validate`](#projects-validate) | 校验项目配置的合法性 |
-| [`checkout-sources`](#checkout-sources) | 拉取项目源码到本地缓存 |
-| [`state decide`](#state-decide) | 根据状态文件决策下一步操作 |
-| [`validate article`](#validate-article) | 校验文章文件的格式与内容 |
-| [`create-pr`](#create-pr) | 创建 Pull Request |
-| [`update-status`](#update-status) | 更新 Issue 的状态 |
-| [`doctor`](#doctor) | 检查本地环境健康状态 |
-| [`setup`](#setup) | 初始化本地环境 |
-| [`reconcile`](#reconcile) | 根据状态文件生成恢复计划 |
+| [`inspect-issue`](#inspect-issue) | Primitive：解析 Issue fixture，提取结构化事实和固定命令 |
+| [`plan hash`](#plan-hash) | Primitive：计算计划文件的语义 Hash |
+| [`plan compare`](#plan-compare) | Primitive：对比两个计划文件的语义差异 |
+| [`plan approve`](#plan-approve) | Primitive：校验审批命令并返回审批快照 |
+| [`projects list`](#projects-list) | Primitive：列出配置中的所有项目 |
+| [`projects validate`](#projects-validate) | Primitive：校验项目配置的合法性 |
+| [`state decide`](#state-decide) | Primitive：根据状态 fixture 决策下一步 mutation |
+| [`validate article`](#validate-article) | Primitive：校验文章文件的格式与内容 |
+| [`checkout-sources`](#checkout-sources) | Adapter：拉取项目源码到本地缓存 |
+| [`create-pr`](#create-pr) | Adapter：校验文章后创建或更新 Draft PR |
+| [`update-status`](#update-status) | Adapter：按状态规则更新 Issue 标签和评论 |
+| [`doctor`](#doctor) | Diagnostic：检查本地环境健康状态 |
+| [`setup`](#setup) | Diagnostic：初始化本地环境 |
+| [`reconcile`](#reconcile) | Diagnostic：根据状态文件生成恢复计划 |
 
 ---
 
@@ -205,6 +207,8 @@ article-hub validate article --article-file <path> --config <path>
 |------|------|------|
 | `--article-file` | ✅ | 文章文件路径 |
 | `--config` | ✅ | 项目配置文件路径 |
+
+校验失败时，`blocking_issues` 中每一项都包含稳定 `code` 和人类可读 `message`；调用方应依赖 `code`、`field` 等结构化字段，不依赖 `message` 的具体语言或句式。
 
 ---
 

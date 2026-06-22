@@ -8,14 +8,6 @@ import { loadProjectConfig } from "./project-config.js";
 import { ArticleHubError } from "../infrastructure/errors.js";
 
 /**
- * 单条文章校验问题；`field` 指向 Front Matter 或 Markdown 契约字段。
- */
-export interface ArticleValidationIssue {
-  field?: string;
-  message: string;
-}
-
-/**
  * `validate article` 命令的稳定 JSON envelope。
  */
 export interface ArticleValidationResult {
@@ -34,6 +26,105 @@ export interface ValidateArticleFileOptions {
   articleFile: string;
   configPath: string;
   dryRun: boolean;
+}
+
+/**
+ * 构造文章校验 message 的上下文；字段按错误码按需使用。
+ */
+export interface ArticleValidationIssueMessageContext {
+  field?: string;
+  frontMatterProblem?: "object" | "yaml";
+  stringRequirement?: "string" | "non-empty-string";
+  expectedSchemaVersion?: string;
+  value?: string;
+  sourceIndex?: number;
+  token?: string;
+  referenceId?: string;
+  localPathError?: "empty" | "malformed-percent-encoding" | "unsafe";
+  target?: string;
+  imagePath?: string;
+  extension?: string;
+  pngPath?: string;
+}
+
+function defineArticleValidationIssueMessages<
+  Messages extends Record<string, (context: ArticleValidationIssueMessageContext) => string>
+>(messages: Messages): Messages {
+  return messages;
+}
+
+/**
+ * 文章校验错误码与 message 的集中定义；调用方应依赖错误码而不是 `message` 文案。
+ */
+export const articleValidationIssueMessages = defineArticleValidationIssueMessages({
+  "missing-frontmatter": () => "Markdown 文件必须包含 YAML Front Matter",
+  "invalid-frontmatter": ({ frontMatterProblem }) =>
+    frontMatterProblem === "yaml" ? "Front Matter 不是有效 YAML" : "Front Matter 必须是 YAML object",
+  "missing-required-frontmatter-field": ({ field }) => `Front Matter 缺少必填字段：${field}`,
+  "invalid-schema-version": ({ expectedSchemaVersion }) =>
+    `Front Matter schema_version 必须是 ${expectedSchemaVersion}`,
+  "invalid-frontmatter-string": ({ field, stringRequirement }) =>
+    `Front Matter ${field} 必须是${stringRequirement === "string" ? "" : "非空"}字符串`,
+  "unknown-project": ({ value }) => `Front Matter project 不在项目 allowlist 中：${value}`,
+  "unsupported-frontmatter-enum": ({ field, value }) => `Front Matter ${field} 不受支持：${value}`,
+  "invalid-approved-plan": () => "approved_plan 必须是 object",
+  "missing-approved-plan-version": () => "approved_plan 缺少 version",
+  "invalid-approved-plan-version": () => "approved_plan.version 必须是整数或字符串",
+  "missing-approved-plan-hash": () => "approved_plan 缺少 hash",
+  "invalid-approved-plan-hash": () => "approved_plan.hash 必须是字符串",
+  "short-approved-plan-hash": () => "approved_plan.hash 长度不能小于 8",
+  "missing-sources": () => "Front Matter sources 至少包含一项",
+  "invalid-source": ({ sourceIndex }) => `sources[${sourceIndex}] 必须是 object`,
+  "missing-source-identity": ({ sourceIndex }) => `sources[${sourceIndex}] 缺少来源标识`,
+  "missing-source-revision": ({ sourceIndex }) =>
+    `sources[${sourceIndex}] 缺少 commit/hash 稳定定位字段`,
+  "missing-heading": () => "正文必须包含第一个 H1",
+  "heading-title-mismatch": () => "Front Matter title 必须等于正文第一个 H1",
+  "missing-code-fence-language": () => "fenced code block 必须标注语言",
+  "placeholder-token": ({ token }) => `文章包含阻断占位符：${token}`,
+  "footnote-not-allowed": () => "正文禁止学术式脚注",
+  "undefined-reference-link": ({ referenceId }) => `未定义的 reference link：${referenceId}`,
+  "invalid-local-link": ({ localPathError, target }) =>
+    localPathError === "malformed-percent-encoding"
+      ? `本地链接 percent-encoding 无效：${target}`
+      : `本地链接路径必须相对文章目录且不能穿越：${target}`,
+  "missing-local-link": ({ target }) => `本地链接文件不存在：${target}`,
+  "invalid-local-image": ({ imagePath }) => `本地图片路径必须相对文章目录且不能穿越：${imagePath}`,
+  "missing-local-image": ({ imagePath }) => `本地图片文件不存在：${imagePath}`,
+  "empty-image-alt": () => "图片 alt 必须非空",
+  "mermaid-image-reference": ({ extension, imagePath }) =>
+    `正文图片必须引用 PNG，不能直接引用 ${extension}：${imagePath}`,
+  "missing-mermaid-png": ({ pngPath }) => `Mermaid 源文件缺少同名 PNG：${pngPath}`
+});
+
+/**
+ * 文章校验问题的稳定机器码；调用方应依赖该字段而不是 `message` 文案。
+ */
+export type ArticleValidationIssueCode = keyof typeof articleValidationIssueMessages;
+
+/**
+ * 单条文章校验问题；`code` 是稳定机器码，`field` 指向 Front Matter 或 Markdown 契约字段。
+ */
+export interface ArticleValidationIssue {
+  code: ArticleValidationIssueCode;
+  field?: string;
+  message: string;
+}
+
+function createArticleValidationIssue(
+  code: ArticleValidationIssueCode,
+  context: ArticleValidationIssueMessageContext = {}
+): ArticleValidationIssue {
+  const issue: ArticleValidationIssue = {
+    code,
+    message: articleValidationIssueMessages[code](context)
+  };
+
+  if (context.field !== undefined) {
+    issue.field = context.field;
+  }
+
+  return issue;
 }
 
 const requiredFrontMatterFields = [
@@ -151,7 +242,7 @@ function parseArticle(
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(markdown);
 
   if (!match) {
-    blockingIssues.push({ message: "Markdown 文件必须包含 YAML Front Matter" });
+    blockingIssues.push(createArticleValidationIssue("missing-frontmatter"));
     return undefined;
   }
 
@@ -159,7 +250,11 @@ function parseArticle(
     const parsed = parse(match[1]) as unknown;
 
     if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      blockingIssues.push({ message: "Front Matter 必须是 YAML object" });
+      blockingIssues.push(
+        createArticleValidationIssue("invalid-frontmatter", {
+          frontMatterProblem: "object"
+        })
+      );
       return undefined;
     }
 
@@ -169,7 +264,11 @@ function parseArticle(
       body: match[2]
     };
   } catch {
-    blockingIssues.push({ message: "Front Matter 不是有效 YAML" });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-frontmatter", {
+        frontMatterProblem: "yaml"
+      })
+    );
     return undefined;
   }
 }
@@ -181,10 +280,9 @@ function validateFrontMatter(
 ): void {
   for (const field of requiredFrontMatterFields) {
     if (isMissing(frontMatter[field])) {
-      blockingIssues.push({
-        field,
-        message: `Front Matter 缺少必填字段：${field}`
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("missing-required-frontmatter-field", { field })
+      );
     }
   }
 
@@ -208,10 +306,12 @@ function validateSchemaVersion(
   }
 
   if (schemaVersion !== articleSchemaVersion) {
-    blockingIssues.push({
-      field: "schema_version",
-      message: `Front Matter schema_version 必须是 ${articleSchemaVersion}`
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-schema-version", {
+        expectedSchemaVersion: articleSchemaVersion,
+        field: "schema_version"
+      })
+    );
   }
 }
 
@@ -225,10 +325,12 @@ function validateNonEmptyString(
   }
 
   if (typeof value !== "string" || value.length === 0) {
-    blockingIssues.push({
-      field,
-      message: `Front Matter ${field} 必须是非空字符串`
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-frontmatter-string", {
+        field,
+        stringRequirement: "non-empty-string"
+      })
+    );
   }
 }
 
@@ -242,10 +344,12 @@ function validateKnownProject(
   }
 
   if (typeof project !== "string") {
-    blockingIssues.push({
-      field: "project",
-      message: "Front Matter project 必须是字符串"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-frontmatter-string", {
+        field: "project",
+        stringRequirement: "string"
+      })
+    );
     return;
   }
 
@@ -254,10 +358,12 @@ function validateKnownProject(
   }
 
   if (!allowedProjects.includes(project)) {
-    blockingIssues.push({
-      field: "project",
-      message: `Front Matter project 不在项目 allowlist 中：${project}`
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("unknown-project", {
+        field: "project",
+        value: project
+      })
+    );
   }
 }
 
@@ -272,10 +378,12 @@ function validateEnum(
   }
 
   if (typeof value !== "string") {
-    blockingIssues.push({
-      field,
-      message: `Front Matter ${field} 必须是字符串`
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-frontmatter-string", {
+        field,
+        stringRequirement: "string"
+      })
+    );
     return;
   }
 
@@ -284,10 +392,9 @@ function validateEnum(
   }
 
   if (!allowedValues.has(value)) {
-    blockingIssues.push({
-      field,
-      message: `Front Matter ${field} 不受支持：${value}`
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("unsupported-frontmatter-enum", { field, value })
+    );
   }
 }
 
@@ -297,10 +404,9 @@ function validateApprovedPlan(
 ): void {
   if (approvedPlan === null || typeof approvedPlan !== "object" || Array.isArray(approvedPlan)) {
     if (!isMissing(approvedPlan)) {
-      blockingIssues.push({
-        field: "approved_plan",
-        message: "approved_plan 必须是 object"
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("invalid-approved-plan", { field: "approved_plan" })
+      );
     }
 
     return;
@@ -309,32 +415,37 @@ function validateApprovedPlan(
   const plan = approvedPlan as Record<string, unknown>;
 
   if (isMissing(plan.version)) {
-    blockingIssues.push({
-      field: "approved_plan.version",
-      message: "approved_plan 缺少 version"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("missing-approved-plan-version", {
+        field: "approved_plan.version"
+      })
+    );
   } else if (!isIntegerOrString(plan.version)) {
-    blockingIssues.push({
-      field: "approved_plan.version",
-      message: "approved_plan.version 必须是整数或字符串"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-approved-plan-version", {
+        field: "approved_plan.version"
+      })
+    );
   }
 
   if (isMissing(plan.hash)) {
-    blockingIssues.push({
-      field: "approved_plan.hash",
-      message: "approved_plan 缺少 hash"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("missing-approved-plan-hash", {
+        field: "approved_plan.hash"
+      })
+    );
   } else if (typeof plan.hash !== "string") {
-    blockingIssues.push({
-      field: "approved_plan.hash",
-      message: "approved_plan.hash 必须是字符串"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-approved-plan-hash", {
+        field: "approved_plan.hash"
+      })
+    );
   } else if (plan.hash.length < 8) {
-    blockingIssues.push({
-      field: "approved_plan.hash",
-      message: "approved_plan.hash 长度不能小于 8"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("short-approved-plan-hash", {
+        field: "approved_plan.hash"
+      })
+    );
   }
 }
 
@@ -343,36 +454,39 @@ function validateSources(
   blockingIssues: ArticleValidationIssue[]
 ): void {
   if (!Array.isArray(sources) || sources.length === 0) {
-    blockingIssues.push({
-      field: "sources",
-      message: "Front Matter sources 至少包含一项"
-    });
+    blockingIssues.push(createArticleValidationIssue("missing-sources", { field: "sources" }));
     return;
   }
 
   sources.forEach((source, index) => {
     if (source === null || typeof source !== "object" || Array.isArray(source)) {
-      blockingIssues.push({
-        field: `sources[${index}]`,
-        message: `sources[${index}] 必须是 object`
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("invalid-source", {
+          field: `sources[${index}]`,
+          sourceIndex: index
+        })
+      );
       return;
     }
 
     const item = source as Record<string, unknown>;
 
     if (!hasAnyString(item, ["id", "name", "repository", "url"])) {
-      blockingIssues.push({
-        field: `sources[${index}]`,
-        message: `sources[${index}] 缺少来源标识`
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("missing-source-identity", {
+          field: `sources[${index}]`,
+          sourceIndex: index
+        })
+      );
     }
 
     if (!hasAnyString(item, ["commit", "hash", "content_hash", "resolved_commit"])) {
-      blockingIssues.push({
-        field: `sources[${index}]`,
-        message: `sources[${index}] 缺少 commit/hash 稳定定位字段`
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("missing-source-revision", {
+          field: `sources[${index}]`,
+          sourceIndex: index
+        })
+      );
     }
   });
 }
@@ -385,15 +499,14 @@ function validateHeading(
   const firstHeading = body.match(/^#\s+(.+?)\s*$/m)?.[1];
 
   if (!firstHeading) {
-    blockingIssues.push({ message: "正文必须包含第一个 H1" });
+    blockingIssues.push(createArticleValidationIssue("missing-heading"));
     return;
   }
 
   if (typeof frontMatter.title === "string" && frontMatter.title !== firstHeading) {
-    blockingIssues.push({
-      field: "title",
-      message: "Front Matter title 必须等于正文第一个 H1"
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("heading-title-mismatch", { field: "title" })
+    );
   }
 }
 
@@ -413,7 +526,7 @@ function validateCodeFences(body: string, blockingIssues: ArticleValidationIssue
       }
 
       if (fence.trailing.trim().length === 0) {
-        blockingIssues.push({ message: "fenced code block 必须标注语言" });
+        blockingIssues.push(createArticleValidationIssue("missing-code-fence-language"));
       }
 
       openFence = { marker: fence.marker, length: fence.length };
@@ -452,7 +565,9 @@ function canOpenMarkdownFence(fence: MarkdownFence): boolean {
 function validatePlaceholders(body: string, blockingIssues: ArticleValidationIssue[]): void {
   for (const placeholder of placeholderPatterns) {
     if (placeholder.pattern.test(body)) {
-      blockingIssues.push({ message: `文章包含阻断占位符：${placeholder.token}` });
+      blockingIssues.push(
+        createArticleValidationIssue("placeholder-token", { token: placeholder.token })
+      );
     }
   }
 }
@@ -463,7 +578,7 @@ async function validateMarkdownLinks(
   blockingIssues: ArticleValidationIssue[]
 ): Promise<void> {
   if (/\[\^[^\]\r\n]+\]/.test(body)) {
-    blockingIssues.push({ message: "正文禁止学术式脚注" });
+    blockingIssues.push(createArticleValidationIssue("footnote-not-allowed"));
   }
 
   const definitions = findReferenceDefinitions(body);
@@ -474,7 +589,11 @@ async function validateMarkdownLinks(
       const target = definitions.get(normalizedId);
 
       if (target === undefined) {
-        blockingIssues.push({ message: `未定义的 reference link：${link.referenceId}` });
+        blockingIssues.push(
+          createArticleValidationIssue("undefined-reference-link", {
+            referenceId: link.referenceId
+          })
+        );
         continue;
       }
 
@@ -594,19 +713,19 @@ async function validateLinkTarget(
   const localPath = normalizeLocalPath(target);
 
   if ("error" in localPath) {
-    blockingIssues.push({
-      message:
-        localPath.error === "malformed-percent-encoding"
-          ? `本地链接 percent-encoding 无效：${target}`
-          : `本地链接路径必须相对文章目录且不能穿越：${target}`
-    });
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-local-link", {
+        localPathError: localPath.error,
+        target
+      })
+    );
     return;
   }
 
   const absolutePath = path.join(path.dirname(articleFile), ...localPath.value.split("/"));
 
   if (!(await isReadableFileWithin(path.dirname(articleFile), absolutePath))) {
-    blockingIssues.push({ message: `本地链接文件不存在：${target}` });
+    blockingIssues.push(createArticleValidationIssue("missing-local-link", { target }));
   }
 }
 
@@ -636,24 +755,29 @@ async function validateMarkdownImages(
     const localPath = normalizeLocalPath(image.path);
 
     if ("error" in localPath) {
-      blockingIssues.push({
-        message: `本地图片路径必须相对文章目录且不能穿越：${image.path}`
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("invalid-local-image", { imagePath: image.path })
+      );
       continue;
     }
 
     const extension = path.posix.extname(localPath.value).toLowerCase();
 
     if (extension === ".mmd") {
-      blockingIssues.push({
-        message: `正文图片必须引用 PNG，不能直接引用 ${extension}：${image.path}`
-      });
+      blockingIssues.push(
+        createArticleValidationIssue("mermaid-image-reference", {
+          extension,
+          imagePath: image.path
+        })
+      );
     }
 
     const absolutePath = path.join(articleDirectory, ...localPath.value.split("/"));
 
     if (!(await isReadableFileWithin(articleDirectory, absolutePath))) {
-      blockingIssues.push({ message: `本地图片文件不存在：${image.path}` });
+      blockingIssues.push(
+        createArticleValidationIssue("missing-local-image", { imagePath: image.path })
+      );
       continue;
     }
 
@@ -995,7 +1119,7 @@ function removeInlineCodeSpans(body: string): string {
 
 function validateImageAlt(alt: string, blockingIssues: ArticleValidationIssue[]): void {
   if (alt.length === 0) {
-    blockingIssues.push({ message: "图片 alt 必须非空" });
+    blockingIssues.push(createArticleValidationIssue("empty-image-alt"));
   }
 }
 
@@ -1096,7 +1220,7 @@ async function validateDiagramDerivatives(
     const absolutePngPath = path.join(diagramsDirectory, `${baseName}.png`);
 
     if (!(await isReadableFileWithin(articleDirectory, absolutePngPath))) {
-      blockingIssues.push({ message: `Mermaid 源文件缺少同名 PNG：${pngPath}` });
+      blockingIssues.push(createArticleValidationIssue("missing-mermaid-png", { pngPath }));
     }
   }
 }

@@ -77,6 +77,8 @@ description: 当 OpenTiny 对外技术文章初稿需要全文优化，或 Draft
 
 ## 校验与更新
 
+普通 PR、Review 和 Issue 读取使用 `gh` 获取原始事实；确定性校验、状态 guard 和受控 Git/GitHub mutation 使用 `article-hub`。遇到文章校验、暂停保护、状态标签互斥或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
+
 执行文章校验：
 
 ```sh

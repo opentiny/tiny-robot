@@ -16,11 +16,19 @@ description: 从已批准的 OpenTiny 文章 Issue 本地生成初稿、校验�
 - `gh auth status` 可访问目标仓库。
 - Issue 处于 `阶段：策划`，且维护者明确批准当前写作计划。
 
+## CLI 边界
+
+- 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。
+- 确定性判断使用 `article-hub`，包括权限过滤、固定命令解析、项目 allowlist、计划 Hash、文章校验、状态 guard 和受控 mutation。
+- 遇到 Hash、标签互斥、暂停保护、bot 过滤、Front Matter schema 或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
+- 读取 Issue、PR、Review 等 GitHub 原始事实时直接使用 `gh`；不要为了读取字段或转发 `gh` 参数而临时修改 `article-hub`。
+
 ## 流程
 
-1. 读取 Issue fixture 或 GitHub Issue 内容，运行：
+1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再运行：
 
    ```sh
+   gh issue view <number> --repo hexqi/ai-article-hub --json number,title,body,author,labels,comments > <issue.json>
    article-hub inspect-issue --issue-file <issue.json>
    article-hub projects validate --config config/projects.yml
    ```
