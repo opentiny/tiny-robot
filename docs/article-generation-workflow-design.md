@@ -183,6 +183,7 @@ flowchart LR
 - 检查 GFM、内部链接、图片路径和图片替代文本。
 - 检查 Mermaid、SVG 和 PNG 派生产物一致性。
 - 检查 OpenTiny 术语。
+- 检查文章 Skill 的独立加载契约，包括入口 Front Matter、本地 Markdown reference、路径边界、孤立 reference 和嵌套 Skill。
 - 运行 TypeScript 单元测试。
 - 在 Linux、macOS 和 Windows Git Bash 环境验证确定性脚本。
 
@@ -346,6 +347,10 @@ output/
 模型、超时、最大重试和密钥通过 Workflow 配置与 Secrets 注入。Front Matter 记录实际 Agent、模型和生成时间。
 
 同一任务自动重试时使用相同 adapter。跨模型 fallback 必须通过 `workflow_dispatch` 或人工命令显式选择。
+
+Adapter 不负责解释或修复 Skill 目录结构。Skill 结构问题由 `article-ci` 的确定性契约测试提前阻断；Workflow 运行时只加载已经通过契约检查的 Skill。
+
+润色效果、事实保护和范围控制属于 Agent 行为验证。CI 不用精确中文句子、历史删除清单或关键词黑名单替代行为评估；需要回归时使用隔离 Agent 上下文执行 forward eval，并按保真、范围、自然和可发布四个维度人工或半自动评审。
 
 ## 8. 源码 checkout
 

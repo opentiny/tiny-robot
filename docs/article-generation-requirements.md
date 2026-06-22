@@ -154,6 +154,29 @@ skills/
 
 历史人工文章只用于提炼正向风格、反例和匿名评测样本，不执行全文仿写或特定作者 voice 模拟。
 
+### 5.3 Skill 独立加载契约
+
+`polish-opentiny-article` 必须能被 Codex、Claude Code 和未来 Workflow 独立加载。长期契约只约束调用方可观察的结构，不固定内部 reference 的数量、文件名或逐字措辞。
+
+确定性测试至少保护：
+
+- Skill 根目录存在 `SKILL.md`。
+- `SKILL.md` 包含可解析 YAML Front Matter，`name` 与目录名一致，`description` 是非空字符串。
+- `SKILL.md` 声明的本地 Markdown reference 均存在；递归 reference 也必须可达。
+- 本地 Markdown reference 的规范化路径和最终真实路径都位于 Skill 根目录内。
+- `references/` 下所有 Markdown 文件都能从 `SKILL.md` 的引用图到达。
+- Skill 根目录以下不存在第二个 `SKILL.md`。
+- 运行所需 Markdown reference 不能使用远程 URL。
+
+确定性测试不得把以下内容当成稳定契约：
+
+- 历史上删除过的上游路径、作者、License、仓库或 Commit。
+- reference 的固定数量、固定名称和固定组织方式。
+- 自然语言规则、示例和保护项的逐字句子。
+- Agent 是否实际做到事实保护、范围控制或润色自然。
+
+Skill 结构检查器属于测试辅助能力，放在 `tests/support/`，不扩展为生产 CLI。Agent 行为通过独立 forward eval 评审，维度至少包括保真、范围、自然和可发布；静态测试只证明规则存在，不能替代运行行为验证。
+
 ## 6. 输入契约
 
 ### 6.1 选题 Issue
@@ -746,6 +769,8 @@ Agent 负责调研、判断、写作和润色；CLI 负责 Git、GitHub、schema
 - 一次真实端到端流程：策划批准、生成初稿、创建 Draft PR。
 - 一轮 `/ai` 修改、人工 Commit 和重新 Review。
 - 一张 Mermaid 图成功生成 `.mmd + .svg + .png`。
+- `polish-opentiny-article` 通过独立加载契约测试；测试不包含历史删除清单、旧术语黑名单或精确自然语言句子断言。
+- 至少四组 forward eval 覆盖受保护内容、无来源营销表达、事故或性能数字、局部 Review 修订。
 - 安装与确定性脚本通过 Linux、macOS、Windows Git Bash CI。
 - 人工确认无关键事实错误、无明显 AI 腔、来源快照可追溯。
 - 代码片段由人工完成必选验收。
