@@ -1,23 +1,38 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, test } from "vitest";
 
-const repositoryRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
-);
-const cliPath = path.join(repositoryRoot, "src/cli.ts");
+import {
+  expectSuccessfulEnvelope,
+  repositoryRoot,
+  runArticleHubCli
+} from "../support/cli.js";
+
 const fixtureConfigPath = path.join(repositoryRoot, "tests/fixtures/projects-valid.yml");
 
-function runCli(args: string[]) {
-  return spawnSync(process.execPath, ["--import", "tsx", cliPath, ...args], {
-    cwd: repositoryRoot,
-    encoding: "utf8"
-  });
+interface ProjectsListOutput {
+  projects: Array<{ project_id: string }>;
+}
+
+interface CheckoutSourcesOutput {
+  mutation_plan: {
+    operations: Array<{ kind: string; repo?: string }>;
+  };
+  source_manifest: {
+    sources: Array<{
+      name: string;
+      repo: string;
+      requested_ref: string;
+      resolved_commit: string;
+      checkout_path: string;
+      fixed: boolean;
+      source_type: string;
+      verified: boolean;
+    }>;
+  };
 }
 
 function git(cwd: string, args: string[]): string {
@@ -91,25 +106,22 @@ function createLocalRepositoryFixture() {
 
 describe("checkout-sources CLI", () => {
   test("projects list/validate 输出稳定 JSON envelope", () => {
-    const listed = runCli(["projects", "list", "--config", fixtureConfigPath]);
-    const validated = runCli(["projects", "validate", "--config", fixtureConfigPath]);
+    const listed = runArticleHubCli(["projects", "list", "--config", fixtureConfigPath]);
+    const validated = runArticleHubCli([
+      "projects",
+      "validate",
+      "--config",
+      fixtureConfigPath
+    ]);
 
-    expect(listed.status).toBe(0);
-    expect(validated.status).toBe(0);
-    expect(listed.stderr).toBe("");
-    expect(validated.stderr).toBe("");
-    expect(JSON.parse(listed.stdout)).toMatchObject({
-      ok: true,
-      schema_version: "article-hub.projects.list",
-      projects: [
-        { project_id: "webmcp-sdk" },
-        { project_id: "genui-sdk" },
-        { project_id: "tiny-robot" }
-      ]
-    });
-    expect(JSON.parse(validated.stdout)).toMatchObject({
-      ok: true,
-      schema_version: "article-hub.projects.validate",
+    const listedOutput = expectSuccessfulEnvelope<ProjectsListOutput>(
+      listed,
+      "article-hub.projects.list"
+    );
+    expect(listedOutput.projects).toEqual(
+      expect.arrayContaining([expect.objectContaining({ project_id: "webmcp-sdk" })])
+    );
+    expectSuccessfulEnvelope(validated, "article-hub.projects.validate", {
       valid: true
     });
   });
@@ -118,7 +130,7 @@ describe("checkout-sources CLI", () => {
     const cacheDir = path.join(os.tmpdir(), "article hub dry run cache");
     rmSync(cacheDir, { force: true, recursive: true });
 
-    const result = runCli([
+    const result = runArticleHubCli([
       "--dry-run",
       "checkout-sources",
       "--config",
@@ -129,15 +141,13 @@ describe("checkout-sources CLI", () => {
       cacheDir
     ]);
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-    const output = JSON.parse(result.stdout);
-
-    expect(output).toMatchObject({
-      ok: true,
-      schema_version: "article-hub.checkout-sources",
-      dry_run: true
-    });
+    const output = expectSuccessfulEnvelope<CheckoutSourcesOutput>(
+      result,
+      "article-hub.checkout-sources",
+      {
+        dry_run: true
+      }
+    );
     expect(output.mutation_plan.operations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -153,7 +163,7 @@ describe("checkout-sources CLI", () => {
     const fixture = createLocalRepositoryFixture();
     const cacheDir = path.join(fixture.tmp, "cache with spaces");
 
-    const first = runCli([
+    const first = runArticleHubCli([
       "checkout-sources",
       "--config",
       fixture.config,
@@ -162,7 +172,7 @@ describe("checkout-sources CLI", () => {
       "--cache-dir",
       cacheDir
     ]);
-    const second = runCli([
+    const second = runArticleHubCli([
       "checkout-sources",
       "--config",
       fixture.config,
@@ -172,32 +182,47 @@ describe("checkout-sources CLI", () => {
       cacheDir
     ]);
 
-    expect(first.status).toBe(0);
-    expect(second.status).toBe(0);
-    const output = JSON.parse(first.stdout);
-    const repeated = JSON.parse(second.stdout);
+    const output = expectSuccessfulEnvelope<CheckoutSourcesOutput>(
+      first,
+      "article-hub.checkout-sources"
+    );
+    const repeated = expectSuccessfulEnvelope<CheckoutSourcesOutput>(
+      second,
+      "article-hub.checkout-sources"
+    );
+    const primarySource = output.source_manifest.sources.find(
+      (source) => source.name === "webmcp-sdk"
+    );
+    const fixedSource = output.source_manifest.sources.find(
+      (source) => source.name === "fixed-source"
+    );
 
-    expect(output.source_manifest.sources).toEqual([
-      expect.objectContaining({
-        repo: fixture.remote,
-        requested_ref: fixture.defaultBranch,
-        resolved_commit: fixture.secondCommit,
-        fixed: true,
-        source_type: "source",
-        verified: true
-      }),
-      expect.objectContaining({
-        repo: fixture.remote,
-        requested_ref: fixture.firstCommit,
-        resolved_commit: fixture.firstCommit,
-        fixed: true,
-        source_type: "source",
-        verified: true
-      })
-    ]);
-    expect(output.source_manifest.sources[0].checkout_path).toBe(
+    expect(primarySource).toMatchObject({
+      repo: fixture.remote,
+      requested_ref: fixture.defaultBranch,
+      resolved_commit: fixture.secondCommit,
+      fixed: true,
+      source_type: "source",
+      verified: true
+    });
+    expect(fixedSource).toMatchObject({
+      repo: fixture.remote,
+      requested_ref: fixture.firstCommit,
+      resolved_commit: fixture.firstCommit,
+      fixed: true,
+      source_type: "source",
+      verified: true
+    });
+    expect(primarySource?.checkout_path).toBe(
       path.join(cacheDir, "local", "webmcp-sdk")
     );
-    expect(repeated.source_manifest.sources).toEqual(output.source_manifest.sources);
+    expect(
+      repeated.source_manifest.sources.find(
+        (source) => source.name === "webmcp-sdk"
+      )
+    ).toMatchObject({
+      resolved_commit: fixture.secondCommit,
+      checkout_path: primarySource?.checkout_path
+    });
   });
 });

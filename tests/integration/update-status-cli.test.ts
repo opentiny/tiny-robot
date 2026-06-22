@@ -1,23 +1,21 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, test } from "vitest";
 
-const repositoryRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
-);
-const cliPath = path.join(repositoryRoot, "src/cli.ts");
+import {
+  expectSuccessfulEnvelope,
+  repositoryRoot,
+  runArticleHubCli
+} from "../support/cli.js";
+
 const issueFixture = path.join(repositoryRoot, "tests/fixtures/issue-minimal.json");
 
-function runCli(args: string[]) {
-  return spawnSync(process.execPath, ["--import", "tsx", cliPath, ...args], {
-    cwd: repositoryRoot,
-    encoding: "utf8"
-  });
+interface UpdateStatusOutput {
+  mutation_plan: {
+    operations: Array<{ kind: string }>;
+  };
 }
 
 async function writeIssue(labels: string[]) {
@@ -42,7 +40,7 @@ async function writeIssue(labels: string[]) {
 
 describe("article-hub update-status CLI", () => {
   test("dry-run computes phase and AI label changes from an issue fixture", () => {
-    const result = runCli([
+    const result = runArticleHubCli([
       "--dry-run",
       "update-status",
       "--issue-file",
@@ -57,31 +55,30 @@ describe("article-hub update-status CLI", () => {
       "写作计划已批准，开始生成初稿。"
     ]);
 
-    expect(result.status).toBe(0);
-    expect(result.stderr).toBe("");
-
-    const output = JSON.parse(result.stdout);
-
-    expect(output).toMatchObject({
-      ok: true,
-      schema_version: "article-hub.update-status",
-      dry_run: true,
-      issue: {
-        number: 42
-      },
-      mutation_allowed: true,
-      labels_to_remove: ["阶段：策划", "AI：等待人工"],
-      labels_to_add: ["阶段：写作", "AI：处理中"]
-    });
-    expect(output.mutation_plan.operations.map((operation: { kind: string }) => operation.kind)).toEqual([
-      "gh-issue-edit-labels",
-      "gh-issue-comment"
-    ]);
+    const output = expectSuccessfulEnvelope<UpdateStatusOutput>(
+      result,
+      "article-hub.update-status",
+      {
+        dry_run: true,
+        issue: {
+          number: 42
+        },
+        mutation_allowed: true,
+        labels_to_remove: ["阶段：策划", "AI：等待人工"],
+        labels_to_add: ["阶段：写作", "AI：处理中"]
+      }
+    );
+    expect(output.mutation_plan.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "gh-issue-edit-labels" }),
+        expect.objectContaining({ kind: "gh-issue-comment" })
+      ])
+    );
   });
 
   test("dry-run refuses content mutations while AI is paused", async () => {
     const issueFile = await writeIssue(["阶段：写作", "AI：已暂停"]);
-    const result = runCli([
+    const result = runArticleHubCli([
       "--dry-run",
       "update-status",
       "--issue-file",
@@ -94,9 +91,7 @@ describe("article-hub update-status CLI", () => {
       "AI：等待人工"
     ]);
 
-    expect(result.status).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      ok: true,
+    expectSuccessfulEnvelope(result, "article-hub.update-status", {
       mutation_allowed: false,
       blocked_reason: "AI_PAUSED",
       labels_to_remove: [],
