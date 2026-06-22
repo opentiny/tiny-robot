@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 
 import {
   articleValidationIssueMessages,
@@ -106,17 +106,6 @@ describe("article validation", () => {
     });
   });
 
-  test("Front Matter 标题必须等于正文第一个 H1", async () => {
-    const articleFile = writeVariant("title-mismatch", (content) =>
-      content.replace("# WebMCP SDK 实践指南", "# 不一致标题")
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "heading-title-mismatch", "title");
-  });
-
   test("缺少必填 Front Matter 字段会阻断", async () => {
     const articleFile = writeVariant("missing-summary", (content) =>
       content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。\n", "")
@@ -126,17 +115,6 @@ describe("article validation", () => {
 
   expect(result.valid).toBe(false);
     expectBlockingIssue(result, "missing-required-frontmatter-field", "summary");
-  });
-
-  test("Front Matter 残留占位符会阻断", async () => {
-    const articleFile = writeVariant("frontmatter-placeholder", (content) =>
-      content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。", "summary: TODO")
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "placeholder-token");
   });
 
   test.each([
@@ -218,267 +196,10 @@ describe("article validation", () => {
     expectBlockingIssue(result, code, field);
   });
 
-  test("fenced code block 必须标注语言", async () => {
-    const articleFile = writeVariant("code-without-language", (content) =>
-      content.replace("```ts", "```")
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "missing-code-fence-language");
-  });
-
-  test("波浪线 fenced code block 也必须标注语言", async () => {
+  test("fenced code block 中的图片语法不会触发素材校验", async () => {
     const articleFile = writeVariant(
-      "tilde-code-without-language",
-      (content) => `${content}\n\n~~~\nconst missing = true;\n~~~\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "missing-code-fence-language");
-  });
-
-  test("带 1-3 个前导空格的 fenced code block 也必须标注语言", async () => {
-    const articleFile = writeVariant("indented-code-without-language", (content) =>
-      content.replace("```ts", "  ```").replace("\n```\n", "\n  ```\n")
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "missing-code-fence-language");
-  });
-
-  test("正文残留占位符会阻断", async () => {
-    const articleFile = writeVariant("placeholder", (content) =>
-      `${content}\n\nTODO: 补一段案例。\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "placeholder-token");
-  });
-
-  test("http(s) 外链通过且不发起网络请求", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const articleFile = writeVariant(
-      "external-links",
-      (content) => `${content}\n\n[HTTP](http://example.com/a) [HTTPS](https://example.com/b)\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(fetchSpy).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
-  });
-
-  test.each([
-    ["protocol-relative URL", "//example.com/docs"],
-    ["同页 anchor", "#section"]
-  ])("合法%s链接通过", async (_, target) => {
-    const articleFile = writeVariant(
-      "allowed-link-target",
-      (content) => `${content}\n\n[文档](${target})\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("存在的本地文件链接通过并忽略 query 与 fragment", async () => {
-    const articleFile = writeArticleWithAssets(
-      "local-link",
-      (content) => `${content}\n\n[本地文档](docs/guide.md?mode=raw#usage)\n`,
-      { "docs/guide.md": "# 使用说明\n" }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("缺失的本地文件链接会阻断", async () => {
-    const articleFile = writeVariant(
-      "missing-local-link",
-      (content) => `${content}\n\n[本地文档](docs/missing.md)\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "missing-local-link");
-  });
-
-  test.each([
-    ["POSIX 绝对路径", "/tmp/secret.md"],
-    ["Windows 绝对路径", "C:/secret.md"],
-    ["file URL", "file:///tmp/secret.md"],
-    ["file scheme", "file:secret.md"],
-    ["原始路径穿越", "../secret.md"],
-    ["嵌套路径穿越", "docs/../secret.md"],
-    ["decode 后路径穿越", "%2e%2e/secret.md"]
-  ])("本地链接拒绝%s", async (_, target) => {
-    const articleFile = writeVariant(
-      "unsafe-local-link",
-      (content) => `${content}\n\n[本地文档](${target})\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "invalid-local-link");
-  });
-
-  test("malformed percent-encoding 以阻断问题返回", async () => {
-    const articleFile = writeVariant(
-      "malformed-percent-encoding",
-      (content) => `${content}\n\n[本地文档](docs/%ZZ.md)\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "invalid-local-link");
-  });
-
-  test.each([
-    ["query", "docs/guide.md?x=%ZZ"],
-    ["fragment", "docs/guide.md#%ZZ"]
-  ])("%s 中的 malformed percent-encoding 以阻断问题返回", async (_, target) => {
-    const articleFile = writeArticleWithAssets(
-      "malformed-percent-encoding-suffix",
-      (content) => `${content}\n\n[本地文档](${target})\n`,
-      { "docs/guide.md": "# 使用说明\n" }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "invalid-local-link");
-  });
-
-  test("本地链接目标必须是可读取文件", async () => {
-    const articleFile = writeArticleWithAssets(
-      "local-link-directory",
-      (content) => `${content}\n\n[本地文档](docs/guide)\n`,
-      {}
-    );
-    mkdirSync(path.join(path.dirname(articleFile), "docs/guide"), { recursive: true });
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "missing-local-link");
-  });
-
-  test("本地链接拒绝指向文章目录外文件的 symlink", async () => {
-    const outsideDirectory = createTemporaryDirectory("article validation outside ");
-    const outsideFile = path.join(outsideDirectory, "outside.md");
-    writeFileSync(outsideFile, "# 外部文件\n", "utf8");
-    const articleFile = writeArticleWithAssets(
-      "external-link-symlink",
-      (content) => `${content}\n\n[本地文档](docs/guide.md)\n`,
-      {}
-    );
-    const symlinkPath = path.join(path.dirname(articleFile), "docs/guide.md");
-    mkdirSync(path.dirname(symlinkPath), { recursive: true });
-    symlinkSync(outsideFile, symlinkPath, "file");
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "missing-local-link");
-  });
-
-  test("本地链接允许指向文章目录内文件的 symlink", async () => {
-    const articleFile = writeArticleWithAssets(
-      "internal-link-symlink",
-      (content) => `${content}\n\n[本地文档](docs/guide-link.md)\n`,
-      { "docs/guide.md": "# 使用说明\n" }
-    );
-    symlinkSync("guide.md", path.join(path.dirname(articleFile), "docs/guide-link.md"), "file");
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test.each([
-    ["full reference", "[参考资料][guide]"],
-    ["collapsed reference", "[guide][]"]
-  ])("已定义的%s链接通过", async (_, reference) => {
-    const articleFile = writeArticleWithAssets(
-      "defined-reference-link",
-      (content) => `${content}\n\n${reference}\n\n[guide]: docs/guide.md\n`,
-      { "docs/guide.md": "# 使用说明\n" }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("reference id 按大小写与连续空白归一化", async () => {
-    const articleFile = writeArticleWithAssets(
-      "normalized-reference-link",
-      (content) => `${content}\n\n[参考资料][Guide   Doc]\n\n[guide doc]: docs/guide.md\n`,
-      { "docs/guide.md": "# 使用说明\n" }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-  });
-
-  test("escaped reference label 的定义与引用使用相同 normalization", async () => {
-    const articleFile = writeArticleWithAssets(
-      "escaped-reference-label",
-      (content) => `${content}\n\n[引用][a\\]b]\n\n[a\\]b]: docs/guide.md\n`,
-      { "docs/guide.md": "# 使用说明\n" }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("未定义的 reference link 会阻断", async () => {
-    const articleFile = writeVariant(
-      "undefined-reference-link",
-      (content) => `${content}\n\n[参考资料][missing]\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "undefined-reference-link");
-  });
-
-  test.each([
-    ["脚注引用", "正文结论[^1]。"],
-    ["脚注定义", "[^note]: 参考资料"]
-  ])("正文禁止学术式%s", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "academic-footnote",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "footnote-not-allowed");
-  });
-
-  test("fenced code block 中的链接和脚注示例不会触发校验", async () => {
-    const articleFile = writeVariant(
-      "links-in-code-fence",
-      (content) =>
-        `${content}\n\n\`\`\`md\n[缺失文件](missing.md)\n[参考][missing]\n正文[^1]\n[^1]: 示例\n\`\`\`\n`
+      "image-in-code-fence",
+      (content) => `${content}\n\n\`\`\`md\n![Demo screenshot](missing.png)\n\`\`\`\n`
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
@@ -488,14 +209,11 @@ describe("article validation", () => {
   });
 
   test.each([
-    ["单 backtick", "`[链接](missing.md) [参考][missing] [^1] ![中文图](missing.png)`"],
-    [
-      "多 backtick",
-      "``[链接](missing-2.md) [参考][missing-2] [^2] ![中文图](missing-2.png)``"
-    ]
-  ])("%s code span 中的 Markdown 示例不会触发校验", async (_, markdown) => {
+    ["单 backtick", "`![中文图](missing.png)`"],
+    ["多 backtick", "``![中文图](missing-2.png)``"]
+  ])("%s code span 中的图片示例不会触发素材校验", async (_, markdown) => {
     const articleFile = writeVariant(
-      "markdown-in-code-span",
+      "image-in-code-span",
       (content) => `${content}\n\n${markdown}\n`
     );
 
@@ -505,93 +223,30 @@ describe("article validation", () => {
     expect(result.blocking_issues).toEqual([]);
   });
 
-  test("escaped backtick 不会遮蔽真实链接", async () => {
+  test("未闭合图片 bracket 不会跳过后续真实图片", async () => {
     const articleFile = writeVariant(
-      "escaped-backtick-around-link",
-      (content) => `${content}\n\n\\\`[真实链接](missing.md)\\\`\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "missing-local-link");
-  });
-
-  test.each([
-    ["reviewer case", "\\``[真实链接](missing.md)`"],
-    ["更长 run", "\\```[真实链接](missing.md)``"]
-  ])("escaped 多 backtick 的剩余%s 仍可组成 code span", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "escaped-backtick-prefix-in-run",
-      (content) => `${content}\n\n${markdown}\n`
+      "unclosed-bracket-before-image",
+      (content) => `${content}\n\n![未闭合\n![中文图](missing.png)\n`
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
+    expectBlockingIssue(result, "missing-local-image");
   });
 
-  test("escaped 多 backtick 的剩余 run 仅按实际长度配对", async () => {
-    const markdown = "\\```[真实链接](missing.md)`";
+  test("无 suffix 的普通外层图片 bracket 不会跳过内部图片", async () => {
     const articleFile = writeVariant(
-      "mismatched-run-after-escaped-backtick",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "missing-local-link");
-  });
-
-  test.each([
-    ["链接", "[未闭合\n[真实链接](missing.md)", "missing-local-link"],
-    ["图片", "![未闭合\n![中文图](missing.png)", "missing-local-image"]
-  ])("未闭合%s bracket 不会跳过后续真实资源", async (_, markdown, expectedCode) => {
-    const articleFile = writeVariant(
-      "unclosed-bracket-before-resource",
-      (content) => `${content}\n\n${markdown}\n`
+      "plain-outer-bracket-around-image",
+      (content) => `${content}\n\n![普通外层 ![中文图](missing.png)]\n`
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, expectedCode);
-  });
-
-  test.each([
-    [
-      "链接",
-      "[普通外层 [真实链接](missing.md)]",
-      "missing-local-link"
-    ],
-    [
-      "图片",
-      "![普通外层 ![中文图](missing.png)]",
-      "missing-local-image"
-    ]
-  ])("无 suffix 的普通外层%s bracket 不会跳过内部资源", async (_, markdown, expectedCode) => {
-    const articleFile = writeVariant(
-      "plain-outer-bracket-around-resource",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(issueCodes(result)).toEqual([expectedCode]);
-  });
-
-  test("图片语法不会重复作为普通链接校验", async () => {
-    const articleFile = writeVariant(
-      "image-not-link",
-      (content) => `${content}\n\n![中文截图](assets/images/missing.png)\n`
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
     expect(issueCodes(result)).toEqual(["missing-local-image"]);
   });
 
   test(
-    "大量未闭合 bracket 不会重复扫描或产生链接问题",
+    "大量未闭合 bracket 不会重复扫描",
     async () => {
       const articleFile = writeVariant(
         "many-unclosed-brackets",
@@ -601,27 +256,22 @@ describe("article validation", () => {
       const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
       expect(result.valid).toBe(true);
-      expect(
-        issueCodes(result).filter((code) =>
-          ["invalid-local-link", "missing-local-link", "undefined-reference-link"].includes(code)
-        )
-      ).toEqual([]);
+      expect(result.blocking_issues).toEqual([]);
     },
     10_000
   );
 
   test(
-    "大量 malformed destination 保持有界并校验后续真实资源",
+    "大量 malformed destination 保持有界并校验后续图片",
     async () => {
       const articleFile = writeVariant(
         "many-malformed-destinations",
         (content) =>
-          `${content}\n\n${"[x](".repeat(30_000)}[真实链接](missing.md) ![中文图](missing.png)\n`
+          `${content}\n\n${"[x](".repeat(30_000)}![中文图](missing.png)\n`
       );
 
       const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
-      expectBlockingIssue(result, "missing-local-link");
       expectBlockingIssue(result, "missing-local-image");
     },
     10_000
@@ -709,23 +359,6 @@ describe("article validation", () => {
     expectBlockingIssue(result, "invalid-local-image");
   });
 
-  test("正文不得直接引用 Mermaid 源文件", async () => {
-    const articleFile = writeArticleWithAssets(
-      "markdown-references-mmd",
-      (content) => `${content}\n\n![中文流程图](assets/diagrams/flow.mmd)\n`,
-      {
-        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
-        "assets/diagrams/flow.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>",
-        "assets/diagrams/flow.png": validPng
-      }
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "mermaid-image-reference");
-  });
-
   test("本地 SVG 图片存在时通过图片引用校验", async () => {
     const articleFile = writeArticleWithAssets(
       "markdown-references-svg",
@@ -741,38 +374,6 @@ describe("article validation", () => {
     expect(result.blocking_issues).toEqual([]);
   });
 
-  test("Mermaid 源文件存在同名 PNG 时通过派生物校验", async () => {
-    const articleFile = writeArticleWithAssets(
-      "mmd-without-svg",
-      (content) => content,
-      {
-        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
-        "assets/diagrams/flow.png": validPng
-      }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("Mermaid 源文件缺少同名 PNG 会阻断", async () => {
-    const articleFile = writeArticleWithAssets(
-      "mmd-without-png",
-      (content) => content,
-      {
-        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
-        "assets/diagrams/flow.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>"
-      }
-    );
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-  expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "missing-mermaid-png");
-  });
-
   test("PNG 路径指向目录时以阻断问题返回", async () => {
     const articleFile = writeArticleWithAssets(
       "png-directory",
@@ -785,18 +386,6 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expectBlockingIssue(result, "missing-local-image");
-  });
-
-  test("fenced code block 中的图片语法不会触发素材校验", async () => {
-    const articleFile = writeVariant(
-      "image-in-code-fence",
-      (content) => `${content}\n\n\`\`\`md\n![Demo screenshot](missing.png)\n\`\`\`\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
   });
 
   test("带尾随文本的 fence 行不会关闭代码块", async () => {
@@ -861,18 +450,4 @@ describe("article validation", () => {
     expectBlockingIssue(result, "missing-local-image");
   });
 
-  test("diagram PNG 目录不能冒充同名文件", async () => {
-    const articleFile = writeArticleWithAssets(
-      "diagram-directory",
-      (content) => content,
-      {
-        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n"
-      }
-    );
-    mkdirSync(path.join(path.dirname(articleFile), "assets/diagrams/flow.png"), { recursive: true });
-
-  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expectBlockingIssue(result, "missing-mermaid-png");
-  });
 });
