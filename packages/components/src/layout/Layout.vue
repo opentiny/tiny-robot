@@ -43,8 +43,15 @@ function toggleRightDrawer(): void {
   toggleDrawer(rightPanel, leftPanel)
 }
 
+const hasLeftAside = computed(() => hasNonEmptySlotContent(slots['left-aside']))
+const hasHeader = computed(() => hasNonEmptySlotContent(slots.header))
+const hasFooter = computed(() => hasNonEmptySlotContent(slots.footer))
+const hasRightAside = computed(() => hasNonEmptySlotContent(slots['right-aside']))
+
 const isDrawerVisible = computed(
-  () => (leftPanel.isDrawer.value && leftPanel.isOpen.value) || (rightPanel.isDrawer.value && rightPanel.isOpen.value),
+  () =>
+    (hasLeftAside.value && leftPanel.isDrawer.value && leftPanel.isOpen.value) ||
+    (hasRightAside.value && rightPanel.isDrawer.value && rightPanel.isOpen.value),
 )
 
 function closeDrawers(): void {
@@ -107,13 +114,8 @@ function getDockedAsideWidth(panel: LayoutPanel): number {
   return panel.isRail.value ? panel.collapsedWidth.value : panel.width.value
 }
 
-const leftDockWidth = computed(() => getDockedAsideWidth(drawer.left))
-const rightDockWidth = computed(() => getDockedAsideWidth(drawer.right))
-
-const hasLeftAside = computed(() => hasNonEmptySlotContent(slots['left-aside']))
-const hasHeader = computed(() => hasNonEmptySlotContent(slots.header))
-const hasFooter = computed(() => hasNonEmptySlotContent(slots.footer))
-const hasRightAside = computed(() => hasNonEmptySlotContent(slots['right-aside']))
+const leftDockWidth = computed(() => (hasLeftAside.value ? getDockedAsideWidth(drawer.left) : 0))
+const rightDockWidth = computed(() => (hasRightAside.value ? getDockedAsideWidth(drawer.right) : 0))
 
 const layoutStyle = computed<Record<string, string>>(() => {
   const style: Record<string, string> = {}
