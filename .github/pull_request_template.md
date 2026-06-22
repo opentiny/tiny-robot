@@ -1,19 +1,19 @@
 <!-- article-hub:managed:start -->
-## Article Summary
+## 文章摘要
 
-- Source Issue:
-- Plan:
-- Article file:
-- Source snapshots:
+- 来源 Issue:
+- 写作计划:
+- 文章文件:
+- 来源快照:
 
-## Manual Acceptance
+## 人工验收
 
 - [ ] 核对关键事实、术语和来源快照
 - [ ] 确认截图、封面或图片缺口
 
-## AI Changes
+## AI 修改
 
-Use `/ai <修改要求>` in PR comments for local Phase A revision.
+在 PR 评论中以 `/ai` 开头描述修改要求。
 <!-- article-hub:managed:end -->
 
 <!-- article-hub:human:start -->

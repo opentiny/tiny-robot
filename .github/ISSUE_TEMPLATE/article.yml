@@ -1,6 +1,6 @@
-name: Article request
-description: Request an OpenTiny article for the Phase A local workflow.
-title: "[Article] "
+name: 文章选题
+description: 为 Phase A 本地流程提交 OpenTiny 文章选题。
+title: "[文章] "
 labels:
   - 阶段：选题
   - AI：等待执行
@@ -8,7 +8,7 @@ body:
   - type: dropdown
     id: project
     attributes:
-      label: Project
+      label: 项目
       options:
         - webmcp-sdk
         - genui-sdk
@@ -18,7 +18,7 @@ body:
   - type: dropdown
     id: article_type
     attributes:
-      label: Article type
+      label: 文章类型
       options:
         - release
         - practical-guide
@@ -29,7 +29,7 @@ body:
   - type: dropdown
     id: style_profile
     attributes:
-      label: Style profile
+      label: 文风
       options:
         - official-balanced
         - developer-friendly
@@ -40,21 +40,21 @@ body:
   - type: textarea
     id: goal
     attributes:
-      label: Article goal
-      description: Describe the reader problem, target audience, and expected takeaway.
+      label: 文章目标
+      description: 说明读者问题、目标读者和预期收获。
     validations:
       required: true
   - type: textarea
     id: sources
     attributes:
-      label: Candidate sources
-      description: Link to releases, docs, commits, PRs, demos, or issue attachments.
+      label: 候选资料
+      description: 填写 Release、文档、Commit、PR、Demo 或 Issue 附件链接。
     validations:
       required: true
   - type: textarea
     id: acceptance
     attributes:
-      label: Manual acceptance notes
-      description: List code snippets, screenshots, or facts that must be checked manually.
+      label: 人工验收说明
+      description: 列出必须人工检查的代码片段、截图或事实。
     validations:
       required: false
