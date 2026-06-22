@@ -104,6 +104,12 @@
 skills/
 ├── generate-opentiny-article/
 └── polish-opentiny-article/
+    ├── SKILL.md
+    └── references/
+        ├── article-guardrails.md
+        ├── style-guide.md
+        ├── anti-patterns.md
+        └── examples.md
 ```
 
 ### 5.1 `generate-opentiny-article`
@@ -124,20 +130,29 @@ skills/
 
 ### 5.2 `polish-opentiny-article`
 
-该 Skill 基于 `shuorenhua` 的 MIT License 版本复制并定制，只服务 OpenTiny 对外技术文章。首次复制时保留上游版权声明和来源 Commit，之后由本项目独立维护，不自动同步上游。
+该 Skill 是 OpenTiny 对外技术文章的独立优化入口，不嵌套其他 Skill，也不承担通用聊天、社交媒体或任意品牌文案润色。
+
+它负责三种场景：
+
+- 初稿生成后优化全文正文。
+- 收到 `/ai 全文润色` 后保守处理全文。
+- 根据 `Request changes`、授权用户的 `/ai` 指令或人工要求局部修订。
 
 默认只修改正文自然语言，不修改：
 
-- YAML Front Matter。
-- 已确认标题。
-- 代码块、命令和日志。
-- API、参数、配置键和版本号。
-- 图片路径与链接目标。
-- Mermaid 或 SVG 源文件。
+- YAML Front Matter 和已确认标题。
+- 代码块、行内代码、命令、日志和报错。
+- API、参数、配置键、版本号和 Commit SHA。
+- 图片路径、链接目标、Mermaid 或 SVG 源内容。
+- 人工区域和本轮范围外的章节。
 
-初稿生成时执行全文润色。PR 修订时默认只润色本轮受影响章节；只有收到 `/ai 全文润色` 才处理全文。润色完成后必须重新检查事实和术语。
+优化时不得新增固定来源没有提供的事实、数据、来源、用户反馈、产品能力或因果关系。涉及事实、版本、API、兼容性或性能结论时必须回到写作计划固定的来源核验；无法确认时保留原文并请求人工判断。
 
-历史人工文章用于提炼正例、反例和评测样本，不执行全文仿写。
+`SKILL.md` 是唯一入口。`references/article-guardrails.md` 定义修改边界，`style-guide.md` 定义正向风格，`anti-patterns.md` 定义常见问题族，`examples.md` 用于边界校准。这些文件都是普通 reference，不作为独立 Skill 触发。
+
+初稿优化允许在章节内删除纯空话、合并重复句和轻量调整句序。Draft PR 修订默认只处理本轮受影响范围；只有收到 `/ai 全文润色` 才处理全文。完成后必须执行保真回读、自然度回读和文章校验。
+
+历史人工文章只用于提炼正向风格、反例和匿名评测样本，不执行全文仿写或特定作者 voice 模拟。
 
 ## 6. 输入契约
 
