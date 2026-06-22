@@ -15,7 +15,7 @@ const repositoryRoot = path.resolve(
 );
 
 describe("project config", () => {
-  test("只接受当前支持的三个项目，并保留稳定顺序", async () => {
+  test("按配置文件保留项目顺序", async () => {
     const config = await loadProjectConfig(
       path.join(repositoryRoot, "tests/fixtures/projects-valid.yml")
     );
@@ -32,12 +32,24 @@ describe("project config", () => {
     });
   });
 
-  test("未知项目稳定拒绝", async () => {
-    await expect(
-      loadProjectConfig(path.join(repositoryRoot, "tests/fixtures/projects-unknown.yml"))
-    ).rejects.toMatchObject({
-      code: "INVALID_PROJECT_CONFIG"
+  test("项目列表由配置文件决定", async () => {
+    const config = await loadProjectConfig(
+      path.join(repositoryRoot, "tests/fixtures/projects-unknown.yml")
+    );
+
+    expect(config.projects.map((project) => project.project_id)).toEqual(["tiny-engine"]);
+    expect(resolveProject(config, "tiny-engine")).toMatchObject({
+      project_id: "tiny-engine",
+      display_name: "TinyEngine"
     });
+  });
+
+  test("未配置项目稳定拒绝", async () => {
+    const config = await loadProjectConfig(
+      path.join(repositoryRoot, "tests/fixtures/projects-valid.yml")
+    );
+
+    expect(() => resolveProject(config, "tiny-engine")).toThrowError(/未配置项目/);
   });
 
   test("checkout 路径不能穿越 cache 根目录", async () => {
@@ -49,13 +61,12 @@ describe("project config", () => {
     expect(safeCheckoutPath(cacheRoot, resolveProject(config, "webmcp-sdk").repositories[0])).toBe(
       path.join(cacheRoot, "opentiny", "webmcp-sdk")
     );
-    await expect(
-      loadProjectConfig(
-        path.join(repositoryRoot, "tests/fixtures/projects-unsafe-path.yml")
-      )
-    ).rejects.toMatchObject({
-      code: "INVALID_PROJECT_CONFIG"
-    });
+    const unsafeConfig = await loadProjectConfig(
+      path.join(repositoryRoot, "tests/fixtures/projects-unsafe-path.yml")
+    );
+    expect(() =>
+      safeCheckoutPath(cacheRoot, resolveProject(unsafeConfig, "webmcp-sdk").repositories[0])
+    ).toThrowError(/路径片段/);
   });
 
   test.each([".", ".."])("拒绝路径折叠 repo name：%s", (repoName) => {

@@ -5,7 +5,7 @@ import { parse } from "yaml";
 
 import { ArticleHubError } from "../infrastructure/errors.js";
 
-export type ProjectId = "webmcp-sdk" | "genui-sdk" | "tiny-robot";
+export type ProjectId = string;
 
 export interface ProjectRepositoryConfig {
   name: string;
@@ -33,12 +33,14 @@ export interface ProjectConfig {
   projects: ProjectConfigEntry[];
 }
 
-const allowedProjectIds = ["webmcp-sdk", "genui-sdk", "tiny-robot"] as const;
-const projectIdSet = new Set<string>(allowedProjectIds);
 const safeSegmentPattern = /^[a-zA-Z0-9._-]+$/;
 
 /**
- * 读取并校验项目配置，确保只处理 allowlist 项目和受控 checkout 路径。
+ * 读取项目配置，只校验文件、YAML 与顶层结构契约。
+ *
+ * @param configPath 项目配置 YAML 文件路径。
+ * @returns 可供命令层读取的项目配置对象，深层字段由配置评审和使用边界兜底。
+ * @throws ArticleHubError 当配置文件不存在、YAML 无效或顶层结构不符合契约时抛出。
  */
 export async function loadProjectConfig(configPath: string): Promise<ProjectConfig> {
   let raw: string;
@@ -68,6 +70,11 @@ export async function loadProjectConfig(configPath: string): Promise<ProjectConf
 
 /**
  * 查找当前支持项目；未知项目直接停止，避免 Skill 继续生成不可追溯内容。
+ *
+ * @param config 已读取的项目配置。
+ * @param projectId 调用方请求的项目标识。
+ * @returns 与请求项目标识匹配的项目配置。
+ * @throws ArticleHubError 当项目未出现在配置中时抛出。
  */
 export function resolveProject(config: ProjectConfig, projectId: string): ProjectConfigEntry {
   const project = config.projects.find((item) => item.project_id === projectId);
@@ -81,6 +88,11 @@ export function resolveProject(config: ProjectConfig, projectId: string): Projec
 
 /**
  * 生成仓库 checkout 的受控路径，拒绝绝对路径和 `..` 穿越。
+ *
+ * @param cacheRoot checkout 缓存根目录。
+ * @param repository 仓库配置。
+ * @returns 归一化后的 checkout 目录路径。
+ * @throws ArticleHubError 当仓库 owner 或 name 不是安全路径片段时抛出。
  */
 export function safeCheckoutPath(
   cacheRoot: string,
@@ -110,131 +122,11 @@ function validateProjectConfig(value: unknown): ProjectConfig {
     throw new ArticleHubError("INVALID_PROJECT_CONFIG", "项目配置 schema_version 无效");
   }
 
-  if (!Array.isArray(config.projects) || config.projects.length === 0) {
+  if (!Array.isArray(config.projects)) {
     throw new ArticleHubError("INVALID_PROJECT_CONFIG", "项目配置缺少 projects");
   }
 
-  const seen = new Set<string>();
-  const projects = config.projects.map((project) => validateProject(project, seen));
-
-  return {
-    schema_version: "article-hub.projects",
-    projects
-  };
-}
-
-function validateProject(value: unknown, seen: Set<string>): ProjectConfigEntry {
-  if (value === null || typeof value !== "object") {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", "项目条目必须是 object");
-  }
-
-  const project = value as Partial<ProjectConfigEntry>;
-  const projectId = project.project_id;
-
-  if (typeof projectId !== "string" || !projectIdSet.has(projectId)) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `不支持项目：${String(projectId)}`);
-  }
-
-  if (seen.has(projectId)) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `项目重复配置：${projectId}`);
-  }
-
-  seen.add(projectId);
-
-  if (typeof project.display_name !== "string" || project.display_name.length === 0) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `项目缺少 display_name：${projectId}`);
-  }
-
-  if (!Array.isArray(project.repositories) || project.repositories.length === 0) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `项目缺少 repositories：${projectId}`);
-  }
-
-  return {
-    project_id: projectId as ProjectId,
-    display_name: project.display_name,
-    docs: readObject(project.docs, "docs", projectId),
-    demo: readObject(project.demo, "demo", projectId),
-    deepwiki: readObject(project.deepwiki, "deepwiki", projectId),
-    terminology: readObject(project.terminology, "terminology", projectId),
-    repositories: project.repositories.map((repository) =>
-      validateRepository(repository, projectId)
-    )
-  };
-}
-
-function validateRepository(value: unknown, projectId: string): ProjectRepositoryConfig {
-  if (value === null || typeof value !== "object") {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `仓库条目必须是 object：${projectId}`);
-  }
-
-  const repository = value as Partial<ProjectRepositoryConfig>;
-
-  assertSafeSegment(repository.name, "name", projectId);
-
-  if (typeof repository.url !== "string" || repository.url.length === 0) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `仓库缺少 url：${projectId}`);
-  }
-
-  if (typeof repository.role !== "string" || repository.role.length === 0) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `仓库缺少 role：${projectId}`);
-  }
-
-  if (typeof repository.source_type !== "string" || repository.source_type.length === 0) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `仓库缺少 source_type：${projectId}`);
-  }
-
-  if (!repository.ref && !repository.default_ref) {
-    throw new ArticleHubError(
-      "INVALID_PROJECT_CONFIG",
-      `仓库必须配置 ref 或 default_ref：${projectId}/${repository.name}`
-    );
-  }
-
-  if (repository.ref !== undefined && typeof repository.ref !== "string") {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `仓库 ref 必须是字符串：${projectId}`);
-  }
-
-  if (repository.default_ref !== undefined && typeof repository.default_ref !== "string") {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `仓库 default_ref 必须是字符串：${projectId}`);
-  }
-
-  if (
-    repository.required_commit !== undefined &&
-    !/^[0-9a-f]{40}$/.test(repository.required_commit)
-  ) {
-    throw new ArticleHubError(
-      "INVALID_PROJECT_CONFIG",
-      `required_commit 必须是 40 位小写 SHA：${projectId}/${repository.name}`
-    );
-  }
-
-  return {
-    name: repository.name,
-    url: repository.url,
-    default_ref: repository.default_ref,
-    ref: repository.ref,
-    required_commit: repository.required_commit,
-    role: repository.role,
-    source_type: repository.source_type,
-    license: repository.license
-  };
-}
-
-function readObject(value: unknown, fieldName: string, projectId: string): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `项目缺少 ${fieldName}：${projectId}`);
-  }
-
-  return value as Record<string, unknown>;
-}
-
-function assertSafeSegment(value: unknown, fieldName: string, projectId: string): asserts value is string {
-  if (typeof value !== "string" || !isSafePathSegment(value)) {
-    throw new ArticleHubError(
-      "INVALID_PROJECT_CONFIG",
-      `字段 ${fieldName} 不是安全路径片段：${projectId}`
-    );
-  }
+  return config as ProjectConfig;
 }
 
 function assertSafePathSegment(value: string, fieldName: string): void {
