@@ -1,19 +1,14 @@
-import { computed, shallowRef } from 'vue'
-import type { LayoutAsideProps, LayoutFloatingState, LayoutPlacement, LayoutProps } from '../index.type'
-import type {
-  LayoutFloatingContext,
-  LayoutPanelContext,
-  LayoutResolvedFloating,
-  UseLayoutRootStateResult,
-} from '../internal.type'
-import { clamp } from '../utils/math'
+import { computed } from 'vue'
+import type { LayoutAsideProps, LayoutFloatingState, LayoutSide, LayoutProps } from '../index.type'
+import type { LayoutFloatingContext, LayoutPanel, LayoutResolvedFloating, LayoutState } from '../internal.type'
+import { clamp } from '../utils/number'
 import {
   getDefaultAsideExpandedWidth,
   getDefaultAsideMaxWidth,
   getDefaultAsideMinWidth,
   getDefaultAsideOpen,
-} from '../utils/asideDefaults'
-import { emitAsideOpenChange, type LayoutEmitFn } from '../utils/emitAsideEvents'
+} from '../utils/asidePresets'
+import { emitAsideOpenChange, type LayoutEmitFn } from '../utils/asideEventEmitters'
 import { useControllableState } from '../../shared/composables/useControllableState'
 
 function isFloatingStateEqual(left: LayoutFloatingState | undefined, right: LayoutFloatingState | undefined): boolean {
@@ -30,41 +25,40 @@ function resolveFiniteNumber(value: number | undefined, fallback: number): numbe
   return value === undefined || !Number.isFinite(value) ? fallback : value
 }
 
-function createPanelContext(
-  placement: LayoutPlacement,
+function createAsidePanel(
+  side: LayoutSide,
   aside: () => LayoutAsideProps | undefined,
   emit: LayoutEmitFn,
-): LayoutPanelContext {
+): LayoutPanel {
   const asideValue = computed(() => aside())
   const layoutMode = computed(() => asideValue.value?.mode ?? 'dock')
   const collapsedWidth = computed(() => resolveFiniteNumber(asideValue.value?.collapsedWidth, 0))
   const collapseEffect = computed(() => asideValue.value?.collapseEffect ?? 'overlay')
   const resizable = computed(() => asideValue.value?.resizable ?? false)
   const minWidth = computed(() =>
-    resolveFiniteNumber(asideValue.value?.minExpandedWidth, getDefaultAsideMinWidth(placement)),
+    resolveFiniteNumber(asideValue.value?.minExpandedWidth, getDefaultAsideMinWidth(side)),
   )
   const maxWidth = computed(() => {
-    const nextMaxWidth = resolveFiniteNumber(asideValue.value?.maxExpandedWidth, getDefaultAsideMaxWidth(placement))
+    const nextMaxWidth = resolveFiniteNumber(asideValue.value?.maxExpandedWidth, getDefaultAsideMaxWidth(side))
     return Math.max(minWidth.value, nextMaxWidth)
   })
 
   const openState = useControllableState<boolean>({
     value: () => asideValue.value?.open,
-    defaultValue: () => asideValue.value?.defaultOpen ?? getDefaultAsideOpen(placement),
+    defaultValue: () => asideValue.value?.defaultOpen ?? getDefaultAsideOpen(side),
     isControlled: () => asideValue.value?.open !== undefined,
-    onChange: (nextOpen) => emitAsideOpenChange(emit, { placement, open: nextOpen }),
+    onChange: (nextOpen) => emitAsideOpenChange(emit, { side, open: nextOpen }),
   })
 
   const widthState = useControllableState<number | undefined>({
     value: () => asideValue.value?.expandedWidth,
-    defaultValue: () =>
-      resolveFiniteNumber(asideValue.value?.defaultExpandedWidth, getDefaultAsideExpandedWidth(placement)),
+    defaultValue: () => resolveFiniteNumber(asideValue.value?.defaultExpandedWidth, getDefaultAsideExpandedWidth(side)),
     isControlled: () => asideValue.value?.expandedWidth !== undefined,
   })
 
-  const resolvedOpen = computed(() => openState.resolvedState.value ?? getDefaultAsideOpen(placement))
+  const resolvedOpen = computed(() => openState.resolvedState.value ?? getDefaultAsideOpen(side))
   const resolvedWidth = computed(() => {
-    const nextWidth = resolveFiniteNumber(widthState.resolvedState.value, getDefaultAsideExpandedWidth(placement))
+    const nextWidth = resolveFiniteNumber(widthState.resolvedState.value, getDefaultAsideExpandedWidth(side))
     return clamp(nextWidth, minWidth.value, maxWidth.value)
   })
 
@@ -92,34 +86,23 @@ function createPanelContext(
   }
 
   return {
-    el: shallowRef<HTMLElement | null>(null),
-    state: {
-      placement,
-      layoutMode,
-      isOpen: resolvedOpen,
-      width: resolvedWidth,
-      collapsedWidth,
-      collapseEffect,
-      minWidth,
-      maxWidth,
-      resizable,
-      isDock,
-      isDrawer,
-      isRail,
-      isHidden,
-      canResize,
-    },
-    actions: {
-      open: () => setOpen(true),
-      close: () => setOpen(false),
-      toggle: () => setOpen(!resolvedOpen.value),
-      setOpen,
-      setWidth,
-    },
+    isOpen: resolvedOpen,
+    width: resolvedWidth,
+    collapsedWidth,
+    collapseEffect,
+    minWidth,
+    maxWidth,
+    isDock,
+    isDrawer,
+    isRail,
+    isHidden,
+    canResize,
+    setOpen,
+    setWidth,
   }
 }
 
-export function useLayoutRootState(props: LayoutProps, emit: LayoutEmitFn): UseLayoutRootStateResult {
+export function createLayoutState(props: LayoutProps, emit: LayoutEmitFn): LayoutState {
   const floatingState = useControllableState<LayoutFloatingState | undefined>({
     value: () => (props.mode === 'floating' ? props.floatingState : undefined),
     defaultValue: () => (props.mode === 'floating' ? props.defaultFloatingState : undefined),
@@ -168,8 +151,8 @@ export function useLayoutRootState(props: LayoutProps, emit: LayoutEmitFn): UseL
   }
 
   return {
-    leftPanel: createPanelContext('left', () => props.leftAside, emit),
-    rightPanel: createPanelContext('right', () => props.rightAside, emit),
+    leftPanel: createAsidePanel('left', () => props.leftAside, emit),
+    rightPanel: createAsidePanel('right', () => props.rightAside, emit),
     floating,
   }
 }

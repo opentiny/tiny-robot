@@ -1,6 +1,6 @@
 import type { LayoutFloatingPlacement, LayoutFloatingResizeHandle, LayoutFloatingState } from '../index.type'
 import type { LayoutFloatingRect, LayoutResolvedFloating } from '../internal.type'
-import { clamp } from './math'
+import { clamp } from './number'
 
 export interface FloatingBounds {
   left: number

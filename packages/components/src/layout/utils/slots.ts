@@ -1,4 +1,6 @@
-import { Comment, Fragment, Text, isVNode, type Slot } from 'vue'
+import { Comment, Fragment, Text, isVNode } from 'vue'
+
+type NonEmptyContentSlot = () => unknown
 
 function hasRenderableValue(value: unknown): boolean {
   if (value == null) {
@@ -38,6 +40,7 @@ function hasRenderableChildren(children: unknown): boolean {
   })
 }
 
-export function hasRenderableSlot(slot?: Slot, slotProps?: object): boolean {
-  return hasRenderableChildren(slot?.(slotProps))
+// Layout uses this to avoid keeping empty header / aside shells when conditional slot content renders nothing.
+export function hasNonEmptySlotContent(slot?: NonEmptyContentSlot): boolean {
+  return hasRenderableChildren(slot?.())
 }

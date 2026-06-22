@@ -1,13 +1,5 @@
-import type { ComponentPublicInstance, ComputedRef, ShallowRef } from 'vue'
-import type {
-  LayoutAsideCollapseEffect,
-  LayoutAsideMode,
-  LayoutFloatingOptions,
-  LayoutFloatingState,
-  LayoutMode,
-  LayoutPlacement,
-  LayoutProps,
-} from './index.type'
+import type { ComputedRef } from 'vue'
+import type { LayoutAsideCollapseEffect, LayoutFloatingOptions, LayoutFloatingState, LayoutMode } from './index.type'
 
 export type LayoutResolvedFloating = LayoutFloatingState & LayoutFloatingOptions
 
@@ -21,49 +13,25 @@ export type LayoutFloatingRect = Omit<
   height: number
 }
 
-export type LayoutRuntimeProps = LayoutProps
-
-export type LayoutScrollTargetComponent = Pick<ComponentPublicInstance, '$el'>
-
-export type LayoutScrollTarget = HTMLElement | LayoutScrollTargetComponent | null | undefined
-
-export interface LayoutAsideToggleProps {
-  placement: LayoutPlacement
+export interface LayoutFloatingDragPosition {
+  x: number
+  y: number
 }
 
-export interface LayoutProxyScrollbarProps {
-  scrollTarget?: LayoutScrollTarget
-}
-
-export interface LayoutPanelState {
-  placement: LayoutPlacement
-  layoutMode: ComputedRef<LayoutAsideMode>
+export interface LayoutPanel {
   isOpen: ComputedRef<boolean>
   width: ComputedRef<number>
   collapsedWidth: ComputedRef<number>
   collapseEffect: ComputedRef<LayoutAsideCollapseEffect>
   minWidth: ComputedRef<number>
   maxWidth: ComputedRef<number>
-  resizable: ComputedRef<boolean>
   isDock: ComputedRef<boolean>
   isDrawer: ComputedRef<boolean>
   isRail: ComputedRef<boolean>
   isHidden: ComputedRef<boolean>
   canResize: ComputedRef<boolean>
-}
-
-export interface LayoutPanelActions {
-  open: () => void
-  close: () => void
-  toggle: () => void
   setOpen: (nextOpen: boolean) => void
   setWidth: (nextWidth: number) => void
-}
-
-export interface LayoutPanelContext {
-  el: ShallowRef<HTMLElement | null>
-  state: LayoutPanelState
-  actions: LayoutPanelActions
 }
 
 export interface LayoutFloatingStateContext {
@@ -82,22 +50,18 @@ export interface LayoutFloatingContext {
   actions: LayoutFloatingActions
 }
 
-export interface LayoutContext {
-  rootEl: ShallowRef<HTMLElement | null>
-  dragHandleEl: ShallowRef<HTMLElement | null>
-  left: LayoutPanelContext
-  right: LayoutPanelContext
-  floating: LayoutFloatingContext
-  ui: {
-    isDrawerVisible: ComputedRef<boolean>
-  }
-  actions: {
-    closeDrawers: () => void
-  }
+export interface LayoutAsideToggleContext {
+  isOpen: ComputedRef<boolean>
+  toggle: () => void
 }
 
-export interface UseLayoutRootStateResult {
-  leftPanel: LayoutPanelContext
-  rightPanel: LayoutPanelContext
+export interface LayoutContext {
+  left: LayoutAsideToggleContext
+  right: LayoutAsideToggleContext
+}
+
+export interface LayoutState {
+  leftPanel: LayoutPanel
+  rightPanel: LayoutPanel
   floating: LayoutFloatingContext
 }

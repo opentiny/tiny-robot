@@ -1,66 +1,73 @@
 <script setup lang="ts">
-import { computed, type ComponentPublicInstance } from 'vue'
+import { computed, toRefs } from 'vue'
 import AsideResizeTrigger from './AsideResizeTrigger.vue'
-import { useLayoutContext } from '../composables/useLayoutContext'
-import { useLayoutAsideResize } from '../composables/useLayoutAsideResize'
-import type { LayoutAsideResizeEventDetail, LayoutPlacement } from '../index.type'
+import type { LayoutAsideCollapseEffect, LayoutAsideResizeDetail, LayoutSide } from '../index.type'
 
 defineOptions({
   name: 'LayoutAsideContent',
 })
 
 interface LayoutAsideContentProps {
-  placement: LayoutPlacement
+  side: LayoutSide
+  oppositeDockWidth: number
+  collapseEffect: LayoutAsideCollapseEffect
+  isDock: boolean
+  isDrawer: boolean
+  isOpen: boolean
+  isRail: boolean
+  isHidden: boolean
+  canResize: boolean
+  minWidth: number
+  maxWidth: number
 }
 
 const props = defineProps<LayoutAsideContentProps>()
+const {
+  side,
+  oppositeDockWidth,
+  collapseEffect,
+  isDock,
+  isDrawer,
+  isOpen,
+  isRail,
+  isHidden,
+  canResize,
+  minWidth,
+  maxWidth,
+} = toRefs(props)
 
 const emit = defineEmits<{
-  (event: 'aside-resize-start', value: LayoutAsideResizeEventDetail): void
-  (event: 'aside-resize', value: LayoutAsideResizeEventDetail): void
-  (event: 'aside-resize-end', value: LayoutAsideResizeEventDetail): void
+  (event: 'width-change', value: number): void
+  (event: 'aside-resize-start', value: LayoutAsideResizeDetail): void
+  (event: 'aside-resize', value: LayoutAsideResizeDetail): void
+  (event: 'aside-resize-end', value: LayoutAsideResizeDetail): void
 }>()
 
-const layout = useLayoutContext()
-const panel = computed(() => (props.placement === 'left' ? layout.left : layout.right))
-
 const asideClass = computed(() => [
-  `tr-layout__aside--${panel.value.state.placement}`,
-  `tr-layout__aside--effect-${panel.value.state.collapseEffect.value}`,
+  `tr-layout__aside--${side.value}`,
+  `tr-layout__aside--effect-${collapseEffect.value}`,
   {
-    'tr-layout__aside--dock': panel.value.state.isDock.value,
-    'tr-layout__aside--drawer': panel.value.state.isDrawer.value,
-    'tr-layout__aside--expanded': panel.value.state.isOpen.value,
-    'tr-layout__aside--rail': panel.value.state.isRail.value,
-    'tr-layout__aside--hidden': panel.value.state.isHidden.value,
+    'tr-layout__aside--dock': isDock.value,
+    'tr-layout__aside--drawer': isDrawer.value,
+    'tr-layout__aside--expanded': isOpen.value,
+    'tr-layout__aside--rail': isRail.value,
+    'tr-layout__aside--hidden': isHidden.value,
   },
 ])
-
-function setAsideElement(element: Element | ComponentPublicInstance | null): void {
-  panel.value.el.value = element instanceof HTMLElement ? element : null
-}
-
-const { draggingPlacement, startResize } = useLayoutAsideResize({
-  context: layout,
-  panel: panel.value,
-  onResizeStart: (detail) => emit('aside-resize-start', detail),
-  onResize: (detail) => emit('aside-resize', detail),
-  onResizeEnd: (detail) => emit('aside-resize-end', detail),
-})
 </script>
 
 <template>
-  <aside
-    :ref="setAsideElement"
-    class="tr-layout__aside"
-    :class="asideClass"
-    :inert="panel.state.isHidden.value || undefined"
-  >
+  <aside class="tr-layout__aside" :class="asideClass" :inert="isHidden || undefined">
     <AsideResizeTrigger
-      v-if="panel.state.canResize.value"
-      :placement="props.placement"
-      :dragging-placement="draggingPlacement"
-      @pointerdown="startResize"
+      v-if="canResize"
+      :side="side"
+      :min-width="minWidth"
+      :max-width="maxWidth"
+      :opposite-dock-width="oppositeDockWidth"
+      @width-change="emit('width-change', $event)"
+      @aside-resize-start="emit('aside-resize-start', $event)"
+      @aside-resize="emit('aside-resize', $event)"
+      @aside-resize-end="emit('aside-resize-end', $event)"
     />
     <div class="tr-layout__aside-mask">
       <div class="tr-layout__aside-body">
