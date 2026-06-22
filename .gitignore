@@ -127,6 +127,10 @@ dist
 
 # pnpm
 .pnpm-store
+pnpm-lock.yaml
+
+# npm
+package-lock.json
 
 # yarn v3
 .pnp.*
