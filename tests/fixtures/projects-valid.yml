@@ -66,10 +66,3 @@ projects:
         default_ref: dev
         role: official-docs
         source_type: docs
-      - name: shuorenhua
-        url: https://github.com/MrGeDiao/shuorenhua.git
-        ref: 0d214c8f0b44ce5e2c923b38ee00ea5356f91a60
-        required_commit: 0d214c8f0b44ce5e2c923b38ee00ea5356f91a60
-        role: polish-upstream
-        source_type: upstream-license
-        license: MIT
