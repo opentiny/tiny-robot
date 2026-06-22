@@ -110,4 +110,31 @@ describe("polish OpenTiny article skill", () => {
       expect(guardrails).toContain(protectedContent);
     }
   });
+
+  test("preserves untouched facts and removes unsupported claims without replacement", async () => {
+    const [skill, guardrails, antiPatterns] = await Promise.all([
+      readFile(path.join(skillRoot, "SKILL.md"), "utf8"),
+      readFile(
+        path.join(skillRoot, "references/article-guardrails.md"),
+        "utf8"
+      ),
+      readFile(
+        path.join(skillRoot, "references/anti-patterns.md"),
+        "utf8"
+      )
+    ]);
+
+    expect(skill).toContain(
+      "逐字保留该事实句，并继续处理其他授权内容"
+    );
+    expect(skill).toContain(
+      "直接删除目标短语，不用推断出的功能或效果补位"
+    );
+    expect(guardrails).toContain(
+      "删除无来源评价时，只保留同句中已有的事实"
+    );
+    expect(antiPatterns).toContain(
+      "不将被删除的评价改写成新的功能、效果或结论"
+    );
+  });
 });
