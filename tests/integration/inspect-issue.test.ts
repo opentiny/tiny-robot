@@ -29,7 +29,7 @@ describe("article-hub inspect-issue", () => {
     const output = JSON.parse(result.stdout);
     expect(output).toMatchObject({
       ok: true,
-      schema_version: "article-hub.inspect-issue.v1",
+      schema_version: "article-hub.inspect-issue",
       dry_run: true,
       issue: {
         number: 42,
@@ -141,7 +141,7 @@ describe("article-hub inspect-issue", () => {
       const output = JSON.parse(result.stdout);
       expect(output).toMatchObject({
         ok: false,
-        schema_version: "article-hub.error.v1",
+        schema_version: "article-hub.error",
         error: {
           code: "INVALID_JSON"
         }
@@ -163,7 +163,7 @@ describe("article-hub inspect-issue", () => {
     const output = JSON.parse(result.stdout);
     expect(output).toMatchObject({
       ok: false,
-      schema_version: "article-hub.error.v1",
+      schema_version: "article-hub.error",
       error: {
         code: "ISSUE_FILE_NOT_FOUND"
       }
@@ -183,7 +183,7 @@ describe("article-hub inspect-issue", () => {
     const output = JSON.parse(result.stdout);
     expect(output).toMatchObject({
       ok: false,
-      schema_version: "article-hub.error.v1",
+      schema_version: "article-hub.error",
       error: {
         code: "UNKNOWN_OPTION"
       }
@@ -198,7 +198,7 @@ describe("article-hub inspect-issue", () => {
     const output = JSON.parse(result.stdout);
     expect(output).toMatchObject({
       ok: false,
-      schema_version: "article-hub.error.v1",
+      schema_version: "article-hub.error",
       error: {
         code: "UNEXPECTED_ARGUMENT"
       }

@@ -26,11 +26,11 @@ const skeletonDirectories = [
 const skeletonReadmes = new Map([
   ["materials/README.md", "materials 存放 Issue 来源快照和文章归档素材。\n"],
   ["references/README.md", "references 存放品牌、术语和写作规范引用。\n"],
-  ["scripts/README.md", "scripts 存放阶段 A 的本地辅助脚本。\n"]
+  ["scripts/README.md", "scripts 存放本地辅助脚本。\n"]
 ]);
 
 /**
- * 检查 Phase A 本地运行所需的依赖、配置和仓库结构。
+ * 检查本地运行所需的依赖、配置和仓库结构。
  *
  * @param options 仓库根目录、项目配置路径和 dry-run 标记。
  * @returns 每项检查的稳定 JSON 结果。
@@ -56,7 +56,7 @@ export async function doctor(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.doctor.v1",
+    schema_version: "article-hub.doctor",
     dry_run: options.dryRun,
     root: options.root,
     checks
@@ -64,7 +64,7 @@ export async function doctor(options: {
 }
 
 /**
- * 初始化 Phase A 本地目录骨架；真实写入必须显式传入 `--yes`。
+ * 初始化本地目录骨架；真实写入必须显式传入 `--yes`。
  *
  * @param options 目标根目录、dry-run 和人工确认标记。
  * @returns 计划创建的目录和文件。
@@ -100,7 +100,7 @@ export async function setup(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.setup.v1",
+    schema_version: "article-hub.setup",
     dry_run: options.dryRun,
     applied: !options.dryRun,
     root: options.root,
@@ -143,7 +143,7 @@ export async function reconcile(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.reconcile.v1",
+    schema_version: "article-hub.reconcile",
     dry_run: options.dryRun,
     recovery_required: operations.length > 0,
     issue_number: issueNumber,

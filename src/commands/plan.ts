@@ -23,7 +23,7 @@ export async function hashPlan(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.plan.hash.v1",
+    schema_version: "article-hub.plan.hash",
     dry_run: options.dryRun,
     plan_version: digest.planVersion,
     plan_hash: digest.planHash,
@@ -46,7 +46,7 @@ export async function comparePlanFiles(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.plan.compare.v1",
+    schema_version: "article-hub.plan.compare",
     dry_run: options.dryRun,
     semantic_changed: comparison.semanticChanged,
     suggested_plan_version: comparison.suggestedPlanVersion,
@@ -77,7 +77,7 @@ export async function approvePlanFile(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.plan.approve.v1",
+    schema_version: "article-hub.plan.approve",
     dry_run: options.dryRun,
     ...wireApprovalResult(result)
   };

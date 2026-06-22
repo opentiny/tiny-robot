@@ -1,4 +1,4 @@
-schema_version: article-hub.projects.v1
+schema_version: article-hub.projects
 projects:
   - project_id: webmcp-sdk
     display_name: WebMCP SDK

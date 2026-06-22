@@ -1,6 +1,6 @@
 ---
 name: polish-opentiny-article
-description: 根据 PR Review、Request changes 或 `/ai` 修改意见润色 OpenTiny 文章，并复用 Phase A 校验与 Draft PR 更新命令。
+description: 根据 PR Review、Request changes 或 `/ai` 修改意见润色 OpenTiny 文章，并复用文章校验与 Draft PR 更新命令。
 ---
 
 # Polish OpenTiny Article

@@ -26,7 +26,7 @@ export async function decideState(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.state.decide.v1",
+    schema_version: "article-hub.state.decide",
     dry_run: options.dryRun,
     decision: {
       mutation_allowed: decision.mutationAllowed,

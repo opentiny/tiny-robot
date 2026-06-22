@@ -200,7 +200,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     process.stdout.write(
       serializeJson({
         ok: false,
-        schema_version: "article-hub.error.v1",
+        schema_version: "article-hub.error",
         error: {
           code: cliError.code,
           message: cliError.message

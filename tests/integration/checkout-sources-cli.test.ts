@@ -49,7 +49,7 @@ function createLocalRepositoryFixture() {
   writeFileSync(
     config,
     [
-      "schema_version: article-hub.projects.v1",
+      "schema_version: article-hub.projects",
       "projects:",
       "  - project_id: webmcp-sdk",
       "    display_name: WebMCP SDK",
@@ -100,7 +100,7 @@ describe("checkout-sources CLI", () => {
     expect(validated.stderr).toBe("");
     expect(JSON.parse(listed.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.projects.list.v1",
+      schema_version: "article-hub.projects.list",
       projects: [
         { project_id: "webmcp-sdk" },
         { project_id: "genui-sdk" },
@@ -109,7 +109,7 @@ describe("checkout-sources CLI", () => {
     });
     expect(JSON.parse(validated.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.projects.validate.v1",
+      schema_version: "article-hub.projects.validate",
       valid: true
     });
   });
@@ -135,7 +135,7 @@ describe("checkout-sources CLI", () => {
 
     expect(output).toMatchObject({
       ok: true,
-      schema_version: "article-hub.checkout-sources.v1",
+      schema_version: "article-hub.checkout-sources",
       dry_run: true
     });
     expect(output.mutation_plan.operations).toEqual(

@@ -17,7 +17,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "article-hub.article.v1"
+      "const": "article-hub.article"
     },
     "title": {
       "type": "string",

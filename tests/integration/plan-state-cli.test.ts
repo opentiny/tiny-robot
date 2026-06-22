@@ -47,7 +47,7 @@ describe("article-hub plan/state CLI", () => {
 
     expect(firstOutput).toMatchObject({
       ok: true,
-      schema_version: "article-hub.plan.hash.v1",
+      schema_version: "article-hub.plan.hash",
       dry_run: true,
       plan_version: 2
     });
@@ -78,13 +78,13 @@ describe("article-hub plan/state CLI", () => {
 
     expect(JSON.parse(displayOnly.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.plan.compare.v1",
+      schema_version: "article-hub.plan.compare",
       semantic_changed: false,
       suggested_plan_version: 2
     });
     expect(JSON.parse(semantic.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.plan.compare.v1",
+      schema_version: "article-hub.plan.compare",
       semantic_changed: true,
       suggested_plan_version: 3
     });
@@ -126,7 +126,7 @@ describe("article-hub plan/state CLI", () => {
     expect(rejected.status).toBe(0);
     expect(JSON.parse(approved.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.plan.approve.v1",
+      schema_version: "article-hub.plan.approve",
       valid: true,
       snapshot: {
         plan_version: 2,
@@ -155,7 +155,7 @@ describe("article-hub plan/state CLI", () => {
 
     expect(JSON.parse(paused.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.state.decide.v1",
+      schema_version: "article-hub.state.decide",
       decision: {
         mutation_allowed: false,
         blocked_reason: "AI_PAUSED"

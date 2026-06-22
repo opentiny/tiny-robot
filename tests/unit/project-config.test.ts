@@ -15,7 +15,7 @@ const repositoryRoot = path.resolve(
 );
 
 describe("project config", () => {
-  test("只接受阶段 A 支持的三个项目，并保留稳定顺序", async () => {
+  test("只接受当前支持的三个项目，并保留稳定顺序", async () => {
     const config = await loadProjectConfig(
       path.join(repositoryRoot, "tests/fixtures/projects-valid.yml")
     );

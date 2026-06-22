@@ -1,13 +1,13 @@
 ---
 name: generate-opentiny-article
-description: 从已批准的 OpenTiny 文章 Issue 本地生成初稿、校验产物并创建 Draft PR。只覆盖 Phase A 本地人工驱动流程。
+description: 从已批准的 OpenTiny 文章 Issue 本地生成初稿、校验产物并创建 Draft PR。只覆盖本地人工驱动流程。
 ---
 
 # Generate OpenTiny Article
 
 ## 适用范围
 
-使用本 Skill 将一个已批准的文章 Issue 转成可人工 Review 的 Draft PR。流程由本地 Agent 驱动，不监听 GitHub 事件，不实现 Phase B Workflow 自动化、热点发现、发布平台适配或外部发布。
+使用本 Skill 将一个已批准的文章 Issue 转成可人工 Review 的 Draft PR。流程由本地 Agent 驱动，不监听 GitHub 事件，不实现 Workflow 自动化、热点发现、发布平台适配或外部发布。
 
 ## 前置条件
 
@@ -25,7 +25,7 @@ description: 从已批准的 OpenTiny 文章 Issue 本地生成初稿、校验�
    article-hub projects validate --config config/projects.yml
    ```
 
-2. 校验项目属于 `config/projects.yml` 中的 Phase A 白名单，并 checkout 来源：
+2. 校验项目属于 `config/projects.yml` 中的 allowlist，并 checkout 来源：
 
    ```sh
    article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir <cache-dir>

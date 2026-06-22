@@ -13,7 +13,7 @@ export interface ValidateArticleCommandOptions {
 }
 
 /**
- * 执行阶段 A 文章校验命令，保持 CLI 层只做参数适配。
+ * 执行文章校验命令，保持 CLI 层只做参数适配。
  *
  * @param options CLI 解析后的文章路径、配置路径和 dry-run 标记。
  * @returns 版本化校验 envelope，供 CLI 原样序列化为 JSON。

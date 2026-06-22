@@ -28,7 +28,7 @@ export interface SourceCheckoutResult {
     operations: SourceCheckoutOperation[];
   };
   source_manifest: {
-    schema_version: "article-hub.source-manifest.v1";
+    schema_version: "article-hub.source-manifest";
     project_id: string;
     sources: SourceManifestEntry[];
   };
@@ -64,7 +64,7 @@ export async function checkoutProjectSources(options: {
         operations
       },
       source_manifest: {
-        schema_version: "article-hub.source-manifest.v1",
+        schema_version: "article-hub.source-manifest",
         project_id: options.project.project_id,
         sources: []
       }
@@ -116,7 +116,7 @@ export async function checkoutProjectSources(options: {
       operations
     },
     source_manifest: {
-      schema_version: "article-hub.source-manifest.v1",
+      schema_version: "article-hub.source-manifest",
       project_id: options.project.project_id,
       sources
     }

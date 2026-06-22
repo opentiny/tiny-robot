@@ -1,4 +1,4 @@
-# 安装 Phase A 本地 Skill
+# 安装本地 Skill
 
 本文档用于把仓库内 `skills/` 同步到 Codex 或 Claude Code 的本地 Skill 发现目录。仓库内 `skills/` 是唯一源码来源；安装副本不要直接改，修改必须先提交到本仓库，再重新同步。
 

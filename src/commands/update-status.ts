@@ -70,7 +70,7 @@ export async function updateIssueStatus(options: {
   if (currentLabels.includes("AI：已暂停") && aiState !== "AI：已暂停") {
     return {
       ok: true,
-      schema_version: "article-hub.update-status.v1",
+      schema_version: "article-hub.update-status",
       dry_run: options.dryRun,
       issue: {
         number: issueNumber
@@ -123,7 +123,7 @@ export async function updateIssueStatus(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.update-status.v1",
+    schema_version: "article-hub.update-status",
     dry_run: options.dryRun,
     issue: {
       number: issueNumber

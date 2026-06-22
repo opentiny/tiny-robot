@@ -2,7 +2,7 @@ import { loadProjectConfig, resolveProject } from "../domain/project-config.js";
 import { checkoutProjectSources } from "../git/source-checkout.js";
 
 /**
- * 按项目配置 checkout 阶段 A 所需源码，并生成来源快照 manifest。
+ * 按项目配置 checkout 写作所需源码，并生成来源快照 manifest。
  */
 export async function checkoutSources(options: {
   configPath: string;
@@ -20,7 +20,7 @@ export async function checkoutSources(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.checkout-sources.v1",
+    schema_version: "article-hub.checkout-sources",
     dry_run: options.dryRun,
     project_id: project.project_id,
     ...result

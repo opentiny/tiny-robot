@@ -27,7 +27,7 @@ const requiredDirectories = [
   "scripts"
 ];
 
-describe("Phase A repository structure", () => {
+describe("repository structure", () => {
   test.each(requiredFiles)("contains %s", async (relativePath) => {
     const fileStat = await stat(path.join(repositoryRoot, relativePath));
 

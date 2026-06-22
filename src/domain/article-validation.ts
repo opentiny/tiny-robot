@@ -20,7 +20,7 @@ export interface ArticleValidationIssue {
  */
 export interface ArticleValidationResult {
   ok: true;
-  schema_version: "article-hub.validate-article.v1";
+  schema_version: "article-hub.validate-article";
   valid: boolean;
   blocking_issues: ArticleValidationIssue[];
   warnings: ArticleValidationIssue[];
@@ -47,7 +47,7 @@ const requiredFrontMatterFields = [
   "approved_plan",
   "article_date"
 ] as const;
-const articleSchemaVersion = "article-hub.article.v1";
+const articleSchemaVersion = "article-hub.article";
 const allowedArticleTypes = new Set(["release", "practical-guide", "source-analysis", "case-study"]);
 const allowedStyleProfiles = new Set([
   "official-balanced",
@@ -166,7 +166,7 @@ type LocalPathResult =
   | { error: "empty" | "malformed-percent-encoding" | "unsafe" };
 
 /**
- * 校验阶段 A 文章的 Front Matter、Markdown 与本地素材契约。
+ * 校验文章的 Front Matter、Markdown 与本地素材契约。
  * 该函数只读取文章目录内文件，不执行 Git、GitHub、外链下载或派生产物生成。
  *
  * @param options 文章路径、项目配置路径和 dry-run 标记。
@@ -197,7 +197,7 @@ export async function validateArticleFile(
 
   return {
     ok: true,
-    schema_version: "article-hub.validate-article.v1",
+    schema_version: "article-hub.validate-article",
     valid: blockingIssues.length === 0,
     blocking_issues: blockingIssues,
     warnings,
@@ -331,7 +331,7 @@ function validateKnownProject(
   if (!allowedProjects.includes(project)) {
     blockingIssues.push({
       field: "project",
-      message: `Front Matter project 不在阶段 A 项目白名单中：${project}`
+      message: `Front Matter project 不在项目 allowlist 中：${project}`
     });
   }
 }
@@ -865,7 +865,7 @@ function validateHtmlTags(body: string, blockingIssues: ArticleValidationIssue[]
       pushUniqueIssue(
         reportedMessages,
         blockingIssues,
-        `HTML 标签不在阶段 A allowlist：${tagName}`
+        `HTML 标签不在当前 Markdown allowlist：${tagName}`
       );
       index = tag.endIndex;
       continue;

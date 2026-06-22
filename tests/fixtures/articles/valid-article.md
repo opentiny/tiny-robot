@@ -1,7 +1,7 @@
 ---
-schema_version: article-hub.article.v1
+schema_version: article-hub.article
 title: WebMCP SDK 实践指南
-summary: 用一个可复现示例说明 WebMCP SDK 的阶段 A 写作链路。
+summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。
 project: webmcp-sdk
 article_type: practical-guide
 style_profile: developer-friendly
@@ -29,7 +29,7 @@ skills:
 ---
 # WebMCP SDK 实践指南
 
-这是一篇用于验证阶段 A 文章校验器的 fixture。
+这是一篇用于验证文章校验器的 fixture。
 
 ```ts
 const project = "webmcp-sdk";

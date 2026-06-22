@@ -97,7 +97,7 @@ export async function createPullRequest(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.create-pr.v1",
+    schema_version: "article-hub.create-pr",
     dry_run: options.dryRun,
     valid: true,
     draft: true,

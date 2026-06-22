@@ -29,7 +29,7 @@ export interface ProjectConfigEntry {
 }
 
 export interface ProjectConfig {
-  schema_version: "article-hub.projects.v1";
+  schema_version: "article-hub.projects";
   projects: ProjectConfigEntry[];
 }
 
@@ -38,7 +38,7 @@ const projectIdSet = new Set<string>(allowedProjectIds);
 const safeSegmentPattern = /^[a-zA-Z0-9._-]+$/;
 
 /**
- * 读取并校验项目配置，确保阶段 A 只处理白名单项目和受控 checkout 路径。
+ * 读取并校验项目配置，确保只处理 allowlist 项目和受控 checkout 路径。
  */
 export async function loadProjectConfig(configPath: string): Promise<ProjectConfig> {
   let raw: string;
@@ -67,13 +67,13 @@ export async function loadProjectConfig(configPath: string): Promise<ProjectConf
 }
 
 /**
- * 查找阶段 A 支持项目；未知项目直接停止，避免 Skill 继续生成不可追溯内容。
+ * 查找当前支持项目；未知项目直接停止，避免 Skill 继续生成不可追溯内容。
  */
 export function resolveProject(config: ProjectConfig, projectId: string): ProjectConfigEntry {
   const project = config.projects.find((item) => item.project_id === projectId);
 
   if (!project) {
-    throw new ArticleHubError("UNKNOWN_PROJECT", `未配置阶段 A 项目：${projectId}`, 2);
+    throw new ArticleHubError("UNKNOWN_PROJECT", `未配置项目：${projectId}`, 2);
   }
 
   return project;
@@ -106,7 +106,7 @@ function validateProjectConfig(value: unknown): ProjectConfig {
 
   const config = value as Partial<ProjectConfig>;
 
-  if (config.schema_version !== "article-hub.projects.v1") {
+  if (config.schema_version !== "article-hub.projects") {
     throw new ArticleHubError("INVALID_PROJECT_CONFIG", "项目配置 schema_version 无效");
   }
 
@@ -118,7 +118,7 @@ function validateProjectConfig(value: unknown): ProjectConfig {
   const projects = config.projects.map((project) => validateProject(project, seen));
 
   return {
-    schema_version: "article-hub.projects.v1",
+    schema_version: "article-hub.projects",
     projects
   };
 }
@@ -132,7 +132,7 @@ function validateProject(value: unknown, seen: Set<string>): ProjectConfigEntry 
   const projectId = project.project_id;
 
   if (typeof projectId !== "string" || !projectIdSet.has(projectId)) {
-    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `阶段 A 不支持项目：${String(projectId)}`);
+    throw new ArticleHubError("INVALID_PROJECT_CONFIG", `不支持项目：${String(projectId)}`);
   }
 
   if (seen.has(projectId)) {

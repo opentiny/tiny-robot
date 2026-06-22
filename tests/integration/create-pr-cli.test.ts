@@ -67,7 +67,7 @@ describe("article-hub create-pr CLI", () => {
 
     expect(output).toMatchObject({
       ok: true,
-      schema_version: "article-hub.create-pr.v1",
+      schema_version: "article-hub.create-pr",
       dry_run: true,
       valid: true,
       branch: "article/12-webmcp-sdk-webmcp-sdk-practice",

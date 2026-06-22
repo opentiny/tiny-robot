@@ -38,7 +38,7 @@ describe("article-hub maintenance CLI", () => {
 
     expect(output).toMatchObject({
       ok: true,
-      schema_version: "article-hub.doctor.v1",
+      schema_version: "article-hub.doctor",
       dry_run: true,
       root: repositoryRoot
     });
@@ -54,14 +54,14 @@ describe("article-hub maintenance CLI", () => {
     ]);
   });
 
-  test("setup requires --yes for writes and creates the Phase A skeleton", async () => {
+  test("setup requires --yes for writes and creates the local skeleton", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "article-hub-setup-"));
     const dryRun = runCli(["--dry-run", "setup", "--root", root]);
 
     expect(dryRun.status).toBe(0);
     expect(JSON.parse(dryRun.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.setup.v1",
+      schema_version: "article-hub.setup",
       dry_run: true,
       applied: false
     });
@@ -111,7 +111,7 @@ describe("article-hub maintenance CLI", () => {
     expect(result.status).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.reconcile.v1",
+      schema_version: "article-hub.reconcile",
       dry_run: true,
       recovery_required: true,
       mutation_plan: {

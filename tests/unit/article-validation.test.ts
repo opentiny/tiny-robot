@@ -72,7 +72,7 @@ describe("article validation", () => {
 
     expect(result).toMatchObject({
       ok: true,
-      schema_version: "article-hub.validate-article.v1",
+      schema_version: "article-hub.validate-article",
       valid: true,
       blocking_issues: [],
       dry_run: false
@@ -92,7 +92,7 @@ describe("article validation", () => {
 
   test("缺少必填 Front Matter 字段会阻断", async () => {
     const articleFile = writeVariant("missing-summary", (content) =>
-      content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的阶段 A 写作链路。\n", "")
+      content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。\n", "")
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
@@ -103,7 +103,7 @@ describe("article validation", () => {
 
   test("Front Matter 残留占位符会阻断", async () => {
     const articleFile = writeVariant("frontmatter-placeholder", (content) =>
-      content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的阶段 A 写作链路。", "summary: TODO")
+      content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。", "summary: TODO")
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
@@ -116,13 +116,13 @@ describe("article validation", () => {
     [
       "schema_version",
       (content: string) =>
-        content.replace("schema_version: article-hub.article.v1", "schema_version: article-hub.article.v0"),
-      "Front Matter schema_version 必须是 article-hub.article.v1"
+        content.replace("schema_version: article-hub.article", "schema_version: article-hub.article.v0"),
+      "Front Matter schema_version 必须是 article-hub.article"
     ],
     [
       "summary 类型",
       (content: string) =>
-        content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的阶段 A 写作链路。", "summary: 12"),
+        content.replace("summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。", "summary: 12"),
       "Front Matter summary 必须是非空字符串"
     ],
     [
@@ -174,7 +174,7 @@ describe("article validation", () => {
   });
 
   test.each([
-    ["project", "unknown-project", "Front Matter project 不在阶段 A 项目白名单中：unknown-project"],
+    ["project", "unknown-project", "Front Matter project 不在项目 allowlist 中：unknown-project"],
     ["article_type", "hot-take", "Front Matter article_type 不受支持：hot-take"],
     ["style_profile", "casual", "Front Matter style_profile 不受支持：casual"]
   ])("%s 未知值会阻断", async (field, value, message) => {
@@ -233,11 +233,11 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
   });
 
-  test("标准 HTML 展示标签在阶段 A Markdown 边界内通过", async () => {
+  test("标准 HTML 展示标签在Markdown 边界内通过", async () => {
     const articleFile = writeVariant(
       "standard-html",
       (content) =>
-        `${content}\n\n<details><summary>适用场景</summary><p>用于说明阶段 A 的人工验收边界。</p></details>\n\n<kbd>Ctrl</kbd> + <kbd>K</kbd>\n`
+        `${content}\n\n<details><summary>适用场景</summary><p>用于说明本地流程的人工验收边界。</p></details>\n\n<kbd>Ctrl</kbd> + <kbd>K</kbd>\n`
     );
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
@@ -246,7 +246,7 @@ describe("article validation", () => {
     expect(result.blocking_issues).toEqual([]);
   });
 
-  test("script HTML 标签会被阶段 A Markdown 边界阻断", async () => {
+  test("script HTML 标签会被Markdown 边界阻断", async () => {
     const articleFile = writeVariant(
       "script-html",
       (content) => `${content}\n\n<script>alert("xss")</script>\n`
@@ -269,7 +269,7 @@ describe("article validation", () => {
       '<q cite="javascript:alert(1)">官方链接</q>',
       "HTML 属性不允许使用可执行 URL：q.cite"
     ]
-  ])("不安全 HTML %s 会被阶段 A Markdown 边界阻断", async (_, markdown, message) => {
+  ])("不安全 HTML %s 会被Markdown 边界阻断", async (_, markdown, message) => {
     const articleFile = writeVariant(
       "unsafe-html-attribute",
       (content) => `${content}\n\n${markdown}\n`
@@ -423,7 +423,7 @@ describe("article validation", () => {
     ["MDX namespace export", 'export * as Docs from "./docs.mdx";'],
     ["MDX multiline import", 'import {\n  Notice\n} from "./Notice.mdx";'],
     ["MDX multiline export", 'export {\n  Notice\n} from "./Notice.mdx";']
-  ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
+  ])("%s 会被Markdown 边界阻断", async (_, markdown) => {
     const articleFile = writeVariant(
       "mdx-esm",
       (content) => `${content}\n\n${markdown}\n`
@@ -476,7 +476,7 @@ describe("article validation", () => {
     ["dollar component", "<$Alert />", "$Alert"],
     ["Unicode component", "<提示 />", "提示"],
     ["astral Unicode component", "<𐐀Alert />", "𐐀Alert"]
-  ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown, componentName) => {
+  ])("%s 会被Markdown 边界阻断", async (_, markdown, componentName) => {
     const articleFile = writeVariant(
       "mdx-custom-component",
       (content) => `${content}\n\n${markdown}\n`
@@ -556,7 +556,7 @@ describe("article validation", () => {
     );
   });
 
-  test("JSX fragment 会被阶段 A Markdown 边界阻断", async () => {
+  test("JSX fragment 会被Markdown 边界阻断", async () => {
     const articleFile = writeVariant(
       "jsx-fragment",
       (content) => `${content}\n\n<><span>官网专属片段</span></>\n`
@@ -568,7 +568,7 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("正文禁止 MDX/JSX fragment");
   });
 
-  test("JSX 表达式属性会被阶段 A Markdown 边界阻断", async () => {
+  test("JSX 表达式属性会被Markdown 边界阻断", async () => {
     const articleFile = writeVariant(
       "jsx-expression-attribute",
       (content) => `${content}\n\n<span data-version={version}>版本说明</span>\n`
@@ -584,7 +584,7 @@ describe("article validation", () => {
     ["HTML 标签体内 JSX 表达式", "<span>{version}</span>"],
     ["独立 JSX 表达式", "{version}"],
     ["多行 JSX 表达式", "{\n  version\n}"]
-  ])("%s 会被阶段 A Markdown 边界阻断", async (_, markdown) => {
+  ])("%s 会被Markdown 边界阻断", async (_, markdown) => {
     const articleFile = writeVariant(
       "jsx-body-expression",
       (content) => `${content}\n\n${markdown}\n`
@@ -596,7 +596,7 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("正文禁止 MDX/JSX 表达式");
   });
 
-  test("code 中的 MDX 和 script 示例不会触发阶段 A Markdown 边界", async () => {
+  test("code 中的 MDX 和 script 示例不会触发Markdown 边界", async () => {
     const articleFile = writeVariant(
       "markdown-boundary-in-code",
       (content) =>

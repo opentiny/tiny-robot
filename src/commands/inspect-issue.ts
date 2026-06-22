@@ -44,7 +44,7 @@ export async function inspectIssue(options: InspectIssueOptions): Promise<unknow
 
   return {
     ok: true,
-    schema_version: "article-hub.inspect-issue.v1",
+    schema_version: "article-hub.inspect-issue",
     dry_run: options.dryRun,
     issue: {
       number: typeof document.number === "number" ? document.number : null,

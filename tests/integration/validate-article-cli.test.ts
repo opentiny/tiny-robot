@@ -88,7 +88,7 @@ describe("validate article CLI", () => {
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.validate-article.v1",
+      schema_version: "article-hub.validate-article",
       valid: true,
       blocking_issues: [],
       warnings: [],
@@ -111,7 +111,7 @@ describe("validate article CLI", () => {
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toMatchObject({
       ok: true,
-      schema_version: "article-hub.validate-article.v1",
+      schema_version: "article-hub.validate-article",
       valid: true,
       blocking_issues: [],
       warnings: [],
@@ -134,7 +134,7 @@ describe("validate article CLI", () => {
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toEqual({
       ok: true,
-      schema_version: "article-hub.validate-article.v1",
+      schema_version: "article-hub.validate-article",
       valid: true,
       blocking_issues: [],
       warnings: [],

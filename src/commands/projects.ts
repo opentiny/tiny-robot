@@ -1,7 +1,7 @@
 import { loadProjectConfig } from "../domain/project-config.js";
 
 /**
- * 列出阶段 A 项目配置，供 Skill 在生成前做 allowlist 校验。
+ * 列出项目配置，供 Skill 在生成前做 allowlist 校验。
  */
 export async function listProjects(options: {
   configPath: string;
@@ -11,7 +11,7 @@ export async function listProjects(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.projects.list.v1",
+    schema_version: "article-hub.projects.list",
     dry_run: options.dryRun,
     projects: config.projects.map((project) => ({
       project_id: project.project_id,
@@ -36,7 +36,7 @@ export async function validateProjects(options: {
 
   return {
     ok: true,
-    schema_version: "article-hub.projects.validate.v1",
+    schema_version: "article-hub.projects.validate",
     dry_run: options.dryRun,
     valid: true,
     project_count: config.projects.length

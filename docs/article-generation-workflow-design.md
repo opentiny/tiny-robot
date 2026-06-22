@@ -4,10 +4,10 @@
 
 - 状态：后续实现思路
 - 前置需求：[`article-generation-requirements.md`](./article-generation-requirements.md)
-- 首版是否实施：否
+- 是否纳入当前交付：否
 - 目标：将本地 `generate-opentiny-article` 流程映射为 GitHub Actions
 
-本文只定义未来 GitHub Workflow 的边界、事件、权限和任务拆分，不改变首版本地 Skill 的交付范围。
+本文只定义未来 GitHub Workflow 的边界、事件、权限和任务拆分，不改变本地 Skill 的交付范围。
 
 ## 2. 设计原则
 
@@ -354,7 +354,7 @@ output/
 ```yaml
 sources:
   - repository: opentiny/tiny-robot
-    ref: v1.2.3
+    ref: release-1.2.3
     commit: <sha>
 ```
 
@@ -459,7 +459,7 @@ article-<repository-id>-<canonical-issue-number>
 
 ## 12. 安全边界
 
-首版资料均为公开来源，但 Workflow 仍需避免将 Issue 文本直接转化为越权操作：
+当前资料均为公开来源，但 Workflow 仍需避免将 Issue 文本直接转化为越权操作：
 
 - 只有仓库成员或配置中的授权团队可以执行状态命令。
 - 默认只自动读取项目 allowlist 中的 OpenTiny 仓库和官方站点。
@@ -528,32 +528,32 @@ PR 合并事件意味着 GitHub 已完成仓库级校验，`article-state.yml` �
 
 ## 16. 分阶段落地
 
-### 阶段 A：本地首版
+### 里程碑：本地人工驱动流程
 
 - 实现两个 Skill。
 - 实现 `article-hub` CLI、schema、项目配置和 CI。
 - 完成本地 Issue → Draft PR 流程。
 - 验证 Codex、Claude Code 和 Windows Git Bash。
 
-### 阶段 B1：只读 Workflow
+### 里程碑：只读 Workflow
 
 - 接入 `workflow_dispatch` dry-run。
 - 验证 checkout、adapter、artifact 和校验边界。
 - 不赋予 GitHub 写权限。
 
-### 阶段 B2：Issue 策划自动化
+### 里程碑：Issue 策划自动化
 
 - 接入固定 `/ai` 命令。
 - 自动生成和更新写作计划。
 - 维护 `阶段：策划` 与 AI 状态。
 
-### 阶段 B3：初稿与 PR 自动化
+### 里程碑：初稿与 PR 自动化
 
 - 批准计划后自动生成初稿。
 - 校验 artifact 后创建分支和 Draft PR。
 - 支持 Ready for review。
 
-### 阶段 B4：Review 修订与自愈
+### 里程碑：Review 修订与自愈
 
 - 接入 Request changes 和 `/ai` 修订。
 - 实现 Head SHA 并发保护。

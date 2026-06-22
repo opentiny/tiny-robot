@@ -64,7 +64,7 @@ describe("article-hub update-status CLI", () => {
 
     expect(output).toMatchObject({
       ok: true,
-      schema_version: "article-hub.update-status.v1",
+      schema_version: "article-hub.update-status",
       dry_run: true,
       issue: {
         number: 42
