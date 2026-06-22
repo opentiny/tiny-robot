@@ -2,8 +2,11 @@
 import { inspectIssue } from "./commands/inspect-issue.js";
 import { approvePlanFile, comparePlanFiles, hashPlan } from "./commands/plan.js";
 import { checkoutSources } from "./commands/checkout-sources.js";
+import { createPullRequest } from "./commands/create-pr.js";
+import { doctor, reconcile, setup } from "./commands/maintenance.js";
 import { listProjects, validateProjects } from "./commands/projects.js";
 import { decideState } from "./commands/state.js";
+import { updateIssueStatus } from "./commands/update-status.js";
 import { validateArticle } from "./commands/validate-article.js";
 import { ArticleHubError, toArticleHubError } from "./infrastructure/errors.js";
 import { serializeJson } from "./infrastructure/json-output.js";
@@ -73,6 +76,118 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (parsed.command === "validate") {
       const envelope = await runValidateCommand(parsed.args, parsed.context);
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "create-pr") {
+      const articleFile = readRequiredOption(parsed.args, "--article-file");
+      const configPath = readRequiredOption(parsed.args, "--config");
+      const issueNumber = Number(readRequiredOption(parsed.args, "--issue-number"));
+      const repository = readRequiredOption(parsed.args, "--repository");
+      const base = readRequiredOption(parsed.args, "--base");
+      const slug = readRequiredOption(parsed.args, "--slug");
+      const title = readRequiredOption(parsed.args, "--title");
+
+      if (!Number.isSafeInteger(issueNumber)) {
+        throw new ArticleHubError("MISSING_ARGUMENT", "参数值必须是整数：--issue-number", 2);
+      }
+
+      assertNoUnexpectedArgs(
+        parsed.args,
+        new Set([
+          "--article-file",
+          "--config",
+          "--issue-number",
+          "--repository",
+          "--base",
+          "--slug",
+          "--title"
+        ])
+      );
+
+      const envelope = await createPullRequest({
+        articleFile,
+        configPath,
+        issueNumber,
+        repository,
+        base,
+        slug,
+        title,
+        dryRun: parsed.context.dryRun
+      });
+
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "update-status") {
+      const issueFile = readRequiredOption(parsed.args, "--issue-file");
+      const repository = readRequiredOption(parsed.args, "--repository");
+      const phase = readRequiredOption(parsed.args, "--phase");
+      const aiState = readOptionalOption(parsed.args, "--ai-state");
+      const comment = readOptionalOption(parsed.args, "--comment");
+
+      assertNoUnexpectedArgs(
+        parsed.args,
+        new Set(["--issue-file", "--repository", "--phase", "--ai-state", "--comment"])
+      );
+
+      const envelope = await updateIssueStatus({
+        issueFile,
+        repository,
+        phase,
+        aiState,
+        comment,
+        dryRun: parsed.context.dryRun
+      });
+
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "doctor") {
+      const root = readOptionalOption(parsed.args, "--root") ?? process.cwd();
+      const configPath = readOptionalOption(parsed.args, "--config") ?? "config/projects.yml";
+
+      assertNoUnexpectedArgs(parsed.args, new Set(["--root", "--config"]));
+
+      const envelope = await doctor({
+        root,
+        configPath,
+        dryRun: parsed.context.dryRun
+      });
+
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "setup") {
+      const root = readOptionalOption(parsed.args, "--root") ?? process.cwd();
+      const yes = hasFlag(parsed.args, "--yes");
+
+      assertNoUnexpectedArgs(parsed.args, new Set(["--root"]), new Set(["--yes"]));
+
+      const envelope = await setup({
+        root,
+        dryRun: parsed.context.dryRun,
+        yes
+      });
+
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
+    if (parsed.command === "reconcile") {
+      const stateFile = readRequiredOption(parsed.args, "--state-file");
+
+      assertNoUnexpectedArgs(parsed.args, new Set(["--state-file"]));
+
+      const envelope = await reconcile({
+        stateFile,
+        dryRun: parsed.context.dryRun
+      });
+
       process.stdout.write(serializeJson(envelope));
       return 0;
     }
@@ -251,9 +366,35 @@ function readRequiredOption(args: string[], optionName: string): string {
   return value;
 }
 
-function assertNoUnexpectedArgs(args: string[], knownOptions: Set<string>): void {
+function readOptionalOption(args: string[], optionName: string): string | undefined {
+  const optionIndex = args.indexOf(optionName);
+
+  if (optionIndex === -1) {
+    return undefined;
+  }
+
+  if (optionIndex === args.length - 1 || args[optionIndex + 1].startsWith("--")) {
+    throw new ArticleHubError("MISSING_ARGUMENT", `缺少参数值：${optionName}`, 2);
+  }
+
+  return args[optionIndex + 1];
+}
+
+function hasFlag(args: string[], flagName: string): boolean {
+  return args.includes(flagName);
+}
+
+function assertNoUnexpectedArgs(
+  args: string[],
+  knownOptions: Set<string>,
+  knownFlags = new Set<string>()
+): void {
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
+
+    if (knownFlags.has(arg)) {
+      continue;
+    }
 
     if (knownOptions.has(arg)) {
       index += 1;

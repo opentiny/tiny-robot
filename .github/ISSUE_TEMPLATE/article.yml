@@ -1,0 +1,60 @@
+name: Article request
+description: Request an OpenTiny article for the Phase A local workflow.
+title: "[Article] "
+labels:
+  - 阶段：选题
+  - AI：等待执行
+body:
+  - type: dropdown
+    id: project
+    attributes:
+      label: Project
+      options:
+        - webmcp-sdk
+        - genui-sdk
+        - tiny-robot
+    validations:
+      required: true
+  - type: dropdown
+    id: article_type
+    attributes:
+      label: Article type
+      options:
+        - release
+        - practical-guide
+        - source-analysis
+        - case-study
+    validations:
+      required: true
+  - type: dropdown
+    id: style_profile
+    attributes:
+      label: Style profile
+      options:
+        - official-balanced
+        - developer-friendly
+        - release-promotional
+        - technical-deep-dive
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Article goal
+      description: Describe the reader problem, target audience, and expected takeaway.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Candidate sources
+      description: Link to releases, docs, commits, PRs, demos, or issue attachments.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Manual acceptance notes
+      description: List code snippets, screenshots, or facts that must be checked manually.
+    validations:
+      required: false
