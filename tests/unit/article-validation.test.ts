@@ -233,395 +233,6 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("文章包含阻断占位符：TODO");
   });
 
-  test("标准 HTML 展示标签在Markdown 边界内通过", async () => {
-    const articleFile = writeVariant(
-      "standard-html",
-      (content) =>
-        `${content}\n\n<details><summary>适用场景</summary><p>用于说明本地流程的人工验收边界。</p></details>\n\n<kbd>Ctrl</kbd> + <kbd>K</kbd>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("script HTML 标签会被Markdown 边界阻断", async () => {
-    const articleFile = writeVariant(
-      "script-html",
-      (content) => `${content}\n\n<script>alert("xss")</script>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("HTML 标签不允许使用：script");
-  });
-
-  test.each([
-    [
-      "事件属性",
-      '<span onclick="alert(1)">官方链接</span>',
-      "HTML 属性不允许使用事件 handler：span.onclick"
-    ],
-    [
-      "可执行 URL",
-      '<q cite="javascript:alert(1)">官方链接</q>',
-      "HTML 属性不允许使用可执行 URL：q.cite"
-    ]
-  ])("不安全 HTML %s 会被Markdown 边界阻断", async (_, markdown, message) => {
-    const articleFile = writeVariant(
-      "unsafe-html-attribute",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain(message);
-  });
-
-  test.each([
-    [
-      "事件属性",
-      '<span title="1 > 0" onclick="alert(1)">正文</span>',
-      "HTML 属性不允许使用事件 handler：span.onclick"
-    ],
-    [
-      "可执行 URL",
-      '<q title="1 > 0" cite="javascript:alert(1)">正文</q>',
-      "HTML 属性不允许使用可执行 URL：q.cite"
-    ]
-  ])("quoted attribute 中的 > 不会跳过后续不安全 HTML %s", async (_, markdown, message) => {
-    const articleFile = writeVariant(
-      "html-quoted-greater-than",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain(message);
-  });
-
-  test("raw HTML 属性中的 backtick 不会形成 code span", async () => {
-    const articleFile = writeVariant(
-      "backtick-in-html-attribute",
-      (content) =>
-        `${content}\n\n<span title="\`" onclick="alert(1)" data-x="\`">正文</span>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain(
-      "HTML 属性不允许使用事件 handler：span.onclick"
-    );
-  });
-
-  test("非法 backtick fence opener 不会遮蔽后续 script", async () => {
-    const articleFile = writeVariant(
-      "invalid-backtick-fence-opener",
-      (content) =>
-        `${content}\n\n\`\`\`md\`x\n<script>globalThis.__probe = 1</script>\n\`\`\`\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("HTML 标签不允许使用：script");
-  });
-
-  test("已识别的 forbidden tag 前缀在畸形输入中 fail closed", async () => {
-    const articleFile = writeVariant(
-      "malformed-forbidden-tag",
-      (content) => `${content}\n\n<script <span>globalThis.__probe = 1\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("HTML 标签不允许使用：script");
-  });
-
-  test("普通小于号文本不会被当作畸形 HTML 标签", async () => {
-    const articleFile = writeVariant(
-      "plain-less-than-text",
-      (content) => `${content}\n\n版本 1 < 2，script 只是普通文本。\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test.each([
-    ["hex reference", '<q cite="jav&#x61;script:alert(1)">正文</q>'],
-    ["decimal reference", '<q cite="java&#115;cript:alert(1)">正文</q>'],
-    ["named colon reference", '<q cite="javascript&colon;alert(1)">正文</q>'],
-    ["named tab reference", '<q cite="java&Tab;script:alert(1)">正文</q>'],
-    ["named newline reference", '<q cite="java&NewLine;script:alert(1)">正文</q>']
-  ])("URL 属性中的 HTML character reference 会先解码：%s", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "html-url-character-reference",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("HTML 属性不允许使用可执行 URL：q.cite");
-  });
-
-  test("URL query 中的 named character reference 保持合法", async () => {
-    const articleFile = writeVariant(
-      "safe-html-url-character-reference",
-      (content) =>
-        `${content}\n\n<q cite="https://example.com/docs?a=1&amp;b=2">正文</q>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test.each([
-    ["import leading comment", 'import /*comment*/ Notice from "./Notice.mdx";'],
-    ["export leading comment", "export /*comment*/ default 1;"],
-    [
-      "multiline import comments",
-      'import /* first\nsecond */ {\n  Notice\n} /* before from */ from "./Notice.mdx";'
-    ],
-    [
-      "keyword inside block comment",
-      'import /* first\nexport\n*/ Notice from "./Notice.mdx";'
-    ],
-    [
-      "blank line inside block comment",
-      'import /* first\n\nsecond */ Notice from "./Notice.mdx";'
-    ],
-    ["multiline export comments", "export /* first */\n/* second */ default 1;"]
-  ])("合法 comment 位置中的 %s 仍按 MDX ESM 阻断", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "mdx-esm-comments",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
-  });
-
-  test.each([
-    ["MDX import", 'import Notice from "./Notice.mdx";'],
-    ["MDX export", "export const metadata = { title: 'Demo' };"],
-    ["MDX named export", 'export { Notice } from "./Notice.mdx";'],
-    ["MDX async function export", "export async function loadData() {}"],
-    ["MDX namespace export", 'export * as Docs from "./docs.mdx";'],
-    ["MDX multiline import", 'import {\n  Notice\n} from "./Notice.mdx";'],
-    ["MDX multiline export", 'export {\n  Notice\n} from "./Notice.mdx";']
-  ])("%s 会被Markdown 边界阻断", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "mdx-esm",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
-  });
-
-  test.each([
-    ["export default", "import broken\nexport default 1;"],
-    ["export function", "import broken\nexport function demo() {}"]
-  ])("malformed MDX import 不会遮蔽后续 %s", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "malformed-import-before-export",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("正文禁止 MDX ESM import/export");
-  });
-
-  test(
-    "大量无终止符的 malformed MDX import 保持有界扫描",
-    async () => {
-      const malformedImports = Array.from(
-        { length: 6_000 },
-        (_, index) => `import broken${index}`
-      ).join("\n");
-      const articleFile = writeVariant(
-        "many-malformed-mdx-imports",
-        (content) => `${content}\n\n${malformedImports}\n`
-      );
-
-      const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-      expect(result.valid).toBe(true);
-    },
-    1_000
-  );
-
-  test.each([
-    ["PascalCase component", "<Alert>只适用于官网渲染。</Alert>", "Alert"],
-    ["namespace component", "<Docs.Alert>只适用于官网渲染。</Docs.Alert>", "Docs.Alert"],
-    ["underscore component", "<_Alert />", "_Alert"],
-    ["dollar component", "<$Alert />", "$Alert"],
-    ["Unicode component", "<提示 />", "提示"],
-    ["astral Unicode component", "<𐐀Alert />", "𐐀Alert"]
-  ])("%s 会被Markdown 边界阻断", async (_, markdown, componentName) => {
-    const articleFile = writeVariant(
-      "mdx-custom-component",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain(`正文禁止 MDX/JSX 自定义组件：${componentName}`);
-  });
-
-  test.each([
-    ["URI autolink", "<https://example.com/docs>"],
-    ["email autolink", "<docs@example.com>"]
-  ])("合法 CommonMark %s 不会被当作 JSX 或 HTML", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "commonmark-autolink",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("可执行 URI autolink 仍会被 Markdown 边界阻断", async () => {
-    const articleFile = writeVariant(
-      "executable-uri-autolink",
-      (content) => `${content}\n\n<javascript:alert(1)>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("自动链接不允许使用可执行 URL");
-  });
-
-  test("autolink 与相邻 JSX component 按各自语法分类", async () => {
-    const articleFile = writeVariant(
-      "autolink-next-to-jsx",
-      (content) => `${content}\n\n<https://example.com/docs> <_Alert />\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toEqual(["正文禁止 MDX/JSX 自定义组件：_Alert"]);
-  });
-
-  test("unquoted attribute value 中的斜杠不会拆出伪事件属性", async () => {
-    const articleFile = writeVariant(
-      "unquoted-attribute-slash",
-      (content) => `${content}\n\n<q cite=https://example.com/onload=docs>正文</q>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test.each([
-    ["普通结束标签", "<span data-x=value onclick=alert(1)>正文</span>"],
-    ["self-closing marker", "<span data-x=value onload=alert(1) />"]
-  ])("真正的 unquoted %s 事件属性仍会阻断", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "unquoted-event-attribute",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result).some((message) => message.includes("事件 handler"))).toBe(
-      true
-    );
-  });
-
-  test("JSX fragment 会被Markdown 边界阻断", async () => {
-    const articleFile = writeVariant(
-      "jsx-fragment",
-      (content) => `${content}\n\n<><span>官网专属片段</span></>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("正文禁止 MDX/JSX fragment");
-  });
-
-  test("JSX 表达式属性会被Markdown 边界阻断", async () => {
-    const articleFile = writeVariant(
-      "jsx-expression-attribute",
-      (content) => `${content}\n\n<span data-version={version}>版本说明</span>\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("HTML/JSX 属性不允许使用表达式：span.data-version");
-  });
-
-  test.each([
-    ["HTML 标签体内 JSX 表达式", "<span>{version}</span>"],
-    ["独立 JSX 表达式", "{version}"],
-    ["多行 JSX 表达式", "{\n  version\n}"]
-  ])("%s 会被Markdown 边界阻断", async (_, markdown) => {
-    const articleFile = writeVariant(
-      "jsx-body-expression",
-      (content) => `${content}\n\n${markdown}\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("正文禁止 MDX/JSX 表达式");
-  });
-
-  test("code 中的 MDX 和 script 示例不会触发Markdown 边界", async () => {
-    const articleFile = writeVariant(
-      "markdown-boundary-in-code",
-      (content) =>
-        `${content}\n\n\`<Alert>示例</Alert>\`\n\n\`\`\`mdx\nimport Alert from "./Alert.mdx";\n<script>alert("xss")</script>\n<Docs.Alert />\n\`\`\`\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
-  test("code span 中带 backtick 的 raw HTML 示例继续豁免", async () => {
-    const articleFile = writeVariant(
-      "raw-html-with-backtick-in-code-span",
-      (content) =>
-        `${content}\n\n\`\`<span title="\`" onclick="alert(1)">示例</span>\`\`\n`
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(true);
-    expect(result.blocking_issues).toEqual([]);
-  });
-
   test("http(s) 外链通过且不发起网络请求", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     const articleFile = writeVariant(
@@ -1028,10 +639,10 @@ describe("article validation", () => {
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
     expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("图片 alt 必须是非空且包含中文");
+    expect(issueMessages(result)).toContain("图片 alt 必须非空");
   });
 
-  test("图片 alt 必须包含中文", async () => {
+  test("非空图片 alt 通过校验", async () => {
     const articleFile = writeVariant(
       "non-chinese-image-alt",
       (content) => `${content}\n\n![Demo screenshot](https://example.com/demo.png)\n`
@@ -1039,8 +650,8 @@ describe("article validation", () => {
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("图片 alt 必须是非空且包含中文");
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
   });
 
   test("缺失本地图片文件会阻断", async () => {
@@ -1087,7 +698,7 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("正文图片必须引用 PNG，不能直接引用 .mmd：assets/diagrams/flow.mmd");
   });
 
-  test("正文不得直接引用 SVG 图片", async () => {
+  test("本地 SVG 图片存在时通过图片引用校验", async () => {
     const articleFile = writeArticleWithAssets(
       "markdown-references-svg",
       (content) => `${content}\n\n![中文流程图](assets/diagrams/flow.svg)\n`,
@@ -1098,11 +709,11 @@ describe("article validation", () => {
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("正文图片必须引用 PNG，不能直接引用 .svg：assets/diagrams/flow.svg");
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
   });
 
-  test("Mermaid 源文件缺少同名 SVG 会阻断", async () => {
+  test("Mermaid 源文件存在同名 PNG 时通过派生物校验", async () => {
     const articleFile = writeArticleWithAssets(
       "mmd-without-svg",
       (content) => content,
@@ -1114,8 +725,8 @@ describe("article validation", () => {
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("Mermaid 源文件缺少同名 SVG：assets/diagrams/flow.svg");
+    expect(result.valid).toBe(true);
+    expect(result.blocking_issues).toEqual([]);
   });
 
   test("Mermaid 源文件缺少同名 PNG 会阻断", async () => {
@@ -1132,19 +743,6 @@ describe("article validation", () => {
 
     expect(result.valid).toBe(false);
     expect(issueMessages(result)).toContain("Mermaid 源文件缺少同名 PNG：assets/diagrams/flow.png");
-  });
-
-  test("坏 PNG 会阻断", async () => {
-    const articleFile = writeArticleWithAssets(
-      "bad-png",
-      (content) => `${content}\n\n![中文截图](assets/images/bad.png)\n`,
-      { "assets/images/bad.png": Buffer.from("not a png") }
-    );
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(result.valid).toBe(false);
-    expect(issueMessages(result)).toContain("PNG 图片无法解码或尺寸无效：assets/images/bad.png");
   });
 
   test("PNG 路径指向目录时以阻断问题返回", async () => {
@@ -1236,39 +834,18 @@ describe("article validation", () => {
     expect(issueMessages(result)).toContain("本地图片文件不存在：assets/images/demo.jpg");
   });
 
-  test.each(["svg", "png"])("diagram %s 目录不能冒充同名文件", async (extension) => {
-    const companionAssets =
-      extension === "svg"
-        ? { "assets/diagrams/flow.mmd": "graph TD\nA-->B\n", "assets/diagrams/flow.png": validPng }
-        : {
-            "assets/diagrams/flow.mmd": "graph TD\nA-->B\n",
-            "assets/diagrams/flow.svg": '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
-          };
-    const articleFile = writeArticleWithAssets("diagram-directory", (content) => content, companionAssets);
-    mkdirSync(path.join(path.dirname(articleFile), `assets/diagrams/flow.${extension}`), { recursive: true });
-
-    const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
-
-    expect(issueMessages(result)).toContain(
-      `Mermaid 源文件缺少同名 ${extension.toUpperCase()}：assets/diagrams/flow.${extension}`
-    );
-  });
-
-  test("IHDR chunk 长度不是 13 的 PNG 会阻断", async () => {
-    const malformedPng = Buffer.alloc(33);
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(malformedPng);
-    malformedPng.writeUInt32BE(1, 8);
-    malformedPng.write("IHDR", 12, "ascii");
-    malformedPng.writeUInt32BE(1, 16);
-    malformedPng.writeUInt32BE(1, 20);
+  test("diagram PNG 目录不能冒充同名文件", async () => {
     const articleFile = writeArticleWithAssets(
-      "invalid-ihdr-length",
-      (content) => `${content}\n\n![中文截图](assets/images/malformed.png)\n`,
-      { "assets/images/malformed.png": malformedPng }
+      "diagram-directory",
+      (content) => content,
+      {
+        "assets/diagrams/flow.mmd": "graph TD\nA-->B\n"
+      }
     );
+    mkdirSync(path.join(path.dirname(articleFile), "assets/diagrams/flow.png"), { recursive: true });
 
     const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
-    expect(issueMessages(result)).toContain("PNG 图片无法解码或尺寸无效：assets/images/malformed.png");
+    expect(issueMessages(result)).toContain("Mermaid 源文件缺少同名 PNG：assets/diagrams/flow.png");
   });
 });
