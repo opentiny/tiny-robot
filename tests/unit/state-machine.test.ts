@@ -265,6 +265,40 @@ describe("decideStateMutation", () => {
     );
   });
 
+  test("重试只把失败状态改为等待执行", () => {
+    const allowedDecision = decideStateMutation({
+      labels: ["阶段：审核", "AI：失败"],
+      intent: { kind: "retry" }
+    });
+    const rejectedDecision = decideStateMutation({
+      labels: ["阶段：审核", "AI：等待人工"],
+      intent: { kind: "retry" }
+    });
+
+    expect(allowedDecision).toMatchObject({
+      mutationAllowed: true,
+      blockedReason: null,
+      labelsToRemove: ["AI：失败"],
+      labelsToAdd: ["AI：等待执行"]
+    });
+    expect(rejectedDecision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "INVALID_TRANSITION"
+    });
+  });
+
+  test("人工暂停时重试保持阻断", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：审核", "AI：失败", "AI执行：人工暂停"],
+      intent: { kind: "retry" }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "AI_PAUSED"
+    });
+  });
+
   test("终止或完成状态必须清理 AI 活动状态", () => {
     const decision = decideStateMutation({
       labels: ["阶段：已终止", "AI：处理中", "AI：旧状态", "AI：等待人工", "其他"],

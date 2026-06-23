@@ -185,6 +185,14 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
     return blocked("AI_PAUSED");
   }
 
+  if (input.intent.kind === "retry") {
+    if (AI_INACTIVE_PHASES.has(current.phase) || current.aiStatus !== "AI：失败") {
+      return blocked("INVALID_TRANSITION");
+    }
+
+    return allowed(["AI：失败"], ["AI：等待执行"]);
+  }
+
   if (
     input.intent.kind === "content-transition" &&
     input.expectedHeadSha &&
