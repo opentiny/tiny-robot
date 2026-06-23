@@ -127,20 +127,35 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     if (parsed.command === "update-status") {
       const issueFile = readRequiredOption(parsed.args, "--issue-file");
       const repository = readRequiredOption(parsed.args, "--repository");
-      const phase = readRequiredOption(parsed.args, "--phase");
+      const intent = readRequiredOption(parsed.args, "--intent");
+      const phase = readOptionalOption(parsed.args, "--phase");
       const aiState = readOptionalOption(parsed.args, "--ai-state");
+      const expectedHeadSha = readOptionalOption(parsed.args, "--expected-head-sha");
+      const currentHeadSha = readOptionalOption(parsed.args, "--current-head-sha");
       const comment = readOptionalOption(parsed.args, "--comment");
 
       assertNoUnexpectedArgs(
         parsed.args,
-        new Set(["--issue-file", "--repository", "--phase", "--ai-state", "--comment"])
+        new Set([
+          "--issue-file",
+          "--repository",
+          "--intent",
+          "--phase",
+          "--ai-state",
+          "--expected-head-sha",
+          "--current-head-sha",
+          "--comment"
+        ])
       );
 
       const envelope = await updateIssueStatus({
         issueFile,
         repository,
+        intent,
         phase,
         aiState,
+        expectedHeadSha,
+        currentHeadSha,
         comment,
         dryRun: parsed.context.dryRun
       });

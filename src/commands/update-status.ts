@@ -1,123 +1,75 @@
 import { readFile } from "node:fs/promises";
 
+import { decideStateMutation } from "../domain/state-machine.js";
 import { ArticleHubError } from "../infrastructure/errors.js";
 import { runCommand } from "../infrastructure/process.js";
+import { readStateMutationIntent } from "./state-input.js";
 
 interface IssueDocument {
   number?: unknown;
   labels?: unknown;
 }
 
-type PhaseLabel =
-  | "阶段：选题"
-  | "阶段：策划"
-  | "阶段：写作"
-  | "阶段：审核"
-  | "阶段：待发布"
-  | "阶段：已发布"
-  | "阶段：已终止";
-
-type AiStatusLabel =
-  | "AI：等待执行"
-  | "AI：处理中"
-  | "AI：等待人工"
-  | "AI：失败"
-  | "AI：已暂停";
-
-const phaseLabels: PhaseLabel[] = [
-  "阶段：选题",
-  "阶段：策划",
-  "阶段：写作",
-  "阶段：审核",
-  "阶段：待发布",
-  "阶段：已发布",
-  "阶段：已终止"
-];
-const aiStatusLabels: AiStatusLabel[] = [
-  "AI：等待执行",
-  "AI：处理中",
-  "AI：等待人工",
-  "AI：失败",
-  "AI：已暂停"
-];
-const terminalPhaseLabels = new Set<PhaseLabel>([
-  "阶段：待发布",
-  "阶段：已发布",
-  "阶段：已终止"
-]);
-
-/**
- * 按阶段和 AI 状态更新 Issue 标签，并可追加一条状态评论。
- *
- * @param options Issue fixture、目标仓库、目标标签和 dry-run 标记。
- * @returns 版本化 mutation plan；暂停状态会阻止内容面状态推进。
- * @throws ArticleHubError 当 Issue fixture 无效或 GitHub mutation 失败时抛出。
- */
-export async function updateIssueStatus(options: {
+/** update-status command 的输入参数。 */
+export interface UpdateIssueStatusOptions {
   issueFile: string;
   repository: string;
-  phase: string;
+  intent: string;
+  phase?: string;
   aiState?: string;
+  expectedHeadSha?: string;
+  currentHeadSha?: string;
   comment?: string;
   dryRun: boolean;
-}): Promise<unknown> {
+}
+
+/**
+ * 根据显式 intent 规划并按需执行 Issue 状态 mutation。
+ *
+ * @param options Issue fixture、仓库、显式 intent、目标状态和 dry-run 标记。
+ * @returns 版本化决策 envelope 与可审计 GitHub operation plan。
+ * @throws ArticleHubError 当输入无效、远端状态读取失败或 GitHub mutation 失败时抛出。
+ */
+export async function updateIssueStatus(options: UpdateIssueStatusOptions): Promise<unknown> {
   const issue = await readIssueDocument(options.issueFile);
   const issueNumber = readIssueNumber(issue.number);
   const currentLabels = normalizeLabels(issue.labels);
-  const phase = readPhase(options.phase);
-  const aiState = options.aiState ? readAiState(options.aiState) : undefined;
-
-  if (currentLabels.includes("AI：已暂停") && aiState !== "AI：已暂停") {
-    return {
-      ok: true,
-      schema_version: "article-hub.update-status",
-      dry_run: options.dryRun,
-      issue: {
-        number: issueNumber
-      },
-      mutation_allowed: false,
-      blocked_reason: "AI_PAUSED",
-      labels_to_remove: [],
-      labels_to_add: [],
-      mutation_plan: {
-        operations: []
-      }
-    };
-  }
-
-  const labelsToRemove = currentLabels.filter((label) => {
-    if (phaseLabels.includes(label as PhaseLabel)) {
-      return label !== phase;
-    }
-
-    if (aiStatusLabels.includes(label as AiStatusLabel)) {
-      return terminalPhaseLabels.has(phase) || label !== aiState;
-    }
-
-    return false;
+  const intent = readStateMutationIntent(
+    {
+      intent: options.intent,
+      phase: options.phase,
+      aiState: options.aiState
+    },
+    new Set(["content-transition", "lifecycle-transition", "pause", "resume", "retry"])
+  );
+  const decision = decideStateMutation({
+    labels: currentLabels,
+    intent,
+    expectedHeadSha: options.expectedHeadSha,
+    currentHeadSha: options.currentHeadSha
   });
-  const targetLabels: string[] = [phase];
+  const hasLabelMutation =
+    decision.labelsToRemove.length > 0 || decision.labelsToAdd.length > 0;
+  const operationComment =
+    decision.mutationAllowed && hasLabelMutation ? options.comment : undefined;
+  const operations =
+    decision.mutationAllowed && hasLabelMutation
+      ? buildStatusOperations({
+          issueNumber,
+          repository: options.repository,
+          labelsToRemove: decision.labelsToRemove,
+          labelsToAdd: decision.labelsToAdd,
+          comment: operationComment
+        })
+      : [];
 
-  if (!terminalPhaseLabels.has(phase) && aiState) {
-    targetLabels.push(aiState);
-  }
-
-  const labelsToAdd = targetLabels.filter((label) => !currentLabels.includes(label));
-  const operations = buildStatusOperations({
-    issueNumber,
-    repository: options.repository,
-    labelsToRemove,
-    labelsToAdd,
-    comment: options.comment
-  });
-
-  if (!options.dryRun) {
+  if (!options.dryRun && decision.mutationAllowed && hasLabelMutation) {
     await applyStatusOperations({
       issueNumber,
       repository: options.repository,
-      labelsToRemove,
-      labelsToAdd,
-      comment: options.comment
+      labelsToRemove: decision.labelsToRemove,
+      labelsToAdd: decision.labelsToAdd,
+      comment: operationComment
     });
   }
 
@@ -128,10 +80,10 @@ export async function updateIssueStatus(options: {
     issue: {
       number: issueNumber
     },
-    mutation_allowed: true,
-    blocked_reason: null,
-    labels_to_remove: labelsToRemove,
-    labels_to_add: labelsToAdd,
+    mutation_allowed: decision.mutationAllowed,
+    blocked_reason: decision.blockedReason,
+    labels_to_remove: decision.labelsToRemove,
+    labels_to_add: decision.labelsToAdd,
     mutation_plan: {
       operations
     }
@@ -173,22 +125,6 @@ function normalizeLabels(value: unknown): string[] {
 
     return [];
   });
-}
-
-function readPhase(value: string): PhaseLabel {
-  if (!phaseLabels.includes(value as PhaseLabel)) {
-    throw new ArticleHubError("INVALID_STATE", `未知阶段标签：${value}`, 2);
-  }
-
-  return value as PhaseLabel;
-}
-
-function readAiState(value: string): AiStatusLabel {
-  if (!aiStatusLabels.includes(value as AiStatusLabel)) {
-    throw new ArticleHubError("INVALID_STATE", `未知 AI 状态标签：${value}`, 2);
-  }
-
-  return value as AiStatusLabel;
 }
 
 function buildStatusOperations(options: {
@@ -246,7 +182,15 @@ async function applyStatusOperations(options: {
   if (options.comment) {
     await runCommand(
       "gh",
-      ["issue", "comment", String(options.issueNumber), "--repo", options.repository, "--body", options.comment],
+      [
+        "issue",
+        "comment",
+        String(options.issueNumber),
+        "--repo",
+        options.repository,
+        "--body",
+        options.comment
+      ],
       { errorCode: "GITHUB_COMMAND_FAILED" }
     );
   }

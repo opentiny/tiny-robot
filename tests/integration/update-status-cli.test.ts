@@ -18,6 +18,22 @@ interface UpdateStatusOutput {
   };
 }
 
+interface StateDecisionOutput {
+  decision: {
+    mutation_allowed: boolean;
+    blocked_reason: string | null;
+    labels_to_remove: string[];
+    labels_to_add: string[];
+  };
+}
+
+interface UpdateStatusDecisionOutput {
+  mutation_allowed: boolean;
+  blocked_reason: string | null;
+  labels_to_remove: string[];
+  labels_to_add: string[];
+}
+
 async function writeIssue(labels: string[]) {
   const root = await mkdtemp(path.join(tmpdir(), "article-hub-status-"));
   const issueFile = path.join(root, "issue.json");
@@ -38,6 +54,21 @@ async function writeIssue(labels: string[]) {
   return issueFile;
 }
 
+async function writeState(labels: string[]) {
+  const root = await mkdtemp(path.join(tmpdir(), "article-hub-state-"));
+  const stateFile = path.join(root, "state.json");
+
+  await writeFile(
+    stateFile,
+    JSON.stringify({
+      labels,
+      intent: "pause"
+    })
+  );
+
+  return stateFile;
+}
+
 describe("article-hub update-status CLI", () => {
   test("dry-run computes phase and AI label changes from an issue fixture", () => {
     const result = runArticleHubCli([
@@ -47,6 +78,8 @@ describe("article-hub update-status CLI", () => {
       issueFixture,
       "--repository",
       "hexqi/ai-article-hub",
+      "--intent",
+      "content-transition",
       "--phase",
       "阶段：写作",
       "--ai-state",
@@ -76,8 +109,8 @@ describe("article-hub update-status CLI", () => {
     );
   });
 
-  test("dry-run refuses content mutations while AI is paused", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：已暂停"]);
+  test("dry-run 阻断暂停期间的内容 mutation 且不规划 comment", async () => {
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工", "AI执行：人工暂停"]);
     const result = runArticleHubCli([
       "--dry-run",
       "update-status",
@@ -85,10 +118,14 @@ describe("article-hub update-status CLI", () => {
       issueFile,
       "--repository",
       "hexqi/ai-article-hub",
+      "--intent",
+      "content-transition",
       "--phase",
       "阶段：审核",
       "--ai-state",
-      "AI：等待人工"
+      "AI：等待人工",
+      "--comment",
+      "blocked fixture comment"
     ]);
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
@@ -100,5 +137,67 @@ describe("article-hub update-status CLI", () => {
         operations: []
       }
     });
+  });
+
+  test("重复 pause 不规划标签或评论 operation", async () => {
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工", "AI执行：人工暂停"]);
+    const result = runArticleHubCli([
+      "--dry-run",
+      "update-status",
+      "--issue-file",
+      issueFile,
+      "--repository",
+      "hexqi/ai-article-hub",
+      "--intent",
+      "pause",
+      "--comment",
+      "must remain a no-op"
+    ]);
+
+    expectSuccessfulEnvelope(result, "article-hub.update-status", {
+      mutation_allowed: true,
+      blocked_reason: null,
+      labels_to_remove: [],
+      labels_to_add: [],
+      mutation_plan: {
+        operations: []
+      }
+    });
+  });
+
+  test("state decide 与 update-status dry-run 共享同一状态决策", async () => {
+    const labels = ["阶段：写作", "AI：等待人工"];
+    const stateFile = await writeState(labels);
+    const issueFile = await writeIssue(labels);
+    const stateResult = runArticleHubCli(["state", "decide", "--state-file", stateFile]);
+    const updateResult = runArticleHubCli([
+      "--dry-run",
+      "update-status",
+      "--issue-file",
+      issueFile,
+      "--repository",
+      "hexqi/ai-article-hub",
+      "--intent",
+      "pause"
+    ]);
+    const stateOutput = expectSuccessfulEnvelope<StateDecisionOutput>(
+      stateResult,
+      "article-hub.state.decide"
+    );
+    const updateOutput = expectSuccessfulEnvelope<UpdateStatusDecisionOutput>(
+      updateResult,
+      "article-hub.update-status"
+    );
+
+    expect(updateOutput).toMatchObject({
+      mutation_allowed: stateOutput.decision.mutation_allowed,
+      blocked_reason: stateOutput.decision.blocked_reason
+    });
+    expect(new Set(updateOutput.labels_to_remove)).toEqual(
+      new Set(stateOutput.decision.labels_to_remove)
+    );
+    expect(new Set(updateOutput.labels_to_add)).toEqual(
+      new Set(stateOutput.decision.labels_to_add)
+    );
   });
 });
