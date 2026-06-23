@@ -326,7 +326,7 @@ retry
 参数规则：
 
 - 未提供 `--intent` 时返回参数错误，不执行 mutation。
-- `content-transition` 沿用现有 `--phase` 和可选 `--ai-state`。
+- `content-transition` 要求 `--phase`；目标为活跃阶段时还要求 `--ai-state`。
 - `lifecycle-transition` 要求 `--phase`，目标为活跃阶段时还要求 `--ai-state`。
 - `pause`、`resume` 和 `retry` 不要求 `--phase`。
 - `pause`、`resume` 和 `retry` 不接受目标 `--phase` 或 `--ai-state`。
