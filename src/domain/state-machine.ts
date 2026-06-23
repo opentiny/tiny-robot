@@ -152,6 +152,22 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
     return allowed([], [MANUAL_PAUSE_LABEL]);
   }
 
+  if (input.intent.kind === "resume") {
+    if (AI_INACTIVE_PHASES.has(current.phase)) {
+      return blocked("INVALID_TRANSITION");
+    }
+
+    if (!current.paused) {
+      return allowed();
+    }
+
+    if (current.aiStatus === "AI：处理中") {
+      return blocked("INVALID_CURRENT_STATE");
+    }
+
+    return allowed([MANUAL_PAUSE_LABEL]);
+  }
+
   if (input.intent.kind === "reconcile" && AI_INACTIVE_PHASES.has(current.phase)) {
     return allowed(
       input.labels.filter((label) => label.startsWith("AI：") || label === MANUAL_PAUSE_LABEL)

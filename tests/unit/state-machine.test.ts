@@ -31,6 +31,46 @@ describe("decideStateMutation", () => {
     });
   });
 
+  test("恢复只移除人工暂停信号", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：等待人工", "AI执行：人工暂停"],
+      intent: { kind: "resume" }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: true,
+      blockedReason: null,
+      labelsToRemove: ["AI执行：人工暂停"],
+      labelsToAdd: []
+    });
+  });
+
+  test("恢复拒绝仍标记为处理中的暂停状态", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：处理中", "AI执行：人工暂停"],
+      intent: { kind: "resume" }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "INVALID_CURRENT_STATE"
+    });
+  });
+
+  test("重复恢复返回成功 no-op", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：等待人工"],
+      intent: { kind: "resume" }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: true,
+      blockedReason: null,
+      labelsToRemove: [],
+      labelsToAdd: []
+    });
+  });
+
   test("终止或完成状态必须清理 AI 活动状态", () => {
     const decision = decideStateMutation({
       labels: ["阶段：已终止", "AI：处理中", "AI：旧状态", "AI：等待人工", "其他"],
