@@ -25,7 +25,7 @@
 3. 提供无需额外保存“暂停前状态”的可靠暂停与恢复路径。
 4. 让 `state decide` 与 `update-status` 对相同输入产生一致决策。
 5. 保持现有 CLI JSON envelope、稳定错误码、dry-run 和可审计 mutation plan。
-6. 为旧 `AI：已暂停` 标签提供确定性迁移路径，不猜测丢失的状态。
+6. 上线新模型前完成人工标签清理，生产 domain 与 CLI 不承担 legacy 迁移。
 
 ## 3. 非目标
 
@@ -36,6 +36,7 @@
 - 发布平台适配和 `阶段：待发布 → 阶段：已发布` 的发布实现。
 - 通用状态存储、数据库或事件溯源。
 - 为唯一的 GitHub Adapter 创建抽象仓储 Interface。
+- legacy 标签迁移命令、兼容分支或自动推断旧暂停状态。
 
 当前本地交付只负责确定性命令解析、状态决策、受控标签 mutation 和 Skill 停止条件。
 
@@ -66,7 +67,8 @@
 | AI 工作状态 | `AI：等待执行/处理中/等待人工/失败` | 活跃阶段恰好一个 |
 | 人工暂停信号 | `AI执行：人工暂停` | 至多一个，可与 AI 工作状态共存 |
 
-`AI：已暂停` 不再是正常 AI 工作状态，只在迁移期作为 legacy 标签识别。
+`AI：已暂停` 不属于新模型的合法状态。上线前必须按第 10 节完成人工清理；生产
+domain 与 CLI 不识别、不恢复该标签。
 
 ### 5.2 活跃阶段
 
@@ -92,7 +94,6 @@
 
 - 所有以 `AI：` 开头的标签，包括未知历史状态。
 - `AI执行：人工暂停`。
-- legacy `AI：已暂停`。
 
 `阶段：待发布` 仍可迁移到 `阶段：已发布`，因此代码和文档使用
 `aiInactivePhases`，不再把三者统称为 terminal phases。真正的业务终态是
@@ -105,12 +106,13 @@
 - 没有阶段标签。
 - 同时存在多个阶段标签。
 - 活跃阶段同时存在多个正常 AI 工作状态。
-- 活跃阶段没有正常 AI 工作状态，但不存在可显式迁移的 legacy 暂停状态。
+- 活跃阶段没有正常 AI 工作状态。
 - AI inactive 阶段仍带有活动 AI 状态，而当前 intent 又不是
   `reconcile` 或合法 lifecycle transition。
 
 未知的 `阶段：*` 或 `AI：*` 标签不应被静默当作合法状态。Reconcile 可以清理
-AI inactive 阶段中的未知 `AI：*`；其他场景必须报告当前状态无效。
+AI inactive 阶段中的未知 `AI：*`；其他场景必须报告当前状态无效。旧
+`AI：已暂停` 按未知 AI 标签处理，不存在专用恢复路径。
 
 ## 6. 完整状态流
 
@@ -277,7 +279,6 @@ Implementation 统一负责：
 - 基于 intent 的暂停 guard。
 - Head SHA guard。
 - AI inactive 阶段清理。
-- legacy 暂停迁移。
 - 幂等 `labelsToRemove` 与 `labelsToAdd` 规划。
 
 该 Module 应保持纯函数实现，不读取文件、不调用 GitHub、不生成 CLI envelope。其
@@ -298,9 +299,9 @@ Seam 目前没有实际变化来源。
 - 调用状态 mutation Module。
 - 输出稳定 JSON envelope。
 
-状态 fixture 增加 mutation intent 和相应目标字段。迁移期未提供 intent 的旧 fixture
-按 `reconcile` 处理。Reconcile 在活跃阶段遇到人工暂停时仍返回 `AI_PAUSED`；在 AI
-inactive 阶段则允许清理残留 AI 与暂停标签，从而保持现有暂停 guard 和终态清理行为。
+状态 fixture 必须显式提供 mutation intent 和相应目标字段。缺失 intent 属于无效
+输入，不提供默认行为。Reconcile 在暂停期间只允许修复可由当前事实唯一推导、且不推进
+活跃状态的不变量；在 AI inactive 阶段可以清理残留 AI 与暂停标签。
 
 ### 9.2 `update-status`
 
@@ -312,7 +313,7 @@ inactive 阶段则允许清理残留 AI 与暂停标签，从而保持现有暂�
 - dry-run 只输出计划，不执行外部 mutation。
 - 非 dry-run 执行 GitHub mutation。
 
-CLI 增加可选 `--intent`：
+CLI 增加必填 `--intent`：
 
 ```text
 content-transition
@@ -322,13 +323,13 @@ resume
 retry
 ```
 
-兼容规则：
+参数规则：
 
-- 未提供 `--intent` 时默认为 `content-transition`。
+- 未提供 `--intent` 时返回参数错误，不执行 mutation。
 - `content-transition` 沿用现有 `--phase` 和可选 `--ai-state`。
 - `lifecycle-transition` 要求 `--phase`，目标为活跃阶段时还要求 `--ai-state`。
 - `pause`、`resume` 和 `retry` 不要求 `--phase`。
-- legacy 恢复可以显式提供 `--ai-state`，作为人工选择的恢复目标。
+- `pause`、`resume` 和 `retry` 不接受目标 `--phase` 或 `--ai-state`。
 
 `--comment` 只有 mutation 被允许时才进入 operation plan。被暂停或状态非法时不得单独
 发表评论，避免出现“已更新”但标签未更新的误导性回执。
@@ -355,24 +356,21 @@ retry
 mutation。当前本地流程由 Agent 根据 actionable 命令调用对应 CLI intent，未来
 Workflow 才负责自动唤醒。
 
-## 10. Legacy `AI：已暂停` 迁移
+## 10. 上线前人工标签清理
 
-迁移期同时识别旧 `AI：已暂停` 和新 `AI执行：人工暂停`，但不把旧标签纳入正常 AI
-工作状态集合。
+旧 `AI：已暂停` 已覆盖暂停前 AI 工作状态，无法由现有标签唯一恢复。该问题不进入生产
+状态机，而是在发布新模型前执行一次性人工清理：
 
-规则如下：
-
-1. 旧标签与一个合法正常 AI 工作状态共存：替换为新暂停标签，保留正常 AI 状态。
-2. 只有旧标签、没有正常 AI 工作状态：返回
-   `LEGACY_PAUSE_STATE_AMBIGUOUS`，禁止自动恢复。
-3. 人工可通过 resume intent 显式提供目标 `--ai-state`；Module 移除旧标签并恢复为
-   该状态。
-4. 若 legacy 状态中的目标为 `AI：处理中`，拒绝迁移；人工必须选择
+1. 列出所有带 `AI：已暂停` 的存量 Issue。
+2. AI inactive 阶段直接移除旧标签，不添加 AI 工作状态或新暂停标签。
+3. 活跃阶段由维护者根据 Issue、PR 和执行记录明确选择
    `AI：等待执行`、`AI：等待人工` 或 `AI：失败`。
-5. 进入 AI inactive 阶段时，无条件清除新旧暂停标签。
-6. 存量 Issue 迁移完成后，删除 GitHub 上的旧标签，再移除兼容实现。
+4. 若 Issue 仍需保持人工暂停，同时添加 `AI执行：人工暂停`；否则只保留所选 AI
+   工作状态。
+5. 无法确定 AI 工作状态的 Issue 保持阻断并交由人工处置，不根据阶段或历史惯例猜测。
+6. 确认旧标签使用数为零后，删除 GitHub 标签定义，再发布新 domain、CLI、Skill 和文档。
 
-任何路径都不得根据阶段猜测暂停前 AI 状态。
+该清理不新增生产 CLI、不写 migration test，也不为旧标签保留兼容分支。
 
 ## 11. 错误与幂等 contract
 
@@ -388,7 +386,6 @@ Workflow 才负责自动唤醒。
 | --- | --- |
 | `INVALID_CURRENT_STATE` | 当前标签违反状态不变量 |
 | `INVALID_TRANSITION` | 当前状态不允许目标迁移 |
-| `LEGACY_PAUSE_STATE_AMBIGUOUS` | legacy 暂停状态缺少可恢复 AI 状态 |
 
 无效 CLI 标签值继续使用 `INVALID_STATE` 和退出码 `2`。状态决策被业务 guard 阻断时
 保持成功 JSON envelope，使用 `mutation_allowed: false` 与稳定 `blocked_reason`；
@@ -397,7 +394,7 @@ Workflow 才负责自动唤醒。
 Domain 决策顺序固定为：
 
 1. 校验并归一化当前状态；无法解释时返回 `INVALID_CURRENT_STATE`。
-2. 对活跃阶段的 content transition、retry 和 reconcile 应用人工暂停 guard，优先返回
+2. 对活跃阶段的 content transition 和 retry 应用人工暂停 guard，优先返回
    `AI_PAUSED`。
 3. 对需要保护内容产物的 intent 应用 Head SHA guard，返回 `HEAD_SHA_MISMATCH`。
 4. 校验 intent 对应的阶段边和目标状态，返回 `INVALID_TRANSITION` 或 mutation plan。
@@ -411,54 +408,67 @@ Domain 决策顺序固定为：
 
 ## 12. 测试策略
 
-### 12.1 Domain unit tests
+### 12.1 TDD 执行原则
 
-状态 mutation Module 的 Interface 是主要测试面，使用 table-driven tests 覆盖：
+实施采用纵向 tracer bullet，每次只完成一个 RED → GREEN：
 
-- 三个维度的合法组合与互斥不变量。
-- 四种 AI 工作状态的暂停。
-- `处理中` 暂停后退回 `等待执行`。
-- 恢复不改变阶段和正常 AI 工作状态。
-- 暂停期间 content transition 被阻断。
-- 暂停期间合法 lifecycle transition 可以完成。
-- `/ai 重试` 必须先恢复。
-- 人工暂停与 Head SHA 同时存在时，内容 mutation 稳定返回 `AI_PAUSED`。
-- 未暂停时 Head SHA 不一致阻断内容 mutation。
-- AI inactive 阶段清除所有 `AI：*`、新暂停标签和 legacy 暂停标签。
-- 未知 `AI：旧状态` 在 AI inactive 阶段可被清理。
-- legacy 暂停的可迁移与歧义路径。
-- 重复操作的 no-op 结果。
+1. 先写一个通过公开 Interface 描述单一行为的失败测试。
+2. 只实现让当前测试通过的最小代码。
+3. 当前测试转绿后再进入下一行为。
+4. 当前切片与既有相关测试均为 GREEN 后再小步 refactor，并重新运行测试。
 
-### 12.2 CLI integration tests
+禁止先批量写完 domain tests，再集中实现全部状态规则。测试不 mock domain 或 command
+内部协作者；GitHub、文件系统和进程执行等系统边界可以使用仓库已有 fake 或受控测试
+替身。
 
-保护调用方可观察行为：
+### 12.2 纵向行为切片
 
-- `state decide` 与 `update-status` 对同一输入产生一致标签计划。
-- 默认 intent 保持现有 `update-status` 调用兼容。
-- 暂停时不能借目标暂停标签修改阶段。
-- pause、resume、retry 与 lifecycle intent 的参数约束。
-- stdout/stderr、exit code、schema version 和稳定 blocked reason。
-- dry-run 不执行 GitHub mutation。
-- 非 dry-run 使用最新 GitHub 标签重新检查暂停状态。
-- comment 不会在标签 mutation 被阻断时单独执行。
+按以下优先级逐个推进，每个切片都遵循一条测试对应一次最小实现：
 
-### 12.3 Parser、Skill 与 fixture tests
+1. `pause` 在 `AI：等待人工` 上保留工作状态并增加人工暂停信号。
+2. `resume` 只移除人工暂停信号。
+3. `pause` 将 `AI：处理中` 退回 `AI：等待执行`。
+4. 人工暂停阻断 content transition，且不产生 comment 或标签 mutation。
+5. 合法 lifecycle transition 在暂停期间仍可进入 AI inactive 阶段并清理 AI 与暂停标签。
+6. `retry` 只允许 `AI：失败 → AI：等待执行`，暂停时保持阻断。
+7. 人工暂停与 Head SHA 不一致同时存在时，内容 mutation 优先返回 `AI_PAUSED`。
+8. AI inactive 阶段清理所有 `AI：*` 和人工暂停信号，重复操作返回 no-op。
+9. 活跃阶段缺少或包含多个 AI 工作状态时拒绝 mutation，不产生 operation。
+10. `state decide` 与 `update-status --dry-run` 对同一显式 intent 产生相同标签计划。
+11. 非 dry-run 在 mutation 前读取最新 GitHub 标签；若最新状态已暂停，不产生任何外部
+    mutation。
+12. 固定命令 parser、Issue 模板、Skill 和 eval fixture 切换到新暂停模型。
 
-- 固定命令只接受精确格式、授权用户和非 bot 来源。
-- Issue 模板初始状态改为 `阶段：选题 + AI：等待人工`。
-- 生成与润色 Skill 使用新暂停标签作为停止条件。
-- paused eval fixture 同时保留正常 AI 工作状态和新暂停标签。
-- 文档、CLI reference、fixture 与代码标签目录一致。
+优先通过导出的 domain Interface 和真实 CLI 进程验证行为。非 dry-run integration
+test 只替换 `gh` 外部边界，不 mock domain 决策或 command Adapter。
 
-测试不绑定私有函数、内部调用次数、人类可读 message 完整措辞或 fixture 完整快照。
+### 12.3 断言边界
+
+测试精确断言稳定机器协议：
+
+- exit code、stdout/stderr 边界和 `schema_version`。
+- `mutation_allowed`、稳定错误码或 `blocked_reason`。
+- intent、状态标签和 mutation plan 是否为空。
+- dry-run 与阻断路径没有外部副作用。
+
+状态标签、intent 和错误码属于机器协议标识符，必须精确断言。测试不精确匹配人类可读
+文字、语言、词语、完整 message、列表顺序或 fixture 全量快照。
+
+Parser 测试验证支持的命令类型、结构化参数、授权与 bot 过滤，并保留少量代表性拒绝
+案例；不为大小写、空格和近似措辞建立穷举矩阵。Skill 与 eval 验证“停止且无写文件、
+commit、PR 或状态 mutation”等可观察效果，不匹配固定中文句子。
+
+不编写墓碑测试，不编写 migration test。旧 `AI：已暂停` 的人工清理通过上线 checklist
+确认，不进入自动化测试；也不新增仅用于证明旧默认行为已消失的测试。
 
 ## 13. 实施顺序
 
-1. 用失败的 domain tests 固定三维状态模型、intent 和 legacy 行为。
-2. 深化 domain 状态 mutation Module，删除 command 中重复的状态目录和决策。
-3. 接入 `state decide` 与 `update-status`，补 CLI integration tests。
-4. 扩展固定命令 parser。
-5. 更新 Issue 模板、Skill、eval fixture 和状态文档。
+1. 先完成人工标签清理 checklist，确认生产数据不再使用 `AI：已暂停`。
+2. 从第一个 pause tracer bullet 开始，逐个执行第 12.2 节的 RED → GREEN。
+3. 在行为测试持续为 GREEN 的前提下深化 domain 状态 mutation Module，删除 command
+   中重复的状态目录和决策。
+4. 每接入一个 command 行为就补对应公开 Interface 测试，不预先批量铺设测试。
+5. 完成 parser、Issue 模板、Skill、eval fixture 和状态文档切换。
 6. 运行 build、全部测试以及 Skill contract tests。
 
 每一步只处理当前状态模型，不顺带重构其他 CLI command。
@@ -470,8 +480,9 @@ Domain 决策顺序固定为：
 - phase、AI 工作状态、AI inactive 阶段和暂停标签只在 domain Module 定义一次。
 - `state decide` 与 `update-status` 不再包含独立业务决策。
 - 新状态可以无损暂停和恢复，不需要额外持久化“暂停前状态”。
-- legacy 状态无法唯一恢复时明确阻断，人工可显式选择目标状态。
+- 上线前已人工清理旧 `AI：已暂停`，生产代码没有 legacy 兼容或迁移分支。
 - 暂停阻断内容 mutation，但不阻断恢复和合法 lifecycle transition。
-- 所有 AI inactive 阶段都清除正常、未知和新旧暂停标签。
-- 现有 CLI contract 保持兼容，新增 intent 有稳定文档和测试。
+- 所有 AI inactive 阶段都清除正常、未知 AI 标签和人工暂停信号。
+- `state decide` fixture 与 `update-status` 都要求显式 intent，且有稳定文档和测试。
+- 测试遵循纵向 TDD，不包含墓碑测试、migration test 或人类文案精确匹配。
 - build、全部测试和相关 Skill contract tests 通过。
