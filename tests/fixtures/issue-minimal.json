@@ -59,6 +59,15 @@
         "type": "User",
         "association": "MEMBER"
       }
+    },
+    {
+      "id": 1006,
+      "body": "/ai 暂停",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
     }
   ],
   "unexpected_future_field": {

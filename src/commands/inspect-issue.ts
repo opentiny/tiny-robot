@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-import { parseAiCommand } from "../domain/command-parser.js";
+import { parseAiCommand, type ParsedAiCommand } from "../domain/command-parser.js";
 import { ArticleHubError } from "../infrastructure/errors.js";
 
 interface IssueActor {
@@ -26,6 +26,7 @@ interface IssueDocument {
   comments?: unknown;
 }
 
+/** inspect-issue command 的文件输入和 dry-run 标记。 */
 export interface InspectIssueOptions {
   issueFile: string;
   dryRun: boolean;
@@ -34,9 +35,11 @@ export interface InspectIssueOptions {
 const authorizedAssociations = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
 /**
- * 读取本地 Issue JSON fixture，提取只读事实和可识别固定命令。
+ * 读取 Issue fixture，输出标签事实和经过权限、bot 过滤的固定命令。
  *
- * 该命令不执行任何 mutation；`actionable` 仅表示命令在权限和 bot 过滤后可进入后续处理器。
+ * @param options Issue 文件路径和 dry-run 标记。
+ * @returns 版本化 Issue 事实与命令 envelope。
+ * @throws ArticleHubError 当 Issue 文件缺失或 JSON 无效时抛出。
  */
 export async function inspectIssue(options: InspectIssueOptions): Promise<unknown> {
   const document = await readIssueDocument(options.issueFile);
@@ -56,14 +59,7 @@ export async function inspectIssue(options: InspectIssueOptions): Promise<unknow
     commands: comments.map((comment) => {
       const actor = normalizeActor(comment.author ?? comment.user);
       const parsed = typeof comment.body === "string" ? parseAiCommand(comment.body) : null;
-      const wireParsed =
-        parsed?.kind === "approve-writing-plan"
-          ? {
-              kind: parsed.kind,
-              plan_version: parsed.planVersion,
-              hash_prefix: parsed.hashPrefix
-            }
-          : null;
+      const wireParsed = toWireCommand(parsed);
 
       return {
         source: "comment",
@@ -74,6 +70,24 @@ export async function inspectIssue(options: InspectIssueOptions): Promise<unknow
         actionable: wireParsed !== null && actor.authorized
       };
     })
+  };
+}
+
+function toWireCommand(parsed: ParsedAiCommand | null) {
+  if (!parsed) {
+    return null;
+  }
+
+  if (parsed.kind === "approve-writing-plan") {
+    return {
+      kind: parsed.kind,
+      plan_version: parsed.planVersion,
+      hash_prefix: parsed.hashPrefix
+    };
+  }
+
+  return {
+    kind: parsed.kind
   };
 }
 

@@ -27,8 +27,8 @@ interface InspectIssueOutput {
     };
     parsed: {
       kind: string;
-      plan_version: number;
-      hash_prefix: string;
+      plan_version?: number;
+      hash_prefix?: string;
     } | null;
     actionable: boolean;
   }>;
@@ -99,13 +99,29 @@ describe("article-hub inspect-issue", () => {
     });
   });
 
-  test("非批准命令不可执行", () => {
+  test("非固定命令不可执行", () => {
     const output = inspectFixtureIssue();
-    const command = output.commands.find((item) => item.comment_id === 1005);
+    const command = output.commands.find((item) => item.comment_id === 1004);
 
     expect(command).toMatchObject({
       parsed: null,
       actionable: false
+    });
+  });
+
+  test("授权固定控制命令输出结构化 kind", () => {
+    const output = inspectFixtureIssue();
+    const command = output.commands.find((item) => item.parsed?.kind === "pause");
+
+    expect(command).toMatchObject({
+      actor: {
+        authorized: true,
+        bot: false
+      },
+      parsed: {
+        kind: "pause"
+      },
+      actionable: true
     });
   });
 
