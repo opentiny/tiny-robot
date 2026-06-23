@@ -9,6 +9,7 @@ import {
   repositoryRoot,
   runArticleHubCli
 } from "../support/cli.js";
+import { createFakeGh } from "../support/fake-gh.js";
 
 const issueFixture = path.join(repositoryRoot, "tests/fixtures/issue-minimal.json");
 
@@ -199,5 +200,51 @@ describe("article-hub update-status CLI", () => {
     expect(new Set(updateOutput.labels_to_add)).toEqual(
       new Set(stateOutput.decision.labels_to_add)
     );
+  });
+
+  test("非 dry-run 使用最新 GitHub 标签重新检查暂停", async () => {
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"]);
+    const fakeGh = await createFakeGh({
+      number: 51,
+      labels: [
+        { name: "阶段：写作" },
+        { name: "AI：等待人工" },
+        { name: "AI执行：人工暂停" }
+      ]
+    });
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--repository",
+        "hexqi/ai-article-hub",
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：审核",
+        "--ai-state",
+        "AI：等待人工",
+        "--comment",
+        "must not be posted"
+      ],
+      { env: fakeGh.env }
+    );
+
+    expectSuccessfulEnvelope(result, "article-hub.update-status", {
+      mutation_allowed: false,
+      blocked_reason: "AI_PAUSED",
+      mutation_plan: {
+        operations: []
+      }
+    });
+    const calls = await fakeGh.readCalls();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual(
+      expect.arrayContaining(["issue", "view", "51", "number,labels"])
+    );
+    expect(calls.flat()).not.toContain("edit");
+    expect(calls.flat()).not.toContain("comment");
   });
 });

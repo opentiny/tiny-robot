@@ -27,15 +27,19 @@ export interface CliResult {
  * 通过真实 Node 进程调用 article-hub CLI，覆盖参数解析和 stdout/stderr 序列化。
  *
  * @param args CLI 参数，不包含 Node、tsx 和入口文件。
- * @param options 可选工作目录；默认使用仓库根目录。
+ * @param options 可选工作目录和子进程环境变量。
  * @returns 子进程执行结果，stdout/stderr 已按 UTF-8 解码。
  */
 export function runArticleHubCli(
   args: string[],
-  options: { cwd?: string } = {}
+  options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}
 ): CliResult {
   return spawnSync(process.execPath, ["--import", "tsx", cliPath, ...args], {
     cwd: options.cwd ?? repositoryRoot,
+    env: {
+      ...process.env,
+      ...options.env
+    },
     encoding: "utf8"
   });
 }

@@ -33,7 +33,10 @@ export interface UpdateIssueStatusOptions {
 export async function updateIssueStatus(options: UpdateIssueStatusOptions): Promise<unknown> {
   const issue = await readIssueDocument(options.issueFile);
   const issueNumber = readIssueNumber(issue.number);
-  const currentLabels = normalizeLabels(issue.labels);
+  const fixtureLabels = normalizeLabels(issue.labels);
+  const currentLabels = options.dryRun
+    ? fixtureLabels
+    : await readLatestIssueLabels(issueNumber, options.repository);
   const intent = readStateMutationIntent(
     {
       intent: options.intent,
@@ -125,6 +128,22 @@ function normalizeLabels(value: unknown): string[] {
 
     return [];
   });
+}
+
+async function readLatestIssueLabels(issueNumber: number, repository: string): Promise<string[]> {
+  const raw = await runCommand(
+    "gh",
+    ["issue", "view", String(issueNumber), "--repo", repository, "--json", "number,labels"],
+    { errorCode: "GITHUB_COMMAND_FAILED" }
+  );
+
+  try {
+    const document = JSON.parse(raw) as IssueDocument;
+
+    return normalizeLabels(document.labels);
+  } catch {
+    throw new ArticleHubError("GITHUB_COMMAND_FAILED", "GitHub Issue 输出不是有效 JSON");
+  }
 }
 
 function buildStatusOperations(options: {
