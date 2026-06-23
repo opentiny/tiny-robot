@@ -262,6 +262,26 @@ article-hub update-status \
 | `--ai-state` | ❌ | AI 处理状态 |
 | `--comment` | ❌ | 附加评论内容 |
 
+`--phase` 只接受以下值：
+
+- `阶段：选题`
+- `阶段：策划`
+- `阶段：写作`
+- `阶段：审核`
+- `阶段：待发布`
+- `阶段：已发布`
+- `阶段：已终止`
+
+`--ai-state` 只接受以下值：
+
+- `AI：等待执行`
+- `AI：处理中`
+- `AI：等待人工`
+- `AI：失败`
+- `AI：已暂停`
+
+状态值必须精确匹配；传入其他值时返回 `INVALID_STATE`，退出码为 `2`。
+
 ---
 
 ### `doctor`
@@ -347,15 +367,30 @@ article-hub reconcile --state-file <path>
 }
 ```
 
-### 常见错误码
+### 错误码
 
 | 错误码 | 说明 |
 |--------|------|
 | `UNKNOWN_COMMAND` | 未知命令或子命令 |
-| `MISSING_ARGUMENT` | 缺少必要参数或参数值 |
 | `UNKNOWN_OPTION` | 传入了未知的 `--` 选项 |
 | `UNEXPECTED_ARGUMENT` | 传入了多余的位置参数 |
+| `MISSING_ARGUMENT` | 缺少必要参数、参数值或参数值无效 |
+| `MISSING_ISSUE_FILE` | Issue 文件缺少必要字段 |
+| `ISSUE_FILE_NOT_FOUND` | Issue 文件不存在 |
+| `ARTICLE_FILE_NOT_FOUND` | 文章文件不存在 |
+| `INVALID_JSON` | 输入文件不是有效 JSON |
+| `PLAN_FILE_NOT_FOUND` | 写作计划文件不存在 |
+| `STATE_FILE_NOT_FOUND` | 状态文件不存在 |
+| `PROJECT_CONFIG_NOT_FOUND` | 项目配置文件不存在 |
+| `INVALID_PLAN` | 写作计划结构或字段无效 |
+| `INVALID_STATE` | 状态值无效 |
+| `INVALID_PROJECT_CONFIG` | 项目配置格式、结构或字段无效 |
+| `UNKNOWN_PROJECT` | 项目未配置在 allowlist 中 |
+| `UNSAFE_PATH` | 路径或路径相关参数不满足安全约束 |
+| `ARTICLE_VALIDATION_FAILED` | 文章内容或 Front Matter 校验失败 |
 | `CONFIRMATION_REQUIRED` | 写操作缺少显式确认，例如 `setup` 未传 `--yes` |
+| `GIT_COMMAND_FAILED` | Git 命令执行失败或结果不符合预期 |
+| `GITHUB_COMMAND_FAILED` | GitHub CLI 命令执行失败 |
 
 ---
 
