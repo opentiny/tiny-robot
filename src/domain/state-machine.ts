@@ -179,6 +179,13 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
   }
 
   if (
+    current.paused &&
+    (input.intent.kind === "content-transition" || input.intent.kind === "retry")
+  ) {
+    return blocked("AI_PAUSED");
+  }
+
+  if (
     input.intent.kind === "content-transition" &&
     input.expectedHeadSha &&
     input.currentHeadSha &&
@@ -187,7 +194,58 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
     return blocked("HEAD_SHA_MISMATCH");
   }
 
+  if (input.intent.kind === "content-transition") {
+    if (
+      AI_INACTIVE_PHASES.has(input.intent.targetPhase) ||
+      !isAllowedContentTransition(current.phase, input.intent.targetPhase)
+    ) {
+      return blocked("INVALID_TRANSITION");
+    }
+
+    return planTargetState(
+      input.labels,
+      input.intent.targetPhase,
+      input.intent.targetAiStatus,
+      false
+    );
+  }
+
   return blocked("INVALID_TRANSITION");
+}
+
+function isAllowedContentTransition(current: PhaseLabel, target: PhaseLabel): boolean {
+  return (
+    current === target ||
+    (current === "阶段：选题" && target === "阶段：策划") ||
+    (current === "阶段：策划" && target === "阶段：写作")
+  );
+}
+
+function planTargetState(
+  labels: string[],
+  targetPhase: PhaseLabel,
+  targetAiStatus: AiStatusLabel | null,
+  keepPause: boolean
+): StateMutationDecision {
+  const labelsToRemove = labels.filter((label) => {
+    if (isPhaseLabel(label)) {
+      return label !== targetPhase;
+    }
+
+    if (label.startsWith("AI：")) {
+      return label !== targetAiStatus;
+    }
+
+    return label === MANUAL_PAUSE_LABEL && !keepPause;
+  });
+  const targets = [
+    targetPhase,
+    ...(targetAiStatus ? [targetAiStatus] : []),
+    ...(keepPause ? [MANUAL_PAUSE_LABEL] : [])
+  ];
+  const labelsToAdd = targets.filter((label) => !labels.includes(label));
+
+  return allowed(labelsToRemove, labelsToAdd);
 }
 
 function readCurrentState(labels: string[], intent: StateMutationIntent): CurrentState | null {

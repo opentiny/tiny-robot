@@ -84,6 +84,93 @@ describe("decideStateMutation", () => {
     });
   });
 
+  test("人工暂停优先阻断内容状态推进", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：策划", "AI：等待人工", "AI执行：人工暂停"],
+      intent: {
+        kind: "content-transition",
+        targetPhase: "阶段：写作",
+        targetAiStatus: "AI：等待执行"
+      }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "AI_PAUSED",
+      labelsToRemove: [],
+      labelsToAdd: []
+    });
+  });
+
+  test("批准写作计划时从策划进入写作等待执行", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：策划", "AI：等待人工"],
+      intent: {
+        kind: "content-transition",
+        targetPhase: "阶段：写作",
+        targetAiStatus: "AI：等待执行"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToRemove).toEqual(
+      expect.arrayContaining(["阶段：策划", "AI：等待人工"])
+    );
+    expect(decision.labelsToAdd).toEqual(
+      expect.arrayContaining(["阶段：写作", "AI：等待执行"])
+    );
+  });
+
+  test("批准选题时从选题进入策划等待执行", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：选题", "AI：等待人工"],
+      intent: {
+        kind: "content-transition",
+        targetPhase: "阶段：策划",
+        targetAiStatus: "AI：等待执行"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToAdd).toEqual(
+      expect.arrayContaining(["阶段：策划", "AI：等待执行"])
+    );
+  });
+
+  test("执行器认领时允许同阶段进入处理中", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：等待执行"],
+      intent: {
+        kind: "content-transition",
+        targetPhase: "阶段：写作",
+        targetAiStatus: "AI：处理中"
+      }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: true,
+      blockedReason: null,
+      labelsToRemove: ["AI：等待执行"],
+      labelsToAdd: ["AI：处理中"]
+    });
+  });
+
+  test("内容 intent 拒绝未列出的阶段边", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：等待人工"],
+      intent: {
+        kind: "content-transition",
+        targetPhase: "阶段：选题",
+        targetAiStatus: "AI：等待人工"
+      }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "INVALID_TRANSITION"
+    });
+  });
+
   test("终止或完成状态必须清理 AI 活动状态", () => {
     const decision = decideStateMutation({
       labels: ["阶段：已终止", "AI：处理中", "AI：旧状态", "AI：等待人工", "其他"],
