@@ -16,12 +16,12 @@ OpenTiny AI 文章生成流水线的本地输出库。它把选题 Issue、资�
 前置条件：
 
 - Node.js `>=20.0.0`
-- pnpm `10.34.1`
+- pnpm `>=10 <11`
 - GitHub CLI，并已完成 `gh auth status`
 
 ```sh
 corepack enable
-corepack prepare pnpm@10.34.1 --activate
+corepack prepare pnpm@10 --activate
 pnpm install
 pnpm test
 pnpm run build
