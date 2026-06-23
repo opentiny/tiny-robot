@@ -36,10 +36,21 @@ function createTemporaryDirectory(prefix = "article validation "): string {
   return directory;
 }
 
+function readArticleFixture(): string {
+  return readFileSync(validArticlePath, "utf8").replace(/\r\n/g, "\n");
+}
+
 function writeVariant(name: string, transform: (content: string) => string): string {
   const tmp = createTemporaryDirectory();
   const target = path.join(tmp, `${name}.md`);
-  writeFileSync(target, transform(readFileSync(validArticlePath, "utf8")), "utf8");
+  const source = readArticleFixture();
+  const transformed = transform(source);
+
+  if (transformed === source) {
+    throw new Error(`文章变体 ${name} 未修改 fixture`);
+  }
+
+  writeFileSync(target, transformed, "utf8");
   return target;
 }
 
@@ -57,7 +68,7 @@ function writeArticleWithAssets(
     writeFileSync(targetAsset, content);
   }
 
-  writeFileSync(target, transform(readFileSync(validArticlePath, "utf8")), "utf8");
+  writeFileSync(target, transform(readArticleFixture()), "utf8");
   return target;
 }
 
