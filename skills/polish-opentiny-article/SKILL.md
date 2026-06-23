@@ -122,7 +122,7 @@ article-hub create-pr \
 article-hub update-status \
   --issue-file <issue.json> \
   --repository hexqi/ai-article-hub \
-  --intent lifecycle-transition \
+  --intent content-transition \
   --phase "阶段：审核" \
   --ai-state "AI：等待人工" \
   --comment "已处理本轮修改意见，请重新 Review。"

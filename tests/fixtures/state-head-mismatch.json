@@ -1,8 +1,0 @@
-{
-  "labels": ["阶段：审核", "AI：处理中"],
-  "intent": "content-transition",
-  "phase": "阶段：审核",
-  "ai_state": "AI：等待人工",
-  "expected_head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "current_head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-}

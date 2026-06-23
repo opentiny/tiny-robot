@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 import {
+  expectErrorEnvelope,
   expectSuccessfulEnvelope,
   repositoryRoot,
   runArticleHubCli
@@ -97,11 +98,13 @@ describe("article-hub update-status CLI", () => {
         issue: {
           number: 42
         },
-        mutation_allowed: true,
-        labels_to_remove: ["阶段：策划", "AI：等待人工"],
-        labels_to_add: ["阶段：写作", "AI：处理中"]
+        mutation_allowed: true
       }
     );
+    expect(new Set(output.labels_to_remove)).toEqual(
+      new Set(["阶段：策划", "AI：等待人工"])
+    );
+    expect(new Set(output.labels_to_add)).toEqual(new Set(["阶段：写作", "AI：处理中"]));
     expect(output.mutation_plan.operations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: "gh-issue-edit-labels" }),
@@ -200,6 +203,31 @@ describe("article-hub update-status CLI", () => {
     expect(new Set(updateOutput.labels_to_add)).toEqual(
       new Set(stateOutput.decision.labels_to_add)
     );
+  });
+
+  test("非 dry-run 先校验 intent，非法目标状态不读取远端标签", async () => {
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"]);
+    const fakeGh = await createFakeGh({
+      number: 51,
+      labels: [{ name: "阶段：写作" }, { name: "AI：等待人工" }]
+    });
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--repository",
+        "hexqi/ai-article-hub",
+        "--intent",
+        "pause",
+        "--phase",
+        "阶段：审核"
+      ],
+      { env: fakeGh.env }
+    );
+
+    expectErrorEnvelope(result, "INVALID_STATE", 2);
+    await expect(fakeGh.readCalls()).resolves.toEqual([]);
   });
 
   test("非 dry-run 使用最新 GitHub 标签重新检查暂停", async () => {

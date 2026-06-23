@@ -98,13 +98,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 9. 更新 Issue 状态：
 
    ```sh
-  article-hub update-status \
-    --issue-file <issue.json> \
-    --repository hexqi/ai-article-hub \
-    --intent content-transition \
-    --phase "阶段：写作" \
-    --ai-state "AI：等待人工" \
-    --comment "初稿已生成，Draft PR 已创建。"
+   article-hub update-status \
+     --issue-file <issue.json> \
+     --repository hexqi/ai-article-hub \
+     --intent content-transition \
+     --phase "阶段：写作" \
+     --ai-state "AI：等待人工" \
+     --comment "初稿已生成，Draft PR 已创建。"
    ```
 
 ## 停止条件

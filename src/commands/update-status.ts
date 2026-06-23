@@ -33,10 +33,6 @@ export interface UpdateIssueStatusOptions {
 export async function updateIssueStatus(options: UpdateIssueStatusOptions): Promise<unknown> {
   const issue = await readIssueDocument(options.issueFile);
   const issueNumber = readIssueNumber(issue.number);
-  const fixtureLabels = normalizeLabels(issue.labels);
-  const currentLabels = options.dryRun
-    ? fixtureLabels
-    : await readLatestIssueLabels(issueNumber, options.repository);
   const intent = readStateMutationIntent(
     {
       intent: options.intent,
@@ -45,6 +41,10 @@ export async function updateIssueStatus(options: UpdateIssueStatusOptions): Prom
     },
     new Set(["content-transition", "lifecycle-transition", "pause", "resume", "retry"])
   );
+  const fixtureLabels = normalizeLabels(issue.labels);
+  const currentLabels = options.dryRun
+    ? fixtureLabels
+    : await readLatestIssueLabels(issueNumber, options.repository);
   const decision = decideStateMutation({
     labels: currentLabels,
     intent,
