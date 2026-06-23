@@ -149,6 +149,10 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
       return allowed();
     }
 
+    if (current.aiStatus === "AI：处理中") {
+      return allowed(["AI：处理中"], ["AI：等待执行", MANUAL_PAUSE_LABEL]);
+    }
+
     return allowed([], [MANUAL_PAUSE_LABEL]);
   }
 

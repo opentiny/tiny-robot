@@ -31,6 +31,19 @@ describe("decideStateMutation", () => {
     });
   });
 
+  test("暂停处理中任务时退回等待执行", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：处理中"],
+      intent: { kind: "pause" }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToRemove).toEqual(expect.arrayContaining(["AI：处理中"]));
+    expect(decision.labelsToAdd).toEqual(
+      expect.arrayContaining(["AI：等待执行", "AI执行：人工暂停"])
+    );
+  });
+
   test("恢复只移除人工暂停信号", () => {
     const decision = decideStateMutation({
       labels: ["阶段：写作", "AI：等待人工", "AI执行：人工暂停"],
