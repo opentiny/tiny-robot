@@ -210,6 +210,27 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
     );
   }
 
+  if (input.intent.kind === "lifecycle-transition") {
+    if (!isAllowedLifecycleTransition(current.phase, input.intent.targetPhase)) {
+      return blocked("INVALID_TRANSITION");
+    }
+
+    if (AI_INACTIVE_PHASES.has(input.intent.targetPhase)) {
+      return planTargetState(input.labels, input.intent.targetPhase, null, false);
+    }
+
+    if (!input.intent.targetAiStatus) {
+      return blocked("INVALID_TRANSITION");
+    }
+
+    return planTargetState(
+      input.labels,
+      input.intent.targetPhase,
+      input.intent.targetAiStatus,
+      current.paused
+    );
+  }
+
   return blocked("INVALID_TRANSITION");
 }
 
@@ -218,6 +239,20 @@ function isAllowedContentTransition(current: PhaseLabel, target: PhaseLabel): bo
     current === target ||
     (current === "阶段：选题" && target === "阶段：策划") ||
     (current === "阶段：策划" && target === "阶段：写作")
+  );
+}
+
+function isAllowedLifecycleTransition(current: PhaseLabel, target: PhaseLabel): boolean {
+  if (!AI_INACTIVE_PHASES.has(current) && target === "阶段：已终止") {
+    return true;
+  }
+
+  return (
+    (current === "阶段：写作" && target === "阶段：审核") ||
+    (current === "阶段：审核" && target === "阶段：写作") ||
+    (current === "阶段：审核" && target === "阶段：待发布") ||
+    (current === "阶段：待发布" && target === "阶段：已发布") ||
+    (current === "阶段：已终止" && target === "阶段：策划")
   );
 }
 

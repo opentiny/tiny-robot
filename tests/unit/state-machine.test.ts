@@ -171,6 +171,100 @@ describe("decideStateMutation", () => {
     });
   });
 
+  test("暂停期间仍允许合并进入待发布并清理 AI 状态", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：审核", "AI：等待人工", "AI执行：人工暂停"],
+      intent: {
+        kind: "lifecycle-transition",
+        targetPhase: "阶段：待发布"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToRemove).toEqual(
+      expect.arrayContaining(["阶段：审核", "AI：等待人工", "AI执行：人工暂停"])
+    );
+    expect(decision.labelsToAdd).toEqual(["阶段：待发布"]);
+  });
+
+  test("暂停期间回到写作阶段时保持人工暂停", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：审核", "AI：等待人工", "AI执行：人工暂停"],
+      intent: {
+        kind: "lifecycle-transition",
+        targetPhase: "阶段：写作",
+        targetAiStatus: "AI：等待人工"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToAdd).toEqual(expect.arrayContaining(["阶段：写作"]));
+    expect(decision.labelsToRemove).not.toContain("AI执行：人工暂停");
+  });
+
+  test("Ready for review 时从写作进入审核", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：等待人工"],
+      intent: {
+        kind: "lifecycle-transition",
+        targetPhase: "阶段：审核",
+        targetAiStatus: "AI：等待人工"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToAdd).toContain("阶段：审核");
+  });
+
+  test("活跃阶段可以进入已终止并清理 AI 状态", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：等待人工"],
+      intent: {
+        kind: "lifecycle-transition",
+        targetPhase: "阶段：已终止"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToAdd).toEqual(["阶段：已终止"]);
+    expect(decision.labelsToRemove).toEqual(
+      expect.arrayContaining(["阶段：写作", "AI：等待人工"])
+    );
+  });
+
+  test("发布完成时从待发布进入已发布", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：待发布"],
+      intent: {
+        kind: "lifecycle-transition",
+        targetPhase: "阶段：已发布"
+      }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: true,
+      blockedReason: null,
+      labelsToRemove: ["阶段：待发布"],
+      labelsToAdd: ["阶段：已发布"]
+    });
+  });
+
+  test("已终止 Issue reopen 后回到策划等待人工", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：已终止"],
+      intent: {
+        kind: "lifecycle-transition",
+        targetPhase: "阶段：策划",
+        targetAiStatus: "AI：等待人工"
+      }
+    });
+
+    expect(decision.mutationAllowed).toBe(true);
+    expect(decision.labelsToAdd).toEqual(
+      expect.arrayContaining(["阶段：策划", "AI：等待人工"])
+    );
+  });
+
   test("终止或完成状态必须清理 AI 活动状态", () => {
     const decision = decideStateMutation({
       labels: ["阶段：已终止", "AI：处理中", "AI：旧状态", "AI：等待人工", "其他"],
