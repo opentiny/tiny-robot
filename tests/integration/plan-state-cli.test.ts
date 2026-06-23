@@ -160,7 +160,9 @@ describe("article-hub plan/state CLI", () => {
     expectSuccessfulEnvelope(paused, "article-hub.state.decide", {
       decision: {
         mutation_allowed: false,
-        blocked_reason: "AI_PAUSED"
+        blocked_reason: "AI_PAUSED",
+        labels_to_remove: [],
+        labels_to_add: []
       }
     });
   });

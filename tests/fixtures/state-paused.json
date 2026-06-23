@@ -1,5 +1,8 @@
 {
-  "labels": ["阶段：写作", "AI：已暂停"],
+  "labels": ["阶段：写作", "AI：等待人工", "AI执行：人工暂停"],
+  "intent": "content-transition",
+  "phase": "阶段：审核",
+  "ai_state": "AI：等待人工",
   "expected_head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "current_head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 }
