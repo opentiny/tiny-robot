@@ -36,7 +36,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    article-hub inspect-issue --issue-file <issue.json>
    ```
 
-   `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停，`commands[].actionable` 决定是否已批准。读到标签含 `AI：已暂停` 立即停止。
+   `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停，`commands[].actionable` 决定是否已批准。读到标签含 `AI执行：人工暂停` 立即停止。
 
 2. 校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 
@@ -98,19 +98,20 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 9. 更新 Issue 状态：
 
    ```sh
-   article-hub update-status \
-     --issue-file <issue.json> \
-     --repository hexqi/ai-article-hub \
-     --phase "阶段：写作" \
-     --ai-state "AI：等待人工" \
-     --comment "初稿已生成，Draft PR 已创建。"
+  article-hub update-status \
+    --issue-file <issue.json> \
+    --repository hexqi/ai-article-hub \
+    --intent content-transition \
+    --phase "阶段：写作" \
+    --ai-state "AI：等待人工" \
+    --comment "初稿已生成，Draft PR 已创建。"
    ```
 
 ## 停止条件
 
 出现以下任一情况立即停止，不写作、不提交新 Commit、不创建 PR，并说明停在哪一步、缺什么、需要人工做什么决定：
 
-- Issue 标签含 `AI：已暂停`——这是人工显式叫停信号，优先级高于任何待办步骤。
+- Issue 标签含 `AI执行：人工暂停`——这是人工显式叫停信号，优先级高于任何待办步骤。
 - 写作计划没有 `actionable: true` 的批准命令（无人批准、批准被越权/bot 发出、或只是自然语言表述）。
 - 目标项目不在 `config/projects.yml` 的 allowlist 中。
 - 文章校验反复报某个 `blocking_issues[].code`，且无法在不改动受保护内容（Front Matter、代码、图片路径）的前提下消除。

@@ -219,7 +219,7 @@ Issue 至少写清楚：
 
 要求：
 - 重新读取 Issue 和评论，确认批准命令 actionable: true。
-- 如果 Issue 含 AI：已暂停，立即停止。
+- 如果 Issue 含 AI执行：人工暂停，立即停止。
 - 校验项目属于 config/projects.yml。
 - 固定来源快照后再生成文章。
 - 生成 articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md 和必要素材。
@@ -308,7 +308,7 @@ Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的
 
 出现以下情况时，不要继续让 Agent 写正文或提交 PR：
 
-- Issue 有 `AI：已暂停` 标签。
+- Issue 有 `AI执行：人工暂停` 标签。
 - 写作计划没有固定批准命令。
 - 批准命令版本或 Hash 与当前计划不一致。
 - 批准来自未授权用户或 bot。

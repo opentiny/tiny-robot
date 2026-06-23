@@ -84,7 +84,7 @@ flowchart LR
 - `/ai 批准选题` 后进入策划流程。
 - `/ai 批准写作计划 <plan_version> <hash-prefix>` 与当前计划完全匹配后，直接调用可复用生成 Workflow。
 
-`/ai 暂停` 使用独立控制 job，不进入文章内容 concurrency group。该 job 以 `actions: write` 和 `issues: write` 先设置 `AI：已暂停`、取消对应的 queued/running run，再回复成功。内容 Workflow 在每次 mutation 更新 Git ref 前必须最后一次检查暂停状态。
+`/ai 暂停` 使用独立控制 job，不进入文章内容 concurrency group。该 job 以 `actions: write` 和 `issues: write` 先设置 `AI执行：人工暂停`、取消对应的 queued/running run，再回复成功。内容 Workflow 在每次 mutation 更新 Git ref 前必须最后一次检查暂停状态。
 
 状态命令必须使用确定性解析器，不能交给 LLM 判断批准意图。
 
@@ -282,7 +282,7 @@ permissions:
 职责：
 
 - 再次检查 Issue 阶段、计划版本和 PR Head SHA。
-- 再次检查触发者授权和 `AI：已暂停` 状态。
+- 再次检查触发者授权和 `AI执行：人工暂停` 状态。
 - 创建或复用文章分支。
 - 提交经校验的文件。
 - 为机器人提交后的最新 Head 创建必需 `article-ci` Check Run。
@@ -583,6 +583,6 @@ Workflow 方案进入可实施状态前，至少验证：
 - 同一文章的 Issue 与 PR 事件使用同一个 canonical Issue concurrency group，并启用 `queue: max`。
 - 每个机器人提交后的最新 Head 都存在成功的必需 `article-ci` Check Run。
 - 人工 Commit 发生后，旧 AI artifact 不会覆盖最新 Head。
-- `AI：已暂停` 后在途 artifact 无法提交。
+- `AI执行：人工暂停` 后在途 artifact 无法提交。
 - Linux、macOS、Windows Git Bash CI 通过。
 - 定时 Reconcile 可以恢复“分支已创建但 PR 创建失败”等部分成功状态。

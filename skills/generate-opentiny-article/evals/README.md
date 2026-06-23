@@ -6,7 +6,7 @@
 
 - `evals.json`：3 个场景的测试 prompt + 期望产出 + 断言。
 - `fixtures/approved-issue/`：合法场景。`issue.json` 含 maintainer（MEMBER）发出的固定命令 `/ai 批准写作计划 2 4bdcce36`，`plan.json` 经 `plan hash` 算出的前缀正是 `4bdcce36`，二者自洽。
-- `fixtures/paused-issue/issue.json`：标签含 `AI：已暂停`，且评论里**仍有**一条 actionable 批准命令——用于验证暂停优先于批准。
+- `fixtures/paused-issue/issue.json`：标签同时保留正常 AI 工作状态和独立人工暂停信号，且评论里**仍有**一条 actionable 批准命令——用于验证暂停优先于批准。
 - `fixtures/unapproved-issue/issue.json`：三种“伪批准”——自然语言表述、越权用户（association=NONE）、bot——经 `inspect-issue` 后 `actionable` 全为 false。
 
 > fixture 的 hash 前缀依赖 `plan.json` 内容。若改动 `approved-issue/plan.json`，需重跑 `node dist/cli.js plan hash --plan-file <plan.json>`，并把 `issue.json` 批准命令里的前缀同步更新。

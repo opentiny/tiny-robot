@@ -193,6 +193,15 @@ article-hub state decide --state-file <path>
 |------|------|------|
 | `--state-file` | ✅ | 状态文件路径 |
 
+状态文件必须显式提供 mutation intent：
+
+```json
+{
+  "labels": ["阶段：写作", "AI：等待人工"],
+  "intent": "pause"
+}
+```
+
 ---
 
 ### `validate article`
@@ -249,8 +258,11 @@ article-hub create-pr \
 article-hub update-status \
   --issue-file <path> \
   --repository <owner/repo> \
-  --phase <phase> \
+  --intent <intent> \
+  [--phase <phase>] \
   [--ai-state <state>] \
+  [--expected-head-sha <sha>] \
+  [--current-head-sha <sha>] \
   [--comment <text>]
 ```
 
@@ -258,9 +270,22 @@ article-hub update-status \
 |------|------|------|
 | `--issue-file` | ✅ | Issue JSON 文件路径 |
 | `--repository` | ✅ | 目标仓库（格式：`owner/repo`） |
-| `--phase` | ✅ | 当前阶段标识 |
-| `--ai-state` | ❌ | AI 处理状态 |
+| `--intent` | ✅ | 显式状态 mutation 意图 |
+| `--phase` | ❌ | 目标阶段；内容和 lifecycle 迁移需要 |
+| `--ai-state` | ❌ | 目标 AI 工作状态；目标为活跃阶段时需要 |
+| `--expected-head-sha` | ❌ | 调用方预期 Head SHA |
+| `--current-head-sha` | ❌ | 当前 Head SHA |
 | `--comment` | ❌ | 附加评论内容 |
+
+`--intent` 只接受以下值：
+
+- `content-transition`
+- `lifecycle-transition`
+- `pause`
+- `resume`
+- `retry`
+
+`pause`、`resume` 和 `retry` 不接受目标 `--phase` 或 `--ai-state`。
 
 `--phase` 只接受以下值：
 
@@ -278,7 +303,8 @@ article-hub update-status \
 - `AI：处理中`
 - `AI：等待人工`
 - `AI：失败`
-- `AI：已暂停`
+
+人工暂停信号使用独立标签 `AI执行：人工暂停`，不属于 `--ai-state`。
 
 状态值必须精确匹配；传入其他值时返回 `INVALID_STATE`，退出码为 `2`。
 

@@ -3,7 +3,7 @@ description: 为本地文章生成流程提交 OpenTiny 文章选题。
 title: "[文章] "
 labels:
   - 阶段：选题
-  - AI：等待执行
+  - AI：等待人工
 body:
   - type: dropdown
     id: project
