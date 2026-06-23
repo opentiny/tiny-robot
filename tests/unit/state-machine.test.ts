@@ -102,6 +102,24 @@ describe("decideStateMutation", () => {
     });
   });
 
+  test("人工暂停优先于 Head SHA mismatch", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：审核", "AI：等待人工", "AI执行：人工暂停"],
+      intent: {
+        kind: "content-transition",
+        targetPhase: "阶段：审核",
+        targetAiStatus: "AI：等待执行"
+      },
+      expectedHeadSha: "a".repeat(40),
+      currentHeadSha: "b".repeat(40)
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "AI_PAUSED"
+    });
+  });
+
   test("批准写作计划时从策划进入写作等待执行", () => {
     const decision = decideStateMutation({
       labels: ["阶段：策划", "AI：等待人工"],
@@ -296,6 +314,34 @@ describe("decideStateMutation", () => {
     expect(decision).toMatchObject({
       mutationAllowed: false,
       blockedReason: "AI_PAUSED"
+    });
+  });
+
+  test("活跃阶段存在多个 AI 工作状态时拒绝 mutation", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：写作", "AI：处理中", "AI：等待人工"],
+      intent: { kind: "pause" }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: false,
+      blockedReason: "INVALID_CURRENT_STATE",
+      labelsToRemove: [],
+      labelsToAdd: []
+    });
+  });
+
+  test("合法活跃状态 reconcile 返回 no-op", () => {
+    const decision = decideStateMutation({
+      labels: ["阶段：策划", "AI：等待人工"],
+      intent: { kind: "reconcile" }
+    });
+
+    expect(decision).toMatchObject({
+      mutationAllowed: true,
+      blockedReason: null,
+      labelsToRemove: [],
+      labelsToAdd: []
     });
   });
 

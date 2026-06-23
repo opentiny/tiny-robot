@@ -172,10 +172,14 @@ export function decideStateMutation(input: StateMutationInput): StateMutationDec
     return allowed([MANUAL_PAUSE_LABEL]);
   }
 
-  if (input.intent.kind === "reconcile" && AI_INACTIVE_PHASES.has(current.phase)) {
-    return allowed(
-      input.labels.filter((label) => label.startsWith("AI：") || label === MANUAL_PAUSE_LABEL)
-    );
+  if (input.intent.kind === "reconcile") {
+    if (AI_INACTIVE_PHASES.has(current.phase)) {
+      return allowed(
+        input.labels.filter((label) => label.startsWith("AI：") || label === MANUAL_PAUSE_LABEL)
+      );
+    }
+
+    return allowed();
   }
 
   if (
