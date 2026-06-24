@@ -1,41 +1,74 @@
 # 本地 Agent 生成 OpenTiny 文章使用说明
 
-本文面向使用 Codex、Claude Code 或 OpenCode 在本地生成 OpenTiny 技术文章的同学。你可以把它当成一份操作手册：照着准备 Issue、让 Agent 调研、批准写作计划、生成 Draft PR，再进入人工 Review。
+本文面向运营人员，说明如何使用 Codex 或 Claude Code 在本地生成 OpenTiny 技术文章母稿。你不需要理解 `article-hub` CLI 的内部实现，只需要知道在哪个页面操作、什么时候让 Agent 继续、什么时候请核心技术维护者确认事实。
 
-如果你只想完成一篇文章，不需要先理解 `article-hub` CLI 的全部细节。CLI 主要由 Agent 调用，用来做校验、状态判断和受控的 GitHub 操作。
+当前流程只生成文章母稿和 Draft PR，不自动发布到公众号、掘金、CSDN 或官网。
 
 ## 适用场景
 
 适合使用本文：
 
-- 你已经有一个 OpenTiny 文章选题，想让本地 Agent 辅助生成文章母稿。
-- 你需要把文章产物提交成 Draft PR，交给维护者或运营同学 Review。
-- 你希望后续根据 PR 评论、`Request changes` 或 `/ai` 指令继续让 Agent 修改文章。
+- 已经有一个 OpenTiny 文章选题，需要让本地 Agent 辅助生成文章母稿。
+- 需要把文章产物提交成 Draft PR，交给运营和核心技术维护者 Review。
+- 需要根据 PR 评论、`Request changes` 或 `/ai` 指令继续让 Agent 修改文章。
 
 不适合使用本文：
 
-- 自动发现热点、自动创建选题、自动发布到公众号/掘金/CSDN。
-- 不经过人工批准，直接让 Agent 写完整文章。
+- 自动发现热点、自动创建选题、自动发布到外部平台。
+- 不经过写作计划批准，直接让 Agent 写完整文章。
 - 让 Agent 使用无法追溯的私有资料生成正式对外内容。
 - 把本文当成 CLI 参考手册。命令详情见 [docs/cli-reference.md](./docs/cli-reference.md)。
 
-## 你只需要记住的流程
+## 一句话流程
 
 ```text
-创建或确认文章 Issue
-→ 让 Agent 调研并输出写作计划
-→ 人工检查写作计划
-→ 复制固定批准命令
-→ 让 Agent 生成文章和 Draft PR
-→ 人工 Review
-→ 按 Review 意见继续让 Agent 修改
+GitHub 上创建或确认文章 Issue
+→ 在 Codex / Claude Code 中让 Agent 调研并输出写作计划
+→ 运营初审写作计划
+→ 核心技术维护者确认技术事实
+→ 在 GitHub Issue 中发送固定批准命令
+→ 在 Agent 对话中生成文章和 Draft PR
+→ 运营或技术补充截图、GIF 等图片素材
+→ 运营和核心技术维护者 Review Draft PR
+→ 在 Agent 对话中按 Review 意见修改
+→ 人工确认后在 GitHub 点击 Ready for review
 ```
 
-关键点：写作计划没有批准前，不生成正文、不创建 Draft PR。
+关键点：写作计划没有批准前，不生成正文、不创建 Draft PR。关键技术事实没有确认前，不发送批准命令。
+
+## 参与角色
+
+| 角色 | 负责什么 | 主要操作位置 |
+| --- | --- | --- |
+| 运营人员 | 提出选题，确认读者、标题、大纲、表达、图片效果和发布可读性，推动流程继续。 | GitHub Issue、GitHub PR、Codex / Claude Code 对话 |
+| 核心技术维护者 | 检查事实、术语、版本、Tag、Commit、API、代码片段、兼容性、性能和安全表述。 | GitHub Issue、GitHub PR |
+| Agent | 调研、生成写作计划、写文章、润色、接入素材、按 Review 意见修改。 | Codex / Claude Code 对话 |
+| `article-hub` CLI | 校验项目、解析固定命令、过滤权限和 bot、计算计划 Hash、校验文章、更新状态和创建 Draft PR。 | Agent 自动调用 |
+
+固定批准命令可以由运营人员或核心技术维护者发送，不额外限制角色；当前规则只要求发送者有仓库权限，且命令完全匹配。
+
+## 操作位置速查
+
+| 要做的事 | 在哪里操作 | 谁来做 |
+| --- | --- | --- |
+| 创建文章选题 | GitHub Issue 页面 | 运营人员 |
+| 补充技术边界、版本、代码注意事项 | GitHub Issue 评论 | 核心技术维护者 |
+| 让 Agent 做环境检查 | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
+| 让 Agent 调研和生成写作计划 | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
+| 审核写作计划传播方向 | GitHub Issue 或 Agent 对话 | 运营人员 |
+| 审核写作计划技术事实 | GitHub Issue 评论 | 核心技术维护者 |
+| 发送固定批准命令 | GitHub Issue 评论 | 有权限的运营人员或核心技术维护者 |
+| 生成文章和 Draft PR | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
+| 补充截图、GIF、图片 | GitHub PR、Issue 附件或 Agent 对话 | 运营人员或核心技术维护者提供，Agent 接入 |
+| Review Draft PR | GitHub PR 页面 | 运营人员和核心技术维护者 |
+| 按 Review 意见修改 | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
+| 点击 Ready for review | GitHub PR 页面 | 人工确认后操作 |
+
+默认不需要手动编辑本地文件，不需要手动创建 `articles/.../article.md`、`assets/`、分支或 Draft PR。需要补充本地图片时，把图片路径或附件链接交给 Agent，让 Agent 复制到文章素材目录并更新正文引用。
 
 ## 开始前检查：让 Agent 代查
 
-不需要自己运行技术命令。打开本仓库目录，把下面提示词复制给 Agent，让它帮你检查环境并给出结论。
+不需要自己运行技术命令。打开本仓库目录，把下面提示词复制给 Agent，让它检查环境并给出结论。
 
 可复制提示词：
 
@@ -49,7 +82,6 @@
 - 仓库依赖、测试和构建是否正常。
 - article-hub CLI 是否可用，并且项目配置校验通过。
 - generate-opentiny-article 和 polish-opentiny-article 是否能被当前 Agent 识别。
-- 如果我使用 OpenCode，只确认当前会话是否能发现 Skill，不要展开安装教程。
 
 你可以使用但不限于这些命令：
 - gh auth status
@@ -69,7 +101,7 @@
 你只需要看 Agent 的结论：
 
 - `可以开始`：继续准备文章 Issue。
-- `需要处理`：先按 Agent 给出的“需要我处理”和“你可以代办”修复环境。
+- `需要处理`：先看“需要我处理”和“你可以代办”。权限、账号、仓库访问问题通常需要人工处理；依赖安装、构建和校验通常可以让 Agent 代办。
 - 如果 Agent 说 Skill 无法识别，回到 [INSTALL.md](./INSTALL.md) 重新同步 Skill，或交给技术同学处理。
 
 ## 当前支持范围
@@ -104,6 +136,8 @@
 
 ## 第一步：准备文章 Issue
 
+操作位置：GitHub Issue 页面。
+
 优先使用仓库的文章选题模板：[.github/ISSUE_TEMPLATE/article.yml](./.github/ISSUE_TEMPLATE/article.yml)。
 
 Issue 至少写清楚：
@@ -113,7 +147,15 @@ Issue 至少写清楚：
 - 文风：从当前支持文风里选。
 - 文章目标：这篇文章要解决谁的什么问题。
 - 候选资料：Release、文档、Commit、PR、Demo、Issue 附件或其他公开链接。
-- 人工验收说明：哪些事实、截图、代码片段必须由人确认。
+- 人工验收说明：哪些事实、截图、GIF、代码片段必须由人确认。
+
+建议运营人员在 Issue 中写清楚传播目标，核心技术维护者补充技术边界：
+
+- 目标版本、Tag、Commit 或 Release。
+- 关键 API、配置项、代码片段。
+- 不能写成正式能力的实验特性。
+- 必须人工验证的截图、GIF、Demo 或代码运行结果。
+- 兼容性、性能、安全相关表述的限制条件。
 
 最小示例：
 
@@ -131,8 +173,9 @@ Issue 至少写清楚：
 - 官方文档：请 Agent 调研 opentiny docs 中的 GenUI SDK 页面
 
 人工验收说明：
-- 代码片段需要维护者核对。
-- 如果需要截图，先生成截图需求，不要自动使用未确认截图。
+- 代码片段需要核心技术维护者核对。
+- 如果需要截图或 GIF，先生成素材需求，不要自动使用未确认素材。
+- 兼容性表述需要维护者确认。
 ```
 
 好资料的特点：
@@ -151,7 +194,9 @@ Issue 至少写清楚：
 
 ## 第二步：让 Agent 做调研和写作计划
 
-在 Codex、Claude Code 或 OpenCode 中打开本仓库目录，把 Issue 链接或编号发给 Agent。
+操作位置：Codex / Claude Code 对话。
+
+把 Issue 链接或编号发给 Agent，明确要求只做调研和计划，不生成正文。
 
 可复制提示词：
 
@@ -164,25 +209,90 @@ Issue 至少写清楚：
 - 只做调研和写作计划，不生成正文，不创建 PR。
 - 使用 gh 读取 Issue 原始事实，并用 article-hub 做确定性解析和项目校验。
 - 检查相似 Issue、已有文章和 materials/article-archive。
-- 写清楚计划版本、推荐标题、目标读者、资料快照、建议大纲、素材缺口、人工验收项。
-- 最后给出可复制的批准命令：/ai 批准写作计划 <plan_version> <hash-prefix>。
+- 写清楚计划版本、推荐标题、目标读者、资料快照、建议大纲、截图/GIF 素材需求、素材缺口、人工验收项。
+- 给出可复制的批准命令：/ai 批准写作计划 <plan_version> <hash-prefix>。
 ```
 
-你需要重点检查写作计划里的这些内容：
+写作计划需要包含：
+
+- 计划版本、生成时间和 Hash 前缀。
+- 文章目标、目标读者和不覆盖内容。
+- 推荐标题和候选标题。
+- 目标 Release、Tag、分支和 Commit。
+- 来源清单和可信度。
+- 建议大纲。
+- 截图、GIF、Mermaid 或其他图片素材计划。
+- 素材缺口、风险和人工验收项。
+- 可复制的批准命令。
+
+## 第三步：运营初审和技术事实确认
+
+操作位置：GitHub Issue 评论，必要时也可以在 Agent 对话中请 Agent 修改计划。
+
+### 运营初审
+
+运营人员重点检查：
 
 - 文章目标是否准确。
-- 读者是否明确。
-- 推荐标题是否可接受。
-- 大纲是否符合传播和技术目标。
-- 来源是否可信、可追溯。
-- 目标版本、Tag、Commit 是否固定。
-- 素材缺口和人工验收项是否完整。
+- 目标读者是否明确。
+- 推荐标题是否适合发布。
+- 大纲是否符合传播目标。
+- 文风是否符合文章类型。
+- 截图、GIF 或封面需求是否清楚。
+- 人工验收项是否完整。
 
 如果计划不合适，直接让 Agent 修改计划，不要批准。
 
-## 第三步：批准写作计划
+### 技术事实确认
 
-只有维护者或有权限的协作者可以批准写作计划。批准必须使用 Agent 给出的固定命令，格式如下：
+核心技术维护者重点检查：
+
+- 目标版本、Tag、Commit 是否准确。
+- API、配置项和代码片段是否真实可用。
+- 兼容性、性能、安全、稳定性表述是否有来源。
+- 是否遗漏重要限制条件。
+- 是否把实验能力写成正式能力。
+- 是否引用了过期文档、旧分支或未发布代码。
+- 截图或 GIF 展示的功能状态是否真实。
+
+运营人员可以在 Issue 中邀请技术维护者确认：
+
+```text
+请帮忙做技术事实确认：
+
+- 目标版本 / Commit：
+- 关键 API 或代码片段：
+- 性能 / 兼容性 / 安全表述：
+- 截图 / GIF 展示内容：
+- 需要补充或删除的内容：
+
+确认后我再发送固定批准命令。
+```
+
+技术维护者可以这样回复：
+
+```text
+技术事实确认通过。
+
+可保留：
+- ...
+
+需要作为人工验收项保留：
+- ...
+
+不得写入正文：
+- ...
+```
+
+如果计划里的文章目标、来源、目标版本、大纲或素材缺口发生实质变化，让 Agent 重新生成计划和 Hash。不要沿用旧批准命令。
+
+## 第四步：批准写作计划
+
+操作位置：GitHub Issue 评论。
+
+运营初审和技术事实确认都通过后，由有权限的运营人员或核心技术维护者复制 Agent 给出的固定命令。
+
+格式如下：
 
 ```text
 /ai 批准写作计划 <plan_version> <hash-prefix>
@@ -206,9 +316,11 @@ Issue 至少写清楚：
 我批准 /ai 批准写作计划 2 a1b2c3d4
 ```
 
-原因很简单：系统只认固定命令，避免 Agent 猜测人的意图。
+系统只认固定命令，避免 Agent 猜测人的意图。
 
-## 第四步：生成文章和 Draft PR
+## 第五步：生成文章和 Draft PR
+
+操作位置：Codex / Claude Code 对话。
 
 写作计划批准后，再让 Agent 执行生成。
 
@@ -236,15 +348,99 @@ Issue 至少写清楚：
 - Draft PR 链接
 - Issue 状态更新到等待人工处理
 
-## 第五步：人工 Review
+运营人员默认不手动编辑本地文件，不手动创建分支，不手动运行校验。如果 Agent 停止，只需要让它说明：
 
-Draft PR 创建后，人工需要检查：
+```text
+停在哪一步：
+缺什么信息：
+需要人工决定什么：
+```
+
+## 第六步：补充截图、GIF 和其他图片素材
+
+操作位置：GitHub Issue、GitHub PR、Codex / Claude Code 对话。
+
+图片素材可以在写作计划阶段提出，也可以在 Draft PR 创建后补充。补充后必须进入文章目录下的 `assets/`，正文引用本地相对路径。
+
+| 场景 | 推荐做法 |
+| --- | --- |
+| 写作计划阶段已明确需要截图或 GIF | 在 Issue 的人工验收说明中写清页面、状态、尺寸、是否需要 GIF。 |
+| Draft PR 已创建但缺图 | 在 PR 评论中说明缺什么图，并把文件、附件链接或本机路径发给 Agent。 |
+| 技术维护者需要演示动态图 | 技术维护者提供 GIF、录屏要求或可复现 Demo，Agent 只负责接入和校验。 |
+
+分工：
+
+- 运营人员确认图片是否适合发布：清晰、可读、无敏感信息、节奏合适。
+- 核心技术维护者确认图片展示的功能状态真实：版本正确、交互路径正确、效果不误导。
+- Agent 负责把图片放进文章素材目录、更新 Markdown 引用、补中文 alt、运行文章校验。
+- `article-hub` 只校验本地图片路径和 alt，不判断截图内容是否真实。
+
+推荐素材目录：
+
+```text
+articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/images/
+articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/gifs/
+articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/diagrams/
+```
+
+正文引用示例：
+
+```md
+![GenUI SDK 生成式 UI 渲染结果](assets/images/genui-result.png)
+![TinyRobot 任务执行过程动画](assets/gifs/tinyrobot-demo.gif)
+```
+
+让 Agent 接入图片时可以这样说：
+
+```text
+请把下面截图 / GIF 接入这篇 Draft PR：<PR 链接>。
+
+素材：
+- <图片或 GIF 的附件链接、本机路径或说明>
+
+要求：
+- 放入文章目录下的 assets/。
+- 正文使用中文 alt。
+- 如果素材包含 Token、内部地址、账号信息、未公开客户数据或无法确认来源，请停止并说明问题。
+- 接入后运行 article-hub validate article。
+```
+
+以下情况不要继续接入图片：
+
+- 截图或 GIF 包含 Token、内部地址、账号信息、未公开客户数据。
+- GIF 展示的功能效果无法由核心技术维护者确认。
+- 只有聊天截图、未授权图片或来源不明的素材。
+- 图片文件过大、模糊或看不清关键 UI。
+
+这些问题可以作为 Draft PR 未完成项保留，正式发布前再补。
+
+## 第七步：PR Review
+
+操作位置：GitHub Draft PR 页面。
+
+Draft PR 创建后，运营人员和核心技术维护者分别 Review。
+
+### 运营 Review
+
+运营人员重点检查：
+
+- 标题、摘要、大纲和正文节奏是否适合发布。
+- 文章是否能让目标读者读懂。
+- 开头是否说明读者问题。
+- 结尾是否自然，不拔高。
+- 截图、GIF、封面或图片缺口是否已经明确。
+- PR 描述里的人工验收项是否完整。
+
+### 技术 Review
+
+核心技术维护者重点检查：
 
 - 事实、术语、版本和来源快照是否正确。
-- 标题、摘要、大纲和正文节奏是否适合发布。
 - 代码片段是否可用。
-- 截图、封面或图片缺口是否已经明确。
-- PR 描述里的人工验收项是否完成。
+- API、配置项、命令和日志是否准确。
+- 性能、兼容性、安全表述是否有来源。
+- 截图和 GIF 展示的功能状态是否真实。
+- 是否遗漏限制条件或已知风险。
 
 如果文章里包含代码片段，必须保留人工验收项：
 
@@ -252,9 +448,13 @@ Draft PR 创建后，人工需要检查：
 - [ ] 人工核对代码片段
 ```
 
-Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的 **Ready for review**。
+当前流程不要求核心技术维护者必须 Approve。是否需要 Approve、需要几名 Reviewer、何时允许合并，遵循仓库已有规则。
 
-## 第六步：让 Agent 按意见修改
+## 第八步：让 Agent 按意见修改
+
+操作位置：Codex / Claude Code 对话。
+
+如果 Review 中有明确意见，把 PR 链接发给 Agent。Agent 应只处理本轮授权范围；意见冲突、目标不清或缺少事实来源时，应停止并说明问题。
 
 ### 全文润色
 
@@ -272,18 +472,35 @@ Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的
 - 润色后运行 article-hub validate article。
 ```
 
-### 按 Review 意见修改
+### 按运营意见修改
 
-如果 Review 中有明确意见，可以让 Agent 只改本轮范围。
+适合处理标题、摘要、结构、表达、图片说明和发布可读性问题。
 
 可复制提示词：
 
 ```text
-请使用 polish-opentiny-article 处理这个 PR 的 Review 修改意见：<PR 链接>。
+请使用 polish-opentiny-article 处理这篇 Draft PR 的运营修改意见：<PR 链接>。
+
+要求：
+- 只处理本轮明确提出的修改意见。
+- 不改代码块、API、版本号、Commit、链接目标和图片路径。
+- 如果修改会影响事实判断，请停下并说明需要技术维护者确认。
+- 修改后运行 article-hub validate article，并提交本轮修改。
+```
+
+### 按技术 Review 修改
+
+适合处理事实、术语、版本、代码、API、性能、安全和兼容性问题。
+
+可复制提示词：
+
+```text
+请使用 polish-opentiny-article 处理这个 PR 的技术 Review 修改意见：<PR 链接>。
 
 要求：
 - 只处理 Request changes 和授权用户以 /ai 开头的修改要求。
 - 默认只修改评论指向的段落、行或受影响章节。
+- 涉及版本、API、兼容性、性能或安全结论时，回到固定来源核验。
 - 意见冲突、目标不清或缺少事实来源时先停下并说明问题。
 - 修改后运行 article-hub validate article，并提交本轮修改。
 ```
@@ -304,17 +521,37 @@ Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的
 
 如果缺少来源，Agent 不应该编造数据或案例。
 
+## 第九步：验收与 Ready for review
+
+操作位置：GitHub PR 页面。
+
+Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的 **Ready for review**。
+
+点击前建议确认：
+
+- 运营 Review 的标题、摘要、结构、表达和图片问题已处理。
+- 核心技术维护者提出的事实、代码、版本、API、兼容性、性能和安全问题已处理。
+- 截图、GIF 或图片素材没有敏感信息，且功能状态真实。
+- 必选人工验收项已经完成，或仍作为明确未完成项保留在 Draft PR 中。
+- Agent 最近一次修改后已经运行 `article-hub validate article`。
+
+PR 合并和外部发布不属于当前本地生成流程。
+
 ## 什么时候应该停止
 
-出现以下情况时，不要继续让 Agent 写正文或提交 PR：
+出现以下情况时，不要继续让 Agent 写正文、提交 PR 或处理图片素材：
 
 - Issue 有 `AI执行：人工暂停` 标签。
 - 写作计划没有固定批准命令。
+- 运营初审或技术事实确认未通过。
 - 批准命令版本或 Hash 与当前计划不一致。
 - 批准来自未授权用户或 bot。
 - 项目不在 [config/projects.yml](./config/projects.yml)。
 - 关键资料无法追溯。
 - 人工资料与官方源码或文档冲突。
+- 缺少目标版本、Tag 或 Commit，且文章核心结论依赖它。
+- 技术维护者未确认关键事实、代码片段、截图或 GIF 展示效果。
+- 图片或 GIF 含敏感信息、未公开客户数据或来源不明素材。
 - 文章校验失败，且不能在不改受保护内容的前提下修复。
 - PR Head 已被人工更新，Agent 需要重新读取最新内容。
 
@@ -332,13 +569,19 @@ Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的
 | --- | --- |
 | Agent 没有触发 Skill | 在提示词中直接写 `generate-opentiny-article` 或 `polish-opentiny-article`。 |
 | Codex 或 Claude Code 找不到 Skill | 回到 [INSTALL.md](./INSTALL.md) 重新同步 Skill，并重启工具。 |
-| OpenCode 找不到 Skill | 先确认 OpenCode 已能发现本仓库或本机 Skill；本文暂不展开安装方式。 |
 | `gh auth status` 失败 | 先完成 GitHub CLI 登录，再继续。 |
 | 项目不支持 | 先由维护者评估是否要更新 [config/projects.yml](./config/projects.yml)。 |
+| 技术维护者还没确认事实 | 不要批准计划。先让技术维护者确认，或让 Agent 标出缺失来源。 |
+| 运营可以自己发批准命令吗 | 可以，只要有仓库权限，并且运营初审和技术事实确认都已完成。 |
+| 核心技术维护者必须 Approve PR 吗 | 当前流程不新增这个要求，按仓库已有 Review 规则执行。 |
 | 写作计划没有批准命令 | 让 Agent 重新生成计划 Hash，并把固定批准命令贴到 Issue。 |
 | 自然语言已经说“同意”但 Agent 仍停止 | 这是预期行为。必须使用固定 `/ai 批准写作计划 ...` 命令。 |
+| 计划改过后还能用旧批准命令吗 | 不能。让 Agent 重新生成计划和 Hash，再重新批准。 |
 | 文章校验失败 | 让 Agent 根据 `blocking_issues[].code` 修复；不要让它靠修改 Front Matter、代码或图片路径凑过校验。 |
 | 缺截图或封面 | 可以先保留为 Draft PR 验收项；正式发布前由人工补齐。 |
+| GIF 或截图怎么交给 Agent | 给 Agent 附件链接、本机路径或 PR 评论说明，让它复制到 `assets/` 并更新正文引用。 |
+| 图片里有 Token 或内部地址 | 停止使用，重新提供不含敏感信息的素材。 |
+| 能不能直接在 GitHub PR 里改文章 | 可以，但改完再让 Agent 继续时，要提醒它重新读取最新 PR，避免覆盖人工修改。 |
 | PR 一直是 Draft | 检查人工验收项、代码片段、截图缺口和必需检查是否完成。 |
 | 想发布到外部平台 | 当前流程只生成文章母稿和 Draft PR，不负责发布平台适配。 |
 
@@ -354,6 +597,13 @@ articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md
 
 ```text
 articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/
+```
+
+常见图片素材：
+
+```text
+articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/images/
+articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/gifs/
 ```
 
 Mermaid 图表素材：
