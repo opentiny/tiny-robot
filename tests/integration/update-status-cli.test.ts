@@ -15,6 +15,12 @@ import { createFakeGh } from "../support/fake-gh.js";
 const issueFixture = path.join(repositoryRoot, "tests/fixtures/issue-minimal.json");
 
 interface UpdateStatusOutput {
+  decision: {
+    mutation_allowed: boolean;
+    blocked_reason: string | null;
+    labels_to_remove: string[];
+    labels_to_add: string[];
+  };
   mutation_plan: {
     operations: Array<{ kind: string }>;
   };
@@ -30,10 +36,12 @@ interface StateDecisionOutput {
 }
 
 interface UpdateStatusDecisionOutput {
-  mutation_allowed: boolean;
-  blocked_reason: string | null;
-  labels_to_remove: string[];
-  labels_to_add: string[];
+  decision: {
+    mutation_allowed: boolean;
+    blocked_reason: string | null;
+    labels_to_remove: string[];
+    labels_to_add: string[];
+  };
 }
 
 async function writeIssue(labels: string[]) {
@@ -97,14 +105,16 @@ describe("article-hub update-status CLI", () => {
         dry_run: true,
         issue: {
           number: 42
-        },
-        mutation_allowed: true
+        }
       }
     );
-    expect(new Set(output.labels_to_remove)).toEqual(
+    expect(output.decision.mutation_allowed).toBe(true);
+    expect(new Set(output.decision.labels_to_remove)).toEqual(
       new Set(["阶段：策划", "AI：等待人工"])
     );
-    expect(new Set(output.labels_to_add)).toEqual(new Set(["阶段：写作", "AI：处理中"]));
+    expect(new Set(output.decision.labels_to_add)).toEqual(
+      new Set(["阶段：写作", "AI：处理中"])
+    );
     expect(output.mutation_plan.operations).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: "gh-issue-edit-labels" }),
@@ -133,10 +143,12 @@ describe("article-hub update-status CLI", () => {
     ]);
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
-      mutation_allowed: false,
-      blocked_reason: "AI_PAUSED",
-      labels_to_remove: [],
-      labels_to_add: [],
+      decision: {
+        mutation_allowed: false,
+        blocked_reason: "AI_PAUSED",
+        labels_to_remove: [],
+        labels_to_add: []
+      },
       mutation_plan: {
         operations: []
       }
@@ -159,10 +171,12 @@ describe("article-hub update-status CLI", () => {
     ]);
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
-      mutation_allowed: true,
-      blocked_reason: null,
-      labels_to_remove: [],
-      labels_to_add: [],
+      decision: {
+        mutation_allowed: true,
+        blocked_reason: null,
+        labels_to_remove: [],
+        labels_to_add: []
+      },
       mutation_plan: {
         operations: []
       }
@@ -193,16 +207,20 @@ describe("article-hub update-status CLI", () => {
       "article-hub.update-status"
     );
 
-    expect(updateOutput).toMatchObject({
+    expect(updateOutput.decision).toMatchObject({
       mutation_allowed: stateOutput.decision.mutation_allowed,
       blocked_reason: stateOutput.decision.blocked_reason
     });
-    expect(new Set(updateOutput.labels_to_remove)).toEqual(
+    expect(new Set(updateOutput.decision.labels_to_remove)).toEqual(
       new Set(stateOutput.decision.labels_to_remove)
     );
-    expect(new Set(updateOutput.labels_to_add)).toEqual(
+    expect(new Set(updateOutput.decision.labels_to_add)).toEqual(
       new Set(stateOutput.decision.labels_to_add)
     );
+    expect(updateOutput).not.toHaveProperty("mutation_allowed");
+    expect(updateOutput).not.toHaveProperty("blocked_reason");
+    expect(updateOutput).not.toHaveProperty("labels_to_remove");
+    expect(updateOutput).not.toHaveProperty("labels_to_add");
   });
 
   test("非 dry-run 先校验 intent，非法目标状态不读取远端标签", async () => {
@@ -260,8 +278,10 @@ describe("article-hub update-status CLI", () => {
     );
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
-      mutation_allowed: false,
-      blocked_reason: "AI_PAUSED",
+      decision: {
+        mutation_allowed: false,
+        blocked_reason: "AI_PAUSED"
+      },
       mutation_plan: {
         operations: []
       }

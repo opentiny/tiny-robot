@@ -202,6 +202,10 @@ article-hub state decide --state-file <path>
 }
 ```
 
+输出中的 mutation 决策固定放在 `decision` 下，调用方读取
+`decision.mutation_allowed`、`decision.blocked_reason`、`decision.labels_to_remove`
+和 `decision.labels_to_add`。
+
 ---
 
 ### `validate article`
@@ -307,6 +311,10 @@ article-hub update-status \
 人工暂停信号使用独立标签 `AI执行：人工暂停`，不属于 `--ai-state`。
 
 状态值必须精确匹配；传入其他值时返回 `INVALID_STATE`，退出码为 `2`。
+
+输出中的 mutation 决策固定放在 `decision` 下，形状与 `state decide` 一致。
+`mutation_plan.operations` 只描述实际会执行的 GitHub 操作；当
+`decision.mutation_allowed` 为 `false` 时，`operations` 必须为空。
 
 ---
 

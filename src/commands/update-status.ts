@@ -83,10 +83,12 @@ export async function updateIssueStatus(options: UpdateIssueStatusOptions): Prom
     issue: {
       number: issueNumber
     },
-    mutation_allowed: decision.mutationAllowed,
-    blocked_reason: decision.blockedReason,
-    labels_to_remove: decision.labelsToRemove,
-    labels_to_add: decision.labelsToAdd,
+    decision: {
+      mutation_allowed: decision.mutationAllowed,
+      blocked_reason: decision.blockedReason,
+      labels_to_remove: decision.labelsToRemove,
+      labels_to_add: decision.labelsToAdd
+    },
     mutation_plan: {
       operations
     }

@@ -16,6 +16,12 @@ const skillRoot = path.join(
 );
 
 interface UpdateStatusOutput {
+  decision: {
+    mutation_allowed: boolean;
+    blocked_reason: string | null;
+    labels_to_remove: string[];
+    labels_to_add: string[];
+  };
   mutation_plan: {
     operations: Array<{ kind: string }>;
   };
@@ -71,10 +77,12 @@ describe("polish OpenTiny article skill", () => {
       ]),
       "article-hub.update-status",
       {
-        mutation_allowed: true,
-        blocked_reason: null,
-        labels_to_remove: ["AI：处理中"],
-        labels_to_add: ["AI：等待人工"]
+        decision: {
+          mutation_allowed: true,
+          blocked_reason: null,
+          labels_to_remove: ["AI：处理中"],
+          labels_to_add: ["AI：等待人工"]
+        }
       }
     );
 

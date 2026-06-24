@@ -103,7 +103,7 @@ Skill 不重复实现 CLI 已经固定的规则。CLI 也不新增仅等价于 `
 测试应该验证公开行为：
 
 - CLI JSON envelope、`schema_version`、稳定错误码和退出码。
-- `mutation_allowed`、`blocked_reason`、`labels_to_add` 等结构化字段。
+- `decision.mutation_allowed`、`decision.blocked_reason`、`decision.labels_to_add` 等结构化字段。
 - `mutation_plan.operations` 是否表达必要副作用。
 - 文章校验问题的稳定 `code` 和 `field`。
 - Hash、状态、权限、安全路径等长期契约。
