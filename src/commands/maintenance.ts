@@ -114,6 +114,7 @@ export async function setup(options: {
  *
  * @param options reconcile 状态文件和 dry-run 标记。
  * @returns 需要执行的恢复 mutation plan。
+ * @throws ArticleHubError 当非 dry-run 遇到待执行恢复操作时抛出。
  */
 export async function reconcile(options: {
   stateFile: string;
@@ -139,6 +140,14 @@ export async function reconcile(options: {
       repository,
       body: "检测到文章分支已存在但 Draft PR 缺失，需要重新创建 Draft PR。"
     });
+  }
+
+  if (!options.dryRun && operations.length > 0) {
+    throw new ArticleHubError(
+      "RECONCILE_APPLY_UNSUPPORTED",
+      "reconcile 当前只生成恢复计划；请使用 --dry-run 查看需要人工执行的操作。",
+      2
+    );
   }
 
   return {

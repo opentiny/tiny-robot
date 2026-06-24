@@ -10,6 +10,7 @@ import {
   repositoryRoot,
   runArticleHubCli
 } from "../support/cli.js";
+import { createFakeGh } from "../support/fake-gh.js";
 
 const configPath = path.join(repositoryRoot, "config/projects.yml");
 
@@ -89,12 +90,11 @@ describe("article-hub maintenance CLI", () => {
       labels: ["阶段：写作", "AI：处理中"]
     });
 
-    const result = runArticleHubCli([
-      "--dry-run",
-      "reconcile",
-      "--state-file",
-      stateFile
-    ]);
+    const fakeGh = await createFakeGh({ number: 12, labels: [] });
+    const result = runArticleHubCli(
+      ["--dry-run", "reconcile", "--state-file", stateFile],
+      { env: fakeGh.env }
+    );
 
     const output = expectSuccessfulEnvelope<ReconcileOutput>(
       result,
@@ -115,6 +115,51 @@ describe("article-hub maintenance CLI", () => {
         })
       ])
     );
+    await expect(fakeGh.readCalls()).resolves.toEqual([]);
+  });
+
+  test("reconcile 非 dry-run 遇到恢复计划时失败", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-hub-reconcile-"));
+    const stateFile = path.join(root, "reconcile.json");
+
+    await mkdir(root, { recursive: true });
+    await writeJson(stateFile, {
+      issue_number: 12,
+      repository: "hexqi/ai-article-hub",
+      branch: "article/12-webmcp-sdk-webmcp-sdk-practice",
+      branch_exists: true,
+      draft_pr_exists: false,
+      labels: ["阶段：写作", "AI：处理中"]
+    });
+
+    const result = runArticleHubCli(["reconcile", "--state-file", stateFile]);
+
+    expectErrorEnvelope(result, "RECONCILE_APPLY_UNSUPPORTED", 2);
+  });
+
+  test("reconcile 非 dry-run 无恢复计划时成功", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-hub-reconcile-"));
+    const stateFile = path.join(root, "reconcile.json");
+
+    await mkdir(root, { recursive: true });
+    await writeJson(stateFile, {
+      issue_number: 12,
+      repository: "hexqi/ai-article-hub",
+      branch: "article/12-webmcp-sdk-webmcp-sdk-practice",
+      branch_exists: true,
+      draft_pr_exists: true,
+      labels: ["阶段：写作", "AI：处理中"]
+    });
+
+    const result = runArticleHubCli(["reconcile", "--state-file", stateFile]);
+
+    expectSuccessfulEnvelope(result, "article-hub.reconcile", {
+      dry_run: false,
+      recovery_required: false,
+      mutation_plan: {
+        operations: []
+      }
+    });
   });
 });
 

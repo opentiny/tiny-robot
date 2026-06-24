@@ -365,9 +365,10 @@ article-hub setup --root /path/to/project --yes
 ### `reconcile`
 
 根据状态文件生成对账和恢复计划。当前命令只输出 `mutation_plan`，不直接执行 GitHub 或本地修复操作。
+当存在恢复操作时必须使用 `--dry-run` 查看计划；非 dry-run 会返回 `RECONCILE_APPLY_UNSUPPORTED`，避免调用方误认为恢复已执行。没有恢复操作时，非 dry-run 仍可成功返回空计划。
 
 ```sh
-article-hub reconcile --state-file <path>
+article-hub --dry-run reconcile --state-file <path>
 ```
 
 | 参数 | 必填 | 说明 |
@@ -423,6 +424,7 @@ article-hub reconcile --state-file <path>
 | `UNSAFE_PATH` | 路径或路径相关参数不满足安全约束 |
 | `ARTICLE_VALIDATION_FAILED` | 文章内容或 Front Matter 校验失败 |
 | `CONFIRMATION_REQUIRED` | 写操作缺少显式确认，例如 `setup` 未传 `--yes` |
+| `RECONCILE_APPLY_UNSUPPORTED` | `reconcile` 发现恢复计划，但当前命令不执行修复操作 |
 | `GIT_COMMAND_FAILED` | Git 命令执行失败或结果不符合预期 |
 | `GITHUB_COMMAND_FAILED` | GitHub CLI 命令执行失败 |
 
