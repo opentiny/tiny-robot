@@ -12,7 +12,7 @@ import {
 } from "../support/cli.js";
 const skillRoot = path.join(
   repositoryRoot,
-  "skills/polish-opentiny-article"
+  ".agents/skills/polish-opentiny-article"
 );
 
 interface UpdateStatusOutput {

@@ -52,7 +52,8 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 | 路径 | 用途 |
 | --- | --- |
 | [`src/`](./src/) | `article-hub` CLI 源码，包含 commands、domain 和 infrastructure。 |
-| [`skills/`](./skills/) | 本地 Agent Skill 源码，安装副本不作为修改来源。 |
+| [`.agents/skills/`](./.agents/skills/) | Codex 项目级 Skill，随仓库自动发现。 |
+| [`.claude/skills/`](./.claude/skills/) | Claude Code 项目级 Skill，随仓库自动发现。 |
 | [`config/`](./config/) | 项目 allowlist、源码仓库和文档入口配置。 |
 | [`docs/`](./docs/) | 需求、CLI 边界、CLI 参考和未来 Workflow 设计。 |
 | [`articles/`](./articles/) | 文章母稿目录，格式为 `articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md`。 |
@@ -75,23 +76,6 @@ node dist/cli.js <command> [options]
 - Diagnostics：`doctor`、`setup`、`reconcile`
 
 CLI stdout 只输出 JSON；人类可读错误输出到 stderr。详细参数见 [`docs/cli-reference.md`](./docs/cli-reference.md)，命令准入和 Skill 分工见 [`docs/cli-boundary-design.md`](./docs/cli-boundary-design.md)。
-
-## Skill 安装
-
-仓库内 [`skills/`](./skills/) 是唯一源码来源。安装到 Codex 或 Claude Code 的本地发现目录前，先完成构建和测试，再按 [`INSTALL.md`](./INSTALL.md) 同步。
-
-安装后至少校验：
-
-```sh
-node dist/cli.js projects validate --config config/projects.yml
-node dist/cli.js --dry-run inspect-issue --issue-file tests/fixtures/issue-minimal.json
-```
-
-修改 Skill 时同时关注：
-
-- `SKILL.md` 的 YAML Front Matter 和引用图是否可达。
-- `references/` 下的 Markdown 是否都能从入口引用到。
-- `article-hub` 已固定的权限、状态、批准命令、校验和路径规则是否被复用，而不是在 Skill 自然语言中重写。
 
 ## 验证与 CI
 

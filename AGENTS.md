@@ -24,7 +24,6 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 说明：
 
 - `package.json` 声明 `packageManager: pnpm@10.34.1`，README 和 usage 以 `pnpm` 为主。
-- `INSTALL.md` 与当前 CI 仍使用 `npm` 命令；修改安装或 CI 相关内容前，先核对仓库是否已统一包管理器和锁文件。
 - CLI 构建产物在 `dist/`，源码变更后先运行 `pnpm run build` 再调用 `node dist/cli.js`。
 
 ## 仓库地图
@@ -32,7 +31,8 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 | 路径 | 用途 |
 | --- | --- |
 | `src/` | `article-hub` CLI 源码，包含 `commands`、`domain`、`infrastructure` 和 Git 适配。 |
-| `skills/` | 本地 Agent Skill 源码；安装副本不是修改来源。 |
+| `.agents/skills/` | Codex 项目级 Skill，随仓库自动发现。 |
+| `.claude/skills/` | Claude Code 项目级 Skill，随仓库自动发现。 |
 | `config/projects.yml` | 项目 allowlist、源码仓库和文档入口。 |
 | `docs/` | 需求、CLI 边界、CLI 参考和未来 Workflow 设计。 |
 | `articles/` | 文章母稿目录，格式为 `articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md`。 |
@@ -113,8 +113,7 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 
 ## Skill 修改规则
 
-- 仓库内 `skills/` 是唯一源码来源；Codex 或 Claude Code 的本地安装副本不要直接修改。
-- 改 Skill 时同步关注入口 `SKILL.md`、YAML Front Matter、引用图、`references/` 可达性和 eval 说明。
+- 改 Skill 时同步更新 `.agents/skills/` 和 `.claude/skills/` 下的同名 Skill，并关注入口 `SKILL.md`、YAML Front Matter、引用图、`references/` 可达性和 eval 说明。
 - 每个 Skill 根目录只能有一个 `SKILL.md`。
 - 运行所需 Markdown reference 必须是本地文件，规范化路径和真实路径都不能逃出 Skill 根目录。
 - `generate-opentiny-article` 负责已批准计划到文章初稿和 Draft PR。
@@ -145,10 +144,8 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 
 - `README.md`：项目定位、快速开始和仓库结构。
 - `usage.md`：面向使用者的本地文章生成操作手册。
-- `INSTALL.md`：把仓库内 Skill 同步到 Codex 或 Claude Code 的本地发现目录。
 - `docs/cli-boundary-design.md`：CLI 与 Skill 的边界和命令准入标准。
 - `docs/cli-reference.md`：`article-hub` 命令参数和 JSON contract。
 - `docs/article-generation-requirements.md`：文章流水线需求、状态和停止条件。
 - `docs/article-generation-workflow-design.md`：未来 GitHub Workflow 设计，仅作参考。
-- `skills/generate-opentiny-article/SKILL.md`：生成文章 Skill 的执行流程。
-- `skills/polish-opentiny-article/SKILL.md`：润色和 Review 修改 Skill 的执行流程。
+- 项目级 Skill 入口：`.agents/skills/<skill>/SKILL.md` 和 `.claude/skills/<skill>/SKILL.md`。

@@ -1,0 +1,34 @@
+{
+  "number": 44,
+  "title": "生成 tiny-robot 入门文章",
+  "body": "项目：tiny-robot\n文章目标：介绍对话机器人组件的接入\n目标读者：前端开发者\n文章类型：practical-guide",
+  "author": {
+    "login": "topic-owner",
+    "type": "User",
+    "association": "OWNER"
+  },
+  "labels": [
+    { "name": "阶段：策划" },
+    "AI：等待人工"
+  ],
+  "comments": [
+    {
+      "id": 4001,
+      "body": "我觉得可以批准写作计划，开始写吧。",
+      "author": { "login": "maintainer", "type": "User", "association": "MEMBER" },
+      "created_at": "2026-06-20T10:00:00Z"
+    },
+    {
+      "id": 4002,
+      "body": "/ai 批准写作计划",
+      "author": { "login": "external-user", "type": "User", "association": "NONE" },
+      "created_at": "2026-06-20T10:05:00Z"
+    },
+    {
+      "id": 4003,
+      "body": "/ai 批准写作计划",
+      "author": { "login": "automation[bot]", "type": "Bot", "association": "MEMBER" },
+      "created_at": "2026-06-20T10:10:00Z"
+    }
+  ]
+}

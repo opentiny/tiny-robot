@@ -102,7 +102,7 @@ GitHub 上创建或确认文章 Issue
 
 - `可以开始`：继续准备文章 Issue。
 - `需要处理`：先看“需要我处理”和“你可以代办”。权限、账号、仓库访问问题通常需要人工处理；依赖安装、构建和校验通常可以让 Agent 代办。
-- 如果 Agent 说 Skill 无法识别，回到 [INSTALL.md](./INSTALL.md) 重新同步 Skill，或交给技术同学处理。
+- 如果 Agent 说 Skill 无法识别，确认 Codex 或 Claude Code 从本仓库目录启动；仍无法识别时重启工具，或交给技术同学处理。
 
 ## 当前支持范围
 
@@ -569,7 +569,7 @@ PR 合并和外部发布不属于当前本地生成流程。
 | 问题 | 怎么处理 |
 | --- | --- |
 | Agent 没有触发 Skill | 在提示词中直接写 `generate-opentiny-article` 或 `polish-opentiny-article`。 |
-| Codex 或 Claude Code 找不到 Skill | 回到 [INSTALL.md](./INSTALL.md) 重新同步 Skill，并重启工具。 |
+| Codex 或 Claude Code 找不到 Skill | 确认从本仓库目录启动工具；Claude Code 需要接受 workspace trust。仍找不到时重启工具。 |
 | `gh auth status` 失败 | 先完成 GitHub CLI 登录，再继续。 |
 | 项目不支持 | 先由维护者评估是否要更新 [config/projects.yml](./config/projects.yml)。 |
 | 技术维护者还没确认事实 | 不要批准计划。先让技术维护者确认，或让 Agent 标出缺失来源。 |
@@ -620,8 +620,9 @@ articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/diagrams/<name>.png
 ## 相关文档
 
 - [README.md](./README.md)：仓库能力、结构和核心工作流。
-- [INSTALL.md](./INSTALL.md)：Codex 和 Claude Code 的 Skill 安装方式。
 - [docs/article-generation-requirements.md](./docs/article-generation-requirements.md)：完整需求和边界。
 - [docs/cli-reference.md](./docs/cli-reference.md)：`article-hub` CLI 参数参考。
-- [skills/generate-opentiny-article/SKILL.md](./skills/generate-opentiny-article/SKILL.md)：生成文章的 Agent 流程。
-- [skills/polish-opentiny-article/SKILL.md](./skills/polish-opentiny-article/SKILL.md)：润色和 Review 修改流程。
+- [.agents/skills/generate-opentiny-article/SKILL.md](./.agents/skills/generate-opentiny-article/SKILL.md)：生成文章的 Codex 流程。
+- [.agents/skills/polish-opentiny-article/SKILL.md](./.agents/skills/polish-opentiny-article/SKILL.md)：润色和 Review 修改的 Codex 流程。
+- [.claude/skills/generate-opentiny-article/SKILL.md](./.claude/skills/generate-opentiny-article/SKILL.md)：生成文章的 Claude Code 流程。
+- [.claude/skills/polish-opentiny-article/SKILL.md](./.claude/skills/polish-opentiny-article/SKILL.md)：润色和 Review 修改的 Claude Code 流程。

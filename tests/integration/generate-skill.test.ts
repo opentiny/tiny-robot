@@ -8,7 +8,7 @@ import { inspectSkillContract } from "../support/skill-contract.js";
 import { repositoryRoot } from "../support/cli.js";
 const skillRoot = path.join(
   repositoryRoot,
-  "skills/generate-opentiny-article"
+  ".agents/skills/generate-opentiny-article"
 );
 
 describe("generate OpenTiny article skill", () => {

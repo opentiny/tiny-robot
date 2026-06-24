@@ -11,7 +11,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 ## 前置条件
 
-- 已按仓库 `INSTALL.md` 安装本 Skill。
+- 从本仓库目录启动 Codex，项目级 Skill 已自动发现。
 - 本仓库依赖已安装并通过 `npm test`、`npm run build`。
 - `gh auth status` 可访问目标仓库。
 - Issue 处于 `阶段：策划`，且维护者明确批准当前写作计划。

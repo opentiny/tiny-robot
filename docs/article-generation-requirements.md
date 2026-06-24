@@ -101,7 +101,16 @@
 当前交付包含两个相互独立的 Skill：
 
 ```text
-skills/
+.agents/skills/
+├── generate-opentiny-article/
+└── polish-opentiny-article/
+    ├── SKILL.md
+    └── references/
+        ├── article-guardrails.md
+        ├── style-guide.md
+        ├── anti-patterns.md
+        └── examples.md
+.claude/skills/
 ├── generate-opentiny-article/
 └── polish-opentiny-article/
     ├── SKILL.md
@@ -688,23 +697,22 @@ PowerShell 和 CMD 原生环境暂不支持。
 - Git
 - GitHub CLI `gh`
 - Node.js LTS
-- npm
+- pnpm 10
 - Codex 或 Claude Code
 - 对目标 GitHub 仓库的必要权限
 
 Windows Git Bash 是正式支持环境，确定性脚本必须通过 Windows CI。核心路径、文件和状态逻辑使用 Node.js，不依赖 `flock`、GNU `sed`、Linux 专属路径或符号链接。
 
-### 18.2 安装
+### 18.2 项目级发现
 
-仓库根目录提供 `INSTALL.md`，指导 AI：
+仓库直接提交 Codex 和 Claude Code 的项目级 Skill，不要求复制到用户全局目录：
 
-- 识别 Codex 或 Claude Code 环境。
-- 完整复制两个 Skill 及其资源到发现目录。
-- 安装前检查现有版本并展示差异。
-- 安装后执行结构校验和最小触发测试。
-- 记录安装来源 Commit。
+- Codex 从 `.agents/skills/` 自动发现。
+- Claude Code 从 `.claude/skills/` 自动发现。
+- 使用者从本仓库目录启动工具；Claude Code 需要接受 workspace trust。
+- 如果工具已启动但无法识别新增目录，重启工具后再试。
 
-仓库中的 `skills/` 是唯一源码来源。安装副本禁止直接定制；所有修改先提交到当前仓库，再按 `INSTALL.md` 重新同步。为兼容 Windows，不使用符号链接。
+修改 Skill 时同步更新两个目录下的同名 Skill，并运行 Skill contract 测试。为兼容 Windows，不使用符号链接。
 
 ## 19. 确定性 CLI
 
@@ -743,14 +751,18 @@ Agent 负责调研、判断、写作和润色；CLI 负责 Git、GitHub、schema
 
 ```text
 .
-├── INSTALL.md
+├── .agents/
+│   └── skills/
+│       ├── generate-opentiny-article/
+│       └── polish-opentiny-article/
+├── .claude/
+│   └── skills/
+│       ├── generate-opentiny-article/
+│       └── polish-opentiny-article/
 ├── articles/
 ├── materials/
 │   ├── article-archive/
 │   └── issue-sources/
-├── skills/
-│   ├── generate-opentiny-article/
-│   └── polish-opentiny-article/
 ├── config/
 │   └── projects.yml
 ├── references/

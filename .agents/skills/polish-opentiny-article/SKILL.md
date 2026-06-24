@@ -17,7 +17,7 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 
 [改写示例](./references/examples.md)是判断改写力度的校准锚点：初稿全文优化和 `/ai 全文润色` 应一并读取，Review 局部修订在边界难以判断时再读取。
 
-任一文件缺失时停止，并报告 Skill 安装不完整。
+任一文件缺失时停止，并报告项目级 Skill 不完整。
 
 ## 输入场景
 
