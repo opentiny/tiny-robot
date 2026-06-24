@@ -78,16 +78,8 @@ function toWireCommand(parsed: ParsedAiCommand | null) {
     return null;
   }
 
-  if (parsed.kind === "approve-writing-plan") {
-    return {
-      kind: parsed.kind,
-      plan_version: parsed.planVersion,
-      hash_prefix: parsed.hashPrefix
-    };
-  }
-
   return {
-    kind: parsed.kind
+    kind: parsed.kind,
   };
 }
 

@@ -1,139 +1,93 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import {
   expectSuccessfulEnvelope,
   repositoryRoot,
-  runArticleHubCli
+  runArticleHubCli,
 } from "../support/cli.js";
 
-const currentPlanPath = path.join(repositoryRoot, "tests/fixtures/plan-current.json");
-const reorderedPlanPath = path.join(
+const pausedStatePath = path.join(
   repositoryRoot,
-  "tests/fixtures/plan-current-reordered.json"
+  "tests/fixtures/state-paused.json",
 );
-const semanticChangePlanPath = path.join(
-  repositoryRoot,
-  "tests/fixtures/plan-semantic-change.json"
-);
-const pausedStatePath = path.join(repositoryRoot, "tests/fixtures/state-paused.json");
-
-interface PlanHashOutput {
-  plan_hash: string;
-  plan_hash_prefix: string;
-}
 
 interface PlanApprovalOutput {
   valid: boolean;
   reason?: string;
   snapshot?: {
-    plan_version: number;
-    plan_hash_prefix: string;
+    approved_plan: string;
     approver: string;
     approval_comment_id: number;
+    plan_comment_id: number | null;
+    plan_label: string | null;
     article_date: string;
   };
 }
 
 describe("article-hub plan/state CLI", () => {
-  test("plan hash 输出当前计划版本和稳定 Hash", () => {
-    const first = runArticleHubCli([
-      "--dry-run",
-      "plan",
-      "hash",
-      "--plan-file",
-      currentPlanPath
-    ]);
-    const second = runArticleHubCli(["plan", "hash", "--plan-file", reorderedPlanPath]);
+  let tempDir: string;
+  let planBodyPath: string;
 
-    const firstOutput = expectSuccessfulEnvelope<PlanHashOutput>(
-      first,
-      "article-hub.plan.hash",
-      {
-        dry_run: true,
-        plan_version: 2
-      }
+  beforeAll(() => {
+    tempDir = mkdtempSync(path.join(tmpdir(), "article-hub-plan-"));
+    planBodyPath = path.join(tempDir, "plan-body.md");
+    writeFileSync(
+      planBodyPath,
+      "## 写作计划（第 2 版）\n\n目标：五分钟接入",
+      "utf8",
     );
-    const secondOutput = expectSuccessfulEnvelope<PlanHashOutput>(
-      second,
-      "article-hub.plan.hash"
-    );
-    expect(secondOutput.plan_hash).toBe(firstOutput.plan_hash);
-    expect(secondOutput.plan_hash_prefix).toBe(firstOutput.plan_hash_prefix);
   });
 
-  test("plan compare 区分展示变化和语义变化", () => {
-    const displayOnly = runArticleHubCli([
-      "plan",
-      "compare",
-      "--previous",
-      currentPlanPath,
-      "--current",
-      reorderedPlanPath
-    ]);
-    const semantic = runArticleHubCli([
-      "plan",
-      "compare",
-      "--previous",
-      currentPlanPath,
-      "--current",
-      semanticChangePlanPath
-    ]);
-
-    expectSuccessfulEnvelope(displayOnly, "article-hub.plan.compare", {
-      semantic_changed: false,
-      suggested_plan_version: 2
-    });
-    expectSuccessfulEnvelope(semantic, "article-hub.plan.compare", {
-      semantic_changed: true,
-      suggested_plan_version: 3
-    });
+  afterAll(() => {
+    rmSync(tempDir, { recursive: true, force: true });
   });
 
-  test("plan approve 接受当前版本与 Hash", () => {
-    const hash = runArticleHubCli(["plan", "hash", "--plan-file", currentPlanPath]);
-    const hashOutput = expectSuccessfulEnvelope<PlanHashOutput>(
-      hash,
-      "article-hub.plan.hash"
-    );
+  test("plan approve 接受精确命令并产出无 Hash 快照", () => {
     const approved = runArticleHubCli([
       "plan",
       "approve",
-      "--plan-file",
-      currentPlanPath,
+      "--plan-body-file",
+      planBodyPath,
       "--command",
-      `/ai 批准写作计划 2 ${hashOutput.plan_hash_prefix}`,
+      "/ai 批准写作计划",
       "--approver",
       "maintainer",
       "--comment-id",
       "1001",
       "--approved-at",
-      "2026-06-18T20:30:00+08:00"
+      "2026-06-18T20:30:00+08:00",
     ]);
 
-    expectSuccessfulEnvelope<PlanApprovalOutput>(
+    const output = expectSuccessfulEnvelope<PlanApprovalOutput>(
       approved,
       "article-hub.plan.approve",
       {
         valid: true,
         snapshot: {
-          plan_version: 2,
-          plan_hash_prefix: hashOutput.plan_hash_prefix,
           approver: "maintainer",
           approval_comment_id: 1001,
-          article_date: "2026-06-18"
-        }
-      }
+          plan_comment_id: null,
+          plan_label: null,
+          article_date: "2026-06-18",
+        },
+      },
     );
+
+    expect(output.snapshot?.approved_plan).toContain("写作计划");
+    expect(output.snapshot).not.toHaveProperty("plan_hash");
+    expect(output.snapshot).not.toHaveProperty("plan_version");
   });
 
-  test("plan approve 拒绝 Hash mismatch", () => {
+  test("plan approve 拒绝携带参数的旧命令", () => {
     const rejected = runArticleHubCli([
       "plan",
       "approve",
-      "--plan-file",
-      currentPlanPath,
+      "--plan-body-file",
+      planBodyPath,
       "--command",
       "/ai 批准写作计划 2 deadbeef",
       "--approver",
@@ -141,7 +95,7 @@ describe("article-hub plan/state CLI", () => {
       "--comment-id",
       "1001",
       "--approved-at",
-      "2026-06-18T20:30:00+08:00"
+      "2026-06-18T20:30:00+08:00",
     ]);
 
     expectSuccessfulEnvelope<PlanApprovalOutput>(
@@ -149,21 +103,26 @@ describe("article-hub plan/state CLI", () => {
       "article-hub.plan.approve",
       {
         valid: false,
-        reason: "PLAN_HASH_MISMATCH"
-      }
+        reason: "INVALID_APPROVAL_COMMAND",
+      },
     );
   });
 
   test("state decide 读取状态文件并输出阻断决策", () => {
-    const paused = runArticleHubCli(["state", "decide", "--state-file", pausedStatePath]);
+    const paused = runArticleHubCli([
+      "state",
+      "decide",
+      "--state-file",
+      pausedStatePath,
+    ]);
 
     expectSuccessfulEnvelope(paused, "article-hub.state.decide", {
       decision: {
         mutation_allowed: false,
         blocked_reason: "AI_PAUSED",
         labels_to_remove: [],
-        labels_to_add: []
-      }
+        labels_to_add: [],
+      },
     });
   });
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { inspectIssue } from "./commands/inspect-issue.js";
-import { approvePlanFile, comparePlanFiles, hashPlan } from "./commands/plan.js";
+import { approvePlanFile } from "./commands/plan.js";
 import { checkoutSources } from "./commands/checkout-sources.js";
 import { createPullRequest } from "./commands/create-pr.js";
 import { doctor, reconcile, setup } from "./commands/maintenance.js";
@@ -230,54 +230,61 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   }
 }
 
-async function runPlanCommand(args: string[], context: CliContext): Promise<unknown> {
+async function runPlanCommand(
+  args: string[],
+  context: CliContext,
+): Promise<unknown> {
   const subcommand = args.shift();
 
-  if (subcommand === "hash") {
-    const planFile = readRequiredOption(args, "--plan-file");
-    assertNoUnexpectedArgs(args, new Set(["--plan-file"]));
-
-    return hashPlan({
-      planFile,
-      dryRun: context.dryRun
-    });
-  }
-
-  if (subcommand === "compare") {
-    const previousFile = readRequiredOption(args, "--previous");
-    const currentFile = readRequiredOption(args, "--current");
-    assertNoUnexpectedArgs(args, new Set(["--previous", "--current"]));
-
-    return comparePlanFiles({
-      previousFile,
-      currentFile,
-      dryRun: context.dryRun
-    });
-  }
-
   if (subcommand === "approve") {
-    const planFile = readRequiredOption(args, "--plan-file");
+    const planBodyFile = readRequiredOption(args, "--plan-body-file");
     const command = readRequiredOption(args, "--command");
     const approver = readRequiredOption(args, "--approver");
     const commentId = Number(readRequiredOption(args, "--comment-id"));
     const approvedAt = readRequiredOption(args, "--approved-at");
+    const planCommentIdRaw = readOptionalOption(args, "--plan-comment-id");
+    const planLabel = readOptionalOption(args, "--plan-label");
 
     if (!Number.isSafeInteger(commentId)) {
       throw new ArticleHubError("MISSING_ARGUMENT", "参数值必须是整数：--comment-id", 2);
     }
 
+    let planCommentId: number | undefined;
+
+    if (planCommentIdRaw !== undefined) {
+      planCommentId = Number(planCommentIdRaw);
+
+      if (!Number.isSafeInteger(planCommentId)) {
+        throw new ArticleHubError(
+          "MISSING_ARGUMENT",
+          "参数值必须是整数：--plan-comment-id",
+          2,
+        );
+      }
+    }
+
     assertNoUnexpectedArgs(
       args,
-      new Set(["--plan-file", "--command", "--approver", "--comment-id", "--approved-at"])
+      new Set([
+        "--plan-body-file",
+        "--command",
+        "--approver",
+        "--comment-id",
+        "--approved-at",
+        "--plan-comment-id",
+        "--plan-label",
+      ]),
     );
 
     return approvePlanFile({
-      planFile,
+      planBodyFile,
       command,
       approver,
       commentId,
       approvedAt,
-      dryRun: context.dryRun
+      planCommentId,
+      planLabel,
+      dryRun: context.dryRun,
     });
   }
 

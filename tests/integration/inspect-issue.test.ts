@@ -27,8 +27,6 @@ interface InspectIssueOutput {
     };
     parsed: {
       kind: string;
-      plan_version?: number;
-      hash_prefix?: string;
     } | null;
     actionable: boolean;
   }>;
@@ -73,8 +71,6 @@ describe("article-hub inspect-issue", () => {
       },
       parsed: {
         kind: "approve-writing-plan",
-        plan_version: 2,
-        hash_prefix: "a1b2c3d4"
       },
       actionable: true
     });

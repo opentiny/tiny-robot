@@ -16,7 +16,7 @@
   "comments": [
     {
       "id": 1001,
-      "body": "/ai 批准写作计划 2 a1b2c3d4",
+      "body": "/ai 批准写作计划",
       "author": {
         "login": "maintainer",
         "type": "User",
@@ -26,7 +26,7 @@
     },
     {
       "id": 1002,
-      "body": "/ai 批准写作计划 2 a1b2c3d4",
+      "body": "/ai 批准写作计划",
       "author": {
         "login": "external-user",
         "type": "User",
@@ -35,7 +35,7 @@
     },
     {
       "id": 1003,
-      "body": "/ai 批准写作计划 2 a1b2c3d4",
+      "body": "/ai 批准写作计划",
       "author": {
         "login": "automation[bot]",
         "type": "Bot",
@@ -44,7 +44,7 @@
     },
     {
       "id": 1004,
-      "body": "我觉得可以批准写作计划 2 a1b2c3d4",
+      "body": "我觉得这个写作计划可以批准",
       "author": {
         "login": "maintainer",
         "type": "User",
