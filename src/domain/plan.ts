@@ -2,8 +2,10 @@ import { parseAiCommand } from "./command-parser.js";
 
 export type PlanApprovalReason =
   | "INVALID_APPROVAL_COMMAND"
+  | "MISSING_PLAN_BODY"
   | "MISSING_APPROVER"
   | "MISSING_APPROVAL_COMMENT_ID"
+  | "INVALID_PLAN_COMMENT_ID"
   | "MISSING_APPROVED_AT"
   | "INVALID_APPROVED_AT";
 
@@ -52,19 +54,34 @@ export function approveWritingPlan(
     return { valid: false, reason: "INVALID_APPROVAL_COMMAND" };
   }
 
+  if (input.planBody.trim().length === 0) {
+    return { valid: false, reason: "MISSING_PLAN_BODY" };
+  }
+
   if (!input.approver) {
     return { valid: false, reason: "MISSING_APPROVER" };
   }
 
   if (
     typeof input.commentId !== "number" ||
-    !Number.isSafeInteger(input.commentId)
+    !isPositiveSafeInteger(input.commentId)
   ) {
     return { valid: false, reason: "MISSING_APPROVAL_COMMENT_ID" };
   }
 
+  if (
+    input.planCommentId !== undefined &&
+    !isPositiveSafeInteger(input.planCommentId)
+  ) {
+    return { valid: false, reason: "INVALID_PLAN_COMMENT_ID" };
+  }
+
   if (!input.approvedAt) {
     return { valid: false, reason: "MISSING_APPROVED_AT" };
+  }
+
+  if (!isZonedIsoDateTime(input.approvedAt)) {
+    return { valid: false, reason: "INVALID_APPROVED_AT" };
   }
 
   const approvedDate = new Date(input.approvedAt);
@@ -87,6 +104,51 @@ export function approveWritingPlan(
       article_date: toShanghaiDate(approvedDate),
     },
   };
+}
+
+function isPositiveSafeInteger(value: number): boolean {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
+function isZonedIsoDateTime(value: string): boolean {
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/.exec(
+      value,
+    );
+
+  if (!match) {
+    return false;
+  }
+
+  const [, yearText, monthText, dayText, hourText, minuteText, secondText, zone] =
+    match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const second = Number(secondText);
+
+  if (hour > 23 || minute > 59 || second > 59) {
+    return false;
+  }
+
+  if (zone !== "Z") {
+    const zoneHour = Number(zone.slice(1, 3));
+    const zoneMinute = Number(zone.slice(4, 6));
+
+    if (zoneHour > 23 || zoneMinute > 59) {
+      return false;
+    }
+  }
+
+  const calendarDate = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    calendarDate.getUTCFullYear() === year &&
+    calendarDate.getUTCMonth() === month - 1 &&
+    calendarDate.getUTCDate() === day
+  );
 }
 
 /** 按 `Asia/Shanghai` 时区把批准时间映射为 `YYYY-MM-DD` 文章日期。 */

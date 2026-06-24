@@ -93,12 +93,12 @@ article-hub plan approve \
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `--plan-body-file` | ✅ | 计划评论正文文件路径（临时输入，不入 git） |
+| `--plan-body-file` | ✅ | 非空计划评论正文文件路径（临时输入，不入 git） |
 | `--command` | ✅ | 批准命令原文，必须逐字等于 `/ai 批准写作计划` |
 | `--approver` | ✅ | 审批者标识 |
-| `--comment-id` | ✅ | 批准评论 ID（整数） |
-| `--approved-at` | ✅ | 批准时间戳 |
-| `--plan-comment-id` | ❌ | 被批准计划评论 ID（整数），写入快照便于溯源 |
+| `--comment-id` | ✅ | 批准评论 ID（正整数） |
+| `--approved-at` | ✅ | 带 `Z` 或时区 offset 的 ISO 批准时间戳 |
+| `--plan-comment-id` | ❌ | 被批准计划评论 ID（正整数），写入快照便于溯源 |
 | `--plan-label` | ❌ | 人类可读计划版本标签 |
 
 ---
@@ -391,10 +391,9 @@ article-hub --dry-run reconcile --state-file <path>
 | `ISSUE_FILE_NOT_FOUND` | Issue 文件不存在 |
 | `ARTICLE_FILE_NOT_FOUND` | 文章文件不存在 |
 | `INVALID_JSON` | 输入文件不是有效 JSON |
-| `PLAN_FILE_NOT_FOUND` | 写作计划文件不存在 |
+| `PLAN_FILE_NOT_FOUND` | 写作计划正文文件不存在 |
 | `STATE_FILE_NOT_FOUND` | 状态文件不存在 |
 | `PROJECT_CONFIG_NOT_FOUND` | 项目配置文件不存在 |
-| `INVALID_PLAN` | 写作计划结构或字段无效 |
 | `INVALID_STATE` | 状态值无效 |
 | `INVALID_PROJECT_CONFIG` | 项目配置格式、结构或字段无效 |
 | `UNKNOWN_PROJECT` | 项目未配置在 allowlist 中 |

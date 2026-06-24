@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 import {
+  expectErrorEnvelope,
   expectSuccessfulEnvelope,
   repositoryRoot,
   runArticleHubCli,
@@ -78,9 +79,16 @@ describe("article-hub plan/state CLI", () => {
     );
 
     expect(output.snapshot?.approved_plan).toContain("写作计划");
-    expect(Object.keys(output.snapshot ?? {})).not.toEqual(
-      expect.arrayContaining(["plan_" + "hash", "plan_" + "version"]),
-    );
+    expect(Object.keys(output.snapshot ?? {}).sort()).toEqual([
+      "approval_command",
+      "approval_comment_id",
+      "approved_at",
+      "approved_plan",
+      "approver",
+      "article_date",
+      "plan_comment_id",
+      "plan_label",
+    ]);
   });
 
   test("plan approve 拒绝携带参数的旧命令", () => {
@@ -107,6 +115,56 @@ describe("article-hub plan/state CLI", () => {
         reason: "INVALID_APPROVAL_COMMAND",
       },
     );
+  });
+
+  test("plan approve 在计划正文文件不存在时返回稳定错误码", () => {
+    const missingPlanBodyPath = path.join(tempDir, "missing-plan-body.md");
+    const result = runArticleHubCli([
+      "plan",
+      "approve",
+      "--plan-body-file",
+      missingPlanBodyPath,
+      "--command",
+      "/ai 批准写作计划",
+      "--approver",
+      "maintainer",
+      "--comment-id",
+      "1001",
+      "--approved-at",
+      "2026-06-18T20:30:00+08:00",
+    ]);
+
+    expectErrorEnvelope(result, "PLAN_FILE_NOT_FOUND", 1);
+  });
+
+  test.each([
+    ["--comment-id", "-1"],
+    ["--comment-id", "0"],
+    ["--plan-comment-id", "-1"],
+    ["--plan-comment-id", "0"],
+  ])("plan approve 拒绝非正整数评论 id：%s %s", (option, value) => {
+    const args = [
+      "plan",
+      "approve",
+      "--plan-body-file",
+      planBodyPath,
+      "--command",
+      "/ai 批准写作计划",
+      "--approver",
+      "maintainer",
+      "--comment-id",
+      "1001",
+      "--approved-at",
+      "2026-06-18T20:30:00+08:00",
+    ];
+
+    if (option === "--comment-id") {
+      args[args.indexOf("--comment-id") + 1] = value;
+    } else {
+      args.push(option, value);
+    }
+
+    expectErrorEnvelope(runArticleHubCli(args), "MISSING_ARGUMENT", 2);
   });
 
   test("state decide 读取状态文件并输出阻断决策", () => {

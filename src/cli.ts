@@ -240,24 +240,20 @@ async function runPlanCommand(
     const planBodyFile = readRequiredOption(args, "--plan-body-file");
     const command = readRequiredOption(args, "--command");
     const approver = readRequiredOption(args, "--approver");
-    const commentId = Number(readRequiredOption(args, "--comment-id"));
+    const commentId = readPositiveIntegerOption(args, "--comment-id");
     const approvedAt = readRequiredOption(args, "--approved-at");
     const planCommentIdRaw = readOptionalOption(args, "--plan-comment-id");
     const planLabel = readOptionalOption(args, "--plan-label");
-
-    if (!Number.isSafeInteger(commentId)) {
-      throw new ArticleHubError("MISSING_ARGUMENT", "参数值必须是整数：--comment-id", 2);
-    }
 
     let planCommentId: number | undefined;
 
     if (planCommentIdRaw !== undefined) {
       planCommentId = Number(planCommentIdRaw);
 
-      if (!Number.isSafeInteger(planCommentId)) {
+      if (!Number.isSafeInteger(planCommentId) || planCommentId <= 0) {
         throw new ArticleHubError(
           "MISSING_ARGUMENT",
-          "参数值必须是整数：--plan-comment-id",
+          "参数值必须是正整数：--plan-comment-id",
           2,
         );
       }
@@ -386,6 +382,16 @@ function readRequiredOption(args: string[], optionName: string): string {
 
   if (!value || value.startsWith("--")) {
     throw new ArticleHubError("MISSING_ARGUMENT", `缺少参数值：${optionName}`, 2);
+  }
+
+  return value;
+}
+
+function readPositiveIntegerOption(args: string[], optionName: string): number {
+  const value = Number(readRequiredOption(args, optionName));
+
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new ArticleHubError("MISSING_ARGUMENT", `参数值必须是正整数：${optionName}`, 2);
   }
 
   return value;

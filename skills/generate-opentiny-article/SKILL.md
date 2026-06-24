@@ -36,7 +36,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    article-hub inspect-issue --issue-file <issue.json>
    ```
 
-   `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停，`commands[].actionable` 决定是否已批准。读到标签含 `AI执行：人工暂停` 立即停止。
+   `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
 
 2. 校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 
@@ -47,13 +47,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 3. 生成或更新写作计划，并作为「当前写作计划评论」发布到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。
 
-4. 确认写作计划已被批准——这是进入写作前的闸门。是否已批准只看 `inspect-issue` 输出里某条评论 `actionable: true`，即由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出的逐字固定命令：
+4. 确认写作计划已被批准——这是进入写作前的闸门。只有 `inspect-issue` 输出中存在 `actionable: true` 且 `parsed.kind: "approve-writing-plan"` 的评论，才算由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出了逐字固定批准命令：
 
    ```text
    /ai 批准写作计划
    ```
 
-   自然语言表述（如「我觉得可以批准」）、携带参数（如旧版 `/ai 批准写作计划 2 a1b2c3d4`）、越权用户或 bot 发出的命令都不算批准——不要据此推断批准意图，没有 `actionable` 命令就停下等待。
+   自然语言表述（如「我觉得可以批准」）、携带参数（如旧版 `/ai 批准写作计划 2 a1b2c3d4`）、越权用户或 bot 发出的命令都不算批准。`/ai 状态`、`/ai 暂停` 等其他可执行命令也不算批准。不要据此推断批准意图，没有满足上述条件的批准命令就停下等待。
 
 5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git）：
 

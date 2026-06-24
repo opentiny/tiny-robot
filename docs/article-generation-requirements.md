@@ -538,7 +538,7 @@ assets/diagrams/<name>.png
 
 以下问题禁止创建 Draft PR：
 
-- 写作计划未批准或批准版本失效。
+- 写作计划未批准，或计划变更后尚未重新批准并生成新快照。
 - 目标仓库、版本或 Commit 无法获取。
 - 缺少支撑文章核心结论的资料。
 - `article.md` 或 Front Matter 不符合 schema。

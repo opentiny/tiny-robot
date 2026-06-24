@@ -51,6 +51,22 @@ describe("writing plan approval", () => {
     expect(result.snapshot.plan_label).toBeNull();
   });
 
+  test("按 Asia/Shanghai 从批准时间派生 article_date", () => {
+    const result = approveWritingPlan({
+      planBody,
+      command: "/ai 批准写作计划",
+      approver: "maintainer",
+      commentId: 1001,
+      approvedAt: "2026-06-18T23:30:00Z",
+    });
+
+    expect(result.valid).toBe(true);
+    if (!result.valid) {
+      throw new Error("approval should be valid");
+    }
+    expect(result.snapshot.article_date).toBe("2026-06-19");
+  });
+
   test.each([
     {
       name: "非批准命令",
@@ -99,6 +115,30 @@ describe("writing plan approval", () => {
       approvedAt: "not-a-date",
       expectedReason: "INVALID_APPROVED_AT",
     },
+    {
+      approver: "maintainer",
+      commentId: 0,
+      approvedAt: "2026-06-18T20:30:00+08:00",
+      expectedReason: "MISSING_APPROVAL_COMMENT_ID",
+    },
+    {
+      approver: "maintainer",
+      commentId: -1,
+      approvedAt: "2026-06-18T20:30:00+08:00",
+      expectedReason: "MISSING_APPROVAL_COMMENT_ID",
+    },
+    {
+      approver: "maintainer",
+      commentId: 1001,
+      approvedAt: "2026-06-18T20:30:00",
+      expectedReason: "INVALID_APPROVED_AT",
+    },
+    {
+      approver: "maintainer",
+      commentId: 1001,
+      approvedAt: "2026-02-31T20:30:00+08:00",
+      expectedReason: "INVALID_APPROVED_AT",
+    },
   ])("批准元数据缺失或非法时拒绝：$expectedReason", (meta) => {
     const result = approveWritingPlan({
       planBody,
@@ -109,5 +149,30 @@ describe("writing plan approval", () => {
     });
 
     expect(result).toEqual({ valid: false, reason: meta.expectedReason });
+  });
+
+  test("计划正文为空时拒绝生成快照", () => {
+    const result = approveWritingPlan({
+      planBody: " \n\t ",
+      command: "/ai 批准写作计划",
+      approver: "maintainer",
+      commentId: 1001,
+      approvedAt: "2026-06-18T20:30:00+08:00",
+    });
+
+    expect(result).toEqual({ valid: false, reason: "MISSING_PLAN_BODY" });
+  });
+
+  test("传入 plan_comment_id 时必须是正整数", () => {
+    const result = approveWritingPlan({
+      planBody,
+      command: "/ai 批准写作计划",
+      approver: "maintainer",
+      commentId: 1001,
+      approvedAt: "2026-06-18T20:30:00+08:00",
+      planCommentId: -1,
+    });
+
+    expect(result).toEqual({ valid: false, reason: "INVALID_PLAN_COMMENT_ID" });
   });
 });

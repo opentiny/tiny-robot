@@ -69,11 +69,9 @@ describe("article-hub inspect-issue", () => {
         authorized: true,
         bot: false
       },
-      parsed: {
-        kind: "approve-writing-plan",
-      },
       actionable: true
     });
+    expect(command?.parsed).toEqual({ kind: "approve-writing-plan" });
   });
 
   test.each([
@@ -119,6 +117,19 @@ describe("article-hub inspect-issue", () => {
       },
       actionable: true
     });
+  });
+
+  test("actionable 的控制命令不等价于写作计划批准", () => {
+    const output = inspectFixtureIssue();
+    const command = output.commands.find((item) => item.parsed?.kind === "status");
+
+    expect(command).toMatchObject({
+      parsed: {
+        kind: "status"
+      },
+      actionable: true
+    });
+    expect(command?.parsed).not.toEqual({ kind: "approve-writing-plan" });
   });
 
   test("无效 JSON 产生稳定错误 envelope 且 stdout 不混入日志", () => {
