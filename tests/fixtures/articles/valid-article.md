@@ -11,9 +11,9 @@ article_date: 2026-06-19
 created_at: 2026-06-19T09:00:00+08:00
 updated_at: 2026-06-19T09:00:00+08:00
 author: OpenTiny
-approved_plan:
-  version: 2
-  hash: ab12cd34
+approved_plan: |-
+  ## 写作计划（第 2 版）
+  目标：介绍 WebMCP SDK 的本地写作链路
 sources:
   - id: opentiny-webmcp-sdk
     repository: https://github.com/opentiny/webmcp-sdk

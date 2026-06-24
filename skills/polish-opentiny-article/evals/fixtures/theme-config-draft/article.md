@@ -10,9 +10,9 @@ sources:
   - name: webmcp-sdk
     repository: https://github.com/opentiny/webmcp-sdk.git
     commit: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
-approved_plan:
-  version: 1
-  hash: 0f1e2d3c4b5a6978
+approved_plan: |-
+  ## 写作计划（第 1 版）
+  目标：介绍 WebMCP SDK 的主题配置方式
 article_date: 2026-06-20
 author: OpenTiny
 ---

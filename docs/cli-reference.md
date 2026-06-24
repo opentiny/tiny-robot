@@ -35,8 +35,6 @@ npx article-hub <command> [options]
 | 命令 | 说明 |
 |------|------|
 | [`inspect-issue`](#inspect-issue) | Primitive：解析 Issue fixture，提取结构化事实和固定命令 |
-| [`plan hash`](#plan-hash) | Primitive：计算计划文件的语义 Hash |
-| [`plan compare`](#plan-compare) | Primitive：对比两个计划文件的语义差异 |
 | [`plan approve`](#plan-approve) | Primitive：校验审批命令并返回审批快照 |
 | [`projects list`](#projects-list) | Primitive：列出配置中的所有项目 |
 | [`projects validate`](#projects-validate) | Primitive：校验项目配置的合法性 |
@@ -76,53 +74,32 @@ article-hub --dry-run inspect-issue --issue-file tests/fixtures/issue-minimal.js
 
 ### `plan`
 
-计划文件管理，包含三个子命令：`hash`、`compare`、`approve`。
-
-#### `plan hash`
-
-计算计划文件的哈希值。
-
-```sh
-article-hub plan hash --plan-file <path>
-```
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `--plan-file` | ✅ | 计划文件路径 |
-
-#### `plan compare`
-
-对比两个计划文件的差异。
-
-```sh
-article-hub plan compare --previous <path> --current <path>
-```
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `--previous` | ✅ | 旧版计划文件路径 |
-| `--current` | ✅ | 新版计划文件路径 |
+写作计划批准，仅含 `approve` 子命令。
 
 #### `plan approve`
 
-校验审批命令和计划文件，返回审批结果与审批快照；命令不会写回计划文件。
+校验逐字固定批准命令与批准元数据，返回无 Hash 的不可变批准快照；不写回任何文件。
 
 ```sh
 article-hub plan approve \
-  --plan-file <path> \
-  --command <command> \
+  --plan-body-file <path> \
+  --command "/ai 批准写作计划" \
   --approver <approver> \
   --comment-id <id> \
-  --approved-at <timestamp>
+  --approved-at <timestamp> \
+  [--plan-comment-id <id>] \
+  [--plan-label <label>]
 ```
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `--plan-file` | ✅ | 计划文件路径 |
-| `--command` | ✅ | 审批触发的命令 |
+| `--plan-body-file` | ✅ | 计划评论正文文件路径（临时输入，不入 git） |
+| `--command` | ✅ | 批准命令原文，必须逐字等于 `/ai 批准写作计划` |
 | `--approver` | ✅ | 审批者标识 |
-| `--comment-id` | ✅ | 关联评论 ID（整数） |
-| `--approved-at` | ✅ | 审批时间戳 |
+| `--comment-id` | ✅ | 批准评论 ID（整数） |
+| `--approved-at` | ✅ | 批准时间戳 |
+| `--plan-comment-id` | ❌ | 被批准计划评论 ID（整数），写入快照便于溯源 |
+| `--plan-label` | ❌ | 人类可读计划版本标签 |
 
 ---
 

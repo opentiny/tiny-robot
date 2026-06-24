@@ -203,7 +203,7 @@ Issue 中已有大纲只作为输入参考。Skill 可以重组并输出新的�
 
 人工确认资料与公开官方资料冲突时，Skill 必须暂停并列出冲突，不能自行选择。当前交付只处理公开资料，不设计私有资料权限或匿名来源机制；是否适合公开由人工 Review 确认。
 
-本地文件可以用于策划阶段，但批准写作计划前必须转换为可复现来源：提交到 `materials/issue-sources/<issue-number>/`，或上传为可稳定访问的 Issue 附件，并记录内容 Hash、来源和 License。只存在于单台机器的文件不得用于生成正式 Draft PR。
+本地文件可以用于策划阶段，但批准写作计划前必须转换为可复现来源：提交到 `materials/issue-sources/<issue-number>/`，或上传为可稳定访问的 Issue 附件，并记录内容校验摘要、来源和 License。只存在于单台机器的文件不得用于生成正式 Draft PR。
 
 ### 6.3 来源优先级
 
@@ -280,7 +280,7 @@ materials/article-archive/<year>/<YYYY-MM-DD>-<slug>/
 
 Skill 在选题 Issue 中维护一条“AI 写作计划”评论，必须包含：
 
-- 计划版本、生成时间和内容摘要 Hash。
+- 计划标签（如「第 2 版」）和生成时间。
 - 选题目标和查重结论。
 - 读者当前问题、前置知识、阅读收益和不覆盖内容。
 - 文章类型和文风。
@@ -295,17 +295,17 @@ Skill 在选题 Issue 中维护一条“AI 写作计划”评论，必须包含�
 
 Issue 标题只是工作标题。最终标题在写作计划中确认，并同步到 Draft PR、Front Matter 和正文 H1。
 
-### 9.2 计划版本
+### 9.2 计划批准
 
-大纲、来源、素材缺口、目标版本或文章目标发生实质变化时必须增加 `plan_version`，原批准自动失效。纯格式调整不增加版本。
+大纲、来源、素材缺口、目标版本或文章目标发生实质变化时，必须重新发布计划评论并重新批准。纯格式调整不需要重新批准。
 
-写作计划评论必须展示绑定当前版本和 Hash 前缀的可复制批准命令。人工只能使用该命令批准明确版本：
+写作计划评论展示可复制的批准命令；批准命令去参数化，人工只发逐字固定命令：
 
 ```text
-/ai 批准写作计划 2 a1b2c3d4
+/ai 批准写作计划
 ```
 
-命令中的版本或 Hash 与当前计划不一致时必须拒绝批准。批准处理器必须立即写入一条不可变的“批准快照”评论，保存被批准计划的完整内容、`plan_version`、完整 Hash、批准人、时间，以及按 `Asia/Shanghai` 分配的 `article_date`。当前计划评论仍只维护一条；后续修改会使批准快照失效，但不得覆盖历史批准内容。
+批准处理器据此生成一条不可变「批准快照」评论，保存被批准计划的完整正文、批准人、批准评论 id、批准时间，以及按 `Asia/Shanghai` 分配的 `article_date`。生成只读该快照内容；计划要变更必须重新发布计划评论并重新批准，按最新批准评论为准，历史快照不被覆盖。编辑或删除快照评论不触发额外校验。
 
 本地运行时，Skill 可以在当前对话展示计划摘要。用户明确批准后，Skill 代用户向 Issue 发布固定批准评论并继续；未明确批准时不得继续正文生成，也不得长期轮询。
 
@@ -362,7 +362,7 @@ Issue 标题只是工作标题。最终标题在写作计划中确认，并同�
 ```text
 /ai 状态
 /ai 批准选题
-/ai 批准写作计划 <plan_version> <hash-prefix>
+/ai 批准写作计划
 /ai 暂停
 /ai 恢复
 /ai 重试
@@ -379,7 +379,7 @@ Issue 标题只是工作标题。最终标题在写作计划中确认，并同�
 → 校验项目、输入和权限
 → 查重与资料调研
 → 发布或更新写作计划
-→ 等待人工批准当前计划版本
+→ 等待人工批准当前计划并生成批准快照
 → 创建本地文章分支和 worktree
 → 生成 Front Matter、正文和素材
 → 执行 OpenTiny 文风润色
@@ -443,6 +443,7 @@ Front Matter 至少包含：
 - `style_profile`
 - `language: zh-CN`
 - `topic_issue`
+- `approved_plan`：被批准计划正文快照。
 - `created_at` 与 `updated_at`
 - 来源仓库、固定 Commit、在线文档 URL 和访问时间
 - 图片与素材记录
@@ -555,7 +556,7 @@ assets/diagrams/<name>.png
 
 PR 描述至少包含：
 
-- 来源选题和写作计划版本。
+- 来源选题和批准快照引用。
 - 文章目标、类型、文风和目标读者。
 - 查看文章与在线编辑入口。
 - 本轮生成摘要。
@@ -601,13 +602,13 @@ AI 完成修改后只回复修改内容、对应 Commit 和待确认项，不自
 
 初稿使用一个 Commit，每批 Review 意见使用一个独立 Commit。AI 不修改、压缩或强推人工 Commit。
 
-AI Commit 使用稳定格式，并记录 Issue 与计划版本：
+AI Commit 使用稳定格式，并记录 Issue 与批准快照引用：
 
 ```text
 docs(article): revise TinyRobot demo from review
 
 Issue: #3
-Plan-Version: 2
+Approval-Snapshot: https://github.com/hexqi/ai-article-hub/issues/3#issuecomment-123456
 ```
 
 ### 15.6 合并与终止
@@ -642,7 +643,7 @@ Issue 与 PR 关闭规则：
 - 同一 Issue 或 PR 的任务串行执行。
 - 已开始的任务不强制取消，后续事件进入下一批。
 - 同一时间窗口内的多条修改意见可以合并处理。
-- 使用分事件 `dedupe_key`、计划版本、分支和 Head SHA 保证幂等，不假设 GitHub 提供统一 event ID。
+- 使用分事件 `dedupe_key`、批准快照引用、分支和 Head SHA 保证幂等，不假设 GitHub 提供统一 event ID。
 - 同一选题不得重复创建分支、Commit 或 PR。
 - 失败后有限重试；不自动跨 Agent 或模型 fallback。
 - 跨模型重试必须由人工显式选择，并记录新的生成信息。

@@ -1,8 +1,7 @@
 {
-  "plan_version": 2,
+  "plan_label": "第 2 版",
   "created_at": "2026-06-18T10:00:00+08:00",
-  "display_markdown": "## AI 写作计划\n\n展示格式不参与 Hash。",
-  "hash": "legacy",
+  "display_markdown": "## AI 写作计划\n\n展示格式仅用于人工审核。",
   "project": "webmcp-sdk",
   "article_type": "practical-guide",
   "style_profile": "developer-friendly",

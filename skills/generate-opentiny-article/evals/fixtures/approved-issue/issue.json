@@ -20,7 +20,7 @@
     },
     {
       "id": 2002,
-      "body": "/ai 批准写作计划 2 4bdcce36",
+      "body": "/ai 批准写作计划",
       "author": { "login": "maintainer", "type": "User", "association": "MEMBER" },
       "created_at": "2026-06-18T10:00:00Z"
     }

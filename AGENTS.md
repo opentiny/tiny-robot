@@ -44,7 +44,7 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 
 - `article-hub` 是确定性流程原语，不是 `gh` 的便利封装。
 - 普通 GitHub 读取使用 `gh`，例如读取 Issue、PR、Review 和评论原始事实。
-- 权限过滤、bot 过滤、固定 `/ai` 命令解析、项目 allowlist、计划 Hash、暂停保护、状态标签互斥、路径安全、文章校验和受控 mutation 必须走 `article-hub`。
+- 权限过滤、bot 过滤、固定 `/ai` 命令解析、项目 allowlist、批准快照生成、暂停保护、状态标签互斥、路径安全、文章校验和受控 mutation 必须走 `article-hub`。
 - Agent 不得在自然语言、临时脚本或 Skill 文档中重复实现 CLI 已固定的业务规则。
 - 新增 CLI 命令必须固定跨 Skill 或 Workflow 复用的不变量、输出稳定 JSON contract、执行写操作前做本地 guard，或提供幂等 mutation plan。
 - 单纯读取 GitHub 字段、转发 `gh` 参数、展示 CLI 输出或兼容迁移期便利命令，不应进入生产 CLI。
@@ -123,7 +123,7 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 ## 文章生成边界
 
 - 写作计划未被固定命令批准前，不生成正文、不创建 Draft PR。
-- 固定批准命令格式为 `/ai 批准写作计划 <plan_version> <hash-prefix>`；额外空格、大写 hash、自然语言同意或 bot 评论都不算批准。
+- 固定批准命令格式为 `/ai 批准写作计划`；额外空格、携带任何参数、自然语言同意或 bot 评论都不算批准。
 - 资料必须可追溯；只存在于单台机器的文件不得用于生成正式 Draft PR，除非先转成可复现来源。
 - 性能、安全、兼容性和版本支持等高风险结论必须回到一级来源核验。
 - 不生成 MDX、自定义组件、内联脚本、平台专属发布字段或 AI 装饰图，除非用户明确扩展范围。

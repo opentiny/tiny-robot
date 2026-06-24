@@ -14,19 +14,19 @@
   "comments": [
     {
       "id": 4001,
-      "body": "我觉得可以批准写作计划 2 4bdcce36，开始写吧。",
+      "body": "我觉得可以批准写作计划，开始写吧。",
       "author": { "login": "maintainer", "type": "User", "association": "MEMBER" },
       "created_at": "2026-06-20T10:00:00Z"
     },
     {
       "id": 4002,
-      "body": "/ai 批准写作计划 2 4bdcce36",
+      "body": "/ai 批准写作计划",
       "author": { "login": "external-user", "type": "User", "association": "NONE" },
       "created_at": "2026-06-20T10:05:00Z"
     },
     {
       "id": 4003,
-      "body": "/ai 批准写作计划 2 4bdcce36",
+      "body": "/ai 批准写作计划",
       "author": { "login": "automation[bot]", "type": "Bot", "association": "MEMBER" },
       "created_at": "2026-06-20T10:10:00Z"
     }

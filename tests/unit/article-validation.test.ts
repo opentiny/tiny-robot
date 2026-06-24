@@ -144,10 +144,14 @@ describe("article validation", () => {
       "summary"
     ],
     [
-      "approved_plan.hash 长度",
-      (content: string) => content.replace("hash: ab12cd34", "hash: ab12"),
-      "short-approved-plan-hash",
-      "approved_plan.hash"
+      "approved_plan 为空",
+      (content: string) =>
+        content.replace(
+          "approved_plan: |-\n  ## 写作计划（第 2 版）\n  目标：介绍 WebMCP SDK 的本地写作链路",
+          'approved_plan: ""'
+        ),
+      "missing-required-frontmatter-field",
+      "approved_plan"
     ]
   ])("Front Matter schema 约束会阻断 %s 漂移", async (_, transform, code, field) => {
     const articleFile = writeVariant("frontmatter-schema-drift", transform);
@@ -167,9 +171,12 @@ describe("article validation", () => {
     expectBlockingIssue(result, "missing-frontmatter");
   });
 
-  test("approved_plan 必须包含版本和 Hash", async () => {
+  test("approved_plan 必须是非空字符串", async () => {
     const articleFile = writeVariant("invalid-approved-plan", (content) =>
-      content.replace("approved_plan:\n  version: 2\n  hash: ab12cd34", "approved_plan: invalid")
+      content.replace(
+        "approved_plan: |-\n  ## 写作计划（第 2 版）\n  目标：介绍 WebMCP SDK 的本地写作链路",
+        "approved_plan:\n  legacy: object"
+      )
     );
 
   const result = await validateArticleFile({ articleFile, configPath, dryRun: false });

@@ -13,8 +13,6 @@
 Primitives 是只读或近似只读的确定性流程原语：
 
 - `inspect-issue`
-- `plan hash`
-- `plan compare`
 - `plan approve`
 - `state decide`
 - `validate article`
@@ -72,7 +70,7 @@ CLI 负责：
 
 - 解析固定 `/ai` 命令。
 - 过滤 bot 和未授权评论。
-- 计算写作计划 Hash、比较语义变化、生成批准快照。
+- 校验写作计划固定批准命令并生成批准快照。
 - 校验文章、项目配置、路径和素材契约。
 - 决定状态 mutation 是否允许。
 - 生成或执行受控 Git/GitHub mutation。

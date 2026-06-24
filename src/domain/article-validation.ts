@@ -61,12 +61,7 @@ export const articleValidationIssueMessages = defineArticleValidationIssueMessag
     `Front Matter ${field} 必须是${stringRequirement === "string" ? "" : "非空"}字符串`,
   "unknown-project": ({ value }) => `Front Matter project 不在项目 allowlist 中：${value}`,
   "unsupported-frontmatter-enum": ({ field, value }) => `Front Matter ${field} 不受支持：${value}`,
-  "invalid-approved-plan": () => "approved_plan 必须是 object",
-  "missing-approved-plan-version": () => "approved_plan 缺少 version",
-  "invalid-approved-plan-version": () => "approved_plan.version 必须是整数或字符串",
-  "missing-approved-plan-hash": () => "approved_plan 缺少 hash",
-  "invalid-approved-plan-hash": () => "approved_plan.hash 必须是字符串",
-  "short-approved-plan-hash": () => "approved_plan.hash 长度不能小于 8",
+  "invalid-approved-plan": () => "approved_plan 必须是非空字符串",
   "missing-sources": () => "Front Matter sources 至少包含一项",
   "invalid-source": ({ sourceIndex }) => `sources[${sourceIndex}] 必须是 object`,
   "missing-source-identity": ({ sourceIndex }) => `sources[${sourceIndex}] 缺少来源标识`,
@@ -365,49 +360,13 @@ function validateApprovedPlan(
   approvedPlan: unknown,
   blockingIssues: ArticleValidationIssue[]
 ): void {
-  if (approvedPlan === null || typeof approvedPlan !== "object" || Array.isArray(approvedPlan)) {
-    if (!isMissing(approvedPlan)) {
-      blockingIssues.push(
-        createArticleValidationIssue("invalid-approved-plan", { field: "approved_plan" })
-      );
-    }
-
+  if (isMissing(approvedPlan)) {
     return;
   }
 
-  const plan = approvedPlan as Record<string, unknown>;
-
-  if (isMissing(plan.version)) {
+  if (typeof approvedPlan !== "string") {
     blockingIssues.push(
-      createArticleValidationIssue("missing-approved-plan-version", {
-        field: "approved_plan.version"
-      })
-    );
-  } else if (!isIntegerOrString(plan.version)) {
-    blockingIssues.push(
-      createArticleValidationIssue("invalid-approved-plan-version", {
-        field: "approved_plan.version"
-      })
-    );
-  }
-
-  if (isMissing(plan.hash)) {
-    blockingIssues.push(
-      createArticleValidationIssue("missing-approved-plan-hash", {
-        field: "approved_plan.hash"
-      })
-    );
-  } else if (typeof plan.hash !== "string") {
-    blockingIssues.push(
-      createArticleValidationIssue("invalid-approved-plan-hash", {
-        field: "approved_plan.hash"
-      })
-    );
-  } else if (plan.hash.length < 8) {
-    blockingIssues.push(
-      createArticleValidationIssue("short-approved-plan-hash", {
-        field: "approved_plan.hash"
-      })
+      createArticleValidationIssue("invalid-approved-plan", { field: "approved_plan" })
     );
   }
 }
@@ -928,8 +887,4 @@ function isMissing(value: unknown): boolean {
 
 function hasAnyString(source: Record<string, unknown>, fields: string[]): boolean {
   return fields.some((field) => typeof source[field] === "string" && source[field].length > 0);
-}
-
-function isIntegerOrString(value: unknown): boolean {
-  return typeof value === "string" || (typeof value === "number" && Number.isInteger(value));
 }

@@ -21,8 +21,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 确定性判断和受控 mutation 走 `article-hub`，读取 GitHub 原始事实走 `gh`，二者不互相替代——这样规则只有一处实现，Skill 不会在自然语言里把它们重写偏。
 
 - 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。
-- 确定性判断使用 `article-hub`，包括权限过滤、固定命令解析、项目 allowlist、计划 Hash、文章校验、状态 guard 和受控 mutation。
-- 遇到 Hash、标签互斥、暂停保护、bot 过滤、批准命令识别、Front Matter schema 或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
+- 确定性判断使用 `article-hub`，包括权限过滤、固定命令解析、项目 allowlist、批准快照生成、文章校验、状态 guard 和受控 mutation。
+- 遇到标签互斥、暂停保护、bot 过滤、批准命令识别、Front Matter schema 或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 - 读取 Issue、PR、Review 等 GitHub 原始事实时直接使用 `gh`；不要为了读取字段或转发 `gh` 参数而临时修改 `article-hub`。
 
 ## 流程
@@ -45,25 +45,23 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir <cache-dir>
    ```
 
-3. 生成或更新写作计划，计算 Hash：
+3. 生成或更新写作计划，并作为「当前写作计划评论」发布到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。
 
-   ```sh
-   article-hub plan hash --plan-file <plan.json>
-   ```
-
-4. 确认写作计划已被批准——这是进入写作前的闸门。是否已批准只看 `inspect-issue` 输出里某条评论 `actionable: true`，即由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出的固定命令：
+4. 确认写作计划已被批准——这是进入写作前的闸门。是否已批准只看 `inspect-issue` 输出里某条评论 `actionable: true`，即由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出的逐字固定命令：
 
    ```text
-   /ai 批准写作计划 <plan_version> <hash-prefix>
+   /ai 批准写作计划
    ```
 
-   `<hash-prefix>` 必须匹配第 3 步算出的 Hash 前缀。自然语言表述（如「我觉得可以批准计划 2」）、越权用户或 bot 发出的同款命令都不算批准——不要据此推断批准意图，没有 `actionable` 命令就停下等待。
+   自然语言表述（如「我觉得可以批准」）、携带参数（如旧版 `/ai 批准写作计划 2 a1b2c3d4`）、越权用户或 bot 发出的命令都不算批准——不要据此推断批准意图，没有 `actionable` 命令就停下等待。
 
-5. 批准后生成不可变批准快照：
+5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git）：
 
    ```sh
-   article-hub plan approve --plan-file <plan.json> --command "<command>" --approver <login> --comment-id <id> --approved-at <iso-time>
+   article-hub plan approve --plan-body-file <临时计划正文文件> --command "/ai 批准写作计划" --approver <login> --comment-id <批准评论 id> --approved-at <iso-time> [--plan-comment-id <计划评论 id>] [--plan-label <版本标签>]
    ```
+
+   生成时以该快照的 `approved_plan` 为唯一计划来源，不回读 live 评论；在创建 Draft PR 时，于 PR 描述中写一行批准引用（批准人、`approved_at`、快照评论链接）。
 
 6. 在隔离 Git worktree 中创建文章目录并写作：
 

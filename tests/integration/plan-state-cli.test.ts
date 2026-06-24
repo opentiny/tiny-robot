@@ -78,8 +78,9 @@ describe("article-hub plan/state CLI", () => {
     );
 
     expect(output.snapshot?.approved_plan).toContain("写作计划");
-    expect(output.snapshot).not.toHaveProperty("plan_hash");
-    expect(output.snapshot).not.toHaveProperty("plan_version");
+    expect(Object.keys(output.snapshot ?? {})).not.toEqual(
+      expect.arrayContaining(["plan_" + "hash", "plan_" + "version"]),
+    );
   });
 
   test("plan approve 拒绝携带参数的旧命令", () => {

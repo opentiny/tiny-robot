@@ -79,10 +79,10 @@ flowchart LR
 
 - 校验评论作者权限。
 - 解析固定 `/ai` 命令。
-- 读取 Issue 当前阶段、AI 状态和写作计划版本。
+- 读取 Issue 当前阶段、AI 状态和最新批准快照。
 - 执行暂停、恢复、重试和状态查询。
 - `/ai 批准选题` 后进入策划流程。
-- `/ai 批准写作计划 <plan_version> <hash-prefix>` 与当前计划完全匹配后，直接调用可复用生成 Workflow。
+- `/ai 批准写作计划` 由授权用户逐字发送后，创建不可变批准快照并调用可复用生成 Workflow。
 
 `/ai 暂停` 使用独立控制 job，不进入文章内容 concurrency group。该 job 以 `actions: write` 和 `issues: write` 先设置 `AI执行：人工暂停`、取消对应的 queued/running run，再回复成功。内容 Workflow 在每次 mutation 更新 Git ref 前必须最后一次检查暂停状态。
 
@@ -105,7 +105,7 @@ flowchart LR
 - 校验 Front Matter、Markdown、链接和素材。
 - 创建或更新文章分支和 Draft PR。
 
-同一个可复用 Workflow 根据 `mode=plan|generate` 执行不同阶段。`plan` 模式只更新 Issue 评论；`generate` 模式只有在计划版本批准后才允许写分支。
+同一个可复用 Workflow 根据 `mode=plan|generate` 执行不同阶段。`plan` 模式只更新 Issue 评论；`generate` 模式只有在批准快照生成后才允许写分支。
 
 ### 4.3 `article-review.yml`
 
@@ -197,7 +197,7 @@ CI 不判断文章是否“写得好”，也不替代人工事实和内容 Revi
 | --- | --- | --- | --- |
 | `/ai 批准选题` | `阶段：选题` | 校验 Issue 最小字段，启动调研 | `阶段：策划 + AI：处理中` |
 | 写作计划已发布 | `阶段：策划` | 等待人工反馈 | `阶段：策划 + AI：等待人工` |
-| `/ai 批准写作计划 <version> <hash>` | 命令与当前计划版本和 Hash 匹配 | 生成并校验初稿 | `阶段：写作 + AI：处理中` |
+| `/ai 批准写作计划` | 授权用户发送逐字固定命令，批准快照已生成 | 生成并校验初稿 | `阶段：写作 + AI：处理中` |
 | Draft PR 已创建 | 初稿校验通过 | 回写 PR 链接 | `阶段：写作 + AI：等待人工` |
 | Ready for review | 必选项通过 | 进入 Review | `阶段：审核 + AI：等待人工` |
 | Request changes 或 `/ai` 修改 | `阶段：审核` | 修订并提交 | `阶段：审核 + AI：处理中` |
@@ -281,7 +281,7 @@ permissions:
 
 职责：
 
-- 再次检查 Issue 阶段、计划版本和 PR Head SHA。
+- 再次检查 Issue 阶段、批准快照和 PR Head SHA。
 - 再次检查触发者授权和 `AI执行：人工暂停` 状态。
 - 创建或复用文章分支。
 - 提交经校验的文件。
@@ -305,7 +305,8 @@ permissions:
   "mode": "plan|generate|revise|polish",
   "repository": "hexqi/ai-article-hub",
   "issue_number": 3,
-  "plan_version": 2,
+  "plan_label": "第 2 版",
+  "approval_snapshot_comment_id": 123456,
   "article_type": "practical-guide",
   "style_profile": "developer-friendly",
   "source_manifest": "./run/source-manifest.json",
@@ -329,8 +330,8 @@ output/
 
 - Agent 和模型标识。
 - Skill 版本。
-- 输入计划版本。
-- 输出文件 Hash。
+- 批准快照引用。
+- 输出文件校验摘要。
 - 来源快照摘要。
 - 校验结果。
 - 需要人工处理的缺口。
@@ -391,26 +392,25 @@ Issue 中只维护一条当前写作计划评论，并使用隐藏标记定位�
 <!-- ai-article:plan:end -->
 ```
 
-评论包含 `plan_version` 和内容 Hash。更新计划时编辑该评论；人工反馈保留在独立评论和 Issue timeline。
+评论包含人类可读版本标签和完整计划正文。更新计划时编辑该评论；人工反馈保留在独立评论和 Issue timeline。
 
 ### 9.2 批准有效性
 
 写作计划评论必须提供可复制命令，例如：
 
 ```text
-/ai 批准写作计划 2 a1b2c3d4
+/ai 批准写作计划
 ```
 
-处理器只批准命令明确绑定的版本和 Hash；任一参数与当前计划不一致时拒绝批准。Mutation job 在开始生成和提交前都必须重新读取：
+处理器只批准授权用户发出的逐字固定命令；携带参数或自然语言表述都必须拒绝。Mutation job 在开始生成和提交前都必须重新读取：
 
-- 命令中的计划版本与 Hash。
-- 当前计划版本与 Hash。
+- 最新批准快照。
 - 批准评论作者和时间。
 - Issue 阶段。
 
-任一项不匹配时停止生成并转 `AI：等待人工`。
+任一项缺失或无效时停止生成并转 `AI：等待人工`。
 
-批准处理器还必须立即创建不可变批准快照评论，保存完整计划正文、`plan_version`、完整 Hash、批准人、时间，以及按 `Asia/Shanghai` 分配的 `article_date`。该快照是后续审计、跨日重试和重建任务的依据；编辑当前计划评论不得改变已批准快照。
+批准处理器还必须立即创建不可变批准快照评论，保存完整计划正文、批准人、批准评论 id、批准时间，以及按 `Asia/Shanghai` 分配的 `article_date`。该快照是后续审计、跨日重试和重建任务的依据；编辑当前计划评论不得改变已批准快照。
 
 ## 10. PR 描述与修订
 
@@ -458,7 +458,7 @@ article-<repository-id>-<canonical-issue-number>
 - 分支名由 Issue 编号确定。
 - 查找已有 PR 后再创建。
 - 评论回执带 `dedupe_key` 隐藏标记，防止重复回复。
-- Mutation job 使用 compare-and-swap 思路校验计划版本和 Head SHA。
+- Mutation job 使用 compare-and-swap 思路校验批准快照引用和 Head SHA。
 
 由 `GITHUB_TOKEN` 产生的事件通常不会再次触发新的 Workflow run，因此同一次业务转换应通过 `workflow_call`、同一 Workflow 内后续 job，或显式 `workflow_dispatch` 完成，不能依赖“更新标签后自然触发下一条 Workflow”。参考 [GitHub Actions 防止递归 Workflow](https://docs.github.com/actions/how-tos/writing-workflows/choosing-when-your-workflow-runs/triggering-a-workflow#triggering-a-workflow-from-a-workflow)。
 
@@ -497,10 +497,10 @@ Dry-run：
 每次运行在 Job Summary 中输出：
 
 - Issue 或 PR 链接。
-- `dedupe_key`、任务模式和计划版本。
+- `dedupe_key`、任务模式和批准快照引用。
 - Agent、模型和 Skill 版本。
 - 来源 Commit。
-- 生成文件列表与 Hash。
+- 生成文件列表与校验摘要。
 - 校验结果。
 - GitHub mutation 摘要。
 - 重试次数和失败原因。
@@ -574,7 +574,7 @@ Workflow 方案进入可实施状态前，至少验证：
 - Fixed command parser 不将普通评论误判为批准。
 - 未授权用户和 bot 的 `/ai`、Review 或状态命令不会调用模型或修改分支。
 - 过期计划批准无法触发生成。
-- 每次批准都存在包含完整正文、版本和 Hash 的不可变计划快照。
+- 每次批准都存在包含完整计划正文和审计元数据的不可变批准快照。
 - AI job 无 GitHub 写权限也能完成生成。
 - Mutation job 没有模型密钥也能完成提交和 PR 创建。
 - Reusable Workflow caller 提供所需权限上限，callee 各 job 只能收窄权限。
