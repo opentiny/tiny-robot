@@ -1,4 +1,4 @@
-import { chmod, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -16,12 +16,10 @@ export interface FakeGh {
  */
 export async function createFakeGh(issue: unknown): Promise<FakeGh> {
   const root = await mkdtemp(path.join(tmpdir(), "article-hub-fake-gh-"));
-  const binDir = path.join(root, "bin");
   const scriptPath = path.join(root, "fake-gh.mjs");
   const issuePath = path.join(root, "issue.json");
   const logPath = path.join(root, "calls.jsonl");
 
-  await mkdir(binDir, { recursive: true });
   await writeFile(issuePath, JSON.stringify(issue), "utf8");
   await writeFile(
     scriptPath,
@@ -38,14 +36,9 @@ export async function createFakeGh(issue: unknown): Promise<FakeGh> {
     "utf8"
   );
 
-  const unixPath = path.join(binDir, "gh");
-  await writeFile(unixPath, `#!/bin/sh\nexec "${process.execPath}" "${scriptPath}" "$@"\n`, "utf8");
-  await chmod(unixPath, 0o755);
-  await writeFile(path.join(binDir, "gh.cmd"), `@"${process.execPath}" "${scriptPath}" %*\r\n`, "utf8");
-
   return {
     env: {
-      PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ""}`,
+      ARTICLE_HUB_GH_COMMAND: JSON.stringify([process.execPath, scriptPath]),
       FAKE_GH_ISSUE: issuePath,
       FAKE_GH_LOG: logPath
     },
