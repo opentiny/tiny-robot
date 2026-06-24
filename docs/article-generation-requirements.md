@@ -454,7 +454,7 @@ Front Matter 至少包含：
 - 逐条事实与来源映射。
 - 完整 prompt、推理过程、聊天记录、Token 消耗或运行日志。
 
-Front Matter 使用 `schemas/article-frontmatter.schema.json` 校验。`schema_version` 必填；破坏性 schema 变化才提升版本。
+Front Matter 使用 `article-hub validate article` 校验。`schema_version` 必填；破坏性契约变化才提升版本。
 
 ### 12.4 正文引用
 
@@ -755,8 +755,6 @@ Agent 负责调研、判断、写作和润色；CLI 负责 Git、GitHub、schema
 ├── references/
 │   ├── brand/
 │   └── terminology/
-├── schemas/
-│   └── article-frontmatter.schema.json
 ├── scripts/
 └── .github/
 ```
