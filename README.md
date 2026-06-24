@@ -8,7 +8,7 @@ OpenTiny AI 文章生成流水线的本地输出库。它把选题 Issue、资�
 
 - 支持项目：`webmcp-sdk`、`genui-sdk`、`tiny-robot`，配置来源见 [`config/projects.yml`](./config/projects.yml)。
 - 支持文章类型：`release`、`practical-guide`、`source-analysis`、`case-study`。
-- 支持本地 Skill：`generate-opentiny-article` 负责从已批准写作计划生成初稿和 Draft PR；`polish-opentiny-article` 负责在不改事实和受保护内容的前提下优化正文。
+- 支持本地 Skill：`generate-opentiny-article` 负责从已批准写作计划生成初稿和 Draft PR，并在创建 Draft PR 前调用初稿优化；`polish-opentiny-article` 负责初稿优化和 Draft PR 修改时的正文处理。
 - 支持确定性 CLI：`article-hub` 输出机器可解析 JSON，固定状态、批准快照生成、文章校验、项目配置校验和受控 mutation plan。
 
 ## 快速开始
@@ -41,9 +41,9 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 2. Agent 读取 Issue 原始事实，调用 `article-hub inspect-issue` 和 `projects validate` 做确定性解析与项目 allowlist 校验。
 3. Agent 调研公开资料，生成写作计划、资料快照和素材缺口，并把计划评论发布到 Issue。
 4. 维护者用固定命令批准写作计划：`/ai 批准写作计划`，Agent 随后生成批准快照。
-5. Agent 调用 `generate-opentiny-article` 生成文章母稿，再调用 `polish-opentiny-article` 做正文优化。
+5. Agent 调用 `generate-opentiny-article` 生成文章母稿，并在创建 Draft PR 前调用 `polish-opentiny-article` 做初稿全文优化。
 6. `article-hub validate article` 通过后，流程创建或更新 Draft PR，并把 Issue 状态更新为等待人工 Review。
-7. 后续 Review、`Request changes` 或 `/ai` 修改要求由润色 Skill 按授权范围处理，并再次执行文章校验。
+7. 后续初审、Review、`Request changes` 或 `/ai` 修改要求由 `polish-opentiny-article` 按授权范围处理，并再次执行文章校验；人工确认后不默认追加全文润色。
 
 完整需求见 [`docs/article-generation-requirements.md`](./docs/article-generation-requirements.md)，未来 Workflow 边界见 [`docs/article-generation-workflow-design.md`](./docs/article-generation-workflow-design.md)。
 

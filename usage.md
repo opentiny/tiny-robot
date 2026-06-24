@@ -29,8 +29,8 @@ GitHub 上创建或确认文章 Issue
 → 在 GitHub Issue 中发送固定批准命令
 → 在 Agent 对话中生成文章和 Draft PR
 → 运营或技术补充截图、GIF 等图片素材
-→ 运营和核心技术维护者 Review Draft PR
-→ 在 Agent 对话中按 Review 意见修改
+→ 运营和核心技术维护者初审 Draft PR
+→ 在 Agent 对话中按初审或 Review 意见修改
 → 人工确认后在 GitHub 点击 Ready for review
 ```
 
@@ -42,7 +42,7 @@ GitHub 上创建或确认文章 Issue
 | --- | --- | --- |
 | 运营人员 | 提出选题，确认读者、标题、大纲、表达、图片效果和发布可读性，推动流程继续。 | GitHub Issue、GitHub PR、Codex / Claude Code 对话 |
 | 核心技术维护者 | 检查事实、术语、版本、Tag、Commit、API、代码片段、兼容性、性能和安全表述。 | GitHub Issue、GitHub PR |
-| Agent | 调研、生成写作计划、写文章、润色、接入素材、按 Review 意见修改。 | Codex / Claude Code 对话 |
+| Agent | 调研、生成写作计划、写文章、在初稿和修改时调用润色 Skill、接入素材、按初审或 Review 意见修改。 | Codex / Claude Code 对话 |
 | `article-hub` CLI | 校验项目、解析固定命令、过滤权限和 bot、生成批准快照、校验文章、更新状态和创建 Draft PR。 | Agent 自动调用 |
 
 固定批准命令可以由运营人员或核心技术维护者发送，不额外限制角色；当前规则只要求发送者有仓库权限，且命令完全匹配。
@@ -60,8 +60,8 @@ GitHub 上创建或确认文章 Issue
 | 发送固定批准命令 | GitHub Issue 评论 | 有权限的运营人员或核心技术维护者 |
 | 生成文章和 Draft PR | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
 | 补充截图、GIF、图片 | GitHub PR、Issue 附件或 Agent 对话 | 运营人员或核心技术维护者提供，Agent 接入 |
-| Review Draft PR | GitHub PR 页面 | 运营人员和核心技术维护者 |
-| 按 Review 意见修改 | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
+| 初审 Draft PR | GitHub PR 页面 | 运营人员和核心技术维护者 |
+| 按初审或 Review 意见修改 | Codex / Claude Code 对话 | 运营人员发起，Agent 执行 |
 | 点击 Ready for review | GitHub PR 页面 | 人工确认后操作 |
 
 默认不需要手动编辑本地文件，不需要手动创建 `articles/.../article.md`、`assets/`、分支或 Draft PR。需要补充本地图片时，把图片路径或附件链接交给 Agent，让 Agent 复制到文章素材目录并更新正文引用。
@@ -336,7 +336,7 @@ Issue 至少写清楚：
 - 校验项目属于 config/projects.yml。
 - 固定来源快照后再生成文章。
 - 生成 articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md 和必要素材。
-- 初稿完成后调用 polish-opentiny-article 做正文优化。
+- 初稿正文成型后自动调用 polish-opentiny-article 做正文优化；这是创建 Draft PR 前的固定步骤，不是 Review 通过后的收尾步骤。
 - 运行 article-hub validate article，直到校验通过或明确说明阻断原因。
 - 校验通过后创建或更新 Draft PR，并回写 Issue 状态。
 ```
@@ -415,13 +415,13 @@ articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/diagrams/
 
 这些问题可以作为 Draft PR 未完成项保留，正式发布前再补。
 
-## 第七步：PR Review
+## 第七步：Draft PR 初审
 
 操作位置：GitHub Draft PR 页面。
 
-Draft PR 创建后，运营人员和核心技术维护者分别 Review。
+Draft PR 创建后，运营人员和核心技术维护者先做初审。整体表达、素材、事实、代码和图片问题都应在这个阶段提出；如果需要全文润色，也应作为本阶段的一轮修改处理。
 
-### 运营 Review
+### 运营初审
 
 运营人员重点检查：
 
@@ -432,7 +432,7 @@ Draft PR 创建后，运营人员和核心技术维护者分别 Review。
 - 截图、GIF、封面或图片缺口是否已经明确。
 - PR 描述里的人工验收项是否完整。
 
-### 技术 Review
+### 技术初审
 
 核心技术维护者重点检查：
 
@@ -449,17 +449,17 @@ Draft PR 创建后，运营人员和核心技术维护者分别 Review。
 - [ ] 人工核对代码片段
 ```
 
-当前流程不要求核心技术维护者必须 Approve。是否需要 Approve、需要几名 Reviewer、何时允许合并，遵循仓库已有规则。
+Draft PR 初审阶段可以只评论，不要求核心技术维护者必须 Approve。正式 Review 是否需要 Approve、需要几名 Reviewer、何时允许合并，遵循仓库已有规则。
 
 ## 第八步：让 Agent 按意见修改
 
 操作位置：Codex / Claude Code 对话。
 
-如果 Review 中有明确意见，把 PR 链接发给 Agent。Agent 应只处理本轮授权范围；意见冲突、目标不清或缺少事实来源时，应停止并说明问题。
+如果初审或 Review 中有明确意见，把 PR 链接发给 Agent。文章正文修改都通过 `polish-opentiny-article` 执行：整体表达问题作为一轮全文修改处理，局部意见只改指定范围。每轮修改都会产生新改动，修改后需要相关人员重新确认；意见冲突、目标不清或缺少事实来源时，Agent 应停止并说明问题。
 
-### 全文润色
+### 全文表达修改
 
-如果文章事实没问题，但读起来有模板感、空话、营销腔或不够自然，可以使用全文润色。
+如果文章事实没问题，但读起来有模板感、空话、营销腔或不够自然，可以在 Draft PR 初审阶段使用全文表达修改。运营和技术都已确认通过后，不应再把全文润色作为默认收尾；如果人工仍要求全文润色，应视为新一轮修改，润色后至少由运营重新检查，涉及事实表述时还需要核心技术维护者重新确认。
 
 可复制提示词：
 
@@ -470,7 +470,7 @@ Draft PR 创建后，运营人员和核心技术维护者分别 Review。
 - 只优化正文自然语言。
 - 不改 Front Matter、标题、代码块、命令、日志、API、版本号、Commit、图片路径、链接目标、Mermaid 或 SVG 源内容。
 - 不新增来源外事实、数据、用户反馈、产品能力或因果关系。
-- 润色后运行 article-hub validate article。
+- 润色后运行 article-hub validate article，并提交本轮修改。
 ```
 
 ### 按运营意见修改
@@ -526,12 +526,13 @@ Draft PR 创建后，运营人员和核心技术维护者分别 Review。
 
 操作位置：GitHub PR 页面。
 
-Draft PR 完成人工编辑和必选验收项后，再由人工点击 GitHub 的 **Ready for review**。
+Draft PR 完成初审修改和必选验收项后，再由人工点击 GitHub 的 **Ready for review**。
 
 点击前建议确认：
 
-- 运营 Review 的标题、摘要、结构、表达和图片问题已处理。
+- 运营初审的标题、摘要、结构、表达和图片问题已处理。
 - 核心技术维护者提出的事实、代码、版本、API、兼容性、性能和安全问题已处理。
+- 不再有待处理的全文润色、运营修改或技术修改请求。
 - 截图、GIF 或图片素材没有敏感信息，且功能状态真实。
 - 必选人工验收项已经完成，或仍作为明确未完成项保留在 Draft PR 中。
 - Agent 最近一次修改后已经运行 `article-hub validate article`。
@@ -568,7 +569,7 @@ PR 合并和外部发布不属于当前本地生成流程。
 
 | 问题 | 怎么处理 |
 | --- | --- |
-| Agent 没有触发 Skill | 在提示词中直接写 `generate-opentiny-article` 或 `polish-opentiny-article`。 |
+| Agent 没有触发 Skill | 生成初稿时直接写 `generate-opentiny-article`；修改正文时直接写 `polish-opentiny-article`。环境检查、状态查询和资料确认不需要触发润色 Skill。 |
 | Codex 或 Claude Code 找不到 Skill | 确认从本仓库目录启动工具；Claude Code 需要接受 workspace trust。仍找不到时重启工具。 |
 | `gh auth status` 失败 | 先完成 GitHub CLI 登录，再继续。 |
 | 项目不支持 | 先由维护者评估是否要更新 [config/projects.yml](./config/projects.yml)。 |
@@ -623,6 +624,6 @@ articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/diagrams/<name>.png
 - [docs/article-generation-requirements.md](./docs/article-generation-requirements.md)：完整需求和边界。
 - [docs/cli-reference.md](./docs/cli-reference.md)：`article-hub` CLI 参数参考。
 - [.agents/skills/generate-opentiny-article/SKILL.md](./.agents/skills/generate-opentiny-article/SKILL.md)：生成文章的 Codex 流程。
-- [.agents/skills/polish-opentiny-article/SKILL.md](./.agents/skills/polish-opentiny-article/SKILL.md)：润色和 Review 修改的 Codex 流程。
+- [.agents/skills/polish-opentiny-article/SKILL.md](./.agents/skills/polish-opentiny-article/SKILL.md)：初稿优化和修改处理的 Codex 流程。
 - [.claude/skills/generate-opentiny-article/SKILL.md](./.claude/skills/generate-opentiny-article/SKILL.md)：生成文章的 Claude Code 流程。
-- [.claude/skills/polish-opentiny-article/SKILL.md](./.claude/skills/polish-opentiny-article/SKILL.md)：润色和 Review 修改的 Claude Code 流程。
+- [.claude/skills/polish-opentiny-article/SKILL.md](./.claude/skills/polish-opentiny-article/SKILL.md)：初稿优化和修改处理的 Claude Code 流程。

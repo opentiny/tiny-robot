@@ -50,7 +50,7 @@ flowchart LR
 | GitHub Issue | 保存选题、写作计划、批准记录和唯一流程标签 |
 | GitHub PR | 保存文章分支、Commit、Review、Checks 和人工修订 |
 | `article-hub` CLI | 解析状态、校验输入输出、操作 Git 和 GitHub、保证幂等 |
-| AI runner adapter | 调用 Codex CLI、Claude Code 或其他 Agent 完成计划、生成、修订和润色 |
+| AI runner adapter | 调用 Codex CLI、Claude Code 或其他 Agent 完成计划、生成和修订；生成或修订内部可调用润色 |
 | Actions artifact | 在只读 AI job 与可写 mutation job 之间传递受校验文件 |
 | Reconcile Workflow | 低频修复遗漏事件、超时任务和状态不一致 |
 
@@ -100,7 +100,7 @@ flowchart LR
 - 生成或更新写作计划。
 - 在批准后生成完整初稿。
 - checkout 固定资料快照。
-- 运行文章生成和 OpenTiny 文风润色。
+- 生成初稿后立即运行 OpenTiny 文风润色。
 - 生成 Mermaid、SVG 和 PNG。
 - 校验 Front Matter、Markdown、链接和素材。
 - 创建或更新文章分支和 Draft PR。
@@ -129,6 +129,8 @@ flowchart LR
 - Convert to draft 时将 Issue 退回 `阶段：写作`。
 
 普通 Review 修订保持 `阶段：审核`。只有人工 Convert to draft 才表示重大返工。
+
+Review 修订由 `revise` 模式处理；如果收到 `/ai 全文润色`，也作为一轮修订执行。Ready for review 只执行必选验收检查，不触发全文润色。
 
 ### 4.4 `article-state.yml`
 
@@ -302,7 +304,7 @@ permissions:
 
 ```json
 {
-  "mode": "plan|generate|revise|polish",
+  "mode": "plan|generate|revise",
   "repository": "hexqi/ai-article-hub",
   "issue_number": 3,
   "plan_label": "第 2 版",
@@ -432,7 +434,7 @@ Mutation job 只替换受管区域。标记缺失、重复或嵌套错误时停�
 
 1. 根据事件类型生成 `dedupe_key`，并记录 PR Head SHA。
 2. 收集当前批次的 Request changes 和 `/ai` 意见。
-3. AI job 基于最新文件生成 patch 后的完整输出目录。
+3. AI job 基于最新文件生成 patch 后的完整输出目录；收到 `/ai 全文润色` 时在本轮 `revise` 内处理全文正文。
 4. 校验 job 检查范围和文件。
 5. Mutation job 再次检查 Head SHA。
 6. Head 未变化时提交一个修订 Commit。

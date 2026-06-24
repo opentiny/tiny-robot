@@ -130,21 +130,20 @@
 - 固定资料版本和 Commit。
 - 等待人工批准写作计划。
 - 生成文章、Front Matter 和图片素材。
-- 调用润色 Skill。
+- 调用润色 Skill 做初稿全文优化。
 - 执行基础检查。
 - 创建并维护文章 Draft PR。
-- 处理 `/ai` 修改意见和 `Request changes`。
 
 不负责选题发现、外部发布或文章合并。
 
 ### 5.2 `polish-opentiny-article`
 
-该 Skill 是 OpenTiny 对外技术文章的独立优化入口，不嵌套其他 Skill，也不承担通用聊天、社交媒体或任意品牌文案润色。
+该 Skill 是 OpenTiny 对外技术文章的可独立加载优化入口，不嵌套其他 Skill，也不承担通用聊天、社交媒体或任意品牌文案润色。
 
 它负责三种场景：
 
-- 初稿生成后优化全文正文。
-- 收到 `/ai 全文润色` 后保守处理全文。
+- 初稿生成后，由 `generate-opentiny-article` 自动调用，优化全文正文。
+- Draft PR 初审或 Review 中收到 `/ai 全文润色` 后，作为一轮全文修改保守处理。
 - 根据 `Request changes`、授权用户的 `/ai` 指令或人工要求局部修订。
 
 默认只修改正文自然语言，不修改：
@@ -159,7 +158,7 @@
 
 `SKILL.md` 是唯一入口。`references/article-guardrails.md` 定义修改边界，`style-guide.md` 定义正向风格，`anti-patterns.md` 定义常见问题族，`examples.md` 用于边界校准。这些文件都是普通 reference，不作为独立 Skill 触发。
 
-初稿优化允许在章节内删除纯空话、合并重复句和轻量调整句序。Draft PR 修订默认只处理本轮受影响范围；只有收到 `/ai 全文润色` 才处理全文。完成后必须执行保真回读、自然度回读和文章校验。
+初稿优化允许在章节内删除纯空话、合并重复句和轻量调整句序。Draft PR 修订默认只处理本轮受影响范围；只有收到 `/ai 全文润色` 才处理全文。`/ai 全文润色` 不是 Review 通过后的默认收尾；它会产生新改动，完成后必须执行保真回读、自然度回读和文章校验，并让相关人员重新确认。
 
 历史人工文章只用于提炼正向风格、反例和匿名评测样本，不执行全文仿写或特定作者 voice 模拟。
 
@@ -401,7 +400,7 @@ Issue 标题只是工作标题。最终标题在写作计划中确认，并同�
 
 本地运行使用独立 Git worktree，不切换用户当前分支，也不接触当前工作区未提交修改。成功后可以清理 worktree；失败时保留并输出路径。
 
-当前交付没有常驻进程，也不自动监听 GitHub 事件。计划批准、Ready for review、`Request changes` 或 `/ai` 评论出现后，需要人工再次调用 Skill；Skill 每次启动读取并消费当前所有待处理事件。未来 GitHub Workflow 才负责自动唤醒。
+当前交付没有常驻进程，也不自动监听 GitHub 事件。计划批准、Ready for review、`Request changes` 或 `/ai` 评论出现后，需要人工再次调用 Skill；Skill 每次启动读取并消费当前所有待处理事件。Ready for review 只做验收和状态检查，不触发全文润色。未来 GitHub Workflow 才负责自动唤醒。
 
 ## 12. 输出契约
 
@@ -578,7 +577,7 @@ PR 描述使用受管区域和人工区域。AI 只更新受管区域；标记�
 
 ### 15.3 Ready for review
 
-Draft PR 完成人工编辑和必选验收项后，由人工点击 GitHub 原生 **Ready for review**。Workflow 或本地检查通过后，Issue 转为 `阶段：审核`；检查失败时恢复 Draft 并列出缺失项。
+Draft PR 完成人工编辑、明确修改请求和必选验收项后，由人工点击 GitHub 原生 **Ready for review**。Workflow 或本地检查通过后，Issue 转为 `阶段：审核`；检查失败时恢复 Draft 并列出缺失项。Ready for review 前应处理所有明确的全文润色、运营修改和技术修改请求。
 
 进入审核后仍允许 AI 修订：
 
@@ -594,7 +593,7 @@ Review 意见
 ### 15.4 Review 触发
 
 - `Request changes` 自动收集该 Review 中的意见并触发 AI 修订。
-- 普通行级评论或普通 PR 评论只有以 `/ai` 开头才触发。
+- 普通行级评论或普通 PR 评论只有以 `/ai` 开头才触发；`/ai 全文润色` 也按一轮修订处理。
 - `Approve` 只更新 GitHub 审核状态，不触发修改。
 - 意见冲突或目标不清时先请求澄清，不自行改稿。
 

@@ -116,8 +116,8 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 - 改 Skill 时同步更新 `.agents/skills/` 和 `.claude/skills/` 下的同名 Skill，并关注入口 `SKILL.md`、YAML Front Matter、引用图、`references/` 可达性和 eval 说明。
 - 每个 Skill 根目录只能有一个 `SKILL.md`。
 - 运行所需 Markdown reference 必须是本地文件，规范化路径和真实路径都不能逃出 Skill 根目录。
-- `generate-opentiny-article` 负责已批准计划到文章初稿和 Draft PR。
-- `polish-opentiny-article` 负责在不改事实、术语、代码、Front Matter、链接和图表源的前提下润色或处理 Review 修改。
+- `generate-opentiny-article` 负责已批准计划到文章初稿和 Draft PR，并在创建 Draft PR 前调用 `polish-opentiny-article` 做初稿全文优化。
+- `polish-opentiny-article` 负责初稿优化和 Draft PR 修改时的正文处理；人工确认或 Approve 后不默认触发全文润色，若再次触发则视为新一轮修改。
 
 ## 文章生成边界
 

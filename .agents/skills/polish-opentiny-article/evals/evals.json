@@ -4,8 +4,8 @@
   "evals": [
     {
       "id": 1,
-      "name": "full-article-polish",
-      "prompt": "这是 webmcp-sdk 项目的一篇初稿 article.md（practical-guide），帮我做全文润色：去掉模板腔、空话、营销腔和表演性技术表达，让正文更具体克制。文章里的 Front Matter、代码、版本号、链接和已有数据不要动，也不要新增任何来源里没有的事实或数据。",
+      "name": "initial-draft-polish",
+      "prompt": "这是 webmcp-sdk 项目的一篇初稿 article.md（practical-guide），帮我做初稿全文优化：去掉模板腔、空话、营销腔和表演性技术表达，让正文更具体克制。文章里的 Front Matter、代码、版本号、链接和已有数据不要动，也不要新增任何来源里没有的事实或数据。",
       "files": ["fixtures/theme-config-draft/article.md"],
       "expected_output": "润色后的 article.md：空泛时代背景开场被删除或替换为具体主题；'全面/智能/领先/轻松应对/全面提升开发体验'等无具体能力的营销词被删除或降级且未补造功能；保留 4 月 10 日超时调整与 1.2%→0.4% 数据，但删除'充分证明…领先的稳定性/卓越的工程能力'拔高；删除或下调无来源的'用户反馈…深受好评'且不补机构/样本/数字；'抽丝剥茧/一举攻克'改成具体排查动作；'理念升级/体验革命'式收尾被删除或降级。Front Matter、```ts 代码块、`setGlobalConfig`、'仅在初始化阶段生效'、版本 `3.20.0`、URL 全部逐字保留。",
       "assertions": [
