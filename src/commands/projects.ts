@@ -16,6 +16,10 @@ export async function listProjects(options: {
     projects: config.projects.map((project) => ({
       project_id: project.project_id,
       display_name: project.display_name,
+      docs: project.docs,
+      demo: project.demo,
+      deepwiki: project.deepwiki,
+      terminology: project.terminology,
       repositories: project.repositories.map((repository) => ({
         name: repository.name,
         role: repository.role,

@@ -4,11 +4,10 @@ projects:
     display_name: WebMCP SDK
     docs:
       site_url: https://opentiny.github.io/
-      source_path: docs/
     demo:
       url: null
     deepwiki:
-      url: null
+      url: https://deepwiki.com/opentiny/webmcp-sdk
     terminology:
       source: null
     repositories:
@@ -26,11 +25,10 @@ projects:
     display_name: OpenTiny MCP/GenUI
     docs:
       site_url: https://opentiny.github.io/
-      source_path: docs/
     demo:
       url: null
     deepwiki:
-      url: null
+      url: https://deepwiki.com/opentiny/genui-sdk
     terminology:
       source: null
     repositories:
@@ -48,11 +46,10 @@ projects:
     display_name: TinyRobot
     docs:
       site_url: https://opentiny.github.io/
-      source_path: docs/
     demo:
       url: null
     deepwiki:
-      url: null
+      url: https://deepwiki.com/opentiny/tiny-robot
     terminology:
       source: null
     repositories:

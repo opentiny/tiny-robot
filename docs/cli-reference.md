@@ -109,7 +109,7 @@ article-hub plan approve \
 
 #### `projects list`
 
-列出配置文件中的所有项目。
+列出配置文件中的所有项目。输出包含项目展示名、`docs`、`demo`、`deepwiki`、`terminology` 和仓库摘要，供 Agent 获取项目上下文入口。
 
 ```sh
 article-hub projects list --config <path>
@@ -118,6 +118,10 @@ article-hub projects list --config <path>
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `--config` | ✅ | 项目配置文件路径（YAML） |
+
+**输出要点**：
+
+- `projects[].deepwiki.url`：项目 DeepWiki 地址；仅作为调研入口，产品事实仍需回溯到源码、官方文档或人工确认资料。
 
 #### `projects validate`
 

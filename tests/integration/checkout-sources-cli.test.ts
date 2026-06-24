@@ -14,7 +14,13 @@ import {
 const fixtureConfigPath = path.join(repositoryRoot, "tests/fixtures/projects-valid.yml");
 
 interface ProjectsListOutput {
-  projects: Array<{ project_id: string }>;
+  projects: Array<{
+    project_id: string;
+    docs: Record<string, unknown>;
+    demo: Record<string, unknown>;
+    deepwiki: Record<string, unknown>;
+    terminology: Record<string, unknown>;
+  }>;
 }
 
 interface CheckoutSourcesOutput {
@@ -70,7 +76,6 @@ function createLocalRepositoryFixture() {
       "    display_name: WebMCP SDK",
       "    docs:",
       "      site_url: null",
-      "      source_path: docs/",
       "    demo:",
       "      url: null",
       "    deepwiki:",
@@ -119,7 +124,12 @@ describe("checkout-sources CLI", () => {
       "article-hub.projects.list"
     );
     expect(listedOutput.projects).toEqual(
-      expect.arrayContaining([expect.objectContaining({ project_id: "webmcp-sdk" })])
+      expect.arrayContaining([
+        expect.objectContaining({
+          project_id: "webmcp-sdk",
+          deepwiki: { url: "https://deepwiki.com/opentiny/webmcp-sdk" }
+        })
+      ])
     );
     expectSuccessfulEnvelope(validated, "article-hub.projects.validate", {
       valid: true

@@ -4,7 +4,6 @@ projects:
     display_name: WebMCP SDK
     docs:
       site_url: null
-      source_path: docs/
     demo:
       url: null
     deepwiki:

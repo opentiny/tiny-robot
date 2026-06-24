@@ -4,7 +4,6 @@ projects:
     display_name: TinyEngine
     docs:
       site_url: null
-      source_path: docs/
     demo:
       url: null
     deepwiki:

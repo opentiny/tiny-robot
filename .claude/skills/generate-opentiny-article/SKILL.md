@@ -38,12 +38,15 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
 
-2. 校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
+2. 读取项目上下文入口，校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 
    ```sh
+   article-hub projects list --config config/projects.yml
    article-hub projects validate --config config/projects.yml
    article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir <cache-dir>
    ```
+
+   `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
 
 3. 生成或更新写作计划，并作为「当前写作计划评论」发布到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。
 

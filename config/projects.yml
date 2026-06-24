@@ -3,12 +3,11 @@ projects:
   - project_id: webmcp-sdk
     display_name: WebMCP SDK
     docs:
-      site_url: https://opentiny.github.io/
-      source_path: docs/
+      site_url: https://opentiny.github.io/docs/next-sdk/guide/
     demo:
       url: null
     deepwiki:
-      url: null
+      url: https://deepwiki.com/opentiny/webmcp-sdk
     terminology:
       source: null
     repositories:
@@ -25,12 +24,11 @@ projects:
   - project_id: genui-sdk
     display_name: OpenTiny MCP/GenUI
     docs:
-      site_url: https://opentiny.github.io/
-      source_path: docs/
+      site_url: https://opentiny.github.io/docs/genui-sdk/guide/quick-start.html
     demo:
-      url: null
+      url: https://opentiny.github.io/genui-sdk/playground/
     deepwiki:
-      url: null
+      url: https://deepwiki.com/opentiny/genui-sdk
     terminology:
       source: null
     repositories:
@@ -47,12 +45,11 @@ projects:
   - project_id: tiny-robot
     display_name: TinyRobot
     docs:
-      site_url: https://opentiny.github.io/
-      source_path: docs/
+      site_url: https://opentiny.github.io/docs/tiny-robot/guide/quick-start.html
     demo:
-      url: null
+      url: https://opentiny.github.io/docs/tiny-robot/examples/assistant.html
     deepwiki:
-      url: null
+      url: https://deepwiki.com/opentiny/tiny-robot
     terminology:
       source: null
     repositories:
