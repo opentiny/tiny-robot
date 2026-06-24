@@ -62,6 +62,7 @@ export async function createPullRequest(options: {
   const articleDirectory = path.dirname(options.articleFile);
   const branch = `article/${options.issueNumber}-${project}-${options.slug}`;
   const operations = plannedCreatePrOperations({
+    articleFile: options.articleFile,
     articleDirectory,
     branch,
     repository: options.repository,
@@ -169,6 +170,7 @@ function readRequiredString(value: unknown, fieldName: string): string {
 }
 
 function plannedCreatePrOperations(options: {
+  articleFile: string;
   articleDirectory: string;
   branch: string;
   repository: string;
@@ -179,7 +181,7 @@ function plannedCreatePrOperations(options: {
   return [
     {
       kind: "validate-article",
-      path: path.join(options.articleDirectory, "article.md")
+      path: options.articleFile
     },
     {
       kind: "git-add",

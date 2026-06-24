@@ -18,21 +18,24 @@ const validArticleFixture = path.join(
 );
 
 interface CreatePrOutput {
+  article: {
+    file: string;
+  };
   pull_request: {
     body_file: string;
   };
   mutation_plan: {
-    operations: Array<{ kind: string }>;
+    operations: Array<{ kind: string; path?: string }>;
   };
 }
 
-async function createArticleFixture() {
+async function createArticleFixture(articleFileName = "article.md") {
   const root = await mkdtemp(path.join(tmpdir(), "article-hub-create-pr-"));
   const articleDir = path.join(
     root,
     "articles/webmcp-sdk/2026-06-19-webmcp-sdk-practice"
   );
-  const articleFile = path.join(articleDir, "article.md");
+  const articleFile = path.join(articleDir, articleFileName);
   const bodyFile = path.join(root, "pr-body.md");
 
   await mkdir(articleDir, { recursive: true });
@@ -95,6 +98,44 @@ describe("article-hub create-pr CLI", () => {
         expect.objectContaining({ kind: "gh-pr-create-or-update" })
       ])
     );
+  });
+
+  test("dry-run reports the validated article file in the mutation plan", async () => {
+    const { articleFile, bodyFile } = await createArticleFixture("not-article.md");
+    const result = runArticleHubCli([
+      "--dry-run",
+      "create-pr",
+      "--article-file",
+      articleFile,
+      "--config",
+      configPath,
+      "--issue-number",
+      "12",
+      "--repository",
+      "hexqi/ai-article-hub",
+      "--base",
+      "main",
+      "--slug",
+      "webmcp-sdk-practice",
+      "--title",
+      "WebMCP SDK 实践指南",
+      "--body-file",
+      bodyFile
+    ]);
+
+    const output = expectSuccessfulEnvelope<CreatePrOutput>(
+      result,
+      "article-hub.create-pr"
+    );
+    const validateArticleOperation = output.mutation_plan.operations.find(
+      (operation) => operation.kind === "validate-article"
+    );
+
+    expect(output.article.file).toBe(articleFile);
+    expect(validateArticleOperation).toMatchObject({
+      kind: "validate-article",
+      path: articleFile
+    });
   });
 
   test("dry-run rejects unsafe slug before planning a GitHub mutation", async () => {
