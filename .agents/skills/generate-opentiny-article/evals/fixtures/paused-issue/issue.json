@@ -1,0 +1,29 @@
+{
+  "number": 43,
+  "title": "生成 genui-sdk 实践文章",
+  "body": "项目：genui-sdk\n文章目标：介绍生成式 UI 的接入实践\n目标读者：前端开发者\n文章类型：practical-guide",
+  "author": {
+    "login": "topic-owner",
+    "type": "User",
+    "association": "OWNER"
+  },
+  "labels": [
+    { "name": "阶段：写作" },
+    "AI：等待人工",
+    "AI执行：人工暂停"
+  ],
+  "comments": [
+    {
+      "id": 3001,
+      "body": "/ai 批准写作计划",
+      "author": { "login": "maintainer", "type": "User", "association": "MEMBER" },
+      "created_at": "2026-06-19T08:00:00Z"
+    },
+    {
+      "id": 3002,
+      "body": "先暂停一下，我要核对一处数据。",
+      "author": { "login": "maintainer", "type": "User", "association": "MEMBER" },
+      "created_at": "2026-06-19T09:00:00Z"
+    }
+  ]
+}

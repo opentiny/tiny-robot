@@ -1,0 +1,60 @@
+name: 文章选题
+description: 为本地文章生成流程提交 OpenTiny 文章选题。
+title: "[文章] "
+labels:
+  - 阶段：选题
+  - AI：等待人工
+body:
+  - type: dropdown
+    id: project
+    attributes:
+      label: 项目
+      options:
+        - webmcp-sdk
+        - genui-sdk
+        - tiny-robot
+    validations:
+      required: true
+  - type: dropdown
+    id: article_type
+    attributes:
+      label: 文章类型
+      options:
+        - release
+        - practical-guide
+        - source-analysis
+        - case-study
+    validations:
+      required: true
+  - type: dropdown
+    id: style_profile
+    attributes:
+      label: 文风
+      options:
+        - official-balanced
+        - developer-friendly
+        - release-promotional
+        - technical-deep-dive
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 文章目标
+      description: 说明读者问题、目标读者和预期收获。
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: 候选资料
+      description: 填写 Release、文档、Commit、PR、Demo 或 Issue 附件链接。
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 人工验收说明
+      description: 列出必须人工检查的代码片段、截图或事实。
+    validations:
+      required: false

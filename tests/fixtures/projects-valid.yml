@@ -1,0 +1,65 @@
+schema_version: article-hub.projects
+projects:
+  - project_id: webmcp-sdk
+    display_name: WebMCP SDK
+    docs:
+      site_url: https://opentiny.github.io/
+    demo:
+      url: null
+    deepwiki:
+      url: https://deepwiki.com/opentiny/webmcp-sdk
+    terminology:
+      source: null
+    repositories:
+      - name: webmcp-sdk
+        url: https://github.com/opentiny/webmcp-sdk.git
+        default_ref: dev
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs
+  - project_id: genui-sdk
+    display_name: OpenTiny MCP/GenUI
+    docs:
+      site_url: https://opentiny.github.io/
+    demo:
+      url: null
+    deepwiki:
+      url: https://deepwiki.com/opentiny/genui-sdk
+    terminology:
+      source: null
+    repositories:
+      - name: genui-sdk
+        url: https://github.com/opentiny/genui-sdk.git
+        default_ref: dev
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs
+  - project_id: tiny-robot
+    display_name: TinyRobot
+    docs:
+      site_url: https://opentiny.github.io/
+    demo:
+      url: null
+    deepwiki:
+      url: https://deepwiki.com/opentiny/tiny-robot
+    terminology:
+      source: null
+    repositories:
+      - name: tiny-robot
+        url: https://github.com/opentiny/tiny-robot.git
+        default_ref: develop
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs

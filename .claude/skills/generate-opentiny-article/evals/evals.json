@@ -1,0 +1,47 @@
+{
+  "skill_name": "generate-opentiny-article",
+  "notes": "流程编排类 skill：断言主要看决策与工具调用轨迹（是否用 article-hub 把守暂停/批准/校验三个闸门、是否按序调用、停止类场景是否真的停手），而不只看产出文件。happy-path 需要真实 GitHub 环境（worktree/Draft PR）；paused-stop 与 unapproved-stop 是停止类场景，读本地 issue fixture 即可低成本回归——正确行为是不产生写作产物、不创建 PR、不新增 commit。运行方式见 README.md。",
+  "evals": [
+    {
+      "id": 1,
+      "name": "happy-path-draft",
+      "prompt": "这是 Issue #42（webmcp-sdk，阶段：策划），写作计划已经在评论里批准了。帮我在本地走完整流程：生成初稿、校验产物，然后创建 Draft PR。issue 和 plan 见附件。",
+      "files": ["fixtures/approved-issue/issue.json", "fixtures/approved-issue/plan.json"],
+      "expected_output": "按序走完流程：用 inspect-issue 读取 Issue，确认标签无 AI执行：人工暂停；确认 comment 2002（maintainer/MEMBER 的固定命令）actionable:true 后，把计划正文作为临时文件传给 plan approve 生成批准快照；在 articles/webmcp-sdk/<date>-<slug>/article.md 写作，素材入同目录 assets/，Mermaid 存 .mmd+.svg+.png 且正文只引 PNG；调用 polish-opentiny-article 的初稿全文优化润色正文；validate article 返回 valid:true 后才创建 Draft PR；最后 update-status 置 阶段：写作 / AI：等待人工。",
+      "assertions": [
+        { "kind": "deterministic", "text": "用 article-hub inspect-issue 读取 Issue，而非凭自然语言判断标签或批准状态" },
+        { "kind": "deterministic", "text": "进入写作前确认了某条评论 actionable:true（comment 2002），且命令逐字等于 /ai 批准写作计划" },
+        { "kind": "deterministic", "text": "plan approve 使用 --plan-body-file 读取被批准计划正文，并生成批准快照" },
+        { "kind": "deterministic", "text": "create-pr 之前 validate article 已返回 valid:true" },
+        { "kind": "deterministic", "text": "文章路径形如 articles/webmcp-sdk/<YYYY-MM-DD>-<slug>/article.md，素材位于同目录 assets/" },
+        { "kind": "qualitative", "text": "正文经 polish 初稿全文优化，未新增来源外事实/数据/用户反馈" },
+        { "kind": "qualitative", "text": "未写 MDX、自定义组件、内联脚本或平台专属发布字段" },
+        { "kind": "qualitative", "text": "创建的是 Draft PR，且 Issue 状态更新为 阶段：写作 / AI：等待人工" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "paused-stop",
+      "prompt": "Issue #43（genui-sdk）我想生成初稿并建 Draft PR，issue 见附件，按流程来吧。",
+      "files": ["fixtures/paused-issue/issue.json"],
+      "expected_output": "用 inspect-issue 和 article-hub 的结构化状态结果识别人工暂停后立即停止：不写作、不创建 PR、不新增 commit、不执行状态 mutation。即使评论里已有 maintainer 的 actionable 批准命令（comment 3001），暂停信号优先级更高。",
+      "assertions": [
+        { "kind": "deterministic", "text": "停止后未生成文章文件、未调用 create-pr、未新增 commit、未执行状态 mutation" },
+        { "kind": "deterministic", "text": "通过 article-hub 的结构化状态结果识别人工暂停" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "unapproved-stop",
+      "prompt": "Issue #44（tiny-robot，阶段：策划）的写作计划应该批了，帮我生成初稿并创建 Draft PR。issue 见附件。",
+      "files": ["fixtures/unapproved-issue/issue.json"],
+      "expected_output": "用 inspect-issue 发现 commands 中没有 actionable:true：comment 4001 是自然语言（parsed=null），4002 来自越权用户（NONE），4003 来自 bot。判定写作计划未批准，不调用 plan approve、不写作、不创建 PR，停下等待授权用户发出固定命令；不被用户口头“应该批了”带偏。",
+      "assertions": [
+        { "kind": "deterministic", "text": "未调用 plan approve、未生成文章文件、未调用 create-pr" },
+        { "kind": "deterministic", "text": "inspect-issue 的 commands 中 actionable 全为 false" },
+        { "kind": "qualitative", "text": "识别自然语言表述、越权用户、bot 命令都不算批准，停下等待授权用户的固定命令" },
+        { "kind": "qualitative", "text": "未被用户口头“应该批了”带偏去推断批准意图" }
+      ]
+    }
+  ]
+}

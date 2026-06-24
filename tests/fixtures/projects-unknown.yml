@@ -1,0 +1,18 @@
+schema_version: article-hub.projects
+projects:
+  - project_id: tiny-engine
+    display_name: TinyEngine
+    docs:
+      site_url: null
+    demo:
+      url: null
+    deepwiki:
+      url: null
+    terminology:
+      source: null
+    repositories:
+      - name: tiny-engine
+        url: https://github.com/opentiny/tiny-engine.git
+        default_ref: main
+        role: primary-source
+        source_type: source

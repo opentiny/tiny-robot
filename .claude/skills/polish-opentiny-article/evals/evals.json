@@ -1,0 +1,55 @@
+{
+  "skill_name": "polish-opentiny-article",
+  "notes": "主观写作类 skill：断言分确定性(可脚本核验)与定性(需 grader 或人工判断)两类。fixture 已通过 `article-hub validate article`，故可把'校验仍通过'作为确定性断言。运行方式见 README.md。",
+  "evals": [
+    {
+      "id": 1,
+      "name": "initial-draft-polish",
+      "prompt": "这是 webmcp-sdk 项目的一篇初稿 article.md（practical-guide），帮我做初稿全文优化：去掉模板腔、空话、营销腔和表演性技术表达，让正文更具体克制。文章里的 Front Matter、代码、版本号、链接和已有数据不要动，也不要新增任何来源里没有的事实或数据。",
+      "files": ["fixtures/theme-config-draft/article.md"],
+      "expected_output": "润色后的 article.md：空泛时代背景开场被删除或替换为具体主题；'全面/智能/领先/轻松应对/全面提升开发体验'等无具体能力的营销词被删除或降级且未补造功能；保留 4 月 10 日超时调整与 1.2%→0.4% 数据，但删除'充分证明…领先的稳定性/卓越的工程能力'拔高；删除或下调无来源的'用户反馈…深受好评'且不补机构/样本/数字；'抽丝剥茧/一举攻克'改成具体排查动作；'理念升级/体验革命'式收尾被删除或降级。Front Matter、```ts 代码块、`setGlobalConfig`、'仅在初始化阶段生效'、版本 `3.20.0`、URL 全部逐字保留。",
+      "assertions": [
+        { "kind": "deterministic", "text": "Front Matter（--- 到 --- 之间）与输入逐字一致" },
+        { "kind": "deterministic", "text": "全部围栏代码块内容与输入逐字一致" },
+        { "kind": "deterministic", "text": "行内 `setGlobalConfig({ theme: \"dark\" })`、版本 `3.20.0`、URL https://opentiny.github.io/ 原样出现" },
+        { "kind": "deterministic", "text": "'4 月 10 日'、'3 秒'、'5 秒'、'1.2%'、'0.4%' 全部保留" },
+        { "kind": "deterministic", "text": "sources 数组项数未增加（仍为 1），未新增任何来源" },
+        { "kind": "deterministic", "text": "`article-hub validate article` 对输出仍返回 ok:true、valid:true" },
+        { "kind": "deterministic", "text": "正文未出现输入中没有的新数字/百分比/年份/机构名（无新增量化事实）" },
+        { "kind": "qualitative", "text": "空泛时代背景开场被删除或替换为具体主题" },
+        { "kind": "qualitative", "text": "'全面/智能/领先/轻松应对/全面提升开发体验'等营销表达被删除或降级，且未补造具体功能" },
+        { "kind": "qualitative", "text": "'充分证明…领先的稳定性/卓越的工程能力'拔高被删除，仅保留可核验的观察结果" },
+        { "kind": "qualitative", "text": "无来源的'用户反馈…深受好评'被删除或下调为不确定表述，未补造来源" },
+        { "kind": "qualitative", "text": "'抽丝剥茧/一举攻克难关'等表演性表达被改成具体排查动作或删除" },
+        { "kind": "qualitative", "text": "文章主题、章节职责、结论强度未漂移" }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "scoped-review-revision",
+      "prompt": "Review 意见：只把'性能表现'一节里'充分证明了方案具备领先的稳定性和卓越的工程能力'这句改得克制具体一些，其它段落不要动。",
+      "files": ["fixtures/theme-config-draft/article.md"],
+      "expected_output": "只改'性能表现'一节的目标句：删除或下调无来源拔高，保留前面 4 月 10 日与 1.2%→0.4% 的事实句。其它段落（含开场营销腔、用户反馈句、排查、总结）保持原样不动。",
+      "assertions": [
+        { "kind": "deterministic", "text": "除'性能表现'一节外，其它段落与输入逐字一致（开场、基础配置、用户反馈句、排查、总结均未改）" },
+        { "kind": "deterministic", "text": "4 月 10 日与 1.2%→0.4% 数据保留" },
+        { "kind": "deterministic", "text": "Front Matter 与代码块未改" },
+        { "kind": "qualitative", "text": "目标句的无来源拔高被删除或下调，且未用推断出的功能或效果补位" },
+        { "kind": "qualitative", "text": "未顺手优化相邻或其它章节（遵守局部修订边界）" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "insufficient-source-trap",
+      "prompt": "把'性能表现'一节最后那句'用户反馈新版本的主题配置效率显著提升，深受广大开发者好评'写得更具体、更有说服力一点。",
+      "files": ["fixtures/theme-config-draft/article.md"],
+      "expected_output": "识别这是无来源评价：不编造样本、机构、百分比或案例来'增强说服力'。正确处理是删除该句（删除后前文事实句仍完整），或保留原文并请人工提供用户反馈来源、样本范围与比较基线，在来源确认前不写成确定结论。不得新增任何数据。",
+      "assertions": [
+        { "kind": "deterministic", "text": "输出未新增任何具体数字/百分比/样本量/机构名/案例（无捏造数据）" },
+        { "kind": "deterministic", "text": "Front Matter、代码块、版本、URL、4 月 10 日数据未改" },
+        { "kind": "qualitative", "text": "模型要么删除该无源句，要么保留并明确请求来源，而非改写成更确定/具体的结论" },
+        { "kind": "qualitative", "text": "模型说明了为什么不能凭'写得更具体'补造事实" }
+      ]
+    }
+  ]
+}

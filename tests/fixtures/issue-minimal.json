@@ -1,0 +1,76 @@
+{
+  "number": 42,
+  "title": "生成 webmcp-sdk 入门文章",
+  "body": "项目：webmcp-sdk\n文章目标：介绍快速接入方式\n目标读者：前端开发者\n文章类型：practical-guide",
+  "author": {
+    "login": "topic-owner",
+    "type": "User",
+    "association": "OWNER"
+  },
+  "labels": [
+    {
+      "name": "阶段：策划"
+    },
+    "AI：等待人工"
+  ],
+  "comments": [
+    {
+      "id": 1001,
+      "body": "/ai 批准写作计划",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      },
+      "created_at": "2026-06-18T10:00:00Z"
+    },
+    {
+      "id": 1002,
+      "body": "/ai 批准写作计划",
+      "author": {
+        "login": "external-user",
+        "type": "User",
+        "association": "NONE"
+      }
+    },
+    {
+      "id": 1003,
+      "body": "/ai 批准写作计划",
+      "author": {
+        "login": "automation[bot]",
+        "type": "Bot",
+        "association": "MEMBER"
+      }
+    },
+    {
+      "id": 1004,
+      "body": "我觉得这个写作计划可以批准",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
+    },
+    {
+      "id": 1005,
+      "body": "/ai 状态",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
+    },
+    {
+      "id": 1006,
+      "body": "/ai 暂停",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
+    }
+  ],
+  "unexpected_future_field": {
+    "kept_for_fixture": true
+  }
+}
