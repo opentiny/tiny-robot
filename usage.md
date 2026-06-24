@@ -34,6 +34,8 @@ GitHub 上创建或确认文章 Issue
 → 人工确认后在 GitHub 点击 Ready for review
 ```
 
+![OpenTiny 文章母稿生成流程图](./workflow.png)
+
 关键点：写作计划没有批准前，不生成正文、不创建 Draft PR。关键技术事实没有确认前，不发送批准命令。
 
 ## 参与角色
