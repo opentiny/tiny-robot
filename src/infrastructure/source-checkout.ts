@@ -1,16 +1,16 @@
-import { execFile } from "node:child_process";
 import { mkdir } from "node:fs/promises";
-import { promisify } from "node:util";
 
 import {
   ProjectConfigEntry,
   ProjectRepositoryConfig,
   safeCheckoutPath
 } from "../domain/project-config.js";
-import { ArticleHubError } from "../infrastructure/errors.js";
+import { ArticleHubError } from "./errors.js";
+import { runCommand } from "./process.js";
 
-const execFileAsync = promisify(execFile);
-
+/**
+ * 来源 manifest 中的单个源码仓库快照。
+ */
 export interface SourceManifestEntry {
   name: string;
   repo: string;
@@ -23,6 +23,9 @@ export interface SourceManifestEntry {
   verified: boolean;
 }
 
+/**
+ * 源码 checkout 的结果，包含可审计 mutation plan 和来源快照。
+ */
 export interface SourceCheckoutResult {
   mutation_plan: {
     operations: SourceCheckoutOperation[];
@@ -34,6 +37,9 @@ export interface SourceCheckoutResult {
   };
 }
 
+/**
+ * 源码 checkout 会执行的 Git 操作描述。
+ */
 export interface SourceCheckoutOperation {
   kind: "clone-or-fetch";
   repo: string;
@@ -43,7 +49,7 @@ export interface SourceCheckoutOperation {
 }
 
 /**
- * 生成或执行源码 checkout，所有 Git 调用均使用 `execFile` 避免 shell 注入。
+ * 生成或执行源码 checkout，所有 Git 调用统一走 `runCommand` 的子进程封装。
  */
 export async function checkoutProjectSources(options: {
   project: ProjectConfigEntry;
@@ -151,19 +157,6 @@ async function resolveCommit(checkoutPath: string, ref: string): Promise<string>
   }
 }
 
-async function runGit(cwd: string | undefined, args: string[]): Promise<string> {
-  try {
-    const result = await execFileAsync("git", args, {
-      cwd,
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024 * 10
-    });
-
-    return result.stdout.trim();
-  } catch (error) {
-    const nodeError = error as { stderr?: string; message?: string };
-    const message = nodeError.stderr?.trim() || nodeError.message || "Git 命令执行失败";
-
-    throw new ArticleHubError("GIT_COMMAND_FAILED", message);
-  }
+function runGit(cwd: string | undefined, args: string[]): Promise<string> {
+  return runCommand("git", args, { cwd });
 }

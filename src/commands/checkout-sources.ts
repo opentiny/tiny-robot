@@ -1,5 +1,5 @@
 import { loadProjectConfig, resolveProject } from "../domain/project-config.js";
-import { checkoutProjectSources } from "../git/source-checkout.js";
+import { checkoutProjectSources } from "../infrastructure/source-checkout.js";
 
 /**
  * 按项目配置 checkout 写作所需源码，并生成来源快照 manifest。
