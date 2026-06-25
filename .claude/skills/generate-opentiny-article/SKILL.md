@@ -14,7 +14,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 - 从本仓库目录启动 Claude Code，项目级 Skill 已自动发现。
 - 本仓库依赖已安装并通过 `npm test`、`npm run build`。
 - `gh auth status` 可访问目标仓库。
-- Issue 处于 `阶段：策划`，且维护者明确批准当前写作计划。
+- 写作计划已获固定命令批准。阶段标签可能仍停在 `阶段：选题` 或已是 `阶段：策划`，两种都可继续；阶段推进按第 9 步处理。
 
 ## CLI 边界
 
@@ -38,6 +38,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
 
+   已知缺口：`gh issue view --json` 的原生字段层级（如评论级 `authorAssociation`、字符串 GraphQL id）可能与 `inspect-issue` 期望的归一化结构不一致，导致合法批准被判 `actionable: false`。出现“人工确认评论合法、CLI 却判未批准”时，按停止条件停下并报告该字段错配，不要自行用临时脚本拼 fixture 重写权限/批准判定——这些规则只能由 `article-hub` 实现。
+
 2. 读取项目上下文入口，校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 
    ```sh
@@ -48,7 +50,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
 
-3. 生成或更新写作计划，并作为「当前写作计划评论」发布到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。
+3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没落地。
+
+   ```sh
+   gh issue comment <number> --repo hexqi/ai-article-hub --body-file <临时计划文件>
+   ```
+
+   计划评论至少覆盖以下字段（依据 `docs/article-generation-requirements.md` §9.1，缺则补齐）：计划版本与时间、文章目标与查重结论、目标读者/前置知识/阅读收益/不覆盖内容、文章类型与文风、推荐标题与候选标题、目标 Release/Tag/分支/Commit、来源清单与可信度、建议大纲、图片与截图素材计划、素材缺口/风险/人工验收项、预计文章长度、批准与修改方式（可复制的批准命令，以及维护者如何在评论中提出修改）。Issue 描述过于简洁时（如目标一句话、验收说明为空），可自行给出标题、读者、大纲等「建议版本」（最终以批准计划为准）；但会改变核心事实的选择——尤其目标版本/Commit（稳定 Tag 还是 `develop`，直接决定哪些能力算“已发布”）、是否纳入迁移、是否将本 Issue 收口为正式选题——应在调研阶段先向用户澄清，而不是先写进计划再列为缺口。
 
 4. 确认写作计划已被批准——这是进入写作前的闸门。只有 `inspect-issue` 输出中存在 `actionable: true` 且 `parsed.kind: "approve-writing-plan"` 的评论，才算由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出了逐字固定批准命令：
 
@@ -72,7 +80,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md
    ```
 
-   素材放在同目录 `assets/` 下；Mermaid 必须保存 `.mmd + .svg + .png`，正文只引用 PNG。正文成型后调用 `polish-opentiny-article` 的「初稿全文优化」润色正文：它只交付润色后的正文，校验、Draft PR 和 Issue 状态仍由本流程在后续步骤统一收尾，不要让它重复执行。
+   写作前先读 [文章类型与结构参考](./references/article-types.md)：按本文的 `article_type` 取对应小节的必备信息、推荐大纲和长度区间，按 `style_profile` 取对应文风文件，让类型和文风真正驱动写法，而不是只填进 Front Matter。大纲是推荐非强制，长度非硬性指标，资料不足时降低覆盖范围或标为缺口，不要为凑结构编造内容。
+
+   worktree 约定：worktree 默认没有 `node_modules`，调用 CLI 时优先复用主仓库已构建的 `node <主仓库>/dist/cli.js`，或在 worktree 内先 `pnpm install && pnpm run build`；文章文件和素材统一用绝对路径写入 worktree，避免误写主工作区。
+
+   素材放在同目录 `assets/` 下。Mermaid 优先保存 `.mmd + .svg + .png`，正文引用 PNG；本机无渲染器（`mmdc` / Chrome）时降级：至少提交 `.mmd` 源并在正文内嵌 ```mermaid``` 代码块（GitHub 原生渲染、纯文本可追溯），在 PR body 标注 SVG/PNG 待补，不要引用尚不存在的图片路径（会触发校验阻断码）。
+
+   正文成型后调用 `polish-opentiny-article` 的「初稿全文优化」润色正文：它只交付润色后的正文，校验、Draft PR 和 Issue 状态仍由本流程在后续步骤统一收尾，不要让它重复执行。
 
 7. 执行确定性校验，并把它当成反馈环而不是一次性闸门：
 
@@ -96,6 +110,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
      --body-file <pr-body.md>
    ```
 
+   PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、`approved_at`、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
+
 9. 更新 Issue 状态：
 
    ```sh
@@ -107,6 +123,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
      --ai-state "AI：等待人工" \
      --comment "初稿已生成，Draft PR 已创建。"
    ```
+
+   若 Issue 当前仍在 `阶段：选题`，`content-transition` 不允许直接跳到 `阶段：写作`，会返回 `INVALID_TRANSITION`。此时按状态机依次执行两次合法单步迁移：先 `选题→策划`，再 `策划→写作`，每步都走 `update-status`，不手工拼标签。这是两次各自合法的迁移，不是绕过状态 guard。
 
 ## 停止条件
 
