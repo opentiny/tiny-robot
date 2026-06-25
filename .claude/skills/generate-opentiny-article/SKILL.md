@@ -80,7 +80,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md
    ```
 
-   写作前先读 [文章类型与结构参考](./references/article-types.md)：按本文的 `article_type` 取对应小节的必备信息、推荐大纲和长度区间，按 `style_profile` 取对应文风文件，让类型和文风真正驱动写法，而不是只填进 Front Matter。大纲是推荐非强制，长度非硬性指标，资料不足时降低覆盖范围或标为缺口，不要为凑结构编造内容。
+   写作前先读 [文章类型与结构参考](./references/article-types.md)：按本文的 `article_type` 取对应小节的必备信息、推荐大纲和长度区间；动笔前先读通用写作手艺 `references/styles/writing-craft.md`，再按 `style_profile` 取对应文风文件，让手艺、类型和文风共同驱动写法，而不是只填进 Front Matter。需要深读范例时，读取仓库根目录下的 `materials/style-exemplars/<style>.md`；该目录是人工策展的离线材料库，不是 Skill 运行时强依赖，访问不到时按 Skill 内规则继续。大纲是推荐非强制，长度非硬性指标，资料不足时降低覆盖范围或标为缺口，不要为凑结构编造内容。
 
    worktree 约定：worktree 默认没有 `node_modules`，调用 CLI 时优先复用主仓库已构建的 `node <主仓库>/dist/cli.js`，或在 worktree 内先 `pnpm install && pnpm run build`；文章文件和素材统一用绝对路径写入 worktree，避免误写主工作区。
 

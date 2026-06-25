@@ -1,6 +1,6 @@
 # 文章类型与结构参考
 
-写作前按 `article_type` 读对应小节，确定结构骨架、必备信息、长度区间和默认文风；再按 `style_profile` 读 [文风参考](./styles/official-balanced.md) 等对应文件。
+写作前按 `article_type` 读对应小节，确定结构骨架、必备信息、长度区间和默认文风；动笔前先读 [通用写作手艺](./styles/writing-craft.md)，再按 `style_profile` 读 [文风参考](./styles/official-balanced.md) 等对应文件。想看业界范例如何施展这些手艺，读取仓库根目录下的 `materials/style-exemplars/<style>.md`；该目录不是 Skill 运行时强依赖，访问不到时按本文件和文风文件继续。
 
 两条总规则，违反其一即停手回到事实：
 
