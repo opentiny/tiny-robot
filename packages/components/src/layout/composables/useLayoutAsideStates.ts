@@ -12,7 +12,8 @@ import { emitAsideOpenChange, type LayoutEmitFn } from '../utils/asideEventEmitt
 import { useControllableState } from '../../shared/composables/useControllableState'
 
 function resolveFiniteNumber(value: number | undefined, fallback: number): number {
-  return value === undefined || !Number.isFinite(value) ? fallback : value
+  const nextValue = value === undefined || !Number.isFinite(value) ? fallback : value
+  return Math.max(0, nextValue)
 }
 
 function createAsideState(

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useWindowSize } from '@vueuse/core'
-import { computed, shallowRef, useAttrs, watch, type CSSProperties } from 'vue'
+import { computed, ref, shallowRef, useAttrs, watch, type CSSProperties } from 'vue'
 import type {
   LayoutFloatingDragDetail,
   LayoutFloatingOptions,
@@ -52,6 +52,7 @@ const emit = defineEmits<{
 }>()
 
 const attrs = useAttrs()
+const rootEl = ref<HTMLElement | null>(null)
 
 const { width: viewportWidth, height: viewportHeight } = useWindowSize({
   type: 'visual',
@@ -230,11 +231,16 @@ watch(
   },
   { immediate: true },
 )
+
+defineExpose({
+  rootEl,
+})
 </script>
 
 <template>
   <Teleport to="body" :disabled="!isFloating">
     <div
+      ref="rootEl"
       v-bind="attrs"
       class="tr-layout"
       :class="{

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { unrefElement } from '@vueuse/core'
-import { computed, ref, type ComponentPublicInstance } from 'vue'
+import { computed, ref } from 'vue'
 import AsideContent from './components/AsideContent.vue'
 import LayoutSurface from './components/LayoutSurface.vue'
 import { provideLayoutContext } from './composables/useLayoutContext'
@@ -20,12 +19,9 @@ defineOptions({
 const props = defineProps<LayoutProps>()
 const emit = defineEmits<LayoutEmits>()
 const slots = defineSlots<LayoutSlots>()
-const surfaceRef = ref<ComponentPublicInstance | HTMLElement | null>(null)
-const rootEl = computed<HTMLElement | null>(() => {
-  const element = unrefElement(surfaceRef)
 
-  return element instanceof HTMLElement ? element : null
-})
+const surfaceRef = ref<{ rootEl: HTMLElement | null } | null>(null)
+const rootEl = computed<HTMLElement | null>(() => surfaceRef.value?.rootEl ?? null)
 const hasLeftAside = computed(() => hasNonEmptySlotContent(slots['left-aside']))
 const hasHeader = computed(() => hasNonEmptySlotContent(slots.header))
 const hasFooter = computed(() => hasNonEmptySlotContent(slots.footer))
@@ -33,38 +29,43 @@ const hasRightAside = computed(() => hasNonEmptySlotContent(slots['right-aside']
 
 const { leftPanel, rightPanel } = useLayoutAsideStates(props, emit)
 
-function setDrawerOpen(panel: LayoutAsidePanel, sibling: LayoutAsidePanel, nextOpen: boolean): void {
-  if (nextOpen && panel.isDrawer.value && sibling.isDrawer.value && sibling.isOpen.value) {
+function setDrawerOpen(
+  panel: LayoutAsidePanel,
+  sibling: LayoutAsidePanel,
+  nextOpen: boolean,
+  siblingPresent: boolean,
+): void {
+  if (nextOpen && panel.isDrawer.value && sibling.isDrawer.value && sibling.isOpen.value && siblingPresent) {
     sibling.setOpen(false)
   }
 
   panel.setOpen(nextOpen)
 }
 
-function toggleDrawer(panel: LayoutAsidePanel, sibling: LayoutAsidePanel): void {
-  setDrawerOpen(panel, sibling, !panel.isOpen.value)
+function toggleDrawer(panel: LayoutAsidePanel, sibling: LayoutAsidePanel, siblingPresent: boolean): void {
+  setDrawerOpen(panel, sibling, !panel.isOpen.value, siblingPresent)
 }
 
 function toggleLeftDrawer(): void {
-  toggleDrawer(leftPanel, rightPanel)
+  toggleDrawer(leftPanel, rightPanel, hasRightAside.value)
 }
 
 function toggleRightDrawer(): void {
-  toggleDrawer(rightPanel, leftPanel)
+  toggleDrawer(rightPanel, leftPanel, hasLeftAside.value)
 }
 
-const isDrawerVisible = computed(
-  () =>
-    (hasLeftAside.value && leftPanel.isDrawer.value && leftPanel.isOpen.value) ||
-    (hasRightAside.value && rightPanel.isDrawer.value && rightPanel.isOpen.value),
-)
+const isLeftDrawerVisible = computed(() => hasLeftAside.value && leftPanel.isDrawer.value && leftPanel.isOpen.value)
+
+const isRightDrawerVisible = computed(() => hasRightAside.value && rightPanel.isDrawer.value && rightPanel.isOpen.value)
+
+const isDrawerVisible = computed(() => isLeftDrawerVisible.value || isRightDrawerVisible.value)
 
 function closeDrawers(): void {
-  if (leftPanel.isDrawer.value && leftPanel.isOpen.value) {
+  if (isLeftDrawerVisible.value) {
     leftPanel.setOpen(false)
   }
 
-  if (rightPanel.isDrawer.value && rightPanel.isOpen.value) {
+  if (isRightDrawerVisible.value) {
     rightPanel.setOpen(false)
   }
 }
