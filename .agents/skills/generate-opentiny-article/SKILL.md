@@ -56,7 +56,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    gh issue comment <number> --repo hexqi/ai-article-hub --body-file <临时计划文件>
    ```
 
-   计划评论至少覆盖以下字段（依据 `docs/article-generation-requirements.md` §9.1，缺则补齐）：计划版本与时间、文章目标与查重结论、目标读者/前置知识/阅读收益/不覆盖内容、文章类型与文风、推荐标题与候选标题、目标 Release/Tag/分支/Commit、来源清单与可信度、建议大纲、图片与截图素材计划、素材缺口/风险/人工验收项、预计文章长度、批准与修改方式（可复制的批准命令，以及维护者如何在评论中提出修改）。Issue 描述过于简洁时（如目标一句话、验收说明为空），可自行给出标题、读者、大纲等「建议版本」（最终以批准计划为准）；但会改变核心事实的选择——尤其目标版本/Commit（稳定 Tag 还是 `develop`，直接决定哪些能力算“已发布”）、是否纳入迁移、是否将本 Issue 收口为正式选题——应在调研阶段先向用户澄清，而不是先写进计划再列为缺口。
+   计划评论至少覆盖以下字段（依据 `docs/article-generation-requirements.md` §9.1，缺则补齐）：计划版本与时间、文章目标与查重结论、目标读者/前置知识/阅读收益/不覆盖内容、文章类型与文风、推荐标题与候选标题、目标 Release/Tag/分支/Commit、来源清单与可信度、建议大纲、图片与截图素材计划、素材缺口/风险/人工验收项、预计文章长度、批准与修改方式（可复制的批准命令，以及维护者如何在评论中提出修改）。Issue 描述过于简洁时（如目标一句话、验收说明为空），可自行给出标题、读者、大纲等「建议版本」（最终以批准计划为准）；但会改变核心事实的选择——尤其目标版本/Commit（稳定 Tag 还是 `develop`，直接决定哪些能力算“已发布”）、是否纳入迁移、是否将本 Issue 收口为正式选题——应在调研阶段先向用户澄清，而不是先写进计划再列为缺口。建议大纲默认在末尾包含「关于 OpenTiny NEXT」收尾章节（见 [收尾章节模板](./references/about-opentiny-section.md)）；仅当人工在选题/计划讨论中以自然语言明确表示不要时，才在大纲中省略该章节。
 
 4. 确认写作计划已被批准——这是进入写作前的闸门。只有 `inspect-issue` 输出中存在 `actionable: true` 且 `parsed.kind: "approve-writing-plan"` 的评论，才算由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出了逐字固定批准命令：
 
@@ -85,6 +85,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    worktree 约定：worktree 默认没有 `node_modules`，调用 CLI 时优先复用主仓库已构建的 `node <主仓库>/dist/cli.js`，或在 worktree 内先 `pnpm install && pnpm run build`；文章文件和素材统一用绝对路径写入 worktree，避免误写主工作区。
 
    素材放在同目录 `assets/` 下。Mermaid 优先保存 `.mmd + .svg + .png`，正文引用 PNG；本机无渲染器（`mmdc` / Chrome）时降级：至少提交 `.mmd` 源并在正文内嵌 ```mermaid``` 代码块（GitHub 原生渲染、纯文本可追溯），在 PR body 标注 SVG/PNG 待补，不要引用尚不存在的图片路径（会触发校验阻断码）。
+
+   默认在正文末尾追加 `## 关于 OpenTiny NEXT` 收尾章节：套用 [关于 OpenTiny NEXT 收尾章节模板](./references/about-opentiny-section.md)，并按本文 `project_id` 在 `config/projects.yml` 中 `role: primary-source` 的仓库填充「代码仓库」行。该章节文案是固定品牌信息，只允许微调与正文衔接的过渡句，不得改写产品定位、链接、微信号等固定内容，也不得新增来源外事实。仅当选题/写作计划阶段人工以自然语言明确表示不要该章节时才省略（自然语言判断，无需固定命令）。该章节作为正文的一部分写入，随后一并交给 polish 润色。
 
    正文成型后调用 `polish-opentiny-article` 的「初稿全文优化」润色正文：它只交付润色后的正文，校验、Draft PR 和 Issue 状态仍由本流程在后续步骤统一收尾，不要让它重复执行。
 
