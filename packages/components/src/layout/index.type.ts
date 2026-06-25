@@ -7,11 +7,11 @@ export type LayoutMode = 'normal' | 'floating'
 export type LayoutFloatingPlacement = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
 export interface LayoutFloatingState {
-  placement?: LayoutFloatingPlacement
-  offsetX?: number
-  offsetY?: number
-  width?: number
-  height?: number
+  placement: LayoutFloatingPlacement
+  offsetX: number
+  offsetY: number
+  width: number
+  height: number
 }
 
 export interface LayoutFloatingOptions {
@@ -68,7 +68,10 @@ export interface LayoutAsidePanelsProps {
 }
 
 export interface LayoutNormalProps extends LayoutAsidePanelsProps {
-  mode?: 'normal'
+  mode: 'normal'
+  floatingState?: never
+  defaultFloatingState?: never
+  floatingOptions?: never
 }
 
 type LayoutFloatingStateControlProps =

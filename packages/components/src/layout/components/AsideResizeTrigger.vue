@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { usePointerDragSession } from '../composables/usePointerDragSession'
+import { computed, shallowRef } from 'vue'
+import { usePointerDrag } from '../composables/usePointerDrag'
 import type { LayoutAsideResizeDetail, LayoutSide } from '../index.type'
 import { resolveCssLengthToPx } from '../utils/cssLength'
 import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from '../utils/domInteraction'
-import { getLayoutAsideElement, getLayoutRootElement, isHTMLElement } from '../utils/layoutElements'
 import { clamp } from '../utils/number'
+import { useLayoutContext } from '../composables/useLayoutContext'
 
 defineOptions({
   name: 'LayoutAsideResizeTrigger',
@@ -13,6 +13,7 @@ defineOptions({
 
 interface LayoutAsideResizeTriggerProps {
   side: LayoutSide
+  asideEl: HTMLElement | null
   minWidth: number
   maxWidth: number
   oppositeDockWidth: number
@@ -26,6 +27,8 @@ const emit = defineEmits<{
   (event: 'aside-resize', value: LayoutAsideResizeDetail): void
   (event: 'aside-resize-end', value: LayoutAsideResizeDetail): void
 }>()
+
+const triggerRef = shallowRef<HTMLElement | null>(null)
 
 interface ResizeState {
   pointerId: number
@@ -44,7 +47,6 @@ interface ResizeState {
 interface ResizeElements {
   handleEl: HTMLElement
   asideEl: HTMLElement
-  rootEl: HTMLElement
 }
 
 interface ResizeBounds {
@@ -53,11 +55,39 @@ interface ResizeBounds {
   effectiveMax: number
 }
 
-const { activeSession: activeResize, startSession } = usePointerDragSession<ResizeState>({
+function isHTMLElement(element: unknown): element is HTMLElement {
+  const ownerDocument = (element as { ownerDocument?: Document } | null)?.ownerDocument
+  const view = ownerDocument?.defaultView
+
+  return !!view && element instanceof view.HTMLElement
+}
+
+const { dragState: activeResize } = usePointerDrag<ResizeState>(triggerRef, {
+  onStart: (event) => {
+    const elements = resolveResizeElements(event)
+    if (!elements) {
+      return null
+    }
+
+    const bounds = resolveResizeBounds(elements)
+
+    event.preventDefault()
+    elements.handleEl.setPointerCapture(event.pointerId)
+
+    const bodyState = lockBodyInteraction(rootEl.value!.ownerDocument.body, 'col-resize')
+    const state = createResizeState(event, elements, bounds, bodyState)
+
+    emit('aside-resize-start', {
+      side: props.side,
+      expandedWidth: state.startWidth,
+    })
+
+    return state
+  },
   onMove: (state, event) => {
     queueWidthChange(resolveNextWidth(state, event.clientX))
   },
-  onStop: (state) => {
+  onEnd: (state) => {
     if (state.frameId !== null && typeof window !== 'undefined') {
       window.cancelAnimationFrame(state.frameId)
       state.frameId = null
@@ -91,17 +121,15 @@ function resolveResizeElements(event: PointerEvent): ResizeElements | null {
     return null
   }
 
-  const asideEl = getLayoutAsideElement(handleEl)
-  const rootEl = getLayoutRootElement(handleEl)
+  const asideEl = props.asideEl
 
-  if (!asideEl || !rootEl) {
+  if (!asideEl || !rootEl.value) {
     return null
   }
 
   return {
     handleEl,
     asideEl,
-    rootEl,
   }
 }
 
@@ -112,10 +140,12 @@ function resolveMainMinWidth(rootEl: HTMLElement): number {
   )
 }
 
+const { rootEl } = useLayoutContext()
+
 function resolveResizeBounds(elements: ResizeElements): ResizeBounds {
-  const rootRect = elements.rootEl.getBoundingClientRect()
+  const rootRect = rootEl.value!.getBoundingClientRect()
   const startWidth = elements.asideEl.getBoundingClientRect().width
-  const mainMinWidth = resolveMainMinWidth(elements.rootEl)
+  const mainMinWidth = resolveMainMinWidth(rootEl.value!)
   const maxAvailableWidth = rootRect.width - mainMinWidth - props.oppositeDockWidth
 
   return {
@@ -199,34 +229,10 @@ function flushWidthChange(state: ResizeState): void {
   })
   state.pendingWidth = null
 }
-
-function startResize(event: PointerEvent): void {
-  const session = startSession(event, (event) => {
-    const elements = resolveResizeElements(event)
-    if (!elements) {
-      return null
-    }
-
-    const bounds = resolveResizeBounds(elements)
-
-    event.preventDefault()
-    elements.handleEl.setPointerCapture(event.pointerId)
-
-    const bodyState = lockBodyInteraction(elements.rootEl.ownerDocument.body, 'col-resize')
-    return createResizeState(event, elements, bounds, bodyState)
-  })
-
-  if (session) {
-    emit('aside-resize-start', {
-      side: props.side,
-      expandedWidth: session.startWidth,
-    })
-  }
-}
 </script>
 
 <template>
-  <div class="tr-layout__resize-trigger" :class="triggerClass" aria-hidden="true" @pointerdown="startResize">
+  <div ref="triggerRef" class="tr-layout__resize-trigger" :class="triggerClass" aria-hidden="true">
     <span class="tr-layout__resize-trigger-indicator" aria-hidden="true" />
   </div>
 </template>

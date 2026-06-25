@@ -1,12 +1,9 @@
-import type { ComputedRef } from 'vue'
-import type { LayoutAsideCollapseEffect, LayoutFloatingOptions, LayoutFloatingState, LayoutMode } from './index.type'
+import type { ComputedRef, Ref } from 'vue'
+import type { LayoutAsideCollapseEffect, LayoutFloatingOptions, LayoutFloatingState, LayoutSide } from './index.type'
 
 export type LayoutResolvedFloating = LayoutFloatingState & LayoutFloatingOptions
 
-export type LayoutFloatingRect = Omit<
-  LayoutResolvedFloating,
-  'placement' | 'offsetX' | 'offsetY' | 'width' | 'height'
-> & {
+export interface LayoutFloatingRect {
   x: number
   y: number
   width: number
@@ -18,7 +15,8 @@ export interface LayoutFloatingDragPosition {
   y: number
 }
 
-export interface LayoutPanel {
+export interface LayoutAsidePanel {
+  side: LayoutSide
   isOpen: ComputedRef<boolean>
   width: ComputedRef<number>
   collapsedWidth: ComputedRef<number>
@@ -30,24 +28,9 @@ export interface LayoutPanel {
   isRail: ComputedRef<boolean>
   isHidden: ComputedRef<boolean>
   canResize: ComputedRef<boolean>
+  // 不建议把函数用作 props 传入
   setOpen: (nextOpen: boolean) => void
   setWidth: (nextWidth: number) => void
-}
-
-export interface LayoutFloatingStateContext {
-  mode: ComputedRef<LayoutMode>
-  value: ComputedRef<LayoutFloatingState | undefined>
-  resolved: ComputedRef<LayoutResolvedFloating | undefined>
-}
-
-export interface LayoutFloatingActions {
-  initialize: (nextFloating: LayoutFloatingState) => void
-  commit: (nextFloating: LayoutFloatingState) => void
-}
-
-export interface LayoutFloatingContext {
-  state: LayoutFloatingStateContext
-  actions: LayoutFloatingActions
 }
 
 export interface LayoutAsideToggleContext {
@@ -56,12 +39,7 @@ export interface LayoutAsideToggleContext {
 }
 
 export interface LayoutContext {
+  rootEl: Ref<HTMLElement | null>
   left: LayoutAsideToggleContext
   right: LayoutAsideToggleContext
-}
-
-export interface LayoutState {
-  leftPanel: LayoutPanel
-  rightPanel: LayoutPanel
-  floating: LayoutFloatingContext
 }

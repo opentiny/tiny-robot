@@ -9,7 +9,7 @@ import {
   type ComponentPublicInstance,
   type CSSProperties,
 } from 'vue'
-import { usePointerDragSession } from './composables/usePointerDragSession'
+import { usePointerDrag } from './composables/usePointerDrag'
 import type { LayoutProxyScrollbarProps, LayoutScrollTarget } from './index.type'
 import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from './utils/domInteraction'
 import { clamp } from './utils/number'
@@ -41,38 +41,49 @@ defineOptions({
 
 const props = defineProps<LayoutProxyScrollbarProps>()
 const scrollbarRef = ref<HTMLElement | null>(null)
+const thumbRef = shallowRef<HTMLElement | null>(null)
 const metrics = shallowRef<ScrollMetrics>(createEmptyMetrics())
 const isTargetHovering = shallowRef(false)
 const isTrackHovering = shallowRef(false)
 let frameId: number | null = null
 
-const resolveScrollTargetElement = (scrollTarget: LayoutScrollTarget): HTMLElement | null => {
-  const element = unrefElement(scrollTarget as HTMLElement | ComponentPublicInstance | null | undefined)
-  return element instanceof HTMLElement ? element : null
-}
-
 const scrollTargetRef = computed<HTMLElement | null>(() => resolveScrollTargetElement(props.scrollTarget))
 const isScrollable = computed(() => metrics.value.isScrollable)
 
-const {
-  activeSession: activeThumbDrag,
-  startSession,
-  stopSession,
-} = usePointerDragSession<ThumbDragState>({
+const { dragState: activeThumbDrag, endDrag: endThumbDrag } = usePointerDrag<ThumbDragState>(thumbRef, {
+  disabled: computed(() => !metrics.value.isScrollable),
+  onStart: (event) => {
+    const scrollTarget = scrollTargetRef.value
+    if (!scrollTarget || !metrics.value.isScrollable) {
+      return null
+    }
+
+    const bodyEl = scrollTarget.ownerDocument.body
+    if (!(bodyEl instanceof HTMLBodyElement)) {
+      return null
+    }
+
+    event.preventDefault()
+
+    return {
+      pointerId: event.pointerId,
+      scrollTarget,
+      startY: event.clientY,
+      startScrollTop: scrollTarget.scrollTop,
+      bodyEl,
+      bodyState: lockBodyInteraction(bodyEl, 'grabbing'),
+    }
+  },
   onMove: (state, event) => {
     const currentMetrics = metrics.value
     if (!currentMetrics.isScrollable) {
       return
     }
 
-    const deltaY = event.clientY - state.startY
-    const scrollRange = currentMetrics.scrollHeight - currentMetrics.clientHeight
-    const thumbTravel = currentMetrics.trackHeight - currentMetrics.thumbHeight
-    const ratio = thumbTravel > 0 ? scrollRange / thumbTravel : 0
-    state.scrollTarget.scrollTop = state.startScrollTop + deltaY * ratio
-    scheduleSync()
+    state.scrollTarget.scrollTop = resolveScrollTopFromThumbDrag(state, event.clientY, currentMetrics)
+    scheduleMetricsSync()
   },
-  onStop: (state) => {
+  onEnd: (state) => {
     restoreBodyInteraction(state.bodyEl, state.bodyState)
   },
 })
@@ -104,6 +115,13 @@ function createEmptyMetrics(): ScrollMetrics {
   }
 }
 
+// 把 ref / 组件实例统一解析成真实滚动容器。
+function resolveScrollTargetElement(scrollTarget: LayoutScrollTarget): HTMLElement | null {
+  const element = unrefElement(scrollTarget as HTMLElement | ComponentPublicInstance | null | undefined)
+  return element instanceof HTMLElement ? element : null
+}
+
+// 轨道还没挂载时，直接用目标容器高度兜底。
 function resolveTrackHeight(containerEl: HTMLElement | null, fallbackHeight: number): number {
   if (!(containerEl instanceof HTMLElement)) {
     return fallbackHeight
@@ -112,23 +130,15 @@ function resolveTrackHeight(containerEl: HTMLElement | null, fallbackHeight: num
   return Math.max(containerEl.clientHeight, 0)
 }
 
-function syncMetrics(): void {
-  frameId = null
-
-  const scrollTarget = scrollTargetRef.value
-  if (!scrollTarget) {
-    metrics.value = createEmptyMetrics()
-    return
-  }
-
+// 基于当前 DOM 尺寸，计算 thumb 的尺寸和位置。
+function resolveScrollMetrics(scrollTarget: HTMLElement, trackHeight: number): ScrollMetrics {
   const clientHeight = scrollTarget.clientHeight
   const scrollHeight = scrollTarget.scrollHeight
   const scrollTop = scrollTarget.scrollTop
-  const trackHeight = resolveTrackHeight(scrollbarRef.value, clientHeight)
   const isScrollable = scrollHeight - clientHeight > 1
 
   if (!isScrollable) {
-    metrics.value = {
+    return {
       clientHeight,
       scrollHeight,
       scrollTop,
@@ -137,7 +147,6 @@ function syncMetrics(): void {
       thumbOffset: 0,
       isScrollable: false,
     }
-    return
   }
 
   const scrollRange = scrollHeight - clientHeight
@@ -145,7 +154,7 @@ function syncMetrics(): void {
   const thumbTravel = Math.max(0, trackHeight - thumbHeight)
   const thumbOffset = scrollRange > 0 ? (scrollTop / scrollRange) * thumbTravel : 0
 
-  metrics.value = {
+  return {
     clientHeight,
     scrollHeight,
     scrollTop,
@@ -156,7 +165,32 @@ function syncMetrics(): void {
   }
 }
 
-function scheduleSync(): void {
+// 把 thumb 的位移换算成 scrollTop。
+function resolveScrollTopFromThumbDrag(state: ThumbDragState, pointerY: number, currentMetrics: ScrollMetrics): number {
+  const deltaY = pointerY - state.startY
+  const scrollRange = currentMetrics.scrollHeight - currentMetrics.clientHeight
+  const thumbTravel = currentMetrics.trackHeight - currentMetrics.thumbHeight
+  const ratio = thumbTravel > 0 ? scrollRange / thumbTravel : 0
+
+  return state.startScrollTop + deltaY * ratio
+}
+
+// 统一读取滚动容器和轨道尺寸，刷新当前 metrics。
+function syncMetrics(): void {
+  frameId = null
+
+  const scrollTarget = scrollTargetRef.value
+  if (!scrollTarget) {
+    metrics.value = createEmptyMetrics()
+    return
+  }
+
+  const trackHeight = resolveTrackHeight(scrollbarRef.value, scrollTarget.clientHeight)
+  metrics.value = resolveScrollMetrics(scrollTarget, trackHeight)
+}
+
+// 用 rAF 合并多次更新，避免滚动和尺寸变化时重复计算。
+function scheduleMetricsSync(): void {
   if (typeof window === 'undefined') {
     syncMetrics()
     return
@@ -173,41 +207,12 @@ function setTrackHovering(value: boolean): void {
   isTrackHovering.value = value
 }
 
-function stopThumbDrag(pointerId?: number): void {
-  stopSession(pointerId)
-}
-
-function startThumbDrag(event: PointerEvent): void {
-  const scrollTarget = scrollTargetRef.value
-  if (!scrollTarget || !metrics.value.isScrollable) {
-    return
-  }
-
-  startSession(event, (event) => {
-    const bodyEl = scrollTarget.ownerDocument.body
-    if (!(bodyEl instanceof HTMLBodyElement)) {
-      return null
-    }
-
-    event.preventDefault()
-
-    return {
-      pointerId: event.pointerId,
-      scrollTarget,
-      startY: event.clientY,
-      startScrollTop: scrollTarget.scrollTop,
-      bodyEl,
-      bodyState: lockBodyInteraction(bodyEl, 'grabbing'),
-    }
-  })
-}
-
 useEventListener(scrollTargetRef, 'scroll', () => {
-  scheduleSync()
+  scheduleMetricsSync()
 })
 
 useEventListener(scrollTargetRef, 'wheel', () => {
-  scheduleSync()
+  scheduleMetricsSync()
 })
 
 useEventListener(scrollTargetRef, 'mouseenter', () => {
@@ -219,36 +224,34 @@ useEventListener(scrollTargetRef, 'mouseleave', () => {
 })
 
 useResizeObserver(scrollTargetRef, () => {
-  scheduleSync()
+  scheduleMetricsSync()
 })
 
 useResizeObserver(scrollbarRef, () => {
-  scheduleSync()
+  scheduleMetricsSync()
 })
 
 useMutationObserver(
   scrollTargetRef,
   () => {
-    scheduleSync()
+    scheduleMetricsSync()
   },
   { childList: true, subtree: true },
 )
 
 watch(
   scrollTargetRef,
-  (nextTarget, prevTarget) => {
-    stopThumbDrag()
+  () => {
+    endThumbDrag()
     isTargetHovering.value = false
     isTrackHovering.value = false
-    prevTarget?.removeAttribute('data-tr-layout-scroll-target')
-    nextTarget?.setAttribute('data-tr-layout-scroll-target', '')
-    scheduleSync()
+    scheduleMetricsSync()
   },
   { immediate: true },
 )
 
 watch(scrollbarRef, () => {
-  scheduleSync()
+  scheduleMetricsSync()
 })
 
 onBeforeUnmount(() => {
@@ -256,8 +259,7 @@ onBeforeUnmount(() => {
     window.cancelAnimationFrame(frameId)
   }
 
-  stopThumbDrag()
-  scrollTargetRef.value?.removeAttribute('data-tr-layout-scroll-target')
+  endThumbDrag()
 })
 </script>
 
@@ -271,7 +273,7 @@ onBeforeUnmount(() => {
     @mouseenter="setTrackHovering(true)"
     @mouseleave="setTrackHovering(false)"
   >
-    <div class="tr-layout-proxy-scrollbar__thumb" :style="thumbStyle" @pointerdown="startThumbDrag" />
+    <div ref="thumbRef" class="tr-layout-proxy-scrollbar__thumb" :style="thumbStyle" />
   </div>
 </template>
 

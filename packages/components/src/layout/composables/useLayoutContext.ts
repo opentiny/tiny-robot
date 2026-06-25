@@ -16,3 +16,9 @@ export function useLayoutContext(): LayoutContext {
 
   return context
 }
+
+export function useLayoutAsideContext(side: 'left' | 'right') {
+  const context = useLayoutContext()
+
+  return context[side]
+}
