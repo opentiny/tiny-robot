@@ -20,15 +20,16 @@ export interface UsePointerDragReturn<T extends PointerDragState> {
   endDrag: (pointerId?: number, event?: PointerEvent) => void
 }
 
+const DEFAULT_POINTER_BUTTONS = [0]
+
 export function usePointerDrag<T extends PointerDragState>(
   target: MaybeRefOrGetter<HTMLElement | null | undefined>,
   options: UsePointerDragOptions<T>,
 ): UsePointerDragReturn<T> {
   const dragState = shallowRef(null) as ShallowRef<T | null>
-  const listenerTarget = typeof window === 'undefined' ? undefined : window
 
   function startDrag(event: PointerEvent): void {
-    const buttons = toValue(options.buttons) ?? [0]
+    const buttons = toValue(options.buttons) ?? DEFAULT_POINTER_BUTTONS
 
     if (dragState.value || toValue(options.disabled) || !event.isPrimary || !buttons.includes(event.button)) {
       return
@@ -41,6 +42,16 @@ export function usePointerDrag<T extends PointerDragState>(
     }
 
     dragState.value = state
+  }
+
+  function moveDrag(event: PointerEvent): void {
+    const state = dragState.value
+
+    if (!state || event.pointerId !== state.pointerId) {
+      return
+    }
+
+    options.onMove?.(state, event)
   }
 
   function endDrag(pointerId?: number, event?: PointerEvent): void {
@@ -59,21 +70,9 @@ export function usePointerDrag<T extends PointerDragState>(
 
   useEventListener(target, 'pointerdown', startDrag)
 
-  useEventListener(listenerTarget, 'pointermove', (event: PointerEvent) => {
-    const state = dragState.value
+  useEventListener('pointermove', moveDrag)
 
-    if (!state || event.pointerId !== state.pointerId) {
-      return
-    }
-
-    options.onMove?.(state, event)
-  })
-
-  useEventListener(listenerTarget, 'pointerup', (event: PointerEvent) => {
-    endDrag(event.pointerId, event)
-  })
-
-  useEventListener(listenerTarget, 'pointercancel', (event: PointerEvent) => {
+  useEventListener(['pointerup', 'pointercancel'], (event: PointerEvent) => {
     endDrag(event.pointerId, event)
   })
 

@@ -135,7 +135,8 @@ function resolveScrollMetrics(scrollTarget: HTMLElement, trackHeight: number): S
   const clientHeight = scrollTarget.clientHeight
   const scrollHeight = scrollTarget.scrollHeight
   const scrollTop = scrollTarget.scrollTop
-  const isScrollable = scrollHeight - clientHeight > 1
+  const scrollRange = scrollHeight - clientHeight
+  const isScrollable = scrollRange > 1
 
   if (!isScrollable) {
     return {
@@ -149,10 +150,9 @@ function resolveScrollMetrics(scrollTarget: HTMLElement, trackHeight: number): S
     }
   }
 
-  const scrollRange = scrollHeight - clientHeight
   const thumbHeight = clamp((clientHeight / scrollHeight) * trackHeight, MIN_THUMB_HEIGHT, trackHeight)
-  const thumbTravel = Math.max(0, trackHeight - thumbHeight)
-  const thumbOffset = scrollRange > 0 ? (scrollTop / scrollRange) * thumbTravel : 0
+  const thumbTravel = trackHeight - thumbHeight
+  const thumbOffset = (scrollTop / scrollRange) * thumbTravel
 
   return {
     clientHeight,
@@ -207,20 +207,16 @@ function setTrackHovering(value: boolean): void {
   isTrackHovering.value = value
 }
 
-useEventListener(scrollTargetRef, 'scroll', () => {
-  scheduleMetricsSync()
-})
-
-useEventListener(scrollTargetRef, 'wheel', () => {
-  scheduleMetricsSync()
-})
-
 useEventListener(scrollTargetRef, 'mouseenter', () => {
   isTargetHovering.value = true
 })
 
 useEventListener(scrollTargetRef, 'mouseleave', () => {
   isTargetHovering.value = false
+})
+
+useEventListener(scrollTargetRef, 'scroll', () => {
+  scheduleMetricsSync()
 })
 
 useResizeObserver(scrollTargetRef, () => {
