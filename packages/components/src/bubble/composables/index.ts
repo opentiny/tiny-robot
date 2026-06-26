@@ -1,5 +1,6 @@
 export * from './useBubbleBoxRenderer'
 export * from './useBubbleContentRenderer'
+export * from './useBubbleEvent'
 export * from './useBubbleStateChange'
 export * from './useBubbleStore'
 export * from './useContentResolver'

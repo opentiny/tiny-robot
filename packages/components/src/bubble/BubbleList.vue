@@ -4,7 +4,7 @@ import { useAutoScroll } from '../shared/composables'
 import BubbleItem from './BubbleItem.vue'
 import { setupBubbleStore, useCopyCleanup } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
-import type { BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
+import type { BubbleEvent, BubbleListProps, BubbleListSlots, BubbleMessage, BubbleMessageGroup } from './index.type'
 
 const props = withDefaults(defineProps<BubbleListProps>(), {
   groupStrategy: 'divider',
@@ -15,8 +15,21 @@ const props = withDefaults(defineProps<BubbleListProps>(), {
 
 defineSlots<BubbleListSlots>()
 
+type BubbleStateChangePayload = {
+  key: string
+  value: unknown
+  messageIndex: number
+  contentIndex: number
+}
+
+type BubbleEventPayload = BubbleEvent & {
+  messageIndex: number
+  contentIndex: number
+}
+
 const emit = defineEmits<{
-  (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
+  (e: 'state-change', payload: BubbleStateChangePayload): void
+  (e: 'bubble-event', payload: BubbleEventPayload): void
 }>()
 
 // Provide bubble store if not already provided
@@ -92,7 +105,6 @@ const groupByRole = (messages: BubbleMessage[]): BubbleMessageGroup[] => {
         role: messageRole,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       })
     }
     // 创建新组后统一更新 hidden 状态
@@ -138,7 +150,6 @@ const groupByDivider = (messages: BubbleMessage[], dividerRole: string): BubbleM
         role: isDivider ? dividerRole : messageRole,
         messages: [message],
         messageIndexes: [index],
-        startIndex: index,
       })
     }
     // 创建新组后统一更新 hidden 状态
@@ -169,6 +180,43 @@ const messageGroups = computed<BubbleMessageGroup[]>(() => {
   }
 })
 
+const resolveMessageIndex = (group: BubbleMessageGroup, messageIndex: number): number | undefined => {
+  const resolvedMessageIndex = group.messageIndexes[messageIndex]
+
+  if (resolvedMessageIndex === undefined) {
+    console.warn(
+      '[BubbleList] Missing messageIndexes mapping; event was not emitted. Ensure custom groupStrategy returns messageIndexes aligned with messages.',
+      {
+        messageIndex,
+        messageIndexes: group.messageIndexes,
+      },
+    )
+    return undefined
+  }
+
+  return resolvedMessageIndex
+}
+
+const handleStateChange = (group: BubbleMessageGroup, event: BubbleStateChangePayload): void => {
+  const messageIndex = resolveMessageIndex(group, event.messageIndex)
+
+  if (messageIndex === undefined) {
+    return
+  }
+
+  emit('state-change', { ...event, messageIndex })
+}
+
+const handleBubbleEvent = (group: BubbleMessageGroup, event: BubbleEventPayload): void => {
+  const messageIndex = resolveMessageIndex(group, event.messageIndex)
+
+  if (messageIndex === undefined) {
+    return
+  }
+
+  emit('bubble-event', { ...event, messageIndex })
+}
+
 defineExpose({
   scrollToBottom: scrollToBottomFn,
 })
@@ -184,7 +232,8 @@ defineExpose({
       :message-group="group"
       :content-render-mode="props.contentRenderMode"
       :content-resolver="props.contentResolver"
-      @state-change="emit('state-change', { ...$event, messageIndex: group.startIndex + $event.messageIndex })"
+      @state-change="handleStateChange(group, $event)"
+      @bubble-event="handleBubbleEvent(group, $event)"
     >
       <template #prefix="slotProps">
         <slot name="prefix" v-bind="slotProps" :messageIndexes="group.messageIndexes"></slot>
