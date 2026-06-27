@@ -1,66 +1,48 @@
 import type { LayoutAsideOpenDetail, LayoutAsideResizeDetail, LayoutEmits } from '../index.type'
 
-export type LayoutEmitFn = <K extends keyof LayoutEmits>(event: K, ...args: LayoutEmits[K]) => void
+type LayoutEmit = <K extends keyof LayoutEmits>(event: K, ...args: LayoutEmits[K]) => void
 
-function emitSideOpenChange(emit: LayoutEmitFn, detail: LayoutAsideOpenDetail): void {
-  if (detail.side === 'left') {
-    emit('left-aside-open-change', { open: detail.open })
-    return
-  }
+export type LayoutAsideResizePhase = 'start' | 'resize' | 'end'
 
-  emit('right-aside-open-change', { open: detail.open })
-}
+const OPEN_CHANGE_EVENT_BY_SIDE = {
+  left: 'left-aside-open-change',
+  right: 'right-aside-open-change',
+} as const
 
-export function emitAsideOpenChange(emit: LayoutEmitFn, detail: LayoutAsideOpenDetail): void {
+const RESIZE_EVENTS_BY_PHASE = {
+  start: {
+    generic: 'aside-resize-start',
+    left: 'left-aside-resize-start',
+    right: 'right-aside-resize-start',
+  },
+  resize: {
+    generic: 'aside-resize',
+    left: 'left-aside-resize',
+    right: 'right-aside-resize',
+  },
+  end: {
+    generic: 'aside-resize-end',
+    left: 'left-aside-resize-end',
+    right: 'right-aside-resize-end',
+  },
+} as const
+
+export function emitAsideOpenChangeEvents(emit: LayoutEmit, detail: LayoutAsideOpenDetail): void {
   emit('aside-open-change', detail)
-  emitSideOpenChange(emit, detail)
+  emit(OPEN_CHANGE_EVENT_BY_SIDE[detail.side], {
+    open: detail.open,
+  })
 }
 
-function emitSideResizeEvent(
-  emit: LayoutEmitFn,
-  phase: 'start' | 'progress' | 'end',
+export function emitAsideResizeEvents(
+  emit: LayoutEmit,
+  phase: LayoutAsideResizePhase,
   detail: LayoutAsideResizeDetail,
 ): void {
-  if (detail.side === 'left') {
-    if (phase === 'start') {
-      emit('left-aside-resize-start', { expandedWidth: detail.expandedWidth })
-      return
-    }
+  const events = RESIZE_EVENTS_BY_PHASE[phase]
 
-    if (phase === 'end') {
-      emit('left-aside-resize-end', { expandedWidth: detail.expandedWidth })
-      return
-    }
-
-    emit('left-aside-resize', { expandedWidth: detail.expandedWidth })
-    return
-  }
-
-  if (phase === 'start') {
-    emit('right-aside-resize-start', { expandedWidth: detail.expandedWidth })
-    return
-  }
-
-  if (phase === 'end') {
-    emit('right-aside-resize-end', { expandedWidth: detail.expandedWidth })
-    return
-  }
-
-  emit('right-aside-resize', { expandedWidth: detail.expandedWidth })
-}
-
-export function emitAsideResizeEvent(
-  emit: LayoutEmitFn,
-  phase: 'start' | 'progress' | 'end',
-  detail: LayoutAsideResizeDetail,
-): void {
-  if (phase === 'start') {
-    emit('aside-resize-start', detail)
-  } else if (phase === 'end') {
-    emit('aside-resize-end', detail)
-  } else {
-    emit('aside-resize', detail)
-  }
-
-  emitSideResizeEvent(emit, phase, detail)
+  emit(events.generic, detail)
+  emit(events[detail.side], {
+    expandedWidth: detail.expandedWidth,
+  })
 }

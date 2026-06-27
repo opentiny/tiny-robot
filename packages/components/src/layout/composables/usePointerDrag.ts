@@ -1,88 +1,121 @@
 import { tryOnScopeDispose, useEventListener, type MaybeRefOrGetter } from '@vueuse/core'
 import { computed, shallowRef, toValue } from 'vue'
-import type { ComputedRef, ShallowRef } from 'vue'
+import type { ComputedRef } from 'vue'
 
-export interface PointerDragState {
-  pointerId: number
+export type PointerDragEndReason = 'pointerup' | 'pointercancel' | 'manual' | 'scope-dispose'
+
+export interface PointerDragEndDetail {
+  reason: PointerDragEndReason
+  event?: PointerEvent
 }
 
-export interface UsePointerDragOptions<T extends PointerDragState> {
+export interface UsePointerDragOptions<T> {
   disabled?: MaybeRefOrGetter<boolean>
-  buttons?: MaybeRefOrGetter<number[]>
+  buttons?: MaybeRefOrGetter<readonly number[]>
   onStart: (event: PointerEvent) => T | false | null | undefined
-  onMove?: (state: T, event: PointerEvent) => void
-  onEnd?: (state: T, event?: PointerEvent) => void
+  onMove?: (context: T, event: PointerEvent) => void
+  onEnd?: (context: T, detail: PointerDragEndDetail) => void
 }
 
-export interface UsePointerDragReturn<T extends PointerDragState> {
-  dragState: ShallowRef<T | null>
+export interface UsePointerDragReturn {
   isDragging: ComputedRef<boolean>
-  endDrag: (pointerId?: number, event?: PointerEvent) => void
+  cancel: () => void
 }
 
 const DEFAULT_POINTER_BUTTONS = [0]
 
-export function usePointerDrag<T extends PointerDragState>(
-  target: MaybeRefOrGetter<HTMLElement | null | undefined>,
+export function usePointerDrag<T>(
+  handle: MaybeRefOrGetter<HTMLElement | null | undefined>,
   options: UsePointerDragOptions<T>,
-): UsePointerDragReturn<T> {
-  const dragState = shallowRef(null) as ShallowRef<T | null>
+): UsePointerDragReturn {
+  const dragContext = shallowRef<T | null>(null)
+  const activePointerId = shallowRef<number | null>(null)
+  const captureTarget = shallowRef<HTMLElement | null>(null)
+  const listenerTarget = shallowRef<Window | null>(null)
 
   function startDrag(event: PointerEvent): void {
     const buttons = toValue(options.buttons) ?? DEFAULT_POINTER_BUTTONS
+    const handleEl = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
 
-    if (dragState.value || toValue(options.disabled) || !event.isPrimary || !buttons.includes(event.button)) {
+    if (
+      !handleEl ||
+      dragContext.value ||
+      toValue(options.disabled) ||
+      !event.isPrimary ||
+      !buttons.includes(event.button)
+    ) {
       return
     }
 
-    const state = options.onStart(event)
+    const context = options.onStart(event)
 
-    if (!state) {
+    if (!context) {
       return
     }
 
-    dragState.value = state
+    dragContext.value = context
+    activePointerId.value = event.pointerId
+    captureTarget.value = handleEl
+    listenerTarget.value = handleEl.ownerDocument.defaultView
+
+    try {
+      handleEl.setPointerCapture(event.pointerId)
+    } catch (error) {
+      finishDrag('manual')
+      throw error
+    }
   }
 
   function moveDrag(event: PointerEvent): void {
-    const state = dragState.value
+    const context = dragContext.value
 
-    if (!state || event.pointerId !== state.pointerId) {
+    if (!context || event.pointerId !== activePointerId.value) {
       return
     }
 
-    options.onMove?.(state, event)
+    options.onMove?.(context, event)
   }
 
-  function endDrag(pointerId?: number, event?: PointerEvent): void {
-    const state = dragState.value
+  function finishDrag(reason: PointerDragEndReason, event?: PointerEvent): void {
+    const context = dragContext.value
 
-    if (!state || (pointerId !== undefined && state.pointerId !== pointerId)) {
+    if (!context || (event && event.pointerId !== activePointerId.value)) {
       return
     }
 
-    try {
-      options.onEnd?.(state, event)
-    } finally {
-      dragState.value = null
+    const pointerId = activePointerId.value
+    const target = captureTarget.value
+
+    dragContext.value = null
+    activePointerId.value = null
+    captureTarget.value = null
+    listenerTarget.value = null
+
+    if (target && pointerId !== null && target.hasPointerCapture(pointerId)) {
+      target.releasePointerCapture(pointerId)
     }
+
+    options.onEnd?.(context, { reason, event })
   }
 
-  useEventListener(target, 'pointerdown', startDrag)
+  useEventListener(handle, 'pointerdown', startDrag)
 
-  useEventListener('pointermove', moveDrag)
+  useEventListener(listenerTarget, 'pointermove', moveDrag)
 
-  useEventListener(['pointerup', 'pointercancel'], (event: PointerEvent) => {
-    endDrag(event.pointerId, event)
+  useEventListener(listenerTarget, 'pointerup', (event: PointerEvent) => {
+    finishDrag('pointerup', event)
+  })
+
+  useEventListener(listenerTarget, 'pointercancel', (event: PointerEvent) => {
+    finishDrag('pointercancel', event)
   })
 
   tryOnScopeDispose(() => {
-    endDrag()
+    finishDrag('scope-dispose')
   })
 
   return {
-    dragState,
-    isDragging: computed(() => dragState.value !== null),
-    endDrag,
+    isDragging: computed(() => dragContext.value !== null),
+    cancel: () => finishDrag('manual'),
   }
 }

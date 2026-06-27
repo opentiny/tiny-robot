@@ -15,22 +15,21 @@ export interface LayoutFloatingDragPosition {
   y: number
 }
 
-export interface LayoutAsidePanel {
+export interface LayoutAsideState {
   side: LayoutSide
   isOpen: ComputedRef<boolean>
-  width: ComputedRef<number>
+  expandedWidth: ComputedRef<number>
   collapsedWidth: ComputedRef<number>
   collapseEffect: ComputedRef<LayoutAsideCollapseEffect>
-  minWidth: ComputedRef<number>
-  maxWidth: ComputedRef<number>
+  minExpandedWidth: ComputedRef<number>
+  maxExpandedWidth: ComputedRef<number>
   isDock: ComputedRef<boolean>
   isDrawer: ComputedRef<boolean>
   isRail: ComputedRef<boolean>
   isHidden: ComputedRef<boolean>
   canResize: ComputedRef<boolean>
-  // 不建议把函数用作 props 传入
   setOpen: (nextOpen: boolean) => void
-  setWidth: (nextWidth: number) => void
+  setExpandedWidth: (nextWidth: number) => void
 }
 
 export interface LayoutAsideToggleContext {

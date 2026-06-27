@@ -2,7 +2,7 @@
 import { computed, shallowRef } from 'vue'
 import { usePointerDrag } from '../composables/usePointerDrag'
 import type { LayoutFloatingResizeHandle } from '../index.type'
-import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from '../utils/domInteraction'
+import { lockBodyDragInteraction } from '../utils/domInteraction'
 
 defineOptions({
   name: 'FloatingResizeTrigger',
@@ -34,13 +34,11 @@ const emit = defineEmits<{
 }>()
 
 interface FloatingResizeState {
-  pointerId: number
-  handleEl: HTMLElement
   startX: number
   startY: number
   lastPointerX: number
   lastPointerY: number
-  bodyState: BodyInteractionState
+  releaseBodyInteraction: () => void
 }
 
 const triggerRef = shallowRef<HTMLElement | null>(null)
@@ -62,16 +60,14 @@ usePointerDrag<FloatingResizeState>(triggerRef, {
     }
 
     event.preventDefault()
-    handleEl.setPointerCapture(event.pointerId)
+    const bodyEl = handleEl.ownerDocument.body
 
     const state = {
-      pointerId: event.pointerId,
-      handleEl,
       startX: event.clientX,
       startY: event.clientY,
       lastPointerX: event.clientX,
       lastPointerY: event.clientY,
-      bodyState: lockBodyInteraction(handleEl.ownerDocument.body, `${resolveResizeDirection(props.handle)}-resize`),
+      releaseBodyInteraction: lockBodyDragInteraction(bodyEl, `${resolveResizeDirection(props.handle)}-resize`),
     }
 
     emit('resize-start', props.handle)
@@ -86,11 +82,7 @@ usePointerDrag<FloatingResizeState>(triggerRef, {
     emitResize(state, event.clientX, event.clientY)
   },
   onEnd: (state) => {
-    if (state.handleEl.hasPointerCapture(state.pointerId)) {
-      state.handleEl.releasePointerCapture(state.pointerId)
-    }
-
-    restoreBodyInteraction(state.handleEl.ownerDocument.body, state.bodyState)
+    state.releaseBodyInteraction()
     emitResizeEnd(state)
   },
 })

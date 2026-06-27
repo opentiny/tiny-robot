@@ -11,7 +11,7 @@ import {
 } from 'vue'
 import { usePointerDrag } from './composables/usePointerDrag'
 import type { LayoutProxyScrollbarProps, LayoutScrollTarget } from './index.type'
-import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from './utils/domInteraction'
+import { lockBodyDragInteraction } from './utils/domInteraction'
 import { clamp } from './utils/number'
 
 interface ScrollMetrics {
@@ -25,12 +25,10 @@ interface ScrollMetrics {
 }
 
 interface ThumbDragState {
-  pointerId: number
   scrollTarget: HTMLElement
   startY: number
   startScrollTop: number
-  bodyEl: HTMLBodyElement
-  bodyState: BodyInteractionState
+  releaseBodyInteraction: () => void
 }
 
 const MIN_THUMB_HEIGHT = 36
@@ -50,7 +48,7 @@ let frameId: number | null = null
 const scrollTargetRef = computed<HTMLElement | null>(() => resolveScrollTargetElement(props.scrollTarget))
 const isScrollable = computed(() => metrics.value.isScrollable)
 
-const { dragState: activeThumbDrag, endDrag: endThumbDrag } = usePointerDrag<ThumbDragState>(thumbRef, {
+const { isDragging: isDraggingThumb, cancel: cancelThumbDrag } = usePointerDrag<ThumbDragState>(thumbRef, {
   disabled: computed(() => !metrics.value.isScrollable),
   onStart: (event) => {
     const scrollTarget = scrollTargetRef.value
@@ -59,19 +57,17 @@ const { dragState: activeThumbDrag, endDrag: endThumbDrag } = usePointerDrag<Thu
     }
 
     const bodyEl = scrollTarget.ownerDocument.body
-    if (!(bodyEl instanceof HTMLBodyElement)) {
+    if (!bodyEl) {
       return null
     }
 
     event.preventDefault()
 
     return {
-      pointerId: event.pointerId,
       scrollTarget,
       startY: event.clientY,
       startScrollTop: scrollTarget.scrollTop,
-      bodyEl,
-      bodyState: lockBodyInteraction(bodyEl, 'grabbing'),
+      releaseBodyInteraction: lockBodyDragInteraction(bodyEl, 'grabbing'),
     }
   },
   onMove: (state, event) => {
@@ -84,11 +80,10 @@ const { dragState: activeThumbDrag, endDrag: endThumbDrag } = usePointerDrag<Thu
     scheduleMetricsSync()
   },
   onEnd: (state) => {
-    restoreBodyInteraction(state.bodyEl, state.bodyState)
+    state.releaseBodyInteraction()
   },
 })
 
-const isDraggingThumb = computed(() => activeThumbDrag.value !== null)
 const scrollbarVisible = computed(
   () => isScrollable.value && (isTargetHovering.value || isTrackHovering.value || isDraggingThumb.value),
 )
@@ -238,7 +233,7 @@ useMutationObserver(
 watch(
   scrollTargetRef,
   () => {
-    endThumbDrag()
+    cancelThumbDrag()
     isTargetHovering.value = false
     isTrackHovering.value = false
     scheduleMetricsSync()
@@ -255,7 +250,7 @@ onBeforeUnmount(() => {
     window.cancelAnimationFrame(frameId)
   }
 
-  endThumbDrag()
+  cancelThumbDrag()
 })
 </script>
 

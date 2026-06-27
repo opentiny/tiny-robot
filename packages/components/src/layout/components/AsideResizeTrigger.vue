@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import { usePointerDrag } from '../composables/usePointerDrag'
 import type { LayoutAsideResizeDetail, LayoutSide } from '../index.type'
 import { resolveCssLengthToPx } from '../utils/cssLength'
-import { lockBodyInteraction, restoreBodyInteraction, type BodyInteractionState } from '../utils/domInteraction'
+import { lockBodyDragInteraction } from '../utils/domInteraction'
 import { clamp } from '../utils/number'
 import { useLayoutContext } from '../composables/useLayoutContext'
 
@@ -24,15 +24,12 @@ const props = defineProps<LayoutAsideResizeTriggerProps>()
 const emit = defineEmits<{
   (event: 'width-change', value: number): void
   (event: 'aside-resize-start', value: LayoutAsideResizeDetail): void
-  (event: 'aside-resize', value: LayoutAsideResizeDetail): void
   (event: 'aside-resize-end', value: LayoutAsideResizeDetail): void
 }>()
 
 const triggerRef = shallowRef<HTMLElement | null>(null)
 
 interface ResizeState {
-  pointerId: number
-  handleEl: HTMLElement
   side: LayoutSide
   startX: number
   startWidth: number
@@ -41,7 +38,8 @@ interface ResizeState {
   effectiveMax: number
   pendingWidth: number | null
   frameId: number | null
-  bodyState: BodyInteractionState
+  view: Window | null
+  releaseBodyInteraction: () => void
 }
 
 interface ResizeBounds {
@@ -52,23 +50,22 @@ interface ResizeBounds {
 
 const { rootEl } = useLayoutContext()
 
-const { dragState: activeResize } = usePointerDrag<ResizeState>(triggerRef, {
+const { isDragging: isResizing } = usePointerDrag<ResizeState>(triggerRef, {
   onStart: (event) => {
-    const handleEl = event.currentTarget instanceof HTMLElement ? event.currentTarget : null
     const asideEl = props.asideEl
     const layoutEl = rootEl.value
 
-    if (!handleEl || !asideEl || !layoutEl) {
+    if (!asideEl || !layoutEl) {
       return null
     }
 
     const bounds = resolveResizeBounds(layoutEl, asideEl)
+    const bodyEl = layoutEl.ownerDocument.body
+    const view = layoutEl.ownerDocument.defaultView
 
     event.preventDefault()
-    handleEl.setPointerCapture(event.pointerId)
 
-    const bodyState = lockBodyInteraction(layoutEl.ownerDocument.body, 'col-resize')
-    const state = createResizeState(event, handleEl, bounds, bodyState)
+    const state = createResizeState(event, bounds, view, lockBodyDragInteraction(bodyEl, 'col-resize'))
 
     emit('aside-resize-start', {
       side: props.side,
@@ -79,21 +76,16 @@ const { dragState: activeResize } = usePointerDrag<ResizeState>(triggerRef, {
   },
   onMove: (state, event) => {
     const nextWidth = resolveNextWidth(state, event.clientX)
-    queueWidthChange(nextWidth)
+    queueWidthChange(state, nextWidth)
   },
   onEnd: (state) => {
-    if (state.frameId !== null && typeof window !== 'undefined') {
-      window.cancelAnimationFrame(state.frameId)
+    if (state.frameId !== null && state.view) {
+      state.view.cancelAnimationFrame(state.frameId)
       state.frameId = null
     }
 
     flushWidthChange(state)
-
-    if (state.handleEl.hasPointerCapture(state.pointerId)) {
-      state.handleEl.releasePointerCapture(state.pointerId)
-    }
-
-    restoreBodyInteraction(state.handleEl.ownerDocument.body, state.bodyState)
+    state.releaseBodyInteraction()
     emit('aside-resize-end', {
       side: props.side,
       expandedWidth: state.currentWidth,
@@ -104,7 +96,7 @@ const { dragState: activeResize } = usePointerDrag<ResizeState>(triggerRef, {
 const triggerClass = computed(() => [
   `tr-layout__resize-trigger--${props.side}`,
   {
-    'is-dragging': activeResize.value?.side === props.side,
+    'is-dragging': isResizing.value,
   },
 ])
 
@@ -124,13 +116,11 @@ function resolveResizeBounds(layoutEl: HTMLElement, asideEl: HTMLElement): Resiz
 
 function createResizeState(
   event: PointerEvent,
-  handleEl: HTMLElement,
   bounds: ResizeBounds,
-  bodyState: BodyInteractionState,
+  view: Window | null,
+  releaseBodyInteraction: () => void,
 ): ResizeState {
   return {
-    pointerId: event.pointerId,
-    handleEl,
     side: props.side,
     startX: event.clientX,
     startWidth: bounds.startWidth,
@@ -139,7 +129,8 @@ function createResizeState(
     effectiveMax: bounds.effectiveMax,
     pendingWidth: null,
     frameId: null,
-    bodyState,
+    view,
+    releaseBodyInteraction,
   }
 }
 
@@ -150,27 +141,26 @@ function resolveNextWidth(state: ResizeState, pointerX: number): number {
   return clamp(rawWidth, state.minWidth, state.effectiveMax)
 }
 
-function queueWidthChange(nextWidth: number): void {
-  const state = activeResize.value
-  if (!state || nextWidth === state.currentWidth) {
+function queueWidthChange(state: ResizeState, nextWidth: number): void {
+  if (nextWidth === state.currentWidth) {
     return
   }
 
   state.pendingWidth = nextWidth
   state.currentWidth = nextWidth
 
-  if (state.frameId !== null || typeof window === 'undefined') {
+  if (!state.view) {
+    flushWidthChange(state)
     return
   }
 
-  state.frameId = window.requestAnimationFrame(() => {
-    const current = activeResize.value
-    if (!current) {
-      return
-    }
+  if (state.frameId !== null) {
+    return
+  }
 
-    current.frameId = null
-    flushWidthChange(current)
+  state.frameId = state.view.requestAnimationFrame(() => {
+    state.frameId = null
+    flushWidthChange(state)
   })
 }
 
@@ -182,10 +172,6 @@ function flushWidthChange(state: ResizeState): void {
   const width = state.pendingWidth
 
   emit('width-change', width)
-  emit('aside-resize', {
-    side: props.side,
-    expandedWidth: width,
-  })
 
   state.pendingWidth = null
 }

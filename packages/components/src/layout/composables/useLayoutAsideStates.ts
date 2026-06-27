@@ -1,6 +1,7 @@
-import { computed } from 'vue'
-import type { LayoutAsideProps, LayoutSide, LayoutProps } from '../index.type'
-import type { LayoutAsidePanel } from '../internal.type'
+import type { MaybeRefOrGetter } from '@vueuse/core'
+import { computed, toValue } from 'vue'
+import type { LayoutAsideOpenDetail, LayoutAsideProps, LayoutAsideResizeDetail, LayoutSide } from '../index.type'
+import type { LayoutAsideState } from '../internal.type'
 import { clamp } from '../utils/number'
 import {
   getDefaultAsideExpandedWidth,
@@ -8,48 +9,76 @@ import {
   getDefaultAsideMinWidth,
   getDefaultAsideOpen,
 } from '../utils/asidePresets'
-import { emitAsideOpenChange, type LayoutEmitFn } from '../utils/asideEventEmitters'
 import { useControllableState } from '../../shared/composables/useControllableState'
 
-function resolveFiniteNumber(value: number | undefined, fallback: number): number {
-  const nextValue = value === undefined || !Number.isFinite(value) ? fallback : value
-  return Math.max(0, nextValue)
+interface UseLayoutAsideStateOptions {
+  side: LayoutSide
+  config: MaybeRefOrGetter<LayoutAsideProps | undefined>
+  onOpenChange?: (detail: LayoutAsideOpenDetail) => void
+  onExpandedWidthChange?: (detail: LayoutAsideResizeDetail) => void
 }
 
-function createAsideState(
-  side: LayoutSide,
-  aside: () => LayoutAsideProps | undefined,
-  emit: LayoutEmitFn,
-): LayoutAsidePanel {
-  const asideValue = computed(() => aside())
-  const layoutMode = computed(() => asideValue.value?.mode ?? 'dock')
-  const collapsedWidth = computed(() => resolveFiniteNumber(asideValue.value?.collapsedWidth, 0))
-  const collapseEffect = computed(() => asideValue.value?.collapseEffect ?? 'overlay')
-  const resizable = computed(() => asideValue.value?.resizable ?? false)
-  const minWidth = computed(() =>
-    resolveFiniteNumber(asideValue.value?.minExpandedWidth, getDefaultAsideMinWidth(side)),
+interface UseLayoutAsideStatesOptions {
+  leftConfig: MaybeRefOrGetter<LayoutAsideProps | undefined>
+  rightConfig: MaybeRefOrGetter<LayoutAsideProps | undefined>
+  onOpenChange?: (detail: LayoutAsideOpenDetail) => void
+  onExpandedWidthChange?: (detail: LayoutAsideResizeDetail) => void
+}
+
+function resolveNonNegativeFiniteNumber(value: number | undefined, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback
+  }
+
+  return Math.max(0, value)
+}
+
+export function useLayoutAsideState(options: UseLayoutAsideStateOptions): LayoutAsideState {
+  const { side } = options
+  const configValue = computed(() => toValue(options.config))
+  const mode = computed(() => configValue.value?.mode ?? 'dock')
+  const collapsedWidth = computed(() => resolveNonNegativeFiniteNumber(configValue.value?.collapsedWidth, 0))
+  const collapseEffect = computed(() => configValue.value?.collapseEffect ?? 'overlay')
+  const resizable = computed(() => configValue.value?.resizable ?? false)
+  const minExpandedWidth = computed(() =>
+    resolveNonNegativeFiniteNumber(configValue.value?.minExpandedWidth, getDefaultAsideMinWidth(side)),
   )
-  const maxWidth = computed(() => {
-    const nextMaxWidth = resolveFiniteNumber(asideValue.value?.maxExpandedWidth, getDefaultAsideMaxWidth(side))
-    return Math.max(minWidth.value, nextMaxWidth)
+  const maxExpandedWidth = computed(() => {
+    const nextMaxWidth = resolveNonNegativeFiniteNumber(
+      configValue.value?.maxExpandedWidth,
+      getDefaultAsideMaxWidth(side),
+    )
+    return Math.max(minExpandedWidth.value, nextMaxWidth)
   })
+
+  function normalizeExpandedWidth(value: number | undefined): number {
+    return clamp(
+      resolveNonNegativeFiniteNumber(value, getDefaultAsideExpandedWidth(side)),
+      minExpandedWidth.value,
+      maxExpandedWidth.value,
+    )
+  }
 
   const openState = useControllableState<boolean>({
-    value: () => asideValue.value?.open,
-    defaultValue: () => asideValue.value?.defaultOpen ?? getDefaultAsideOpen(side),
-    onChange: (nextOpen) => emitAsideOpenChange(emit, { side, open: nextOpen }),
+    value: () => configValue.value?.open,
+    defaultValue: () => configValue.value?.defaultOpen ?? getDefaultAsideOpen(side),
+    onChange: (nextOpen) => options.onOpenChange?.({ side, open: nextOpen }),
   })
 
-  const widthState = useControllableState<number>({
-    value: () => asideValue.value?.expandedWidth,
-    defaultValue: () => resolveFiniteNumber(asideValue.value?.defaultExpandedWidth, getDefaultAsideExpandedWidth(side)),
+  const expandedWidthState = useControllableState<number>({
+    value: () => configValue.value?.expandedWidth,
+    defaultValue: () => normalizeExpandedWidth(configValue.value?.defaultExpandedWidth),
+    onChange: (expandedWidth) => options.onExpandedWidthChange?.({ side, expandedWidth }),
   })
 
-  const isDock = computed(() => layoutMode.value === 'dock')
-  const isDrawer = computed(() => layoutMode.value === 'drawer')
+  const expandedWidth = computed(() => normalizeExpandedWidth(expandedWidthState.value))
+  const isDock = computed(() => mode.value === 'dock')
+  const isDrawer = computed(() => mode.value === 'drawer')
   const isRail = computed(() => isDock.value && !openState.value && collapsedWidth.value > 0)
-  const isHidden = computed(() => !openState.value && (isDrawer.value || !isRail.value))
-  const canResize = computed(() => isDock.value && openState.value && resizable.value)
+  const isHidden = computed(() => !openState.value && !isRail.value)
+  const canResize = computed(
+    () => isDock.value && openState.value && resizable.value && maxExpandedWidth.value > minExpandedWidth.value,
+  )
 
   function setOpen(nextOpen: boolean): void {
     if (openState.value !== nextOpen) {
@@ -57,37 +86,47 @@ function createAsideState(
     }
   }
 
-  function setWidth(nextWidth: number): void {
-    const clampedWidth = clamp(nextWidth, minWidth.value, maxWidth.value)
-    if (widthState.value !== clampedWidth) {
-      widthState.value = clampedWidth
+  function setExpandedWidth(nextWidth: number): void {
+    const normalizedWidth = normalizeExpandedWidth(nextWidth)
+    if (expandedWidth.value !== normalizedWidth) {
+      expandedWidthState.value = normalizedWidth
     }
   }
 
   return {
     side,
     isOpen: computed(() => openState.value),
-    width: computed(() => widthState.value),
+    expandedWidth,
     collapsedWidth,
     collapseEffect,
-    minWidth,
-    maxWidth,
+    minExpandedWidth,
+    maxExpandedWidth,
     isDock,
     isDrawer,
     isRail,
     isHidden,
     canResize,
     setOpen,
-    setWidth,
+    setExpandedWidth,
   }
 }
 
-export function useLayoutAsideStates(props: LayoutProps, emit: LayoutEmitFn) {
-  const leftPanel = createAsideState('left', () => props.leftAside, emit)
-  const rightPanel = createAsideState('right', () => props.rightAside, emit)
+export function useLayoutAsideStates(options: UseLayoutAsideStatesOptions) {
+  const leftAsideState = useLayoutAsideState({
+    side: 'left',
+    config: options.leftConfig,
+    onOpenChange: options.onOpenChange,
+    onExpandedWidthChange: options.onExpandedWidthChange,
+  })
+  const rightAsideState = useLayoutAsideState({
+    side: 'right',
+    config: options.rightConfig,
+    onOpenChange: options.onOpenChange,
+    onExpandedWidthChange: options.onExpandedWidthChange,
+  })
 
   return {
-    leftPanel,
-    rightPanel,
+    leftAsideState,
+    rightAsideState,
   }
 }

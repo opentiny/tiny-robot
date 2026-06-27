@@ -2,14 +2,14 @@
 import { ref, computed } from 'vue'
 import AsideResizeTrigger from './AsideResizeTrigger.vue'
 import type { LayoutAsideResizeDetail } from '../index.type'
-import type { LayoutAsidePanel } from '../internal.type'
+import type { LayoutAsideState } from '../internal.type'
 
 defineOptions({
   name: 'LayoutAsideContent',
 })
 
 interface LayoutAsideContentProps {
-  panel: LayoutAsidePanel
+  panel: LayoutAsideState
   oppositeDockWidth: number
 }
 
@@ -19,7 +19,6 @@ const props = defineProps<LayoutAsideContentProps>()
 const emit = defineEmits<{
   (event: 'width-change', value: number): void
   (event: 'aside-resize-start', value: LayoutAsideResizeDetail): void
-  (event: 'aside-resize', value: LayoutAsideResizeDetail): void
   (event: 'aside-resize-end', value: LayoutAsideResizeDetail): void
 }>()
 
@@ -42,12 +41,11 @@ const asideClass = computed(() => [
       v-if="panel.canResize.value"
       :side="panel.side"
       :aside-el="asideRef"
-      :min-width="panel.minWidth.value"
-      :max-width="panel.maxWidth.value"
+      :min-width="panel.minExpandedWidth.value"
+      :max-width="panel.maxExpandedWidth.value"
       :opposite-dock-width="oppositeDockWidth"
       @width-change="emit('width-change', $event)"
       @aside-resize-start="emit('aside-resize-start', $event)"
-      @aside-resize="emit('aside-resize', $event)"
       @aside-resize-end="emit('aside-resize-end', $event)"
     />
     <div class="tr-layout__aside-mask">

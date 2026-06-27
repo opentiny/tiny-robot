@@ -4,9 +4,16 @@ import AsideContent from './components/AsideContent.vue'
 import LayoutSurface from './components/LayoutSurface.vue'
 import { provideLayoutContext } from './composables/useLayoutContext'
 import { useLayoutAsideStates } from './composables/useLayoutAsideStates'
-import type { LayoutAsideResizeDetail, LayoutEmits, LayoutProps, LayoutSlots, LayoutFloatingState } from './index.type'
-import type { LayoutAsidePanel } from './internal.type'
-import { emitAsideResizeEvent } from './utils/asideEventEmitters'
+import type {
+  LayoutAsideOpenDetail,
+  LayoutAsideResizeDetail,
+  LayoutEmits,
+  LayoutProps,
+  LayoutSlots,
+  LayoutFloatingState,
+} from './index.type'
+import type { LayoutAsideState } from './internal.type'
+import { emitAsideOpenChangeEvents, emitAsideResizeEvents } from './utils/asideEventEmitters'
 import { toPx } from './utils/cssLength'
 import { hasNonEmptySlotContent } from './utils/slots'
 import { useControllableState } from '../shared/composables'
@@ -27,11 +34,24 @@ const hasHeader = computed(() => hasNonEmptySlotContent(slots.header))
 const hasFooter = computed(() => hasNonEmptySlotContent(slots.footer))
 const hasRightAside = computed(() => hasNonEmptySlotContent(slots['right-aside']))
 
-const { leftPanel, rightPanel } = useLayoutAsideStates(props, emit)
+function onAsideOpenChange(detail: LayoutAsideOpenDetail): void {
+  emitAsideOpenChangeEvents(emit, detail)
+}
+
+function onAsideExpandedWidthChange(detail: LayoutAsideResizeDetail): void {
+  emitAsideResizeEvents(emit, 'resize', detail)
+}
+
+const { leftAsideState: leftPanel, rightAsideState: rightPanel } = useLayoutAsideStates({
+  leftConfig: () => props.leftAside,
+  rightConfig: () => props.rightAside,
+  onOpenChange: onAsideOpenChange,
+  onExpandedWidthChange: onAsideExpandedWidthChange,
+})
 
 function setDrawerOpen(
-  panel: LayoutAsidePanel,
-  sibling: LayoutAsidePanel,
+  panel: LayoutAsideState,
+  sibling: LayoutAsideState,
   nextOpen: boolean,
   siblingPresent: boolean,
 ): void {
@@ -42,7 +62,7 @@ function setDrawerOpen(
   panel.setOpen(nextOpen)
 }
 
-function toggleDrawer(panel: LayoutAsidePanel, sibling: LayoutAsidePanel, siblingPresent: boolean): void {
+function toggleDrawer(panel: LayoutAsideState, sibling: LayoutAsideState, siblingPresent: boolean): void {
   setDrawerOpen(panel, sibling, !panel.isOpen.value, siblingPresent)
 }
 
@@ -86,32 +106,28 @@ const isAsideResizing = ref(false)
 
 function onAsideResizeStart(detail: LayoutAsideResizeDetail): void {
   isAsideResizing.value = true
-  emitAsideResizeEvent(emit, 'start', detail)
-}
-
-function onAsideResize(detail: LayoutAsideResizeDetail): void {
-  emitAsideResizeEvent(emit, 'progress', detail)
+  emitAsideResizeEvents(emit, 'start', detail)
 }
 
 function onAsideResizeEnd(detail: LayoutAsideResizeDetail): void {
   isAsideResizing.value = false
-  emitAsideResizeEvent(emit, 'end', detail)
+  emitAsideResizeEvents(emit, 'end', detail)
 }
 
 function setLeftAsideWidth(width: number): void {
-  leftPanel.setWidth(width)
+  leftPanel.setExpandedWidth(width)
 }
 
 function setRightAsideWidth(width: number): void {
-  rightPanel.setWidth(width)
+  rightPanel.setExpandedWidth(width)
 }
 
-function getDockedAsideWidth(panel: LayoutAsidePanel, present: boolean): number {
+function getDockedAsideWidth(panel: LayoutAsideState, present: boolean): number {
   if (!present || !panel.isDock.value || panel.isHidden.value) {
     return 0
   }
 
-  return panel.isRail.value ? panel.collapsedWidth.value : panel.width.value
+  return panel.isRail.value ? panel.collapsedWidth.value : panel.expandedWidth.value
 }
 
 const DEFAULT_FLOATING_STATE: LayoutFloatingState = {
@@ -145,9 +161,9 @@ const surfaceClass = computed(() => ({
 
 const surfaceStyle = computed<Record<string, string>>(() => {
   const style: Record<string, string> = {}
-  const leftDockWidthPx = toPx(leftPanel.width.value)
+  const leftDockWidthPx = toPx(leftPanel.expandedWidth.value)
   const leftCollapsedWidth = toPx(leftPanel.collapsedWidth.value)
-  const rightDockWidthPx = toPx(rightPanel.width.value)
+  const rightDockWidthPx = toPx(rightPanel.expandedWidth.value)
   const rightCollapsedWidth = toPx(rightPanel.collapsedWidth.value)
 
   if (leftDockWidthPx) {
@@ -192,7 +208,6 @@ const surfaceStyle = computed<Record<string, string>>(() => {
         :opposite-dock-width="rightDockWidth"
         @width-change="setLeftAsideWidth"
         @aside-resize-start="onAsideResizeStart"
-        @aside-resize="onAsideResize"
         @aside-resize-end="onAsideResizeEnd"
       >
         <slot name="left-aside" />
@@ -216,7 +231,6 @@ const surfaceStyle = computed<Record<string, string>>(() => {
         :opposite-dock-width="leftDockWidth"
         @width-change="setRightAsideWidth"
         @aside-resize-start="onAsideResizeStart"
-        @aside-resize="onAsideResize"
         @aside-resize-end="onAsideResizeEnd"
       >
         <slot name="right-aside" />

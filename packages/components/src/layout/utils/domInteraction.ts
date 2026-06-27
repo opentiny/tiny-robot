@@ -1,21 +1,41 @@
-export interface BodyInteractionState {
-  cursor: string
-  userSelect: string
+interface InlineStyleSnapshot {
+  value: string
+  priority: string
 }
 
-export function lockBodyInteraction(body: HTMLElement, cursor: string): BodyInteractionState {
-  const state = {
-    cursor: body.style.cursor,
-    userSelect: body.style.userSelect,
+function captureStyle(style: CSSStyleDeclaration, property: string): InlineStyleSnapshot {
+  return {
+    value: style.getPropertyValue(property),
+    priority: style.getPropertyPriority(property),
+  }
+}
+
+function restoreStyle(style: CSSStyleDeclaration, property: string, snapshot: InlineStyleSnapshot): void {
+  if (!snapshot.value) {
+    style.removeProperty(property)
+    return
   }
 
-  body.style.cursor = cursor
-  body.style.userSelect = 'none'
-
-  return state
+  style.setProperty(property, snapshot.value, snapshot.priority)
 }
 
-export function restoreBodyInteraction(body: HTMLElement, state: BodyInteractionState): void {
-  body.style.cursor = state.cursor
-  body.style.userSelect = state.userSelect
+export function lockBodyDragInteraction(body: HTMLElement, cursor: string): () => void {
+  const style = body.style
+  const previousCursor = captureStyle(style, 'cursor')
+  const previousUserSelect = captureStyle(style, 'user-select')
+
+  style.setProperty('cursor', cursor, 'important')
+  style.setProperty('user-select', 'none', 'important')
+
+  let released = false
+
+  return () => {
+    if (released) {
+      return
+    }
+
+    released = true
+    restoreStyle(style, 'cursor', previousCursor)
+    restoreStyle(style, 'user-select', previousUserSelect)
+  }
 }
