@@ -2,7 +2,7 @@
 import {
   ChatCompletion,
   ChatCompletionChunk,
-  ChatCompletionFunctionTool,
+  ChatCompletionTool,
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
 } from 'openai/resources'
@@ -33,7 +33,7 @@ export type ChatMessage<
 
 export interface MessageRequestBody {
   messages: Array<ChatMessage>
-  tools?: Array<ChatCompletionFunctionTool>
+  tools?: Array<ChatCompletionTool>
   [key: string]: any
 }
 

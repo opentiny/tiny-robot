@@ -1,4 +1,4 @@
-import type { ChatCompletion } from 'openai/resources'
+import type { ChatCompletion, ChatCompletionFunctionTool, ChatCompletionTool } from 'openai/resources'
 import { describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../adapters/native'
 import { createMessageEngine } from '../core/engine'
@@ -9,6 +9,11 @@ const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({
 
 const createTestMessageEngine = (options: CreateMessageEngineOptions) =>
   createMessageEngine(createNativeMessageAdapter(), options)
+
+const isFunctionTool = (tool: ChatCompletionTool): tool is ChatCompletionFunctionTool => tool.type === 'function'
+
+const functionToolNames = (tools: ChatCompletionTool[] = []) =>
+  tools.filter(isFunctionTool).map((tool) => tool.function.name)
 
 describe('toolPlugin', () => {
   it('injects and executes runtime tools before falling back to callTool', async () => {
@@ -35,7 +40,7 @@ describe('toolPlugin', () => {
       const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
 
       if (!hasToolResult) {
-        expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['runtime_lookup'])
+        expect(functionToolNames(requestBody.tools)).toEqual(['runtime_lookup'])
         return {
           id: 'tool-call',
           object: 'chat.completion',
@@ -203,7 +208,7 @@ describe('toolPlugin', () => {
       const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
 
       if (!hasToolResult) {
-        expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['provided_tool'])
+        expect(functionToolNames(requestBody.tools)).toEqual(['provided_tool'])
 
         return {
           id: 'provider-tool-call',
@@ -289,5 +294,155 @@ describe('toolPlugin', () => {
         },
       }),
     )
+  })
+
+  it('keeps runtime tool handlers stable for the tool list sent to the model', async () => {
+    const runtimeCall = vi.fn(() => 'runtime result')
+    const fallbackCall = vi.fn(() => 'fallback result')
+    const runtimeTool: RuntimeTool = {
+      tool: {
+        type: 'function',
+        function: {
+          name: 'volatile_runtime_tool',
+          description: 'Runtime tool that is only available during request preparation',
+        },
+      },
+      handler: runtimeCall,
+    }
+    let getToolsCalls = 0
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        expect(functionToolNames(requestBody.tools)).toEqual(['volatile_runtime_tool'])
+
+        return {
+          id: 'volatile-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-volatile',
+                    type: 'function',
+                    function: {
+                      name: 'volatile_runtime_tool',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(requestBody.messages.at(-1)).toMatchObject({
+        role: 'tool',
+        tool_call_id: 'call-volatile',
+        content: 'runtime result',
+      })
+
+      return {
+        id: 'final-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'done',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => {
+            getToolsCalls++
+            return getToolsCalls === 1 ? [runtimeTool] : []
+          },
+          callTool: fallbackCall,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('call volatile tool')
+
+    expect(runtimeCall).toHaveBeenCalledOnce()
+    expect(fallbackCall).not.toHaveBeenCalled()
+  })
+
+  it('keeps custom tools already present on the request body', async () => {
+    const customTool = {
+      type: 'custom',
+      custom: {
+        name: 'custom_formatter',
+        description: 'Format with custom grammar',
+        format: {
+          type: 'grammar',
+          grammar: {
+            syntax: 'lark',
+            definition: 'start: "ok"',
+          },
+        },
+      },
+    } satisfies ChatCompletionTool
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      expect(requestBody.tools).toEqual([customTool])
+
+      return {
+        id: 'final-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'done',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          name: 'custom-tool-plugin',
+          onBeforeRequest: (context) => {
+            context.requestBody.tools = [customTool]
+          },
+        },
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('use custom tool')
+
+    expect(responseProvider).toHaveBeenCalledOnce()
   })
 })

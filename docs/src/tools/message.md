@@ -280,10 +280,10 @@ type ToolSource =
   | { type: 'unknown' }
 ```
 
-`ToolProviderItem` 表示可提供给模型的工具项，可以是普通 OpenAI function tool schema，也可以是带本地执行函数的 runtime tool：
+`ToolProviderItem` 表示可提供给模型的工具项，可以是普通 OpenAI tool schema，也可以是带本地执行函数的 runtime tool：
 
 ```typescript
-type ToolProviderItem = ChatCompletionFunctionTool | RuntimeTool
+type ToolProviderItem = ChatCompletionTool | RuntimeTool
 type AsyncStreamableResult<T> = Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
 type MaybeStreamableResult<T> = T | AsyncStreamableResult<T>
 
@@ -292,6 +292,8 @@ interface RuntimeTool {
   handler: (toolCall, context) => MaybeStreamableResult<string | Record<string, unknown>>
 }
 ```
+
+`toolPlugin` 会保留请求体中已有的 OpenAI `custom` tool，也允许 `getTools` / `provideTools` 返回普通 `ChatCompletionTool`。其中只有 function tool 会参与工具名去重、`toolSource` 记录和 runtime handler 路由；runtime tool 的 `tool` 字段仍需是 `ChatCompletionFunctionTool`。
 
 `ToolProvider` 是供插件扩展使用的高级协议。对于使用 `toolPlugin` 的业务代码，通常只需要通过 `getTools` 和 `callTool` 接入工具；当插件本身需要按内部状态向模型暴露工具时，再实现 `provideTools(context)`。
 
