@@ -60,9 +60,8 @@ export function usePointerDrag<T>(
 
     try {
       handleEl.setPointerCapture(event.pointerId)
-    } catch (error) {
+    } catch {
       finishDrag('manual')
-      throw error
     }
   }
 
