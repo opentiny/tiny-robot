@@ -36,9 +36,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    article-hub inspect-issue --issue-file <issue.json>
    ```
 
-   `inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
-
-   已知缺口：`gh issue view --json` 的原生字段层级（如评论级 `authorAssociation`、字符串 GraphQL id）可能与 `inspect-issue` 期望的归一化结构不一致，导致合法批准被判 `actionable: false`。出现“人工确认评论合法、CLI 却判未批准”时，按停止条件停下并报告该字段错配，不要自行用临时脚本拼 fixture 重写权限/批准判定——这些规则只能由 `article-hub` 实现。
+   `inspect-issue` 支持 `gh issue view --json` 原始字段：评论级 `authorAssociation` 用于授权判定，字符串 GraphQL `id` 会保留为 `comment_id`。也支持 REST 形态的 `user`、数字 `id` 和 `author_association`。`inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
 
 2. 读取项目上下文入口，校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 

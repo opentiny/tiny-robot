@@ -1,0 +1,31 @@
+{
+  "number": 31,
+  "title": "[文章] 别再混用！TinyRobot AI 组件库和传统组件库到底差在哪？",
+  "body": "项目：tiny-robot\n文章类型：source-analysis",
+  "author": {
+    "id": "U_example_issue_author",
+    "is_bot": false,
+    "login": "issue-author",
+    "name": "Issue Author"
+  },
+  "labels": [
+    {
+      "name": "阶段：策划"
+    },
+    {
+      "name": "AI：等待人工"
+    }
+  ],
+  "comments": [
+    {
+      "id": "IC_kwDOS5dhx88AAAABHo5Ggw",
+      "author": {
+        "login": "collaborator-approver"
+      },
+      "authorAssociation": "COLLABORATOR",
+      "body": "/ai 批准写作计划",
+      "createdAt": "2026-06-26T08:12:45Z",
+      "url": "https://github.com/example/ai-article-hub/issues/31#issuecomment-4807607939"
+    }
+  ]
+}

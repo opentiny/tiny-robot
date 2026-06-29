@@ -12,6 +12,11 @@ import {
 } from "../support/cli.js";
 
 const fixturePath = path.join(repositoryRoot, "tests/fixtures/issue-minimal.json");
+const ghIssueViewFixturePath = path.join(
+  repositoryRoot,
+  "tests/fixtures/issue-gh-view.json"
+);
+const restIssueFixturePath = path.join(repositoryRoot, "tests/fixtures/issue-rest.json");
 
 interface InspectIssueOutput {
   issue: {
@@ -19,7 +24,7 @@ interface InspectIssueOutput {
     labels: string[];
   };
   commands: Array<{
-    comment_id: number | null;
+    comment_id: number | string | null;
     actor: {
       login: string;
       authorized: boolean;
@@ -72,6 +77,76 @@ describe("article-hub inspect-issue", () => {
       actionable: true
     });
     expect(command?.parsed).toEqual({ kind: "approve-writing-plan" });
+  });
+
+  test("gh issue view 原始评论字段中的协作者批准命令可执行", () => {
+    const result = runArticleHubCli([
+      "--dry-run",
+      "inspect-issue",
+      "--issue-file",
+      ghIssueViewFixturePath
+    ]);
+    const output = expectSuccessfulEnvelope<InspectIssueOutput>(
+      result,
+      "article-hub.inspect-issue",
+      {
+        dry_run: true,
+        issue: {
+          number: 31,
+          labels: expect.arrayContaining(["阶段：策划", "AI：等待人工"])
+        }
+      }
+    );
+    const command = output.commands.find(
+      (item) => item.actor.login === "collaborator-approver"
+    );
+
+    expect(command).toMatchObject({
+      comment_id: "IC_kwDOS5dhx88AAAABHo5Ggw",
+      actor: {
+        authorized: true,
+        bot: false
+      },
+      parsed: {
+        kind: "approve-writing-plan"
+      },
+      actionable: true
+    });
+  });
+
+  test("REST 评论字段中的协作者批准命令可执行", () => {
+    const result = runArticleHubCli([
+      "--dry-run",
+      "inspect-issue",
+      "--issue-file",
+      restIssueFixturePath
+    ]);
+    const output = expectSuccessfulEnvelope<InspectIssueOutput>(
+      result,
+      "article-hub.inspect-issue",
+      {
+        dry_run: true,
+        issue: {
+          number: 34,
+          labels: expect.arrayContaining(["阶段：策划"])
+        }
+      }
+    );
+    const command = output.commands.find(
+      (item) => item.actor.login === "collaborator-approver"
+    );
+
+    expect(command).toMatchObject({
+      comment_id: 4807607939,
+      actor: {
+        authorized: true,
+        bot: false
+      },
+      parsed: {
+        kind: "approve-writing-plan"
+      },
+      actionable: true
+    });
   });
 
   test.each([

@@ -7,6 +7,8 @@ interface IssueActor {
   login?: unknown;
   type?: unknown;
   association?: unknown;
+  is_bot?: unknown;
+  isBot?: unknown;
 }
 
 interface IssueComment {
@@ -14,6 +16,8 @@ interface IssueComment {
   body?: unknown;
   author?: IssueActor;
   user?: IssueActor;
+  authorAssociation?: unknown;
+  author_association?: unknown;
 }
 
 interface IssueDocument {
@@ -57,13 +61,13 @@ export async function inspectIssue(options: InspectIssueOptions): Promise<unknow
       comment_count: comments.length
     },
     commands: comments.map((comment) => {
-      const actor = normalizeActor(comment.author ?? comment.user);
+      const actor = normalizeCommentActor(comment);
       const parsed = typeof comment.body === "string" ? parseAiCommand(comment.body) : null;
       const wireParsed = toWireCommand(parsed);
 
       return {
         source: "comment",
-        comment_id: typeof comment.id === "number" ? comment.id : null,
+        comment_id: normalizeCommentId(comment.id),
         actor,
         body: typeof comment.body === "string" ? comment.body : "",
         parsed: wireParsed,
@@ -113,6 +117,13 @@ function normalizeComments(value: unknown): IssueComment[] {
   return value.filter((item): item is IssueComment => item !== null && typeof item === "object");
 }
 
+function normalizeCommentActor(comment: IssueComment) {
+  return normalizeActor(
+    comment.author ?? comment.user,
+    comment.authorAssociation ?? comment.author_association
+  );
+}
+
 function normalizeLabels(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -132,11 +143,13 @@ function normalizeLabels(value: unknown): string[] {
   });
 }
 
-function normalizeActor(value: IssueActor | undefined) {
+function normalizeActor(value: IssueActor | undefined, associationFallback?: unknown) {
   const login = typeof value?.login === "string" ? value.login : "";
   const type = typeof value?.type === "string" ? value.type : "User";
-  const association = typeof value?.association === "string" ? value.association : "NONE";
-  const bot = type === "Bot" || login.endsWith("[bot]");
+  const associationSource =
+    typeof value?.association === "string" ? value.association : associationFallback;
+  const association = typeof associationSource === "string" ? associationSource : "NONE";
+  const bot = value?.is_bot === true || value?.isBot === true || type === "Bot" || login.endsWith("[bot]");
 
   return {
     login,
@@ -145,4 +158,8 @@ function normalizeActor(value: IssueActor | undefined) {
     authorized: !bot && authorizedAssociations.has(association),
     bot
   };
+}
+
+function normalizeCommentId(value: unknown) {
+  return typeof value === "number" || typeof value === "string" ? value : null;
 }

@@ -59,6 +59,8 @@ npx article-hub <command> [options]
 article-hub inspect-issue --issue-file <path>
 ```
 
+输入可直接使用 `gh issue view --json number,title,body,author,labels,comments` 的导出结果；评论级 `authorAssociation` 和 GraphQL 字符串 `id` 会被保留并用于授权判定。REST API 形态的 `user`、数字 `id` 和 `author_association` 也受支持。
+
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `--issue-file` | ✅ | Issue JSON 文件路径 |
