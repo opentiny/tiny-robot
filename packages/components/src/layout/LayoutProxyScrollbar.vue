@@ -32,6 +32,7 @@ interface ThumbDragState {
 }
 
 const MIN_THUMB_HEIGHT = 36
+const SCROLL_TARGET_CLASS = 'tr-layout-proxy-scrollbar-target'
 
 defineOptions({
   name: 'LayoutProxyScrollbar',
@@ -232,10 +233,12 @@ useMutationObserver(
 
 watch(
   scrollTargetRef,
-  () => {
+  (nextTarget, prevTarget) => {
     cancelThumbDrag()
     isTargetHovering.value = false
     isTrackHovering.value = false
+    prevTarget?.classList.remove(SCROLL_TARGET_CLASS)
+    nextTarget?.classList.add(SCROLL_TARGET_CLASS)
     scheduleMetricsSync()
   },
   { immediate: true },
@@ -251,6 +254,7 @@ onBeforeUnmount(() => {
   }
 
   cancelThumbDrag()
+  scrollTargetRef.value?.classList.remove(SCROLL_TARGET_CLASS)
 })
 </script>
 
@@ -267,6 +271,17 @@ onBeforeUnmount(() => {
     <div ref="thumbRef" class="tr-layout-proxy-scrollbar__thumb" :style="thumbStyle" />
   </div>
 </template>
+
+<style lang="less">
+.tr-layout-proxy-scrollbar-target {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+</style>
 
 <style lang="less" scoped>
 .tr-layout-proxy-scrollbar {

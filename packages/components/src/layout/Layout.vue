@@ -296,6 +296,5 @@ const surfaceStyle = computed<Record<string, string>>(() => {
   inset: 0;
   z-index: calc(var(--overlay-z-index) - 1);
   background: var(--tr-layout-overlay-bg);
-  cursor: pointer;
 }
 </style>
