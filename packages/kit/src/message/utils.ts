@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { MaybeStreamableResult } from '../types'
+
 export class AbortError extends Error {
   constructor(message: string) {
     super(message)
@@ -84,7 +86,7 @@ export function omitFields<T extends Record<string, unknown>, K extends keyof T>
 }
 
 export async function* normalizeToAsyncGenerator<T>(
-  result: Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>,
+  result: MaybeStreamableResult<T>,
 ): AsyncGenerator<T> {
   // 情况 1：是 async generator 或 sync generator
   if (isAsyncGenerator(result)) {

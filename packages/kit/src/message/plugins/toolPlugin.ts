@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ChatCompletionMessageToolCall, ChatCompletionTool } from 'openai/resources/index'
+import {
+  ChatCompletionFunctionTool,
+  ChatCompletionMessageFunctionToolCall,
+  ChatCompletionMessageToolCall,
+  ChatCompletionTool,
+} from 'openai/resources'
+import type { MaybePromise, MaybeStreamableResult } from '../../types'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
 import { combineDeltaData, normalizeToAsyncGenerator } from '../utils'
 
@@ -8,9 +14,29 @@ type AssistantMessageWithState = ChatMessage<
   { toolCall?: Record<string, Record<string, unknown>> }
 >
 
-type ToolCallContext = BasePluginContext & {
+export type ToolSource = { type: 'toolPlugin' } | { type: 'toolProvider'; pluginName?: string } | { type: 'unknown' }
+
+export type ToolCallContext = BasePluginContext & {
   assistantMessage: AssistantMessageWithState
   toolMessage: ChatMessage
+  /**
+   * 当前工具的来源。
+   */
+  toolSource: ToolSource
+}
+
+export interface RuntimeTool {
+  tool: ChatCompletionFunctionTool
+  handler: (
+    toolCall: ChatCompletionMessageFunctionToolCall,
+    context: ToolCallContext,
+  ) => MaybeStreamableResult<string | Record<string, any>>
+}
+
+export type ToolProviderItem = ChatCompletionTool | RuntimeTool
+
+export interface ToolProvider {
+  provideTools: (context: BasePluginContext) => MaybePromise<ToolProviderItem[]>
 }
 
 /**
@@ -99,9 +125,9 @@ function fillMissingToolMessages({
 export const toolPlugin = (
   options: MessageEnginePlugin & {
     /**
-     * 获取工具列表的函数。会在请求大模型前调用。
+     * 获取本轮可用工具。可以返回普通 tool schema，也可以返回带执行函数的 runtime tool。
      */
-    getTools: () => Promise<ChatCompletionTool[]>
+    getTools: (context: BasePluginContext) => MaybePromise<ToolProviderItem[]>
     /**
      * 在处理包含 tool_calls 的响应前调用。
      */
@@ -115,7 +141,7 @@ export const toolPlugin = (
     callTool: (
       toolCall: ChatCompletionMessageToolCall,
       context: ToolCallContext,
-    ) => Promise<string | Record<string, any>> | AsyncGenerator<string | Record<string, any>>
+    ) => MaybeStreamableResult<string | Record<string, any>>
     /**
      * 工具调用开始时的回调函数。
      * 触发时机：工具消息已创建并追加后，调用 callTool 之前触发。
@@ -197,6 +223,103 @@ export const toolPlugin = (
     onToolCallEnd?.(...args)
   }
 
+  const isFunctionToolCall = (
+    toolCall: ChatCompletionMessageToolCall,
+  ): toolCall is ChatCompletionMessageFunctionToolCall => {
+    return toolCall.type === 'function' && 'function' in toolCall
+  }
+
+  const isFunctionTool = (tool: ChatCompletionTool): tool is ChatCompletionFunctionTool => {
+    return tool.type === 'function' && 'function' in tool
+  }
+
+  const isRuntimeTool = (tool: ToolProviderItem): tool is RuntimeTool => {
+    return Boolean(tool && typeof tool === 'object' && 'tool' in tool && 'handler' in tool)
+  }
+
+  const getToolProvider = (plugin: MessageEnginePlugin): ToolProvider | undefined => {
+    const toolProvider = plugin as Partial<ToolProvider>
+    return typeof toolProvider.provideTools === 'function' ? (toolProvider as ToolProvider) : undefined
+  }
+
+  const isPluginDisabled = (plugin: MessageEnginePlugin, context: BasePluginContext) => {
+    return typeof plugin.disabled === 'function' ? plugin.disabled(context) : Boolean(plugin.disabled)
+  }
+
+  type ResolvedTools = {
+    tools: ChatCompletionTool[]
+    runtimeToolMap: Map<string, RuntimeTool>
+    toolSourceMap: Map<string, ToolSource>
+  }
+
+  let currentToolResolution: ResolvedTools | undefined
+
+  const resolveTools = async (
+    context: BasePluginContext,
+    existingTools: ChatCompletionTool[] = [],
+  ): Promise<ResolvedTools> => {
+    const providedToolItems: Array<{ item: ToolProviderItem; source: ToolSource }> = []
+
+    for (const plugin of context.plugins) {
+      const toolProvider = getToolProvider(plugin)
+      if (!isPluginDisabled(plugin, context) && toolProvider) {
+        providedToolItems.push(
+          ...(await toolProvider.provideTools(context)).map((item) => ({
+            item,
+            source: {
+              type: 'toolProvider' as const,
+              pluginName: plugin.name,
+            },
+          })),
+        )
+      }
+    }
+
+    const toolItems = [
+      ...providedToolItems,
+      ...(await getTools(context)).map((item) => ({
+        item,
+        source: { type: 'toolPlugin' as const },
+      })),
+    ]
+    const tools: ChatCompletionTool[] = []
+    const runtimeToolMap = new Map<string, RuntimeTool>()
+    const toolSourceMap = new Map<string, ToolSource>()
+    const seenToolNames = new Set<string>()
+
+    const registerToolName = (tool: ChatCompletionFunctionTool) => {
+      const toolName = tool.function.name
+
+      if (seenToolNames.has(toolName)) {
+        throw new Error(
+          `Duplicate tool name "${toolName}" detected. Tool names must be unique because tool calls are routed by function.name.`,
+        )
+      }
+
+      seenToolNames.add(toolName)
+    }
+
+    existingTools.filter(isFunctionTool).forEach(registerToolName)
+
+    for (const { item: toolItem, source } of toolItems) {
+      const tool = isRuntimeTool(toolItem) ? toolItem.tool : toolItem
+
+      if (isFunctionTool(tool)) {
+        registerToolName(tool)
+        toolSourceMap.set(tool.function.name, source)
+      }
+
+      if (isRuntimeTool(toolItem)) {
+        tools.push(toolItem.tool)
+        runtimeToolMap.set(toolItem.tool.function.name, toolItem)
+      } else {
+        tools.push(toolItem)
+      }
+    }
+
+    return { tools, runtimeToolMap, toolSourceMap }
+  }
+
   return {
     name: 'tool',
     ...restOptions,
@@ -213,9 +336,12 @@ export const toolPlugin = (
     onBeforeRequest: async (context) => {
       const { requestBody } = context
 
-      const tools = await getTools()
+      const existingTools = Array.isArray(requestBody.tools) ? requestBody.tools : []
+      const resolvedTools = await resolveTools(context, existingTools)
+      currentToolResolution = resolvedTools
+      const { tools } = resolvedTools
       if (tools && tools.length > 0) {
-        requestBody.tools = tools
+        requestBody.tools = existingTools.length ? [...existingTools, ...tools] : tools
       }
 
       return restOptions.onBeforeRequest?.(context)
@@ -242,6 +368,11 @@ export const toolPlugin = (
         assistantMessage: currentMessage as AssistantMessageWithState,
       })
 
+      const { runtimeToolMap, toolSourceMap } = currentToolResolution ?? {
+        runtimeToolMap: new Map<string, RuntimeTool>(),
+        toolSourceMap: new Map<string, ToolSource>(),
+      }
+
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
         let hasMeaningfulResult = false
@@ -257,15 +388,25 @@ export const toolPlugin = (
 
         appendMessage(toolMessage)
 
-        const contextWithToolMessage = {
+        const functionToolCall = isFunctionToolCall(toolCall) ? toolCall : undefined
+        const toolSource = functionToolCall
+          ? (toolSourceMap.get(functionToolCall.function.name) ?? { type: 'unknown' as const })
+          : { type: 'unknown' as const }
+
+        const contextWithToolMessage: ToolCallContext = {
           ...context,
           assistantMessage: currentMessage as AssistantMessageWithState,
           toolMessage,
+          toolSource,
         }
 
         toolCallStart(toolCall, contextWithToolMessage)
         try {
-          const result = callTool(toolCall, contextWithToolMessage)
+          const runtimeTool = functionToolCall ? runtimeToolMap.get(functionToolCall.function.name) : undefined
+          const result =
+            runtimeTool && functionToolCall
+              ? runtimeTool.handler(functionToolCall, contextWithToolMessage)
+              : callTool(toolCall, contextWithToolMessage)
 
           // 将 Promise 或异步迭代器统一转换为异步生成器
           const iterator = normalizeToAsyncGenerator(result)
@@ -327,6 +468,7 @@ export const toolPlugin = (
       })
 
       await Promise.all(toolCallPromises)
+      currentToolResolution = undefined
       if (!abortSignal.aborted) {
         requestNext()
       }
