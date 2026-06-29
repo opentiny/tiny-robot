@@ -87,6 +87,7 @@ async function resolveGithubRef(options: GithubSkillLoadOptions, context: SkillL
 }
 
 async function fetchGithubJson<T>(url: URL | string, context: SkillLoadContext): Promise<T> {
+  const requestUrl = String(url)
   const response = await fetchGithubWithRetry(url, context, {
     headers: {
       accept: 'application/vnd.github+json',
@@ -95,7 +96,7 @@ async function fetchGithubJson<T>(url: URL | string, context: SkillLoadContext):
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${response}: ${response.status} ${response.statusText}`)
+    throw new Error(`Failed to fetch ${requestUrl}: ${response.status} ${response.statusText}`)
   }
 
   return response.json() as Promise<T>

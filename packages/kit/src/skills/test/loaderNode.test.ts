@@ -144,6 +144,21 @@ describe('node loadSkill', () => {
     expect(fetch).toHaveBeenCalledTimes(5)
   })
 
+  it('includes the GitHub URL when directory listing fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(createResponse(404, { message: 'not found' }, 'Not Found')))
+
+    const job = loadSkill({
+      source: 'github',
+      repo: 'openclaw/openclaw',
+      ref: '58672075219d09495de6489ad0821d276ac84f13',
+      path: 'skills/missing',
+    })
+
+    await expect(job).rejects.toThrow(
+      'https://api.github.com/repos/openclaw/openclaw/contents/skills/missing?ref=58672075219d09495de6489ad0821d276ac84f13',
+    )
+  })
+
   it('loads skill details with warnings', async () => {
     const root = fileURLToPath(new URL('./.cache/weather', import.meta.url))
     const loadedSkill = await loadSkillWithDetails({ source: 'fs', root })
