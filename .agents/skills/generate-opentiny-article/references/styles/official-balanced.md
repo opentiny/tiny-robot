@@ -19,7 +19,7 @@
 
 ## 范例与出处
 
-完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/official-balanced.md`；访问不到时不阻断写作。代表：
+完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/official-balanced.md`，动笔前必读（存在即读，确实缺失才降级并在对话标注：说明缺哪个范例文件、改按 Skill 内文风文件继续）。代表：
 
 - [Herding elephants: sharding Postgres at Notion](https://www.notion.com/blog/sharding-postgres-at-notion)（倒叙钩子制造落差，单列三个”后悔点”，数字配决策理由）
 - [Cloudflare incident on June 20, 2024](https://blog.cloudflare.com/cloudflare-incident-on-june-20-2024/)（事实先行，如实还原误判，直接命名技术债）

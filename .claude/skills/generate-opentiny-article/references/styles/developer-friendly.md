@@ -19,7 +19,7 @@
 
 ## 范例与出处
 
-完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/developer-friendly.md`；访问不到时不阻断写作。代表：
+完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/developer-friendly.md`，动笔前必读（存在即读，确实缺失才降级并在对话标注：说明缺哪个范例文件、改按 Skill 内文风文件继续）。代表：
 
 - [An Interactive Guide to Flexbox](https://www.joshwcomeau.com/css/interactive-guide-to-flexbox/)（"布局算法心智模型"贯穿全文，反直觉处给比喻）
 - [An Interactive Guide to CSS Grid](https://www.joshwcomeau.com/css/interactive-guide-to-grid/)（"我也曾不懂"叙事消除门槛，给明确取舍）

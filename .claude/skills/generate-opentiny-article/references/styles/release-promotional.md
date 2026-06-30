@@ -19,7 +19,7 @@
 
 ## 范例与出处
 
-完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/release-promotional.md`；访问不到时不阻断写作。代表：
+完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/release-promotional.md`，动笔前必读（存在即读，确实缺失才降级并在对话标注：说明缺哪个范例文件、改按 Skill 内文风文件继续）。代表：
 
 - [Announcing Vue 3.4](https://blog.vuejs.org/posts/vue-3-4)（主动缩小 benchmark 预期，破坏性移除逐条给”为什么”）
 - [Next.js 15](https://nextjs.org/blog/next-15)（目录直接标 (Breaking)，用生产案例数据，每项 breaking 附 codemod）
