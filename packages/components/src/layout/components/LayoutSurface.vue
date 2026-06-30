@@ -3,13 +3,16 @@ import { useWindowSize } from '@vueuse/core'
 import { computed, ref, shallowRef, useAttrs, watch, type CSSProperties } from 'vue'
 import type {
   LayoutFloatingDragDetail,
-  LayoutFloatingOptions,
   LayoutFloatingResizeDetail,
   LayoutFloatingResizeHandle,
   LayoutFloatingState,
-  LayoutMode,
 } from '../index.type'
-import type { LayoutFloatingDragPosition, LayoutFloatingRect, LayoutResolvedFloating } from '../internal.type'
+import type {
+  LayoutFloatingDragPosition,
+  LayoutFloatingRect,
+  LayoutResolvedFloating,
+  LayoutSurfaceProps,
+} from '../internal.type'
 import {
   areFloatingGeometryEqual,
   clampFloatingRect,
@@ -32,12 +35,6 @@ defineOptions({
   name: 'LayoutSurface',
   inheritAttrs: false,
 })
-
-interface LayoutSurfaceProps {
-  mode: LayoutMode
-  floatingState?: LayoutFloatingState
-  floatingOptions?: LayoutFloatingOptions
-}
 
 const props = defineProps<LayoutSurfaceProps>()
 
