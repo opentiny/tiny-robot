@@ -539,6 +539,7 @@ Draft PR 完成初审修改和必选验收项后，再由人工点击 GitHub 的
 - 截图、GIF 或图片素材没有敏感信息，且功能状态真实。
 - 必选人工验收项已经完成，或仍作为明确未完成项保留在 Draft PR 中。
 - Agent 最近一次修改后已经运行 `article-hub validate article`。
+- 注意校验边界：`article-hub validate article` 只保证 Front Matter、来源版本、路径与图片 alt 等确定性规则合规，不判断文章是否单主线推进、读起来是否机械。结构与读感由初稿自审表、独立结构裁判和人工 Review 把关；`valid: true` 不代表可发布。
 
 PR 合并和外部发布不属于当前本地生成流程。
 
