@@ -13,13 +13,13 @@
 
 1. GitHub 是唯一流程状态源，不引入数据库或常驻服务。
 2. 本地 Skill 与 Workflow 调用同一套 `article-hub` CLI。
-3. Agent 负责调研、判断和写作；Git、GitHub、schema 与状态变更由确定性 CLI 完成。
+3. Agent 负责调研、判断和写作；Git 操作、GitHub 交互、schema 解析与状态变更由确定性 CLI 完成。
 4. 事件驱动为主，定时校准为辅。
 5. LLM job 不持有 GitHub 写权限；GitHub mutation job 不持有模型密钥。
 6. 每个 Issue 或 PR 串行执行，所有写操作幂等。
 7. 不依赖由 `GITHUB_TOKEN` 产生的新事件再次触发下游 Workflow。
 8. Workflow 不负责选题发现、外部发布、历史文章归档或独立预览站点。
-9. 每个机器人提交后的最新 Head 必须拥有与人工提交相同的必需 Check 结果。
+9. 每个机器人提交后的最新 Head，必须具备与人工提交相同的必需 Check 结果。
 
 ## 3. 总体架构
 
@@ -229,7 +229,7 @@ permissions:
 - 校验 actor 是否有权限执行状态命令、生成请求或修订请求，并忽略 bot。
 - 构造规范化任务输入。
 
-调用 reusable workflow 的 caller job 必须授予整个调用链所需的权限上限；被调用 Workflow 只能保持或降低 `GITHUB_TOKEN` 权限，不能自行提升。被调用 Workflow 再为 AI、校验和 Mutation job 分别收窄权限，模型 Secret 只显式传给 AI job。参考 [Reusable Workflow 权限规则](https://docs.github.com/actions/reference/workflows-and-actions/reusable-workflows#access-and-permissions-for-nested-workflows)。
+调用 reusable workflow 的 caller job 必须授予整个调用链所需的权限上限；被调用 Workflow 只能保持或降低 `GITHUB_TOKEN` 权限，不能自行提升。被调用 Workflow 内部再为 AI、校验和 Mutation job 分别收窄权限，模型 Secret 只显式传给 AI job。参考 [Reusable Workflow 权限规则](https://docs.github.com/actions/reference/workflows-and-actions/reusable-workflows#access-and-permissions-for-nested-workflows)。
 
 ### 6.2 AI job
 
@@ -466,7 +466,7 @@ article-<repository-id>-<canonical-issue-number>
 
 ## 12. 安全边界
 
-当前资料均为公开来源，但 Workflow 仍需避免将 Issue 文本直接转化为越权操作：
+当前资料均为公开来源，但 Workflow 仍需防止将 Issue 文本直接转换为越权操作：
 
 - 只有仓库成员或配置中的授权团队可以执行状态命令。
 - 默认只自动读取项目 allowlist 中的 OpenTiny 仓库和官方站点。
@@ -476,7 +476,7 @@ article-<repository-id>-<canonical-issue-number>
 - LLM 输出只能作为待校验 artifact，不能直接成为 GitHub mutation 指令。
 - 发布凭据不进入文章生成 Workflow。
 
-最终是否适合公开仍由人工 Review 决定，不建设超出公开资料场景的私有数据防护系统。
+最终是否适合公开仍由人工 Review 决定，不额外建设针对私有数据场景的防护系统。
 
 ## 13. Dry-run 与手动运行
 
@@ -573,7 +573,7 @@ PR 合并事件意味着 GitHub 已完成仓库级校验，`article-state.yml` �
 Workflow 方案进入可实施状态前，至少验证：
 
 - 同一套 CLI 可以在本地和 Actions 中处理相同 Issue fixture。
-- Fixed command parser 不将普通评论误判为批准。
+- 固定命令解析器不将普通评论误判为批准。
 - 未授权用户和 bot 的 `/ai`、Review 或状态命令不会调用模型或修改分支。
 - 过期计划批准无法触发生成。
 - 每次批准都存在包含完整计划正文和审计元数据的不可变批准快照。

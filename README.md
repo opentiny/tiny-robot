@@ -1,6 +1,6 @@
 # ai-article-hub
 
-OpenTiny AI 文章生成流水线的本地输出库。它把选题 Issue、资料快照、写作计划、文章母稿、Draft PR 和 Review 修订串成一套可审计的内部维护流程。
+OpenTiny AI 文章生成流水线的本地输出库。它将选题 Issue、资料快照、写作计划、文章母稿、Draft PR 和 Review 修订串联成一套可审计的内部维护流程。
 
 本仓库当前交付形态是本地人工驱动流程：Agent 负责调研、写作和润色；`article-hub` CLI 负责确定性的解析、校验、安全 guard 和受控 Git/GitHub mutation。未来 GitHub Workflow 的设计已保留在文档中，但不属于当前交付范围。
 
