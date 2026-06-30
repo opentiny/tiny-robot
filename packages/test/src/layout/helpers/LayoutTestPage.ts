@@ -133,7 +133,8 @@ export class LayoutTestPage {
   }
 
   async open() {
-    await this.page.goto('/layout')
+    await this.page.goto('/')
+    await this.page.getByRole('link', { name: 'Layout 组件' }).click()
     await expect(this.page.getByRole('heading', { level: 2, name: 'Layout 组件测试' })).toBeVisible()
   }
 
