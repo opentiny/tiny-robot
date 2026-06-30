@@ -2,11 +2,11 @@
 import {
   ChatCompletion,
   ChatCompletionChunk,
-  ChatCompletionFunctionTool,
+  ChatCompletionTool,
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
 } from 'openai/resources'
-import { MaybePromise } from '../types'
+import type { AsyncStreamableResult, MaybePromise } from '../types'
 
 export type DeepReadonly<T> = T extends (...args: any[]) => any
   ? T
@@ -33,14 +33,14 @@ export type ChatMessage<
 
 export interface MessageRequestBody {
   messages: Array<ChatMessage>
-  tools?: Array<ChatCompletionFunctionTool>
+  tools?: Array<ChatCompletionTool>
   [key: string]: any
 }
 
 export type ResponseProvider<T extends ChatCompletion | ChatCompletionChunk = ChatCompletion | ChatCompletionChunk> = (
   requestBody: MessageRequestBody,
   abortSignal: AbortSignal,
-) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+) => AsyncStreamableResult<T>
 
 export interface PublicMessageState {
   requestState: RequestState

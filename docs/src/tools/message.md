@@ -253,8 +253,8 @@ useMessage({
 
 | 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getTools`                    | `() => Promise<Array<Tool \| RuntimeTool>>`                                                                      | 是   | -                        | 返回当前轮次要传给 API 的工具列表。可以返回普通 OpenAI tool schema，也可以返回带执行函数的 runtime tool。                                                                                             |
-| `callTool`                    | `(toolCall, context) => Promise<string \| Record<string, any>> \| AsyncGenerator<string \| Record<string, any>>` | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。可通过 `context.toolSource` 判断工具来源。                                                                |
+| `getTools`                    | `(context: BasePluginContext) => MaybePromise<ToolProviderItem[]>`                                               | 是   | -                        | 返回当前轮次要传给 API 的工具列表。可以返回普通 OpenAI tool schema，也可以返回带执行函数的 runtime tool。                                                                                             |
+| `callTool`                    | `(toolCall, context) => MaybeStreamableResult<string \| Record<string, unknown>>`         | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。可通过 `context.toolSource` 判断工具来源。                                                                |
 | `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。新字段为 `context.assistantMessage`；`context.currentMessage` 继续保留，但已弃用。                                                                  |
 | `onToolCallStart`             | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具开始执行时触发。此时对应的 tool 消息已经创建并追加到 `messages` 中；`context` 额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`。                                     |
 | `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，并额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`，失败或取消时可能有 `context.error`。 |
@@ -279,6 +279,21 @@ type ToolSource =
   | { type: 'toolProvider'; pluginName?: string }
   | { type: 'unknown' }
 ```
+
+`ToolProviderItem` 表示可提供给模型的工具项，可以是普通 OpenAI tool schema，也可以是带本地执行函数的 runtime tool：
+
+```typescript
+type ToolProviderItem = ChatCompletionTool | RuntimeTool
+type AsyncStreamableResult<T> = Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+type MaybeStreamableResult<T> = T | AsyncStreamableResult<T>
+
+interface RuntimeTool {
+  tool: ChatCompletionFunctionTool
+  handler: (toolCall, context) => MaybeStreamableResult<string | Record<string, unknown>>
+}
+```
+
+`toolPlugin` 会保留请求体中已有的 OpenAI `custom` tool，也允许 `getTools` / `provideTools` 返回普通 `ChatCompletionTool`。其中只有 function tool 会参与工具名去重、`toolSource` 记录和 runtime handler 路由；runtime tool 的 `tool` 字段仍需是 `ChatCompletionFunctionTool`。
 
 `ToolProvider` 是供插件扩展使用的高级协议。对于使用 `toolPlugin` 的业务代码，通常只需要通过 `getTools` 和 `callTool` 接入工具；当插件本身需要按内部状态向模型暴露工具时，再实现 `provideTools(context)`。
 

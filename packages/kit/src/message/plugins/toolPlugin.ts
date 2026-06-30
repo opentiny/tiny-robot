@@ -3,8 +3,9 @@ import {
   ChatCompletionFunctionTool,
   ChatCompletionMessageFunctionToolCall,
   ChatCompletionMessageToolCall,
+  ChatCompletionTool,
 } from 'openai/resources'
-import type { MaybePromise } from '../../types'
+import type { MaybePromise, MaybeStreamableResult } from '../../types'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
 import { combineDeltaData, normalizeToAsyncGenerator } from '../utils'
 
@@ -24,15 +25,15 @@ export type ToolCallContext = BasePluginContext & {
   toolSource: ToolSource
 }
 
-type ToolCallResult = string | Record<string, any>
-type ToolCallReturn = ToolCallResult | Promise<ToolCallResult> | AsyncGenerator<ToolCallResult>
-
 export interface RuntimeTool {
   tool: ChatCompletionFunctionTool
-  handler: (toolCall: ChatCompletionMessageFunctionToolCall, context: ToolCallContext) => ToolCallReturn
+  handler: (
+    toolCall: ChatCompletionMessageFunctionToolCall,
+    context: ToolCallContext,
+  ) => MaybeStreamableResult<string | Record<string, any>>
 }
 
-export type ToolProviderItem = ChatCompletionFunctionTool | RuntimeTool
+export type ToolProviderItem = ChatCompletionTool | RuntimeTool
 
 export interface ToolProvider {
   provideTools: (context: BasePluginContext) => MaybePromise<ToolProviderItem[]>
@@ -140,7 +141,7 @@ export const toolPlugin = (
     callTool: (
       toolCall: ChatCompletionMessageToolCall,
       context: ToolCallContext,
-    ) => Promise<ToolCallResult> | AsyncGenerator<ToolCallResult>
+    ) => MaybeStreamableResult<string | Record<string, any>>
     /**
      * 工具调用开始时的回调函数。
      * 触发时机：工具消息已创建并追加后，调用 callTool 之前触发。
@@ -228,6 +229,10 @@ export const toolPlugin = (
     return toolCall.type === 'function' && 'function' in toolCall
   }
 
+  const isFunctionTool = (tool: ChatCompletionTool): tool is ChatCompletionFunctionTool => {
+    return tool.type === 'function' && 'function' in tool
+  }
+
   const isRuntimeTool = (tool: ToolProviderItem): tool is RuntimeTool => {
     return Boolean(tool && typeof tool === 'object' && 'tool' in tool && 'handler' in tool)
   }
@@ -241,7 +246,18 @@ export const toolPlugin = (
     return typeof plugin.disabled === 'function' ? plugin.disabled(context) : Boolean(plugin.disabled)
   }
 
-  const resolveTools = async (context: BasePluginContext, existingTools: ChatCompletionFunctionTool[] = []) => {
+  type ResolvedTools = {
+    tools: ChatCompletionTool[]
+    runtimeToolMap: Map<string, RuntimeTool>
+    toolSourceMap: Map<string, ToolSource>
+  }
+
+  let currentToolResolution: ResolvedTools | undefined
+
+  const resolveTools = async (
+    context: BasePluginContext,
+    existingTools: ChatCompletionTool[] = [],
+  ): Promise<ResolvedTools> => {
     const providedToolItems: Array<{ item: ToolProviderItem; source: ToolSource }> = []
 
     for (const plugin of context.plugins) {
@@ -266,7 +282,7 @@ export const toolPlugin = (
         source: { type: 'toolPlugin' as const },
       })),
     ]
-    const tools: ChatCompletionFunctionTool[] = []
+    const tools: ChatCompletionTool[] = []
     const runtimeToolMap = new Map<string, RuntimeTool>()
     const toolSourceMap = new Map<string, ToolSource>()
     const seenToolNames = new Set<string>()
@@ -283,13 +299,15 @@ export const toolPlugin = (
       seenToolNames.add(toolName)
     }
 
-    existingTools.forEach(registerToolName)
+    existingTools.filter(isFunctionTool).forEach(registerToolName)
 
     for (const { item: toolItem, source } of toolItems) {
       const tool = isRuntimeTool(toolItem) ? toolItem.tool : toolItem
 
-      registerToolName(tool)
-      toolSourceMap.set(tool.function.name, source)
+      if (isFunctionTool(tool)) {
+        registerToolName(tool)
+        toolSourceMap.set(tool.function.name, source)
+      }
 
       if (isRuntimeTool(toolItem)) {
         tools.push(toolItem.tool)
@@ -319,7 +337,9 @@ export const toolPlugin = (
       const { requestBody } = context
 
       const existingTools = Array.isArray(requestBody.tools) ? requestBody.tools : []
-      const { tools } = await resolveTools(context, existingTools)
+      const resolvedTools = await resolveTools(context, existingTools)
+      currentToolResolution = resolvedTools
+      const { tools } = resolvedTools
       if (tools && tools.length > 0) {
         requestBody.tools = existingTools.length ? [...existingTools, ...tools] : tools
       }
@@ -348,7 +368,10 @@ export const toolPlugin = (
         assistantMessage: currentMessage as AssistantMessageWithState,
       })
 
-      const { runtimeToolMap, toolSourceMap } = await resolveTools(context)
+      const { runtimeToolMap, toolSourceMap } = currentToolResolution ?? {
+        runtimeToolMap: new Map<string, RuntimeTool>(),
+        toolSourceMap: new Map<string, ToolSource>(),
+      }
 
       const toolCallPromises = currentMessage.tool_calls.map(async (toolCall) => {
         const now = Math.floor(Date.now() / 1000)
@@ -445,6 +468,7 @@ export const toolPlugin = (
       })
 
       await Promise.all(toolCallPromises)
+      currentToolResolution = undefined
       if (!abortSignal.aborted) {
         requestNext()
       }

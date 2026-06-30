@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const cacheDirectory = join(__dirname, '../src/skills/test/.cache')
+const maxRetries = 5
+const retryBaseDelay = 200
+const requestTimeout = 30_000
 
 const fixtures = [
   {
@@ -29,31 +32,78 @@ const getFixtureTargetPath = (fixture) => {
   return join(cacheDirectory, targetName)
 }
 
-const fetchJson = async (url) => {
-  const response = await fetch(url, {
-    headers: {
-      accept: 'application/vnd.github+json',
-      'user-agent': '@opentiny/tiny-robot-kit skill fixture downloader',
-    },
+const waitForRetry = (retryCount) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, retryBaseDelay * 2 ** retryCount)
   })
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
+const isRetryableStatus = (status) => status === 429 || status >= 500
+
+const fetchWithRetry = async (url, init, errorPrefix) => {
+  let lastError
+
+  for (let retryCount = 0; retryCount < maxRetries; retryCount += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => {
+      controller.abort(new Error(`Request timeout after ${requestTimeout}ms`))
+    }, requestTimeout)
+
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      })
+
+      if (response.ok) {
+        return response
+      }
+
+      const message = `${errorPrefix} ${url}: ${response.status} ${response.statusText}`
+      if (!isRetryableStatus(response.status) || retryCount === maxRetries - 1) {
+        throw new Error(message)
+      }
+
+      lastError = new Error(message)
+    } catch (error) {
+      lastError = error
+      if (retryCount === maxRetries - 1) {
+        throw error
+      }
+    } finally {
+      clearTimeout(timeout)
+    }
+
+    await waitForRetry(retryCount)
   }
+
+  throw lastError ?? new Error(`${errorPrefix} ${url}: retry budget exhausted`)
+}
+
+const fetchJson = async (url) => {
+  const response = await fetchWithRetry(
+    url,
+    {
+      headers: {
+        accept: 'application/vnd.github+json',
+        'user-agent': '@opentiny/tiny-robot-kit skill fixture downloader',
+      },
+    },
+    'Failed to fetch',
+  )
 
   return response.json()
 }
 
 const fetchBytes = async (url) => {
-  const response = await fetch(url, {
-    headers: {
-      'user-agent': '@opentiny/tiny-robot-kit skill fixture downloader',
+  const response = await fetchWithRetry(
+    url,
+    {
+      headers: {
+        'user-agent': '@opentiny/tiny-robot-kit skill fixture downloader',
+      },
     },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`)
-  }
+    'Failed to download',
+  )
 
   return new Uint8Array(await response.arrayBuffer())
 }
