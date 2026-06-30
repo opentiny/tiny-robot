@@ -108,7 +108,13 @@ export const createSkillResourceRuntimeTools = (skills: SkillDefinition[]): Runt
       tool: skillResourceTools[0],
       handler: (toolCall) => {
         const toolArguments = parseToolArguments(toolCall)
+        const hasSkillName = typeof toolArguments.skillName === 'string' && toolArguments.skillName.length > 0
         const skill = findSkill(toolArguments.skillName)
+
+        if (hasSkillName && !skill) {
+          return { error: 'skill_not_found', skillName: toolArguments.skillName }
+        }
+
         const skillList = skill ? [skill] : skills
 
         return {

@@ -140,6 +140,29 @@ describe('skill resource tools', () => {
     })
   })
 
+  it('returns a stable error when listing files for an unknown skill name', () => {
+    const [listFiles] = createSkillResourceRuntimeTools([
+      {
+        name: 'docs',
+        description: 'Docs skill',
+        instructions: 'Use docs.',
+        resources: [
+          {
+            path: 'guide.md',
+            kind: 'text',
+            resourceId: 'guide.md',
+            text: '# Guide',
+          },
+        ],
+      },
+    ])
+
+    expect(listFiles.handler(createToolCall('list_skill_files', { skillName: 'missing' }), {} as never)).toEqual({
+      error: 'skill_not_found',
+      skillName: 'missing',
+    })
+  })
+
   it('returns stable errors when reading skill files with invalid arguments', async () => {
     const [, readFile] = createSkillResourceRuntimeTools([
       {
