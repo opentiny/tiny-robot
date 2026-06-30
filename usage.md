@@ -146,7 +146,7 @@ Issue 至少写清楚：
 
 - 项目：只能从当前支持项目里选。
 - 文章类型：从当前支持文章类型里选。
-- 文风：从当前支持文风里选。
+- 文风：无需在 Issue 指定；由 AI 在写作计划中推荐，人工批准前确认或改选。
 - 文章目标：这篇文章要解决谁的什么问题。
 - 候选资料：Release、文档、Commit、PR、Demo、Issue 附件或其他公开链接。
 - 人工验收说明：哪些事实、截图、GIF、代码片段必须由人确认。
@@ -164,7 +164,6 @@ Issue 至少写清楚：
 ```md
 项目：genui-sdk
 文章类型：practical-guide
-文风：developer-friendly
 
 文章目标：
 面向前端开发者，说明如何用 GenUI SDK 在已有应用里接入生成式 UI。
@@ -540,8 +539,11 @@ Draft PR 完成初审修改和必选验收项后，再由人工点击 GitHub 的
 - 截图、GIF 或图片素材没有敏感信息，且功能状态真实。
 - 必选人工验收项已经完成，或仍作为明确未完成项保留在 Draft PR 中。
 - Agent 最近一次修改后已经运行 `article-hub validate article`。
+- 注意校验边界：`article-hub validate article` 只保证 Front Matter、来源版本、路径与图片 alt 等确定性规则合规，不判断文章是否单主线推进、读起来是否机械。结构与读感由初稿自审表、独立结构裁判和人工 Review 把关；`valid: true` 不代表可发布。
 
 PR 合并和外部发布不属于当前本地生成流程。
+
+母稿合入后，若后续已发布到外部平台，成功发布事实记录在 `articles/publications.json`。该文件只记录新流程文章的平台 URL 和 UTC+8 发布日期；缺少记录表示尚未确认发布。
 
 ## 什么时候应该停止
 

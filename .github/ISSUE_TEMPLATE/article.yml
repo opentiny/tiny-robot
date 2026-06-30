@@ -26,17 +26,6 @@ body:
         - case-study
     validations:
       required: true
-  - type: dropdown
-    id: style_profile
-    attributes:
-      label: 文风
-      options:
-        - official-balanced
-        - developer-friendly
-        - release-promotional
-        - technical-deep-dive
-    validations:
-      required: true
   - type: textarea
     id: goal
     attributes:

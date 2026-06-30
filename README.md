@@ -37,7 +37,7 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 
 ## 核心工作流
 
-1. 维护者通过文章选题 Issue 提供项目、文章类型、文风、目标和候选资料。
+1. 维护者通过文章选题 Issue 提供项目、文章类型、目标和候选资料；文风由 AI 在写作计划中推荐，人工批准前确认或改选。
 2. Agent 读取 Issue 原始事实，调用 `article-hub inspect-issue` 和 `projects validate` 做确定性解析与项目 allowlist 校验。
 3. Agent 调研公开资料，生成写作计划、资料快照和素材缺口，并把计划评论发布到 Issue。
 4. 维护者用固定命令批准写作计划：`/ai 批准写作计划`，Agent 随后生成批准快照。

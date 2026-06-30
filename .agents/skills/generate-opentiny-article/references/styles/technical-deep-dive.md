@@ -19,7 +19,7 @@
 
 ## 范例与出处
 
-完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/technical-deep-dive.md`；访问不到时不阻断写作。代表：
+完整范例（含 craft 解剖与短节选）见仓库根目录下的 `materials/style-exemplars/technical-deep-dive.md`，动笔前必读（存在即读，确实缺失才降级并在对话标注：说明缺哪个范例文件、改按 Skill 内文风文件继续）。代表：
 
 - [React as a UI Runtime](https://overreacted.io/react-as-a-ui-runtime/)（主张驱动结构：每节先抛论点，正文是论据）
 - [How Does setState Know What to Do?](https://overreacted.io/how-does-setstate-know-what-to-do/)（反常识提问开篇 + 侦探式逐层揭示）
