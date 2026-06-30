@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { LayoutAsideOpenDetail } from '@opentiny/tiny-robot'
+import type { LayoutAsideOpenValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
 const rightOpen = ref(false)
 
-function updateLeftAside(detail: LayoutAsideOpenDetail) {
+function updateLeftAside(detail: LayoutAsideOpenValue) {
   leftOpen.value = detail.open
 }
 
-function updateRightAside(detail: LayoutAsideOpenDetail) {
+function updateRightAside(detail: LayoutAsideOpenValue) {
   rightOpen.value = detail.open
 }
 </script>

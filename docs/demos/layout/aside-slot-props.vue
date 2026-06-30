@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { LayoutAsideProps, LayoutAsideOpenDetail, LayoutAsideResizeDetail } from '@opentiny/tiny-robot'
+import type { LayoutAsideProps, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
 const leftExpandedWidth = ref(220)
@@ -23,15 +23,15 @@ const rightAside = computed<LayoutAsideProps>(() => ({
   open: rightOpen.value,
 }))
 
-function updateLeftAsideOpen(detail: LayoutAsideOpenDetail) {
+function updateLeftAsideOpen(detail: LayoutAsideOpenValue) {
   leftOpen.value = detail.open
 }
 
-function updateLeftAsideWidth(detail: LayoutAsideResizeDetail) {
+function updateLeftAsideWidth(detail: LayoutAsideResizeValue) {
   leftExpandedWidth.value = detail.expandedWidth
 }
 
-function updateRightAsideOpen(detail: LayoutAsideOpenDetail) {
+function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
   rightOpen.value = detail.open
 }
 </script>
@@ -81,14 +81,6 @@ function updateRightAsideOpen(detail: LayoutAsideOpenDetail) {
           <TrLayout.AsideToggle side="left" class="layout-slot-props-demo__button">
             <template #default="{ isOpen }">
               {{ isOpen ? '收起侧栏' : '展开侧栏' }}
-            </template>
-          </TrLayout.AsideToggle>
-        </div>
-
-        <div v-else class="layout-slot-props-demo__rail">
-          <TrLayout.AsideToggle side="left" class="layout-slot-props-demo__button">
-            <template #default="{ isOpen }">
-              {{ isOpen ? '收起' : '展开' }}
             </template>
           </TrLayout.AsideToggle>
         </div>
@@ -182,12 +174,6 @@ function updateRightAsideOpen(detail: LayoutAsideOpenDetail) {
   height: 100%;
   padding: 16px;
   background: var(--vp-c-bg, #ffffff);
-}
-
-.layout-slot-props-demo__rail {
-  display: grid;
-  place-items: center;
-  height: 100%;
 }
 
 .layout-slot-props-demo__aside p,
