@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
 import { nextTick, ref, watch, watchEffect } from 'vue'
-import { useBubbleContentRenderer, useBubbleStateChangeFn, useOmitMessageFields } from '../composables'
+import { useBubbleContentRenderer, useBubbleEventFn, useOmitMessageFields } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 
 defineOptions({
@@ -29,11 +29,17 @@ watchEffect(() => {
   open.value = props.message.state?.open ?? true
 })
 
-const handleStateChange = useBubbleStateChangeFn()
+const handleBubbleEvent = useBubbleEventFn()
 
 const handleClick = () => {
   open.value = !open.value
-  handleStateChange('open', open.value)
+  handleBubbleEvent({
+    name: 'state:update',
+    payload: {
+      key: 'open',
+      value: open.value,
+    },
+  })
 }
 
 const detailRef = ref<HTMLParagraphElement | null>(null)

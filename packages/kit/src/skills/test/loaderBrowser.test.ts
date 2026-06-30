@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import { loadSkill, loadSkillWithDetails } from '../loader'
+import { loadBrowserSkillFiles } from '../loader/browser'
 
 type TestFile = File & {
   webkitRelativePath?: string
+}
+
+type TestDirectoryHandle = {
+  kind: 'directory'
+  entries(): AsyncIterable<[string, TestDirectoryHandle | TestFileHandle]>
+}
+
+type TestFileHandle = {
+  kind: 'file'
+  getFile(): Promise<File>
 }
 
 const createTestFile = (path: string, content: string | Uint8Array, type = 'text/plain'): TestFile => {
@@ -15,6 +26,27 @@ const createTestFile = (path: string, content: string | Uint8Array, type = 'text
   file.webkitRelativePath = path
   return file
 }
+
+const createDirectoryHandle = (entries: Record<string, TestDirectoryHandle | File>): TestDirectoryHandle =>
+  ({
+    kind: 'directory',
+    async *entries() {
+      for (const [name, entry] of Object.entries(entries)) {
+        if ('kind' in entry && entry.kind === 'directory') {
+          yield [name, entry]
+          continue
+        }
+
+        yield [
+          name,
+          {
+            kind: 'file',
+            getFile: async () => entry as File,
+          },
+        ]
+      }
+    },
+  }) as TestDirectoryHandle
 
 describe('browser loadSkill', () => {
   it('loads fileList skills and strips the root directory from resource paths', async () => {
@@ -34,6 +66,31 @@ describe('browser loadSkill', () => {
     expect(loadedSkill.instructions).toContain('# Weather Skill')
     expect(loadedSkill.resources?.map((resource) => resource.path)).toEqual(['references/usage.md'])
     await expect(loadedSkill.resources?.[0]?.readText?.()).resolves.toBe('# Usage')
+  })
+
+  it('uses directoryHandle entries as paths relative to the selected skill root', async () => {
+    const directoryHandle = createDirectoryHandle({
+      'SKILL.md': createTestFile(
+        'SKILL.md',
+        ['---', 'name: weather', 'description: Weather skill', '---', '', '# Weather Skill'].join('\n'),
+        'text/markdown',
+      ),
+      references: createDirectoryHandle({
+        'usage.md': createTestFile('usage.md', '# Usage', 'text/markdown'),
+      }),
+    })
+
+    const files = await loadBrowserSkillFiles(
+      {
+        source: 'browser',
+        directoryHandle: directoryHandle as unknown as FileSystemDirectoryHandle,
+      },
+      {
+        signal: new AbortController().signal,
+      },
+    )
+
+    expect(files.map((file) => file.path)).toEqual(['SKILL.md', 'references/usage.md'])
   })
 
   it('loads binary browser resources', async () => {

@@ -87,6 +87,7 @@ async function resolveGithubRef(options: GithubSkillLoadOptions, context: SkillL
 }
 
 async function fetchGithubJson<T>(url: URL | string, context: SkillLoadContext): Promise<T> {
+  const requestUrl = String(url)
   const response = await fetchGithubWithRetry(url, context, {
     headers: {
       accept: 'application/vnd.github+json',
@@ -95,7 +96,7 @@ async function fetchGithubJson<T>(url: URL | string, context: SkillLoadContext):
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${response}: ${response.status} ${response.statusText}`)
+    throw new Error(`Failed to fetch ${requestUrl}: ${response.status} ${response.statusText}`)
   }
 
   return response.json() as Promise<T>
@@ -123,7 +124,7 @@ async function fetchGithubWithRetry(
 ): Promise<Response> {
   let lastError: unknown
 
-  for (let retryCount = 0; retryCount <= maxGithubFetchRetries; retryCount += 1) {
+  for (let retryCount = 0; retryCount < maxGithubFetchRetries; retryCount += 1) {
     try {
       const response = await fetch(url, {
         ...init,
@@ -143,7 +144,7 @@ async function fetchGithubWithRetry(
       lastError = error
     }
 
-    if (retryCount < maxGithubFetchRetries) {
+    if (retryCount < maxGithubFetchRetries - 1) {
       await waitForGithubFetchRetry(retryCount, context)
     }
   }

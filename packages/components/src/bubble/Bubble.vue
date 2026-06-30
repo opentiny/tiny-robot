@@ -11,7 +11,7 @@ import {
   useCopyCleanup,
 } from './composables'
 import { BUBBLE_LIST_CONTEXT_KEY } from './constants'
-import type { BubbleMessage, BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
+import type { BubbleEvent, BubbleMessage, BubbleMessageGroup, BubbleProps, BubbleSlots } from './index.type'
 
 const props = withDefaults(defineProps<BubbleProps>(), {
   placement: 'start',
@@ -26,6 +26,7 @@ const contentResolver = useContentResolver(() => props.contentResolver)
 
 const emit = defineEmits<{
   (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
+  (e: 'bubble-event', payload: BubbleEvent & { messageIndex: number; contentIndex: number }): void
 }>()
 
 // Provide bubble store if not already provided
@@ -112,6 +113,7 @@ if (!isInBubbleList) {
               :message="messages.at(0)!"
               :content-index="index"
               @state-change="emit('state-change', { ...$event, messageIndex: 0 })"
+              @bubble-event="emit('bubble-event', { ...$event, messageIndex: 0 })"
             ></BubbleContentWrapper>
             <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
@@ -125,6 +127,7 @@ if (!isInBubbleList) {
                 :message="message"
                 :content-index="contentIndex"
                 @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
+                @bubble-event="emit('bubble-event', { ...$event, messageIndex: msgIndex })"
               ></BubbleContentWrapper>
             </template>
             <slot name="content-footer" :messages="messages" :role="props.role"></slot>

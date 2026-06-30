@@ -12,7 +12,13 @@ import {
 
 export function createSkillDefinition(files: LoadableSkillFile[], options: SkillLoadBaseOptions): SkillLoadResult {
   const warnings: SkillLoadWarning[] = []
-  const entryFile = options.entryFile ?? 'SKILL.md'
+  const rawEntryFile = options.entryFile ?? 'SKILL.md'
+  const entryFile = normalizeSkillPath(rawEntryFile)
+
+  if (!entryFile) {
+    throw new Error(`Invalid skill entry file path: "${rawEntryFile}".`)
+  }
+
   const normalizedFiles = normalizeFiles(files, options, warnings)
   const skillEntry = normalizedFiles.find((file) => file.path === entryFile)
 
