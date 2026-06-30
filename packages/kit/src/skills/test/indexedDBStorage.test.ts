@@ -164,7 +164,10 @@ describe('IndexedDBSkillStorage', () => {
           path: 'lazy.md',
           kind: 'text',
           resourceId: 'lazy.md',
-          readText: async () => 'lazy text',
+          readText: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 0))
+            return 'lazy text'
+          },
         },
       ],
     }

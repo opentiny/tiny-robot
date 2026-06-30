@@ -100,6 +100,9 @@ export class IndexedDBSkillStorage<TImportOptions = SkillImportOptions> implemen
   }
 
   async add(skill: SkillDefinition) {
+    const resourceRecords = await Promise.all(
+      (skill.resources ?? []).map((resource) => toResourceRecord(skill.name, resource)),
+    )
     const db = await this.getDB()
     const tx = db.transaction([defaultSkillStoreName, defaultResourceStoreName], 'readwrite')
     const skillStore = tx.objectStore(defaultSkillStoreName)
@@ -108,8 +111,8 @@ export class IndexedDBSkillStorage<TImportOptions = SkillImportOptions> implemen
     await this.deleteResourceRecords(tx, skill.name)
     await skillStore.put(toSkillRecord(skill))
 
-    for (const resource of skill.resources ?? []) {
-      await resourceStore.put(await toResourceRecord(skill.name, resource))
+    for (const resourceRecord of resourceRecords) {
+      await resourceStore.put(resourceRecord)
     }
 
     await tx.done
