@@ -2,10 +2,11 @@
 import {
   ChatCompletion,
   ChatCompletionChunk,
+  ChatCompletionTool,
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
-} from 'openai/resources/index'
-import { MaybePromise } from '../types'
+} from 'openai/resources'
+import type { AsyncStreamableResult, MaybePromise } from '../types'
 
 export type DeepReadonly<T> = T extends (...args: any[]) => any
   ? T
@@ -32,13 +33,14 @@ export type ChatMessage<
 
 export interface MessageRequestBody {
   messages: Array<ChatMessage>
+  tools?: Array<ChatCompletionTool>
   [key: string]: any
 }
 
 export type ResponseProvider<T extends ChatCompletion | ChatCompletionChunk = ChatCompletion | ChatCompletionChunk> = (
   requestBody: MessageRequestBody,
   abortSignal: AbortSignal,
-) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+) => AsyncStreamableResult<T>
 
 export interface PublicMessageState {
   requestState: RequestState
@@ -128,6 +130,12 @@ export interface BasePluginContext {
   mutate: MutateMessageStateFn
   abortSignal: AbortSignal
   currentTurn: ChatMessage[]
+  /**
+   * 当前 engine 中已注册的插件列表。
+   *
+   * 插件可基于该列表发现其他插件暴露的轻量协议，例如 toolPlugin 收集 provideTools。
+   */
+  plugins: readonly MessageEnginePlugin[]
   customContext: Record<string, unknown>
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   setCustomContext: (data: Record<string, unknown>) => void
