@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { expect } from "vitest";
 
@@ -13,6 +13,9 @@ export const repositoryRoot = path.resolve(
 );
 
 const cliPath = path.join(repositoryRoot, "src/cli.ts");
+const tsxLoaderPath = pathToFileURL(
+  path.join(repositoryRoot, "node_modules/tsx/dist/loader.mjs")
+).href;
 
 /**
  * CLI 子进程执行结果的最小结构。
@@ -34,7 +37,7 @@ export function runArticleHubCli(
   args: string[],
   options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}
 ): CliResult {
-  return spawnSync(process.execPath, ["--import", "tsx", cliPath, ...args], {
+  return spawnSync(process.execPath, ["--import", tsxLoaderPath, cliPath, ...args], {
     cwd: options.cwd ?? repositoryRoot,
     env: {
       ...process.env,

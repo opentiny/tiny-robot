@@ -633,7 +633,7 @@ PR 合并
 → 关闭 Issue
 ```
 
-母稿合入后，平台发布事实记录在 `articles/publications.json`。该文件只覆盖 `articles/` 下的新流程文章，只保存成功发布结果。每条平台记录包含完整平台文章 URL 和 UTC+8 发布日期；缺少文章条目或平台记录表示尚未确认发布。该记录不改变当前交付不实现发布 Skill 的范围。
+创建 Draft PR 时，`article-hub create-pr` 在 `articles/publications.json` 中写入文章条目和空 `publications`。母稿合入后，平台发布事实继续记录在该文件中；每条平台记录包含完整平台文章 URL 和 UTC+8 发布日期。缺少平台记录表示尚未确认发布。该记录不改变当前交付不实现发布 Skill 的范围。
 
 PR 未合并关闭或选题明确放弃时，Issue 转为 `阶段：已终止` 并关闭。重新启动时必须 reopen Issue、退回 `阶段：策划` 并重新确认写作计划。
 

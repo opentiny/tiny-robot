@@ -144,6 +144,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
      --body-file <pr-body.md>
    ```
 
+   `create-pr` 会同步维护 `articles/publications.json`，写入文章条目和空 `publications`；正常流程无需在调用前预先编辑该文件。
+
    PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、`approved_at`、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
 
 9. 更新 Issue 状态：
