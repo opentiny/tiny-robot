@@ -85,9 +85,7 @@ export function omitFields<T extends Record<string, unknown>, K extends keyof T>
   return result
 }
 
-export async function* normalizeToAsyncGenerator<T>(
-  result: MaybeStreamableResult<T>,
-): AsyncGenerator<T> {
+export async function* normalizeToAsyncGenerator<T>(result: MaybeStreamableResult<T>): AsyncGenerator<T> {
   // 情况 1：是 async generator 或 sync generator
   if (isAsyncGenerator(result)) {
     yield* result
