@@ -206,6 +206,8 @@ article-hub validate article --article-file <path> --config <path>
 
 校验失败时，`blocking_issues` 中每一项都包含稳定 `code` 和人类可读 `message`；调用方应依赖 `code`、`field` 等结构化字段，不依赖 `message` 的具体语言或句式。
 
+文章 Front Matter schema 为 `article-hub.article.v2`。必须包含 `approval_snapshot` 对象，记录批准快照引用和审计字段：`url`、`approver`、`plan_comment_id`、`approval_comment_id`。文章契约只记录批准快照引用；完整计划和批准时间保存在 Issue 批准快照评论中。
+
 ---
 
 ### `create-pr`

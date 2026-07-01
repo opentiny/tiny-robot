@@ -442,16 +442,15 @@ articles/<project-id>/<YYYY-MM-DD>-<slug>/
 
 Front Matter 至少包含：
 
-- `schema_version`
+- `schema_version: article-hub.article.v2`
 - `title`
 - `author`，默认 `OpenTiny`
 - 可选 `contributors`
 - `project`
 - `article_type`
 - `style_profile`
-- `language: zh-CN`
 - `topic_issue`
-- `approved_plan`：被批准计划正文快照。
+- `approval_snapshot`：批准快照引用，至少包含 `url`、`approver`、`plan_comment_id`、`approval_comment_id`。完整写作计划和批准时间保存在 Issue 批准快照评论中；文章 Front Matter 仅保存批准快照引用。
 - `created_at` 与 `updated_at`
 - 来源仓库、固定 Commit、在线文档 URL 和访问时间
 - 图片与素材记录
@@ -463,7 +462,7 @@ Front Matter 至少包含：
 - 逐条事实与来源映射。
 - 完整 prompt、推理过程、聊天记录、Token 消耗或运行日志。
 
-Front Matter 使用 `article-hub validate article` 校验。`schema_version` 必填；破坏性契约变化才提升版本。
+Front Matter 使用 `article-hub validate article` 校验。`article-hub.article.v2` 的文章契约字段为 `approval_snapshot`；完整计划保存在 Issue 批准快照；后续只有破坏性契约变化才继续提升版本。
 
 ### 12.4 正文引用
 
@@ -666,7 +665,7 @@ GitHub 是唯一长期状态来源：
 - Issue 标签保存阶段和 AI 状态。
 - Issue 评论保存写作计划与批准记录。
 - PR、Review 和 Commit 保存文章修订历史。
-- Front Matter 保存文章与来源快照。
+- Front Matter 保存文章、来源快照和批准快照引用。
 - 本地缓存和临时运行目录可以安全删除。
 
 现有“选题库索引”Issue 只作为人工导航，不作为事实来源，也不由生成 Skill 自动维护。

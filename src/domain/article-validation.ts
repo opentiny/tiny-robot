@@ -61,7 +61,8 @@ export const articleValidationIssueMessages = defineArticleValidationIssueMessag
     `Front Matter ${field} 必须是${stringRequirement === "string" ? "" : "非空"}字符串`,
   "unknown-project": ({ value }) => `Front Matter project 不在项目 allowlist 中：${value}`,
   "unsupported-frontmatter-enum": ({ field, value }) => `Front Matter ${field} 不受支持：${value}`,
-  "invalid-approved-plan": () => "approved_plan 必须是非空字符串",
+  "invalid-approval-snapshot": () =>
+    "approval_snapshot 必须包含 url、approver、plan_comment_id 和 approval_comment_id",
   "missing-sources": () => "Front Matter sources 至少包含一项",
   "invalid-source": ({ sourceIndex }) => `sources[${sourceIndex}] 必须是 object`,
   "missing-source-identity": ({ sourceIndex }) => `sources[${sourceIndex}] 缺少来源标识`,
@@ -110,10 +111,10 @@ const requiredFrontMatterFields = [
   "article_type",
   "style_profile",
   "sources",
-  "approved_plan",
+  "approval_snapshot",
   "article_date"
 ] as const;
-const articleSchemaVersion = "article-hub.article";
+const articleSchemaVersion = "article-hub.article.v2";
 const allowedArticleTypes = new Set(["release", "practical-guide", "source-analysis", "case-study"]);
 const allowedStyleProfiles = new Set([
   "official-balanced",
@@ -251,7 +252,7 @@ function validateFrontMatter(
   validateKnownProject(frontMatter.project, allowedProjects, blockingIssues);
   validateEnum(frontMatter.article_type, allowedArticleTypes, "article_type", blockingIssues);
   validateEnum(frontMatter.style_profile, allowedStyleProfiles, "style_profile", blockingIssues);
-  validateApprovedPlan(frontMatter.approved_plan, blockingIssues);
+  validateApprovalSnapshot(frontMatter.approval_snapshot, blockingIssues);
   validateSources(frontMatter.sources, blockingIssues);
 }
 
@@ -356,17 +357,40 @@ function validateEnum(
   }
 }
 
-function validateApprovedPlan(
-  approvedPlan: unknown,
+function validateApprovalSnapshot(
+  approvalSnapshot: unknown,
   blockingIssues: ArticleValidationIssue[]
 ): void {
-  if (isMissing(approvedPlan)) {
+  if (isMissing(approvalSnapshot)) {
     return;
   }
 
-  if (typeof approvedPlan !== "string") {
+  if (
+    typeof approvalSnapshot !== "object" ||
+    approvalSnapshot === null ||
+    Array.isArray(approvalSnapshot)
+  ) {
     blockingIssues.push(
-      createArticleValidationIssue("invalid-approved-plan", { field: "approved_plan" })
+      createArticleValidationIssue("invalid-approval-snapshot", { field: "approval_snapshot" })
+    );
+    return;
+  }
+
+  const snapshot = approvalSnapshot as Record<string, unknown>;
+  const hasRequiredStrings =
+    typeof snapshot.url === "string" &&
+    snapshot.url.length > 0 &&
+    typeof snapshot.approver === "string" &&
+    snapshot.approver.length > 0;
+  const hasRequiredCommentIds =
+    Number.isInteger(snapshot.plan_comment_id) &&
+    Number.isInteger(snapshot.approval_comment_id) &&
+    Number(snapshot.plan_comment_id) > 0 &&
+    Number(snapshot.approval_comment_id) > 0;
+
+  if (!hasRequiredStrings || !hasRequiredCommentIds) {
+    blockingIssues.push(
+      createArticleValidationIssue("invalid-approval-snapshot", { field: "approval_snapshot" })
     );
   }
 }

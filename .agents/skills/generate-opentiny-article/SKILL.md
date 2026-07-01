@@ -20,7 +20,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 确定性判断和受控 mutation 走 `article-hub`，读取 GitHub 原始事实走 `gh`，二者不互相替代——这样规则只有一处实现，Skill 不会在自然语言里把它们重写偏。
 
-- 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。
+- 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。fixture 只放系统临时目录或 `.cache/article-hub/<issue-number>/`，不得写入 `materials/issue-sources/`。
 - 确定性判断使用 `article-hub`，包括权限过滤、固定命令解析、项目 allowlist、批准快照生成、文章校验、状态 guard 和受控 mutation。
 - 遇到标签互斥、暂停保护、bot 过滤、批准命令识别、Front Matter schema 或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 - 读取 Issue、PR、Review 等 GitHub 原始事实时直接使用 `gh`；不要为了读取字段或转发 `gh` 参数而临时修改 `article-hub`。
@@ -29,7 +29,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 每一步先确认未触发[停止条件](#停止条件)，再往下走。
 
-1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `article-hub` 解析：
+1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `article-hub` 解析。运行中间文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`：
 
    ```sh
    gh issue view <number> --repo hexqi/ai-article-hub --json number,title,body,author,labels,comments > <issue.json>
@@ -43,12 +43,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    ```sh
    article-hub projects list --config config/projects.yml
    article-hub projects validate --config config/projects.yml
-   article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir <cache-dir>
+   article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir .cache/article-hub/source-cache
    ```
 
    `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
+   源码 checkout 缓存不得写入 `materials/source-cache/`。`materials/issue-sources/<issue-number>/` 只用于保存需要随仓库提交的人工来源快照，不放 Issue fixture、计划临时文件、批准快照输入文件或源码缓存。
 
-3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没落地。
+3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示 5-8 行计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。发布成功后在对话中给出 Issue 评论链接。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布或无法确认评论链接即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没写入 GitHub。
 
    ```sh
    gh issue comment <number> --repo hexqi/ai-article-hub --body-file <临时计划文件>
@@ -72,13 +73,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    自然语言表述（如「我觉得可以批准」）、携带参数（如旧版 `/ai 批准写作计划 2 a1b2c3d4`）、越权用户或 bot 发出的命令都不算批准。`/ai 状态`、`/ai 暂停` 等其他可执行命令也不算批准。不要据此推断批准意图，没有满足上述条件的批准命令就停下等待。
 
-5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git）：
+5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git；临时文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`）：
 
    ```sh
    article-hub plan approve --plan-body-file <临时计划正文文件> --command "/ai 批准写作计划" --approver <login> --comment-id <批准评论 id> --approved-at <iso-time> [--plan-comment-id <计划评论 id>] [--plan-label <版本标签>]
    ```
 
-   生成时以该快照的 `approved_plan` 为唯一计划来源，不回读 live 评论；在创建 Draft PR 时，于 PR 描述中写一行批准引用（批准人、`approved_at`、快照评论链接）。
+   生成时以该批准快照中的完整计划为唯一计划来源，不回读 live 评论；文章 Front Matter 使用 `schema_version: article-hub.article.v2`，填写 `approval_snapshot` 短对象，包含 `url`、`approver`、`plan_comment_id`、`approval_comment_id`；完整计划和批准时间保存在 Issue 批准快照评论中；在创建 Draft PR 时，于 PR 描述中写一行批准引用（批准人、批准快照评论链接）。
 
 6. 在隔离 Git worktree 中创建文章目录并写作：
 
@@ -88,7 +89,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    写作分四步，前三步是动笔前的必做产出物，第四步才落笔：
 
-   1. **必读（顺序固定）**：读 [文章类型与结构参考](./references/article-types.md) 取本文 `article_type` 的必备信息、推荐大纲与长度区间；读通用写作手艺 `references/styles/writing-craft.md`。本文 `style_profile` 取自批准快照 `approved_plan` 里确认的文风，并据此写入 Front Matter（`style_profile` 是文章校验必填字段）；若批准计划正文中无法判定文风值，停止并回到计划阶段补齐，不在写作步自行拍板。按该 `style_profile` 读对应文风文件，并深读仓库根目录下的 `materials/style-exemplars/<style>.md` 范例——它示范手艺如何落到真实文章，只读手艺描述会写成「文档腔」，范例文件存在即必须读；仅当该文件确实不存在时才降级，并在对话标注「范例降级：materials/style-exemplars/<style>.md 不存在，按 Skill 内文风文件继续」。
+   1. **必读（顺序固定）**：读 [文章类型与结构参考](./references/article-types.md) 取本文 `article_type` 的必备信息、推荐大纲与长度区间；读通用写作手艺 `references/styles/writing-craft.md`。本文 `style_profile` 取自批准快照里的计划正文，并据此写入 Front Matter（`style_profile` 是文章校验必填字段）；若批准计划正文中无法判定文风值，停止并回到计划阶段补齐，不在写作步自行拍板。按该 `style_profile` 读对应文风文件，并深读仓库根目录下的 `materials/style-exemplars/<style>.md` 范例——它示范手艺如何落到真实文章，只读手艺描述会写成「文档腔」，范例文件存在即必须读；仅当该文件确实不存在时才降级，并在对话标注「范例降级：materials/style-exemplars/<style>.md 不存在，按 Skill 内文风文件继续」。
    2. **必填产出物·主线声明（三栏）**：动笔前在对话写出三栏——『本文主线 =〔一条真实调用链 / 一个具体问题 / 一个决策处境〕』『贯穿全文的同一个具体实例或调用（自始至终是同一个，不在每章另起一个）』『每个正文业务章节让这个实例推进到哪一步』。模块、组件、包在主线推进到它时登场一次并融入该章叙述；章节标题写它在主线上推进的那一步或那个判断，相邻业务章节用不同句式（连续四节套同一模板——如「X 承接的是…」「从 X 看…」——就是模块清单换皮）。
       若批准快照的「建议大纲」本身是模块清单骨架（按包 / 组件 / 能力分节、而非主线阶段；常见于在结构规则更新前批准的旧计划），不照该清单逐节罗列：按「大纲是推荐而非强制、不强制固定章节标题和顺序」，在不改变覆盖范围、事实边界和维护者明确内容约束的前提下，把章节重排为上面的主线骨架，并在对话与 PR body 注明『批准大纲为模块清单，已按主线骨架重排章节、未改覆盖范围与事实』。若维护者在计划 / Review 中曾明确要求保留某种分节结构，或主线重排会改动覆盖范围，则这是人工决定项：停下来向人工说明冲突（保留批准的模块分节 vs 改为主线骨架）由人工确认，或回到计划阶段修订后重新批准，不在写作步单方面拍板。
    3. **必填产出物·范例借鉴清单**：读完范例后在对话逐条列出（2–4 条，每条三栏：从范例借的招式 / 用在本文哪一节 / 本文中的具体做法），把范例手艺迁移成本文动作而非仿其措辞。若本文 `style_profile` 与 `article_type` 默认文风不同，清单须回应计划里「迁移该文风哪些招式」的承诺。
@@ -130,7 +131,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    结果 `valid: false` 时，按 `blocking_issues[].code`（稳定码，不依赖 message 文案）定位并修正正文，然后重跑，直到 `valid: true`。修正只动正文：不得改 Front Matter、代码块、图片路径等受保护内容来凑过校验；若不改受保护内容就无法消除某个 code，按停止条件停止并报告。边界：`validate article` 只保证 Front Matter schema、来源版本、路径与图片 alt 等确定性规则，不背书章节结构与读感——结构是否单主线推进由第 6 步自审表与独立结构裁判把关，`valid: true` 不等于可发布。
 
-8. 校验通过后创建或更新 Draft PR：
+8. 校验通过后创建或更新 Draft PR。创建或更新前先运行 `git status --short`，确认没有 `source-cache`、Issue fixture、计划临时文件、批准快照输入文件等中间文件进入工作区；若无法确认清理安全，停止并说明：
 
    ```sh
    article-hub create-pr \
@@ -146,7 +147,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    `create-pr` 会同步维护 `articles/publications.json`，写入文章条目和空 `publications`；正常流程无需在调用前预先编辑该文件。
 
-   PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、`approved_at`、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
+   PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
 
 9. 更新 Issue 状态：
 

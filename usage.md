@@ -204,12 +204,16 @@ Issue 至少写清楚：
 ```text
 请在本地 ai-article-hub 仓库中处理这个 OpenTiny 文章 Issue：<Issue 链接或编号>。
 
-请先读取仓库 README、usage、docs、skills 和 config/projects.yml，按当前文章生成流程做调研并输出写作计划。
+请先读取仓库 README、usage、docs、skills 和 config/projects.yml，按当前文章生成流程做调研并生成写作计划。
 
 要求：
 - 只做调研和写作计划，不生成正文，不创建 PR。
 - 使用 gh 读取 Issue 原始事实，并用 article-hub 做确定性解析和项目校验。
 - 检查相似 Issue、已有文章和 materials/article-archive。
+- 先在对话中输出 5-8 行计划摘要，完整写作计划必须发布或更新为 GitHub Issue 评论。
+- 发布评论时使用 gh issue comment；发布成功后在对话中给出 Issue 评论链接。
+- 如果没有权限、网络失败或无法确认评论已发布，立即停止并说明失败原因；不要只把完整计划留在对话中。
+- 完整计划没有进入 Issue 评论时，本任务视为未完成。
 - 写清楚计划版本、推荐标题、目标读者、资料快照、建议大纲、截图/GIF 素材需求、素材缺口、人工验收项。
 - 给出可复制的批准命令：/ai 批准写作计划。
 ```
@@ -226,7 +230,7 @@ Issue 至少写清楚：
 - 素材缺口、风险和人工验收项。
 - 可复制的批准命令。
 
-Agent 会先在对话展示计划摘要，再把完整写作计划作为 Issue 评论发布或更新，运营和技术维护者在该评论上审核（见第三步）。如果 Agent 只在对话里给了计划、没有回写到 Issue，可以提醒它补发计划评论。
+Agent 会先在对话展示计划摘要，再把完整写作计划作为 Issue 评论发布或更新。评论发布成功并返回链接后，本步骤才算完成；如果发布失败，Agent 必须停止并说明原因。
 
 如果写作计划被提出修改意见，可以让 Agent 按最新意见重新整理计划。计划里的文章目标、来源、目标版本、大纲或素材缺口发生实质变化时，需要重新发布写作计划评论并重新批准。
 
@@ -353,9 +357,13 @@ Agent 会先在对话展示计划摘要，再把完整写作计划作为 Issue �
 - 如果 Issue 含 AI执行：人工暂停，立即停止。
 - 校验项目属于 config/projects.yml。
 - 固定来源快照后再生成文章。
+- Issue fixture、计划正文临时文件、批准快照输入文件只放系统临时目录或 .cache/article-hub/<issue-number>/。
+- 源码 checkout 缓存放 .cache/article-hub/source-cache/，不要写入 materials/source-cache/。
+- materials/issue-sources/<issue-number>/ 只放需要随仓库保存的人工来源快照；不要放运行缓存、Issue fixture 或计划临时文件。
 - 生成 articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md 和必要素材。
 - 初稿正文成型后自动调用 polish-opentiny-article 做正文优化；这是创建 Draft PR 前的固定步骤，不是 Review 通过后的收尾步骤。
 - 运行 article-hub validate article，直到校验通过或明确说明阻断原因。
+- 创建或更新 Draft PR 前运行 git status --short；发现 source-cache、临时计划文件、Issue fixture 等中间文件时先清理。无法确认清理安全时停止并说明。
 - 校验通过后创建或更新 Draft PR，并回写 Issue 状态。
 ```
 
