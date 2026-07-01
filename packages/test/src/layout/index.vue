@@ -133,6 +133,8 @@ const layoutProps = computed<Record<string, unknown>>(() =>
       },
 )
 
+const layoutSurfaceKey = computed(() => `${mode.value}-${showHeaderSlot.value}-${showLeftAsideSlot.value}`)
+
 const metrics = ref<LayoutMetrics>({
   leftResizeStart: 0,
   leftResizeEnd: 0,
@@ -234,7 +236,7 @@ function disableFloatingDraggable() {
   floatingOptions.value = { ...floatingOptions.value, draggable: false }
 }
 
-function emptyConditionalSlots() {
+function omitConditionalSlots() {
   showHeaderSlot.value = false
   showLeftAsideSlot.value = false
 }
@@ -433,8 +435,8 @@ onBeforeUnmount(() => {
 
       <button data-testid="append-messages-btn" type="button" @click="appendMessages">append messages</button>
       <button data-testid="short-messages-btn" type="button" @click="resetMessagesToShortList">short messages</button>
-      <button data-testid="conditional-slots-empty-btn" type="button" @click="emptyConditionalSlots">
-        empty conditional slots
+      <button data-testid="conditional-slots-omit-btn" type="button" @click="omitConditionalSlots">
+        omit conditional slots
       </button>
       <button data-testid="floating-resizable-off-btn" type="button" @click="disableFloatingResizable">
         floating resizable off
@@ -454,7 +456,7 @@ onBeforeUnmount(() => {
     </div>
     <div class="layout-demo__host" data-testid="layout-demo-host">
       <TrLayout
-        :key="mode"
+        :key="layoutSurfaceKey"
         id="layout-demo-surface"
         class="layout-demo__layout layout-demo__layout--surface-marker"
         data-surface-marker="layout-demo-surface"
@@ -474,8 +476,8 @@ onBeforeUnmount(() => {
         @floating-resize="handleFloatingResize"
         @floating-resize-end="handleFloatingResizeEnd"
       >
-        <template #left-aside>
-          <div v-if="showLeftAsideSlot" class="layout-demo__aside layout-demo__aside--left">
+        <template v-if="showLeftAsideSlot" #left-aside>
+          <div class="layout-demo__aside layout-demo__aside--left">
             <div class="layout-demo__aside-content" data-testid="left-aside-slot">
               <div class="layout-demo__aside-header">
                 <TrLayout.AsideToggle side="left" data-testid="left-aside-toggle">
@@ -489,8 +491,8 @@ onBeforeUnmount(() => {
           </div>
         </template>
 
-        <template #header>
-          <div v-if="showHeaderSlot" class="layout-demo__header" data-testid="layout-header-slot">layout header</div>
+        <template v-if="showHeaderSlot" #header>
+          <div class="layout-demo__header" data-testid="layout-header-slot">layout header</div>
         </template>
 
         <template #main>

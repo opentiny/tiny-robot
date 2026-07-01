@@ -40,10 +40,10 @@ test.describe('Layout 组件测试 - 结构', () => {
     await expect(surface).toHaveClass(/layout-demo__layout--surface-marker/)
   })
 
-  test('Conditional slots: empty header / left-aside - should not keep empty shell or resize trigger', async ({
+  test('Conditional slot declarations: omitted header / left-aside - should not keep shell or resize trigger', async ({
     layout,
   }) => {
-    await layout.emptyConditionalSlots()
+    await layout.omitConditionalSlots()
 
     await expect(layout.page.locator('.tr-layout__header')).toHaveCount(0)
     await expect(layout.getAside('left')).toHaveCount(0)

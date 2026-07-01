@@ -232,8 +232,8 @@ export class LayoutTestPage {
     await this.page.getByTestId('short-messages-btn').click()
   }
 
-  async emptyConditionalSlots() {
-    await this.page.getByTestId('conditional-slots-empty-btn').click()
+  async omitConditionalSlots() {
+    await this.page.getByTestId('conditional-slots-omit-btn').click()
   }
 
   async disableFloatingResizable() {
