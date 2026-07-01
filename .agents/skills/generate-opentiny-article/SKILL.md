@@ -20,7 +20,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 确定性判断和受控 mutation 走 `article-hub`，读取 GitHub 原始事实走 `gh`，二者不互相替代——这样规则只有一处实现，Skill 不会在自然语言里把它们重写偏。
 
-- 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。
+- 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。fixture 只放系统临时目录或 `.cache/article-hub/<issue-number>/`，不得写入 `materials/issue-sources/`。
 - 确定性判断使用 `article-hub`，包括权限过滤、固定命令解析、项目 allowlist、批准快照生成、文章校验、状态 guard 和受控 mutation。
 - 遇到标签互斥、暂停保护、bot 过滤、批准命令识别、Front Matter schema 或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 - 读取 Issue、PR、Review 等 GitHub 原始事实时直接使用 `gh`；不要为了读取字段或转发 `gh` 参数而临时修改 `article-hub`。
@@ -29,7 +29,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 每一步先确认未触发[停止条件](#停止条件)，再往下走。
 
-1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `article-hub` 解析：
+1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `article-hub` 解析。运行中间文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`：
 
    ```sh
    gh issue view <number> --repo hexqi/ai-article-hub --json number,title,body,author,labels,comments > <issue.json>
@@ -43,12 +43,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    ```sh
    article-hub projects list --config config/projects.yml
    article-hub projects validate --config config/projects.yml
-   article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir <cache-dir>
+   article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir .cache/article-hub/source-cache
    ```
 
    `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
+   源码 checkout 缓存不得写入 `materials/source-cache/`。`materials/issue-sources/<issue-number>/` 只用于保存需要随仓库提交的人工来源快照，不放 Issue fixture、计划临时文件、批准快照输入文件或源码缓存。
 
-3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没落地。
+3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示 5-8 行计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。发布成功后在对话中给出 Issue 评论链接。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布或无法确认评论链接即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没写入 GitHub。
 
    ```sh
    gh issue comment <number> --repo hexqi/ai-article-hub --body-file <临时计划文件>
@@ -72,7 +73,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    自然语言表述（如「我觉得可以批准」）、携带参数（如旧版 `/ai 批准写作计划 2 a1b2c3d4`）、越权用户或 bot 发出的命令都不算批准。`/ai 状态`、`/ai 暂停` 等其他可执行命令也不算批准。不要据此推断批准意图，没有满足上述条件的批准命令就停下等待。
 
-5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git）：
+5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git；临时文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`）：
 
    ```sh
    article-hub plan approve --plan-body-file <临时计划正文文件> --command "/ai 批准写作计划" --approver <login> --comment-id <批准评论 id> --approved-at <iso-time> [--plan-comment-id <计划评论 id>] [--plan-label <版本标签>]
@@ -130,7 +131,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    结果 `valid: false` 时，按 `blocking_issues[].code`（稳定码，不依赖 message 文案）定位并修正正文，然后重跑，直到 `valid: true`。修正只动正文：不得改 Front Matter、代码块、图片路径等受保护内容来凑过校验；若不改受保护内容就无法消除某个 code，按停止条件停止并报告。边界：`validate article` 只保证 Front Matter schema、来源版本、路径与图片 alt 等确定性规则，不背书章节结构与读感——结构是否单主线推进由第 6 步自审表与独立结构裁判把关，`valid: true` 不等于可发布。
 
-8. 校验通过后创建或更新 Draft PR：
+8. 校验通过后创建或更新 Draft PR。创建或更新前先运行 `git status --short`，确认没有 `source-cache`、Issue fixture、计划临时文件、批准快照输入文件等中间文件进入工作区；若无法确认清理安全，停止并说明：
 
    ```sh
    article-hub create-pr \

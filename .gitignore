@@ -74,6 +74,10 @@ web_modules/
 .cache
 .parcel-cache
 
+# article-hub local runtime cache
+.cache/article-hub/
+materials/source-cache/
+
 # Next.js build output
 .next
 out
