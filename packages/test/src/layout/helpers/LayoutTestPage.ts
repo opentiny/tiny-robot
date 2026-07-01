@@ -142,10 +142,6 @@ export class LayoutTestPage {
     return within(scope, side === 'left' ? layoutSelectors.leftAside : layoutSelectors.rightAside)
   }
 
-  getAsideContent(side: LayoutSide, scope: ScopedTarget = this.page) {
-    return within(scope, side === 'left' ? layoutSelectors.leftAsideContent : layoutSelectors.rightAsideContent)
-  }
-
   getResizeTrigger(side: LayoutSide, scope: ScopedTarget = this.page) {
     return within(scope, side === 'left' ? layoutSelectors.leftResizeTrigger : layoutSelectors.rightResizeTrigger)
   }
@@ -326,7 +322,7 @@ export class LayoutTestPage {
   }
 
   async resizeAside(side: LayoutSide, deltaX: number, scope: ScopedTarget = this.page) {
-    await this.dragResizeHandle(this.getResizeTrigger(side, scope), side, deltaX)
+    await this.dragResizeHandle(this.getResizeTrigger(side, scope), deltaX)
   }
 
   async dragBy(locator: Locator, deltaX: number, deltaY = 0) {
@@ -347,7 +343,7 @@ export class LayoutTestPage {
     await this.page.mouse.up()
   }
 
-  async dragResizeHandle(locator: Locator, side: LayoutSide, deltaX: number) {
+  async dragResizeHandle(locator: Locator, deltaX: number) {
     await expect(locator).toBeVisible()
     await locator.hover()
     const box = await locator.boundingBox()
@@ -356,7 +352,7 @@ export class LayoutTestPage {
       throw new Error('Missing resize handle')
     }
 
-    const startX = side === 'left' ? box.x + box.width - 1 : box.x + box.width - 1
+    const startX = box.x + box.width - 1
     const startY = box.y + box.height / 2
 
     await this.page.mouse.move(startX, startY)

@@ -64,14 +64,15 @@ test.describe('Layout 组件测试 - Aside', () => {
     let harness = await layout.readHarness()
     const leftLogs = harness.logs.asideResize.filter((entry) => entry.side === 'left')
     const leftProgressLogs = leftLogs.filter((entry) => entry.phase === 'progress')
-    const leftEndLog = leftLogs.at(-1)
+    const leftEndLog = leftLogs[leftLogs.length - 1]
+    const leftLastProgressLog = leftProgressLogs[leftProgressLogs.length - 1]
 
     expect(harness.metrics.leftResizeStart).toBe(1)
     expect(harness.metrics.leftResizeEnd).toBe(1)
     expect(harness.widths.left).toBeGreaterThanOrEqual(beforeLeft)
     expect(leftLogs[0]?.phase).toBe('start')
     expect(leftEndLog?.phase).toBe('end')
-    expect(leftEndLog?.expandedWidth).toBe(leftProgressLogs.at(-1)?.expandedWidth)
+    expect(leftEndLog?.expandedWidth).toBe(leftLastProgressLog?.expandedWidth)
 
     const beforeRight = harness.widths.right
     await layout.resizeAside('right', -160)
@@ -79,14 +80,15 @@ test.describe('Layout 组件测试 - Aside', () => {
     harness = await layout.readHarness()
     const rightLogs = harness.logs.asideResize.filter((entry) => entry.side === 'right')
     const rightProgressLogs = rightLogs.filter((entry) => entry.phase === 'progress')
-    const rightEndLog = rightLogs.at(-1)
+    const rightEndLog = rightLogs[rightLogs.length - 1]
+    const rightLastProgressLog = rightProgressLogs[rightProgressLogs.length - 1]
 
     expect(harness.metrics.rightResizeStart).toBe(1)
     expect(harness.metrics.rightResizeEnd).toBe(1)
     expect(harness.widths.right).toBeGreaterThanOrEqual(beforeRight)
     expect(rightLogs[0]?.phase).toBe('start')
     expect(rightEndLog?.phase).toBe('end')
-    expect(rightEndLog?.expandedWidth).toBe(rightProgressLogs.at(-1)?.expandedWidth)
+    expect(rightEndLog?.expandedWidth).toBe(rightLastProgressLog?.expandedWidth)
   })
 
   test('Dock: main min width - 双侧展开时主区不应被压穿', async ({ layout }) => {
@@ -264,7 +266,7 @@ test.describe('Layout 组件测试 - Aside', () => {
     expect(leftWidth).toBeGreaterThanOrEqual(340)
     expect(leftWidth).toBeLessThanOrEqual(348)
 
-    await fixture.getByTestId('drawer-right-toggle').evaluate((element: HTMLButtonElement) => element.click())
+    await fixture.getByTestId('drawer-right-toggle').click()
     await expect(fixture.getByTestId('drawer-right-state')).toHaveText('open')
     await expect(fixture.getByTestId('drawer-left-state')).toHaveText('closed')
     await layout.expectAsideState('left', 'closed', fixture)

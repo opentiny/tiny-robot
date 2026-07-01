@@ -4,8 +4,6 @@ export const layoutSelectors = {
   body: '.tr-layout__body',
   leftAside: '.tr-layout__aside.tr-layout__aside--left',
   rightAside: '.tr-layout__aside.tr-layout__aside--right',
-  leftAsideContent: '.tr-layout__aside.tr-layout__aside--left',
-  rightAsideContent: '.tr-layout__aside.tr-layout__aside--right',
   header: '.tr-layout__header',
   main: '.tr-layout__main',
   scrollTarget: '[data-testid="layout-scroll-target"]',

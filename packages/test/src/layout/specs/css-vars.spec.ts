@@ -99,7 +99,7 @@ test.describe('Layout 组件测试 - CSS Variables', () => {
 
   test('公开变量: scrollbar - 应作用于轨道宽度和 thumb 默认/hover/active 颜色', async ({ page }) => {
     const surface = page.getByTestId('css-vars-scrollbar-surface')
-    const scrollTarget = surface.locator(layoutSelectors.scrollTarget)
+    const scrollTarget = surface.getByTestId('css-vars-scroll-target')
     const scrollbar = surface.locator(layoutSelectors.scrollbar)
     const thumb = surface.locator(layoutSelectors.scrollbarThumb)
 

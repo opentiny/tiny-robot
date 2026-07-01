@@ -203,6 +203,7 @@ function updateDrawerRightOpen(detail: LayoutAsideOpenValue) {
             <div class="aside-state-fixtures__drawer">
               <div class="aside-state-fixtures__panel">
                 <span data-testid="drawer-left-state">{{ drawerLeftOpen ? 'open' : 'closed' }}</span>
+                <TrLayout.AsideToggle side="right" data-testid="drawer-right-toggle" />
               </div>
             </div>
           </template>
@@ -210,7 +211,6 @@ function updateDrawerRightOpen(detail: LayoutAsideOpenValue) {
           <template #main>
             <div class="aside-state-fixtures__drawer-controls">
               <TrLayout.AsideToggle side="left" data-testid="drawer-left-toggle" />
-              <TrLayout.AsideToggle side="right" data-testid="drawer-right-toggle" />
             </div>
           </template>
 

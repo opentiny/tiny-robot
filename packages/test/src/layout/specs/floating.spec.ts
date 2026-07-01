@@ -143,7 +143,8 @@ test.describe('Layout 组件测试 - Floating', () => {
     const startLog = harness.logs.floatingDrag[0]
     const phases = harness.logs.floatingDrag.map((entry) => entry.phase)
     const progressLogs = harness.logs.floatingDrag.filter((entry) => entry.phase === 'progress')
-    const endLog = harness.logs.floatingDrag.at(-1)
+    const endLog = harness.logs.floatingDrag[harness.logs.floatingDrag.length - 1]
+    const lastProgressLog = progressLogs[progressLogs.length - 1]
 
     expect(phases[0]).toBe('start')
     expect(progressLogs.length).toBeGreaterThan(0)
@@ -152,10 +153,10 @@ test.describe('Layout 组件测试 - Floating', () => {
     expect(startLog?.offsetY).toBe(72)
     expect(endLog?.phase).toBe('end')
     expect(endLog?.placement).toBe('top-left')
-    expect(endLog?.offsetX).toBe(progressLogs.at(-1)?.offsetX)
-    expect(endLog?.offsetY).toBe(progressLogs.at(-1)?.offsetY)
-    expect(endLog?.width).toBe(progressLogs.at(-1)?.width)
-    expect(endLog?.height).toBe(progressLogs.at(-1)?.height)
+    expect(endLog?.offsetX).toBe(lastProgressLog?.offsetX)
+    expect(endLog?.offsetY).toBe(lastProgressLog?.offsetY)
+    expect(endLog?.width).toBe(lastProgressLog?.width)
+    expect(endLog?.height).toBe(lastProgressLog?.height)
     expect(endLog?.offsetX ?? 0).toBeGreaterThan(startLog?.offsetX ?? 0)
     expect(endLog?.offsetY ?? 0).toBeGreaterThan(startLog?.offsetY ?? 0)
     expect(harness.metrics.floatingDragStart).toBe(1)
@@ -249,7 +250,8 @@ test.describe('Layout 组件测试 - Floating', () => {
       const harness = await layout.readHarness()
       const logs = harness.logs.floatingResize.filter((entry) => entry.handle === resizeCase.handle)
       const progressLogs = logs.filter((entry) => entry.phase === 'progress')
-      const endLog = logs.at(-1)
+      const endLog = logs[logs.length - 1]
+      const lastProgressLog = progressLogs[progressLogs.length - 1]
       const after = await layout.getBox(layout.surface)
 
       expect(harness.metrics.floatingResizeStartByHandle[resizeCase.handle]).toBeGreaterThan(0)
@@ -259,10 +261,10 @@ test.describe('Layout 组件测试 - Floating', () => {
       expect(endLog?.phase).toBe('end')
       expect(progressLogs.length).toBeGreaterThan(0)
       expect(endLog?.placement).toBe('top-left')
-      expect(endLog?.offsetX).toBe(progressLogs.at(-1)?.offsetX)
-      expect(endLog?.offsetY).toBe(progressLogs.at(-1)?.offsetY)
-      expect(endLog?.width).toBe(progressLogs.at(-1)?.width)
-      expect(endLog?.height).toBe(progressLogs.at(-1)?.height)
+      expect(endLog?.offsetX).toBe(lastProgressLog?.offsetX)
+      expect(endLog?.offsetY).toBe(lastProgressLog?.offsetY)
+      expect(endLog?.width).toBe(lastProgressLog?.width)
+      expect(endLog?.height).toBe(lastProgressLog?.height)
 
       resizeCase.assert(before, after)
     }

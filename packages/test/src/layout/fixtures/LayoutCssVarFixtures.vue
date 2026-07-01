@@ -168,7 +168,7 @@ const scrollItems = Array.from({ length: 80 }, (_, index) => `css var item ${ind
         class="layout-css-vars__layout layout-css-vars__layout--scrollbar"
       >
         <template #main>
-          <div ref="scrollbarHostRef" class="layout-css-vars__scroll-host" data-testid="layout-scroll-target">
+          <div ref="scrollbarHostRef" class="layout-css-vars__scroll-host" data-testid="css-vars-scroll-target">
             <div v-for="item in scrollItems" :key="item" class="layout-css-vars__scroll-item">
               {{ item }}
             </div>
