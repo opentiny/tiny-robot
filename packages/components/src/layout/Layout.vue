@@ -15,7 +15,6 @@ import type {
 import type { LayoutAsideState } from './internal.type'
 import { emitAsideOpenChangeEvents, emitAsideResizeEvents } from './utils/asideEventEmitters'
 import { toPx } from './utils/cssLength'
-import { hasNonEmptySlotContent } from './utils/slots'
 import { useControllableState } from '../shared/composables'
 import { DEFAULT_FLOATING_HEIGHT, DEFAULT_FLOATING_OFFSET, DEFAULT_FLOATING_WIDTH } from './utils/surfaceGeometry'
 
@@ -29,10 +28,10 @@ const slots = defineSlots<LayoutSlots>()
 
 const surfaceRef = ref<{ rootEl: HTMLElement | null } | null>(null)
 const rootEl = computed<HTMLElement | null>(() => surfaceRef.value?.rootEl ?? null)
-const hasLeftAside = computed(() => hasNonEmptySlotContent(slots['left-aside']))
-const hasHeader = computed(() => hasNonEmptySlotContent(slots.header))
-const hasFooter = computed(() => hasNonEmptySlotContent(slots.footer))
-const hasRightAside = computed(() => hasNonEmptySlotContent(slots['right-aside']))
+const hasLeftAside = computed(() => Boolean(slots['left-aside']))
+const hasHeader = computed(() => Boolean(slots.header))
+const hasFooter = computed(() => Boolean(slots.footer))
+const hasRightAside = computed(() => Boolean(slots['right-aside']))
 
 function onAsideOpenChange(detail: LayoutAsideOpenDetail): void {
   emitAsideOpenChangeEvents(emit, detail)

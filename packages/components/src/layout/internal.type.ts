@@ -1,7 +1,19 @@
 import type { ComputedRef, Ref } from 'vue'
-import type { LayoutAsideCollapseEffect, LayoutFloatingOptions, LayoutFloatingState, LayoutSide } from './index.type'
+import type {
+  LayoutAsideCollapseEffect,
+  LayoutFloatingOptions,
+  LayoutFloatingState,
+  LayoutMode,
+  LayoutSide,
+} from './index.type'
 
 export type LayoutResolvedFloating = LayoutFloatingState & LayoutFloatingOptions
+
+export interface LayoutSurfaceProps {
+  mode: LayoutMode
+  floatingState?: LayoutFloatingState
+  floatingOptions?: LayoutFloatingOptions
+}
 
 export interface LayoutFloatingRect {
   x: number
