@@ -10,6 +10,7 @@
 
 - 用户已明确 **目标平台**（如 `juejin`、`csdn`、`segmentfault`）和 **文章标题**（用于在 `publications.json` 中匹配条目）。
 - 本机已配置 `git`、`gh`，且对 `git@github.com:hexqi/ai-article-hub.git` 有拉取与推送权限。
+- `gh` 已登录 GitHub（`gh auth status` 正常）；未登录时 `gh pr create` 等命令会返回 `401 Bad credentials`。
 - `webmcp-cli` 可用，目标平台已在浏览器中登录（若跳转到登录页，暂停并通知用户手动登录）。
 
 ---
@@ -169,7 +170,23 @@ git checkout -b <平台标识>/<时间戳>
 - 平台记录字段顺序：`url`、`published_date`。
 - 保留该条目已有字段（`article_file`、`title`、`topic_issue`、`source_pr` 及其他平台记录），仅新增或更新本次平台。
 
-### 4.2 提交并创建 Pull Request
+### 4.2 确认 `gh` 已认证（提交 PR 前必做）
+
+平台发布成功、准备 `git push` 与 `gh pr create` 之前，先检查 GitHub CLI 登录状态：
+
+```bash
+gh auth status
+```
+
+| 情况 | 处理 |
+|------|------|
+| 输出显示已登录且 token 有效 | 继续 4.3 |
+| 返回 `401 Bad credentials`、`gh: Bad credentials` 或未登录 | **暂停**，通知用户在本机执行 `gh auth login` 完成认证后，再继续 push 与创建 PR |
+| 用户暂时无法登录 | 可先本地 commit 并保留发布 URL；告知用户待 `gh auth login` 后自行 `git push` 与 `gh pr create`，或授权后继续 |
+
+> `publications.json` 的本地修改可在平台发布成功后立即写入；**但不要在 `gh` 未认证时强行执行 `gh pr create` 并声称 PR 已创建**。认证恢复后再创建 PR。
+
+### 4.3 提交并创建 Pull Request
 
 在 **步骤 1 创建的发布分支** 上操作：
 
@@ -193,7 +210,7 @@ EOF
 )"
 ```
 
-### 4.3 通知用户
+### 4.4 通知用户
 
 流程结束时向用户报告：
 
@@ -211,6 +228,7 @@ EOF
 - `publications.json` 中找不到标题或母稿文件缺失/为空。
 - 平台发布未成功或未拿到可访问的文章 URL。
 - 用户未确认却要覆盖已有平台发布记录。
+- `gh` 未认证（`401 Bad credentials`）：暂停创建 PR，提示用户执行 `gh auth login` 后再继续。
 
 ---
 
@@ -227,7 +245,7 @@ git fetch / checkout main / pull → 切分支 <平台>/<时间戳>
         ↓
 按平台子指南 webmcp-cli 发布 → 取得 url
         ↓
-更新 publications.json → commit → push → gh pr create
+更新 publications.json → 确认 gh auth → commit → push → gh pr create
         ↓
 提醒用户合入 PR
 ```

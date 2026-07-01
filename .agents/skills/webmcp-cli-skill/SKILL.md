@@ -287,6 +287,7 @@ webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": tr
 
 4. **回写记录并提 PR**
    - 在该文章条目的 `publications` 下写入平台 key（如 `juejin`、`csdn`），包含 `url` 与 `published_date`（UTC+8，`YYYY-MM-DD`）。
+   - 提交 PR 前先执行 `gh auth status`；若返回 `401 Bad credentials` 或未登录，暂停并提示用户执行 `gh auth login`，认证成功后再 `git push` 与 `gh pr create`。
    - 在发布分支提交 `articles/publications.json`，`git push` 后用 `gh pr create` 创建 PR，并提醒用户审核合入。
 
 ### 平台子指南索引
