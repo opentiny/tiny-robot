@@ -210,7 +210,7 @@ article-hub validate article --article-file <path> --config <path>
 
 ### `create-pr`
 
-为生成的文章创建 Pull Request。
+为生成的文章创建 Pull Request。命令会同步维护 `articles/publications.json`：创建或更新文章条目，保留已有平台发布记录；dry-run 只输出 mutation plan，不写文件。
 
 ```sh
 article-hub create-pr \
@@ -234,6 +234,8 @@ article-hub create-pr \
 | `--slug` | ✅ | 文章 slug |
 | `--title` | ✅ | PR 标题 |
 | `--body-file` | ✅ | PR 描述 Markdown 文件路径；调用方负责根据 `.github/pull_request_template.md` 生成完整内容 |
+
+输出中的 `publications_record` 包含发布记录文件路径、文章 ID 和本次是否已写入文件。新建 Draft PR 时不写 `source_pr`，因为 PR 编号要等 GitHub 创建成功后才可得；更新已有 Draft PR 时写入已有 PR 编号。
 
 ---
 

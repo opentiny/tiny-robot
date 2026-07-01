@@ -4,6 +4,7 @@ import path from "node:path";
 import { parse } from "yaml";
 
 import { validateArticleFile } from "../domain/article-validation.js";
+import { upsertPublicationArticleRecord } from "../domain/publications.js";
 import { ArticleHubError } from "../infrastructure/errors.js";
 import { runCommand } from "../infrastructure/process.js";
 
@@ -14,6 +15,10 @@ interface ArticleFrontMatter {
 interface PrOperation {
   kind: string;
   [key: string]: unknown;
+}
+
+interface ExistingPullRequest {
+  number: number;
 }
 
 // slug 会进入分支名，限制为小写字母、数字和连字符，且必须以字母或数字开头。
@@ -61,9 +66,27 @@ export async function createPullRequest(options: {
   const title = options.title;
   const articleDirectory = path.dirname(options.articleFile);
   const branch = `article/${options.issueNumber}-${project}-${options.slug}`;
+
+  if (!options.dryRun) {
+    await runCommand("git", ["checkout", "-B", branch]);
+  }
+
+  const existingPullRequest = options.dryRun
+    ? null
+    : await findExistingPullRequest(options.repository, branch);
+  const publicationsRecord = await upsertPublicationArticleRecord({
+    root: process.cwd(),
+    articleFile: options.articleFile,
+    title,
+    topicIssue: options.issueNumber,
+    sourcePr: existingPullRequest?.number,
+    dryRun: options.dryRun
+  });
   const operations = plannedCreatePrOperations({
     articleFile: options.articleFile,
     articleDirectory,
+    publicationsFile: publicationsRecord.file,
+    publicationsArticleId: publicationsRecord.article_id,
     branch,
     repository: options.repository,
     base: options.base,
@@ -74,11 +97,13 @@ export async function createPullRequest(options: {
   if (!options.dryRun) {
     await applyCreatePrOperations({
       articleDirectory,
+      publicationsFile: publicationsRecord.file,
       branch,
       repository: options.repository,
       base: options.base,
       title,
-      bodyFile: options.bodyFile
+      bodyFile: options.bodyFile,
+      existingPullRequest
     });
   }
 
@@ -95,6 +120,7 @@ export async function createPullRequest(options: {
       project,
       title
     },
+    publications_record: publicationsRecord,
     pull_request: {
       repository: options.repository,
       base: options.base,
@@ -172,6 +198,8 @@ function readRequiredString(value: unknown, fieldName: string): string {
 function plannedCreatePrOperations(options: {
   articleFile: string;
   articleDirectory: string;
+  publicationsFile: string;
+  publicationsArticleId: string;
   branch: string;
   repository: string;
   base: string;
@@ -184,8 +212,14 @@ function plannedCreatePrOperations(options: {
       path: options.articleFile
     },
     {
+      kind: "update-publications-record",
+      path: options.publicationsFile,
+      article_id: options.publicationsArticleId
+    },
+    {
       kind: "git-add",
-      path: options.articleDirectory
+      path: options.articleDirectory,
+      paths: [options.articleDirectory, options.publicationsFile]
     },
     {
       kind: "git-commit",
@@ -208,20 +242,22 @@ function plannedCreatePrOperations(options: {
 
 async function applyCreatePrOperations(options: {
   articleDirectory: string;
+  publicationsFile: string;
   branch: string;
   repository: string;
   base: string;
   title: string;
   bodyFile: string;
+  existingPullRequest: ExistingPullRequest | null;
 }): Promise<void> {
-  await runCommand("git", ["checkout", "-B", options.branch]);
-  await runCommand("git", ["add", options.articleDirectory]);
+  await runCommand("git", ["add", options.articleDirectory, options.publicationsFile]);
   const stagedFiles = await runCommand("git", [
     "diff",
     "--cached",
     "--name-only",
     "--",
-    options.articleDirectory
+    options.articleDirectory,
+    options.publicationsFile
   ]);
 
   if (stagedFiles.length > 0) {
@@ -230,21 +266,20 @@ async function applyCreatePrOperations(options: {
       "-m",
       `article: update ${options.title}`,
       "--",
-      options.articleDirectory
+      options.articleDirectory,
+      options.publicationsFile
     ]);
   }
 
   await runCommand("git", ["push", "-u", "origin", `HEAD:${options.branch}`]);
 
-  const existingPr = await findExistingPullRequest(options.repository, options.branch);
-
-  if (existingPr) {
+  if (options.existingPullRequest) {
     await runCommand(
       "gh",
       [
         "pr",
         "edit",
-        String(existingPr.number),
+        String(options.existingPullRequest.number),
         "--repo",
         options.repository,
         "--title",
@@ -281,7 +316,7 @@ async function applyCreatePrOperations(options: {
 async function findExistingPullRequest(
   repository: string,
   branch: string
-): Promise<{ number: number } | null> {
+): Promise<ExistingPullRequest | null> {
   const raw = await runCommand(
     "gh",
     ["pr", "list", "--repo", repository, "--head", branch, "--json", "number", "--limit", "1"],
