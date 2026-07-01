@@ -1,0 +1,27 @@
+sequenceDiagram
+  autonumber
+  participant User as 用户
+  participant UI as Sender/UI
+  participant Message as useMessage
+  participant Plugin as plugins
+  participant Provider as responseProvider
+  participant API as 业务后端 /api/chat/completions
+  participant Model as 模型服务
+
+  User->>UI: 输入“北京天气怎么样？”
+  UI->>Message: sendMessage(content)
+  Message->>Message: 追加 user message 与 currentTurn
+  Message->>Plugin: onTurnStart
+  Message->>Message: sanitizeMessages()
+  Message->>Plugin: onBeforeRequest(requestBody)
+  Plugin-->>Message: 注入 tools 或上下文参数
+  Message->>Provider: responseProvider(requestBody, abortSignal)
+  Provider->>API: POST /api/chat/completions
+  API->>Model: 转发鉴权后的模型请求
+  Model-->>API: SSE data: chunk
+  API-->>Provider: ReadableStream
+  Provider-->>Message: AsyncGenerator<ChatCompletion>
+  Message->>Message: combileDeltaData 合并 delta
+  Message-->>UI: 正在增长的 assistant message
+  Message->>Plugin: onAfterRequest(lastChoice)
+  Plugin-->>Message: tool message + requestNext()

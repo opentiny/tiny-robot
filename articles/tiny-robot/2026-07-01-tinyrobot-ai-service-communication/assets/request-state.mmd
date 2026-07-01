@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> idle
+  idle --> processing_requesting: sendMessage / send
+  processing_requesting --> processing_completing: 收到第一个 chunk
+  processing_completing --> completed: 流结束且无下一轮请求
+  processing_completing --> processing_requesting: requestNext()
+  processing_requesting --> aborted: abortRequest()
+  processing_completing --> aborted: abortRequest()
+  processing_requesting --> error: 未处理异常
+  processing_completing --> error: 未处理异常
+  completed --> idle: 下一次发送前
+  aborted --> idle: 下一次发送前
+  error --> idle: 下一次发送前
