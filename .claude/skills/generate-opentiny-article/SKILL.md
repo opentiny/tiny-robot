@@ -47,7 +47,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    ```
 
    `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
-   源码 checkout 缓存不得写入 `materials/source-cache/`。`materials/issue-sources/<issue-number>/` 只用于保存需要随仓库提交的人工来源快照，不放 Issue fixture、计划临时文件、批准快照输入文件或源码缓存。
+   源码 checkout 缓存不得写入 `materials/source-cache/`。`materials/issue-sources/<issue-number>/` 只用于保存需要随仓库提交的人工来源快照，不放 Issue fixture、计划临时文件、批准快照输入文件或源码缓存。默认文章 Draft PR 不提交 `materials/issue-sources/`；只有批准计划明确点名该人工来源快照需要随仓库保存，且人工确认可以公开提交时，才允许纳入 PR。
 
 3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示 5-8 行计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。发布成功后在对话中给出 Issue 评论链接。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布或无法确认评论链接即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没写入 GitHub。
 
@@ -131,7 +131,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    结果 `valid: false` 时，按 `blocking_issues[].code`（稳定码，不依赖 message 文案）定位并修正正文，然后重跑，直到 `valid: true`。修正只动正文：不得改 Front Matter、代码块、图片路径等受保护内容来凑过校验；若不改受保护内容就无法消除某个 code，按停止条件停止并报告。边界：`validate article` 只保证 Front Matter schema、来源版本、路径与图片 alt 等确定性规则，不背书章节结构与读感——结构是否单主线推进由第 6 步自审表与独立结构裁判把关，`valid: true` 不等于可发布。
 
-8. 校验通过后创建或更新 Draft PR。创建或更新前先运行 `git status --short`，确认没有 `source-cache`、Issue fixture、计划临时文件、批准快照输入文件等中间文件进入工作区；若无法确认清理安全，停止并说明：
+8. 校验通过后创建或更新 Draft PR。创建或更新前先运行 `git status --short`、`git diff --name-only --cached` 和 `git diff --name-only`，确认没有 `source-cache`、Issue fixture、计划临时文件、批准快照输入文件等中间文件进入工作区；默认只允许文章目录 `articles/<project-id>/<YYYY-MM-DD>-<slug>/` 与 `articles/publications.json` 进入本次 Draft PR。若出现 `materials/issue-sources/<issue-number>/`，先对照批准计划：未明确点名需要随仓库保存、或没有人工确认可公开提交时，必须从索引、工作区和 PR 历史中移除后再继续；无法确认清理安全时停止并说明：
 
    ```sh
    article-hub create-pr \
@@ -146,6 +146,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    ```
 
    `create-pr` 会同步维护 `articles/publications.json`，写入文章条目和空 `publications`；正常流程无需在调用前预先编辑该文件。
+
+   更新已有 Draft PR 时，创建或推送后再用 `gh pr diff <pr-number> --name-only` 复查最终 PR 文件列表。文件列表若包含默认允许范围以外的路径，先停止并清理分支历史，再请求人工 Review。人工来源快照属于例外路径，必须在 PR body 的来源快照摘要中说明保存理由、来源、License 或公开性判断。
 
    PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
 
