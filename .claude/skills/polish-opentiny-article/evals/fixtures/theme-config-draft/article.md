@@ -1,18 +1,19 @@
 ---
-schema_version: article-hub.article
+schema_version: article-hub.article.v2
 title: WebMCP SDK 主题配置实践
 summary: 介绍 WebMCP SDK 的主题配置方式，以及在初始化阶段配置时需要注意的边界。
 project: webmcp-sdk
 article_type: practical-guide
 style_profile: official-balanced
-language: zh-CN
 sources:
   - name: webmcp-sdk
     repository: https://github.com/opentiny/webmcp-sdk.git
     commit: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0
-approved_plan: |-
-  ## 写作计划（第 1 版）
-  目标：介绍 WebMCP SDK 的主题配置方式
+approval_snapshot:
+  url: https://github.com/example/article-workspace/issues/20#issuecomment-2001
+  approver: maintainer-a
+  plan_comment_id: 2000
+  approval_comment_id: 2001
 article_date: 2026-06-20
 author: OpenTiny
 ---

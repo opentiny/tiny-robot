@@ -78,7 +78,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    article-hub plan approve --plan-body-file <临时计划正文文件> --command "/ai 批准写作计划" --approver <login> --comment-id <批准评论 id> --approved-at <iso-time> [--plan-comment-id <计划评论 id>] [--plan-label <版本标签>]
    ```
 
-   生成时以该快照的 `approved_plan` 为唯一计划来源，不回读 live 评论；在创建 Draft PR 时，于 PR 描述中写一行批准引用（批准人、`approved_at`、快照评论链接）。
+   生成时以该批准快照中的完整计划为唯一计划来源，不回读 live 评论；文章 Front Matter 使用 `schema_version: article-hub.article.v2`，填写 `approval_snapshot` 短对象，包含 `url`、`approver`、`plan_comment_id`、`approval_comment_id`；完整计划和批准时间保存在 Issue 批准快照评论中；在创建 Draft PR 时，于 PR 描述中写一行批准引用（批准人、批准快照评论链接）。
 
 6. 在隔离 Git worktree 中创建文章目录并写作：
 
@@ -88,7 +88,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    写作分四步，前三步是动笔前的必做产出物，第四步才落笔：
 
-   1. **必读（顺序固定）**：读 [文章类型与结构参考](./references/article-types.md) 取本文 `article_type` 的必备信息、推荐大纲与长度区间；读通用写作手艺 `references/styles/writing-craft.md`。本文 `style_profile` 取自批准快照 `approved_plan` 里确认的文风，并据此写入 Front Matter（`style_profile` 是文章校验必填字段）；若批准计划正文中无法判定文风值，停止并回到计划阶段补齐，不在写作步自行拍板。按该 `style_profile` 读对应文风文件，并深读仓库根目录下的 `materials/style-exemplars/<style>.md` 范例——它示范手艺如何落到真实文章，只读手艺描述会写成「文档腔」，范例文件存在即必须读；仅当该文件确实不存在时才降级，并在对话标注「范例降级：materials/style-exemplars/<style>.md 不存在，按 Skill 内文风文件继续」。
+   1. **必读（顺序固定）**：读 [文章类型与结构参考](./references/article-types.md) 取本文 `article_type` 的必备信息、推荐大纲与长度区间；读通用写作手艺 `references/styles/writing-craft.md`。本文 `style_profile` 取自批准快照里的计划正文，并据此写入 Front Matter（`style_profile` 是文章校验必填字段）；若批准计划正文中无法判定文风值，停止并回到计划阶段补齐，不在写作步自行拍板。按该 `style_profile` 读对应文风文件，并深读仓库根目录下的 `materials/style-exemplars/<style>.md` 范例——它示范手艺如何落到真实文章，只读手艺描述会写成「文档腔」，范例文件存在即必须读；仅当该文件确实不存在时才降级，并在对话标注「范例降级：materials/style-exemplars/<style>.md 不存在，按 Skill 内文风文件继续」。
    2. **必填产出物·主线声明（三栏）**：动笔前在对话写出三栏——『本文主线 =〔一条真实调用链 / 一个具体问题 / 一个决策处境〕』『贯穿全文的同一个具体实例或调用（自始至终是同一个，不在每章另起一个）』『每个正文业务章节让这个实例推进到哪一步』。模块、组件、包在主线推进到它时登场一次并融入该章叙述；章节标题写它在主线上推进的那一步或那个判断，相邻业务章节用不同句式（连续四节套同一模板——如「X 承接的是…」「从 X 看…」——就是模块清单换皮）。
       若批准快照的「建议大纲」本身是模块清单骨架（按包 / 组件 / 能力分节、而非主线阶段；常见于在结构规则更新前批准的旧计划），不照该清单逐节罗列：按「大纲是推荐而非强制、不强制固定章节标题和顺序」，在不改变覆盖范围、事实边界和维护者明确内容约束的前提下，把章节重排为上面的主线骨架，并在对话与 PR body 注明『批准大纲为模块清单，已按主线骨架重排章节、未改覆盖范围与事实』。若维护者在计划 / Review 中曾明确要求保留某种分节结构，或主线重排会改动覆盖范围，则这是人工决定项：停下来向人工说明冲突（保留批准的模块分节 vs 改为主线骨架）由人工确认，或回到计划阶段修订后重新批准，不在写作步单方面拍板。
    3. **必填产出物·范例借鉴清单**：读完范例后在对话逐条列出（2–4 条，每条三栏：从范例借的招式 / 用在本文哪一节 / 本文中的具体做法），把范例手艺迁移成本文动作而非仿其措辞。若本文 `style_profile` 与 `article_type` 默认文风不同，清单须回应计划里「迁移该文风哪些招式」的承诺。
@@ -146,7 +146,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    `create-pr` 会同步维护 `articles/publications.json`，写入文章条目和空 `publications`；正常流程无需在调用前预先编辑该文件。
 
-   PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、`approved_at`、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
+   PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
 
 9. 更新 Issue 状态：
 

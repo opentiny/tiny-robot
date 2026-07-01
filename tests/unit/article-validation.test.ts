@@ -21,6 +21,13 @@ const validPng = Buffer.from(
   "base64"
 );
 const temporaryDirectories = new Set<string>();
+const validApprovalSnapshot = [
+  "approval_snapshot:",
+  "  url: https://github.com/example/article-workspace/issues/12#issuecomment-1001",
+  "  approver: maintainer-a",
+  "  plan_comment_id: 1000",
+  "  approval_comment_id: 1001"
+].join("\n");
 
 afterEach(() => {
   for (const directory of temporaryDirectories) {
@@ -70,6 +77,10 @@ function writeArticleWithAssets(
 
   writeFileSync(target, transform(readArticleFixture()), "utf8");
   return target;
+}
+
+function replaceApprovalSnapshot(content: string, replacement: string): string {
+  return content.replace(validApprovalSnapshot, replacement);
 }
 
 function issueCodes(result: Awaited<ReturnType<typeof validateArticleFile>>): string[] {
@@ -132,7 +143,10 @@ describe("article validation", () => {
     [
       "schema_version",
       (content: string) =>
-        content.replace("schema_version: article-hub.article", "schema_version: article-hub.article.v0"),
+        content.replace(
+          "schema_version: article-hub.article.v2",
+          "schema_version: article-hub.article.invalid"
+        ),
       "invalid-schema-version",
       "schema_version"
     ],
@@ -144,14 +158,10 @@ describe("article validation", () => {
       "summary"
     ],
     [
-      "approved_plan 为空",
-      (content: string) =>
-        content.replace(
-          "approved_plan: |-\n  ## 写作计划（第 2 版）\n  目标：介绍 WebMCP SDK 的本地写作链路",
-          'approved_plan: ""'
-        ),
+      "approval_snapshot 缺失",
+      (content: string) => content.replace(`${validApprovalSnapshot}\n`, ""),
       "missing-required-frontmatter-field",
-      "approved_plan"
+      "approval_snapshot"
     ]
   ])("Front Matter schema 约束会阻断 %s 漂移", async (_, transform, code, field) => {
     const articleFile = writeVariant("frontmatter-schema-drift", transform);
@@ -171,18 +181,48 @@ describe("article validation", () => {
     expectBlockingIssue(result, "missing-frontmatter");
   });
 
-  test("approved_plan 必须是非空字符串", async () => {
-    const articleFile = writeVariant("invalid-approved-plan", (content) =>
-      content.replace(
-        "approved_plan: |-\n  ## 写作计划（第 2 版）\n  目标：介绍 WebMCP SDK 的本地写作链路",
-        "approved_plan:\n  legacy: object"
+  test("approval_snapshot 必须是对象", async () => {
+    const articleFile = writeVariant("invalid-approval-snapshot", (content) =>
+      replaceApprovalSnapshot(
+        content,
+        'approval_snapshot: "https://github.com/example/article-workspace/issues/12#issuecomment-1001"'
       )
     );
 
   const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
 
   expect(result.valid).toBe(false);
-    expectBlockingIssue(result, "invalid-approved-plan", "approved_plan");
+    expectBlockingIssue(result, "invalid-approval-snapshot", "approval_snapshot");
+  });
+
+  test("approval_snapshot 缺少审计字段会阻断", async () => {
+    const articleFile = writeVariant("approval-snapshot-without-url", (content) =>
+      replaceApprovalSnapshot(
+        content,
+        [
+          "approval_snapshot:",
+          "  approver: maintainer-a",
+          "  plan_comment_id: 1000",
+          "  approval_comment_id: 1001"
+        ].join("\n")
+      )
+    );
+
+  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+  expect(result.valid).toBe(false);
+    expectBlockingIssue(result, "invalid-approval-snapshot", "approval_snapshot");
+  });
+
+  test("approval_snapshot 的 comment id 必须是正整数", async () => {
+    const articleFile = writeVariant("approval-snapshot-with-invalid-comment-id", (content) =>
+      content.replace("  plan_comment_id: 1000", "  plan_comment_id: 0")
+    );
+
+  const result = await validateArticleFile({ articleFile, configPath, dryRun: false });
+
+  expect(result.valid).toBe(false);
+    expectBlockingIssue(result, "invalid-approval-snapshot", "approval_snapshot");
   });
 
   test("sources 每项必须包含来源标识和稳定定位字段", async () => {

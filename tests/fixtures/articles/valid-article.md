@@ -1,19 +1,20 @@
 ---
-schema_version: article-hub.article
+schema_version: article-hub.article.v2
 title: WebMCP SDK 实践指南
 summary: 用一个可复现示例说明 WebMCP SDK 的本地写作链路。
 project: webmcp-sdk
 article_type: practical-guide
 style_profile: developer-friendly
-language: zh-CN
 topic_issue: 12
 article_date: 2026-06-19
 created_at: 2026-06-19T09:00:00+08:00
 updated_at: 2026-06-19T09:00:00+08:00
 author: OpenTiny
-approved_plan: |-
-  ## 写作计划（第 2 版）
-  目标：介绍 WebMCP SDK 的本地写作链路
+approval_snapshot:
+  url: https://github.com/example/article-workspace/issues/12#issuecomment-1001
+  approver: maintainer-a
+  plan_comment_id: 1000
+  approval_comment_id: 1001
 sources:
   - id: opentiny-webmcp-sdk
     repository: https://github.com/opentiny/webmcp-sdk
