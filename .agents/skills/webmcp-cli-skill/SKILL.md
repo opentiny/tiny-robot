@@ -1,6 +1,6 @@
 ---
 name: webmcp-cli-skill
-description: 面向第三方 AI Agent 的安装与执行指南：如何使用 webmcp-cli 与浏览器页面交互。包含已注入 WebMCP 工具的页面领域专用工具说明。
+description: 面向第三方 AI Agent 的安装与执行指南：如何使用 webmcp-cli 与浏览器页面交互；包含从 ai-article-hub 读取母稿、发布到掘金/CSDN/思否等平台并回写 publications.json 的完整编排流程。
 license: MIT
 metadata:
   author: opentiny
@@ -16,6 +16,7 @@ metadata:
 - 需要与网页交互（点击元素、填写表单、滚动页面）时。
 - 需要读取当前 DOM 结构并识别可交互元素时。
 - 在已注入领域专用工具的页面上操作时（例如 Excalidraw 绘图工具）。
+- 需要将 `ai-article-hub` 仓库中的文章母稿发布到掘金、CSDN、思否等外部平台，并回写 `articles/publications.json` 后提 PR 时。
 
 ## 安装
 
@@ -262,6 +263,40 @@ webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": tr
 - 用户要求你在 Excalidraw 上绘制图表、流程图、架构图或任意可视化内容。
 - 当前页面 URL 为 `excalidraw.com`，且 `webmcpTools` 中包含 `excalidraw_execute_command`。
 - 需要在 Excalidraw 画布上新增、更新、删除或查询元素。
+
+---
+
+## 从 ai-article-hub 发布文章到外部平台
+
+当用户要求将 OpenTiny 文章母稿发布到技术社区（如掘金、CSDN、思否）时，**必须先阅读并严格按** [domains/publish-from-article-hub.md](domains/publish-from-article-hub.md) 执行端到端编排；平台侧浏览器操作再阅读对应平台子指南。
+
+### 流程摘要
+
+1. **准备仓库与分支**
+   - 在当前工作空间定位 `ai-article-hub`：若根目录已有 `articles/publications.json` 则直接用当前仓库；否则若存在 `ai-article-hub/` 子目录则用之（**已存在则不 clone**）；否则 `git clone git@github.com:hexqi/ai-article-hub.git ai-article-hub`。
+   - **无论是否 clone，都必须**先 `git fetch` / `checkout main` / `pull origin main` 拉取最新 main，再创建分支 `<平台标识>/<UTC+8时间戳>`，时间戳格式 `YYYYMMDD-HHmmss`（例：`juejin/20260701-143052`）。
+
+2. **解析发布记录并定位母稿**
+   - 读取 `articles/publications.json`；若 `articles` 为空，按 [publish-from-article-hub.md](domains/publish-from-article-hub.md) 中的默认示例作为匹配数据源。
+   - 根据用户提供的 **标题** 与条目的 `title` 字段精确匹配，得到 `article_file`。
+   - 在仓库根目录下打开对应母稿；文件不存在或为空时停止，提示用户检查文章是否编写成功。
+
+3. **平台发布**
+   - 按目标平台阅读 [publish-article.md](domains/publish-article.md) 及平台子指南，使用 `webmcp-cli` 完成发布。
+   - 发布成功并取得完整文章 URL 后再进入下一步。
+
+4. **回写记录并提 PR**
+   - 在该文章条目的 `publications` 下写入平台 key（如 `juejin`、`csdn`），包含 `url` 与 `published_date`（UTC+8，`YYYY-MM-DD`）。
+   - 在发布分支提交 `articles/publications.json`，`git push` 后用 `gh pr create` 创建 PR，并提醒用户审核合入。
+
+### 平台子指南索引
+
+| 平台 key | 文档 |
+|----------|------|
+| `juejin` | [domains/publish-article-in-juejin.md](domains/publish-article-in-juejin.md) |
+| `csdn` | [domains/publish-article-in-csdn.md](domains/publish-article-in-csdn.md) |
+| `segmentfault` | [domains/publish-article-in-segmentfault.md](domains/publish-article-in-segmentfault.md) |
+| `oschina` | [domains/publish-article-in-oschina.md](domains/publish-article-in-oschina.md) |
 
 ---
 

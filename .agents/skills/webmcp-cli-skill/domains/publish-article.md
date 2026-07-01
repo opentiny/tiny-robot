@@ -2,6 +2,8 @@
 
 本指南面向 AI Agent，使用 `webmcp-cli` 自动化发布文章到各技术平台。
 
+> **从 ai-article-hub 仓库编排发布**（拉仓库、读 `publications.json`、回写并提 PR）请先阅读 [publish-from-article-hub.md](./publish-from-article-hub.md)。
+
 ---
 
 ## 核心质量要求
