@@ -1,4 +1,11 @@
 {
   "schema_version": "article-hub.publications.v1",
-  "articles": {}
+  "articles": {
+    "tiny-robot/2026-07-01-tinyrobot-ai-service-communication": {
+      "article_file": "articles/tiny-robot/2026-07-01-tinyrobot-ai-service-communication/article.md",
+      "title": "打通前后端：从一次消息请求看懂 TinyRobot AI 服务通信链路",
+      "topic_issue": 11,
+      "publications": {}
+    }
+  }
 }
