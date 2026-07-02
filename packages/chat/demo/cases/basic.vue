@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { TrChat, useManagedChatRuntime, type ChatParts } from '../../src'
+import { TrChat, useManagedChatRuntime, type ChatUi } from '../../src'
 import type { ChatCompletion, ResponseProvider } from '@opentiny/tiny-robot-kit'
+import { useMediaQuery } from '@vueuse/core'
+import { computed } from 'vue'
 
 const responseProvider: ResponseProvider<ChatCompletion> = async (requestBody) => {
   const lastMessage = requestBody.messages.at(-1)
@@ -32,35 +34,34 @@ const runtime = useManagedChatRuntime({
   },
 })
 
-const parts: ChatParts = {
+const isMobile = useMediaQuery('(max-width: 768px)')
+
+const ui = computed<ChatUi>(() => ({
   layout: {
     leftAside: {
-      defaultOpen: true,
-      expandedWidth: 260,
+      mode: isMobile.value ? 'drawer' : 'dock',
+      defaultOpen: !isMobile.value,
+      expandedWidth: isMobile.value ? 280 : 260,
     },
   },
-  messages: {
-    welcome: {
-      title: 'How can I help you today?',
-      description: '',
-    },
-    bubbleList: {
-      autoScroll: true,
-      roleConfigs: {
-        user: { placement: 'end' },
-        assistant: { placement: 'start' },
-      },
+  welcome: {
+    title: 'How can I help you today?',
+    description: '',
+  },
+  bubbleList: {
+    autoScroll: true,
+    roleConfigs: {
+      user: { placement: 'end' },
+      assistant: { placement: 'start' },
     },
   },
-  composer: {
-    sender: {
-      mode: 'multiple',
-      placeholder: '输入消息验证 managed runtime',
-    },
+  sender: {
+    mode: 'multiple',
+    placeholder: '输入消息验证 managed runtime',
   },
-}
+}))
 </script>
 
 <template>
-  <TrChat :runtime="runtime" :parts="parts" />
+  <TrChat :key="isMobile ? 'mobile' : 'desktop'" :runtime="runtime" :ui="ui" />
 </template>

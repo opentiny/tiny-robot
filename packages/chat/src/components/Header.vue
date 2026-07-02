@@ -4,9 +4,17 @@ import { TrIconButton, TrLayout } from '@opentiny/tiny-robot'
 import { IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import { useChatContext } from '../composables/useChatContext'
 
+const props = defineProps<{
+  title?: string
+}>()
+
 const { runtime } = useChatContext()
 
 const currentTitle = computed(() => {
+  if (props.title) {
+    return props.title
+  }
+
   const currentId = runtime.conversations?.currentId.value
   const current = runtime.conversations?.items.value.find((item) => item.id === currentId)
 
@@ -22,7 +30,7 @@ function handleCreateConversation() {
   <div class="tr-chat-header">
     <slot>
       <div class="tr-chat-header__start">
-        <TrLayout.AsideToggle placement="left">
+        <TrLayout.AsideToggle side="left">
           <template #default="{ isOpen }">
             <TrIconButton
               class="tr-chat-header__aside-toggle"

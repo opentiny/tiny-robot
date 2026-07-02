@@ -6,7 +6,7 @@ export function useChatContext(): ChatContext {
   const context = inject(chatContextKey, null)
 
   if (!context) {
-    throw new Error('[tiny-robot-chat] useChatContext must be used inside TrChat.Root.')
+    throw new Error('[tiny-robot-chat] useChatContext must be used inside TrChat.')
   }
 
   return context

@@ -6,7 +6,8 @@ import type {
   DefaultActions,
   HistoryItem,
   HistoryProps,
-  LayoutProps,
+  LayoutFloatingProps,
+  LayoutNormalProps,
   PromptProps,
   PromptsProps,
   SenderProps,
@@ -26,6 +27,8 @@ export type ChatConversationItem = HistoryItem & {
 
 export type ChatMessageItem = BubbleMessage
 
+export type ChatLayoutUi = (Omit<LayoutNormalProps, 'mode'> & { mode?: 'normal' }) | LayoutFloatingProps
+
 export interface ChatRuntimeConversations {
   items: ChatReadable<readonly ChatConversationItem[]>
   currentId: ChatReadable<string | null>
@@ -39,7 +42,7 @@ export interface ChatRuntimeMessages {
   lastError?: ChatReadable<unknown | null>
 }
 
-export interface ChatRuntimeComposer {
+export interface ChatRuntimeSender {
   inputValue: ChatReadable<string>
   disabled: ChatReadable<boolean>
   loading: ChatReadable<boolean>
@@ -64,7 +67,7 @@ export interface ChatRuntimeActions {
 export interface ChatRuntime {
   conversations?: ChatRuntimeConversations
   messages: ChatRuntimeMessages
-  composer: ChatRuntimeComposer
+  sender: ChatRuntimeSender
   actions: ChatRuntimeActions
 }
 
@@ -74,38 +77,26 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
-export type ChatSenderPart = Omit<
+export type ChatSenderUi = Omit<
   SenderProps,
   'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
 > & {
   defaultActions?: ChatSenderDefaultActions
 }
 
-export interface ChatConversationsPart {
+export interface ChatUi {
+  layout?: ChatLayoutUi
   history?: Omit<HistoryProps<ChatConversationItem>, 'data' | 'selected'>
-}
-
-export interface ChatMessagesPart {
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: Omit<BubbleListProps, 'messages'>
   welcome?: WelcomeProps
   prompts?: Omit<PromptsProps, 'items'> & {
     items?: PromptProps[]
   }
-}
-
-export interface ChatComposerPart {
-  sender?: ChatSenderPart
-}
-
-export interface ChatParts {
-  layout?: LayoutProps
-  conversations?: ChatConversationsPart
-  messages?: ChatMessagesPart
-  composer?: ChatComposerPart
+  sender?: ChatSenderUi
 }
 
 export interface ChatContext {
   runtime: ChatRuntime
-  parts: ChatParts
+  ui: ChatUi
 }

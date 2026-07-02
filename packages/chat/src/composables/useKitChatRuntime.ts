@@ -1,20 +1,17 @@
-import { computed, shallowRef, type Ref } from 'vue'
+import { computed, type Ref } from 'vue'
 import type { RequestProcessingState, RequestState, UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type { ChatRuntime } from '../types'
 
 export interface UseKitChatRuntimeOptions {
-  inputValue?: Ref<string>
+  inputValue: Ref<string>
+  lastError: Ref<unknown | null>
   titleFallback?: (text: string) => string
 }
 
 const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
 
-export function useKitChatRuntime(
-  conversation: UseConversationReturn,
-  options: UseKitChatRuntimeOptions = {},
-): ChatRuntime {
-  const inputValue = options.inputValue ?? shallowRef('')
-  const lastError = shallowRef<unknown | null>(null)
+export function useKitChatRuntime(conversation: UseConversationReturn, options: UseKitChatRuntimeOptions): ChatRuntime {
+  const { inputValue, lastError } = options
   const titleFallback = options.titleFallback ?? defaultTitleFallback
 
   const activeEngine = computed(() => conversation.activeConversation.value?.engine)
@@ -38,7 +35,7 @@ export function useKitChatRuntime(
       processingState: computed<RequestProcessingState | undefined>(() => activeEngine.value?.processingState.value),
       lastError,
     },
-    composer: {
+    sender: {
       inputValue,
       disabled,
       loading,

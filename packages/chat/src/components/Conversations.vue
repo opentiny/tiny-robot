@@ -6,15 +6,15 @@ import { useChatContext } from '../composables/useChatContext'
 import type { ChatConversationItem } from '../types'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
 
-const { runtime, parts } = useChatContext()
+const { runtime, ui } = useChatContext()
 
 const conversations = computed(() => runtime.conversations)
-const historyParts = computed(() => parts.conversations?.history ?? {})
+const historyProps = computed(() => ui.history ?? {})
 const data = computed(() => [...(conversations.value?.items.value ?? [])])
 const selected = computed(() => conversations.value?.currentId.value ?? undefined)
 const menuItems = computed(() => {
-  if (historyParts.value.menuItems) {
-    return historyParts.value.menuItems
+  if (historyProps.value.menuItems) {
+    return historyProps.value.menuItems
   }
 
   const items: HistoryMenuItem[] = []
@@ -64,7 +64,7 @@ function handleCreateConversation() {
     </div>
 
     <TrHistory
-      v-bind="historyParts"
+      v-bind="historyProps"
       class="tr-chat-conversations__history"
       :data="data"
       :selected="selected"

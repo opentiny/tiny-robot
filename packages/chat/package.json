@@ -18,8 +18,13 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "sideEffects": ["**/*.css"],
-  "files": ["dist", "README*"],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist",
+    "README*"
+  ],
   "scripts": {
     "build": "vue-tsc --noEmit",
     "dev": "vite --host 0.0.0.0",

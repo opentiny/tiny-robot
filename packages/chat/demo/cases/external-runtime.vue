@@ -2,9 +2,9 @@
 import { TrChat } from '../../src'
 import { useDemoRuntime } from './useDemoRuntime'
 
-const { runtime, parts } = useDemoRuntime()
+const { runtime, ui } = useDemoRuntime()
 </script>
 
 <template>
-  <TrChat :runtime="runtime" :parts="parts" />
+  <TrChat :runtime="runtime" :ui="ui" />
 </template>

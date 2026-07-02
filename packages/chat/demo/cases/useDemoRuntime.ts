@@ -1,5 +1,5 @@
 import { computed, shallowRef } from 'vue'
-import type { ChatConversationItem, ChatMessageItem, ChatParts, ChatRuntime, ChatSubmitPayload } from '../../src'
+import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload, ChatUi } from '../../src'
 import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
 
 function createConversation(title: string): ChatConversationItem {
@@ -97,7 +97,7 @@ export function useDemoRuntime() {
       processingState,
       lastError,
     },
-    composer: {
+    sender: {
       inputValue,
       disabled,
       loading,
@@ -136,44 +136,40 @@ export function useDemoRuntime() {
     },
   }
 
-  const parts: ChatParts = {
+  const ui: ChatUi = {
     layout: {
       leftAside: {
         defaultOpen: true,
         expandedWidth: 260,
       },
     },
-    messages: {
-      welcome: {
-        title: 'TinyRobot Chat',
-        description: 'MVP demo',
-      },
-      prompts: {
-        wrap: true,
-        items: [
-          { label: '介绍一下 TinyRobot Chat' },
-          { label: '生成一个 Vue 组件示例' },
-          { label: '解释 runtime 和 parts 的职责' },
-        ],
-      },
-      bubbleList: {
-        autoScroll: true,
-        roleConfigs: {
-          user: { placement: 'end' },
-          assistant: { placement: 'start' },
-        },
+    welcome: {
+      title: 'TinyRobot Chat',
+      description: 'MVP demo',
+    },
+    prompts: {
+      wrap: true,
+      items: [
+        { label: '介绍一下 TinyRobot Chat' },
+        { label: '生成一个 Vue 组件示例' },
+        { label: '解释 runtime 和 ui 的职责' },
+      ],
+    },
+    bubbleList: {
+      autoScroll: true,
+      roleConfigs: {
+        user: { placement: 'end' },
+        assistant: { placement: 'start' },
       },
     },
-    composer: {
-      sender: {
-        mode: 'multiple',
-        placeholder: '输入消息，Enter 发送',
-      },
+    sender: {
+      mode: 'multiple',
+      placeholder: '输入消息，Enter 发送',
     },
   }
 
   return {
     runtime,
-    parts,
+    ui,
   }
 }

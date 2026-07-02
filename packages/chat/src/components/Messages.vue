@@ -8,17 +8,16 @@ const props = defineProps<{
   isEmpty?: boolean
 }>()
 
-const { runtime, parts } = useChatContext()
+const { runtime, ui } = useChatContext()
 const messages = computed(() => [...runtime.messages.items.value])
 const isEmpty = computed(() => props.isEmpty ?? messages.value.length === 0)
-const messageParts = computed(() => parts.messages ?? {})
 const bubbleListRef = ref<LayoutScrollTarget>(null)
 const scrollTarget = computed(() => {
   const element = bubbleListRef.value instanceof HTMLElement ? bubbleListRef.value : bubbleListRef.value?.$el
   return element instanceof HTMLElement ? element : null
 })
 
-const promptsProps = computed(() => messageParts.value.prompts)
+const promptsProps = computed(() => ui.prompts)
 const promptListProps = computed(() => ({
   ...promptsProps.value,
   items: promptsProps.value?.items ?? [],
@@ -41,7 +40,7 @@ defineExpose({
 <template>
   <div class="tr-chat-messages">
     <template v-if="isEmpty">
-      <TrWelcome v-if="messageParts.welcome" v-bind="messageParts.welcome">
+      <TrWelcome v-if="ui.welcome" v-bind="ui.welcome">
         <template v-if="$slots['welcome-footer']" #footer>
           <slot name="welcome-footer" />
         </template>
@@ -53,10 +52,10 @@ defineExpose({
       </TrPrompts>
     </template>
 
-    <TrBubbleProvider v-else v-bind="messageParts.bubbleProvider">
+    <TrBubbleProvider v-else v-bind="ui.bubbleProvider">
       <TrBubbleList
         ref="bubbleListRef"
-        v-bind="messageParts.bubbleList"
+        v-bind="ui.bubbleList"
         class="tr-chat-messages__bubble-list"
         :messages="messages"
       >

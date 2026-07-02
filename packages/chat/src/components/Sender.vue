@@ -4,10 +4,10 @@ import { TrSender } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
 import type { StructuredData } from '@opentiny/tiny-robot'
 
-const { runtime, parts } = useChatContext()
+const { runtime, ui } = useChatContext()
 
 const senderProps = computed(() => {
-  const sender = parts.composer?.sender ?? {}
+  const sender = ui.sender ?? {}
 
   return {
     ...sender,
@@ -15,12 +15,12 @@ const senderProps = computed(() => {
       ...sender.defaultActions,
       submit: {
         ...sender.defaultActions?.submit,
-        disabled: runtime.composer.submitDisabled.value,
+        disabled: runtime.sender.submitDisabled.value,
       },
     },
-    modelValue: runtime.composer.inputValue.value,
-    loading: runtime.composer.loading.value,
-    disabled: runtime.composer.disabled.value,
+    modelValue: runtime.sender.inputValue.value,
+    loading: runtime.sender.loading.value,
+    disabled: runtime.sender.disabled.value,
   }
 })
 
