@@ -69,6 +69,18 @@ webmcp-cli run page-agent-tool -f ./args.json
 
 旧版 `page-agent-tool` 中曾有 `!args.index` 作为校验的 Bug，导致 `index: 0` 时报错"缺少索引"。遇到此问题时改用 `executeJavascript` 操作首个元素，或升级到已修复的版本。
 
+### 4. 发布前必须处理本地图片
+
+从 `ai-article-hub` 发布时，母稿中的 `./assets/...` 相对路径在外部平台**无法显示**。
+
+**必须**在调用 `create_article` 等工具之前：
+
+1. 按 [prepare-article-images.md](./prepare-article-images.md) 校验每个 `![alt](path)` 引用。
+2. 将本地图片内联为 `data:` URI，写入 `.publish/article-body.md`。
+3. 用发布副本传 `@base64file:`，不要直接传原始 `article.md`。
+
+图片校验未通过时**禁止发布**，先修复母稿或补全 `assets/` 文件。
+
 ---
 
 ## 平台扩展规划

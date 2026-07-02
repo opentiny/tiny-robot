@@ -64,7 +64,7 @@ webmcp-cli state
 
 ### 第三步：填写标题和正文（完成后停止）
 
-将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入。
+将**步骤 2.5 生成的** `.publish/article-body.md`（已内联本地图片）通过 `@base64file:` 内联引用传入。
 
 **推荐：使用 JSON 文件传参（PowerShell / cmd 均适用）**
 
@@ -72,7 +72,7 @@ webmcp-cli state
 // article_args.json
 {
   "title": "你的文章标题",
-  "content": "@base64file:./article.md"
+  "content": "@base64file:./articles/<project>/<slug>/.publish/article-body.md"
 }
 ```
 
@@ -89,7 +89,7 @@ webmcp-cli run create_article -f ./article_args.json
 **bash 终端也可内联传参：**
 
 ```bash
-webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./article.md"}'
+webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md"}'
 ```
 
 > [!NOTE]

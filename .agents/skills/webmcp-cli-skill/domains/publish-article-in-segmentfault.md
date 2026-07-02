@@ -8,6 +8,7 @@
 
 1. 用户已登录 SegmentFault（Cookie 由 webmcp-cli Chrome Profile 保持）
 2. 如未登录，会跳转到 `/user/login`，需用户手动登录
+3. 正文须先按 [prepare-article-images.md](./prepare-article-images.md) 生成 `.publish/article-body.md`（本地图片已内联），`content` 参数读取该文件内容，勿直接使用含 `./assets/` 相对路径的母稿
 
 ## 核心特性
 

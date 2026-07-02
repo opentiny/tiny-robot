@@ -118,6 +118,17 @@ git checkout -b <平台标识>/<时间戳>
 
 若该条目 `publications` 中已存在目标平台 key 且含有效 `url`，**先询问用户**是否仍要重新发布；默认不覆盖，除非用户明确确认。
 
+### 2.5 校验并处理正文图片（必做）
+
+外部平台无法解析母稿中的 `./assets/...` 相对路径。进入步骤 3 之前，**必须**按 [prepare-article-images.md](./prepare-article-images.md) 完成：
+
+1. 运行 `article-hub validate article` 确认图片路径与 alt 合法。
+2. 扫描正文 `![alt](path)`，验证每个本地图片文件存在。
+3. 生成 `<文章目录>/.publish/article-body.md`，将本地图片替换为 `data:` URI；**不修改**母稿 `article.md`。
+4. 任一步失败则**停止发布**，向用户报告缺失或非法的图片路径。
+
+步骤 3 传给各平台 `create_article` 等工具的 `content`，必须使用 `.publish/article-body.md`，不得直接使用原始 `article.md`。
+
 ---
 
 ## 步骤 3：发布到目标平台
@@ -135,7 +146,7 @@ git checkout -b <平台标识>/<时间戳>
 
 1. 发布前阅读 [publish-article.md](./publish-article.md) 中的质量与避坑准则。
 2. 文章 **标题** 使用 `publications.json` 条目中匹配的 `title`（与母稿 front matter 不一致时以 `publications.json` 为准，除非用户指定）。
-3. 文章 **正文** 使用步骤 2.3 确认的母稿文件；通过 `@base64file:` 或 `-f` 传入各平台 `create_article` 等工具。
+3. 文章 **正文** 使用步骤 2.5 生成的 `.publish/article-body.md`（已内联本地图片）；通过 `@base64file:` 或 `-f` 传入各平台 `create_article` 等工具。禁止跳过图片处理直接传原始 `article.md`。
 4. 严格遵守 `webmcp-cli state` → 领域工具 → `page-agent-tool` 的调用顺序（见主 Skill）。
 5. **仅在平台确认发布成功并取得文章 URL 后** 进入步骤 4；草稿-only、审核中、无 URL 均视为未成功。
 
@@ -226,6 +237,7 @@ EOF
 
 - 无法 clone、无法同步 main、无法 checkout / 创建分支（权限、网络、冲突）。
 - `publications.json` 中找不到标题或母稿文件缺失/为空。
+- 图片校验失败、本地图片缺失，或未能生成 `.publish/article-body.md`。
 - 平台发布未成功或未拿到可访问的文章 URL。
 - 用户未确认却要覆盖已有平台发布记录。
 - `gh` 未认证（`401 Bad credentials`）：暂停创建 PR，提示用户执行 `gh auth login` 后再继续。
@@ -242,6 +254,8 @@ EOF
 git fetch / checkout main / pull → 切分支 <平台>/<时间戳>
         ↓
 读 publications.json → 按 title 匹配 article_file → 校验母稿
+        ↓
+校验并内联图片 → 生成 .publish/article-body.md
         ↓
 按平台子指南 webmcp-cli 发布 → 取得 url
         ↓

@@ -32,10 +32,10 @@ ${uid} 是用户在开源中国的uid值， 一串数字。 必须要求用户�
 
 ### 第二步：填写标题和正文（完成后停止）
 
-将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入：
+将**步骤 2.5 生成的** `.publish/article-body.md`（已内联本地图片）通过 `@base64file:` 内联引用传入：
 
 ```bash
-webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./article.md"}'
+webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md"}'
 ```
 
 > [!WARNING]

@@ -42,11 +42,12 @@ webmcp-cli state
 
 ### 第二步：填写标题和正文
 
-将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
+将**步骤 2.5 生成的** `.publish/article-body.md`（已内联本地图片）通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
 
 ```bash
 # TAB_ID 来自 tabs open 的返回值
-webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./article.md"}'
+# PUBLISH_FILE 为 <文章目录>/.publish/article-body.md
+webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md"}'
 ```
 
 > [!WARNING]

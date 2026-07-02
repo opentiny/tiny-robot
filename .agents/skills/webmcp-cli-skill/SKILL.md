@@ -281,11 +281,15 @@ webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": tr
    - 根据用户提供的 **标题** 与条目的 `title` 字段精确匹配，得到 `article_file`。
    - 在仓库根目录下打开对应母稿；文件不存在或为空时停止，提示用户检查文章是否编写成功。
 
-3. **平台发布**
-   - 按目标平台阅读 [publish-article.md](domains/publish-article.md) 及平台子指南，使用 `webmcp-cli` 完成发布。
+3. **校验并处理图片**
+   - 按 [prepare-article-images.md](domains/prepare-article-images.md) 运行 `article-hub validate article`，扫描 `![alt](path)`，将本地图片内联为 `data:` URI。
+   - 生成 `<文章目录>/.publish/article-body.md` 作为发布正文；校验失败则停止，不得直接用原始 `article.md` 发布。
+
+4. **平台发布**
+   - 按目标平台阅读 [publish-article.md](domains/publish-article.md) 及平台子指南，使用 `.publish/article-body.md` 配合 `webmcp-cli` 完成发布。
    - 发布成功并取得完整文章 URL 后再进入下一步。
 
-4. **回写记录并提 PR**
+5. **回写记录并提 PR**
    - 在该文章条目的 `publications` 下写入平台 key（如 `juejin`、`csdn`），包含 `url` 与 `published_date`（UTC+8，`YYYY-MM-DD`）。
    - 提交 PR 前先执行 `gh auth status`；若返回 `401 Bad credentials` 或未登录，暂停并提示用户执行 `gh auth login`，认证成功后再 `git push` 与 `gh pr create`。
    - 在发布分支提交 `articles/publications.json`，`git push` 后用 `gh pr create` 创建 PR，并提醒用户审核合入。
