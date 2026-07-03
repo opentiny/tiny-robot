@@ -1,6 +1,6 @@
 ---
 name: polish-opentiny-article
-description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `generate-opentiny-article` 生成初稿后的全文优化、Draft PR 初审或 Review 中的 `/ai 全文润色`、Request changes、授权 `/ai` 指令和局部修改要求；人工确认或 Approve 后不要默认触发，若再次触发则视为新一轮修改。
+description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `generate-opentiny-article` 生成初稿后的全文优化、Draft PR 初审或 Review 中的 `/ai 全文润色`、Request changes、PR `/ai` 指令和局部修改要求；人工确认或 Approve 后不要默认触发，若再次触发则视为新一轮修改。
 ---
 
 # Polish OpenTiny Article
@@ -47,12 +47,12 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 只消费以下人工明确提出的修改要求：
 
 - GitHub Review 中的 `Request changes`
-- 授权用户发出的 `/ai` 指令
-- 人工直接说明的局部修改要求
+- PR 中的 `/ai` 指令
+- PR 评论、行级评论或 Review 线程中的明确可执行修改意见
 
-默认只修改评论指向的行、段落或受影响章节，不顺手优化相邻章节。评论是否来自授权用户、是否为 bot，以 `article-hub` 的权限与 bot 过滤结果为准，不由自然语言自行判定。`Approve`、人工说“通过”或“确认”不触发修改。
+默认只修改评论指向的行、段落或受影响章节，不顺手优化相邻章节。Issue 固定控制命令仍以 `article-hub` 的权限与 bot 过滤结果为准；PR Review、行级评论、PR 评论和 `Request changes` 中，能评论即视为已授权。`Approve`、人工说“通过”或“确认”不触发修改。
 
-处理一轮 Issue 评论或 PR Review 时，先按 [评论归类与回贴细则](./references/review-triage.md) 枚举本轮全部评论、逐条归类、逐条处理并回贴结果，不要把多条异质评论合并成一团笼统处理。处理边界按是否触及受保护内容判定，**不按评论者身份区分**——运营也可能提出触及事实的意见，技术也可能只提表达意见，凡触及版本、API、兼容性、性能、安全、代码等受保护事实，无论谁提出都回固定来源核验。已知缺口：PR 的 Review 线程、行级评论和 `Request changes` 正文当前没有 `article-hub` 的权限/bot 过滤支撑，处理前必须由人工确认评论者具备仓库写权限，不要仅凭评论内容推断授权。
+处理一轮 Issue 评论或 PR Review 时，先按 [评论归类与回贴细则](./references/review-triage.md) 枚举本轮全部评论、逐条归类、逐条处理并回贴结果，不要把多条异质评论合并成一团笼统处理。处理边界按是否触及受保护内容判定，**不按评论者身份区分**——运营也可能提出触及事实的意见，技术也可能只提表达意见，凡触及版本、API、兼容性、性能、安全、代码等受保护事实，无论谁提出都回固定来源核验。
 
 目标短语属于无来源评价，且删除后句意完整时，直接删除目标短语，不用推断出的功能或效果补位。
 
@@ -102,7 +102,7 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 
 ## 校验与更新
 
-普通 PR、Review 和 Issue 读取使用 `gh` 获取原始事实；确定性判断和受控 Git/GitHub mutation 使用 `article-hub`。遇到文章校验、权限/bot 过滤、暂停保护、状态标签互斥或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。是否采纳某条 `/ai` 指令或 Review 评论，以 `article-hub` 的权限与 bot 过滤结果为准。
+普通 PR、Review 和 Issue 读取使用 `gh` 获取原始事实；确定性判断和受控 Git/GitHub mutation 使用 `article-hub`。Issue 固定控制命令以 `article-hub` 的权限与 bot 过滤结果为准；PR Review、行级评论、PR 评论和 `Request changes` 中，能评论即视为已授权。遇到文章校验、暂停保护、状态标签互斥或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 
 收尾归属：`/ai 全文润色` 与 Review 局部修订两个独立入口，由 polish 自己执行下面的校验与更新；作为 `generate-opentiny-article` 子步的初稿全文优化只交付润色后的正文，校验、Draft PR 和 Issue 状态由 generate 流程统一收尾。人工确认后再次触发全文润色时，按新一轮修改处理，并在回复中写明需要重新确认。
 
@@ -130,7 +130,13 @@ article-hub create-pr \
   --body-file <pr-body.md>
 ```
 
-如需回写 Issue 状态：
+如需回写 Issue 状态，先读取 PR Draft 状态和关联 Issue 当前阶段，再选择目标阶段：
+
+- Draft PR 或关联 Issue 仍是 `阶段：写作`：回到 `阶段：写作 + AI：等待人工`。
+- Ready PR 或关联 Issue 已是 `阶段：审核`：回到 `阶段：审核 + AI：等待人工`。
+- PR 已 Convert to draft 但 Issue 仍是 `阶段：审核`：用 `lifecycle-transition` 退回 `阶段：写作 + AI：等待人工`。
+
+Ready PR 的普通 Review 修订：
 
 ```sh
 article-hub update-status \
@@ -140,6 +146,30 @@ article-hub update-status \
   --phase "阶段：审核" \
   --ai-state "AI：等待人工" \
   --comment "已处理本轮修改意见，请重新 Review。"
+```
+
+Draft PR 初审或补素材修改：
+
+```sh
+article-hub update-status \
+  --issue-file <issue.json> \
+  --repository hexqi/ai-article-hub \
+  --intent content-transition \
+  --phase "阶段：写作" \
+  --ai-state "AI：等待人工" \
+  --comment "已处理本轮 Draft PR 初审意见，请继续初审或确认 Ready for review。"
+```
+
+PR 已 Convert to draft 时：
+
+```sh
+article-hub update-status \
+  --issue-file <issue.json> \
+  --repository hexqi/ai-article-hub \
+  --intent lifecycle-transition \
+  --phase "阶段：写作" \
+  --ai-state "AI：等待人工" \
+  --comment "PR 已转回 Draft，本轮修改已处理，请继续初审。"
 ```
 
 ## 完成门槛

@@ -540,6 +540,12 @@ Draft PR 初审阶段可以只评论，不要求核心技术维护者必须 Appr
 
 如果缺少来源，Agent 不应该编造数据或案例。
 
+## 可选：定时巡检
+
+如果 Codex、Claude Code 或其他本地 Agent 支持定时任务，可以让它定期检查文章 Issue 和 Draft PR，自动处理已经明确授权的写作计划、固定批准命令、PR Review 和 `/ai` 修改指令。
+
+定时巡检只负责本地唤醒和消费已授权事件，不跳过写作计划批准、事实确认、人工 Review、Ready for review 或发布流程。建议先完整跑通一次人工流程，再参考 [本地 Agent 定时巡检提示词](./docs/local-agent-scheduled-checks.md) 配置 Issue 巡检和 PR 巡检。
+
 ## 第九步：验收与 Ready for review
 
 操作位置：GitHub PR 页面。
@@ -644,6 +650,7 @@ articles/<project-id>/<YYYY-MM-DD>-<slug>/assets/diagrams/<name>.png
 - [README.md](./README.md)：仓库能力、结构和核心工作流。
 - [docs/article-generation-requirements.md](./docs/article-generation-requirements.md)：完整需求和边界。
 - [docs/cli-reference.md](./docs/cli-reference.md)：`article-hub` CLI 参数参考。
+- [docs/local-agent-scheduled-checks.md](./docs/local-agent-scheduled-checks.md)：本地 Agent 定时巡检提示词。
 - [.agents/skills/generate-opentiny-article/SKILL.md](./.agents/skills/generate-opentiny-article/SKILL.md)：生成文章的 Codex 流程。
 - [.agents/skills/polish-opentiny-article/SKILL.md](./.agents/skills/polish-opentiny-article/SKILL.md)：初稿优化和修改处理的 Codex 流程。
 - [.claude/skills/generate-opentiny-article/SKILL.md](./.claude/skills/generate-opentiny-article/SKILL.md)：生成文章的 Claude Code 流程。

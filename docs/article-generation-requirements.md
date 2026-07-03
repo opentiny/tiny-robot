@@ -144,7 +144,7 @@
 
 - 初稿生成后，由 `generate-opentiny-article` 自动调用，优化全文正文。
 - Draft PR 初审或 Review 中收到 `/ai 全文润色` 后，作为一轮全文修改保守处理。
-- 根据 `Request changes`、授权用户的 `/ai` 指令或人工要求局部修订。
+- 根据 `Request changes`、PR 中的 `/ai` 指令或人工要求局部修订。
 
 默认只修改正文自然语言，不修改：
 
@@ -376,9 +376,9 @@ Issue 标题只是工作标题。最终标题在写作计划中确认，并同�
 /ai 重试
 ```
 
-不得根据普通自然语言猜测批准意图。PR 中其他 `/ai <修改要求>` 视为文章修订指令。
+不得根据普通自然语言猜测批准意图。PR 中其他 `/ai <修改要求>` 和能评论者提出的明确 Review 修改意见，视为文章修订指令。
 
-所有状态命令、PR 修订命令和 `Request changes` 处理都必须校验触发者具有仓库写权限或位于配置的 allowlist 中。未授权用户和 bot 的触发请求只保留为普通讨论，不调用模型、不修改分支。
+Issue 状态命令必须校验触发者具有仓库写权限或位于配置的 allowlist 中。PR Review、PR 评论、行级线程和 `Request changes` 以 GitHub 可评论权限作为授权前提；能评论即视为已授权，不再额外判断写权限或 allowlist。
 
 ## 11. 生成流程
 
@@ -400,7 +400,7 @@ Issue 标题只是工作标题。最终标题在写作计划中确认，并同�
 
 本地运行使用独立 Git worktree，不切换用户当前分支，也不接触当前工作区未提交修改。成功后可以清理 worktree；失败时保留并输出路径。
 
-当前交付没有常驻进程，也不自动监听 GitHub 事件。计划批准、Ready for review、`Request changes` 或 `/ai` 评论出现后，需要人工再次调用 Skill；Skill 每次启动读取并消费当前所有待处理事件。Ready for review 只做验收和状态检查，不触发全文润色。未来 GitHub Workflow 才负责自动唤醒。
+当前交付没有常驻进程，也不自动监听 GitHub 事件。计划批准、Ready for review、`Request changes`、能评论者的明确 PR 修改意见或 `/ai` 评论出现后，需要人工再次调用 Skill；Skill 每次启动读取并消费当前所有待处理事件。Ready for review 只做验收和状态检查，不触发全文润色。未来 GitHub Workflow 才负责自动唤醒。
 
 ## 12. 输出契约
 
@@ -591,8 +591,9 @@ Review 意见
 
 ### 15.4 Review 触发
 
-- `Request changes` 自动收集该 Review 中的意见并触发 AI 修订。
-- 普通行级评论或普通 PR 评论只有以 `/ai` 开头才触发；`/ai 全文润色` 也按一轮修订处理。
+- 能评论者发出的 `Request changes` 自动收集该 Review 中的意见并触发 AI 修订。
+- 能评论者在普通行级评论、PR 评论或 Review 线程中提出明确可执行修改意见时，触发 AI 修订，不要求评论以 `/ai` 开头。
+- `/ai 全文润色` 按一轮修订处理。
 - `Approve` 只更新 GitHub 审核状态，不触发修改。
 - 意见冲突或目标不清时先请求澄清，不自行改稿。
 
