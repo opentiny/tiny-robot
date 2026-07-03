@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { TrHistory } from '@opentiny/tiny-robot'
+import { computed, ref } from 'vue'
+import { TrHistory, TrLayout } from '@opentiny/tiny-robot'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
 import { useChatContext } from '../composables/useChatContext'
 import type { ChatConversationItem } from '../types'
@@ -10,8 +10,10 @@ const { runtime, ui } = useChatContext()
 
 const conversations = computed(() => runtime.conversations)
 const historyProps = computed(() => ui.history ?? {})
-const data = computed(() => [...(conversations.value?.items.value ?? [])])
 const selected = computed(() => conversations.value?.currentId.value ?? undefined)
+const historyScrollRef = ref<HTMLElement | null>(null)
+const data = computed<ChatConversationItem[]>(() => [...(conversations.value?.items.value ?? [])])
+
 const menuItems = computed(() => {
   if (historyProps.value.menuItems) {
     return historyProps.value.menuItems
@@ -35,6 +37,7 @@ function handleItemClick(item: ChatConversationItem) {
 }
 
 function handleTitleChange(title: string, item: ChatConversationItem) {
+  item.title = title
   runtime.actions.renameConversation?.(item.id, title)
 }
 
@@ -51,35 +54,42 @@ function handleCreateConversation() {
 
 <template>
   <div v-if="conversations" class="tr-chat-conversations">
-    <div class="tr-chat-conversations__toolbar">
-      <button
-        v-if="runtime.actions.createConversation"
-        class="tr-chat-conversations__new"
-        type="button"
-        @click="handleCreateConversation"
-      >
-        <IconNewSession class="tr-chat-conversations__new-icon" />
-        <span class="tr-chat-conversations__new-text">新建对话</span>
-      </button>
+    <div class="tr-chat-conversations__top">
+      <div class="tr-chat-conversations__toolbar">
+        <button
+          v-if="runtime.actions.createConversation"
+          class="tr-chat-conversations__new"
+          @click="handleCreateConversation"
+        >
+          <IconNewSession class="tr-chat-conversations__new-icon" />
+          <span class="tr-chat-conversations__new-text">新建对话</span>
+        </button>
+      </div>
     </div>
 
-    <TrHistory
-      v-bind="historyProps"
-      class="tr-chat-conversations__history"
-      :data="data"
-      :selected="selected"
-      :menu-items="menuItems"
-      @item-click="handleItemClick"
-      @item-title-change="handleTitleChange"
-      @item-action="handleItemAction"
-    >
-      <template v-if="$slots['item-prefix']" #item-prefix="slotProps">
-        <slot name="item-prefix" v-bind="slotProps" />
-      </template>
-      <template v-if="$slots['item-title']" #item-title="slotProps">
-        <slot name="item-title" v-bind="slotProps" />
-      </template>
-    </TrHistory>
+    <div class="tr-chat-conversations__list-shell">
+      <div ref="historyScrollRef" class="tr-chat-conversations__list">
+        <TrHistory
+          v-bind="historyProps"
+          class="tr-chat-conversations__history"
+          :data="data"
+          :selected="selected"
+          :menu-items="menuItems"
+          @item-click="handleItemClick"
+          @item-title-change="handleTitleChange"
+          @item-action="handleItemAction"
+        >
+          <template v-if="$slots['item-prefix']" #item-prefix="slotProps">
+            <slot name="item-prefix" v-bind="slotProps" />
+          </template>
+          <template v-if="$slots['item-title']" #item-title="slotProps">
+            <slot name="item-title" v-bind="slotProps" />
+          </template>
+        </TrHistory>
+      </div>
+
+      <TrLayout.ProxyScrollbar :scroll-target="historyScrollRef" />
+    </div>
   </div>
 </template>
 
@@ -89,7 +99,12 @@ function handleCreateConversation() {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  background: #f5f5f5;
   box-sizing: border-box;
+}
+
+.tr-chat-conversations__top {
+  flex-shrink: 0;
 }
 
 .tr-chat-conversations__toolbar {
@@ -101,17 +116,15 @@ function handleCreateConversation() {
 }
 
 .tr-chat-conversations__new {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  width: 100%;
   min-width: 0;
   height: 32px;
-  flex: 1;
-  padding: 0 12px;
-  border: 0;
+  border: 1px solid #dbdbdb;
+  padding: 8px;
   border-radius: 8px;
-  background: var(--tr-container-bg-hover);
   color: var(--tr-text-primary);
   cursor: pointer;
 }
@@ -119,6 +132,7 @@ function handleCreateConversation() {
 .tr-chat-conversations__new-icon {
   width: 16px;
   height: 16px;
+  margin-right: 4px;
   flex-shrink: 0;
 }
 
@@ -128,8 +142,30 @@ function handleCreateConversation() {
   white-space: nowrap;
 }
 
-.tr-chat-conversations__history {
+.tr-chat-conversations__list-shell {
+  position: relative;
   min-height: 0;
   flex: 1;
+  --tr-layout-main-scrollbar-width: 12px;
+  --tr-layout-main-scrollbar-thumb-bg: color-mix(in srgb, var(--tr-text-primary, #111827) 18%, transparent);
+  --tr-layout-main-scrollbar-thumb-bg-hover: color-mix(in srgb, var(--tr-text-primary, #111827) 28%, transparent);
+  --tr-layout-main-scrollbar-thumb-bg-active: color-mix(in srgb, var(--tr-text-primary, #111827) 36%, transparent);
+  --scrollbar-block-inset: 4px;
+  --scrollbar-inline-end: 4px;
+  --scrollbar-thumb-inset: 2px;
+}
+
+.tr-chat-conversations__list {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.tr-chat-conversations__history {
+  min-width: 0;
+}
+
+.tr-chat-conversations__list:deep(.tr-history) {
+  min-width: 0;
 }
 </style>

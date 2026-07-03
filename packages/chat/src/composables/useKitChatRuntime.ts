@@ -1,36 +1,81 @@
-import { computed, type Ref } from 'vue'
-import type { RequestProcessingState, RequestState, UseConversationReturn } from '@opentiny/tiny-robot-kit'
-import type { ChatRuntime } from '../types'
+import { computed, ref, watch, type Ref } from 'vue'
+import type {
+  ConversationInfo,
+  RequestProcessingState,
+  RequestState,
+  UseConversationReturn,
+} from '@opentiny/tiny-robot-kit'
+import type { ChatConversationItem, ChatRuntime, ChatSubmitPayload } from '../types'
 
 export interface UseKitChatRuntimeOptions {
   inputValue: Ref<string>
   lastError: Ref<unknown | null>
-  titleFallback?: (text: string) => string
+  send?: (payload: ChatSubmitPayload) => Promise<void> | void
 }
 
-const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
+function createStableConversationItems(conversation: UseConversationReturn) {
+  type StableConversationItem = {
+    id: string
+    title: string
+    createdAt?: number
+    updatedAt?: number
+    metadata?: Record<string, unknown>
+  }
+
+  const items = ref<StableConversationItem[]>([])
+
+  watch(
+    () => conversation.conversations.value,
+    (nextItems) => {
+      const cache = new Map<string, StableConversationItem>()
+
+      for (const item of items.value) {
+        cache.set(item.id, item)
+      }
+
+      items.value = nextItems.map((item: ConversationInfo) => {
+        const current = cache.get(item.id)
+
+        if (current) {
+          current.title = item.title || '新对话'
+          current.createdAt = item.createdAt
+          current.updatedAt = item.updatedAt
+          current.metadata = item.metadata
+          return current
+        }
+
+        return {
+          id: item.id,
+          title: item.title || '新对话',
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+          metadata: item.metadata,
+        }
+      })
+    },
+    { immediate: true, deep: true },
+  )
+
+  return items as typeof items & { value: ChatConversationItem[] }
+}
 
 export function useKitChatRuntime(conversation: UseConversationReturn, options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { inputValue, lastError } = options
-  const titleFallback = options.titleFallback ?? defaultTitleFallback
+  const { inputValue, lastError, send } = options
 
-  const activeEngine = computed(() => conversation.activeConversation.value?.engine)
+  const activeConversation = computed(() => conversation.activeConversation.value)
+  const activeEngine = computed(() => activeConversation.value?.engine)
+  const historyItems = createStableConversationItems(conversation)
   const loading = computed(() => Boolean(activeEngine.value?.isProcessing.value))
   const disabled = computed(() => false)
   const submitDisabled = computed(() => disabled.value || loading.value || inputValue.value.trim().length === 0)
 
   return {
     conversations: {
-      items: computed(() =>
-        conversation.conversations.value.map((item) => ({
-          ...item,
-          title: item.title || '新对话',
-        })),
-      ),
+      items: historyItems,
       currentId: computed(() => conversation.activeConversationId.value),
     },
     messages: {
-      items: computed(() => [...(activeEngine.value?.messages.value ?? [])]),
+      items: computed(() => activeConversation.value?.engine.messages.value ?? []),
       requestState: computed<RequestState>(() => activeEngine.value?.requestState.value ?? 'idle'),
       processingState: computed<RequestProcessingState | undefined>(() => activeEngine.value?.processingState.value),
       lastError,
@@ -45,29 +90,15 @@ export function useKitChatRuntime(conversation: UseConversationReturn, options: 
       setInputValue: (value) => {
         inputValue.value = value
       },
-      send: async ({ text }) => {
-        if (!text.trim()) {
-          return
-        }
-
-        try {
-          lastError.value = null
-
-          let active = conversation.activeConversation.value
-
-          if (!active) {
-            active = conversation.createConversation({ title: titleFallback(text) })
-          } else if (!active.title) {
-            conversation.updateConversationTitle(active.id, titleFallback(text))
+      send:
+        send ??
+        (async ({ text }) => {
+          if (!text.trim()) {
+            return
           }
 
-          await active.engine.sendMessage(text)
-          inputValue.value = ''
-        } catch (error) {
-          lastError.value = error
-          throw error
-        }
-      },
+          await activeConversation.value?.engine.sendMessage(text)
+        }),
       abort: async () => {
         await conversation.abortActiveRequest()
       },

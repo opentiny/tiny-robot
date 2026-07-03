@@ -52,17 +52,6 @@ body {
   padding: 18px 22px;
 }
 
-.chat-demo .tr-chat-conversations__new {
-  justify-content: flex-start;
-  height: 36px;
-  padding: 0;
-  background: transparent;
-}
-
-.chat-demo .tr-chat-conversations__new:hover {
-  background: transparent;
-}
-
 .chat-demo .tr-chat__main-inner,
 .chat-demo .tr-chat__footer-inner {
   max-width: 704px;

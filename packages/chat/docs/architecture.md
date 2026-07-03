@@ -43,7 +43,7 @@ packages/chat
 v1 稳定入口：
 
 - `TrChat`
-- `useManagedChatRuntime`
+- `useLocalChatRuntime`
 - `ChatRuntime`
 - `ChatUi`
 - `ChatSubmitPayload`
@@ -191,16 +191,16 @@ runtime 接管字段不能通过 `ui` 配置：
 同一状态只能有一个来源。
 ```
 
-## 6. Managed Runtime
+## 6. Local Runtime
 
-`useManagedChatRuntime` 是官方推荐 runtime 创建入口。
+`useLocalChatRuntime` 是官方推荐 runtime 创建入口。
 
 内部链路：
 
 ```txt
-useConversation
+useLocalChatRuntime
+  -> useConversation
   -> useKitChatRuntime
-  -> useManagedChatRuntime
   -> ChatRuntime
 ```
 
@@ -213,7 +213,7 @@ useConversation
 - `activeConversation.engine.processingState -> messages.processingState`
 - `activeConversation.engine.isProcessing -> sender.loading`
 
-`useManagedChatRuntime` 职责：
+`useLocalChatRuntime` 职责：
 
 - 创建并持有 `useConversation`。
 - 管理 `sender.inputValue`。
@@ -368,7 +368,7 @@ packages/chat/
     composables/
       useChatContext.ts
       useKitChatRuntime.ts
-      useManagedChatRuntime.ts
+      useLocalChatRuntime.ts
     components/
       Header.vue
       Conversations.vue
@@ -387,7 +387,7 @@ packages/chat/
 
 ```ts
 export { default as TrChat } from './Chat.vue'
-export { useManagedChatRuntime } from './composables/useManagedChatRuntime'
+export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
 export type {
   ChatRuntime,
   ChatRuntimeActions,
@@ -402,11 +402,11 @@ export type {
 1. 更新类型：`ChatRuntime / ChatRuntimeSender / ChatUi`。
 2. 更新 context：只提供 `runtime + ui`。
 3. 更新 `useKitChatRuntime`：映射 kit 到 `ChatRuntime`。
-4. 更新 `useManagedChatRuntime`：管理输入、错误、首消息建会话。
+4. 更新 `useLocalChatRuntime`：管理输入、错误、首消息建会话。
 5. 实现 `TrChat` 默认布局。
 6. 实现内部 `Conversations / Messages / Sender / Header` 映射组件。
 7. 实现 slots。
-8. 实现 managed runtime demo。
+8. 实现 local runtime demo。
 9. 实现 external runtime demo。
 10. 做类型检查和 demo 构建验证。
 
@@ -415,7 +415,7 @@ export type {
 基础验证：
 
 - `TrChat` 能完成默认会话应用渲染。
-- `useManagedChatRuntime` 能完成首条消息自动建会话并发送。
+- `useLocalChatRuntime` 能完成首条消息自动建会话并发送。
 - external runtime 能只接 UI 层。
 - `ui.sender` 能配置 `TrSender` 展示。
 - `ui.bubbleList` 能配置 `TrBubbleList` 展示。

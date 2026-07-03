@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TrChat, useManagedChatRuntime, type ChatUi } from '../../src'
+import { TrChat, useLocalChatRuntime, type ChatUi } from '../../src'
 import type { ChatCompletion, ResponseProvider } from '@opentiny/tiny-robot-kit'
 import { useMediaQuery } from '@vueuse/core'
 import { computed } from 'vue'
@@ -18,7 +18,7 @@ const responseProvider: ResponseProvider<ChatCompletion> = async (requestBody) =
         index: 0,
         message: {
           role: 'assistant',
-          content: `Managed runtime 回复：${lastMessage?.content ?? ''}`,
+          content: `Local runtime 回复：${lastMessage?.content ?? ''}`,
         },
         delta: undefined,
         logprobs: null,
@@ -28,7 +28,7 @@ const responseProvider: ResponseProvider<ChatCompletion> = async (requestBody) =
   }
 }
 
-const runtime = useManagedChatRuntime({
+const runtime = useLocalChatRuntime({
   useMessageOptions: {
     responseProvider,
   },
@@ -57,7 +57,7 @@ const ui = computed<ChatUi>(() => ({
   },
   sender: {
     mode: 'multiple',
-    placeholder: '输入消息验证 managed runtime',
+    placeholder: '输入消息验证 local runtime',
   },
 }))
 </script>

@@ -141,6 +141,7 @@ const footerSlotProps = computed(() => ({
 .tr-chat__footer-inner {
   width: 100%;
   max-width: var(--tr-chat-content-max-width, 760px);
+  margin-top: var(--tr-chat-empty-footer-gap, 24px);
   margin-inline: auto;
 }
 

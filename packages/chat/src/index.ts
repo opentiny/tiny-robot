@@ -1,6 +1,6 @@
 export { default as TrChat } from './Chat.vue'
 
-export { useManagedChatRuntime } from './composables/useManagedChatRuntime'
+export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
 
 export type {
   ChatConversationItem,

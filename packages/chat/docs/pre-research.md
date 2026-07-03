@@ -21,11 +21,9 @@ TrChat + runtime + ui + slots
 
 ```vue
 <script setup lang="ts">
-const runtime = useManagedChatRuntime({
-  useConversationOptions: {
-    useMessageOptions: {
-      responseProvider,
-    },
+const runtime = useLocalChatRuntime({
+  useMessageOptions: {
+    responseProvider,
   },
 })
 
@@ -94,7 +92,7 @@ external runtime -> ChatRuntime -> TrChat
 
 | 产品 | 参考价值 | 对我们的结论 |
 | --- | --- | --- |
-| assistant-ui | runtime/UI 解耦、managed/external runtime | `ChatRuntime` 作为 UI adapter 协议 |
+| assistant-ui | runtime/UI 解耦、local/external runtime | `ChatRuntime` 作为 UI adapter 协议 |
 | Vercel AI SDK UI | transport、stream、error 状态归 runtime | `TrChat` 不接管 transport |
 | Ant Design X | AI 组件按 Bubble/Sender/Conversations 等组件组织 | `ui` 应以原子组件名作为 key |
 
@@ -276,7 +274,7 @@ MVP 做这些能力：
 | --- | --- |
 | `TrChat` | 默认完整聊天应用 |
 | `ChatRuntime` | UI adapter 协议 |
-| `useManagedChatRuntime` | 基于 kit 创建 runtime |
+| `useLocalChatRuntime` | 基于 kit 创建 local runtime |
 | external runtime demo | 验证只接 UI 层 |
 | `ui` 配置 | 按原子组件名配置展示 |
 | slots | 轻量替换区域 |
