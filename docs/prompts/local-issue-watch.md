@@ -8,11 +8,12 @@
 - 候选 Issue 必须带有以下任一相关标签：阶段：选题、阶段：策划、AI：等待执行、AI：失败、AI：等待人工。
 - 每轮最多处理 3 个候选 Issue。
 - PR 已存在的 Issue 不再执行生成类动作，只做状态提示，并把后续修改交给 PR 巡检。
+- 调度入口可以在主仓库运行；凡要写本地文件、生成文章、校验、提交、推送或创建 Draft PR，必须切到候选 Issue 专属 Git worktree。
 
 ## 共用安全规则
 
 - 每个候选 Issue 先读取 Issue 正文、标签、评论和关联 PR。
-- 处理前检查 `.cache/article-hub/scheduled-runs/<issue-number>.json`。
+- 处理前检查共享运行标记 `<scheduler_root>/.cache/article-hub/scheduled-runs/<issue-number>.json`。
 - 同一 Issue 有未完成运行标记时跳过。
 - 运行标记已过期时不要删除、不要抢占，只报告“疑似遗留运行”，并要求人工确认。
 - Issue 含 `AI执行：人工暂停` 时立即停止处理该 Issue。
@@ -20,6 +21,29 @@
 - 需要写作计划批准时，只接受 `inspect-issue` 输出中 `actionable: true` 且 `parsed.kind` 为 `approve-writing-plan` 的固定命令。
 - `/ai 同意`、`同意`、`开始写吧`、自然语言批准或带参数的 `/ai 批准写作计划` 都不算批准。
 - `/ai 批准选题` 不作为本地定时巡检触发条件；当前使用说明从写作计划审核开始。
+
+## Worktree 隔离
+
+启动时把当前仓库根目录记为 `scheduler_root`。Issue、PR 两个巡检任务共享以下运行标记目录，不得写到候选 worktree 的 `.cache` 中：
+
+```text
+<scheduler_root>/.cache/article-hub/scheduled-runs/
+```
+
+候选识别、Issue/PR 读取、无需改文件的状态提示可以在 `scheduler_root` 执行。一旦本轮要写本地文件、调用 `generate-opentiny-article`、运行文章校验、提交、推送或创建/更新 Draft PR，必须先创建候选 Issue 专属 worktree：
+
+```bash
+git fetch origin main
+git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <scheduler_root>/.worktrees/issue-watch-<issue-number>-<started-at-yyyymmdd-hhmmss> origin/main
+```
+
+执行要求：
+
+- 后续所有生成、校验、提交、推送和 Draft PR 创建命令的 `cwd` 都必须是该 worktree。
+- 运行标记仍读写 `<scheduler_root>/.cache/article-hub/scheduled-runs/<issue-number>.json`。
+- 不切换 `scheduler_root` 的当前分支，不在 `scheduler_root` 写文章文件、素材、临时计划文件或 Git 暂存区。
+- worktree 创建失败时，本轮停止处理该 Issue；不得回到 `scheduler_root` 继续执行生成类动作。
+- 正常完成并完成 GitHub 回写后，先确认 worktree 路径位于 `<scheduler_root>/.worktrees/`，再运行 `git worktree remove --force <worktree-path>` 清理本轮 worktree，最后删除运行标记；失败、阻断或远端写操作未完成时保留 worktree 路径供排查。
 
 ## 处理流程
 
@@ -50,11 +74,12 @@
    - 保持或更新为 `阶段：策划` + `AI：等待人工`。
    - 不生成文章，不创建 PR。
 8. 如果发现授权用户发出的固定 `/ai 批准写作计划`：
-   - 先创建本地运行标记。
+   - 先在共享运行标记目录创建本地运行标记。
+   - 创建候选 Issue 专属 worktree，并确认后续生成流程的 `cwd` 是该 worktree。
    - 如果 Issue 当前仍是 `阶段：选题`，先用 `article-hub update-status` 做 `选题→策划`。
    - 使用 `article-hub update-status` 做 `策划→写作`，把 Issue 改为 `阶段：写作` + `AI：处理中`。
    - 巡检本身不重新实现生成流程；进入已批准写作计划到 Draft PR 的既有流程，按 `generate-opentiny-article` 的步骤处理该 Issue。
-   - 创建或更新 Draft PR 前运行 `git status --short`，确认没有运行缓存和临时文件进入工作区。
+   - 创建或更新 Draft PR 前在 worktree 内运行 `git status --short`，确认没有运行缓存和临时文件进入提交范围。
    - Draft PR 创建成功后，使用 `article-hub update-status` 改为 `阶段：写作` + `AI：等待人工`，并评论 Draft PR 链接和待人工处理项。
 9. 如果遇到意见冲突、缺来源、截图/GIF 需确认、代码事实需维护者确认或 Head SHA 不一致：
    - 停止处理该 Issue。
@@ -64,13 +89,14 @@
     - 停止处理该 Issue。
     - 用 `article-hub update-status` 改为当前阶段 + `AI：失败`。
     - 评论写清失败命令、错误摘要和建议处理方式。
-11. 正常完成或失败状态已回写后，删除本地运行标记；过期标记不要删除。
+11. 正常完成并清理 worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留 worktree；过期标记不要删除。
 
 ## 本轮输出
 
 本轮结束时，请输出：
 
 - 本轮检查的 Issue 数量。
+- 本轮使用并已清理的 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
 - 已处理的 Issue。
 - 跳过的 Issue 和原因。
 - 需要人工处理的 Issue。

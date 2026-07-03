@@ -76,6 +76,7 @@ web_modules/
 
 # article-hub local runtime cache
 .cache/article-hub/
+.worktrees/
 materials/source-cache/
 
 # Next.js build output

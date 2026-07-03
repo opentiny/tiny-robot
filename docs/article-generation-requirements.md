@@ -398,7 +398,7 @@ Issue 状态命令必须校验触发者具有仓库写权限或位于配置的 a
 
 写作计划批准后不立即创建空 PR。只有初稿达到“可以开始人工 Review”的状态，才推送首个 Commit 并创建 Draft PR。生成失败时只更新 Issue 状态，不产生空 PR。
 
-本地运行使用独立 Git worktree，不切换用户当前分支，也不接触当前工作区未提交修改。成功后可以清理 worktree；失败时保留并输出路径。
+本地运行使用独立 Git worktree，不切换用户当前分支，也不接触当前工作区未提交修改。成功后必须自动清理 worktree；失败时保留并输出路径。
 
 当前交付没有常驻进程，也不自动监听 GitHub 事件。计划批准、Ready for review、`Request changes`、能评论者的明确 PR 修改意见或 `/ai` 评论出现后，需要人工再次调用 Skill；Skill 每次启动读取并消费当前所有待处理事件。Ready for review 只做验收和状态检查，不触发全文润色。未来 GitHub Workflow 才负责自动唤醒。
 
