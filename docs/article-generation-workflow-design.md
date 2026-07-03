@@ -119,9 +119,9 @@ flowchart LR
 
 职责：
 
-- 校验 Review 或评论作者具有仓库写权限或位于 allowlist；忽略 bot 和未授权触发者。
-- 收集 `Request changes` 中的意见。
-- 处理行级或普通评论中的 `/ai <修改要求>`。
+- 依赖 GitHub PR 评论权限；能评论即视为已授权，不额外校验写权限或 allowlist。
+- 收集能评论者发出的 `Request changes` 中的意见。
+- 处理能评论者在行级评论、普通评论或 Review 线程中提出的明确修改要求；`/ai <修改要求>` 仍作为显式修改指令。
 - 合并同一时间窗口内的修订意见。
 - 根据最新 PR Head SHA 生成修订。
 - 回复处理结果，但不自动 Resolve conversation。
@@ -202,7 +202,7 @@ CI 不判断文章是否“写得好”，也不替代人工事实和内容 Revi
 | `/ai 批准写作计划` | 授权用户发送逐字固定命令，批准快照已生成 | 生成并校验初稿 | `阶段：写作 + AI：处理中` |
 | Draft PR 已创建 | 初稿校验通过 | 回写 PR 链接 | `阶段：写作 + AI：等待人工` |
 | Ready for review | 必选项通过 | 进入 Review | `阶段：审核 + AI：等待人工` |
-| Request changes 或 `/ai` 修改 | `阶段：审核` | 修订并提交 | `阶段：审核 + AI：处理中` |
+| 能评论者的 Request changes、明确 Review 修改意见或 `/ai` 修改 | `阶段：审核` | 修订并提交 | `阶段：审核 + AI：处理中` |
 | 修订提交完成 | `阶段：审核` | 回复 Review | `阶段：审核 + AI：等待人工` |
 | Convert to draft | `阶段：审核` | 重大返工 | `阶段：写作 + AI：等待人工` |
 | PR merged | GitHub 仓库规则已放行 | 标记母稿完成 | `阶段：待发布` |
@@ -226,7 +226,7 @@ permissions:
 职责：
 
 - 读取事件、Issue、PR 和评论。
-- 校验 actor 是否有权限执行状态命令、生成请求或修订请求，并忽略 bot。
+- 校验 actor 是否有权限执行 Issue 状态命令和生成请求，并忽略 bot；PR 修订请求依赖 GitHub PR 评论权限。
 - 构造规范化任务输入。
 
 调用 reusable workflow 的 caller job 必须授予整个调用链所需的权限上限；被调用 Workflow 只能保持或降低 `GITHUB_TOKEN` 权限，不能自行提升。被调用 Workflow 内部再为 AI、校验和 Mutation job 分别收窄权限，模型 Secret 只显式传给 AI job。参考 [Reusable Workflow 权限规则](https://docs.github.com/actions/reference/workflows-and-actions/reusable-workflows#access-and-permissions-for-nested-workflows)。
@@ -433,7 +433,7 @@ Mutation job 只替换受管区域。标记缺失、重复或嵌套错误时停�
 修订流程：
 
 1. 根据事件类型生成 `dedupe_key`，并记录 PR Head SHA。
-2. 收集当前批次的 Request changes 和 `/ai` 意见。
+2. 收集当前批次中能评论者的 Request changes、明确 Review 修改意见和 `/ai` 意见。
 3. AI job 基于最新文件生成 patch 后的完整输出目录；收到 `/ai 全文润色` 时在本轮 `revise` 内处理全文正文。
 4. 校验 job 检查范围和文件。
 5. Mutation job 再次检查 Head SHA。
@@ -562,7 +562,7 @@ PR 合并事件意味着 GitHub 已完成仓库级校验，`article-state.yml` �
 
 ### 里程碑：Review 修订与自愈
 
-- 接入 Request changes 和 `/ai` 修订。
+- 接入能评论者的 Request changes、明确 Review 修改意见和 `/ai` 修订。
 - 实现 Head SHA 并发保护。
 - 增加低频 Reconcile Workflow。
 
@@ -574,7 +574,7 @@ Workflow 方案进入可实施状态前，至少验证：
 
 - 同一套 CLI 可以在本地和 Actions 中处理相同 Issue fixture。
 - 固定命令解析器不将普通评论误判为批准。
-- 未授权用户和 bot 的 `/ai`、Review 或状态命令不会调用模型或修改分支。
+- Issue 未授权用户和 bot 的状态命令不会调用模型或修改分支；PR Review 以评论权限作为授权前提。
 - 过期计划批准无法触发生成。
 - 每次批准都存在包含完整计划正文和审计元数据的不可变批准快照。
 - AI job 无 GitHub 写权限也能完成生成。
