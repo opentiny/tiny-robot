@@ -1,0 +1,101 @@
+# 本地文章 PR 巡检任务
+
+你正在 ai-article-hub 仓库中执行本地文章 PR 定时巡检。请只做本轮巡检，不要实现 GitHub Workflow，不要创建常驻服务。
+
+## 范围
+
+- 只处理打开的 Draft PR 或普通 PR。
+- 候选 PR 必须满足以下任一条件：PR 描述关联文章 Issue、分支名符合 `article/<issue-number>-...`、改动包含 `articles/<project-id>/<date>-<slug>/article.md`。
+- 每轮最多处理 3 个候选 PR。
+
+## 关联 Issue 识别
+
+1. 优先读取 PR 描述里的关联 Issue 链接。
+2. 其次从分支名 `article/<issue-number>-...` 解析 Issue 编号。
+3. 再从 `articles/publications.json` 或文章目录对应记录查找 Issue 编号。
+4. 如果仍找不到关联 Issue，停止处理该 PR，不改文章、不改标签；只在本地输出原因。
+
+## 共用安全规则
+
+- 找到关联 Issue 后，先读取 Issue 标签和 PR 最新 Head SHA。
+- 处理前检查 `.cache/article-hub/scheduled-runs/<issue-number>.json`。
+- 同一 Issue 有未完成运行标记时跳过。
+- 运行标记已过期时不要删除、不要抢占，只报告“疑似遗留运行”，并要求人工确认。
+- Issue 含 `AI执行：人工暂停` 时立即停止处理该 PR。
+- 所有状态标签只能通过 `article-hub update-status` 修改，不能手工拼标签。
+- PR 评论、Review、行级线程和 Request changes 中，能评论即视为已授权；不额外判断写权限或 allowlist。
+- 不自动 Resolve conversation，不点击 Ready for review，不 merge，不发布外部平台。
+
+## 去重规则
+
+- 每轮读取 PR Draft 状态、PR 评论、Review、行级线程和关联 Issue。
+- 找到最近一条当前 Agent 发布的处理回执，标题固定为“AI 巡检处理回执”，正文必须包含隐藏 `dedupe_key` 标记。
+- 本轮只处理该回执之后新增的 Request changes、明确可执行评论和明确 `/ai` 指令。
+- 如果没有回执，首次 PR 巡检读取当前全部待处理意见，处理后发布第一条回执。
+- 如果评论早于最近回执，但线程后来追加了新回复，按新回复纳入本轮。
+- 每轮修改完成后必须发布新的“AI 巡检处理回执”，列出本轮处理的评论链接或 Review ID、Commit SHA、未采纳意见和仍需人工处理的问题，并写入隐藏 `dedupe_key`。
+
+隐藏标记固定放在回执正文末尾：
+
+```text
+<!-- ai-article-hub:dedupe_key=pr-<pr-number>:handled-through-<ISO8601> -->
+```
+
+`handled-through` 使用本轮已处理评论、Review 或线程回复中最大的 `updatedAt`；如果没有可用时间，就用回执发布时间。下一轮只需要读取最近一条带该标记的当前 Agent 回执，并处理此时间之后新增或更新的意见。
+
+## 处理流程
+
+1. 读取候选 PR、关联 Issue、当前 Head SHA、PR Draft 状态、PR 评论、Review、行级线程和最新文件。
+2. 如果没有新增的 Request changes、明确可执行评论或明确 `/ai` 指令：
+   - 不改文件，不发重复回执。
+   - 继续下一个候选 PR。
+3. 发现可处理意见后：
+   - 创建本地运行标记。
+   - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：写作`，用 `article-hub update-status` 的 `content-transition` 保持 `阶段：写作` + `AI：处理中`。
+   - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：审核`，用 `article-hub update-status` 的 `lifecycle-transition` 做 `审核→写作`，目标状态为 `阶段：写作` + `AI：处理中`。
+   - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：写作`，先确认 Ready for review 检查通过，再用 `article-hub update-status` 的 `lifecycle-transition` 做 `写作→审核`，目标状态为 `阶段：审核` + `AI：处理中`。
+   - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：审核`，用 `article-hub update-status` 的 `content-transition` 保持 `阶段：审核` + `AI：处理中`。
+   - 记录开始处理时的 PR Head SHA，提交或推送前重新读取并比对；Head 已变化时停止，不覆盖人工修改。
+4. 对本轮意见先逐条归类：表达/结构类、素材类、事实类、需澄清、无法采纳。
+5. 自动处理范围：
+   - Request changes 中明确要求修改的内容。
+   - 明确可执行评论，包括 PR 级评论、行级评论和 Review 线程。
+   - `/ai 修改指令`。
+   - `/ai 全文润色` 作为新一轮全文修改处理，完成后提示需要重新确认。
+6. 需要停止转人工的情况：
+   - 普通讨论、提问、赞同或无明确修改目标。
+   - 评论互相冲突。
+   - 缺少事实来源。
+   - 涉及版本、API、兼容性、性能、安全、代码正确性但无法回到固定来源确认。
+   - 需要人工确认截图、GIF、Demo、敏感信息或素材来源。
+   - PR Head 与开始处理时不一致。
+7. 修改正文时使用 `polish-opentiny-article`：
+   - 只修改本轮授权范围。
+   - 不改 Front Matter、代码块、命令、日志、API、版本号、Commit、图片路径、链接目标、Mermaid 或 SVG 源内容，除非评论明确要求且来源可核验。
+   - 不新增来源外事实、数据、用户反馈、产品能力或因果关系。
+8. 修改后运行 `article-hub validate article`。
+9. 校验通过后提交本轮修改。
+10. 发布“AI 巡检处理回执”，列出：
+    - 已处理的评论链接或 Review ID。
+    - 对应 Commit SHA。
+    - 未采纳意见及理由。
+    - 仍需人工确认的问题。
+    - 是否需要运营或技术维护者重新检查。
+    - 正文末尾的隐藏 `dedupe_key` 标记。
+11. 用 `article-hub update-status` 把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
+12. 正常完成或失败状态已回写后，删除本地运行标记；过期标记不要删除。
+
+## 失败处理
+
+- 如果遇到意见冲突、事实缺口、素材需确认或 Head SHA 变化，用 `article-hub update-status` 改为当前阶段 + `AI：等待人工`，并在 PR 回执和 Issue 评论中写清阻断点。
+- 如果环境、权限、命令或 GitHub 写操作失败，用 `article-hub update-status` 改为当前阶段 + `AI：失败`，并写清失败命令、错误摘要和建议处理方式。
+
+## 本轮输出
+
+本轮结束时，请输出：
+
+- 本轮检查的 PR 数量。
+- 已处理的 PR。
+- 跳过的 PR 和原因。
+- 需要人工处理的 PR/Issue。
+- 失败项。
