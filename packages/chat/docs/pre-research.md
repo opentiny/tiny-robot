@@ -82,7 +82,8 @@ const ui = {
 最终链路：
 
 ```txt
-kit runtime -> ChatRuntime -> TrChat
+local kit runtime -> ChatRuntime -> TrChat
+existing kit runtime -> ChatRuntime -> TrChat
 external runtime -> ChatRuntime -> TrChat
 ```
 
@@ -118,7 +119,7 @@ UI components -> runtime context -> backend / LLM
 转译到 TinyRobot：
 
 ```txt
-assistant-ui runtime
+assistant-ui LocalRuntime
   -> TinyRobot kit + ChatRuntime adapter
 
 assistant-ui Thread
@@ -134,6 +135,16 @@ assistant-ui ExternalStoreRuntime
 TinyRobot Chat 对齐 assistant-ui 的 runtime/UI 解耦思想。
 但实现必须基于 TinyRobot components 和 kit，不复制 assistant-ui primitives。
 ```
+
+TinyRobot 需要额外补充一条迁移路径：
+
+```txt
+existing kit runtime
+  -> useKitChatRuntime
+  -> TrChat
+```
+
+这不是 assistant-ui 里的第三类 runtime，而是 TinyRobot 为已有 `components + kit` 用户提供的 adapter。
 
 ## 6. API 设计
 
@@ -275,6 +286,7 @@ MVP 做这些能力：
 | `TrChat` | 默认完整聊天应用 |
 | `ChatRuntime` | UI adapter 协议 |
 | `useLocalChatRuntime` | 基于 kit 创建 local runtime |
+| `useKitChatRuntime` | 已有 kit runtime 迁移到 `TrChat` |
 | external runtime demo | 验证只接 UI 层 |
 | `ui` 配置 | 按原子组件名配置展示 |
 | slots | 轻量替换区域 |
@@ -305,6 +317,7 @@ MVP 验证链路：
 | UI 命名 | 按原子组件名作为 key |
 | runtime 边界 | `ChatRuntime` 是 UI adapter |
 | transport 边界 | 归 `kit` 或 external runtime |
+| 已有 kit 迁移 | `useKitChatRuntime` 只做 adapter |
 | 定制方式 | `ui + slots` |
 | 深度定制 | 直接使用 `components + kit` |
 

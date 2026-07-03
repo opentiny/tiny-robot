@@ -16,7 +16,8 @@
 核心链路：
 
 ```txt
-kit runtime -> ChatRuntime -> TrChat
+local kit runtime -> ChatRuntime -> TrChat
+existing kit runtime -> ChatRuntime -> TrChat
 external runtime -> ChatRuntime -> TrChat
 ```
 
@@ -44,6 +45,7 @@ v1 稳定入口：
 
 - `TrChat`
 - `useLocalChatRuntime`
+- `useKitChatRuntime`
 - `ChatRuntime`
 - `ChatUi`
 - `ChatSubmitPayload`
@@ -230,7 +232,44 @@ useLocalChatRuntime
 - `send(payload)` 在无 active conversation 时先创建会话。
 - `abort()` 调用当前会话 engine 的 abort 能力。
 
-## 7. External Runtime
+## 7. Kit Runtime Adapter
+
+`useKitChatRuntime` 是已有 kit runtime 的迁移入口。
+
+适用场景：
+
+- 用户早期已经使用 `components + kit` 搭建了会话应用。
+- 用户已经持有 `useConversation()` 返回值。
+- 用户只想把旧 UI 切换到 `TrChat`，不想重建数据层。
+
+接入方式：
+
+```txt
+existing useConversation
+  -> useKitChatRuntime
+  -> ChatRuntime
+  -> TrChat
+```
+
+职责边界：
+
+- 不创建 `useConversation`。
+- 不接管 transport。
+- 不重建用户已有会话状态。
+- 只把 kit 返回结构映射成 `ChatRuntime`。
+
+示例：
+
+```ts
+const conversation = useConversation(options)
+
+const runtime = useKitChatRuntime(conversation, {
+  inputValue,
+  lastError,
+})
+```
+
+## 8. External Runtime
 
 外部 runtime 是正式能力。
 
@@ -238,6 +277,7 @@ useLocalChatRuntime
 
 - 用户已有后端数据层。
 - 用户已有 Pinia / composable / 自研请求层。
+- 用户已经使用 AI SDK 等第三方 runtime。
 - 用户已有旧版 tiny-robot 接入，但想升级 TinyRobot 新 UI。
 - 用户不想使用 `kit`，只想复用 `TrChat` 应用 UI。
 
@@ -255,7 +295,21 @@ useLocalChatRuntime
 - 外部 runtime 保证数据符合 `HistoryItem / BubbleMessage` 契约。
 - `TrChat` 只消费 `ChatRuntime`，不关心外部 runtime 内部实现。
 
-## 8. TrChat 装配
+## 9. 三种接入路径
+
+| 路径 | API | 场景 | 状态归属 |
+| --- | --- | --- | --- |
+| Local Chat Runtime | `useLocalChatRuntime()` | 新项目，使用官方 kit 能力 | chat/kit |
+| Kit Runtime Adapter | `useKitChatRuntime()` | 已有 kit runtime，只迁移 UI | 用户已有 kit runtime |
+| External Runtime | 实现 `ChatRuntime` | AI SDK / Pinia / 自研 store / 老系统 | 用户自己的数据层 |
+
+对齐 assistant-ui 的理解：
+
+- `useLocalChatRuntime()` 对应 `LocalRuntime` 思路。
+- 自定义 `ChatRuntime` 对应 `ExternalStoreRuntime` 思路。
+- `useKitChatRuntime()` 是 TinyRobot 为已有 kit 用户补充的迁移 adapter。
+
+## 10. TrChat 装配
 
 `TrChat` 负责默认完整应用装配。
 
@@ -289,7 +343,7 @@ TrChat
 | `runtime.actions.renameConversation` | `TrHistory item-title-change` |
 | `runtime.actions.deleteConversation` | `TrHistory item-action(delete)` |
 
-## 9. Slots
+## 11. Slots
 
 `TrChat` 通过 slots 做轻量替换，不提供第二套白盒区域组件体系。
 
@@ -353,7 +407,7 @@ slot 命名按 `TrLayout` 的布局区域来，而不是按默认组件来。
 - `loading`
 - `submitDisabled`
 
-## 10. 文件结构
+## 12. 文件结构
 
 推荐结构：
 
@@ -388,6 +442,7 @@ packages/chat/
 ```ts
 export { default as TrChat } from './Chat.vue'
 export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
+export { useKitChatRuntime } from './composables/useKitChatRuntime'
 export type {
   ChatRuntime,
   ChatRuntimeActions,
@@ -397,7 +452,7 @@ export type {
 } from './types'
 ```
 
-## 11. 实现顺序
+## 13. 实现顺序
 
 1. 更新类型：`ChatRuntime / ChatRuntimeSender / ChatUi`。
 2. 更新 context：只提供 `runtime + ui`。
@@ -407,15 +462,17 @@ export type {
 6. 实现内部 `Conversations / Messages / Sender / Header` 映射组件。
 7. 实现 slots。
 8. 实现 local runtime demo。
-9. 实现 external runtime demo。
-10. 做类型检查和 demo 构建验证。
+9. 实现 existing kit runtime demo。
+10. 实现 external runtime demo。
+11. 做类型检查和 demo 构建验证。
 
-## 12. 验证
+## 14. 验证
 
 基础验证：
 
 - `TrChat` 能完成默认会话应用渲染。
 - `useLocalChatRuntime` 能完成首条消息自动建会话并发送。
+- `useKitChatRuntime` 能接入已有 `useConversation()` 返回值。
 - external runtime 能只接 UI 层。
 - `ui.sender` 能配置 `TrSender` 展示。
 - `ui.bubbleList` 能配置 `TrBubbleList` 展示。
@@ -431,7 +488,7 @@ E2E 注意：
 重新构建 components 后，重启测试服务。
 ```
 
-## 13. 结论
+## 15. 结论
 
 推荐 v1 架构：
 

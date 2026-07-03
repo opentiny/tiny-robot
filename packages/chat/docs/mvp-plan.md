@@ -10,6 +10,7 @@ MVP 只验证 chat 套件的核心架构是否成立，不追求完整功能。
 - `ChatRuntime` 能否作为唯一数据与动作协议。
 - `ChatUi` 能否作为唯一原子组件展示配置协议。
 - `kit` 能否作为官方 local runtime。
+- 已有 kit runtime 能否通过 adapter 快速接入 `TrChat`。
 - 用户已有数据层时，能否通过 external runtime adapter 只接入 TinyRobot UI。
 - slots 能否作为局部扩展机制，而不需要第二套白盒区域组件体系。
 
@@ -68,6 +69,7 @@ packages/chat/
 - `src/composables/useLocalChatRuntime.ts` 只补齐 chat 应用层行为。
 - `src/components/*` 只做内部映射，不作为 v1 稳定 API 承诺。
 - `demo/cases/basic.vue` 验证 local runtime 黑盒入口。
+- 后续补充 existing kit runtime demo，验证已有 `useConversation()` 接入 `TrChat`。
 - `demo/cases/external-runtime.vue` 验证 external runtime 只接 UI。
 
 ## 3. 阶段 1：公共协议收口
@@ -319,26 +321,60 @@ TrChat
 - `chat` 不复制 `kit` 的 stream / abort 生命周期。
 - external runtime demo 仍然工作。
 
-## 10. MVP 总验收清单
+## 10. 阶段 8：接入已有 Kit Runtime
+
+目标：验证老项目可以保留已有 kit runtime，只迁移到 `TrChat` UI。
+
+实现内容：
+
+- `useKitChatRuntime` 作为公开 adapter。
+- 输入已有 `useConversation()` 返回值。
+- 输出 `ChatRuntime`。
+- 用户自行传入 `sender.inputValue` 和 `messages.lastError`。
+
+验证点：
+
+- 不重新创建 `useConversation`。
+- 不覆盖用户已有 transport / plugins / storage 配置。
+- 会话切换、消息展示、取消生成仍走原有 kit runtime。
+
+验证方案：
+
+```ts
+const conversation = useConversation(options)
+const runtime = useKitChatRuntime(conversation, {
+  inputValue,
+  lastError,
+})
+```
+
+通过标准：
+
+- 已有 kit runtime 可以直接接入 `TrChat`。
+- `useKitChatRuntime` 不包含 local runtime 的首发建会话等产品默认行为。
+
+## 11. MVP 总验收清单
 
 - 没有修改原子组件已有 props。
 - runtime state 只读，变更只走 actions。
 - `ui` 只负责 UI 配置，不接管数据源字段。
 - `TrChat` 能作为默认主入口工作。
 - `kit` 只在 local runtime 层出现，UI 组件不直接依赖 `kit` 返回结构。
+- 已有 kit runtime 可以通过 `useKitChatRuntime` 迁移 UI。
 - MVP 能覆盖发送、取消、消息渲染、空状态、Prompt 回填、会话切换、黑盒装配、external runtime 接入。
 
-## 11. 后续测试沉淀
+## 12. 后续测试沉淀
 
 MVP 初期先用 `type-check + build + demo` 验证架构，不在第一轮强制引入完整自动化测试目录。
 
 协议和实现稳定后，再沉淀以下测试：
 
 - `chat-runtime` 类型约束验证：确认 `ui` 不能传入被 runtime 接管的字段，例如 `sender.modelValue`、`bubbleList.messages`、`history.data`。
+- existing kit runtime 交互验证：验证已有 `useConversation()` 可以通过 `useKitChatRuntime` 接入 `TrChat`。
 - external runtime 交互验证：验证用户自有 runtime 只接 UI 时能展示、输入和发送。
 - local runtime 集成验证：验证 `useLocalChatRuntime` 基于 `kit` 完成发送、流式更新、取消和首次自动建会话。
 
-## 12. E2E 验证注意
+## 13. E2E 验证注意
 
 任何 e2e / Playwright 测试前必须先构建 components 包。
 
