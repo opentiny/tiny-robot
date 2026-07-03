@@ -8,7 +8,7 @@
 
 1. 用户已登录 SegmentFault（Cookie 由 webmcp-cli Chrome Profile 保持）
 2. 如未登录，会跳转到 `/user/login`，需用户手动登录
-3. 正文须先按 [prepare-article-images.md](./prepare-article-images.md) 生成 `.publish/article-body.md`（本地图片已内联），`content` 参数读取该文件内容，勿直接使用含 `./assets/` 相对路径的母稿
+3. 正文须先按 [prepare-article-images.md](./prepare-article-images.md) 生成 `.publish/article-body.md` 与 `.publish/images-manifest.json`；`content` 读取发布副本，本地图片通过 `upload_images: true` 上传至思否 CDN，**禁止** `data:` URI 内联
 
 ## 核心特性
 
@@ -24,7 +24,7 @@
 
 ```bash
 # 单条命令，走完所有流程
-webmcp-cli run segmentfault_publish_article '{"action": "publish_full_flow", "title": "文章标题", "content": "# 正文\n\n内容...", "category": "前端", "tags": ["前端", "AI"], "scheduled_time": "2026-07-01T10:00:00+08:00"}'
+webmcp-cli run segmentfault_publish_article '{"action": "publish_full_flow", "title": "文章标题", "content": "@base64file:./articles/<project>/<slug>/.publish/article-body.md", "upload_images": true, "images_manifest": "@file:./articles/<project>/<slug>/.publish/images-manifest.json", "category": "前端", "tags": ["前端", "AI"], "scheduled_time": "2026-07-01T10:00:00+08:00"}'
 ```
 
 ### 流程步骤
@@ -77,7 +77,9 @@ webmcp-cli run segmentfault_publish_article '{"action": "publish_full_flow", "ti
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | `title` | string | ✅ | - | 文章标题，5-100字符 |
-| `content` | string | ✅ | - | 文章正文，支持 Markdown |
+| `content` | string | ✅ | - | 文章正文，支持 Markdown；须来自 `.publish/article-body.md`，**禁止** `data:` URI |
+| `upload_images` | boolean | 含本地图时 ✅ | `false` | 设为 `true` 时，填入正文后按 `images_manifest` 上传并替换 CDN URL |
+| `images_manifest` | string | 含本地图时 ✅ | - | `@file:` 引用 `.publish/images-manifest.json` |
 | `category` | string | ✅ | - | 分类名称，如"前端" |
 | `tags` | string[] | ❌ | ["前端", "AI"] | 标签数组，最多5个 |
 | `type` | string | ❌ | "original" | 文章类型：original/repost/translate |

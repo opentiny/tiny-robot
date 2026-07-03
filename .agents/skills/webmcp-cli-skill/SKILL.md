@@ -282,7 +282,7 @@ webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": tr
    - 在仓库根目录下打开对应母稿；文件不存在或为空时停止，提示用户检查文章是否编写成功。
 
 3. **校验并处理图片**
-   - 按 [prepare-article-images.md](domains/prepare-article-images.md) 运行 `article-hub validate article`，扫描 `![alt](path)`，将本地图片内联为 `data:` URI。
+   - 按 [prepare-article-images.md](domains/prepare-article-images.md) 运行 `article-hub validate article`，生成 `.publish/article-body.md` 与 `images-manifest.json`；填入平台时设 `upload_images: true`，由编辑器上传按钮替换为 CDN URL（**禁止** `data:` URI 内联）。
    - 生成 `<文章目录>/.publish/article-body.md` 作为发布正文；校验失败则停止，不得直接用原始 `article.md` 发布。
 
 4. **平台发布**

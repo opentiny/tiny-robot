@@ -13,7 +13,7 @@ CSDN 编辑器页面已注入 `create_article` WebMCP 工具，直接调用即�
 
 | 工具名 | 描述 | 参数 |
 |--------|------|------|
-| `create_article` | 填写文章标题和正文 | `title`（标题字符串）、`content`（正文的 **Base64** 编码） |
+| `create_article` | 填写文章标题和正文，可选上传 manifest 中的图片并替换 CDN URL | `title`、`content`（Base64）、`upload_images`（可选）、`images_manifest`（可选） |
 
 ---
 
@@ -64,21 +64,23 @@ webmcp-cli state
 
 ### 第三步：填写标题和正文（完成后停止）
 
-将**步骤 2.5 生成的** `.publish/article-body.md`（已内联本地图片）通过 `@base64file:` 内联引用传入。
-
-**推荐：使用 JSON 文件传参（PowerShell / cmd 均适用）**
+将**步骤 2.5 生成的** `.publish/article-body.md` 与 `.publish/images-manifest.json` 通过 `@base64file:` / `@file:` 传入，并开启图片上传：
 
 ```json
-// article_args.json
 {
   "title": "你的文章标题",
-  "content": "@base64file:./articles/<project>/<slug>/.publish/article-body.md"
+  "content": "@base64file:./articles/<project>/<slug>/.publish/article-body.md",
+  "upload_images": true,
+  "images_manifest": "@file:./articles/<project>/<slug>/.publish/images-manifest.json"
 }
 ```
 
 ```bash
 webmcp-cli run create_article -f ./article_args.json
 ```
+
+> [!WARNING]
+> CSDN Markdown 编辑器**不支持** `data:` URI 内联图片。本地配图必须通过 Markdown 工具栏的图片上传入口提交到 CSDN 图床，再由工具替换正文 URL。
 
 > [!WARNING]
 > - **PowerShell 终端**下直接内联 JSON 极易因转义失败，务必优先使用 `-f` 文件方式
@@ -89,7 +91,7 @@ webmcp-cli run create_article -f ./article_args.json
 **bash 终端也可内联传参：**
 
 ```bash
-webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md"}'
+webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md","upload_images":true,"images_manifest":"@file:./articles/<project>/<slug>/.publish/images-manifest.json"}'
 ```
 
 > [!NOTE]

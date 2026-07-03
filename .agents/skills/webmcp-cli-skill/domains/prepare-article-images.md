@@ -1,6 +1,6 @@
 # 发布前图片校验与处理
 
-本指南面向 AI Agent，在将 `ai-article-hub` 母稿发布到外部平台**之前**，校验 Markdown 中的图片引用是否正确，并将本地相对路径转换为平台可识别的内联图片，再交给各平台 `create_article` 等工具。
+本指南面向 AI Agent，在将 `ai-article-hub` 母稿发布到外部平台**之前**，校验 Markdown 中的图片引用是否正确，并生成供平台编辑器**上传替换**所需的发布副本与图片清单。
 
 > 编排入口见 [publish-from-article-hub.md](./publish-from-article-hub.md) 步骤 2.5；平台侧操作仍遵守 [publish-article.md](./publish-article.md) 与各平台子指南。
 
@@ -16,13 +16,20 @@
 
 外部平台（掘金、CSDN、思否等）无法解析仓库内的相对路径。若直接把母稿 `article.md` 传给 `create_article`，正文里的图片会**全部失效**（显示为裂图或占位符）。
 
+### 禁止使用 `data:` URI 内联
+
+掘金、CSDN、思否等 Markdown 编辑器**不会渲染** `![alt](data:image/png;base64,...)` 形式的内联图片。把本地图片转成 Base64 内联后填入编辑器，预览区仍显示裂图。
+
+**正确做法**：填入正文时，由 `create_article` 等工具（或平台子指南中的兜底步骤）**触发编辑器自带的图片上传能力**（例如掘金工具栏的「上传图片」按钮），将本地文件上传到平台 CDN，再把正文中的 `![alt](./assets/...)` **替换为平台返回的 `https://` URL**。
+
 发布前必须：
 
 1. 确认每个本地图片路径可解析且文件存在。
-2. 生成一份**仅用于发布**的正文副本，将本地图片替换为 `data:` URI（Base64 内联）。
-3. 外部 `https://` 图片保持原 URL，不做改写。
+2. 生成 `.publish/article-body.md`（去掉 Front Matter，**保留** `![alt](相对路径)`，不做 Base64 内联）。
+3. 生成 `.publish/images-manifest.json`，列出每张待上传图片的 Markdown 路径、绝对路径、alt 与 MIME。
+4. 外部 `https://` 图片保持原 URL，不上传、不替换。
 
-> **不要修改母稿 `article.md`**。处理结果写入临时发布文件，发布完成后可删除。
+> **不要修改母稿 `article.md`**。处理结果写入临时发布目录，发布完成后可删除。
 
 ---
 
@@ -57,8 +64,8 @@ node dist/cli.js validate article \
 
 | 类型 | 判定 | 处理 |
 |------|------|------|
-| 外部 URL | 以 `http://`、`https://` 或 `//` 开头 | 原样保留 |
-| 本地相对路径 | 其他路径 | 解析为绝对路径并校验文件 |
+| 外部 URL | 以 `http://`、`https://` 或 `//` 开头 | 原样保留，不写入 manifest |
+| 本地相对路径 | 其他路径 | 解析为绝对路径并校验文件，写入 manifest |
 | 空 alt | `alt` 为空或仅空白 | **停止**，报告 `empty-image-alt` |
 
 ### 本地路径解析规则
@@ -70,28 +77,54 @@ node dist/cli.js validate article \
 
 ---
 
-## 步骤 3：生成发布用 Markdown
+## 步骤 3：生成发布副本与图片清单
 
-将处理后的正文写入临时文件，推荐路径：
+将处理后的正文与 manifest 写入临时目录，推荐路径：
 
 ```text
 <文章目录>/.publish/article-body.md
+<文章目录>/.publish/images-manifest.json
 ```
 
 命名约定：放在文章目录下的 `.publish/` 子目录，避免污染母稿与 Git 跟踪（该目录不应提交）。
 
-### 本地图片 → data URI
+### `article-body.md`
 
-对每个本地图片：
+- 正文去掉 Front Matter 后的 Markdown。
+- **保留**本地图片的原始相对路径，例如 `![alt](./assets/foo.png)`。
+- **禁止**改写为 `data:` URI。
 
-1. 读取二进制内容。
-2. 按扩展名确定 MIME：`png` → `image/png`，`jpg/jpeg` → `image/jpeg`，`gif` → `image/gif`，`webp` → `image/webp`，`svg` → `image/svg+xml`。
-3. 替换正文中的 `![alt](原相对路径)` 为 `![alt](data:<mime>;base64,<编码>)`。
-4. **保留 alt 文本不变**。
+### `images-manifest.json`
+
+每张待上传的本地图片一条记录，供 `create_article` 在填入正文后按序上传并替换：
+
+```json
+{
+  "schema_version": "webmcp-cli.images-manifest.v1",
+  "article_dir": "/absolute/path/to/articles/<project>/<slug>",
+  "images": [
+    {
+      "markdown_path": "./assets/network-panel-post-chat-completions.png",
+      "absolute_path": "/absolute/path/to/articles/<project>/<slug>/assets/network-panel-post-chat-completions.png",
+      "alt": "Network 面板截图",
+      "mime": "image/png"
+    }
+  ]
+}
+```
+
+字段说明：
+
+| 字段 | 说明 |
+|------|------|
+| `markdown_path` | 正文中 `![]()` 里出现的原始路径，用于上传完成后在编辑器内查找并替换 |
+| `absolute_path` | 本机可读的图片绝对路径，供上传工具读取文件 |
+| `alt` | 保留 alt，替换 URL 时不改 alt |
+| `mime` | 按扩展名映射：`png` → `image/png`，`jpg/jpeg` → `image/jpeg`，`gif` → `image/gif`，`webp` → `image/webp`，`svg` → `image/svg+xml` |
 
 ### 一键处理脚本（Node.js）
 
-在仓库根目录或文章目录执行（将 `ARTICLE_FILE` 替换为实际路径）：
+在仓库根目录执行（将 `ARTICLE_FILE` 替换为实际路径）：
 
 ```bash
 node --input-type=module -e "
@@ -103,7 +136,6 @@ const absArticle = path.resolve(articleFile);
 const articleDir = path.dirname(absArticle);
 let body = fs.readFileSync(absArticle, 'utf8');
 
-// 去掉 Front Matter
 if (body.startsWith('---')) {
   const end = body.indexOf('\n---', 3);
   if (end !== -1) body = body.slice(end + 4).replace(/^\s+/, '');
@@ -116,25 +148,35 @@ const mimeByExt = {
 
 const imageRe = /!\[([^\]]*)\]\(([^)]+)\)/g;
 const errors = [];
+const images = [];
 
-body = body.replace(imageRe, (full, alt, rawPath) => {
-  const p = rawPath.trim();
-  if (/^https?:\/\//i.test(p) || p.startsWith('//')) return full;
-  if (!alt.trim()) { errors.push('empty alt: ' + p); return full; }
+for (const match of body.matchAll(imageRe)) {
+  const alt = match[1];
+  const rawPath = match[2].trim();
+  if (/^https?:\/\//i.test(rawPath) || rawPath.startsWith('//')) continue;
+  if (rawPath.startsWith('data:')) {
+    errors.push('data uri not allowed in publish body: ' + rawPath.slice(0, 40));
+    continue;
+  }
+  if (!alt.trim()) { errors.push('empty alt: ' + rawPath); continue; }
 
-  const rel = p.replace(/^\.\//, '').split('/').filter(s => s && s !== '.');
-  if (rel.some(s => s === '..')) { errors.push('path traversal: ' + p); return full; }
+  const rel = rawPath.replace(/^\.\//, '').split('/').filter(s => s && s !== '.');
+  if (rel.some(s => s === '..')) { errors.push('path traversal: ' + rawPath); continue; }
 
   const abs = path.join(articleDir, ...rel);
-  if (!fs.existsSync(abs)) { errors.push('missing: ' + p); return full; }
+  if (!fs.existsSync(abs)) { errors.push('missing: ' + rawPath); continue; }
 
   const ext = path.extname(abs).toLowerCase();
   const mime = mimeByExt[ext];
-  if (!mime) { errors.push('unsupported ext: ' + p); return full; }
+  if (!mime) { errors.push('unsupported ext: ' + rawPath); continue; }
 
-  const b64 = fs.readFileSync(abs).toString('base64');
-  return \`![\${alt}](data:\${mime};base64,\${b64})\`;
-});
+  images.push({
+    markdown_path: rawPath,
+    absolute_path: abs,
+    alt: alt.trim(),
+    mime
+  });
+}
 
 if (errors.length) {
   console.error(JSON.stringify({ ok: false, errors }, null, 2));
@@ -143,9 +185,20 @@ if (errors.length) {
 
 const outDir = path.join(articleDir, '.publish');
 fs.mkdirSync(outDir, { recursive: true });
-const outFile = path.join(outDir, 'article-body.md');
-fs.writeFileSync(outFile, body, 'utf8');
-console.log(JSON.stringify({ ok: true, publish_file: outFile, images_inlined: (body.match(/data:image/g) ?? []).length }));
+const publishFile = path.join(outDir, 'article-body.md');
+const manifestFile = path.join(outDir, 'images-manifest.json');
+fs.writeFileSync(publishFile, body, 'utf8');
+fs.writeFileSync(manifestFile, JSON.stringify({
+  schema_version: 'webmcp-cli.images-manifest.v1',
+  article_dir: articleDir,
+  images
+}, null, 2), 'utf8');
+console.log(JSON.stringify({
+  ok: true,
+  publish_file: publishFile,
+  manifest_file: manifestFile,
+  images_to_upload: images.length
+}));
 "
 ```
 
@@ -156,7 +209,7 @@ $env:ARTICLE_FILE = "articles/tiny-robot/2026-07-01-tinyrobot-ai-service-communi
 node --input-type=module -e "<同上脚本>"
 ```
 
-脚本输出 `ok: true` 且给出 `publish_file` 后，后续平台发布**必须**使用 `publish_file`，而非原始 `article.md`。
+脚本输出 `ok: true` 后，后续平台发布**必须**使用 `publish_file` 与 `manifest_file`，而非原始 `article.md`。
 
 ---
 
@@ -165,28 +218,54 @@ node --input-type=module -e "<同上脚本>"
 进入 [publish-from-article-hub.md](./publish-from-article-hub.md) 步骤 3 之前，确认：
 
 - [ ] `article-hub validate article` 通过，或手动扫描无缺失/非法路径
-- [ ] 临时发布文件已生成，且正文不含 `./assets/` 等本地相对路径（外部 URL 除外）
+- [ ] `.publish/article-body.md` 已生成，**不含** `data:` URI
+- [ ] `.publish/images-manifest.json` 已生成，且 `images` 条数与正文中本地 `![]()` 数量一致
 - [ ] 每个 `![...](...)` 的 alt 非空
 - [ ] Mermaid 源码块（` ```mermaid `）仍保留在发布正文中（平台若不支持，需人工确认或改用 PNG 引用——见下节）
 
 ### Mermaid 与图表
 
 - 母稿中 ` ```mermaid ` 代码块**不是**图片引用，本流程不会自动转换。
-- 若文章同时有 `assets/*.png` 配图，按上述流程内联 PNG/GIF 即可。
+- 若文章同时有 `assets/*.png` 配图，按 manifest 在平台侧上传 PNG/GIF 即可。
 - 若正文**仅**依赖 Mermaid 且目标平台不渲染 Mermaid，**停止发布**，提示用户先将 `.mmd` 导出为 PNG 并在母稿中引用 PNG 后再发布。
 
 ---
 
-## 步骤 5：传给平台工具
+## 步骤 5：传给平台工具并触发上传
 
-各平台 `create_article` / `segmentfault_publish_article` 的 `content` 参数，改用发布副本：
+各平台 `create_article` 调用时，传入发布正文并**显式开启图片上传**：
 
 ```bash
-webmcp-cli run create_article -t TAB_ID \
-  '{"title":"文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md"}'
+webmcp-cli run create_article -t TAB_ID '{
+  "title":"文章标题",
+  "content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md",
+  "upload_images": true,
+  "images_manifest": "@file:./articles/<project>/<slug>/.publish/images-manifest.json"
+}'
 ```
 
-路径相对于执行 `webmcp-cli run` 时的当前工作目录；建议使用绝对路径或先 `cd` 到仓库根目录。
+`@base64file:` / `@file:` 路径相对于执行 `webmcp-cli run` 时的当前工作目录；建议使用绝对路径或先 `cd` 到仓库根目录。
+
+### 工具侧预期行为（填入 MD 时）
+
+`create_article` 在将 Markdown 写入编辑器后，对 manifest 中每张图片依次：
+
+1. 定位编辑器工具栏的**图片上传**入口（掘金为「上传图片」/图片按钮；CSDN 为 Markdown 工具栏图片上传）。
+2. 读取 `absolute_path` 对应文件，经平台上传接口提交。
+3. 等待平台返回 CDN URL（通常为 `https://` 且域名含平台标识）。
+4. 在编辑器正文中，将 `![alt](markdown_path)` 替换为 `![alt](平台CDN_URL)`。
+5. 全部替换完成后返回 `images_uploaded` 计数；任一张失败则报错并停止。
+
+上传完成后，**必须**调用平台提供的读取工具（如掘金的 `get_article_info`）或预览区确认：正文中不应再残留 `./assets/`、`data:` 等本地或内联路径。
+
+各平台细节见：
+
+| 平台 | 文档 |
+|------|------|
+| 掘金 | [publish-article-in-juejin.md](./publish-article-in-juejin.md) |
+| CSDN | [publish-article-in-csdn.md](./publish-article-in-csdn.md) |
+| 思否 | [publish-article-in-segmentfault.md](./publish-article-in-segmentfault.md) |
+| 开源中国 | [publish-article-in-oschina.md](./publish-article-in-oschina.md) |
 
 ---
 
@@ -196,8 +275,9 @@ webmcp-cli run create_article -t TAB_ID \
 
 - 任一本地图片文件不存在、路径非法或 alt 为空
 - 图片处理脚本报错（`ok: false`）
-- 发布副本中仍残留 `./assets/`、`../` 等本地相对图片路径
-- 用户明确要求使用母稿原文发布且未确认接受裂图风险
+- 发布副本中含有 `data:` URI（应重新生成，勿内联 Base64）
+- `upload_images: true` 后，编辑器正文中仍残留本地相对路径或 `data:` URI
+- 用户明确要求跳过图片上传且未确认接受裂图风险
 
 ---
 
@@ -206,9 +286,9 @@ webmcp-cli run create_article -t TAB_ID \
 ```
 校验母稿 (2.3)
         ↓
-【本指南】validate + 扫描 + 生成 .publish/article-body.md
+【本指南】validate + 扫描 + 生成 article-body.md + images-manifest.json
         ↓
-平台 webmcp-cli 发布 (步骤 3)
+平台 create_article（upload_images: true，上传并替换 CDN URL）
         ↓
 回写 publications.json
 ```

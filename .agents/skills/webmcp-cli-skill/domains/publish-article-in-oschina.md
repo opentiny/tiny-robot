@@ -10,7 +10,7 @@
 
 | 工具名           | 描述               | 参数                                                                       |
 | ---------------- | ------------------ | -------------------------------------------------------------------------- |
-| `create_article` | 填写文章标题和正文 | `uid`(用户id) 、`title`（标题字符串）、`content`（正文的 **Base64** 编码） |
+| `create_article` | 填写文章标题和正文，可选上传 manifest 图片 | `uid`、`title`、`content`（Base64）、`upload_images`（可选）、`images_manifest`（可选） |
 
 ---
 
@@ -32,16 +32,14 @@ ${uid} 是用户在开源中国的uid值， 一串数字。 必须要求用户�
 
 ### 第二步：填写标题和正文（完成后停止）
 
-将**步骤 2.5 生成的** `.publish/article-body.md`（已内联本地图片）通过 `@base64file:` 内联引用传入：
+将**步骤 2.5 生成的** `.publish/article-body.md` 与 `.publish/images-manifest.json` 传入，并开启图片上传：
 
 ```bash
-webmcp-cli run create_article '{"title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md"}'
+webmcp-cli run create_article '{"uid":"<用户uid>","title":"你的文章标题","content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md","upload_images":true,"images_manifest":"@file:./articles/<project>/<slug>/.publish/images-manifest.json"}'
 ```
 
 > [!WARNING]
->
-> - `title` 不能含有特殊引号等字符，否则 CLI 的 JSON 解析会失败
-> - `@base64file:` 占位符会被 CLI 自动展开为 Base64 编码内容，无需手动处理
+> - 开源中国编辑器**不支持** `data:` URI 内联；本地图片须通过编辑器上传能力提交到平台图床。
 
 **如果需要传 JSON 文件（高级用法）：**
 
