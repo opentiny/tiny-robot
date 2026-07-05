@@ -29,17 +29,17 @@ body {
   --tr-layout-header-bg: #fff;
   --tr-layout-main-bg: #fff;
   --tr-layout-footer-bg: #fff;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fff;
 }
 
 .chat-demo .tr-layout__content {
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fff;
 }
 
 .chat-demo .tr-layout__left-aside {
-  border-radius: 12px 0 0 12px;
+  border-radius: 8px 0 0 8px;
 }
 
 .chat-demo .tr-chat-header {

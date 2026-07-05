@@ -1,20 +1,21 @@
 import { computed, shallowRef } from 'vue'
-import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload, ChatUi } from '../../src'
+import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload } from '../../src'
 import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
+import { useDemoChatUi } from './shared'
 
 function createConversation(title: string): ChatConversationItem {
   const now = Date.now()
 
   return {
-    id: `conversation-${now}`,
+    id: `conversation-${now}-${Math.random().toString(36).slice(2, 8)}`,
     title,
     createdAt: now,
     updatedAt: now,
   }
 }
 
-export function useDemoRuntime() {
-  const firstConversation = createConversation('TinyRobot Chat MVP')
+export function useExternalRuntime() {
+  const firstConversation = createConversation('External Custom Runtime')
   const conversations = shallowRef<ChatConversationItem[]>([firstConversation])
   const currentId = shallowRef<string | null>(firstConversation.id)
   const messagesByConversation = shallowRef<Record<string, ChatMessageItem[]>>({
@@ -25,15 +26,20 @@ export function useDemoRuntime() {
   const requestState = shallowRef<RequestState>('idle')
   const processingState = shallowRef<RequestProcessingState | undefined>()
   const lastError = shallowRef<unknown | null>(null)
+  let activeRunId = 0
 
   const messages = computed(() => (currentId.value ? (messagesByConversation.value[currentId.value] ?? []) : []))
   const disabled = computed(() => false)
   const submitDisabled = computed(() => disabled.value || loading.value || inputValue.value.trim().length === 0)
 
   function updateCurrentMessages(next: ChatMessageItem[]) {
+    if (!currentId.value) {
+      return
+    }
+
     messagesByConversation.value = {
       ...messagesByConversation.value,
-      [currentId.value ?? '']: next,
+      [currentId.value]: next,
     }
   }
 
@@ -60,6 +66,8 @@ export function useDemoRuntime() {
       return
     }
 
+    const currentRunId = activeRunId + 1
+    activeRunId = currentRunId
     const current = ensureConversation(text.slice(0, 20))
     const now = Date.now()
 
@@ -72,18 +80,31 @@ export function useDemoRuntime() {
     inputValue.value = ''
     updateCurrentMessages([...messages.value, { role: 'user', content: text }])
 
-    await new Promise((resolve) => setTimeout(resolve, 120))
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 120))
 
-    updateCurrentMessages([
-      ...messages.value,
-      {
-        role: 'assistant',
-        content: `收到：${text}`,
-      },
-    ])
-    loading.value = false
-    requestState.value = 'completed'
-    processingState.value = undefined
+      if (currentRunId !== activeRunId || requestState.value === 'aborted') {
+        return
+      }
+
+      updateCurrentMessages([
+        ...messages.value,
+        {
+          role: 'assistant',
+          content: `External runtime 回复：${text}`,
+        },
+      ])
+      requestState.value = 'completed'
+    } catch (error) {
+      lastError.value = error
+      requestState.value = 'error'
+      throw error
+    } finally {
+      if (currentRunId === activeRunId) {
+        loading.value = false
+        processingState.value = undefined
+      }
+    }
   }
 
   const runtime: ChatRuntime = {
@@ -109,6 +130,7 @@ export function useDemoRuntime() {
       },
       send,
       abort: () => {
+        activeRunId += 1
         loading.value = false
         requestState.value = 'aborted'
         processingState.value = undefined
@@ -136,39 +158,13 @@ export function useDemoRuntime() {
     },
   }
 
-  const ui: ChatUi = {
-    layout: {
-      leftAside: {
-        defaultOpen: true,
-        expandedWidth: 260,
-      },
-    },
-    welcome: {
-      title: 'TinyRobot Chat',
-      description: 'MVP demo',
-    },
-    prompts: {
-      wrap: true,
-      items: [
-        { label: '介绍一下 TinyRobot Chat' },
-        { label: '生成一个 Vue 组件示例' },
-        { label: '解释 runtime 和 ui 的职责' },
-      ],
-    },
-    bubbleList: {
-      autoScroll: true,
-      roleConfigs: {
-        user: { placement: 'end' },
-        assistant: { placement: 'start' },
-      },
-    },
-    sender: {
-      mode: 'multiple',
-      placeholder: '输入消息，Enter 发送',
-    },
-  }
+  const { isMobile, ui } = useDemoChatUi({
+    title: 'External Custom Runtime',
+    placeholder: '输入消息验证外部 runtime',
+  })
 
   return {
+    isMobile,
     runtime,
     ui,
   }

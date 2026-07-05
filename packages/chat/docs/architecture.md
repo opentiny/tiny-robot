@@ -13,13 +13,17 @@
 - 通过 `ui` 配置原子组件展示。
 - 通过 slots 替换局部区域。
 
-核心链路：
+用户接入时先判断会话、消息、请求生命周期归谁管理：
 
 ```txt
-local kit runtime -> ChatRuntime -> TrChat
-existing kit runtime -> ChatRuntime -> TrChat
-external runtime -> ChatRuntime -> TrChat
+TinyRobot kit 管状态 -> ChatRuntime -> TrChat
+用户外部数据层管状态 -> ChatRuntime -> TrChat
 ```
+
+在 TinyRobot kit 这一路下，MVP 提供两个入口：
+
+- 新项目快速接入：`useLocalChatRuntime()` 内部创建 `useConversation()`。
+- 已有 kit 项目迁移：`useKitChatRuntime()` 适配用户已有 `useConversation()`。
 
 ## 2. 分层
 
@@ -193,9 +197,11 @@ runtime 接管字段不能通过 `ui` 配置：
 同一状态只能有一个来源。
 ```
 
-## 6. Local Runtime
+## 6. Kit-managed Runtime
 
-`useLocalChatRuntime` 是官方推荐 runtime 创建入口。
+Kit-managed runtime 表示会话、消息、请求、stream、abort、storage 等生命周期由 TinyRobot kit 管理。
+
+`useLocalChatRuntime` 是新项目的官方快速入口。
 
 内部链路：
 
@@ -206,7 +212,7 @@ useLocalChatRuntime
   -> ChatRuntime
 ```
 
-`useKitChatRuntime` 职责：
+`useKitChatRuntime` 是 kit-managed 路径里的底层 adapter，它的职责：
 
 - `ConversationInfo[] -> ChatConversationItem[]`
 - `activeConversationId -> conversations.currentId`
@@ -232,9 +238,9 @@ useLocalChatRuntime
 - `send(payload)` 在无 active conversation 时先创建会话。
 - `abort()` 调用当前会话 engine 的 abort 能力。
 
-## 7. Kit Runtime Adapter
+## 7. Existing Kit Adapter
 
-`useKitChatRuntime` 是已有 kit runtime 的迁移入口。
+`useKitChatRuntime` 是已有 kit runtime 的迁移入口。它不代表额外的状态归属，而是 kit-managed runtime 的 adapter 形态。
 
 适用场景：
 
@@ -271,7 +277,7 @@ const runtime = useKitChatRuntime(conversation, {
 
 ## 8. External Runtime
 
-外部 runtime 是正式能力。
+External runtime 表示会话、消息、请求生命周期由用户自己的数据层管理，TinyRobot 只消费用户适配出的 `ChatRuntime`。
 
 适用场景：
 
@@ -295,19 +301,19 @@ const runtime = useKitChatRuntime(conversation, {
 - 外部 runtime 保证数据符合 `HistoryItem / BubbleMessage` 契约。
 - `TrChat` 只消费 `ChatRuntime`，不关心外部 runtime 内部实现。
 
-## 9. 三种接入路径
+## 9. 两类状态归属与三个入口
 
-| 路径 | API | 场景 | 状态归属 |
+| 状态归属 | 入口 | 场景 | 说明 |
 | --- | --- | --- | --- |
-| Local Chat Runtime | `useLocalChatRuntime()` | 新项目，使用官方 kit 能力 | chat/kit |
-| Kit Runtime Adapter | `useKitChatRuntime()` | 已有 kit runtime，只迁移 UI | 用户已有 kit runtime |
-| External Runtime | 实现 `ChatRuntime` | AI SDK / Pinia / 自研 store / 老系统 | 用户自己的数据层 |
+| TinyRobot kit | `useLocalChatRuntime()` | 新项目，使用官方 kit 能力 | 快速创建 `useConversation()` 并适配成 `ChatRuntime` |
+| TinyRobot kit | `useKitChatRuntime()` | 已有 kit runtime，只迁移 UI | 复用用户已有 `useConversation()`，只做 adapter |
+| 用户外部数据层 | 实现 `ChatRuntime` | AI SDK / Pinia / 自研 store / 老系统 | 用户自己负责请求、stream、abort、错误处理 |
 
 对齐 assistant-ui 的理解：
 
-- `useLocalChatRuntime()` 对应 `LocalRuntime` 思路。
+- TinyRobot kit-managed runtime 对应 `LocalRuntime` 思路。
 - 自定义 `ChatRuntime` 对应 `ExternalStoreRuntime` 思路。
-- `useKitChatRuntime()` 是 TinyRobot 为已有 kit 用户补充的迁移 adapter。
+- `useKitChatRuntime()` 是 TinyRobot 为已有 kit 用户补充的迁移 adapter，不是额外的状态归属。
 
 ## 10. TrChat 装配
 
@@ -461,9 +467,9 @@ export type {
 5. 实现 `TrChat` 默认布局。
 6. 实现内部 `Conversations / Messages / Sender / Header` 映射组件。
 7. 实现 slots。
-8. 实现 local runtime demo。
+8. 实现 kit quick start demo。
 9. 实现 existing kit runtime demo。
-10. 实现 external runtime demo。
+10. 实现 external custom runtime demo。
 11. 做类型检查和 demo 构建验证。
 
 ## 14. 验证

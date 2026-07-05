@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { TrChat } from '../../src'
-import { useDemoRuntime } from './useDemoRuntime'
+import { useExternalRuntime } from './useExternalRuntime'
 
-const { runtime, ui } = useDemoRuntime()
+const { isMobile, runtime, ui } = useExternalRuntime()
 </script>
 
 <template>
-  <TrChat :runtime="runtime" :ui="ui" />
+  <TrChat :key="isMobile ? 'mobile' : 'desktop'" :runtime="runtime" :ui="ui" />
 </template>

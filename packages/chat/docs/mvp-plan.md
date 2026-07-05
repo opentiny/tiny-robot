@@ -9,8 +9,9 @@ MVP 只验证 chat 套件的核心架构是否成立，不追求完整功能。
 - `TrChat` 能否作为默认完整聊天应用入口。
 - `ChatRuntime` 能否作为唯一数据与动作协议。
 - `ChatUi` 能否作为唯一原子组件展示配置协议。
-- `kit` 能否作为官方 local runtime。
-- 已有 kit runtime 能否通过 adapter 快速接入 `TrChat`。
+- `kit` 能否作为 TinyRobot 托管状态的官方路径。
+- kit 路径下，新项目能否通过 `useLocalChatRuntime()` 快速接入。
+- kit 路径下，已有 kit runtime 能否通过 `useKitChatRuntime()` 迁移到 `TrChat`。
 - 用户已有数据层时，能否通过 external runtime adapter 只接入 TinyRobot UI。
 - slots 能否作为局部扩展机制，而不需要第二套白盒区域组件体系。
 
@@ -55,9 +56,11 @@ packages/chat/
     main.ts
     style.css
     cases/
-      basic.vue
+      kit-quick-start.vue
+      kit-existing-runtime.vue
       external-runtime.vue
-      useDemoRuntime.ts
+      shared.ts
+      useExternalRuntime.ts
 ```
 
 目录约束：
@@ -68,9 +71,11 @@ packages/chat/
 - `src/composables/useKitChatRuntime.ts` 只做 `kit -> ChatRuntime` 映射。
 - `src/composables/useLocalChatRuntime.ts` 只补齐 chat 应用层行为。
 - `src/components/*` 只做内部映射，不作为 v1 稳定 API 承诺。
-- `demo/cases/basic.vue` 验证 local runtime 黑盒入口。
-- 后续补充 existing kit runtime demo，验证已有 `useConversation()` 接入 `TrChat`。
+- `demo/cases/kit-quick-start.vue` 验证 kit 路径的新项目快速入口。
+- `demo/cases/kit-existing-runtime.vue` 验证已有 `useConversation()` 接入 `TrChat`。
 - `demo/cases/external-runtime.vue` 验证 external runtime 只接 UI。
+- `demo/cases/shared.ts` 只放 Demo 共享的 mock provider、内存 storage 和 UI 配置。
+- `demo/cases/useExternalRuntime.ts` 只放 external runtime 示例的数据层实现。
 
 ## 3. 阶段 1：公共协议收口
 
@@ -284,9 +289,9 @@ TrChat
 - `TrChat` 作为默认黑盒入口可用。
 - slot 替换不需要第二套白盒组件体系。
 
-## 9. 阶段 7：接入 Local Runtime
+## 9. 阶段 7：接入 Kit Quick Start
 
-目标：验证 `kit` 可以作为官方 runtime core。
+目标：验证 `kit` 可以作为 TinyRobot 托管状态的官方路径，并给新项目提供快速入口。
 
 实现内容：
 
@@ -351,7 +356,7 @@ const runtime = useKitChatRuntime(conversation, {
 通过标准：
 
 - 已有 kit runtime 可以直接接入 `TrChat`。
-- `useKitChatRuntime` 不包含 local runtime 的首发建会话等产品默认行为。
+- `useKitChatRuntime` 不包含 kit quick start 的首发建会话等产品默认行为。
 
 ## 11. MVP 总验收清单
 
@@ -359,7 +364,8 @@ const runtime = useKitChatRuntime(conversation, {
 - runtime state 只读，变更只走 actions。
 - `ui` 只负责 UI 配置，不接管数据源字段。
 - `TrChat` 能作为默认主入口工作。
-- `kit` 只在 local runtime 层出现，UI 组件不直接依赖 `kit` 返回结构。
+- 对外解释为两类状态归属：TinyRobot kit 或用户外部数据层。
+- `kit` 只在 runtime adapter 层出现，UI 组件不直接依赖 `kit` 返回结构。
 - 已有 kit runtime 可以通过 `useKitChatRuntime` 迁移 UI。
 - MVP 能覆盖发送、取消、消息渲染、空状态、Prompt 回填、会话切换、黑盒装配、external runtime 接入。
 
@@ -372,7 +378,7 @@ MVP 初期先用 `type-check + build + demo` 验证架构，不在第一轮强�
 - `chat-runtime` 类型约束验证：确认 `ui` 不能传入被 runtime 接管的字段，例如 `sender.modelValue`、`bubbleList.messages`、`history.data`。
 - existing kit runtime 交互验证：验证已有 `useConversation()` 可以通过 `useKitChatRuntime` 接入 `TrChat`。
 - external runtime 交互验证：验证用户自有 runtime 只接 UI 时能展示、输入和发送。
-- local runtime 集成验证：验证 `useLocalChatRuntime` 基于 `kit` 完成发送、流式更新、取消和首次自动建会话。
+- kit quick start 集成验证：验证 `useLocalChatRuntime` 基于 `kit` 完成发送、流式更新、取消和首次自动建会话。
 
 ## 13. E2E 验证注意
 

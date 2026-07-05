@@ -17,6 +17,13 @@ TrChat + runtime + ui + slots
 - `slots` 负责轻量区域替换。
 - 深度定制直接使用 `components + kit`。
 
+对用户来说，核心选择是两类状态归属：
+
+- 使用 TinyRobot kit 管理会话、消息和请求生命周期。
+- 使用自己的数据层实现 `ChatRuntime`，只接入 TinyRobot UI。
+
+TinyRobot kit 这一路再分成两个入口：新项目用 `useLocalChatRuntime()`，已有 `useConversation()` 的项目用 `useKitChatRuntime()`。
+
 核心 API：
 
 ```vue
@@ -79,12 +86,18 @@ const ui = {
 | plugin lifecycle | 插件生命周期 |
 | storage | 会话持久化 |
 
-最终链路：
+最终链路按状态归属分为两类：
 
 ```txt
-local kit runtime -> ChatRuntime -> TrChat
-existing kit runtime -> ChatRuntime -> TrChat
-external runtime -> ChatRuntime -> TrChat
+TinyRobot kit -> ChatRuntime -> TrChat
+用户外部数据层 -> ChatRuntime -> TrChat
+```
+
+其中 TinyRobot kit 路径提供两个入口：
+
+```txt
+useLocalChatRuntime() -> 新项目快速创建 kit runtime
+useKitChatRuntime() -> 已有 useConversation() 迁移到 TrChat
 ```
 
 ## 4. 竞品参考结论
@@ -136,7 +149,7 @@ TinyRobot Chat 对齐 assistant-ui 的 runtime/UI 解耦思想。
 但实现必须基于 TinyRobot components 和 kit，不复制 assistant-ui primitives。
 ```
 
-TinyRobot 需要额外补充一条迁移路径：
+TinyRobot 需要额外补充一条 kit 迁移入口：
 
 ```txt
 existing kit runtime
@@ -144,7 +157,7 @@ existing kit runtime
   -> TrChat
 ```
 
-这不是 assistant-ui 里的第三类 runtime，而是 TinyRobot 为已有 `components + kit` 用户提供的 adapter。
+这不是独立状态归属，而是 TinyRobot 为已有 `components + kit` 用户提供的 adapter。
 
 ## 6. API 设计
 
@@ -285,8 +298,8 @@ MVP 做这些能力：
 | --- | --- |
 | `TrChat` | 默认完整聊天应用 |
 | `ChatRuntime` | UI adapter 协议 |
-| `useLocalChatRuntime` | 基于 kit 创建 local runtime |
-| `useKitChatRuntime` | 已有 kit runtime 迁移到 `TrChat` |
+| `useLocalChatRuntime` | kit 路径的新项目快速入口 |
+| `useKitChatRuntime` | kit 路径的已有 runtime 迁移 adapter |
 | external runtime demo | 验证只接 UI 层 |
 | `ui` 配置 | 按原子组件名配置展示 |
 | slots | 轻量替换区域 |
@@ -314,6 +327,7 @@ MVP 验证链路：
 | --- | --- |
 | 产品定位 | `chat = application assembly + UI adapter` |
 | 主 API | `<TrChat :runtime="runtime" :ui="ui" />` |
+| 接入模型 | 两类状态归属：TinyRobot kit 或用户外部数据层 |
 | UI 命名 | 按原子组件名作为 key |
 | runtime 边界 | `ChatRuntime` 是 UI adapter |
 | transport 边界 | 归 `kit` 或 external runtime |
@@ -334,7 +348,7 @@ MVP 验证链路：
 推荐 v1 收敛为：
 
 ```txt
-TrChat 黑盒入口 + runtime + 按组件命名的 ui + slots。
+TrChat 黑盒入口 + ChatRuntime + 按组件命名的 ui + slots。
 ```
 
 这样可以做到：
@@ -342,6 +356,7 @@ TrChat 黑盒入口 + runtime + 按组件命名的 ui + slots。
 - API 更贴近现有组件文档。
 - 用户迁移成本更低。
 - 边界更清楚。
+- 对外只需要解释两类状态归属，降低 runtime 选择心智负担。
 - 不需要维护第二套区域组件体系。
 
 ## 12. 参考链接
