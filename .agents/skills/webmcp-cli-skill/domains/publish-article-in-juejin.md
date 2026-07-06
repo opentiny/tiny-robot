@@ -13,27 +13,19 @@
 
 | 工具名 | 描述 | 参数 |
 |--------|------|------|
-| `create_article` | 填写标题和正文，并按 manifest 上传图片、替换为 CDN URL | 见下方「图片上传参数」 |
-| `get_article_info` | 在编辑器中获取当前草稿的标题和正文 | 无 |
-| `publish_current_draft` | 自动填写分类、标签和摘要并发布 | `category`、`tag`、`summary`（50~100 字） |
-
-### `create_article` 图片上传参数
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `title` | ✅ | 文章标题 |
-| `content` | ✅ | 正文 Base64；推荐 `@base64file:` 引用 `.publish/article-body.md` |
-| `upload_images` | 含本地图时 ✅ | 设为 `true` 时，填入正文后自动触发编辑器图片上传并替换 URL |
-| `images_manifest` | 含本地图时 ✅ | `@file:` 引用 `.publish/images-manifest.json` |
-
-> [!WARNING]
-> **禁止**向掘金传入含 `data:image/...;base64,...` 的正文——编辑器不会渲染，预览仍为裂图。本地图片必须通过上传按钮走平台 CDN。
+| `create_article` | 填写文章标题和正文 | `title`（标题字符串）、`content`（正文的 **Base64** 编码） |
+| `get_article_info` | 在编辑器中获取当前草稿的标题 and 正文 | 无 |
+| `publish_current_draft` | 在编辑器中自动填写分类、标签和摘要并发布文章 | `category`（分类）、`tag`（标签）、`summary`（必填，由 AI 总结的 50~100 字摘要） |
 
 ---
 
 ## 连续发布流程
 
+现在的流程中，新创建的文章在填写完毕后可直接通过工具进行智能分析并一键发布，无需经过人工审核或返回草稿箱。
+
 ### 第一步：打开编辑器
+
+使用 `state` 检查当前标签。如果未打开掘金编辑器，先导航过去：
 
 ```bash
 webmcp-cli tabs open "https://juejin.cn/editor/drafts/new?v=2"
@@ -43,84 +35,52 @@ webmcp-cli state
 > [!IMPORTANT]
 > **标签页定位（必读）**
 >
-> 1. `tabs open` 会返回 `tabid`，后续 `run` 建议始终带上 `-t <tabid>`。
-> 2. 掘金打开 `/new?v=2` 后，填写标题时会**自动跳转**为 `/editor/drafts/{id}`——属正常现象。
-> 3. 发布前务必 `tabs switch` 到含文章内容的编辑器标签页，再执行 `publish_current_draft`。
+> 1. `tabs open` 会返回 `tabid`，后续 `run` 建议始终带上 `-t <tabid>`，避免命令打到错误的标签页（例如浏览器默认首页）。
+> 2. 掘金打开 `/new?v=2` 后，填写标题时会**自动跳转**为 `/editor/drafts/{id}` 草稿 URL——这是正常现象，`create_article` 在两种 URL 下均可工作。
+> 3. 无参工具（如 `get_article_info`）可直接运行：`webmcp-cli run get_article_info` 或 `webmcp-cli run get_article_info '{}'`
+> 4. 发布前务必 `tabs switch` 到含文章内容的编辑器标签页，再执行 `publish_current_draft`。
 
-### 第二步：填写标题、正文并上传图片
+### 第二步：填写标题和正文
 
-先按 [prepare-article-images.md](./prepare-article-images.md) 生成 `.publish/article-body.md` 与 `.publish/images-manifest.json`，再调用 `create_article`：
+将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
 
 ```bash
 # TAB_ID 来自 tabs open 的返回值
-webmcp-cli run create_article -t TAB_ID '{
-  "title":"你的文章标题",
-  "content":"@base64file:./articles/<project>/<slug>/.publish/article-body.md",
-  "upload_images": true,
-  "images_manifest": "@file:./articles/<project>/<slug>/.publish/images-manifest.json"
-}'
+webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./article.md"}'
 ```
 
-#### 工具内部图片上传流程（掘金）
+> [!WARNING]
+> - `title` 不能含有特殊引号等字符，否则 CLI 的 JSON 解析会失败
+> - `@base64file:` 占位符会被 CLI 自动展开为 Base64 编码内容，无需手动处理
 
-`upload_images: true` 时，`create_article` 在 CodeMirror 写入正文后，对 manifest 中每张图片：
-
-1. 在编辑器工具栏定位**图片 / 上传图片**按钮（可用 `searchTree` 查询 `上传` 或 `图片` 作为兜底参考）。
-2. 触发隐藏 `input[type=file]` 或通过 DataTransfer 注入文件，提交 `images[].absolute_path` 指向的本地文件。
-3. 监听上传完成，从编辑器插入结果或剪贴板回调中获取掘金 CDN URL（通常为 `https://p*-devtool...` 或 `https://p*-passport...` 等域名）。
-4. 在正文中将 `![alt](markdown_path)` 替换为 `![alt](CDN_URL)`，触发 CodeMirror change 以保存草稿。
-
-#### 上传后校验（必做）
-
-```bash
-webmcp-cli run get_article_info -t TAB_ID
-```
-
-检查返回的 `content`：
-
-- ✅ 图片语法应为 `![alt](https://...)`，URL 为掘金 CDN
-- ❌ 若仍含 `./assets/`、`data:image` 或相对路径，**停止发布**，排查上传步骤或重试
-
-PowerShell 推荐用 JSON 文件传参：
+如果需要传 JSON 文件（高级用法）：
 
 ```json
+// article_args.json
 {
   "title": "你的文章标题",
-  "content": "@base64file:./articles/<project>/<slug>/.publish/article-body.md",
-  "upload_images": true,
-  "images_manifest": "@file:./articles/<project>/<slug>/.publish/images-manifest.json"
+  "content": "<正文的Base64编码>"
 }
 ```
 
 ```bash
-webmcp-cli run create_article -t TAB_ID -f ./article_args.json
+webmcp-cli run create_article -f ./article_args.json
 ```
 
-> [!WARNING]
-> - `title` 不能含有特殊引号等字符，否则 JSON 解析会失败
-> - `@base64file:` / `@file:` 由 CLI 展开，无需手动 Base64 编码 manifest
+### 第三步：使用内置工具一键发布
 
-### 第三步：一键发布
+在编辑器页面内容填写完成后，直接使用注入该域名的 `publish_current_draft` 内置 MCP 工具一键完成分类、标签选择并点击发布。
 
 > [!IMPORTANT]
 > - **切勿盲目使用默认值（"前端" 和 "Vue.js"）**！
-> - 必须先调用 `get_article_info` 获取标题和正文，确认图片 URL 已替换为 CDN。
-> - 基于正文智能推断 `category` 与 `tag`，并总结 **50~100 字**摘要传入 `summary`。
-> - 摘要字数超出范围会导致 `publish_current_draft` 报错停止。
+> - 在运行发布工具前，AI 必须先调用 `get_article_info` 工具获取当前文章的标题和正文内容。
+> - AI 需要基于获取的文章内容智能推断并选择最合适的 `category`（分类）与 `tag`（标签），并**自主总结出一段字数在 50 到 100 字之间的文章摘要**，将该摘要传入 `summary` 字段。
+> - **注意：传入的摘要字数必须严格在 50-100 字以内，否则发布工具将会报错并停止发布！**
 
 ```bash
+# 1. 获取当前文章信息（无参数时可省略 '{}'）
 webmcp-cli run get_article_info -t TAB_ID
 
+# 2. 智能推断和总结摘要后，执行一键发布（必须在编辑器标签页上）
 webmcp-cli run publish_current_draft -t TAB_ID '{"category":"开发工具","tag":"AI Agent","summary":"本指南详细介绍了如何使用 WebMCP 让 AI 助手精准操控浏览器，涵盖了安装配置、核心工具集的使用方法以及多种实际应用场景，是一篇极具实用价值的 AI Agent 实战教程。"}'
 ```
-
----
-
-## 掘金图片相关避坑
-
-| 问题 | 原因 | 解决方案 |
-|------|------|---------|
-| 预览区图片裂图 | 正文含 `./assets/` 相对路径 | 开启 `upload_images: true` 并传入 manifest |
-| 预览区图片裂图 | 使用了 `data:` URI 内联 | 重新生成发布副本，禁止 Base64 内联 |
-| 上传后 URL 未写入正文 | 仅粘贴 Markdown 未触发上传 | 必须走工具栏上传逻辑，不能 skip `upload_images` |
-| 上传按钮 click 无效 | 需操作隐藏 file input | 工具应优先 `input[type=file]` + DataTransfer，再 fallback click 工具栏 |
