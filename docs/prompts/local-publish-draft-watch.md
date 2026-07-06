@@ -65,6 +65,7 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 - 已存在正式发布记录时，默认不覆盖、不重发。
 - `.publish/`、`.cache/`、临时参数文件和本轮 worktree 不得提交。
 - commit 只能包含 `articles/publications.json`；不得把 `.publish/`、`.cache/`、临时参数文件或文章正文变更加入提交。
+- 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
 
 ## 运行标记
 
@@ -155,16 +156,20 @@ git status --short
 git add articles/publications.json
 git commit -m "chore(publications): record platform publish results"
 git push -u origin HEAD
-gh pr create --title "chore(publications): record platform publish results" --body "$(cat <<'EOF'
+gh pr create --title "chore(publications): record platform publish results" --body-file <pr-body.md>
+```
+
+`<pr-body.md>` 必须先写入临时 Markdown 文件，内容至少包含：
+
+```md
 ## Summary
+
 - 回写本轮已正式发布的平台文章 URL 与发布日期
 
 ## Test plan
+
 - [ ] 核对 `articles/publications.json` 只包含本轮成功发布记录
 - [ ] 核对平台 URL 可访问且不是草稿、编辑器或审核页
-
-EOF
-)"
 ```
 
 执行要求：
@@ -172,6 +177,7 @@ EOF
 - `git status --short` 中除 `articles/publications.json` 外如有其他变更，必须先确认它们不会被提交；`.publish/`、`.cache/` 和临时参数文件保持未跟踪或未暂存。
 - `git add` 只允许添加 `articles/publications.json`。
 - 创建 PR 前必须运行 `gh auth status`。如果 `gh` 未登录或返回 `401 Bad credentials`，停止在本地 commit 之后，不要 push 或声称已创建 PR；输出需要用户执行 `gh auth login`。
+- PR 创建后必须用 `gh pr view <pr-number> --repo <repository> --json body` 回读 PR body，确认正文包含 `## Summary` 和 `## Test plan`；若只剩标题行或正文不完整，按 GitHub 写操作失败处理。
 - 如果本轮没有任何成功发布记录，不能创建空 commit、不能 push、不能创建 PR。
 
 ## 处理流程
