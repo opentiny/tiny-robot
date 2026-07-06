@@ -5,7 +5,7 @@
 ## 范围
 
 - 只处理 `articles/publications.json` 中已有记录的文章。
-- 必须在独立 Git worktree 中执行本轮巡检，不得在用户当前工作区或其他巡检任务的工作区内发布、生成 `.publish/` 产物或回写 `articles/publications.json`。
+- 必须在独立 Git worktree 中执行本轮巡检，不得在用户当前工作区或其他巡检任务的工作区内发布或回写 `articles/publications.json`。
 - 候选文章必须满足：
   - `article_file` 指向的母稿存在且非空。
   - 目标平台在该文章的 `publications` 中没有正式发布记录。
@@ -20,7 +20,6 @@
 
 - `.agents/skills/webmcp-cli-skill/SKILL.md`
 - `.agents/skills/webmcp-cli-skill/domains/publish-from-article-hub.md`
-- `.agents/skills/webmcp-cli-skill/domains/prepare-article-images.md`
 - `.agents/skills/webmcp-cli-skill/domains/publish-article.md`
 - 目标平台对应子指南：
   - `juejin`：`.agents/skills/webmcp-cli-skill/domains/publish-article-in-juejin.md`
@@ -40,7 +39,7 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 执行要求：
 
 - 后续所有命令的 `cwd` 都必须是该 worktree。
-- 所有构建、校验、`.publish/` 产物、运行标记、失败记录和 `articles/publications.json` 回写都在该 worktree 内完成。
+- 所有构建、校验、运行标记、失败记录和 `articles/publications.json` 回写都在该 worktree 内完成。
 - 不切换用户当前工作区分支，不修改用户当前工作区文件。
 - 如果 worktree 创建失败，本轮停止，不要在主工作区继续执行。
 - 正常完成、push 并创建 PR 后，先确认 worktree 路径位于 `.worktrees/`，再运行 `git worktree remove --force <worktree-path>` 清理本轮 worktree；发布成功但回写、commit、push 或 PR 创建失败时保留 worktree 和分支供排查。
@@ -61,10 +60,9 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 - 必须调用正式发布动作；只写入草稿、审核中、未取得平台文章 URL 都不算完成。
 - 不创建或修改 GitHub Issue/PR 标签。
 - 目标平台未登录、跳转登录页、账号异常、验证码、二次确认或权限不足时，停止处理该候选，记录失败原因。
-- 图片校验失败、上传后仍残留本地相对路径或 `data:` URI 时，停止处理该候选。
 - 已存在正式发布记录时，默认不覆盖、不重发。
-- `.publish/`、`.cache/`、临时参数文件和本轮 worktree 不得提交。
-- commit 只能包含 `articles/publications.json`；不得把 `.publish/`、`.cache/`、临时参数文件或文章正文变更加入提交。
+- `.cache/`、临时参数文件和本轮 worktree 不得提交。
+- commit 只能包含 `articles/publications.json`；不得把 `.cache/`、临时参数文件或文章正文变更加入提交。
 - 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
 
 ## 运行标记
@@ -174,7 +172,7 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 
 执行要求：
 
-- `git status --short` 中除 `articles/publications.json` 外如有其他变更，必须先确认它们不会被提交；`.publish/`、`.cache/` 和临时参数文件保持未跟踪或未暂存。
+- `git status --short` 中除 `articles/publications.json` 外如有其他变更，必须先确认它们不会被提交；`.cache/` 和临时参数文件保持未跟踪或未暂存。
 - `git add` 只允许添加 `articles/publications.json`。
 - 创建 PR 前必须运行 `gh auth status`。如果 `gh` 未登录或返回 `401 Bad credentials`，停止在本地 commit 之后，不要 push 或声称已创建 PR；输出需要用户执行 `gh auth login`。
 - PR 创建后必须用 `gh pr view <pr-number> --repo <repository> --json body` 回读 PR body，确认正文包含 `## Summary` 和 `## Test plan`；若只剩标题行或正文不完整，按 GitHub 写操作失败处理。
@@ -192,23 +190,44 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 node dist/cli.js validate article --article-file <article_file> --config config/projects.yml
 ```
 
-如果 `dist/cli.js` 不存在，先运行 `pnpm run build`；构建失败则停止该候选。
+如果 `dist/cli.js` 不存在，先运行 `pnpm run build`；构建失败则停止该候选。若 `validate article` 返回 `ok: false` 或存在 `blocking_issues`，停止该候选并记录阻断码，不得继续发布。
 
-6. 按 `prepare-article-images.md` 生成：
-   - `<文章目录>/.publish/article-body.md`
-   - `<文章目录>/.publish/images-manifest.json`
-7. 确认发布副本不含 Front Matter、`data:` URI 或未校验的非法本地图片。
-8. 按目标平台执行正式发布：
-   - `juejin`：打开 `https://juejin.cn/editor/drafts/new?v=2`，调用 `create_article`，随后调用 `get_article_info` 校验标题、正文和图片 URL；生成 50-100 字摘要后调用 `publish_current_draft`，记录正式文章 URL。
-   - `csdn`：打开 `https://editor.csdn.net/md/`，按指南关闭「模版库」弹窗，调用 `create_article` 写入标题和正文；按指南进入发布流程并点击「发布文章」，记录正式文章 URL。
-   - `segmentfault`：调用 `segmentfault_publish_article` 的 `publish_full_flow`，使用默认或正文推断的分类、标签，等待自动保存草稿；确认内容后调用 `publish` 且 `confirm: true`，记录正式文章 URL。
-   - `oschina`：必须已在定时任务 prompt 中提供 `oschina_uid`；未提供则跳过并记录原因。打开 `https://my.oschina.net/u/<uid>/blog/ai-write`，调用 `create_article` 写入内容后按平台指南完成正式发布，记录正式文章 URL。
-9. 确认平台返回的 URL 可访问且不是草稿、编辑器或审核页。
-10. 回写 worktree 中的 `articles/publications.json`。
-11. 删除运行标记。
-12. 继续下一个候选。
-13. 若本轮至少有 1 个成功回写记录，按「Commit、push 与 PR」提交、推送并创建 PR。
-14. PR 创建成功后清理本轮 worktree；失败、阻断或未创建 PR 时保留 worktree。
+6. 按目标平台子指南执行正式发布。各平台统一采用 **打开编辑器 → `create_article` → `get_article_info` → `publish_current_draft`** 流程；`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，通过 `@base64file:` 传入，**不修改母稿、不生成 `.publish/` 副本**。调用 `publish_current_draft` 前必须先 `get_article_info`，基于正文智能推断分类与标签，**切勿盲目使用默认值**。PowerShell 终端下 `create_article` / `publish_current_draft` 参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
+
+   - `juejin`：
+     1. 打开 `https://juejin.cn/editor/drafts/new?v=2`，`webmcp-cli state` 确认工具已注入。
+     2. `create_article` 写入标题与正文（`content` 使用 `@base64file:<article_file>`）。
+     3. `get_article_info` 获取当前草稿内容。
+     4. 基于正文智能推断 `category`、`tag`，并生成 **50~100 字**摘要后调用 `publish_current_draft`。
+     5. 记录正式文章 URL。
+
+   - `csdn`：
+     1. 打开 `https://editor.csdn.net/md/`，`webmcp-cli state` 确认工具已注入（首次进入可能弹出「模版库」，`create_article` 会自动尝试关闭）。
+     2. `create_article` 写入标题与正文。
+     3. `get_article_info` 获取当前草稿内容。
+     4. 基于正文智能推断 `category`、`tags`（1~3 个），并生成 **100 字以内**摘要后调用 `publish_current_draft`。
+     5. 成功时页面跳转到 `mp.csdn.net/.../success/<articleId>`，记录正式文章 URL。
+
+   - `segmentfault`：
+     1. 打开 `https://segmentfault.com/howtowrite`（若已在 `/write` 可跳过引导）；引导页执行 `segmentfault_publish_article` 的 `click_howtowrite_continue`。
+     2. `create_article` 写入标题与正文（工具内部会等待自动保存完成）。
+     3. `get_article_info` 获取当前草稿内容。
+     4. 基于正文智能推断 `category`、`tags`（1~5 个）后调用 `publish_current_draft`。
+     5. 记录正式文章 URL。
+
+   - `oschina`：必须已在定时任务 prompt 中提供 `oschina_uid`；未提供则跳过并记录原因。
+     1. 打开 `https://my.oschina.net/u/<uid>/blog/ai-write`，`webmcp-cli state` 确认工具已注入。
+     2. `create_article` 写入标题与正文。
+     3. `get_article_info` 获取当前草稿内容。
+     4. 基于正文智能推断 `category`、`tags`，并生成 **50~200 字**摘要后调用 `publish_current_draft`。
+     5. 记录正式文章 URL。
+
+7. 确认平台返回的 URL 可访问且不是草稿、编辑器或审核页。
+8. 回写 worktree 中的 `articles/publications.json`。
+9. 删除运行标记。
+10. 继续下一个候选。
+11. 若本轮至少有 1 个成功回写记录，按「Commit、push 与 PR」提交、推送并创建 PR。
+12. PR 创建成功后清理本轮 worktree；失败、阻断或未创建 PR 时保留 worktree。
 
 ## 平台参数
 
@@ -221,13 +240,14 @@ segmentfault_category：前端
 segmentfault_tags：前端, AI, OpenTiny
 ```
 
-未提供 `segmentfault_category` 时，优先根据文章主题选择；无法判断时使用 `前端`。未提供 `segmentfault_tags` 时，使用 `前端`、`AI`、`OpenTiny`。
+未提供 `segmentfault_category` 时，优先根据 `get_article_info` 返回的正文推断；无法判断时使用 `前端`。未提供 `segmentfault_tags` 时，优先从正文推断；无法判断时使用 `前端`、`AI`、`OpenTiny`。
 
 ## 失败处理
 
 - 平台未登录：记录失败，提示用户在浏览器中完成登录。
 - 平台页面工具未注入：记录失败，提示检查 `webmcp-cli state` 输出。
-- 图片上传失败：记录失败，保留 `.publish/` 产物供排查。
+- `validate article` 阻断：记录失败，输出 `blocking_issues[].code`，不继续发布。
+- `publish_current_draft` 报错（如摘要字数不符、标签过多）：记录失败，输出工具返回的错误信息。
 - 平台正式文章 URL 无法获取：记录失败，不回写 `articles/publications.json`。
 - 平台只保存到草稿或进入审核中：记录失败，不回写 `articles/publications.json`，并输出需要人工确认的页面 URL。
 - `articles/publications.json` 回写失败：记录失败，保留 worktree，不删除可追溯证据。
@@ -241,7 +261,8 @@ segmentfault_tags：前端, AI, OpenTiny
 - `publish-from-article-hub.md` 定义的是人工发起的单篇发布流程。本任务是本地定时巡检，可以一次处理多个候选；成功发布后仍需在 worktree 分支 commit、push 并创建 PR。
 - `articles/publications.json` 只记录正式发布事实。未拿到正式文章 URL 时不得写入平台记录。
 - 部分平台指南仍包含“先写草稿、等待人工审核”的阶段说明。本任务以“直接正式发布”为目标；若平台在当前账号下必须人工审核或二次确认，则停止该候选，不伪造发布状态。
-- 思否工具会自动保存草稿，但正式发布仍需调用 `publish` 且 `confirm: true`。
+- 各平台推荐 `create_article` → `get_article_info` → `publish_current_draft` 三步流程；`segmentfault_publish_article` 的 `publish_full_flow` 仅作高级备选，本巡检任务不使用。
+- 母稿若含相对路径本地图片，平台编辑器可能无法直接展示；`validate article` 仅校验图片文件存在，不负责平台 CDN 上传。发布成功后应人工抽查平台正文中的图片是否正常显示。
 - 开源中国需要 `uid`，无法从仓库稳定推断；未配置时只能跳过。
 - 每轮都使用独立 worktree。并发巡检不得共用 worktree、运行标记或 `.cache/article-hub/publish-watch-failures/` 子路径。成功创建回写 PR 后必须清理本轮 worktree，不留本地目录。
 
@@ -256,5 +277,5 @@ segmentfault_tags：前端, AI, OpenTiny
 - commit SHA、远端分支和 PR URL；若未创建 PR，说明阻断点。
 - 跳过的候选和原因。
 - 失败项及下一步建议。
-- 需要人工登录、审核、补图或补参数的平台。
+- 需要人工登录、审核或补参数的平台。
 - 主工作区未修改的确认结果。
