@@ -21,6 +21,8 @@
 - 需要写作计划批准时，只接受 `inspect-issue` 输出中 `actionable: true` 且 `parsed.kind` 为 `approve-writing-plan` 的固定命令。
 - `/ai 同意`、`同意`、`开始写吧`、自然语言批准或带参数的 `/ai 批准写作计划` 都不算批准。
 - `/ai 批准选题` 不作为本地定时巡检触发条件；当前使用说明从写作计划审核开始。
+- 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
+- 多行评论发布后必须用 `gh issue view <number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1 且包含预期章节；若只剩标题行或正文不完整，按 GitHub 写操作失败处理。
 
 ## Worktree 隔离
 
@@ -66,6 +68,9 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 读取 `README`、`usage`、`docs`、`skills` 和 `config/projects.yml`。
    - 检查相似 Issue、已有文章和 `materials/article-archive`。
    - 生成或更新“当前写作计划评论”，完整计划必须进入 Issue 评论。
+   - 将完整计划写入临时 Markdown 文件，路径放在系统临时目录或 `<scheduler_root>/.cache/article-hub/<issue-number>/`，不得提交到 git。
+   - 使用 `gh issue comment <number> --repo <repository> --body-file <临时计划文件>` 发布计划评论，不得使用 `--body` 内联多行计划。
+   - 发布后回读最近一条当前 Agent 评论，确认评论正文不是单行标题，且包含计划版本、来源清单、建议大纲和人工验收项。
    - 写清计划版本、推荐标题、目标读者、来源快照、建议大纲、截图/GIF 素材需求、素材缺口、人工验收项。
    - 给出固定批准命令：`/ai 批准写作计划`。
    - 通过 `article-hub update-status` 把 Issue 设为 `阶段：策划` + `AI：等待人工`。

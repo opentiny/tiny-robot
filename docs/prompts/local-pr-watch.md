@@ -26,6 +26,8 @@
 - 所有状态标签只能通过 `article-hub update-status` 修改，不能手工拼标签。
 - PR 评论、Review、行级线程和 Request changes 中，能评论即视为已授权；不额外判断写权限或 allowlist。
 - 不自动 Resolve conversation，不点击 Ready for review，不 merge，不发布外部平台。
+- 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
+- 多行 PR 回执、阻断说明或失败报告发布后，必须用 `gh pr view <pr-number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1，且包含该类正文应有的评论链接、处理结论、失败摘要或隐藏标记。
 
 ## Worktree 隔离
 
@@ -60,7 +62,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 - 本轮只消费该回执之后新增或更新的 Request changes、PR 评论、Review、行级 Review 评论、Review 线程回复和明确 `/ai` 指令；先放入本轮意见清单，再逐条判定为已改、需澄清、无法采纳或无需处理。
 - 如果没有回执，首次 PR 巡检读取当前全部待处理意见，处理后发布第一条回执。
 - 如果评论早于最近回执，但线程后来追加了新回复，按新回复纳入本轮。
-- 每轮处理完成后必须发布新的“AI 巡检处理回执”，列出本轮意见清单中每条评论或 Review 的链接、处理结论和依据。只有本轮修改了正文才需要列出 Commit SHA；未改正文时必须说明是需澄清、无法采纳还是无需处理，并写入隐藏 `dedupe_key`。
+- 每轮处理完成后必须发布新的“AI 巡检处理回执”，列出本轮意见清单中每条评论或 Review 的链接、处理结论和依据。只有本轮修改了正文才需要列出 Commit SHA；未改正文时必须说明是需澄清、无法采纳还是无需处理，并写入隐藏 `dedupe_key`。回执正文必须写入临时 Markdown 文件，并通过 `gh pr comment <pr-number> --repo <repository> --body-file <回执文件>` 发布。
 
 隐藏标记固定放在回执正文末尾：
 
@@ -117,6 +119,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
     - 需澄清的问题、无法采纳的理由和仍需人工确认的问题。
     - 是否需要运营或技术维护者重新检查。
     - 正文末尾的隐藏 `dedupe_key` 标记。
+    - 回执正文保存到临时 Markdown 文件后用 `--body-file` 发布，发布后回读确认正文完整。
 11. 用 `article-hub update-status` 把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
 12. 正常完成并清理 worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留 worktree；过期标记不要删除。
 

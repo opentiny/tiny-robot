@@ -193,19 +193,23 @@ cd <仓库根目录>
 git add articles/publications.json
 git commit -m "chore(publications): record <平台标识> publish for <文章标题>"
 git push -u origin HEAD
-gh pr create --title "chore(publications): record <平台标识> publish for <文章标题>" --body "$(cat <<'EOF'
+gh pr create --title "chore(publications): record <平台标识> publish for <文章标题>" --body-file <pr-body.md>
+```
+
+`<pr-body.md>` 必须先写入临时 Markdown 文件，内容至少包含：
+
+```md
 ## Summary
+
 - 将《<文章标题>》在 <平台名称> 的发布事实写入 `articles/publications.json`
 - 平台 URL: <url>
 - 发布日期 (UTC+8): <published_date>
 
 ## Test plan
+
 - [ ] 核对 `article_file` 与母稿路径一致
 - [ ] 核对平台 URL 可访问
 - [ ] 合入后 `publications.json` 格式与字段约定正确
-
-EOF
-)"
 ```
 
 ### 4.4 通知用户
