@@ -70,22 +70,6 @@ webmcp-cli run page-agent-tool -f ./args.json
 
 旧版 `page-agent-tool` 中曾有 `!args.index` 作为校验的 Bug，导致 `index: 0` 时报错"缺少索引"。遇到此问题时改用 `executeJavascript` 操作首个元素，或升级到已修复的版本。
 
-### 4. 发布前必须处理本地图片（平台 CDN 上传，禁止 data URI）
-
-从 `ai-article-hub` 发布时，母稿中的 `./assets/...` 相对路径在外部平台**无法显示**。掘金、CSDN、思否等编辑器也**不会渲染** `data:image/...;base64,...` 内联图片。
-
-**必须**在调用 `create_article` 等工具之前：
-
-1. 按 [prepare-article-images.md](./prepare-article-images.md) 校验每个 `![alt](path)` 引用。
-2. 生成 `.publish/article-body.md`（保留相对路径，**禁止** Base64 内联）与 `.publish/images-manifest.json`。
-3. 调用 `create_article` 时设 `upload_images: true`，并传入 `images_manifest`，让工具在填入 Markdown 后触发编辑器**图片上传按钮**，将本地文件上传到平台 CDN 并替换正文中的 URL。
-4. 用 `@base64file:` / `@file:` 传发布副本，不要直接传原始 `article.md`。
-5. 上传后调用平台读取工具（如掘金 `get_article_info`）确认正文中图片 URL 已为 `https://` CDN 地址。
-
-图片校验未通过，或上传后仍残留相对路径 / `data:` URI 时**禁止发布**。
-
----
-
 ## 平台扩展规划
 
 ### 小红书 (XiaoHongShu)
