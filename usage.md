@@ -544,7 +544,7 @@ Draft PR 初审阶段可以只评论，不要求核心技术维护者必须 Appr
 
 如果 Codex、Claude Code 或其他本地 Agent 支持定时任务，可以让它定期检查文章 Issue 和 Draft PR，自动处理已经明确授权的写作计划、固定批准命令、PR Review 和 `/ai` 修改指令。
 
-定时巡检只负责本地唤醒和消费已授权事件，不跳过写作计划批准、事实确认、人工 Review、Ready for review 或发布流程。建议先完整跑通一次人工流程，再参考 [本地 Agent 定时巡检配置说明](./docs/local-agent-scheduled-checks.md) 配置 Issue 巡检和 PR 巡检。
+定时巡检只负责本地唤醒和消费已授权事件，不跳过写作计划批准、事实确认、人工 Review、Ready for review 或发布流程。建议先完整跑通一次人工流程，再参考 [本地 Agent 定时巡检配置说明](./docs/local-agent-scheduled-checks.md) 配置 Issue 巡检和 PR 巡检。需要自动将已合入母稿发布到外部平台时，可额外配置「正式发布巡检」，详见该文档中的 `docs/prompts/local-publish-watch.md`。
 
 ## 第九步：验收与 Ready for review
 
@@ -612,7 +612,7 @@ PR 合并和外部发布不属于当前本地生成流程。
 | 图片里有 Token 或内部地址 | 停止使用，重新提供不含敏感信息的素材。 |
 | 能不能直接在 GitHub PR 里改文章 | 可以，但改完再让 Agent 继续时，要提醒它重新读取最新 PR，避免覆盖人工修改。 |
 | PR 一直是 Draft | 检查人工验收项、代码片段、截图缺口和必需检查是否完成。 |
-| 想发布到外部平台 | 当前流程只生成文章母稿和 Draft PR，不负责发布平台适配。 |
+| 想发布到外部平台 | 默认人工使用 `webmcp-cli-skill` 发布；也可配置本地「正式发布巡检」自动发布并回写 `articles/publications.json`，见 [docs/local-agent-scheduled-checks.md](./docs/local-agent-scheduled-checks.md)。 |
 
 ## 产物目录说明
 
