@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import { TinyRadio, TinyRadioGroup, TinySwitch } from '@opentiny/vue'
+import { TinyRadio, TinyRadioGroup, TinySlider, TinySwitch } from '@opentiny/vue'
 import type { LayoutAsideCollapseEffect, LayoutAsideProps } from '@opentiny/tiny-robot'
 
 const collapseEffect = ref<LayoutAsideCollapseEffect>('overlay')
@@ -44,13 +44,12 @@ const collapsedHint = computed(() =>
 
       <label class="layout-collapse-effect-demo__field layout-collapse-effect-demo__field--range">
         <span class="layout-collapse-effect-demo__range-label">收起宽度</span>
-        <input
+        <TinySlider
           v-model.number="collapsedWidth"
           class="layout-collapse-effect-demo__range"
-          type="range"
-          min="0"
-          max="120"
-          step="4"
+          :min="0"
+          :max="120"
+          :step="4"
         />
         <strong>{{ collapsedWidth }}px</strong>
       </label>
@@ -128,7 +127,6 @@ const collapsedHint = computed(() =>
 }
 
 .layout-collapse-effect-demo__field--range {
-  min-width: min(320px, 100%);
   flex: 1 1 280px;
 }
 
@@ -137,8 +135,8 @@ const collapsedHint = computed(() =>
 }
 
 .layout-collapse-effect-demo__range {
-  width: 100%;
-  min-width: 120px;
+  min-width: 160px;
+  flex: 1;
 }
 
 .layout-collapse-effect-demo__aside {

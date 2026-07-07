@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
+import { TinyButton, TinySlider } from '@opentiny/vue'
 import type { LayoutAsideProps, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
@@ -41,19 +42,18 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
     <div class="layout-slot-props-demo__controls">
       <div class="layout-slot-props-demo__group">
         <span class="layout-slot-props-demo__group-label">左侧栏</span>
-        <button type="button" class="layout-slot-props-demo__button" @click="leftOpen = !leftOpen">
+        <TinyButton :reset-time="0" @click="leftOpen = !leftOpen">
           {{ leftOpen ? '收起侧栏' : '展开侧栏' }}
-        </button>
+        </TinyButton>
         <label class="layout-slot-props-demo__range-wrap">
           <span class="layout-slot-props-demo__range-label">宽度</span>
-          <input
+          <TinySlider
             v-model.number="leftExpandedWidth"
             class="layout-slot-props-demo__range"
-            type="range"
             :min="leftWidthMin"
             :max="leftWidthMax"
-            step="4"
-            @input="leftOpen = true"
+            :step="4"
+            @change="leftOpen = true"
           />
           <strong>{{ leftExpandedWidth }}px</strong>
         </label>
@@ -61,9 +61,9 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 
       <div class="layout-slot-props-demo__group">
         <span class="layout-slot-props-demo__group-label">右侧栏</span>
-        <button type="button" class="layout-slot-props-demo__button" @click="rightOpen = !rightOpen">
+        <TinyButton :reset-time="0" @click="rightOpen = !rightOpen">
           {{ rightOpen ? '关闭抽屉' : '打开抽屉' }}
-        </button>
+        </TinyButton>
       </div>
     </div>
 
@@ -76,22 +76,25 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
       @right-aside-open-change="updateRightAsideOpen"
     >
       <template #left-aside>
-        <div v-if="leftOpen" class="layout-slot-props-demo__aside">
-          <p>左侧栏宽度：{{ leftExpandedWidth }}px</p>
-          <TrLayout.AsideToggle side="left" class="layout-slot-props-demo__button">
-            <template #default="{ isOpen }">
-              {{ isOpen ? '收起侧栏' : '展开侧栏' }}
-            </template>
-          </TrLayout.AsideToggle>
+        <div class="layout-slot-props-demo__aside">
+          <template v-if="leftOpen">
+            <p>左侧栏宽度：{{ leftExpandedWidth }}px</p>
+            <TrLayout.AsideToggle side="left" class="layout-slot-props-demo__button">
+              <template #default="{ isOpen }">
+                {{ isOpen ? '收起侧栏' : '展开侧栏' }}
+              </template>
+            </TrLayout.AsideToggle>
+          </template>
+          <p v-else>左侧栏已关闭，请通过外部按钮重新展开。</p>
         </div>
       </template>
 
       <template #header>
-        <div class="layout-slot-props-demo__header">外层更新 leftAside / rightAside，并通过事件回写状态。</div>
+        <div class="layout-slot-props-demo__header">外层更新 leftAside / rightAside，并通过事件同步外部状态。</div>
       </template>
 
       <template #main>
-        <div class="layout-slot-props-demo__main">外层控制 open 和 expandedWidth，状态变化后通过事件回写。</div>
+        <div class="layout-slot-props-demo__main">外层控制 open 和 expandedWidth，状态变化后通过事件同步。</div>
       </template>
 
       <template #right-aside>
@@ -156,7 +159,8 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 }
 
 .layout-slot-props-demo__range {
-  width: 180px;
+  min-width: 160px;
+  flex: 1;
 }
 
 .layout-slot-props-demo__header {

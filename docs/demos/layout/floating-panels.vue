@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
+import { TinyButton } from '@opentiny/vue'
 import type { LayoutAsideOpenValue, LayoutFloatingOptions, LayoutFloatingState } from '@opentiny/tiny-robot'
 
 const open = ref(false)
@@ -35,9 +36,9 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
 <template>
   <div class="layout-floating-panels-demo">
     <div class="layout-floating-panels-demo__toolbar">
-      <button type="button" class="layout-floating-panels-demo__button" @click="open = !open">
+      <TinyButton :reset-time="0" @click="open = !open">
         {{ open ? '关闭浮层' : '打开浮层' }}
-      </button>
+      </TinyButton>
     </div>
 
     <TrLayout
@@ -63,12 +64,8 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
         <div class="layout-floating-panels-demo__header">
           <strong>浮层工作区</strong>
           <div class="layout-floating-panels-demo__actions">
-            <button type="button" class="layout-floating-panels-demo__button" @click="leftOpen = true">
-              打开左抽屉
-            </button>
-            <button type="button" class="layout-floating-panels-demo__button" @click="rightOpen = true">
-              打开右抽屉
-            </button>
+            <TinyButton :reset-time="0" @click="leftOpen = true">打开左抽屉</TinyButton>
+            <TinyButton :reset-time="0" @click="rightOpen = true">打开右抽屉</TinyButton>
           </div>
         </div>
       </template>
@@ -83,7 +80,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
       <template #right-aside>
         <div class="layout-floating-panels-demo__drawer">
           <div class="layout-floating-panels-demo__drawer-title">右侧抽屉</div>
-          <div>点击遮罩、按 `Esc` 或按钮都可以关闭。</div>
+          <div>点击遮罩或按钮都可以关闭。</div>
           <TrLayout.AsideToggle side="right" class="layout-floating-panels-demo__chip">关闭抽屉</TrLayout.AsideToggle>
         </div>
       </template>
@@ -117,20 +114,16 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
   gap: 8px;
 }
 
-.layout-floating-panels-demo__button,
-.layout-floating-panels-demo__chip,
-.layout-floating-panels-demo__rail-chip {
+.layout-floating-panels-demo__chip {
   border: 1px solid var(--vp-c-divider, var(--tr-border-color, #dcdfe6));
   background: var(--vp-c-bg, #ffffff);
   color: var(--vp-c-text-1, var(--tr-text-primary, #1f2329));
 }
 
-.layout-floating-panels-demo__button,
 .layout-floating-panels-demo__chip {
   min-height: 36px;
   padding: 0 12px;
   border-radius: 8px;
-  cursor: pointer;
 }
 
 .layout-floating-panels-demo__header {

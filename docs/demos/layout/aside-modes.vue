@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
+import { TinyButton } from '@opentiny/vue'
 import type { LayoutAsideOpenValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
@@ -29,7 +30,9 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
           <div class="layout-aside-demo__chip">collapsedWidth: 56px</div>
         </div>
         <div v-else class="layout-aside-demo__rail">
-          <TrLayout.AsideToggle side="left" class="layout-aside-demo__rail-chip">栏</TrLayout.AsideToggle>
+          <TrLayout.AsideToggle side="left" class="layout-aside-demo__rail-chip" aria-label="展开左侧栏">
+            栏
+          </TrLayout.AsideToggle>
           <div class="layout-aside-demo__rail-chip">56</div>
         </div>
       </template>
@@ -37,7 +40,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
       <template #header>
         <div class="layout-aside-demo__header">
           <span>侧栏模式</span>
-          <button type="button" class="layout-aside-demo__chip" @click="rightOpen = true">打开抽屉</button>
+          <TinyButton :reset-time="0" @click="rightOpen = true">打开抽屉</TinyButton>
         </div>
       </template>
 
@@ -48,7 +51,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
       <template #right-aside>
         <div class="layout-aside-demo__drawer layout-aside-demo__drawer-panel">
           <div>Drawer</div>
-          <div>点击遮罩、按 `Esc` 或按钮关闭。</div>
+          <div>点击遮罩或按钮关闭。</div>
           <TrLayout.AsideToggle side="right" class="layout-aside-demo__chip">关闭抽屉</TrLayout.AsideToggle>
         </div>
       </template>

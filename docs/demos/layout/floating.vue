@@ -1,37 +1,79 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
+import { TinyBaseSelect, TinyButton, TinyNumeric, TinyOption, TinySwitch } from '@opentiny/vue'
 import type { LayoutFloatingOptions, LayoutFloatingState } from '@opentiny/tiny-robot'
 
-const open = ref(false)
+type FloatingPlacement = LayoutFloatingState['placement']
 
-const defaultFloatingState: LayoutFloatingState = {
-  placement: 'top-right',
-  offsetX: 24,
-  offsetY: 32,
+const open = ref(false)
+const placement = ref<FloatingPlacement>('top-right')
+const offsetX = ref(0)
+const offsetY = ref(0)
+const draggable = ref(true)
+const resizable = ref(true)
+
+const placements: FloatingPlacement[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']
+
+const defaultFloatingState = computed<LayoutFloatingState>(() => ({
+  placement: placement.value,
+  offsetX: offsetX.value,
+  offsetY: offsetY.value,
   width: 520,
   height: 360,
-}
+}))
 
-const floatingOptions: LayoutFloatingOptions = {
-  draggable: true,
-  resizable: true,
+const floatingStateKey = computed(() => `${placement.value}-${offsetX.value}-${offsetY.value}`)
+
+const floatingOptions = computed<LayoutFloatingOptions>(() => ({
+  draggable: draggable.value,
+  resizable: resizable.value,
   minWidth: 360,
   maxWidth: 680,
-}
+}))
 </script>
 
 <template>
   <div class="layout-floating-demo">
     <div class="layout-floating-demo__toolbar">
-      <button type="button" class="layout-floating-demo__trigger" @click="open = !open">
+      <TinyButton :reset-time="0" @click="open = !open">
         {{ open ? '关闭浮层' : '打开浮层' }}
-      </button>
-      <span class="layout-floating-demo__tip">拖动顶部横条或边缘手柄调整位置和大小。</span>
+      </TinyButton>
+      <span class="layout-floating-demo__tip">非受控浮层会在内部维护拖拽和缩放后的状态。</span>
+    </div>
+
+    <div class="layout-floating-demo__controls">
+      <label class="layout-floating-demo__field">
+        <span>placement</span>
+        <TinyBaseSelect v-model="placement" class="layout-floating-demo__select">
+          <TinyOption v-for="item in placements" :key="item" :label="item" :value="item" />
+        </TinyBaseSelect>
+      </label>
+
+      <label class="layout-floating-demo__field">
+        <span>offsetX</span>
+        <TinyNumeric v-model="offsetX" class="layout-floating-demo__numeric" />
+      </label>
+
+      <label class="layout-floating-demo__field">
+        <span>offsetY</span>
+        <TinyNumeric v-model="offsetY" class="layout-floating-demo__numeric" />
+      </label>
+
+      <label class="layout-floating-demo__field">
+        <span>draggable</span>
+        <TinySwitch v-model="draggable" />
+      </label>
+
+      <label class="layout-floating-demo__field">
+        <span>resizable</span>
+        <TinySwitch v-model="resizable" />
+      </label>
     </div>
 
     <TrLayout
       v-if="open"
+      :key="floatingStateKey"
       class="layout-floating-demo__layout"
       mode="floating"
       :default-floating-state="defaultFloatingState"
@@ -40,14 +82,15 @@ const floatingOptions: LayoutFloatingOptions = {
       <template #header>
         <div class="layout-floating-demo__header">
           <strong>浮层布局</strong>
-          <button type="button" class="layout-floating-demo__close" @click="open = false">关闭</button>
+          <TinyButton :reset-time="0" size="small" @click="open = false">关闭</TinyButton>
         </div>
       </template>
 
       <template #main>
         <div class="layout-floating-demo__main">
-          <div class="layout-floating-demo__card">`defaultFloatingState` 设置初始位置和大小。</div>
-          <div class="layout-floating-demo__card">`floatingOptions` 控制拖动、缩放和尺寸范围。</div>
+          <div class="layout-floating-demo__card">`defaultFloatingState` 只设置初始位置和大小。</div>
+          <div class="layout-floating-demo__card">拖动顶部横条可移动浮层，拖动边缘手柄可调整大小。</div>
+          <div class="layout-floating-demo__card">切换 placement 或 offset 会重置初始位置，方便观察定位效果。</div>
         </div>
       </template>
     </TrLayout>
@@ -73,19 +116,30 @@ const floatingOptions: LayoutFloatingOptions = {
   gap: 8px;
 }
 
-.layout-floating-demo__trigger,
-.layout-floating-demo__close {
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--vp-c-divider, var(--tr-border-color, #dcdfe6));
-  border-radius: 8px;
-  background: var(--vp-c-bg, #ffffff);
-  color: var(--vp-c-text-1, var(--tr-text-primary, #1f2329));
-  cursor: pointer;
+.layout-floating-demo__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .layout-floating-demo__tip {
   color: var(--vp-c-text-2, var(--tr-text-secondary, #4e5969));
+}
+
+.layout-floating-demo__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vp-c-text-2, var(--tr-text-secondary, #4e5969));
+}
+
+.layout-floating-demo__select {
+  width: 148px;
+}
+
+.layout-floating-demo__numeric {
+  width: 104px;
 }
 
 .layout-floating-demo__main {

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { LayoutScrollTarget } from '@opentiny/tiny-robot'
 
 const props = defineProps<{
   centered: boolean
 }>()
 
-const scrollTargetRef = ref<LayoutScrollTarget>(null)
+const scrollTargetRef = ref<HTMLElement | null>(null)
 
 const sections = Array.from({ length: 12 }, (_, index) => index + 1)
 </script>
@@ -15,11 +14,13 @@ const sections = Array.from({ length: 12 }, (_, index) => index + 1)
 <template>
   <TrLayout>
     <template #main>
-      <div ref="scrollTargetRef" class="layout-main-scroll-div" :class="{ 'is-centered': props.centered }">
-        <section v-for="section in sections" :key="section" class="layout-main-scroll-div__item">
-          <strong>Section {{ section }}</strong>
-          <p>普通内容区也可以把滚动容器交给 Layout.ProxyScrollbar。</p>
-        </section>
+      <div ref="scrollTargetRef" class="layout-main-scroll-div">
+        <div class="layout-main-scroll-div__content" :class="{ 'is-centered': props.centered }">
+          <section v-for="section in sections" :key="section" class="layout-main-scroll-div__item">
+            <strong>Section {{ section }}</strong>
+            <p>普通内容区也可以把滚动容器交给 Layout.ProxyScrollbar。</p>
+          </section>
+        </div>
       </div>
       <TrLayout.ProxyScrollbar :scroll-target="scrollTargetRef" />
     </template>
@@ -28,16 +29,17 @@ const sections = Array.from({ length: 12 }, (_, index) => index + 1)
 
 <style scoped>
 .layout-main-scroll-div {
-  width: 100%;
   height: 100%;
-  box-sizing: border-box;
-  display: grid;
-  gap: 12px;
-  padding: 16px;
   overflow: auto;
 }
 
-.layout-main-scroll-div.is-centered {
+.layout-main-scroll-div__content {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.layout-main-scroll-div__content.is-centered {
   max-width: 550px;
   margin: 0 auto;
 }

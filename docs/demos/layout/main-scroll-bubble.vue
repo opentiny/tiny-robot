@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { BubbleList, TrLayout } from '@opentiny/tiny-robot'
-import type { BubbleListProps, BubbleRoleConfig, LayoutScrollTarget } from '@opentiny/tiny-robot'
+import type { BubbleListProps, BubbleRoleConfig } from '@opentiny/tiny-robot'
 
 const props = defineProps<{
   centered: boolean
 }>()
 
-const scrollTargetRef = ref<LayoutScrollTarget>(null)
+const scrollTargetRef = ref<HTMLElement | null>(null)
 
 const roles: Record<string, BubbleRoleConfig> = {
   user: { placement: 'end' },
@@ -29,30 +29,30 @@ const messages: BubbleListProps['messages'] = Array.from({ length: 12 }, (_, ind
 <template>
   <TrLayout>
     <template #main>
-      <BubbleList
-        ref="scrollTargetRef"
-        class="layout-main-scroll-bubble"
-        :class="{ 'is-centered': props.centered }"
-        :messages="messages"
-        :role-configs="roles"
-      />
+      <div ref="scrollTargetRef" class="layout-main-scroll-bubble-host">
+        <div class="layout-main-scroll-bubble-host__content" :class="{ 'is-centered': props.centered }">
+          <BubbleList class="layout-main-scroll-bubble" :messages="messages" :role-configs="roles" />
+        </div>
+      </div>
       <TrLayout.ProxyScrollbar :scroll-target="scrollTargetRef" />
     </template>
   </TrLayout>
 </template>
 
 <style scoped>
-.layout-main-scroll-bubble {
-  --tr-bubble-list-padding: 16px;
-  width: 100%;
+.layout-main-scroll-bubble-host {
   height: 100%;
-  box-sizing: border-box;
   overflow: auto;
 }
 
-.layout-main-scroll-bubble.is-centered {
+.layout-main-scroll-bubble-host__content.is-centered {
   max-width: 450px;
   margin: 0 auto;
+}
+
+.layout-main-scroll-bubble {
+  --tr-bubble-list-padding: 16px;
+  overflow: visible;
 }
 
 :deep([data-role='user']) {

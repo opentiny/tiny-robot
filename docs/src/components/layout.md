@@ -6,23 +6,36 @@ outline: [1, 3]
 
 `Layout` 用来组织带有头部、主内容区、底部和左右侧栏的页面。
 
-它覆盖三类核心场景：
+它覆盖五类核心使用模型：
 
-- 标准页面骨架
-- 可收起的左右侧栏
-- 可拖动、可缩放的浮层布局
+- 页面骨架：通过 `left-aside`、`header`、`main`、`footer`、`right-aside` 组织区域内容
+- 布局模式：通过 `mode` 在普通布局和浮层布局之间切换
+- 侧栏配置：通过 `leftAside` / `rightAside` 控制侧栏行为
+- 浮层状态：通过 `defaultFloatingState` 或 `floatingState` 控制浮层位置和尺寸
+- 主区滚动：通过 `Layout.ProxyScrollbar` 将滚动条固定在主区边界
 
 ## 基础布局
 
-`Layout` 用于定义页面结构，区域中的具体内容可按需配置。
+`Layout` 用于定义页面结构，各区域的具体内容通过插槽提供。
 
 <demo vue="../../demos/layout/basic.vue" title="基础布局" description="最小布局示例。" />
 
+## 布局模式
+
+`mode` 控制 `Layout` 的整体形态。
+
+- `normal`：普通页面骨架，参与原始页面布局
+- `floating`：悬浮工作区，脱离原始页面布局并挂载到 `body`
+
+普通页面不需要显式传 `mode`。需要临时面板、悬浮工作台或可拖拽窗口时，再使用 `mode="floating"`。
+
 ## 侧栏
 
-### 展示形态
+侧栏由 `leftAside` / `rightAside` 控制，类型为 [`LayoutAsideProps`](#layout-aside-props)。
 
-用 `leftAside` / `rightAside` 配置侧栏。
+侧栏内容通过 `left-aside` / `right-aside` 插槽提供。配置和内容分开后，业务可以只调整行为配置，而不影响插槽里的渲染结构。
+
+### 展示形态
 
 - `dock`：占据页面空间
 - `drawer`：覆盖在内容上方
@@ -46,13 +59,17 @@ outline: [1, 3]
   description="对比 overlay 和 slide 两种收起动画。"
 />
 
+### 宽度调整
+
+`resizable` 可以开启 `dock` 侧栏的拖拽改宽，宽度范围由 `minExpandedWidth` 和 `maxExpandedWidth` 控制。
+
+<demo vue="../../demos/layout/aside-resizable.vue" title="宽度调整" description="拖动分隔线查看当前宽度和边界。" />
+
 ### 状态控制
 
-用 `leftAside` / `rightAside` 控制开关和宽度。
+`open` 和 `expandedWidth` 是受控值，状态变化后需要通过事件同步外部状态。
 
-侧栏内容通过 `left-aside` / `right-aside` 提供。
-
-受控用法下，状态变化后需要同步回写。侧栏内部切换可使用 `Layout.AsideToggle`，默认插槽提供 `{ isOpen }`。
+`defaultOpen` 和 `defaultExpandedWidth` 只提供初始值，适合不需要外部持续控制的场景。
 
 <demo
   vue="../../demos/layout/aside-slot-props.vue"
@@ -60,21 +77,54 @@ outline: [1, 3]
   description="用开关和滑块展示 leftAside、rightAside 和事件同步。"
 />
 
-### 宽度调整
+## 浮层
 
-`resizable` 可以开启 `dock` 侧栏的拖拽改宽，宽度范围由 `minExpandedWidth` 和 `maxExpandedWidth` 控制。
+浮层只在 `mode="floating"` 时生效，适合临时面板、悬浮工作区或对话面板。
 
-<demo vue="../../demos/layout/aside-resizable.vue" title="宽度调整" description="拖动分隔线查看当前宽度和边界。" />
+`defaultFloatingState` 和 `floatingState` 不要同时传入：
+
+- `defaultFloatingState`：非受控初始状态，只在首次挂载时读取
+- `floatingState`：受控状态，由外部维护当前位置和尺寸
+
+### 非受控浮层
+
+非受控浮层通过 `defaultFloatingState` 设置初始位置和尺寸。拖动或缩放后，状态由组件内部维护，适合展示 `placement`、`offsetX`、`offsetY`、`draggable` 和 `resizable`。
+
+<demo
+  vue="../../demos/layout/floating.vue"
+  title="非受控浮层"
+  description="打开时通过 defaultFloatingState 设置初始位置和大小。"
+/>
+
+### 受控浮层
+
+受控浮层以 `floatingState` 作为唯一状态源，组件按传入状态渲染；拖拽或缩放产生变化时，通过 `update:floatingState` 通知外部同步。位置固定或由外部规则决定时，建议关闭 `draggable`。
+
+<demo
+  vue="../../demos/layout/floating-controlled.vue"
+  title="受控浮层"
+  description="通过 floatingState 控制位置和大小，并回显当前状态。"
+/>
+
+### 浮层工作区
+
+浮层里同样可以放入侧栏、头部和主区。常见用法是把左右两侧都做成按需展开的 drawer。
+
+<demo
+  vue="../../demos/layout/floating-panels.vue"
+  title="浮层工作区"
+  description="在浮层里组合左右 drawer，适合临时工作区、对话面板或侧边操作台。"
+/>
 
 ## 主区滚动
 
-`Layout.ProxyScrollbar` 用来显示主区滚动条，`scrollTarget` 指向实际滚动的内容区域。
+`Layout.ProxyScrollbar` 用来代理主区滚动条，适合消息流、长内容阅读流和工作台主区。
 
-> 适合消息区居中的对话页：内容可以居中，滚动条仍固定在主区右侧，视觉更整齐。
+它解决的是“内容列居中后，原生滚动条跟着内容列移动，不再贴近主区右边界”的问题。使用时应让外层作为真实滚动宿主；如果内容需要居中或限宽，再交给内层容器处理。
 
 - `scrollTarget` 传实际滚动元素，或对应组件实例的 `ref`
-- 该元素需自行设置尺寸、`box-sizing` 和滚动样式
-- `Layout.ProxyScrollbar` 会自动隐藏该元素的原生滚动条
+- 滚动宿主需自行设置尺寸、`box-sizing` 和滚动样式
+- `Layout.ProxyScrollbar` 会自动隐藏滚动宿主的原生滚动条
 
 ```css
 .scroll-host {
@@ -96,34 +146,11 @@ outline: [1, 3]
   description="演示内容区居中后，滚动条仍固定在主区右侧。"
 />
 
-## 浮层
+## Layout.AsideToggle
 
-适合临时面板或悬浮工作区，只在 `mode="floating"` 时生效。
+`Layout.AsideToggle` 是内置侧栏开关按钮，只能在 `Layout` 内部使用，通常放在 `left-aside` / `right-aside` 插槽中。
 
-### 基本用法
-
-`defaultFloatingState` 设置初始位置和大小，`floatingOptions` 设置拖动、缩放和尺寸范围。
-
-- `defaultFloatingState`：只设置初始值
-- `floatingState`：由外部控制位置和大小
-
-传 `floatingState` 时，需要在 `update:floatingState` 中同步最新值。
-
-<demo
-  vue="../../demos/layout/floating.vue"
-  title="基本用法"
-  description="打开时通过 defaultFloatingState 设置初始位置和大小。"
-/>
-
-### 浮层工作区
-
-浮层里同样可以放入侧栏、头部和主区。常见用法是把左右两侧都做成按需展开的 drawer。
-
-<demo
-  vue="../../demos/layout/floating-panels.vue"
-  title="浮层工作区"
-  description="在浮层里组合左右 drawer，适合临时工作区、对话面板或侧边操作台。"
-/>
+它适合让侧栏内容自己控制展开和收起，默认插槽提供 `{ isOpen }`。自定义按钮内容时，应保留可读文本或补充 `aria-label`。
 
 ## Props
 
@@ -134,8 +161,8 @@ outline: [1, 3]
 | `mode` | 布局模式；`normal` 参与普通布局，`floating` 会脱离普通布局，不占原来的位置空间 | `'normal' \| 'floating'` | `'normal'` |
 | `leftAside` | 左侧栏配置 | [`LayoutAsideProps`](#layout-aside-props) | `-` |
 | `rightAside` | 右侧栏配置 | [`LayoutAsideProps`](#layout-aside-props) | `-` |
-| `floatingState` | 受控浮层状态，需配合 `update:floatingState` 回写 | [`LayoutFloatingState`](#layout-floating-state) | `-` |
-| `defaultFloatingState` | 非受控浮层初始状态，仅首次挂载读取一次 | [`LayoutFloatingState`](#layout-floating-state) | `-` |
+| `floatingState` | 受控浮层状态，需配合 `update:floatingState` 同步外部状态；不要和 `defaultFloatingState` 同时传入 | [`LayoutFloatingState`](#layout-floating-state) | `-` |
+| `defaultFloatingState` | 非受控浮层初始状态，仅首次挂载读取一次；不要和 `floatingState` 同时传入 | [`LayoutFloatingState`](#layout-floating-state) | `-` |
 | `floatingOptions` | 浮层拖拽、缩放和尺寸约束配置 | [`LayoutFloatingOptions`](#layout-floating-options) | `-` |
 
 ### Layout.ProxyScrollbar {#layout-proxy-scrollbar-props}
@@ -149,8 +176,6 @@ outline: [1, 3]
 | 属性名 | 说明 | 类型 | 默认值 |
 | ------ | ---- | ---- | ------ |
 | `side` | 控制的侧栏位置 | `'left' \| 'right'` | `-` |
-
-它是一个现成的开关按钮，只能在 `Layout` 内部使用，通常放在 `left-aside` / `right-aside` 插槽中。
 
 ## Slots
 
@@ -171,6 +196,33 @@ outline: [1, 3]
 | `default` | 自定义切换按钮内容 | `{ isOpen: boolean }` |
 
 ## Events
+
+单侧状态同步优先使用 `left/right-*` 事件；统一埋点、日志或聚合处理可使用 `aside-*` 事件；浮层受控同步只使用 `update:floatingState`。
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrLayout } from '@opentiny/tiny-robot'
+
+const leftOpen = ref(true)
+
+function syncLeftAside(detail: { open: boolean }) {
+  leftOpen.value = detail.open
+}
+
+function trackAsideChange(detail: { side: 'left' | 'right'; open: boolean }) {
+  console.log(detail.side, detail.open)
+}
+</script>
+
+<template>
+  <TrLayout
+    :left-aside="{ open: leftOpen }"
+    @left-aside-open-change="syncLeftAside"
+    @aside-open-change="trackAsideChange"
+  />
+</template>
+```
 
 ### Layout {#layout-layout-events}
 
@@ -243,6 +295,26 @@ outline: [1, 3]
 
 `HTMLElement | Pick<ComponentPublicInstance, '$el'> | null | undefined`
 
+优先传真实 DOM ref。只有组件根节点本身就是滚动宿主时，才传组件 ref；组件 ref 会被解析为 `$el`。
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrLayout } from '@opentiny/tiny-robot'
+
+const scrollEl = ref<HTMLElement | null>(null)
+</script>
+
+<template>
+  <TrLayout>
+    <template #main>
+      <div ref="scrollEl" class="scroll-host"></div>
+      <TrLayout.ProxyScrollbar :scroll-target="scrollEl" />
+    </template>
+  </TrLayout>
+</template>
+```
+
 ### LayoutFloatingState {#layout-floating-state}
 
 | 字段 | 说明 | 类型 | 默认值 |
@@ -297,6 +369,8 @@ outline: [1, 3]
 | `--tr-layout-floating-z-index` | 浮层层级 |
 
 ### 内容与交互 {#layout-css-content}
+
+`Layout` 嵌入卡片、小容器或文档 demo 时，常需要把 `--tr-layout-main-min-width` 设为 `0`，否则主区默认最小宽度 `320px` 可能撑开布局。
 
 | 变量名 | 说明 |
 | ------ | ---- |
