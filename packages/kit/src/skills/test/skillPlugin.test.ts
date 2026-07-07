@@ -2,7 +2,7 @@ import type { ChatCompletion } from 'openai/resources'
 import { describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../../message/adapters/native'
 import { createMessageEngine } from '../../message/core/engine'
-import { lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../../message/plugins'
+import { getSkillRequestContext, lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../../message/plugins'
 import type { CreateMessageEngineOptions, MessageRequestBody, ResponseProvider } from '../../message/types'
 import { mockResponseProvider } from '../../message/test/mockResponseProvider'
 import type { SkillDefinition } from '../types'
@@ -164,6 +164,42 @@ describe('skillPlugin', () => {
     expect(requestBody.messages[1]).toMatchObject({ role: 'user', content: 'weather in London' })
   })
 
+  it('exposes request-scoped instructions without modifying messages in custom injection mode', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const engine = createTestMessageEngine({
+      initialMessages: [{ role: 'system', content: 'Existing system instructions.' }],
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: { mode: 'manual', skills: [weatherSkill] },
+          instructionInjection: 'custom',
+          onBeforeRequest: (context) => {
+            context.requestBody.skill_instruction_messages = getSkillRequestContext(context)?.instructionMessages ?? []
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('weather in London')
+
+    const requestBody = responseProvider.mock.calls[0]?.[0]
+    expect(requestBody.messages).toEqual([
+      { role: 'system', content: 'Existing system instructions.' },
+      { role: 'user', content: 'weather in London' },
+    ])
+    expect(requestBody.skill_instruction_messages).toEqual([
+      expect.objectContaining({
+        role: 'system',
+        content: expect.stringContaining('Use wttr.in for weather requests.'),
+      }),
+    ])
+    expect(engine.getState().messages[0]).toEqual({
+      role: 'system',
+      content: 'Existing system instructions.',
+    })
+  })
+
   it('continues when resolving a selected manual skill fails', async () => {
     const onSkillsResolved = vi.fn()
     const responseProvider = vi.fn(mockResponseProvider('ok'))
@@ -200,6 +236,7 @@ describe('skillPlugin', () => {
   })
 
   it('selects auto skills before injecting selected skill instructions', async () => {
+    const instructionContents: string[] = []
     const getSkillByName = vi.fn(async (name: string) => (name === weatherSkill.name ? weatherSkill : undefined))
     const onSkillSelectionResolved = vi.fn()
     const onSkillsResolved = vi.fn()
@@ -283,6 +320,12 @@ describe('skillPlugin', () => {
           getSkillByName,
           onSkillSelectionResolved,
           onSkillsResolved,
+          onBeforeRequest: (context) => {
+            const content = getSkillRequestContext(context)
+              ?.instructionMessages.map((message) => String(message.content))
+              .join('\n\n')
+            instructionContents.push(content ?? '')
+          },
         }),
         toolPlugin({
           getTools: async () => [],
@@ -297,6 +340,10 @@ describe('skillPlugin', () => {
     await engine.sendMessage('weather in London')
 
     expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(instructionContents).toHaveLength(2)
+    expect(instructionContents[0]).toContain('Preferred skill names: weather')
+    expect(instructionContents[0]).not.toContain('Use wttr.in for weather requests.')
+    expect(instructionContents[1]).toContain('Use wttr.in for weather requests.')
     expect(getSkillByName).toHaveBeenCalledWith('weather', expect.any(Object))
     expect(onSkillSelectionResolved).toHaveBeenCalledWith(
       expect.objectContaining({
