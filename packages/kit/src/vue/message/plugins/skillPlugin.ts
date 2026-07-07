@@ -1,7 +1,11 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
-import type { SkillRequestContext, SkillSelection } from '../../../message/plugins'
-import { skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
+import type { SkillInstructionInjection, SkillRequestContext, SkillSelection } from '../../../message/plugins'
+import {
+  getSkillRequestContext,
+  mergeSystemInstructions,
+  skillPlugin as createCoreSkillPlugin,
+} from '../../../message/plugins'
 import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
 import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
 import type { MaybePromise } from '../../../types'
@@ -11,6 +15,15 @@ import type { VueMessagePluginRuntime } from '../types.internal'
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
 
 export type UseMessageSkillPluginOptions = UseMessagePlugin & {
+  /**
+   * Controls how generated skill instruction messages are injected into the request.
+   *
+   * - 'messages': merge instructions into requestBody.messages, preserving the historical default behavior.
+   * - 'custom': expose instructions through SkillRequestContext.instructionMessages and let developers decide where to put them.
+   *
+   * @default 'messages'
+   */
+  instructionInjection?: SkillInstructionInjection
   /**
    * 当前 skill 选择模式，默认 manual。支持普通值、ref 或 computed。
    */
@@ -136,6 +149,7 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
     getSkillByName,
     onSkillsResolved,
     onSkillSelectionResolved,
+    instructionInjection,
     ...restOptions
   } = options
 
@@ -161,6 +175,7 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
       return createCoreSkillPlugin({
         ...runtime.createCorePlugin(restOptions),
         selection: resolveSelection,
+        instructionInjection,
         getSkillCandidates: getSkillCandidates
           ? (context) => getSkillCandidates(toVueContext(context))
           : () => resolveSkillSource(skills) ?? [],
@@ -177,3 +192,6 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
     },
   } as UseMessagePlugin
 }
+
+export { getSkillRequestContext, mergeSystemInstructions }
+export type { SkillInstructionInjection, SkillRequestContext, SkillSelection }
