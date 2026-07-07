@@ -5,7 +5,20 @@
       "article_file": "articles/tiny-robot/2026-07-01-tinyrobot-ai-service-communication/article.md",
       "title": "打通前后端：从一次消息请求看懂 TinyRobot AI 服务通信链路",
       "topic_issue": 11,
-      "publications": {}
+      "publications": {
+        "juejin": {
+          "url": "https://juejin.cn/post/7659388305413537802",
+          "published_at": "2026-07-07T13:31:00+08:00"
+        },
+        "csdn": {
+          "url": "https://blog.csdn.net/m0_70721415/article/details/162663581",
+          "published_at": "2026-07-07T13:40:00+08:00"
+        },
+        "segmentfault": {
+          "url": "https://segmentfault.com/a/1190000047983651",
+          "published_at": "2026-07-07T13:50:00+08:00"
+        }
+      }
     }
   }
 }
