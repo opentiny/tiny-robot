@@ -46,12 +46,19 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 
 ## 候选识别
 
-1. 读取 worktree 中的 `articles/publications.json`。
-2. 遍历 `articles` 中的每条记录，保留 `article_file`、`title`、`topic_issue`、`source_pr` 和 `publications`。
-3. 对每个目标平台检查：
-   - 如果 `publications[platform].url` 存在，说明已有正式发布事实，跳过。
+> 因为发布成功后的回写 PR 需等待人工合并（见「共用安全规则」），`origin/main` 上的 `articles/publications.json` 可能滞后于真实发布事实：某个「文章 + 平台」可能已在上一轮发布成功、且已生成尚未合并的回写 PR，但 `main` 上还没有它的 `url`。判断是否已发布时，必须同时参考 `main` 和这些待合并 PR，否则会对同一「文章 + 平台」重复发布，在平台上产生重复文章。
+
+1. 读取 worktree 中的 `articles/publications.json`（对应 `origin/main`，可能滞后于待合并 PR）。
+2. 收集「待合并回写 PR」中已记录的发布事实，作为去重依据的一部分：
+   - 用 `gh pr list --repo <repository> --state open --json number,title,headRefName` 列出打开的 PR，筛出本任务创建的回写 PR：分支名以 `publish-watch/` 开头，或标题为 `chore(publications): record platform publish results`。
+   - 对每个这样的 PR，用 `gh api repos/<owner>/<repo>/contents/articles/publications.json?ref=<headRefName>`（`<owner>/<repo>` 即 `<repository>`）读取该分支上的 `publications.json`，对返回内容做 base64 解码后解析，按 `article_file` 归并出「已在待合并 PR 中记录 `url` 的 文章 + 平台」集合，并记住对应 PR 编号。
+   - 无法列出 PR，或无法读取/解析某个回写 PR 的 `publications.json` 时，不得假设「未发布」：记录该 PR 无法核对，对它可能覆盖的「文章 + 平台」保守转人工，不在本轮重复发布。
+3. 遍历 `articles` 中的每条记录，保留 `article_file`、`title`、`topic_issue`、`source_pr` 和 `publications`。
+4. 对每个目标平台检查（「已发布」以 `main` 与待合并 PR 的并集为准）：
+   - 如果 `main` 的 `publications[platform].url` 存在，说明已是合并入库的正式发布事实，跳过。
+   - 如果该「文章 + 平台」已在某个待合并回写 PR 中记录 `url`，说明已发布但等待人工合并，跳过并记录所在 PR 编号，不重复发布。
    - 如果 `article_file` 不存在、为空或无法读取，跳过并记录原因。
-4. 对候选按 `publications.json` 中的文章顺序和目标平台顺序处理。
+5. 对候选按 `publications.json` 中的文章顺序和目标平台顺序处理。
 
 ## 共用安全规则
 
@@ -59,6 +66,7 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 - 只在独立 worktree 中修改 `articles/publications.json`；不得在主工作区回写。
 - 必须调用正式发布动作；只写入草稿、审核中、未取得平台文章 URL 都不算完成。
 - 不创建或修改 GitHub Issue/PR 标签。
+- 本任务只创建或更新回写 PR，不负责合并；合并一律等待人工审核后由人工完成。禁止以任何形式合并该 PR：不执行 `gh pr merge`（含 `--auto`、`--merge`、`--squash`、`--rebase` 等任何子选项）、不启用 auto-merge、不在网页点击合并按钮、不把回写改动直接推到 `main` 或其他受保护分支。
 - 目标平台未登录、跳转登录页、账号异常、验证码、二次确认或权限不足时，停止处理该候选，记录失败原因。
 - 已存在正式发布记录时，默认不覆盖、不重发。
 - `.cache/`、临时参数文件和本轮 worktree 不得提交。
@@ -179,6 +187,8 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 - `git add` 只允许添加 `articles/publications.json`。
 - 创建 PR 前必须运行 `gh auth status`。如果 `gh` 未登录或返回 `401 Bad credentials`，停止在本地 commit 之后，不要 push 或声称已创建 PR；输出需要用户执行 `gh auth login`。
 - PR 创建后必须用 `gh pr view <pr-number> --repo <repository> --json body` 回读 PR body，确认正文包含 `## Summary` 和 `## Test plan`；若只剩标题行或正文不完整，按 GitHub 写操作失败处理。
+- PR 创建（或更新）并回读成功即为本轮 PR 环节的终点：不得合并该 PR，不运行 `gh pr merge`、不启用 auto-merge、不改动目标分支；把 PR 留在「待人工合并」状态，由人工审核后合并。
+- 如果目标分支已存在对应的开放回写 PR（例如同一轮内重跑），只更新该 PR 的分支与正文，同样只更新不合并。
 - 如果本轮没有任何成功发布记录，不能创建空 commit、不能 push、不能创建 PR。
 
 ## 处理流程
@@ -229,8 +239,8 @@ node dist/cli.js validate article --article-file <article_file> --config config/
 8. 回写 worktree 中的 `articles/publications.json`。
 9. 删除运行标记。
 10. 继续下一个候选。
-11. 若本轮至少有 1 个成功回写记录，按「Commit、push 与 PR」提交、推送并创建 PR。
-12. PR 创建成功后清理本轮 worktree；失败、阻断或未创建 PR 时保留 worktree。
+11. 若本轮至少有 1 个成功回写记录，按「Commit、push 与 PR」提交、推送并创建（或更新）PR；只创建或更新 PR，不合并。
+12. PR 创建成功即为本轮完成，PR 留待人工审核合并，本任务不执行任何合并动作；随后清理本轮 worktree。失败、阻断或未创建 PR 时保留 worktree。
 
 ## 平台参数
 
@@ -263,6 +273,7 @@ segmentfault_tags：前端, AI, OpenTiny
 
 - `publish-from-article-hub.md` 定义的是人工发起的单篇发布流程。本任务是本地定时巡检，可以一次处理多个候选；成功发布后仍需在 worktree 分支 commit、push 并创建 PR。
 - `articles/publications.json` 只记录正式发布事实。未拿到正式文章 URL 时不得写入平台记录。
+- 回写 PR 需等待人工合并，未合并期间 `origin/main` 的 `publications.json` 不含这些记录。候选识别必须同时核对待合并回写 PR（见「候选识别」），否则会对已发布但未合并的「文章 + 平台」重复发布。运行标记在发布成功后即删除，不能作为跨轮去重依据。
 - 部分平台指南仍包含“先写草稿、等待人工审核”的阶段说明。本任务以“直接正式发布”为目标；若平台在当前账号下必须人工审核或二次确认，则停止该候选，不伪造发布状态。
 - 各平台推荐 `create_article` → `get_article_info` → `publish_current_draft` 三步流程；`segmentfault_publish_article` 的 `publish_full_flow` 仅作高级备选，本巡检任务不使用。
 - 母稿若含相对路径本地图片，平台编辑器可能无法直接展示；`validate article` 仅校验图片文件存在，不负责平台 CDN 上传。发布成功后应人工抽查平台正文中的图片是否正常显示。
@@ -277,7 +288,7 @@ segmentfault_tags：前端, AI, OpenTiny
 - 本轮检查的候选数量。
 - 已正式发布的文章、平台和 URL。
 - 已回写的 `articles/publications.json` 条目。
-- commit SHA、远端分支和 PR URL；若未创建 PR，说明阻断点。
+- commit SHA、远端分支和 PR URL，并注明 PR 处于「待人工合并」状态；若未创建 PR，说明阻断点。
 - 跳过的候选和原因。
 - 失败项及下一步建议。
 - 需要人工登录、审核或补参数的平台。
