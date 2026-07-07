@@ -90,11 +90,11 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
       </template>
 
       <template #header>
-        <div class="layout-slot-props-demo__header">外层更新 leftAside / rightAside，并通过事件同步外部状态。</div>
+        <div class="layout-slot-props-demo__header">Header 区域</div>
       </template>
 
       <template #main>
-        <div class="layout-slot-props-demo__main">外层控制 open 和 expandedWidth，状态变化后通过事件同步。</div>
+        <div class="layout-slot-props-demo__main">Main 区域</div>
       </template>
 
       <template #right-aside>

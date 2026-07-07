@@ -26,7 +26,6 @@ function updateFloatingState(nextState: LayoutFloatingState) {
       <TinyButton :reset-time="0" @click="open = !open">
         {{ open ? '关闭浮层' : '打开浮层' }}
       </TinyButton>
-      <span class="layout-floating-controlled-demo__tip">组件按 floatingState 渲染，变化通过事件通知外部。</span>
     </div>
 
     <TrLayout
@@ -70,10 +69,6 @@ function updateFloatingState(nextState: LayoutFloatingState) {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.layout-floating-controlled-demo__tip {
-  color: var(--vp-c-text-2, var(--tr-text-secondary, #4e5969));
 }
 
 .layout-floating-controlled-demo__header {

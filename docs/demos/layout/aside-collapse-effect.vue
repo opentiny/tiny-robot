@@ -16,7 +16,7 @@ const leftAside = computed<LayoutAsideProps>(() => ({
 }))
 
 const hint = computed(() =>
-  collapseEffect.value === 'overlay' ? '收起时更像把内容盖住，内容留在原位' : '收起时更像整块一起滑走',
+  collapseEffect.value === 'overlay' ? '收起时内容层不跟随宽度滑动' : '收起时内容层随宽度一起滑动',
 )
 
 const collapsedHint = computed(() =>

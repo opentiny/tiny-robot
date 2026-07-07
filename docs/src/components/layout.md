@@ -6,13 +6,12 @@ outline: [1, 3]
 
 `Layout` 用来组织带有头部、主内容区、底部和左右侧栏的页面。
 
-它覆盖五类核心使用模型：
+它主要解决这些布局问题：
 
-- 页面骨架：通过 `left-aside`、`header`、`main`、`footer`、`right-aside` 组织区域内容
-- 布局模式：通过 `mode` 在普通布局和浮层布局之间切换
-- 侧栏配置：通过 `leftAside` / `rightAside` 控制侧栏行为
-- 浮层状态：通过 `defaultFloatingState` 或 `floatingState` 控制浮层位置和尺寸
-- 主区滚动：通过 `Layout.ProxyScrollbar` 将滚动条固定在主区边界
+- 页面结构分散，头部、主区、底部和左右侧栏需要反复拼装
+- 侧栏展开、收起、拖拽改宽和抽屉覆盖逻辑容易重复实现
+- 临时面板需要脱离文档流，并支持定位、拖拽和缩放
+- 主区内容很长时，原生滚动条位置不稳定，容易影响阅读和操作
 
 ## 基础布局
 
@@ -33,7 +32,7 @@ outline: [1, 3]
 
 侧栏由 `leftAside` / `rightAside` 控制，类型为 [`LayoutAsideProps`](#layout-aside-props)。
 
-侧栏内容通过 `left-aside` / `right-aside` 插槽提供。配置和内容分开后，业务可以只调整行为配置，而不影响插槽里的渲染结构。
+侧栏内容通过 `left-aside` / `right-aside` 插槽提供。配置和内容分开后，可以只调整行为配置，而不影响插槽里的渲染结构。
 
 ### 展示形态
 
@@ -46,12 +45,12 @@ outline: [1, 3]
 
 ### 收起行为
 
-`collapsedWidth` 控制收起后还保留多少宽度，`collapseEffect` 控制收起时的动画效果。
+`collapsedWidth` 控制收起后还保留多少宽度，仅 `dock` 模式生效；`collapseEffect` 控制收起时的动画效果。
 
 - `collapsedWidth > 0`：收起后保留一条窄栏
 - `collapsedWidth = 0`：收起后完全隐藏
-- `overlay`：内容留在原位
-- `slide`：内容跟着一起移动
+- `overlay`：侧栏外框保留，内容层不跟随宽度滑动
+- `slide`：侧栏内容随宽度一起滑出
 
 <demo
   vue="../../demos/layout/aside-collapse-effect.vue"
@@ -65,7 +64,7 @@ outline: [1, 3]
 
 <demo vue="../../demos/layout/aside-resizable.vue" title="宽度调整" description="拖动分隔线查看当前宽度和边界。" />
 
-### 状态控制
+### 侧栏受控状态
 
 `open` 和 `expandedWidth` 是受控值，状态变化后需要通过事件同步外部状态。
 
@@ -73,8 +72,8 @@ outline: [1, 3]
 
 <demo
   vue="../../demos/layout/aside-slot-props.vue"
-  title="状态控制"
-  description="用开关和滑块展示 leftAside、rightAside 和事件同步。"
+  title="侧栏受控状态"
+  description="外部控制侧栏开关和宽度。"
 />
 
 ## 浮层
@@ -88,22 +87,22 @@ outline: [1, 3]
 
 ### 非受控浮层
 
-非受控浮层通过 `defaultFloatingState` 设置初始位置和尺寸。拖动或缩放后，状态由组件内部维护，适合展示 `placement`、`offsetX`、`offsetY`、`draggable` 和 `resizable`。
+非受控浮层通过 `defaultFloatingState` 设置初始位置和尺寸。拖动或缩放后，状态由组件内部维护。
 
 <demo
   vue="../../demos/layout/floating.vue"
   title="非受控浮层"
-  description="打开时通过 defaultFloatingState 设置初始位置和大小。"
+  description="使用 defaultFloatingState 设置初始位置和大小。"
 />
 
 ### 受控浮层
 
-受控浮层以 `floatingState` 作为唯一状态源，组件按传入状态渲染；拖拽或缩放产生变化时，通过 `update:floatingState` 通知外部同步。位置固定或由外部规则决定时，建议关闭 `draggable`。
+受控浮层以 `floatingState` 作为唯一状态源，组件按传入状态渲染；内部交互产生变化时，通过 `update:floatingState` 通知外部同步。
 
 <demo
   vue="../../demos/layout/floating-controlled.vue"
   title="受控浮层"
-  description="通过 floatingState 控制位置和大小，并回显当前状态。"
+  description="由外部维护 floatingState。"
 />
 
 ### 浮层工作区
@@ -120,11 +119,11 @@ outline: [1, 3]
 
 `Layout.ProxyScrollbar` 用来代理主区滚动条，适合消息流、长内容阅读流和工作台主区。
 
-它解决的是“内容列居中后，原生滚动条跟着内容列移动，不再贴近主区右边界”的问题。使用时应让外层作为真实滚动宿主；如果内容需要居中或限宽，再交给内层容器处理。
+常见于内容列居中或限宽后，原生滚动条偏离主区右边界的场景。
 
-- `scrollTarget` 传实际滚动元素，或对应组件实例的 `ref`
-- 滚动宿主需自行设置尺寸、`box-sizing` 和滚动样式
-- `Layout.ProxyScrollbar` 会自动隐藏滚动宿主的原生滚动条
+- 外层作为真实滚动宿主，负责尺寸、`box-sizing` 和滚动样式
+- 内层负责内容居中、限宽和留白
+- `scrollTarget` 传真实滚动元素，`Layout.ProxyScrollbar` 会隐藏其原生滚动条
 
 ```css
 .scroll-host {
@@ -143,7 +142,7 @@ outline: [1, 3]
     '../../demos/layout/main-scroll-div.vue'
   ]"
   title="主区滚动"
-  description="演示内容区居中后，滚动条仍固定在主区右侧。"
+  description="内容区居中后，滚动条仍固定在主区右侧。"
 />
 
 ## Layout.AsideToggle
@@ -369,8 +368,6 @@ const scrollEl = ref<HTMLElement | null>(null)
 | `--tr-layout-floating-z-index` | 浮层层级 |
 
 ### 内容与交互 {#layout-css-content}
-
-`Layout` 嵌入卡片、小容器或文档 demo 时，常需要把 `--tr-layout-main-min-width` 设为 `0`，否则主区默认最小宽度 `320px` 可能撑开布局。
 
 | 变量名 | 说明 |
 | ------ | ---- |

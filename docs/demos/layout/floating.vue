@@ -90,7 +90,7 @@ const floatingOptions = computed<LayoutFloatingOptions>(() => ({
         <div class="layout-floating-demo__main">
           <div class="layout-floating-demo__card">`defaultFloatingState` 只设置初始位置和大小。</div>
           <div class="layout-floating-demo__card">拖动顶部横条可移动浮层，拖动边缘手柄可调整大小。</div>
-          <div class="layout-floating-demo__card">切换 placement 或 offset 会重置初始位置，方便观察定位效果。</div>
+          <div class="layout-floating-demo__card">切换 placement 或 offset 后，浮层会按新的初始状态重新定位。</div>
         </div>
       </template>
     </TrLayout>
