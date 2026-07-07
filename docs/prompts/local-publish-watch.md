@@ -63,7 +63,10 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 - 已存在正式发布记录时，默认不覆盖、不重发。
 - `.cache/`、临时参数文件和本轮 worktree 不得提交。
 - commit 只能包含 `articles/publications.json`；不得把 `.cache/`、临时参数文件或文章正文变更加入提交。
-- 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
+- 写入 GitHub 的多行正文（PR body、Issue/PR 评论、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
+  1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或本轮 worktree 的 `.cache/article-hub/` 下，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
+  2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh pr comment`、`gh issue comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
+  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，不得声称成功。
 
 ## 运行标记
 
@@ -157,7 +160,7 @@ git push -u origin HEAD
 gh pr create --title "chore(publications): record platform publish results" --body-file <pr-body.md>
 ```
 
-`<pr-body.md>` 必须先写入临时 Markdown 文件，内容至少包含：
+`<pr-body.md>` 必须先用 Write 工具写入临时 Markdown 文件（不要用 here-doc/`echo`/`printf` 在 shell 里拼），再用 `--body-file` 传入，禁止 `gh pr create --body "..."` 内联；内容至少包含：
 
 ```md
 ## Summary

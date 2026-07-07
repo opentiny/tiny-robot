@@ -21,7 +21,10 @@
 - 需要写作计划批准时，只接受 `inspect-issue` 输出中 `actionable: true` 且 `parsed.kind` 为 `approve-writing-plan` 的固定命令。
 - `/ai 同意`、`同意`、`开始写吧`、自然语言批准或带参数的 `/ai 批准写作计划` 都不算批准。
 - `/ai 批准选题` 不作为本地定时巡检触发条件；当前使用说明从写作计划审核开始。
-- 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
+- 写入 GitHub 的多行正文（PR body、Issue/PR 评论、写作计划、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
+  1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或 `<scheduler_root>/.cache/article-hub/<issue-number>/`，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
+  2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh issue comment`、`gh pr comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
+  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，不得声称成功。
 - 多行评论发布后必须用 `gh issue view <number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1 且包含预期章节；若只剩标题行或正文不完整，按 GitHub 写操作失败处理。
 
 ## Worktree 隔离
@@ -85,6 +88,7 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 使用 `article-hub update-status` 做 `策划→写作`，把 Issue 改为 `阶段：写作` + `AI：处理中`。
    - 巡检本身不重新实现生成流程；进入已批准写作计划到 Draft PR 的既有流程，按 `generate-opentiny-article` 的步骤处理该 Issue。
    - 创建或更新 Draft PR 前在 worktree 内运行 `git status --short`，确认没有运行缓存和临时文件进入提交范围。
+   - Draft PR 走 `generate-opentiny-article` 的 `article-hub create-pr --body-file <pr-body.md>`；PR body 必须来自 Write 工具写好的临时 Markdown 文件再用 `--body-file` 传入。即使临时改用 `gh pr create`，也一律用 `--body-file`，禁止 `--body "..."` 内联多行 body。
    - Draft PR 创建成功后，使用 `article-hub update-status` 改为 `阶段：写作` + `AI：等待人工`，并评论 Draft PR 链接和待人工处理项。
 9. 如果遇到意见冲突、缺来源、截图/GIF 需确认、代码事实需维护者确认或 Head SHA 不一致：
    - 停止处理该 Issue。

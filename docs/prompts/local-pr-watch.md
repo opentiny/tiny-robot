@@ -26,7 +26,10 @@
 - 所有状态标签只能通过 `article-hub update-status` 修改，不能手工拼标签。
 - PR 评论、Review、行级线程和 Request changes 中，能评论即视为已授权；不额外判断写权限或 allowlist。
 - 不自动 Resolve conversation，不点击 Ready for review，不 merge，不发布外部平台。
-- 写入 GitHub 的多行正文必须先保存为临时 Markdown 文件，再使用 `--body-file` 传给 `gh`；禁止把多行 Markdown 内联到 `--body`、命令替换、here-doc 或带 `\n` 的转义字符串中。
+- 写入 GitHub 的多行正文（PR body、Issue/PR 评论、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
+  1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或本轮缓存目录，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
+  2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh pr comment`、`gh issue comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
+  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，不得声称成功。
 - 多行 PR 回执、阻断说明或失败报告发布后，必须用 `gh pr view <pr-number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1，且包含该类正文应有的评论链接、处理结论、失败摘要或隐藏标记。
 
 ## Worktree 隔离
