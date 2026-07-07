@@ -49,6 +49,8 @@ interface NoSkillSelection {
 
 export type SkillSelection = ManualSkillSelection | AutoSkillSelection | NoSkillSelection
 
+export type SkillInstructionInjection = 'messages' | 'custom'
+
 type SkillSelectionStatus =
   | {
       mode: 'manual' | 'none'
@@ -90,6 +92,11 @@ export interface SkillRequestContext {
    * Requested skill names that could not be resolved into enabled skills.
    */
   unresolvedSkillNames: string[]
+  /**
+   * System instruction messages generated for the latest onBeforeRequest call.
+   * Empty before the first request is prepared.
+   */
+  instructionMessages: ChatMessage[]
   runtimeTools: RuntimeTool[]
   selection: SkillSelectionStatus
 }
@@ -148,6 +155,15 @@ export type SkillPluginOptions<S extends SkillSelection = SkillSelection> = Skil
   RequireResolver<S> &
   RequireCandidateProvider<S> & {
     selection: SelectionInput<S>
+    /**
+     * Controls how generated skill instruction messages are injected into the request.
+     *
+     * - 'messages': merge instructions into requestBody.messages.
+     * - 'custom': expose instructions through SkillRequestContext.instructionMessages and let developers decide where to put them.
+     *
+     * @default 'messages'
+     */
+    instructionInjection?: SkillInstructionInjection
   }
 
 const skillPluginContextKey = '__tiny_robot_skill'
@@ -172,7 +188,7 @@ const createSkillInstructionsMessage = (skills: SkillDefinition[]): ChatMessage 
   }
 }
 
-const appendSystemInstructions = (messages: ChatMessage[], instructions: ChatMessage[]): ChatMessage[] => {
+export const mergeSystemInstructions = (messages: ChatMessage[], instructions: ChatMessage[]): ChatMessage[] => {
   if (instructions.length === 0) {
     return messages
   }
@@ -223,7 +239,8 @@ const normalizeCandidates = (candidates: SkillCandidate[]) => {
   return [...candidateMap.values()]
 }
 
-const getSkillContext = (context: BasePluginContext) => {
+/** Reads the skill context attached to a plugin lifecycle context. */
+export const getSkillRequestContext = (context: Pick<BasePluginContext, 'customContext'>) => {
   return context.customContext[skillPluginContextKey] as SkillRequestContext | undefined
 }
 
@@ -296,6 +313,7 @@ const createAutoSelectionRuntimeTools = ({
         skillNames: skills.map((skill) => skill.name),
         requestedSkillNames,
         unresolvedSkillNames,
+        instructionMessages: [],
         runtimeTools: createSkillResourceRuntimeTools(skills),
         selection: {
           mode: 'auto',
@@ -320,14 +338,21 @@ const createAutoSelectionRuntimeTools = ({
 export const skillPlugin = <S extends SkillSelection = SkillSelection>(
   options: SkillPluginOptions<S>,
 ): MessageEnginePlugin & ToolProvider => {
-  const { selection, getSkillCandidates, getSkillByName, onSkillsResolved, onSkillSelectionResolved, ...restOptions } =
-    options
+  const {
+    selection,
+    instructionInjection = 'messages',
+    getSkillCandidates,
+    getSkillByName,
+    onSkillsResolved,
+    onSkillSelectionResolved,
+    ...restOptions
+  } = options
 
   return {
     name: 'skill',
     ...restOptions,
     provideTools: async (context: BasePluginContext) => {
-      return getSkillContext(context)?.runtimeTools ?? []
+      return getSkillRequestContext(context)?.runtimeTools ?? []
     },
     onTurnStart: async (context) => {
       const selectionOptions: SkillSelection = typeof selection === 'function' ? await selection(context) : selection
@@ -338,6 +363,7 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
           skillNames: [],
           requestedSkillNames: [],
           unresolvedSkillNames: [],
+          instructionMessages: [],
           runtimeTools: [],
           selection: {
             mode: 'none',
@@ -375,6 +401,7 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
           skillNames: skills.map((skill) => skill.name),
           requestedSkillNames,
           unresolvedSkillNames,
+          instructionMessages: [],
           runtimeTools: createSkillResourceRuntimeTools(skills),
           selection: {
             mode: 'manual',
@@ -407,6 +434,7 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
         skillNames: [],
         requestedSkillNames: [],
         unresolvedSkillNames: [],
+        instructionMessages: [],
         runtimeTools: createAutoSelectionRuntimeTools({
           selection: selectionOptions,
           getSkillByName: resolveSkillByName,
@@ -428,32 +456,36 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
       return restOptions.onTurnStart?.(context)
     },
     onBeforeRequest: async (context) => {
-      const skillContext = getSkillContext(context)
+      const skillContext = getSkillRequestContext(context)
+      const instructionMessages: ChatMessage[] = []
 
       if (
         skillContext?.selection.mode === 'auto' &&
         skillContext.selection.phase === 'selecting' &&
         skillContext.selection.candidates.length > 0
       ) {
-        context.requestBody.messages = appendSystemInstructions(context.requestBody.messages, [
+        instructionMessages.push(
           createSkillSelectionInstructionsMessage({
             candidates: skillContext.selection.candidates,
             preferredSkillNames: skillContext.selection.preferredSkillNames,
           }),
-        ])
+        )
       } else if (skillContext?.skills.length) {
         const skillInstructions = createSkillInstructionsMessage(skillContext.skills)
         const resourceInstructions = createSkillResourceInstructionsMessage(skillContext.skills)
-        const instructions: ChatMessage[] = []
         if (skillInstructions) {
-          instructions.push(skillInstructions)
+          instructionMessages.push(skillInstructions)
         }
         if (resourceInstructions) {
-          instructions.push(resourceInstructions as ChatMessage)
+          instructionMessages.push(resourceInstructions as ChatMessage)
         }
-        if (instructions.length > 0) {
-          context.requestBody.messages = appendSystemInstructions(context.requestBody.messages, instructions)
-        }
+      }
+
+      if (skillContext) {
+        setSkillContext(context, { ...skillContext, instructionMessages })
+      }
+      if (instructionInjection === 'messages') {
+        context.requestBody.messages = mergeSystemInstructions(context.requestBody.messages, instructionMessages)
       }
 
       return restOptions.onBeforeRequest?.(context)
