@@ -6,7 +6,7 @@
 
 - 只处理打开的 Draft PR 或普通 PR。
 - 候选 PR 必须满足以下任一条件：PR 描述关联文章 Issue、分支名符合 `article/<issue-number>-...`、改动包含 `articles/<project-id>/<date>-<slug>/article.md`。
-- 每轮最多处理 3 个候选 PR。
+- 每轮最多处理 3 个需要动作的候选 PR；上限按完成候选排序和动作判定后的结果计算。
 - 调度入口可以在主仓库运行；凡要改文章、校验、提交或推送，必须切到候选 PR 专属 Git worktree。
 
 ## 关联 Issue 识别
@@ -14,7 +14,22 @@
 1. 优先读取 PR 描述里的关联 Issue 链接。
 2. 其次从分支名 `article/<issue-number>-...` 解析 Issue 编号。
 3. 再从 `articles/publications.json` 或文章目录对应记录查找 Issue 编号。
-4. 如果仍找不到关联 Issue，停止处理该 PR，不改文章、不改标签；只在本地输出原因。
+4. 分支名不符合 `article/<issue-number>-...` 时，继续尝试用 PR 描述和改动文件识别关联 Issue；识别成功后进入本轮检查，并在回执中报告“PR 分支名不符合文章分支 contract”。
+5. 如果仍找不到关联 Issue，停止处理该 PR，不改文章、不改标签；只在本地输出原因。
+
+## 候选发现与排序
+
+先抓取打开的 Draft PR 和普通 PR 候选池，按 PR number 去重，再按 `updatedAt` 降序排序；建议至少抓取 50 条。对排序后的 PR 逐个读取 `number,title,body,headRefName,headRefOid,isDraft,updatedAt,files,comments,reviews`，判断是否满足候选条件。完成本地排序后，再进入处理步骤。
+
+每轮最多处理 3 个“需要动作”的 PR；这 3 个名额只统计会执行正文修改、状态更新、澄清回执、无法采纳回执、分支风险回执或失败回写的 PR。
+
+需要动作的优先级如下：
+
+1. 最新 `Request changes`、行级 Review 评论、Review 线程回复或明确 `/ai` 指令。
+2. PR 级评论中的明确可执行修改意见。
+3. 分支名不符合 `article/<issue-number>-...`，但 PR 描述或文件路径能识别文章 Issue；这种情况发布一次回执说明风险，后续按 body 或文件路径识别。
+
+本轮达到 3 个处理名额后，本轮写操作到此结束，并在本轮输出中列出因名额限制未处理的 PR 编号、`updatedAt` 和触发原因。
 
 ## 共用安全规则
 
@@ -29,7 +44,7 @@
 - 写入 GitHub 的多行正文（PR body、Issue/PR 评论、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
   1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或本轮缓存目录，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
   2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh pr comment`、`gh issue comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
-  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，不得声称成功。
+  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，并输出失败摘要、实际正文行数和缺失章节。
 - 多行 PR 回执、阻断说明或失败报告发布后，必须用 `gh pr view <pr-number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1，且包含该类正文应有的评论链接、处理结论、失败摘要或隐藏标记。
 
 ## Worktree 隔离
@@ -55,6 +70,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 - worktree 创建失败时，本轮停止处理该 PR；不得回到 `scheduler_root` 继续修改。
 - 创建 worktree 前记录 PR Head SHA；提交或推送前重新读取并比对，Head 已变化时停止，不覆盖人工修改。
 - 只处理可推回原 PR 分支的 PR。跨仓库 PR 或无法确认 push 目标时，停止并请人工处理。
+- 如果 PR 分支名不符合 `article/<issue-number>-...`，但已通过 PR 描述或文件路径识别为文章 PR，本轮可以处理无需改文件的回执、澄清和状态同步。若需要修改正文，先请求人工确认是否重建为 `article/<issue-number>-<project-id>-<slug>` 分支；拿到明确确认后再继续会改文件的流程。
 - 正常完成并完成 GitHub 回写后，先确认 worktree 路径位于 `<scheduler_root>/.worktrees/`，再运行 `git worktree remove --force <worktree-path>` 清理本轮 worktree，最后删除运行标记；失败、阻断或远端写操作未完成时保留 worktree 路径供排查。
 
 ## 去重规则
@@ -139,5 +155,6 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 - 本轮使用并已清理的 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
 - 已处理的 PR。
 - 跳过的 PR 和原因。
+- 因本轮 3 个处理名额限制未处理的 PR、`updatedAt` 和触发原因。
 - 需要人工处理的 PR/Issue。
 - 失败项。

@@ -32,7 +32,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `article-hub` 解析。运行中间文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`：
 
    ```sh
-   gh issue view <number> --repo hexqi/ai-article-hub --json number,title,body,author,labels,comments > <issue.json>
+   gh issue view <number> --repo <repository> --json number,title,body,author,labels,comments > <issue.json>
    article-hub inspect-issue --issue-file <issue.json>
    ```
 
@@ -52,7 +52,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示 5-8 行计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。发布成功后在对话中给出 Issue 评论链接。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布或无法确认评论链接即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没写入 GitHub。
 
    ```sh
-   gh issue comment <number> --repo hexqi/ai-article-hub --body-file <临时计划文件>
+   gh issue comment <number> --repo <repository> --body-file <临时计划文件>
    ```
 
    计划评论至少覆盖以下字段（依据 `docs/article-generation-requirements.md` §9.1，缺则补齐）：计划版本与时间、文章目标与查重结论、目标读者/前置知识/阅读收益/不覆盖内容、文章类型、推荐文风（含一句理由与 1 个备选）、推荐标题与候选标题、目标 Release/Tag/分支/Commit、来源清单与可信度、建议大纲、图片与截图素材计划、素材缺口/风险/人工验收项、预计文章长度、批准与修改方式（可复制的批准命令，以及维护者如何在评论中提出修改）。
@@ -133,12 +133,14 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 8. 校验通过后创建或更新 Draft PR。创建或更新前先运行 `git status --short`、`git diff --name-only --cached` 和 `git diff --name-only`，确认没有 `source-cache`、Issue fixture、计划临时文件、批准快照输入文件等中间文件进入工作区；默认只允许文章目录 `articles/<project-id>/<YYYY-MM-DD>-<slug>/` 与 `articles/publications.json` 进入本次 Draft PR。若出现 `materials/issue-sources/<issue-number>/`，先对照批准计划：未明确点名需要随仓库保存、或没有人工确认可公开提交时，必须从索引、工作区和 PR 历史中移除后再继续；无法确认清理安全时停止并说明：
 
+   创建或更新 Draft PR 的唯一入口是 `article-hub create-pr`。隔离 worktree 的当前分支只用于本地执行，文章 PR 的 head 以 `create-pr` 输出 JSON 的 `branch` 为准。真实创建前先执行同参数 `--dry-run`，读取输出 JSON 的 `branch`，确认它等于 `article/<issue-number>-<project-id>-<slug>`，且 Issue 编号、项目和 slug 与本轮文章一致；不一致时停止并报告实际值和期望值。
+
    ```sh
    article-hub create-pr \
      --article-file <article.md> \
      --config config/projects.yml \
      --issue-number <number> \
-     --repository hexqi/ai-article-hub \
+     --repository <repository> \
      --base main \
      --slug <slug> \
      --title "<final-title>" \
@@ -146,6 +148,8 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    ```
 
    `create-pr` 会同步维护 `articles/publications.json`，写入文章条目和空 `publications`；正常流程无需在调用前预先编辑该文件。
+
+   创建或更新后，必须用 `gh pr view <pr-number> --repo <repository> --json headRefName,body,files` 回读。`headRefName` 必须等于 `create-pr` 输出的 `branch`；body 必须包含关联 Issue；files 必须包含 `articles/<project-id>/<YYYY-MM-DD>-<slug>/article.md`。任一不满足都按 GitHub 写操作失败处理，并输出失败摘要、实际值和期望值。
 
    更新已有 Draft PR 时，创建或推送后再用 `gh pr diff <pr-number> --name-only` 复查最终 PR 文件列表。文件列表若包含默认允许范围以外的路径，先停止并清理分支历史，再请求人工 Review。人工来源快照属于例外路径，必须在 PR body 的来源快照摘要中说明保存理由、来源、License 或公开性判断。
 
@@ -156,7 +160,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    ```sh
    article-hub update-status \
      --issue-file <issue.json> \
-     --repository hexqi/ai-article-hub \
+     --repository <repository> \
      --intent content-transition \
      --phase "阶段：写作" \
      --ai-state "AI：等待人工" \

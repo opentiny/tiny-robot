@@ -6,7 +6,7 @@
 
 - 只处理打开的文章 Issue。
 - 候选 Issue 必须带有以下任一相关标签：阶段：选题、阶段：策划、AI：等待执行、AI：失败、AI：等待人工。
-- 每轮最多处理 3 个候选 Issue。
+- 每轮最多处理 3 个需要动作的候选 Issue；上限按完成候选排序和动作判定后的结果计算。
 - PR 已存在的 Issue 不再执行生成类动作，只做状态提示，并把后续修改交给 PR 巡检。
 - 调度入口可以在主仓库运行；凡要写本地文件、生成文章、校验、提交、推送或创建 Draft PR，必须切到候选 Issue 专属 Git worktree。
 
@@ -24,8 +24,23 @@
 - 写入 GitHub 的多行正文（PR body、Issue/PR 评论、写作计划、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
   1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或 `<scheduler_root>/.cache/article-hub/<issue-number>/`，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
   2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh issue comment`、`gh pr comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
-  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，不得声称成功。
+  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，并输出失败摘要、实际正文行数和缺失章节。
 - 多行评论发布后必须用 `gh issue view <number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1 且包含预期章节；若只剩标题行或正文不完整，按 GitHub 写操作失败处理。
+
+## 候选发现与排序
+
+先抓取所有带相关标签的打开 Issue，按 Issue number 去重，再按 `updatedAt` 降序形成候选队列。使用 `gh issue list` 时抓取较宽候选池后在本地排序；每个相关标签建议至少抓取 50 条。完成本地排序后，再进入处理步骤。
+
+排序后逐个读取 Issue 详情和评论，判断是否存在本轮需要消费的新事件。每轮最多处理 3 个“需要动作”的 Issue；这 3 个名额只统计会执行状态更新、计划更新、生成流程、回执或失败回写的 Issue。
+
+需要动作的优先级如下：
+
+1. 固定控制命令：`/ai 暂停`、`/ai 恢复`、`/ai 重试`、授权用户发出的 `/ai 批准写作计划`。
+2. 写作计划 review 意见：最新非 Agent 评论晚于最近一条当前 Agent 发布的写作计划评论，且内容对计划、来源、标题、大纲、素材或事实边界提出意见。
+3. `AI：失败` 后出现新的人工评论或状态命令。
+4. 尚无当前写作计划，且 Issue 信息足以生成或更新写作计划。
+
+本轮达到 3 个处理名额后，本轮写操作到此结束，并在本轮输出中列出因名额限制未处理的 Issue 编号、`updatedAt` 和触发原因。
 
 ## Worktree 隔离
 
@@ -88,7 +103,10 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 使用 `article-hub update-status` 做 `策划→写作`，把 Issue 改为 `阶段：写作` + `AI：处理中`。
    - 巡检本身不重新实现生成流程；进入已批准写作计划到 Draft PR 的既有流程，按 `generate-opentiny-article` 的步骤处理该 Issue。
    - 创建或更新 Draft PR 前在 worktree 内运行 `git status --short`，确认没有运行缓存和临时文件进入提交范围。
-   - Draft PR 走 `generate-opentiny-article` 的 `article-hub create-pr --body-file <pr-body.md>`；PR body 必须来自 Write 工具写好的临时 Markdown 文件再用 `--body-file` 传入。即使临时改用 `gh pr create`，也一律用 `--body-file`，禁止 `--body "..."` 内联多行 body。
+   - 创建 Draft PR 的唯一入口是 `generate-opentiny-article` 的 `article-hub create-pr --body-file <pr-body.md>`。PR head 以 `create-pr` 输出 JSON 的 `branch` 为准；当前 worktree 分支 `issue-watch/...` 只用于隔离执行。
+   - 真实创建前先运行 `article-hub create-pr --dry-run ...`，读取输出 JSON 的 `branch`。该值必须匹配 `article/<issue-number>-<project-id>-<slug>`，且 issue number 必须等于当前 Issue；不匹配时停止并按失败处理。
+   - PR body 来自 Write 工具写好的临时 Markdown 文件，并通过 `--body-file` 传入。
+   - Draft PR 创建成功后，用 `gh pr view <pr-number> --repo <repository> --json headRefName,body,files` 回读。`headRefName` 必须等于 `create-pr` 输出的 `branch`；body 必须包含关联 Issue；files 必须包含 `articles/<project-id>/<date>-<slug>/article.md`。任一不满足都按 GitHub 写操作失败处理，并输出失败摘要、实际值和期望值。
    - Draft PR 创建成功后，使用 `article-hub update-status` 改为 `阶段：写作` + `AI：等待人工`，并评论 Draft PR 链接和待人工处理项。
 9. 如果遇到意见冲突、缺来源、截图/GIF 需确认、代码事实需维护者确认或 Head SHA 不一致：
    - 停止处理该 Issue。
@@ -108,5 +126,6 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
 - 本轮使用并已清理的 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
 - 已处理的 Issue。
 - 跳过的 Issue 和原因。
+- 因本轮 3 个处理名额限制未处理的 Issue、`updatedAt` 和触发原因。
 - 需要人工处理的 Issue。
 - 失败项。
