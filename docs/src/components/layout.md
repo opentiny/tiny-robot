@@ -119,9 +119,9 @@ outline: [1, 3]
   description="在浮层里组合左右 drawer，适合临时工作区、对话面板或侧边操作台。"
 />
 
-## 主区滚动
+## 代理滚动条
 
-`Layout.ProxyScrollbar` 用来代理主区滚动条，适合消息流、长内容阅读流和工作台主区。
+`Layout.ProxyScrollbar` 是代理滚动条，适合消息流、长内容阅读流和工作台主区。
 
 常见于内容列居中或限宽后，原生滚动条偏离主区右边界的场景。
 
@@ -145,17 +145,17 @@ outline: [1, 3]
     '../../demos/layout/main-scroll-bubble.vue',
     '../../demos/layout/main-scroll-div.vue'
   ]"
-  title="主区滚动"
+  title="代理滚动条"
   description="内容区居中后，滚动条仍固定在主区右侧。"
 />
 
-## 侧栏内控制
+## 侧栏开关
 
-`Layout.AsideToggle` 是内置侧栏开关按钮，只能在 `Layout` 内部使用，通常放在 `left-aside` / `right-aside` 插槽中。
+`Layout.AsideToggle` 是内置侧栏开关按钮，可以在 `Layout` 内部任意区域使用。
 
 它适合让侧栏内容自己控制展开和收起，默认插槽提供 `{ isOpen }`。自定义按钮内容时，应保留可读文本或补充 `aria-label`。
 
-<demo vue="../../demos/layout/aside-toggle.vue" title="侧栏内控制" description="在侧栏内容中使用 AsideToggle 触发当前侧栏开关。" />
+<demo vue="../../demos/layout/aside-toggle.vue" title="侧栏开关" description="在侧栏内容中使用 AsideToggle 触发当前侧栏开关。" />
 
 ## Props
 

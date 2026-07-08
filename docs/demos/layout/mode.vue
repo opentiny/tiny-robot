@@ -1,10 +1,29 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import { TinyRadio, TinyRadioGroup } from '@opentiny/vue'
 import type { LayoutMode } from '@opentiny/tiny-robot'
 
 const mode = ref<LayoutMode>('normal')
+
+const layoutProps = computed(() =>
+  mode.value === 'floating'
+    ? {
+        mode: 'floating' as const,
+        defaultFloatingState: {
+          placement: 'center' as const,
+          width: 220,
+          height: 200,
+        },
+        floatingOptions: {
+          draggable: true,
+          resizable: true,
+        },
+      }
+    : {
+        mode: 'normal' as const,
+      },
+)
 </script>
 
 <template>
@@ -15,12 +34,7 @@ const mode = ref<LayoutMode>('normal')
     </tiny-radio-group>
 
     <div class="layout-mode-demo__stage">
-      <TrLayout
-        class="layout-mode-demo__layout"
-        :mode="mode"
-        :default-floating-state="{ placement: 'center', width: 360, height: 220 }"
-        :floating-options="{ draggable: true, resizable: false }"
-      >
+      <TrLayout :key="mode" v-bind="layoutProps" class="layout-mode-demo__layout">
         <template #header>
           <div class="layout-mode-demo__header">{{ mode }}</div>
         </template>
