@@ -77,14 +77,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
     >
       <template #left-aside>
         <div class="layout-slot-props-demo__aside">
-          <template v-if="leftOpen">
-            <p>左侧栏宽度：{{ leftExpandedWidth }}px</p>
-            <TrLayout.AsideToggle side="left" class="layout-slot-props-demo__button">
-              <template #default="{ isOpen }">
-                {{ isOpen ? '收起侧栏' : '展开侧栏' }}
-              </template>
-            </TrLayout.AsideToggle>
-          </template>
+          <p v-if="leftOpen">左侧栏宽度：{{ leftExpandedWidth }}px</p>
           <p v-else>左侧栏已关闭，请通过外部按钮重新展开。</p>
         </div>
       </template>
@@ -100,7 +93,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
       <template #right-aside>
         <div class="layout-slot-props-demo__drawer">
           <p>右侧抽屉</p>
-          <TrLayout.AsideToggle side="right" class="layout-slot-props-demo__button"> 关闭抽屉 </TrLayout.AsideToggle>
+          <p>由外部按钮控制开关。</p>
         </div>
       </template>
     </TrLayout>
@@ -136,15 +129,6 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 
 .layout-slot-props-demo__group-label {
   font-weight: 600;
-}
-
-.layout-slot-props-demo__button {
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--vp-c-divider, var(--tr-border-color, #dcdfe6));
-  border-radius: 8px;
-  background: var(--vp-c-bg, #ffffff);
-  cursor: pointer;
 }
 
 .layout-slot-props-demo__range-wrap {

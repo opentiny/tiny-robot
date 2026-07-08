@@ -28,6 +28,8 @@ outline: [1, 3]
 
 普通页面不需要显式传 `mode`。需要临时面板、悬浮工作台或可拖拽窗口时，再使用 `mode="floating"`。
 
+<demo vue="../../demos/layout/mode.vue" title="布局模式" description="切换 normal 和 floating 查看布局形态差异。" />
+
 ## 侧栏
 
 侧栏由 `leftAside` / `rightAside` 控制，类型为 [`LayoutAsideProps`](#layout-aside-props)。
@@ -35,6 +37,8 @@ outline: [1, 3]
 侧栏内容通过 `left-aside` / `right-aside` 插槽提供。配置和内容分开后，可以只调整行为配置，而不影响插槽里的渲染结构。
 
 ### 展示形态
+
+`LayoutAsideProps.mode` 控制侧栏展示形态。
 
 - `dock`：占据页面空间
 - `drawer`：覆盖在内容上方
@@ -64,15 +68,15 @@ outline: [1, 3]
 
 <demo vue="../../demos/layout/aside-resizable.vue" title="宽度调整" description="拖动分隔线查看当前宽度和边界。" />
 
-### 侧栏受控状态
+### 侧栏受控
 
 `open` 和 `expandedWidth` 是受控值，状态变化后需要通过事件同步外部状态。
 
 `defaultOpen` 和 `defaultExpandedWidth` 只提供初始值，适合不需要外部持续控制的场景。
 
 <demo
-  vue="../../demos/layout/aside-slot-props.vue"
-  title="侧栏受控状态"
+  vue="../../demos/layout/aside-controlled.vue"
+  title="侧栏受控"
   description="外部控制侧栏开关和宽度。"
 />
 
@@ -145,11 +149,13 @@ outline: [1, 3]
   description="内容区居中后，滚动条仍固定在主区右侧。"
 />
 
-## Layout.AsideToggle
+## 侧栏内控制
 
 `Layout.AsideToggle` 是内置侧栏开关按钮，只能在 `Layout` 内部使用，通常放在 `left-aside` / `right-aside` 插槽中。
 
 它适合让侧栏内容自己控制展开和收起，默认插槽提供 `{ isOpen }`。自定义按钮内容时，应保留可读文本或补充 `aria-label`。
+
+<demo vue="../../demos/layout/aside-toggle.vue" title="侧栏内控制" description="在侧栏内容中使用 AsideToggle 触发当前侧栏开关。" />
 
 ## Props
 
