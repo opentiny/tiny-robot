@@ -4,41 +4,39 @@ outline: [1, 3]
 
 # Layout 布局
 
-`Layout` 用来组织带有头部、主内容区、底部和左右侧栏的页面。
+`Layout` 是面向 AI 应用页面的通用布局组件，适合搭建聊天页、工作台和多面板操作界面。
 
-它主要解决这些布局问题：
+它提供以下能力：
 
-- 页面结构分散，头部、主区、底部和左右侧栏需要反复拼装
-- 侧栏展开、收起、拖拽改宽和抽屉覆盖逻辑容易重复实现
-- 临时面板需要脱离文档流，并支持定位、拖拽和缩放
-- 主区内容很长时，原生滚动条位置不稳定，容易影响阅读和操作
+- 页面骨架：统一组织头部、主区、底部与左右侧栏
+- 侧栏交互：支持展开、收起、拖拽改宽和 `drawer` 覆盖
+- 浮层布局：支持定位、拖拽和缩放
+- 主区滚动代理：适用于内容列居中或限宽后，原生滚动条偏离主区右边界的场景
 
 ## 基础布局
 
-`Layout` 用于定义页面结构，各区域的具体内容通过插槽提供。
+`Layout` 提供 `left-aside`、`header`、`main`、`footer` 和 `right-aside` 五个区域插槽，用于编排页面结构。
 
 <demo vue="../../demos/layout/basic.vue" title="基础布局" description="最小布局示例。" />
 
 ## 布局模式
 
-`mode` 控制 `Layout` 的整体形态。
+`mode` 控制 `Layout` 的整体形态，默认值为 `normal`。
 
-- `normal`：普通页面骨架，参与原始页面布局
-- `floating`：悬浮工作区，脱离原始页面布局并挂载到 `body`
-
-普通页面不需要显式传 `mode`。需要临时面板、悬浮工作台或可拖拽窗口时，再使用 `mode="floating"`。
+- `normal`：普通页面骨架，参与文档流布局
+- `floating`：悬浮布局，脱离文档流，支持用作悬浮工作区或可拖拽窗口
 
 <demo vue="../../demos/layout/mode.vue" title="布局模式" description="切换 normal 和 floating 查看布局形态差异。" />
 
 ## 侧栏
 
-侧栏由 `leftAside` / `rightAside` 控制，类型为 [`LayoutAsideProps`](#layout-aside-props)。
+侧栏由 `leftAside` / `rightAside` 控制，类型为 [`LayoutAsideOptions`](#layout-aside-options)。
 
 侧栏内容通过 `left-aside` / `right-aside` 插槽提供。配置和内容分开后，可以只调整行为配置，而不影响插槽里的渲染结构。
 
 ### 展示形态
 
-`LayoutAsideProps.mode` 控制侧栏展示形态。
+`LayoutAsideOptions.mode` 控制侧栏展示形态，默认值为 `dock`。
 
 - `dock`：占据页面空间
 - `drawer`：覆盖在内容上方
@@ -82,41 +80,44 @@ outline: [1, 3]
 
 ## 浮层
 
-浮层只在 `mode="floating"` 时生效，适合临时面板、悬浮工作区或对话面板。
-
-`defaultFloatingState` 和 `floatingState` 不要同时传入：
+浮层相关配置和交互只在浮层模式下生效。
 
 - `defaultFloatingState`：非受控初始状态，只在首次挂载时读取
 - `floatingState`：受控状态，由外部维护当前位置和尺寸
+- `floatingOptions`：浮层行为配置，用于拖拽、缩放和尺寸约束，不参与状态控制
+
+> `defaultFloatingState` 和 `floatingState` 不要同时传入
 
 ### 非受控浮层
 
-非受控浮层通过 `defaultFloatingState` 设置初始位置和尺寸。拖动或缩放后，状态由组件内部维护。
+非受控浮层通过 `defaultFloatingState` 设置初始位置和尺寸。
 
 <demo
   vue="../../demos/layout/floating.vue"
   title="非受控浮层"
-  description="使用 defaultFloatingState 设置初始位置和大小。"
+  description="只设置初始位置和大小，后续由组件内部维护。"
 />
 
 ### 受控浮层
 
-受控浮层以 `floatingState` 作为唯一状态源，组件按传入状态渲染；内部交互产生变化时，通过 `update:floatingState` 通知外部同步。
+受控浮层以 `floatingState` 作为唯一状态源，组件始终按外部状态渲染；
+
+后续通过 `update:floatingState` 通知外部同步。
 
 <demo
   vue="../../demos/layout/floating-controlled.vue"
   title="受控浮层"
-  description="由外部维护 floatingState。"
+  description="由外部维护位置和尺寸状态。"
 />
 
-### 浮层工作区
+### 浮层模式下的侧栏
 
-浮层里同样可以放入侧栏、头部和主区。常见用法是把左右两侧都做成按需展开的 drawer。
+浮层里同样可以放入侧栏、头部和主区。
 
 <demo
   vue="../../demos/layout/floating-panels.vue"
-  title="浮层工作区"
-  description="在浮层里组合左右 drawer，适合临时工作区、对话面板或侧边操作台。"
+  title="浮层模式下的侧栏"
+  description="在浮层里组合常驻侧栏和按需抽屉。"
 />
 
 ## 代理滚动条
@@ -125,9 +126,8 @@ outline: [1, 3]
 
 常见于内容列居中或限宽后，原生滚动条偏离主区右边界的场景。
 
-- 外层作为真实滚动宿主，负责尺寸、`box-sizing` 和滚动样式
-- 内层负责内容居中、限宽和留白
-- `scrollTarget` 传真实滚动元素，`Layout.ProxyScrollbar` 会隐藏其原生滚动条
+- 将实际承担滚动的元素传给 `scrollTarget`。
+- 为使代理滚动条正确生效，该滚动元素需要具备以下基础样式。
 
 ```css
 .scroll-host {
@@ -153,7 +153,7 @@ outline: [1, 3]
 
 `Layout.AsideToggle` 是内置侧栏开关按钮，可以在 `Layout` 内部任意区域使用。
 
-它适合让侧栏内容自己控制展开和收起，默认插槽提供 `{ isOpen }`。自定义按钮内容时，应保留可读文本或补充 `aria-label`。
+它给侧栏内容提供控制展开和收起的能力，默认插槽提供 `{ isOpen }`。
 
 <demo vue="../../demos/layout/aside-toggle.vue" title="侧栏开关" description="在侧栏内容中使用 AsideToggle 触发当前侧栏开关。" />
 
@@ -164,11 +164,11 @@ outline: [1, 3]
 | 属性名 | 说明 | 类型 | 默认值 |
 | ------ | ---- | ---- | ------ |
 | `mode` | 布局模式；`normal` 参与普通布局，`floating` 会脱离普通布局，不占原来的位置空间 | `'normal' \| 'floating'` | `'normal'` |
-| `leftAside` | 左侧栏配置 | [`LayoutAsideProps`](#layout-aside-props) | `-` |
-| `rightAside` | 右侧栏配置 | [`LayoutAsideProps`](#layout-aside-props) | `-` |
+| `leftAside` | 左侧栏配置 | [`LayoutAsideOptions`](#layout-aside-options) | `-` |
+| `rightAside` | 右侧栏配置 | [`LayoutAsideOptions`](#layout-aside-options) | `-` |
 | `floatingState` | 受控浮层状态，需配合 `update:floatingState` 同步外部状态；不要和 `defaultFloatingState` 同时传入 | [`LayoutFloatingState`](#layout-floating-state) | `-` |
 | `defaultFloatingState` | 非受控浮层初始状态，仅首次挂载读取一次；不要和 `floatingState` 同时传入 | [`LayoutFloatingState`](#layout-floating-state) | `-` |
-| `floatingOptions` | 浮层拖拽、缩放和尺寸约束配置 | [`LayoutFloatingOptions`](#layout-floating-options) | `-` |
+| `floatingOptions` | 浮层行为配置，包括拖拽、缩放和尺寸约束；不参与状态控制 | [`LayoutFloatingOptions`](#layout-floating-options) | `-` |
 
 ### Layout.ProxyScrollbar {#layout-proxy-scrollbar-props}
 
@@ -255,7 +255,7 @@ function trackAsideChange(detail: { side: 'left' | 'right'; open: boolean }) {
 
 ## Types {#types}
 
-### LayoutAsideProps {#layout-aside-props}
+### LayoutAsideOptions {#layout-aside-options}
 
 | 字段 | 说明 | 类型 | 默认值 |
 | ---- | ---- | ---- | ------ |

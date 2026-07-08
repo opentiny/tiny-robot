@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { LayoutAsideProps, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
+import type { LayoutAsideOptions, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
 const minExpandedWidth = 160
 const maxExpandedWidth = 320
 const expandedWidth = ref(220)
 
-const leftAside = computed<LayoutAsideProps>(() => ({
+const leftAside = computed<LayoutAsideOptions>(() => ({
   defaultOpen: true,
   expandedWidth: expandedWidth.value,
   minExpandedWidth,

@@ -1,36 +1,26 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import { TinyBaseSelect, TinyButton, TinyNumeric, TinyOption, TinySwitch } from '@opentiny/vue'
+import { TinyButton } from '@opentiny/vue'
 import type { LayoutFloatingOptions, LayoutFloatingState } from '@opentiny/tiny-robot'
 
-type FloatingPlacement = LayoutFloatingState['placement']
-
 const open = ref(false)
-const placement = ref<FloatingPlacement>('top-right')
-const offsetX = ref(0)
-const offsetY = ref(0)
-const draggable = ref(true)
-const resizable = ref(true)
 
-const placements: FloatingPlacement[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center']
-
-const defaultFloatingState = computed<LayoutFloatingState>(() => ({
-  placement: placement.value,
-  offsetX: offsetX.value,
-  offsetY: offsetY.value,
+const defaultFloatingState: LayoutFloatingState = {
+  placement: 'top-right',
+  offsetX: 0,
+  offsetY: 0,
   width: 520,
   height: 360,
-}))
+}
 
-const floatingStateKey = computed(() => `${placement.value}-${offsetX.value}-${offsetY.value}`)
-
-const floatingOptions = computed<LayoutFloatingOptions>(() => ({
-  draggable: draggable.value,
-  resizable: resizable.value,
+const floatingOptions: LayoutFloatingOptions = {
+  draggable: true,
+  resizable: true,
   minWidth: 360,
   maxWidth: 680,
-}))
+  minHeight: 260,
+}
 </script>
 
 <template>
@@ -39,41 +29,10 @@ const floatingOptions = computed<LayoutFloatingOptions>(() => ({
       <TinyButton :reset-time="0" @click="open = !open">
         {{ open ? '关闭浮层' : '打开浮层' }}
       </TinyButton>
-      <span class="layout-floating-demo__tip">非受控浮层会在内部维护拖拽和缩放后的状态。</span>
-    </div>
-
-    <div class="layout-floating-demo__controls">
-      <label class="layout-floating-demo__field">
-        <span>placement</span>
-        <TinyBaseSelect v-model="placement" class="layout-floating-demo__select">
-          <TinyOption v-for="item in placements" :key="item" :label="item" :value="item" />
-        </TinyBaseSelect>
-      </label>
-
-      <label class="layout-floating-demo__field">
-        <span>offsetX</span>
-        <TinyNumeric v-model="offsetX" class="layout-floating-demo__numeric" />
-      </label>
-
-      <label class="layout-floating-demo__field">
-        <span>offsetY</span>
-        <TinyNumeric v-model="offsetY" class="layout-floating-demo__numeric" />
-      </label>
-
-      <label class="layout-floating-demo__field">
-        <span>draggable</span>
-        <TinySwitch v-model="draggable" />
-      </label>
-
-      <label class="layout-floating-demo__field">
-        <span>resizable</span>
-        <TinySwitch v-model="resizable" />
-      </label>
     </div>
 
     <TrLayout
       v-if="open"
-      :key="floatingStateKey"
       class="layout-floating-demo__layout"
       mode="floating"
       :default-floating-state="defaultFloatingState"
@@ -81,16 +40,15 @@ const floatingOptions = computed<LayoutFloatingOptions>(() => ({
     >
       <template #header>
         <div class="layout-floating-demo__header">
-          <strong>浮层布局</strong>
+          <strong>非受控浮层</strong>
           <TinyButton :reset-time="0" size="small" @click="open = false">关闭</TinyButton>
         </div>
       </template>
 
       <template #main>
         <div class="layout-floating-demo__main">
-          <div class="layout-floating-demo__card">`defaultFloatingState` 只设置初始位置和大小。</div>
-          <div class="layout-floating-demo__card">拖动顶部横条可移动浮层，拖动边缘手柄可调整大小。</div>
-          <div class="layout-floating-demo__card">切换 placement 或 offset 后，浮层会按新的初始状态重新定位。</div>
+          <div class="layout-floating-demo__card">当前示例只设置初始位置和尺寸。</div>
+          <div class="layout-floating-demo__card">拖拽或缩放后，位置和尺寸由组件内部维护。</div>
         </div>
       </template>
     </TrLayout>
@@ -114,32 +72,6 @@ const floatingOptions = computed<LayoutFloatingOptions>(() => ({
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.layout-floating-demo__controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.layout-floating-demo__tip {
-  color: var(--vp-c-text-2, var(--tr-text-secondary, #4e5969));
-}
-
-.layout-floating-demo__field {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--vp-c-text-2, var(--tr-text-secondary, #4e5969));
-}
-
-.layout-floating-demo__select {
-  width: 148px;
-}
-
-.layout-floating-demo__numeric {
-  width: 104px;
 }
 
 .layout-floating-demo__main {

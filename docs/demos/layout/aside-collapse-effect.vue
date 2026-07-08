@@ -2,13 +2,13 @@
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import { TinyRadio, TinyRadioGroup, TinySlider, TinySwitch } from '@opentiny/vue'
-import type { LayoutAsideCollapseEffect, LayoutAsideProps } from '@opentiny/tiny-robot'
+import type { LayoutAsideCollapseEffect, LayoutAsideOptions } from '@opentiny/tiny-robot'
 
 const collapseEffect = ref<LayoutAsideCollapseEffect>('overlay')
 const collapsedWidth = ref(72)
 const open = ref(true)
 
-const leftAside = computed<LayoutAsideProps>(() => ({
+const leftAside = computed<LayoutAsideOptions>(() => ({
   open: open.value,
   expandedWidth: 176,
   collapsedWidth: collapsedWidth.value,

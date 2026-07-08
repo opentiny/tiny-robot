@@ -5,7 +5,6 @@ import { TinyButton } from '@opentiny/vue'
 import type { LayoutAsideOpenValue, LayoutFloatingOptions, LayoutFloatingState } from '@opentiny/tiny-robot'
 
 const open = ref(false)
-const leftOpen = ref(false)
 const rightOpen = ref(false)
 
 const defaultFloatingState: LayoutFloatingState = {
@@ -22,10 +21,6 @@ const floatingOptions: LayoutFloatingOptions = {
   minWidth: 420,
   maxWidth: 760,
   minHeight: 320,
-}
-
-function updateLeftAside(detail: LayoutAsideOpenValue) {
-  leftOpen.value = detail.open
 }
 
 function updateRightAside(detail: LayoutAsideOpenValue) {
@@ -47,16 +42,14 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
       mode="floating"
       :default-floating-state="defaultFloatingState"
       :floating-options="floatingOptions"
-      :left-aside="{ mode: 'drawer', open: leftOpen }"
+      :left-aside="{ mode: 'dock', defaultOpen: true, defaultExpandedWidth: 208 }"
       :right-aside="{ mode: 'drawer', open: rightOpen }"
-      @left-aside-open-change="updateLeftAside"
       @right-aside-open-change="updateRightAside"
     >
       <template #left-aside>
-        <div class="layout-floating-panels-demo__drawer">
-          <div class="layout-floating-panels-demo__drawer-title">左侧抽屉</div>
-          <div>适合放筛选、导航或补充信息。</div>
-          <TrLayout.AsideToggle side="left" class="layout-floating-panels-demo__chip">关闭抽屉</TrLayout.AsideToggle>
+        <div class="layout-floating-panels-demo__aside">
+          <div class="layout-floating-panels-demo__aside-title">左侧导航栏</div>
+          <div>使用 dock 常驻显示，适合放目录、导航或上下文信息。</div>
         </div>
       </template>
 
@@ -64,7 +57,6 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
         <div class="layout-floating-panels-demo__header">
           <strong>浮层工作区</strong>
           <div class="layout-floating-panels-demo__actions">
-            <TinyButton :reset-time="0" @click="leftOpen = true">打开左抽屉</TinyButton>
             <TinyButton :reset-time="0" @click="rightOpen = true">打开右抽屉</TinyButton>
           </div>
         </div>
@@ -72,15 +64,16 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
 
       <template #main>
         <div class="layout-floating-panels-demo__main">
-          <div class="layout-floating-panels-demo__card">左右两侧都使用 drawer，需要时再展开，不占主区宽度。</div>
-          <div class="layout-floating-panels-demo__card">整个浮层仍可拖拽、缩放，适合临时工作区或对话面板。</div>
+          <div class="layout-floating-panels-demo__card">左侧使用 dock，保留常驻导航区并占据浮层宽度。</div>
+          <div class="layout-floating-panels-demo__card">右侧使用 drawer，需要时展开，不占主区宽度。</div>
+          <div class="layout-floating-panels-demo__card">整个浮层仍可拖拽、缩放，适合组合常驻导航和临时操作面板。</div>
         </div>
       </template>
 
       <template #right-aside>
-        <div class="layout-floating-panels-demo__drawer">
-          <div class="layout-floating-panels-demo__drawer-title">右侧抽屉</div>
-          <div>点击遮罩或按钮都可以关闭。</div>
+        <div class="layout-floating-panels-demo__aside">
+          <div class="layout-floating-panels-demo__aside-title">右侧操作抽屉</div>
+          <div>按需展开，不占主区宽度，适合放操作表单或补充面板。</div>
           <TrLayout.AsideToggle side="right" class="layout-floating-panels-demo__chip">关闭抽屉</TrLayout.AsideToggle>
         </div>
       </template>
@@ -118,9 +111,6 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
   border: 1px solid var(--vp-c-divider, var(--tr-border-color, #dcdfe6));
   background: var(--vp-c-bg, #ffffff);
   color: var(--vp-c-text-1, var(--tr-text-primary, #1f2329));
-}
-
-.layout-floating-panels-demo__chip {
   min-height: 36px;
   padding: 0 12px;
   border-radius: 8px;
@@ -136,7 +126,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
 }
 
 .layout-floating-panels-demo__main,
-.layout-floating-panels-demo__drawer {
+.layout-floating-panels-demo__aside {
   display: grid;
   align-content: start;
   gap: 12px;
@@ -156,7 +146,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
   background: var(--vp-c-bg-soft, #f6f8fa);
 }
 
-.layout-floating-panels-demo__drawer-title {
+.layout-floating-panels-demo__aside-title {
   font-weight: 600;
   color: var(--vp-c-text-1, var(--tr-text-primary, #1f2329));
 }

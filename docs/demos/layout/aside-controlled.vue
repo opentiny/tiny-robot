@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import { TinyButton, TinySlider } from '@opentiny/vue'
-import type { LayoutAsideProps, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
+import type { LayoutAsideOptions, LayoutAsideOpenValue, LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 
 const leftOpen = ref(true)
 const leftExpandedWidth = ref(220)
@@ -10,7 +10,7 @@ const leftWidthMin = 160
 const leftWidthMax = 320
 const rightOpen = ref(false)
 
-const leftAside = computed<LayoutAsideProps>(() => ({
+const leftAside = computed<LayoutAsideOptions>(() => ({
   open: leftOpen.value,
   expandedWidth: leftExpandedWidth.value,
   collapsedWidth: 0,
@@ -19,7 +19,7 @@ const leftAside = computed<LayoutAsideProps>(() => ({
   resizable: true,
 }))
 
-const rightAside = computed<LayoutAsideProps>(() => ({
+const rightAside = computed<LayoutAsideOptions>(() => ({
   mode: 'drawer',
   open: rightOpen.value,
 }))
