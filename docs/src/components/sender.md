@@ -191,6 +191,8 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 <demo vue="../../demos/sender/actions-enhanced.vue" title="增强按钮" description="通过插槽添加 Upload、Voice 等增强按钮。" />
 
+当附件、图片等内容不写入编辑器文本时，可以通过 `hasExternalContent` 告诉 Sender 当前存在外部可提交内容，例如 `:has-external-content="files.length > 0"`。此时即使输入框为空，默认发送按钮、快捷键提交和 `submit()` 方法也会按有内容处理。默认清空按钮仍只根据编辑器文本显示；外部内容数据由业务侧维护，建议由附件或图片列表提供自己的删除入口。
+
 **配置详见**：[UploadButton 属性](#uploadbutton)、[VoiceButton 属性](#voicebutton)
 
 ## 交互定制
@@ -281,6 +283,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | enterkeyhint @0.4 | 移动端虚拟键盘回车键提示 | `EnterKeyHint` | `'send'` |
 | autoSize | 自动调整高度 | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 5 }` |
 | clearable | 是否可清空 | `boolean` | `false` |
+| hasExternalContent @0.5 | 是否存在外部可提交内容，适用于附件、图片等不写入编辑器文本的内容 | `boolean` | `false` |
 | maxLength | 最大输入长度 | `number` | `Infinity` |
 | showWordLimit | 是否显示字数统计 | `boolean` | `false` |
 | submitType | 提交方式 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` |

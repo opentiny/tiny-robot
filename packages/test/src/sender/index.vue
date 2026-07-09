@@ -23,6 +23,7 @@ const loading = ref(false)
 const disabled = ref(false)
 const showWordLimit = ref(true)
 const isSmallSize = ref(false)
+const hasExternalContent = ref(false)
 const submitType = ref<'enter' | 'ctrlEnter' | 'shiftEnter'>('enter')
 const maxLength = ref(100)
 const placeholder = ref('请输入内容...')
@@ -259,6 +260,10 @@ onBeforeUnmount(() => {
             <span>{{ size }}</span>
           </div>
           <div class="control-item">
+            <label>hasExternalContent:</label>
+            <tiny-switch data-testid="toggle-external-content-btn" v-model="hasExternalContent"></tiny-switch>
+          </div>
+          <div class="control-item">
             <label>submitType:</label>
             <select data-testid="submit-type-select" v-model="submitType">
               <option value="enter">enter</option>
@@ -337,6 +342,7 @@ onBeforeUnmount(() => {
       :show-word-limit="showWordLimit"
       :placeholder="placeholder"
       :submit-type="submitType"
+      :has-external-content="hasExternalContent"
       @submit="handleSubmit"
       @cancel="handleCancel"
       @clear="handleClear"

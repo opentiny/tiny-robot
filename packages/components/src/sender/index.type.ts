@@ -136,6 +136,16 @@ export interface SenderProps {
    */
   clearable?: boolean
 
+  /**
+   * 是否存在外部可提交内容
+   *
+   * 用于附件、图片、文件列表等不写入编辑器文本的内容场景。
+   * 当编辑器文本为空但该值为 true 时，Sender 仍会认为存在可提交内容。
+   *
+   * @default false
+   */
+  hasExternalContent?: boolean
+
   // ===== 扩展配置 =====
 
   /**
