@@ -245,33 +245,6 @@ const messageListRef = ref<HTMLElement | null>(null)
 
 ## Events
 
-单侧状态同步优先使用 `left/right-*` 事件；统一埋点、日志或聚合处理可使用 `aside-*` 事件；浮层受控同步只使用 `update:floatingState`。
-
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-import { TrLayout } from '@opentiny/tiny-robot'
-
-const leftOpen = ref(true)
-
-function syncLeftAside(detail: { open: boolean }) {
-  leftOpen.value = detail.open
-}
-
-function trackAsideChange(detail: { side: 'left' | 'right'; open: boolean }) {
-  console.log(detail.side, detail.open)
-}
-</script>
-
-<template>
-  <TrLayout
-    :left-aside="{ open: leftOpen }"
-    @left-aside-open-change="syncLeftAside"
-    @aside-open-change="trackAsideChange"
-  />
-</template>
-```
-
 ### Layout {#layout-layout-events}
 
 | 事件名                     | 说明                     | 回调参数                                                                 |
@@ -342,26 +315,6 @@ function trackAsideChange(detail: { side: 'left' | 'right'; open: boolean }) {
 ### LayoutScrollTarget {#layout-scroll-target}
 
 `HTMLElement | Pick<ComponentPublicInstance, '$el'> | null | undefined`
-
-优先传真实 DOM ref。只有组件根节点本身就是滚动宿主时，才传组件 ref；组件 ref 会被解析为 `$el`。
-
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-import { TrLayout } from '@opentiny/tiny-robot'
-
-const scrollEl = ref<HTMLElement | null>(null)
-</script>
-
-<template>
-  <TrLayout>
-    <template #main>
-      <div ref="scrollEl" class="scroll-host"></div>
-      <TrLayout.ProxyScrollbar :scroll-target="scrollEl" />
-    </template>
-  </TrLayout>
-</template>
-```
 
 ### LayoutFloatingState {#layout-floating-state}
 
