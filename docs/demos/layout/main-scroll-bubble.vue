@@ -21,7 +21,7 @@ const messages: BubbleListProps['messages'] = Array.from({ length: 12 }, (_, ind
   },
   {
     role: 'assistant',
-    content: '可以。内容区可以居中显示，滚动条仍然贴着 Layout 主区右侧。',
+    content: '可以。内容区可以居中显示，滚动条仍然固定在 Layout 主区右侧。',
   },
 ]).flat()
 </script>

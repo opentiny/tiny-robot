@@ -122,12 +122,14 @@ outline: [1, 3]
 
 ## 代理滚动条
 
-`Layout.ProxyScrollbar` 是代理滚动条，可用于消息流、长内容阅读流和工作台主区。
+代理滚动条(`Layout.ProxyScrollbar`)适用于内容列居中或限宽后，原生滚动条偏离主区右边界的场景。真实滚动仍然发生在 `scrollTarget` 指向的元素上。它只负责同步滚动状态，并代理滚动条的显示与拖拽。
 
-常见于内容列居中或限宽后，原生滚动条偏离主区右边界的场景。
+### 使用要求
 
 - 将实际承担滚动的元素传给 `scrollTarget`。
-- 为使代理滚动条正确生效，该滚动元素需要具备以下基础样式。
+- 为使 `Layout.ProxyScrollbar` 正常生效，传给 `scrollTarget` 的滚动容器需要具备明确高度，并通过 `overflow: auto` 或 `overflow: scroll` 承担真实滚动。
+
+> 推荐的基础样式如下：
 
 ```css
 .scroll-host {
@@ -137,6 +139,32 @@ outline: [1, 3]
   overflow: auto;
 }
 ```
+
+### 基本结构
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { TrLayout } from '@opentiny/tiny-robot'
+
+const scrollTargetRef = ref<HTMLElement | null>(null)
+</script>
+
+<template>
+  <TrLayout>
+    <template #main>
+      <div ref="scrollTargetRef" class="scroll-host">
+        <div class="content-shell">
+          <!-- content -->
+        </div>
+      </div>
+      <TrLayout.ProxyScrollbar :scroll-target="scrollTargetRef" />
+    </template>
+  </TrLayout>
+</template>
+```
+
+### 使用示例
 
 <demo
   vue="../../demos/layout/main-scroll.vue"
@@ -148,6 +176,10 @@ outline: [1, 3]
   title="代理滚动条"
   description="内容区居中后，滚动条仍固定在主区右侧。"
 />
+
+### 注意事项
+
+`Layout.ProxyScrollbar` 仅用于代理滚动条显示与拖拽，不负责内容渲染或性能优化。
 
 ## 侧栏开关
 

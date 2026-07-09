@@ -21,7 +21,7 @@ const isCentered = ref(true)
         <tiny-switch v-model="isCentered"></tiny-switch>
       </label>
     </div>
-    <p class="layout-main-scroll-demo__tip">外层作为滚动宿主，内层只负责居中和限宽。</p>
+    <p class="layout-main-scroll-demo__tip">外层作为滚动宿主，内层只负责内容居中和限宽。</p>
 
     <div class="layout-main-scroll-demo__stage">
       <MainScrollBubble v-if="activeExample === 'bubble'" :centered="isCentered" />

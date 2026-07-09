@@ -18,7 +18,7 @@ const sections = Array.from({ length: 12 }, (_, index) => index + 1)
         <div class="layout-main-scroll-div__content" :class="{ 'is-centered': props.centered }">
           <section v-for="section in sections" :key="section" class="layout-main-scroll-div__item">
             <strong>Section {{ section }}</strong>
-            <p>普通内容区也可以把滚动容器交给 Layout.ProxyScrollbar。</p>
+            <p>普通内容区也可以把滚动宿主交给 Layout.ProxyScrollbar 代理滚动条。</p>
           </section>
         </div>
       </div>
