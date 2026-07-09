@@ -9,7 +9,6 @@ export interface UseLocalChatRuntimeOptions {
 const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
 
 export function useLocalChatRuntime(options: UseConversationOptions, runtimeOptions: UseLocalChatRuntimeOptions = {}) {
-  const inputValue = shallowRef('')
   const lastError = shallowRef<unknown | null>(null)
   const titleFallback = runtimeOptions.titleFallback ?? defaultTitleFallback
 
@@ -19,7 +18,6 @@ export function useLocalChatRuntime(options: UseConversationOptions, runtimeOpti
   })
 
   return useKitChatRuntime(conversation, {
-    inputValue,
     lastError,
     send: async ({ text }) => {
       if (!text.trim()) {
@@ -38,7 +36,6 @@ export function useLocalChatRuntime(options: UseConversationOptions, runtimeOpti
         }
 
         await active.engine.sendMessage(text)
-        inputValue.value = ''
       } catch (error) {
         lastError.value = error
         throw error

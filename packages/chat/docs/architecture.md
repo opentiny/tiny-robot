@@ -1,31 +1,8 @@
-# TinyRobot Chat 套件架构方案
+# TinyRobot Chat 架构设计
 
-## 1. 定位
+## 1. 架构总览
 
-`@opentiny/tiny-robot-chat` 是基于 `components + kit` 的 AI 会话应用装配层。
-
-核心目标：
-
-- 通过 `TrChat` 快速接入完整会话应用。
-- 复用 `packages/components` 的原子组件能力。
-- 复用 `packages/kit` 的 runtime 能力。
-- 支持用户已有数据层，只接入 TinyRobot 新 UI。
-- 通过 `ui` 配置原子组件展示。
-- 通过 slots 替换局部区域。
-
-用户接入时先判断会话、消息、请求生命周期归谁管理：
-
-```txt
-TinyRobot kit 管状态 -> ChatRuntime -> TrChat
-用户外部数据层管状态 -> ChatRuntime -> TrChat
-```
-
-在 TinyRobot kit 这一路下，MVP 提供两个入口：
-
-- 新项目快速接入：`useLocalChatRuntime()` 内部创建 `useConversation()`。
-- 已有 kit 项目迁移：`useKitChatRuntime()` 适配用户已有 `useConversation()`。
-
-## 2. 分层
+`@opentiny/tiny-robot-chat` 是应用装配层。
 
 ```txt
 packages/components
@@ -38,12 +15,26 @@ packages/chat
   -> application assembly + UI adapter
 ```
 
-`chat` 只做两件事：
+核心结构：
 
-- 定义 `ChatRuntime`，把 kit 或外部数据层适配成 UI 可消费协议。
-- 定义 `TrChat`，把现有原子组件装配成完整会话应用。
+```txt
+TrChat
+  -> ChatRuntime
+  -> internal ChatComposer
+  -> ChatUi
+  -> slots
+```
 
-## 3. Public API
+职责边界：
+
+| 模块 | 职责 |
+| --- | --- |
+| `ChatRuntime` | 会话、消息、请求生命周期 |
+| `ChatComposer` | 输入草稿和提交交互 |
+| `ChatUi` | 默认组件展示配置 |
+| `slots` | 布局区域替换 |
+
+## 2. Public API
 
 v1 稳定入口：
 
@@ -70,25 +61,29 @@ export interface ChatProps {
 }
 ```
 
-## 4. ChatRuntime
+## 3. ChatRuntime
 
-`ChatRuntime` 是 UI adapter 协议，不是底层 runtime 协议。
+`ChatRuntime` 是 UI adapter 协议。
+
+它屏蔽 kit、AI SDK、Pinia、自研 store 的差异，让 `TrChat` 只消费统一协议。
 
 ```txt
-runtime.state -> UI
-UI event -> runtime.actions
+runtime state -> UI
+UI event -> runtime actions
 ```
 
 推荐类型：
 
 ```ts
 import type { ComputedRef, Ref } from 'vue'
-import type { BubbleMessage } from '@opentiny/tiny-robot/components/bubble'
-import type { HistoryItem } from '@opentiny/tiny-robot/components/history'
-import type { StructuredData } from '@opentiny/tiny-robot/components/sender'
-import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit/vue'
+import type {
+  BubbleMessage,
+  HistoryItem,
+  StructuredData,
+} from '@opentiny/tiny-robot'
+import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
 
-type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
+export type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
 
 export type ChatConversationItem = HistoryItem & {
   id: string
@@ -113,10 +108,8 @@ export interface ChatRuntimeMessages {
 }
 
 export interface ChatRuntimeSender {
-  inputValue: ChatReadable<string>
   disabled: ChatReadable<boolean>
   loading: ChatReadable<boolean>
-  submitDisabled: ChatReadable<boolean>
 }
 
 export interface ChatSubmitPayload {
@@ -125,7 +118,6 @@ export interface ChatSubmitPayload {
 }
 
 export interface ChatRuntimeActions {
-  setInputValue: (value: string) => void
   send: (payload: ChatSubmitPayload) => Promise<void> | void
   abort?: () => Promise<void> | void
   createConversation?: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
@@ -148,14 +140,50 @@ export interface ChatRuntime {
 - 修改必须走 `runtime.actions`。
 - UI 不直接调用 transport。
 - UI 不直接依赖 kit 原始返回结构。
-- `ChatConversationItem.id` 在 chat 内部必须稳定存在。
-- `ChatConversationItem.title` 需要在 adapter 层兜底。
+- 输入草稿不进入 `ChatRuntime`。
+
+## 4. ChatComposer
+
+`ChatComposer` 是 `TrChat` 内部输入交互状态。
+
+MVP 不作为 public API 导出。
+
+内部结构：
+
+```ts
+interface ChatComposer {
+  inputValue: ChatReadable<string>
+  submitDisabled: ChatReadable<boolean>
+  setInputValue: (value: string) => void
+  send: (payload: ChatSubmitPayload) => Promise<void> | void
+  abort?: () => Promise<void> | void
+}
+```
+
+职责：
+
+- 管理 `TrSender.modelValue`。
+- 处理 `TrSender update:modelValue`。
+- 处理 Prompt 回填输入框。
+- 根据输入值、`runtime.sender.disabled`、`runtime.sender.loading` 计算提交禁用。
+- 调用 `runtime.actions.send(payload)`。
+- 发送成功后清空输入。
+
+发送链路：
+
+```txt
+TrSender submit
+  -> composer.send(payload)
+    -> runtime.actions.send(payload)
+    -> success
+    -> composer.inputValue = ''
+```
+
+失败时不清空输入，方便用户重试。
 
 ## 5. ChatUi
 
-`ChatUi` 只负责配置默认原子组件的展示能力。
-
-它以原子组件名作为 key，以组件 props 作为 value。
+`ChatUi` 只负责默认原子组件展示配置。
 
 ```ts
 export interface ChatUi {
@@ -183,9 +211,9 @@ export interface ChatUi {
 | `prompts` | `TrPrompts` |
 | `sender` | `TrSender` |
 
-runtime 接管字段不能通过 `ui` 配置：
+不能通过 `ui` 配置的数据字段：
 
-| 组件 | runtime 接管字段 |
+| 组件 | 字段 |
 | --- | --- |
 | `TrHistory` | `data / selected` |
 | `TrBubbleList` | `messages` |
@@ -197,13 +225,41 @@ runtime 接管字段不能通过 `ui` 配置：
 同一状态只能有一个来源。
 ```
 
-## 6. Kit-managed Runtime
+## 6. TrChat 默认装配
 
-Kit-managed runtime 表示会话、消息、请求、stream、abort、storage 等生命周期由 TinyRobot kit 管理。
+```txt
+TrChat
+  -> TrLayout
+    -> header: Header
+    -> left-aside: Conversations
+    -> main: Messages
+    -> footer: Sender
+    -> ProxyScrollbar / ScrollToBottom
+```
 
-`useLocalChatRuntime` 是新项目的官方快速入口。
+默认映射：
 
-内部链路：
+| 来源 | 目标 |
+| --- | --- |
+| `runtime.conversations.items` | `TrHistory.data` |
+| `runtime.conversations.currentId` | `TrHistory.selected` |
+| `runtime.messages.items` | `TrBubbleList.messages` |
+| `composer.inputValue` | `TrSender.modelValue` |
+| `runtime.sender.loading` | `TrSender.loading` |
+| `runtime.sender.disabled` | `TrSender.disabled` |
+| `composer.submitDisabled` | `TrSender.defaultActions.submit.disabled` |
+| `composer.setInputValue` | `TrSender update:modelValue` |
+| `composer.send` | `TrSender submit` |
+| `composer.abort` | `TrSender cancel` |
+| `runtime.actions.switchConversation` | `TrHistory item-click` |
+| `runtime.actions.renameConversation` | `TrHistory item-title-change` |
+| `runtime.actions.deleteConversation` | `TrHistory item-action(delete)` |
+
+## 7. Runtime 接入路径
+
+### 7.1 useLocalChatRuntime
+
+新项目快速入口。
 
 ```txt
 useLocalChatRuntime
@@ -212,57 +268,29 @@ useLocalChatRuntime
   -> ChatRuntime
 ```
 
-`useKitChatRuntime` 是 kit-managed 路径里的底层 adapter，它的职责：
+职责：
 
-- `ConversationInfo[] -> ChatConversationItem[]`
-- `activeConversationId -> conversations.currentId`
-- `activeConversation.engine.messages -> messages.items`
-- `activeConversation.engine.requestState -> messages.requestState`
-- `activeConversation.engine.processingState -> messages.processingState`
-- `activeConversation.engine.isProcessing -> sender.loading`
-
-`useLocalChatRuntime` 职责：
-
-- 创建并持有 `useConversation`。
-- 管理 `sender.inputValue`。
-- 维护 `messages.lastError`。
+- 创建 `useConversation()`。
 - 首条消息发送前自动创建会话。
-- 标题归一化。
+- 标题 fallback。
+- 错误捕获。
 - 组合最终 `ChatRuntime`。
 
-推荐行为：
+不负责：
 
-- `sender.loading = activeConversation.engine.isProcessing`。
-- `sender.submitDisabled = disabled || loading || inputValue.trim().length === 0`。
-- `send(payload)` 成功触发后清空输入。
-- `send(payload)` 在无 active conversation 时先创建会话。
-- `abort()` 调用当前会话 engine 的 abort 能力。
+- 输入草稿。
+- 发送成功后清空输入。
+- Prompt 回填。
 
-## 7. Existing Kit Adapter
+### 7.2 useKitChatRuntime
 
-`useKitChatRuntime` 是已有 kit runtime 的迁移入口。它不代表额外的状态归属，而是 kit-managed runtime 的 adapter 形态。
+已有 kit runtime 迁移入口。
 
 适用场景：
 
-- 用户早期已经使用 `components + kit` 搭建了会话应用。
 - 用户已经持有 `useConversation()` 返回值。
-- 用户只想把旧 UI 切换到 `TrChat`，不想重建数据层。
-
-接入方式：
-
-```txt
-existing useConversation
-  -> useKitChatRuntime
-  -> ChatRuntime
-  -> TrChat
-```
-
-职责边界：
-
-- 不创建 `useConversation`。
-- 不接管 transport。
-- 不重建用户已有会话状态。
-- 只把 kit 返回结构映射成 `ChatRuntime`。
+- 用户只想把旧 UI 切换到 `TrChat`。
+- 用户不想重建已有 transport、storage、plugins。
 
 示例：
 
@@ -270,156 +298,101 @@ existing useConversation
 const conversation = useConversation(options)
 
 const runtime = useKitChatRuntime(conversation, {
-  inputValue,
   lastError,
+  send: async ({ text }) => {
+    await conversation.activeConversation.value?.engine.sendMessage(text)
+  },
 })
 ```
 
-## 8. External Runtime
+`useKitChatRuntime()` 只做 kit 到 `ChatRuntime` 的映射。
 
-External runtime 表示会话、消息、请求生命周期由用户自己的数据层管理，TinyRobot 只消费用户适配出的 `ChatRuntime`。
+### 7.3 自定义 ChatRuntime
+
+用户外部数据层接入入口。
 
 适用场景：
 
-- 用户已有后端数据层。
-- 用户已有 Pinia / composable / 自研请求层。
-- 用户已经使用 AI SDK 等第三方 runtime。
-- 用户已有旧版 tiny-robot 接入，但想升级 TinyRobot 新 UI。
-- 用户不想使用 `kit`，只想复用 `TrChat` 应用 UI。
+- AI SDK。
+- Pinia。
+- 自研 store。
+- 老系统数据层。
+- 只想复用 TinyRobot UI。
 
-接入方式：
+链路：
 
 ```txt
 用户数据层
-  -> external ChatRuntime adapter
+  -> ChatRuntime adapter
     -> TrChat
 ```
 
 要求：
 
-- 外部 runtime 自己负责请求、stream、abort、错误处理。
-- 外部 runtime 保证数据符合 `HistoryItem / BubbleMessage` 契约。
-- `TrChat` 只消费 `ChatRuntime`，不关心外部 runtime 内部实现。
+- 用户自己负责请求、stream、abort、错误处理。
+- 用户保证数据符合 `HistoryItem / BubbleMessage` 契约。
+- `TrChat` 不关心外部 runtime 内部实现。
 
-## 9. 两类状态归属与三个入口
+## 8. Slots
 
-| 状态归属 | 入口 | 场景 | 说明 |
-| --- | --- | --- | --- |
-| TinyRobot kit | `useLocalChatRuntime()` | 新项目，使用官方 kit 能力 | 快速创建 `useConversation()` 并适配成 `ChatRuntime` |
-| TinyRobot kit | `useKitChatRuntime()` | 已有 kit runtime，只迁移 UI | 复用用户已有 `useConversation()`，只做 adapter |
-| 用户外部数据层 | 实现 `ChatRuntime` | AI SDK / Pinia / 自研 store / 老系统 | 用户自己负责请求、stream、abort、错误处理 |
+`TrChat` 通过 slots 做轻量区域替换。
 
-对齐 assistant-ui 的理解：
-
-- TinyRobot kit-managed runtime 对应 `LocalRuntime` 思路。
-- 自定义 `ChatRuntime` 对应 `ExternalStoreRuntime` 思路。
-- `useKitChatRuntime()` 是 TinyRobot 为已有 kit 用户补充的迁移 adapter，不是额外的状态归属。
-
-## 10. TrChat 装配
-
-`TrChat` 负责默认完整应用装配。
-
-默认结构：
-
-```txt
-TrChat
-  -> TrLayout
-    -> header
-    -> left-aside: TrHistory
-    -> main: TrBubbleProvider + TrBubbleList / TrWelcome / TrPrompts
-    -> footer: TrSender
-    -> ProxyScrollbar / ScrollToBottom
-```
-
-默认映射：
-
-| runtime | component |
-| --- | --- |
-| `runtime.conversations.items` | `TrHistory.data` |
-| `runtime.conversations.currentId` | `TrHistory.selected` |
-| `runtime.messages.items` | `TrBubbleList.messages` |
-| `runtime.sender.inputValue` | `TrSender.modelValue` |
-| `runtime.sender.loading` | `TrSender.loading` |
-| `runtime.sender.disabled` | `TrSender.disabled` |
-| `runtime.sender.submitDisabled` | `TrSender.defaultActions.submit.disabled` |
-| `runtime.actions.setInputValue` | `TrSender update:modelValue` |
-| `runtime.actions.send` | `TrSender submit` |
-| `runtime.actions.abort` | `TrSender cancel` |
-| `runtime.actions.switchConversation` | `TrHistory item-click` |
-| `runtime.actions.renameConversation` | `TrHistory item-title-change` |
-| `runtime.actions.deleteConversation` | `TrHistory item-action(delete)` |
-
-## 11. Slots
-
-`TrChat` 通过 slots 做轻量替换，不提供第二套白盒区域组件体系。
-
-slot 命名按 `TrLayout` 的布局区域来，而不是按默认组件来。
-
-原因：
-
-- slot 解决的是布局插入点问题。
-- 一个区域里不一定只放一个默认组件。
-- `ui` 继续按组件名配置，`slots` 按布局区域命名，职责更清楚。
-
-建议 slots：
+slot 按布局区域命名，不按默认组件命名。
 
 | slot | 默认内容 | 用途 |
 | --- | --- | --- |
-| `header` | 默认标题栏 | 扩展或替换顶部区域 |
-| `left-aside` | `TrHistory` | 扩展或替换会话列表区域 |
-| `main` | `TrBubbleProvider + TrBubbleList / TrWelcome / TrPrompts` | 扩展或替换消息区域 |
-| `footer` | `TrSender` | 扩展或替换输入区域 |
+| `header` | `Header` | 扩展或替换顶部区域 |
+| `left-aside` | `Conversations` | 扩展或替换会话列表区域 |
+| `main` | `Messages` | 扩展或替换消息区域 |
+| `footer` | `Sender` | 扩展或替换输入区域 |
 
 规则：
 
 - 使用默认区域时，对应 `ui.xxx` 生效。
 - 覆盖某个 slot 后，该区域对应的 `ui.xxx` 不再保证生效。
-- slot props 只暴露最小动作集合。
+- slot props 只暴露该区域必要状态和动作。
 - 深度重组直接使用 `components + kit`。
 
-建议 slot props：
+`footer` slot 示例：
 
-`header`：
+```vue
+<TrChat :runtime="runtime" :ui="ui">
+  <template #footer="{ inputValue, loading, send, abort, setInputValue }">
+    <CustomSender
+      :model-value="inputValue"
+      :loading="loading"
+      @update:model-value="setInputValue"
+      @submit="send"
+      @cancel="abort"
+    />
+  </template>
+</TrChat>
+```
 
-- `title`
-- `requestState`
-- `processingState`
-- `lastError`
-- `createConversation`
+## 9. Context
 
-`left-aside`：
+内部 context 推荐结构：
 
-- `items`
-- `currentId`
-- `switchConversation`
-- `renameConversation`
-- `deleteConversation`
-- `createConversation`
+```ts
+export interface ChatContext {
+  runtime: ChatRuntime
+  composer: ChatComposer
+  ui: ChatUi
+}
+```
 
-`main`：
+内部组件只读 context，不直接依赖 kit。
 
-- `messages`
-- `requestState`
-- `processingState`
-- `lastError`
+```txt
+Conversations -> runtime.conversations + runtime.actions
+Messages -> runtime.messages + ui + composer.setInputValue
+Sender -> runtime.sender + composer + ui.sender
+```
 
-`footer`：
-
-- `inputValue`
-- `setInputValue`
-- `send`
-- `abort`
-- `disabled`
-- `loading`
-- `submitDisabled`
-
-## 12. 文件结构
-
-推荐结构：
+## 10. 文件结构
 
 ```txt
 packages/chat/
-  package.json
   src/
     index.ts
     Chat.vue
@@ -437,11 +410,11 @@ packages/chat/
       ScrollToBottom.vue
 ```
 
-说明：
+约束：
 
-- `components/*` 是内部实现组件，不作为 v1 public API 承诺。
+- `components/*` 是内部实现，不作为 v1 public API。
 - public API 从 `src/index.ts` 显式导出。
-- 不导出额外的白盒命名空间组件作为 v1 稳定入口。
+- 不导出白盒命名空间组件作为 v1 稳定入口。
 
 导出建议：
 
@@ -458,54 +431,43 @@ export type {
 } from './types'
 ```
 
-## 13. 实现顺序
+## 11. 实现顺序
 
-1. 更新类型：`ChatRuntime / ChatRuntimeSender / ChatUi`。
-2. 更新 context：只提供 `runtime + ui`。
-3. 更新 `useKitChatRuntime`：映射 kit 到 `ChatRuntime`。
-4. 更新 `useLocalChatRuntime`：管理输入、错误、首消息建会话。
-5. 实现 `TrChat` 默认布局。
-6. 实现内部 `Conversations / Messages / Sender / Header` 映射组件。
-7. 实现 slots。
-8. 实现 kit quick start demo。
-9. 实现 existing kit runtime demo。
-10. 实现 external custom runtime demo。
-11. 做类型检查和 demo 构建验证。
+1. 调整 `ChatRuntimeSender`，移除 `inputValue / submitDisabled`。
+2. 调整 `ChatRuntimeActions`，移除 `setInputValue`。
+3. 在 `TrChat` 内部创建最小 `composer`。
+4. context 改为 `runtime + composer + ui`。
+5. `Sender` 改为消费 `composer.inputValue / composer.setInputValue / composer.send`。
+6. `Messages` 的 Prompt 回填改为消费 `composer.setInputValue`。
+7. `useKitChatRuntime` 移除 `inputValue` 入参。
+8. `useLocalChatRuntime` 不再创建或清空输入值。
+9. 更新 kit quick start、existing kit runtime、external runtime demo。
+10. 运行类型检查和 demo 构建。
 
-## 14. 验证
-
-基础验证：
+## 12. 验证标准
 
 - `TrChat` 能完成默认会话应用渲染。
 - `useLocalChatRuntime` 能完成首条消息自动建会话并发送。
-- `useKitChatRuntime` 能接入已有 `useConversation()` 返回值。
-- external runtime 能只接 UI 层。
+- `useKitChatRuntime` 能接入已有 `useConversation()`，且不需要传输入框状态。
+- external runtime 只需要适配消息、会话和请求生命周期。
+- Prompt 点击能回填输入框。
+- 发送成功后清空输入框。
+- 发送失败后保留输入框内容。
 - `ui.sender` 能配置 `TrSender` 展示。
-- `ui.bubbleList` 能配置 `TrBubbleList` 展示。
 - 覆盖 slot 后，对应默认组件不再渲染。
-- `TrSender submit/cancel` 与 runtime actions 对齐。
-- `TrHistory selected/rename/delete` 与 runtime actions 对齐。
-- `TrBubbleList` 能消费 runtime messages。
 
-E2E 注意：
+## 13. 结论
 
-```txt
-先构建 components 包。
-重新构建 components 后，重启测试服务。
-```
-
-## 15. 结论
-
-推荐 v1 架构：
+v1 推荐架构：
 
 ```txt
-TrChat 黑盒入口 + ChatRuntime + ChatUi + slots。
+TrChat 黑盒入口 + ChatRuntime + 内部 ChatComposer + ChatUi + slots
 ```
 
 该方案满足：
 
 - 快速接入完整聊天应用。
+- runtime 和 UI 输入草稿解耦。
+- 已有 kit runtime 迁移成本更低。
 - 用户已有数据层时只接 TinyRobot UI。
-- API 贴近现有原子组件文档。
-- 不维护第二套白盒区域组件体系。
 - 不和 `kit` 重复建设 runtime、transport、stream 生命周期。

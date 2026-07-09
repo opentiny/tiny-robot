@@ -4,7 +4,7 @@ import { TrSender } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
 import type { StructuredData } from '@opentiny/tiny-robot'
 
-const { runtime, ui } = useChatContext()
+const { composer, runtime, ui } = useChatContext()
 
 const senderProps = computed(() => {
   const sender = ui.sender ?? {}
@@ -15,25 +15,25 @@ const senderProps = computed(() => {
       ...sender.defaultActions,
       submit: {
         ...sender.defaultActions?.submit,
-        disabled: runtime.sender.submitDisabled.value,
+        disabled: composer.submitDisabled.value,
       },
     },
-    modelValue: runtime.sender.inputValue.value,
+    modelValue: composer.inputValue.value,
     loading: runtime.sender.loading.value,
     disabled: runtime.sender.disabled.value,
   }
 })
 
 function handleUpdateModelValue(value: string) {
-  runtime.actions.setInputValue(value)
+  composer.setInputValue(value)
 }
 
 function handleSubmit(text: string, structuredData?: StructuredData) {
-  runtime.actions.send({ text, structuredData })
+  composer.send({ text, structuredData })
 }
 
 function handleCancel() {
-  runtime.actions.abort?.()
+  composer.abort?.()
 }
 </script>
 

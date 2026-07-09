@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, provide, ref } from 'vue'
+import { computed, provide, ref, shallowRef } from 'vue'
 import { TrLayout, type LayoutProps } from '@opentiny/tiny-robot'
 import { chatContextKey } from '@/context'
 import { Conversations, Header, Messages, ScrollToBottom, Sender } from '@/components'
-import type { ChatRuntime, ChatUi } from '@/types'
+import type { ChatComposer, ChatRuntime, ChatSubmitPayload, ChatUi } from '@/types'
 
 const props = withDefaults(
   defineProps<{
@@ -16,8 +16,52 @@ const props = withDefaults(
   },
 )
 
+const inputValue = shallowRef('')
+
+function setInputValue(value: string) {
+  inputValue.value = value
+}
+
+async function send(payload: ChatSubmitPayload) {
+  const text = payload.text.trim()
+
+  if (!text) {
+    return
+  }
+
+  const previousInputValue = inputValue.value
+
+  // Optimistically clear the draft so long-running sends keep the composer responsive.
+  inputValue.value = ''
+
+  try {
+    await props.runtime.actions.send({
+      ...payload,
+      text,
+    })
+  } catch (error) {
+    if (inputValue.value === '') {
+      inputValue.value = previousInputValue
+    }
+
+    throw error
+  }
+}
+
+const composer: ChatComposer = {
+  inputValue,
+  submitDisabled: computed(
+    () =>
+      props.runtime.sender.disabled.value || props.runtime.sender.loading.value || inputValue.value.trim().length === 0,
+  ),
+  setInputValue,
+  send,
+  abort: props.runtime.actions.abort,
+}
+
 provide(chatContextKey, {
   runtime: props.runtime,
+  composer,
   ui: props.ui,
 })
 
@@ -65,13 +109,13 @@ const mainSlotProps = computed(() => ({
 }))
 
 const footerSlotProps = computed(() => ({
-  inputValue: props.runtime.sender.inputValue.value,
-  setInputValue: props.runtime.actions.setInputValue,
-  send: props.runtime.actions.send,
-  abort: props.runtime.actions.abort,
+  inputValue: composer.inputValue.value,
+  setInputValue: composer.setInputValue,
+  send: composer.send,
+  abort: composer.abort,
   disabled: props.runtime.sender.disabled.value,
   loading: props.runtime.sender.loading.value,
-  submitDisabled: props.runtime.sender.submitDisabled.value,
+  submitDisabled: composer.submitDisabled.value,
 }))
 </script>
 

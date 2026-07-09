@@ -21,7 +21,6 @@ export function useExternalRuntime() {
   const messagesByConversation = shallowRef<Record<string, ChatMessageItem[]>>({
     [firstConversation.id]: [],
   })
-  const inputValue = shallowRef('')
   const loading = shallowRef(false)
   const requestState = shallowRef<RequestState>('idle')
   const processingState = shallowRef<RequestProcessingState | undefined>()
@@ -30,7 +29,6 @@ export function useExternalRuntime() {
 
   const messages = computed(() => (currentId.value ? (messagesByConversation.value[currentId.value] ?? []) : []))
   const disabled = computed(() => false)
-  const submitDisabled = computed(() => disabled.value || loading.value || inputValue.value.trim().length === 0)
 
   function updateCurrentMessages(next: ChatMessageItem[]) {
     if (!currentId.value) {
@@ -77,13 +75,12 @@ export function useExternalRuntime() {
     loading.value = true
     requestState.value = 'processing'
     processingState.value = 'requesting'
-    inputValue.value = ''
     updateCurrentMessages([...messages.value, { role: 'user', content: text }])
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 120))
 
-      if (currentRunId !== activeRunId || requestState.value === 'aborted') {
+      if (currentRunId !== activeRunId) {
         return
       }
 
@@ -119,15 +116,10 @@ export function useExternalRuntime() {
       lastError,
     },
     sender: {
-      inputValue,
       disabled,
       loading,
-      submitDisabled,
     },
     actions: {
-      setInputValue: (value) => {
-        inputValue.value = value
-      },
       send,
       abort: () => {
         activeRunId += 1

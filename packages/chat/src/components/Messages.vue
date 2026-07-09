@@ -8,7 +8,7 @@ const props = defineProps<{
   isEmpty?: boolean
 }>()
 
-const { runtime, ui } = useChatContext()
+const { composer, runtime, ui } = useChatContext()
 const messages = computed(() => [...runtime.messages.items.value])
 const isEmpty = computed(() => props.isEmpty ?? messages.value.length === 0)
 const bubbleListRef = ref<LayoutScrollTarget>(null)
@@ -29,7 +29,7 @@ function handlePromptClick(_: MouseEvent, item: PromptProps) {
     return
   }
 
-  runtime.actions.setInputValue(item.label)
+  composer.setInputValue(item.label)
 }
 
 defineExpose({

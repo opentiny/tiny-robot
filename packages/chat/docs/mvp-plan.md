@@ -2,20 +2,20 @@
 
 ## 1. MVP 目标
 
-MVP 只验证 chat 套件的核心架构是否成立，不追求完整功能。
+MVP 只验证 chat 套件核心架构是否成立。
 
 核心验证：
 
-- `TrChat` 能否作为默认完整聊天应用入口。
-- `ChatRuntime` 能否作为唯一数据与动作协议。
-- `ChatUi` 能否作为唯一原子组件展示配置协议。
-- `kit` 能否作为 TinyRobot 托管状态的官方路径。
-- kit 路径下，新项目能否通过 `useLocalChatRuntime()` 快速接入。
-- kit 路径下，已有 kit runtime 能否通过 `useKitChatRuntime()` 迁移到 `TrChat`。
-- 用户已有数据层时，能否通过 external runtime adapter 只接入 TinyRobot UI。
-- slots 能否作为局部扩展机制，而不需要第二套白盒区域组件体系。
+- `TrChat` 能作为默认完整聊天应用入口。
+- `ChatRuntime` 能作为数据层 adapter 协议。
+- `TrChat` 内部 `ChatComposer` 能承接输入交互状态。
+- `ChatUi` 能作为原子组件展示配置协议。
+- kit 新项目能通过 `useLocalChatRuntime()` 快速接入。
+- 已有 kit runtime 能通过 `useKitChatRuntime()` 只迁移 UI。
+- 用户已有数据层能通过自定义 `ChatRuntime` 只接入 TinyRobot UI。
+- slots 能做局部区域替换。
 
-MVP 只接入：
+MVP 接入：
 
 - `TrLayout`
 - `TrHistory`
@@ -26,16 +26,10 @@ MVP 只接入：
 - `TrSender`
 - `TrLayout.ProxyScrollbar`
 
-## 2. 预期目录
+## 2. 目录约束
 
-```text
+```txt
 packages/chat/
-  package.json
-  AGENTS.md
-  docs/
-    architecture.md
-    mvp-plan.md
-    pre-research.md
   src/
     index.ts
     Chat.vue
@@ -52,9 +46,6 @@ packages/chat/
       Sender.vue
       ScrollToBottom.vue
   demo/
-    App.vue
-    main.ts
-    style.css
     cases/
       kit-quick-start.vue
       kit-existing-runtime.vue
@@ -63,23 +54,18 @@ packages/chat/
       useExternalRuntime.ts
 ```
 
-目录约束：
+约束：
 
 - `src/types.ts` 只放公共协议类型。
 - `src/context.ts` 只定义 context key 和上下文结构。
-- `src/composables/useChatContext.ts` 只负责读取上下文。
 - `src/composables/useKitChatRuntime.ts` 只做 `kit -> ChatRuntime` 映射。
-- `src/composables/useLocalChatRuntime.ts` 只补齐 chat 应用层行为。
-- `src/components/*` 只做内部映射，不作为 v1 稳定 API 承诺。
-- `demo/cases/kit-quick-start.vue` 验证 kit 路径的新项目快速入口。
-- `demo/cases/kit-existing-runtime.vue` 验证已有 `useConversation()` 接入 `TrChat`。
-- `demo/cases/external-runtime.vue` 验证 external runtime 只接 UI。
-- `demo/cases/shared.ts` 只放 Demo 共享的 mock provider、内存 storage 和 UI 配置。
-- `demo/cases/useExternalRuntime.ts` 只放 external runtime 示例的数据层实现。
+- `src/composables/useLocalChatRuntime.ts` 只补齐 kit quick start 行为。
+- `src/components/*` 只做内部映射，不作为 v1 public API。
+- demo 分别验证 quick start、existing kit runtime、external runtime。
 
-## 3. 阶段 1：公共协议收口
+## 3. 阶段 1：公共协议
 
-目标：先把主协议定稳，不急着扩展 UI 行为。
+目标：先把主协议定稳。
 
 实现内容：
 
@@ -88,86 +74,70 @@ packages/chat/
 - 定义 `ChatSubmitPayload`。
 - 定义 `ChatConversationItem / ChatMessageItem`。
 - 定义 `ChatUi`。
+- 定义内部 `ChatComposer`。
 - 定义 `ChatContext`。
+
+关键调整：
+
+- `ChatRuntimeSender` 只保留 `disabled / loading`。
+- `ChatRuntimeActions` 移除 `setInputValue`。
+- 输入草稿、提交禁用、Prompt 回填归 `ChatComposer`。
 
 验证点：
 
-- `runtime` 是否只暴露只读 state + actions。
-- `ui` 是否只负责原子组件 props 配置。
-- `ui` 是否没有包含 runtime 接管字段。
+- `runtime` 只暴露只读 state + actions。
+- `ui` 只负责原子组件 props 配置。
+- `ui` 不包含数据源字段。
+- 输入状态不要求 external runtime 提供。
 
-验证方案：
+## 4. 阶段 2：Context 与 Composer
 
-- 执行 chat 包类型检查。
-- 写类型用例，确认 `ui.sender` 不能配置 `modelValue / defaultValue / loading / disabled`。
-- 写类型用例，确认 `ui.bubbleList` 不能配置 `messages`。
-- 写类型用例，确认 `ui.history` 不能配置 `data / selected`。
-
-通过标准：
-
-- 类型可导出。
-- 协议不依赖内部实现。
-- 不新增 transport、新消息模型、新会话模型。
-
-## 4. 阶段 2：Context 与基础映射
-
-目标：建立 `TrChat` 内部统一上下文，不引入白盒根组件。
+目标：建立 `TrChat` 内部统一上下文。
 
 实现内容：
 
 - `Chat.vue` 接收 `runtime` 和 `ui`。
-- `Chat.vue` provide `runtime + ui`。
+- `Chat.vue` 内部创建最小 `composer`。
+- `Chat.vue` provide `runtime + composer + ui`。
 - `useChatContext()` 提供统一读取入口。
-- 内部组件从 context 读取协议，不直接依赖 `kit` 原始结构。
+
+`composer` 职责：
+
+- 保存输入框草稿。
+- 处理输入更新。
+- 计算提交禁用。
+- 包装发送动作。
+- 发送成功后清空输入。
+- 发送失败后保留输入。
 
 验证点：
 
-- 内部组件是否共享同一份 `runtime + ui`。
-- `Chat.vue` 是否没有变成巨型状态管理层。
-
-验证方案：
-
-- 用调试组件读取 `runtime.messages.items`、`runtime.sender.inputValue`、`ui.sender`。
-- 确认内部映射只消费上下文，不单独创建状态源。
-
-通过标准：
-
-- context 结构稳定。
-- 内部组件不直接碰 `kit` 原始返回值。
+- 内部组件共享同一份 `runtime + composer + ui`。
+- `Chat.vue` 不接管 transport。
+- `composer` 不作为 public API 导出。
 
 ## 5. 阶段 3：Sender
 
-目标：先打通最核心事件流：输入、提交、取消。
+目标：打通输入、提交、取消。
 
 实现内容：
 
 - 内部 `Sender.vue` 使用 `TrSender`。
-- `runtime.sender.inputValue -> TrSender.modelValue`。
+- `composer.inputValue -> TrSender.modelValue`。
 - `runtime.sender.loading -> TrSender.loading`。
 - `runtime.sender.disabled -> TrSender.disabled`。
-- `runtime.sender.submitDisabled -> TrSender.defaultActions.submit.disabled`。
-- `runtime.actions.setInputValue -> update:modelValue`。
-- `runtime.actions.send -> submit(text, structuredData)`。
-- `runtime.actions.abort -> cancel`。
+- `composer.submitDisabled -> TrSender.defaultActions.submit.disabled`。
+- `composer.setInputValue -> update:modelValue`。
+- `composer.send -> submit(text, structuredData)`。
+- `composer.abort -> cancel`。
 - `ui.sender` 透传给 `TrSender`。
 
 验证点：
 
-- 输入状态是否完全由 runtime 管理。
-- `structuredData` 是否能原样进入 runtime。
-- `loading` 时取消是否能调用 `abort`。
-
-验证方案：
-
-- 用 external mock runtime 渲染 `Sender`。
-- 输入后确认 `setInputValue()` 被调用。
-- 提交后确认 `send({ text })` 被调用。
-- `loading=true` 时触发取消，确认 `abort()` 被调用。
-
-通过标准：
-
-- `Sender` 不维护自己的输入源。
-- 所有变更只走 `runtime.actions`。
+- 输入状态由 `composer` 管理。
+- `structuredData` 原样进入 `runtime.actions.send`。
+- `loading=true` 时取消能调用 `runtime.actions.abort`。
+- 发送成功清空输入，发送失败保留输入。
 
 ## 6. 阶段 4：Messages
 
@@ -175,7 +145,7 @@ packages/chat/
 
 实现内容：
 
-- 内部 `Messages.vue` 使用 `TrBubbleProvider`、`TrBubbleList`、`TrWelcome`、`TrPrompts`。
+- 内部 `Messages.vue` 使用 `TrBubbleProvider / TrBubbleList / TrWelcome / TrPrompts`。
 - `runtime.messages.items -> TrBubbleList.messages`。
 - `ui.bubbleProvider -> TrBubbleProvider`。
 - `ui.bubbleList -> TrBubbleList`。
@@ -183,26 +153,13 @@ packages/chat/
 - `ui.prompts -> TrPrompts`。
 - 无消息时显示 `Welcome + Prompts`。
 - 有消息时显示 `BubbleList`。
-- 点击 Prompt 默认调用 `runtime.actions.setInputValue(item.label)`。
+- 点击 Prompt 默认调用 `composer.setInputValue(item.label)`。
 
 验证点：
 
-- 消息来源是否只有 `runtime.messages.items`。
-- 空状态是否独立于消息列表。
-- `ui` 是否能透传 Bubble、Welcome、Prompts 配置。
-
-验证方案：
-
-- `messages=[]` 时显示 `Welcome + Prompts`。
-- `messages=[...]` 时显示 `BubbleList`。
-- 点击 Prompt 后确认 `setInputValue(prompt.label)` 被调用。
-- 修改 `ui.bubbleList.roleConfigs` 后确认角色样式生效。
-
-通过标准：
-
-- `Messages` 不发请求。
-- `Messages` 不创建消息。
-- Bubble 渲染仍使用现有 `BubbleProvider / BubbleList`。
+- 消息来源只有 `runtime.messages.items`。
+- Prompt 只依赖 `composer.setInputValue`。
+- `ui` 能透传 Bubble、Welcome、Prompts 配置。
 
 ## 7. 阶段 5：Conversations 与 Header
 
@@ -220,36 +177,17 @@ packages/chat/
 
 验证点：
 
-- `History` 是否只消费 runtime conversations。
-- 无 `runtime.conversations` 时是否可降级。
-- 菜单动作是否根据 runtime actions 自动收敛。
-
-验证方案：
-
-- 点击历史项后确认 `switchConversation(id)` 被调用。
-- 重命名后确认 `renameConversation(id, title)` 被调用。
-- 删除后确认 `deleteConversation(id)` 被调用。
-- 点击新建后确认 `createConversation()` 被调用。
-
-通过标准：
-
-- `ui.history` 不允许覆盖 `data / selected`。
-- 无 conversations 时组件不报错。
+- `History` 只消费 runtime conversations。
+- 无 `runtime.conversations` 时不报错。
+- 菜单动作根据 runtime actions 自动收敛。
 
 ## 8. 阶段 6：TrChat 默认装配
 
-目标：验证 `TrChat` 作为默认黑盒入口是否成立。
-
-实现内容：
-
-- `Chat.vue` 默认使用 `TrLayout` 装配 `Header / Conversations / Messages / Sender`。
-- `ui.layout` 透传给 `TrLayout`。
-- 内置 `ProxyScrollbar / ScrollToBottom`。
-- 支持 `header / left-aside / main / footer` slots。
+目标：验证 `TrChat` 黑盒入口成立。
 
 默认结构：
 
-```text
+```txt
 TrChat
   -> TrLayout
     -> header
@@ -258,75 +196,45 @@ TrChat
     -> footer
 ```
 
+实现内容：
+
+- `Chat.vue` 默认装配 `Header / Conversations / Messages / Sender`。
+- `ui.layout` 透传给 `TrLayout`。
+- 内置 `ProxyScrollbar / ScrollToBottom`。
+- 支持 `header / left-aside / main / footer` slots。
+
 验证点：
 
-- 默认装配是否足够表达完整聊天应用。
-- slot 是否能替换区域，但不破坏 `runtime + ui` 协议。
-- 覆盖 slot 后，对应默认组件是否不再渲染。
+- 默认装配能表达完整聊天应用。
+- slot 能替换区域。
+- 覆盖 slot 后对应默认组件不再渲染。
 
-验证方案：
+## 9. 阶段 7：Kit Quick Start
 
-```vue
-<TrChat :runtime="runtime" :ui="ui" />
-```
-
-```vue
-<TrChat :runtime="runtime" :ui="ui">
-  <template #footer="{ inputValue, loading, send, abort, setInputValue }">
-    <CustomSender
-      :model-value="inputValue"
-      :loading="loading"
-      @update:model-value="setInputValue"
-      @submit="send"
-      @cancel="abort"
-    />
-  </template>
-</TrChat>
-```
-
-通过标准：
-
-- `TrChat` 作为默认黑盒入口可用。
-- slot 替换不需要第二套白盒组件体系。
-
-## 9. 阶段 7：接入 Kit Quick Start
-
-目标：验证 `kit` 可以作为 TinyRobot 托管状态的官方路径，并给新项目提供快速入口。
+目标：验证 kit 作为 TinyRobot 托管状态的官方路径。
 
 实现内容：
 
-- `useKitChatRuntime` 映射 `useConversation + useMessage` 到 `ChatRuntime`。
-- `useLocalChatRuntime` 补齐：
-  - `sender.inputValue`
-  - `sender.submitDisabled`
-  - 首次发送自动建会话
-  - title fallback
-  - `messages.lastError`
+- `useLocalChatRuntime` 创建 `useConversation()`。
+- `useLocalChatRuntime` 组合 `useKitChatRuntime()`。
+- 首次发送前没有会话时自动建会话。
+- 支持 title fallback。
+- 维护 `messages.lastError`。
+
+不做：
+
+- 不创建输入草稿。
+- 不清空输入框。
+- 不计算提交禁用。
 
 验证点：
 
-- `kit` 生命周期是否能映射到 `ChatRuntime`。
-- 发送、流式、取消是否正常。
-- 会话切换后消息是否更新。
-- external runtime 能力是否没有被破坏。
+- 发送、流式、取消正常。
+- 会话切换后消息更新。
+- 首次发送自动建会话。
+- external runtime 能力不被破坏。
 
-验证方案：
-
-- 用 mock `responseProvider` 流式返回内容。
-- 首次发送前没有会话时自动建会话。
-- assistant 消息能流式更新。
-- `loading` 时 `TrSender` 显示取消行为。
-- cancel 后调用 `kit` abort。
-- 切换会话后消息列表变化。
-- external runtime demo 继续可用。
-
-通过标准：
-
-- `chat` 不新增 transport。
-- `chat` 不复制 `kit` 的 stream / abort 生命周期。
-- external runtime demo 仍然工作。
-
-## 10. 阶段 8：接入已有 Kit Runtime
+## 10. 阶段 8：Existing Kit Runtime
 
 目标：验证老项目可以保留已有 kit runtime，只迁移到 `TrChat` UI。
 
@@ -335,7 +243,20 @@ TrChat
 - `useKitChatRuntime` 作为公开 adapter。
 - 输入已有 `useConversation()` 返回值。
 - 输出 `ChatRuntime`。
-- 用户自行传入 `sender.inputValue` 和 `messages.lastError`。
+- 不要求用户传输入框状态。
+
+示例：
+
+```ts
+const conversation = useConversation(options)
+
+const runtime = useKitChatRuntime(conversation, {
+  lastError,
+  send: async ({ text }) => {
+    await conversation.activeConversation.value?.engine.sendMessage(text)
+  },
+})
+```
 
 验证点：
 
@@ -343,52 +264,55 @@ TrChat
 - 不覆盖用户已有 transport / plugins / storage 配置。
 - 会话切换、消息展示、取消生成仍走原有 kit runtime。
 
-验证方案：
+## 11. 阶段 9：External Runtime
 
-```ts
-const conversation = useConversation(options)
-const runtime = useKitChatRuntime(conversation, {
-  inputValue,
-  lastError,
-})
-```
+目标：验证用户自有数据层可以只接 TinyRobot UI。
 
-通过标准：
+实现内容：
 
-- 已有 kit runtime 可以直接接入 `TrChat`。
-- `useKitChatRuntime` 不包含 kit quick start 的首发建会话等产品默认行为。
+- demo 内实现一个自定义 `ChatRuntime`。
+- 用户数据层负责 messages、conversations、loading、send、abort。
+- `TrChat` 内部负责输入草稿和提交交互。
 
-## 11. MVP 总验收清单
+验证点：
+
+- external runtime 不需要提供输入框 ref。
+- external runtime 只需要适配消息、会话和请求生命周期。
+- 发送成功后输入框由 `TrChat` 清空。
+
+## 12. MVP 验收清单
 
 - 没有修改原子组件已有 props。
 - runtime state 只读，变更只走 actions。
 - `ui` 只负责 UI 配置，不接管数据源字段。
+- 输入草稿不属于 `ChatRuntime`。
 - `TrChat` 能作为默认主入口工作。
 - 对外解释为两类状态归属：TinyRobot kit 或用户外部数据层。
-- `kit` 只在 runtime adapter 层出现，UI 组件不直接依赖 `kit` 返回结构。
+- `kit` 只在 runtime adapter 层出现。
 - 已有 kit runtime 可以通过 `useKitChatRuntime` 迁移 UI。
-- MVP 能覆盖发送、取消、消息渲染、空状态、Prompt 回填、会话切换、黑盒装配、external runtime 接入。
+- external runtime 可以只接 UI。
+- Prompt 回填、发送、取消、消息渲染、会话切换能闭环。
 
-## 12. 后续测试沉淀
+## 13. 后续测试沉淀
 
-MVP 初期先用 `type-check + build + demo` 验证架构，不在第一轮强制引入完整自动化测试目录。
+MVP 初期先用 `type-check + build + demo` 验证架构。
 
-协议和实现稳定后，再沉淀以下测试：
+协议和实现稳定后，再沉淀：
 
-- `chat-runtime` 类型约束验证：确认 `ui` 不能传入被 runtime 接管的字段，例如 `sender.modelValue`、`bubbleList.messages`、`history.data`。
-- existing kit runtime 交互验证：验证已有 `useConversation()` 可以通过 `useKitChatRuntime` 接入 `TrChat`。
-- external runtime 交互验证：验证用户自有 runtime 只接 UI 时能展示、输入和发送。
-- kit quick start 集成验证：验证 `useLocalChatRuntime` 基于 `kit` 完成发送、流式更新、取消和首次自动建会话。
+- 类型约束：`ui.sender` 不能传 `modelValue / defaultValue / loading / disabled`。
+- 类型约束：`ui.bubbleList` 不能传 `messages`。
+- 类型约束：`ui.history` 不能传 `data / selected`。
+- existing kit runtime 交互验证。
+- external runtime 交互验证。
+- kit quick start 集成验证。
 
-## 13. E2E 验证注意
+## 14. E2E 验证注意
 
 任何 e2e / Playwright 测试前必须先构建 components 包。
 
-重新构建 components 后，最好重启测试服务，避免旧服务复用缓存影响判断。
-
 推荐流程：
 
-```text
+```txt
 pnpm build:components
 重启测试服务
 pnpm -F tiny-robot-test test

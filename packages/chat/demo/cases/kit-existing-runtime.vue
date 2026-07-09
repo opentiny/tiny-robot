@@ -4,7 +4,6 @@ import { useConversation } from '@opentiny/tiny-robot-kit'
 import { TrChat, useKitChatRuntime } from '../../src'
 import { createDemoResponseProvider, createDemoStorage, useDemoChatUi } from './shared'
 
-const inputValue = shallowRef('')
 const lastError = shallowRef<unknown | null>(null)
 const conversation = useConversation({
   storage: createDemoStorage(),
@@ -18,7 +17,6 @@ conversation.createConversation({
 })
 
 const runtime = useKitChatRuntime(conversation, {
-  inputValue,
   lastError,
   send: async ({ text }) => {
     const content = text.trim()
@@ -36,7 +34,6 @@ const runtime = useKitChatRuntime(conversation, {
     try {
       lastError.value = null
       await active.engine.sendMessage(content)
-      inputValue.value = ''
     } catch (error) {
       lastError.value = error
       throw error

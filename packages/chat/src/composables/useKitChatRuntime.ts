@@ -8,7 +8,6 @@ import type {
 import type { ChatConversationItem, ChatRuntime, ChatSubmitPayload } from '../types'
 
 export interface UseKitChatRuntimeOptions {
-  inputValue: Ref<string>
   lastError: Ref<unknown | null>
   send?: (payload: ChatSubmitPayload) => Promise<void> | void
 }
@@ -60,14 +59,13 @@ function createStableConversationItems(conversation: UseConversationReturn) {
 }
 
 export function useKitChatRuntime(conversation: UseConversationReturn, options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { inputValue, lastError, send } = options
+  const { lastError, send } = options
 
   const activeConversation = computed(() => conversation.activeConversation.value)
   const activeEngine = computed(() => activeConversation.value?.engine)
   const historyItems = createStableConversationItems(conversation)
   const loading = computed(() => Boolean(activeEngine.value?.isProcessing.value))
   const disabled = computed(() => false)
-  const submitDisabled = computed(() => disabled.value || loading.value || inputValue.value.trim().length === 0)
 
   return {
     conversations: {
@@ -81,15 +79,10 @@ export function useKitChatRuntime(conversation: UseConversationReturn, options: 
       lastError,
     },
     sender: {
-      inputValue,
       disabled,
       loading,
-      submitDisabled,
     },
     actions: {
-      setInputValue: (value) => {
-        inputValue.value = value
-      },
       send:
         send ??
         (async ({ text }) => {

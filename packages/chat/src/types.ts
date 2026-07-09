@@ -43,10 +43,8 @@ export interface ChatRuntimeMessages {
 }
 
 export interface ChatRuntimeSender {
-  inputValue: ChatReadable<string>
   disabled: ChatReadable<boolean>
   loading: ChatReadable<boolean>
-  submitDisabled: ChatReadable<boolean>
 }
 
 export interface ChatSubmitPayload {
@@ -55,7 +53,6 @@ export interface ChatSubmitPayload {
 }
 
 export interface ChatRuntimeActions {
-  setInputValue: (value: string) => void
   send: (payload: ChatSubmitPayload) => Promise<void> | void
   abort?: () => Promise<void> | void
   createConversation?: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
@@ -69,6 +66,14 @@ export interface ChatRuntime {
   messages: ChatRuntimeMessages
   sender: ChatRuntimeSender
   actions: ChatRuntimeActions
+}
+
+export interface ChatComposer {
+  inputValue: ChatReadable<string>
+  submitDisabled: ChatReadable<boolean>
+  setInputValue: (value: string) => void
+  send: (payload: ChatSubmitPayload) => Promise<void> | void
+  abort?: () => Promise<void> | void
 }
 
 type SubmitActionConfig = NonNullable<DefaultActions['submit']>
@@ -98,5 +103,6 @@ export interface ChatUi {
 
 export interface ChatContext {
   runtime: ChatRuntime
+  composer: ChatComposer
   ui: ChatUi
 }
