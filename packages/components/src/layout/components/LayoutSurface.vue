@@ -79,6 +79,7 @@ const isFloatingDragging = computed(() => activeDragRect.value !== null)
 const isFloatingResizing = computed(() => activeResizeRect.value !== null)
 const isFloatingInteracting = computed(() => isFloatingDragging.value || isFloatingResizing.value)
 const canDragFloating = computed(() => isFloating.value && isFloatingDraggable.value && !isFloatingResizing.value)
+const shouldShowFloatingDragBar = computed(() => isFloating.value && isFloatingDraggable.value)
 const resizeHandles = computed<LayoutFloatingResizeHandle[]>(() => {
   if (!isFloating.value || !isFloatingResizable.value) {
     return []
@@ -247,7 +248,7 @@ defineExpose({
       :style="floatingStyle"
     >
       <FloatingDragBar
-        v-if="isFloating"
+        v-if="shouldShowFloatingDragBar"
         :x="floatingRect.x"
         :y="floatingRect.y"
         :can-drag="canDragFloating"
