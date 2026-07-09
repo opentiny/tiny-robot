@@ -57,7 +57,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
         <div class="layout-floating-panels-demo__header">
           <strong>浮层工作区</strong>
           <div class="layout-floating-panels-demo__actions">
-            <TinyButton :reset-time="0" @click="rightOpen = true">打开右抽屉</TinyButton>
+            <TinyButton :reset-time="0" @click="rightOpen = true">右侧面板</TinyButton>
           </div>
         </div>
       </template>
@@ -66,15 +66,15 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
         <div class="layout-floating-panels-demo__main">
           <div class="layout-floating-panels-demo__card">左侧使用 dock，保留常驻导航区并占据浮层宽度。</div>
           <div class="layout-floating-panels-demo__card">右侧使用 drawer，需要时展开，不占主区宽度。</div>
-          <div class="layout-floating-panels-demo__card">整个浮层仍可拖拽、缩放，适合组合常驻导航和临时操作面板。</div>
+          <div class="layout-floating-panels-demo__card">整个浮层仍可拖拽、缩放</div>
         </div>
       </template>
 
       <template #right-aside>
         <div class="layout-floating-panels-demo__aside">
-          <div class="layout-floating-panels-demo__aside-title">右侧操作抽屉</div>
+          <div class="layout-floating-panels-demo__aside-title">右侧面板</div>
           <div>按需展开，不占主区宽度，适合放操作表单或补充面板。</div>
-          <TrLayout.AsideToggle side="right" class="layout-floating-panels-demo__chip">关闭抽屉</TrLayout.AsideToggle>
+          <TrLayout.AsideToggle side="right" class="layout-floating-panels-demo__chip">关闭面板</TrLayout.AsideToggle>
         </div>
       </template>
     </TrLayout>

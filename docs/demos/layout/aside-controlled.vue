@@ -62,7 +62,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
       <div class="layout-slot-props-demo__group">
         <span class="layout-slot-props-demo__group-label">右侧栏</span>
         <TinyButton :reset-time="0" @click="rightOpen = !rightOpen">
-          {{ rightOpen ? '关闭抽屉' : '打开抽屉' }}
+          {{ rightOpen ? '关闭 Drawer' : '打开 Drawer' }}
         </TinyButton>
       </div>
     </div>
@@ -92,7 +92,7 @@ function updateRightAsideOpen(detail: LayoutAsideOpenValue) {
 
       <template #right-aside>
         <div class="layout-slot-props-demo__drawer">
-          <p>右侧抽屉</p>
+          <p>Drawer</p>
           <p>由外部按钮控制开关。</p>
         </div>
       </template>

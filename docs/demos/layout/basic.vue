@@ -9,7 +9,7 @@ import { TrLayout } from '@opentiny/tiny-robot'
       :right-aside="{ defaultOpen: true, defaultExpandedWidth: 160 }"
     >
       <template #left-aside>
-        <div class="layout-basic-demo__aside">导航</div>
+        <div class="layout-basic-demo__aside">Left-Aside</div>
       </template>
 
       <template #header>
@@ -25,7 +25,7 @@ import { TrLayout } from '@opentiny/tiny-robot'
       </template>
 
       <template #right-aside>
-        <div class="layout-basic-demo__aside">信息栏</div>
+        <div class="layout-basic-demo__aside">Right-Aside</div>
       </template>
     </TrLayout>
   </div>

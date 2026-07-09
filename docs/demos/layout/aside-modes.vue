@@ -26,7 +26,7 @@ function updateRightAside(detail: LayoutAsideOpenValue) {
         <div class="layout-aside-demo__header">
           <span>Header 区域</span>
           <TinyButton :reset-time="0" @click="rightOpen = !rightOpen">
-            {{ rightOpen ? '关闭抽屉' : '打开抽屉' }}
+            {{ rightOpen ? '关闭 Drawer' : '打开 Drawer' }}
           </TinyButton>
         </div>
       </template>

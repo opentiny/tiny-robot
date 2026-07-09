@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # Layout 布局
 
-`Layout` 是面向 AI 应用页面的通用布局组件，适合搭建聊天页、工作台和多面板操作界面。
+`Layout` 是 AI 应用页面的通用布局组件，可用于搭建聊天页、工作台和多面板操作界面。
 
 它提供以下能力：
 
@@ -24,7 +24,7 @@ outline: [1, 3]
 `mode` 控制 `Layout` 的整体形态，默认值为 `normal`。
 
 - `normal`：普通页面骨架，参与文档流布局
-- `floating`：悬浮布局，脱离文档流，支持用作悬浮工作区或可拖拽窗口
+- `floating`：悬浮布局，脱离文档流，可用于构建悬浮工作区或拖拽窗口
 
 <demo vue="../../demos/layout/mode.vue" title="布局模式" description="切换 normal 和 floating 查看布局形态差异。" />
 
@@ -32,7 +32,7 @@ outline: [1, 3]
 
 侧栏由 `leftAside` / `rightAside` 控制，类型为 [`LayoutAsideOptions`](#layout-aside-options)。
 
-侧栏内容通过 `left-aside` / `right-aside` 插槽提供。配置和内容分开后，可以只调整行为配置，而不影响插槽里的渲染结构。
+侧栏内容通过 `left-aside` / `right-aside` 插槽提供。
 
 ### 展示形态
 
@@ -80,11 +80,11 @@ outline: [1, 3]
 
 ## 浮层
 
-浮层相关配置和交互只在浮层模式下生效。
+浮层相关配置和交互只在浮层模式(`mode="floating"`)下生效。
 
-- `defaultFloatingState`：非受控初始状态，只在首次挂载时读取
+- `defaultFloatingState`：非受控初始状态，只在首次加载时读取
 - `floatingState`：受控状态，由外部维护当前位置和尺寸
-- `floatingOptions`：浮层行为配置，用于拖拽、缩放和尺寸约束，不参与状态控制
+- `floatingOptions`：浮层行为配置，用于拖拽、缩放和尺寸约束
 
 > `defaultFloatingState` 和 `floatingState` 不要同时传入
 
@@ -100,7 +100,7 @@ outline: [1, 3]
 
 ### 受控浮层
 
-受控浮层以 `floatingState` 作为唯一状态源，组件始终按外部状态渲染；
+受控浮层以 `floatingState` 作为唯一状态源，组件始终按外部状态渲染。
 
 后续通过 `update:floatingState` 通知外部同步。
 
@@ -122,7 +122,7 @@ outline: [1, 3]
 
 ## 代理滚动条
 
-`Layout.ProxyScrollbar` 是代理滚动条，适合消息流、长内容阅读流和工作台主区。
+`Layout.ProxyScrollbar` 是代理滚动条，可用于消息流、长内容阅读流和工作台主区。
 
 常见于内容列居中或限宽后，原生滚动条偏离主区右边界的场景。
 
