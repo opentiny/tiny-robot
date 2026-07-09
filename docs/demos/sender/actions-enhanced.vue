@@ -16,7 +16,7 @@ const handleSubmit = (text: string) => {
 }
 
 const handleFiles = (files: File[]) => {
-  selectedFiles.value = files
+  selectedFiles.value = [...selectedFiles.value, ...files]
 }
 
 const handleClear = () => {
