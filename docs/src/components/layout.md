@@ -177,7 +177,7 @@ const messageListRef = ref<HTMLElement | null>(null)
 
 ### 注意事项
 
-- 代理滚动条会默认给滚动元素加上如下样式，用于隐藏原生滚动条
+- 代理滚动条会默认给目标滚动元素添加以下样式，用于隐藏原生滚动条
 
 ```css
 .tr-layout-proxy-scrollbar-target {
