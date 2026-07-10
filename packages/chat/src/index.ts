@@ -10,7 +10,6 @@ export type {
   ChatHistorySlotProps,
   ChatMainSlotProps,
   ChatMessageContent,
-  ChatMessageContentItem,
   ChatMessageItem,
   ChatMessagePart,
   ChatRuntime,

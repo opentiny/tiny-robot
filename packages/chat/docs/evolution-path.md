@@ -12,12 +12,16 @@
 
 这份文档不替代：
 
-- [pre-research.md](./pre-research.md)：预研结论
 - [architecture.md](./architecture.md)：当前架构定义
 - [mvp-plan.md](./mvp-plan.md)：MVP 实施计划
 - [review-qa.md](./review-qa.md)：评审口头表达
 
 它的作用是：记录已经形成共识的“方向判断”和“演进条件”，避免后续重复讨论同样的问题。
+
+它不重复承担：
+
+- 当前真实协议定义：见 [architecture.md](./architecture.md)
+- 阶段任务和验收清单：见 [mvp-plan.md](./mvp-plan.md)
 
 ## 2. 当前已定下来的基础结构
 
@@ -149,9 +153,28 @@ interface ChatSubmitPayload {
 - 现在可以留扩展口
 - 但还不该在 MVP 阶段建立新的公开扩展框架
 
+### 4.3 这两类缺口不等于业务耦合
+
+这里要明确一个容易跑偏的点：
+
+- “复杂发送上下文”
+- “复杂消息渲染扩展面”
+
+这两类问题本身不等于业务耦合。
+
+真正会造成业务耦合的是：
+
+- 把 `modelId / pluginIds / sessionCode / nextRemoterConfig` 这类项目字段直接塞进公共协议
+- 把 `uiContent / pluginResult / attachmentsContent` 这类业务渲染字段直接写进消息主类型
+
+因此，后续如果要补扩展能力，方向应该是：
+
+- 继续补“中性表达力”
+- 不补“项目专属字段”
+
 ## 5. assistant-ui 调研后得到的真正启发
 
-assistant-ui 对我们最有价值的不是“把一切都做成 runtime framework”，而是下面三点。
+assistant-ui 对我们最有价值的不是“把一切都做成 runtime framework”，而是下面四点。
 
 ### 5.1 核心 runtime 保持瘦
 
@@ -162,7 +185,19 @@ assistant-ui 的做法说明：
 
 这和我们当前把 `ChatRuntime` 控制在“state + actions”的方向是一致的。
 
-### 5.2 输入增强应优先落在 composer，而不是 runtime
+### 5.2 复杂能力应和核心 runtime 分层
+
+assistant-ui 的做法不是把所有能力继续塞进主 runtime，而是把复杂能力按层拆开。
+
+对我们的启发是：
+
+- 主 `ChatRuntime` 继续只承接核心聊天生命周期
+- 上传、suggestions、扩展渲染这类增强能力，不应该反向污染主 runtime
+- 真要继续扩展，也应该优先考虑 capability/adapters 这类独立层，而不是继续扩大 `ChatRuntime`
+
+这不是说现在立刻要公开 `ChatCapabilities/Adapters`，而是说后续演进方向应该朝这里收口。
+
+### 5.3 输入增强应优先落在 composer，而不是 runtime
 
 assistant-ui 把复杂输入能力放在 `ComposerRuntime` 一侧，而不是直接膨胀主 runtime。
 
@@ -171,7 +206,19 @@ assistant-ui 把复杂输入能力放在 `ComposerRuntime` 一侧，而不是直
 - 输入草稿、发送前状态、Prompt 回填，应继续放在 `ChatComposer`
 - 不应把输入交互重新塞回 `ChatRuntime`
 
-### 5.3 消息扩展的主轴应是 parts，而不是业务字段
+### 5.4 自定义发送上下文应走中性配置，而不是业务字段
+
+assistant-ui 的一个关键做法是：需要给单次发送附带额外上下文时，优先走 `runConfig/custom` 这类中性配置口，而不是不断给 `send()` 增加业务字段。
+
+对我们的启发是：
+
+- 后续如果要补“复杂发送 payload”，优先考虑 `runConfig?: { custom?: Record<string, unknown> }`
+- 不要把 `modelId / knowledgeIds / workflowCode` 直接固化进公共 `ChatSubmitPayload`
+- 发送协议扩展的目标是提高表达力，不是承载某个项目的业务模型
+
+这也是为什么“复杂发送 payload”不应被理解成业务耦合。
+
+### 5.5 消息扩展的主轴应是 parts，而不是业务字段
 
 assistant-ui 的 message 扩展更偏：
 
@@ -185,6 +232,33 @@ text / image / tool / data / generative-ui
 - `parts` 是值得保留的长期方向
 - `metadata` 可以作为辅助口
 - 不要把 `uiContent`、`attachmentsContent`、`pluginResult` 这种业务字段直接写入公共协议
+
+### 5.6 assistant-ui 的运行时概念如何映射到 TinyRobot
+
+assistant-ui 的核心链路可以简化理解为：
+
+```txt
+UI components -> runtime context -> backend / LLM
+```
+
+转译到 TinyRobot：
+
+```txt
+assistant-ui LocalRuntime
+  -> TinyRobot kit + ChatRuntime adapter
+
+assistant-ui ExternalStoreRuntime
+  -> 用户外部数据层 + ChatRuntime adapter
+
+assistant-ui ComposerRuntime
+  -> TinyRobot Chat 内部最小 ChatComposer
+```
+
+这里最关键的结论是：
+
+- 我们不是照搬 assistant-ui runtime 全家桶
+- 我们是借它的分层思想来定义 `ChatRuntime + ChatComposer`
+- `useKitChatRuntime()` 是已有 kit 项目的迁移 adapter，不是第三种独立 runtime 模型
 
 ## 6. assistant-ui 不应该直接照搬的地方
 
@@ -227,6 +301,41 @@ assistant-ui 的完整 runtime 分层很强，但对我们当前阶段过重。
 - 保留 `parts / metadata` 这类中性扩展口
 - 等真实场景稳定后，再决定是否引入新的公开能力层
 
+如果后续真实场景已经证明需要扩展，优先级建议是：
+
+1. 先补 `ChatSubmitPayload` 的中性上下文字段，例如 `runConfig`
+2. 再补 `ChatMessageItem.parts` 的稳定解释和默认渲染约定
+3. 最后才考虑把重复出现的增强能力抽成 `ChatCapabilities/Adapters`
+
+### 7.3 未来候选形态
+
+下面这组写法可以作为未来候选方向，但不是当前 MVP 承诺：
+
+```ts
+interface ChatRunConfig {
+  custom?: Record<string, unknown>
+}
+
+interface ChatSubmitPayload {
+  text?: string
+  parts?: ChatInputPart[]
+  structuredData?: ChatStructuredData
+  runConfig?: ChatRunConfig
+}
+
+interface ChatCapabilities {
+  attachments?: ChatAttachmentAdapter
+  messageRenderers?: ChatMessageRendererRegistry
+  suggestions?: ChatSuggestionAdapter
+}
+```
+
+这段的意义不是“现在就实现”，而是提前固定未来扩展的判断标准：
+
+- 发送上下文优先走 `runConfig/custom`
+- 消息扩展优先走 `parts`
+- 重复出现的增强能力再收口到 `capabilities/adapters`
+
 ## 8. 到什么程度才值得引入 `ChatCapabilities/Adapters`
 
 建议满足下面至少 2 条，再考虑正式引入：
@@ -238,6 +347,18 @@ assistant-ui 的完整 runtime 分层很强，但对我们当前阶段过重。
 5. `ChatUi` 已经开始被迫承担功能协议，而不只是展示配置。
 
 只有满足这些条件，抽 `Capabilities/Adapters` 才是在“收口复杂度”，而不是在“提前制造复杂度”。
+
+未来如果真的引入，这层更合理的承载对象应优先是：
+
+- attachments
+- suggestions
+- message renderers
+
+而不是：
+
+- 项目专属表单字段
+- 某个应用独有的 send 参数
+- 某个业务系统专用的消息结构
 
 ## 9. 关于 layout / container 的判断
 
@@ -319,6 +440,7 @@ Layout 基本可以视为 Container 的增强版。
 如果真实场景已经证明需要增强，优先补：
 
 - `ChatSubmitPayload` 的中性扩展位
+- `ChatSubmitPayload.runConfig?.custom`
 - `ChatMessageItem.parts / metadata` 的解释和使用方式
 
 注意：
@@ -359,3 +481,18 @@ Layout 基本可以视为 Container 的增强版。
 ```txt
 现在做“稳协议 + 压真实场景”，以后再做“抽能力层 + 收复杂度”。
 ```
+
+补一句防止路线偏移：
+
+```txt
+assistant-ui 给我们的启发，不是“现在就把 runtime 做大”，而是“未来扩展时要用中性协议和分层收口复杂度”。
+```
+
+## 13. 调研参考
+
+- https://www.assistant-ui.com/docs/runtimes/concepts/architecture
+- https://www.assistant-ui.com/docs/runtimes/concepts/adapters
+- https://www.assistant-ui.com/docs/api-reference/runtimes/composer-runtime
+- https://www.assistant-ui.com/docs/primitives/message
+- https://www.assistant-ui.com/docs/tools/tool-ui
+- https://www.assistant-ui.com/docs/tools/generative-ui

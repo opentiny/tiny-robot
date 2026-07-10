@@ -10,7 +10,7 @@
 2. 再看“问答稿”，逐题练习。
 3. 最后用“3 句话版本”做口头总结。
 
-这份文档的目标不是替代 [pre-research.md](./pre-research.md) 和 [architecture.md](./architecture.md)，而是把它们转成更适合口头评审的表达。
+这份文档的目标不是替代 [architecture.md](./architecture.md)，而是把正式文档转成更适合口头评审的表达。
 
 ## 2. 速记版
 
@@ -448,6 +448,5 @@ chat 套件不是新的底层 runtime，而是基于 components + kit 的应用�
 
 ## 6. 配套文档
 
-- [pre-research.md](./pre-research.md)
 - [architecture.md](./architecture.md)
 - [mvp-plan.md](./mvp-plan.md)

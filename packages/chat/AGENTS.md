@@ -24,8 +24,10 @@
 ## Source Of Truth
 
 - Architecture and API design: `packages/chat/docs/architecture.md`
-- Pre-research and product framing: `packages/chat/docs/pre-research.md`
 - MVP scope and execution order: `packages/chat/docs/mvp-plan.md`
+- Evolution decisions and future extension rules: `packages/chat/docs/evolution-path.md`
+- Review speaking guide: `packages/chat/docs/review-qa.md`
+
 
 ## Build And Test
 
