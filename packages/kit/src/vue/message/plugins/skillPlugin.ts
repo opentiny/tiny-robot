@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
-import type { SkillInstructionInjection, SkillRequestContext, SkillSelection } from '../../../message/plugins'
+import type { SkillRequestContext, SkillSelection } from '../../../message/plugins'
 import {
   getSkillRequestContext,
   mergeSystemInstructions,
@@ -9,21 +9,23 @@ import {
 import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
 import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
 import type { MaybePromise } from '../../../types'
-import type { BasePluginContext, UseMessagePlugin } from '../types'
+import type { BasePluginContext, MessageRequestBody, UseMessagePlugin } from '../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
+type BeforeRequestContext = Parameters<NonNullable<UseMessagePlugin['onBeforeRequest']>>[0]
+
+export type InjectSkillInstructions = 'first-system-message' | ((context: BeforeRequestContext) => MaybePromise<void>)
 
 export type UseMessageSkillPluginOptions = UseMessagePlugin & {
   /**
-   * Controls how generated skill instruction messages are injected into the request.
+   * Controls how generated skill instructions are injected into the request.
    *
-   * - 'messages': merge instructions into requestBody.messages, preserving the historical default behavior.
-   * - 'custom': expose instructions through SkillRequestContext.instructionMessages and let developers decide where to put them.
-   *
-   * @default 'messages'
+   * Use 'first-system-message' to merge instructions into the first system message,
+   * or provide a callback to inject SkillRequestContext.instructions for the current provider.
+   * When omitted, instructions are exposed through SkillRequestContext without modifying the request.
    */
-  instructionInjection?: SkillInstructionInjection
+  injectInstructions?: InjectSkillInstructions
   /**
    * 当前 skill 选择模式，默认 manual。支持普通值、ref 或 computed。
    */
@@ -149,7 +151,7 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
     getSkillByName,
     onSkillsResolved,
     onSkillSelectionResolved,
-    instructionInjection,
+    injectInstructions,
     ...restOptions
   } = options
 
@@ -175,7 +177,14 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
       return createCoreSkillPlugin({
         ...runtime.createCorePlugin(restOptions),
         selection: resolveSelection,
-        instructionInjection,
+        injectInstructions:
+          typeof injectInstructions === 'function'
+            ? (context) =>
+                injectInstructions({
+                  ...toVueContext(context),
+                  requestBody: context.requestBody as MessageRequestBody,
+                })
+            : injectInstructions,
         getSkillCandidates: getSkillCandidates
           ? (context) => getSkillCandidates(toVueContext(context))
           : () => resolveSkillSource(skills) ?? [],
@@ -194,4 +203,4 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
 }
 
 export { getSkillRequestContext, mergeSystemInstructions }
-export type { SkillInstructionInjection, SkillRequestContext, SkillSelection }
+export type { SkillRequestContext, SkillSelection }

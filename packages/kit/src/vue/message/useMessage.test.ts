@@ -4,7 +4,7 @@ import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
-import { skillPlugin } from './plugins/skillPlugin'
+import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
@@ -195,7 +195,7 @@ describe('useMessage', () => {
     })
   })
 
-  it('uses vue skillPlugin with reactive skills', async () => {
+  it('does not inject vue skill instructions by default', async () => {
     const skills = ref<SkillDefinition[]>([
       {
         name: 'docs',
@@ -227,11 +227,36 @@ describe('useMessage', () => {
     await engine.sendMessage('read docs')
 
     const requestBody = responseProvider.mock.calls[0]?.[0]
-    expect(requestBody.messages[0]).toMatchObject({
-      role: 'system',
-      content: expect.stringContaining('Use docs references.'),
-    })
+    expect(requestBody.messages).toEqual([expect.objectContaining({ role: 'user', content: 'read docs' })])
     expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
+  })
+
+  it('supports custom vue skill instruction injection', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+          injectInstructions: (context) => {
+            context.requestBody.skillInstructions = getSkillRequestContext(context)?.instructions
+          },
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].skillInstructions).toEqual([
+      expect.stringContaining('Use docs references.'),
+    ])
   })
 
   it('uses reactive manual vue skillPlugin skillNames', async () => {
@@ -252,6 +277,7 @@ describe('useMessage', () => {
         skillPlugin({
           mode,
           skillNames,
+          injectInstructions: 'first-system-message',
           getSkillByName: async (name) => skills.find((skill) => skill.name === name),
         }),
       ],
@@ -272,6 +298,7 @@ describe('useMessage', () => {
       responseProvider,
       plugins: [
         skillPlugin({
+          injectInstructions: 'first-system-message',
           selection: {
             mode: 'manual',
             skills: [
@@ -309,6 +336,7 @@ describe('useMessage', () => {
       plugins: [
         skillPlugin({
           mode: 'auto',
+          injectInstructions: 'first-system-message',
           preferredSkillNames,
           skills: [
             {
