@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { TrHistory, TrLayout } from '@opentiny/tiny-robot'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
 import { useChatContext } from '../composables/useChatContext'
 import type { ChatConversationItem } from '../types'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
+
+type HistoryDisplayItem = ChatConversationItem & {
+  raw: ChatConversationItem
+}
 
 const { runtime, ui } = useChatContext()
 
@@ -12,7 +16,28 @@ const conversations = computed(() => runtime.conversations)
 const historyProps = computed(() => ui.history ?? {})
 const selected = computed(() => conversations.value?.currentId.value ?? undefined)
 const historyScrollRef = ref<HTMLElement | null>(null)
-const data = computed<ChatConversationItem[]>(() => [...(conversations.value?.items.value ?? [])])
+const data = ref<HistoryDisplayItem[]>([])
+
+watch(
+  () => conversations.value?.items.value ?? [],
+  (nextItems) => {
+    const cache = new Map(data.value.map((item) => [item.id, item]))
+
+    data.value = nextItems.map((item) => {
+      const current =
+        cache.get(item.id) ?? ({ id: item.id, title: item.title || '新对话', raw: item } as HistoryDisplayItem)
+
+      Object.assign(current, item, {
+        id: item.id,
+        title: item.title || '新对话',
+        raw: item,
+      })
+
+      return current
+    })
+  },
+  { immediate: true, deep: true },
+)
 
 const menuItems = computed(() => {
   if (historyProps.value.menuItems) {
@@ -32,16 +57,16 @@ const menuItems = computed(() => {
   return items
 })
 
-function handleItemClick(item: ChatConversationItem) {
+function handleItemClick(item: HistoryDisplayItem) {
   runtime.actions.switchConversation?.(item.id)
 }
 
-function handleTitleChange(title: string, item: ChatConversationItem) {
+function handleTitleChange(title: string, item: HistoryDisplayItem) {
   item.title = title
   runtime.actions.renameConversation?.(item.id, title)
 }
 
-function handleItemAction(action: HistoryMenuItem, item: ChatConversationItem) {
+function handleItemAction(action: HistoryMenuItem, item: HistoryDisplayItem) {
   if (action.id === 'delete') {
     runtime.actions.deleteConversation?.(item.id)
   }

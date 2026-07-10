@@ -5,7 +5,14 @@ export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
 
 export type {
   ChatConversationItem,
+  ChatFooterSlotProps,
+  ChatHeaderSlotProps,
+  ChatHistorySlotProps,
+  ChatMainSlotProps,
+  ChatMessageContent,
+  ChatMessageContentItem,
   ChatMessageItem,
+  ChatMessagePart,
   ChatRuntime,
   ChatRuntimeActions,
   ChatRuntimeConversations,
@@ -13,6 +20,9 @@ export type {
   ChatRuntimeSender,
   ChatSenderDefaultActions,
   ChatSenderUi,
+  ChatStructuredData,
+  ChatStructuredDataItem,
   ChatSubmitPayload,
+  ChatToolCall,
   ChatUi,
 } from './types'

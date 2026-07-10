@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, ref, shallowRef, watch, type Ref } from 'vue'
 import type {
   ConversationInfo,
   RequestProcessingState,
@@ -8,7 +8,7 @@ import type {
 import type { ChatConversationItem, ChatRuntime, ChatSubmitPayload } from '../types'
 
 export interface UseKitChatRuntimeOptions {
-  lastError: Ref<unknown | null>
+  lastError?: Ref<unknown | null>
   send?: (payload: ChatSubmitPayload) => Promise<void> | void
 }
 
@@ -58,8 +58,12 @@ function createStableConversationItems(conversation: UseConversationReturn) {
   return items as typeof items & { value: ChatConversationItem[] }
 }
 
-export function useKitChatRuntime(conversation: UseConversationReturn, options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { lastError, send } = options
+export function useKitChatRuntime(
+  conversation: UseConversationReturn,
+  options: UseKitChatRuntimeOptions = {},
+): ChatRuntime {
+  const lastError = options.lastError ?? shallowRef<unknown | null>(null)
+  const { send } = options
 
   const activeConversation = computed(() => conversation.activeConversation.value)
   const activeEngine = computed(() => activeConversation.value?.engine)

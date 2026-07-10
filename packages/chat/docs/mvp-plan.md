@@ -1,5 +1,9 @@
 # TinyRobot Chat MVP 实施方案
 
+补充阅读：
+
+- [evolution-path.md](./evolution-path.md)：记录当前共识、未来扩展触发条件、以及建议的演进顺序
+
 ## 1. MVP 目标
 
 MVP 只验证 chat 套件核心架构是否成立。
@@ -61,6 +65,7 @@ packages/chat/
 - `src/composables/useKitChatRuntime.ts` 只做 `kit -> ChatRuntime` 映射。
 - `src/composables/useLocalChatRuntime.ts` 只补齐 kit quick start 行为。
 - `src/components/*` 只做内部映射，不作为 v1 public API。
+- `src/components/*` 内部负责把 `ChatRuntime` 数据映射成默认 UI 组件输入。
 - demo 分别验证 quick start、existing kit runtime、external runtime。
 
 ## 3. 阶段 1：公共协议
@@ -73,9 +78,11 @@ packages/chat/
 - 定义 `ChatRuntimeConversations / ChatRuntimeMessages / ChatRuntimeSender`。
 - 定义 `ChatSubmitPayload`。
 - 定义 `ChatConversationItem / ChatMessageItem`。
+- 定义 `ChatMessagePart` 和最小 `parts / metadata` 扩展口。
 - 定义 `ChatUi`。
 - 定义内部 `ChatComposer`。
 - 定义 `ChatContext`。
+- 定义稳定的 slot props 类型。
 
 关键调整：
 
@@ -146,7 +153,7 @@ packages/chat/
 实现内容：
 
 - 内部 `Messages.vue` 使用 `TrBubbleProvider / TrBubbleList / TrWelcome / TrPrompts`。
-- `runtime.messages.items -> TrBubbleList.messages`。
+- `runtime.messages.items -> BubbleDisplayMessage[] -> TrBubbleList.messages`。
 - `ui.bubbleProvider -> TrBubbleProvider`。
 - `ui.bubbleList -> TrBubbleList`。
 - `ui.welcome -> TrWelcome`。
@@ -158,6 +165,7 @@ packages/chat/
 验证点：
 
 - 消息来源只有 `runtime.messages.items`。
+- 默认 UI 只消费内部 `BubbleDisplayMessage`，不直接透传 `ChatMessageItem`。
 - Prompt 只依赖 `composer.setInputValue`。
 - `ui` 能透传 Bubble、Welcome、Prompts 配置。
 
@@ -168,7 +176,7 @@ packages/chat/
 实现内容：
 
 - 内部 `Conversations.vue` 使用 `TrHistory`。
-- `runtime.conversations.items -> TrHistory.data`。
+- `runtime.conversations.items -> HistoryDisplayItem[] -> TrHistory.data`。
 - `runtime.conversations.currentId -> TrHistory.selected`。
 - `item-click -> runtime.actions.switchConversation`。
 - `item-title-change -> runtime.actions.renameConversation`。
@@ -178,6 +186,7 @@ packages/chat/
 验证点：
 
 - `History` 只消费 runtime conversations。
+- 编辑态依赖稳定 item identity，因此 `HistoryDisplayItem` 不能用简单 `computed(map)` 替代。
 - 无 `runtime.conversations` 时不报错。
 - 菜单动作根据 runtime actions 自动收敛。
 
@@ -243,6 +252,7 @@ TrChat
 - `useKitChatRuntime` 作为公开 adapter。
 - 输入已有 `useConversation()` 返回值。
 - 输出 `ChatRuntime`。
+- `lastError` 改为可选入参。
 - 不要求用户传输入框状态。
 
 示例：
@@ -251,7 +261,6 @@ TrChat
 const conversation = useConversation(options)
 
 const runtime = useKitChatRuntime(conversation, {
-  lastError,
   send: async ({ text }) => {
     await conversation.activeConversation.value?.engine.sendMessage(text)
   },

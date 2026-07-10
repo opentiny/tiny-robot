@@ -4,6 +4,10 @@
 
 `@opentiny/tiny-robot-chat` 是应用装配层。
 
+补充阅读：
+
+- [evolution-path.md](./evolution-path.md)：记录未来扩展方向、assistant-ui 调研结论、以及后续何时才值得引入新层级
+
 ```txt
 packages/components
   -> UI primitives：Layout / History / BubbleList / Welcome / Prompts / Sender
@@ -44,6 +48,10 @@ v1 稳定入口：
 - `ChatRuntime`
 - `ChatUi`
 - `ChatSubmitPayload`
+- `ChatHeaderSlotProps`
+- `ChatHistorySlotProps`
+- `ChatMainSlotProps`
+- `ChatFooterSlotProps`
 
 主入口：
 
@@ -76,23 +84,53 @@ UI event -> runtime actions
 
 ```ts
 import type { ComputedRef, Ref } from 'vue'
-import type {
-  BubbleMessage,
-  HistoryItem,
-  StructuredData,
-} from '@opentiny/tiny-robot'
 import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
 
 export type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
 
-export type ChatConversationItem = HistoryItem & {
+export interface ChatConversationItem {
   id: string
+  title: string
   createdAt?: number
   updatedAt?: number
   metadata?: Record<string, unknown>
+  [key: string]: unknown
 }
 
-export type ChatMessageItem = BubbleMessage
+export interface ChatMessagePart {
+  type: string
+  [key: string]: unknown
+}
+
+export interface ChatMessageContentItem extends ChatMessagePart {}
+
+export type ChatMessageContent = string | ChatMessageContentItem[]
+
+export interface ChatToolCall {
+  id: string
+  type: 'function' | string
+  function: {
+    name: string
+    arguments: string
+  }
+}
+
+export interface ChatMessageItem<
+  T extends ChatMessageContent = ChatMessageContent,
+  S extends Record<string, unknown> = Record<string, unknown>,
+> {
+  role?: string
+  content?: T
+  parts?: ChatMessagePart[]
+  reasoning_content?: string
+  tool_calls?: ChatToolCall[]
+  tool_call_id?: string
+  name?: string
+  id?: string
+  loading?: boolean
+  state?: S
+  metadata?: Record<string, unknown>
+}
 
 export interface ChatRuntimeConversations {
   items: ChatReadable<readonly ChatConversationItem[]>
@@ -114,7 +152,10 @@ export interface ChatRuntimeSender {
 
 export interface ChatSubmitPayload {
   text: string
-  structuredData?: StructuredData
+  structuredData?: Array<{
+    type: string
+    [key: string]: unknown
+  }>
 }
 
 export interface ChatRuntimeActions {
@@ -133,6 +174,13 @@ export interface ChatRuntime {
   actions: ChatRuntimeActions
 }
 ```
+
+说明：
+
+- `ChatRuntime` 不再直接引用 `HistoryItem / BubbleMessage / StructuredData`。
+- `Conversations.vue` 在内部把 `ChatConversationItem` 适配为 `TrHistory` 需要的 `HistoryDisplayItem`。
+- `Messages.vue` 在内部把 `ChatMessageItem` 适配为 `TrBubbleList` 需要的 `BubbleDisplayMessage`。
+- `parts / metadata` 先作为协议扩展口保留，不在 MVP 内建立新的渲染框架。
 
 约束：
 
@@ -188,7 +236,7 @@ TrSender submit
 ```ts
 export interface ChatUi {
   layout?: ChatLayoutUi
-  history?: Omit<HistoryProps<ChatConversationItem>, 'data' | 'selected'>
+  history?: Omit<HistoryProps, 'data' | 'selected'>
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: Omit<BubbleListProps, 'messages'>
   welcome?: WelcomeProps
@@ -241,9 +289,9 @@ TrChat
 
 | 来源 | 目标 |
 | --- | --- |
-| `runtime.conversations.items` | `TrHistory.data` |
+| `runtime.conversations.items` | `HistoryDisplayItem[] -> TrHistory.data` |
 | `runtime.conversations.currentId` | `TrHistory.selected` |
-| `runtime.messages.items` | `TrBubbleList.messages` |
+| `runtime.messages.items` | `BubbleDisplayMessage[] -> TrBubbleList.messages` |
 | `composer.inputValue` | `TrSender.modelValue` |
 | `runtime.sender.loading` | `TrSender.loading` |
 | `runtime.sender.disabled` | `TrSender.disabled` |
@@ -298,7 +346,6 @@ useLocalChatRuntime
 const conversation = useConversation(options)
 
 const runtime = useKitChatRuntime(conversation, {
-  lastError,
   send: async ({ text }) => {
     await conversation.activeConversation.value?.engine.sendMessage(text)
   },
@@ -306,6 +353,11 @@ const runtime = useKitChatRuntime(conversation, {
 ```
 
 `useKitChatRuntime()` 只做 kit 到 `ChatRuntime` 的映射。
+
+补充：
+
+- `lastError` 现在是可选入参。
+- 用户需要自定义错误状态时再传 `lastError`。
 
 ### 7.3 自定义 ChatRuntime
 
@@ -330,7 +382,8 @@ const runtime = useKitChatRuntime(conversation, {
 要求：
 
 - 用户自己负责请求、stream、abort、错误处理。
-- 用户保证数据符合 `HistoryItem / BubbleMessage` 契约。
+- 用户保证数据符合 `ChatRuntime` 契约。
+- 默认 UI 所需的 `History / BubbleList` 形态由 `chat` 内部 adapter 负责。
 - `TrChat` 不关心外部 runtime 内部实现。
 
 ## 8. Slots
@@ -352,6 +405,13 @@ slot 按布局区域命名，不按默认组件命名。
 - 覆盖某个 slot 后，该区域对应的 `ui.xxx` 不再保证生效。
 - slot props 只暴露该区域必要状态和动作。
 - 深度重组直接使用 `components + kit`。
+
+稳定 slot props：
+
+- `header`: `ChatHeaderSlotProps`
+- `left-aside`: `ChatHistorySlotProps`
+- `main`: `ChatMainSlotProps`
+- `footer`: `ChatFooterSlotProps`
 
 `footer` slot 示例：
 
@@ -400,6 +460,7 @@ packages/chat/
     context.ts
     composables/
       useChatContext.ts
+      useChatComposer.ts
       useKitChatRuntime.ts
       useLocalChatRuntime.ts
     components/
@@ -423,6 +484,11 @@ export { default as TrChat } from './Chat.vue'
 export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
 export { useKitChatRuntime } from './composables/useKitChatRuntime'
 export type {
+  ChatFooterSlotProps,
+  ChatHeaderSlotProps,
+  ChatHistorySlotProps,
+  ChatMainSlotProps,
+  ChatMessagePart,
   ChatRuntime,
   ChatRuntimeActions,
   ChatRuntimeSender,
@@ -431,18 +497,14 @@ export type {
 } from './types'
 ```
 
-## 11. 实现顺序
+## 11. 当前收敛顺序
 
-1. 调整 `ChatRuntimeSender`，移除 `inputValue / submitDisabled`。
-2. 调整 `ChatRuntimeActions`，移除 `setInputValue`。
-3. 在 `TrChat` 内部创建最小 `composer`。
-4. context 改为 `runtime + composer + ui`。
-5. `Sender` 改为消费 `composer.inputValue / composer.setInputValue / composer.send`。
-6. `Messages` 的 Prompt 回填改为消费 `composer.setInputValue`。
-7. `useKitChatRuntime` 移除 `inputValue` 入参。
-8. `useLocalChatRuntime` 不再创建或清空输入值。
-9. 更新 kit quick start、existing kit runtime、external runtime demo。
-10. 运行类型检查和 demo 构建。
+1. 先移除 `ChatRuntime` 对 UI 组件类型的直接依赖。
+2. 再在 `chat` 内部补齐 `HistoryDisplayItem / BubbleDisplayMessage` adapter。
+3. 收窄 `useKitChatRuntime()` 入参，保留 `send` 覆盖，`lastError` 改为可选。
+4. 给消息协议补最小扩展位：`parts / metadata`。
+5. 固定 `header / left-aside / main / footer` 的 slot props 类型。
+6. 最后同步文档、demo 和验证用例。
 
 ## 12. 验证标准
 

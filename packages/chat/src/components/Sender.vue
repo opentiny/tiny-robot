@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
-import type { StructuredData } from '@opentiny/tiny-robot'
+import type { ChatStructuredData } from '../types'
 
 const { composer, runtime, ui } = useChatContext()
 
@@ -28,7 +28,7 @@ function handleUpdateModelValue(value: string) {
   composer.setInputValue(value)
 }
 
-function handleSubmit(text: string, structuredData?: StructuredData) {
+function handleSubmit(text: string, structuredData?: ChatStructuredData) {
   composer.send({ text, structuredData })
 }
 

@@ -3,13 +3,44 @@ import { computed, ref } from 'vue'
 import { TrBubbleList, TrBubbleProvider, TrPrompts, TrWelcome } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
 import type { LayoutScrollTarget, PromptProps } from '@opentiny/tiny-robot'
+import type { ChatMessageItem } from '../types'
+
+type BubbleDisplayMessage = {
+  role?: ChatMessageItem['role']
+  content?: ChatMessageItem['content']
+  reasoning_content?: ChatMessageItem['reasoning_content']
+  tool_calls?: ChatMessageItem['tool_calls']
+  tool_call_id?: ChatMessageItem['tool_call_id']
+  name?: ChatMessageItem['name']
+  id?: ChatMessageItem['id']
+  loading?: ChatMessageItem['loading']
+  state?: ChatMessageItem['state']
+  parts?: ChatMessageItem['parts']
+  metadata?: ChatMessageItem['metadata']
+  raw: ChatMessageItem
+}
 
 const props = defineProps<{
   isEmpty?: boolean
 }>()
 
 const { composer, runtime, ui } = useChatContext()
-const messages = computed(() => [...runtime.messages.items.value])
+const toBubbleDisplayMessage = (message: ChatMessageItem): BubbleDisplayMessage => ({
+  role: message.role,
+  content: message.content,
+  reasoning_content: message.reasoning_content,
+  tool_calls: message.tool_calls,
+  tool_call_id: message.tool_call_id,
+  name: message.name,
+  id: message.id,
+  loading: message.loading,
+  state: message.state,
+  parts: message.parts,
+  metadata: message.metadata,
+  raw: message,
+})
+
+const messages = computed<BubbleDisplayMessage[]>(() => runtime.messages.items.value.map(toBubbleDisplayMessage))
 const isEmpty = computed(() => props.isEmpty ?? messages.value.length === 0)
 const bubbleListRef = ref<LayoutScrollTarget>(null)
 const scrollTarget = computed(() => {

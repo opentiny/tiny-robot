@@ -7,7 +7,7 @@
 推荐方案：
 
 ```txt
-TrChat + ChatRuntime + ChatComposer + ChatUi + slots
+TrChat + ChatRuntime + internal ChatComposer + ChatUi + slots
 ```
 
 四层职责：
@@ -23,6 +23,12 @@ TrChat + ChatRuntime + ChatComposer + ChatUi + slots
 
 ```txt
 sender 输入草稿不属于 ChatRuntime。
+```
+
+补充：
+
+```txt
+TrHistory / TrBubbleList 的输入形态在 chat 内部 adapter，不直接污染 ChatRuntime 公共协议。
 ```
 
 ## 2. 产品目标
@@ -110,6 +116,11 @@ UI event -> runtime actions
 - 空输入时禁用提交按钮。
 - 发送成功后清空输入框。
 
+它预留但暂不展开的扩展位：
+
+- `ChatMessageItem.parts?`
+- `ChatMessageItem.metadata?`
+
 ### 5.2 Composer
 
 `ChatComposer` 是 `TrChat` 内部的最小输入交互状态。
@@ -140,7 +151,7 @@ TrSender submit
 ```ts
 export interface ChatUi {
   layout?: ChatLayoutUi
-  history?: Omit<HistoryProps<ChatConversationItem>, 'data' | 'selected'>
+  history?: Omit<HistoryProps, 'data' | 'selected'>
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: Omit<BubbleListProps, 'messages'>
   welcome?: WelcomeProps

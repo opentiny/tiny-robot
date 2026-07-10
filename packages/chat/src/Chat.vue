@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { computed, provide, ref, shallowRef } from 'vue'
+import { computed, provide, ref } from 'vue'
 import { TrLayout, type LayoutProps } from '@opentiny/tiny-robot'
 import { chatContextKey } from '@/context'
 import { Conversations, Header, Messages, ScrollToBottom, Sender } from '@/components'
-import type { ChatComposer, ChatRuntime, ChatSubmitPayload, ChatUi } from '@/types'
+import { useChatComposer } from '@/composables/useChatComposer'
+import type {
+  ChatFooterSlotProps,
+  ChatHeaderSlotProps,
+  ChatHistorySlotProps,
+  ChatMainSlotProps,
+  ChatRuntime,
+  ChatUi,
+} from '@/types'
 
 const props = withDefaults(
   defineProps<{
@@ -16,48 +24,7 @@ const props = withDefaults(
   },
 )
 
-const inputValue = shallowRef('')
-
-function setInputValue(value: string) {
-  inputValue.value = value
-}
-
-async function send(payload: ChatSubmitPayload) {
-  const text = payload.text.trim()
-
-  if (!text) {
-    return
-  }
-
-  const previousInputValue = inputValue.value
-
-  // Optimistically clear the draft so long-running sends keep the composer responsive.
-  inputValue.value = ''
-
-  try {
-    await props.runtime.actions.send({
-      ...payload,
-      text,
-    })
-  } catch (error) {
-    if (inputValue.value === '') {
-      inputValue.value = previousInputValue
-    }
-
-    throw error
-  }
-}
-
-const composer: ChatComposer = {
-  inputValue,
-  submitDisabled: computed(
-    () =>
-      props.runtime.sender.disabled.value || props.runtime.sender.loading.value || inputValue.value.trim().length === 0,
-  ),
-  setInputValue,
-  send,
-  abort: props.runtime.actions.abort,
-}
+const composer = useChatComposer(props.runtime)
 
 provide(chatContextKey, {
   runtime: props.runtime,
@@ -84,7 +51,7 @@ const currentConversation = computed(() =>
 const currentTitle = computed(() => props.title || currentConversation.value?.title || '新对话')
 const lastError = computed(() => props.runtime.messages.lastError?.value ?? null)
 
-const headerSlotProps = computed(() => ({
+const headerSlotProps = computed<ChatHeaderSlotProps>(() => ({
   title: currentTitle.value,
   requestState: props.runtime.messages.requestState.value,
   processingState: props.runtime.messages.processingState.value,
@@ -92,7 +59,7 @@ const headerSlotProps = computed(() => ({
   createConversation: props.runtime.actions.createConversation,
 }))
 
-const historySlotProps = computed(() => ({
+const historySlotProps = computed<ChatHistorySlotProps>(() => ({
   items: props.runtime.conversations?.items.value ?? [],
   currentId: props.runtime.conversations?.currentId.value ?? null,
   switchConversation: props.runtime.actions.switchConversation,
@@ -101,14 +68,14 @@ const historySlotProps = computed(() => ({
   createConversation: props.runtime.actions.createConversation,
 }))
 
-const mainSlotProps = computed(() => ({
+const mainSlotProps = computed<ChatMainSlotProps>(() => ({
   messages: props.runtime.messages.items.value,
   requestState: props.runtime.messages.requestState.value,
   processingState: props.runtime.messages.processingState.value,
   lastError: lastError.value,
 }))
 
-const footerSlotProps = computed(() => ({
+const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
   inputValue: composer.inputValue.value,
   setInputValue: composer.setInputValue,
   send: composer.send,
