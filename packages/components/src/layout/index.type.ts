@@ -49,7 +49,7 @@ export type LayoutFloatingResizeDetail = LayoutFloatingState & {
   handle: LayoutFloatingResizeHandle
 }
 
-export interface LayoutAsideProps {
+export interface LayoutAsideOptions {
   mode?: LayoutAsideMode
   open?: boolean
   defaultOpen?: boolean
@@ -63,8 +63,8 @@ export interface LayoutAsideProps {
 }
 
 export interface LayoutAsidePanelsProps {
-  leftAside?: LayoutAsideProps
-  rightAside?: LayoutAsideProps
+  leftAside?: LayoutAsideOptions
+  rightAside?: LayoutAsideOptions
 }
 
 export interface LayoutNormalProps extends LayoutAsidePanelsProps {
