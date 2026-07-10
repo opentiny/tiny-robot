@@ -71,6 +71,7 @@
     "openai": "^6.34.0",
     "tsup": "^8.0.1",
     "typescript": "^5.8.2",
+    "vite": "^6.4.3",
     "vitest": "^4.1.4"
   },
   "peerDependencies": {
@@ -78,7 +79,6 @@
   },
   "dependencies": {
     "idb": "^8.0.3",
-    "vite": "6",
     "yaml": "^2.8.3"
   }
 }
