@@ -251,13 +251,10 @@ const resolveSkillsByNames = async (
   )
 
   const skills = results.map((result) => result.skill).filter((skill): skill is SkillDefinition => Boolean(skill))
-  const resolvedSkillNameSet = new Set(skills.map((skill) => skill.name))
 
   return {
     skills,
-    unresolvedSkillNames: results
-      .filter((result) => result.failed || !result.skill || !resolvedSkillNameSet.has(result.name))
-      .map((result) => result.name),
+    unresolvedSkillNames: results.filter((result) => result.failed || !result.skill).map((result) => result.name),
   }
 }
 
