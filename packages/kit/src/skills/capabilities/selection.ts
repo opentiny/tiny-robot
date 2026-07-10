@@ -1,4 +1,3 @@
-import type { ChatCompletionSystemMessageParam } from 'openai/resources'
 import type { RuntimeTool, ToolCallContext } from '../../message/plugins/toolPlugin'
 import type { MaybePromise } from '../../types'
 import { getUniqueStringArray } from '../../utils'
@@ -7,13 +6,13 @@ import { parseToolArguments } from './utils'
 
 const skillSelectionToolName = 'select_skills'
 
-export const createSkillSelectionInstructionsMessage = ({
+export const createSkillSelectionInstructions = ({
   candidates,
   preferredSkillNames,
 }: {
   candidates: SkillCandidate[]
   preferredSkillNames?: string[]
-}): ChatCompletionSystemMessageParam => {
+}): string => {
   const lines = [
     'Select the skills that should be enabled for this request.',
     'Use the select_skills tool before answering.',
@@ -30,10 +29,7 @@ export const createSkillSelectionInstructionsMessage = ({
     lines.push('', `Preferred skill names: ${preferredSkillNames.join(', ')}`)
   }
 
-  return {
-    role: 'system',
-    content: lines.join('\n'),
-  }
+  return lines.join('\n')
 }
 
 export function createSkillSelectionRuntimeTools(

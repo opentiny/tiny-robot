@@ -110,6 +110,7 @@ describe('skillPlugin', () => {
             mode: 'manual',
             skillNames: [vueSkill.name],
           },
+          injectInstructions: 'first-system-message',
           getSkillByName: async (name) => (name === vueSkill.name ? vueSkill : undefined),
         }),
         toolPlugin({
@@ -147,6 +148,7 @@ describe('skillPlugin', () => {
             mode: 'manual',
             skillNames: [weatherSkill.name],
           },
+          injectInstructions: 'first-system-message',
           getSkillByName: async (name) => (name === weatherSkill.name ? weatherSkill : undefined),
         }),
       ],
@@ -164,7 +166,7 @@ describe('skillPlugin', () => {
     expect(requestBody.messages[1]).toMatchObject({ role: 'user', content: 'weather in London' })
   })
 
-  it('exposes request-scoped instructions without modifying messages in custom injection mode', async () => {
+  it('exposes request-scoped instructions without modifying messages when injection is omitted', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
     const engine = createTestMessageEngine({
       initialMessages: [{ role: 'system', content: 'Existing system instructions.' }],
@@ -172,9 +174,8 @@ describe('skillPlugin', () => {
         ...silentDefaultPlugins,
         skillPlugin({
           selection: { mode: 'manual', skills: [weatherSkill] },
-          instructionInjection: 'custom',
           onBeforeRequest: (context) => {
-            context.requestBody.skill_instruction_messages = getSkillRequestContext(context)?.instructionMessages ?? []
+            context.requestBody.skill_instructions = getSkillRequestContext(context)?.instructions ?? []
           },
         }),
       ],
@@ -188,15 +189,34 @@ describe('skillPlugin', () => {
       { role: 'system', content: 'Existing system instructions.' },
       { role: 'user', content: 'weather in London' },
     ])
-    expect(requestBody.skill_instruction_messages).toEqual([
-      expect.objectContaining({
-        role: 'system',
-        content: expect.stringContaining('Use wttr.in for weather requests.'),
-      }),
-    ])
+    expect(requestBody.skill_instructions).toEqual([expect.stringContaining('Use wttr.in for weather requests.')])
     expect(engine.getState().messages[0]).toEqual({
       role: 'system',
       content: 'Existing system instructions.',
+    })
+  })
+
+  it('supports custom instruction injection with the plugin context', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: { mode: 'manual', skills: [weatherSkill] },
+          injectInstructions: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
+            context.requestBody.messages.push({ role: 'user', content: instructions.join('\n\n') })
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('weather in London')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages.at(-1)).toEqual({
+      role: 'user',
+      content: expect.stringContaining('Use wttr.in for weather requests.'),
     })
   })
 
@@ -316,14 +336,13 @@ describe('skillPlugin', () => {
             mode: 'auto',
             preferredSkillNames: ['weather'],
           },
+          injectInstructions: 'first-system-message',
           getSkillCandidates: async () => [weatherSkill],
           getSkillByName,
           onSkillSelectionResolved,
           onSkillsResolved,
           onBeforeRequest: (context) => {
-            const content = getSkillRequestContext(context)
-              ?.instructionMessages.map((message) => String(message.content))
-              .join('\n\n')
+            const content = getSkillRequestContext(context)?.instructions.join('\n\n')
             instructionContents.push(content ?? '')
           },
         }),

@@ -1,4 +1,3 @@
-import type { ChatCompletionSystemMessageParam } from 'openai/resources'
 import type { RuntimeTool } from '../../message/plugins/toolPlugin'
 import type { SkillDefinition, SkillResourceDescriptor } from '../types'
 import { parseToolArguments } from './utils'
@@ -71,23 +70,18 @@ export const hasSkillResources = (skills: SkillDefinition[]) => {
   return skills.some((skill) => Boolean(skill.resources?.length))
 }
 
-export const createSkillResourceInstructionsMessage = (
-  skills: SkillDefinition[],
-): ChatCompletionSystemMessageParam | undefined => {
+export const createSkillResourceInstructions = (skills: SkillDefinition[]): string | undefined => {
   if (!hasSkillResources(skills)) {
     return undefined
   }
 
-  return {
-    role: 'system',
-    content: [
-      'Some enabled skills include resource files.',
-      'Start by calling list_skill_files before reading skill resources, unless the needed file path is already known from the current conversation.',
-      'Use read_skill_file with a skillName and relative path when you need file details.',
-      'For large files or unknown locations, inspect the file list first and prefer targeted reads instead of reading unrelated files.',
-      'Do not guess file paths. Binary files cannot be read as text through read_skill_file.',
-    ].join('\n'),
-  }
+  return [
+    'Some enabled skills include resource files.',
+    'Start by calling list_skill_files before reading skill resources, unless the needed file path is already known from the current conversation.',
+    'Use read_skill_file with a skillName and relative path when you need file details.',
+    'For large files or unknown locations, inspect the file list first and prefer targeted reads instead of reading unrelated files.',
+    'Do not guess file paths. Binary files cannot be read as text through read_skill_file.',
+  ].join('\n')
 }
 
 export const createSkillResourceRuntimeTools = (skills: SkillDefinition[]): RuntimeTool[] => {
