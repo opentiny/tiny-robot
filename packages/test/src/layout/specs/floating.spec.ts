@@ -192,16 +192,11 @@ test.describe('Layout 组件测试 - Floating', () => {
     expect(Math.abs(after.y - before.y)).toBeLessThan(8)
   })
 
-  test('Props: draggable=false - drag bar 不应再移动 surface', async ({ layout }) => {
+  test('Props: draggable=false - drag bar 不应渲染', async ({ layout }) => {
     await layout.setMode('floating')
     await layout.disableFloatingDraggable()
 
-    const before = await layout.getBox(layout.surface)
-    await layout.dragSurface(80, 0)
-    const after = await layout.getBox(layout.surface)
-
-    expect(Math.abs(after.x - before.x)).toBeLessThan(2)
-    expect(Math.abs(after.y - before.y)).toBeLessThan(2)
+    await expect(layout.getFloatingDragBar()).toHaveCount(0)
   })
 
   test('Interaction lock - resize 时 drag bar 应暂时失去 draggable 状态并在结束后恢复', async ({ layout }) => {
