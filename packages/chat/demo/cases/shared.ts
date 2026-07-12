@@ -1,12 +1,6 @@
 import { computed } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import type {
-  ChatCompletion,
-  ChatMessage,
-  ConversationInfo,
-  ConversationStorageStrategy,
-  ResponseProvider,
-} from '@opentiny/tiny-robot-kit'
+import type { ChatMessage, ConversationInfo, ConversationStorageStrategy } from '@opentiny/tiny-robot-kit'
 import type { ChatUi } from '../../src'
 
 type StoredConversation = ConversationInfo & {
@@ -18,33 +12,6 @@ const defaultPrompts = [
   { label: '生成一个 Vue 组件示例' },
   { label: '解释 runtime 和 ui 的职责' },
 ]
-
-export function createDemoResponseProvider(label: string): ResponseProvider<ChatCompletion> {
-  return async (requestBody) => {
-    const lastMessage = requestBody.messages.at(-1)
-    const content = typeof lastMessage?.content === 'string' ? lastMessage.content : ''
-
-    return {
-      id: 'chat-demo-completion',
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: 'mock',
-      system_fingerprint: null,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content: `${label} 回复：${content || '收到'}`,
-          },
-          delta: undefined,
-          logprobs: null,
-          finish_reason: 'stop',
-        },
-      ],
-    }
-  }
-}
 
 export function createDemoStorage(): ConversationStorageStrategy {
   let conversations: StoredConversation[] = []

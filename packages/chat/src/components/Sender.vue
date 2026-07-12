@@ -29,7 +29,7 @@ function handleUpdateModelValue(value: string) {
 }
 
 function handleSubmit(text: string, structuredData?: ChatStructuredData) {
-  composer.send({ text, structuredData })
+  return composer.send({ text, structuredData })
 }
 
 function handleCancel() {

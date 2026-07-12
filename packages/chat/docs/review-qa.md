@@ -398,11 +398,11 @@ assistant-ui 更偏 `primitives + runtime framework`，会把 `ComposerRuntime` 
 
 可以。这个设计不是禁止用户在自己的 external runtime 内部使用 Pinia 或事件系统，而是不把这些概念强行放进 `chat` 核心 API。也就是说，external runtime 内部怎么实现是用户自由，`TrChat` 只看最终适配出来的 `ChatRuntime`。
 
-### Q41. 如果别人拿当前 `useExternalRuntime.ts` 质疑“文档和代码对不上”，怎么回答？
+### Q41. 如果别人拿当前 `useCustomRuntime.ts` 质疑“文档和代码对不上”，怎么回答？
 
 推荐回答：
 
-现在这类质疑可以直接用代码回答，因为 demo 已经和文档对齐了。`useExternalRuntime.ts` 里 `sender` 只暴露 `disabled / loading`，`actions` 里也不再有 `setInputValue`，说明输入草稿已经收回到 `TrChat` 内部 `ChatComposer`，external runtime 只负责消息、会话和请求生命周期。
+现在这类质疑可以直接用代码回答，因为 demo 已经和文档对齐了。`useCustomRuntime.ts` 里 `sender` 只暴露 `disabled / loading`，`actions` 里也不再有 `setInputValue`，说明输入草稿已经收回到 `TrChat` 内部 `ChatComposer`，custom runtime 只负责消息、会话和请求生命周期。
 
 更稳的表述：
 

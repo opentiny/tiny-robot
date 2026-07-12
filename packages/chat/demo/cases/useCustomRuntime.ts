@@ -1,6 +1,7 @@
 import { computed, shallowRef } from 'vue'
-import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload } from '../../src'
 import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
+import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload } from '../../src'
+import { runExternalDemoResponse, type DemoScenarioController } from '../scenario'
 import { useDemoChatUi } from './shared'
 
 function createConversation(title: string): ChatConversationItem {
@@ -14,8 +15,8 @@ function createConversation(title: string): ChatConversationItem {
   }
 }
 
-export function useExternalRuntime() {
-  const firstConversation = createConversation('External Custom Runtime')
+export function useCustomRuntime(controller: DemoScenarioController) {
+  const firstConversation = createConversation('Custom Runtime')
   const conversations = shallowRef<ChatConversationItem[]>([firstConversation])
   const currentId = shallowRef<string | null>(firstConversation.id)
   const messagesByConversation = shallowRef<Record<string, ChatMessageItem[]>>({
@@ -26,18 +27,15 @@ export function useExternalRuntime() {
   const processingState = shallowRef<RequestProcessingState | undefined>()
   const lastError = shallowRef<unknown | null>(null)
   let activeRunId = 0
+  let activeAbortController: AbortController | null = null
 
   const messages = computed(() => (currentId.value ? (messagesByConversation.value[currentId.value] ?? []) : []))
   const disabled = computed(() => false)
 
-  function updateCurrentMessages(next: ChatMessageItem[]) {
-    if (!currentId.value) {
-      return
-    }
-
+  function updateMessages(conversationId: string, next: ChatMessageItem[]) {
     messagesByConversation.value = {
       ...messagesByConversation.value,
-      [currentId.value]: next,
+      [conversationId]: next,
     }
   }
 
@@ -64,35 +62,73 @@ export function useExternalRuntime() {
       return
     }
 
+    activeAbortController?.abort()
+    const abortController = new AbortController()
+    activeAbortController = abortController
+
     const currentRunId = activeRunId + 1
     activeRunId = currentRunId
     const current = ensureConversation(text.slice(0, 20))
+    const conversationId = current.id
     const now = Date.now()
+    const initialMessages = messagesByConversation.value[conversationId] ?? []
+    const userMessages = [...initialMessages, { role: 'user', content: text }]
+    let assistantContent = ''
 
     conversations.value = conversations.value.map((item) =>
       item.id === current.id ? { ...item, title: item.title || text.slice(0, 20), updatedAt: now } : item,
     )
+    lastError.value = null
     loading.value = true
     requestState.value = 'processing'
     processingState.value = 'requesting'
-    updateCurrentMessages([...messages.value, { role: 'user', content: text }])
+    updateMessages(conversationId, userMessages)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 120))
+      await runExternalDemoResponse({
+        label: 'Custom Runtime',
+        text,
+        abortSignal: abortController.signal,
+        controller,
+        onChunk: (chunk) => {
+          if (currentRunId !== activeRunId) {
+            return
+          }
+
+          assistantContent += chunk
+          processingState.value = 'completing'
+          updateMessages(conversationId, [
+            ...userMessages,
+            {
+              role: 'assistant',
+              content: assistantContent,
+              loading: true,
+            },
+          ])
+        },
+      })
 
       if (currentRunId !== activeRunId) {
         return
       }
 
-      updateCurrentMessages([
-        ...messages.value,
-        {
-          role: 'assistant',
-          content: `External runtime 回复：${text}`,
-        },
-      ])
+      if (assistantContent) {
+        updateMessages(conversationId, [
+          ...userMessages,
+          {
+            role: 'assistant',
+            content: assistantContent,
+            loading: false,
+          },
+        ])
+      }
       requestState.value = 'completed'
     } catch (error) {
+      if (abortController.signal.aborted || currentRunId !== activeRunId) {
+        requestState.value = 'aborted'
+        return
+      }
+
       lastError.value = error
       requestState.value = 'error'
       throw error
@@ -100,6 +136,7 @@ export function useExternalRuntime() {
       if (currentRunId === activeRunId) {
         loading.value = false
         processingState.value = undefined
+        activeAbortController = null
       }
     }
   }
@@ -123,6 +160,8 @@ export function useExternalRuntime() {
       send,
       abort: () => {
         activeRunId += 1
+        activeAbortController?.abort()
+        activeAbortController = null
         loading.value = false
         requestState.value = 'aborted'
         processingState.value = undefined
@@ -151,8 +190,9 @@ export function useExternalRuntime() {
   }
 
   const { isMobile, ui } = useDemoChatUi({
-    title: 'External Custom Runtime',
-    placeholder: '输入消息验证外部 runtime',
+    title: 'Custom Runtime',
+    description: '用户自有数据层适配为 ChatRuntime。',
+    placeholder: '输入消息验证自定义 Runtime 路径',
   })
 
   return {

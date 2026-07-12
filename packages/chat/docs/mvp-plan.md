@@ -52,12 +52,17 @@ packages/chat/
       Sender.vue
       ScrollToBottom.vue
   demo/
+    components/
+      DemoWorkbench.vue
     cases/
-      kit-quick-start.vue
-      kit-existing-runtime.vue
-      external-runtime.vue
+      built-in-kit.vue
+      existing-kit.vue
+      custom-runtime.vue
       shared.ts
-      useExternalRuntime.ts
+      useCustomRuntime.ts
+    demoPaths.ts
+    instrumentRuntime.ts
+    scenario.ts
 ```
 
 约束：
@@ -68,7 +73,9 @@ packages/chat/
 - `src/composables/useLocalChatRuntime.ts` 只补齐 kit quick start 行为
 - `src/components/*` 只做内部映射，不作为 v1 public API
 - `src/components/*` 内部负责把 `ChatRuntime` 数据映射成默认 UI 组件输入
-- demo 分别验证 quick start、existing kit runtime、external runtime
+- demo 分别验证 Built-in Kit Runtime、Existing Kit Runtime、Custom Runtime
+- demo 使用确定性的 Instant / Streaming / Slow / Error / Abortable 场景检视主协议
+- 真实 LLM 只作为协议冻结前的可选 smoke，不作为默认 Demo 依赖
 
 ## 3. 阶段 1：公共协议
 
@@ -202,7 +209,7 @@ packages/chat/
 - slot 能替换区域
 - 覆盖 slot 后对应默认组件不再渲染
 
-## 9. 阶段 7：Kit Quick Start
+## 9. 阶段 7：Built-in Kit Runtime
 
 目标：验证 kit 作为 TinyRobot 托管状态的官方路径。
 
@@ -239,7 +246,7 @@ packages/chat/
 - 不覆盖用户已有 transport / plugins / storage 配置
 - 会话切换、消息展示、取消生成仍走原有 kit runtime
 
-## 11. 阶段 9：External Runtime
+## 11. 阶段 9：Custom Runtime
 
 目标：验证用户自有数据层可以只接 TinyRobot UI。
 
@@ -251,8 +258,8 @@ packages/chat/
 
 验证点：
 
-- external runtime 不需要提供输入框 ref
-- external runtime 只需要适配消息、会话和请求生命周期
+- custom runtime 不需要提供输入框 ref
+- custom runtime 只需要适配消息、会话和请求生命周期
 - 发送成功后输入框由 `TrChat` 清空
 
 ## 12. MVP 验收清单
@@ -270,7 +277,7 @@ packages/chat/
 
 ## 13. 后续测试沉淀
 
-MVP 初期先用 `type-check + build + demo` 验证架构。
+MVP 初期先用 `type-check + build + demo` 验证架构。当前优先把 Demo 作为三条 Runtime 路径的检视台，协议稳定后再沉淀自动化测试。
 
 协议和实现稳定后，再沉淀：
 
