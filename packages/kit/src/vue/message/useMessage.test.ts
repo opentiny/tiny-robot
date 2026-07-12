@@ -4,7 +4,7 @@ import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
-import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
+import { skillPlugin } from './plugins/skillPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
@@ -231,7 +231,7 @@ describe('useMessage', () => {
     expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
   })
 
-  it('supports custom vue skill instruction injection', async () => {
+  it('exposes vue requestBody through onInstructionsResolved', async () => {
     const responseProvider = vi.fn(mockResponseProvider('ok'))
 
     const engine = useMessage({
@@ -245,8 +245,8 @@ describe('useMessage', () => {
               instructions: 'Use docs references.',
             },
           ],
-          injectInstructions: (context) => {
-            context.requestBody.skillInstructions = getSkillRequestContext(context)?.instructions
+          onInstructionsResolved: (skillContext, context) => {
+            context.requestBody.skillInstructions = skillContext.instructions
           },
         }),
       ],
@@ -277,7 +277,12 @@ describe('useMessage', () => {
         skillPlugin({
           mode,
           skillNames,
-          injectInstructions: 'first-system-message',
+          onInstructionsResolved: (skillContext, context) => {
+            context.requestBody.messages.unshift({
+              role: 'system',
+              content: skillContext.instructions.join('\n\n'),
+            })
+          },
           getSkillByName: async (name) => skills.find((skill) => skill.name === name),
         }),
       ],
@@ -298,7 +303,12 @@ describe('useMessage', () => {
       responseProvider,
       plugins: [
         skillPlugin({
-          injectInstructions: 'first-system-message',
+          onInstructionsResolved: (skillContext, context) => {
+            context.requestBody.messages.unshift({
+              role: 'system',
+              content: skillContext.instructions.join('\n\n'),
+            })
+          },
           selection: {
             mode: 'manual',
             skills: [
@@ -336,7 +346,12 @@ describe('useMessage', () => {
       plugins: [
         skillPlugin({
           mode: 'auto',
-          injectInstructions: 'first-system-message',
+          onInstructionsResolved: (skillContext, context) => {
+            context.requestBody.messages.unshift({
+              role: 'system',
+              content: skillContext.instructions.join('\n\n'),
+            })
+          },
           preferredSkillNames,
           skills: [
             {

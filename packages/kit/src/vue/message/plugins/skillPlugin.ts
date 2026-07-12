@@ -1,11 +1,7 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
 import type { SkillRequestContext, SkillSelection } from '../../../message/plugins'
-import {
-  getSkillRequestContext,
-  mergeSystemInstructions,
-  skillPlugin as createCoreSkillPlugin,
-} from '../../../message/plugins'
+import { getSkillRequestContext, skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
 import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
 import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
 import type { MaybePromise } from '../../../types'
@@ -15,17 +11,7 @@ import type { VueMessagePluginRuntime } from '../types.internal'
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
 type BeforeRequestContext = Parameters<NonNullable<UseMessagePlugin['onBeforeRequest']>>[0]
 
-export type InjectSkillInstructions = 'first-system-message' | ((context: BeforeRequestContext) => MaybePromise<void>)
-
 export type UseMessageSkillPluginOptions = UseMessagePlugin & {
-  /**
-   * Controls how generated skill instructions are injected into the request.
-   *
-   * Use 'first-system-message' to merge instructions into the first system message,
-   * or provide a callback to inject SkillRequestContext.instructions for the current provider.
-   * When omitted, instructions are exposed through SkillRequestContext without modifying the request.
-   */
-  injectInstructions?: InjectSkillInstructions
   /**
    * 当前 skill 选择模式，默认 manual。支持普通值、ref 或 computed。
    */
@@ -75,6 +61,11 @@ export type UseMessageSkillPluginOptions = UseMessagePlugin & {
    * skills 解析并转换为请求上下文后触发。
    */
   onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
+  /**
+   * 新的 skill instructions 生成后，在下一次模型请求前触发。
+   * context 包含 requestBody，可以直接修改本次请求。
+   */
+  onInstructionsResolved?: (skillContext: SkillRequestContext, context: BeforeRequestContext) => MaybePromise<void>
   /**
    * auto 模式下，模型通过 select_skills 工具选择 skill names 后触发。
    */
@@ -149,9 +140,9 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
     skills,
     getSkillCandidates,
     getSkillByName,
+    onInstructionsResolved,
     onSkillsResolved,
     onSkillSelectionResolved,
-    injectInstructions,
     ...restOptions
   } = options
 
@@ -177,14 +168,13 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
       return createCoreSkillPlugin({
         ...runtime.createCorePlugin(restOptions),
         selection: resolveSelection,
-        injectInstructions:
-          typeof injectInstructions === 'function'
-            ? (context) =>
-                injectInstructions({
-                  ...toVueContext(context),
-                  requestBody: context.requestBody as MessageRequestBody,
-                })
-            : injectInstructions,
+        onInstructionsResolved: onInstructionsResolved
+          ? (skillContext, context) =>
+              onInstructionsResolved(skillContext, {
+                ...toVueContext(context),
+                requestBody: context.requestBody as MessageRequestBody,
+              })
+          : undefined,
         getSkillCandidates: getSkillCandidates
           ? (context) => getSkillCandidates(toVueContext(context))
           : () => resolveSkillSource(skills) ?? [],
@@ -202,5 +192,5 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
   } as UseMessagePlugin
 }
 
-export { getSkillRequestContext, mergeSystemInstructions }
+export { getSkillRequestContext }
 export type { SkillRequestContext, SkillSelection }
