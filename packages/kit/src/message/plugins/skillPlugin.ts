@@ -3,7 +3,7 @@ import { createSkillSelectionInstructions, createSkillSelectionRuntimeTools } fr
 import type { SkillCandidate, SkillDefinition } from '../../skills/types'
 import type { MaybePromise } from '../../types'
 import { getUniqueStringArray } from '../../utils'
-import type { BasePluginContext, BeforeRequestContext, ChatMessage, MessageEnginePlugin } from '../types'
+import type { BasePluginContext, BeforeRequestContext, MessageEnginePlugin } from '../types'
 import type { RuntimeTool, ToolProvider } from './toolPlugin'
 
 type ManualSkillSelection =
@@ -42,8 +42,6 @@ interface NoSkillSelection {
 }
 
 export type SkillSelection = ManualSkillSelection | AutoSkillSelection | NoSkillSelection
-
-export type InjectSkillInstructions = 'first-system-message' | ((context: BeforeRequestContext) => MaybePromise<void>)
 
 type SkillSelectionStatus =
   | {
@@ -87,10 +85,13 @@ export interface SkillRequestContext {
    */
   unresolvedSkillNames: string[]
   /**
-   * Instructions generated for the latest onBeforeRequest call.
-   * Empty before the first request is prepared.
+   * Instructions generated for the current skill selection state.
    */
   instructions: string[]
+  /**
+   * Whether the current instructions should be delivered before the next request.
+   */
+  instructionsPending: boolean
   runtimeTools: RuntimeTool[]
   selection: SkillSelectionStatus
 }
@@ -126,6 +127,11 @@ type RequireCandidateProvider<T extends SkillSelection> =
 
 interface SkillPluginHooks extends MessageEnginePlugin {
   /**
+   * Called once before the next model request after new skill instructions are resolved.
+   * The request body is available and may be modified directly.
+   */
+  onInstructionsResolved?: (skillContext: SkillRequestContext, context: BeforeRequestContext) => MaybePromise<void>
+  /**
    * Called after skills are resolved into their full definitions.
    */
   onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
@@ -149,14 +155,6 @@ export type SkillPluginOptions<S extends SkillSelection = SkillSelection> = Skil
   RequireResolver<S> &
   RequireCandidateProvider<S> & {
     selection: SelectionInput<S>
-    /**
-     * Controls how generated skill instructions are injected into the request.
-     *
-     * Use 'first-system-message' to merge instructions into the first system message,
-     * or provide a callback to inject SkillRequestContext.instructions for the current provider.
-     * When omitted, instructions are exposed through SkillRequestContext without modifying the request.
-     */
-    injectInstructions?: InjectSkillInstructions
   }
 
 const skillPluginContextKey = '__tiny_robot_skill'
@@ -178,34 +176,19 @@ const createSkillInstructions = (skills: SkillDefinition[]): string | undefined 
   return ['Apply these skill instructions when generating the response.', ...instructions].join('\n\n')
 }
 
-export const mergeSystemInstructions = (messages: ChatMessage[], instructions: string[]): ChatMessage[] => {
-  if (instructions.length === 0) {
-    return messages
+const createResolvedSkillInstructions = (skills: SkillDefinition[]): string[] => {
+  const instructions: string[] = []
+  const skillInstructions = createSkillInstructions(skills)
+  const resourceInstructions = createSkillResourceInstructions(skills)
+
+  if (skillInstructions) {
+    instructions.push(skillInstructions)
+  }
+  if (resourceInstructions) {
+    instructions.push(resourceInstructions)
   }
 
-  const content = instructions.filter((item) => item.length > 0).join('\n\n')
-
-  if (!content) {
-    return messages
-  }
-
-  const [firstMessage, ...restMessages] = messages
-  if (firstMessage?.role === 'system' && typeof firstMessage.content === 'string') {
-    return [
-      {
-        ...firstMessage,
-        content: [firstMessage.content, content].filter((item) => item.trim().length > 0).join('\n\n'),
-      },
-      ...restMessages,
-    ]
-  }
-
-  const systemMessage: ChatMessage = {
-    role: 'system',
-    content,
-  }
-
-  return [systemMessage, ...messages]
+  return instructions
 }
 
 const normalizeCandidates = (candidates: SkillCandidate[]) => {
@@ -292,12 +275,14 @@ const createAutoSelectionRuntimeTools = ({
         toolContext,
       )
 
+      const instructions = createResolvedSkillInstructions(skills)
       const skillContext: SkillRequestContext = {
         skills,
         skillNames: skills.map((skill) => skill.name),
         requestedSkillNames,
         unresolvedSkillNames,
-        instructions: [],
+        instructions,
+        instructionsPending: true,
         runtimeTools: createSkillResourceRuntimeTools(skills),
         selection: {
           mode: 'auto',
@@ -324,9 +309,9 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
 ): MessageEnginePlugin & ToolProvider => {
   const {
     selection,
-    injectInstructions,
     getSkillCandidates,
     getSkillByName,
+    onInstructionsResolved,
     onSkillsResolved,
     onSkillSelectionResolved,
     ...restOptions
@@ -348,6 +333,7 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
           requestedSkillNames: [],
           unresolvedSkillNames: [],
           instructions: [],
+          instructionsPending: false,
           runtimeTools: [],
           selection: {
             mode: 'none',
@@ -380,12 +366,14 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
           unresolvedSkillNames = resolveResult.unresolvedSkillNames
         }
 
+        const instructions = createResolvedSkillInstructions(skills)
         const skillContext: SkillRequestContext = {
           skills,
           skillNames: skills.map((skill) => skill.name),
           requestedSkillNames,
           unresolvedSkillNames,
-          instructions: [],
+          instructions,
+          instructionsPending: true,
           runtimeTools: createSkillResourceRuntimeTools(skills),
           selection: {
             mode: 'manual',
@@ -413,12 +401,15 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
       if (!resolveSkillByName) {
         throw new Error('getSkillByName is required when auto mode is enabled')
       }
+      const instructions =
+        candidates.length > 0 ? [createSkillSelectionInstructions({ candidates, preferredSkillNames })] : []
       const skillContext: SkillRequestContext = {
         skills: [],
         skillNames: [],
         requestedSkillNames: [],
         unresolvedSkillNames: [],
-        instructions: [],
+        instructions,
+        instructionsPending: true,
         runtimeTools: createAutoSelectionRuntimeTools({
           selection: selectionOptions,
           getSkillByName: resolveSkillByName,
@@ -441,37 +432,10 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
     },
     onBeforeRequest: async (context) => {
       const skillContext = getSkillRequestContext(context)
-      const instructions: string[] = []
 
-      if (
-        skillContext?.selection.mode === 'auto' &&
-        skillContext.selection.phase === 'selecting' &&
-        skillContext.selection.candidates.length > 0
-      ) {
-        instructions.push(
-          createSkillSelectionInstructions({
-            candidates: skillContext.selection.candidates,
-            preferredSkillNames: skillContext.selection.preferredSkillNames,
-          }),
-        )
-      } else if (skillContext?.skills.length) {
-        const skillInstructions = createSkillInstructions(skillContext.skills)
-        const resourceInstructions = createSkillResourceInstructions(skillContext.skills)
-        if (skillInstructions) {
-          instructions.push(skillInstructions)
-        }
-        if (resourceInstructions) {
-          instructions.push(resourceInstructions)
-        }
-      }
-
-      if (skillContext) {
-        setSkillContext(context, { ...skillContext, instructions })
-      }
-      if (injectInstructions === 'first-system-message') {
-        context.requestBody.messages = mergeSystemInstructions(context.requestBody.messages, instructions)
-      } else if (injectInstructions) {
-        await injectInstructions(context)
+      if (skillContext?.instructionsPending) {
+        await onInstructionsResolved?.(skillContext, context)
+        setSkillContext(context, { ...skillContext, instructionsPending: false })
       }
 
       return restOptions.onBeforeRequest?.(context)
