@@ -4,7 +4,7 @@ import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
-import { skillPlugin } from './plugins/skillPlugin'
+import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
@@ -231,11 +231,15 @@ describe('useMessage', () => {
     expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
   })
 
-  it('exposes vue requestBody through onInstructionsResolved', async () => {
+  it('calls vue onInstructionsResolved immediately without a request body', async () => {
+    const events: string[] = []
     const responseProvider = vi.fn(mockResponseProvider('ok'))
 
     const engine = useMessage({
-      responseProvider,
+      responseProvider: (...args) => {
+        events.push('request')
+        return responseProvider(...args)
+      },
       plugins: [
         skillPlugin({
           skills: [
@@ -246,7 +250,9 @@ describe('useMessage', () => {
             },
           ],
           onInstructionsResolved: (skillContext, context) => {
-            context.requestBody.skillInstructions = skillContext.instructions
+            events.push('instructions')
+            expect(skillContext.instructions).toEqual([expect.stringContaining('Use docs references.')])
+            expect(context).not.toHaveProperty('requestBody')
           },
         }),
       ],
@@ -254,9 +260,7 @@ describe('useMessage', () => {
 
     await engine.sendMessage('read docs')
 
-    expect(responseProvider.mock.calls[0]?.[0].skillInstructions).toEqual([
-      expect.stringContaining('Use docs references.'),
-    ])
+    expect(events).toEqual(['instructions', 'request'])
   })
 
   it('uses reactive manual vue skillPlugin skillNames', async () => {
@@ -277,10 +281,11 @@ describe('useMessage', () => {
         skillPlugin({
           mode,
           skillNames,
-          onInstructionsResolved: (skillContext, context) => {
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
             context.requestBody.messages.unshift({
               role: 'system',
-              content: skillContext.instructions.join('\n\n'),
+              content: instructions.join('\n\n'),
             })
           },
           getSkillByName: async (name) => skills.find((skill) => skill.name === name),
@@ -303,10 +308,11 @@ describe('useMessage', () => {
       responseProvider,
       plugins: [
         skillPlugin({
-          onInstructionsResolved: (skillContext, context) => {
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
             context.requestBody.messages.unshift({
               role: 'system',
-              content: skillContext.instructions.join('\n\n'),
+              content: instructions.join('\n\n'),
             })
           },
           selection: {
@@ -346,10 +352,11 @@ describe('useMessage', () => {
       plugins: [
         skillPlugin({
           mode: 'auto',
-          onInstructionsResolved: (skillContext, context) => {
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
             context.requestBody.messages.unshift({
               role: 'system',
-              content: skillContext.instructions.join('\n\n'),
+              content: instructions.join('\n\n'),
             })
           },
           preferredSkillNames,

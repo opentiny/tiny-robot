@@ -5,12 +5,10 @@ import { getSkillRequestContext, skillPlugin as createCoreSkillPlugin } from '..
 import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
 import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
 import type { MaybePromise } from '../../../types'
-import type { BasePluginContext, MessageRequestBody, UseMessagePlugin } from '../types'
+import type { BasePluginContext, UseMessagePlugin } from '../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 
 type MaybeRef<T> = T | Ref<T> | ComputedRef<T>
-type BeforeRequestContext = Parameters<NonNullable<UseMessagePlugin['onBeforeRequest']>>[0]
-
 export type UseMessageSkillPluginOptions = UseMessagePlugin & {
   /**
    * 当前 skill 选择模式，默认 manual。支持普通值、ref 或 computed。
@@ -62,10 +60,9 @@ export type UseMessageSkillPluginOptions = UseMessagePlugin & {
    */
   onSkillsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
   /**
-   * 新的 skill instructions 生成后，在下一次模型请求前触发。
-   * context 包含 requestBody，可以直接修改本次请求。
+   * 新的 skill instructions 生成并写入 skill context 后立即触发。
    */
-  onInstructionsResolved?: (skillContext: SkillRequestContext, context: BeforeRequestContext) => MaybePromise<void>
+  onInstructionsResolved?: (skillContext: SkillRequestContext, context: BasePluginContext) => MaybePromise<void>
   /**
    * auto 模式下，模型通过 select_skills 工具选择 skill names 后触发。
    */
@@ -169,11 +166,7 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
         ...runtime.createCorePlugin(restOptions),
         selection: resolveSelection,
         onInstructionsResolved: onInstructionsResolved
-          ? (skillContext, context) =>
-              onInstructionsResolved(skillContext, {
-                ...toVueContext(context),
-                requestBody: context.requestBody as MessageRequestBody,
-              })
+          ? (skillContext, context) => onInstructionsResolved(skillContext, toVueContext(context))
           : undefined,
         getSkillCandidates: getSkillCandidates
           ? (context) => getSkillCandidates(toVueContext(context))
