@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot",
-  "version": "0.4.1",
+  "version": "0.4.2-alpha.12",
   "license": "MIT",
   "description": "TinyRobot 是一个 AI 对话组件库，提供了丰富的 AI 交互组件，助力开发者快速构建企业级 AI 应用；同时也是一个智能助手，支持普通 AI 问答、也支持集成 MCP Server，让 AI 真正帮人“干活”。",
   "homepage": "https://docs.opentiny.design/tiny-robot/",
