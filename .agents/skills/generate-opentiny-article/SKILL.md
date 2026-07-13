@@ -12,11 +12,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 ## 前置条件
 
 - 从本仓库目录启动 Codex，项目级 Skill 已自动发现。
-- 本仓库依赖已安装并通过 `npm test`、`npm run build`。
+- 本仓库依赖已安装并通过 `pnpm test`、`pnpm run build`。
 - `gh auth status` 可访问目标仓库。
 - 写作计划已获固定命令批准。阶段标签可能仍停在 `阶段：选题` 或已是 `阶段：策划`，两种都可继续；阶段推进按第 9 步处理。
 
 ## CLI 边界
+
+启动时把主仓库绝对路径记为 `scheduler_root`，并把 `node "<scheduler_root>/scripts/article-hub-launcher.mjs"` 记为 `<article_hub>`。本文命令示例中的 `<article_hub>` 必须替换成这条完整命令；禁止运行裸 `article-hub` 或依赖全局安装。即使当前 `cwd` 是隔离 worktree，也始终使用主仓库 launcher，调用进程的 `cwd` 保持在 worktree。
 
 确定性判断和受控 mutation 走 `article-hub`，读取 GitHub 原始事实走 `gh`，二者不互相替代——这样规则只有一处实现，Skill 不会在自然语言里把它们重写偏。
 
@@ -29,11 +31,11 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
 每一步先确认未触发[停止条件](#停止条件)，再往下走。
 
-1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `article-hub` 解析。运行中间文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`：
+1. 用 `gh` 读取 GitHub Issue 原始内容并保存为 fixture，再用 `<article_hub>` 解析。运行中间文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`：
 
    ```sh
    gh issue view <number> --repo <repository> --json number,title,body,author,labels,comments > <issue.json>
-   article-hub inspect-issue --issue-file <issue.json>
+   <article_hub> inspect-issue --issue-file <issue.json>
    ```
 
    `inspect-issue` 支持 `gh issue view --json` 原始字段：评论级 `authorAssociation` 用于授权判定，字符串 GraphQL `id` 会保留为 `comment_id`。也支持 REST 形态的 `user`、数字 `id` 和 `author_association`。`inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
@@ -41,9 +43,9 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 2. 读取项目上下文入口，校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 
    ```sh
-   article-hub projects list --config config/projects.yml
-   article-hub projects validate --config config/projects.yml
-   article-hub checkout-sources --config config/projects.yml --project <project-id> --cache-dir .cache/article-hub/source-cache
+   <article_hub> projects list --config config/projects.yml
+   <article_hub> projects validate --config config/projects.yml
+   <article_hub> checkout-sources --config config/projects.yml --project <project-id> --cache-dir .cache/article-hub/source-cache
    ```
 
    `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
@@ -76,7 +78,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 5. 批准后生成不可变批准快照，并作为一条评论贴回 Issue（计划正文用 `gh` 取回后写入会话临时文件传入，不提交 git；临时文件只放系统临时目录或 `.cache/article-hub/<issue-number>/`）：
 
    ```sh
-   article-hub plan approve --plan-body-file <临时计划正文文件> --command "/ai 批准写作计划" --approver <login> --comment-id <批准评论 id> --approved-at <iso-time> [--plan-comment-id <计划评论 id>] [--plan-label <版本标签>]
+   <article_hub> plan approve --plan-body-file <临时计划正文文件> --command "/ai 批准写作计划" --approver <login> --comment-id <批准评论 id> --approved-at <iso-time> [--plan-comment-id <计划评论 id>] [--plan-label <版本标签>]
    ```
 
    生成时以该批准快照中的完整计划为唯一计划来源，不回读 live 评论；文章 Front Matter 使用 `schema_version: article-hub.article.v2`，填写 `approval_snapshot` 短对象，包含 `url`、`approver`、`plan_comment_id`、`approval_comment_id`；完整计划和批准时间保存在 Issue 批准快照评论中；在创建 Draft PR 时，于 PR 描述中写一行批准引用（批准人、批准快照评论链接）。
@@ -102,7 +104,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    **素材占位符**：批准计划声明的正文视觉素材（截图、GIF、正文配图；Mermaid 图表按下一段专门规则处理，不走本占位符），当前已生成或采集到的用实际图片引用；尚无法生成或采集的，在它该出现的章节插入显式占位符 `<!-- 素材待补：<说明> -->`，不要只把缺口留在 PR 验收清单里。封面属于 PR 级未完成项（见需求 §13.1），留在 PR 验收清单，不进正文占位符。
 
-   worktree 约定：worktree 默认没有 `node_modules`，调用 CLI 时优先复用主仓库已构建的 `node <主仓库>/dist/cli.js`，或在 worktree 内先 `pnpm install && pnpm run build`；文章文件和素材统一用绝对路径写入 worktree，避免误写主工作区。
+   worktree 约定：worktree 默认没有 `node_modules`，CLI 固定使用主仓库 `<article_hub>`，不在 worktree 重复安装依赖或构建；文章文件和素材统一用绝对路径写入 worktree，避免误写主工作区。
 
    素材放在同目录 `assets/` 下。Mermaid 优先保存 `.mmd + .svg + .png`，正文引用 PNG；本机无渲染器（`mmdc` / Chrome）时降级：至少提交 `.mmd` 源并在正文内嵌 ```mermaid``` 代码块（GitHub 原生渲染、纯文本可追溯），在 PR body 标注 SVG/PNG 待补，不要引用尚不存在的图片路径（会触发校验阻断码）。
 
@@ -126,17 +128,17 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 7. 执行确定性校验，并把它当成反馈环而不是一次性闸门：
 
    ```sh
-   article-hub validate article --article-file <article.md> --config config/projects.yml
+   <article_hub> validate article --article-file <article.md> --config config/projects.yml
    ```
 
    结果 `valid: false` 时，按 `blocking_issues[].code`（稳定码，不依赖 message 文案）定位并修正正文，然后重跑，直到 `valid: true`。修正只动正文：不得改 Front Matter、代码块、图片路径等受保护内容来凑过校验；若不改受保护内容就无法消除某个 code，按停止条件停止并报告。边界：`validate article` 只保证 Front Matter schema、来源版本、路径与图片 alt 等确定性规则，不背书章节结构与读感——结构是否单主线推进由第 6 步自审表与独立结构裁判把关，`valid: true` 不等于可发布。
 
 8. 校验通过后创建或更新 Draft PR。创建或更新前先运行 `git status --short`、`git diff --name-only --cached` 和 `git diff --name-only`，确认没有 `source-cache`、Issue fixture、计划临时文件、批准快照输入文件等中间文件进入工作区；默认只允许文章目录 `articles/<project-id>/<YYYY-MM-DD>-<slug>/` 与 `articles/publications.json` 进入本次 Draft PR。若出现 `materials/issue-sources/<issue-number>/`，先对照批准计划：未明确点名需要随仓库保存、或没有人工确认可公开提交时，必须从索引、工作区和 PR 历史中移除后再继续；无法确认清理安全时停止并说明：
 
-   创建或更新 Draft PR 的唯一入口是 `article-hub create-pr`。隔离 worktree 的当前分支只用于本地执行，文章 PR 的 head 以 `create-pr` 输出 JSON 的 `branch` 为准。真实创建前先执行同参数 `--dry-run`，读取输出 JSON 的 `branch`，确认它等于 `article/<issue-number>-<project-id>-<slug>`，且 Issue 编号、项目和 slug 与本轮文章一致；不一致时停止并报告实际值和期望值。
+   创建或更新 Draft PR 的唯一入口是 `<article_hub> create-pr`。隔离 worktree 的当前分支只用于本地执行，文章 PR 的 head 以 `create-pr` 输出 JSON 的 `branch` 为准。真实创建前先执行同参数 `--dry-run`，读取输出 JSON 的 `branch`，确认它等于 `article/<issue-number>-<project-id>-<slug>`，且 Issue 编号、项目和 slug 与本轮文章一致；不一致时停止并报告实际值和期望值。
 
    ```sh
-   article-hub create-pr \
+   <article_hub> create-pr \
      --article-file <article.md> \
      --config config/projects.yml \
      --issue-number <number> \
@@ -158,7 +160,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 9. 更新 Issue 状态：
 
    ```sh
-   article-hub update-status \
+   <article_hub> update-status \
      --issue-file <issue.json> \
      --repository <repository> \
      --intent content-transition \

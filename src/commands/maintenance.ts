@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { loadProjectConfig } from "../domain/project-config.js";
 import { ArticleHubError } from "../infrastructure/errors.js";
+import { runCommand } from "../infrastructure/process.js";
 
 interface ReconcileState {
   issue_number?: unknown;
@@ -39,23 +40,29 @@ export async function doctor(options: {
   root: string;
   configPath: string;
   dryRun: boolean;
-}): Promise<unknown> {
+}) {
   const checks = [
     await checkNodeVersion(),
-    await checkFile(options.root, "package-lock.json", "package-lock"),
+    await checkPnpmVersion(),
+    await checkGitHubAuth(),
     await checkProjectConfig(options.configPath),
-    await checkAllFiles(options.root, "skills", [
-      "skills/generate-opentiny-article/SKILL.md",
-      "skills/polish-opentiny-article/SKILL.md"
+    await checkAllFiles(options.root, "agent-skills", [
+      ".agents/skills/generate-opentiny-article/SKILL.md",
+      ".agents/skills/polish-opentiny-article/SKILL.md"
     ]),
-    await checkFile(options.root, "INSTALL.md", "install-doc"),
+    await checkAllFiles(options.root, "claude-skills", [
+      ".claude/skills/generate-opentiny-article/SKILL.md",
+      ".claude/skills/polish-opentiny-article/SKILL.md"
+    ]),
+    await checkFile(options.root, "scripts/article-hub-launcher.mjs", "launcher"),
+    await checkFile(options.root, "dist/cli.js", "build-output"),
     await checkFile(options.root, ".github/workflows/article-ci.yml", "github-ci"),
     await checkFile(options.root, ".github/ISSUE_TEMPLATE/article.yml", "github-issue-form"),
     await checkFile(options.root, ".github/pull_request_template.md", "github-pr-template")
   ];
 
   return {
-    ok: true,
+    ok: checks.every((check) => check.ok),
     schema_version: "article-hub.doctor",
     dry_run: options.dryRun,
     root: options.root,
@@ -170,6 +177,47 @@ async function checkNodeVersion() {
     ok: major >= 20,
     detail: process.versions.node
   };
+}
+
+async function checkPnpmVersion() {
+  try {
+    const program =
+      process.platform === "win32" ? process.env.ComSpec ?? "cmd.exe" : "corepack";
+    const args =
+      process.platform === "win32"
+        ? ["/d", "/s", "/c", "corepack pnpm --version"]
+        : ["pnpm", "--version"];
+    const version = await runCommand(program, args);
+
+    return {
+      name: "pnpm-version",
+      ok: true,
+      detail: version
+    };
+  } catch (error) {
+    return {
+      name: "pnpm-version",
+      ok: false,
+      detail: error instanceof Error ? error.message : "pnpm 版本检查失败"
+    };
+  }
+}
+
+async function checkGitHubAuth() {
+  try {
+    await runCommand("gh", ["auth", "status"], { errorCode: "GITHUB_COMMAND_FAILED" });
+
+    return {
+      name: "github-auth",
+      ok: true
+    };
+  } catch (error) {
+    return {
+      name: "github-auth",
+      ok: false,
+      detail: error instanceof Error ? error.message : "GitHub CLI 认证检查失败"
+    };
+  }
 }
 
 async function checkFile(root: string, relativePath: string, name: string) {

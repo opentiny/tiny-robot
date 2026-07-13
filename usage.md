@@ -89,7 +89,7 @@ GitHub 上创建或确认文章 Issue
 - gh auth status
 - pnpm test
 - pnpm run build
-- node dist/cli.js projects validate --config config/projects.yml
+- node scripts/article-hub-launcher.mjs doctor --root . --config config/projects.yml
 
 请用以下格式回复：
 结论：可以开始 / 需要处理

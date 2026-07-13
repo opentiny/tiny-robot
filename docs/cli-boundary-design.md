@@ -6,6 +6,12 @@
 
 判断该边界的标准是删除测试：删除某个 CLI 能力后，若复杂度会扩散到多个 Skill、Workflow 或人工步骤，则该能力应留在 CLI；若删除后只是少写一层参数转发，则不应进入 CLI。
 
+## 运行入口
+
+CLI 的业务入口仍是 `dist/cli.js`，调用方统一通过仓库内 `scripts/article-hub-launcher.mjs` 启动。launcher 只负责定位构建产物、透传参数、保留 `cwd` 和退出码，不承载业务规则，也不属于 `gh` 适配器。
+
+定时任务不得依赖裸 `article-hub`、全局安装或用户终端的 `PATH`。worktree 调用使用主仓库 launcher 的绝对路径，业务文件和配置仍按调用方 `cwd` 解析。
+
 ## 命令分类
 
 ### Primitives

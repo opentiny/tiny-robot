@@ -10,6 +10,7 @@
       "expected_output": "按序走完流程：用 inspect-issue 读取 Issue，确认标签无 AI执行：人工暂停；确认 comment 2002（maintainer/MEMBER 的固定命令）actionable:true 后，把计划正文作为临时文件传给 plan approve 生成批准快照；在 articles/webmcp-sdk/<date>-<slug>/article.md 写作，素材入同目录 assets/，Mermaid 存 .mmd+.svg+.png 且正文只引 PNG；调用 polish-opentiny-article 的初稿全文优化润色正文；validate article 返回 valid:true 后，检查 staged、unstaged 和最终 PR 文件列表只包含文章目录与 articles/publications.json，确认不含 materials/issue-sources 默认禁止路径，再创建 Draft PR；最后 update-status 置 阶段：写作 / AI：等待人工。",
       "assertions": [
         { "kind": "deterministic", "text": "用 article-hub inspect-issue 读取 Issue，而非凭自然语言判断标签或批准状态" },
+        { "kind": "deterministic", "text": "所有 article-hub 命令都通过主仓库 scripts/article-hub-launcher.mjs 执行，没有调用裸 article-hub 或依赖全局 PATH" },
         { "kind": "deterministic", "text": "进入写作前确认了某条评论 actionable:true（comment 2002），且命令逐字等于 /ai 批准写作计划" },
         { "kind": "deterministic", "text": "plan approve 使用 --plan-body-file 读取被批准计划正文，并生成批准快照" },
         { "kind": "deterministic", "text": "create-pr 之前 validate article 已返回 valid:true" },

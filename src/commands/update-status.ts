@@ -201,18 +201,36 @@ async function applyStatusOperations(options: {
   }
 
   if (options.comment) {
-    await runCommand(
-      "gh",
-      [
-        "issue",
-        "comment",
-        String(options.issueNumber),
-        "--repo",
-        options.repository,
-        "--body",
-        options.comment
-      ],
-      { errorCode: "GITHUB_COMMAND_FAILED" }
-    );
+    try {
+      await runCommand(
+        "gh",
+        [
+          "issue",
+          "comment",
+          String(options.issueNumber),
+          "--repo",
+          options.repository,
+          "--body",
+          options.comment
+        ],
+        { errorCode: "GITHUB_COMMAND_FAILED" }
+      );
+    } catch (error) {
+      const operations = buildStatusOperations(options);
+
+      throw new ArticleHubError(
+        "PARTIAL_MUTATION",
+        error instanceof Error ? error.message : "状态标签已更新，但评论发布失败",
+        1,
+        {
+          completed_operations: operations.filter(
+            (operation) => operation.kind === "gh-issue-edit-labels"
+          ),
+          pending_operations: operations.filter(
+            (operation) => operation.kind === "gh-issue-comment"
+          )
+        }
+      );
+    }
   }
 }

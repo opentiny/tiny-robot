@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "cli": "node scripts/article-hub-launcher.mjs",
     "test": "vitest run"
   },
   "engines": {

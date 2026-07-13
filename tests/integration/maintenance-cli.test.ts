@@ -7,6 +7,7 @@ import { describe, expect, test } from "vitest";
 import {
   expectErrorEnvelope,
   expectSuccessfulEnvelope,
+  parseJsonStdout,
   repositoryRoot,
   runArticleHubCli
 } from "../support/cli.js";
@@ -15,7 +16,8 @@ import { createFakeGh } from "../support/fake-gh.js";
 const configPath = path.join(repositoryRoot, "config/projects.yml");
 
 interface DoctorOutput {
-  checks: Array<{ name: string }>;
+  ok: boolean;
+  checks: Array<{ name: string; ok: boolean }>;
 }
 
 interface ReconcileOutput {
@@ -24,16 +26,48 @@ interface ReconcileOutput {
   };
 }
 
+function createHealthyDoctorEnv(fakeGhEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const fakeCommand = fakeGhEnv.ARTICLE_HUB_GH_COMMAND;
+
+  return {
+    ...fakeGhEnv,
+    // Windows 环境变量大小写不敏感但保留原键名，两个常见写法必须使用同一值。
+    ComSpec: "cmd.exe",
+    COMSPEC: "cmd.exe",
+    ARTICLE_HUB_COREPACK_COMMAND: fakeCommand,
+    ARTICLE_HUB_CMD_EXE_COMMAND: fakeCommand
+  };
+}
+
 describe("article-hub maintenance CLI", () => {
-  test("doctor dry-run reports required local structure checks", () => {
-    const result = runArticleHubCli([
-      "--dry-run",
-      "doctor",
-      "--root",
-      repositoryRoot,
-      "--config",
-      configPath
-    ]);
+  test("doctor 在必需环境项缺失时返回失败", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "article-hub-doctor-"));
+    const fakeGh = await createFakeGh({});
+    const result = runArticleHubCli(
+      ["doctor", "--root", root, "--config", configPath],
+      { env: createHealthyDoctorEnv(fakeGh.env) }
+    );
+    const output = parseJsonStdout<DoctorOutput>(result);
+
+    expect(result.status).toBe(2);
+    expect(output).toMatchObject({
+      ok: false,
+      schema_version: "article-hub.doctor"
+    });
+    expect(output.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "launcher", ok: false }),
+        expect.objectContaining({ name: "agent-skills", ok: false })
+      ])
+    );
+  });
+
+  test("doctor dry-run reports required local structure checks", async () => {
+    const fakeGh = await createFakeGh({});
+    const result = runArticleHubCli(
+      ["--dry-run", "doctor", "--root", repositoryRoot, "--config", configPath],
+      { env: createHealthyDoctorEnv(fakeGh.env) }
+    );
 
     const output = expectSuccessfulEnvelope<DoctorOutput>(
       result,
@@ -43,8 +77,16 @@ describe("article-hub maintenance CLI", () => {
         root: repositoryRoot
       }
     );
-    expect(output.checks.map((check) => check.name)).toEqual(
-      expect.arrayContaining(["node-version", "project-config", "skills"])
+    expect(output.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "node-version", ok: true }),
+        expect.objectContaining({ name: "pnpm-version", ok: true }),
+        expect.objectContaining({ name: "project-config", ok: true }),
+        expect.objectContaining({ name: "agent-skills", ok: true }),
+        expect.objectContaining({ name: "claude-skills", ok: true }),
+        expect.objectContaining({ name: "launcher", ok: true }),
+        expect.objectContaining({ name: "github-auth", ok: true })
+      ])
     );
   });
 

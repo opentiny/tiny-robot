@@ -12,7 +12,7 @@
 
 ```sh
 corepack enable
-corepack prepare pnpm@10.34.1 --activate
+corepack prepare pnpm@10 --activate
 pnpm install
 pnpm run build
 pnpm test
@@ -23,7 +23,7 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 
 说明：
 
-- `package.json` 声明 `packageManager: pnpm@10.34.1`，README 和 usage 以 `pnpm` 为主。
+- `package.json` 通过 `engines.pnpm` 支持 pnpm 10.x，README 和 usage 以 `pnpm` 为主；不要锁定补丁版本。
 - CLI 构建产物在 `dist/`，源码变更后先运行 `pnpm run build` 再调用 `node dist/cli.js`。
 
 ## 仓库地图

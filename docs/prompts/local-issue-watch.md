@@ -2,6 +2,23 @@
 
 你正在 ai-article-hub 仓库中执行本地文章 Issue 定时巡检。请只做本轮巡检，不要实现 GitHub Workflow，不要创建常驻服务。
 
+## Windows OfficeClaw 启动检查
+
+启动时把当前仓库绝对路径记为 `scheduler_root`，并把下面的仓库内命令记为 `<article_hub>`：
+
+```text
+node "<scheduler_root>/scripts/article-hub-launcher.mjs"
+```
+
+本文后续出现的 `<article_hub>` 都必须替换成上面的完整命令；禁止直接运行裸 `article-hub`，禁止依赖全局安装或 `PATH`。执行候选发现前按顺序完成一次启动检查：
+
+1. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status`。
+2. `node_modules` 不存在时，在 `scheduler_root` 运行 `corepack pnpm install --no-lockfile`，按当前机器配置的 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。
+3. 在 `scheduler_root` 运行 `corepack pnpm run build`。构建因依赖缺失失败时，只允许补跑一次 `corepack pnpm install --no-lockfile` 并重试一次构建。
+4. 运行 `<article_hub> doctor --root "<scheduler_root>" --config "<scheduler_root>/config/projects.yml"`，确认退出码为 0 且输出 `ok: true`。
+
+启动检查失败时不得读取或修改候选 Issue，不得创建候选运行标记，也不得向 GitHub 发布评论。用文件写入工具把失败记录保存到 `<scheduler_root>/.cache/article-hub/scheduled-runs/system/issue-watch.json`，至少包含失败时间、Windows 版本、`scheduler_root`、失败命令、退出码和原始错误；在本轮输出中报告同样信息后停止。自动恢复只使用 pnpm，不运行 `npm install`。
+
 ## 范围
 
 - 只处理打开的文章 Issue。
@@ -17,7 +34,7 @@
 - 同一 Issue 有未完成运行标记时跳过。
 - 运行标记已过期时不要删除、不要抢占，只报告“疑似遗留运行”，并要求人工确认。
 - Issue 含 `AI执行：人工暂停` 时立即停止处理该 Issue。
-- 所有状态标签只能通过 `article-hub update-status` 修改，不能手工拼标签。
+- 所有状态标签只能通过 `<article_hub> update-status` 修改，不能手工拼标签。
 - 需要写作计划批准时，只接受 `inspect-issue` 输出中 `actionable: true` 且 `parsed.kind` 为 `approve-writing-plan` 的固定命令。
 - `/ai 同意`、`同意`、`开始写吧`、自然语言批准或带参数的 `/ai 批准写作计划` 都不算批准。
 - `/ai 批准选题` 不作为本地定时巡检触发条件；当前使用说明从写作计划审核开始。
@@ -32,6 +49,8 @@
 先抓取所有带相关标签的打开 Issue，按 Issue number 去重，再按 `updatedAt` 降序形成候选队列。使用 `gh issue list` 时抓取较宽候选池后在本地排序；每个相关标签建议至少抓取 50 条。完成本地排序后，再进入处理步骤。
 
 排序后逐个读取 Issue 详情和评论，判断是否存在本轮需要消费的新事件。每轮最多处理 3 个“需要动作”的 Issue；这 3 个名额只统计会执行状态更新、计划更新、生成流程、回执或失败回写的 Issue。
+
+固定命令、review 意见和失败都以触发评论 ID 或 `updatedAt` 作为事件游标。失败回执必须包含隐藏标记 `<!-- ai-article-hub:failure_key=issue-<issue-number>:event-<comment-id-or-updated-at>:<error-code> -->`；若最近评论已经含同一 `failure_key`，本轮不得再次消费同一事件或重复发布失败回执。人工新增 `/ai 重试`、新的批准命令或新的 review 意见会产生新事件，可以再次处理。
 
 需要动作的优先级如下：
 
@@ -67,8 +86,8 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
 
 ## 处理流程
 
-1. 使用 `gh` 读取候选 Issue 原始事实，并用 `article-hub inspect-issue` 解析标签、权限和固定 `/ai` 命令。
-2. 如果发现 `/ai 暂停`、`/ai 恢复` 或 `/ai 重试`，分别通过 `article-hub update-status` 的 `pause`、`resume`、`retry` intent 处理；不要手工改标签。
+1. 使用 `gh` 读取候选 Issue 原始事实，并用 `<article_hub> inspect-issue` 解析标签、权限和固定 `/ai` 命令。
+2. 如果发现 `/ai 暂停`、`/ai 恢复` 或 `/ai 重试`，分别通过 `<article_hub> update-status` 的 `pause`、`resume`、`retry` intent 处理；不要手工改标签。
 3. 如果发现 `/ai 批准选题`：
    - 不进入生成流程。
    - 评论说明：当前本地巡检从写作计划审核开始，不消费 `/ai 批准选题`，请按使用说明让 Agent 生成或更新写作计划。
@@ -77,8 +96,8 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
 4. 如果 Issue 已有关联 Draft PR 或文章 PR：
    - 不调用 `generate-opentiny-article`。
    - 如果 Issue 又出现新的写作计划意见或批准命令，评论说明“该文章已进入 PR 阶段，请到关联 PR 提修改意见”。
-   - 关联 PR 仍是 Draft 时，用 `article-hub update-status` 保持或更新为 `阶段：写作` + `AI：等待人工`。
-   - 关联 PR 已 Ready for review 时，先执行本地 Ready for review 检查；通过后才用 `article-hub update-status` 保持或更新为 `阶段：审核` + `AI：等待人工`。
+   - 关联 PR 仍是 Draft 时，用 `<article_hub> update-status` 保持或更新为 `阶段：写作` + `AI：等待人工`。
+   - 关联 PR 已 Ready for review 时，先执行本地 Ready for review 检查；通过后才用 `<article_hub> update-status` 保持或更新为 `阶段：审核` + `AI：等待人工`。
    - Ready for review 检查失败但 PR 未转回 Draft 时，保持 `阶段：审核` + `AI：等待人工`，并评论说明缺哪些检查项，请人工处理或 Convert to draft。
    - 继续下一个候选 Issue。
 5. 如果没有新事实、新评论、新 review 意见、固定批准命令或状态命令，不重复评论。
@@ -91,7 +110,7 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 发布后回读最近一条当前 Agent 评论，确认评论正文不是单行标题，且包含计划版本、来源清单、建议大纲和人工验收项。
    - 写清计划版本、推荐标题、目标读者、来源快照、建议大纲、截图/GIF 素材需求、素材缺口、人工验收项。
    - 给出固定批准命令：`/ai 批准写作计划`。
-   - 通过 `article-hub update-status` 把 Issue 设为 `阶段：策划` + `AI：等待人工`。
+   - 通过 `<article_hub> update-status` 把 Issue 设为 `阶段：策划` + `AI：等待人工`。
 7. 如果发现 `/ai 同意`、`同意`、`开始写吧` 等近似批准：
    - 只回复一次提醒：当前流程只接受逐字固定命令 `/ai 批准写作计划`。
    - 保持或更新为 `阶段：策划` + `AI：等待人工`。
@@ -99,23 +118,23 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
 8. 如果发现授权用户发出的固定 `/ai 批准写作计划`：
    - 先在共享运行标记目录创建本地运行标记。
    - 创建候选 Issue 专属 worktree，并确认后续生成流程的 `cwd` 是该 worktree。
-   - 如果 Issue 当前仍是 `阶段：选题`，先用 `article-hub update-status` 做 `选题→策划`。
-   - 使用 `article-hub update-status` 做 `策划→写作`，把 Issue 改为 `阶段：写作` + `AI：处理中`。
+   - 如果 Issue 当前仍是 `阶段：选题`，先用 `<article_hub> update-status` 做 `选题→策划`。
+   - 使用 `<article_hub> update-status` 做 `策划→写作`，把 Issue 改为 `阶段：写作` + `AI：处理中`。
    - 巡检本身不重新实现生成流程；进入已批准写作计划到 Draft PR 的既有流程，按 `generate-opentiny-article` 的步骤处理该 Issue。
    - 创建或更新 Draft PR 前在 worktree 内运行 `git status --short`，确认没有运行缓存和临时文件进入提交范围。
-   - 创建 Draft PR 的唯一入口是 `generate-opentiny-article` 的 `article-hub create-pr --body-file <pr-body.md>`。PR head 以 `create-pr` 输出 JSON 的 `branch` 为准；当前 worktree 分支 `issue-watch/...` 只用于隔离执行。
-   - 真实创建前先运行 `article-hub create-pr --dry-run ...`，读取输出 JSON 的 `branch`。该值必须匹配 `article/<issue-number>-<project-id>-<slug>`，且 issue number 必须等于当前 Issue；不匹配时停止并按失败处理。
+   - 创建 Draft PR 的唯一入口是 `generate-opentiny-article` 的 `<article_hub> create-pr --body-file <pr-body.md>`。PR head 以 `create-pr` 输出 JSON 的 `branch` 为准；当前 worktree 分支 `issue-watch/...` 只用于隔离执行。
+   - 真实创建前先运行 `<article_hub> --dry-run create-pr ...`，读取输出 JSON 的 `branch`。该值必须匹配 `article/<issue-number>-<project-id>-<slug>`，且 issue number 必须等于当前 Issue；不匹配时停止并按失败处理。
    - PR body 来自 Write 工具写好的临时 Markdown 文件，并通过 `--body-file` 传入。
    - Draft PR 创建成功后，用 `gh pr view <pr-number> --repo <repository> --json headRefName,body,files` 回读。`headRefName` 必须等于 `create-pr` 输出的 `branch`；body 必须包含关联 Issue；files 必须包含 `articles/<project-id>/<date>-<slug>/article.md`。任一不满足都按 GitHub 写操作失败处理，并输出失败摘要、实际值和期望值。
-   - Draft PR 创建成功后，使用 `article-hub update-status` 改为 `阶段：写作` + `AI：等待人工`，并评论 Draft PR 链接和待人工处理项。
+   - Draft PR 创建成功后，使用 `<article_hub> update-status` 改为 `阶段：写作` + `AI：等待人工`，并评论 Draft PR 链接和待人工处理项。
 9. 如果遇到意见冲突、缺来源、截图/GIF 需确认、代码事实需维护者确认或 Head SHA 不一致：
    - 停止处理该 Issue。
-   - 用 `article-hub update-status` 改为当前阶段 + `AI：等待人工`。
+   - 用 `<article_hub> update-status` 改为当前阶段 + `AI：等待人工`。
    - 评论写清：停在哪一步、缺什么信息、需要谁决定。
 10. 如果环境、权限、命令或 GitHub 写操作失败：
     - 停止处理该 Issue。
-    - 用 `article-hub update-status` 改为当前阶段 + `AI：失败`。
-    - 评论写清失败命令、错误摘要和建议处理方式。
+    - `<article_hub>` 仍可用时，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；失败报告写入临时 Markdown 文件并用 `gh issue comment --body-file` 发布，包含失败命令、原始错误、退出码、worktree、可恢复入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
+    - `<article_hub>` 本身意外失效时，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 Issue 失败评论。把原始错误追加到 `scheduled-runs/system/issue-watch.json`，保留候选运行标记和 worktree，在本轮输出中报告可恢复入口后停止。
 11. 正常完成并清理 worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留 worktree；过期标记不要删除。
 
 ## 本轮输出

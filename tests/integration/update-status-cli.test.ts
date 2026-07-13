@@ -295,4 +295,86 @@ describe("article-hub update-status CLI", () => {
     expect(calls.flat()).not.toContain("edit");
     expect(calls.flat()).not.toContain("comment");
   });
+
+  test("非 dry-run 从文件读取多行状态评论", async () => {
+    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"]);
+    const root = await mkdtemp(path.join(tmpdir(), "article-hub-status-comment-"));
+    const commentFile = path.join(root, "comment.md");
+    const comment = "## 状态回执\n\n保留 `$(command)` 与 ! 字符。\n";
+    const fakeGh = await createFakeGh({
+      number: 51,
+      labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
+    });
+
+    await writeFile(commentFile, comment);
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--repository",
+        "hexqi/ai-article-hub",
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：写作",
+        "--ai-state",
+        "AI：等待人工",
+        "--comment-file",
+        commentFile
+      ],
+      { env: fakeGh.env }
+    );
+
+    expectSuccessfulEnvelope(result, "article-hub.update-status");
+    const calls = await fakeGh.readCalls();
+    const commentCall = calls.find((call) => call[0] === "issue" && call[1] === "comment");
+
+    expect(commentCall).toEqual(expect.arrayContaining(["--body", comment]));
+  });
+
+  test("标签已更新但评论失败时返回可恢复的部分成功结果", async () => {
+    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"]);
+    const fakeGh = await createFakeGh(
+      {
+        number: 51,
+        labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
+      },
+      { failIssueComment: true }
+    );
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--repository",
+        "hexqi/ai-article-hub",
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：写作",
+        "--ai-state",
+        "AI：等待人工",
+        "--comment",
+        "等待人工"
+      ],
+      { env: fakeGh.env }
+    );
+    const output = expectErrorEnvelope<{
+      error: {
+        code: string;
+        details: {
+          completed_operations: Array<{ kind: string }>;
+          pending_operations: Array<{ kind: string }>;
+        };
+      };
+    }>(result, "PARTIAL_MUTATION", 1);
+
+    expect(output.error.details.completed_operations).toEqual([
+      expect.objectContaining({ kind: "gh-issue-edit-labels" })
+    ]);
+    expect(output.error.details.pending_operations).toEqual([
+      expect.objectContaining({ kind: "gh-issue-comment" })
+    ]);
+  });
 });

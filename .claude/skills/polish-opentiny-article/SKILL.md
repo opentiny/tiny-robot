@@ -102,6 +102,8 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 
 ## 校验与更新
 
+启动时把主仓库绝对路径记为 `scheduler_root`，并把 `node "<scheduler_root>/scripts/article-hub-launcher.mjs"` 记为 `<article_hub>`。本文命令示例中的 `<article_hub>` 必须替换成这条完整命令；禁止运行裸 `article-hub` 或依赖全局安装。即使当前 `cwd` 是隔离 worktree，也始终使用主仓库 launcher，调用进程的 `cwd` 保持在 worktree。
+
 普通 PR、Review 和 Issue 读取使用 `gh` 获取原始事实；确定性判断和受控 Git/GitHub mutation 使用 `article-hub`。Issue 固定控制命令以 `article-hub` 的权限与 bot 过滤结果为准；PR Review、行级评论、PR 评论和 `Request changes` 中，能评论即视为已授权。遇到文章校验、暂停保护、状态标签互斥或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 
 收尾归属：`/ai 全文润色` 与 Review 局部修订两个独立入口，由 polish 自己执行下面的校验与更新；作为 `generate-opentiny-article` 子步的初稿全文优化只交付润色后的正文，校验、Draft PR 和 Issue 状态由 generate 流程统一收尾。人工确认后再次触发全文润色时，按新一轮修改处理，并在回复中写明需要重新确认。
@@ -111,7 +113,7 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 执行文章校验：
 
 ```sh
-article-hub validate article \
+<article_hub> validate article \
   --article-file <article.md> \
   --config config/projects.yml
 ```
@@ -119,7 +121,7 @@ article-hub validate article \
 更新 Draft PR：
 
 ```sh
-article-hub create-pr \
+<article_hub> create-pr \
   --article-file <article.md> \
   --config config/projects.yml \
   --issue-number <number> \
@@ -139,7 +141,7 @@ article-hub create-pr \
 Ready PR 的普通 Review 修订：
 
 ```sh
-article-hub update-status \
+<article_hub> update-status \
   --issue-file <issue.json> \
   --repository hexqi/ai-article-hub \
   --intent content-transition \
@@ -151,7 +153,7 @@ article-hub update-status \
 Draft PR 初审或补素材修改：
 
 ```sh
-article-hub update-status \
+<article_hub> update-status \
   --issue-file <issue.json> \
   --repository hexqi/ai-article-hub \
   --intent content-transition \
@@ -163,7 +165,7 @@ article-hub update-status \
 PR 已 Convert to draft 时：
 
 ```sh
-article-hub update-status \
+<article_hub> update-status \
   --issue-file <issue.json> \
   --repository hexqi/ai-article-hub \
   --intent lifecycle-transition \
@@ -174,7 +176,7 @@ article-hub update-status \
 
 ## 完成门槛
 
-- `article-hub validate article` 通过。
+- `<article_hub> validate article` 通过。
 - 保真回读和自然度回读均已完成。
 - 事实和术语已根据固定来源复核。
 - 只修改了本轮授权范围。

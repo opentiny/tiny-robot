@@ -14,7 +14,10 @@ export interface FakeGh {
  * @param issue GitHub `issue view --json number,labels` 的返回值。
  * @returns 可注入 CLI 子进程的环境变量和结构化调用读取函数。
  */
-export async function createFakeGh(issue: unknown): Promise<FakeGh> {
+export async function createFakeGh(
+  issue: unknown,
+  options: { failIssueComment?: boolean } = {}
+): Promise<FakeGh> {
   const root = await mkdtemp(path.join(tmpdir(), "article-hub-fake-gh-"));
   const scriptPath = path.join(root, "fake-gh.mjs");
   const issuePath = path.join(root, "issue.json");
@@ -31,6 +34,10 @@ export async function createFakeGh(issue: unknown): Promise<FakeGh> {
       '  process.stdout.write(readFileSync(process.env.FAKE_GH_ISSUE, "utf8"));',
       "  process.exit(0);",
       "}",
+      'if (args[0] === "issue" && args[1] === "comment" && process.env.FAKE_GH_FAIL_ISSUE_COMMENT === "1") {',
+      '  process.stderr.write("fake gh issue comment failed");',
+      "  process.exit(1);",
+      "}",
       "process.exit(0);"
     ].join("\n"),
     "utf8"
@@ -40,7 +47,8 @@ export async function createFakeGh(issue: unknown): Promise<FakeGh> {
     env: {
       ARTICLE_HUB_GH_COMMAND: JSON.stringify([process.execPath, scriptPath]),
       FAKE_GH_ISSUE: issuePath,
-      FAKE_GH_LOG: logPath
+      FAKE_GH_LOG: logPath,
+      FAKE_GH_FAIL_ISSUE_COMMENT: options.failIssueComment ? "1" : "0"
     },
     async readCalls() {
       const raw = await readFile(logPath, "utf8").catch(() => "");

@@ -11,14 +11,13 @@
 pnpm install
 pnpm run build
 
-# 直接运行
-node dist/cli.js <command> [options]
-
-# 或通过 package.json bin 入口
-npx article-hub <command> [options]
+# 仓库内固定入口
+node scripts/article-hub-launcher.mjs <command> [options]
 ```
 
-**环境要求**：Node.js ≥ 20.0.0，pnpm 10.34.1+
+**环境要求**：Node.js ≥ 20.0.0，pnpm 10.x
+
+不要依赖裸 `article-hub`、全局安装或调度进程的 `PATH`。launcher 固定使用当前仓库构建的 `dist/cli.js`，并保留调用方 `cwd`；从隔离 worktree 执行时，应调用主仓库 launcher 的绝对路径。
 
 ---
 
@@ -254,7 +253,7 @@ article-hub update-status \
   [--ai-state <state>] \
   [--expected-head-sha <sha>] \
   [--current-head-sha <sha>] \
-  [--comment <text>]
+  [--comment <text> | --comment-file <path>]
 ```
 
 | 参数 | 必填 | 说明 |
@@ -267,6 +266,7 @@ article-hub update-status \
 | `--expected-head-sha` | ❌ | 调用方预期 Head SHA |
 | `--current-head-sha` | ❌ | 当前 Head SHA |
 | `--comment` | ❌ | 附加评论内容 |
+| `--comment-file` | ❌ | 从 UTF-8 文件读取附加评论；适合多行 Markdown，不能与 `--comment` 同时使用 |
 
 `--intent` 只接受以下值：
 
@@ -302,6 +302,8 @@ article-hub update-status \
 输出中的 mutation 决策固定放在 `decision` 下，形状与 `state decide` 一致。
 `mutation_plan.operations` 只描述实际会执行的 GitHub 操作；当
 `decision.mutation_allowed` 为 `false` 时，`operations` 必须为空。
+
+标签更新成功但附加评论失败时返回 `PARTIAL_MUTATION`。错误 envelope 的 `error.details.completed_operations` 列出已完成操作，`pending_operations` 列出可重试评论；调用方不得重复手工修改标签。
 
 ---
 
@@ -408,6 +410,8 @@ article-hub --dry-run reconcile --state-file <path>
 | `INVALID_PROJECT_CONFIG` | 项目配置格式、结构或字段无效 |
 | `UNKNOWN_PROJECT` | 项目未配置在 allowlist 中 |
 | `UNSAFE_PATH` | 路径或路径相关参数不满足安全约束 |
+| `COMMENT_FILE_NOT_FOUND` | `--comment-file` 指向的文件不存在或不可读 |
+| `PARTIAL_MUTATION` | 状态 mutation 部分成功，按 `error.details.pending_operations` 恢复 |
 | `ARTICLE_VALIDATION_FAILED` | 文章内容或 Front Matter 校验失败 |
 | `CONFIRMATION_REQUIRED` | 写操作缺少显式确认，例如 `setup` 未传 `--yes` |
 | `RECONCILE_APPLY_UNSUPPORTED` | `reconcile` 发现恢复计划，但当前命令不执行修复操作 |

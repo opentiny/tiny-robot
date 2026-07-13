@@ -8,6 +8,7 @@ export type ErrorCode =
   | "ARTICLE_FILE_NOT_FOUND"
   | "INVALID_JSON"
   | "PLAN_FILE_NOT_FOUND"
+  | "COMMENT_FILE_NOT_FOUND"
   | "STATE_FILE_NOT_FOUND"
   | "PROJECT_CONFIG_NOT_FOUND"
   | "INVALID_STATE"
@@ -17,6 +18,7 @@ export type ErrorCode =
   | "ARTICLE_VALIDATION_FAILED"
   | "CONFIRMATION_REQUIRED"
   | "RECONCILE_APPLY_UNSUPPORTED"
+  | "PARTIAL_MUTATION"
   | "GIT_COMMAND_FAILED"
   | "GITHUB_COMMAND_FAILED";
 
@@ -26,12 +28,19 @@ export type ErrorCode =
 export class ArticleHubError extends Error {
   readonly code: ErrorCode;
   readonly exitCode: number;
+  readonly details?: Record<string, unknown>;
 
-  constructor(code: ErrorCode, message: string, exitCode = 1) {
+  constructor(
+    code: ErrorCode,
+    message: string,
+    exitCode = 1,
+    details?: Record<string, unknown>
+  ) {
     super(message);
     this.name = "ArticleHubError";
     this.code = code;
     this.exitCode = exitCode;
+    this.details = details;
   }
 }
 

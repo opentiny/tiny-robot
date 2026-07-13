@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
+
 import { inspectIssue } from "./commands/inspect-issue.js";
 import { approvePlanFile } from "./commands/plan.js";
 import { checkoutSources } from "./commands/checkout-sources.js";
@@ -132,7 +134,30 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       const aiState = readOptionalOption(parsed.args, "--ai-state");
       const expectedHeadSha = readOptionalOption(parsed.args, "--expected-head-sha");
       const currentHeadSha = readOptionalOption(parsed.args, "--current-head-sha");
-      const comment = readOptionalOption(parsed.args, "--comment");
+      const inlineComment = readOptionalOption(parsed.args, "--comment");
+      const commentFile = readOptionalOption(parsed.args, "--comment-file");
+
+      if (inlineComment !== undefined && commentFile !== undefined) {
+        throw new ArticleHubError(
+          "UNEXPECTED_ARGUMENT",
+          "--comment 与 --comment-file 不能同时使用",
+          2
+        );
+      }
+
+      let comment = inlineComment;
+
+      if (commentFile !== undefined) {
+        try {
+          comment = await readFile(commentFile, "utf8");
+        } catch {
+          throw new ArticleHubError(
+            "COMMENT_FILE_NOT_FOUND",
+            `状态评论文件不存在或不可读：${commentFile}`,
+            2
+          );
+        }
+      }
 
       assertNoUnexpectedArgs(
         parsed.args,
@@ -144,7 +169,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           "--ai-state",
           "--expected-head-sha",
           "--current-head-sha",
-          "--comment"
+          "--comment",
+          "--comment-file"
         ])
       );
 
@@ -177,7 +203,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       });
 
       process.stdout.write(serializeJson(envelope));
-      return 0;
+      return envelope.ok ? 0 : 2;
     }
 
     if (parsed.command === "setup") {
@@ -221,7 +247,8 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         schema_version: "article-hub.error",
         error: {
           code: cliError.code,
-          message: cliError.message
+          message: cliError.message,
+          ...(cliError.details === undefined ? {} : { details: cliError.details })
         }
       })
     );

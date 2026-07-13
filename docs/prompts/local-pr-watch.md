@@ -2,6 +2,23 @@
 
 你正在 ai-article-hub 仓库中执行本地文章 PR 定时巡检。请只做本轮巡检，不要实现 GitHub Workflow，不要创建常驻服务。
 
+## Windows OfficeClaw 启动检查
+
+启动时把当前仓库绝对路径记为 `scheduler_root`，并把下面的仓库内命令记为 `<article_hub>`：
+
+```text
+node "<scheduler_root>/scripts/article-hub-launcher.mjs"
+```
+
+本文后续出现的 `<article_hub>` 都必须替换成上面的完整命令；禁止直接运行裸 `article-hub`，禁止依赖全局安装或 `PATH`。执行候选发现前按顺序完成一次启动检查：
+
+1. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status`。
+2. `node_modules` 不存在时，在 `scheduler_root` 运行 `corepack pnpm install --no-lockfile`，按当前机器配置的 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。
+3. 在 `scheduler_root` 运行 `corepack pnpm run build`。构建因依赖缺失失败时，只允许补跑一次 `corepack pnpm install --no-lockfile` 并重试一次构建。
+4. 运行 `<article_hub> doctor --root "<scheduler_root>" --config "<scheduler_root>/config/projects.yml"`，确认退出码为 0 且输出 `ok: true`。
+
+启动检查失败时不得读取或修改候选 PR/Issue，不得创建候选运行标记，也不得向 GitHub 发布评论。用文件写入工具把失败记录保存到 `<scheduler_root>/.cache/article-hub/scheduled-runs/system/pr-watch.json`，至少包含失败时间、Windows 版本、`scheduler_root`、失败命令、退出码和原始错误；在本轮输出中报告同样信息后停止。自动恢复只使用 pnpm，不运行 `npm install`。
+
 ## 范围
 
 - 只处理打开的 Draft PR 或普通 PR。
@@ -38,7 +55,7 @@
 - 同一 Issue 有未完成运行标记时跳过。
 - 运行标记已过期时不要删除、不要抢占，只报告“疑似遗留运行”，并要求人工确认。
 - Issue 含 `AI执行：人工暂停` 时立即停止处理该 PR。
-- 所有状态标签只能通过 `article-hub update-status` 修改，不能手工拼标签。
+- 所有状态标签只能通过 `<article_hub> update-status` 修改，不能手工拼标签。
 - PR 评论、Review、行级线程和 Request changes 中，能评论即视为已授权；不额外判断写权限或 allowlist。
 - 不自动 Resolve conversation，不点击 Ready for review，不 merge，不发布外部平台。
 - 写入 GitHub 的多行正文（PR body、Issue/PR 评论、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
@@ -64,7 +81,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 
 执行要求：
 
-- 后续所有正文修改、校验、提交、推送和 `article-hub create-pr` 命令的 `cwd` 都必须是该 worktree。
+- 后续所有正文修改、校验、提交、推送和 `<article_hub> create-pr` 命令的 `cwd` 都必须是该 worktree。
 - 运行标记仍读写 `<scheduler_root>/.cache/article-hub/scheduled-runs/<issue-number>.json`。
 - 不切换 `scheduler_root` 的当前分支，不在 `scheduler_root` 写文章文件、素材、临时文件或 Git 暂存区。
 - worktree 创建失败时，本轮停止处理该 PR；不得回到 `scheduler_root` 继续修改。
@@ -82,6 +99,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 - 如果没有回执，首次 PR 巡检读取当前全部待处理意见，处理后发布第一条回执。
 - 如果评论早于最近回执，但线程后来追加了新回复，按新回复纳入本轮。
 - 每轮处理完成后必须发布新的“AI 巡检处理回执”，列出本轮意见清单中每条评论或 Review 的链接、处理结论和依据。只有本轮修改了正文才需要列出 Commit SHA；未改正文时必须说明是需澄清、无法采纳还是无需处理，并写入隐藏 `dedupe_key`。回执正文必须写入临时 Markdown 文件，并通过 `gh pr comment <pr-number> --repo <repository> --body-file <回执文件>` 发布。
+- 失败回执另含隐藏标记 `<!-- ai-article-hub:failure_key=pr-<pr-number>:event-<comment-or-review-id-or-updated-at>:<error-code> -->`。最近回执已含同一 `failure_key` 时，不重复处理或评论；新的 Review、线程回复、`/ai` 指令或人工重试会产生新事件。
 
 隐藏标记固定放在回执正文末尾：
 
@@ -101,10 +119,10 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
    - 在共享运行标记目录创建本地运行标记。
    - 如果本轮只需要澄清、说明无法采纳或确认无需处理，不创建 worktree、不改文件、不提交；直接发布 PR 回执，并按需要回写 Issue 状态。
    - 如果本轮需要修改正文、运行校验、提交或推送，创建候选 PR 专属 worktree，并确认后续修改流程的 `cwd` 是该 worktree。
-   - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：写作`，用 `article-hub update-status` 的 `content-transition` 保持 `阶段：写作` + `AI：处理中`。
-   - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：审核`，用 `article-hub update-status` 的 `lifecycle-transition` 做 `审核→写作`，目标状态为 `阶段：写作` + `AI：处理中`。
-   - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：写作`，先确认 Ready for review 检查通过，再用 `article-hub update-status` 的 `lifecycle-transition` 做 `写作→审核`，目标状态为 `阶段：审核` + `AI：处理中`。
-   - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：审核`，用 `article-hub update-status` 的 `content-transition` 保持 `阶段：审核` + `AI：处理中`。
+   - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：写作`，用 `<article_hub> update-status` 的 `content-transition` 保持 `阶段：写作` + `AI：处理中`。
+   - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：审核`，用 `<article_hub> update-status` 的 `lifecycle-transition` 做 `审核→写作`，目标状态为 `阶段：写作` + `AI：处理中`。
+   - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：写作`，先确认 Ready for review 检查通过，再用 `<article_hub> update-status` 的 `lifecycle-transition` 做 `写作→审核`，目标状态为 `阶段：审核` + `AI：处理中`。
+   - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：审核`，用 `<article_hub> update-status` 的 `content-transition` 保持 `阶段：审核` + `AI：处理中`。
    - 记录开始处理时的 PR Head SHA，提交或推送前重新读取并比对；Head 已变化时停止，不覆盖人工修改。
 4. 对本轮意见先逐条归类，并记录处理动作：
    - 表达/结构类：明确给出修改目标和范围时，进入正文修改；只表达感受或范围过大且存在多种改法时，回复澄清问题。
@@ -129,7 +147,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
    - 只修改本轮授权范围。
    - 不改 Front Matter、代码块、命令、日志、API、版本号、Commit、图片路径、链接目标、Mermaid 或 SVG 源内容，除非评论明确要求且来源可核验。
    - 不新增来源外事实、数据、用户反馈、产品能力或因果关系。
-8. 如果本轮实际修改了正文，运行 `article-hub validate article`。
+8. 如果本轮实际修改了正文，运行 `<article_hub> validate article`。
 9. 如果本轮实际修改了正文，校验通过后提交本轮修改；如果只回复澄清、无法采纳或无需处理，不创建空 commit。
 10. 发布“AI 巡检处理回执”，列出：
     - 本轮意见清单：每条评论链接或 Review ID。
@@ -139,13 +157,14 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
     - 是否需要运营或技术维护者重新检查。
     - 正文末尾的隐藏 `dedupe_key` 标记。
     - 回执正文保存到临时 Markdown 文件后用 `--body-file` 发布，发布后回读确认正文完整。
-11. 用 `article-hub update-status` 把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
+11. 用 `<article_hub> update-status` 把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
 12. 正常完成并清理 worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留 worktree；过期标记不要删除。
 
 ## 失败处理
 
-- 如果遇到意见冲突、事实缺口、素材需确认或 Head SHA 变化，用 `article-hub update-status` 改为当前阶段 + `AI：等待人工`，并在 PR 回执和 Issue 评论中写清阻断点；PR 回执不得只有标题，必须包含受影响评论链接、停止原因、待确认问题和下一步负责人。
-- 如果环境、权限、命令或 GitHub 写操作失败，用 `article-hub update-status` 改为当前阶段 + `AI：失败`，并写清失败命令、错误摘要和建议处理方式；PR 失败报告不得只有标题，必须包含失败命令、错误摘要、受影响评论链接、worktree 路径和可继续处理的入口。
+- 如果遇到意见冲突、事实缺口、素材需确认或 Head SHA 变化，用 `<article_hub> update-status` 改为当前阶段 + `AI：等待人工`，并在 PR 回执和 Issue 评论中写清阻断点；PR 回执不得只有标题，必须包含受影响评论链接、停止原因、待确认问题和下一步负责人。
+- 如果环境、权限、命令或 GitHub 写操作失败，且 `<article_hub>` 仍可用，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；PR 失败报告通过临时文件和 `--body-file` 发布，必须包含失败命令、原始错误、退出码、受影响评论链接、worktree、可继续处理的入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
+- 如果 `<article_hub>` 本身意外失效，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 PR 失败评论。把原始错误追加到 `scheduled-runs/system/pr-watch.json`，保留候选运行标记和 worktree，在本轮输出中报告可恢复入口后停止。
 
 ## 本轮输出
 

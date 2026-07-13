@@ -22,17 +22,17 @@ OpenTiny AI 文章生成流水线的本地输出库。它将选题 Issue、资�
 ```sh
 corepack enable
 corepack prepare pnpm@10 --activate
-pnpm install
-pnpm test
+pnpm install --no-lockfile
 pnpm run build
-node dist/cli.js projects validate --config config/projects.yml
+node scripts/article-hub-launcher.mjs doctor --root . --config config/projects.yml
+pnpm test
 ```
 
 常用本地检查：
 
 ```sh
-node dist/cli.js --dry-run inspect-issue --issue-file tests/fixtures/issue-minimal.json
-node dist/cli.js validate article --article-file tests/fixtures/articles/valid-article.md --config config/projects.yml
+node scripts/article-hub-launcher.mjs --dry-run inspect-issue --issue-file tests/fixtures/issue-minimal.json
+node scripts/article-hub-launcher.mjs validate article --article-file tests/fixtures/articles/valid-article.md --config config/projects.yml
 ```
 
 ## 核心工作流
@@ -63,11 +63,13 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 
 ## CLI 入口
 
-构建后可直接运行：
+构建后统一通过仓库内 launcher 运行，不要求全局安装 `article-hub`：
 
 ```sh
-node dist/cli.js <command> [options]
+node scripts/article-hub-launcher.mjs <command> [options]
 ```
+
+launcher 从主仓库定位 `dist/cli.js`，保留调用方 `cwd`，因此可从带空格路径或隔离 worktree 调用。构建产物缺失时返回稳定错误码 `CLI_NOT_BUILT`。
 
 命令分为三类：
 

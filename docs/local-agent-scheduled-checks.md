@@ -27,6 +27,14 @@ Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。
 - Codex app automation：在对话中明确要求“创建定时任务”，指定工作目录、频率、运行方式和要使用的巡检任务文件。Issue 巡检、PR 巡检和正式发布巡检应创建成独立任务。
 - 调度平台或 Cron：在产品的定时任务入口中创建独立任务，分别让 Agent 读取对应巡检任务文件。
 
+当前运行环境是 Windows OfficeClaw。每轮任务必须先按对应巡检文件完成启动检查：缺少依赖时自动运行 `corepack pnpm install --no-lockfile`，按巡检机器当前 npm registry 解析依赖，随后运行 `corepack pnpm run build`，并统一通过下面的仓库内 launcher 调用 CLI：
+
+```text
+node "<主仓库绝对路径>/scripts/article-hub-launcher.mjs"
+```
+
+仓库不提交或读取 `pnpm-lock.yaml`。不要全局安装 `article-hub`，不要运行裸命令，也不要在 pnpm 项目中自动改用 `npm install`。启动检查失败属于整轮环境失败：只写 OfficeClaw 任务输出和 `.cache/article-hub/scheduled-runs/system/<watch-type>.json`，不读取候选项、不改标签、不向各 Issue 或 PR 重复评论。
+
 Codex app 可以从普通对话创建 automation。建议使用 project-scoped standalone automation，工作目录指向本仓库，并选择 local project 作为调度入口。工作目录必须填写执行机器上的仓库绝对路径，可在仓库根目录运行 `pwd` 获取；不要复制其他机器的用户路径。Issue 巡检和 PR 巡检在主仓库读取任务文件、候选和共享运行标记；进入写文件、生成、润色、提交或推送流程前，再按任务提示词创建候选专属 Git worktree。成功完成后必须自动清理本轮 worktree；失败或阻断时保留路径供排查。这样既能共享 `<主仓库>/.cache/article-hub/scheduled-runs/` 互斥标记，也不会污染用户当前工作区。
 
 示例：
@@ -117,7 +125,7 @@ OfficeClaw 正式发布巡检短 prompt：
 - 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。
 - 每轮最多处理 3 个候选项；候选为空时只输出“本轮无待处理项”，不写评论、不改标签。
 - 同一个文章 Issue 串行处理。不同 Issue 可以在不同任务中并行。
-- 所有 GitHub 状态标签必须通过 `article-hub update-status` 修改，不得用 `gh issue edit --add-label` 或手工拼标签绕过状态机。
+- 所有 GitHub 状态标签必须通过主仓库 launcher 调用 `update-status` 修改，不得用裸 `article-hub`、`gh issue edit --add-label` 或手工拼标签绕过状态机。
 - 遇到 `AI执行：人工暂停` 立即停止，不读取新指令、不改文件、不提交、不创建 PR。
 - `/ai 同意`、`同意`、`开始写吧` 等近似表达不算批准。写作计划批准只接受逐字固定命令 `/ai 批准写作计划`。
 - PR review 中能评论即视为已授权；自动处理只覆盖 `Request changes`、明确可执行评论和 `/ai` 修改指令。普通讨论、提问或目标不清的评论必须转人工确认。
