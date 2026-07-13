@@ -23,7 +23,12 @@
     "tiny-vue/2026-07-13-tinyvue-tree-menu": {
       "article_file": "articles/tiny-vue/2026-07-13-tinyvue-tree-menu/article.md",
       "title": "侧边导航一步到位：TinyVue TreeMenu 树型菜单实战指南",
-      "publications": {}
+      "publications": {
+        "csdn": {
+          "url": "https://blog.csdn.net/m0_70721415/article/details/162846946",
+          "published_at": "2026-07-13T17:30:00+08:00"
+        }
+      }
     },
     "tiny-vue/2026-07-13-tinyvue-dropdown": {
       "article_file": "articles/tiny-vue/2026-07-13-tinyvue-dropdown/article.md",
