@@ -1,4 +1,4 @@
-import { parseAiCommand } from "./command-parser.js";
+import { isFixedWritingPlanApproval } from "./command-parser.js";
 
 export type PlanApprovalReason =
   | "INVALID_APPROVAL_COMMAND"
@@ -48,9 +48,7 @@ export type WritingPlanApprovalResult =
 export function approveWritingPlan(
   input: ApproveWritingPlanInput,
 ): WritingPlanApprovalResult {
-  const parsed = parseAiCommand(input.command);
-
-  if (parsed?.kind !== "approve-writing-plan") {
+  if (!isFixedWritingPlanApproval(input.command)) {
     return { valid: false, reason: "INVALID_APPROVAL_COMMAND" };
   }
 

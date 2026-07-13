@@ -23,7 +23,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 确定性判断和受控 mutation 走 `article-hub`，读取 GitHub 原始事实走 `gh`，二者不互相替代——这样规则只有一处实现，Skill 不会在自然语言里把它们重写偏。
 
 - 普通 GitHub 读取使用 `gh`，例如 `gh issue view --json ...`，并把结果保存为本地 fixture。fixture 只放系统临时目录或 `.cache/article-hub/<issue-number>/`，不得写入 `materials/issue-sources/`。
-- 确定性判断使用 `article-hub`，包括权限过滤、固定命令解析、项目 allowlist、批准快照生成、文章校验、状态 guard 和受控 mutation。
+- 确定性判断使用 `article-hub`，包括权限过滤、固定写作计划批准校验、项目 allowlist、批准快照生成、文章校验、状态 guard 和受控 mutation。
 - 遇到标签互斥、暂停保护、bot 过滤、批准命令识别、Front Matter schema 或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 - 读取 Issue、PR、Review 等 GitHub 原始事实时直接使用 `gh`；不要为了读取字段或转发 `gh` 参数而临时修改 `article-hub`。
 
@@ -38,7 +38,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    <article_hub> inspect-issue --issue-file <issue.json>
    ```
 
-   `inspect-issue` 支持 `gh issue view --json` 原始字段：评论级 `authorAssociation` 用于授权判定，字符串 GraphQL `id` 会保留为 `comment_id`。也支持 REST 形态的 `user`、数字 `id` 和 `author_association`。`inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].actionable === true` 且 `commands[].parsed.kind === "approve-writing-plan"`。
+   `inspect-issue` 支持 `gh issue view --json` 原始字段：评论级 `authorAssociation` 用于授权判定，字符串 GraphQL `id` 会保留为 `comment_id`。也支持 REST 形态的 `user`、数字 `id` 和 `author_association`。`inspect-issue` 的输出是后续判断的事实来源：`issue.labels` 决定是否触发暂停。读到标签含 `AI执行：人工暂停` 立即停止。写作计划批准必须同时满足 `commands[].fixed_approval === "approve-writing-plan"` 且 `commands[].approval_authorized === true`。
 
 2. 读取项目上下文入口，校验项目属于 `config/projects.yml` 的 allowlist，并 checkout 来源；项目不在 allowlist 时停止：
 
@@ -67,7 +67,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    Issue 描述过于简洁时（如目标一句话、验收说明为空），可自行给出标题、读者、大纲等「建议版本」（最终以批准计划为准）；但会改变核心事实的选择——尤其目标版本/Commit（稳定 Tag 还是 `develop`，直接决定哪些能力算“已发布”）、是否纳入迁移、是否将本 Issue 收口为正式选题——应在调研阶段先向用户澄清，而不是先写进计划再列为缺口。建议大纲默认在末尾包含「关于 OpenTiny NEXT」收尾章节（见 [收尾章节模板](./references/about-opentiny-section.md)）；仅当人工在选题/计划讨论中以自然语言明确表示不要时，才在大纲中省略该章节。
 
-4. 确认写作计划已被批准——这是进入写作前的闸门。只有 `inspect-issue` 输出中存在 `actionable: true` 且 `parsed.kind: "approve-writing-plan"` 的评论，才算由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出了逐字固定批准命令：
+4. 确认写作计划已被批准——这是进入写作前的闸门。只有 `inspect-issue` 输出中存在 `fixed_approval: "approve-writing-plan"` 且 `approval_authorized: true` 的评论，才算由授权用户（非 bot，association 为 OWNER / MEMBER / COLLABORATOR）发出了逐字固定批准命令：
 
    ```text
    /ai 批准写作计划
@@ -176,7 +176,7 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 出现以下任一情况立即停止，不写作、不提交新 Commit、不创建 PR，并说明停在哪一步、缺什么、需要人工做什么决定：
 
 - Issue 标签含 `AI执行：人工暂停`——这是人工显式叫停信号，优先级高于任何待办步骤。
-- 写作计划没有 `actionable: true` 的批准命令（无人批准、批准被越权/bot 发出、或只是自然语言表述）。
+- 写作计划没有 `fixed_approval: "approve-writing-plan"` 且 `approval_authorized: true` 的批准命令（无人批准、批准被越权/bot 发出、或只是自然语言表述）。
 - 目标项目不在 `config/projects.yml` 的 allowlist 中。
 - 文章校验反复报某个 `blocking_issues[].code`，且无法在不改动受保护内容（Front Matter、代码、图片路径）的前提下消除。
 - 只在本机存在、无法在来源中追溯的资料，被要求写成正式来源。

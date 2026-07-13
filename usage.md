@@ -45,7 +45,7 @@ GitHub 上创建或确认文章 Issue
 | 运营人员 | 提出选题，确认读者、标题、大纲、表达、图片效果和发布可读性，推动流程继续。 | GitHub Issue、GitHub PR、Codex / Claude Code 对话 |
 | 核心技术维护者 | 检查事实、术语、版本、Tag、Commit、API、代码片段、兼容性、性能和安全表述。 | GitHub Issue、GitHub PR |
 | Agent | 调研、生成写作计划、写文章、在初稿和修改时调用润色 Skill、接入素材、按初审或 Review 意见修改。 | Codex / Claude Code 对话 |
-| `article-hub` CLI | 校验项目、解析固定命令、过滤权限和 bot、生成批准快照、校验文章、更新状态和创建 Draft PR。 | Agent 自动调用 |
+| `article-hub` CLI | 校验项目，标准化评论作者权限，标记显式 `/ai` 请求，校验固定写作计划批准，生成批准快照，校验文章，更新状态并创建 Draft PR。 | Agent 自动调用 |
 
 固定批准命令可以由运营人员或核心技术维护者发送，不额外限制角色；当前规则只要求发送者有仓库权限，且命令完全匹配。
 
@@ -208,7 +208,7 @@ Issue 至少写清楚：
 
 要求：
 - 只做调研和写作计划，不生成正文，不创建 PR。
-- 使用 gh 读取 Issue 原始事实，并用 article-hub 做确定性解析和项目校验。
+- 使用 gh 读取 Issue 原始事实并直接理解评论意图；用 article-hub 校验权限、固定批准命令和项目配置。
 - 检查相似 Issue、已有文章和 materials/article-archive。
 - 先在对话中输出 5-8 行计划摘要，完整写作计划必须发布或更新为 GitHub Issue 评论。
 - 发布评论时使用 gh issue comment；发布成功后在对话中给出 Issue 评论链接。
@@ -339,7 +339,7 @@ Agent 会先在对话展示计划摘要，再把完整写作计划作为 Issue �
 我批准 /ai 批准写作计划
 ```
 
-系统只认固定命令，避免 Agent 猜测人的意图。
+这项批准只认固定命令，避免 Agent 猜测人的批准意图。状态查询、暂停、恢复、重试和写作计划修改可以使用以 `/ai` 开头的自然语言请求。
 
 ## 第五步：生成文章和 Draft PR
 
@@ -353,7 +353,7 @@ Agent 会先在对话展示计划摘要，再把完整写作计划作为 Issue �
 写作计划已经在 Issue 中用固定命令批准。请使用 generate-opentiny-article 继续处理这个 Issue：<Issue 链接或编号>。
 
 要求：
-- 重新读取 Issue 和评论，确认批准命令 actionable: true。
+- 重新读取 Issue 和评论，确认批准命令同时满足 `fixed_approval: "approve-writing-plan"` 和 `approval_authorized: true`。
 - 如果 Issue 含 AI执行：人工暂停，立即停止。
 - 校验项目属于 config/projects.yml。
 - 固定来源快照后再生成文章。
@@ -545,6 +545,16 @@ Draft PR 初审阶段可以只评论，不要求核心技术维护者必须 Appr
 如果 Codex、Claude Code 或其他本地 Agent 支持定时任务，可以让它定期检查文章 Issue 和 Draft PR，自动处理已经明确授权的写作计划、固定批准命令、PR Review 和 `/ai` 修改指令。
 
 定时巡检只负责本地唤醒和消费已授权事件，不跳过写作计划批准、事实确认、人工 Review、Ready for review 或发布流程。建议先完整跑通一次人工流程，再参考 [本地 Agent 定时巡检配置说明](./docs/local-agent-scheduled-checks.md) 配置 Issue 巡检和 PR 巡检。需要自动将已合入母稿发布到外部平台时，可额外配置「正式发布巡检」，详见该文档中的 `docs/prompts/local-publish-watch.md`。
+
+Issue 巡检支持自然语言 `/ai` 请求，例如：
+
+```text
+/ai 请重试
+/ai 暂停处理
+/ai 写作计划内容丢失了，请重新上传
+```
+
+只有评论首个非空位置以独立 `/ai` 前缀开头才算显式控制请求；正文中引用 `/ai` 或写成 `/ai请重试` 不会被当成控制请求。该标记不是 Review 意见的入口条件：Agent 会读取所有授权、非 bot 的新评论，自行判断其中是否包含需要处理的写作计划 Review 意见。普通讨论无需回复；状态不允许、意图不明确或请求夹带范围外 mutation 时，巡检会评论说明原因。写作计划批准仍须逐字使用 `/ai 批准写作计划`。
 
 ## 第九步：验收与 Ready for review
 

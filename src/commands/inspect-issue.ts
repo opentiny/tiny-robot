@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 
-import { parseAiCommand, type ParsedAiCommand } from "../domain/command-parser.js";
+import {
+  isFixedWritingPlanApproval,
+  isExplicitAiRequest,
+} from "../domain/command-parser.js";
 import { ArticleHubError } from "../infrastructure/errors.js";
 
 interface IssueActor {
@@ -39,7 +42,7 @@ export interface InspectIssueOptions {
 const authorizedAssociations = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
 
 /**
- * 读取 Issue fixture，输出标签事实和经过权限、bot 过滤的固定命令。
+ * 读取 Issue fixture，输出标签事实、显式 `/ai` 请求标记和经过权限、bot 过滤的固定批准命令。
  *
  * @param options Issue 文件路径和 dry-run 标记。
  * @returns 版本化 Issue 事实与命令 envelope。
@@ -62,28 +65,20 @@ export async function inspectIssue(options: InspectIssueOptions): Promise<unknow
     },
     commands: comments.map((comment) => {
       const actor = normalizeCommentActor(comment);
-      const parsed = typeof comment.body === "string" ? parseAiCommand(comment.body) : null;
-      const wireParsed = toWireCommand(parsed);
+      const fixedApproval =
+        typeof comment.body === "string" && isFixedWritingPlanApproval(comment.body);
 
       return {
         source: "comment",
         comment_id: normalizeCommentId(comment.id),
         actor,
         body: typeof comment.body === "string" ? comment.body : "",
-        parsed: wireParsed,
-        actionable: wireParsed !== null && actor.authorized
+        explicit_ai_request:
+          typeof comment.body === "string" && isExplicitAiRequest(comment.body),
+        fixed_approval: fixedApproval ? "approve-writing-plan" : null,
+        approval_authorized: fixedApproval && actor.authorized
       };
     })
-  };
-}
-
-function toWireCommand(parsed: ParsedAiCommand | null) {
-  if (!parsed) {
-    return null;
-  }
-
-  return {
-    kind: parsed.kind,
   };
 }
 

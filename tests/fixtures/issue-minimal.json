@@ -68,6 +68,42 @@
         "type": "User",
         "association": "MEMBER"
       }
+    },
+    {
+      "id": 1007,
+      "body": "/ai 请重试\n\n写作计划内容丢失了，请重新上传。",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
+    },
+    {
+      "id": 1008,
+      "body": "/ai请重试",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
+    },
+    {
+      "id": 1009,
+      "body": "/ai 批准选题",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
+    },
+    {
+      "id": 1010,
+      "body": "建议把第二节改成先讲使用场景，再介绍 API。",
+      "author": {
+        "login": "maintainer",
+        "type": "User",
+        "association": "MEMBER"
+      }
     }
   ],
   "unexpected_future_field": {

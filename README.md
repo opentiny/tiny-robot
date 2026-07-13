@@ -38,7 +38,7 @@ node scripts/article-hub-launcher.mjs validate article --article-file tests/fixt
 ## 核心工作流
 
 1. 维护者通过文章选题 Issue 提供项目、文章类型、目标和候选资料；文风由 AI 在写作计划中推荐，人工批准前确认或改选。
-2. Agent 读取 Issue 原始事实，调用 `article-hub inspect-issue` 和 `projects validate` 做确定性解析与项目 allowlist 校验。
+2. `article-hub inspect-issue` 标准化标签与评论作者权限，标记显式 `/ai` 请求并校验固定写作计划批准；Agent 判断授权评论是否包含需要处理的 Review 意见或控制请求，`projects validate` 校验项目 allowlist。
 3. Agent 调研公开资料，生成写作计划、资料快照和素材缺口，并把计划评论发布到 Issue。
 4. 维护者用固定命令批准写作计划：`/ai 批准写作计划`，Agent 随后生成批准快照。
 5. Agent 调用 `generate-opentiny-article` 生成文章母稿，并在创建 Draft PR 前调用 `polish-opentiny-article` 做初稿全文优化。

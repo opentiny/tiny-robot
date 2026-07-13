@@ -133,7 +133,7 @@ node dist/cli.js validate article --article-file tests/fixtures/articles/valid-a
 出现以下情况立即停止，不写作、不提交、不创建 PR，并报告阻断点和需要人工决定的问题：
 
 - Issue 标签含 `AI执行：人工暂停`。
-- 写作计划没有 `actionable: true` 的批准命令。
+- 写作计划没有 `approval_authorized: true` 且 `fixed_approval: "approve-writing-plan"` 的批准命令。
 - 目标项目不在 `config/projects.yml` allowlist。
 - 人工确认资料与公开官方资料冲突，且影响核心结论。
 - 来源缺失，无法支撑版本、API、兼容性、性能或安全结论。
