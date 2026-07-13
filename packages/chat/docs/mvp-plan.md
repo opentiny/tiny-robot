@@ -52,16 +52,13 @@ packages/chat/
       Sender.vue
       ScrollToBottom.vue
   demo/
-    components/
-      DemoWorkbench.vue
     cases/
       built-in-kit.vue
       existing-kit.vue
       custom-runtime.vue
+      minimal-custom-runtime.vue
       shared.ts
       useCustomRuntime.ts
-    demoPaths.ts
-    instrumentRuntime.ts
     scenario.ts
 ```
 
@@ -73,8 +70,8 @@ packages/chat/
 - `src/composables/useLocalChatRuntime.ts` 只补齐 kit quick start 行为
 - `src/components/*` 只做内部映射，不作为 v1 public API
 - `src/components/*` 内部负责把 `ChatRuntime` 数据映射成默认 UI 组件输入
-- demo 分别验证 Built-in Kit Runtime、Existing Kit Runtime、Custom Runtime
-- demo 使用确定性的 Instant / Streaming / Slow / Error / Abortable 场景检视主协议
+- demo 分别验证 Built-in Kit Runtime、Existing Kit Runtime、Custom Runtime、Minimal Custom Runtime
+- demo 只保留最小 mock 回复，不引入日志面板或场景控制
 - 真实 LLM 只作为协议冻结前的可选 smoke，不作为默认 Demo 依赖
 
 ## 3. 阶段 1：公共协议
@@ -262,7 +259,23 @@ packages/chat/
 - custom runtime 只需要适配消息、会话和请求生命周期
 - 发送成功后输入框由 `TrChat` 清空
 
-## 12. MVP 验收清单
+## 12. 阶段 10：Minimal Custom Runtime
+
+目标：验证 `runtime.conversations` 不是默认接入的强制字段。
+
+实现内容：
+
+- demo 内实现一个最小 `ChatRuntime`
+- 只提供 `messages / sender / actions.send`
+- 不提供 `conversations`
+
+验证点：
+
+- 默认 UI 不因为缺少 `conversations` 报错
+- 单会话接入路径可以正常发送和展示消息
+- 输入草稿仍由 `TrChat` 内部处理
+
+## 13. MVP 验收清单
 
 - 没有修改原子组件已有 props
 - runtime state 只读，变更只走 actions
@@ -273,11 +286,12 @@ packages/chat/
 - `kit` 只在 runtime adapter 层出现
 - 已有 kit runtime 可以通过 `useKitChatRuntime` 迁移 UI
 - external runtime 可以只接 UI
+- minimal custom runtime 可以不提供 `conversations`
 - Prompt 回填、发送、取消、消息渲染、会话切换能闭环
 
-## 13. 后续测试沉淀
+## 14. 后续测试沉淀
 
-MVP 初期先用 `type-check + build + demo` 验证架构。当前优先把 Demo 作为三条 Runtime 路径的检视台，协议稳定后再沉淀自动化测试。
+MVP 初期先用 `type-check + dev demo` 验证架构。当前优先把 Demo 作为 Runtime 路径的最小示例，协议稳定后再沉淀自动化测试。
 
 协议和实现稳定后，再沉淀：
 
@@ -288,7 +302,7 @@ MVP 初期先用 `type-check + build + demo` 验证架构。当前优先把 Demo
 - external runtime 交互验证
 - kit quick start 集成验证
 
-## 14. E2E 验证注意
+## 15. E2E 验证注意
 
 任何 e2e / Playwright 测试前必须先构建 components 包。
 
@@ -300,7 +314,7 @@ pnpm build:components
 pnpm -F tiny-robot-test test
 ```
 
-## 15. 范围外说明
+## 16. 范围外说明
 
 下面这些不属于当前 MVP 实现范围：
 

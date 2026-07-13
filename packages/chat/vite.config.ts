@@ -16,11 +16,4 @@ export default defineConfig({
   server: {
     port: 5185,
   },
-  preview: {
-    port: 5186,
-  },
-  build: {
-    outDir: resolve(__dirname, 'demo/dist'),
-    emptyOutDir: true,
-  },
 })

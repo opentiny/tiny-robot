@@ -5,12 +5,4 @@ import './style.css'
 
 const app = createApp(App)
 
-app.config.errorHandler = (error) => {
-  if (error instanceof Error && error.message === 'Demo response failed by scenario control.') {
-    return
-  }
-
-  console.error(error)
-}
-
 app.mount('#app')

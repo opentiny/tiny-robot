@@ -1,7 +1,7 @@
 import { computed, shallowRef } from 'vue'
 import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
 import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload } from '../../src'
-import { runExternalDemoResponse, type DemoScenarioController } from '../scenario'
+import { createDemoReply } from '../scenario'
 import { useDemoChatUi } from './shared'
 
 function createConversation(title: string): ChatConversationItem {
@@ -15,7 +15,7 @@ function createConversation(title: string): ChatConversationItem {
   }
 }
 
-export function useCustomRuntime(controller: DemoScenarioController) {
+export function useCustomRuntime() {
   const firstConversation = createConversation('Custom Runtime')
   const conversations = shallowRef<ChatConversationItem[]>([firstConversation])
   const currentId = shallowRef<string | null>(firstConversation.id)
@@ -27,7 +27,6 @@ export function useCustomRuntime(controller: DemoScenarioController) {
   const processingState = shallowRef<RequestProcessingState | undefined>()
   const lastError = shallowRef<unknown | null>(null)
   let activeRunId = 0
-  let activeAbortController: AbortController | null = null
 
   const messages = computed(() => (currentId.value ? (messagesByConversation.value[currentId.value] ?? []) : []))
   const disabled = computed(() => false)
@@ -62,10 +61,6 @@ export function useCustomRuntime(controller: DemoScenarioController) {
       return
     }
 
-    activeAbortController?.abort()
-    const abortController = new AbortController()
-    activeAbortController = abortController
-
     const currentRunId = activeRunId + 1
     activeRunId = currentRunId
     const current = ensureConversation(text.slice(0, 20))
@@ -84,61 +79,40 @@ export function useCustomRuntime(controller: DemoScenarioController) {
     processingState.value = 'requesting'
     updateMessages(conversationId, userMessages)
 
-    try {
-      await runExternalDemoResponse({
-        label: 'Custom Runtime',
-        text,
-        abortSignal: abortController.signal,
-        controller,
-        onChunk: (chunk) => {
-          if (currentRunId !== activeRunId) {
-            return
-          }
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 240))
 
-          assistantContent += chunk
-          processingState.value = 'completing'
-          updateMessages(conversationId, [
-            ...userMessages,
-            {
-              role: 'assistant',
-              content: assistantContent,
-              loading: true,
-            },
-          ])
-        },
-      })
-
-      if (currentRunId !== activeRunId) {
-        return
-      }
-
-      if (assistantContent) {
-        updateMessages(conversationId, [
-          ...userMessages,
-          {
-            role: 'assistant',
-            content: assistantContent,
-            loading: false,
-          },
-        ])
-      }
-      requestState.value = 'completed'
-    } catch (error) {
-      if (abortController.signal.aborted || currentRunId !== activeRunId) {
-        requestState.value = 'aborted'
-        return
-      }
-
-      lastError.value = error
-      requestState.value = 'error'
-      throw error
-    } finally {
-      if (currentRunId === activeRunId) {
-        loading.value = false
-        processingState.value = undefined
-        activeAbortController = null
-      }
+    if (currentRunId !== activeRunId) {
+      return
     }
+
+    assistantContent = createDemoReply('Custom Runtime', text)
+    processingState.value = 'completing'
+    updateMessages(conversationId, [
+      ...userMessages,
+      {
+        role: 'assistant',
+        content: assistantContent,
+        loading: true,
+      },
+    ])
+
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 80))
+
+    if (currentRunId !== activeRunId) {
+      return
+    }
+
+    updateMessages(conversationId, [
+      ...userMessages,
+      {
+        role: 'assistant',
+        content: assistantContent,
+        loading: false,
+      },
+    ])
+    loading.value = false
+    requestState.value = 'completed'
+    processingState.value = undefined
   }
 
   const runtime: ChatRuntime = {
@@ -160,8 +134,6 @@ export function useCustomRuntime(controller: DemoScenarioController) {
       send,
       abort: () => {
         activeRunId += 1
-        activeAbortController?.abort()
-        activeAbortController = null
         loading.value = false
         requestState.value = 'aborted'
         processingState.value = undefined

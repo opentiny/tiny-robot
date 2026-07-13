@@ -28,8 +28,6 @@
   "scripts": {
     "build": "vue-tsc --noEmit",
     "dev": "vite --host 0.0.0.0",
-    "build:demo": "vite build",
-    "preview:demo": "vite preview",
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {

@@ -3,20 +3,36 @@ import { computed } from 'vue'
 import BuiltInKit from './cases/built-in-kit.vue'
 import CustomRuntime from './cases/custom-runtime.vue'
 import ExistingKit from './cases/existing-kit.vue'
-import { demoPathInfo, demoPaths } from './demoPaths'
+import MinimalCustomRuntime from './cases/minimal-custom-runtime.vue'
 
 const demos = [
   {
-    ...demoPathInfo.builtInKit,
+    id: 'built-in-kit',
+    path: '/built-in-kit',
+    aliases: ['/', '/basic', '/local-runtime', '/kit-quick-start'],
+    title: 'Built-in Kit',
     component: BuiltInKit,
   },
   {
-    ...demoPathInfo.existingKit,
+    id: 'existing-kit',
+    path: '/existing-kit',
+    aliases: ['/kit-runtime', '/kit-existing-runtime'],
+    title: 'Existing Kit',
     component: ExistingKit,
   },
   {
-    ...demoPathInfo.customRuntime,
+    id: 'custom-runtime',
+    path: '/custom-runtime',
+    aliases: ['/external-runtime'],
+    title: 'Custom Runtime',
     component: CustomRuntime,
+  },
+  {
+    id: 'minimal-custom-runtime',
+    path: '/minimal-custom-runtime',
+    aliases: ['/minimal-runtime'],
+    title: 'Minimal Runtime',
+    component: MinimalCustomRuntime,
   },
 ]
 
@@ -36,13 +52,13 @@ const currentDemo = computed(
       </div>
       <div class="demo-paths__links">
         <a
-          v-for="demo in demoPaths"
+          v-for="(demo, index) in demos"
           :key="demo.id"
           :href="demo.path"
           class="demo-paths__link"
           :class="{ 'demo-paths__link--active': demo.id === currentDemo.id }"
         >
-          <span>{{ demo.index }}</span>
+          <span>{{ index + 1 }}</span>
           {{ demo.title }}
         </a>
       </div>
