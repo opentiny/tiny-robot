@@ -2,7 +2,7 @@
 
 你正在 ai-article-hub 仓库中执行本地文章 PR 定时巡检。请只做本轮巡检，不要实现 GitHub Workflow，不要创建常驻服务。
 
-## Windows OfficeClaw 启动检查
+## 启动检查
 
 启动时把当前仓库绝对路径记为 `scheduler_root`，并把下面的仓库内命令记为 `<article_hub>`：
 
@@ -12,12 +12,12 @@ node "<scheduler_root>/scripts/article-hub-launcher.mjs"
 
 本文后续出现的 `<article_hub>` 都必须替换成上面的完整命令；禁止直接运行裸 `article-hub`，禁止依赖全局安装或 `PATH`。执行候选发现前按顺序完成一次启动检查：
 
-1. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status`。
+1. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status --hostname github.com`，确认 Node.js 版本不低于 20；任一检查失败时按启动检查失败处理。
 2. `node_modules` 不存在时，在 `scheduler_root` 运行 `corepack pnpm install --no-lockfile`，按当前机器配置的 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。
 3. 在 `scheduler_root` 运行 `corepack pnpm run build`。构建因依赖缺失失败时，只允许补跑一次 `corepack pnpm install --no-lockfile` 并重试一次构建。
 4. 运行 `<article_hub> doctor --root "<scheduler_root>" --config "<scheduler_root>/config/projects.yml"`，确认退出码为 0 且输出 `ok: true`。
 
-启动检查失败时不得读取或修改候选 PR/Issue，不得创建候选运行标记，也不得向 GitHub 发布评论。用文件写入工具把失败记录保存到 `<scheduler_root>/.cache/article-hub/scheduled-runs/system/pr-watch.json`，至少包含失败时间、Windows 版本、`scheduler_root`、失败命令、退出码和原始错误；在本轮输出中报告同样信息后停止。自动恢复只使用 pnpm，不运行 `npm install`。
+启动检查失败时不得读取或修改候选 PR/Issue，不得创建候选运行标记，也不得向 GitHub 发布评论。用文件写入工具把失败记录保存到 `<scheduler_root>/.cache/article-hub/scheduled-runs/system/pr-watch.json`，至少包含失败时间、操作系统及版本、当前 shell、`scheduler_root`、失败命令、退出码和原始错误；在本轮输出中报告同样信息后停止。自动恢复只使用 pnpm，不运行 `npm install`。
 
 ## 范围
 
@@ -63,6 +63,26 @@ node "<scheduler_root>/scripts/article-hub-launcher.mjs"
   2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh pr comment`、`gh issue comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
   3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，并输出失败摘要、实际正文行数和缺失章节。
 - 多行 PR 回执、阻断说明或失败报告发布后，必须用 `gh pr view <pr-number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1，且包含该类正文应有的评论链接、处理结论、失败摘要或隐藏标记。
+
+## GitHub 评论附件下载
+
+人工在本轮已授权评论中提供 `https://github.com/user-attachments/assets/<uuid>` 图片，并明确要求补入文章时，把它作为现有素材自动处理。只有来源或授权不明、需要重新生成素材，或需要人工检查敏感信息时才转人工。
+
+按以下顺序处理：
+
+1. 先创建候选 PR 专属 worktree。确认附件 URL 使用 HTTPS、host 为 `github.com`，且 path 完整匹配 `/user-attachments/assets/<uuid>`；拒绝其他外链。
+2. 把附件下载到该 worktree 的文章目录 `assets/`。先以 URL 末尾 UUID 命名临时文件 `<attachment-uuid>.part`；临时文件已存在时停止，不得覆盖。
+3. 使用 `gh api` 下载，以便读取私有仓库评论附件：
+
+```bash
+gh api "<attachment-url>" > "<worktree 内文章 assets 绝对路径>/<attachment-uuid>.part"
+```
+
+4. 只有命令退出码为 0、临时文件存在且非空时才继续。下载遇到网络错误、`408`、`429` 或 `5xx` 时最多重试 3 次，间隔 1、2、4 秒；其他错误不重试。失败后删除本轮创建的临时文件并保留 stderr。
+5. 根据文件内容识别实际类型，只接受 PNG、JPEG、GIF 或 WebP，不根据 URL、alt text 或文件名猜测。评论明确要求 GIF 等特定格式但实际类型不符时，删除临时文件并标记 `ATTACHMENT_TYPE_MISMATCH`，请求人工提供正确素材。
+6. 正式文件名优先采用评论明确指定的名称；未指定时根据内容和引用位置生成简短的 kebab-case 名称，扩展名必须匹配实际类型。评论 Markdown 的 alt text 不视为文件名。正式文件已存在时停止，不得覆盖。
+7. 把临时文件改为正式文件名，在评论指定位置补入图片引用，运行文章校验，并继续 Head SHA 检查、提交和推送流程。
+8. 在“AI 巡检处理回执”的对应意见下记录原始附件 URL、正式文件名、实际类型、字节数和文章引用位置。
 
 ## Worktree 隔离
 
@@ -126,7 +146,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
    - 记录开始处理时的 PR Head SHA，提交或推送前重新读取并比对；Head 已变化时停止，不覆盖人工修改。
 4. 对本轮意见先逐条归类，并记录处理动作：
    - 表达/结构类：明确给出修改目标和范围时，进入正文修改；只表达感受或范围过大且存在多种改法时，回复澄清问题。
-   - 素材类：能在现有公开素材内处理时修改；需要新增截图、GIF、Demo、敏感信息或素材来源确认时，回复澄清或转人工。
+   - 素材类：能在现有公开素材内处理时修改；人工已在本轮授权评论中提供 GitHub attachment 并明确要求补入文章时，先按“GitHub 评论附件下载”处理。需要重新生成截图、GIF、Demo，或存在敏感信息、来源和授权疑问时，回复澄清或转人工。
    - 事实类：回固定来源核验；无法核验时回复需要谁确认、需要什么来源。
    - 需澄清：不改正文、不提交，回复具体待确认问题。
    - 无法采纳：不改正文、不提交，回复不采纳理由。
@@ -141,7 +161,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
    - 评论互相冲突。
    - 缺少事实来源。
    - 涉及版本、API、兼容性、性能、安全、代码正确性但无法回到固定来源确认。
-   - 需要人工确认截图、GIF、Demo、敏感信息或素材来源。
+   - 需要人工生成或确认截图、GIF、Demo、敏感信息或素材来源；人工已在本轮授权评论中提供 GitHub attachment 的情况不在此列，必须先尝试鉴权下载和格式校验。
    - PR Head 与开始处理时不一致。
 7. 修改正文时使用 `polish-opentiny-article`：
    - 只修改本轮授权范围。
@@ -163,6 +183,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 ## 失败处理
 
 - 如果遇到意见冲突、事实缺口、素材需确认或 Head SHA 变化，用 `<article_hub> update-status` 改为当前阶段 + `AI：等待人工`，并在 PR 回执和 Issue 评论中写清阻断点；PR 回执不得只有标题，必须包含受影响评论链接、停止原因、待确认问题和下一步负责人。
+- 附件处理失败时，回执包含原始附件 URL、失败步骤、`gh api` 退出码或文件校验结果、重试次数和临时文件清理结果。附件不存在或格式不符时按“需澄清”回到 `AI：等待人工`；工具、认证或网络失败时进入 `AI：失败`。回执不得包含凭据或重定向后的 URL。
 - 如果环境、权限、命令或 GitHub 写操作失败，且 `<article_hub>` 仍可用，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；PR 失败报告通过临时文件和 `--body-file` 发布，必须包含失败命令、原始错误、退出码、受影响评论链接、worktree、可继续处理的入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
 - 如果 `<article_hub>` 本身意外失效，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 PR 失败评论。把原始错误追加到 `scheduled-runs/system/pr-watch.json`，保留候选运行标记和 worktree，在本轮输出中报告可恢复入口后停止。
 
