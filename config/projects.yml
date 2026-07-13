@@ -42,6 +42,27 @@ projects:
         default_ref: dev
         role: official-docs
         source_type: docs
+  - project_id: tiny-vue
+    display_name: TinyVue
+    docs:
+      site_url: https://opentiny.design/tiny-vue/zh-CN/overview
+    demo:
+      url: https://opentiny.design/tiny-vue/zh-CN/overview
+    deepwiki:
+      url: null
+    terminology:
+      source: null
+    repositories:
+      - name: tiny-vue
+        url: https://github.com/opentiny/tiny-vue.git
+        default_ref: dev
+        role: primary-source
+        source_type: source
+      - name: opentiny-docs
+        url: https://github.com/opentiny/docs.git
+        default_ref: dev
+        role: official-docs
+        source_type: docs
   - project_id: tiny-robot
     display_name: TinyRobot
     docs:

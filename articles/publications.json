@@ -19,6 +19,21 @@
           "published_at": "2026-07-07T13:50:00+08:00"
         }
       }
+    },
+    "tiny-vue/2026-07-13-tinyvue-tree-menu": {
+      "article_file": "articles/tiny-vue/2026-07-13-tinyvue-tree-menu/article.md",
+      "title": "侧边导航一步到位：TinyVue TreeMenu 树型菜单实战指南",
+      "publications": {}
+    },
+    "tiny-vue/2026-07-13-tinyvue-dropdown": {
+      "article_file": "articles/tiny-vue/2026-07-13-tinyvue-dropdown/article.md",
+      "title": "操作收纳更优雅：TinyVue Dropdown 下拉菜单上手指南",
+      "publications": {}
+    },
+    "tiny-vue/2026-07-13-tinyvue-base-select": {
+      "article_file": "articles/tiny-vue/2026-07-13-tinyvue-base-select/article.md",
+      "title": "表单筛选利器：TinyVue BaseSelect 基础选择器实战",
+      "publications": {}
     }
   }
 }
