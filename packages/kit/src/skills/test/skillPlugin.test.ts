@@ -34,15 +34,7 @@ describe('skillPlugin', () => {
         },
       ],
     }
-    const onInstructionsResolved = vi.fn((skillContext, context) => {
-      context.requestBody.messages = [
-        {
-          role: 'system',
-          content: skillContext.instructions.join('\n\n'),
-        },
-        ...context.requestBody.messages,
-      ]
-    })
+    const onInstructionsResolved = vi.fn()
     const responseProvider = vi.fn<ResponseProvider>(async (requestBody: MessageRequestBody) => {
       const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
 
@@ -120,6 +112,13 @@ describe('skillPlugin', () => {
             skillNames: [vueSkill.name],
           },
           onInstructionsResolved,
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
+            context.requestBody.messages = [
+              { role: 'system', content: instructions.join('\n\n') },
+              ...context.requestBody.messages,
+            ]
+          },
           getSkillByName: async (name) => (name === vueSkill.name ? vueSkill : undefined),
         }),
         toolPlugin({
@@ -142,7 +141,8 @@ describe('skillPlugin', () => {
     })
   })
 
-  it('lets onInstructionsResolved modify the request body', async () => {
+  it('calls onInstructionsResolved immediately without a request body', async () => {
+    const events: string[] = []
     const responseProvider = vi.fn(mockResponseProvider('ok'))
     const engine = createTestMessageEngine({
       initialMessages: [
@@ -159,20 +159,22 @@ describe('skillPlugin', () => {
             skillNames: [weatherSkill.name],
           },
           onInstructionsResolved: (skillContext, context) => {
-            context.requestBody.skill_instructions = skillContext.instructions
+            events.push('instructions')
+            expect(skillContext.instructions).toEqual([expect.stringContaining('Use wttr.in for weather requests.')])
+            expect(context).not.toHaveProperty('requestBody')
           },
           getSkillByName: async (name) => (name === weatherSkill.name ? weatherSkill : undefined),
         }),
       ],
-      responseProvider,
+      responseProvider: (...args) => {
+        events.push('request')
+        return responseProvider(...args)
+      },
     })
 
     await engine.sendMessage('weather in London')
 
-    const requestBody = responseProvider.mock.calls[0]?.[0]
-    expect(requestBody.messages[0]).toEqual({ role: 'system', content: 'Existing system instructions.' })
-    expect(requestBody.skill_instructions).toEqual([expect.stringContaining('Use wttr.in for weather requests.')])
-    expect(requestBody.messages[1]).toMatchObject({ role: 'user', content: 'weather in London' })
+    expect(events).toEqual(['instructions', 'request'])
   })
 
   it('exposes request-scoped instructions without modifying messages when injection is omitted', async () => {
@@ -226,7 +228,7 @@ describe('skillPlugin', () => {
       expect.objectContaining({
         instructions: [expect.stringContaining('Use wttr.in for weather requests.')],
       }),
-      expect.objectContaining({ requestBody: expect.any(Object) }),
+      expect.not.objectContaining({ requestBody: expect.any(Object) }),
     )
   })
 
@@ -268,7 +270,7 @@ describe('skillPlugin', () => {
     expect(onInstructionsResolved).toHaveBeenCalledTimes(1)
     expect(onInstructionsResolved).toHaveBeenCalledWith(
       expect.objectContaining({ instructions: [] }),
-      expect.objectContaining({ requestBody: expect.any(Object) }),
+      expect.not.objectContaining({ requestBody: expect.any(Object) }),
     )
   })
 
@@ -277,15 +279,7 @@ describe('skillPlugin', () => {
     const getSkillByName = vi.fn(async (name: string) => (name === weatherSkill.name ? weatherSkill : undefined))
     const onSkillSelectionResolved = vi.fn()
     const onSkillsResolved = vi.fn()
-    const onInstructionsResolved = vi.fn((skillContext, context) => {
-      context.requestBody.messages = [
-        {
-          role: 'system',
-          content: skillContext.instructions.join('\n\n'),
-        },
-        ...context.requestBody.messages,
-      ]
-    })
+    const onInstructionsResolved = vi.fn()
     const responseProvider = vi.fn<ResponseProvider>(async (requestBody: MessageRequestBody) => {
       const hasSelectionResult = requestBody.messages.some(
         (message) => message.role === 'tool' && String(message.content).includes('requestedSkillNames'),
@@ -368,8 +362,10 @@ describe('skillPlugin', () => {
           onSkillSelectionResolved,
           onSkillsResolved,
           onBeforeRequest: (context) => {
-            const content = getSkillRequestContext(context)?.instructions.join('\n\n')
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
+            const content = instructions.join('\n\n')
             instructionContents.push(content ?? '')
+            context.requestBody.messages = [{ role: 'system', content }, ...context.requestBody.messages]
           },
         }),
         toolPlugin({
