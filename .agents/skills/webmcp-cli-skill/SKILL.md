@@ -306,7 +306,7 @@ webmcp-cli run page-agent-tool '{"action": "searchTree", "query": "#42", "contex
 | `xiaohongshu.com`         | `xhs_get_note_detail`, `xhs_get_feed`, `xhs_search_notes`     | 无需子 Skill；工具的描述已能说明用途。                                                                                                                                                                                                                        |
 | `creator.xiaohongshu.com` | `xhs_publish_note`                                            | 无需子 Skill；工具的描述已能说明用途。                                                                                                                                                                                                                        |
 | `editor.csdn.net`         | `create_article`, `get_article_info`, `publish_current_draft` | **当需要在 CSDN 平台发布文章时，请阅读 [domains/publish-article-in-csdn.md](domains/publish-article-in-csdn.md)。**<br>注意：调用 `publish_current_draft` 前须先 `get_article_info` 并生成 **100 字以内** 摘要。                                                                                                                     |
-| `segmentfault.com`        | `create_article`, `get_article_info`, `publish_current_draft`, `segmentfault_publish_article` | **当需要在思否平台发布文章时，请阅读 [domains/publish-article-in-segmentfault.md](domains/publish-article-in-segmentfault.md)。** 推荐掘金风格三步流程；高级场景可用 `segmentfault_publish_article`。                                                                 |
+| `segmentfault.com`        | `segmentfault_publish_article`                                | **当需要在思否平台发布文章时，请阅读 [domains/publish-article-in-segmentfault.md](domains/publish-article-in-segmentfault.md)。** 使用 `publish_full_flow` 写入并自动保存草稿，再经 `get_state` 校验后调用 `publish`（须 `confirm: true`）正式发布；`content` 为原始 Markdown，勿用 `@base64file:`。                                                                 |
 
 在各自的域名中，可以调用相应的网页工具：
 
@@ -332,12 +332,7 @@ webmcp-cli run xhs_search_notes '{"keyword": "AI Agent", "limit": 10}'
 # 小红书发布图文笔记
 webmcp-cli run xhs_publish_note '{"title": "第一条笔记", "content": "内容极其精彩...", "images": [{"name": "1.jpg", "mimeType": "image/jpeg", "base64": "..."}]}'
 
-# 思否平台：掘金风格三步流程（推荐）
-webmcp-cli run create_article '{"title": "你的文章标题", "content": "@base64file:./article.md"}'
-webmcp-cli run get_article_info
-webmcp-cli run publish_current_draft '{"category": "前端", "tags": ["前端", "AI", "WebMCP"]}'
-
-# 思否高级流程（导航→过引导→填内容→保存草稿）
+# 思否：写入草稿（导航→过引导→填内容→自动保存；content 为原始 Markdown）
 webmcp-cli run segmentfault_publish_article '{
   "action": "publish_full_flow",
   "title": "你的文章标题",
@@ -346,11 +341,14 @@ webmcp-cli run segmentfault_publish_article '{
   "tags": ["前端", "AI", "WebMCP"],
   "type": "original",
   "scope": "personal",
-  "copyright": true,
-  "scheduled_time": "2026-07-01T10:00:00+08:00"
+  "copyright": true
 }'
 
-# 思否分步操作（精细控制）
+# 思否：校验可发布状态后正式发布（须先审核草稿或确认 can_publish）
+webmcp-cli run segmentfault_publish_article '{"action": "get_state"}'
+webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": true}'
+
+# 思否分步操作（精细控制，如定时发布）
 webmcp-cli run segmentfault_publish_article '{"action": "set_title", "title": "文章标题"}'
 webmcp-cli run segmentfault_publish_article '{"action": "set_scheduled_publish", "scheduled_time": "2026-07-01T10:00:00+08:00"}'
 webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": true}'

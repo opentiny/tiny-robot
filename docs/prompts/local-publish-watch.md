@@ -67,7 +67,7 @@ git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publis
 - 必须调用正式发布动作；只写入草稿、审核中、未取得平台文章 URL 都不算完成。
 - 不创建或修改 GitHub Issue/PR 标签。
 - 本任务只创建或更新回写 PR，不负责合并；合并一律等待人工审核后由人工完成。禁止以任何形式合并该 PR：不执行 `gh pr merge`（含 `--auto`、`--merge`、`--squash`、`--rebase` 等任何子选项）、不启用 auto-merge、不在网页点击合并按钮、不把回写改动直接推到 `main` 或其他受保护分支。
-- 目标平台未登录、跳转登录页、账号异常、验证码、二次确认或权限不足时，停止处理该候选，记录失败原因。
+- 目标平台未登录、跳转登录页、账号异常、验证码、需真人点击的二次确认弹窗或权限不足时，停止处理该候选，记录失败原因。思否工具 API 的 `publish` + `confirm: true` 属于流程必填参数，在 `get_state` 通过后允许调用，不视为需停止的「二次确认」。
 - 已存在正式发布记录时，默认不覆盖、不重发。
 - `.cache/`、临时参数文件和本轮 worktree 不得提交。
 - commit 只能包含 `articles/publications.json`；不得把 `.cache/`、临时参数文件或文章正文变更加入提交。
@@ -205,7 +205,10 @@ node dist/cli.js validate article --article-file <article_file> --config config/
 
 如果 `dist/cli.js` 不存在，先运行 `pnpm run build`；构建失败则停止该候选。若 `validate article` 返回 `ok: false` 或存在 `blocking_issues`，停止该候选并记录阻断码，不得继续发布。
 
-6. 按目标平台子指南执行正式发布。各平台统一采用 **打开编辑器 → `create_article` → `get_article_info` → `publish_current_draft`** 流程；`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，通过 `@base64file:` 传入，**不修改母稿、不生成 `.publish/` 副本**。调用 `publish_current_draft` 前必须先 `get_article_info`，基于正文智能推断分类与标签，**切勿盲目使用默认值**。PowerShell 终端下 `create_article` / `publish_current_draft` 参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
+6. 按目标平台子指南执行正式发布。`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，**不修改母稿、不生成 `.publish/` 副本**。分类与标签须基于正文智能推断，**切勿盲目使用默认值**。PowerShell 终端下参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
+
+   - `juejin` / `csdn` / `oschina`：采用 **打开编辑器 → `create_article` → `get_article_info` → `publish_current_draft`**；正文通过 `@base64file:<article_file>` 传入（这些工具的 `content` 期望 Base64）；调用 `publish_current_draft` 前必须先 `get_article_info`。
+   - `segmentfault`：采用 `segmentfault_publish_article` 的 **`publish_full_flow` → `get_state` → `publish`（`confirm: true`）**。其 `content` 期望 **原始 Markdown 字符串**，**禁止**对思否使用 `@base64file:`（否则编辑器会写入 Base64 文本而非正文）。长正文须用 `-f` 传入含原始 Markdown 的 JSON。`publish_full_flow` 只到草稿箱不算完成。
 
    - `juejin`：
      1. 打开 `https://juejin.cn/editor/drafts/new?v=2`，`webmcp-cli state` 确认工具已注入。
@@ -222,11 +225,12 @@ node dist/cli.js validate article --article-file <article_file> --config config/
      5. 成功时页面跳转到 `mp.csdn.net/.../success/<articleId>`，记录正式文章 URL。
 
    - `segmentfault`：
-     1. 打开 `https://segmentfault.com/howtowrite`（若已在 `/write` 可跳过引导）；引导页执行 `segmentfault_publish_article` 的 `click_howtowrite_continue`。
-     2. `create_article` 写入标题与正文（工具内部会等待自动保存完成）。
-     3. `get_article_info` 获取当前草稿内容。
-     4. 基于正文智能推断 `category`、`tags`（1~5 个）后调用 `publish_current_draft`。
-     5. 记录正式文章 URL。
+     1. 打开 `https://segmentfault.com/howtowrite`（已在 `/write` 可跳过），`webmcp-cli state` 确认已登录且注入 `segmentfault_publish_article`；未登录或跳转到 `/user/login` 时停止该候选。后续 `run` 必须带 `-t <tabid>`。
+     2. 校验标题长度为 **5~100 字符**；不合规则停止该候选并记录原因。
+     3. 调用 `segmentfault_publish_article`，`action` 为 `publish_full_flow`：写入标题、**原始 Markdown** 正文、`category`、`tags`（最多 5 个）；默认 `type: original`、`scope: personal`、`copyright: true`；**不传 `scheduled_time`**（立即发布）。工具会处理引导页与自动保存（约 4.5 秒），并提示封面需手动上传——本巡检跳过封面，不阻塞后续发布。
+     4. 调用 `segmentfault_publish_article`，`action` 为 `get_state`，确认 `can_publish: true`（标题有效、正文非空、标签 1~5 个、已选分类）；不满足则记录 `errors` 并停止该候选，不得伪造发布状态。
+     5. 本巡检以正式发布为目标：状态校验通过后立即调用 `segmentfault_publish_article`，`action` 为 `publish` 且 **必须** `confirm: true`（这是工具 API 必填确认，不等于需人工二次审核），不等待草稿箱人工复核。若浏览器验证码、账号异常弹窗等仍需真人操作，停止该候选。
+     6. 确认 URL 变为正式文章页（含 `/a/`），记录正式文章 URL；仅得到草稿箱 `https://segmentfault.com/user/draft` 不算成功。若已写入草稿但未发布成功，失败记录须带上草稿箱 URL，供人工清理或续发，避免下轮误开新草稿重复发布。
 
    - `oschina`：必须已在定时任务 prompt 中提供 `oschina_uid`；未提供则跳过并记录原因。
      1. 打开 `https://my.oschina.net/u/<uid>/blog/ai-write`，`webmcp-cli state` 确认工具已注入。
@@ -253,7 +257,7 @@ segmentfault_category：前端
 segmentfault_tags：前端, AI, OpenTiny
 ```
 
-未提供 `segmentfault_category` 时，优先根据 `get_article_info` 返回的正文推断；无法判断时使用 `前端`。未提供 `segmentfault_tags` 时，优先从正文推断；无法判断时使用 `前端`、`AI`、`OpenTiny`。
+未提供 `segmentfault_category` 时，优先根据母稿正文推断后传入 `publish_full_flow` 的 `category`；无法判断时使用 `前端`。未提供 `segmentfault_tags` 时，优先从正文推断后传入 `tags`（最多 5 个）；无法判断时使用 `前端`、`AI`、`OpenTiny`。不传 `scheduled_time`。思否 `content` 必须是母稿原始 Markdown；用 `-f` 传参时把文件正文读入 JSON 的 `content` 字段，不要写 `@base64file:`。
 
 ## 失败处理
 
@@ -261,8 +265,10 @@ segmentfault_tags：前端, AI, OpenTiny
 - 平台页面工具未注入：记录失败，提示检查 `webmcp-cli state` 输出。
 - `validate article` 阻断：记录失败，输出 `blocking_issues[].code`，不继续发布。
 - `publish_current_draft` 报错（如摘要字数不符、标签过多）：记录失败，输出工具返回的错误信息。
+- 思否 `publish_full_flow` 成功但仅落到草稿箱：不得回写；须继续同工具的 `get_state` + `publish`（`confirm: true`）。若 `get_state` 返回 `can_publish: false`，或 `publish` 返回 `CANNOT_PUBLISH` / `NOT_CONFIRMED`，记录失败并输出 `errors`；`next_action` 应提示人工处理草稿箱残留草稿。
+- 思否标题不足 5 字符或超过 100 字符：记录失败，不调用写入。
 - 平台正式文章 URL 无法获取：记录失败，不回写 `articles/publications.json`。
-- 平台只保存到草稿或进入审核中：记录失败，不回写 `articles/publications.json`，并输出需要人工确认的页面 URL。
+- 平台只保存到草稿或进入审核中：记录失败，不回写 `articles/publications.json`，并输出需要人工确认的页面 URL（思否草稿箱为 `https://segmentfault.com/user/draft`）。
 - `articles/publications.json` 回写失败：记录失败，保留 worktree，不删除可追溯证据。
 - `gh` 未登录或 token 失效：保留本地 commit，停止 push 和 PR，提示用户完成 GitHub CLI 登录后继续。
 - push 或 PR 创建失败：保留 worktree、分支和本地 commit，输出失败命令与下一步处理建议。
@@ -275,7 +281,7 @@ segmentfault_tags：前端, AI, OpenTiny
 - `articles/publications.json` 只记录正式发布事实。未拿到正式文章 URL 时不得写入平台记录。
 - 回写 PR 需等待人工合并，未合并期间 `origin/main` 的 `publications.json` 不含这些记录。候选识别必须同时核对待合并回写 PR（见「候选识别」），否则会对已发布但未合并的「文章 + 平台」重复发布。运行标记在发布成功后即删除，不能作为跨轮去重依据。
 - 部分平台指南仍包含“先写草稿、等待人工审核”的阶段说明。本任务以“直接正式发布”为目标；若平台在当前账号下必须人工审核或二次确认，则停止该候选，不伪造发布状态。
-- 各平台推荐 `create_article` → `get_article_info` → `publish_current_draft` 三步流程；`segmentfault_publish_article` 的 `publish_full_flow` 仅作高级备选，本巡检任务不使用。
+- `juejin` / `csdn` / `oschina` 使用 `create_article` → `get_article_info` → `publish_current_draft`（`content` 用 `@base64file:`）。思否按 `publish-article-in-segmentfault.md` / `SKILL.md` 使用 `segmentfault_publish_article`：`publish_full_flow` 只写入并自动保存草稿；本巡检在 `get_state` 通过后以 `publish` + `confirm: true` 完成正式发布，跳过技能文档中的人工草稿箱审核与封面手动上传；封面缺失不视为阻断，但发布结果须人工抽查。若写入草稿后发布失败，平台可能残留草稿，下轮不得在未核对草稿箱的情况下直接再跑 `publish_full_flow` 造成重复草稿。
 - 母稿若含相对路径本地图片，平台编辑器可能无法直接展示；`validate article` 仅校验图片文件存在，不负责平台 CDN 上传。发布成功后应人工抽查平台正文中的图片是否正常显示。
 - 开源中国需要 `uid`，无法从仓库稳定推断；未配置时只能跳过。
 - 每轮都使用独立 worktree。并发巡检不得共用 worktree、运行标记或 `.cache/article-hub/publish-watch-failures/` 子路径。成功创建回写 PR 后必须清理本轮 worktree，不留本地目录。
