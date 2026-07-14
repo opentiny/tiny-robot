@@ -70,8 +70,17 @@
         "juejin": {
           "url": "https://juejin.cn/spost/7661983059005341722",
           "published_date": "2026-07-14"
+        },
+        "segmentfault": {
+          "url": "https://segmentfault.com/a/1190000048024395",
+          "published_at": "2026-07-14T13:06:16+08:00"
         }
       }
+    },
+    "2026-07-14-tinyvue-cascader": {
+      "article_file": "articles/tiny-vue/2026-07-14-tinyvue-cascader/article.md",
+      "title": "层级选择不再手写联动：TinyVue Cascader 级联选择器上手",
+      "publications": {}
     }
   }
 }
