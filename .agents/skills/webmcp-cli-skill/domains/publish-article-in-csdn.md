@@ -69,9 +69,25 @@ webmcp-cli run create_article -t TAB_ID -f ./article_args.json
 > - `@base64file:` 占位符会被 CLI 自动展开为 Base64 编码内容，无需手动处理
 > - CSDN 编辑器默认可能是「比对」模式，`create_article` 会自动切换到 Markdown 模式
 
-### 第三步：使用内置工具一键发布
+### 第三步：检查并修复正文图片（有图时必做）
 
-在编辑器页面内容填写完成后，直接使用 `publish_current_draft` 一键完成标签、分类选择和发布。
+`create_article` 之后、`publish_current_draft` 之前：
+
+1. 调用 `get_article_info`（若工具不可用，用 `executeJavascript` 读 `.editor__inner`）检查正文是否仍含：
+   - `./assets/` / 相对路径图片
+   - `img-home.csdnimg.cn?...origin_url=`（外链转存失败占位，有预览宽高也算异常）
+   - 「外链图片转存失败」文案
+   - 非正文 CDN（合法示例：`i-blog.csdnimg.cn` / `img-blog.csdnimg.cn`）
+2. 若存在异常，**先**按 [fix-csdn-article-images.md](./fix-csdn-article-images.md) 完成标记 → 上传（优先 `csdn.upload.uploadImg`）→ 替换 → 复检（最多 3 轮），再进入发布。
+3. 图片全部正常（或正文无图）时，直接进入第四步。
+
+可复用脚本目录：`../scripts/csdn-images/`（`mark.mjs` / `prepare-upload.mjs` / `upload-editor.mjs` / `replace.mjs` / `check-page.js` / `wrap-check-page.mjs`）。
+
+> 流程对齐掘金侧 [fix-juejin-article-images.md](./fix-juejin-article-images.md)，占位符为 `__CSDN_IMG_N__`。
+
+### 第四步：使用内置工具一键发布
+
+在编辑器页面内容填写完成且图片检查通过后，直接使用 `publish_current_draft` 一键完成标签、分类选择和发布。
 
 > [!IMPORTANT]
 > - **切勿盲目使用默认值（"前端" 和 ["Vue.js"]）**！
@@ -87,7 +103,7 @@ webmcp-cli run get_article_info -t TAB_ID
 webmcp-cli run publish_current_draft -t TAB_ID '{"category":"前端","tags":["Vue.js","JavaScript","前端"],"summary":"本指南详细介绍了如何使用 WebMCP 让 AI 助手精准操控浏览器，涵盖安装配置、核心工具集使用方法及多种实战场景，是一篇极具实用价值的 AI Agent 教程。"}'
 ```
 
-### 第四步：验证发布结果
+### 第五步：验证发布结果
 
 ```bash
 webmcp-cli state -t TAB_ID
@@ -107,3 +123,5 @@ webmcp-cli state -t TAB_ID
 | 点击发布无反应 | Vue 不响应原生 JS click / 遮罩拦截 | `publish_current_draft` 会自动移除 `.mark-mask-box-div` 遮罩 |
 | 标签添加失败 | 右栏标签无独立 index | `publish_current_draft` 内置 JS 批量点选 `.el-tag` |
 | PowerShell JSON 报错 | 内联 JSON 转义失败 | 改用 `create_article -f article_args.json` |
+| 图片显示转存失败 / 假 CDN | 相对路径被改成 `img-home...origin_url=` 占位 | 按 [fix-csdn-article-images.md](./fix-csdn-article-images.md) 用 `csdn.upload.uploadImg` 上传后写回 |
+| file input 上传超时 | 页面上的 file input 是「导入 Markdown」 | `upload-editor.mjs` 已改优先 SDK，勿注入 `.md` input |
