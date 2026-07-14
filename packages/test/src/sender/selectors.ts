@@ -9,6 +9,7 @@ export const SENDER_SELECTORS = {
   toggleDisabledBtn: '[data-testid="toggle-disabled-btn"]',
   toggleWordLimitBtn: '[data-testid="toggle-word-limit-btn"]',
   toggleSizeBtn: '[data-testid="toggle-size-btn"]',
+  toggleExternalContentBtn: '[data-testid="toggle-external-content-btn"]',
   submitTypeSelect: '[data-testid="submit-type-select"]',
   maxLengthInput: '[data-testid="max-length-input"]',
   placeholderInput: '[data-testid="placeholder-input"]',

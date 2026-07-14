@@ -50,6 +50,22 @@ test.describe('Sender 组件测试', () => {
     await helper.expectLoadingButtonVisible(true)
   })
 
+  test('Props: hasExternalContent - 应该支持仅外部内容提交', async () => {
+    await helper.expectEditorEmpty()
+    await helper.expectSubmitButtonVisible(false)
+
+    await helper.toggleClearable()
+    await helper.expectClearButtonVisible(false)
+
+    await helper.toggleExternalContent()
+    await helper.expectSubmitButtonVisible(true)
+    await helper.expectClearButtonVisible(false)
+    await helper.expectSubmitButtonDisabled(false)
+
+    await helper.clickSubmit()
+    await helper.expectResult('提交内容:')
+  })
+
   test('Props: disabled - 应该正确控制禁用状态', async () => {
     await helper.typeContent('测试内容')
     await helper.expectEditorContent('测试内容')
