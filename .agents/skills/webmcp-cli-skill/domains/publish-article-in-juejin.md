@@ -67,9 +67,21 @@ webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content"
 webmcp-cli run create_article -f ./article_args.json
 ```
 
-### 第三步：使用内置工具一键发布
+### 第三步：检查并修复正文图片（有图时必做）
 
-在编辑器页面内容填写完成后，直接使用注入该域名的 `publish_current_draft` 内置 MCP 工具一键完成分类、标签选择并点击发布。
+`create_article` 之后、`publish_current_draft` 之前：
+
+1. 调用 `get_article_info` 检查正文是否仍含 `./assets/`、相对路径图片、裂图或非掘金 CDN（`*.byteimg.com` / `*.juejin.cn`）链接。
+2. 若存在异常，**先**按 [fix-juejin-article-images.md](./fix-juejin-article-images.md) 完成标记 → 上传 → 替换 → 复检（最多 3 轮），再进入发布。
+3. 图片全部正常（或正文无图）时，直接进入第四步。
+
+可复用脚本目录：`../scripts/juejin-images/`（`mark.mjs` / `prepare-upload.mjs` / `upload-imagex.mjs` / `replace.mjs` / `check-page.js` / `wrap-check-page.mjs`）。
+
+检查规则补充：合法掘金图床含 `*.byteimg.com`、`*.juejin.cn`（含 `*-xtjj-private.juejin.cn` 签名链）。
+
+### 第四步：使用内置工具一键发布
+
+在编辑器页面内容填写完成且图片检查通过后，直接使用注入该域名的 `publish_current_draft` 内置 MCP 工具一键完成分类、标签选择并点击发布。
 
 > [!IMPORTANT]
 > - **切勿盲目使用默认值（"前端" 和 "Vue.js"）**！

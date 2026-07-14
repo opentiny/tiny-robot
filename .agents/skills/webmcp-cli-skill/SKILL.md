@@ -17,6 +17,7 @@ metadata:
 - 需要读取当前 DOM 结构并识别可交互元素时。
 - 在已注入领域专用工具的页面上操作时（例如 Excalidraw 绘图工具）。
 - 需要将 `ai-article-hub` 仓库中的文章母稿发布到掘金、CSDN、思否等外部平台，并回写 `articles/publications.json` 后提 PR 时。
+- 需要检查或修复已写入掘金编辑器/已发布文章中的异常图片时（见 [domains/fix-juejin-article-images.md](domains/fix-juejin-article-images.md)）。
 
 ## 安装
 
@@ -300,7 +301,7 @@ webmcp-cli run page-agent-tool '{"action": "searchTree", "query": "#42", "contex
 | 需要注入的域名            | 注入的工具                                                    | 何时阅读子 Skill                                                                                                                                                                                                                                              |
 | ------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `excalidraw.com`          | `excalidraw_execute_command`                                  | **当当前页面 URL 包含 `excalidraw.com` 且需要绘制或操作画布元素时，请阅读 [domains/excalidraw.md](domains/excalidraw.md)。**                                                                                                                                  |
-| `juejin.cn`               | `create_article`, `publish_current_draft`, `get_article_info` | **当需要在掘金平台发布文章时，请阅读 [domains/publish-article-in-juejin.md](domains/publish-article-in-juejin.md)。**<br>注意：调用 `publish_current_draft` 前必须先生成严格在 **50-100 字** 内的文章摘要，否则工具将直接报错停止发布！ |
+| `juejin.cn`               | `create_article`, `publish_current_draft`, `get_article_info` | **当需要在掘金平台发布文章时，请阅读 [domains/publish-article-in-juejin.md](domains/publish-article-in-juejin.md)。**<br>注意：调用 `publish_current_draft` 前必须先生成严格在 **50-100 字** 内的文章摘要，否则工具将直接报错停止发布！<br>**当需要检查或修复掘金正文/草稿中的裂图、相对路径图片时，请阅读 [domains/fix-juejin-article-images.md](domains/fix-juejin-article-images.md)**（脚本在 `scripts/juejin-images/`）。 |
 | `www.baidu.com`           | `baidu_search`, `baidu_get_results`                           | 无需子 Skill；工具的描述已能说明用途。                                                                                                                                                                                                                        |
 | `my.oschina.net/`         | `create_article`, `get_article_info`, `publish_current_draft` | **当需要在开源中国平台发布文章时，请阅读 [domains/publish-article-in-oschina.md](domains/publish-article-in-oschina.md)。**<br>注意：调用 `publish_current_draft` 前须先 `get_article_info` 并生成 **50~200 字** 摘要。                                                                                                                                    |
 | `xiaohongshu.com`         | `xhs_get_note_detail`, `xhs_get_feed`, `xhs_search_notes`     | 无需子 Skill；工具的描述已能说明用途。                                                                                                                                                                                                                        |
