@@ -81,6 +81,12 @@
       "article_file": "articles/tiny-vue/2026-07-14-tinyvue-cascader/article.md",
       "title": "层级选择不再手写联动：TinyVue Cascader 级联选择器上手",
       "publications": {}
+    },
+    "tiny-robot/2026-07-14-tinyrobot-performance-tuning": {
+      "article_file": "articles/tiny-robot/2026-07-14-tinyrobot-performance-tuning/article.md",
+      "title": "TinyRobot 生产环境性能调优全攻略",
+      "topic_issue": 12,
+      "publications": {}
     }
   }
 }
