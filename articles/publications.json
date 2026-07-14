@@ -31,6 +31,10 @@
         "juejin": {
           "url": "https://juejin.cn/spost/7661927904990052398",
           "published_date": "2026-07-14"
+        },
+        "segmentfault": {
+          "url": "https://segmentfault.com/a/1190000048024395",
+          "published_at": "2026-07-14T13:06:16+08:00"
         }
       }
     },
@@ -45,13 +49,25 @@
         "juejin": {
           "url": "https://juejin.cn/spost/7661927904990150702",
           "published_date": "2026-07-14"
+        },
+        "segmentfault": {
+          "status": "failed",
+          "url": "",
+          "failed_at": "2026-07-14T13:06:16+08:00",
+          "retry_count": 1,
+          "last_error": "Article submitted for review but URL could not be confirmed (WAF blocks, API 404s, domain tool bugs). Draft ID: 1220000048024400"
         }
       }
     },
     "tiny-vue/2026-07-13-tinyvue-base-select": {
       "article_file": "articles/tiny-vue/2026-07-13-tinyvue-base-select/article.md",
       "title": "表单筛选利器：TinyVue BaseSelect 基础选择器实战",
-      "publications": {}
+      "publications": {
+        "csdn": {
+          "url": "https://blog.csdn.net/m0_70721415/article/details/162870998",
+          "published_at": "2026-07-14T13:06:16+08:00"
+        }
+      }
     }
   }
 }
