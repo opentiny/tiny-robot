@@ -38,6 +38,10 @@
       "article_file": "articles/tiny-vue/2026-07-13-tinyvue-dropdown/article.md",
       "title": "操作收纳更优雅：TinyVue Dropdown 下拉菜单上手指南",
       "publications": {
+        "csdn": {
+          "url": "https://blog.csdn.net/m0_70721415/article/details/162860691",
+          "published_date": "2026-07-14"
+        },
         "juejin": {
           "url": "https://juejin.cn/spost/7661927904990150702",
           "published_date": "2026-07-14"
