@@ -69,7 +69,7 @@ node scripts/article-hub-launcher.mjs validate article --article-file tests/fixt
 node scripts/article-hub-launcher.mjs <command> [options]
 ```
 
-launcher 从主仓库定位 `dist/cli.js`，保留调用方 `cwd`，因此可从带空格路径或隔离 worktree 调用。构建产物缺失时返回稳定错误码 `CLI_NOT_BUILT`。
+launcher 从它所在的仓库或 runtime worktree 定位 `dist/cli.js`，并保留调用方 `cwd`，因此可从带空格路径或隔离 worktree 调用。人工独立运行通常使用主仓 launcher；调度任务可使用本轮已构建 runtime 的绝对 launcher。构建产物缺失时返回稳定错误码 `CLI_NOT_BUILT`。
 
 命令分为三类：
 

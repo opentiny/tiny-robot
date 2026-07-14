@@ -17,7 +17,7 @@ node scripts/article-hub-launcher.mjs <command> [options]
 
 **环境要求**：Node.js ≥ 20.0.0，pnpm 10.x
 
-不要依赖裸 `article-hub`、全局安装或调度进程的 `PATH`。launcher 固定使用当前仓库构建的 `dist/cli.js`，并保留调用方 `cwd`；从隔离 worktree 执行时，应调用主仓库 launcher 的绝对路径。
+不要依赖裸 `article-hub`、全局安装或调度进程的 `PATH`。launcher 固定使用它所在仓库构建的 `dist/cli.js`，并保留调用方 `cwd`。独立人工调用默认使用主仓库 launcher 的绝对路径；调度任务应继承调用方固定的 `cli_root`，使用本轮已构建 runtime 的绝对 launcher。
 
 ---
 

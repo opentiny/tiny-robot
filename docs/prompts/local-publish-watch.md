@@ -13,6 +13,7 @@
 - 每轮最多处理 3 个「文章 + 平台」候选项。
 - 本任务直接正式发布文章；发布成功并拿到平台文章 URL 后，必须回写 worktree 内的 `articles/publications.json`。
 - 本任务必须在 worktree 分支上 commit、push 并创建 PR；PR 只包含已成功发布的平台记录。
+- 仓库同步只由 `local-repo-sync` 在主仓执行；本任务与 repo-sync **不互斥**，不要求结束时主仓 `HEAD` 与启动时相同。
 
 ## 必读资料
 
@@ -27,22 +28,53 @@
   - `segmentfault`：`.agents/skills/webmcp-cli-skill/domains/publish-article-in-segmentfault.md`
   - `oschina`：`.agents/skills/webmcp-cli-skill/domains/publish-article-in-oschina.md`
 
+## 启动与 runtime / 候选 worktree
+
+启动时把主仓库绝对路径记为 `scheduler_root`（定时任务工作目录）：
+
+```text
+失败记录 = <scheduler_root>/.cache/article-hub/scheduled-runs/system/publish-watch.json
+runtime_worktree = <scheduler_root>/.worktrees/publish-watch-runtime-<started-at-yyyymmdd-hhmmss>
+候选 worktree = <scheduler_root>/.worktrees/publish-watch-<started-at-yyyymmdd-hhmmss>
+cli_root = <runtime_worktree>
+operation_root = <候选 worktree>
+<article_hub> = node "<runtime_worktree>/scripts/article-hub-launcher.mjs"
+```
+
+1. 确认 `git -C "<scheduler_root>" rev-parse --show-toplevel` 等于 `scheduler_root`。
+2. **不要**检查或依赖 `system/repo-sync.json` 做互斥；不要写入整轮 `system/publish-watch.json` running 标记（该路径仅作失败记录）。
+3. 固定本轮基线：
+   ```bash
+   git -C "<scheduler_root>" fetch origin main
+   git -C "<scheduler_root>" rev-parse origin/main
+   ```
+   记为 `run_base_sha`。
+4. 创建 runtime worktree 并在其中 install/build（提供本轮 CLI）：
+   ```bash
+   git -C "<scheduler_root>" worktree add --detach "<runtime_worktree>" "<run_base_sha>"
+   # cwd = runtime_worktree
+   corepack pnpm install --no-lockfile
+   corepack pnpm run build
+   ```
+5. 从同一 `run_base_sha` 创建候选发布 worktree（承载 `publications.json` 回写与 PR 分支）：
+   ```bash
+   git -C "<scheduler_root>" worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> \
+     "<候选 worktree>" \
+     "<run_base_sha>"
+   ```
+6. 在 `scheduler_root` 内禁止为业务目的 `checkout`/`switch`/`merge`/`pull`/`rebase`/`reset`/`stash`/`clean`（`fetch` 与 `worktree add/remove` 除外），禁止在主仓改 `articles/` 或其它 tracked 文件。
+
 ## Worktree 隔离
 
-本任务会真实发布外部平台文章，并回写发布状态。为避免多个巡检任务或人工工作互相覆盖，必须先创建独立 worktree：
-
-```bash
-git fetch origin main
-git worktree add -b publish-watch/<started-at-yyyymmdd-hhmmss> .worktrees/publish-watch-<started-at-yyyymmdd-hhmmss> origin/main
-```
+本任务会真实发布外部平台文章，并回写发布状态。为避免多个巡检任务或人工工作互相覆盖，必须使用独立 worktree；**禁止**用主仓当前 `HEAD`，禁止先在主仓 `checkout main`。
 
 执行要求：
 
-- 后续所有命令的 `cwd` 都必须是该 worktree。
-- 所有构建、校验、运行标记、失败记录和 `articles/publications.json` 回写都在该 worktree 内完成。
-- 不切换用户当前工作区分支，不修改用户当前工作区文件。
+- 后续所有发布、校验、候选运行标记、失败记录和 `articles/publications.json` 回写的 `cwd` 都必须是**候选** worktree；CLI 使用 runtime 的 `<article_hub>`。
+- 不切换主仓当前分支，不修改主仓 tracked 文件。
 - 如果 worktree 创建失败，本轮停止，不要在主工作区继续执行。
-- 正常完成、push 并创建 PR 后，先确认 worktree 路径位于 `.worktrees/`，再运行 `git worktree remove --force <worktree-path>` 清理本轮 worktree；发布成功但回写、commit、push 或 PR 创建失败时保留 worktree 和分支供排查。
+- 候选与 runtime 的清理条件统一按“整轮收尾”的 outcome 表执行。
+- **不要**要求主仓 `end_head == start_head`。
 
 ## 候选识别
 
@@ -194,18 +226,19 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 ## 处理流程
 
 1. 读取必读资料。
-2. 创建本轮独立 worktree，并确认后续命令的 `cwd` 都在该 worktree 内。
-3. 按「候选识别」得到本轮候选；候选为空时只输出本轮无待处理项。
-4. 对每个候选创建运行标记。
-5. 运行文章校验：
+2. 完成「启动与 runtime / 候选 worktree」：固定 `run_base_sha`、创建 runtime 与候选 worktree、在 runtime install/build。
+3. 确认后续发布与回写命令的 `cwd` 都在**候选** worktree 内。
+4. 按「候选识别」得到本轮候选；候选为空时把 outcome 记为 `no_candidates`，只输出本轮无待处理项，并按“整轮收尾”清理本轮 worktree。
+5. 对每个候选创建运行标记。
+6. 运行文章校验（CLI 用 runtime launcher；`cwd` 可为候选 worktree）：
 
 ```bash
-node dist/cli.js validate article --article-file <article_file> --config config/projects.yml
+<article_hub> validate article --article-file <article_file> --config <runtime_or_candidate>/config/projects.yml
 ```
 
-如果 `dist/cli.js` 不存在，先运行 `pnpm run build`；构建失败则停止该候选。若 `validate article` 返回 `ok: false` 或存在 `blocking_issues`，停止该候选并记录阻断码，不得继续发布。
+构建失败则停止该候选。若 `validate article` 返回 `ok: false` 或存在 `blocking_issues`，停止该候选并记录阻断码，不得继续发布。不要回退到主仓 `dist` 或在主仓 `pnpm run build`。
 
-6. 按目标平台子指南执行正式发布。`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，**不修改母稿、不生成 `.publish/` 副本**。分类与标签须基于正文智能推断，**切勿盲目使用默认值**。PowerShell 终端下参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
+7. 按目标平台子指南执行正式发布。`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，**不修改母稿、不生成 `.publish/` 副本**。分类与标签须基于正文智能推断，**切勿盲目使用默认值**。PowerShell 终端下参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
 
    - `juejin` / `csdn` / `oschina`：采用 **打开编辑器 → `create_article` → `get_article_info` → `publish_current_draft`**；正文通过 `@base64file:<article_file>` 传入（这些工具的 `content` 期望 Base64）；调用 `publish_current_draft` 前必须先 `get_article_info`。
    - `segmentfault`：采用 `segmentfault_publish_article` 的 **`publish_full_flow` → `get_state` → `publish`（`confirm: true`）**。其 `content` 期望 **原始 Markdown 字符串**，**禁止**对思否使用 `@base64file:`（否则编辑器会写入 Base64 文本而非正文）。长正文须用 `-f` 传入含原始 Markdown 的 JSON。`publish_full_flow` 只到草稿箱不算完成。
@@ -239,12 +272,13 @@ node dist/cli.js validate article --article-file <article_file> --config config/
      4. 基于正文智能推断 `category`、`tags`，并生成 **50~200 字**摘要后调用 `publish_current_draft`。
      5. 记录正式文章 URL。
 
-7. 确认平台返回的 URL 可访问且不是草稿、编辑器或审核页。
-8. 回写 worktree 中的 `articles/publications.json`。
-9. 删除运行标记。
-10. 继续下一个候选。
-11. 若本轮至少有 1 个成功回写记录，按「Commit、push 与 PR」提交、推送并创建（或更新）PR；只创建或更新 PR，不合并。
-12. PR 创建成功即为本轮完成，PR 留待人工审核合并，本任务不执行任何合并动作；随后清理本轮 worktree。失败、阻断或未创建 PR 时保留 worktree。
+8. 确认平台返回的 URL 可访问且不是草稿、编辑器或审核页。
+9. 回写 worktree 中的 `articles/publications.json`。
+10. 删除运行标记。
+11. 继续下一个候选。
+12. 若本轮至少有 1 个成功回写记录，按「Commit、push 与 PR」提交、推送并创建（或更新）PR；只创建或更新 PR，不合并。
+13. PR 创建成功即为本轮 PR 环节完成，PR 留待人工审核合并，本任务不执行任何合并动作；仅当本轮没有更高优先级的异常结果时，才把 outcome 记为 `completed`。其他结果按“整轮收尾”选择 outcome，不再以“是否创建 PR”单独决定是否保留 worktree。
+14. **不要**验收主仓 `end_head == start_head`；**不要**写入与 repo-sync 互斥的整轮 system running 标记。
 
 ## 平台参数
 
@@ -275,6 +309,21 @@ segmentfault_tags：前端, AI, OpenTiny
 - OSChina 未提供 `uid`：跳过该平台，不视为流程失败。
 - 候选处理失败后继续处理下一个候选；同一候选不要在同一轮反复重试。
 
+## 整轮收尾
+
+所有候选处理结束后只选择一个最符合本轮最终状态的 outcome，并按表清理。候选 worktree 仅在其中包含可继续使用的本地状态，或外部平台状态需要人工核对时保留；runtime 已成功构建后可重建，不因业务失败长期保留。同轮出现混合结果时，按 `startup_failed` → `external_state_uncertain` → `recording_incomplete` → `completed` → `stopped_before_external_write` → `no_candidates` 的优先级选择第一个符合项，避免已创建 PR 掩盖另一个候选的外部状态风险。
+
+| outcome | 判定条件 | 候选 worktree | runtime worktree |
+| --- | --- | --- | --- |
+| `no_candidates` | 没有待发布候选，未调用平台写入动作 | 清理 | 清理 |
+| `stopped_before_external_write` | 候选均在校验、登录、参数或权限检查阶段停止；未完成平台草稿/正文写入，也没有需继续的 commit | 清理 | 清理 |
+| `external_state_uncertain` | 平台草稿/正文写入或正式发布动作已经发生，但没有可确认的正式 URL，存在重复发布风险 | 保留，连同失败记录供人工核对 | 清理 |
+| `recording_incomplete` | 已确认正式 URL，但 `publications.json` 回写、commit、push、PR 创建或 PR 回读未完成 | 保留现有文件、分支和 commit | 清理 |
+| `completed` | 正式发布事实已回写，PR 已创建或更新且回读成功，且本轮没有外部状态不明或回写未完成的候选 | 清理 | 清理 |
+| `startup_failed` | runtime 创建、install、build 或 doctor 失败，尚未进入候选处理 | 未创建则无操作；已创建但无业务状态时清理 | 保留供排查 |
+
+清理前先确认目标路径位于 `<scheduler_root>/.worktrees/`。清理顺序固定为候选 worktree、runtime worktree；保留的路径、分支、commit、失败记录和人工下一步必须写入本轮输出。
+
 ## 已知限制与问题记录
 
 - `publish-from-article-hub.md` 定义的是人工发起的单篇发布流程。本任务是本地定时巡检，可以一次处理多个候选；成功发布后仍需在 worktree 分支 commit、push 并创建 PR。
@@ -284,13 +333,13 @@ segmentfault_tags：前端, AI, OpenTiny
 - `juejin` / `csdn` / `oschina` 使用 `create_article` → `get_article_info` → `publish_current_draft`（`content` 用 `@base64file:`）。思否按 `publish-article-in-segmentfault.md` / `SKILL.md` 使用 `segmentfault_publish_article`：`publish_full_flow` 只写入并自动保存草稿；本巡检在 `get_state` 通过后以 `publish` + `confirm: true` 完成正式发布，跳过技能文档中的人工草稿箱审核与封面手动上传；封面缺失不视为阻断，但发布结果须人工抽查。若写入草稿后发布失败，平台可能残留草稿，下轮不得在未核对草稿箱的情况下直接再跑 `publish_full_flow` 造成重复草稿。
 - 母稿若含相对路径本地图片，平台编辑器可能无法直接展示；`validate article` 仅校验图片文件存在，不负责平台 CDN 上传。发布成功后应人工抽查平台正文中的图片是否正常显示。
 - 开源中国需要 `uid`，无法从仓库稳定推断；未配置时只能跳过。
-- 每轮都使用独立 worktree。并发巡检不得共用 worktree、运行标记或 `.cache/article-hub/publish-watch-failures/` 子路径。成功创建回写 PR 后必须清理本轮 worktree，不留本地目录。
+- 每轮都使用独立 worktree。并发巡检不得共用 worktree、运行标记或 `.cache/article-hub/publish-watch-failures/` 子路径；候选与 runtime 是否清理只按“整轮收尾”的 outcome 表判断。
 
 ## 本轮输出
 
 本轮结束时，请输出：
 
-- 本轮 worktree 路径、分支名和清理结果；失败或阻断时输出保留路径。
+- outcome、`run_base_sha`、runtime worktree 与候选 worktree 路径、分支名和清理结果；保留时输出具体原因。
 - 本轮检查的候选数量。
 - 已正式发布的文章、平台和 URL。
 - 已回写的 `articles/publications.json` 条目。
@@ -298,4 +347,4 @@ segmentfault_tags：前端, AI, OpenTiny
 - 跳过的候选和原因。
 - 失败项及下一步建议。
 - 需要人工登录、审核或补参数的平台。
-- 主工作区未修改的确认结果。
+- 未在主仓 tracked 工作区改文件的确认结果。

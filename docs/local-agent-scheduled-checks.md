@@ -13,9 +13,9 @@
 
 巡检机器不会自动跟随上游代码时，再增加第四个任务：
 
-- 仓库同步巡检：检查 `origin/main`（或指定跟踪分支）是否有新提交；仅在工作区干净、无业务占用、可 fast-forward 时拉取变更，然后执行依赖安装、构建和 `doctor`。
+- 仓库同步巡检：检查 `origin/main`（或指定跟踪分支）是否有新提交；仅在主仓工作区干净且可 fast-forward 时拉取变更，然后在主仓执行依赖安装、构建和 `doctor`。不因业务 worktree 运行而跳过。
 
-Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。正式发布巡检建议低频运行，例如每天 1-2 次，或在文章 PR 合入后人工开启。仓库同步巡检建议低于业务巡检频率，例如每 1-6 小时一次，并与 Issue/PR 巡检错开，避免在业务构建过程中更新主仓库。频率由本地工具决定，仓库不强制。
+Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。正式发布巡检建议低频运行，例如每天 1-2 次，或在文章 PR 合入后人工开启。仓库同步巡检建议例如每 1-6 小时一次；业务巡检在独立 runtime/候选 worktree 运行，与主仓同步可并行。频率由本地工具决定，仓库不强制。
 
 ## 使用方式
 
@@ -32,15 +32,15 @@ Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。
 - Codex app automation：在对话中明确要求“创建定时任务”，指定工作目录、频率、运行方式和要使用的巡检任务文件。Issue 巡检、PR 巡检、正式发布巡检和仓库同步巡检应创建成独立任务。
 - 调度平台或 Cron：在产品的定时任务入口中创建独立任务，分别让 Agent 读取对应巡检任务文件。
 
-当前运行环境是 Windows OfficeClaw。业务巡检每轮必须先按对应巡检文件完成启动检查：缺少依赖时自动运行 `corepack pnpm install --no-lockfile`，按巡检机器当前 npm registry 解析依赖，随后运行 `corepack pnpm run build`，并统一通过下面的仓库内 launcher 调用 CLI：
+当前运行环境是 Windows OfficeClaw。业务巡检每轮按对应巡检文件完成启动：`fetch origin main` → 固定 `run_base_sha` → 创建 **runtime worktree** → 在 runtime 内 `corepack pnpm install --no-lockfile` 与 `corepack pnpm run build` → doctor → 再按需创建候选 worktree。执行上下文中 `cli_root` 固定为 runtime，`operation_root` 固定为当前候选 worktree；CLI 统一通过 **runtime** launcher 调用：
 
 ```text
-node "<主仓库绝对路径>/scripts/article-hub-launcher.mjs"
+node "<runtime_worktree>/scripts/article-hub-launcher.mjs"
 ```
 
-业务巡检的启动检查**不**负责更新主仓库 git 历史；代码同步只由仓库同步巡检执行，规则见 `docs/prompts/local-repo-sync.md`。仓库不提交或读取 `pnpm-lock.yaml`。不要全局安装 `article-hub`，不要运行裸命令，也不要在 pnpm 项目中自动改用 `npm install`。启动检查失败属于整轮环境失败：只写 OfficeClaw 任务输出和 `.cache/article-hub/scheduled-runs/system/<watch-type>.json`，不读取候选项、不改标签、不向各 Issue 或 PR 重复评论。
+业务巡检**不**在主仓 install/build，**不**更新主仓 git 历史；主仓代码同步只由仓库同步巡检执行，规则见 `docs/prompts/local-repo-sync.md`。业务与 repo-sync **不互斥**，可并行。仓库不提交或读取 `pnpm-lock.yaml`。不要全局安装 `article-hub`，不要运行裸命令，也不要在 pnpm 项目中自动改用 `npm install`。启动检查失败属于整轮环境失败：只写 OfficeClaw 任务输出和 `.cache/article-hub/scheduled-runs/system/<watch-type>.json`（失败记录，不是与 repo-sync 的互斥标记），不读取候选项、不改标签、不向各 Issue 或 PR 重复评论。
 
-Codex app 可以从普通对话创建 automation。建议使用 project-scoped standalone automation，工作目录指向本仓库，并选择 local project 作为调度入口。工作目录必须填写执行机器上的仓库绝对路径，可在仓库根目录运行 `pwd` 获取；不要复制其他机器的用户路径。Issue 巡检和 PR 巡检在主仓库读取任务文件、候选和共享运行标记；进入写文件、生成、润色、提交或推送流程前，再按任务提示词创建候选专属 Git worktree。成功完成后必须自动清理本轮 worktree；失败或阻断时保留路径供排查。这样既能共享 `<主仓库>/.cache/article-hub/scheduled-runs/` 互斥标记，也不会污染用户当前工作区。
+Codex app 可以从普通对话创建 automation。建议使用 project-scoped standalone automation，工作目录指向本仓库，并选择 local project 作为调度入口。工作目录必须填写执行机器上的仓库绝对路径，可在仓库根目录运行 `pwd` 获取；不要复制其他机器的用户路径。Issue/PR 巡检在主仓读取任务文件、候选和共享运行标记，但写文件、生成、润色、提交或推送必须在候选 worktree（Issue/发布锚定 `run_base_sha`，PR 锚定已核对的 `pr_head_sha`）；CLI 来自 runtime worktree。调用 generate/polish Skill 时原样传递 `scheduler_root`、`cli_root`、`operation_root` 与 `<article_hub>`。成功完成后先清理候选 worktree，再清理 runtime；失败或阻断时按对应任务的 outcome/失败规则决定是否保留。不要求主仓 `end_head == start_head`。
 
 示例：
 
@@ -50,7 +50,7 @@ Codex app 可以从普通对话创建 automation。建议使用 project-scoped s
 名称：ai-article-hub Issue 巡检
 类型：standalone / project automation
 工作目录：<执行机器上的 ai-article-hub 仓库绝对路径>
-运行方式：local project 作为调度入口；写文件前按提示词创建候选专属 worktree
+运行方式：local project 作为调度入口；按提示词创建 runtime + 候选 worktree
 频率：每 30 分钟一次
 提示词：读取 docs/prompts/local-issue-watch.md，并按其中完整规则执行一轮 Issue 巡检。
 ```
@@ -65,12 +65,12 @@ Codex app 可以从普通对话创建 automation。建议使用 project-scoped s
 名称：ai-article-hub 正式发布巡检
 类型：standalone / project automation
 工作目录：<执行机器上的 ai-article-hub 仓库绝对路径>
-运行方式：local project 作为调度入口；发布任务按提示词创建独立 worktree
+运行方式：local project 作为调度入口；按提示词创建 runtime + 发布候选 worktree
 频率：每天 10:00 一次
 提示词：读取 docs/prompts/local-publish-watch.md，并按其中完整规则执行一轮正式发布巡检。目标平台：juejin, csdn, segmentfault。
 ```
 
-仓库同步巡检建议单独创建，频率低于 Issue/PR 巡检，并与业务巡检错开。示例：
+仓库同步巡检建议单独创建，频率低于业务巡检。示例：
 
 ```text
 请创建一个 Codex 定时任务：
@@ -78,7 +78,7 @@ Codex app 可以从普通对话创建 automation。建议使用 project-scoped s
 名称：ai-article-hub 仓库同步巡检
 类型：standalone / project automation
 工作目录：<执行机器上的 ai-article-hub 仓库绝对路径>
-运行方式：local project 作为调度入口；只更新主仓库跟踪分支，不创建业务 worktree
+运行方式：local project 作为调度入口；只在主仓更新跟踪分支，不创建业务 worktree，不因业务 worktree 跳过
 频率：每 2 小时一次
 提示词：读取 docs/prompts/local-repo-sync.md，并按其中完整规则执行一轮仓库同步巡检。
 ```
@@ -150,11 +150,12 @@ OfficeClaw 仓库同步巡检短 prompt：
 每次被定时唤醒时，Agent 必须遵守以下规则。完整任务规则以对应 `docs/prompts/local-*-watch.md` / `local-repo-sync.md` 为准；说明书不重复各任务的完整安全边界与 outcome 表。
 
 - 只处理本仓库的 OpenTiny 文章流程，不处理选题发现、普通业务 Issue 或非文章 PR。
-- 仓库同步与业务巡检职责分离：同步任务只更新主仓库跟踪分支；Issue/PR/发布任务不执行 `git pull`。同步失败只写本地 `system/repo-sync.json` 与任务输出，不改 Issue/PR 标签。
+- 仓库同步与业务巡检职责分离、路径隔离：`local-repo-sync` **只在主仓**检查分支/工作区、`fetch`、`merge --ff-only`、install/build/doctor；**不**因业务 worktree 运行而跳过。Issue/PR/发布任务：`fetch origin/main` → 固定 `run_base_sha` → runtime worktree 内 install/build/doctor → 候选 worktree 写文件（Issue/发布用 `run_base_sha`，PR 将 pull ref 抓取到显式 ref、核对后固定 `pr_head_sha`）→ 使用 runtime CLI 且 `cwd` 为候选 worktree → 按任务结果清理候选与 runtime。业务任务不在主仓 `merge`/`pull`，不为业务 `checkout` 主仓分支。同步失败只写本地 `system/repo-sync.json` 与任务输出，不改 Issue/PR 标签。
+- **不要**用 `system/issue-watch.json` / `pr-watch.json` / `publish-watch.json` 与 `repo-sync` 互斥；这些路径仅作失败记录。业务巡检**不要**启动时检查 `repo-sync.json`，也**不要**要求 `end_head == start_head`。
 - 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。
 - 业务巡检每轮最多处理 3 个候选项；候选为空时只输出“本轮无待处理项”，不写评论、不改标签。
 - 同一个文章 Issue 串行处理。不同 Issue 可以在不同任务中并行。
-- 所有 GitHub 状态标签必须通过主仓库 launcher 调用 `update-status` 修改，不得用裸 `article-hub`、`gh issue edit --add-label` 或手工拼标签绕过状态机。
+- 所有 GitHub 状态标签必须通过 runtime launcher 调用 `update-status` 修改，不得用裸 `article-hub`、`gh issue edit --add-label` 或手工拼标签绕过状态机。
 - 遇到 `AI执行：人工暂停` 立即停止，不读取新指令、不改文件、不提交、不创建 PR。
 - CLI 标准化 Issue 评论作者权限并标记评论首个非空位置的独立 `/ai` 前缀；Agent 读取所有授权、非 bot 的新评论，自行判断是否包含需要处理的 Review 意见或显式控制请求。Review 意见不要求 `/ai` 前缀；普通讨论无需处理。评论原文不得直接决定工具调用；控制请求只能进入巡检任务规定的封闭 intent，状态 mutation 仍由 `update-status` 校验。无法判断或状态不允许时必须评论说明原因。
 - `/ai 同意`、`同意`、`开始写吧` 等近似表达不算批准。写作计划批准只接受逐字固定命令 `/ai 批准写作计划`。
@@ -168,7 +169,9 @@ OfficeClaw 仓库同步巡检短 prompt：
 
 ## 运行标记
 
-Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记：
+### 候选 Issue 标记
+
+Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记（仅用于**同一 Issue 串行**，不与 repo-sync 互斥）：
 
 ```text
 <主仓库>/.cache/article-hub/scheduled-runs/<issue-number>.json
@@ -187,6 +190,8 @@ Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记�
   "thread": "本地定时任务名称或当前对话说明",
   "status": "running",
   "scheduler_root": "<主仓库绝对路径>",
+  "run_base_sha": "<本轮固定 origin/main sha>",
+  "runtime_worktree": "<runtime worktree 路径>",
   "worktree": "<候选专属 worktree 路径，未创建时为空>"
 }
 ```
@@ -196,16 +201,17 @@ Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记�
 - 同一 Issue 存在未完成标记时，本轮跳过该 Issue。
 - 标记已过 `expires_at` 时，不自动删除、不抢占，输出“疑似遗留运行”，要求人工确认。
 - 没有标记但 GitHub 标签显示 `AI：处理中` 时，只做只读检查，停止并提示可能有其他 Agent 正在处理。
-- 候选为空时不创建标记。
-- 正常完成后先清理候选专属 worktree，再删除标记或把 `status` 改为 `completed`。
-- 失败但已经回写 GitHub 状态后删除标记。
-- Issue/PR 巡检的标记固定读写 `<主仓库>/.cache/article-hub/scheduled-runs/`。候选专属 worktree 内的 `.cache` 不作为互斥依据。
+- 候选为空时不创建候选 Issue 标记。
+- 正常完成后先清理候选专属 worktree，再删除候选标记或把 `status` 改为 `completed`；整轮结束再清理 runtime worktree。
+- 失败但已经回写 GitHub 状态后删除候选标记。
+- Issue/PR 巡检的标记固定读写 `<主仓库>/.cache/article-hub/scheduled-runs/`。runtime / 候选 worktree 内的 `.cache` 不作为互斥依据。
+- **不要**要求本轮结束时主仓 `HEAD` 等于启动时；repo-sync 可并行更新主仓。
 
 正式发布巡检使用独立的「文章 + 平台」运行标记，具体格式见 `docs/prompts/local-publish-watch.md`。
 
-仓库同步巡检写入系统级运行记录 `<主仓库>/.cache/article-hub/scheduled-runs/system/repo-sync.json`。运行标记是 best-effort：发现活动业务/同步标记时跳过本轮；发现过期标记时停止并提示人工检查。字段与 outcome 定义见 `docs/prompts/local-repo-sync.md`，本文不重复。
+仓库同步巡检写入系统级运行记录 `<主仓库>/.cache/article-hub/scheduled-runs/system/repo-sync.json`，仅记录本任务自身状态。`skipped_busy` **只**表示上一轮 repo-sync 自身仍为活动 `running`，**不**扫描业务候选标记或业务 system 文件。字段与 outcome 定义见 `docs/prompts/local-repo-sync.md`，本文不重复。
 
-建议在正式挂定时任务前，用普通对话或临时 Git fixture 至少验证：已与远端一致、远端可 fast-forward、工作区不干净、本地领先、分叉、上一次构建失败需恢复。只在实际出错时再增补 prompt 条款。
+建议在正式挂定时任务前，用普通对话或临时 Git fixture 至少验证：已与远端一致、远端可 fast-forward、工作区不干净、本地领先、分叉、上一次构建失败需恢复、业务巡检在 runtime/候选 worktree 完成且主仓可同时被 repo-sync 更新。只在实际出错时再增补 prompt 条款。
 
 ## 状态标签
 

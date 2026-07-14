@@ -4,20 +4,55 @@
 
 ## Windows OfficeClaw 启动检查
 
-启动时把当前仓库绝对路径记为 `scheduler_root`，并把下面的仓库内命令记为 `<article_hub>`：
+启动时把当前仓库绝对路径记为 `scheduler_root`。本轮使用 **runtime worktree** 构建 CLI，不在主仓 install/build，也不与 `local-repo-sync` 互斥。
 
 ```text
-node "<scheduler_root>/scripts/article-hub-launcher.mjs"
+业务标记目录 = <scheduler_root>/.cache/article-hub/scheduled-runs/
+失败记录 = <scheduler_root>/.cache/article-hub/scheduled-runs/system/issue-watch.json
+runtime_worktree = <scheduler_root>/.worktrees/issue-watch-runtime-<started-at-yyyymmdd-hhmmss>
+cli_root = <runtime_worktree>
+operation_root = <候选 worktree；未创建时为空>
+<article_hub> = node "<runtime_worktree>/scripts/article-hub-launcher.mjs"
 ```
 
-本文后续的 `<article_hub>` 始终表示上面的仓库内完整命令。所有 CLI 调用都通过该 launcher 执行，不使用裸 `article-hub`、全局安装或 `PATH`。执行候选发现前按顺序完成一次启动检查：
+本文后续的 `<article_hub>` 始终表示 **runtime worktree** 内 launcher 的完整命令。所有 CLI 调用都通过该 launcher 执行，不使用裸 `article-hub`、全局安装、`PATH` 或主仓 `dist`。launcher 会固定加载 runtime 的 `dist/cli.js`，并保留调用进程的 `cwd`（候选 worktree 或 runtime）。
 
-1. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status`。
-2. `node_modules` 不存在时，在 `scheduler_root` 运行 `corepack pnpm install --no-lockfile`，按当前机器配置的 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。
-3. 在 `scheduler_root` 运行 `corepack pnpm run build`。构建因依赖缺失失败时，只允许补跑一次 `corepack pnpm install --no-lockfile` 并重试一次构建。
-4. 运行 `<article_hub> doctor --root "<scheduler_root>" --config "<scheduler_root>/config/projects.yml"`，确认退出码为 0 且输出 `ok: true`。
+执行候选发现前按顺序完成一次启动检查：
 
-启动检查失败时直接进入启动失败路径：用文件写入工具把失败记录保存到 `<scheduler_root>/.cache/article-hub/scheduled-runs/system/issue-watch.json`，至少包含失败时间、Windows 版本、`scheduler_root`、失败命令、退出码和原始错误；在本轮输出中报告同样信息后停止。此路径不读取或修改候选 Issue，不创建候选运行标记，也不向 GitHub 发布评论。自动恢复只使用 pnpm，不运行 `npm install`。
+1. 确认 `scheduler_root` 是 git 仓库根：
+   ```bash
+   git -C "<scheduler_root>" rev-parse --show-toplevel
+   ```
+   必须等于 `scheduler_root`。
+2. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status`。
+3. 固定本轮代码基线（**不要**依赖主仓当前分支或 `HEAD`）：
+   ```bash
+   git -C "<scheduler_root>" fetch origin main
+   git -C "<scheduler_root>" rev-parse origin/main
+   ```
+   将解析结果记为 `run_base_sha`。本轮 runtime 与 Issue 候选 worktree 均锚定此 SHA。
+4. 创建 runtime worktree（只读基线 + 本轮构建，不承载文章提交）：
+   ```bash
+   git -C "<scheduler_root>" worktree add --detach \
+     "<runtime_worktree>" \
+     "<run_base_sha>"
+   ```
+   路径必须位于 `<scheduler_root>/.worktrees/`。创建失败时进入启动失败路径，不得在主仓继续 install/build。
+5. 在 **runtime worktree** 内安装与构建（不是主仓）：
+   ```bash
+   corepack pnpm install --no-lockfile
+   corepack pnpm run build
+   ```
+   工作目录为 `runtime_worktree`。按当前机器 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。构建因依赖缺失失败时，只允许在 runtime 内补跑一次 install 并重试一次 build。
+6. 运行 doctor，`--root` / `--config` 指向 runtime：
+   ```bash
+   <article_hub> doctor --root "<runtime_worktree>" --config "<runtime_worktree>/config/projects.yml"
+   ```
+   确认退出码为 0 且输出 `ok: true`。
+
+启动检查失败时直接进入启动失败路径：用文件写入工具把失败记录保存到 `失败记录`（至少包含失败时间、Windows 版本、`scheduler_root`、`run_base_sha`、`runtime_worktree`、失败命令、退出码和原始错误）；在本轮输出中报告同样信息后停止。此路径不读取或修改候选 Issue，不创建候选运行标记，也不向 GitHub 发布评论。若已创建 runtime worktree，保留路径供排查。自动恢复只使用 pnpm，不运行 `npm install`。
+
+本任务**不**检查、**不**写入、**不**依赖 `system/repo-sync.json` 做互斥；repo-sync 可与本轮并行。
 
 ## 范围
 
@@ -25,7 +60,28 @@ node "<scheduler_root>/scripts/article-hub-launcher.mjs"
 - 候选 Issue 必须带有以下任一相关标签：阶段：选题、阶段：策划、AI：等待执行、AI：失败、AI：等待人工。
 - 每轮最多处理 3 个需要动作的候选 Issue；上限按完成候选排序和动作判定后的结果计算。
 - PR 已存在的 Issue 不再执行生成类动作，只做状态提示，并把后续修改交给 PR 巡检。
-- 调度入口可以在主仓库运行；凡要写本地文件、生成文章、校验、提交、推送或创建 Draft PR，必须切到候选 Issue 专属 Git worktree。
+- 调度入口可以在主仓库启动；本轮 install/build/doctor 在 runtime worktree；凡要写本地文件、生成文章、校验、提交、推送或创建 Draft PR，必须切到候选 Issue 专属 Git worktree。
+
+## 主仓与路径 contract
+
+本任务**不得**为业务目的改动 `scheduler_root` 的检出分支或 tracked 文件。仓库同步只由 `docs/prompts/local-repo-sync.md` 在主仓执行；本任务不执行 `git pull` / `git merge --ff-only` 更新主仓。
+
+在 `scheduler_root` 内**禁止**：
+
+- `git checkout`、`git switch`、`git merge`、`git pull`、`git rebase`、`git reset`、`git stash`、`git clean`（`fetch` 与 `worktree add/remove` 除外）
+- 在主仓 `commit` / `push` / 修改 `articles/` 或其它 tracked 源码与配置
+- 在主仓 install/build，或以主仓当前 `HEAD` 为起点创建业务分支
+
+在 `scheduler_root` 内**允许**：
+
+- `git fetch`（更新 remote-tracking，不改当前分支）
+- `git worktree add` / `git worktree remove`（仅操作 `.worktrees/` 下路径）
+- 读写 `.cache/article-hub/`（含 `scheduled-runs/` 与临时 Markdown）；系统临时目录
+- 只读：读任务文件、`gh` 只读 API
+
+**不要求**本轮结束时主仓 `HEAD` 等于启动时的 `HEAD`：repo-sync 可能并行更新主仓；业务隔离靠 runtime / 候选 worktree 与固定 `run_base_sha`，不靠冻结主仓。
+
+CLI 始终使用 runtime 的 `<article_hub>`；生成类命令的进程 `cwd` 必须是候选 worktree。
 
 ## 共用安全规则
 
@@ -96,26 +152,34 @@ node "<scheduler_root>/scripts/article-hub-launcher.mjs"
 
 ## Worktree 隔离
 
-启动时把当前仓库根目录记为 `scheduler_root`。Issue、PR 两个巡检任务共享以下运行标记目录，不得写到候选 worktree 的 `.cache` 中：
+Issue、PR 两个巡检任务共享以下运行标记目录，不得写到 runtime 或候选 worktree 的 `.cache` 中作为互斥依据：
 
 ```text
 <scheduler_root>/.cache/article-hub/scheduled-runs/
 ```
 
-候选识别、Issue/PR 读取、无需改文件的状态提示可以在 `scheduler_root` 执行。一旦本轮要写本地文件、调用 `generate-opentiny-article`、运行文章校验、提交、推送或创建/更新 Draft PR，必须先创建候选 Issue 专属 worktree：
+本轮有两类 worktree：
+
+| 类型 | 路径示例 | 起点 | 用途 |
+| --- | --- | --- | --- |
+| runtime | `.worktrees/issue-watch-runtime-<ts>` | `run_base_sha` | install/build/doctor、提供 `<article_hub>` |
+| 候选 | `.worktrees/issue-watch-<issue>-<ts>` | `run_base_sha` | 写文章、校验、commit、push、create-pr |
+
+候选识别、Issue/PR 读取、无需改文件的状态提示可以在 `scheduler_root` 或 runtime 执行。一旦本轮要写本地文件、调用 `generate-opentiny-article`、运行文章校验、提交、推送或创建/更新 Draft PR，必须先创建候选 Issue 专属 worktree。**起点必须是启动时固定的 `run_base_sha`，禁止用主仓当前 `HEAD`，禁止先 `checkout main`。**
 
 ```bash
-git fetch origin main
-git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <scheduler_root>/.worktrees/issue-watch-<issue-number>-<started-at-yyyymmdd-hhmmss> origin/main
+git -C "<scheduler_root>" worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> \
+  <scheduler_root>/.worktrees/issue-watch-<issue-number>-<started-at-yyyymmdd-hhmmss> \
+  <run_base_sha>
 ```
 
 执行要求：
 
-- 后续所有生成、校验、提交、推送和 Draft PR 创建命令的 `cwd` 都必须是该 worktree。
+- 后续所有生成、校验、提交、推送和 Draft PR 创建命令的 `cwd` 都必须是该候选 worktree；CLI 使用 runtime 的 `<article_hub>`。
 - 运行标记仍读写 `<scheduler_root>/.cache/article-hub/scheduled-runs/<issue-number>.json`。
-- 不切换 `scheduler_root` 的当前分支，不在 `scheduler_root` 写文章文件、素材、临时计划文件或 Git 暂存区。
-- worktree 创建失败时，本轮停止处理该 Issue；不得回到 `scheduler_root` 继续执行生成类动作。
-- 正常完成并完成 GitHub 回写后，先确认 worktree 路径位于 `<scheduler_root>/.worktrees/`，再运行 `git worktree remove --force <worktree-path>` 清理本轮 worktree，最后删除运行标记；失败、阻断或远端写操作未完成时保留 worktree 路径供排查。
+- 不在 `scheduler_root` 写文章文件、素材、可提交的临时计划文件或 Git 暂存区；临时 Markdown 只放系统临时目录或主仓 `.cache/`。
+- 候选 worktree 创建失败时，本轮停止处理该 Issue；不得回到 `scheduler_root` 或仅在 runtime 继续执行生成类动作。
+- 正常完成并完成 GitHub 回写后，先确认候选 worktree 路径位于 `<scheduler_root>/.worktrees/`，再运行 `git -C "<scheduler_root>" worktree remove --force <候选 worktree 路径>` 清理该候选 worktree，最后删除候选运行标记；失败、阻断或远端写操作未完成时保留候选 worktree 路径供排查。
 
 ## 处理流程
 
@@ -144,7 +208,7 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 读取 `README`、`usage`、`docs`、`skills` 和 `config/projects.yml`。
    - 检查相似 Issue、已有文章和 `materials/article-archive`。
    - 生成或更新“当前写作计划评论”，完整计划必须进入 Issue 评论。
-   - 将完整计划写入临时 Markdown 文件，路径放在系统临时目录或 `<scheduler_root>/.cache/article-hub/<issue-number>/`，不得提交到 git。
+   - 将完整计划写入临时 Markdown 文件，路径放在系统临时目录或主仓 `<scheduler_root>/.cache/article-hub/<issue-number>/`，不得提交到 git。
    - 使用 `gh issue comment <number> --repo <repository> --body-file <临时计划文件>` 发布计划评论，不得使用 `--body` 内联多行计划。
    - 发布后回读最近一条当前 Agent 评论，确认评论正文不是单行标题，且包含计划版本、来源清单、建议大纲和人工验收项。
    - 写清计划版本、推荐标题、目标读者、来源快照、建议大纲、截图/GIF 素材需求、素材缺口、人工验收项。
@@ -158,12 +222,12 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 写作与 Draft PR 流程继续等待固定批准结果。
 9. 如果发现授权用户发出的固定 `/ai 批准写作计划`：
    - 先在共享运行标记目录创建本地运行标记。
-   - 创建候选 Issue 专属 worktree，并确认后续生成流程的 `cwd` 是该 worktree。
+   - 从 `run_base_sha` 创建候选 Issue 专属 worktree，令 `operation_root = <候选 worktree>`，并确认后续生成流程的 `cwd` 是 `operation_root`；CLI 仍用 runtime 的 `<article_hub>`。
    - 如果 Issue 当前仍是 `阶段：选题`，先用 `<article_hub> update-status` 做 `选题→策划`。
    - 使用 `<article_hub> update-status` 做 `策划→写作`，把 Issue 改为 `阶段：写作` + `AI：处理中`。
-   - 巡检本身不重新实现生成流程；进入已批准写作计划到 Draft PR 的既有流程，按 `generate-opentiny-article` 的步骤处理该 Issue。
-   - 创建或更新 Draft PR 前在 worktree 内运行 `git status --short`，确认没有运行缓存和临时文件进入提交范围。
-   - 创建 Draft PR 的唯一入口是 `generate-opentiny-article` 的 `<article_hub> create-pr --body-file <pr-body.md>`。PR head 以 `create-pr` 输出 JSON 的 `branch` 为准；当前 worktree 分支 `issue-watch/...` 只用于隔离执行。
+   - 巡检本身不重新实现生成流程；把 `scheduler_root`、`cli_root = runtime_worktree`、`operation_root` 和 `<article_hub>` 原样交给 `generate-opentiny-article`，由该 Skill 从已批准计划后的生成子流程继续，不重新发现 launcher、候选或调度。
+   - 创建或更新 Draft PR 前在候选 worktree 内运行 `git status --short`，确认没有运行缓存和临时文件进入提交范围。
+   - 创建 Draft PR 的唯一入口是 `generate-opentiny-article` 的 `<article_hub> create-pr --body-file <pr-body.md>`。PR head 以 `create-pr` 输出 JSON 的 `branch` 为准；当前候选 worktree 分支 `issue-watch/...` 只用于隔离执行。
    - 真实创建前先运行 `<article_hub> --dry-run create-pr ...`，读取输出 JSON 的 `branch`。该值必须匹配 `article/<issue-number>-<project-id>-<slug>`，且 issue number 必须等于当前 Issue；不匹配时停止并按失败处理。
    - PR body 来自 Write 工具写好的临时 Markdown 文件，并通过 `--body-file` 传入。
    - Draft PR 创建成功后，用 `gh pr view <pr-number> --repo <repository> --json headRefName,body,files` 回读。`headRefName` 必须等于 `create-pr` 输出的 `branch`；body 必须包含关联 Issue；files 必须包含 `articles/<project-id>/<date>-<slug>/article.md`。任一不满足都按 GitHub 写操作失败处理，并输出失败摘要、实际值和期望值。
@@ -174,16 +238,26 @@ git worktree add -b issue-watch/<issue-number>-<started-at-yyyymmdd-hhmmss> <sch
    - 评论写清：停在哪一步、缺什么信息、需要谁决定。
 11. 如果环境、权限、命令或 GitHub 写操作失败：
     - 停止处理该 Issue。
-    - `<article_hub>` 仍可用时，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；失败报告写入临时 Markdown 文件并用 `gh issue comment --body-file` 发布，包含失败命令、原始错误、退出码、worktree、可恢复入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
-    - `<article_hub>` 本身意外失效时，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 Issue 失败评论。把原始错误追加到 `scheduled-runs/system/issue-watch.json`，保留候选运行标记和 worktree，在本轮输出中报告可恢复入口后停止。
-12. 正常完成并清理 worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留 worktree；过期标记不要删除。
+    - `<article_hub>` 仍可用时，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；失败报告写入临时 Markdown 文件并用 `gh issue comment --body-file` 发布，包含失败命令、原始错误、退出码、候选 worktree、可恢复入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
+    - `<article_hub>` 本身意外失效时，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 Issue 失败评论。把原始错误追加到 `scheduled-runs/system/issue-watch.json`，保留候选运行标记与 worktree，在本轮输出中报告可恢复入口后停止。
+12. 正常完成并清理**候选** worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留候选 worktree；过期标记不要删除。
+
+## 整轮收尾
+
+所有候选处理结束后（含「本轮无待处理项」或启动失败后的停止）：
+
+1. 确认已无未清理的**成功完成**的候选 worktree；失败/阻断保留的候选路径在输出中列出。
+2. 若本轮创建了 runtime worktree 且启动检查已成功走过，正常结束时运行 `git -C "<scheduler_root>" worktree remove --force "<runtime_worktree>"` 清理 runtime。启动失败、runtime 构建失败或需保留排查证据时，保留 runtime 路径并在输出中说明。
+3. **不要**验收或要求主仓 `end_head == start_head`；主仓可能被 `local-repo-sync` 并行更新。
+4. **不要**写入 `system/issue-watch.json` 作为与 repo-sync 的互斥 running 标记；该文件仅用于启动/CLI 失效等失败记录。
 
 ## 本轮输出
 
 本轮结束时，请输出：
 
 - 本轮检查的 Issue 数量。
-- 本轮使用并已清理的 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
+- `run_base_sha` 与 runtime worktree 路径及清理结果。
+- 本轮使用并已清理的候选 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
 - 已处理的 Issue。
 - 跳过的 Issue 和原因。
 - 因本轮 3 个处理名额限制未处理的 Issue、`updatedAt` 和触发原因。

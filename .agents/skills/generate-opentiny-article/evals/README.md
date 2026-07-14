@@ -4,7 +4,7 @@
 
 ## 文件
 
-- `evals.json`：3 个场景的测试 prompt + 期望产出 + 断言。
+- `evals.json`：4 个场景的测试 prompt + 期望产出 + 断言。
 - `fixtures/approved-issue/`：合法场景。`issue.json` 含 maintainer（MEMBER）发出的固定命令 `/ai 批准写作计划`，`plan.json` 作为计划正文临时输入传给 `--plan-body-file`。
 - `fixtures/paused-issue/issue.json`：标签同时保留正常 AI 工作状态和独立人工暂停信号，且评论里**仍有**一条 `approval_authorized: true` 的批准命令——用于验证暂停优先于批准。
 - `fixtures/unapproved-issue/issue.json`：三种“伪批准”——自然语言表述、越权用户（association=NONE）、bot——经 `inspect-issue` 后 `approval_authorized` 全为 false。
@@ -22,5 +22,6 @@
 
 - **停止类场景（paused-stop / unapproved-stop）**：成本低，推荐每次改 skill 后本地回归。只给本地 `issue.json`，正确行为是 Agent 读取后**停手**——不产生写作产物、不创建 PR、不新增 commit。这两个场景不需要真实 GitHub。
 - **happy-path-draft**：需要真实 GitHub 环境（隔离 worktree、`gh` 可访问目标仓库、创建 Draft PR）。在沙箱中可只验证到 `validate article` 通过、文章路径与素材布局正确，PR 创建步骤按环境能力决定是否真实执行。
+- **scheduled-runtime-handoff**：不需要真实 GitHub，检查 Skill 是否继承巡检提供的 `cli_root`、`operation_root` 和 `<article_hub>`，而不是重新发现主仓 launcher 或重复调度。
 
-按 skill-creator 方法论做 before/after 对比时，对改动前后的 skill 版本各跑同一组 prompt，比较三个闸门是否都被正确把守。本脚手架目前只定义场景与断言，未内置自动对比运行器。
+按 skill-creator 方法论做 before/after 对比时，对改动前后的 skill 版本各跑同一组 prompt，比较三个闸门和执行上下文是否都被正确把守。本脚手架目前只定义场景与断言，未内置自动对比运行器。

@@ -102,7 +102,11 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 
 ## 校验与更新
 
-启动时把主仓库绝对路径记为 `scheduler_root`，并把 `node "<scheduler_root>/scripts/article-hub-launcher.mjs"` 记为 `<article_hub>`。本文命令示例中的 `<article_hub>` 必须替换成这条完整命令；禁止运行裸 `article-hub` 或依赖全局安装。即使当前 `cwd` 是隔离 worktree，也始终使用主仓库 launcher，调用进程的 `cwd` 保持在 worktree。
+开始校验与更新前，只解析一次执行上下文：`scheduler_root` 是主仓库，`cli_root` 是提供已构建 CLI 的仓库或 runtime worktree，`operation_root` 是当前文章所在的候选 worktree，`<article_hub>` 是 `node "<cli_root>/scripts/article-hub-launcher.mjs"`。
+
+- 调用方已提供上述上下文时，完整继承并保持不变；不得把 `<article_hub>` 重定义为主仓 launcher，也不得在 `scheduler_root` install/build。
+- 独立人工调用且没有上游上下文时，令 `cli_root = scheduler_root`，使用主仓库绝对 launcher；`operation_root` 是当前隔离 worktree。
+- 本文命令示例中的 `<article_hub>` 必须替换成解析后的绝对命令；禁止运行裸 `article-hub`、依赖全局安装或 `PATH`。校验和更新命令的进程 `cwd` 始终是 `operation_root`。
 
 普通 PR、Review 和 Issue 读取使用 `gh` 获取原始事实；确定性判断和受控 Git/GitHub mutation 使用 `article-hub`。Issue 控制请求不属于本 Skill，polish 不消费，由调用方按原任务处理；PR Review、行级评论、PR 评论和 `Request changes` 中，能评论即视为已授权。遇到文章校验、暂停保护、状态标签互斥或路径安全判断时，必须调用 `article-hub`；不得在 Skill、临时脚本或自然语言推理中重写这些规则。
 

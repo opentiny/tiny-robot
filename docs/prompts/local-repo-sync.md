@@ -4,7 +4,7 @@
 
 ## 目标与完成标准
 
-- 工作目录：主仓库绝对路径，记为 `scheduler_root`。
+- 工作目录：主仓库绝对路径，记为 `scheduler_root`。本任务**只在主仓**执行，不创建业务 worktree。
 - 跟踪分支：默认 `main`；定时任务另有指定时用该分支，记为 `<track_branch>`。
 - 远程：仅 `origin`。
 - 完成标准：本地已与 `origin/<track_branch>` 对齐（或确认无新提交）；需要时完成 install/build/doctor；写入运行记录并输出摘要。
@@ -12,8 +12,9 @@
 ```text
 <article_hub> = node "<scheduler_root>/scripts/article-hub-launcher.mjs"
 运行记录 = <scheduler_root>/.cache/article-hub/scheduled-runs/system/repo-sync.json
-业务标记目录 = <scheduler_root>/.cache/article-hub/scheduled-runs/
 ```
+
+业务巡检（Issue/PR/发布）在独立 runtime / 候选 worktree 中构建与写文件，**不**占用主仓分支。本任务与业务 worktree **不互斥**：即使业务 worktree 正在运行，只要主仓满足分支与工作区条件，仍可执行同步。本任务是唯一允许对 `scheduler_root` 做 `merge --ff-only` 更新跟踪分支的定时任务。若主仓不在 `<track_branch>` 或工作区不干净，停止并报告，不自动 `checkout`/`reset`/`stash`。
 
 ## 安全边界
 
@@ -21,6 +22,7 @@
 2. 工作区不干净、当前不在 `<track_branch>`、本地领先或与远端分叉时停止。
 3. 禁止 `reset`、`rebase`、`stash`、`clean`、普通 merge、`push`，以及改 remote / credential。
 4. 不处理 Issue/PR/文章/发布；不用全局 `article-hub`，不用 `npm install`。
+5. **不要**因为业务候选标记、业务 worktree 或 `system/issue-watch.json` / `pr-watch.json` / `publish-watch.json` 而跳过本轮。
 
 ## 执行步骤
 
@@ -38,15 +40,16 @@ git rev-parse --abbrev-ref HEAD
 
 要求：Node.js ≥ 20；`show-toplevel` 等于 `scheduler_root`；当前分支等于 `<track_branch>`。否则 `failed_environment` 或 `blocked_local_state`。
 
-### 2. 运行标记与工作区
+当前分支不等于 `<track_branch>` 时，在 `error_summary` 写明实际分支，并提示：可能是人工占用主仓；应人工回到 `<track_branch>` 后再同步，**不要**本任务自动切分支。
 
-运行标记用于避免已知任务重叠，不提供跨进程强互斥。
+### 2. 运行记录与工作区
 
-1. 检查业务标记目录中除 `system/` 外的 `*.json`，以及 `repo-sync.json`。
-2. 存在 `status: "running"` 且未过 `expires_at` → `skipped_busy`，不改仓库。
-3. 存在已过期的 `running` 标记 → `blocked_local_state`，提示人工检查；不删除、不抢占。
-4. 通过后写 `repo-sync.json`：`status: "running"`，`expires_at` 为开始后 30 分钟。
-5. `git status --porcelain` 非空 → `blocked_local_state`。
+`repo-sync.json` 仅记录本任务自身状态，不提供与业务巡检的互斥。
+
+1. 若已有 `repo-sync.json` 且 `status` 为 `"running"` 且未过 `expires_at` → `skipped_busy`（仅表示上一轮同步未收尾，**不是**业务占用）。
+2. 若已有 `repo-sync.json` 且 `status` 为 `"running"` 但已过 `expires_at` → `blocked_local_state`，提示人工检查；不删除、不抢占。
+3. 通过后写 `repo-sync.json`：`status: "running"`，`expires_at` 为开始后 30 分钟。
+4. `git status --porcelain` 非空 → `blocked_local_state`。
 
 ### 3. 获取上游
 
@@ -111,8 +114,8 @@ corepack pnpm run build
 | --- | --- |
 | `updated` | 已 ff 更新并完成构建 |
 | `already_up_to_date` | 无新提交且无需修复构建 |
-| `skipped_busy` | 发现活动运行标记 |
-| `blocked_local_state` | 脏工作区、错误分支、领先/分叉、过期标记、同步后异常脏文件 |
+| `skipped_busy` | 上一轮 `repo-sync` 自身仍为活动 `running` |
+| `blocked_local_state` | 脏工作区、错误分支、领先/分叉、过期的本任务 running 标记、同步后异常脏文件 |
 | `failed_environment` | node/pnpm/git/路径检查失败 |
 | `failed_sync` | fetch 或 ff-only 失败 |
 | `failed_build` | install、build 或 doctor 失败 |

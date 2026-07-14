@@ -4,7 +4,7 @@
 
 ## 文件
 
-- `evals.json`：3 个真实场景的测试 prompt + 期望产出 + 断言。
+- `evals.json`：4 个真实场景的测试 prompt + 期望产出 + 断言；其中 `scheduled-runtime-handoff` 单独检查巡检调用时的 CLI 与 `cwd` 交接。
 - `fixtures/theme-config-draft/article.md`：故意塞满目标问题（空泛开场、营销腔、无源结论、表演性表达、拔高收尾）与受保护内容（Front Matter、代码块、`setGlobalConfig`、版本 `3.20.0`、URL、已有日期与数据）的草稿。已通过 `article-hub validate article`。
 
 ## 断言分两类
@@ -26,4 +26,4 @@ skill 改动前后各跑一遍同一组 prompt，对比保真与自然度：
    并 `diff` 产出与 fixture 的 Front Matter、代码块、关键串（`3.20.0`、URL、1.2%/0.4%）。
 4. **定性评审**：人工或 grader 子代理按 `evals.json` 的 qualitative 断言打分。
 
-> 这是主观 skill：确定性断言保证"没改坏受保护内容/没编造"，自然度仍需人看。修改 skill 后建议至少重跑一次本目录的 3 个场景。
+> 这是主观 skill：确定性断言保证"没改坏受保护内容/没编造"，自然度仍需人看。修改 skill 后建议至少重跑一次本目录的 4 个场景。

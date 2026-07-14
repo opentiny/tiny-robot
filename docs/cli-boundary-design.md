@@ -10,7 +10,7 @@
 
 CLI 的业务入口仍是 `dist/cli.js`，调用方统一通过仓库内 `scripts/article-hub-launcher.mjs` 启动。launcher 只负责定位构建产物、透传参数、保留 `cwd` 和退出码，不承载业务规则，也不属于 `gh` 适配器。
 
-定时任务不得依赖裸 `article-hub`、全局安装或用户终端的 `PATH`。worktree 调用使用主仓库 launcher 的绝对路径，业务文件和配置仍按调用方 `cwd` 解析。
+定时任务不得依赖裸 `article-hub`、全局安装或用户终端的 `PATH`。调用方应先固定提供已构建 CLI 的 `cli_root`，再使用其 launcher 绝对路径；本地巡检使用本轮 runtime worktree，独立人工调用默认使用主仓库。业务文件和配置仍按调用方 `cwd` 解析。
 
 ## 命令分类
 

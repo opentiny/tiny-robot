@@ -50,6 +50,19 @@
         { "kind": "qualitative", "text": "模型要么删除该无源句，要么保留并明确请求来源，而非改写成更确定/具体的结论" },
         { "kind": "qualitative", "text": "模型说明了为什么不能凭'写得更具体'补造事实" }
       ]
+    },
+    {
+      "id": 4,
+      "name": "scheduled-runtime-handoff",
+      "prompt": "本地 PR 巡检已固定本轮上下文：scheduler_root=/tmp/main-repo，cli_root=/tmp/runtime-worktree，operation_root=/tmp/candidate-worktree，<article_hub>=node \"/tmp/runtime-worktree/scripts/article-hub-launcher.mjs\"。请按 Review 局部修订处理附件中“性能表现”一节的目标句，并在需要校验或更新时继承这组上下文。",
+      "files": ["fixtures/theme-config-draft/article.md"],
+      "expected_output": "只修改授权目标句；需要调用 article-hub 时使用 runtime worktree 的绝对 launcher，命令 cwd 保持在候选 worktree，不改用 scheduler_root launcher，也不在主仓 install/build。",
+      "assertions": [
+        { "kind": "deterministic", "text": "需要调用 article-hub 时使用 node /tmp/runtime-worktree/scripts/article-hub-launcher.mjs" },
+        { "kind": "deterministic", "text": "校验和更新命令的 cwd 是 /tmp/candidate-worktree" },
+        { "kind": "deterministic", "text": "没有改用 /tmp/main-repo/scripts/article-hub-launcher.mjs，也没有在主仓 install 或 build" },
+        { "kind": "qualitative", "text": "只修改 Review 授权范围，没有因执行上下文交接扩大正文改动" }
+      ]
     }
   ]
 }

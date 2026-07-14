@@ -10,7 +10,7 @@
       "expected_output": "按序走完流程：用 inspect-issue 读取 Issue，确认标签无 AI执行：人工暂停；确认 comment 2002（maintainer/MEMBER 的固定命令）同时满足 fixed_approval:approve-writing-plan 和 approval_authorized:true 后，把计划正文作为临时文件传给 plan approve 生成批准快照；在 articles/webmcp-sdk/<date>-<slug>/article.md 写作，素材入同目录 assets/，Mermaid 存 .mmd+.svg+.png 且正文只引 PNG；调用 polish-opentiny-article 的初稿全文优化润色正文；validate article 返回 valid:true 后，检查 staged、unstaged 和最终 PR 文件列表只包含文章目录与 articles/publications.json，确认不含 materials/issue-sources 默认禁止路径，再创建 Draft PR；最后 update-status 置 阶段：写作 / AI：等待人工。",
       "assertions": [
         { "kind": "deterministic", "text": "用 article-hub inspect-issue 读取 Issue，而非凭自然语言判断标签或批准状态" },
-        { "kind": "deterministic", "text": "所有 article-hub 命令都通过主仓库 scripts/article-hub-launcher.mjs 执行，没有调用裸 article-hub 或依赖全局 PATH" },
+        { "kind": "deterministic", "text": "所有 article-hub 命令都通过已解析的绝对 scripts/article-hub-launcher.mjs 执行：调用方提供上下文时继承其 cli_root，独立调用时才使用主仓库；没有调用裸 article-hub 或依赖全局 PATH" },
         { "kind": "deterministic", "text": "进入写作前确认了某条评论 fixed_approval:approve-writing-plan 且 approval_authorized:true（comment 2002）" },
         { "kind": "deterministic", "text": "plan approve 使用 --plan-body-file 读取被批准计划正文，并生成批准快照" },
         { "kind": "deterministic", "text": "create-pr 之前 validate article 已返回 valid:true" },
@@ -43,6 +43,19 @@
         { "kind": "deterministic", "text": "inspect-issue 的 commands 中 approval_authorized 全为 false" },
         { "kind": "qualitative", "text": "识别自然语言表述、越权用户、bot 命令都不算批准，停下等待授权用户的固定命令" },
         { "kind": "qualitative", "text": "未被用户口头“应该批了”带偏去推断批准意图" }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "scheduled-runtime-handoff",
+      "prompt": "本地 Issue 巡检已完成启动检查并固定本轮上下文：scheduler_root=/tmp/main-repo，cli_root=/tmp/runtime-worktree，operation_root=/tmp/candidate-worktree，<article_hub>=node \"/tmp/runtime-worktree/scripts/article-hub-launcher.mjs\"。Issue #42 的计划已批准，候选 worktree 已创建。请从生成子流程继续；不要重新做候选发现或调度。issue 和 plan 见附件。",
+      "files": ["fixtures/approved-issue/issue.json", "fixtures/approved-issue/plan.json"],
+      "expected_output": "继承调用方提供的执行上下文：所有 article-hub 调用都使用 runtime worktree 的绝对 launcher，业务命令 cwd 保持在候选 worktree；不把 launcher 重定义为 scheduler_root，不在主仓 install/build，也不重新执行候选发现或调度。",
+      "assertions": [
+        { "kind": "deterministic", "text": "所有 article-hub 命令都使用 node /tmp/runtime-worktree/scripts/article-hub-launcher.mjs" },
+        { "kind": "deterministic", "text": "生成、校验和 create-pr 的 cwd 都是 /tmp/candidate-worktree" },
+        { "kind": "deterministic", "text": "没有改用 /tmp/main-repo/scripts/article-hub-launcher.mjs，也没有在主仓 install 或 build" },
+        { "kind": "qualitative", "text": "只接管已批准计划后的生成子流程，没有重复候选发现或定时调度" }
       ]
     }
   ]

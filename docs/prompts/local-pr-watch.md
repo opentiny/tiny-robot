@@ -4,27 +4,83 @@
 
 ## 启动检查
 
-启动时把当前仓库绝对路径记为 `scheduler_root`，并把下面的仓库内命令记为 `<article_hub>`：
+启动时把当前仓库绝对路径记为 `scheduler_root`。本轮使用 **runtime worktree** 构建 CLI，不在主仓 install/build，也不与 `local-repo-sync` 互斥。
 
 ```text
-node "<scheduler_root>/scripts/article-hub-launcher.mjs"
+业务标记目录 = <scheduler_root>/.cache/article-hub/scheduled-runs/
+失败记录 = <scheduler_root>/.cache/article-hub/scheduled-runs/system/pr-watch.json
+runtime_worktree = <scheduler_root>/.worktrees/pr-watch-runtime-<started-at-yyyymmdd-hhmmss>
+cli_root = <runtime_worktree>
+operation_root = <候选 worktree；未创建时为空>
+<article_hub> = node "<runtime_worktree>/scripts/article-hub-launcher.mjs"
 ```
 
-本文后续出现的 `<article_hub>` 都必须替换成上面的完整命令；禁止直接运行裸 `article-hub`，禁止依赖全局安装或 `PATH`。执行候选发现前按顺序完成一次启动检查：
+本文后续出现的 `<article_hub>` 都必须替换成上面的完整命令；禁止直接运行裸 `article-hub`，禁止依赖全局安装、`PATH` 或主仓 `dist`。launcher 固定加载 runtime 的 `dist/cli.js`，并保留调用进程的 `cwd`（候选 worktree 或 runtime）。
 
-1. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status --hostname github.com`，确认 Node.js 版本不低于 20；任一检查失败时按启动检查失败处理。
-2. `node_modules` 不存在时，在 `scheduler_root` 运行 `corepack pnpm install --no-lockfile`，按当前机器配置的 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。
-3. 在 `scheduler_root` 运行 `corepack pnpm run build`。构建因依赖缺失失败时，只允许补跑一次 `corepack pnpm install --no-lockfile` 并重试一次构建。
-4. 运行 `<article_hub> doctor --root "<scheduler_root>" --config "<scheduler_root>/config/projects.yml"`，确认退出码为 0 且输出 `ok: true`。
+执行候选发现前按顺序完成一次启动检查：
 
-启动检查失败时不得读取或修改候选 PR/Issue，不得创建候选运行标记，也不得向 GitHub 发布评论。用文件写入工具把失败记录保存到 `<scheduler_root>/.cache/article-hub/scheduled-runs/system/pr-watch.json`，至少包含失败时间、操作系统及版本、当前 shell、`scheduler_root`、失败命令、退出码和原始错误；在本轮输出中报告同样信息后停止。自动恢复只使用 pnpm，不运行 `npm install`。
+1. 确认 `scheduler_root` 是 git 仓库根：
+   ```bash
+   git -C "<scheduler_root>" rev-parse --show-toplevel
+   ```
+   必须等于 `scheduler_root`。
+2. 运行 `node --version`、`corepack pnpm --version` 和 `gh auth status --hostname github.com`，确认 Node.js 版本不低于 20；任一检查失败时按启动检查失败处理。
+3. 固定本轮代码基线（**不要**依赖主仓当前分支或 `HEAD`）：
+   ```bash
+   git -C "<scheduler_root>" fetch origin main
+   git -C "<scheduler_root>" rev-parse origin/main
+   ```
+   将解析结果记为 `run_base_sha`。本轮 runtime worktree 锚定此 SHA；候选 PR worktree 从 PR Head 创建。
+4. 创建 runtime worktree：
+   ```bash
+   git -C "<scheduler_root>" worktree add --detach \
+     "<runtime_worktree>" \
+     "<run_base_sha>"
+   ```
+   路径必须位于 `<scheduler_root>/.worktrees/`。创建失败时进入启动失败路径，不得在主仓继续 install/build。
+5. 在 **runtime worktree** 内安装与构建：
+   ```bash
+   corepack pnpm install --no-lockfile
+   corepack pnpm run build
+   ```
+   工作目录为 `runtime_worktree`。按当前机器 npm registry 解析依赖；不要生成或读取 `pnpm-lock.yaml`。构建因依赖缺失失败时，只允许在 runtime 内补跑一次 install 并重试一次 build。
+6. 运行 doctor，`--root` / `--config` 指向 runtime：
+   ```bash
+   <article_hub> doctor --root "<runtime_worktree>" --config "<runtime_worktree>/config/projects.yml"
+   ```
+   确认退出码为 0 且输出 `ok: true`。
+
+启动检查失败时不得读取或修改候选 PR/Issue，不得创建候选运行标记，也不得向 GitHub 发布评论。用文件写入工具把失败记录保存到 `失败记录`（至少包含失败时间、操作系统及版本、当前 shell、`scheduler_root`、`run_base_sha`、`runtime_worktree`、失败命令、退出码和原始错误）；在本轮输出中报告同样信息后停止。若已创建 runtime worktree，保留路径供排查。自动恢复只使用 pnpm，不运行 `npm install`。
+
+本任务**不**检查、**不**写入、**不**依赖 `system/repo-sync.json` 做互斥；repo-sync 可与本轮并行。
 
 ## 范围
 
 - 只处理打开的 Draft PR 或普通 PR。
 - 候选 PR 必须满足以下任一条件：PR 描述关联文章 Issue、分支名符合 `article/<issue-number>-...`、改动包含 `articles/<project-id>/<date>-<slug>/article.md`。
 - 每轮最多处理 3 个需要动作的候选 PR；上限按完成候选排序和动作判定后的结果计算。
-- 调度入口可以在主仓库运行；凡要改文章、校验、提交或推送，必须切到候选 PR 专属 Git worktree。
+- 调度入口可以在主仓库启动；本轮 install/build/doctor 在 runtime worktree；凡要改文章、校验、提交或推送，必须切到候选 PR 专属 Git worktree。
+
+## 主仓与路径 contract
+
+本任务**不得**为业务目的改动 `scheduler_root` 的检出分支或 tracked 文件。仓库同步只由 `docs/prompts/local-repo-sync.md` 在主仓执行；本任务不执行 `git pull` / `git merge --ff-only` 更新主仓。
+
+在 `scheduler_root` 内**禁止**：
+
+- `git checkout`、`git switch`、`git merge`、`git pull`、`git rebase`、`git reset`、`git stash`、`git clean`（`fetch` 与 `worktree add/remove` 除外）
+- 在主仓 `commit` / `push` / 修改 `articles/` 或其它 tracked 源码与配置
+- 在主仓 install/build，或以主仓当前 `HEAD` 为起点创建业务分支，或在主仓检出 `pr-watch/...` / 文章 PR 分支
+
+在 `scheduler_root` 内**允许**：
+
+- `git fetch`（更新 remote-tracking 或本任务的显式 ref，不改当前分支）
+- `git worktree add` / `git worktree remove`（仅操作 `.worktrees/` 下路径）
+- 读写 `.cache/article-hub/`（含 `scheduled-runs/` 与临时 Markdown）；系统临时目录
+- 只读：读任务文件、`gh` 只读 API
+
+**不要求**本轮结束时主仓 `HEAD` 等于启动时的 `HEAD`：repo-sync 可能并行更新主仓；业务隔离靠 runtime / 候选 worktree 与固定 `run_base_sha`，不靠冻结主仓。
+
+CLI 始终使用 runtime 的 `<article_hub>`；改正文命令的进程 `cwd` 必须是候选 worktree。
 
 ## 关联 Issue 识别
 
@@ -86,29 +142,42 @@ gh api "<attachment-url>" > "<worktree 内文章 assets 绝对路径>/<attachmen
 
 ## Worktree 隔离
 
-启动时把当前仓库根目录记为 `scheduler_root`。Issue、PR 两个巡检任务共享以下运行标记目录，不得写到候选 worktree 的 `.cache` 中：
+Issue、PR 两个巡检任务共享以下运行标记目录，不得写到 runtime 或候选 worktree 的 `.cache` 中作为互斥依据：
 
 ```text
 <scheduler_root>/.cache/article-hub/scheduled-runs/
 ```
 
-候选识别、PR/Issue 读取、去重判断和无需改文件的状态提示可以在 `scheduler_root` 执行。一旦本轮要修改文章、运行校验、提交或推送，必须先创建候选 PR 专属 worktree，并从 PR 当前 Head 开始处理：
+本轮有两类 worktree：
+
+| 类型 | 路径示例 | 起点 | 用途 |
+| --- | --- | --- | --- |
+| runtime | `.worktrees/pr-watch-runtime-<ts>` | `run_base_sha` | install/build/doctor、提供 `<article_hub>` |
+| 候选 | `.worktrees/pr-watch-<pr>-<ts>` | 已核对的 `pr_head_sha` | 改正文、校验、commit、push |
+
+候选识别、PR/Issue 读取、去重判断和无需改文件的状态提示可以在 `scheduler_root` 或 runtime 执行。一旦本轮要修改文章、运行校验、提交或推送，必须先创建候选 PR 专属 worktree，并从 PR 当前 Head 开始处理。为避免 repo-sync 或其他并行 `fetch` 覆盖共享状态，把 PR Head 抓取到本任务的显式 ref，再解析为不可变的 `pr_head_sha`；禁止使用 `FETCH_HEAD`、主仓当前 `HEAD`，也禁止先在主仓 `checkout` 该 PR 分支。
 
 ```bash
-git fetch origin pull/<pr-number>/head
-git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler_root>/.worktrees/pr-watch-<pr-number>-<started-at-yyyymmdd-hhmmss> FETCH_HEAD
+pr_fetch_ref="refs/article-hub/pr-watch/<pr-number>"
+git -C "<scheduler_root>" fetch --no-write-fetch-head origin \
+  "+refs/pull/<pr-number>/head:${pr_fetch_ref}"
+git -C "<scheduler_root>" rev-parse "${pr_fetch_ref}^{commit}"
+git -C "<scheduler_root>" worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> \
+  "<scheduler_root>/.worktrees/pr-watch-<pr-number>-<started-at-yyyymmdd-hhmmss>" \
+  "<pr_head_sha>"
 ```
 
 执行要求：
 
-- 后续所有正文修改、校验、提交、推送和 `<article_hub> create-pr` 命令的 `cwd` 都必须是该 worktree。
+- 把 `rev-parse` 结果记为 `pr_head_sha`，再用 `gh pr view --json headRefOid` 回读 PR；两者不一致时停止本候选，不创建 worktree。
+- 令 `operation_root = <候选 worktree>`。后续所有正文修改、校验、提交、推送和 `<article_hub> create-pr` 命令的 `cwd` 都必须是 `operation_root`；CLI 使用 runtime 的 `<article_hub>`。
 - 运行标记仍读写 `<scheduler_root>/.cache/article-hub/scheduled-runs/<issue-number>.json`。
-- 不切换 `scheduler_root` 的当前分支，不在 `scheduler_root` 写文章文件、素材、临时文件或 Git 暂存区。
-- worktree 创建失败时，本轮停止处理该 PR；不得回到 `scheduler_root` 继续修改。
-- 创建 worktree 前记录 PR Head SHA；提交或推送前重新读取并比对，Head 已变化时停止，不覆盖人工修改。
+- 不在 `scheduler_root` 写文章文件、素材、可提交临时文件或 Git 暂存区；临时 Markdown 只放系统临时目录或主仓 `.cache/`。
+- 候选 worktree 创建失败时，本轮停止处理该 PR；不得回到 `scheduler_root` 或仅在 runtime 继续修改。
+- 提交或推送前重新读取 `headRefOid` 并与 `pr_head_sha` 比对；Head 已变化时停止，不覆盖人工修改。
 - 只处理可推回原 PR 分支的 PR。跨仓库 PR 或无法确认 push 目标时，停止并请人工处理。
 - 如果 PR 分支名不符合 `article/<issue-number>-...`，但已通过 PR 描述或文件路径识别为文章 PR，本轮可以处理无需改文件的回执、澄清和状态同步。若需要修改正文，先请求人工确认是否重建为 `article/<issue-number>-<project-id>-<slug>` 分支；拿到明确确认后再继续会改文件的流程。
-- 正常完成并完成 GitHub 回写后，先确认 worktree 路径位于 `<scheduler_root>/.worktrees/`，再运行 `git worktree remove --force <worktree-path>` 清理本轮 worktree，最后删除运行标记；失败、阻断或远端写操作未完成时保留 worktree 路径供排查。
+- 正常完成并完成 GitHub 回写后，先确认候选 worktree 路径位于 `<scheduler_root>/.worktrees/`，再运行 `git -C "<scheduler_root>" worktree remove --force <候选 worktree 路径>` 清理该候选 worktree，最后删除运行标记；失败、阻断或远端写操作未完成时保留候选 worktree 路径供排查。
 
 ## 去重规则
 
@@ -138,12 +207,12 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
 3. 发现需要修改、澄清、说明无法采纳或写回失败原因的意见后：
    - 在共享运行标记目录创建本地运行标记。
    - 如果本轮只需要澄清、说明无法采纳或确认无需处理，不创建 worktree、不改文件、不提交；直接发布 PR 回执，并按需要回写 Issue 状态。
-   - 如果本轮需要修改正文、运行校验、提交或推送，创建候选 PR 专属 worktree，并确认后续修改流程的 `cwd` 是该 worktree。
+   - 如果本轮需要修改正文、运行校验、提交或推送，按“Worktree 隔离”抓取并核对 `pr_head_sha`，从该 SHA 创建候选 PR 专属 worktree；令 `operation_root = <候选 worktree>`，后续修改流程的 `cwd` 是 `operation_root`，CLI 仍用 runtime 的 `<article_hub>`。
    - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：写作`，用 `<article_hub> update-status` 的 `content-transition` 保持 `阶段：写作` + `AI：处理中`。
    - 如果 PR 仍是 Draft，且关联 Issue 是 `阶段：审核`，用 `<article_hub> update-status` 的 `lifecycle-transition` 做 `审核→写作`，目标状态为 `阶段：写作` + `AI：处理中`。
    - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：写作`，先确认 Ready for review 检查通过，再用 `<article_hub> update-status` 的 `lifecycle-transition` 做 `写作→审核`，目标状态为 `阶段：审核` + `AI：处理中`。
    - 如果 PR 已不是 Draft，且关联 Issue 是 `阶段：审核`，用 `<article_hub> update-status` 的 `content-transition` 保持 `阶段：审核` + `AI：处理中`。
-   - 记录开始处理时的 PR Head SHA，提交或推送前重新读取并比对；Head 已变化时停止，不覆盖人工修改。
+   - 提交或推送前重新读取 PR Head SHA 并与 `pr_head_sha` 比对；Head 已变化时停止，不覆盖人工修改。
 4. 对本轮意见先逐条归类，并记录处理动作：
    - 表达/结构类：明确给出修改目标和范围时，进入正文修改；只表达感受或范围过大且存在多种改法时，回复澄清问题。
    - 素材类：能在现有公开素材内处理时修改；人工已在本轮授权评论中提供 GitHub attachment 并明确要求补入文章时，先按“GitHub 评论附件下载”处理。需要重新生成截图、GIF、Demo，或存在敏感信息、来源和授权疑问时，回复澄清或转人工。
@@ -164,6 +233,7 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
    - 需要人工生成或确认截图、GIF、Demo、敏感信息或素材来源；人工已在本轮授权评论中提供 GitHub attachment 的情况不在此列，必须先尝试鉴权下载和格式校验。
    - PR Head 与开始处理时不一致。
 7. 修改正文时使用 `polish-opentiny-article`：
+   - 把 `scheduler_root`、`cli_root = runtime_worktree`、`operation_root` 和 `<article_hub>` 原样交给 Skill；Skill 不重新发现 launcher 或改回主仓执行。
    - 只修改本轮授权范围。
    - 不改 Front Matter、代码块、命令、日志、API、版本号、Commit、图片路径、链接目标、Mermaid 或 SVG 源内容，除非评论明确要求且来源可核验。
    - 不新增来源外事实、数据、用户反馈、产品能力或因果关系。
@@ -178,21 +248,31 @@ git worktree add -b pr-watch/<pr-number>-<started-at-yyyymmdd-hhmmss> <scheduler
     - 正文末尾的隐藏 `dedupe_key` 标记。
     - 回执正文保存到临时 Markdown 文件后用 `--body-file` 发布，发布后回读确认正文完整。
 11. 用 `<article_hub> update-status` 把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
-12. 正常完成并清理 worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留 worktree；过期标记不要删除。
+12. 正常完成并清理**候选** worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留候选 worktree；过期标记不要删除。
 
 ## 失败处理
 
 - 如果遇到意见冲突、事实缺口、素材需确认或 Head SHA 变化，用 `<article_hub> update-status` 改为当前阶段 + `AI：等待人工`，并在 PR 回执和 Issue 评论中写清阻断点；PR 回执不得只有标题，必须包含受影响评论链接、停止原因、待确认问题和下一步负责人。
 - 附件处理失败时，回执包含原始附件 URL、失败步骤、`gh api` 退出码或文件校验结果、重试次数和临时文件清理结果。附件不存在或格式不符时按“需澄清”回到 `AI：等待人工`；工具、认证或网络失败时进入 `AI：失败`。回执不得包含凭据或重定向后的 URL。
-- 如果环境、权限、命令或 GitHub 写操作失败，且 `<article_hub>` 仍可用，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；PR 失败报告通过临时文件和 `--body-file` 发布，必须包含失败命令、原始错误、退出码、受影响评论链接、worktree、可继续处理的入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
+- 如果环境、权限、命令或 GitHub 写操作失败，且 `<article_hub>` 仍可用，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；PR 失败报告通过临时文件和 `--body-file` 发布，必须包含失败命令、原始错误、退出码、受影响评论链接、候选 worktree、可继续处理的入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
 - 如果 `<article_hub>` 本身意外失效，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 PR 失败评论。把原始错误追加到 `scheduled-runs/system/pr-watch.json`，保留候选运行标记和 worktree，在本轮输出中报告可恢复入口后停止。
+
+## 整轮收尾
+
+所有候选处理结束后（含「本轮无待处理项」或启动失败后的停止）：
+
+1. 确认已无未清理的**成功完成**的候选 worktree；失败/阻断保留的候选路径在输出中列出。
+2. 若本轮创建了 runtime worktree 且启动检查已成功走过，正常结束时运行 `git -C "<scheduler_root>" worktree remove --force "<runtime_worktree>"` 清理 runtime。启动失败、runtime 构建失败或需保留排查证据时，保留 runtime 路径并在输出中说明。
+3. **不要**验收或要求主仓 `end_head == start_head`；主仓可能被 `local-repo-sync` 并行更新。
+4. **不要**写入 `system/pr-watch.json` 作为与 repo-sync 的互斥 running 标记；该文件仅用于启动/CLI 失效等失败记录。
 
 ## 本轮输出
 
 本轮结束时，请输出：
 
 - 本轮检查的 PR 数量。
-- 本轮使用并已清理的 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
+- `run_base_sha` 与 runtime worktree 路径及清理结果。
+- 本轮使用并已清理的候选 worktree 路径；没有创建时说明未进入写文件流程，失败或阻断时输出保留路径。
 - 已处理的 PR。
 - 跳过的 PR 和原因。
 - 因本轮 3 个处理名额限制未处理的 PR、`updatedAt` 和触发原因。
