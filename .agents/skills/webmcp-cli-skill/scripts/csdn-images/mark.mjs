@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 扫描 Markdown 图片引用，将异常项标记为 ![alt](__JUEJIN_IMG_N__)，并写出 markers.json。
+ * 扫描 Markdown 图片引用，将异常项标记为 ![alt](__CSDN_IMG_N__)，并写出 markers.json。
  *
  * 用法：
  *   node mark.mjs --file draft.md --article-dir <文章目录> --out-dir <输出目录>
@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const MIME_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
+const PLACEHOLDER_PREFIX = '__CSDN_IMG_';
 
 /**
  * @param {string[]} argv
@@ -40,7 +41,6 @@ function readText(filePath) {
 }
 
 /**
- * 去掉 YAML Front Matter（若存在）。
  * @param {string} body
  * @returns {string}
  */
@@ -53,6 +53,7 @@ function stripFrontMatter(body) {
 
 /**
  * 从 Markdown 图片目标中取出纯 URL/路径（去掉可选 title）。
+ * 支持 `path`、`<path>`、`path "title"`。
  * @param {string} rawPath
  * @returns {string}
  */
@@ -65,7 +66,6 @@ function normalizeImageDest(rawPath) {
 }
 
 /**
- * 将路径解析到 articleDir 下；含 `..` 时返回 null。
  * @param {string} articleDir
  * @param {string} rawPath
  * @returns {string | null}
@@ -120,7 +120,6 @@ function loadBrokenUrlSet(raw) {
 }
 
 /**
- * 精确匹配，或按文件名（basename）匹配；避免短字符串 substring 误伤。
  * @param {string} p
  * @param {Set<string>} brokenSet
  * @returns {boolean}
@@ -144,13 +143,12 @@ function matchesBrokenSet(p, brokenSet) {
  */
 function guessLocalFromBasename(articleDir, original) {
   const base = path.basename(original.split(/[?#]/)[0]);
-  if (!base || base.includes('__JUEJIN_IMG_')) return null;
+  if (!base || base.includes(PLACEHOLDER_PREFIX)) return null;
   const candidate = path.join(articleDir, 'assets', base);
   return fs.existsSync(candidate) ? candidate : null;
 }
 
 /**
- * 屏蔽 fenced code block，避免示例中的 ![]() 被误标记。
  * @param {string} body
  * @param {(segment: string, inCode: boolean) => string} mapSegment
  * @returns {string}
@@ -215,10 +213,9 @@ function main() {
 
   const marked = mapOutsideCodeFences(body, (segment, inCode) => {
     if (inCode) return segment;
-    // 每段使用新 RegExp，避免全局 lastIndex 跨段污染
     return segment.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (full, alt, rawPath) => {
       const p = normalizeImageDest(rawPath);
-      if (p.startsWith('__JUEJIN_IMG_') && p.endsWith('__')) return full;
+      if (p.startsWith(PLACEHOLDER_PREFIX) && p.endsWith('__')) return full;
 
       if (!String(alt).trim()) {
         errors.push(`empty-image-alt: ${p}`);
@@ -256,7 +253,7 @@ function main() {
         localPath = guessLocalFromBasename(articleDir, p);
       }
 
-      const placeholder = `__JUEJIN_IMG_${markerIndex}__`;
+      const placeholder = `${PLACEHOLDER_PREFIX}${markerIndex}__`;
       markers.push({
         index: markerIndex,
         alt: String(alt),
@@ -281,7 +278,7 @@ function main() {
   fs.writeFileSync(markedFile, marked, 'utf8');
   fs.writeFileSync(
     markersFile,
-    JSON.stringify({ schema_version: 'juejin-image-markers.v1', markers }, null, 2),
+    JSON.stringify({ schema_version: 'csdn-image-markers.v1', markers }, null, 2),
     'utf8',
   );
 
