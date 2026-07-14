@@ -133,7 +133,7 @@ git checkout -b <平台标识>/<时间戳>
 
 1. 发布前阅读 [publish-article.md](./publish-article.md) 中的质量与避坑准则。
 2. 文章 **标题** 使用 `publications.json` 条目中匹配的 `title`（与母稿 front matter 不一致时以 `publications.json` 为准，除非用户指定）。
-3. 文章 **正文** 使用步骤 2 命中的母稿 `article_file`；通过 `@base64file:` 或 `-f` 传入各平台 `create_article` 等工具。
+3. 文章 **正文** 使用步骤 2 命中的母稿 `article_file`。`juejin` / `csdn` / `oschina` 的 `create_article` 用 `@base64file:` 或 `-f` 传入（`content` 为 Base64）；`segmentfault` 的 `segmentfault_publish_article` 须传**原始 Markdown**（长文用 `-f`），勿用 `@base64file:`。
 4. 严格遵守 `webmcp-cli state` → 领域工具 → `page-agent-tool` 的调用顺序（见主 Skill）。
 5. **仅在平台确认发布成功并取得文章 URL 后** 进入步骤 4；草稿-only、审核中、无 URL 均视为未成功。
 
@@ -245,7 +245,7 @@ git fetch / checkout main / pull → 切分支 <平台>/<时间戳>
         ↓
 读 publications.json → 按 title 匹配 article_file → 校验母稿
         ↓
-按平台子指南 create_article → 取得 url
+按平台子指南正式发布 → 取得文章 url
         ↓
 更新 publications.json → 确认 gh auth → commit → push → gh pr create
         ↓
