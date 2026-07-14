@@ -4,12 +4,13 @@
  * 参数文件：在已登录的 CSDN Markdown 编辑器页执行图片上传。
  *
  * 策略（按序）：
- *  1) 若指定 --upload-url：FormData + fetch(credentials:include)
- *  2) 否则找编辑器 input[type=file]，DataTransfer 注入并 dispatch change
- *  3) 结果写入 window.__csdnImgUpload（不依赖 executeJavascript await Promise）
+ *  1) 优先 `window.csdn.upload.uploadImg`（编辑器已注入的图床 SDK；实战可用）
+ *  2) 若指定 --upload-url：FormData + fetch(credentials:include)
+ *  3) 否则找 accept 含 image 的 input[type=file]（禁止落到「导入 Markdown」的 .md input）
+ *  4) 结果写入 window.__csdnImgUpload（不依赖 executeJavascript await Promise）
  *
- * 成功检测：优先看新增的 img-blog/csdnimg CDN；同时扫 Markdown 源码（CodeMirror/textarea），
- * 因为 CSDN 常把图片写成 `![](cdn)` 而不立刻渲染 <img>。
+ * 成功检测：SDK 直接返回 imageUrl；file-input/fetch 仍扫 DOM / Markdown 新增 CDN。
+ * 合法正文 CDN：i-blog / img-blog 等；`img-home.csdnimg.cn?...origin_url=` 是转存失败占位，不算成功。
  *
  * 用法：
  *   node upload-editor.mjs --upload-json upload-0.json --out upload-run-0.json [--poll-out poll.json]
@@ -58,38 +59,39 @@ function buildUploadScript(payload) {
     const blob = new Blob([bytes], { type: mimeType });
     const file = new File([blob], filename, { type: mimeType });
 
-    /** 用于判定「上传成功」的 CDN（收紧，避免 avatar.csdn.net 等站点图误判） */
+    /** 正文配图 CDN；排除 img-home 转存失败占位 */
     const isUploadCdn = (url) => {
       try {
-        const h = new URL(url, location.href).hostname.toLowerCase();
+        const u = new URL(url, location.href);
+        const h = u.hostname.toLowerCase();
+        if (/^img-home\./i.test(h) || u.searchParams.has('origin_url')) return false;
         return (
           /(^|\.)csdnimg\.cn$/i.test(h) ||
           /img[-.].*csdnimg/i.test(h) ||
-          /^img-blog\./i.test(h)
+          /^img-blog\./i.test(h) ||
+          /^i-blog\./i.test(h)
         );
       } catch {
         return false;
       }
     };
 
-    const pickUrlFromJson = (json) => {
-      if (!json || typeof json !== 'object') return null;
-      const data = json.data;
-      const candidates = [
-        json.url,
-        json.imageUrl,
-        json.imgUrl,
-        data && data.url,
-        data && data.imageUrl,
-        data && data.imgUrl,
-        data && data.image_url,
-        typeof data === 'string' ? data : null,
-      ];
-      for (const c of candidates) {
-        if (typeof c === 'string' && /^https?:\/\//i.test(c)) return c;
+    const digImageUrl = (node) => {
+      if (!node || typeof node !== 'object') return null;
+      if (typeof node.imageUrl === 'string' && /^https?:\/\//i.test(node.imageUrl)) {
+        return node.imageUrl;
+      }
+      if (typeof node.url === 'string' && /^https?:\/\//i.test(node.url) && isUploadCdn(node.url)) {
+        return node.url;
+      }
+      for (const v of Object.values(node)) {
+        const hit = digImageUrl(v);
+        if (hit) return hit;
       }
       return null;
     };
+
+    const pickUrlFromJson = (json) => digImageUrl(json);
 
     const finish = (result) => {
       window.__csdnImgUpload = Object.assign({}, result, { finished_at: Date.now() });
@@ -102,6 +104,10 @@ function buildUploadScript(payload) {
           return cm.CodeMirror.getValue() || '';
         }
       } catch (_) {}
+      const inner = document.querySelector('.editor__inner');
+      if (inner && typeof inner.innerText === 'string' && inner.innerText.trim()) {
+        return inner.innerText;
+      }
       const ta =
         document.querySelector('textarea.editor-content') ||
         document.querySelector('.editor textarea') ||
@@ -137,13 +143,50 @@ function buildUploadScript(payload) {
       return null;
     };
 
+    const tryCsdnSdk = async () => {
+      const uploadImg = window.csdn && window.csdn.upload && window.csdn.upload.uploadImg;
+      if (typeof uploadImg !== 'function') return false;
+      try {
+        const results = await uploadImg({
+          file,
+          appName: 'direct_blog',
+          env: 'prod',
+          currentLine: 'external',
+        });
+        const first = Array.isArray(results) ? results[0] : results;
+        const cdn = digImageUrl(first);
+        if (cdn && isUploadCdn(cdn)) {
+          finish({ ok: true, status: 'done', mode: 'csdn-sdk', cdn_url: cdn });
+          return true;
+        }
+        finish({
+          ok: false,
+          status: 'error',
+          mode: 'csdn-sdk',
+          error: 'csdn.upload.uploadImg returned no usable imageUrl',
+          body_preview: JSON.stringify(first).slice(0, 400),
+        });
+        return true;
+      } catch (e) {
+        finish({
+          ok: false,
+          status: 'error',
+          mode: 'csdn-sdk',
+          error: 'csdn.upload.uploadImg failed: ' + String(e && e.message ? e.message : e),
+        });
+        return true;
+      }
+    };
+
     const tryFileInput = () => {
       const inputs = Array.from(document.querySelectorAll('input[type="file"]'));
-      const input =
-        inputs.find((el) => {
-          const acc = (el.getAttribute('accept') || '').toLowerCase();
-          return !acc || acc.includes('image') || acc.includes('*');
-        }) || inputs[0];
+      // 仅接受图片的 input；禁止落到 #import-markdown-file-input（accept=.md）
+      const input = inputs.find((el) => {
+        const acc = (el.getAttribute('accept') || '').toLowerCase();
+        const id = (el.id || '').toLowerCase();
+        if (id.includes('markdown') || acc.includes('.md')) return false;
+        return acc.includes('image') || acc.includes('png') || acc.includes('gif') || acc.includes('*/*');
+      });
       if (!input) return false;
 
       try {
@@ -179,7 +222,7 @@ function buildUploadScript(payload) {
               status: 'timeout',
               mode: 'file-input',
               error:
-                'file input dispatched but no new csdnimg CDN in DOM or markdown within 20s; try --upload-url or UI',
+                'file input dispatched but no new blog CDN in DOM or markdown within 20s; csdn-sdk preferred',
             });
           }
         }
@@ -218,12 +261,14 @@ function buildUploadScript(payload) {
           await tryFetchUpload(explicitUploadUrl);
           return;
         }
+        if (await tryCsdnSdk()) return;
         if (!tryFileInput()) {
           finish({
             ok: false,
             status: 'error',
             mode: 'none',
-            error: 'no file input found; pass --upload-url from Network or use editor UI upload',
+            error:
+              'csdn.upload.uploadImg unavailable and no image file input; pass --upload-url or use editor UI',
           });
         }
       } catch (e) {
@@ -309,6 +354,7 @@ function main() {
       filename: uploadDoc.filename,
       byte_length: uploadDoc.byte_length ?? null,
       has_upload_url: Boolean(uploadUrl),
+      preferred_mode: uploadUrl ? 'fetch-upload-url' : 'csdn-sdk',
       note: 'Run page-agent-tool -f out_file then poll poll_out until ok/cdn_url on https://editor.csdn.net/md/',
     }),
   );

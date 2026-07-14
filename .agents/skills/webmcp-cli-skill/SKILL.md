@@ -4,7 +4,7 @@ description: 面向第三方 AI Agent 的安装与执行指南：如何使用 we
 license: MIT
 metadata:
   author: opentiny
-  version: '1.3.0'
+  version: '1.1.0'
 ---
 
 # WebMCP CLI Skill

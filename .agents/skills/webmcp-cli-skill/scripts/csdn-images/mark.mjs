@@ -96,6 +96,55 @@ function isDataUri(p) {
 }
 
 /**
+ * 是否为 CSDN「外链转存失败」占位 URL（img-home + origin_url）。
+ * 此类 URL 虽属 csdnimg.cn，但不能当作正文配图 CDN。
+ * @param {string} p
+ * @returns {boolean}
+ */
+function isCsdnTransferFailureUrl(p) {
+  const s = String(p || '').trim();
+  if (!s) return false;
+  try {
+    const u = new URL(s, 'https://editor.csdn.net/');
+    if (/^img-home\./i.test(u.hostname) && u.searchParams.has('origin_url')) return true;
+  } catch {
+    /* ignore */
+  }
+  return /img-home\.csdnimg\.cn/i.test(s) && /[?&]origin_url=/i.test(s);
+}
+
+/**
+ * alt 是否已被 CSDN 改成转存失败提示文案。
+ * @param {string} alt
+ * @returns {boolean}
+ */
+function isTransferFailureAlt(alt) {
+  return /外链图片转存失败|建议将图片保存下来直接上传/.test(String(alt || ''));
+}
+
+/**
+ * 从占位 URL 的 origin_url 取出原稿相对路径（如 assets/foo.png）。
+ * @param {string} p
+ * @returns {string | null}
+ */
+function extractOriginAssetPath(p) {
+  try {
+    const u = new URL(String(p).trim(), 'https://editor.csdn.net/');
+    const origin = u.searchParams.get('origin_url');
+    if (!origin) return null;
+    return decodeURIComponent(origin).replace(/^\.\//, '').trim() || null;
+  } catch {
+    const m = String(p).match(/[?&]origin_url=([^&]+)/i);
+    if (!m) return null;
+    try {
+      return decodeURIComponent(m[1]).replace(/^\.\//, '').trim() || null;
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
  * @param {unknown} raw
  * @returns {Set<string>}
  */
@@ -142,10 +191,25 @@ function matchesBrokenSet(p, brokenSet) {
  * @returns {string | null}
  */
 function guessLocalFromBasename(articleDir, original) {
+  const fromOrigin = extractOriginAssetPath(original);
+  if (fromOrigin) {
+    const resolved = resolveLocalPath(articleDir, fromOrigin);
+    if (resolved && fs.existsSync(resolved)) return resolved;
+  }
   const base = path.basename(original.split(/[?#]/)[0]);
   if (!base || base.includes(PLACEHOLDER_PREFIX)) return null;
   const candidate = path.join(articleDir, 'assets', base);
   return fs.existsSync(candidate) ? candidate : null;
+}
+
+/**
+ * 转存失败时从路径猜一个可读 alt。
+ * @param {string} localOrRelative
+ * @returns {string}
+ */
+function altFromPath(localOrRelative) {
+  const base = path.basename(String(localOrRelative).split(/[?#]/)[0]);
+  return base.replace(/\.[a-z0-9]+$/i, '') || base;
 }
 
 /**
@@ -227,11 +291,15 @@ function main() {
       if (matchesBrokenSet(p, brokenSet)) reason = 'listed-in-broken-urls';
       else if (isDataUri(p)) reason = 'data-uri';
       else if (!isHttpUrl(p)) reason = 'local-relative-path';
+      else if (isCsdnTransferFailureUrl(p) || isTransferFailureAlt(alt)) {
+        reason = 'csdn-transfer-failure-placeholder';
+      }
 
       if (!reason) return full;
 
       /** @type {string | null} */
       let localPath = null;
+      let outAlt = String(alt);
 
       if (articleDir && !isHttpUrl(p) && !isDataUri(p)) {
         const resolved = resolveLocalPath(articleDir, p);
@@ -251,19 +319,31 @@ function main() {
         localPath = resolved;
       } else if (articleDir) {
         localPath = guessLocalFromBasename(articleDir, p);
+        // 占位 URL 的 basename 是平台图文件名，必须靠 origin_url 才能映射本地
+        if (!localPath && reason === 'csdn-transfer-failure-placeholder') {
+          const originRel = extractOriginAssetPath(p);
+          if (originRel) {
+            const resolved = resolveLocalPath(articleDir, originRel);
+            if (resolved && fs.existsSync(resolved)) localPath = resolved;
+          }
+        }
+        if (isTransferFailureAlt(outAlt)) {
+          const originRel = extractOriginAssetPath(p);
+          outAlt = altFromPath(localPath || originRel || p);
+        }
       }
 
       const placeholder = `${PLACEHOLDER_PREFIX}${markerIndex}__`;
       markers.push({
         index: markerIndex,
-        alt: String(alt),
+        alt: outAlt,
         original: p,
         placeholder,
         local_path: localPath,
         reason,
       });
       markerIndex += 1;
-      return `![${alt}](${placeholder})`;
+      return `![${outAlt}](${placeholder})`;
     });
   });
 

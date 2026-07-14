@@ -73,8 +73,12 @@ webmcp-cli run create_article -t TAB_ID -f ./article_args.json
 
 `create_article` 之后、`publish_current_draft` 之前：
 
-1. 调用 `get_article_info` 检查正文是否仍含 `./assets/`、相对路径图片、裂图或非 CSDN CDN（`*.csdnimg.cn` 等）链接。
-2. 若存在异常，**先**按 [fix-csdn-article-images.md](./fix-csdn-article-images.md) 完成标记 → 上传 → 替换 → 复检（最多 3 轮），再进入发布。
+1. 调用 `get_article_info`（若工具不可用，用 `executeJavascript` 读 `.editor__inner`）检查正文是否仍含：
+   - `./assets/` / 相对路径图片
+   - `img-home.csdnimg.cn?...origin_url=`（外链转存失败占位，有预览宽高也算异常）
+   - 「外链图片转存失败」文案
+   - 非正文 CDN（合法示例：`i-blog.csdnimg.cn` / `img-blog.csdnimg.cn`）
+2. 若存在异常，**先**按 [fix-csdn-article-images.md](./fix-csdn-article-images.md) 完成标记 → 上传（优先 `csdn.upload.uploadImg`）→ 替换 → 复检（最多 3 轮），再进入发布。
 3. 图片全部正常（或正文无图）时，直接进入第四步。
 
 可复用脚本目录：`../scripts/csdn-images/`（`mark.mjs` / `prepare-upload.mjs` / `upload-editor.mjs` / `replace.mjs` / `check-page.js` / `wrap-check-page.mjs`）。
@@ -119,3 +123,5 @@ webmcp-cli state -t TAB_ID
 | 点击发布无反应 | Vue 不响应原生 JS click / 遮罩拦截 | `publish_current_draft` 会自动移除 `.mark-mask-box-div` 遮罩 |
 | 标签添加失败 | 右栏标签无独立 index | `publish_current_draft` 内置 JS 批量点选 `.el-tag` |
 | PowerShell JSON 报错 | 内联 JSON 转义失败 | 改用 `create_article -f article_args.json` |
+| 图片显示转存失败 / 假 CDN | 相对路径被改成 `img-home...origin_url=` 占位 | 按 [fix-csdn-article-images.md](./fix-csdn-article-images.md) 用 `csdn.upload.uploadImg` 上传后写回 |
+| file input 上传超时 | 页面上的 file input 是「导入 Markdown」 | `upload-editor.mjs` 已改优先 SDK，勿注入 `.md` input |
