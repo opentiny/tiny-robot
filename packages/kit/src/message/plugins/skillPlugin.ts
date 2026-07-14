@@ -146,11 +146,15 @@ interface SkillPluginHooks extends MessageEnginePlugin {
 
 type SelectionInput<T extends SkillSelection> = T | ((context: BasePluginContext) => MaybePromise<T>)
 
-export type SkillPluginOptions<S extends SkillSelection = SkillSelection> = SkillPluginHooks &
-  RequireResolver<S> &
-  RequireCandidateProvider<S> & {
-    selection: SelectionInput<S>
-  }
+type SkillPluginOptionsFor<S extends SkillSelection> = S extends SkillSelection
+  ? SkillPluginHooks &
+      RequireResolver<S> &
+      RequireCandidateProvider<S> & {
+        selection: SelectionInput<S>
+      }
+  : never
+
+export type SkillPluginOptions<S extends SkillSelection = SkillSelection> = SkillPluginOptionsFor<S>
 
 const skillPluginContextKey = '__tiny_robot_skill'
 
@@ -186,6 +190,18 @@ const createResolvedSkillInstructions = (skills: SkillDefinition[]): string[] =>
   return instructions
 }
 
+const normalizeSkills = (skills: SkillDefinition[]) => {
+  const skillMap = new Map<string, SkillDefinition>()
+
+  for (const skill of skills) {
+    if (!skillMap.has(skill.name)) {
+      skillMap.set(skill.name, skill)
+    }
+  }
+
+  return [...skillMap.values()]
+}
+
 const normalizeCandidates = (candidates: SkillCandidate[]) => {
   const candidateMap = new Map<string, SkillCandidate>()
 
@@ -213,6 +229,16 @@ const setSkillContext = (context: BasePluginContext, skillContext: SkillRequestC
   context.setCustomContext({ [skillPluginContextKey]: skillContext })
 }
 
+const hasEnabledToolPlugin = (context: BasePluginContext) => {
+  return context.plugins.some((plugin) => {
+    if (plugin.name !== 'tool') {
+      return false
+    }
+
+    return typeof plugin.disabled === 'function' ? !plugin.disabled(context) : !plugin.disabled
+  })
+}
+
 const resolveSkillsByNames = async (
   skillNames: string[],
   getSkillByName: SkillResolver['getSkillByName'],
@@ -228,11 +254,23 @@ const resolveSkillsByNames = async (
     }),
   )
 
-  const skills = results.map((result) => result.skill).filter((skill): skill is SkillDefinition => Boolean(skill))
+  const skillMap = new Map<string, SkillDefinition>()
+  const unresolvedSkillNames: string[] = []
+
+  for (const result of results) {
+    if (result.failed || !result.skill || result.skill.name !== result.name) {
+      unresolvedSkillNames.push(result.name)
+      continue
+    }
+
+    if (!skillMap.has(result.skill.name)) {
+      skillMap.set(result.skill.name, result.skill)
+    }
+  }
 
   return {
-    skills,
-    unresolvedSkillNames: results.filter((result) => result.failed || !result.skill).map((result) => result.name),
+    skills: [...skillMap.values()],
+    unresolvedSkillNames,
   }
 }
 
@@ -346,7 +384,7 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
         let unresolvedSkillNames: string[]
 
         if (selectionOptions.skills) {
-          skills = selectionOptions.skills
+          skills = normalizeSkills(selectionOptions.skills)
           requestedSkillNames = skills.map((skill) => skill.name)
           unresolvedSkillNames = []
         } else {
@@ -384,6 +422,10 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
       }
 
       // mode: 'auto'
+      if (!hasEnabledToolPlugin(context)) {
+        throw new Error('skillPlugin auto mode requires an enabled toolPlugin')
+      }
+
       const getCandidates = getSkillCandidates
       if (!getCandidates) {
         throw new Error('getSkillCandidates is required when auto mode is enabled')

@@ -5,3 +5,12 @@ export * from './storage'
 export * from './types'
 export { extractTextFromResponse, formatMessages, handleSSEStream, sseStreamToGenerator } from './utils'
 export * from './vue'
+export { loadSkill, loadSkillWithDetails } from './skills/loader'
+export type {
+  BrowserSkillLoadOptions,
+  GithubSkillLoadOptions,
+  SkillLoadJob,
+  SkillLoadOptions,
+  SkillLoadResult,
+} from './skills/loader'
+export type { SkillCandidate, SkillDefinition } from './skills/types'
