@@ -1,5 +1,6 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
-import { dirname, join, relative } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { basename, dirname, join, relative } from 'node:path'
 import { stringify as stringifyYaml } from 'yaml'
 import { loadSkillWithDetails } from '../loader/node'
 import type { SkillLoadOptions } from '../loader/node'
@@ -37,25 +38,41 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
     this.assertWritable()
 
     const directory = this.getSkillDirectory(skill.name)
-    await rm(directory, {
+    const { parentDirectory, tempDirectory, backupDirectory } = createReplacementPaths(directory)
+    let hasBackup = false
+    let installed = false
+
+    await mkdir(parentDirectory, {
       recursive: true,
-      force: true,
     })
-    await mkdir(directory, {
+    await mkdir(tempDirectory, {
       recursive: true,
     })
-    await writeFile(join(directory, entryFile), serializeSkillEntry(skill), 'utf8')
 
-    for (const resource of skill.resources ?? []) {
-      await this.writeResource(directory, resource)
+    try {
+      await this.writeSkillDirectory(tempDirectory, skill)
+      hasBackup = await this.backupExistingDirectory(directory, backupDirectory)
+      await rename(tempDirectory, directory)
+      installed = true
+
+      const storedSkill = await this.getStoredSkill(skill.name)
+      if (hasBackup) {
+        await removeDirectory(backupDirectory)
+        hasBackup = false
+      }
+
+      return storedSkill
+    } catch (error) {
+      if (installed) {
+        await this.rollbackInstalledDirectory(directory, backupDirectory, hasBackup)
+      } else if (hasBackup) {
+        await this.restoreBackupDirectory(directory, backupDirectory)
+      }
+
+      throw error
+    } finally {
+      await removeDirectory(tempDirectory)
     }
-
-    const storedSkill = await this.get(skill.name)
-    if (!storedSkill) {
-      throw new Error(`Failed to store skill "${skill.name}".`)
-    }
-
-    return storedSkill
   }
 
   async get(name: string) {
@@ -242,6 +259,51 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
     await writeFile(fullPath, await getResourceBinary(resource))
   }
 
+  private async writeSkillDirectory(directory: string, skill: SkillDefinition) {
+    await writeFile(join(directory, entryFile), serializeSkillEntry(skill), 'utf8')
+
+    for (const resource of skill.resources ?? []) {
+      await this.writeResource(directory, resource)
+    }
+  }
+
+  private async backupExistingDirectory(directory: string, backupDirectory: string) {
+    try {
+      await rename(directory, backupDirectory)
+      return true
+    } catch (error) {
+      if (isFileNotFoundError(error)) {
+        return false
+      }
+
+      throw error
+    }
+  }
+
+  private async rollbackInstalledDirectory(directory: string, backupDirectory: string, hasBackup: boolean) {
+    if (hasBackup) {
+      await this.restoreBackupDirectory(directory, backupDirectory)
+      return
+    }
+
+    await removeDirectory(directory)
+  }
+
+  private async restoreBackupDirectory(directory: string, backupDirectory: string) {
+    await removeDirectory(directory)
+    await rename(backupDirectory, directory).catch(() => undefined)
+  }
+
+  private async getStoredSkill(name: string) {
+    const storedSkill = await this.get(name)
+
+    if (!storedSkill) {
+      throw new Error(`Failed to store skill "${name}".`)
+    }
+
+    return storedSkill
+  }
+
   private getSkillDirectory(name: string) {
     const directoryName = normalizeSkillPath(name)
 
@@ -261,6 +323,24 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
 
 export function createFsSkillStorage(options: FsSkillStorageOptions) {
   return new FsSkillStorage(options)
+}
+
+function createReplacementPaths(directory: string) {
+  const parentDirectory = dirname(directory)
+  const directoryName = basename(directory)
+
+  return {
+    parentDirectory,
+    tempDirectory: join(parentDirectory, `.${directoryName}.tmp-${randomUUID()}`),
+    backupDirectory: join(parentDirectory, `.${directoryName}.bak-${randomUUID()}`),
+  }
+}
+
+async function removeDirectory(directory: string) {
+  await rm(directory, {
+    recursive: true,
+    force: true,
+  }).catch(() => undefined)
 }
 
 function serializeSkillEntry(skill: SkillDefinition) {
