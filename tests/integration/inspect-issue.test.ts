@@ -25,15 +25,15 @@ interface InspectIssueOutput {
   };
   commands: Array<{
     comment_id: number | string | null;
+    body: string;
+    explicit_ai_request: boolean;
     actor: {
       login: string;
       authorized: boolean;
       bot: boolean;
     };
-    parsed: {
-      kind: string;
-    } | null;
-    actionable: boolean;
+    fixed_approval: "approve-writing-plan" | null;
+    approval_authorized: boolean;
   }>;
 }
 
@@ -63,10 +63,10 @@ describe("article-hub inspect-issue", () => {
     inspectFixtureIssue();
   });
 
-  test("授权 maintainer 的批准命令可执行", () => {
+  test("授权 maintainer 的固定写作计划批准通过权限检查", () => {
     const output = inspectFixtureIssue();
     const command = output.commands.find(
-      (item) => item.actor.login === "maintainer" && item.parsed !== null
+      (item) => item.actor.login === "maintainer" && item.fixed_approval !== null
     );
 
     expect(command).toMatchObject({
@@ -74,9 +74,9 @@ describe("article-hub inspect-issue", () => {
         authorized: true,
         bot: false
       },
-      actionable: true
+      fixed_approval: "approve-writing-plan",
+      approval_authorized: true
     });
-    expect(command?.parsed).toEqual({ kind: "approve-writing-plan" });
   });
 
   test("gh issue view 原始评论字段中的协作者批准命令可执行", () => {
@@ -107,10 +107,8 @@ describe("article-hub inspect-issue", () => {
         authorized: true,
         bot: false
       },
-      parsed: {
-        kind: "approve-writing-plan"
-      },
-      actionable: true
+      fixed_approval: "approve-writing-plan",
+      approval_authorized: true
     });
   });
 
@@ -142,10 +140,8 @@ describe("article-hub inspect-issue", () => {
         authorized: true,
         bot: false
       },
-      parsed: {
-        kind: "approve-writing-plan"
-      },
-      actionable: true
+      fixed_approval: "approve-writing-plan",
+      approval_authorized: true
     });
   });
 
@@ -161,10 +157,8 @@ describe("article-hub inspect-issue", () => {
         authorized: false,
         bot
       },
-      parsed: {
-        kind: "approve-writing-plan"
-      },
-      actionable: false
+      fixed_approval: "approve-writing-plan",
+      approval_authorized: false
     });
   });
 
@@ -173,38 +167,79 @@ describe("article-hub inspect-issue", () => {
     const command = output.commands.find((item) => item.comment_id === 1004);
 
     expect(command).toMatchObject({
-      parsed: null,
-      actionable: false
+      fixed_approval: null,
+      approval_authorized: false
     });
   });
 
-  test("授权固定控制命令输出结构化 kind", () => {
+  test("自然语言评论保留原文但不由 CLI 解释意图", () => {
     const output = inspectFixtureIssue();
-    const command = output.commands.find((item) => item.parsed?.kind === "pause");
+    const request = output.commands.find((item) => item.comment_id === 1007);
 
-    expect(command).toMatchObject({
+    expect(request).toMatchObject({
+      body: "/ai 请重试\n\n写作计划内容丢失了，请重新上传。",
+      explicit_ai_request: true,
+      fixed_approval: null,
+      approval_authorized: false
+    });
+  });
+
+  test("非 /ai 的授权 Review 评论保留原文并交给 Agent 判断", () => {
+    const output = inspectFixtureIssue();
+    const review = output.commands.find((item) => item.comment_id === 1010);
+
+    expect(review).toMatchObject({
+      body: "建议把第二节改成先讲使用场景，再介绍 API。",
+      explicit_ai_request: false,
       actor: {
         authorized: true,
         bot: false
       },
-      parsed: {
-        kind: "pause"
-      },
-      actionable: true
+      fixed_approval: null,
+      approval_authorized: false
     });
   });
 
-  test("actionable 的控制命令不等价于写作计划批准", () => {
+  test("只有独立的 /ai 前缀才标记为显式请求", () => {
     const output = inspectFixtureIssue();
-    const command = output.commands.find((item) => item.parsed?.kind === "status");
+    const request = output.commands.find((item) => item.comment_id === 1008);
+
+    expect(request).toMatchObject({
+      body: "/ai请重试",
+      explicit_ai_request: false,
+      fixed_approval: null,
+      approval_authorized: false
+    });
+  });
+
+  test.each([
+    { commentId: 1005, body: "/ai 状态" },
+    { commentId: 1006, body: "/ai 暂停" }
+  ])("控制请求保留原文但不由 CLI 解释：$body", ({ commentId, body }) => {
+    const output = inspectFixtureIssue();
+    const command = output.commands.find((item) => item.comment_id === commentId);
 
     expect(command).toMatchObject({
-      parsed: {
-        kind: "status"
+      body,
+      actor: {
+        authorized: true,
+        bot: false
       },
-      actionable: true
+      fixed_approval: null,
+      approval_authorized: false
     });
-    expect(command?.parsed).not.toEqual({ kind: "approve-writing-plan" });
+  });
+
+  test("批准选题作为普通显式请求交给 Agent 判断", () => {
+    const output = inspectFixtureIssue();
+    const request = output.commands.find((item) => item.comment_id === 1009);
+
+    expect(request).toMatchObject({
+      body: "/ai 批准选题",
+      explicit_ai_request: true,
+      fixed_approval: null,
+      approval_authorized: false
+    });
   });
 
   test("无效 JSON 产生稳定错误 envelope 且 stdout 不混入日志", () => {

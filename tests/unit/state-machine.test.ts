@@ -139,7 +139,7 @@ describe("decideStateMutation", () => {
     );
   });
 
-  test("批准选题时从选题进入策划等待执行", () => {
+  test("开始策划时从选题进入策划等待执行", () => {
     const decision = decideStateMutation({
       labels: ["阶段：选题", "AI：等待人工"],
       intent: {

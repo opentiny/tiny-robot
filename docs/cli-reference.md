@@ -33,7 +33,7 @@ node scripts/article-hub-launcher.mjs <command> [options]
 
 | 命令 | 说明 |
 |------|------|
-| [`inspect-issue`](#inspect-issue) | Primitive：解析 Issue fixture，提取结构化事实和固定命令 |
+| [`inspect-issue`](#inspect-issue) | Primitive：解析 Issue fixture，提取结构化事实并校验固定写作计划批准 |
 | [`plan approve`](#plan-approve) | Primitive：校验审批命令并返回审批快照 |
 | [`projects list`](#projects-list) | Primitive：列出配置中的所有项目 |
 | [`projects validate`](#projects-validate) | Primitive：校验项目配置的合法性 |
@@ -59,6 +59,14 @@ article-hub inspect-issue --issue-file <path>
 ```
 
 输入可直接使用 `gh issue view --json number,title,body,author,labels,comments` 的导出结果；评论级 `authorAssociation` 和 GraphQL 字符串 `id` 会被保留并用于授权判定。REST API 形态的 `user`、数字 `id` 和 `author_association` 也受支持。
+
+`commands[]` 保留每条评论的 `comment_id`、`body` 和标准化 `actor`，并输出以下判定：
+
+- `explicit_ai_request`：评论首个非空位置是否以独立 `/ai` 前缀开头；正文中引用 `/ai` 或 `/ai请重试` 不匹配。
+- `fixed_approval`：逐字匹配 `/ai 批准写作计划` 时为 `"approve-writing-plan"`，其他评论为 `null`。
+- `approval_authorized`：固定写作计划批准是否通过权限和 bot 校验。
+
+CLI 不解释 Review、状态查询、暂停、恢复、重试或写作计划修改意图。Agent 读取所有 `actor.authorized: true` 的非 bot 新评论并自行 triage；`explicit_ai_request` 只表示评论是否显式发出控制请求，不是 Review 意见的入口条件。明确 Review 意见无需 `/ai` 前缀，状态 mutation 仍由 `update-status` 校验。
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
