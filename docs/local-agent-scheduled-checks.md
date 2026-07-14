@@ -1,6 +1,6 @@
 # 本地 Agent 定时巡检配置说明
 
-本文提供给 Codex、Claude Code 等本地 Agent 的定时任务使用。它让 Agent 在被定时唤醒时巡检 Issue、PR 和可选的外部平台正式发布任务，不实现 GitHub Workflow、常驻监听，也不跳过写作计划批准、事实确认和人工 Review。
+本文提供给 Codex、Claude Code 等本地 Agent 的定时任务使用。它让 Agent 在被定时唤醒时巡检 Issue、PR、可选的外部平台正式发布任务，以及主仓库代码同步，不实现 GitHub Workflow、常驻监听，也不跳过写作计划批准、事实确认和人工 Review。
 
 建议先创建两个本地定时任务：
 
@@ -11,7 +11,11 @@
 
 - 正式发布巡检：读取 `articles/publications.json`，将尚无正式发布记录的文章通过 `webmcp-cli` 发布到目标平台，回写平台 URL 并创建 PR。
 
-Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。正式发布巡检建议低频运行，例如每天 1-2 次，或在文章 PR 合入后人工开启。频率由本地工具决定，仓库不强制。
+巡检机器不会自动跟随上游代码时，再增加第四个任务：
+
+- 仓库同步巡检：检查 `origin/main`（或指定跟踪分支）是否有新提交；仅在工作区干净、无业务占用、可 fast-forward 时拉取变更，然后执行依赖安装、构建和 `doctor`。
+
+Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。正式发布巡检建议低频运行，例如每天 1-2 次，或在文章 PR 合入后人工开启。仓库同步巡检建议低于业务巡检频率，例如每 1-6 小时一次，并与 Issue/PR 巡检错开，避免在业务构建过程中更新主仓库。频率由本地工具决定，仓库不强制。
 
 ## 使用方式
 
@@ -20,20 +24,21 @@ Issue 和 PR 任务可以每 15-30 分钟运行一次，并错开 5-10 分钟。
 - Issue 巡检：[docs/prompts/local-issue-watch.md](./prompts/local-issue-watch.md)
 - PR 巡检：[docs/prompts/local-pr-watch.md](./prompts/local-pr-watch.md)
 - 正式发布巡检：[docs/prompts/local-publish-watch.md](./prompts/local-publish-watch.md)
+- 仓库同步巡检：[docs/prompts/local-repo-sync.md](./prompts/local-repo-sync.md)
 
 常见使用方式：
 
 - 普通对话：让 Agent 读取其中一个巡检任务文件，只会执行一轮巡检，不会创建定时任务。适合第一次验证候选筛选、标签更新和停止行为。
-- Codex app automation：在对话中明确要求“创建定时任务”，指定工作目录、频率、运行方式和要使用的巡检任务文件。Issue 巡检、PR 巡检和正式发布巡检应创建成独立任务。
+- Codex app automation：在对话中明确要求“创建定时任务”，指定工作目录、频率、运行方式和要使用的巡检任务文件。Issue 巡检、PR 巡检、正式发布巡检和仓库同步巡检应创建成独立任务。
 - 调度平台或 Cron：在产品的定时任务入口中创建独立任务，分别让 Agent 读取对应巡检任务文件。
 
-当前运行环境是 Windows OfficeClaw。每轮任务必须先按对应巡检文件完成启动检查：缺少依赖时自动运行 `corepack pnpm install --no-lockfile`，按巡检机器当前 npm registry 解析依赖，随后运行 `corepack pnpm run build`，并统一通过下面的仓库内 launcher 调用 CLI：
+当前运行环境是 Windows OfficeClaw。业务巡检每轮必须先按对应巡检文件完成启动检查：缺少依赖时自动运行 `corepack pnpm install --no-lockfile`，按巡检机器当前 npm registry 解析依赖，随后运行 `corepack pnpm run build`，并统一通过下面的仓库内 launcher 调用 CLI：
 
 ```text
 node "<主仓库绝对路径>/scripts/article-hub-launcher.mjs"
 ```
 
-仓库不提交或读取 `pnpm-lock.yaml`。不要全局安装 `article-hub`，不要运行裸命令，也不要在 pnpm 项目中自动改用 `npm install`。启动检查失败属于整轮环境失败：只写 OfficeClaw 任务输出和 `.cache/article-hub/scheduled-runs/system/<watch-type>.json`，不读取候选项、不改标签、不向各 Issue 或 PR 重复评论。
+业务巡检的启动检查**不**负责更新主仓库 git 历史；代码同步只由仓库同步巡检执行，规则见 `docs/prompts/local-repo-sync.md`。仓库不提交或读取 `pnpm-lock.yaml`。不要全局安装 `article-hub`，不要运行裸命令，也不要在 pnpm 项目中自动改用 `npm install`。启动检查失败属于整轮环境失败：只写 OfficeClaw 任务输出和 `.cache/article-hub/scheduled-runs/system/<watch-type>.json`，不读取候选项、不改标签、不向各 Issue 或 PR 重复评论。
 
 Codex app 可以从普通对话创建 automation。建议使用 project-scoped standalone automation，工作目录指向本仓库，并选择 local project 作为调度入口。工作目录必须填写执行机器上的仓库绝对路径，可在仓库根目录运行 `pwd` 获取；不要复制其他机器的用户路径。Issue 巡检和 PR 巡检在主仓库读取任务文件、候选和共享运行标记；进入写文件、生成、润色、提交或推送流程前，再按任务提示词创建候选专属 Git worktree。成功完成后必须自动清理本轮 worktree；失败或阻断时保留路径供排查。这样既能共享 `<主仓库>/.cache/article-hub/scheduled-runs/` 互斥标记，也不会污染用户当前工作区。
 
@@ -63,6 +68,19 @@ Codex app 可以从普通对话创建 automation。建议使用 project-scoped s
 运行方式：local project 作为调度入口；发布任务按提示词创建独立 worktree
 频率：每天 10:00 一次
 提示词：读取 docs/prompts/local-publish-watch.md，并按其中完整规则执行一轮正式发布巡检。目标平台：juejin, csdn, segmentfault。
+```
+
+仓库同步巡检建议单独创建，频率低于 Issue/PR 巡检，并与业务巡检错开。示例：
+
+```text
+请创建一个 Codex 定时任务：
+
+名称：ai-article-hub 仓库同步巡检
+类型：standalone / project automation
+工作目录：<执行机器上的 ai-article-hub 仓库绝对路径>
+运行方式：local project 作为调度入口；只更新主仓库跟踪分支，不创建业务 worktree
+频率：每 2 小时一次
+提示词：读取 docs/prompts/local-repo-sync.md，并按其中完整规则执行一轮仓库同步巡检。
 ```
 
 对于 OfficeAce、OfficeClaw、OpenClaw 等其他 Agent 产品，先确认产品是否支持“通过对话创建定时任务”。如果只把提示词粘进普通对话，它通常只会执行一轮巡检。公开资料中，华为云 [OfficeAce 办公智能体](https://www.huaweicloud.com/news/2026/20260416163440660.html) 主要描述办公场景能力，不能据此判断它一定支持对话式创建定时任务；[OpenClaw 定时任务](https://docs.openclaw.ai/zh-CN/automation/cron-jobs) 则有 Cron 类能力，适合把本文巡检任务文件分别配置成定时任务。
@@ -101,6 +119,16 @@ OfficeClaw 正式发布巡检短 prompt：
 本轮只处理正式发布巡检，不处理 Issue 或 PR 巡检，不创建 GitHub Workflow 或常驻服务。候选为空时只输出本轮无待处理项。
 ```
 
+OfficeClaw 仓库同步巡检短 prompt：
+
+```text
+在 <执行机器上的 ai-article-hub 仓库绝对路径> 执行一轮本地仓库同步巡检。
+
+读取 docs/prompts/local-repo-sync.md 并按其中规则执行。无法读取该文件时只报告失败并停止。
+
+本轮只做主仓库同步与按需构建，不处理 Issue、PR 或外部发布。
+```
+
 可以先用下面的测试提示词确认产品行为：
 
 ```text
@@ -119,11 +147,12 @@ OfficeClaw 正式发布巡检短 prompt：
 
 ## 共用规则
 
-每次被定时唤醒时，Agent 必须遵守以下规则。完整任务规则以 `docs/prompts/local-issue-watch.md`、`docs/prompts/local-pr-watch.md` 和 `docs/prompts/local-publish-watch.md` 为准。
+每次被定时唤醒时，Agent 必须遵守以下规则。完整任务规则以对应 `docs/prompts/local-*-watch.md` / `local-repo-sync.md` 为准；说明书不重复各任务的完整安全边界与 outcome 表。
 
 - 只处理本仓库的 OpenTiny 文章流程，不处理选题发现、普通业务 Issue 或非文章 PR。
+- 仓库同步与业务巡检职责分离：同步任务只更新主仓库跟踪分支；Issue/PR/发布任务不执行 `git pull`。同步失败只写本地 `system/repo-sync.json` 与任务输出，不改 Issue/PR 标签。
 - 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。
-- 每轮最多处理 3 个候选项；候选为空时只输出“本轮无待处理项”，不写评论、不改标签。
+- 业务巡检每轮最多处理 3 个候选项；候选为空时只输出“本轮无待处理项”，不写评论、不改标签。
 - 同一个文章 Issue 串行处理。不同 Issue 可以在不同任务中并行。
 - 所有 GitHub 状态标签必须通过主仓库 launcher 调用 `update-status` 修改，不得用裸 `article-hub`、`gh issue edit --add-label` 或手工拼标签绕过状态机。
 - 遇到 `AI执行：人工暂停` 立即停止，不读取新指令、不改文件、不提交、不创建 PR。
@@ -174,6 +203,10 @@ Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记�
 
 正式发布巡检使用独立的「文章 + 平台」运行标记，具体格式见 `docs/prompts/local-publish-watch.md`。
 
+仓库同步巡检写入系统级运行记录 `<主仓库>/.cache/article-hub/scheduled-runs/system/repo-sync.json`。运行标记是 best-effort：发现活动业务/同步标记时跳过本轮；发现过期标记时停止并提示人工检查。字段与 outcome 定义见 `docs/prompts/local-repo-sync.md`，本文不重复。
+
+建议在正式挂定时任务前，用普通对话或临时 Git fixture 至少验证：已与远端一致、远端可 fast-forward、工作区不干净、本地领先、分叉、上一次构建失败需恢复。只在实际出错时再增补 prompt 条款。
+
 ## 状态标签
 
 人工识别主要看 Issue 标签：
@@ -195,6 +228,7 @@ Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记�
 - [docs/prompts/local-issue-watch.md](./prompts/local-issue-watch.md)
 - [docs/prompts/local-pr-watch.md](./prompts/local-pr-watch.md)
 - [docs/prompts/local-publish-watch.md](./prompts/local-publish-watch.md)
+- [docs/prompts/local-repo-sync.md](./prompts/local-repo-sync.md)
 
 ## 不适合开启定时巡检的情况
 
@@ -203,6 +237,7 @@ Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记�
 - 第一次试运行文章流程，尚未确认本地环境、权限和 Skill 可用。
 - 仓库标签或状态机正在调整。
 - 当前有大量人工 Commit、分支整理或 PR 迁移。
+- 巡检机器主仓库工作区不干净，或本地跟踪分支相对远端有独有提交/分叉；应先人工整理再开启仓库同步巡检。
 - 文章涉及未公开资料、客户截图、账号权限或需要复杂 Demo 复现。
 - 外部平台账号尚未登录、存在验证码、平台审核规则不明确，或不希望自动正式发布到外部平台。
 - 需要改 CLI、Skill 或流程规则本身。

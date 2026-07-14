@@ -544,7 +544,7 @@ Draft PR 初审阶段可以只评论，不要求核心技术维护者必须 Appr
 
 如果 Codex、Claude Code 或其他本地 Agent 支持定时任务，可以让它定期检查文章 Issue 和 Draft PR，自动处理已经明确授权的写作计划、固定批准命令、PR Review 和 `/ai` 修改指令。
 
-定时巡检只负责本地唤醒和消费已授权事件，不跳过写作计划批准、事实确认、人工 Review、Ready for review 或发布流程。建议先完整跑通一次人工流程，再参考 [本地 Agent 定时巡检配置说明](./docs/local-agent-scheduled-checks.md) 配置 Issue 巡检和 PR 巡检。需要自动将已合入母稿发布到外部平台时，可额外配置「正式发布巡检」，详见该文档中的 `docs/prompts/local-publish-watch.md`。
+定时巡检只负责本地唤醒和消费已授权事件，不跳过写作计划批准、事实确认、人工 Review、Ready for review 或发布流程。建议先完整跑通一次人工流程，再参考 [本地 Agent 定时巡检配置说明](./docs/local-agent-scheduled-checks.md) 配置 Issue 巡检和 PR 巡检。需要自动将已合入母稿发布到外部平台时，可额外配置「正式发布巡检」，详见该文档中的 `docs/prompts/local-publish-watch.md`。巡检机器不会自动跟随上游代码时，可额外配置「仓库同步巡检」：仅在工作区干净且可 fast-forward 时更新主仓库并 rebuild，详见 `docs/prompts/local-repo-sync.md`。
 
 Issue 巡检支持自然语言 `/ai` 请求，例如：
 
