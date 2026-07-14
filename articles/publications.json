@@ -51,7 +51,12 @@
     "tiny-vue/2026-07-13-tinyvue-base-select": {
       "article_file": "articles/tiny-vue/2026-07-13-tinyvue-base-select/article.md",
       "title": "表单筛选利器：TinyVue BaseSelect 基础选择器实战",
-      "publications": {}
+      "publications": {
+        "juejin": {
+          "url": "https://juejin.cn/spost/7661983059005341722",
+          "published_date": "2026-07-14"
+        }
+      }
     }
   }
 }
