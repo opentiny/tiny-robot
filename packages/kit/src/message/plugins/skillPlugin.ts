@@ -144,17 +144,22 @@ interface SkillPluginHooks extends MessageEnginePlugin {
   ) => MaybePromise<void>
 }
 
-type SelectionInput<T extends SkillSelection> = T | ((context: BasePluginContext) => MaybePromise<T>)
-
-type SkillPluginOptionsFor<S extends SkillSelection> = S extends SkillSelection
+type StaticSkillPluginOptions<S extends SkillSelection> = S extends SkillSelection
   ? SkillPluginHooks &
       RequireResolver<S> &
       RequireCandidateProvider<S> & {
-        selection: SelectionInput<S>
+        selection: S
       }
   : never
 
-export type SkillPluginOptions<S extends SkillSelection = SkillSelection> = SkillPluginOptionsFor<S>
+type DynamicSkillPluginOptions<S extends SkillSelection> = SkillPluginHooks &
+  RequireResolver<S> &
+  RequireCandidateProvider<S> & {
+    selection: (context: BasePluginContext) => MaybePromise<S>
+  }
+
+export type SkillPluginOptions<S extends SkillSelection = SkillSelection> =
+  StaticSkillPluginOptions<S> | DynamicSkillPluginOptions<S>
 
 const skillPluginContextKey = '__tiny_robot_skill'
 

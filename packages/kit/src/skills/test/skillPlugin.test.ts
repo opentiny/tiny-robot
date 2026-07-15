@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../../message/adapters/native'
 import { createMessageEngine } from '../../message/core/engine'
 import { getSkillRequestContext, lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../../message/plugins'
-import type { SkillPluginOptions } from '../../message/plugins'
+import type { SkillPluginOptions, SkillSelection } from '../../message/plugins'
 import type { CreateMessageEngineOptions, MessageRequestBody, ResponseProvider } from '../../message/types'
 import { mockResponseProvider } from '../../message/test/mockResponseProvider'
 import type { SkillDefinition } from '../types'
@@ -31,11 +31,16 @@ const skillPluginOptionTypeChecks = [
     getSkillCandidates: async () => [weatherSkill],
     getSkillByName: async () => weatherSkill,
   } satisfies SkillPluginOptions,
+  {
+    selection: async (): Promise<SkillSelection> => ({ mode: 'none' }),
+    getSkillCandidates: async () => [weatherSkill],
+    getSkillByName: async () => weatherSkill,
+  } satisfies SkillPluginOptions,
 ]
 
 describe('skillPlugin', () => {
   it('accepts selection-specific default option types', () => {
-    expect(skillPluginOptionTypeChecks).toHaveLength(4)
+    expect(skillPluginOptionTypeChecks).toHaveLength(5)
   })
 
   it('uses manual skills for instructions and runtime tools', async () => {
