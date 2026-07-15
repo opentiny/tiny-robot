@@ -55,10 +55,13 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
    `projects list` 输出中的 `docs`、`demo`、`deepwiki` 和 `terminology` 是调研入口。`projects[].deepwiki.url` 可用于快速了解仓库上下文；涉及产品事实、版本、API、兼容性或性能结论时，仍必须回到源码、官方文档或人工确认资料核验。
    源码 checkout 缓存不得写入 `materials/source-cache/`。`materials/issue-sources/<issue-number>/` 只用于保存需要随仓库提交的人工来源快照，不放 Issue fixture、计划临时文件、批准快照输入文件或源码缓存。默认文章 Draft PR 不提交 `materials/issue-sources/`；只有批准计划明确点名该人工来源快照需要随仓库保存，且人工确认可以公开提交时，才允许纳入 PR。
 
-3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示 5-8 行计划摘要供用户初看，再用 `gh issue comment` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。发布成功后在对话中给出 Issue 评论链接。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布或无法确认评论链接即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没写入 GitHub。
+3. 生成写作计划并回写 Issue——这是本步的硬交付物，不是后续步骤顺带做的事：先在对话展示 5-8 行计划摘要供用户初看，再用 `<article_hub> comment publish --target issue` 把完整计划作为「当前写作计划评论」发布或更新到 Issue（运营与技术维护者在该评论上审核）。只在 `delivery.status == "created"` 时视为成功，并在对话中给出返回的 `comment_url`。计划评论可含人类可读版本标签（如「第 2 版」），无需任何 Hash。计划评论未发布或无法确认评论链接即视为本步未完成，不得进入批准等待。GitHub 是唯一长期状态源，计划只停在对话里等于这条状态没写入 GitHub。禁止 fallback 到裸 `gh issue comment`。
 
    ```sh
-   gh issue comment <number> --repo <repository> --body-file <临时计划文件>
+   <article_hub> comment publish \
+     --target issue \
+     --number <number> \
+     --body-file <临时计划文件>
    ```
 
    计划评论至少覆盖以下字段（依据 `docs/article-generation-requirements.md` §9.1，缺则补齐）：计划版本与时间、文章目标与查重结论、目标读者/前置知识/阅读收益/不覆盖内容、文章类型、推荐文风（含一句理由与 1 个备选）、推荐标题与候选标题、目标 Release/Tag/分支/Commit、来源清单与可信度、建议大纲、图片与截图素材计划、素材缺口/风险/人工验收项、预计文章长度、批准与修改方式（可复制的批准命令，以及维护者如何在评论中提出修改）。
@@ -160,16 +163,16 @@ description: 把一个已批准写作计划的 OpenTiny 文章 Issue 在本地�
 
    PR body 按 `.github/pull_request_template.md` 的受管区域生成，承载：批准引用（批准人、批准快照评论链接）、文章摘要、关联 Issue、来源快照摘要，以及 `## 人工验收` 清单。人工验收项放 PR body，不写进 `article.md` 正文——正文是平台无关母稿，验收复选框是协作元数据。文章含代码片段时，在 `## 人工验收` 中加入 `- [ ] 人工核对代码片段`（依据需求 §14：该项属于 PR 的必选验收项，未完成时 PR 保持 Draft）。工具链或流程缺陷（如 fixture 字段错配）不写进对外 PR body，需要时记到 `materials/` 的证据目录或单独反馈维护者。
 
-9. 更新 Issue 状态：
+9. 更新 Issue 状态（不传 `--repository`；命令 `cwd` 为 `operation_root`，从当前 origin 推导仓库）：
 
    ```sh
+   # 先把状态回执写入临时 Markdown 文件
    <article_hub> update-status \
      --issue-file <issue.json> \
-     --repository <repository> \
      --intent content-transition \
      --phase "阶段：写作" \
      --ai-state "AI：等待人工" \
-     --comment "初稿已生成，Draft PR 已创建。"
+     --comment-file <临时状态回执文件>
    ```
 
    若 Issue 当前仍在 `阶段：选题`，`content-transition` 不允许直接跳到 `阶段：写作`，会返回 `INVALID_TRANSITION`。此时按状态机依次执行两次合法单步迁移：先 `选题→策划`，再 `策划→写作`，每步都走 `update-status`，不手工拼标签。这是两次各自合法的迁移，不是绕过状态 guard。

@@ -40,6 +40,7 @@ Adapters 是带受控副作用的流程适配器：
 
 - `checkout-sources`
 - `create-pr`
+- `comment publish`
 - `update-status`
 
 要求：
@@ -100,7 +101,7 @@ CLI 标准化作者权限、标记显式 `/ai` 请求并校验固定批准命令
 以下能力不进入 CLI：
 
 - 单纯读取 Issue、PR、评论或文件列表。
-- 单纯追加评论。
+- 无本地 guard、无验证、仅转发 `gh` 参数的评论命令。
 - 单纯展示 GitHub CLI 的输出。
 - 只为迁移期兼容存在的命令。
 

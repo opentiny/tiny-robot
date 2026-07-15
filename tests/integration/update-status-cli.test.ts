@@ -1,18 +1,23 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { describe, expect, test } from "vitest";
 
 import {
   expectErrorEnvelope,
   expectSuccessfulEnvelope,
-  repositoryRoot,
   runArticleHubCli
 } from "../support/cli.js";
-import { createFakeGh } from "../support/fake-gh.js";
+import {
+  buildIssueResource,
+  createFakeGh,
+  FAKE_DEFAULT_REPOSITORY
+} from "../support/fake-gh.js";
 
-const issueFixture = path.join(repositoryRoot, "tests/fixtures/issue-minimal.json");
+const execFileAsync = promisify(execFile);
 
 interface UpdateStatusOutput {
   decision: {
@@ -21,8 +26,13 @@ interface UpdateStatusOutput {
     labels_to_remove: string[];
     labels_to_add: string[];
   };
+  comment_delivery: null | {
+    status: string;
+    comment_id: number;
+    comment_url: string;
+  };
   mutation_plan: {
-    operations: Array<{ kind: string }>;
+    operations: Array<Record<string, unknown>>;
   };
 }
 
@@ -35,17 +45,19 @@ interface StateDecisionOutput {
   };
 }
 
-interface UpdateStatusDecisionOutput {
-  decision: {
-    mutation_allowed: boolean;
-    blocked_reason: string | null;
-    labels_to_remove: string[];
-    labels_to_add: string[];
-  };
+async function createGitWorktree(
+  originUrl = `https://github.com/${FAKE_DEFAULT_REPOSITORY}.git`
+): Promise<string> {
+  const root = await mkdtemp(path.join(tmpdir(), "article-hub-status-repo-"));
+  await execFileAsync("git", ["init"], { cwd: root });
+  await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: root });
+  await execFileAsync("git", ["config", "user.name", "Test"], { cwd: root });
+  await execFileAsync("git", ["remote", "add", "origin", originUrl], { cwd: root });
+  return root;
 }
 
-async function writeIssue(labels: string[]) {
-  const root = await mkdtemp(path.join(tmpdir(), "article-hub-status-"));
+async function writeIssue(labels: string[], directory?: string) {
+  const root = directory ?? (await mkdtemp(path.join(tmpdir(), "article-hub-status-")));
   const issueFile = path.join(root, "issue.json");
 
   await writeFile(
@@ -80,23 +92,32 @@ async function writeState(labels: string[]) {
 }
 
 describe("article-hub update-status CLI", () => {
-  test("dry-run computes phase and AI label changes from an issue fixture", () => {
-    const result = runArticleHubCli([
-      "--dry-run",
-      "update-status",
-      "--issue-file",
-      issueFixture,
-      "--repository",
-      "hexqi/ai-article-hub",
-      "--intent",
-      "content-transition",
-      "--phase",
-      "阶段：写作",
-      "--ai-state",
-      "AI：处理中",
-      "--comment",
-      "写作计划已批准，开始生成初稿。"
-    ]);
+  test("dry-run 从当前 worktree 推导 repository 并规划 comment-file", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(
+      ["阶段：策划", "AI：等待人工"],
+      repo
+    );
+    const commentFile = path.join(repo, "comment.md");
+    await writeFile(commentFile, "写作计划已批准，开始生成初稿。\n");
+
+    const result = runArticleHubCli(
+      [
+        "--dry-run",
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：写作",
+        "--ai-state",
+        "AI：处理中",
+        "--comment-file",
+        commentFile
+      ],
+      { cwd: repo }
+    );
 
     const output = expectSuccessfulEnvelope<UpdateStatusOutput>(
       result,
@@ -104,8 +125,9 @@ describe("article-hub update-status CLI", () => {
       {
         dry_run: true,
         issue: {
-          number: 42
-        }
+          number: 51
+        },
+        comment_delivery: null
       }
     );
     expect(output.decision.mutation_allowed).toBe(true);
@@ -117,30 +139,97 @@ describe("article-hub update-status CLI", () => {
     );
     expect(output.mutation_plan.operations).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ kind: "gh-issue-edit-labels" }),
-        expect.objectContaining({ kind: "gh-issue-comment" })
+        expect.objectContaining({
+          kind: "gh-issue-edit-labels",
+          repository: FAKE_DEFAULT_REPOSITORY
+        }),
+        expect.objectContaining({
+          kind: "gh-issue-comment",
+          repository: FAKE_DEFAULT_REPOSITORY,
+          body_file: path.resolve(commentFile)
+        })
       ])
+    );
+    expect(output.mutation_plan.operations.find((op) => op.kind === "gh-issue-comment")).not.toHaveProperty(
+      "body"
     );
   });
 
+  test("传入 --repository 在远端读取前返回 UNKNOWN_OPTION", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"], repo);
+    const fakeGh = await createFakeGh({
+      issueView: {
+        number: 51,
+        labels: [{ name: "阶段：写作" }, { name: "AI：等待人工" }]
+      }
+    });
+
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--repository",
+        FAKE_DEFAULT_REPOSITORY,
+        "--intent",
+        "pause"
+      ],
+      { cwd: repo, env: fakeGh.env }
+    );
+
+    expectErrorEnvelope(result, "UNKNOWN_OPTION", 2);
+    await expect(fakeGh.readCalls()).resolves.toEqual([]);
+  });
+
+  test("传入 --comment 在远端读取前返回 UNKNOWN_OPTION", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"], repo);
+    const fakeGh = await createFakeGh();
+
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "pause",
+        "--comment",
+        "inline"
+      ],
+      { cwd: repo, env: fakeGh.env }
+    );
+
+    expectErrorEnvelope(result, "UNKNOWN_OPTION", 2);
+    await expect(fakeGh.readCalls()).resolves.toEqual([]);
+  });
+
   test("dry-run 阻断暂停期间的内容 mutation 且不规划 comment", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工", "AI执行：人工暂停"]);
-    const result = runArticleHubCli([
-      "--dry-run",
-      "update-status",
-      "--issue-file",
-      issueFile,
-      "--repository",
-      "hexqi/ai-article-hub",
-      "--intent",
-      "content-transition",
-      "--phase",
-      "阶段：审核",
-      "--ai-state",
-      "AI：等待人工",
-      "--comment",
-      "blocked fixture comment"
-    ]);
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(
+      ["阶段：写作", "AI：等待人工", "AI执行：人工暂停"],
+      repo
+    );
+    const commentFile = path.join(repo, "blocked.md");
+    await writeFile(commentFile, "blocked fixture comment\n");
+
+    const result = runArticleHubCli(
+      [
+        "--dry-run",
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：审核",
+        "--ai-state",
+        "AI：等待人工",
+        "--comment-file",
+        commentFile
+      ],
+      { cwd: repo }
+    );
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
       decision: {
@@ -149,6 +238,7 @@ describe("article-hub update-status CLI", () => {
         labels_to_remove: [],
         labels_to_add: []
       },
+      comment_delivery: null,
       mutation_plan: {
         operations: []
       }
@@ -156,19 +246,27 @@ describe("article-hub update-status CLI", () => {
   });
 
   test("重复 pause 不规划标签或评论 operation", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工", "AI执行：人工暂停"]);
-    const result = runArticleHubCli([
-      "--dry-run",
-      "update-status",
-      "--issue-file",
-      issueFile,
-      "--repository",
-      "hexqi/ai-article-hub",
-      "--intent",
-      "pause",
-      "--comment",
-      "must remain a no-op"
-    ]);
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(
+      ["阶段：写作", "AI：等待人工", "AI执行：人工暂停"],
+      repo
+    );
+    const commentFile = path.join(repo, "noop.md");
+    await writeFile(commentFile, "must remain a no-op\n");
+
+    const result = runArticleHubCli(
+      [
+        "--dry-run",
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "pause",
+        "--comment-file",
+        commentFile
+      ],
+      { cwd: repo }
+    );
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
       decision: {
@@ -177,6 +275,7 @@ describe("article-hub update-status CLI", () => {
         labels_to_remove: [],
         labels_to_add: []
       },
+      comment_delivery: null,
       mutation_plan: {
         operations: []
       }
@@ -186,23 +285,25 @@ describe("article-hub update-status CLI", () => {
   test("state decide 与 update-status dry-run 共享同一状态决策", async () => {
     const labels = ["阶段：写作", "AI：等待人工"];
     const stateFile = await writeState(labels);
-    const issueFile = await writeIssue(labels);
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(labels, repo);
     const stateResult = runArticleHubCli(["state", "decide", "--state-file", stateFile]);
-    const updateResult = runArticleHubCli([
-      "--dry-run",
-      "update-status",
-      "--issue-file",
-      issueFile,
-      "--repository",
-      "hexqi/ai-article-hub",
-      "--intent",
-      "pause"
-    ]);
+    const updateResult = runArticleHubCli(
+      [
+        "--dry-run",
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "pause"
+      ],
+      { cwd: repo }
+    );
     const stateOutput = expectSuccessfulEnvelope<StateDecisionOutput>(
       stateResult,
       "article-hub.state.decide"
     );
-    const updateOutput = expectSuccessfulEnvelope<UpdateStatusDecisionOutput>(
+    const updateOutput = expectSuccessfulEnvelope<UpdateStatusOutput>(
       updateResult,
       "article-hub.update-status"
     );
@@ -217,31 +318,29 @@ describe("article-hub update-status CLI", () => {
     expect(new Set(updateOutput.decision.labels_to_add)).toEqual(
       new Set(stateOutput.decision.labels_to_add)
     );
-    expect(updateOutput).not.toHaveProperty("mutation_allowed");
-    expect(updateOutput).not.toHaveProperty("blocked_reason");
-    expect(updateOutput).not.toHaveProperty("labels_to_remove");
-    expect(updateOutput).not.toHaveProperty("labels_to_add");
+    expect(updateOutput.comment_delivery).toBeNull();
   });
 
   test("非 dry-run 先校验 intent，非法目标状态不读取远端标签", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"]);
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"], repo);
     const fakeGh = await createFakeGh({
-      number: 51,
-      labels: [{ name: "阶段：写作" }, { name: "AI：等待人工" }]
+      issueView: {
+        number: 51,
+        labels: [{ name: "阶段：写作" }, { name: "AI：等待人工" }]
+      }
     });
     const result = runArticleHubCli(
       [
         "update-status",
         "--issue-file",
         issueFile,
-        "--repository",
-        "hexqi/ai-article-hub",
         "--intent",
         "pause",
         "--phase",
         "阶段：审核"
       ],
-      { env: fakeGh.env }
+      { cwd: repo, env: fakeGh.env }
     );
 
     expectErrorEnvelope(result, "INVALID_STATE", 2);
@@ -249,32 +348,38 @@ describe("article-hub update-status CLI", () => {
   });
 
   test("非 dry-run 使用最新 GitHub 标签重新检查暂停", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"]);
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：等待人工"], repo);
+    const commentFile = path.join(repo, "must-not.md");
+    await writeFile(commentFile, "must not be posted\n");
     const fakeGh = await createFakeGh({
-      number: 51,
-      labels: [
-        { name: "阶段：写作" },
-        { name: "AI：等待人工" },
-        { name: "AI执行：人工暂停" }
-      ]
+      issueView: {
+        number: 51,
+        labels: [
+          { name: "阶段：写作" },
+          { name: "AI：等待人工" },
+          { name: "AI执行：人工暂停" }
+        ]
+      },
+      issueResources: {
+        "51": buildIssueResource(51)
+      }
     });
     const result = runArticleHubCli(
       [
         "update-status",
         "--issue-file",
         issueFile,
-        "--repository",
-        "hexqi/ai-article-hub",
         "--intent",
         "content-transition",
         "--phase",
         "阶段：审核",
         "--ai-state",
         "AI：等待人工",
-        "--comment",
-        "must not be posted"
+        "--comment-file",
+        commentFile
       ],
-      { env: fakeGh.env }
+      { cwd: repo, env: fakeGh.env }
     );
 
     expectSuccessfulEnvelope(result, "article-hub.update-status", {
@@ -282,6 +387,7 @@ describe("article-hub update-status CLI", () => {
         mutation_allowed: false,
         blocked_reason: "AI_PAUSED"
       },
+      comment_delivery: null,
       mutation_plan: {
         operations: []
       }
@@ -292,18 +398,26 @@ describe("article-hub update-status CLI", () => {
     expect(calls[0]).toEqual(
       expect.arrayContaining(["issue", "view", "51", "number,labels"])
     );
+    expect(calls[0]).toEqual(
+      expect.arrayContaining(["--repo", `github.com/${FAKE_DEFAULT_REPOSITORY}`])
+    );
     expect(calls.flat()).not.toContain("edit");
     expect(calls.flat()).not.toContain("comment");
   });
 
-  test("非 dry-run 从文件读取多行状态评论", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"]);
-    const root = await mkdtemp(path.join(tmpdir(), "article-hub-status-comment-"));
-    const commentFile = path.join(root, "comment.md");
+  test("非 dry-run 从文件发布多行状态评论并返回 created comment_delivery", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"], repo);
+    const commentFile = path.join(repo, "comment.md");
     const comment = "## 状态回执\n\n保留 `$(command)` 与 ! 字符。\n";
     const fakeGh = await createFakeGh({
-      number: 51,
-      labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
+      issueView: {
+        number: 51,
+        labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
+      },
+      issueResources: {
+        "51": buildIssueResource(51)
+      }
     });
 
     await writeFile(commentFile, comment);
@@ -312,8 +426,6 @@ describe("article-hub update-status CLI", () => {
         "update-status",
         "--issue-file",
         issueFile,
-        "--repository",
-        "hexqi/ai-article-hub",
         "--intent",
         "content-transition",
         "--phase",
@@ -323,58 +435,198 @@ describe("article-hub update-status CLI", () => {
         "--comment-file",
         commentFile
       ],
-      { env: fakeGh.env }
+      { cwd: repo, env: fakeGh.env }
     );
 
-    expectSuccessfulEnvelope(result, "article-hub.update-status");
+    const output = expectSuccessfulEnvelope<UpdateStatusOutput>(
+      result,
+      "article-hub.update-status"
+    );
+    expect(output.comment_delivery).toEqual({
+      status: "created",
+      comment_id: 9001,
+      comment_url: expect.stringContaining("#issuecomment-9001")
+    });
+
     const calls = await fakeGh.readCalls();
     const commentCall = calls.find((call) => call[0] === "issue" && call[1] === "comment");
 
-    expect(commentCall).toEqual(expect.arrayContaining(["--body", comment]));
+    expect(commentCall).toEqual(
+      expect.arrayContaining([
+        "--body-file",
+        path.resolve(commentFile),
+        "--repo",
+        `github.com/${FAKE_DEFAULT_REPOSITORY}`
+      ])
+    );
+    expect(commentCall).not.toContain("--body");
+    expect(commentCall?.join(" ")).not.toContain("$(command)");
+
+    // 调用序列：view 标签 → issue edit → issue comment。
+    const stageIndexes = {
+      view: calls.findIndex((call) => call[0] === "issue" && call[1] === "view"),
+      edit: calls.findIndex((call) => call[0] === "issue" && call[1] === "edit"),
+      comment: calls.findIndex((call) => call[0] === "issue" && call[1] === "comment")
+    };
+
+    expect(stageIndexes.view).toBeGreaterThanOrEqual(0);
+    expect(stageIndexes.edit).toBeGreaterThan(stageIndexes.view);
+    expect(stageIndexes.comment).toBeGreaterThan(stageIndexes.edit);
+    expect(calls.some((call) => call[0] === "api")).toBe(false);
+    expect(
+      calls.some(
+        (call) =>
+          call[0] === "api" &&
+          call.some((arg) => /\/issues\/comments\//.test(arg))
+      )
+    ).toBe(false);
   });
 
-  test("标签已更新但评论失败时返回可恢复的部分成功结果", async () => {
-    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"]);
-    const fakeGh = await createFakeGh(
-      {
+  test("标签已更新但评论发布未知时返回 unknown_operations", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"], repo);
+    const commentFile = path.join(repo, "wait.md");
+    await writeFile(commentFile, "等待人工\n");
+    const fakeGh = await createFakeGh({
+      issueView: {
         number: 51,
         labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
       },
-      { failIssueComment: true }
-    );
+      issueResources: {
+        "51": buildIssueResource(51)
+      },
+      failIssueComment: true
+    });
     const result = runArticleHubCli(
       [
         "update-status",
         "--issue-file",
         issueFile,
-        "--repository",
-        "hexqi/ai-article-hub",
         "--intent",
         "content-transition",
         "--phase",
         "阶段：写作",
         "--ai-state",
         "AI：等待人工",
-        "--comment",
-        "等待人工"
+        "--comment-file",
+        commentFile
       ],
-      { env: fakeGh.env }
+      { cwd: repo, env: fakeGh.env }
     );
     const output = expectErrorEnvelope<{
       error: {
         code: string;
         details: {
+          mutation_state: string;
+          retry_safe: boolean;
           completed_operations: Array<{ kind: string }>;
-          pending_operations: Array<{ kind: string }>;
+          unknown_operations: Array<{ kind: string }>;
         };
       };
     }>(result, "PARTIAL_MUTATION", 1);
 
+    expect(output.error.details).toMatchObject({
+      mutation_state: "unknown",
+      retry_safe: false
+    });
     expect(output.error.details.completed_operations).toEqual([
       expect.objectContaining({ kind: "gh-issue-edit-labels" })
     ]);
-    expect(output.error.details.pending_operations).toEqual([
+    expect(output.error.details.unknown_operations).toEqual([
       expect.objectContaining({ kind: "gh-issue-comment" })
     ]);
+  });
+
+  test("标签与评论已创建但评论结果无效时返回 created", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"], repo);
+    const commentFile = path.join(repo, "wait.md");
+    await writeFile(commentFile, "等待人工\n");
+    const fakeGh = await createFakeGh({
+      issueView: {
+        number: 51,
+        labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
+      },
+      issueResources: {
+        "51": buildIssueResource(51)
+      },
+      omitCommentUrl: true
+    });
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：写作",
+        "--ai-state",
+        "AI：等待人工",
+        "--comment-file",
+        commentFile
+      ],
+      { cwd: repo, env: fakeGh.env }
+    );
+    const output = expectErrorEnvelope<{
+      error: {
+        details: {
+          mutation_state: string;
+          retry_safe: boolean;
+          result_error: string;
+          completed_operations: Array<Record<string, unknown>>;
+          unknown_operations: Array<unknown>;
+        };
+      };
+    }>(result, "PARTIAL_MUTATION", 1);
+
+    expect(output.error.details).toMatchObject({
+      mutation_state: "created",
+      retry_safe: false
+    });
+    expect(output.error.details.unknown_operations).toEqual([]);
+    expect(output.error.details.completed_operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "gh-issue-edit-labels" }),
+        expect.objectContaining({
+          kind: "gh-issue-comment",
+          result_error: expect.any(String)
+        })
+      ])
+    );
+  });
+
+  test("评论文件本地无效时不修改标签", async () => {
+    const repo = await createGitWorktree();
+    const issueFile = await writeIssue(["阶段：写作", "AI：处理中"], repo);
+    const fakeGh = await createFakeGh({
+      issueView: {
+        number: 51,
+        labels: [{ name: "阶段：写作" }, { name: "AI：处理中" }]
+      },
+      issueResources: {
+        "51": buildIssueResource(51)
+      }
+    });
+
+    const result = runArticleHubCli(
+      [
+        "update-status",
+        "--issue-file",
+        issueFile,
+        "--intent",
+        "content-transition",
+        "--phase",
+        "阶段：写作",
+        "--ai-state",
+        "AI：等待人工",
+        "--comment-file",
+        path.join(repo, "missing-comment.md")
+      ],
+      { cwd: repo, env: fakeGh.env }
+    );
+
+    expectErrorEnvelope(result, "COMMENT_FILE_NOT_FOUND", 2);
+    await expect(fakeGh.readCalls()).resolves.toEqual([]);
   });
 });

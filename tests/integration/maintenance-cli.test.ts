@@ -11,7 +11,7 @@ import {
   repositoryRoot,
   runArticleHubCli
 } from "../support/cli.js";
-import { createFakeGh } from "../support/fake-gh.js";
+import { createFakeGh, FAKE_DEFAULT_REPOSITORY } from "../support/fake-gh.js";
 
 const configPath = path.join(repositoryRoot, "config/projects.yml");
 
@@ -125,7 +125,7 @@ describe("article-hub maintenance CLI", () => {
     await mkdir(root, { recursive: true });
     await writeJson(stateFile, {
       issue_number: 12,
-      repository: "hexqi/ai-article-hub",
+      repository: FAKE_DEFAULT_REPOSITORY,
       branch: "article/12-webmcp-sdk-webmcp-sdk-practice",
       branch_exists: true,
       draft_pr_exists: false,
@@ -167,7 +167,7 @@ describe("article-hub maintenance CLI", () => {
     await mkdir(root, { recursive: true });
     await writeJson(stateFile, {
       issue_number: 12,
-      repository: "hexqi/ai-article-hub",
+      repository: FAKE_DEFAULT_REPOSITORY,
       branch: "article/12-webmcp-sdk-webmcp-sdk-practice",
       branch_exists: true,
       draft_pr_exists: false,
@@ -186,7 +186,7 @@ describe("article-hub maintenance CLI", () => {
     await mkdir(root, { recursive: true });
     await writeJson(stateFile, {
       issue_number: 12,
-      repository: "hexqi/ai-article-hub",
+      repository: FAKE_DEFAULT_REPOSITORY,
       branch: "article/12-webmcp-sdk-webmcp-sdk-practice",
       branch_exists: true,
       draft_pr_exists: true,

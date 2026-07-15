@@ -162,10 +162,9 @@ OfficeClaw 仓库同步巡检短 prompt：
 - PR review 中能评论即视为已授权；自动处理只覆盖 `Request changes`、明确可执行评论和 `/ai` 修改指令。普通讨论、提问或目标不清的评论必须转人工确认。
 - 需要人工判断时，把关联 Issue 设为当前阶段 + `AI：等待人工`，并在 GitHub 评论写清“停在哪一步、缺什么信息、需要谁决定”。
 - 环境、权限或命令失败时，把关联 Issue 设为当前阶段 + `AI：失败`，并在 GitHub 评论写清失败命令、错误摘要和建议处理方式。
-- 写入 GitHub 的多行正文（PR body、Issue/PR 评论、写作计划、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
-  1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或本轮缓存目录，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
-  2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh issue comment`、`gh pr comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
-  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，不得声称成功。
+- Issue/PR **会话评论** mutation 的唯一入口是 runtime launcher 调用的 `comment publish`（或 `update-status --comment-file`）。禁止直接执行 `gh issue comment`、`gh pr comment`、Issue comments API POST 或网页发布；CLI 不可用时停止，不得 fallback。
+- 会话评论发布：用 Write 写入临时 Markdown 文件 → `cwd` 为 scheduler_root/runtime/候选 worktree 且 origin 同一仓库 → 运行 `comment publish` → 只接受 `delivery.status == "created"`。目标仓库由 `origin` 推导。需要核对 mutation plan 时可用 `--dry-run`。
+- 文章 Draft PR body 与发布记录 PR body 继续走既有 `--body-file` 创建路径（`create-pr` 或已授权的 `gh pr create`）；不得把会话评论改回裸 `gh` 路径。
 
 ## 运行标记
 

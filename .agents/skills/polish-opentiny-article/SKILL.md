@@ -142,16 +142,17 @@ description: 当需要优化 OpenTiny 对外技术文章时使用：包括 `gene
 - Ready PR 或关联 Issue 已是 `阶段：审核`：回到 `阶段：审核 + AI：等待人工`。
 - PR 已 Convert to draft 但 Issue 仍是 `阶段：审核`：用 `lifecycle-transition` 退回 `阶段：写作 + AI：等待人工`。
 
+状态回执先写入临时 Markdown 文件，再通过 `--comment-file` 传给 `update-status`；不传 `--repository`，命令 `cwd` 为 `operation_root`。
+
 Ready PR 的普通 Review 修订：
 
 ```sh
 <article_hub> update-status \
   --issue-file <issue.json> \
-  --repository hexqi/ai-article-hub \
   --intent content-transition \
   --phase "阶段：审核" \
   --ai-state "AI：等待人工" \
-  --comment "已处理本轮修改意见，请重新 Review。"
+  --comment-file <临时状态回执文件>
 ```
 
 Draft PR 初审或补素材修改：
@@ -159,11 +160,10 @@ Draft PR 初审或补素材修改：
 ```sh
 <article_hub> update-status \
   --issue-file <issue.json> \
-  --repository hexqi/ai-article-hub \
   --intent content-transition \
   --phase "阶段：写作" \
   --ai-state "AI：等待人工" \
-  --comment "已处理本轮 Draft PR 初审意见，请继续初审或确认 Ready for review。"
+  --comment-file <临时状态回执文件>
 ```
 
 PR 已 Convert to draft 时：
@@ -171,11 +171,10 @@ PR 已 Convert to draft 时：
 ```sh
 <article_hub> update-status \
   --issue-file <issue.json> \
-  --repository hexqi/ai-article-hub \
   --intent lifecycle-transition \
   --phase "阶段：写作" \
   --ai-state "AI：等待人工" \
-  --comment "PR 已转回 Draft，本轮修改已处理，请继续初审。"
+  --comment-file <临时状态回执文件>
 ```
 
 ## 完成门槛
