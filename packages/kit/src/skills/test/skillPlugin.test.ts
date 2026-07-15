@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../../message/adapters/native'
 import { createMessageEngine } from '../../message/core/engine'
 import { getSkillRequestContext, lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../../message/plugins'
+import type { SkillPluginOptions } from '../../message/plugins'
 import type { CreateMessageEngineOptions, MessageRequestBody, ResponseProvider } from '../../message/types'
 import { mockResponseProvider } from '../../message/test/mockResponseProvider'
 import type { SkillDefinition } from '../types'
@@ -18,7 +19,25 @@ const weatherSkill: SkillDefinition = {
   instructions: 'Use wttr.in for weather requests.',
 }
 
+const skillPluginOptionTypeChecks = [
+  { selection: { mode: 'none' } } satisfies SkillPluginOptions,
+  { selection: { mode: 'manual', skills: [weatherSkill] } } satisfies SkillPluginOptions,
+  {
+    selection: { mode: 'manual', skillNames: ['weather'] },
+    getSkillByName: async () => weatherSkill,
+  } satisfies SkillPluginOptions,
+  {
+    selection: { mode: 'auto' },
+    getSkillCandidates: async () => [weatherSkill],
+    getSkillByName: async () => weatherSkill,
+  } satisfies SkillPluginOptions,
+]
+
 describe('skillPlugin', () => {
+  it('accepts selection-specific default option types', () => {
+    expect(skillPluginOptionTypeChecks).toHaveLength(4)
+  })
+
   it('uses manual skills for instructions and runtime tools', async () => {
     const vueSkill: SkillDefinition = {
       name: 'vue-best-practices',
@@ -274,6 +293,63 @@ describe('skillPlugin', () => {
     )
   })
 
+  it('rejects mismatched resolver results and deduplicates enabled skills', async () => {
+    const onSkillsResolved = vi.fn()
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: {
+            mode: 'manual',
+            skillNames: ['weather', 'weather-alias'],
+          },
+          getSkillByName: async () => weatherSkill,
+          onSkillsResolved,
+        }),
+      ],
+      responseProvider: mockResponseProvider('ok'),
+    })
+
+    await engine.sendMessage('weather in London')
+
+    expect(onSkillsResolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [weatherSkill],
+        skillNames: ['weather'],
+        requestedSkillNames: ['weather', 'weather-alias'],
+        unresolvedSkillNames: ['weather-alias'],
+      }),
+      expect.any(Object),
+    )
+  })
+
+  it('deduplicates inline manual skills by name', async () => {
+    const onSkillsResolved = vi.fn()
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: {
+            mode: 'manual',
+            skills: [weatherSkill, weatherSkill],
+          },
+          onSkillsResolved,
+        }),
+      ],
+      responseProvider: mockResponseProvider('ok'),
+    })
+
+    await engine.sendMessage('weather in London')
+
+    expect(onSkillsResolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [weatherSkill],
+        skillNames: ['weather'],
+      }),
+      expect.any(Object),
+    )
+  })
+
   it('selects auto skills before injecting selected skill instructions', async () => {
     const instructionContents: string[] = []
     const getSkillByName = vi.fn(async (name: string) => (name === weatherSkill.name ? weatherSkill : undefined))
@@ -408,6 +484,26 @@ describe('skillPlugin', () => {
       }),
       expect.any(Object),
     )
+  })
+
+  it('fails before requesting when auto mode is missing toolPlugin', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: { mode: 'auto' },
+          getSkillCandidates: async () => [weatherSkill],
+          getSkillByName: async () => weatherSkill,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await expect(engine.sendMessage('weather in London')).rejects.toThrow(
+      'skillPlugin auto mode requires an enabled toolPlugin',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
   })
 
   it('does not inject instructions or tools when selection is none', async () => {

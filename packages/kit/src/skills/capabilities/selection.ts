@@ -6,6 +6,12 @@ import { parseToolArguments } from './utils'
 
 const skillSelectionToolName = 'select_skills'
 
+const normalizeMaxSelectedSkills = (value: number | undefined, candidateCount: number) => {
+  const integerValue = typeof value === 'number' && Number.isFinite(value) ? Math.floor(value) : candidateCount
+
+  return Math.min(candidateCount, Math.max(0, integerValue))
+}
+
 export const createSkillSelectionInstructions = ({
   candidates,
   preferredSkillNames,
@@ -50,7 +56,8 @@ export function createSkillSelectionRuntimeTools(
 
   const candidateNames = candidates.map((candidate) => candidate.name)
   const candidateNameSet = new Set(candidateNames)
-  const maxSelectedSkills = Math.max(0, options.maxSelectedSkills ?? candidateNames.length)
+  const maxSelectedSkills = normalizeMaxSelectedSkills(options.maxSelectedSkills, candidateNames.length)
+  let selectionStarted = false
 
   return [
     {
@@ -104,6 +111,14 @@ export function createSkillSelectionRuntimeTools(
             requestedSkillNames,
           }
         }
+
+        if (selectionStarted) {
+          return {
+            error: 'skill_selection_already_resolved',
+          }
+        }
+
+        selectionStarted = true
 
         const result = {
           requestedSkillNames,
