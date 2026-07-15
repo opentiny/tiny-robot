@@ -63,6 +63,50 @@ describe('FsSkillStorage', () => {
     await expect(guide?.readText?.()).resolves.toBe('# Updated')
   })
 
+  it('keeps existing skill when replacing it fails', async () => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+
+    await storage.add({
+      name: 'demo',
+      description: 'Old skill',
+      instructions: '# Old',
+      resources: [
+        {
+          path: 'old.md',
+          kind: 'text',
+          resourceId: 'old.md',
+          text: 'old',
+        },
+      ],
+    })
+
+    await expect(
+      storage.add({
+        name: 'demo',
+        description: 'New skill',
+        instructions: '# New',
+        resources: [
+          {
+            path: 'new.md',
+            kind: 'text',
+            resourceId: 'new.md',
+            readText: async () => {
+              throw new Error('read failed')
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow('read failed')
+
+    const storedSkill = await storage.get('demo')
+    const resource = storedSkill?.resources?.[0]
+
+    expect(storedSkill?.description).toBe('Old skill')
+    expect(resource?.path).toBe('old.md')
+    await expect(resource?.readText?.()).resolves.toBe('old')
+  })
+
   it('lists existing skill directories, imports another skill, and deletes skills', async () => {
     const root = await createTempRoot()
     const weatherRoot = fileURLToPath(new URL('./.cache/weather', import.meta.url))
