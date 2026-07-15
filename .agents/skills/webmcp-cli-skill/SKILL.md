@@ -19,6 +19,7 @@ metadata:
 - 需要将 `ai-article-hub` 仓库中的文章母稿发布到掘金、CSDN、思否等外部平台，并回写 `articles/publications.json` 后提 PR 时。
 - 需要检查或修复已写入掘金编辑器/已发布文章中的异常图片时（见 [domains/fix-juejin-article-images.md](domains/fix-juejin-article-images.md)）。
 - 需要检查或修复已写入 CSDN 编辑器/已发布文章中的异常图片时（见 [domains/fix-csdn-article-images.md](domains/fix-csdn-article-images.md)）；含本地图片的 CSDN 发布前应调用该流程。
+- 需要检查或修复已写入思否编辑器/已发布文章中的异常图片时（见 [domains/fix-segmentfault-article-images.md](domains/fix-segmentfault-article-images.md)）；含本地图片的思否发布前应调用该流程。
 
 ## 安装
 
@@ -308,7 +309,7 @@ webmcp-cli run page-agent-tool '{"action": "searchTree", "query": "#42", "contex
 | `xiaohongshu.com`         | `xhs_get_note_detail`, `xhs_get_feed`, `xhs_search_notes`     | 无需子 Skill；工具的描述已能说明用途。                                                                                                                                                                                                                        |
 | `creator.xiaohongshu.com` | `xhs_publish_note`                                            | 无需子 Skill；工具的描述已能说明用途。                                                                                                                                                                                                                        |
 | `editor.csdn.net`         | `create_article`, `get_article_info`, `publish_current_draft` | **当需要在 CSDN 平台发布文章时，请阅读 [domains/publish-article-in-csdn.md](domains/publish-article-in-csdn.md)。**<br>注意：调用 `publish_current_draft` 前须先 `get_article_info` 并生成 **100 字以内** 摘要。<br>**当需要检查或修复 CSDN 正文/草稿裂图、相对路径图片时，请阅读 [domains/fix-csdn-article-images.md](domains/fix-csdn-article-images.md)**（脚本在 `scripts/csdn-images/`）。 |
-| `segmentfault.com`        | `segmentfault_publish_article`                                | **当需要在思否平台发布文章时，请阅读 [domains/publish-article-in-segmentfault.md](domains/publish-article-in-segmentfault.md)。** 使用 `publish_full_flow` 写入并自动保存草稿，再经 `get_state` 校验后调用 `publish`（须 `confirm: true`）正式发布；`content` 为原始 Markdown，勿用 `@base64file:`。                                                                 |
+| `segmentfault.com`        | `segmentfault_publish_article`、`create_article`、`get_article_info`、`publish_current_draft` | **当需要在思否平台发布文章时，请阅读 [domains/publish-article-in-segmentfault.md](domains/publish-article-in-segmentfault.md)。**<br>**当需要检查或修复思否正文/草稿裂图、相对路径图片时，请阅读 [domains/fix-segmentfault-article-images.md](domains/fix-segmentfault-article-images.md)**（脚本在 `scripts/segmentfault-images/`）。                                                                 |
 
 在各自的域名中，可以调用相应的网页工具：
 
