@@ -22,7 +22,7 @@
 
 ## 连续发布流程（推荐）
 
-与掘金一致的三步流程：打开编辑器 → 填写内容 → 智能分析后一键发布。
+与掘金一致的四步流程：打开编辑器 → 填写内容 → 检查/修复图片 → 智能分析后一键发布。
 
 ### 第一步：打开编辑器
 
@@ -59,9 +59,24 @@ webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content"
 > - `@base64file:` 占位符会被 CLI 自动展开为 Base64 编码内容
 > - 思否停止输入后约 4 秒自动保存草稿，`create_article` 内部会等待保存完成
 
-### 第三步：使用内置工具一键发布
+### 第三步：检查并修复正文图片（有图时必做）
 
-在编辑器页面内容填写完成后，使用 `publish_current_draft` 一键完成分类、标签设置并发布。
+`create_article` / `publish_full_flow` 之后、正式发布之前：
+
+1. 调用 `get_article_info`（或 JS 读编辑器）检查正文是否仍含：
+   - `./assets/` / 相对路径图片（**必修复**）
+   - 裂图（`check-page` 的 `broken`）
+   - 可选：非思否 CDN 外链（能显示则不必强制转存）
+2. 若存在异常，**先**按 [fix-segmentfault-article-images.md](./fix-segmentfault-article-images.md) 完成标记 → 上传（优先编辑器 file input）→ 替换 → 复检（最多 3 轮），再进入发布。
+3. 图片全部正常（或正文无图）时，直接进入第四步。
+
+可复用脚本目录：`../scripts/segmentfault-images/`（`mark.mjs` / `prepare-upload.mjs` / `upload-editor.mjs` / `replace.mjs` / `check-page.js` / `wrap-check-page.mjs`）。
+
+> 流程对齐掘金侧 [fix-juejin-article-images.md](./fix-juejin-article-images.md)，占位符为 `__SEGMENTFAULT_IMG_N__`。
+
+### 第四步：使用内置工具一键发布
+
+在编辑器页面内容填写完成且图片检查通过后，使用 `publish_current_draft` 一键完成分类、标签设置并发布。
 
 > [!IMPORTANT]
 > - **切勿盲目使用默认值（"前端" 和 ["前端","AI"]）**！
@@ -117,7 +132,8 @@ webmcp-cli run segmentfault_publish_article -t TAB_ID '{
 | 未登录 | Cookie 失效 | 用户手动登录 SegmentFault |
 | 引导页阻塞 | 首次写文章 | 执行 `click_howtowrite_continue` |
 | 正文未保存 | 思否 4 秒自动保存机制 | 工具内部等待 4.5 秒 |
-| 封面图 | 工具不处理文件上传 | 流程中提示用户手动上传 |
+| 封面图 | 工具不处理封面文件上传 | 流程中提示用户手动上传（正文配图走 [fix-segmentfault-article-images.md](./fix-segmentfault-article-images.md)） |
+| 正文相对路径裂图 | 本地 `./assets/` 未上图床 | 按图片修复指南标记 → 编辑器上传 → 替换后复检 |
 | 标签默认前端+AI | 未基于内容推断 | 必须先 `get_article_info` 再发布 |
 
 ## 错误码
