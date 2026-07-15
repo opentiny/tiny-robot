@@ -27,6 +27,8 @@
   - `csdn`：`.agents/skills/webmcp-cli-skill/domains/publish-article-in-csdn.md`
   - `segmentfault`：`.agents/skills/webmcp-cli-skill/domains/publish-article-in-segmentfault.md`
   - `oschina`：`.agents/skills/webmcp-cli-skill/domains/publish-article-in-oschina.md`
+- 目标平台含 `juejin` 且本轮会发布时，还必须阅读：`.agents/skills/webmcp-cli-skill/domains/fix-juejin-article-images.md`
+- 目标平台含 `csdn` 且本轮会发布时，还必须阅读：`.agents/skills/webmcp-cli-skill/domains/fix-csdn-article-images.md`
 
 ## 启动与 runtime / 候选 worktree
 
@@ -240,22 +242,24 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 
 7. 按目标平台子指南执行正式发布。`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，**不修改母稿、不生成 `.publish/` 副本**。分类与标签须基于正文智能推断，**切勿盲目使用默认值**。PowerShell 终端下参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
 
-   - `juejin` / `csdn` / `oschina`：采用 **打开编辑器 → `create_article` → `get_article_info` → `publish_current_draft`**；正文通过 `@base64file:<article_file>` 传入（这些工具的 `content` 期望 Base64）；调用 `publish_current_draft` 前必须先 `get_article_info`。
+   - `juejin` / `csdn` / `oschina`：采用 **打开编辑器 → `create_article` →（掘金/CSDN：图片检查与修复）→ `get_article_info` → `publish_current_draft`**；正文通过 `@base64file:<article_file>` 传入（这些工具的 `content` 期望 Base64）；调用 `publish_current_draft` 前必须先 `get_article_info`。`oschina` 暂无独立裂图修复子指南，图片异常时停止该候选并转人工。
    - `segmentfault`：采用 `segmentfault_publish_article` 的 **`publish_full_flow` → `get_state` → `publish`（`confirm: true`）**。其 `content` 期望 **原始 Markdown 字符串**，**禁止**对思否使用 `@base64file:`（否则编辑器会写入 Base64 文本而非正文）。长正文须用 `-f` 传入含原始 Markdown 的 JSON。`publish_full_flow` 只到草稿箱不算完成。
 
    - `juejin`：
      1. 打开 `https://juejin.cn/editor/drafts/new?v=2`，`webmcp-cli state` 确认工具已注入。
      2. `create_article` 写入标题与正文（`content` 使用 `@base64file:<article_file>`）。
-     3. `get_article_info` 获取当前草稿内容。
-     4. 基于正文智能推断 `category`、`tag`，并生成 **50~100 字**摘要后调用 `publish_current_draft`。
-     5. 记录正式文章 URL。
+     3. **图片检查与修复（有图或正文含相对路径时必做）**：`get_article_info` 检查是否仍含 `./assets/`、相对路径图片、裂图或非掘金 CDN（合法含 `*.byteimg.com` / `*.juejin.cn`，含 `*-xtjj-private.juejin.cn`）。若有异常，按 `fix-juejin-article-images.md` 执行标记 → 上传（ImageX 优先）→ 替换 → 复检（最多 3 轮），脚本在 `.agents/skills/webmcp-cli-skill/scripts/juejin-images/`。修复只写临时文件与掘金草稿，**不修改母稿**。3 轮后仍失败则停止该候选。无图且无相对路径时可跳过。
+     4. `get_article_info` 获取当前草稿内容（含修复后正文）。
+     5. 基于正文智能推断 `category`、`tag`，并生成 **50~100 字**摘要后调用 `publish_current_draft`。
+     6. 记录正式文章 URL。
 
    - `csdn`：
      1. 打开 `https://editor.csdn.net/md/`，`webmcp-cli state` 确认工具已注入（首次进入可能弹出「模版库」，`create_article` 会自动尝试关闭）。
      2. `create_article` 写入标题与正文。
-     3. `get_article_info` 获取当前草稿内容。
-     4. 基于正文智能推断 `category`、`tags`（1~3 个），并生成 **100 字以内**摘要后调用 `publish_current_draft`。
-     5. 成功时页面跳转到 `mp.csdn.net/.../success/<articleId>`，记录正式文章 URL。
+     3. **图片检查与修复（含本地图片时必做）**：优先 `get_article_info`（不可用则用 `executeJavascript` 读 `.editor__inner`）检查是否仍含 `./assets/` / 相对路径、`img-home.csdnimg.cn?...origin_url=` 转存失败占位、「外链图片转存失败」文案，或非正文 CDN（合法示例：`i-blog.csdnimg.cn` / `img-blog.csdnimg.cn`）。若有异常，按 `fix-csdn-article-images.md` 执行标记 → 上传（优先 `csdn.upload.uploadImg`）→ 替换 → 复检（最多 3 轮），脚本在 `.agents/skills/webmcp-cli-skill/scripts/csdn-images/`。修复只写临时文件与 CSDN 草稿，**不修改母稿**。3 轮后仍失败则停止该候选。无图且无相对路径时可跳过。
+     4. `get_article_info` 获取当前草稿内容（含修复后正文）。
+     5. 基于正文智能推断 `category`、`tags`（1~3 个），并生成 **100 字以内**摘要后调用 `publish_current_draft`。
+     6. 成功时页面跳转到 `mp.csdn.net/.../success/<articleId>`，记录正式文章 URL。
 
    - `segmentfault`：
      1. 打开 `https://segmentfault.com/howtowrite`（已在 `/write` 可跳过），`webmcp-cli state` 确认已登录且注入 `segmentfault_publish_article`；未登录或跳转到 `/user/login` 时停止该候选。后续 `run` 必须带 `-t <tabid>`。
@@ -299,6 +303,7 @@ segmentfault_tags：前端, AI, OpenTiny
 - 平台页面工具未注入：记录失败，提示检查 `webmcp-cli state` 输出。
 - `validate article` 阻断：记录失败，输出 `blocking_issues[].code`，不继续发布。
 - `publish_current_draft` 报错（如摘要字数不符、标签过多）：记录失败，输出工具返回的错误信息。
+- 掘金/CSDN 图片检查或修复失败（相对路径未替换、转存失败占位残留、ImageX/`csdn.upload.uploadImg` 上传失败、3 轮复检仍异常）：记录失败，不调用 `publish_current_draft`，不回写；`next_action` 提示人工核对草稿图片与 `.cache`/临时标记产物。已写入平台草稿时 outcome 倾向 `external_state_uncertain`。
 - 思否 `publish_full_flow` 成功但仅落到草稿箱：不得回写；须继续同工具的 `get_state` + `publish`（`confirm: true`）。若 `get_state` 返回 `can_publish: false`，或 `publish` 返回 `CANNOT_PUBLISH` / `NOT_CONFIRMED`，记录失败并输出 `errors`；`next_action` 应提示人工处理草稿箱残留草稿。
 - 思否标题不足 5 字符或超过 100 字符：记录失败，不调用写入。
 - 平台正式文章 URL 无法获取：记录失败，不回写 `articles/publications.json`。
@@ -330,9 +335,9 @@ segmentfault_tags：前端, AI, OpenTiny
 - `articles/publications.json` 只记录正式发布事实。未拿到正式文章 URL 时不得写入平台记录。
 - 回写 PR 需等待人工合并，未合并期间 `origin/main` 的 `publications.json` 不含这些记录。候选识别必须同时核对待合并回写 PR（见「候选识别」），否则会对已发布但未合并的「文章 + 平台」重复发布。运行标记在发布成功后即删除，不能作为跨轮去重依据。
 - 部分平台指南仍包含“先写草稿、等待人工审核”的阶段说明。本任务以“直接正式发布”为目标；若平台在当前账号下必须人工审核或二次确认，则停止该候选，不伪造发布状态。
-- `juejin` / `csdn` / `oschina` 使用 `create_article` → `get_article_info` → `publish_current_draft`（`content` 用 `@base64file:`）。思否按 `publish-article-in-segmentfault.md` / `SKILL.md` 使用 `segmentfault_publish_article`：`publish_full_flow` 只写入并自动保存草稿；本巡检在 `get_state` 通过后以 `publish` + `confirm: true` 完成正式发布，跳过技能文档中的人工草稿箱审核与封面手动上传；封面缺失不视为阻断，但发布结果须人工抽查。若写入草稿后发布失败，平台可能残留草稿，下轮不得在未核对草稿箱的情况下直接再跑 `publish_full_flow` 造成重复草稿。
-- 母稿若含相对路径本地图片，平台编辑器可能无法直接展示；`validate article` 仅校验图片文件存在，不负责平台 CDN 上传。发布成功后应人工抽查平台正文中的图片是否正常显示。
-- 开源中国需要 `uid`，无法从仓库稳定推断；未配置时只能跳过。
+- `juejin` / `csdn` / `oschina` 使用 `create_article` →（掘金/CSDN：图片检查与修复）→ `get_article_info` → `publish_current_draft`（`content` 用 `@base64file:`）。思否按 `publish-article-in-segmentfault.md` / `SKILL.md` 使用 `segmentfault_publish_article`：`publish_full_flow` 只写入并自动保存草稿；本巡检在 `get_state` 通过后以 `publish` + `confirm: true` 完成正式发布，跳过技能文档中的人工草稿箱审核与封面手动上传；封面缺失不视为阻断，但发布结果须人工抽查。若写入草稿后发布失败，平台可能残留草稿，下轮不得在未核对草稿箱的情况下直接再跑 `publish_full_flow` 造成重复草稿。
+- `juejin` / `csdn`：母稿相对路径本地图片须在 `publish_current_draft` 前按 `fix-juejin-article-images.md` / `fix-csdn-article-images.md` 上传到平台 CDN 并写回草稿；`validate article` 只校验母稿图片文件存在，不替代该步骤。修复不得改母稿；ImageX STS/Cookie、临时标记与 `.cache/` 不得提交。含本地图片的 CSDN 发布前必须走修复流程。发布成功后仍应人工抽查平台正文图片。
+- 开源中国需要 `uid`，无法从仓库稳定推断；未配置时只能跳过。`oschina` 尚无独立裂图修复子指南，母稿含相对路径图片时停止该候选并转人工，不要带着裂图强行发布。
 - 每轮都使用独立 worktree。并发巡检不得共用 worktree、运行标记或 `.cache/article-hub/publish-watch-failures/` 子路径；候选与 runtime 是否清理只按“整轮收尾”的 outcome 表判断。
 
 ## 本轮输出
