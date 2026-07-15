@@ -51,11 +51,8 @@
           "published_date": "2026-07-14"
         },
         "segmentfault": {
-          "status": "failed",
-          "url": "",
-          "failed_at": "2026-07-14T13:06:16+08:00",
-          "retry_count": 1,
-          "last_error": "Article submitted for review but URL could not be confirmed (WAF blocks, API 404s, domain tool bugs). Draft ID: 1220000048024400"
+          "url": "https://segmentfault.com/a/1190000048026242",
+          "published_at": "2026-07-14T17:20:00+08:00"
         }
       }
     },
