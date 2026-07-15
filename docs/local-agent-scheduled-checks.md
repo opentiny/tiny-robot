@@ -9,7 +9,7 @@
 
 需要自动将已合入母稿发布到外部平台时，再增加第三个任务：
 
-- 正式发布巡检：读取 `articles/publications.json`，将尚无正式发布记录的文章通过 `webmcp-cli` 发布到目标平台；掘金/CSDN 在正式发布前须按 Skill 检查并修复正文裂图/相对路径图片，回写平台 URL 并创建 PR。
+- 正式发布巡检：读取 `articles/publications.json`，将尚无正式发布记录的文章通过 `webmcp-cli` 发布到目标平台；掘金/CSDN/思否在正式发布前须按 Skill 检查并修复正文裂图/相对路径图片，回写平台 URL 并创建 PR。
 
 巡检机器不会自动跟随上游代码时，再增加第四个任务：
 
@@ -152,7 +152,7 @@ OfficeClaw 仓库同步巡检短 prompt：
 - 只处理本仓库的 OpenTiny 文章流程，不处理选题发现、普通业务 Issue 或非文章 PR。
 - 仓库同步与业务巡检职责分离、路径隔离：`local-repo-sync` **只在主仓**检查分支/工作区、`fetch`、`merge --ff-only`、install/build/doctor；**不**因业务 worktree 运行而跳过。Issue/PR/发布任务：`fetch origin/main` → 固定 `run_base_sha` → runtime worktree 内 install/build/doctor → 候选 worktree 写文件（Issue/发布用 `run_base_sha`，PR 将 pull ref 抓取到显式 ref、核对后固定 `pr_head_sha`）→ 使用 runtime CLI 且 `cwd` 为候选 worktree → 按任务结果清理候选与 runtime。业务任务不在主仓 `merge`/`pull`，不为业务 `checkout` 主仓分支。同步失败只写本地 `system/repo-sync.json` 与任务输出，不改 Issue/PR 标签。
 - **不要**用 `system/issue-watch.json` / `pr-watch.json` / `publish-watch.json` 与 `repo-sync` 互斥；这些路径仅作失败记录。业务巡检**不要**启动时检查 `repo-sync.json`，也**不要**要求 `end_head == start_head`。
-- 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。掘金/CSDN 发布前必须按 `webmcp-cli-skill` 的 `fix-juejin-article-images.md` / `fix-csdn-article-images.md` 处理相对路径与裂图；图片修复失败不得正式发布。完整步骤见 `docs/prompts/local-publish-watch.md`。
+- 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。掘金/CSDN/思否发布前必须按 `webmcp-cli-skill` 的 `fix-juejin-article-images.md` / `fix-csdn-article-images.md` / `fix-segmentfault-article-images.md` 处理相对路径与裂图；图片修复失败不得正式发布。完整步骤见 `docs/prompts/local-publish-watch.md`。
 - 业务巡检每轮最多处理 3 个候选项；候选为空时只输出“本轮无待处理项”，不写评论、不改标签。
 - 同一个文章 Issue 串行处理。不同 Issue 可以在不同任务中并行。
 - 所有 GitHub 状态标签必须通过 runtime launcher 调用 `update-status` 修改，不得用裸 `article-hub`、`gh issue edit --add-label` 或手工拼标签绕过状态机。
@@ -246,5 +246,5 @@ Issue/PR 定时任务开始处理某个 Issue 前，先检查本地运行标记�
 - 巡检机器主仓库工作区不干净，或本地跟踪分支相对远端有独有提交/分叉；应先人工整理再开启仓库同步巡检。
 - 文章涉及未公开资料、客户截图、账号权限或需要复杂 Demo 复现。
 - 外部平台账号尚未登录、存在验证码、平台审核规则不明确，或不希望自动正式发布到外部平台。
-- 母稿含大量本地图片，但掘金 ImageX / CSDN 图床上传环境未就绪，或不希望巡检自动改写平台草稿中的图片链接。
+- 母稿含大量本地图片，但掘金 ImageX / CSDN / 思否图床上传环境未就绪，或不希望巡检自动改写平台草稿中的图片链接。
 - 需要改 CLI、Skill 或流程规则本身。
