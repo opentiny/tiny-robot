@@ -77,7 +77,20 @@
     "2026-07-14-tinyvue-cascader": {
       "article_file": "articles/tiny-vue/2026-07-14-tinyvue-cascader/article.md",
       "title": "层级选择不再手写联动：TinyVue Cascader 级联选择器上手",
-      "publications": {}
+      "publications": {
+        "juejin": {
+          "url": "https://juejin.cn/spost/7662298778015825970",
+          "published_at": "2026-07-15T09:30:00+08:00"
+        },
+        "csdn": {
+          "url": "https://blog.csdn.net/yuhkikele/article/details/162893963",
+          "published_at": "2026-07-15T09:45:00+08:00"
+        },
+        "segmentfault": {
+          "url": "https://segmentfault.com/a/1190000048027816",
+          "published_at": "2026-07-15T10:00:00+08:00"
+        }
+      }
     },
     "tiny-robot/2026-07-14-tinyrobot-performance-tuning": {
       "article_file": "articles/tiny-robot/2026-07-14-tinyrobot-performance-tuning/article.md",
