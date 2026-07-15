@@ -368,9 +368,37 @@ describe('useMessage', () => {
             },
           ],
         }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
       ],
     })
 
     await engine.sendMessage('read docs')
+  })
+
+  it('rejects vue auto skillPlugin without an enabled toolPlugin', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+        }),
+      ],
+    })
+
+    await expect(engine.sendMessage('read docs')).rejects.toThrow(
+      'skillPlugin auto mode requires an enabled toolPlugin',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
   })
 })
