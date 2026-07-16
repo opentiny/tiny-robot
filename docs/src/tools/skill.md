@@ -162,7 +162,7 @@ skillPlugin({
 
 `getSkillByName` 返回的 `skill.name` 必须与请求名称一致。无法解析的名称不会启用，并会写入 `SkillRequestContext.unresolvedSkillNames`。
 
-下面的端到端演示使用响应式 `selectedSkillNames`。勾选 skill 后发送消息，左侧会显示最终送到 mock provider 的 system message 和运行时工具；切换选择后再次发送，可以看到请求内容随之变化。
+下面的端到端演示使用响应式 `selectedSkillNames`。勾选 skill 后发送消息，面板会显示最终送到 mock provider 的 system message 和运行时工具；切换选择后再次发送，可以看到请求内容随之变化。
 
 <demo
   vue="../../demos/tools/skill/VueSkillPlugin.vue"
@@ -174,9 +174,9 @@ skillPlugin({
 
 ### Auto 模式
 
-`auto` 模式先把候选 skill 摘要和 `select_skills` 工具提供给模型。模型选择名称后，插件解析完整 skill，并在下一次请求阶段换成所选 skill 的 instructions 和资源工具。
+`auto` 模式先把候选 skill 摘要和 `select_skills` 工具提供给模型。模型调用 `select_skills` 后，`skillPlugin` 解析完整 skill，并在同一轮消息的后续执行请求中生成所选 skill 的 instructions 和资源工具。
 
-auto 依赖模型 tool calling，并且一定会使用 `toolPlugin` 提供的 `select_skills`。如果完整候选 skills 已经在内存中，可以直接使用响应式 `skills`：
+`auto` 依赖模型工具调用，并且需要启用 `toolPlugin`，以收集并执行 `skillPlugin` 提供的 `select_skills`。如果完整候选 skills 已经在内存中，可以直接使用响应式 `skills`：
 
 ```typescript
 const docsSkill: SkillDefinition = {
