@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
+import type { SkillDefinition } from '../../skills/types'
 import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
+import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
 import { toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
@@ -190,5 +193,253 @@ describe('useMessage', () => {
       role: 'assistant',
       content: 'done',
     })
+  })
+
+  it('does not inject vue skill instructions by default', async () => {
+    const skills = ref<SkillDefinition[]>([
+      {
+        name: 'docs',
+        description: 'Docs skill',
+        instructions: 'Use docs references.',
+        resources: [
+          {
+            path: 'guide.md',
+            kind: 'text',
+            resourceId: 'guide.md',
+            text: '# Guide',
+          },
+        ],
+      },
+    ])
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({ skills }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    const requestBody = responseProvider.mock.calls[0]?.[0]
+    expect(requestBody.messages).toEqual([expect.objectContaining({ role: 'user', content: 'read docs' })])
+    expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['list_skill_files', 'read_skill_file'])
+  })
+
+  it('calls vue onInstructionsResolved immediately without a request body', async () => {
+    const events: string[] = []
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider: (...args) => {
+        events.push('request')
+        return responseProvider(...args)
+      },
+      plugins: [
+        skillPlugin({
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+          onInstructionsResolved: (skillContext, context) => {
+            events.push('instructions')
+            expect(skillContext.instructions).toEqual([expect.stringContaining('Use docs references.')])
+            expect(context).not.toHaveProperty('requestBody')
+          },
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(events).toEqual(['instructions', 'request'])
+  })
+
+  it('uses reactive manual vue skillPlugin skillNames', async () => {
+    const mode = ref<'manual'>('manual')
+    const skillNames = ref(['stale'])
+    const skills: SkillDefinition[] = [
+      {
+        name: 'docs',
+        description: 'Docs skill',
+        instructions: 'Use docs references.',
+      },
+    ]
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode,
+          skillNames,
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
+            context.requestBody.messages.unshift({
+              role: 'system',
+              content: instructions.join('\n\n'),
+            })
+          },
+          getSkillByName: async (name) => skills.find((skill) => skill.name === name),
+        }),
+      ],
+    })
+
+    skillNames.value = ['docs']
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+  })
+
+  it('uses core-compatible vue skillPlugin selection with inline skills', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('ok'))
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
+            context.requestBody.messages.unshift({
+              role: 'system',
+              content: instructions.join('\n\n'),
+            })
+          },
+          selection: {
+            mode: 'manual',
+            skills: [
+              {
+                name: 'docs',
+                description: 'Docs skill',
+                instructions: 'Use docs references.',
+              },
+            ],
+          },
+        }),
+      ],
+    })
+
+    await engine.sendMessage('read docs')
+
+    expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
+      role: 'system',
+      content: expect.stringContaining('Use docs references.'),
+    })
+  })
+
+  it('uses reactive preferred skill names in auto mode', async () => {
+    const preferredSkillNames = ref(['stale'])
+    const responseProvider = vi.fn((requestBody) => {
+      expect(requestBody.messages[0]).toMatchObject({
+        role: 'system',
+        content: expect.stringContaining('Preferred skill names: docs'),
+      })
+      return mockResponseProvider('ok')(requestBody)
+    })
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+          onBeforeRequest: (context) => {
+            const instructions = getSkillRequestContext(context)?.instructions ?? []
+            context.requestBody.messages.unshift({
+              role: 'system',
+              content: instructions.join('\n\n'),
+            })
+          },
+          preferredSkillNames,
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    preferredSkillNames.value = ['docs']
+    await engine.sendMessage('read docs')
+  })
+
+  it('rejects vue auto skillPlugin without an enabled toolPlugin', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+          skills: [
+            {
+              name: 'docs',
+              description: 'Docs skill',
+              instructions: 'Use docs references.',
+            },
+          ],
+        }),
+      ],
+    })
+
+    await expect(engine.sendMessage('read docs')).rejects.toThrow(
+      'skillPlugin auto mode requires an enabled toolPlugin',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
+  })
+
+  it('rejects vue manual skillNames without a skill resolver', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'manual',
+          skillNames: ['docs'],
+        }),
+      ],
+    })
+
+    await expect(engine.sendMessage('read docs')).rejects.toThrow(
+      'getSkillByName is required when manual mode uses skillNames',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
+  })
+
+  it('rejects vue auto skillPlugin without a candidate source', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    await expect(engine.sendMessage('read docs')).rejects.toThrow(
+      'getSkillCandidates is required when auto mode is enabled',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
   })
 })
