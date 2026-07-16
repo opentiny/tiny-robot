@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # Skill 技能接入
 
-Skill 把可复用的模型指令（instructions）和可选资源文件（resources）组织成一项能力。Vue 应用可以根据用户选择或当前问题启用 skill，再通过 `skillPlugin` 将本次请求所需的 instructions 和运行时工具接入 `useMessage`。
+Skill 以 `SKILL.md` 中的任务说明（instructions）为核心，并可以附带参考资料、模板等资源文件。在 Kit 中，这些附加文件统一表示为 `SkillDefinition.resources`。Vue 应用可以根据用户选择或当前问题启用 skill，再通过 `skillPlugin` 将本次请求所需的 instructions 和运行时工具接入 `useMessage`。
 
 Kit 负责加载、保存和解析 skill，但不管理业务界面中的长期选择状态，也不会固定 instructions 的承载方式。应用负责决定展示哪些 skill、当前选中哪些 skill，以及 instructions 如何发送、是否进入消息历史。
 
@@ -131,7 +131,7 @@ skillPlugin({
 
 如果运行时可能切换到 `auto`，还需要配置候选 skill 来源。下面分别展示两种机制需要的数据；示例中的固定 `mode` 只用于单独说明对应流程。
 
-本节的局部代码省略了 Quick Start 已定义的 `responseProvider` 和 `injectSkillInstructions`。
+本节的局部代码省略了“快速开始”中已定义的 `responseProvider` 和 `injectSkillInstructions`。
 
 ### Manual 模式
 
