@@ -96,7 +96,16 @@
       "article_file": "articles/tiny-robot/2026-07-06-tinyrobot-container/article.md",
       "title": "还在手写对话面板？TinyRobot Container 一个组件装下整个 AI 聊天",
       "topic_issue": 12,
-      "publications": {}
+      "publications": {
+        "juejin": {
+          "url": "https://juejin.cn/spost/7662694676458274854",
+          "published_at": "2026-07-16T16:30:00+08:00"
+        },
+        "csdn": {
+          "url": "https://blog.csdn.net/yuhkikele/article/details/162941310",
+          "published_at": "2026-07-16T16:45:00+08:00"
+        }
+      }
     },
     "tiny-robot/2026-07-14-tinyrobot-performance-tuning": {
       "article_file": "articles/tiny-robot/2026-07-14-tinyrobot-performance-tuning/article.md",
