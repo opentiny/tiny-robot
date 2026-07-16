@@ -35,6 +35,8 @@
 .agents/skills/webmcp-cli-skill/scripts/juejin-images/
 ```
 
+共用逻辑在 `../scripts/shared/`；本目录保留平台入口、`upload-*` 与 `check-page.js`。
+
 下文用 `SCRIPTS` 表示该目录的绝对或相对路径；工作目录建议为 `ai-article-hub` 仓库根。
 
 ---

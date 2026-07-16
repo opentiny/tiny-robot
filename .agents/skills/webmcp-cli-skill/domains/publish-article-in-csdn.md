@@ -81,7 +81,7 @@ webmcp-cli run create_article -t TAB_ID -f ./article_args.json
 2. 若存在异常，**先**按 [fix-csdn-article-images.md](./fix-csdn-article-images.md) 完成标记 → 上传（优先 `csdn.upload.uploadImg`）→ 替换 → 复检（最多 3 轮），再进入发布。
 3. 图片全部正常（或正文无图）时，直接进入第四步。
 
-可复用脚本目录：`../scripts/csdn-images/`（`mark.mjs` / `prepare-upload.mjs` / `upload-editor.mjs` / `replace.mjs` / `check-page.js` / `wrap-check-page.mjs`）。
+可复用脚本目录：`../scripts/csdn-images/`（`mark.mjs` / `prepare-upload.mjs` / `upload-editor.mjs` / `replace.mjs` / `check-page.js` / `wrap-check-page.mjs`）。共用逻辑在 `../scripts/shared/`；本目录保留平台入口、`upload-*` 与 `check-page.js`。
 
 > 流程对齐掘金侧 [fix-juejin-article-images.md](./fix-juejin-article-images.md)，占位符为 `__CSDN_IMG_N__`。
 
