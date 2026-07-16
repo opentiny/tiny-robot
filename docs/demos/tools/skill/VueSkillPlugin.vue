@@ -3,7 +3,7 @@
     <aside class="skill-sidebar">
       <div class="sidebar-section">
         <h3>Skills</h3>
-        <p class="sidebar-hint">勾选后发送消息，skillPlugin 会将技能指令注入请求。</p>
+        <p class="sidebar-hint">勾选后发送消息，示例会将 skillPlugin 生成的技能指令注入请求。</p>
         <div class="skill-options">
           <label v-for="skill in allSkills" :key="skill.name" class="skill-option">
             <input
@@ -49,7 +49,7 @@
 import type { BubbleRoleConfig } from '@opentiny/tiny-robot'
 import { TrBubbleList, TrSender } from '@opentiny/tiny-robot'
 import type { ChatCompletion, MessageRequestBody } from '@opentiny/tiny-robot-kit'
-import { skillPlugin, toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+import { getSkillRequestContext, skillPlugin, toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
 import type { SkillDefinition } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, ref } from 'vue'
@@ -104,6 +104,10 @@ const responseProvider = async (requestBody: MessageRequestBody): Promise<ChatCo
     requestBody.tools?.map((t: { function?: { name?: string } }) => t.function?.name).filter(Boolean) ?? []
   const parts: string[] = []
 
+  systemMessageContent.value =
+    typeof sysMsg?.content === 'string' ? sysMsg.content : '当前请求没有 skill instructions。'
+  toolNamesList.value = JSON.stringify(toolNames, null, 2)
+
   if (sysMsg?.content) {
     const skills = sysMsg.content.match(/##\s+(\S+)/g)?.map((s) => s.replace(/^##\s+/, '')) ?? []
     parts.push(`📄 识别到 ${skills.length} 个技能：${skills.join('、') || '无'}`)
@@ -139,24 +143,25 @@ const responseProvider = async (requestBody: MessageRequestBody): Promise<ChatCo
 const { isProcessing, messages, sendMessage, abortRequest } = useMessage({
   responseProvider,
   plugins: [
-    skillPlugin({
-      mode: 'manual',
-      skillNames: selectedSkillNames,
-      getSkillByName: async (name) => allSkills.find((skill) => skill.name === name),
-    }),
     toolPlugin({
       getTools: async () => [],
       callTool: async () => 'fallback',
     }),
-    {
-      onBeforeRequest: (context: { requestBody: MessageRequestBody }) => {
-        const sysMsg = context.requestBody.messages.find((m) => m.role === 'system')
-        systemMessageContent.value =
-          typeof sysMsg?.content === 'string' ? sysMsg.content : '发送一次消息后查看注入结果。'
-        const tools = context.requestBody.tools?.map((t: { function?: { name?: string } }) => t.function?.name)
-        toolNamesList.value = JSON.stringify(tools ?? [], null, 2)
+    skillPlugin({
+      mode: 'manual',
+      skillNames: selectedSkillNames,
+      getSkillByName: async (name) => allSkills.find((skill) => skill.name === name),
+      onBeforeRequest: (context) => {
+        const instructions = getSkillRequestContext(context)?.instructions ?? []
+
+        if (instructions.length > 0) {
+          context.requestBody.messages.unshift({
+            role: 'system',
+            content: instructions.join('\n\n'),
+          })
+        }
       },
-    },
+    }),
   ],
 })
 
