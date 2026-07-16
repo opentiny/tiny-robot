@@ -26,7 +26,7 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 **开发工具**
 
-- **CLI**: 新增 TinyRobot 项目脚手架以及 `create`、`add chat` 命令，支持创建完整项目，或向已有 Vue 项目添加聊天页面。 by @gene9831 in [#320](https://github.com/opentiny/tiny-robot/pull/320) [#354](https://github.com/opentiny/tiny-robot/pull/354)
+- **CLI**: 新增 TinyRobot 项目脚手架以及 `create`、`add chat` 命令，支持创建完整项目，或向已有 Vue 项目添加聊天页面。 by @gene9831 in [#320](https://github.com/opentiny/tiny-robot/pull/320) [#354](https://github.com/opentiny/tiny-robot/pull/354) [#355](https://github.com/opentiny/tiny-robot/pull/355)
 
 ### 🔨 优化改进
 
