@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
-import { basename, dirname, join, relative } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { stringify as stringifyYaml } from 'yaml'
 import { loadSkillWithDetails } from '../loader/node'
 import type { SkillLoadOptions } from '../loader/node'
@@ -242,11 +242,18 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
   private async writeResource(directory: string, resource: SkillResourceDescriptor) {
     const path = normalizeSkillPath(resource.path)
 
-    if (!path || path === entryFile) {
-      return
+    if (!path || path.toLowerCase() === entryFile.toLowerCase() || hasWindowsDrivePrefix(path)) {
+      throw new Error(`Invalid skill resource path: ${resource.path}`)
     }
 
-    const fullPath = join(directory, path)
+    const root = resolve(directory)
+    const fullPath = resolve(root, path)
+    const relativePath = relative(root, fullPath)
+
+    if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) {
+      throw new Error(`Invalid skill resource path: ${resource.path}`)
+    }
+
     await mkdir(dirname(fullPath), {
       recursive: true,
     })
@@ -307,7 +314,13 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
   private getSkillDirectory(name: string) {
     const directoryName = normalizeSkillPath(name)
 
-    if (!directoryName || directoryName.includes('/')) {
+    if (
+      !directoryName ||
+      directoryName !== name ||
+      directoryName.startsWith('.') ||
+      directoryName.includes('/') ||
+      hasWindowsDrivePrefix(directoryName)
+    ) {
       throw new Error(`Invalid skill name for file storage: ${name}`)
     }
 
@@ -405,4 +418,8 @@ async function getResourceBinary(resource: SkillResourceDescriptor) {
 
 function isFileNotFoundError(error: unknown) {
   return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')
+}
+
+function hasWindowsDrivePrefix(path: string) {
+  return /^[A-Za-z]:/.test(path)
 }

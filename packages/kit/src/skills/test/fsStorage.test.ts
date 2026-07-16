@@ -8,6 +8,43 @@ import { createFsSkillStorage } from '../storage/node'
 const createTempRoot = () => mkdtemp(join(tmpdir(), 'tiny-robot-skill-storage-'))
 
 describe('FsSkillStorage', () => {
+  it.each(['.', '.hidden'])('rejects invalid skill name %s', async (name) => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+
+    await expect(
+      storage.add({
+        name,
+        description: 'Invalid skill',
+        instructions: '# Invalid',
+      }),
+    ).rejects.toThrow(`Invalid skill name for file storage: ${name}`)
+  })
+
+  it.each(['../outside.md', 'C:/Windows/x.dll', 'SKILL.md', 'skill.md'])(
+    'rejects invalid resource path %s',
+    async (path) => {
+      const root = await createTempRoot()
+      const storage = createFsSkillStorage({ root })
+
+      await expect(
+        storage.add({
+          name: 'demo',
+          description: 'Demo skill',
+          instructions: '# Demo',
+          resources: [
+            {
+              path,
+              kind: 'text',
+              resourceId: path,
+              text: 'invalid',
+            },
+          ],
+        }),
+      ).rejects.toThrow(`Invalid skill resource path: ${path}`)
+    },
+  )
+
   it('adds and restores skills in native directory format with lazy resources', async () => {
     const root = await createTempRoot()
     const storage = createFsSkillStorage({ root })
