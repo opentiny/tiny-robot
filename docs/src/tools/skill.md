@@ -8,8 +8,6 @@ Skill 把可复用的模型指令（instructions）和可选资源文件（resou
 
 Kit 负责加载、保存和解析 skill，但不管理业务界面中的长期选择状态，也不会固定 instructions 的承载方式。应用负责决定展示哪些 skill、当前选中哪些 skill，以及 instructions 如何发送、是否进入消息历史。
 
-如果你第一次接入，先完成下面的 [快速开始](#快速开始)，再根据应用交互选择由用户明确启用 skill，或让模型根据当前问题自动选择。
-
 ## 快速开始
 
 下面是一个可独立运行的 Vue 侧最小示例。它使用 `manual` 模式启用一个内联 skill，通过 `onBeforeRequest` 临时修改本次请求，并由 mock provider 显示最终收到的 instructions。

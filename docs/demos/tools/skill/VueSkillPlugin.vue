@@ -6,11 +6,7 @@
         <p class="sidebar-hint">勾选后发送消息，示例会将 skillPlugin 生成的技能指令注入请求。</p>
         <div class="skill-options">
           <label v-for="skill in allSkills" :key="skill.name" class="skill-option">
-            <input
-              type="checkbox"
-              :checked="selectedSkillNames.includes(skill.name)"
-              @change="toggleSkill(skill.name, $event)"
-            />
+            <input v-model="selectedSkillNames" type="checkbox" :value="skill.name" />
             <span>
               <strong>{{ skill.name }}</strong>
               <small>{{ skill.description }}</small>
@@ -90,14 +86,6 @@ const selectedSkillNames = ref(['weather'])
 const systemMessageContent = ref('发送一次消息后查看注入结果。')
 const toolNamesList = ref('[]')
 
-const toggleSkill = (skillName: string, event: Event) => {
-  if ((event.target as HTMLInputElement).checked) {
-    selectedSkillNames.value = [...new Set([...selectedSkillNames.value, skillName])]
-  } else {
-    selectedSkillNames.value = selectedSkillNames.value.filter((name) => name !== skillName)
-  }
-}
-
 const responseProvider = async (requestBody: MessageRequestBody): Promise<ChatCompletion> => {
   const sysMsg = requestBody.messages.find((m) => m.role === 'system')
   const toolNames =
@@ -108,7 +96,7 @@ const responseProvider = async (requestBody: MessageRequestBody): Promise<ChatCo
     typeof sysMsg?.content === 'string' ? sysMsg.content : '当前请求没有 skill instructions。'
   toolNamesList.value = JSON.stringify(toolNames, null, 2)
 
-  if (sysMsg?.content) {
+  if (typeof sysMsg?.content === 'string') {
     const skills = sysMsg.content.match(/##\s+(\S+)/g)?.map((s) => s.replace(/^##\s+/, '')) ?? []
     parts.push(`📄 识别到 ${skills.length} 个技能：${skills.join('、') || '无'}`)
   }
