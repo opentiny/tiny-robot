@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readFile, rename, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -11,15 +11,18 @@ vi.mock('node:fs/promises', async (importOriginal) => {
   return {
     ...fs,
     rename: vi.fn(fs.rename),
+    stat: vi.fn(fs.stat),
   }
 })
 
-const { rename: actualRename } = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises')
+const { rename: actualRename, stat: actualStat } =
+  await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises')
 const createTempRoot = () => mkdtemp(join(tmpdir(), 'tiny-robot-skill-storage-'))
 
 describe('FsSkillStorage', () => {
   afterEach(() => {
     vi.mocked(rename).mockReset().mockImplementation(actualRename)
+    vi.mocked(stat).mockReset().mockImplementation(actualStat)
   })
 
   it.each(['.', '.hidden'])('rejects invalid skill name %s', async (name) => {
@@ -240,6 +243,60 @@ describe('FsSkillStorage', () => {
         root,
       }),
     ).toThrow(readonlyError)
+  })
+
+  it('checks entry existence without parsing and deletes a corrupt skill', async () => {
+    const root = await createTempRoot()
+    const directory = join(root, 'broken')
+    const storage = createFsSkillStorage({ root })
+    await mkdir(directory)
+    await writeFile(
+      join(directory, 'SKILL.md'),
+      ['---', 'name: broken', 'description: Broken skill', '---', ''].join('\n'),
+      'utf8',
+    )
+
+    await expect(storage.has('broken')).resolves.toBe(true)
+    await expect(storage.get('broken')).rejects.toThrow('must contain instructions')
+    await expect(storage.list()).rejects.toThrow('must contain instructions')
+    await expect(storage.delete('broken')).resolves.toBe(true)
+    await expect(storage.has('broken')).resolves.toBe(false)
+  })
+
+  it('lists summaries with exact resource counts without statting each resource', async () => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+    await storage.add({
+      name: 'demo',
+      description: 'Demo skill',
+      instructions: '# Demo',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text',
+          resourceId: 'guide.md',
+          text: '# Guide',
+        },
+        {
+          path: 'references/nested.md',
+          kind: 'text',
+          resourceId: 'references/nested.md',
+          text: '# Nested',
+        },
+      ],
+    })
+    await mkdir(join(root, 'unrelated'))
+    vi.mocked(stat).mockClear()
+
+    await expect(storage.list()).resolves.toEqual([
+      {
+        name: 'demo',
+        description: 'Demo skill',
+        resourceCount: 2,
+        metadata: {},
+      },
+    ])
+    expect(stat).not.toHaveBeenCalled()
   })
 
   it('lists existing skill directories, imports another skill, and deletes skills', async () => {

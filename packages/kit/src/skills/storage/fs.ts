@@ -13,7 +13,7 @@ import {
 } from '../loader/utils'
 import type { SkillDefinition, SkillResourceDescriptor } from '../types'
 import { createImportSkill } from './importSkill'
-import type { SkillStorage } from './types'
+import type { SkillStorage, SkillSummary } from './types'
 
 /** 一个标准 skill 目录集合的文件系统 storage。 */
 export interface FsSkillStorageOptions {
@@ -97,7 +97,17 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
   }
 
   async has(name: string) {
-    return Boolean(await this.get(name))
+    const entryPath = join(this.getSkillDirectory(name), entryFile)
+
+    try {
+      return (await stat(entryPath)).isFile()
+    } catch (error) {
+      if (isFileNotFoundError(error)) {
+        return false
+      }
+
+      throw error
+    }
   }
 
   async delete(name: string) {
@@ -130,17 +140,33 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
     const summaries = await Promise.all(
       entries
         .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
-        .map(async (entry) => this.get(entry.name)),
+        .map(async (entry): Promise<SkillSummary | undefined> => {
+          const directory = this.getSkillDirectory(entry.name)
+          const skill = await this.readSkillEntry(directory).catch((error: unknown) => {
+            if (isFileNotFoundError(error)) {
+              return undefined
+            }
+
+            throw error
+          })
+
+          if (!skill) {
+            return undefined
+          }
+
+          const resourceCount = (await this.readResourceFiles(directory)).length
+
+          return {
+            name: skill.name,
+            description: skill.description,
+            resourceCount,
+            metadata: skill.metadata,
+          }
+        }),
     )
 
     return summaries
-      .filter((skill): skill is SkillDefinition => Boolean(skill))
-      .map((skill) => ({
-        name: skill.name,
-        description: skill.description,
-        resourceCount: skill.resources?.length ?? 0,
-        metadata: skill.metadata,
-      }))
+      .filter((summary): summary is SkillSummary => Boolean(summary))
       .sort((a, b) => a.name.localeCompare(b.name))
   }
 
@@ -162,6 +188,16 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
   }
 
   private async readSkillDirectory(directory: string): Promise<SkillDefinition> {
+    const skill = await this.readSkillEntry(directory)
+    const resources = await this.readResourceDescriptors(directory)
+
+    return {
+      ...skill,
+      resources: resources.length ? resources : undefined,
+    }
+  }
+
+  private async readSkillEntry(directory: string) {
     const entryPath = join(directory, entryFile)
     const entryContent = await readFile(entryPath, 'utf8')
     const { frontmatter, body } = parseMarkdownFrontmatter(entryContent)
@@ -171,13 +207,10 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
       throw new Error(`Skill entry file "${entryFile}" must contain instructions.`)
     }
 
-    const resources = await this.readResourceDescriptors(directory)
-
     return {
       name: getString(frontmatter.name) || directory.split(/[\\/]/).at(-1) || '',
       description: getString(frontmatter.description) || '',
       instructions,
-      resources: resources.length ? resources : undefined,
       metadata: {
         ...getRecord(frontmatter.metadata),
         ...(getString(frontmatter.homepage) ? { homepage: getString(frontmatter.homepage) } : {}),
@@ -187,6 +220,40 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
 
   private async readResourceDescriptors(directory: string) {
     const resources: SkillResourceDescriptor[] = []
+
+    for (const { fullPath, path } of await this.readResourceFiles(directory)) {
+      const fileStat = await stat(fullPath)
+      const kind = isTextSkillFilePath(path) ? 'text' : 'binary'
+      const base = {
+        path,
+        kind,
+        resourceId: path,
+        size: fileStat.size,
+        lastModified: fileStat.mtimeMs,
+      }
+
+      resources.push(
+        kind === 'text'
+          ? {
+              ...base,
+              kind,
+              readText: async () => readFile(fullPath, 'utf8'),
+              readBinary: async () => new Uint8Array(await readFile(fullPath)),
+            }
+          : {
+              ...base,
+              kind,
+              readBinary: async () => new Uint8Array(await readFile(fullPath)),
+              readText: async () => new TextDecoder().decode(await readFile(fullPath)),
+            },
+      )
+    }
+
+    return resources
+  }
+
+  private async readResourceFiles(directory: string) {
+    const files: Array<{ fullPath: string; path: string }> = []
 
     const walk = async (currentDirectory: string) => {
       const entries = await readdir(currentDirectory, {
@@ -214,36 +281,12 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
           continue
         }
 
-        const fileStat = await stat(fullPath)
-        const kind = isTextSkillFilePath(path) ? 'text' : 'binary'
-        const base = {
-          path,
-          kind,
-          resourceId: path,
-          size: fileStat.size,
-          lastModified: fileStat.mtimeMs,
-        }
-
-        resources.push(
-          kind === 'text'
-            ? {
-                ...base,
-                kind,
-                readText: async () => readFile(fullPath, 'utf8'),
-                readBinary: async () => new Uint8Array(await readFile(fullPath)),
-              }
-            : {
-                ...base,
-                kind,
-                readBinary: async () => new Uint8Array(await readFile(fullPath)),
-                readText: async () => new TextDecoder().decode(await readFile(fullPath)),
-              },
-        )
+        files.push({ fullPath, path })
       }
     }
 
     await walk(directory)
-    return resources.sort((a, b) => a.path.localeCompare(b.path))
+    return files.sort((a, b) => a.path.localeCompare(b.path))
   }
 
   private async writeResource(directory: string, resource: SkillResourceDescriptor) {
