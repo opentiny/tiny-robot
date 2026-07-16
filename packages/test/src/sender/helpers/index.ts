@@ -65,6 +65,10 @@ export function createSenderTestHelper(page: Page) {
       await page.locator(selectors.toggleSizeBtn).click()
     },
 
+    async toggleExternalContent() {
+      await page.locator(selectors.toggleExternalContentBtn).click()
+    },
+
     async setSubmitType(type: 'enter' | 'ctrlEnter' | 'shiftEnter') {
       await page.locator(selectors.submitTypeSelect).selectOption(type)
     },
@@ -141,6 +145,15 @@ export function createSenderTestHelper(page: Page) {
         await expect(loadingBtn).toBeVisible()
       } else {
         await expect(loadingBtn).toHaveCount(0)
+      }
+    },
+
+    async expectSubmitButtonVisible(visible: boolean) {
+      const submitBtn = page.locator(selectors.submitButton)
+      if (visible) {
+        await expect(submitBtn).toBeVisible()
+      } else {
+        await expect(submitBtn).toHaveCount(0)
       }
     },
 

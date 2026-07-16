@@ -3,13 +3,16 @@ import { useWindowSize } from '@vueuse/core'
 import { computed, ref, shallowRef, useAttrs, watch, type CSSProperties } from 'vue'
 import type {
   LayoutFloatingDragDetail,
-  LayoutFloatingOptions,
   LayoutFloatingResizeDetail,
   LayoutFloatingResizeHandle,
   LayoutFloatingState,
-  LayoutMode,
 } from '../index.type'
-import type { LayoutFloatingDragPosition, LayoutFloatingRect, LayoutResolvedFloating } from '../internal.type'
+import type {
+  LayoutFloatingDragPosition,
+  LayoutFloatingRect,
+  LayoutResolvedFloating,
+  LayoutSurfaceProps,
+} from '../internal.type'
 import {
   areFloatingGeometryEqual,
   clampFloatingRect,
@@ -32,12 +35,6 @@ defineOptions({
   name: 'LayoutSurface',
   inheritAttrs: false,
 })
-
-interface LayoutSurfaceProps {
-  mode: LayoutMode
-  floatingState?: LayoutFloatingState
-  floatingOptions?: LayoutFloatingOptions
-}
 
 const props = defineProps<LayoutSurfaceProps>()
 
@@ -82,6 +79,7 @@ const isFloatingDragging = computed(() => activeDragRect.value !== null)
 const isFloatingResizing = computed(() => activeResizeRect.value !== null)
 const isFloatingInteracting = computed(() => isFloatingDragging.value || isFloatingResizing.value)
 const canDragFloating = computed(() => isFloating.value && isFloatingDraggable.value && !isFloatingResizing.value)
+const shouldShowFloatingDragBar = computed(() => isFloating.value && isFloatingDraggable.value)
 const resizeHandles = computed<LayoutFloatingResizeHandle[]>(() => {
   if (!isFloating.value || !isFloatingResizable.value) {
     return []
@@ -250,7 +248,7 @@ defineExpose({
       :style="floatingStyle"
     >
       <FloatingDragBar
-        v-if="isFloating"
+        v-if="shouldShowFloatingDragBar"
         :x="floatingRect.x"
         :y="floatingRect.y"
         :can-drag="canDragFloating"

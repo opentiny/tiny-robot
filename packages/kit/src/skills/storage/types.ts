@@ -20,6 +20,7 @@ export interface SkillSummary {
 export interface SkillStorage<TImportOptions> {
   add(skill: SkillDefinition): Promise<SkillDefinition>
   get(name: string): Promise<SkillDefinition | undefined>
+  /** 判断 storage entry 是否存在，不验证内容是否可被完整读取。 */
   has(name: string): Promise<boolean>
   delete(name: string): Promise<boolean>
   list(): Promise<SkillSummary[]>

@@ -1,6 +1,6 @@
 import type { MaybeRefOrGetter } from '@vueuse/core'
 import { computed, toValue } from 'vue'
-import type { LayoutAsideOpenDetail, LayoutAsideProps, LayoutAsideResizeDetail, LayoutSide } from '../index.type'
+import type { LayoutAsideOpenDetail, LayoutAsideOptions, LayoutAsideResizeDetail, LayoutSide } from '../index.type'
 import type { LayoutAsideState } from '../internal.type'
 import { clamp } from '../utils/number'
 import {
@@ -13,14 +13,14 @@ import { useControllableState } from '../../shared/composables/useControllableSt
 
 interface UseLayoutAsideStateOptions {
   side: LayoutSide
-  config: MaybeRefOrGetter<LayoutAsideProps | undefined>
+  config: MaybeRefOrGetter<LayoutAsideOptions | undefined>
   onOpenChange?: (detail: LayoutAsideOpenDetail) => void
   onExpandedWidthChange?: (detail: LayoutAsideResizeDetail) => void
 }
 
 interface UseLayoutAsideStatesOptions {
-  leftConfig: MaybeRefOrGetter<LayoutAsideProps | undefined>
-  rightConfig: MaybeRefOrGetter<LayoutAsideProps | undefined>
+  leftConfig: MaybeRefOrGetter<LayoutAsideOptions | undefined>
+  rightConfig: MaybeRefOrGetter<LayoutAsideOptions | undefined>
   onOpenChange?: (detail: LayoutAsideOpenDetail) => void
   onExpandedWidthChange?: (detail: LayoutAsideResizeDetail) => void
 }

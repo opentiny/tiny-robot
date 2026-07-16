@@ -135,18 +135,22 @@ describe('IndexedDBSkillStorage', () => {
   it('imports skills from browser sources', async () => {
     const storage = createIndexedDBSkillStorage({ databaseName: databaseName() })
 
-    const file = new File(
+    const entry = new File(
       [['---', 'name: browser-docs', 'description: Browser docs skill', '---', '', '# Browser Docs'].join('\n')],
       'SKILL.md',
       { type: 'text/markdown' },
     )
+    const guide = new File(['# Guide'], 'guide.md', { type: 'text/markdown' })
 
     const result = await storage.import({
       source: 'browser',
-      fileList: [file],
+      fileList: [entry, guide],
     })
+    const importedGuide = result.skill.resources?.find((resource) => resource.path === 'guide.md')
 
     expect(result.name).toBe('browser-docs')
+    expect(importedGuide).not.toHaveProperty('text')
+    await expect(importedGuide?.readText?.()).resolves.toBe('# Guide')
     expect(await storage.get('browser-docs')).toMatchObject({
       name: 'browser-docs',
       instructions: '# Browser Docs',
@@ -179,5 +183,33 @@ describe('IndexedDBSkillStorage', () => {
 
     expect(resource).not.toHaveProperty('text')
     await expect(resource?.readText?.()).resolves.toBe('lazy text')
+  })
+
+  it('supports cancel on import task', async () => {
+    const storage = createIndexedDBSkillStorage({ databaseName: databaseName() })
+    let releaseWait!: () => void
+    const waitForText = new Promise<string>((resolve) => {
+      releaseWait = () => resolve('# Cancelled')
+    })
+    const entry = new File(
+      [['---', 'name: cancelled', 'description: Cancelled skill', '---', '', '# Cancelled'].join('\n')],
+      'SKILL.md',
+      { type: 'text/markdown' },
+    )
+    Object.defineProperty(entry, 'text', {
+      value: async () => waitForText,
+    })
+
+    const task = storage.import({
+      source: 'browser',
+      fileList: [entry],
+    })
+    task.cancel()
+    releaseWait()
+
+    await expect(task).rejects.toMatchObject({
+      name: 'SkillLoadCancelledError',
+    })
+    await expect(storage.has('cancelled')).resolves.toBe(false)
   })
 })

@@ -1,13 +1,67 @@
-import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { cp, mkdir, mkdtemp, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFsSkillStorage } from '../storage/node'
 
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const fs = await importOriginal<typeof import('node:fs/promises')>()
+
+  return {
+    ...fs,
+    rename: vi.fn(fs.rename),
+    stat: vi.fn(fs.stat),
+  }
+})
+
+const { rename: actualRename, stat: actualStat } =
+  await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises')
 const createTempRoot = () => mkdtemp(join(tmpdir(), 'tiny-robot-skill-storage-'))
 
 describe('FsSkillStorage', () => {
+  afterEach(() => {
+    vi.mocked(rename).mockReset().mockImplementation(actualRename)
+    vi.mocked(stat).mockReset().mockImplementation(actualStat)
+  })
+
+  it.each(['.', '.hidden'])('rejects invalid skill name %s', async (name) => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+
+    await expect(
+      storage.add({
+        name,
+        description: 'Invalid skill',
+        instructions: '# Invalid',
+      }),
+    ).rejects.toThrow(`Invalid skill name for file storage: ${name}`)
+  })
+
+  it.each(['../outside.md', 'C:/Windows/x.dll', 'SKILL.md', 'skill.md'])(
+    'rejects invalid resource path %s',
+    async (path) => {
+      const root = await createTempRoot()
+      const storage = createFsSkillStorage({ root })
+
+      await expect(
+        storage.add({
+          name: 'demo',
+          description: 'Demo skill',
+          instructions: '# Demo',
+          resources: [
+            {
+              path,
+              kind: 'text',
+              resourceId: path,
+              text: 'invalid',
+            },
+          ],
+        }),
+      ).rejects.toThrow(`Invalid skill resource path: ${path}`)
+    },
+  )
+
   it('adds and restores skills in native directory format with lazy resources', async () => {
     const root = await createTempRoot()
     const storage = createFsSkillStorage({ root })
@@ -105,6 +159,144 @@ describe('FsSkillStorage', () => {
     expect(storedSkill?.description).toBe('Old skill')
     expect(resource?.path).toBe('old.md')
     await expect(resource?.readText?.()).resolves.toBe('old')
+  })
+
+  it('restores the existing skill when validation fails after installation', async () => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+
+    await storage.add({
+      name: 'demo',
+      description: 'Old skill',
+      instructions: '# Old',
+    })
+
+    await expect(
+      storage.add({
+        name: 'demo',
+        description: 'Invalid replacement',
+        instructions: ' ',
+      }),
+    ).rejects.toThrow('must contain instructions')
+
+    await expect(storage.get('demo')).resolves.toMatchObject({
+      description: 'Old skill',
+      instructions: '# Old',
+    })
+  })
+
+  it('reports both errors and preserves the backup when restoration fails', async () => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+
+    await storage.add({
+      name: 'demo',
+      description: 'Old skill',
+      instructions: '# Old',
+    })
+
+    vi.mocked(rename).mockImplementation(async (oldPath, newPath) => {
+      if (basename(oldPath.toString()).includes('.bak-')) {
+        throw new Error('restore failed')
+      }
+
+      return actualRename(oldPath, newPath)
+    })
+
+    const error = await storage
+      .add({
+        name: 'demo',
+        description: 'Invalid replacement',
+        instructions: ' ',
+      })
+      .catch((reason: unknown) => reason)
+
+    expect(error).toBeInstanceOf(AggregateError)
+    expect(error).toMatchObject({
+      errors: [
+        expect.objectContaining({ message: expect.stringContaining('must contain instructions') }),
+        expect.objectContaining({ message: 'restore failed' }),
+      ],
+    })
+
+    const backupDirectory = error instanceof Error ? error.message.match(/backup "([^"]+)"/)?.[1] : undefined
+    expect(backupDirectory).toContain('.demo.bak-')
+    await expect(readFile(join(backupDirectory!, 'SKILL.md'), 'utf8')).resolves.toContain('description: Old skill')
+  })
+
+  it('rejects mutations when readonly', async () => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root, readonly: true })
+    const readonlyError = 'File system skill storage is readonly.'
+
+    await expect(
+      storage.add({
+        name: 'demo',
+        description: 'Demo skill',
+        instructions: '# Demo',
+      }),
+    ).rejects.toThrow(readonlyError)
+    await expect(storage.delete('demo')).rejects.toThrow(readonlyError)
+    expect(() =>
+      storage.import({
+        source: 'fs',
+        root,
+      }),
+    ).toThrow(readonlyError)
+  })
+
+  it('checks entry existence without parsing and deletes a corrupt skill', async () => {
+    const root = await createTempRoot()
+    const directory = join(root, 'broken')
+    const storage = createFsSkillStorage({ root })
+    await mkdir(directory)
+    await writeFile(
+      join(directory, 'SKILL.md'),
+      ['---', 'name: broken', 'description: Broken skill', '---', ''].join('\n'),
+      'utf8',
+    )
+
+    await expect(storage.has('broken')).resolves.toBe(true)
+    await expect(storage.get('broken')).rejects.toThrow('must contain instructions')
+    await expect(storage.list()).rejects.toThrow('must contain instructions')
+    await expect(storage.delete('broken')).resolves.toBe(true)
+    await expect(storage.has('broken')).resolves.toBe(false)
+  })
+
+  it('lists summaries with exact resource counts without statting each resource', async () => {
+    const root = await createTempRoot()
+    const storage = createFsSkillStorage({ root })
+    await storage.add({
+      name: 'demo',
+      description: 'Demo skill',
+      instructions: '# Demo',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text',
+          resourceId: 'guide.md',
+          text: '# Guide',
+        },
+        {
+          path: 'references/nested.md',
+          kind: 'text',
+          resourceId: 'references/nested.md',
+          text: '# Nested',
+        },
+      ],
+    })
+    await mkdir(join(root, 'unrelated'))
+    vi.mocked(stat).mockClear()
+
+    await expect(storage.list()).resolves.toEqual([
+      {
+        name: 'demo',
+        description: 'Demo skill',
+        resourceCount: 2,
+        metadata: {},
+      },
+    ])
+    expect(stat).not.toHaveBeenCalled()
   })
 
   it('lists existing skill directories, imports another skill, and deletes skills', async () => {

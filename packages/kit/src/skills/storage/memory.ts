@@ -16,6 +16,57 @@ const cloneSkill = (skill: SkillDefinition): SkillDefinition => ({
   resources: skill.resources?.map(cloneResource),
 })
 
+const materializeSkill = async (skill: SkillDefinition): Promise<SkillDefinition> => ({
+  name: skill.name,
+  description: skill.description,
+  instructions: skill.instructions,
+  metadata: skill.metadata ? { ...skill.metadata } : undefined,
+  resources: skill.resources ? await Promise.all(skill.resources.map(materializeResource)) : undefined,
+})
+
+const materializeResource = async (resource: SkillResourceDescriptor): Promise<SkillResourceDescriptor> => {
+  const base = {
+    path: resource.path,
+    resourceId: resource.resourceId,
+    mimeType: resource.mimeType,
+    size: resource.size,
+    lastModified: resource.lastModified,
+    metadata: resource.metadata ? { ...resource.metadata } : undefined,
+  }
+
+  if (resource.kind === 'text') {
+    const text = resource.text ?? (await resource.readText?.())
+
+    if (text === undefined) {
+      throw new Error(`Skill resource "${resource.resourceId}" has no text content to store.`)
+    }
+
+    return {
+      ...base,
+      kind: resource.kind,
+      text,
+      readText: async () => text,
+      readBinary: async () => new TextEncoder().encode(text),
+    }
+  }
+
+  const content = resource.binary ?? (await resource.readBinary?.())
+
+  if (!content) {
+    throw new Error(`Skill resource "${resource.resourceId}" has no binary content to store.`)
+  }
+
+  const binary = new Uint8Array(content)
+
+  return {
+    ...base,
+    kind: resource.kind,
+    binary,
+    readBinary: async () => new Uint8Array(binary),
+    readText: async () => new TextDecoder().decode(binary),
+  }
+}
+
 const cloneResource = (resource: SkillResourceDescriptor): SkillResourceDescriptor => {
   const base = {
     path: resource.path,
@@ -75,7 +126,7 @@ export class MemorySkillStorage<TImportOptions> implements SkillStorage<TImportO
   constructor(private readonly importer: SkillImporter<TImportOptions>) {}
 
   async add(skill: SkillDefinition) {
-    const saved = cloneSkill(skill)
+    const saved = await materializeSkill(skill)
     this.skills.set(skill.name, saved)
     return cloneSkill(saved)
   }
@@ -104,8 +155,12 @@ export class MemorySkillStorage<TImportOptions> implements SkillStorage<TImportO
 
     return Object.assign(
       task.then(async (result) => {
-        await this.add(result.skill)
-        return result
+        const skill = await this.add(result.skill)
+        return {
+          ...result,
+          name: skill.name,
+          skill,
+        }
       }),
       { cancel: task.cancel },
     )
