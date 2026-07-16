@@ -4,6 +4,43 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+## v0.5.0
+
+`2026-07-16`
+
+### ✨ 新特性
+
+**组件**
+
+- **Layout**: 新增布局组件，支持侧边栏折叠与拖拽缩放、浮动面板以及代理滚动条，适用于常规聊天页和浮层式聊天界面。 by @SonyLeo in [#364](https://github.com/opentiny/tiny-robot/pull/364)
+- **Anchor**: 新增锚点导航组件，支持长内容和长对话的目录导航、搜索高亮及目标定位反馈。 by @SonyLeo in [#322](https://github.com/opentiny/tiny-robot/pull/322) [#335](https://github.com/opentiny/tiny-robot/pull/335) [#337](https://github.com/opentiny/tiny-robot/pull/337)
+- **Bubble**: 新增统一的 `bubble-event` 事件通道和 `state-change` 状态联动，并支持在 provider 中配置气泡容器与内容区域的 attributes。 by @gene9831 in [#332](https://github.com/opentiny/tiny-robot/pull/332) [#362](https://github.com/opentiny/tiny-robot/pull/362)
+- **Sender**: 字符数改为按字素簇统计，可准确处理 Emoji 和组合字符；新增 `hasExternalContent` 属性，使附件等外部内容也能参与发送状态判断。 by @SonyLeo in [#313](https://github.com/opentiny/tiny-robot/pull/313) and by @xuanlid in [#375](https://github.com/opentiny/tiny-robot/pull/375)
+- **Icons**: 新增 SVG 图标资源及对应使用示例。 by @SonyLeo in [#340](https://github.com/opentiny/tiny-robot/pull/340)
+
+**工具**
+
+- **Kit Skills**: 新增 Agent Skills 工具链，支持从浏览器文件、Node.js 文件系统和 GitHub 仓库加载 Skill，并通过 Memory、IndexedDB 或文件系统进行存储；支持由应用指定或由模型自动匹配 Skill，以及通过响应式 `skillPlugin` 接入 Vue 消息流程。 by @gene9831 in [#366](https://github.com/opentiny/tiny-robot/pull/366) [#367](https://github.com/opentiny/tiny-robot/pull/367) [#368](https://github.com/opentiny/tiny-robot/pull/368) [#373](https://github.com/opentiny/tiny-robot/pull/373)
+- **useMessage**: 抽离消息核心引擎并迁移到适配器架构，使消息处理能力可以在 Vue 和原生 JavaScript 场景中复用。 by @gene9831 in [#325](https://github.com/opentiny/tiny-robot/pull/325)
+- **toolPlugin**: 支持聚合运行时工具提供者并追踪工具来源，便于根据当前消息上下文动态提供模型工具。 by @gene9831 in [#365](https://github.com/opentiny/tiny-robot/pull/365)
+
+**开发工具**
+
+- **CLI**: 新增 TinyRobot 项目脚手架以及 `create`、`add chat` 命令，支持创建完整项目，或向已有 Vue 项目添加聊天页面。 by @gene9831 in [#320](https://github.com/opentiny/tiny-robot/pull/320) [#354](https://github.com/opentiny/tiny-robot/pull/354)
+
+### 🔨 优化改进
+
+- **Reasoning**: 思考气泡默认展开，减少查看推理内容时的额外操作。 by @gene9831 in [#311](https://github.com/opentiny/tiny-robot/pull/311)
+- **暗色主题**: 优化 McpServerPicker、Attachments、Dropdown、Suggestion、Feedback 和 Welcome 等组件在暗色模式下的颜色与交互状态。 by @SonyLeo in [#342](https://github.com/opentiny/tiny-robot/pull/342) [#348](https://github.com/opentiny/tiny-robot/pull/348) [#349](https://github.com/opentiny/tiny-robot/pull/349) and by @gene9831 in [#336](https://github.com/opentiny/tiny-robot/pull/336)
+- **构建产物**: 完善 CSS 的 `sideEffects` 声明，确保组件样式在打包优化时被正确保留。 by @gimmyhehe in [#312](https://github.com/opentiny/tiny-robot/pull/312)
+
+### 🐛 问题修复
+
+- **Layout**: 稳定组件声明类型，并修正插槽存在性判断。 by @SonyLeo in [#374](https://github.com/opentiny/tiny-robot/pull/374)
+- **Bubble**: 修复非标准模型接口返回空 `reasoning_content` 时的渲染问题。 by @gene9831 in [#330](https://github.com/opentiny/tiny-robot/pull/330)
+- **Attachments**: 修复附件列表归一化处理异常。 by @SonyLeo in [#334](https://github.com/opentiny/tiny-robot/pull/334)
+- **Sender**: 修复动作按钮 Tooltip 间距和部分场景下的渲染异常。 by @SonyLeo in [#327](https://github.com/opentiny/tiny-robot/pull/327)
+
 ## v0.4.1
 
 `2026-03-02`
@@ -423,4 +460,3 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 - **AIModelConfig**: 添加可选属性以扩展 provider 并修复 handleSSEStream 相关问题 by @shenjunjian [#75](https://github.com/opentiny/tiny-robot/pull/75)
 - **Compatibility**: 使用 ref 替换 useTemplateRef 以兼容 Vue 3.4 by @Gene in [#66](https://github.com/opentiny/tiny-robot/pull/66)
 - **Docs**: 更新 vitepress-demo-plugin 以修复构建文档错误 by @Gene in [#45](https://github.com/opentiny/tiny-robot/pull/45)
-
