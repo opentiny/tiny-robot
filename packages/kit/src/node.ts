@@ -7,3 +7,4 @@ export type {
   SkillLoadOptions,
   SkillLoadResult,
 } from './skills/loader/node'
+export type { SkillCandidate, SkillDefinition } from './skills/types'
