@@ -2,7 +2,7 @@
 outline: [1, 3]
 ---
 
-# Skill 使用指南
+# Skill 技能接入
 
 Skill 把可复用的模型指令（instructions）和可选资源文件（resources）组织成一项能力。Vue 应用可以根据用户选择或当前问题启用 skill，再通过 `skillPlugin` 将本次请求所需的 instructions 和运行时工具接入 `useMessage`。
 
