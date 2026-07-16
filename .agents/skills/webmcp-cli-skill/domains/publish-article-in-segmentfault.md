@@ -45,13 +45,21 @@ webmcp-cli state
 > 3. 若已在 `/write` 编辑器页面，可跳过引导步骤。
 > 4. 确认 `webmcpTools` 中包含 `create_article`、`get_article_info`、`publish_current_draft` 后再执行后续步骤。
 
-### 第二步：填写标题和正文
+### 第二步：生成发布正文并填写标题
 
-将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入：
+ai-article-hub 母稿含 YAML Front Matter，须先去掉再写入编辑器：
 
 ```bash
-# TAB_ID 来自 tabs open 的返回值
-webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./article.md"}'
+node .agents/skills/webmcp-cli-skill/scripts/shared/prepare-publish-body.mjs \
+  --file ./articles/<project>/<slug>/article.md \
+  --out-dir .cache/publish-body/<article-id>/
+```
+
+将 **body.md**（不是 article.md）通过 `@base64file:` 内联引用传入：
+
+```bash
+# TAB_ID 来自 tabs open 的返回值；BODY_FILE 来自 prepare-publish-body 的 body_file
+webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./.cache/publish-body/<article-id>/body.md"}'
 ```
 
 > [!WARNING]
@@ -100,6 +108,7 @@ webmcp-cli run publish_current_draft -t TAB_ID '{"category":"前端","tags":["Vu
 
 ```bash
 # 单条命令走完：导航 → 过引导 → 填内容 → 设选项 → 保存草稿
+# content 须为去 frontmatter 后的 body.md 正文（见第二步 prepare-publish-body）
 webmcp-cli run segmentfault_publish_article -t TAB_ID '{
   "action": "publish_full_flow",
   "title": "文章标题",

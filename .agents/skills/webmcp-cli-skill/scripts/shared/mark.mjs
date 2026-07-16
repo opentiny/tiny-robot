@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from './parse-args.mjs';
+import { stripFrontMatter } from './strip-frontmatter.mjs';
 
 const MIME_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
 
@@ -20,17 +21,6 @@ const MIME_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp']);
  */
 function readText(filePath) {
   return fs.readFileSync(filePath, 'utf8');
-}
-
-/**
- * @param {string} body
- * @returns {string}
- */
-function stripFrontMatter(body) {
-  if (!body.startsWith('---')) return body;
-  const end = body.indexOf('\n---', 3);
-  if (end === -1) return body;
-  return body.slice(end + 4).replace(/^\s+/, '');
 }
 
 /**
@@ -246,7 +236,7 @@ export function runMark(argv, platform) {
     process.exit(1);
   }
 
-  body = stripFrontMatter(body);
+  body = stripFrontMatter(body).body;
 
   /** @type {Set<string>} */
   let brokenSet = new Set();

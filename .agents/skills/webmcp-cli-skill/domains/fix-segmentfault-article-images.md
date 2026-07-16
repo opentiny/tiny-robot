@@ -123,7 +123,7 @@ webmcp-cli run get_article_info -t TAB_ID
 .cache/segmentfault-images/<slug>/draft.md
 ```
 
-也可在已知母稿且尚未被平台改写时，直接用去 frontmatter 的临时 `body.md` 做标记（须与编辑器内容一致）。
+也可在已知母稿且尚未被平台改写时，直接用去 frontmatter 的临时 `body.md` 做标记（由 `scripts/shared/prepare-publish-body.mjs` 生成；须与编辑器内容一致）。
 
 仅有已发文章页时：打开编辑器再取草稿；无法打开则转人工。
 

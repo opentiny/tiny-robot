@@ -152,7 +152,7 @@ OfficeClaw 仓库同步巡检短 prompt：
 - 只处理本仓库的 OpenTiny 文章流程，不处理选题发现、普通业务 Issue 或非文章 PR。
 - 仓库同步与业务巡检职责分离、路径隔离：`local-repo-sync` **只在主仓**检查分支/工作区、`fetch`、`merge --ff-only`、install/build/doctor；**不**因业务 worktree 运行而跳过。Issue/PR/发布任务：`fetch origin/main` → 固定 `run_base_sha` → runtime worktree 内 install/build/doctor → 候选 worktree 写文件（Issue/发布用 `run_base_sha`，PR 将 pull ref 抓取到显式 ref、核对后固定 `pr_head_sha`）→ 使用 runtime CLI 且 `cwd` 为候选 worktree → 按任务结果清理候选与 runtime。业务任务不在主仓 `merge`/`pull`，不为业务 `checkout` 主仓分支。同步失败只写本地 `system/repo-sync.json` 与任务输出，不改 Issue/PR 标签。
 - **不要**用 `system/issue-watch.json` / `pr-watch.json` / `publish-watch.json` 与 `repo-sync` 互斥；这些路径仅作失败记录。业务巡检**不要**启动时检查 `repo-sync.json`，也**不要**要求 `end_head == start_head`。
-- 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。掘金/CSDN/思否发布前必须按 `webmcp-cli-skill` 的 `fix-juejin-article-images.md` / `fix-csdn-article-images.md` / `fix-segmentfault-article-images.md` 处理相对路径与裂图；图片修复失败不得正式发布。完整步骤见 `docs/prompts/local-publish-watch.md`。
+- 正式发布巡检通过 `webmcp-cli` 执行平台正式发布；只保存到草稿、进入审核中或未拿到正式文章 URL 时，不得回写 `articles/publications.json`。成功后须在独立 worktree 分支 commit、push 并创建 PR。掘金/CSDN/思否发布前须去掉母稿 YAML Front Matter（`prepare-publish-body.mjs`），并按 `webmcp-cli-skill` 的 `fix-juejin-article-images.md` / `fix-csdn-article-images.md` / `fix-segmentfault-article-images.md` 处理相对路径与裂图；图片修复失败不得正式发布。完整步骤见 `docs/prompts/local-publish-watch.md`。
 - 业务巡检每轮最多处理 3 个候选项；候选为空时只输出“本轮无待处理项”，不写评论、不改标签。
 - 同一个文章 Issue 串行处理。不同 Issue 可以在不同任务中并行。
 - 所有 GitHub 状态标签必须通过 runtime launcher 调用 `update-status` 修改，不得用裸 `article-hub`、`gh issue edit --add-label` 或手工拼标签绕过状态机。

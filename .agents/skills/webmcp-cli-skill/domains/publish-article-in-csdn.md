@@ -40,13 +40,21 @@ webmcp-cli state
 > 3. 确认 `webmcpTools` 中包含 `create_article`、`get_article_info`、`publish_current_draft` 后再执行后续步骤。
 > 4. 首次进入可能弹出 **「模版库」** 弹窗，`create_article` 会自动尝试关闭，但建议发布前再次 `state` 确认编辑器可操作。
 
-### 第二步：填写标题和正文
+### 第二步：生成发布正文并填写标题
 
-将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
+ai-article-hub 母稿含 YAML Front Matter，须先去掉再写入编辑器：
 
 ```bash
-# TAB_ID 来自 tabs open 的返回值
-webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./article.md"}'
+node .agents/skills/webmcp-cli-skill/scripts/shared/prepare-publish-body.mjs \
+  --file ./articles/<project>/<slug>/article.md \
+  --out-dir .cache/publish-body/<article-id>/
+```
+
+将 **body.md**（不是 article.md）通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
+
+```bash
+# TAB_ID 来自 tabs open 的返回值；BODY_FILE 来自 prepare-publish-body 的 body_file
+webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./.cache/publish-body/<article-id>/body.md"}'
 ```
 
 **推荐：PowerShell / cmd 使用 JSON 文件传参**
@@ -55,7 +63,7 @@ webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content"
 // article_args.json
 {
   "title": "你的文章标题",
-  "content": "@base64file:./article.md"
+  "content": "@base64file:./.cache/publish-body/<article-id>/body.md"
 }
 ```
 
