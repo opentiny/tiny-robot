@@ -4,7 +4,7 @@ import type { SkillStorage as SkillStorageBase } from './types'
 import { createImportSkill } from './importSkill'
 import { createMemorySkillStorage as createMemorySkillStorageBase } from './memory'
 
-export type { SkillImportJob, SkillImportResult } from './types'
+export type { SkillImportJob, SkillImportResult, SkillSummary } from './types'
 export type SkillImportOptions = SkillLoadOptions
 export type SkillStorage = SkillStorageBase<SkillImportOptions>
 export { MemorySkillStorage } from './memory'

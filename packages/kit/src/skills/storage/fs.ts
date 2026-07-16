@@ -63,10 +63,17 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
 
       return storedSkill
     } catch (error) {
-      if (installed) {
-        await this.rollbackInstalledDirectory(directory, backupDirectory, hasBackup)
-      } else if (hasBackup) {
-        await this.restoreBackupDirectory(directory, backupDirectory)
+      try {
+        if (installed) {
+          await this.rollbackInstalledDirectory(directory, backupDirectory, hasBackup)
+        } else if (hasBackup) {
+          await this.restoreBackupDirectory(directory, backupDirectory)
+        }
+      } catch (rollbackError) {
+        throw new AggregateError(
+          [error, rollbackError],
+          `Failed to store skill "${skill.name}" and restore backup "${backupDirectory}".`,
+        )
       }
 
       throw error
@@ -298,7 +305,7 @@ export class FsSkillStorage implements SkillStorage<SkillLoadOptions> {
 
   private async restoreBackupDirectory(directory: string, backupDirectory: string) {
     await removeDirectory(directory)
-    await rename(backupDirectory, directory).catch(() => undefined)
+    await rename(backupDirectory, directory)
   }
 
   private async getStoredSkill(name: string) {

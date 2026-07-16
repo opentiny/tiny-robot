@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createMemorySkillStorage, importSkill } from '../storage'
+import { createMemorySkillStorage, MemorySkillStorage } from '../storage'
+import type { SkillImportJob } from '../storage'
 
 type TestFile = File & {
   webkitRelativePath?: string
@@ -50,6 +51,92 @@ describe('MemorySkillStorage', () => {
     expect(await storage.delete('demo')).toBe(true)
     expect(await storage.has('demo')).toBe(false)
     expect(await storage.get('demo')).toBeUndefined()
+  })
+
+  it('materializes lazy resources when adding a skill', async () => {
+    const storage = createMemorySkillStorage()
+    let sourceText = 'original'
+
+    const saved = await storage.add({
+      name: 'lazy',
+      description: 'Lazy skill',
+      instructions: '# Lazy',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text',
+          resourceId: 'guide.md',
+          readText: async () => sourceText,
+        },
+      ],
+    })
+
+    sourceText = 'updated'
+    const stored = await storage.get('lazy')
+
+    expect(saved.resources?.[0]).toMatchObject({ text: 'original' })
+    await expect(saved.resources?.[0]?.readText?.()).resolves.toBe('original')
+    expect(stored?.resources?.[0]).toMatchObject({ text: 'original' })
+    await expect(stored?.resources?.[0]?.readText?.()).resolves.toBe('original')
+  })
+
+  it('copies lazy binary resources when adding a skill', async () => {
+    const storage = createMemorySkillStorage()
+    const sourceBinary = new Uint8Array([1, 2, 3])
+
+    const saved = await storage.add({
+      name: 'binary',
+      description: 'Binary skill',
+      instructions: '# Binary',
+      resources: [
+        {
+          path: 'asset.bin',
+          kind: 'binary',
+          resourceId: 'asset.bin',
+          readBinary: async () => sourceBinary,
+        },
+      ],
+    })
+
+    sourceBinary[0] = 9
+    const stored = await storage.get('binary')
+
+    expect(saved.resources?.[0]).toMatchObject({ binary: new Uint8Array([1, 2, 3]) })
+    await expect(saved.resources?.[0]?.readBinary?.()).resolves.toEqual(new Uint8Array([1, 2, 3]))
+    expect(stored?.resources?.[0]).toMatchObject({ binary: new Uint8Array([1, 2, 3]) })
+    await expect(stored?.resources?.[0]?.readBinary?.()).resolves.toEqual(new Uint8Array([1, 2, 3]))
+  })
+
+  it('returns the stored skill snapshot from import', async () => {
+    const sourceSkill = {
+      name: 'lazy-import',
+      description: 'Lazy import',
+      instructions: '# Lazy import',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text' as const,
+          resourceId: 'guide.md',
+          readText: async () => 'snapshot',
+        },
+      ],
+    }
+    const importer = (): SkillImportJob =>
+      Object.assign(
+        Promise.resolve({
+          name: sourceSkill.name,
+          skill: sourceSkill,
+          warnings: [],
+        }),
+        { cancel: () => undefined },
+      )
+    const storage = new MemorySkillStorage<void>(importer)
+
+    const result = await storage.import(undefined)
+
+    expect(result.skill).not.toBe(sourceSkill)
+    expect(result.skill.resources?.[0]).toMatchObject({ text: 'snapshot' })
+    await expect(result.skill.resources?.[0]?.readText?.()).resolves.toBe('snapshot')
   })
 
   it('imports skill from browser source', async () => {
@@ -104,11 +191,12 @@ describe('MemorySkillStorage', () => {
   })
 
   it('supports cancel on import task', async () => {
+    const storage = createMemorySkillStorage()
     let releaseWait!: () => void
     const waitForText = new Promise<string>((resolve) => {
       releaseWait = () => resolve('# Cancelled')
     })
-    const task = importSkill({
+    const task = storage.import({
       source: 'browser',
       fileList: [
         {
@@ -126,5 +214,6 @@ describe('MemorySkillStorage', () => {
     await expect(task).rejects.toMatchObject({
       name: 'SkillLoadCancelledError',
     })
+    await expect(storage.has('cancelled')).resolves.toBe(false)
   })
 })

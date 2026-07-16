@@ -163,8 +163,12 @@ export class IndexedDBSkillStorage<TImportOptions = SkillImportOptions> implemen
 
     return Object.assign(
       task.then(async (result) => {
-        await this.add(result.skill)
-        return result
+        const skill = await this.add(result.skill)
+        return {
+          ...result,
+          name: skill.name,
+          skill,
+        }
       }),
       { cancel: task.cancel },
     )
