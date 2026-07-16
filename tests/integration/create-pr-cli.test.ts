@@ -16,6 +16,7 @@ import {
   repositoryRoot,
   runArticleHubCli
 } from "../support/cli.js";
+import { FAKE_DEFAULT_REPOSITORY } from "../support/fake-gh.js";
 
 const configPath = path.join(repositoryRoot, "config/projects.yml");
 const validArticleFixture = path.join(
@@ -109,7 +110,7 @@ describe("article-hub create-pr CLI", () => {
       "--issue-number",
       "12",
       "--repository",
-      "hexqi/ai-article-hub",
+      FAKE_DEFAULT_REPOSITORY,
       "--base",
       "main",
       "--slug",
@@ -139,7 +140,7 @@ describe("article-hub create-pr CLI", () => {
           written: false
         },
         pull_request: {
-          repository: "hexqi/ai-article-hub",
+          repository: FAKE_DEFAULT_REPOSITORY,
           base: "main",
           title: "WebMCP SDK 实践指南",
           body_file: bodyFile
@@ -177,7 +178,7 @@ describe("article-hub create-pr CLI", () => {
       "--issue-number",
       "12",
       "--repository",
-      "hexqi/ai-article-hub",
+      FAKE_DEFAULT_REPOSITORY,
       "--base",
       "main",
       "--slug",
@@ -217,7 +218,7 @@ describe("article-hub create-pr CLI", () => {
         "--issue-number",
         "12",
         "--repository",
-        "hexqi/ai-article-hub",
+        FAKE_DEFAULT_REPOSITORY,
         "--base",
         "main",
         "--slug",
@@ -284,7 +285,7 @@ describe("article-hub create-pr CLI", () => {
         "--issue-number",
         "12",
         "--repository",
-        "hexqi/ai-article-hub",
+        FAKE_DEFAULT_REPOSITORY,
         "--base",
         "main",
         "--slug",
@@ -337,7 +338,7 @@ describe("article-hub create-pr CLI", () => {
       "--issue-number",
       "12",
       "--repository",
-      "hexqi/ai-article-hub",
+      FAKE_DEFAULT_REPOSITORY,
       "--base",
       "main",
       "--slug",

@@ -92,6 +92,12 @@
         }
       }
     },
+    "tiny-robot/2026-07-06-tinyrobot-container": {
+      "article_file": "articles/tiny-robot/2026-07-06-tinyrobot-container/article.md",
+      "title": "还在手写对话面板？TinyRobot Container 一个组件装下整个 AI 聊天",
+      "topic_issue": 12,
+      "publications": {}
+    },
     "tiny-robot/2026-07-14-tinyrobot-performance-tuning": {
       "article_file": "articles/tiny-robot/2026-07-14-tinyrobot-performance-tuning/article.md",
       "title": "TinyRobot 生产环境性能调优全攻略",

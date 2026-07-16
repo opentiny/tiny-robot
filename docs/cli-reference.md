@@ -41,6 +41,7 @@ node scripts/article-hub-launcher.mjs <command> [options]
 | [`validate article`](#validate-article) | Primitive：校验文章文件的格式与内容 |
 | [`checkout-sources`](#checkout-sources) | Adapter：拉取项目源码到本地缓存 |
 | [`create-pr`](#create-pr) | Adapter：校验文章后创建或更新 Draft PR |
+| [`comment publish`](#comment-publish) | Adapter：以文件正文发布 Issue/PR 会话评论并返回创建结果 |
 | [`update-status`](#update-status) | Adapter：按状态规则更新 Issue 标签和评论 |
 | [`doctor`](#doctor) | Diagnostic：检查本地环境健康状态 |
 | [`setup`](#setup) | Diagnostic：初始化本地环境 |
@@ -248,33 +249,57 @@ article-hub create-pr \
 
 ---
 
+### `comment publish`
+
+以 UTF-8 正文文件发布 Issue 或 PR 会话评论，并把 `gh` 返回的评论 URL 映射为稳定 JSON。
+
+```sh
+article-hub comment publish \
+  --target <pr|issue> \
+  --number <positive-integer> \
+  --body-file <path>
+```
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `--target` | ✅ | 只接受 `pr` 或 `issue`，不做大小写或别名兼容 |
+| `--number` | ✅ | 正安全整数；PR 与 Issue 共用 |
+| `--body-file` | ✅ | 可读普通文件路径；拒绝 `-`、目录、空路径、无效 UTF-8 与仅空白正文 |
+
+命令不接受 `--repository`、`--body`、`--comment` 或 stdin。目标 repository 从调用进程 `cwd` 所属 Git worktree 的单一 `github.com` origin 推导；无法安全推导时返回 `CURRENT_REPOSITORY_INVALID`，且不访问 GitHub。
+
+真实执行前会预检远端对象是 Issue 还是 PR，是否与 `--target` 匹配；类型错误返回 `COMMENT_TARGET_MISMATCH`，`mutation_state: "not_started"`。内部 `gh` 调用显式绑定推导出的 `github.com/<owner>/<repo>` 与 `--hostname github.com`，不受 `GH_REPO` / `GH_HOST` 覆盖。
+
+成功时 `schema_version` 为 `article-hub.comment.publish`，`delivery.status` 仅为 `"created"`，并包含 comment ID 与 URL。`body` 含文件路径与 `line_count`（供人工检查）。`--dry-run` 为可选诊断：完成本地 guard 并输出 `mutation_plan`，`delivery` 为 `null`，不访问 GitHub。
+
+失败时 details 固定包含 `stage`、`mutation_state`（`not_started` / `unknown` / `created`）与 `retry_safe`。`created` 表示发布命令已成功，但返回内容无法映射为稳定 comment URL/ID；`retry_safe: false` 时调用方不得盲目重试 publish。
+
+---
+
 ### `update-status`
 
-更新 Issue 的状态标签和评论。
+更新 Issue 的状态标签和可选附加评论。目标仓库从当前 Git worktree 的 `origin` 推导，不接受 `--repository`。
 
 ```sh
 article-hub update-status \
   --issue-file <path> \
-  --repository <owner/repo> \
   --intent <intent> \
   [--phase <phase>] \
   [--ai-state <state>] \
   [--expected-head-sha <sha>] \
   [--current-head-sha <sha>] \
-  [--comment <text> | --comment-file <path>]
+  [--comment-file <path>]
 ```
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `--issue-file` | ✅ | Issue JSON 文件路径 |
-| `--repository` | ✅ | 目标仓库（格式：`owner/repo`） |
 | `--intent` | ✅ | 显式状态 mutation 意图 |
 | `--phase` | ❌ | 目标阶段；内容和 lifecycle 迁移需要 |
 | `--ai-state` | ❌ | 目标 AI 工作状态；目标为活跃阶段时需要 |
 | `--expected-head-sha` | ❌ | 调用方预期 Head SHA |
 | `--current-head-sha` | ❌ | 当前 Head SHA |
-| `--comment` | ❌ | 附加评论内容 |
-| `--comment-file` | ❌ | 从 UTF-8 文件读取附加评论；适合多行 Markdown，不能与 `--comment` 同时使用 |
+| `--comment-file` | ❌ | UTF-8 正文文件；复用 `comment publish` 的文件校验、`--body-file` 发布与结果映射。不接受内联 `--comment` |
 
 `--intent` 只接受以下值：
 
@@ -311,7 +336,14 @@ article-hub update-status \
 `mutation_plan.operations` 只描述实际会执行的 GitHub 操作；当
 `decision.mutation_allowed` 为 `false` 时，`operations` 必须为空。
 
-标签更新成功但附加评论失败时返回 `PARTIAL_MUTATION`。错误 envelope 的 `error.details.completed_operations` 列出已完成操作，`pending_operations` 列出可重试评论；调用方不得重复手工修改标签。
+成功 envelope 始终包含 `comment_delivery`：无评论 operation 时为 `null`；评论与标签均成功时为 created object（`status`、`comment_id`、`comment_url`）。`update-status` 面向 Issue：先读取最新标签，再按需执行标签 mutation 与评论发布。
+
+标签更新成功但附加评论失败时返回 `PARTIAL_MUTATION`：
+
+- 发布命令结果未知：`mutation_state: "unknown"`，评论进入 `unknown_operations`，`retry_safe: false`。
+- 发布命令成功但结果 URL 无效：`mutation_state: "created"`，标签与评论均进入 `completed_operations`（评论带 `result_error`），`unknown_operations` 为空，`retry_safe: false`。
+
+调用方不得重复手工修改标签，也不得在 `retry_safe: false` 时盲目重试评论 publish。
 
 ---
 
@@ -418,13 +450,17 @@ article-hub --dry-run reconcile --state-file <path>
 | `INVALID_PROJECT_CONFIG` | 项目配置格式、结构或字段无效 |
 | `UNKNOWN_PROJECT` | 项目未配置在 allowlist 中 |
 | `UNSAFE_PATH` | 路径或路径相关参数不满足安全约束 |
-| `COMMENT_FILE_NOT_FOUND` | `--comment-file` 指向的文件不存在或不可读 |
-| `PARTIAL_MUTATION` | 状态 mutation 部分成功，按 `error.details.pending_operations` 恢复 |
+| `COMMENT_FILE_NOT_FOUND` | `--comment-file` / `--body-file` 指向的文件不存在或不可读 |
+| `INVALID_COMMENT_FILE` | 正文路径为 `-`、非普通文件、无效 UTF-8 或仅含空白 |
+| `CURRENT_REPOSITORY_INVALID` | 当前 cwd 无法从单一 `github.com` origin 安全推导 repository |
+| `COMMENT_TARGET_MISMATCH` | 远端目标类型与 `--target` 不一致；mutation 未开始 |
+| `COMMENT_RESULT_INVALID` | 评论发布命令成功，但返回内容无法映射为目标 comment URL/ID |
+| `PARTIAL_MUTATION` | 状态 mutation 的执行结果不完整；按 `mutation_state` / `unknown_operations` / `completed_operations` 恢复，不盲目重试 |
 | `ARTICLE_VALIDATION_FAILED` | 文章内容或 Front Matter 校验失败 |
 | `CONFIRMATION_REQUIRED` | 写操作缺少显式确认，例如 `setup` 未传 `--yes` |
 | `RECONCILE_APPLY_UNSUPPORTED` | `reconcile` 发现恢复计划，但当前命令不执行修复操作 |
 | `GIT_COMMAND_FAILED` | Git 命令执行失败或结果不符合预期 |
-| `GITHUB_COMMAND_FAILED` | GitHub CLI 命令执行失败 |
+| `GITHUB_COMMAND_FAILED` | GitHub CLI 命令执行失败；目标预检失败时 `mutation_state` 为 `not_started` |
 
 ---
 

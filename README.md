@@ -74,7 +74,7 @@ launcher 从它所在的仓库或 runtime worktree 定位 `dist/cli.js`，并保
 命令分为三类：
 
 - Primitives：`inspect-issue`、`plan approve`、`state decide`、`validate article`、`projects list`、`projects validate`
-- Adapters：`checkout-sources`、`create-pr`、`update-status`
+- Adapters：`checkout-sources`、`create-pr`、`comment publish`、`update-status`
 - Diagnostics：`doctor`、`setup`、`reconcile`
 
 CLI stdout 只输出 JSON；人类可读错误输出到 stderr。详细参数见 [`docs/cli-reference.md`](./docs/cli-reference.md)，命令准入和 Skill 分工见 [`docs/cli-boundary-design.md`](./docs/cli-boundary-design.md)。

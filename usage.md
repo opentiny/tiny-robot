@@ -211,8 +211,9 @@ Issue 至少写清楚：
 - 使用 gh 读取 Issue 原始事实并直接理解评论意图；用 article-hub 校验权限、固定批准命令和项目配置。
 - 检查相似 Issue、已有文章和 materials/article-archive。
 - 先在对话中输出 5-8 行计划摘要，完整写作计划必须发布或更新为 GitHub Issue 评论。
-- 发布评论时使用 gh issue comment；发布成功后在对话中给出 Issue 评论链接。
-- 如果没有权限、网络失败或无法确认评论已发布，立即停止并说明失败原因；不要只把完整计划留在对话中。
+- 发布评论时使用 article-hub comment publish --target issue（cwd 为当前仓库 worktree，目标仓库由 origin 推导）；只在 delivery.status == "created" 时视为成功，并在对话中给出返回的 comment_url。需要核对 mutation plan 时可用 `--dry-run`。
+- 禁止 fallback 到裸 gh issue comment、Issue comments API POST 或网页发布。
+- 如果没有权限、网络失败或无法取得评论创建结果，立即停止并说明失败原因；不要只把完整计划留在对话中。
 - 完整计划没有进入 Issue 评论时，本任务视为未完成。
 - 写清楚计划版本、推荐标题、目标读者、资料快照、建议大纲、截图/GIF 素材需求、素材缺口、人工验收项。
 - 给出可复制的批准命令：/ai 批准写作计划。

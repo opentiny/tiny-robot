@@ -114,11 +114,14 @@ CLI 始终使用 runtime 的 `<article_hub>`；改正文命令的进程 `cwd` �
 - 所有状态标签只能通过 `<article_hub> update-status` 修改，不能手工拼标签。
 - PR 评论、Review、行级线程和 Request changes 中，能评论即视为已授权；不额外判断写权限或 allowlist。
 - 不自动 Resolve conversation，不点击 Ready for review，不 merge，不发布外部平台。
-- 写入 GitHub 的多行正文（PR body、Issue/PR 评论、巡检回执）必须走「临时文件 + `--body-file`」，这是强制三步，不是可选优化：
-  1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（放系统临时目录或本轮缓存目录，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的转义字符串在 shell 里拼多行正文，这些写法会被 `$(...)`、反引号、`!` 触发展开或截断而损坏内容。
-  2. 用 `--body-file <文件路径>` 传给 `gh`，`gh pr create`、`gh pr comment`、`gh issue comment` 全都一样；禁止用 `--body "多行内容"` 内联。原因：正文里的 `"`、反引号、`$(...)`、`!` 或换行会提前终止 shell 引号，使 `gh` 只收到首行、其余被当成独立命令，PR/评论最终只剩标题行甚至误触发命令。
-  3. 发布后回读刚写入的 PR body 或评论（`gh pr view <number> --json body,comments` 或 `gh issue view <number> --json comments`），确认正文行数大于 1 且包含预期章节；只剩单行标题或正文缺失时按 GitHub 写操作失败处理，并输出失败摘要、实际正文行数和缺失章节。
-- 多行 PR 回执、阻断说明或失败报告发布后，必须用 `gh pr view <pr-number> --repo <repository> --json comments` 回读最近一条当前 Agent 评论，确认正文行数大于 1，且包含该类正文应有的评论链接、处理结论、失败摘要或隐藏标记。
+- Issue/PR **会话评论** mutation 的唯一入口是 `<article_hub> comment publish`（或 `update-status --comment-file` 的附加评论）。禁止直接执行 `gh pr comment`、`gh issue comment`、Issue comments API POST 或网页发布；CLI 不可用时停止，不得 fallback。
+- 会话评论发布固定流程：
+  1. 用文件写入工具（Write）把完整正文写入临时 Markdown 文件（系统临时目录或本轮缓存目录，不提交 git）；不要用 here-doc、`echo -e`、`printf` 或带 `\n` 的 shell 字符串拼多行正文。
+  2. 命令 `cwd` 必须是 `scheduler_root`、runtime worktree 或候选 worktree，且三者 `origin` 推导为同一仓库；不传 `--repository`。
+  3. 运行 `<article_hub> comment publish --target pr|issue --number <n> --body-file <文件>`；只在 `delivery.status == "created"` 时声明评论发布成功。
+  4. 需要核对 mutation plan 时可用 `--dry-run`，检查 target、repository、`body.line_count` 和 operation。
+  5. `CURRENT_REPOSITORY_INVALID`、`GITHUB_COMMAND_FAILED`、`COMMENT_RESULT_INVALID` 或 CLI 不可用时停止；`retry_safe: false` 时不得盲目重试 publish。
+- 附件下载、只读 `gh pr view` / `gh api` 与既有授权的非评论 GitHub 操作不受本规则改写。
 
 ## GitHub 评论附件下载
 
@@ -187,7 +190,7 @@ git -C "<scheduler_root>" worktree add -b pr-watch/<pr-number>-<started-at-yyyym
 - 本轮只消费该回执之后新增或更新的 Request changes、PR 评论、Review、行级 Review 评论、Review 线程回复和明确 `/ai` 指令；先放入本轮意见清单，再逐条判定为已改、需澄清、无法采纳或无需处理。
 - 如果没有回执，首次 PR 巡检读取当前全部待处理意见，处理后发布第一条回执。
 - 如果评论早于最近回执，但线程后来追加了新回复，按新回复纳入本轮。
-- 每轮处理完成后必须发布新的“AI 巡检处理回执”，列出本轮意见清单中每条评论或 Review 的链接、处理结论和依据。只有本轮修改了正文才需要列出 Commit SHA；未改正文时必须说明是需澄清、无法采纳还是无需处理，并写入隐藏 `dedupe_key`。回执正文必须写入临时 Markdown 文件，并通过 `gh pr comment <pr-number> --repo <repository> --body-file <回执文件>` 发布。
+- 每轮处理完成后必须发布新的“AI 巡检处理回执”，列出本轮意见清单中每条评论或 Review 的链接、处理结论和依据。只有本轮修改了正文才需要列出 Commit SHA；未改正文时必须说明是需澄清、无法采纳还是无需处理，并写入隐藏 `dedupe_key`。回执正文必须写入临时 Markdown 文件，并通过 `<article_hub> comment publish --target pr --number <pr-number> --body-file <回执文件>` 发布；只接受 `delivery.status == "created"`。
 - 失败回执另含隐藏标记 `<!-- ai-article-hub:failure_key=pr-<pr-number>:event-<comment-or-review-id-or-updated-at>:<error-code> -->`。最近回执已含同一 `failure_key` 时，不重复处理或评论；新的 Review、线程回复、`/ai` 指令或人工重试会产生新事件。
 
 隐藏标记固定放在回执正文末尾：
@@ -246,15 +249,15 @@ git -C "<scheduler_root>" worktree add -b pr-watch/<pr-number>-<started-at-yyyym
     - 需澄清的问题、无法采纳的理由和仍需人工确认的问题。
     - 是否需要运营或技术维护者重新检查。
     - 正文末尾的隐藏 `dedupe_key` 标记。
-    - 回执正文保存到临时 Markdown 文件后用 `--body-file` 发布，发布后回读确认正文完整。
-11. 用 `<article_hub> update-status` 把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
+    - 回执正文保存到临时 Markdown 文件后，用 `<article_hub> comment publish --target pr` 发布；只在 `delivery.status == "created"` 时视为成功。
+11. 用 `<article_hub> update-status`（不传 `--repository`；需要评论时用 `--comment-file`）把关联 Issue 改回 PR 状态对应阶段 + `AI：等待人工`：Draft PR 回到 `阶段：写作`；Ready PR 回到 `阶段：审核`。
 12. 正常完成并清理**候选** worktree 后，删除本地运行标记；失败状态已回写后删除本地运行标记但保留候选 worktree；过期标记不要删除。
 
 ## 失败处理
 
 - 如果遇到意见冲突、事实缺口、素材需确认或 Head SHA 变化，用 `<article_hub> update-status` 改为当前阶段 + `AI：等待人工`，并在 PR 回执和 Issue 评论中写清阻断点；PR 回执不得只有标题，必须包含受影响评论链接、停止原因、待确认问题和下一步负责人。
 - 附件处理失败时，回执包含原始附件 URL、失败步骤、`gh api` 退出码或文件校验结果、重试次数和临时文件清理结果。附件不存在或格式不符时按“需澄清”回到 `AI：等待人工`；工具、认证或网络失败时进入 `AI：失败`。回执不得包含凭据或重定向后的 URL。
-- 如果环境、权限、命令或 GitHub 写操作失败，且 `<article_hub>` 仍可用，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；PR 失败报告通过临时文件和 `--body-file` 发布，必须包含失败命令、原始错误、退出码、受影响评论链接、候选 worktree、可继续处理的入口和 `failure_key`，发布后回读确认完整。若返回 `PARTIAL_MUTATION`，按 `error.details.pending_operations` 只重试未完成评论，不重复执行已完成的标签操作。
+- 如果环境、权限、命令或 GitHub 写操作失败，且 `<article_hub>` 仍可用，用 `<article_hub> update-status` 改为当前阶段 + `AI：失败`；PR 失败报告写入临时 Markdown 文件，用 `<article_hub> comment publish --target pr` 发布，必须包含失败命令、原始错误、退出码、受影响评论链接、候选 worktree、可继续处理的入口和 `failure_key`；只接受 `delivery.status == "created"`。若返回 `PARTIAL_MUTATION`：`mutation_state: "unknown"` 时不得盲目重试评论；`mutation_state: "created"` 时保留已返回的 comment URL/ID 与本地正文文件，不重复执行已完成的标签或评论操作，也不 fallback 到裸 `gh`。
 - 如果 `<article_hub>` 本身意外失效，不得用 `gh` 手工修改标签，也不发布可能被重复消费的 PR 失败评论。把原始错误追加到 `scheduled-runs/system/pr-watch.json`，保留候选运行标记和 worktree，在本轮输出中报告可恢复入口后停止。
 
 ## 整轮收尾

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
-
+import { publishCommentCommand } from "./commands/comment.js";
 import { inspectIssue } from "./commands/inspect-issue.js";
 import { approvePlanFile } from "./commands/plan.js";
 import { checkoutSources } from "./commands/checkout-sources.js";
@@ -126,63 +125,42 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       return 0;
     }
 
+    if (parsed.command === "comment") {
+      const envelope = await runCommentCommand(parsed.args, parsed.context);
+      process.stdout.write(serializeJson(envelope));
+      return 0;
+    }
+
     if (parsed.command === "update-status") {
       const issueFile = readRequiredOption(parsed.args, "--issue-file");
-      const repository = readRequiredOption(parsed.args, "--repository");
       const intent = readRequiredOption(parsed.args, "--intent");
       const phase = readOptionalOption(parsed.args, "--phase");
       const aiState = readOptionalOption(parsed.args, "--ai-state");
       const expectedHeadSha = readOptionalOption(parsed.args, "--expected-head-sha");
       const currentHeadSha = readOptionalOption(parsed.args, "--current-head-sha");
-      const inlineComment = readOptionalOption(parsed.args, "--comment");
       const commentFile = readOptionalOption(parsed.args, "--comment-file");
-
-      if (inlineComment !== undefined && commentFile !== undefined) {
-        throw new ArticleHubError(
-          "UNEXPECTED_ARGUMENT",
-          "--comment 与 --comment-file 不能同时使用",
-          2
-        );
-      }
-
-      let comment = inlineComment;
-
-      if (commentFile !== undefined) {
-        try {
-          comment = await readFile(commentFile, "utf8");
-        } catch {
-          throw new ArticleHubError(
-            "COMMENT_FILE_NOT_FOUND",
-            `状态评论文件不存在或不可读：${commentFile}`,
-            2
-          );
-        }
-      }
 
       assertNoUnexpectedArgs(
         parsed.args,
         new Set([
           "--issue-file",
-          "--repository",
           "--intent",
           "--phase",
           "--ai-state",
           "--expected-head-sha",
           "--current-head-sha",
-          "--comment",
           "--comment-file"
         ])
       );
 
       const envelope = await updateIssueStatus({
         issueFile,
-        repository,
         intent,
         phase,
         aiState,
         expectedHeadSha,
         currentHeadSha,
-        comment,
+        commentFile,
         dryRun: parsed.context.dryRun
       });
 
@@ -255,6 +233,31 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     return cliError.exitCode;
   }
+}
+
+async function runCommentCommand(
+  args: string[],
+  context: CliContext
+): Promise<unknown> {
+  const subcommand = args.shift();
+
+  if (subcommand === "publish") {
+    const target = readRequiredOption(args, "--target");
+    // number 在 command 层校验，以便带上 comment 本地 guard 的稳定 details。
+    const numberRaw = readRequiredOption(args, "--number");
+    const bodyFile = readRequiredOption(args, "--body-file");
+
+    assertNoUnexpectedArgs(args, new Set(["--target", "--number", "--body-file"]));
+
+    return publishCommentCommand({
+      target,
+      number: Number(numberRaw),
+      bodyFile,
+      dryRun: context.dryRun
+    });
+  }
+
+  throw new ArticleHubError("UNKNOWN_COMMAND", `未知 comment 子命令：${subcommand ?? ""}`, 2);
 }
 
 async function runPlanCommand(
