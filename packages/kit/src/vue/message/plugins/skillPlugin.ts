@@ -1,6 +1,6 @@
 import type { ComputedRef, Ref } from 'vue'
 import { isRef, unref } from 'vue'
-import type { SkillRequestContext, SkillSelection } from '../../../message/plugins'
+import type { SkillPluginOptions, SkillRequestContext, SkillSelection } from '../../../message/plugins'
 import { getSkillRequestContext, skillPlugin as createCoreSkillPlugin } from '../../../message/plugins'
 import type { BasePluginContext as CoreBasePluginContext } from '../../../message/types'
 import type { SkillCandidate, SkillDefinition } from '../../../skills/types'
@@ -162,6 +162,7 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
         })
       }
 
+      // Vue selection is resolved at request time, so core validates resolver requirements at runtime.
       return createCoreSkillPlugin({
         ...runtime.createCorePlugin(restOptions),
         selection: resolveSelection,
@@ -170,17 +171,21 @@ export const skillPlugin = (options: UseMessageSkillPluginOptions): UseMessagePl
           : undefined,
         getSkillCandidates: getSkillCandidates
           ? (context) => getSkillCandidates(toVueContext(context))
-          : () => resolveSkillSource(skills) ?? [],
+          : skills !== undefined
+            ? () => resolveSkillSource(skills) ?? []
+            : undefined,
         getSkillByName: getSkillByName
           ? (name, context) => getSkillByName(name, toVueContext(context))
-          : (name) => resolveSkillSource(skills)?.find((skill) => skill.name === name),
+          : skills !== undefined
+            ? (name) => resolveSkillSource(skills)?.find((skill) => skill.name === name)
+            : undefined,
         onSkillsResolved: onSkillsResolved
           ? (skillContext, context) => onSkillsResolved(skillContext, toVueContext(context))
           : undefined,
         onSkillSelectionResolved: onSkillSelectionResolved
           ? (event, context) => onSkillSelectionResolved(event, toVueContext(context))
           : undefined,
-      })
+      } as SkillPluginOptions)
     },
   } as UseMessagePlugin
 }

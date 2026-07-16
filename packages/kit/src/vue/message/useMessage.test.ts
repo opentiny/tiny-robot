@@ -265,7 +265,7 @@ describe('useMessage', () => {
 
   it('uses reactive manual vue skillPlugin skillNames', async () => {
     const mode = ref<'manual'>('manual')
-    const skillNames = ref(['docs'])
+    const skillNames = ref(['stale'])
     const skills: SkillDefinition[] = [
       {
         name: 'docs',
@@ -293,6 +293,7 @@ describe('useMessage', () => {
       ],
     })
 
+    skillNames.value = ['docs']
     await engine.sendMessage('read docs')
 
     expect(responseProvider.mock.calls[0]?.[0].messages[0]).toMatchObject({
@@ -338,7 +339,7 @@ describe('useMessage', () => {
   })
 
   it('uses reactive preferred skill names in auto mode', async () => {
-    const preferredSkillNames = ref(['docs'])
+    const preferredSkillNames = ref(['stale'])
     const responseProvider = vi.fn((requestBody) => {
       expect(requestBody.messages[0]).toMatchObject({
         role: 'system',
@@ -375,6 +376,7 @@ describe('useMessage', () => {
       ],
     })
 
+    preferredSkillNames.value = ['docs']
     await engine.sendMessage('read docs')
   })
 
@@ -398,6 +400,45 @@ describe('useMessage', () => {
 
     await expect(engine.sendMessage('read docs')).rejects.toThrow(
       'skillPlugin auto mode requires an enabled toolPlugin',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
+  })
+
+  it('rejects vue manual skillNames without a skill resolver', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'manual',
+          skillNames: ['docs'],
+        }),
+      ],
+    })
+
+    await expect(engine.sendMessage('read docs')).rejects.toThrow(
+      'getSkillByName is required when manual mode uses skillNames',
+    )
+    expect(responseProvider).not.toHaveBeenCalled()
+  })
+
+  it('rejects vue auto skillPlugin without a candidate source', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('unexpected'))
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        skillPlugin({
+          mode: 'auto',
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => 'fallback',
+        }),
+      ],
+    })
+
+    await expect(engine.sendMessage('read docs')).rejects.toThrow(
+      'getSkillCandidates is required when auto mode is enabled',
     )
     expect(responseProvider).not.toHaveBeenCalled()
   })
