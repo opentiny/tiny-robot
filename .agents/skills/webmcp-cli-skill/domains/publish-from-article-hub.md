@@ -133,9 +133,21 @@ git checkout -b <平台标识>/<时间戳>
 
 1. 发布前阅读 [publish-article.md](./publish-article.md) 中的质量与避坑准则。
 2. 文章 **标题** 使用 `publications.json` 条目中匹配的 `title`（与母稿 front matter 不一致时以 `publications.json` 为准，除非用户指定）。
-3. 文章 **正文** 使用步骤 2 命中的母稿 `article_file`。`juejin` / `csdn` / `oschina` 的 `create_article` 用 `@base64file:` 或 `-f` 传入（`content` 为 Base64）；`segmentfault` 的 `segmentfault_publish_article` 须传**原始 Markdown**（长文用 `-f`），勿用 `@base64file:`。
+3. 文章 **正文** 使用步骤 2 命中的母稿 `article_file`，**发布前须去掉 YAML Front Matter**（`---` 块），只把 Markdown 正文写入平台；**不修改母稿**。推荐先用共用脚本生成临时 `body.md`（见下方「正文预处理」），再传给平台工具。`juejin` / `csdn` / `oschina` 的 `create_article` 用 `@base64file:` 或 `-f` 传入去 frontmatter 后的正文（`content` 为 Base64）；`segmentfault` 的 `segmentfault_publish_article` 须传**去 frontmatter 后的原始 Markdown**（长文用 `-f`），勿用 `@base64file:`。
 4. 严格遵守 `webmcp-cli state` → 领域工具 → `page-agent-tool` 的调用顺序（见主 Skill）。
 5. **仅在平台确认发布成功并取得文章 URL 后** 进入步骤 4；草稿-only、审核中、无 URL 均视为未成功。
+
+### 正文预处理（必做）
+
+ai-article-hub 母稿 `article.md` 含 YAML Front Matter（如 `schema_version`、`title`、`sources` 等），**不得**原样写入掘金/CSDN/思否正文。发布前先运行：
+
+```bash
+node .agents/skills/webmcp-cli-skill/scripts/shared/prepare-publish-body.mjs \
+  --file <article_file> \
+  --out-dir .cache/publish-body/<article-id>/
+```
+
+stdout 返回 JSON，其中 `body_file` 为去 frontmatter 后的临时 `body.md`。后续 `create_article` / `segmentfault_publish_article` 的 `content` **必须**引用该 `body_file`（掘金/CSDN 用 `@base64file:<body_file>`；思否把 `body_file` 正文读入 JSON 的 `content` 字段）。`.cache/` 不得提交 git；**不要**改写母稿 `article.md`。
 
 ### 平台发布后须记录
 

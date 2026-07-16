@@ -239,14 +239,24 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 
 构建失败则停止该候选。若 `validate article` 返回 `ok: false` 或存在 `blocking_issues`，停止该候选并记录阻断码，不得继续发布。不要回退到主仓 `dist` 或在主仓 `pnpm run build`。
 
-7. 按目标平台子指南执行正式发布。`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，**不修改母稿、不生成 `.publish/` 副本**。分类与标签须基于正文智能推断，**切勿盲目使用默认值**。PowerShell 终端下参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
+7. 按目标平台子指南执行正式发布。`tabs open` 返回的 `tabid` 须在后续 `run` 命令中通过 `-t <tabid>` 复用。标题使用 `publications.json` 条目的 `title`；正文使用母稿 `article_file`，**不修改母稿、不生成 `.publish/` 副本**。发布前须去掉 YAML Front Matter，只把 Markdown 正文写入平台（见下方「正文预处理」）。分类与标签须基于正文智能推断，**切勿盲目使用默认值**。PowerShell 终端下参数较长时，优先使用 `-f` 传 JSON 文件，避免内联转义失败。
 
-   - `juejin` / `csdn` / `oschina`：采用 **打开编辑器 → `create_article` →（掘金/CSDN：图片检查与修复）→ `get_article_info` → `publish_current_draft`**；正文通过 `@base64file:<article_file>` 传入（这些工具的 `content` 期望 Base64）；调用 `publish_current_draft` 前必须先 `get_article_info`。`oschina` 暂无独立裂图修复子指南，图片异常时停止该候选并转人工。
-   - `segmentfault`：采用 `segmentfault_publish_article` 的 **`publish_full_flow` →（图片检查与修复）→ `get_state` → `publish`（`confirm: true`）**。其 `content` 期望 **原始 Markdown 字符串**，**禁止**对思否使用 `@base64file:`（否则编辑器会写入 Base64 文本而非正文）。长正文须用 `-f` 传入含原始 Markdown 的 JSON。`publish_full_flow` 只到草稿箱不算完成。
+   **正文预处理（必做）**：在调用任何平台写入工具前，运行共用脚本生成临时 `body.md`：
+
+   ```bash
+   node .agents/skills/webmcp-cli-skill/scripts/shared/prepare-publish-body.mjs \
+     --file <article_file> \
+     --out-dir .cache/publish-body/<article-id>/
+   ```
+
+   stdout 返回 JSON，取 `body_file` 作为后续 `content` 来源。`.cache/` 不得提交；**不要**改写母稿 `article.md`。
+
+   - `juejin` / `csdn` / `oschina`：采用 **打开编辑器 → `create_article` →（掘金/CSDN：图片检查与修复）→ `get_article_info` → `publish_current_draft`**；正文通过 `@base64file:<body_file>` 传入（这些工具的 `content` 期望 Base64）；调用 `publish_current_draft` 前必须先 `get_article_info`。`oschina` 暂无独立裂图修复子指南，图片异常时停止该候选并转人工。
+   - `segmentfault`：采用 `segmentfault_publish_article` 的 **`publish_full_flow` →（图片检查与修复）→ `get_state` → `publish`（`confirm: true`）**。其 `content` 期望 **去 frontmatter 后的原始 Markdown 字符串**，**禁止**对思否使用 `@base64file:`（否则编辑器会写入 Base64 文本而非正文）。长正文须用 `-f` 传入含 `body_file` 正文的 JSON。`publish_full_flow` 只到草稿箱不算完成。
 
    - `juejin`：
      1. 打开 `https://juejin.cn/editor/drafts/new?v=2`，`webmcp-cli state` 确认工具已注入。
-     2. `create_article` 写入标题与正文（`content` 使用 `@base64file:<article_file>`）。
+     2. `create_article` 写入标题与正文（`content` 使用 `@base64file:<body_file>`，`<body_file>` 来自 `prepare-publish-body.mjs`）。
      3. **图片检查与修复（有图或正文含相对路径时必做）**：`get_article_info` 检查是否仍含 `./assets/`、相对路径图片、裂图或非掘金 CDN（合法含 `*.byteimg.com` / `*.juejin.cn`，含 `*-xtjj-private.juejin.cn`）。若有异常，按 `fix-juejin-article-images.md` 执行标记 → 上传（ImageX 优先）→ 替换 → 复检（最多 3 轮），脚本在 `.agents/skills/webmcp-cli-skill/scripts/juejin-images/`。修复只写临时文件与掘金草稿，**不修改母稿**。3 轮后仍失败则停止该候选。无图且无相对路径时可跳过。
      4. `get_article_info` 获取当前草稿内容（含修复后正文）。
      5. 基于正文智能推断 `category`、`tag`，并生成 **50~100 字**摘要后调用 `publish_current_draft`。
@@ -254,7 +264,7 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 
    - `csdn`：
      1. 打开 `https://editor.csdn.net/md/`，`webmcp-cli state` 确认工具已注入（首次进入可能弹出「模版库」，`create_article` 会自动尝试关闭）。
-     2. `create_article` 写入标题与正文。
+     2. `create_article` 写入标题与正文（`content` 使用 `@base64file:<body_file>`，`<body_file>` 来自 `prepare-publish-body.mjs`）。
      3. **图片检查与修复（含本地图片时必做）**：优先 `get_article_info`（不可用则用 `executeJavascript` 读 `.editor__inner`）检查是否仍含 `./assets/` / 相对路径、`img-home.csdnimg.cn?...origin_url=` 转存失败占位、「外链图片转存失败」文案，或非正文 CDN（合法示例：`i-blog.csdnimg.cn` / `img-blog.csdnimg.cn`）。若有异常，按 `fix-csdn-article-images.md` 执行标记 → 上传（优先 `csdn.upload.uploadImg`）→ 替换 → 复检（最多 3 轮），脚本在 `.agents/skills/webmcp-cli-skill/scripts/csdn-images/`。修复只写临时文件与 CSDN 草稿，**不修改母稿**。3 轮后仍失败则停止该候选。无图且无相对路径时可跳过。
      4. `get_article_info` 获取当前草稿内容（含修复后正文）。
      5. 基于正文智能推断 `category`、`tags`（1~3 个），并生成 **100 字以内**摘要后调用 `publish_current_draft`。
@@ -263,7 +273,7 @@ gh pr create --title "chore(publications): record platform publish results" --bo
    - `segmentfault`：
      1. 打开 `https://segmentfault.com/howtowrite`（已在 `/write` 可跳过），`webmcp-cli state` 确认已登录且注入 `segmentfault_publish_article`；未登录或跳转到 `/user/login` 时停止该候选。后续 `run` 必须带 `-t <tabid>`。
      2. 校验标题长度为 **5~100 字符**；不合规则停止该候选并记录原因。
-     3. 调用 `segmentfault_publish_article`，`action` 为 `publish_full_flow`：写入标题、**原始 Markdown** 正文、`category`、`tags`（最多 5 个）；默认 `type: original`、`scope: personal`、`copyright: true`；**不传 `scheduled_time`**（立即发布）。工具会处理引导页与自动保存（约 4.5 秒），并提示封面需手动上传——本巡检跳过封面，不阻塞后续发布。
+     3. 调用 `segmentfault_publish_article`，`action` 为 `publish_full_flow`：写入标题、**去 frontmatter 后的原始 Markdown** 正文（`body_file` 内容）、`category`、`tags`（最多 5 个）；默认 `type: original`、`scope: personal`、`copyright: true`；**不传 `scheduled_time`**（立即发布）。工具会处理引导页与自动保存（约 4.5 秒），并提示封面需手动上传——本巡检跳过封面，不阻塞后续发布。
      4. **图片检查与修复（有图时必做，对齐 `publish-article-in-segmentfault.md` 第三步）**：`get_article_info`（或 JS 读编辑器 / `wrap-check-page.mjs`）检查：
         - `./assets/` / 相对路径图片（**必修复**）
         - 裂图（`check-page` 的 `broken`）
@@ -275,7 +285,7 @@ gh pr create --title "chore(publications): record platform publish results" --bo
 
    - `oschina`：必须已在定时任务 prompt 中提供 `oschina_uid`；未提供则跳过并记录原因。
      1. 打开 `https://my.oschina.net/u/<uid>/blog/ai-write`，`webmcp-cli state` 确认工具已注入。
-     2. `create_article` 写入标题与正文。
+     2. `create_article` 写入标题与正文（`content` 使用 `@base64file:<body_file>`，`<body_file>` 来自 `prepare-publish-body.mjs`）。
      3. `get_article_info` 获取当前草稿内容。
      4. 基于正文智能推断 `category`、`tags`，并生成 **50~200 字**摘要后调用 `publish_current_draft`。
      5. 记录正式文章 URL。
@@ -299,7 +309,7 @@ segmentfault_category：前端
 segmentfault_tags：前端, AI, OpenTiny
 ```
 
-未提供 `segmentfault_category` 时，优先根据母稿正文推断后传入 `publish_full_flow` 的 `category`；无法判断时使用 `前端`。未提供 `segmentfault_tags` 时，优先从正文推断后传入 `tags`（最多 5 个）；无法判断时使用 `前端`、`AI`、`OpenTiny`。不传 `scheduled_time`。思否 `content` 必须是母稿原始 Markdown；用 `-f` 传参时把文件正文读入 JSON 的 `content` 字段，不要写 `@base64file:`。
+未提供 `segmentfault_category` 时，优先根据母稿正文推断后传入 `publish_full_flow` 的 `category`；无法判断时使用 `前端`。未提供 `segmentfault_tags` 时，优先从正文推断后传入 `tags`（最多 5 个）；无法判断时使用 `前端`、`AI`、`OpenTiny`。不传 `scheduled_time`。思否 `content` 必须是去 frontmatter 后的 Markdown（`prepare-publish-body.mjs` 产出的 `body_file`）；用 `-f` 传参时把 `body_file` 正文读入 JSON 的 `content` 字段，不要写 `@base64file:`，也不要直接传含 YAML Front Matter 的 `article.md`。
 
 ## 失败处理
 
@@ -339,7 +349,7 @@ segmentfault_tags：前端, AI, OpenTiny
 - `articles/publications.json` 只记录正式发布事实。未拿到正式文章 URL 时不得写入平台记录。
 - 回写 PR 需等待人工合并，未合并期间 `origin/main` 的 `publications.json` 不含这些记录。候选识别必须同时核对待合并回写 PR（见「候选识别」），否则会对已发布但未合并的「文章 + 平台」重复发布。运行标记在发布成功后即删除，不能作为跨轮去重依据。
 - 部分平台指南仍包含“先写草稿、等待人工审核”的阶段说明。本任务以“直接正式发布”为目标；若平台在当前账号下必须人工审核或二次确认，则停止该候选，不伪造发布状态。
-- `juejin` / `csdn` / `oschina` 使用 `create_article` →（掘金/CSDN：图片检查与修复）→ `get_article_info` → `publish_current_draft`（`content` 用 `@base64file:`）。思否按 `publish-article-in-segmentfault.md` / `SKILL.md` 使用 `segmentfault_publish_article`：`publish_full_flow` 写入草稿后须按 `fix-segmentfault-article-images.md` 做图片检查与修复；本巡检在 `get_state` 通过后以 `publish` + `confirm: true` 完成正式发布，跳过技能文档中的人工草稿箱审核与封面手动上传；封面缺失不视为阻断，但发布结果须人工抽查。若写入草稿后发布失败，平台可能残留草稿，下轮不得在未核对草稿箱的情况下直接再跑 `publish_full_flow` 造成重复草稿。
+- `juejin` / `csdn` / `oschina` 使用 `create_article` →（掘金/CSDN：图片检查与修复）→ `get_article_info` → `publish_current_draft`（`content` 用 `@base64file:<body_file>`，`<body_file>` 来自 `prepare-publish-body.mjs`）。思否按 `publish-article-in-segmentfault.md` / `SKILL.md` 使用 `segmentfault_publish_article`：`publish_full_flow` 写入草稿后须按 `fix-segmentfault-article-images.md` 做图片检查与修复；本巡检在 `get_state` 通过后以 `publish` + `confirm: true` 完成正式发布，跳过技能文档中的人工草稿箱审核与封面手动上传；封面缺失不视为阻断，但发布结果须人工抽查。若写入草稿后发布失败，平台可能残留草稿，下轮不得在未核对草稿箱的情况下直接再跑 `publish_full_flow` 造成重复草稿。
 - `juejin` / `csdn` / `segmentfault`：母稿相对路径本地图片须在正式发布前按 `fix-juejin-article-images.md` / `fix-csdn-article-images.md` / `fix-segmentfault-article-images.md` 上传到平台 CDN 并写回草稿；`validate article` 只校验母稿图片文件存在，不替代该步骤。修复不得改母稿；ImageX STS/Cookie、临时标记与 `.cache/` 不得提交。含本地图片的 CSDN/思否发布前必须走修复流程（思否还须对 `check-page` 裂图复检；能显示的非思否 CDN 外链不强制转存）。发布成功后仍应人工抽查平台正文图片。
 - 开源中国需要 `uid`，无法从仓库稳定推断；未配置时只能跳过。`oschina` 尚无独立裂图修复子指南，母稿含相对路径图片时停止该候选并转人工，不要带着裂图强行发布。
 - 每轮都使用独立 worktree。并发巡检不得共用 worktree、运行标记或 `.cache/article-hub/publish-watch-failures/` 子路径；候选与 runtime 是否清理只按“整轮收尾”的 outcome 表判断。

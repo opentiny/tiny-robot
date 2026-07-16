@@ -40,13 +40,22 @@ webmcp-cli state
 > 3. 无参工具（如 `get_article_info`）可直接运行：`webmcp-cli run get_article_info` 或 `webmcp-cli run get_article_info '{}'`
 > 4. 发布前务必 `tabs switch` 到含文章内容的编辑器标签页，再执行 `publish_current_draft`。
 
-### 第二步：填写标题和正文
+### 第二步：生成发布正文并填写标题
 
-将文章内容写入 `.md` 文件后，通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
+ai-article-hub 母稿含 YAML Front Matter，须先去掉再写入编辑器：
 
 ```bash
-# TAB_ID 来自 tabs open 的返回值
-webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./article.md"}'
+# 生成去 frontmatter 的 body.md（stdout 为 JSON，取 body_file 路径）
+node .agents/skills/webmcp-cli-skill/scripts/shared/prepare-publish-body.mjs \
+  --file ./articles/<project>/<slug>/article.md \
+  --out-dir .cache/publish-body/<article-id>/
+```
+
+将 **body.md**（不是 article.md）通过 `@base64file:` 内联引用传入。**请使用上一步返回的 tabid**：
+
+```bash
+# TAB_ID 来自 tabs open 的返回值；BODY_FILE 来自 prepare-publish-body 的 body_file
+webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content":"@base64file:./.cache/publish-body/<article-id>/body.md"}'
 ```
 
 > [!WARNING]
@@ -59,7 +68,7 @@ webmcp-cli run create_article -t TAB_ID '{"title":"你的文章标题","content"
 // article_args.json
 {
   "title": "你的文章标题",
-  "content": "<正文的Base64编码>"
+  "content": "@base64file:./.cache/publish-body/<article-id>/body.md"
 }
 ```
 

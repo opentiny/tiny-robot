@@ -317,16 +317,17 @@ webmcp-cli run page-agent-tool '{"action": "searchTree", "query": "#42", "contex
 # 在excalidraw网页中，获取画布元素
 webmcp-cli run excalidraw_execute_command '{"eventName": "getSceneElements"}'
 
-# 在掘金上发布新文章
-webmcp-cli run create_article '{"title": "文章标题", "content": "文章的正文的base64编码"}'
+# 在掘金上发布新文章（content 须为 prepare-publish-body 产出的 body.md）
+webmcp-cli run create_article '{"title": "文章标题", "content": "@base64file:./.cache/publish-body/<article-id>/body.md"}'
 
 # 在 CSDN 上填写并发布（须先 get_article_info 推断分类/标签/摘要）
-webmcp-cli run create_article '{"title": "文章标题", "content": "@base64file:./article.md"}'
+# content 须引用 prepare-publish-body.mjs 产出的 body.md，勿直接传 article.md
+webmcp-cli run create_article '{"title": "文章标题", "content": "@base64file:./.cache/publish-body/<article-id>/body.md"}'
 webmcp-cli run get_article_info
 webmcp-cli run publish_current_draft '{"category":"前端","tags":["Vue.js","JavaScript"],"summary":"100字以内的文章摘要..."}'
 
 # 在开源中国上填写并发布
-webmcp-cli run create_article '{"title": "文章标题", "content": "@base64file:./article.md"}'
+webmcp-cli run create_article '{"title": "文章标题", "content": "@base64file:./.cache/publish-body/<article-id>/body.md"}'
 webmcp-cli run publish_current_draft '{"category":"开源资讯","tags":["Vue.js","AI"],"summary":"50~200字的文章摘要..."}'
 
 # 搜索小红书笔记（自动触发滚动加载）
@@ -335,7 +336,7 @@ webmcp-cli run xhs_search_notes '{"keyword": "AI Agent", "limit": 10}'
 # 小红书发布图文笔记
 webmcp-cli run xhs_publish_note '{"title": "第一条笔记", "content": "内容极其精彩...", "images": [{"name": "1.jpg", "mimeType": "image/jpeg", "base64": "..."}]}'
 
-# 思否：写入草稿（导航→过引导→填内容→自动保存；content 为原始 Markdown）
+# 思否：写入草稿（导航→过引导→填内容→自动保存；content 为去 frontmatter 后的 Markdown）
 webmcp-cli run segmentfault_publish_article '{
   "action": "publish_full_flow",
   "title": "你的文章标题",
@@ -384,6 +385,7 @@ webmcp-cli run segmentfault_publish_article '{"action": "publish", "confirm": tr
 
 3. **平台发布**
    - 按目标平台阅读 [publish-article.md](domains/publish-article.md) 及平台子指南，使用母稿 `article.md` 配合 `webmcp-cli` 完成发布。
+   - 发布前须运行 `scripts/shared/prepare-publish-body.mjs` 去掉 YAML Front Matter，只把 `body.md` 正文写入平台；**不修改母稿**。
    - 发布成功并取得完整文章 URL 后再进入下一步。
 
 4. **回写记录并提 PR**
