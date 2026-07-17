@@ -104,14 +104,23 @@
         "csdn": {
           "url": "https://blog.csdn.net/yuhkikele/article/details/162941310",
           "published_at": "2026-07-16T16:45:00+08:00"
+        },
+        "segmentfault": {
+          "url": "https://segmentfault.com/a/1190000048035496",
+          "published_at": "2026-07-16T22:30:00+08:00"
         }
       }
     },
     "tiny-robot/2026-07-14-tinyrobot-performance-tuning": {
       "article_file": "articles/tiny-robot/2026-07-14-tinyrobot-performance-tuning/article.md",
-      "title": "TinyRobot 生产环境性能调优全攻略",
+      "title": "体积砍半、加载提速、请求不卡：TinyRobot 生产环境性能调优全攻略",
       "topic_issue": 12,
-      "publications": {}
+      "publications": {
+        "juejin": {
+          "url": "https://juejin.cn/post/7662940929596407818",
+          "published_at": "2026-07-16T22:35:00+08:00"
+        }
+      }
     }
   }
 }
