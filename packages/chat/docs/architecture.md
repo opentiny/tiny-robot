@@ -1,33 +1,15 @@
-# TinyRobot Chat 架构设计
+# TinyRobot Chat 设计与迁移方案
 
-## 1. 文档定位
+## 1. 一页结论
 
-这份文档只回答两件事：
+`@opentiny/tiny-robot-chat` 是基于 `components + kit` 的 AI 会话应用装配层。
 
-- `packages/chat` 当前对外提供了什么协议
-- `TrChat` 当前默认是如何装配起来的
+它有两个目标：
 
-不在这里展开：
+1. 为新项目提供开箱即用的 `TrChat`。
+2. 让已有 Kit Runtime 项目只迁移 UI，不重建原有数据层。
 
-- MVP 阶段拆分和验收项：见 [mvp-plan.md](./mvp-plan.md)
-- 为什么这样设计、未来何时扩层：见 [evolution-path.md](./evolution-path.md)
-
-## 2. 架构总览
-
-`@opentiny/tiny-robot-chat` 是应用装配层。
-
-```txt
-packages/components
-  -> UI primitives：Layout / History / BubbleList / Welcome / Prompts / Sender
-
-packages/kit
-  -> runtime core：message / conversation / stream / abort / plugin / storage
-
-packages/chat
-  -> application assembly + UI adapter
-```
-
-核心结构：
+当前核心结构：
 
 ```txt
 TrChat
@@ -37,235 +19,165 @@ TrChat
   -> slots
 ```
 
-职责边界：
+核心边界：
 
 | 模块 | 职责 |
 | --- | --- |
-| `ChatRuntime` | 会话、消息、请求生命周期 |
-| `ChatComposer` | 输入草稿和提交交互 |
-| `ChatUi` | 默认组件展示配置 |
-| `slots` | 布局区域替换 |
+| `ChatRuntime` | 会话、消息、请求生命周期和业务动作 |
+| `ChatComposer` | 输入草稿、提交交互、Prompt 回填和输入恢复 |
+| `ChatUi` | 默认原子组件的展示配置 |
+| `slots` | 按布局区域替换或扩展 UI |
+| runtime adapter | 将 Kit、AI SDK、Pinia 或自研 store 映射为 `ChatRuntime` |
 
-## 3. Public API
+当前 MVP 已经覆盖基础聊天、会话、输入、取消请求和三类 Runtime 接入。
+距离完整替换 CLI basic 模板，还需要补模型选择、模型能力开关、MCP Server 选择以及对应的发送配置协议。
 
-当前稳定主入口：
+本次评审建议批准：
 
-- `TrChat`
-- `useLocalChatRuntime`
-- `useKitChatRuntime`
+- `ChatRuntime` 核心协议和默认 `TrChat` 装配。
+- Built-in Kit、Existing Kit 和 Custom Runtime 三类接入路径。
+- CLI basic 的基础聊天 UI 迁移。
 
-当前公开核心类型：
+本次评审暂不承诺：
 
-- `ChatRuntime`
-- `ChatUi`
-- `ChatSubmitPayload`
-- `ChatConversationItem`
-- `ChatMessagePart`
-- `ChatMessageItem`
-- `ChatStructuredData`
-- `ChatHeaderSlotProps`
-- `ChatHistorySlotProps`
-- `ChatMainSlotProps`
-- `ChatFooterSlotProps`
+- MCP Tool 级管理。
+- MCP 市场和安装流程。
+- 通用 capability registry。
+- 上传、语音和 suggestions 等其他增强能力。
 
-主入口：
+## 2. 背景与目标
 
-```vue
-<TrChat :runtime="runtime" :ui="ui" />
-```
+### 2.1 现有问题
 
-Props：
+用户直接组合 `components + kit` 时，需要自行处理：
 
-```ts
-export interface ChatProps {
-  runtime: ChatRuntime
-  ui?: ChatUi
-  title?: string
-}
-```
+- 页面布局和区域装配
+- Kit 数据和 UI 组件数据的映射
+- 输入框草稿和发送状态
+- 会话列表事件
+- 不同数据层的接入差异
 
-## 4. ChatRuntime
+这些代码在不同项目中重复出现，也容易让 UI 直接依赖 Kit 或业务 store。
 
-`ChatRuntime` 是 UI adapter 协议。
-
-它屏蔽 kit、AI SDK、Pinia、自研 store 的差异，让 `TrChat` 只消费统一协议。
+### 2.2 目标
 
 ```txt
-runtime state -> UI
+新项目
+  -> useLocalChatRuntime + TrChat
+
+已有 Kit 项目
+  -> useKitChatRuntime + TrChat
+
+外部数据层
+  -> 自定义 ChatRuntime + TrChat
+```
+
+### 2.3 非目标
+
+当前不把 `chat` 做成：
+
+- 新的底层消息引擎
+- 新的 transport、storage 或 plugin 框架
+- 完整复制 assistant-ui 的 runtime 体系
+- 一次性覆盖所有上传、语音、建议和 MCP Tool 管理能力
+
+## 3. 包边界
+
+```txt
+packages/components
+  -> Layout / History / BubbleList / Welcome / Prompts / Sender
+
+packages/kit
+  -> message / conversation / stream / abort / plugin / storage
+
+packages/chat
+  -> application assembly + UI adapter
+```
+
+`chat` 不修改基础组件既有 props，公共协议也不直接暴露基础组件的数据源字段。
+
+## 4. 当前架构
+
+### 4.1 ChatRuntime
+
+`ChatRuntime` 是给 UI 消费的 adapter 协议，不是底层 engine 协议。
+
+```txt
+runtime state -> TrChat UI
 UI event -> runtime actions
 ```
 
-当前协议：
+当前公共协议的核心形状：
 
 ```ts
-import type { ComputedRef, Ref } from 'vue'
-import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
-
-export type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
-
-export interface ChatConversationItem {
-  id: string
-  title: string
-  createdAt?: number
-  updatedAt?: number
-  metadata?: Record<string, unknown>
-  [key: string]: unknown
-}
-
-export interface ChatMessagePart {
-  type: string
-  [key: string]: unknown
-}
-
-export type ChatMessageContent = string | ChatMessagePart[]
-
-export interface ChatToolCall {
-  id: string
-  type: 'function' | string
-  function: {
-    name: string
-    arguments: string
+interface ChatRuntime {
+  conversations?: {
+    items: ChatReadable<readonly ChatConversationItem[]>
+    currentId: ChatReadable<string | null>
+    loading?: ChatReadable<boolean>
+  }
+  messages: {
+    items: ChatReadable<readonly ChatMessageItem[]>
+    requestState: ChatReadable<RequestState>
+    processingState: ChatReadable<RequestProcessingState | undefined>
+    lastError?: ChatReadable<unknown | null>
+  }
+  sender: {
+    disabled: ChatReadable<boolean>
+    loading: ChatReadable<boolean>
+  }
+  actions: {
+    send: (payload: ChatSubmitPayload) => Promise<void> | void
+    abort?: () => Promise<void> | void
+    createConversation?: (
+      payload?: { title?: string; metadata?: Record<string, unknown> }
+    ) => Promise<void> | void
+    switchConversation?: (id: string) => Promise<void> | void
+    renameConversation?: (id: string, title: string) => Promise<void> | void
+    deleteConversation?: (id: string) => Promise<void> | void
   }
 }
-
-export interface ChatMessageItem<
-  T extends ChatMessageContent = ChatMessageContent,
-  S extends Record<string, unknown> = Record<string, unknown>,
-> {
-  role?: string
-  content?: T
-  parts?: ChatMessagePart[]
-  reasoning_content?: string
-  tool_calls?: ChatToolCall[]
-  tool_call_id?: string
-  name?: string
-  id?: string
-  loading?: boolean
-  state?: S
-  metadata?: Record<string, unknown>
-}
-
-export interface ChatRuntimeConversations {
-  items: ChatReadable<readonly ChatConversationItem[]>
-  currentId: ChatReadable<string | null>
-  loading?: ChatReadable<boolean>
-}
-
-export interface ChatRuntimeMessages {
-  items: ChatReadable<readonly ChatMessageItem[]>
-  requestState: ChatReadable<RequestState>
-  processingState: ChatReadable<RequestProcessingState | undefined>
-  lastError?: ChatReadable<unknown | null>
-}
-
-export interface ChatRuntimeSender {
-  disabled: ChatReadable<boolean>
-  loading: ChatReadable<boolean>
-}
-
-export interface ChatStructuredDataItem {
-  type: string
-  [key: string]: unknown
-}
-
-export type ChatStructuredData = ChatStructuredDataItem[]
-
-export interface ChatSubmitPayload {
-  text: string
-  structuredData?: ChatStructuredData
-}
-
-export interface ChatRuntimeActions {
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
-  abort?: () => Promise<void> | void
-  createConversation?: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
-  switchConversation?: (id: string) => Promise<void> | void
-  renameConversation?: (id: string, title: string) => Promise<void> | void
-  deleteConversation?: (id: string) => Promise<void> | void
-}
-
-export interface ChatRuntime {
-  conversations?: ChatRuntimeConversations
-  messages: ChatRuntimeMessages
-  sender: ChatRuntimeSender
-  actions: ChatRuntimeActions
-}
 ```
+
+完整类型以 [../src/types.ts](../src/types.ts) 为准，文档只解释协议语义，避免复制源码造成漂移。
 
 约束：
 
-- `ChatRuntime` 不直接引用 `HistoryItem / BubbleMessage / StructuredData`。
-- state 只读。
-- 修改必须走 `runtime.actions`。
-- UI 不直接调用 transport。
-- UI 不直接依赖 kit 原始返回结构。
-- 输入草稿不进入 `ChatRuntime`。
-- 不把项目专属发送字段塞进 `ChatRuntime`。
+- state 只读，修改必须通过 actions。
+- UI 不直接调用 transport、storage 或 plugin。
+- UI 不直接依赖 Kit 原始返回结构。
+- 输入草稿不属于 `ChatRuntime`。
+- 不把项目专属字段直接加入核心协议。
 
-## 5. ChatComposer
+### 4.2 ChatComposer
 
-`ChatComposer` 是 `TrChat` 内部输入交互状态。
+`ChatComposer` 是 `TrChat` 内部状态，不作为当前 public API。
 
-MVP 不作为 public API 导出。
-
-内部结构：
-
-```ts
-interface ChatComposer {
-  inputValue: ChatReadable<string>
-  submitDisabled: ChatReadable<boolean>
-  setInputValue: (value: string) => void
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
-  abort?: () => Promise<void> | void
-}
-```
-
-职责：
+它负责：
 
 - 管理 `TrSender.modelValue`
-- 处理 `TrSender update:modelValue`
-- 处理 Prompt 回填输入框
-- 根据输入值、`runtime.sender.disabled`、`runtime.sender.loading` 计算提交禁用
-- 调用 `runtime.actions.send(payload)`
-- 发送成功后清空输入
-- 发送失败后恢复输入
+- 处理输入更新
+- 处理 Prompt 回填
+- 计算提交禁用状态
+- 调用 `runtime.actions.send`
+- 成功后清空输入
+- 失败后恢复输入
 
 发送链路：
 
 ```txt
 TrSender submit
-  -> composer.send(payload)
+  -> ChatComposer.send(payload)
     -> runtime.actions.send(payload)
 ```
 
-## 6. ChatUi
+拆分原因：输入草稿是 UI 临时状态，不属于会话和消息生命周期。已有 Kit Runtime 或 external runtime 不需要额外管理 `inputValue`。
 
-`ChatUi` 只负责默认原子组件展示配置。
+### 4.3 ChatUi
 
-```ts
-export type ChatSenderUi = Omit<
-  SenderProps,
-  'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
-> & {
-  defaultActions?: ChatSenderDefaultActions
-}
+`ChatUi` 只负责默认原子组件的展示配置：
 
-export interface ChatUi {
-  layout?: ChatLayoutUi
-  history?: Omit<HistoryProps, 'data' | 'selected'>
-  bubbleProvider?: Omit<BubbleProviderProps, 'store'>
-  bubbleList?: Omit<BubbleListProps, 'messages'>
-  welcome?: WelcomeProps
-  prompts?: Omit<PromptsProps, 'items'> & {
-    items?: PromptProps[]
-  }
-  sender?: ChatSenderUi
-}
-```
-
-对应关系：
-
-| `ui` key | 默认组件 |
+| 配置 | 默认组件 |
 | --- | --- |
 | `layout` | `TrLayout` |
 | `history` | `TrHistory` |
@@ -275,13 +187,13 @@ export interface ChatUi {
 | `prompts` | `TrPrompts` |
 | `sender` | `TrSender` |
 
-不能通过 `ui` 配置的数据字段：
+以下字段不通过 `ui` 配置：
 
-| 组件 | 字段 |
+| 组件 | 运行时字段 |
 | --- | --- |
 | `TrHistory` | `data / selected` |
 | `TrBubbleList` | `messages` |
-| `TrSender` | `modelValue / defaultValue / loading / disabled` |
+| `TrSender` | `modelValue / loading / disabled` |
 
 原则：
 
@@ -289,48 +201,51 @@ export interface ChatUi {
 同一状态只能有一个来源。
 ```
 
-## 7. TrChat 默认装配
+### 4.4 内部 UI adapter
 
-当前默认结构：
+默认 UI 不直接消费外部数据类型：
+
+```txt
+ChatConversationItem -> HistoryDisplayItem -> TrHistory
+ChatMessageItem      -> BubbleDisplayMessage -> TrBubbleList
+```
+
+`Conversations.vue` 使用稳定的 item 引用，保证 `TrHistory` 的重命名编辑状态不因列表刷新而丢失。
+
+`Messages.vue` 只负责把公共消息协议映射为 `TrBubbleList` 所需结构，并保留 `parts / metadata` 等扩展字段。
+
+## 5. 默认装配和 Slots
+
+默认装配：
 
 ```txt
 TrChat
   -> TrLayout
-    -> header: Header
-    -> left-aside: Conversations
-    -> main: Messages
-    -> footer: Sender
+    -> Header
+    -> Conversations
+    -> Messages
+    -> Sender
     -> ProxyScrollbar / ScrollToBottom
 ```
 
-当前映射关系：
+区域 slots：
 
-| 来源 | 目标 |
-| --- | --- |
-| `runtime.conversations.items` | `HistoryDisplayItem[] -> TrHistory.data` |
-| `runtime.conversations.currentId` | `TrHistory.selected` |
-| `runtime.messages.items` | `BubbleDisplayMessage[] -> TrBubbleList.messages` |
-| `composer.inputValue` | `TrSender.modelValue` |
-| `runtime.sender.loading` | `TrSender.loading` |
-| `runtime.sender.disabled` | `TrSender.disabled` |
-| `composer.submitDisabled` | `TrSender.defaultActions.submit.disabled` |
-| `composer.setInputValue` | `TrSender update:modelValue` |
-| `composer.send` | `TrSender submit` |
-| `composer.abort` | `TrSender cancel` |
-| `runtime.actions.switchConversation` | `TrHistory item-click` |
-| `runtime.actions.renameConversation` | `TrHistory item-title-change` |
-| `runtime.actions.deleteConversation` | `TrHistory item-action(delete)` |
+| slot | 默认内容 | 用途 |
+| --- | --- | --- |
+| `header` | `Header` | 替换或扩展顶部区域 |
+| `left-aside` | `Conversations` | 替换或扩展会话列表 |
+| `main` | `Messages` | 替换或扩展消息区域 |
+| `footer` | `Sender` | 替换或扩展输入区域 |
 
-内部适配：
+slot 按布局区域命名，而不是按内部组件命名。覆盖 slot 后，该区域的默认组件不再自动渲染。
 
-- `Conversations.vue` 在内部把 `ChatConversationItem` 适配为 `HistoryDisplayItem`
-- `Messages.vue` 在内部把 `ChatMessageItem` 适配为 `BubbleDisplayMessage`
+深度重组时，直接使用 `components + kit`，不要求 `TrChat` 覆盖所有场景。
 
-## 8. Runtime 接入路径
+## 6. 三种 Runtime 接入路径
 
-### 8.1 useLocalChatRuntime
+### 6.1 `useLocalChatRuntime`
 
-新项目快速入口。
+面向新项目：
 
 ```txt
 useLocalChatRuntime
@@ -339,141 +254,272 @@ useLocalChatRuntime
   -> ChatRuntime
 ```
 
-职责：
+负责：
 
-- 创建 `useConversation()`
-- 首条消息发送前自动创建会话
+- 创建 Kit conversation
+- 首次发送前创建会话
 - 标题 fallback
-- 错误捕获
-- 组合最终 `ChatRuntime`
+- 统一错误状态
 
-不负责：
+不负责输入草稿和 Prompt 回填。
 
-- 输入草稿
-- 发送成功后清空输入
-- Prompt 回填
+### 6.2 `useKitChatRuntime`
 
-### 8.2 useKitChatRuntime
+面向已有 Kit Runtime：
 
-已有 kit runtime 迁移入口。
+- 接收已有 `useConversation()` 返回值。
+- 保留原有 transport、storage、plugins 和生命周期。
+- 只做 Kit 数据到 `ChatRuntime` 的映射。
+- 不要求用户迁移输入框状态。
 
-适用场景：
+这是已有 Kit 项目的主要 UI 迁移入口。
 
-- 用户已经持有 `useConversation()` 返回值
-- 用户只想把旧 UI 切换到 `TrChat`
-- 用户不想重建已有 transport、storage、plugins
+### 6.3 自定义 `ChatRuntime`
 
-`useKitChatRuntime()` 只做 kit 到 `ChatRuntime` 的映射。
-
-### 8.3 自定义 ChatRuntime
-
-用户外部数据层接入入口。
-
-适用场景：
+面向：
 
 - AI SDK
 - Pinia
 - 自研 store
 - 老系统数据层
-- 只想复用 TinyRobot UI
 
-链路：
+外部数据层负责请求、stream、abort、错误和持久化；`TrChat` 只消费符合协议的 state 和 actions。
+
+## 7. Demo 证据
+
+| Demo | 验证目标 | 状态 |
+| --- | --- | --- |
+| [built-in-kit.vue](../demo/cases/built-in-kit.vue) | 新项目快速接入 Kit | 已验证 |
+| [existing-kit.vue](../demo/cases/existing-kit.vue) | 已有 Kit Runtime 只迁移 UI | 已验证 |
+| [custom-runtime.vue](../demo/cases/custom-runtime.vue) | 外部数据层接入 | 已验证 |
+| [minimal-custom-runtime.vue](../demo/cases/minimal-custom-runtime.vue) | 单会话最小 Runtime | 已验证 |
+| CLI basic | 模型、模型能力和 MCP 选择迁移 | 下一阶段 |
+
+Demo 状态含义：
+
+| 状态 | 含义 |
+| --- | --- |
+| 已验证 | 已完成 Demo 交互验证，覆盖该案例的关键路径 |
+| 下一阶段 | 当前协议未覆盖，不能作为 MVP 已完成能力 |
+
+当前 MVP 已覆盖：
+
+- 消息展示和流式状态
+- 会话创建、切换、重命名、删除
+- 输入、Prompt 回填、发送、取消
+- 默认布局和区域 slots
+- Built-in Kit、Existing Kit、Custom Runtime
+
+## 8. CLI basic 迁移差异
+
+CLI basic 的 `useChat()` 同时组合了：
 
 ```txt
-用户数据层
-  -> ChatRuntime adapter
-    -> TrChat
+useConversation
+useModel
+useMcp
+responseProvider
+toolPlugin
 ```
 
-要求：
+当前 TrChat 已覆盖：
 
-- 用户自己负责请求、stream、abort、错误处理
-- 用户保证数据符合 `ChatRuntime` 契约
-- 默认 UI 所需的 `History / BubbleList` 形态由 `chat` 内部 adapter 负责
-- `TrChat` 不关心外部 runtime 内部实现
+| CLI basic 能力 | 当前状态 |
+| --- | --- |
+| 消息列表 | 已覆盖 |
+| 会话历史 | 已覆盖 |
+| 输入和取消 | 已覆盖 |
+| Kit Runtime 复用 | 已覆盖 |
+| 模型列表和当前模型 | 未纳入 ChatRuntime |
+| 深度思考和联网搜索 | 未纳入 ChatRuntime |
+| MCP Server 选择 | 未纳入 ChatRuntime |
+| MCP Tool 级开关 | 未纳入 ChatRuntime |
 
-## 9. Slots
+因此当前可以完成 CLI basic 的基础 UI 和 Kit 数据层迁移，但还不能无改造替换模型和 MCP 业务能力。
 
-`TrChat` 通过 slots 做轻量区域替换。
+迁移矩阵：
 
-slot 按布局区域命名，不按默认组件命名。
-
-| slot | 默认内容 | 用途 |
+| CLI basic 能力 | TrChat 对应位置 | 当前状态 |
 | --- | --- | --- |
-| `header` | `Header` | 扩展或替换顶部区域 |
-| `left-aside` | `Conversations` | 扩展或替换会话列表区域 |
-| `main` | `Messages` | 扩展或替换消息区域 |
-| `footer` | `Sender` | 扩展或替换输入区域 |
+| `useConversation` | `useKitChatRuntime` | 已支持 |
+| `ChatList` | 默认 `Messages` 或 `main` slot | 已支持 |
+| `ConversationHistory` | 默认 `Conversations` 或 `left-aside` slot | 已支持 |
+| 基础 `ChatSender` | 默认 `Sender` 或 `footer` slot | 已支持 |
+| `useModel` | model capability | 待补 |
+| thinking / search | model feature | 待补 |
+| `useMcp` Server 选择 | MCP capability | 待补 |
+| `toolPlugin` | Kit plugin / runtime adapter | 可复用，动态配置语义待定 |a
 
-规则：
+完整替换的边界是替换 CLI basic 的通用聊天装配代码，不替换应用自己的模型供应商配置、MCP 权限、凭证和业务插件。
 
-- 使用默认区域时，对应 `ui.xxx` 生效
-- 覆盖某个 slot 后，该区域对应的 `ui.xxx` 不再保证生效
-- slot props 只暴露该区域必要状态和动作
-- 深度重组直接使用 `components + kit`
+## 9. 下一阶段扩展路线
 
-稳定 slot props：
+### 阶段 A：冻结 MVP 基础协议
 
-- `header`: `ChatHeaderSlotProps`
-- `left-aside`: `ChatHistorySlotProps`
-- `main`: `ChatMainSlotProps`
-- `footer`: `ChatFooterSlotProps`
+目标：确认 `ChatRuntime + ChatComposer + ChatUi + slots` 的边界。
 
-## 10. Context
+验收：
 
-内部 context 结构：
+- 三类 Runtime 接入成立。
+- 输入草稿不要求外部 Runtime 提供。
+- UI 不直接依赖 Kit 或外部 store。
+- 默认 UI 和 slot 行为稳定。
+
+### 阶段 B：完成 CLI basic 基础迁移
+
+目标：用 `TrChat` 替换 CLI basic 的布局、历史、消息和基础 Sender。
+
+保留在应用或 adapter 中的内容：
+
+- 模型供应商配置
+- API Key 和请求地址
+- MCP Server 配置
+- 业务插件
+
+### 阶段 C：补中性发送配置
+
+候选协议：
 
 ```ts
-export interface ChatContext {
-  runtime: ChatRuntime
-  composer: ChatComposer
-  ui: ChatUi
+interface ChatRunConfig {
+  modelId?: string
+  mcpServerIds?: readonly string[]
+  features?: Record<string, boolean>
+  custom?: Record<string, unknown>
+}
+
+interface ChatSubmitPayload {
+  text: string
+  structuredData?: ChatStructuredData
+  runConfig?: ChatRunConfig
 }
 ```
 
-内部组件只读 context，不直接依赖 kit。
+`runConfig` 是否进入稳定 public API，需要经过评审决定。供应商参数、凭证和 MCP 连接配置不进入该协议。
 
-```txt
-Conversations -> runtime.conversations + runtime.actions
-Messages -> runtime.messages + ui + composer.setInputValue
-Sender -> runtime.sender + composer + ui.sender
+候选运行语义：
+
+- 发送时生成本次请求的 `runConfig` 快照。
+- 发送过程中切换模型只影响下一次请求。
+- 重试默认使用原请求快照。
+- 多会话请求必须各自持有快照，不能读取全局可变选择状态。
+- 单次 payload 优先于 runtime 当前选择，runtime 当前选择优先于 adapter 默认值。
+
+### 阶段 D：补模型和 MCP 窄能力
+
+先支持：
+
+- 模型列表和选择
+- 模型 feature 状态
+- MCP Server 添加、删除、启用、禁用
+- 选择状态到单次发送配置的映射
+
+候选能力协议：
+
+```ts
+interface ChatRuntimeCapabilities {
+  modelSelector?: ChatModelSelector
+  mcpSelector?: ChatMcpSelector
+}
+
+interface ChatModelOption {
+  id: string
+  label: string
+  capabilities?: Record<string, boolean>
+  metadata?: Record<string, unknown>
+}
+
+interface ChatModelSelector {
+  options: ChatReadable<readonly ChatModelOption[]>
+  selectedId: ChatReadable<string | null>
+  select: (id: string | null) => Promise<void> | void
+}
+
+interface ChatMcpServerOption {
+  id: string
+  label: string
+  description?: string
+  metadata?: Record<string, unknown>
+}
+
+interface ChatMcpSelector {
+  options: ChatReadable<readonly ChatMcpServerOption[]>
+  selectedIds: ChatReadable<readonly string[]>
+  select: (ids: readonly string[]) => Promise<void> | void
+}
 ```
 
-## 11. 文件结构
+该协议目前是下一阶段候选，不属于已冻结的 MVP API。首期只评审模型选择和 MCP Server 选择，Tool 级管理后置。
 
-```txt
-packages/chat/
-  src/
-    index.ts
-    Chat.vue
-    types.ts
-    context.ts
-    composables/
-      useChatContext.ts
-      useChatComposer.ts
-      useKitChatRuntime.ts
-      useLocalChatRuntime.ts
-    components/
-      Header.vue
-      Conversations.vue
-      Messages.vue
-      Sender.vue
-      ScrollToBottom.vue
-```
+后置：
 
-约束：
+- MCP Tool 级开关
+- MCP 市场和安装流程
+- 通用 capability registry
+- 上传、语音和 suggestions
 
-- `components/*` 是内部实现，不作为 v1 public API
-- public API 从 `src/index.ts` 显式导出
-- 不导出白盒命名空间组件作为 v1 稳定入口
+### 阶段 E：默认 UI
 
-## 12. 未来扩展边界
+先通过 `footer` slot 验证选择器协议，再考虑提供默认 ModelSelector 和 McpSelector，避免先固化未经验证的 UI API。
 
-这里只保留当前已经确认的边界，不展开未来方案论证。
+## 10. 设计依据
 
-- `ChatRuntime` 继续保持瘦，只承接会话、消息、请求生命周期
-- 复杂发送上下文优先走中性协议扩展，不直接写业务字段
-- 复杂消息渲染优先走 `parts / metadata` 这类中性消息扩展口
-- 如果未来真实场景稳定重复，再考虑新增独立 capability/adapters 层
+assistant-ui 对本项目的有效启发：
 
-更完整的原因、触发条件和候选形态，统一放在 [evolution-path.md](./evolution-path.md)。
+- 核心 runtime 保持瘦。
+- 复杂能力与核心生命周期分层。
+- 单次发送上下文使用中性 `runConfig/custom`。
+- 消息扩展优先使用 `parts / metadata`。
+- UI 通过组合和 adapter 扩展，而不是直接请求后端。
+
+## 11. 当前限制与验收
+
+当前仍需通过后续迁移验证的内容：
+
+- 模型选择是否需要进入公共协议。
+- MCP Server 选择和 Kit plugin 的动态衔接。
+- 单次 `runConfig` 的快照和重试语义。
+- 复杂消息 parts 的稳定渲染约定。
+
+公共类型依赖：
+
+当前 `ChatRuntime` 使用 Kit 提供的 `RequestState` 和 `RequestProcessingState` 作为请求状态类型。这是 MVP 阶段的已知依赖，评审需要决定后续是否保留，还是改为 `chat` 自己定义的中性请求状态类型。
+
+`structuredData` 一致性：
+
+`ChatSubmitPayload` 已公开 `structuredData` 字段，但默认 Kit 发送链路当前主要处理 `text`。如果 `structuredData` 要作为已实现的通用能力，`useLocalChatRuntime` 和 `useKitChatRuntime` 必须保证它不会被丢弃；否则应在 API 文档中明确它当前只由自定义 Runtime 使用。
+
+运行语义仍需评审：
+
+- 切换会话时当前请求是否自动取消。
+- 删除正在请求的会话如何处理。
+- 是否允许多个会话并发发送。
+- MCP 加载失败时是否允许发送。
+- 选择模型失败后是否恢复旧选择。
+- `abort` 后 `requestState` 如何归一化。
+
+完整替换 CLI basic 的验收标准：
+
+- 保留已有 `useConversation`、transport、storage 和 plugins。
+- 会话、消息、流式、取消行为不回归。
+- 模型切换影响下一次请求。
+- MCP Server 启用后工具进入请求链路。
+- UI 不读取 API Key、Headers 或私有请求配置。
+- 外部 Runtime 不需要提供输入框草稿状态。
+- 选择器失败、请求失败和取消后状态可恢复。
+
+Demo 验收至少需要记录：
+
+- Built-in Kit：首次发送建会话、流式消息、取消请求。
+- Existing Kit：保留已有 conversation、切换会话、原有 plugin/storage 不重建。
+- Custom Runtime：发送、错误、abort，且不提供输入框草稿状态。
+- Minimal Custom Runtime：没有 conversations 时仍能完成单会话发送。
+
+## 12. 参考资料
+
+- [评审决策清单](./review-checklist.md)
+- [ChatRuntime 类型](../src/types.ts)
+- https://www.assistant-ui.com/docs/runtimes/concepts/architecture
+- https://www.assistant-ui.com/docs/runtimes/concepts/adapters
+- https://www.assistant-ui.com/docs/api-reference/runtimes/composer-runtime
+- https://www.assistant-ui.com/docs/ui/thread-list

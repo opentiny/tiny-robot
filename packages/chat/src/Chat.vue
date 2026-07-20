@@ -88,7 +88,7 @@ const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
 
 <template>
   <TrLayout v-bind="layoutProps">
-    <template #left-aside>
+    <template v-if="props.runtime.conversations || $slots['left-aside']" #left-aside>
       <slot name="left-aside" v-bind="historySlotProps">
         <Conversations />
       </slot>
