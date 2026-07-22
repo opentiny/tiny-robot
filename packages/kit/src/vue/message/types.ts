@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ComputedRef, Ref } from 'vue'
-import { ChatMessage, MaybePromise, ToolCall } from '../../types'
+import type { AsyncStreamableResult, ChatMessage, MaybePromise, ToolCall } from '../../types'
 
 export interface Tool {
   type: 'function'
@@ -80,7 +80,7 @@ export interface ChatCompletion {
 export type ResponseProvider<T = ChatCompletion> = (
   requestBody: MessageRequestBody,
   abortSignal: AbortSignal,
-) => Promise<T> | AsyncGenerator<T> | Promise<AsyncGenerator<T>>
+) => AsyncStreamableResult<T>
 
 export interface UseMessageOptions {
   initialMessages?: ChatMessage[]

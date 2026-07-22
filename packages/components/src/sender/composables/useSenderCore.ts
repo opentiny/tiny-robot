@@ -69,10 +69,14 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
   // 2. 基础状态计算（依赖 editor）
   // ========================================
 
-  const hasContent = computed(() => {
+  const hasEditorContent = computed(() => {
     if (!editor.value) return false
     const text = getTextWithTemplates(editor.value)
     return text.trim().length > 0
+  })
+
+  const hasContent = computed(() => {
+    return hasEditorContent.value || Boolean(props.hasExternalContent)
   })
 
   const characterCount = computed(() => {
@@ -271,6 +275,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
     loading: computed(() => props.loading ?? false),
     disabled: computed(() => props.disabled ?? false),
     hasContent,
+    hasEditorContent,
     canSubmit,
     isOverLimit,
     characterCount,

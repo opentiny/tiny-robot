@@ -6,6 +6,7 @@
         <li><a href="/" @click.prevent="currentComponent = 'Home'">首页</a></li>
         <li><a href="/attachments" @click.prevent="currentComponent = 'Attachments'">Attachments 组件</a></li>
         <li><a href="/container" @click.prevent="currentComponent = 'Container'">Container 组件</a></li>
+        <li><a href="/layout" @click.prevent="currentComponent = 'Layout'">Layout 组件</a></li>
         <li><a href="/sender" @click.prevent="currentComponent = 'Sender'">Sender 组件</a></li>
       </ul>
     </nav>
@@ -22,9 +23,10 @@ import type { Component } from 'vue'
 import Home from './home/index.vue'
 import AttachmentsDemo from './attachments/index.vue'
 import ContainerDemo from './container/index.vue'
+import LayoutDemo from './layout/index.vue'
 import SenderDemo from './sender/index.vue'
 
-type ComponentName = 'Home' | 'Attachments' | 'Container' | 'Sender'
+type ComponentName = 'Home' | 'Attachments' | 'Container' | 'Layout' | 'Sender'
 
 const currentComponent = ref<ComponentName>('Home')
 
@@ -32,6 +34,7 @@ const components: Record<ComponentName, Component> = {
   Home,
   Attachments: AttachmentsDemo,
   Container: ContainerDemo,
+  Layout: LayoutDemo,
   Sender: SenderDemo,
 }
 

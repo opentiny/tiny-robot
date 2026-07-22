@@ -8,7 +8,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--anchor-demo-controls-gap, 12px 16px);
-  color: var(--anchor-demo-controls-color, #4f647a);
+  color: var(--tr-text-secondary);
   font-size: 13px;
 }
 
@@ -28,7 +28,7 @@
   position: relative;
   height: var(--anchor-demo-stage-height, 420px);
   overflow: hidden;
-  border: 1px solid var(--anchor-demo-stage-border, #dfe7f2);
+  border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
-  background: var(--anchor-demo-stage-bg, #fff);
+  background: var(--tr-container-bg-default);
 }
