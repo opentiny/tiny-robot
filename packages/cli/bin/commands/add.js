@@ -20,7 +20,7 @@ import {
 } from '../utils.js'
 
 const DEP_NAME = '@opentiny/tiny-robot'
-const TARGET_VERSION = '0.4.2-alpha.6'
+const TARGET_VERSION = '0.5.1-alpha.2'
 const STYLE_IMPORT = "import '@opentiny/tiny-robot/dist/style.css'"
 
 function logUnavailable(label) {

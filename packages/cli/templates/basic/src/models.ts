@@ -64,17 +64,17 @@ export const ModelConfigs: Record<string, ProviderModelConfig> = {
     ],
   },
   deepseek: {
-    apiUrl: 'https://api.deepseek.com/v1',
+    apiUrl: 'https://api.deepseek.com/chat/completions',
     icon: IconModelDeepseek,
     apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY,
     models: [
       {
-        name: 'DeepSeek Chat',
-        model: 'deepseek-chat',
+        name: 'DeepSeek V4 Flash',
+        model: 'deepseek-v4-flash',
       },
       {
-        name: 'DeepSeek Reasoner',
-        model: 'deepseek-reasoner',
+        name: 'DeepSeek V4 Pro',
+        model: 'deepseek-v4-pro',
       },
     ],
   },
