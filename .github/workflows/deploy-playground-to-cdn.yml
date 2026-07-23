@@ -55,6 +55,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22 # 使用Node.js 22版本
+          package-manager-cache: false
           registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
       # 步骤4: 获取pnpm缓存目录路径
@@ -68,8 +69,8 @@ jobs:
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
-          # 使用操作系统类型和pnpm-lock.yaml的哈希值作为缓存键
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # 使用操作系统类型和依赖配置文件的哈希值作为缓存键
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/package.json', 'pnpm-workspace.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
