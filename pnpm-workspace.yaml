@@ -2,3 +2,6 @@ packages:
   - packages/**
   - '!packages/cli/templates/**'
   - docs
+
+patchedDependencies:
+  vitepress-demo-plugin@1.5.0: patches/vitepress-demo-plugin@1.5.0.patch

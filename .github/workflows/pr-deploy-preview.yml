@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: build-${{ github.event.workflow_run.head_sha }}
           path: artifacts
@@ -38,7 +38,7 @@ jobs:
           fi
 
       - name: Download pkg.pr.new output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: pkg-pr-new-output-${{ github.event.workflow_run.head_sha }}
           path: pkg-artifacts
