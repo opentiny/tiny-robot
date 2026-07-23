@@ -1,6 +1,17 @@
 <script setup lang="ts">
-import { computed, provide, ref } from 'vue'
-import { TrLayout, type LayoutProps } from '@opentiny/tiny-robot'
+import { computed, provide, ref, toRef } from 'vue'
+import {
+  TrLayout,
+  type LayoutAsideOpenDetail,
+  type LayoutAsideOpenValue,
+  type LayoutAsideResizeDetail,
+  type LayoutAsideResizeValue,
+  type LayoutFloatingDragDetail,
+  type LayoutFloatingProps,
+  type LayoutFloatingResizeDetail,
+  type LayoutFloatingState,
+  type LayoutProps,
+} from '@opentiny/tiny-robot'
 import { chatContextKey } from '@/context'
 import { Conversations, Header, Messages, ScrollToBottom, Sender } from '@/components'
 import { useChatComposer } from '@/composables/useChatComposer'
@@ -24,25 +35,58 @@ const props = withDefaults(
   },
 )
 
-const composer = useChatComposer(props.runtime)
+const runtime = toRef(() => props.runtime)
+const ui = toRef(() => props.ui)
+const composer = useChatComposer(runtime)
 
 provide(chatContextKey, {
-  runtime: props.runtime,
+  runtime,
   composer,
-  ui: props.ui,
+  ui,
 })
 
 const messagesRef = ref<InstanceType<typeof Messages> | null>(null)
 const isEmpty = computed(() => props.runtime.messages.items.value.length === 0)
 const messagesScrollTarget = computed(() => messagesRef.value?.scrollTarget ?? null)
+
+const layoutUi = computed(() => props.ui.layout)
 const layoutProps = computed<LayoutProps>(() => {
-  if (props.ui.layout?.mode === 'floating') {
-    return props.ui.layout
+  if (!layoutUi.value) {
+    return {
+      mode: 'normal' as const,
+    }
+  }
+
+  const {
+    'onUpdate:floatingState': _onUpdateFloatingState,
+    onFloatingDragStart: _onFloatingDragStart,
+    onFloatingDrag: _onFloatingDrag,
+    onFloatingDragEnd: _onFloatingDragEnd,
+    onFloatingResizeStart: _onFloatingResizeStart,
+    onFloatingResize: _onFloatingResize,
+    onFloatingResizeEnd: _onFloatingResizeEnd,
+    onAsideOpenChange: _onAsideOpenChange,
+    onAsideResizeStart: _onAsideResizeStart,
+    onAsideResize: _onAsideResize,
+    onAsideResizeEnd: _onAsideResizeEnd,
+    onLeftAsideOpenChange: _onLeftAsideOpenChange,
+    onLeftAsideResizeStart: _onLeftAsideResizeStart,
+    onLeftAsideResize: _onLeftAsideResize,
+    onLeftAsideResizeEnd: _onLeftAsideResizeEnd,
+    onRightAsideOpenChange: _onRightAsideOpenChange,
+    onRightAsideResizeStart: _onRightAsideResizeStart,
+    onRightAsideResize: _onRightAsideResize,
+    onRightAsideResizeEnd: _onRightAsideResizeEnd,
+    ...nextLayoutProps
+  } = layoutUi.value
+
+  if (nextLayoutProps.mode === 'floating') {
+    return nextLayoutProps as LayoutFloatingProps
   }
 
   return {
     mode: 'normal' as const,
-    ...props.ui.layout,
+    ...nextLayoutProps,
   }
 })
 const currentConversation = computed(() =>
@@ -84,10 +128,107 @@ const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
   loading: props.runtime.sender.loading.value,
   submitDisabled: composer.submitDisabled.value,
 }))
+
+function handleFloatingStateChange(value: LayoutFloatingState) {
+  layoutUi.value?.['onUpdate:floatingState']?.(value)
+}
+
+function handleFloatingDragStart(detail: LayoutFloatingDragDetail) {
+  layoutUi.value?.onFloatingDragStart?.(detail)
+}
+
+function handleFloatingDrag(detail: LayoutFloatingDragDetail) {
+  layoutUi.value?.onFloatingDrag?.(detail)
+}
+
+function handleFloatingDragEnd(detail: LayoutFloatingDragDetail) {
+  layoutUi.value?.onFloatingDragEnd?.(detail)
+}
+
+function handleFloatingResizeStart(detail: LayoutFloatingResizeDetail) {
+  layoutUi.value?.onFloatingResizeStart?.(detail)
+}
+
+function handleFloatingResize(detail: LayoutFloatingResizeDetail) {
+  layoutUi.value?.onFloatingResize?.(detail)
+}
+
+function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
+  layoutUi.value?.onFloatingResizeEnd?.(detail)
+}
+
+function handleAsideOpenChange(detail: LayoutAsideOpenDetail) {
+  layoutUi.value?.onAsideOpenChange?.(detail)
+}
+
+function handleAsideResizeStart(detail: LayoutAsideResizeDetail) {
+  layoutUi.value?.onAsideResizeStart?.(detail)
+}
+
+function handleAsideResize(detail: LayoutAsideResizeDetail) {
+  layoutUi.value?.onAsideResize?.(detail)
+}
+
+function handleAsideResizeEnd(detail: LayoutAsideResizeDetail) {
+  layoutUi.value?.onAsideResizeEnd?.(detail)
+}
+
+function handleLeftAsideOpenChange(detail: LayoutAsideOpenValue) {
+  layoutUi.value?.onLeftAsideOpenChange?.(detail)
+}
+
+function handleLeftAsideResizeStart(detail: LayoutAsideResizeValue) {
+  layoutUi.value?.onLeftAsideResizeStart?.(detail)
+}
+
+function handleLeftAsideResize(detail: LayoutAsideResizeValue) {
+  layoutUi.value?.onLeftAsideResize?.(detail)
+}
+
+function handleLeftAsideResizeEnd(detail: LayoutAsideResizeValue) {
+  layoutUi.value?.onLeftAsideResizeEnd?.(detail)
+}
+
+function handleRightAsideOpenChange(detail: LayoutAsideOpenValue) {
+  layoutUi.value?.onRightAsideOpenChange?.(detail)
+}
+
+function handleRightAsideResizeStart(detail: LayoutAsideResizeValue) {
+  layoutUi.value?.onRightAsideResizeStart?.(detail)
+}
+
+function handleRightAsideResize(detail: LayoutAsideResizeValue) {
+  layoutUi.value?.onRightAsideResize?.(detail)
+}
+
+function handleRightAsideResizeEnd(detail: LayoutAsideResizeValue) {
+  layoutUi.value?.onRightAsideResizeEnd?.(detail)
+}
 </script>
 
 <template>
-  <TrLayout v-bind="layoutProps">
+  <TrLayout
+    v-bind="layoutProps"
+    @update:floating-state="handleFloatingStateChange"
+    @floating-drag-start="handleFloatingDragStart"
+    @floating-drag="handleFloatingDrag"
+    @floating-drag-end="handleFloatingDragEnd"
+    @floating-resize-start="handleFloatingResizeStart"
+    @floating-resize="handleFloatingResize"
+    @floating-resize-end="handleFloatingResizeEnd"
+    @aside-open-change="handleAsideOpenChange"
+    @aside-resize-start="handleAsideResizeStart"
+    @aside-resize="handleAsideResize"
+    @aside-resize-end="handleAsideResizeEnd"
+    @left-aside-open-change="handleLeftAsideOpenChange"
+    @left-aside-resize-start="handleLeftAsideResizeStart"
+    @left-aside-resize="handleLeftAsideResize"
+    @left-aside-resize-end="handleLeftAsideResizeEnd"
+    @right-aside-open-change="handleRightAsideOpenChange"
+    @right-aside-resize-start="handleRightAsideResizeStart"
+    @right-aside-resize="handleRightAsideResize"
+    @right-aside-resize-end="handleRightAsideResizeEnd"
+  >
     <template v-if="props.runtime.conversations || $slots['left-aside']" #left-aside>
       <slot name="left-aside" v-bind="historySlotProps">
         <Conversations />

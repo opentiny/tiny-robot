@@ -2,12 +2,25 @@
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
-import type { ChatStructuredData } from '../types'
+import type { ChatSenderUi, ChatStructuredData } from '../types'
 
 const { composer, runtime, ui } = useChatContext()
+const senderUi = computed<ChatSenderUi>(() => ui.value.sender ?? {})
 
 const senderProps = computed(() => {
-  const sender = ui.sender ?? {}
+  const {
+    onInput: _onInput,
+    onSubmit: _onSubmit,
+    onCancel: _onCancel,
+    onClear: _onClear,
+    onFocus: _onFocus,
+    onBlur: _onBlur,
+    'onUpdate:modelValue': _onUpdateModelValue,
+    ...sender
+  } = senderUi.value as ChatSenderUi & {
+    'onUpdate:modelValue'?: (value: string) => unknown
+  }
+  const currentRuntime = runtime.value
 
   return {
     ...sender,
@@ -19,8 +32,8 @@ const senderProps = computed(() => {
       },
     },
     modelValue: composer.inputValue.value,
-    loading: runtime.sender.loading.value,
-    disabled: runtime.sender.disabled.value,
+    loading: currentRuntime.sender.loading.value,
+    disabled: currentRuntime.sender.disabled.value,
   }
 })
 
@@ -29,11 +42,35 @@ function handleUpdateModelValue(value: string) {
 }
 
 function handleSubmit(text: string, structuredData?: ChatStructuredData) {
-  return composer.send({ text, structuredData })
+  const result = composer.send({ text, structuredData })
+
+  senderUi.value.onSubmit?.(text, structuredData)
+
+  return result
 }
 
 function handleCancel() {
-  composer.abort?.()
+  const result = composer.abort?.()
+
+  senderUi.value.onCancel?.()
+
+  return result
+}
+
+function handleInput(value: string) {
+  senderUi.value.onInput?.(value)
+}
+
+function handleFocus(event: FocusEvent) {
+  senderUi.value.onFocus?.(event)
+}
+
+function handleBlur(event: FocusEvent) {
+  senderUi.value.onBlur?.(event)
+}
+
+function handleClear() {
+  senderUi.value.onClear?.()
 }
 </script>
 
@@ -43,6 +80,10 @@ function handleCancel() {
     @update:model-value="handleUpdateModelValue"
     @submit="handleSubmit"
     @cancel="handleCancel"
+    @input="handleInput"
+    @focus="handleFocus"
+    @blur="handleBlur"
+    @clear="handleClear"
   >
     <template v-if="$slots.header" #header>
       <slot name="header" />

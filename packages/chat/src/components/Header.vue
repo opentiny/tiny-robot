@@ -9,20 +9,22 @@ const props = defineProps<{
 }>()
 
 const { runtime } = useChatContext()
+const canCreateConversation = computed(() => Boolean(runtime.value.actions.createConversation))
 
 const currentTitle = computed(() => {
   if (props.title) {
     return props.title
   }
 
-  const currentId = runtime.conversations?.currentId.value
-  const current = runtime.conversations?.items.value.find((item) => item.id === currentId)
+  const currentRuntime = runtime.value
+  const currentId = currentRuntime.conversations?.currentId.value
+  const current = currentRuntime.conversations?.items.value.find((item) => item.id === currentId)
 
   return current?.title || '新对话'
 })
 
 function handleCreateConversation() {
-  runtime.actions.createConversation?.()
+  runtime.value.actions.createConversation?.()
 }
 </script>
 
@@ -46,7 +48,7 @@ function handleCreateConversation() {
       </div>
 
       <TrIconButton
-        v-if="runtime.actions.createConversation"
+        v-if="canCreateConversation"
         class="tr-chat-header__create"
         :icon="IconNewSession"
         size="32"

@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import Basic from './cases/basic.vue'
 import BuiltInKit from './cases/built-in-kit.vue'
 import CustomRuntime from './cases/custom-runtime.vue'
 import ExistingKit from './cases/existing-kit.vue'
-import MinimalCustomRuntime from './cases/minimal-custom-runtime.vue'
 
 const demos = [
   {
+    id: 'basic',
+    path: '/basic',
+    aliases: ['/'],
+    title: 'Basic',
+    component: Basic,
+  },
+  {
     id: 'built-in-kit',
     path: '/built-in-kit',
-    aliases: ['/', '/basic', '/local-runtime', '/kit-quick-start'],
+    aliases: ['/local-runtime', '/kit-quick-start'],
     title: 'Built-in Kit',
     component: BuiltInKit,
   },
@@ -26,13 +33,6 @@ const demos = [
     aliases: ['/external-runtime'],
     title: 'Custom Runtime',
     component: CustomRuntime,
-  },
-  {
-    id: 'minimal-custom-runtime',
-    path: '/minimal-custom-runtime',
-    aliases: ['/minimal-runtime'],
-    title: 'Minimal Runtime',
-    component: MinimalCustomRuntime,
   },
 ]
 

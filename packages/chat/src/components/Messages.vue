@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { TrBubbleList, TrBubbleProvider, TrPrompts, TrWelcome } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
 import type { LayoutScrollTarget, PromptProps } from '@opentiny/tiny-robot'
-import type { ChatMessageItem } from '../types'
+import type { ChatMessageItem, ChatPromptsUi } from '../types'
 
 type BubbleDisplayMessage = {
   role?: ChatMessageItem['role']
@@ -40,7 +40,7 @@ const toBubbleDisplayMessage = (message: ChatMessageItem): BubbleDisplayMessage 
   raw: message,
 })
 
-const messages = computed<BubbleDisplayMessage[]>(() => runtime.messages.items.value.map(toBubbleDisplayMessage))
+const messages = computed<BubbleDisplayMessage[]>(() => runtime.value.messages.items.value.map(toBubbleDisplayMessage))
 const isEmpty = computed(() => props.isEmpty ?? messages.value.length === 0)
 const bubbleListRef = ref<LayoutScrollTarget>(null)
 const scrollTarget = computed(() => {
@@ -48,19 +48,27 @@ const scrollTarget = computed(() => {
   return element instanceof HTMLElement ? element : null
 })
 
-const promptsProps = computed(() => ui.prompts)
+const welcomeProps = computed(() => ui.value.welcome)
+const promptsUi = computed<ChatPromptsUi>(() => ui.value.prompts ?? {})
 const promptListProps = computed(() => ({
-  ...promptsProps.value,
-  items: promptsProps.value?.items ?? [],
+  ...(() => {
+    const { onItemClick: _onItemClick, ...props } = promptsUi.value
+
+    return props
+  })(),
+  items: promptsUi.value.items ?? [],
 }))
 const hasPrompts = computed(() => promptListProps.value.items.length > 0)
+const bubbleProviderProps = computed(() => ui.value.bubbleProvider)
+const bubbleListProps = computed(() => ui.value.bubbleList)
 
-function handlePromptClick(_: MouseEvent, item: PromptProps) {
+function handlePromptClick(event: MouseEvent, item: PromptProps) {
   if (item.disabled) {
     return
   }
 
   composer.setInputValue(item.label)
+  promptsUi.value.onItemClick?.(event, item)
 }
 
 defineExpose({
@@ -71,7 +79,7 @@ defineExpose({
 <template>
   <div class="tr-chat-messages">
     <template v-if="isEmpty">
-      <TrWelcome v-if="ui.welcome" v-bind="ui.welcome">
+      <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
         <template v-if="$slots['welcome-footer']" #footer>
           <slot name="welcome-footer" />
         </template>
@@ -83,10 +91,10 @@ defineExpose({
       </TrPrompts>
     </template>
 
-    <TrBubbleProvider v-else v-bind="ui.bubbleProvider">
+    <TrBubbleProvider v-else v-bind="bubbleProviderProps">
       <TrBubbleList
         ref="bubbleListRef"
-        v-bind="ui.bubbleList"
+        v-bind="bubbleListProps"
         class="tr-chat-messages__bubble-list"
         :messages="messages"
       >

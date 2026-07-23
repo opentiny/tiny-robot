@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { TrHistory, TrLayout } from '@opentiny/tiny-robot'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
 import { useChatContext } from '../composables/useChatContext'
-import type { ChatConversationItem } from '../types'
+import type { ChatConversationItem, ChatHistoryUi } from '../types'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
 
 type HistoryDisplayItem = ChatConversationItem & {
@@ -12,11 +12,22 @@ type HistoryDisplayItem = ChatConversationItem & {
 
 const { runtime, ui } = useChatContext()
 
-const conversations = computed(() => runtime.conversations)
-const historyProps = computed(() => ui.history ?? {})
+const conversations = computed(() => runtime.value.conversations)
+const historyUi = computed<ChatHistoryUi>(() => ui.value.history ?? {})
+const historyProps = computed(() => {
+  const {
+    onItemClick: _onItemClick,
+    onItemTitleChange: _onItemTitleChange,
+    onItemAction: _onItemAction,
+    ...props
+  } = historyUi.value
+
+  return props
+})
 const selected = computed(() => conversations.value?.currentId.value ?? undefined)
 const historyScrollRef = ref<HTMLElement | null>(null)
 const data = ref<HistoryDisplayItem[]>([])
+const canCreateConversation = computed(() => Boolean(runtime.value.actions.createConversation))
 
 watch(
   () => conversations.value?.items.value ?? [],
@@ -45,12 +56,13 @@ const menuItems = computed(() => {
   }
 
   const items: HistoryMenuItem[] = []
+  const actions = runtime.value.actions
 
-  if (runtime.actions.renameConversation) {
+  if (actions.renameConversation) {
     items.push({ id: 'rename', text: '重命名' })
   }
 
-  if (runtime.actions.deleteConversation) {
+  if (actions.deleteConversation) {
     items.push({ id: 'delete', text: '删除' })
   }
 
@@ -58,22 +70,36 @@ const menuItems = computed(() => {
 })
 
 function handleItemClick(item: HistoryDisplayItem) {
-  runtime.actions.switchConversation?.(item.id)
+  const result = runtime.value.actions.switchConversation?.(item.id)
+
+  historyUi.value.onItemClick?.(item.raw)
+
+  return result
 }
 
 function handleTitleChange(title: string, item: HistoryDisplayItem) {
+  const result = runtime.value.actions.renameConversation?.(item.id, title)
+
   item.title = title
-  runtime.actions.renameConversation?.(item.id, title)
+  historyUi.value.onItemTitleChange?.(title, item.raw)
+
+  return result
 }
 
 function handleItemAction(action: HistoryMenuItem, item: HistoryDisplayItem) {
+  let result: Promise<void> | void | undefined
+
   if (action.id === 'delete') {
-    runtime.actions.deleteConversation?.(item.id)
+    result = runtime.value.actions.deleteConversation?.(item.id)
   }
+
+  historyUi.value.onItemAction?.(action, item.raw)
+
+  return result
 }
 
 function handleCreateConversation() {
-  runtime.actions.createConversation?.()
+  runtime.value.actions.createConversation?.()
 }
 </script>
 
@@ -81,11 +107,7 @@ function handleCreateConversation() {
   <div v-if="conversations" class="tr-chat-conversations">
     <div class="tr-chat-conversations__top">
       <div class="tr-chat-conversations__toolbar">
-        <button
-          v-if="runtime.actions.createConversation"
-          class="tr-chat-conversations__new"
-          @click="handleCreateConversation"
-        >
+        <button v-if="canCreateConversation" class="tr-chat-conversations__new" @click="handleCreateConversation">
           <IconNewSession class="tr-chat-conversations__new-icon" />
           <span class="tr-chat-conversations__new-text">新建对话</span>
         </button>

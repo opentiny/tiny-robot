@@ -1,11 +1,16 @@
-import { computed, shallowRef } from 'vue'
+import { computed, shallowRef, toValue } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 import type { ChatComposer, ChatRuntime, ChatSubmitPayload } from '../types'
 
-export function useChatComposer(runtime: ChatRuntime): ChatComposer {
+export function useChatComposer(runtime: MaybeRefOrGetter<ChatRuntime>): ChatComposer {
   const inputValue = shallowRef('')
 
   function setInputValue(value: string) {
     inputValue.value = value
+  }
+
+  function getRuntime() {
+    return toValue(runtime)
   }
 
   async function send(payload: ChatSubmitPayload) {
@@ -21,7 +26,7 @@ export function useChatComposer(runtime: ChatRuntime): ChatComposer {
     inputValue.value = ''
 
     try {
-      await runtime.actions.send({
+      await getRuntime().actions.send({
         ...payload,
         text,
       })
@@ -36,11 +41,19 @@ export function useChatComposer(runtime: ChatRuntime): ChatComposer {
 
   return {
     inputValue,
-    submitDisabled: computed(
-      () => runtime.sender.disabled.value || runtime.sender.loading.value || inputValue.value.trim().length === 0,
-    ),
+    submitDisabled: computed(() => {
+      const currentRuntime = getRuntime()
+
+      return (
+        currentRuntime.sender.disabled.value ||
+        currentRuntime.sender.loading.value ||
+        inputValue.value.trim().length === 0
+      )
+    }),
     setInputValue,
     send,
-    abort: runtime.actions.abort,
+    get abort() {
+      return getRuntime().actions.abort
+    },
   }
 }
