@@ -1,0 +1,79 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/chunks/basic.CYZit-ln.js","assets/chunks/theme.BgXP30Ey.js","assets/chunks/framework.DU7FgoRM.js"])))=>i.map(i=>d[i]);
+import{aD as a,bQ as s,aZ as u,aL as h,v as m,H as c,bL as p,bB as g,J as e,bk as o,bJ as l,G as b,b7 as w,aU as v}from"./chunks/framework.DU7FgoRM.js";import{L as f,N as _}from"./chunks/index.jCZUXNFC.js";const k=`<template>
+  <TrDropdownMenu v-model:show="clickShow" :items="dropdownMenuItems" @item-click="(item) => console.log(item)">
+    <template #trigger>
+      <TrSuggestionPillButton> Trigger 为 click </TrSuggestionPillButton>
+    </template>
+  </TrDropdownMenu>
+  <hr />
+  <TrDropdownMenu
+    :items="dropdownMenuItems"
+    :show="show"
+    trigger="manual"
+    @item-click="(item) => console.log(item)"
+    @click-outside="handleClickOutside"
+  >
+    <template #trigger>
+      <TrSuggestionPillButton @click="show = !show"> Trigger 为 manual </TrSuggestionPillButton>
+    </template>
+  </TrDropdownMenu>
+  <hr />
+  <div style="display: flex; gap: 10px">
+    <TrDropdownMenu
+      v-model:show="hoverShow"
+      :items="dropdownMenuItems"
+      trigger="hover"
+      @item-click="(item) => console.log(item)"
+      append-to="#app"
+    >
+      <template #trigger>
+        <TrSuggestionPillButton> Trigger 为 hover </TrSuggestionPillButton>
+      </template>
+    </TrDropdownMenu>
+    <TrDropdownMenu :items="dropdownMenuItems" trigger="hover" @item-click="(item) => console.log(item)">
+      <template #trigger>
+        <TrSuggestionPillButton> Trigger 为 hover </TrSuggestionPillButton>
+      </template>
+    </TrDropdownMenu>
+  </div>
+  <hr />
+  <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-start">
+    <button @click="clickShow = true">点我打开Trigger为click</button>
+    <button @click="hoverShow = !hoverShow">点我切换Trigger为hover</button>
+  </div>
+  <hr />
+  <div style="display: flex; gap: 10px; flex-direction: column; align-items: flex-start">
+    <button @click="addDropdownMenu">新增菜单项</button>
+    <button @click="removeDropdownMenu">删除菜单项</button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { TrDropdownMenu, TrSuggestionPillButton } from '@opentiny/tiny-robot'
+import { ref } from 'vue'
+
+const dropdownMenuItems = ref([
+  { id: '1', text: '去续费' },
+  { id: '2', text: '去退订' },
+  { id: '3', text: '查账单' },
+  { id: '4', text: '导账单' },
+  { id: '5', text: '对帐单' },
+])
+
+const show = ref(false)
+const clickShow = ref(false)
+const hoverShow = ref(false)
+
+const handleClickOutside = (ev: MouseEvent) => {
+  console.log('click-outside', ev)
+}
+
+const addDropdownMenu = () => {
+  dropdownMenuItems.value.push({ id: String(dropdownMenuItems.value.length + 1), text: '新增' })
+}
+
+const removeDropdownMenu = () => {
+  dropdownMenuItems.value.pop()
+}
+<\/script>
+`,D=JSON.parse('{"title":"DropdownMenu 下拉菜单","description":"","frontmatter":{"outline":"deep"},"headers":[],"relativePath":"components/dropdown-menu.md","filePath":"components/dropdown-menu.md"}'),T={name:"components/dropdown-menu.md"},M=Object.assign(T,{setup(x){const n=v(!0),d=w();return a(async()=>{d.value=(await s(async()=>{const{default:r}=await import("./chunks/basic.CYZit-ln.js");return{default:r}},__vite__mapDeps([0,1,2]))).default}),(r,t)=>{const i=u("ClientOnly");return h(),m("div",null,[t[1]||(t[1]=c("",4)),p(e(o(f),null,null,512),[[g,n.value]]),e(i,null,{default:l(()=>[e(o(_),{title:"",description:"",locale:"",select:"vue",order:"vue,react,html",github:"",gitlab:"",theme:"",lightTheme:"",darkTheme:"",stackblitz:"%7B%22show%22%3Afalse%7D",codesandbox:"%7B%22show%22%3Afalse%7D",codeplayer:"%7B%22show%22%3Afalse%7D",playground:"%7B%22show%22%3Atrue%7D",files:"%7B%22vue%22%3A%7B%7D%2C%22react%22%3A%7B%7D%2C%22html%22%3A%7B%7D%7D",scope:"",htmlWriteWay:"write",background:"undefined",visible:!0,onMount:t[0]||(t[0]=()=>{n.value=!1}),vueCode:o(k)},b({_:2},[d.value?{name:"vue",fn:l(()=>[e(o(d))]),key:"0"}:void 0]),1032,["vueCode"])]),_:1}),t[2]||(t[2]=c("",13))])}}});export{D as __pageData,M as default};
