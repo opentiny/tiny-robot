@@ -35,19 +35,20 @@ jobs:
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.ref_name }}
 
       # 步骤2: 设置pnpm包管理器
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       # 步骤3: 设置Node.js环境
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20 # 使用Node.js 20版本
+          node-version: 22 # 使用Node.js 22版本
+          package-manager-cache: false
           registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
       # 步骤4: 获取pnpm缓存目录路径
@@ -57,12 +58,12 @@ jobs:
           echo "pnpm_cache_dir=$(pnpm store path)" >> $GITHUB_OUTPUT
 
       # 步骤5: 配置pnpm缓存
-      - uses: actions/cache@v3
+      - uses: actions/cache@v5
         name: Setup pnpm cache
         with:
           path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
-          # 使用操作系统类型和pnpm-lock.yaml的哈希值作为缓存键
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # 使用操作系统类型和依赖配置文件的哈希值作为缓存键
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/package.json', 'pnpm-workspace.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 

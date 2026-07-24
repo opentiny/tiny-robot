@@ -2,7 +2,7 @@
   "name": "robot-root",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@10.34.5",
   "scripts": {
     "dev": "pnpm build:svgs && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
@@ -40,10 +40,5 @@
     "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
     "typescript": "^5.2.2"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "vitepress-demo-plugin@1.5.0": "patches/vitepress-demo-plugin@1.5.0.patch"
-    }
   }
 }
