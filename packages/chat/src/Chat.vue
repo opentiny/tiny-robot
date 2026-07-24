@@ -125,7 +125,7 @@ const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
   send: composer.send,
   abort: composer.abort,
   disabled: props.runtime.sender.disabled.value,
-  loading: props.runtime.sender.loading.value,
+  loading: props.runtime.messages.requestState.value === 'processing',
   submitDisabled: composer.submitDisabled.value,
 }))
 

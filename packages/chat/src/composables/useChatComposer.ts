@@ -46,7 +46,7 @@ export function useChatComposer(runtime: MaybeRefOrGetter<ChatRuntime>): ChatCom
 
       return (
         currentRuntime.sender.disabled.value ||
-        currentRuntime.sender.loading.value ||
+        currentRuntime.messages.requestState.value === 'processing' ||
         inputValue.value.trim().length === 0
       )
     }),

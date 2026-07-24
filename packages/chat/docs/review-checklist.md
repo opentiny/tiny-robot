@@ -35,7 +35,7 @@ TrChat = components + kit 的应用装配层
 | --- | --- | --- |
 | `ChatRuntime` | 会话、消息、请求生命周期 | 输入框草稿和 UI 展示细节 |
 | `ChatComposer` | 输入草稿、提交交互 | transport、storage、plugin |
-| `ChatUi` | 展示配置 | 数据源和业务状态 |
+| `ChatUi` | 展示配置和 UI 事件通知 | 数据源和业务状态修改 |
 | slots | 区域替换 | 新的数据协议 |
 | adapter | 数据层转换和后端执行 | 页面布局 |
 
@@ -46,6 +46,14 @@ TrChat = components + kit 的应用装配层
 | `useLocalChatRuntime` | 新项目快速接入 Kit |
 | `useKitChatRuntime` | 已有 Kit Runtime 只迁移 UI |
 | 自定义 `ChatRuntime` | AI SDK、Pinia、自研 store 或老系统接入 |
+
+### 2.4 事件方向
+
+- Runtime action 是业务状态的唯一修改入口。
+- `ui.onXxx` 只通知事件发生，不重复调用 action。
+- 包装组件先执行内部 action，再同步通知 listener。
+- listener 不可取消默认动作，也不等待异步 action 成功。
+- `computed<ChatUi>` 可以直接更新 props 和 listener，不使用 `markRaw` 或强制 `:key`。
 
 ## 3. 必须评审的问题
 
@@ -209,12 +217,7 @@ available -> added -> inUse -> tools -> callTool
 
 ### R11. ChatRuntime 是否允许依赖 Kit 的请求状态类型？
 
-当前情况：`ChatRuntime` 当前使用 `tiny-robot-kit` 的 `RequestState` 和 `RequestProcessingState`。
-
-需要决定：
-
-- 保持 MVP 阶段的 Kit 通用类型依赖；或
-- 改为 `chat` 自己定义的中性请求状态类型。
+当前结论：不依赖。`ChatRuntime` 使用 `ChatRequestState` 和 `ChatProcessingState`，Kit adapter 负责状态映射。
 
 影响：这决定 external runtime 是否实现了类型层面的独立接入。
 
@@ -288,10 +291,13 @@ available -> added -> inUse -> tools -> callTool
 - 会话切换、消息流式展示和取消请求不回归。
 - external runtime 不需要提供输入框草稿状态。
 - UI 不直接依赖 Kit 原始返回结构。
+- 每个 UI 事件只通知一次，且不造成重复 send、switch、rename 或 delete。
+- 替换整个 `ui` 或 runtime 后，内部读取最新配置和 action，不重建 `TrChat`。
+- viewport 变化后输入草稿不丢失。
+- Basic 验证无 Chat 抽象时的原始状态、动作和事件复杂度。
 - Built-in Kit 验证首次发送建会话、流式消息和取消请求。
 - Existing Kit 验证已有 conversation、plugin 和 storage 不被重建。
 - Custom Runtime 验证发送、错误、abort，且不提供输入框草稿状态。
-- Minimal Custom Runtime 验证没有 conversations 时仍可完成单会话发送。
 
 ### 模型能力
 

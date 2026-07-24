@@ -4,6 +4,9 @@ export { useKitChatRuntime } from './composables/useKitChatRuntime'
 export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
 
 export type {
+  ChatBubbleEventPayload,
+  ChatBubbleListUi,
+  ChatBubbleStateChangePayload,
   ChatConversationItem,
   ChatFooterSlotProps,
   ChatHeaderSlotProps,
@@ -15,6 +18,8 @@ export type {
   ChatMessageItem,
   ChatMessagePart,
   ChatPromptsUi,
+  ChatProcessingState,
+  ChatRequestState,
   ChatRuntime,
   ChatRuntimeActions,
   ChatRuntimeConversations,

@@ -19,9 +19,11 @@ import type {
   SenderProps,
   WelcomeProps,
 } from '@opentiny/tiny-robot'
-import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
-
 export type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
+
+export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+
+export type ChatProcessingState = 'requesting' | 'completing' | string
 
 export interface ChatConversationItem {
   id: string
@@ -54,7 +56,6 @@ export interface ChatMessageItem<
 > {
   role?: string
   content?: T
-  parts?: ChatMessagePart[]
   reasoning_content?: string
   tool_calls?: ChatToolCall[]
   tool_call_id?: string
@@ -113,19 +114,17 @@ export interface ChatPromptsUi extends Omit<PromptsProps, 'items'> {
 export interface ChatRuntimeConversations {
   items: ChatReadable<readonly ChatConversationItem[]>
   currentId: ChatReadable<string | null>
-  loading?: ChatReadable<boolean>
 }
 
 export interface ChatRuntimeMessages {
   items: ChatReadable<readonly ChatMessageItem[]>
-  requestState: ChatReadable<RequestState>
-  processingState: ChatReadable<RequestProcessingState | undefined>
+  requestState: ChatReadable<ChatRequestState>
+  processingState: ChatReadable<ChatProcessingState | undefined>
   lastError?: ChatReadable<unknown | null>
 }
 
 export interface ChatRuntimeSender {
   disabled: ChatReadable<boolean>
-  loading: ChatReadable<boolean>
 }
 
 export interface ChatSubmitPayload {
@@ -167,18 +166,37 @@ export interface ChatSenderUi
   extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
   defaultActions?: ChatSenderDefaultActions
   onInput?: (value: string) => void
-  onSubmit?: (text: string, structuredData?: ChatStructuredData) => void
+  onSubmit?: (payload: ChatSubmitPayload) => void
   onCancel?: () => void
   onClear?: () => void
   onFocus?: (event: FocusEvent) => void
   onBlur?: (event: FocusEvent) => void
 }
 
+export type ChatBubbleStateChangePayload = {
+  key: string
+  value: unknown
+  messageIndex: number
+  contentIndex: number
+}
+
+export type ChatBubbleEventPayload = {
+  name: string
+  payload?: unknown
+  messageIndex: number
+  contentIndex: number
+}
+
+export type ChatBubbleListUi = Omit<BubbleListProps, 'messages'> & {
+  onStateChange?: (payload: ChatBubbleStateChangePayload) => void
+  onBubbleEvent?: (payload: ChatBubbleEventPayload) => void
+}
+
 export interface ChatUi {
   layout?: ChatLayoutUi
   history?: ChatHistoryUi
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
-  bubbleList?: Omit<BubbleListProps, 'messages'>
+  bubbleList?: ChatBubbleListUi
   welcome?: WelcomeProps
   prompts?: ChatPromptsUi
   sender?: ChatSenderUi
@@ -186,8 +204,8 @@ export interface ChatUi {
 
 export interface ChatHeaderSlotProps {
   title: string
-  requestState: RequestState
-  processingState: RequestProcessingState | undefined
+  requestState: ChatRequestState
+  processingState: ChatProcessingState | undefined
   lastError: unknown | null
   createConversation?: ChatRuntimeActions['createConversation']
 }
@@ -203,8 +221,8 @@ export interface ChatHistorySlotProps {
 
 export interface ChatMainSlotProps {
   messages: readonly ChatMessageItem[]
-  requestState: RequestState
-  processingState: RequestProcessingState | undefined
+  requestState: ChatRequestState
+  processingState: ChatProcessingState | undefined
   lastError: unknown | null
 }
 

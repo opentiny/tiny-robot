@@ -1,53 +1,88 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue'
-import { useConversation } from '@opentiny/tiny-robot-kit'
+import { computed, shallowRef } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
+import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-robot-kit'
+import type { ConversationInfo } from '@opentiny/tiny-robot-kit'
 import { createDemoResponseProvider } from '../scenario'
 import { TrChat, useKitChatRuntime } from '../../src'
-import { createDemoStorage, useDemoChatUi } from './shared'
+import type { ChatConversationItem, ChatSubmitPayload, ChatUi } from '../../src'
 
-const lastError = shallowRef<unknown | null>(null)
+const prompts = [
+  { label: '介绍一下 TinyRobot Chat' },
+  { label: '生成一个 Vue 组件示例' },
+  { label: '解释 runtime 和 ui 的职责' },
+]
+
+function handleConversationLoad(items: ConversationInfo[]) {
+  if (items.length === 0) {
+    conversation.createConversation({ title: '已有 Kit 会话' })
+  }
+}
+
 const conversation = useConversation({
-  storage: createDemoStorage(),
+  storage: localStorageStrategyFactory({
+    key: 'tiny-robot-chat-existing-kit-demo',
+  }),
+  autoSaveMessages: true,
   useMessageOptions: {
     responseProvider: createDemoResponseProvider('Existing Kit Runtime'),
   },
+  onLoad: handleConversationLoad,
 })
 
-conversation.createConversation({
-  title: '已有 Kit 会话',
+const runtime = useKitChatRuntime({
+  conversation,
 })
+const isMobile = useMediaQuery('(max-width: 768px)')
+const lastUiEvent = shallowRef('')
 
-const runtime = useKitChatRuntime(conversation, {
-  lastError,
-  send: async ({ text }) => {
-    const content = text.trim()
+function handleItemClick(item: ChatConversationItem) {
+  lastUiEvent.value = `history:${item.id}`
+}
 
-    if (!content) {
-      return
-    }
+function handleSubmit(payload: ChatSubmitPayload) {
+  lastUiEvent.value = `submit:${payload.text}`
+}
 
-    const active = conversation.activeConversation.value
+function handleFocus() {
+  lastUiEvent.value = 'focus'
+}
 
-    if (!active) {
-      return
-    }
-
-    try {
-      lastError.value = null
-      await active.engine.sendMessage(content)
-    } catch (error) {
-      lastError.value = error
-      throw error
-    }
+const ui = computed<ChatUi>(() => ({
+  layout: {
+    leftAside: {
+      mode: isMobile.value ? 'drawer' : 'dock',
+      defaultOpen: !isMobile.value,
+      expandedWidth: isMobile.value ? 280 : 260,
+    },
   },
-})
-const { isMobile, ui } = useDemoChatUi({
-  title: 'Existing Kit Runtime',
-  description: '复用已有 useConversation()，只迁移到 TrChat UI。',
-  placeholder: '输入消息验证已有 Kit 复用路径',
-})
+  history: {
+    onItemClick: handleItemClick,
+  },
+  welcome: {
+    title: 'Existing Kit Runtime',
+    description: '复用已有 useConversation()，只迁移到 TrChat UI。',
+  },
+  prompts: {
+    wrap: true,
+    items: prompts,
+  },
+  bubbleList: {
+    autoScroll: true,
+    roleConfigs: {
+      user: { placement: 'end' },
+      assistant: { placement: 'start' },
+    },
+  },
+  sender: {
+    mode: 'multiple',
+    placeholder: '输入消息验证已有 Kit 复用路径',
+    onSubmit: handleSubmit,
+    onFocus: handleFocus,
+  },
+}))
 </script>
 
 <template>
-  <TrChat :key="isMobile ? 'mobile' : 'desktop'" :runtime="runtime" :ui="ui" />
+  <TrChat :runtime="runtime" :ui="ui" />
 </template>

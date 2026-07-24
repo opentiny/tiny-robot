@@ -3,7 +3,13 @@ import { computed, ref } from 'vue'
 import { TrBubbleList, TrBubbleProvider, TrPrompts, TrWelcome } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
 import type { LayoutScrollTarget, PromptProps } from '@opentiny/tiny-robot'
-import type { ChatMessageItem, ChatPromptsUi } from '../types'
+import type {
+  ChatBubbleEventPayload,
+  ChatBubbleListUi,
+  ChatBubbleStateChangePayload,
+  ChatMessageItem,
+  ChatPromptsUi,
+} from '../types'
 
 type BubbleDisplayMessage = {
   role?: ChatMessageItem['role']
@@ -15,7 +21,6 @@ type BubbleDisplayMessage = {
   id?: ChatMessageItem['id']
   loading?: ChatMessageItem['loading']
   state?: ChatMessageItem['state']
-  parts?: ChatMessageItem['parts']
   metadata?: ChatMessageItem['metadata']
   raw: ChatMessageItem
 }
@@ -35,7 +40,6 @@ const toBubbleDisplayMessage = (message: ChatMessageItem): BubbleDisplayMessage 
   id: message.id,
   loading: message.loading,
   state: message.state,
-  parts: message.parts,
   metadata: message.metadata,
   raw: message,
 })
@@ -60,7 +64,19 @@ const promptListProps = computed(() => ({
 }))
 const hasPrompts = computed(() => promptListProps.value.items.length > 0)
 const bubbleProviderProps = computed(() => ui.value.bubbleProvider)
-const bubbleListProps = computed(() => ui.value.bubbleList)
+type BubbleListViewProps = Omit<ChatBubbleListUi, 'onStateChange' | 'onBubbleEvent'>
+
+const bubbleListProps = computed<BubbleListViewProps>(() => {
+  const bubbleList = ui.value.bubbleList
+
+  if (!bubbleList) {
+    return {}
+  }
+
+  const { onStateChange: _onStateChange, onBubbleEvent: _onBubbleEvent, ...nextBubbleListProps } = bubbleList
+
+  return nextBubbleListProps
+})
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
   if (item.disabled) {
@@ -69,6 +85,14 @@ function handlePromptClick(event: MouseEvent, item: PromptProps) {
 
   composer.setInputValue(item.label)
   promptsUi.value.onItemClick?.(event, item)
+}
+
+function handleStateChange(payload: ChatBubbleStateChangePayload) {
+  ui.value.bubbleList?.onStateChange?.(payload)
+}
+
+function handleBubbleEvent(payload: ChatBubbleEventPayload) {
+  ui.value.bubbleList?.onBubbleEvent?.(payload)
 }
 
 defineExpose({
@@ -97,6 +121,8 @@ defineExpose({
         v-bind="bubbleListProps"
         class="tr-chat-messages__bubble-list"
         :messages="messages"
+        @state-change="handleStateChange"
+        @bubble-event="handleBubbleEvent"
       >
         <template v-if="$slots.prefix" #prefix="slotProps">
           <slot name="prefix" v-bind="slotProps" />

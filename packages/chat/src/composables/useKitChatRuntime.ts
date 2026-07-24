@@ -1,75 +1,55 @@
-import { computed, ref, shallowRef, watch, type Ref } from 'vue'
+import { computed, shallowRef, type Ref } from 'vue'
+import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
-  ConversationInfo,
-  RequestProcessingState,
-  RequestState,
-  UseConversationReturn,
-} from '@opentiny/tiny-robot-kit'
-import type { ChatConversationItem, ChatRuntime, ChatSubmitPayload } from '../types'
+  ChatConversationItem,
+  ChatProcessingState,
+  ChatRequestState,
+  ChatRuntime,
+  ChatSubmitPayload,
+} from '../types'
 
 export interface UseKitChatRuntimeOptions {
+  conversation: UseConversationReturn
   lastError?: Ref<unknown | null>
   send?: (payload: ChatSubmitPayload) => Promise<void> | void
 }
 
-function createStableConversationItems(conversation: UseConversationReturn) {
-  type StableConversationItem = {
-    id: string
-    title: string
-    createdAt?: number
-    updatedAt?: number
-    metadata?: Record<string, unknown>
-  }
-
-  const items = ref<StableConversationItem[]>([])
-
-  watch(
-    () => conversation.conversations.value,
-    (nextItems) => {
-      const cache = new Map<string, StableConversationItem>()
-
-      for (const item of items.value) {
-        cache.set(item.id, item)
-      }
-
-      items.value = nextItems.map((item: ConversationInfo) => {
-        const current = cache.get(item.id)
-
-        if (current) {
-          current.title = item.title || '新对话'
-          current.createdAt = item.createdAt
-          current.updatedAt = item.updatedAt
-          current.metadata = item.metadata
-          return current
-        }
-
-        return {
-          id: item.id,
-          title: item.title || '新对话',
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt,
-          metadata: item.metadata,
-        }
-      })
-    },
-    { immediate: true, deep: true },
-  )
-
-  return items as typeof items & { value: ChatConversationItem[] }
-}
-
-export function useKitChatRuntime(
-  conversation: UseConversationReturn,
-  options: UseKitChatRuntimeOptions = {},
-): ChatRuntime {
-  const lastError = options.lastError ?? shallowRef<unknown | null>(null)
-  const { send } = options
+export function useKitChatRuntime({ conversation, lastError: errorRef, send }: UseKitChatRuntimeOptions): ChatRuntime {
+  const lastError = errorRef ?? shallowRef<unknown | null>(null)
 
   const activeConversation = computed(() => conversation.activeConversation.value)
   const activeEngine = computed(() => activeConversation.value?.engine)
-  const historyItems = createStableConversationItems(conversation)
-  const loading = computed(() => Boolean(activeEngine.value?.isProcessing.value))
-  const disabled = computed(() => false)
+  const historyItems = computed<ChatConversationItem[]>(() =>
+    conversation.conversations.value.map((item) => ({
+      id: item.id,
+      title: item.title || '新对话',
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      metadata: item.metadata,
+    })),
+  )
+  const disabled = computed(() => !send && !activeConversation.value)
+
+  const sendMessage =
+    send ??
+    (async ({ text }: ChatSubmitPayload) => {
+      if (!text.trim()) {
+        return
+      }
+
+      await activeConversation.value?.engine.sendMessage(text)
+    })
+
+  async function handleSend(payload: ChatSubmitPayload) {
+    lastError.value = null
+
+    try {
+      await sendMessage(payload)
+    } catch (error) {
+      lastError.value = error
+      throw error
+    }
+  }
 
   return {
     conversations: {
@@ -78,24 +58,15 @@ export function useKitChatRuntime(
     },
     messages: {
       items: computed(() => activeConversation.value?.engine.messages.value ?? []),
-      requestState: computed<RequestState>(() => activeEngine.value?.requestState.value ?? 'idle'),
-      processingState: computed<RequestProcessingState | undefined>(() => activeEngine.value?.processingState.value),
+      requestState: computed<ChatRequestState>(() => activeEngine.value?.requestState.value ?? 'idle'),
+      processingState: computed<ChatProcessingState | undefined>(() => activeEngine.value?.processingState.value),
       lastError,
     },
     sender: {
       disabled,
-      loading,
     },
     actions: {
-      send:
-        send ??
-        (async ({ text }) => {
-          if (!text.trim()) {
-            return
-          }
-
-          await activeConversation.value?.engine.sendMessage(text)
-        }),
+      send: handleSend,
       abort: async () => {
         await conversation.abortActiveRequest()
       },

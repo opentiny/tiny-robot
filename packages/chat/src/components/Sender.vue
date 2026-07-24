@@ -32,7 +32,7 @@ const senderProps = computed(() => {
       },
     },
     modelValue: composer.inputValue.value,
-    loading: currentRuntime.sender.loading.value,
+    loading: currentRuntime.messages.requestState.value === 'processing',
     disabled: currentRuntime.sender.disabled.value,
   }
 })
@@ -42,9 +42,10 @@ function handleUpdateModelValue(value: string) {
 }
 
 function handleSubmit(text: string, structuredData?: ChatStructuredData) {
-  const result = composer.send({ text, structuredData })
+  const payload = { text, structuredData }
+  const result = composer.send(payload)
 
-  senderUi.value.onSubmit?.(text, structuredData)
+  senderUi.value.onSubmit?.(payload)
 
   return result
 }

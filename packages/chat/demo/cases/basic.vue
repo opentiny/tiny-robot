@@ -12,10 +12,11 @@ import {
   type HistoryMenuItem,
   type PromptProps,
 } from '@opentiny/tiny-robot'
-import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
+import type { ChatProcessingState, ChatRequestState } from '../../src'
 import { createDemoReply } from '../scenario'
 
+/** Basic 直接使用原子组件，因此在页面内声明组件所需的数据结构。 */
 type DemoSession = {
   id: string
   title: string
@@ -27,6 +28,7 @@ type DemoMessage = BubbleMessage & {
   id: string
 }
 
+/** 固定 UI 配置不参与业务状态变化，可以安全地定义在响应式状态之外。 */
 const DEFAULT_SESSION_TITLE = '新对话'
 const historyMenuItems: HistoryMenuItem[] = [
   { id: 'rename', text: '重命名' },
@@ -42,22 +44,25 @@ const bubbleRoleConfigs = {
   assistant: { placement: 'start' as const },
 }
 
+/** 页面源状态：会话、消息、输入草稿和请求生命周期都由 Basic 自己维护。 */
 const sessions = shallowRef<DemoSession[]>([])
 const messagesBySession = reactive<Record<string, DemoMessage[]>>({})
 const currentSessionId = shallowRef<string | null>(null)
 const inputValue = shallowRef('')
-const requestState = shallowRef<RequestState>('idle')
-const processingState = shallowRef<RequestProcessingState | undefined>()
+const requestState = shallowRef<ChatRequestState>('idle')
+const processingState = shallowRef<ChatProcessingState | undefined>()
 const loading = shallowRef(false)
 const error = shallowRef<unknown | null>(null)
 const isMobile = shallowRef(false)
 const leftAsideOpen = shallowRef(true)
 
+/** 非响应式控制对象只用于管理浏览器监听和当前模拟请求。 */
 let mediaQuery: MediaQueryList | null = null
 let idSeed = 0
 let activeRequestToken = 0
 let pendingAbortController: AbortController | null = null
 
+/** 派生状态将页面源数据转换成各原子组件直接消费的值。 */
 const historyItems = computed(() => [...sessions.value].sort((left, right) => right.updatedAt - left.updatedAt))
 const currentSession = computed<DemoSession | null>(() => {
   if (!currentSessionId.value) {
@@ -97,6 +102,7 @@ const welcomeProps = computed(() => ({
   description: '直接组合 Layout / History / BubbleList / Sender 的单文件教学基线。',
 }))
 
+/** 基础工具负责生成演示数据，并同步桌面与移动端布局状态。 */
 function createId(prefix: string) {
   idSeed += 1
   return `${prefix}-${Date.now()}-${idSeed}`
@@ -111,6 +117,7 @@ function handleMediaQueryChange(event: MediaQueryListEvent) {
   applyViewport(event.matches)
 }
 
+/** 请求上下文集中处理切换或删除会话时的取消和状态复位。 */
 function cancelActiveRequestContext() {
   if (!pendingAbortController) {
     return
@@ -137,6 +144,7 @@ function getSessionMessages(sessionId: string) {
   return next
 }
 
+/** 会话动作直接修改本地数据，对应后续 ChatRuntime 的 conversations actions。 */
 function createConversation(title = DEFAULT_SESSION_TITLE) {
   const now = Date.now()
   const session: DemoSession = {
@@ -210,6 +218,7 @@ function setInputValue(value: string) {
   inputValue.value = value
 }
 
+/** 发送动作完整演示建会话、追加消息、请求状态、响应和异常收敛。 */
 function ensureCurrentSession() {
   return currentSession.value ?? createConversation()
 }
@@ -327,6 +336,7 @@ async function abort() {
   pendingAbortController?.abort()
 }
 
+/** 事件 handler 把原子组件事件连接到本地动作，是 Basic 中主要的事件胶水。 */
 function handleCreateConversation() {
   if (loading.value) {
     cancelActiveRequestContext()
@@ -391,6 +401,7 @@ function handleSenderClear() {
   setInputValue('')
 }
 
+/** computed props 将状态和 handler 组装成每个原子组件的公开输入。 */
 const historyProps = computed(() => ({
   data: historyItems.value,
   selected: currentSessionId.value ?? undefined,
@@ -435,6 +446,7 @@ const senderProps = computed(() => ({
   onClear: handleSenderClear,
 }))
 
+/** 页面生命周期只负责浏览器媒体查询和模拟请求资源的建立与释放。 */
 onMounted(() => {
   mediaQuery = window.matchMedia('(max-width: 768px)')
   applyViewport(mediaQuery.matches)
@@ -452,8 +464,10 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <!-- Layout 只负责应用壳和区域划分，具体内容由各区域插槽直接装配。 -->
   <TrLayout v-bind="layoutProps">
     <template #left-aside>
+      <!-- 会话区域直接绑定本地会话状态和生命周期动作。 -->
       <div class="basic-demo__aside">
         <div class="basic-demo__aside-top">
           <button class="basic-demo__new-button" @click="handleCreateConversation">
@@ -482,6 +496,7 @@ onBeforeUnmount(() => {
     </template>
 
     <template #main>
+      <!-- 消息区域根据当前消息切换欢迎页和气泡列表。 -->
       <div class="basic-demo__thread" :class="{ 'basic-demo__thread--empty': isEmpty }">
         <div class="basic-demo__content-shell">
           <div class="basic-demo__main-inner">
@@ -496,6 +511,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="basic-demo__footer-inner">
+            <!-- Sender 的草稿、禁用状态和事件全部由当前页面手动连接。 -->
             <TrSender v-bind="senderProps" />
           </div>
         </div>

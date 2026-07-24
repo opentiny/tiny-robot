@@ -114,17 +114,15 @@ interface ChatRuntime {
   conversations?: {
     items: ChatReadable<readonly ChatConversationItem[]>
     currentId: ChatReadable<string | null>
-    loading?: ChatReadable<boolean>
   }
   messages: {
     items: ChatReadable<readonly ChatMessageItem[]>
-    requestState: ChatReadable<RequestState>
-    processingState: ChatReadable<RequestProcessingState | undefined>
+    requestState: ChatReadable<ChatRequestState>
+    processingState: ChatReadable<ChatProcessingState | undefined>
     lastError?: ChatReadable<unknown | null>
   }
   sender: {
     disabled: ChatReadable<boolean>
-    loading: ChatReadable<boolean>
   }
   actions: {
     send: (payload: ChatSubmitPayload) => Promise<void> | void
@@ -175,7 +173,7 @@ TrSender submit
 
 ### 4.3 ChatUi
 
-`ChatUi` 只负责默认原子组件的展示配置：
+`ChatUi` 负责默认原子组件的展示配置和可选 UI 事件通知：
 
 | 配置 | 默认组件 |
 | --- | --- |
@@ -201,6 +199,18 @@ TrSender submit
 同一状态只能有一个来源。
 ```
 
+事件边界：
+
+| UI 事件 | 内部动作 | 外部通知 |
+| --- | --- | --- |
+| History 点击、重命名、删除 | 先调用对应 Runtime action | 再调用 `history.onXxx` |
+| Sender 提交、取消 | 先调用 Composer/Runtime action | 再调用 `sender.onXxx` |
+| Sender 输入、焦点和清空 | 无业务动作 | 调用 `sender.onXxx` |
+| Prompt 点击 | 先回填 Composer | 再调用 `prompts.onItemClick` |
+| Bubble 状态和自定义事件 | 无业务动作 | 调用 `bubbleList.onXxx` |
+
+`ui.onXxx` 是同步事件通知，不是第二个业务状态入口，不能阻止默认动作，也不等待异步 action 成功。事件配置可以来自 `computed<ChatUi>`；内部始终读取最新 listener，不需要 `markRaw` 或通过 `:key` 重建 `TrChat`。
+
 ### 4.4 内部 UI adapter
 
 默认 UI 不直接消费外部数据类型：
@@ -212,7 +222,7 @@ ChatMessageItem      -> BubbleDisplayMessage -> TrBubbleList
 
 `Conversations.vue` 使用稳定的 item 引用，保证 `TrHistory` 的重命名编辑状态不因列表刷新而丢失。
 
-`Messages.vue` 只负责把公共消息协议映射为 `TrBubbleList` 所需结构，并保留 `parts / metadata` 等扩展字段。
+`Messages.vue` 只负责把公共消息协议映射为 `TrBubbleList` 所需结构，并通过 `content / metadata` 保留扩展数据。
 
 ## 5. 默认装配和 Slots
 
@@ -289,17 +299,17 @@ useLocalChatRuntime
 
 | Demo | 验证目标 | 状态 |
 | --- | --- | --- |
-| [built-in-kit.vue](../demo/cases/built-in-kit.vue) | 新项目快速接入 Kit | 已验证 |
-| [existing-kit.vue](../demo/cases/existing-kit.vue) | 已有 Kit Runtime 只迁移 UI | 已验证 |
-| [custom-runtime.vue](../demo/cases/custom-runtime.vue) | 外部数据层接入 | 已验证 |
-| [minimal-custom-runtime.vue](../demo/cases/minimal-custom-runtime.vue) | 单会话最小 Runtime | 已验证 |
+| [basic.vue](../demo/cases/basic.vue) | 无 Chat 抽象的单文件基线 | 已实现，待人工验收 |
+| [built-in-kit.vue](../demo/cases/built-in-kit.vue) | 新项目快速接入 Kit | 已实现，待人工验收 |
+| [existing-kit.vue](../demo/cases/existing-kit.vue) | 已有 Kit Runtime 只迁移 UI | 已实现，待人工验收 |
+| [custom-runtime.vue](../demo/cases/custom-runtime.vue) | 外部数据层接入 | 已实现，待人工验收 |
 | CLI basic | 模型、模型能力和 MCP 选择迁移 | 下一阶段 |
 
 Demo 状态含义：
 
 | 状态 | 含义 |
 | --- | --- |
-| 已验证 | 已完成 Demo 交互验证，覆盖该案例的关键路径 |
+| 已实现，待人工验收 | 类型检查和构建通过后，仍需完成交互验收 |
 | 下一阶段 | 当前协议未覆盖，不能作为 MVP 已完成能力 |
 
 当前 MVP 已覆盖：
@@ -348,7 +358,7 @@ toolPlugin
 | `useModel` | model capability | 待补 |
 | thinking / search | model feature | 待补 |
 | `useMcp` Server 选择 | MCP capability | 待补 |
-| `toolPlugin` | Kit plugin / runtime adapter | 可复用，动态配置语义待定 |a
+| `toolPlugin` | Kit plugin / runtime adapter | 可复用，动态配置语义待定 |
 
 完整替换的边界是替换 CLI basic 的通用聊天装配代码，不替换应用自己的模型供应商配置、MCP 权限、凭证和业务插件。
 
@@ -469,7 +479,7 @@ assistant-ui 对本项目的有效启发：
 - 核心 runtime 保持瘦。
 - 复杂能力与核心生命周期分层。
 - 单次发送上下文使用中性 `runConfig/custom`。
-- 消息扩展优先使用 `parts / metadata`。
+- 当前消息扩展使用 `content` 内容项和 `metadata`。
 - UI 通过组合和 adapter 扩展，而不是直接请求后端。
 
 ## 11. 当前限制与验收
@@ -479,11 +489,11 @@ assistant-ui 对本项目的有效启发：
 - 模型选择是否需要进入公共协议。
 - MCP Server 选择和 Kit plugin 的动态衔接。
 - 单次 `runConfig` 的快照和重试语义。
-- 复杂消息 parts 的稳定渲染约定。
+- 独立消息 parts 协议及其稳定渲染约定。
 
 公共类型依赖：
 
-当前 `ChatRuntime` 使用 Kit 提供的 `RequestState` 和 `RequestProcessingState` 作为请求状态类型。这是 MVP 阶段的已知依赖，评审需要决定后续是否保留，还是改为 `chat` 自己定义的中性请求状态类型。
+`ChatRuntime` 使用 chat 自己定义的 `ChatRequestState` 和 `ChatProcessingState`。Kit adapter 负责将 Kit 请求状态映射为中性状态，外部 Runtime 不需要依赖 Kit 类型。Sender 的 loading 由 `requestState === 'processing'` 派生，不在协议中保留重复状态。
 
 `structuredData` 一致性：
 
@@ -510,10 +520,11 @@ assistant-ui 对本项目的有效启发：
 
 Demo 验收至少需要记录：
 
+- Basic：会话生命周期、发送取消、Prompt 回填、事件单次触发和 History 编辑状态稳定。
 - Built-in Kit：首次发送建会话、流式消息、取消请求。
 - Existing Kit：保留已有 conversation、切换会话、原有 plugin/storage 不重建。
 - Custom Runtime：发送、错误、abort，且不提供输入框草稿状态。
-- Minimal Custom Runtime：没有 conversations 时仍能完成单会话发送。
+- 三个 TrChat Demo：viewport 变化不重建组件，输入草稿不丢失，computed listener 立即生效。
 
 ## 12. 参考资料
 

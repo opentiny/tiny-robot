@@ -190,17 +190,11 @@ slot 按区域命名，而不是绑定内部组件名，这样内部默认组件
 - `messages.requestState`
 - `messages.processingState`
 - `sender.disabled`
-- `sender.loading`
 - `actions.send`
 
 `conversations`、`abort`、`lastError` 和会话管理 actions 都应按实际能力可选。没有会话列表时，`TrChat` 仍应可以完成单会话发送和展示。
 
-这里的“解耦”分为两层：
-
-- 运行时实现已经解耦：外部 runtime 不需要依赖 Kit 实例。
-- 公共类型尚未完全解耦：当前 `RequestState` 和 `RequestProcessingState` 仍来自 Kit。
-
-后者是评审需要明确的已知依赖，不应因为类型是字面量就认为已经完全独立。
+运行时实现和公共请求状态类型均已与 Kit 解耦：外部 runtime 不需要依赖 Kit 实例或 Kit 请求状态类型。Sender loading 由 `messages.requestState` 派生，避免两个状态源不一致。
 
 ## 10. 当前能把 CLI basic 迁移到什么程度？
 
@@ -379,7 +373,7 @@ Demo 证明“某个页面能运行”，契约测试证明“不同 runtime 都
 契约测试至少应覆盖：
 
 - `actions.send` 能驱动消息和请求状态变化。
-- 失败后 `lastError`、`loading` 和输入恢复行为一致。
+- 失败后 `lastError`、请求状态和输入恢复行为一致。
 - `abort` 后请求状态不再是 `processing`。
 - 会话切换后 `currentId` 和 messages 同步变化。
 - 重命名和删除后 conversations 正确更新。
@@ -391,18 +385,18 @@ Demo 证明“某个页面能运行”，契约测试证明“不同 runtime 都
 
 > Demo 验证接入案例，契约测试验证所有 adapter 是否遵守同一套运行语义。
 
-## 18. parts、metadata 和复杂消息渲染应该由谁负责？
+## 18. content、metadata 和复杂消息渲染应该由谁负责？
 
 **当前事实：**
 
-公共 `ChatMessageItem` 已包含 `parts` 和 `metadata`，内部消息 adapter 也会保留它们，但当前没有稳定公开的 part renderer registry。
+公共 `ChatMessageItem` 当前使用 `content` 内容项和 `metadata`，内部消息 adapter 会保留它们，但当前没有稳定公开的 renderer registry。独立 `parts` 字段尚未形成实际渲染链路，因此不进入 MVP 协议。
 
 **标准答案：**
 
-- runtime 负责提供中性的消息数据和 parts。
+- runtime 负责提供中性的消息数据。
 - 内部 adapter 负责保留并转换为默认 UI 可消费的结构。
 - 默认 `TrChat` 只保证当前基础消息展示。
-- 当前复杂渲染通过 `main` slot 替换消息区域，业务侧自行使用 `parts` 和 `metadata`。
+- 当前复杂渲染通过 `main` slot 替换消息区域，业务侧自行使用 `content` 和 `metadata`。
 - 当 tool call、data part、generative UI 等至少被多个真实场景验证后，再建立稳定的 renderer 注册协议。
 
 不建议让模型直接输出任意 HTML 交给 UI 执行。更稳妥的方式是输出结构化 part，由已注册组件根据 `type` 渲染，避免安全问题和业务字段污染核心消息协议。
@@ -436,3 +430,25 @@ UI 只消费 capability 暴露的状态和动作，不直接探测后端、读�
 **评审时一句话：**
 
 > 不支持就隐藏，加载中就禁用，失败保留旧值；是否阻止发送由该能力是否为本次请求必需决定。
+
+## 21. 为什么 `ChatUi` 需要事件，computed 为什么不需要 `markRaw`？
+
+**标准答案：**
+
+`ChatUi` 不只是静态样式配置，还需要承接原子组件产生的 UI 事件通知，例如 History 点击、Sender focus 和 Bubble 自定义事件。但这些 listener 不是业务 action：会话、消息和请求状态仍然只能由 Runtime action 修改。
+
+内部执行顺序固定为：
+
+```txt
+原子组件事件
+  -> Composer 或 Runtime action
+  -> ui.onXxx 同步通知
+```
+
+`Chat.vue` 通过只读 ref 向 context 提供最新 `runtime` 和 `ui`，内部 handler 在触发时读取当前 listener。因此父组件可以用 `computed<ChatUi>` 生成响应式配置；函数本身不需要 `markRaw`，viewport 变化也不需要通过 `:key` 重建组件。强制重建会清空 Composer 草稿，并掩盖 context 捕获旧 props 的真实问题。
+
+事件 API 的演进遵循三步：先在 Basic 单文件中验证原子事件和业务动作，再抽取为 `ChatUi` 强类型 listener，最后用 Built-in、Existing 和 Custom 三类 Runtime 验证复用。这样评审看到的是可追溯的抽取过程，而不是只有最终封装。
+
+**评审时一句话：**
+
+> Runtime action 改业务状态，`ChatUi.onXxx` 只发通知；computed 依靠最新 ref 生效，不依赖 `markRaw` 或组件重建。

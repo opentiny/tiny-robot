@@ -1,8 +1,13 @@
 import { computed, shallowRef } from 'vue'
-import type { RequestProcessingState, RequestState } from '@opentiny/tiny-robot-kit'
-import type { ChatConversationItem, ChatMessageItem, ChatRuntime, ChatSubmitPayload } from '../../src'
+import type {
+  ChatConversationItem,
+  ChatMessageItem,
+  ChatProcessingState,
+  ChatRequestState,
+  ChatRuntime,
+  ChatSubmitPayload,
+} from '../../src'
 import { createDemoReply } from '../scenario'
-import { useDemoChatUi } from './shared'
 
 function createConversation(title: string): ChatConversationItem {
   const now = Date.now()
@@ -22,9 +27,8 @@ export function useCustomRuntime() {
   const messagesByConversation = shallowRef<Record<string, ChatMessageItem[]>>({
     [firstConversation.id]: [],
   })
-  const loading = shallowRef(false)
-  const requestState = shallowRef<RequestState>('idle')
-  const processingState = shallowRef<RequestProcessingState | undefined>()
+  const requestState = shallowRef<ChatRequestState>('idle')
+  const processingState = shallowRef<ChatProcessingState | undefined>()
   const lastError = shallowRef<unknown | null>(null)
   let activeRunId = 0
 
@@ -74,7 +78,6 @@ export function useCustomRuntime() {
       item.id === current.id ? { ...item, title: item.title || text.slice(0, 20), updatedAt: now } : item,
     )
     lastError.value = null
-    loading.value = true
     requestState.value = 'processing'
     processingState.value = 'requesting'
     updateMessages(conversationId, userMessages)
@@ -110,7 +113,6 @@ export function useCustomRuntime() {
         loading: false,
       },
     ])
-    loading.value = false
     requestState.value = 'completed'
     processingState.value = undefined
   }
@@ -128,13 +130,11 @@ export function useCustomRuntime() {
     },
     sender: {
       disabled,
-      loading,
     },
     actions: {
       send,
       abort: () => {
         activeRunId += 1
-        loading.value = false
         requestState.value = 'aborted'
         processingState.value = undefined
       },
@@ -161,15 +161,5 @@ export function useCustomRuntime() {
     },
   }
 
-  const { isMobile, ui } = useDemoChatUi({
-    title: 'Custom Runtime',
-    description: '用户自有数据层适配为 ChatRuntime。',
-    placeholder: '输入消息验证自定义 Runtime 路径',
-  })
-
-  return {
-    isMobile,
-    runtime,
-    ui,
-  }
+  return runtime
 }
