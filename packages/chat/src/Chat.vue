@@ -14,7 +14,7 @@ import {
 } from '@opentiny/tiny-robot'
 import { chatContextKey } from '@/context'
 import { Conversations, Header, Messages, ScrollToBottom, Sender } from '@/components'
-import { useChatComposer } from '@/composables/useChatComposer'
+import { useChatInput } from '@/composables/useChatInput'
 import type {
   ChatFooterSlotProps,
   ChatHeaderSlotProps,
@@ -35,21 +35,28 @@ const props = withDefaults(
   },
 )
 
-const runtime = toRef(() => props.runtime)
-const ui = toRef(() => props.ui)
-const composer = useChatComposer(runtime)
+const runtimeRef = toRef(() => props.runtime)
+const uiRef = toRef(() => props.ui)
+const input = useChatInput(runtimeRef)
 
 provide(chatContextKey, {
-  runtime,
-  composer,
-  ui,
+  runtime: runtimeRef,
+  input,
+  ui: uiRef,
 })
 
 const messagesRef = ref<InstanceType<typeof Messages> | null>(null)
-const isEmpty = computed(() => props.runtime.messages.items.value.length === 0)
+const activeConversation = computed(() => runtimeRef.value.activeConversation.value)
+const conversationItems = computed(() => runtimeRef.value.conversations.value)
+const activeMessages = computed(() => activeConversation.value?.messages ?? [])
+const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
+const processingState = computed(() => activeConversation.value?.processingState)
+const lastError = computed(() => activeConversation.value?.lastError ?? null)
+const senderDisabled = computed(() => runtimeRef.value.sender.disabled.value)
+const isEmpty = computed(() => activeMessages.value.length === 0)
 const messagesScrollTarget = computed(() => messagesRef.value?.scrollTarget ?? null)
 
-const layoutUi = computed(() => props.ui.layout)
+const layoutUi = computed(() => uiRef.value.layout)
 const layoutProps = computed<LayoutProps>(() => {
   if (!layoutUi.value) {
     return {
@@ -89,44 +96,40 @@ const layoutProps = computed<LayoutProps>(() => {
     ...nextLayoutProps,
   }
 })
-const currentConversation = computed(() =>
-  props.runtime.conversations?.items.value.find((item) => item.id === props.runtime.conversations?.currentId.value),
-)
-const currentTitle = computed(() => props.title || currentConversation.value?.title || '新对话')
-const lastError = computed(() => props.runtime.messages.lastError?.value ?? null)
+const currentTitle = computed(() => props.title || activeConversation.value?.title || '新对话')
 
 const headerSlotProps = computed<ChatHeaderSlotProps>(() => ({
   title: currentTitle.value,
-  requestState: props.runtime.messages.requestState.value,
-  processingState: props.runtime.messages.processingState.value,
+  requestState: requestState.value,
+  processingState: processingState.value,
   lastError: lastError.value,
-  createConversation: props.runtime.actions.createConversation,
+  createConversation: runtimeRef.value.actions.createConversation,
 }))
 
 const historySlotProps = computed<ChatHistorySlotProps>(() => ({
-  items: props.runtime.conversations?.items.value ?? [],
-  currentId: props.runtime.conversations?.currentId.value ?? null,
-  switchConversation: props.runtime.actions.switchConversation,
-  renameConversation: props.runtime.actions.renameConversation,
-  deleteConversation: props.runtime.actions.deleteConversation,
-  createConversation: props.runtime.actions.createConversation,
+  items: conversationItems.value,
+  activeId: activeConversation.value?.id ?? null,
+  switchConversation: runtimeRef.value.actions.switchConversation,
+  renameConversation: runtimeRef.value.actions.renameConversation,
+  deleteConversation: runtimeRef.value.actions.deleteConversation,
+  createConversation: runtimeRef.value.actions.createConversation,
 }))
 
 const mainSlotProps = computed<ChatMainSlotProps>(() => ({
-  messages: props.runtime.messages.items.value,
-  requestState: props.runtime.messages.requestState.value,
-  processingState: props.runtime.messages.processingState.value,
+  messages: activeMessages.value,
+  requestState: requestState.value,
+  processingState: processingState.value,
   lastError: lastError.value,
 }))
 
 const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
-  inputValue: composer.inputValue.value,
-  setInputValue: composer.setInputValue,
-  send: composer.send,
-  abort: composer.abort,
-  disabled: props.runtime.sender.disabled.value,
-  loading: props.runtime.messages.requestState.value === 'processing',
-  submitDisabled: composer.submitDisabled.value,
+  inputValue: input.inputValue.value,
+  setInputValue: input.setInputValue,
+  send: input.send,
+  abort: input.abort,
+  disabled: senderDisabled.value,
+  loading: requestState.value === 'processing',
+  submitDisabled: input.submitDisabled.value,
 }))
 
 function handleFloatingStateChange(value: LayoutFloatingState) {
@@ -229,7 +232,7 @@ function handleRightAsideResizeEnd(detail: LayoutAsideResizeValue) {
     @right-aside-resize="handleRightAsideResize"
     @right-aside-resize-end="handleRightAsideResizeEnd"
   >
-    <template v-if="props.runtime.conversations || $slots['left-aside']" #left-aside>
+    <template #left-aside>
       <slot name="left-aside" v-bind="historySlotProps">
         <Conversations />
       </slot>

@@ -14,7 +14,7 @@
 ```txt
 TrChat
   -> ChatRuntime
-  -> internal ChatComposer
+  -> internal input state
   -> ChatUi
   -> slots
 ```
@@ -24,7 +24,7 @@ TrChat
 | 模块 | 职责 |
 | --- | --- |
 | `ChatRuntime` | 会话、消息、请求生命周期和业务动作 |
-| `ChatComposer` | 输入草稿、提交交互、Prompt 回填和输入恢复 |
+| internal input state | 输入草稿、提交交互、Prompt 回填和输入恢复 |
 | `ChatUi` | 默认原子组件的展示配置 |
 | `slots` | 按布局区域替换或扩展 UI |
 | runtime adapter | 将 Kit、AI SDK、Pinia 或自研 store 映射为 `ChatRuntime` |
@@ -111,28 +111,20 @@ UI event -> runtime actions
 
 ```ts
 interface ChatRuntime {
-  conversations?: {
-    items: ChatReadable<readonly ChatConversationItem[]>
-    currentId: ChatReadable<string | null>
-  }
-  messages: {
-    items: ChatReadable<readonly ChatMessageItem[]>
-    requestState: ChatReadable<ChatRequestState>
-    processingState: ChatReadable<ChatProcessingState | undefined>
-    lastError?: ChatReadable<unknown | null>
-  }
+  conversations: ChatReadable<readonly ChatConversationInfo[]>
+  activeConversation: ChatReadable<ChatConversation | null>
   sender: {
     disabled: ChatReadable<boolean>
   }
   actions: {
     send: (payload: ChatSubmitPayload) => Promise<void> | void
     abort?: () => Promise<void> | void
-    createConversation?: (
+    createConversation: (
       payload?: { title?: string; metadata?: Record<string, unknown> }
     ) => Promise<void> | void
-    switchConversation?: (id: string) => Promise<void> | void
-    renameConversation?: (id: string, title: string) => Promise<void> | void
-    deleteConversation?: (id: string) => Promise<void> | void
+    switchConversation: (id: string) => Promise<void> | void
+    renameConversation: (id: string, title: string) => Promise<void> | void
+    deleteConversation: (id: string) => Promise<void> | void
   }
 }
 ```
@@ -144,12 +136,13 @@ interface ChatRuntime {
 - state 只读，修改必须通过 actions。
 - UI 不直接调用 transport、storage 或 plugin。
 - UI 不直接依赖 Kit 原始返回结构。
-- 输入草稿不属于 `ChatRuntime`。
+- `activeConversation` 是由 Runtime 内部状态派生的只读快照。
+- 输入草稿不属于 `ChatRuntime`，只保留为内部输入编排。
 - 不把项目专属字段直接加入核心协议。
 
-### 4.2 ChatComposer
+### 4.2 内部输入编排
 
-`ChatComposer` 是 `TrChat` 内部状态，不作为当前 public API。
+输入编排是 `TrChat` 内部状态，不作为当前 public API。
 
 它负责：
 
@@ -165,7 +158,7 @@ interface ChatRuntime {
 
 ```txt
 TrSender submit
-  -> ChatComposer.send(payload)
+  -> internal send(payload)
     -> runtime.actions.send(payload)
 ```
 
@@ -204,9 +197,9 @@ TrSender submit
 | UI 事件 | 内部动作 | 外部通知 |
 | --- | --- | --- |
 | History 点击、重命名、删除 | 先调用对应 Runtime action | 再调用 `history.onXxx` |
-| Sender 提交、取消 | 先调用 Composer/Runtime action | 再调用 `sender.onXxx` |
+| Sender 提交、取消 | 先调用内部输入状态或 Runtime action | 再调用 `sender.onXxx` |
 | Sender 输入、焦点和清空 | 无业务动作 | 调用 `sender.onXxx` |
-| Prompt 点击 | 先回填 Composer | 再调用 `prompts.onItemClick` |
+| Prompt 点击 | 先回填内部输入状态 | 再调用 `prompts.onItemClick` |
 | Bubble 状态和自定义事件 | 无业务动作 | 调用 `bubbleList.onXxx` |
 
 `ui.onXxx` 是同步事件通知，不是第二个业务状态入口，不能阻止默认动作，也不等待异步 action 成功。事件配置可以来自 `computed<ChatUi>`；内部始终读取最新 listener，不需要 `markRaw` 或通过 `:key` 重建 `TrChat`。
@@ -216,7 +209,7 @@ TrSender submit
 默认 UI 不直接消费外部数据类型：
 
 ```txt
-ChatConversationItem -> HistoryDisplayItem -> TrHistory
+ChatConversationInfo -> HistoryDisplayItem -> TrHistory
 ChatMessageItem      -> BubbleDisplayMessage -> TrBubbleList
 ```
 
@@ -366,7 +359,7 @@ toolPlugin
 
 ### 阶段 A：冻结 MVP 基础协议
 
-目标：确认 `ChatRuntime + ChatComposer + ChatUi + slots` 的边界。
+目标：确认 `ChatRuntime + ChatUi + slots` 的边界。
 
 验收：
 
@@ -497,7 +490,7 @@ assistant-ui 对本项目的有效启发：
 
 `structuredData` 一致性：
 
-`ChatSubmitPayload` 已公开 `structuredData` 字段，但默认 Kit 发送链路当前主要处理 `text`。如果 `structuredData` 要作为已实现的通用能力，`useLocalChatRuntime` 和 `useKitChatRuntime` 必须保证它不会被丢弃；否则应在 API 文档中明确它当前只由自定义 Runtime 使用。
+`ChatSubmitPayload` 已公开 `structuredData` 字段，但默认 Kit 发送链路当前只消费 `text`。当前应明确将其视为自定义 Runtime 能力，直到默认 Kit 发送链路补齐传递语义。
 
 运行语义仍需评审：
 

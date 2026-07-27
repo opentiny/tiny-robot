@@ -1,6 +1,6 @@
 import { inject } from 'vue'
 import { chatContextKey } from '../context'
-import type { ChatContext } from '../types'
+import type { ChatContext } from '../context'
 
 export function useChatContext(): ChatContext {
   const context = inject(chatContextKey, null)

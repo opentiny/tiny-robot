@@ -133,7 +133,7 @@ TrHistory 的行内重命名状态依赖当前 item 对象。每次 computed 都
 
 ### 3.5 内部展示类型不能泄漏
 
-History 和 Bubble 需要内部展示对象，但外部 listener 应收到 `ChatConversationItem`、`ChatMessageItem` 等公共协议类型，不能收到 `HistoryDisplayItem` 或 `BubbleDisplayMessage`。
+History 和 Bubble 需要内部展示对象，但外部 listener 应收到 `ChatConversationInfo`、`ChatMessageItem` 等公共协议类型，不能收到 `HistoryDisplayItem` 或 `BubbleDisplayMessage`。
 
 ## 4. 事件模型评审
 
@@ -154,12 +154,12 @@ Runtime 不监听 ChatUi。否则数据层会反向依赖 UI，破坏 Runtime ad
 
 | 原子事件 | 内部动作 | 外部通知 | Payload |
 |---|---|---|---|
-| History `item-click` | `switchConversation` | `onItemClick` | `ChatConversationItem` |
-| History `item-title-change` | `renameConversation` | `onItemTitleChange` | `title + ChatConversationItem` |
-| History `item-action` | 当前识别 delete 等默认动作 | `onItemAction` | `action + ChatConversationItem` |
-| Sender `update:modelValue` | `composer.setInputValue` | 无独立通知 | `string` |
-| Sender `submit` | `composer.send -> runtime.actions.send` | `onSubmit` | `ChatSubmitPayload` |
-| Sender `cancel` | `composer.abort` | `onCancel` | 无 |
+| History `item-click` | `switchConversation` | `onItemClick` | `ChatConversationInfo` |
+| History `item-title-change` | `renameConversation` | `onItemTitleChange` | `title + ChatConversationInfo` |
+| History `item-action` | 当前识别 delete 等默认动作 | `onItemAction` | `action + ChatConversationInfo` |
+| Sender `update:modelValue` | `setInputValue` | 无独立通知 | `string` |
+| Sender `submit` | `internal send -> runtime.actions.send` | `onSubmit` | `ChatSubmitPayload` |
+| Sender `cancel` | `internal abort` | `onCancel` | 无 |
 | Sender `input` | 无 Runtime action | `onInput` | `string` |
 | Sender `focus/blur` | 无 Runtime action | `onFocus/onBlur` | `FocusEvent` |
 | Sender `clear` | 输入值由组件双向更新 | `onClear` | 无 |
@@ -211,8 +211,8 @@ Basic 中的业务状态和动作被收敛为中性协议：
 
 ```ts
 interface ChatRuntime {
-  conversations?: ChatRuntimeConversations
-  messages: ChatRuntimeMessages
+  conversations: ChatReadable<readonly ChatConversationInfo[]>
+  activeConversation: ChatReadable<ChatConversation | null>
   sender: ChatRuntimeSender
   actions: ChatRuntimeActions
 }
@@ -222,21 +222,21 @@ interface ChatRuntime {
 
 | Basic | ChatRuntime |
 |---|---|
-| `sessions` | `conversations.items` |
-| `currentSessionId` | `conversations.currentId` |
-| `currentMessages` | `messages.items` |
-| `requestState` | `messages.requestState` |
-| `processingState` | `messages.processingState` |
-| `error` | `messages.lastError` |
+| `sessions` | `conversations` |
+| `currentSessionId + currentSession` | `activeConversation.id` |
+| `currentMessages` | `activeConversation.messages` |
+| `requestState` | `activeConversation.requestState` |
+| `processingState` | `activeConversation.processingState` |
+| `error` | `activeConversation.lastError` |
 | `send` | `actions.send` |
 | `abort` | `actions.abort` |
 | 会话 CRUD | conversation actions |
 
 `ChatRuntime` 是 UI 消费的数据和动作协议，不规定底层必须使用 Kit。它也不包含输入草稿和组件 props。
 
-### 5.2 抽取 ChatComposer
+### 5.2 抽取内部输入编排
 
-Basic 中以下输入交互被收敛到内部 `ChatComposer`：
+Basic 中以下输入交互被收敛到内部输入编排：
 
 ```txt
 inputValue
@@ -250,7 +250,7 @@ submitDisabled
 
 ```txt
 TrSender
-  -> ChatComposer.send(payload)
+  -> internal send(payload)
   -> ChatRuntime.actions.send(payload)
   -> Kit engine / 外部数据层
 ```
@@ -306,7 +306,7 @@ TrLayout
 公共 Runtime 类型不直接等同于原子组件 props：
 
 ```txt
-ChatConversationItem -> HistoryDisplayItem -> TrHistory
+ChatConversationInfo -> HistoryDisplayItem -> TrHistory
 ChatMessageItem      -> BubbleDisplayMessage -> TrBubbleList
 ```
 
@@ -321,7 +321,7 @@ const runtime = toRef(() => props.runtime)
 const ui = toRef(() => props.ui)
 ```
 
-内部组件在事件发生时读取 `runtime.value` 和 `ui.value`，`useChatComposer` 也在动作执行时获取当前 Runtime。因此：
+内部组件在事件发生时读取 `runtime.value` 和 `ui.value`，内部输入编排也在动作执行时获取当前 Runtime。因此：
 
 - 父组件可以替换整个 `ui` 对象。
 - viewport 改变后 computed 配置立即生效。
@@ -350,10 +350,10 @@ Basic 自己实现了会话、消息、请求、取消和错误收敛；Kit 已�
 `useKitChatRuntime` 面向已有 Kit `useConversation()` 实例，只做适配：
 
 ```txt
-conversation.conversations -> runtime.conversations.items
-activeConversationId       -> runtime.conversations.currentId
-active engine.messages     -> runtime.messages.items
-engine request state       -> runtime.messages request state
+conversation.conversations      -> runtime.conversations
+conversation.activeConversation -> runtime.activeConversation
+active engine.messages          -> activeConversation.messages
+engine request state            -> activeConversation.requestState
 conversation CRUD          -> runtime.actions
 engine.sendMessage         -> runtime.actions.send
 ```
@@ -469,7 +469,7 @@ MVP 暂不引入：
 ```txt
 Basic 单文件
 ├─ 业务状态与动作       -> ChatRuntime
-├─ 输入区域临时状态     -> ChatComposer
+├─ 输入区域临时状态     -> internal input controller
 ├─ 原子组件配置与通知   -> ChatUi
 └─ 页面布局与事件适配   -> TrChat
 ```

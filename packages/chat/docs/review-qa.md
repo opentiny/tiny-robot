@@ -47,13 +47,13 @@
 - 不直接暴露 transport、storage、plugin、API Key 或供应商私有参数。
 - 不管理输入框草稿。
 
-## 3. ChatRuntime 和 ChatComposer 如何分工？
+## 3. ChatRuntime 和内部输入编排如何分工？
 
 **标准回答：**
 
-`ChatRuntime` 管理会话、消息和请求生命周期；`ChatComposer` 管理当前输入区域的交互状态。
+`ChatRuntime` 管理会话、消息和请求生命周期；内部输入编排管理当前输入区域的交互状态。
 
-`ChatComposer` 当前负责：
+内部输入编排当前负责：
 
 - `inputValue`
 - 输入更新
@@ -65,11 +65,11 @@
 
 输入草稿属于 UI 临时状态，不属于业务会话数据。把它放进 `ChatRuntime` 会要求所有外部 runtime 额外维护输入框状态，也会让会话协议和 UI 草稿耦合。
 
-`send` 和 `abort` 最终仍是 runtime 的业务动作。Composer 可以转发它们，但不拥有底层请求生命周期。
+`send` 和 `abort` 最终仍是 runtime 的业务动作。内部输入编排可以转发它们，但不拥有底层请求生命周期。
 
-**关于是否公开 ChatComposer：**
+**关于是否公开内部输入编排：**
 
-当前保持内部实现更合适。只有当自定义 footer、附件、队列、单次运行配置等场景反复证明需要稳定访问 Composer 状态时，才适合公开。公开意味着需要长期保证命名、状态语义和兼容性。
+当前保持内部实现更合适。只有当自定义 footer、附件、队列、单次运行配置等场景反复证明需要稳定访问输入状态时，才适合公开。公开意味着需要长期保证命名、状态语义和兼容性。
 
 ## 4. 一次发送的完整数据链路是什么？
 
@@ -77,7 +77,7 @@
 
 ```txt
 TrSender submit
-  -> ChatComposer.send(payload)
+  -> internal send(payload)
     -> ChatRuntime.actions.send(payload)
       -> runtime adapter
         -> Kit engine / AI SDK / 自研后端
@@ -86,7 +86,7 @@ TrSender submit
 各层职责：
 
 - `Sender` 采集输入并触发提交。
-- `ChatComposer` 处理输入草稿和提交交互。
+- 内部输入编排处理输入草稿和提交交互。
 - `ChatRuntime.actions.send` 定义 UI 可调用的统一动作。
 - runtime adapter 把通用 payload 转换成底层数据层需要的调用。
 - Kit 场景最终由 conversation engine、provider、transport 和 plugin 完成真实请求。
@@ -121,9 +121,8 @@ TrSender submit
 复用的数据层能力：
 
 - `conversation.conversations`
-- `conversation.activeConversationId`
-- 当前 conversation engine 的 messages
-- requestState 和 processingState
+- `conversation.activeConversation`
+- 当前 active conversation engine 的 messages、requestState、processingState
 - create、switch、rename、delete、update、abort 等生命周期动作
 - transport、storage、plugins
 - 已有会话和消息持久化数据
@@ -146,7 +145,7 @@ TrSender submit
 公共 `ChatRuntime` 类型不应该直接等同于 `TrHistory` 或 `TrBubbleList` 的 props。默认 UI 需要明确映射：
 
 ```txt
-ChatConversationItem -> HistoryDisplayItem -> TrHistory
+ChatConversationInfo -> HistoryDisplayItem -> TrHistory
 ChatMessageItem      -> BubbleDisplayMessage -> TrBubbleList
 ```
 
@@ -176,7 +175,7 @@ ChatMessageItem      -> BubbleDisplayMessage -> TrBubbleList
 
 slot 按区域命名，而不是绑定内部组件名，这样内部默认组件可以替换而不破坏 slot API。
 
-运行时数据不能同时从 `ChatRuntime` 和 `ChatUi` 两处配置。例如 `messages`、`selected conversation`、`modelValue`、`loading` 只能来自 runtime/composer，否则会出现两个状态源不一致。
+运行时数据不能同时从 `ChatRuntime` 和 `ChatUi` 两处配置。例如 `messages`、`selected conversation`、`modelValue`、`loading` 只能来自 runtime/内部输入状态，否则会出现两个状态源不一致。
 
 高度定制不一定需要完全从零开始。用户可以先用区域 slot 替换局部；只有页面结构和交互模型都发生根本变化时，才回到 `components + kit` 自行装配。
 
@@ -184,17 +183,17 @@ slot 按区域命名，而不是绑定内部组件名，这样内部默认组件
 
 **标准回答：**
 
-单会话最小场景通常只需要：
+最小接入仍需输出完整公共协议：
 
-- `messages.items`
-- `messages.requestState`
-- `messages.processingState`
+- `conversations`
+- `activeConversation`
 - `sender.disabled`
 - `actions.send`
+- 四个会话 actions
 
-`conversations`、`abort`、`lastError` 和会话管理 actions 都应按实际能力可选。没有会话列表时，`TrChat` 仍应可以完成单会话发送和展示。
+其中 `activeConversation` 可以暂时为 `null`，但 `conversations + activeConversation + sender + actions` 四个核心域必须始终存在。
 
-运行时实现和公共请求状态类型均已与 Kit 解耦：外部 runtime 不需要依赖 Kit 实例或 Kit 请求状态类型。Sender loading 由 `messages.requestState` 派生，避免两个状态源不一致。
+运行时实现和公共请求状态类型均已与 Kit 解耦：外部 runtime 不需要依赖 Kit 实例或 Kit 请求状态类型。Sender loading 由 `activeConversation?.requestState` 派生，避免两个状态源不一致。
 
 ## 10. 当前能把 CLI basic 迁移到什么程度？
 
@@ -238,7 +237,7 @@ ChatRuntime
 - `ChatRuntimeActions` 处理消息和会话生命周期。
 - model capability 提供模型列表、当前选择和选择动作。
 - MCP capability 提供 Server 列表、当前选择和选择动作。
-- `ChatComposer` 在提交时读取这些选择并生成单次配置快照。
+- 内部输入编排在提交时读取这些选择并生成单次配置快照。
 - UI 选择器只展示状态并调用 capability actions。
 
 MCP 首期建议只支持 Server 级选择。Tool 级开关、市场、安装和连接池涉及权限、发现和调用生命周期，不能仅凭 CLI 当前 UI 状态直接抽象成通用协议。
@@ -292,7 +291,7 @@ interface ChatRunConfig {
 建议状态：
 
 - `TrChat`、核心 `ChatRuntime`、`ChatUi`：稳定候选。
-- `ChatComposer`：内部。
+- 内部输入编排：内部。
 - `ChatRunConfig`：待评审。
 - Model/MCP capability：实验性。
 - 通用 capability registry：后置。
@@ -356,7 +355,7 @@ Kit 当前允许切换会话时保留原会话正在执行的请求；删除会�
 
 - 稳定候选：`TrChat`、核心 `ChatRuntime`、`ChatUi`、区域 slots。
 - 冻结前补齐：`ChatSubmitPayload` 的 `structuredData` 传递语义。
-- 内部 API：`ChatComposer`、内部 UI adapter。
+- 内部 API：内部输入编排、内部 UI adapter。
 - 实验性 API：`ChatRunConfig`、Model/MCP capability。
 - 暂不设计：通用 capability registry。
 
@@ -375,9 +374,9 @@ Demo 证明“某个页面能运行”，契约测试证明“不同 runtime 都
 - `actions.send` 能驱动消息和请求状态变化。
 - 失败后 `lastError`、请求状态和输入恢复行为一致。
 - `abort` 后请求状态不再是 `processing`。
-- 会话切换后 `currentId` 和 messages 同步变化。
+- 会话切换后 `activeConversation`、messages 和标题同步变化。
 - 重命名和删除后 conversations 正确更新。
-- 没有 conversations 时，最小单会话 runtime 仍可工作。
+- `activeConversation === null` 时 UI 回到空态，且不出现悬空会话。
 
 实现上不需要先建设大型测试框架。先把这些行为做成一组共享测试断言，分别运行在 Local Kit、Existing Kit 和最小 Custom Runtime 上即可。
 
@@ -441,11 +440,11 @@ UI 只消费 capability 暴露的状态和动作，不直接探测后端、读�
 
 ```txt
 原子组件事件
-  -> Composer 或 Runtime action
+  -> internal input state 或 Runtime action
   -> ui.onXxx 同步通知
 ```
 
-`Chat.vue` 通过只读 ref 向 context 提供最新 `runtime` 和 `ui`，内部 handler 在触发时读取当前 listener。因此父组件可以用 `computed<ChatUi>` 生成响应式配置；函数本身不需要 `markRaw`，viewport 变化也不需要通过 `:key` 重建组件。强制重建会清空 Composer 草稿，并掩盖 context 捕获旧 props 的真实问题。
+`Chat.vue` 通过只读 ref 向 context 提供最新 `runtime` 和 `ui`，内部 handler 在触发时读取当前 listener。因此父组件可以用 `computed<ChatUi>` 生成响应式配置；函数本身不需要 `markRaw`，viewport 变化也不需要通过 `:key` 重建组件。强制重建会清空输入草稿，并掩盖 context 捕获旧 props 的真实问题。
 
 事件 API 的演进遵循三步：先在 Basic 单文件中验证原子事件和业务动作，再抽取为 `ChatUi` 强类型 listener，最后用 Built-in、Existing 和 Custom 三类 Runtime 验证复用。这样评审看到的是可追溯的抽取过程，而不是只有最终封装。
 

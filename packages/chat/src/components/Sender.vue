@@ -4,7 +4,7 @@ import { TrSender } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
 import type { ChatSenderUi, ChatStructuredData } from '../types'
 
-const { composer, runtime, ui } = useChatContext()
+const { input, runtime, ui } = useChatContext()
 const senderUi = computed<ChatSenderUi>(() => ui.value.sender ?? {})
 
 const senderProps = computed(() => {
@@ -28,31 +28,33 @@ const senderProps = computed(() => {
       ...sender.defaultActions,
       submit: {
         ...sender.defaultActions?.submit,
-        disabled: composer.submitDisabled.value,
+        disabled: input.submitDisabled.value,
       },
     },
-    modelValue: composer.inputValue.value,
-    loading: currentRuntime.messages.requestState.value === 'processing',
+    modelValue: input.inputValue.value,
+    loading: currentRuntime.activeConversation.value?.requestState === 'processing',
     disabled: currentRuntime.sender.disabled.value,
   }
 })
 
 function handleUpdateModelValue(value: string) {
-  composer.setInputValue(value)
+  input.setInputValue(value)
 }
 
-function handleSubmit(text: string, structuredData?: ChatStructuredData) {
+async function handleSubmit(text: string, structuredData?: ChatStructuredData) {
   const payload = { text, structuredData }
-  const result = composer.send(payload)
+  const result = input.send(payload)
 
+  await result
   senderUi.value.onSubmit?.(payload)
 
   return result
 }
 
-function handleCancel() {
-  const result = composer.abort?.()
+async function handleCancel() {
+  const result = input.abort?.()
 
+  await result
   senderUi.value.onCancel?.()
 
   return result

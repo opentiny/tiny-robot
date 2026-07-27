@@ -34,7 +34,7 @@ TrChat = components + kit 的应用装配层
 | 模块 | 负责 | 不负责 |
 | --- | --- | --- |
 | `ChatRuntime` | 会话、消息、请求生命周期 | 输入框草稿和 UI 展示细节 |
-| `ChatComposer` | 输入草稿、提交交互 | transport、storage、plugin |
+| internal input state | 输入草稿、提交交互 | transport、storage、plugin |
 | `ChatUi` | 展示配置和 UI 事件通知 | 数据源和业务状态修改 |
 | slots | 区域替换 | 新的数据协议 |
 | adapter | 数据层转换和后端执行 | 页面布局 |
@@ -86,7 +86,7 @@ TrChat = components + kit 的应用装配层
 
 ### R03. 模型和 MCP 选择状态由谁管理？
 
-当前建议：选择状态属于 runtime capability；`ChatComposer` 只负责提交时转发配置快照；`ChatUi` 只负责展示。
+当前建议：选择状态属于 runtime capability；内部输入编排只负责提交时转发配置快照；`ChatUi` 只负责展示。
 
 需要确认：
 
@@ -204,7 +204,7 @@ available -> added -> inUse -> tools -> callTool
 | `ChatRuntime` 核心字段 | 稳定候选 |
 | `ChatUi` | MVP 稳定 |
 | `ChatSubmitPayload` | 待完成中性扩展后冻结 |
-| `ChatComposer` | 内部 |
+| internal input state | 内部 |
 | `ChatRunConfig` | 待评审 |
 | Model/MCP capability | 实验性 |
 | 通用 capability registry | 后置 |

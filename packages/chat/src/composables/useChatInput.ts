@@ -1,8 +1,16 @@
 import { computed, shallowRef, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
-import type { ChatComposer, ChatRuntime, ChatSubmitPayload } from '../types'
+import type { ChatReadable, ChatRuntime, ChatSubmitPayload } from '../types'
 
-export function useChatComposer(runtime: MaybeRefOrGetter<ChatRuntime>): ChatComposer {
+export interface ChatInput {
+  inputValue: ChatReadable<string>
+  submitDisabled: ChatReadable<boolean>
+  setInputValue: (value: string) => void
+  send: (payload: ChatSubmitPayload) => Promise<void> | void
+  abort?: () => Promise<void> | void
+}
+
+export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput {
   const inputValue = shallowRef('')
 
   function setInputValue(value: string) {
@@ -46,7 +54,7 @@ export function useChatComposer(runtime: MaybeRefOrGetter<ChatRuntime>): ChatCom
 
       return (
         currentRuntime.sender.disabled.value ||
-        currentRuntime.messages.requestState.value === 'processing' ||
+        currentRuntime.activeConversation.value?.requestState === 'processing' ||
         inputValue.value.trim().length === 0
       )
     }),

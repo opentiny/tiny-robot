@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { createDemoResponseProvider } from '../scenario'
 import { TrChat, useLocalChatRuntime } from '../../src'
-import type { ChatConversationItem, ChatSubmitPayload, ChatUi } from '../../src'
+import type { ChatConversationInfo, ChatSubmitPayload, ChatUi } from '../../src'
 
 const prompts = [
   { label: '介绍一下 TinyRobot Chat' },
@@ -22,7 +22,7 @@ const runtime = useLocalChatRuntime({
 const isMobile = useMediaQuery('(max-width: 768px)')
 const lastUiEvent = shallowRef('')
 
-function handleItemClick(item: ChatConversationItem) {
+function handleItemClick(item: ChatConversationInfo) {
   lastUiEvent.value = `history:${item.id}`
 }
 

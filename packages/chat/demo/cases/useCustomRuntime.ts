@@ -1,6 +1,7 @@
 import { computed, shallowRef } from 'vue'
 import type {
-  ChatConversationItem,
+  ChatConversation,
+  ChatConversationInfo,
   ChatMessageItem,
   ChatProcessingState,
   ChatRequestState,
@@ -9,7 +10,14 @@ import type {
 } from '../../src'
 import { createDemoReply } from '../scenario'
 
-function createConversation(title: string): ChatConversationItem {
+type ConversationState = {
+  messages: ChatMessageItem[]
+  requestState: ChatRequestState
+  processingState?: ChatProcessingState
+  lastError: unknown | null
+}
+
+function createConversation(title: string): ChatConversationInfo {
   const now = Date.now()
 
   return {
@@ -22,40 +30,79 @@ function createConversation(title: string): ChatConversationItem {
 
 export function useCustomRuntime() {
   const firstConversation = createConversation('Custom Runtime')
-  const conversations = shallowRef<ChatConversationItem[]>([firstConversation])
-  const currentId = shallowRef<string | null>(firstConversation.id)
-  const messagesByConversation = shallowRef<Record<string, ChatMessageItem[]>>({
-    [firstConversation.id]: [],
+  const conversations = shallowRef<ChatConversationInfo[]>([firstConversation])
+  const activeConversationId = shallowRef<string | null>(firstConversation.id)
+  const statesByConversation = shallowRef<Record<string, ConversationState>>({
+    [firstConversation.id]: {
+      messages: [],
+      requestState: 'idle',
+      processingState: undefined,
+      lastError: null,
+    },
   })
-  const requestState = shallowRef<ChatRequestState>('idle')
-  const processingState = shallowRef<ChatProcessingState | undefined>()
-  const lastError = shallowRef<unknown | null>(null)
-  let activeRunId = 0
+  const runIds = shallowRef<Record<string, number>>({})
 
-  const messages = computed(() => (currentId.value ? (messagesByConversation.value[currentId.value] ?? []) : []))
+  const activeConversation = computed<ChatConversation | null>(() => {
+    if (!activeConversationId.value) {
+      return null
+    }
+
+    const info = conversations.value.find((item) => item.id === activeConversationId.value)
+    const state = statesByConversation.value[activeConversationId.value]
+
+    if (!info || !state) {
+      return null
+    }
+
+    return {
+      ...info,
+      messages: state.messages,
+      requestState: state.requestState,
+      processingState: state.processingState,
+      lastError: state.lastError,
+    }
+  })
   const disabled = computed(() => false)
 
-  function updateMessages(conversationId: string, next: ChatMessageItem[]) {
-    messagesByConversation.value = {
-      ...messagesByConversation.value,
-      [conversationId]: next,
+  function ensureConversationState(conversationId: string): ConversationState {
+    return (
+      statesByConversation.value[conversationId] ?? {
+        messages: [],
+        requestState: 'idle',
+        processingState: undefined,
+        lastError: null,
+      }
+    )
+  }
+
+  function updateConversationState(conversationId: string, recipe: (state: ConversationState) => ConversationState) {
+    statesByConversation.value = {
+      ...statesByConversation.value,
+      [conversationId]: recipe(ensureConversationState(conversationId)),
     }
   }
 
   function ensureConversation(title = '新对话') {
-    let current = conversations.value.find((item) => item.id === currentId.value)
+    let current = conversations.value.find((item) => item.id === activeConversationId.value)
 
     if (!current) {
       current = createConversation(title)
       conversations.value = [current, ...conversations.value]
-      currentId.value = current.id
-      messagesByConversation.value = {
-        ...messagesByConversation.value,
-        [current.id]: [],
-      }
+      activeConversationId.value = current.id
+      updateConversationState(current.id, (state) => state)
     }
 
     return current
+  }
+
+  function setRunId(conversationId: string) {
+    const nextRunId = (runIds.value[conversationId] ?? 0) + 1
+    runIds.value = {
+      ...runIds.value,
+      [conversationId]: nextRunId,
+    }
+
+    return nextRunId
   }
 
   async function send(payload: ChatSubmitPayload) {
@@ -65,98 +112,110 @@ export function useCustomRuntime() {
       return
     }
 
-    const currentRunId = activeRunId + 1
-    activeRunId = currentRunId
     const current = ensureConversation(text.slice(0, 20))
     const conversationId = current.id
+    const currentRunId = setRunId(conversationId)
     const now = Date.now()
-    const initialMessages = messagesByConversation.value[conversationId] ?? []
+    const initialMessages = ensureConversationState(conversationId).messages
     const userMessages = [...initialMessages, { role: 'user', content: text }]
     let assistantContent = ''
 
     conversations.value = conversations.value.map((item) =>
       item.id === current.id ? { ...item, title: item.title || text.slice(0, 20), updatedAt: now } : item,
     )
-    lastError.value = null
-    requestState.value = 'processing'
-    processingState.value = 'requesting'
-    updateMessages(conversationId, userMessages)
+    updateConversationState(conversationId, (state) => ({
+      ...state,
+      messages: userMessages,
+      requestState: 'processing',
+      processingState: 'requesting',
+      lastError: null,
+    }))
 
     await new Promise<void>((resolve) => window.setTimeout(resolve, 240))
 
-    if (currentRunId !== activeRunId) {
+    if (runIds.value[conversationId] !== currentRunId) {
       return
     }
 
     assistantContent = createDemoReply('Custom Runtime', text)
-    processingState.value = 'completing'
-    updateMessages(conversationId, [
-      ...userMessages,
-      {
-        role: 'assistant',
-        content: assistantContent,
-        loading: true,
-      },
-    ])
+    updateConversationState(conversationId, (state) => ({
+      ...state,
+      requestState: 'processing',
+      processingState: 'completing',
+      messages: [
+        ...userMessages,
+        {
+          role: 'assistant',
+          content: assistantContent,
+          loading: true,
+        },
+      ],
+    }))
 
     await new Promise<void>((resolve) => window.setTimeout(resolve, 80))
 
-    if (currentRunId !== activeRunId) {
+    if (runIds.value[conversationId] !== currentRunId) {
       return
     }
 
-    updateMessages(conversationId, [
-      ...userMessages,
-      {
-        role: 'assistant',
-        content: assistantContent,
-        loading: false,
-      },
-    ])
-    requestState.value = 'completed'
-    processingState.value = undefined
+    updateConversationState(conversationId, (state) => ({
+      ...state,
+      messages: [
+        ...userMessages,
+        {
+          role: 'assistant',
+          content: assistantContent,
+          loading: false,
+        },
+      ],
+      requestState: 'completed',
+      processingState: undefined,
+    }))
   }
 
   const runtime: ChatRuntime = {
-    conversations: {
-      items: computed(() => conversations.value),
-      currentId,
-    },
-    messages: {
-      items: computed(() => messages.value),
-      requestState,
-      processingState,
-      lastError,
-    },
+    conversations: computed(() => conversations.value),
+    activeConversation,
     sender: {
       disabled,
     },
     actions: {
       send,
       abort: () => {
-        activeRunId += 1
-        requestState.value = 'aborted'
-        processingState.value = undefined
+        if (!activeConversationId.value) {
+          return
+        }
+
+        setRunId(activeConversationId.value)
+        updateConversationState(activeConversationId.value, (state) => ({
+          ...state,
+          requestState: 'aborted',
+          processingState: undefined,
+        }))
       },
       createConversation: (payload) => {
         const next = createConversation(payload?.title || '新对话')
         conversations.value = [next, ...conversations.value]
-        currentId.value = next.id
-        messagesByConversation.value = {
-          ...messagesByConversation.value,
-          [next.id]: [],
-        }
+        activeConversationId.value = next.id
+        updateConversationState(next.id, (state) => state)
       },
       switchConversation: (id) => {
-        currentId.value = id
+        activeConversationId.value = id
       },
       renameConversation: (id, title) => {
         conversations.value = conversations.value.map((item) => (item.id === id ? { ...item, title } : item))
       },
       deleteConversation: (id) => {
         conversations.value = conversations.value.filter((item) => item.id !== id)
-        const [next] = conversations.value
-        currentId.value = next?.id ?? null
+        const { [id]: _removedState, ...restStates } = statesByConversation.value
+        const { [id]: _removedRunId, ...restRunIds } = runIds.value
+
+        statesByConversation.value = restStates
+        runIds.value = restRunIds
+
+        if (activeConversationId.value === id) {
+          activeConversationId.value = null
+        }
       },
     },
   }

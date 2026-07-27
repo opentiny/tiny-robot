@@ -25,7 +25,7 @@ export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'aborted' |
 
 export type ChatProcessingState = 'requesting' | 'completing' | string
 
-export interface ChatConversationItem {
+export interface ChatConversationInfo {
   id: string
   title: string
   createdAt?: number
@@ -100,10 +100,10 @@ export type ChatLayoutUi =
   | ((Omit<LayoutNormalProps, 'mode'> & { mode?: 'normal' }) & ChatLayoutUiListeners)
   | (LayoutFloatingProps & ChatLayoutUiListeners)
 
-export interface ChatHistoryUi extends Omit<HistoryProps<ChatConversationItem>, 'data' | 'selected'> {
-  onItemClick?: (item: ChatConversationItem) => void
-  onItemTitleChange?: (title: string, item: ChatConversationItem) => void
-  onItemAction?: (action: HistoryMenuItem, item: ChatConversationItem) => void
+export interface ChatHistoryUi extends Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected'> {
+  onItemClick?: (item: ChatConversationInfo) => void
+  onItemTitleChange?: (title: string, item: ChatConversationInfo) => void
+  onItemAction?: (action: HistoryMenuItem, item: ChatConversationInfo) => void
 }
 
 export interface ChatPromptsUi extends Omit<PromptsProps, 'items'> {
@@ -111,16 +111,11 @@ export interface ChatPromptsUi extends Omit<PromptsProps, 'items'> {
   onItemClick?: (event: MouseEvent, item: PromptProps) => void
 }
 
-export interface ChatRuntimeConversations {
-  items: ChatReadable<readonly ChatConversationItem[]>
-  currentId: ChatReadable<string | null>
-}
-
-export interface ChatRuntimeMessages {
-  items: ChatReadable<readonly ChatMessageItem[]>
-  requestState: ChatReadable<ChatRequestState>
-  processingState: ChatReadable<ChatProcessingState | undefined>
-  lastError?: ChatReadable<unknown | null>
+export interface ChatConversation extends ChatConversationInfo {
+  messages: readonly ChatMessageItem[]
+  requestState: ChatRequestState
+  processingState?: ChatProcessingState
+  lastError?: unknown | null
 }
 
 export interface ChatRuntimeSender {
@@ -135,25 +130,17 @@ export interface ChatSubmitPayload {
 export interface ChatRuntimeActions {
   send: (payload: ChatSubmitPayload) => Promise<void> | void
   abort?: () => Promise<void> | void
-  createConversation?: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
-  switchConversation?: (id: string) => Promise<void> | void
-  renameConversation?: (id: string, title: string) => Promise<void> | void
-  deleteConversation?: (id: string) => Promise<void> | void
+  createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
+  switchConversation: (id: string) => Promise<void> | void
+  renameConversation: (id: string, title: string) => Promise<void> | void
+  deleteConversation: (id: string) => Promise<void> | void
 }
 
 export interface ChatRuntime {
-  conversations?: ChatRuntimeConversations
-  messages: ChatRuntimeMessages
+  conversations: ChatReadable<readonly ChatConversationInfo[]>
+  activeConversation: ChatReadable<ChatConversation | null>
   sender: ChatRuntimeSender
   actions: ChatRuntimeActions
-}
-
-export interface ChatComposer {
-  inputValue: ChatReadable<string>
-  submitDisabled: ChatReadable<boolean>
-  setInputValue: (value: string) => void
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
-  abort?: () => Promise<void> | void
 }
 
 type SubmitActionConfig = NonNullable<DefaultActions['submit']>
@@ -207,16 +194,16 @@ export interface ChatHeaderSlotProps {
   requestState: ChatRequestState
   processingState: ChatProcessingState | undefined
   lastError: unknown | null
-  createConversation?: ChatRuntimeActions['createConversation']
+  createConversation: ChatRuntimeActions['createConversation']
 }
 
 export interface ChatHistorySlotProps {
-  items: readonly ChatConversationItem[]
-  currentId: string | null
-  switchConversation?: ChatRuntimeActions['switchConversation']
-  renameConversation?: ChatRuntimeActions['renameConversation']
-  deleteConversation?: ChatRuntimeActions['deleteConversation']
-  createConversation?: ChatRuntimeActions['createConversation']
+  items: readonly ChatConversationInfo[]
+  activeId: string | null
+  switchConversation: ChatRuntimeActions['switchConversation']
+  renameConversation: ChatRuntimeActions['renameConversation']
+  deleteConversation: ChatRuntimeActions['deleteConversation']
+  createConversation: ChatRuntimeActions['createConversation']
 }
 
 export interface ChatMainSlotProps {
@@ -234,10 +221,4 @@ export interface ChatFooterSlotProps {
   disabled: boolean
   loading: boolean
   submitDisabled: boolean
-}
-
-export interface ChatContext {
-  runtime: Readonly<Ref<ChatRuntime>>
-  composer: ChatComposer
-  ui: Readonly<Ref<ChatUi>>
 }

@@ -29,7 +29,7 @@ const props = defineProps<{
   isEmpty?: boolean
 }>()
 
-const { composer, runtime, ui } = useChatContext()
+const { input, runtime, ui } = useChatContext()
 const toBubbleDisplayMessage = (message: ChatMessageItem): BubbleDisplayMessage => ({
   role: message.role,
   content: message.content,
@@ -44,7 +44,9 @@ const toBubbleDisplayMessage = (message: ChatMessageItem): BubbleDisplayMessage 
   raw: message,
 })
 
-const messages = computed<BubbleDisplayMessage[]>(() => runtime.value.messages.items.value.map(toBubbleDisplayMessage))
+const messages = computed<BubbleDisplayMessage[]>(() =>
+  (runtime.value.activeConversation.value?.messages ?? []).map(toBubbleDisplayMessage),
+)
 const isEmpty = computed(() => props.isEmpty ?? messages.value.length === 0)
 const bubbleListRef = ref<LayoutScrollTarget>(null)
 const scrollTarget = computed(() => {
@@ -83,7 +85,7 @@ function handlePromptClick(event: MouseEvent, item: PromptProps) {
     return
   }
 
-  composer.setInputValue(item.label)
+  input.setInputValue(item.label)
   promptsUi.value.onItemClick?.(event, item)
 }
 

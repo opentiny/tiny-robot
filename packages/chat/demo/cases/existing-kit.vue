@@ -5,7 +5,7 @@ import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-rob
 import type { ConversationInfo } from '@opentiny/tiny-robot-kit'
 import { createDemoResponseProvider } from '../scenario'
 import { TrChat, useKitChatRuntime } from '../../src'
-import type { ChatConversationItem, ChatSubmitPayload, ChatUi } from '../../src'
+import type { ChatConversationInfo, ChatSubmitPayload, ChatUi } from '../../src'
 
 const prompts = [
   { label: '介绍一下 TinyRobot Chat' },
@@ -36,7 +36,7 @@ const runtime = useKitChatRuntime({
 const isMobile = useMediaQuery('(max-width: 768px)')
 const lastUiEvent = shallowRef('')
 
-function handleItemClick(item: ChatConversationItem) {
+function handleItemClick(item: ChatConversationInfo) {
   lastUiEvent.value = `history:${item.id}`
 }
 

@@ -1,12 +1,6 @@
 import { computed, shallowRef, type Ref } from 'vue'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
-import type {
-  ChatConversationItem,
-  ChatProcessingState,
-  ChatRequestState,
-  ChatRuntime,
-  ChatSubmitPayload,
-} from '../types'
+import type { ChatConversation, ChatConversationInfo, ChatRuntime, ChatSubmitPayload } from '../types'
 
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
@@ -16,10 +10,10 @@ export interface UseKitChatRuntimeOptions {
 
 export function useKitChatRuntime({ conversation, lastError: errorRef, send }: UseKitChatRuntimeOptions): ChatRuntime {
   const lastError = errorRef ?? shallowRef<unknown | null>(null)
+  const conversationErrors = shallowRef<Record<string, unknown | null>>({})
 
-  const activeConversation = computed(() => conversation.activeConversation.value)
-  const activeEngine = computed(() => activeConversation.value?.engine)
-  const historyItems = computed<ChatConversationItem[]>(() =>
+  const activeKitConversation = computed(() => conversation.activeConversation.value)
+  const historyItems = computed<ChatConversationInfo[]>(() =>
     conversation.conversations.value.map((item) => ({
       id: item.id,
       title: item.title || '新对话',
@@ -28,7 +22,26 @@ export function useKitChatRuntime({ conversation, lastError: errorRef, send }: U
       metadata: item.metadata,
     })),
   )
-  const disabled = computed(() => !send && !activeConversation.value)
+  const activeConversation = computed<ChatConversation | null>(() => {
+    const active = activeKitConversation.value
+
+    if (!active) {
+      return null
+    }
+
+    return {
+      id: active.id,
+      title: active.title || '新对话',
+      createdAt: active.createdAt,
+      updatedAt: active.updatedAt,
+      metadata: active.metadata,
+      messages: active.engine.messages.value,
+      requestState: active.engine.requestState.value,
+      processingState: active.engine.processingState.value,
+      lastError: conversationErrors.value[active.id] ?? null,
+    }
+  })
+  const disabled = computed(() => !send && !activeKitConversation.value)
 
   const sendMessage =
     send ??
@@ -37,31 +50,45 @@ export function useKitChatRuntime({ conversation, lastError: errorRef, send }: U
         return
       }
 
-      await activeConversation.value?.engine.sendMessage(text)
+      await activeKitConversation.value?.engine.sendMessage(text)
     })
 
   async function handleSend(payload: ChatSubmitPayload) {
-    lastError.value = null
+    let conversationId = conversation.activeConversation.value?.id ?? null
+    let task: Promise<void> | void
 
     try {
-      await sendMessage(payload)
+      task = sendMessage(payload)
+      conversationId = conversation.activeConversation.value?.id ?? conversationId
+
+      if (conversationId) {
+        conversationErrors.value = {
+          ...conversationErrors.value,
+          [conversationId]: null,
+        }
+      }
+
+      lastError.value = null
+      await task
     } catch (error) {
-      lastError.value = error
+      if (conversationId) {
+        conversationErrors.value = {
+          ...conversationErrors.value,
+          [conversationId]: error,
+        }
+      }
+
+      if (conversation.activeConversation.value?.id === conversationId) {
+        lastError.value = error
+      }
+
       throw error
     }
   }
 
   return {
-    conversations: {
-      items: historyItems,
-      currentId: computed(() => conversation.activeConversationId.value),
-    },
-    messages: {
-      items: computed(() => activeConversation.value?.engine.messages.value ?? []),
-      requestState: computed<ChatRequestState>(() => activeEngine.value?.requestState.value ?? 'idle'),
-      processingState: computed<ChatProcessingState | undefined>(() => activeEngine.value?.processingState.value),
-      lastError,
-    },
+    conversations: historyItems,
+    activeConversation,
     sender: {
       disabled,
     },
@@ -80,7 +107,16 @@ export function useKitChatRuntime({ conversation, lastError: errorRef, send }: U
         conversation.updateConversationTitle(id, title)
       },
       deleteConversation: async (id) => {
+        const wasActiveConversation = conversation.activeConversation.value?.id === id
+
         await conversation.deleteConversation(id)
+
+        const { [id]: _removedConversationError, ...restConversationErrors } = conversationErrors.value
+        conversationErrors.value = restConversationErrors
+
+        if (wasActiveConversation) {
+          lastError.value = null
+        }
       },
     },
   }
