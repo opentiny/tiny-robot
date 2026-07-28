@@ -77,7 +77,7 @@ layoutProps
 
 ```txt
 业务状态与业务动作     -> Runtime 候选
-输入区域临时状态       -> Composer 候选
+输入区域临时状态       -> internal input state 候选
 组件展示配置与事件通知 -> ChatUi 候选
 页面结构与组件连接     -> TrChat 候选
 ```
@@ -123,7 +123,7 @@ const ui = computed<ChatUi>(() => ({
 }))
 ```
 
-如果 Context 保存的是首次 `props.ui` 或 `props.runtime`，computed 返回新对象后，内部组件仍然读取旧配置。通过 `:key` 强制重建只能暂时让界面更新，同时会清空 Composer 草稿并掩盖根因。
+如果 Context 保存的是首次 `props.ui` 或 `props.runtime`，computed 返回新对象后，内部组件仍然读取旧配置。通过 `:key` 强制重建只能暂时让界面更新，同时会清空输入草稿并掩盖根因。
 
 ### 3.4 TrHistory 需要稳定 item identity
 
@@ -144,7 +144,7 @@ History 和 Bubble 需要内部展示对象，但外部 listener 应收到 `Chat
 ```txt
 原子组件 emit
   -> TrChat 内部事件适配
-    -> Runtime/Composer 执行默认动作
+    -> Runtime/internal input state 执行默认动作
     -> ChatUi.onXxx 通知业务侧
 ```
 
@@ -163,7 +163,7 @@ Runtime 不监听 ChatUi。否则数据层会反向依赖 UI，破坏 Runtime ad
 | Sender `input` | 无 Runtime action | `onInput` | `string` |
 | Sender `focus/blur` | 无 Runtime action | `onFocus/onBlur` | `FocusEvent` |
 | Sender `clear` | 输入值由组件双向更新 | `onClear` | 无 |
-| Prompt `item-click` | `composer.setInputValue` | `onItemClick` | `MouseEvent + PromptProps` |
+| Prompt `item-click` | `input.setInputValue` | `onItemClick` | `MouseEvent + PromptProps` |
 | Bubble `state-change` | 无 | `onStateChange` | `ChatBubbleStateChangePayload` |
 | Bubble `bubble-event` | 无 | `onBubbleEvent` | `ChatBubbleEventPayload` |
 | Layout 相关事件 | 无 Runtime action | 对应 Layout listener | Layout detail |
@@ -255,7 +255,7 @@ TrSender
   -> Kit engine / 外部数据层
 ```
 
-输入草稿属于 UI 临时状态。将它放入 Runtime 会要求所有外部数据层额外维护 Sender 状态，因此 Composer 与 Runtime 必须分开。
+输入草稿属于 UI 临时状态。将它放入 Runtime 会要求所有外部数据层额外维护 Sender 状态，因此内部输入状态与 Runtime 必须分开。
 
 ### 5.3 抽取 ChatUi
 
@@ -273,7 +273,7 @@ interface ChatUi {
 }
 ```
 
-`ChatUi` 可以包含展示配置和事件通知，但不能包含以下 Runtime/Composer 管理的数据：
+`ChatUi` 可以包含展示配置和事件通知，但不能包含以下 Runtime/内部输入状态管理的数据：
 
 ```txt
 messages
@@ -327,7 +327,7 @@ const ui = toRef(() => props.ui)
 - viewport 改变后 computed 配置立即生效。
 - 动态替换 Runtime 后使用新的 state 和 actions。
 - 不需要 `:key` 重建 TrChat。
-- Composer 草稿不会因布局变化丢失。
+- 输入草稿不会因布局变化丢失。
 
 ### 5.7 显式组合 props 和 listeners
 
@@ -336,7 +336,7 @@ History、Sender、Prompts、Bubble 和 Layout adapter 都先从配置中排除 
 ```txt
 展示 props -> v-bind
 原子事件   -> internal handler
-internal handler -> Runtime/Composer action + ChatUi listener
+internal handler -> Runtime/internal input state + ChatUi listener
 ```
 
 这保证每个业务事件只有一个状态修改入口，也避免 `v-bind` 和显式事件重复执行。
@@ -407,6 +407,13 @@ existing conversation
 
 [custom-runtime.vue](../demo/cases/custom-runtime.vue) 使用非 Kit 数据源实现同一个 `ChatRuntime`，并复用相同的 `TrChat` 和 `ChatUi` 结构。
 
+这里需要明确边界：
+
+- 当前案例已经证明 `TrChat` 可以脱离 Kit runtime 工作。
+- 会话列表、消息状态、发送、取消和错误收敛都由自定义 Runtime 自己维护。
+- 当前 Demo 仅为了减少样板代码，临时复用了 Kit 的 SSE 解析工具和 OpenAI-compatible 请求/响应类型。
+- 这不代表业务接入必须依赖 Kit；如果用户后端是自定义接口、自定义 SSE 事件格式或 WebSocket，只需要自行替换 transport 和 parser，再产出同一个 `ChatRuntime` 即可接入 `TrChat`。
+
 这个场景用于验证：
 
 - UI 不读取 Kit 实例。
@@ -424,6 +431,17 @@ Custom       -> 证明公共协议不依赖 Kit
 ```
 
 只有这四个案例共同成立，才能说明 TrChat 不是为单一 Demo 定制的封装。
+
+其中 `Custom Runtime` 当前证明的是：
+
+- Runtime 协议边界不依赖 Kit。
+- UI 装配不依赖 Kit。
+
+它还没有刻意证明的是：
+
+- transport / SSE parser / chunk 类型定义也完全不依赖 Kit。
+
+这部分当前保留为 Demo 级实现选择，不影响 `ChatRuntime` 作为迁移协议的成立。
 
 ## 8. 当前验证结果
 
@@ -469,7 +487,7 @@ MVP 暂不引入：
 ```txt
 Basic 单文件
 ├─ 业务状态与动作       -> ChatRuntime
-├─ 输入区域临时状态     -> internal input controller
+├─ 输入区域临时状态     -> internal input state
 ├─ 原子组件配置与通知   -> ChatUi
 └─ 页面布局与事件适配   -> TrChat
 ```
@@ -479,6 +497,6 @@ Basic 单文件
 ```txt
 原子组件 emit
   -> TrChat internal handler
-    -> Runtime/Composer action
+    -> Runtime/internal input state
     -> ChatUi listener
 ```

@@ -519,6 +519,13 @@ Demo 验收至少需要记录：
 - Custom Runtime：发送、错误、abort，且不提供输入框草稿状态。
 - 三个 TrChat Demo：viewport 变化不重建组件，输入草稿不丢失，computed listener 立即生效。
 
+关于 Custom Runtime Demo 的边界，需要额外说明：
+
+- 它已经证明 `TrChat` 只依赖 `ChatRuntime`，不依赖 `useConversation`、engine、storage 或 plugins。
+- 它当前仍可复用 Kit 的 SSE 解析工具和 OpenAI-compatible 类型，以减少 Demo 样板代码。
+- 这不构成 `TrChat` 对 Kit runtime 的结构性依赖。
+- 如果业务侧后端不是 Kit，而是自定义接口、自定义 SSE 事件流或 WebSocket，只需要替换 transport 和 parser，并继续产出同一个 `ChatRuntime` 即可接入。
+
 ## 12. 参考资料
 
 - [评审决策清单](./review-checklist.md)

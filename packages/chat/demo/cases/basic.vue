@@ -14,7 +14,6 @@ import {
 } from '@opentiny/tiny-robot'
 import { IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { ChatProcessingState, ChatRequestState } from '../../src'
-import { createDemoReply } from '../scenario'
 
 /** Basic 直接使用原子组件，因此在页面内声明组件所需的数据结构。 */
 type DemoSession = {
@@ -298,7 +297,7 @@ async function send(text: string, structuredData?: unknown) {
     await wait(360, abortController.signal)
 
     replyMessage.loading = false
-    replyMessage.content = createDemoReply('Basic Demo', content)
+    replyMessage.content = `Basic Demo 回复：${content || '收到'}`
 
     if (requestToken === activeRequestToken) {
       requestState.value = 'completed'

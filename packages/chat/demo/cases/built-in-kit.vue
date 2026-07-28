@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import { createDemoResponseProvider } from '../scenario'
+import { createDeepSeekResponseProvider } from '../deepseek-provider'
 import { TrChat, useLocalChatRuntime } from '../../src'
 import type { ChatConversationInfo, ChatSubmitPayload, ChatUi } from '../../src'
 
@@ -14,7 +14,7 @@ const prompts = [
 const runtime = useLocalChatRuntime({
   conversation: {
     useMessageOptions: {
-      responseProvider: createDemoResponseProvider('Built-in Kit Runtime'),
+      responseProvider: createDeepSeekResponseProvider(),
     },
   },
   titleFallback: (text) => text.trim().slice(0, 20) || '新对话',
@@ -47,7 +47,7 @@ const ui = computed<ChatUi>(() => ({
   },
   welcome: {
     title: 'Built-in Kit Runtime',
-    description: '由 Chat 创建并装配 Kit 会话状态。',
+    description: '由 Chat 创建并装配 Kit 会话状态，并通过 DeepSeek 验证流式消息。',
   },
   prompts: {
     wrap: true,
@@ -62,7 +62,7 @@ const ui = computed<ChatUi>(() => ({
   },
   sender: {
     mode: 'multiple',
-    placeholder: '输入消息验证内置 Kit 路径',
+    placeholder: '输入消息验证 Built-in Kit + DeepSeek 流式输出',
     onSubmit: handleSubmit,
     onFocus: handleFocus,
   },

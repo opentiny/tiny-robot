@@ -3,7 +3,7 @@ import { computed, shallowRef } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-robot-kit'
 import type { ConversationInfo } from '@opentiny/tiny-robot-kit'
-import { createDemoResponseProvider } from '../scenario'
+import { createDeepSeekResponseProvider } from '../deepseek-provider'
 import { TrChat, useKitChatRuntime } from '../../src'
 import type { ChatConversationInfo, ChatSubmitPayload, ChatUi } from '../../src'
 
@@ -25,7 +25,7 @@ const conversation = useConversation({
   }),
   autoSaveMessages: true,
   useMessageOptions: {
-    responseProvider: createDemoResponseProvider('Existing Kit Runtime'),
+    responseProvider: createDeepSeekResponseProvider(),
   },
   onLoad: handleConversationLoad,
 })
@@ -61,7 +61,7 @@ const ui = computed<ChatUi>(() => ({
   },
   welcome: {
     title: 'Existing Kit Runtime',
-    description: '复用已有 useConversation()，只迁移到 TrChat UI。',
+    description: '复用已有 useConversation()，并通过 DeepSeek 验证迁移后的流式输出。',
   },
   prompts: {
     wrap: true,
@@ -76,7 +76,7 @@ const ui = computed<ChatUi>(() => ({
   },
   sender: {
     mode: 'multiple',
-    placeholder: '输入消息验证已有 Kit 复用路径',
+    placeholder: '输入消息验证 Existing Kit + DeepSeek 流式输出',
     onSubmit: handleSubmit,
     onFocus: handleFocus,
   },

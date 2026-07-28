@@ -40,7 +40,7 @@ const ui = computed<ChatUi>(() => ({
   },
   welcome: {
     title: 'Custom Runtime',
-    description: '用户自有数据层适配为 ChatRuntime。',
+    description: '用户自有数据层适配为 ChatRuntime，并通过 DeepSeek 验证流式输出。',
   },
   prompts: {
     wrap: true,
@@ -55,7 +55,7 @@ const ui = computed<ChatUi>(() => ({
   },
   sender: {
     mode: 'multiple',
-    placeholder: '输入消息验证自定义 Runtime 路径',
+    placeholder: '输入消息验证 Custom Runtime + DeepSeek 流式输出',
     onSubmit: handleSubmit,
     onFocus: handleFocus,
   },
