@@ -5,23 +5,43 @@ import type { ChatConversation, ChatConversationInfo, ChatRuntime, ChatSubmitPay
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
   lastError?: Ref<unknown | null>
+  titleFallback?: (text: string) => string
   send?: (payload: ChatSubmitPayload) => Promise<void> | void
 }
 
-export function useKitChatRuntime({ conversation, lastError: errorRef, send }: UseKitChatRuntimeOptions): ChatRuntime {
+const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
+
+const toChatConversationInfo = (item: {
+  id: string
+  title?: string
+  createdAt?: number
+  updatedAt?: number
+  metadata?: Record<string, unknown>
+}): ChatConversationInfo => {
+  return {
+    id: item.id,
+    title: item.title || '新对话',
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    metadata: item.metadata,
+  }
+}
+
+export function useKitChatRuntime({
+  conversation,
+  lastError: errorRef,
+  titleFallback,
+  send,
+}: UseKitChatRuntimeOptions): ChatRuntime {
   const lastError = errorRef ?? shallowRef<unknown | null>(null)
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
+  const resolveTitle = titleFallback ?? defaultTitleFallback
 
   const activeKitConversation = computed(() => conversation.activeConversation.value)
   const historyItems = computed<ChatConversationInfo[]>(() =>
-    conversation.conversations.value.map((item) => ({
-      id: item.id,
-      title: item.title || '新对话',
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-      metadata: item.metadata,
-    })),
+    conversation.conversations.value.map(toChatConversationInfo),
   )
+
   const activeConversation = computed<ChatConversation | null>(() => {
     const active = activeKitConversation.value
 
@@ -30,27 +50,34 @@ export function useKitChatRuntime({ conversation, lastError: errorRef, send }: U
     }
 
     return {
-      id: active.id,
-      title: active.title || '新对话',
-      createdAt: active.createdAt,
-      updatedAt: active.updatedAt,
-      metadata: active.metadata,
+      ...toChatConversationInfo(active),
       messages: active.engine.messages.value,
       requestState: active.engine.requestState.value,
       processingState: active.engine.processingState.value,
       lastError: conversationErrors.value[active.id] ?? null,
     }
   })
-  const disabled = computed(() => !send && !activeKitConversation.value)
+
+  const disabled = shallowRef(false)
 
   const sendMessage =
     send ??
     (async ({ text }: ChatSubmitPayload) => {
-      if (!text.trim()) {
+      const nextText = text.trim()
+
+      if (!nextText) {
         return
       }
 
-      await activeKitConversation.value?.engine.sendMessage(text)
+      let active = activeKitConversation.value
+
+      if (!active) {
+        active = conversation.createConversation({ title: resolveTitle(nextText) })
+      } else if (!active.title) {
+        conversation.updateConversationTitle(active.id, resolveTitle(nextText))
+      }
+
+      await active.engine.sendMessage(nextText)
     })
 
   async function handleSend(payload: ChatSubmitPayload) {

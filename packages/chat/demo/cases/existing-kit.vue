@@ -2,7 +2,6 @@
 import { computed, shallowRef } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-robot-kit'
-import type { ConversationInfo } from '@opentiny/tiny-robot-kit'
 import { createDeepSeekResponseProvider } from '../deepseek-provider'
 import { TrChat, useKitChatRuntime } from '../../src'
 import type { ChatConversationInfo, ChatSubmitPayload, ChatUi } from '../../src'
@@ -13,12 +12,6 @@ const prompts = [
   { label: '解释 runtime 和 ui 的职责' },
 ]
 
-function handleConversationLoad(items: ConversationInfo[]) {
-  if (items.length === 0) {
-    conversation.createConversation({ title: '已有 Kit 会话' })
-  }
-}
-
 const conversation = useConversation({
   storage: localStorageStrategyFactory({
     key: 'tiny-robot-chat-existing-kit-demo',
@@ -27,7 +20,6 @@ const conversation = useConversation({
   useMessageOptions: {
     responseProvider: createDeepSeekResponseProvider(),
   },
-  onLoad: handleConversationLoad,
 })
 
 const runtime = useKitChatRuntime({

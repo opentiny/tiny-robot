@@ -18,20 +18,6 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
 
   return useKitChatRuntime({
     conversation,
-    send: async ({ text }) => {
-      if (!text.trim()) {
-        return
-      }
-
-      let active = conversation.activeConversation.value
-
-      if (!active) {
-        active = conversation.createConversation({ title: resolveTitle(text) })
-      } else if (!active.title) {
-        conversation.updateConversationTitle(active.id, resolveTitle(text))
-      }
-
-      await active.engine.sendMessage(text)
-    },
+    titleFallback: resolveTitle,
   })
 }

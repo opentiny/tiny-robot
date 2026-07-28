@@ -99,11 +99,11 @@ TrSender submit
 
 ### `useLocalChatRuntime`
 
-面向新项目。它内部创建 Kit conversation，再通过 `useKitChatRuntime` 映射为 `ChatRuntime`，同时提供首次发送建会话、标题 fallback 和默认错误处理。
+面向新项目。它内部创建 Kit conversation，再通过 `useKitChatRuntime` 映射为 `ChatRuntime`，主要负责新项目默认的 `useConversation` 配置，并透传标题 fallback。
 
 ### `useKitChatRuntime`
 
-面向已有 `useConversation()` 项目。它接收现有 conversation 实例并做协议映射，不重新创建 engine，也不替换 transport、storage、plugins 和生命周期。
+面向已有 `useConversation()` 项目。它接收现有 conversation 实例并做协议映射，不重新创建 engine，也不替换 transport、storage、plugins 和生命周期；默认发送链路会在无 active 时自动创建会话，并用首条消息生成标题 fallback。
 
 ### 自定义 `ChatRuntime`
 

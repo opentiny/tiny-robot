@@ -347,7 +347,7 @@ Basic 自己实现了会话、消息、请求、取消和错误收敛；Kit 已�
 
 ### 6.1 `useKitChatRuntime`
 
-`useKitChatRuntime` 面向已有 Kit `useConversation()` 实例，只做适配：
+`useKitChatRuntime` 面向已有 Kit `useConversation()` 实例，负责协议适配并提供默认发送语义：
 
 ```txt
 conversation.conversations      -> runtime.conversations
@@ -358,17 +358,16 @@ conversation CRUD          -> runtime.actions
 engine.sendMessage         -> runtime.actions.send
 ```
 
-它不重建 conversation、storage、provider 或 plugins，因此适合已有 Kit 应用只迁移 UI。
+它不重建 conversation、storage、provider 或 plugins；默认发送链路会在无 active 时自动创建会话，并用首条消息生成标题 fallback，因此适合已有 Kit 应用只迁移 UI。
 
 ### 6.2 `useLocalChatRuntime`
 
-`useLocalChatRuntime` 面向新项目，在 `useKitChatRuntime` 之上增加默认创建策略：
+`useLocalChatRuntime` 面向新项目，在 `useKitChatRuntime` 之上补默认 `useConversation` 配置：
 
 ```txt
 UseConversationOptions
   -> useConversation
   -> autoSaveMessages
-  -> 首次发送自动创建会话
   -> 默认标题策略
   -> useKitChatRuntime
 ```

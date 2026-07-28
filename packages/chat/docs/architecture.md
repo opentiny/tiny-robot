@@ -260,9 +260,9 @@ useLocalChatRuntime
 负责：
 
 - 创建 Kit conversation
-- 首次发送前创建会话
-- 标题 fallback
-- 统一错误状态
+- 提供新项目默认的 `useConversation` 配置
+- 透传标题 fallback
+- 复用 `useKitChatRuntime` 的错误状态收敛
 
 不负责输入草稿和 Prompt 回填。
 
@@ -271,6 +271,7 @@ useLocalChatRuntime
 面向已有 Kit Runtime：
 
 - 接收已有 `useConversation()` 返回值。
+- 默认支持首次发送自动创建会话，并用首条消息生成标题 fallback。
 - 保留原有 transport、storage、plugins 和生命周期。
 - 只做 Kit 数据到 `ChatRuntime` 的映射。
 - 不要求用户迁移输入框状态。
