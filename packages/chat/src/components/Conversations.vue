@@ -138,7 +138,6 @@ function handleCreateConversation() {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: #f5f5f5;
   box-sizing: border-box;
 }
 

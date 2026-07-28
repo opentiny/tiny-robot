@@ -7,8 +7,8 @@ body,
 }
 
 body {
-  color: #172033;
-  background: #f7f7f8;
+  color: var(--tr-text-primary);
+  background: var(--tr-page-bg-default);
 }
 
 .demo-app {
@@ -28,21 +28,21 @@ body {
   min-width: 0;
   height: 52px;
   padding: 0 18px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+  border-bottom: 1px solid color-mix(in srgb, var(--tr-border-color-default) 38%, transparent);
+  background: var(--tr-container-bg-default);
   box-sizing: border-box;
 }
 
 .demo-paths__brand {
   display: grid;
   flex-shrink: 0;
-  color: #0f172a;
+  color: var(--tr-text-primary);
   font-size: 12px;
   line-height: 1.15;
 }
 
 .demo-paths__brand span {
-  color: #64748b;
+  color: var(--tr-text-secondary);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -69,7 +69,7 @@ body {
   flex-shrink: 0;
   padding: 7px 10px;
   border-radius: 7px;
-  color: #475569;
+  color: var(--tr-text-secondary);
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
@@ -81,24 +81,24 @@ body {
   height: 20px;
   border-radius: 50%;
   place-items: center;
-  color: #64748b;
-  background: #e2e8f0;
+  color: var(--tr-text-tertiary);
+  background: var(--tr-container-bg-default-2);
   font-size: 10px;
 }
 
 .demo-paths__link:hover {
-  color: #312e81;
-  background: #eef2ff;
+  color: var(--tr-color-primary);
+  background: color-mix(in srgb, var(--tr-color-primary-light) 78%, transparent);
 }
 
 .demo-paths__link--active {
-  color: #3730a3;
-  background: #e0e7ff;
+  color: var(--tr-color-primary);
+  background: var(--tr-color-primary-light);
 }
 
 .demo-paths__link--active span {
-  color: #fff;
-  background: #4f46e5;
+  color: var(--tr-container-bg-default);
+  background: var(--tr-color-primary);
 }
 
 .chat-demo {
@@ -113,18 +113,18 @@ body {
 .chat-demo .tr-layout {
   --tr-layout-height: 100%;
   --tr-chat-content-max-width: 704px;
-  --tr-layout-aside-bg: #f7f7f8;
-  --tr-layout-left-aside-bg: #fff;
-  --tr-layout-header-bg: #fff;
-  --tr-layout-main-bg: #fff;
-  --tr-layout-footer-bg: #fff;
+  --tr-layout-aside-bg: var(--tr-page-bg-default);
+  --tr-layout-left-aside-bg: var(--tr-container-bg-default);
+  --tr-layout-header-bg: var(--tr-container-bg-default);
+  --tr-layout-main-bg: var(--tr-container-bg-default);
+  --tr-layout-footer-bg: var(--tr-container-bg-default);
   border-radius: 8px;
-  background: #fff;
+  background: var(--tr-container-bg-default);
 }
 
 .chat-demo .tr-layout__content {
   border-radius: 8px;
-  background: #fff;
+  background: var(--tr-container-bg-default);
 }
 
 .chat-demo .tr-layout__left-aside {

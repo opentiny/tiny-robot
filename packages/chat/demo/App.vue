@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import Basic from './cases/basic.vue'
 import BuiltInKit from './cases/built-in-kit.vue'
+import CliBasicMigration from './cases/cli-basic-migration.vue'
 import CustomRuntime from './cases/custom-runtime.vue'
 import ExistingKit from './cases/existing-kit.vue'
 
@@ -33,6 +34,13 @@ const demos = [
     aliases: ['/external-runtime'],
     title: 'Custom Runtime',
     component: CustomRuntime,
+  },
+  {
+    id: 'cli-basic-migration',
+    path: '/cli-basic-migration',
+    aliases: ['/cli-basic'],
+    title: 'CLI Migration',
+    component: CliBasicMigration,
   },
 ]
 

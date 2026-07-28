@@ -132,12 +132,39 @@ model/MCP UI state
 
 TODO：
 
-- [ ] 记录 CLI basic 当前会话、发送、取消、模型和 MCP 的可复现行为。
-- [ ] 确认新会话采用“点击后立即创建并激活”的 TrChat 语义。
-- [ ] 确认 Tool toggle 在真正过滤工具前不展示为可用能力。
-- [ ] 确认重试、附件、语音、反馈和消息编辑不进入本次范围。
-- [ ] 为 Runtime 四域和必选会话 actions 增加类型契约测试。
-- [ ] 增加 `activeConversation === null || conversations.some(id)` 一致性断言测试。
+- [x] 新增 `packages/chat/demo/cases/cli-basic-migration.vue`，基于 `existing-kit` 作为迁移验证案例，不作为新的长期模板。
+- [x] 记录 CLI basic 当前会话、发送、取消、模型和 MCP 的可复现行为。
+- [x] 确认新会话采用“点击后立即创建并激活”的 TrChat 语义。
+- [x] 确认 Tool toggle 在真正过滤工具前不展示为可用能力。
+- [x] 确认重试、附件、语音、反馈和消息编辑不进入本次范围。
+- [x] 暂不引入测试框架；阶段 0 改为维护手测验收清单。
+- [ ] 按手测清单验证 Runtime 四域和必选会话 actions。
+- [ ] 按手测清单验证 `activeConversation === null || conversations.some(id)` 一致性。
+
+阶段 0 冻结结论：
+
+- 新会话采用 `actions.createConversation()` 立即创建并激活的 TrChat 语义，不再保留 CLI basic 的“仅清空 active，首次发送再建会话”行为。
+- Tool toggle 在请求级工具过滤能力完成前保持隐藏或禁用，不计入已迁移能力。
+- 重试、附件、语音、反馈、消息编辑不进入本次迁移范围。
+- `cli-basic-migration` 是内部迁移验证入口，不作为新的长期模板或公共 API 示例。
+
+阶段 0 手测入口：
+
+- 路由：`/cli-basic-migration`
+- 案例：`packages/chat/demo/cases/cli-basic-migration.vue`
+
+阶段 0 手测基线：
+
+- 首次发送：无活动会话时发送消息，应立即创建会话、生成标题并开始流式响应。
+- 连续发送：同一会话内连续发送两轮消息，请求状态和消息顺序保持正确。
+- 切换会话：会话 A 流式中切到会话 B，会话 A 继续完成但不串到会话 B。
+- 删除会话：删除当前会话后 UI 回到空态；删除请求中的会话前先取消请求。
+- 取消请求：点击取消后 `requestState` 离开 `processing`，输入框恢复可继续发送。
+- 错误展示：Provider 缺失或请求失败时，错误可见且 `lastError` 与当前活动会话保持一致。
+- 空态：仅有 system message 或无消息时，Welcome 和 prompts 仍能正常显示。
+- 移动端 History：drawer 可打开、关闭，并在切换会话后收起。
+- Runtime 四域：页面只通过 `conversations + activeConversation + sender + actions` 驱动，不额外依赖顶层模型或 MCP 状态。
+- 会话一致性：任意时刻 `activeConversation === null` 或其 `id` 必须存在于 `conversations` 中。
 
 阶段结果：迁移范围、行为差异和验收口径固定，后续阶段不再修改 Runtime 顶层结构。
 
@@ -147,6 +174,7 @@ TODO：
 
 TODO：
 
+- [ ] 先在 `cli-basic-migration` 案例中验证 `useConversation() + useKitChatRuntime + <TrChat />` 主链路，不复制完整 CLI basic 页面模板。
 - [ ] 保留 CLI basic 的 `useConversation()`、storage、plugins 和 responseProvider。
 - [ ] 用 `useKitChatRuntime` 输出当前 `ChatRuntime` 四域。
 - [ ] 确认 `useKitChatRuntime` 默认发送链路：trim、无 active 时创建会话、生成标题、发送到当前 engine。
@@ -198,14 +226,20 @@ TODO：
 
 TODO：
 
-- [ ] 在 `TrChat` 增加 `sender-footer` 和 `sender-footer-right` 插槽并转发到内部 Sender。
-- [ ] 保留现有 `footer` slot 作为完整 Sender 替换入口。
+- [x] 在 `TrChat` 增加 `sender-footer` 和 `sender-footer-right` 插槽并转发到内部 Sender。
+- [x] 保留现有 `footer` slot 作为完整 Sender 替换入口。
+- [x] 在 `cli-basic-migration` 中先放置阶段 3 占位控件，验证 sender 窄插槽链路与默认 Sender 共存。
 - [ ] 通过 `sender-footer` 放置模型选择、thinking/search 和 MCP 按钮。
 - [ ] 继续复用 CLI 的 `useModel()`、`useMcp()` 和 `TrMcpServerPicker`。
 - [ ] 模型切换后重新计算 feature 可用性；不支持的 feature 取消有效激活态。
 - [ ] MCP Server 添加失败时恢复 loading/addState。
 - [ ] Tool toggle 在功能修复前隐藏或禁用。
 - [ ] 验证插槽控件交互不会重建 TrChat、丢失输入草稿或触发提交。
+
+实现约束：
+
+- sender 窄插槽继续使用模板显式 `#footer` / `#footer-right` 转发到内部 Sender；当前只处理固定的两个重命名插槽，不改成 render function 或整体 slots 透传。
+- 只要修改 `packages/components` 源码，先执行 `pnpm build:components`，再验证 `packages/chat` 的 type-check、demo 和 e2e。
 
 验收：
 
@@ -348,7 +382,7 @@ TODO：
 
 ## 6. 最终执行顺序
 
-1. 冻结行为和测试基线。
+1. 冻结行为和手测基线。
 2. 迁移 Runtime 主链路。
 3. 修复默认 UI 等价能力。
 4. 增加 Sender 窄插槽并迁移模型/MCP UI。

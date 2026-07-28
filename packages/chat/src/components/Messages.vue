@@ -26,6 +26,7 @@ type BubbleDisplayMessage = {
 }
 
 const props = defineProps<{
+  messages?: readonly ChatMessageItem[]
   isEmpty?: boolean
 }>()
 
@@ -44,10 +45,17 @@ const toBubbleDisplayMessage = (message: ChatMessageItem): BubbleDisplayMessage 
   raw: message,
 })
 
-const messages = computed<BubbleDisplayMessage[]>(() =>
-  (runtime.value.activeConversation.value?.messages ?? []).map(toBubbleDisplayMessage),
-)
-const isEmpty = computed(() => props.isEmpty ?? messages.value.length === 0)
+const EMPTY_MESSAGES: readonly ChatMessageItem[] = []
+
+const sourceMessages = computed<readonly ChatMessageItem[]>(() => {
+  return props.messages ?? runtime.value.activeConversation.value?.messages ?? EMPTY_MESSAGES
+})
+
+const bubbleMessages = computed<BubbleDisplayMessage[]>(() => {
+  return sourceMessages.value.map(toBubbleDisplayMessage)
+})
+
+const isEmpty = computed(() => props.isEmpty ?? bubbleMessages.value.length === 0)
 const bubbleListRef = ref<LayoutScrollTarget>(null)
 const scrollTarget = computed(() => {
   const element = bubbleListRef.value instanceof HTMLElement ? bubbleListRef.value : bubbleListRef.value?.$el
@@ -122,7 +130,7 @@ defineExpose({
         ref="bubbleListRef"
         v-bind="bubbleListProps"
         class="tr-chat-messages__bubble-list"
-        :messages="messages"
+        :messages="bubbleMessages"
         @state-change="handleStateChange"
         @bubble-event="handleBubbleEvent"
       >

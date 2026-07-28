@@ -20,6 +20,7 @@ import type {
   ChatHeaderSlotProps,
   ChatHistorySlotProps,
   ChatMainSlotProps,
+  ChatMessageItem,
   ChatRuntime,
   ChatUi,
 } from '@/types'
@@ -49,11 +50,12 @@ const messagesRef = ref<InstanceType<typeof Messages> | null>(null)
 const activeConversation = computed(() => runtimeRef.value.activeConversation.value)
 const conversationItems = computed(() => runtimeRef.value.conversations.value)
 const activeMessages = computed(() => activeConversation.value?.messages ?? [])
+const visibleMessages = computed(() => activeMessages.value.filter((message) => !isMessageHidden(message)))
 const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
 const processingState = computed(() => activeConversation.value?.processingState)
 const lastError = computed(() => activeConversation.value?.lastError ?? null)
 const senderDisabled = computed(() => runtimeRef.value.sender.disabled.value)
-const isEmpty = computed(() => activeMessages.value.length === 0)
+const isEmpty = computed(() => visibleMessages.value.length === 0)
 const messagesScrollTarget = computed(() => messagesRef.value?.scrollTarget ?? null)
 
 const layoutUi = computed(() => uiRef.value.layout)
@@ -131,6 +133,16 @@ const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
   loading: requestState.value === 'processing',
   submitDisabled: input.submitDisabled.value,
 }))
+
+function isMessageHidden(message: ChatMessageItem) {
+  const role = message.role
+
+  if (!role) {
+    return false
+  }
+
+  return Boolean(uiRef.value.bubbleList?.roleConfigs?.[role]?.hidden)
+}
 
 function handleFloatingStateChange(value: LayoutFloatingState) {
   layoutUi.value?.['onUpdate:floatingState']?.(value)
@@ -249,14 +261,21 @@ function handleRightAsideResizeEnd(detail: LayoutAsideResizeValue) {
         <div class="tr-chat__content-shell">
           <div class="tr-chat__main-inner">
             <slot name="main" v-bind="mainSlotProps">
-              <Messages ref="messagesRef" :is-empty="isEmpty" />
+              <Messages ref="messagesRef" :messages="visibleMessages" :is-empty="isEmpty" />
             </slot>
           </div>
 
           <div class="tr-chat__footer-inner">
             <ScrollToBottom :target="messagesScrollTarget" />
             <slot name="footer" v-bind="footerSlotProps">
-              <Sender />
+              <Sender>
+                <template v-if="$slots['sender-footer']" #footer="slotProps">
+                  <slot name="sender-footer" v-bind="slotProps" />
+                </template>
+                <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">
+                  <slot name="sender-footer-right" v-bind="slotProps" />
+                </template>
+              </Sender>
             </slot>
           </div>
         </div>
