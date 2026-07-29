@@ -49,15 +49,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
 
   return {
     inputValue,
-    submitDisabled: computed(() => {
-      const currentRuntime = getRuntime()
-
-      return (
-        currentRuntime.sender.disabled.value ||
-        currentRuntime.activeConversation.value?.requestState === 'processing' ||
-        inputValue.value.trim().length === 0
-      )
-    }),
+    submitDisabled: computed(() => getRuntime().sender.disabled.value),
     setInputValue,
     send,
     get abort() {

@@ -1,28 +1,28 @@
-# CLI Basic 迁移方案
+# CLI Basic 协议替换与迁移方案
 
-## 1. 评审结论
+## 1. 目标调整
 
-总体方向合理：保持 `ChatRuntime` 四域稳定，先迁移基础聊天，再通过 slots、run config 和 adapter 接入模型与 MCP。
+本次工作的目标不是将 CLI basic 原有组件通过 slots 搬入 `TrChat`，而是：
 
-当前方案不能直接执行，必须先修正以下问题：
+1. 用 chat 公共协议替换 CLI basic 的本地会话、模型和 MCP 协议。
+2. 补充 `packages/chat` 当前缺少的 Model、MCP 和逐轮配置协议。
+3. 让默认 UI 直接消费统一协议。
+4. 删除 CLI basic 中重复的状态胶水和 UI 装配。
 
-| 级别 | 问题 | 影响 | 修正结论 |
-|---|---|---|---|
-| P0 | 只给 `ChatSubmitPayload` 增加 `runConfig`，无法自动传入 Kit provider 和 tool plugin | 模型、thinking/search、MCP 仍读取可变全局状态 | 先设计完整的 `submit -> message turn -> plugin/provider` 传递链路，再增加公共类型 |
-| P0 | 当前 `footer` slot 会替换整个默认 Sender | 需要重复实现输入同步、提交、取消、禁用和失败恢复 | 提前增加 `sender-footer`、`sender-footer-right` 窄插槽，保留完整 `footer` 作为高级替换入口 |
-| P0 | CLI 的 Tool toggle 只改变 Picker 展示状态，`toolPlugin.getTools()` 仍返回启用 Server 的全部工具 | UI 状态与实际请求不一致 | 未实现工具过滤前隐藏或禁用 Tool toggle；不得把现状标记为已迁移 |
-| P1 | CLI “新会话”只清空 `activeConversationId`，TrChat 默认动作会立即创建会话 | 空会话持久化和列表行为不同 | 统一采用 TrChat 的立即创建语义，作为明确的产品行为变更 |
-| P1 | `TrChat` 使用全部消息判断空态，system message 会阻止 Welcome | 初始页面可能空白 | 根据 `bubbleList.roleConfigs[role].hidden` 计算可见消息和空态 |
-| P1 | `ui.sender.onSubmit` 在 `runtime.actions.send` 完成后才执行 | 不能用 listener 注入本次请求配置 | listener 只做通知；run config 必须在发送前由 Runtime sender 状态或自定义发送适配器快照 |
-| P1 | 方案描述了“重试复用快照”，但 ChatRuntime 和 CLI basic 均无重试动作 | 验收目标不可执行 | 重试不进入本次迁移范围 |
-| P1 | MCP Client 每次 list/call 都重新连接并关闭 | 高频工具调用有额外延迟 | 首期保持行为一致；连接池另立 Kit/MCP adapter 任务，不阻塞 UI 迁移 |
-| P1 | 错误存在两种表现：CLI 写入 assistant message，ChatRuntime 提供 `lastError` | 迁移后可能重复显示或错误不可见 | 首期保留 CLI 消息错误展示，同时保证 `lastError` 正确；默认错误 UI 后续单独设计 |
+目标结构：
 
-边界原则：CLI basic 仅作为能力盘点和迁移验收基线，不作为 `packages/chat` 内部结构或公共 API 的实现模板。
+```txt
+CLI basic 应用配置
+-> Chat/Kit adapter
+-> ChatRuntime 公共协议
+-> TrChat 默认 UI
+```
+
+slots 只作为自定义 UI 出口，不再作为模型和 MCP 标准功能的主要迁移方案。
 
 ## 2. 稳定边界
 
-公共 Runtime 保持四域：
+`ChatRuntime` 保持四域：
 
 ```ts
 export interface ChatRuntime {
@@ -35,225 +35,72 @@ export interface ChatRuntime {
 
 约束：
 
-- `conversations`、`activeConversation`、`sender`、`actions` 不增加新的顶层同级域。
+- 不增加与四域平级的 model、MCP、provider 或 composer 字段。
 - 创建、切换、重命名、删除会话均为必选动作。
-- `activeConversation` 由 Runtime 内部状态派生，不与会话列表分别维护。
-- 输入草稿和提交编排继续由 `TrChat` 内部 `useChatInput` 管理。
-- `ChatUi` 只配置展示和监听事件，不承担业务状态修改。
-- API Key、Base URL、Headers、MCP transport 等私有连接配置不进入 Runtime。
+- `activeConversation` 必须由 Runtime 内部状态派生。
+- 输入草稿和提交编排继续由内部 `useChatInput` 管理。
+- Model、MCP 和 run config 属于发送上下文，作为 `sender` 的可选子能力。
+- `ChatUi` 只配置展示和监听事件，不修改业务状态。
+- API Key、Base URL、Headers、Provider、MCP Client 和 Transport 不进入 Runtime。
 
-## 3. CLI Basic 能力矩阵
+## 3. 协议替换矩阵
+
+| CLI basic 当前实现 | 替换目标 | 处理方式 |
+|---|---|---|
+| `useChat()` | `ChatRuntime` | 会话、消息、请求状态和动作统一通过 Runtime |
+| `activeConversationId + messages` | `activeConversation` | 消息和请求状态归属当前会话 |
+| `inputMessage` | 内部 `useChatInput` | 不公开输入协议 |
+| `useModel()` | `ChatModelRuntime` | 模型列表、选择和能力变为可选 sender 子协议 |
+| `useMcp()` | `ChatMcpRuntime` | Server、Tool 和启用状态变为可选 sender 子协议 |
+| `getSelectedModelParams()` | `ChatRunConfig + Provider adapter` | 中性配置与供应商参数转换分离 |
+| Provider 直接读取模型 store | 逐轮 run config 快照 | 发送后修改选择不影响当前请求 |
+| `McpServerPickerButton` 本地状态映射 | 默认 MCP UI 消费 `ChatMcpRuntime` | Picker 不直接依赖 CLI store |
+| `ChatSender.vue` | TrChat 默认 Sender | Model/MCP 默认 UI 由协议驱动 |
+| `ChatList.vue` | TrChat 默认 Messages | Markdown、角色和空态走 ChatUi |
+| `ConversationHistory.vue` | TrChat 默认 Conversations | 会话动作走 Runtime actions |
+| 应用级主题和配置提示 | `header` slot | 不新增业务协议 |
+
+## 4. CLI Basic 能力矩阵
 
 状态说明：
 
-- 已覆盖：当前 `packages/chat` 可直接承接。
-- 部分覆盖：基础能力存在，但有行为或接口差异。
-- 未覆盖：需要新增 chat 能力、adapter 或迁移代码。
-- 外部能力：保留在应用或 Kit，不进入 chat 核心协议。
+- 已覆盖：当前 chat 可直接承接。
+- 部分覆盖：基础能力存在，但需要修复行为或映射。
+- 缺少协议：必须先补公共协议。
+- 外部能力：属于应用或 Kit adapter，不进入 chat 核心协议。
 
-| 能力 | CLI basic 当前实现 | packages/chat 状态 | 迁移方式 | 阶段 |
-|---|---|---|---|---|
-| 多会话列表 | `useConversation.conversations` + `TrHistory` | 已覆盖 | `runtime.conversations` + 默认 Conversations | 1 |
-| 当前会话 | `activeConversationId/activeConversation` | 已覆盖 | `runtime.activeConversation` | 1 |
-| 创建会话 | 点击时清空 active，首次发送时创建 | 部分覆盖 | 统一为 `actions.createConversation()` 立即创建；首次无 active 发送仍需兜底 | 1 |
-| 切换会话 | `switchConversation` | 已覆盖 | `actions.switchConversation` | 1 |
-| 重命名 | `updateConversationTitle` | 已覆盖 | `actions.renameConversation` | 1 |
-| 删除 | `deleteConversation` | 已覆盖 | `actions.deleteConversation` | 1 |
-| 本地持久化 | `autoSaveMessages: true` + Kit storage | 已覆盖 | 保留原 `useConversation` 配置 | 1 |
-| 初始 system message | `initialMessages` | 已覆盖 | 保留在 Kit engine | 1 |
-| 首次发送自动建会话及标题 | `sendMessage()` 内处理 | 已覆盖 | `useKitChatRuntime` 默认处理；`useLocalChatRuntime` 只补默认配置 | 1 |
-| 流式响应 | `responseProvider` + SSE generator | 已覆盖 | 保留 Kit `useMessage` 流程 | 1 |
-| 取消请求 | `abortActiveRequest` | 已覆盖 | Runtime 必须提供可用的 `actions.abort` | 1 |
-| 后台会话请求 | Kit working engine | 已覆盖 | 不在切换时取消旧会话 | 1 |
-| 请求错误写入消息 | `onError` plugin | 部分覆盖 | 保留 plugin，并同步 Runtime `lastError` | 1 |
-| Welcome 空态 | 过滤 system message | 部分覆盖 | 修复 TrChat 可见消息判定 | 2 |
-| Markdown | `BubbleRenderers.Markdown` | 已覆盖 | `ui.bubbleProvider.fallbackContentRenderer` | 2 |
-| 角色布局和头像 | `roleConfigs` | 已覆盖 | `ui.bubbleList.roleConfigs` | 2 |
-| 自动滚动 | `TrBubbleList.autoScroll` | 已覆盖 | `ui.bubbleList.autoScroll` + ScrollToBottom | 2 |
-| 多行输入 | `mode="multiple"` | 已覆盖 | `ui.sender.mode` | 2 |
-| 清空、字数限制 | `clearable/maxLength/showWordLimit` | 已覆盖 | `ui.sender` 原子 props | 2 |
-| loading、提交禁用 | `isProcessing` | 已覆盖 | `activeConversation.requestState` + `sender.disabled` | 2 |
-| 响应式 History drawer | 自定义 drawer 与遮罩 | 已覆盖 | `ui.layout.leftAside.mode = drawer` + 默认 AsideToggle | 2 |
-| 当前会话标题 | App header | 已覆盖 | 默认 Header | 2 |
-| 主题切换 | `useTheme` + header button | 部分覆盖 | `header` slot 保留应用级状态 | 2 |
-| API 配置缺失提示 | App warning | 未覆盖 | `header` slot；不进入 Runtime | 2 |
-| 模型列表和选择 | `useModel` + `TrDropdownMenu` | 未覆盖 | 先通过 sender 窄插槽接入 | 3 |
-| 模型供应商配置 | `models.ts` | 外部能力 | 保留在应用/provider adapter | 3/5 |
-| thinking/search 开关 | `useModel` | 未覆盖 | 先通过 sender 窄插槽接入，发送时快照 | 3/4 |
-| 模型切换请求参数 | `getSelectedModelParams()` | 未覆盖 | run config + provider adapter | 4/5 |
-| MCP Server 市场列表 | `McpServers` + Picker | 未覆盖 | 复用 `TrMcpServerPicker`，状态保留在应用/MCP adapter | 3 |
-| MCP Server 添加/删除/启用 | `useMcp` | 未覆盖 | sender 窄插槽 + MCP adapter | 3/5 |
-| MCP Tool 发现 | `Client.listTools()` | 外部能力 | MCP adapter + Kit `toolPlugin` | 5 |
-| MCP Tool 调用 | `Client.callTool()` | 外部能力 | MCP adapter + Kit `toolPlugin` | 5 |
-| MCP Tool 启用/禁用 | Picker 有 UI，实际请求未过滤 | 未覆盖 | 修复工具过滤后再开放 UI | 5 |
-| SSE/Streamable HTTP transport | MCP SDK | 外部能力 | 保留在 MCP adapter | 5 |
-| Provider 凭证和 HTTP 请求 | `fetch` | 外部能力 | provider adapter；不得进入 ChatRuntime | 5 |
+| 能力 | 当前状态 | 目标归属 | 阶段 |
+|---|---|---|---|
+| 多会话列表 | 已覆盖 | `runtime.conversations` | 1 |
+| 当前会话及消息 | 已覆盖 | `runtime.activeConversation` | 1 |
+| 创建、切换、重命名、删除 | 已覆盖 | `runtime.actions` | 1 |
+| 首次发送创建会话和标题 | 已覆盖 | `useKitChatRuntime` | 1 |
+| 持久化 | 已覆盖 | Kit storage | 1 |
+| 流式响应和取消 | 已覆盖 | Kit engine + Runtime actions | 1 |
+| 后台会话请求隔离 | 已覆盖 | Kit working engine | 1 |
+| 错误状态 | 部分覆盖 | `activeConversation.lastError` + message plugin | 1 |
+| system message 空态 | 部分覆盖 | Messages UI 可见消息派生 | 2 |
+| Markdown、角色、头像 | 已覆盖 | `ChatUi.bubbleProvider/bubbleList` | 2 |
+| 多行输入、字数限制、清空 | 已覆盖 | `ChatUi.sender` | 2 |
+| 响应式 History drawer | 已覆盖 | `ChatUi.layout` + AsideToggle | 2 |
+| 主题切换 | 已覆盖 | `header` slot | 2 |
+| API 配置缺失提示 | 已覆盖 | `header` slot | 2 |
+| Sender 窄插槽 | 已覆盖 | `sender-footer/sender-footer-right` | 2 |
+| 模型列表和选择 | 缺少协议 | `ChatModelRuntime` | 3/4 |
+| thinking/search 能力 | 缺少协议 | Model capabilities + run config | 3/4 |
+| MCP Server 市场和安装 | 缺少协议 | `ChatMcpRuntime` | 3/4 |
+| MCP Server 启用和删除 | 缺少协议 | `ChatMcpRuntime` actions | 3/4 |
+| MCP Tool 发现和启用 | 缺少协议 | `ChatMcpRuntime` + MCP adapter | 3/4 |
+| 逐轮模型/MCP快照 | 缺少协议 | `ChatRunConfig` | 3/4 |
+| 默认 ModelSelector | 缺少 UI | 默认 sender UI | 5 |
+| 默认 McpSelector | 缺少 UI | 默认 sender UI | 5 |
+| Provider 参数转换 | 外部能力 | Provider adapter/plugin | 4 |
+| MCP Client/Transport | 外部能力 | MCP adapter/plugin | 4 |
+| API Key、Base URL、Headers | 外部能力 | 应用配置/adapter | 4 |
 
-## 4. 目标数据流
+## 5. 缺失协议设计
 
-### 4.1 基础聊天
-
-```txt
-TrSender event
--> useChatInput
--> runtime.actions.send
--> useKitChatRuntime adapter
--> active conversation engine
--> provider/plugin
--> runtime.activeConversation
--> UI
-```
-
-### 4.2 本轮配置
-
-```txt
-model/MCP UI state
--> runtime.sender.runConfig
--> useChatInput 在 submit 时复制快照
--> ChatSubmitPayload.runConfig
--> Kit send adapter 写入本轮 user message metadata
--> onTurnStart/onBeforeRequest/toolPlugin 读取本轮快照
--> provider request / tool list
-```
-
-要求：
-
-- `runConfig` 必须在点击发送时生成不可变快照。
-- Kit 默认排除 message metadata 后再发往模型，避免内部配置直接泄漏。
-- Provider 参数转换发生在 adapter/plugin，不发生在 UI。
-- MCP 工具列表必须按本轮 server/tool 快照过滤。
-- 发送中修改选择只影响下一轮。
-
-## 5. 分阶段迁移
-
-### 阶段 0：冻结基线和行为决策
-
-目标：先确定迁移语义，避免实现中反复调整 Runtime。
-
-TODO：
-
-- [x] 新增 `packages/chat/demo/cases/cli-basic-migration.vue`，基于 `existing-kit` 作为迁移验证案例，不作为新的长期模板。
-- [x] 记录 CLI basic 当前会话、发送、取消、模型和 MCP 的可复现行为。
-- [x] 确认新会话采用“点击后立即创建并激活”的 TrChat 语义。
-- [x] 确认 Tool toggle 在真正过滤工具前不展示为可用能力。
-- [x] 确认重试、附件、语音、反馈和消息编辑不进入本次范围。
-- [x] 暂不引入测试框架；阶段 0 改为维护手测验收清单。
-- [ ] 按手测清单验证 Runtime 四域和必选会话 actions。
-- [ ] 按手测清单验证 `activeConversation === null || conversations.some(id)` 一致性。
-
-阶段 0 冻结结论：
-
-- 新会话采用 `actions.createConversation()` 立即创建并激活的 TrChat 语义，不再保留 CLI basic 的“仅清空 active，首次发送再建会话”行为。
-- Tool toggle 在请求级工具过滤能力完成前保持隐藏或禁用，不计入已迁移能力。
-- 重试、附件、语音、反馈、消息编辑不进入本次迁移范围。
-- `cli-basic-migration` 是内部迁移验证入口，不作为新的长期模板或公共 API 示例。
-
-阶段 0 手测入口：
-
-- 路由：`/cli-basic-migration`
-- 案例：`packages/chat/demo/cases/cli-basic-migration.vue`
-
-阶段 0 手测基线：
-
-- 首次发送：无活动会话时发送消息，应立即创建会话、生成标题并开始流式响应。
-- 连续发送：同一会话内连续发送两轮消息，请求状态和消息顺序保持正确。
-- 切换会话：会话 A 流式中切到会话 B，会话 A 继续完成但不串到会话 B。
-- 删除会话：删除当前会话后 UI 回到空态；删除请求中的会话前先取消请求。
-- 取消请求：点击取消后 `requestState` 离开 `processing`，输入框恢复可继续发送。
-- 错误展示：Provider 缺失或请求失败时，错误可见且 `lastError` 与当前活动会话保持一致。
-- 空态：仅有 system message 或无消息时，Welcome 和 prompts 仍能正常显示。
-- 移动端 History：drawer 可打开、关闭，并在切换会话后收起。
-- Runtime 四域：页面只通过 `conversations + activeConversation + sender + actions` 驱动，不额外依赖顶层模型或 MCP 状态。
-- 会话一致性：任意时刻 `activeConversation === null` 或其 `id` 必须存在于 `conversations` 中。
-
-阶段结果：迁移范围、行为差异和验收口径固定，后续阶段不再修改 Runtime 顶层结构。
-
-### 阶段 1：迁移会话和消息主链路
-
-目标：用 `TrChat` 跑通 CLI basic 的会话、持久化、发送、流式和取消。
-
-TODO：
-
-- [ ] 先在 `cli-basic-migration` 案例中验证 `useConversation() + useKitChatRuntime + <TrChat />` 主链路，不复制完整 CLI basic 页面模板。
-- [ ] 保留 CLI basic 的 `useConversation()`、storage、plugins 和 responseProvider。
-- [ ] 用 `useKitChatRuntime` 输出当前 `ChatRuntime` 四域。
-- [ ] 确认 `useKitChatRuntime` 默认发送链路：trim、无 active 时创建会话、生成标题、发送到当前 engine。
-- [ ] 发送开始时捕获 conversation ID，错误和完成状态不得写入后来切换的会话。
-- [ ] Runtime 提供 `abort`，只取消当前 active 会话。
-- [ ] 将页面主装配替换为 `<TrChat :runtime="runtime" :ui="ui" />`。
-- [ ] 删除页面对 `activeConversationId`、messages 和 request state 的直接 UI 绑定。
-- [ ] 保留 CLI `onError` plugin 的消息错误展示，并验证 `lastError` 同步。
-- [ ] 验证删除正在请求的会话会先取消请求并清理状态。
-
-验收：
-
-- 创建、切换、重命名、删除和持久化可用。
-- 首次发送、连续发送、流式输出和取消可用。
-- 流式期间切换会话不会串消息、错误或请求状态。
-- 删除 active 会话后 UI 回到空态。
-
-阶段结果：CLI basic 的核心聊天能力全部运行在 `TrChat + Kit Runtime` 上，不包含模型和 MCP UI。
-
-### 阶段 2：补齐默认 UI 等价能力
-
-目标：不替换默认 Messages 和 Sender，完成基础视觉与交互迁移。
-
-TODO：
-
-- [ ] 根据 `ui.bubbleList.roleConfigs[role].hidden` 派生可见消息。
-- [ ] 根布局和 Messages 使用同一份可见消息判断 Welcome，避免双状态源。
-- [ ] system message 保留在 Runtime 消息中，只在 UI 隐藏。
-- [ ] 配置 Markdown renderer、assistant/user/system role configs 和头像。
-- [ ] 配置 Sender 的 multiple、clearable、maxLength、showWordLimit 和 placeholder。
-- [ ] 使用 `ui.layout` 配置 desktop dock 与 mobile drawer。
-- [ ] 使用默认 Header 的 `TrLayout.AsideToggle`，删除 CLI 自建 drawer 状态和遮罩。
-- [ ] 通过 `header` slot 迁移主题按钮和 API 配置提示。
-- [ ] 自定义 header 时继续使用 `TrLayout.AsideToggle`，保留移动端 History 入口。
-- [ ] 验证 ScrollToBottom 和代理滚动条在桌面、移动端均可用。
-
-验收：
-
-- system message 不阻止 Welcome。
-- Markdown、头像、角色、输入限制和自动滚动与 CLI 基线一致。
-- 移动端 History 可打开、关闭并在切换后收起。
-- API 提示和主题切换不进入 Runtime。
-
-阶段结果：除模型/MCP 外，CLI basic 的默认页面体验完成迁移。
-
-### 阶段 3：通过 Sender 窄插槽迁移模型和 MCP UI
-
-目标：先迁移现有控件和状态，不提前发布 selector 协议。
-
-TODO：
-
-- [x] 在 `TrChat` 增加 `sender-footer` 和 `sender-footer-right` 插槽并转发到内部 Sender。
-- [x] 保留现有 `footer` slot 作为完整 Sender 替换入口。
-- [x] 在 `cli-basic-migration` 中先放置阶段 3 占位控件，验证 sender 窄插槽链路与默认 Sender 共存。
-- [ ] 通过 `sender-footer` 放置模型选择、thinking/search 和 MCP 按钮。
-- [ ] 继续复用 CLI 的 `useModel()`、`useMcp()` 和 `TrMcpServerPicker`。
-- [ ] 模型切换后重新计算 feature 可用性；不支持的 feature 取消有效激活态。
-- [ ] MCP Server 添加失败时恢复 loading/addState。
-- [ ] Tool toggle 在功能修复前隐藏或禁用。
-- [ ] 验证插槽控件交互不会重建 TrChat、丢失输入草稿或触发提交。
-
-实现约束：
-
-- sender 窄插槽继续使用模板显式 `#footer` / `#footer-right` 转发到内部 Sender；当前只处理固定的两个重命名插槽，不改成 render function 或整体 slots 透传。
-- 只要修改 `packages/components` 源码，先执行 `pnpm build:components`，再验证 `packages/chat` 的 type-check、demo 和 e2e。
-
-验收：
-
-- 默认 Sender 的输入、提交、取消和失败恢复逻辑未被复制。
-- 模型、thinking/search 和 MCP Server 控件可操作。
-- 模型/MCP 状态仍归应用层所有，ChatRuntime 顶层结构不变。
-
-阶段结果：完成产品 UI 迁移，但请求仍暂时通过 adapter 闭包读取配置。
-
-### 阶段 4：建立端到端 Run Config 快照
-
-目标：消除 provider、feature 和 MCP 对可变全局选择状态的直接读取。
-
-候选类型：
+### 5.1 Run Config
 
 ```ts
 export interface ChatRunConfig {
@@ -271,140 +118,286 @@ export interface ChatSubmitPayload {
 }
 ```
 
-TODO：
+规则：
 
-- [ ] 明确 `runtime.sender.runConfig?: ChatReadable<ChatRunConfig | undefined>` 的公共类型。
-- [ ] `useChatInput.send()` 在调用 action 前复制数组和对象，形成当前轮快照。
-- [ ] 显式传入的 payload runConfig 优先于 sender 当前值。
-- [ ] Kit adapter 将快照写入本轮 user message metadata，不写入会话摘要。
-- [ ] 增加 Kit plugin，在 `onTurnStart/onBeforeRequest` 读取快照并转换请求参数。
-- [ ] 确认 message metadata 不进入最终模型 messages。
-- [ ] `toolPlugin.getTools(context)` 按快照过滤 Server 和 Tool。
-- [ ] 发送中修改模型、feature、Server 和 Tool，仅影响下一轮。
-- [ ] 按 conversation ID 和 run ID 验证并发会话配置隔离。
-- [ ] 不实现重试快照；等待未来重试协议确定。
+- `runConfig` 是发送瞬间生成的只读快照。
+- `modelId` 使用公共模型 ID，不使用供应商请求字段。
+- `features` 只表达 thinking、search 等中性开关。
+- API Key、URL、Headers 和 transport 不进入 `runConfig`。
+- `custom` 只用于无法标准化的业务字段，不作为核心能力的长期存放位置。
 
-验收：
+### 5.2 Model Runtime
 
-- provider 和 tool plugin 不再直接读取变化中的全局选择状态。
-- 当前请求配置在整个 turn 内保持一致。
-- 不同会话同时请求时互不污染。
-- `runtime.actions.send` 仍是唯一发送入口。
+```ts
+export interface ChatModelOption {
+  id: string
+  label: string
+  capabilities?: Readonly<Record<string, boolean>>
+  metadata?: Readonly<Record<string, unknown>>
+}
 
-阶段结果：模型和 MCP 从“UI 状态闭包”升级为可测试的逐轮配置协议。
+export interface ChatModelRuntime {
+  options: ChatReadable<readonly ChatModelOption[]>
+  selectedId: ChatReadable<string | null>
+  select: (id: string) => Promise<void> | void
+}
+```
 
-### 阶段 5：下沉 Provider 和 MCP adapter
+规则：
 
-目标：将网络、凭证、参数转换和工具执行完全移出 UI。
+- 模型协议不包含 apiKey、apiUrl 和供应商请求参数。
+- `select` 失败时保留原选择。
+- feature 是否可用由选中模型的 capabilities 派生。
+- 图标和特定展示文案由默认 UI 或 ChatUi 提供。
 
-TODO：
+### 5.3 MCP Runtime
 
-- [ ] 先评估 Kit 现有 `OpenAIProvider` 是否可复用，避免再造重复 provider。
-- [ ] 若不满足 Vue message `ResponseProvider`，提供最小 OpenAI-compatible adapter。
-- [ ] provider adapter 根据 `modelId` 选择 URL、凭证和模型参数。
-- [ ] thinking/search 中性 feature 在 adapter 中转换为供应商字段。
-- [ ] API Key、Base URL、Headers 只保留在应用配置或 provider adapter。
-- [ ] MCP SDK 依赖保留在 MCP adapter，不加入 chat 核心硬依赖。
-- [ ] MCP adapter 负责 Server 配置、transport、listTools 和 callTool。
-- [ ] Tool 列表按 `mcpServerIds/mcpToolIds` 过滤后再交给 Kit `toolPlugin`。
-- [ ] Tool 调用前校验对应 Server 和 Tool 仍在本轮快照中。
-- [ ] 补充 Server 连接、工具发现、工具调用、部分 Server 失败和取消测试。
-- [ ] 将连接池优化单列任务，不阻塞首期迁移。
+```ts
+export interface ChatMcpToolInfo {
+  id: string
+  name: string
+  description?: string
+  enabled: boolean
+}
 
-验收：
+export interface ChatMcpServerInfo {
+  id: string
+  name: string
+  description?: string
+  installed: boolean
+  enabled: boolean
+  loading?: boolean
+  tools?: readonly ChatMcpToolInfo[]
+  metadata?: Readonly<Record<string, unknown>>
+}
 
-- UI 不读取凭证或 transport。
-- Provider 和 MCP 均可被 Existing Kit 或 Custom Runtime 替换。
-- Tool toggle 与实际发送工具列表一致。
-- 单个 MCP Server 失败不会破坏其他 Server 的工具发现。
+export interface ChatMcpRuntime {
+  servers: ChatReadable<readonly ChatMcpServerInfo[]>
+  addServer: (id: string) => Promise<void> | void
+  removeServer: (id: string) => Promise<void> | void
+  setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
+  setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
+}
+```
 
-阶段结果：CLI basic 的模型请求和 MCP 工具链完成职责下沉。
+规则：
 
-### 阶段 6：抽取可选 Selector 能力和默认 UI
+- available、installed、enabled 必须有明确语义，不能共用一组 ID 表示。
+- Tool toggle 必须真正影响本轮 `mcpToolIds` 和 `toolPlugin.getTools()`。
+- Client、Transport、Headers、连接池和工具执行器属于 MCP adapter。
+- Server 和 Tool 错误状态后续按真实 UI 需求增量补充，不提前扩展。
 
-目标：在 slots 方案经过真实迁移验证后，再形成稳定公共协议。
-
-建议保持在 `sender` 域内：
+### 5.4 Sender 扩展
 
 ```ts
 export interface ChatRuntimeSender {
   disabled: ChatReadable<boolean>
-  runConfig?: ChatReadable<ChatRunConfig | undefined>
-  modelSelector?: ChatModelSelector
-  mcpSelector?: ChatMcpSelector
+  runConfig?: ChatReadable<Readonly<ChatRunConfig>>
+  model?: ChatModelRuntime
+  mcp?: ChatMcpRuntime
 }
 ```
 
+一致性要求：
+
+- `runConfig` 必须从 model、MCP 和 feature 状态派生，不能独立维护。
+- Model/MCP 不存在时，默认 UI 不显示对应入口。
+- Model/MCP 的修改动作留在各自子协议，不扩充顶层 `ChatRuntimeActions`。
+
+## 6. 目标数据流
+
+### 6.1 基础发送
+
+```txt
+TrSender event
+-> internal useChatInput
+-> runtime.actions.send
+-> active conversation engine
+-> provider/plugin
+-> runtime.activeConversation
+-> UI
+```
+
+### 6.2 逐轮配置
+
+```txt
+runtime.sender.model/mcp
+-> derived runtime.sender.runConfig
+-> useChatInput 在 submit 时复制快照
+-> ChatSubmitPayload.runConfig
+-> Kit adapter 写入本轮 user message metadata
+-> onTurnStart/onBeforeRequest/toolPlugin 读取快照
+-> Provider 参数和本轮工具列表
+```
+
+### 6.3 UI
+
+```txt
+runtime.sender.model/mcp
+-> default ModelSelector/McpSelector
+-> 子协议 select/add/remove/setEnabled
+-> Runtime 状态更新
+-> runConfig 重新派生
+```
+
+## 7. 分阶段实施
+
+### 阶段 0：冻结基线
+
+已完成：
+
+- [x] 新增 `packages/chat/demo/cases/cli-basic-migration.vue`。
+- [x] 记录 CLI basic 会话、发送、取消、模型和 MCP 基线。
+- [x] 新会话采用“立即创建并激活”的 TrChat 语义。
+- [x] Tool toggle 在真正过滤工具前保持隐藏或禁用。
+- [x] 重试、附件、语音、反馈和消息编辑不进入本次范围。
+- [x] 暂不引入新测试框架，维护手测验收清单。
+- [x] 验证 Runtime 四域和必选会话 actions。
+- [x] 验证 `activeConversation === null || conversations.some(id)`。
+
+待完成：
+
+无
+
+阶段结果：范围和核心 Runtime 边界固定。
+
+### 阶段 1：完成会话和消息协议替换
+
 TODO：
 
-- [ ] 收集阶段 3 至 5 的实际字段，删除只服务单一供应商的字段。
-- [ ] 模型协议只保留 options、selectedId、select 和中性 capabilities。
-- [ ] MCP 协议区分 available、installed、enabled 和 selected，禁止混用语义。
-- [ ] 明确异步 select 的 loading、失败回滚和并发覆盖规则。
-- [ ] 提供默认 ModelSelector 和 McpSelector。
-- [ ] 默认 UI 只读取 selector 协议，不读取 provider/MCP 私有配置。
-- [ ] 无对应 capability 时不渲染入口。
-- [ ] 保留 `sender-footer` 和完整 `footer` 替换能力。
+- [x] 在迁移案例中验证 `useConversation + useKitChatRuntime + TrChat`。
+- [x] 页面不再直接读取 `activeConversationId`、engine messages 和 request state。
+- [x] 验证首次发送建会话、标题生成、流式和取消。
+- [x] 捕获发送目标 conversation ID，避免切换会话后错误串写。
+- [x] 验证删除请求中会话会取消请求并清理错误状态。
+- [x] 明确 CLI message error 与 `lastError` 的展示优先级。
 
-验收：
+阶段结果：CLI 的 `useChat()` UI 协议被 `ChatRuntime` 替换。
 
-- Built-in Kit、Existing Kit、Custom Runtime 使用同一套默认选择器 UI。
-- 不接入 selector 的 Runtime 保持现有 Sender 行为。
-- 供应商字段、凭证和 transport 不进入公共 selector 类型。
+### 阶段 2：完成基础 UI 替换
 
-阶段结果：模型和 MCP 从迁移专用 slot 实现升级为可选公共能力。
+已完成：
 
-### 阶段 7：集成、清理和发布验证
+- [x] 增加 `sender-footer` 和 `sender-footer-right` 窄插槽。
+- [x] 保留完整 `footer` 替换入口。
+- [x] 在迁移案例验证窄插槽与默认 Sender 共存。
+- [x] 根据隐藏 role 派生可见消息和 Welcome 空态。
+- [x] 配置 Markdown、角色、头像、Sender props 和自动滚动。
+- [x] 使用 Layout drawer 和 AsideToggle 替换 CLI drawer 胶水。
+- [x] 通过 header slot 迁移主题按钮和 API 配置提示。
+- [x] 删除 CLI ChatList、基础 ChatSender、ConversationHistory 和 HistoryDrawerButton 的重复装配。
 
-目标：删除重复装配并完成发布级验证。
+TODO：
+无
+
+阶段结果：除 Model/MCP 外，CLI 基础页面由 TrChat 默认 UI 承接。
+
+### 阶段 3：定义并验证缺失协议
 
 TODO：
 
-- [ ] CLI basic 删除已被 TrChat 替代的 ChatList、ChatSender、ConversationHistory 和 drawer 胶水。
-- [ ] 保留应用级模型配置、MCP 配置、主题和凭证注入。
-- [ ] 更新 chat architecture、review checklist、示例和公共类型文档。
-- [ ] 验证 Built-in Kit、Existing Kit、Custom Runtime 三种入口。
-- [ ] 增加桌面和移动端组件测试截图基线。
-- [ ] 增加流式期间切换会话、切换模型/MCP、取消和删除测试。
-- [ ] 增加 system-only、无 active、Provider 缺失、MCP 部分失败测试。
+- [ ] 确定 `ChatRunConfig` 字段及快照规则。
+- [ ] 确定 `ChatModelRuntime` 的 options、selectedId 和 select 语义。
+- [ ] 确定 `ChatMcpRuntime` 的 installed、enabled、Tool 和动作语义。
+- [ ] 将三项能力加入 `ChatRuntimeSender`，保持 Runtime 顶层四域。
+- [ ] 明确 Model select、MCP action 的异步失败回滚规则。
+- [ ] 为无 Model、无 MCP、只有 Model、Model+MCP 四种组合建立类型示例。
+- [ ] 确认协议不包含供应商字段、凭证或 transport。
+- [ ] 同步 architecture、review checklist 和公共类型文档。
+
+阶段结果：缺失协议冻结，可以被外部 Runtime 和默认 UI 共同实现。
+
+### 阶段 4：实现 CLI/Kit adapter 和逐轮配置链路
+
+TODO：
+
+- [ ] 将 CLI `useModel()` 适配为 `ChatModelRuntime`。
+- [ ] 将 CLI `useMcp()` 适配为 `ChatMcpRuntime`。
+- [ ] 从 Model/MCP/feature 状态 computed 派生 `runConfig`。
+- [ ] `useChatInput.send()` 复制数组和对象，生成当前轮快照。
+- [ ] 显式 payload runConfig 优先于 sender 当前值。
+- [ ] Kit adapter 将快照写入当前 user message metadata。
+- [ ] Kit plugin 在 `onTurnStart/onBeforeRequest` 转换模型和 feature 参数。
+- [ ] 确认内部 metadata 不进入最终模型 messages。
+- [ ] `toolPlugin.getTools(context)` 按 Server 和 Tool 快照过滤。
+- [ ] 修复 CLI Tool toggle 只更新 UI、不影响请求的问题。
+- [ ] Provider adapter 根据 modelId 选择供应商配置。
+- [ ] MCP adapter 负责 Client、Transport、listTools 和 callTool。
+- [ ] 验证发送中切换模型/MCP只影响下一轮。
+- [ ] 验证并发会话的 run config 互不污染。
+
+阶段结果：CLI 本地 store 通过统一协议接入，Provider/MCP 不再读取变化中的全局状态。
+
+### 阶段 5：实现协议驱动的默认 UI
+
+TODO：
+
+- [ ] 默认 ModelSelector 只读取 `runtime.sender.model`。
+- [ ] 默认 thinking/search 按钮从选中模型 capabilities 派生。
+- [ ] 默认 McpSelector 只读取 `runtime.sender.mcp`。
+- [ ] MCP Picker 的市场、已安装、启用和 Tool 状态从统一 servers 派生。
+- [ ] 无对应子协议时不显示入口。
+- [ ] 异步操作期间显示稳定 loading，并在失败时回滚。
+- [ ] 默认 UI 不读取 useModel、useMcp、Provider 或 transport。
+- [ ] 保留 sender 窄插槽和完整 footer 作为自定义出口。
+
+阶段结果：Model/MCP 成为 TrChat 默认能力，不再依赖 CLI 自定义 Sender。
+
+### 阶段 6：替换 CLI 本地协议和组件
+
+TODO：
+
+- [ ] CLI 模型配置只保留模型定义和 Provider 私有配置。
+- [ ] CLI MCP 配置只保留 Server 定义和连接私有配置。
+- [ ] 删除组件对 `useModel()` 和 `useMcp()` 的直接依赖。
+- [ ] 删除 CLI ChatSender 和 McpServerPickerButton 的重复 UI。
+- [ ] 使用 TrChat 默认 ModelSelector、McpSelector 和 feature UI。
+- [ ] 删除临时占位控件和迁移兼容分支。
+- [ ] 确认 slots 只承接主题、配置提示等应用级扩展。
+
+阶段结果：CLI basic 完成协议替换，不再维护一套平行的 Chat UI 协议。
+
+### 阶段 7：集成验证
+
+TODO：
+
+- [ ] 验证 Built-in Kit、Existing Kit、Custom Runtime。
+- [ ] 验证无 Model/MCP 的最小 Runtime。
+- [ ] 验证 system-only、无 active 和 Provider 缺失状态。
+- [ ] 验证流式期间切换会话、模型、MCP、取消和删除。
+- [ ] 验证 MCP 部分 Server 失败和 Tool 过滤。
 - [ ] 执行 chat type-check 和 build。
-- [ ] 运行 e2e 前先执行 `pnpm build:components`。
+- [ ] 运行 e2e 前执行 `pnpm build:components`。
 - [ ] components 重建后重启测试服务，再执行 e2e。
 
-验收：
+阶段结果：公共协议、默认 UI、CLI basic 和三类 Runtime 行为一致。
 
-- CLI basic 能力矩阵中除明确排除项外全部完成。
-- ChatRuntime 顶层仍为四域。
-- 默认 UI、slots 和 Custom Runtime 均无行为回归。
-- 文档、类型、Demo 和测试结果一致。
+## 8. 执行顺序
 
-阶段结果：迁移完成，可进入发布和后续增量能力开发。
-
-## 6. 最终执行顺序
-
-1. 冻结行为和手测基线。
-2. 迁移 Runtime 主链路。
-3. 修复默认 UI 等价能力。
-4. 增加 Sender 窄插槽并迁移模型/MCP UI。
-5. 建立端到端 run config 快照。
-6. 下沉 Provider 和 MCP adapter。
-7. 抽取可选 selector 协议和默认 UI。
-8. 清理 CLI 重复代码并完成三类 Runtime 验证。
+1. 完成会话和基础 UI 替换。
+2. 冻结 RunConfig、ModelRuntime、McpRuntime。
+3. 实现 CLI/Kit adapter 和逐轮配置链路。
+4. 实现默认 Model/MCP UI。
+5. 删除 CLI 本地协议和重复组件。
+6. 完成三类 Runtime 和 e2e 验证。
 
 不得提前执行：
 
-- 在 run config 传递链路确定前发布 `ChatRunConfig`。
-- 在 Tool toggle 真正过滤请求工具前开放该交互。
-- 在 slot 迁移验证前发布 Model/MCP selector 协议。
-- 为迁移方便向 ChatRuntime 顶层增加模型、MCP 或 provider 域。
+- 不通过临时 slot 数据结构代替正式 Model/MCP 协议。
+- 不在 run config 传递链路完成前让 Provider 直接读取 UI store。
+- 不在 Tool 过滤生效前开放 Tool toggle。
+- 不为迁移方便扩展 ChatRuntime 顶层字段。
+- 不把 Provider、凭证、MCP transport 放入公共协议。
 
-## 7. 完成标准
+## 9. 完成标准
 
-- [ ] CLI basic 的会话、持久化、发送、流式、取消和基础 UI 全部由 TrChat 承接。
-- [ ] 模型、thinking/search 和 MCP 配置按 turn 快照，不受发送后状态变化影响。
-- [ ] Provider、凭证、MCP transport 和 Tool 执行不进入 ChatRuntime。
-- [ ] Tool UI 状态与实际请求工具完全一致。
+- [ ] CLI `useChat()` 的 UI 协议已由 ChatRuntime 替换。
+- [ ] Model、MCP 和 run config 形成稳定公共协议。
+- [ ] 默认 UI 只消费公共协议，不依赖 CLI store。
+- [ ] 模型和 MCP 配置按 turn 快照。
+- [ ] Tool UI 状态与实际请求工具一致。
+- [ ] Provider、凭证、MCP Client 和 Transport 不进入 ChatRuntime。
 - [ ] ChatRuntime 保持 `conversations + activeConversation + sender + actions` 四域。
-- [ ] 会话 actions 保持必选，abort 在 CLI 迁移 Runtime 中可用。
+- [ ] slots 仅用于自定义 UI，不承担标准功能协议。
 - [ ] Built-in Kit、Existing Kit、Custom Runtime 全部通过验证。
-- [ ] 类型检查、构建、组件测试和 e2e 全部通过。
+- [ ] 类型检查、构建和 e2e 全部通过。

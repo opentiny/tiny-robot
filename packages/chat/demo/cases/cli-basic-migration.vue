@@ -20,9 +20,7 @@ import type { ChatUi } from '../../src'
 const prompts = [
   { label: '阶段 1：验证会话、发送、流式与取消' },
   { label: '阶段 2：补齐 Markdown、空态和移动端 Drawer' },
-  { label: '阶段 3：通过 sender-footer 接入模型和 MCP' },
 ]
-const placeholderModels = ['DeepSeek Chat', 'DeepSeek Reasoner'] as const
 const cliBasicTitleFallback = (text: string) => text.trim().slice(0, 24) || '新对话'
 
 const cliBasicOnErrorPlugin: UseMessagePlugin = {
@@ -61,13 +59,8 @@ const runtime = useKitChatRuntime({
 })
 const isMobile = useMediaQuery('(max-width: 768px)')
 const colorMode = ref<'light' | 'dark'>('light')
-const selectedModelIndex = ref(0)
-const thinkingEnabled = ref(false)
-const searchEnabled = ref(false)
-const mcpEnabled = ref(false)
 const hasApiKey = computed(() => Boolean(import.meta.env.VITE_DEEPSEEK_API_KEY?.trim()))
 const leftAsideOpen = ref(!isMobile.value)
-const selectedModelLabel = computed(() => placeholderModels[selectedModelIndex.value])
 
 watch(
   isMobile,
@@ -79,10 +72,6 @@ watch(
 
 function toggleColorMode() {
   colorMode.value = colorMode.value === 'light' ? 'dark' : 'light'
-}
-
-function cycleModel() {
-  selectedModelIndex.value = (selectedModelIndex.value + 1) % placeholderModels.length
 }
 
 function handleLeftAsideOpenChange(detail: { open: boolean }) {
@@ -111,7 +100,7 @@ const ui = computed<ChatUi>(() => ({
   },
   welcome: {
     title: 'CLI Basic Migration',
-    description: '基于 existing-kit 的迁移验证案例，先验证 TrChat 主链路，再逐步补模型和 MCP。',
+    description: '基于 existing-kit 的替换案例。',
   },
   prompts: {
     wrap: true,
@@ -132,7 +121,7 @@ const ui = computed<ChatUi>(() => ({
     mode: 'multiple',
     clearable: true,
     maxLength: 4000,
-    placeholder: '输入消息验证 CLI basic 迁移主链路',
+    placeholder: '输入消息验证 CLI basic 替换主链路',
     showWordLimit: true,
   },
 }))
@@ -184,47 +173,8 @@ const ui = computed<ChatUi>(() => ({
         </div>
       </template>
 
-      <template #sender-footer="{ disabled }">
-        <div class="cli-basic-migration-sender-actions">
-          <button
-            class="cli-basic-migration-sender-actions__button"
-            :class="{ 'cli-basic-migration-sender-actions__button--active': thinkingEnabled }"
-            type="button"
-            :disabled="disabled"
-            @click="thinkingEnabled = !thinkingEnabled"
-          >
-            Thinking
-          </button>
-          <button
-            class="cli-basic-migration-sender-actions__button"
-            :class="{ 'cli-basic-migration-sender-actions__button--active': searchEnabled }"
-            type="button"
-            :disabled="disabled"
-            @click="searchEnabled = !searchEnabled"
-          >
-            Search
-          </button>
-          <button
-            class="cli-basic-migration-sender-actions__button"
-            :class="{ 'cli-basic-migration-sender-actions__button--active': mcpEnabled }"
-            type="button"
-            :disabled="disabled"
-            @click="mcpEnabled = !mcpEnabled"
-          >
-            MCP
-          </button>
-        </div>
-      </template>
-
-      <template #sender-footer-right="{ disabled }">
-        <button
-          class="cli-basic-migration-sender-actions__button"
-          type="button"
-          :disabled="disabled"
-          @click="cycleModel"
-        >
-          {{ selectedModelLabel }}
-        </button>
+      <template #sender-footer>
+        <div>模型选择器</div>
       </template>
     </TrChat>
   </TrThemeProvider>
@@ -297,46 +247,6 @@ const ui = computed<ChatUi>(() => ({
 
 .cli-basic-migration-header__theme:hover {
   color: var(--tr-text-primary);
-}
-
-.cli-basic-migration-sender-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.cli-basic-migration-sender-actions__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid var(--tr-border-color-default);
-  border-radius: 999px;
-  color: var(--tr-text-secondary);
-  background: var(--tr-container-bg-default);
-  font: inherit;
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.cli-basic-migration-sender-actions__button:hover:not(:disabled) {
-  color: var(--tr-text-primary);
-  border-color: var(--tr-border-color-hover);
-  background: var(--tr-container-bg-hover);
-}
-
-.cli-basic-migration-sender-actions__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.cli-basic-migration-sender-actions__button--active {
-  color: var(--tr-text-primary);
-  border-color: var(--tr-border-color-hover);
-  background: var(--tr-container-bg-default-2);
 }
 
 @media (max-width: 720px) {
