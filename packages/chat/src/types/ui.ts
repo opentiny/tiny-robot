@@ -1,4 +1,3 @@
-import type { ComputedRef, Ref } from 'vue'
 import type {
   BubbleListProps,
   BubbleProviderProps,
@@ -19,59 +18,8 @@ import type {
   SenderProps,
   WelcomeProps,
 } from '@opentiny/tiny-robot'
-export type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
-
-export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
-
-export type ChatProcessingState = 'requesting' | 'completing' | string
-
-export interface ChatConversationInfo {
-  id: string
-  title: string
-  createdAt?: number
-  updatedAt?: number
-  metadata?: Record<string, unknown>
-  [key: string]: unknown
-}
-
-export interface ChatMessagePart {
-  type: string
-  [key: string]: unknown
-}
-
-export type ChatMessageContent = string | ChatMessagePart[]
-
-export interface ChatToolCall {
-  id: string
-  type: 'function' | string
-  function: {
-    name: string
-    arguments: string
-  }
-}
-
-export interface ChatMessageItem<
-  T extends ChatMessageContent = ChatMessageContent,
-  S extends Record<string, unknown> = Record<string, unknown>,
-> {
-  role?: string
-  content?: T
-  reasoning_content?: string
-  tool_calls?: ChatToolCall[]
-  tool_call_id?: string
-  name?: string
-  id?: string
-  loading?: boolean
-  state?: S
-  metadata?: Record<string, unknown>
-}
-
-export interface ChatStructuredDataItem {
-  type: string
-  [key: string]: unknown
-}
-
-export type ChatStructuredData = ChatStructuredDataItem[]
+import type { ChatConversationInfo } from './base'
+import type { ChatSubmitPayload } from './runtime'
 
 // 梳理 UI 组件相关的事件
 interface ChatLayoutUiListeners {
@@ -109,38 +57,6 @@ export interface ChatHistoryUi extends Omit<HistoryProps<ChatConversationInfo>, 
 export interface ChatPromptsUi extends Omit<PromptsProps, 'items'> {
   items?: PromptProps[]
   onItemClick?: (event: MouseEvent, item: PromptProps) => void
-}
-
-export interface ChatConversation extends ChatConversationInfo {
-  messages: readonly ChatMessageItem[]
-  requestState: ChatRequestState
-  processingState?: ChatProcessingState
-  lastError?: unknown | null
-}
-
-export interface ChatRuntimeSender {
-  disabled: ChatReadable<boolean>
-}
-
-export interface ChatSubmitPayload {
-  text: string
-  structuredData?: ChatStructuredData
-}
-
-export interface ChatRuntimeActions {
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
-  abort?: () => Promise<void> | void
-  createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
-  switchConversation: (id: string) => Promise<void> | void
-  renameConversation: (id: string, title: string) => Promise<void> | void
-  deleteConversation: (id: string) => Promise<void> | void
-}
-
-export interface ChatRuntime {
-  conversations: ChatReadable<readonly ChatConversationInfo[]>
-  activeConversation: ChatReadable<ChatConversation | null>
-  sender: ChatRuntimeSender
-  actions: ChatRuntimeActions
 }
 
 type SubmitActionConfig = NonNullable<DefaultActions['submit']>
@@ -187,38 +103,4 @@ export interface ChatUi {
   welcome?: WelcomeProps
   prompts?: ChatPromptsUi
   sender?: ChatSenderUi
-}
-
-export interface ChatHeaderSlotProps {
-  title: string
-  requestState: ChatRequestState
-  processingState: ChatProcessingState | undefined
-  lastError: unknown | null
-  createConversation: ChatRuntimeActions['createConversation']
-}
-
-export interface ChatHistorySlotProps {
-  items: readonly ChatConversationInfo[]
-  activeId: string | null
-  switchConversation: ChatRuntimeActions['switchConversation']
-  renameConversation: ChatRuntimeActions['renameConversation']
-  deleteConversation: ChatRuntimeActions['deleteConversation']
-  createConversation: ChatRuntimeActions['createConversation']
-}
-
-export interface ChatMainSlotProps {
-  messages: readonly ChatMessageItem[]
-  requestState: ChatRequestState
-  processingState: ChatProcessingState | undefined
-  lastError: unknown | null
-}
-
-export interface ChatFooterSlotProps {
-  inputValue: string
-  setInputValue: (value: string) => void
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
-  abort?: () => Promise<void> | void
-  disabled: boolean
-  loading: boolean
-  submitDisabled: boolean
 }

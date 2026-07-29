@@ -2,22 +2,19 @@ import { computed, shallowRef, type Ref } from 'vue'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type { ChatConversation, ChatConversationInfo, ChatRuntime, ChatSubmitPayload } from '../types'
 
+type TitleFallback = (text: string) => string
+type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
+
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
   lastError?: Ref<unknown | null>
-  titleFallback?: (text: string) => string
-  send?: (payload: ChatSubmitPayload) => Promise<void> | void
+  titleFallback?: TitleFallback
+  send?: ChatRuntime['actions']['send']
+  sender?: Partial<ChatRuntime['sender']>
 }
-
 const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
 
-const toChatConversationInfo = (item: {
-  id: string
-  title?: string
-  createdAt?: number
-  updatedAt?: number
-  metadata?: Record<string, unknown>
-}): ChatConversationInfo => {
+const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo => {
   return {
     id: item.id,
     title: item.title || '新对话',
@@ -27,20 +24,14 @@ const toChatConversationInfo = (item: {
   }
 }
 
-export function useKitChatRuntime({
-  conversation,
-  lastError: errorRef,
-  titleFallback,
-  send,
-}: UseKitChatRuntimeOptions): ChatRuntime {
+export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
+  const { conversation, lastError: errorRef, titleFallback, send, sender: senderOptions = {} } = options
   const lastError = errorRef ?? shallowRef<unknown | null>(null)
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
   const resolveTitle = titleFallback ?? defaultTitleFallback
 
   const activeKitConversation = computed(() => conversation.activeConversation.value)
-  const historyItems = computed<ChatConversationInfo[]>(() =>
-    conversation.conversations.value.map(toChatConversationInfo),
-  )
+  const conversations = computed(() => conversation.conversations.value.map(toChatConversationInfo))
 
   const activeConversation = computed<ChatConversation | null>(() => {
     const active = activeKitConversation.value
@@ -58,7 +49,10 @@ export function useKitChatRuntime({
     }
   })
 
-  const disabled = shallowRef(false)
+  const sender: ChatRuntime['sender'] = {
+    ...senderOptions,
+    disabled: senderOptions.disabled ?? shallowRef(false),
+  }
 
   const sendMessage =
     send ??
@@ -82,10 +76,9 @@ export function useKitChatRuntime({
 
   async function handleSend(payload: ChatSubmitPayload) {
     let conversationId = conversation.activeConversation.value?.id ?? null
-    let task: Promise<void> | void
 
     try {
-      task = sendMessage(payload)
+      const task = Promise.resolve(sendMessage(payload))
       conversationId = conversation.activeConversation.value?.id ?? conversationId
 
       if (conversationId) {
@@ -114,11 +107,9 @@ export function useKitChatRuntime({
   }
 
   return {
-    conversations: historyItems,
+    conversations,
     activeConversation,
-    sender: {
-      disabled,
-    },
+    sender,
     actions: {
       send: handleSend,
       abort: async () => {
