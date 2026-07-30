@@ -1,24 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { TrSender, UploadButton, VoiceButton } from '@opentiny/tiny-robot'
 
 const content = ref('')
 const message = ref('')
+let messageTimer: ReturnType<typeof setTimeout> | undefined
+
+const showMessage = (value: string) => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+
+  message.value = value
+  messageTimer = setTimeout(() => {
+    message.value = ''
+    messageTimer = undefined
+  }, 3000)
+}
 
 const handleSubmit = (text: string) => {
-  message.value = `已提交: ${text}`
+  showMessage(`已提交: ${text}`)
   content.value = ''
-  setTimeout(() => (message.value = ''), 3000)
 }
 
 const handleFiles = (files: File[]) => {
-  message.value = `已选择 ${files.length} 个文件`
-  setTimeout(() => (message.value = ''), 3000)
+  showMessage(`已选择 ${files.length} 个文件`)
 }
 
 const handleVoiceFinal = (text: string) => {
   content.value += text + ' '
 }
+
+onBeforeUnmount(() => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+})
 </script>
 
 <template>
