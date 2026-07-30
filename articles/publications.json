@@ -116,6 +116,10 @@
       "title": "体积砍半、加载提速、请求不卡：TinyRobot 生产环境性能调优全攻略",
       "topic_issue": 12,
       "publications": {
+        "csdn": {
+          "url": "https://blog.csdn.net/m0_70721415/article/details/163309008",
+          "published_date": "2026-07-29"
+        },
         "juejin": {
           "url": "https://juejin.cn/post/7662940929596407818",
           "published_at": "2026-07-16T22:35:00+08:00"
