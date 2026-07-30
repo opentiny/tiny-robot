@@ -33,14 +33,24 @@ function createMessageId() {
   return `message-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+function toRequestMessage(message: ChatMessageItem): MessageRequestBody['messages'][number] {
+  return {
+    role: message.role,
+    content: typeof message.content === 'string' ? message.content : undefined,
+    reasoning_content: message.reasoning_content,
+    tool_calls: message.tool_calls?.map((toolCall, index) => ({
+      ...toolCall,
+      index,
+      type: 'function' as const,
+    })),
+    tool_call_id: message.tool_call_id,
+    name: message.name,
+  }
+}
+
 function toRequestBody(messages: ChatMessageItem[]): MessageRequestBody {
   return {
-    messages: messages
-      .filter((message) => message.role && typeof message.content === 'string')
-      .map((message) => ({
-        role: message.role || 'user',
-        content: String(message.content || ''),
-      })),
+    messages: messages.filter((message) => Boolean(message.role)).map(toRequestMessage),
   }
 }
 

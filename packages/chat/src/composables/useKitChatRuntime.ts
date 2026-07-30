@@ -1,6 +1,7 @@
-import { computed, shallowRef, type Ref } from 'vue'
+import { computed, shallowRef, watchEffect, type Ref } from 'vue'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type { ChatConversation, ChatConversationInfo, ChatRuntime, ChatSubmitPayload } from '../types'
+import { CHAT_RUN_CONFIG_METADATA_KEY, cloneRunConfig } from '../utils/runConfig'
 
 type TitleFallback = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
@@ -26,7 +27,6 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
   const { conversation, lastError: errorRef, titleFallback, send, sender: senderOptions = {} } = options
-  const lastError = errorRef ?? shallowRef<unknown | null>(null)
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
   const resolveTitle = titleFallback ?? defaultTitleFallback
 
@@ -49,6 +49,12 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     }
   })
 
+  if (errorRef) {
+    watchEffect(() => {
+      errorRef.value = activeConversation.value?.lastError ?? null
+    })
+  }
+
   const sender: ChatRuntime['sender'] = {
     ...senderOptions,
     disabled: senderOptions.disabled ?? shallowRef(false),
@@ -56,8 +62,8 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
 
   const sendMessage =
     send ??
-    (async ({ text }: ChatSubmitPayload) => {
-      const nextText = text.trim()
+    (async (payload: ChatSubmitPayload) => {
+      const nextText = payload.text.trim()
 
       if (!nextText) {
         return
@@ -71,14 +77,33 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
         conversation.updateConversationTitle(active.id, resolveTitle(nextText))
       }
 
-      await active.engine.sendMessage(nextText)
+      const now = Math.floor(Date.now() / 1000)
+
+      await active.engine.send({
+        role: 'user',
+        content: nextText,
+        metadata: {
+          createdAt: now,
+          updatedAt: now,
+          ...(payload.runConfig
+            ? {
+                [CHAT_RUN_CONFIG_METADATA_KEY]: cloneRunConfig(payload.runConfig),
+              }
+            : {}),
+        },
+      })
     })
 
   async function handleSend(payload: ChatSubmitPayload) {
     let conversationId = conversation.activeConversation.value?.id ?? null
 
+    const effectivePayload = {
+      ...payload,
+      runConfig: cloneRunConfig(payload.runConfig ?? sender.runConfig?.value),
+    }
+
     try {
-      const task = Promise.resolve(sendMessage(payload))
+      const task = Promise.resolve(sendMessage(effectivePayload))
       conversationId = conversation.activeConversation.value?.id ?? conversationId
 
       if (conversationId) {
@@ -87,8 +112,6 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
           [conversationId]: null,
         }
       }
-
-      lastError.value = null
       await task
     } catch (error) {
       if (conversationId) {
@@ -96,10 +119,6 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
           ...conversationErrors.value,
           [conversationId]: error,
         }
-      }
-
-      if (conversation.activeConversation.value?.id === conversationId) {
-        lastError.value = error
       }
 
       throw error
@@ -125,16 +144,10 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
         conversation.updateConversationTitle(id, title)
       },
       deleteConversation: async (id) => {
-        const wasActiveConversation = conversation.activeConversation.value?.id === id
-
         await conversation.deleteConversation(id)
 
         const { [id]: _removedConversationError, ...restConversationErrors } = conversationErrors.value
         conversationErrors.value = restConversationErrors
-
-        if (wasActiveConversation) {
-          lastError.value = null
-        }
       },
     },
   }

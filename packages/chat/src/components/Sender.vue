@@ -2,6 +2,9 @@
 import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import { useChatContext } from '../composables/useChatContext'
+import MCPSelector from './MCPSelector.vue'
+import ModelFeatures from './ModelFeatures.vue'
+import ModelSelector from './ModelSelector.vue'
 import type { ChatSenderUi, ChatStructuredData } from '../types'
 
 const { input, runtime, ui } = useChatContext()
@@ -100,11 +103,26 @@ function handleClear() {
     <template v-if="$slots['actions-inline']" #actions-inline="slotProps">
       <slot name="actions-inline" v-bind="slotProps" />
     </template>
-    <template v-if="$slots.footer" #footer="slotProps">
-      <slot name="footer" v-bind="slotProps" />
+    <template v-if="$slots.footer || runtime.sender.model || runtime.sender.mcp" #footer="slotProps">
+      <slot v-if="$slots.footer" name="footer" v-bind="slotProps" />
+      <div v-else class="tr-chat-sender__controls">
+        <MCPSelector v-if="runtime.sender.mcp" :mcp="runtime.sender.mcp" />
+        <ModelSelector v-if="runtime.sender.model" :model="runtime.sender.model" />
+        <ModelFeatures v-if="runtime.sender.model" :model="runtime.sender.model" />
+      </div>
     </template>
     <template v-if="$slots['footer-right']" #footer-right="slotProps">
       <slot name="footer-right" v-bind="slotProps" />
     </template>
   </TrSender>
 </template>
+
+<style scoped>
+.tr-chat-sender__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+</style>

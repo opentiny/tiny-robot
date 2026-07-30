@@ -1,6 +1,7 @@
 import { computed, shallowRef, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { ChatReadable, ChatRuntime, ChatSubmitPayload } from '../types'
+import { cloneRunConfig } from '../utils/runConfig'
 
 export interface ChatInput {
   inputValue: ChatReadable<string>
@@ -28,7 +29,10 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
       return
     }
 
+    const currentRuntime = getRuntime()
     const previousInputValue = inputValue.value
+
+    const runConfig = cloneRunConfig(payload.runConfig ?? currentRuntime.sender.runConfig?.value)
 
     // Optimistically clear the draft so long-running sends keep the composer responsive.
     inputValue.value = ''
@@ -37,6 +41,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
       await getRuntime().actions.send({
         ...payload,
         text,
+        runConfig,
       })
     } catch (error) {
       if (inputValue.value === '') {

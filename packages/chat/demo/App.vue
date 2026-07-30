@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import Basic from './cases/basic.vue'
 import BuiltInKit from './cases/built-in-kit.vue'
-import CliBasicMigration from './cases/cli-basic-migration.vue'
+import CliBasicMigration from './basic-integration/index.vue'
 import CustomRuntime from './cases/custom-runtime.vue'
 import ExistingKit from './cases/existing-kit.vue'
 

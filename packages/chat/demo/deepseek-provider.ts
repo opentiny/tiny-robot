@@ -20,7 +20,7 @@ export function createDeepSeekResponseProvider(): ResponseProvider {
       },
       body: JSON.stringify({
         ...requestBody,
-        model: DEEPSEEK_MODEL,
+        model: typeof requestBody.model === 'string' ? requestBody.model : DEEPSEEK_MODEL,
         stream: true,
       }),
       signal: abortSignal,

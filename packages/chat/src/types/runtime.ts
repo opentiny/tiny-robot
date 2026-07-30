@@ -14,17 +14,24 @@ export interface ChatConversation extends ChatConversationInfo {
   lastError?: unknown | null
 }
 
+export type ChatReasoningEffort = 'low' | 'medium' | 'high' | 'max'
+
+export interface ChatRunConfigReasoning {
+  enabled: boolean
+  effort?: ChatReasoningEffort
+}
+
 export interface ChatRunConfig {
   modelId?: string
   mcpServerIds?: readonly string[]
   features?: Readonly<Record<string, boolean>>
-  custom?: Readonly<Record<string, unknown>>
+  reasoning?: ChatRunConfigReasoning
 }
 
 export interface ChatModelOption {
   id: string
   label: string
-  capabilities?: Readonly<Record<string, boolean>>
+  capabilities?: Readonly<Record<string, boolean | undefined>>
   metadata?: Readonly<Record<string, unknown>>
 }
 

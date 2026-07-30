@@ -1,4 +1,5 @@
 export { default as TrChat } from './Chat.vue'
+export { MCPSelector, ModelFeatures, ModelSelector } from './components'
 
 export { useKitChatRuntime } from './composables/useKitChatRuntime'
 export { useLocalChatRuntime } from './composables/useLocalChatRuntime'

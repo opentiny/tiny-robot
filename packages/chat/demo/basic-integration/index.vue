@@ -15,6 +15,8 @@ import {
 import { createDeepSeekResponseProvider } from '../deepseek-provider'
 import { TrChat, useKitChatRuntime } from '../../src'
 import type { ChatUi } from '../../src'
+import { useRuntimeAdaptor } from './runtimeAdaptor'
+import { createModelRequestPlugin, createRunConfigPlugin, createMcpToolPlugin } from './usePlugins'
 
 /** 基于 existing-kit 的 CLI basic 迁移验证案例，只承担迁移过程验证。 */
 const prompts = [
@@ -36,6 +38,8 @@ const cliBasicOnErrorPlugin: UseMessagePlugin = {
   },
 }
 
+const basicRuntime = useRuntimeAdaptor()
+
 const conversation = useConversation({
   storage: localStorageStrategyFactory({
     key: 'tiny-robot-chat-cli-basic-migration-demo',
@@ -48,15 +52,22 @@ const conversation = useConversation({
         content: 'You are a helpful assistant.',
       },
     ],
-    plugins: [cliBasicOnErrorPlugin],
+    plugins: [
+      createRunConfigPlugin(),
+      createModelRequestPlugin(basicRuntime),
+      createMcpToolPlugin(basicRuntime),
+      cliBasicOnErrorPlugin,
+    ],
     responseProvider: createDeepSeekResponseProvider(),
   },
 })
 
 const runtime = useKitChatRuntime({
   conversation,
+  sender: basicRuntime.sender,
   titleFallback: cliBasicTitleFallback,
 })
+
 const isMobile = useMediaQuery('(max-width: 768px)')
 const colorMode = ref<'light' | 'dark'>('light')
 const hasApiKey = computed(() => Boolean(import.meta.env.VITE_DEEPSEEK_API_KEY?.trim()))
@@ -171,10 +182,6 @@ const ui = computed<ChatUi>(() => ({
             />
           </div>
         </div>
-      </template>
-
-      <template #sender-footer>
-        <div>模型选择器</div>
       </template>
     </TrChat>
   </TrThemeProvider>

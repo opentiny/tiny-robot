@@ -29,19 +29,19 @@ TrChat
 | `slots` | 按布局区域替换或扩展 UI |
 | runtime adapter | 将 Kit、AI SDK、Pinia 或自研 store 映射为 `ChatRuntime` |
 
-当前 MVP 已经覆盖基础聊天、会话、输入、取消请求和三类 Runtime 接入。
-距离完整替换 CLI basic 模板，还需要补模型选择、模型能力开关、MCP Server 选择以及对应的发送配置协议。
+当前 MVP 已经覆盖基础聊天、会话、输入、取消请求、三类 Runtime 接入、Model/MCP sender 子协议、逐轮 `runConfig` 快照和协议驱动默认 sender UI。
 
 本次评审建议批准：
 
 - `ChatRuntime` 核心协议和默认 `TrChat` 装配。
 - Built-in Kit、Existing Kit 和 Custom Runtime 三类接入路径。
-- CLI basic 的基础聊天 UI 迁移。
+- CLI basic 的主链路迁移。
+- Model/MCP 子协议、`MCPSelector`、`ModelSelector` 和 `ModelFeatures`。
 
 本次评审暂不承诺：
 
 - MCP Tool 级管理。
-- MCP 市场和安装流程。
+- 独立 MCP 市场源和安装向导。
 - 通用 capability registry。
 - 上传、语音和 suggestions 等其他增强能力。
 
@@ -115,6 +115,9 @@ interface ChatRuntime {
   activeConversation: ChatReadable<ChatConversation | null>
   sender: {
     disabled: ChatReadable<boolean>
+    runConfig?: ChatReadable<Readonly<ChatRunConfig>>
+    model?: ChatModelRuntime
+    mcp?: ChatMcpRuntime
   }
   actions: {
     send: (payload: ChatSubmitPayload) => Promise<void> | void
@@ -129,7 +132,7 @@ interface ChatRuntime {
 }
 ```
 
-完整类型以 [../src/types.ts](../src/types.ts) 为准，文档只解释协议语义，避免复制源码造成漂移。
+完整类型以 [../src/types/index.ts](../src/types/index.ts) 为准，文档只解释协议语义，避免复制源码造成漂移。
 
 约束：
 
@@ -297,14 +300,13 @@ useLocalChatRuntime
 | [built-in-kit.vue](../demo/cases/built-in-kit.vue) | 新项目快速接入 Kit | 已实现，待人工验收 |
 | [existing-kit.vue](../demo/cases/existing-kit.vue) | 已有 Kit Runtime 只迁移 UI | 已实现，待人工验收 |
 | [custom-runtime.vue](../demo/cases/custom-runtime.vue) | 外部数据层接入 | 已实现，待人工验收 |
-| CLI basic | 模型、模型能力和 MCP 选择迁移 | 下一阶段 |
+| [basic-integration](../demo/basic-integration/index.vue) | CLI basic 主链路迁移 | 已实现，待人工验收 |
 
 Demo 状态含义：
 
 | 状态 | 含义 |
 | --- | --- |
 | 已实现，待人工验收 | 类型检查和构建通过后，仍需完成交互验收 |
-| 下一阶段 | 当前协议未覆盖，不能作为 MVP 已完成能力 |
 
 当前 MVP 已覆盖：
 
@@ -313,6 +315,9 @@ Demo 状态含义：
 - 输入、Prompt 回填、发送、取消
 - 默认布局和区域 slots
 - Built-in Kit、Existing Kit、Custom Runtime
+- Model/MCP sender 子协议
+- 默认 `MCPSelector`、`ModelSelector` 和 `ModelFeatures`
+- 逐轮 `runConfig` 快照
 
 ## 8. CLI basic 迁移差异
 
@@ -334,12 +339,12 @@ toolPlugin
 | 会话历史 | 已覆盖 |
 | 输入和取消 | 已覆盖 |
 | Kit Runtime 复用 | 已覆盖 |
-| 模型列表和当前模型 | 未纳入 ChatRuntime |
-| 深度思考和联网搜索 | 未纳入 ChatRuntime |
-| MCP Server 选择 | 未纳入 ChatRuntime |
+| 模型列表和当前模型 | 已纳入 `runtime.sender.model` |
+| 深度思考和联网搜索 | 已纳入 `runtime.sender.model.features` |
+| MCP Server 选择 | 已纳入 `runtime.sender.mcp` |
 | MCP Tool 级开关 | 未纳入 ChatRuntime |
 
-因此当前可以完成 CLI basic 的基础 UI 和 Kit 数据层迁移，但还不能无改造替换模型和 MCP 业务能力。
+因此当前可以用 `TrChat` 默认 sender UI 承接模型、模型能力和 MCP Server 选择；MCP Tool 级管理继续后置。
 
 迁移矩阵：
 
@@ -349,122 +354,42 @@ toolPlugin
 | `ChatList` | 默认 `Messages` 或 `main` slot | 已支持 |
 | `ConversationHistory` | 默认 `Conversations` 或 `left-aside` slot | 已支持 |
 | 基础 `ChatSender` | 默认 `Sender` 或 `footer` slot | 已支持 |
-| `useModel` | model capability | 待补 |
-| thinking / search | model feature | 待补 |
-| `useMcp` Server 选择 | MCP capability | 待补 |
-| `toolPlugin` | Kit plugin / runtime adapter | 可复用，动态配置语义待定 |
+| `useModel` | `runtime.sender.model` | 已支持 |
+| thinking / search | `ModelFeatures` | 已支持 |
+| `useMcp` Server 选择 | `runtime.sender.mcp` + `MCPSelector` | 已支持 |
+| `toolPlugin` | Kit plugin / runtime adapter | 已按 `mcpServerIds` 快照过滤 |
 
 完整替换的边界是替换 CLI basic 的通用聊天装配代码，不替换应用自己的模型供应商配置、MCP 权限、凭证和业务插件。
 
 ## 9. 下一阶段扩展路线
 
-### 阶段 A：冻结 MVP 基础协议
+### 阶段 6：替换 CLI 本地协议和组件
 
-目标：确认 `ChatRuntime + ChatUi + slots` 的边界。
+目标：让 CLI basic 业务侧只保留供应商、凭证、MCP 连接和插件私有配置，通用 UI 走 `TrChat` 默认能力。
 
 验收：
 
-- 三类 Runtime 接入成立。
-- 输入草稿不要求外部 Runtime 提供。
-- UI 不直接依赖 Kit 或外部 store。
-- 默认 UI 和 slot 行为稳定。
+- 页面不直接依赖 `useModel()` 和 `useMcp()`。
+- 使用 `MCPSelector`、`ModelSelector` 和 `ModelFeatures`。
+- slots 只承接主题、配置提示等应用级扩展。
 
-### 阶段 B：完成 CLI basic 基础迁移
+### 阶段 7：集成验证
 
-目标：用 `TrChat` 替换 CLI basic 的布局、历史、消息和基础 Sender。
+目标：验证 Built-in Kit、Existing Kit、Custom Runtime 和 basic-integration 的协议行为一致。
 
-保留在应用或 adapter 中的内容：
+验收：
 
-- 模型供应商配置
-- API Key 和请求地址
-- MCP Server 配置
-- 业务插件
-
-### 阶段 C：补中性发送配置
-
-候选协议：
-
-```ts
-interface ChatRunConfig {
-  modelId?: string
-  mcpServerIds?: readonly string[]
-  features?: Record<string, boolean>
-  custom?: Record<string, unknown>
-}
-
-interface ChatSubmitPayload {
-  text: string
-  structuredData?: ChatStructuredData
-  runConfig?: ChatRunConfig
-}
-```
-
-`runConfig` 是否进入稳定 public API，需要经过评审决定。供应商参数、凭证和 MCP 连接配置不进入该协议。
-
-候选运行语义：
-
-- 发送时生成本次请求的 `runConfig` 快照。
-- 发送过程中切换模型只影响下一次请求。
-- 重试默认使用原请求快照。
-- 多会话请求必须各自持有快照，不能读取全局可变选择状态。
-- 单次 payload 优先于 runtime 当前选择，runtime 当前选择优先于 adapter 默认值。
-
-### 阶段 D：补模型和 MCP 窄能力
-
-先支持：
-
-- 模型列表和选择
-- 模型 feature 状态
-- MCP Server 添加、删除、启用、禁用
-- 选择状态到单次发送配置的映射
-
-候选能力协议：
-
-```ts
-interface ChatRuntimeCapabilities {
-  modelSelector?: ChatModelSelector
-  mcpSelector?: ChatMcpSelector
-}
-
-interface ChatModelOption {
-  id: string
-  label: string
-  capabilities?: Record<string, boolean>
-  metadata?: Record<string, unknown>
-}
-
-interface ChatModelSelector {
-  options: ChatReadable<readonly ChatModelOption[]>
-  selectedId: ChatReadable<string | null>
-  select: (id: string | null) => Promise<void> | void
-}
-
-interface ChatMcpServerOption {
-  id: string
-  label: string
-  description?: string
-  metadata?: Record<string, unknown>
-}
-
-interface ChatMcpSelector {
-  options: ChatReadable<readonly ChatMcpServerOption[]>
-  selectedIds: ChatReadable<readonly string[]>
-  select: (ids: readonly string[]) => Promise<void> | void
-}
-```
-
-该协议目前是下一阶段候选，不属于已冻结的 MVP API。首期只评审模型选择和 MCP Server 选择，Tool 级管理后置。
+- 无 Model/MCP、只有 Model、只有 MCP、Model+MCP 均可工作。
+- 发送中切换模型或 MCP 只影响下一轮。
+- MCP Server 启用状态影响本轮工具列表。
+- type-check、build 和 e2e 通过。
 
 后置：
 
-- MCP Tool 级开关
-- MCP 市场和安装流程
-- 通用 capability registry
-- 上传、语音和 suggestions
-
-### 阶段 E：默认 UI
-
-先通过 `footer` slot 验证选择器协议，再考虑提供默认 ModelSelector 和 McpSelector，避免先固化未经验证的 UI API。
+- MCP Tool 级开关。
+- 独立 MCP 市场源和安装向导。
+- 通用 capability registry。
+- 上传、语音和 suggestions。
 
 ## 10. 设计依据
 
@@ -472,7 +397,7 @@ assistant-ui 对本项目的有效启发：
 
 - 核心 runtime 保持瘦。
 - 复杂能力与核心生命周期分层。
-- 单次发送上下文使用中性 `runConfig/custom`。
+- 单次发送上下文使用中性 `runConfig.reasoning`。
 - 当前消息扩展使用 `content` 内容项和 `metadata`。
 - UI 通过组合和 adapter 扩展，而不是直接请求后端。
 
@@ -480,9 +405,9 @@ assistant-ui 对本项目的有效启发：
 
 当前仍需通过后续迁移验证的内容：
 
-- 模型选择是否需要进入公共协议。
-- MCP Server 选择和 Kit plugin 的动态衔接。
-- 单次 `runConfig` 的快照和重试语义。
+- CLI basic 删除本地重复 UI 后的整体回归。
+- 多 Runtime 组合下的 Model/MCP 可选子协议。
+- 单次 `runConfig` 的重试语义。
 - 独立消息 parts 协议及其稳定渲染约定。
 
 公共类型依赖：
