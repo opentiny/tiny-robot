@@ -148,6 +148,12 @@
           "published_date": "2026-07-30"
         }
       }
+    },
+    "tiny-robot/2026-07-30-drag-overlay-v-dropzone-guide": {
+      "article_file": "articles/tiny-robot/2026-07-30-drag-overlay-v-dropzone-guide/article.md",
+      "title": "拖文件进来会发生什么：TinyRobot DragOverlay 与 v-dropzone 协同指南",
+      "topic_issue": 104,
+      "publications": {}
     }
   }
 }
