@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { TinySwitch } from '@opentiny/vue'
-import { Sender } from '@opentiny/tiny-robot'
-import type { MentionItem, TemplateItem, SenderSuggestionItem } from '@opentiny/tiny-robot'
+import { Sender, TrAttachments } from '@opentiny/tiny-robot'
+import type {
+  Attachment,
+  MentionItem,
+  SenderSubmitMeta,
+  SenderSuggestionItem,
+  StructuredData,
+  TemplateItem,
+} from '@opentiny/tiny-robot'
 
 declare global {
   interface Window {
@@ -16,6 +23,7 @@ declare global {
 const senderRef = ref()
 const content = ref('')
 const result = ref('')
+const submitDetail = ref('')
 
 const isMultipleMode = ref(false)
 const clearable = ref(false)
@@ -32,6 +40,16 @@ const enableMention = ref(false)
 const enableTemplate = ref(false)
 const enableSuggestion = ref(false)
 const templateData = ref<TemplateItem[]>([])
+const attachmentsSourceMounted = ref(false)
+const senderAttachmentSourceId = ref('sender-attachments')
+const senderAttachmentItems = ref<Attachment[]>([
+  {
+    id: 'sender-attachment',
+    name: 'sender-note.txt',
+    url: 'https://example.com/files/sender-note.txt',
+    status: 'success',
+  },
+])
 
 const mode = computed(() => (isMultipleMode.value ? 'multiple' : 'single'))
 const size = computed(() => (isSmallSize.value ? 'small' : 'normal'))
@@ -48,8 +66,15 @@ const handleSizeChange = () => {
   result.value = `尺寸切换为: ${size.value}`
 }
 
-const handleSubmit = (value: string) => {
+const handleSubmit = (...args: [string, StructuredData?, SenderSubmitMeta?]) => {
+  const [value, structuredData, meta] = args
   result.value = `提交内容: ${value}`
+  submitDetail.value = JSON.stringify({
+    argsLength: args.length,
+    textContent: value,
+    structuredData: structuredData ?? null,
+    meta: meta ?? null,
+  })
 }
 
 const handleCancel = () => {
@@ -62,6 +87,10 @@ const handleClear = () => {
 
 const handleCustomAction = () => {
   result.value = '自定义按钮被点击'
+}
+
+const handleClearSenderAttachmentItems = () => {
+  senderAttachmentItems.value = []
 }
 
 const handleSetContent = () => {
@@ -264,6 +293,20 @@ onBeforeUnmount(() => {
             <tiny-switch data-testid="toggle-external-content-btn" v-model="hasExternalContent"></tiny-switch>
           </div>
           <div class="control-item">
+            <label>attachmentsSource:</label>
+            <tiny-switch data-testid="toggle-attachments-source-btn" v-model="attachmentsSourceMounted"></tiny-switch>
+          </div>
+          <div class="control-item">
+            <label>attachmentsSourceId:</label>
+            <input data-testid="attachments-source-id-input" type="text" v-model="senderAttachmentSourceId" />
+          </div>
+          <div class="control-item">
+            <label>attachmentsItems:</label>
+            <button data-testid="clear-attachments-source-items-btn" @click="handleClearSenderAttachmentItems">
+              clear
+            </button>
+          </div>
+          <div class="control-item">
             <label>submitType:</label>
             <select data-testid="submit-type-select" v-model="submitType">
               <option value="enter">enter</option>
@@ -325,6 +368,9 @@ onBeforeUnmount(() => {
       <p v-show="result" class="result-display" data-testid="result-display">
         {{ result }}
       </p>
+      <p v-show="submitDetail" class="result-display" data-testid="submit-detail-display">
+        {{ submitDetail }}
+      </p>
     </div>
 
     <Sender
@@ -347,6 +393,14 @@ onBeforeUnmount(() => {
       @cancel="handleCancel"
       @clear="handleClear"
     >
+      <template v-if="attachmentsSourceMounted" #header>
+        <TrAttachments
+          v-model:items="senderAttachmentItems"
+          :content-source-id="senderAttachmentSourceId"
+          variant="card"
+        />
+      </template>
+
       <template #footer>
         <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
       </template>

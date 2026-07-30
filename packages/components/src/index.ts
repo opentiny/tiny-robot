@@ -55,6 +55,12 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
+export { ATTACHMENTS_CONTENT_CONTEXT_KEY } from './attachments'
+export type {
+  AttachmentsContentContext,
+  AttachmentsContentRegistration,
+  AttachmentsContentSourceId,
+} from './attachments'
 export {
   BubbleRendererMatchPriority,
   BubbleRenderers,
@@ -67,7 +73,8 @@ export {
   useToolCall,
 } from './bubble'
 export { useTheme } from './theme-provider/useTheme'
-export { useSenderContext } from './sender'
+export { useSenderContext, useSenderContentRegistry } from './sender'
+export type { UseSenderContentRegistryReturn } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
 

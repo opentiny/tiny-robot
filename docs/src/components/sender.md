@@ -189,11 +189,19 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 通过插槽添加增强按钮（Upload、Voice 等），每个按钮都有独立的配置。
 
-<demo vue="../../demos/sender/actions-enhanced.vue" title="增强按钮" description="通过插槽添加 Upload、Voice 等增强按钮。" />
-
-附件、图片等内容通常由独立组件维护，不会写入 Sender 的编辑器文本。当用户只上传附件或图片、不输入额外文本时，Sender 无法感知这部分外部内容，会因输入框为空而不显示默认发送按钮。此时可以通过 `hasExternalContent` 告诉 Sender 当前存在外部可提交内容，例如 `:has-external-content="files.length > 0"`。设置后，即使输入框为空，默认发送按钮也会显示，快捷键提交和 `submit()` 方法也会按有内容处理。默认清空按钮仍只根据编辑器文本显示；外部内容数据由业务侧维护，建议由附件或图片列表提供自己的删除入口。
+<demo vue="../../demos/sender/actions-enhanced.vue" title="增强按钮" description="通过插槽添加 Upload、Voice 等增强按钮；上传内容随消息提交见下方示例。" />
 
 **配置详见**：[UploadButton 属性](#uploadbutton)、[VoiceButton 属性](#voicebutton)
+
+### 上传内容
+
+附件、图片等内容通常由上传按钮或独立列表维护，不会写入 Sender 的编辑器文本。当用户只上传附件或图片、不输入额外文本时，也需要让发送按钮可用，并在提交时拿到这些文件数据。把 `TrAttachments` 放在 Sender 内时，可通过 `content-source-id` 自动注册提交数据。
+
+:::warning 兼容说明
+`hasExternalContent` 仍可用于控制外部内容场景的可提交状态，但不会生成 `externalPayloads`。需要随提交返回附件数据时，请使用 `TrAttachments` 的 `content-source-id`。
+:::
+
+<demo vue="../../demos/sender/attachments-in-sender.vue" title="输入框内附件列表" description="使用 Attachments 在 Sender 内展示和管理附件，并随消息一起提交。" />
 
 ## 交互定制
 
@@ -283,7 +291,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | enterkeyhint @0.4 | 移动端虚拟键盘回车键提示 | `EnterKeyHint` | `'send'` |
 | autoSize | 自动调整高度 | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 5 }` |
 | clearable | 是否可清空 | `boolean` | `false` |
-| hasExternalContent @0.5 | 是否存在外部可提交内容，适用于附件、图片等不写入编辑器文本的内容 | `boolean` | `false` |
+| hasExternalContent @0.5 兼容保留 | 是否存在外部可提交内容，适用于附件、图片等不写入编辑器文本的内容。该属性不会生成 `externalPayloads`；使用 `TrAttachments` 时请改用 `contentSourceId` | `boolean` | `false` |
 | maxLength | 最大输入长度 | `number` | `Infinity` |
 | showWordLimit | 是否显示字数统计 | `boolean` | `false` |
 | submitType | 提交方式 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` |
@@ -450,7 +458,7 @@ onSelect: (item) => {
 | 事件名            | 说明                                                                 | 回调参数                                |
 | ----------------- | -------------------------------------------------------------------- | --------------------------------------- |
 | update:modelValue | 内容更新                                                             | `(value: string)`                       |
-| submit            | 提交内容，返回纯文本和结构化数据（可选）                             | `(text: string, data?: StructuredData)` |
+| submit            | 提交内容，返回纯文本、结构化数据（可选）和外部内容 meta（可选）       | `(text: string, data?: StructuredData, meta?: SenderSubmitMeta)` |
 | clear             | 清空内容                                                             | `()`                                    |
 | focus             | 获得焦点                                                             | `(event: FocusEvent)`                   |
 | blur              | 失去焦点                                                             | `(event: FocusEvent)`                   |
@@ -460,10 +468,12 @@ onSelect: (item) => {
 :::tip submit 事件参数说明
 - **text**：纯文本内容，适用于简单场景（如直接发送给 AI）
 - **data**：结构化数据数组，仅在使用 Template 或 Mention 扩展时返回，包含文本和特殊节点的完整信息
+- **meta**：仅当存在附件 payload 时返回，当前包含 `externalPayloads`
 
 根据业务需求选择使用：
 - 简单场景：只使用 `text` 参数
 - 复杂场景：使用 `data` 参数提取特殊节点信息或自定义拼接格式
+- 附件等外部内容：使用 `meta.externalPayloads` 按 `sourceId` 和 `type` 读取
 
 详见：[结构化数据](#结构化数据)
 :::
@@ -663,6 +673,18 @@ interface SuggestionTextPart {
 
 // 结构化数据（submit 事件返回）
 type StructuredData = TemplateItem[] | MentionStructuredItem[]
+
+interface SenderAttachmentPayload {
+  type: 'attachments'
+  items: Attachment[]
+}
+
+type SenderExternalPayloadSourceId = string
+type SenderExternalPayload = SenderAttachmentPayload & { readonly sourceId: SenderExternalPayloadSourceId }
+
+interface SenderSubmitMeta {
+  externalPayloads: SenderExternalPayload[]
+}
 
 // 输入模式
 type InputMode = 'single' | 'multiple'

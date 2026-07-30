@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { watch, ref, computed } from 'vue'
+import { watch, ref, computed, inject } from 'vue'
 import { useImagePreview, useListType } from './composables'
 import { AttachmentListEmits, AttachmentListProps, Attachment, ActionButton } from './index.type'
 import FileCard from './components/FileCard.vue'
 import { useFileType } from './composables/useFileType'
+import { ATTACHMENTS_CONTENT_CONTEXT_KEY } from './context'
 
 const props = withDefaults(defineProps<AttachmentListProps>(), {
   variant: 'auto',
@@ -63,6 +64,35 @@ const wrapClass = computed(() => (props.wrap ? 'wrap' : 'no-wrap'))
 const { normalizeAttachments } = useFileType({
   fileMatchers: props.fileMatchers,
 })
+
+const attachmentsContentContext = inject(ATTACHMENTS_CONTENT_CONTEXT_KEY, undefined)
+const registeredAttachmentContentId = computed(() => props.contentSourceId?.trim())
+const hasAttachmentsContent = computed(() => fileList.value.length > 0)
+
+let unregisterAttachmentsContent: (() => void) | undefined
+
+const unregisterRegisteredAttachments = () => {
+  unregisterAttachmentsContent?.()
+  unregisterAttachmentsContent = undefined
+}
+
+watch(
+  registeredAttachmentContentId,
+  (sourceId, _oldSourceId, onCleanup) => {
+    unregisterRegisteredAttachments()
+
+    if (!sourceId || !attachmentsContentContext) return
+
+    unregisterAttachmentsContent = attachmentsContentContext.registerAttachmentsContent({
+      id: sourceId,
+      hasContent: hasAttachmentsContent,
+      getAttachments: () => [...fileList.value],
+    })
+
+    onCleanup(unregisterRegisteredAttachments)
+  },
+  { immediate: true },
+)
 
 // 监听props.items变化
 watch(
