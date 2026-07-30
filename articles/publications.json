@@ -129,6 +129,12 @@
           "published_date": "2026-07-29"
         }
       }
+    },
+    "webmcp-sdk/2026-07-29-vue-webmcp-best-practices": {
+      "article_file": "articles/webmcp-sdk/2026-07-29-vue-webmcp-best-practices/article.md",
+      "title": "Vue 工程接入 WebMCP SDK 最佳实践：从零构建智能前端应用",
+      "topic_issue": 96,
+      "publications": {}
     }
   }
 }
