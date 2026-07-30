@@ -134,7 +134,20 @@
       "article_file": "articles/webmcp-sdk/2026-07-29-vue-webmcp-best-practices/article.md",
       "title": "Vue 工程接入 WebMCP SDK 最佳实践：从零构建智能前端应用",
       "topic_issue": 96,
-      "publications": {}
+      "publications": {
+        "csdn": {
+          "url": "https://blog.csdn.net/m0_70721415/article/details/163325935",
+          "published_date": "2026-07-30"
+        },
+        "juejin": {
+          "url": "https://juejin.cn/spost/7667907789687275529",
+          "published_date": "2026-07-30"
+        },
+        "segmentfault": {
+          "url": "https://segmentfault.com/a/1190000048094562",
+          "published_date": "2026-07-30"
+        }
+      }
     }
   }
 }
