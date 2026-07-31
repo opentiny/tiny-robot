@@ -3,6 +3,7 @@ export { MCPSelector, ModelFeatures, ModelSelector } from './components'
 
 export { useKitChatRuntime } from './composables/useKitChatRuntime'
 export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
+export { cloneRunConfig, readRunConfigFromMessage } from './utils/runConfig'
 
 export type {
   ChatBubbleEventPayload,
@@ -23,6 +24,13 @@ export type {
   ChatProcessingState,
   ChatRequestState,
   ChatRuntime,
+  ChatRunConfig,
+  ChatMcpRuntime,
+  ChatMcpServerInfo,
+  ChatMcpToolInfo,
+  ChatModelOption,
+  ChatReasoningEffort,
+  ChatModelRuntime,
   ChatRuntimeActions,
   ChatRuntimeSender,
   ChatSenderDefaultActions,

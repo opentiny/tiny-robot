@@ -53,11 +53,18 @@ export interface ChatMcpServerInfo {
   metadata?: Readonly<Record<string, unknown>>
 }
 
+export interface ChatMcpToolInfo {
+  id: string
+  name: string
+  description?: string
+}
+
 export interface ChatMcpRuntime {
   servers: ChatReadable<readonly ChatMcpServerInfo[]>
   addServer: (id: string) => Promise<void> | void
   removeServer: (id: string) => Promise<void> | void
   setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
+  listTools?: (serverId: string) => Promise<readonly ChatMcpToolInfo[]>
 }
 
 export interface ChatRuntimeSender {

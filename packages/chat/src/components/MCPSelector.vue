@@ -2,7 +2,7 @@
 import { computed, shallowRef } from 'vue'
 import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
-import type { ChatMcpRuntime, ChatMcpServerInfo } from '../types'
+import type { ChatMcpRuntime, ChatMcpServerInfo, ChatMcpToolInfo } from '../types'
 
 const props = defineProps<{
   mcp: ChatMcpRuntime
@@ -10,6 +10,7 @@ const props = defineProps<{
 
 const visible = shallowRef(false)
 const pendingServerIds = shallowRef<ReadonlySet<string>>(new Set())
+const loadedServerTools = shallowRef<Readonly<Record<string, readonly ChatMcpToolInfo[]>>>({})
 const fallbackPluginIcon = 'https://modelcontextprotocol.io/favicon.ico'
 const pickerPopupConfig = {
   type: 'drawer' as const,
@@ -48,7 +49,13 @@ function toPluginInfo(server: ChatMcpServerInfo): PluginInfo {
     icon: getMetadataString(server, 'icon') ?? fallbackPluginIcon,
     description: server.description ?? '',
     enabled: server.enabled,
-    tools: [],
+    expanded: true,
+    tools: (loadedServerTools.value[server.id] ?? []).map((tool) => ({
+      id: tool.id,
+      name: tool.name,
+      description: tool.description ?? '',
+      enabled: server.enabled,
+    })),
     addState: server.installed ? 'added' : pending ? 'loading' : 'idle',
     category: getMetadataString(server, 'category'),
   }
@@ -86,6 +93,19 @@ async function runServerAction(id: string, action: () => Promise<void> | void) {
   }
 }
 
+async function loadServerTools(id: string) {
+  if (!props.mcp.listTools) {
+    return
+  }
+
+  const tools = await props.mcp.listTools(id)
+
+  loadedServerTools.value = {
+    ...loadedServerTools.value,
+    [id]: tools,
+  }
+}
+
 async function handlePluginAdd(plugin: PluginInfo) {
   const server = findServer(plugin.id)
 
@@ -93,7 +113,10 @@ async function handlePluginAdd(plugin: PluginInfo) {
     return
   }
 
-  await runServerAction(plugin.id, () => props.mcp.addServer(plugin.id))
+  await runServerAction(plugin.id, async () => {
+    await props.mcp.addServer(plugin.id)
+    await loadServerTools(plugin.id)
+  })
 }
 
 async function handlePluginDelete(plugin: PluginInfo) {
@@ -104,6 +127,10 @@ async function handlePluginDelete(plugin: PluginInfo) {
   }
 
   await runServerAction(plugin.id, () => props.mcp.removeServer(plugin.id))
+
+  const nextTools = { ...loadedServerTools.value }
+  delete nextTools[plugin.id]
+  loadedServerTools.value = nextTools
 }
 
 async function handlePluginToggle(plugin: PluginInfo, enabled: boolean) {
@@ -113,7 +140,13 @@ async function handlePluginToggle(plugin: PluginInfo, enabled: boolean) {
     return
   }
 
-  await runServerAction(plugin.id, () => props.mcp.setServerEnabled(plugin.id, enabled))
+  await runServerAction(plugin.id, async () => {
+    await props.mcp.setServerEnabled(plugin.id, enabled)
+
+    if (enabled && !loadedServerTools.value[plugin.id]) {
+      await loadServerTools(plugin.id)
+    }
+  })
 }
 </script>
 
