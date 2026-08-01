@@ -1,0 +1,48 @@
+.tr-model-selector-vars() {
+  @prefix: tr-model-selector;
+
+  @vars: {
+    trigger-text-color: var(--tr-text-primary);
+    trigger-icon-color: var(--tr-text-secondary);
+    trigger-effort-color: var(--tr-text-tertiary);
+    trigger-outline-bg: var(--tr-container-bg-default);
+    trigger-outline-border: var(--tr-border-color-default);
+    trigger-ghost-bg: transparent;
+    trigger-ghost-border: transparent;
+    trigger-muted-bg: var(--tr-container-bg-default-2);
+    trigger-muted-border: transparent;
+    trigger-hover-bg: var(--tr-container-bg-hover);
+    trigger-hover-border: var(--tr-border-color-hover);
+    trigger-disabled-color: var(--tr-text-disabled);
+    panel-bg: var(--tr-dropdown-menu-bg-color);
+    panel-border: var(--tr-border-color-default);
+    panel-shadow: var(--tr-dropdown-menu-box-shadow);
+    divider-color: var(--tr-border-color-default);
+    item-color: var(--tr-dropdown-menu-item-color);
+    item-description-color: var(--tr-text-tertiary);
+    item-hover-bg: var(--tr-dropdown-menu-item-hover-bg-color);
+    item-selected-color: var(--tr-color-primary);
+    item-disabled-color: var(--tr-text-disabled);
+    group-label-color: var(--tr-text-tertiary);
+    empty-color: var(--tr-text-secondary);
+    scrollbar-color: var(--tr-dropdown-menu-scrollbar-thumb-color);
+    effort-label-color: var(--tr-text-secondary);
+    effort-option-color: var(--tr-text-secondary);
+    effort-option-border: var(--tr-border-color-default);
+    effort-option-bg: transparent;
+    effort-option-hover-bg: var(--tr-container-bg-hover);
+    effort-option-active-color: var(--tr-color-primary);
+    effort-option-active-border: var(--tr-color-primary);
+    effort-option-active-bg: color-mix(in srgb, var(--tr-color-primary) 12%, transparent);
+    effort-option-disabled-color: var(--tr-text-disabled);
+  };
+
+  :root,
+  [data-tr-theme] {
+    each(@vars, {
+      --@{prefix}-@{key}: @value;
+    });
+  }
+}
+
+.tr-model-selector-vars();
