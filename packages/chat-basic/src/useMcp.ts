@@ -22,6 +22,8 @@ const mcpDefinitions = Object.entries(McpServers).map(([id, server]) => ({
 }))
 
 function createMcpClient(serverId: string, server: McpServerConfig) {
+  server.validate?.(serverId)
+
   const client = new Client({ name: serverId, version: '0.1.0' })
   const requestInit = {
     headers: server.headers,
@@ -187,6 +189,12 @@ export function useMcp() {
           const nextTools = { ...tools.value }
           delete nextTools[serverId]
           tools.value = nextTools
+
+          const currentServer = findServer(serverId)
+
+          if (currentServer.installed) {
+            currentServer.enabled = false
+          }
         }
 
         throw error
