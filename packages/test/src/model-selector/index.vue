@@ -1,0 +1,765 @@
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef } from 'vue'
+import { TrModelSelector, TrThemeProvider } from '@opentiny/tiny-robot'
+import type {
+  ModelSelectorEffortOption,
+  ModelSelectorEffortValue,
+  ModelSelectorOption,
+  ModelSelectorValue,
+} from '@opentiny/tiny-robot'
+
+interface SelectorEventLog {
+  updates: number
+  changes: number
+  openUpdates: number
+  lastValue: ModelSelectorValue
+  lastChange: string
+  lastOpen: boolean | null
+}
+
+interface EffortEventLog {
+  updates: number
+  changes: number
+  lastValue: ModelSelectorEffortValue
+  lastChange: ModelSelectorEffortValue
+  sequence: string[]
+}
+
+function createEventLog(): SelectorEventLog {
+  return reactive({
+    updates: 0,
+    changes: 0,
+    openUpdates: 0,
+    lastValue: null,
+    lastChange: '',
+    lastOpen: null,
+  })
+}
+
+function createEffortEventLog(): EffortEventLog {
+  return reactive({
+    updates: 0,
+    changes: 0,
+    lastValue: null,
+    lastChange: null,
+    sequence: [],
+  })
+}
+
+function recordValue(log: SelectorEventLog, value: ModelSelectorValue) {
+  log.updates += 1
+  log.lastValue = value
+}
+
+function recordChange(log: SelectorEventLog, option: ModelSelectorOption) {
+  log.changes += 1
+  log.lastChange = option.value
+}
+
+function recordOpen(log: SelectorEventLog, open: boolean) {
+  log.openUpdates += 1
+  log.lastOpen = open
+}
+
+function recordEffortValue(log: EffortEventLog, value: ModelSelectorEffortValue) {
+  log.updates += 1
+  log.lastValue = value
+  log.sequence.push(`update:${value ?? 'null'}`)
+}
+
+function recordEffortChange(log: EffortEventLog, option: ModelSelectorEffortOption | null) {
+  log.changes += 1
+  log.lastChange = option?.value ?? null
+  log.sequence.push(`change:${option?.value ?? 'null'}`)
+}
+
+const models: readonly ModelSelectorOption[] = [
+  {
+    value: 'gpt-4o',
+    label: 'GPT-4o',
+    description: 'Fast multimodal model',
+    group: 'openai',
+    groupLabel: 'OpenAI',
+    keywords: ['vision', 'omni'],
+  },
+  {
+    value: 'gpt-4.1',
+    label: 'GPT-4.1',
+    description: 'Precise coding model',
+    group: 'openai',
+    groupLabel: 'OpenAI',
+    keywords: ['code'],
+  },
+  {
+    value: 'claude-sonnet',
+    label: 'Claude Sonnet',
+    description: 'Balanced reasoning model',
+    group: 'anthropic',
+    groupLabel: 'Anthropic',
+    keywords: ['analysis'],
+  },
+  {
+    value: 'claude-haiku',
+    label: 'Claude Haiku',
+    description: 'Unavailable compact model',
+    disabled: true,
+    group: 'anthropic',
+    groupLabel: 'Anthropic',
+    keywords: ['fast'],
+  },
+  {
+    value: 'deepseek-r1',
+    label: 'DeepSeek R1',
+    description: 'Open reasoning model',
+    group: 'open-source',
+    groupLabel: 'Open Source',
+    keywords: ['reasoning'],
+  },
+]
+
+const compactModels = models.slice(0, 3)
+const customFilterModels: readonly ModelSelectorOption[] = [
+  { value: 'custom-alpha', label: 'First Model', description: 'Ordinary choice' },
+  { value: 'custom-beta', label: 'Second Model', description: 'Only the custom filter finds this value' },
+]
+const effortModels: readonly ModelSelectorOption[] = [
+  {
+    value: 'reasoning-default',
+    label: 'Reasoning Default',
+    description: 'Uses the default effort levels',
+    efforts: true,
+  },
+  {
+    value: 'reasoning-custom',
+    label: 'Reasoning Custom',
+    description: 'Uses custom effort levels',
+    efforts: [
+      { value: 'minimal', label: 'Minimal' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'maximum', label: 'Maximum', disabled: true },
+      { value: 'medium', label: 'Duplicate Medium' },
+    ],
+  },
+  {
+    value: 'plain-model',
+    label: 'Plain Model',
+    description: 'Does not support configurable effort',
+  },
+  {
+    value: 'disabled-reasoning',
+    label: 'Disabled Reasoning',
+    description: 'Disabled model with effort metadata',
+    disabled: true,
+    efforts: true,
+  },
+]
+
+const logs = {
+  init: createEventLog(),
+  async: createEventLog(),
+  uncontrolled: createEventLog(),
+  controlled: createEventLog(),
+  blocked: createEventLog(),
+  keyboard: createEventLog(),
+  slots: createEventLog(),
+  defaultOpen: createEventLog(),
+  effortUncontrolled: createEffortEventLog(),
+  effortControlled: createEffortEventLog(),
+  effortBlocked: createEffortEventLog(),
+}
+
+const asyncModels = ref<readonly ModelSelectorOption[]>([])
+const controlledValue = ref<ModelSelectorValue>('gpt-4o')
+const controlledOpen = ref(false)
+const controlledModelRemoved = ref(false)
+const blockedValue = ref<ModelSelectorValue>('gpt-4o')
+const blockedOpen = ref(false)
+const controlledModels = computed(() =>
+  controlledModelRemoved.value ? models.filter((option) => option.value !== 'gpt-4o') : models,
+)
+const initiallyUndefinedValue = shallowRef<ModelSelectorValue | undefined>(undefined)
+const initiallyUndefinedOpen = shallowRef<boolean | undefined>(undefined)
+const initiallyUndefinedEffort = shallowRef<ModelSelectorEffortValue | undefined>(undefined)
+const blockedEffort = shallowRef<ModelSelectorEffortValue>('medium')
+
+function primeInitiallyUndefinedSelector() {
+  initiallyUndefinedValue.value = 'reasoning-default'
+  initiallyUndefinedEffort.value = 'high'
+  initiallyUndefinedOpen.value = true
+}
+
+function showDisabledEffortModel() {
+  initiallyUndefinedValue.value = 'disabled-reasoning'
+  initiallyUndefinedEffort.value = 'high'
+  initiallyUndefinedOpen.value = true
+}
+
+function handleControlledValue(value: ModelSelectorValue) {
+  recordValue(logs.controlled, value)
+  controlledValue.value = value
+}
+
+function handleControlledOpen(open: boolean) {
+  recordOpen(logs.controlled, open)
+  controlledOpen.value = open
+}
+
+function setControlledInvalid() {
+  controlledValue.value = 'retired-model'
+}
+
+function removeControlledModel() {
+  controlledModelRemoved.value = true
+}
+
+function restoreControlledModel() {
+  controlledModelRemoved.value = false
+}
+
+function customFilter(query: string, option: ModelSelectorOption) {
+  return query.trim().toLocaleLowerCase() === 'featured' && option.value === 'custom-beta'
+}
+
+const slotHeaderActivations = ref(0)
+const slotFooterActivations = ref(0)
+const rapidOpen = ref(false)
+const showDefaultOpenSelector = ref(false)
+
+async function rapidOpenClose() {
+  rapidOpen.value = true
+  await nextTick()
+  rapidOpen.value = false
+}
+
+const isDark = ref(false)
+const localColorMode = ref<'light' | 'dark'>('dark')
+
+function toggleDarkMode() {
+  isDark.value = !isDark.value
+  document.documentElement.setAttribute('data-tr-color-mode', isDark.value ? 'dark' : 'light')
+}
+
+function toggleLocalColorMode() {
+  localColorMode.value = localColorMode.value === 'dark' ? 'light' : 'dark'
+}
+
+onBeforeUnmount(() => {
+  document.documentElement.removeAttribute('data-tr-color-mode')
+})
+</script>
+
+<template>
+  <div class="model-selector-test">
+    <header class="model-selector-test__intro">
+      <div>
+        <h2>ModelSelector 组件测试</h2>
+        <p>验证状态契约、effort、搜索分组、键盘与 ARIA、slots 以及浮层边界。</p>
+      </div>
+      <button data-testid="dark-mode-toggle" type="button" @click="toggleDarkMode">
+        {{ isDark ? 'Use light mode' : 'Use dark mode' }}
+      </button>
+    </header>
+
+    <button data-testid="outside-action" type="button">Outside action</button>
+
+    <section class="model-selector-test__section" data-testid="init-section">
+      <h3>初始化与异步 models</h3>
+      <div class="model-selector-test__row">
+        <TrModelSelector
+          data-testid="init-selector"
+          :models="models"
+          aria-label="Init selector"
+          list-aria-label="Init models"
+          @update:model-value="recordValue(logs.init, $event)"
+          @change="recordChange(logs.init, $event)"
+          @update:open="recordOpen(logs.init, $event)"
+        />
+
+        <button data-testid="load-async-models" type="button" @click="asyncModels = models">Load async models</button>
+        <TrModelSelector
+          data-testid="async-selector"
+          :models="asyncModels"
+          aria-label="Async selector"
+          list-aria-label="Async models"
+          @update:model-value="recordValue(logs.async, $event)"
+          @change="recordChange(logs.async, $event)"
+          @update:open="recordOpen(logs.async, $event)"
+        />
+      </div>
+      <div class="model-selector-test__metrics">
+        <output data-testid="init-updates">{{ logs.init.updates }}</output>
+        <output data-testid="init-changes">{{ logs.init.changes }}</output>
+        <output data-testid="async-updates">{{ logs.async.updates }}</output>
+        <output data-testid="async-changes">{{ logs.async.changes }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="uncontrolled-section">
+      <h3>非受控 value/open</h3>
+      <TrModelSelector
+        data-testid="uncontrolled-selector"
+        :models="models"
+        default-value="claude-sonnet"
+        aria-label="Uncontrolled selector"
+        search-aria-label="Uncontrolled search"
+        list-aria-label="Uncontrolled models"
+        @update:model-value="recordValue(logs.uncontrolled, $event)"
+        @change="recordChange(logs.uncontrolled, $event)"
+        @update:open="recordOpen(logs.uncontrolled, $event)"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="uncontrolled-updates">{{ logs.uncontrolled.updates }}</output>
+        <output data-testid="uncontrolled-changes">{{ logs.uncontrolled.changes }}</output>
+        <output data-testid="uncontrolled-last-value">{{ logs.uncontrolled.lastValue ?? 'null' }}</output>
+        <output data-testid="uncontrolled-open-updates">{{ logs.uncontrolled.openUpdates }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="controlled-section">
+      <h3>受控 value/open 与无效值</h3>
+      <div class="model-selector-test__controls">
+        <button data-testid="controlled-open" type="button" @click="controlledOpen = true">External open</button>
+        <button data-testid="controlled-close" type="button" @click="controlledOpen = false">External close</button>
+        <button data-testid="controlled-invalid" type="button" @click="setControlledInvalid">Set invalid</button>
+        <button data-testid="controlled-remove" type="button" @click="removeControlledModel">Remove selected</button>
+        <button data-testid="controlled-restore" type="button" @click="restoreControlledModel">Restore selected</button>
+        <button data-testid="controlled-reset" type="button" @click="controlledValue = 'gpt-4o'">Reset value</button>
+      </div>
+      <TrModelSelector
+        data-testid="controlled-selector"
+        :models="controlledModels"
+        :model-value="controlledValue"
+        :open="controlledOpen"
+        aria-label="Controlled selector"
+        search-aria-label="Controlled search"
+        list-aria-label="Controlled models"
+        @update:model-value="handleControlledValue"
+        @change="recordChange(logs.controlled, $event)"
+        @update:open="handleControlledOpen"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="controlled-value">{{ controlledValue ?? 'null' }}</output>
+        <output data-testid="controlled-open-state">{{ controlledOpen }}</output>
+        <output data-testid="controlled-updates">{{ logs.controlled.updates }}</output>
+        <output data-testid="controlled-changes">{{ logs.controlled.changes }}</output>
+        <output data-testid="controlled-open-updates">{{ logs.controlled.openUpdates }}</output>
+      </div>
+
+      <div class="model-selector-test__controls">
+        <button data-testid="blocked-force-open" type="button" @click="blockedOpen = true">Force blocked open</button>
+        <button data-testid="blocked-force-close" type="button" @click="blockedOpen = false">
+          Force blocked close
+        </button>
+      </div>
+      <TrModelSelector
+        data-testid="blocked-selector"
+        :models="controlledModels"
+        :model-value="blockedValue"
+        :open="blockedOpen"
+        aria-label="Blocked selector"
+        search-aria-label="Blocked search"
+        list-aria-label="Blocked models"
+        @update:model-value="recordValue(logs.blocked, $event)"
+        @change="recordChange(logs.blocked, $event)"
+        @update:open="recordOpen(logs.blocked, $event)"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="blocked-value">{{ blockedValue }}</output>
+        <output data-testid="blocked-open-state">{{ blockedOpen }}</output>
+        <output data-testid="blocked-updates">{{ logs.blocked.updates }}</output>
+        <output data-testid="blocked-changes">{{ logs.blocked.changes }}</output>
+        <output data-testid="blocked-open-updates">{{ logs.blocked.openUpdates }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="effort-section">
+      <h3>Reasoning effort</h3>
+
+      <TrModelSelector
+        data-testid="effort-uncontrolled-selector"
+        :models="effortModels"
+        :searchable="false"
+        default-value="reasoning-default"
+        default-effort="medium"
+        aria-label="Default effort selector"
+        list-aria-label="Default effort models"
+        effort-aria-label="Default effort levels"
+        @update:effort="recordEffortValue(logs.effortUncontrolled, $event)"
+        @effort-change="recordEffortChange(logs.effortUncontrolled, $event)"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="effort-uncontrolled-updates">{{ logs.effortUncontrolled.updates }}</output>
+        <output data-testid="effort-uncontrolled-changes">{{ logs.effortUncontrolled.changes }}</output>
+        <output data-testid="effort-uncontrolled-value">{{ logs.effortUncontrolled.lastValue ?? 'null' }}</output>
+        <output data-testid="effort-uncontrolled-sequence">{{ logs.effortUncontrolled.sequence.join(' > ') }}</output>
+      </div>
+
+      <TrModelSelector
+        data-testid="effort-blocked-selector"
+        :models="effortModels"
+        :searchable="false"
+        model-value="reasoning-default"
+        :effort="blockedEffort"
+        aria-label="Blocked effort selector"
+        list-aria-label="Blocked effort models"
+        effort-aria-label="Blocked effort levels"
+        @update:effort="recordEffortValue(logs.effortBlocked, $event)"
+        @effort-change="recordEffortChange(logs.effortBlocked, $event)"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="effort-blocked-raw">{{ blockedEffort }}</output>
+        <output data-testid="effort-blocked-updates">{{ logs.effortBlocked.updates }}</output>
+        <output data-testid="effort-blocked-changes">{{ logs.effortBlocked.changes }}</output>
+        <output data-testid="effort-blocked-sequence">{{ logs.effortBlocked.sequence.join(' > ') }}</output>
+      </div>
+
+      <div class="model-selector-test__controls">
+        <button data-testid="undefined-controlled-prime" type="button" @click="primeInitiallyUndefinedSelector">
+          Set initially undefined models
+        </button>
+        <button data-testid="undefined-controlled-disabled" type="button" @click="showDisabledEffortModel">
+          Show disabled effort model
+        </button>
+      </div>
+      <TrModelSelector
+        v-model="initiallyUndefinedValue"
+        v-model:open="initiallyUndefinedOpen"
+        v-model:effort="initiallyUndefinedEffort"
+        data-testid="effort-controlled-selector"
+        :models="effortModels"
+        :searchable="false"
+        aria-label="Controlled effort selector"
+        list-aria-label="Controlled effort models"
+        @update:effort="recordEffortValue(logs.effortControlled, $event)"
+        @effort-change="recordEffortChange(logs.effortControlled, $event)"
+      >
+        <template #trigger="{ label, effort, effortOption }">
+          <span data-testid="effort-controlled-trigger-slot">
+            {{ label }}|{{ effort ?? 'null' }}|{{ effortOption?.label ?? 'null' }}
+          </span>
+        </template>
+        <template #footer="{ efforts, effort, effortOption, setEffort, close }">
+          <div data-testid="effort-custom-footer">
+            <output data-testid="effort-footer-count">{{ efforts.length }}</output>
+            <output data-testid="effort-footer-value">{{ effort ?? 'null' }}</output>
+            <output data-testid="effort-footer-option">{{ effortOption?.label ?? 'null' }}</output>
+            <button data-testid="effort-footer-medium" type="button" @click="setEffort('medium')">Medium</button>
+            <button data-testid="effort-footer-high" type="button" @click="setEffort('high')">High</button>
+            <button data-testid="effort-footer-low" type="button" @click="setEffort('low')">Low</button>
+            <button data-testid="effort-footer-close" type="button" @click="close">Close effort panel</button>
+          </div>
+        </template>
+      </TrModelSelector>
+      <div class="model-selector-test__metrics">
+        <output data-testid="effort-controlled-model">
+          {{ initiallyUndefinedValue === undefined ? 'undefined' : String(initiallyUndefinedValue) }}
+        </output>
+        <output data-testid="effort-controlled-open">
+          {{ initiallyUndefinedOpen === undefined ? 'undefined' : String(initiallyUndefinedOpen) }}
+        </output>
+        <output data-testid="effort-controlled-raw">
+          {{ initiallyUndefinedEffort === undefined ? 'undefined' : String(initiallyUndefinedEffort) }}
+        </output>
+        <output data-testid="effort-controlled-updates">{{ logs.effortControlled.updates }}</output>
+        <output data-testid="effort-controlled-changes">{{ logs.effortControlled.changes }}</output>
+        <output data-testid="effort-controlled-sequence">{{ logs.effortControlled.sequence.join(' > ') }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="filter-section">
+      <h3>自定义过滤</h3>
+      <TrModelSelector
+        data-testid="custom-filter-selector"
+        :models="customFilterModels"
+        :filter-method="customFilter"
+        aria-label="Custom filter selector"
+        search-aria-label="Custom filter search"
+        list-aria-label="Custom filter models"
+      />
+    </section>
+
+    <section class="model-selector-test__section" data-testid="keyboard-section">
+      <h3>无搜索键盘导航</h3>
+      <TrModelSelector
+        data-testid="keyboard-selector"
+        :models="models"
+        :searchable="false"
+        aria-label="Keyboard selector"
+        list-aria-label="Keyboard models"
+        @update:model-value="recordValue(logs.keyboard, $event)"
+        @change="recordChange(logs.keyboard, $event)"
+        @update:open="recordOpen(logs.keyboard, $event)"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="keyboard-updates">{{ logs.keyboard.updates }}</output>
+        <output data-testid="keyboard-changes">{{ logs.keyboard.changes }}</output>
+        <output data-testid="keyboard-last-value">{{ logs.keyboard.lastValue ?? 'null' }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="slots-section">
+      <h3>Slots 与辅助控件</h3>
+      <TrModelSelector
+        data-testid="slot-selector"
+        :models="models"
+        default-value="gpt-4o"
+        variant="ghost"
+        size="small"
+        content-class="model-selector-test__custom-content"
+        :content-style="{ borderWidth: '2px' }"
+        aria-label="Slot selector"
+        search-aria-label="Slot search"
+        list-aria-label="Slot models"
+        @update:model-value="recordValue(logs.slots, $event)"
+        @change="recordChange(logs.slots, $event)"
+        @update:open="recordOpen(logs.slots, $event)"
+      >
+        <template #trigger="{ label, open }">
+          <span data-testid="slot-trigger-content">{{ open ? 'Opened' : 'Closed' }}: {{ label }}</span>
+        </template>
+        <template #panel-header>
+          <button data-testid="slot-header-action" type="button" @click="slotHeaderActivations += 1">
+            Header action
+          </button>
+        </template>
+        <template #group-label="{ label, models: groupModels }">
+          <span :data-testid="`slot-group-${label || 'ungrouped'}`">Custom {{ label }} ({{ groupModels.length }})</span>
+        </template>
+        <template #item="{ option, selected, disabled }">
+          <span :data-testid="`slot-item-${option.value}`">
+            Custom {{ option.label }}{{ selected ? ' selected' : '' }}{{ disabled ? ' disabled' : '' }}
+          </span>
+        </template>
+        <template #empty="{ query }">
+          <span data-testid="slot-empty">Nothing matches {{ query }}</span>
+        </template>
+        <template #footer="{ close }">
+          <button data-testid="slot-footer-action" type="button" @click="slotFooterActivations += 1">
+            Footer action
+          </button>
+          <button data-testid="slot-footer-close" type="button" @click="close">Close from footer</button>
+        </template>
+      </TrModelSelector>
+      <div class="model-selector-test__metrics">
+        <output data-testid="slot-header-activations">{{ slotHeaderActivations }}</output>
+        <output data-testid="slot-footer-activations">{{ slotFooterActivations }}</output>
+        <output data-testid="slot-updates">{{ logs.slots.updates }}</output>
+        <output data-testid="slot-changes">{{ logs.slots.changes }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="multiple-section">
+      <h3>多实例与 outside click</h3>
+      <div class="model-selector-test__row">
+        <TrModelSelector
+          data-testid="primary-selector"
+          :models="compactModels"
+          aria-label="Primary selector"
+          search-aria-label="Primary search"
+          list-aria-label="Primary models"
+        />
+        <TrModelSelector
+          data-testid="secondary-selector"
+          :models="compactModels"
+          aria-label="Secondary selector"
+          search-aria-label="Secondary search"
+          list-aria-label="Secondary models"
+        />
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="lifecycle-section">
+      <h3>defaultOpen 与快速开关</h3>
+      <div class="model-selector-test__controls">
+        <button data-testid="mount-default-open" type="button" @click="showDefaultOpenSelector = true">
+          Mount default open
+        </button>
+        <button data-testid="rapid-open-close" type="button" @click="rapidOpenClose">Rapid open close</button>
+      </div>
+      <TrModelSelector
+        v-if="showDefaultOpenSelector"
+        data-testid="default-open-selector"
+        :models="compactModels"
+        default-open
+        aria-label="Default open selector"
+        search-aria-label="Default open search"
+        list-aria-label="Default open models"
+        @update:open="recordOpen(logs.defaultOpen, $event)"
+      />
+      <TrModelSelector
+        data-testid="rapid-selector"
+        :models="compactModels"
+        :open="rapidOpen"
+        aria-label="Rapid selector"
+        search-aria-label="Rapid search"
+        list-aria-label="Rapid models"
+        @update:open="rapidOpen = $event"
+      />
+      <output data-testid="default-open-updates">{{ logs.defaultOpen.openUpdates }}</output>
+      <output data-testid="rapid-open-state">{{ rapidOpen }}</output>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="appearance-section">
+      <h3>Variant、size、disabled 与窄屏</h3>
+      <div class="model-selector-test__row model-selector-test__row--appearance">
+        <TrModelSelector
+          data-testid="outline-small-selector"
+          :models="compactModels"
+          :searchable="false"
+          variant="outline"
+          size="small"
+          aria-label="Outline small selector"
+          list-aria-label="Outline small models"
+        />
+        <TrModelSelector
+          data-testid="ghost-normal-selector"
+          :models="compactModels"
+          :searchable="false"
+          variant="ghost"
+          size="normal"
+          aria-label="Ghost normal selector"
+          list-aria-label="Ghost normal models"
+        />
+        <TrModelSelector
+          data-testid="muted-large-selector"
+          :models="compactModels"
+          :searchable="false"
+          variant="muted"
+          size="large"
+          aria-label="Muted large selector"
+          list-aria-label="Muted large models"
+        />
+        <TrModelSelector
+          data-testid="disabled-selector"
+          :models="compactModels"
+          disabled
+          aria-label="Disabled selector"
+          list-aria-label="Disabled models"
+        />
+      </div>
+    </section>
+
+    <section id="model-selector-local-theme" class="model-selector-test__section" data-testid="local-theme-section">
+      <h3>Teleport 局部主题继承</h3>
+      <TrThemeProvider
+        v-model:color-mode="localColorMode"
+        theme="model-selector-local"
+        target-element="#model-selector-local-theme"
+      >
+        <TrModelSelector
+          data-testid="local-theme-selector"
+          :models="compactModels"
+          aria-label="Local theme selector"
+          search-aria-label="Local theme search"
+          list-aria-label="Local theme models"
+        >
+          <template #footer>
+            <button data-testid="local-theme-toggle" type="button" @click="toggleLocalColorMode">
+              Toggle local theme
+            </button>
+          </template>
+        </TrModelSelector>
+      </TrThemeProvider>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="tab-boundary-section">
+      <h3>Teleport Tab 边界</h3>
+      <TrModelSelector
+        data-testid="tab-boundary-selector"
+        :models="compactModels"
+        aria-label="Tab boundary selector"
+        search-aria-label="Tab boundary search"
+        list-aria-label="Tab boundary models"
+      />
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.model-selector-test {
+  display: grid;
+  gap: 20px;
+  max-width: 1120px;
+  margin: 0 auto;
+  color: var(--tr-text-primary, #1f2937);
+}
+
+.model-selector-test__intro,
+.model-selector-test__row,
+.model-selector-test__controls,
+.model-selector-test__metrics {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.model-selector-test__intro {
+  justify-content: space-between;
+}
+
+.model-selector-test__intro h2,
+.model-selector-test__intro p,
+.model-selector-test__section h3 {
+  margin: 0;
+}
+
+.model-selector-test__intro p {
+  margin-top: 6px;
+  color: var(--tr-text-secondary, #667085);
+}
+
+.model-selector-test__section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--tr-border-color-default, #d0d5dd);
+  border-radius: 12px;
+  background: var(--tr-container-bg-default, #fff);
+}
+
+.model-selector-test button:not(.tr-model-selector__trigger) {
+  padding: 7px 10px;
+  border: 1px solid var(--tr-border-color-default, #d0d5dd);
+  border-radius: 7px;
+  background: var(--tr-container-bg-default, #fff);
+  color: inherit;
+  cursor: pointer;
+}
+
+.model-selector-test__metrics output {
+  min-width: 28px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--tr-container-bg-default-2, #f2f4f7);
+  font: 12px/1.4 monospace;
+}
+
+.model-selector-test__row--appearance {
+  align-items: flex-start;
+}
+
+:global(.model-selector-test__custom-content) {
+  border-style: dashed;
+}
+
+:global([data-tr-theme='model-selector-local'][data-tr-color-mode='dark']) {
+  --tr-model-selector-panel-bg: rgb(18 24 38);
+  --tr-model-selector-item-color: rgb(248 250 252);
+}
+
+:global([data-tr-theme='model-selector-local'][data-tr-color-mode='light']) {
+  --tr-model-selector-panel-bg: rgb(241 245 249);
+  --tr-model-selector-item-color: rgb(15 23 42);
+}
+
+@media (max-width: 480px) {
+  .model-selector-test {
+    gap: 12px;
+  }
+
+  .model-selector-test__section {
+    padding: 10px;
+  }
+}
+</style>
