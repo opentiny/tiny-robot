@@ -17,7 +17,8 @@
   "module": "dist/tiny-robot-svgs.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "sideEffects": false,
   "scripts": {
