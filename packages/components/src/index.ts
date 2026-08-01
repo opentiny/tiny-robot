@@ -13,6 +13,7 @@ import Feedback from './feedback'
 import History from './history'
 import IconButton from './icon-button'
 import { Layout, LayoutAsideToggle, LayoutProxyScrollbar } from './layout'
+import ModelSelector from './model-selector'
 import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
 import SenderCompat from './sender-compat'
@@ -45,6 +46,7 @@ export * from './feedback/index.type'
 export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './layout/index.type'
+export * from './model-selector/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './sender-actions/index.type'
@@ -87,6 +89,7 @@ const components = [
   Layout,
   LayoutProxyScrollbar,
   LayoutAsideToggle,
+  ModelSelector,
   Prompt,
   Prompts,
   Sender,
@@ -147,6 +150,8 @@ export {
   LayoutProxyScrollbar as TrLayoutProxyScrollbar,
   LayoutAsideToggle,
   LayoutAsideToggle as TrLayoutAsideToggle,
+  ModelSelector,
+  ModelSelector as TrModelSelector,
   Prompt,
   Prompt as TrPrompt,
   Prompts,
