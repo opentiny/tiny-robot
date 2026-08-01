@@ -54,7 +54,7 @@ const visibleMessages = computed(() => activeMessages.value.filter((message) => 
 const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
 const processingState = computed(() => activeConversation.value?.processingState)
 const lastError = computed(() => activeConversation.value?.lastError ?? null)
-const senderDisabled = computed(() => runtimeRef.value.sender.disabled.value)
+const senderDisabled = computed(() => runtimeRef.value.composer.disabled.value)
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const messagesScrollTarget = computed(() => messagesRef.value?.scrollTarget ?? null)
 

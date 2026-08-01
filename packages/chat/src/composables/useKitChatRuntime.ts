@@ -1,17 +1,26 @@
-import { computed, shallowRef, watchEffect, type Ref } from 'vue'
+import { computed, shallowRef, watchEffect } from 'vue'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
-import type { ChatConversation, ChatConversationInfo, ChatRuntime, ChatSubmitPayload } from '../types'
+import type {
+  ChatConversation,
+  ChatConversationInfo,
+  ChatRunConfig,
+  ChatRuntime,
+  ChatSubmitPayload,
+  ChatWritable,
+} from '../types'
 import { CHAT_RUN_CONFIG_METADATA_KEY, cloneRunConfig } from '../utils/runConfig'
 
 type TitleFallback = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
+type UseKitChatComposerOptions = Pick<ChatRuntime['composer'], 'runConfig' | 'model' | 'mcp'> &
+  Partial<Pick<ChatRuntime['composer'], 'disabled'>>
 
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
-  lastError?: Ref<unknown | null>
+  lastError?: ChatWritable<unknown | null>
   titleFallback?: TitleFallback
   send?: ChatRuntime['actions']['send']
-  sender?: Partial<ChatRuntime['sender']>
+  composer?: UseKitChatComposerOptions
 }
 const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
 
@@ -26,7 +35,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 }
 
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { conversation, lastError: errorRef, titleFallback, send, sender: senderOptions = {} } = options
+  const { conversation, lastError: errorRef, titleFallback, send, composer: composerOptions } = options
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
   const resolveTitle = titleFallback ?? defaultTitleFallback
 
@@ -55,9 +64,10 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     })
   }
 
-  const sender: ChatRuntime['sender'] = {
-    ...senderOptions,
-    disabled: senderOptions.disabled ?? shallowRef(false),
+  const composer: ChatRuntime['composer'] = {
+    ...composerOptions,
+    disabled: composerOptions?.disabled ?? shallowRef(false),
+    runConfig: composerOptions?.runConfig ?? computed<Readonly<ChatRunConfig>>(() => ({})),
   }
 
   const sendMessage =
@@ -99,7 +109,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
 
     const effectivePayload = {
       ...payload,
-      runConfig: cloneRunConfig(payload.runConfig ?? sender.runConfig?.value),
+      runConfig: cloneRunConfig(payload.runConfig ?? composer.runConfig.value),
     }
 
     try {
@@ -128,7 +138,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
   return {
     conversations,
     activeConversation,
-    sender,
+    composer,
     actions: {
       send: handleSend,
       abort: async () => {

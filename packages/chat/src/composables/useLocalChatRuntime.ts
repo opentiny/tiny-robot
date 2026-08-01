@@ -4,7 +4,7 @@ import { useKitChatRuntime, type UseKitChatRuntimeOptions } from './useKitChatRu
 export interface UseLocalChatRuntimeOptions {
   conversation: UseConversationOptions
   titleFallback?: (text: string) => string
-  sender?: UseKitChatRuntimeOptions['sender']
+  composer?: UseKitChatRuntimeOptions['composer']
 }
 
 const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
@@ -20,6 +20,6 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
   return useKitChatRuntime({
     conversation,
     titleFallback: resolveTitle,
-    sender: options.sender,
+    composer: options.composer,
   })
 }

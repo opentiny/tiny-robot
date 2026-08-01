@@ -11,6 +11,7 @@ export type {
   ChatBubbleStateChangePayload,
   ChatConversation,
   ChatConversationInfo,
+  ChatComposerRuntime,
   ChatFooterSlotProps,
   ChatHeaderSlotProps,
   ChatHistoryUi,
@@ -25,14 +26,16 @@ export type {
   ChatRequestState,
   ChatRuntime,
   ChatRunConfig,
+  ChatMcpRunConfig,
   ChatMcpRuntime,
   ChatMcpServerInfo,
   ChatMcpToolInfo,
+  ChatMcpToolState,
   ChatModelOption,
   ChatReasoningEffort,
   ChatModelRuntime,
   ChatRuntimeActions,
-  ChatRuntimeSender,
+  ChatRunConfigReasoning,
   ChatSenderDefaultActions,
   ChatSenderUi,
   ChatStructuredData,
@@ -40,4 +43,9 @@ export type {
   ChatSubmitPayload,
   ChatToolCall,
   ChatUi,
+  ChatReadable,
+  ChatWritable,
 } from './types'
+
+export type { UseKitChatRuntimeOptions } from './composables/useKitChatRuntime'
+export type { UseLocalChatRuntimeOptions } from './composables/useLocalChatRuntime'

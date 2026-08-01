@@ -1,6 +1,19 @@
-import type { ComputedRef, Ref } from 'vue'
+/**
+ * Read-only reactive value used by the ChatRuntime protocol.
+ *
+ * Keep this structural instead of exposing Vue's nominal Ref/ComputedRef
+ * types. Consumers may use a different compatible Vue installation (for
+ * example a workspace package with its own Vue peer), while the protocol only
+ * needs the read-only `.value` contract.
+ */
+export interface ChatReadable<T> {
+  readonly value: T
+}
 
-export type ChatReadable<T> = Readonly<Ref<T>> | ComputedRef<T>
+/** Writable counterpart used only where an adapter must mirror state out. */
+export interface ChatWritable<T> {
+  value: T
+}
 
 export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
 

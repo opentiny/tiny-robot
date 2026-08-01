@@ -36,7 +36,7 @@ const senderProps = computed(() => {
     },
     modelValue: input.inputValue.value,
     loading: currentRuntime.activeConversation.value?.requestState === 'processing',
-    disabled: currentRuntime.sender.disabled.value,
+    disabled: currentRuntime.composer.disabled.value,
   }
 })
 
@@ -103,12 +103,12 @@ function handleClear() {
     <template v-if="$slots['actions-inline']" #actions-inline="slotProps">
       <slot name="actions-inline" v-bind="slotProps" />
     </template>
-    <template v-if="$slots.footer || runtime.sender.model || runtime.sender.mcp" #footer="slotProps">
+    <template v-if="$slots.footer || runtime.composer.model || runtime.composer.mcp" #footer="slotProps">
       <slot v-if="$slots.footer" name="footer" v-bind="slotProps" />
       <div v-else class="tr-chat-sender__controls">
-        <MCPSelector v-if="runtime.sender.mcp" :mcp="runtime.sender.mcp" />
-        <ModelSelector v-if="runtime.sender.model" :model="runtime.sender.model" />
-        <ModelFeatures v-if="runtime.sender.model" :model="runtime.sender.model" />
+        <MCPSelector v-if="runtime.composer.mcp" :mcp="runtime.composer.mcp" />
+        <ModelSelector v-if="runtime.composer.model" :model="runtime.composer.model" />
+        <ModelFeatures v-if="runtime.composer.model" :model="runtime.composer.model" />
       </div>
     </template>
     <template v-if="$slots['footer-right']" #footer-right="slotProps">

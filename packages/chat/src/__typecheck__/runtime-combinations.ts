@@ -1,5 +1,12 @@
 import { computed, shallowRef } from 'vue'
-import type { ChatConversation, ChatConversationInfo, ChatMcpRuntime, ChatModelRuntime, ChatRuntime } from '../types'
+import type {
+  ChatConversation,
+  ChatConversationInfo,
+  ChatMcpRuntime,
+  ChatModelRuntime,
+  ChatRunConfig,
+  ChatRuntime,
+} from '../types'
 
 const conversations = shallowRef<readonly ChatConversationInfo[]>([])
 const activeConversation = shallowRef<ChatConversation | null>(null)
@@ -27,22 +34,44 @@ const reasoning = computed(() => ({
 
 const mcp: ChatMcpRuntime = {
   servers: shallowRef([{ id: 'browser', name: 'Browser', installed: true, enabled: true }]),
+  tools: shallowRef({
+    browser: [{ id: 'search', name: 'Search', enabled: true }],
+  }),
   addServer: async () => {},
   removeServer: async () => {},
   setServerEnabled: async () => {},
+  loadTools: async () => {},
+  setToolEnabled: async () => {},
 }
 
-function createRuntime(sender: ChatRuntime['sender']) {
+const emptyRunConfig = computed<Readonly<ChatRunConfig>>(() => ({}))
+
+const mcpRunConfig = computed<Readonly<ChatRunConfig>>(() => ({
+  mcp: {
+    serverIds: mcp.servers.value.filter((item) => item.enabled).map((item) => item.id),
+    toolIds: Object.fromEntries(
+      mcp.servers.value
+        .filter((item) => item.enabled)
+        .map((server) => [
+          server.id,
+          (mcp.tools.value[server.id] ?? []).filter((tool) => tool.enabled).map((tool) => tool.id),
+        ]),
+    ),
+  },
+}))
+
+function createRuntime(composer: ChatRuntime['composer']) {
   return {
     conversations,
     activeConversation,
-    sender,
+    composer,
     actions,
   } satisfies ChatRuntime
 }
 
 export const runtimeWithoutModelOrMcp = createRuntime({
   disabled,
+  runConfig: emptyRunConfig,
 })
 
 export const runtimeWithModelOnly = createRuntime({
@@ -58,9 +87,7 @@ export const runtimeWithModelOnly = createRuntime({
 export const runtimeWithMcpOnly = createRuntime({
   disabled,
   mcp,
-  runConfig: computed(() => ({
-    mcpServerIds: mcp.servers.value.filter((item) => item.enabled).map((item) => item.id),
-  })),
+  runConfig: mcpRunConfig,
 })
 
 export const runtimeWithModelAndMcp = createRuntime({
@@ -69,7 +96,7 @@ export const runtimeWithModelAndMcp = createRuntime({
   mcp,
   runConfig: computed(() => ({
     modelId: model.selectedId.value ?? undefined,
-    mcpServerIds: mcp.servers.value.filter((item) => item.enabled).map((item) => item.id),
+    mcp: mcpRunConfig.value.mcp,
     features: model.features.value,
     reasoning: reasoning.value,
   })),

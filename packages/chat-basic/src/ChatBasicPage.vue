@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { BubbleRenderers, ThemeProvider as TrThemeProvider, TrIconButton, TrLayout } from '@opentiny/tiny-robot'
 import { useMediaQuery } from '@vueuse/core'
 import { localStorageStrategyFactory, useConversation, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
@@ -8,8 +8,8 @@ import {
   IconCollapseLeft,
   IconCollapseRight,
   IconNewSession,
-  IconSun,
   IconMoon,
+  IconSun,
   IconUser,
   IconWarning,
 } from '@opentiny/tiny-robot-svgs'
@@ -27,11 +27,25 @@ const prompts = [
 const cliBasicTitleFallback = (text: string) => text.trim().slice(0, 24) || '新对话'
 
 const cliBasicOnErrorPlugin: UseMessagePlugin = {
-  onError({ currentTurn, error }) {
+  onError({ currentTurn, messages, error }) {
     const content = String(error)
+    const assistantMessage = [...currentTurn].reverse().find((message) => message.role === 'assistant')
 
-    if (currentTurn.length > 0) {
-      currentTurn[currentTurn.length - 1].content = content
+    if (assistantMessage) {
+      assistantMessage.content = content
+      assistantMessage.loading = undefined
+    } else {
+      const now = Math.floor(Date.now() / 1000)
+      const errorMessage = {
+        role: 'assistant',
+        content,
+        metadata: {
+          createdAt: now,
+          updatedAt: now,
+        },
+      } as const
+
+      messages.push(errorMessage)
     }
 
     throw error instanceof Error ? error : new Error(content)
@@ -59,21 +73,43 @@ const conversation = useConversation({
       createMcpToolPlugin(mcp.listTools, mcp.callTool),
       cliBasicOnErrorPlugin,
     ],
-    responseProvider: createResponseProvider(model.selectedModel),
+    responseProvider: createResponseProvider(model.resolveModel),
   },
 })
 
-const runConfig = computed<Readonly<ChatRunConfig>>(() => ({
-  modelId: model.model.selectedId.value ?? undefined,
-  mcpServerIds: mcp.mcp.servers.value.filter((server) => server.enabled).map((server) => server.id),
-  features: { ...model.model.features.value },
-  reasoning: model.reasoning.value,
-}))
+const enabledMcpServers = computed(() => mcp.mcp.servers.value.filter((server) => server.installed && server.enabled))
+const mcpToolsReady = computed(() =>
+  enabledMcpServers.value.every(
+    (server) => !server.loading && Object.prototype.hasOwnProperty.call(mcp.mcp.tools.value, server.id),
+  ),
+)
+const composerDisabled = computed(() => enabledMcpServers.value.length > 0 && !mcpToolsReady.value)
+const runConfig = computed<Readonly<ChatRunConfig>>(() => {
+  const serverIds = enabledMcpServers.value.map((server) => server.id)
+
+  return {
+    modelId: model.model.selectedId.value ?? undefined,
+    features: { ...model.model.features.value },
+    reasoning: model.reasoning.value,
+    mcp:
+      serverIds.length > 0 && mcpToolsReady.value
+        ? {
+            serverIds,
+            toolIds: Object.fromEntries(
+              serverIds.map((serverId) => [
+                serverId,
+                (mcp.mcp.tools.value[serverId] ?? []).filter((tool) => tool.enabled).map((tool) => tool.id),
+              ]),
+            ),
+          }
+        : undefined,
+  }
+})
 
 const runtime = useKitChatRuntime({
   conversation,
-  sender: {
-    disabled: shallowRef(false),
+  composer: {
+    disabled: composerDisabled,
     model: model.model,
     mcp: mcp.mcp,
     runConfig,

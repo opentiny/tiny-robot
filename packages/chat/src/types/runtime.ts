@@ -23,9 +23,14 @@ export interface ChatRunConfigReasoning {
 
 export interface ChatRunConfig {
   modelId?: string
-  mcpServerIds?: readonly string[]
   features?: Readonly<Record<string, boolean>>
   reasoning?: ChatRunConfigReasoning
+  mcp?: ChatMcpRunConfig
+}
+
+export interface ChatMcpRunConfig {
+  serverIds: readonly string[]
+  toolIds: Readonly<Record<string, readonly string[]>>
 }
 
 export interface ChatModelOption {
@@ -57,19 +62,24 @@ export interface ChatMcpToolInfo {
   id: string
   name: string
   description?: string
+  enabled: boolean
 }
+
+export type ChatMcpToolState = Readonly<Partial<Record<string, readonly ChatMcpToolInfo[]>>>
 
 export interface ChatMcpRuntime {
   servers: ChatReadable<readonly ChatMcpServerInfo[]>
+  tools: ChatReadable<ChatMcpToolState>
   addServer: (id: string) => Promise<void> | void
   removeServer: (id: string) => Promise<void> | void
   setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
-  listTools?: (serverId: string) => Promise<readonly ChatMcpToolInfo[]>
+  loadTools: (serverId: string) => Promise<void>
+  setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
 }
 
-export interface ChatRuntimeSender {
+export interface ChatComposerRuntime {
   disabled: ChatReadable<boolean>
-  runConfig?: ChatReadable<Readonly<ChatRunConfig>>
+  runConfig: ChatReadable<Readonly<ChatRunConfig>>
   model?: ChatModelRuntime
   mcp?: ChatMcpRuntime
 }
@@ -92,6 +102,6 @@ export interface ChatRuntimeActions {
 export interface ChatRuntime {
   conversations: ChatReadable<readonly ChatConversationInfo[]>
   activeConversation: ChatReadable<ChatConversation | null>
-  sender: ChatRuntimeSender
+  composer: ChatComposerRuntime
   actions: ChatRuntimeActions
 }

@@ -64,7 +64,7 @@ const conversation = useConversation({
 
 const runtime = useKitChatRuntime({
   conversation,
-  sender: basicRuntime.sender,
+  composer: basicRuntime.composer,
   titleFallback: cliBasicTitleFallback,
 })
 

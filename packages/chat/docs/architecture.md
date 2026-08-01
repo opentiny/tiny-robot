@@ -21,15 +21,15 @@ TrChat
 
 核心边界：
 
-| 模块 | 职责 |
-| --- | --- |
-| `ChatRuntime` | 会话、消息、请求生命周期和业务动作 |
-| internal input state | 输入草稿、提交交互、Prompt 回填和输入恢复 |
-| `ChatUi` | 默认原子组件的展示配置 |
-| `slots` | 按布局区域替换或扩展 UI |
-| runtime adapter | 将 Kit、AI SDK、Pinia 或自研 store 映射为 `ChatRuntime` |
+| 模块                 | 职责                                                    |
+| -------------------- | ------------------------------------------------------- |
+| `ChatRuntime`        | 会话、消息、请求生命周期和业务动作                      |
+| internal input state | 输入草稿、提交交互、Prompt 回填和输入恢复               |
+| `ChatUi`             | 默认原子组件的展示配置                                  |
+| `slots`              | 按布局区域替换或扩展 UI                                 |
+| runtime adapter      | 将 Kit、AI SDK、Pinia 或自研 store 映射为 `ChatRuntime` |
 
-当前 MVP 已经覆盖基础聊天、会话、输入、取消请求、三类 Runtime 接入、Model/MCP sender 子协议、逐轮 `runConfig` 快照和协议驱动默认 sender UI。
+当前 MVP 已经覆盖基础聊天、会话、输入、取消请求、三类 Runtime 接入、Model/MCP composer 子协议、MCP Tool 级选择、逐轮 `runConfig` 快照和协议驱动默认 sender UI。
 
 本次评审建议批准：
 
@@ -40,7 +40,6 @@ TrChat
 
 本次评审暂不承诺：
 
-- MCP Tool 级管理。
 - 独立 MCP 市场源和安装向导。
 - 通用 capability registry。
 - 上传、语音和 suggestions 等其他增强能力。
@@ -79,7 +78,7 @@ TrChat
 - 新的底层消息引擎
 - 新的 transport、storage 或 plugin 框架
 - 完整复制 assistant-ui 的 runtime 体系
-- 一次性覆盖所有上传、语音、建议和 MCP Tool 管理能力
+- 一次性覆盖所有上传、语音、建议和完整 MCP 管理平台能力
 
 ## 3. 包边界
 
@@ -113,18 +112,16 @@ UI event -> runtime actions
 interface ChatRuntime {
   conversations: ChatReadable<readonly ChatConversationInfo[]>
   activeConversation: ChatReadable<ChatConversation | null>
-  sender: {
+  composer: {
     disabled: ChatReadable<boolean>
-    runConfig?: ChatReadable<Readonly<ChatRunConfig>>
+    runConfig: ChatReadable<Readonly<ChatRunConfig>>
     model?: ChatModelRuntime
     mcp?: ChatMcpRuntime
   }
   actions: {
     send: (payload: ChatSubmitPayload) => Promise<void> | void
     abort?: () => Promise<void> | void
-    createConversation: (
-      payload?: { title?: string; metadata?: Record<string, unknown> }
-    ) => Promise<void> | void
+    createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
     switchConversation: (id: string) => Promise<void> | void
     renameConversation: (id: string, title: string) => Promise<void> | void
     deleteConversation: (id: string) => Promise<void> | void
@@ -137,11 +134,33 @@ interface ChatRuntime {
 约束：
 
 - state 只读，修改必须通过 actions。
+- `ChatReadable<T>` 只承诺结构化的只读 `.value` 访问，不暴露 Vue `Ref` 的 nominal 类型；监听时使用 `watch(() => readable.value, ...)`。
+- `ChatWritable<T>` 仅用于 adapter 将状态镜像给调用方的少数出口，例如 `UseKitChatRuntimeOptions.lastError`。
 - UI 不直接调用 transport、storage 或 plugin。
 - UI 不直接依赖 Kit 原始返回结构。
 - `activeConversation` 是由 Runtime 内部状态派生的只读快照。
 - 输入草稿不属于 `ChatRuntime`，只保留为内部输入编排。
+- `composer` 表达下一轮发送上下文；`ChatUi.sender` 仍然只表达输入组件展示配置。
+- `composer.runConfig` 是必选只读来源，无额外配置时使用空对象。
 - 不把项目专属字段直接加入核心协议。
+
+逐轮 MCP 配置使用显式嵌套结构：
+
+```ts
+interface ChatRunConfig {
+  modelId?: string
+  features?: Readonly<Record<string, boolean>>
+  reasoning?: ChatRunConfigReasoning
+  mcp?: {
+    serverIds: readonly string[]
+    toolIds: Readonly<Record<string, readonly string[]>>
+  }
+}
+```
+
+`mcp` 存在时，每个 `serverId` 都必须有对应的 `toolIds` key；空数组表示该 Server 本轮不提供任何 Tool，adapter 不应再连接该 Server。发送时会深拷贝该结构并写入用户消息 metadata，之后的 Model、Server 或 Tool 切换只影响下一轮。
+
+Tool schema 在本轮首次请求前解析为 turn-scoped catalog，后续 Tool Call 和递归请求复用同一份 catalog。删除 Server、刷新 Tool 或切换 Tool 只修改 Composer 状态，不能破坏正在执行的回合。历史快照缺少本地 catalog 时可以按 Server 查询内部定义，但不得把结果写回 `runtime.composer.mcp.tools`，避免重试历史消息反向改变下一轮选择。
 
 ### 4.2 内部输入编排
 
@@ -171,23 +190,23 @@ TrSender submit
 
 `ChatUi` 负责默认原子组件的展示配置和可选 UI 事件通知：
 
-| 配置 | 默认组件 |
-| --- | --- |
-| `layout` | `TrLayout` |
-| `history` | `TrHistory` |
+| 配置             | 默认组件           |
+| ---------------- | ------------------ |
+| `layout`         | `TrLayout`         |
+| `history`        | `TrHistory`        |
 | `bubbleProvider` | `TrBubbleProvider` |
-| `bubbleList` | `TrBubbleList` |
-| `welcome` | `TrWelcome` |
-| `prompts` | `TrPrompts` |
-| `sender` | `TrSender` |
+| `bubbleList`     | `TrBubbleList`     |
+| `welcome`        | `TrWelcome`        |
+| `prompts`        | `TrPrompts`        |
+| `sender`         | `TrSender`         |
 
 以下字段不通过 `ui` 配置：
 
-| 组件 | 运行时字段 |
-| --- | --- |
-| `TrHistory` | `data / selected` |
-| `TrBubbleList` | `messages` |
-| `TrSender` | `modelValue / loading / disabled` |
+| 组件           | 运行时字段                        |
+| -------------- | --------------------------------- |
+| `TrHistory`    | `data / selected`                 |
+| `TrBubbleList` | `messages`                        |
+| `TrSender`     | `modelValue / loading / disabled` |
 
 原则：
 
@@ -197,13 +216,13 @@ TrSender submit
 
 事件边界：
 
-| UI 事件 | 内部动作 | 外部通知 |
-| --- | --- | --- |
-| History 点击、重命名、删除 | 先调用对应 Runtime action | 再调用 `history.onXxx` |
-| Sender 提交、取消 | 先调用内部输入状态或 Runtime action | 再调用 `sender.onXxx` |
-| Sender 输入、焦点和清空 | 无业务动作 | 调用 `sender.onXxx` |
-| Prompt 点击 | 先回填内部输入状态 | 再调用 `prompts.onItemClick` |
-| Bubble 状态和自定义事件 | 无业务动作 | 调用 `bubbleList.onXxx` |
+| UI 事件                    | 内部动作                            | 外部通知                     |
+| -------------------------- | ----------------------------------- | ---------------------------- |
+| History 点击、重命名、删除 | 先调用对应 Runtime action           | 再调用 `history.onXxx`       |
+| Sender 提交、取消          | 先调用内部输入状态或 Runtime action | 再调用 `sender.onXxx`        |
+| Sender 输入、焦点和清空    | 无业务动作                          | 调用 `sender.onXxx`          |
+| Prompt 点击                | 先回填内部输入状态                  | 再调用 `prompts.onItemClick` |
+| Bubble 状态和自定义事件    | 无业务动作                          | 调用 `bubbleList.onXxx`      |
 
 `ui.onXxx` 是同步事件通知，不是第二个业务状态入口，不能阻止默认动作，也不等待异步 action 成功。事件配置可以来自 `computed<ChatUi>`；内部始终读取最新 listener，不需要 `markRaw` 或通过 `:key` 重建 `TrChat`。
 
@@ -236,12 +255,12 @@ TrChat
 
 区域 slots：
 
-| slot | 默认内容 | 用途 |
-| --- | --- | --- |
-| `header` | `Header` | 替换或扩展顶部区域 |
+| slot         | 默认内容        | 用途               |
+| ------------ | --------------- | ------------------ |
+| `header`     | `Header`        | 替换或扩展顶部区域 |
 | `left-aside` | `Conversations` | 替换或扩展会话列表 |
-| `main` | `Messages` | 替换或扩展消息区域 |
-| `footer` | `Sender` | 替换或扩展输入区域 |
+| `main`       | `Messages`      | 替换或扩展消息区域 |
+| `footer`     | `Sender`        | 替换或扩展输入区域 |
 
 slot 按布局区域命名，而不是按内部组件命名。覆盖 slot 后，该区域的默认组件不再自动渲染。
 
@@ -275,6 +294,7 @@ useLocalChatRuntime
 
 - 接收已有 `useConversation()` 返回值。
 - 默认支持首次发送自动创建会话，并用首条消息生成标题 fallback。
+- 整个 `composer` 可省略并使用空配置；一旦传入 `composer`，必须显式提供与 Model/MCP 状态同步派生的 `runConfig`。
 - 保留原有 transport、storage、plugins 和生命周期。
 - 只做 Kit 数据到 `ChatRuntime` 的映射。
 - 不要求用户迁移输入框状态。
@@ -294,18 +314,18 @@ useLocalChatRuntime
 
 ## 7. Demo 证据
 
-| Demo | 验证目标 | 状态 |
-| --- | --- | --- |
-| [basic.vue](../demo/cases/basic.vue) | 无 Chat 抽象的单文件基线 | 已实现，待人工验收 |
-| [built-in-kit.vue](../demo/cases/built-in-kit.vue) | 新项目快速接入 Kit | 已实现，待人工验收 |
-| [existing-kit.vue](../demo/cases/existing-kit.vue) | 已有 Kit Runtime 只迁移 UI | 已实现，待人工验收 |
-| [custom-runtime.vue](../demo/cases/custom-runtime.vue) | 外部数据层接入 | 已实现，待人工验收 |
-| [basic-integration](../demo/basic-integration/index.vue) | CLI basic 主链路迁移 | 已实现，待人工验收 |
+| Demo                                                     | 验证目标                   | 状态               |
+| -------------------------------------------------------- | -------------------------- | ------------------ |
+| [basic.vue](../demo/cases/basic.vue)                     | 无 Chat 抽象的单文件基线   | 已实现，待人工验收 |
+| [built-in-kit.vue](../demo/cases/built-in-kit.vue)       | 新项目快速接入 Kit         | 已实现，待人工验收 |
+| [existing-kit.vue](../demo/cases/existing-kit.vue)       | 已有 Kit Runtime 只迁移 UI | 已实现，待人工验收 |
+| [custom-runtime.vue](../demo/cases/custom-runtime.vue)   | 外部数据层接入             | 已实现，待人工验收 |
+| [basic-integration](../demo/basic-integration/index.vue) | CLI basic 主链路迁移       | 已实现，待人工验收 |
 
 Demo 状态含义：
 
-| 状态 | 含义 |
-| --- | --- |
+| 状态               | 含义                                   |
+| ------------------ | -------------------------------------- |
 | 已实现，待人工验收 | 类型检查和构建通过后，仍需完成交互验收 |
 
 当前 MVP 已覆盖：
@@ -315,9 +335,10 @@ Demo 状态含义：
 - 输入、Prompt 回填、发送、取消
 - 默认布局和区域 slots
 - Built-in Kit、Existing Kit、Custom Runtime
-- Model/MCP sender 子协议
+- Model/MCP composer 子协议
 - 默认 `MCPSelector`、`ModelSelector` 和 `ModelFeatures`
 - 逐轮 `runConfig` 快照
+- MCP Tool 状态、开关、请求过滤和调用前校验
 
 ## 8. CLI basic 迁移差异
 
@@ -333,31 +354,31 @@ toolPlugin
 
 当前 TrChat 已覆盖：
 
-| CLI basic 能力 | 当前状态 |
-| --- | --- |
-| 消息列表 | 已覆盖 |
-| 会话历史 | 已覆盖 |
-| 输入和取消 | 已覆盖 |
-| Kit Runtime 复用 | 已覆盖 |
-| 模型列表和当前模型 | 已纳入 `runtime.sender.model` |
-| 深度思考和联网搜索 | 已纳入 `runtime.sender.model.features` |
-| MCP Server 选择 | 已纳入 `runtime.sender.mcp` |
-| MCP Tool 级开关 | 未纳入 ChatRuntime |
+| CLI basic 能力     | 当前状态                                       |
+| ------------------ | ---------------------------------------------- |
+| 消息列表           | 已覆盖                                         |
+| 会话历史           | 已覆盖                                         |
+| 输入和取消         | 已覆盖                                         |
+| Kit Runtime 复用   | 已覆盖                                         |
+| 模型列表和当前模型 | 已纳入 `runtime.composer.model`                |
+| 深度思考和联网搜索 | 已纳入 `runtime.composer.model.features`       |
+| MCP Server 选择    | 已纳入 `runtime.composer.mcp`                  |
+| MCP Tool 级开关    | 已纳入 `runtime.composer.mcp.tools` 与 actions |
 
-因此当前可以用 `TrChat` 默认 sender UI 承接模型、模型能力和 MCP Server 选择；MCP Tool 级管理继续后置。
+因此当前可以用 `TrChat` 默认 sender UI 承接模型、模型能力、MCP Server 和 Tool 选择。Provider、凭证、Client、Transport 和完整 Tool schema 仍由应用 adapter 持有。
 
 迁移矩阵：
 
-| CLI basic 能力 | TrChat 对应位置 | 当前状态 |
-| --- | --- | --- |
-| `useConversation` | `useKitChatRuntime` | 已支持 |
-| `ChatList` | 默认 `Messages` 或 `main` slot | 已支持 |
-| `ConversationHistory` | 默认 `Conversations` 或 `left-aside` slot | 已支持 |
-| 基础 `ChatSender` | 默认 `Sender` 或 `footer` slot | 已支持 |
-| `useModel` | `runtime.sender.model` | 已支持 |
-| thinking / search | `ModelFeatures` | 已支持 |
-| `useMcp` Server 选择 | `runtime.sender.mcp` + `MCPSelector` | 已支持 |
-| `toolPlugin` | Kit plugin / runtime adapter | 已按 `mcpServerIds` 快照过滤 |
+| CLI basic 能力            | TrChat 对应位置                           | 当前状态                                              |
+| ------------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `useConversation`         | `useKitChatRuntime`                       | 已支持                                                |
+| `ChatList`                | 默认 `Messages` 或 `main` slot            | 已支持                                                |
+| `ConversationHistory`     | 默认 `Conversations` 或 `left-aside` slot | 已支持                                                |
+| 基础 `ChatSender`         | 默认 `Sender` 或 `footer` slot            | 已支持                                                |
+| `useModel`                | `runtime.composer.model`                  | 已支持                                                |
+| thinking / search         | `ModelFeatures`                           | 已支持                                                |
+| `useMcp` Server/Tool 选择 | `runtime.composer.mcp` + `MCPSelector`    | 已支持                                                |
+| `toolPlugin`              | Kit plugin / runtime adapter              | 已按 `runConfig.mcp.serverIds/toolIds` 快照过滤并校验 |
 
 完整替换的边界是替换 CLI basic 的通用聊天装配代码，不替换应用自己的模型供应商配置、MCP 权限、凭证和业务插件。
 
@@ -381,12 +402,11 @@ toolPlugin
 
 - 无 Model/MCP、只有 Model、只有 MCP、Model+MCP 均可工作。
 - 发送中切换模型或 MCP 只影响下一轮。
-- MCP Server 启用状态影响本轮工具列表。
+- MCP Server 和 Tool 启用状态影响下一轮工具列表，当前轮继续使用已保存快照。
 - type-check、build 和 e2e 通过。
 
 后置：
 
-- MCP Tool 级开关。
 - 独立 MCP 市场源和安装向导。
 - 通用 capability registry。
 - 上传、语音和 suggestions。
@@ -407,7 +427,7 @@ assistant-ui 对本项目的有效启发：
 
 - CLI basic 删除本地重复 UI 后的整体回归。
 - 多 Runtime 组合下的 Model/MCP 可选子协议。
-- 单次 `runConfig` 的重试语义。
+- 历史 `runConfig` 的跨刷新重试和 MCP 服务不可用行为仍需人工验收。
 - 独立消息 parts 协议及其稳定渲染约定。
 
 公共类型依赖：
@@ -455,7 +475,7 @@ Demo 验收至少需要记录：
 ## 12. 参考资料
 
 - [评审决策清单](./review-checklist.md)
-- [ChatRuntime 类型](../src/types.ts)
+- [ChatRuntime 类型](../src/types/runtime.ts)
 - https://www.assistant-ui.com/docs/runtimes/concepts/architecture
 - https://www.assistant-ui.com/docs/runtimes/concepts/adapters
 - https://www.assistant-ui.com/docs/api-reference/runtimes/composer-runtime

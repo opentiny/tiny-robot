@@ -1,19 +1,31 @@
-import type { Ref } from 'vue'
 import { sseStreamToGenerator } from '@opentiny/tiny-robot-kit'
 import type { MessageRequestBody, ResponseProvider } from '@opentiny/tiny-robot-kit'
 import type { ModelDefinition } from './models'
 
-export function createResponseProvider(selectedModel: Ref<ModelDefinition | undefined>): ResponseProvider {
+export const CHAT_BASIC_MODEL_ID_REQUEST_KEY = '__chat_basic_model_id'
+
+type ResolveModel = (modelId: string) => ModelDefinition | undefined
+
+export function createResponseProvider(resolveModel: ResolveModel): ResponseProvider {
   return async (requestBody: MessageRequestBody, abortSignal: AbortSignal) => {
-    const currentModel = selectedModel.value
+    const modelId = requestBody[CHAT_BASIC_MODEL_ID_REQUEST_KEY]
+
+    if (typeof modelId !== 'string' || !modelId) {
+      throw new Error('No model selected for this turn.')
+    }
+
+    const currentModel = resolveModel(modelId)
 
     if (!currentModel) {
-      throw new Error('No model selected.')
+      throw new Error(`Unknown model for this turn: ${modelId}`)
     }
 
     if (!currentModel.apiKey) {
       throw new Error(`Missing API key for provider "${currentModel.providerLabel}".`)
     }
+
+    const providerRequestBody = { ...requestBody }
+    delete providerRequestBody[CHAT_BASIC_MODEL_ID_REQUEST_KEY]
 
     const response = await fetch(currentModel.apiUrl, {
       method: 'POST',
@@ -22,7 +34,7 @@ export function createResponseProvider(selectedModel: Ref<ModelDefinition | unde
         Authorization: `Bearer ${currentModel.apiKey}`,
       },
       body: JSON.stringify({
-        ...requestBody,
+        ...providerRequestBody,
         model: currentModel.requestModel,
         stream: true,
       }),

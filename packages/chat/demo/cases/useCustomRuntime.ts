@@ -61,10 +61,10 @@ function isAbortError(error: unknown) {
 function isAsyncGenerator<T>(value: unknown): value is AsyncGenerator<T> {
   return Boolean(
     value &&
-      typeof value === 'object' &&
-      'next' in value &&
-      typeof (value as { next?: unknown }).next === 'function' &&
-      Symbol.asyncIterator in value,
+    typeof value === 'object' &&
+    'next' in value &&
+    typeof (value as { next?: unknown }).next === 'function' &&
+    Symbol.asyncIterator in value,
   )
 }
 
@@ -254,8 +254,9 @@ export function useCustomRuntime() {
   const runtime: ChatRuntime = {
     conversations: computed(() => conversations.value),
     activeConversation,
-    sender: {
+    composer: {
       disabled,
+      runConfig: computed(() => ({})),
     },
     actions: {
       send,

@@ -34,12 +34,12 @@ Basic 的目标不是提供推荐用法，而是完整暴露一个聊天应用�
 
 Basic 自己维护四组状态：
 
-| 状态域 | Basic 状态 |
-|---|---|
-| 会话 | `sessions`、`currentSessionId`、`messagesBySession` |
-| 请求 | `requestState`、`processingState`、`error` |
-| 输入 | `inputValue`、`loading`、`submitDisabled` |
-| 布局 | `isMobile`、`leftAsideOpen` |
+| 状态域 | Basic 状态                                          |
+| ------ | --------------------------------------------------- |
+| 会话   | `sessions`、`currentSessionId`、`messagesBySession` |
+| 请求   | `requestState`、`processingState`、`error`          |
+| 输入   | `inputValue`、`loading`、`submitDisabled`           |
+| 布局   | `isMobile`、`leftAsideOpen`                         |
 
 ### 2.2 页面动作
 
@@ -152,21 +152,21 @@ Runtime 不监听 ChatUi。否则数据层会反向依赖 UI，破坏 Runtime ad
 
 ### 4.2 事件矩阵
 
-| 原子事件 | 内部动作 | 外部通知 | Payload |
-|---|---|---|---|
-| History `item-click` | `switchConversation` | `onItemClick` | `ChatConversationInfo` |
-| History `item-title-change` | `renameConversation` | `onItemTitleChange` | `title + ChatConversationInfo` |
-| History `item-action` | 当前识别 delete 等默认动作 | `onItemAction` | `action + ChatConversationInfo` |
-| Sender `update:modelValue` | `setInputValue` | 无独立通知 | `string` |
-| Sender `submit` | `internal send -> runtime.actions.send` | `onSubmit` | `ChatSubmitPayload` |
-| Sender `cancel` | `internal abort` | `onCancel` | 无 |
-| Sender `input` | 无 Runtime action | `onInput` | `string` |
-| Sender `focus/blur` | 无 Runtime action | `onFocus/onBlur` | `FocusEvent` |
-| Sender `clear` | 输入值由组件双向更新 | `onClear` | 无 |
-| Prompt `item-click` | `input.setInputValue` | `onItemClick` | `MouseEvent + PromptProps` |
-| Bubble `state-change` | 无 | `onStateChange` | `ChatBubbleStateChangePayload` |
-| Bubble `bubble-event` | 无 | `onBubbleEvent` | `ChatBubbleEventPayload` |
-| Layout 相关事件 | 无 Runtime action | 对应 Layout listener | Layout detail |
+| 原子事件                    | 内部动作                                | 外部通知             | Payload                         |
+| --------------------------- | --------------------------------------- | -------------------- | ------------------------------- |
+| History `item-click`        | `switchConversation`                    | `onItemClick`        | `ChatConversationInfo`          |
+| History `item-title-change` | `renameConversation`                    | `onItemTitleChange`  | `title + ChatConversationInfo`  |
+| History `item-action`       | 当前识别 delete 等默认动作              | `onItemAction`       | `action + ChatConversationInfo` |
+| Sender `update:modelValue`  | `setInputValue`                         | 无独立通知           | `string`                        |
+| Sender `submit`             | `internal send -> runtime.actions.send` | `onSubmit`           | `ChatSubmitPayload`             |
+| Sender `cancel`             | `internal abort`                        | `onCancel`           | 无                              |
+| Sender `input`              | 无 Runtime action                       | `onInput`            | `string`                        |
+| Sender `focus/blur`         | 无 Runtime action                       | `onFocus/onBlur`     | `FocusEvent`                    |
+| Sender `clear`              | 输入值由组件双向更新                    | `onClear`            | 无                              |
+| Prompt `item-click`         | `input.setInputValue`                   | `onItemClick`        | `MouseEvent + PromptProps`      |
+| Bubble `state-change`       | 无                                      | `onStateChange`      | `ChatBubbleStateChangePayload`  |
+| Bubble `bubble-event`       | 无                                      | `onBubbleEvent`      | `ChatBubbleEventPayload`        |
+| Layout 相关事件             | 无 Runtime action                       | 对应 Layout listener | Layout detail                   |
 
 ### 4.3 固定规则
 
@@ -213,26 +213,40 @@ Basic 中的业务状态和动作被收敛为中性协议：
 interface ChatRuntime {
   conversations: ChatReadable<readonly ChatConversationInfo[]>
   activeConversation: ChatReadable<ChatConversation | null>
-  sender: ChatRuntimeSender
+  composer: ChatComposerRuntime
   actions: ChatRuntimeActions
 }
 ```
 
 对应关系如下：
 
-| Basic | ChatRuntime |
-|---|---|
-| `sessions` | `conversations` |
-| `currentSessionId + currentSession` | `activeConversation.id` |
-| `currentMessages` | `activeConversation.messages` |
-| `requestState` | `activeConversation.requestState` |
-| `processingState` | `activeConversation.processingState` |
-| `error` | `activeConversation.lastError` |
-| `send` | `actions.send` |
-| `abort` | `actions.abort` |
-| 会话 CRUD | conversation actions |
+| Basic                               | ChatRuntime                          |
+| ----------------------------------- | ------------------------------------ |
+| `sessions`                          | `conversations`                      |
+| `currentSessionId + currentSession` | `activeConversation.id`              |
+| `currentMessages`                   | `activeConversation.messages`        |
+| `requestState`                      | `activeConversation.requestState`    |
+| `processingState`                   | `activeConversation.processingState` |
+| `error`                             | `activeConversation.lastError`       |
+| `send`                              | `actions.send`                       |
+| `abort`                             | `actions.abort`                      |
+| 会话 CRUD                           | conversation actions                 |
 
 `ChatRuntime` 是 UI 消费的数据和动作协议，不规定底层必须使用 Kit。它也不包含输入草稿和组件 props。
+
+`composer` 表达下一轮发送编排，包含 `disabled`、必选的只读 `runConfig`，以及可选的 Model/MCP 子协议。`ChatUi.sender` 仍然只负责 Sender 展示配置；两者不能混用。
+
+MCP Tool 的状态链路保持单一来源：
+
+```txt
+ChatMcpRuntime.tools
+  -> MCPSelector 展示与开关
+  -> composer.runConfig.mcp.toolIds 快照
+  -> toolPlugin.getTools 过滤并建立 turn-scoped catalog
+  -> callTool 按本轮快照和同一 catalog 二次校验
+```
+
+历史回合恢复 catalog 时只更新 adapter 内部缓存，不写回 `ChatMcpRuntime.tools`；否则重试历史消息会污染当前 Composer 的 Tool 选择。
 
 ### 5.2 抽取内部输入编排
 

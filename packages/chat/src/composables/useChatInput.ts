@@ -32,7 +32,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     const currentRuntime = getRuntime()
     const previousInputValue = inputValue.value
 
-    const runConfig = cloneRunConfig(payload.runConfig ?? currentRuntime.sender.runConfig?.value)
+    const runConfig = cloneRunConfig(payload.runConfig ?? currentRuntime.composer.runConfig.value)
 
     // Optimistically clear the draft so long-running sends keep the composer responsive.
     inputValue.value = ''
@@ -54,7 +54,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
 
   return {
     inputValue,
-    submitDisabled: computed(() => getRuntime().sender.disabled.value),
+    submitDisabled: computed(() => getRuntime().composer.disabled.value),
     setInputValue,
     send,
     get abort() {

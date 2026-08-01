@@ -1,4 +1,4 @@
-import type { ChatMessageItem, ChatRunConfig } from '../types'
+import type { ChatMcpRunConfig, ChatMessageItem, ChatRunConfig, ChatRunConfigReasoning } from '../types'
 
 export const CHAT_RUN_CONFIG_METADATA_KEY = '__chat_run_config'
 
@@ -9,18 +9,110 @@ export function cloneRunConfig(runConfig?: ChatRunConfig): ChatRunConfig | undef
 
   return {
     ...runConfig,
-    mcpServerIds: runConfig.mcpServerIds ? [...runConfig.mcpServerIds] : undefined,
     features: runConfig.features ? { ...runConfig.features } : undefined,
     reasoning: runConfig.reasoning ? { ...runConfig.reasoning } : undefined,
+    mcp: runConfig.mcp
+      ? {
+          serverIds: [...runConfig.mcp.serverIds],
+          toolIds: Object.fromEntries(
+            Object.entries(runConfig.mcp.toolIds).map(([serverId, toolIds]) => [serverId, [...toolIds]]),
+          ),
+        }
+      : undefined,
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function readMcpRunConfig(value: unknown): ChatMcpRunConfig | undefined {
+  if (!isRecord(value) || !Array.isArray(value.serverIds) || !isRecord(value.toolIds)) {
+    return undefined
+  }
+
+  if (!value.serverIds.every((serverId) => typeof serverId === 'string' && serverId.length > 0)) {
+    return undefined
+  }
+
+  const serverIds = value.serverIds as string[]
+  const serverIdSet = new Set(serverIds)
+
+  if (serverIdSet.size !== serverIds.length) {
+    return undefined
+  }
+
+  const toolIds = Object.entries(value.toolIds)
+
+  if (
+    toolIds.length !== serverIds.length ||
+    !toolIds.every(
+      ([serverId, ids]) =>
+        serverIdSet.has(serverId) &&
+        Array.isArray(ids) &&
+        ids.every((id) => typeof id === 'string' && id.length > 0) &&
+        new Set(ids).size === ids.length,
+    )
+  ) {
+    return undefined
+  }
+
+  if (serverIds.some((serverId) => !Object.prototype.hasOwnProperty.call(value.toolIds, serverId))) {
+    return undefined
+  }
+
+  return {
+    serverIds: [...serverIds],
+    toolIds: Object.fromEntries(toolIds.map(([serverId, ids]) => [serverId, [...(ids as string[])]])),
   }
 }
 
 export function readRunConfigFromMessage(message?: ChatMessageItem): ChatRunConfig | undefined {
   const raw = message?.metadata?.[CHAT_RUN_CONFIG_METADATA_KEY]
 
-  if (!raw || typeof raw !== 'object') {
+  if (!isRecord(raw)) {
     return undefined
   }
 
-  return cloneRunConfig(raw as ChatRunConfig)
+  if (raw.modelId !== undefined && typeof raw.modelId !== 'string') {
+    return undefined
+  }
+
+  if (
+    raw.features !== undefined &&
+    (!isRecord(raw.features) || Object.values(raw.features).some((enabled) => typeof enabled !== 'boolean'))
+  ) {
+    return undefined
+  }
+
+  let reasoning: ChatRunConfig['reasoning']
+
+  if (raw.reasoning !== undefined) {
+    if (
+      !isRecord(raw.reasoning) ||
+      typeof raw.reasoning.enabled !== 'boolean' ||
+      (raw.reasoning.effort !== undefined &&
+        (typeof raw.reasoning.effort !== 'string' || !['low', 'medium', 'high', 'max'].includes(raw.reasoning.effort)))
+    ) {
+      return undefined
+    }
+
+    reasoning = {
+      enabled: raw.reasoning.enabled,
+      effort: raw.reasoning.effort as ChatRunConfigReasoning['effort'],
+    }
+  }
+
+  const mcp = raw.mcp === undefined ? undefined : readMcpRunConfig(raw.mcp)
+
+  if (raw.mcp !== undefined && !mcp) {
+    return undefined
+  }
+
+  return cloneRunConfig({
+    modelId: raw.modelId as string | undefined,
+    features: raw.features as Readonly<Record<string, boolean>> | undefined,
+    reasoning,
+    mcp,
+  })
 }
