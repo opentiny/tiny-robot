@@ -118,6 +118,10 @@ const models: readonly ModelSelectorOption[] = [
 ]
 
 const compactModels = models.slice(0, 3)
+const minimalModels: readonly ModelSelectorOption[] = [
+  { value: 'minimal-reasoning', label: 'Minimal Reasoning', efforts: true },
+  { value: 'minimal-plain', label: 'Minimal Plain' },
+]
 const customFilterModels: readonly ModelSelectorOption[] = [
   { value: 'custom-alpha', label: 'First Model', description: 'Ordinary choice' },
   { value: 'custom-beta', label: 'Second Model', description: 'Only the custom filter finds this value' },
@@ -291,6 +295,35 @@ onBeforeUnmount(() => {
         <output data-testid="init-changes">{{ logs.init.changes }}</output>
         <output data-testid="async-updates">{{ logs.async.updates }}</output>
         <output data-testid="async-changes">{{ logs.async.changes }}</output>
+      </div>
+    </section>
+
+    <section class="model-selector-test__section" data-testid="minimal-section">
+      <h3>最小数据与可访问名称回退</h3>
+      <div class="model-selector-test__row">
+        <TrModelSelector
+          data-testid="minimal-fallback-selector"
+          :models="minimalModels"
+          model-value="minimal-reasoning"
+          effort="medium"
+          placeholder="Choose compact model"
+          search-placeholder="Find compact model"
+          list-aria-label="Compact models"
+          effort-label="Thinking level"
+        />
+        <TrModelSelector
+          data-testid="minimal-explicit-selector"
+          :models="minimalModels"
+          model-value="minimal-reasoning"
+          effort="medium"
+          placeholder="Ignored selector fallback"
+          search-placeholder="Ignored search fallback"
+          effort-label="Ignored effort fallback"
+          aria-label="Explicit selector"
+          search-aria-label="Explicit search"
+          list-aria-label="Explicit models"
+          effort-aria-label="Explicit effort"
+        />
       </div>
     </section>
 

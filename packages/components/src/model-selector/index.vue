@@ -43,11 +43,8 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   placement: 'bottom-start',
   offset: 8,
   matchTriggerWidth: true,
-  ariaLabel: 'Select model',
-  searchAriaLabel: 'Search models',
   listAriaLabel: 'Models',
   effortLabel: 'Thinking',
-  effortAriaLabel: 'Reasoning effort',
 })
 
 const emit = defineEmits<ModelSelectorEmits>()
@@ -157,9 +154,12 @@ const activeDescendantId = computed(() => {
   return option ? `${idPrefix}-option-${option.index}` : undefined
 })
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
+const resolvedAriaLabel = computed(() => props.ariaLabel?.trim() || props.placeholder)
+const resolvedSearchAriaLabel = computed(() => props.searchAriaLabel?.trim() || props.searchPlaceholder)
+const resolvedEffortAriaLabel = computed(() => props.effortAriaLabel?.trim() || props.effortLabel)
 const triggerAriaLabel = computed(() => {
   const effortLabel = effortState.activeOption.value?.label
-  return `${props.ariaLabel}: ${triggerLabel.value}${effortLabel ? `, ${props.effortAriaLabel}: ${effortLabel}` : ''}`
+  return `${resolvedAriaLabel.value}: ${triggerLabel.value}${effortLabel ? `, ${resolvedEffortAriaLabel.value}: ${effortLabel}` : ''}`
 })
 
 function findVisibleOption(key: string) {
@@ -578,12 +578,12 @@ onMounted(() => {
             :option-id-prefix="idPrefix"
             :search-placeholder="searchPlaceholder"
             :empty-text="emptyText"
-            :search-aria-label="searchAriaLabel"
+            :search-aria-label="resolvedSearchAriaLabel"
             :list-aria-label="listAriaLabel"
             :effort-options="currentEfforts"
             :effort-value="activeEffort"
             :effort-label="effortLabel"
-            :effort-aria-label="effortAriaLabel"
+            :effort-aria-label="resolvedEffortAriaLabel"
             :effort-disabled="Boolean(currentOption?.disabled)"
             :size="size"
             :content-class="contentClass"

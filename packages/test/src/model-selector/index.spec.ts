@@ -134,6 +134,33 @@ test.describe('ModelSelector 组件测试', () => {
     })
   })
 
+  test.describe('最小用法与公开 helper', () => {
+    test('只有 value/label 的模型可渲染，ARIA 文案应回退到对应可见文案且允许显式覆盖', async ({ page }) => {
+      const fallbackTrigger = page.getByTestId('minimal-fallback-selector').getByRole('button')
+      await expect(fallbackTrigger).toHaveAttribute(
+        'aria-label',
+        'Choose compact model: Minimal Reasoning, Thinking level: Medium',
+      )
+
+      await fallbackTrigger.click()
+      await expect(page.getByRole('combobox', { name: 'Find compact model' })).toBeVisible()
+      await expect(page.getByRole('listbox', { name: 'Compact models' })).toBeVisible()
+      await expect(page.getByRole('group', { name: 'Thinking level' })).toBeVisible()
+      await page.getByRole('combobox', { name: 'Find compact model' }).press('Escape')
+
+      const explicitTrigger = page.getByTestId('minimal-explicit-selector').getByRole('button')
+      await expect(explicitTrigger).toHaveAttribute(
+        'aria-label',
+        'Explicit selector: Minimal Reasoning, Explicit effort: Medium',
+      )
+
+      await explicitTrigger.click()
+      await expect(page.getByRole('combobox', { name: 'Explicit search' })).toBeVisible()
+      await expect(page.getByRole('listbox', { name: 'Explicit models' })).toBeVisible()
+      await expect(page.getByRole('group', { name: 'Explicit effort' })).toBeVisible()
+    })
+  })
+
   test.describe('Reasoning effort', () => {
     test('efforts:true 与 defaultEffort 应渲染默认档位，点击和键盘选择不关闭且事件有序去重', async ({ page }) => {
       const trigger = getTrigger(page, 'Default effort selector')

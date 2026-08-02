@@ -4,39 +4,61 @@ outline: [1, 3]
 
 # ModelSelector 模型选择器
 
-ModelSelector 是一个用于切换模型的原子组件，提供受控与非受控状态、搜索、分组、禁用项、键盘导航、浮层定位、Reasoning effort 和内容插槽。组件只维护模型与当前模型所声明 effort 的选择交互，不维护 Provider 注册表、运行时模型上下文或其他业务侧能力配置。
+ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当前模型。它内置搜索、分组、禁用项、键盘操作、浮层定位、思考强度和内容插槽。
 
-模型图标由 `models` 中的 `icon` 外部传入。可以使用 `@opentiny/tiny-robot-svgs` 提供的 Provider 图标，也可以传入任意 Vue 组件；ModelSelector 本身不包含 `providerId -> icon` 映射。
+组件只负责渲染与选择交互。DeepSeek、Qwen 等 Provider 的模型目录、请求参数、价格、上下文长度等业务数据仍由消费层维护；ModelSelector 只消费传入的 `models` 字段。
+
+模型图标也由每个模型的 `icon` 字段传入。可以使用 `@opentiny/tiny-robot-svgs` 提供的 Provider 图标，也可以传入任意 Vue 组件；ModelSelector 本身不包含 `providerId -> icon` 的自动映射。
 
 ::: tip 组件边界
-Provider 筛选和运行时 Model Context 不属于组件内置状态。Reasoning effort 由每个模型的 `efforts` 字段声明；组件提供状态、事件和默认 UI，也允许通过 `footer` 插槽完整替换其展示。
+按 Provider 筛选、决定实际向哪个模型发请求、把思考强度转换为 Provider 请求参数，都应该在组件外处理。组件只根据每个模型的 `efforts` 字段展示可选的思考强度，并通过事件把用户选择通知出去。
 :::
 
-## 基础用法
+## 代码示例
 
-使用 `defaultValue` 与 `defaultEffort` 创建非受控选择器。示例同时展示了 Provider 图标、描述、分组、搜索关键词、禁用模型，以及内置和自定义 effort 选项。
+### 基础用法
 
-<demo vue="../../demos/model-selector/basic.vue" title="基础用法" description="非受控默认值、内置 effort、分组搜索、外部图标与禁用模型。" />
+组件的最小模型项只需要 `value` 与 `label`。下例通过 `v-model` 和 `v-model:effort` 控制模型与推理强度，并演示外部图标及一个自定义 effort 配置。
 
-## 受控状态与无自动回退
+<demo vue="../../demos/model-selector/basic.vue" title="基础用法" description="最小模型数据、受控模型与推理强度，以及外部 Provider 图标。" />
 
-`v-model` 控制选中值，`v-model:open` 控制浮层开关。外部设置不存在的值或从 `models` 移除当前项时，组件保留原值并显示 `placeholder`，不会擅自选择第一项，也不会触发 `change`。
+#### 模型数据怎么配置
 
-<demo vue="../../demos/model-selector/controlled.vue" title="双受控状态" description="观察外部赋值、列表更新、事件顺序以及无自动回退规则。" />
+推荐把完整模型目录与选择器要显示的数据分开。上下文长度、最大输出、模态、价格和 Provider 请求参数可以留在业务侧模型目录中；传给 ModelSelector 时，只映射当前 UI 需要展示或搜索的字段。
 
-## 插槽、样式规格与扩展
+| 字段层级 | 字段                                         | 什么时候配置                         |
+| -------- | -------------------------------------------- | ------------------------------------ |
+| 必需     | `value`、`label`                             | 每个模型都需要，用于标识和显示       |
+| 常用展示 | `icon`、`description`、`disabled`            | 需要图标、描述或禁用模型时配置       |
+| 进阶能力 | `group`、`groupLabel`、`keywords`、`efforts` | 需要分组、补充搜索词或思考强度时配置 |
 
-组件提供 `outline`、`ghost`、`muted` 三种外观，以及 `small`、`normal`、`large` 三种尺寸。下例还演示了完整插槽、自定义过滤、`contentClass`、`contentStyle`、`v-model:effort`，以及使用 `footer` 插槽替换默认 effort UI。
+简单来说，组件不读取模型目录里的业务字段，也不会推断 Provider 能力；它只按 `ModelSelectorOption` 渲染你传入的列表。
 
-<demo vue="../../demos/model-selector/slots-and-variants.vue" title="插槽与规格" description="自定义 trigger、item、group-label、header、footer、empty 和 effort UI。" />
+### 受控选择
+
+`v-model` 控制当前模型。外部设置不存在的值时，组件保留原值并显示 `placeholder`，不会擅自选择第一项。这样可以避免模型列表异步更新时，组件悄悄替用户换模型。浮层的 `open` 受控行为和模型列表动态更新规则见下方“状态规则”。
+
+<demo vue="../../demos/model-selector/controlled.vue" :vueFiles="['../../demos/model-selector/controlled.vue', '../../demos/model-selector/demo-models.ts']" title="受控选择" description="使用 v-model 修改当前模型，并观察无效值的 placeholder 行为。" />
+
+### 外观与尺寸
+
+组件提供 `outline`、`ghost`、`muted` 三种外观，以及 `small`、`normal`、`large` 三种尺寸。这个案例只展示外观和尺寸，不涉及插槽或状态控制。
+
+<demo vue="../../demos/model-selector/variants.vue" :vueFiles="['../../demos/model-selector/variants.vue', '../../demos/model-selector/demo-models.ts']" title="外观与尺寸" description="对比三种 variant 和三种 size。" />
+
+### 插槽定制
+
+通过 `trigger`、`panel-header`、`group-label`、`item`、`empty` 和 `footer` 插槽调整显示内容，不改变组件的选择、搜索和键盘交互。这个案例保留了更完整的面板层次和 effort 操作区，适合查看每个插槽能拿到哪些数据，以及如何替换默认展示。
+
+<demo vue="../../demos/model-selector/slots.vue" title="完整插槽组合" description="自定义 Trigger、面板头、分组标题、模型项、空状态和 footer。" />
 
 ## 状态规则
 
 ### 受控与非受控
 
-- 首次渲染传入 `modelValue` 时，选中值为受控状态；否则组件使用 `defaultValue` 维护内部状态。
-- 首次渲染传入 `effort` 时，effort 原始值为受控状态；否则组件使用 `defaultEffort` 维护内部状态。
-- 首次渲染传入 `open` 时，开关为受控状态；否则组件使用 `defaultOpen` 维护内部状态。
+- 传入 `v-model` / `modelValue` 时，当前模型由外部维护；否则组件使用 `defaultValue` 作为初始值，并在用户选择后自己更新。
+- 传入 `v-model:effort` / `effort` 时，思考强度由外部维护；否则组件使用 `defaultEffort` 作为初始值，并在用户选择后自己更新。
+- 传入 `open` 时，浮层开关由外部维护；否则组件使用 `defaultOpen` 作为初始开关，并在用户交互后自己更新。
 - 同一个组件实例生命周期内不要在受控与非受控之间切换。开发环境会对此给出警告。
 - 受控模式下，消费方需要响应对应的 `update:modelValue`、`update:effort` 或 `update:open` 并回写状态；未回写时组件不会自行修改受控值。
 
@@ -67,15 +89,39 @@ Provider 筛选和运行时 Model Context 不属于组件内置状态。Reasonin
 
 传入 `filterMethod(query, option)` 后将完全使用自定义过滤函数。设置 `searchable=false` 会隐藏搜索框并直接展示全部选项。
 
-`group` 用作分组键，`groupLabel` 用作显示名称。未设置分组字段的模型会进入无标题分组。
+`group` 用作分组键，并在未提供 `groupLabel` 时同时作为显示名称；仅当稳定分组键与显示文案不同时才需要 `groupLabel`。未设置分组字段的模型会进入无标题分组。
 
-## 主题与 Teleport
+`keywords` 只需补充其他字段中不存在的别名。模型名称、版本、描述和分组已经自动参与搜索，不需要在 `keywords` 中重复。
 
-Panel 默认 Teleport 到当前 ShadowRoot 或 `document.body`。组件会把最近 `ThemeProvider` 注入的 `theme` 与解析后的 color mode 同步到 Teleport wrapper，因此局部主题切换仍会作用于浮层。
+## 思考强度
+
+每个模型通过 `ModelSelectorOption.efforts` 声明自己支持的推理强度：
+
+- `true` 使用内置的 `Low`、`Medium`、`High` 三个选项；
+- 自定义数组可定义任意 `value`、`label`，并通过 `disabled` 禁用单个选项；
+- `false`、`undefined` 或空数组表示当前模型不提供 effort；
+- 自定义数组中的重复 `value` 只保留第一项，开发环境会输出警告。
+
+`effort` / `defaultEffort` 保存的是用户选择过的值，并在切换模型时保持不变。组件不会因为新模型不支持该值而自动清空，也不会在模型切换时触发 effort 事件：
+
+| 当前模型状态                     | 解析结果                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 支持当前 effort 值               | 默认 Trigger 显示对应 label，默认 Footer 激活该项，插槽收到对应 `effort` 与 `effortOption`         |
+| 声明了 efforts，但不支持当前值   | 用户选择过的值继续保留；默认 Trigger 不显示 effort，默认 Footer 无激活项，插槽收到 `null` / `null` |
+| 未声明 efforts                   | 用户选择过的值继续保留；不渲染默认 effort Footer，Trigger 与插槽中的有效 effort 均为空             |
+| 后续切回支持同一 effort 值的模型 | 该值重新显示为激活项，不额外触发 `update:effort` 或 `effort-change`                                |
+
+用户通过默认 Footer 或 `footer` 插槽的 `setEffort()` 选择新值时，依次触发 `update:effort` 和 `effort-change`，不会关闭浮层。重复选择当前值、选择未声明值、禁用项，或当前模型处于禁用状态时不会触发事件；`setEffort(null)` 可清空保存的 effort。
+
+提供 `footer` 插槽后会完整替换默认 effort Footer，而不是追加内容。插槽会收到当前模型可选的 `efforts`、当前真正可用的 `effort` / `effortOption`，以及已经内置禁用和去重规则的 `setEffort()`，因此不需要在消费层重复维护选项列表或选择规则。
+
+## 主题与挂载位置
+
+大多数情况下不需要配置挂载位置。Panel 默认挂载到当前 ShadowRoot 或 `document.body`，同时会把最近 `ThemeProvider` 注入的 `theme` 与解析后的 color mode 同步到浮层外层节点，因此局部主题切换仍会作用于浮层。
 
 嵌套使用 `ThemeProvider` 时，应为不同 Provider 配置各自的 `targetElement`。多个嵌套 Provider 同时使用默认 `html` 目标会竞争同一组属性，这是当前 ThemeProvider 的独立契约限制。
 
-如果主题不是通过 `ThemeProvider` 注入，而是仅在某个局部容器上覆盖 CSS 变量，需要把 `appendTo` 指向该局部作用域内的元素；默认 Teleport 到 `document.body` 时，这类局部 CSS 变量不会自动跨越 DOM 边界。
+如果主题不是通过 `ThemeProvider` 注入，而是仅在某个局部容器上覆盖 CSS 变量，需要把 `appendTo` 指向该局部作用域内的元素；默认挂载到 `document.body` 时，这类局部 CSS 变量不会自动跨越 DOM 边界。
 
 ## 键盘与可访问性
 
@@ -91,7 +137,7 @@ Panel 默认 Teleport 到当前 ShadowRoot 或 `document.body`。组件会把最
 | Effort 按钮          | `Enter` / `Space`       | 通过原生按钮行为切换 effort，不关闭浮层                  |
 | Panel                | `Tab` / `Shift+Tab`     | 按 Teleport 后的 DOM 顺序原生移动；焦点离开 Panel 后关闭 |
 
-Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox`、`option`、`aria-activedescendant`、`aria-selected` 和 `aria-disabled` 表达状态。可通过 `ariaLabel`、`searchAriaLabel` 与 `listAriaLabel` 自定义可访问名称。
+组件已内置常见键盘操作和 ARIA 属性。除非你在插槽中放入复杂内容，一般不需要额外处理。Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox` 和 `option` 表达选择状态。未显式传入时，`ariaLabel`、`searchAriaLabel` 与 `effortAriaLabel` 分别回退到对应的 `placeholder`、`searchPlaceholder` 与 `effortLabel`；仍可通过 ARIA props 单独覆盖，`listAriaLabel` 保持独立配置。
 
 组件不会拦截 `Tab` 或重排页面焦点。由于 Panel 可能 Teleport 到 `document.body` 末尾，离开 Panel 后的目标由 Teleport 后的实际 DOM 顺序决定，不保证是 Trigger 在源布局中的前一个或后一个可聚焦元素。如业务需要严格的局部 Tab 顺序，可通过 `appendTo` 把 Panel 放到合适的局部容器。
 
@@ -101,58 +147,36 @@ Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox`、`option`�
 `panel-header` 与 `footer` 可以放置按钮、链接或表单控件。组件会保留这些控件的 Enter、Space 和 Tab 行为，不会将它们误判为模型选择。
 :::
 
-## Reasoning effort
-
-每个模型通过 `ModelSelectorOption.efforts` 声明自己支持的推理强度：
-
-- `true` 使用内置的 `Low`、`Medium`、`High` 三个选项；
-- 自定义数组可定义任意 `value`、`label`，并通过 `disabled` 禁用单个选项；
-- `false`、`undefined` 或空数组表示当前模型不提供 effort；
-- 自定义数组中的重复 `value` 只保留第一项，开发环境会输出警告。
-
-`effort` / `defaultEffort` 保存的是原始值，并在切换模型时保持不变。组件不会因为新模型不支持该值而自动重置，也不会在模型切换时触发 effort 事件：
-
-| 当前模型状态                   | 解析结果                                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------------------------ |
-| 支持原始 effort 值             | 默认 Trigger 显示对应 label，默认 Footer 激活该项，插槽收到对应 `effort` 与 `effortOption` |
-| 声明了 efforts，但不支持原始值 | 原始值继续保留；默认 Trigger 不显示 effort，默认 Footer 无激活项，插槽收到 `null` / `null` |
-| 未声明 efforts                 | 原始值继续保留；不渲染默认 effort Footer，Trigger 与插槽的已解析 effort 均为空             |
-| 后续切回支持同一原始值的模型   | 该值重新解析为激活项，不额外触发 `update:effort` 或 `effort-change`                        |
-
-用户通过默认 Footer 或 `footer` 插槽的 `setEffort()` 选择新值时，依次触发 `update:effort` 和 `effort-change`，不会关闭浮层。重复选择当前值、选择未声明值、禁用项，或当前模型处于禁用状态时不会触发事件；`setEffort(null)` 可清空原始 effort。
-
-提供 `footer` 插槽后会完整替换默认 effort Footer，而不是追加内容。插槽收到当前模型的标准化 `efforts`、已解析的 `effort` / `effortOption` 和受组件约束的 `setEffort()`，因此不需要在消费层重复维护选项列表或选择规则。
-
 ## Props
 
-| 属性名              | 类型                                                     | 默认值                             | 说明                                             |
-| ------------------- | -------------------------------------------------------- | ---------------------------------- | ------------------------------------------------ |
-| `models`            | `readonly ModelSelectorOption[]`                         | `[]`                               | 模型列表；每项可通过 `efforts` 声明推理强度      |
-| `modelValue`        | `string \| null`                                         | `undefined`                        | 受控选中值；传入后需响应 `update:modelValue`     |
-| `defaultValue`      | `string \| null`                                         | `null`                             | 非受控初始值，仅初始化时使用                     |
-| `effort`            | `string \| null`                                         | `undefined`                        | 受控 effort 原始值；传入后需响应 `update:effort` |
-| `defaultEffort`     | `string \| null`                                         | `null`                             | 非受控 effort 初始值，仅初始化时使用             |
-| `open`              | `boolean`                                                | `undefined`                        | 受控开关；传入后需响应 `update:open`             |
-| `defaultOpen`       | `boolean`                                                | `false`                            | 非受控初始开关                                   |
-| `disabled`          | `boolean`                                                | `false`                            | 是否禁用组件                                     |
-| `searchable`        | `boolean`                                                | `true`                             | 是否显示搜索框                                   |
-| `placeholder`       | `string`                                                 | `'Select model'`                   | 无匹配选中项时的 Trigger 文本                    |
-| `searchPlaceholder` | `string`                                                 | `'Search models'`                  | 搜索框占位文本                                   |
-| `emptyText`         | `string`                                                 | `'No models found.'`               | 默认空状态文本                                   |
-| `filterMethod`      | `ModelSelectorFilterMethod`                              | 内置包含匹配                       | 自定义搜索过滤函数                               |
-| `variant`           | `'outline' \| 'ghost' \| 'muted'`                        | `'outline'`                        | Trigger 外观                                     |
-| `size`              | `'small' \| 'normal' \| 'large'`                         | `'normal'`                         | Trigger 与 Panel 尺寸                            |
-| `placement`         | `Placement`                                              | `'bottom-start'`                   | Floating UI 浮层位置                             |
-| `offset`            | `number`                                                 | `8`                                | Trigger 与浮层的间距                             |
-| `appendTo`          | `string \| HTMLElement`                                  | 当前 ShadowRoot 或 `document.body` | Teleport 目标；选择器未命中时回退到默认目标      |
-| `matchTriggerWidth` | `boolean`                                                | `true`                             | Panel 最小宽度是否匹配 Trigger                   |
-| `contentClass`      | `string \| readonly string[] \| Record<string, boolean>` | -                                  | 附加到 Panel 根元素的 class                      |
-| `contentStyle`      | `StyleValue`                                             | -                                  | 附加到 Panel 根元素的内联样式                    |
-| `ariaLabel`         | `string`                                                 | `'Select model'`                   | Trigger 可访问名称前缀                           |
-| `searchAriaLabel`   | `string`                                                 | `'Search models'`                  | 搜索框可访问名称                                 |
-| `listAriaLabel`     | `string`                                                 | `'Models'`                         | Listbox 可访问名称                               |
-| `effortLabel`       | `string`                                                 | `'Thinking'`                       | 默认 effort Footer 的可见标题                    |
-| `effortAriaLabel`   | `string`                                                 | `'Reasoning effort'`               | effort 选项组及 Trigger 状态的可访问名称         |
+| 属性名              | 类型                                                     | 默认值                             | 说明                                         |
+| ------------------- | -------------------------------------------------------- | ---------------------------------- | -------------------------------------------- |
+| `models`            | `readonly ModelSelectorOption[]`                         | `[]`                               | 模型列表；每项可通过 `efforts` 声明推理强度  |
+| `modelValue`        | `string \| null`                                         | `undefined`                        | 受控选中值；传入后需响应 `update:modelValue` |
+| `defaultValue`      | `string \| null`                                         | `null`                             | 非受控初始值，仅初始化时使用                 |
+| `effort`            | `string \| null`                                         | `undefined`                        | 受控思考强度；传入后需响应 `update:effort`   |
+| `defaultEffort`     | `string \| null`                                         | `null`                             | 非受控 effort 初始值，仅初始化时使用         |
+| `open`              | `boolean`                                                | `undefined`                        | 受控开关；传入后需响应 `update:open`         |
+| `defaultOpen`       | `boolean`                                                | `false`                            | 非受控初始开关                               |
+| `disabled`          | `boolean`                                                | `false`                            | 是否禁用组件                                 |
+| `searchable`        | `boolean`                                                | `true`                             | 是否显示搜索框                               |
+| `placeholder`       | `string`                                                 | `'Select model'`                   | 无匹配选中项时的 Trigger 文本                |
+| `searchPlaceholder` | `string`                                                 | `'Search models'`                  | 搜索框占位文本                               |
+| `emptyText`         | `string`                                                 | `'No models found.'`               | 默认空状态文本                               |
+| `filterMethod`      | `ModelSelectorFilterMethod`                              | 内置包含匹配                       | 自定义搜索过滤函数                           |
+| `variant`           | `'outline' \| 'ghost' \| 'muted'`                        | `'outline'`                        | Trigger 外观                                 |
+| `size`              | `'small' \| 'normal' \| 'large'`                         | `'normal'`                         | Trigger 与 Panel 尺寸                        |
+| `placement`         | `Placement`                                              | `'bottom-start'`                   | Floating UI 浮层位置                         |
+| `offset`            | `number`                                                 | `8`                                | Trigger 与浮层的间距                         |
+| `appendTo`          | `string \| HTMLElement`                                  | 当前 ShadowRoot 或 `document.body` | Teleport 目标；选择器未命中时回退到默认目标  |
+| `matchTriggerWidth` | `boolean`                                                | `true`                             | Panel 最小宽度是否匹配 Trigger               |
+| `contentClass`      | `string \| readonly string[] \| Record<string, boolean>` | -                                  | 附加到 Panel 根元素的 class                  |
+| `contentStyle`      | `StyleValue`                                             | -                                  | 附加到 Panel 根元素的内联样式                |
+| `ariaLabel`         | `string`                                                 | `placeholder`                      | Trigger 可访问名称前缀                       |
+| `searchAriaLabel`   | `string`                                                 | `searchPlaceholder`                | 搜索框可访问名称                             |
+| `listAriaLabel`     | `string`                                                 | `'Models'`                         | Listbox 可访问名称                           |
+| `effortLabel`       | `string`                                                 | `'Thinking'`                       | 默认 effort Footer 的可见标题                |
+| `effortAriaLabel`   | `string`                                                 | `effortLabel`                      | effort 选项组及 Trigger 状态的可访问名称     |
 
 ## Events
 
@@ -160,7 +184,7 @@ Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox`、`option`�
 | ------------------- | --------------------------------------------- | -------------------------------------- |
 | `update:modelValue` | `(value: string \| null)`                     | 用户选择不同模型时请求更新 value       |
 | `change`            | `(option: ModelSelectorOption)`               | 用户选择不同模型后触发，返回完整选项   |
-| `update:effort`     | `(value: string \| null)`                     | 用户选择或清空 effort 时请求更新原始值 |
+| `update:effort`     | `(value: string \| null)`                     | 用户选择或清空 effort 时请求更新当前值 |
 | `effort-change`     | `(option: ModelSelectorEffortOption \| null)` | effort 请求变化后触发，返回对应选项    |
 | `update:open`       | `(open: boolean)`                             | 用户交互或组件状态变化请求更新浮层开关 |
 
@@ -177,7 +201,7 @@ Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox`、`option`�
 | `panel-header` | `{ value, option, query, close }`                                           | Panel 顶部扩展区            |
 | `footer`       | `{ value, option, query, close, efforts, effort, effortOption, setEffort }` | 完整替换默认 effort Footer  |
 
-`close()` 会请求关闭浮层并恢复 Trigger 焦点。`trigger` 和 `footer` 中的 `effort` 是当前模型已解析的值：原始值不受支持时为 `null`，对应的 `effortOption` 也为 `null`。`setEffort(value)` 复用默认 UI 的校验和事件语义。
+`close()` 会请求关闭浮层并恢复 Trigger 焦点。`trigger` 和 `footer` 中的 `effort` 是当前模型真正可用的值：保存的值不受支持时为 `null`，对应的 `effortOption` 也为 `null`。`setEffort(value)` 复用默认 UI 的校验和事件语义。
 
 ## Types
 
@@ -248,7 +272,7 @@ interface ModelSelectorTriggerSlotProps {
   label: string
   open: boolean
   disabled: boolean
-  /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
+  /** The effort supported by the selected model. Unsupported saved values are exposed as null. */
   effort: ModelSelectorEffortValue
   effortOption: ModelSelectorEffortOption | null
 }
@@ -279,7 +303,7 @@ interface ModelSelectorPanelSlotProps {
 
 interface ModelSelectorFooterSlotProps extends ModelSelectorPanelSlotProps {
   efforts: readonly ModelSelectorEffortOption[]
-  /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
+  /** The effort supported by the selected model. Unsupported saved values are exposed as null. */
   effort: ModelSelectorEffortValue
   effortOption: ModelSelectorEffortOption | null
   setEffort: (value: ModelSelectorEffortValue) => void
