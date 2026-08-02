@@ -45,7 +45,7 @@ export const McpServers = {
     name: 'Model Context Protocol MCP',
     description: 'MCP Server',
     baseUrl: window.location.origin + '/modelcontextprotocol-mcp',
-    logoUrl: 'https://modelcontextprotocol.io/favicon.ico',
+    logoUrl: window.location.origin + '/modelcontextprotocol.png',
   },
 } satisfies Record<string, McpServerConfig>
 

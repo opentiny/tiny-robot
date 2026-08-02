@@ -315,7 +315,7 @@ function handleRightAsideResizeEnd(detail: LayoutAsideResizeValue) {
 .tr-chat__footer-inner {
   width: 100%;
   max-width: var(--tr-chat-content-max-width, 760px);
-  margin-top: var(--tr-chat-empty-footer-gap, 24px);
+  margin-bottom: var(--tr-chat-empty-footer-gap, 24px);
   margin-inline: auto;
 }
 

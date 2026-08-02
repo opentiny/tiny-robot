@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { BubbleRenderers, ThemeProvider as TrThemeProvider, TrIconButton, TrLayout } from '@opentiny/tiny-robot'
+import { computed, ref, watch, h } from 'vue'
+import { ThemeProvider as TrThemeProvider, TrIconButton, TrLayout } from '@opentiny/tiny-robot'
 import { useMediaQuery } from '@vueuse/core'
 import { localStorageStrategyFactory, useConversation, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import {
@@ -146,6 +146,9 @@ function handleHistoryItemClick() {
   leftAsideOpen.value = false
 }
 
+const aiAvatar = h(IconAi, { style: { fontSize: '28px' } })
+const userAvatar = h(IconUser, { style: { fontSize: '28px' } })
+
 const ui = computed<ChatUi>(() => ({
   layout: {
     leftAside: {
@@ -166,14 +169,11 @@ const ui = computed<ChatUi>(() => ({
     wrap: true,
     items: prompts,
   },
-  bubbleProvider: {
-    fallbackContentRenderer: BubbleRenderers.Markdown,
-  },
   bubbleList: {
     autoScroll: true,
     roleConfigs: {
-      user: { placement: 'end', avatar: IconUser },
-      assistant: { placement: 'start', avatar: IconAi },
+      user: { placement: 'end', avatar: userAvatar },
+      assistant: { placement: 'start', avatar: aiAvatar },
       system: { hidden: true },
     },
   },
@@ -235,6 +235,12 @@ const ui = computed<ChatUi>(() => ({
     </TrChat>
   </TrThemeProvider>
 </template>
+
+<style>
+[data-role='user'] {
+  --tr-bubble-box-bg: var(--tr-color-primary-light);
+}
+</style>
 
 <style scoped>
 .cli-basic-migration-header {

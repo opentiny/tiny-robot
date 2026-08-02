@@ -38,10 +38,12 @@ const toolLoadCandidates = computed(() =>
 )
 
 const installedPlugins = computed<PluginInfo[]>(() =>
-  servers.value.filter((server) => server.installed).map((server) => toPluginInfo(server)),
+  servers.value.filter((server) => server.installed).map((server) => toPluginInfo(server, { includeTools: true })),
 )
 
-const marketPlugins = computed<PluginInfo[]>(() => servers.value.map((server) => toPluginInfo(server)))
+const marketPlugins = computed<PluginInfo[]>(() =>
+  servers.value.map((server) => toPluginInfo(server, { includeTools: false })),
+)
 
 function getMetadataString(server: ChatMcpServerInfo, key: string) {
   const value = server.metadata?.[key]
@@ -65,12 +67,12 @@ function isToolPending(serverId: string, toolId: string) {
   return pendingToolIds.value.has(getToolKey(serverId, toolId))
 }
 
-function toPluginInfo(server: ChatMcpServerInfo): PluginInfo {
+function toPluginInfo(server: ChatMcpServerInfo, options: { includeTools: boolean }): PluginInfo {
+  const { includeTools } = options
   const pending = isServerPending(server)
-  // The base picker has no disabled state for child tools. Hide the child
-  // rows while a Server is disabled so a click cannot accidentally re-enable
-  // the Server or overwrite the persisted Tool choices.
-  const serverTools = server.installed && server.enabled ? (props.mcp.tools.value[server.id] ?? []) : []
+  // The installed list owns the full tool card. The market list stays
+  // summary-only so already-added servers do not duplicate their tool rows.
+  const serverTools = includeTools && server.installed ? (props.mcp.tools.value[server.id] ?? []) : []
 
   return {
     id: server.id,
