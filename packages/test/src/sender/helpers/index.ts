@@ -81,6 +81,12 @@ export function createSenderTestHelper(page: Page) {
       await page.locator(selectors.clearAttachmentsSourceItemsBtn).click()
     },
 
+    async setSenderAttachmentStatus(status: 'uploading' | 'success' | 'error') {
+      await page.evaluate((attachmentStatus) => {
+        window.__senderTestApi?.setSenderAttachmentStatus(attachmentStatus)
+      }, status)
+    },
+
     async setSubmitType(type: 'enter' | 'ctrlEnter' | 'shiftEnter') {
       await page.locator(selectors.submitTypeSelect).selectOption(type)
     },

@@ -67,7 +67,8 @@ const { normalizeAttachments } = useFileType({
 
 const attachmentsContentContext = inject(ATTACHMENTS_CONTENT_CONTEXT_KEY, undefined)
 const registeredAttachmentContentId = computed(() => props.contentSourceId?.trim())
-const hasAttachmentsContent = computed(() => fileList.value.length > 0)
+const submittableAttachments = computed(() => fileList.value.filter((file) => file.status === 'success'))
+const hasAttachmentsContent = computed(() => submittableAttachments.value.length > 0)
 
 let unregisterAttachmentsContent: (() => void) | undefined
 
@@ -86,7 +87,7 @@ watch(
     unregisterAttachmentsContent = attachmentsContentContext.registerAttachmentsContent({
       id: sourceId,
       hasContent: hasAttachmentsContent,
-      getAttachments: () => [...fileList.value],
+      getAttachments: () => [...submittableAttachments.value],
     })
 
     onCleanup(unregisterRegisteredAttachments)
