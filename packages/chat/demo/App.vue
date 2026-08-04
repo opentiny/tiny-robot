@@ -2,11 +2,19 @@
 import { computed } from 'vue'
 import Basic from './cases/basic.vue'
 import BuiltInKit from './cases/built-in-kit.vue'
+import ChatUI from './cases/chat-ui.vue'
 import CliBasicMigration from './basic-integration/index.vue'
 import CustomRuntime from './cases/custom-runtime.vue'
 import ExistingKit from './cases/existing-kit.vue'
 
 const demos = [
+  {
+    id: 'chat-ui',
+    path: '/chat-ui',
+    aliases: ['/ui-only'],
+    title: 'Chat UI',
+    component: ChatUI,
+  },
   {
     id: 'basic',
     path: '/basic',
@@ -53,7 +61,7 @@ const currentDemo = computed(
 
 <template>
   <div class="demo-app">
-    <nav class="demo-paths" aria-label="Chat Runtime Paths">
+    <!-- <nav class="demo-paths" aria-label="Chat Runtime Paths">
       <div class="demo-paths__brand">
         <strong>TrChat MVP</strong>
         <span>Runtime Paths</span>
@@ -70,7 +78,7 @@ const currentDemo = computed(
           {{ demo.title }}
         </a>
       </div>
-    </nav>
+    </nav> -->
 
     <main class="chat-demo">
       <component :is="currentDemo.component" />
