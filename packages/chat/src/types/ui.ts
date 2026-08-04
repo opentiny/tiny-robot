@@ -18,8 +18,8 @@ import type {
   SenderProps,
   WelcomeProps,
 } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo } from './base'
-import type { ChatSubmitPayload } from './runtime'
+import type { ChatConversationInfo, ChatMessageItem } from './base'
+import type { ChatMcpRuntime, ChatModelRuntime, ChatSubmitPayload } from './runtime'
 
 // 梳理 UI 组件相关的事件
 interface ChatLayoutUiListeners {
@@ -95,12 +95,57 @@ export type ChatBubbleListUi = Omit<BubbleListProps, 'messages'> & {
   onBubbleEvent?: (payload: ChatBubbleEventPayload) => void
 }
 
-export interface ChatUi {
-  layout?: ChatLayoutUi
+export type ChatUISize = string | number
+
+export interface ChatUIAsideLayout {
+  visible?: boolean
+  mode?: 'dock' | 'drawer'
+  width?: ChatUISize
+  collapsedWidth?: ChatUISize
+  defaultOpen?: boolean
+}
+
+export interface ChatUILayout {
+  contentMaxWidth?: ChatUISize
+  panelPadding?: ChatUISize
+  panelGap?: ChatUISize
+  leftAside?: ChatUIAsideLayout
+  rightAside?: ChatUIAsideLayout
+}
+
+export interface ChatUIComposerControls {
+  model?: ChatModelRuntime
+  mcp?: ChatMcpRuntime
+}
+
+export interface ChatUIConfig {
+  layout?: ChatLayoutUi | ChatUILayout
   history?: ChatHistoryUi
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: ChatBubbleListUi
   welcome?: WelcomeProps
   prompts?: ChatPromptsUi
   sender?: ChatSenderUi
+  composer?: ChatUIComposerControls
 }
+
+export interface ChatUIConversationState {
+  items: readonly ChatConversationInfo[]
+  activeId: string | null
+  title: string
+}
+
+export interface ChatUIComposerState {
+  value: string
+  loading: boolean
+  disabled: boolean
+  submitDisabled: boolean
+}
+
+export interface ChatUIState {
+  conversation: ChatUIConversationState
+  messages: readonly ChatMessageItem[]
+  composer: ChatUIComposerState
+}
+
+export type ChatUi = ChatUIConfig

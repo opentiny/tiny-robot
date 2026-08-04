@@ -1,4 +1,5 @@
 export { default as TrChat } from './Chat.vue'
+export { default as TrChatUI } from './ChatUI.vue'
 export { MCPSelector, ModelFeatures, ModelSelector } from './components'
 
 export { useKitChatRuntime } from './composables/useKitChatRuntime'
@@ -17,6 +18,14 @@ export type {
   ChatHistoryUi,
   ChatHistorySlotProps,
   ChatLayoutUi,
+  ChatUILayout,
+  ChatUIAsideLayout,
+  ChatUIComposerControls,
+  ChatUIComposerState,
+  ChatUIConfig,
+  ChatUIConversationState,
+  ChatUISize,
+  ChatUIState,
   ChatMainSlotProps,
   ChatMessageContent,
   ChatMessageItem,

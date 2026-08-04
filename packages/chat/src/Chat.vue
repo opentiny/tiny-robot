@@ -1,19 +1,6 @@
 <script setup lang="ts">
-import { computed, provide, ref, toRef } from 'vue'
-import {
-  TrLayout,
-  type LayoutAsideOpenDetail,
-  type LayoutAsideOpenValue,
-  type LayoutAsideResizeDetail,
-  type LayoutAsideResizeValue,
-  type LayoutFloatingDragDetail,
-  type LayoutFloatingProps,
-  type LayoutFloatingResizeDetail,
-  type LayoutFloatingState,
-  type LayoutProps,
-} from '@opentiny/tiny-robot'
-import { chatContextKey } from '@/context'
-import { Conversations, Header, Messages, ScrollToBottom, Sender } from '@/components'
+import { computed, toRef } from 'vue'
+import ChatUI from './ChatUI.vue'
 import { useChatInput } from '@/composables/useChatInput'
 import type {
   ChatFooterSlotProps,
@@ -22,7 +9,10 @@ import type {
   ChatMainSlotProps,
   ChatMessageItem,
   ChatRuntime,
+  ChatSubmitPayload,
   ChatUi,
+  ChatUILayout,
+  ChatUIState,
 } from '@/types'
 
 const props = withDefaults(
@@ -40,13 +30,6 @@ const runtimeRef = toRef(() => props.runtime)
 const uiRef = toRef(() => props.ui)
 const input = useChatInput(runtimeRef)
 
-provide(chatContextKey, {
-  runtime: runtimeRef,
-  input,
-  ui: uiRef,
-})
-
-const messagesRef = ref<InstanceType<typeof Messages> | null>(null)
 const activeConversation = computed(() => runtimeRef.value.activeConversation.value)
 const conversationItems = computed(() => runtimeRef.value.conversations.value)
 const activeMessages = computed(() => activeConversation.value?.messages ?? [])
@@ -55,50 +38,32 @@ const requestState = computed(() => activeConversation.value?.requestState ?? 'i
 const processingState = computed(() => activeConversation.value?.processingState)
 const lastError = computed(() => activeConversation.value?.lastError ?? null)
 const senderDisabled = computed(() => runtimeRef.value.composer.disabled.value)
-const isEmpty = computed(() => visibleMessages.value.length === 0)
-const messagesScrollTarget = computed(() => messagesRef.value?.scrollTarget ?? null)
-
-const layoutUi = computed(() => uiRef.value.layout)
-const layoutProps = computed<LayoutProps>(() => {
-  if (!layoutUi.value) {
-    return {
-      mode: 'normal' as const,
-    }
-  }
-
-  const {
-    'onUpdate:floatingState': _onUpdateFloatingState,
-    onFloatingDragStart: _onFloatingDragStart,
-    onFloatingDrag: _onFloatingDrag,
-    onFloatingDragEnd: _onFloatingDragEnd,
-    onFloatingResizeStart: _onFloatingResizeStart,
-    onFloatingResize: _onFloatingResize,
-    onFloatingResizeEnd: _onFloatingResizeEnd,
-    onAsideOpenChange: _onAsideOpenChange,
-    onAsideResizeStart: _onAsideResizeStart,
-    onAsideResize: _onAsideResize,
-    onAsideResizeEnd: _onAsideResizeEnd,
-    onLeftAsideOpenChange: _onLeftAsideOpenChange,
-    onLeftAsideResizeStart: _onLeftAsideResizeStart,
-    onLeftAsideResize: _onLeftAsideResize,
-    onLeftAsideResizeEnd: _onLeftAsideResizeEnd,
-    onRightAsideOpenChange: _onRightAsideOpenChange,
-    onRightAsideResizeStart: _onRightAsideResizeStart,
-    onRightAsideResize: _onRightAsideResize,
-    onRightAsideResizeEnd: _onRightAsideResizeEnd,
-    ...nextLayoutProps
-  } = layoutUi.value
-
-  if (nextLayoutProps.mode === 'floating') {
-    return nextLayoutProps as LayoutFloatingProps
-  }
-
-  return {
-    mode: 'normal' as const,
-    ...nextLayoutProps,
-  }
-})
 const currentTitle = computed(() => props.title || activeConversation.value?.title || '新对话')
+
+const state = computed<ChatUIState>(() => ({
+  conversation: {
+    items: conversationItems.value,
+    activeId: activeConversation.value?.id ?? null,
+    title: currentTitle.value,
+  },
+  messages: visibleMessages.value,
+  composer: {
+    value: input.inputValue.value,
+    loading: requestState.value === 'processing',
+    disabled: senderDisabled.value,
+    submitDisabled: input.submitDisabled.value,
+  },
+}))
+
+const resolvedUi = computed<ChatUi>(() => ({
+  ...uiRef.value,
+  layout: resolveChatUILayout(uiRef.value.layout),
+  composer: {
+    model: runtimeRef.value.composer.model,
+    mcp: runtimeRef.value.composer.mcp,
+    ...uiRef.value.composer,
+  },
+}))
 
 const headerSlotProps = computed<ChatHeaderSlotProps>(() => ({
   title: currentTitle.value,
@@ -144,194 +109,111 @@ function isMessageHidden(message: ChatMessageItem) {
   return Boolean(uiRef.value.bubbleList?.roleConfigs?.[role]?.hidden)
 }
 
-function handleFloatingStateChange(value: LayoutFloatingState) {
-  layoutUi.value?.['onUpdate:floatingState']?.(value)
+function resolveChatUILayout(layout: ChatUi['layout']): ChatUILayout | undefined {
+  if (!layout) {
+    return undefined
+  }
+
+  const nextLayout = layout as ChatUILayout & {
+    leftAside?: ChatUILayout['leftAside'] & {
+      open?: boolean
+      expandedWidth?: string | number
+    }
+    rightAside?: ChatUILayout['rightAside'] & {
+      open?: boolean
+      expandedWidth?: string | number
+    }
+  }
+
+  return {
+    contentMaxWidth: nextLayout.contentMaxWidth,
+    panelPadding: nextLayout.panelPadding,
+    panelGap: nextLayout.panelGap,
+    leftAside: nextLayout.leftAside
+      ? {
+          visible: nextLayout.leftAside.visible,
+          mode: nextLayout.leftAside.mode,
+          width: nextLayout.leftAside.width ?? nextLayout.leftAside.expandedWidth,
+          collapsedWidth: nextLayout.leftAside.collapsedWidth,
+          defaultOpen: nextLayout.leftAside.defaultOpen ?? nextLayout.leftAside.open,
+        }
+      : undefined,
+    rightAside: nextLayout.rightAside
+      ? {
+          visible: nextLayout.rightAside.visible,
+          mode: nextLayout.rightAside.mode,
+          width: nextLayout.rightAside.width ?? nextLayout.rightAside.expandedWidth,
+          collapsedWidth: nextLayout.rightAside.collapsedWidth,
+          defaultOpen: nextLayout.rightAside.defaultOpen ?? nextLayout.rightAside.open,
+        }
+      : undefined,
+  }
 }
 
-function handleFloatingDragStart(detail: LayoutFloatingDragDetail) {
-  layoutUi.value?.onFloatingDragStart?.(detail)
+function handleCreateConversation() {
+  runtimeRef.value.actions.createConversation()
 }
 
-function handleFloatingDrag(detail: LayoutFloatingDragDetail) {
-  layoutUi.value?.onFloatingDrag?.(detail)
+function handleSwitchConversation(id: string) {
+  runtimeRef.value.actions.switchConversation(id)
 }
 
-function handleFloatingDragEnd(detail: LayoutFloatingDragDetail) {
-  layoutUi.value?.onFloatingDragEnd?.(detail)
+function handleRenameConversation(id: string, title: string) {
+  runtimeRef.value.actions.renameConversation(id, title)
 }
 
-function handleFloatingResizeStart(detail: LayoutFloatingResizeDetail) {
-  layoutUi.value?.onFloatingResizeStart?.(detail)
+function handleDeleteConversation(id: string) {
+  runtimeRef.value.actions.deleteConversation(id)
 }
 
-function handleFloatingResize(detail: LayoutFloatingResizeDetail) {
-  layoutUi.value?.onFloatingResize?.(detail)
+function handleSubmit(payload: ChatSubmitPayload) {
+  input.send(payload)
 }
 
-function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
-  layoutUi.value?.onFloatingResizeEnd?.(detail)
+function handleCancel() {
+  input.abort?.()
 }
 
-function handleAsideOpenChange(detail: LayoutAsideOpenDetail) {
-  layoutUi.value?.onAsideOpenChange?.(detail)
-}
-
-function handleAsideResizeStart(detail: LayoutAsideResizeDetail) {
-  layoutUi.value?.onAsideResizeStart?.(detail)
-}
-
-function handleAsideResize(detail: LayoutAsideResizeDetail) {
-  layoutUi.value?.onAsideResize?.(detail)
-}
-
-function handleAsideResizeEnd(detail: LayoutAsideResizeDetail) {
-  layoutUi.value?.onAsideResizeEnd?.(detail)
-}
-
-function handleLeftAsideOpenChange(detail: LayoutAsideOpenValue) {
-  layoutUi.value?.onLeftAsideOpenChange?.(detail)
-}
-
-function handleLeftAsideResizeStart(detail: LayoutAsideResizeValue) {
-  layoutUi.value?.onLeftAsideResizeStart?.(detail)
-}
-
-function handleLeftAsideResize(detail: LayoutAsideResizeValue) {
-  layoutUi.value?.onLeftAsideResize?.(detail)
-}
-
-function handleLeftAsideResizeEnd(detail: LayoutAsideResizeValue) {
-  layoutUi.value?.onLeftAsideResizeEnd?.(detail)
-}
-
-function handleRightAsideOpenChange(detail: LayoutAsideOpenValue) {
-  layoutUi.value?.onRightAsideOpenChange?.(detail)
-}
-
-function handleRightAsideResizeStart(detail: LayoutAsideResizeValue) {
-  layoutUi.value?.onRightAsideResizeStart?.(detail)
-}
-
-function handleRightAsideResize(detail: LayoutAsideResizeValue) {
-  layoutUi.value?.onRightAsideResize?.(detail)
-}
-
-function handleRightAsideResizeEnd(detail: LayoutAsideResizeValue) {
-  layoutUi.value?.onRightAsideResizeEnd?.(detail)
+function handleClear() {
+  input.setInputValue('')
 }
 </script>
 
 <template>
-  <TrLayout
-    v-bind="layoutProps"
-    @update:floating-state="handleFloatingStateChange"
-    @floating-drag-start="handleFloatingDragStart"
-    @floating-drag="handleFloatingDrag"
-    @floating-drag-end="handleFloatingDragEnd"
-    @floating-resize-start="handleFloatingResizeStart"
-    @floating-resize="handleFloatingResize"
-    @floating-resize-end="handleFloatingResizeEnd"
-    @aside-open-change="handleAsideOpenChange"
-    @aside-resize-start="handleAsideResizeStart"
-    @aside-resize="handleAsideResize"
-    @aside-resize-end="handleAsideResizeEnd"
-    @left-aside-open-change="handleLeftAsideOpenChange"
-    @left-aside-resize-start="handleLeftAsideResizeStart"
-    @left-aside-resize="handleLeftAsideResize"
-    @left-aside-resize-end="handleLeftAsideResizeEnd"
-    @right-aside-open-change="handleRightAsideOpenChange"
-    @right-aside-resize-start="handleRightAsideResizeStart"
-    @right-aside-resize="handleRightAsideResize"
-    @right-aside-resize-end="handleRightAsideResizeEnd"
+  <ChatUI
+    :state="state"
+    :ui="resolvedUi"
+    @create-conversation="handleCreateConversation"
+    @switch-conversation="handleSwitchConversation"
+    @rename-conversation="handleRenameConversation"
+    @delete-conversation="handleDeleteConversation"
+    @update-composer-value="input.setInputValue"
+    @submit="handleSubmit"
+    @cancel="handleCancel"
+    @clear="handleClear"
   >
-    <template #left-aside>
-      <slot name="left-aside" v-bind="historySlotProps">
-        <Conversations />
-      </slot>
+    <template v-if="$slots['left-aside']" #left-aside>
+      <slot name="left-aside" v-bind="historySlotProps" />
     </template>
 
-    <template #header>
-      <slot name="header" v-bind="headerSlotProps">
-        <Header :title="currentTitle" />
-      </slot>
+    <template v-if="$slots.header" #header>
+      <slot name="header" v-bind="headerSlotProps" />
     </template>
 
-    <template #main>
-      <div class="tr-chat__thread" :class="{ 'tr-chat__thread--empty': isEmpty }">
-        <div class="tr-chat__content-shell">
-          <div class="tr-chat__main-inner">
-            <slot name="main" v-bind="mainSlotProps">
-              <Messages ref="messagesRef" :messages="visibleMessages" :is-empty="isEmpty" />
-            </slot>
-          </div>
-
-          <div class="tr-chat__footer-inner">
-            <ScrollToBottom :target="messagesScrollTarget" />
-            <slot name="footer" v-bind="footerSlotProps">
-              <Sender>
-                <template v-if="$slots['sender-footer']" #footer="slotProps">
-                  <slot name="sender-footer" v-bind="slotProps" />
-                </template>
-                <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">
-                  <slot name="sender-footer-right" v-bind="slotProps" />
-                </template>
-              </Sender>
-            </slot>
-          </div>
-        </div>
-
-        <TrLayout.ProxyScrollbar :scroll-target="messagesScrollTarget" />
-      </div>
+    <template v-if="$slots.main" #main>
+      <slot name="main" v-bind="mainSlotProps" />
     </template>
-  </TrLayout>
+
+    <template v-if="$slots.footer" #footer>
+      <slot name="footer" v-bind="footerSlotProps" />
+    </template>
+
+    <template v-if="$slots['sender-footer']" #sender-footer="slotProps">
+      <slot name="sender-footer" v-bind="slotProps" />
+    </template>
+
+    <template v-if="$slots['sender-footer-right']" #sender-footer-right="slotProps">
+      <slot name="sender-footer-right" v-bind="slotProps" />
+    </template>
+  </ChatUI>
 </template>
-
-<style lang="less" scoped>
-.tr-chat__thread {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
-.tr-chat__content-shell {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  padding-inline: var(--tr-chat-content-gutter, clamp(12px, 3vw, 24px));
-  box-sizing: border-box;
-}
-
-.tr-chat__thread--empty .tr-chat__content-shell {
-  justify-content: center;
-}
-
-.tr-chat__main-inner,
-.tr-chat__footer-inner {
-  width: 100%;
-  max-width: var(--tr-chat-content-max-width, 760px);
-  margin-bottom: var(--tr-chat-empty-footer-gap, 24px);
-  margin-inline: auto;
-}
-
-.tr-chat__footer-inner {
-  position: relative;
-}
-
-.tr-chat__main-inner {
-  min-height: 0;
-}
-
-.tr-chat__thread:not(.tr-chat__thread--empty) .tr-chat__main-inner {
-  flex: 1;
-}
-
-.tr-chat__thread:not(.tr-chat__thread--empty) .tr-chat__footer-inner {
-  flex-shrink: 0;
-}
-</style>
