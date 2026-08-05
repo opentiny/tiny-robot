@@ -7,8 +7,7 @@ const ATTACHMENTS_CONTENT_SOURCE_ID = 'attachments'
 export type SenderContentRegister = (source: string, payload: unknown) => () => void
 
 interface RegisteredSenderContent {
-  readonly hasContent: ComputedRef<boolean>
-  readonly collectPayload: () => SenderExternalPayload | undefined
+  readonly payload: ComputedRef<SenderExternalPayload | undefined>
 }
 
 export interface UseSenderContentRegistryReturn {
@@ -99,7 +98,7 @@ export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
 
   const hasRegisteredContent = computed(() => {
     for (const content of registeredContent.values()) {
-      if (content.hasContent.value) return true
+      if (content.payload.value) return true
     }
 
     return false
@@ -108,8 +107,7 @@ export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
   const registerContent: SenderContentRegister = (source, payload) => {
     const registrationId = Symbol('sender-content')
     const normalizedContent: RegisteredSenderContent = {
-      hasContent: computed(() => Boolean(collectRegisteredPayload(source, payload))),
-      collectPayload: () => collectRegisteredPayload(source, payload),
+      payload: computed(() => collectRegisteredPayload(source, payload)),
     }
 
     registeredContent.set(registrationId, normalizedContent)
@@ -123,9 +121,7 @@ export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
     const payloads: SenderExternalPayload[] = []
 
     for (const content of registeredContent.values()) {
-      if (!content.hasContent.value) continue
-
-      const payload = content.collectPayload()
+      const payload = content.payload.value
       if (payload) {
         payloads.push(payload)
       }
