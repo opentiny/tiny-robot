@@ -6,6 +6,7 @@ import {
   TrBubbleProvider,
   TrHistory,
   TrIconButton,
+  TrLayout,
   TrPrompts,
   TrSender,
   TrWelcome,
@@ -65,7 +66,7 @@ const emit = defineEmits<{
 }>()
 
 const leftAsideOpen = shallowRef(false)
-const bubbleListRef = shallowRef<unknown>(null)
+const scrollTarget = shallowRef<HTMLElement | null>(null)
 const { resolvedColorMode, toggleColorMode } = useTheme()
 const hasTheme = computed(() => Boolean(resolvedColorMode))
 const currentColorMode = computed(() => resolvedColorMode?.value ?? 'light')
@@ -95,9 +96,12 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
 const historyUi = computed<ChatHistoryUi>(() => props.ui.history ?? {})
 const layoutUi = computed(() => props.ui.layout as ChatUILayout | undefined)
 const leftAsideLayout = computed(() => layoutUi.value?.leftAside)
+const rightAsideLayout = computed(() => layoutUi.value?.rightAside)
 const isLeftAsideVisible = computed(() => leftAsideLayout.value?.visible !== false)
-const isLeftAsideDock = computed(() => leftAsideLayout.value?.mode === 'dock')
-const isLeftAsideDrawer = computed(() => leftAsideLayout.value?.mode !== 'dock')
+const isRightAsideVisible = computed(() => rightAsideLayout.value?.visible !== false)
+const leftAsideMode = computed(() => leftAsideLayout.value?.mode ?? 'dock')
+const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
+const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
 const visibleMessages = computed(() => props.state.messages.filter((message) => !isMessageHidden(message.role)))
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const historyItems = computed<HistoryDisplayItem[]>(() =>
@@ -194,24 +198,27 @@ const senderProps = computed(() => {
   }
 })
 const composerControls = computed(() => props.ui.composer)
-const scrollTarget = computed(() => {
-  const value = bubbleListRef.value
-
-  if (value instanceof HTMLElement) {
-    return value
-  }
-
-  const element = (value as { $el?: unknown } | null)?.$el
-
-  return element instanceof HTMLElement ? element : null
-})
 const layoutStyle = computed(() => ({
   '--tr-chat-ui-content-max-width': toCssSize(layoutUi.value?.contentMaxWidth ?? 980),
   '--tr-chat-ui-panel-padding': toCssSize(layoutUi.value?.panelPadding ?? 12),
   '--tr-chat-ui-panel-gap': toCssSize(layoutUi.value?.panelGap ?? 12),
-  '--tr-chat-ui-left-aside-width': toCssSize(leftAsideLayout.value?.width ?? 300),
-  '--tr-chat-ui-left-aside-collapsed-width': toCssSize(leftAsideLayout.value?.collapsedWidth ?? 56),
 }))
+const leftAsideOptions = computed(() => ({
+  mode: leftAsideLayout.value?.mode ?? 'dock',
+  open: leftAsideOpen.value,
+  expandedWidth: toLayoutSize(leftAsideLayout.value?.width, 300),
+  collapsedWidth: toLayoutSize(leftAsideLayout.value?.collapsedWidth, 56),
+  collapseEffect: 'overlay' as const,
+}))
+const rightAsideOptions = computed(() => {
+  return {
+    mode: rightAsideLayout.value?.mode ?? 'dock',
+    defaultOpen: rightAsideLayout.value?.defaultOpen ?? true,
+    expandedWidth: toLayoutSize(rightAsideLayout.value?.width, 320),
+    collapsedWidth: toLayoutSize(rightAsideLayout.value?.collapsedWidth, 0),
+    collapseEffect: 'overlay' as const,
+  }
+})
 
 watch(
   () => leftAsideLayout.value?.defaultOpen,
@@ -227,6 +234,10 @@ watch(
 
 function toCssSize(value: string | number) {
   return typeof value === 'number' ? `${value}px` : value
+}
+
+function toLayoutSize(value: string | number | undefined, fallback: number) {
+  return typeof value === 'number' ? value : fallback
 }
 
 function isMessageHidden(role: string | undefined) {
@@ -264,6 +275,10 @@ function closeLeftAside() {
 
 function toggleLeftAside() {
   leftAsideOpen.value = !leftAsideOpen.value
+}
+
+function handleLeftAsideOpenChange(detail: { open: boolean }) {
+  leftAsideOpen.value = detail.open
 }
 
 function handleHistoryTitleChange(title: string, item: HistoryDisplayItem) {
@@ -328,87 +343,87 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 </script>
 
 <template>
-  <main class="tr-chat-ui chat-card" :style="layoutStyle">
-    <div v-if="isLeftAsideDrawer && leftAsideOpen" class="tr-chat-ui__aside-backdrop" @click="closeLeftAside"></div>
-
-    <div
-      v-if="isLeftAsideVisible"
-      class="chat-left"
-      :class="{
-        'chat-left--drawer': isLeftAsideDrawer,
-        'chat-left--expanded': leftAsideOpen,
-      }"
-    >
-      <aside v-if="isLeftAsideDock && !leftAsideOpen" class="chat-dock">
-        <button class="chat-dock__button chat-dock__brand" type="button" aria-label="TinyRobot">
+  <TrLayout
+    class="tr-chat-ui"
+    mode="normal"
+    :style="layoutStyle"
+    :left-aside="isLeftAsideVisible ? leftAsideOptions : undefined"
+    :right-aside="$slots['right-aside'] && isRightAsideVisible ? rightAsideOptions : undefined"
+    @left-aside-open-change="handleLeftAsideOpenChange"
+  >
+    <template v-if="isLeftAsideVisible" #left-aside>
+      <aside class="chat-aside">
+        <button class="chat-aside-logo" type="button" aria-label="TinyRobot">
           <IconAi style="font-size: 28px" />
         </button>
-        <TrIconButton
-          class="chat-dock__button"
-          :icon="IconCollapseLeft"
-          size="32"
-          svg-size="20"
-          aria-label="展开会话列表"
-          @click="toggleLeftAside"
-        />
-        <TrIconButton
-          class="chat-dock__button"
-          :icon="IconNewSession"
-          size="32"
-          svg-size="20"
-          aria-label="新建会话"
-          @click="handleCreateConversation"
-        />
-      </aside>
 
-      <aside v-if="leftAsideOpen" class="history-panel">
-        <slot
-          name="left-aside"
-          :conversation="state.conversation"
-          :is-open="leftAsideOpen"
-          :create-conversation="handleCreateConversation"
-          :open-left-aside="openLeftAside"
-          :close-left-aside="closeLeftAside"
-          :toggle-left-aside="toggleLeftAside"
-        >
-          <div class="chat-left__brand-row">
-            <span class="chat-left__brand-title">
-              <IconAi font-size="28" />
-              TinyRobot
-            </span>
-            <TrIconButton
-              :icon="IconCollapseRight"
-              size="32"
-              svg-size="20"
-              type="button"
-              aria-label="收起会话列表"
-              @click="toggleLeftAside"
-            />
-          </div>
-          <button class="chat-left__task" type="button" @click="handleCreateConversation">
-            <span class="chat-left__task-label">
-              <IconNewSession font-size="20" />
-              新建任务
-            </span>
-            <kbd>Ctrl K</kbd>
-          </button>
-          <TrHistory
-            v-bind="historyProps"
-            class="history-panel__list"
-            :data="historyItems"
-            :selected="state.conversation.activeId ?? undefined"
-            :menu-items="historyMenuItems"
-            @item-click="handleHistoryItemClick"
-            @item-title-change="handleHistoryTitleChange"
-            @item-action="handleHistoryAction"
+        <div class="chat-aside-rail" :class="{ 'is-hidden': !isLeftAsideDock || leftAsideOpen }">
+          <TrIconButton
+            class="chat-aside-rail__button"
+            :icon="IconCollapseLeft"
+            size="32"
+            svg-size="20"
+            aria-label="展开会话列表"
+            @click="toggleLeftAside"
           />
-        </slot>
-      </aside>
-    </div>
+          <TrIconButton
+            class="chat-aside-rail__button"
+            :icon="IconNewSession"
+            size="32"
+            svg-size="20"
+            aria-label="新建会话"
+            @click="handleCreateConversation"
+          />
+        </div>
 
-    <section class="chat-panel">
-      <div class="chat-panel-content">
-        <slot name="notice"></slot>
+        <div class="chat-aside-panel" :class="{ 'is-hidden': !leftAsideOpen }">
+          <slot
+            name="left-aside"
+            :conversation="state.conversation"
+            :is-open="leftAsideOpen"
+            :create-conversation="handleCreateConversation"
+            :open-left-aside="openLeftAside"
+            :close-left-aside="closeLeftAside"
+            :toggle-left-aside="toggleLeftAside"
+          >
+            <div class="chat-aside-brand">
+              <span class="chat-aside-brand__title">TinyRobot</span>
+              <TrIconButton
+                :icon="IconCollapseRight"
+                size="32"
+                svg-size="20"
+                type="button"
+                aria-label="收起会话列表"
+                @click="toggleLeftAside"
+              />
+            </div>
+            <button class="chat-aside-action" type="button" @click="handleCreateConversation">
+              <span class="chat-aside-action__label">
+                <IconNewSession font-size="20" />
+                新建任务
+              </span>
+              <kbd>Ctrl K</kbd>
+            </button>
+            <TrHistory
+              v-bind="historyProps"
+              class="chat-aside-content"
+              :data="historyItems"
+              :selected="state.conversation.activeId ?? undefined"
+              :menu-items="historyMenuItems"
+              @item-click="handleHistoryItemClick"
+              @item-title-change="handleHistoryTitleChange"
+              @item-action="handleHistoryAction"
+            />
+          </slot>
+        </div>
+      </aside>
+    </template>
+
+    <template #header>
+      <div class="chat-panel-content chat-panel-content--header">
+        <div v-if="$slots.notice" class="chat-notice">
+          <slot name="notice"></slot>
+        </div>
 
         <slot
           name="header"
@@ -422,6 +437,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         >
           <header class="chat-header">
             <div class="chat-header__start">
+              <TrLayout.AsideToggle v-if="isLeftAsideVisible && isLeftAsideDrawer" side="left">
+                <template #default="{ isOpen }">
+                  <span class="chat-header__aside-toggle" :aria-label="isOpen ? '收起会话列表' : '展开会话列表'">
+                    <component :is="isOpen ? IconCollapseRight : IconCollapseLeft" :size="20" />
+                  </span>
+                </template>
+              </TrLayout.AsideToggle>
               <h3 class="chat-header__title">{{ state.conversation.title }}</h3>
             </div>
             <button
@@ -436,26 +458,61 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             </button>
           </header>
         </slot>
+      </div>
+    </template>
 
-        <slot name="main" :messages="visibleMessages" :is-empty="isEmpty">
-          <TrBubbleProvider v-bind="bubbleProviderProps">
-            <TrWelcome v-if="isEmpty" v-bind="welcomeProps" class="chat-list chat-welcome" />
-            <TrBubbleList
-              v-else
-              ref="bubbleListRef"
-              v-bind="bubbleListProps"
-              class="chat-list"
-              :messages="visibleMessages"
-              @state-change="handleBubbleStateChange"
-              @bubble-event="handleBubbleEvent"
-            />
-          </TrBubbleProvider>
-        </slot>
+    <template #main>
+      <section class="chat-panel">
+        <div ref="scrollTarget" class="chat-main-scroll-host">
+          <div class="chat-panel-content chat-panel-content--main">
+            <slot name="main" :messages="visibleMessages" :is-empty="isEmpty">
+              <template v-if="isEmpty">
+                <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
+                  <template v-if="$slots['welcome-footer']" #footer>
+                    <slot name="welcome-footer" />
+                  </template>
+                </TrWelcome>
+                <TrPrompts v-if="hasPrompts" v-bind="promptProps" @item-click="handlePromptClick">
+                  <template v-if="$slots['prompts-footer']" #footer>
+                    <slot name="prompts-footer" />
+                  </template>
+                </TrPrompts>
+              </template>
 
-        <TrPrompts v-if="isEmpty && hasPrompts" v-bind="promptProps" @item-click="handlePromptClick" />
+              <TrBubbleProvider v-else v-bind="bubbleProviderProps">
+                <TrBubbleList
+                  v-bind="bubbleListProps"
+                  class="tr-chat-messages__bubble-list"
+                  :messages="visibleMessages"
+                  @state-change="handleBubbleStateChange"
+                  @bubble-event="handleBubbleEvent"
+                >
+                  <template v-if="$slots.prefix" #prefix="slotProps">
+                    <slot name="prefix" v-bind="slotProps" />
+                  </template>
+                  <template v-if="$slots.suffix" #suffix="slotProps">
+                    <slot name="suffix" v-bind="slotProps" />
+                  </template>
+                  <template v-if="$slots.after" #after="slotProps">
+                    <slot name="after" v-bind="slotProps" />
+                  </template>
+                  <template v-if="$slots['content-footer']" #content-footer="slotProps">
+                    <slot name="content-footer" v-bind="slotProps" />
+                  </template>
+                </TrBubbleList>
+              </TrBubbleProvider>
+            </slot>
+          </div>
+        </div>
+      </section>
 
+      <ScrollToBottom :target="scrollTarget" />
+      <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
+    </template>
+
+    <template #footer>
+      <div class="chat-panel-content chat-panel-content--footer">
         <div class="chat-footer">
-          <ScrollToBottom :target="scrollTarget" />
           <slot
             name="footer"
             :input-value="state.composer.value"
@@ -490,73 +547,89 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           </slot>
         </div>
       </div>
-    </section>
+    </template>
 
-    <aside v-if="$slots['right-aside']" class="tr-chat-ui__right-aside">
+    <template v-if="$slots['right-aside'] && isRightAsideVisible" #right-aside>
       <slot name="right-aside"></slot>
-    </aside>
-  </main>
+    </template>
+  </TrLayout>
 </template>
 
 <style scoped>
 .tr-chat-ui {
+  --tr-layout-height: 100%;
+  --tr-layout-bg: var(--tr-container-bg-default);
+  --tr-layout-left-aside-bg: var(--tr-container-bg-default);
+  --tr-layout-right-aside-bg: var(--tr-container-bg-default);
+  --tr-layout-header-bg: var(--tr-container-bg-default);
+  --tr-layout-main-bg: var(--tr-container-bg-default);
+  --tr-layout-footer-bg: var(--tr-container-bg-default);
+  --tr-layout-divider-color: var(--tr-border-color-disabled);
+
   height: 100%;
 }
 
-.chat-card {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 0;
-  background: var(--tr-container-bg-default);
-  box-shadow: none;
-}
-
-.chat-left {
+.chat-aside {
   position: relative;
-  flex: 0 0 var(--tr-chat-ui-left-aside-collapsed-width);
-  width: var(--tr-chat-ui-left-aside-collapsed-width);
-  border-right: 1px solid var(--tr-border-color-disabled);
-  background: var(--tr-container-bg-default);
-}
-
-.chat-left--expanded {
-  flex-basis: var(--tr-chat-ui-left-aside-width);
-  width: var(--tr-chat-ui-left-aside-width);
-}
-
-.chat-left--drawer {
-  display: none;
-}
-
-.chat-left--drawer.chat-left--expanded {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: calc(var(--tr-z-index-drawer) + 1);
-  display: block;
-  width: min(var(--tr-chat-ui-left-aside-width), 80vw);
-  background: var(--tr-container-bg-default);
-}
-
-.chat-dock {
-  display: flex;
+  box-sizing: border-box;
   width: 100%;
+  height: 100%;
+  background: var(--tr-container-bg-default);
+}
+
+.chat-aside-logo {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  top: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tr-color-primary);
+  cursor: pointer;
+}
+
+.chat-aside-rail,
+.chat-aside-panel {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  transition: opacity var(--transition-duration) var(--transition-easing);
+}
+
+.chat-aside-rail.is-hidden,
+.chat-aside-panel.is-hidden {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-aside-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 24px 12px;
+  overflow: hidden;
+}
+
+.chat-aside-rail {
+  display: flex;
+  width: var(--tr-layout-aside-collapsed-width, 56px);
   height: 100%;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  padding: 20px 8px;
-  background: var(--tr-container-bg-default);
+  padding: 72px 12px 24px;
 }
 
-.chat-dock__button {
+.chat-aside-rail__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -570,37 +643,22 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   cursor: pointer;
 }
 
-.chat-dock__button:hover {
+.chat-aside-logo:hover,
+.chat-aside-rail__button:hover {
   background: var(--tr-container-bg-hover);
   color: var(--tr-icon-color-hover);
 }
 
-.chat-dock__brand {
-  color: var(--tr-color-primary);
-}
-
-.history-panel {
-  display: flex;
-  flex-direction: column;
-  background: var(--tr-container-bg-default);
-}
-
-.history-panel {
-  width: 100%;
-  height: 100%;
-  padding: 24px 18px;
-  overflow: hidden;
-}
-
-.chat-left__brand-row {
+.chat-aside-brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   min-height: 32px;
+  padding-left: 40px;
 }
 
-.chat-left__brand-title {
+.chat-aside-brand__title {
   display: inline-flex;
   align-items: center;
   min-width: 0;
@@ -609,7 +667,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   font-weight: 600;
 }
 
-.chat-left__task {
+.chat-aside-action {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -623,17 +681,17 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   cursor: pointer;
 }
 
-.chat-left__task:hover {
+.chat-aside-action:hover {
   background: var(--tr-container-bg-hover);
 }
 
-.chat-left__task-label {
+.chat-aside-action__label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.chat-left__task kbd {
+.chat-aside-action kbd {
   border: none;
   border-radius: 6px;
   padding: 2px 6px;
@@ -643,7 +701,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   font-size: 12px;
 }
 
-.history-panel__list {
+.chat-aside-content {
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -652,25 +710,55 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   --tr-history-item-space-y: 4px;
 }
 
-.tr-chat-ui__aside-backdrop {
-  display: none;
-}
-
 .chat-panel {
   display: flex;
-  flex: 1;
+  height: 100%;
+  box-sizing: border-box;
   min-width: 0;
+  min-height: 0;
   padding: var(--tr-chat-ui-panel-padding);
+}
+
+.chat-main-scroll-host {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .chat-panel-content {
   display: flex;
+  box-sizing: border-box;
   flex-direction: column;
   gap: var(--tr-chat-ui-panel-gap);
   width: 100%;
   max-width: var(--tr-chat-ui-content-max-width);
   min-height: 0;
   margin: 0 auto;
+}
+
+.chat-panel-content--header {
+  padding: 24px 24px 0;
+}
+
+.chat-panel-content--main {
+  min-height: 100%;
+}
+
+.chat-panel-content--footer {
+  padding: 0 24px 24px;
+}
+
+.chat-notice {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.chat-notice :deep(> *) {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
 }
 
 .chat-header {
@@ -725,10 +813,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   background: var(--tr-container-bg-hover);
 }
 
-.chat-list {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+.tr-chat-messages__bubble-list {
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
   border-radius: 10px;
   padding: 8px;
 }
@@ -757,10 +845,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   flex-wrap: wrap;
 }
 
-.tr-chat-ui__right-aside {
-  flex-shrink: 0;
-}
-
 :deep([data-box-type='box'][data-role='user']) {
   --tr-bubble-box-bg: var(--tr-color-primary-light);
 }
@@ -774,12 +858,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 @media (max-width: 959px) {
-  .tr-chat-ui__aside-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: var(--tr-z-index-drawer);
-    display: block;
-    background: rgba(0, 0, 0, 0.4);
+  .chat-panel-content--header {
+    padding: 16px 16px 0;
+  }
+
+  .chat-panel-content--footer {
+    padding: 0 16px 16px;
   }
 
   .chat-header {
