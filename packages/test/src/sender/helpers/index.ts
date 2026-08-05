@@ -73,10 +73,6 @@ export function createSenderTestHelper(page: Page) {
       await page.locator(selectors.toggleAttachmentsSourceBtn).click()
     },
 
-    async setAttachmentsSourceId(id: string) {
-      await page.locator(selectors.attachmentsSourceIdInput).fill(id)
-    },
-
     async clearAttachmentsSourceItems() {
       await page.locator(selectors.clearAttachmentsSourceItemsBtn).click()
     },

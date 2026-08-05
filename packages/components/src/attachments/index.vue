@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { watch, ref, computed, inject } from 'vue'
+import { watch, ref, computed, onBeforeUnmount } from 'vue'
 import { useImagePreview, useListType } from './composables'
 import { AttachmentListEmits, AttachmentListProps, Attachment, ActionButton } from './index.type'
 import FileCard from './components/FileCard.vue'
 import { useFileType } from './composables/useFileType'
-import { ATTACHMENTS_CONTENT_CONTEXT_KEY } from './context'
+import { useSenderContentRegistration } from '../shared/composables'
 
 const props = withDefaults(defineProps<AttachmentListProps>(), {
   variant: 'auto',
@@ -65,35 +65,13 @@ const { normalizeAttachments } = useFileType({
   fileMatchers: props.fileMatchers,
 })
 
-const attachmentsContentContext = inject(ATTACHMENTS_CONTENT_CONTEXT_KEY, undefined)
-const registeredAttachmentContentId = computed(() => props.contentSourceId?.trim())
-const submittableAttachments = computed(() => fileList.value.filter((file) => file.status === 'success'))
-const hasAttachmentsContent = computed(() => submittableAttachments.value.length > 0)
+const registerSenderContent = useSenderContentRegistration() as
+  ((source: string, payload: unknown) => () => void) | undefined
+const unregisterSenderContent = registerSenderContent?.('attachments', fileList)
 
-let unregisterAttachmentsContent: (() => void) | undefined
-
-const unregisterRegisteredAttachments = () => {
-  unregisterAttachmentsContent?.()
-  unregisterAttachmentsContent = undefined
-}
-
-watch(
-  registeredAttachmentContentId,
-  (sourceId, _oldSourceId, onCleanup) => {
-    unregisterRegisteredAttachments()
-
-    if (!sourceId || !attachmentsContentContext) return
-
-    unregisterAttachmentsContent = attachmentsContentContext.registerAttachmentsContent({
-      id: sourceId,
-      hasContent: hasAttachmentsContent,
-      getAttachments: () => [...submittableAttachments.value],
-    })
-
-    onCleanup(unregisterRegisteredAttachments)
-  },
-  { immediate: true },
-)
+onBeforeUnmount(() => {
+  unregisterSenderContent?.()
+})
 
 // 监听props.items变化
 watch(

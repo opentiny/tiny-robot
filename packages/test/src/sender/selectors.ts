@@ -11,7 +11,6 @@ export const SENDER_SELECTORS = {
   toggleSizeBtn: '[data-testid="toggle-size-btn"]',
   toggleExternalContentBtn: '[data-testid="toggle-external-content-btn"]',
   toggleAttachmentsSourceBtn: '[data-testid="toggle-attachments-source-btn"]',
-  attachmentsSourceIdInput: '[data-testid="attachments-source-id-input"]',
   clearAttachmentsSourceItemsBtn: '[data-testid="clear-attachments-source-items-btn"]',
   submitTypeSelect: '[data-testid="submit-type-select"]',
   maxLengthInput: '[data-testid="max-length-input"]',

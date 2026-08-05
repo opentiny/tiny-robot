@@ -83,31 +83,24 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 | actions      | `ActionButton[]`                | `['preview', 'download']` | 自定义操作按钮，详见 [自定义操作按钮](#自定义操作按钮-actions)              |
 | fileIcons    | `Record<string, Component>`     | -                         | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)                |
 | fileMatchers | `FileTypeMatcher[]`             | `[]`                      | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-filematchers)   |
-| contentSourceId @0.5 | `string` | - | 当上层容器提供附件注册上下文时，将附件列表注册为可随容器提交的附件内容 |
 
 ### 附件内容注册
 
-`contentSourceId` 会配合上层容器提供的 `ATTACHMENTS_CONTENT_CONTEXT_KEY` 使用。`TrSender` 已内置该 provider；自定义 Sender 类容器也可以通过 `useSenderContentRegistry` 提供同样的内容注册能力。
+`TrAttachments` 放在 `TrSender` 内时会自动注册附件列表。自定义 Sender 类容器也可以通过 `useSenderContentRegistry` 和 `setupSenderContentRegistration` 提供同样的内容注册能力。
 
 ```typescript
-import { provide } from 'vue'
 import {
-  ATTACHMENTS_CONTENT_CONTEXT_KEY,
+  setupSenderContentRegistration,
   useSenderContentRegistry,
-  type AttachmentsContentContext,
 } from '@opentiny/tiny-robot'
 
 const {
   hasRegisteredContent,
-  registerAttachmentsContent,
+  registerContent,
   collectExternalPayloads,
 } = useSenderContentRegistry()
 
-const attachmentsContentContext: AttachmentsContentContext = {
-  registerAttachmentsContent,
-}
-
-provide(ATTACHMENTS_CONTENT_CONTEXT_KEY, attachmentsContentContext)
+setupSenderContentRegistration(registerContent)
 ```
 
 注册后，容器可以使用 `hasRegisteredContent` 判断是否存在已注册内容，并在提交时通过 `collectExternalPayloads()` 获取 payload。
@@ -154,16 +147,6 @@ export interface RawFileAttachment extends BaseAttachment {
 }
 
 export type Attachment = UrlAttachment | RawFileAttachment
-```
-
-**AttachmentsContentRegistration**
-
-```typescript
-interface AttachmentsContentRegistration {
-  id: string
-  hasContent: Ref<boolean> | (() => boolean)
-  getAttachments: () => Attachment[]
-}
 ```
 
 **ActionButton**

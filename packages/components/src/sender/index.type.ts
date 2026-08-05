@@ -149,7 +149,7 @@ export interface SenderProps {
    * 用于附件、图片、文件列表等不写入编辑器文本的内容场景。
    * 当编辑器文本为空但该值为 true 时，Sender 仍会认为存在可提交内容。
    *
-   * @deprecated 若使用 TrAttachments，请改用 contentSourceId 注册附件内容。
+   * @deprecated 若使用 TrAttachments，将其放在 TrSender 内即可自动注册附件内容。
    *
    * @default false
    */

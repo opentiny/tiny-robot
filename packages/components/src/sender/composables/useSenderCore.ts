@@ -23,7 +23,7 @@ import {
 } from '../extensions'
 import { EXTENSION_NAMES } from '../extensions/constants'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
-import { ATTACHMENTS_CONTENT_CONTEXT_KEY, type AttachmentsContentContext } from '../../attachments/context'
+import { setupSenderContentRegistration } from '../../shared/composables'
 import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useModeSwitch } from './useModeSwitch'
@@ -77,11 +77,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
     return text.trim().length > 0
   })
 
-  const { hasRegisteredContent, registerAttachmentsContent, collectExternalPayloads } = useSenderContentRegistry()
-
-  const attachmentsContentContext: AttachmentsContentContext = {
-    registerAttachmentsContent,
-  }
+  const { hasRegisteredContent, registerContent, collectExternalPayloads } = useSenderContentRegistry()
 
   const hasContent = computed(() => {
     return hasEditorContent.value || hasRegisteredContent.value || Boolean(props.hasExternalContent)
@@ -313,7 +309,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
 
   // 提供 Context
   provide(SENDER_CONTEXT_KEY, context)
-  provide(ATTACHMENTS_CONTENT_CONTEXT_KEY, attachmentsContentContext)
+  setupSenderContentRegistration(registerContent)
 
   // ========================================
   // 10. 返回 Context 和 Expose

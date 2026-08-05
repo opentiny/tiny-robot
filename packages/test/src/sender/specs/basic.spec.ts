@@ -88,8 +88,7 @@ test.describe('Sender 组件测试', () => {
       meta: {
         externalPayloads: [
           {
-            type: 'attachments',
-            sourceId: 'sender-attachments',
+            sourceId: 'attachments',
             items: [
               {
                 id: 'sender-attachment',
@@ -117,20 +116,6 @@ test.describe('Sender 组件测试', () => {
 
     await helper.clearAttachmentsSourceItems()
     await helper.expectSubmitButtonVisible(false)
-  })
-
-  test('Attachments: contentSourceId 变化时应该重新注册', async () => {
-    await helper.toggleAttachmentsSource()
-    await helper.setAttachmentsSourceId('renamed-attachments')
-
-    await helper.clickSubmit()
-
-    const detail = await helper.getSubmitDetail()
-    expect(detail.meta.externalPayloads).toHaveLength(1)
-    expect(detail.meta.externalPayloads[0]).toMatchObject({
-      type: 'attachments',
-      sourceId: 'renamed-attachments',
-    })
   })
 
   test('Props: disabled - 应该正确控制禁用状态', async () => {

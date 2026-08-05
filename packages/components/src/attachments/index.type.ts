@@ -53,7 +53,6 @@ export interface AttachmentListProps {
   items?: Attachment[]
   disabled?: boolean
   wrap?: boolean
-  contentSourceId?: string
 
   // 图标配置
   fileIcons?: Record<string, Component>

@@ -1,73 +1,122 @@
-import { computed, isRef, shallowReactive, type ComputedRef, type Ref } from 'vue'
-import type { AttachmentsContentRegistration } from '../../attachments/context'
-import type { SenderExternalPayload, SenderExternalPayloadSourceId } from '../types/submit-meta'
+import { computed, isRef, shallowReactive, type ComputedRef } from 'vue'
+import type { Attachment } from '../../attachments/index.type'
+import type { SenderExternalPayload } from '../types/submit-meta'
 
-type RegisteredContentHasContent = Ref<boolean> | (() => boolean)
+const ATTACHMENTS_CONTENT_SOURCE_ID = 'attachments'
+
+export type SenderContentRegister = (source: string, payload: unknown) => () => void
 
 interface RegisteredSenderContent {
-  readonly id: SenderExternalPayloadSourceId
   readonly hasContent: ComputedRef<boolean>
   readonly collectPayload: () => SenderExternalPayload | undefined
 }
 
 export interface UseSenderContentRegistryReturn {
   hasRegisteredContent: ComputedRef<boolean>
-  registerAttachmentsContent: (registration: AttachmentsContentRegistration) => () => void
+  registerContent: SenderContentRegister
   collectExternalPayloads: () => SenderExternalPayload[]
 }
 
-const normalizeHasContent = (hasContent: RegisteredContentHasContent): ComputedRef<boolean> => {
-  if (isRef(hasContent)) {
-    return computed(() => Boolean(hasContent.value))
+const getRegisteredPayloadValue = (payload: unknown) => {
+  if (isRef(payload)) {
+    return payload.value
   }
 
-  return computed(() => Boolean(hasContent()))
+  return payload
+}
+
+const getSubmittableAttachments = (fileList: Attachment[]) => {
+  return fileList.filter((file) => file.status === 'success')
+}
+
+const hasPayloadContent = (payload: unknown): boolean => {
+  if (payload === null || payload === undefined) return false
+
+  if (typeof payload === 'string') {
+    return payload.trim().length > 0
+  }
+
+  if (typeof payload === 'number') {
+    return Number.isFinite(payload)
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.length > 0
+  }
+
+  if (typeof payload === 'object') {
+    return Object.keys(payload).length > 0
+  }
+
+  return Boolean(payload)
+}
+
+const isPlainPayloadObject = (payload: unknown): payload is Record<string, unknown> => {
+  return payload !== null && !Array.isArray(payload) && typeof payload === 'object'
+}
+
+const collectAttachmentsPayload = (payload: unknown): SenderExternalPayload | undefined => {
+  const fileList = getRegisteredPayloadValue(payload)
+
+  if (!Array.isArray(fileList)) return undefined
+
+  const submittableAttachments = getSubmittableAttachments(fileList)
+
+  if (submittableAttachments.length === 0) return undefined
+
+  return {
+    items: submittableAttachments,
+    sourceId: ATTACHMENTS_CONTENT_SOURCE_ID,
+  }
+}
+
+const collectRegisteredPayload = (source: string, payload: unknown): SenderExternalPayload | undefined => {
+  if (source === ATTACHMENTS_CONTENT_SOURCE_ID) {
+    return collectAttachmentsPayload(payload)
+  }
+
+  const payloadValue = getRegisteredPayloadValue(payload)
+
+  if (!hasPayloadContent(payloadValue)) {
+    return undefined
+  }
+
+  if (!isPlainPayloadObject(payloadValue)) {
+    return {
+      value: payloadValue,
+      sourceId: source,
+    } as SenderExternalPayload
+  }
+
+  return {
+    ...payloadValue,
+    sourceId: source,
+  } as SenderExternalPayload
 }
 
 export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
-  const registeredContent = shallowReactive(new Map<SenderExternalPayloadSourceId, RegisteredSenderContent>())
+  const registeredContent = shallowReactive(new Map<symbol, RegisteredSenderContent>())
 
   const hasRegisteredContent = computed(() => {
-    return Array.from(registeredContent.values()).some((content) => content.hasContent.value)
+    for (const content of registeredContent.values()) {
+      if (content.hasContent.value) return true
+    }
+
+    return false
   })
 
-  const registerContent = (content: RegisteredSenderContent) => {
-    const sourceId = content.id.trim()
-
-    if (sourceId.length === 0) {
-      throw new TypeError('[Sender] content id must be a non-empty string')
-    }
-
-    if (registeredContent.has(sourceId)) {
-      throw new Error(`[Sender] duplicated content id: ${sourceId}`)
-    }
-
+  const registerContent: SenderContentRegister = (source, payload) => {
+    const registrationId = Symbol('sender-content')
     const normalizedContent: RegisteredSenderContent = {
-      ...content,
-      id: sourceId,
+      hasContent: computed(() => Boolean(collectRegisteredPayload(source, payload))),
+      collectPayload: () => collectRegisteredPayload(source, payload),
     }
 
-    registeredContent.set(sourceId, normalizedContent)
+    registeredContent.set(registrationId, normalizedContent)
 
     return () => {
-      if (registeredContent.get(sourceId) === normalizedContent) {
-        registeredContent.delete(sourceId)
-      }
+      registeredContent.delete(registrationId)
     }
-  }
-
-  const registerAttachmentsContent = (registration: AttachmentsContentRegistration) => {
-    const sourceId = registration.id.trim()
-
-    return registerContent({
-      id: sourceId,
-      hasContent: normalizeHasContent(registration.hasContent),
-      collectPayload: () => ({
-        type: 'attachments',
-        items: registration.getAttachments(),
-        sourceId,
-      }),
-    })
   }
 
   const collectExternalPayloads = (): SenderExternalPayload[] => {
@@ -87,7 +136,7 @@ export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
 
   return {
     hasRegisteredContent,
-    registerAttachmentsContent,
+    registerContent,
     collectExternalPayloads,
   }
 }

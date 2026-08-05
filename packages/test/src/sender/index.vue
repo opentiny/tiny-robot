@@ -42,7 +42,6 @@ const enableTemplate = ref(false)
 const enableSuggestion = ref(false)
 const templateData = ref<TemplateItem[]>([])
 const attachmentsSourceMounted = ref(false)
-const senderAttachmentSourceId = ref('sender-attachments')
 const senderAttachmentItems = ref<Attachment[]>([
   {
     id: 'sender-attachment',
@@ -306,10 +305,6 @@ onBeforeUnmount(() => {
             <tiny-switch data-testid="toggle-attachments-source-btn" v-model="attachmentsSourceMounted"></tiny-switch>
           </div>
           <div class="control-item">
-            <label>attachmentsSourceId:</label>
-            <input data-testid="attachments-source-id-input" type="text" v-model="senderAttachmentSourceId" />
-          </div>
-          <div class="control-item">
             <label>attachmentsItems:</label>
             <button data-testid="clear-attachments-source-items-btn" @click="handleClearSenderAttachmentItems">
               clear
@@ -403,11 +398,7 @@ onBeforeUnmount(() => {
       @clear="handleClear"
     >
       <template v-if="attachmentsSourceMounted" #header>
-        <TrAttachments
-          v-model:items="senderAttachmentItems"
-          :content-source-id="senderAttachmentSourceId"
-          variant="card"
-        />
+        <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
       </template>
 
       <template #footer>

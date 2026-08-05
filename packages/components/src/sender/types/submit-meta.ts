@@ -3,11 +3,14 @@ import type { Attachment } from '../../attachments/index.type'
 export type SenderExternalPayloadSourceId = string
 
 export interface SenderAttachmentPayload {
-  type: 'attachments'
   items: Attachment[]
 }
 
-export type SenderExternalPayload = SenderAttachmentPayload & {
+export interface SenderCustomPayload {
+  [key: string]: unknown
+}
+
+export type SenderExternalPayload = (SenderAttachmentPayload | SenderCustomPayload) & {
   readonly sourceId: SenderExternalPayloadSourceId
 }
 

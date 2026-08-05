@@ -38,7 +38,7 @@ const handleFiles = (files: File[]) => {
 const handleSubmit = (text: string, _structuredData?: unknown, meta?: SenderSubmitMeta) => {
   const attachmentNames =
     meta?.externalPayloads.reduce<string[]>((names, payload) => {
-      if (payload.sourceId !== 'sender-attachments' || payload.type !== 'attachments') {
+      if (payload.sourceId !== 'attachments') {
         return names
       }
 
@@ -73,7 +73,6 @@ onBeforeUnmount(clearAttachments)
         <tr-attachments
           v-model:items="attachments"
           class="sender-attachments"
-          content-source-id="sender-attachments"
           variant="card"
           wrap
           @remove="revokeObjectUrl"
