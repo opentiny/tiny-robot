@@ -11,8 +11,8 @@ const chatModelOptions: ChatModelOption[] = [
   {
     id: 'deepseek-chat',
     provider: 'deepseek',
-    name: 'DeepSeek Chat',
-    model: 'deepseek-chat',
+    name: 'DeepSeek V4 Flash',
+    model: 'deepseek-v4-flash',
     apiUrl: 'https://api.deepseek.com/chat/completions',
     apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY || '',
   },
