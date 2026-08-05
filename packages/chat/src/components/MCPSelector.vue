@@ -2,10 +2,10 @@
 import { computed, shallowRef, watch } from 'vue'
 import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
-import type { ChatMcpRuntime, ChatMcpServerInfo } from '../types'
+import type { ChatUIMcpControls, ChatUIMcpServerInfo } from '../types'
 
 const props = defineProps<{
-  mcp: ChatMcpRuntime
+  mcp: ChatUIMcpControls
 }>()
 
 const visible = shallowRef(false)
@@ -45,13 +45,13 @@ const marketPlugins = computed<PluginInfo[]>(() =>
   servers.value.map((server) => toPluginInfo(server, { includeTools: false })),
 )
 
-function getMetadataString(server: ChatMcpServerInfo, key: string) {
+function getMetadataString(server: ChatUIMcpServerInfo, key: string) {
   const value = server.metadata?.[key]
 
   return typeof value === 'string' ? value : undefined
 }
 
-function isServerPending(server: ChatMcpServerInfo) {
+function isServerPending(server: ChatUIMcpServerInfo) {
   return Boolean(server.loading || pendingServerIds.value.has(server.id))
 }
 
@@ -67,7 +67,7 @@ function isToolPending(serverId: string, toolId: string) {
   return pendingToolIds.value.has(getToolKey(serverId, toolId))
 }
 
-function toPluginInfo(server: ChatMcpServerInfo, options: { includeTools: boolean }): PluginInfo {
+function toPluginInfo(server: ChatUIMcpServerInfo, options: { includeTools: boolean }): PluginInfo {
   const { includeTools } = options
   const pending = isServerPending(server)
   // The installed list owns the full tool card. The market list stays
@@ -268,7 +268,9 @@ async function handlePluginToggle(plugin: PluginInfo, enabled: boolean) {
         }
       }
 
-      await props.mcp.setServerEnabled(plugin.id, enabled)
+      if (findServer(plugin.id)?.enabled !== enabled) {
+        await props.mcp.setServerEnabled(plugin.id, enabled)
+      }
 
       if (enabled && !hasLoadedTools(plugin.id)) {
         await loadServerTools(plugin.id)
@@ -343,10 +345,12 @@ async function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boo
       class="tr-chat-mcp-selector__button"
       :class="{ 'tr-chat-mcp-selector__button--active': activeCount > 0 }"
       type="button"
+      :aria-label="activeCount > 0 ? `MCP，已启用 ${activeCount} 个服务` : 'MCP'"
+      :title="activeCount > 0 ? `MCP，已启用 ${activeCount} 个服务` : 'MCP'"
       @click="visible = true"
     >
       <IconPlugin :size="16" class="tr-chat-mcp-selector__icon" />
-      MCP
+      <span class="tr-chat-mcp-selector__label">MCP</span>
       <span v-if="activeCount > 0" class="tr-chat-mcp-selector__count">
         {{ activeCount }}
       </span>
@@ -378,6 +382,7 @@ async function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boo
 }
 
 .tr-chat-mcp-selector__button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -395,13 +400,12 @@ async function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boo
 
 .tr-chat-mcp-selector__button:hover {
   border-color: var(--tr-border-color-hover);
-  color: var(--tr-text-primary);
   background: var(--tr-container-bg-hover);
 }
 
 .tr-chat-mcp-selector__button--active {
   border-color: var(--tr-border-color-hover);
-  color: var(--tr-text-primary);
+  color: var(--tr-border-color-hover);
   background: var(--tr-container-bg-default-2);
 }
 
@@ -420,5 +424,23 @@ async function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boo
   color: #fff;
   background: var(--tr-color-brand, #1476ff);
   font-size: 10px;
+}
+
+@media (max-width: 959px) {
+  .tr-chat-mcp-selector__button {
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+  }
+
+  .tr-chat-mcp-selector__label {
+    display: none;
+  }
+
+  .tr-chat-mcp-selector__count {
+    position: absolute;
+    right: -4px;
+    top: -4px;
+  }
 }
 </style>

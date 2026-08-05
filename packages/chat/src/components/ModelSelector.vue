@@ -2,10 +2,10 @@
 import { computed, shallowRef } from 'vue'
 import { TrDropdownMenu, type DropdownMenuItem } from '@opentiny/tiny-robot'
 import { IconAtom } from '@opentiny/tiny-robot-svgs'
-import type { ChatModelRuntime } from '../types'
+import type { ChatUIModelControls } from '../types'
 
 const props = defineProps<{
-  model: ChatModelRuntime
+  model: ChatUIModelControls
 }>()
 
 const pending = shallowRef(false)
@@ -39,7 +39,13 @@ async function handleModelSelect(item: DropdownMenuItem) {
 <template>
   <TrDropdownMenu v-if="modelOptions.length" :items="menuItems" trigger="click" @item-click="handleModelSelect">
     <template #trigger>
-      <button class="tr-chat-model-selector__button" type="button" :disabled="pending">
+      <button
+        class="tr-chat-model-selector__button"
+        type="button"
+        :disabled="pending"
+        :aria-label="selectedModel?.label || '选择模型'"
+        :title="selectedModel?.label || '选择模型'"
+      >
         <IconAtom :size="16" class="tr-chat-model-selector__icon" />
         <span class="tr-chat-model-selector__label">{{ selectedModel?.label || '选择模型' }}</span>
       </button>
@@ -84,5 +90,17 @@ async function handleModelSelect(item: DropdownMenuItem) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 959px) {
+  .tr-chat-model-selector__button {
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+  }
+
+  .tr-chat-model-selector__label {
+    display: none;
+  }
 }
 </style>

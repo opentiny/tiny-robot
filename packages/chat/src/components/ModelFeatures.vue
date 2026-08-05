@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import { IconSearch, IconThink } from '@opentiny/tiny-robot-svgs'
-import type { ChatModelRuntime } from '../types'
+import type { ChatUIModelControls } from '../types'
 
 const props = defineProps<{
-  model: ChatModelRuntime
+  model: ChatUIModelControls
 }>()
 
 const featureOptions = [
@@ -63,10 +63,12 @@ async function toggleFeature(id: string) {
       :class="{ 'tr-chat-model-features__button--active': model.features.value[feature.id] }"
       type="button"
       :disabled="isPending(feature.id)"
+      :aria-label="feature.label"
+      :title="feature.label"
       @click="toggleFeature(feature.id)"
     >
       <component :is="feature.icon" :size="16" class="tr-chat-model-features__icon" />
-      {{ feature.label }}
+      <span class="tr-chat-model-features__label">{{ feature.label }}</span>
     </button>
   </div>
 </template>
@@ -96,7 +98,6 @@ async function toggleFeature(id: string) {
 
 .tr-chat-model-features__button:hover:not(:disabled) {
   border-color: var(--tr-border-color-hover);
-  color: var(--tr-text-primary);
   background: var(--tr-container-bg-hover);
 }
 
@@ -107,11 +108,23 @@ async function toggleFeature(id: string) {
 
 .tr-chat-model-features__button--active {
   border-color: var(--tr-border-color-hover);
-  color: var(--tr-text-primary);
+  color: var(--tr-border-color-hover);
   background: var(--tr-container-bg-default-2);
 }
 
 .tr-chat-model-features__icon {
   flex-shrink: 0;
+}
+
+@media (max-width: 959px) {
+  .tr-chat-model-features__button {
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+  }
+
+  .tr-chat-model-features__label {
+    display: none;
+  }
 }
 </style>

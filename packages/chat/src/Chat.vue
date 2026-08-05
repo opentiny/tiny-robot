@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRef } from 'vue'
+import { computed, shallowRef, toRef } from 'vue'
 import ChatUI from './ChatUI.vue'
 import { useChatInput } from '@/composables/useChatInput'
 import type {
@@ -7,18 +7,23 @@ import type {
   ChatHeaderSlotProps,
   ChatHistorySlotProps,
   ChatMainSlotProps,
-  ChatMessageItem,
   ChatRuntime,
   ChatSubmitPayload,
+  ChatLayoutUi,
+  ChatUIMcpControls,
   ChatUi,
   ChatUILayout,
   ChatUIState,
 } from '@/types'
 
+type TrChatUiConfig = Omit<ChatUi, 'layout'> & {
+  layout?: ChatLayoutUi | ChatUILayout
+}
+
 const props = withDefaults(
   defineProps<{
     runtime: ChatRuntime
-    ui?: ChatUi
+    ui?: TrChatUiConfig
     title?: string
   }>(),
   {
@@ -33,12 +38,36 @@ const input = useChatInput(runtimeRef)
 const activeConversation = computed(() => runtimeRef.value.activeConversation.value)
 const conversationItems = computed(() => runtimeRef.value.conversations.value)
 const activeMessages = computed(() => activeConversation.value?.messages ?? [])
-const visibleMessages = computed(() => activeMessages.value.filter((message) => !isMessageHidden(message)))
 const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
 const processingState = computed(() => activeConversation.value?.processingState)
 const lastError = computed(() => activeConversation.value?.lastError ?? null)
 const senderDisabled = computed(() => runtimeRef.value.composer.disabled.value)
 const currentTitle = computed(() => props.title || activeConversation.value?.title || '新对话')
+const mcpToolSnapshots = shallowRef<Record<string, readonly string[]>>({})
+
+const runtimeMcpControls = computed<ChatUIMcpControls | undefined>(() => {
+  const mcp = runtimeRef.value.composer.mcp
+
+  if (!mcp) {
+    return undefined
+  }
+
+  return {
+    servers: mcp.servers,
+    tools: mcp.tools,
+    addServer: (id) => {
+      clearServerToolSnapshot(id)
+      return mcp.addServer(id)
+    },
+    removeServer: (id) => {
+      clearServerToolSnapshot(id)
+      return mcp.removeServer(id)
+    },
+    setServerEnabled: (id, enabled) => setServerEnabled(id, enabled),
+    loadTools: (serverId) => mcp.loadTools(serverId),
+    setToolEnabled: (serverId, toolId, enabled) => mcp.setToolEnabled(serverId, toolId, enabled),
+  }
+})
 
 const state = computed<ChatUIState>(() => ({
   conversation: {
@@ -46,7 +75,7 @@ const state = computed<ChatUIState>(() => ({
     activeId: activeConversation.value?.id ?? null,
     title: currentTitle.value,
   },
-  messages: visibleMessages.value,
+  messages: activeMessages.value,
   composer: {
     value: input.inputValue.value,
     loading: requestState.value === 'processing',
@@ -60,7 +89,7 @@ const resolvedUi = computed<ChatUi>(() => ({
   layout: resolveChatUILayout(uiRef.value.layout),
   composer: {
     model: runtimeRef.value.composer.model,
-    mcp: runtimeRef.value.composer.mcp,
+    mcp: runtimeMcpControls.value,
     ...uiRef.value.composer,
   },
 }))
@@ -99,17 +128,7 @@ const footerSlotProps = computed<ChatFooterSlotProps>(() => ({
   submitDisabled: input.submitDisabled.value,
 }))
 
-function isMessageHidden(message: ChatMessageItem) {
-  const role = message.role
-
-  if (!role) {
-    return false
-  }
-
-  return Boolean(uiRef.value.bubbleList?.roleConfigs?.[role]?.hidden)
-}
-
-function resolveChatUILayout(layout: ChatUi['layout']): ChatUILayout | undefined {
+function resolveChatUILayout(layout: TrChatUiConfig['layout']): ChatUILayout | undefined {
   if (!layout) {
     return undefined
   }
@@ -147,6 +166,79 @@ function resolveChatUILayout(layout: ChatUi['layout']): ChatUILayout | undefined
           defaultOpen: nextLayout.rightAside.defaultOpen ?? nextLayout.rightAside.open,
         }
       : undefined,
+  }
+}
+
+function setServerToolSnapshot(serverId: string, toolIds: readonly string[]) {
+  mcpToolSnapshots.value = {
+    ...mcpToolSnapshots.value,
+    [serverId]: toolIds,
+  }
+}
+
+function clearServerToolSnapshot(serverId: string) {
+  const { [serverId]: _removedSnapshot, ...rest } = mcpToolSnapshots.value
+  mcpToolSnapshots.value = rest
+}
+
+function getRuntimeMcp() {
+  return runtimeRef.value.composer.mcp
+}
+
+async function setServerEnabled(id: string, enabled: boolean) {
+  const mcp = getRuntimeMcp()
+
+  if (!mcp) {
+    return
+  }
+
+  if (!enabled) {
+    const currentTools = mcp.tools.value[id] ?? []
+    const enabledToolIds = currentTools.filter((tool) => tool.enabled).map((tool) => tool.id)
+
+    if (enabledToolIds.length > 0) {
+      setServerToolSnapshot(id, enabledToolIds)
+    } else {
+      clearServerToolSnapshot(id)
+    }
+
+    for (const tool of currentTools) {
+      if (tool.enabled) {
+        await mcp.setToolEnabled(id, tool.id, false)
+      }
+    }
+
+    await mcp.setServerEnabled(id, false)
+    return
+  }
+
+  await mcp.setServerEnabled(id, true)
+
+  const snapshot = mcpToolSnapshots.value[id]
+  let currentTools = mcp.tools.value[id] ?? []
+
+  if (snapshot?.length) {
+    if (currentTools.length === 0) {
+      await mcp.loadTools(id)
+      currentTools = mcp.tools.value[id] ?? []
+    }
+
+    const snapshotSet = new Set(snapshot)
+
+    for (const tool of currentTools) {
+      if (snapshotSet.has(tool.id) && !tool.enabled) {
+        await mcp.setToolEnabled(id, tool.id, true)
+      }
+    }
+
+    clearServerToolSnapshot(id)
+    return
+  }
+
+  if (currentTools.length > 0 && currentTools.every((tool) => !tool.enabled)) {
+    for (const tool of currentTools) {
+      await mcp.setToolEnabled(id, tool.id, true)
+    }
   }
 }
 
@@ -200,8 +292,8 @@ function handleClear() {
       <slot name="header" v-bind="headerSlotProps" />
     </template>
 
-    <template v-if="$slots.main" #main>
-      <slot name="main" v-bind="mainSlotProps" />
+    <template v-if="$slots.main" #main="slotProps">
+      <slot name="main" v-bind="{ ...mainSlotProps, messages: slotProps.messages }" />
     </template>
 
     <template v-if="$slots.footer" #footer>

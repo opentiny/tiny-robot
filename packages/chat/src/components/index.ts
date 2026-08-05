@@ -1,8 +1,4 @@
-export { default as Sender } from './Sender.vue'
 export { default as MCPSelector } from './MCPSelector.vue'
 export { default as ModelFeatures } from './ModelFeatures.vue'
 export { default as ModelSelector } from './ModelSelector.vue'
-export { default as Conversations } from './Conversations.vue'
-export { default as Header } from './Header.vue'
-export { default as Messages } from './Messages.vue'
 export { default as ScrollToBottom } from './ScrollToBottom.vue'

@@ -18,8 +18,8 @@ import type {
   SenderProps,
   WelcomeProps,
 } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo, ChatMessageItem } from './base'
-import type { ChatMcpRuntime, ChatModelRuntime, ChatSubmitPayload } from './runtime'
+import type { ChatConversationInfo, ChatMessageItem, ChatReadable } from './base'
+import type { ChatSubmitPayload } from './runtime'
 
 // 梳理 UI 组件相关的事件
 interface ChatLayoutUiListeners {
@@ -113,13 +113,57 @@ export interface ChatUILayout {
   rightAside?: ChatUIAsideLayout
 }
 
+export interface ChatUIModelOption {
+  id: string
+  label: string
+  capabilities?: Readonly<Record<string, boolean | undefined>>
+  metadata?: Readonly<Record<string, unknown>>
+}
+
+export interface ChatUIModelControls {
+  options: ChatReadable<readonly ChatUIModelOption[]>
+  selectedId: ChatReadable<string | null>
+  features: ChatReadable<Readonly<Record<string, boolean>>>
+  select: (id: string | null) => Promise<void> | void
+  setFeature: (id: string, enabled: boolean) => Promise<void> | void
+}
+
+export interface ChatUIMcpServerInfo {
+  id: string
+  name: string
+  description?: string
+  installed: boolean
+  enabled: boolean
+  loading?: boolean
+  metadata?: Readonly<Record<string, unknown>>
+}
+
+export interface ChatUIMcpToolInfo {
+  id: string
+  name: string
+  description?: string
+  enabled: boolean
+}
+
+export type ChatUIMcpToolState = Readonly<Partial<Record<string, readonly ChatUIMcpToolInfo[]>>>
+
+export interface ChatUIMcpControls {
+  servers: ChatReadable<readonly ChatUIMcpServerInfo[]>
+  tools: ChatReadable<ChatUIMcpToolState>
+  addServer: (id: string) => Promise<void> | void
+  removeServer: (id: string) => Promise<void> | void
+  setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
+  loadTools: (serverId: string) => Promise<void>
+  setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
+}
+
 export interface ChatUIComposerControls {
-  model?: ChatModelRuntime
-  mcp?: ChatMcpRuntime
+  model?: ChatUIModelControls
+  mcp?: ChatUIMcpControls
 }
 
 export interface ChatUIConfig {
-  layout?: ChatLayoutUi | ChatUILayout
+  layout?: ChatUILayout
   history?: ChatHistoryUi
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: ChatBubbleListUi
@@ -136,10 +180,10 @@ export interface ChatUIConversationState {
 }
 
 export interface ChatUIComposerState {
-  value: string
+  value?: string
   loading: boolean
   disabled: boolean
-  submitDisabled: boolean
+  submitDisabled?: boolean
 }
 
 export interface ChatUIState {
