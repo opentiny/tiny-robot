@@ -118,6 +118,32 @@ test.describe('Sender 组件测试', () => {
     await helper.expectSubmitButtonVisible(false)
   })
 
+  test('Attachments: uploading 和 error 状态不应该作为 external payload 提交', async () => {
+    const nonSuccessStatuses = ['uploading', 'error'] as const
+
+    for (const status of nonSuccessStatuses) {
+      const textContent = `text with ${status} attachment`
+
+      await helper.setSenderAttachmentStatus(status)
+      await helper.toggleAttachmentsSource()
+      await helper.expectSubmitButtonVisible(false)
+
+      await helper.typeContent(textContent)
+      await helper.clickSubmit()
+
+      const detail = await helper.getSubmitDetail()
+      expect(detail).toMatchObject({
+        argsLength: 2,
+        textContent,
+        structuredData: null,
+        meta: null,
+      })
+
+      await helper.toggleAttachmentsSource()
+      await helper.clearContent()
+    }
+  })
+
   test('Props: disabled - 应该正确控制禁用状态', async () => {
     await helper.typeContent('测试内容')
     await helper.expectEditorContent('测试内容')

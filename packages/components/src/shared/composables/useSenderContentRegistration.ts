@@ -3,8 +3,9 @@ import type { SenderContentRegister } from '../../sender/composables/useSenderCo
 
 export const SENDER_CONTENT_REGISTRATION_CONTEXT_KEY: unique symbol = Symbol('sender-content-registration-context')
 
-export const useSenderContentRegistration: () => unknown = (): unknown => {
-  const registerFn: unknown = inject(SENDER_CONTENT_REGISTRATION_CONTEXT_KEY, undefined)
+export const useSenderContentRegistration: () => SenderContentRegister | undefined = ():
+  SenderContentRegister | undefined => {
+  const registerFn = inject<SenderContentRegister | undefined>(SENDER_CONTENT_REGISTRATION_CONTEXT_KEY, undefined)
 
   return registerFn
 }
