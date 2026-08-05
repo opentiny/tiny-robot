@@ -2,18 +2,23 @@
 import { computed, shallowRef, watch } from 'vue'
 import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
-import type { ChatUIMcpControls, ChatUIMcpServerInfo } from '../types'
+import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../types'
 
 const props = defineProps<{
-  mcp: ChatUIMcpControls
+  mcp: ChatMcpView
+  labels: ChatLabels
+}>()
+
+const emit = defineEmits<{
+  addServer: [payload: { id: string }]
+  removeServer: [payload: { id: string }]
+  loadTools: [payload: { serverId: string }]
+  updateServerEnabled: [payload: { id: string; enabled: boolean }]
+  updateToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
 const visible = shallowRef(false)
-const pendingServerIds = shallowRef<ReadonlySet<string>>(new Set())
-const pendingToolIds = shallowRef<ReadonlySet<string>>(new Set())
 const attemptedToolLoadServerIds = shallowRef<ReadonlySet<string>>(new Set())
-const serverActionQueues = new Map<string, Promise<void>>()
-const pendingAutoDisableServerIds = new Set<string>()
 const fallbackPluginIcon = 'https://modelcontextprotocol.io/favicon.ico'
 const pickerPopupConfig = {
   type: 'drawer' as const,
@@ -22,18 +27,19 @@ const pickerPopupConfig = {
   },
 }
 
-const servers = computed(() => props.mcp.servers.value)
+const servers = computed(() => props.mcp.servers ?? [])
+const tools = computed(() => props.mcp.tools ?? {})
 const hasServers = computed(() => servers.value.length > 0)
 const activeCount = computed(() => servers.value.filter((server) => server.installed && server.enabled).length)
-const hasPendingServer = computed(() => servers.value.some((server) => isServerPending(server)))
-const hasPendingTool = computed(() => pendingToolIds.value.size > 0)
-const hasPendingAction = computed(() => hasPendingServer.value || hasPendingTool.value)
+const hasPendingAction = computed(() =>
+  servers.value.some((server) => Boolean(server.loading || tools.value[server.id]?.some((tool) => tool.loading))),
+)
 const toolLoadCandidates = computed(() =>
   servers.value
     .filter((server) => server.installed && server.enabled && !hasLoadedTools(server.id))
     .map((server) => ({
       id: server.id,
-      pending: isServerPending(server),
+      pending: Boolean(server.loading),
     })),
 )
 
@@ -45,34 +51,38 @@ const marketPlugins = computed<PluginInfo[]>(() =>
   servers.value.map((server) => toPluginInfo(server, { includeTools: false })),
 )
 
-function getMetadataString(server: ChatUIMcpServerInfo, key: string) {
+watch(
+  toolLoadCandidates,
+  (candidates) => {
+    const candidateIds = new Set(candidates.map((candidate) => candidate.id))
+    const nextAttempts = new Set([...attemptedToolLoadServerIds.value].filter((serverId) => candidateIds.has(serverId)))
+
+    for (const candidate of candidates) {
+      if (candidate.pending || nextAttempts.has(candidate.id)) {
+        continue
+      }
+
+      nextAttempts.add(candidate.id)
+      emit('loadTools', { serverId: candidate.id })
+    }
+
+    attemptedToolLoadServerIds.value = nextAttempts
+  },
+  { immediate: true },
+)
+
+function getMetadataString(server: ChatMcpServerView, key: string) {
   const value = server.metadata?.[key]
 
   return typeof value === 'string' ? value : undefined
 }
 
-function isServerPending(server: ChatUIMcpServerInfo) {
-  return Boolean(server.loading || pendingServerIds.value.has(server.id))
-}
-
 function hasLoadedTools(serverId: string) {
-  return Object.prototype.hasOwnProperty.call(props.mcp.tools.value, serverId)
+  return Object.prototype.hasOwnProperty.call(tools.value, serverId)
 }
 
-function getToolKey(serverId: string, toolId: string) {
-  return `${serverId}:${toolId}`
-}
-
-function isToolPending(serverId: string, toolId: string) {
-  return pendingToolIds.value.has(getToolKey(serverId, toolId))
-}
-
-function toPluginInfo(server: ChatUIMcpServerInfo, options: { includeTools: boolean }): PluginInfo {
-  const { includeTools } = options
-  const pending = isServerPending(server)
-  // The installed list owns the full tool card. The market list stays
-  // summary-only so already-added servers do not duplicate their tool rows.
-  const serverTools = includeTools && server.installed ? (props.mcp.tools.value[server.id] ?? []) : []
+function toPluginInfo(server: ChatMcpServerView, options: { includeTools: boolean }): PluginInfo {
+  const serverTools = options.includeTools && server.installed ? (tools.value[server.id] ?? []) : []
 
   return {
     id: server.id,
@@ -87,7 +97,7 @@ function toPluginInfo(server: ChatUIMcpServerInfo, options: { includeTools: bool
       description: tool.description ?? '',
       enabled: tool.enabled,
     })),
-    addState: pending ? 'loading' : server.installed ? 'added' : 'idle',
+    addState: server.loading ? 'loading' : server.installed ? 'added' : 'idle',
     category: getMetadataString(server, 'category'),
   }
 }
@@ -96,246 +106,45 @@ function findServer(id: string) {
   return servers.value.find((server) => server.id === id)
 }
 
-function setServerPending(id: string, pending: boolean) {
-  const next = new Set(pendingServerIds.value)
-
-  if (pending) {
-    next.add(id)
-  } else {
-    next.delete(id)
-  }
-
-  pendingServerIds.value = next
-}
-
-function setToolPending(serverId: string, toolId: string, pending: boolean) {
-  const key = getToolKey(serverId, toolId)
-  const next = new Set(pendingToolIds.value)
-
-  if (pending) {
-    next.add(key)
-  } else {
-    next.delete(key)
-  }
-
-  pendingToolIds.value = next
-}
-
-function setToolLoadAttempted(serverId: string) {
-  const next = new Set(attemptedToolLoadServerIds.value)
-  next.add(serverId)
-  attemptedToolLoadServerIds.value = next
-}
-
-function enqueueServerAction(serverId: string, action: () => Promise<void> | void) {
-  const previousTask = serverActionQueues.get(serverId) ?? Promise.resolve()
-  const task = previousTask.then(action)
-
-  serverActionQueues.set(serverId, task)
-
-  return task.finally(() => {
-    if (serverActionQueues.get(serverId) === task) {
-      serverActionQueues.delete(serverId)
-    }
-  })
-}
-
-async function runServerAction(id: string, action: () => Promise<void> | void) {
-  const server = findServer(id)
-
-  if (!server || isServerPending(server)) {
-    return
-  }
-
-  setServerPending(id, true)
-
-  try {
-    await enqueueServerAction(id, action)
-  } finally {
-    setServerPending(id, false)
-  }
-}
-
-async function loadServerTools(id: string) {
-  setToolLoadAttempted(id)
-  await props.mcp.loadTools(id)
-}
-
-async function runToolAction(serverId: string, toolId: string, action: () => Promise<void> | void) {
-  const server = findServer(serverId)
-
-  if (!server || !server.installed || !server.enabled || isToolPending(serverId, toolId)) {
-    return
-  }
-
-  setToolPending(serverId, toolId, true)
-
-  try {
-    await enqueueServerAction(serverId, async () => {
-      const currentServer = findServer(serverId)
-
-      if (!currentServer?.installed || !currentServer.enabled) {
-        return
-      }
-
-      await action()
-    })
-  } finally {
-    setToolPending(serverId, toolId, false)
-  }
-}
-
-watch(
-  toolLoadCandidates,
-  (candidates) => {
-    const candidateIds = new Set(candidates.map((candidate) => candidate.id))
-    const nextAttempts = new Set([...attemptedToolLoadServerIds.value].filter((serverId) => candidateIds.has(serverId)))
-    const serverIdsToLoad: string[] = []
-
-    for (const candidate of candidates) {
-      if (candidate.pending || nextAttempts.has(candidate.id)) {
-        continue
-      }
-
-      nextAttempts.add(candidate.id)
-      serverIdsToLoad.push(candidate.id)
-    }
-
-    attemptedToolLoadServerIds.value = nextAttempts
-
-    for (const serverId of serverIdsToLoad) {
-      void runServerAction(serverId, () => loadServerTools(serverId)).catch((error) => {
-        console.error(`[MCP] Failed to load tools for initially enabled server "${serverId}":`, error)
-      })
-    }
-  },
-  { immediate: true },
-)
-
-async function handlePluginAdd(plugin: PluginInfo) {
+function handlePluginAdd(plugin: PluginInfo) {
   const server = findServer(plugin.id)
 
-  if (!server || server.installed) {
+  if (!server || server.installed || server.loading) {
     return
   }
 
-  try {
-    await runServerAction(plugin.id, async () => {
-      await props.mcp.addServer(plugin.id)
-      await loadServerTools(plugin.id)
-    })
-  } catch (error) {
-    console.error(`[MCP] Failed to add server "${plugin.id}":`, error)
-  }
+  emit('addServer', { id: plugin.id })
 }
 
-async function handlePluginDelete(plugin: PluginInfo) {
+function handlePluginDelete(plugin: PluginInfo) {
   const server = findServer(plugin.id)
 
-  if (!server || !server.installed) {
+  if (!server || !server.installed || server.loading) {
     return
   }
 
-  try {
-    await runServerAction(plugin.id, () => props.mcp.removeServer(plugin.id))
-  } catch (error) {
-    console.error(`[MCP] Failed to remove server "${plugin.id}":`, error)
-  }
+  emit('removeServer', { id: plugin.id })
 }
 
-async function handlePluginToggle(plugin: PluginInfo, enabled: boolean) {
+function handlePluginToggle(plugin: PluginInfo, enabled: boolean) {
   const server = findServer(plugin.id)
-  const isAutoDisable = !enabled && pendingAutoDisableServerIds.delete(plugin.id)
 
-  if (!server || !server.installed) {
+  if (!server || !server.installed || server.loading || server.enabled === enabled) {
     return
   }
 
-  if (server.enabled === enabled) {
-    return
-  }
-
-  try {
-    await runServerAction(plugin.id, async () => {
-      if (isAutoDisable) {
-        const serverTools = props.mcp.tools.value[plugin.id] ?? []
-
-        // The Picker auto-disables a Server after its last Tool is disabled.
-        // Do not apply that follow-up action if the Tool mutation failed or
-        // the Runtime still reports another enabled Tool.
-        if (serverTools.some((tool) => tool.enabled)) {
-          return
-        }
-      }
-
-      if (findServer(plugin.id)?.enabled !== enabled) {
-        await props.mcp.setServerEnabled(plugin.id, enabled)
-      }
-
-      if (enabled && !hasLoadedTools(plugin.id)) {
-        await loadServerTools(plugin.id)
-      }
-
-      if (enabled) {
-        const serverTools = props.mcp.tools.value[plugin.id] ?? []
-
-        // A Server hidden while all of its Tools are off would otherwise need
-        // two parent-toggle clicks: one to reveal Tools and another to enable
-        // them. Treat the first click as the Picker's normal "enable all".
-        if (serverTools.length > 0 && serverTools.every((tool) => !tool.enabled)) {
-          for (const tool of serverTools) {
-            await props.mcp.setToolEnabled(plugin.id, tool.id, true)
-          }
-        }
-      }
-    })
-  } catch (error) {
-    console.error(`[MCP] Failed to ${enabled ? 'enable' : 'disable'} server "${plugin.id}":`, error)
-  }
+  emit('updateServerEnabled', { id: plugin.id, enabled })
 }
 
-async function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) {
+function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) {
   const server = findServer(plugin.id)
+  const tool = tools.value[plugin.id]?.find((item) => item.id === toolId)
 
-  if (!server || !server.installed) {
+  if (!server || !server.installed || !server.enabled || tool?.loading || tool?.enabled === enabled) {
     return
   }
 
-  // PluginCard mutates transient Tool rows before emitting the child events
-  // caused by a Server-level toggle. Ignore only that cascade when the Server
-  // itself is changing; a parent "enable all" while the Server is already on
-  // must still update every Tool in Runtime state.
-  const pluginTool = plugin.tools.find((tool) => tool.id === toolId)
-
-  if (server.enabled !== enabled && pluginTool?.enabled === enabled) {
-    return
-  }
-
-  // A disabled Server has no active Tool controls. Keep its persisted Tool
-  // choices unchanged; re-enabling the Server restores those choices.
-  if (!server.enabled) {
-    return
-  }
-
-  const serverTools = props.mcp.tools.value[plugin.id] ?? []
-  const isLastEnabledTool =
-    !enabled &&
-    serverTools.some((tool) => tool.id === toolId && tool.enabled) &&
-    !serverTools.some((tool) => tool.id !== toolId && tool.enabled)
-
-  if (isLastEnabledTool) {
-    pendingAutoDisableServerIds.add(plugin.id)
-  }
-
-  try {
-    await runToolAction(plugin.id, toolId, () => props.mcp.setToolEnabled(plugin.id, toolId, enabled))
-  } catch (error) {
-    // Keep the Runtime as the source of truth and let the next computed
-    // render restore the previous value if an action fails.
-    console.error(`[MCP] Failed to toggle tool "${toolId}" for "${plugin.id}":`, error)
-  } finally {
-    pendingAutoDisableServerIds.delete(plugin.id)
-  }
+  emit('updateToolEnabled', { serverId: plugin.id, toolId, enabled })
 }
 </script>
 
@@ -345,12 +154,12 @@ async function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boo
       class="tr-chat-mcp-selector__button"
       :class="{ 'tr-chat-mcp-selector__button--active': activeCount > 0 }"
       type="button"
-      :aria-label="activeCount > 0 ? `MCP，已启用 ${activeCount} 个服务` : 'MCP'"
-      :title="activeCount > 0 ? `MCP，已启用 ${activeCount} 个服务` : 'MCP'"
+      :aria-label="labels.mcp"
+      :title="labels.mcp"
       @click="visible = true"
     >
       <IconPlugin :size="16" class="tr-chat-mcp-selector__icon" />
-      <span class="tr-chat-mcp-selector__label">MCP</span>
+      <span class="tr-chat-mcp-selector__label">{{ labels.mcp }}</span>
       <span v-if="activeCount > 0" class="tr-chat-mcp-selector__count">
         {{ activeCount }}
       </span>

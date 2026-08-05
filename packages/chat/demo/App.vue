@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import Basic from './cases/basic.vue'
 import BuiltInKit from './cases/built-in-kit.vue'
-import ChatUI from './cases/chat-ui.vue'
+import ChatUI from './cases/chat-ui/index.vue'
 import CliBasicMigration from './basic-integration/index.vue'
 import CustomRuntime from './cases/custom-runtime.vue'
 import ExistingKit from './cases/existing-kit.vue'

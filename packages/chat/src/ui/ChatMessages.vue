@@ -9,26 +9,23 @@ import {
   useAutoScroll,
   type BubbleMessage,
   type BubbleRoleConfig,
-  type BubbleProviderProps,
   type PromptProps,
-  type WelcomeProps,
 } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
+import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../types'
 import type {
-  ChatBubbleEventPayload,
-  ChatBubbleListUi,
-  ChatBubbleStateChangePayload,
-  ChatMessageItem,
-  ChatPromptsUi,
-} from '../types'
+  ResolvedChatMessagesOptions,
+  ResolvedChatPromptsOptions,
+  ResolvedChatWelcomeOptions,
+} from './resolveOptions'
 
 const props = defineProps<{
   messages: readonly ChatMessageItem[]
   scrollTarget: HTMLElement | null
-  bubbleProvider?: Omit<BubbleProviderProps, 'store'>
-  bubbleList?: ChatBubbleListUi
-  welcome?: WelcomeProps
-  prompts?: ChatPromptsUi
+  options: ResolvedChatMessagesOptions
+  welcome: false | ResolvedChatWelcomeOptions
+  prompts: false | ResolvedChatPromptsOptions
+  labels: ChatLabels
 }>()
 
 const emit = defineEmits<{
@@ -39,7 +36,6 @@ const emit = defineEmits<{
 
 const fallbackAiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
 const fallbackUserAvatar = h(IconUser, { style: { fontSize: '28px' } }) as never
-const fallbackWelcomeIcon = h(IconAi, { style: { fontSize: '40px' } }) as never
 
 const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
   assistant: {
@@ -58,14 +54,14 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
 const isEmpty = computed(() => props.messages.length === 0)
 const lastVisibleMessage = computed(() => props.messages.at(-1))
 const bubbleMessages = computed<BubbleMessage[]>(() => props.messages.map((message) => ({ ...message })))
-const shouldAutoScroll = computed(() => props.bubbleList?.autoScroll ?? true)
+const shouldAutoScroll = computed(() => props.options.autoScroll ?? true)
 const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
-  ...props.bubbleProvider,
+  ...props.options.bubbleProvider,
 }))
-type BubbleListViewProps = Omit<ChatBubbleListUi, 'onStateChange' | 'onBubbleEvent'>
+type BubbleListViewProps = ResolvedChatMessagesOptions['bubbleList'] & { autoScroll: false }
 const bubbleListProps = computed<BubbleListViewProps>(() => {
-  const bubbleList = props.bubbleList
+  const bubbleList = props.options.bubbleList
 
   if (!bubbleList) {
     return {
@@ -74,29 +70,26 @@ const bubbleListProps = computed<BubbleListViewProps>(() => {
     }
   }
 
-  const { onStateChange: _onStateChange, onBubbleEvent: _onBubbleEvent, ...nextBubbleListProps } = bubbleList
-
   return {
     roleConfigs: defaultRoleConfigs,
-    ...nextBubbleListProps,
+    ...bubbleList,
     autoScroll: false,
   }
 })
-const welcomeProps = computed(() => ({
-  title: 'TinyRobot AI 助手',
-  description: '您好，我是TinyRobot，您专属的 AI 智能专家',
-  icon: fallbackWelcomeIcon,
-  ...props.welcome,
-}))
-const promptProps = computed(() => {
-  const { onItemClick: _onItemClick, ...nextPromptProps } = props.prompts ?? {}
+const welcomeProps = computed<ResolvedChatWelcomeOptions | null>(() => (props.welcome === false ? null : props.welcome))
+const promptProps = computed<ResolvedChatPromptsOptions>(() => {
+  if (props.prompts === false) {
+    return {
+      items: [],
+    }
+  }
 
   return {
-    ...nextPromptProps,
-    items: props.prompts?.items ?? [],
+    ...props.prompts,
+    items: [...(props.prompts.items ?? [])],
   }
 })
-const hasPrompts = computed(() => promptProps.value.items.length > 0)
+const hasPrompts = computed(() => props.prompts !== false && promptProps.value.items.length > 0)
 
 const { scrollToBottom } = useAutoScroll(
   () => props.scrollTarget,

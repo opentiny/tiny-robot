@@ -3,17 +3,26 @@ import { computed, shallowRef, watch } from 'vue'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconAi, IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo, ChatHistoryUi, ChatUIConversationState } from '../types'
+import type {
+  ChatBrandOptions,
+  ChatConversationInfo,
+  ChatConversationView,
+  ChatHistoryOptions,
+  ChatLabels,
+} from '../types'
 
 type HistoryDisplayItem = ChatConversationInfo & {
   raw: ChatConversationInfo
 }
 
 const props = defineProps<{
-  conversation: ChatUIConversationState
-  history: ChatHistoryUi
+  conversation: Required<ChatConversationView>
+  history: ChatHistoryOptions
+  brand: ChatBrandOptions
+  labels: ChatLabels
   isOpen: boolean
   isDock: boolean
+  showHistory: boolean
 }>()
 
 const emit = defineEmits<{
@@ -26,10 +35,6 @@ const emit = defineEmits<{
   toggle: []
 }>()
 
-const defaultHistoryMenuItems: HistoryMenuItem[] = [
-  { id: 'rename', text: '重命名' },
-  { id: 'delete', text: '删除' },
-]
 const historyItemCache = new Map<string, HistoryDisplayItem>()
 const historyItems = shallowRef<HistoryDisplayItem[]>([])
 
@@ -54,22 +59,17 @@ watch(
 )
 
 const historyProps = computed(() => {
-  const {
-    onItemClick: _onItemClick,
-    onItemTitleChange: _onItemTitleChange,
-    onItemAction: _onItemAction,
-    menuItems: _menuItems,
-    ...nextHistoryProps
-  } = props.history
+  const { menuItems: _menuItems, ...nextHistoryProps } = props.history
 
   return nextHistoryProps
 })
 
-const historyMenuItems = computed(() => props.history.menuItems ?? defaultHistoryMenuItems)
+const historyMenuItems = computed<HistoryMenuItem[]>(() => props.history.menuItems ?? [])
 
 function syncHistoryItem(item: ChatConversationInfo) {
   const cached = historyItemCache.get(item.id)
-  const nextItem = cached ?? ({ id: item.id, title: item.title || '新对话', raw: item } as HistoryDisplayItem)
+  const nextItem =
+    cached ?? ({ id: item.id, title: item.title || props.labels.newConversationTitle, raw: item } as HistoryDisplayItem)
 
   for (const key of Object.keys(nextItem)) {
     if (key !== 'raw' && !(key in item)) {
@@ -79,7 +79,7 @@ function syncHistoryItem(item: ChatConversationInfo) {
 
   Object.assign(nextItem, item, {
     id: item.id,
-    title: item.title || '新对话',
+    title: item.title || props.labels.newConversationTitle,
     raw: item,
   })
   historyItemCache.set(item.id, nextItem)
@@ -93,17 +93,14 @@ function handleCreateConversation() {
 
 function handleHistoryItemClick(item: HistoryDisplayItem) {
   emit('switchConversation', item.raw)
-  props.history.onItemClick?.(item.raw)
 }
 
 function handleHistoryTitleChange(title: string, item: HistoryDisplayItem) {
   emit('renameConversation', item.raw, title)
-  props.history.onItemTitleChange?.(title, item.raw)
 }
 
 function handleHistoryAction(action: HistoryMenuItem, item: HistoryDisplayItem) {
   emit('historyAction', action, item.raw)
-  props.history.onItemAction?.(action, item.raw)
 }
 
 function openAside() {
@@ -121,9 +118,9 @@ function toggleAside() {
 
 <template>
   <aside class="chat-aside">
-    <button class="chat-aside-logo" type="button" aria-label="TinyRobot">
-      <IconAi style="font-size: 28px" />
-    </button>
+    <span class="chat-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
+      <component :is="brand.logo || IconAi" />
+    </span>
 
     <div class="chat-aside-rail" :class="{ 'is-hidden': !isDock || isOpen }">
       <TrIconButton
@@ -131,7 +128,7 @@ function toggleAside() {
         :icon="IconCollapseLeft"
         size="32"
         svg-size="20"
-        aria-label="展开会话列表"
+        :aria-label="labels.expandConversationList"
         @click="openAside"
       />
       <TrIconButton
@@ -139,7 +136,7 @@ function toggleAside() {
         :icon="IconNewSession"
         size="32"
         svg-size="20"
-        aria-label="新建会话"
+        :aria-label="labels.createConversation"
         @click="handleCreateConversation"
       />
     </div>
@@ -154,24 +151,24 @@ function toggleAside() {
         :toggle-left-aside="toggleAside"
       >
         <div class="chat-aside-brand">
-          <span class="chat-aside-brand__title">TinyRobot</span>
+          <span class="chat-aside-brand__title">{{ brand.name }}</span>
           <TrIconButton
             :icon="IconCollapseRight"
             size="32"
             svg-size="20"
             type="button"
-            aria-label="收起会话列表"
+            :aria-label="labels.collapseConversationList"
             @click="closeAside"
           />
         </div>
         <button class="chat-aside-action" type="button" @click="handleCreateConversation">
           <span class="chat-aside-action__label">
             <IconNewSession font-size="20" />
-            新建任务
+            {{ labels.createConversation }}
           </span>
-          <kbd>Ctrl K</kbd>
         </button>
         <TrHistory
+          v-if="showHistory"
           v-bind="historyProps"
           class="chat-aside-content"
           :data="historyItems"
@@ -207,7 +204,11 @@ function toggleAside() {
   border-radius: 8px;
   background: transparent;
   color: var(--tr-color-primary);
-  cursor: pointer;
+}
+
+.chat-aside-logo :deep(svg) {
+  width: 28px;
+  height: 28px;
 }
 
 .chat-aside-rail,

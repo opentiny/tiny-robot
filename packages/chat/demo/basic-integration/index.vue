@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { BubbleRenderers, ThemeProvider as TrThemeProvider, TrIconButton, TrLayout } from '@opentiny/tiny-robot'
 import { useMediaQuery } from '@vueuse/core'
 import { localStorageStrategyFactory, useConversation, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
@@ -14,7 +14,7 @@ import {
 } from '@opentiny/tiny-robot-svgs'
 import { createDeepSeekResponseProvider } from '../deepseek-provider'
 import { TrChat, useKitChatRuntime } from '../../src'
-import type { ChatUi } from '../../src'
+import type { ChatUIOptions } from '../../src'
 import { useRuntimeAdaptor } from './runtimeAdaptor'
 import { createModelRequestPlugin, createRunConfigPlugin, createMcpToolPlugin } from './usePlugins'
 
@@ -71,43 +71,16 @@ const runtime = useKitChatRuntime({
 const isMobile = useMediaQuery('(max-width: 768px)')
 const colorMode = ref<'light' | 'dark'>('light')
 const hasApiKey = computed(() => Boolean(import.meta.env.VITE_DEEPSEEK_API_KEY?.trim()))
-const leftAsideOpen = ref(!isMobile.value)
-
-watch(
-  isMobile,
-  (nextIsMobile) => {
-    leftAsideOpen.value = !nextIsMobile
-  },
-  { immediate: true },
-)
 
 function toggleColorMode() {
   colorMode.value = colorMode.value === 'light' ? 'dark' : 'light'
 }
 
-function handleLeftAsideOpenChange(detail: { open: boolean }) {
-  leftAsideOpen.value = detail.open
-}
-
-function handleHistoryItemClick() {
-  if (!isMobile.value) {
-    return
-  }
-
-  leftAsideOpen.value = false
-}
-
-const ui = computed<ChatUi>(() => ({
-  layout: {
-    leftAside: {
-      mode: isMobile.value ? 'drawer' : 'dock',
-      open: leftAsideOpen.value,
-      expandedWidth: isMobile.value ? 280 : 260,
-    },
-    onLeftAsideOpenChange: handleLeftAsideOpenChange,
-  },
-  history: {
-    onItemClick: handleHistoryItemClick,
+const ui = computed<ChatUIOptions>(() => ({
+  leftAside: {
+    mode: isMobile.value ? 'drawer' : 'dock',
+    defaultOpen: !isMobile.value,
+    width: isMobile.value ? 280 : 260,
   },
   welcome: {
     title: 'CLI Basic Migration',
@@ -117,23 +90,27 @@ const ui = computed<ChatUi>(() => ({
     wrap: true,
     items: prompts,
   },
-  bubbleProvider: {
-    fallbackContentRenderer: BubbleRenderers.Markdown,
-  },
-  bubbleList: {
+  messages: {
     autoScroll: true,
-    roleConfigs: {
-      user: { placement: 'end', avatar: IconUser },
-      assistant: { placement: 'start', avatar: IconAi },
-      system: { hidden: true },
+    bubbleProvider: {
+      fallbackContentRenderer: BubbleRenderers.Markdown,
+    },
+    bubbleList: {
+      roleConfigs: {
+        user: { placement: 'end', avatar: IconUser },
+        assistant: { placement: 'start', avatar: IconAi },
+        system: { hidden: true },
+      },
     },
   },
-  sender: {
-    mode: 'multiple',
-    clearable: true,
-    maxLength: 4000,
-    placeholder: '输入消息验证 CLI basic 替换主链路',
-    showWordLimit: true,
+  composer: {
+    sender: {
+      mode: 'multiple',
+      clearable: true,
+      maxLength: 4000,
+      placeholder: '输入消息验证 CLI basic 替换主链路',
+      showWordLimit: true,
+    },
   },
 }))
 </script>

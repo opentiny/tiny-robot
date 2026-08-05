@@ -5,7 +5,7 @@ import type {
   ChatConversationInfo,
   ChatRunConfig,
   ChatRuntime,
-  ChatSubmitPayload,
+  ChatRuntimeSubmitPayload,
   ChatWritable,
 } from '../types'
 import { CHAT_RUN_CONFIG_METADATA_KEY, cloneRunConfig } from '../utils/runConfig'
@@ -72,7 +72,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
 
   const sendMessage =
     send ??
-    (async (payload: ChatSubmitPayload) => {
+    (async (payload: ChatRuntimeSubmitPayload) => {
       const nextText = payload.text.trim()
 
       if (!nextText) {
@@ -104,7 +104,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       })
     })
 
-  async function handleSend(payload: ChatSubmitPayload) {
+  async function handleSend(payload: ChatRuntimeSubmitPayload) {
     let conversationId = conversation.activeConversation.value?.id ?? null
 
     const effectivePayload = {

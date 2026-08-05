@@ -1,56 +1,39 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 import { IconSearch, IconThink } from '@opentiny/tiny-robot-svgs'
-import type { ChatUIModelControls } from '../types'
+import type { ChatLabels, ChatModelView } from '../types'
 
 const props = defineProps<{
-  model: ChatUIModelControls
+  model: ChatModelView
+  labels: ChatLabels
 }>()
 
-const featureOptions = [
-  { id: 'thinking', label: '深度思考', icon: IconThink },
-  { id: 'search', label: '联网搜索', icon: IconSearch },
-] as const
+const emit = defineEmits<{
+  updateFeature: [payload: { id: string; enabled: boolean }]
+}>()
 
-const pendingFeatureIds = shallowRef<ReadonlySet<string>>(new Set())
-const selectedModel = computed(() =>
-  props.model.options.value.find((model) => model.id === props.model.selectedId.value),
-)
+const featureOptions = computed(() => [
+  { id: 'thinking', label: props.labels.thinkingFeature, icon: IconThink },
+  { id: 'search', label: props.labels.searchFeature, icon: IconSearch },
+])
+
+const pendingFeatureIds = computed(() => new Set(props.model.pendingFeatureIds ?? []))
+const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
 
 const visibleFeatures = computed(() =>
-  featureOptions.filter((feature) => selectedModel.value?.capabilities?.[feature.id]),
+  featureOptions.value.filter((feature) => selectedModel.value?.capabilities?.[feature.id]),
 )
 
 function isPending(id: string) {
   return pendingFeatureIds.value.has(id)
 }
 
-function setFeaturePending(id: string, pending: boolean) {
-  const next = new Set(pendingFeatureIds.value)
-
-  if (pending) {
-    next.add(id)
-  } else {
-    next.delete(id)
-  }
-
-  pendingFeatureIds.value = next
-}
-
-async function toggleFeature(id: string) {
+function toggleFeature(id: string) {
   if (isPending(id)) {
     return
   }
 
-  setFeaturePending(id, true)
-
-  try {
-    await props.model.setFeature(id, !props.model.features.value[id])
-  } catch {
-    // Runtime owns rollback; the default UI only clears its pending state.
-  } finally {
-    setFeaturePending(id, false)
-  }
+  emit('updateFeature', { id, enabled: !props.model.features?.[id] })
 }
 </script>
 
@@ -60,7 +43,7 @@ async function toggleFeature(id: string) {
       v-for="feature in visibleFeatures"
       :key="feature.id"
       class="tr-chat-model-features__button"
-      :class="{ 'tr-chat-model-features__button--active': model.features.value[feature.id] }"
+      :class="{ 'tr-chat-model-features__button--active': model.features?.[feature.id] }"
       type="button"
       :disabled="isPending(feature.id)"
       :aria-label="feature.label"

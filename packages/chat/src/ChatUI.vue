@@ -3,46 +3,30 @@ import { useBreakpoints, useWindowSize } from '@vueuse/core'
 import { computed, shallowRef, watch } from 'vue'
 import { TrLayout, useTheme } from '@opentiny/tiny-robot'
 import type { HistoryMenuItem, PromptProps } from '@opentiny/tiny-robot'
+import ScrollToBottom from './components/ScrollToBottom.vue'
+import { useControllableComposer } from './composables/useControllableComposer'
 import ChatAside from './ui/ChatAside.vue'
 import ChatComposer from './ui/ChatComposer.vue'
 import ChatHeader from './ui/ChatHeader.vue'
 import ChatMessages from './ui/ChatMessages.vue'
-import ScrollToBottom from './components/ScrollToBottom.vue'
+import { resolveChatUIOptions } from './ui/resolveOptions'
+import { resolveChatViewState } from './ui/resolveState'
 import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
-  ChatHistoryUi,
   ChatConversationInfo,
   ChatSubmitPayload,
-  ChatUILayout,
-  ChatUIState,
-  ChatUi,
+  ChatUIEmits,
+  ChatUIProps,
+  ChatUISlots,
 } from './types'
 
-const props = withDefaults(
-  defineProps<{
-    state: ChatUIState
-    ui?: ChatUi
-  }>(),
-  {
-    ui: () => ({}),
-  },
-)
-
-const emit = defineEmits<{
-  createConversation: []
-  switchConversation: [id: string]
-  renameConversation: [id: string, title: string]
-  deleteConversation: [id: string]
-  updateComposerValue: [value: string]
-  submit: [payload: ChatSubmitPayload]
-  cancel: []
-  clear: []
-}>()
+const props = defineProps<ChatUIProps>()
+const emit = defineEmits<ChatUIEmits>()
+const slots = defineSlots<ChatUISlots>()
 
 const leftAsideOpen = shallowRef(false)
 const scrollTarget = shallowRef<HTMLElement | null>(null)
-const composerDraft = shallowRef(props.state.composer.value ?? '')
 const breakpoints = useBreakpoints({
   mobile: 0,
   desktop: 960,
@@ -51,29 +35,46 @@ const isMobileViewport = breakpoints.smaller('desktop')
 const { width: viewportWidth } = useWindowSize()
 const { resolvedColorMode, toggleColorMode } = useTheme()
 
+const resolvedOptions = computed(() => resolveChatUIOptions(props.ui, { hasRightAside: Boolean(slots['right-aside']) }))
+const resolvedState = computed(() => resolveChatViewState(props.state, resolvedOptions.value.labels))
+const composer = useControllableComposer({
+  value: () => props.composerValue,
+  defaultValue: () => props.defaultComposerValue,
+  onUpdate: (value) => emit('update:composerValue', value),
+})
+
 const hasTheme = computed(() => Boolean(resolvedColorMode))
 const currentColorMode = computed(() => resolvedColorMode?.value ?? 'light')
-const historyUi = computed<ChatHistoryUi>(() => props.ui.history ?? {})
-const layoutUi = computed<ChatUILayout | undefined>(() => props.ui.layout)
-const leftAsideLayout = computed(() => layoutUi.value?.leftAside)
-const rightAsideLayout = computed(() => layoutUi.value?.rightAside)
-const isLeftAsideVisible = computed(() => leftAsideLayout.value?.visible !== false)
-const isRightAsideVisible = computed(() => rightAsideLayout.value?.visible !== false)
+const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
+const isComposerVisible = computed(() => resolvedOptions.value.composer !== false)
+const isLeftAsideVisible = computed(() => resolvedOptions.value.leftAside !== false)
+const isRightAsideVisible = computed(() => resolvedOptions.value.rightAside !== false)
+const leftAsideLayout = computed(() =>
+  resolvedOptions.value.leftAside === false ? undefined : resolvedOptions.value.leftAside,
+)
+const rightAsideLayout = computed(() =>
+  resolvedOptions.value.rightAside === false ? undefined : resolvedOptions.value.rightAside,
+)
 const leftAsideMode = computed(() => (isMobileViewport.value ? 'drawer' : (leftAsideLayout.value?.mode ?? 'dock')))
 const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
 const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
-const bubbleRoleConfigs = computed(() => props.ui.bubbleList?.roleConfigs ?? { system: { hidden: true } })
-const visibleMessages = computed(() => props.state.messages.filter((message) => !isMessageHidden(message.role)))
+const bubbleRoleConfigs = computed(
+  () => resolvedOptions.value.messages.bubbleList?.roleConfigs ?? { system: { hidden: true } },
+)
+const visibleMessages = computed(() => resolvedState.value.messages.filter((message) => !isMessageHidden(message.role)))
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const composerState = computed(() => ({
-  ...props.state.composer,
-  value: composerDraft.value,
-  submitDisabled: props.state.composer.submitDisabled ?? composerDraft.value.trim().length === 0,
+  ...resolvedState.value.composer,
+  value: composer.value.value,
+  submitDisabled:
+    resolvedState.value.composer.disabled ||
+    resolvedState.value.composer.submitDisabled ||
+    composer.value.value.trim().length === 0,
 }))
 const layoutStyle = computed(() => ({
-  '--tr-chat-ui-content-max-width': toCssSize(layoutUi.value?.contentMaxWidth ?? 980),
-  '--tr-chat-ui-panel-padding': toCssSize(layoutUi.value?.panelPadding ?? 12),
-  '--tr-chat-ui-panel-gap': toCssSize(layoutUi.value?.panelGap ?? 12),
+  '--tr-chat-ui-content-max-width': toCssSize(resolvedOptions.value.layout.contentMaxWidth ?? 980),
+  '--tr-chat-ui-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding ?? 12),
+  '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap ?? 12),
 }))
 const leftAsideOptions = computed(() => ({
   mode: leftAsideMode.value,
@@ -89,12 +90,11 @@ const rightAsideOptions = computed(() => ({
   collapsedWidth: toLayoutSize(rightAsideLayout.value?.collapsedWidth, 0),
   collapseEffect: 'overlay' as const,
 }))
-
-watch(
-  () => props.state.composer.value,
-  (value) => {
-    composerDraft.value = value ?? ''
-  },
+const historyOptions = computed(() =>
+  resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
+)
+const composerOptions = computed(() =>
+  resolvedOptions.value.composer === false ? undefined : resolvedOptions.value.composer,
 )
 
 watch(isMobileViewport, (isMobile) => {
@@ -115,11 +115,11 @@ function toCssSize(value: string | number) {
   return typeof value === 'number' ? `${value}px` : value
 }
 
-function toLayoutSize(value: string | number | undefined, fallback: number) {
+function toLayoutSize(value: number | undefined, fallback: number) {
   return typeof value === 'number' ? value : fallback
 }
 
-function toResponsiveAsideWidth(value: string | number | undefined, fallback: number) {
+function toResponsiveAsideWidth(value: number | undefined, fallback: number) {
   const width = toLayoutSize(value, fallback)
 
   return isMobileViewport.value && viewportWidth.value > 0
@@ -140,7 +140,7 @@ function handleCreateConversation() {
 }
 
 function handleSwitchConversation(item: ChatConversationInfo) {
-  emit('switchConversation', item.id)
+  emit('switchConversation', { id: item.id })
 
   if (isLeftAsideDrawer.value) {
     closeLeftAside()
@@ -148,12 +148,17 @@ function handleSwitchConversation(item: ChatConversationInfo) {
 }
 
 function handleRenameConversation(item: ChatConversationInfo, title: string) {
-  emit('renameConversation', item.id, title)
+  emit('renameConversation', { id: item.id, title })
 }
 
 function handleHistoryAction(action: HistoryMenuItem, item: ChatConversationInfo) {
   if (action.id === 'delete') {
-    emit('deleteConversation', item.id)
+    emit('deleteConversation', { id: item.id })
+    return
+  }
+
+  if (action.id !== 'rename') {
+    emit('historyAction', { action, conversation: item })
   }
 }
 
@@ -174,50 +179,45 @@ function handleLeftAsideOpenChange(detail: { open: boolean }) {
 }
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
-  composerDraft.value = item.label
-  emit('updateComposerValue', item.label)
-  props.ui.prompts?.onItemClick?.(event, item)
+  composer.setValue(item.label)
+  emit('promptClick', { event, item })
 }
 
 function handleUpdateComposerValue(value: string) {
-  composerDraft.value = value
-  emit('updateComposerValue', value)
-  props.ui.sender?.onInput?.(value)
+  composer.setValue(value)
 }
 
 function handleSubmit(payload: ChatSubmitPayload) {
   emit('submit', payload)
-  composerDraft.value = ''
-  emit('updateComposerValue', '')
-  props.ui.sender?.onSubmit?.(payload)
+
+  if (composerOptions.value?.clearOnSubmit !== false) {
+    composer.setValue('')
+  }
 }
 
 function handleCancel() {
   emit('cancel')
-  props.ui.sender?.onCancel?.()
 }
 
 function handleClear() {
-  composerDraft.value = ''
-  emit('updateComposerValue', '')
+  composer.setValue('')
   emit('clear')
-  props.ui.sender?.onClear?.()
 }
 
 function handleFocus(event: FocusEvent) {
-  props.ui.sender?.onFocus?.(event)
+  emit('focus', event)
 }
 
 function handleBlur(event: FocusEvent) {
-  props.ui.sender?.onBlur?.(event)
+  emit('blur', event)
 }
 
 function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
-  props.ui.bubbleList?.onStateChange?.(payload)
+  emit('bubbleStateChange', payload)
 }
 
 function handleBubbleEvent(payload: ChatBubbleEventPayload) {
-  props.ui.bubbleList?.onBubbleEvent?.(payload)
+  emit('bubbleEvent', payload)
 }
 </script>
 
@@ -227,15 +227,18 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     mode="normal"
     :style="layoutStyle"
     :left-aside="isLeftAsideVisible ? leftAsideOptions : undefined"
-    :right-aside="$slots['right-aside'] && isRightAsideVisible ? rightAsideOptions : undefined"
+    :right-aside="isRightAsideVisible ? rightAsideOptions : undefined"
     @left-aside-open-change="handleLeftAsideOpenChange"
   >
     <template v-if="isLeftAsideVisible" #left-aside>
       <ChatAside
-        :conversation="state.conversation"
-        :history="historyUi"
+        :conversation="resolvedState.conversation"
+        :history="historyOptions"
+        :brand="resolvedOptions.brand"
+        :labels="resolvedOptions.labels"
         :is-open="leftAsideOpen"
         :is-dock="isLeftAsideDock"
+        :show-history="resolvedOptions.history !== false"
         @create-conversation="handleCreateConversation"
         @switch-conversation="handleSwitchConversation"
         @rename-conversation="handleRenameConversation"
@@ -250,16 +253,18 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
       </ChatAside>
     </template>
 
-    <template #header>
+    <template v-if="isHeaderVisible" #header>
       <div class="chat-panel-content chat-panel-content--header">
         <ChatHeader
-          :title="state.conversation.title"
+          :title="resolvedState.conversation.title"
           :is-empty="isEmpty"
+          :conversation="resolvedState.conversation"
           :is-left-aside-visible="isLeftAsideVisible"
           :is-left-aside-drawer="isLeftAsideDrawer"
           :is-left-aside-open="leftAsideOpen"
-          :has-theme="hasTheme"
+          :has-theme="hasTheme && resolvedOptions.header !== false && resolvedOptions.header.showThemeToggle !== false"
           :color-mode="currentColorMode"
+          :labels="resolvedOptions.labels"
           @create-conversation="handleCreateConversation"
           @open-left-aside="openLeftAside"
           @close-left-aside="closeLeftAside"
@@ -282,10 +287,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           <ChatMessages
             :messages="visibleMessages"
             :scroll-target="scrollTarget"
-            :bubble-provider="props.ui.bubbleProvider"
-            :bubble-list="props.ui.bubbleList"
-            :welcome="props.ui.welcome"
-            :prompts="props.ui.prompts"
+            :options="resolvedOptions.messages"
+            :welcome="resolvedOptions.welcome"
+            :prompts="resolvedOptions.prompts"
+            :labels="resolvedOptions.labels"
             @prompt-click="handlePromptClick"
             @bubble-state-change="handleBubbleStateChange"
             @bubble-event="handleBubbleEvent"
@@ -320,18 +325,27 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 
-    <template #footer>
+    <template v-if="isComposerVisible && composerOptions" #footer>
       <div class="chat-panel-content chat-panel-content--footer">
         <ChatComposer
           :composer="composerState"
-          :sender="props.ui.sender ?? {}"
-          :controls="props.ui.composer"
+          :options="composerOptions"
+          :labels="resolvedOptions.labels"
+          :model="resolvedState.model"
+          :mcp="resolvedState.mcp"
           @update-composer-value="handleUpdateComposerValue"
           @submit="handleSubmit"
           @cancel="handleCancel"
           @clear="handleClear"
           @focus="handleFocus"
           @blur="handleBlur"
+          @select-model="emit('selectModel', $event)"
+          @update-model-feature="emit('updateModelFeature', $event)"
+          @add-mcp-server="emit('addMcpServer', $event)"
+          @remove-mcp-server="emit('removeMcpServer', $event)"
+          @load-mcp-tools="emit('loadMcpTools', $event)"
+          @update-mcp-server-enabled="emit('updateMcpServerEnabled', $event)"
+          @update-mcp-tool-enabled="emit('updateMcpToolEnabled', $event)"
         >
           <template v-if="$slots.footer" #default="slotProps">
             <slot name="footer" v-bind="slotProps" />
@@ -346,7 +360,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
       </div>
     </template>
 
-    <template v-if="$slots['right-aside'] && isRightAsideVisible" #right-aside>
+    <template v-if="isRightAsideVisible" #right-aside>
       <slot name="right-aside"></slot>
     </template>
   </TrLayout>

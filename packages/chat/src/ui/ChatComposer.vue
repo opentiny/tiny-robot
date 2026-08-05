@@ -4,12 +4,21 @@ import { TrSender } from '@opentiny/tiny-robot'
 import MCPSelector from '../components/MCPSelector.vue'
 import ModelFeatures from '../components/ModelFeatures.vue'
 import ModelSelector from '../components/ModelSelector.vue'
-import type { ChatSubmitPayload, ChatUIComposerControls, ChatUIComposerState, ChatSenderUi } from '../types'
+import type {
+  ChatComposerOptions,
+  ChatComposerView,
+  ChatLabels,
+  ChatMcpView,
+  ChatModelView,
+  ChatSubmitPayload,
+} from '../types'
 
 const props = defineProps<{
-  composer: ChatUIComposerState
-  sender: ChatSenderUi
-  controls?: ChatUIComposerControls
+  composer: Required<ChatComposerView> & { value: string; submitDisabled: boolean }
+  options: ChatComposerOptions
+  labels: ChatLabels
+  model?: ChatModelView
+  mcp?: ChatMcpView
 }>()
 
 const emit = defineEmits<{
@@ -19,29 +28,31 @@ const emit = defineEmits<{
   clear: []
   focus: [event: FocusEvent]
   blur: [event: FocusEvent]
+  selectModel: [payload: { id: string | null }]
+  updateModelFeature: [payload: { id: string; enabled: boolean }]
+  addMcpServer: [payload: { id: string }]
+  removeMcpServer: [payload: { id: string }]
+  loadMcpTools: [payload: { serverId: string }]
+  updateMcpServerEnabled: [payload: { id: string; enabled: boolean }]
+  updateMcpToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
-const composerValue = computed(() => props.composer.value ?? '')
-const isSubmitDisabled = computed(() => props.composer.submitDisabled ?? composerValue.value.trim().length === 0)
+const composerValue = computed(() => props.composer.value)
+const isSubmitDisabled = computed(
+  () => props.composer.disabled || props.composer.submitDisabled || composerValue.value.trim().length === 0,
+)
 
 const senderProps = computed(() => {
-  const {
-    onInput: _onInput,
-    onSubmit: _onSubmit,
-    onCancel: _onCancel,
-    onClear: _onClear,
-    onFocus: _onFocus,
-    onBlur: _onBlur,
-    'onUpdate:modelValue': _onUpdateModelValue,
-    ...sender
-  } = props.sender as typeof props.sender & {
+  const { 'onUpdate:modelValue': _onUpdateModelValue, ...sender } = (props.options.sender ?? {}) as NonNullable<
+    typeof props.options.sender
+  > & {
     'onUpdate:modelValue'?: (value: string) => unknown
   }
 
   return {
     mode: 'multiple' as const,
     clearable: true,
-    placeholder: props.composer.loading ? '思考中...' : '请输入你的问题...',
+    placeholder: props.composer.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder,
     showWordLimit: true,
     maxLength: 1000,
     ...sender,
@@ -73,6 +84,10 @@ function handleFocus(event: FocusEvent) {
 function handleBlur(event: FocusEvent) {
   emit('blur', event)
 }
+
+function submitCurrentValue() {
+  emit('submit', { text: composerValue.value })
+}
 </script>
 
 <template>
@@ -82,6 +97,12 @@ function handleBlur(event: FocusEvent) {
       :loading="composer.loading"
       :disabled="composer.disabled"
       :submit-disabled="isSubmitDisabled"
+      :model="model"
+      :mcp="mcp"
+      :set-input-value="handleUpdateComposerValue"
+      :submit="submitCurrentValue"
+      :cancel="() => emit('cancel')"
+      :clear="() => emit('clear')"
     >
       <TrSender
         v-bind="senderProps"
@@ -92,12 +113,26 @@ function handleBlur(event: FocusEvent) {
         @focus="handleFocus"
         @blur="handleBlur"
       >
-        <template v-if="$slots['sender-footer'] || controls?.model || controls?.mcp" #footer="slotProps">
+        <template v-if="$slots['sender-footer'] || model || mcp" #footer="slotProps">
           <slot v-if="$slots['sender-footer']" name="sender-footer" v-bind="slotProps" />
           <div v-else class="model-actions">
-            <MCPSelector v-if="controls?.mcp" :mcp="controls.mcp" />
-            <ModelSelector v-if="controls?.model" :model="controls.model" />
-            <ModelFeatures v-if="controls?.model" :model="controls.model" />
+            <MCPSelector
+              v-if="mcp"
+              :mcp="mcp"
+              :labels="labels"
+              @add-server="emit('addMcpServer', $event)"
+              @remove-server="emit('removeMcpServer', $event)"
+              @load-tools="emit('loadMcpTools', $event)"
+              @update-server-enabled="emit('updateMcpServerEnabled', $event)"
+              @update-tool-enabled="emit('updateMcpToolEnabled', $event)"
+            />
+            <ModelSelector v-if="model" :model="model" :labels="labels" @select-model="emit('selectModel', $event)" />
+            <ModelFeatures
+              v-if="model"
+              :model="model"
+              :labels="labels"
+              @update-feature="emit('updateModelFeature', $event)"
+            />
           </div>
         </template>
         <template v-if="$slots['sender-footer-right']" #footer-right="slotProps">

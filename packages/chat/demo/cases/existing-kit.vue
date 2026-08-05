@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-robot-kit'
 import { createDeepSeekResponseProvider } from '../deepseek-provider'
 import { TrChat, useKitChatRuntime } from '../../src'
-import type { ChatConversationInfo, ChatSubmitPayload, ChatUi } from '../../src'
+import type { ChatUIOptions } from '../../src'
 
 const prompts = [
   { label: '介绍一下 TinyRobot Chat' },
@@ -26,30 +26,12 @@ const runtime = useKitChatRuntime({
   conversation,
 })
 const isMobile = useMediaQuery('(max-width: 768px)')
-const lastUiEvent = shallowRef('')
 
-function handleItemClick(item: ChatConversationInfo) {
-  lastUiEvent.value = `history:${item.id}`
-}
-
-function handleSubmit(payload: ChatSubmitPayload) {
-  lastUiEvent.value = `submit:${payload.text}`
-}
-
-function handleFocus() {
-  lastUiEvent.value = 'focus'
-}
-
-const ui = computed<ChatUi>(() => ({
-  layout: {
-    leftAside: {
-      mode: isMobile.value ? 'drawer' : 'dock',
-      defaultOpen: !isMobile.value,
-      expandedWidth: isMobile.value ? 280 : 260,
-    },
-  },
-  history: {
-    onItemClick: handleItemClick,
+const ui = computed<ChatUIOptions>(() => ({
+  leftAside: {
+    mode: isMobile.value ? 'drawer' : 'dock',
+    defaultOpen: !isMobile.value,
+    width: isMobile.value ? 280 : 260,
   },
   welcome: {
     title: 'Existing Kit Runtime',
@@ -59,18 +41,20 @@ const ui = computed<ChatUi>(() => ({
     wrap: true,
     items: prompts,
   },
-  bubbleList: {
+  messages: {
     autoScroll: true,
-    roleConfigs: {
-      user: { placement: 'end' },
-      assistant: { placement: 'start' },
+    bubbleList: {
+      roleConfigs: {
+        user: { placement: 'end' },
+        assistant: { placement: 'start' },
+      },
     },
   },
-  sender: {
-    mode: 'multiple',
-    placeholder: '输入消息验证 Existing Kit + DeepSeek 流式输出',
-    onSubmit: handleSubmit,
-    onFocus: handleFocus,
+  composer: {
+    sender: {
+      mode: 'multiple',
+      placeholder: '输入消息验证 Existing Kit + DeepSeek 流式输出',
+    },
   },
 }))
 </script>

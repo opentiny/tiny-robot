@@ -32,13 +32,12 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     const currentRuntime = getRuntime()
     const previousInputValue = inputValue.value
 
-    const runConfig = cloneRunConfig(payload.runConfig ?? currentRuntime.composer.runConfig.value)
-
-    // Optimistically clear the draft so long-running sends keep the composer responsive.
-    inputValue.value = ''
+    const runConfig = cloneRunConfig(currentRuntime.composer.runConfig.value)
 
     try {
-      await getRuntime().actions.send({
+      // Let ChatUI apply clearOnSubmit before the Runtime action settles.
+      await Promise.resolve()
+      await currentRuntime.actions.send({
         ...payload,
         text,
         runConfig,

@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { TrLayout } from '@opentiny/tiny-robot'
 import { IconCollapseLeft, IconCollapseRight, IconMoon, IconNewSession, IconSun } from '@opentiny/tiny-robot-svgs'
+import type { ChatConversationView, ChatLabels } from '../types'
 
 const props = defineProps<{
   title: string
   isEmpty: boolean
+  conversation: Required<ChatConversationView>
   isLeftAsideVisible: boolean
   isLeftAsideDrawer: boolean
   isLeftAsideOpen: boolean
   hasTheme: boolean
   colorMode: 'light' | string
+  labels: ChatLabels
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +48,7 @@ function toggleLeftAside() {
   <slot
     :title="title"
     :is-empty="isEmpty"
+    :conversation="conversation"
     :create-conversation="createConversation"
     :is-left-aside-open="isLeftAsideOpen"
     :open-left-aside="openLeftAside"
@@ -55,7 +59,10 @@ function toggleLeftAside() {
       <div class="chat-header__aside-cell">
         <TrLayout.AsideToggle v-if="isLeftAsideVisible && isLeftAsideDrawer" side="left">
           <template #default="{ isOpen }">
-            <span class="chat-header__aside-toggle" :aria-label="isOpen ? '收起会话列表' : '展开会话列表'">
+            <span
+              class="chat-header__aside-toggle"
+              :aria-label="isOpen ? labels.collapseConversationList : labels.expandConversationList"
+            >
               <component :is="isOpen ? IconCollapseRight : IconCollapseLeft" :size="20" />
             </span>
           </template>
@@ -67,7 +74,7 @@ function toggleLeftAside() {
           v-if="!isEmpty"
           class="chat-header__new"
           type="button"
-          aria-label="新建会话"
+          :aria-label="labels.createConversation"
           @click="createConversation"
         >
           <IconNewSession :size="20" />
@@ -76,7 +83,7 @@ function toggleLeftAside() {
           v-if="isEmpty && hasTheme"
           class="theme-toggle-btn"
           type="button"
-          aria-label="切换主题"
+          :aria-label="labels.toggleTheme"
           @click="emit('toggleColorMode')"
         >
           <IconMoon v-if="props.colorMode === 'light'" :size="32" />

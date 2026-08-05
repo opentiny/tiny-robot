@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 import { TrDropdownMenu, type DropdownMenuItem } from '@opentiny/tiny-robot'
 import { IconAtom } from '@opentiny/tiny-robot-svgs'
-import type { ChatUIModelControls } from '../types'
+import type { ChatLabels, ChatModelView } from '../types'
 
 const props = defineProps<{
-  model: ChatUIModelControls
+  model: ChatModelView
+  labels: ChatLabels
 }>()
 
-const pending = shallowRef(false)
+const emit = defineEmits<{
+  selectModel: [payload: { id: string | null }]
+}>()
 
-const modelOptions = computed(() => props.model.options.value)
-const selectedModel = computed(() => modelOptions.value.find((model) => model.id === props.model.selectedId.value))
+const modelOptions = computed(() => props.model.options ?? [])
+const selectedModel = computed(() => modelOptions.value.find((model) => model.id === props.model.selectedId))
 const menuItems = computed<DropdownMenuItem[]>(() =>
   modelOptions.value.map((model) => ({
     id: model.id,
@@ -19,20 +22,12 @@ const menuItems = computed<DropdownMenuItem[]>(() =>
   })),
 )
 
-async function handleModelSelect(item: DropdownMenuItem) {
-  if (pending.value || item.id === props.model.selectedId.value) {
+function handleModelSelect(item: DropdownMenuItem) {
+  if (props.model.selecting || item.id === props.model.selectedId) {
     return
   }
 
-  pending.value = true
-
-  try {
-    await props.model.select(item.id)
-  } catch {
-    // Runtime owns rollback; the default UI only clears its pending state.
-  } finally {
-    pending.value = false
-  }
+  emit('selectModel', { id: item.id })
 }
 </script>
 
@@ -42,12 +37,12 @@ async function handleModelSelect(item: DropdownMenuItem) {
       <button
         class="tr-chat-model-selector__button"
         type="button"
-        :disabled="pending"
-        :aria-label="selectedModel?.label || '选择模型'"
-        :title="selectedModel?.label || '选择模型'"
+        :disabled="model.selecting"
+        :aria-label="selectedModel?.label || labels.selectModel"
+        :title="selectedModel?.label || labels.selectModel"
       >
         <IconAtom :size="16" class="tr-chat-model-selector__icon" />
-        <span class="tr-chat-model-selector__label">{{ selectedModel?.label || '选择模型' }}</span>
+        <span class="tr-chat-model-selector__label">{{ selectedModel?.label || labels.selectModel }}</span>
       </button>
     </template>
   </TrDropdownMenu>

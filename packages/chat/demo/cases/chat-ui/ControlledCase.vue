@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { computed, h, reactive, shallowRef } from 'vue'
-import { ThemeProvider as TrThemeProvider } from '@opentiny/tiny-robot'
+import { computed, reactive, shallowRef } from 'vue'
+import { h } from 'vue'
 import { IconAi, IconAtom, IconUser } from '@opentiny/tiny-robot-svgs'
 import {
   TrChatUI,
   type ChatConversationInfo,
-  type ChatMcpRuntime,
-  type ChatMcpToolState,
+  type ChatMcpToolMap,
   type ChatMessageItem,
-  type ChatModelRuntime,
   type ChatSubmitPayload,
-  type ChatUi,
-  type ChatUIState,
-} from '../../src'
+  type ChatUIOptions,
+  type ChatViewState,
+} from '../../../src'
 
-// Mock data layer: real applications can replace these refs and actions with a runtime adapter.
 const conversations = shallowRef<ChatConversationInfo[]>([
   { id: 'welcome', title: '欢迎使用 TinyRobot', updatedAt: 3 },
   { id: 'runtime', title: 'Runtime 与 UI 边界', updatedAt: 2 },
@@ -35,34 +32,9 @@ const activeConversationId = shallowRef('welcome')
 const inputValue = shallowRef('')
 const loading = shallowRef(false)
 const disabled = shallowRef(false)
-const colorMode = shallowRef<'light' | 'dark'>('light')
-const hasApiConfig = shallowRef(false)
-
-const modelOptions = shallowRef([
-  {
-    id: 'deepseek-chat',
-    label: 'DeepSeek Chat',
-    capabilities: {
-      thinking: true,
-      search: false,
-    },
-    metadata: {
-      icon: IconAtom,
-    },
-  },
-  {
-    id: 'qwen-plus',
-    label: 'Qwen Plus',
-    capabilities: {
-      thinking: true,
-      search: true,
-    },
-    metadata: {
-      icon: IconAi,
-    },
-  },
-])
 const selectedModelId = shallowRef<string | null>('deepseek-chat')
+const selectingModel = shallowRef(false)
+const pendingFeatureIds = shallowRef<string[]>([])
 const modelFeatures = shallowRef<Record<string, boolean>>({
   thinking: true,
   search: false,
@@ -89,19 +61,20 @@ const mcpServers = shallowRef([
     },
   },
 ])
-const mcpTools = shallowRef<ChatMcpToolState>({
+const mcpTools = shallowRef<ChatMcpToolMap>({
   'model-context-protocol-mcp': [
     { id: 'search', name: 'Search', description: 'Search documentation.', enabled: true },
     { id: 'fetch', name: 'Fetch', description: 'Fetch page content.', enabled: true },
   ],
-  browser: [{ id: 'open', name: 'Open', description: 'Open a page.', enabled: true }],
 })
 
 const activeConversation = computed(
   () => conversations.value.find((conversation) => conversation.id === activeConversationId.value) ?? null,
 )
 const messages = computed(() => messagesByConversation[activeConversationId.value] ?? [])
-const state = computed<ChatUIState>(() => ({
+const aiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
+const userAvatar = h(IconUser, { style: { fontSize: '28px' } }) as never
+const state = computed<ChatViewState>(() => ({
   conversation: {
     items: conversations.value,
     activeId: activeConversationId.value,
@@ -109,59 +82,50 @@ const state = computed<ChatUIState>(() => ({
   },
   messages: messages.value,
   composer: {
-    value: inputValue.value,
     loading: loading.value,
     disabled: disabled.value,
     submitDisabled: inputValue.value.trim().length === 0,
   },
+  model: {
+    options: [
+      {
+        id: 'deepseek-chat',
+        label: 'DeepSeek Chat',
+        capabilities: {
+          thinking: true,
+          search: false,
+        },
+        metadata: {
+          icon: IconAtom,
+        },
+      },
+      {
+        id: 'qwen-plus',
+        label: 'Qwen Plus With A Very Long Display Name',
+        capabilities: {
+          thinking: true,
+          search: true,
+        },
+        metadata: {
+          icon: IconAi,
+        },
+      },
+    ],
+    selectedId: selectedModelId.value,
+    features: modelFeatures.value,
+    selecting: selectingModel.value,
+    pendingFeatureIds: pendingFeatureIds.value,
+  },
+  mcp: {
+    servers: mcpServers.value,
+    tools: mcpTools.value,
+  },
 }))
-const aiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
-const userAvatar = h(IconUser, { style: { fontSize: '28px' } }) as never
-const model: ChatModelRuntime = {
-  options: computed(() => modelOptions.value),
-  selectedId: computed(() => selectedModelId.value),
-  select(id) {
-    selectedModelId.value = id
-  },
-  features: computed(() => modelFeatures.value),
-  setFeature(id, enabled) {
-    modelFeatures.value = {
-      ...modelFeatures.value,
-      [id]: enabled,
-    }
-  },
-}
-const mcp: ChatMcpRuntime = {
-  servers: computed(() => mcpServers.value),
-  tools: computed(() => mcpTools.value),
-  addServer(id) {
-    updateServer(id, { installed: true, enabled: true })
-  },
-  removeServer(id) {
-    updateServer(id, { installed: false, enabled: false })
-  },
-  setServerEnabled(id, enabled) {
-    updateServer(id, { enabled })
-  },
-  async loadTools() {},
-  setToolEnabled(serverId, toolId, enabled) {
-    mcpTools.value = {
-      ...mcpTools.value,
-      [serverId]: (mcpTools.value[serverId] ?? []).map((tool) => (tool.id === toolId ? { ...tool, enabled } : tool)),
-    }
-  },
-}
-const ui = computed<ChatUi>(() => ({
+const ui = computed<ChatUIOptions>(() => ({
   layout: {
     contentMaxWidth: 980,
     panelPadding: 12,
     panelGap: 12,
-    leftAside: {
-      mode: 'dock',
-      width: 300,
-      collapsedWidth: 56,
-      defaultOpen: false,
-    },
   },
   prompts: {
     wrap: true,
@@ -171,24 +135,24 @@ const ui = computed<ChatUi>(() => ({
       { id: 'boundary', label: '解释 runtime 和 UI 的职责' },
     ],
   },
-  bubbleList: {
+  messages: {
     autoScroll: true,
-    roleConfigs: {
-      user: { placement: 'end', avatar: userAvatar },
-      assistant: { placement: 'start', avatar: aiAvatar },
-      system: { hidden: true },
+    bubbleList: {
+      roleConfigs: {
+        user: { placement: 'end', avatar: userAvatar },
+        assistant: { placement: 'start', avatar: aiAvatar },
+        system: { hidden: true },
+      },
     },
   },
-  sender: {
-    mode: 'multiple',
-    clearable: true,
-    maxLength: 1000,
-    placeholder: loading.value ? '思考中...' : '请输入你的问题...',
-    showWordLimit: true,
-  },
   composer: {
-    model,
-    mcp,
+    sender: {
+      mode: 'multiple',
+      clearable: true,
+      maxLength: 1000,
+      placeholder: loading.value ? '思考中...' : '请输入你的问题...',
+      showWordLimit: true,
+    },
   },
 }))
 
@@ -205,22 +169,24 @@ function createConversation() {
   inputValue.value = ''
 }
 
-function switchConversation(id: string) {
-  activeConversationId.value = id
+function switchConversation(payload: { id: string }) {
+  activeConversationId.value = payload.id
   inputValue.value = ''
 }
 
-function renameConversation(id: string, title: string) {
+function renameConversation(payload: { id: string; title: string }) {
   conversations.value = conversations.value.map((conversation) =>
-    conversation.id === id ? { ...conversation, title: title.trim() || '新对话', updatedAt: Date.now() } : conversation,
+    conversation.id === payload.id
+      ? { ...conversation, title: payload.title.trim() || '新对话', updatedAt: Date.now() }
+      : conversation,
   )
 }
 
-function deleteConversation(id: string) {
-  delete messagesByConversation[id]
-  conversations.value = conversations.value.filter((conversation) => conversation.id !== id)
+function deleteConversation(payload: { id: string }) {
+  delete messagesByConversation[payload.id]
+  conversations.value = conversations.value.filter((conversation) => conversation.id !== payload.id)
 
-  if (activeConversationId.value === id) {
+  if (activeConversationId.value === payload.id) {
     activeConversationId.value = conversations.value[0]?.id ?? ''
   }
 }
@@ -251,36 +217,69 @@ function submit(payload: ChatSubmitPayload) {
   )
   inputValue.value = ''
 }
+
+function selectModel(payload: { id: string | null }) {
+  selectedModelId.value = payload.id
+}
+
+function updateModelFeature(payload: { id: string; enabled: boolean }) {
+  modelFeatures.value = {
+    ...modelFeatures.value,
+    [payload.id]: payload.enabled,
+  }
+}
+
+function addMcpServer(payload: { id: string }) {
+  updateServer(payload.id, { installed: true, enabled: true })
+}
+
+function removeMcpServer(payload: { id: string }) {
+  updateServer(payload.id, { installed: false, enabled: false })
+}
+
+function loadMcpTools(payload: { serverId: string }) {
+  if (mcpTools.value[payload.serverId]) {
+    return
+  }
+
+  mcpTools.value = {
+    ...mcpTools.value,
+    [payload.serverId]: [{ id: 'open', name: 'Open', description: 'Open a page.', enabled: true }],
+  }
+}
+
+function updateMcpServerEnabled(payload: { id: string; enabled: boolean }) {
+  updateServer(payload.id, { enabled: payload.enabled })
+}
+
+function updateMcpToolEnabled(payload: { serverId: string; toolId: string; enabled: boolean }) {
+  mcpTools.value = {
+    ...mcpTools.value,
+    [payload.serverId]: (mcpTools.value[payload.serverId] ?? []).map((tool) =>
+      tool.id === payload.toolId ? { ...tool, enabled: payload.enabled } : tool,
+    ),
+  }
+}
 </script>
 
 <template>
-  <TrThemeProvider v-model:color-mode="colorMode">
-    <TrChatUI
-      :state="state"
-      :ui="ui"
-      @create-conversation="createConversation"
-      @switch-conversation="switchConversation"
-      @rename-conversation="renameConversation"
-      @delete-conversation="deleteConversation"
-      @update-composer-value="inputValue = $event"
-      @submit="submit"
-      @cancel="loading = false"
-      @clear="inputValue = ''"
-    >
-      <template v-if="!hasApiConfig" #notice>
-        <p class="config-warning">缺少 API 配置，请在 <code>.env</code> 中设置当前模型服务商对应的 Key。</p>
-      </template>
-    </TrChatUI>
-  </TrThemeProvider>
+  <TrChatUI
+    v-model:composer-value="inputValue"
+    :state="state"
+    :ui="ui"
+    @create-conversation="createConversation"
+    @switch-conversation="switchConversation"
+    @rename-conversation="renameConversation"
+    @delete-conversation="deleteConversation"
+    @submit="submit"
+    @cancel="loading = false"
+    @clear="inputValue = ''"
+    @select-model="selectModel"
+    @update-model-feature="updateModelFeature"
+    @add-mcp-server="addMcpServer"
+    @remove-mcp-server="removeMcpServer"
+    @load-mcp-tools="loadMcpTools"
+    @update-mcp-server-enabled="updateMcpServerEnabled"
+    @update-mcp-tool-enabled="updateMcpToolEnabled"
+  />
 </template>
-
-<style scoped>
-.config-warning {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--tr-color-warning-light);
-  color: var(--tr-color-warning);
-  font-size: 14px;
-}
-</style>

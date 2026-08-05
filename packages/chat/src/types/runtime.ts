@@ -1,11 +1,5 @@
-import type {
-  ChatConversationInfo,
-  ChatMessageItem,
-  ChatProcessingState,
-  ChatReadable,
-  ChatRequestState,
-  ChatStructuredData,
-} from './base'
+import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatReadable, ChatRequestState } from './base'
+import type { ChatSubmitPayload } from './ui/events'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -84,14 +78,12 @@ export interface ChatComposerRuntime {
   mcp?: ChatMcpRuntime
 }
 
-export interface ChatSubmitPayload {
-  text: string
-  structuredData?: ChatStructuredData
+export interface ChatRuntimeSubmitPayload extends ChatSubmitPayload {
   runConfig?: ChatRunConfig
 }
 
 export interface ChatRuntimeActions {
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
+  send: (payload: ChatRuntimeSubmitPayload) => Promise<void> | void
   abort?: () => Promise<void> | void
   createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
   switchConversation: (id: string) => Promise<void> | void
