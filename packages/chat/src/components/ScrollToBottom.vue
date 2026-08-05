@@ -52,11 +52,6 @@ function scrollToBottom() {
 
 <style lang="less" scoped>
 .tr-chat-scroll-to-bottom {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 12px);
-  z-index: 10;
-  transform: translateX(-50%);
   color: var(--tr-text-secondary);
   opacity: 0.95;
   transition: opacity 0.2s ease-in-out;

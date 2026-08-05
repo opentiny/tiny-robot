@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, shallowRef, watch } from 'vue'
+import { computed, h, nextTick, shallowRef, watch } from 'vue'
 import {
   BubbleRenderers,
   TrBubbleList,
@@ -10,6 +10,7 @@ import {
   TrPrompts,
   TrSender,
   TrWelcome,
+  useAutoScroll,
   useTheme,
   type BubbleRoleConfig,
   type HistoryMenuItem,
@@ -103,6 +104,7 @@ const leftAsideMode = computed(() => leftAsideLayout.value?.mode ?? 'dock')
 const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
 const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
 const visibleMessages = computed(() => props.state.messages.filter((message) => !isMessageHidden(message.role)))
+const lastVisibleMessage = computed(() => visibleMessages.value.at(-1))
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const historyItems = computed<HistoryDisplayItem[]>(() =>
   props.state.conversation.items.map((item) => ({
@@ -139,12 +141,13 @@ const bubbleProviderProps = computed(() => ({
   ...props.ui.bubbleProvider,
 }))
 type BubbleListViewProps = Omit<ChatBubbleListUi, 'onStateChange' | 'onBubbleEvent'>
+const shouldAutoScroll = computed(() => props.ui.bubbleList?.autoScroll ?? true)
 const bubbleListProps = computed<BubbleListViewProps>(() => {
   const bubbleList = props.ui.bubbleList
 
   if (!bubbleList) {
     return {
-      autoScroll: true,
+      autoScroll: false,
       roleConfigs: defaultRoleConfigs,
     }
   }
@@ -152,9 +155,9 @@ const bubbleListProps = computed<BubbleListViewProps>(() => {
   const { onStateChange: _onStateChange, onBubbleEvent: _onBubbleEvent, ...nextBubbleListProps } = bubbleList
 
   return {
-    autoScroll: true,
     roleConfigs: defaultRoleConfigs,
     ...nextBubbleListProps,
+    autoScroll: false,
   }
 })
 const welcomeProps = computed(() => ({
@@ -230,6 +233,24 @@ watch(
     }
   },
   { immediate: true },
+)
+
+const { scrollToBottom } = useAutoScroll(
+  () => scrollTarget.value,
+  () =>
+    shouldAutoScroll.value
+      ? [visibleMessages.value.length, lastVisibleMessage.value?.content, lastVisibleMessage.value?.reasoning_content]
+      : null,
+)
+
+watch(
+  () => lastVisibleMessage.value?.role,
+  async (role) => {
+    if (shouldAutoScroll.value && role === 'user') {
+      await nextTick()
+      scrollToBottom('smooth')
+    }
+  },
 )
 
 function toCssSize(value: string | number) {
@@ -504,9 +525,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             </slot>
           </div>
         </div>
+
+        <div class="chat-scroll-actions">
+          <ScrollToBottom :target="scrollTarget" />
+        </div>
       </section>
 
-      <ScrollToBottom :target="scrollTarget" />
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 
@@ -558,23 +582,16 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 <style scoped>
 .tr-chat-ui {
   --tr-layout-height: 100%;
-  --tr-layout-bg: var(--tr-container-bg-default);
   --tr-layout-left-aside-bg: var(--tr-container-bg-default);
   --tr-layout-right-aside-bg: var(--tr-container-bg-default);
   --tr-layout-header-bg: var(--tr-container-bg-default);
   --tr-layout-main-bg: var(--tr-container-bg-default);
   --tr-layout-footer-bg: var(--tr-container-bg-default);
-  --tr-layout-divider-color: var(--tr-border-color-disabled);
-
-  height: 100%;
 }
 
 .chat-aside {
   position: relative;
-  box-sizing: border-box;
-  width: 100%;
   height: 100%;
-  background: var(--tr-container-bg-default);
 }
 
 .chat-aside-logo {
@@ -613,8 +630,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 .chat-aside-panel {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100%;
   padding: 24px 12px;
   overflow: hidden;
 }
@@ -622,7 +637,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 .chat-aside-rail {
   display: flex;
   width: var(--tr-layout-aside-collapsed-width, 56px);
-  height: 100%;
   flex-direction: column;
   align-items: center;
   gap: 18px;
@@ -630,22 +644,15 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 .chat-aside-rail__button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
   color: var(--tr-icon-color-default);
-  cursor: pointer;
 }
 
-.chat-aside-logo:hover,
-.chat-aside-rail__button:hover {
+.chat-aside-logo:hover {
   background: var(--tr-container-bg-hover);
+  color: var(--tr-icon-color-hover);
+}
+
+.chat-aside-rail__button:hover {
   color: var(--tr-icon-color-hover);
 }
 
@@ -692,7 +699,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 .chat-aside-action kbd {
-  border: none;
   border-radius: 6px;
   padding: 2px 6px;
   background: var(--tr-container-bg-hover);
@@ -711,20 +717,16 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 .chat-panel {
-  display: flex;
+  position: relative;
   height: 100%;
   box-sizing: border-box;
-  min-width: 0;
-  min-height: 0;
   padding: var(--tr-chat-ui-panel-padding);
 }
 
 .chat-main-scroll-host {
-  width: 100%;
   height: 100%;
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .chat-panel-content {
@@ -751,7 +753,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 .chat-notice {
-  width: 100%;
   margin-bottom: 16px;
 }
 
@@ -814,23 +815,24 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 .tr-chat-messages__bubble-list {
-  width: 100%;
-  box-sizing: border-box;
   overflow: visible;
-  border-radius: 10px;
   padding: 8px;
 }
 
-.chat-welcome {
+.chat-scroll-actions {
+  position: absolute;
+  left: var(--tr-chat-ui-panel-padding);
+  right: var(--tr-chat-ui-panel-padding);
+  bottom: var(--tr-chat-ui-panel-padding);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 10%;
+  justify-content: flex-end;
+  max-width: var(--tr-chat-ui-content-max-width);
+  margin: 0 auto;
+  pointer-events: none;
 }
 
-.chat-welcome.tr-welcome {
-  --title-color: var(--tr-text-primary);
-  --description-color: var(--tr-text-secondary);
+.chat-scroll-actions :deep(.tr-chat-scroll-to-bottom) {
+  pointer-events: auto;
 }
 
 .chat-footer {
