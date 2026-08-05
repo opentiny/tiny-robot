@@ -84,27 +84,6 @@ Attachments 组件用于展示文件列表，并支持图片预览、文件下�
 | fileIcons    | `Record<string, Component>`     | -                         | 自定义文件类型图标，详见 [自定义图标](#自定义图标-fileicons)                |
 | fileMatchers | `FileTypeMatcher[]`             | `[]`                      | 自定义文件类型匹配器，详见 [自定义文件类型](#自定义文件类型-filematchers)   |
 
-### 附件内容注册
-
-`TrAttachments` 放在 `TrSender` 内时会自动注册附件列表。自定义 Sender 类容器也可以通过 `useSenderContentRegistry` 和 `setupSenderContentRegistration` 提供同样的内容注册能力。
-
-```typescript
-import {
-  setupSenderContentRegistration,
-  useSenderContentRegistry,
-} from '@opentiny/tiny-robot'
-
-const {
-  hasRegisteredContent,
-  registerContent,
-  collectExternalPayloads,
-} = useSenderContentRegistry()
-
-setupSenderContentRegistration(registerContent)
-```
-
-注册后，容器可以使用 `hasRegisteredContent` 判断是否存在已注册内容，并在提交时通过 `collectExternalPayloads()` 获取 payload。
-
 ## Events
 
 | 事件名       | 说明                     | 回调参数                                |

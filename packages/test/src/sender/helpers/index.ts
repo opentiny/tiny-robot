@@ -183,10 +183,6 @@ export function createSenderTestHelper(page: Page) {
       await expect(page.locator(selectors.resultDisplay)).toHaveText(text)
     },
 
-    async expectSubmitDetail(text: string) {
-      await expect(page.locator(selectors.submitDetailDisplay)).toContainText(text)
-    },
-
     async getSubmitDetail() {
       const detail = await page.locator(selectors.submitDetailDisplay).textContent()
       return JSON.parse(detail ?? '{}')
