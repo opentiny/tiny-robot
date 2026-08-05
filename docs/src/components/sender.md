@@ -458,7 +458,7 @@ onSelect: (item) => {
 | 事件名            | 说明                                                                 | 回调参数                                |
 | ----------------- | -------------------------------------------------------------------- | --------------------------------------- |
 | update:modelValue | 内容更新                                                             | `(value: string)`                       |
-| submit            | 提交内容，返回纯文本、结构化数据（可选）和外部内容 meta（可选）       | `(text: string, data?: StructuredData, meta?: SenderSubmitMeta)` |
+| submit            | 提交内容，返回纯文本、结构化数据（可选）和额外提交内容（可选）       | `(text: string, data?: StructuredData, extra?: SenderSubmitExtra)` |
 | clear             | 清空内容                                                             | `()`                                    |
 | focus             | 获得焦点                                                             | `(event: FocusEvent)`                   |
 | blur              | 失去焦点                                                             | `(event: FocusEvent)`                   |
@@ -468,12 +468,12 @@ onSelect: (item) => {
 :::tip submit 事件参数说明
 - **text**：纯文本内容，适用于简单场景（如直接发送给 AI）
 - **data**：结构化数据数组，仅在使用 Template 或 Mention 扩展时返回，包含文本和特殊节点的完整信息
-- **meta**：仅当存在附件 payload 时返回，当前包含 `externalPayloads`
+- **extra**：仅当存在外部 payload 时返回，当前包含 `externalPayloads`
 
 根据业务需求选择使用：
 - 简单场景：只使用 `text` 参数
 - 复杂场景：使用 `data` 参数提取特殊节点信息或自定义拼接格式
-- 附件等外部内容：使用 `meta.externalPayloads` 读取，其中附件 payload 的 `sourceId` 固定为 `attachments`
+- 附件等外部内容：使用 `extra.externalPayloads` 读取。Sender 只透传外部内容的 `source` 和 `payload`，不内置解析特定来源
 
 详见：[结构化数据](#结构化数据)
 :::
@@ -674,14 +674,12 @@ interface SuggestionTextPart {
 // 结构化数据（submit 事件返回）
 type StructuredData = TemplateItem[] | MentionStructuredItem[]
 
-interface SenderAttachmentPayload {
-  items: Attachment[]
+interface SenderExternalPayload {
+  readonly source: string
+  readonly payload: unknown
 }
 
-type SenderExternalPayloadSourceId = string
-type SenderExternalPayload = SenderAttachmentPayload & { readonly sourceId: SenderExternalPayloadSourceId }
-
-interface SenderSubmitMeta {
+interface SenderSubmitExtra {
   externalPayloads: SenderExternalPayload[]
 }
 

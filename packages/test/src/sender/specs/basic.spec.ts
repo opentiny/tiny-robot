@@ -70,7 +70,7 @@ test.describe('Sender 组件测试', () => {
       argsLength: 2,
       textContent: '',
       structuredData: null,
-      meta: null,
+      extra: null,
     })
   })
 
@@ -85,17 +85,19 @@ test.describe('Sender 组件测试', () => {
       argsLength: 3,
       textContent: '',
       structuredData: null,
-      meta: {
+      extra: {
         externalPayloads: [
           {
-            sourceId: 'attachments',
-            items: [
-              {
-                id: 'sender-attachment',
-                name: 'sender-note.txt',
-                status: 'success',
-              },
-            ],
+            source: 'attachments',
+            payload: {
+              items: [
+                {
+                  id: 'sender-attachment',
+                  name: 'sender-note.txt',
+                  status: 'success',
+                },
+              ],
+            },
           },
         ],
       },
@@ -136,7 +138,7 @@ test.describe('Sender 组件测试', () => {
         argsLength: 2,
         textContent,
         structuredData: null,
-        meta: null,
+        extra: null,
       })
 
       await helper.toggleAttachmentsSource()

@@ -5,7 +5,7 @@ import { Sender, TrAttachments } from '@opentiny/tiny-robot'
 import type {
   Attachment,
   MentionItem,
-  SenderSubmitMeta,
+  SenderSubmitExtra,
   SenderSuggestionItem,
   StructuredData,
   TemplateItem,
@@ -66,14 +66,14 @@ const handleSizeChange = () => {
   result.value = `尺寸切换为: ${size.value}`
 }
 
-const handleSubmit = (...args: [string, StructuredData?, SenderSubmitMeta?]) => {
-  const [value, structuredData, meta] = args
+const handleSubmit = (...args: [string, StructuredData?, SenderSubmitExtra?]) => {
+  const [value, structuredData, extra] = args
   result.value = `提交内容: ${value}`
   submitDetail.value = JSON.stringify({
     argsLength: args.length,
     textContent: value,
     structuredData: structuredData ?? null,
-    meta: meta ?? null,
+    extra: extra ?? null,
   })
 }
 

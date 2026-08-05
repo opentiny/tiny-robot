@@ -1,6 +1,6 @@
 import type { Extension } from '@tiptap/core'
 import type { InputMode, SubmitTrigger, DefaultActions, AutoSize, StructuredData, EnterKeyHint } from './types/base'
-import type { SenderSubmitMeta } from './types/submit-meta'
+import type { SenderSubmitExtra } from './types/submit-extra'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -8,12 +8,7 @@ export * from './types/composables'
 export * from './types/components'
 export * from './types/context'
 export * from './types/slots'
-export type {
-  SenderAttachmentPayload,
-  SenderExternalPayload,
-  SenderExternalPayloadSourceId,
-  SenderSubmitMeta,
-} from './types/submit-meta'
+export type { SenderExternalPayload, SenderSubmitExtra } from './types/submit-extra'
 
 // 导入插槽作用域类型
 import type { SenderSlotScope } from './types/slots'
@@ -293,7 +288,7 @@ export interface SenderEmits {
    * }
    * ```
    */
-  (e: 'submit', textContent: string, structuredData?: StructuredData, meta?: SenderSubmitMeta): void
+  (e: 'submit', textContent: string, structuredData?: StructuredData, extra?: SenderSubmitExtra): void
 
   /**
    * 聚焦事件

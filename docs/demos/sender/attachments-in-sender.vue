@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
 import { TrAttachments, TrSender, UploadButton } from '@opentiny/tiny-robot'
-import type { Attachment, SenderSubmitMeta } from '@opentiny/tiny-robot'
+import type { Attachment, SenderSubmitExtra } from '@opentiny/tiny-robot'
 
 const content = ref('')
 const message = ref('')
@@ -26,6 +26,14 @@ const revokeObjectUrl = (attachment: Attachment) => {
   }
 }
 
+interface AttachmentExternalPayload {
+  readonly items: Attachment[]
+}
+
+const isAttachmentExternalPayload = (payload: unknown): payload is AttachmentExternalPayload => {
+  return typeof payload === 'object' && payload !== null && Array.isArray((payload as AttachmentExternalPayload).items)
+}
+
 const clearAttachments = () => {
   attachments.value.forEach(revokeObjectUrl)
   attachments.value = []
@@ -35,14 +43,14 @@ const handleFiles = (files: File[]) => {
   attachments.value = [...attachments.value, ...files.map(createAttachment)]
 }
 
-const handleSubmit = (text: string, _structuredData?: unknown, meta?: SenderSubmitMeta) => {
+const handleSubmit = (text: string, _structuredData?: unknown, extra?: SenderSubmitExtra) => {
   const attachmentNames =
-    meta?.externalPayloads.reduce<string[]>((names, payload) => {
-      if (payload.sourceId !== 'attachments') {
+    extra?.externalPayloads.reduce<string[]>((names, externalPayload) => {
+      if (externalPayload.source !== 'attachments' || !isAttachmentExternalPayload(externalPayload.payload)) {
         return names
       }
 
-      payload.items.forEach((attachment) => {
+      externalPayload.payload.items.forEach((attachment) => {
         names.push(attachment.name || attachment.rawFile?.name || '未命名文件')
       })
 
