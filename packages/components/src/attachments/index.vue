@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { watch, ref, computed } from 'vue'
+import { watch, ref, computed, onBeforeUnmount } from 'vue'
 import { useImagePreview, useListType } from './composables'
 import { AttachmentListEmits, AttachmentListProps, Attachment, ActionButton } from './index.type'
 import FileCard from './components/FileCard.vue'
 import { useFileType } from './composables/useFileType'
+import { useSenderContentRegistration } from '../shared/composables'
 
 const props = withDefaults(defineProps<AttachmentListProps>(), {
   variant: 'auto',
@@ -62,6 +63,13 @@ const wrapClass = computed(() => (props.wrap ? 'wrap' : 'no-wrap'))
 
 const { normalizeAttachments } = useFileType({
   fileMatchers: props.fileMatchers,
+})
+
+const registerSenderContent = useSenderContentRegistration()
+const unregisterSenderContent = registerSenderContent?.('attachments', fileList)
+
+onBeforeUnmount(() => {
+  unregisterSenderContent?.()
 })
 
 // 监听props.items变化

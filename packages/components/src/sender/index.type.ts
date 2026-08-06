@@ -1,5 +1,6 @@
 import type { Extension } from '@tiptap/core'
 import type { InputMode, SubmitTrigger, DefaultActions, AutoSize, StructuredData, EnterKeyHint } from './types/base'
+import type { SenderSubmitExtra } from './types/submit-extra'
 
 // 导出所有子模块类型
 export * from './types/base'
@@ -7,6 +8,7 @@ export * from './types/composables'
 export * from './types/components'
 export * from './types/context'
 export * from './types/slots'
+export type { SenderExternalPayload, SenderSubmitExtra } from './types/submit-extra'
 
 // 导入插槽作用域类型
 import type { SenderSlotScope } from './types/slots'
@@ -141,6 +143,9 @@ export interface SenderProps {
    *
    * 用于附件、图片、文件列表等不写入编辑器文本的内容场景。
    * 当编辑器文本为空但该值为 true 时，Sender 仍会认为存在可提交内容。
+   *
+   * @deprecated 若使用 TrAttachments，将其放在 TrSender 内即可自动注册附件内容。
+   * 开发者也可以通过 useSenderContentRegistration 向 Sender 注册内容，前提是组件被 TrSender 包裹。
    *
    * @default false
    */
@@ -284,7 +289,7 @@ export interface SenderEmits {
    * }
    * ```
    */
-  (e: 'submit', textContent: string, structuredData?: StructuredData): void
+  (e: 'submit', textContent: string, structuredData?: StructuredData, extra?: SenderSubmitExtra): void
 
   /**
    * 聚焦事件

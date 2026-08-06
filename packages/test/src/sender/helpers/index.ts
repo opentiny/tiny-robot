@@ -69,6 +69,14 @@ export function createSenderTestHelper(page: Page) {
       await page.locator(selectors.toggleExternalContentBtn).click()
     },
 
+    async toggleAttachmentsSource() {
+      await page.locator(selectors.toggleAttachmentsSourceBtn).click()
+    },
+
+    async clearAttachmentsSourceItems() {
+      await page.locator(selectors.clearAttachmentsSourceItemsBtn).click()
+    },
+
     async setSubmitType(type: 'enter' | 'ctrlEnter' | 'shiftEnter') {
       await page.locator(selectors.submitTypeSelect).selectOption(type)
     },
@@ -167,6 +175,11 @@ export function createSenderTestHelper(page: Page) {
 
     async expectResultExact(text: string) {
       await expect(page.locator(selectors.resultDisplay)).toHaveText(text)
+    },
+
+    async getSubmitDetail() {
+      const detail = await page.locator(selectors.submitDetailDisplay).textContent()
+      return JSON.parse(detail ?? '{}')
     },
 
     async expectMode(mode: 'single' | 'multiple') {

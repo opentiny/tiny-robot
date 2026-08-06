@@ -1,6 +1,7 @@
 export * from './createTeleport'
 export * from './useAutoScroll'
 export * from './useControllableState'
+export * from './useSenderContentRegistration'
 export * from './useSlotRefs'
 export * from './useTeleportTarget'
 export * from './useTouchDevice'

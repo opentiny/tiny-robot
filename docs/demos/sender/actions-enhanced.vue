@@ -1,35 +1,41 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { TrSender, UploadButton, VoiceButton } from '@opentiny/tiny-robot'
-import { Tag as TinyTag } from '@opentiny/vue'
 
 const content = ref('')
 const message = ref('')
-const selectedFiles = ref<File[]>([])
+let messageTimer: ReturnType<typeof setTimeout> | undefined
+
+const showMessage = (value: string) => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+
+  message.value = value
+  messageTimer = setTimeout(() => {
+    message.value = ''
+    messageTimer = undefined
+  }, 3000)
+}
 
 const handleSubmit = (text: string) => {
-  const fileNames = selectedFiles.value.map((file) => file.name).join(', ')
-  message.value = fileNames ? `已提交: ${text || '(无文本)'}，附件: ${fileNames}` : `已提交: ${text}`
+  showMessage(`已提交: ${text}`)
   content.value = ''
-  selectedFiles.value = []
-  setTimeout(() => (message.value = ''), 3000)
 }
 
 const handleFiles = (files: File[]) => {
-  selectedFiles.value = [...selectedFiles.value, ...files]
-}
-
-const handleClear = () => {
-  selectedFiles.value = []
-}
-
-const removeFile = (index: number) => {
-  selectedFiles.value = selectedFiles.value.filter((_, fileIndex) => fileIndex !== index)
+  showMessage(`已选择 ${files.length} 个文件`)
 }
 
 const handleVoiceFinal = (text: string) => {
   content.value += text + ' '
 }
+
+onBeforeUnmount(() => {
+  if (messageTimer) {
+    clearTimeout(messageTimer)
+  }
+})
 </script>
 
 <template>
@@ -38,10 +44,8 @@ const handleVoiceFinal = (text: string) => {
       v-model="content"
       placeholder="输入内容，或使用语音/上传文件..."
       mode="multiple"
-      :has-external-content="selectedFiles.length > 0"
       clearable
       @submit="handleSubmit"
-      @clear="handleClear"
     >
       <template #footer-right>
         <!-- 上传按钮 -->
@@ -58,18 +62,6 @@ const handleVoiceFinal = (text: string) => {
       </template>
     </tr-sender>
 
-    <div v-if="selectedFiles.length" class="file-list">
-      <tiny-tag
-        v-for="(file, index) in selectedFiles"
-        :key="`${file.name}-${file.lastModified}-${index}`"
-        :max-width="240"
-        closable
-        @close="removeFile(index)"
-      >
-        {{ file.name }}
-      </tiny-tag>
-    </div>
-
     <div v-if="message" class="message">{{ message }}</div>
   </div>
 </template>
@@ -85,12 +77,5 @@ const handleVoiceFinal = (text: string) => {
   background: #e7f3ff;
   border-radius: 6px;
   color: #1476ff;
-}
-
-.file-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
 }
 </style>
