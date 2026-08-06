@@ -9,6 +9,7 @@ import ChatAside from './ui/ChatAside.vue'
 import ChatComposer from './ui/ChatComposer.vue'
 import ChatHeader from './ui/ChatHeader.vue'
 import ChatMessages from './ui/ChatMessages.vue'
+import ChatRightAsidePanel from './ui/ChatRightAsidePanel.vue'
 import { resolveChatUIOptions } from './ui/resolveOptions'
 import { resolveChatViewState } from './ui/resolveState'
 import type {
@@ -26,6 +27,7 @@ const emit = defineEmits<ChatUIEmits>()
 const slots = defineSlots<ChatUISlots>()
 
 const leftAsideOpen = shallowRef(false)
+const rightAsideOpen = shallowRef(false)
 const scrollTarget = shallowRef<HTMLElement | null>(null)
 const breakpoints = useBreakpoints({
   mobile: 0,
@@ -56,6 +58,7 @@ const rightAsideLayout = computed(() =>
   resolvedOptions.value.rightAside === false ? undefined : resolvedOptions.value.rightAside,
 )
 const leftAsideMode = computed(() => (isMobileViewport.value ? 'drawer' : (leftAsideLayout.value?.mode ?? 'dock')))
+const rightAsideMode = computed(() => (isMobileViewport.value ? 'drawer' : (rightAsideLayout.value?.mode ?? 'dock')))
 const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
 const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
 const bubbleRoleConfigs = computed(
@@ -83,11 +86,19 @@ const leftAsideOptions = computed(() => ({
   collapsedWidth: isMobileViewport.value ? 0 : toLayoutSize(leftAsideLayout.value?.collapsedWidth, 56),
   collapseEffect: 'overlay' as const,
 }))
+const mobileRightAsideWidth = computed(() =>
+  isMobileViewport.value && viewportWidth.value > 0 ? viewportWidth.value : undefined,
+)
+const isRightAsideControlled = computed(() => typeof rightAsideLayout.value?.open === 'boolean')
+const resolvedRightAsideOpen = computed(() => rightAsideLayout.value?.open ?? rightAsideOpen.value)
+
 const rightAsideOptions = computed(() => ({
-  mode: rightAsideLayout.value?.mode ?? 'dock',
-  defaultOpen: rightAsideLayout.value?.defaultOpen ?? true,
-  expandedWidth: toLayoutSize(rightAsideLayout.value?.width, 320),
-  collapsedWidth: toLayoutSize(rightAsideLayout.value?.collapsedWidth, 0),
+  mode: rightAsideMode.value,
+  open: resolvedRightAsideOpen.value,
+  expandedWidth: mobileRightAsideWidth.value ?? toLayoutSize(rightAsideLayout.value?.width, 320),
+  minExpandedWidth: mobileRightAsideWidth.value,
+  maxExpandedWidth: mobileRightAsideWidth.value,
+  collapsedWidth: isMobileViewport.value ? 0 : toLayoutSize(rightAsideLayout.value?.collapsedWidth, 0),
   collapseEffect: 'overlay' as const,
 }))
 const historyOptions = computed(() =>
@@ -100,6 +111,7 @@ const composerOptions = computed(() =>
 watch(isMobileViewport, (isMobile) => {
   if (isMobile) {
     closeLeftAside()
+    closeRightAside()
   }
 })
 
@@ -107,6 +119,16 @@ watch(
   () => leftAsideLayout.value?.defaultOpen,
   (defaultOpen) => {
     leftAsideOpen.value = typeof defaultOpen === 'boolean' ? defaultOpen : false
+  },
+  { immediate: true },
+)
+
+watch(
+  () => rightAsideLayout.value?.defaultOpen,
+  (defaultOpen) => {
+    if (!isRightAsideControlled.value) {
+      rightAsideOpen.value = typeof defaultOpen === 'boolean' ? defaultOpen : false
+    }
   },
   { immediate: true },
 )
@@ -178,6 +200,23 @@ function handleLeftAsideOpenChange(detail: { open: boolean }) {
   leftAsideOpen.value = detail.open
 }
 
+function setRightAsideOpen(open: boolean) {
+  if (rightAsideOpen.value === open) {
+    return
+  }
+
+  rightAsideOpen.value = open
+  emit('rightAsideOpenChange', { open })
+}
+
+function closeRightAside() {
+  setRightAsideOpen(false)
+}
+
+function handleRightAsideOpenChange(detail: { open: boolean }) {
+  setRightAsideOpen(detail.open)
+}
+
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
   composer.setValue(item.label)
   emit('promptClick', { event, item })
@@ -229,6 +268,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     :left-aside="isLeftAsideVisible ? leftAsideOptions : undefined"
     :right-aside="isRightAsideVisible ? rightAsideOptions : undefined"
     @left-aside-open-change="handleLeftAsideOpenChange"
+    @right-aside-open-change="handleRightAsideOpenChange"
   >
     <template v-if="isLeftAsideVisible" #left-aside>
       <ChatAside
@@ -361,7 +401,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     </template>
 
     <template v-if="isRightAsideVisible" #right-aside>
-      <slot name="right-aside"></slot>
+      <ChatRightAsidePanel
+        :title="rightAsideLayout?.title"
+        :show-close="rightAsideLayout?.showClose"
+        @close="closeRightAside"
+      >
+        <slot name="right-aside"></slot>
+      </ChatRightAsidePanel>
     </template>
   </TrLayout>
 </template>

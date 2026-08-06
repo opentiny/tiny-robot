@@ -51,4 +51,5 @@ export interface ChatUIEmits {
   loadMcpTools: [payload: { serverId: string }]
   updateMcpServerEnabled: [payload: { id: string; enabled: boolean }]
   updateMcpToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
+  rightAsideOpenChange: [payload: { open: boolean }]
 }

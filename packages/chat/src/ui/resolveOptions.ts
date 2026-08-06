@@ -9,6 +9,7 @@ import type {
   ChatLabels,
   ChatMessagesOptions,
   ChatPromptsOptions,
+  ChatRightAsideOptions,
   ChatUIOptions,
   ChatWelcomeOptions,
 } from '../types'
@@ -29,6 +30,8 @@ export interface ResolvedChatHeaderOptions extends ChatHeaderOptions {
 }
 
 export type ResolvedChatAsideOptions = Required<ChatAsideOptions>
+export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'title'>> &
+  Pick<ChatRightAsideOptions, 'title'>
 
 export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
   menuItems: NonNullable<ChatHistoryOptions['menuItems']>
@@ -59,7 +62,7 @@ export interface ResolvedChatUIOptions {
   labels: ChatLabels
   header: false | ResolvedChatHeaderOptions
   leftAside: false | ResolvedChatAsideOptions
-  rightAside: false | ResolvedChatAsideOptions
+  rightAside: false | ResolvedChatRightAsideOptions
   history: false | ResolvedChatHistoryOptions
   messages: ResolvedChatMessagesOptions
   welcome: false | ResolvedChatWelcomeOptions
@@ -126,10 +129,13 @@ export function resolveChatUIOptions(
         ? false
         : rightAsideOverrides || slots.hasRightAside
           ? {
+              open: rightAsideOverrides?.open,
               mode: rightAsideOverrides?.mode ?? 'dock',
               width: rightAsideOverrides?.width ?? 320,
               collapsedWidth: rightAsideOverrides?.collapsedWidth ?? 0,
               defaultOpen: rightAsideOverrides?.defaultOpen ?? true,
+              title: rightAsideOverrides?.title,
+              showClose: rightAsideOverrides?.showClose ?? true,
             }
           : false,
     history:

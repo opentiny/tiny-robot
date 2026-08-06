@@ -26,7 +26,7 @@ export interface ChatUIOptions {
   labels?: Partial<ChatLabels>
   header?: false | ChatHeaderOptions
   leftAside?: false | ChatAsideOptions
-  rightAside?: false | ChatAsideOptions
+  rightAside?: false | ChatRightAsideOptions
   history?: false | ChatHistoryOptions
   messages?: ChatMessagesOptions
   welcome?: false | ChatWelcomeOptions
@@ -74,6 +74,12 @@ export interface ChatAsideOptions {
   defaultOpen?: boolean
 }
 
+export interface ChatRightAsideOptions extends ChatAsideOptions {
+  open?: boolean
+  title?: string
+  showClose?: boolean
+}
+
 export type ChatHistoryOptions = Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected'>
 
 export interface ChatMessagesOptions {
@@ -96,10 +102,8 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
-export interface ChatSenderOptions extends Omit<
-  SenderProps,
-  'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
-> {
+export interface ChatSenderOptions
+  extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
   defaultActions?: ChatSenderDefaultActions
 }
 

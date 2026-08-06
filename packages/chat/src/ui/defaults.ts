@@ -107,7 +107,8 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
     welcome: {
       title: labels.welcomeTitle,
       description: labels.welcomeDescription,
-      icon: h(IconAi, { style: { fontSize: '40px' } }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      icon: h(IconAi, { style: { fontSize: '40px' } }) as any,
     },
     prompts: {
       items: [],

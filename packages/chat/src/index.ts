@@ -44,6 +44,7 @@ export type {
   ChatMessagePart,
   ChatPromptClickEvent,
   ChatPromptsOptions,
+  ChatRightAsideOptions,
   ChatProcessingState,
   ChatRequestState,
   ChatRuntime,
