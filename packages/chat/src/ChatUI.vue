@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
 import { computed, shallowRef, watch } from 'vue'
-import { TrLayout, useTheme } from '@opentiny/tiny-robot'
+import { TrLayout } from '@opentiny/tiny-robot'
 import type { HistoryMenuItem, PromptProps } from '@opentiny/tiny-robot'
 import ScrollToBottom from './components/ScrollToBottom.vue'
 import { useControllableComposer } from './composables/useControllableComposer'
@@ -35,7 +35,6 @@ const breakpoints = useBreakpoints({
 })
 const isMobileViewport = breakpoints.smaller('desktop')
 const { width: viewportWidth } = useWindowSize()
-const { resolvedColorMode, toggleColorMode } = useTheme()
 
 const resolvedOptions = computed(() => resolveChatUIOptions(props.ui, { hasRightAside: Boolean(slots['right-aside']) }))
 const resolvedState = computed(() => resolveChatViewState(props.state, resolvedOptions.value.labels))
@@ -45,8 +44,6 @@ const composer = useControllableComposer({
   onUpdate: (value) => emit('update:composerValue', value),
 })
 
-const hasTheme = computed(() => Boolean(resolvedColorMode))
-const currentColorMode = computed(() => resolvedColorMode?.value ?? 'light')
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const isComposerVisible = computed(() => resolvedOptions.value.composer !== false)
 const isLeftAsideVisible = computed(() => resolvedOptions.value.leftAside !== false)
@@ -302,14 +299,11 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           :is-left-aside-visible="isLeftAsideVisible"
           :is-left-aside-drawer="isLeftAsideDrawer"
           :is-left-aside-open="leftAsideOpen"
-          :has-theme="hasTheme && resolvedOptions.header !== false && resolvedOptions.header.showThemeToggle !== false"
-          :color-mode="currentColorMode"
           :labels="resolvedOptions.labels"
           @create-conversation="handleCreateConversation"
           @open-left-aside="openLeftAside"
           @close-left-aside="closeLeftAside"
           @toggle-left-aside="toggleLeftAside"
-          @toggle-color-mode="toggleColorMode"
         >
           <template v-if="$slots.notice" #notice>
             <slot name="notice" />
@@ -357,11 +351,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
               <slot name="content-footer" v-bind="slotProps" />
             </template>
           </ChatMessages>
-          <div class="chat-scroll-actions">
-            <ScrollToBottom :target="scrollTarget" />
-          </div>
         </div>
       </section>
+
+      <div class="chat-scroll-actions">
+        <ScrollToBottom :target="scrollTarget" />
+      </div>
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 

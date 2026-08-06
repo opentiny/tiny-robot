@@ -4,7 +4,6 @@ import type {
   ChatBrandOptions,
   ChatComposerOptions,
   ChatCssSize,
-  ChatHeaderOptions,
   ChatHistoryOptions,
   ChatLabels,
   ChatMessagesOptions,
@@ -25,13 +24,9 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
   logo: unknown
 }
 
-export interface ResolvedChatHeaderOptions extends ChatHeaderOptions {
-  showThemeToggle: boolean
-}
-
 export type ResolvedChatAsideOptions = Required<ChatAsideOptions>
-export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'title'>> &
-  Pick<ChatRightAsideOptions, 'title'>
+export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open' | 'title'>> &
+  Pick<ChatRightAsideOptions, 'open' | 'title'>
 
 export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
   menuItems: NonNullable<ChatHistoryOptions['menuItems']>
@@ -60,7 +55,7 @@ export interface ResolvedChatUIOptions {
   layout: ResolvedChatLayoutOptions
   brand: ResolvedChatBrandOptions
   labels: ChatLabels
-  header: false | ResolvedChatHeaderOptions
+  header: boolean
   leftAside: false | ResolvedChatAsideOptions
   rightAside: false | ResolvedChatRightAsideOptions
   history: false | ResolvedChatHistoryOptions
@@ -79,7 +74,6 @@ export function resolveChatUIOptions(
     ...defaults.labels,
     ...withoutUndefined(options?.labels),
   }
-  const headerOverrides = options?.header === false ? undefined : options?.header
   const leftAsideOverrides = options?.leftAside === false ? undefined : options?.leftAside
   const rightAsideOverrides = options?.rightAside === false ? undefined : options?.rightAside
   const historyOverrides = options?.history === false ? undefined : options?.history
@@ -109,12 +103,7 @@ export function resolveChatUIOptions(
       ...withoutUndefined(options?.brand),
     },
     labels,
-    header:
-      options?.header === false
-        ? false
-        : {
-            showThemeToggle: headerOverrides?.showThemeToggle ?? defaults.header.showThemeToggle ?? true,
-          },
+    header: options?.header !== false,
     leftAside:
       options?.leftAside === false
         ? false

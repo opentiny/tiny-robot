@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { TrLayout } from '@opentiny/tiny-robot'
-import { IconCollapseLeft, IconCollapseRight, IconMoon, IconNewSession, IconSun } from '@opentiny/tiny-robot-svgs'
+import { IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { ChatConversationView, ChatLabels } from '../types'
 
-const props = defineProps<{
+defineProps<{
   title: string
   isEmpty: boolean
   conversation: Required<ChatConversationView>
   isLeftAsideVisible: boolean
   isLeftAsideDrawer: boolean
   isLeftAsideOpen: boolean
-  hasTheme: boolean
-  colorMode: 'light' | string
   labels: ChatLabels
 }>()
 
@@ -20,7 +18,6 @@ const emit = defineEmits<{
   openLeftAside: []
   closeLeftAside: []
   toggleLeftAside: []
-  toggleColorMode: []
 }>()
 
 function createConversation() {
@@ -79,16 +76,6 @@ function toggleLeftAside() {
         >
           <IconNewSession :size="20" />
         </button>
-        <button
-          v-if="isEmpty && hasTheme"
-          class="theme-toggle-btn"
-          type="button"
-          :aria-label="labels.toggleTheme"
-          @click="emit('toggleColorMode')"
-        >
-          <IconMoon v-if="props.colorMode === 'light'" :size="32" />
-          <IconSun v-else :size="32" />
-        </button>
       </div>
     </header>
   </slot>
@@ -132,8 +119,7 @@ function toggleLeftAside() {
   white-space: nowrap;
 }
 
-.chat-header__new,
-.theme-toggle-btn {
+.chat-header__new {
   align-items: center;
   justify-content: center;
   width: 32px;
@@ -151,11 +137,6 @@ function toggleLeftAside() {
   display: none;
 }
 
-.theme-toggle-btn {
-  display: inline-flex;
-}
-
-.theme-toggle-btn:hover,
 .chat-header__new:hover,
 .chat-header__aside-toggle:hover {
   color: var(--tr-icon-color-hover);
@@ -190,10 +171,6 @@ function toggleLeftAside() {
   .chat-header__new {
     display: inline-flex;
     color: var(--tr-text-secondary);
-  }
-
-  .theme-toggle-btn {
-    margin-left: 0;
   }
 }
 </style>

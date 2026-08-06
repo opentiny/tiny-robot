@@ -56,7 +56,6 @@ export type {
   ChatMcpToolInfo,
   ChatMcpToolState,
   ChatModelOption,
-  ChatHeaderOptions,
   ChatAsideOptions,
   ChatWelcomeOptions,
   ChatSenderOptions,

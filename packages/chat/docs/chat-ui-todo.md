@@ -92,7 +92,7 @@
 - [x] 将散落在子组件中的默认值迁移到 resolver 或明确保留为区域默认。
 - [ ] 验证 `<TrChatUI />` 不抛异常。
 - [ ] 验证 `<TrChatUI />` 渲染 Header、Welcome、Composer 和默认左侧栏。
-- [ ] 验证无 ThemeProvider 时可以渲染。
+- [ ] 验证零配置渲染。
 - [ ] 运行 package type-check 并记录结果。
 
 ## 3. Composer 状态模型

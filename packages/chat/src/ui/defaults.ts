@@ -4,7 +4,6 @@ import type {
   ChatAsideOptions,
   ChatBrandOptions,
   ChatComposerOptions,
-  ChatHeaderOptions,
   ChatHistoryOptions,
   ChatLabels,
   ChatMessagesOptions,
@@ -23,7 +22,6 @@ export interface DefaultChatUIOptions {
     logo: unknown
   }
   labels: ChatLabels
-  header: ChatHeaderOptions
   leftAside: Required<ChatAsideOptions>
   rightAside: false
   history: ChatHistoryOptions
@@ -58,7 +56,6 @@ export function createDefaultChatLabels(): ChatLabels {
     mcp: 'MCP',
     thinkingFeature: '深度思考',
     searchFeature: '联网搜索',
-    toggleTheme: '切换主题',
     welcomeTitle: 'TinyRobot AI 助手',
     welcomeDescription: '您好，我是TinyRobot，您专属的 AI 智能专家',
   }
@@ -78,9 +75,6 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
       logo: IconAi,
     },
     labels,
-    header: {
-      showThemeToggle: true,
-    },
     leftAside: {
       mode: 'dock',
       width: 300,

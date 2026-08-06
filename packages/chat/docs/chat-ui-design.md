@@ -78,7 +78,7 @@ TrChatUI 内部状态   = 布局、草稿、滚动等短生命周期 UI 状态
 
 - `ChatUI.vue` 的页面布局、CSS 和区域组合。
 - `ChatAside.vue` 的桌面 dock、收起栏、移动端 drawer 和 History item identity。
-- `ChatHeader.vue` 的标题、会话入口和主题入口。
+- `ChatHeader.vue` 的标题、会话入口。
 - `ChatMessages.vue` 的空态、Bubble 渲染、自动滚动和消息 slots。
 - `ChatComposer.vue` 的 Sender 组合和控制区布局。
 - `ScrollToBottom.vue` 的滚动提示和交互。
@@ -216,7 +216,7 @@ export interface ChatUIOptions {
   brand?: ChatBrandOptions
   labels?: Partial<ChatLabels>
 
-  header?: false | ChatHeaderOptions
+  header?: false
   leftAside?: false | ChatAsideOptions
   rightAside?: false | ChatAsideOptions
   history?: false | ChatHistoryOptions
@@ -280,7 +280,6 @@ export interface ChatLabels {
   mcp: string
   thinkingFeature: string
   searchFeature: string
-  toggleTheme: string
   welcomeTitle: string
   welcomeDescription: string
 }
@@ -556,7 +555,7 @@ demo/cases/chat-ui/
 <TrChatUI />
 ```
 
-证明零 Props、无 Runtime、无 ThemeProvider 也能渲染基础页面。
+证明零 Props、无 Runtime 也能渲染基础页面。
 
 ### 15.2 ConfiguredCase
 
@@ -614,7 +613,6 @@ http://localhost:5185/chat-ui
 - Composer 受控/非受控。
 - desktop/mobile aside。
 - empty/messages/loading/disabled/pending。
-- ThemeProvider 有无两种情况。
 - 长标题、长模型名和窄屏布局。
 
 ### 16.3 自动化验证

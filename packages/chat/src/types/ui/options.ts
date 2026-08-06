@@ -24,7 +24,7 @@ export interface ChatUIOptions {
   layout?: ChatLayoutOptions
   brand?: ChatBrandOptions
   labels?: Partial<ChatLabels>
-  header?: false | ChatHeaderOptions
+  header?: false
   leftAside?: false | ChatAsideOptions
   rightAside?: false | ChatRightAsideOptions
   history?: false | ChatHistoryOptions
@@ -58,13 +58,8 @@ export interface ChatLabels {
   mcp: string
   thinkingFeature: string
   searchFeature: string
-  toggleTheme: string
   welcomeTitle: string
   welcomeDescription: string
-}
-
-export interface ChatHeaderOptions {
-  showThemeToggle?: boolean
 }
 
 export interface ChatAsideOptions {
