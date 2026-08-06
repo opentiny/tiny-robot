@@ -1,146 +1,99 @@
-# TrChatUI 设计与实现方案
+# TrChatUI 设计方案
 
 ## 1. 文档状态
 
-- 状态：待评审，评审通过后作为 `TrChatUI` 实现阶段的设计依据。
-- 范围：只定义 `TrChatUI` 的定位、公共契约、默认行为、内部结构和验证标准。
-- 非范围：暂不修改 `ChatRuntime`、整体架构文档和迁移文档。
-- 兼容策略：项目仍在开发阶段，不保留当前 ChatUI API 的兼容层。
-- 实施进度：见 [chat-ui-todo.md](./chat-ui-todo.md)。
+- 状态：设计已确认，待实施。
+- 范围：定义 `TrChatUI` 的公共契约、职责边界、默认行为和交互不变量。
+- 实施方案：[chat-ui-implementation.md](./chat-ui-implementation.md)。
+- 兼容策略：当前处于开发阶段，不保留旧 ChatUI API 兼容层。
+- 非范围：本阶段不调整 `ChatRuntime` 核心协议，不增加统一事件系统。
 
-## 2. 一页结论
+## 2. 设计结论
 
-`TrChatUI` 是一个带完整默认值的聊天页面 UI Shell。调用方不传任何 Props 时，它必须能够渲染基础聊天页面；调用方传入普通展示状态时，它必须能够接入任意数据层；调用方传入 `ui` 时，可以覆盖、关闭或增强默认 UI 能力。
+`TrChatUI` 是不依赖 Runtime 的聊天页面 UI Shell。
 
 ```txt
 <TrChatUI />
-  -> 默认空状态
-  -> 默认 UI 配置
-  -> 可输入的 Composer
+  -> 默认 Data
+  -> 默认 UI Options
+  -> 可输入 Sender
   -> Welcome 空态
-  -> 响应式 Chat 页面
+  -> 响应式页面
 
-自定义数据层
-  -> ChatViewState
+<TrChat :runtime="runtime" />
+  -> Runtime adapter
+  -> ChatUIData
+  -> ChatUIOptions + onXxx
   -> TrChatUI
-  -> typed emits
-  -> 自定义数据层 actions
 ```
 
 最终边界：
 
 ```txt
-state               = 当前展示什么
-ui                  = 具体怎么展示
-composerValue       = 唯一的双向输入状态
-emits               = 所有用户意图
-slots               = 区域级渲染替换
-TrChatUI 内部状态   = 布局、草稿、滚动等短生命周期 UI 状态
+data      = 当前展示数据
+ui        = UI 配置、原子组件 Props、组件级 onXxx 回调
+emits     = ChatUI 根级用户意图
+slots     = 区域替换和原子组件扩展
+TrChat    = Runtime adapter，内置 Model/MCP 业务编排
 ```
 
-## 3. 组件定位
-
-### 3.1 TrChatUI 负责
-
-- 组合 `TrLayout`、History、Welcome、Prompts、BubbleList、Sender 等原子组件。
-- 提供一套能够直接渲染基础页面的默认展示状态和默认 UI 配置。
-- 将普通展示快照转换为原子组件 Props。
-- 通过 Emits 表达用户意图。
-- 管理输入草稿、侧栏开关、移动端抽屉、滚动目标等短生命周期 UI 状态。
-- 保持桌面端和移动端交互一致性。
-- 提供 typed slots 供调用方替换或扩展区域。
-
-### 3.2 TrChatUI 不负责
-
-- 请求、流式协议、取消实现和错误恢复策略。
-- 会话、消息和配置的持久化。
-- Runtime、Provider、Transport、Storage 或 Kit engine。
-- RunConfig 的合成和请求参数解释。
-- 直接执行 Model/MCP 数据控制器方法。
-- 将业务 actions 放入 `ui` 配置。
-- 伪造默认会话、消息、模型或 MCP 数据。
-
-### 3.3 无数据层渲染的含义
-
-无数据层不等于默认提供模拟业务数据。零 Props 渲染时：
-
-- 会话列表为空。
-- 当前会话 ID 为 `null`。
-- 标题为“新对话”。
-- 消息列表为空并展示 Welcome。
-- Composer 可输入并维护本地草稿。
-- Model/MCP 控件不渲染。
-- 会话、提交等操作可以正常发出事件，但不会凭空产生业务数据。
-
-## 4. 保留现有实现的范围
-
-本次不推倒重写已有视图和交互。以下实现作为行为基线保留：
-
-- `ChatUI.vue` 的页面布局、CSS 和区域组合。
-- `ChatAside.vue` 的桌面 dock、收起栏、移动端 drawer 和 History item identity。
-- `ChatHeader.vue` 的标题、会话入口。
-- `ChatMessages.vue` 的空态、Bubble 渲染、自动滚动和消息 slots。
-- `ChatComposer.vue` 的 Sender 组合和控制区布局。
-- `ScrollToBottom.vue` 的滚动提示和交互。
-
-主要重构对象：
-
-- Props、Emits 和 Slots 公共契约。
-- 默认状态和默认配置解析。
-- Composer 受控/非受控模型。
-- Model/MCP 的 View + Emits 模型。
-- `ui.onXxx` 双事件体系。
-- 类型命名和文件组织。
-- Demo 和验证场景。
-
-## 5. 命名规范
-
-`ChatUI` 前缀只保留在根组件契约上，避免每个子类型都重复 `ChatUI`。
-
-| 类别 | 命名规则 | 示例 |
-| --- | --- | --- |
-| 根组件契约 | `ChatUIXxx` | `ChatUIProps`、`ChatUIOptions`、`ChatUIEmits`、`ChatUISlots` |
-| 展示快照 | `ChatXxxView` | `ChatViewState`、`ChatConversationView`、`ChatModelView` |
-| 展示配置 | `ChatXxxOptions` | `ChatLayoutOptions`、`ChatHistoryOptions` |
-| 事件数据 | `ChatXxxEvent` / `ChatXxxPayload` | `ChatPromptClickEvent`、`ChatSubmitPayload` |
-| 内部解析类型 | `ResolvedXxx`，不导出 | `ResolvedChatViewState` |
-
-不使用 `State`、`Options` 等无包语义的根导出，也不使用 TypeScript namespace 组织 Vue SFC 类型。
-
-## 6. 公共 Props
+公共 Props：
 
 ```ts
 export interface ChatUIProps {
-  state?: ChatViewState
+  data?: ChatUIData
   ui?: ChatUIOptions
-  composerValue?: string
-  defaultComposerValue?: string
 }
 ```
 
-### 6.1 Props 职责
+不再提供：
 
-| Prop | 职责 | 默认值 |
-| --- | --- | --- |
-| `state` | 普通展示快照 | `{}`，由内部解析成完整空状态 |
-| `ui` | 默认 UI 的可选覆盖和增强 | `{}`，使用完整默认 UI |
-| `composerValue` | Composer 受控值 | `undefined`，表示非受控模式 |
-| `defaultComposerValue` | 非受控 Composer 初始值 | `''` |
+```txt
+state
+composerValue
+defaultComposerValue
+update:composerValue
+```
 
-### 6.2 不采用的方案
+## 3. 组件职责
 
-- 不将所有数据展开成十几个顶层 Props。
-- 不把 `composerValue` 放回 `state`，避免快照和双向状态混用。
-- 不允许 `ui` 覆盖 conversations、messages、loading 等展示真相。
-- 不在 Props 中传入 Runtime 或 controller 对象。
+### 3.1 TrChatUI 负责
 
-## 7. 展示状态
+- 组合 Layout、History、Welcome、Prompts、BubbleList、Sender。
+- 提供零 Props 默认页面。
+- 将普通 Data 映射为原子组件 Props。
+- 调用组件级 `onXxx` 回调。
+- 通过根 Emits 表达页面级用户意图。
+- 管理 Aside、滚动目标、移动端布局等短生命周期 UI 状态。
+- 提供完整类型化 Slots。
+
+### 3.2 TrChatUI 不负责
+
+- 请求、流式协议、持久化和错误恢复。
+- Runtime、Provider、Transport、Storage 或 Kit engine。
+- RunConfig 合成和请求参数解释。
+- 直接调用 Model/MCP Runtime controller。
+- 等待 Model/MCP Promise。
+- 维护 Model/MCP pending 业务状态。
+- 提供受控/非受控两套输入 API。
+
+### 3.3 TrChat 负责
+
+- 将 Runtime conversation/messages 映射为 `ChatUIData`。
+- 将 Runtime request state 映射为 Sender Data。
+- 将 Runtime Model/MCP 映射为普通 View Data。
+- 将根级 ChatUI Emits 转发到 Runtime actions。
+- 内置 Model/MCP action、pending、防重复和错误处理。
+- 向 `ui.model` 和 `ui.mcp` 注入 Model/MCP `onXxx` 回调。
+- 合并调用方 UI 配置和 adapter 内部回调。
+
+## 4. 公共 Data
 
 ```ts
-export interface ChatViewState {
+export interface ChatUIData {
   conversation?: ChatConversationView
-  messages?: readonly ChatMessageItem[]
-  composer?: ChatComposerView
+  bubble?: ChatBubbleView
+  sender?: ChatSenderView
   model?: ChatModelView
   mcp?: ChatMcpView
 }
@@ -151,7 +104,12 @@ export interface ChatConversationView {
   title?: string
 }
 
-export interface ChatComposerView {
+export interface ChatBubbleView {
+  messages?: readonly ChatMessageItem[]
+}
+
+export interface ChatSenderView {
+  inputValue?: string
   loading?: boolean
   disabled?: boolean
   submitDisabled?: boolean
@@ -195,39 +153,95 @@ export interface ChatMcpToolView {
   loading?: boolean
 }
 
-export type ChatMcpToolMap = Readonly<Partial<Record<string, readonly ChatMcpToolView[]>>>
+export type ChatMcpToolMap = Readonly<
+  Partial<Record<string, readonly ChatMcpToolView[]>>
+>
 ```
 
 约束：
 
-- View 类型只包含普通数据，不包含 `ChatReadable`、Vue Ref、Runtime 类型和操作方法。
+- Data 只包含普通数据。
+- Data 不包含 Vue Ref、Runtime 类型、controller 或操作方法。
+- Props 只读，ChatUI 不直接修改调用方 Data。
 - Model/MCP 未提供时不渲染对应控件。
-- Pending 状态来自 View；UI 不通过调用 Promise action 猜测业务操作何时完成。
-- Runtime adapter 可以维护短生命周期 pending 镜像，并把它映射为 `model.selecting`、`model.pendingFeatureIds`、MCP server/tool `loading`；该 pending 镜像属于 adapter 边界，不暴露为 UI controller。
-- Runtime adapter 负责捕获并记录 Model/MCP 异步 action 的失败，避免 fire-and-forget 转发产生 unhandled rejection；pending 镜像必须通过 adapter helper 的 `finally` 清理。
-- MCP 工具加载意图由 View 反映 `installed + enabled` 且 tools 缺失后触发，避免 UI 在 add/toggle action 完成前抢跑 `loadTools`。
-- `metadata` 仅用于透传 UI 扩展信息，不作为内部业务协议。
+- Pending 状态由 adapter 映射到 Data。
+- `metadata` 仅用于 UI 扩展信息。
 
-## 8. UI 配置
+## 5. InputValue 模型
+
+本阶段不定义受控和非受控两套模式。
+
+### 5.1 状态所有权
+
+- `TrSender` 编辑器拥有当前实时草稿。
+- Sender 内部草稿是真实输入值，`data.sender.inputValue` 只是外部同步输入；外部值变化时覆盖当前草稿。
+- Sender 输入变化调用 `ui.sender.onInput(value)`。
+- ChatUI 不直接修改 `data.sender.inputValue`。
+- 不提供 `defaultInputValue`。
+- 不提供根级 `update:inputValue` emit。
+- 不提供 `v-model` API。
+
+### 5.2 零 Props 行为
+
+```vue
+<TrChatUI />
+```
+
+- Sender 使用自身默认空值。
+- 用户可以正常输入、清空和提交。
+- 输入草稿保存在 Sender 内部。
+- Aside 和 viewport 变化不得重建 Sender 或丢失草稿。
+
+### 5.3 外部同步
+
+当 `data.sender.inputValue` 发生变化时：undefined 表示不执行同步；清空必须显式传 ''
+
+- Sender 将编辑器内容同步为新值。
+- 外部同步不重复调用 `onInput`。
+- 用户后续输入继续调用 `onInput`。
+- 调用方可以在 `onInput` 中保存最新值，但不是强制要求。
+
+### 5.4 Prompt、Clear 和 Submit
+
+- Prompt 通过 Sender 的 `setContent` 写入内容。
+- Prompt、clear、submit 只依赖 Sender input 事件调用 onInput，业务函数不得重复调用；外部同步使用 emitUpdate: false。
+- Prompt 写入完成后调用 `prompts.onItemClick`。
+- 用户点击清空时调用一次根级 `clear`。
+- 清空导致的内容变化调用一次 `sender.onInput('')`。
+- `clearOnSubmit` 默认开启。
+- 提交自动清空不得额外触发根级 `clear`。
+- 提交 payload 必须读取 Sender 实际内容。
+- 发送失败后的恢复由 `TrChat` input adapter 通过更新 Data 完成。
+
+### 5.5 提交禁用
+
+Sender 自身负责：
+
+- 空内容不可提交。
+- 超出字数限制不可提交。
+- disabled 状态不可提交。
+
+`data.sender.submitDisabled` 只增加外部禁用条件，不能绕过 Sender 自身约束。
+
+## 6. UI Options
 
 ```ts
 export interface ChatUIOptions {
   layout?: ChatLayoutOptions
   brand?: ChatBrandOptions
   labels?: Partial<ChatLabels>
-
   header?: false
-  leftAside?: false | ChatAsideOptions
-  rightAside?: false | ChatAsideOptions
   history?: false | ChatHistoryOptions
-  messages?: ChatMessagesOptions
   welcome?: false | ChatWelcomeOptions
   prompts?: false | ChatPromptsOptions
-  composer?: false | ChatComposerOptions
+  bubble?: ChatBubbleOptions
+  sender?: false | ChatSenderOptions
+  model?: false | ChatModelOptions
+  mcp?: false | ChatMcpOptions
 }
 ```
 
-### 8.1 区域配置
+### 6.1 Layout
 
 ```ts
 export type ChatCssSize = string | number
@@ -236,6 +250,8 @@ export interface ChatLayoutOptions {
   contentMaxWidth?: ChatCssSize
   panelPadding?: ChatCssSize
   panelGap?: ChatCssSize
+  leftAside?: false | ChatAsideOptions
+  rightAside?: false | ChatRightAsideOptions
 }
 
 export interface ChatAsideOptions {
@@ -245,281 +261,379 @@ export interface ChatAsideOptions {
   defaultOpen?: boolean
 }
 
-export interface ChatMessagesOptions {
+export interface ChatRightAsideOptions extends ChatAsideOptions {
+  open?: boolean
+  title?: string
+  showClose?: boolean
+  onOpenChange?: (payload: { open: boolean }) => void
+}
+```
+
+Aside width 只接受 number。CSS size 只用于 CSS 变量。
+
+### 6.2 History
+
+```ts
+export type ChatHistoryOptions =
+  Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected'> & {
+    onItemAction?: (
+      action: HistoryMenuItem,
+      conversation: ChatConversationInfo,
+    ) => void
+  }
+```
+
+规则：
+
+- 点击会话走根级 `switchConversation`。
+- 重命名走根级 `renameConversation`。
+- 删除走根级 `deleteConversation`。
+- 非内置菜单动作调用 `onItemAction`。
+- 同一次操作只能触发一个对应出口。
+
+### 6.3 Prompts
+
+```ts
+export interface ChatPromptsOptions
+  extends Omit<PromptsProps, 'items'> {
+  items?: PromptProps[]
+  onItemClick?: (event: MouseEvent, item: PromptProps) => void
+}
+```
+
+规则：
+
+- disabled Prompt 不处理。
+- 先回填 Sender。
+- 再调用 `onItemClick`。
+- 不再提供 `promptClick` 根 emit。
+
+### 6.4 Bubble
+
+```ts
+export interface ChatBubbleOptions {
   autoScroll?: boolean
-  bubbleProvider?: ChatBubbleProviderOptions
+  bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: ChatBubbleListOptions
 }
 
-export interface ChatComposerOptions {
-  sender?: ChatSenderOptions
-  clearOnSubmit?: boolean
-}
+export type ChatBubbleListOptions =
+  Omit<BubbleListProps, 'messages' | 'autoScroll'> & {
+    onStateChange?: (payload: ChatBubbleStateChangePayload) => void
+    onBubbleEvent?: (payload: ChatBubbleEventPayload) => void
+  }
 ```
 
-Aside width 只接受 number，因为底层 `TrLayout` 的 aside width 是布局数值。CSS size 只用于最终进入 CSS 变量的配置。
+规则：
 
-### 8.2 Brand 和 Labels
+- `messages` 只能来自 `data.bubble.messages`。
+- ChatUI 统一管理外部滚动容器。
+- BubbleList 的 `autoScroll` 固定由 ChatUI 接管。
+- Bubble callbacks 保持原 payload，不解释业务含义。
+
+### 6.5 Sender
+
+`ChatSenderOptions` 由可透传的 `TrSender` Props、ChatUI Sender 编排配置和 Sender 自身 callbacks 组成。
 
 ```ts
-export interface ChatBrandOptions {
-  name?: string
-  logo?: unknown
+export type ChatSenderOptions = Omit<
+  SenderProps,
+  'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
+> & {
+  defaultActions?: ChatSenderDefaultActions
+  clearOnSubmit?: boolean
+
+  onInput?: (value: string) => void
+  onFocus?: (event: FocusEvent) => void
+  onBlur?: (event: FocusEvent) => void
 }
 
-export interface ChatLabels {
-  newConversationTitle: string
-  createConversation: string
-  renameConversation: string
-  deleteConversation: string
-  expandConversationList: string
-  collapseConversationList: string
-  composerPlaceholder: string
-  composerLoadingPlaceholder: string
-  selectModel: string
-  mcp: string
-  thinkingFeature: string
-  searchFeature: string
-  welcomeTitle: string
-  welcomeDescription: string
+export interface ChatModelOptions {
+  onSelect?: (payload: { id: string | null }) => void
+  onFeatureChange?: (payload: { id: string; enabled: boolean }) => void
+}
+
+export interface ChatMcpOptions {
+  onAddServer?: (payload: { id: string }) => void
+  onRemoveServer?: (payload: { id: string }) => void
+  onServerEnabledChange?: (
+    payload: { id: string; enabled: boolean },
+  ) => void
+  onToolEnabledChange?: (
+    payload: {
+      serverId: string
+      toolId: string
+      enabled: boolean
+    },
+  ) => void
 }
 ```
 
-所有默认可见文案和 `aria-label` 从 Labels 获取。组件内部不再散落硬编码品牌和中文文案。
+规则：
 
-### 8.3 配置合并规则
+- 原子组件 Props 优先通过 `Omit` 复用。
+- 原子组件 Emits 不属于 Props 接口，所有 callback 必须显式声明。
+- callback 是同步意图通知。
+- ChatUI 不等待 callback 返回值。
+- Model callbacks 归属 `ui.model`。
+- MCP callbacks 归属 `ui.mcp`。
+- Model/MCP callback 缺失时只保持当前 Data，不伪造成功状态。
 
-不使用通用递归 deep merge。所有区域由显式 resolver 解析。
+## 7. 根级 Emits
+
+```ts
+export interface ChatUIEmits {
+  submit: [payload: ChatSubmitPayload]
+  cancel: []
+  clear: []
+
+  createConversation: []
+  switchConversation: [payload: { id: string }]
+  renameConversation: [payload: { id: string; title: string }]
+  deleteConversation: [payload: { id: string }]
+}
+```
+
+根 Emits 只表达页面级意图。
+
+不保留以下根 Emits：
+
+```txt
+update:composerValue
+focus
+blur
+historyAction
+promptClick
+bubbleStateChange
+bubbleEvent
+selectModel
+updateModelFeature
+addMcpServer
+removeMcpServer
+loadMcpTools
+updateMcpServerEnabled
+updateMcpToolEnabled
+rightAsideOpenChange
+```
+
+本阶段不增加统一 `event` emit。
+
+## 8. Model/MCP 编排
+
+### 8.1 ChatUI 边界
+
+- Model/MCP 组件消费普通 View Data。
+- 组件内部可以使用局部 emits 与父级 ChatComposer 通信。
+- ChatComposer 只负责把 Model/MCP 控件组合到 footer，并调用 `ui.model.onXxx`、`ui.mcp.onXxx`。
+- ChatUI 不导入 Runtime 类型。
+- ChatUI 不等待 Model/MCP action。
+- ChatUI 不暴露 `onLoadMcpTools`。
+- MCPSelector 不根据 View Data 自动加载 tools。
+
+### 8.2 TrChat Adapter
+
+`TrChat` 内置：
+
+- Model 选择。
+- Model feature 更新。
+- MCP Server 添加、删除和启停。
+- MCP Tool 加载和启停，加载由 adapter 内部编排。
+- pending 状态。
+- 重复操作拦截。
+- MCP Tool 启用快照和恢复。
+- Promise reject 捕获。
+- `finally` pending 清理。
+
+### 8.3 Callback 合并
+
+当调用方 `ui.model` 或 `ui.mcp` 已提供同名 callback 时：
+
+1. `TrChat` 先派发内部 Runtime action。
+2. 再调用调用方 callback，作为意图通知。
+3. 不等待 Runtime action 完成。
+4. 调用方 callback 不影响内部 action。
+5. 每次事件发生时读取最新 callback，不缓存旧函数。
+
+MCP tools 加载流程：
+
+```txt
+用户 add/enable Server
+  -> ui.mcp 对应 callback
+  -> TrChat adapter 等待 Runtime action
+  -> adapter 串行调用 loadTools
+  -> Runtime Data 更新
+  -> ChatUI 重新渲染
+```
+
+## 9. 配置解析规则
+
+不使用通用递归 deep merge。
 
 | 输入 | 语义 |
 | --- | --- |
-| `undefined` | 使用默认配置 |
-| `false` | 关闭对应区域或能力 |
-| object | 按已声明字段覆盖默认对象 |
-| array | 完整替换，不自动拼接 |
-| function / component / VNode | 完整替换 |
-| slot | 替换对应区域的默认渲染 |
+| `undefined` | 使用默认值 |
+| `false` | 关闭对应区域 |
+| object | 按已声明字段覆盖 |
+| array | 完整替换 |
+| function | 完整替换 |
+| component/VNode | 完整替换 |
+| slot | 替换对应默认渲染 |
 
-配置不得改变 `state` 中的业务展示真相。例如标题来自 `state.conversation.title`，缺省时才使用 `labels.newConversationTitle`。
+其他规则：
 
-## 9. 默认值
+- 默认对象按组件实例创建。
+- 不导出共享可变默认对象。
+- callback 不在 resolver 初始化时固化。
+- Data 和 UI 分开解析。
+- UI 配置不得覆盖 Data 中的展示事实。
+- `undefined` 不覆盖有效默认值。
 
-### 9.1 默认展示状态
+## 10. 默认值
+
+### 10.1 Data
 
 | 字段 | 默认值 |
 | --- | --- |
 | `conversation.items` | `[]` |
 | `conversation.activeId` | `null` |
 | `conversation.title` | `labels.newConversationTitle` |
-| `messages` | `[]` |
-| `composer.loading` | `false` |
-| `composer.disabled` | `false` |
-| `composer.submitDisabled` | `false`，最终仍与空输入、disabled 合并 |
+| `bubble.messages` | `[]` |
+| `sender.inputValue` | `undefined` |
+| `sender.loading` | `false` |
+| `sender.disabled` | `false` |
+| `sender.submitDisabled` | `false` |
 | `model` | `undefined` |
 | `mcp` | `undefined` |
 
-### 9.2 默认 UI
+### 10.2 UI
 
 | 字段 | 默认值 |
 | --- | --- |
 | `layout.contentMaxWidth` | `980` |
 | `layout.panelPadding` | `12` |
 | `layout.panelGap` | `12` |
+| `layout.leftAside.mode` | `dock` |
+| `layout.leftAside.width` | `300` |
+| `layout.leftAside.collapsedWidth` | `56` |
+| `layout.leftAside.defaultOpen` | `false` |
+| `layout.rightAside` | `false` |
 | `header` | 启用 |
-| `leftAside.mode` | desktop `dock`，mobile 强制 `drawer` |
-| `leftAside.width` | `300` |
-| `leftAside.collapsedWidth` | `56` |
-| `leftAside.defaultOpen` | `false` |
-| `rightAside` | `false`；有配置或 slot 时启用 |
 | `history.menuItems` | 重命名、删除 |
-| `messages.autoScroll` | `true` |
-| `welcome` | 启用默认标题、描述和图标 |
+| `bubble.autoScroll` | `true` |
+| `welcome` | 启用 |
 | `prompts.items` | `[]` |
-| `composer.clearOnSubmit` | `true` |
+| `sender.clearOnSubmit` | `true` |
 | `sender.mode` | `multiple` |
 | `sender.clearable` | `true` |
 | `sender.maxLength` | `1000` |
 | `sender.showWordLimit` | `true` |
+| `model` | 启用 |
+| `mcp` | 启用 |
 
-默认对象必须按实例创建，不能导出可被调用方修改的共享可变对象。
+显式 false 优先；只有 undefined + slot 才自动启用默认右栏。
 
-## 10. Composer 状态模型
+## 11. Slots
 
-Composer 是唯一同时支持受控和非受控的状态。
-
-### 10.1 非受控模式
-
-```vue
-<TrChatUI default-composer-value="你好" />
-```
-
-- 未传 `composerValue` 时使用内部 draft。
-- draft 初始值来自 `defaultComposerValue ?? ''`。
-- 输入、Prompt、clear 和 submit 清空都修改内部 draft。
-
-### 10.2 受控模式
-
-```vue
-<TrChatUI v-model:composer-value="input" />
-```
-
-- 传入 `composerValue` 时，外部值是唯一真相。
-- UI 变化只发出 `update:composerValue`。
-- `clearOnSubmit` 为 true 时发出清空意图；最终显示值仍由父组件决定。
-- Adapter 不得绕过 `ChatUI` 主动清空受控值；发送失败恢复只能在 `ChatUI` 已按 `clearOnSubmit` 发出清空意图后进行，且不得覆盖调用方保留或新输入的值。
-- 不维护会覆盖外部值的第二份长期状态。
-
-### 10.3 提交禁用规则
-
-```txt
-submitDisabled =
-  composer.disabled
-  || composer.submitDisabled
-  || composerValue.trim() === ''
-```
-
-调用方不能通过显式 `false` 绕过空输入和 disabled 不变量。
-
-## 11. Emits
-
-所有用户意图通过顶层 Emits 输出，`ui` 中不允许 `onXxx` callbacks。
-
-```ts
-export interface ChatUIEmits {
-  'update:composerValue': [value: string]
-
-  submit: [payload: ChatSubmitPayload]
-  cancel: []
-  clear: []
-  focus: [event: FocusEvent]
-  blur: [event: FocusEvent]
-
-  createConversation: []
-  switchConversation: [payload: { id: string }]
-  renameConversation: [payload: { id: string; title: string }]
-  deleteConversation: [payload: { id: string }]
-  historyAction: [payload: ChatHistoryActionEvent]
-
-  promptClick: [payload: ChatPromptClickEvent]
-  bubbleStateChange: [payload: ChatBubbleStateChangePayload]
-  bubbleEvent: [payload: ChatBubbleEventPayload]
-
-  selectModel: [payload: { id: string | null }]
-  updateModelFeature: [payload: { id: string; enabled: boolean }]
-
-  addMcpServer: [payload: { id: string }]
-  removeMcpServer: [payload: { id: string }]
-  loadMcpTools: [payload: { serverId: string }]
-  updateMcpServerEnabled: [payload: { id: string; enabled: boolean }]
-  updateMcpToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
-}
-```
-
-事件规则：
-
-- 多字段参数统一使用 object payload。
-- Emits 表达意图，不等待数据层 Promise，也不假设操作成功。
-- View 中的 loading/pending 负责表达操作中的展示状态。
-- 默认 History 的 rename/delete 映射到专用事件；自定义菜单动作走 `historyAction`。
-- Prompt 点击先更新 Composer，再发出 `promptClick` 通知。
-- Bubble 状态和自定义事件保持透传，不在 ChatUI 中解释业务含义。
-
-`ChatSubmitPayload` 是 UI 层用户输入载荷，只包含文本和结构化输入，不包含 Runtime RunConfig：
-
-```ts
-export interface ChatSubmitPayload {
-  text: string
-  structuredData?: ChatStructuredData
-}
-```
-
-## 12. Slots
-
-`ChatUI.vue` 必须使用 `defineSlots<ChatUISlots>()`。Slots 分为区域替换和原子组件扩展两类。
-
-### 12.1 区域替换 Slots
-
-| Slot | 默认内容 | 行为 |
-| --- | --- | --- |
-| `header` | `ChatHeader` | 替换 Header 内容 |
-| `left-aside` | `ChatAside` 内部内容 | 替换左侧栏内容，保留布局容器 |
-| `main` | `ChatMessages` | 替换消息主区域 |
-| `footer` | `ChatComposer` | 替换输入区域 |
-| `right-aside` | 无 | 提供后启用右侧栏 |
-
-### 12.2 扩展 Slots
+### 11.1 区域 Slots
 
 | Slot | 用途 |
 | --- | --- |
-| `notice` | Header 上方通知 |
-| `welcome-footer` | Welcome 扩展 |
-| `prompts-footer` | Prompts 扩展 |
-| `prefix` | BubbleList prefix |
-| `suffix` | BubbleList suffix |
-| `after` | BubbleList after |
-| `content-footer` | 消息内容 footer |
-| `sender-footer` | Sender 左侧 footer |
-| `sender-footer-right` | Sender 右侧 footer |
+| `header` | 替换 Header 内容 |
+| `left-aside` | 替换左侧栏内部内容 |
+| `main` | 替换消息主区域 |
+| `footer` | 替换 Sender 区域 |
+| `right-aside` | 提供右侧栏内容 |
 
-Slot Props 必须只包含普通 View 数据、UI 状态和触发本组件 Emits 的 UI actions，不直接暴露 Runtime actions。
+### 11.2 扩展 Slots
 
-## 13. 响应式和交互不变量
+| Slot | 用途 |
+| --- | --- |
+| `header-notice` | Header 通知区域 |
+| `welcome-footer` | Welcome footer |
+| `prompts-footer` | Prompts footer |
+| `bubble-prefix` | BubbleList prefix |
+| `bubble-suffix` | BubbleList suffix |
+| `bubble-after` | BubbleList after |
+| `bubble-content-footer` | Bubble content footer |
+| `sender-footer` | Sender footer |
+| `sender-footer-right` | Sender footer-right |
+| `right-aside-title` | 自定义右侧栏标题 |
 
-以下行为是现有实现已经验证的基线，重构公共契约时必须保留：
+规则：
 
-### 13.1 Desktop
+- `ChatUI.vue` 使用 `defineSlots<ChatUISlots>()`。
+- Slot Props 只包含普通 Data、UI 状态和根级 UI actions。
+- Slot Props 不暴露 Runtime controller。
+- `right-aside-title` 存在时 Header 必须显示。
+- 不保留右侧栏硬编码默认标题。
+
+## 12. 响应式不变量
+
+### 12.1 Desktop
 
 - 断点为 `960px`。
-- 左侧栏默认 dock，支持展开和收起。
-- collapsed width 默认为 56。
-- 输入草稿不能因侧栏切换或 viewport 变化丢失。
+- 左侧栏默认 dock。
+- 支持展开和收起。
+- collapsed width 默认 `56`。
+- Sender 不因 Aside 状态变化重建。
 
-### 13.2 Mobile
+### 12.2 Mobile
 
-- 小于 960px 时左侧栏强制使用 drawer。
-- drawer width 不超过 viewport 的 86%。
+- 小于 `960px` 强制使用 drawer。
+- 左侧 drawer width 不超过 viewport 的 `86%`。
 - 创建或切换会话后关闭 drawer。
-- 移动端 collapsed width 为 0。
-- Header 保持标题居中，左右操作区尺寸稳定。
+- collapsed width 为 `0`。
+- 右侧 drawer 最大宽度不超过 viewport。
+- Header 标题与按钮不得重叠。
 
-### 13.3 Messages
+### 12.3 Right Aside
+
+- `open` 未提供时使用内部 open 状态。
+- `open` 提供时以外部值为展示依据。
+- 关闭按钮和 Layout 变化调用 `onOpenChange`。
+- 受外部 `open` 驱动时不得直接修改展示真相。
+- 同一次开关操作只调用一次 `onOpenChange`。
+
+## 13. Messages 和滚动
 
 - 空消息展示 Welcome 和可选 Prompts。
 - 有消息时展示 BubbleList。
-- system 角色默认隐藏，可由 UI 配置覆盖。
-- autoScroll 默认开启。
-- 用户消息追加后支持平滑滚动。
-- ScrollToBottom 不得改变消息区域布局尺寸。
+- system 角色默认隐藏。
+- `bubble.autoScroll` 默认开启。
+- 用户消息追加后支持 smooth scroll。
+- `ScrollToBottom` 固定在消息面板内。
+- `ScrollToBottom` 不得改变消息区域布局尺寸。
+- ProxyScrollbar 使用同一个 scroll target。
+- slot 替换 main 后不得产生重复滚动容器。
 
-### 13.4 Accessibility
+## 14. 可访问性
 
-- 所有图标按钮具有可配置的 `aria-label`。
-- 可点击元素必须使用 button 或正确语义组件。
-- 无点击行为的 Logo 不得使用 button。
-- 不展示未实际实现的快捷键提示；如果保留 `Ctrl K`，必须实现并验证。
-- Drawer 的 Escape、focus 和 overlay 行为需要在移动端验证。
+- 图标按钮必须具有 `aria-label`。
+- 可点击元素使用 button 或正确语义组件。
+- 无点击行为的 Logo 不使用 button。
+- 不展示未实现的快捷键提示。
+- Drawer 验证 Escape、focus 和 overlay。
+- 长标题使用省略显示，不挤压操作按钮。
+- 窄屏下文字不得与图标重叠。
 
-## 14. 内部结构
-
-建议的目标文件结构：
+## 15. 内部结构
 
 ```txt
 src/
+  Chat.vue
   ChatUI.vue
   ui/
     defaults.ts
-    resolveState.ts
+    resolveData.ts
     resolveOptions.ts
     ChatAside.vue
     ChatComposer.vue
     ChatHeader.vue
     ChatMessages.vue
-  composables/
-    useControllableComposer.ts
-    useChatUILayout.ts
+    ChatRightAsidePanel.vue
   types/
     ui/
-      state.ts
+      data.ts
       options.ts
       events.ts
       slots.ts
@@ -528,124 +642,71 @@ src/
 
 职责：
 
-- `defaults.ts`：创建每实例默认值。
-- `resolveState.ts`：将可选 View 输入解析成完整内部状态。
-- `resolveOptions.ts`：按显式规则合并默认 UI 和调用方配置。
-- `useControllableComposer.ts`：管理受控/非受控 Composer。
-- `useChatUILayout.ts`：管理 viewport、aside mode/open/width。
-- `ChatUI.vue`：只做页面组合、事件转发和 slots 连接。
+- `ChatUI.vue`：页面组合、根 emits、callback 和 slots 连接。
+- `ChatComposer.vue`：Sender 内容命令、Sender callbacks、Model/MCP footer 组合。
+- `ChatMessages.vue`：Welcome、Prompts、Bubble 和滚动映射。
+- `ChatAside.vue`：History 展示和会话意图。
+- `ChatRightAsidePanel.vue`：右侧栏容器、标题和关闭操作。
+- `resolveData.ts`：解析默认 Data。
+- `resolveOptions.ts`：显式解析 UI Options。
+- `Chat.vue`：Runtime adapter 和 Model/MCP 内置编排。
 
-不为了追求文件数量提前抽象。只有当逻辑能够独立测试或明显降低 `ChatUI.vue` 复杂度时才提取 composable。
+删除：
 
-## 15. Demo 设计
+```txt
+useControllableComposer.ts
+resolveState.ts
+state.ts
+```
 
-`demo` 只关注 ChatUI，拆成三个明确场景：
+除非布局逻辑明显降低 `ChatUI.vue` 复杂度，否则不新增 composable。
+
+## 16. Demo
 
 ```txt
 demo/cases/chat-ui/
   index.vue
   DefaultCase.vue
   ConfiguredCase.vue
-  ControlledCase.vue
+  DataCase.vue
 ```
 
-### 15.1 DefaultCase
+### DefaultCase
 
-```vue
-<TrChatUI />
-```
+- 只渲染 `<TrChatUI />`。
+- 验证零 Props。
+- 验证输入、清空和提交。
+- 不导入 Runtime 或 Kit。
 
-证明零 Props、无 Runtime 也能渲染基础页面。
+### ConfiguredCase
 
-### 15.2 ConfiguredCase
+- 只传 `ui`。
+- 验证 Brand、Labels 和区域配置。
+- 验证 `false` 关闭。
+- 验证 callback。
+- 验证 Slots。
+- 验证数组替换。
 
-只传 `ui`，验证：
+### DataCase
 
-- Brand 和 Labels 覆盖。
-- Welcome、Sender、布局配置覆盖。
-- `false` 关闭区域。
-- 数组替换语义。
-- Slots 替换语义。
-
-### 15.3 ControlledCase
-
-使用普通 Vue refs/computed，不导入 Runtime 或 Kit 类型，验证：
-
-- conversations/messages 输入。
-- Composer v-model。
-- 会话和提交事件。
-- Model/MCP View + Emits。
-- loading、disabled、pending 状态。
-
-## 16. 验证标准
-
-### 16.1 静态验证
-
-```powershell
-pnpm -F @opentiny/tiny-robot-chat type-check
-```
-
-边界搜索：
-
-```powershell
-rg "ChatRuntime|ChatReadable|tiny-robot-kit|useConversation" packages/chat/src/ChatUI.vue packages/chat/src/ui packages/chat/src/types/ui
-```
-
-ChatUI 相关文件中不得出现 Runtime、Kit 或数据层协议依赖。
-
-### 16.2 Demo 验证
-
-```powershell
-pnpm -F @opentiny/tiny-robot-chat dev
-```
-
-验证地址：
-
-```txt
-http://localhost:5185/chat-ui
-```
-
-必须覆盖：
-
-- 零配置渲染。
-- UI 配置覆盖和关闭。
-- 自定义状态接入。
-- Composer 受控/非受控。
-- desktop/mobile aside。
-- empty/messages/loading/disabled/pending。
-- 长标题、长模型名和窄屏布局。
-
-### 16.3 自动化验证
-
-ChatUI API 稳定后再接入 `packages/test`。执行 Playwright 前按仓库规则：
-
-```powershell
-pnpm build:components
-pnpm -F tiny-robot-test test
-```
-
-最低自动化覆盖：
-
-- `<TrChatUI />` mount。
-- Composer 受控/非受控。
-- Prompt 回填。
-- desktop dock 和 mobile drawer。
-- 会话事件 payload。
-- UI `false` 关闭区域。
+- 使用普通 Vue refs/computed。
+- 不导入 Runtime 或 Kit。
+- 验证 conversations、messages 和 sender Data。
+- 验证根 Emits。
+- 使用独立 `model`、`mcp` 配置验证 Model/MCP Data + `onXxx`。
+- 验证 loading、disabled 和 pending。
 
 ## 17. 完成定义
 
-满足以下条件后，ChatUI 方案视为实现完成：
+满足以下条件后设计视为实现完成：
 
-1. `<TrChatUI />` 可以独立渲染并完成 UI 局部交互。
-2. `state` 和 `ui` 均为可选。
-3. UI 类型不依赖 Runtime、Kit、Vue Ref 或 controller actions。
-4. `ui` 只包含展示配置，不包含事件回调和业务状态。
-5. Composer 具有明确的受控/非受控语义。
-6. Model/MCP 使用 View + Emits。
-7. Props、Emits、Slots 和所有导出类型均有静态类型。
-8. 三个 Demo 场景均通过 desktop/mobile 验证。
-9. `TrChat` 能作为 adapter 接入该契约，但不改变 ChatUI 设计。
-10. 现有已验证的布局、滚动和响应式交互没有回归。
-
-整体架构文档和迁移文档在上述实现稳定后再统一更新。
+1. `<TrChatUI />` 可以独立渲染和输入。
+2. 公共 Props 只有 `data` 和 `ui`。
+3. 不存在公开受控/非受控双输入 API。
+4. UI 类型不依赖 Runtime、Kit、Vue Ref 或 controller。
+5. 根 Emits 只保留页面级意图。
+6. 组件级事件通过类型化 `onXxx` Props 调用。
+7. Model/MCP 编排保留在 `TrChat` adapter。
+8. Slots 全部使用最终命名。
+9. 三个 Demo 在 desktop/mobile 下通过。
+10. 布局、滚动、History identity 和响应式行为无回归。
