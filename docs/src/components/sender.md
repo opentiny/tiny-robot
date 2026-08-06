@@ -195,10 +195,10 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 ### 上传内容
 
-附件、图片等内容通常由上传按钮或独立列表维护，不会写入 Sender 的编辑器文本。当用户只上传附件或图片、不输入额外文本时，也需要让发送按钮可用，并在提交时拿到这些文件数据。把 `TrAttachments` 放在 Sender 内时会自动注册提交数据。
+附件、图片等内容通常由上传按钮或独立列表维护，不会写入 Sender 的编辑器文本。把 `TrAttachments` 放在 `TrSender` 内时会自动注册提交数据；提交时可从 `extra.externalPayloads` 中读取 `source="attachments"` 的 payload，其值为原样透传的 `Attachment[]`，具体过滤或上传失败提示由业务层处理。自定义外部内容组件也可以通过 `useSenderContentRegistration` 注册数据。
 
 :::warning 兼容说明
-`hasExternalContent` 仍可用于控制外部内容场景的可提交状态，但不会生成 `externalPayloads`。需要随提交返回附件数据时，请直接将 `TrAttachments` 放在 `TrSender` 内。
+`hasExternalContent` 仍可用于控制外部内容场景的可提交状态，但不会生成 `externalPayloads`。
 :::
 
 <demo vue="../../demos/sender/attachments-in-sender.vue" title="输入框内附件列表" description="使用 Attachments 在 Sender 内展示和管理附件，并随消息一起提交。" />
@@ -291,7 +291,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | enterkeyhint @0.4 | 移动端虚拟键盘回车键提示 | `EnterKeyHint` | `'send'` |
 | autoSize | 自动调整高度 | `boolean \| { minRows: number, maxRows: number }` | `{ minRows: 1, maxRows: 5 }` |
 | clearable | 是否可清空 | `boolean` | `false` |
-| hasExternalContent @0.5 兼容保留 | 是否存在外部可提交内容，适用于附件、图片等不写入编辑器文本的内容。该属性不会生成 `externalPayloads`；使用 `TrAttachments` 时放在 `TrSender` 内即可自动注册 | `boolean` | `false` |
+| hasExternalContent @0.5 兼容保留 | 是否存在外部可提交内容，仅控制可提交状态，不会生成 `externalPayloads` | `boolean` | `false` |
 | maxLength | 最大输入长度 | `number` | `Infinity` |
 | showWordLimit | 是否显示字数统计 | `boolean` | `false` |
 | submitType | 提交方式 | `'enter' \| 'ctrlEnter' \| 'shiftEnter'` | `'enter'` |
@@ -473,7 +473,7 @@ onSelect: (item) => {
 根据业务需求选择使用：
 - 简单场景：只使用 `text` 参数
 - 复杂场景：使用 `data` 参数提取特殊节点信息或自定义拼接格式
-- 附件等外部内容：使用 `extra.externalPayloads` 读取。Sender 只透传外部内容的 `source` 和 `payload`，不内置解析特定来源
+- 附件等外部内容：使用 `extra.externalPayloads` 读取。Sender 只透传外部内容的 `source` 和 `payload`，不内置解析特定来源，也不按状态过滤
 
 详见：[结构化数据](#结构化数据)
 :::

@@ -1,17 +1,16 @@
-import { computed, shallowReactive, toValue, type ComputedRef } from 'vue'
+import { computed, shallowReactive, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue'
 import type { SenderExternalPayload } from '../types/submit-extra'
-
-export type SenderContentRegister = (source: string, payload: unknown) => () => void
+import type { SenderContentRegister } from '../../shared/composables/useSenderContentRegistration'
 
 interface RegisteredSenderContent {
   readonly source: string
-  readonly payload: unknown
+  readonly payload: MaybeRefOrGetter<unknown>
 }
 
-export interface UseSenderContentRegistryReturn {
+interface UseSenderContentRegistryReturn {
   hasRegisteredContent: ComputedRef<boolean>
   registerContent: SenderContentRegister
-  collectExternalPayloads: () => SenderExternalPayload[]
+  externalPayloads: ComputedRef<SenderExternalPayload[]>
 }
 
 const hasPayloadContent = (payload: unknown): boolean => {
@@ -36,7 +35,10 @@ const hasPayloadContent = (payload: unknown): boolean => {
   return Boolean(payload)
 }
 
-const collectRegisteredPayload = (source: string, payload: unknown): SenderExternalPayload | undefined => {
+const collectRegisteredPayload = (
+  source: string,
+  payload: MaybeRefOrGetter<unknown>,
+): SenderExternalPayload | undefined => {
   const payloadValue = toValue(payload)
 
   if (!hasPayloadContent(payloadValue)) {
@@ -52,24 +54,7 @@ const collectRegisteredPayload = (source: string, payload: unknown): SenderExter
 export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
   const registeredContent = shallowReactive(new Map<symbol, RegisteredSenderContent>())
 
-  const hasRegisteredContent = computed(() => {
-    for (const content of registeredContent.values()) {
-      if (collectRegisteredPayload(content.source, content.payload)) return true
-    }
-
-    return false
-  })
-
-  const registerContent: SenderContentRegister = (source, payload) => {
-    const registrationId = Symbol('sender-content')
-    registeredContent.set(registrationId, { source, payload })
-
-    return () => {
-      registeredContent.delete(registrationId)
-    }
-  }
-
-  const collectExternalPayloads = (): SenderExternalPayload[] => {
+  const externalPayloads = computed(() => {
     const payloads: SenderExternalPayload[] = []
 
     for (const content of registeredContent.values()) {
@@ -80,11 +65,22 @@ export function useSenderContentRegistry(): UseSenderContentRegistryReturn {
     }
 
     return payloads
+  })
+
+  const hasRegisteredContent = computed(() => externalPayloads.value.length > 0)
+
+  const registerContent: SenderContentRegister = (source, payload) => {
+    const registrationId = Symbol('sender-content')
+    registeredContent.set(registrationId, { source, payload })
+
+    return () => {
+      registeredContent.delete(registrationId)
+    }
   }
 
   return {
     hasRegisteredContent,
     registerContent,
-    collectExternalPayloads,
+    externalPayloads,
   }
 }

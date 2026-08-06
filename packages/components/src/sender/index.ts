@@ -51,8 +51,6 @@ export type {
 } from './index.type'
 
 export { useSenderContext } from './context'
-export { useSenderContentRegistry } from './composables/useSenderContentRegistry'
-export type { SenderContentRegister, UseSenderContentRegistryReturn } from './composables/useSenderContentRegistry'
 
 // ========== 扩展类型导出 ==========
 export type { TemplateAttrs, TemplateOptions } from './extensions/template'

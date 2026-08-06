@@ -1,5 +1,7 @@
 import { inject, provide } from 'vue'
-import type { SenderContentRegister } from '../../sender/composables/useSenderContentRegistry'
+import type { MaybeRefOrGetter } from 'vue'
+
+export type SenderContentRegister = (source: string, payload: MaybeRefOrGetter<unknown>) => () => void
 
 export const SENDER_CONTENT_REGISTRATION_CONTEXT_KEY: unique symbol = Symbol('sender-content-registration-context')
 

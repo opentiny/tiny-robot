@@ -26,12 +26,8 @@ const revokeObjectUrl = (attachment: Attachment) => {
   }
 }
 
-interface AttachmentExternalPayload {
-  readonly items: Attachment[]
-}
-
-const isAttachmentExternalPayload = (payload: unknown): payload is AttachmentExternalPayload => {
-  return typeof payload === 'object' && payload !== null && Array.isArray((payload as AttachmentExternalPayload).items)
+const isAttachmentExternalPayload = (payload: unknown): payload is Attachment[] => {
+  return Array.isArray(payload)
 }
 
 const clearAttachments = () => {
@@ -50,7 +46,7 @@ const handleSubmit = (text: string, _structuredData?: unknown, extra?: SenderSub
         return names
       }
 
-      externalPayload.payload.items.forEach((attachment) => {
+      externalPayload.payload.forEach((attachment) => {
         names.push(attachment.name || attachment.rawFile?.name || '未命名文件')
       })
 

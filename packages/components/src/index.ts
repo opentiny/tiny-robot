@@ -55,10 +55,8 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
-export {
-  setupSenderContentRegistration,
-  useSenderContentRegistration,
-} from './shared/composables/useSenderContentRegistration'
+export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
+export type { SenderContentRegister } from './shared/composables/useSenderContentRegistration'
 export {
   BubbleRendererMatchPriority,
   BubbleRenderers,
@@ -71,8 +69,7 @@ export {
   useToolCall,
 } from './bubble'
 export { useTheme } from './theme-provider/useTheme'
-export { useSenderContext, useSenderContentRegistry } from './sender'
-export type { SenderContentRegister, UseSenderContentRegistryReturn } from './sender'
+export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
 

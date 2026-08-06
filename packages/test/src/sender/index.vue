@@ -16,7 +16,6 @@ declare global {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
-      setSenderAttachmentStatus: (status: NonNullable<Attachment['status']>) => void
     }
   }
 }
@@ -91,13 +90,6 @@ const handleCustomAction = () => {
 
 const handleClearSenderAttachmentItems = () => {
   senderAttachmentItems.value = []
-}
-
-const setSenderAttachmentStatus = (status: NonNullable<Attachment['status']>) => {
-  senderAttachmentItems.value = senderAttachmentItems.value.map((item) => ({
-    ...item,
-    status,
-  }))
 }
 
 const handleSetContent = () => {
@@ -249,7 +241,6 @@ onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
     pressDeleteBeforeTemplate,
-    setSenderAttachmentStatus,
   }
 })
 

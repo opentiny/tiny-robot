@@ -77,7 +77,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
     return text.trim().length > 0
   })
 
-  const { hasRegisteredContent, registerContent, collectExternalPayloads } = useSenderContentRegistry()
+  const { hasRegisteredContent, registerContent, externalPayloads } = useSenderContentRegistry()
 
   const hasContent = computed(() => {
     return hasEditorContent.value || hasRegisteredContent.value || Boolean(props.hasExternalContent)
@@ -137,15 +137,15 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
       textContent = editor.value.getText()
     }
 
-    const externalPayloads = collectExternalPayloads()
+    const submitExternalPayloads = externalPayloads.value.slice()
 
-    if (externalPayloads.length === 0) {
+    if (submitExternalPayloads.length === 0) {
       emit('submit', textContent, structuredData)
       return
     }
 
     emit('submit', textContent, structuredData, {
-      externalPayloads,
+      externalPayloads: submitExternalPayloads,
     })
   }
 

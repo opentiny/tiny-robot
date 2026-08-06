@@ -65,16 +65,8 @@ const { normalizeAttachments } = useFileType({
   fileMatchers: props.fileMatchers,
 })
 
-const senderContentPayload = computed(() => {
-  const items = fileList.value.filter((file) => file.status === 'success')
-
-  if (items.length === 0) return undefined
-
-  return { items }
-})
-
 const registerSenderContent = useSenderContentRegistration()
-const unregisterSenderContent = registerSenderContent?.('attachments', senderContentPayload)
+const unregisterSenderContent = registerSenderContent?.('attachments', fileList)
 
 onBeforeUnmount(() => {
   unregisterSenderContent?.()
