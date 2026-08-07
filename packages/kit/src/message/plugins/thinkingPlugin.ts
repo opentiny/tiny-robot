@@ -13,7 +13,7 @@ export const thinkingPlugin = (options: MessageEnginePlugin = {}): MessageEngine
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = choice as any
       const reasoning_content = c?.message?.reasoning_content || c?.delta?.reasoning_content
-      const thinking = typeof reasoning_content === 'string' && reasoning_content.trim() !== ''
+      const thinking = typeof reasoning_content === 'string' && reasoning_content.length > 0
 
       if (thinking) {
         if (currentMessage.state && typeof currentMessage.state === 'object') {
