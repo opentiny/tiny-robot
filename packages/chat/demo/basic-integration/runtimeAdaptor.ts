@@ -1,5 +1,5 @@
 import { computed, reactive, ref } from 'vue'
-import type { ChatModelOption, ChatModelRuntime, ChatRunConfig, ChatRuntime } from '../../src/types'
+import type { ChatModelOption, ChatModelRuntime, ChatRuntime } from '../../src/types'
 import { useMcp } from './useMcp'
 
 type FeatureId = 'thinking' | 'search'
@@ -80,42 +80,10 @@ export function useRuntimeAdaptor() {
     },
   }
 
-  const enabledMcpServers = computed(() =>
-    mcpBridge.mcp.servers.value.filter((server) => server.installed && server.enabled),
-  )
-  const mcpToolsReady = computed(() =>
-    enabledMcpServers.value.every(
-      (server) => !server.loading && Object.prototype.hasOwnProperty.call(mcpBridge.mcp.tools.value, server.id),
-    ),
-  )
-
-  const runConfig = computed<Readonly<ChatRunConfig>>(() => {
-    const serverIds = enabledMcpServers.value.map((server) => server.id)
-
-    return {
-      modelId: model.selectedId.value ?? undefined,
-      mcp:
-        serverIds.length > 0 && mcpToolsReady.value
-          ? {
-              serverIds,
-              toolIds: Object.fromEntries(
-                serverIds.map((serverId) => [
-                  serverId,
-                  (mcpBridge.mcp.tools.value[serverId] ?? []).filter((tool) => tool.enabled).map((tool) => tool.id),
-                ]),
-              ),
-            }
-          : undefined,
-      features: { ...model.features.value },
-      reasoning: reasoning.value,
-    }
-  })
-
   const composer: ChatRuntime['composer'] = {
-    disabled: computed(() => enabledMcpServers.value.length > 0 && !mcpToolsReady.value),
     model,
     mcp: mcpBridge.mcp,
-    runConfig,
+    runConfig: computed(() => ({ reasoning: reasoning.value })),
   }
 
   return {

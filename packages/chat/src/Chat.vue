@@ -2,6 +2,7 @@
 import { computed, shallowRef, toRef, watch } from 'vue'
 import ChatUI from './ChatUI.vue'
 import { useChatInput } from '@/composables/useChatInput'
+import { areEnabledMcpToolsReady } from '@/utils/runConfig'
 import type {
   ChatMcpServerView,
   ChatMcpToolView,
@@ -26,9 +27,12 @@ const activeConversation = computed(() => runtimeRef.value.activeConversation.va
 const conversationItems = computed(() => runtimeRef.value.conversations.value)
 const activeMessages = computed(() => activeConversation.value?.messages ?? [])
 const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
-const senderDisabled = computed(() => runtimeRef.value.composer.disabled.value)
+const senderDisabled = computed(() => {
+  const composer = runtimeRef.value.composer
+
+  return Boolean(composer.disabled?.value) || !areEnabledMcpToolsReady(composer.mcp)
+})
 const currentTitle = computed(() => props.title || activeConversation.value?.title)
-const mcpToolSnapshots = shallowRef<Record<string, readonly string[]>>({})
 const attemptedToolLoadServerIds = shallowRef<ReadonlySet<string>>(new Set())
 const modelSelecting = shallowRef(false)
 const pendingModelFeatureIds = shallowRef<ReadonlySet<string>>(new Set())
@@ -198,18 +202,6 @@ watch(
   { immediate: true },
 )
 
-function setServerToolSnapshot(serverId: string, toolIds: readonly string[]) {
-  mcpToolSnapshots.value = {
-    ...mcpToolSnapshots.value,
-    [serverId]: toolIds,
-  }
-}
-
-function clearServerToolSnapshot(serverId: string) {
-  const { [serverId]: _removedSnapshot, ...rest } = mcpToolSnapshots.value
-  mcpToolSnapshots.value = rest
-}
-
 function setToolLoadAttempt(serverId: string, attempted: boolean) {
   const next = new Set(attemptedToolLoadServerIds.value)
 
@@ -345,55 +337,11 @@ async function setServerEnabled(id: string, enabled: boolean) {
     return
   }
 
-  if (!enabled) {
-    const currentTools = mcp.tools.value[id] ?? []
-    const enabledToolIds = currentTools.filter((tool) => tool.enabled).map((tool) => tool.id)
+  await mcp.setServerEnabled(id, enabled)
 
-    if (enabledToolIds.length > 0) {
-      setServerToolSnapshot(id, enabledToolIds)
-    } else {
-      clearServerToolSnapshot(id)
-    }
-
-    for (const tool of currentTools) {
-      if (tool.enabled) {
-        await mcp.setToolEnabled(id, tool.id, false)
-      }
-    }
-
-    await mcp.setServerEnabled(id, false)
-    return
-  }
-
-  await mcp.setServerEnabled(id, true)
-
-  let currentTools = mcp.tools.value[id] ?? []
-
-  if (currentTools.length === 0) {
+  if (enabled) {
     setToolLoadAttempt(id, false)
     await loadMcpToolsIfNeeded(id, { allowPending: true })
-    currentTools = mcp.tools.value[id] ?? []
-  }
-
-  const snapshot = mcpToolSnapshots.value[id]
-
-  if (snapshot?.length) {
-    const snapshotSet = new Set(snapshot)
-
-    for (const tool of currentTools) {
-      if (snapshotSet.has(tool.id) && !tool.enabled) {
-        await mcp.setToolEnabled(id, tool.id, true)
-      }
-    }
-
-    clearServerToolSnapshot(id)
-    return
-  }
-
-  if (currentTools.length > 0 && currentTools.every((tool) => !tool.enabled)) {
-    for (const tool of currentTools) {
-      await mcp.setToolEnabled(id, tool.id, true)
-    }
   }
 }
 
@@ -454,7 +402,6 @@ function handleAddMcpServer(payload: { id: string }) {
     return
   }
 
-  clearServerToolSnapshot(payload.id)
   setToolLoadAttempt(payload.id, false)
   runAdapterAction(`add MCP server "${payload.id}"`, () =>
     withMcpServerPending(payload.id, async () => {
@@ -471,7 +418,6 @@ function handleRemoveMcpServer(payload: { id: string }) {
     return
   }
 
-  clearServerToolSnapshot(payload.id)
   setToolLoadAttempt(payload.id, false)
   runAdapterAction(`remove MCP server "${payload.id}"`, () =>
     withMcpServerPending(payload.id, () => mcp.removeServer(payload.id)),

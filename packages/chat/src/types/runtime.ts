@@ -22,6 +22,10 @@ export interface ChatRunConfig {
   mcp?: ChatMcpRunConfig
 }
 
+export interface ChatRunConfigExtras {
+  reasoning?: ChatRunConfigReasoning
+}
+
 export interface ChatMcpRunConfig {
   serverIds: readonly string[]
   toolIds: Readonly<Record<string, readonly string[]>>
@@ -72,8 +76,8 @@ export interface ChatMcpRuntime {
 }
 
 export interface ChatComposerRuntime {
-  disabled: ChatReadable<boolean>
-  runConfig: ChatReadable<Readonly<ChatRunConfig>>
+  disabled?: ChatReadable<boolean>
+  runConfig?: ChatReadable<Readonly<ChatRunConfigExtras>>
   model?: ChatModelRuntime
   mcp?: ChatMcpRuntime
 }

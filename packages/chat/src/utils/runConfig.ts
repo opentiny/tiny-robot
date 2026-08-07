@@ -1,4 +1,11 @@
-import type { ChatMcpRunConfig, ChatMessageItem, ChatRunConfig, ChatRunConfigReasoning } from '../types'
+import type {
+  ChatComposerRuntime,
+  ChatMcpRunConfig,
+  ChatMcpRuntime,
+  ChatMessageItem,
+  ChatRunConfig,
+  ChatRunConfigReasoning,
+} from '../types'
 
 export const CHAT_RUN_CONFIG_METADATA_KEY = '__chat_run_config'
 
@@ -20,6 +27,58 @@ export function cloneRunConfig(runConfig?: ChatRunConfig): ChatRunConfig | undef
         }
       : undefined,
   }
+}
+
+function getEnabledMcpServers(mcp?: ChatMcpRuntime) {
+  return mcp?.servers.value.filter((server) => server.installed && server.enabled) ?? []
+}
+
+export function areEnabledMcpToolsReady(mcp?: ChatMcpRuntime) {
+  if (!mcp) {
+    return true
+  }
+
+  return getEnabledMcpServers(mcp).every(
+    (server) => !server.loading && Object.prototype.hasOwnProperty.call(mcp.tools.value, server.id),
+  )
+}
+
+function resolveMcpRunConfig(mcp?: ChatMcpRuntime): ChatMcpRunConfig | undefined {
+  if (mcp === undefined) {
+    return undefined
+  }
+  const servers = getEnabledMcpServers(mcp)
+
+  if (servers.length === 0 || !areEnabledMcpToolsReady(mcp)) {
+    return undefined
+  }
+
+  return {
+    serverIds: servers.map((server) => server.id),
+    toolIds: Object.fromEntries(
+      servers.map((server) => [
+        server.id,
+        (mcp.tools.value[server.id] ?? []).filter((tool) => tool.enabled).map((tool) => tool.id),
+      ]),
+    ),
+  }
+}
+
+export function resolveComposerRunConfig(composer: ChatComposerRuntime): ChatRunConfig | undefined {
+  const model = composer.model
+  const reasoning = composer.runConfig?.value.reasoning
+  const mcp = resolveMcpRunConfig(composer.mcp)
+
+  if (!model && !reasoning && !mcp) {
+    return undefined
+  }
+
+  return cloneRunConfig({
+    modelId: model?.selectedId.value ?? undefined,
+    features: model ? { ...model.features.value } : undefined,
+    reasoning,
+    mcp,
+  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

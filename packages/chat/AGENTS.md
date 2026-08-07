@@ -23,8 +23,8 @@
 
 ## Source Of Truth
 
-- Current design, API, Demo evidence, and migration roadmap: `packages/chat/docs/architecture.md`
-- Review decisions, open questions, and acceptance criteria: `packages/chat/docs/review-checklist.md`
+- ChatUI design: `packages/chat/docs/chat-ui-design.md`
+- ChatRuntime design: `packages/chat/docs/chat-runtime-design.md`
 
 
 ## Build And Test

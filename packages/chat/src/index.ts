@@ -42,6 +42,7 @@ export type {
   ChatRuntime,
   ChatRuntimeSubmitPayload,
   ChatRunConfig,
+  ChatRunConfigExtras,
   ChatMcpRunConfig,
   ChatMcpRuntime,
   ChatMcpServerInfo,

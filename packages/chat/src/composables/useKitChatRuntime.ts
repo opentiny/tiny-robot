@@ -3,17 +3,15 @@ import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
   ChatConversationInfo,
-  ChatRunConfig,
   ChatRuntime,
   ChatRuntimeSubmitPayload,
   ChatWritable,
 } from '../types'
-import { CHAT_RUN_CONFIG_METADATA_KEY, cloneRunConfig } from '../utils/runConfig'
+import { CHAT_RUN_CONFIG_METADATA_KEY, cloneRunConfig, resolveComposerRunConfig } from '../utils/runConfig'
 
 type TitleFallback = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
-type UseKitChatComposerOptions = Pick<ChatRuntime['composer'], 'runConfig' | 'model' | 'mcp'> &
-  Partial<Pick<ChatRuntime['composer'], 'disabled'>>
+type UseKitChatComposerOptions = ChatRuntime['composer']
 
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
@@ -64,11 +62,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     })
   }
 
-  const composer: ChatRuntime['composer'] = {
-    ...composerOptions,
-    disabled: composerOptions?.disabled ?? shallowRef(false),
-    runConfig: composerOptions?.runConfig ?? computed<Readonly<ChatRunConfig>>(() => ({})),
-  }
+  const composer: ChatRuntime['composer'] = composerOptions ?? {}
 
   const sendMessage =
     send ??
@@ -109,7 +103,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
 
     const effectivePayload = {
       ...payload,
-      runConfig: cloneRunConfig(payload.runConfig ?? composer.runConfig.value),
+      runConfig: cloneRunConfig(payload.runConfig ?? resolveComposerRunConfig(composer)),
     }
 
     try {

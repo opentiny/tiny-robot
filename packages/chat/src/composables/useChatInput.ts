@@ -1,7 +1,7 @@
 import { shallowRef, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { ChatReadable, ChatRuntime, ChatSubmitPayload } from '../types'
-import { cloneRunConfig } from '../utils/runConfig'
+import { resolveComposerRunConfig } from '../utils/runConfig'
 
 export interface ChatInput {
   inputValue: ChatReadable<string>
@@ -31,7 +31,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     const currentRuntime = getRuntime()
     const previousInputValue = payload.text
 
-    const runConfig = cloneRunConfig(currentRuntime.composer.runConfig.value)
+    const runConfig = resolveComposerRunConfig(currentRuntime.composer)
 
     try {
       // Let ChatUI apply clearOnSubmit before the Runtime action settles.
