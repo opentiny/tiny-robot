@@ -37,9 +37,9 @@ import { TrBubble } from '@opentiny/tiny-robot'
   ];
 }
 function V(i) {
-  const { tinyRobotVersion: e, builtinImportMap: t, extraImports: a } = i, c = Object.entries(a || {}).map(([s, o]) => ({
-    [s]: `https://cdn.jsdelivr.net/npm/${s}@${o}`
-  })).reduce((s, o) => ({ ...s, ...o }), {});
+  const { tinyRobotVersion: e, builtinImportMap: t, extraImports: a } = i, c = Object.entries(a || {}).map(([s, r]) => ({
+    [s]: `https://cdn.jsdelivr.net/npm/${s}@${r}`
+  })).reduce((s, r) => ({ ...s, ...r }), {});
   return {
     imports: {
       ...t == null ? void 0 : t.imports,
@@ -58,55 +58,56 @@ function V(i) {
       "markdown-it": "https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js",
       echarts: "https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js",
       idb: "https://cdn.jsdelivr.net/npm/idb@8/+esm",
+      yaml: "https://cdn.jsdelivr.net/npm/yaml@2/browser/index.min.js",
       // Tiptap 编辑器相关包 (用于 Sender 组件)
       // 使用 esm.sh CDN，自动处理子路径导入和依赖解析
       // 添加 ?external=vue 参数，避免 Vue 版本冲突
-      "@tiptap/core": "https://esm.sh/@tiptap/core@3.11.0",
-      "@tiptap/vue-3": "https://esm.sh/@tiptap/vue-3@3.11.0?external=vue",
-      "@tiptap/pm/state": "https://esm.sh/@tiptap/pm@3.11.0/state",
-      "@tiptap/pm/view": "https://esm.sh/@tiptap/pm@3.11.0/view",
-      "@tiptap/pm/model": "https://esm.sh/@tiptap/pm@3.11.0/model",
-      "@tiptap/extension-document": "https://esm.sh/@tiptap/extension-document@3.11.0",
-      "@tiptap/extension-paragraph": "https://esm.sh/@tiptap/extension-paragraph@3.11.0",
-      "@tiptap/extension-text": "https://esm.sh/@tiptap/extension-text@3.11.0",
-      "@tiptap/extension-history": "https://esm.sh/@tiptap/extension-history@3.11.0",
-      "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@3.11.0",
-      "@tiptap/extension-character-count": "https://esm.sh/@tiptap/extension-character-count@3.11.0",
+      "@tiptap/core": "https://esm.sh/@tiptap/core@3.17.1",
+      "@tiptap/vue-3": "https://esm.sh/@tiptap/vue-3@3.17.1?external=vue",
+      "@tiptap/pm/state": "https://esm.sh/@tiptap/pm@3.17.1/state",
+      "@tiptap/pm/view": "https://esm.sh/@tiptap/pm@3.17.1/view",
+      "@tiptap/pm/model": "https://esm.sh/@tiptap/pm@3.17.1/model",
+      "@tiptap/extension-document": "https://esm.sh/@tiptap/extension-document@3.17.1",
+      "@tiptap/extension-paragraph": "https://esm.sh/@tiptap/extension-paragraph@3.17.1",
+      "@tiptap/extension-text": "https://esm.sh/@tiptap/extension-text@3.17.1",
+      "@tiptap/extension-history": "https://esm.sh/@tiptap/extension-history@3.17.1",
+      "@tiptap/extension-placeholder": "https://esm.sh/@tiptap/extension-placeholder@3.17.1",
+      "@tiptap/extension-character-count": "https://esm.sh/@tiptap/extension-character-count@3.17.1",
       ...c
     }
   };
 }
 const I = (i) => {
-  const { files: e, tinyRobotVersion: t = "latest", vueVersion: a = "latest", extraImports: c } = i, { importMap: m, vueVersion: s, productionMode: o } = g();
-  s.value = a, o.value = !0;
-  const r = $({
+  const { files: e, tinyRobotVersion: t = "latest", vueVersion: a = "latest", extraImports: c } = i, { importMap: m, vueVersion: s, productionMode: r } = g();
+  s.value = a, r.value = !0;
+  const o = $({
     // pre-set import map
     builtinImportMap: m,
     vueVersion: s
   });
   if (e && e.length > 0) {
     for (const p of e)
-      r.addFile(p instanceof f ? p : new f(p.filename, p.code));
-    r.setActive(e[0].filename);
+      o.addFile(p instanceof f ? p : new f(p.filename, p.code));
+    o.setActive(e[0].filename);
   }
   const u = V({
     tinyRobotVersion: t,
     builtinImportMap: m.value,
     extraImports: c
   });
-  return r.setImportMap(u), {
-    store: r,
+  return o.setImportMap(u), {
+    store: o,
     builtinImportMap: m,
     vueVersion: s
   };
 }, b = /* @__PURE__ */ new Map();
 async function T(i, e = {}) {
-  var r, u;
-  const { includePrerelease: t = !1, limit: a = 20, includeLatest: c = !0 } = e, m = Array.isArray(t) ? t.join(",") : t, s = `${i}-${m}-${a}-${c}`, o = b.get(s);
-  if (o)
-    return o;
+  var o, u;
+  const { includePrerelease: t = !1, limit: a = 20, includeLatest: c = !0 } = e, m = Array.isArray(t) ? t.join(",") : t, s = `${i}-${m}-${a}-${c}`, r = b.get(s);
+  if (r)
+    return r;
   try {
-    const l = await (await fetch(`https://registry.npmmirror.com/${i}`)).json(), j = (l == null ? void 0 : l.time) || {}, x = (r = l["dist-tags"]) == null ? void 0 : r.latest;
+    const l = await (await fetch(`https://registry.npmmirror.com/${i}`)).json(), j = (l == null ? void 0 : l.time) || {}, x = (o = l["dist-tags"]) == null ? void 0 : o.latest;
     let d = Object.entries(j).filter(([n]) => n !== "created" && n !== "modified").slice().sort((n, v) => new Date(v[1]).getTime() - new Date(n[1]).getTime()).map(([n]) => n).filter((n) => {
       if (typeof t == "boolean") {
         if (!t && /[a-zA-Z]/.test(n))
