@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, toRef } from 'vue'
+import { computed, shallowRef, toRef, watch } from 'vue'
 import ChatUI from './ChatUI.vue'
 import { useChatInput } from '@/composables/useChatInput'
 import type {
@@ -9,8 +9,8 @@ import type {
   ChatModelView,
   ChatRuntime,
   ChatSubmitPayload,
+  ChatUIData,
   ChatUIOptions,
-  ChatViewState,
 } from '@/types'
 
 const props = defineProps<{
@@ -29,6 +29,7 @@ const requestState = computed(() => activeConversation.value?.requestState ?? 'i
 const senderDisabled = computed(() => runtimeRef.value.composer.disabled.value)
 const currentTitle = computed(() => props.title || activeConversation.value?.title)
 const mcpToolSnapshots = shallowRef<Record<string, readonly string[]>>({})
+const attemptedToolLoadServerIds = shallowRef<ReadonlySet<string>>(new Set())
 const modelSelecting = shallowRef(false)
 const pendingModelFeatureIds = shallowRef<ReadonlySet<string>>(new Set())
 const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
@@ -83,21 +84,119 @@ const mcpView = computed<ChatMcpView | undefined>(() => {
   }
 })
 
-const state = computed<ChatViewState>(() => ({
+const data = computed<ChatUIData>(() => ({
   conversation: {
     items: conversationItems.value,
     activeId: activeConversation.value?.id ?? null,
     title: currentTitle.value,
   },
-  messages: activeMessages.value,
-  composer: {
+  bubble: {
+    messages: activeMessages.value,
+  },
+  sender: {
+    inputValue: input.inputValue.value,
     loading: requestState.value === 'processing',
     disabled: senderDisabled.value,
-    submitDisabled: input.submitDisabled.value,
+    submitDisabled: false,
   },
   model: modelView.value,
   mcp: mcpView.value,
 }))
+
+const adapterUI = computed<ChatUIOptions>(() => {
+  const callerUi = props.ui
+  const callerSender = callerUi?.sender === false ? undefined : callerUi?.sender
+  const callerModel = callerUi?.model === false ? undefined : callerUi?.model
+  const callerMcp = callerUi?.mcp === false ? undefined : callerUi?.mcp
+
+  return {
+    ...(callerUi ?? {}),
+    sender:
+      callerUi?.sender === false
+        ? false
+        : {
+            ...(callerSender ?? {}),
+            onInput: (value: string) => {
+              input.setInputValue(value)
+              callerSender?.onInput?.(value)
+            },
+          },
+    model:
+      callerUi?.model === false
+        ? false
+        : {
+            ...(callerModel ?? {}),
+            onSelect: (payload) => {
+              handleSelectModel(payload)
+              callerModel?.onSelect?.(payload)
+            },
+            onFeatureChange: (payload) => {
+              handleUpdateModelFeature(payload)
+              callerModel?.onFeatureChange?.(payload)
+            },
+          },
+    mcp:
+      callerUi?.mcp === false
+        ? false
+        : {
+            ...(callerMcp ?? {}),
+            onAddServer: (payload) => {
+              handleAddMcpServer(payload)
+              callerMcp?.onAddServer?.(payload)
+            },
+            onRemoveServer: (payload) => {
+              handleRemoveMcpServer(payload)
+              callerMcp?.onRemoveServer?.(payload)
+            },
+            onServerEnabledChange: (payload) => {
+              handleUpdateMcpServerEnabled(payload)
+              callerMcp?.onServerEnabledChange?.(payload)
+            },
+            onToolEnabledChange: (payload) => {
+              handleUpdateMcpToolEnabled(payload)
+              callerMcp?.onToolEnabledChange?.(payload)
+            },
+          },
+  }
+})
+
+const toolLoadCandidateIds = computed(() => {
+  const mcp = getRuntimeMcp()
+
+  if (!mcp) {
+    return []
+  }
+
+  return mcp.servers.value
+    .filter(
+      (server) =>
+        server.installed &&
+        server.enabled &&
+        !server.loading &&
+        !Object.prototype.hasOwnProperty.call(mcp.tools.value, server.id),
+    )
+    .map((server) => server.id)
+})
+
+watch(
+  toolLoadCandidateIds,
+  (candidateIds) => {
+    const candidateSet = new Set(candidateIds)
+    attemptedToolLoadServerIds.value = new Set(
+      [...attemptedToolLoadServerIds.value].filter((serverId) => candidateSet.has(serverId)),
+    )
+
+    for (const serverId of candidateIds) {
+      if (attemptedToolLoadServerIds.value.has(serverId)) {
+        continue
+      }
+
+      setToolLoadAttempt(serverId, true)
+      runAdapterAction(`load MCP tools for "${serverId}"`, () => loadMcpToolsIfNeeded(serverId))
+    }
+  },
+  { immediate: true },
+)
 
 function setServerToolSnapshot(serverId: string, toolIds: readonly string[]) {
   mcpToolSnapshots.value = {
@@ -111,6 +210,18 @@ function clearServerToolSnapshot(serverId: string) {
   mcpToolSnapshots.value = rest
 }
 
+function setToolLoadAttempt(serverId: string, attempted: boolean) {
+  const next = new Set(attemptedToolLoadServerIds.value)
+
+  if (attempted) {
+    next.add(serverId)
+  } else {
+    next.delete(serverId)
+  }
+
+  attemptedToolLoadServerIds.value = next
+}
+
 function getRuntimeMcp(): ChatRuntime['composer']['mcp'] {
   return runtimeRef.value.composer.mcp
 }
@@ -119,7 +230,7 @@ function getToolKey(serverId: string, toolId: string) {
   return `${serverId}:${toolId}`
 }
 
-function setPendingId(target: typeof pendingModelFeatureIds, id: string, pending: boolean) {
+function setPendingId(target: { value: ReadonlySet<string> }, id: string, pending: boolean) {
   const next = new Set(target.value)
 
   if (pending) {
@@ -167,17 +278,27 @@ async function withModelFeaturePending(id: string, action: () => Promise<void> |
   }
 }
 
-async function withMcpServerPending(id: string, action: () => Promise<void> | void) {
-  if (pendingMcpServerIds.value.has(id)) {
+async function withMcpServerPending(
+  id: string,
+  action: () => Promise<void> | void,
+  options: { allowExisting?: boolean } = {},
+) {
+  const alreadyPending = pendingMcpServerIds.value.has(id)
+
+  if (alreadyPending && !options.allowExisting) {
     return
   }
 
-  setPendingId(pendingMcpServerIds, id, true)
+  if (!alreadyPending) {
+    setPendingId(pendingMcpServerIds, id, true)
+  }
 
   try {
     await action()
   } finally {
-    setPendingId(pendingMcpServerIds, id, false)
+    if (!alreadyPending) {
+      setPendingId(pendingMcpServerIds, id, false)
+    }
   }
 }
 
@@ -195,6 +316,26 @@ async function withMcpToolPending(serverId: string, toolId: string, action: () =
   } finally {
     setPendingId(pendingMcpToolIds, key, false)
   }
+}
+
+async function loadMcpToolsIfNeeded(serverId: string, options: { allowPending?: boolean } = {}) {
+  const mcp = getRuntimeMcp()
+
+  if (!mcp) {
+    return
+  }
+
+  const server = mcp.servers.value.find((item) => item.id === serverId)
+
+  if (!server || !server.installed || !server.enabled || server.loading) {
+    return
+  }
+
+  if (Object.prototype.hasOwnProperty.call(mcp.tools.value, serverId)) {
+    return
+  }
+
+  await withMcpServerPending(serverId, () => mcp.loadTools(serverId), { allowExisting: options.allowPending })
 }
 
 async function setServerEnabled(id: string, enabled: boolean) {
@@ -226,15 +367,17 @@ async function setServerEnabled(id: string, enabled: boolean) {
 
   await mcp.setServerEnabled(id, true)
 
-  const snapshot = mcpToolSnapshots.value[id]
   let currentTools = mcp.tools.value[id] ?? []
 
-  if (snapshot?.length) {
-    if (currentTools.length === 0) {
-      await mcp.loadTools(id)
-      currentTools = mcp.tools.value[id] ?? []
-    }
+  if (currentTools.length === 0) {
+    setToolLoadAttempt(id, false)
+    await loadMcpToolsIfNeeded(id, { allowPending: true })
+    currentTools = mcp.tools.value[id] ?? []
+  }
 
+  const snapshot = mcpToolSnapshots.value[id]
+
+  if (snapshot?.length) {
     const snapshotSet = new Set(snapshot)
 
     for (const tool of currentTools) {
@@ -285,7 +428,7 @@ function handleClear() {
 function handleSelectModel(payload: { id: string | null }) {
   const model: ChatRuntime['composer']['model'] = runtimeRef.value.composer.model
 
-  if (!model) {
+  if (!model || model.selectedId.value === payload.id) {
     return
   }
 
@@ -295,7 +438,7 @@ function handleSelectModel(payload: { id: string | null }) {
 function handleUpdateModelFeature(payload: { id: string; enabled: boolean }) {
   const model: ChatRuntime['composer']['model'] = runtimeRef.value.composer.model
 
-  if (!model) {
+  if (!model || model.features.value[payload.id] === payload.enabled) {
     return
   }
 
@@ -312,8 +455,12 @@ function handleAddMcpServer(payload: { id: string }) {
   }
 
   clearServerToolSnapshot(payload.id)
+  setToolLoadAttempt(payload.id, false)
   runAdapterAction(`add MCP server "${payload.id}"`, () =>
-    withMcpServerPending(payload.id, () => mcp.addServer(payload.id)),
+    withMcpServerPending(payload.id, async () => {
+      await mcp.addServer(payload.id)
+      await loadMcpToolsIfNeeded(payload.id, { allowPending: true })
+    }),
   )
 }
 
@@ -325,24 +472,24 @@ function handleRemoveMcpServer(payload: { id: string }) {
   }
 
   clearServerToolSnapshot(payload.id)
+  setToolLoadAttempt(payload.id, false)
   runAdapterAction(`remove MCP server "${payload.id}"`, () =>
     withMcpServerPending(payload.id, () => mcp.removeServer(payload.id)),
   )
 }
 
-function handleLoadMcpTools(payload: { serverId: string }) {
+function handleUpdateMcpServerEnabled(payload: { id: string; enabled: boolean }) {
   const mcp = getRuntimeMcp()
+  const server = mcp?.servers.value.find((item) => item.id === payload.id)
 
-  if (!mcp) {
+  if (!server || server.enabled === payload.enabled) {
     return
   }
 
-  runAdapterAction(`load MCP tools for "${payload.serverId}"`, () =>
-    withMcpServerPending(payload.serverId, () => mcp.loadTools(payload.serverId)),
-  )
-}
+  if (payload.enabled) {
+    setToolLoadAttempt(payload.id, false)
+  }
 
-function handleUpdateMcpServerEnabled(payload: { id: string; enabled: boolean }) {
   runAdapterAction(`update MCP server "${payload.id}"`, () =>
     withMcpServerPending(payload.id, () => setServerEnabled(payload.id, payload.enabled)),
   )
@@ -350,8 +497,9 @@ function handleUpdateMcpServerEnabled(payload: { id: string; enabled: boolean })
 
 function handleUpdateMcpToolEnabled(payload: { serverId: string; toolId: string; enabled: boolean }) {
   const mcp = getRuntimeMcp()
+  const tool = mcp?.tools.value[payload.serverId]?.find((item) => item.id === payload.toolId)
 
-  if (!mcp) {
+  if (!mcp || !tool || tool.enabled === payload.enabled) {
     return
   }
 
@@ -365,10 +513,8 @@ function handleUpdateMcpToolEnabled(payload: { serverId: string; toolId: string;
 
 <template>
   <ChatUI
-    :state="state"
-    :ui="ui"
-    :composer-value="input.inputValue.value"
-    @update:composer-value="input.setInputValue"
+    :data="data"
+    :ui="adapterUI"
     @create-conversation="handleCreateConversation"
     @switch-conversation="handleSwitchConversation"
     @rename-conversation="handleRenameConversation"
@@ -376,32 +522,25 @@ function handleUpdateMcpToolEnabled(payload: { serverId: string; toolId: string;
     @submit="handleSubmit"
     @cancel="handleCancel"
     @clear="handleClear"
-    @select-model="handleSelectModel"
-    @update-model-feature="handleUpdateModelFeature"
-    @add-mcp-server="handleAddMcpServer"
-    @remove-mcp-server="handleRemoveMcpServer"
-    @load-mcp-tools="handleLoadMcpTools"
-    @update-mcp-server-enabled="handleUpdateMcpServerEnabled"
-    @update-mcp-tool-enabled="handleUpdateMcpToolEnabled"
   >
-    <template v-if="$slots['left-aside']" #left-aside="slotProps">
-      <slot name="left-aside" v-bind="slotProps" />
+    <template v-if="$slots['layout-left-aside']" #layout-left-aside>
+      <slot name="layout-left-aside" />
     </template>
 
-    <template v-if="$slots.header" #header="slotProps">
-      <slot name="header" v-bind="slotProps" />
+    <template v-if="$slots['layout-header']" #layout-header>
+      <slot name="layout-header" />
     </template>
 
-    <template v-if="$slots.main" #main="slotProps">
-      <slot name="main" v-bind="slotProps" />
+    <template v-if="$slots['layout-main']" #layout-main>
+      <slot name="layout-main" />
     </template>
 
-    <template v-if="$slots.footer" #footer="slotProps">
-      <slot name="footer" v-bind="slotProps" />
+    <template v-if="$slots['layout-footer']" #layout-footer>
+      <slot name="layout-footer" />
     </template>
 
-    <template v-if="$slots.notice" #notice>
-      <slot name="notice" />
+    <template v-if="$slots['header-notice']" #header-notice>
+      <slot name="header-notice" />
     </template>
 
     <template v-if="$slots['welcome-footer']" #welcome-footer>
@@ -412,32 +551,36 @@ function handleUpdateMcpToolEnabled(payload: { serverId: string; toolId: string;
       <slot name="prompts-footer" />
     </template>
 
-    <template v-if="$slots.prefix" #prefix="slotProps">
-      <slot name="prefix" v-bind="slotProps" />
+    <template v-if="$slots['bubble-prefix']" #bubble-prefix>
+      <slot name="bubble-prefix" />
     </template>
 
-    <template v-if="$slots.suffix" #suffix="slotProps">
-      <slot name="suffix" v-bind="slotProps" />
+    <template v-if="$slots['bubble-suffix']" #bubble-suffix>
+      <slot name="bubble-suffix" />
     </template>
 
-    <template v-if="$slots.after" #after="slotProps">
-      <slot name="after" v-bind="slotProps" />
+    <template v-if="$slots['bubble-after']" #bubble-after>
+      <slot name="bubble-after" />
     </template>
 
-    <template v-if="$slots['content-footer']" #content-footer="slotProps">
-      <slot name="content-footer" v-bind="slotProps" />
+    <template v-if="$slots['bubble-content-footer']" #bubble-content-footer>
+      <slot name="bubble-content-footer" />
     </template>
 
-    <template v-if="$slots['sender-footer']" #sender-footer="slotProps">
-      <slot name="sender-footer" v-bind="slotProps" />
+    <template v-if="$slots['sender-footer']" #sender-footer>
+      <slot name="sender-footer" />
     </template>
 
-    <template v-if="$slots['sender-footer-right']" #sender-footer-right="slotProps">
-      <slot name="sender-footer-right" v-bind="slotProps" />
+    <template v-if="$slots['sender-footer-right']" #sender-footer-right>
+      <slot name="sender-footer-right" />
     </template>
 
-    <template v-if="$slots['right-aside']" #right-aside>
-      <slot name="right-aside" />
+    <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title>
+      <slot name="layout-right-aside-title" />
+    </template>
+
+    <template v-if="$slots['layout-right-aside']" #layout-right-aside>
+      <slot name="layout-right-aside" />
     </template>
   </ChatUI>
 </template>

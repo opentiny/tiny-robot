@@ -1,11 +1,10 @@
-import { computed, shallowRef, toValue } from 'vue'
+import { shallowRef, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { ChatReadable, ChatRuntime, ChatSubmitPayload } from '../types'
 import { cloneRunConfig } from '../utils/runConfig'
 
 export interface ChatInput {
   inputValue: ChatReadable<string>
-  submitDisabled: ChatReadable<boolean>
   setInputValue: (value: string) => void
   send: (payload: ChatSubmitPayload) => Promise<void> | void
   abort?: () => Promise<void> | void
@@ -30,7 +29,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     }
 
     const currentRuntime = getRuntime()
-    const previousInputValue = inputValue.value
+    const previousInputValue = payload.text
 
     const runConfig = cloneRunConfig(currentRuntime.composer.runConfig.value)
 
@@ -53,7 +52,6 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
 
   return {
     inputValue,
-    submitDisabled: computed(() => getRuntime().composer.disabled.value),
     setInputValue,
     send,
     get abort() {

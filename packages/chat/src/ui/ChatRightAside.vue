@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { IconClose } from '@opentiny/tiny-robot-svgs'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
-    title?: string
     showClose?: boolean
   }>(),
   {
-    title: 'right panel title',
     showClose: true,
   },
 )
@@ -16,34 +13,32 @@ const props = withDefaults(
 const emit = defineEmits<{
   close: []
 }>()
-
-const isHeaderVisible = computed(() => props.title || props.showClose)
 </script>
 
 <template>
-  <section class="tr-chat-right-aside-panel">
-    <header v-if="isHeaderVisible" class="tr-chat-right-aside-panel__header">
-      <h2 class="tr-chat-right-aside-panel__title">{{ title }}</h2>
+  <section class="chat-right-aside">
+    <header class="chat-right-aside__header">
+      <slot name="title" />
       <button
         v-if="showClose"
-        class="tr-chat-right-aside-panel__close"
+        class="chat-right-aside__close"
         type="button"
         aria-label="关闭"
         title="关闭"
         @click="emit('close')"
       >
-        <IconClose class="tr-chat-right-aside-panel__close-icon" />
+        <IconClose class="chat-right-aside__close-icon" />
       </button>
     </header>
 
-    <div class="tr-chat-right-aside-panel__body">
+    <div class="chat-right-aside__body">
       <slot />
     </div>
   </section>
 </template>
 
 <style scoped>
-.tr-chat-right-aside-panel {
+.chat-right-aside {
   display: flex;
   box-sizing: border-box;
   flex-direction: column;
@@ -55,27 +50,16 @@ const isHeaderVisible = computed(() => props.title || props.showClose)
   background: var(--tr-container-bg-default);
 }
 
-.tr-chat-right-aside-panel__header {
+.chat-right-aside__header {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 24px 12px 12px;
 }
 
-.tr-chat-right-aside-panel__title {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: var(--tr-text-primary);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 22px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tr-chat-right-aside-panel__close {
+.chat-right-aside__close {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -90,16 +74,16 @@ const isHeaderVisible = computed(() => props.title || props.showClose)
   cursor: pointer;
 }
 
-.tr-chat-right-aside-panel__close:hover {
+.chat-right-aside__close:hover {
   color: var(--tr-text-primary);
   background: var(--tr-container-bg-hover);
 }
 
-.tr-chat-right-aside-panel__close-icon {
+.chat-right-aside__close-icon {
   font-size: 18px;
 }
 
-.tr-chat-right-aside-panel__body {
+.chat-right-aside__body {
   flex: 1;
   min-width: 0;
   min-height: 0;

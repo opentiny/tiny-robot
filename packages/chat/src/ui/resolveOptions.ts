@@ -2,13 +2,13 @@ import { createDefaultChatUIOptions } from './defaults'
 import type {
   ChatAsideOptions,
   ChatBrandOptions,
-  ChatComposerOptions,
+  ChatBubbleOptions,
   ChatCssSize,
   ChatHistoryOptions,
   ChatLabels,
-  ChatMessagesOptions,
   ChatPromptsOptions,
   ChatRightAsideOptions,
+  ChatSenderOptions,
   ChatUIOptions,
   ChatWelcomeOptions,
 } from '../types'
@@ -17,6 +17,8 @@ export interface ResolvedChatLayoutOptions {
   contentMaxWidth: ChatCssSize
   panelPadding: ChatCssSize
   panelGap: ChatCssSize
+  leftAside: false | ResolvedChatAsideOptions
+  rightAside: false | ResolvedChatRightAsideOptions
 }
 
 export type ResolvedChatBrandOptions = ChatBrandOptions & {
@@ -25,16 +27,16 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
 }
 
 export type ResolvedChatAsideOptions = Required<ChatAsideOptions>
-export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open' | 'title'>> &
-  Pick<ChatRightAsideOptions, 'open' | 'title'>
+export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open' | 'onOpenChange'>> &
+  Pick<ChatRightAsideOptions, 'open' | 'onOpenChange'>
 
 export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
   menuItems: NonNullable<ChatHistoryOptions['menuItems']>
 }
 
-export type ResolvedChatMessagesOptions = ChatMessagesOptions & {
+export type ResolvedChatBubbleOptions = ChatBubbleOptions & {
   autoScroll: boolean
-  bubbleList: NonNullable<ChatMessagesOptions['bubbleList']>
+  bubbleList: NonNullable<ChatBubbleOptions['bubbleList']>
 }
 
 export type ResolvedChatWelcomeOptions = ChatWelcomeOptions & {
@@ -46,9 +48,23 @@ export type ResolvedChatPromptsOptions = Omit<ChatPromptsOptions, 'items'> & {
   items: NonNullable<ChatPromptsOptions['items']>
 }
 
-export type ResolvedChatComposerOptions = Omit<ChatComposerOptions, 'clearOnSubmit' | 'sender'> & {
+export type ResolvedChatSenderOptions = Omit<ChatSenderOptions, 'clearOnSubmit' | 'onInput' | 'onFocus' | 'onBlur'> & {
   clearOnSubmit: boolean
-  sender: NonNullable<ChatComposerOptions['sender']>
+  onInput: (value: string) => void
+  onFocus: (event: FocusEvent) => void
+  onBlur: (event: FocusEvent) => void
+}
+
+export interface ResolvedChatModelOptions {
+  onSelect: (payload: { id: string | null }) => void
+  onFeatureChange: (payload: { id: string; enabled: boolean }) => void
+}
+
+export interface ResolvedChatMcpOptions {
+  onAddServer: (payload: { id: string }) => void
+  onRemoveServer: (payload: { id: string }) => void
+  onServerEnabledChange: (payload: { id: string; enabled: boolean }) => void
+  onToolEnabledChange: (payload: { serverId: string; toolId: string; enabled: boolean }) => void
 }
 
 export interface ResolvedChatUIOptions {
@@ -56,14 +72,16 @@ export interface ResolvedChatUIOptions {
   brand: ResolvedChatBrandOptions
   labels: ChatLabels
   header: boolean
-  leftAside: false | ResolvedChatAsideOptions
-  rightAside: false | ResolvedChatRightAsideOptions
   history: false | ResolvedChatHistoryOptions
-  messages: ResolvedChatMessagesOptions
+  bubble: ResolvedChatBubbleOptions
   welcome: false | ResolvedChatWelcomeOptions
   prompts: false | ResolvedChatPromptsOptions
-  composer: false | ResolvedChatComposerOptions
+  sender: false | ResolvedChatSenderOptions
+  model: false | ResolvedChatModelOptions
+  mcp: false | ResolvedChatMcpOptions
 }
+
+function noop() {}
 
 export function resolveChatUIOptions(
   options: ChatUIOptions | undefined,
@@ -74,8 +92,9 @@ export function resolveChatUIOptions(
     ...defaults.labels,
     ...withoutUndefined(options?.labels),
   }
-  const leftAsideOverrides = options?.leftAside === false ? undefined : options?.leftAside
-  const rightAsideOverrides = options?.rightAside === false ? undefined : options?.rightAside
+  const layoutOverrides = options?.layout
+  const leftAsideOverrides = layoutOverrides?.leftAside === false ? undefined : layoutOverrides?.leftAside
+  const rightAsideOverrides = layoutOverrides?.rightAside === false ? undefined : layoutOverrides?.rightAside
   const historyOverrides = options?.history === false ? undefined : options?.history
   const historyDefaults = {
     ...defaults.history,
@@ -91,12 +110,36 @@ export function resolveChatUIOptions(
     description: labels.welcomeDescription,
   }
   const promptsOverrides = options?.prompts === false ? undefined : options?.prompts
-  const composerOverrides = options?.composer === false ? undefined : options?.composer
+  const senderOverrides = options?.sender === false ? undefined : options?.sender
 
   return {
     layout: {
-      ...defaults.layout,
-      ...withoutUndefined(options?.layout),
+      contentMaxWidth: layoutOverrides?.contentMaxWidth ?? defaults.layout.contentMaxWidth,
+      panelPadding: layoutOverrides?.panelPadding ?? defaults.layout.panelPadding,
+      panelGap: layoutOverrides?.panelGap ?? defaults.layout.panelGap,
+      leftAside:
+        layoutOverrides?.leftAside === false
+          ? false
+          : {
+              mode: leftAsideOverrides?.mode ?? defaults.layout.leftAside.mode,
+              width: leftAsideOverrides?.width ?? defaults.layout.leftAside.width,
+              collapsedWidth: leftAsideOverrides?.collapsedWidth ?? defaults.layout.leftAside.collapsedWidth,
+              defaultOpen: leftAsideOverrides?.defaultOpen ?? defaults.layout.leftAside.defaultOpen,
+            },
+      rightAside:
+        layoutOverrides?.rightAside === false
+          ? false
+          : rightAsideOverrides || slots.hasRightAside
+            ? {
+                open: rightAsideOverrides?.open,
+                mode: rightAsideOverrides?.mode ?? 'dock',
+                width: rightAsideOverrides?.width ?? 320,
+                collapsedWidth: rightAsideOverrides?.collapsedWidth ?? 0,
+                defaultOpen: rightAsideOverrides?.defaultOpen ?? true,
+                showClose: rightAsideOverrides?.showClose ?? true,
+                onOpenChange: rightAsideOverrides?.onOpenChange,
+              }
+            : false,
     },
     brand: {
       ...defaults.brand,
@@ -104,48 +147,25 @@ export function resolveChatUIOptions(
     },
     labels,
     header: options?.header !== false,
-    leftAside:
-      options?.leftAside === false
-        ? false
-        : {
-            mode: leftAsideOverrides?.mode ?? defaults.leftAside.mode,
-            width: leftAsideOverrides?.width ?? defaults.leftAside.width,
-            collapsedWidth: leftAsideOverrides?.collapsedWidth ?? defaults.leftAside.collapsedWidth,
-            defaultOpen: leftAsideOverrides?.defaultOpen ?? defaults.leftAside.defaultOpen,
-          },
-    rightAside:
-      options?.rightAside === false
-        ? false
-        : rightAsideOverrides || slots.hasRightAside
-          ? {
-              open: rightAsideOverrides?.open,
-              mode: rightAsideOverrides?.mode ?? 'dock',
-              width: rightAsideOverrides?.width ?? 320,
-              collapsedWidth: rightAsideOverrides?.collapsedWidth ?? 0,
-              defaultOpen: rightAsideOverrides?.defaultOpen ?? true,
-              title: rightAsideOverrides?.title,
-              showClose: rightAsideOverrides?.showClose ?? true,
-            }
-          : false,
     history:
       options?.history === false
         ? false
         : {
             ...historyDefaults,
             ...withoutUndefined(historyOverrides),
-            menuItems: historyOverrides?.menuItems ?? historyDefaults.menuItems,
+            menuItems: historyOverrides?.menuItems ? [...historyOverrides.menuItems] : [...historyDefaults.menuItems],
           },
-    messages: {
-      ...defaults.messages,
-      ...withoutUndefined(options?.messages),
-      autoScroll: options?.messages?.autoScroll ?? defaults.messages.autoScroll,
-      bubbleProvider: options?.messages?.bubbleProvider ?? defaults.messages.bubbleProvider,
+    bubble: {
+      ...defaults.bubble,
+      ...withoutUndefined(options?.bubble),
+      autoScroll: options?.bubble?.autoScroll ?? defaults.bubble.autoScroll,
+      bubbleProvider: options?.bubble?.bubbleProvider ?? defaults.bubble.bubbleProvider,
       bubbleList: {
-        ...defaults.messages.bubbleList,
-        ...withoutUndefined(options?.messages?.bubbleList),
+        ...defaults.bubble.bubbleList,
+        ...withoutUndefined(options?.bubble?.bubbleList),
         roleConfigs: {
-          ...defaults.messages.bubbleList?.roleConfigs,
-          ...withoutUndefinedRecord(options?.messages?.bubbleList?.roleConfigs),
+          ...defaults.bubble.bubbleList?.roleConfigs,
+          ...withoutUndefinedRecord(options?.bubble?.bubbleList?.roleConfigs),
         },
       },
     },
@@ -166,17 +186,32 @@ export function resolveChatUIOptions(
             ...withoutUndefined(promptsOverrides),
             items: [...(promptsOverrides?.items ?? defaults.prompts.items)],
           },
-    composer:
-      options?.composer === false
+    sender:
+      options?.sender === false
         ? false
         : {
-            ...defaults.composer,
-            ...withoutUndefined(composerOverrides),
-            clearOnSubmit: composerOverrides?.clearOnSubmit ?? defaults.composer.clearOnSubmit,
-            sender: {
-              ...defaults.composer.sender,
-              ...withoutUndefined(composerOverrides?.sender),
-            },
+            ...defaults.sender,
+            ...withoutUndefined(senderOverrides),
+            clearOnSubmit: senderOverrides?.clearOnSubmit ?? defaults.sender.clearOnSubmit,
+            onInput: senderOverrides?.onInput ?? noop,
+            onFocus: senderOverrides?.onFocus ?? noop,
+            onBlur: senderOverrides?.onBlur ?? noop,
+          },
+    model:
+      options?.model === false
+        ? false
+        : {
+            onSelect: options?.model?.onSelect ?? noop,
+            onFeatureChange: options?.model?.onFeatureChange ?? noop,
+          },
+    mcp:
+      options?.mcp === false
+        ? false
+        : {
+            onAddServer: options?.mcp?.onAddServer ?? noop,
+            onRemoveServer: options?.mcp?.onRemoveServer ?? noop,
+            onServerEnabledChange: options?.mcp?.onServerEnabledChange ?? noop,
+            onToolEnabledChange: options?.mcp?.onToolEnabledChange ?? noop,
           },
   }
 }

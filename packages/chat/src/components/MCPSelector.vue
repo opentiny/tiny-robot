@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
 import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../types'
@@ -12,13 +12,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   addServer: [payload: { id: string }]
   removeServer: [payload: { id: string }]
-  loadTools: [payload: { serverId: string }]
   updateServerEnabled: [payload: { id: string; enabled: boolean }]
   updateToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
 const visible = shallowRef(false)
-const attemptedToolLoadServerIds = shallowRef<ReadonlySet<string>>(new Set())
 const fallbackPluginIcon = 'https://modelcontextprotocol.io/favicon.ico'
 const pickerPopupConfig = {
   type: 'drawer' as const,
@@ -34,14 +32,6 @@ const activeCount = computed(() => servers.value.filter((server) => server.insta
 const hasPendingAction = computed(() =>
   servers.value.some((server) => Boolean(server.loading || tools.value[server.id]?.some((tool) => tool.loading))),
 )
-const toolLoadCandidates = computed(() =>
-  servers.value
-    .filter((server) => server.installed && server.enabled && !hasLoadedTools(server.id))
-    .map((server) => ({
-      id: server.id,
-      pending: Boolean(server.loading),
-    })),
-)
 
 const installedPlugins = computed<PluginInfo[]>(() =>
   servers.value.filter((server) => server.installed).map((server) => toPluginInfo(server, { includeTools: true })),
@@ -51,34 +41,10 @@ const marketPlugins = computed<PluginInfo[]>(() =>
   servers.value.map((server) => toPluginInfo(server, { includeTools: false })),
 )
 
-watch(
-  toolLoadCandidates,
-  (candidates) => {
-    const candidateIds = new Set(candidates.map((candidate) => candidate.id))
-    const nextAttempts = new Set([...attemptedToolLoadServerIds.value].filter((serverId) => candidateIds.has(serverId)))
-
-    for (const candidate of candidates) {
-      if (candidate.pending || nextAttempts.has(candidate.id)) {
-        continue
-      }
-
-      nextAttempts.add(candidate.id)
-      emit('loadTools', { serverId: candidate.id })
-    }
-
-    attemptedToolLoadServerIds.value = nextAttempts
-  },
-  { immediate: true },
-)
-
 function getMetadataString(server: ChatMcpServerView, key: string) {
   const value = server.metadata?.[key]
 
   return typeof value === 'string' ? value : undefined
-}
-
-function hasLoadedTools(serverId: string) {
-  return Object.prototype.hasOwnProperty.call(tools.value, serverId)
 }
 
 function toPluginInfo(server: ChatMcpServerView, options: { includeTools: boolean }): PluginInfo {

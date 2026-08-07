@@ -1,33 +1,49 @@
 import { h } from 'vue'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import type {
-  ChatAsideOptions,
   ChatBrandOptions,
-  ChatComposerOptions,
+  ChatBubbleOptions,
+  ChatConversationView,
+  ChatLayoutOptions,
   ChatHistoryOptions,
   ChatLabels,
-  ChatMessagesOptions,
+  ChatMcpView,
+  ChatModelView,
   ChatPromptsOptions,
+  ChatSenderOptions,
+  ChatSenderView,
   ChatWelcomeOptions,
 } from '../types'
 
+export interface DefaultChatUIData {
+  conversation: Required<ChatConversationView>
+  bubble: {
+    messages: []
+  }
+  sender: Required<Omit<ChatSenderView, 'inputValue'>> & Pick<ChatSenderView, 'inputValue'>
+  model: ChatModelView | undefined
+  mcp: ChatMcpView | undefined
+}
+
 export interface DefaultChatUIOptions {
-  layout: {
-    contentMaxWidth: number
-    panelPadding: number
-    panelGap: number
+  layout: Required<Omit<ChatLayoutOptions, 'leftAside' | 'rightAside'>> & {
+    leftAside: {
+      mode: 'dock' | 'drawer'
+      width: number
+      collapsedWidth: number
+      defaultOpen: boolean
+    }
+    rightAside: false
   }
   brand: ChatBrandOptions & {
     name: string
     logo: unknown
   }
   labels: ChatLabels
-  leftAside: Required<ChatAsideOptions>
-  rightAside: false
   history: ChatHistoryOptions
-  messages: ChatMessagesOptions & {
+  bubble: ChatBubbleOptions & {
     autoScroll: boolean
-    bubbleList: NonNullable<ChatMessagesOptions['bubbleList']>
+    bubbleList: NonNullable<ChatBubbleOptions['bubbleList']>
   }
   welcome: ChatWelcomeOptions & {
     title: string
@@ -36,10 +52,11 @@ export interface DefaultChatUIOptions {
   prompts: ChatPromptsOptions & {
     items: NonNullable<ChatPromptsOptions['items']>
   }
-  composer: ChatComposerOptions & {
+  sender: ChatSenderOptions & {
     clearOnSubmit: boolean
-    sender: NonNullable<ChatComposerOptions['sender']>
   }
+  model: Record<string, never>
+  mcp: Record<string, never>
 }
 
 export function createDefaultChatLabels(): ChatLabels {
@@ -53,6 +70,7 @@ export function createDefaultChatLabels(): ChatLabels {
     composerPlaceholder: '请输入你的问题...',
     composerLoadingPlaceholder: '思考中...',
     selectModel: '选择模型',
+    rightAsideTitle: '详情',
     mcp: 'MCP',
     thinkingFeature: '深度思考',
     searchFeature: '联网搜索',
@@ -69,26 +87,26 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
       contentMaxWidth: 980,
       panelPadding: 12,
       panelGap: 12,
+      leftAside: {
+        mode: 'dock',
+        width: 300,
+        collapsedWidth: 56,
+        defaultOpen: false,
+      },
+      rightAside: false,
     },
     brand: {
       name: 'TinyRobot',
       logo: IconAi,
     },
     labels,
-    leftAside: {
-      mode: 'dock',
-      width: 300,
-      collapsedWidth: 56,
-      defaultOpen: false,
-    },
-    rightAside: false,
     history: {
       menuItems: [
         { id: 'rename', text: labels.renameConversation },
         { id: 'delete', text: labels.deleteConversation },
       ],
     },
-    messages: {
+    bubble: {
       autoScroll: true,
       bubbleList: {
         roleConfigs: {
@@ -107,14 +125,35 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
     prompts: {
       items: [],
     },
-    composer: {
+    sender: {
       clearOnSubmit: true,
-      sender: {
-        mode: 'multiple',
-        clearable: true,
-        maxLength: 1000,
-        showWordLimit: true,
-      },
+      mode: 'multiple',
+      clearable: true,
+      maxLength: 1000,
+      showWordLimit: true,
     },
+    model: {},
+    mcp: {},
+  }
+}
+
+export function createDefaultChatUIData(labels: ChatLabels): DefaultChatUIData {
+  return {
+    conversation: {
+      items: [],
+      activeId: null,
+      title: labels.newConversationTitle,
+    },
+    bubble: {
+      messages: [],
+    },
+    sender: {
+      inputValue: undefined,
+      loading: false,
+      disabled: false,
+      submitDisabled: false,
+    },
+    model: undefined,
+    mcp: undefined,
   }
 }

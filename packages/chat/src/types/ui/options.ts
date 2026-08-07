@@ -3,21 +3,21 @@ import type {
   BubbleProviderProps,
   DefaultActions,
   HistoryProps,
+  HistoryMenuItem,
   PromptProps,
   PromptsProps,
   SenderProps,
   WelcomeProps,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo } from '../base'
-import type { ChatViewState } from './state'
+import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload } from './events'
+import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
 
 export interface ChatUIProps {
-  state?: ChatViewState
+  data?: ChatUIData
   ui?: ChatUIOptions
-  composerValue?: string
-  defaultComposerValue?: string
 }
 
 export interface ChatUIOptions {
@@ -25,19 +25,21 @@ export interface ChatUIOptions {
   brand?: ChatBrandOptions
   labels?: Partial<ChatLabels>
   header?: false
-  leftAside?: false | ChatAsideOptions
-  rightAside?: false | ChatRightAsideOptions
   history?: false | ChatHistoryOptions
-  messages?: ChatMessagesOptions
   welcome?: false | ChatWelcomeOptions
   prompts?: false | ChatPromptsOptions
-  composer?: false | ChatComposerOptions
+  bubble?: ChatBubbleOptions
+  sender?: false | ChatSenderOptions
+  model?: false | ChatModelOptions
+  mcp?: false | ChatMcpOptions
 }
 
 export interface ChatLayoutOptions {
   contentMaxWidth?: ChatCssSize
   panelPadding?: ChatCssSize
   panelGap?: ChatCssSize
+  leftAside?: false | ChatAsideOptions
+  rightAside?: false | ChatRightAsideOptions
 }
 
 export interface ChatBrandOptions {
@@ -60,6 +62,7 @@ export interface ChatLabels {
   searchFeature: string
   welcomeTitle: string
   welcomeDescription: string
+  rightAsideTitle: string
 }
 
 export interface ChatAsideOptions {
@@ -71,24 +74,30 @@ export interface ChatAsideOptions {
 
 export interface ChatRightAsideOptions extends ChatAsideOptions {
   open?: boolean
-  title?: string
   showClose?: boolean
+  onOpenChange?: (payload: { open: boolean }) => void
 }
 
-export type ChatHistoryOptions = Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected'>
+export type ChatHistoryOptions = Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected'> & {
+  onItemAction?: (action: HistoryMenuItem, conversation: ChatConversationInfo) => void
+}
 
-export interface ChatMessagesOptions {
+export interface ChatBubbleOptions {
   autoScroll?: boolean
   bubbleProvider?: Omit<BubbleProviderProps, 'store'>
   bubbleList?: ChatBubbleListOptions
 }
 
-export type ChatBubbleListOptions = Omit<BubbleListProps, 'messages' | 'autoScroll'>
+export type ChatBubbleListOptions = Omit<BubbleListProps, 'messages' | 'autoScroll'> & {
+  onStateChange?: (payload: ChatBubbleStateChangePayload) => void
+  onBubbleEvent?: (payload: ChatBubbleEventPayload) => void
+}
 
 export type ChatWelcomeOptions = Partial<WelcomeProps>
 
 export interface ChatPromptsOptions extends Omit<PromptsProps, 'items'> {
   items?: PromptProps[]
+  onItemClick?: (event: MouseEvent, item: PromptProps) => void
 }
 
 type SubmitActionConfig = NonNullable<DefaultActions['submit']>
@@ -100,9 +109,20 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
 export interface ChatSenderOptions
   extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
   defaultActions?: ChatSenderDefaultActions
+  clearOnSubmit?: boolean
+  onInput?: (value: string) => void
+  onFocus?: (event: FocusEvent) => void
+  onBlur?: (event: FocusEvent) => void
 }
 
-export interface ChatComposerOptions {
-  sender?: ChatSenderOptions
-  clearOnSubmit?: boolean
+export interface ChatModelOptions {
+  onSelect?: (payload: { id: string | null }) => void
+  onFeatureChange?: (payload: { id: string; enabled: boolean }) => void
+}
+
+export interface ChatMcpOptions {
+  onAddServer?: (payload: { id: string }) => void
+  onRemoveServer?: (payload: { id: string }) => void
+  onServerEnabledChange?: (payload: { id: string; enabled: boolean }) => void
+  onToolEnabledChange?: (payload: { serverId: string; toolId: string; enabled: boolean }) => void
 }

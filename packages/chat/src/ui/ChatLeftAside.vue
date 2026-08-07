@@ -59,7 +59,7 @@ watch(
 )
 
 const historyProps = computed(() => {
-  const { menuItems: _menuItems, ...nextHistoryProps } = props.history
+  const { menuItems: _menuItems, onItemAction: _onItemAction, ...nextHistoryProps } = props.history
 
   return nextHistoryProps
 })
@@ -117,14 +117,14 @@ function toggleAside() {
 </script>
 
 <template>
-  <aside class="chat-aside">
-    <span class="chat-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
+  <aside class="chat-left-aside">
+    <span class="chat-left-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
       <component :is="brand.logo || IconAi" />
     </span>
 
-    <div class="chat-aside-rail" :class="{ 'is-hidden': !isDock || isOpen }">
+    <div class="chat-left-aside-rail" :class="{ 'is-hidden': !isDock || isOpen }">
       <TrIconButton
-        class="chat-aside-rail__button"
+        class="chat-left-aside-rail__button"
         :icon="IconCollapseLeft"
         size="32"
         svg-size="20"
@@ -132,7 +132,7 @@ function toggleAside() {
         @click="openAside"
       />
       <TrIconButton
-        class="chat-aside-rail__button"
+        class="chat-left-aside-rail__button"
         :icon="IconNewSession"
         size="32"
         svg-size="20"
@@ -141,7 +141,7 @@ function toggleAside() {
       />
     </div>
 
-    <div class="chat-aside-panel" :class="{ 'is-hidden': !isOpen }">
+    <div class="chat-left-aside-panel" :class="{ 'is-hidden': !isOpen }">
       <slot
         :conversation="conversation"
         :is-open="isOpen"
@@ -150,8 +150,8 @@ function toggleAside() {
         :close-left-aside="closeAside"
         :toggle-left-aside="toggleAside"
       >
-        <div class="chat-aside-brand">
-          <span class="chat-aside-brand__title">{{ brand.name }}</span>
+        <div class="chat-left-aside-brand">
+          <span class="chat-left-aside-brand__title">{{ brand.name }}</span>
           <TrIconButton
             :icon="IconCollapseRight"
             size="32"
@@ -161,8 +161,8 @@ function toggleAside() {
             @click="closeAside"
           />
         </div>
-        <button class="chat-aside-action" type="button" @click="handleCreateConversation">
-          <span class="chat-aside-action__label">
+        <button class="chat-left-aside-action" type="button" @click="handleCreateConversation">
+          <span class="chat-left-aside-action__label">
             <IconNewSession font-size="20" />
             {{ labels.createConversation }}
           </span>
@@ -170,7 +170,7 @@ function toggleAside() {
         <TrHistory
           v-if="showHistory"
           v-bind="historyProps"
-          class="chat-aside-content"
+          class="chat-left-aside-content"
           :data="historyItems"
           :selected="conversation.activeId ?? undefined"
           :menu-items="historyMenuItems"
@@ -184,12 +184,12 @@ function toggleAside() {
 </template>
 
 <style scoped>
-.chat-aside {
+.chat-left-aside {
   position: relative;
   height: 100%;
 }
 
-.chat-aside-logo {
+.chat-left-aside-logo {
   position: absolute;
   z-index: 2;
   left: 12px;
@@ -206,34 +206,34 @@ function toggleAside() {
   color: var(--tr-color-primary);
 }
 
-.chat-aside-logo :deep(svg) {
+.chat-left-aside-logo :deep(svg) {
   width: 28px;
   height: 28px;
 }
 
-.chat-aside-rail,
-.chat-aside-panel {
+.chat-left-aside-rail,
+.chat-left-aside-panel {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
   transition: opacity var(--transition-duration) var(--transition-easing);
 }
 
-.chat-aside-rail.is-hidden,
-.chat-aside-panel.is-hidden {
+.chat-left-aside-rail.is-hidden,
+.chat-left-aside-panel.is-hidden {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
 }
 
-.chat-aside-panel {
+.chat-left-aside-panel {
   display: flex;
   flex-direction: column;
   padding: 24px 12px;
   overflow: hidden;
 }
 
-.chat-aside-rail {
+.chat-left-aside-rail {
   display: flex;
   width: var(--tr-layout-aside-collapsed-width, 56px);
   flex-direction: column;
@@ -242,15 +242,15 @@ function toggleAside() {
   padding: 72px 12px 24px;
 }
 
-.chat-aside-rail__button {
+.chat-left-aside-rail__button {
   color: var(--tr-icon-color-default);
 }
 
-.chat-aside-rail__button:hover {
+.chat-left-aside-rail__button:hover {
   color: var(--tr-icon-color-hover);
 }
 
-.chat-aside-brand {
+.chat-left-aside-brand {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -259,7 +259,7 @@ function toggleAside() {
   padding-left: 40px;
 }
 
-.chat-aside-brand__title {
+.chat-left-aside-brand__title {
   display: inline-flex;
   align-items: center;
   min-width: 0;
@@ -268,7 +268,7 @@ function toggleAside() {
   font-weight: 600;
 }
 
-.chat-aside-action {
+.chat-left-aside-action {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -282,17 +282,17 @@ function toggleAside() {
   cursor: pointer;
 }
 
-.chat-aside-action:hover {
+.chat-left-aside-action:hover {
   background: var(--tr-container-bg-hover);
 }
 
-.chat-aside-action__label {
+.chat-left-aside-action__label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
-.chat-aside-action kbd {
+.chat-left-aside-action kbd {
   border-radius: 6px;
   padding: 2px 6px;
   background: var(--tr-container-bg-hover);
@@ -301,7 +301,7 @@ function toggleAside() {
   font-size: 12px;
 }
 
-.chat-aside-content {
+.chat-left-aside-content {
   flex: 1;
   min-height: 0;
   overflow: auto;

@@ -1,9 +1,9 @@
 import type { ChatConversationInfo, ChatMessageItem } from '../base'
 
-export interface ChatViewState {
+export interface ChatUIData {
   conversation?: ChatConversationView
-  messages?: readonly ChatMessageItem[]
-  composer?: ChatComposerView
+  bubble?: ChatBubbleView
+  sender?: ChatSenderView
   model?: ChatModelView
   mcp?: ChatMcpView
 }
@@ -14,7 +14,12 @@ export interface ChatConversationView {
   title?: string
 }
 
-export interface ChatComposerView {
+export interface ChatBubbleView {
+  messages?: readonly ChatMessageItem[]
+}
+
+export interface ChatSenderView {
+  inputValue?: string
   loading?: boolean
   disabled?: boolean
   submitDisabled?: boolean

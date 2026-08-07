@@ -4,14 +4,13 @@ import { computed, shallowRef, watch } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import type { HistoryMenuItem, PromptProps } from '@opentiny/tiny-robot'
 import ScrollToBottom from './components/ScrollToBottom.vue'
-import { useControllableComposer } from './composables/useControllableComposer'
-import ChatAside from './ui/ChatAside.vue'
+import ChatLeftAside from './ui/ChatLeftAside.vue'
 import ChatComposer from './ui/ChatComposer.vue'
 import ChatHeader from './ui/ChatHeader.vue'
 import ChatMessages from './ui/ChatMessages.vue'
-import ChatRightAsidePanel from './ui/ChatRightAsidePanel.vue'
+import ChatRightAside from './ui/ChatRightAside.vue'
+import { resolveChatUIData } from './ui/resolveData'
 import { resolveChatUIOptions } from './ui/resolveOptions'
-import { resolveChatViewState } from './ui/resolveState'
 import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
@@ -26,6 +25,7 @@ const props = defineProps<ChatUIProps>()
 const emit = defineEmits<ChatUIEmits>()
 const slots = defineSlots<ChatUISlots>()
 
+const composerRef = shallowRef<{ setInputValue: (value: string) => void } | null>(null)
 const leftAsideOpen = shallowRef(false)
 const rightAsideOpen = shallowRef(false)
 const scrollTarget = shallowRef<HTMLElement | null>(null)
@@ -36,74 +36,76 @@ const breakpoints = useBreakpoints({
 const isMobileViewport = breakpoints.smaller('desktop')
 const { width: viewportWidth } = useWindowSize()
 
-const resolvedOptions = computed(() => resolveChatUIOptions(props.ui, { hasRightAside: Boolean(slots['right-aside']) }))
-const resolvedState = computed(() => resolveChatViewState(props.state, resolvedOptions.value.labels))
-const composer = useControllableComposer({
-  value: () => props.composerValue,
-  defaultValue: () => props.defaultComposerValue,
-  onUpdate: (value) => emit('update:composerValue', value),
-})
+const resolvedOptions = computed(() =>
+  resolveChatUIOptions(props.ui, { hasRightAside: Boolean(slots['layout-right-aside']) }),
+)
+const resolvedData = computed(() => resolveChatUIData(props.data, resolvedOptions.value.labels))
 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
-const isComposerVisible = computed(() => resolvedOptions.value.composer !== false)
-const isLeftAsideVisible = computed(() => resolvedOptions.value.leftAside !== false)
-const isRightAsideVisible = computed(() => resolvedOptions.value.rightAside !== false)
-const leftAsideLayout = computed(() =>
-  resolvedOptions.value.leftAside === false ? undefined : resolvedOptions.value.leftAside,
+const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
+const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
+const historyOptions = computed(() =>
+  resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
-const rightAsideLayout = computed(() =>
-  resolvedOptions.value.rightAside === false ? undefined : resolvedOptions.value.rightAside,
+const senderOptions = computed(() =>
+  resolvedOptions.value.sender === false ? undefined : resolvedOptions.value.sender,
 )
-const leftAsideMode = computed(() => (isMobileViewport.value ? 'drawer' : (leftAsideLayout.value?.mode ?? 'dock')))
-const rightAsideMode = computed(() => (isMobileViewport.value ? 'drawer' : (rightAsideLayout.value?.mode ?? 'dock')))
+const isSenderVisible = computed(() => resolvedOptions.value.sender !== false)
+const isLeftAsideVisible = computed(() => leftAsideLayout.value !== false)
+const isRightAsideVisible = computed(() => rightAsideLayout.value !== false)
+const leftAsideMode = computed(() =>
+  isMobileViewport.value ? 'drawer' : leftAsideLayout.value !== false ? leftAsideLayout.value.mode : 'dock',
+)
+const rightAsideMode = computed(() =>
+  isMobileViewport.value ? 'drawer' : rightAsideLayout.value !== false ? rightAsideLayout.value.mode : 'dock',
+)
 const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
 const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
 const bubbleRoleConfigs = computed(
-  () => resolvedOptions.value.messages.bubbleList?.roleConfigs ?? { system: { hidden: true } },
+  () => resolvedOptions.value.bubble.bubbleList.roleConfigs ?? { system: { hidden: true } },
 )
-const visibleMessages = computed(() => resolvedState.value.messages.filter((message) => !isMessageHidden(message.role)))
+const visibleMessages = computed(() =>
+  resolvedData.value.bubble.messages.filter((message) => !isMessageHidden(message.role)),
+)
 const isEmpty = computed(() => visibleMessages.value.length === 0)
-const composerState = computed(() => ({
-  ...resolvedState.value.composer,
-  value: composer.value.value,
-  submitDisabled:
-    resolvedState.value.composer.disabled ||
-    resolvedState.value.composer.submitDisabled ||
-    composer.value.value.trim().length === 0,
-}))
 const layoutStyle = computed(() => ({
-  '--tr-chat-ui-content-max-width': toCssSize(resolvedOptions.value.layout.contentMaxWidth ?? 980),
-  '--tr-chat-ui-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding ?? 12),
-  '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap ?? 12),
+  '--tr-chat-ui-content-max-width': toCssSize(resolvedOptions.value.layout.contentMaxWidth),
+  '--tr-chat-ui-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding),
+  '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap),
 }))
 const leftAsideOptions = computed(() => ({
   mode: leftAsideMode.value,
   open: leftAsideOpen.value,
-  expandedWidth: toResponsiveAsideWidth(leftAsideLayout.value?.width, 300),
-  collapsedWidth: isMobileViewport.value ? 0 : toLayoutSize(leftAsideLayout.value?.collapsedWidth, 56),
+  expandedWidth: toResponsiveAsideWidth(leftAsideLayout.value !== false ? leftAsideLayout.value.width : undefined, 300),
+  collapsedWidth:
+    isMobileViewport.value || leftAsideLayout.value === false
+      ? 0
+      : toLayoutSize(leftAsideLayout.value.collapsedWidth, 56),
   collapseEffect: 'overlay' as const,
 }))
 const mobileRightAsideWidth = computed(() =>
   isMobileViewport.value && viewportWidth.value > 0 ? viewportWidth.value : undefined,
 )
-const isRightAsideControlled = computed(() => typeof rightAsideLayout.value?.open === 'boolean')
-const resolvedRightAsideOpen = computed(() => rightAsideLayout.value?.open ?? rightAsideOpen.value)
-
+const isRightAsideControlled = computed(
+  () => rightAsideLayout.value !== false && typeof rightAsideLayout.value.open === 'boolean',
+)
+const resolvedRightAsideOpen = computed(() =>
+  rightAsideLayout.value !== false ? (rightAsideLayout.value.open ?? rightAsideOpen.value) : false,
+)
 const rightAsideOptions = computed(() => ({
   mode: rightAsideMode.value,
   open: resolvedRightAsideOpen.value,
-  expandedWidth: mobileRightAsideWidth.value ?? toLayoutSize(rightAsideLayout.value?.width, 320),
+  expandedWidth:
+    mobileRightAsideWidth.value ??
+    toLayoutSize(rightAsideLayout.value !== false ? rightAsideLayout.value.width : undefined, 320),
   minExpandedWidth: mobileRightAsideWidth.value,
   maxExpandedWidth: mobileRightAsideWidth.value,
-  collapsedWidth: isMobileViewport.value ? 0 : toLayoutSize(rightAsideLayout.value?.collapsedWidth, 0),
+  collapsedWidth:
+    isMobileViewport.value || rightAsideLayout.value === false
+      ? 0
+      : toLayoutSize(rightAsideLayout.value.collapsedWidth, 0),
   collapseEffect: 'overlay' as const,
 }))
-const historyOptions = computed(() =>
-  resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
-)
-const composerOptions = computed(() =>
-  resolvedOptions.value.composer === false ? undefined : resolvedOptions.value.composer,
-)
 
 watch(isMobileViewport, (isMobile) => {
   if (isMobile) {
@@ -113,18 +115,18 @@ watch(isMobileViewport, (isMobile) => {
 })
 
 watch(
-  () => leftAsideLayout.value?.defaultOpen,
+  () => (leftAsideLayout.value !== false ? leftAsideLayout.value.defaultOpen : false),
   (defaultOpen) => {
-    leftAsideOpen.value = typeof defaultOpen === 'boolean' ? defaultOpen : false
+    leftAsideOpen.value = Boolean(defaultOpen)
   },
   { immediate: true },
 )
 
 watch(
-  () => rightAsideLayout.value?.defaultOpen,
+  () => (rightAsideLayout.value !== false ? rightAsideLayout.value.defaultOpen : false),
   (defaultOpen) => {
     if (!isRightAsideControlled.value) {
-      rightAsideOpen.value = typeof defaultOpen === 'boolean' ? defaultOpen : false
+      rightAsideOpen.value = Boolean(defaultOpen)
     }
   },
   { immediate: true },
@@ -176,8 +178,8 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatConversationInfo
     return
   }
 
-  if (action.id !== 'rename') {
-    emit('historyAction', { action, conversation: item })
+  if (action.id !== 'rename' && resolvedOptions.value.history !== false) {
+    resolvedOptions.value.history.onItemAction?.(action, item)
   }
 }
 
@@ -197,37 +199,41 @@ function handleLeftAsideOpenChange(detail: { open: boolean }) {
   leftAsideOpen.value = detail.open
 }
 
-function setRightAsideOpen(open: boolean) {
-  if (rightAsideOpen.value === open) {
+function requestRightAsideOpen(open: boolean) {
+  if (resolvedRightAsideOpen.value === open) {
     return
   }
 
-  rightAsideOpen.value = open
-  emit('rightAsideOpenChange', { open })
+  if (!isRightAsideControlled.value) {
+    rightAsideOpen.value = open
+  }
+
+  if (rightAsideLayout.value !== false) {
+    rightAsideLayout.value.onOpenChange?.({ open })
+  }
 }
 
 function closeRightAside() {
-  setRightAsideOpen(false)
+  requestRightAsideOpen(false)
 }
 
 function handleRightAsideOpenChange(detail: { open: boolean }) {
-  setRightAsideOpen(detail.open)
+  requestRightAsideOpen(detail.open)
 }
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
-  composer.setValue(item.label)
-  emit('promptClick', { event, item })
-}
+  composerRef.value?.setInputValue(item.label)
 
-function handleUpdateComposerValue(value: string) {
-  composer.setValue(value)
+  if (resolvedOptions.value.prompts !== false) {
+    resolvedOptions.value.prompts.onItemClick?.(event, item)
+  }
 }
 
 function handleSubmit(payload: ChatSubmitPayload) {
   emit('submit', payload)
 
-  if (composerOptions.value?.clearOnSubmit !== false) {
-    composer.setValue('')
+  if (senderOptions.value?.clearOnSubmit !== false) {
+    composerRef.value?.setInputValue('')
   }
 }
 
@@ -236,24 +242,15 @@ function handleCancel() {
 }
 
 function handleClear() {
-  composer.setValue('')
   emit('clear')
 }
 
-function handleFocus(event: FocusEvent) {
-  emit('focus', event)
-}
-
-function handleBlur(event: FocusEvent) {
-  emit('blur', event)
-}
-
 function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
-  emit('bubbleStateChange', payload)
+  resolvedOptions.value.bubble.bubbleList.onStateChange?.(payload)
 }
 
 function handleBubbleEvent(payload: ChatBubbleEventPayload) {
-  emit('bubbleEvent', payload)
+  resolvedOptions.value.bubble.bubbleList.onBubbleEvent?.(payload)
 }
 </script>
 
@@ -268,8 +265,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     @right-aside-open-change="handleRightAsideOpenChange"
   >
     <template v-if="isLeftAsideVisible" #left-aside>
-      <ChatAside
-        :conversation="resolvedState.conversation"
+      <ChatLeftAside
+        :conversation="resolvedData.conversation"
         :history="historyOptions"
         :brand="resolvedOptions.brand"
         :labels="resolvedOptions.labels"
@@ -284,18 +281,18 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         @close="closeLeftAside"
         @toggle="toggleLeftAside"
       >
-        <template v-if="$slots['left-aside']" #default="slotProps">
-          <slot name="left-aside" v-bind="slotProps" />
+        <template v-if="$slots['layout-left-aside']" #default>
+          <slot name="layout-left-aside" />
         </template>
-      </ChatAside>
+      </ChatLeftAside>
     </template>
 
     <template v-if="isHeaderVisible" #header>
       <div class="chat-panel-content chat-panel-content--header">
         <ChatHeader
-          :title="resolvedState.conversation.title"
+          :title="resolvedData.conversation.title"
           :is-empty="isEmpty"
-          :conversation="resolvedState.conversation"
+          :conversation="resolvedData.conversation"
           :is-left-aside-visible="isLeftAsideVisible"
           :is-left-aside-drawer="isLeftAsideDrawer"
           :is-left-aside-open="leftAsideOpen"
@@ -305,11 +302,11 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @close-left-aside="closeLeftAside"
           @toggle-left-aside="toggleLeftAside"
         >
-          <template v-if="$slots.notice" #notice>
-            <slot name="notice" />
+          <template v-if="$slots['header-notice']" #notice>
+            <slot name="header-notice" />
           </template>
-          <template v-if="$slots.header" #default="slotProps">
-            <slot name="header" v-bind="slotProps" />
+          <template v-if="$slots['layout-header']" #default>
+            <slot name="layout-header" />
           </template>
         </ChatHeader>
       </div>
@@ -321,7 +318,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           <ChatMessages
             :messages="visibleMessages"
             :scroll-target="scrollTarget"
-            :options="resolvedOptions.messages"
+            :options="resolvedOptions.bubble"
             :welcome="resolvedOptions.welcome"
             :prompts="resolvedOptions.prompts"
             :labels="resolvedOptions.labels"
@@ -329,8 +326,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             @bubble-state-change="handleBubbleStateChange"
             @bubble-event="handleBubbleEvent"
           >
-            <template v-if="$slots.main" #default="slotProps">
-              <slot name="main" v-bind="slotProps" />
+            <template v-if="$slots['layout-main']" #default>
+              <slot name="layout-main" />
             </template>
             <template v-if="$slots['welcome-footer']" #welcome-footer>
               <slot name="welcome-footer" />
@@ -338,17 +335,17 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             <template v-if="$slots['prompts-footer']" #prompts-footer>
               <slot name="prompts-footer" />
             </template>
-            <template v-if="$slots.prefix" #prefix="slotProps">
-              <slot name="prefix" v-bind="slotProps" />
+            <template v-if="$slots['bubble-prefix']" #bubble-prefix>
+              <slot name="bubble-prefix" />
             </template>
-            <template v-if="$slots.suffix" #suffix="slotProps">
-              <slot name="suffix" v-bind="slotProps" />
+            <template v-if="$slots['bubble-suffix']" #bubble-suffix>
+              <slot name="bubble-suffix" />
             </template>
-            <template v-if="$slots.after" #after="slotProps">
-              <slot name="after" v-bind="slotProps" />
+            <template v-if="$slots['bubble-after']" #bubble-after>
+              <slot name="bubble-after" />
             </template>
-            <template v-if="$slots['content-footer']" #content-footer="slotProps">
-              <slot name="content-footer" v-bind="slotProps" />
+            <template v-if="$slots['bubble-content-footer']" #bubble-content-footer>
+              <slot name="bubble-content-footer" />
             </template>
           </ChatMessages>
         </div>
@@ -360,49 +357,46 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 
-    <template v-if="isComposerVisible && composerOptions" #footer>
+    <template v-if="isSenderVisible && senderOptions" #footer>
       <div class="chat-panel-content chat-panel-content--footer">
         <ChatComposer
-          :composer="composerState"
-          :options="composerOptions"
+          ref="composerRef"
+          :sender="resolvedData.sender"
+          :sender-options="senderOptions"
           :labels="resolvedOptions.labels"
-          :model="resolvedState.model"
-          :mcp="resolvedState.mcp"
-          @update-composer-value="handleUpdateComposerValue"
+          :model="resolvedData.model"
+          :mcp="resolvedData.mcp"
+          :model-options="resolvedOptions.model"
+          :mcp-options="resolvedOptions.mcp"
           @submit="handleSubmit"
           @cancel="handleCancel"
           @clear="handleClear"
-          @focus="handleFocus"
-          @blur="handleBlur"
-          @select-model="emit('selectModel', $event)"
-          @update-model-feature="emit('updateModelFeature', $event)"
-          @add-mcp-server="emit('addMcpServer', $event)"
-          @remove-mcp-server="emit('removeMcpServer', $event)"
-          @load-mcp-tools="emit('loadMcpTools', $event)"
-          @update-mcp-server-enabled="emit('updateMcpServerEnabled', $event)"
-          @update-mcp-tool-enabled="emit('updateMcpToolEnabled', $event)"
         >
-          <template v-if="$slots.footer" #default="slotProps">
-            <slot name="footer" v-bind="slotProps" />
+          <template v-if="$slots['layout-footer']" #default>
+            <slot name="layout-footer" />
           </template>
-          <template v-if="$slots['sender-footer']" #sender-footer="slotProps">
-            <slot name="sender-footer" v-bind="slotProps" />
+          <template v-if="$slots['sender-footer']" #sender-footer>
+            <slot name="sender-footer" />
           </template>
-          <template v-if="$slots['sender-footer-right']" #sender-footer-right="slotProps">
-            <slot name="sender-footer-right" v-bind="slotProps" />
+          <template v-if="$slots['sender-footer-right']" #sender-footer-right>
+            <slot name="sender-footer-right" />
           </template>
         </ChatComposer>
       </div>
     </template>
 
     <template v-if="isRightAsideVisible" #right-aside>
-      <ChatRightAsidePanel
-        :title="rightAsideLayout?.title"
-        :show-close="rightAsideLayout?.showClose"
+      <ChatRightAside
+        :show-close="rightAsideLayout !== false ? rightAsideLayout.showClose : true"
         @close="closeRightAside"
       >
-        <slot name="right-aside"></slot>
-      </ChatRightAsidePanel>
+        <template #title>
+          <slot name="layout-right-aside-title">
+            <h2 class="chat-right-aside-title">{{ resolvedOptions.labels.rightAsideTitle }}</h2>
+          </slot>
+        </template>
+        <slot name="layout-right-aside" />
+      </ChatRightAside>
     </template>
   </TrLayout>
 </template>
@@ -468,6 +462,18 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 .chat-scroll-actions :deep(.tr-chat-scroll-to-bottom) {
   pointer-events: auto;
+}
+
+.chat-right-aside-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--tr-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 959px) {

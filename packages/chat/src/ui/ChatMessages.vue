@@ -14,7 +14,7 @@ import {
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../types'
 import type {
-  ResolvedChatMessagesOptions,
+  ResolvedChatBubbleOptions,
   ResolvedChatPromptsOptions,
   ResolvedChatWelcomeOptions,
 } from './resolveOptions'
@@ -22,7 +22,7 @@ import type {
 const props = defineProps<{
   messages: readonly ChatMessageItem[]
   scrollTarget: HTMLElement | null
-  options: ResolvedChatMessagesOptions
+  options: ResolvedChatBubbleOptions
   welcome: false | ResolvedChatWelcomeOptions
   prompts: false | ResolvedChatPromptsOptions
   labels: ChatLabels
@@ -59,9 +59,11 @@ const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
   ...props.options.bubbleProvider,
 }))
-type BubbleListViewProps = ResolvedChatMessagesOptions['bubbleList'] & { autoScroll: false }
+type BubbleListViewProps = Omit<ResolvedChatBubbleOptions['bubbleList'], 'onStateChange' | 'onBubbleEvent'> & {
+  autoScroll: false
+}
 const bubbleListProps = computed<BubbleListViewProps>(() => {
-  const bubbleList = props.options.bubbleList
+  const { onStateChange: _onStateChange, onBubbleEvent: _onBubbleEvent, ...bubbleList } = props.options.bubbleList
 
   if (!bubbleList) {
     return {
@@ -128,7 +130,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 <template>
   <div class="chat-panel-content chat-panel-content--main">
-    <slot :messages="messages" :is-empty="isEmpty">
+    <slot>
       <template v-if="isEmpty">
         <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
           <template v-if="$slots['welcome-footer']" #footer>
@@ -150,17 +152,17 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @state-change="handleStateChange"
           @bubble-event="handleBubbleEvent"
         >
-          <template v-if="$slots.prefix" #prefix="slotProps">
-            <slot name="prefix" v-bind="slotProps" />
+          <template v-if="$slots['bubble-prefix']" #prefix>
+            <slot name="bubble-prefix" />
           </template>
-          <template v-if="$slots.suffix" #suffix="slotProps">
-            <slot name="suffix" v-bind="slotProps" />
+          <template v-if="$slots['bubble-suffix']" #suffix>
+            <slot name="bubble-suffix" />
           </template>
-          <template v-if="$slots.after" #after="slotProps">
-            <slot name="after" v-bind="slotProps" />
+          <template v-if="$slots['bubble-after']" #after>
+            <slot name="bubble-after" />
           </template>
-          <template v-if="$slots['content-footer']" #content-footer="slotProps">
-            <slot name="content-footer" v-bind="slotProps" />
+          <template v-if="$slots['bubble-content-footer']" #content-footer>
+            <slot name="bubble-content-footer" />
           </template>
         </TrBubbleList>
       </TrBubbleProvider>
