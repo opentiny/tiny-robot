@@ -64,6 +64,58 @@ test.describe('Sender 组件测试', () => {
 
     await helper.clickSubmit()
     await helper.expectResult('提交内容:')
+
+    const detail = await helper.getSubmitDetail()
+    expect(detail).toMatchObject({
+      argsLength: 2,
+      textContent: '',
+      structuredData: null,
+      extra: null,
+    })
+  })
+
+  test('Attachments: 应该作为 Sender external payload 提交', async () => {
+    await helper.toggleAttachmentsSource()
+
+    await helper.expectSubmitButtonVisible(true)
+    await helper.clickSubmit()
+
+    const detail = await helper.getSubmitDetail()
+    expect(detail).toMatchObject({
+      argsLength: 3,
+      textContent: '',
+      structuredData: null,
+      extra: {
+        externalPayloads: [
+          {
+            source: 'attachments',
+            payload: [
+              {
+                id: 'sender-attachment',
+                name: 'sender-note.txt',
+                status: 'success',
+              },
+            ],
+          },
+        ],
+      },
+    })
+  })
+
+  test('Attachments: 卸载后应该取消注册', async () => {
+    await helper.toggleAttachmentsSource()
+    await helper.expectSubmitButtonVisible(true)
+
+    await helper.toggleAttachmentsSource()
+    await helper.expectSubmitButtonVisible(false)
+  })
+
+  test('Attachments: items 变为空时应该更新提交状态', async () => {
+    await helper.toggleAttachmentsSource()
+    await helper.expectSubmitButtonVisible(true)
+
+    await helper.clearAttachmentsSourceItems()
+    await helper.expectSubmitButtonVisible(false)
   })
 
   test('Props: disabled - 应该正确控制禁用状态', async () => {
