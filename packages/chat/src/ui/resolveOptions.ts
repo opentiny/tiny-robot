@@ -1,4 +1,5 @@
 import { createDefaultChatUIOptions } from './defaults'
+import type { DefaultChatUIOptions } from './defaults'
 import type {
   ChatAsideOptions,
   ChatBrandOptions,
@@ -6,6 +7,9 @@ import type {
   ChatCssSize,
   ChatHistoryOptions,
   ChatLabels,
+  ChatLayoutOptions,
+  ChatMcpOptions,
+  ChatModelOptions,
   ChatPromptsOptions,
   ChatRightAsideOptions,
   ChatSenderOptions,
@@ -83,136 +87,223 @@ export interface ResolvedChatUIOptions {
 
 function noop() {}
 
+interface ResolveSlots {
+  hasRightAside?: boolean
+}
+
 export function resolveChatUIOptions(
   options: ChatUIOptions | undefined,
-  slots: { hasRightAside?: boolean } = {},
+  slots: ResolveSlots = {},
 ): ResolvedChatUIOptions {
   const defaults = createDefaultChatUIOptions()
-  const labels = {
-    ...defaults.labels,
-    ...withoutUndefined(options?.labels),
+  const labels = resolveLabels(defaults.labels, options?.labels)
+
+  return {
+    layout: resolveLayout(defaults.layout, options?.layout, slots),
+    brand: resolveBrand(defaults.brand, options?.brand),
+    labels,
+    header: options?.header !== false,
+    history: resolveHistory(defaults.history, options?.history, labels),
+    bubble: resolveBubble(defaults.bubble, options?.bubble),
+    welcome: resolveWelcome(defaults.welcome, options?.welcome, labels),
+    prompts: resolvePrompts(defaults.prompts, options?.prompts),
+    sender: resolveSender(defaults.sender, options?.sender),
+    model: resolveModel(options?.model),
+    mcp: resolveMcp(options?.mcp),
   }
-  const layoutOverrides = options?.layout
-  const leftAsideOverrides = layoutOverrides?.leftAside === false ? undefined : layoutOverrides?.leftAside
-  const rightAsideOverrides = layoutOverrides?.rightAside === false ? undefined : layoutOverrides?.rightAside
-  const historyOverrides = options?.history === false ? undefined : options?.history
-  const historyDefaults = {
-    ...defaults.history,
+}
+
+function resolveLabels(defaults: ChatLabels, options: Partial<ChatLabels> | undefined): ChatLabels {
+  return {
+    ...defaults,
+    ...withoutUndefined(options),
+  }
+}
+
+function resolveLayout(
+  defaults: DefaultChatUIOptions['layout'],
+  options: ChatLayoutOptions | undefined,
+  slots: ResolveSlots,
+): ResolvedChatLayoutOptions {
+  return {
+    contentMaxWidth: options?.contentMaxWidth ?? defaults.contentMaxWidth,
+    panelPadding: options?.panelPadding ?? defaults.panelPadding,
+    panelGap: options?.panelGap ?? defaults.panelGap,
+    leftAside: resolveLeftAside(defaults.leftAside, options?.leftAside),
+    rightAside: resolveRightAside(options?.rightAside, slots),
+  }
+}
+
+function resolveLeftAside(
+  defaults: DefaultChatUIOptions['layout']['leftAside'],
+  options: false | ChatAsideOptions | undefined,
+): false | ResolvedChatAsideOptions {
+  if (options === false) {
+    return false
+  }
+
+  return {
+    mode: options?.mode ?? defaults.mode,
+    width: options?.width ?? defaults.width,
+    collapsedWidth: options?.collapsedWidth ?? defaults.collapsedWidth,
+    defaultOpen: options?.defaultOpen ?? defaults.defaultOpen,
+  }
+}
+
+function resolveRightAside(
+  options: false | ChatRightAsideOptions | undefined,
+  slots: ResolveSlots,
+): false | ResolvedChatRightAsideOptions {
+  if (options === false) {
+    return false
+  }
+
+  if (!options && !slots.hasRightAside) {
+    return false
+  }
+
+  return {
+    open: options?.open,
+    mode: options?.mode ?? 'dock',
+    width: options?.width ?? 320,
+    collapsedWidth: options?.collapsedWidth ?? 0,
+    defaultOpen: options?.defaultOpen ?? true,
+    showClose: options?.showClose ?? true,
+    onOpenChange: options?.onOpenChange,
+  }
+}
+
+function resolveBrand(
+  defaults: DefaultChatUIOptions['brand'],
+  options: ChatBrandOptions | undefined,
+): ResolvedChatBrandOptions {
+  return {
+    ...defaults,
+    ...withoutUndefined(options),
+  }
+}
+
+function resolveHistory(
+  defaults: DefaultChatUIOptions['history'],
+  options: false | ChatHistoryOptions | undefined,
+  labels: ChatLabels,
+): false | ResolvedChatHistoryOptions {
+  if (options === false) {
+    return false
+  }
+
+  const nextDefaults = {
+    ...defaults,
     menuItems: [
       { id: 'rename', text: labels.renameConversation },
       { id: 'delete', text: labels.deleteConversation },
     ],
   }
-  const welcomeOverrides = options?.welcome === false ? undefined : options?.welcome
-  const welcomeDefaults = {
-    ...defaults.welcome,
+
+  return {
+    ...nextDefaults,
+    ...withoutUndefined(options),
+    menuItems: options?.menuItems ? [...options.menuItems] : [...nextDefaults.menuItems],
+  }
+}
+
+function resolveBubble(
+  defaults: DefaultChatUIOptions['bubble'],
+  options: ChatBubbleOptions | undefined,
+): ResolvedChatBubbleOptions {
+  return {
+    ...defaults,
+    ...withoutUndefined(options),
+    autoScroll: options?.autoScroll ?? defaults.autoScroll,
+    bubbleProvider: options?.bubbleProvider ?? defaults.bubbleProvider,
+    bubbleList: {
+      ...defaults.bubbleList,
+      ...withoutUndefined(options?.bubbleList),
+      roleConfigs: {
+        ...defaults.bubbleList?.roleConfigs,
+        ...withoutUndefinedRecord(options?.bubbleList?.roleConfigs),
+      },
+    },
+  }
+}
+
+function resolveWelcome(
+  defaults: DefaultChatUIOptions['welcome'],
+  options: false | ChatWelcomeOptions | undefined,
+  labels: ChatLabels,
+): false | ResolvedChatWelcomeOptions {
+  if (options === false) {
+    return false
+  }
+
+  const nextDefaults = {
+    ...defaults,
     title: labels.welcomeTitle,
     description: labels.welcomeDescription,
   }
-  const promptsOverrides = options?.prompts === false ? undefined : options?.prompts
-  const senderOverrides = options?.sender === false ? undefined : options?.sender
 
   return {
-    layout: {
-      contentMaxWidth: layoutOverrides?.contentMaxWidth ?? defaults.layout.contentMaxWidth,
-      panelPadding: layoutOverrides?.panelPadding ?? defaults.layout.panelPadding,
-      panelGap: layoutOverrides?.panelGap ?? defaults.layout.panelGap,
-      leftAside:
-        layoutOverrides?.leftAside === false
-          ? false
-          : {
-              mode: leftAsideOverrides?.mode ?? defaults.layout.leftAside.mode,
-              width: leftAsideOverrides?.width ?? defaults.layout.leftAside.width,
-              collapsedWidth: leftAsideOverrides?.collapsedWidth ?? defaults.layout.leftAside.collapsedWidth,
-              defaultOpen: leftAsideOverrides?.defaultOpen ?? defaults.layout.leftAside.defaultOpen,
-            },
-      rightAside:
-        layoutOverrides?.rightAside === false
-          ? false
-          : rightAsideOverrides || slots.hasRightAside
-            ? {
-                open: rightAsideOverrides?.open,
-                mode: rightAsideOverrides?.mode ?? 'dock',
-                width: rightAsideOverrides?.width ?? 320,
-                collapsedWidth: rightAsideOverrides?.collapsedWidth ?? 0,
-                defaultOpen: rightAsideOverrides?.defaultOpen ?? true,
-                showClose: rightAsideOverrides?.showClose ?? true,
-                onOpenChange: rightAsideOverrides?.onOpenChange,
-              }
-            : false,
-    },
-    brand: {
-      ...defaults.brand,
-      ...withoutUndefined(options?.brand),
-    },
-    labels,
-    header: options?.header !== false,
-    history:
-      options?.history === false
-        ? false
-        : {
-            ...historyDefaults,
-            ...withoutUndefined(historyOverrides),
-            menuItems: historyOverrides?.menuItems ? [...historyOverrides.menuItems] : [...historyDefaults.menuItems],
-          },
-    bubble: {
-      ...defaults.bubble,
-      ...withoutUndefined(options?.bubble),
-      autoScroll: options?.bubble?.autoScroll ?? defaults.bubble.autoScroll,
-      bubbleProvider: options?.bubble?.bubbleProvider ?? defaults.bubble.bubbleProvider,
-      bubbleList: {
-        ...defaults.bubble.bubbleList,
-        ...withoutUndefined(options?.bubble?.bubbleList),
-        roleConfigs: {
-          ...defaults.bubble.bubbleList?.roleConfigs,
-          ...withoutUndefinedRecord(options?.bubble?.bubbleList?.roleConfigs),
-        },
-      },
-    },
-    welcome:
-      options?.welcome === false
-        ? false
-        : {
-            ...welcomeDefaults,
-            ...withoutUndefined(welcomeOverrides),
-            title: welcomeOverrides?.title ?? welcomeDefaults.title,
-            description: welcomeOverrides?.description ?? welcomeDefaults.description,
-          },
-    prompts:
-      options?.prompts === false
-        ? false
-        : {
-            ...defaults.prompts,
-            ...withoutUndefined(promptsOverrides),
-            items: [...(promptsOverrides?.items ?? defaults.prompts.items)],
-          },
-    sender:
-      options?.sender === false
-        ? false
-        : {
-            ...defaults.sender,
-            ...withoutUndefined(senderOverrides),
-            clearOnSubmit: senderOverrides?.clearOnSubmit ?? defaults.sender.clearOnSubmit,
-            onInput: senderOverrides?.onInput ?? noop,
-            onFocus: senderOverrides?.onFocus ?? noop,
-            onBlur: senderOverrides?.onBlur ?? noop,
-          },
-    model:
-      options?.model === false
-        ? false
-        : {
-            onSelect: options?.model?.onSelect ?? noop,
-            onFeatureChange: options?.model?.onFeatureChange ?? noop,
-          },
-    mcp:
-      options?.mcp === false
-        ? false
-        : {
-            onAddServer: options?.mcp?.onAddServer ?? noop,
-            onRemoveServer: options?.mcp?.onRemoveServer ?? noop,
-            onServerEnabledChange: options?.mcp?.onServerEnabledChange ?? noop,
-            onToolEnabledChange: options?.mcp?.onToolEnabledChange ?? noop,
-          },
+    ...nextDefaults,
+    ...withoutUndefined(options),
+    title: options?.title ?? nextDefaults.title,
+    description: options?.description ?? nextDefaults.description,
+  }
+}
+
+function resolvePrompts(
+  defaults: DefaultChatUIOptions['prompts'],
+  options: false | ChatPromptsOptions | undefined,
+): false | ResolvedChatPromptsOptions {
+  if (options === false) {
+    return false
+  }
+
+  return {
+    ...defaults,
+    ...withoutUndefined(options),
+    items: [...(options?.items ?? defaults.items)],
+  }
+}
+
+function resolveSender(
+  defaults: DefaultChatUIOptions['sender'],
+  options: false | ChatSenderOptions | undefined,
+): false | ResolvedChatSenderOptions {
+  if (options === false) {
+    return false
+  }
+
+  return {
+    ...defaults,
+    ...withoutUndefined(options),
+    clearOnSubmit: options?.clearOnSubmit ?? defaults.clearOnSubmit,
+    onInput: options?.onInput ?? noop,
+    onFocus: options?.onFocus ?? noop,
+    onBlur: options?.onBlur ?? noop,
+  }
+}
+
+function resolveModel(options: false | ChatModelOptions | undefined): false | ResolvedChatModelOptions {
+  if (options === false) {
+    return false
+  }
+
+  return {
+    onSelect: options?.onSelect ?? noop,
+    onFeatureChange: options?.onFeatureChange ?? noop,
+  }
+}
+
+function resolveMcp(options: false | ChatMcpOptions | undefined): false | ResolvedChatMcpOptions {
+  if (options === false) {
+    return false
+  }
+
+  return {
+    onAddServer: options?.onAddServer ?? noop,
+    onRemoveServer: options?.onRemoveServer ?? noop,
+    onServerEnabledChange: options?.onServerEnabledChange ?? noop,
+    onToolEnabledChange: options?.onToolEnabledChange ?? noop,
   }
 }
 

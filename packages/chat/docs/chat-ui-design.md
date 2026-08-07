@@ -2,11 +2,10 @@
 
 ## 1. 文档状态
 
-- 状态：设计已确认，待实施。
-- 范围：定义 `TrChatUI` 的公共契约、职责边界、默认行为和交互不变量。
-- 实施方案：[chat-ui-implementation.md](./chat-ui-implementation.md)。
+- 状态：已按当前 `src` 实现同步。
+- 范围：定义 `TrChatUI` 的公共契约、职责边界、默认行为、Slots 和交互不变量。
 - 兼容策略：当前处于开发阶段，不保留旧 ChatUI API 兼容层。
-- 非范围：本阶段不调整 `ChatRuntime` 核心协议，不增加统一事件系统。
+- 非范围：不调整 `ChatRuntime` 核心协议，不增加统一事件系统。
 
 ## 2. 设计结论
 
@@ -164,6 +163,8 @@ export type ChatMcpToolMap = Readonly<
 - Data 不包含 Vue Ref、Runtime 类型、controller 或操作方法。
 - Props 只读，ChatUI 不直接修改调用方 Data。
 - Model/MCP 未提供时不渲染对应控件。
+- `ui.model === false` 时强制不渲染 Model 控件。
+- `ui.mcp === false` 时强制不渲染 MCP 控件。
 - Pending 状态由 adapter 映射到 Data。
 - `metadata` 仅用于 UI 扩展信息。
 
@@ -263,7 +264,6 @@ export interface ChatAsideOptions {
 
 export interface ChatRightAsideOptions extends ChatAsideOptions {
   open?: boolean
-  title?: string
   showClose?: boolean
   onOpenChange?: (payload: { open: boolean }) => void
 }
@@ -377,6 +377,7 @@ export interface ChatMcpOptions {
 - ChatUI 不等待 callback 返回值。
 - Model callbacks 归属 `ui.model`。
 - MCP callbacks 归属 `ui.mcp`。
+- `ui.model` 和 `ui.mcp` 为 `false` 时同时关闭对应 UI 和交互。
 - Model/MCP callback 缺失时只保持当前 Data，不伪造成功状态。
 
 ## 7. 根级 Emits
@@ -395,26 +396,6 @@ export interface ChatUIEmits {
 ```
 
 根 Emits 只表达页面级意图。
-
-不保留以下根 Emits：
-
-```txt
-update:composerValue
-focus
-blur
-historyAction
-promptClick
-bubbleStateChange
-bubbleEvent
-selectModel
-updateModelFeature
-addMcpServer
-removeMcpServer
-loadMcpTools
-updateMcpServerEnabled
-updateMcpToolEnabled
-rightAsideOpenChange
-```
 
 本阶段不增加统一 `event` emit。
 
@@ -538,11 +519,12 @@ MCP tools 加载流程：
 
 | Slot | 用途 |
 | --- | --- |
-| `header` | 替换 Header 内容 |
-| `left-aside` | 替换左侧栏内部内容 |
-| `main` | 替换消息主区域 |
-| `footer` | 替换 Sender 区域 |
-| `right-aside` | 提供右侧栏内容 |
+| `layout-header` | 替换 Header 内容 |
+| `layout-left-aside` | 替换左侧栏内部内容 |
+| `layout-main` | 替换消息主区域 |
+| `layout-footer` | 替换 Sender 区域 |
+| `layout-right-aside` | 提供右侧栏内容 |
+| `layout-right-aside-title` | 自定义右侧栏标题 |
 
 ### 11.2 扩展 Slots
 
@@ -557,15 +539,15 @@ MCP tools 加载流程：
 | `bubble-content-footer` | Bubble content footer |
 | `sender-footer` | Sender footer |
 | `sender-footer-right` | Sender footer-right |
-| `right-aside-title` | 自定义右侧栏标题 |
 
 规则：
 
 - `ChatUI.vue` 使用 `defineSlots<ChatUISlots>()`。
-- Slot Props 只包含普通 Data、UI 状态和根级 UI actions。
-- Slot Props 不暴露 Runtime controller。
-- `right-aside-title` 存在时 Header 必须显示。
-- 不保留右侧栏硬编码默认标题。
+- 当前 Slots 不暴露 slot props。
+- Slots 不暴露 Runtime controller。
+- `layout-right-aside` slot 存在且 `ui.layout.rightAside` 未显式配置时，自动启用默认右栏。
+- `layout-right-aside-title` 用于替换右栏标题；未提供时使用 `labels.rightAsideTitle`。
+- `ui.layout.rightAside.showClose` 控制关闭按钮。
 
 ## 12. 响应式不变量
 
@@ -626,11 +608,11 @@ src/
     defaults.ts
     resolveData.ts
     resolveOptions.ts
-    ChatAside.vue
+    ChatLeftAside.vue
     ChatComposer.vue
     ChatHeader.vue
     ChatMessages.vue
-    ChatRightAsidePanel.vue
+    ChatRightAside.vue
   types/
     ui/
       data.ts
@@ -645,8 +627,8 @@ src/
 - `ChatUI.vue`：页面组合、根 emits、callback 和 slots 连接。
 - `ChatComposer.vue`：Sender 内容命令、Sender callbacks、Model/MCP footer 组合。
 - `ChatMessages.vue`：Welcome、Prompts、Bubble 和滚动映射。
-- `ChatAside.vue`：History 展示和会话意图。
-- `ChatRightAsidePanel.vue`：右侧栏容器、标题和关闭操作。
+- `ChatLeftAside.vue`：History 展示和会话意图。
+- `ChatRightAside.vue`：右侧栏容器、标题 slot 和关闭操作。
 - `resolveData.ts`：解析默认 Data。
 - `resolveOptions.ts`：显式解析 UI Options。
 - `Chat.vue`：Runtime adapter 和 Model/MCP 内置编排。

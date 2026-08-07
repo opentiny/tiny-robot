@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
 import ConfiguredCase from './ConfiguredCase.vue'
-import ControlledCase from './ControlledCase.vue'
+import DataCase from './DataCase.vue'
 import DefaultCase from './DefaultCase.vue'
 
 const cases = [
   { id: 'default', label: 'Default', component: DefaultCase },
   { id: 'configured', label: 'Configured', component: ConfiguredCase },
-  { id: 'controlled', label: 'Controlled', component: ControlledCase },
+  { id: 'data', label: 'Data', component: DataCase },
 ] as const
 const activeCaseId = shallowRef<(typeof cases)[number]['id']>('default')
+const activeCase = computed(() => cases.find((item) => item.id === activeCaseId.value) ?? cases[0])
 </script>
 
 <template>
@@ -29,7 +30,7 @@ const activeCaseId = shallowRef<(typeof cases)[number]['id']>('default')
       </button>
     </div>
 
-    <component :is="cases.find((item) => item.id === activeCaseId)?.component" />
+    <component :is="activeCase.component" />
   </div>
 </template>
 

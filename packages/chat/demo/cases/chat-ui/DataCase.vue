@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { computed, reactive, shallowRef } from 'vue'
-import { h } from 'vue'
+import { computed, h, reactive, shallowRef } from 'vue'
 import { IconAi, IconAtom, IconUser } from '@opentiny/tiny-robot-svgs'
 import {
   TrChatUI,
   type ChatConversationInfo,
+  type ChatMcpServerView,
   type ChatMcpToolMap,
   type ChatMessageItem,
   type ChatSubmitPayload,
+  type ChatUIData,
   type ChatUIOptions,
-  type ChatViewState,
 } from '../../../src'
 
 const conversations = shallowRef<ChatConversationInfo[]>([
@@ -39,7 +39,7 @@ const modelFeatures = shallowRef<Record<string, boolean>>({
   thinking: true,
   search: false,
 })
-const mcpServers = shallowRef([
+const mcpServers = shallowRef<ChatMcpServerView[]>([
   {
     id: 'model-context-protocol-mcp',
     name: 'Model Context Protocol MCP',
@@ -74,14 +74,17 @@ const activeConversation = computed(
 const messages = computed(() => messagesByConversation[activeConversationId.value] ?? [])
 const aiAvatar = h(IconAi, { style: { fontSize: '28px' } }) as never
 const userAvatar = h(IconUser, { style: { fontSize: '28px' } }) as never
-const state = computed<ChatViewState>(() => ({
+const data = computed<ChatUIData>(() => ({
   conversation: {
     items: conversations.value,
     activeId: activeConversationId.value,
     title: activeConversation.value?.title || '新对话',
   },
-  messages: messages.value,
-  composer: {
+  bubble: {
+    messages: messages.value,
+  },
+  sender: {
+    inputValue: inputValue.value,
     loading: loading.value,
     disabled: disabled.value,
     submitDisabled: inputValue.value.trim().length === 0,
@@ -126,6 +129,13 @@ const ui = computed<ChatUIOptions>(() => ({
     contentMaxWidth: 980,
     panelPadding: 12,
     panelGap: 12,
+    rightAside: {
+      width: 320,
+      defaultOpen: true,
+      onOpenChange: ({ open }) => {
+        console.info('[ChatUI demo] right aside open:', open)
+      },
+    },
   },
   prompts: {
     wrap: true,
@@ -134,8 +144,11 @@ const ui = computed<ChatUIOptions>(() => ({
       { id: 'vue', label: '生成一个 Vue 组件示例' },
       { id: 'boundary', label: '解释 runtime 和 UI 的职责' },
     ],
+    onItemClick: (_event, item) => {
+      console.info('[ChatUI demo] prompt:', item.id)
+    },
   },
-  messages: {
+  bubble: {
     autoScroll: true,
     bubbleList: {
       roleConfigs: {
@@ -143,21 +156,104 @@ const ui = computed<ChatUIOptions>(() => ({
         assistant: { placement: 'start', avatar: aiAvatar },
         system: { hidden: true },
       },
+      onStateChange: (payload) => {
+        console.info('[ChatUI demo] bubble state:', payload)
+      },
+      onBubbleEvent: (payload) => {
+        console.info('[ChatUI demo] bubble event:', payload)
+      },
     },
   },
-  composer: {
-    sender: {
-      mode: 'multiple',
-      clearable: true,
-      maxLength: 1000,
-      placeholder: loading.value ? '思考中...' : '请输入你的问题...',
-      showWordLimit: true,
+  sender: {
+    mode: 'multiple',
+    clearable: true,
+    maxLength: 1000,
+    placeholder: loading.value ? '思考中...' : '请输入你的问题...',
+    showWordLimit: true,
+    onInput: (value) => {
+      inputValue.value = value
+    },
+  },
+  model: {
+    onSelect: ({ id }) => {
+      selectedModelId.value = id
+    },
+    onFeatureChange: ({ id, enabled }) => {
+      modelFeatures.value = {
+        ...modelFeatures.value,
+        [id]: enabled,
+      }
+    },
+  },
+  mcp: {
+    onAddServer: ({ id }) => {
+      updateServer(id, { installed: true, enabled: true })
+      loadMcpTools(id)
+    },
+    onRemoveServer: ({ id }) => {
+      updateServer(id, { installed: false, enabled: false })
+    },
+    onServerEnabledChange: ({ id, enabled }) => {
+      updateServer(id, { enabled })
+
+      if (enabled) {
+        loadMcpTools(id)
+      }
+    },
+    onToolEnabledChange: ({ serverId, toolId, enabled }) => {
+      mcpTools.value = {
+        ...mcpTools.value,
+        [serverId]: (mcpTools.value[serverId] ?? []).map((tool) => (tool.id === toolId ? { ...tool, enabled } : tool)),
+      }
     },
   },
 }))
 
 function updateServer(id: string, patch: Partial<(typeof mcpServers.value)[number]>) {
   mcpServers.value = mcpServers.value.map((server) => (server.id === id ? { ...server, ...patch } : server))
+}
+
+function loadMcpTools(serverId: string) {
+  if (mcpTools.value[serverId]) {
+    return
+  }
+
+  mcpTools.value = {
+    ...mcpTools.value,
+    [serverId]: [{ id: 'open', name: 'Open', description: 'Open a page.', enabled: true }],
+  }
+}
+
+function toggleMessages() {
+  const conversationId = activeConversationId.value
+
+  if (!conversationId) {
+    return
+  }
+
+  if ((messagesByConversation[conversationId] ?? []).length > 0) {
+    messagesByConversation[conversationId] = []
+    return
+  }
+
+  messagesByConversation[conversationId] = [
+    { id: `user-${Date.now()}`, role: 'user', content: '这是一条用于验证空态切换的消息。' },
+    { id: `assistant-${Date.now()}`, role: 'assistant', content: '收到，当前已切换到消息态。' },
+  ]
+}
+
+function togglePendingFeature() {
+  pendingFeatureIds.value = pendingFeatureIds.value.length > 0 ? [] : ['thinking']
+}
+
+function toggleMcpServerLoading() {
+  const server = mcpServers.value.find((item) => item.id === 'browser')
+
+  if (!server) {
+    return
+  }
+
+  updateServer(server.id, { loading: !server.loading })
 }
 
 function createConversation() {
@@ -217,55 +313,11 @@ function submit(payload: ChatSubmitPayload) {
   )
   inputValue.value = ''
 }
-
-function selectModel(payload: { id: string | null }) {
-  selectedModelId.value = payload.id
-}
-
-function updateModelFeature(payload: { id: string; enabled: boolean }) {
-  modelFeatures.value = {
-    ...modelFeatures.value,
-    [payload.id]: payload.enabled,
-  }
-}
-
-function addMcpServer(payload: { id: string }) {
-  updateServer(payload.id, { installed: true, enabled: true })
-}
-
-function removeMcpServer(payload: { id: string }) {
-  updateServer(payload.id, { installed: false, enabled: false })
-}
-
-function loadMcpTools(payload: { serverId: string }) {
-  if (mcpTools.value[payload.serverId]) {
-    return
-  }
-
-  mcpTools.value = {
-    ...mcpTools.value,
-    [payload.serverId]: [{ id: 'open', name: 'Open', description: 'Open a page.', enabled: true }],
-  }
-}
-
-function updateMcpServerEnabled(payload: { id: string; enabled: boolean }) {
-  updateServer(payload.id, { enabled: payload.enabled })
-}
-
-function updateMcpToolEnabled(payload: { serverId: string; toolId: string; enabled: boolean }) {
-  mcpTools.value = {
-    ...mcpTools.value,
-    [payload.serverId]: (mcpTools.value[payload.serverId] ?? []).map((tool) =>
-      tool.id === payload.toolId ? { ...tool, enabled: payload.enabled } : tool,
-    ),
-  }
-}
 </script>
 
 <template>
   <TrChatUI
-    v-model:composer-value="inputValue"
-    :state="state"
+    :data="data"
     :ui="ui"
     @create-conversation="createConversation"
     @switch-conversation="switchConversation"
@@ -274,12 +326,102 @@ function updateMcpToolEnabled(payload: { serverId: string; toolId: string; enabl
     @submit="submit"
     @cancel="loading = false"
     @clear="inputValue = ''"
-    @select-model="selectModel"
-    @update-model-feature="updateModelFeature"
-    @add-mcp-server="addMcpServer"
-    @remove-mcp-server="removeMcpServer"
-    @load-mcp-tools="loadMcpTools"
-    @update-mcp-server-enabled="updateMcpServerEnabled"
-    @update-mcp-tool-enabled="updateMcpToolEnabled"
-  />
+  >
+    <template #layout-right-aside-title>
+      <span class="data-title">Data Case</span>
+    </template>
+
+    <template #layout-right-aside>
+      <aside class="data-panel">
+        <strong>普通 Data 驱动</strong>
+        <span>Model、MCP、messages、sender 状态都来自本地 refs/computed。</span>
+
+        <div class="data-panel__controls">
+          <button type="button" @click="toggleMessages">
+            {{ messages.length > 0 ? '切换为空态' : '切换为消息态' }}
+          </button>
+          <button type="button" @click="loading = !loading">
+            {{ loading ? '关闭 loading' : '开启 loading' }}
+          </button>
+          <button type="button" @click="disabled = !disabled">
+            {{ disabled ? '关闭 disabled' : '开启 disabled' }}
+          </button>
+          <button type="button" @click="selectingModel = !selectingModel">
+            {{ selectingModel ? '关闭 model selecting' : '开启 model selecting' }}
+          </button>
+          <button type="button" @click="togglePendingFeature">
+            {{ pendingFeatureIds.length > 0 ? '关闭 feature pending' : '开启 feature pending' }}
+          </button>
+          <button type="button" @click="toggleMcpServerLoading">切换 MCP loading</button>
+        </div>
+      </aside>
+    </template>
+
+    <template #welcome-footer>
+      <span class="data-slot-tip">Welcome footer slot</span>
+    </template>
+
+    <template #prompts-footer>
+      <span class="data-slot-tip">Prompts footer slot</span>
+    </template>
+
+    <template #bubble-prefix>
+      <span class="data-bubble-tip">Bubble prefix slot</span>
+    </template>
+
+    <template #bubble-suffix>
+      <span class="data-bubble-tip">Bubble suffix slot</span>
+    </template>
+
+    <template #bubble-after>
+      <span class="data-bubble-tip">Bubble after slot</span>
+    </template>
+
+    <template #bubble-content-footer>
+      <span class="data-bubble-tip">Bubble content footer slot</span>
+    </template>
+  </TrChatUI>
 </template>
+
+<style scoped>
+.data-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tr-text-primary);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-panel {
+  display: grid;
+  gap: 8px;
+  color: var(--tr-text-secondary);
+  font-size: 13px;
+}
+
+.data-panel__controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.data-panel__controls button {
+  height: 28px;
+  border: 1px solid var(--tr-border-color-default);
+  border-radius: 6px;
+  background: var(--tr-container-bg-default);
+  color: var(--tr-text-primary);
+  cursor: pointer;
+}
+
+.data-bubble-tip {
+  color: var(--tr-text-tertiary);
+  font-size: 12px;
+}
+
+.data-slot-tip {
+  color: var(--tr-text-tertiary);
+  font-size: 12px;
+}
+</style>

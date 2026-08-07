@@ -163,8 +163,7 @@ defineExpose({
         @blur="handleBlur"
       >
         <template v-if="$slots['sender-footer'] || model || mcp" #footer>
-          <slot v-if="$slots['sender-footer']" name="sender-footer" />
-          <div v-else class="model-actions">
+          <div v-if="model || mcp" class="model-actions">
             <MCPSelector
               v-if="mcp"
               :mcp="mcp"
@@ -177,6 +176,7 @@ defineExpose({
             <ModelSelector v-if="model" :model="model" :labels="labels" @select-model="handleSelectModel" />
             <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
           </div>
+          <slot name="sender-footer" />
         </template>
         <template v-if="$slots['sender-footer-right']" #footer-right>
           <slot name="sender-footer-right" />

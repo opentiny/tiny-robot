@@ -50,6 +50,8 @@ const historyOptions = computed(() =>
 const senderOptions = computed(() =>
   resolvedOptions.value.sender === false ? undefined : resolvedOptions.value.sender,
 )
+const visibleModel = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedData.value.model))
+const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefined : resolvedData.value.mcp))
 const isSenderVisible = computed(() => resolvedOptions.value.sender !== false)
 const isLeftAsideVisible = computed(() => leftAsideLayout.value !== false)
 const isRightAsideVisible = computed(() => rightAsideLayout.value !== false)
@@ -364,8 +366,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           :sender="resolvedData.sender"
           :sender-options="senderOptions"
           :labels="resolvedOptions.labels"
-          :model="resolvedData.model"
-          :mcp="resolvedData.mcp"
+          :model="visibleModel"
+          :mcp="visibleMcp"
           :model-options="resolvedOptions.model"
           :mcp-options="resolvedOptions.mcp"
           @submit="handleSubmit"

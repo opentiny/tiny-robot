@@ -7,6 +7,14 @@ const ui = computed<ChatUIOptions>(() => ({
     contentMaxWidth: 860,
     panelPadding: 16,
     panelGap: 10,
+    leftAside: {
+      width: 260,
+      collapsedWidth: 52,
+    },
+    rightAside: {
+      width: 280,
+      defaultOpen: true,
+    },
   },
   brand: {
     name: 'TinyRobot Lab',
@@ -16,34 +24,25 @@ const ui = computed<ChatUIOptions>(() => ({
     createConversation: '新建实验',
     composerPlaceholder: '只传 ui 时也可以输入...',
     welcomeTitle: '配置化 ChatUI',
-    welcomeDescription: '这个场景只覆盖 ui，不传 state，也不接入任何数据层。',
-  },
-  leftAside: {
-    width: 260,
-    collapsedWidth: 52,
+    welcomeDescription: '这个场景只覆盖 ui，不传 data，也不接入任何数据层。',
+    rightAsideTitle: '配置说明',
   },
   history: false,
   prompts: false,
-  messages: {
+  bubble: {
     autoScroll: false,
   },
-  composer: {
+  sender: {
     clearOnSubmit: false,
-    sender: {
-      maxLength: 200,
-      showWordLimit: true,
-    },
-  },
-  rightAside: {
-    width: 280,
-    defaultOpen: true,
+    maxLength: 200,
+    showWordLimit: true,
   },
 }))
 </script>
 
 <template>
   <TrChatUI :ui="ui">
-    <template #notice>
+    <template #header-notice>
       <p class="configured-notice">UI-only configured case</p>
     </template>
 
@@ -51,10 +50,10 @@ const ui = computed<ChatUIOptions>(() => ({
       <p class="configured-hint">Welcome footer slot is supplied by the caller.</p>
     </template>
 
-    <template #right-aside>
+    <template #layout-right-aside>
       <aside class="configured-aside">
         <strong>Right Aside Slot</strong>
-        <span>Enabled by slot + ui.rightAside.</span>
+        <span>Enabled by slot + ui.layout.rightAside.</span>
       </aside>
     </template>
   </TrChatUI>
