@@ -2,7 +2,7 @@
 
 ## 分层
 
-`ChatRuntime` 是 `TrChat` 的数据与动作协议，不是底层消息引擎协议。
+`ChatRuntime` 承载聊天业务运行时，但不承载 Provider、凭证、Transport 等基础设施。
 
 ```txt
 业务数据层 / Kit / 自研 Store
@@ -15,11 +15,11 @@
 | 层级 | 职责 |
 | --- | --- |
 | `ChatRuntime` | 提供会话、消息、请求状态、Composer 状态和业务动作 |
-| `TrChat` | 适配 Runtime、管理输入、编排 Model/MCP 动作、生成 `runConfig` |
+| `TrChat` | UI 桥接、输入草稿、Prompt 回填、发送失败恢复、数据映射和临时视觉 pending |
 | `TrChatUI` | 消费普通 Data 和 UI Options，不依赖 Runtime |
-| 业务数据层 | Provider、凭证、模型私有参数、MCP 连接、Tool 调用和消息引擎配置 |
+| 业务数据层 | Provider、凭证、模型私有参数、MCP 连接、Tool 加载、Tool 调用和消息引擎配置 |
 
-`ChatRuntime` 不依赖具体 UI 组件，`TrChatUI` 不依赖 Runtime，`TrChat` 是二者之间的默认装配层。
+`TrChat` 不负责 MCP 自动加载、发送资格判定、业务去重或 `runConfig` 构造。
 
 ## 核心协议
 
@@ -44,7 +44,7 @@ export interface ChatRuntime {
 }
 
 export interface ChatRuntimeActions {
-  send: (payload: ChatRuntimeSubmitPayload) => Promise<void> | void
+  send: (payload: ChatSubmitPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
   createConversation: (payload?: {
     title?: string
@@ -58,64 +58,83 @@ export interface ChatRuntimeActions {
 
 `conversations` 只提供会话摘要，`activeConversation` 提供当前会话的消息、请求状态、处理状态和错误。
 
-### Composer
+`send()` 返回值：
+
+- `true`：Runtime 已接受发送，并已开始创建消息或请求。
+- `false`：空文本、`disabled`、`submitDisabled` 或 MCP 未准备完成，未创建消息。
+- reject：消息引擎、网络或业务请求失败。
+
+## Composer
 
 ```ts
 export interface ChatComposerRuntime {
   disabled?: ChatReadable<boolean>
-  runConfig?: ChatReadable<Readonly<ChatRunConfigExtras>>
+  submitDisabled?: ChatReadable<boolean>
   model?: ChatModelRuntime
   mcp?: ChatMcpRuntime
 }
-
-export interface ChatRunConfigExtras {
-  reasoning?: ChatRunConfigReasoning
-}
 ```
-
-`composer` 可以为空对象。它描述下一轮发送所需的状态，不保存输入框草稿。
 
 | 字段 | 语义 |
 | --- | --- |
-| `disabled` | 业务主动禁用 Sender，可省略 |
-| `model` | Model 列表、当前选择、feature 状态及修改动作 |
+| `disabled` | 整个输入区域不可用 |
+| `submitDisabled` | 可以继续输入，但暂时不能提交 |
+| `model` | Model 列表、当前选择、feature 状态、reasoning 状态及修改动作 |
 | `mcp` | MCP Server、Tool 状态及修改动作 |
-| `runConfig` | 无法从 Model/MCP 通用推导的补充配置，目前仅包含 `reasoning` |
 
-`composer.runConfig` 不能覆盖由 `model` 和 `mcp` 派生的字段。
+`useKitChatRuntime` 会统一派生最终 `submitDisabled`：
 
-## 状态归属
-
-| 状态 | 归属 |
-| --- | --- |
-| 会话列表、当前会话、消息、请求状态、错误 | `ChatRuntime` |
-| 输入草稿、Prompt 回填、提交清空、失败恢复 | `TrChat` |
-| Model 选择、feature 开关 | `ChatModelRuntime` |
-| Model selecting、feature pending | `TrChat` 内部状态 |
-| MCP Server/Tool 选择状态 | `ChatMcpRuntime` |
-| MCP Server pending、Tool pending | `TrChat` 内部状态 |
-| 已安装且启用 Server 的 Tool 自动加载 | `TrChat` |
-| Provider、凭证、URL、Headers、Transport、Tool schema、Tool call | 业务数据层 |
-
-Model 和 MCP Runtime 保存稳定业务状态，`TrChat` 只保存当前 UI 操作产生的临时 pending 状态。
-
-## Sender 禁用规则
-
-Sender 在以下任一条件成立时禁用：
-
-```txt
-composer.disabled?.value === true
-或
-存在已安装且启用、但 Tool 尚未就绪的 MCP Server
+```ts
+const submitDisabled = computed(
+  () => Boolean(source.submitDisabled?.value) || !areEnabledMcpToolsReady(source.mcp),
+)
 ```
 
-`composer.disabled` 用于业务限制；MCP 就绪状态由 `TrChat` 自动判断，业务侧不需要重复派生。
+自定义 Runtime 也必须保证 `submitDisabled` 覆盖所有发送前置条件。
+
+## Model Runtime
+
+```ts
+export interface ChatModelRuntime {
+  options: ChatReadable<readonly ChatModelOption[]>
+  selectedId: ChatReadable<string | null>
+  features: ChatReadable<Readonly<Record<string, boolean>>>
+  reasoning?: ChatReadable<ChatRunConfigReasoning>
+  select: (id: string | null) => Promise<void> | void
+  setFeature: (id: string, enabled: boolean) => Promise<void> | void
+}
+```
+
+`reasoning` 是模型能力状态，属于 Model Runtime，不属于 Composer 补充配置。
+
+## MCP Runtime
+
+```ts
+export interface ChatMcpRuntime {
+  servers: ChatReadable<readonly ChatMcpServerInfo[]>
+  tools: ChatReadable<ChatMcpToolState>
+  addServer: (id: string) => Promise<void> | void
+  removeServer: (id: string) => Promise<void> | void
+  setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
+  setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
+}
+```
+
+MCP Tool 加载是 Server 生命周期的一部分，不作为公开 Runtime 动作暴露给 `TrChat`。
+
+约束：
+
+- `addServer()` 内部负责安装、启用并加载 Tool。
+- `setServerEnabled(id, true)` 内部负责加载 Tool。
+- `setServerEnabled(id, false)` 不删除 Tool 选择。
+- `removeServer()` 清理当前 Server 的 Tool 状态。
+- adapter 内部负责并发去重。
+- 加载失败时更新 Server 状态并抛出错误。
+- adapter 初始化时必须确保每个 `installed && enabled` 的 Server 已有 Tool 条目，或已处于 `loading` 状态。
 
 ## RunConfig
 
-### 数据结构
-
-`ChatRunConfig` 是发送瞬间生成的只读快照，只包含当前轮请求需要的通用上下文。
+`ChatRunConfig` 是消息请求快照，不是 `send()` 参数。
 
 ```ts
 export interface ChatRunConfig {
@@ -131,55 +150,41 @@ export interface ChatMcpRunConfig {
 }
 ```
 
-`runConfig` 不保存 Provider API Key、URL、Headers、Transport、完整 Tool schema 或 UI 配置。
+`ChatRunConfig` 不保存 Provider API Key、URL、Headers、Transport、完整 Tool schema 或 UI 配置。
 
-### 字段来源
+字段来源：
 
 | 字段 | 来源 |
 | --- | --- |
 | `modelId` | `composer.model.selectedId.value` |
 | `features` | `composer.model.features.value` 的浅拷贝 |
-| `reasoning` | `composer.runConfig.value.reasoning` |
+| `reasoning` | `composer.model.reasoning.value` |
 | `mcp.serverIds` | `composer.mcp.servers.value` 中 `installed && enabled` 的 Server |
 | `mcp.toolIds` | 对应 Server 下启用的 Tool |
 
-当 `composer` 不包含 Model、MCP 或补充配置时，最终 `runConfig` 为 `undefined`。存在 Model Runtime 时，即使当前 `selectedId` 为空，也会生成 Model feature 快照。
-
-### 发送流程
-
-```txt
-用户提交
-  -> TrChat 读取 composer
-  -> 生成并 clone ChatRunConfig
-  -> runtime.actions.send({ text, runConfig })
-  -> Runtime 执行当前轮请求
-```
-
-`useKitChatRuntime` 的默认发送实现会把快照写入用户消息 metadata。通过 `TrChat` 之外的入口直接调用其 `actions.send` 时，如果 payload 未提供 `runConfig`，adapter 会从当前 Composer 补充生成。
-
-自定义 Runtime 从 `ChatRuntimeSubmitPayload.runConfig` 获取快照，并自行决定如何传递或持久化。读取 Kit 消息中的快照时使用公开的 `readRunConfigFromMessage()`。
+`useKitChatRuntime` 是默认 Kit adapter 的发送入口，负责生成 `ChatRunConfig`、clone 快照并写入用户消息 metadata。读取 Kit 消息中的快照时使用公开的 `readRunConfigFromMessage()`。
 
 快照中的对象和数组会被复制。发送后切换 Model、feature、MCP Server 或 Tool，只影响下一轮请求。
 
-## MCP 就绪规则
+## 发送流程
 
-参与当前轮的 Server 必须同时满足：
+```txt
+ChatUI submit
+  -> TrChat 保存草稿并调用 runtime.actions.send({ text, structuredData })
+  -> Runtime 检查发送资格
+  -> Runtime 读取 Model/MCP 当前状态
+  -> Runtime 生成并 clone ChatRunConfig
+  -> Kit 写入用户消息 metadata
+  -> plugins 读取当前轮快照
+  -> Engine 请求与流式更新
+  -> activeConversation 更新
+  -> TrChat 映射回 ChatUI
+```
 
-- `installed === true`
-- `enabled === true`
-- `loading !== true`
-- `tools` 存在该 `serverId` 自有属性
+发送未接受或失败时：
 
-`tools[serverId] = []` 表示加载已完成，但该 Server 没有 Tool；缺少 `serverId` 属性表示尚未完成加载。
-
-存在未就绪的启用 Server 时：
-
-- `runConfig.mcp` 为 `undefined`。
-- Sender 自动禁用。
-- `TrChat` 自动调用 `mcp.loadTools(serverId)`。
-- `TrChat` 维护 Server 和 Tool 的 pending 状态。
-
-禁用 Server 不修改其 Tool 选择状态。重新启用后复用原选择，并在 Tool 数据缺失时重新加载。
+- `false`：`TrChat` 恢复草稿，不修改 `lastError`。
+- reject：Runtime 更新 `activeConversation.lastError`，`TrChat` 恢复草稿。
 
 ## 接入方式
 
@@ -210,14 +215,11 @@ const runtime = useLocalChatRuntime({
   composer: {
     model: model.model,
     mcp: mcp.mcp,
-    runConfig: computed(() => ({
-      reasoning: model.reasoning.value,
-    })),
   },
 })
 ```
 
-`useLocalChatRuntime` 默认启用消息自动保存。Provider、Model 和 MCP 的业务 adapter 仍由项目提供。
+Provider、Model 和 MCP 的业务 adapter 由项目提供。
 
 ### 已有 Kit conversation
 
@@ -232,4 +234,4 @@ const runtime = useKitChatRuntime({
 
 ### 自定义 Runtime
 
-自定义数据层提供协议要求的响应式状态和动作。`send` 负责请求与流式处理，`abort` 负责取消请求，会话动作负责同步对应的数据源。
+自定义数据层提供协议要求的响应式状态和动作。`send` 负责资格校验、快照生成、请求与流式处理，`abort` 负责取消请求，会话动作负责同步对应的数据源。

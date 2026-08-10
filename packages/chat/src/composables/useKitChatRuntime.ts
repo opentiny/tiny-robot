@@ -3,21 +3,31 @@ import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
   ChatConversationInfo,
+  ChatRunConfig,
   ChatRuntime,
-  ChatRuntimeSubmitPayload,
+  ChatSubmitPayload,
   ChatWritable,
 } from '../types'
-import { CHAT_RUN_CONFIG_METADATA_KEY, cloneRunConfig, resolveComposerRunConfig } from '../utils/runConfig'
+import {
+  areEnabledMcpToolsReady,
+  CHAT_RUN_CONFIG_METADATA_KEY,
+  cloneRunConfig,
+  resolveComposerRunConfig,
+} from '../utils/runConfig'
 
 type TitleFallback = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
 type UseKitChatComposerOptions = ChatRuntime['composer']
 
+interface KitRuntimeSendPayload extends ChatSubmitPayload {
+  runConfig?: ChatRunConfig
+}
+
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
   lastError?: ChatWritable<unknown | null>
   titleFallback?: TitleFallback
-  send?: ChatRuntime['actions']['send']
+  send?: (payload: KitRuntimeSendPayload) => Promise<void> | void
   composer?: UseKitChatComposerOptions
 }
 const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
@@ -62,11 +72,18 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     })
   }
 
-  const composer: ChatRuntime['composer'] = composerOptions ?? {}
+  const sourceComposer = composerOptions ?? {}
+  const submitDisabled = computed(
+    () => Boolean(sourceComposer.submitDisabled?.value) || !areEnabledMcpToolsReady(sourceComposer.mcp),
+  )
+  const composer: ChatRuntime['composer'] = {
+    ...sourceComposer,
+    submitDisabled,
+  }
 
   const sendMessage =
     send ??
-    (async (payload: ChatRuntimeSubmitPayload) => {
+    (async (payload: KitRuntimeSendPayload) => {
       const nextText = payload.text.trim()
 
       if (!nextText) {
@@ -98,12 +115,19 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       })
     })
 
-  async function handleSend(payload: ChatRuntimeSubmitPayload) {
+  async function handleSend(payload: ChatSubmitPayload): Promise<boolean> {
+    const text = payload.text.trim()
+
+    if (!text || composer.disabled?.value || composer.submitDisabled?.value) {
+      return false
+    }
+
     let conversationId = conversation.activeConversation.value?.id ?? null
 
     const effectivePayload = {
       ...payload,
-      runConfig: cloneRunConfig(payload.runConfig ?? resolveComposerRunConfig(composer)),
+      text,
+      runConfig: cloneRunConfig(resolveComposerRunConfig(composer)),
     }
 
     try {
@@ -117,6 +141,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
         }
       }
       await task
+      return true
     } catch (error) {
       if (conversationId) {
         conversationErrors.value = {

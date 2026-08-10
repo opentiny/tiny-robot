@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, shallowRef, toRef, watch } from 'vue'
+import { computed, shallowRef, toRef } from 'vue'
 import ChatUI from './ChatUI.vue'
 import { useChatInput } from '@/composables/useChatInput'
-import { areEnabledMcpToolsReady } from '@/utils/runConfig'
 import type {
   ChatMcpServerView,
   ChatMcpToolView,
@@ -28,12 +27,10 @@ const conversationItems = computed(() => runtimeRef.value.conversations.value)
 const activeMessages = computed(() => activeConversation.value?.messages ?? [])
 const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
 const senderDisabled = computed(() => {
-  const composer = runtimeRef.value.composer
-
-  return Boolean(composer.disabled?.value) || !areEnabledMcpToolsReady(composer.mcp)
+  return Boolean(runtimeRef.value.composer.disabled?.value)
 })
+const senderSubmitDisabled = computed(() => Boolean(runtimeRef.value.composer.submitDisabled?.value))
 const currentTitle = computed(() => props.title || activeConversation.value?.title)
-const attemptedToolLoadServerIds = shallowRef<ReadonlySet<string>>(new Set())
 const modelSelecting = shallowRef(false)
 const pendingModelFeatureIds = shallowRef<ReadonlySet<string>>(new Set())
 const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
@@ -101,7 +98,7 @@ const data = computed<ChatUIData>(() => ({
     inputValue: input.inputValue.value,
     loading: requestState.value === 'processing',
     disabled: senderDisabled.value,
-    submitDisabled: false,
+    submitDisabled: senderSubmitDisabled.value,
   },
   model: modelView.value,
   mcp: mcpView.value,
@@ -163,56 +160,6 @@ const adapterUI = computed<ChatUIOptions>(() => {
           },
   }
 })
-
-const toolLoadCandidateIds = computed(() => {
-  const mcp = getRuntimeMcp()
-
-  if (!mcp) {
-    return []
-  }
-
-  return mcp.servers.value
-    .filter(
-      (server) =>
-        server.installed &&
-        server.enabled &&
-        !server.loading &&
-        !Object.prototype.hasOwnProperty.call(mcp.tools.value, server.id),
-    )
-    .map((server) => server.id)
-})
-
-watch(
-  toolLoadCandidateIds,
-  (candidateIds) => {
-    const candidateSet = new Set(candidateIds)
-    attemptedToolLoadServerIds.value = new Set(
-      [...attemptedToolLoadServerIds.value].filter((serverId) => candidateSet.has(serverId)),
-    )
-
-    for (const serverId of candidateIds) {
-      if (attemptedToolLoadServerIds.value.has(serverId)) {
-        continue
-      }
-
-      setToolLoadAttempt(serverId, true)
-      runAdapterAction(`load MCP tools for "${serverId}"`, () => loadMcpToolsIfNeeded(serverId))
-    }
-  },
-  { immediate: true },
-)
-
-function setToolLoadAttempt(serverId: string, attempted: boolean) {
-  const next = new Set(attemptedToolLoadServerIds.value)
-
-  if (attempted) {
-    next.add(serverId)
-  } else {
-    next.delete(serverId)
-  }
-
-  attemptedToolLoadServerIds.value = next
-}
 
 function getRuntimeMcp(): ChatRuntime['composer']['mcp'] {
   return runtimeRef.value.composer.mcp
@@ -310,41 +257,6 @@ async function withMcpToolPending(serverId: string, toolId: string, action: () =
   }
 }
 
-async function loadMcpToolsIfNeeded(serverId: string, options: { allowPending?: boolean } = {}) {
-  const mcp = getRuntimeMcp()
-
-  if (!mcp) {
-    return
-  }
-
-  const server = mcp.servers.value.find((item) => item.id === serverId)
-
-  if (!server || !server.installed || !server.enabled || server.loading) {
-    return
-  }
-
-  if (Object.prototype.hasOwnProperty.call(mcp.tools.value, serverId)) {
-    return
-  }
-
-  await withMcpServerPending(serverId, () => mcp.loadTools(serverId), { allowExisting: options.allowPending })
-}
-
-async function setServerEnabled(id: string, enabled: boolean) {
-  const mcp = getRuntimeMcp()
-
-  if (!mcp) {
-    return
-  }
-
-  await mcp.setServerEnabled(id, enabled)
-
-  if (enabled) {
-    setToolLoadAttempt(id, false)
-    await loadMcpToolsIfNeeded(id, { allowPending: true })
-  }
-}
-
 function handleCreateConversation() {
   runtimeRef.value.actions.createConversation()
 }
@@ -362,7 +274,7 @@ function handleDeleteConversation(payload: { id: string }) {
 }
 
 function handleSubmit(payload: ChatSubmitPayload) {
-  input.send(payload)
+  void input.send(payload)
 }
 
 function handleCancel() {
@@ -402,12 +314,8 @@ function handleAddMcpServer(payload: { id: string }) {
     return
   }
 
-  setToolLoadAttempt(payload.id, false)
   runAdapterAction(`add MCP server "${payload.id}"`, () =>
-    withMcpServerPending(payload.id, async () => {
-      await mcp.addServer(payload.id)
-      await loadMcpToolsIfNeeded(payload.id, { allowPending: true })
-    }),
+    withMcpServerPending(payload.id, () => mcp.addServer(payload.id)),
   )
 }
 
@@ -418,7 +326,6 @@ function handleRemoveMcpServer(payload: { id: string }) {
     return
   }
 
-  setToolLoadAttempt(payload.id, false)
   runAdapterAction(`remove MCP server "${payload.id}"`, () =>
     withMcpServerPending(payload.id, () => mcp.removeServer(payload.id)),
   )
@@ -428,16 +335,12 @@ function handleUpdateMcpServerEnabled(payload: { id: string; enabled: boolean })
   const mcp = getRuntimeMcp()
   const server = mcp?.servers.value.find((item) => item.id === payload.id)
 
-  if (!server || server.enabled === payload.enabled) {
+  if (!mcp || !server || server.enabled === payload.enabled) {
     return
   }
 
-  if (payload.enabled) {
-    setToolLoadAttempt(payload.id, false)
-  }
-
   runAdapterAction(`update MCP server "${payload.id}"`, () =>
-    withMcpServerPending(payload.id, () => setServerEnabled(payload.id, payload.enabled)),
+    withMcpServerPending(payload.id, () => mcp.setServerEnabled(payload.id, payload.enabled)),
   )
 }
 

@@ -68,7 +68,6 @@ const runtime = useLocalChatRuntime({
   composer: {
     model: model.model,
     mcp: mcp.mcp,
-    runConfig: computed(() => ({ reasoning: model.reasoning.value })),
   },
   titleFallback: cliBasicTitleFallback,
 })

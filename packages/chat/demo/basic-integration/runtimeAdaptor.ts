@@ -54,6 +54,13 @@ export function useRuntimeAdaptor() {
 
     selectedId: computed(() => selectedModelId.value),
 
+    features: computed(() => ({
+      thinking: Boolean(selectedModel.value?.capabilities.thinking && featureState.thinking),
+      search: Boolean(selectedModel.value?.capabilities.search && featureState.search),
+    })),
+
+    reasoning,
+
     select(id) {
       if (id !== null && !modelDefinitions.some((item) => item.id === id)) {
         throw new Error(`Unknown model: ${id}`)
@@ -61,11 +68,6 @@ export function useRuntimeAdaptor() {
 
       selectedModelId.value = id
     },
-
-    features: computed(() => ({
-      thinking: Boolean(selectedModel.value?.capabilities.thinking && featureState.thinking),
-      search: Boolean(selectedModel.value?.capabilities.search && featureState.search),
-    })),
 
     setFeature(id, enabled) {
       if (id !== 'thinking' && id !== 'search') {
@@ -83,7 +85,6 @@ export function useRuntimeAdaptor() {
   const composer: ChatRuntime['composer'] = {
     model,
     mcp: mcpBridge.mcp,
-    runConfig: computed(() => ({ reasoning: reasoning.value })),
   }
 
   return {

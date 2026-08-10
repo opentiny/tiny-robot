@@ -4,24 +4,27 @@ import type { ChatConversation, ChatConversationInfo, ChatMcpRuntime, ChatModelR
 const conversations = shallowRef<readonly ChatConversationInfo[]>([])
 const activeConversation = shallowRef<ChatConversation | null>(null)
 const actions: ChatRuntime['actions'] = {
-  send: async () => {},
+  send: async () => true,
   createConversation: async () => {},
   switchConversation: async () => {},
   renameConversation: async () => {},
   deleteConversation: async () => {},
 }
 
+const features = shallowRef({ thinking: true, search: false })
+const reasoning = computed(() => ({
+  enabled: Boolean(features.value.thinking),
+  effort: features.value.thinking ? ('high' as const) : undefined,
+}))
+
 const model: ChatModelRuntime = {
   options: shallowRef([{ id: 'deepseek-chat', label: 'DeepSeek Chat' }]),
   selectedId: shallowRef<string | null>('deepseek-chat'),
+  features,
+  reasoning,
   select: async () => {},
-  features: shallowRef({ thinking: true, search: false }),
   setFeature: async () => {},
 }
-const reasoning = computed(() => ({
-  enabled: Boolean(model.features.value.thinking),
-  effort: model.features.value.thinking ? ('high' as const) : undefined,
-}))
 
 const mcp: ChatMcpRuntime = {
   servers: shallowRef([{ id: 'browser', name: 'Browser', installed: true, enabled: true }]),
@@ -31,7 +34,6 @@ const mcp: ChatMcpRuntime = {
   addServer: async () => {},
   removeServer: async () => {},
   setServerEnabled: async () => {},
-  loadTools: async () => {},
   setToolEnabled: async () => {},
 }
 
@@ -48,9 +50,6 @@ export const runtimeWithoutModelOrMcp = createRuntime({})
 
 export const runtimeWithModelOnly = createRuntime({
   model,
-  runConfig: computed(() => ({
-    reasoning: reasoning.value,
-  })),
 })
 
 export const runtimeWithMcpOnly = createRuntime({
@@ -60,7 +59,4 @@ export const runtimeWithMcpOnly = createRuntime({
 export const runtimeWithModelAndMcp = createRuntime({
   model,
   mcp,
-  runConfig: computed(() => ({
-    reasoning: reasoning.value,
-  })),
 })

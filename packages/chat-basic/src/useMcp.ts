@@ -227,11 +227,18 @@ export function useMcp() {
       ),
     ),
 
-    addServer(id) {
+    async addServer(id) {
       const server = findServer(id)
 
       server.installed = true
       server.enabled = true
+
+      try {
+        await loadTools(id)
+      } catch (error) {
+        server.enabled = false
+        throw error
+      }
     },
 
     removeServer(id) {
@@ -243,7 +250,7 @@ export function useMcp() {
       clearServerTools(id)
     },
 
-    setServerEnabled(id, enabled) {
+    async setServerEnabled(id, enabled) {
       const server = findServer(id)
 
       if (enabled && !server.installed) {
@@ -251,9 +258,16 @@ export function useMcp() {
       }
 
       server.enabled = enabled
-    },
 
-    loadTools,
+      if (enabled) {
+        try {
+          await loadTools(id)
+        } catch (error) {
+          server.enabled = false
+          throw error
+        }
+      }
+    },
 
     setToolEnabled(serverId, toolId, enabled) {
       const server = findServer(serverId)
@@ -278,6 +292,16 @@ export function useMcp() {
       }
     },
   }
+
+  function ensureEnabledTools() {
+    for (const server of servers.value) {
+      if (server.installed && server.enabled) {
+        void loadTools(server.id).catch(() => undefined)
+      }
+    }
+  }
+
+  ensureEnabledTools()
 
   async function listTools(
     serverIds: readonly string[],

@@ -49,6 +49,13 @@ export function useModel() {
 
     selectedId: computed(() => selectedModelId.value),
 
+    features: computed(() => ({
+      thinking: Boolean(selectedModel.value?.capabilities.thinking && featureState.thinking),
+      search: Boolean(selectedModel.value?.capabilities.search && featureState.search),
+    })),
+
+    reasoning,
+
     select(id) {
       if (id !== null && !modelDefinitions.some((item) => item.id === id)) {
         throw new Error(`Unknown model: ${id}`)
@@ -57,11 +64,6 @@ export function useModel() {
       selectedModelId.value = id
       resetUnsupportedFeatures(id)
     },
-
-    features: computed(() => ({
-      thinking: Boolean(selectedModel.value?.capabilities.thinking && featureState.thinking),
-      search: Boolean(selectedModel.value?.capabilities.search && featureState.search),
-    })),
 
     setFeature(id, enabled) {
       if (id !== 'thinking' && id !== 'search') {

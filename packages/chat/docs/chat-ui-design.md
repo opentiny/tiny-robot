@@ -11,7 +11,7 @@
 | 模块 | 职责 |
 | --- | --- |
 | `TrChatUI` | Layout、History、Messages、Sender、Model/MCP 控件组合 |
-| `TrChat` | Runtime 适配、输入恢复、Model/MCP 编排、pending 管理 |
+| `TrChat` | Runtime 适配、输入恢复、数据映射、临时 pending 管理 |
 | 业务数据层 | 请求、流式、持久化、Provider、Transport、Tool 调用 |
 
 `TrChatUI` 只接受普通数据，不依赖 Runtime、Kit、Vue Ref 或 controller。
@@ -106,8 +106,9 @@ Prompt、Bubble、Model 和 MCP 事件通过对应 `ui.*` callback 暴露，不�
 - `TrChatUI` 消费普通 View Data，并同步调用 `ui.model`、`ui.mcp` callback。
 - `TrChatUI` 不等待 callback，不维护业务 pending，也不伪造成功状态。
 - `ui.model === false` 或 `ui.mcp === false` 时关闭对应 UI 和交互。
-- `TrChat` 负责 Runtime action、pending、防重复、错误捕获和 MCP Tool 自动加载。
-- 禁用 MCP Server 不修改 Tool 选择；重新启用后复用原选择，数据缺失时重新加载。
+- `TrChat` 负责 Runtime action、临时 pending 和错误捕获。
+- MCP Tool 加载、失败恢复和并发去重由 MCP Runtime adapter 负责。
+- 禁用 MCP Server 不修改 Tool 选择；重新启用后由 MCP Runtime adapter 确保 Tool 就绪。
 - 具体 Runtime 行为见 [chat-runtime-design.md](./chat-runtime-design.md)。
 
 ## 9. Bubble

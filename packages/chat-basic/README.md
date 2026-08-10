@@ -12,9 +12,9 @@ The demo includes three MCP Servers:
 | 高德地图                   | SSE             | DashScope API Key |
 | Model Context Protocol MCP | Streamable HTTP | None              |
 
-Tools are discovered dynamically with `client.listTools()`. Tool choices are stored in the next turn's `runConfig`, so changing a Tool affects subsequent turns without modifying a request already in progress.
+Tools are discovered dynamically with `client.listTools()`. Tool choices are stored in the next user message's `runConfig` metadata snapshot, so changing a Tool affects subsequent turns without modifying a request already in progress.
 
-If a Server cannot load its Tools, it remains installed but is automatically disabled. Other enabled Servers and normal chat remain available.
+MCP Server installation, enabling, Tool loading, retry, and de-duplication are handled by the MCP adapter. If a Server cannot load its Tools, it remains installed but is automatically disabled. Other enabled Servers and normal chat remain available.
 
 ## Environment variables
 

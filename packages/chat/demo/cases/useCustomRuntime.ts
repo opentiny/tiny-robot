@@ -61,10 +61,10 @@ function isAbortError(error: unknown) {
 function isAsyncGenerator<T>(value: unknown): value is AsyncGenerator<T> {
   return Boolean(
     value &&
-    typeof value === 'object' &&
-    'next' in value &&
-    typeof (value as { next?: unknown }).next === 'function' &&
-    Symbol.asyncIterator in value,
+      typeof value === 'object' &&
+      'next' in value &&
+      typeof (value as { next?: unknown }).next === 'function' &&
+      Symbol.asyncIterator in value,
   )
 }
 
@@ -168,7 +168,7 @@ export function useCustomRuntime() {
     const text = payload.text.trim()
 
     if (!text) {
-      return
+      return false
     }
 
     const current = ensureConversation(text.slice(0, 20))
@@ -206,7 +206,7 @@ export function useCustomRuntime() {
 
       for await (const chunk of stream) {
         if (runIds.value[conversationId] !== currentRunId) {
-          return
+          return true
         }
 
         const delta = chunk.choices?.[0]?.delta
@@ -231,16 +231,17 @@ export function useCustomRuntime() {
       }
 
       if (runIds.value[conversationId] !== currentRunId) {
-        return
+        return true
       }
 
       setAbortController(conversationId)
       state.requestState = 'completed'
       state.processingState = undefined
       finishMessageLoading(assistantMessage)
+      return true
     } catch (error) {
       if (runIds.value[conversationId] !== currentRunId) {
-        return
+        return true
       }
 
       setAbortController(conversationId)
@@ -248,6 +249,7 @@ export function useCustomRuntime() {
       state.processingState = undefined
       state.lastError = isAbortError(error) ? null : error
       finishMessageLoading(assistantMessage)
+      return true
     }
   }
 
@@ -256,7 +258,6 @@ export function useCustomRuntime() {
     activeConversation,
     composer: {
       disabled,
-      runConfig: computed(() => ({})),
     },
     actions: {
       send,

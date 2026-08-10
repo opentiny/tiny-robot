@@ -1,7 +1,6 @@
 import { shallowRef, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { ChatReadable, ChatRuntime, ChatSubmitPayload } from '../types'
-import { resolveComposerRunConfig } from '../utils/runConfig'
 
 export interface ChatInput {
   inputValue: ChatReadable<string>
@@ -31,22 +30,21 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     const currentRuntime = getRuntime()
     const previousInputValue = payload.text
 
-    const runConfig = resolveComposerRunConfig(currentRuntime.composer)
-
     try {
       // Let ChatUI apply clearOnSubmit before the Runtime action settles.
       await Promise.resolve()
-      await currentRuntime.actions.send({
+      const accepted = await currentRuntime.actions.send({
         ...payload,
         text,
-        runConfig,
       })
-    } catch (error) {
+
+      if (!accepted && inputValue.value === '') {
+        inputValue.value = previousInputValue
+      }
+    } catch {
       if (inputValue.value === '') {
         inputValue.value = previousInputValue
       }
-
-      throw error
     }
   }
 

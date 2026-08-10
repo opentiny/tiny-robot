@@ -22,10 +22,6 @@ export interface ChatRunConfig {
   mcp?: ChatMcpRunConfig
 }
 
-export interface ChatRunConfigExtras {
-  reasoning?: ChatRunConfigReasoning
-}
-
 export interface ChatMcpRunConfig {
   serverIds: readonly string[]
   toolIds: Readonly<Record<string, readonly string[]>>
@@ -41,8 +37,9 @@ export interface ChatModelOption {
 export interface ChatModelRuntime {
   options: ChatReadable<readonly ChatModelOption[]>
   selectedId: ChatReadable<string | null>
-  select: (id: string | null) => Promise<void> | void
   features: ChatReadable<Readonly<Record<string, boolean>>>
+  reasoning?: ChatReadable<ChatRunConfigReasoning>
+  select: (id: string | null) => Promise<void> | void
   setFeature: (id: string, enabled: boolean) => Promise<void> | void
 }
 
@@ -71,23 +68,18 @@ export interface ChatMcpRuntime {
   addServer: (id: string) => Promise<void> | void
   removeServer: (id: string) => Promise<void> | void
   setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
-  loadTools: (serverId: string) => Promise<void>
   setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
 }
 
 export interface ChatComposerRuntime {
   disabled?: ChatReadable<boolean>
-  runConfig?: ChatReadable<Readonly<ChatRunConfigExtras>>
+  submitDisabled?: ChatReadable<boolean>
   model?: ChatModelRuntime
   mcp?: ChatMcpRuntime
 }
 
-export interface ChatRuntimeSubmitPayload extends ChatSubmitPayload {
-  runConfig?: ChatRunConfig
-}
-
 export interface ChatRuntimeActions {
-  send: (payload: ChatRuntimeSubmitPayload) => Promise<void> | void
+  send: (payload: ChatSubmitPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
   createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
   switchConversation: (id: string) => Promise<void> | void

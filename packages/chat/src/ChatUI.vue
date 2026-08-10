@@ -71,6 +71,11 @@ const visibleMessages = computed(() =>
 )
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const layoutStyle = computed(() => ({
+  '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-container-bg-default))',
+  '--tr-layout-right-aside-bg': 'var(--tr-chat-ui-right-aside-bg, var(--tr-container-bg-default))',
+  '--tr-layout-header-bg': 'var(--tr-chat-ui-header-bg, var(--tr-container-bg-default))',
+  '--tr-layout-main-bg': 'var(--tr-chat-ui-main-bg, var(--tr-container-bg-default))',
+  '--tr-layout-footer-bg': 'var(--tr-chat-ui-footer-bg, var(--tr-container-bg-default))',
   '--tr-chat-ui-content-max-width': toCssSize(resolvedOptions.value.layout.contentMaxWidth),
   '--tr-chat-ui-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding),
   '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap),
@@ -404,15 +409,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 </template>
 
 <style scoped>
-.tr-chat-ui {
-  --tr-layout-height: 100%;
-  --tr-layout-left-aside-bg: var(--tr-container-bg-default);
-  --tr-layout-right-aside-bg: var(--tr-container-bg-default);
-  --tr-layout-header-bg: var(--tr-container-bg-default);
-  --tr-layout-main-bg: var(--tr-container-bg-default);
-  --tr-layout-footer-bg: var(--tr-container-bg-default);
-}
-
 .chat-panel {
   position: relative;
   height: 100%;

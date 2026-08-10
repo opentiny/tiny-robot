@@ -66,7 +66,7 @@ function resolveMcpRunConfig(mcp?: ChatMcpRuntime): ChatMcpRunConfig | undefined
 
 export function resolveComposerRunConfig(composer: ChatComposerRuntime): ChatRunConfig | undefined {
   const model = composer.model
-  const reasoning = composer.runConfig?.value.reasoning
+  const reasoning = composer.model?.reasoning?.value
   const mcp = resolveMcpRunConfig(composer.mcp)
 
   if (!model && !reasoning && !mcp) {
