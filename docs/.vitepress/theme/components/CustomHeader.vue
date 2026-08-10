@@ -429,8 +429,13 @@ const openSearch = () => {
 }
 
 @media (max-width: 640px) {
+  .custom-header {
+    --header-inline-padding: 12px;
+  }
+
   .header-top {
-    padding: 0 12px;
+    column-gap: 6px;
+    padding-right: 8px;
   }
 
   .tools-section {
