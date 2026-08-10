@@ -4,6 +4,31 @@ TinyRobot 遵循语义化版本规范，每个版本的更新内容如下。
 
 在此页面上，您可以查看最新的更新日志。如需查看完整的变更历史，请访问 [GitHub Release](https://github.com/opentiny/tiny-robot/releases)。
 
+## v0.5.1
+
+`2026-08-10`
+
+### ✨ 新特性
+
+**组件**
+
+- **Sender**：新增外部内容注册机制，支持通过 `useSenderContentRegistration` 注册附件等外部内容，并在 `submit` 事件的 `extra.externalPayloads` 中透传；`TrAttachments` 嵌套在 `TrSender` 内时可自动参与提交。 by @xuanlid in [#382](https://github.com/opentiny/tiny-robot/pull/382)
+
+### 🐛 问题修复
+
+- **思考插件**：修复 `reasoning_content` 仅包含空白字符时被误判为空的问题，确保有效的思考内容能正常触发思考状态。 by @gene9831 in [#384](https://github.com/opentiny/tiny-robot/pull/384)
+
+### 🔨 优化改进
+
+**开发工具**
+
+- **CLI**：更新 CLI 至 0.5.0，同步 basic/chat 模板依赖与 DeepSeek V4 模型配置。 by @SonyLeo in [#379](https://github.com/opentiny/tiny-robot/pull/379)
+
+### 📝 文档
+
+- **Skill 示例**：优化 Skill 的文档示例，适配暗色主题；同步 playground 的 importmap by @gene9831 in [#383](https://github.com/opentiny/tiny-robot/pull/383)
+
+
 ## v0.5.0
 
 `2026-07-16`
