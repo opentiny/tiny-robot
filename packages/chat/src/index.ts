@@ -65,3 +65,10 @@ export type {
 
 export type { UseKitChatRuntimeOptions } from './composables/useKitChatRuntime'
 export type { UseLocalChatRuntimeOptions } from './composables/useLocalChatRuntime'
+export type {
+  ChatProviderConfig,
+  ChatProviderFeatureBody,
+  ChatProviderModelConfig,
+  ChatProviderReasoningConfig,
+  ChatProviderType,
+} from './provider'

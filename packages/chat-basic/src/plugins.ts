@@ -1,8 +1,6 @@
 import { toolPlugin, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import type { ChatMessageItem, ChatRunConfig } from '@opentiny/tiny-robot-chat'
 import { readRunConfigFromMessage } from '@opentiny/tiny-robot-chat'
-import type { ModelDefinition } from './models'
-import { CHAT_BASIC_MODEL_ID_REQUEST_KEY } from './responseProvider'
 import type { McpToolItem } from './useMcp'
 
 const MCP_TOOL_SNAPSHOT_CONTEXT_KEY = '__chat_basic_mcp_tool_snapshot'
@@ -30,55 +28,6 @@ export function createRunConfigPlugin(): UseMessagePlugin {
       setCustomContext({
         runConfig: readRunConfigFromMessage(getLastUserMessage(currentTurn)),
       })
-    },
-  }
-}
-
-export function createModelRequestPlugin(
-  resolveModel: (modelId: string) => ModelDefinition | undefined,
-): UseMessagePlugin {
-  return {
-    name: 'chat-model-request',
-    onBeforeRequest({ customContext, requestBody }) {
-      const runConfig = customContext.runConfig as ChatRunConfig | undefined
-      const model = runConfig?.modelId ? resolveModel(runConfig.modelId) : null
-      const reasoningEnabled = runConfig?.reasoning?.enabled ?? runConfig?.features?.thinking
-
-      if (runConfig?.modelId && !model) {
-        throw new Error(`Unknown model for this turn: ${runConfig.modelId}`)
-      }
-
-      if (!model) {
-        return
-      }
-
-      requestBody[CHAT_BASIC_MODEL_ID_REQUEST_KEY] = model.id
-
-      const thinkingParams = reasoningEnabled
-        ? model.featureParams?.thinking?.enabled
-        : model.featureParams?.thinking?.disabled
-
-      if (thinkingParams) {
-        Object.assign(requestBody, thinkingParams)
-      }
-
-      if (
-        runConfig?.reasoning?.effort &&
-        model.reasoningEffortParam &&
-        model.reasoningEfforts?.includes(runConfig.reasoning.effort)
-      ) {
-        Object.assign(requestBody, {
-          [model.reasoningEffortParam]: runConfig.reasoning.effort,
-        })
-      }
-
-      const searchParams = runConfig?.features?.search
-        ? model.featureParams?.search?.enabled
-        : model.featureParams?.search?.disabled
-
-      if (searchParams) {
-        Object.assign(requestBody, searchParams)
-      }
     },
   }
 }

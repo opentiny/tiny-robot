@@ -197,29 +197,29 @@ ChatUI submit
 ### 新项目
 
 ```ts
-const model = useModel()
 const mcp = useMcp()
 
 const runtime = useLocalChatRuntime({
   conversation: {
     storage,
     useMessageOptions: {
-      plugins: [
-        createRunConfigPlugin(),
-        createModelRequestPlugin(model.resolveModel),
-        createMcpToolPlugin(mcp.listTools, mcp.callTool),
-      ],
-      responseProvider: createResponseProvider(model.resolveModel),
+      plugins: [createMcpToolPlugin(mcp.listTools, mcp.callTool)],
     },
   },
   composer: {
-    model: model.model,
     mcp: mcp.mcp,
   },
+  providers: [
+    {
+      type: 'deepseek',
+      apiKey: '<DeepSeek API Key>',
+      models: [{ id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' }],
+    },
+  ],
 })
 ```
 
-Provider、Model 和 MCP 的业务 adapter 由项目提供。
+Provider 和 Model 可通过 `useLocalChatRuntime.providers` 配置，MCP 的业务 adapter 由项目提供。
 
 ### 已有 Kit conversation
 

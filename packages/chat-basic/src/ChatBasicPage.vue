@@ -2,10 +2,8 @@
 import { computed, h } from 'vue'
 import { localStorageStrategyFactory, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser, IconWarning } from '@opentiny/tiny-robot-svgs'
-import { TrChat, useLocalChatRuntime, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
-import { createMcpToolPlugin, createModelRequestPlugin, createRunConfigPlugin } from './plugins'
-import { createResponseProvider } from './responseProvider'
-import { useModel } from './useModel'
+import { TrChat, useLocalChatRuntime, type ChatProviderConfig, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
+import { createMcpToolPlugin } from './plugins'
 import { useMcp } from './useMcp'
 
 const prompts = [
@@ -41,7 +39,64 @@ const cliBasicOnErrorPlugin: UseMessagePlugin = {
   },
 }
 
-const model = useModel()
+const providers: ChatProviderConfig[] = [
+  {
+    type: 'qwen',
+    label: 'DashScope',
+    apiKey: import.meta.env.VITE_ALIYUN_DASHSCOPE_KEY?.trim(),
+    models: [
+      {
+        id: 'qwen3.7-flash',
+        label: 'Qwen3.7 Flash',
+        capabilities: {
+          thinking: true,
+          search: true,
+        },
+      },
+      {
+        id: 'qwen3.7-plus',
+        label: 'Qwen3.7 Plus',
+        capabilities: {
+          thinking: true,
+          search: true,
+        },
+      },
+      {
+        id: 'qwen3.7-max',
+        label: 'Qwen3.7 Max',
+        capabilities: {
+          thinking: true,
+          search: true,
+        },
+      },
+    ],
+  },
+  {
+    type: 'deepseek',
+    apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY?.trim(),
+    models: [
+      {
+        id: 'deepseek-v4-flash',
+        label: 'DeepSeek V4 Flash',
+        capabilities: {
+          thinking: true,
+        },
+      },
+      {
+        id: 'deepseek-v4-pro',
+        label: 'DeepSeek V4 Pro',
+        capabilities: {
+          thinking: true,
+        },
+      },
+    ],
+  },
+]
+
+function hasProviderApiKey(modelId: string | null) {
+  return providers.some((provider) => provider.apiKey && provider.models.some((model) => model.id === modelId))
+}
+
 const mcp = useMcp()
 
 const runtime = useLocalChatRuntime({
@@ -56,23 +111,17 @@ const runtime = useLocalChatRuntime({
           content: 'You are a helpful assistant.',
         },
       ],
-      plugins: [
-        createRunConfigPlugin(),
-        createModelRequestPlugin(model.resolveModel),
-        createMcpToolPlugin(mcp.listTools, mcp.callTool),
-        cliBasicOnErrorPlugin,
-      ],
-      responseProvider: createResponseProvider(model.resolveModel),
+      plugins: [createMcpToolPlugin(mcp.listTools, mcp.callTool), cliBasicOnErrorPlugin],
     },
   },
   composer: {
-    model: model.model,
     mcp: mcp.mcp,
   },
+  providers,
   titleFallback: cliBasicTitleFallback,
 })
 
-const hasApiKey = computed(() => Boolean(model.selectedModel.value?.apiKey))
+const hasApiKey = computed(() => hasProviderApiKey(runtime.composer.model?.selectedId.value ?? null))
 const aiAvatar = h(IconAi, { style: { fontSize: '28px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '28px' } })
 

@@ -1,14 +1,13 @@
 import { sseStreamToGenerator } from '@opentiny/tiny-robot-kit'
 import type { MessageRequestBody, ResponseProvider } from '@opentiny/tiny-robot-kit'
-import type { ModelDefinition } from './models'
+import { CHAT_PROVIDER_MODEL_ID_REQUEST_KEY } from './plugins'
+import type { ChatResolvedProviderModel } from './types'
 
-export const CHAT_BASIC_MODEL_ID_REQUEST_KEY = '__chat_basic_model_id'
-
-type ResolveModel = (modelId: string) => ModelDefinition | undefined
-
-export function createResponseProvider(resolveModel: ResolveModel): ResponseProvider {
+export function createProviderResponseProvider(
+  resolveModel: (modelId: string) => ChatResolvedProviderModel | undefined,
+): ResponseProvider {
   return async (requestBody: MessageRequestBody, abortSignal: AbortSignal) => {
-    const modelId = requestBody[CHAT_BASIC_MODEL_ID_REQUEST_KEY]
+    const modelId = requestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY]
 
     if (typeof modelId !== 'string' || !modelId) {
       throw new Error('No model selected for this turn.')
@@ -25,17 +24,18 @@ export function createResponseProvider(resolveModel: ResolveModel): ResponseProv
     }
 
     const providerRequestBody = { ...requestBody }
-    delete providerRequestBody[CHAT_BASIC_MODEL_ID_REQUEST_KEY]
+    delete providerRequestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY]
 
     const response = await fetch(currentModel.apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...currentModel.headers,
         Authorization: `Bearer ${currentModel.apiKey}`,
       },
       body: JSON.stringify({
         ...providerRequestBody,
-        model: currentModel.requestModel,
+        model: currentModel.id,
         stream: true,
       }),
       signal: abortSignal,
