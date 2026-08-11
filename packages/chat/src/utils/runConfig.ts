@@ -7,7 +7,8 @@ import type {
   ChatRunConfigReasoning,
 } from '../types'
 
-export const CHAT_RUN_CONFIG_METADATA_KEY = '__chat_run_config'
+export const CHAT_RUN_CONFIG_METADATA_KEY = 'run_config_metadata'
+export const CHAT_RUN_CONFIG_CONTEXT_KEY = 'run_config_context'
 
 export function cloneRunConfig(runConfig?: ChatRunConfig): ChatRunConfig | undefined {
   if (!runConfig) {

@@ -82,6 +82,8 @@ export interface ChatComposerRuntime {
 | `model` | Model 列表、当前选择、feature 状态、reasoning 状态及修改动作 |
 | `mcp` | MCP Server、Tool 状态及修改动作 |
 
+`useLocalChatRuntime.composer` 只接收 `disabled` 和 `submitDisabled`。Model Runtime 只由 `modelProviders` 生成，MCP Runtime 只由 `mcp.runtime` 注入。需要自定义 Model Runtime、MCP Runtime 或复用已有 Kit 会话时，使用 `useKitChatRuntime`。
+
 `useKitChatRuntime` 会统一派生最终 `submitDisabled`：
 
 ```ts
@@ -164,6 +166,8 @@ export interface ChatMcpRunConfig {
 
 `useKitChatRuntime` 是默认 Kit adapter 的发送入口，负责生成 `ChatRunConfig`、clone 快照并写入用户消息 metadata。读取 Kit 消息中的快照时使用公开的 `readRunConfigFromMessage()`。
 
+`runConfigContextPlugin` 在每轮开始时读取用户消息中的 `run_config_metadata`，并写入 `customContext[CHAT_RUN_CONFIG_CONTEXT_KEY]`。当前 Key 值为 `'run_config_context'`。
+
 快照中的对象和数组会被复制。发送后切换 Model、feature、MCP Server 或 Tool，只影响下一轮请求。
 
 ## 发送流程
@@ -175,7 +179,8 @@ ChatUI submit
   -> Runtime 读取 Model/MCP 当前状态
   -> Runtime 生成并 clone ChatRunConfig
   -> Kit 写入用户消息 metadata
-  -> plugins 读取当前轮快照
+  -> runConfigContextPlugin 写入 customContext
+  -> Provider Request / MCP Tool Plugin 消费当前轮快照
   -> Engine 请求与流式更新
   -> activeConversation 更新
   -> TrChat 映射回 ChatUI
@@ -193,6 +198,35 @@ ChatUI submit
 | 新项目 | `useLocalChatRuntime` | 内部创建 Kit conversation，并复用 `useKitChatRuntime` 完成适配 |
 | 已有 Kit conversation | `useKitChatRuntime` | 保留现有 storage、plugins、responseProvider 和生命周期 |
 | 其他数据层 | 实现 `ChatRuntime` | 适用于 Pinia、自研 Store 或其他消息引擎 |
+
+### API
+
+```ts
+interface UseLocalChatRuntimeOptions {
+  conversation: Omit<UseConversationOptions, 'useMessageOptions'> & {
+    useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']>
+  }
+  titleGenerator?: (message: string) => string
+  composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
+  modelProviders?: readonly ChatProviderConfig[]
+  mcp?: UseLocalChatRuntimeMcpAdapter
+}
+```
+
+`useKitChatRuntime` 使用 `titleGenerator` 生成首条消息和空标题会话的标题。
+
+`useLocalChatRuntime` 内置插件顺序固定为：
+
+```txt
+RunConfig Context -> Provider Request -> MCP Tool -> 用户插件
+```
+
+Provider 配置规则：
+
+- `modelProviders` 非空时，由内置 Provider ResponseProvider 负责请求。
+- 无 `modelProviders` 时，允许 `conversation.useMessageOptions.responseProvider`。
+- `modelProviders` 与 `responseProvider` 不能同时配置。
+- 两者都没有时初始化报错。
 
 ### 新项目
 
@@ -212,7 +246,8 @@ const runtime = useLocalChatRuntime({
     },
   },
   mcp,
-  providers: [
+  titleGenerator: (message) => message.trim().slice(0, 24) || '新对话',
+  modelProviders: [
     {
       type: 'deepseek',
       apiKey: '<DeepSeek API Key>',
@@ -222,7 +257,7 @@ const runtime = useLocalChatRuntime({
 })
 ```
 
-Provider 和 Model 可通过 `useLocalChatRuntime.providers` 配置，MCP 的业务 adapter 由项目提供。
+Provider 和 Model 通过 `useLocalChatRuntime.modelProviders` 配置，MCP 的业务 adapter 由 `mcp` 提供。
 
 ### 已有 Kit conversation
 
@@ -232,9 +267,19 @@ const conversation = useConversation(existingOptions)
 const runtime = useKitChatRuntime({
   conversation,
   composer,
+  titleGenerator: (message) => message.trim().slice(0, 24) || '新对话',
 })
 ```
 
 ### 自定义 Runtime
 
 自定义数据层提供协议要求的响应式状态和动作。`send` 负责资格校验、快照生成、请求与流式处理，`abort` 负责取消请求，会话动作负责同步对应的数据源。
+
+## 迁移
+
+- `providers` 改为 `modelProviders`。
+- `titleFallback` 改为 `titleGenerator`。
+- `runConfigPlugin.ts` / `createRunConfigPlugin` 改为 `runConfigContextPlugin.ts` / `createRunConfigContextPlugin`。
+- `toolCallPlugin.ts` / `createToolCallPlugin` 改为 `mcpToolPlugin.ts` / `createMcpToolPlugin`。
+- `ChatToolCallPluginTool` 改为 `ChatMcpToolDefinition`。
+- `useLocalChatRuntime.composer.model` 和 `useLocalChatRuntime.composer.mcp` 已移除。

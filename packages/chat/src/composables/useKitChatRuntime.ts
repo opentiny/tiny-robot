@@ -15,7 +15,7 @@ import {
   resolveComposerRunConfig,
 } from '../utils/runConfig'
 
-type TitleFallback = (text: string) => string
+type TitleGenerator = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
 type UseKitChatComposerOptions = ChatRuntime['composer']
 
@@ -26,11 +26,11 @@ interface KitRuntimeSendPayload extends ChatSubmitPayload {
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
   lastError?: ChatWritable<unknown | null>
-  titleFallback?: TitleFallback
+  titleGenerator?: TitleGenerator
   send?: (payload: KitRuntimeSendPayload) => Promise<void> | void
   composer?: UseKitChatComposerOptions
 }
-const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
+const defaultTitleGenerator = (text: string) => text.trim().slice(0, 20) || '新对话'
 
 const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo => {
   return {
@@ -43,9 +43,9 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 }
 
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { conversation, lastError: errorRef, titleFallback, send, composer: composerOptions } = options
+  const { conversation, lastError: errorRef, titleGenerator, send, composer: composerOptions } = options
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
-  const resolveTitle = titleFallback ?? defaultTitleFallback
+  const resolveTitle = titleGenerator ?? defaultTitleGenerator
 
   const activeKitConversation = computed(() => conversation.activeConversation.value)
   const conversations = computed(() => conversation.conversations.value.map(toChatConversationInfo))

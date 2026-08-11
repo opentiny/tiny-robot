@@ -1,9 +1,10 @@
 import { toolPlugin, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import type { ChatRunConfig } from '../types'
+import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../utils/runConfig'
 
 const TOOL_SNAPSHOT_CONTEXT_KEY = '__chat_tool_snapshot'
 
-export interface ChatToolCallPluginTool {
+export interface ChatMcpToolDefinition {
   serverId: string
   id: string
   name: string
@@ -15,7 +16,7 @@ export interface ChatToolCallPluginTool {
 export type ChatToolListTools = (
   serverIds: readonly string[],
   toolIds: Readonly<Record<string, readonly string[]>>,
-) => Promise<readonly ChatToolCallPluginTool[]>
+) => Promise<readonly ChatMcpToolDefinition[]>
 
 export type ChatToolCallTool = (serverId: string, toolName: string, args: Record<string, unknown>) => Promise<unknown>
 
@@ -31,10 +32,10 @@ function resolveToolCall(name: string, toolRunConfig: NonNullable<ChatRunConfig[
   return null
 }
 
-export function createToolCallPlugin(listTools: ChatToolListTools, callTool: ChatToolCallTool): UseMessagePlugin {
+export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: ChatToolCallTool): UseMessagePlugin {
   return toolPlugin({
     getTools: async ({ customContext, setCustomContext }) => {
-      const runConfig = customContext.runConfig as ChatRunConfig | undefined
+      const runConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
       const toolRunConfig = runConfig?.mcp
 
       if (!toolRunConfig) {
@@ -49,7 +50,7 @@ export function createToolCallPlugin(listTools: ChatToolListTools, callTool: Cha
         throw new Error(`Tool selection is missing for this turn: ${serverWithoutToolSelection}`)
       }
 
-      let tools = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatToolCallPluginTool[] | undefined
+      let tools = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatMcpToolDefinition[] | undefined
 
       if (!Array.isArray(tools)) {
         tools = (await listTools(toolRunConfig.serverIds, toolRunConfig.toolIds)).map((tool) => ({ ...tool }))
@@ -69,11 +70,11 @@ export function createToolCallPlugin(listTools: ChatToolListTools, callTool: Cha
     },
 
     callTool: async (toolCall, { customContext }) => {
-      const runConfig = customContext.runConfig as ChatRunConfig | undefined
+      const runConfig = customContext[CHAT_RUN_CONFIG_CONTEXT_KEY] as ChatRunConfig | undefined
       const toolRunConfig = runConfig?.mcp
       const rawName = toolCall.function?.name ?? ''
       const resolvedTool = toolRunConfig ? resolveToolCall(rawName, toolRunConfig) : null
-      const toolSnapshot = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatToolCallPluginTool[] | undefined
+      const toolSnapshot = customContext[TOOL_SNAPSHOT_CONTEXT_KEY] as readonly ChatMcpToolDefinition[] | undefined
       const exposedTool = Array.isArray(toolSnapshot) ? toolSnapshot.find((tool) => tool.name === rawName) : undefined
 
       if (

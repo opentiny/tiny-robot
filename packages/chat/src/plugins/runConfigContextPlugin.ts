@@ -1,17 +1,17 @@
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import type { ChatMessageItem } from '../types'
-import { readRunConfigFromMessage } from '../utils/runConfig'
+import { CHAT_RUN_CONFIG_CONTEXT_KEY, readRunConfigFromMessage } from '../utils/runConfig'
 
 function getLastUserMessage(currentTurn: ChatMessageItem[]) {
   return [...currentTurn].reverse().find((message) => message.role === 'user')
 }
 
-export function createRunConfigPlugin(): UseMessagePlugin {
+export function createRunConfigContextPlugin(): UseMessagePlugin {
   return {
-    name: 'chat-run-config',
+    name: 'chat-run-config-context',
     onTurnStart({ currentTurn, setCustomContext }) {
       setCustomContext({
-        runConfig: readRunConfigFromMessage(getLastUserMessage(currentTurn)),
+        [CHAT_RUN_CONFIG_CONTEXT_KEY]: readRunConfigFromMessage(getLastUserMessage(currentTurn)),
       })
     },
   }

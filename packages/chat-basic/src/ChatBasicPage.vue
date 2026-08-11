@@ -10,9 +10,9 @@ const prompts = [
   { label: '阶段 2：补齐 Markdown、空态和移动端 Drawer' },
 ]
 
-const cliBasicTitleFallback = (text: string) => text.trim().slice(0, 24) || '新对话'
+const cliBasicTitleGenerator = (text: string) => text.trim().slice(0, 24) || '新对话'
 
-const providers: ChatProviderConfig[] = [
+const modelProviders: ChatProviderConfig[] = [
   {
     type: 'qwen',
     label: 'DashScope',
@@ -67,7 +67,7 @@ const providers: ChatProviderConfig[] = [
 ]
 
 function hasProviderApiKey(modelId: string | null) {
-  return providers.some((provider) => provider.apiKey && provider.models.some((model) => model.id === modelId))
+  return modelProviders.some((provider) => provider.apiKey && provider.models.some((model) => model.id === modelId))
 }
 
 const mcp = useMcp()
@@ -87,8 +87,8 @@ const runtime = useLocalChatRuntime({
     },
   },
   mcp,
-  providers,
-  titleFallback: cliBasicTitleFallback,
+  modelProviders,
+  titleGenerator: cliBasicTitleGenerator,
 })
 
 const hasApiKey = computed(() => hasProviderApiKey(runtime.composer.model?.selectedId.value ?? null))

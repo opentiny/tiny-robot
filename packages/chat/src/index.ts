@@ -4,7 +4,7 @@ export { MCPSelector, ModelFeatures, ModelSelector } from './components'
 
 export { useKitChatRuntime } from './composables/useKitChatRuntime'
 export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
-export { cloneRunConfig, readRunConfigFromMessage } from './utils/runConfig'
+export { CHAT_RUN_CONFIG_CONTEXT_KEY, cloneRunConfig, readRunConfigFromMessage } from './utils/runConfig'
 
 export type {
   ChatBubbleEventPayload,
@@ -64,7 +64,8 @@ export type {
 } from './types'
 
 export type { UseKitChatRuntimeOptions } from './composables/useKitChatRuntime'
-export type { UseLocalChatRuntimeOptions } from './composables/useLocalChatRuntime'
+export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './composables/useLocalChatRuntime'
+export type { ChatMcpToolDefinition, ChatToolCallTool, ChatToolListTools } from './plugins/mcpToolPlugin'
 export type {
   ChatProviderConfig,
   ChatProviderFeatureBody,

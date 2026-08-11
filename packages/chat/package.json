@@ -34,8 +34,7 @@
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
-    "@vueuse/core": "^13.1.0",
-    "@modelcontextprotocol/sdk": "^1.18.1"
+    "@vueuse/core": "^13.1.0"
   },
   "peerDependencies": {
     "vue": "^3.3.11"

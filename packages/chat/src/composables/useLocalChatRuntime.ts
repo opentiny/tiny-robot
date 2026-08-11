@@ -1,6 +1,6 @@
 import { useConversation, type UseConversationOptions, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatMcpRuntime } from '../types'
-import { useKitChatRuntime, type UseKitChatRuntimeOptions } from './useKitChatRuntime'
+import type { ChatComposerRuntime, ChatMcpRuntime } from '../types'
+import { useKitChatRuntime } from './useKitChatRuntime'
 import {
   createProviderModelRuntime,
   createProviderRequestPlugin,
@@ -8,8 +8,8 @@ import {
   resolveProviderModels,
   type ChatProviderConfig,
 } from '../provider'
-import { createRunConfigPlugin } from '../plugins/runConfigPlugin'
-import { createToolCallPlugin, type ChatToolCallTool, type ChatToolListTools } from '../plugins/toolCallPlugin'
+import { createRunConfigContextPlugin } from '../plugins/runConfigContextPlugin'
+import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from '../plugins/mcpToolPlugin'
 
 export interface UseLocalChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime
@@ -21,44 +21,46 @@ export interface UseLocalChatRuntimeOptions {
   conversation: Omit<UseConversationOptions, 'useMessageOptions'> & {
     useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']>
   }
-  titleFallback?: (text: string) => string
-  composer?: Omit<NonNullable<UseKitChatRuntimeOptions['composer']>, 'mcp'>
+  titleGenerator?: (text: string) => string
+  composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
+  modelProviders?: readonly ChatProviderConfig[]
   mcp?: UseLocalChatRuntimeMcpAdapter
-  providers?: readonly ChatProviderConfig[]
 }
 
-const defaultTitleFallback = (text: string) => text.trim().slice(0, 20) || '新对话'
+const defaultTitleGenerator = (text: string) => text.trim().slice(0, 20) || '新对话'
 
 export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
-  const resolveTitle = options.titleFallback ?? defaultTitleFallback
-  const providerModels = options.providers ? resolveProviderModels(options.providers) : []
-  const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
+  const resolveTitle = options.titleGenerator ?? defaultTitleGenerator
   const userUseMessageOptions = options.conversation.useMessageOptions
-  const composerOptions = options.composer ?? {}
-  const builtInPlugins: UseMessagePlugin[] = []
+  const userResponseProvider = userUseMessageOptions?.responseProvider
 
-  if (providerRuntime || options.mcp) {
-    builtInPlugins.push(createRunConfigPlugin())
+  if (options.modelProviders?.length && userResponseProvider) {
+    throw new Error('useLocalChatRuntime: modelProviders and responseProvider cannot be configured at the same time.')
   }
+
+  const providerModels = options.modelProviders ? resolveProviderModels(options.modelProviders) : []
+  const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
+  const composerOptions = options.composer ?? {}
+  const builtInPlugins: UseMessagePlugin[] = [createRunConfigContextPlugin()]
 
   if (providerRuntime) {
     builtInPlugins.push(createProviderRequestPlugin(providerRuntime.resolveModel))
   }
 
   if (options.mcp) {
-    builtInPlugins.push(createToolCallPlugin(options.mcp.listTools, options.mcp.callTool))
+    builtInPlugins.push(createMcpToolPlugin(options.mcp.listTools, options.mcp.callTool))
   }
 
   const useMessageOptions = {
     ...userUseMessageOptions,
     plugins: [...builtInPlugins, ...(userUseMessageOptions?.plugins ?? [])],
-    responseProvider:
-      userUseMessageOptions?.responseProvider ??
-      (providerRuntime ? createProviderResponseProvider(providerRuntime.resolveModel) : undefined),
+    responseProvider: providerRuntime
+      ? createProviderResponseProvider(providerRuntime.resolveModel)
+      : userResponseProvider,
   }
 
   if (!useMessageOptions.responseProvider) {
-    throw new Error('useLocalChatRuntime requires conversation.useMessageOptions.responseProvider or providers.')
+    throw new Error('useLocalChatRuntime requires conversation.useMessageOptions.responseProvider or modelProviders.')
   }
 
   const conversation = useConversation({
@@ -69,10 +71,10 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
 
   return useKitChatRuntime({
     conversation,
-    titleFallback: resolveTitle,
+    titleGenerator: resolveTitle,
     composer: {
       ...composerOptions,
-      model: composerOptions.model ?? providerRuntime?.model,
+      model: providerRuntime?.model,
       mcp: options.mcp?.runtime,
     },
   })
