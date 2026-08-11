@@ -37,11 +37,16 @@ const scrollDetailToBottom = () => {
 }
 
 const scheduleDetailUpdate = () => {
+  if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+    displayedReasoningContent.value = props.message.reasoning_content ?? ''
+    return
+  }
+
   if (renderFrame !== null) {
     return
   }
 
-  renderFrame = requestAnimationFrame(() => {
+  renderFrame = window.requestAnimationFrame(() => {
     renderFrame = null
     displayedReasoningContent.value = props.message.reasoning_content ?? ''
     nextTick(scrollDetailToBottom)
@@ -80,8 +85,9 @@ const handleClick = () => {
 }
 
 onBeforeUnmount(() => {
-  if (renderFrame !== null) {
-    cancelAnimationFrame(renderFrame)
+  if (renderFrame !== null && typeof window !== 'undefined') {
+    window.cancelAnimationFrame(renderFrame)
+    renderFrame = null
   }
 })
 </script>
