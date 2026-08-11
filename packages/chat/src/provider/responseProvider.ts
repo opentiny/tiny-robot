@@ -1,6 +1,6 @@
 import { sseStreamToGenerator } from '@opentiny/tiny-robot-kit'
 import type { MessageRequestBody, ResponseProvider } from '@opentiny/tiny-robot-kit'
-import { CHAT_PROVIDER_MODEL_ID_REQUEST_KEY } from './plugins'
+import { CHAT_PROVIDER_MODEL_ID_REQUEST_KEY } from './requestPlugin'
 import type { ChatResolvedProviderModel } from './types'
 
 export function createProviderResponseProvider(

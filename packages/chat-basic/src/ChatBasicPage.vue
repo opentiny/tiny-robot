@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, h } from 'vue'
-import { localStorageStrategyFactory, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
+import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser, IconWarning } from '@opentiny/tiny-robot-svgs'
 import { TrChat, useLocalChatRuntime, type ChatProviderConfig, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
-import { createMcpToolPlugin } from './plugins'
 import { useMcp } from './useMcp'
 
 const prompts = [
@@ -12,32 +11,6 @@ const prompts = [
 ]
 
 const cliBasicTitleFallback = (text: string) => text.trim().slice(0, 24) || '新对话'
-
-const cliBasicOnErrorPlugin: UseMessagePlugin = {
-  onError({ currentTurn, messages, error }) {
-    const content = String(error)
-    const assistantMessage = [...currentTurn].reverse().find((message) => message.role === 'assistant')
-
-    if (assistantMessage) {
-      assistantMessage.content = content
-      assistantMessage.loading = undefined
-    } else {
-      const now = Math.floor(Date.now() / 1000)
-      const errorMessage = {
-        role: 'assistant',
-        content,
-        metadata: {
-          createdAt: now,
-          updatedAt: now,
-        },
-      } as const
-
-      messages.push(errorMessage)
-    }
-
-    throw error instanceof Error ? error : new Error(content)
-  },
-}
 
 const providers: ChatProviderConfig[] = [
   {
@@ -111,12 +84,9 @@ const runtime = useLocalChatRuntime({
           content: 'You are a helpful assistant.',
         },
       ],
-      plugins: [createMcpToolPlugin(mcp.listTools, mcp.callTool), cliBasicOnErrorPlugin],
     },
   },
-  composer: {
-    mcp: mcp.mcp,
-  },
+  mcp,
   providers,
   titleFallback: cliBasicTitleFallback,
 })

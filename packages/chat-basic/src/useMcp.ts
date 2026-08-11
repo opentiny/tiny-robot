@@ -376,7 +376,7 @@ export function useMcp() {
   }
 
   return {
-    mcp,
+    runtime: mcp,
     listTools,
     callTool,
   }

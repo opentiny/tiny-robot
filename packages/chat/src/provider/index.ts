@@ -1,5 +1,5 @@
 export { createProviderModelRuntime } from './modelRuntime'
-export { createProviderRequestPlugin, createProviderRunConfigPlugin } from './plugins'
+export { createProviderRequestPlugin } from './requestPlugin'
 export { createProviderResponseProvider } from './responseProvider'
 export { resolveProviderModels } from './presets'
 

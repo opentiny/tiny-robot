@@ -203,12 +203,15 @@ const runtime = useLocalChatRuntime({
   conversation: {
     storage,
     useMessageOptions: {
-      plugins: [createMcpToolPlugin(mcp.listTools, mcp.callTool)],
+      initialMessages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+        },
+      ],
     },
   },
-  composer: {
-    mcp: mcp.mcp,
-  },
+  mcp,
   providers: [
     {
       type: 'deepseek',
