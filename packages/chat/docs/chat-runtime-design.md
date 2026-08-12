@@ -18,9 +18,9 @@
 | `ChatRuntime` | 会话、消息、请求状态、Composer 状态和业务动作 |
 | `useChatRuntimeAdapter` | Runtime 到 UI 的数据投影、草稿协调、动作执行和临时 pending |
 | `TrChatUI` | 纯 UI Shell、输入状态和根级 Emits |
-| 业务数据层 | Provider、凭证、Transport、MCP、Tool 调用和消息引擎 |
+| 业务数据层 | Provider、凭证、Transport 和消息引擎 |
 
-`useChatRuntimeAdapter` 不负责 MCP 自动加载、业务去重或 `runConfig` 构造；`useLocalChatRuntime` 只组装 Kit、Provider 和 Plugin。
+`useChatRuntimeAdapter` 不负责 MCP 自动加载、业务去重或 `runConfig` 构造。`useLocalChatRuntime` 组装 Kit、Provider、MCP Adapter 和 Plugin；声明式 `mcpServers` 由默认 Adapter 负责连接与 Tool 生命周期，高级 `mcp` 入口保留给特殊协议。
 
 ## 2. 核心协议
 
@@ -145,6 +145,14 @@ MCP Tool 加载是 Server 生命周期的一部分：
 - `removeServer()` 清理当前 Server 的 Tool 状态。
 - 加载失败时更新 Server 状态并抛出错误。
 
+声明式 MCP：
+
+- `mcpServers` 只描述 Server 名称、地址、应用层 headers、超时和校验函数，不包含连接或 Tool 状态。
+- 默认 Adapter 仅支持 `streamableHttp`，每次 discovery/call 创建并关闭一个 SDK Client，不维护连接池。
+- 同一 Server 的并发 discovery/load 只执行一次；删除、禁用或失败会失效缓存，旧请求不能回写当前状态。
+- `ChatMcpServerInfo.error` 区分用户禁用和加载失败；异步错误继续向 Runtime action reject。
+- `mcp` 与 `mcpServers` 不能同时传入；未传入 MCP 配置时不创建 Adapter 或 MCP Plugin。
+
 ## 7. RunConfig
 
 `ChatRunConfig` 是消息请求快照，不是 `send()` 参数。
@@ -203,6 +211,12 @@ const runtime = useLocalChatRuntime({
       models: [{ id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' }],
     },
   ],
+  mcpServers: {
+    maps: {
+      name: 'Maps',
+      baseUrl: '/mcp/maps',
+    },
+  },
 })
 ```
 

@@ -59,6 +59,7 @@ export interface ChatMcpServerView {
   readonly installed: boolean
   readonly enabled: boolean
   readonly loading?: boolean
+  readonly error?: unknown
   readonly metadata?: Readonly<Record<string, unknown>>
 }
 

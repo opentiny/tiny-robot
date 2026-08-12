@@ -10,6 +10,8 @@ import {
 } from './provider'
 import { createRunConfigContextPlugin } from './plugins/runConfigContextPlugin'
 import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from './plugins/mcpToolPlugin'
+import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
+import type { ChatMcpServers } from './mcp/types'
 
 export interface UseLocalChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime
@@ -25,6 +27,7 @@ export interface UseLocalChatRuntimeOptions {
   composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
   modelProviders?: readonly ChatProviderConfig[]
   mcp?: UseLocalChatRuntimeMcpAdapter
+  mcpServers?: ChatMcpServers
 }
 
 const defaultTitleGenerator = (text: string) => text.trim().slice(0, 20) || '新对话'
@@ -34,12 +37,17 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
   const userUseMessageOptions = options.conversation.useMessageOptions
   const userResponseProvider = userUseMessageOptions?.responseProvider
 
+  if (options.mcp !== undefined && options.mcpServers !== undefined) {
+    throw new Error('useLocalChatRuntime: mcp and mcpServers cannot be configured at the same time.')
+  }
+
   if (options.modelProviders?.length && userResponseProvider) {
     throw new Error('useLocalChatRuntime: modelProviders and responseProvider cannot be configured at the same time.')
   }
 
   const providerModels = options.modelProviders ? resolveProviderModels(options.modelProviders) : []
   const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
+  const resolvedMcp = options.mcpServers !== undefined ? createDefaultMcpAdapter(options.mcpServers) : options.mcp
   const composerOptions = options.composer ?? {}
   const builtInPlugins: UseMessagePlugin[] = [createRunConfigContextPlugin()]
 
@@ -47,8 +55,8 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
     builtInPlugins.push(createProviderRequestPlugin(providerRuntime.resolveModel))
   }
 
-  if (options.mcp) {
-    builtInPlugins.push(createMcpToolPlugin(options.mcp.listTools, options.mcp.callTool))
+  if (resolvedMcp) {
+    builtInPlugins.push(createMcpToolPlugin(resolvedMcp.listTools, resolvedMcp.callTool))
   }
 
   const useMessageOptions = {
@@ -75,7 +83,7 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
     composer: {
       ...composerOptions,
       model: providerRuntime?.model,
-      mcp: options.mcp?.runtime,
+      mcp: resolvedMcp?.runtime,
     },
   })
 }

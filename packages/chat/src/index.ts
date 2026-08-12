@@ -64,6 +64,7 @@ export type {
 
 export type { UseKitChatRuntimeOptions } from './runtime/useKitChatRuntime'
 export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './runtime/useLocalChatRuntime'
+export type { ChatMcpServerConfig, ChatMcpServers } from './runtime/mcp/types'
 export type {
   ChatProviderConfig,
   ChatProviderFeatureBody,

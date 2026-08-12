@@ -20,5 +20,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "demo/**/*.ts", "demo/**/*.d.ts", "demo/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "test/**/*.ts", "demo/**/*.ts", "demo/**/*.d.ts", "demo/**/*.vue"]
 }

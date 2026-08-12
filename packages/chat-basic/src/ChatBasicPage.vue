@@ -3,7 +3,7 @@ import { computed, h } from 'vue'
 import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
 import { IconAi, IconUser, IconWarning } from '@opentiny/tiny-robot-svgs'
 import { TrChat, useLocalChatRuntime, type ChatProviderConfig, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
-import { useMcp } from './useMcp'
+import { mcpServers } from './mcpServers'
 
 const prompts = [
   { label: '阶段 1：验证会话、发送、流式与取消' },
@@ -70,8 +70,6 @@ function hasProviderApiKey(modelId: string | null) {
   return modelProviders.some((provider) => provider.apiKey && provider.models.some((model) => model.id === modelId))
 }
 
-const mcp = useMcp()
-
 const runtime = useLocalChatRuntime({
   conversation: {
     storage: localStorageStrategyFactory({
@@ -86,7 +84,7 @@ const runtime = useLocalChatRuntime({
       ],
     },
   },
-  mcp,
+  mcpServers,
   modelProviders,
   titleGenerator: cliBasicTitleGenerator,
 })

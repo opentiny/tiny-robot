@@ -14,8 +14,7 @@
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@vueuse/core": "^13.1.0",
-    "vue": "^3.5.40",
-    "@modelcontextprotocol/sdk": "^1.18.1"
+    "vue": "^3.5.40"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

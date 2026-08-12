@@ -52,6 +52,7 @@ export interface ChatMcpServerInfo {
   installed: boolean
   enabled: boolean
   loading?: boolean
+  error?: unknown
   metadata?: Readonly<Record<string, unknown>>
 }
 

@@ -28,9 +28,12 @@
   "scripts": {
     "build": "vue-tsc --noEmit",
     "dev": "vite --host 0.0.0.0",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
@@ -42,6 +45,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.5.2",
     "typescript": "^5.2.2",
+    "vitest": "^1.6.1",
     "vite": "^5.0.8",
     "vue": "^3.3.11",
     "vue-tsc": "^2.2.8"
