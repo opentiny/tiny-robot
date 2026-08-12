@@ -1,39 +1,38 @@
-import { shallowRef, toValue } from 'vue'
-import type { MaybeRefOrGetter } from 'vue'
-import type { ChatReadable, ChatRuntime, ChatSubmitPayload } from '../types'
+import { shallowRef } from 'vue'
+import type { ChatReadable, ChatSendPayload } from '../types'
 
-export interface ChatInput {
+export interface ChatDraft {
   inputValue: ChatReadable<string>
   setInputValue: (value: string) => void
-  send: (payload: ChatSubmitPayload) => Promise<void> | void
+  send: (payload: ChatSendPayload) => Promise<boolean> | boolean
   abort?: () => Promise<void> | void
 }
 
-export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput {
+export interface UseChatDraftOptions {
+  send: (payload: ChatSendPayload) => Promise<boolean>
+  abort?: () => Promise<void> | void
+}
+
+export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
   const inputValue = shallowRef('')
 
   function setInputValue(value: string) {
     inputValue.value = value
   }
 
-  function getRuntime() {
-    return toValue(runtime)
-  }
-
-  async function send(payload: ChatSubmitPayload) {
+  async function send(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
 
     if (!text) {
-      return
+      return false
     }
 
-    const currentRuntime = getRuntime()
     const previousInputValue = payload.text
 
     try {
       inputValue.value = ''
       await Promise.resolve()
-      const accepted = await currentRuntime.actions.send({
+      const accepted = await options.send({
         ...payload,
         text,
       })
@@ -41,10 +40,13 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
       if (!accepted && inputValue.value === '') {
         inputValue.value = previousInputValue
       }
-    } catch {
+
+      return accepted
+    } catch (error) {
       if (inputValue.value === '') {
         inputValue.value = previousInputValue
       }
+      throw error
     }
   }
 
@@ -52,8 +54,6 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     inputValue,
     setInputValue,
     send,
-    get abort() {
-      return getRuntime().actions.abort
-    },
+    abort: options.abort,
   }
 }

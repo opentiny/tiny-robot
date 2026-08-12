@@ -1,4 +1,5 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatRequestState } from '../base'
+import type { ChatBuiltInModelFeature } from '../runtime'
 
 export interface ChatUIData {
   readonly conversation?: ChatConversationView
@@ -34,15 +35,15 @@ export interface ChatRequestView {
 export interface ChatModelView {
   readonly options?: readonly ChatModelOptionView[]
   readonly selectedId?: string | null
-  readonly features?: Readonly<Record<string, boolean>>
+  readonly features?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   readonly selecting?: boolean
-  readonly pendingFeatureIds?: readonly string[]
+  readonly pendingFeatureIds?: readonly ChatBuiltInModelFeature[]
 }
 
 export interface ChatModelOptionView {
   readonly id: string
   readonly label: string
-  readonly capabilities?: Readonly<Record<string, boolean | undefined>>
+  readonly capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   readonly metadata?: Readonly<Record<string, unknown>>
 }
 

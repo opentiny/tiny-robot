@@ -1,6 +1,6 @@
 import { toolPlugin, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatRunConfig } from '../types'
-import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../utils/runConfig'
+import type { ChatRunConfig } from '../../types'
+import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../runConfig'
 
 const TOOL_SNAPSHOT_CONTEXT_KEY = '__chat_tool_snapshot'
 

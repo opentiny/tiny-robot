@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { TrDropdownMenu, type DropdownMenuItem } from '@opentiny/tiny-robot'
 import { IconAtom } from '@opentiny/tiny-robot-svgs'
-import type { ChatLabels, ChatModelView } from '../types'
+import type { ChatLabels, ChatModelView } from '../../types'
 
 const props = defineProps<{
   model: ChatModelView

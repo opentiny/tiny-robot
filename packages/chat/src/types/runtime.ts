@@ -1,5 +1,5 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatReadable, ChatRequestState } from './base'
-import type { ChatSubmitPayload } from './ui/events'
+import type { ChatSendPayload } from './commands'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -9,6 +9,8 @@ export interface ChatConversation extends ChatConversationInfo {
 }
 
 export type ChatReasoningEffort = 'low' | 'medium' | 'high' | 'max'
+export const CHAT_BUILT_IN_MODEL_FEATURES = ['thinking', 'search'] as const
+export type ChatBuiltInModelFeature = (typeof CHAT_BUILT_IN_MODEL_FEATURES)[number]
 
 export interface ChatRunConfigReasoning {
   enabled: boolean
@@ -17,7 +19,7 @@ export interface ChatRunConfigReasoning {
 
 export interface ChatRunConfig {
   modelId?: string
-  features?: Readonly<Record<string, boolean>>
+  features?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   reasoning?: ChatRunConfigReasoning
   mcp?: ChatMcpRunConfig
 }
@@ -30,17 +32,17 @@ export interface ChatMcpRunConfig {
 export interface ChatModelOption {
   id: string
   label: string
-  capabilities?: Readonly<Record<string, boolean | undefined>>
+  capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   metadata?: Readonly<Record<string, unknown>>
 }
 
 export interface ChatModelRuntime {
   options: ChatReadable<readonly ChatModelOption[]>
   selectedId: ChatReadable<string | null>
-  features: ChatReadable<Readonly<Record<string, boolean>>>
+  features: ChatReadable<Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>>
   reasoning?: ChatReadable<ChatRunConfigReasoning>
   select: (id: string | null) => Promise<void> | void
-  setFeature: (id: string, enabled: boolean) => Promise<void> | void
+  setFeature: (id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void> | void
 }
 
 export interface ChatMcpServerInfo {
@@ -79,7 +81,7 @@ export interface ChatComposerRuntime {
 }
 
 export interface ChatRuntimeActions {
-  send: (payload: ChatSubmitPayload) => Promise<boolean>
+  send: (payload: ChatSendPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
   createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
   switchConversation: (id: string) => Promise<void> | void

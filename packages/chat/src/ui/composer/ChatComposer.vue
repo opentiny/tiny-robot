@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from 'vue'
+import { computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import MCPSelector from '../components/MCPSelector.vue'
-import ModelFeatures from '../components/ModelFeatures.vue'
-import ModelSelector from '../components/ModelSelector.vue'
-import type { ChatLabels, ChatMcpView, ChatModelView, ChatSenderView, ChatSubmitPayload } from '../types'
-import type { ResolvedChatSenderOptions } from './resolveOptions'
-
-interface SenderInstance {
-  clear: () => void
-  getContent: () => string
-  setContent: (content: string) => void
-}
+import MCPSelector from './MCPSelector.vue'
+import ModelFeatures from './ModelFeatures.vue'
+import ModelSelector from './ModelSelector.vue'
+import type {
+  ChatBuiltInModelFeature,
+  ChatLabels,
+  ChatMcpView,
+  ChatModelView,
+  ChatSenderView,
+  ChatSendPayload,
+} from '../../types'
+import type { ResolvedChatSenderOptions } from '../resolveOptions'
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
@@ -23,19 +24,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  submit: [payload: ChatSubmitPayload]
+  submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
   'update:value': [value: string]
   modelSelect: [payload: { id: string | null }]
-  modelFeatureChange: [payload: { id: string; enabled: boolean }]
+  modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   mcpAddServer: [payload: { id: string }]
   mcpRemoveServer: [payload: { id: string }]
   mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
   mcpToolEnabledChange: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
-
-const senderRef = shallowRef<SenderInstance | null>(null)
 
 const senderProps = computed(() => {
   return {
@@ -58,37 +57,11 @@ const senderProps = computed(() => {
   }
 })
 
-watch(
-  () => props.value,
-  (value) => {
-    const sender = senderRef.value
-
-    if (sender && sender.getContent() !== value) {
-      sender.setContent(value)
-    }
-  },
-)
-
-function setInputValue(value: string) {
-  const sender = senderRef.value
-
-  if (!sender) {
-    emit('update:value', value)
-    return
-  }
-
-  if (sender.getContent() !== value) {
-    sender.setContent(value)
-  }
-
-  emit('update:value', value)
-}
-
 function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
 }
 
-function handleSubmit(text: string, structuredData?: ChatSubmitPayload['structuredData']) {
+function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData']) {
   emit('submit', { text, structuredData })
 }
 
@@ -100,7 +73,7 @@ function handleSelectModel(payload: { id: string | null }) {
   emit('modelSelect', payload)
 }
 
-function handleFeatureChange(payload: { id: string; enabled: boolean }) {
+function handleFeatureChange(payload: { id: ChatBuiltInModelFeature; enabled: boolean }) {
   emit('modelFeatureChange', payload)
 }
 
@@ -119,17 +92,12 @@ function handleServerEnabledChange(payload: { id: string; enabled: boolean }) {
 function handleToolEnabledChange(payload: { serverId: string; toolId: string; enabled: boolean }) {
   emit('mcpToolEnabledChange', payload)
 }
-
-defineExpose({
-  setInputValue,
-})
 </script>
 
 <template>
   <div class="chat-footer">
     <slot>
       <TrSender
-        ref="senderRef"
         v-bind="senderProps"
         @update:model-value="handleUpdateSenderValue"
         @submit="handleSubmit"

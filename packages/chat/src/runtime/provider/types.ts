@@ -1,4 +1,4 @@
-import type { ChatModelOption, ChatReasoningEffort } from '../types'
+import type { ChatBuiltInModelFeature, ChatModelOption, ChatReasoningEffort } from '../../types'
 
 export type ChatProviderType = 'openai' | 'deepseek' | 'qwen'
 
@@ -14,7 +14,7 @@ export interface ChatProviderReasoningConfig {
 }
 
 export interface ChatProviderModelConfig extends Omit<ChatModelOption, 'metadata'> {
-  featureBody?: Record<string, ChatProviderFeatureBody>
+  featureBody?: Partial<Record<ChatBuiltInModelFeature, ChatProviderFeatureBody>>
   reasoning?: ChatProviderReasoningConfig
 }
 

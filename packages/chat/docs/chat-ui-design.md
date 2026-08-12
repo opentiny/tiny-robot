@@ -11,7 +11,7 @@ ChatRuntime -> TrChat -> ChatUIData + ChatUIOptions -> TrChatUI -> Emits
 | 模块 | 职责 |
 | --- | --- |
 | `TrChatUI` | Layout、History、Messages、Sender、Model/MCP 控件组合 |
-| `TrChat` | Runtime 适配、草稿管理、数据映射、动作执行和 pending 状态 |
+| `useChatRuntimeAdapter` | Runtime 适配、草稿管理、数据映射、动作执行和 pending 状态 |
 | 业务数据层 | 请求、流式、持久化、Provider、Transport、Tool 调用 |
 
 `TrChatUI` 不依赖 Runtime、Kit、Vue Ref 或 controller，只消费普通只读 Data 和 UI Options。
@@ -35,7 +35,7 @@ export interface ChatUIProps {
 - 生命周期内不切换受控和非受控模式。
 - `''` 表示明确清空，`undefined` 不作为输入值传递给底层 Sender。
 
-`ChatComposer` 的 `update:value` 仅用于 `ChatUI` 与内部 Sender 之间的通信，不属于 `TrChatUI` 公共事件协议。
+`ChatComposer` 的 `update:value` 仅用于 `ChatUI` 与受控 Sender 之间的通信，不属于 `TrChatUI` 公共事件协议；输入通过 `modelValue` 和 `update:model-value` 同步，不使用命令式 Composer 控制。
 
 `data` 表示展示事实，`ui` 只表示布局、品牌、标签和底层组件静态配置。UI Options 不覆盖 Data 中的 loading、disabled、selected 和 pending 状态。
 
@@ -104,13 +104,13 @@ right-aside-open-change
 
 ## 5. Sender
 
-- `TrChatUI` 自己维护受控或非受控草稿。
+- `TrChatUI` 只负责 Shell；草稿协调由 `useChatDraft` 完成。
 - Submit 只派发 `submit`，不自动清空。
 - Clear 同时派发 `update:inputValue('')` 和 `clear`。
 - Prompt 点击先写入输入值，再派发 `prompt-click`。
 - `sender` 不再包含 `inputValue`。
 - `sender` 只包含底层 Sender 的静态配置。
-- 发送成功、返回 `false` 或 reject 后的清空与恢复由 `TrChat` 负责。
+- 发送成功、返回 `false` 或 reject 后的清空与恢复由 `useChatDraft` 负责。
 - 空内容、超长、Sender disabled 或 submitDisabled 时不可提交。
 
 ## 6. 请求状态与错误
@@ -160,7 +160,7 @@ sender-footer-right
 - Prompt 通过 `prompt-click` 输出。
 - Bubble 通过 `bubble-state-change` 和 `bubble-event` 输出。
 - ChatUI 不等待事件处理、不维护业务 pending，也不伪造成功状态。
-- `TrChat` 负责 Runtime action、错误捕获、并发去重和临时 pending。
+- `useChatRuntimeAdapter` 负责 Runtime action、错误捕获、并发去重和临时 pending。
 
 Bubble payload 保留 `messageIndex` 和 `contentIndex`。`messageIndex` 指向过滤后的可见消息列表。
 
@@ -190,7 +190,7 @@ interface ChatAsideOpenChangePayload {
 
 ## 10. TrChat 事件边界
 
-`TrChat` 消费会话、提交、Model 和 MCP 事件并调用 Runtime，不向外重复转发。Prompt、Bubble 和 Aside 事件由 `TrChat` 原样转发；`history-action` 中的 `delete` 由 `TrChat` 调用 Runtime 删除会话，其他 action 原样转发。
+`TrChat` 消费会话、提交、Model 和 MCP 事件；`useChatRuntimeAdapter` 调用 Runtime 并报告动作错误，不向外重复转发。Prompt、Bubble 和 Aside 事件由 `TrChat` 原样转发；`history-action` 中的 `delete` 由 Adapter 调用 Runtime 删除会话，其他 action 原样转发。
 
 ## 11. 默认值与高度
 

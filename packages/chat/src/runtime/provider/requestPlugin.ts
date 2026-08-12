@@ -1,6 +1,7 @@
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatRunConfig } from '../types'
-import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../utils/runConfig'
+import type { ChatRunConfig } from '../../types'
+import { CHAT_BUILT_IN_MODEL_FEATURES } from '../../types/runtime'
+import { CHAT_RUN_CONFIG_CONTEXT_KEY } from '../runConfig'
 import type { ChatResolvedProviderModel } from './types'
 
 export const CHAT_PROVIDER_MODEL_ID_REQUEST_KEY = '__chat_provider_model_id'
@@ -25,11 +26,14 @@ export function createProviderRequestPlugin(
       requestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY] = model.id
       const currentRunConfig = runConfig
 
-      Object.entries(model.featureBody ?? {}).forEach(([id, body]) => {
+      CHAT_BUILT_IN_MODEL_FEATURES.forEach((id) => {
+        const body = model.featureBody?.[id]
+        if (!body) return
+
         const enabled =
           id === 'thinking'
-            ? (currentRunConfig.reasoning?.enabled ?? currentRunConfig.features?.[id])
-            : currentRunConfig.features?.[id]
+            ? (currentRunConfig.reasoning?.enabled ?? currentRunConfig.features?.thinking)
+            : currentRunConfig.features?.search
         const featureBody = enabled ? body.enabled : body.disabled
 
         if (featureBody) {

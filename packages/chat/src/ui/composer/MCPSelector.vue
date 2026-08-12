@@ -2,7 +2,7 @@
 import { computed, shallowRef } from 'vue'
 import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
-import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../types'
+import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../../types'
 
 const props = defineProps<{
   mcp: ChatMcpView

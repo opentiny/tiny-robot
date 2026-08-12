@@ -7,9 +7,9 @@ import {
   createProviderResponseProvider,
   resolveProviderModels,
   type ChatProviderConfig,
-} from '../provider'
-import { createRunConfigContextPlugin } from '../plugins/runConfigContextPlugin'
-import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from '../plugins/mcpToolPlugin'
+} from './provider'
+import { createRunConfigContextPlugin } from './plugins/runConfigContextPlugin'
+import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from './plugins/mcpToolPlugin'
 
 export interface UseLocalChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime

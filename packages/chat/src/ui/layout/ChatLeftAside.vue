@@ -9,7 +9,7 @@ import type {
   ChatConversationView,
   ChatHistoryOptions,
   ChatLabels,
-} from '../types'
+} from '../../types'
 
 type HistoryDisplayItem = ChatConversationInfo & {
   raw: ChatConversationInfo

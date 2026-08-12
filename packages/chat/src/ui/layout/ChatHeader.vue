@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TrLayout } from '@opentiny/tiny-robot'
 import { IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
-import type { ChatConversationView, ChatLabels } from '../types'
+import type { ChatConversationView, ChatLabels } from '../../types'
 
 defineProps<{
   title: string

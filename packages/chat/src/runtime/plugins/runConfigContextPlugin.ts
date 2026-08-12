@@ -1,6 +1,6 @@
 import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatMessageItem } from '../types'
-import { CHAT_RUN_CONFIG_CONTEXT_KEY, readRunConfigFromMessage } from '../utils/runConfig'
+import type { ChatMessageItem } from '../../types'
+import { CHAT_RUN_CONFIG_CONTEXT_KEY, readRunConfigFromMessage } from '../runConfig'
 
 function getLastUserMessage(currentTurn: ChatMessageItem[]) {
   return [...currentTurn].reverse().find((message) => message.role === 'user')

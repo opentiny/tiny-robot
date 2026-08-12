@@ -5,7 +5,7 @@ import type {
   ChatConversationInfo,
   ChatRunConfig,
   ChatRuntime,
-  ChatSubmitPayload,
+  ChatSendPayload,
   ChatWritable,
 } from '../types'
 import {
@@ -13,13 +13,13 @@ import {
   CHAT_RUN_CONFIG_METADATA_KEY,
   cloneRunConfig,
   resolveComposerRunConfig,
-} from '../utils/runConfig'
+} from './runConfig'
 
 type TitleGenerator = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
 type UseKitChatComposerOptions = ChatRuntime['composer']
 
-interface KitRuntimeSendPayload extends ChatSubmitPayload {
+interface KitRuntimeSendPayload extends ChatSendPayload {
   runConfig?: ChatRunConfig
 }
 
@@ -115,7 +115,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       })
     })
 
-  async function handleSend(payload: ChatSubmitPayload): Promise<boolean> {
+  async function handleSend(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
 
     if (!text || composer.disabled?.value || composer.submitDisabled?.value) {

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { IconSearch, IconThink } from '@opentiny/tiny-robot-svgs'
-import type { ChatLabels, ChatModelView } from '../types'
+import { CHAT_BUILT_IN_MODEL_FEATURES } from '../../types/runtime'
+import type { ChatBuiltInModelFeature, ChatLabels, ChatModelView } from '../../types'
 
 const props = defineProps<{
   model: ChatModelView
@@ -9,13 +10,16 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  updateFeature: [payload: { id: string; enabled: boolean }]
+  updateFeature: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
 }>()
 
-const featureOptions = computed(() => [
-  { id: 'thinking', label: props.labels.thinkingFeature, icon: IconThink },
-  { id: 'search', label: props.labels.searchFeature, icon: IconSearch },
-])
+const featureOptions = computed(() =>
+  CHAT_BUILT_IN_MODEL_FEATURES.map((id) => ({
+    id,
+    label: id === 'thinking' ? props.labels.thinkingFeature : props.labels.searchFeature,
+    icon: id === 'thinking' ? IconThink : IconSearch,
+  })),
+)
 
 const pendingFeatureIds = computed(() => new Set(props.model.pendingFeatureIds ?? []))
 const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
@@ -24,11 +28,11 @@ const visibleFeatures = computed(() =>
   featureOptions.value.filter((feature) => selectedModel.value?.capabilities?.[feature.id]),
 )
 
-function isPending(id: string) {
+function isPending(id: ChatBuiltInModelFeature) {
   return pendingFeatureIds.value.has(id)
 }
 
-function toggleFeature(id: string) {
+function toggleFeature(id: ChatBuiltInModelFeature) {
   if (isPending(id)) {
     return
   }

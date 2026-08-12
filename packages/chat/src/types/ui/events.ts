@@ -1,13 +1,10 @@
-import type { ChatConversationInfo, ChatStructuredData } from '../base'
+import type { ChatConversationInfo } from '../base'
+import type { ChatSendPayload } from '../commands'
+import type { ChatBuiltInModelFeature } from '../runtime'
 
 export interface ChatAsideOpenChangePayload {
   readonly open: boolean
   readonly source: 'user' | 'viewport'
-}
-
-export interface ChatSubmitPayload {
-  readonly text: string
-  readonly structuredData?: ChatStructuredData
 }
 
 export interface ChatHistoryActionPayload {
@@ -25,7 +22,7 @@ export interface ChatModelSelectPayload {
 }
 
 export interface ChatModelFeatureChangePayload {
-  readonly id: string
+  readonly id: ChatBuiltInModelFeature
   readonly enabled: boolean
 }
 
@@ -64,7 +61,7 @@ export type ChatBubbleEventPayload = {
 
 export interface ChatUIEmits {
   'update:inputValue': [value: string]
-  submit: [payload: ChatSubmitPayload]
+  submit: [payload: ChatSendPayload]
   cancel: []
   clear: []
   'create-conversation': []

@@ -1,10 +1,7 @@
 export { default as TrChat } from './Chat.vue'
 export { default as TrChatUI } from './ChatUI.vue'
-export { MCPSelector, ModelFeatures, ModelSelector } from './components'
-
-export { useKitChatRuntime } from './composables/useKitChatRuntime'
-export { useLocalChatRuntime } from './composables/useLocalChatRuntime'
-export { CHAT_RUN_CONFIG_CONTEXT_KEY, cloneRunConfig, readRunConfigFromMessage } from './utils/runConfig'
+export { useKitChatRuntime } from './runtime/useKitChatRuntime'
+export { useLocalChatRuntime } from './runtime/useLocalChatRuntime'
 
 export type {
   ChatBubbleEventPayload,
@@ -40,6 +37,7 @@ export type {
   ChatProcessingState,
   ChatRequestState,
   ChatRuntime,
+  ChatRuntimeActionErrorPayload,
   ChatRunConfig,
   ChatMcpRunConfig,
   ChatMcpRuntime,
@@ -47,6 +45,7 @@ export type {
   ChatMcpToolInfo,
   ChatMcpToolState,
   ChatModelOption,
+  ChatBuiltInModelFeature,
   ChatAsideOptions,
   ChatWelcomeOptions,
   ChatSenderOptions,
@@ -57,19 +56,18 @@ export type {
   ChatSenderDefaultActions,
   ChatStructuredData,
   ChatStructuredDataItem,
-  ChatSubmitPayload,
+  ChatSendPayload,
   ChatToolCall,
   ChatReadable,
   ChatWritable,
 } from './types'
 
-export type { UseKitChatRuntimeOptions } from './composables/useKitChatRuntime'
-export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './composables/useLocalChatRuntime'
-export type { ChatMcpToolDefinition, ChatToolCallTool, ChatToolListTools } from './plugins/mcpToolPlugin'
+export type { UseKitChatRuntimeOptions } from './runtime/useKitChatRuntime'
+export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './runtime/useLocalChatRuntime'
 export type {
   ChatProviderConfig,
   ChatProviderFeatureBody,
   ChatProviderModelConfig,
   ChatProviderReasoningConfig,
   ChatProviderType,
-} from './provider'
+} from './runtime/provider'

@@ -1,6 +1,7 @@
 import { computed, reactive, shallowRef } from 'vue'
 import type { ComputedRef } from 'vue'
-import type { ChatModelOption, ChatModelRuntime, ChatReasoningEffort } from '../types'
+import { CHAT_BUILT_IN_MODEL_FEATURES } from '../../types/runtime'
+import type { ChatBuiltInModelFeature, ChatModelOption, ChatModelRuntime, ChatReasoningEffort } from '../../types'
 import type { ChatResolvedProviderModel } from './types'
 
 export interface ChatProviderModelRuntime {
@@ -12,7 +13,7 @@ export interface ChatProviderModelRuntime {
 export function createProviderModelRuntime(models: readonly ChatResolvedProviderModel[]): ChatProviderModelRuntime {
   const selectedModelId = shallowRef<string | null>(models[0]?.id ?? null)
   const reasoningEffort = shallowRef<ChatReasoningEffort>(models[0]?.reasoning?.defaultEffort ?? 'high')
-  const featureState = reactive<Record<string, boolean>>({})
+  const featureState = reactive<Partial<Record<ChatBuiltInModelFeature, boolean>>>({})
 
   const selectedModel = computed(() => models.find((item) => item.id === selectedModelId.value))
 
@@ -23,7 +24,7 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
   function resetUnsupportedFeatures(modelId: string | null) {
     const model = modelId ? resolveModel(modelId) : undefined
 
-    Object.keys(featureState).forEach((id) => {
+    CHAT_BUILT_IN_MODEL_FEATURES.forEach((id) => {
       if (!model?.capabilities?.[id]) {
         featureState[id] = false
       }
@@ -47,9 +48,9 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
 
     features: computed(() =>
       Object.fromEntries(
-        Object.entries(selectedModel.value?.capabilities ?? {}).map(([id, supported]) => [
+        CHAT_BUILT_IN_MODEL_FEATURES.map((id) => [
           id,
-          Boolean(supported && featureState[id]),
+          Boolean(selectedModel.value?.capabilities?.[id] && featureState[id]),
         ]),
       ),
     ),
@@ -76,7 +77,7 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
       resetUnsupportedFeatures(id)
     },
 
-    setFeature(id, enabled) {
+    setFeature(id: ChatBuiltInModelFeature, enabled) {
       if (!Object.prototype.hasOwnProperty.call(selectedModel.value?.capabilities ?? {}, id)) {
         throw new Error(`Unknown model feature: ${id}`)
       }

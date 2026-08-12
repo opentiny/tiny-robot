@@ -12,12 +12,12 @@ import {
   type PromptProps,
 } from '@opentiny/tiny-robot'
 import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
-import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../types'
+import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload, ChatLabels, ChatMessageItem } from '../../types'
 import type {
   ResolvedChatBubbleOptions,
   ResolvedChatPromptsOptions,
   ResolvedChatWelcomeOptions,
-} from './resolveOptions'
+} from '../resolveOptions'
 
 const props = defineProps<{
   messages: readonly ChatMessageItem[]

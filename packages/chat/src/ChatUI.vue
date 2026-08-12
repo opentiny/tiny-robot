@@ -1,21 +1,22 @@
 <script setup lang="ts">
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
-import { computed, shallowRef, watch } from 'vue'
+import { computed, shallowRef } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import type { HistoryMenuItem, PromptProps } from '@opentiny/tiny-robot'
-import ScrollToBottom from './components/ScrollToBottom.vue'
-import ChatLeftAside from './ui/ChatLeftAside.vue'
-import ChatComposer from './ui/ChatComposer.vue'
-import ChatHeader from './ui/ChatHeader.vue'
-import ChatMessages from './ui/ChatMessages.vue'
-import ChatRightAside from './ui/ChatRightAside.vue'
+import ScrollToBottom from './ui/messages/ScrollToBottom.vue'
+import ChatLeftAside from './ui/layout/ChatLeftAside.vue'
+import ChatComposer from './ui/composer/ChatComposer.vue'
+import ChatHeader from './ui/layout/ChatHeader.vue'
+import ChatMessages from './ui/messages/ChatMessages.vue'
+import ChatRightAside from './ui/layout/ChatRightAside.vue'
+import { useChatAsideState } from './composables/useChatAsideState'
 import { resolveChatUIData } from './ui/resolveData'
 import { resolveChatUIOptions } from './ui/resolveOptions'
 import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
   ChatConversationInfo,
-  ChatSubmitPayload,
+  ChatSendPayload,
   ChatUIEmits,
   ChatUIProps,
   ChatUISlots,
@@ -44,12 +45,6 @@ const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
-const leftAsideOpen = shallowRef(
-  leftAsideLayout.value !== false ? (leftAsideLayout.value.open ?? leftAsideLayout.value.defaultOpen) : false,
-)
-const rightAsideOpen = shallowRef(
-  rightAsideLayout.value !== false ? (rightAsideLayout.value.open ?? rightAsideLayout.value.defaultOpen) : false,
-)
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
@@ -61,17 +56,14 @@ const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefin
 const isSenderVisible = computed(() => resolvedOptions.value.sender !== false)
 const isLeftAsideVisible = computed(() => leftAsideLayout.value !== false)
 const isRightAsideVisible = computed(() => rightAsideLayout.value !== false)
-const leftAsideMode = computed(() =>
-  isMobileViewport.value ? 'drawer' : leftAsideLayout.value !== false ? leftAsideLayout.value.mode : 'dock',
-)
-const rightAsideMode = computed(() =>
-  isMobileViewport.value ? 'drawer' : rightAsideLayout.value !== false ? rightAsideLayout.value.mode : 'dock',
-)
-const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
-const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
-const resolvedLeftAsideOpen = computed(() =>
-  leftAsideLayout.value !== false ? (leftAsideLayout.value.open ?? leftAsideOpen.value) : false,
-)
+const asideState = useChatAsideState({
+  leftAside: leftAsideLayout,
+  rightAside: rightAsideLayout,
+  isMobileViewport,
+  viewportWidth,
+  onLeftOpenChange: (payload) => emit('left-aside-open-change', payload),
+  onRightOpenChange: (payload) => emit('right-aside-open-change', payload),
+})
 const bubbleRoleConfigs = computed(
   () => resolvedOptions.value.bubble.bubbleList.roleConfigs ?? { system: { hidden: true } },
 )
@@ -90,61 +82,9 @@ const layoutStyle = computed(() => ({
   '--tr-chat-ui-panel-padding': toCssSize(resolvedOptions.value.layout.panelPadding),
   '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap),
 }))
-const leftAsideOptions = computed(() => ({
-  mode: leftAsideMode.value,
-  open: resolvedLeftAsideOpen.value,
-  expandedWidth: toResponsiveAsideWidth(leftAsideLayout.value !== false ? leftAsideLayout.value.width : undefined, 300),
-  collapsedWidth:
-    isMobileViewport.value || leftAsideLayout.value === false
-      ? 0
-      : toLayoutSize(leftAsideLayout.value.collapsedWidth, 56),
-  collapseEffect: 'overlay' as const,
-}))
-const mobileRightAsideWidth = computed(() =>
-  isMobileViewport.value && viewportWidth.value > 0 ? viewportWidth.value : undefined,
-)
-const isRightAsideControlled = computed(
-  () => rightAsideLayout.value !== false && typeof rightAsideLayout.value.open === 'boolean',
-)
-const resolvedRightAsideOpen = computed(() =>
-  rightAsideLayout.value !== false ? (rightAsideLayout.value.open ?? rightAsideOpen.value) : false,
-)
-const rightAsideOptions = computed(() => ({
-  mode: rightAsideMode.value,
-  open: resolvedRightAsideOpen.value,
-  expandedWidth:
-    mobileRightAsideWidth.value ??
-    toLayoutSize(rightAsideLayout.value !== false ? rightAsideLayout.value.width : undefined, 320),
-  minExpandedWidth: mobileRightAsideWidth.value,
-  maxExpandedWidth: mobileRightAsideWidth.value,
-  collapsedWidth:
-    isMobileViewport.value || rightAsideLayout.value === false
-      ? 0
-      : toLayoutSize(rightAsideLayout.value.collapsedWidth, 0),
-  collapseEffect: 'overlay' as const,
-}))
-
-watch(isMobileViewport, (isMobile) => {
-  if (isMobile) {
-    requestLeftAsideOpen(false, 'viewport')
-    requestRightAsideOpen(false, 'viewport')
-  }
-})
 
 function toCssSize(value: string | number) {
   return typeof value === 'number' ? `${value}px` : value
-}
-
-function toLayoutSize(value: number | undefined, fallback: number) {
-  return typeof value === 'number' ? value : fallback
-}
-
-function toResponsiveAsideWidth(value: number | undefined, fallback: number) {
-  const width = toLayoutSize(value, fallback)
-
-  return isMobileViewport.value && viewportWidth.value > 0
-    ? Math.min(width, Math.floor(viewportWidth.value * 0.86))
-    : width
 }
 
 function isMessageHidden(role: string | undefined) {
@@ -154,16 +94,16 @@ function isMessageHidden(role: string | undefined) {
 function handleCreateConversation() {
   emit('create-conversation')
 
-  if (isLeftAsideDrawer.value) {
-    requestLeftAsideOpen(false, 'user')
+  if (asideState.isLeftAsideDrawer.value) {
+    asideState.closeLeftAside()
   }
 }
 
 function handleSwitchConversation(item: { id: string }) {
   emit('switch-conversation', { id: item.id })
 
-  if (isLeftAsideDrawer.value) {
-    requestLeftAsideOpen(false, 'user')
+  if (asideState.isLeftAsideDrawer.value) {
+    asideState.closeLeftAside()
   }
 }
 
@@ -179,60 +119,12 @@ function handleDeleteConversation(item: ChatConversationInfo) {
   emit('delete-conversation', { id: item.id })
 }
 
-function requestLeftAsideOpen(open: boolean, source: 'user' | 'viewport') {
-  if (resolvedLeftAsideOpen.value === open) {
-    return
-  }
-
-  if (leftAsideLayout.value !== false && leftAsideLayout.value.open === undefined) {
-    leftAsideOpen.value = open
-  }
-
-  emit('left-aside-open-change', { open, source })
-}
-
-function openLeftAside() {
-  requestLeftAsideOpen(true, 'user')
-}
-
-function closeLeftAside() {
-  requestLeftAsideOpen(false, 'user')
-}
-
-function toggleLeftAside() {
-  requestLeftAsideOpen(!resolvedLeftAsideOpen.value, 'user')
-}
-
-function handleLeftAsideOpenChange(detail: { open: boolean }) {
-  requestLeftAsideOpen(detail.open, 'user')
-}
-
-function requestRightAsideOpen(open: boolean, source: 'user' | 'viewport' = 'user') {
-  if (resolvedRightAsideOpen.value === open) {
-    return
-  }
-
-  if (!isRightAsideControlled.value) {
-    rightAsideOpen.value = open
-  }
-
-  emit('right-aside-open-change', { open, source })
-}
-
-function closeRightAside() {
-  requestRightAsideOpen(false)
-}
-
-function handleRightAsideOpenChange(detail: { open: boolean }) {
-  requestRightAsideOpen(detail.open, 'user')
-}
-
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
   handleInputValue(item.label)
   emit('prompt-click', { event, item })
 }
 
-function handleSubmit(payload: ChatSubmitPayload) {
+function handleSubmit(payload: ChatSendPayload) {
   emit('submit', payload)
 }
 
@@ -267,10 +159,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     class="tr-chat-ui"
     mode="normal"
     :style="layoutStyle"
-    :left-aside="isLeftAsideVisible ? leftAsideOptions : undefined"
-    :right-aside="isRightAsideVisible ? rightAsideOptions : undefined"
-    @left-aside-open-change="handleLeftAsideOpenChange"
-    @right-aside-open-change="handleRightAsideOpenChange"
+    :left-aside="isLeftAsideVisible ? asideState.leftAsideOptions.value : undefined"
+    :right-aside="isRightAsideVisible ? asideState.rightAsideOptions.value : undefined"
+    @left-aside-open-change="asideState.handleLeftAsideOpenChange"
+    @right-aside-open-change="asideState.handleRightAsideOpenChange"
   >
     <template v-if="isLeftAsideVisible" #left-aside>
       <ChatLeftAside
@@ -278,30 +170,30 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         :history="historyOptions"
         :brand="resolvedOptions.brand"
         :labels="resolvedOptions.labels"
-        :is-open="resolvedLeftAsideOpen"
-        :is-dock="isLeftAsideDock"
+        :is-open="asideState.resolvedLeftAsideOpen.value"
+        :is-dock="asideState.isLeftAsideDock.value"
         :show-history="resolvedOptions.history !== false"
         @create-conversation="handleCreateConversation"
         @switch-conversation="handleSwitchConversation"
         @rename-conversation="handleRenameConversation"
         @delete-conversation="handleDeleteConversation"
         @history-action="handleHistoryAction"
-        @open="openLeftAside"
-        @close="closeLeftAside"
-        @toggle="toggleLeftAside"
+        @open="asideState.openLeftAside"
+        @close="asideState.closeLeftAside"
+        @toggle="asideState.toggleLeftAside"
       >
         <template v-if="$slots['layout-left-aside']" #default>
           <slot
             name="layout-left-aside"
             :conversation="resolvedData.conversation"
-            :is-open="resolvedLeftAsideOpen"
+            :is-open="asideState.resolvedLeftAsideOpen.value"
             :create-conversation="handleCreateConversation"
             :switch-conversation="(id: string) => handleSwitchConversation({ id })"
             :rename-conversation="(id: string, title: string) => handleRenameConversation({ id }, title)"
             :delete-conversation="(id: string) => emit('delete-conversation', { id })"
-            :open-left-aside="openLeftAside"
-            :close-left-aside="closeLeftAside"
-            :toggle-left-aside="toggleLeftAside"
+            :open-left-aside="asideState.openLeftAside"
+            :close-left-aside="asideState.closeLeftAside"
+            :toggle-left-aside="asideState.toggleLeftAside"
           />
         </template>
       </ChatLeftAside>
@@ -314,16 +206,16 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           :is-empty="isEmpty"
           :conversation="resolvedData.conversation"
           :is-left-aside-visible="isLeftAsideVisible"
-          :is-left-aside-drawer="isLeftAsideDrawer"
-          :is-left-aside-open="resolvedLeftAsideOpen"
+          :is-left-aside-drawer="asideState.isLeftAsideDrawer.value"
+          :is-left-aside-open="asideState.resolvedLeftAsideOpen.value"
           :is-right-aside-visible="isRightAsideVisible"
-          :is-right-aside-open="resolvedRightAsideOpen"
+          :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
           :labels="resolvedOptions.labels"
           @create-conversation="handleCreateConversation"
-          @open-left-aside="openLeftAside"
-          @close-left-aside="closeLeftAside"
-          @toggle-left-aside="toggleLeftAside"
-          @open-right-aside="() => requestRightAsideOpen(true)"
+          @open-left-aside="asideState.openLeftAside"
+          @close-left-aside="asideState.closeLeftAside"
+          @toggle-left-aside="asideState.toggleLeftAside"
+          @open-right-aside="asideState.openRightAside"
         >
           <template v-if="$slots['header-notice']" #notice>
             <slot name="header-notice" />
@@ -334,12 +226,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
               :title="resolvedData.conversation.title"
               :conversation="resolvedData.conversation"
               :create-conversation="handleCreateConversation"
-              :is-left-aside-open="resolvedLeftAsideOpen"
-              :open-left-aside="openLeftAside"
-              :close-left-aside="closeLeftAside"
-              :toggle-left-aside="toggleLeftAside"
-              :open-right-aside="() => requestRightAsideOpen(true)"
-              :close-right-aside="closeRightAside"
+              :is-left-aside-open="asideState.resolvedLeftAsideOpen.value"
+              :open-left-aside="asideState.openLeftAside"
+              :close-left-aside="asideState.closeLeftAside"
+              :toggle-left-aside="asideState.toggleLeftAside"
+              :open-right-aside="asideState.openRightAside"
+              :close-right-aside="asideState.closeRightAside"
             />
           </template>
         </ChatHeader>
@@ -404,7 +296,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     <template v-if="isSenderVisible && senderOptions" #footer>
       <div class="chat-panel-content chat-panel-content--footer">
         <ChatComposer
-          ref="composerRef"
           :sender="resolvedData.sender"
           :value="inputValue"
           :sender-options="senderOptions"
@@ -448,7 +339,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     <template v-if="isRightAsideVisible" #right-aside>
       <ChatRightAside
         :show-close="rightAsideLayout !== false ? rightAsideLayout.showClose : true"
-        @close="closeRightAside"
+        @close="asideState.closeRightAside"
       >
         <template #title>
           <slot name="layout-right-aside-title">
