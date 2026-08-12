@@ -20,7 +20,7 @@ export interface DefaultChatUIData {
   bubble: {
     messages: []
   }
-  sender: Required<Omit<ChatSenderView, 'inputValue'>> & Pick<ChatSenderView, 'inputValue'>
+  sender: Required<ChatSenderView>
   model: ChatModelView | undefined
   mcp: ChatMcpView | undefined
 }
@@ -52,9 +52,7 @@ export interface DefaultChatUIOptions {
   prompts: ChatPromptsOptions & {
     items: NonNullable<ChatPromptsOptions['items']>
   }
-  sender: ChatSenderOptions & {
-    clearOnSubmit: boolean
-  }
+  sender: ChatSenderOptions
   model: Record<string, never>
   mcp: Record<string, never>
 }
@@ -126,7 +124,6 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
       items: [],
     },
     sender: {
-      clearOnSubmit: true,
       mode: 'multiple',
       clearable: true,
       maxLength: 1000,
@@ -148,7 +145,6 @@ export function createDefaultChatUIData(labels: ChatLabels): DefaultChatUIData {
       messages: [],
     },
     sender: {
-      inputValue: undefined,
       loading: false,
       disabled: false,
       submitDisabled: false,

@@ -1,66 +1,72 @@
-import type { ChatConversationInfo, ChatMessageItem } from '../base'
+import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatRequestState } from '../base'
 
 export interface ChatUIData {
-  conversation?: ChatConversationView
-  bubble?: ChatBubbleView
-  sender?: ChatSenderView
-  model?: ChatModelView
-  mcp?: ChatMcpView
+  readonly conversation?: ChatConversationView
+  readonly bubble?: ChatBubbleView
+  readonly sender?: ChatSenderView
+  readonly model?: ChatModelView
+  readonly mcp?: ChatMcpView
+  readonly request?: ChatRequestView
 }
 
 export interface ChatConversationView {
-  items?: readonly ChatConversationInfo[]
-  activeId?: string | null
-  title?: string
+  readonly items?: readonly ChatConversationInfo[]
+  readonly activeId?: string | null
+  readonly title?: string
 }
 
 export interface ChatBubbleView {
-  messages?: readonly ChatMessageItem[]
+  readonly messages?: readonly ChatMessageItem[]
 }
 
 export interface ChatSenderView {
-  inputValue?: string
-  loading?: boolean
-  disabled?: boolean
-  submitDisabled?: boolean
+  readonly loading?: boolean
+  readonly disabled?: boolean
+  readonly submitDisabled?: boolean
+}
+
+export interface ChatRequestView {
+  readonly state: ChatRequestState
+  readonly processingState?: ChatProcessingState
+  readonly error?: unknown
 }
 
 export interface ChatModelView {
-  options?: readonly ChatModelOptionView[]
-  selectedId?: string | null
-  features?: Readonly<Record<string, boolean>>
-  selecting?: boolean
-  pendingFeatureIds?: readonly string[]
+  readonly options?: readonly ChatModelOptionView[]
+  readonly selectedId?: string | null
+  readonly features?: Readonly<Record<string, boolean>>
+  readonly selecting?: boolean
+  readonly pendingFeatureIds?: readonly string[]
 }
 
 export interface ChatModelOptionView {
-  id: string
-  label: string
-  capabilities?: Readonly<Record<string, boolean | undefined>>
-  metadata?: Readonly<Record<string, unknown>>
+  readonly id: string
+  readonly label: string
+  readonly capabilities?: Readonly<Record<string, boolean | undefined>>
+  readonly metadata?: Readonly<Record<string, unknown>>
 }
 
 export interface ChatMcpView {
-  servers?: readonly ChatMcpServerView[]
-  tools?: ChatMcpToolMap
+  readonly servers?: readonly ChatMcpServerView[]
+  readonly tools?: ChatMcpToolMap
 }
 
 export interface ChatMcpServerView {
-  id: string
-  name: string
-  description?: string
-  installed: boolean
-  enabled: boolean
-  loading?: boolean
-  metadata?: Readonly<Record<string, unknown>>
+  readonly id: string
+  readonly name: string
+  readonly description?: string
+  readonly installed: boolean
+  readonly enabled: boolean
+  readonly loading?: boolean
+  readonly metadata?: Readonly<Record<string, unknown>>
 }
 
 export interface ChatMcpToolView {
-  id: string
-  name: string
-  description?: string
-  enabled: boolean
-  loading?: boolean
+  readonly id: string
+  readonly name: string
+  readonly description?: string
+  readonly enabled: boolean
+  readonly loading?: boolean
 }
 
 export type ChatMcpToolMap = Readonly<Partial<Record<string, readonly ChatMcpToolView[]>>>

@@ -1,8 +1,6 @@
 # ChatRuntime 运行时协议
 
-## 分层
-
-`ChatRuntime` 承载聊天业务运行时，但不承载 Provider、凭证、Transport 等基础设施。
+## 1. 分层
 
 ```txt
 业务数据层 / Kit / 自研 Store
@@ -10,39 +8,38 @@
   -> TrChat
   -> ChatUIData + ChatUIOptions
   -> TrChatUI
+  -> 根级 Emits
+  -> TrChat
+  -> ChatRuntime.actions
 ```
 
 | 层级 | 职责 |
 | --- | --- |
-| `ChatRuntime` | 提供会话、消息、请求状态、Composer 状态和业务动作 |
-| `TrChat` | UI 桥接、输入草稿、Prompt 回填、发送失败恢复、数据映射和临时视觉 pending |
-| `TrChatUI` | 消费普通 Data 和 UI Options，不依赖 Runtime |
-| 业务数据层 | Provider、凭证、模型私有参数、MCP 连接、Tool 加载、Tool 调用和消息引擎配置 |
+| `ChatRuntime` | 会话、消息、请求状态、Composer 状态和业务动作 |
+| `TrChat` | Runtime 适配、草稿管理、数据投影、动作执行和临时 pending |
+| `TrChatUI` | 纯 UI Shell、输入状态和根级 Emits |
+| 业务数据层 | Provider、凭证、Transport、MCP、Tool 调用和消息引擎 |
 
-`TrChat` 不负责 MCP 自动加载、发送资格判定、业务去重或 `runConfig` 构造。
+`TrChat` 不负责 MCP 自动加载、业务去重或 `runConfig` 构造。
 
-## 核心协议
-
-### 响应式值
-
-Runtime 只要求只读的 `.value` 结构，不要求调用方暴露具体的 Vue `Ref` 类型。
+## 2. 核心协议
 
 ```ts
 export interface ChatReadable<T> {
   readonly value: T
 }
-```
 
-### Runtime
-
-```ts
 export interface ChatRuntime {
   conversations: ChatReadable<readonly ChatConversationInfo[]>
   activeConversation: ChatReadable<ChatConversation | null>
   composer: ChatComposerRuntime
   actions: ChatRuntimeActions
 }
+```
 
+`conversations` 只提供会话摘要，`activeConversation` 提供当前会话的消息、请求状态、处理状态和错误。
+
+```ts
 export interface ChatRuntimeActions {
   send: (payload: ChatSubmitPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
@@ -56,15 +53,13 @@ export interface ChatRuntimeActions {
 }
 ```
 
-`conversations` 只提供会话摘要，`activeConversation` 提供当前会话的消息、请求状态、处理状态和错误。
+`send()` 返回：
 
-`send()` 返回值：
-
-- `true`：Runtime 已接受发送，并已开始创建消息或请求。
-- `false`：空文本、`disabled`、`submitDisabled` 或 MCP 未准备完成，未创建消息。
+- `true`：Runtime 接受发送。
+- `false`：发送资格不满足，没有创建消息。
 - reject：消息引擎、网络或业务请求失败。
 
-## Composer
+## 3. Composer
 
 ```ts
 export interface ChatComposerRuntime {
@@ -75,15 +70,6 @@ export interface ChatComposerRuntime {
 }
 ```
 
-| 字段 | 语义 |
-| --- | --- |
-| `disabled` | 整个输入区域不可用 |
-| `submitDisabled` | 可以继续输入，但暂时不能提交 |
-| `model` | Model 列表、当前选择、feature 状态、reasoning 状态及修改动作 |
-| `mcp` | MCP Server、Tool 状态及修改动作 |
-
-`useLocalChatRuntime.composer` 只接收 `disabled` 和 `submitDisabled`。Model Runtime 只由 `modelProviders` 生成，MCP Runtime 只由 `mcp.runtime` 注入。需要自定义 Model Runtime、MCP Runtime 或复用已有 Kit 会话时，使用 `useKitChatRuntime`。
-
 `useKitChatRuntime` 会统一派生最终 `submitDisabled`：
 
 ```ts
@@ -92,49 +78,74 @@ const submitDisabled = computed(
 )
 ```
 
-自定义 Runtime 也必须保证 `submitDisabled` 覆盖所有发送前置条件。
+自定义 Runtime 必须保证 `submitDisabled` 覆盖所有发送前置条件。
 
-## Model Runtime
+## 4. TrChat 适配流程
 
-```ts
-export interface ChatModelRuntime {
-  options: ChatReadable<readonly ChatModelOption[]>
-  selectedId: ChatReadable<string | null>
-  features: ChatReadable<Readonly<Record<string, boolean>>>
-  reasoning?: ChatReadable<ChatRunConfigReasoning>
-  select: (id: string | null) => Promise<void> | void
-  setFeature: (id: string, enabled: boolean) => Promise<void> | void
-}
+```txt
+ChatUI update:inputValue
+  -> TrChat 保存草稿
+
+ChatUI submit
+  -> TrChat trim 文本
+  -> 立即清空草稿
+  -> runtime.actions.send({ text, structuredData })
+  -> Runtime 请求
+
+Runtime 返回 false 或 reject
+  -> TrChat 恢复发送前草稿
 ```
 
-`reasoning` 是模型能力状态，属于 Model Runtime，不属于 Composer 补充配置。
+发送 reject 不由 `TrChat` 静默吞掉。Runtime 负责把错误写入 `activeConversation.lastError`，TrChat 将其投影为 `ChatUIData.request.error`，ChatUI 默认展示错误或交给 `request-error` Slot。
 
-## MCP Runtime
+ChatUI 的公共输入事件为 `update:inputValue`。`ChatComposer` 的 `update:value` 仅是 ChatUI 内部事件，不属于 Runtime 或 ChatUI 公共协议。ChatUI 不负责提交后自动清空，草稿清空和失败恢复由 TrChat 负责。输入模式在组件生命周期内不得从受控切换为非受控，或反向切换。
 
-```ts
-export interface ChatMcpRuntime {
-  servers: ChatReadable<readonly ChatMcpServerInfo[]>
-  tools: ChatReadable<ChatMcpToolState>
-  addServer: (id: string) => Promise<void> | void
-  removeServer: (id: string) => Promise<void> | void
-  setServerEnabled: (id: string, enabled: boolean) => Promise<void> | void
-  setToolEnabled: (serverId: string, toolId: string, enabled: boolean) => Promise<void> | void
-}
+`sender.loading` 继续由 `requestState === 'processing'` 派生。Runtime 不新增 `operations`、`streaming` 等状态。
+
+## 5. UI 数据投影
+
+`TrChat` 映射：
+
+| Runtime | ChatUIData |
+| --- | --- |
+| `conversations.value` | `conversation.items` |
+| `activeConversation.id/title` | `conversation.activeId/title` |
+| `activeConversation.messages` | `bubble.messages` |
+| `activeConversation.requestState` | `request.state` |
+| `activeConversation.processingState` | `request.processingState` |
+| `activeConversation.lastError` | `request.error` |
+| `composer.disabled` | `sender.disabled` |
+| `composer.submitDisabled` | `sender.submitDisabled` |
+| `requestState === 'processing'` | `sender.loading` |
+| `composer.model` | `model` |
+| `composer.mcp` | `mcp` |
+
+## 6. Model 和 MCP 事件
+
+`TrChatUI` 只派发根级事件：
+
+```txt
+model-select
+model-feature-change
+mcp-add-server
+mcp-remove-server
+mcp-server-enabled-change
+mcp-tool-enabled-change
 ```
 
-MCP Tool 加载是 Server 生命周期的一部分，不作为公开 Runtime 动作暴露给 `TrChat`。
+`TrChat` 负责调用 Runtime action、并发去重、pending 状态和错误记录。ChatUI 不等待这些动作，也不修改业务 Data。
 
-约束：
+`TrChat` 继续消费会话、提交、Model 和 MCP 事件，不向外重复转发。Prompt、Bubble 和 Aside 事件原样向外转发；`history-action` 的 `delete` 调用 `deleteConversation`，其他 action 向外转发。Aside 的 `open-change` 事件中，`user` 表示用户点击 Header、Aside 或 Drawer 等控制，`viewport` 表示响应式断点切换导致组件主动关闭 Aside。外部修改 `layout.*Aside.open` 只影响展示，不派发事件。
 
-- `addServer()` 内部负责安装、启用并加载 Tool。
-- `setServerEnabled(id, true)` 内部负责加载 Tool。
+MCP Tool 加载是 Server 生命周期的一部分：
+
+- `addServer()` 负责安装、启用并加载 Tool。
+- `setServerEnabled(id, true)` 负责加载 Tool。
 - `setServerEnabled(id, false)` 不删除 Tool 选择。
 - `removeServer()` 清理当前 Server 的 Tool 状态。
-- adapter 内部负责并发去重。
 - 加载失败时更新 Server 状态并抛出错误。
-- adapter 初始化时必须确保每个 `installed && enabled` 的 Server 已有 Tool 条目，或已处于 `loading` 状态。
 
-## RunConfig
+## 7. RunConfig
 
 `ChatRunConfig` 是消息请求快照，不是 `send()` 参数。
 
@@ -145,14 +156,7 @@ export interface ChatRunConfig {
   reasoning?: ChatRunConfigReasoning
   mcp?: ChatMcpRunConfig
 }
-
-export interface ChatMcpRunConfig {
-  serverIds: readonly string[]
-  toolIds: Readonly<Record<string, readonly string[]>>
-}
 ```
-
-`ChatRunConfig` 不保存 Provider API Key、URL、Headers、Transport、完整 Tool schema 或 UI 配置。
 
 字段来源：
 
@@ -161,78 +165,24 @@ export interface ChatMcpRunConfig {
 | `modelId` | `composer.model.selectedId.value` |
 | `features` | `composer.model.features.value` 的浅拷贝 |
 | `reasoning` | `composer.model.reasoning.value` |
-| `mcp.serverIds` | `composer.mcp.servers.value` 中 `installed && enabled` 的 Server |
+| `mcp.serverIds` | 已安装且启用的 Server |
 | `mcp.toolIds` | 对应 Server 下启用的 Tool |
 
-`useKitChatRuntime` 是默认 Kit adapter 的发送入口，负责生成 `ChatRunConfig`、clone 快照并写入用户消息 metadata。读取 Kit 消息中的快照时使用公开的 `readRunConfigFromMessage()`。
+`useKitChatRuntime` 负责生成、clone 快照并写入用户消息 metadata。`runConfigContextPlugin` 在每轮开始时读取快照，Provider Request 和 MCP Tool Plugin 消费当前轮快照。
 
-`runConfigContextPlugin` 在每轮开始时读取用户消息中的 `run_config_metadata`，并写入 `customContext[CHAT_RUN_CONFIG_CONTEXT_KEY]`。当前 Key 值为 `'run_config_context'`。
+发送后切换 Model、feature、MCP Server 或 Tool，只影响下一轮请求。
 
-快照中的对象和数组会被复制。发送后切换 Model、feature、MCP Server 或 Tool，只影响下一轮请求。
+## 8. 接入方式
 
-## 发送流程
-
-```txt
-ChatUI submit
-  -> TrChat 保存草稿并调用 runtime.actions.send({ text, structuredData })
-  -> Runtime 检查发送资格
-  -> Runtime 读取 Model/MCP 当前状态
-  -> Runtime 生成并 clone ChatRunConfig
-  -> Kit 写入用户消息 metadata
-  -> runConfigContextPlugin 写入 customContext
-  -> Provider Request / MCP Tool Plugin 消费当前轮快照
-  -> Engine 请求与流式更新
-  -> activeConversation 更新
-  -> TrChat 映射回 ChatUI
-```
-
-发送未接受或失败时：
-
-- `false`：`TrChat` 恢复草稿，不修改 `lastError`。
-- reject：Runtime 更新 `activeConversation.lastError`，`TrChat` 恢复草稿。
-
-## 接入方式
-
-| 场景 | 入口 | 说明 |
-| --- | --- | --- |
-| 新项目 | `useLocalChatRuntime` | 内部创建 Kit conversation，并复用 `useKitChatRuntime` 完成适配 |
-| 已有 Kit conversation | `useKitChatRuntime` | 保留现有 storage、plugins、responseProvider 和生命周期 |
-| 其他数据层 | 实现 `ChatRuntime` | 适用于 Pinia、自研 Store 或其他消息引擎 |
-
-### API
-
-```ts
-interface UseLocalChatRuntimeOptions {
-  conversation: Omit<UseConversationOptions, 'useMessageOptions'> & {
-    useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']>
-  }
-  titleGenerator?: (message: string) => string
-  composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
-  modelProviders?: readonly ChatProviderConfig[]
-  mcp?: UseLocalChatRuntimeMcpAdapter
-}
-```
-
-`useKitChatRuntime` 使用 `titleGenerator` 生成首条消息和空标题会话的标题。
-
-`useLocalChatRuntime` 内置插件顺序固定为：
-
-```txt
-RunConfig Context -> Provider Request -> MCP Tool -> 用户插件
-```
-
-Provider 配置规则：
-
-- `modelProviders` 非空时，由内置 Provider ResponseProvider 负责请求。
-- 无 `modelProviders` 时，允许 `conversation.useMessageOptions.responseProvider`。
-- `modelProviders` 与 `responseProvider` 不能同时配置。
-- 两者都没有时初始化报错。
+| 场景 | 入口 |
+| --- | --- |
+| 新项目 | `useLocalChatRuntime` |
+| 已有 Kit conversation | `useKitChatRuntime` |
+| 其他数据层 | 实现 `ChatRuntime` |
 
 ### 新项目
 
 ```ts
-const mcp = useMcp()
-
 const runtime = useLocalChatRuntime({
   conversation: {
     storage,
@@ -245,7 +195,6 @@ const runtime = useLocalChatRuntime({
       ],
     },
   },
-  mcp,
   titleGenerator: (message) => message.trim().slice(0, 24) || '新对话',
   modelProviders: [
     {
@@ -257,13 +206,9 @@ const runtime = useLocalChatRuntime({
 })
 ```
 
-Provider 和 Model 通过 `useLocalChatRuntime.modelProviders` 配置，MCP 的业务 adapter 由 `mcp` 提供。
-
 ### 已有 Kit conversation
 
 ```ts
-const conversation = useConversation(existingOptions)
-
 const runtime = useKitChatRuntime({
   conversation,
   composer,
@@ -273,13 +218,4 @@ const runtime = useKitChatRuntime({
 
 ### 自定义 Runtime
 
-自定义数据层提供协议要求的响应式状态和动作。`send` 负责资格校验、快照生成、请求与流式处理，`abort` 负责取消请求，会话动作负责同步对应的数据源。
-
-## 迁移
-
-- `providers` 改为 `modelProviders`。
-- `titleFallback` 改为 `titleGenerator`。
-- `runConfigPlugin.ts` / `createRunConfigPlugin` 改为 `runConfigContextPlugin.ts` / `createRunConfigContextPlugin`。
-- `toolCallPlugin.ts` / `createToolCallPlugin` 改为 `mcpToolPlugin.ts` / `createMcpToolPlugin`。
-- `ChatToolCallPluginTool` 改为 `ChatMcpToolDefinition`。
-- `useLocalChatRuntime.composer.model` 和 `useLocalChatRuntime.composer.mcp` 已移除。
+自定义数据层提供协议要求的响应式状态和动作。`send` 负责资格校验、快照生成、请求和流式处理；`abort` 负责取消请求；会话动作负责同步对应的数据源。

@@ -29,6 +29,7 @@ const emit = defineEmits<{
   createConversation: []
   switchConversation: [item: ChatConversationInfo]
   renameConversation: [item: ChatConversationInfo, title: string]
+  deleteConversation: [item: ChatConversationInfo]
   historyAction: [action: HistoryMenuItem, item: ChatConversationInfo]
   open: []
   close: []
@@ -59,7 +60,7 @@ watch(
 )
 
 const historyProps = computed(() => {
-  const { menuItems: _menuItems, onItemAction: _onItemAction, ...nextHistoryProps } = props.history
+  const { menuItems: _menuItems, ...nextHistoryProps } = props.history
 
   return nextHistoryProps
 })
@@ -101,6 +102,22 @@ function handleHistoryTitleChange(title: string, item: HistoryDisplayItem) {
 
 function handleHistoryAction(action: HistoryMenuItem, item: HistoryDisplayItem) {
   emit('historyAction', action, item.raw)
+}
+
+function findConversation(id: string) {
+  return props.conversation.items.find((item) => item.id === id) ?? { id, title: props.labels.newConversationTitle }
+}
+
+function switchConversation(id: string) {
+  emit('switchConversation', findConversation(id))
+}
+
+function renameConversation(id: string, title: string) {
+  emit('renameConversation', findConversation(id), title)
+}
+
+function deleteConversation(id: string) {
+  emit('deleteConversation', findConversation(id))
 }
 
 function openAside() {
@@ -146,6 +163,9 @@ function toggleAside() {
         :conversation="conversation"
         :is-open="isOpen"
         :create-conversation="handleCreateConversation"
+        :switch-conversation="switchConversation"
+        :rename-conversation="renameConversation"
+        :delete-conversation="deleteConversation"
         :open-left-aside="openAside"
         :close-left-aside="closeAside"
         :toggle-left-aside="toggleAside"

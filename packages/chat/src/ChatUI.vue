@@ -25,9 +25,8 @@ const props = defineProps<ChatUIProps>()
 const emit = defineEmits<ChatUIEmits>()
 const slots = defineSlots<ChatUISlots>()
 
-const composerRef = shallowRef<{ setInputValue: (value: string) => void } | null>(null)
-const leftAsideOpen = shallowRef(false)
-const rightAsideOpen = shallowRef(false)
+const isControlledInput = props.inputValue !== undefined
+const draftValue = shallowRef(props.inputValue ?? props.defaultInputValue ?? '')
 const scrollTarget = shallowRef<HTMLElement | null>(null)
 const breakpoints = useBreakpoints({
   mobile: 0,
@@ -40,10 +39,17 @@ const resolvedOptions = computed(() =>
   resolveChatUIOptions(props.ui, { hasRightAside: Boolean(slots['layout-right-aside']) }),
 )
 const resolvedData = computed(() => resolveChatUIData(props.data, resolvedOptions.value.labels))
+const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') : draftValue.value))
 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
+const leftAsideOpen = shallowRef(
+  leftAsideLayout.value !== false ? (leftAsideLayout.value.open ?? leftAsideLayout.value.defaultOpen) : false,
+)
+const rightAsideOpen = shallowRef(
+  rightAsideLayout.value !== false ? (rightAsideLayout.value.open ?? rightAsideLayout.value.defaultOpen) : false,
+)
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
@@ -63,6 +69,9 @@ const rightAsideMode = computed(() =>
 )
 const isLeftAsideDock = computed(() => leftAsideMode.value === 'dock')
 const isLeftAsideDrawer = computed(() => leftAsideMode.value === 'drawer')
+const resolvedLeftAsideOpen = computed(() =>
+  leftAsideLayout.value !== false ? (leftAsideLayout.value.open ?? leftAsideOpen.value) : false,
+)
 const bubbleRoleConfigs = computed(
   () => resolvedOptions.value.bubble.bubbleList.roleConfigs ?? { system: { hidden: true } },
 )
@@ -70,6 +79,7 @@ const visibleMessages = computed(() =>
   resolvedData.value.bubble.messages.filter((message) => !isMessageHidden(message.role)),
 )
 const isEmpty = computed(() => visibleMessages.value.length === 0)
+const requestError = computed(() => resolvedData.value.request?.error)
 const layoutStyle = computed(() => ({
   '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-container-bg-default))',
   '--tr-layout-right-aside-bg': 'var(--tr-chat-ui-right-aside-bg, var(--tr-container-bg-default))',
@@ -82,7 +92,7 @@ const layoutStyle = computed(() => ({
 }))
 const leftAsideOptions = computed(() => ({
   mode: leftAsideMode.value,
-  open: leftAsideOpen.value,
+  open: resolvedLeftAsideOpen.value,
   expandedWidth: toResponsiveAsideWidth(leftAsideLayout.value !== false ? leftAsideLayout.value.width : undefined, 300),
   collapsedWidth:
     isMobileViewport.value || leftAsideLayout.value === false
@@ -116,28 +126,10 @@ const rightAsideOptions = computed(() => ({
 
 watch(isMobileViewport, (isMobile) => {
   if (isMobile) {
-    closeLeftAside()
-    closeRightAside()
+    requestLeftAsideOpen(false, 'viewport')
+    requestRightAsideOpen(false, 'viewport')
   }
 })
-
-watch(
-  () => (leftAsideLayout.value !== false ? leftAsideLayout.value.defaultOpen : false),
-  (defaultOpen) => {
-    leftAsideOpen.value = Boolean(defaultOpen)
-  },
-  { immediate: true },
-)
-
-watch(
-  () => (rightAsideLayout.value !== false ? rightAsideLayout.value.defaultOpen : false),
-  (defaultOpen) => {
-    if (!isRightAsideControlled.value) {
-      rightAsideOpen.value = Boolean(defaultOpen)
-    }
-  },
-  { immediate: true },
-)
 
 function toCssSize(value: string | number) {
   return typeof value === 'number' ? `${value}px` : value
@@ -160,53 +152,62 @@ function isMessageHidden(role: string | undefined) {
 }
 
 function handleCreateConversation() {
-  emit('createConversation')
+  emit('create-conversation')
 
   if (isLeftAsideDrawer.value) {
-    closeLeftAside()
+    requestLeftAsideOpen(false, 'user')
   }
 }
 
-function handleSwitchConversation(item: ChatConversationInfo) {
-  emit('switchConversation', { id: item.id })
+function handleSwitchConversation(item: { id: string }) {
+  emit('switch-conversation', { id: item.id })
 
   if (isLeftAsideDrawer.value) {
-    closeLeftAside()
+    requestLeftAsideOpen(false, 'user')
   }
 }
 
-function handleRenameConversation(item: ChatConversationInfo, title: string) {
-  emit('renameConversation', { id: item.id, title })
+function handleRenameConversation(item: { id: string }, title: string) {
+  emit('rename-conversation', { id: item.id, title })
 }
 
 function handleHistoryAction(action: HistoryMenuItem, item: ChatConversationInfo) {
-  if (action.id === 'delete') {
-    emit('deleteConversation', { id: item.id })
+  emit('history-action', { action, conversation: item })
+}
+
+function handleDeleteConversation(item: ChatConversationInfo) {
+  emit('delete-conversation', { id: item.id })
+}
+
+function requestLeftAsideOpen(open: boolean, source: 'user' | 'viewport') {
+  if (resolvedLeftAsideOpen.value === open) {
     return
   }
 
-  if (action.id !== 'rename' && resolvedOptions.value.history !== false) {
-    resolvedOptions.value.history.onItemAction?.(action, item)
+  if (leftAsideLayout.value !== false && leftAsideLayout.value.open === undefined) {
+    leftAsideOpen.value = open
   }
+
+  emit('left-aside-open-change', { open, source })
 }
 
 function openLeftAside() {
-  leftAsideOpen.value = true
+  requestLeftAsideOpen(true, 'user')
 }
 
 function closeLeftAside() {
-  leftAsideOpen.value = false
+  requestLeftAsideOpen(false, 'user')
 }
 
 function toggleLeftAside() {
-  leftAsideOpen.value = !leftAsideOpen.value
+  requestLeftAsideOpen(!resolvedLeftAsideOpen.value, 'user')
 }
 
 function handleLeftAsideOpenChange(detail: { open: boolean }) {
-  leftAsideOpen.value = detail.open
+  requestLeftAsideOpen(detail.open, 'user')
 }
 
-function requestRightAsideOpen(open: boolean) {
+function requestRightAsideOpen(open: boolean, source: 'user' | 'viewport' = 'user') {
   if (resolvedRightAsideOpen.value === open) {
     return
   }
@@ -215,9 +216,7 @@ function requestRightAsideOpen(open: boolean) {
     rightAsideOpen.value = open
   }
 
-  if (rightAsideLayout.value !== false) {
-    rightAsideLayout.value.onOpenChange?.({ open })
-  }
+  emit('right-aside-open-change', { open, source })
 }
 
 function closeRightAside() {
@@ -225,23 +224,16 @@ function closeRightAside() {
 }
 
 function handleRightAsideOpenChange(detail: { open: boolean }) {
-  requestRightAsideOpen(detail.open)
+  requestRightAsideOpen(detail.open, 'user')
 }
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
-  composerRef.value?.setInputValue(item.label)
-
-  if (resolvedOptions.value.prompts !== false) {
-    resolvedOptions.value.prompts.onItemClick?.(event, item)
-  }
+  handleInputValue(item.label)
+  emit('prompt-click', { event, item })
 }
 
 function handleSubmit(payload: ChatSubmitPayload) {
   emit('submit', payload)
-
-  if (senderOptions.value?.clearOnSubmit !== false) {
-    composerRef.value?.setInputValue('')
-  }
 }
 
 function handleCancel() {
@@ -249,15 +241,24 @@ function handleCancel() {
 }
 
 function handleClear() {
+  handleInputValue('')
   emit('clear')
 }
 
+function handleInputValue(value: string) {
+  if (!isControlledInput) {
+    draftValue.value = value
+  }
+
+  emit('update:inputValue', value)
+}
+
 function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
-  resolvedOptions.value.bubble.bubbleList.onStateChange?.(payload)
+  emit('bubble-state-change', payload)
 }
 
 function handleBubbleEvent(payload: ChatBubbleEventPayload) {
-  resolvedOptions.value.bubble.bubbleList.onBubbleEvent?.(payload)
+  emit('bubble-event', payload)
 }
 </script>
 
@@ -277,19 +278,31 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         :history="historyOptions"
         :brand="resolvedOptions.brand"
         :labels="resolvedOptions.labels"
-        :is-open="leftAsideOpen"
+        :is-open="resolvedLeftAsideOpen"
         :is-dock="isLeftAsideDock"
         :show-history="resolvedOptions.history !== false"
         @create-conversation="handleCreateConversation"
         @switch-conversation="handleSwitchConversation"
         @rename-conversation="handleRenameConversation"
+        @delete-conversation="handleDeleteConversation"
         @history-action="handleHistoryAction"
         @open="openLeftAside"
         @close="closeLeftAside"
         @toggle="toggleLeftAside"
       >
         <template v-if="$slots['layout-left-aside']" #default>
-          <slot name="layout-left-aside" />
+          <slot
+            name="layout-left-aside"
+            :conversation="resolvedData.conversation"
+            :is-open="resolvedLeftAsideOpen"
+            :create-conversation="handleCreateConversation"
+            :switch-conversation="(id: string) => handleSwitchConversation({ id })"
+            :rename-conversation="(id: string, title: string) => handleRenameConversation({ id }, title)"
+            :delete-conversation="(id: string) => emit('delete-conversation', { id })"
+            :open-left-aside="openLeftAside"
+            :close-left-aside="closeLeftAside"
+            :toggle-left-aside="toggleLeftAside"
+          />
         </template>
       </ChatLeftAside>
     </template>
@@ -302,18 +315,32 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           :conversation="resolvedData.conversation"
           :is-left-aside-visible="isLeftAsideVisible"
           :is-left-aside-drawer="isLeftAsideDrawer"
-          :is-left-aside-open="leftAsideOpen"
+          :is-left-aside-open="resolvedLeftAsideOpen"
+          :is-right-aside-visible="isRightAsideVisible"
+          :is-right-aside-open="resolvedRightAsideOpen"
           :labels="resolvedOptions.labels"
           @create-conversation="handleCreateConversation"
           @open-left-aside="openLeftAside"
           @close-left-aside="closeLeftAside"
           @toggle-left-aside="toggleLeftAside"
+          @open-right-aside="() => requestRightAsideOpen(true)"
         >
           <template v-if="$slots['header-notice']" #notice>
             <slot name="header-notice" />
           </template>
           <template v-if="$slots['layout-header']" #default>
-            <slot name="layout-header" />
+            <slot
+              name="layout-header"
+              :title="resolvedData.conversation.title"
+              :conversation="resolvedData.conversation"
+              :create-conversation="handleCreateConversation"
+              :is-left-aside-open="resolvedLeftAsideOpen"
+              :open-left-aside="openLeftAside"
+              :close-left-aside="closeLeftAside"
+              :toggle-left-aside="toggleLeftAside"
+              :open-right-aside="() => requestRightAsideOpen(true)"
+              :close-right-aside="closeRightAside"
+            />
           </template>
         </ChatHeader>
       </div>
@@ -322,6 +349,11 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     <template #main>
       <section class="chat-panel">
         <div ref="scrollTarget" class="chat-main-scroll-host">
+          <div v-if="requestError !== undefined && requestError !== null" class="chat-request-error" role="alert">
+            <slot name="request-error" :error="requestError">
+              {{ String(requestError) }}
+            </slot>
+          </div>
           <ChatMessages
             :messages="visibleMessages"
             :scroll-target="scrollTarget"
@@ -334,7 +366,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             @bubble-event="handleBubbleEvent"
           >
             <template v-if="$slots['layout-main']" #default>
-              <slot name="layout-main" />
+              <slot
+                name="layout-main"
+                :messages="visibleMessages"
+                :request="resolvedData.request"
+                :conversation="resolvedData.conversation"
+              />
             </template>
             <template v-if="$slots['welcome-footer']" #welcome-footer>
               <slot name="welcome-footer" />
@@ -369,18 +406,34 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         <ChatComposer
           ref="composerRef"
           :sender="resolvedData.sender"
+          :value="inputValue"
           :sender-options="senderOptions"
           :labels="resolvedOptions.labels"
           :model="visibleModel"
           :mcp="visibleMcp"
-          :model-options="resolvedOptions.model"
-          :mcp-options="resolvedOptions.mcp"
           @submit="handleSubmit"
           @cancel="handleCancel"
           @clear="handleClear"
+          @update:value="handleInputValue"
+          @model-select="(payload) => emit('model-select', payload)"
+          @model-feature-change="(payload) => emit('model-feature-change', payload)"
+          @mcp-add-server="(payload) => emit('mcp-add-server', payload)"
+          @mcp-remove-server="(payload) => emit('mcp-remove-server', payload)"
+          @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
+          @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
         >
           <template v-if="$slots['layout-footer']" #default>
-            <slot name="layout-footer" />
+            <slot
+              name="layout-footer"
+              :value="inputValue"
+              :loading="resolvedData.sender.loading"
+              :disabled="resolvedData.sender.disabled"
+              :submit-disabled="resolvedData.sender.submitDisabled"
+              :set-input-value="handleInputValue"
+              :submit="handleSubmit"
+              :cancel="handleCancel"
+              :clear="handleClear"
+            />
           </template>
           <template v-if="$slots['sender-footer']" #sender-footer>
             <slot name="sender-footer" />
@@ -414,6 +467,16 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   height: 100%;
   box-sizing: border-box;
   padding: var(--tr-chat-ui-panel-padding);
+}
+
+.chat-request-error {
+  box-sizing: border-box;
+  margin: 0 auto 12px;
+  max-width: var(--tr-chat-ui-content-max-width);
+  padding: 8px 12px;
+  border: 1px solid var(--tr-color-error);
+  border-radius: 8px;
+  color: var(--tr-color-error);
 }
 
 .chat-main-scroll-host {

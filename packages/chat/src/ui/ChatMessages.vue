@@ -59,22 +59,27 @@ const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
   ...props.options.bubbleProvider,
 }))
-type BubbleListViewProps = Omit<ResolvedChatBubbleOptions['bubbleList'], 'onStateChange' | 'onBubbleEvent'> & {
+type BubbleListViewProps = ResolvedChatBubbleOptions['bubbleList'] & {
   autoScroll: false
 }
 const bubbleListProps = computed<BubbleListViewProps>(() => {
-  const { onStateChange: _onStateChange, onBubbleEvent: _onBubbleEvent, ...bubbleList } = props.options.bubbleList
-
-  if (!bubbleList) {
-    return {
-      autoScroll: false,
-      roleConfigs: defaultRoleConfigs,
-    }
+  const bubbleList = props.options.bubbleList
+  const roleConfigs = {
+    ...defaultRoleConfigs,
+    ...Object.fromEntries(
+      Object.entries(bubbleList.roleConfigs ?? {}).map(([role, config]) => [
+        role,
+        {
+          ...defaultRoleConfigs[role],
+          ...config,
+        },
+      ]),
+    ),
   }
 
   return {
-    roleConfigs: defaultRoleConfigs,
     ...bubbleList,
+    roleConfigs,
     autoScroll: false,
   }
 })

@@ -3,48 +3,48 @@ import type {
   BubbleProviderProps,
   DefaultActions,
   HistoryProps,
-  HistoryMenuItem,
   PromptProps,
   PromptsProps,
   SenderProps,
   WelcomeProps,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo } from '../base'
-import type { ChatBubbleEventPayload, ChatBubbleStateChangePayload } from './events'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
 
 export interface ChatUIProps {
-  data?: ChatUIData
-  ui?: ChatUIOptions
+  data?: Readonly<ChatUIData>
+  ui?: Readonly<ChatUIOptions>
+  inputValue?: string
+  defaultInputValue?: string
 }
 
 export interface ChatUIOptions {
-  layout?: ChatLayoutOptions
-  brand?: ChatBrandOptions
-  labels?: Partial<ChatLabels>
+  layout?: Readonly<ChatLayoutOptions>
+  brand?: Readonly<ChatBrandOptions>
+  labels?: Readonly<Partial<ChatLabels>>
   header?: false
-  history?: false | ChatHistoryOptions
-  welcome?: false | ChatWelcomeOptions
-  prompts?: false | ChatPromptsOptions
-  bubble?: ChatBubbleOptions
-  sender?: false | ChatSenderOptions
-  model?: false | ChatModelOptions
-  mcp?: false | ChatMcpOptions
+  history?: false | Readonly<ChatHistoryOptions>
+  welcome?: false | Readonly<ChatWelcomeOptions>
+  prompts?: false | Readonly<ChatPromptsOptions>
+  bubble?: Readonly<ChatBubbleOptions>
+  sender?: false | Readonly<ChatSenderOptions>
+  model?: false | Readonly<ChatModelOptions>
+  mcp?: false | Readonly<ChatMcpOptions>
 }
 
 export interface ChatLayoutOptions {
-  contentMaxWidth?: ChatCssSize
-  panelPadding?: ChatCssSize
-  panelGap?: ChatCssSize
-  leftAside?: false | ChatAsideOptions
-  rightAside?: false | ChatRightAsideOptions
+  readonly contentMaxWidth?: ChatCssSize
+  readonly panelPadding?: ChatCssSize
+  readonly panelGap?: ChatCssSize
+  readonly leftAside?: false | Readonly<ChatAsideOptions>
+  readonly rightAside?: false | Readonly<ChatRightAsideOptions>
 }
 
 export interface ChatBrandOptions {
-  name?: string
-  logo?: unknown
+  readonly name?: string
+  readonly logo?: unknown
 }
 
 export interface ChatLabels {
@@ -66,63 +66,43 @@ export interface ChatLabels {
 }
 
 export interface ChatAsideOptions {
-  mode?: 'dock' | 'drawer'
-  width?: number
-  collapsedWidth?: number
-  defaultOpen?: boolean
+  readonly mode?: 'dock' | 'drawer'
+  readonly width?: number
+  readonly collapsedWidth?: number
+  readonly open?: boolean
+  readonly defaultOpen?: boolean
 }
 
 export interface ChatRightAsideOptions extends ChatAsideOptions {
-  open?: boolean
-  showClose?: boolean
-  onOpenChange?: (payload: { open: boolean }) => void
+  readonly showClose?: boolean
 }
 
-export type ChatHistoryOptions = Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected'> & {
-  onItemAction?: (action: HistoryMenuItem, conversation: ChatConversationInfo) => void
-}
+export type ChatHistoryOptions = Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected' | 'onItemAction'>
 
 export interface ChatBubbleOptions {
-  autoScroll?: boolean
-  bubbleProvider?: Omit<BubbleProviderProps, 'store'>
-  bubbleList?: ChatBubbleListOptions
+  readonly autoScroll?: boolean
+  readonly bubbleProvider?: Omit<BubbleProviderProps, 'store'>
+  readonly bubbleList?: ChatBubbleListOptions
 }
 
-export type ChatBubbleListOptions = Omit<BubbleListProps, 'messages' | 'autoScroll'> & {
-  onStateChange?: (payload: ChatBubbleStateChangePayload) => void
-  onBubbleEvent?: (payload: ChatBubbleEventPayload) => void
-}
+export type ChatBubbleListOptions = Omit<BubbleListProps, 'messages' | 'autoScroll'>
 
 export type ChatWelcomeOptions = Partial<WelcomeProps>
 
 export interface ChatPromptsOptions extends Omit<PromptsProps, 'items'> {
-  items?: PromptProps[]
-  onItemClick?: (event: MouseEvent, item: PromptProps) => void
+  readonly items?: PromptProps[]
 }
 
 type SubmitActionConfig = NonNullable<DefaultActions['submit']>
 
 export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
-  submit?: Omit<SubmitActionConfig, 'disabled'>
+  readonly submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
 export interface ChatSenderOptions
   extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
-  defaultActions?: ChatSenderDefaultActions
-  clearOnSubmit?: boolean
-  onInput?: (value: string) => void
-  onFocus?: (event: FocusEvent) => void
-  onBlur?: (event: FocusEvent) => void
+  readonly defaultActions?: ChatSenderDefaultActions
 }
 
-export interface ChatModelOptions {
-  onSelect?: (payload: { id: string | null }) => void
-  onFeatureChange?: (payload: { id: string; enabled: boolean }) => void
-}
-
-export interface ChatMcpOptions {
-  onAddServer?: (payload: { id: string }) => void
-  onRemoveServer?: (payload: { id: string }) => void
-  onServerEnabledChange?: (payload: { id: string; enabled: boolean }) => void
-  onToolEnabledChange?: (payload: { serverId: string; toolId: string; enabled: boolean }) => void
-}
+export type ChatModelOptions = Record<string, never>
+export type ChatMcpOptions = Record<string, never>

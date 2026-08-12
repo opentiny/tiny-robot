@@ -16,11 +16,11 @@ export function resolveChatUIData(data: ChatUIData | undefined, labels: ChatLabe
       messages: data?.bubble?.messages ?? defaults.bubble.messages,
     },
     sender: {
-      inputValue: data?.sender?.inputValue,
       loading: data?.sender?.loading ?? defaults.sender.loading,
       disabled: data?.sender?.disabled ?? defaults.sender.disabled,
       submitDisabled: data?.sender?.submitDisabled ?? defaults.sender.submitDisabled,
     },
+    request: data?.request,
     model: data?.model ?? defaults.model,
     mcp: data?.mcp ?? defaults.mcp,
   }

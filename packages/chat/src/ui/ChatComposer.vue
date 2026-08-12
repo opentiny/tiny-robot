@@ -5,7 +5,7 @@ import MCPSelector from '../components/MCPSelector.vue'
 import ModelFeatures from '../components/ModelFeatures.vue'
 import ModelSelector from '../components/ModelSelector.vue'
 import type { ChatLabels, ChatMcpView, ChatModelView, ChatSenderView, ChatSubmitPayload } from '../types'
-import type { ResolvedChatMcpOptions, ResolvedChatModelOptions, ResolvedChatSenderOptions } from './resolveOptions'
+import type { ResolvedChatSenderOptions } from './resolveOptions'
 
 interface SenderInstance {
   clear: () => void
@@ -14,134 +14,110 @@ interface SenderInstance {
 }
 
 const props = defineProps<{
-  sender: Required<Omit<ChatSenderView, 'inputValue'>> & Pick<ChatSenderView, 'inputValue'>
+  sender: Required<ChatSenderView>
+  value: string
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
   model?: ChatModelView
   mcp?: ChatMcpView
-  modelOptions: false | ResolvedChatModelOptions
-  mcpOptions: false | ResolvedChatMcpOptions
 }>()
 
 const emit = defineEmits<{
   submit: [payload: ChatSubmitPayload]
   cancel: []
   clear: []
+  'update:value': [value: string]
+  modelSelect: [payload: { id: string | null }]
+  modelFeatureChange: [payload: { id: string; enabled: boolean }]
+  mcpAddServer: [payload: { id: string }]
+  mcpRemoveServer: [payload: { id: string }]
+  mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
+  mcpToolEnabledChange: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
 const senderRef = shallowRef<SenderInstance | null>(null)
-const draftValue = shallowRef(props.sender.inputValue ?? '')
 
 const senderProps = computed(() => {
-  const {
-    clearOnSubmit: _clearOnSubmit,
-    onInput: _onInput,
-    onFocus: _onFocus,
-    onBlur: _onBlur,
-    ...sender
-  } = props.senderOptions
-
   return {
     mode: 'multiple' as const,
     clearable: true,
     placeholder: props.sender.loading ? props.labels.composerLoadingPlaceholder : props.labels.composerPlaceholder,
     showWordLimit: true,
     maxLength: 1000,
-    ...sender,
+    ...props.senderOptions,
     defaultActions: {
-      ...sender.defaultActions,
+      ...props.senderOptions.defaultActions,
       submit: {
-        ...sender.defaultActions?.submit,
+        ...props.senderOptions.defaultActions?.submit,
         disabled: props.sender.submitDisabled,
       },
     },
-    modelValue: props.sender.inputValue,
+    modelValue: props.value,
     loading: props.sender.loading,
     disabled: props.sender.disabled,
   }
 })
 
 watch(
-  () => props.sender.inputValue,
+  () => props.value,
   (value) => {
-    if (value !== undefined) {
-      draftValue.value = value
+    const sender = senderRef.value
+
+    if (sender && sender.getContent() !== value) {
+      sender.setContent(value)
     }
   },
 )
 
 function setInputValue(value: string) {
-  draftValue.value = value
-
   const sender = senderRef.value
 
   if (!sender) {
-    props.senderOptions.onInput(value)
+    emit('update:value', value)
     return
   }
 
   if (sender.getContent() !== value) {
     sender.setContent(value)
   }
+
+  emit('update:value', value)
 }
 
 function handleUpdateSenderValue(value: string) {
-  draftValue.value = value
-  props.senderOptions.onInput(value)
+  emit('update:value', value)
 }
 
 function handleSubmit(text: string, structuredData?: ChatSubmitPayload['structuredData']) {
-  draftValue.value = text
   emit('submit', { text, structuredData })
 }
 
 function handleClear() {
-  draftValue.value = ''
   emit('clear')
 }
 
-function handleFocus(event: FocusEvent) {
-  props.senderOptions.onFocus(event)
-}
-
-function handleBlur(event: FocusEvent) {
-  props.senderOptions.onBlur(event)
-}
-
 function handleSelectModel(payload: { id: string | null }) {
-  if (props.modelOptions !== false) {
-    props.modelOptions.onSelect(payload)
-  }
+  emit('modelSelect', payload)
 }
 
 function handleFeatureChange(payload: { id: string; enabled: boolean }) {
-  if (props.modelOptions !== false) {
-    props.modelOptions.onFeatureChange(payload)
-  }
+  emit('modelFeatureChange', payload)
 }
 
 function handleAddServer(payload: { id: string }) {
-  if (props.mcpOptions !== false) {
-    props.mcpOptions.onAddServer(payload)
-  }
+  emit('mcpAddServer', payload)
 }
 
 function handleRemoveServer(payload: { id: string }) {
-  if (props.mcpOptions !== false) {
-    props.mcpOptions.onRemoveServer(payload)
-  }
+  emit('mcpRemoveServer', payload)
 }
 
 function handleServerEnabledChange(payload: { id: string; enabled: boolean }) {
-  if (props.mcpOptions !== false) {
-    props.mcpOptions.onServerEnabledChange(payload)
-  }
+  emit('mcpServerEnabledChange', payload)
 }
 
 function handleToolEnabledChange(payload: { serverId: string; toolId: string; enabled: boolean }) {
-  if (props.mcpOptions !== false) {
-    props.mcpOptions.onToolEnabledChange(payload)
-  }
+  emit('mcpToolEnabledChange', payload)
 }
 
 defineExpose({
@@ -159,8 +135,6 @@ defineExpose({
         @submit="handleSubmit"
         @cancel="emit('cancel')"
         @clear="handleClear"
-        @focus="handleFocus"
-        @blur="handleBlur"
       >
         <template v-if="$slots['sender-footer'] || model || mcp" #footer>
           <div v-if="model || mcp" class="model-actions">

@@ -30,9 +30,9 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
   logo: unknown
 }
 
-export type ResolvedChatAsideOptions = Required<ChatAsideOptions>
-export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open' | 'onOpenChange'>> &
-  Pick<ChatRightAsideOptions, 'open' | 'onOpenChange'>
+export type ResolvedChatAsideOptions = Required<Omit<ChatAsideOptions, 'open'>> & Pick<ChatAsideOptions, 'open'>
+export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open'>> &
+  Pick<ChatRightAsideOptions, 'open'>
 
 export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
   menuItems: NonNullable<ChatHistoryOptions['menuItems']>
@@ -52,24 +52,9 @@ export type ResolvedChatPromptsOptions = Omit<ChatPromptsOptions, 'items'> & {
   items: NonNullable<ChatPromptsOptions['items']>
 }
 
-export type ResolvedChatSenderOptions = Omit<ChatSenderOptions, 'clearOnSubmit' | 'onInput' | 'onFocus' | 'onBlur'> & {
-  clearOnSubmit: boolean
-  onInput: (value: string) => void
-  onFocus: (event: FocusEvent) => void
-  onBlur: (event: FocusEvent) => void
-}
-
-export interface ResolvedChatModelOptions {
-  onSelect: (payload: { id: string | null }) => void
-  onFeatureChange: (payload: { id: string; enabled: boolean }) => void
-}
-
-export interface ResolvedChatMcpOptions {
-  onAddServer: (payload: { id: string }) => void
-  onRemoveServer: (payload: { id: string }) => void
-  onServerEnabledChange: (payload: { id: string; enabled: boolean }) => void
-  onToolEnabledChange: (payload: { serverId: string; toolId: string; enabled: boolean }) => void
-}
+export type ResolvedChatSenderOptions = ChatSenderOptions
+export type ResolvedChatModelOptions = ChatModelOptions
+export type ResolvedChatMcpOptions = ChatMcpOptions
 
 export interface ResolvedChatUIOptions {
   layout: ResolvedChatLayoutOptions
@@ -84,8 +69,6 @@ export interface ResolvedChatUIOptions {
   model: false | ResolvedChatModelOptions
   mcp: false | ResolvedChatMcpOptions
 }
-
-function noop() {}
 
 interface ResolveSlots {
   hasRightAside?: boolean
@@ -146,6 +129,7 @@ function resolveLeftAside(
     mode: options?.mode ?? defaults.mode,
     width: options?.width ?? defaults.width,
     collapsedWidth: options?.collapsedWidth ?? defaults.collapsedWidth,
+    open: options?.open,
     defaultOpen: options?.defaultOpen ?? defaults.defaultOpen,
   }
 }
@@ -169,7 +153,6 @@ function resolveRightAside(
     collapsedWidth: options?.collapsedWidth ?? 0,
     defaultOpen: options?.defaultOpen ?? true,
     showClose: options?.showClose ?? true,
-    onOpenChange: options?.onOpenChange,
   }
 }
 
@@ -276,10 +259,6 @@ function resolveSender(
   return {
     ...defaults,
     ...withoutUndefined(options),
-    clearOnSubmit: options?.clearOnSubmit ?? defaults.clearOnSubmit,
-    onInput: options?.onInput ?? noop,
-    onFocus: options?.onFocus ?? noop,
-    onBlur: options?.onBlur ?? noop,
   }
 }
 
@@ -288,10 +267,7 @@ function resolveModel(options: false | ChatModelOptions | undefined): false | Re
     return false
   }
 
-  return {
-    onSelect: options?.onSelect ?? noop,
-    onFeatureChange: options?.onFeatureChange ?? noop,
-  }
+  return options ?? {}
 }
 
 function resolveMcp(options: false | ChatMcpOptions | undefined): false | ResolvedChatMcpOptions {
@@ -299,12 +275,7 @@ function resolveMcp(options: false | ChatMcpOptions | undefined): false | Resolv
     return false
   }
 
-  return {
-    onAddServer: options?.onAddServer ?? noop,
-    onRemoveServer: options?.onRemoveServer ?? noop,
-    onServerEnabledChange: options?.onServerEnabledChange ?? noop,
-    onToolEnabledChange: options?.onToolEnabledChange ?? noop,
-  }
+  return options ?? {}
 }
 
 function withoutUndefined<T extends object>(value: T | undefined): Partial<T> {

@@ -3,14 +3,20 @@ import { computed, shallowRef, toRef } from 'vue'
 import ChatUI from './ChatUI.vue'
 import { useChatInput } from '@/composables/useChatInput'
 import type {
+  ChatAsideOpenChangePayload,
+  ChatBubbleEventPayload,
+  ChatBubbleStateChangePayload,
+  ChatHistoryActionPayload,
   ChatMcpServerView,
   ChatMcpToolView,
   ChatMcpView,
   ChatModelView,
   ChatRuntime,
   ChatSubmitPayload,
+  ChatUIEmits,
   ChatUIData,
   ChatUIOptions,
+  ChatPromptClickPayload,
 } from '@/types'
 
 const props = defineProps<{
@@ -19,6 +25,19 @@ const props = defineProps<{
   title?: string
 }>()
 
+const emit =
+  defineEmits<
+    Pick<
+      ChatUIEmits,
+      | 'history-action'
+      | 'prompt-click'
+      | 'bubble-state-change'
+      | 'bubble-event'
+      | 'left-aside-open-change'
+      | 'right-aside-open-change'
+    >
+  >()
+
 const runtimeRef = toRef(() => props.runtime)
 const input = useChatInput(runtimeRef)
 
@@ -26,6 +45,17 @@ const activeConversation = computed(() => runtimeRef.value.activeConversation.va
 const conversationItems = computed(() => runtimeRef.value.conversations.value)
 const activeMessages = computed(() => activeConversation.value?.messages ?? [])
 const requestState = computed(() => activeConversation.value?.requestState ?? 'idle')
+const requestView = computed(() => {
+  const active = activeConversation.value
+
+  return active
+    ? {
+        state: active.requestState,
+        processingState: active.processingState,
+        error: active.lastError ?? undefined,
+      }
+    : undefined
+})
 const senderDisabled = computed(() => {
   return Boolean(runtimeRef.value.composer.disabled?.value)
 })
@@ -95,71 +125,14 @@ const data = computed<ChatUIData>(() => ({
     messages: activeMessages.value,
   },
   sender: {
-    inputValue: input.inputValue.value,
     loading: requestState.value === 'processing',
     disabled: senderDisabled.value,
     submitDisabled: senderSubmitDisabled.value,
   },
+  request: requestView.value,
   model: modelView.value,
   mcp: mcpView.value,
 }))
-
-const adapterUI = computed<ChatUIOptions>(() => {
-  const callerUi = props.ui
-  const callerSender = callerUi?.sender === false ? undefined : callerUi?.sender
-  const callerModel = callerUi?.model === false ? undefined : callerUi?.model
-  const callerMcp = callerUi?.mcp === false ? undefined : callerUi?.mcp
-
-  return {
-    ...(callerUi ?? {}),
-    sender:
-      callerUi?.sender === false
-        ? false
-        : {
-            ...(callerSender ?? {}),
-            onInput: (value: string) => {
-              input.setInputValue(value)
-              callerSender?.onInput?.(value)
-            },
-          },
-    model:
-      callerUi?.model === false
-        ? false
-        : {
-            ...(callerModel ?? {}),
-            onSelect: (payload) => {
-              handleSelectModel(payload)
-              callerModel?.onSelect?.(payload)
-            },
-            onFeatureChange: (payload) => {
-              handleUpdateModelFeature(payload)
-              callerModel?.onFeatureChange?.(payload)
-            },
-          },
-    mcp:
-      callerUi?.mcp === false
-        ? false
-        : {
-            ...(callerMcp ?? {}),
-            onAddServer: (payload) => {
-              handleAddMcpServer(payload)
-              callerMcp?.onAddServer?.(payload)
-            },
-            onRemoveServer: (payload) => {
-              handleRemoveMcpServer(payload)
-              callerMcp?.onRemoveServer?.(payload)
-            },
-            onServerEnabledChange: (payload) => {
-              handleUpdateMcpServerEnabled(payload)
-              callerMcp?.onServerEnabledChange?.(payload)
-            },
-            onToolEnabledChange: (payload) => {
-              handleUpdateMcpToolEnabled(payload)
-              callerMcp?.onToolEnabledChange?.(payload)
-            },
-          },
-  }
-})
 
 function getRuntimeMcp(): ChatRuntime['composer']['mcp'] {
   return runtimeRef.value.composer.mcp
@@ -273,6 +246,35 @@ function handleDeleteConversation(payload: { id: string }) {
   runtimeRef.value.actions.deleteConversation(payload.id)
 }
 
+function handleHistoryAction(payload: ChatHistoryActionPayload) {
+  if (payload.action.id === 'delete') {
+    handleDeleteConversation({ id: payload.conversation.id })
+    return
+  }
+
+  emit('history-action', payload)
+}
+
+function handlePromptClick(payload: ChatPromptClickPayload) {
+  emit('prompt-click', payload)
+}
+
+function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
+  emit('bubble-state-change', payload)
+}
+
+function handleBubbleEvent(payload: ChatBubbleEventPayload) {
+  emit('bubble-event', payload)
+}
+
+function handleLeftAsideOpenChange(payload: ChatAsideOpenChangePayload) {
+  emit('left-aside-open-change', payload)
+}
+
+function handleRightAsideOpenChange(payload: ChatAsideOpenChangePayload) {
+  emit('right-aside-open-change', payload)
+}
+
 function handleSubmit(payload: ChatSubmitPayload) {
   void input.send(payload)
 }
@@ -363,35 +365,52 @@ function handleUpdateMcpToolEnabled(payload: { serverId: string; toolId: string;
 <template>
   <ChatUI
     :data="data"
-    :ui="adapterUI"
+    :ui="props.ui"
+    :input-value="input.inputValue.value"
     @create-conversation="handleCreateConversation"
     @switch-conversation="handleSwitchConversation"
     @rename-conversation="handleRenameConversation"
     @delete-conversation="handleDeleteConversation"
+    @history-action="handleHistoryAction"
+    @prompt-click="handlePromptClick"
+    @bubble-state-change="handleBubbleStateChange"
+    @bubble-event="handleBubbleEvent"
+    @left-aside-open-change="handleLeftAsideOpenChange"
+    @right-aside-open-change="handleRightAsideOpenChange"
     @submit="handleSubmit"
     @cancel="handleCancel"
     @clear="handleClear"
+    @update:input-value="input.setInputValue"
+    @model-select="handleSelectModel"
+    @model-feature-change="handleUpdateModelFeature"
+    @mcp-add-server="handleAddMcpServer"
+    @mcp-remove-server="handleRemoveMcpServer"
+    @mcp-server-enabled-change="handleUpdateMcpServerEnabled"
+    @mcp-tool-enabled-change="handleUpdateMcpToolEnabled"
   >
-    <template v-if="$slots['layout-left-aside']" #layout-left-aside>
-      <slot name="layout-left-aside" />
+    <template v-if="$slots['layout-left-aside']" #layout-left-aside="slotProps">
+      <slot name="layout-left-aside" v-bind="slotProps" />
     </template>
 
-    <template v-if="$slots['layout-header']" #layout-header>
-      <slot name="layout-header" />
+    <template v-if="$slots['layout-header']" #layout-header="slotProps">
+      <slot name="layout-header" v-bind="slotProps" />
     </template>
 
-    <template v-if="$slots['layout-main']" #layout-main>
-      <slot name="layout-main" />
+    <template v-if="$slots['layout-main']" #layout-main="slotProps">
+      <slot name="layout-main" v-bind="slotProps" />
     </template>
 
-    <template v-if="$slots['layout-footer']" #layout-footer>
-      <slot name="layout-footer" />
+    <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
+      <slot name="layout-footer" v-bind="slotProps" />
     </template>
 
     <template v-if="$slots['header-notice']" #header-notice>
       <slot name="header-notice" />
     </template>
 
+    <template v-if="$slots['request-error']" #request-error="slotProps">
+      <slot name="request-error" v-bind="slotProps" />
+    </template>
     <template v-if="$slots['welcome-footer']" #welcome-footer>
       <slot name="welcome-footer" />
     </template>

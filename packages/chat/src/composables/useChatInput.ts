@@ -31,7 +31,7 @@ export function useChatInput(runtime: MaybeRefOrGetter<ChatRuntime>): ChatInput 
     const previousInputValue = payload.text
 
     try {
-      // Let ChatUI apply clearOnSubmit before the Runtime action settles.
+      inputValue.value = ''
       await Promise.resolve()
       const accepted = await currentRuntime.actions.send({
         ...payload,
