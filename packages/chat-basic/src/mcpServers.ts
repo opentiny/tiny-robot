@@ -8,8 +8,9 @@ function assertDashScopeApiKey(serverId: string) {
   }
 }
 
-export const mcpServers = {
-  'amap-maps': {
+export const mcpServers = [
+  {
+    id: 'amap-maps',
     name: '高德地图',
     description: '覆盖地图、导航、地理编码、天气、路径规划、距离测量、关键词搜索和周边搜索等地理信息服务。',
     baseUrl: 'https://dashscope.aliyuncs.com/api/v1/mcps/amap-maps/mcp',
@@ -17,12 +18,14 @@ export const mcpServers = {
     headers: dashScopeApiKey ? { Authorization: `Bearer ${dashScopeApiKey}` } : undefined,
     validate: assertDashScopeApiKey,
   },
-  'model-context-protocol-mcp': {
+  {
+    id: 'model-context-protocol-mcp',
     name: 'Model Context Protocol MCP',
     description: 'MCP Server',
     baseUrl: '/modelcontextprotocol-mcp',
     icon: '/modelcontextprotocol.png',
+    installed: true,
   },
-} satisfies ChatMcpServers
+] satisfies ChatMcpServers
 
-export type McpServerKey = keyof typeof mcpServers
+export type McpServerKey = (typeof mcpServers)[number]['id']

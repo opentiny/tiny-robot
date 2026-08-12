@@ -12,9 +12,7 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp', () => ({
   StreamableHTTPClientTransport: vi.fn(),
 }))
 
-const servers: ChatMcpServers = {
-  maps: { name: 'Maps', baseUrl: 'https://mcp.example/maps' },
-}
+const servers: ChatMcpServers = [{ id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps' }]
 
 function mockClient() {
   const client = {
@@ -32,6 +30,7 @@ function mockClient() {
 
 afterEach(() => {
   vi.clearAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe('createDefaultMcpAdapter', () => {
@@ -46,6 +45,104 @@ describe('createDefaultMcpAdapter', () => {
     expect(adapter.runtime.tools.value.maps).toEqual([
       { id: 'search', name: 'search', description: 'Search', enabled: true },
     ])
+  })
+
+  it('keeps initially installed servers disabled without connecting', () => {
+    const client = mockClient()
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ installed: true, enabled: false })
+    expect(client.connect).not.toHaveBeenCalled()
+    expect(client.listTools).not.toHaveBeenCalled()
+  })
+
+  it('rejects duplicate server ids synchronously', () => {
+    expect(() =>
+      createDefaultMcpAdapter([
+        { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps' },
+        { id: 'maps', name: 'Other Maps', baseUrl: 'https://mcp.example/other' },
+      ]),
+    ).toThrow('Duplicate MCP server id: maps')
+  })
+
+  it('resolves relative URLs from the browser origin', async () => {
+    const client = mockClient()
+    vi.stubGlobal('location', { origin: 'https://app.example' })
+    const adapter = createDefaultMcpAdapter([{ id: 'maps', name: 'Maps', baseUrl: '/mcp/maps', installed: true }])
+
+    await adapter.runtime.setServerEnabled('maps', true)
+
+    expect(StreamableHTTPClientTransport).toHaveBeenCalledWith(
+      new URL('https://app.example/mcp/maps'),
+      expect.anything(),
+    )
+    expect(client.listTools).toHaveBeenCalledOnce()
+  })
+
+  it('rejects relative URLs outside a browser environment', async () => {
+    const client = mockClient()
+    vi.stubGlobal('location', undefined)
+    const adapter = createDefaultMcpAdapter([{ id: 'maps', name: 'Maps', baseUrl: '/mcp/maps', installed: true }])
+
+    await expect(adapter.runtime.setServerEnabled('maps', true)).rejects.toThrow(
+      'requires an absolute baseUrl outside a browser environment',
+    )
+    expect(client.connect).not.toHaveBeenCalled()
+  })
+
+  it('does not reuse discovery from a disabled generation', async () => {
+    const client = mockClient()
+    const firstDiscovery = createDeferred<{ tools: [{ name: string }] }>()
+    const secondDiscovery = createDeferred<{ tools: [{ name: string }] }>()
+    client.listTools.mockReturnValueOnce(firstDiscovery.promise).mockReturnValueOnce(secondDiscovery.promise)
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    const firstEnable = adapter.runtime.setServerEnabled('maps', true)
+    await Promise.resolve()
+    await adapter.runtime.setServerEnabled('maps', false)
+    const secondEnable = adapter.runtime.setServerEnabled('maps', true)
+    await vi.waitFor(() => expect(client.listTools).toHaveBeenCalledTimes(2))
+
+    secondDiscovery.resolve({ tools: [{ name: 'new-search' }] })
+    await secondEnable
+    firstDiscovery.resolve({ tools: [{ name: 'old-search' }] })
+    await firstEnable
+
+    expect(adapter.runtime.tools.value.maps).toEqual([
+      { id: 'new-search', name: 'new-search', description: undefined, enabled: true },
+    ])
+  })
+
+  it('clears definitions when disabled before discovering again', async () => {
+    const client = mockClient()
+    client.listTools
+      .mockResolvedValueOnce({ tools: [{ name: 'first-search' }] })
+      .mockResolvedValueOnce({ tools: [{ name: 'second-search' }] })
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    await adapter.runtime.setServerEnabled('maps', true)
+    await adapter.runtime.setServerEnabled('maps', false)
+    await adapter.runtime.setServerEnabled('maps', true)
+
+    expect(client.listTools).toHaveBeenCalledTimes(2)
+    expect(adapter.runtime.tools.value.maps?.[0].id).toBe('second-search')
+  })
+
+  it('closes the client after a request timeout', async () => {
+    const client = mockClient()
+    client.listTools.mockReturnValue(new Promise(() => undefined))
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', timeout: 1 },
+    ])
+
+    await expect(adapter.runtime.addServer('maps')).rejects.toThrow('timed out')
+    expect(client.close).toHaveBeenCalledOnce()
   })
 
   it('deduplicates discovery and uses original tool names for calls', async () => {

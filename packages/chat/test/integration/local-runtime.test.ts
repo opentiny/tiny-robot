@@ -153,9 +153,7 @@ describe('useLocalChatRuntime integration', () => {
   })
 
   it('creates the default MCP runtime from mcpServers and rejects mixed MCP inputs', () => {
-    const mcpServers: ChatMcpServers = {
-      maps: { name: 'Maps', baseUrl: 'https://mcp.example/maps' },
-    }
+    const mcpServers: ChatMcpServers = [{ id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps' }]
     const runtime = createLocalRuntime({
       conversation: {
         storage: createMemoryStorage(),
@@ -185,6 +183,15 @@ describe('useLocalChatRuntime integration', () => {
         mcpServers,
       }),
     ).toThrow('mcp and mcpServers')
+  })
+
+  it('preserves an initially installed MCP server without connecting it', () => {
+    const mcpServers: ChatMcpServers = [
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ]
+    const runtime = createLocalRuntime({ mcpServers })
+
+    expect(runtime.composer.mcp?.servers.value).toEqual([{ id: 'maps', name: 'Maps', installed: true, enabled: false }])
   })
 
   it('rejects a responseProvider combined with modelProviders', () => {

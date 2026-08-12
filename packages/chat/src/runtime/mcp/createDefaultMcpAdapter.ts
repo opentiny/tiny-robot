@@ -103,13 +103,14 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
   }
 
   async function withClient<T>(serverId: string, task: (client: Client) => Promise<T>) {
-    const server = getServer(serverId)
-    server.config.validate?.(serverId)
+    const config = configById.get(serverId)
+    if (!config) throw new Error(`Unknown MCP server: ${serverId}`)
+    config.validate?.(serverId)
     const client = new Client({ name: `tiny-robot-chat-${serverId}`, version: '1.0.0' })
-    const transport = new StreamableHTTPClientTransport(resolveServerUrl(serverId, server.config.baseUrl), {
-      requestInit: { headers: server.config.headers },
+    const transport = new StreamableHTTPClientTransport(resolveServerUrl(serverId, config.baseUrl), {
+      requestInit: { headers: config.headers },
     })
-    const timeout = server.config.timeout ?? DEFAULT_TIMEOUT
+    const timeout = config.timeout ?? DEFAULT_TIMEOUT
 
     try {
       await withTimeout(client.connect(transport), timeout, 'connect')

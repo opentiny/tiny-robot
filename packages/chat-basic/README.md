@@ -6,6 +6,20 @@
 
 The demo declares MCP Servers through `mcpServers`:
 
+```ts
+const mcpServers = [
+  { id: 'amap-maps', name: '高德地图', baseUrl: 'https://...' },
+  {
+    id: 'model-context-protocol-mcp',
+    name: 'Model Context Protocol MCP',
+    baseUrl: '/modelcontextprotocol-mcp',
+    installed: true,
+  },
+]
+```
+
+`installed: true` means initially installed only. The Server remains disabled and does not connect or discover Tools until enabled.
+
 | Server                     | Transport       | Authentication    |
 | -------------------------- | --------------- | ----------------- |
 | 高德地图                   | Streamable HTTP | DashScope API Key |
