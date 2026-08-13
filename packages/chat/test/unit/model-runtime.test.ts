@@ -54,6 +54,13 @@ describe('createProviderModelRuntime', () => {
   it('rejects unsupported and unknown features', () => {
     const runtime = createProviderModelRuntime(models)
     runtime.model.select('model-b')
+    expect(() => runtime.model.setFeature('thinking', false)).not.toThrow()
     expect(() => runtime.model.setFeature('thinking', true)).toThrow('does not support')
+  })
+
+  it('allows disabling features without a selected model', () => {
+    const runtime = createProviderModelRuntime([])
+    expect(() => runtime.model.setFeature('thinking', false)).not.toThrow()
+    expect(() => runtime.model.setFeature('thinking', true)).toThrow('Unknown model feature')
   })
 })

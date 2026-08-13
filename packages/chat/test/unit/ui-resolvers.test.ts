@@ -30,15 +30,13 @@ describe('UI resolvers', () => {
     expect(data.sender).toEqual({ loading: false, disabled: false, submitDisabled: false })
   })
 
-  it('resolves defaults, false sections and slot-driven right aside', () => {
+  it('resolves defaults and explicit right aside sections', () => {
     expect(resolveChatUIOptions(undefined).layout.rightAside).toBe(false)
     expect(resolveChatUIOptions({ sender: false, history: false }).sender).toBe(false)
-    expect(resolveChatUIOptions(undefined, { hasRightAside: true }).layout.rightAside).toMatchObject({
+    expect(resolveChatUIOptions({ layout: { rightAside: {} } }).layout.rightAside).toMatchObject({
       defaultOpen: true,
     })
-    expect(resolveChatUIOptions({ layout: { rightAside: false } }, { hasRightAside: true }).layout.rightAside).toBe(
-      false,
-    )
+    expect(resolveChatUIOptions({ layout: { rightAside: false } }).layout.rightAside).toBe(false)
   })
 
   it('replaces arrays and merges bubble roles', () => {

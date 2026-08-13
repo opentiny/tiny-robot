@@ -8,7 +8,8 @@ export interface ChatConversation extends ChatConversationInfo {
   lastError?: unknown | null
 }
 
-export type ChatReasoningEffort = 'low' | 'medium' | 'high' | 'max'
+export const CHAT_REASONING_EFFORTS = ['low', 'medium', 'high', 'max'] as const
+export type ChatReasoningEffort = (typeof CHAT_REASONING_EFFORTS)[number]
 export const CHAT_BUILT_IN_MODEL_FEATURES = ['thinking', 'search'] as const
 export type ChatBuiltInModelFeature = (typeof CHAT_BUILT_IN_MODEL_FEATURES)[number]
 

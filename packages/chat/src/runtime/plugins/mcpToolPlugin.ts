@@ -87,11 +87,18 @@ export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: Chat
         throw new Error(`Tool is not enabled in this turn: ${rawName}`)
       }
 
-      return callTool(
-        exposedTool.serverId,
-        exposedTool.originalName,
-        JSON.parse(toolCall.function?.arguments ?? '{}') as Record<string, unknown>,
-      )
+      const rawArguments = toolCall.function?.arguments
+      let argumentsValue: Record<string, unknown> = {}
+
+      if (rawArguments && rawArguments.trim()) {
+        try {
+          argumentsValue = JSON.parse(rawArguments) as Record<string, unknown>
+        } catch {
+          throw new Error(`Invalid JSON arguments for MCP tool "${rawName}".`)
+        }
+      }
+
+      return callTool(exposedTool.serverId, exposedTool.originalName, argumentsValue)
     },
   })
 }

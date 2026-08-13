@@ -33,7 +33,7 @@ export function createProviderRequestPlugin(
         const enabled =
           id === 'thinking'
             ? (currentRunConfig.reasoning?.enabled ?? currentRunConfig.features?.thinking)
-            : currentRunConfig.features?.search
+            : currentRunConfig.features?.[id]
         const featureBody = enabled ? body.enabled : body.disabled
 
         if (featureBody) {

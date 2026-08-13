@@ -31,7 +31,7 @@ describe('useChatRuntimeAdapter', () => {
     })
   })
 
-  it('reports send errors once and rethrows them', async () => {
+  it('reports send errors once and returns false', async () => {
     const error = new Error('send failed')
     const onActionError = vi.fn()
     const fixture = createRuntimeFixture({
@@ -41,7 +41,7 @@ describe('useChatRuntimeAdapter', () => {
     })
     const adapter = useChatRuntimeAdapter({ runtime: fixture.runtime, onActionError })
 
-    await expect(adapter.send({ text: 'hello' })).rejects.toBe(error)
+    await expect(adapter.send({ text: 'hello' })).resolves.toBe(false)
     expect(onActionError).toHaveBeenCalledTimes(1)
     expect(onActionError).toHaveBeenCalledWith({ action: 'send', payload: { text: 'hello' }, error })
   })

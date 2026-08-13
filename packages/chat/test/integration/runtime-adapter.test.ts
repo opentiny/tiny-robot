@@ -33,12 +33,12 @@ describe('useChatRuntimeAdapter integration', () => {
     expect(adapter.data.value.sender?.loading).toBe(false)
   })
 
-  it('restores the draft and reports one error while preserving the send rejection', async () => {
+  it('restores the draft and reports one error without rejecting the send', async () => {
     const error = new Error('send failed')
     const { adapter, onActionError } = createAdapter(createRejectingResponseProvider(error))
     adapter.setInputValue('original draft')
 
-    await expect(adapter.send({ text: 'original draft' })).rejects.toBe(error)
+    await expect(adapter.send({ text: 'original draft' })).resolves.toBe(false)
     await nextTick()
 
     expect(adapter.inputValue.value).toBe('original draft')

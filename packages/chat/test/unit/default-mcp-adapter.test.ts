@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Client } from '@modelcontextprotocol/sdk/client'
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import { createDefaultMcpAdapter } from '../../src/runtime/mcp/createDefaultMcpAdapter'
 import type { ChatMcpServers } from '../../src/runtime/mcp/types'
 import { createDeferred } from '../fixtures/deferred'
@@ -8,7 +8,7 @@ import { createDeferred } from '../fixtures/deferred'
 vi.mock('@modelcontextprotocol/sdk/client', () => ({
   Client: vi.fn(),
 }))
-vi.mock('@modelcontextprotocol/sdk/client/streamableHttp', () => ({
+vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
   StreamableHTTPClientTransport: vi.fn(),
 }))
 

@@ -126,6 +126,8 @@ const modelProviders: ChatProviderConfig[] = [
 ]
 ```
 
+`apiKey` 会随前端代码和请求到达浏览器用户，只适合本地开发或可信环境。生产环境应使用后端代理或自定义 `responseProvider`，不要在浏览器中放置长期密钥。
+
 同一组 Provider 中的模型 ID 以及多个 Provider 之间的模型 ID 都必须唯一。模型列表中的第一个模型会作为初始选择项。
 
 ### 4.2 支持的服务类型
@@ -636,7 +638,7 @@ const ui: ChatUIOptions = {
 | `layout.panelPadding` | 面板内边距，默认 `12` |
 | `layout.panelGap` | 面板间距，默认 `12` |
 | `layout.leftAside` | 左侧会话栏；可设置 `mode`、`width`、`collapsedWidth`、`open`、`defaultOpen` |
-| `layout.rightAside` | 右侧详情栏；可设置侧栏模式、宽度、打开状态和关闭按钮 |
+| `layout.rightAside` | 右侧详情栏的唯一启用开关；未配置或设置为 `false` 时不创建右栏，设置为 `{}` 或具体配置时创建右栏，可配置侧栏模式、宽度、打开状态和关闭按钮 |
 | `header` | 顶部栏配置为 `false` 时隐藏顶部栏 |
 | `history` | 配置会话列表及菜单项，或设置为 `false` 隐藏会话列表 |
 | `welcome` | 空会话欢迎区域，或设置为 `false` 隐藏 |
@@ -678,6 +680,16 @@ const ui: ChatUIOptions = {
 ## 7. 自定义内容：插槽
 
 只在需要替换或补充某个区域时使用插槽。常用插槽如下：
+
+`layout-right-aside` 和 `layout-right-aside-title` 只提供右栏内容，不会启用右栏。需要先通过 `ui.layout.rightAside` 显式启用：
+
+```vue
+<TrChat :runtime="runtime" :ui="{ layout: { rightAside: {} } }">
+  <template #layout-right-aside>
+    <DetailPanel />
+  </template>
+</TrChat>
+```
 
 | 插槽 | 用途 |
 | --- | --- |

@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { Client } from '@modelcontextprotocol/sdk/client'
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
 import type { ChatMcpRuntime, ChatMcpServerInfo, ChatMcpToolInfo, ChatMcpToolState } from '../../types'
 import type { ChatMcpServerConfig, ChatMcpServers } from './types'
 import type { ChatMcpToolDefinition, ChatToolCallTool, ChatToolListTools } from '../plugins/mcpToolPlugin'
@@ -174,11 +174,12 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     const server = getServer(serverId)
     if (!server.installed) throw new Error(`MCP server is not installed: ${serverId}`)
     const generation = generations.get(serverId) ?? 0
+    const currentServer = server
+    let clearCurrentLoading = false
     server.loading = true
     server.error = undefined
     try {
       const nextDefinitions = await discover(serverId, true)
-      const currentServer = getServer(serverId)
       if (!currentServer.installed || (generations.get(serverId) ?? 0) !== generation) return
       tools.value = {
         ...tools.value,
@@ -191,15 +192,14 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
       }
     } catch (error) {
       if ((generations.get(serverId) ?? 0) === generation) {
-        const currentServer = getServer(serverId)
         currentServer.enabled = false
         currentServer.error = error
+        clearCurrentLoading = true
         clearServer(serverId)
-        currentServer.loading = undefined
       }
       throw error
     } finally {
-      if ((generations.get(serverId) ?? 0) === generation) getServer(serverId).loading = undefined
+      if ((generations.get(serverId) ?? 0) === generation || clearCurrentLoading) currentServer.loading = undefined
     }
   }
 

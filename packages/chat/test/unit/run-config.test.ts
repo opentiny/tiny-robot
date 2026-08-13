@@ -6,6 +6,7 @@ import {
   readRunConfigFromMessage,
   resolveComposerRunConfig,
 } from '../../src/runtime/runConfig'
+import { CHAT_REASONING_EFFORTS } from '../../src/types/runtime'
 
 function createComposer() {
   const features = shallowRef({ thinking: true, search: false })
@@ -41,6 +42,9 @@ function createComposer() {
 }
 
 describe('runConfig', () => {
+  it('derives reasoning efforts from the shared constant', () => {
+    expect(CHAT_REASONING_EFFORTS).toEqual(['low', 'medium', 'high', 'max'])
+  })
   it('resolves model, reasoning and enabled MCP state', () => {
     const fixture = createComposer()
     const config = resolveComposerRunConfig(fixture.composer)

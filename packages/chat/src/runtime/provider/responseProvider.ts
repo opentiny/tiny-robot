@@ -26,26 +26,37 @@ export function createProviderResponseProvider(
     const providerRequestBody = { ...requestBody }
     delete providerRequestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY]
 
-    const response = await fetch(currentModel.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...currentModel.headers,
-        Authorization: `Bearer ${currentModel.apiKey}`,
-      },
-      body: JSON.stringify({
-        ...providerRequestBody,
-        model: currentModel.id,
-        stream: true,
-      }),
-      signal: abortSignal,
-    })
+    const timeout = currentModel.timeout
+    const timeoutController = timeout === undefined ? undefined : new AbortController()
+    const timeoutId = timeoutController
+      ? setTimeout(() => timeoutController.abort(new Error(`Provider request timed out after ${timeout}ms.`)), timeout)
+      : undefined
+    const requestSignal = timeoutController ? AbortSignal.any([abortSignal, timeoutController.signal]) : abortSignal
 
-    if (!response.ok) {
-      const detail = await response.text().catch(() => '')
-      throw new Error(`HTTP ${response.status}: ${response.statusText}${detail ? ` - ${detail}` : ''}`)
+    try {
+      const response = await fetch(currentModel.apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...currentModel.headers,
+          Authorization: `Bearer ${currentModel.apiKey}`,
+        },
+        body: JSON.stringify({
+          ...providerRequestBody,
+          model: currentModel.id,
+          stream: true,
+        }),
+        signal: requestSignal,
+      })
+
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '')
+        throw new Error(`HTTP ${response.status}: ${response.statusText}${detail ? ` - ${detail}` : ''}`)
+      }
+
+      return sseStreamToGenerator(response, { signal: abortSignal })
+    } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
     }
-
-    return sseStreamToGenerator(response, { signal: abortSignal })
   }
 }

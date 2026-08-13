@@ -184,7 +184,8 @@ interface ChatAsideOpenChangePayload {
 - `viewport` 表示响应式断点切换导致组件主动关闭 Aside。
 - 外部修改 `layout.*Aside.open` 只更新展示，不派发 `open-change`。
 - `layout.rightAside === false` 优先级最高。
-- 存在 `layout-right-aside` Slot 且未显式关闭右栏时，自动启用右栏。
+- `layout.rightAside` 是右栏唯一的启用开关：未配置或设置为 `false` 时不创建右栏，设置为对象时创建右栏。
+- `layout-right-aside` 和 `layout-right-aside-title` Slot 只提供右栏内容，不参与右栏启用判断。
 - 右栏关闭后可从 Header 重新打开。
 - 左栏关闭时，Header 保留新建会话入口。
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useScroll, useEventListener, useResizeObserver, useMutationObserver } from '@vueuse/core'
-import { computed, shallowRef, watch } from 'vue'
+import { computed, onUnmounted, shallowRef, watch } from 'vue'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { TrIconButton } from '@opentiny/tiny-robot'
 
@@ -20,15 +20,29 @@ function syncDistance() {
   distanceToBottom.value = target ? target.scrollHeight - target.clientHeight - target.scrollTop : 0
 }
 
-useEventListener(() => props.target, 'scroll', syncDistance)
-useResizeObserver(() => props.target, syncDistance)
-useMutationObserver(() => props.target, syncDistance, { childList: true, subtree: true })
+let syncFrame: number | undefined
+
+function scheduleSyncDistance() {
+  if (syncFrame !== undefined) return
+  syncFrame = requestAnimationFrame(() => {
+    syncFrame = undefined
+    syncDistance()
+  })
+}
+
+useEventListener(() => props.target, 'scroll', scheduleSyncDistance)
+useResizeObserver(() => props.target, scheduleSyncDistance)
+useMutationObserver(() => props.target, scheduleSyncDistance, { childList: true, subtree: true })
 
 watch(
   () => props.target,
-  () => syncDistance(),
+  () => scheduleSyncDistance(),
   { immediate: true },
 )
+
+onUnmounted(() => {
+  if (syncFrame !== undefined) cancelAnimationFrame(syncFrame)
+})
 
 function scrollToBottom() {
   measure()

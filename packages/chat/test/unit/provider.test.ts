@@ -36,6 +36,12 @@ describe('provider helpers', () => {
     ).toThrow('Duplicate model id')
   })
 
+  it('rejects unknown provider types', () => {
+    expect(() =>
+      resolveProviderModels([{ type: 'unknown' as never, models: [{ id: 'model-a', label: 'A' }] }]),
+    ).toThrow('Unknown provider type: unknown')
+  })
+
   it('maps thinking and search request bodies', () => {
     const plugin = createProviderRequestPlugin(() => ({
       id: 'model-a',
@@ -123,5 +129,41 @@ describe('provider helpers', () => {
     await expect(failed({ __chat_provider_model_id: 'a', messages: [] }, new AbortController().signal)).rejects.toThrow(
       'HTTP 500',
     )
+  })
+
+  it('times out fetch setup but leaves the stream without a total timeout', async () => {
+    const fetchMock = vi.fn(async () => new Response('', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const responseProvider = createProviderResponseProvider(() => ({
+      id: 'a',
+      label: 'A',
+      providerType: 'openai',
+      providerLabel: 'OpenAI',
+      apiUrl: 'url',
+      apiKey: 'key',
+      timeout: 10,
+    }))
+
+    await responseProvider({ __chat_provider_model_id: 'a', messages: [] }, new AbortController().signal)
+    expect(fetchMock).toHaveBeenCalledWith('url', expect.objectContaining({ signal: expect.any(AbortSignal) }))
+  })
+
+  it('keeps external abort on the fetch signal', async () => {
+    const controller = new AbortController()
+    const fetchMock = vi.fn(async (_url) => {
+      return new Response('', { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const responseProvider = createProviderResponseProvider(() => ({
+      id: 'a',
+      label: 'A',
+      providerType: 'openai',
+      providerLabel: 'OpenAI',
+      apiUrl: 'url',
+      apiKey: 'key',
+    }))
+
+    await responseProvider({ __chat_provider_model_id: 'a', messages: [] }, controller.signal)
+    expect(fetchMock).toHaveBeenCalledWith('url', expect.objectContaining({ signal: controller.signal }))
   })
 })
