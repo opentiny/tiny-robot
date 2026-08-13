@@ -47,15 +47,18 @@ describe('createDefaultMcpAdapter', () => {
     ])
   })
 
-  it('keeps initially installed servers disabled without connecting', () => {
+  it('loads tools for initially installed servers while keeping them disabled', async () => {
     const client = mockClient()
     const adapter = createDefaultMcpAdapter([
       { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
     ])
 
+    await vi.waitFor(() => expect(client.listTools).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(adapter.runtime.tools.value.maps).toBeDefined())
     expect(adapter.runtime.servers.value[0]).toMatchObject({ installed: true, enabled: false })
-    expect(client.connect).not.toHaveBeenCalled()
-    expect(client.listTools).not.toHaveBeenCalled()
+    expect(adapter.runtime.tools.value.maps).toEqual([
+      { id: 'search', name: 'search', description: 'Search', enabled: false },
+    ])
   })
 
   it('rejects duplicate server ids synchronously', () => {
@@ -92,46 +95,129 @@ describe('createDefaultMcpAdapter', () => {
     expect(client.connect).not.toHaveBeenCalled()
   })
 
-  it('does not reuse discovery from a disabled generation', async () => {
+  it('does not let a failed old discovery disable the new generation', async () => {
     const client = mockClient()
     const firstDiscovery = createDeferred<{ tools: [{ name: string }] }>()
     const secondDiscovery = createDeferred<{ tools: [{ name: string }] }>()
     client.listTools.mockReturnValueOnce(firstDiscovery.promise).mockReturnValueOnce(secondDiscovery.promise)
-    const adapter = createDefaultMcpAdapter([
-      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
-    ])
+    const adapter = createDefaultMcpAdapter(servers)
 
-    const firstEnable = adapter.runtime.setServerEnabled('maps', true)
+    const firstEnable = adapter.runtime.addServer('maps')
     await Promise.resolve()
-    await adapter.runtime.setServerEnabled('maps', false)
-    const secondEnable = adapter.runtime.setServerEnabled('maps', true)
+    adapter.runtime.removeServer('maps')
+    const secondEnable = adapter.runtime.addServer('maps')
     await vi.waitFor(() => expect(client.listTools).toHaveBeenCalledTimes(2))
 
     secondDiscovery.resolve({ tools: [{ name: 'new-search' }] })
     await secondEnable
-    firstDiscovery.resolve({ tools: [{ name: 'old-search' }] })
-    await firstEnable
+    const firstError = new Error('old discovery failed')
+    firstDiscovery.reject(firstError)
+    await expect(firstEnable).rejects.toBe(firstError)
 
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ installed: true, enabled: true })
     expect(adapter.runtime.tools.value.maps).toEqual([
       { id: 'new-search', name: 'new-search', description: undefined, enabled: true },
     ])
   })
 
-  it('clears definitions when disabled before discovering again', async () => {
+  it('keeps loaded tools when disabled and reuses them when enabled again', async () => {
     const client = mockClient()
-    client.listTools
-      .mockResolvedValueOnce({ tools: [{ name: 'first-search' }] })
-      .mockResolvedValueOnce({ tools: [{ name: 'second-search' }] })
+    client.listTools.mockResolvedValueOnce({ tools: [{ name: 'first-search' }] })
+    const adapter = createDefaultMcpAdapter(servers)
+
+    await adapter.runtime.addServer('maps')
+    await adapter.runtime.setServerEnabled('maps', false)
+    await adapter.runtime.setServerEnabled('maps', true)
+
+    expect(client.listTools).toHaveBeenCalledOnce()
+    expect(adapter.runtime.tools.value.maps).toEqual([
+      { id: 'first-search', name: 'first-search', description: undefined, enabled: true },
+    ])
+  })
+
+  it('enables only the selected tool when the server is disabled', async () => {
+    const client = mockClient()
+    client.listTools.mockResolvedValueOnce({
+      tools: [{ name: 'tool-a' }, { name: 'tool-b' }, { name: 'tool-c' }],
+    })
     const adapter = createDefaultMcpAdapter([
       { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
     ])
 
-    await adapter.runtime.setServerEnabled('maps', true)
-    await adapter.runtime.setServerEnabled('maps', false)
-    await adapter.runtime.setServerEnabled('maps', true)
+    await vi.waitFor(() => expect(adapter.runtime.tools.value.maps).toHaveLength(3))
+    adapter.runtime.setToolEnabled('maps', 'tool-a', true)
 
-    expect(client.listTools).toHaveBeenCalledTimes(2)
-    expect(adapter.runtime.tools.value.maps?.[0].id).toBe('second-search')
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ enabled: true })
+    expect(adapter.runtime.tools.value.maps).toEqual([
+      { id: 'tool-a', name: 'tool-a', description: undefined, enabled: true },
+      { id: 'tool-b', name: 'tool-b', description: undefined, enabled: false },
+      { id: 'tool-c', name: 'tool-c', description: undefined, enabled: false },
+    ])
+  })
+
+  it('disables the server when its last enabled tool is closed', async () => {
+    const client = mockClient()
+    client.listTools.mockResolvedValueOnce({ tools: [{ name: 'tool-a' }, { name: 'tool-b' }] })
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value.maps).toHaveLength(2))
+    adapter.runtime.setToolEnabled('maps', 'tool-a', true)
+    adapter.runtime.setToolEnabled('maps', 'tool-a', false)
+
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ enabled: false })
+    expect(adapter.runtime.tools.value.maps?.every((tool) => !tool.enabled)).toBe(true)
+  })
+
+  it('keeps the server enabled while another tool remains enabled', async () => {
+    const client = mockClient()
+    client.listTools.mockResolvedValueOnce({ tools: [{ name: 'tool-a' }, { name: 'tool-b' }, { name: 'tool-c' }] })
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value.maps).toHaveLength(3))
+    adapter.runtime.setToolEnabled('maps', 'tool-a', true)
+    adapter.runtime.setToolEnabled('maps', 'tool-b', true)
+    adapter.runtime.setToolEnabled('maps', 'tool-a', false)
+
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ enabled: true })
+    expect(adapter.runtime.tools.value.maps).toEqual([
+      { id: 'tool-a', name: 'tool-a', description: undefined, enabled: false },
+      { id: 'tool-b', name: 'tool-b', description: undefined, enabled: true },
+      { id: 'tool-c', name: 'tool-c', description: undefined, enabled: false },
+    ])
+  })
+
+  it('keeps the server switch as a batch tool operation', async () => {
+    const client = mockClient()
+    client.listTools.mockResolvedValueOnce({ tools: [{ name: 'tool-a' }, { name: 'tool-b' }] })
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    await vi.waitFor(() => expect(adapter.runtime.tools.value.maps).toHaveLength(2))
+    await adapter.runtime.setServerEnabled('maps', true)
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ enabled: true })
+    expect(adapter.runtime.tools.value.maps?.every((tool) => tool.enabled)).toBe(true)
+
+    await adapter.runtime.setServerEnabled('maps', false)
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ enabled: false })
+    expect(adapter.runtime.tools.value.maps?.every((tool) => !tool.enabled)).toBe(true)
+  })
+
+  it('keeps initially installed servers disabled when tool discovery fails', async () => {
+    const error = new Error('initial discovery failed')
+    const client = mockClient()
+    client.listTools.mockRejectedValue(error)
+    const adapter = createDefaultMcpAdapter([
+      { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
+    ])
+
+    await vi.waitFor(() => expect(adapter.runtime.servers.value[0]).toMatchObject({ error }))
+    expect(adapter.runtime.servers.value[0]).toMatchObject({ installed: true, enabled: false, error })
+    expect(adapter.runtime.tools.value.maps).toBeUndefined()
   })
 
   it('closes the client after a request timeout', async () => {

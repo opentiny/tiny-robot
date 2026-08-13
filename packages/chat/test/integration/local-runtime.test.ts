@@ -185,13 +185,13 @@ describe('useLocalChatRuntime integration', () => {
     ).toThrow('mcp and mcpServers')
   })
 
-  it('preserves an initially installed MCP server without connecting it', () => {
+  it('preserves an initially installed MCP server as disabled', () => {
     const mcpServers: ChatMcpServers = [
       { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
     ]
     const runtime = createLocalRuntime({ mcpServers })
 
-    expect(runtime.composer.mcp?.servers.value).toEqual([{ id: 'maps', name: 'Maps', installed: true, enabled: false }])
+    expect(runtime.composer.mcp?.servers.value[0]).toMatchObject({ installed: true, enabled: false })
   })
 
   it('rejects a responseProvider combined with modelProviders', () => {

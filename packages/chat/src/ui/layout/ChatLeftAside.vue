@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconAi, IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
@@ -37,7 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const historyItemCache = new Map<string, HistoryDisplayItem>()
-const historyItems = shallowRef<HistoryDisplayItem[]>([])
+const historyItems = ref<HistoryDisplayItem[]>([])
 
 watch(
   () => props.conversation.items,

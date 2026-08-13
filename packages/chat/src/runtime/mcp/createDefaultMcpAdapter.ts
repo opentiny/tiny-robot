@@ -102,6 +102,16 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     generations.set(serverId, (generations.get(serverId) ?? 0) + 1)
   }
 
+  function setServerToolsEnabled(serverId: string, enabled: boolean) {
+    const serverTools = tools.value[serverId]
+    if (!serverTools) return
+
+    tools.value = {
+      ...tools.value,
+      [serverId]: serverTools.map((tool) => ({ ...tool, enabled })),
+    }
+  }
+
   async function withClient<T>(serverId: string, task: (client: Client) => Promise<T>) {
     const config = configById.get(serverId)
     if (!config) throw new Error(`Unknown MCP server: ${serverId}`)
@@ -144,11 +154,14 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     }
   }
 
-  async function loadTools(serverId: string) {
+  async function loadTools(serverId: string, defaultToolEnabled = true) {
     const currentTask = loadTasks.get(serverId)
-    if (currentTask) return currentTask
+    if (currentTask) {
+      await currentTask
+      return
+    }
 
-    const task = loadToolsInternal(serverId)
+    const task = loadToolsInternal(serverId, defaultToolEnabled)
     loadTasks.set(serverId, task)
     try {
       await task
@@ -157,7 +170,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
     }
   }
 
-  async function loadToolsInternal(serverId: string) {
+  async function loadToolsInternal(serverId: string, defaultToolEnabled: boolean) {
     const server = getServer(serverId)
     if (!server.installed) throw new Error(`MCP server is not installed: ${serverId}`)
     const generation = generations.get(serverId) ?? 0
@@ -173,7 +186,7 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
           id: tool.id,
           name: tool.originalName,
           description: tool.description,
-          enabled: true,
+          enabled: currentServer.enabled && defaultToolEnabled,
         })),
       }
     } catch (error) {
@@ -199,12 +212,12 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
       const server = getServer(serverId)
       server.installed = true
       server.enabled = true
-      try {
-        await loadTools(serverId)
-      } catch (error) {
-        server.enabled = false
-        throw error
+      if (tools.value[serverId]) {
+        setServerToolsEnabled(serverId, true)
+        return
       }
+      await loadTools(serverId)
+      setServerToolsEnabled(serverId, true)
     },
     removeServer(serverId) {
       const server = getServer(serverId)
@@ -220,27 +233,39 @@ export function createDefaultMcpAdapter(serverConfigs: ChatMcpServers) {
       server.enabled = enabled
       server.error = undefined
       if (enabled) {
-        try {
-          await loadTools(serverId)
-        } catch (error) {
-          server.enabled = false
-          throw error
+        if (tools.value[serverId]) {
+          setServerToolsEnabled(serverId, true)
+          return
         }
+        await loadTools(serverId)
+        setServerToolsEnabled(serverId, true)
       } else {
-        clearServer(serverId)
+        setServerToolsEnabled(serverId, false)
       }
     },
     setToolEnabled(serverId, toolId, enabled) {
       const server = getServer(serverId)
       const serverTools = tools.value[serverId]
-      if (!server.installed || !server.enabled) throw new Error(`MCP server is not enabled: ${serverId}`)
+      if (!server.installed) throw new Error(`MCP server is not installed: ${serverId}`)
       if (!serverTools) throw new Error(`MCP tools are not loaded: ${serverId}`)
       if (!serverTools.some((tool) => tool.id === toolId)) throw new Error(`Unknown MCP tool: ${serverId}/${toolId}`)
+      const nextTools = serverTools.map((tool) => (tool.id === toolId ? { ...tool, enabled } : tool))
       tools.value = {
         ...tools.value,
-        [serverId]: serverTools.map((tool) => (tool.id === toolId ? { ...tool, enabled } : tool)),
+        [serverId]: nextTools,
+      }
+      if (enabled) {
+        server.enabled = true
+      } else if (!nextTools.some((tool) => tool.enabled)) {
+        server.enabled = false
       }
     },
+  }
+
+  for (const server of serverStates.value) {
+    if (server.installed) {
+      void loadTools(server.id, false).catch(() => undefined)
+    }
   }
 
   const listTools: ChatToolListTools = async (serverIds, selectedToolIds) => {

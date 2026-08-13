@@ -106,7 +106,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   const server = findServer(plugin.id)
   const tool = tools.value[plugin.id]?.find((item) => item.id === toolId)
 
-  if (!server || !server.installed || !server.enabled || tool?.loading || tool?.enabled === enabled) {
+  if (!server || !server.installed || tool?.loading || tool?.enabled === enabled) {
     return
   }
 
