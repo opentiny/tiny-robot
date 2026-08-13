@@ -131,8 +131,15 @@ describe('provider helpers', () => {
     )
   })
 
-  it('times out fetch setup but leaves the stream without a total timeout', async () => {
+  it('keeps the timeout active while reading the stream', async () => {
+    vi.useFakeTimers()
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[]}\n\n'))
+      },
+    })
     const fetchMock = vi.fn(async () => new Response('', { status: 200 }))
+    fetchMock.mockResolvedValueOnce(new Response(stream, { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     const responseProvider = createProviderResponseProvider(() => ({
       id: 'a',
@@ -144,8 +151,19 @@ describe('provider helpers', () => {
       timeout: 10,
     }))
 
-    await responseProvider({ __chat_provider_model_id: 'a', messages: [] }, new AbortController().signal)
+    const result = (await responseProvider(
+      { __chat_provider_model_id: 'a', messages: [] },
+      new AbortController().signal,
+    )) as AsyncGenerator
+    const iterator = result[Symbol.asyncIterator]()
+    await expect(iterator.next()).resolves.toEqual({ done: false, value: { choices: [] } })
+
+    const timedOut = iterator.next()
+    const timedOutExpectation = expect(timedOut).rejects.toThrow('The operation was aborted')
+    await vi.advanceTimersByTimeAsync(10)
+    await timedOutExpectation
     expect(fetchMock).toHaveBeenCalledWith('url', expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    vi.useRealTimers()
   })
 
   it('keeps external abort on the fetch signal', async () => {
