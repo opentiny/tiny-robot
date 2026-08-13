@@ -13,7 +13,7 @@
     "build:playground": "pnpm -F @opentiny/tiny-robot-playground build",
     "build:deps": "pnpm -F @opentiny/tiny-robot-* -F \"!@opentiny/tiny-robot-playground\" build",
     "dev:components": "pnpm build:deps && pnpm -F @opentiny/tiny-robot dev",
-    "build:components": "pnpm build:deps && pnpm -F @opentiny/tiny-robot build",
+    "build:components": "pnpm -r --filter @opentiny/tiny-robot-chat... build",
     "dev:kit": "pnpm -F @opentiny/tiny-robot-kit dev",
     "build:kit": "pnpm -F @opentiny/tiny-robot-kit build",
     "build:svgs": "pnpm -F @opentiny/tiny-robot-svgs build",
