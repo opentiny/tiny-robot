@@ -54,9 +54,16 @@ export function createProviderResponseProvider(
         throw new Error(`HTTP ${response.status}: ${response.statusText}${detail ? ` - ${detail}` : ''}`)
       }
 
-      return sseStreamToGenerator(response, { signal: abortSignal })
-    } finally {
+      return (async function* () {
+        try {
+          yield* sseStreamToGenerator(response, { signal: requestSignal })
+        } finally {
+          if (timeoutId !== undefined) clearTimeout(timeoutId)
+        }
+      })()
+    } catch (error) {
       if (timeoutId !== undefined) clearTimeout(timeoutId)
+      throw error
     }
   }
 }
