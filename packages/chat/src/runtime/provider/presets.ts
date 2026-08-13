@@ -67,6 +67,9 @@ export function resolveProviderModels(providers: readonly ChatProviderConfig[]):
 
   return providers.flatMap((provider) => {
     const preset = providerPresets[provider.type]
+    if (!preset) {
+      throw new Error(`Unknown provider type: ${String(provider.type)}`)
+    }
     const providerLabel = provider.label ?? preset.label
     const apiUrl = normalizeChatCompletionsUrl(provider.apiUrl ?? preset.apiUrl)
 
@@ -84,6 +87,7 @@ export function resolveProviderModels(providers: readonly ChatProviderConfig[]):
         apiUrl,
         apiKey: provider.apiKey,
         headers: provider.headers,
+        timeout: provider.timeout,
         featureBody: {
           ...preset.featureBody,
           ...model.featureBody,

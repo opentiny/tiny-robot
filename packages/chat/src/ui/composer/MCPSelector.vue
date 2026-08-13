@@ -2,6 +2,7 @@
 import { computed, shallowRef } from 'vue'
 import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
+import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
 import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../../types'
 
 const props = defineProps<{
@@ -17,7 +18,6 @@ const emit = defineEmits<{
 }>()
 
 const visible = shallowRef(false)
-const fallbackPluginIcon = 'https://modelcontextprotocol.io/favicon.ico'
 const pickerPopupConfig = {
   type: 'drawer' as const,
   drawer: {
@@ -106,7 +106,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   const server = findServer(plugin.id)
   const tool = tools.value[plugin.id]?.find((item) => item.id === toolId)
 
-  if (!server || !server.installed || tool?.loading || tool?.enabled === enabled) {
+  if (!server || !server.installed || !tool || tool.loading || tool.enabled === enabled) {
     return
   }
 

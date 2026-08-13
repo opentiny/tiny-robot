@@ -70,19 +70,12 @@ export interface ResolvedChatUIOptions {
   mcp: false | ResolvedChatMcpOptions
 }
 
-interface ResolveSlots {
-  hasRightAside?: boolean
-}
-
-export function resolveChatUIOptions(
-  options: ChatUIOptions | undefined,
-  slots: ResolveSlots = {},
-): ResolvedChatUIOptions {
+export function resolveChatUIOptions(options: ChatUIOptions | undefined): ResolvedChatUIOptions {
   const defaults = createDefaultChatUIOptions()
   const labels = resolveLabels(defaults.labels, options?.labels)
 
   return {
-    layout: resolveLayout(defaults.layout, options?.layout, slots),
+    layout: resolveLayout(defaults.layout, options?.layout),
     brand: resolveBrand(defaults.brand, options?.brand),
     labels,
     header: options?.header !== false,
@@ -106,14 +99,13 @@ function resolveLabels(defaults: ChatLabels, options: Partial<ChatLabels> | unde
 function resolveLayout(
   defaults: DefaultChatUIOptions['layout'],
   options: ChatLayoutOptions | undefined,
-  slots: ResolveSlots,
 ): ResolvedChatLayoutOptions {
   return {
     contentMaxWidth: options?.contentMaxWidth ?? defaults.contentMaxWidth,
     panelPadding: options?.panelPadding ?? defaults.panelPadding,
     panelGap: options?.panelGap ?? defaults.panelGap,
     leftAside: resolveLeftAside(defaults.leftAside, options?.leftAside),
-    rightAside: resolveRightAside(options?.rightAside, slots),
+    rightAside: resolveRightAside(options?.rightAside),
   }
 }
 
@@ -134,15 +126,12 @@ function resolveLeftAside(
   }
 }
 
-function resolveRightAside(
-  options: false | ChatRightAsideOptions | undefined,
-  slots: ResolveSlots,
-): false | ResolvedChatRightAsideOptions {
+function resolveRightAside(options: false | ChatRightAsideOptions | undefined): false | ResolvedChatRightAsideOptions {
   if (options === false) {
     return false
   }
 
-  if (!options && !slots.hasRightAside) {
+  if (!options) {
     return false
   }
 

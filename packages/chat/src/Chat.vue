@@ -69,8 +69,53 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @mcp-server-enabled-change="({ id, enabled }) => adapter.setMcpServerEnabled(id, enabled)"
     @mcp-tool-enabled-change="({ serverId, toolId, enabled }) => adapter.setMcpToolEnabled(serverId, toolId, enabled)"
   >
-    <template v-for="(_, name) in $slots" #[name]="slotProps">
-      <slot :name="name" v-bind="slotProps" />
+    <template v-if="$slots['layout-header']" #layout-header="slotProps">
+      <slot name="layout-header" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside']" #layout-left-aside="slotProps">
+      <slot name="layout-left-aside" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-right-aside']" #layout-right-aside>
+      <slot name="layout-right-aside" />
+    </template>
+    <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title>
+      <slot name="layout-right-aside-title" />
+    </template>
+    <template v-if="$slots['layout-main']" #layout-main="slotProps">
+      <slot name="layout-main" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
+      <slot name="layout-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['header-notice']" #header-notice>
+      <slot name="header-notice" />
+    </template>
+    <template v-if="$slots['request-error']" #request-error="slotProps">
+      <slot name="request-error" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['welcome-footer']" #welcome-footer>
+      <slot name="welcome-footer" />
+    </template>
+    <template v-if="$slots['prompts-footer']" #prompts-footer>
+      <slot name="prompts-footer" />
+    </template>
+    <template v-if="$slots['bubble-prefix']" #bubble-prefix>
+      <slot name="bubble-prefix" />
+    </template>
+    <template v-if="$slots['bubble-suffix']" #bubble-suffix>
+      <slot name="bubble-suffix" />
+    </template>
+    <template v-if="$slots['bubble-after']" #bubble-after>
+      <slot name="bubble-after" />
+    </template>
+    <template v-if="$slots['bubble-content-footer']" #bubble-content-footer>
+      <slot name="bubble-content-footer" />
+    </template>
+    <template v-if="$slots['sender-footer']" #sender-footer>
+      <slot name="sender-footer" />
+    </template>
+    <template v-if="$slots['sender-footer-right']" #sender-footer-right>
+      <slot name="sender-footer-right" />
     </template>
   </ChatUI>
 </template>

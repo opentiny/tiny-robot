@@ -79,8 +79,8 @@ function openRightAside() {
           v-if="isRightAsideVisible && !isRightAsideOpen"
           class="chat-header__aside-action"
           type="button"
-          aria-label="打开详情"
-          title="打开详情"
+          :aria-label="labels.openRightAside"
+          :title="labels.openRightAside"
           @click="openRightAside"
         >
           <IconCollapseLeft :size="18" />

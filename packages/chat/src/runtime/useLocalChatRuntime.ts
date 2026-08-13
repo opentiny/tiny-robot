@@ -12,6 +12,7 @@ import { createRunConfigContextPlugin } from './plugins/runConfigContextPlugin'
 import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from './plugins/mcpToolPlugin'
 import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
+import { createDefaultChatTitle } from './defaults'
 
 export interface UseLocalChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime
@@ -30,11 +31,9 @@ export interface UseLocalChatRuntimeOptions {
   mcpServers?: ChatMcpServers
 }
 
-const defaultTitleGenerator = (text: string) => text.trim().slice(0, 20) || '新对话'
-
 export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
   const conversationOptions: NonNullable<UseLocalChatRuntimeOptions['conversation']> = options.conversation ?? {}
-  const resolveTitle = options.titleGenerator ?? defaultTitleGenerator
+  const resolveTitle = options.titleGenerator ?? createDefaultChatTitle
   const userUseMessageOptions = conversationOptions.useMessageOptions
   const userResponseProvider = userUseMessageOptions?.responseProvider
 

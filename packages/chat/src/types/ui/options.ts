@@ -63,6 +63,8 @@ export interface ChatLabels {
   welcomeTitle: string
   welcomeDescription: string
   rightAsideTitle: string
+  openRightAside: string
+  closeRightAside: string
 }
 
 export interface ChatAsideOptions {

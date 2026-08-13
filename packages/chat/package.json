@@ -26,7 +26,7 @@
     "README*"
   ],
   "scripts": {
-    "build": "vue-tsc --noEmit",
+    "build": "pnpm type-check && vite build",
     "dev": "vite --host 0.0.0.0",
     "type-check": "vue-tsc --noEmit",
     "test": "vitest run",
@@ -47,6 +47,7 @@
     "typescript": "^5.2.2",
     "vitest": "^1.6.1",
     "vite": "^5.0.8",
+    "vite-plugin-dts": "^4.5.4",
     "vue": "^3.3.11",
     "vue-tsc": "^2.2.8"
   }

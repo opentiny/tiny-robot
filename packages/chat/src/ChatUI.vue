@@ -12,6 +12,7 @@ import ChatRightAside from './ui/layout/ChatRightAside.vue'
 import { useChatAsideState } from './composables/useChatAsideState'
 import { resolveChatUIData } from './ui/resolveData'
 import { resolveChatUIOptions } from './ui/resolveOptions'
+import { formatRequestError } from './ui/formatRequestError'
 import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
@@ -19,12 +20,10 @@ import type {
   ChatSendPayload,
   ChatUIEmits,
   ChatUIProps,
-  ChatUISlots,
 } from './types'
 
 const props = defineProps<ChatUIProps>()
 const emit = defineEmits<ChatUIEmits>()
-const slots = defineSlots<ChatUISlots>()
 
 const isControlledInput = props.inputValue !== undefined
 const draftValue = shallowRef(props.inputValue ?? props.defaultInputValue ?? '')
@@ -36,9 +35,7 @@ const breakpoints = useBreakpoints({
 const isMobileViewport = breakpoints.smaller('desktop')
 const { width: viewportWidth } = useWindowSize()
 
-const resolvedOptions = computed(() =>
-  resolveChatUIOptions(props.ui, { hasRightAside: Boolean(slots['layout-right-aside']) }),
-)
+const resolvedOptions = computed(() => resolveChatUIOptions(props.ui))
 const resolvedData = computed(() => resolveChatUIData(props.data, resolvedOptions.value.labels))
 const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') : draftValue.value))
 
@@ -243,7 +240,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         <div ref="scrollTarget" class="chat-main-scroll-host">
           <div v-if="requestError !== undefined && requestError !== null" class="chat-request-error" role="alert">
             <slot name="request-error" :error="requestError">
-              {{ String(requestError) }}
+              {{ formatRequestError(requestError) }}
             </slot>
           </div>
           <ChatMessages
@@ -339,6 +336,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     <template v-if="isRightAsideVisible" #right-aside>
       <ChatRightAside
         :show-close="rightAsideLayout !== false ? rightAsideLayout.showClose : true"
+        :labels="resolvedOptions.labels"
         @close="asideState.closeRightAside"
       >
         <template #title>

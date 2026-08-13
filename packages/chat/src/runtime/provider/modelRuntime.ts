@@ -78,12 +78,14 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
     },
 
     setFeature(id: ChatBuiltInModelFeature, enabled) {
-      if (!Object.prototype.hasOwnProperty.call(selectedModel.value?.capabilities ?? {}, id)) {
-        throw new Error(`Unknown model feature: ${id}`)
-      }
+      if (enabled) {
+        if (!Object.prototype.hasOwnProperty.call(selectedModel.value?.capabilities ?? {}, id)) {
+          throw new Error(`Unknown model feature: ${id}`)
+        }
 
-      if (enabled && !selectedModel.value?.capabilities?.[id]) {
-        throw new Error(`Current model does not support ${id}`)
+        if (!selectedModel.value?.capabilities?.[id]) {
+          throw new Error(`Current model does not support ${id}`)
+        }
       }
 
       featureState[id] = enabled

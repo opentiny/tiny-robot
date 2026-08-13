@@ -28,8 +28,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingMcpToolIds = shallowRef<ReadonlySet<string>>(new Set())
 
   const input = useChatDraft({
-    send: async (payload) =>
-      (await runAction('send', payload, () => runtime.value.actions.send(payload), { rethrow: true })) ?? false,
+    send: async (payload) => (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false,
   })
 
   const data = computed<ChatUIData>(() => {
@@ -114,16 +113,11 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     action: ChatRuntimeActionErrorPayload['action'],
     payload: unknown,
     task: () => Promise<T> | T,
-    actionOptions: { rethrow?: boolean } = {},
   ): Promise<T | undefined> {
     try {
       return await task()
     } catch (error) {
       options.onActionError({ action, payload, error })
-      if (actionOptions.rethrow) {
-        throw error
-      }
-
       return undefined
     }
   }

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { IconClose } from '@opentiny/tiny-robot-svgs'
+import type { ChatLabels } from '../../types'
 
 withDefaults(
   defineProps<{
     showClose?: boolean
+    labels: ChatLabels
   }>(),
   {
     showClose: true,
@@ -23,8 +25,8 @@ const emit = defineEmits<{
         v-if="showClose"
         class="chat-right-aside__close"
         type="button"
-        aria-label="关闭"
-        title="关闭"
+        :aria-label="labels.closeRightAside"
+        :title="labels.closeRightAside"
         @click="emit('close')"
       >
         <IconClose class="chat-right-aside__close-icon" />

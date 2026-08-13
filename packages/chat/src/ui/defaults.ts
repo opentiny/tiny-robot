@@ -74,6 +74,8 @@ export function createDefaultChatLabels(): ChatLabels {
     searchFeature: '联网搜索',
     welcomeTitle: 'TinyRobot AI 助手',
     welcomeDescription: '您好，我是TinyRobot，您专属的 AI 智能专家',
+    openRightAside: '打开详情',
+    closeRightAside: '关闭详情',
   }
 }
 

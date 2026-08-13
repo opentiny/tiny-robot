@@ -24,6 +24,7 @@ export interface ChatProviderConfig {
   apiUrl?: string
   apiKey?: string
   headers?: Record<string, string>
+  timeout?: number
   models: ChatProviderModelConfig[]
 }
 
@@ -33,4 +34,5 @@ export interface ChatResolvedProviderModel extends ChatProviderModelConfig {
   apiUrl: string
   apiKey?: string
   headers?: Record<string, string>
+  timeout?: number
 }

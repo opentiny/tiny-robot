@@ -13,11 +13,20 @@ const emit = defineEmits<{
   updateFeature: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
 }>()
 
+const featureLabels: Record<ChatBuiltInModelFeature, keyof ChatLabels> = {
+  thinking: 'thinkingFeature',
+  search: 'searchFeature',
+}
+const featureIcons: Record<ChatBuiltInModelFeature, typeof IconThink> = {
+  thinking: IconThink,
+  search: IconSearch,
+}
+
 const featureOptions = computed(() =>
   CHAT_BUILT_IN_MODEL_FEATURES.map((id) => ({
     id,
-    label: id === 'thinking' ? props.labels.thinkingFeature : props.labels.searchFeature,
-    icon: id === 'thinking' ? IconThink : IconSearch,
+    label: props.labels[featureLabels[id]],
+    icon: featureIcons[id],
   })),
 )
 

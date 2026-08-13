@@ -14,6 +14,7 @@ import {
   cloneRunConfig,
   resolveComposerRunConfig,
 } from './runConfig'
+import { createDefaultChatTitle, resolveChatConversationTitle } from './defaults'
 
 type TitleGenerator = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
@@ -30,12 +31,10 @@ export interface UseKitChatRuntimeOptions {
   send?: (payload: KitRuntimeSendPayload) => Promise<void> | void
   composer?: UseKitChatComposerOptions
 }
-const defaultTitleGenerator = (text: string) => text.trim().slice(0, 20) || '新对话'
-
 const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo => {
   return {
     id: item.id,
-    title: item.title || '新对话',
+    title: resolveChatConversationTitle(item.title),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     metadata: item.metadata,
@@ -45,7 +44,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
   const { conversation, lastError: errorRef, titleGenerator, send, composer: composerOptions } = options
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
-  const resolveTitle = titleGenerator ?? defaultTitleGenerator
+  const resolveTitle = titleGenerator ?? createDefaultChatTitle
 
   const activeKitConversation = computed(() => conversation.activeConversation.value)
   const conversations = computed(() => conversation.conversations.value.map(toChatConversationInfo))
