@@ -7,36 +7,8 @@ import type { ChatMcpServers } from '../../src/runtime/mcp/types'
 
 type LocalRuntimeOptions = Parameters<typeof useLocalChatRuntime>[0]
 
-function createLocalRuntime(
-  options: Omit<LocalRuntimeOptions, 'conversation'> & Partial<Pick<LocalRuntimeOptions, 'conversation'>>,
-) {
-  const { conversation: providedConversation, ...runtimeOptions } = options
-  const conversation = providedConversation ?? {
-    storage: createMemoryStorage(),
-    useMessageOptions: {
-      responseProvider: async () => ({
-        id: 'response',
-        object: 'chat.completion',
-        created: 0,
-        model: 'fixture',
-        system_fingerprint: null,
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: 'ok' },
-            delta: undefined,
-            logprobs: null,
-            finish_reason: 'stop',
-          },
-        ],
-      }),
-    },
-  }
-
-  return useLocalChatRuntime({
-    conversation,
-    ...runtimeOptions,
-  })
+function createLocalRuntime(options: LocalRuntimeOptions) {
+  return useLocalChatRuntime(options)
 }
 
 describe('useLocalChatRuntime integration', () => {
@@ -62,10 +34,6 @@ describe('useLocalChatRuntime integration', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     const runtime = useLocalChatRuntime({
-      conversation: {
-        storage: createMemoryStorage(),
-        useMessageOptions: {},
-      },
       modelProviders: [
         {
           type: 'openai',
@@ -78,6 +46,10 @@ describe('useLocalChatRuntime integration', () => {
     expect(runtime.composer.model?.selectedId.value).toBe('model-a')
     runtime.composer.model?.setFeature('thinking', true)
     await expect(runtime.actions.send({ text: 'hello' })).resolves.toBe(true)
+    expect(runtime.activeConversation.value).toMatchObject({ title: 'hello' })
+    expect(runtime.activeConversation.value?.messages).toContainEqual(
+      expect.objectContaining({ role: 'assistant', content: 'ok' }),
+    )
 
     const requestCall = fetchMock.mock.calls[0] as unknown as [RequestInfo | URL, RequestInit | undefined]
     const requestBody = JSON.parse(String(requestCall[1]?.body)) as Record<string, unknown>
@@ -189,7 +161,16 @@ describe('useLocalChatRuntime integration', () => {
     const mcpServers: ChatMcpServers = [
       { id: 'maps', name: 'Maps', baseUrl: 'https://mcp.example/maps', installed: true },
     ]
-    const runtime = createLocalRuntime({ mcpServers })
+    const runtime = createLocalRuntime({
+      conversation: {
+        useMessageOptions: {
+          responseProvider: async () => {
+            throw new Error('unused')
+          },
+        },
+      },
+      mcpServers,
+    })
 
     expect(runtime.composer.mcp?.servers.value[0]).toMatchObject({ installed: true, enabled: false })
   })

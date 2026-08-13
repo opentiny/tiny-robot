@@ -20,7 +20,7 @@ export interface UseLocalChatRuntimeMcpAdapter {
 }
 
 export interface UseLocalChatRuntimeOptions {
-  conversation: Omit<UseConversationOptions, 'useMessageOptions'> & {
+  conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & {
     useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']>
   }
   titleGenerator?: (text: string) => string
@@ -33,8 +33,9 @@ export interface UseLocalChatRuntimeOptions {
 const defaultTitleGenerator = (text: string) => text.trim().slice(0, 20) || '新对话'
 
 export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
+  const conversationOptions: NonNullable<UseLocalChatRuntimeOptions['conversation']> = options.conversation ?? {}
   const resolveTitle = options.titleGenerator ?? defaultTitleGenerator
-  const userUseMessageOptions = options.conversation.useMessageOptions
+  const userUseMessageOptions = conversationOptions.useMessageOptions
   const userResponseProvider = userUseMessageOptions?.responseProvider
 
   if (options.mcp !== undefined && options.mcpServers !== undefined) {
@@ -73,7 +74,7 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
 
   const conversation = useConversation({
     autoSaveMessages: true,
-    ...options.conversation,
+    ...conversationOptions,
     useMessageOptions: useMessageOptions as UseConversationOptions['useMessageOptions'],
   })
 

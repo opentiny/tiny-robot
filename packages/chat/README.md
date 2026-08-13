@@ -70,9 +70,6 @@ const modelProviders: ChatProviderConfig[] = [
 ]
 
 const runtime = useLocalChatRuntime({
-  conversation: {
-    useMessageOptions: {},
-  },
   modelProviders,
 })
 </script>
@@ -250,9 +247,6 @@ const mcpServers: ChatMcpServers = [
 
 ```ts
 const runtime = useLocalChatRuntime({
-  conversation: {
-    useMessageOptions: {},
-  },
   modelProviders,
   mcpServers,
 })
@@ -544,9 +538,6 @@ const mcp: UseLocalChatRuntimeMcpAdapter = {
 }
 
 const runtime = useLocalChatRuntime({
-  conversation: {
-    useMessageOptions: {},
-  },
   modelProviders,
   mcp,
 })
@@ -566,9 +557,6 @@ const runtime = useLocalChatRuntime({
 
 ```ts
 useLocalChatRuntime({
-  conversation: {
-    useMessageOptions: {},
-  },
   modelProviders,
   mcpServers,
   mcp,

@@ -84,9 +84,6 @@ const mcpServers = [
 ] satisfies ChatMcpServers
 
 const runtime = useLocalChatRuntime({
-  conversation: {
-    useMessageOptions: {},
-  },
   mcpServers,
   modelProviders,
 })
