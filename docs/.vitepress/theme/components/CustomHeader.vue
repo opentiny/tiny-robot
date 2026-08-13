@@ -468,4 +468,19 @@ const openSearch = () => {
     transition: none;
   }
 }
+@media (max-width: 360px) {
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .home-link svg {
+    display: none;
+  }
+
+  .tool-button {
+    width: 24px;
+    height: 24px;
+  }
+}
 </style>
