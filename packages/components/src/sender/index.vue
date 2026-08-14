@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, useSlots, toRef } from 'vue'
+import { computed, ref, watch, nextTick, useSlots, toRef, onBeforeUnmount } from 'vue'
 import { TinyInput } from '@opentiny/vue'
-import { useFileDialog } from '@vueuse/core'
+import { useFileDialog, useResizeObserver } from '@vueuse/core'
 import type { SenderProps, SenderEmits, InputHandler, KeyboardHandler, UserItem } from './index.type'
 import { useInputHandler } from './composables/useInputHandler'
 import { useKeyboardHandler } from './composables/useKeyboardHandler'
@@ -40,7 +40,10 @@ const inputRef = ref<HTMLElement | null>(null)
 const senderRef = ref<HTMLElement | null>(null)
 const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
 const inputWrapperRef = ref<HTMLElement | null>(null)
+const rowHeaderRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
+const rowHeaderScrollTop = ref(0)
+let rowHeaderTextarea: HTMLTextAreaElement | null = null
 
 // 是否显示模板编辑器
 const showTemplateEditor = computed(() => props.templateData && props.templateData.length > 0)
@@ -425,6 +428,51 @@ const slots = useSlots() as SlotsType
 // 检查是否有decorativeContent插槽
 const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 
+const showRowHeader = computed(
+  () => currentMode.value === 'multiple' && !!slots['row-header'] && !showTemplateEditor.value,
+)
+
+useResizeObserver(rowHeaderRef, ([entry]) => {
+  rowHeaderRef.value?.parentElement?.style.setProperty('--tr-sender-row-header-width', `${entry.contentRect.width}px`)
+})
+
+const handleRowHeaderScroll = (event: Event) => {
+  rowHeaderScrollTop.value = (event.target as HTMLTextAreaElement).scrollTop
+}
+
+const resetRowHeaderScroll = () => {
+  rowHeaderTextarea?.removeEventListener('scroll', handleRowHeaderScroll)
+  rowHeaderTextarea = null
+  rowHeaderScrollTop.value = 0
+}
+
+const syncRowHeaderScroll = async (show: boolean) => {
+  resetRowHeaderScroll()
+
+  if (!show) return
+
+  await nextTick()
+
+  if (!showRowHeader.value) return
+
+  const textarea = senderRef.value?.querySelector('.tiny-textarea__inner') as HTMLTextAreaElement | null
+  if (!textarea) return
+
+  rowHeaderTextarea = textarea
+  textarea.addEventListener('scroll', handleRowHeaderScroll)
+  rowHeaderScrollTop.value = textarea.scrollTop
+}
+
+watch(
+  [showRowHeader, inputRef],
+  ([show]) => {
+    syncRowHeaderScroll(show)
+  },
+  { immediate: true, flush: 'post' },
+)
+
+onBeforeUnmount(resetRowHeaderScroll)
+
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
 const isLoading = computed(() => props.loading)
@@ -545,7 +593,15 @@ defineExpose({
                 />
               </template>
               <!-- 普通输入框 -->
-              <div v-else class="tiny-sender__input-field-wrapper">
+              <div v-else class="tiny-sender__input-field-wrapper" :class="{ 'has-row-header': showRowHeader }">
+                <div
+                  v-if="showRowHeader"
+                  ref="rowHeaderRef"
+                  class="tiny-sender__row-header"
+                  :style="{ transform: `translateY(-${rowHeaderScrollTop}px)` }"
+                >
+                  <slot name="row-header" />
+                </div>
                 <tiny-input
                   ref="inputRef"
                   :autosize="autoSize"
@@ -683,6 +739,7 @@ defineExpose({
   --tr-sender-input-font-size: 16px;
   --tr-sender-input-line-height: 26px;
   --tr-sender-input-height: 26px;
+  --tr-sender-row-header-gap: 8px;
 
   // 最小高度配置
   --tr-sender-container-min-height: 42px;
