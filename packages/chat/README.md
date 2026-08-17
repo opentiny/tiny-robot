@@ -101,7 +101,22 @@ VITE_OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 pnpm add @opentiny/tiny-robot-kit
 ```
 
-具体存储策略和 `localStorageStrategyFactory` 的参数以 `@opentiny/tiny-robot-kit` 文档为准。
+例如，为不同案例配置独立的 LocalStorage key：
+
+```ts
+import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
+
+const runtime = useLocalChatRuntime({
+  conversation: {
+    storage: localStorageStrategyFactory({
+      key: 'tiny-robot-doubao-conversations',
+    }),
+  },
+  modelProviders,
+})
+```
+
+也可以将 `indexedDBStorageStrategyFactory` 或自定义 `ConversationStorageStrategy` 传给 `conversation.storage`。具体参数以 `@opentiny/tiny-robot-kit` 文档为准。
 
 ## 4. 配置模型
 
