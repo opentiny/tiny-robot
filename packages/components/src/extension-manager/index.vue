@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, useId } from 'vue'
+import { computed } from 'vue'
 import { useExtensionManagerState } from './composables/useExtensionManagerState'
 import { useExtensionManagerFilterState } from './composables/useExtensionManagerFilterState'
+import { useStableId } from '../shared/composables'
 import { useFilter } from './composables/useFilter'
 import ExtensionManagerSection from './components/ExtensionManagerSection.vue'
 import ExtensionManagerTabs from './components/ExtensionManagerTabs.vue'
@@ -40,7 +41,7 @@ const encodeSectionPart = (value: string) => value.length + ':' + value
 const getSectionStateKey = (tabId: string, sectionKey: ExtensionManagerSectionKey) =>
   'extension-manager/section/' + encodeSectionPart(tabId) + '/' + encodeSectionPart(sectionKey)
 
-const managerId = useId()
+const managerId = useStableId()
 const managerIdPrefix = 'extension-manager-' + managerId
 const getTabDomId = (tabId: string) => managerIdPrefix + '-tab-' + encodeSectionPart(tabId)
 const getTabPanelDomId = (tabId: string) => managerIdPrefix + '-tabpanel-' + encodeSectionPart(tabId)
