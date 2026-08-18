@@ -72,8 +72,8 @@ export const useExtensionCardPopoverPosition = ({
     { flush: 'post' },
   )
 
-  useEventListener(window, 'resize', updatePosition, { passive: true })
-  useEventListener(window, 'scroll', updatePosition, {
+  useEventListener('resize', updatePosition, { passive: true })
+  useEventListener('scroll', updatePosition, {
     capture: true,
     passive: true,
   })
