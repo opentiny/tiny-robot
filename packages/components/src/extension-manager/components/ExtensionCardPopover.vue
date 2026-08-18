@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ComponentPublicInstance, VNode } from 'vue'
-import { computed, ref, toRef, useId } from 'vue'
+import { computed, ref, toRef } from 'vue'
+import { useStableId } from '../../shared/composables'
 import { useAsChild, useExtensionCardPopoverPosition } from '../composables'
 import type { ExtensionCardPopoverPlacement } from '../internal.type'
 
@@ -19,7 +20,7 @@ const props = withDefaults(
   },
 )
 
-const popoverId = `tr-extension-card-popover-${useId()}`
+const popoverId = `tr-extension-card-popover-${useStableId()}`
 const triggerRef = ref<HTMLElement | null>(null)
 const popoverRef = ref<HTMLElement | null>(null)
 const open = ref(false)
