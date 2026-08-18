@@ -177,7 +177,7 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 64px;
+  min-width: 48px;
   padding: 4px 12px;
   border: 0;
   border-radius: 999px;
