@@ -26,6 +26,7 @@ const props = defineProps<{
   welcome: false | ResolvedChatWelcomeOptions
   prompts: false | ResolvedChatPromptsOptions
   labels: ChatLabels
+  centerEmptyState: boolean
   centerWelcomeComposer: boolean
 }>()
 
@@ -139,17 +140,35 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     class="chat-panel-content chat-panel-content--main"
     :class="{
       'is-message-state': !isEmpty,
-      'is-welcome-composer-centered': props.centerWelcomeComposer,
     }"
   >
     <slot>
       <template v-if="isEmpty">
-        <template v-if="$slots['welcome-composer']">
-          <div class="chat-welcome-content">
+        <div
+          class="chat-empty-content"
+          :class="{
+            'chat-empty-content--centered': props.centerEmptyState || props.centerWelcomeComposer,
+          }"
+        >
+          <template v-if="$slots['welcome-composer']">
+            <div class="chat-welcome-content">
+              <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
+                <template #footer>
+                  <slot name="welcome-footer" />
+                  <slot name="welcome-composer" />
+                </template>
+              </TrWelcome>
+              <TrPrompts v-if="hasPrompts" v-bind="promptProps" @item-click="handlePromptClick">
+                <template v-if="$slots['prompts-footer']" #footer>
+                  <slot name="prompts-footer" />
+                </template>
+              </TrPrompts>
+            </div>
+          </template>
+          <template v-else>
             <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
-              <template #footer>
+              <template v-if="$slots['welcome-footer']" #footer>
                 <slot name="welcome-footer" />
-                <slot name="welcome-composer" />
               </template>
             </TrWelcome>
             <TrPrompts v-if="hasPrompts" v-bind="promptProps" @item-click="handlePromptClick">
@@ -157,20 +176,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 <slot name="prompts-footer" />
               </template>
             </TrPrompts>
-          </div>
-        </template>
-        <template v-else>
-          <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
-            <template v-if="$slots['welcome-footer']" #footer>
-              <slot name="welcome-footer" />
-            </template>
-          </TrWelcome>
-          <TrPrompts v-if="hasPrompts" v-bind="promptProps" @item-click="handlePromptClick">
-            <template v-if="$slots['prompts-footer']" #footer>
-              <slot name="prompts-footer" />
-            </template>
-          </TrPrompts>
-        </template>
+          </template>
+        </div>
       </template>
 
       <TrBubbleProvider v-else v-bind="bubbleProviderProps">
@@ -201,24 +208,40 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 <style scoped>
 .chat-panel-content--main {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+}
+
+.chat-panel-content--main:not(.is-message-state) {
   min-height: 100%;
 }
 
-.chat-panel-content--main.is-welcome-composer-centered {
-  height: 100%;
+.chat-empty-content {
+  display: flex;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
   min-height: 0;
+}
+
+.chat-empty-content--centered {
+  justify-content: center;
 }
 
 .chat-welcome-content {
   display: flex;
   box-sizing: border-box;
   min-height: 0;
-  flex: 1;
   flex-direction: column;
-  justify-content: center;
 }
 
 .tr-chat-messages__bubble-list {
+  min-height: 0;
   overflow: visible;
   padding: 8px;
 }

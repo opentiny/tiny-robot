@@ -3,6 +3,7 @@ import type {
   LayoutAsideCollapseEffect,
   LayoutFloatingOptions,
   LayoutFloatingState,
+  LayoutFit,
   LayoutMode,
   LayoutSide,
 } from './index.type'
@@ -11,6 +12,7 @@ export type LayoutResolvedFloating = LayoutFloatingState & LayoutFloatingOptions
 
 export interface LayoutSurfaceProps {
   mode: LayoutMode
+  fit?: LayoutFit
   floatingState?: LayoutFloatingState
   floatingOptions?: LayoutFloatingOptions
 }

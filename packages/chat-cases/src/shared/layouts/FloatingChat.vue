@@ -23,7 +23,7 @@ const floatingOptions: LayoutFloatingOptions = {
   resizable: true,
   minWidth: 360,
   maxWidth: 680,
-  minHeight: 420,
+  minHeight: 480,
 }
 </script>
 
@@ -49,6 +49,7 @@ const floatingOptions: LayoutFloatingOptions = {
       v-if="open"
       class="floating-chat-case__layout"
       mode="floating"
+      fit="parent"
       :default-floating-state="defaultFloatingState"
       :floating-options="floatingOptions"
     >
@@ -60,7 +61,7 @@ const floatingOptions: LayoutFloatingOptions = {
       </template>
 
       <template #main>
-        <TrChat :runtime="runtime" />
+        <TrChat :runtime="runtime" :ui="{ layout: { heightMode: 'parent' } }" />
       </template>
     </TrLayout>
   </div>
@@ -120,7 +121,6 @@ const floatingOptions: LayoutFloatingOptions = {
 .floating-chat-case__layout {
   --tr-layout-floating-radius: 10px;
   --tr-layout-floating-shadow: 0 18px 48px rgb(23 35 38 / 20%);
-  --tr-layout-height: 100%;
 }
 
 .floating-chat-case__header {
@@ -134,14 +134,6 @@ const floatingOptions: LayoutFloatingOptions = {
 
 .floating-chat-case__header button {
   padding: 5px 9px;
-}
-
-.floating-chat-case__layout :deep(.tr-layout__main) {
-  min-height: 0;
-}
-
-.floating-chat-case__layout :deep(.tr-chat) {
-  height: 100%;
 }
 
 @media (max-width: 640px) {

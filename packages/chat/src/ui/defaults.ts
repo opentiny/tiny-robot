@@ -85,6 +85,8 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
 
   return {
     layout: {
+      heightMode: 'viewport',
+      emptyState: 'start',
       composer: {
         welcome: 'footer',
       },

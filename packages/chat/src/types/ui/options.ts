@@ -12,6 +12,7 @@ import type { ChatConversationInfo } from '../base'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
+export type ChatHeightMode = 'viewport' | 'parent'
 
 export interface ChatUIProps {
   data?: Readonly<ChatUIData>
@@ -36,6 +37,8 @@ export interface ChatUIOptions {
 
 export interface ChatLayoutOptions {
   readonly composer?: Readonly<ChatComposerLayoutOptions>
+  readonly heightMode?: ChatHeightMode
+  readonly emptyState?: 'start' | 'center'
   readonly contentMaxWidth?: ChatCssSize
   readonly panelPadding?: ChatCssSize
   readonly panelGap?: ChatCssSize

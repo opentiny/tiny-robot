@@ -16,6 +16,7 @@ export type {
   ChatComposerRuntime,
   ChatComposerLayoutOptions,
   ChatCssSize,
+  ChatHeightMode,
   ChatHistoryOptions,
   ChatLabels,
   ChatLayoutOptions,

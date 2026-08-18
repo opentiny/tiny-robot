@@ -70,6 +70,7 @@ const visibleMessages = computed(() =>
 )
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const hasLayoutMainSlot = Boolean(slots['layout-main'])
+const isEmptyStateCentered = computed(() => isEmpty.value && resolvedOptions.value.layout.emptyState === 'center')
 
 const isWelcomeComposerCentered = computed(
   () =>
@@ -165,6 +166,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 <template>
   <TrLayout
     class="tr-chat-ui"
+    :class="{
+      'tr-chat-ui--parent-height': resolvedOptions.layout.heightMode === 'parent',
+    }"
+    :fit="resolvedOptions.layout.heightMode"
     mode="normal"
     :style="layoutStyle"
     :left-aside="isLeftAsideVisible ? asideState.leftAsideOptions.value : undefined"
@@ -262,6 +267,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             :welcome="resolvedOptions.welcome"
             :prompts="resolvedOptions.prompts"
             :labels="resolvedOptions.labels"
+            :center-empty-state="isEmptyStateCentered"
             :center-welcome-composer="isWelcomeComposerCentered"
             @prompt-click="handlePromptClick"
             @bubble-state-change="handleBubbleStateChange"
@@ -385,6 +391,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 </template>
 
 <style scoped>
+.tr-chat-ui--parent-height {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
 .chat-panel {
   position: relative;
   height: 100%;
@@ -428,8 +441,24 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   padding: 24px 24px 0;
 }
 
-.chat-panel-content--main {
-  min-height: 100%;
+.tr-chat-ui--parent-height .chat-panel {
+  display: flex;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+}
+
+.tr-chat-ui--parent-height .chat-main-scroll-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .chat-panel-content--footer {

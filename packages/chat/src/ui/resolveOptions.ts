@@ -7,6 +7,7 @@ import type {
   ChatComposerLayoutOptions,
   ChatCssSize,
   ChatHistoryOptions,
+  ChatHeightMode,
   ChatLabels,
   ChatLayoutOptions,
   ChatMcpOptions,
@@ -20,6 +21,8 @@ import type {
 } from '../types'
 
 export interface ResolvedChatLayoutOptions {
+  heightMode: ChatHeightMode
+  emptyState: 'start' | 'center'
   composer: ResolvedChatComposerLayoutOptions
   contentMaxWidth: ChatCssSize
   panelPadding: ChatCssSize
@@ -108,6 +111,8 @@ function resolveLayout(
   options: ChatLayoutOptions | undefined,
 ): ResolvedChatLayoutOptions {
   return {
+    heightMode: options?.heightMode ?? defaults.heightMode,
+    emptyState: options?.emptyState ?? defaults.emptyState,
     composer: {
       welcome: options?.composer?.welcome ?? defaults.composer.welcome,
     },
