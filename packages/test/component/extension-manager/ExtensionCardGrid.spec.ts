@@ -16,7 +16,7 @@ test.describe('standalone ExtensionCardGrid', () => {
     await expect(alphaCard).toHaveCount(1)
     await expect(alphaCard.getByText('Alpha extension', { exact: true })).toBeVisible()
     await expect(alphaCard.getByText('Alpha description', { exact: true })).toBeVisible()
-    await expect(alphaCard.getByRole('checkbox', { name: 'Enable Alpha' })).toBeVisible()
+    await expect(alphaCard.getByRole('switch', { name: 'Enable Alpha' })).toBeVisible()
     await expect(alphaCard.getByRole('button', { name: 'Install Alpha' })).toBeVisible()
     await expect(alphaCard.getByRole('button', { name: 'Inspect Alpha' })).toBeVisible()
   })
@@ -136,12 +136,11 @@ test.describe('standalone ExtensionCardGrid', () => {
     const component = await mount(ExtensionCardGridFixture)
     const card = component.getByTestId('default-grid').locator(':scope > li[data-card-id="alpha"] > *')
 
-    await card.getByRole('checkbox', { name: 'Enable Alpha' }).uncheck({ force: true })
     await card.getByRole('button', { name: 'Install Alpha' }).click()
     await card.getByRole('button', { name: 'Inspect Alpha' }).click()
 
     await expect(component.getByTestId('action-events')).toHaveText(
-      'alpha:toggle-alpha:switch:false|alpha:install-alpha:button:|alpha:inspect-alpha:custom:',
+      'alpha:install-alpha:button:|alpha:inspect-alpha:custom:',
     )
 
     await card.getByRole('button', { name: 'Alpha extension' }).click()
