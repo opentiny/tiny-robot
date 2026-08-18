@@ -38,6 +38,7 @@ test-results
 playwright-report
 blob-report
 **/playwright/.cache/
+**/playwright/.cache-development-mode/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
