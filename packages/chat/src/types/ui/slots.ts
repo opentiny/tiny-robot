@@ -3,6 +3,7 @@ import type { ChatConversationView, ChatRequestView } from './data'
 
 export interface ChatHeaderSlotProps {
   readonly title: string
+  readonly isEmpty: boolean
   readonly conversation: ChatConversationView
   readonly createConversation: () => void
   readonly isLeftAsideOpen: boolean

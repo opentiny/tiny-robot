@@ -26,7 +26,8 @@ export interface DefaultChatUIData {
 }
 
 export interface DefaultChatUIOptions {
-  layout: Required<Omit<ChatLayoutOptions, 'leftAside' | 'rightAside'>> & {
+  layout: Required<Omit<ChatLayoutOptions, 'leftAside' | 'rightAside' | 'composer'>> & {
+    composer: Required<NonNullable<ChatLayoutOptions['composer']>>
     leftAside: {
       mode: 'dock' | 'drawer'
       width: number
@@ -84,6 +85,9 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
 
   return {
     layout: {
+      composer: {
+        welcome: 'footer',
+      },
       contentMaxWidth: 980,
       panelPadding: 12,
       panelGap: 12,

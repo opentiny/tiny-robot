@@ -4,6 +4,7 @@ import type {
   ChatAsideOptions,
   ChatBrandOptions,
   ChatBubbleOptions,
+  ChatComposerLayoutOptions,
   ChatCssSize,
   ChatHistoryOptions,
   ChatLabels,
@@ -14,15 +15,21 @@ import type {
   ChatRightAsideOptions,
   ChatSenderOptions,
   ChatUIOptions,
+  ChatWelcomeComposerPlacement,
   ChatWelcomeOptions,
 } from '../types'
 
 export interface ResolvedChatLayoutOptions {
+  composer: ResolvedChatComposerLayoutOptions
   contentMaxWidth: ChatCssSize
   panelPadding: ChatCssSize
   panelGap: ChatCssSize
   leftAside: false | ResolvedChatAsideOptions
   rightAside: false | ResolvedChatRightAsideOptions
+}
+
+export interface ResolvedChatComposerLayoutOptions extends ChatComposerLayoutOptions {
+  welcome: ChatWelcomeComposerPlacement
 }
 
 export type ResolvedChatBrandOptions = ChatBrandOptions & {
@@ -101,6 +108,9 @@ function resolveLayout(
   options: ChatLayoutOptions | undefined,
 ): ResolvedChatLayoutOptions {
   return {
+    composer: {
+      welcome: options?.composer?.welcome ?? defaults.composer.welcome,
+    },
     contentMaxWidth: options?.contentMaxWidth ?? defaults.contentMaxWidth,
     panelPadding: options?.panelPadding ?? defaults.panelPadding,
     panelGap: options?.panelGap ?? defaults.panelGap,

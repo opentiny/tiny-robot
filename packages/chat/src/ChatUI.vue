@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
-import { computed, shallowRef } from 'vue'
+import { computed, shallowRef, useSlots, type Slots } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import type { HistoryMenuItem, PromptProps } from '@opentiny/tiny-robot'
 import ScrollToBottom from './ui/messages/ScrollToBottom.vue'
 import ChatLeftAside from './ui/layout/ChatLeftAside.vue'
-import ChatComposer from './ui/composer/ChatComposer.vue'
+import ChatComposerHost from './ui/composer/ChatComposerHost.vue'
 import ChatHeader from './ui/layout/ChatHeader.vue'
 import ChatMessages from './ui/messages/ChatMessages.vue'
 import ChatRightAside from './ui/layout/ChatRightAside.vue'
@@ -24,6 +24,7 @@ import type {
 
 const props = defineProps<ChatUIProps>()
 const emit = defineEmits<ChatUIEmits>()
+const slots: Slots = useSlots()
 
 const isControlledInput = props.inputValue !== undefined
 const draftValue = shallowRef(props.inputValue ?? props.defaultInputValue ?? '')
@@ -68,6 +69,16 @@ const visibleMessages = computed(() =>
   resolvedData.value.bubble.messages.filter((message) => !isMessageHidden(message.role)),
 )
 const isEmpty = computed(() => visibleMessages.value.length === 0)
+const hasLayoutMainSlot = Boolean(slots['layout-main'])
+
+const isWelcomeComposerCentered = computed(
+  () =>
+    isEmpty.value &&
+    senderOptions.value !== undefined &&
+    resolvedOptions.value.welcome !== false &&
+    resolvedOptions.value.layout.composer.welcome === 'center' &&
+    !hasLayoutMainSlot,
+)
 const requestError = computed(() => resolvedData.value.request?.error)
 const layoutStyle = computed(() => ({
   '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-container-bg-default))',
@@ -221,6 +232,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             <slot
               name="layout-header"
               :title="resolvedData.conversation.title"
+              :is-empty="isEmpty"
               :conversation="resolvedData.conversation"
               :create-conversation="handleCreateConversation"
               :is-left-aside-open="asideState.resolvedLeftAsideOpen.value"
@@ -250,6 +262,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             :welcome="resolvedOptions.welcome"
             :prompts="resolvedOptions.prompts"
             :labels="resolvedOptions.labels"
+            :center-welcome-composer="isWelcomeComposerCentered"
             @prompt-click="handlePromptClick"
             @bubble-state-change="handleBubbleStateChange"
             @bubble-event="handleBubbleEvent"
@@ -267,6 +280,37 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             </template>
             <template v-if="$slots['prompts-footer']" #prompts-footer>
               <slot name="prompts-footer" />
+            </template>
+            <template v-if="isWelcomeComposerCentered && senderOptions" #welcome-composer>
+              <ChatComposerHost
+                class="chat-welcome-composer"
+                :sender="resolvedData.sender"
+                :value="inputValue"
+                :sender-options="senderOptions"
+                :labels="resolvedOptions.labels"
+                :model="visibleModel"
+                :mcp="visibleMcp"
+                @submit="handleSubmit"
+                @cancel="handleCancel"
+                @clear="handleClear"
+                @update:value="handleInputValue"
+                @model-select="(payload) => emit('model-select', payload)"
+                @model-feature-change="(payload) => emit('model-feature-change', payload)"
+                @mcp-add-server="(payload) => emit('mcp-add-server', payload)"
+                @mcp-remove-server="(payload) => emit('mcp-remove-server', payload)"
+                @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
+                @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
+              >
+                <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
+                  <slot name="layout-footer" v-bind="slotProps" />
+                </template>
+                <template v-if="$slots['sender-footer']" #sender-footer>
+                  <slot name="sender-footer" />
+                </template>
+                <template v-if="$slots['sender-footer-right']" #sender-footer-right>
+                  <slot name="sender-footer-right" />
+                </template>
+              </ChatComposerHost>
             </template>
             <template v-if="$slots['bubble-prefix']" #bubble-prefix>
               <slot name="bubble-prefix" />
@@ -291,8 +335,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     </template>
 
     <template v-if="isSenderVisible && senderOptions" #footer>
-      <div class="chat-panel-content chat-panel-content--footer">
-        <ChatComposer
+      <div v-if="!isWelcomeComposerCentered" class="chat-panel-content chat-panel-content--footer">
+        <ChatComposerHost
           :sender="resolvedData.sender"
           :value="inputValue"
           :sender-options="senderOptions"
@@ -310,18 +354,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
           @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
         >
-          <template v-if="$slots['layout-footer']" #default>
-            <slot
-              name="layout-footer"
-              :value="inputValue"
-              :loading="resolvedData.sender.loading"
-              :disabled="resolvedData.sender.disabled"
-              :submit-disabled="resolvedData.sender.submitDisabled"
-              :set-input-value="handleInputValue"
-              :submit="handleSubmit"
-              :cancel="handleCancel"
-              :clear="handleClear"
-            />
+          <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
+            <slot name="layout-footer" v-bind="slotProps" />
           </template>
           <template v-if="$slots['sender-footer']" #sender-footer>
             <slot name="sender-footer" />
@@ -329,7 +363,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           <template v-if="$slots['sender-footer-right']" #sender-footer-right>
             <slot name="sender-footer-right" />
           </template>
-        </ChatComposer>
+        </ChatComposerHost>
       </div>
     </template>
 
@@ -384,6 +418,10 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   max-width: var(--tr-chat-ui-content-max-width);
   min-height: 0;
   margin: 0 auto;
+}
+
+.chat-welcome-composer {
+  text-align: left;
 }
 
 .chat-panel-content--header {

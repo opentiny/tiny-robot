@@ -35,11 +35,18 @@ export interface ChatUIOptions {
 }
 
 export interface ChatLayoutOptions {
+  readonly composer?: Readonly<ChatComposerLayoutOptions>
   readonly contentMaxWidth?: ChatCssSize
   readonly panelPadding?: ChatCssSize
   readonly panelGap?: ChatCssSize
   readonly leftAside?: false | Readonly<ChatAsideOptions>
   readonly rightAside?: false | Readonly<ChatRightAsideOptions>
+}
+
+export type ChatWelcomeComposerPlacement = 'footer' | 'center'
+
+export interface ChatComposerLayoutOptions {
+  readonly welcome?: ChatWelcomeComposerPlacement
 }
 
 export interface ChatBrandOptions {

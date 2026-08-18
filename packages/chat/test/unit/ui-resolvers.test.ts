@@ -32,11 +32,13 @@ describe('UI resolvers', () => {
 
   it('resolves defaults and explicit right aside sections', () => {
     expect(resolveChatUIOptions(undefined).layout.rightAside).toBe(false)
+    expect(resolveChatUIOptions(undefined).layout.composer.welcome).toBe('footer')
     expect(resolveChatUIOptions({ sender: false, history: false }).sender).toBe(false)
     expect(resolveChatUIOptions({ layout: { rightAside: {} } }).layout.rightAside).toMatchObject({
       defaultOpen: true,
     })
     expect(resolveChatUIOptions({ layout: { rightAside: false } }).layout.rightAside).toBe(false)
+    expect(resolveChatUIOptions({ layout: { composer: { welcome: 'center' } } }).layout.composer.welcome).toBe('center')
   })
 
   it('replaces arrays and merges bubble roles', () => {

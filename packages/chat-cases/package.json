@@ -12,6 +12,7 @@
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-chat": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",
+    "@opentiny/tiny-robot-svgs": "workspace:*",
     "vue": "^3.5.40"
   },
   "devDependencies": {
