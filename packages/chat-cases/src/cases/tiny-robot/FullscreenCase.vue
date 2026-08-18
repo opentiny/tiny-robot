@@ -2,21 +2,24 @@
 import type { HistoryMenuItem, LayoutFloatingOptions, LayoutFloatingState } from '@opentiny/tiny-robot'
 import { TrHistory, TrIconButton, TrLayout } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo } from '@opentiny/tiny-robot-chat'
-import {
-  IconClose,
-  IconEnterFullScreen,
-  IconExitFullScreen,
-  IconHistory,
-  IconNewSession,
-} from '@opentiny/tiny-robot-svgs'
-import { computed, ref } from 'vue'
+import { IconClose, IconEnterFullScreen, IconHistory, IconNewSession } from '@opentiny/tiny-robot-svgs'
+import { useEventListener, useWindowSize } from '@vueuse/core'
+import { computed, h, ref, watch } from 'vue'
+import dockRightIcon from './icons/dock-right.svg'
+import floatWindowIcon from './icons/float-window.svg'
 import TinyRobotAssistant from './TinyRobotAssistant.vue'
 import { useTinyRobotRuntime } from '../../shared/runtime/createChatRuntime'
 
+type AssistantDisplayMode = 'floating' | 'fullscreen' | 'side'
+
 const runtime = useTinyRobotRuntime()
 const show = ref(true)
-const fullscreen = ref(false)
+const displayMode = ref<AssistantDisplayMode>('floating')
+const restoreFloatingState = ref<LayoutFloatingState | null>(null)
+const restoreDisplayMode = ref<'floating' | 'side'>('floating')
 const showHistory = ref(false)
+const IconDockRight = h('img', { src: dockRightIcon, alt: '' })
+const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
 const floatingState = ref<LayoutFloatingState>({
   placement: 'center',
   offsetX: 24,
@@ -24,13 +27,16 @@ const floatingState = ref<LayoutFloatingState>({
   width: 640,
   height: 760,
 })
-const restoreState = ref<LayoutFloatingState | null>(null)
+
+const { width: viewportWidth, height: viewportHeight } = useWindowSize()
 
 const floatingOptions = computed<LayoutFloatingOptions>(() => ({
-  draggable: !fullscreen.value,
-  resizable: !fullscreen.value,
-  minWidth: 360,
-  minHeight: 480,
+  draggable: displayMode.value === 'floating',
+  resizable: displayMode.value === 'floating',
+  minWidth: displayMode.value === 'floating' ? 360 : undefined,
+  minHeight: displayMode.value === 'floating' ? 480 : undefined,
+  maxWidth: displayMode.value === 'floating' ? undefined : undefined,
+  maxHeight: undefined,
 }))
 
 const activeConversationId = computed(() => runtime.activeConversation.value?.id)
@@ -56,34 +62,65 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatConversationInfo
   }
 }
 
-function enterFullscreen() {
-  restoreState.value = { ...floatingState.value }
-  fullscreen.value = true
-  floatingState.value = {
+function getModeFloatingState(mode: Exclude<AssistantDisplayMode, 'floating'>): LayoutFloatingState {
+  if (mode === 'side') {
+    return {
+      placement: 'top-right',
+      offsetX: 0,
+      offsetY: 0,
+      width: 440,
+      height: viewportHeight.value,
+    }
+  }
+
+  return {
     placement: 'top-left',
     offsetX: 0,
     offsetY: 0,
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: viewportWidth.value,
+    height: viewportHeight.value,
   }
 }
 
-function exitFullscreen() {
-  fullscreen.value = false
-  if (restoreState.value) {
-    floatingState.value = restoreState.value
-    restoreState.value = null
-  }
-}
-
-function toggleFullscreen() {
-  if (fullscreen.value) {
-    exitFullscreen()
+function setDisplayMode(mode: AssistantDisplayMode): void {
+  if (mode === displayMode.value) {
     return
   }
 
-  enterFullscreen()
+  if (displayMode.value === 'floating') {
+    restoreFloatingState.value = { ...floatingState.value }
+  }
+
+  if (mode === 'floating') {
+    displayMode.value = mode
+    if (restoreFloatingState.value) {
+      floatingState.value = { ...restoreFloatingState.value }
+      restoreFloatingState.value = null
+    }
+    return
+  }
+
+  if (mode === 'fullscreen') {
+    restoreDisplayMode.value = displayMode.value === 'side' ? 'side' : 'floating'
+  }
+
+  displayMode.value = mode
+  floatingState.value = getModeFloatingState(mode)
 }
+
+function handleEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape' && displayMode.value === 'fullscreen') {
+    setDisplayMode(restoreDisplayMode.value)
+  }
+}
+
+useEventListener('keydown', handleEscape)
+
+watch([displayMode, viewportWidth, viewportHeight], () => {
+  if (displayMode.value === 'fullscreen' || displayMode.value === 'side') {
+    floatingState.value = getModeFloatingState(displayMode.value)
+  }
+})
 
 function handleClose() {
   showHistory.value = false
@@ -95,7 +132,7 @@ function handleClose() {
   <TrLayout
     v-if="show"
     v-model:floating-state="floatingState"
-    class="tiny-robot-window"
+    :class="['tiny-robot-window', `tiny-robot-window--${displayMode}`]"
     mode="floating"
     fit="parent"
     :floating-options="floatingOptions"
@@ -136,11 +173,31 @@ function handleClose() {
             </div>
           </span>
           <TrIconButton
-            :icon="fullscreen ? IconExitFullScreen : IconEnterFullScreen"
+            v-if="displayMode !== 'floating'"
+            :icon="IconFloatWindow"
             size="28"
             svg-size="20"
-            :title="fullscreen ? '退出全屏' : '全屏'"
-            @click="toggleFullscreen"
+            title="切换为悬浮窗口"
+            aria-label="切换为悬浮窗口"
+            @click="setDisplayMode('floating')"
+          />
+          <TrIconButton
+            v-if="displayMode !== 'side'"
+            :icon="IconDockRight"
+            size="28"
+            svg-size="20"
+            title="切换为侧边面板"
+            aria-label="切换为侧边面板"
+            @click="setDisplayMode('side')"
+          />
+          <TrIconButton
+            v-if="displayMode !== 'fullscreen'"
+            :icon="IconEnterFullScreen"
+            size="28"
+            svg-size="20"
+            title="切换为全屏模式"
+            aria-label="切换为全屏模式"
+            @click="setDisplayMode('fullscreen')"
           />
           <TrIconButton :icon="IconClose" size="28" svg-size="20" title="关闭" @click="handleClose" />
         </div>
@@ -156,8 +213,17 @@ function handleClose() {
 <style scoped>
 .tiny-robot-window {
   --tr-layout-main-min-width: 0;
+}
+
+.tiny-robot-window--floating {
   --tr-layout-floating-radius: 12px;
   --tr-layout-floating-shadow: 0 18px 48px rgb(0 0 0 / 18%);
+}
+
+.tiny-robot-window--fullscreen,
+.tiny-robot-window--side {
+  --tr-layout-floating-radius: 0;
+  --tr-layout-floating-shadow: none;
 }
 
 .tiny-robot-window__header {
