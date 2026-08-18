@@ -13,6 +13,7 @@ const actions = ref<ExtensionCardAction[]>([
   { id: 'delete-extension', type: 'button', label: '删除' },
 ])
 const lastEvent = ref<ExtensionCardActionEvent>()
+const commitSwitchChanges = ref(true)
 
 const eventChecked = computed(() => {
   return typeof lastEvent.value?.checked === 'boolean' ? String(lastEvent.value.checked) : ''
@@ -22,7 +23,7 @@ const eventPayload = computed(() => JSON.stringify(lastEvent.value?.payload ?? n
 
 const handleAction = (event: ExtensionCardActionEvent) => {
   lastEvent.value = event
-  if (event.type !== 'switch' || typeof event.checked !== 'boolean') return
+  if (event.type !== 'switch' || typeof event.checked !== 'boolean' || !commitSwitchChanges.value) return
 
   actions.value = actions.value.map((action) =>
     action.id === event.id && action.type === 'switch' ? { ...action, checked: event.checked } : action,
@@ -32,6 +33,10 @@ const handleAction = (event: ExtensionCardActionEvent) => {
 
 <template>
   <div>
+    <button data-testid="ignore-switch-updates" type="button" @click="commitSwitchChanges = false">
+      Ignore switch updates
+    </button>
+
     <ExtensionCard
       data-testid="action-event-card"
       name="Action event card"

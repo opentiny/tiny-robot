@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/experimental-ct-vue'
 import ExtensionCardActionEventFixture from './ExtensionCardActionEvent.fixture.vue'
 
 test.describe('standalone ExtensionCard action events', () => {
-  test('emits a controlled switch event with the resulting checked value', async ({ mount }) => {
+  test('emits the next checked value for a controlled switch', async ({ mount }) => {
     const component = await mount(ExtensionCardActionEventFixture)
-    const toggle = component.getByRole('checkbox', { name: '扩展开关' })
+    const toggle = component.getByRole('switch', { name: '扩展开关' })
 
     await expect(toggle).toBeChecked()
     await component.locator('.tr-extension-card-primary-actions__switch-track').click()
@@ -12,6 +12,23 @@ test.describe('standalone ExtensionCard action events', () => {
     await expect(component.getByTestId('event-id')).toHaveText('toggle-extension')
     await expect(component.getByTestId('event-type')).toHaveText('switch')
     await expect(component.getByTestId('event-checked')).toHaveText('false')
+
+    await component.locator('.tr-extension-card-primary-actions__switch-track').click()
+    await expect(toggle).toBeChecked()
+    await expect(component.getByTestId('event-checked')).toHaveText('true')
+  })
+
+  test('keeps the native checked state controlled by props when switch updates are not committed', async ({
+    mount,
+  }) => {
+    const component = await mount(ExtensionCardActionEventFixture)
+    const toggle = component.getByRole('switch', { name: '扩展开关' })
+
+    await component.getByTestId('ignore-switch-updates').click()
+    await component.locator('.tr-extension-card-primary-actions__switch-track').click()
+
+    await expect(component.getByTestId('event-checked')).toHaveText('false')
+    await expect(toggle).toBeChecked()
   })
 
   test('emits a button action with its presentation type', async ({ mount }) => {
