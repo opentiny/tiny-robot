@@ -131,7 +131,15 @@ const handleNameKeydown = (event: KeyboardEvent) => {
       />
     </div>
 
-    <div v-if="normalizedProgress !== undefined" class="tr-extension-card__progress">
+    <div
+      v-if="normalizedProgress !== undefined"
+      class="tr-extension-card__progress"
+      role="progressbar"
+      :aria-label="name"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      :aria-valuenow="normalizedProgress === 'indeterminate' ? undefined : normalizedProgress"
+    >
       <span
         class="tr-extension-card__progress-bar"
         :class="{ 'is-indeterminate': normalizedProgress === 'indeterminate' }"
