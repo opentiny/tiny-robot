@@ -1,0 +1,1 @@
+import{n as e}from"./theme.Be4c-Lda.js";import{N as a,aL as s,v as o,J as c,bk as t,bR as n}from"./framework.C4IWSUkS.js";const r={class:"form-container"},_=a({__name:"basic",setup(p){return(d,i)=>(s(),o("div",r,[c(t(e))]))}}),l=n(_,[["__scopeId","data-v-d15cc8d6"]]);export{l as default};
