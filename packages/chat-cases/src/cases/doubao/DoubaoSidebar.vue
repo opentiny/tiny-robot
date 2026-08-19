@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
 import { TrHistory, type HistoryMenuItem } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo, ChatConversationView } from '@opentiny/tiny-robot-chat'
+import {
+  useChatHistoryItems,
+  type ChatHistoryItem,
+  type ChatConversationInfo,
+  type ChatConversationView,
+} from '@opentiny/tiny-robot-chat'
 import squarePenIcon from './icons/square-pen.svg'
 import { doubaoNavigation } from './config'
-
-type HistoryDisplayItem = ChatConversationInfo & {
-  raw: ChatConversationInfo
-}
 
 const props = defineProps<{
   variant: 'fixed' | 'floating'
@@ -27,48 +27,10 @@ const navigationItems = [
   { id: doubaoNavigation.chat, label: '新对话', icon: squarePenIcon },
 ]
 
-const historyItemCache = new Map<string, HistoryDisplayItem>()
-const historyItems = ref<HistoryDisplayItem[]>([])
-
-watch(
-  () => props.conversation.items,
-  (conversationItems) => {
-    const activeIds = new Set<string>()
-    const items = (conversationItems ?? []).map((item) => {
-      activeIds.add(item.id)
-      return syncHistoryItem(item)
-    })
-
-    for (const id of historyItemCache.keys()) {
-      if (!activeIds.has(id)) {
-        historyItemCache.delete(id)
-      }
-    }
-
-    historyItems.value = items
-  },
-  { immediate: true, deep: true },
-)
-
-function syncHistoryItem(item: ChatConversationInfo) {
-  const cached = historyItemCache.get(item.id)
-  const nextItem = cached ?? ({ id: item.id, title: item.title || '新对话', raw: item } as HistoryDisplayItem)
-
-  for (const key of Object.keys(nextItem)) {
-    if (key !== 'raw' && !(key in item)) {
-      delete nextItem[key]
-    }
-  }
-
-  Object.assign(nextItem, item, {
-    id: item.id,
-    title: item.title || '新对话',
-    raw: item,
-  })
-  historyItemCache.set(item.id, nextItem)
-
-  return nextItem
-}
+const historyItems = useChatHistoryItems({
+  conversations: () => props.conversation.items,
+  defaultTitle: '新对话',
+})
 
 function handleNavigationChange(item: string) {
   emit('navigationChange', item)
@@ -78,15 +40,15 @@ function handleNavigationChange(item: string) {
   }
 }
 
-function handleConversationSelect(item: HistoryDisplayItem) {
+function handleConversationSelect(item: ChatHistoryItem) {
   emit('conversationSelect', item.raw.id)
 }
 
-function handleConversationTitleChange(title: string, item: HistoryDisplayItem) {
+function handleConversationTitleChange(title: string, item: ChatHistoryItem) {
   emit('conversationTitleChange', title, item.raw.id)
 }
 
-function handleConversationAction(action: HistoryMenuItem, item: HistoryDisplayItem) {
+function handleConversationAction(action: HistoryMenuItem, item: ChatHistoryItem) {
   emit('conversationAction', action, item.raw.id)
 }
 
@@ -120,9 +82,10 @@ function getAvatarColor(item: ChatConversationInfo) {
 
     <section class="doubao-sidebar__recent" aria-label="最近会话">
       <div class="doubao-sidebar__recent-title">最近</div>
+      <!-- @vue-generic {ChatHistoryItem} -->
       <TrHistory
         class="doubao-sidebar__history"
-        :data="historyItems"
+        :data="historyItems as unknown as ChatHistoryItem[]"
         :selected="props.conversation.activeId ?? undefined"
         @item-click="handleConversationSelect"
         @item-title-change="handleConversationTitleChange"

@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { TrHistory, type HistoryItem, type HistoryMenuItem } from '@opentiny/tiny-robot'
+import { TrHistory, type HistoryMenuItem } from '@opentiny/tiny-robot'
 import { IconMenuCollapse, IconNewSession, IconSetting } from '@opentiny/tiny-robot-svgs'
-import type { ChatConversationInfo, ChatConversationView } from '@opentiny/tiny-robot-chat'
+import { useChatHistoryItems, type ChatHistoryItem, type ChatConversationView } from '@opentiny/tiny-robot-chat'
 import geminiMask from './icons/gemini-mask.svg'
-
-type HistoryDisplayItem = ChatConversationInfo & {
-  raw: ChatConversationInfo
-}
 
 const props = defineProps<{
   conversation: ChatConversationView
@@ -21,57 +16,25 @@ const emit = defineEmits<{
   conversationAction: [action: HistoryMenuItem, id: string]
 }>()
 
-const historyItemCache = new Map<string, HistoryDisplayItem>()
-const historyItems = ref<HistoryDisplayItem[]>([])
+const historyItems = useChatHistoryItems({
+  conversations: () => props.conversation.items,
+  defaultTitle: '新对话',
+})
 const historyMenuItems: HistoryMenuItem[] = [
   { id: 'rename', text: '重命名' },
   { id: 'delete', text: '删除' },
 ]
 
-watch(
-  () => props.conversation.items,
-  (conversationItems) => {
-    const activeIds = new Set<string>()
-    const items = (conversationItems ?? []).map((item) => {
-      activeIds.add(item.id)
-      return syncHistoryItem(item)
-    })
-
-    for (const id of historyItemCache.keys()) {
-      if (!activeIds.has(id)) {
-        historyItemCache.delete(id)
-      }
-    }
-
-    historyItems.value = items
-  },
-  { immediate: true, deep: true },
-)
-
-function syncHistoryItem(item: ChatConversationInfo) {
-  const cached = historyItemCache.get(item.id)
-  const nextItem = cached ?? ({ id: item.id, title: item.title || '新对话', raw: item } as HistoryDisplayItem)
-
-  Object.assign(nextItem, item, {
-    id: item.id,
-    title: item.title || '新对话',
-    raw: item,
-  })
-  historyItemCache.set(item.id, nextItem)
-
-  return nextItem
+function handleConversationSelect(item: ChatHistoryItem) {
+  emit('conversationSelect', item.raw.id)
 }
 
-function handleConversationSelect(item: HistoryItem) {
-  emit('conversationSelect', (item as HistoryDisplayItem).raw.id)
+function handleConversationTitleChange(title: string, item: ChatHistoryItem) {
+  emit('conversationTitleChange', title, item.raw.id)
 }
 
-function handleConversationTitleChange(title: string, item: HistoryItem) {
-  emit('conversationTitleChange', title, (item as HistoryDisplayItem).raw.id)
-}
-
-function handleConversationAction(action: HistoryMenuItem, item: HistoryItem) {
-  emit('conversationAction', action, (item as HistoryDisplayItem).raw.id)
+function handleConversationAction(action: HistoryMenuItem, item: ChatHistoryItem) {
+  emit('conversationAction', action, item.raw.id)
 }
 </script>
 
@@ -102,9 +65,10 @@ function handleConversationAction(action: HistoryMenuItem, item: HistoryItem) {
 
     <section class="gemini-sidebar__recent" aria-label="最近会话">
       <div class="gemini-sidebar__section-title">最近</div>
+      <!-- @vue-generic {ChatHistoryItem} -->
       <TrHistory
         class="gemini-sidebar__history"
-        :data="historyItems"
+        :data="historyItems as unknown as ChatHistoryItem[]"
         :selected="props.conversation.activeId ?? undefined"
         :menu-items="historyMenuItems"
         @item-click="handleConversationSelect"

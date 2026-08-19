@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HistoryMenuItem, LayoutFloatingOptions, LayoutFloatingState } from '@opentiny/tiny-robot'
 import { TrHistory, TrIconButton, TrLayout } from '@opentiny/tiny-robot'
-import type { ChatConversationInfo } from '@opentiny/tiny-robot-chat'
+import { useChatHistoryItems, type ChatHistoryItem } from '@opentiny/tiny-robot-chat'
 import { IconClose, IconEnterFullScreen, IconHistory, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import { useEventListener, useWindowSize } from '@vueuse/core'
 import { computed, h, ref, watch } from 'vue'
@@ -11,7 +11,6 @@ import TinyRobotAssistant from './TinyRobotAssistant.vue'
 import { useTinyRobotRuntime } from '../../shared/runtime/createChatRuntime'
 
 type AssistantDisplayMode = 'floating' | 'fullscreen' | 'side'
-
 const runtime = useTinyRobotRuntime()
 const show = ref(true)
 const displayMode = ref<AssistantDisplayMode>('floating')
@@ -20,6 +19,10 @@ const restoreDisplayMode = ref<'floating' | 'side'>('floating')
 const showHistory = ref(false)
 const IconDockRight = h('img', { src: dockRightIcon, alt: '' })
 const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
+const historyData = useChatHistoryItems({
+  conversations: () => runtime.conversations.value,
+  defaultTitle: '',
+})
 const floatingState = ref<LayoutFloatingState>({
   placement: 'center',
   offsetX: 24,
@@ -40,25 +43,24 @@ const floatingOptions = computed<LayoutFloatingOptions>(() => ({
 }))
 
 const activeConversationId = computed(() => runtime.activeConversation.value?.id)
-const historyData = computed(() => runtime.conversations.value.map((item) => ({ ...item, title: item.title || '' })))
 
 function handleNewSession() {
   void runtime.actions.createConversation()
   showHistory.value = false
 }
 
-function handleHistorySelect(item: ChatConversationInfo) {
-  void runtime.actions.switchConversation(item.id)
+function handleHistorySelect(item: ChatHistoryItem) {
+  void runtime.actions.switchConversation(item.raw.id)
   showHistory.value = false
 }
 
-function handleHistoryTitleChange(title: string, item: ChatConversationInfo) {
-  void runtime.actions.renameConversation(item.id, title)
+function handleHistoryTitleChange(title: string, item: ChatHistoryItem) {
+  void runtime.actions.renameConversation(item.raw.id, title)
 }
 
-function handleHistoryAction(action: HistoryMenuItem, item: ChatConversationInfo) {
+function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem) {
   if (action.id === 'delete') {
-    void runtime.actions.deleteConversation(item.id)
+    void runtime.actions.deleteConversation(item.raw.id)
   }
 }
 
@@ -161,11 +163,12 @@ function handleClose() {
                   @click="showHistory = false"
                 />
               </div>
+              <!-- @vue-generic {ChatHistoryItem} -->
               <TrHistory
                 class="tiny-robot-window__history"
                 :selected="activeConversationId"
                 :search-bar="true"
-                :data="historyData"
+                :data="historyData as unknown as ChatHistoryItem[]"
                 @item-title-change="handleHistoryTitleChange"
                 @item-click="handleHistorySelect"
                 @item-action="handleHistoryAction"

@@ -1,17 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { TrHistory, type HistoryGroup, type HistoryItem, type HistoryMenuItem } from '@opentiny/tiny-robot'
+import { computed } from 'vue'
+import { TrHistory, type HistoryGroup, type HistoryMenuItem } from '@opentiny/tiny-robot'
 import { IconMore } from '@opentiny/tiny-robot-svgs'
-import type { ChatConversationInfo, ChatConversationView } from '@opentiny/tiny-robot-chat'
+import { useChatHistoryItems, type ChatHistoryItem, type ChatConversationView } from '@opentiny/tiny-robot-chat'
 import deepseekMark from './icons/deepseek-mark.svg'
 import deepseekWordmark from './icons/deepseek-wordmark.svg'
 import newChatIcon from './icons/new-chat.svg'
 import searchIcon from './icons/search.svg'
 import sidebarToggleIcon from './icons/sidebar-toggle.svg'
-
-type HistoryDisplayItem = ChatConversationInfo & {
-  raw: ChatConversationInfo
-}
 
 const props = defineProps<{
   conversation: ChatConversationView
@@ -25,32 +21,14 @@ const emit = defineEmits<{
   conversationAction: [action: HistoryMenuItem, id: string]
 }>()
 
-const historyItemCache = new Map<string, HistoryDisplayItem>()
-const historyItems = ref<HistoryDisplayItem[]>([])
+const historyItems = useChatHistoryItems({
+  conversations: () => props.conversation.items,
+  defaultTitle: '新对话',
+})
 const groups = ['置顶', '昨天', '30天内'] as const
 
-watch(
-  () => props.conversation.items,
-  (conversationItems) => {
-    const activeIds = new Set<string>()
-    const items = (conversationItems ?? []).map((item) => {
-      activeIds.add(item.id)
-      return syncHistoryItem(item)
-    })
-
-    for (const id of historyItemCache.keys()) {
-      if (!activeIds.has(id)) {
-        historyItemCache.delete(id)
-      }
-    }
-
-    historyItems.value = items
-  },
-  { immediate: true, deep: true },
-)
-
 const groupedHistory = computed(() => {
-  const grouped = new Map<string, HistoryDisplayItem[]>()
+  const grouped = new Map<string, ChatHistoryItem[]>()
 
   for (const group of groups) {
     grouped.set(group, [])
@@ -63,33 +41,19 @@ const groupedHistory = computed(() => {
 
   return [...grouped.entries()]
     .filter(([, items]) => items.length > 0)
-    .map(([group, items]) => ({ group, items })) as HistoryGroup<HistoryDisplayItem>[]
+    .map(([group, items]) => ({ group, items })) as HistoryGroup<ChatHistoryItem>[]
 })
 
-function syncHistoryItem(item: ChatConversationInfo) {
-  const cached = historyItemCache.get(item.id)
-  const nextItem = cached ?? ({ id: item.id, title: item.title || '新对话', raw: item } as HistoryDisplayItem)
-
-  Object.assign(nextItem, item, {
-    id: item.id,
-    title: item.title || '新对话',
-    raw: item,
-  })
-  historyItemCache.set(item.id, nextItem)
-
-  return nextItem
+function handleConversationSelect(item: ChatHistoryItem) {
+  emit('conversationSelect', item.raw.id)
 }
 
-function handleConversationSelect(item: HistoryItem) {
-  emit('conversationSelect', (item as HistoryDisplayItem).raw.id)
+function handleConversationTitleChange(title: string, item: ChatHistoryItem) {
+  emit('conversationTitleChange', title, item.raw.id)
 }
 
-function handleConversationTitleChange(title: string, item: HistoryItem) {
-  emit('conversationTitleChange', title, (item as HistoryDisplayItem).raw.id)
-}
-
-function handleConversationAction(action: HistoryMenuItem, item: HistoryItem) {
-  emit('conversationAction', action, (item as HistoryDisplayItem).raw.id)
+function handleConversationAction(action: HistoryMenuItem, item: ChatHistoryItem) {
+  emit('conversationAction', action, item.raw.id)
 }
 </script>
 
@@ -124,6 +88,7 @@ function handleConversationAction(action: HistoryMenuItem, item: HistoryItem) {
     </div>
 
     <section class="deepseek-sidebar__history" aria-label="会话列表">
+      <!-- @vue-generic {ChatHistoryItem} -->
       <TrHistory
         :data="groupedHistory"
         :selected="props.conversation.activeId ?? undefined"

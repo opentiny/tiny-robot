@@ -3,6 +3,7 @@ export { default as TrChatUI } from './ChatUI.vue'
 export { useKitChatRuntime } from './runtime/useKitChatRuntime'
 export { useLocalChatRuntime } from './runtime/useLocalChatRuntime'
 export { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
+export { useChatHistoryItems } from './composables/useChatHistoryItems'
 
 export type {
   ChatBubbleEventPayload,
@@ -69,6 +70,7 @@ export type {
 export type { UseKitChatRuntimeOptions } from './runtime/useKitChatRuntime'
 export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './runtime/useLocalChatRuntime'
 export type { UseChatRuntimeAdapterOptions } from './composables/useChatRuntimeAdapter'
+export type { ChatHistoryItem, UseChatHistoryItemsOptions } from './composables/useChatHistoryItems'
 export type { ChatMcpServerConfig, ChatMcpServers } from './runtime/mcp/types'
 export type {
   ChatProviderConfig,

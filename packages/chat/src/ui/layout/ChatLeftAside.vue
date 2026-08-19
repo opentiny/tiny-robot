@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconAi, IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
+import { useChatHistoryItems, type ChatHistoryItem } from '../../composables/useChatHistoryItems'
 import type {
   ChatBrandOptions,
   ChatConversationInfo,
@@ -10,10 +11,6 @@ import type {
   ChatHistoryOptions,
   ChatLabels,
 } from '../../types'
-
-type HistoryDisplayItem = ChatConversationInfo & {
-  raw: ChatConversationInfo
-}
 
 const props = defineProps<{
   conversation: Required<ChatConversationView>
@@ -36,28 +33,10 @@ const emit = defineEmits<{
   toggle: []
 }>()
 
-const historyItemCache = new Map<string, HistoryDisplayItem>()
-const historyItems = ref<HistoryDisplayItem[]>([])
-
-watch(
-  () => props.conversation.items,
-  (conversationItems) => {
-    const activeIds = new Set<string>()
-    const items = conversationItems.map((item) => {
-      activeIds.add(item.id)
-      return syncHistoryItem(item)
-    })
-
-    for (const id of historyItemCache.keys()) {
-      if (!activeIds.has(id)) {
-        historyItemCache.delete(id)
-      }
-    }
-
-    historyItems.value = items
-  },
-  { immediate: true, deep: true },
-)
+const historyItems = useChatHistoryItems({
+  conversations: () => props.conversation.items,
+  defaultTitle: () => props.labels.newConversationTitle,
+})
 
 const historyProps = computed(() => {
   const { menuItems: _menuItems, ...nextHistoryProps } = props.history
@@ -67,40 +46,19 @@ const historyProps = computed(() => {
 
 const historyMenuItems = computed<HistoryMenuItem[]>(() => props.history.menuItems ?? [])
 
-function syncHistoryItem(item: ChatConversationInfo) {
-  const cached = historyItemCache.get(item.id)
-  const nextItem =
-    cached ?? ({ id: item.id, title: item.title || props.labels.newConversationTitle, raw: item } as HistoryDisplayItem)
-
-  for (const key of Object.keys(nextItem)) {
-    if (key !== 'raw' && !(key in item)) {
-      delete nextItem[key]
-    }
-  }
-
-  Object.assign(nextItem, item, {
-    id: item.id,
-    title: item.title || props.labels.newConversationTitle,
-    raw: item,
-  })
-  historyItemCache.set(item.id, nextItem)
-
-  return nextItem
-}
-
 function handleCreateConversation() {
   emit('createConversation')
 }
 
-function handleHistoryItemClick(item: HistoryDisplayItem) {
+function handleHistoryItemClick(item: ChatHistoryItem) {
   emit('switchConversation', item.raw)
 }
 
-function handleHistoryTitleChange(title: string, item: HistoryDisplayItem) {
+function handleHistoryTitleChange(title: string, item: ChatHistoryItem) {
   emit('renameConversation', item.raw, title)
 }
 
-function handleHistoryAction(action: HistoryMenuItem, item: HistoryDisplayItem) {
+function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem) {
   emit('historyAction', action, item.raw)
 }
 
@@ -191,7 +149,7 @@ function toggleAside() {
           v-if="showHistory"
           v-bind="historyProps"
           class="chat-left-aside-content"
-          :data="historyItems"
+          :data="[...historyItems]"
           :selected="conversation.activeId ?? undefined"
           :menu-items="historyMenuItems"
           @item-click="handleHistoryItemClick"
