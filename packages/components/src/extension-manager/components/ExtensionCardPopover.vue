@@ -100,10 +100,10 @@ const handleToggle = (event: ToggleEvent) => {
 .tr-extension-card-popover__content {
   position: fixed;
   inset: auto;
-  padding: 6px;
+  padding: 8px 0;
   margin: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   background-color: var(--tr-dropdown-menu-bg-color);
   box-shadow: var(--tr-dropdown-menu-box-shadow);
   color: var(--tr-dropdown-menu-item-color);
