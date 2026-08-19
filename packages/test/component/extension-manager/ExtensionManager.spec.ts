@@ -118,7 +118,7 @@ test.describe('ExtensionManager section model', () => {
     const component = await mount(ExtensionManagerFixture)
     const item = component.getByTestId('manager-host').locator('li[data-card-id="alpha"]')
 
-    await item.getByRole('checkbox', { name: 'Enable Alpha' }).uncheck({ force: true })
+    await item.locator('.tr-extension-card-primary-actions__switch-track').click()
     await item.getByRole('button', { name: 'Alpha extension', exact: true }).click()
 
     await expect(component.getByTestId('event-log')).toContainText(
