@@ -122,31 +122,31 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
   width: 40px;
   height: 22px;
   cursor: pointer;
-}
 
-.tr-extension-card-primary-actions__switch.is-disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
+  &.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 
-.tr-extension-card-primary-actions__switch.is-danger {
-  color: var(--tr-error-color, #f23030);
-}
+  &.is-danger {
+    color: var(--tr-color-error);
+  }
 
-.tr-extension-card-primary-actions__switch input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
 
-.tr-extension-card-primary-actions__switch input:checked + .tr-extension-card-primary-actions__switch-track {
-  background: var(--tr-extension-card-switch-bg-color-checked);
-}
+    &:checked + .tr-extension-card-primary-actions__switch-track {
+      background: var(--tr-extension-card-switch-bg-color-checked);
 
-.tr-extension-card-primary-actions__switch input:checked + .tr-extension-card-primary-actions__switch-track::after {
-  transform: translateX(18px);
+      &::after {
+        transform: translateX(18px);
+      }
+    }
+  }
 }
 
 .tr-extension-card-primary-actions__switch-track {
@@ -157,19 +157,19 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
   border-radius: 999px;
   background: var(--tr-extension-card-switch-bg-color);
   transition: background 0.2s ease;
-}
 
-.tr-extension-card-primary-actions__switch-track::after {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 16%);
-  content: '';
-  transition: transform 0.2s ease;
+  &::after {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 16%);
+    content: '';
+    transition: transform 0.2s ease;
+  }
 }
 
 .tr-extension-card-primary-actions__button {
@@ -186,23 +186,23 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s ease;
-}
 
-.tr-extension-card-primary-actions__button:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--tr-extension-card-bg-color-hover) 80%, var(--tr-text-primary) 20%);
-}
+  &:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--tr-extension-card-bg-color-hover) 80%, var(--tr-text-primary) 20%);
+  }
 
-.tr-extension-card-primary-actions__button:active:not(:disabled) {
-  background-color: var(--tr-container-bg-active, rgba(0, 0, 0, 0.15));
-}
+  &:active:not(:disabled) {
+    background-color: var(--tr-container-bg-active);
+  }
 
-.tr-extension-card-primary-actions__button.is-danger {
-  color: var(--tr-error-color, #f23030);
-}
+  &.is-danger {
+    color: var(--tr-color-error);
+  }
 
-.tr-extension-card-primary-actions__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 .tr-extension-card-primary-actions__button-icon {
@@ -214,14 +214,14 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
 .tr-extension-card-primary-actions__custom-action {
   display: inline-flex;
   align-items: center;
-}
 
-.tr-extension-card-primary-actions__custom-action.is-disabled {
-  pointer-events: none;
-  opacity: 0.5;
-}
+  &.is-disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
 
-.tr-extension-card-primary-actions__custom-action.is-danger {
-  color: var(--tr-error-color, #f23030);
+  &.is-danger {
+    color: var(--tr-color-error);
+  }
 }
 </style>
