@@ -128,9 +128,8 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 4px 8px;
+  padding: 4px 12px;
   border: 0;
-  border-radius: 4px;
   background: transparent;
   color: var(--tr-dropdown-menu-item-color);
   cursor: pointer;
@@ -146,7 +145,11 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
 }
 
 .tr-extension-card__more-menu-item.is-danger {
-  color: var(--tr-error-color, #f23030);
+  color: var(--tr-color-error);
+
+  &:hover {
+    background-color: var(--tr-color-error-light);
+  }
 }
 
 .tr-extension-card__more-menu-item:disabled {
