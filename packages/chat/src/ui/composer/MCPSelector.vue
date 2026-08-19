@@ -201,7 +201,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   font-size: 10px;
 }
 
-@media (max-width: 959px) {
+@container (max-width: 959px) {
   .tr-chat-mcp-selector__button {
     justify-content: center;
     width: 32px;

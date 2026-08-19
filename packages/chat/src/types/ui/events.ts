@@ -1,6 +1,7 @@
 import type { ChatConversationInfo } from '../base'
 import type { ChatSendPayload } from '../commands'
 import type { ChatBuiltInModelFeature } from '../runtime'
+import type { LayoutFloatingDragDetail, LayoutFloatingResizeDetail, LayoutFloatingState } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
   readonly open: boolean
@@ -60,6 +61,13 @@ export type ChatBubbleEventPayload = {
 }
 
 export interface ChatUIEmits {
+  'update:floating-state': [value: LayoutFloatingState]
+  'floating-drag-start': [detail: LayoutFloatingDragDetail]
+  'floating-drag': [detail: LayoutFloatingDragDetail]
+  'floating-drag-end': [detail: LayoutFloatingDragDetail]
+  'floating-resize-start': [detail: LayoutFloatingResizeDetail]
+  'floating-resize': [detail: LayoutFloatingResizeDetail]
+  'floating-resize-end': [detail: LayoutFloatingResizeDetail]
   'update:inputValue': [value: string]
   submit: [payload: ChatSendPayload]
   cancel: []

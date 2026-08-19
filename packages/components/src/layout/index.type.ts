@@ -4,7 +4,6 @@ export type LayoutSide = 'left' | 'right'
 export type LayoutAsideMode = 'dock' | 'drawer'
 export type LayoutAsideCollapseEffect = 'overlay' | 'slide'
 export type LayoutMode = 'normal' | 'floating'
-export type LayoutFit = 'viewport' | 'parent'
 export type LayoutFloatingPlacement = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
 export interface LayoutFloatingState {
@@ -70,7 +69,6 @@ export interface LayoutAsidePanelsProps {
 
 export interface LayoutNormalProps extends LayoutAsidePanelsProps {
   mode: 'normal'
-  fit?: LayoutFit
   floatingState?: never
   defaultFloatingState?: never
   floatingOptions?: never
@@ -89,7 +87,6 @@ type LayoutFloatingStateControlProps =
 export type LayoutFloatingProps = LayoutAsidePanelsProps &
   LayoutFloatingStateControlProps & {
     mode: 'floating'
-    fit?: LayoutFit
     floatingOptions?: LayoutFloatingOptions
   }
 

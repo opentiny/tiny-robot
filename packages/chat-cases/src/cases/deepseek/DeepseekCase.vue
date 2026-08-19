@@ -11,7 +11,7 @@ import {
   deepseekModelProviders,
   deepseekWelcome,
 } from './config'
-import { useTinyRobotRuntime } from '../../shared/runtime/createChatRuntime'
+import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
 
 const DeepseekLogo = defineComponent({
   name: 'DeepseekLogo',
@@ -20,7 +20,7 @@ const DeepseekLogo = defineComponent({
   },
 })
 
-const runtime = useTinyRobotRuntime({
+const runtime = useChatCaseRuntime({
   storageKey: deepseekConversationStorageKey,
   initialConversations: deepseekMockConversations,
   modelProviders: deepseekModelProviders,

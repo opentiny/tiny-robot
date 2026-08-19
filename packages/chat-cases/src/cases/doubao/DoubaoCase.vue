@@ -3,7 +3,8 @@ import { computed, defineComponent, onBeforeUnmount, shallowRef } from 'vue'
 import { TrChat } from '@opentiny/tiny-robot-chat'
 import DoubaoHeader from './DoubaoHeader.vue'
 import DoubaoSidebar from './DoubaoSidebar.vue'
-import { useTinyRobotRuntime } from '../../shared/runtime/createChatRuntime'
+import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
+import { modelProviders } from '../../shared/runtime/modelProviders'
 import {
   doubaoConversationPrompts,
   doubaoConversationStorageKey,
@@ -16,9 +17,11 @@ import {
 
 type DoubaoNavigation = (typeof doubaoNavigation)[keyof typeof doubaoNavigation]
 
-const runtime = useTinyRobotRuntime({
+const runtime = useChatCaseRuntime({
   storageKey: doubaoConversationStorageKey,
   initialConversations: doubaoMockConversations,
+  modelProviders,
+  mcpServers: [],
 })
 // Avoid rendering the default IconAi twice; its fixed SVG IDs collide with the welcome icon.
 const emptyBrandLogo = defineComponent({

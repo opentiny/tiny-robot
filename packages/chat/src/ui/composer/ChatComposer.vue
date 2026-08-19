@@ -96,6 +96,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
 
 <template>
   <div class="chat-footer">
+    <slot name="composer-before" />
     <slot>
       <TrSender
         v-bind="senderProps"
@@ -141,7 +142,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
   flex-wrap: wrap;
 }
 
-@media (max-width: 959px) {
+@container (max-width: 959px) {
   .model-actions {
     flex-wrap: nowrap;
     gap: 6px;

@@ -7,18 +7,20 @@ import type {
   PromptsProps,
   SenderProps,
   WelcomeProps,
+  LayoutFloatingOptions,
+  LayoutFloatingState,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo } from '../base'
 import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
-export type ChatHeightMode = 'viewport' | 'parent'
 
 export interface ChatUIProps {
   data?: Readonly<ChatUIData>
   ui?: Readonly<ChatUIOptions>
   inputValue?: string
   defaultInputValue?: string
+  floatingState?: LayoutFloatingState
 }
 
 export interface ChatUIOptions {
@@ -37,13 +39,18 @@ export interface ChatUIOptions {
 
 export interface ChatLayoutOptions {
   readonly composer?: Readonly<ChatComposerLayoutOptions>
-  readonly heightMode?: ChatHeightMode
+  readonly surface?: Readonly<ChatSurfaceOptions>
   readonly emptyState?: 'start' | 'center'
   readonly contentMaxWidth?: ChatCssSize
   readonly panelPadding?: ChatCssSize
   readonly panelGap?: ChatCssSize
   readonly leftAside?: false | Readonly<ChatAsideOptions>
   readonly rightAside?: false | Readonly<ChatRightAsideOptions>
+}
+
+export interface ChatSurfaceOptions {
+  readonly mode?: 'normal' | 'floating'
+  readonly floatingOptions?: Readonly<LayoutFloatingOptions>
 }
 
 export type ChatWelcomeComposerPlacement = 'footer' | 'center'

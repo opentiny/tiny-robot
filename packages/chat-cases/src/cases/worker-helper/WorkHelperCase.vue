@@ -10,7 +10,7 @@ import {
   IconWarning,
 } from '@opentiny/tiny-robot-svgs'
 import { computed, h, markRaw, shallowRef } from 'vue'
-import { useTinyRobotRuntime } from '../../shared/runtime/createChatRuntime'
+import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
 import { workHelperModelProviders } from './config'
 
 const cards = [
@@ -32,7 +32,7 @@ const promptBatchSize = 6
 const batchIndex = shallowRef(0)
 const isFullscreen = shallowRef(false)
 
-const runtime = useTinyRobotRuntime({
+const runtime = useChatCaseRuntime({
   storageKey: 'tiny-robot-work-helper-conversations',
   modelProviders: workHelperModelProviders,
   mcpServers: [],

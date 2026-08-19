@@ -73,6 +73,9 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
     @mcp-server-enabled-change="emit('mcpServerEnabledChange', $event)"
     @mcp-tool-enabled-change="emit('mcpToolEnabledChange', $event)"
   >
+    <template v-if="$slots['composer-before']" #composer-before>
+      <slot name="composer-before" v-bind="layoutFooterProps" />
+    </template>
     <template v-if="$slots['layout-footer']" #default>
       <slot name="layout-footer" v-bind="layoutFooterProps" />
     </template>

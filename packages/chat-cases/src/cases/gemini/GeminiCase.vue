@@ -13,7 +13,7 @@ import {
   geminiModelProviders,
   geminiWelcome,
 } from './config'
-import { useTinyRobotRuntime } from '../../shared/runtime/createChatRuntime'
+import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
 
 const GeminiLogo = defineComponent({
   name: 'GeminiLogo',
@@ -27,7 +27,7 @@ const EmptyWelcomeIcon = defineComponent({
   render: () => null,
 })
 
-const runtime = useTinyRobotRuntime({
+const runtime = useChatCaseRuntime({
   storageKey: geminiConversationStorageKey,
   initialConversations: geminiMockConversations,
   modelProviders: geminiModelProviders,

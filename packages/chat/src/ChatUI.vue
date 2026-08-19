@@ -2,7 +2,7 @@
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
 import { computed, shallowRef, useSlots, type Slots } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { HistoryMenuItem, PromptProps } from '@opentiny/tiny-robot'
+import type { HistoryMenuItem, LayoutProps, PromptProps } from '@opentiny/tiny-robot'
 import ScrollToBottom from './ui/messages/ScrollToBottom.vue'
 import ChatLeftAside from './ui/layout/ChatLeftAside.vue'
 import ChatComposerHost from './ui/composer/ChatComposerHost.vue'
@@ -92,6 +92,28 @@ const layoutStyle = computed(() => ({
   '--tr-chat-ui-panel-gap': toCssSize(resolvedOptions.value.layout.panelGap),
 }))
 
+const layoutProps = computed<LayoutProps>(() => {
+  const layout = resolvedOptions.value.layout
+  const asideProps = {
+    leftAside: isLeftAsideVisible.value ? asideState.leftAsideOptions.value : undefined,
+    rightAside: isRightAsideVisible.value ? asideState.rightAsideOptions.value : undefined,
+  }
+
+  if (layout.surface.mode === 'floating') {
+    return {
+      ...asideProps,
+      mode: 'floating',
+      floatingState: props.floatingState,
+      floatingOptions: layout.surface.floatingOptions,
+    }
+  }
+
+  return {
+    ...asideProps,
+    mode: 'normal',
+  }
+})
+
 function toCssSize(value: string | number) {
   return typeof value === 'number' ? `${value}px` : value
 }
@@ -165,17 +187,18 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 <template>
   <TrLayout
+    v-bind="layoutProps"
     class="tr-chat-ui"
-    :class="{
-      'tr-chat-ui--parent-height': resolvedOptions.layout.heightMode === 'parent',
-    }"
-    :fit="resolvedOptions.layout.heightMode"
-    mode="normal"
     :style="layoutStyle"
-    :left-aside="isLeftAsideVisible ? asideState.leftAsideOptions.value : undefined"
-    :right-aside="isRightAsideVisible ? asideState.rightAsideOptions.value : undefined"
     @left-aside-open-change="asideState.handleLeftAsideOpenChange"
     @right-aside-open-change="asideState.handleRightAsideOpenChange"
+    @update:floating-state="(value) => emit('update:floating-state', value)"
+    @floating-drag-start="(detail) => emit('floating-drag-start', detail)"
+    @floating-drag="(detail) => emit('floating-drag', detail)"
+    @floating-drag-end="(detail) => emit('floating-drag-end', detail)"
+    @floating-resize-start="(detail) => emit('floating-resize-start', detail)"
+    @floating-resize="(detail) => emit('floating-resize', detail)"
+    @floating-resize-end="(detail) => emit('floating-resize-end', detail)"
   >
     <template v-if="isLeftAsideVisible" #left-aside>
       <ChatLeftAside
@@ -307,6 +330,9 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
                 @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
               >
+                <template v-if="$slots['composer-before']" #composer-before="slotProps">
+                  <slot name="composer-before" v-bind="slotProps" />
+                </template>
                 <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
                   <slot name="layout-footer" v-bind="slotProps" />
                 </template>
@@ -360,6 +386,9 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
           @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
         >
+          <template v-if="$slots['composer-before']" #composer-before="slotProps">
+            <slot name="composer-before" v-bind="slotProps" />
+          </template>
           <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
             <slot name="layout-footer" v-bind="slotProps" />
           </template>
@@ -391,11 +420,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 </template>
 
 <style scoped>
-.tr-chat-ui--parent-height {
-  flex: 1 1 auto;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
+.tr-chat-ui {
+  container-type: inline-size;
 }
 
 .chat-panel {
@@ -439,26 +465,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 .chat-panel-content--header {
   padding: 24px 24px 0;
-}
-
-.tr-chat-ui--parent-height .chat-panel {
-  display: flex;
-  box-sizing: border-box;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  height: auto;
-}
-
-.tr-chat-ui--parent-height .chat-main-scroll-host {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  height: auto;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .chat-panel-content--footer {

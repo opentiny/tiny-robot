@@ -8,6 +8,9 @@ import type {
   ChatPromptClickPayload,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
+  LayoutFloatingDragDetail,
+  LayoutFloatingResizeDetail,
+  LayoutFloatingState,
   ChatUIOptions,
 } from './types'
 
@@ -15,9 +18,17 @@ const props = defineProps<{
   runtime: ChatRuntime
   ui?: ChatUIOptions
   title?: string
+  floatingState?: LayoutFloatingState
 }>()
 
 const emit = defineEmits<{
+  'update:floating-state': [value: LayoutFloatingState]
+  'floating-drag-start': [detail: LayoutFloatingDragDetail]
+  'floating-drag': [detail: LayoutFloatingDragDetail]
+  'floating-drag-end': [detail: LayoutFloatingDragDetail]
+  'floating-resize-start': [detail: LayoutFloatingResizeDetail]
+  'floating-resize': [detail: LayoutFloatingResizeDetail]
+  'floating-resize-end': [detail: LayoutFloatingResizeDetail]
   'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
   'history-action': [payload: ChatHistoryActionPayload]
   'prompt-click': [payload: ChatPromptClickPayload]
@@ -47,6 +58,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
   <ChatUI
     :data="adapter.data.value"
     :ui="props.ui"
+    :floating-state="props.floatingState"
     :input-value="adapter.inputValue.value"
     @create-conversation="adapter.createConversation"
     @switch-conversation="({ id }) => adapter.switchConversation(id)"
@@ -58,6 +70,13 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @bubble-event="(payload) => emit('bubble-event', payload)"
     @left-aside-open-change="(payload) => emit('left-aside-open-change', payload)"
     @right-aside-open-change="(payload) => emit('right-aside-open-change', payload)"
+    @update:floating-state="(value) => emit('update:floating-state', value)"
+    @floating-drag-start="(detail) => emit('floating-drag-start', detail)"
+    @floating-drag="(detail) => emit('floating-drag', detail)"
+    @floating-drag-end="(detail) => emit('floating-drag-end', detail)"
+    @floating-resize-start="(detail) => emit('floating-resize-start', detail)"
+    @floating-resize="(detail) => emit('floating-resize', detail)"
+    @floating-resize-end="(detail) => emit('floating-resize-end', detail)"
     @submit="adapter.send"
     @cancel="adapter.abort"
     @clear="() => adapter.setInputValue('')"
@@ -86,6 +105,9 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     </template>
     <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
       <slot name="layout-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['composer-before']" #composer-before="slotProps">
+      <slot name="composer-before" v-bind="slotProps" />
     </template>
     <template v-if="$slots['header-notice']" #header-notice>
       <slot name="header-notice" />

@@ -1,20 +1,16 @@
 import { localStorageStrategyFactory } from '@opentiny/tiny-robot-kit'
 import { useLocalChatRuntime, type ChatMcpServers, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
-import { modelProviders } from '../../cases/tiny-robot/config'
-import { mcpServers } from '../../cases/tiny-robot/mcp'
 import { createMockConversationStorage, type MockConversationSeed } from './mockConversationStorage'
 
-export interface TinyRobotRuntimeOptions {
+export interface ChatCaseRuntimeOptions {
   storageKey?: string
   initialConversations?: readonly MockConversationSeed[]
-  modelProviders?: readonly ChatProviderConfig[]
-  mcpServers?: ChatMcpServers
+  modelProviders: readonly ChatProviderConfig[]
+  mcpServers: ChatMcpServers
 }
 
-export function useTinyRobotRuntime(options: TinyRobotRuntimeOptions = {}) {
+export function useChatCaseRuntime(options: ChatCaseRuntimeOptions) {
   const initialConversations = options.initialConversations ?? []
-  const providers = options.modelProviders ?? modelProviders
-  const servers = options.mcpServers ?? mcpServers
   const storage = options.storageKey
     ? initialConversations.length
       ? createMockConversationStorage(options.storageKey, initialConversations)
@@ -22,8 +18,8 @@ export function useTinyRobotRuntime(options: TinyRobotRuntimeOptions = {}) {
     : undefined
 
   const runtime: ReturnType<typeof useLocalChatRuntime> = useLocalChatRuntime({
-    mcpServers: servers,
-    modelProviders: providers,
+    mcpServers: options.mcpServers,
+    modelProviders: options.modelProviders,
     conversation:
       options.storageKey || initialConversations.length
         ? {

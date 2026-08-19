@@ -50,6 +50,7 @@ export interface ChatUISlots {
   'layout-right-aside-title'?: () => unknown
   'layout-main'?: (props: ChatMainSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
+  'composer-before'?: (props: ChatSenderSlotProps) => unknown
   'header-notice'?: () => unknown
   'request-error'?: (props: { error: unknown }) => unknown
   'welcome-footer'?: () => unknown

@@ -17,7 +17,6 @@ export type {
   ChatComposerRuntime,
   ChatComposerLayoutOptions,
   ChatCssSize,
-  ChatHeightMode,
   ChatHistoryOptions,
   ChatLabels,
   ChatLayoutOptions,
@@ -28,6 +27,8 @@ export type {
   ChatModelView,
   ChatModelOptionView,
   ChatSenderView,
+  ChatSenderSlotProps,
+  ChatSurfaceOptions,
   ChatUIData,
   ChatUIEmits,
   ChatUIOptions,
@@ -66,6 +67,13 @@ export type {
   ChatReadable,
   ChatWritable,
 } from './types'
+
+export type {
+  LayoutFloatingDragDetail,
+  LayoutFloatingOptions,
+  LayoutFloatingResizeDetail,
+  LayoutFloatingState,
+} from '@opentiny/tiny-robot'
 
 export type { UseKitChatRuntimeOptions } from './runtime/useKitChatRuntime'
 export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './runtime/useLocalChatRuntime'

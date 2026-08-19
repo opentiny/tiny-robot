@@ -242,7 +242,6 @@ defineExpose({
       v-bind="attrs"
       class="tr-layout"
       :class="{
-        'tr-layout--fit-parent': props.fit === 'parent',
         'tr-layout--floating': isFloating,
         'tr-layout--no-select': isFloatingInteracting,
       }"
@@ -329,12 +328,5 @@ defineExpose({
 .tr-layout--no-select,
 .tr-layout--no-select * {
   user-select: none;
-}
-
-.tr-layout:not(.tr-layout--floating).tr-layout--fit-parent {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
 }
 </style>

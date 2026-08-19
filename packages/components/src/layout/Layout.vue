@@ -189,7 +189,6 @@ const surfaceStyle = computed<Record<string, string>>(() => {
   <LayoutSurface
     ref="surfaceRef"
     :mode="mode"
-    :fit="fit"
     :class="surfaceClass"
     :style="surfaceStyle"
     :floating-options="floatingOptions"
@@ -284,14 +283,6 @@ const surfaceStyle = computed<Record<string, string>>(() => {
   position: relative;
   overflow: hidden;
   background: var(--tr-layout-main-bg);
-}
-
-.tr-layout--fit-parent .tr-layout__main {
-  display: flex;
-  box-sizing: border-box;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
 }
 
 .tr-layout__footer {

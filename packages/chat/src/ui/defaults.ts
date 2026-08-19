@@ -12,6 +12,7 @@ import type {
   ChatPromptsOptions,
   ChatSenderOptions,
   ChatSenderView,
+  ChatSurfaceOptions,
   ChatWelcomeOptions,
 } from '../types'
 
@@ -26,8 +27,12 @@ export interface DefaultChatUIData {
 }
 
 export interface DefaultChatUIOptions {
-  layout: Required<Omit<ChatLayoutOptions, 'leftAside' | 'rightAside' | 'composer'>> & {
+  layout: Required<Omit<ChatLayoutOptions, 'leftAside' | 'rightAside' | 'composer' | 'surface'>> & {
     composer: Required<NonNullable<ChatLayoutOptions['composer']>>
+    surface: {
+      mode: NonNullable<ChatSurfaceOptions['mode']>
+      floatingOptions?: ChatSurfaceOptions['floatingOptions']
+    }
     leftAside: {
       mode: 'dock' | 'drawer'
       width: number
@@ -85,7 +90,9 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
 
   return {
     layout: {
-      heightMode: 'viewport',
+      surface: {
+        mode: 'normal',
+      },
       emptyState: 'start',
       composer: {
         welcome: 'footer',

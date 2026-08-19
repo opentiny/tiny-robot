@@ -87,7 +87,7 @@ function handleModelSelect(item: DropdownMenuItem) {
   white-space: nowrap;
 }
 
-@media (max-width: 959px) {
+@container (max-width: 959px) {
   .tr-chat-model-selector__button {
     justify-content: center;
     width: 32px;

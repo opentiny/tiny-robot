@@ -7,7 +7,6 @@ import type {
   ChatComposerLayoutOptions,
   ChatCssSize,
   ChatHistoryOptions,
-  ChatHeightMode,
   ChatLabels,
   ChatLayoutOptions,
   ChatMcpOptions,
@@ -15,13 +14,14 @@ import type {
   ChatPromptsOptions,
   ChatRightAsideOptions,
   ChatSenderOptions,
+  ChatSurfaceOptions,
   ChatUIOptions,
   ChatWelcomeComposerPlacement,
   ChatWelcomeOptions,
 } from '../types'
 
 export interface ResolvedChatLayoutOptions {
-  heightMode: ChatHeightMode
+  surface: ResolvedChatSurfaceOptions
   emptyState: 'start' | 'center'
   composer: ResolvedChatComposerLayoutOptions
   contentMaxWidth: ChatCssSize
@@ -29,6 +29,11 @@ export interface ResolvedChatLayoutOptions {
   panelGap: ChatCssSize
   leftAside: false | ResolvedChatAsideOptions
   rightAside: false | ResolvedChatRightAsideOptions
+}
+
+export interface ResolvedChatSurfaceOptions {
+  mode: NonNullable<ChatSurfaceOptions['mode']>
+  floatingOptions?: ChatSurfaceOptions['floatingOptions']
 }
 
 export interface ResolvedChatComposerLayoutOptions extends ChatComposerLayoutOptions {
@@ -111,7 +116,10 @@ function resolveLayout(
   options: ChatLayoutOptions | undefined,
 ): ResolvedChatLayoutOptions {
   return {
-    heightMode: options?.heightMode ?? defaults.heightMode,
+    surface: {
+      mode: options?.surface?.mode ?? defaults.surface.mode,
+      floatingOptions: options?.surface?.floatingOptions,
+    },
     emptyState: options?.emptyState ?? defaults.emptyState,
     composer: {
       welcome: options?.composer?.welcome ?? defaults.composer.welcome,
