@@ -298,7 +298,7 @@
     overflow: hidden;
   }
 
-  &__row-header {
+  &__input-prefix {
     position: absolute;
     top: 0;
     left: 0;
@@ -313,9 +313,9 @@
     will-change: transform;
   }
 
-  &__input-field-wrapper.has-row-header {
+  &__input-field-wrapper.has-input-prefix {
     :deep(.tiny-textarea__inner) {
-      text-indent: calc(var(--tr-sender-row-header-width, 0px) + var(--tr-sender-row-header-gap));
+      text-indent: calc(var(--tr-sender-input-prefix-width, 0px) + var(--tr-sender-input-prefix-gap));
     }
   }
 

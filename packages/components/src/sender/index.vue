@@ -40,10 +40,10 @@ const inputRef = ref<HTMLElement | null>(null)
 const senderRef = ref<HTMLElement | null>(null)
 const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
 const inputWrapperRef = ref<HTMLElement | null>(null)
-const rowHeaderRef = ref<HTMLElement | null>(null)
+const inputPrefixRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
-const rowHeaderScrollTop = ref(0)
-let rowHeaderTextarea: HTMLTextAreaElement | null = null
+const inputPrefixScrollTop = ref(0)
+let inputPrefixTextarea: HTMLTextAreaElement | null = null
 
 // 是否显示模板编辑器
 const showTemplateEditor = computed(() => props.templateData && props.templateData.length > 0)
@@ -428,50 +428,53 @@ const slots = useSlots() as SlotsType
 // 检查是否有decorativeContent插槽
 const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 
-const showRowHeader = computed(
-  () => currentMode.value === 'multiple' && !!slots['row-header'] && !showTemplateEditor.value,
+const showInputPrefix = computed(
+  () => currentMode.value === 'multiple' && !!slots['input-prefix'] && !showTemplateEditor.value,
 )
 
-useResizeObserver(rowHeaderRef, ([entry]) => {
-  rowHeaderRef.value?.parentElement?.style.setProperty('--tr-sender-row-header-width', `${entry.contentRect.width}px`)
+useResizeObserver(inputPrefixRef, ([entry]) => {
+  inputPrefixRef.value?.parentElement?.style.setProperty(
+    '--tr-sender-input-prefix-width',
+    `${entry.contentRect.width}px`,
+  )
 })
 
-const handleRowHeaderScroll = (event: Event) => {
-  rowHeaderScrollTop.value = (event.target as HTMLTextAreaElement).scrollTop
+const handleInputPrefixScroll = (event: Event) => {
+  inputPrefixScrollTop.value = (event.target as HTMLTextAreaElement).scrollTop
 }
 
-const resetRowHeaderScroll = () => {
-  rowHeaderTextarea?.removeEventListener('scroll', handleRowHeaderScroll)
-  rowHeaderTextarea = null
-  rowHeaderScrollTop.value = 0
+const resetInputPrefixScroll = () => {
+  inputPrefixTextarea?.removeEventListener('scroll', handleInputPrefixScroll)
+  inputPrefixTextarea = null
+  inputPrefixScrollTop.value = 0
 }
 
-const syncRowHeaderScroll = async (show: boolean) => {
-  resetRowHeaderScroll()
+const syncInputPrefixScroll = async (show: boolean) => {
+  resetInputPrefixScroll()
 
   if (!show) return
 
   await nextTick()
 
-  if (!showRowHeader.value) return
+  if (!showInputPrefix.value) return
 
   const textarea = senderRef.value?.querySelector('.tiny-textarea__inner') as HTMLTextAreaElement | null
   if (!textarea) return
 
-  rowHeaderTextarea = textarea
-  textarea.addEventListener('scroll', handleRowHeaderScroll)
-  rowHeaderScrollTop.value = textarea.scrollTop
+  inputPrefixTextarea = textarea
+  textarea.addEventListener('scroll', handleInputPrefixScroll)
+  inputPrefixScrollTop.value = textarea.scrollTop
 }
 
 watch(
-  [showRowHeader, inputRef],
+  [showInputPrefix, inputRef],
   ([show]) => {
-    syncRowHeaderScroll(show)
+    syncInputPrefixScroll(show)
   },
   { immediate: true, flush: 'post' },
 )
 
-onBeforeUnmount(resetRowHeaderScroll)
+onBeforeUnmount(resetInputPrefixScroll)
 
 // 状态计算
 const isDisabled = computed((): boolean => props.disabled || hasDecorativeContent.value)
@@ -593,14 +596,14 @@ defineExpose({
                 />
               </template>
               <!-- 普通输入框 -->
-              <div v-else class="tiny-sender__input-field-wrapper" :class="{ 'has-row-header': showRowHeader }">
+              <div v-else class="tiny-sender__input-field-wrapper" :class="{ 'has-input-prefix': showInputPrefix }">
                 <div
-                  v-if="showRowHeader"
-                  ref="rowHeaderRef"
-                  class="tiny-sender__row-header"
-                  :style="{ transform: `translateY(-${rowHeaderScrollTop}px)` }"
+                  v-if="showInputPrefix"
+                  ref="inputPrefixRef"
+                  class="tiny-sender__input-prefix"
+                  :style="{ transform: `translateY(-${inputPrefixScrollTop}px)` }"
                 >
-                  <slot name="row-header" />
+                  <slot name="input-prefix" />
                 </div>
                 <tiny-input
                   ref="inputRef"
@@ -739,7 +742,7 @@ defineExpose({
   --tr-sender-input-font-size: 16px;
   --tr-sender-input-line-height: 26px;
   --tr-sender-input-height: 26px;
-  --tr-sender-row-header-gap: 8px;
+  --tr-sender-input-prefix-gap: 8px;
 
   // 最小高度配置
   --tr-sender-container-min-height: 42px;
