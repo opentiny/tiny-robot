@@ -6,10 +6,10 @@ const WARN_MESSAGE =
   'Theme context not available, cannot set theme data. Consider using ThemeProvider to wrap your app.'
 
 export const useTheme = () => {
-  const theme = inject<Ref<string> | undefined>(THEME, undefined)
-  const colorMode = inject<Ref<ColorMode> | undefined>(COLOR_MODE, undefined)
-  const resolvedColorMode = inject<ComputedRef<'light' | 'dark'> | undefined>(RESOLVED_COLOR_MODE, undefined)
-  const systemColorMode = inject<Ref<'light' | 'dark'> | undefined>(SYSTEM_COLOR_MODE, undefined)
+  const theme = inject<Ref<string>>(THEME)
+  const colorMode = inject<Ref<ColorMode>>(COLOR_MODE)
+  const resolvedColorMode = inject<ComputedRef<'light' | 'dark'>>(RESOLVED_COLOR_MODE)
+  const systemColorMode = inject<Ref<'light' | 'dark'>>(SYSTEM_COLOR_MODE)
 
   /**
    * @param newTheme - 要设置的新主题

@@ -236,8 +236,68 @@ div:has(h1[id='bubble-气泡组件']) {
 }
 
 .main-content > .Layout {
-  min-height: calc(100vh - 113px);
-  min-height: calc(100dvh - 113px);
+  min-height: calc(100vh - var(--vp-nav-height) - var(--vp-nav-bottom-height) - 1px);
+  min-height: calc(100dvh - var(--vp-nav-height) - var(--vp-nav-bottom-height) - 1px);
+}
+
+/* ===== 文档页宽屏布局优化 ===== */
+.main-content {
+  --tr-doc-aside-width: 224px;
+  --tr-doc-side-gap: clamp(48px, 2.5vw, 96px);
+  --tr-doc-content-max-width: clamp(920px, 60vw, 4640px);
+  --tr-doc-demo-content-max-width: clamp(1200px, 68vw, 5200px);
+}
+
+@media (min-width: 1280px) {
+  .main-content .VPDoc.has-aside .container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--tr-doc-aside-width);
+    column-gap: var(--tr-doc-side-gap);
+    align-items: start;
+    justify-content: stretch;
+    width: 100%;
+    max-width: none !important;
+  }
+
+  .main-content .VPDoc.has-aside > .container > .content {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  .main-content .VPDoc.has-aside .content-container {
+    width: 100%;
+    max-width: min(100%, var(--tr-doc-content-max-width)) !important;
+    margin: 0 auto;
+  }
+
+  .main-content .VPDoc:has(.vitepress-demo-plugin__container) .content-container,
+  .main-content .VPDoc:has(.vitepress-demo-plugin-placeholder__container) .content-container {
+    max-width: min(100%, var(--tr-doc-demo-content-max-width)) !important;
+  }
+
+  .main-content .VPDoc.has-aside > .container > .aside {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    width: var(--tr-doc-aside-width) !important;
+    max-width: var(--tr-doc-aside-width) !important;
+    padding-left: 0 !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .main-content .VPContent.has-sidebar {
+    padding-left: calc(var(--vp-sidebar-width) + var(--tr-doc-side-gap)) !important;
+    padding-right: var(--tr-doc-side-gap) !important;
+  }
+
+  .main-content .VPSidebar {
+    width: var(--vp-sidebar-width) !important;
+    padding-left: 32px !important;
+  }
 }
 
 /* ===== 响应式布局 ===== */
