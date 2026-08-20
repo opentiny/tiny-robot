@@ -165,7 +165,7 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   --tr-extension-card-action-icon-size: 16px;
   --tr-extension-card-menu-icon-slot-size: var(--tr-extension-card-action-icon-size);
   --tr-extension-card-progress-bg-color: var(--tr-extension-card-bg-color-hover);
-  --tr-extension-card-progress-bar-color: var(--tr-success-color, #52c41a);
+  --tr-extension-card-progress-bar-color: var(--tr-color-success);
 
   box-sizing: border-box;
   position: relative;
@@ -195,14 +195,14 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   border-radius: 8px;
   object-fit: cover;
   overflow: hidden;
-}
 
-.tr-extension-card__icon--placeholder {
-  background: var(--tr-extension-card-bg-color-hover);
-  color: var(--tr-text-secondary);
-  font-size: 18px;
-  font-weight: 600;
-  cursor: default;
+  &--placeholder {
+    background: var(--tr-extension-card-bg-color-hover);
+    color: var(--tr-text-secondary);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: default;
+  }
 }
 
 .tr-extension-card__content {
@@ -226,15 +226,17 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: default;
-}
 
-.tr-extension-card__name.is-clickable:hover {
-  text-decoration: underline;
-}
+  &.is-clickable {
+    &:hover {
+      text-decoration: underline;
+    }
 
-.tr-extension-card__name.is-clickable:focus-visible {
-  border-radius: 4px;
-  box-shadow: 0 0 0 2px var(--tr-extension-card-focus-color);
+    &:focus-visible {
+      border-radius: 4px;
+      box-shadow: 0 0 0 2px var(--tr-extension-card-focus-color);
+    }
+  }
 }
 
 .tr-extension-card__description {
@@ -270,11 +272,11 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   border-radius: inherit;
   background: var(--tr-extension-card-progress-bar-color);
   transition: width 240ms ease-out;
-}
 
-.tr-extension-card__progress-bar.is-indeterminate {
-  width: 40%;
-  animation: tr-extension-card-progress-indeterminate 1.2s ease-in-out infinite;
+  &.is-indeterminate {
+    width: 40%;
+    animation: tr-extension-card-progress-indeterminate 1.2s ease-in-out infinite;
+  }
 }
 
 @keyframes tr-extension-card-progress-indeterminate {
@@ -290,10 +292,10 @@ const handleNameKeydown = (event: KeyboardEvent) => {
 @media (prefers-reduced-motion: reduce) {
   .tr-extension-card__progress-bar {
     transition: none;
-  }
 
-  .tr-extension-card__progress-bar.is-indeterminate {
-    animation: none;
+    &.is-indeterminate {
+      animation: none;
+    }
   }
 }
 </style>
