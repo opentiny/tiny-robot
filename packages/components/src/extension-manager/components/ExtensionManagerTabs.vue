@@ -132,11 +132,16 @@ const handleKeydown = (tabIndex: number, event: KeyboardEvent) => {
   color: var(--tr-text-secondary);
   cursor: pointer;
   font: inherit;
-}
 
-.extension-manager-tabs__tab[aria-selected='true'] {
-  color: var(--tr-text-primary);
-  font-weight: 600;
+  &[aria-selected='true'] {
+    color: var(--tr-text-primary);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tr-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .extension-manager-tabs__indicator {
@@ -150,11 +155,6 @@ const handleKeydown = (tabIndex: number, event: KeyboardEvent) => {
     transform 200ms cubic-bezier(0.2, 0, 0, 1),
     width 200ms cubic-bezier(0.2, 0, 0, 1);
   will-change: transform, width;
-}
-
-.extension-manager-tabs__tab:focus-visible {
-  outline: 2px solid var(--tr-color-primary);
-  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
