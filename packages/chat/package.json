@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot-chat",
-  "version": "0.4.1",
+  "version": "0.5.2-alpha.7",
   "license": "MIT",
   "description": "TinyRobot Chat application assembly package",
   "homepage": "https://docs.opentiny.design/tiny-robot/",
@@ -37,7 +37,7 @@
     "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
-    "@vueuse/core": "^13.1.0"
+    "@vueuse/core": "13.9.0"
   },
   "peerDependencies": {
     "vue": "^3.3.11"
