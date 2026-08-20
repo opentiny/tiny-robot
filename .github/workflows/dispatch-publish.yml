@@ -32,6 +32,9 @@ jobs:
   build:
     # 指定运行环境为最新版本的ubuntu
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
@@ -47,7 +50,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 22 # 使用Node.js 22版本
+          node-version: 24 # 使用Node.js 24版本
           package-manager-cache: false
           registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
@@ -79,9 +82,6 @@ jobs:
       - name: Publish components
         if: ${{ inputs.publish_npm }}
         run: pnpm lerna publish from-package --pre-dist-tag ${{ inputs.tag }} --yes
-        env:
-          # 使用NPM令牌进行身份验证
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}
 
       # 步骤9: 构建文档
       - name: Build VitePress

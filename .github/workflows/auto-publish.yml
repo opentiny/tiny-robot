@@ -9,15 +9,15 @@ on:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-  id-token: write
-
 # 定义工作流中的作业
 jobs:
   build:
     # 指定运行环境为最新版本的ubuntu
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      dist_tag: ${{ steps.parse_tag.outputs.dist_tag }}
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
@@ -91,13 +91,79 @@ jobs:
             exit 1
           fi
 
-      # 步骤8: 发布组件到NPM
-      - name: Publish components
-        run: pnpm lerna publish from-package --pre-dist-tag ${{ steps.parse_tag.outputs.dist_tag }} --yes
+      # 步骤8: 构建文档
+      - name: Build VitePress
+        run: pnpm build:docs --nocomponents
+        env:
+          VITEPRESS_BASE: /tiny-robot/${{ steps.parse_tag.outputs.dist_tag }}/
+          PLAYGROUND_BASE: /tiny-robot/${{ steps.parse_tag.outputs.dist_tag }}/playground
 
-      # 步骤9: 发布组件到GitHub Release
+      - name: Verify build output
+        run: ls -la ./docs/dist
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: package-dist
+          path: |
+            packages/components/dist
+            packages/kit/dist
+            packages/svgs/dist
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload docs artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: docs-dist
+          path: docs/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: CheckOut Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install publish dependencies
+        run: pnpm i --no-frozen-lockfile --ignore-scripts
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: package-dist
+          path: ./packages
+
+      # 步骤9: 发布组件到NPM
+      - name: Publish components
+        run: pnpm lerna publish from-package --pre-dist-tag ${{ needs.build.outputs.dist_tag }} --yes
+
+  release:
+    needs: [build, publish]
+    if: ${{ needs.build.outputs.dist_tag == 'latest' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # 步骤10: 发布组件到GitHub Release
       - name: Release
-        if: ${{ steps.parse_tag.outputs.dist_tag == 'latest' }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
@@ -105,22 +171,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-      # 步骤10: 构建文档
-      - name: Build VitePress
-        run: pnpm build:docs --nocomponents
-        env:
-          VITEPRESS_BASE: /tiny-robot/${{steps.parse_tag.outputs.dist_tag}}/
-          PLAYGROUND_BASE: /tiny-robot/${{steps.parse_tag.outputs.dist_tag}}/playground
-
-      - name: Verify build output
-        run: ls -la ./docs/dist
+  deploy-docs:
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download docs artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: docs-dist
+          path: ./docs/dist
 
       - name: Deploy docs
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/dist
-          destination_dir: ./${{steps.parse_tag.outputs.dist_tag}}/
+          destination_dir: ./${{ needs.build.outputs.dist_tag }}/
           keep_files: true
           force_orphan: false
           user_name: 'github-actions[bot]'
