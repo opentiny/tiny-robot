@@ -9,6 +9,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  id-token: write
+
 # 定义工作流中的作业
 jobs:
   build:
@@ -29,7 +33,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 22 # 使用Node.js 22版本
+          node-version: 24 # 使用Node.js 24版本
           package-manager-cache: false
           registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
@@ -89,10 +93,7 @@ jobs:
 
       # 步骤8: 发布组件到NPM
       - name: Publish components
-        run: pnpm lerna publish from-package --pre-dist-tag ${{steps.parse_tag.outputs.dist_tag}} --yes
-        env:
-          # 使用NPM令牌进行身份验证
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_OPENTINY_ROBOT_TOKEN }}
+        run: pnpm lerna publish from-package --pre-dist-tag ${{ steps.parse_tag.outputs.dist_tag }} --yes
 
       # 步骤9: 发布组件到GitHub Release
       - name: Release
