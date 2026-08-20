@@ -62,13 +62,19 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
 .extension-filter-controls__input {
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
   height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--tr-mcp-server-picker-field-border-color);
   border-radius: 8px;
   outline: none;
   background: var(--tr-container-bg-default);
   color: var(--tr-text-primary);
   font-size: 13px;
+
+  &:focus {
+    border-color: var(--tr-mcp-server-picker-tabs-border-color-active);
+  }
 }
 
 .extension-filter-controls__fields {
@@ -83,15 +89,13 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   min-width: 0;
 }
 
-.extension-filter-controls__select,
-.extension-filter-controls__input {
-  min-width: 0;
-  padding: 0 12px;
-}
-
 .extension-filter-controls__select {
   appearance: none;
   padding-right: 32px;
+
+  &:disabled + .extension-filter-controls__select-arrow {
+    opacity: 0.5;
+  }
 }
 
 .extension-filter-controls__select-arrow {
@@ -105,17 +109,13 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   pointer-events: none;
 }
 
-.extension-filter-controls__select:disabled + .extension-filter-controls__select-arrow {
-  opacity: 0.5;
-}
-
 .extension-filter-controls__input {
   appearance: none;
   padding-right: 40px;
-}
 
-.extension-filter-controls__input::-webkit-search-cancel-button {
-  appearance: none;
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
 }
 
 .extension-filter-controls__clear {
@@ -135,25 +135,20 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   background: transparent;
   color: var(--tr-text-secondary);
   cursor: pointer;
-}
 
-.extension-filter-controls__clear:hover {
-  color: var(--tr-text-primary);
-}
+  &:hover {
+    color: var(--tr-text-primary);
+  }
 
-.extension-filter-controls__clear:focus-visible {
-  outline: 2px solid var(--tr-mcp-server-picker-tabs-border-color-active);
-  outline-offset: -2px;
+  &:focus-visible {
+    outline: 2px solid var(--tr-mcp-server-picker-tabs-border-color-active);
+    outline-offset: -2px;
+  }
 }
 
 .extension-filter-controls__clear-icon {
   width: 14px;
   height: 14px;
-}
-
-.extension-filter-controls__select:focus,
-.extension-filter-controls__input:focus {
-  border-color: var(--tr-mcp-server-picker-tabs-border-color-active);
 }
 
 @container extension-filter-controls (max-width: 480px) {
