@@ -99,15 +99,15 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-}
 
-.tr-extension-card__icon-button:hover:not(:disabled) {
-  background: var(--tr-extension-card-bg-color-hover);
-}
+  &:hover:not(:disabled) {
+    background: var(--tr-extension-card-bg-color-hover);
+  }
 
-.tr-extension-card__icon-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 .tr-extension-card__action-icon {
@@ -138,23 +138,23 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
   text-align: left;
   white-space: nowrap;
   transition: background-color 0.3s ease;
-}
 
-.tr-extension-card__more-menu-item:hover:not(:disabled) {
-  background-color: var(--tr-dropdown-menu-item-hover-bg-color);
-}
-
-.tr-extension-card__more-menu-item.is-danger {
-  color: var(--tr-color-error);
-
-  &:hover {
-    background-color: var(--tr-color-error-light);
+  &:hover:not(:disabled) {
+    background-color: var(--tr-dropdown-menu-item-hover-bg-color);
   }
-}
 
-.tr-extension-card__more-menu-item:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+  &.is-danger {
+    color: var(--tr-color-error);
+
+    &:hover:not(:disabled) {
+      background-color: var(--tr-color-error-light);
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 .tr-extension-card__more-menu-item-icon {
