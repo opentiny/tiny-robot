@@ -35,6 +35,13 @@ export interface TemplateSelectAttrs {
 }
 
 /**
+ * TemplateSelect 配置选项
+ */
+export interface TemplateSelectOptions {
+  appendTo?: string | HTMLElement
+}
+
+/**
  * Template 节点属性
  */
 export interface TemplateAttrs {
@@ -80,6 +87,11 @@ export interface TemplateOptions {
    * ```
    */
   items?: TemplateItem[] | Ref<TemplateItem[]>
+
+  /**
+   * Template Select 下拉菜单的 Teleport 目标
+   */
+  appendTo?: string | HTMLElement
 
   /**
    * HTML 属性

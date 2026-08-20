@@ -21,9 +21,20 @@ interface Props {
   }
   updateAttributes: (attrs: Record<string, unknown>) => void
   editor: Editor
+  appendTo?: string | HTMLElement
 }
 
 const props = defineProps<Props>()
+
+const resolvedAppendTo = computed<string | HTMLElement>(() => {
+  if (!props.appendTo) return document.body
+  if (typeof props.appendTo === 'string') {
+    return document.querySelector<HTMLElement>(props.appendTo) ?? document.body
+  }
+  return props.appendTo
+})
+
+const isBodyTarget = computed(() => resolvedAppendTo.value === document.body)
 
 // 状态管理
 const showDropdown = ref(false)
@@ -136,7 +147,7 @@ const updatePosition = () => {
 
     computePosition(triggerRef.value, dropdownRef.value, {
       placement: 'bottom-start',
-      strategy: 'fixed', // 使用 fixed 定位策略，相对于视口
+      strategy: isBodyTarget.value ? 'fixed' : 'absolute', // 使用 fixed 定位策略，相对于视口
       middleware: [offset(4), flip(), shift({ padding: 8 })],
     }).then(({ x, y }) => {
       if (dropdownRef.value) {
@@ -252,8 +263,13 @@ onUnmounted(() => {
     </span>
     <span contenteditable="false" class="template-select__suffix">&#8203;</span>
 
-    <Teleport to="body">
-      <div v-if="showDropdown" ref="dropdownRef" class="template-select__dropdown">
+    <Teleport :to="resolvedAppendTo">
+      <div
+        v-if="showDropdown"
+        ref="dropdownRef"
+        class="template-select__dropdown"
+        :class="{ 'template-select__dropdown--in-surface': !isBodyTarget }"
+      >
         <div
           v-for="(option, index) in node.attrs.options"
           :key="option.value"
@@ -358,6 +374,11 @@ onUnmounted(() => {
       background-clip: padding-box;
     }
   }
+}
+
+.template-select__dropdown--in-surface {
+  position: absolute;
+  z-index: 1;
 }
 
 .template-select__option {
