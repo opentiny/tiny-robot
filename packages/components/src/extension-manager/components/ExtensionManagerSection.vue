@@ -90,10 +90,10 @@ const handleNameClick = (event: ExtensionCardGridNameClickEvent) => emit('name-c
   font-size: 16px;
   transform: rotate(-90deg);
   transition: transform 0.2s ease;
-}
 
-.extension-manager-section__arrow.is-expanded {
-  transform: rotate(0);
+  &.is-expanded {
+    transform: rotate(0);
+  }
 }
 
 .extension-manager-section__body {
