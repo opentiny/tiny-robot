@@ -82,6 +82,7 @@ const isWelcomeComposerCentered = computed(
 )
 const requestError = computed(() => resolvedData.value.request?.error)
 const layoutStyle = computed(() => ({
+  containerType: 'inline-size',
   '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-container-bg-default))',
   '--tr-layout-right-aside-bg': 'var(--tr-chat-ui-right-aside-bg, var(--tr-container-bg-default))',
   '--tr-layout-header-bg': 'var(--tr-chat-ui-header-bg, var(--tr-container-bg-default))',
@@ -420,10 +421,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 </template>
 
 <style scoped>
-.tr-chat-ui {
-  container-type: inline-size;
-}
-
 .chat-panel {
   position: relative;
   height: 100%;

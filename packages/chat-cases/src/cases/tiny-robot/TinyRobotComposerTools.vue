@@ -4,13 +4,7 @@ import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestion
 import type { ChatSenderSlotProps } from '@opentiny/tiny-robot-chat'
 import { IconEdit, IconSparkles } from '@opentiny/tiny-robot-svgs'
 import { computed, markRaw } from 'vue'
-import {
-  DROPDOWN_MENU_ITEMS,
-  PILL_ITEMS_CONFIG,
-  suggestionPopoverData,
-  templateSuggestions,
-  type UserItem,
-} from './assistantConfig'
+import { DROPDOWN_MENU_ITEMS, PILL_ITEMS_CONFIG, suggestionPopoverData, templateSuggestions } from './assistantConfig'
 
 const props = defineProps<{
   currentTemplate: TemplateItem[]
@@ -30,10 +24,10 @@ function handlePopoverItemClick(item: SuggestionItem) {
   clearTemplate()
 }
 
-function handleFillTemplate(template: UserItem[]) {
+function handleFillTemplate(template: TemplateItem[]) {
   emit(
     'update:currentTemplate',
-    template.map((item) => (item.type === 'template' ? { type: 'block', content: item.content } : item)),
+    template.map((item) => ({ ...item })),
   )
 }
 
@@ -61,11 +55,13 @@ const pillItems = computed(() =>
       ...base,
       menu: {
         items,
-        onItemClick: (item: unknown) => handleFillTemplate((item as { template: UserItem[] }).template),
+        onItemClick: (item: unknown) => handleFillTemplate((item as { template: TemplateItem[] }).template),
       },
     }
   }),
 )
+
+const overlayTarget = '.tiny-robot-window'
 </script>
 
 <template>
@@ -73,6 +69,7 @@ const pillItems = computed(() =>
     <div class="tiny-robot-assistant__pills">
       <TrSuggestionPopover
         class="tiny-robot-assistant__popover"
+        :append-to="overlayTarget"
         :data="suggestionPopoverData"
         @item-click="handlePopoverItemClick"
       >
@@ -88,6 +85,7 @@ const pillItems = computed(() =>
         <TrDropdownMenu
           v-for="(item, index) in pillItems"
           :key="index"
+          :append-to="overlayTarget"
           :items="item.menu.items"
           trigger="click"
           @item-click="item.menu.onItemClick"
@@ -122,11 +120,9 @@ const pillItems = computed(() =>
 
 .tiny-robot-assistant__popover {
   flex-shrink: 0;
-  --tr-suggestion-popover-width: 440px;
 }
 
 .tiny-robot-assistant__pills-list {
-  overflow: hidden;
   min-width: 0;
   flex: 1;
 }

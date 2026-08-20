@@ -13,7 +13,11 @@ const props = defineProps<{
 }>()
 
 const currentTemplate = ref<TemplateItem[]>([])
-const templateExtensions = [TrSender.template(currentTemplate as never)]
+const templateExtensions = [
+  TrSender.template(currentTemplate as never, {
+    appendTo: '.tiny-robot-window',
+  }),
+]
 const window = reactive(useTinyRobotWindow())
 const showHistory = ref(false)
 const historyData = useChatHistoryItems({
@@ -126,7 +130,7 @@ function handleClose() {
   container-type: inline-size;
 
   --tr-layout-bg-default: #f5f5f7;
-
+  --tr-suggestion-popover-width: min(440px, calc(100cqw - 16px));
   --tr-chat-ui-header-bg: var(--tr-layout-bg-default);
   --tr-chat-ui-main-bg: var(--tr-layout-bg-default);
   --tr-chat-ui-footer-bg: var(--tr-layout-bg-default);
