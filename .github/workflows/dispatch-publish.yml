@@ -33,8 +33,7 @@ jobs:
     # 指定运行环境为最新版本的ubuntu
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      id-token: write
+      contents: read
     steps:
       # 步骤1: 检出代码
       - name: CheckOut Code
@@ -78,12 +77,7 @@ jobs:
       - name: Run Build Components
         run: pnpm build
 
-      # 步骤8: 发布组件到NPM
-      - name: Publish components
-        if: ${{ inputs.publish_npm }}
-        run: pnpm lerna publish from-package --pre-dist-tag ${{ inputs.tag }} --yes
-
-      # 步骤9: 构建文档
+      # 步骤8: 构建文档
       - name: Build VitePress
         run: pnpm build:docs --nocomponents
         env:
@@ -92,6 +86,75 @@ jobs:
 
       - name: Verify build output
         run: ls -la ./docs/dist
+
+      - name: Upload package artifacts
+        if: ${{ inputs.publish_npm }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: dispatch-package-dist
+          path: |
+            packages/components/dist
+            packages/kit/dist
+            packages/svgs/dist
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload docs artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: dispatch-docs-dist
+          path: docs/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    if: ${{ inputs.publish_npm }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: CheckOut Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install publish dependencies
+        run: pnpm i --no-frozen-lockfile --ignore-scripts
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: dispatch-package-dist
+          path: ./packages
+
+      # 步骤9: 发布组件到NPM
+      - name: Publish components
+        run: pnpm lerna publish from-package --pre-dist-tag ${{ inputs.tag }} --yes
+
+  deploy-docs:
+    needs: [build, publish]
+    if: ${{ always() && needs.build.result == 'success' && (needs.publish.result == 'success' || needs.publish.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download docs artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: dispatch-docs-dist
+          path: ./docs/dist
 
       - name: Deploy docs
         uses: peaceiris/actions-gh-pages@v3
