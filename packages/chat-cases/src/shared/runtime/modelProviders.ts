@@ -4,6 +4,7 @@ export const modelProviders: ChatProviderConfig[] = [
   {
     type: 'qwen',
     label: 'DashScope',
+    apiUrl: import.meta.env.VITE_QWEN_API_URL?.trim() || undefined,
     apiKey: import.meta.env.VITE_ALIYUN_DASHSCOPE_KEY?.trim(),
     models: [
       {
@@ -25,6 +26,7 @@ export const modelProviders: ChatProviderConfig[] = [
   },
   {
     type: 'deepseek',
+    apiUrl: import.meta.env.VITE_DEEPSEEK_API_URL?.trim() || undefined,
     apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY?.trim(),
     models: [
       {

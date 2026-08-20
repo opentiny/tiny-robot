@@ -3,7 +3,6 @@ import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from
 import { TrSender } from '@opentiny/tiny-robot'
 import { IconArrowDown, IconCheck, IconPlus, IconVoice } from '@opentiny/tiny-robot-svgs'
 import type { ChatModelRuntime, ChatStructuredData } from '@opentiny/tiny-robot-chat'
-import { geminiModelOptions } from './config'
 
 interface GeminiComposerProps {
   readonly value: string
@@ -21,9 +20,8 @@ const props = defineProps<GeminiComposerProps>()
 const modelMenuOpen = shallowRef(false)
 const modelSelecting = shallowRef(false)
 const modelMenuRef = useTemplateRef<HTMLElement>('modelMenu')
-const selectedModel = computed(
-  () => geminiModelOptions.find((option) => option.id === props.model.selectedId.value) ?? geminiModelOptions[1],
-)
+const modelOptions = computed(() => props.model.options.value)
+const selectedModel = computed(() => modelOptions.value.find((option) => option.id === props.model.selectedId.value))
 const extendedThinking = computed(() => Boolean(props.model.features.value.thinking))
 
 function handleDocumentPointerDown(event: PointerEvent) {
@@ -97,12 +95,12 @@ onBeforeUnmount(() => {
           :disabled="modelSelecting"
           @click.stop="modelMenuOpen = !modelMenuOpen"
         >
-          <span>{{ selectedModel.label }}</span>
+          <span>{{ selectedModel?.label ?? '选择模型' }}</span>
           <IconArrowDown :size="16" />
         </button>
         <div v-if="modelMenuOpen" class="gemini-composer__dropdown" role="menu">
           <button
-            v-for="option in geminiModelOptions"
+            v-for="option in modelOptions"
             :key="option.id"
             class="gemini-composer__option"
             type="button"
@@ -115,7 +113,6 @@ onBeforeUnmount(() => {
             </span>
             <span class="gemini-composer__option-copy">
               <span>{{ option.label }}</span>
-              <small>{{ option.description }}</small>
             </span>
           </button>
           <div class="gemini-composer__divider" />
@@ -226,16 +223,9 @@ onBeforeUnmount(() => {
 
 .gemini-composer__option-copy {
   display: grid;
-  gap: 2px;
   min-width: 0;
   font-size: 13px;
   line-height: 18px;
-}
-
-.gemini-composer__option-copy small {
-  color: #777b82;
-  font-size: 12px;
-  line-height: 16px;
 }
 
 .gemini-composer__divider {

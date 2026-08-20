@@ -1,30 +1,7 @@
 import type { ChatMessage } from '@opentiny/tiny-robot-kit'
-import type { ChatProviderConfig, ChatWelcomeOptions } from '@opentiny/tiny-robot-chat'
-import { deepseekModelProviders } from '../deepseek/config'
+import type { ChatWelcomeOptions } from '@opentiny/tiny-robot-chat'
 
 export const geminiConversationStorageKey = 'tiny-robot-gemini-conversations-v1'
-export const geminiDefaultModelId = 'deepseek-v4-flash'
-
-export const geminiModelOptions = [
-  { id: 'deepseek-v4-flash-lite', label: '3.5 Flash-Lite', description: '极速回答' },
-  { id: 'deepseek-v4-flash', label: '3.6 Flash', description: '全方位帮助' },
-  { id: 'deepseek-v4-pro', label: '3.1 Pro', description: '高阶数学与代码' },
-] as const
-
-const deepseekProvider = deepseekModelProviders[0]
-
-export const geminiModelProviders: ChatProviderConfig[] = deepseekProvider
-  ? [
-      {
-        ...deepseekProvider,
-        models: geminiModelOptions.map(({ id, label }) => ({
-          id,
-          label,
-          capabilities: { thinking: true },
-        })),
-      },
-    ]
-  : []
 
 function createMockMessages(title: string): readonly ChatMessage[] {
   return [

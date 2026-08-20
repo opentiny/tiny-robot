@@ -6,13 +6,7 @@ import GeminiHeader from './GeminiHeader.vue'
 import GeminiRail from './GeminiRail.vue'
 import GeminiSidebar from './GeminiSidebar.vue'
 import geminiMask from './icons/gemini-mask.svg'
-import {
-  geminiConversationStorageKey,
-  geminiDefaultModelId,
-  geminiMockConversations,
-  geminiModelProviders,
-  geminiWelcome,
-} from './config'
+import { geminiConversationStorageKey, geminiMockConversations, geminiWelcome } from './config'
 import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
 
 const GeminiLogo = defineComponent({
@@ -30,10 +24,7 @@ const EmptyWelcomeIcon = defineComponent({
 const runtime = useChatCaseRuntime({
   storageKey: geminiConversationStorageKey,
   initialConversations: geminiMockConversations,
-  modelProviders: geminiModelProviders,
-  mcpServers: [],
 })
-runtime.composer.model?.select(geminiDefaultModelId)
 
 const chatUi = {
   brand: { name: 'Gemini', logo: GeminiLogo },
@@ -186,9 +177,16 @@ function handleConversationAction(action: { id: string }, id: string, deleteConv
   max-width: 660px;
 }
 
+.gemini-case__chat :deep(.chat-panel-content--main.is-message-state) {
+  padding-top: 8px;
+}
+
 .gemini-case__chat :deep(.chat-panel-content--main.is-message-state .tr-chat-messages__bubble-list) {
+  box-sizing: border-box;
+  width: 100%;
   max-width: 760px;
   margin: 0 auto;
+  padding: 24px 0 32px;
 }
 
 @media (max-width: 959px) {

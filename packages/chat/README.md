@@ -12,11 +12,11 @@
 
 Runtime 是聊天页面使用的状态和操作集合。Provider 是模型服务的连接配置。MCP 是供模型调用外部能力的工具服务。
 
-| 场景 | 推荐入口 | 说明 |
-| --- | --- | --- |
-| 新项目 | `useLocalChatRuntime + TrChat` | 默认方式，包负责组装会话、模型和 MCP 运行时 |
-| 已有 Kit 会话 | `useKitChatRuntime + TrChat` | 复用已有会话和发送逻辑 |
-| 自有状态管理 | `TrChatUI` | 仅提供界面，需要自行管理数据与事件 |
+| 场景          | 推荐入口                       | 说明                                        |
+| ------------- | ------------------------------ | ------------------------------------------- |
+| 新项目        | `useLocalChatRuntime + TrChat` | 默认方式，包负责组装会话、模型和 MCP 运行时 |
+| 已有 Kit 会话 | `useKitChatRuntime + TrChat`   | 复用已有会话和发送逻辑                      |
+| 自有状态管理  | `TrChatUI`                     | 仅提供界面，需要自行管理数据与事件          |
 
 ## 2. 安装和准备
 
@@ -39,8 +39,8 @@ pnpm add @opentiny/tiny-robot-chat vue
 使用前需要准备：
 
 - Vue 3；
-- 一个可访问的模型服务；
-- 模型服务的 API Key，或由后端代发请求。
+- 一个可访问的模型服务，或兼容协议的后端代理；
+- 可选的模型服务 API Key。
 
 浏览器端的 `VITE_` 环境变量会进入浏览器代码。不要在生产环境直接放置长期密钥。模型服务和 MCP 服务需要允许浏览器跨域访问，或者通过后端 / BFF 转发请求。BFF 是 Backend For Frontend，指专门给前端使用的后端接口。
 
@@ -50,11 +50,7 @@ pnpm add @opentiny/tiny-robot-chat vue
 
 ```vue
 <script setup lang="ts">
-import {
-  TrChat,
-  useLocalChatRuntime,
-  type ChatProviderConfig,
-} from '@opentiny/tiny-robot-chat'
+import { TrChat, useLocalChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 
 const modelProviders: ChatProviderConfig[] = [
   {
@@ -85,13 +81,13 @@ const runtime = useLocalChatRuntime({
 VITE_OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 ```
 
-然后执行项目 `package.json` 中已有的开发脚本启动项目（通常是 `pnpm dev`）。该示例仅适用于模型服务允许浏览器跨域请求的情况；生产环境建议将 `apiUrl` 指向自己的后端或 BFF，由后端代发模型请求。
+然后执行项目 `package.json` 中已有的开发脚本启动项目（通常是 `pnpm dev`）。未配置 `apiUrl` 时使用 Provider 的内置默认地址；生产环境可以将 `apiUrl` 指向自己的后端或 BFF，由后端代发模型请求。
 
 这个示例不需要在 `conversation.useMessageOptions` 中提供 `responseProvider`，因为 `modelProviders` 会提供响应请求所需的 Provider。`useLocalChatRuntime` 会将会话、模型和完整聊天页面连接起来。
 
 第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 同时会开启消息自动保存流程。
 
-发送过程中，页面的取消操作会调用 Runtime 的 `abort`。如果 API Key 缺失，Runtime 会在发送后的 Provider 请求阶段报错，而不是在创建 Runtime 时验证；错误会通过 `runtime-action-error` 报告，当前请求错误也会显示在页面中。
+发送过程中，页面的取消操作会调用 Runtime 的 `abort`。Runtime 不检查 API Key 是否存在：有 Key 时发送默认 Bearer 认证，没有 Key 时直接请求配置的 `apiUrl`。认证失败由上游模型服务或后端代理返回，并按普通请求错误处理。
 
 聊天页面需要放在有明确高度的容器中，例如让应用根节点或外层布局提供高度。
 
@@ -141,7 +137,7 @@ const modelProviders: ChatProviderConfig[] = [
 ]
 ```
 
-`apiKey` 会随前端代码和请求到达浏览器用户，只适合本地开发或可信环境。生产环境应使用后端代理或自定义 `responseProvider`，不要在浏览器中放置长期密钥。
+`apiKey` 是可选的。配置后会在请求中作为默认 Bearer 认证发送；不配置时可以使用无认证的自定义 `apiUrl`，例如由后端代理完成认证。Key 会随前端代码和请求到达浏览器用户，只适合本地开发或可信环境。生产环境不要在浏览器中放置长期密钥。
 
 同一组 Provider 中的模型 ID 以及多个 Provider 之间的模型 ID 都必须唯一。模型列表中的第一个模型会作为初始选择项。
 
@@ -149,11 +145,11 @@ const modelProviders: ChatProviderConfig[] = [
 
 `type` 只接受 `openai`、`deepseek` 和 `qwen`。默认地址和内置请求映射如下：
 
-| `type` | 默认服务地址 | 可用内置能力 |
-| --- | --- | --- |
-| `openai` | `https://api.openai.com/v1/chat/completions` | 默认没有额外的能力请求体映射；可通过模型配置提供自定义 `featureBody` |
-| `deepseek` | `https://api.deepseek.com/chat/completions` | `thinking` 会映射为 `thinking.type`；请求支持 `reasoning_effort` 的 `high`、`max` |
-| `qwen` | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` | `thinking` 映射为 `enable_thinking`，`search` 映射为 `enable_search` |
+| `type`     | 默认服务地址                                                         | 可用内置能力                                                                      |
+| ---------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `openai`   | `https://api.openai.com/v1/chat/completions`                         | 默认没有额外的能力请求体映射；可通过模型配置提供自定义 `featureBody`              |
+| `deepseek` | `https://api.deepseek.com/chat/completions`                          | `thinking` 会映射为 `thinking.type`；请求支持 `reasoning_effort` 的 `high`、`max` |
+| `qwen`     | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` | `thinking` 映射为 `enable_thinking`，`search` 映射为 `enable_search`              |
 
 这些是包内的默认请求映射，不代表服务端一定允许对应字段。服务端返回的 HTTP 错误会作为请求错误处理。
 
@@ -199,6 +195,14 @@ const modelProviders: ChatProviderConfig[] = [
 
 `apiUrl` 可以传服务根地址，也可以传完整的 `/chat/completions` 地址。运行时会去除末尾斜杠；当地址不是以 `/chat/completions` 结尾时，会追加该路径。
 
+三种常见接入方式如下：
+
+| 配置                      | 行为                                           |
+| ------------------------- | ---------------------------------------------- |
+| 只配置 `apiKey`           | 使用 Provider 内置默认地址，并发送 Bearer 认证 |
+| 配置 `apiUrl` 和 `apiKey` | 请求自定义服务，并默认发送 Bearer 认证         |
+| 只配置 `apiUrl`           | 请求后端代理，不由 Chat 包处理认证             |
+
 ```ts
 const modelProviders: ChatProviderConfig[] = [
   {
@@ -218,29 +222,29 @@ const modelProviders: ChatProviderConfig[] = [
 ]
 ```
 
-请求会使用 `POST` 和流式响应。`headers` 会与 `Content-Type` 合并；Provider 的 API Key 会作为 Bearer Authorization 请求头发送。
+请求会使用 `POST` 和流式响应。`headers` 会与 `Content-Type` 合并；Provider 的 API Key 会作为默认 Bearer Authorization 请求头发送。如果 `headers` 已提供 `Authorization`，则保留自定义值。
 
 ## 5. 配置 MCP 工具服务
 
 MCP 是让模型在回答时调用外部工具服务的配置方式。Chat 提供两种入口：
 
-| 入口 | 适合场景 | 说明 |
-| --- | --- | --- |
-| `mcpServers` | 远程 Streamable HTTP MCP Server | 推荐的默认方式，Chat 自动创建 MCP Adapter |
-| `mcp` | stdio、旧 SSE、OAuth、企业网关、连接复用、自定义权限 | 高级方式，宿主自己提供 Adapter |
+| 入口         | 适合场景                                             | 说明                                      |
+| ------------ | ---------------------------------------------------- | ----------------------------------------- |
+| `mcpServers` | 远程 Streamable HTTP MCP Server                      | 推荐的默认方式，Chat 自动创建 MCP Adapter |
+| `mcp`        | stdio、旧 SSE、OAuth、企业网关、连接复用、自定义权限 | 高级方式，宿主自己提供 Adapter            |
 
 默认 `mcpServers` 只面向 Streamable HTTP。生产环境中，带密钥、OAuth、内网访问、审计或权限过滤的 MCP Server，建议通过 BFF 代理后再交给 `mcpServers`。BFF 是 Backend For Frontend，指专门给前端使用的后端接口；在 MCP 场景里，它通常负责保存密钥，并把前端请求安全转发给真正的 MCP Server。
 
 ### 5.1 选择接入方式
 
-| MCP 服务形态 | 推荐接入 | 原因 |
-| --- | --- | --- |
-| 公共 Streamable HTTP MCP，浏览器可直接访问 | `mcpServers` 直连 | 最少配置，Chat 自动发现工具并调用 |
-| 需要 API Key、Bearer Token 或 OAuth | `mcpServers` 指向 BFF | 密钥和 token 留在后端 |
-| 公司内网、企业网关、权限系统、审计系统 | `mcpServers` 指向 BFF，或自定义 `mcp` | 由宿主控制认证和权限 |
-| 本地 stdio MCP | 自定义 `mcp` | 浏览器不能启动本地进程 |
-| 旧 SSE MCP | 自定义 `mcp` | 默认 Adapter 不内置旧协议 |
-| 模型平台托管 MCP | 放在模型 Provider 或后端请求链路中 | Chat 不管理平台内部 MCP 连接 |
+| MCP 服务形态                               | 推荐接入                              | 原因                              |
+| ------------------------------------------ | ------------------------------------- | --------------------------------- |
+| 公共 Streamable HTTP MCP，浏览器可直接访问 | `mcpServers` 直连                     | 最少配置，Chat 自动发现工具并调用 |
+| 需要 API Key、Bearer Token 或 OAuth        | `mcpServers` 指向 BFF                 | 密钥和 token 留在后端             |
+| 公司内网、企业网关、权限系统、审计系统     | `mcpServers` 指向 BFF，或自定义 `mcp` | 由宿主控制认证和权限              |
+| 本地 stdio MCP                             | 自定义 `mcp`                          | 浏览器不能启动本地进程            |
+| 旧 SSE MCP                                 | 自定义 `mcp`                          | 默认 Adapter 不内置旧协议         |
+| 模型平台托管 MCP                           | 放在模型 Provider 或后端请求链路中    | Chat 不管理平台内部 MCP 连接      |
 
 普通 Web 项目优先使用 `mcpServers`；只有默认 Adapter 覆盖不了协议、认证或生命周期时，再使用高级 `mcp`。
 
@@ -319,7 +323,7 @@ const mcpServers: ChatMcpServers = [
 ]
 ```
 
-这个服务需要 DashScope API Key。生产环境推荐通过 BFF 代理：
+这个服务可以使用 API Key 直连，也可以通过 BFF 代理：
 
 ```ts
 const mcpServers: ChatMcpServers = [
@@ -332,7 +336,7 @@ const mcpServers: ChatMcpServers = [
 ]
 ```
 
-本地调试时，也可以显式传入请求头：
+本地直连时，可以显式传入请求头：
 
 ```ts
 const dashScopeApiKey = import.meta.env.VITE_ALIYUN_DASHSCOPE_KEY?.trim()
@@ -343,30 +347,25 @@ const mcpServers: ChatMcpServers = [
     name: '高德地图',
     baseUrl: 'https://dashscope.aliyuncs.com/api/v1/mcps/amap-maps/mcp',
     headers: dashScopeApiKey ? { Authorization: `Bearer ${dashScopeApiKey}` } : undefined,
-    validate: (serverId) => {
-      if (!dashScopeApiKey) {
-        throw new Error(`Missing VITE_ALIYUN_DASHSCOPE_KEY for ${serverId}.`)
-      }
-    },
   },
 ]
 ```
 
-`VITE_` 环境变量会进入浏览器构建产物。上面的直传 Key 示例只适合本地调试，不适合作为生产接入方式。
+`headers` 和 `validate` 都是业务侧配置。Chat 默认 Adapter 不要求 API Key；未配置认证信息时，服务端或代理决定是否接受请求。`VITE_` 环境变量会进入浏览器构建产物，直传 Key 只适合本地调试，不适合作为生产接入方式。
 
 ### 5.5 配置字段
 
-| 字段 | 是否必填 | 说明 |
-| --- | --- | --- |
-| `id` | 是 | 唯一标识；重复 ID 会在创建默认 Adapter 时同步报错 |
-| `name` | 是 | 页面显示名称 |
-| `baseUrl` | 是 | MCP Streamable HTTP 地址 |
-| `installed` | 否 | 初始显示为已安装，但不自动启用 |
-| `description` | 否 | 页面说明 |
-| `icon` | 否 | 页面图标地址 |
-| `headers` | 否 | MCP 请求头；仅建议用于非敏感 header 或本地调试 |
-| `timeout` | 否 | 连接和请求超时，单位为毫秒 |
-| `validate` | 否 | 创建 MCP 连接前执行的校验函数，参数为 Server ID |
+| 字段          | 是否必填 | 说明                                              |
+| ------------- | -------- | ------------------------------------------------- |
+| `id`          | 是       | 唯一标识；重复 ID 会在创建默认 Adapter 时同步报错 |
+| `name`        | 是       | 页面显示名称                                      |
+| `baseUrl`     | 是       | MCP Streamable HTTP 地址                          |
+| `installed`   | 否       | 初始显示为已安装，但不自动启用                    |
+| `description` | 否       | 页面说明                                          |
+| `icon`        | 否       | 页面图标地址                                      |
+| `headers`     | 否       | MCP 请求头；仅建议用于非敏感 header 或本地调试    |
+| `timeout`     | 否       | 连接和请求超时，单位为毫秒                        |
+| `validate`    | 否       | 创建 MCP 连接前执行的校验函数，参数为 Server ID   |
 
 ### 5.6 初始安装状态
 
@@ -485,11 +484,7 @@ const mcpServers: ChatMcpServers = [
 
 ```ts
 import { shallowRef } from 'vue'
-import {
-  useLocalChatRuntime,
-  type ChatMcpRuntime,
-  type UseLocalChatRuntimeMcpAdapter,
-} from '@opentiny/tiny-robot-chat'
+import { useLocalChatRuntime, type ChatMcpRuntime, type UseLocalChatRuntimeMcpAdapter } from '@opentiny/tiny-robot-chat'
 
 const mcpRuntime: ChatMcpRuntime = {
   servers: shallowRef([
@@ -562,11 +557,11 @@ const runtime = useLocalChatRuntime({
 
 三个字段的职责如下：
 
-| 字段 | 职责 |
-| --- | --- |
-| `runtime` | 给页面展示 Server、Tool、启用状态、加载状态和错误 |
+| 字段        | 职责                                                          |
+| ----------- | ------------------------------------------------------------- |
+| `runtime`   | 给页面展示 Server、Tool、启用状态、加载状态和错误             |
 | `listTools` | 根据本轮消息的 Server/Tool 快照，返回要暴露给模型的 Tool 定义 |
-| `callTool` | 执行模型发起的 Tool 调用，并返回调用结果 |
+| `callTool`  | 执行模型发起的 Tool 调用，并返回调用结果                      |
 
 `listTools` 返回的 `name` 必须在所有模型工具中唯一。推荐格式是 `${serverId}__${toolId}`。`originalName` 用于保存 MCP Server 里的原始 Tool 名称，实际调用时会传给 `callTool`。
 
@@ -592,10 +587,7 @@ useLocalChatRuntime({
 <script setup lang="ts">
 import { TrChat, type ChatUIOptions } from '@opentiny/tiny-robot-chat'
 
-const prompts = [
-  { label: '总结这段内容' },
-  { label: '列出三个可执行步骤' },
-]
+const prompts = [{ label: '总结这段内容' }, { label: '列出三个可执行步骤' }]
 
 const ui: ChatUIOptions = {
   layout: {
@@ -647,22 +639,22 @@ const ui: ChatUIOptions = {
 
 ### 6.2 常用配置说明
 
-| 配置 | 说明 |
-| --- | --- |
-| `layout.contentMaxWidth` | 内容最大宽度，默认 `980` |
-| `layout.panelPadding` | 面板内边距，默认 `12` |
-| `layout.panelGap` | 面板间距，默认 `12` |
-| `layout.leftAside` | 左侧会话栏；可设置 `mode`、`width`、`collapsedWidth`、`open`、`defaultOpen` |
-| `layout.rightAside` | 右侧详情栏的唯一启用开关；未配置或设置为 `false` 时不创建右栏，设置为 `{}` 或具体配置时创建右栏，可配置侧栏模式、宽度、打开状态和关闭按钮 |
-| `header` | 顶部栏配置为 `false` 时隐藏顶部栏 |
-| `history` | 配置会话列表及菜单项，或设置为 `false` 隐藏会话列表 |
-| `welcome` | 空会话欢迎区域，或设置为 `false` 隐藏 |
-| `prompts` | 空会话提示项，或设置为 `false` 隐藏 |
-| `bubble` | 消息气泡、自动滚动和角色配置 |
-| `sender` | 输入框配置，或设置为 `false` 隐藏输入区 |
-| `model` | 模型区域开关；当前支持默认配置对象或 `false` |
-| `mcp` | MCP 区域开关；当前支持默认配置对象或 `false` |
-| `labels` | 覆盖界面文案的部分字段 |
+| 配置                     | 说明                                                                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `layout.contentMaxWidth` | 内容最大宽度，默认 `980`                                                                                                                  |
+| `layout.panelPadding`    | 面板内边距，默认 `12`                                                                                                                     |
+| `layout.panelGap`        | 面板间距，默认 `12`                                                                                                                       |
+| `layout.leftAside`       | 左侧会话栏；可设置 `mode`、`width`、`collapsedWidth`、`open`、`defaultOpen`                                                               |
+| `layout.rightAside`      | 右侧详情栏的唯一启用开关；未配置或设置为 `false` 时不创建右栏，设置为 `{}` 或具体配置时创建右栏，可配置侧栏模式、宽度、打开状态和关闭按钮 |
+| `header`                 | 顶部栏配置为 `false` 时隐藏顶部栏                                                                                                         |
+| `history`                | 配置会话列表及菜单项，或设置为 `false` 隐藏会话列表                                                                                       |
+| `welcome`                | 空会话欢迎区域，或设置为 `false` 隐藏                                                                                                     |
+| `prompts`                | 空会话提示项，或设置为 `false` 隐藏                                                                                                       |
+| `bubble`                 | 消息气泡、自动滚动和角色配置                                                                                                              |
+| `sender`                 | 输入框配置，或设置为 `false` 隐藏输入区                                                                                                   |
+| `model`                  | 模型区域开关；当前支持默认配置对象或 `false`                                                                                              |
+| `mcp`                    | MCP 区域开关；当前支持默认配置对象或 `false`                                                                                              |
+| `labels`                 | 覆盖界面文案的部分字段                                                                                                                    |
 
 默认值还包括：左侧栏宽度 `300`、折叠宽度 `56`、默认关闭；右侧栏默认关闭；输入区默认支持多行输入、清空、最大长度 `1000` 并显示字数限制；消息自动滚动默认开启。
 
@@ -706,20 +698,20 @@ const ui: ChatUIOptions = {
 </TrChat>
 ```
 
-| 插槽 | 用途 |
-| --- | --- |
-| `header-notice` | 顶部标题下方的提示区域 |
-| `request-error` | 替换请求错误显示内容，提供 `error` |
-| `layout-right-aside` | 右侧详情栏正文 |
-| `layout-right-aside-title` | 右侧详情栏标题 |
-| `sender-footer` | 输入区底部附加内容 |
-| `sender-footer-right` | 输入区底部右侧附加内容 |
-| `welcome-footer` | 欢迎区域底部附加内容 |
-| `prompts-footer` | 提示项区域底部附加内容 |
-| `bubble-prefix` | 消息列表前置内容 |
-| `bubble-suffix` | 消息列表后置内容 |
-| `bubble-after` | 消息列表之后的内容 |
-| `bubble-content-footer` | 消息内容底部附加内容 |
+| 插槽                       | 用途                               |
+| -------------------------- | ---------------------------------- |
+| `header-notice`            | 顶部标题下方的提示区域             |
+| `request-error`            | 替换请求错误显示内容，提供 `error` |
+| `layout-right-aside`       | 右侧详情栏正文                     |
+| `layout-right-aside-title` | 右侧详情栏标题                     |
+| `sender-footer`            | 输入区底部附加内容                 |
+| `sender-footer-right`      | 输入区底部右侧附加内容             |
+| `welcome-footer`           | 欢迎区域底部附加内容               |
+| `prompts-footer`           | 提示项区域底部附加内容             |
+| `bubble-prefix`            | 消息列表前置内容                   |
+| `bubble-suffix`            | 消息列表后置内容                   |
+| `bubble-after`             | 消息列表之后的内容                 |
+| `bubble-content-footer`    | 消息内容底部附加内容               |
 
 一个可运行的 `header-notice` 示例：
 
@@ -735,12 +727,12 @@ const ui: ChatUIOptions = {
 
 需要完整替换布局时，可以使用以下插槽：
 
-| 插槽 | 可替换区域 |
-| --- | --- |
-| `layout-header` | 顶部栏 |
+| 插槽                | 可替换区域 |
+| ------------------- | ---------- |
+| `layout-header`     | 顶部栏     |
 | `layout-left-aside` | 左侧会话栏 |
-| `layout-main` | 消息主区域 |
-| `layout-footer` | 输入区域 |
+| `layout-main`       | 消息主区域 |
+| `layout-footer`     | 输入区域   |
 
 完整插槽参数可以通过公开类型 `ChatUISlots` 查看。布局插槽会提供会话数据和对应操作函数；`layout-footer` 会提供输入值、输入状态、提交、取消和清空函数。
 
@@ -751,10 +743,7 @@ const ui: ChatUIOptions = {
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import {
-  TrChat,
-  type ChatRuntimeActionErrorPayload,
-} from '@opentiny/tiny-robot-chat'
+import { TrChat, type ChatRuntimeActionErrorPayload } from '@opentiny/tiny-robot-chat'
 
 const lastActionError = ref<ChatRuntimeActionErrorPayload | null>(null)
 
@@ -764,9 +753,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 </script>
 
 <template>
-  <div v-if="lastActionError" role="alert">
-    {{ lastActionError.action }}: {{ String(lastActionError.error) }}
-  </div>
+  <div v-if="lastActionError" role="alert">{{ lastActionError.action }}: {{ String(lastActionError.error) }}</div>
   <TrChat :runtime="runtime" @runtime-action-error="handleRuntimeActionError" />
 </template>
 ```
@@ -785,9 +772,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 ```vue
 <template>
   <TrChat :runtime="runtime">
-    <template #request-error="{ error }">
-      <strong>请求失败：</strong> {{ String(error) }}
-    </template>
+    <template #request-error="{ error }"> <strong>请求失败：</strong> {{ String(error) }} </template>
   </TrChat>
 </template>
 ```
@@ -842,11 +827,7 @@ const runtime = useKitChatRuntime({
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import {
-  TrChatUI,
-  type ChatSendPayload,
-  type ChatUIData,
-} from '@opentiny/tiny-robot-chat'
+import { TrChatUI, type ChatSendPayload, type ChatUIData } from '@opentiny/tiny-robot-chat'
 
 const inputValue = ref('')
 const data = ref<ChatUIData>({
@@ -875,12 +856,7 @@ function handleSubmit(payload: ChatSendPayload) {
 </script>
 
 <template>
-  <TrChatUI
-    :data="data"
-    :input-value="inputValue"
-    @update:input-value="inputValue = $event"
-    @submit="handleSubmit"
-  />
+  <TrChatUI :data="data" :input-value="inputValue" @update:input-value="inputValue = $event" @submit="handleSubmit" />
 </template>
 ```
 
@@ -894,7 +870,8 @@ function handleSubmit(payload: ChatSendPayload) {
 
 - 是否配置了 `modelProviders`，或提供了 `conversation.useMessageOptions.responseProvider`；
 - `modelProviders` 与 `responseProvider` 是否被同时配置；
-- 当前 Provider 是否有 API Key；
+- `apiUrl` 是否指向可访问的模型服务或后端代理；
+- 如果直连服务，Provider 是否配置了有效的 API Key；
 - MCP Server 是否仍在读取工具；
 - 是否通过 Runtime 的 `disabled` 或 `submitDisabled` 禁用了输入。
 
@@ -905,7 +882,7 @@ function handleSubmit(payload: ChatSendPayload) {
 - `baseUrl` 是否正确；
 - 浏览器是否允许跨域请求；
 - 相对地址是否被用于非浏览器环境；
-- `headers` 或 `validate` 是否导致认证校验失败；
+- `headers`、`validate` 或后端代理认证是否配置正确；
 - 远程服务是否支持 Streamable HTTP。
 
 ### 更换模型或工具后，当前请求没有变化
@@ -918,23 +895,23 @@ function handleSubmit(payload: ChatSendPayload) {
 
 ### 应该使用 `TrChat`、`useKitChatRuntime` 还是 `TrChatUI`
 
-| 情况 | 选择 |
-| --- | --- |
-| 从零开始创建聊天页面 | `useLocalChatRuntime + TrChat` |
-| 已经有 Kit 的 `useConversation` | `useKitChatRuntime + TrChat` |
-| 已有自己的数据层、请求层和状态管理 | `TrChatUI` |
+| 情况                               | 选择                           |
+| ---------------------------------- | ------------------------------ |
+| 从零开始创建聊天页面               | `useLocalChatRuntime + TrChat` |
+| 已经有 Kit 的 `useConversation`    | `useKitChatRuntime + TrChat`   |
+| 已有自己的数据层、请求层和状态管理 | `TrChatUI`                     |
 
 ## 12. API 速查
 
-| 导出 | 用途 |
-| --- | --- |
-| `TrChat` | 完整聊天页面，连接 `ChatRuntime` 和 `TrChatUI` |
-| `TrChatUI` | 纯界面层，接收 `ChatUIData` 和 UI 事件 |
+| 导出                  | 用途                                              |
+| --------------------- | ------------------------------------------------- |
+| `TrChat`              | 完整聊天页面，连接 `ChatRuntime` 和 `TrChatUI`    |
+| `TrChatUI`            | 纯界面层，接收 `ChatUIData` 和 UI 事件            |
 | `useLocalChatRuntime` | 新项目默认 Runtime，组装会话、Provider 和可选 MCP |
-| `useKitChatRuntime` | 适配已有 Kit 会话 |
-| `ChatUIOptions` | `TrChat` 和 `TrChatUI` 的界面配置类型 |
-| `ChatProviderConfig` | 模型服务配置类型 |
-| `ChatMcpServers` | 声明式 MCP 服务配置类型 |
-| `ChatRuntime` | 自有状态管理接入时实现的 Runtime 协议 |
+| `useKitChatRuntime`   | 适配已有 Kit 会话                                 |
+| `ChatUIOptions`       | `TrChat` 和 `TrChatUI` 的界面配置类型             |
+| `ChatProviderConfig`  | 模型服务配置类型                                  |
+| `ChatMcpServers`      | 声明式 MCP 服务配置类型                           |
+| `ChatRuntime`         | 自有状态管理接入时实现的 Runtime 协议             |
 
 其他常用公开类型包括 `ChatMcpServerConfig`、`ChatRuntimeActionErrorPayload`、`ChatSendPayload`、`ChatUISlots` 和 `ChatUIData`。

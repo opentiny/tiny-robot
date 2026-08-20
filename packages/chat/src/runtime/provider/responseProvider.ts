@@ -19,10 +19,6 @@ export function createProviderResponseProvider(
       throw new Error(`Unknown model for this turn: ${modelId}`)
     }
 
-    if (!currentModel.apiKey) {
-      throw new Error(`Missing API key for provider "${currentModel.providerLabel}".`)
-    }
-
     const providerRequestBody = { ...requestBody }
     delete providerRequestBody[CHAT_PROVIDER_MODEL_ID_REQUEST_KEY]
 
@@ -32,15 +28,20 @@ export function createProviderResponseProvider(
       ? setTimeout(() => timeoutController.abort(new Error(`Provider request timed out after ${timeout}ms.`)), timeout)
       : undefined
     const requestSignal = timeoutController ? AbortSignal.any([abortSignal, timeoutController.signal]) : abortSignal
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...currentModel.headers,
+    }
+    const hasAuthorization = Object.keys(headers).some((key) => key.toLowerCase() === 'authorization')
+
+    if (currentModel.apiKey && !hasAuthorization) {
+      headers.Authorization = `Bearer ${currentModel.apiKey}`
+    }
 
     try {
       const response = await fetch(currentModel.apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...currentModel.headers,
-          Authorization: `Bearer ${currentModel.apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           ...providerRequestBody,
           model: currentModel.id,

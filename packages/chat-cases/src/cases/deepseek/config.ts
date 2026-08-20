@@ -1,27 +1,7 @@
 import type { ChatMessage } from '@opentiny/tiny-robot-kit'
-import type { ChatProviderConfig, ChatWelcomeOptions } from '@opentiny/tiny-robot-chat'
+import type { ChatWelcomeOptions } from '@opentiny/tiny-robot-chat'
 
 export const deepseekConversationStorageKey = 'tiny-robot-deepseek-conversations-v2'
-
-export const deepseekModelProviders: ChatProviderConfig[] = [
-  {
-    type: 'deepseek',
-    label: 'DeepSeek',
-    apiKey: import.meta.env.VITE_DEEPSEEK_API_KEY?.trim(),
-    models: [
-      {
-        id: 'deepseek-v4-flash',
-        label: 'DeepSeek V4 Flash',
-        capabilities: { thinking: true, search: true },
-      },
-      {
-        id: 'deepseek-v4-pro',
-        label: 'DeepSeek V4 Pro',
-        capabilities: { thinking: true, search: true },
-      },
-    ],
-  },
-]
 
 function createMockMessages(title: string): readonly ChatMessage[] {
   return [

@@ -32,7 +32,13 @@ function handleModelSelect(item: DropdownMenuItem) {
 </script>
 
 <template>
-  <TrDropdownMenu v-if="modelOptions.length" :items="menuItems" trigger="click" @item-click="handleModelSelect">
+  <TrDropdownMenu
+    class="tr-chat-model-selector__menu"
+    v-if="modelOptions.length"
+    :items="menuItems"
+    trigger="click"
+    @item-click="handleModelSelect"
+  >
     <template #trigger>
       <button
         class="tr-chat-model-selector__button"
@@ -47,6 +53,12 @@ function handleModelSelect(item: DropdownMenuItem) {
     </template>
   </TrDropdownMenu>
 </template>
+
+<style>
+.tr-chat-model-selector__menu {
+  z-index: calc(var(--tr-z-index-drawer, 1000) + 2);
+}
+</style>
 
 <style scoped>
 .tr-chat-model-selector__button {

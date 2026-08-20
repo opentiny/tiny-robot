@@ -5,12 +5,7 @@ import { IconImageUpload, IconSparkles, IconThink } from '@opentiny/tiny-robot-s
 import DeepseekHeader from './DeepseekHeader.vue'
 import DeepseekSidebar from './DeepseekSidebar.vue'
 import deepseekMark from './icons/deepseek-mark.svg'
-import {
-  deepseekConversationStorageKey,
-  deepseekMockConversations,
-  deepseekModelProviders,
-  deepseekWelcome,
-} from './config'
+import { deepseekConversationStorageKey, deepseekMockConversations, deepseekWelcome } from './config'
 import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
 
 const DeepseekLogo = defineComponent({
@@ -23,8 +18,6 @@ const DeepseekLogo = defineComponent({
 const runtime = useChatCaseRuntime({
   storageKey: deepseekConversationStorageKey,
   initialConversations: deepseekMockConversations,
-  modelProviders: deepseekModelProviders,
-  mcpServers: [],
 })
 
 const deepseekWelcomeModes = [

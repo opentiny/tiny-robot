@@ -27,6 +27,16 @@ describe('provider helpers', () => {
     expect(models[0].featureBody?.thinking?.enabled).toEqual({ custom: true })
   })
 
+  it('uses provider defaults and normalizes custom provider URLs', () => {
+    const models = resolveProviderModels([
+      { type: 'deepseek', models: [{ id: 'default-model', label: 'Default' }] },
+      { type: 'qwen', apiUrl: 'https://proxy.example/v1', models: [{ id: 'custom-model', label: 'Custom' }] },
+    ])
+
+    expect(models[0].apiUrl).toBe('https://api.deepseek.com/chat/completions')
+    expect(models[1].apiUrl).toBe('https://proxy.example/v1/chat/completions')
+  })
+
   it('rejects duplicate model ids', () => {
     expect(() =>
       resolveProviderModels([
@@ -96,23 +106,59 @@ describe('provider helpers', () => {
 
     await responseProvider({ __chat_provider_model_id: 'model-a', messages: [] }, signal)
     expect(fetchMock).toHaveBeenCalledWith('https://example.com', expect.objectContaining({ signal, method: 'POST' }))
+    expect(fetchMock.mock.calls[0][1].headers).toEqual({
+      'Content-Type': 'application/json',
+      'X-Test': 'yes',
+      Authorization: 'Bearer key',
+    })
     expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toMatchObject({ model: 'model-a', stream: true })
   })
 
-  it('rejects missing model, key and failed HTTP responses', async () => {
-    const responseProvider = createProviderResponseProvider(() => undefined)
-    await expect(responseProvider({ messages: [] }, new AbortController().signal)).rejects.toThrow('No model selected')
-
-    const missingKey = createProviderResponseProvider(() => ({
-      id: 'a',
+  it('calls fetch without an API key and preserves custom headers', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response('', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const responseProvider = createProviderResponseProvider(() => ({
+      id: 'model-a',
       label: 'A',
       providerType: 'openai',
       providerLabel: 'OpenAI',
-      apiUrl: 'url',
+      apiUrl: 'https://example.com',
+      headers: { 'X-Test': 'yes' },
     }))
-    await expect(
-      missingKey({ __chat_provider_model_id: 'a', messages: [] }, new AbortController().signal),
-    ).rejects.toThrow('Missing API key')
+
+    await responseProvider({ __chat_provider_model_id: 'model-a', messages: [] }, new AbortController().signal)
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    const requestInit = fetchMock.mock.calls[0]?.[1]
+    expect(requestInit?.headers).toEqual({
+      'Content-Type': 'application/json',
+      'X-Test': 'yes',
+    })
+    expect(requestInit?.headers).not.toHaveProperty('Authorization')
+  })
+
+  it('preserves a custom Authorization header over the generated Bearer token', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response('', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const responseProvider = createProviderResponseProvider(() => ({
+      id: 'model-a',
+      label: 'A',
+      providerType: 'openai',
+      providerLabel: 'OpenAI',
+      apiUrl: 'https://example.com',
+      apiKey: 'key',
+      headers: { Authorization: 'Custom value' },
+    }))
+
+    await responseProvider({ __chat_provider_model_id: 'model-a', messages: [] }, new AbortController().signal)
+
+    const requestInit = fetchMock.mock.calls[0]?.[1]
+    expect(requestInit?.headers).toMatchObject({ Authorization: 'Custom value' })
+  })
+
+  it('rejects missing model and failed HTTP responses', async () => {
+    const responseProvider = createProviderResponseProvider(() => undefined)
+    await expect(responseProvider({ messages: [] }, new AbortController().signal)).rejects.toThrow('No model selected')
 
     vi.stubGlobal(
       'fetch',

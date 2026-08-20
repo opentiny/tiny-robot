@@ -11,7 +11,6 @@ import {
 } from '@opentiny/tiny-robot-svgs'
 import { computed, h, markRaw, shallowRef } from 'vue'
 import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
-import { workHelperModelProviders } from './config'
 
 const cards = [
   { id: 'trouble', title: '故障处理', prompt: '弹性公网IP不通怎么办?', tone: 'warning', icon: markRaw(IconWarning) },
@@ -34,8 +33,6 @@ const isFullscreen = shallowRef(false)
 
 const runtime = useChatCaseRuntime({
   storageKey: 'tiny-robot-work-helper-conversations',
-  modelProviders: workHelperModelProviders,
-  mcpServers: [],
 })
 
 const visibleCards = computed(() => {
