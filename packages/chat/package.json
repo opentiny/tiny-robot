@@ -1,6 +1,6 @@
 {
   "name": "@opentiny/tiny-robot-chat",
-  "version": "0.4.1",
+  "version": "0.5.2-alpha.4",
   "license": "MIT",
   "description": "TinyRobot Chat application assembly package",
   "homepage": "https://docs.opentiny.design/tiny-robot/",
