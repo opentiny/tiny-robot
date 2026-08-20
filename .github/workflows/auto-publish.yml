@@ -164,12 +164,11 @@ jobs:
     steps:
       # 步骤10: 发布组件到GitHub Release
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
 
   deploy-docs:
     needs: [build, publish]
@@ -184,7 +183,7 @@ jobs:
           path: ./docs/dist
 
       - name: Deploy docs
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/dist
