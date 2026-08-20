@@ -23,11 +23,16 @@ const { disabled: contextDisabled } = useSenderContext()
 const isDisabled = computed(() => props.disabled || contextDisabled.value)
 
 // 使用 vueuse 的 useFileDialog
-const { open, files } = useFileDialog({
-  accept,
-  multiple,
-  reset,
-})
+const { open: openFileDialog, files } = useFileDialog()
+
+const open = (options?: Parameters<typeof openFileDialog>[0]) => {
+  openFileDialog({
+    accept: accept.value,
+    multiple: multiple.value,
+    reset: reset.value,
+    ...options,
+  })
+}
 
 // 处理文件选择
 watch(files, (selectedFiles) => {
