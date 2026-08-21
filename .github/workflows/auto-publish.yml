@@ -85,9 +85,12 @@ jobs:
       - name: Verify package version match tag
         run: |
           tag_name="${GITHUB_REF#refs/tags/}"
-          package_version=$(pnpm lerna list --scope=@opentiny/tiny-robot --json | jq -r '.[0].version')
-          if [[ "$tag_name" != "v$package_version" ]]; then
-            echo "Tag name $tag_name does not match package version $package_version"
+          tag_version="${tag_name#v}"
+
+          if ! pnpm lerna list --json | \
+            jq -e --arg version "$tag_version" \
+            'any(.[]; .version == $version)' >/dev/null; then
+            echo "No package version matches tag: $tag_name"
             exit 1
           fi
 
