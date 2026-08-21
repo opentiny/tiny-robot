@@ -3,9 +3,8 @@ import type { SuggestionData, SuggestionItem, TemplateItem } from '@opentiny/tin
 import { TrDropdownMenu, TrSuggestionPillButton, TrSuggestionPills, TrSuggestionPopover } from '@opentiny/tiny-robot'
 import type { ChatSenderSlotProps } from '@opentiny/tiny-robot-chat'
 import { IconSparkles } from '@opentiny/tiny-robot-svgs'
-import type { ChatMenuItem } from '../config/menus'
-import type { McpExample } from '../data/mcp'
-import type { TemplateCategory, TemplateSuggestionItem } from '../config/templates'
+import type { ChatMenuItem, TemplateCategory, TemplateSuggestionItem } from '../config/chat-ui'
+import type { McpExample } from '../config/chat-runtime'
 import { computed } from 'vue'
 
 const props = defineProps<{

@@ -2,15 +2,13 @@
 import type { HistoryMenuItem, PromptProps, TemplateItem } from '@opentiny/tiny-robot'
 import { TrSender, TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
 import { TrChat, useChatHistoryItems, useLocalChatRuntime, type ChatHistoryItem } from '@opentiny/tiny-robot-chat'
+import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { computed, reactive, ref } from 'vue'
 import ComposerTools from './components/ComposerTools.vue'
 import WindowHeader from './components/WindowHeader.vue'
-import { createChatUi } from './config/chatUi'
-import { composerMenus } from './config/menus'
-import { templateCategories } from './config/templates'
-import { mcpExamples, mcpServers } from './data/mcp'
-import { useWindow } from './useWindow'
-import { modelProviders } from './data/modelProviders'
+import { composerMenus, createChatUi, templateCategories } from './config/chat-ui'
+import { mcpExamples, mcpServers, modelProviders } from './config/chat-runtime'
+import { useWindow } from './composables/useWindow'
 
 const runtime = useLocalChatRuntime({ modelProviders, mcpServers })
 const window = reactive(useWindow())
@@ -19,9 +17,7 @@ const showHistory = ref(false)
 const historyData = useChatHistoryItems({ conversations: () => runtime.conversations.value, defaultTitle: '' })
 const activeConversationId = computed(() => runtime.activeConversation.value?.id)
 const templateExtensions = [TrSender.template(currentTemplate as never, { appendTo: '.chat-add-window' })]
-const chatUi = computed(() =>
-  createChatUi({ displayMode: window.displayMode, floatingOptions: window.floatingOptions, templateExtensions }),
-)
+const chatUi = computed(() => createChatUi({ floatingOptions: window.floatingOptions, templateExtensions }))
 
 function handlePromptClick({ item }: { item: PromptProps }): void {
   if (item.description) void runtime.actions.send({ text: item.description })
@@ -49,6 +45,16 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem): vo
 <template>
   <TrTheme>
     <main class="chat-add-app">
+      <button
+        v-if="!window.show"
+        class="chat-add-launcher"
+        type="button"
+        title="打开 TinyRobot"
+        aria-label="打开 TinyRobot"
+        @click="window.open"
+      >
+        <IconAi style="font-size: 32px" />
+      </button>
       <TrChat
         v-if="window.show"
         :class="['chat-add-window', `chat-add-window--${window.displayMode}`]"

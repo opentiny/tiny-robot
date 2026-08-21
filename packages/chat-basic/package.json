@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@opentiny/tiny-robot-chat": "workspace:*",
-    "@opentiny/tiny-robot": "workspace:*",
+    "@opentiny/tiny-robot-chat": "0.5.2-alpha.8",
+    "@opentiny/tiny-robot": "0.5.2-alpha.8",
     "vue": "^3.5.40"
   },
   "devDependencies": {
