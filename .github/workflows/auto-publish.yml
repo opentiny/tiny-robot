@@ -106,6 +106,7 @@ jobs:
         with:
           name: package-dist
           path: |
+            packages/chat/dist
             packages/components/dist
             packages/kit/dist
             packages/svgs/dist
