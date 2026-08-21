@@ -27,6 +27,7 @@ export type {
   ChatModelView,
   ChatModelOptionView,
   ChatSenderView,
+  ChatRightAsideSlotProps,
   ChatSenderSlotProps,
   ChatSurfaceOptions,
   ChatUIData,

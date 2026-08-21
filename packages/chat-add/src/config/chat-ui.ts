@@ -266,7 +266,11 @@ export function createChatUi(options: ChatUiConfigOptions): ChatUIOptions {
     layout: {
       heightMode: 'parent',
       leftAside: false,
-      rightAside: false,
+      rightAside: {
+        mode: 'drawer',
+        width: 400,
+        defaultOpen: false,
+      },
       surface: { mode: 'floating', floatingOptions: options.floatingOptions },
       emptyState: 'center',
       composer: { welcome: 'footer' },

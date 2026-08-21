@@ -88,4 +88,5 @@ export interface ChatUIEmits {
   'mcp-tool-enabled-change': [payload: ChatMcpToolEnabledChangePayload]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
+  'update:right-aside-panel': [value: string | undefined]
 }

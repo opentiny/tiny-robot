@@ -12,6 +12,7 @@ import { useWindow } from './composables/useWindow'
 
 const runtime = useLocalChatRuntime({ modelProviders, mcpServers })
 const window = reactive(useWindow())
+const chatRef = ref<{ send: (payload: { text: string }) => Promise<boolean> } | null>(null)
 const currentTemplate = ref<TemplateItem[]>([])
 const showHistory = ref(false)
 const historyData = useChatHistoryItems({ conversations: () => runtime.conversations.value, defaultTitle: '' })
@@ -20,7 +21,7 @@ const templateExtensions = [TrSender.template(currentTemplate as never, { append
 const chatUi = computed(() => createChatUi({ floatingOptions: window.floatingOptions, templateExtensions }))
 
 function handlePromptClick({ item }: { item: PromptProps }): void {
-  if (item.description) void runtime.actions.send({ text: item.description })
+  if (item.description) void chatRef.value?.send({ text: item.description })
 }
 
 function handleNewSession(): void {
@@ -57,6 +58,7 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem): vo
       </button>
       <TrChat
         v-if="window.show"
+        ref="chatRef"
         :class="['chat-add-window', `chat-add-window--${window.displayMode}`]"
         :style="window.layoutStyle"
         :runtime="runtime"

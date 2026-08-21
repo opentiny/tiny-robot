@@ -61,7 +61,11 @@ export function createTinyRobotChatUi(options: TinyRobotChatUiOptions): ChatUIOp
         welcome: 'footer',
       },
       leftAside: false,
-      rightAside: false,
+      rightAside: {
+        mode: 'drawer',
+        width: 400,
+        defaultOpen: false,
+      },
       contentMaxWidth: 1280,
       panelPadding: 0,
       panelGap: 0,

@@ -19,6 +19,7 @@ const props = defineProps<{
   ui?: ChatUIOptions
   title?: string
   floatingState?: LayoutFloatingState
+  rightAsidePanel?: string
 }>()
 
 const emit = defineEmits<{
@@ -36,12 +37,17 @@ const emit = defineEmits<{
   'bubble-event': [payload: ChatBubbleEventPayload]
   'left-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
   'right-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
+  'update:right-aside-panel': [value: string | undefined]
 }>()
 
 const adapter = useChatRuntimeAdapter({
   runtime: () => props.runtime,
   title: () => props.title,
   onActionError: (payload) => emit('runtime-action-error', payload),
+})
+
+defineExpose({
+  send: adapter.send,
 })
 
 function handleHistoryAction(payload: ChatHistoryActionPayload) {
@@ -59,6 +65,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     :data="adapter.data.value"
     :ui="props.ui"
     :floating-state="props.floatingState"
+    :right-aside-panel="props.rightAsidePanel"
     :input-value="adapter.inputValue.value"
     @create-conversation="adapter.createConversation"
     @switch-conversation="({ id }) => adapter.switchConversation(id)"
@@ -70,6 +77,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @bubble-event="(payload) => emit('bubble-event', payload)"
     @left-aside-open-change="(payload) => emit('left-aside-open-change', payload)"
     @right-aside-open-change="(payload) => emit('right-aside-open-change', payload)"
+    @update:right-aside-panel="(value) => emit('update:right-aside-panel', value)"
     @update:floating-state="(value) => emit('update:floating-state', value)"
     @floating-drag-start="(detail) => emit('floating-drag-start', detail)"
     @floating-drag="(detail) => emit('floating-drag', detail)"
@@ -94,8 +102,11 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     <template v-if="$slots['layout-left-aside']" #layout-left-aside="slotProps">
       <slot name="layout-left-aside" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['layout-right-aside']" #layout-right-aside>
-      <slot name="layout-right-aside" />
+    <template v-if="$slots['layout-right-aside']" #layout-right-aside="slotProps">
+      <slot name="layout-right-aside" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-right-aside-content']" #layout-right-aside-content>
+      <slot name="layout-right-aside-content" />
     </template>
     <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title>
       <slot name="layout-right-aside-title" />

@@ -21,6 +21,7 @@ export interface ChatUIProps {
   inputValue?: string
   defaultInputValue?: string
   floatingState?: LayoutFloatingState
+  rightAsidePanel?: string
 }
 
 export interface ChatUIOptions {

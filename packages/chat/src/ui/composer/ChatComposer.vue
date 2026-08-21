@@ -28,6 +28,7 @@ const emit = defineEmits<{
   cancel: []
   clear: []
   'update:value': [value: string]
+  openMcpPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   mcpAddServer: [payload: { id: string }]
@@ -59,6 +60,10 @@ const senderProps = computed(() => {
 
 function handleUpdateSenderValue(value: string) {
   emit('update:value', value)
+}
+
+function handleOpenMcpPanel() {
+  emit('openMcpPanel')
 }
 
 function handleSubmit(text: string, structuredData?: ChatSendPayload['structuredData']) {
@@ -107,17 +112,18 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
       >
         <template v-if="$slots['sender-footer'] || model || mcp" #footer>
           <div v-if="model || mcp" class="model-actions">
+            <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
+            <ModelSelector v-if="model" :model="model" :labels="labels" @select-model="handleSelectModel" />
             <MCPSelector
               v-if="mcp"
               :mcp="mcp"
+              @open="handleOpenMcpPanel"
               :labels="labels"
               @add-server="handleAddServer"
               @remove-server="handleRemoveServer"
               @update-server-enabled="handleServerEnabledChange"
               @update-tool-enabled="handleToolEnabledChange"
             />
-            <ModelSelector v-if="model" :model="model" :labels="labels" @select-model="handleSelectModel" />
-            <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
           </div>
           <slot name="sender-footer" />
         </template>

@@ -26,6 +26,7 @@ const emit = defineEmits<{
   cancel: []
   clear: []
   'update:value': [value: string]
+  openMcpPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
   mcpAddServer: [payload: { id: string }]
@@ -66,6 +67,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
     @cancel="emit('cancel')"
     @clear="emit('clear')"
     @update:value="emit('update:value', $event)"
+    @open-mcp-panel="emit('openMcpPanel')"
     @model-select="emit('modelSelect', $event)"
     @model-feature-change="emit('modelFeatureChange', $event)"
     @mcp-add-server="emit('mcpAddServer', $event)"

@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
-import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
+import { computed } from 'vue'
 import { IconPlugin } from '@opentiny/tiny-robot-svgs'
-import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
-import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../../types'
+import type { ChatLabels, ChatMcpView } from '../../types'
 
 const props = defineProps<{
   mcp: ChatMcpView
@@ -11,107 +9,16 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  open: []
   addServer: [payload: { id: string }]
   removeServer: [payload: { id: string }]
   updateServerEnabled: [payload: { id: string; enabled: boolean }]
   updateToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
 }>()
 
-const visible = shallowRef(false)
-const pickerPopupConfig = {
-  type: 'drawer' as const,
-  drawer: {
-    direction: 'right' as const,
-  },
-}
-
 const servers = computed(() => props.mcp.servers ?? [])
-const tools = computed(() => props.mcp.tools ?? {})
 const hasServers = computed(() => servers.value.length > 0)
 const activeCount = computed(() => servers.value.filter((server) => server.installed && server.enabled).length)
-const hasPendingAction = computed(() =>
-  servers.value.some((server) => Boolean(server.loading || tools.value[server.id]?.some((tool) => tool.loading))),
-)
-
-const installedPlugins = computed<PluginInfo[]>(() =>
-  servers.value.filter((server) => server.installed).map((server) => toPluginInfo(server, { includeTools: true })),
-)
-
-const marketPlugins = computed<PluginInfo[]>(() =>
-  servers.value.map((server) => toPluginInfo(server, { includeTools: false })),
-)
-
-function getMetadataString(server: ChatMcpServerView, key: string) {
-  const value = server.metadata?.[key]
-
-  return typeof value === 'string' ? value : undefined
-}
-
-function toPluginInfo(server: ChatMcpServerView, options: { includeTools: boolean }): PluginInfo {
-  const serverTools = options.includeTools && server.installed ? (tools.value[server.id] ?? []) : []
-
-  return {
-    id: server.id,
-    name: server.name,
-    icon: getMetadataString(server, 'icon') ?? fallbackPluginIcon,
-    description: server.description ?? '',
-    enabled: server.enabled,
-    expanded: true,
-    tools: serverTools.map((tool) => ({
-      id: tool.id,
-      name: tool.name,
-      description: tool.description ?? '',
-      enabled: tool.enabled,
-    })),
-    addState: server.loading ? 'loading' : server.installed ? 'added' : 'idle',
-    category: getMetadataString(server, 'category'),
-  }
-}
-
-function findServer(id: string) {
-  return servers.value.find((server) => server.id === id)
-}
-
-function handlePluginAdd(plugin: PluginInfo) {
-  const server = findServer(plugin.id)
-
-  if (!server || server.installed || server.loading) {
-    return
-  }
-
-  emit('addServer', { id: plugin.id })
-}
-
-function handlePluginDelete(plugin: PluginInfo) {
-  const server = findServer(plugin.id)
-
-  if (!server || !server.installed || server.loading) {
-    return
-  }
-
-  emit('removeServer', { id: plugin.id })
-}
-
-function handlePluginToggle(plugin: PluginInfo, enabled: boolean) {
-  const server = findServer(plugin.id)
-
-  if (!server || !server.installed || server.loading || server.enabled === enabled) {
-    return
-  }
-
-  emit('updateServerEnabled', { id: plugin.id, enabled })
-}
-
-function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) {
-  const server = findServer(plugin.id)
-  const tool = tools.value[plugin.id]?.find((item) => item.id === toolId)
-
-  if (!server || !server.installed || !tool || tool.loading || tool.enabled === enabled) {
-    return
-  }
-
-  emit('updateToolEnabled', { serverId: plugin.id, toolId, enabled })
-}
 </script>
 
 <template>
@@ -122,7 +29,7 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
       type="button"
       :aria-label="labels.mcp"
       :title="labels.mcp"
-      @click="visible = true"
+      @click="emit('open')"
     >
       <IconPlugin :size="16" class="tr-chat-mcp-selector__icon" />
       <span class="tr-chat-mcp-selector__label">{{ labels.mcp }}</span>
@@ -130,23 +37,6 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
         {{ activeCount }}
       </span>
     </button>
-
-    <TrMcpServerPicker
-      v-model:visible="visible"
-      :active-count="activeCount"
-      :popup-config="pickerPopupConfig"
-      :installed-plugins="installedPlugins"
-      :market-plugins="marketPlugins"
-      :loading="hasPendingAction"
-      :market-loading="false"
-      :show-custom-add-button="false"
-      :allow-plugin-delete="true"
-      :allow-tool-toggle="true"
-      @plugin-toggle="handlePluginToggle"
-      @plugin-add="handlePluginAdd"
-      @plugin-delete="handlePluginDelete"
-      @tool-toggle="handleToolToggle"
-    />
   </div>
 </template>
 

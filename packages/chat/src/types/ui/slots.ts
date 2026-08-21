@@ -10,7 +10,7 @@ export interface ChatHeaderSlotProps {
   readonly openLeftAside: () => void
   readonly closeLeftAside: () => void
   readonly toggleLeftAside: () => void
-  readonly openRightAside: () => void
+  readonly openRightAside: (panel?: string) => void
   readonly closeRightAside: () => void
 }
 
@@ -24,6 +24,13 @@ export interface ChatLeftAsideSlotProps {
   readonly openLeftAside: () => void
   readonly closeLeftAside: () => void
   readonly toggleLeftAside: () => void
+}
+
+export interface ChatRightAsideSlotProps {
+  readonly panel: string | undefined
+  readonly openRightAside: (panel?: string) => void
+  readonly closeRightAside: () => void
+  readonly isRightAsideOpen: boolean
 }
 
 export interface ChatSenderSlotProps {
@@ -46,7 +53,8 @@ export interface ChatMainSlotProps {
 export interface ChatUISlots {
   'layout-header'?: (props: ChatHeaderSlotProps) => unknown
   'layout-left-aside'?: (props: ChatLeftAsideSlotProps) => unknown
-  'layout-right-aside'?: () => unknown
+  'layout-right-aside'?: (props: ChatRightAsideSlotProps) => unknown
+  'layout-right-aside-content'?: () => unknown
   'layout-right-aside-title'?: () => unknown
   'layout-main'?: (props: ChatMainSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown

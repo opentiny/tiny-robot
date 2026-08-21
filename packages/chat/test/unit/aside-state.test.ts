@@ -69,4 +69,47 @@ describe('useChatAsideState', () => {
     expect(state.resolvedLeftAsideOpen.value).toBe(false)
     expect(state.resolvedRightAsideOpen.value).toBe(false)
   })
+
+  it('tracks the active right panel in uncontrolled mode', () => {
+    const onRightAsidePanelChange = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: { defaultOpen: false },
+      rightAsidePanel: undefined,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+      onRightAsidePanelChange,
+    })
+
+    state.openRightAside('settings')
+
+    expect(state.resolvedRightAsidePanel.value).toBe('settings')
+    expect(state.resolvedRightAsideOpen.value).toBe(true)
+    expect(onRightAsidePanelChange).toHaveBeenCalledWith('settings')
+  })
+
+  it('does not mutate a controlled right panel', () => {
+    const panel = shallowRef<string | undefined>('mcp')
+    const onRightAsidePanelChange = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: { defaultOpen: false },
+      rightAsidePanel: panel,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+      onRightAsidePanelChange,
+    })
+
+    state.openRightAside('settings')
+
+    expect(state.resolvedRightAsidePanel.value).toBe('mcp')
+    expect(onRightAsidePanelChange).toHaveBeenCalledWith('settings')
+
+    panel.value = 'settings'
+    expect(state.resolvedRightAsidePanel.value).toBe('settings')
+  })
 })
