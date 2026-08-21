@@ -10,10 +10,10 @@
     "type-check": "vue-tsc -b"
   },
   "dependencies": {
-    "@opentiny/tiny-robot": "0.5.2-alpha.8",
-    "@opentiny/tiny-robot-chat": "0.5.2-alpha.8",
-    "@opentiny/tiny-robot-kit": "0.5.2-alpha.8",
-    "@opentiny/tiny-robot-svgs": "0.5.2-alpha.8",
+    "@opentiny/tiny-robot": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-chat": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-kit": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-svgs": "0.5.2-alpha.10",
     "@vueuse/core": "13.1.0",
     "vue": "^3.5.40"
   },

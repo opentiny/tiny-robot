@@ -7,6 +7,7 @@ import semver from 'semver'
 
 import {
   copyFile,
+  copyDirectory,
   findProjectRoot,
   findSubPackageRoot,
   findWorkspacePackages,
@@ -19,9 +20,17 @@ import {
   mergeEnvFile,
 } from '../utils.js'
 
-const DEP_NAME = '@opentiny/tiny-robot'
-const TARGET_VERSION = '0.5.1-alpha.2'
-const STYLE_IMPORT = "import '@opentiny/tiny-robot/dist/style.css'"
+const TARGET_VERSION = '0.5.2-alpha.10'
+const DEPENDENCIES = {
+  '@opentiny/tiny-robot': TARGET_VERSION,
+  '@opentiny/tiny-robot-chat': TARGET_VERSION,
+  '@opentiny/tiny-robot-kit': TARGET_VERSION,
+  '@opentiny/tiny-robot-svgs': TARGET_VERSION,
+}
+const STYLE_IMPORTS = [
+  "import '@opentiny/tiny-robot/dist/style.css'",
+  "import '@opentiny/tiny-robot-chat/dist/style.css'",
+]
 
 function logUnavailable(label) {
   logSkip(`${label} could not be applied`)
@@ -93,38 +102,42 @@ function findMainEntry(targetDir) {
 
 function ensureStyleImport(mainFile) {
   const content = fs.readFileSync(mainFile, 'utf-8')
-
-  if (content.includes(STYLE_IMPORT)) {
-    return {
-      type: 'skipped',
-    }
-  }
-
   const lines = content.split('\n')
+  let inserted = false
 
-  let lastImportIndex = -1
-
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\s*import\s/.test(lines[i])) {
-      lastImportIndex = i
+  for (const styleImport of STYLE_IMPORTS) {
+    if (lines.some((line) => line.trim() === styleImport)) {
       continue
     }
 
-    if (lastImportIndex !== -1) {
-      break
+    let lastImportIndex = -1
+
+    for (let i = 0; i < lines.length; i++) {
+      if (/^\s*import\s/.test(lines[i])) {
+        lastImportIndex = i
+        continue
+      }
+
+      if (lastImportIndex !== -1) {
+        break
+      }
     }
+
+    if (lastImportIndex === -1) {
+      lines.unshift(styleImport)
+    } else {
+      lines.splice(lastImportIndex + 1, 0, styleImport)
+    }
+
+    inserted = true
   }
 
-  if (lastImportIndex === -1) {
-    lines.unshift(STYLE_IMPORT)
-  } else {
-    lines.splice(lastImportIndex + 1, 0, STYLE_IMPORT)
+  if (inserted) {
+    fs.writeFileSync(mainFile, lines.join('\n'))
   }
-
-  fs.writeFileSync(mainFile, lines.join('\n'))
 
   return {
-    type: 'inserted',
+    type: inserted ? 'inserted' : 'skipped',
   }
 }
 
@@ -186,7 +199,7 @@ function ensureDependency(pkg, name, targetVersion) {
 function printDependencyResult(result, name) {
   switch (result.type) {
     case 'added':
-      logSuccess(`Added ${name}@${TARGET_VERSION}`)
+      logSuccess(`Added ${name}@${result.to}`)
       break
 
     case 'updated':
@@ -201,6 +214,7 @@ function printDependencyResult(result, name) {
 
 function getChatFeatureFiles(targetDir) {
   const mainEntry = findMainEntry(targetDir)
+  const templateSource = getTemplateFile('src')
 
   return [
     {
@@ -212,10 +226,42 @@ function getChatFeatureFiles(targetDir) {
       },
     },
     {
-      label: 'main entry style import',
+      label: 'main entry style imports',
       target: mainEntry,
       action() {
         return 'modify'
+      },
+    },
+    {
+      label: 'Chat UI components',
+      target: path.join(targetDir, 'src/components'),
+      template: path.join(templateSource, 'components'),
+      action() {
+        return 'merge'
+      },
+    },
+    {
+      label: 'Chat composables',
+      target: path.join(targetDir, 'src/composables'),
+      template: path.join(templateSource, 'composables'),
+      action() {
+        return 'merge'
+      },
+    },
+    {
+      label: 'Chat configuration',
+      target: path.join(targetDir, 'src/config'),
+      template: path.join(templateSource, 'config'),
+      action() {
+        return 'merge'
+      },
+    },
+    {
+      label: 'Chat app styles',
+      target: path.join(targetDir, 'src/index.css'),
+      template: path.join(templateSource, 'index.css'),
+      action(fileExists) {
+        return fileExists ? 'overwrite' : 'create'
       },
     },
     {
@@ -247,7 +293,11 @@ async function selectFileChanges(files) {
 
       const descriptions = {
         'TinyRobotChat.vue': 'integrate TinyRobot chat component',
-        'main entry style import': 'import TinyRobot styles',
+        'main entry style imports': 'import TinyRobot styles',
+        'Chat UI components': 'copy Chat UI components',
+        'Chat composables': 'copy Chat composables',
+        'Chat configuration': 'copy Chat runtime and UI configuration',
+        'Chat app styles': 'copy Chat application styles',
         '.env': 'add environment variables',
         'package.json': 'add TinyRobot dependencies',
       }
@@ -310,14 +360,29 @@ async function addFeature(targetDir, type) {
     logSkippedSelection(componentFile.label)
   }
 
+  for (const file of files.filter((item) => item.label.startsWith('Chat '))) {
+    if (!isSelected(selectedFiles, file.label)) {
+      logSkippedSelection(file.label)
+      continue
+    }
+
+    if (file.target.endsWith('.css')) {
+      copyFile(file.template, file.target)
+    } else {
+      copyDirectory(file.template, file.target)
+    }
+
+    logSuccess(`Copied ${file.label}`)
+  }
+
   const mainFile = files.find((f) => {
-    return f.label === 'main entry style import'
+    return f.label === 'main entry style imports'
   })
 
   if (!mainFile?.target) {
     needsManualStyleImport = true
 
-    logUnavailable('main entry style import (main.ts/js not found)')
+    logUnavailable('main entry style imports (main.ts/js not found)')
   } else {
     if (isSelected(selectedFiles, mainFile.label)) {
       const result = ensureStyleImport(mainFile.target)
@@ -369,15 +434,17 @@ async function addFeature(targetDir, type) {
   const pkg = readPackageJson(pkgPath)
 
   if (isSelected(selectedFiles, 'package.json')) {
-    const result = ensureDependency(pkg, DEP_NAME, TARGET_VERSION)
+    for (const [name, version] of Object.entries(DEPENDENCIES)) {
+      const result = ensureDependency(pkg, name, version)
 
-    if (result.type !== 'skipped') {
-      dependencyChanged = true
+      if (result.type !== 'skipped') {
+        dependencyChanged = true
+      }
+
+      printDependencyResult(result, name)
     }
 
     writePackageJson(pkgPath, pkg)
-
-    printDependencyResult(result, DEP_NAME)
   } else {
     logSkippedSelection('package.json')
   }
@@ -396,7 +463,13 @@ function printNextSteps({ needsManualStyleImport, envChanged, dependencyChanged 
 
   if (needsManualStyleImport) {
     steps.push(
-      ['Import TinyRobot styles in your application entry file.', '', 'Example:', '', `  ${STYLE_IMPORT}`].join('\n'),
+      [
+        'Import TinyRobot styles in your application entry file.',
+        '',
+        'Example:',
+        '',
+        ...STYLE_IMPORTS.map((styleImport) => `  ${styleImport}`),
+      ].join('\n'),
     )
   }
 

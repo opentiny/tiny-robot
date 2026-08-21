@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { TrChat, useLocalChatRuntime, type ChatMcpServers, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
+import {
+  TrChat,
+  useLocalChatRuntime,
+  type ChatMcpServers,
+  type ChatProviderConfig,
+  type ChatUIOptions,
+} from '@opentiny/tiny-robot-chat'
 
 const modelProviders: ChatProviderConfig[] = [
   {
@@ -82,11 +88,21 @@ const runtime = useLocalChatRuntime({
   mcpServers,
   modelProviders,
 })
+
+const chatUi = {
+  layout: {
+    rightAside: {
+      mode: 'dock',
+      width: 400,
+      defaultOpen: false,
+    },
+  },
+} satisfies ChatUIOptions
 </script>
 
 <template>
   <div class="chat-basic">
-    <TrChat :runtime="runtime" />
+    <TrChat :runtime="runtime" :ui="chatUi" />
   </div>
 </template>
 

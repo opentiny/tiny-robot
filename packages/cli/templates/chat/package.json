@@ -1,16 +1,20 @@
 {
-  "name": "chat-basic",
+  "name": "__PROJECT_NAME__",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "vue-tsc -b"
   },
   "dependencies": {
-    "@opentiny/tiny-robot-chat": "0.5.2-alpha.10",
     "@opentiny/tiny-robot": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-chat": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-kit": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-svgs": "0.5.2-alpha.10",
+    "@vueuse/core": "13.1.0",
     "vue": "^3.5.40"
   },
   "devDependencies": {

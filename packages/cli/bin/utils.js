@@ -88,6 +88,10 @@ export function validateProjectName(name) {
 }
 
 export function copyTemplate(sourceDir, targetDir) {
+  copyDirectory(sourceDir, targetDir)
+}
+
+export function copyDirectory(sourceDir, targetDir) {
   fs.cpSync(sourceDir, targetDir, {
     recursive: true,
     filter: (source) => {
