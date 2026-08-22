@@ -4,24 +4,34 @@ import { computed, shallowRef, watch } from 'vue'
 
 export type DisplayMode = 'floating' | 'fullscreen'
 
+const FLOATING_GAP = 24
+const FLOATING_MIN_WIDTH = 360
+const FLOATING_MIN_HEIGHT = 480
+
 export function useWindow() {
   const show = shallowRef(false)
   const displayMode = shallowRef<DisplayMode>('floating')
+  const { width, height } = useWindowSize()
   const floatingState = shallowRef<LayoutFloatingState>({
-    placement: 'center',
-    offsetX: 24,
-    offsetY: 24,
-    width: 640,
-    height: 760,
+    placement: 'top-right',
+    offsetX: FLOATING_GAP,
+    offsetY: FLOATING_GAP,
+    width: 500,
+    height: Math.max(1, height.value - FLOATING_GAP * 2),
   })
   const restoreFloatingState = shallowRef<LayoutFloatingState | null>(null)
-  const { width, height } = useWindowSize()
 
   const floatingOptions = computed<LayoutFloatingOptions>(() => ({
     draggable: displayMode.value === 'floating',
     resizable: displayMode.value === 'floating',
-    minWidth: displayMode.value === 'floating' ? 360 : undefined,
-    minHeight: displayMode.value === 'floating' ? 480 : undefined,
+    minWidth:
+      displayMode.value === 'floating'
+        ? Math.min(FLOATING_MIN_WIDTH, Math.max(1, width.value - FLOATING_GAP * 2))
+        : undefined,
+    minHeight:
+      displayMode.value === 'floating'
+        ? Math.min(FLOATING_MIN_HEIGHT, Math.max(1, height.value - FLOATING_GAP * 2))
+        : undefined,
   }))
 
   const layoutStyle = computed(() => ({

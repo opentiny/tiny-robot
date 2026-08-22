@@ -1,31 +1,13 @@
 import type { LayoutFloatingOptions } from '@opentiny/tiny-robot'
 import type { ChatSenderOptions, ChatUIOptions } from '@opentiny/tiny-robot-chat'
 import type { TemplateItem } from '@opentiny/tiny-robot'
-import { IconAi, IconEdit, IconHistory, IconNewSession, IconSparkles, IconUser } from '@opentiny/tiny-robot-svgs'
+import { IconAi, IconUser } from '@opentiny/tiny-robot-svgs'
 import { h, type CSSProperties } from 'vue'
 
 export interface ChatUiConfigOptions {
   floatingOptions: Readonly<LayoutFloatingOptions>
   templateExtensions: NonNullable<ChatSenderOptions['extensions']>
 }
-
-export interface ChatMenuItem {
-  id: string
-  title: string
-  icon: unknown
-  action: 'mcp' | 'template' | 'history' | 'new-session' | 'mode'
-}
-
-export const composerMenus: ChatMenuItem[] = [
-  { id: 'quick-query', title: '常用查询', icon: IconSparkles, action: 'mcp' },
-  { id: 'templates', title: '模板', icon: IconEdit, action: 'template' },
-]
-
-export const windowMenus: ChatMenuItem[] = [
-  { id: 'new-session', title: '新会话', icon: IconNewSession, action: 'new-session' },
-  { id: 'history', title: '历史会话', icon: IconHistory, action: 'history' },
-  { id: 'mode', title: '窗口模式', icon: IconSparkles, action: 'mode' },
-]
 
 export interface PromptItemData {
   label: string
@@ -52,9 +34,9 @@ export const PROMPT_ITEMS_DATA: PromptItemData[] = [
     emoji: '✨',
   },
   {
-    label: 'MCP 工具调用',
-    description: '搜索：北京天气（输入「搜索」「MCP」「工具」等关键词可触发模拟 MCP 工具调用）',
-    emoji: '🔧',
+    label: '工作效率场景',
+    description: '需要我帮你总结内容、拆解任务，还是整理一份行动清单？',
+    emoji: '⚡',
   },
 ]
 

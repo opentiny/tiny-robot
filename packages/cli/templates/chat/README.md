@@ -1,6 +1,6 @@
 # chat-add
 
-`chat-add` 是一个独立的 Chat 扩展模板，提供通用工作助手场景的最小工程结构。
+`chat-add` 是一个可嵌入现有 Vue 应用的 Chat 扩展模板，提供通用工作助手场景的最小工程结构。
 
 ## 启动
 
@@ -21,15 +21,15 @@ pnpm --filter chat-add build
 
 ## 目录职责
 
-- `src/config/chat-ui.ts`: Chat UI、提示词、模板和菜单配置。
-- `src/config/chat-runtime.ts`: MCP 示例和模型配置。
-- `src/components`: 窗口头部和输入区工具。
-- `src/composables/useWindow.ts`: floating、fullscreen 窗口状态。
-- `src/index.css`: 模板公共样式和 Surface 样式变量。
+- `src/TinyRobotChat.vue`: 悬浮入口、Chat 主体以及组件作用域样式。
+- `src/tiny-robot-chat/config/chat-ui.ts`: Chat UI、提示词和模板配置。
+- `src/tiny-robot-chat/config/chat-runtime.ts`: 模型配置和留给后续集成的空 MCP Server 列表。
+- `src/tiny-robot-chat/components`: 窗口头部和输入区工具。
+- `src/tiny-robot-chat/composables/useWindow.ts`: floating、fullscreen 窗口状态。
 
 ## 替换数据
 
-直接修改 `src/config/chat-ui.ts` 和 `src/config/chat-runtime.ts` 中导出的数据；组件通过 props 使用这些配置。
+直接修改 `src/tiny-robot-chat/config/chat-ui.ts` 和 `src/tiny-robot-chat/config/chat-runtime.ts` 中导出的数据；组件通过 props 使用这些配置。
 
 ## 切换窗口模式
 

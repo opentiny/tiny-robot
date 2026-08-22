@@ -15,14 +15,14 @@ npx @opentiny/tiny-robot-cli add chat
 - `-t, --template <name>`: template name, currently supports `basic`
 - `-h, --help`: show help
 
-`add chat` copies the complete Chat example from the `chat-add` template, including its runtime, UI configuration, composables, components, and styles. It updates these dependencies to `0.5.2-alpha.10`:
+`add chat` adds a self-contained floating Chat component, including its runtime, UI configuration, composables, component-scoped styles, and supporting components. It updates these OpenTiny dependencies to `0.5.2-alpha.10`:
 
 - `@opentiny/tiny-robot`
 - `@opentiny/tiny-robot-chat`
 - `@opentiny/tiny-robot-kit`
 - `@opentiny/tiny-robot-svgs`
 
-Configure the generated `.env` file with the provider API URL and API key before starting the project.
+It also adds `@vueuse/core@13.9.0`. The command does not modify the application entry file or create `src/index.css`. Configure a private environment file from the generated `.env.example` before starting the project; the CLI never creates or modifies `.env`.
 
 ## Template Documentation
 

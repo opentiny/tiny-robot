@@ -19,7 +19,8 @@
     "README.md"
   ],
   "scripts": {
-    "start": "node ./bin/cli.js"
+    "start": "node ./bin/cli.js",
+    "test": "node --test ./test/*.test.js"
   },
   "license": "MIT",
   "engines": {

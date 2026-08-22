@@ -14,7 +14,7 @@
     "@opentiny/tiny-robot-chat": "0.5.2-alpha.10",
     "@opentiny/tiny-robot-kit": "0.5.2-alpha.10",
     "@opentiny/tiny-robot-svgs": "0.5.2-alpha.10",
-    "@vueuse/core": "13.1.0",
+    "@vueuse/core": "13.9.0",
     "vue": "^3.5.40"
   },
   "devDependencies": {
