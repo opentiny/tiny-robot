@@ -22,7 +22,7 @@ npx @opentiny/tiny-robot-cli add chat
 - `@opentiny/tiny-robot-kit`
 - `@opentiny/tiny-robot-svgs`
 
-It also adds `@vueuse/core@13.9.0`. The command does not modify the application entry file or create `src/index.css`. Configure a private environment file from the generated `.env.example` before starting the project; the CLI never creates or modifies `.env`.
+It also adds `@vueuse/core@13.9.0`. The command does not modify the application entry file or create `src/index.css`. Configure a private environment file from the generated `.env.example` before starting the project; the generated example only includes the Qwen and DeepSeek API key variables. Their API URL variables remain optional overrides for proxies, private gateways, or other regions. The CLI never creates or modifies `.env`.
 
 ## Template Documentation
 

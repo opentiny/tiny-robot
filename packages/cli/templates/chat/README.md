@@ -17,7 +17,9 @@ pnpm --filter chat-add build
 
 ## 接入真实模型
 
-在 `packages/chat-add/.env.local` 中配置 `VITE_QWEN_API_URL`、`VITE_ALIYUN_DASHSCOPE_KEY`、`VITE_DEEPSEEK_API_URL` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。配置读取逻辑位于 `src/config/chat-runtime.ts`。
+将生成的 `.env.example` 复制为 `.env.local`，按需配置 `VITE_ALIYUN_DASHSCOPE_KEY` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。
+
+Qwen 和 DeepSeek 默认使用 `@opentiny/tiny-robot-chat` 内置的官方接口地址。仅在使用代理、私有网关或其他地域接口时，才需要在 `.env.local` 中额外配置 `VITE_QWEN_API_URL` 或 `VITE_DEEPSEEK_API_URL`。配置读取逻辑位于 `src/tiny-robot-chat/config/chat-runtime.ts`。
 
 ## 目录职责
 
