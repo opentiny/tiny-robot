@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useSlots } from 'vue'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconAi, IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
-import { useChatHistoryItems, type ChatHistoryItem } from '../../composables/useChatHistoryItems'
+import { useChatHistoryData, type ChatHistoryItem } from '../../composables/useChatHistoryItems'
 import type {
   ChatBrandOptions,
   ChatConversationInfo,
@@ -13,7 +13,7 @@ import type {
 } from '../../types'
 
 const props = defineProps<{
-  conversation: Required<ChatConversationView>
+  conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
   history: ChatHistoryOptions
   brand: ChatBrandOptions
   labels: ChatLabels
@@ -33,17 +33,18 @@ const emit = defineEmits<{
   toggle: []
 }>()
 
-const historyItems = useChatHistoryItems({
+const slots = useSlots()
+const hasCustomRail = computed(() => Boolean(slots.rail))
+const historyData = useChatHistoryData({
   conversations: () => props.conversation.items,
+  history: () => props.conversation.history,
   defaultTitle: () => props.labels.newConversationTitle,
 })
 
 const historyProps = computed(() => {
   const { menuItems: _menuItems, ...nextHistoryProps } = props.history
-
   return nextHistoryProps
 })
-
 const historyMenuItems = computed<HistoryMenuItem[]>(() => props.history.menuItems ?? [])
 
 function handleCreateConversation() {
@@ -93,33 +94,16 @@ function toggleAside() {
 
 <template>
   <aside class="chat-left-aside">
-    <span class="chat-left-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
+    <span v-if="!hasCustomRail" class="chat-left-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
       <component :is="brand.logo || IconAi" />
     </span>
 
     <div class="chat-left-aside-rail" :class="{ 'is-hidden': !isDock || isOpen }">
-      <TrIconButton
-        class="chat-left-aside-rail__button"
-        :icon="IconCollapseLeft"
-        size="32"
-        svg-size="20"
-        :aria-label="labels.expandConversationList"
-        @click="openAside"
-      />
-      <TrIconButton
-        class="chat-left-aside-rail__button"
-        :icon="IconNewSession"
-        size="32"
-        svg-size="20"
-        :aria-label="labels.createConversation"
-        @click="handleCreateConversation"
-      />
-    </div>
-
-    <div class="chat-left-aside-panel" :class="{ 'is-hidden': !isOpen }">
       <slot
+        name="rail"
         :conversation="conversation"
         :is-open="isOpen"
+        :is-dock="isDock"
         :create-conversation="handleCreateConversation"
         :switch-conversation="switchConversation"
         :rename-conversation="renameConversation"
@@ -128,35 +112,139 @@ function toggleAside() {
         :close-left-aside="closeAside"
         :toggle-left-aside="toggleAside"
       >
-        <div class="chat-left-aside-brand">
-          <span class="chat-left-aside-brand__title">{{ brand.name }}</span>
-          <TrIconButton
-            :icon="IconCollapseRight"
-            size="32"
-            svg-size="20"
-            type="button"
-            :aria-label="labels.collapseConversationList"
-            @click="closeAside"
-          />
-        </div>
-        <button class="chat-left-aside-action" type="button" @click="handleCreateConversation">
-          <span class="chat-left-aside-action__label">
-            <IconNewSession font-size="20" />
-            {{ labels.createConversation }}
-          </span>
-        </button>
-        <TrHistory
-          v-if="showHistory"
-          v-bind="historyProps"
-          class="chat-left-aside-content"
-          :data="[...historyItems]"
-          :selected="conversation.activeId ?? undefined"
-          :menu-items="historyMenuItems"
-          @item-click="handleHistoryItemClick"
-          @item-title-change="handleHistoryTitleChange"
-          @item-action="handleHistoryAction"
+        <TrIconButton
+          class="chat-left-aside-rail__button"
+          :icon="IconCollapseLeft"
+          size="32"
+          svg-size="20"
+          :aria-label="labels.expandConversationList"
+          @click="openAside"
+        />
+        <TrIconButton
+          class="chat-left-aside-rail__button"
+          :icon="IconNewSession"
+          size="32"
+          svg-size="20"
+          :aria-label="labels.createConversation"
+          @click="handleCreateConversation"
         />
       </slot>
+    </div>
+
+    <div class="chat-left-aside-panel" :class="{ 'is-hidden': !isOpen }">
+      <slot
+        v-if="$slots.default"
+        :conversation="conversation"
+        :is-open="isOpen"
+        :is-dock="isDock"
+        :create-conversation="handleCreateConversation"
+        :switch-conversation="switchConversation"
+        :rename-conversation="renameConversation"
+        :delete-conversation="deleteConversation"
+        :open-left-aside="openAside"
+        :close-left-aside="closeAside"
+        :toggle-left-aside="toggleAside"
+      />
+
+      <template v-else>
+        <div class="chat-left-aside-brand">
+          <slot
+            name="brand"
+            :conversation="conversation"
+            :is-open="isOpen"
+            :is-dock="isDock"
+            :create-conversation="handleCreateConversation"
+            :switch-conversation="switchConversation"
+            :rename-conversation="renameConversation"
+            :delete-conversation="deleteConversation"
+            :open-left-aside="openAside"
+            :close-left-aside="closeAside"
+            :toggle-left-aside="toggleAside"
+          >
+            <span class="chat-left-aside-brand__title">{{ brand.name }}</span>
+            <TrIconButton
+              :icon="IconCollapseRight"
+              size="32"
+              svg-size="20"
+              type="button"
+              :aria-label="labels.collapseConversationList"
+              @click="closeAside"
+            />
+          </slot>
+        </div>
+
+        <div class="chat-left-aside-actions">
+          <slot
+            name="actions"
+            :conversation="conversation"
+            :is-open="isOpen"
+            :is-dock="isDock"
+            :create-conversation="handleCreateConversation"
+            :switch-conversation="switchConversation"
+            :rename-conversation="renameConversation"
+            :delete-conversation="deleteConversation"
+            :open-left-aside="openAside"
+            :close-left-aside="closeAside"
+            :toggle-left-aside="toggleAside"
+          >
+            <button class="chat-left-aside-action" type="button" @click="handleCreateConversation">
+              <span class="chat-left-aside-action__label">
+                <IconNewSession font-size="20" />
+                {{ labels.createConversation }}
+              </span>
+            </button>
+          </slot>
+        </div>
+
+        <div class="chat-left-aside-content">
+          <slot
+            name="content"
+            :conversation="conversation"
+            :history="conversation.history"
+            :is-open="isOpen"
+            :is-dock="isDock"
+            :create-conversation="handleCreateConversation"
+            :switch-conversation="switchConversation"
+            :rename-conversation="renameConversation"
+            :delete-conversation="deleteConversation"
+            :open-left-aside="openAside"
+            :close-left-aside="closeAside"
+            :toggle-left-aside="toggleAside"
+          >
+            <TrHistory
+              v-if="showHistory"
+              v-bind="historyProps"
+              class="chat-left-aside-history"
+              :data="historyData"
+              :selected="conversation.activeId ?? undefined"
+              :menu-items="historyMenuItems"
+              @item-click="handleHistoryItemClick"
+              @item-title-change="handleHistoryTitleChange"
+              @item-action="handleHistoryAction"
+            >
+              <template v-if="$slots['history-item-prefix']" #item-prefix="{ item }">
+                <slot name="history-item-prefix" :item="item.raw" />
+              </template>
+            </TrHistory>
+          </slot>
+        </div>
+
+        <div v-if="$slots.footer" class="chat-left-aside-footer">
+          <slot
+            name="footer"
+            :conversation="conversation"
+            :is-open="isOpen"
+            :is-dock="isDock"
+            :create-conversation="handleCreateConversation"
+            :switch-conversation="switchConversation"
+            :rename-conversation="renameConversation"
+            :delete-conversation="deleteConversation"
+            :open-left-aside="openAside"
+            :close-left-aside="closeAside"
+            :toggle-left-aside="toggleAside"
+          />
+        </div>
+      </template>
     </div>
   </aside>
 </template>
@@ -246,12 +334,17 @@ function toggleAside() {
   font-weight: 600;
 }
 
+.chat-left-aside-actions {
+  flex-shrink: 0;
+  margin-top: 24px;
+}
+
 .chat-left-aside-action {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 24px;
+  width: 100%;
   border: none;
   border-radius: 10px;
   padding: 8px 10px;
@@ -270,21 +363,23 @@ function toggleAside() {
   gap: 8px;
 }
 
-.chat-left-aside-action kbd {
-  border-radius: 6px;
-  padding: 2px 6px;
-  background: var(--tr-container-bg-hover);
-  color: var(--tr-text-secondary);
-  font: inherit;
-  font-size: 12px;
+.chat-left-aside-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 24px 0 0;
+  overflow: auto;
 }
 
-.chat-left-aside-content {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 24px 0 0;
+.chat-left-aside-history {
+  min-height: 100%;
   --tr-history-item-selected-bg: var(--tr-history-item-hover-bg);
   --tr-history-item-space-y: 4px;
+}
+
+.chat-left-aside-footer {
+  flex-shrink: 0;
+  margin-top: 12px;
 }
 </style>

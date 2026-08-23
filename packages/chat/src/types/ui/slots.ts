@@ -1,5 +1,5 @@
-import type { ChatMessageItem, ChatStructuredData } from '../base'
-import type { ChatConversationView, ChatRequestView } from './data'
+import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '../base'
+import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
 
 export interface ChatHeaderSlotProps {
   readonly title: string
@@ -17,6 +17,7 @@ export interface ChatHeaderSlotProps {
 export interface ChatLeftAsideSlotProps {
   readonly conversation: ChatConversationView
   readonly isOpen: boolean
+  readonly isDock: boolean
   readonly createConversation: () => void
   readonly switchConversation: (id: string) => void
   readonly renameConversation: (id: string, title: string) => void
@@ -24,6 +25,14 @@ export interface ChatLeftAsideSlotProps {
   readonly openLeftAside: () => void
   readonly closeLeftAside: () => void
   readonly toggleLeftAside: () => void
+}
+
+export interface ChatLeftAsideContentSlotProps extends ChatLeftAsideSlotProps {
+  readonly history?: ChatHistoryData
+}
+
+export interface ChatHistoryItemPrefixSlotProps {
+  readonly item: ChatConversationInfo
 }
 
 export interface ChatRightAsideSlotProps {
@@ -53,6 +62,12 @@ export interface ChatMainSlotProps {
 export interface ChatUISlots {
   'layout-header'?: (props: ChatHeaderSlotProps) => unknown
   'layout-left-aside'?: (props: ChatLeftAsideSlotProps) => unknown
+  'layout-left-aside-brand'?: (props: ChatLeftAsideSlotProps) => unknown
+  'layout-left-aside-actions'?: (props: ChatLeftAsideSlotProps) => unknown
+  'layout-left-aside-content'?: (props: ChatLeftAsideContentSlotProps) => unknown
+  'layout-left-aside-footer'?: (props: ChatLeftAsideSlotProps) => unknown
+  'layout-left-aside-rail'?: (props: ChatLeftAsideSlotProps) => unknown
+  'layout-left-aside-history-item-prefix'?: (props: ChatHistoryItemPrefixSlotProps) => unknown
   'layout-right-aside'?: (props: ChatRightAsideSlotProps) => unknown
   'layout-right-aside-content'?: () => unknown
   'layout-right-aside-title'?: () => unknown

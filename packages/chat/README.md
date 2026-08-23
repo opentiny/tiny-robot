@@ -85,7 +85,7 @@ VITE_OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 
 这个示例不需要在 `conversation.useMessageOptions` 中提供 `responseProvider`，因为 `modelProviders` 会提供响应请求所需的 Provider。`useLocalChatRuntime` 会将会话、模型和完整聊天页面连接起来。
 
-第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 同时会开启消息自动保存流程。
+第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 默认会开启消息自动保存流程。如果在 `conversation` 中显式传入 `autoSaveMessages`，则以调用方配置为准。
 
 发送过程中，页面的取消操作会调用 Runtime 的 `abort`。Runtime 不检查 API Key 是否存在：有 Key 时发送默认 Bearer 认证，没有 Key 时直接请求配置的 `apiUrl`。认证失败由上游模型服务或后端代理返回，并按普通请求错误处理。
 
@@ -222,7 +222,7 @@ const modelProviders: ChatProviderConfig[] = [
 ]
 ```
 
-请求会使用 `POST` 和流式响应。`headers` 会与 `Content-Type` 合并；Provider 的 API Key 会作为默认 Bearer Authorization 请求头发送。如果 `headers` 已提供 `Authorization`，则保留自定义值。
+请求会使用 `POST` 和流式响应。`headers` 会与 `Content-Type` 合并；Provider 的 API Key 会作为默认 Bearer Authorization 请求头发送。如果 `headers` 已提供 `Authorization`，则保留自定义值。`ChatProviderConfig.timeout` 可以设置模型请求超时时间，单位为毫秒，且覆盖请求流读取阶段。
 
 ## 5. 配置 MCP 工具服务
 
@@ -360,7 +360,7 @@ const mcpServers: ChatMcpServers = [
 | `id`          | 是       | 唯一标识；重复 ID 会在创建默认 Adapter 时同步报错 |
 | `name`        | 是       | 页面显示名称                                      |
 | `baseUrl`     | 是       | MCP Streamable HTTP 地址                          |
-| `installed`   | 否       | 初始显示为已安装，但不自动启用                    |
+| `installed`   | 否       | 初始显示为已安装，但不自动启用；默认 Adapter 会后台发现工具 |
 | `description` | 否       | 页面说明                                          |
 | `icon`        | 否       | 页面图标地址                                      |
 | `headers`     | 否       | MCP 请求头；仅建议用于非敏感 header 或本地调试    |
@@ -380,12 +380,13 @@ const mcpServers: ChatMcpServers = [
 ]
 ```
 
-`installed: true` 的含义仅是 Runtime 初始化时该 Server 已安装：
+`installed: true` 表示 Runtime 初始化时该 Server 已安装，但不表示它已经启用：
 
-- 不会自动调用 MCP 服务；
-- 不会自动读取工具；
+- 默认 Adapter 会在初始化阶段后台发现工具；
+- 工具发现成功后，Server 和工具仍保持未启用状态；
+- 不会把未启用 Server 的工具加入请求；
 - 初始状态仍是未启用；
-- 用户启用 Server 后才读取工具；
+- 用户启用 Server 后会启用已发现的工具；如果工具尚未发现，则先执行发现流程；
 - Runtime 重建时会重新采用静态配置中的初始状态；
 - 运行时删除 Server 不会修改原始 `mcpServers` 数组。
 
@@ -430,12 +431,13 @@ const mcpServers: ChatMcpServers = [
 ### 5.8 用户实际操作后的行为
 
 1. 用户添加 Server，Runtime 将其标记为已安装并开始启用流程。
-2. 用户启用已安装的 Server，Runtime 读取该 Server 的工具列表。
-3. 读取成功后，页面显示可用工具。
-4. 用户可以选择或关闭单个工具。
-5. 发送消息时，只会把当前已安装、已启用 Server 中当前启用的工具加入本条消息的请求配置。
-6. 禁用 Server 会清空当前 Runtime 中该 Server 的工具状态和缓存；删除 Server 还会取消其已安装状态。
-7. 重新启用 Server 会重新读取工具。
+2. 如果 Server 通过 `installed: true` 初始安装，默认 Adapter 会后台读取工具列表，但不会自动启用 Server。
+3. 用户启用已安装的 Server；如果工具尚未读取，Runtime 会读取该 Server 的工具列表。
+4. 读取成功后，页面显示可用工具。
+5. 用户可以选择或关闭单个工具。
+6. 发送消息时，只会把当前已安装、已启用 Server 中当前启用的工具加入本条消息的请求配置。
+7. 禁用 Server 会关闭该 Server 及其工具，但保留当前 Runtime 中已读取的工具状态和缓存；删除 Server 才会取消其已安装状态并清理缓存。
+8. 重新启用已读取过工具的 Server 时会复用缓存，不会自动重新 discovery。
 
 每次发送都会保存当时的模型、能力开关和 MCP 工具选择。发送后再切换模型、能力或工具，只影响下一条消息。已启用的 MCP Server 仍在读取工具时，发送不可用。
 
@@ -446,13 +448,14 @@ const mcpServers: ChatMcpServers = [
 `mcpServers` 会自动创建默认 Adapter。默认 Adapter 负责：
 
 - 使用 Streamable HTTP 连接 MCP Server；
-- 在用户启用 Server 时执行 Tool discovery；
+- 在初始化时为 `installed: true` 的 Server 执行后台 Tool discovery，并在用户启用尚未读取的 Server 时执行 discovery；
 - 将 MCP Tool 转换为模型可见的 function tool；
 - 根据本轮 `runConfig` 只暴露当前消息允许使用的 Tool；
 - 调用 Tool 时使用 MCP 原始 Tool 名称；
 - 对连接和请求设置超时；
 - 对同一个 Server 的并发工具读取做去重；
-- 禁用或删除 Server 时清空当前 Runtime 中的 Tool 状态和缓存；
+- 禁用 Server 时关闭当前 Runtime 中该 Server 的 Tool 状态，但保留已读取的定义和缓存；
+- 删除 Server 或 discovery 失败时清理当前 Runtime 中该 Server 的 Tool 状态和定义缓存；
 - 工具读取失败时保留 installed 状态，自动禁用该 Server 并记录错误；
 - 按需创建 Client，调用结束后关闭。
 
@@ -563,7 +566,7 @@ const runtime = useLocalChatRuntime({
 | `listTools` | 根据本轮消息的 Server/Tool 快照，返回要暴露给模型的 Tool 定义 |
 | `callTool`  | 执行模型发起的 Tool 调用，并返回调用结果                      |
 
-`listTools` 返回的 `name` 必须在所有模型工具中唯一。推荐格式是 `${serverId}__${toolId}`。`originalName` 用于保存 MCP Server 里的原始 Tool 名称，实际调用时会传给 `callTool`。
+`listTools` 返回的 `name` 必须在所有模型工具中唯一，并且当前实现要求使用 `${serverId}__${toolId}` 格式；否则模型虽然可能看到该工具，但工具调用时无法匹配当前回合的启用状态。`originalName` 用于保存 MCP Server 里的原始 Tool 名称，实际调用时会传给 `callTool`。
 
 `mcp` 与 `mcpServers` 不能同时传入：
 
@@ -658,6 +661,18 @@ const ui: ChatUIOptions = {
 
 默认值还包括：左侧栏宽度 `300`、折叠宽度 `56`、默认关闭；右侧栏默认关闭；输入区默认支持多行输入、清空、最大长度 `1000` 并显示字数限制；消息自动滚动默认开启。
 
+`layout` 还支持以下高级布局配置：
+
+| 配置 | 说明 |
+| --- | --- |
+| `layout.surface.mode` | `normal` 使用普通布局；`floating` 使用浮动窗口布局 |
+| `layout.surface.floatingOptions` | 浮动窗口的拖拽、缩放等配置，具体字段由布局组件提供 |
+| `layout.emptyState` | 空会话内容使用 `start` 或 `center` 布局 |
+| `layout.composer.welcome` | 欢迎页输入框放在 `footer` 或 `center` 区域 |
+| `layout.leftAside: false` | 完全关闭左侧会话栏 |
+
+浮动布局可以通过 `TrChat` 或 `TrChatUI` 的 `floatingState` 受控，并监听 `update:floating-state`、`floating-drag*` 和 `floating-resize*` 事件。右侧栏还可以通过 `rightAsidePanel` 受控指定当前面板，并监听 `update:right-aside-panel`。
+
 ### 6.3 隐藏功能区
 
 ```ts
@@ -702,8 +717,10 @@ const ui: ChatUIOptions = {
 | -------------------------- | ---------------------------------- |
 | `header-notice`            | 顶部标题下方的提示区域             |
 | `request-error`            | 替换请求错误显示内容，提供 `error` |
-| `layout-right-aside`       | 右侧详情栏正文                     |
+| `layout-right-aside`       | 完整替换右侧详情栏，提供 `panel`、打开/关闭操作和打开状态 Slot Props |
+| `layout-right-aside-content` | 保留右侧栏外壳，只替换右侧栏正文 |
 | `layout-right-aside-title` | 右侧详情栏标题                     |
+| `composer-before`          | 输入框前方的扩展内容，提供输入和提交操作 Slot Props |
 | `sender-footer`            | 输入区底部附加内容                 |
 | `sender-footer-right`      | 输入区底部右侧附加内容             |
 | `welcome-footer`           | 欢迎区域底部附加内容               |
@@ -736,6 +753,42 @@ const ui: ChatUIOptions = {
 
 完整插槽参数可以通过公开类型 `ChatUISlots` 查看。布局插槽会提供会话数据和对应操作函数；`layout-footer` 会提供输入值、输入状态、提交、取消和清空函数。
 
+### 7.1 左侧栏分区插槽
+
+不需要完整替换左侧栏时，可以只定制其中一个区域：
+
+| 插槽 | 区域 |
+| --- | --- |
+| `layout-left-aside-brand` | 品牌和侧栏顶部操作 |
+| `layout-left-aside-actions` | 新建会话或业务导航 |
+| `layout-left-aside-content` | 主内容区；未提供时默认渲染 `TrHistory` |
+| `layout-left-aside-footer` | 用户、设置或其他底部操作 |
+| `layout-left-aside-rail` | Dock 折叠态内容 |
+| `layout-left-aside-history-item-prefix` | 默认历史项前缀 |
+
+这些插槽提供公开的会话数据和操作函数，不绑定 `TrHistory` 实例。`layout-left-aside-content` 可以替换为收藏夹、项目列表或其他业务面板；提供该插槽后，默认历史列表不会渲染。旧的 `layout-left-aside` 优先级更高，仍可用于完整替换展开面板。
+
+历史默认数据来自 `conversation.history`。它可以是平铺会话数组，也可以是业务侧决定顺序和分组的数组：
+
+```ts
+const historyData = [
+  { group: '置顶', items: pinnedConversations },
+  { group: '昨天', items: yesterdayConversations },
+]
+```
+
+使用 Runtime 时通过 `TrChat` 传入：
+
+```vue
+<TrChat :runtime="runtime" :history-data="historyData">
+  <template #layout-left-aside-actions="{ createConversation }">
+    <BusinessNavigation @create="createConversation" />
+  </template>
+</TrChat>
+```
+
+`conversation.items` 仍然是会话事实数据，`historyData` 只是默认历史视图的排序和分组投影；当前选中会话仍由 `conversation.activeId` 控制。未提供 `historyData` 时，默认历史使用 `conversation.items` 的平铺顺序。
+
 ## 8. 错误处理
 
 `TrChat` 的 `runtime-action-error` 用于接收 Runtime 操作错误：
@@ -765,7 +818,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 - 模型切换和功能开关；
 - MCP Server 添加、删除、启用，以及工具开关。
 
-发送错误会恢复发送前的草稿并继续向调用方抛出；其他由页面触发的 Runtime 操作会通过事件报告，不产生未处理的 Promise rejection。
+发送错误会恢复发送前的草稿，并通过 `runtime-action-error` 报告；`useChatRuntimeAdapter.send()` 会以 `false` 结束，不会继续抛出 Promise rejection。直接调用 `runtime.actions.send()` 时，Runtime 仍可能抛出原始错误。其他由页面触发的 Runtime 操作会通过事件报告，不产生未处理的 Promise rejection。
 
 请求错误会在页面中显示。使用 `request-error` 插槽可以替换默认错误区域：
 
@@ -820,7 +873,9 @@ const runtime = useKitChatRuntime({
 
 ## 10. 仅使用界面层 TrChatUI
 
-`TrChatUI` 是高级接入方式，不是新项目首选。它接收普通的 `data`、`ui` 和 `inputValue`，通过事件通知外部；它不会创建会话、发送请求或管理模型状态。
+`TrChatUI` 是高级接入方式，不是新项目首选。它接收普通的 `data`、`ui` 和输入值，通过事件通知外部；它不会创建会话、发送请求或管理模型状态。
+
+传入 `inputValue` 时使用受控输入模式，必须响应 `update:inputValue`（模板中写作 `@update:input-value`）并同步外部值。也可以使用 `defaultInputValue` 初始化非受控输入；组件生命周期内不要在两种模式之间切换。
 
 下面是一个受控输入的最小示例：
 
@@ -861,6 +916,8 @@ function handleSubmit(payload: ChatSendPayload) {
 ```
 
 受控模式下，外部必须响应 `update:input-value` 并更新 `inputValue`。外部还需要处理会话、请求状态、取消、模型和 MCP 事件，并将最新事实写回 `data`。
+
+`ChatSendPayload` 预留了 `structuredData` 字段，但当前默认的 `useKitChatRuntime` 只将 `text` 写入用户消息，不会自动持久化或发送 `structuredData`。需要结构化内容端到端传递时，应使用自定义 Runtime，或先扩展默认 Runtime 的消息内容协议。
 
 ## 11. 常见问题
 
@@ -909,9 +966,12 @@ function handleSubmit(payload: ChatSendPayload) {
 | `TrChatUI`            | 纯界面层，接收 `ChatUIData` 和 UI 事件            |
 | `useLocalChatRuntime` | 新项目默认 Runtime，组装会话、Provider 和可选 MCP |
 | `useKitChatRuntime`   | 适配已有 Kit 会话                                 |
+| `useChatRuntimeAdapter` | 将自定义 `ChatRuntime` 投影为 `ChatUIData` 并处理 UI 动作 |
+| `useChatHistoryItems` | 将会话数据转换为历史列表项的高级辅助函数 |
+| `useChatHistoryData` | 将平铺或分组的会话展示数据转换为默认历史列表数据 |
 | `ChatUIOptions`       | `TrChat` 和 `TrChatUI` 的界面配置类型             |
 | `ChatProviderConfig`  | 模型服务配置类型                                  |
 | `ChatMcpServers`      | 声明式 MCP 服务配置类型                           |
 | `ChatRuntime`         | 自有状态管理接入时实现的 Runtime 协议             |
 
-其他常用公开类型包括 `ChatMcpServerConfig`、`ChatRuntimeActionErrorPayload`、`ChatSendPayload`、`ChatUISlots` 和 `ChatUIData`。
+其他常用公开类型包括 `ChatHistoryData`、`ChatHistoryGroup`、`ChatMcpServerConfig`、`ChatRuntimeActionErrorPayload`、`ChatSendPayload`、`ChatUISlots`、`ChatUIData`、`ChatUIProps`、`ChatUIEmits`、`ChatRunConfig`、`ChatMcpRuntime` 和浮动布局相关的 `LayoutFloatingState`。

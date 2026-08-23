@@ -14,6 +14,15 @@ export interface ChatConversationView {
   readonly items?: readonly ChatConversationInfo[]
   readonly activeId?: string | null
   readonly title?: string
+  /** Optional business-owned ordering and grouping for the default history view. */
+  readonly history?: ChatHistoryData
+}
+
+export type ChatHistoryData = readonly ChatConversationInfo[] | readonly ChatHistoryGroup[]
+
+export interface ChatHistoryGroup {
+  readonly group: string | symbol
+  readonly items: readonly ChatConversationInfo[]
 }
 
 export interface ChatBubbleView {

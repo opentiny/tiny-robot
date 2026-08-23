@@ -6,7 +6,7 @@ import type { ChatConversationView, ChatLabels } from '../../types'
 defineProps<{
   title: string
   isEmpty: boolean
-  conversation: Required<ChatConversationView>
+  conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
   isLeftAsideVisible: boolean
   isLeftAsideDrawer: boolean
   isLeftAsideOpen: boolean

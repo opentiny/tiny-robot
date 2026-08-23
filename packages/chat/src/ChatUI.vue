@@ -46,6 +46,7 @@ const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
 const hasFullRightAsideSlot = Boolean(slots['layout-right-aside'])
 const hasRightAsideContentSlot = Boolean(slots['layout-right-aside-content'])
+const hasLegacyLeftAsideSlot = Boolean(slots['layout-left-aside'])
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
@@ -233,11 +234,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         @close="asideState.closeLeftAside"
         @toggle="asideState.toggleLeftAside"
       >
-        <template v-if="$slots['layout-left-aside']" #default>
+        <template v-if="hasLegacyLeftAsideSlot" #default>
           <slot
             name="layout-left-aside"
             :conversation="resolvedData.conversation"
             :is-open="asideState.resolvedLeftAsideOpen.value"
+            :is-dock="asideState.isLeftAsideDock.value"
             :create-conversation="handleCreateConversation"
             :switch-conversation="(id: string) => handleSwitchConversation({ id })"
             :rename-conversation="(id: string, title: string) => handleRenameConversation({ id }, title)"
@@ -246,6 +248,27 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             :close-left-aside="asideState.closeLeftAside"
             :toggle-left-aside="asideState.toggleLeftAside"
           />
+        </template>
+        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-rail']" #rail="slotProps">
+          <slot name="layout-left-aside-rail" v-bind="slotProps" />
+        </template>
+        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-brand']" #brand="slotProps">
+          <slot name="layout-left-aside-brand" v-bind="slotProps" />
+        </template>
+        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-actions']" #actions="slotProps">
+          <slot name="layout-left-aside-actions" v-bind="slotProps" />
+        </template>
+        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-content']" #content="slotProps">
+          <slot name="layout-left-aside-content" v-bind="slotProps" />
+        </template>
+        <template v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-footer']" #footer="slotProps">
+          <slot name="layout-left-aside-footer" v-bind="slotProps" />
+        </template>
+        <template
+          v-if="!hasLegacyLeftAsideSlot && $slots['layout-left-aside-history-item-prefix']"
+          #history-item-prefix="slotProps"
+        >
+          <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
         </template>
       </ChatLeftAside>
     </template>

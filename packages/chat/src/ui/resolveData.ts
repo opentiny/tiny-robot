@@ -11,6 +11,7 @@ export function resolveChatUIData(data: ChatUIData | undefined, labels: ChatLabe
       items: data?.conversation?.items ?? defaults.conversation.items,
       activeId: data?.conversation?.activeId ?? defaults.conversation.activeId,
       title: data?.conversation?.title ?? defaults.conversation.title,
+      history: data?.conversation?.history,
     },
     bubble: {
       messages: data?.bubble?.messages ?? defaults.bubble.messages,

@@ -7,6 +7,7 @@ import type {
   ChatMcpView,
   ChatModelView,
   ChatBuiltInModelFeature,
+  ChatHistoryData,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
   ChatSendPayload,
@@ -16,6 +17,7 @@ import type {
 export interface UseChatRuntimeAdapterOptions {
   runtime: MaybeRefOrGetter<ChatRuntime>
   title?: MaybeRefOrGetter<string | undefined>
+  historyData?: MaybeRefOrGetter<ChatHistoryData | undefined>
   onActionError: (payload: ChatRuntimeActionErrorPayload) => void
 }
 
@@ -74,6 +76,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         items: runtime.value.conversations.value,
         activeId: active?.id ?? null,
         title: toValue(options.title) || active?.title,
+        history: toValue(options.historyData),
       },
       bubble: { messages: active?.messages ?? [] },
       sender: {

@@ -8,6 +8,7 @@ import type {
   ChatPromptClickPayload,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
+  ChatHistoryData,
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
@@ -20,6 +21,7 @@ const props = defineProps<{
   title?: string
   floatingState?: LayoutFloatingState
   rightAsidePanel?: string
+  historyData?: ChatHistoryData
 }>()
 
 const emit = defineEmits<{
@@ -43,6 +45,7 @@ const emit = defineEmits<{
 const adapter = useChatRuntimeAdapter({
   runtime: () => props.runtime,
   title: () => props.title,
+  historyData: () => props.historyData,
   onActionError: (payload) => emit('runtime-action-error', payload),
 })
 
@@ -101,6 +104,24 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     </template>
     <template v-if="$slots['layout-left-aside']" #layout-left-aside="slotProps">
       <slot name="layout-left-aside" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-brand']" #layout-left-aside-brand="slotProps">
+      <slot name="layout-left-aside-brand" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-actions']" #layout-left-aside-actions="slotProps">
+      <slot name="layout-left-aside-actions" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-content']" #layout-left-aside-content="slotProps">
+      <slot name="layout-left-aside-content" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-footer']" #layout-left-aside-footer="slotProps">
+      <slot name="layout-left-aside-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-rail']" #layout-left-aside-rail="slotProps">
+      <slot name="layout-left-aside-rail" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-history-item-prefix']" #layout-left-aside-history-item-prefix="slotProps">
+      <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
     </template>
     <template v-if="$slots['layout-right-aside']" #layout-right-aside="slotProps">
       <slot name="layout-right-aside" v-bind="slotProps" />

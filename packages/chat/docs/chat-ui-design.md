@@ -139,6 +139,19 @@ right-aside-open-change
 
 Slot props 只暴露公开数据和操作函数，不暴露内部组件实例。
 
+左侧 Aside 默认由 Brand、Actions、Content、Footer 四个区域组成。可通过以下细粒度 Slot 替换单个区域：
+
+| Slot | 作用 |
+| --- | --- |
+| `layout-left-aside-brand` | 品牌和顶部操作 |
+| `layout-left-aside-actions` | 新建会话或业务导航 |
+| `layout-left-aside-content` | 默认历史或其他业务面板 |
+| `layout-left-aside-footer` | 底部用户和设置区域 |
+| `layout-left-aside-rail` | Dock 折叠态 |
+| `layout-left-aside-history-item-prefix` | 默认历史项的业务前缀 |
+
+未提供 `layout-left-aside-content` 时，Content 默认使用 `TrHistory`。`ChatConversationView.history` 可提供平铺或分组的历史展示投影，分组规则和排序由业务侧决定；`items` 仍是会话事实来源，`activeId` 仍负责选中态。提供旧的 `layout-left-aside` 时，它优先于这些细粒度 Slot，以保持兼容。
+
 扩展 Slots：
 
 ```txt

@@ -17,7 +17,7 @@ import type {
 } from '../types'
 
 export interface DefaultChatUIData {
-  conversation: Required<ChatConversationView>
+  conversation: Required<Omit<ChatConversationView, 'history'>> & Pick<ChatConversationView, 'history'>
   bubble: {
     messages: []
   }

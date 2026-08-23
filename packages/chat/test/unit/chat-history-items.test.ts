@@ -1,6 +1,6 @@
 import { nextTick, ref } from 'vue'
 import { describe, expect, it } from 'vitest'
-import { useChatHistoryItems } from '../../src/composables/useChatHistoryItems'
+import { useChatHistoryData, useChatHistoryItems } from '../../src/composables/useChatHistoryItems'
 
 describe('useChatHistoryItems', () => {
   it('keeps the same item reference while syncing updated fields', async () => {
@@ -58,5 +58,32 @@ describe('useChatHistoryItems', () => {
 
     expect(historyItems.value[0]).toBe(firstItem)
     expect(historyItems.value[1]).not.toBe(firstItem)
+  })
+
+  it('preserves business-provided history groups while normalizing items', () => {
+    const source = [
+      { id: 'conversation-a', title: '置顶会话', metadata: { group: '置顶' } },
+      { id: 'conversation-b', title: '昨天会话', metadata: { group: '昨天' } },
+    ]
+    const history = [
+      { group: '置顶', items: [source[0]] },
+      { group: '昨天', items: [source[1]] },
+    ] as const
+    const historyData = useChatHistoryData({
+      conversations: source,
+      history,
+      defaultTitle: '新对话',
+    })
+
+    expect(historyData.value.map((group) => 'group' in group && group.group)).toEqual(['置顶', '昨天'])
+    expect(historyData.value[0]).toMatchObject({ items: [{ raw: source[0] }] })
+  })
+
+  it('falls back to a flat history when no projection is provided', () => {
+    const source = [{ id: 'conversation-a', title: '会话 A' }]
+    const historyData = useChatHistoryData({ conversations: source, defaultTitle: '新对话' })
+
+    expect(historyData.value).toHaveLength(1)
+    expect(historyData.value[0]).toMatchObject({ raw: source[0] })
   })
 })
