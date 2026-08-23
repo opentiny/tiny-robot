@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 import { IconArrowDown, IconCheck, IconPlus, IconVoice } from '@opentiny/tiny-robot-svgs'
-import type { ChatModelRuntime, ChatStructuredData } from '@opentiny/tiny-robot-chat'
+import type { ChatBuiltInModelFeature, ChatModelRuntime, ChatStructuredData } from '@opentiny/tiny-robot-chat'
 
 interface GeminiComposerProps {
   readonly value: string
@@ -14,11 +14,14 @@ interface GeminiComposerProps {
   readonly cancel: () => void
   readonly clear: () => void
   readonly model: ChatModelRuntime
+  readonly selectModel: (id: string | null) => Promise<void>
+  readonly setModelFeature: (id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void>
 }
 
 const props = defineProps<GeminiComposerProps>()
 const modelMenuOpen = shallowRef(false)
 const modelSelecting = shallowRef(false)
+const featureSetting = shallowRef(false)
 const modelMenuRef = useTemplateRef<HTMLElement>('modelMenu')
 const modelOptions = computed(() => props.model.options.value)
 const selectedModel = computed(() => modelOptions.value.find((option) => option.id === props.model.selectedId.value))
@@ -43,7 +46,7 @@ async function handleModelSelect(id: string) {
 
   modelSelecting.value = true
   try {
-    await props.model.select(id)
+    await props.selectModel(id)
     modelMenuOpen.value = false
   } finally {
     modelSelecting.value = false
@@ -51,8 +54,15 @@ async function handleModelSelect(id: string) {
 }
 
 async function toggleExtendedThinking() {
-  await props.model.setFeature('thinking', !extendedThinking.value)
-  modelMenuOpen.value = false
+  if (featureSetting.value) return
+
+  featureSetting.value = true
+  try {
+    await props.setModelFeature('thinking', !extendedThinking.value)
+    modelMenuOpen.value = false
+  } finally {
+    featureSetting.value = false
+  }
 }
 
 onMounted(() => {
@@ -80,7 +90,7 @@ onBeforeUnmount(() => {
     @clear="props.clear"
   >
     <template #prefix>
-      <button class="gemini-composer__add" type="button" aria-label="添加内容" title="添加内容">
+      <button class="gemini-composer__add" type="button" aria-label="添加内容" title="添加内容" disabled>
         <IconPlus :size="22" />
       </button>
     </template>
@@ -91,14 +101,16 @@ onBeforeUnmount(() => {
           type="button"
           aria-label="选择模型"
           title="选择模型"
+          aria-haspopup="menu"
+          aria-controls="gemini-model-menu"
           :aria-expanded="modelMenuOpen"
-          :disabled="modelSelecting"
+          :disabled="modelSelecting || featureSetting"
           @click.stop="modelMenuOpen = !modelMenuOpen"
         >
           <span>{{ selectedModel?.label ?? '选择模型' }}</span>
           <IconArrowDown :size="16" />
         </button>
-        <div v-if="modelMenuOpen" class="gemini-composer__dropdown" role="menu">
+        <div v-if="modelMenuOpen" id="gemini-model-menu" class="gemini-composer__dropdown" role="menu">
           <button
             v-for="option in modelOptions"
             :key="option.id"
@@ -106,6 +118,7 @@ onBeforeUnmount(() => {
             type="button"
             role="menuitemradio"
             :aria-checked="option.id === props.model.selectedId.value"
+            :disabled="modelSelecting || featureSetting"
             @click="handleModelSelect(option.id)"
           >
             <span class="gemini-composer__option-check">
@@ -122,6 +135,7 @@ onBeforeUnmount(() => {
             type="button"
             role="menuitemcheckbox"
             :aria-checked="extendedThinking"
+            :disabled="featureSetting"
             @click="toggleExtendedThinking"
           >
             <span class="gemini-composer__option-check">
@@ -134,7 +148,7 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </div>
-      <button class="gemini-composer__voice" type="button" aria-label="语音输入" title="语音输入">
+      <button class="gemini-composer__voice" type="button" aria-label="语音输入" title="语音输入" disabled>
         <IconVoice :size="22" />
       </button>
     </template>
@@ -154,6 +168,12 @@ onBeforeUnmount(() => {
   background: transparent;
   cursor: pointer;
   font-size: 26px;
+}
+
+.gemini-composer__add:disabled,
+.gemini-composer__voice:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .gemini-composer__add {
@@ -213,6 +233,11 @@ onBeforeUnmount(() => {
   background: #f5f6f7;
 }
 
+.gemini-composer__option:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .gemini-composer__option-check {
   display: inline-flex;
   align-items: center;
@@ -245,6 +270,14 @@ onBeforeUnmount(() => {
 .gemini-composer__model:hover,
 .gemini-composer__voice:hover {
   background: #f1f3f4;
+}
+
+.gemini-composer__add:focus-visible,
+.gemini-composer__model:focus-visible,
+.gemini-composer__voice:focus-visible,
+.gemini-composer__option:focus-visible {
+  outline: 2px solid #1476ff;
+  outline-offset: 2px;
 }
 
 :deep(.tr-sender) {

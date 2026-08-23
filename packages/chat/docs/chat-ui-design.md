@@ -107,7 +107,7 @@ right-aside-open-change
 - `TrChatUI` 只负责 Shell；草稿协调由 `useChatDraft` 完成。
 - Submit 只派发 `submit`，不自动清空。
 - Clear 同时派发 `update:inputValue('')` 和 `clear`。
-- Prompt 点击先写入输入值，再派发 `prompt-click`。
+- Prompt 点击只派发 `prompt-click`；输入回填或立即发送由业务侧决定。
 - `sender` 不再包含 `inputValue`。
 - `sender` 只包含底层 Sender 的静态配置。
 - 发送成功、返回 `false` 或 reject 后的清空与恢复由 `useChatDraft` 负责。

@@ -32,7 +32,7 @@ const emit = defineEmits<{
         >
           <img :src="sidebarToggleIcon" alt="" />
         </button>
-        <button class="deepseek-header__button" type="button" aria-label="搜索会话" title="搜索会话">
+        <button class="deepseek-header__button" type="button" aria-label="搜索会话" title="搜索会话" disabled>
           <img :src="searchIcon" alt="" />
         </button>
         <button
@@ -52,7 +52,7 @@ const emit = defineEmits<{
         <h1 class="deepseek-session-header__title">{{ title }}</h1>
         <span class="deepseek-session-header__mode">{{ modeLabel }}</span>
       </div>
-      <button class="deepseek-session-header__share" type="button" aria-label="分享会话" title="分享会话">
+      <button class="deepseek-session-header__share" type="button" aria-label="分享会话" title="分享会话" disabled>
         <IconShare :size="18" />
       </button>
     </header>
@@ -156,6 +156,18 @@ const emit = defineEmits<{
 .deepseek-session-header__share:hover {
   color: #4d6bfe;
   background: #eef1ff;
+}
+
+.deepseek-session-header__share:disabled,
+.deepseek-header__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.deepseek-session-header__share:focus-visible,
+.deepseek-header__button:focus-visible {
+  outline: 2px solid #4d6bfe;
+  outline-offset: 2px;
 }
 
 .deepseek-header__button {

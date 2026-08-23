@@ -56,6 +56,11 @@ const emit = defineEmits<{
   background: #f2f3f5;
 }
 
+.doubao-header__menu:focus-visible {
+  outline: 2px solid #3370ff;
+  outline-offset: 2px;
+}
+
 .doubao-header__menu img {
   width: 20px;
   height: 20px;

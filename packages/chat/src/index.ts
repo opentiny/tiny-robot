@@ -40,6 +40,7 @@ export type {
   ChatUIOptions,
   ChatUIProps,
   ChatUISlots,
+  ChatPromptClickPayload,
   ChatMessageContent,
   ChatMessageItem,
   ChatMessagePart,

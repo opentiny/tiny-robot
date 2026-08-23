@@ -2,7 +2,7 @@
 import type { HistoryMenuItem } from '@opentiny/tiny-robot'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconClose, IconEnterFullScreen, IconHistory, IconNewSession } from '@opentiny/tiny-robot-svgs'
-import { h } from 'vue'
+import { h, nextTick, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 import type { ChatHistoryItem } from '@opentiny/tiny-robot-chat'
 import type { TinyRobotDisplayMode } from './useTinyRobotWindow'
 import dockRightIcon from './icons/dock-right.svg'
@@ -27,29 +27,79 @@ const emit = defineEmits<{
 
 const IconDockRight = h('img', { src: dockRightIcon, alt: '' })
 const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
+const historyPanelId = 'tiny-robot-history-panel'
+const historyTriggerRef = useTemplateRef<HTMLElement>('historyTrigger')
+const historyPanelRef = useTemplateRef<HTMLElement>('historyPanel')
+
+function focusHistoryTrigger() {
+  historyTriggerRef.value?.querySelector<HTMLButtonElement>('button')?.focus()
+}
+
+function handleDocumentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && props.showHistory) {
+    emit('update:showHistory', false)
+  }
+}
+
+watch(
+  () => props.showHistory,
+  async (isOpen, wasOpen) => {
+    if (isOpen) {
+      await nextTick()
+      historyPanelRef.value?.focus()
+    } else if (wasOpen) {
+      await nextTick()
+      focusHistoryTrigger()
+    }
+  },
+)
+
+onMounted(() => document.addEventListener('keydown', handleDocumentKeydown))
+onBeforeUnmount(() => document.removeEventListener('keydown', handleDocumentKeydown))
 </script>
 
 <template>
   <div class="tiny-robot-window__header">
     <h1 class="tiny-robot-window__title">OpenTiny NEXT</h1>
     <div class="tiny-robot-window__operations">
-      <TrIconButton :icon="IconNewSession" size="28" svg-size="20" title="新会话" @click="emit('newSession')" />
-      <span class="tiny-robot-window__history-trigger">
+      <TrIconButton
+        :icon="IconNewSession"
+        size="28"
+        svg-size="20"
+        title="新会话"
+        aria-label="新会话"
+        @click="emit('newSession')"
+      />
+      <span ref="historyTrigger" class="tiny-robot-window__history-trigger">
         <TrIconButton
           :icon="IconHistory"
           size="28"
           svg-size="20"
           title="历史会话"
+          aria-label="历史会话"
+          aria-haspopup="dialog"
+          :aria-expanded="props.showHistory"
+          :aria-controls="historyPanelId"
           @click="emit('update:showHistory', !props.showHistory)"
         />
-        <div v-if="props.showHistory" class="tiny-robot-window__history-panel">
+        <div
+          v-if="props.showHistory"
+          :id="historyPanelId"
+          ref="historyPanel"
+          class="tiny-robot-window__history-panel"
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="tiny-robot-history-title"
+          tabindex="-1"
+        >
           <div class="tiny-robot-window__history-head">
-            <h2>历史对话</h2>
+            <h2 id="tiny-robot-history-title">历史对话</h2>
             <TrIconButton
               :icon="IconClose"
               size="28"
               svg-size="20"
               title="关闭历史对话"
+              aria-label="关闭历史对话"
               @click="emit('update:showHistory', false)"
             />
           </div>
@@ -57,7 +107,6 @@ const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
           <TrHistory
             class="tiny-robot-window__history"
             :selected="props.activeConversationId"
-            :search-bar="true"
             :data="props.historyData as ChatHistoryItem[]"
             @item-title-change="(title, item) => emit('historyTitleChange', title, item)"
             @item-click="(item) => emit('historySelect', item)"
@@ -92,7 +141,7 @@ const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
         aria-label="切换为全屏模式"
         @click="emit('changeMode', 'fullscreen')"
       />
-      <TrIconButton :icon="IconClose" size="28" svg-size="20" title="关闭" @click="emit('close')" />
+      <TrIconButton :icon="IconClose" size="28" svg-size="20" title="关闭" aria-label="关闭" @click="emit('close')" />
     </div>
   </div>
 </template>
@@ -147,6 +196,7 @@ const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
   height: 560px;
   padding: 16px;
   overflow: hidden;
+  overscroll-behavior: contain;
   border: 1px solid var(--tr-border-color-default);
   border-radius: 12px;
   background: var(--tr-container-bg-default);
@@ -170,10 +220,17 @@ const IconFloatWindow = h('img', { src: floatWindowIcon, alt: '' })
 .tiny-robot-window__history {
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   flex: 1;
   --tr-history-item-selected-bg: var(--tr-history-item-hover-bg);
   --tr-history-item-selected-color: var(--tr-color-primary);
   --tr-history-item-space-y: 4px;
+}
+
+.tiny-robot-window__operations :deep(.tr-icon-button:focus-visible),
+.tiny-robot-window__history-panel:focus-visible {
+  outline: 2px solid var(--tr-color-primary);
+  outline-offset: 2px;
 }
 
 @media (max-width: 640px) {

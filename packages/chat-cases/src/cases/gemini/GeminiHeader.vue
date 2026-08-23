@@ -9,11 +9,11 @@ defineProps<{
 <template>
   <div class="gemini-header" :class="{ 'is-session': !isEmpty }">
     <div class="gemini-header__actions">
-      <button class="gemini-upgrade" type="button" aria-label="升级" title="升级">
+      <button class="gemini-upgrade" type="button" aria-label="升级" title="升级" disabled>
         <IconSparkles :size="18" />
         <span>升级</span>
       </button>
-      <button class="gemini-header__feedback" type="button" aria-label="发送反馈" title="发送反馈">
+      <button class="gemini-header__feedback" type="button" aria-label="发送反馈" title="发送反馈" disabled>
         <IconEdit :size="18" />
       </button>
     </div>
@@ -45,6 +45,12 @@ defineProps<{
 
 .gemini-header__feedback:hover {
   background: #f1f3f4;
+}
+
+.gemini-header__feedback:disabled,
+.gemini-upgrade:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .gemini-header__actions {

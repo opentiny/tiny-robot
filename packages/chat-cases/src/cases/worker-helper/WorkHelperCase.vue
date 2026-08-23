@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { TrChat } from '@opentiny/tiny-robot-chat'
+import {
+  TrChat,
+  useChatRuntimeAdapter,
+  type ChatPromptClickPayload,
+  type ChatRuntimeActionErrorPayload,
+} from '@opentiny/tiny-robot-chat'
 import {
   IconAi,
   IconBrowser,
@@ -11,6 +16,7 @@ import {
 } from '@opentiny/tiny-robot-svgs'
 import { computed, h, markRaw, shallowRef } from 'vue'
 import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
+import { formatChatActionError } from '../../shared/runtime/formatChatActionError'
 
 const cards = [
   { id: 'trouble', title: '故障处理', prompt: '弹性公网IP不通怎么办?', tone: 'warning', icon: markRaw(IconWarning) },
@@ -29,10 +35,13 @@ const cards = [
 
 const promptBatchSize = 6
 const batchIndex = shallowRef(0)
-const isFullscreen = shallowRef(false)
-
+const actionErrorMessage = shallowRef('')
 const runtime = useChatCaseRuntime({
   storageKey: 'tiny-robot-work-helper-conversations',
+})
+const promptAdapter = useChatRuntimeAdapter({
+  runtime,
+  onActionError: handleRuntimeActionError,
 })
 
 const visibleCards = computed(() => {
@@ -98,27 +107,34 @@ function shuffleCards() {
   batchIndex.value = (batchIndex.value + 1) % Math.ceil(cards.length / promptBatchSize)
 }
 
-function handlePromptClick(payload: { item: { label: string; description?: string } }) {
-  void runtime.actions.send({ text: payload.item.description ?? payload.item.label })
+function handlePromptClick(payload: ChatPromptClickPayload) {
+  void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
+}
+
+function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
+  actionErrorMessage.value = formatChatActionError(payload.action)
 }
 </script>
 
 <template>
-  <div class="work-helper" :class="{ 'work-helper--fullscreen': isFullscreen }">
-    <TrChat class="work-helper__chat" :runtime="runtime" :ui="chatUi" @prompt-click="handlePromptClick">
-      <template #layout-header="{ title, isEmpty, openLeftAside }">
+  <div class="work-helper">
+    <div v-if="actionErrorMessage" class="work-helper__action-error" role="alert" aria-live="polite">
+      {{ actionErrorMessage }}
+    </div>
+    <TrChat
+      class="work-helper__chat"
+      :runtime="runtime"
+      :ui="chatUi"
+      @prompt-click="handlePromptClick"
+      @runtime-action-error="handleRuntimeActionError"
+    >
+      <template #layout-header="{ title, isEmpty, openLeftAside, createConversation }">
         <div class="work-helper__topbar">
           <button class="topbar-button" type="button" title="历史会话" aria-label="历史会话" @click="openLeftAside">
             <IconHistory :size="20" />
           </button>
           <div class="topbar-actions">
-            <button
-              class="topbar-button"
-              type="button"
-              title="新会话"
-              aria-label="新会话"
-              @click="runtime.actions.createConversation()"
-            >
+            <button class="topbar-button" type="button" title="新会话" aria-label="新会话" @click="createConversation">
               <IconNewSession :size="20" />
             </button>
           </div>
@@ -128,7 +144,7 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
 
       <template #prompts-footer>
         <div class="prompts-footer">
-          <button class="shuffle-button" type="button" @click="shuffleCards">
+          <button class="shuffle-button" type="button" aria-label="换一批提示" title="换一批提示" @click="shuffleCards">
             <IconRefresh :size="16" />
             换一批
           </button>
@@ -136,7 +152,7 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
       </template>
 
       <template #sender-footer-right>
-        <span class="work-helper__disclaimer">内容由AI生成，仅供参考 <a href="#service-notice">服务声明</a></span>
+        <span class="work-helper__disclaimer">内容由AI生成，仅供参考</span>
       </template>
     </TrChat>
   </div>
@@ -144,6 +160,7 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
 
 <style scoped>
 .work-helper {
+  position: relative;
   --work-helper-bg: #f7f7f9;
   min-height: 100vh;
   overflow: hidden;
@@ -151,10 +168,19 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
   background: var(--work-helper-bg);
 }
 
-.work-helper--fullscreen {
+.work-helper__action-error {
   position: fixed;
-  inset: 0;
-  z-index: 20;
+  top: 16px;
+  left: 50%;
+  z-index: 50;
+  padding: 8px 14px;
+  border: 1px solid #f3b4b4;
+  border-radius: 8px;
+  color: #9f1d1d;
+  background: #fff5f5;
+  box-shadow: 0 4px 12px rgb(31 35 41 / 12%);
+  font-size: 13px;
+  transform: translateX(-50%);
 }
 
 .work-helper :deep(.tr-chat-ui) {
@@ -259,6 +285,12 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
   transform: translateY(-2px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .work-helper :deep(.tr-prompt) {
+    transition: none;
+  }
+}
+
 .work-helper :deep(.tr-prompt__content-title) {
   font-size: 14px;
 }
@@ -324,6 +356,12 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
   background: rgba(0, 0, 0, 0.06);
 }
 
+.topbar-button:focus-visible,
+.shuffle-button:focus-visible {
+  outline: 2px solid #1476ff;
+  outline-offset: 2px;
+}
+
 .work-helper__conversation-title {
   position: absolute;
   top: 18px;
@@ -360,11 +398,6 @@ function handlePromptClick(payload: { item: { label: string; description?: strin
   color: #85868b;
   font-size: 12px;
   transform: translateX(50%);
-}
-
-.work-helper__disclaimer a {
-  color: inherit;
-  text-decoration: underline;
 }
 
 @media (max-width: 680px) {

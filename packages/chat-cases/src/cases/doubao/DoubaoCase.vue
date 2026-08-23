@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { computed, defineComponent, onBeforeUnmount, shallowRef } from 'vue'
-import { TrChat } from '@opentiny/tiny-robot-chat'
+import {
+  TrChat,
+  useChatRuntimeAdapter,
+  type ChatHistoryData,
+  type ChatPromptClickPayload,
+  type ChatRuntimeActionErrorPayload,
+} from '@opentiny/tiny-robot-chat'
 import DoubaoHeader from './DoubaoHeader.vue'
 import DoubaoSidebar from './DoubaoSidebar.vue'
 import { useChatCaseRuntime } from '../../shared/runtime/createChatRuntime'
+import { formatChatActionError } from '../../shared/runtime/formatChatActionError'
 import {
   doubaoConversationPrompts,
   doubaoConversationStorageKey,
@@ -19,6 +26,16 @@ type DoubaoNavigation = (typeof doubaoNavigation)[keyof typeof doubaoNavigation]
 const runtime = useChatCaseRuntime({
   storageKey: doubaoConversationStorageKey,
   initialConversations: doubaoMockConversations,
+})
+const actionErrorMessage = shallowRef('')
+const promptAdapter = useChatRuntimeAdapter({
+  runtime,
+  onActionError: handleRuntimeActionError,
+})
+const historyData = computed<ChatHistoryData>(() => {
+  const items = runtime.conversations.value
+
+  return items.length ? [{ group: '最近', items }] : []
 })
 // Avoid rendering the default IconAi twice; its fixed SVG IDs collide with the welcome icon.
 const emptyBrandLogo = defineComponent({
@@ -81,6 +98,14 @@ function handleNavigationChange(item: string) {
   }
 }
 
+function handlePromptClick(payload: ChatPromptClickPayload) {
+  void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
+}
+
+function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
+  actionErrorMessage.value = formatChatActionError(payload.action)
+}
+
 function handleConversationSelect(id: string, switchConversation: (id: string) => void) {
   switchConversation(id)
   activeNavigation.value = doubaoNavigation.chat
@@ -112,8 +137,17 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="doubao-case">
+    <div v-if="actionErrorMessage" class="doubao-case__action-error" role="alert" aria-live="polite">
+      {{ actionErrorMessage }}
+    </div>
     <main class="doubao-case__chat">
-      <TrChat :runtime="runtime" :ui="chatUi">
+      <TrChat
+        :runtime="runtime"
+        :ui="chatUi"
+        :history-data="historyData"
+        @prompt-click="handlePromptClick"
+        @runtime-action-error="handleRuntimeActionError"
+      >
         <template #layout-header="{ isLeftAsideOpen, toggleLeftAside }">
           <DoubaoHeader
             :is-sidebar-open="isLeftAsideOpen"
@@ -134,16 +168,16 @@ onBeforeUnmount(() => {
           }"
         >
           <DoubaoSidebar
-            v-if="isOpen"
             variant="fixed"
             :conversation="conversation"
+            :history-data="historyData"
+            :active-navigation="activeNavigation"
             @create-conversation="handleCreateConversation(createConversation)"
             @navigation-change="handleNavigationChange"
             @conversation-select="handleConversationSelect($event, switchConversation)"
             @conversation-title-change="(title, id) => handleConversationTitleChange(title, id, renameConversation)"
             @conversation-action="(action, id) => handleConversationAction(action, id, deleteConversation)"
           />
-
           <Teleport to="body">
             <Transition name="doubao-sidebar-slide" :css="!isOpen">
               <div
@@ -155,6 +189,8 @@ onBeforeUnmount(() => {
                 <DoubaoSidebar
                   variant="floating"
                   :conversation="conversation"
+                  :history-data="historyData"
+                  :active-navigation="activeNavigation"
                   @create-conversation="handleCreateConversation(createConversation)"
                   @navigation-change="handleNavigationChange"
                   @conversation-select="handleConversationSelect($event, switchConversation)"
@@ -169,13 +205,12 @@ onBeforeUnmount(() => {
         </template>
 
         <template #welcome-footer>
-          <div class="doubao-mode-switch" role="tablist" aria-label="模式切换">
+          <div class="doubao-mode-switch" role="group" aria-label="模式切换">
             <button
               class="doubao-mode-switch__item"
               :class="{ 'is-active': activeNavigation === doubaoNavigation.chat }"
               type="button"
-              role="tab"
-              :aria-selected="activeNavigation === doubaoNavigation.chat"
+              :aria-pressed="activeNavigation === doubaoNavigation.chat"
               @click="activeNavigation = doubaoNavigation.chat"
             >
               对话
@@ -184,8 +219,7 @@ onBeforeUnmount(() => {
               class="doubao-mode-switch__item"
               :class="{ 'is-active': activeNavigation === doubaoNavigation.work }"
               type="button"
-              role="tab"
-              :aria-selected="activeNavigation === doubaoNavigation.work"
+              :aria-pressed="activeNavigation === doubaoNavigation.work"
               @click="activeNavigation = doubaoNavigation.work"
             >
               工作
@@ -209,6 +243,21 @@ onBeforeUnmount(() => {
   --tr-chat-ui-header-bg: #fff;
   --tr-chat-ui-main-bg: #fff;
   --tr-chat-ui-footer-bg: #fff;
+}
+
+.doubao-case__action-error {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 50;
+  padding: 8px 14px;
+  border: 1px solid #f3b4b4;
+  border-radius: 8px;
+  color: #9f1d1d;
+  background: #fff5f5;
+  box-shadow: 0 4px 12px rgb(31 35 41 / 12%);
+  font-size: 13px;
+  transform: translateX(-50%);
 }
 
 .doubao-case__floating-sidebar {
@@ -360,5 +409,12 @@ onBeforeUnmount(() => {
   color: #1f2329;
   background: #fff;
   box-shadow: 0 1px 3px rgb(31 35 41 / 10%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doubao-sidebar-slide-enter-active,
+  .doubao-sidebar-slide-leave-active {
+    transition: none;
+  }
 }
 </style>

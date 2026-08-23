@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { TrHistory, type HistoryMenuItem } from '@opentiny/tiny-robot'
 import {
-  useChatHistoryItems,
+  useChatHistoryData,
   type ChatHistoryItem,
   type ChatConversationInfo,
   type ChatConversationView,
+  type ChatHistoryData,
 } from '@opentiny/tiny-robot-chat'
 import squarePenIcon from './icons/square-pen.svg'
 import { doubaoNavigation } from './config'
@@ -12,6 +13,8 @@ import { doubaoNavigation } from './config'
 const props = defineProps<{
   variant: 'fixed' | 'floating'
   conversation: ChatConversationView
+  historyData: ChatHistoryData
+  activeNavigation: string
 }>()
 
 const emit = defineEmits<{
@@ -27,8 +30,9 @@ const navigationItems = [
   { id: doubaoNavigation.chat, label: '新对话', icon: squarePenIcon },
 ]
 
-const historyItems = useChatHistoryItems({
+const historyItems = useChatHistoryData({
   conversations: () => props.conversation.items,
+  history: () => props.historyData,
   defaultTitle: '新对话',
 })
 
@@ -72,7 +76,9 @@ function getAvatarColor(item: ChatConversationInfo) {
         v-for="item in navigationItems"
         :key="item.id"
         class="doubao-sidebar__nav-item"
+        :class="{ 'is-active': props.activeNavigation === item.id }"
         type="button"
+        :aria-pressed="props.activeNavigation === item.id"
         @click="handleNavigationChange(item.id)"
       >
         <img class="doubao-sidebar__nav-icon" :src="item.icon" alt="" />
@@ -81,11 +87,10 @@ function getAvatarColor(item: ChatConversationInfo) {
     </nav>
 
     <section class="doubao-sidebar__recent" aria-label="最近会话">
-      <div class="doubao-sidebar__recent-title">最近</div>
       <!-- @vue-generic {ChatHistoryItem} -->
       <TrHistory
         class="doubao-sidebar__history"
-        :data="historyItems as unknown as ChatHistoryItem[]"
+        :data="historyItems as never"
         :selected="props.conversation.activeId ?? undefined"
         @item-click="handleConversationSelect"
         @item-title-change="handleConversationTitleChange"
@@ -174,6 +179,15 @@ function getAvatarColor(item: ChatConversationInfo) {
   color: #3370ff;
 }
 
+.doubao-sidebar__nav-item:focus-visible {
+  outline: 2px solid #3370ff;
+  outline-offset: 2px;
+}
+
+.doubao-sidebar__nav-item.is-active {
+  color: #3370ff;
+}
+
 .doubao-sidebar__nav-icon {
   width: 20px;
   height: 20px;
@@ -186,13 +200,6 @@ function getAvatarColor(item: ChatConversationInfo) {
   flex: 1;
   flex-direction: column;
   margin-top: 22px;
-}
-
-.doubao-sidebar__recent-title {
-  flex-shrink: 0;
-  margin-bottom: 8px;
-  color: #8f959e;
-  font-size: 12px;
 }
 
 .doubao-sidebar__avatar {
