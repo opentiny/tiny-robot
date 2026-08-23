@@ -1,39 +1,63 @@
-# __PROJECT_NAME__
+# **PROJECT_NAME**
 
-TinyRobot AI chat starter built with Vue 3 + Vite.
+This project is generated from the TinyRobot Chat Basic template. It covers conversations, streaming responses, cancellation, Markdown rendering, responsive history, themes, model capabilities, and MCP Server/Tool management.
 
-## Features
+## MCP support
 
-- Vue 3 + Vite + TypeScript project scaffold
-- TinyRobot chat UI with `TrBubbleList`, `TrSender`, and markdown rendering
-- Conversation management via `useConversation`
-- Model switch with thinking/search capability toggles
-- MCP server picker for add/toggle/delete server usage
-- MCP transport support for both `sse` and `streamableHttp`
-- Tool calling pipeline through `toolPlugin` + MCP `listTools` / `callTool`
-- Theme toggle and responsive layout for desktop/mobile
+The demo declares MCP Servers through `mcpServers`:
 
-## Setup
-
-1. Copy environment variables:
-
-```bash
-cp .env.example .env
+```ts
+const mcpServers = [
+  { id: 'amap-maps', name: '高德地图', baseUrl: 'https://...' },
+  {
+    id: 'model-context-protocol-mcp',
+    name: 'Model Context Protocol MCP',
+    baseUrl: '/modelcontextprotocol-mcp',
+    installed: true,
+  },
+]
 ```
 
-2. Fill your provider keys in `.env`:
+`installed: true` means initially installed only. The Server remains disabled and does not connect or discover Tools until enabled.
+
+| Server                     | Transport       | Authentication   |
+| -------------------------- | --------------- | ---------------- |
+| 高德地图                   | Streamable HTTP | Optional API Key |
+| Model Context Protocol MCP | Streamable HTTP | None             |
+
+Tools are discovered dynamically with `client.listTools()`. Tool choices are stored in the next user message's `runConfig` metadata snapshot, so changing a Tool affects subsequent turns without modifying a request already in progress.
+
+Server installation, enabling, Tool loading, retry, de-duplication, and Tool calls are handled by the default adapter in `@opentiny/tiny-robot-chat`. If a Server cannot load its Tools, it remains installed but is automatically disabled. Other enabled Servers and normal chat remain available.
+
+## Model connection modes
+
+- API Key only: connects directly to the official Qwen or DeepSeek endpoint.
+- `apiUrl` + API Key: connects to a custom service with frontend authentication.
+- `apiUrl` only: connects to a backend proxy without frontend authentication.
+
+The Chat package does not prompt for or validate missing API Keys. The upstream service or backend proxy decides whether authentication is required.
+
+MCP follows the same three modes: the official endpoint with an optional API Key, a custom `baseUrl` with optional headers, or a proxy `baseUrl` without headers.
+
+## Environment variables
+
+Copy `.env.example` to `.env.local`. Leave endpoint variables blank for official Provider/MCP defaults, or set them for custom services and backend proxies:
 
 ```env
-VITE_ALIYUN_DASHSCOPE_KEY=your_dashscope_key
-VITE_DEEPSEEK_API_KEY=your_deepseek_key
+VITE_QWEN_API_URL=
+VITE_DEEPSEEK_API_URL=
+VITE_AMAP_MCP_URL=
+VITE_ALIYUN_DASHSCOPE_KEY=
+VITE_DEEPSEEK_API_KEY=
 ```
 
-`VITE_ALIYUN_DASHSCOPE_KEY` is also used by configured MCP servers that require DashScope authorization.
+For a proxy setup, set for example `VITE_QWEN_API_URL=/api/chat/qwen`, `VITE_DEEPSEEK_API_URL=/api/chat/deepseek`, and `VITE_AMAP_MCP_URL=/api/mcp/amap-maps`, then leave the API Key variables blank.
+
+Variables prefixed with `VITE_` are exposed to browser code. Direct browser connections are intended only for servers without secrets and with CORS enabled. Production applications should keep credentials behind a backend or BFF proxy.
 
 ## Development
 
 ```bash
-pnpm install
 pnpm dev
 ```
 
@@ -41,5 +65,4 @@ pnpm dev
 
 ```bash
 pnpm build
-pnpm preview
 ```

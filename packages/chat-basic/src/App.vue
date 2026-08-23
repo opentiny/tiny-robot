@@ -6,6 +6,7 @@ import {
   type ChatProviderConfig,
   type ChatUIOptions,
 } from '@opentiny/tiny-robot-chat'
+import { TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
 
 const modelProviders: ChatProviderConfig[] = [
   {
@@ -79,7 +80,6 @@ const mcpServers = [
     name: 'Model Context Protocol MCP',
     description: 'MCP Server',
     baseUrl: '/modelcontextprotocol-mcp',
-    icon: '/modelcontextprotocol.png',
     installed: true,
   },
 ] satisfies ChatMcpServers
@@ -101,9 +101,11 @@ const chatUi = {
 </script>
 
 <template>
-  <div class="chat-basic">
-    <TrChat :runtime="runtime" :ui="chatUi" />
-  </div>
+  <TrTheme>
+    <div class="chat-basic">
+      <TrChat :runtime="runtime" :ui="chatUi" />
+    </div>
+  </TrTheme>
 </template>
 
 <style scoped>

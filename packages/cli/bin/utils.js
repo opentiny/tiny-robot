@@ -114,7 +114,7 @@ function renameSpecialFiles(targetDir) {
 }
 
 function replaceTemplateVariables(targetDir, variables) {
-  const replaceFiles = ['package.json', 'README.md']
+  const replaceFiles = ['package.json', 'README.md', 'index.html']
 
   for (const relativePath of replaceFiles) {
     const file = path.join(targetDir, relativePath)

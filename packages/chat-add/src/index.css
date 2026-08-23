@@ -57,10 +57,10 @@ body {
 }
 .chat-add-window {
   container-type: inline-size;
-  --tr-layout-bg-default: #f5f5f7;
-  --tr-chat-ui-header-bg: #f5f5f7;
-  --tr-chat-ui-main-bg: #f5f5f7;
-  --tr-chat-ui-footer-bg: #f5f5f7;
+  --tr-layout-bg-default: var(--tr-container-bg-default);
+  --tr-chat-ui-header-bg: var(--tr-container-bg-default);
+  --tr-chat-ui-main-bg: var(--tr-page-bg-default);
+  --tr-chat-ui-footer-bg: var(--tr-page-bg-default);
   --tr-suggestion-popover-width: min(440px, calc(100cqw - 16px));
   width: 100%;
   min-width: 0;

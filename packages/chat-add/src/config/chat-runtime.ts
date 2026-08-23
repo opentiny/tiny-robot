@@ -28,7 +28,6 @@ export const mcpServers: ChatMcpServers = [
     name: 'Model Context Protocol MCP',
     description: 'MCP Server',
     baseUrl: '/modelcontextprotocol-mcp',
-    icon: '/modelcontextprotocol.png',
     installed: true,
   },
 ]
