@@ -7,6 +7,7 @@ import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { TemplateSelectDropdownPluginKey } from './plugins'
 import type { SelectOption } from '../types'
 import { closeAllDropdowns, setupClickOutside } from './dropdown-manager'
+import { useTeleportTarget } from '../../../../shared/composables'
 
 interface NodeAttrs {
   id: string
@@ -21,6 +22,11 @@ interface Props {
   }
   updateAttributes: (attrs: Record<string, unknown>) => void
   editor: Editor
+  extension: {
+    options: {
+      appendTo?: string | HTMLElement
+    }
+  }
 }
 
 const props = defineProps<Props>()
@@ -32,6 +38,11 @@ const triggerRef = ref<HTMLElement>()
 const dropdownRef = ref<HTMLElement>()
 let cleanupClickOutside: (() => void) | null = null
 let cleanupAutoUpdate: (() => void) | null = null
+const teleportTarget = useTeleportTarget(triggerRef, props.extension.options.appendTo)
+const isCustomTeleportTarget = computed(() => {
+  const target = teleportTarget.value
+  return target instanceof HTMLElement && target !== document.body
+})
 
 // 计算属性
 const selectedOption = computed(() => {
@@ -136,7 +147,8 @@ const updatePosition = () => {
 
     computePosition(triggerRef.value, dropdownRef.value, {
       placement: 'bottom-start',
-      strategy: 'fixed', // 使用 fixed 定位策略，相对于视口
+      // 自定义挂载目标使用 absolute 定位
+      strategy: isCustomTeleportTarget.value ? 'absolute' : 'fixed', // 使用 fixed 定位策略，相对于视口
       middleware: [offset(4), flip(), shift({ padding: 8 })],
     }).then(({ x, y }) => {
       if (dropdownRef.value) {
@@ -252,8 +264,13 @@ onUnmounted(() => {
     </span>
     <span contenteditable="false" class="template-select__suffix">&#8203;</span>
 
-    <Teleport to="body">
-      <div v-if="showDropdown" ref="dropdownRef" class="template-select__dropdown">
+    <Teleport :to="teleportTarget">
+      <div
+        v-if="showDropdown"
+        ref="dropdownRef"
+        class="template-select__dropdown"
+        :class="{ 'is-absolute': isCustomTeleportTarget }"
+      >
         <div
           v-for="(option, index) in node.attrs.options"
           :key="option.value"
@@ -337,6 +354,10 @@ onUnmounted(() => {
   border-radius: 12px;
   box-shadow: var(--tr-sender-template-select-dropdown-shadow);
   padding: 6px;
+
+  &.is-absolute {
+    position: absolute;
+  }
 
   &::-webkit-scrollbar {
     width: 8px;
