@@ -90,6 +90,28 @@ test('add chat generates a self-contained component without changing the applica
   )
 })
 
+test('add chat targets a workspace root app when no member packages are configured', async (t) => {
+  const targetDir = createVueAppFixture(t)
+
+  fs.writeFileSync(
+    path.join(targetDir, 'pnpm-workspace.yaml'),
+    'onlyBuiltDependencies: []\n',
+  )
+
+  assert.equal(await addCommand.resolveTargetPackage(targetDir), targetDir)
+})
+
+test('add chat rejects an invalid workspace file before selecting the root app', async (t) => {
+  const targetDir = createVueAppFixture(t)
+
+  fs.writeFileSync(path.join(targetDir, 'pnpm-workspace.yaml'), 'packages: [\n')
+
+  await assert.rejects(
+    addCommand.resolveTargetPackage(targetDir),
+    /invalid pnpm workspace configuration/i,
+  )
+})
+
 test('add chat generates a right-docked window with a light-theme launcher', (t) => {
   const targetDir = createVueAppFixture(t)
 

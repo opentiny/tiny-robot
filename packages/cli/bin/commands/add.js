@@ -30,7 +30,7 @@ const DEPENDENCIES = {
   '@vueuse/core': VUEUSE_VERSION,
 }
 
-async function resolveTargetPackage(cwd) {
+export async function resolveTargetPackage(cwd) {
   const workspaceRoot = findWorkspaceRoot(cwd)
 
   if (workspaceRoot) {
@@ -42,6 +42,10 @@ async function resolveTargetPackage(cwd) {
 
     const workspacePatterns = findWorkspacePackages(workspaceRoot)
     const packageDirs = listPackages(workspaceRoot, workspacePatterns)
+
+    if (workspacePatterns.length === 0 && fs.existsSync(path.join(workspaceRoot, 'package.json'))) {
+      return workspaceRoot
+    }
 
     invariant(packageDirs.length > 0, 'no packages found in workspace.')
 

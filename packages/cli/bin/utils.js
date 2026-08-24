@@ -196,8 +196,12 @@ export function findWorkspacePackages(workspaceRoot) {
           (pattern) => typeof pattern === 'string' && pattern.length > 0 && !pattern.startsWith('!'),
         )
       : []
-  } catch {
-    return []
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+
+    throw new Error(`Invalid pnpm workspace configuration in ${workspaceFile}: ${reason}`, {
+      cause: error,
+    })
   }
 }
 
