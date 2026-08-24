@@ -23,4 +23,43 @@ test.describe('ExtensionCardPopover asChild CT', () => {
     await component.getByTestId('component-trigger').click()
     await expect(component.getByText('组件触发器内容')).toBeVisible()
   })
+
+  test('不支持原生 Popover API 时仍可打开，并响应 Escape 和外部点击关闭', async ({ mount, page }) => {
+    await page.evaluate(() => {
+      Object.defineProperties(HTMLElement.prototype, {
+        showPopover: { configurable: true, value: undefined },
+        hidePopover: { configurable: true, value: undefined },
+        togglePopover: { configurable: true, value: undefined },
+      })
+    })
+
+    const component = await mount(ExtensionCardPopoverFixture)
+
+    await component.locator('[popover]').evaluateAll((elements) => {
+      elements.forEach((element) => element.removeAttribute('popover'))
+    })
+    await component.locator('[popovertarget]').evaluateAll((elements) => {
+      elements.forEach((element) => {
+        element.removeAttribute('popovertarget')
+        element.removeAttribute('popovertargetaction')
+      })
+    })
+
+    const trigger = component.getByTestId('native-trigger')
+    const content = component.getByText('原生触发器内容')
+
+    await expect(content).toBeHidden()
+
+    await trigger.click()
+    await expect(content).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(content).toBeHidden()
+
+    await trigger.click()
+    await expect(content).toBeVisible()
+
+    await component.getByTestId('outside-target').click()
+    await expect(content).toBeHidden()
+  })
 })

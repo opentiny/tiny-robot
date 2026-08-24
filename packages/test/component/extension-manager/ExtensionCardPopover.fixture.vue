@@ -13,18 +13,12 @@ const CustomTrigger = defineComponent({
 
 <template>
   <div>
+    <button type="button" data-testid="outside-target">外部区域</button>
+
     <section data-testid="native-trigger-section">
       <ExtensionCardPopover as-child>
-        <template #trigger="{ popoverId, open }">
-          <button
-            type="button"
-            data-testid="native-trigger"
-            :popovertarget="popoverId"
-            popovertargetaction="toggle"
-            :aria-expanded="open"
-          >
-            原生触发器
-          </button>
+        <template #trigger="{ open }">
+          <button type="button" data-testid="native-trigger" :aria-expanded="open">原生触发器</button>
         </template>
         <template #content>
           <span>原生触发器内容</span>
@@ -34,8 +28,8 @@ const CustomTrigger = defineComponent({
 
     <section data-testid="component-trigger-section">
       <ExtensionCardPopover as-child>
-        <template #trigger="{ popoverId, open }">
-          <CustomTrigger :popovertarget="popoverId" popovertargetaction="toggle" :aria-expanded="open" />
+        <template #trigger="{ open }">
+          <CustomTrigger :aria-expanded="open" />
         </template>
         <template #content>
           <span>组件触发器内容</span>

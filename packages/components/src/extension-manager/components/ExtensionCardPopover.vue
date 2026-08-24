@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useEventListener } from '@vueuse/core'
 import type { ComponentPublicInstance, VNode } from 'vue'
-import { computed, ref, toRef } from 'vue'
+import { computed, onMounted, ref, toRef } from 'vue'
 import { useStableId } from '../../shared/composables'
 import { useAsChild, useExtensionCardPopoverPosition } from '../composables'
 import type { ExtensionCardPopoverPlacement } from '../internal.type'
@@ -24,6 +25,13 @@ const popoverId = `tr-extension-card-popover-${useStableId()}`
 const triggerRef = ref<HTMLElement | null>(null)
 const popoverRef = ref<HTMLElement | null>(null)
 const open = ref(false)
+const nativePopoverSupported = ref(false)
+
+onMounted(() => {
+  nativePopoverSupported.value =
+    typeof HTMLElement.prototype.showPopover === 'function' && typeof HTMLElement.prototype.hidePopover === 'function'
+})
+
 const { position } = useExtensionCardPopoverPosition({
   triggerRef,
   popoverRef,
@@ -49,6 +57,45 @@ const setTriggerRef = (target: Element | ComponentPublicInstance | null) => {
   triggerRef.value = element instanceof HTMLElement ? element : null
 }
 
+const close = () => {
+  if (!nativePopoverSupported.value) {
+    open.value = false
+    return
+  }
+
+  if (!popoverRef.value?.matches(':popover-open')) return
+  popoverRef.value.hidePopover()
+}
+
+const toggle = () => {
+  if (!nativePopoverSupported.value) {
+    open.value = !open.value
+    return
+  }
+
+  if (!popoverRef.value) return
+
+  if (popoverRef.value.matches(':popover-open')) {
+    popoverRef.value.hidePopover()
+  } else {
+    popoverRef.value.showPopover()
+  }
+}
+
+useEventListener('click', (event: MouseEvent) => {
+  if (nativePopoverSupported.value || !open.value || !(event.target instanceof Node)) return
+  if (triggerRef.value?.contains(event.target) || popoverRef.value?.contains(event.target)) return
+
+  close()
+})
+
+useEventListener('keydown', (event: KeyboardEvent) => {
+  if (nativePopoverSupported.value || !open.value || event.key !== 'Escape') return
+
+  close()
+  triggerRef.value?.focus()
+})
+
 const { renderAsChild } = useAsChild({
   getSlot: () => slots.trigger,
   componentName: 'ExtensionCardPopover',
@@ -62,13 +109,14 @@ const renderAsChildTrigger = () =>
     },
     {
       ref: setTriggerRef,
+      ...(nativePopoverSupported.value
+        ? {
+            popovertarget: popoverId,
+            popovertargetaction: 'toggle',
+          }
+        : { onClick: toggle }),
     },
   )
-
-const close = () => {
-  if (!popoverRef.value?.matches(':popover-open')) return
-  popoverRef.value.hidePopover()
-}
 
 const handleToggle = (event: ToggleEvent) => {
   open.value = event.newState === 'open'
@@ -77,13 +125,14 @@ const handleToggle = (event: ToggleEvent) => {
 
 <template>
   <component :is="renderAsChildTrigger()" v-if="asChild" />
-  <div v-else ref="triggerRef" class="tr-extension-card-popover__trigger">
+  <div v-else ref="triggerRef" class="tr-extension-card-popover__trigger" @click="toggle">
     <slot name="trigger" :popover-id="popoverId" :open="open" />
   </div>
   <div
     :id="popoverId"
     ref="popoverRef"
-    popover="auto"
+    v-show="nativePopoverSupported || open"
+    :popover="nativePopoverSupported ? 'auto' : undefined"
     class="tr-extension-card-popover__content"
     :style="popoverStyle"
     @toggle="handleToggle"
