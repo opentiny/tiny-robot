@@ -2,14 +2,20 @@ import { expect, test } from '@playwright/experimental-ct-vue'
 import ExtensionCardPopoverFixture from './ExtensionCardPopover.fixture.vue'
 
 test.describe('ExtensionCardPopover CT', () => {
-  test('默认触发器可以通过键盘打开浮层', async ({ mount }) => {
+  test('默认触发器暴露浮层状态并可以通过键盘打开', async ({ mount }) => {
     const component = await mount(ExtensionCardPopoverFixture)
     const trigger = component.getByRole('button', { name: '默认触发器' })
+    const controlledPopoverId = await trigger.getAttribute('aria-controls')
+
+    expect(controlledPopoverId).toBeTruthy()
+    await expect(component.locator(`#${controlledPopoverId}`)).toContainText('默认触发器内容')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
 
     await trigger.focus()
     await expect(trigger).toBeFocused()
 
     await trigger.press('Enter')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
     await expect(component.getByText('默认触发器内容')).toBeVisible()
   })
 
@@ -46,15 +52,9 @@ test.describe('ExtensionCardPopover CT', () => {
 
     const component = await mount(ExtensionCardPopoverFixture)
 
-    await component.locator('[popover]').evaluateAll((elements) => {
-      elements.forEach((element) => element.removeAttribute('popover'))
-    })
-    await component.locator('[popovertarget]').evaluateAll((elements) => {
-      elements.forEach((element) => {
-        element.removeAttribute('popovertarget')
-        element.removeAttribute('popovertargetaction')
-      })
-    })
+    await expect(component.locator('[popover]')).toHaveCount(0)
+    await expect(component.locator('[popovertarget]')).toHaveCount(0)
+    await expect(component.locator('[popovertargetaction]')).toHaveCount(0)
 
     const trigger = component.getByTestId('native-trigger')
     const content = component.getByText('原生触发器内容')

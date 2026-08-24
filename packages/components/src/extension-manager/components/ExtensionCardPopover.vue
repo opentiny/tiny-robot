@@ -125,7 +125,15 @@ const handleToggle = (event: ToggleEvent) => {
 
 <template>
   <component :is="renderAsChildTrigger()" v-if="asChild" />
-  <button v-else ref="triggerRef" type="button" class="tr-extension-card-popover__trigger" @click="toggle">
+  <button
+    v-else
+    ref="triggerRef"
+    type="button"
+    class="tr-extension-card-popover__trigger"
+    :aria-controls="popoverId"
+    :aria-expanded="open"
+    @click="toggle"
+  >
     <slot name="trigger" :popover-id="popoverId" :open="open" />
   </button>
   <div
