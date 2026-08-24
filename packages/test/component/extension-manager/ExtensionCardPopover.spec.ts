@@ -1,7 +1,18 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import ExtensionCardPopoverFixture from './ExtensionCardPopover.fixture.vue'
 
-test.describe('ExtensionCardPopover asChild CT', () => {
+test.describe('ExtensionCardPopover CT', () => {
+  test('默认触发器可以通过键盘打开浮层', async ({ mount }) => {
+    const component = await mount(ExtensionCardPopoverFixture)
+    const trigger = component.getByRole('button', { name: '默认触发器' })
+
+    await trigger.focus()
+    await expect(trigger).toBeFocused()
+
+    await trigger.press('Enter')
+    await expect(component.getByText('默认触发器内容')).toBeVisible()
+  })
+
   test('原生元素作为唯一触发节点且能够打开浮层', async ({ mount }) => {
     const component = await mount(ExtensionCardPopoverFixture)
     const section = component.getByTestId('native-trigger-section')

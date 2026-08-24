@@ -15,6 +15,17 @@ const CustomTrigger = defineComponent({
   <div>
     <button type="button" data-testid="outside-target">外部区域</button>
 
+    <section data-testid="default-trigger-section">
+      <ExtensionCardPopover>
+        <template #trigger>
+          <span>默认触发器</span>
+        </template>
+        <template #content>
+          <span>默认触发器内容</span>
+        </template>
+      </ExtensionCardPopover>
+    </section>
+
     <section data-testid="native-trigger-section">
       <ExtensionCardPopover as-child>
         <template #trigger="{ open }">

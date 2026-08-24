@@ -125,9 +125,9 @@ const handleToggle = (event: ToggleEvent) => {
 
 <template>
   <component :is="renderAsChildTrigger()" v-if="asChild" />
-  <div v-else ref="triggerRef" class="tr-extension-card-popover__trigger" @click="toggle">
+  <button v-else ref="triggerRef" type="button" class="tr-extension-card-popover__trigger" @click="toggle">
     <slot name="trigger" :popover-id="popoverId" :open="open" />
-  </div>
+  </button>
   <div
     :id="popoverId"
     ref="popoverRef"
@@ -144,6 +144,12 @@ const handleToggle = (event: ToggleEvent) => {
 <style lang="less" scoped>
 .tr-extension-card-popover__trigger {
   display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 
 .tr-extension-card-popover__content {
