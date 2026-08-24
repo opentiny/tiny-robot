@@ -47,13 +47,18 @@ jobs:
           cd packages/test
           npx playwright install --with-deps chromium
 
-      - name: Run Playwright Tests
-        run: pnpm test
+      - name: Run Playwright E2E Tests
+        run: pnpm -F tiny-robot-test test:e2e
+
+      - name: Run Playwright Component Tests
+        run: pnpm -F tiny-robot-test test:ct
 
       - name: Upload Playwright Test Report
         uses: actions/upload-artifact@v6
         if: always()
         with:
           name: playwright-report-${{ github.sha }}
-          path: packages/test/playwright-report/
+          path: |
+            packages/test/playwright-report/
+            packages/test/component/playwright-report/
           retention-days: 13
