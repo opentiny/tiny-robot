@@ -51,6 +51,7 @@ jobs:
         run: pnpm -F tiny-robot-test test:e2e
 
       - name: Run Playwright Component Tests
+        if: ${{ !cancelled() }}
         run: pnpm -F tiny-robot-test test:ct
 
       - name: Upload Playwright Test Report
