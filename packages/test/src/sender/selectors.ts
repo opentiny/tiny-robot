@@ -10,6 +10,8 @@ export const SENDER_SELECTORS = {
   toggleWordLimitBtn: '[data-testid="toggle-word-limit-btn"]',
   toggleSizeBtn: '[data-testid="toggle-size-btn"]',
   toggleExternalContentBtn: '[data-testid="toggle-external-content-btn"]',
+  toggleAttachmentsSourceBtn: '[data-testid="toggle-attachments-source-btn"]',
+  clearAttachmentsSourceItemsBtn: '[data-testid="clear-attachments-source-items-btn"]',
   submitTypeSelect: '[data-testid="submit-type-select"]',
   maxLengthInput: '[data-testid="max-length-input"]',
   placeholderInput: '[data-testid="placeholder-input"]',
@@ -39,6 +41,7 @@ export const SENDER_SELECTORS = {
   customFooterBtn: '[data-testid="custom-footer-btn"]',
 
   resultDisplay: '[data-testid="result-display"]',
+  submitDetailDisplay: '[data-testid="submit-detail-display"]',
   modeDisplay: '[data-testid="mode-display"]',
 
   mentionList: '.mention-list',

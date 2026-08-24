@@ -279,15 +279,15 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .custom-tabs {
     &__header {
-      padding: 0 12px;
+      padding: 0;
     }
 
     &__nav {
-      gap: 2px;
+      gap: 24px;
     }
 
     &__item {
-      padding: 6px 12px;
+      padding: 0;
       font-size: 13px;
     }
   }

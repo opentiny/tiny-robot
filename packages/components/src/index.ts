@@ -57,6 +57,8 @@ export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 
+export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
+export type { SenderContentRegister } from './shared/composables/useSenderContentRegistration'
 export {
   BubbleRendererMatchPriority,
   BubbleRenderers,

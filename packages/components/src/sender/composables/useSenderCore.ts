@@ -23,10 +23,12 @@ import {
 } from '../extensions'
 import { EXTENSION_NAMES } from '../extensions/constants'
 import { SENDER_CONTEXT_KEY, type SenderContext } from '../types/context'
+import { setupSenderContentRegistration } from '../../shared/composables'
 import { useEditor } from './useEditor'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 import { useModeSwitch } from './useModeSwitch'
 import { useAutoSize } from './useAutoSize'
+import { useSenderContentRegistry } from './useSenderContentRegistry'
 import { countGraphemes } from '../utils/countGraphemes'
 
 /**
@@ -75,8 +77,10 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
     return text.trim().length > 0
   })
 
+  const { hasRegisteredContent, registerContent, externalPayloads } = useSenderContentRegistry()
+
   const hasContent = computed(() => {
-    return hasEditorContent.value || Boolean(props.hasExternalContent)
+    return hasEditorContent.value || hasRegisteredContent.value || Boolean(props.hasExternalContent)
   })
 
   const characterCount = computed(() => {
@@ -133,8 +137,16 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
       textContent = editor.value.getText()
     }
 
-    // 触发 submit 事件
-    emit('submit', textContent, structuredData)
+    const submitExternalPayloads = externalPayloads.value.slice()
+
+    if (submitExternalPayloads.length === 0) {
+      emit('submit', textContent, structuredData)
+      return
+    }
+
+    emit('submit', textContent, structuredData, {
+      externalPayloads: submitExternalPayloads,
+    })
   }
 
   // ========================================
@@ -297,6 +309,7 @@ export function useSenderCore(props: SenderPropsWithDefaults, emit: SenderEmits)
 
   // 提供 Context
   provide(SENDER_CONTEXT_KEY, context)
+  setupSenderContentRegistration(registerContent)
 
   // ========================================
   // 10. 返回 Context 和 Expose
