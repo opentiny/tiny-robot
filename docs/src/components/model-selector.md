@@ -52,6 +52,12 @@ ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当
 
 <demo vue="../../demos/model-selector/slots.vue" title="完整插槽组合" description="自定义 Trigger、面板头、分组标题、模型项、空状态和 footer。" />
 
+#### 图标 Trigger
+
+`trigger` 插槽可以在桌面端显示图标与模型名称，在移动端只显示图标。插槽只替换按钮内容，组件仍然保留外层按钮的打开关闭、键盘操作和 ARIA 语义；没有图标时应回退到 `label`，避免出现空按钮。由于插槽会替换默认内容，示例同时自行渲染下拉箭头。
+
+<demo vue="../../demos/model-selector/icon-trigger.vue" title="响应式图标 Trigger" description="桌面端显示模型名称，移动端仅显示模型图标。" />
+
 ## 状态规则
 
 ### 受控与非受控
