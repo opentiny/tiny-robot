@@ -1,0 +1,131 @@
+<section class="section" id="architecture" data-title="整体架构">
+      <div class="section__heading">
+        <span class="section__number">03</span>
+        <h2>整体架构</h2>
+      </div>
+      <p class="conclusion">从页面到外部服务，Chat 用一条清晰的数据流串起多个可替换模块。</p>
+      <div class="diagram diagram--architecture">
+        <p class="diagram__caption">分层图 · UI、Runtime 与基础服务的调用方向</p>
+        <div class="mermaid">
+flowchart LR
+  ui["TrChatUI&lt;br/&gt;Layout · Messages · Composer"] --> trchat["TrChat&lt;br/&gt;事件与动作编排"]
+  trchat --> adapter["useChatRuntimeAdapter&lt;br/&gt;状态投影 · 草稿 · 错误"]
+  adapter --> runtime["ChatRuntime&lt;br/&gt;会话 · Composer · actions"]
+  runtime --> kit["Kit&lt;br/&gt;Conversation · Message Engine"]
+  kit --> services["Provider / MCP / Storage"]
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:24px">
+        <table>
+          <thead><tr><th>层</th><th>输入</th><th>输出</th><th>不负责什么</th></tr></thead>
+          <tbody>
+            <tr><td><strong>TrChatUI</strong></td><td>只读 Data、UI Options、输入值</td><td>UI 事件</td><td>不请求模型、不保存会话、不处理业务 pending</td></tr>
+            <tr><td><strong>TrChat</strong></td><td>UI 事件、ChatRuntime</td><td>Runtime 动作、公共事件</td><td>不实现消息引擎</td></tr>
+            <tr><td><strong>Adapter</strong></td><td>Runtime 可读状态和动作</td><td>ChatUIData、草稿和错误投影</td><td>不决定业务数据源</td></tr>
+            <tr><td><strong>ChatRuntime</strong></td><td>会话和 Composer 依赖</td><td>统一状态协议与动作协议</td><td>不限定 UI 结构</td></tr>
+            <tr><td><strong>Kit / Provider / MCP</strong></td><td>消息、请求和工具配置</td><td>流式消息、工具结果、持久化</td><td>不决定页面布局</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>替换点：</strong>
+        <span>新项目可以使用 <code>useLocalChatRuntime</code>；已有 Kit 会话可以使用 <code>useKitChatRuntime</code>；其他数据层只需要实现 <code>ChatRuntime</code>。</span>
+      </div>
+    </section>
+
+<div class="section__subsection" id="boundary">
+      <div class="section__heading">
+        <span class="section__number">05</span>
+        <h2>契约边界</h2>
+      </div>
+      <p class="conclusion">公开协议越小，替换成本越低；实现细节留在各自的包内。</p>
+      <div class="grid-2">
+        <div class="panel">
+          <span class="tag">ChatRuntime</span>
+          <h3>状态和动作</h3>
+          <pre data-lang="typescript"><code>interface ChatRuntime {
+  conversations: ChatReadable&lt;readonly ChatConversationInfo[]&gt;
+  activeConversation: ChatReadable&lt;Conversation | null&gt;
+  composer: ChatComposerRuntime
+  actions: ChatRuntimeActions
+}</code></pre>
+          <p class="muted">外部只需要关心当前会话、Composer 条件和动作入口。</p>
+        </div>
+        <div class="panel">
+          <span class="tag">ChatUI</span>
+          <h3>数据和配置</h3>
+          <pre data-lang="typescript"><code>interface ChatUIProps {
+  data?: Readonly&lt;ChatUIData&gt;
+  ui?: Readonly&lt;ChatUIOptions&gt;
+  inputValue?: string
+  defaultInputValue?: string
+}</code></pre>
+          <p class="muted">UI 不要求数据必须来自 Vue Ref，也不要求宿主使用 Kit。</p>
+        </div>
+      </div>
+    </div>
+
+<div class="section__subsection" id="lifecycle">
+      <div class="section__heading">
+        <span class="section__number">06</span>
+        <h2>一条消息的完整生命周期</h2>
+      </div>
+      <p class="conclusion">发送不是一个组件方法，而是一条从草稿、Runtime 到流式消息渲染的数据链路。</p>
+      <div class="diagram">
+        <p class="diagram__caption">流程图 · 从用户输入到流式消息渲染</p>
+        <div class="mermaid">
+flowchart LR
+  input["用户输入"] --> composer["ChatComposer"]
+  composer --> ui["TrChatUI&lt;br/&gt;submit"]
+  ui --> draft["useChatDraft&lt;br/&gt;trim · clear · restore"]
+  draft --> adapter["Adapter"]
+  adapter --> send["runtime.actions.send"]
+  send --> engine["Kit Message Engine"]
+  engine --> provider["Provider&lt;br/&gt;SSE"]
+  provider --> data["ChatUIData"]
+  data --> render["ChatMessages&lt;br/&gt;重新渲染"]
+  send -.->|reject| error["request error&lt;br/&gt;runtime-action-error"]
+  error -.-> draft
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:24px">
+        <div class="panel">
+          <span class="tag">true</span>
+          <h3>Runtime 接受发送</h3>
+          <p class="muted">已通过非空、disabled、submitDisabled 等前置条件，消息进入请求流程。</p>
+        </div>
+        <div class="panel">
+          <span class="tag">false</span>
+          <h3>没有创建消息</h3>
+          <p class="muted">资格不满足。草稿层会恢复提交前文本，页面不会伪造一条消息。</p>
+        </div>
+        <div class="panel">
+          <span class="tag">reject</span>
+          <h3>请求或引擎失败</h3>
+          <p class="muted">Runtime 记录错误，Adapter 报告动作错误，草稿恢复并展示 request error。</p>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:24px">
+        <div>
+          <div class="rule-block">
+            <h3>为什么先清空草稿</h3>
+            <p class="muted">提交后的输入区立即回到可继续输入的状态；如果发送未被接受或发生异常，再由 <code>useChatDraft</code> 恢复旧值。</p>
+          </div>
+          <div class="rule-block">
+            <h3>为什么先 trim</h3>
+            <p class="muted">空白文本不应该创建会话或消息；标题生成也使用有效文本，避免出现空标题。</p>
+          </div>
+        </div>
+        <div>
+          <div class="rule-block">
+            <h3>取消请求</h3>
+            <p class="muted">Footer 的 cancel 事件经 Adapter 调用 <code>runtime.actions.abort</code>，底层 AbortSignal 停止当前请求，状态进入 <code>aborted</code>。</p>
+          </div>
+          <div class="rule-block">
+            <h3>流式更新</h3>
+            <p class="muted">Message Engine 将响应块持续写入当前消息，Kit 的响应式消息变化向上投影，UI 只负责重新渲染。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+

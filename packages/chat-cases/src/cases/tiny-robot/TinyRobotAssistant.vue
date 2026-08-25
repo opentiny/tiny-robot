@@ -110,7 +110,7 @@ function handleHistoryAction(action: { id: string }, item: { raw: { id: string }
         <TinyRobotWindowHeader
           :display-mode="window.displayMode"
           :show-history="showHistory"
-          :history-data="historyData.value"
+          :history-data="historyData"
           :active-conversation-id="activeConversationId"
           @new-session="handleNewSession"
           @update:show-history="handleHistoryVisibility"

@@ -1,0 +1,84 @@
+<section class="section" id="provider" data-title="Provider 与模型能力">
+      <div class="section__heading">
+        <span class="section__number">05</span>
+        <h2>Provider 与模型能力</h2>
+      </div>
+      <p class="conclusion">Provider 把统一的 Chat 请求转换成具体模型服务理解的请求，并将流式结果交回消息引擎。</p>
+      <div class="grid-2">
+        <div>
+          <h3>配置层</h3>
+          <p class="muted"><code>ChatProviderConfig</code> 描述 Provider 类型、地址、请求头和模型列表；模型通过 <code>capabilities</code> 声明 thinking、search 等能力。</p>
+          <div class="status-list">
+            <div class="status"><span class="status__name">openai</span><span class="status__desc">OpenAI 兼容 Chat Completions 接口。</span></div>
+            <div class="status"><span class="status__name">deepseek</span><span class="status__desc">支持 thinking 请求体和 reasoning effort。</span></div>
+            <div class="status"><span class="status__name">qwen</span><span class="status__desc">支持 thinking、search 请求字段映射。</span></div>
+          </div>
+        </div>
+        <div>
+          <h3>运行层</h3>
+          <p class="muted">用户选择的模型和能力进入本轮 <code>runConfig</code>。Provider Request Plugin 将其映射为请求字段，Response Provider 发送 POST 流式请求并解析 SSE。</p>
+          <div class="callout"><strong>边界：</strong><span>浏览器端的 API Key 会进入客户端环境。生产环境应通过 BFF 或后端代理完成认证和请求转发。</span></div>
+        </div>
+      </div>
+      <div class="code">
+        <div class="code__bar"><div class="code__meta"><span>最小接入示例</span><span class="code__source">packages/chat/src/runtime/useLocalChatRuntime.ts</span></div><button class="copy-button" type="button" data-copy-target="provider-example">复制</button></div>
+        <pre id="provider-example" data-lang="typescript"><code>const runtime = useLocalChatRuntime({
+  modelProviders: [
+    {
+      type: 'openai',
+      apiUrl: '/api/chat',
+      models: [
+        {
+          id: 'demo-model',
+          label: 'Demo Model',
+        },
+      ],
+    },
+  ],
+})</code></pre>
+      </div>
+      <div class="grid-3">
+        <div class="panel"><span class="tag">capabilities</span><h3>控制可见能力</h3><p class="muted">只有当前模型声明支持的能力才会出现在 Composer 控件中。</p></div>
+        <div class="panel"><span class="tag">featureBody</span><h3>控制请求字段</h3><p class="muted">能力名称和真实 Provider 字段解耦，允许按模型覆盖映射。</p></div>
+        <div class="panel"><span class="tag">stream</span><h3>持续更新消息</h3><p class="muted">SSE 块由 Kit 消息引擎消费，页面不需要直接处理网络连接。</p></div>
+      </div>
+    </section>
+
+<div class="section__subsection" id="mcp">
+      <div class="section__heading">
+        <span class="section__number">10</span>
+        <h2>MCP 设计</h2>
+      </div>
+      <p class="conclusion">MCP 把外部工具纳入当前轮请求，但不把外部服务的连接细节泄漏到 UI。</p>
+      <div class="diagram">
+        <p class="diagram__caption">流程图 · MCP Server 到模型 Tool Call 的生命周期</p>
+        <div class="mermaid">
+flowchart LR
+  config["mcpServers&lt;br/&gt;配置 Server"] --> adapter["MCP Adapter&lt;br/&gt;安装 / 启用"]
+  adapter --> discovery["Tool Discovery"]
+  discovery --> tools["可用 Tools"]
+  tools --> snapshot["本轮 RunConfig&lt;br/&gt;serverIds · toolIds"]
+  snapshot --> engine["Message Engine"]
+  engine --> model["模型"]
+  model -->|Tool Call| adapter
+  adapter -->|Tool Result| model
+  model --> answer["继续生成回答"]
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:24px">
+        <div class="panel">
+          <span class="tag">Recommended</span>
+          <h3><code>mcpServers</code></h3>
+          <p class="muted">适合浏览器可访问的远程 Streamable HTTP MCP。Chat 创建默认 Adapter，负责 discovery、工具状态、超时和按需关闭 Client。</p>
+          <p class="muted">生产场景推荐将地址指向 BFF，由后端处理密钥、OAuth、CORS、权限和审计。</p>
+        </div>
+        <div class="panel">
+          <span class="tag">Advanced</span>
+          <h3>自定义 <code>mcp</code> Adapter</h3>
+          <p class="muted">适合 stdio、旧 SSE、OAuth、企业网关、连接复用或自定义权限系统。宿主提供 runtime、listTools 和 callTool。</p>
+          <p class="muted">默认 Adapter 不启动本地进程，也不负责保存长期凭证。</p>
+        </div>
+      </div>
+      <div class="callout"><strong>发送保护：</strong><span>已启用 Server 但 Tool 尚未加载完成时，Runtime 派生的 <code>submitDisabled</code> 会阻止发送；加载失败会记录 Server 错误并自动禁用。</span></div>
+    </div>
+
