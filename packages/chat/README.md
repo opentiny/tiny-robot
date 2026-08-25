@@ -871,6 +871,40 @@ const runtime = useKitChatRuntime({
 
 宿主负责创建和维护 `useConversation`。Chat Runtime 负责将它转换为 `TrChat` 使用的数据和操作。`composer` 是可选的，用于传入宿主已经维护的 Composer 状态；新项目使用 `useLocalChatRuntime` 时，模型 Provider 和声明式 MCP 应通过对应的 Local Runtime 配置提供。
 
+### 9.1 发送前校验与拦截
+
+`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、创建会话和用户消息前执行，适合校验当前模型、能力开关、MCP Server、工具权限和业务条件：
+
+```ts
+const runtime = useLocalChatRuntime({
+  modelProviders,
+  mcpServers,
+  beforeSend: ({ runConfig, model, mcp }) => {
+    if (!model || !runConfig?.modelId) {
+      throw new Error('请先选择模型')
+    }
+
+    for (const serverId of runConfig.mcp?.serverIds ?? []) {
+      const server = mcp?.servers.find((item) => item.id === serverId)
+
+      if (!server || server.loading || server.error || !mcp?.tools[serverId]) {
+        throw new Error(`MCP Server 不可用：${serverId}`)
+      }
+    }
+
+    return 'continue'
+  },
+})
+```
+
+返回值：
+
+- `continue`：继续发送；
+- `handled`：业务已经处理，不创建消息；
+- `reject`：阻止发送并保留草稿。
+
+回调抛出错误时会阻止发送、保留草稿，并通过 `runtime-action-error` 报告。回调接收的是当前发送的只读模型、MCP 和 `ChatRunConfig` 快照。
+
 ## 10. 仅使用界面层 TrChatUI
 
 `TrChatUI` 是高级接入方式，不是新项目首选。它接收普通的 `data`、`ui` 和输入值，通过事件通知外部；它不会创建会话、发送请求或管理模型状态。
@@ -974,4 +1008,4 @@ function handleSubmit(payload: ChatSendPayload) {
 | `ChatMcpServers`      | 声明式 MCP 服务配置类型                           |
 | `ChatRuntime`         | 自有状态管理接入时实现的 Runtime 协议             |
 
-其他常用公开类型包括 `ChatHistoryData`、`ChatHistoryGroup`、`ChatMcpServerConfig`、`ChatRuntimeActionErrorPayload`、`ChatSendPayload`、`ChatUISlots`、`ChatUIData`、`ChatUIProps`、`ChatUIEmits`、`ChatRunConfig`、`ChatMcpRuntime` 和浮动布局相关的 `LayoutFloatingState`。
+其他常用公开类型包括 `ChatHistoryData`、`ChatHistoryGroup`、`ChatMcpServerConfig`、`ChatRuntimeActionErrorPayload`、`ChatSendPayload`、`ChatBeforeSend`、`ChatBeforeSendContext`、`ChatUISlots`、`ChatUIData`、`ChatUIProps`、`ChatUIEmits`、`ChatRunConfig`、`ChatMcpRuntime` 和浮动布局相关的 `LayoutFloatingState`。

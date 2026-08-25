@@ -1,5 +1,5 @@
 import { useConversation, type UseConversationOptions, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
-import type { ChatComposerRuntime, ChatMcpRuntime } from '../types'
+import type { ChatBeforeSend, ChatComposerRuntime, ChatMcpRuntime } from '../types'
 import { useKitChatRuntime } from './useKitChatRuntime'
 import {
   createProviderModelRuntime,
@@ -25,6 +25,7 @@ export interface UseLocalChatRuntimeOptions {
     useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']>
   }
   titleGenerator?: (text: string) => string
+  beforeSend?: ChatBeforeSend
   composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
   modelProviders?: readonly ChatProviderConfig[]
   mcp?: UseLocalChatRuntimeMcpAdapter
@@ -80,6 +81,7 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
   return useKitChatRuntime({
     conversation,
     titleGenerator: resolveTitle,
+    beforeSend: options.beforeSend,
     composer: {
       ...composerOptions,
       model: providerRuntime?.model,

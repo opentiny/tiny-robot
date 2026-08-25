@@ -1,11 +1,12 @@
 import { checkbox, select } from '@inquirer/prompts'
+import { compileTemplate, parse } from '@vue/compiler-sfc'
 import { Argument } from 'commander'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import semver from 'semver'
 
 import {
-  copyFile,
   findProjectRoot,
   findSubPackageRoot,
   findWorkspacePackages,
@@ -15,7 +16,7 @@ import {
   listPackages,
   logSkip,
   logSuccess,
-  mergeEnvFile,
+  mergeEnvContent,
 } from '../utils.js'
 
 const TARGET_VERSION = '0.5.2-alpha.10'
@@ -31,11 +32,6 @@ const PACKAGE_STYLE_IMPORTS = [
   "import '@opentiny/tiny-robot/dist/style.css'",
   "import '@opentiny/tiny-robot-chat/dist/style.css'",
 ]
-const MCP_PROXY_ENTRY = `'/modelcontextprotocol-mcp': {
-  target: 'https://modelcontextprotocol.io/mcp',
-  changeOrigin: true,
-  rewrite: (path) => path.replace(/^\\/modelcontextprotocol-mcp/, ''),
-},`
 
 function logUnavailable(label) {
   logSkip(`${label} could not be applied`)
@@ -49,25 +45,60 @@ async function resolveTargetPackage(cwd, nonInteractive) {
   const workspaceRoot = findWorkspaceRoot(cwd)
 
   if (workspaceRoot) {
-    const subPackageRoot = findSubPackageRoot(cwd, workspaceRoot)
-
-    if (subPackageRoot) return subPackageRoot
-
     const workspacePatterns = findWorkspacePackages(workspaceRoot)
     const packageDirs = listPackages(workspaceRoot, workspacePatterns)
-    invariant(packageDirs.length > 0, 'no packages found in workspace.')
+    const subPackageRoot = findSubPackageRoot(cwd, workspaceRoot)
+
+    if (subPackageRoot) {
+      if (packageDirs.includes(subPackageRoot)) return subPackageRoot
+      throw new Error(
+        'The current package is not included by the workspace configuration. Run this command from an included package or update the workspace configuration.',
+      )
+    }
+
+    const normalizedCwd = path.resolve(cwd)
+    const normalizedWorkspaceRoot = path.resolve(workspaceRoot)
+    const rootPackageJson = path.join(workspaceRoot, 'package.json')
+
+    if (
+      normalizedCwd === normalizedWorkspaceRoot &&
+      workspacePatterns === undefined &&
+      packageDirs.length === 1 &&
+      packageDirs[0] === path.resolve(workspaceRoot) &&
+      fs.existsSync(rootPackageJson)
+    )
+      return workspaceRoot
+
+    if (normalizedCwd !== normalizedWorkspaceRoot) {
+      throw new Error(
+        'No package.json found in the current package path. Run add from the workspace root or a package directory.',
+      )
+    }
+
+    if (packageDirs.length === 0) {
+      const detail =
+        workspacePatterns === undefined
+          ? 'The workspace has no packages field and no package matched pnpm default workspace locations.'
+          : 'No packages matched the patterns in pnpm-workspace.yaml.'
+      throw new Error(`${detail} Run this command from an included package or update the workspace configuration.`)
+    }
+
+    if (packageDirs.length === 1) return packageDirs[0]
 
     if (nonInteractive) {
-      invariant(
-        packageDirs.length === 1,
-        'multiple packages found; run add from the target package directory when using --yes or --dry-run.',
+      throw new Error(
+        `Multiple workspace packages found. Run add from the target package directory when using --yes or --dry-run. Candidates: ${packageDirs
+          .map((dir) => path.relative(workspaceRoot, dir).replaceAll('\\', '/') || '.')
+          .join(', ')}`,
       )
-      return packageDirs[0]
     }
 
     return select({
       message: 'Multi-package workspace detected, select a target package:',
-      choices: packageDirs.map((dir) => ({ name: path.basename(dir), value: dir })),
+      choices: packageDirs.map((dir) => ({
+        name: path.relative(workspaceRoot, dir).replaceAll('\\', '/') || '(workspace root)',
+        value: dir,
+      })),
     })
   }
 
@@ -81,24 +112,29 @@ function getTemplateFile(...segments) {
 }
 
 function readPackageJson(pkgPath) {
-  return JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
-}
-
-function writePackageJson(pkgPath, pkg) {
-  fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`)
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+  invariant(pkg && typeof pkg === 'object' && !Array.isArray(pkg), 'package.json must contain a JSON object.')
+  return pkg
 }
 
 function findMainEntry(targetDir) {
   for (const file of ['src/main.ts', 'src/main.js']) {
     const fullPath = path.join(targetDir, file)
-    if (fs.existsSync(fullPath)) return fullPath
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) return fullPath
   }
   return null
 }
 
+function importedModule(line) {
+  const match = /^\s*import(?:\s+[\s\S]*?\sfrom\s+)?\s*['"]([^'"]+)['"]\s*;?\s*$/.exec(line)
+  return match?.[1] ?? null
+}
+
 function insertImport(content, importStatement) {
-  const lines = content.split('\n')
-  if (lines.some((line) => line.trim() === importStatement)) return content
+  const eol = content.includes('\r\n') ? '\r\n' : '\n'
+  const lines = content.replaceAll('\r\n', '\n').split('\n')
+  const moduleName = importedModule(importStatement)
+  if (moduleName && lines.some((line) => importedModule(line) === moduleName)) return content
 
   let lastImportIndex = -1
   for (let i = 0; i < lines.length; i++) {
@@ -111,24 +147,32 @@ function insertImport(content, importStatement) {
 
   if (lastImportIndex === -1) lines.unshift(importStatement)
   else lines.splice(lastImportIndex + 1, 0, importStatement)
-  return lines.join('\n')
+  return lines.join(eol)
 }
 
-function ensureStyleImports(mainFile, featureStyleImport) {
-  const before = fs.readFileSync(mainFile, 'utf-8')
+function ensureStyleImportsContent(before, featureStyleImport) {
   let after = before
   for (const styleImport of [...PACKAGE_STYLE_IMPORTS, featureStyleImport]) {
     after = insertImport(after, styleImport)
   }
-  if (after !== before) fs.writeFileSync(mainFile, after)
-  return { type: after === before ? 'skipped' : 'inserted' }
+  return { type: after === before ? 'skipped' : 'inserted', content: after }
+}
+
+function ensureStyleImports(mainFile, featureStyleImport) {
+  const before = fs.readFileSync(mainFile, 'utf-8')
+  const result = ensureStyleImportsContent(before, featureStyleImport)
+  if (result.type === 'inserted') fs.writeFileSync(mainFile, result.content)
+  return { type: result.type }
 }
 
 function findDependency(pkg, name) {
+  const matches = []
   for (const section of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
-    if (pkg[section]?.[name]) return { section, version: pkg[section][name] }
+    if (pkg[section] && Object.prototype.hasOwnProperty.call(pkg[section], name)) {
+      matches.push({ section, version: pkg[section][name] })
+    }
   }
-  return null
+  return matches
 }
 
 function insertDependencyOrdered(dependencies, name, version) {
@@ -146,22 +190,67 @@ function insertDependencyOrdered(dependencies, name, version) {
 }
 
 function ensureDependency(pkg, name, targetVersion) {
+  for (const section of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    const value = pkg[section]
+    if (value !== undefined && (value === null || typeof value !== 'object' || Array.isArray(value))) {
+      return { type: 'conflict', reason: `${section} must be a JSON object` }
+    }
+  }
+
   const existing = findDependency(pkg, name)
-  if (!existing) {
+  if (existing.length > 1) {
+    return { type: 'conflict', reason: `${name} is declared in multiple dependency sections` }
+  }
+
+  if (existing.length === 0) {
+    if (
+      pkg.dependencies !== undefined &&
+      (pkg.dependencies === null || typeof pkg.dependencies !== 'object' || Array.isArray(pkg.dependencies))
+    ) {
+      return { type: 'conflict', reason: 'dependencies must be a JSON object' }
+    }
     pkg.dependencies ??= {}
     pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetVersion)
     return { type: 'added', to: targetVersion, section: 'dependencies' }
   }
 
-  if (existing.version === targetVersion || existing.version.startsWith('workspace:')) {
-    return { type: 'skipped', section: existing.section, version: existing.version }
+  const dependency = existing[0]
+  if (typeof dependency.version === 'string' && dependency.version.startsWith('workspace:')) {
+    return { type: 'skipped', section: dependency.section, version: dependency.version }
   }
 
-  pkg[existing.section][name] = targetVersion
+  if (typeof dependency.version !== 'string' || !semver.validRange(dependency.version)) {
+    return {
+      type: 'conflict',
+      reason: `${name} has an unsupported version specifier (${String(dependency.version)})`,
+    }
+  }
+
+  const satisfies = semver.satisfies(targetVersion, dependency.version, { includePrerelease: true })
+
+  if (satisfies) return { type: 'skipped', section: dependency.section, version: dependency.version }
+
+  const minimum = typeof dependency.version === 'string' ? semver.minVersion(dependency.version) : null
+  if (
+    typeof dependency.version === 'string' &&
+    ((semver.valid(dependency.version) && semver.gte(dependency.version, targetVersion)) ||
+      (minimum && semver.gte(minimum, targetVersion)))
+  ) {
+    return { type: 'skipped', section: dependency.section, version: dependency.version }
+  }
+
+  if (dependency.section !== 'dependencies') {
+    return {
+      type: 'conflict',
+      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetVersion}`,
+    }
+  }
+
+  pkg.dependencies[name] = targetVersion
   return {
     type: 'updated',
-    section: existing.section,
-    from: existing.version,
+    section: dependency.section,
+    from: dependency.version,
     to: targetVersion,
   }
 }
@@ -171,6 +260,8 @@ function printDependencyResult(result, name) {
     logSuccess(`Added ${name}@${result.to}`)
   } else if (result.type === 'updated') {
     logSuccess(`Updated ${name} from ${result.from} to ${result.to}`)
+  } else if (result.type === 'conflict') {
+    logSkip(`${name} requires manual dependency resolution (${result.reason})`)
   } else {
     logSkip(`${name} already satisfies required version (${result.version})`)
   }
@@ -201,117 +292,64 @@ function getChatFeatureFiles(targetDir) {
   return featureFiles
 }
 
-function getViteConfigFile(targetDir) {
-  for (const name of ['vite.config.ts', 'vite.config.js', 'vite.config.mts', 'vite.config.mjs']) {
-    const file = path.join(targetDir, name)
-    if (fs.existsSync(file)) return file
-  }
-  return path.join(targetDir, 'vite.config.ts')
-}
-
-function findMatchingBrace(content, openIndex) {
-  let depth = 0
-  let quote = null
-  let escaped = false
-  for (let i = openIndex; i < content.length; i++) {
-    const char = content[i]
-    if (quote) {
-      if (escaped) escaped = false
-      else if (char === '\\') escaped = true
-      else if (char === quote) quote = null
-      continue
-    }
-    if (char === "'" || char === '"' || char === '`') {
-      quote = char
-      continue
-    }
-    if (char === '{') depth += 1
-    if (char === '}' && --depth === 0) return i
-  }
-  return -1
-}
-
-function getObjectRange(content, propertyName, start = 0) {
-  const match = new RegExp(`\\b${propertyName}\\s*:\\s*\\{`).exec(content.slice(start))
-  if (!match) return null
-  const openIndex = start + match.index + match[0].lastIndexOf('{')
-  const closeIndex = findMatchingBrace(content, openIndex)
-  return closeIndex === -1 ? null : { openIndex, closeIndex }
-}
-
-function proxyEntry(indent) {
-  return MCP_PROXY_ENTRY.trim().replaceAll('\n', `\n${indent}`)
-}
-
-function proxyBlock(indent) {
-  return `${indent}proxy: {\n${indent}  ${proxyEntry(`${indent}  `)}\n${indent}},`
-}
-
-function insertObjectProperty(content, closeIndex, property) {
-  const beforeClose = content.slice(0, closeIndex)
-  const trimmed = beforeClose.trimEnd()
-  const separator = trimmed && !trimmed.endsWith('{') && !trimmed.endsWith(',') ? ',' : ''
-  return `${content.slice(0, trimmed.length)}${separator}\n${property}${content.slice(closeIndex)}`
-}
-
-function createViteConfig() {
-  return `import { defineConfig } from 'vite'\nimport vue from '@vitejs/plugin-vue'\n\nexport default defineConfig({\n  plugins: [vue()],\n  server: {\n${proxyBlock('    ')}\n  },\n})\n`
-}
-
-function planViteProxy(configFile) {
-  if (!fs.existsSync(configFile)) return { type: 'create', content: createViteConfig() }
-  const before = fs.readFileSync(configFile, 'utf-8')
-  if (before.includes('/modelcontextprotocol-mcp')) return { type: 'skipped', content: before }
-  if (!/defineConfig\s*\(/.test(before)) return { type: 'manual', content: before }
-
-  const rootOpenIndex = before.indexOf('{', before.indexOf('defineConfig'))
-  const rootCloseIndex = rootOpenIndex === -1 ? -1 : findMatchingBrace(before, rootOpenIndex)
-  if (rootOpenIndex === -1 || rootCloseIndex === -1) return { type: 'manual', content: before }
-
-  const serverRange = getObjectRange(before, 'server', rootOpenIndex)
-  let after = before
-  if (!serverRange || serverRange.openIndex > rootCloseIndex) {
-    const insertion = `  server: {\n${proxyBlock('    ')}\n  },`
-    after = insertObjectProperty(before, rootCloseIndex, insertion)
-    return { type: 'merge', content: after }
+function parseMountTemplate(source, filename) {
+  const parsed = parse(source, { filename })
+  if (parsed.errors.length > 0 || !parsed.descriptor.template) {
+    return { type: 'manual', reason: 'App.vue template could not be parsed safely' }
   }
 
-  const serverContent = before.slice(serverRange.openIndex + 1, serverRange.closeIndex)
-  const proxyRange = getObjectRange(serverContent, 'proxy')
-  if (!proxyRange) {
-    if (/\bproxy\s*:/.test(serverContent)) return { type: 'manual', content: before }
-
-    const insertion = proxyBlock('    ')
-    after = insertObjectProperty(before, serverRange.closeIndex, insertion)
-    return { type: 'merge', content: after }
+  const compiled = compileTemplate({
+    source: parsed.descriptor.template.content,
+    filename,
+    id: 'tiny-robot-cli-mount',
+  })
+  if (compiled.errors.length > 0 || !compiled.ast) {
+    return { type: 'manual', reason: 'App.vue template could not be parsed safely' }
   }
 
-  const proxyOpen = serverRange.openIndex + 1 + proxyRange.openIndex
-  const proxyClose = serverRange.openIndex + 1 + proxyRange.closeIndex
-  const proxyValue = before.slice(proxyOpen + 1, proxyClose)
-  const proxyPrefix = before.slice(0, proxyClose)
-  const trailingWhitespace = proxyPrefix.match(/\s*$/)?.[0] ?? ''
-  const insertionPoint = proxyClose - trailingWhitespace.length
-  const separator = proxyValue.trim() ? (proxyValue.trim().endsWith(',') ? '\n' : ',\n') : '\n'
-  const insertion = `${separator}      ${proxyEntry('      ')}${trailingWhitespace}`
-  after = `${before.slice(0, insertionPoint)}${insertion}${before.slice(proxyClose)}`
-  return { type: 'merge', content: after }
+  return { type: 'parsed', block: parsed.descriptor.template, components: compiled.ast.components ?? [] }
+}
+
+function findTemplateClose(block) {
+  return block.loc.end.offset
 }
 
 function planMount(targetDir) {
   const appFile = path.join(targetDir, 'src/App.vue')
   if (!fs.existsSync(appFile)) return { type: 'manual', reason: 'src/App.vue was not found' }
+  if (!fs.statSync(appFile).isFile()) return { type: 'manual', reason: 'src/App.vue is not a file' }
   const before = fs.readFileSync(appFile, 'utf-8')
-  if (/<TinyRobotChat(?:\s|\/?>)/.test(before)) return { type: 'skipped', content: before }
 
-  if (before.lastIndexOf('</template>') === -1)
-    return { type: 'manual', reason: 'App.vue does not contain a template block' }
+  const templatePlan = parseMountTemplate(before, appFile)
+  if (templatePlan.type === 'manual') return templatePlan
+  if (templatePlan.components.includes('TinyRobotChat')) return { type: 'skipped', content: before }
+
   const importStatement = "import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue'"
   let after = before
-  const setupMatch = /<script\s+setup(?:\s[^>]*)?>/.exec(before)
+  const setupMatch = /<script\s+setup(?:\s[^>]*)?>([\s\S]*?)<\/script>/i.exec(before)
   if (setupMatch) {
-    if (!before.includes(importStatement)) {
-      const insertionIndex = setupMatch.index + setupMatch[0].length
+    const setupContent = setupMatch[1]
+    const defaultImport = /^\s*import\s+TinyRobotChat\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/m.exec(setupContent)
+    const featureImport =
+      /^\s*import\s+([A-Za-z_$][\w$]*)\s+from\s+['"]\.\/tiny-robot-chat\/TinyRobotChat\.vue['"]\s*;?\s*$/m.exec(
+        setupContent,
+      )
+    const namedImport = /^\s*import\s*\{[^}]*\bTinyRobotChat\b[^}]*\}\s*from\s+['"][^'"]+['"]\s*;?\s*$/m.test(
+      setupContent,
+    )
+    const localBinding = /^\s*(?:const|let|var|function|class)\s+TinyRobotChat\b/m.test(setupContent)
+
+    if (
+      namedImport ||
+      localBinding ||
+      (defaultImport && defaultImport[1] !== './tiny-robot-chat/TinyRobotChat.vue') ||
+      (featureImport && featureImport[1] !== 'TinyRobotChat')
+    ) {
+      return { type: 'manual', reason: 'App.vue already declares TinyRobotChat with a different binding' }
+    }
+
+    if (!defaultImport) {
+      const insertionIndex = setupMatch.index + setupMatch[0].indexOf('>') + 1
       after = `${before.slice(0, insertionIndex)}\n${importStatement}${before.slice(insertionIndex)}`
     }
   } else if (/<script(?:\s[^>]*)?>/.test(before)) {
@@ -319,14 +357,22 @@ function planMount(targetDir) {
   } else {
     after = `<script setup lang="ts">\n${importStatement}\n</script>\n\n${before}`
   }
-  const templateClose = after.lastIndexOf('</template>')
-  after = `${after.slice(0, templateClose)}  <TinyRobotChat />\n${after.slice(templateClose)}`
+
+  const updatedTemplate = parseMountTemplate(after, appFile)
+  if (updatedTemplate.type === 'manual') return updatedTemplate
+  const templateClose = findTemplateClose(updatedTemplate.block)
+  if (templateClose === -1) return { type: 'manual', reason: 'App.vue template closing tag was not found' }
+  const beforeClose = after.slice(0, templateClose).trimEnd()
+  const lineIndent = /^\s*/.exec(beforeClose.slice(beforeClose.lastIndexOf('\n') + 1))?.[0] ?? ''
+  const indent = lineIndent || '  '
+  after = `${beforeClose}\n${indent}<TinyRobotChat />\n${after.slice(templateClose)}`
   return { type: 'merge', content: after }
 }
 
 function inspectFeatureFiles(files) {
   return files.map((file) => {
     if (!fs.existsSync(file.target)) return { ...file, type: 'create' }
+    if (!fs.statSync(file.target).isFile()) return { ...file, type: 'conflict', reason: 'target is not a file' }
     const same = fs.readFileSync(file.source).equals(fs.readFileSync(file.target))
     return { ...file, type: same ? 'skipped' : 'conflict' }
   })
@@ -341,8 +387,7 @@ function getChatFeatureChoices(targetDir, options) {
   return [
     { label: 'Chat feature files', enabled: true },
     { label: 'main entry style imports', enabled: Boolean(mainEntry) },
-    { label: 'Vite MCP proxy', enabled: true },
-    { label: '.env', enabled: true },
+    { label: '.env.example', enabled: true },
     { label: 'package.json', enabled: true },
     ...(options.mount ? [{ label: 'App.vue mount', enabled: fs.existsSync(path.join(targetDir, 'src/App.vue')) }] : []),
   ].map((item) => ({ ...item, mainEntry }))
@@ -350,7 +395,8 @@ function getChatFeatureChoices(targetDir, options) {
 
 async function selectFileChanges(targetDir, options) {
   const files = getChatFeatureChoices(targetDir, options)
-  if (options.yes || options.dryRun) return files.filter((file) => file.enabled).map((file) => file.label)
+  if (options.yes || options.dryRun || options.nonInteractive)
+    return files.filter((file) => file.enabled).map((file) => file.label)
   return checkbox({
     message: 'Select which file changes to apply (all selected by default):',
     choices: files.map((file) => ({
@@ -366,28 +412,212 @@ function isSelected(selectedFiles, label) {
   return selectedFiles.includes(label)
 }
 
-function copyFeatureFiles(files, targetDir) {
-  for (const file of inspectFeatureFiles(files)) {
-    if (file.type === 'conflict')
-      throw new Error(`file conflict: ${formatRelative(file.target, targetDir)} already exists with different content`)
-    if (file.type === 'create') {
-      copyFile(file.source, file.target)
-      logSuccess(`Created ${formatRelative(file.target, targetDir)}`)
-    } else logSkip(`${formatRelative(file.target, targetDir)} already exists`)
+function getDependencyPlan(pkg) {
+  const preview = JSON.parse(JSON.stringify(pkg))
+
+  return Object.entries(DEPENDENCIES).map(([name, version]) => ({
+    name,
+    result: ensureDependency(preview, name, version),
+  }))
+}
+
+function getEnvPlan(targetDir) {
+  const templateFile = getTemplateFile('.env.example')
+  const targetFile = path.join(targetDir, '.env.example')
+
+  if (!fs.existsSync(templateFile)) return { type: 'unavailable' }
+  if (!fs.existsSync(targetFile)) return { type: 'create', targetFile, content: fs.readFileSync(templateFile) }
+  invariant(fs.statSync(targetFile).isFile(), '.env.example exists and is not a file.')
+
+  const result = mergeEnvContent(fs.readFileSync(templateFile, 'utf-8'), fs.readFileSync(targetFile, 'utf-8'))
+  return { ...result, targetFile }
+}
+
+function formatPlanStatus(type) {
+  if (type === 'create') return '+'
+  if (type === 'merge') return '~'
+  if (type === 'unavailable' || type === 'conflict') return '!'
+  return '○'
+}
+
+function printManualMcpSetup() {
+  console.log('  ! Manual: add the Model Context MCP proxy to vite.config.* under server.proxy')
+}
+
+function fileContent(content) {
+  return Buffer.isBuffer(content) ? content : Buffer.from(content)
+}
+
+function addFileChange(changes, target, content, message) {
+  if (fs.existsSync(target)) invariant(fs.statSync(target).isFile(), `${target} exists and is not a file.`)
+
+  const next = fileContent(content)
+  if (fs.existsSync(target) && fs.readFileSync(target).equals(next)) return false
+
+  changes.push({ target, content, message })
+  return true
+}
+
+function applyChanges(changes) {
+  const snapshots = changes.map(({ target }) => ({
+    target,
+    existed: fs.existsSync(target),
+    content: fs.existsSync(target) ? fs.readFileSync(target) : null,
+  }))
+  const createdDirectories = new Set()
+
+  try {
+    for (const change of changes) {
+      let directory = path.dirname(change.target)
+      const missingDirectories = []
+      while (!fs.existsSync(directory)) {
+        missingDirectories.push(directory)
+        directory = path.dirname(directory)
+      }
+      fs.mkdirSync(path.dirname(change.target), { recursive: true })
+      for (const missingDirectory of missingDirectories) createdDirectories.add(missingDirectory)
+      fs.writeFileSync(change.target, change.content)
+    }
+  } catch (error) {
+    for (const snapshot of snapshots.reverse()) {
+      if (snapshot.existed) fs.writeFileSync(snapshot.target, snapshot.content)
+      else if (fs.existsSync(snapshot.target)) fs.rmSync(snapshot.target, { force: true })
+    }
+    for (const directory of [...createdDirectories].sort((left, right) => right.length - left.length)) {
+      if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) fs.rmdirSync(directory)
+    }
+
+    throw new Error(
+      `Failed to apply changes; all changes were rolled back: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 }
 
-function applyMount(targetDir, mountPlan) {
-  if (mountPlan.type === 'manual') {
-    logUnavailable(`App.vue mount (${mountPlan.reason})`)
-    return
+function validateSelection(selectedFiles, pkg, featureInspection, mountPlan, allowManualMount) {
+  const featureFilesSelected = isSelected(selectedFiles, 'Chat feature files')
+  const featureFilesMissing = featureInspection.some((file) => file.type === 'create')
+
+  if (!featureFilesSelected && featureFilesMissing && isSelected(selectedFiles, 'main entry style imports')) {
+    throw new Error('Select Chat feature files before adding the local feature style import.')
   }
-  if (mountPlan.type === 'skipped') {
-    logSkip('App.vue already mounts TinyRobotChat')
-    return
+
+  if (!featureFilesSelected && featureFilesMissing && isSelected(selectedFiles, 'App.vue mount')) {
+    throw new Error('Select Chat feature files before mounting TinyRobotChat in App.vue.')
   }
-  fs.writeFileSync(path.join(targetDir, 'src/App.vue'), mountPlan.content)
-  logSuccess('Mounted TinyRobotChat in src/App.vue')
+
+  if (isSelected(selectedFiles, 'App.vue mount') && mountPlan?.type === 'manual' && !allowManualMount) {
+    throw new Error(`cannot safely mount TinyRobotChat: ${mountPlan.reason}`)
+  }
+
+  if (isSelected(selectedFiles, 'package.json')) return
+
+  const dependencyChanges = getDependencyPlan(pkg).filter(({ result }) => result.type !== 'skipped')
+  if (dependencyChanges.length > 0 && (featureFilesSelected || isSelected(selectedFiles, 'main entry style imports'))) {
+    throw new Error(
+      'Select package.json when adding the chat feature or its style imports so required dependencies can be checked.',
+    )
+  }
+}
+
+function prepareChanges(targetDir, selectedFiles, context) {
+  const { featureInspection, mainFile, mountPlan, pkgPath, pkg, allowConflicts } = context
+  const changes = []
+  const results = { featureInspection, style: null, env: null, dependencies: [], mount: null, dependencyChanged: false }
+
+  if (isSelected(selectedFiles, 'Chat feature files')) {
+    const conflicts = featureInspection.filter((file) => file.type === 'conflict')
+    if (conflicts.length > 0 && !allowConflicts) {
+      throw new Error(
+        `file conflicts detected:\n${conflicts.map((file) => `  - ${formatRelative(file.target, targetDir)}`).join('\n')}\nResolve the conflicts and run add chat again.`,
+      )
+    }
+    for (const file of featureInspection) {
+      if (file.type === 'create')
+        addFileChange(
+          changes,
+          file.target,
+          fs.readFileSync(file.source),
+          `Created ${formatRelative(file.target, targetDir)}`,
+        )
+    }
+  }
+
+  if (isSelected(selectedFiles, 'main entry style imports')) {
+    if (!mainFile) results.style = { type: 'unavailable' }
+    else {
+      const styleResult = ensureStyleImportsContent(
+        fs.readFileSync(mainFile, 'utf-8'),
+        "import './tiny-robot-chat/index.css'",
+      )
+      results.style = styleResult
+      if (styleResult.type === 'inserted')
+        addFileChange(changes, mainFile, styleResult.content, 'Inserted TinyRobot and Chat feature style imports')
+    }
+  }
+
+  if (isSelected(selectedFiles, '.env.example')) {
+    results.env = getEnvPlan(targetDir)
+    if (results.env.type === 'create')
+      addFileChange(changes, results.env.targetFile, results.env.content, 'Created .env.example')
+    if (results.env.type === 'merged')
+      addFileChange(changes, results.env.targetFile, results.env.content, `Added ${results.env.added} env variables`)
+  }
+
+  if (isSelected(selectedFiles, 'package.json')) {
+    for (const [name, version] of Object.entries(DEPENDENCIES)) {
+      const result = ensureDependency(pkg, name, version)
+      if (result.type === 'conflict' && !allowConflicts) throw new Error(`${name}: ${result.reason}`)
+      results.dependencies.push({ name, result })
+      results.dependencyChanged ||= result.type !== 'skipped'
+    }
+    if (results.dependencyChanged)
+      addFileChange(changes, pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, 'Updated package.json')
+  }
+
+  if (isSelected(selectedFiles, 'App.vue mount')) {
+    results.mount = mountPlan
+    if (mountPlan.type === 'merge')
+      addFileChange(
+        changes,
+        path.join(targetDir, 'src/App.vue'),
+        mountPlan.content,
+        'Mounted TinyRobotChat in src/App.vue',
+      )
+  }
+
+  return { changes, results }
+}
+
+function printChangeResults(targetDir, selectedFiles, results) {
+  if (isSelected(selectedFiles, 'Chat feature files')) {
+    for (const file of results.featureInspection) {
+      if (file.type === 'create') logSuccess(`Created ${formatRelative(file.target, targetDir)}`)
+      else if (file.type === 'skipped') logSkip(`${formatRelative(file.target, targetDir)} already exists`)
+    }
+  } else logSkippedSelection('Chat feature files')
+
+  if (isSelected(selectedFiles, 'main entry style imports')) {
+    if (results.style?.type === 'unavailable') logUnavailable('main entry style imports (main.ts/js not found)')
+    else if (results.style?.type === 'inserted') logSuccess('Inserted TinyRobot and Chat feature style imports')
+    else logSkip('TinyRobot and Chat feature style imports already exist')
+  } else logSkippedSelection('main entry style imports')
+
+  if (isSelected(selectedFiles, '.env.example')) {
+    if (results.env?.type === 'unavailable') logUnavailable('.env.example (template .env.example not found)')
+    else if (results.env?.type === 'create') logSuccess('Created .env.example')
+    else if (results.env?.type === 'merged') logSuccess(`Added ${results.env.added} env variables`)
+    else logSkip('.env.example already contains required variables')
+  } else logSkippedSelection('.env.example')
+
+  if (isSelected(selectedFiles, 'package.json')) {
+    for (const { name, result } of results.dependencies) printDependencyResult(result, name)
+    if (!results.dependencyChanged) logSkip('package.json already contains required dependencies')
+  } else logSkippedSelection('package.json')
+
+  if (isSelected(selectedFiles, 'App.vue mount')) {
+    if (results.mount?.type === 'merge') logSuccess('Mounted TinyRobotChat in src/App.vue')
+    else logSkip('App.vue already mounts TinyRobotChat')
+  }
 }
 
 async function addFeature(targetDir, type, options) {
@@ -395,27 +625,51 @@ async function addFeature(targetDir, type, options) {
   const mountRequested = options.mount !== false
   const featureFiles = getChatFeatureFiles(targetDir)
   const mainFile = findMainEntry(targetDir)
-  const viteConfig = getViteConfigFile(targetDir)
-  const vitePlan = planViteProxy(viteConfig)
   const mountPlan = mountRequested ? planMount(targetDir) : null
-  const selectedFiles = await selectFileChanges(targetDir, { ...options, mount: mountRequested })
+  const pkgPath = path.join(targetDir, 'package.json')
+  invariant(fs.existsSync(pkgPath), 'package.json not found.')
+  invariant(fs.statSync(pkgPath).isFile(), 'package.json is not a file.')
+  const pkg = readPackageJson(pkgPath)
+  const featureInspection = inspectFeatureFiles(featureFiles)
+  const selectedFiles = await selectFileChanges(targetDir, {
+    ...options,
+    mount: mountRequested,
+    nonInteractive: options.nonInteractive,
+  })
+
+  validateSelection(selectedFiles, pkg, featureInspection, mountPlan, options.dryRun)
+  const prepared = prepareChanges(targetDir, selectedFiles, {
+    featureInspection,
+    mainFile,
+    mountPlan,
+    pkgPath,
+    pkg,
+    allowConflicts: options.dryRun,
+  })
 
   if (options.dryRun) {
     console.log('\nChange Plan\n')
-    for (const file of inspectFeatureFiles(featureFiles))
+    for (const file of featureInspection)
       console.log(
         `  ${file.type === 'create' ? '+' : file.type === 'conflict' ? '!' : '○'} ${formatRelative(file.target, targetDir)}`,
       )
     console.log(
-      `  ${vitePlan.type === 'create' ? '+' : vitePlan.type === 'manual' ? '!' : vitePlan.type === 'skipped' ? '○' : '~'} ${formatRelative(viteConfig, targetDir)} (${vitePlan.type})`,
+      `  ${mainFile ? formatPlanStatus(prepared.results.style?.type) : '!'} ${mainFile ? formatRelative(mainFile, targetDir) : 'src/main.ts or src/main.js'} (style imports)`,
     )
     console.log(
-      `  ${mainFile ? '~' : '!'} ${mainFile ? formatRelative(mainFile, targetDir) : 'src/main.ts or src/main.js'} (style imports)`,
+      `  ${formatPlanStatus(prepared.results.env?.type ?? 'unavailable')} .env.example (${prepared.results.env?.type ?? 'not selected'})`,
     )
+    const dependencyPlan =
+      prepared.results.dependencies.length > 0 ? prepared.results.dependencies : getDependencyPlan(pkg)
+    for (const { name, result } of dependencyPlan) {
+      const status = result.type === 'added' || result.type === 'updated' ? '~' : result.type === 'conflict' ? '!' : '○'
+      console.log(`  ${status} package.json (${result.type}: ${name})`)
+    }
     if (mountPlan)
       console.log(
         `  ${mountPlan.type === 'merge' ? '~' : mountPlan.type === 'manual' ? '!' : '○'} src/App.vue (mount: ${mountPlan.type})`,
       )
+    printManualMcpSetup()
     return
   }
 
@@ -423,80 +677,25 @@ async function addFeature(targetDir, type, options) {
     logSkip('No changes selected.')
     return
   }
-  if (isSelected(selectedFiles, 'Chat feature files')) {
-    const conflicts = inspectFeatureFiles(featureFiles).filter((file) => file.type === 'conflict')
-    if (conflicts.length > 0)
-      throw new Error(
-        `file conflicts detected:\n${conflicts.map((file) => `  - ${formatRelative(file.target, targetDir)}`).join('\n')}\nResolve the conflicts and run add chat again.`,
-      )
-  }
-  if (isSelected(selectedFiles, 'Vite MCP proxy') && vitePlan.type === 'manual') {
-    throw new Error(
-      `cannot safely merge MCP proxy into ${formatRelative(viteConfig, targetDir)}; add the proxy manually:\n\n${MCP_PROXY_ENTRY}`,
-    )
-  }
-  if (isSelected(selectedFiles, 'App.vue mount') && mountPlan?.type === 'manual')
-    throw new Error(`cannot safely mount TinyRobotChat: ${mountPlan.reason}`)
-
   console.log('\nChange Results\n')
-  if (isSelected(selectedFiles, 'Chat feature files')) copyFeatureFiles(featureFiles, targetDir)
-  else logSkippedSelection('Chat feature files')
-
-  if (isSelected(selectedFiles, 'main entry style imports')) {
-    if (!mainFile) logUnavailable('main entry style imports (main.ts/js not found)')
-    else {
-      const result = ensureStyleImports(mainFile, "import './tiny-robot-chat/index.css'")
-      result.type === 'inserted'
-        ? logSuccess('Inserted TinyRobot and Chat feature style imports')
-        : logSkip('TinyRobot and Chat feature style imports already exist')
-    }
-  } else logSkippedSelection('main entry style imports')
-
-  if (isSelected(selectedFiles, 'Vite MCP proxy')) {
-    if (vitePlan.type === 'create' || vitePlan.type === 'merge') {
-      fs.writeFileSync(viteConfig, vitePlan.content)
-      logSuccess(
-        `${vitePlan.type === 'create' ? 'Created' : 'Merged'} ${formatRelative(viteConfig, targetDir)} with MCP proxy`,
-      )
-    } else logSkip('MCP proxy already exists')
-  } else logSkippedSelection('Vite MCP proxy')
-
-  if (isSelected(selectedFiles, '.env')) {
-    const envTemplate = getTemplateFile('.env.example')
-    if (!fs.existsSync(envTemplate)) logUnavailable('.env (template .env.example not found)')
-    else {
-      const envResult = mergeEnvFile(envTemplate, path.join(targetDir, '.env'))
-      envResult.type === 'created'
-        ? logSuccess('Created .env')
-        : envResult.type === 'merged'
-          ? logSuccess(`Added ${envResult.added} env variables`)
-          : logSkip('.env already contains required variables')
-    }
-  } else logSkippedSelection('.env')
-
-  const pkgPath = path.join(targetDir, 'package.json')
-  invariant(fs.existsSync(pkgPath), 'package.json not found.')
-  const pkg = readPackageJson(pkgPath)
-  let dependencyChanged = false
-  if (isSelected(selectedFiles, 'package.json')) {
-    for (const [name, version] of Object.entries(DEPENDENCIES)) {
-      const result = ensureDependency(pkg, name, version)
-      dependencyChanged ||= result.type !== 'skipped'
-      printDependencyResult(result, name)
-    }
-    if (dependencyChanged) writePackageJson(pkgPath, pkg)
-  } else logSkippedSelection('package.json')
-
-  if (isSelected(selectedFiles, 'App.vue mount')) applyMount(targetDir, mountPlan)
-  console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
-  printNextSteps({ targetDir, mainFile, dependencyChanged, mounted: mountRequested && mountPlan?.type !== 'manual' })
+  applyChanges(prepared.changes)
+  printChangeResults(targetDir, selectedFiles, prepared.results)
+  if (prepared.changes.length > 0) console.log(`\nSuccessfully added "${type}" feature to ${targetDir}`)
+  else logSkip('No changes were necessary.')
+  printNextSteps({
+    mainFile,
+    dependencyChanged: prepared.results.dependencyChanged,
+    mounted: isSelected(selectedFiles, 'App.vue mount') && mountPlan?.type !== 'manual',
+    selectedFiles,
+    featureFilesSelected: isSelected(selectedFiles, 'Chat feature files'),
+  })
 }
 
-function printNextSteps({ targetDir, mainFile, dependencyChanged, mounted }) {
+function printNextSteps({ mainFile, dependencyChanged, mounted, selectedFiles, featureFilesSelected }) {
   const steps = []
-  if (!mainFile)
+  if (featureFilesSelected && !mainFile)
     steps.push("Import the package styles and './tiny-robot-chat/index.css' in your application entry file.")
-  if (!mounted) {
+  if (featureFilesSelected && !mounted) {
     steps.push(
       [
         'Render <TinyRobotChat /> near your main application component.',
@@ -514,7 +713,10 @@ function printNextSteps({ targetDir, mainFile, dependencyChanged, mounted }) {
       ].join('\n'),
     )
   }
-  steps.push(`Configure your AI provider API keys in ${path.join(targetDir, '.env')}`)
+  if (isSelected(selectedFiles, '.env.example'))
+    steps.push('Copy .env.example to .env.local and configure your AI provider API keys.')
+  if (featureFilesSelected)
+    steps.push('Add the Model Context MCP proxy to vite.config.* under server.proxy, then restart Vite.')
   if (dependencyChanged) steps.push('Install or update project dependencies: pnpm install')
   if (steps.length > 0) {
     console.log('\nNext Steps\n')
@@ -533,9 +735,9 @@ export function registerAddCommand(program) {
     .option('--no-mount', 'keep App.vue unchanged and print the mount snippet')
     .action(async (type, options) => {
       try {
-        const nonInteractive = Boolean(options.yes || options.dryRun)
+        const nonInteractive = Boolean(options.yes || options.dryRun || !process.stdout.isTTY)
         const targetDir = await resolveTargetPackage(process.cwd(), nonInteractive)
-        await addFeature(targetDir, type, options)
+        await addFeature(targetDir, type, { ...options, nonInteractive })
       } catch (error) {
         if (error instanceof Error && error.name === 'ExitPromptError') {
           console.error('\nOperation cancelled.')
@@ -547,4 +749,4 @@ export function registerAddCommand(program) {
     })
 }
 
-export { DEPENDENCIES, ensureDependency, ensureStyleImports, getChatFeatureFiles, planMount, planViteProxy }
+export { DEPENDENCIES, ensureDependency, ensureStyleImports, getChatFeatureFiles, planMount, resolveTargetPackage }

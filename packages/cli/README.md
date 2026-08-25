@@ -17,7 +17,7 @@ npx @opentiny/tiny-robot-cli add chat --yes
 
 `create` is an overall project scaffold. The `basic` template is aligned with `packages/chat-basic` and is copied into a new project.
 
-`add chat` is a local feature injection for an existing Vue project. It creates the isolated `src/tiny-robot-chat/` feature from `packages/chat-add`, adds the runtime dependencies (including `@vueuse/core`), imports the feature CSS, and safely adds the MCP proxy. Existing files with different contents are reported as conflicts and are never silently overwritten.
+`add chat` is a local feature injection for an existing Vue project. It creates the isolated `src/tiny-robot-chat/` feature from `packages/chat-add`, adds the runtime dependencies (including `@vueuse/core`), and imports the feature CSS. It does not modify the host project's Vite configuration. Existing files with different contents are reported as conflicts and are never silently overwritten.
 
 By default, `add chat` mounts `TinyRobotChat` into a standard `src/App.vue` when a safe template and script setup block are available, so the generated project has the same floating AI trigger as `chat-add`. Use `--no-mount` to keep `App.vue` unchanged and print the mount snippet. Use `--dry-run` to inspect the plan without changing files and `--yes` to skip prompts:
 
@@ -27,7 +27,7 @@ npx @opentiny/tiny-robot-cli add chat --yes
 npx @opentiny/tiny-robot-cli add chat --yes --no-mount
 ```
 
-The feature adds or preserves these dependencies:
+The feature adds or preserves these dependencies. Compatible versions are kept, and higher versions are not downgraded:
 
 - `@opentiny/tiny-robot`
 - `@opentiny/tiny-robot-chat`
@@ -35,7 +35,21 @@ The feature adds or preserves these dependencies:
 - `@opentiny/tiny-robot-svgs`
 - `@vueuse/core`
 
-Configure the generated `.env` file with the provider API URL and API key before starting the project.
+Copy the generated `.env.example` to `.env.local`, then configure the provider API URL and API key before starting the project. `add chat` does not create or modify `.env`.
+
+The Model Context MCP example uses `/modelcontextprotocol-mcp`. Add this proxy manually to the existing `vite.config.*` file under `server.proxy`, then restart Vite:
+
+```ts
+server: {
+  proxy: {
+    '/modelcontextprotocol-mcp': {
+      target: 'https://modelcontextprotocol.io/mcp',
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/modelcontextprotocol-mcp/, ''),
+    },
+  },
+},
+```
 
 ## Template Documentation
 

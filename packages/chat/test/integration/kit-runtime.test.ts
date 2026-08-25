@@ -1,5 +1,5 @@
 import { nextTick, shallowRef } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ResponseProvider } from '@opentiny/tiny-robot-kit'
 import { useConversation } from '../../../kit/src/vue/conversation/useConversation'
 import { useKitChatRuntime } from '../../src/runtime/useKitChatRuntime'
@@ -94,6 +94,74 @@ describe('useKitChatRuntime integration', () => {
     submitDisabled.value = true
     await expect(disabledRuntime.actions.send({ text: 'hello' })).resolves.toBe(false)
     expect(conversation.activeConversation.value).toBeNull()
+  })
+
+  it('runs beforeSend with model and MCP snapshots before creating a message', async () => {
+    const { conversation } = createConversation(createResponseProvider('reply'))
+    const mcp = {
+      servers: shallowRef([{ id: 'server-a', name: 'Server A', installed: true, enabled: true }]),
+      tools: shallowRef({
+        'server-a': [{ id: 'tool-a', name: 'Tool A', enabled: true }],
+      }),
+      addServer: vi.fn(),
+      removeServer: vi.fn(),
+      setServerEnabled: vi.fn(),
+      setToolEnabled: vi.fn(),
+    }
+    const beforeSend = vi.fn(() => 'reject' as const)
+    const runtime = useKitChatRuntime({
+      conversation,
+      composer: { ...createComposer(), mcp },
+      beforeSend,
+    })
+
+    await expect(runtime.actions.send({ text: '  hello  ' })).resolves.toBe(false)
+
+    expect(beforeSend).toHaveBeenCalledWith({
+      payload: { text: 'hello' },
+      runConfig: {
+        modelId: 'model-a',
+        features: { thinking: true, search: false },
+        reasoning: { enabled: true, effort: 'high' },
+        mcp: { serverIds: ['server-a'], toolIds: { 'server-a': ['tool-a'] } },
+      },
+      model: { id: 'model-a', label: 'Model A', capabilities: { thinking: true, search: true } },
+      mcp: {
+        servers: [{ id: 'server-a', name: 'Server A', installed: true, enabled: true }],
+        tools: { 'server-a': [{ id: 'tool-a', name: 'Tool A', enabled: true }] },
+      },
+    })
+    expect(conversation.activeConversation.value).toBeNull()
+    expect(conversation.conversations.value).toHaveLength(0)
+  })
+
+  it('supports handled beforeSend results without invoking the send flow', async () => {
+    const { conversation } = createConversation(createResponseProvider('reply'))
+    const send = vi.fn()
+    const runtime = useKitChatRuntime({
+      conversation,
+      beforeSend: async () => 'handled' as const,
+      send,
+    })
+
+    await expect(runtime.actions.send({ text: 'command' })).resolves.toBe(true)
+
+    expect(send).not.toHaveBeenCalled()
+    expect(conversation.conversations.value).toHaveLength(0)
+  })
+
+  it('rejects beforeSend errors before creating a conversation', async () => {
+    const error = new Error('model is unavailable')
+    const { conversation } = createConversation(createResponseProvider('reply'))
+    const runtime = useKitChatRuntime({
+      conversation,
+      beforeSend: () => {
+        throw error
+      },
+    })
+
+    await expect(runtime.actions.send({ text: 'hello' })).rejects.toBe(error)
+    expect(conversation.conversations.value).toHaveLength(0)
   })
 
   it('stores and mirrors provider errors, then clears them after a successful send', async () => {

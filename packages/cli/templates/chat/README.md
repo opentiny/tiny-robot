@@ -17,7 +17,7 @@ pnpm --filter chat-add build
 
 ## 接入真实模型
 
-在 `packages/chat-add/.env.local` 中配置 `VITE_QWEN_API_URL`、`VITE_ALIYUN_DASHSCOPE_KEY`、`VITE_DEEPSEEK_API_URL` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。配置读取逻辑位于 `src/config/chat-runtime.ts`。
+复制项目根目录的 `.env.example` 为 `.env.local`，配置 `VITE_QWEN_API_URL`、`VITE_ALIYUN_DASHSCOPE_KEY`、`VITE_DEEPSEEK_API_URL` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。配置读取逻辑位于 `src/config/chat-runtime.ts`。
 
 ## 目录职责
 

@@ -42,7 +42,7 @@ cd my-app
 pnpm install
 
 # configure your API key
-# edit .env
+# copy .env.example to .env.local
 
 pnpm dev
 ```
@@ -70,21 +70,45 @@ npx @opentiny/tiny-robot-cli add chat
 
 执行后，CLI 会根据当前项目状态自动处理以下内容：
 
-| 变更项                  | 说明                                   |
-| ----------------------- | -------------------------------------- |
-| `src/TinyRobotChat.vue` | 集成 TinyRobot Chat 组件               |
-| `main.ts` / `main.js`   | 自动插入 TinyRobot 样式导入            |
-| `.env`                  | 添加所需环境变量                       |
-| `package.json`          | 添加或升级 `@opentiny/tiny-robot` 依赖 |
+| 变更项                 | 说明                                   |
+| ---------------------- | -------------------------------------- |
+| `src/tiny-robot-chat/` | 集成 TinyRobot Chat 组件和功能样式     |
+| `main.ts` / `main.js`  | 自动插入 TinyRobot 样式导入            |
+| `.env.example`         | 添加所需环境变量模板                   |
+| `package.json`         | 添加或保留 TinyRobot Chat 所需依赖     |
+| `App.vue`              | 自动挂载 `<TinyRobotChat />`           |
 
 执行过程中会展示变更确认列表，可按需勾选。
 
+CLI 会处理以下依赖：`@opentiny/tiny-robot`、`@opentiny/tiny-robot-chat`、`@opentiny/tiny-robot-kit`、`@opentiny/tiny-robot-svgs` 和 `@vueuse/core`。已有兼容版本会保留，更高版本不会被降级。
+
 ```shell
 ? Select which file changes to apply (all selected by default):
-❯◉ create TinyRobotChat.vue — integrate TinyRobot chat component
- ◉ modify main entry style import — import TinyRobot styles
- ◉ create .env — add environment variables
- ◉ modify package.json — add TinyRobot dependencies
+❯◉ Chat feature files
+ ◉ main entry style imports
+ ◉ .env.example
+ ◉ package.json
+ ◉ App.vue mount
+```
+
+`add chat` 不会创建或修改用户项目的 `vite.config.*`。这是宿主项目的构建配置，需要手动补充 Model Context MCP 代理。
+
+### 配置 Model Context MCP 代理
+
+在用户项目根目录现有的 `vite.config.ts`、`vite.config.js`、`vite.config.mts` 或 `vite.config.mjs` 中，将下面的路由添加到 `server.proxy`。如果已有 `server.proxy`，只追加该路由；修改后重启 Vite。
+
+```ts
+export default defineConfig({
+  server: {
+    proxy: {
+      '/modelcontextprotocol-mcp': {
+        target: 'https://modelcontextprotocol.io/mcp',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/modelcontextprotocol-mcp/, ''),
+      },
+    },
+  },
+})
 ```
 
 ### 下一步操作
@@ -105,7 +129,7 @@ import '@opentiny/tiny-robot/dist/style.css'
 <!-- src/App.vue -->
 <script setup lang="ts">
 import HelloWord from './components/HelloWorld.vue'
-import TinyRobotChat from './TinyRobotChat.vue' // [!code ++]
+import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue' // [!code ++]
 </script>
 
 <template>
@@ -117,10 +141,10 @@ import TinyRobotChat from './TinyRobotChat.vue' // [!code ++]
 
 **配置 API_KEY**
 
-在 `.env` 文件里面配置大模型的 `API_KEY`。比如
+复制 `.env.example` 为 `.env.local`，再在 `.env.local` 中配置大模型的 `API_KEY`。比如
 
 ```shell
-# .env
+# .env.local
 VITE_DEEPSEEK_API_KEY=your_api_key
 ```
 
@@ -144,3 +168,5 @@ CLI 支持 pnpm workspace。
 - 自动识别 workspace 根目录
 - 自动识别 package 列表
 - 支持交互式选择目标 package
+
+如果 `pnpm-workspace.yaml` 没有 `packages` 字段，CLI 会按 pnpm 默认规则递归发现 workspace 包；如果当前命令从 workspace 根目录执行且存在多个包，`--yes` 或 `--dry-run` 会要求改为从目标 package 目录执行。`packages: []` 不会回退到 workspace 根目录。

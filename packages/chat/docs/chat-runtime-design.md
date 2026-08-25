@@ -53,11 +53,31 @@ export interface ChatRuntimeActions {
 }
 ```
 
+```ts
+export type ChatBeforeSendResult = 'continue' | 'handled' | 'reject'
+
+export interface ChatBeforeSendContext {
+  readonly payload: ChatSendPayload
+  readonly runConfig?: Readonly<ChatRunConfig>
+  readonly model?: Readonly<ChatModelOption>
+  readonly mcp?: Readonly<{
+    servers: readonly ChatMcpServerInfo[]
+    tools: ChatMcpToolState
+  }>
+}
+
+export type ChatBeforeSend = (
+  context: ChatBeforeSendContext,
+) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
+```
+
 `send()` 返回：
 
 - `true`：Runtime 接受发送。
 - `false`：发送资格不满足，没有创建消息。
 - reject：消息引擎、网络或业务请求失败。
+
+`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、创建会话和用户消息前执行。返回 `continue` 继续发送，返回 `handled` 表示业务已经处理且不创建消息，返回 `reject` 阻止发送并保留草稿。抛出错误会阻止发送，并由适配器通过 `runtime-action-error` 报告。
 
 ## 3. Composer
 
@@ -135,7 +155,7 @@ mcp-tool-enabled-change
 
 `useChatRuntimeAdapter` 负责调用 Runtime action、并发去重、pending 状态和错误记录。所有 Runtime action 的 reject 都通过 `runtime-action-error` 报告；`send` 报告后返回 `false` 以触发草稿恢复，`abort`、会话 CRUD、Model 和 MCP 动作报告后由 Adapter 消费，避免未处理 Promise rejection。ChatUI 不等待这些动作，也不修改业务 Data。
 
-`TrChat` 继续消费会话、提交、Model 和 MCP 事件，不向外重复转发。Prompt、Bubble 和 Aside 事件原样向外转发；`history-action` 的 `delete` 调用 `deleteConversation`，其他 action 向外转发。Aside 的 `open-change` 事件中，`user` 表示用户点击 Header、Aside 或 Drawer 等控制，`viewport` 表示响应式断点切换导致组件主动关闭 Aside。外部修改 `layout.*Aside.open` 只影响展示，不派发事件。
+`TrChat` 继续消费会话、提交、Model 和 MCP 事件，不向外重复转发。Prompt、Bubble 和 Aside 事件原样向外转发；`history-action` 的 `delete` 调用 `deleteConversation`，其他 action 向外转发。发送前的模型、MCP 和业务校验通过 Runtime `beforeSend` 完成，不增加 ChatUI 事件。Aside 的 `open-change` 事件中，`user` 表示用户点击 Header、Aside 或 Drawer 等控制，`viewport` 表示响应式断点切换导致组件主动关闭 Aside。外部修改 `layout.*Aside.open` 只影响展示，不派发事件。
 
 MCP Tool 加载是 Server 生命周期的一部分：
 

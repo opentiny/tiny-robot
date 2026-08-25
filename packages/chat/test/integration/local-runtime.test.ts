@@ -190,6 +190,25 @@ describe('useLocalChatRuntime integration', () => {
     ).toThrow('modelProviders and responseProvider')
   })
 
+  it('forwards beforeSend to the Kit runtime', async () => {
+    const beforeSend = vi.fn(() => 'reject' as const)
+    const runtime = createLocalRuntime({
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {
+          responseProvider: async () => {
+            throw new Error('unused')
+          },
+        },
+      },
+      beforeSend,
+    })
+
+    await expect(runtime.actions.send({ text: 'hello' })).resolves.toBe(false)
+    expect(beforeSend).toHaveBeenCalledTimes(1)
+    expect(runtime.conversations.value).toHaveLength(0)
+  })
+
   it('preserves built-in and user plugins', () => {
     const userPlugin: UseMessagePlugin = { name: 'user-plugin' }
     const runtime = useLocalChatRuntime({

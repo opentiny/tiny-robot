@@ -218,11 +218,13 @@ Remoter 会把 `/识别码` 解释为连接工具而非聊天消息。此类能�
 
 ```ts
 interface ChatBeforeSendInterceptor {
-  beforeSend: (payload: ChatSendPayload) => Promise<'continue' | 'handled' | 'reject'>
+  beforeSend: (context: ChatBeforeSendContext) =>
+    | ChatBeforeSendResult
+    | Promise<ChatBeforeSendResult>
 }
 ```
 
-技能快捷命令、业务命令、上传校验均通过此边界接入。`handled` 不创建用户消息；`reject` 保留草稿并报告错误。
+技能快捷命令、业务命令、模型/MCP 校验和上传校验均通过此边界接入。`handled` 不创建用户消息；`reject` 保留草稿；抛出错误时通过 `runtime-action-error` 报告。
 
 ## 7. MCP 设计边界
 

@@ -36,10 +36,10 @@ Chat 套件分为三层：
 
 ### 安装
 
-在 Vue 3 项目中安装 Chat 套件及其 Vue peer dependency：
+在 Vue 3 项目中安装 Chat 依赖：
 
 ```bash
-pnpm add @opentiny/tiny-robot-chat vue
+pnpm add @opentiny/tiny-robot-chat
 ```
 
 如果要自定义 Kit 存储或直接创建 `useConversation`，再安装 Kit：
@@ -175,6 +175,28 @@ interface ChatRuntimeActions {
 }
 ```
 
+发送前可以通过 Runtime 的 `beforeSend` 校验本轮模型、能力开关和 MCP 状态：
+
+```ts
+type ChatBeforeSendResult = 'continue' | 'handled' | 'reject'
+
+interface ChatBeforeSendContext {
+  payload: ChatSendPayload
+  runConfig?: Readonly<ChatRunConfig>
+  model?: Readonly<ChatModelOption>
+  mcp?: {
+    servers: readonly ChatMcpServerInfo[]
+    tools: ChatMcpToolState
+  }
+}
+
+type ChatBeforeSend = (
+  context: ChatBeforeSendContext,
+) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
+```
+
+`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、创建会话和用户消息前执行。`continue` 继续发送，`handled` 表示业务已经处理且不创建消息，`reject` 阻止发送并保留草稿。回调抛出错误时同样阻止发送，并通过 `runtime-action-error` 报告。
+
 `activeConversation` 包含消息、`requestState`、可选的 `processingState` 和 `lastError`。请求状态是 `idle`、`processing`、`completed`、`aborted` 或 `error`。
 
 ### useLocalChatRuntime
@@ -194,6 +216,7 @@ interface ChatRuntimeActions {
 | `conversation`   | `UseConversationOptions` 子集   | 会话、存储和消息选项               |
 | `titleGenerator` | `(text: string) => string`      | 自动创建会话时生成标题             |
 | `composer`       | `disabled`、`submitDisabled`    | 宿主控制输入区状态                 |
+| `beforeSend`     | `ChatBeforeSend`                | 发送前校验模型、能力和 MCP 状态    |
 | `modelProviders` | `ChatProviderConfig[]`          | 内置模型 Provider 配置             |
 | `mcpServers`     | `ChatMcpServers`                | 声明式 Streamable HTTP MCP         |
 | `mcp`            | `UseLocalChatRuntimeMcpAdapter` | 自定义 MCP Runtime、工具列表和调用 |
@@ -223,7 +246,33 @@ const runtime = useKitChatRuntime({
 <template><TrChat :runtime="runtime" /></template>
 ```
 
-它负责把 Kit 会话转换为 Chat 会话，并提供发送、取消、创建、切换、重命名和删除动作。也可以传入 `send` 自定义发送流程，以及 `composer` 注入宿主维护的模型/MCP/禁用状态。
+它负责把 Kit 会话转换为 Chat 会话，并提供发送、取消、创建、切换、重命名和删除动作。也可以传入 `send` 自定义发送流程、`beforeSend` 校验发送条件，以及 `composer` 注入宿主维护的模型/MCP/禁用状态。
+
+### beforeSend：发送前校验与拦截
+
+```ts
+const runtime = useLocalChatRuntime({
+  modelProviders,
+  mcpServers,
+  beforeSend: ({ runConfig, model, mcp }) => {
+    if (!model || !runConfig?.modelId) {
+      throw new Error('请先选择模型')
+    }
+
+    for (const serverId of runConfig.mcp?.serverIds ?? []) {
+      const server = mcp?.servers.find((item) => item.id === serverId)
+
+      if (!server || server.loading || server.error || !mcp?.tools[serverId]) {
+        throw new Error(`MCP Server 不可用：${serverId}`)
+      }
+    }
+
+    return 'continue'
+  },
+})
+```
+
+回调接收的是当前发送的只读快照。需要修改模型或 MCP 状态时，应调用 Composer 或 MCP Runtime 的动作，不要在 `beforeSend` 中修改快照。
 
 ### send 的返回值与错误
 
@@ -658,6 +707,7 @@ const historyData = useChatHistoryData({
 | `ChatConversation`、`ChatConversationInfo`                 | 当前会话与会话摘要                  |
 | `ChatMessageItem`、`ChatMessageContent`、`ChatMessagePart` | 消息内容模型                        |
 | `ChatSendPayload`、`ChatRunConfig`、`ChatMcpRunConfig`     | 发送内容与每轮配置快照              |
+| `ChatBeforeSend`、`ChatBeforeSendContext`                  | 发送前校验与业务拦截                |
 | `ChatProviderConfig`、`ChatProviderModelConfig`            | `openai`/`deepseek`/`qwen` Provider |
 | `ChatMcpServers`、`ChatMcpServerConfig`                    | 声明式 MCP Server                   |
 | `ChatMcpRuntime`、`ChatMcpServerInfo`、`ChatMcpToolInfo`   | 自定义 MCP Runtime 协议             |
@@ -685,7 +735,11 @@ Chat 只负责内部布局，父容器必须提供明确的 `height` 或可计�
 
 ### 为什么发送返回 `false`？
 
-文本为空、Runtime 的 `composer.disabled` 或 `submitDisabled` 为真，或者 MCP 已启用但工具仍在加载时，`send` 会返回 `false`。网络、Provider 或业务请求错误不会返回 `false`，而是 reject。
+文本为空、Runtime 的 `composer.disabled` 或 `submitDisabled` 为真、MCP 已启用但工具仍在加载，或者 `beforeSend` 返回 `reject` 时，`send` 会返回 `false`。网络、Provider 或业务请求错误，以及 `beforeSend` 抛出的错误，会 reject。
+
+### 如何在发送前校验模型或 MCP？
+
+在 `useLocalChatRuntime` 或 `useKitChatRuntime` 中配置 `beforeSend`。它执行在创建会话和用户消息之前，适合校验当前模型、能力开关、MCP Server、工具权限和业务条件。
 
 ### 为什么 `modelProviders` 和 `responseProvider` 不能一起配置？
 

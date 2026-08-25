@@ -25,6 +25,20 @@ export interface ChatRunConfig {
   mcp?: ChatMcpRunConfig
 }
 
+export type ChatBeforeSendResult = 'continue' | 'handled' | 'reject'
+
+export interface ChatBeforeSendContext {
+  readonly payload: ChatSendPayload
+  readonly runConfig?: Readonly<ChatRunConfig>
+  readonly model?: Readonly<ChatModelOption>
+  readonly mcp?: Readonly<{
+    servers: readonly ChatMcpServerInfo[]
+    tools: ChatMcpToolState
+  }>
+}
+
+export type ChatBeforeSend = (context: ChatBeforeSendContext) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
+
 export interface ChatMcpRunConfig {
   serverIds: readonly string[]
   toolIds: Readonly<Record<string, readonly string[]>>

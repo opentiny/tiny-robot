@@ -36,10 +36,7 @@ export function logError(message) {
 }
 
 export function invariant(condition, message) {
-  if (!condition) {
-    console.error(`Error: ${message}`)
-    process.exit(1)
-  }
+  if (!condition) throw new Error(message)
 }
 
 export function exists(file) {
@@ -170,20 +167,24 @@ export function findProjectRoot(cwd) {
 }
 
 export function findSubPackageRoot(cwd, workspaceRoot) {
-  return findUp(cwd, (dir) => {
-    if (dir === workspaceRoot) {
-      return false
-    }
+  let dir = path.resolve(cwd)
+  const root = path.resolve(workspaceRoot)
 
-    return isPackageDir(dir)
-  })
+  for (;;) {
+    if (dir === root) return null
+    if (isPackageDir(dir)) return dir
+
+    const parent = path.dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
 }
 
 export function findWorkspacePackages(workspaceRoot) {
   const workspaceFile = resolveWorkspaceFile(workspaceRoot)
 
   if (!workspaceFile) {
-    return []
+    return undefined
   }
 
   try {
@@ -191,54 +192,137 @@ export function findWorkspacePackages(workspaceRoot) {
 
     const config = yaml.parse(content)
 
-    return Array.isArray(config?.packages)
-      ? config.packages.filter(
-          (pattern) => typeof pattern === 'string' && pattern.length > 0 && !pattern.startsWith('!'),
-        )
-      : []
-  } catch {
-    return []
+    if (config === null || typeof config !== 'object' || Array.isArray(config)) {
+      throw new Error('workspace configuration must be a YAML mapping')
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(config, 'packages')) {
+      return undefined
+    }
+
+    if (!Array.isArray(config.packages)) {
+      throw new Error('packages must be an array')
+    }
+
+    if (config.packages.some((pattern) => typeof pattern !== 'string' || pattern.trim().length === 0)) {
+      throw new Error('packages entries must be non-empty strings')
+    }
+
+    return config.packages.map((pattern) => pattern.trim())
+  } catch (error) {
+    const detail = error instanceof Error ? `: ${error.message}` : ''
+    throw new Error(`Failed to read ${path.basename(workspaceFile)}${detail}`)
   }
 }
+
+const WORKSPACE_SCAN_IGNORES = new Set(['.git', 'node_modules'])
 
 function normalizeWorkspacePattern(pattern) {
-  return pattern.replace(/\*\*?/g, '').replace(/\/$/, '')
+  let normalized = pattern.replaceAll('\\', '/').trim()
+  if (normalized.startsWith('./')) normalized = normalized.slice(2)
+  return normalized.replace(/\/$/, '')
 }
 
-export function listPackages(workspaceRoot, patterns) {
-  const packageDirs = []
+function globSource(pattern) {
+  let source = ''
 
-  const addPackage = (dir) => {
-    if (isPackageDir(dir)) {
-      packageDirs.push(dir)
-    }
-  }
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index]
 
-  for (const pattern of patterns) {
-    const base = normalizeWorkspacePattern(pattern)
-
-    const fullPath = path.join(workspaceRoot, base)
-
-    if (!exists(fullPath)) {
+    if (char === '*') {
+      if (pattern[index + 1] === '*') {
+        while (pattern[index + 1] === '*') index += 1
+        if (pattern[index + 1] === '/') {
+          source += '(?:.*/)?'
+          index += 1
+        } else {
+          source += '.*'
+        }
+      } else {
+        source += '[^/]*'
+      }
       continue
     }
 
-    if (pattern.includes('*')) {
-      const entries = fs.readdirSync(fullPath, {
-        withFileTypes: true,
-      })
+    if (char === '?') {
+      source += '[^/]'
+      continue
+    }
 
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          addPackage(path.join(fullPath, entry.name))
-        }
+    if (char === '{') {
+      const close = pattern.indexOf('}', index + 1)
+      if (close !== -1) {
+        const alternatives = pattern
+          .slice(index + 1, close)
+          .split(',')
+          .map((item) => globSource(item))
+        source += `(?:${alternatives.join('|')})`
+        index = close
+        continue
       }
-    } else {
-      addPackage(fullPath)
+    }
+
+    if (char === '[') {
+      const close = pattern.indexOf(']', index + 1)
+      if (close !== -1) {
+        source += pattern.slice(index, close + 1)
+        index = close
+        continue
+      }
+    }
+
+    source += char.replace(/[\\.^$+()|]/g, '\\$&')
+  }
+
+  return source
+}
+
+function matchesWorkspacePattern(relativePath, pattern) {
+  const normalized = normalizeWorkspacePattern(pattern)
+  if (normalized === '.') return relativePath === ''
+  return new RegExp(`^${globSource(normalized)}$`).test(relativePath)
+}
+
+function collectPackageDirs(workspaceRoot) {
+  const packageDirs = []
+
+  const visit = (dir) => {
+    if (isPackageDir(dir)) packageDirs.push(dir)
+
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || WORKSPACE_SCAN_IGNORES.has(entry.name)) continue
+      visit(path.join(dir, entry.name))
     }
   }
 
+  visit(workspaceRoot)
   return packageDirs
+}
+
+export function listPackages(workspaceRoot, patterns = undefined) {
+  const configuredPatterns = patterns ?? ['**']
+  const includePatterns = configuredPatterns.filter((pattern) => !pattern.startsWith('!'))
+  const excludePatterns = configuredPatterns
+    .filter((pattern) => pattern.startsWith('!'))
+    .map((pattern) => pattern.slice(1))
+
+  if (includePatterns.length === 0) return []
+
+  const root = path.resolve(workspaceRoot)
+  const packageDirs = collectPackageDirs(root)
+  const matched = packageDirs.filter((dir) => {
+    const relativePath = path.relative(root, dir).replaceAll('\\', '/')
+    return (
+      includePatterns.some((pattern) => matchesWorkspacePattern(relativePath, pattern)) &&
+      !excludePatterns.some((pattern) => matchesWorkspacePattern(relativePath, pattern))
+    )
+  })
+
+  return [...new Set(matched)].sort((left, right) => {
+    const leftRelative = path.relative(root, left)
+    const rightRelative = path.relative(root, right)
+    return leftRelative.localeCompare(rightRelative)
+  })
 }
 
 function ensureDir(file) {
@@ -290,6 +374,19 @@ export function mergeEnvFile(templateFile, targetFile) {
 
   const targetContent = fs.readFileSync(targetFile, 'utf-8')
 
+  const result = mergeEnvContent(templateContent, targetContent)
+
+  if (result.type === 'merged') {
+    fs.writeFileSync(targetFile, result.content)
+  }
+
+  return {
+    type: result.type,
+    ...(result.added === undefined ? {} : { added: result.added }),
+  }
+}
+
+export function mergeEnvContent(templateContent, targetContent) {
   const templateEnv = parseEnv(templateContent)
 
   const targetEnv = parseEnv(targetContent)
@@ -312,10 +409,9 @@ export function mergeEnvFile(templateFile, targetFile) {
 
   const nextContent = targetTrimmed ? `${targetTrimmed}\n${appendLines.join('\n')}\n` : `${appendLines.join('\n')}\n`
 
-  fs.writeFileSync(targetFile, nextContent)
-
   return {
     type: 'merged',
     added: appendLines.length,
+    content: nextContent,
   }
 }

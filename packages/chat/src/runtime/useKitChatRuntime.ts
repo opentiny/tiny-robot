@@ -3,6 +3,8 @@ import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
   ChatConversationInfo,
+  ChatBeforeSend,
+  ChatBeforeSendContext,
   ChatRunConfig,
   ChatRuntime,
   ChatSendPayload,
@@ -28,6 +30,7 @@ export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
   lastError?: ChatWritable<unknown | null>
   titleGenerator?: TitleGenerator
+  beforeSend?: ChatBeforeSend
   send?: (payload: KitRuntimeSendPayload) => Promise<void> | void
   composer?: UseKitChatComposerOptions
 }
@@ -42,7 +45,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 }
 
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { conversation, lastError: errorRef, titleGenerator, send, composer: composerOptions } = options
+  const { conversation, lastError: errorRef, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
   const resolveTitle = titleGenerator ?? createDefaultChatTitle
 
@@ -78,6 +81,29 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
   const composer: ChatRuntime['composer'] = {
     ...sourceComposer,
     submitDisabled,
+  }
+
+  function createBeforeSendContext(payload: ChatSendPayload, runConfig?: ChatRunConfig): ChatBeforeSendContext {
+    const model = composer.model
+    const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
+    const mcp = composer.mcp
+
+    return {
+      payload: { ...payload },
+      runConfig: cloneRunConfig(runConfig),
+      model: selectedModel ? { ...selectedModel } : undefined,
+      mcp: mcp
+        ? {
+            servers: mcp.servers.value.map((server) => ({ ...server })),
+            tools: Object.fromEntries(
+              Object.entries(mcp.tools.value).map(([serverId, tools]) => [
+                serverId,
+                tools?.map((tool) => ({ ...tool })),
+              ]),
+            ),
+          }
+        : undefined,
+    }
   }
 
   const sendMessage =
@@ -130,6 +156,18 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     }
 
     try {
+      const beforeSendResult = await beforeSend?.(
+        createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig),
+      )
+
+      if (beforeSendResult === 'reject') {
+        return false
+      }
+
+      if (beforeSendResult === 'handled') {
+        return true
+      }
+
       const task = Promise.resolve(sendMessage(effectivePayload))
       conversationId = conversation.activeConversation.value?.id ?? conversationId
 
