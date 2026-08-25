@@ -5,7 +5,7 @@ import type { ChatMessage } from '../../types'
 import { mockResponseProvider, mockSequentialResponseProvider } from './mockResponseProvider'
 import { lengthPlugin } from './plugins/lengthPlugin'
 import { getSkillRequestContext, skillPlugin } from './plugins/skillPlugin'
-import { toolPlugin } from './plugins/toolPlugin'
+import { TOOL_RESUME_COMMAND, toolPlugin } from './plugins/toolPlugin'
 import type { ResponseProvider } from './types'
 import { useMessage } from './useMessage'
 
@@ -190,6 +190,111 @@ describe('useMessage', () => {
       content: 'prefix result',
     })
     expect(engine.messages.value[3]).toMatchObject({
+      role: 'assistant',
+      content: 'done',
+    })
+  })
+
+  it('exposes paused tool calls and resumes them through the vue command channel', async () => {
+    let markPaused!: () => void
+    const paused = new Promise<void>((resolve) => {
+      markPaused = resolve
+    })
+    const callTool = vi.fn(async () => 'approved result')
+    const responseProvider: ResponseProvider = async (requestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        return {
+          id: 'tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          system_fingerprint: null,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: 'call-approval',
+                    type: 'function',
+                    function: {
+                      name: 'sensitive_lookup',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              delta: undefined,
+              logprobs: null,
+              finish_reason: 'tool_calls',
+            },
+          ],
+        }
+      }
+
+      return {
+        id: 'tool-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        system_fingerprint: null,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'done',
+            },
+            delta: undefined,
+            logprobs: null,
+            finish_reason: 'stop',
+          },
+        ],
+      }
+    }
+
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'sensitive_lookup',
+              },
+            },
+          ],
+          callTool,
+          onToolCallStart(toolCall, context) {
+            context.pauseToolCall(toolCall.id)
+            markPaused()
+          },
+        }),
+      ],
+    })
+
+    const turn = engine.sendMessage('run sensitive lookup')
+    await paused
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(engine.isPaused.value).toBe(true)
+    expect(engine.processingState.value).toBeUndefined()
+    expect(callTool).not.toHaveBeenCalled()
+
+    await engine.dispatchCommand(TOOL_RESUME_COMMAND, {
+      toolCallId: 'call-approval',
+    })
+    await turn
+
+    expect(callTool).toHaveBeenCalledOnce()
+    expect(engine.isPaused.value).toBe(false)
+    expect(engine.messages.value.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
     })

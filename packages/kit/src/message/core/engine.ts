@@ -11,6 +11,7 @@ import {
   MessageRuntime,
   MessageStateAdapter,
   RequestProcessingState,
+  RequestNextOptions,
   RequestState,
   ResponseProvider,
 } from '../types'
@@ -88,6 +89,7 @@ export const createMessageEngine = (
     customContext: {},
     abortController: null,
     responseProvider: initialResponseProvider,
+    commandHandlers: new Map(),
   }
 
   const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
@@ -97,6 +99,22 @@ export const createMessageEngine = (
   const createMessage = <T extends ChatMessage>(message: T): T => adapter.createMessage(message)
   const subscribe = adapter.subscribe
   const mutate = adapter.mutate
+  const pluginCommandOwners = new Map<string, MessageEnginePlugin>()
+
+  for (const plugin of plugins) {
+    if (!plugin.commands) {
+      continue
+    }
+
+    for (const [commandName, handler] of Object.entries(plugin.commands)) {
+      if (runtime.commandHandlers.has(commandName)) {
+        throw new Error(`Duplicate command name "${commandName}" detected.`)
+      }
+
+      runtime.commandHandlers.set(commandName, handler)
+      pluginCommandOwners.set(commandName, plugin)
+    }
+  }
 
   const objectDataIsValid = (obj: object | null | undefined) => {
     if (!obj || Object.keys(obj).length === 0) {
@@ -161,6 +179,192 @@ export const createMessageEngine = (
     setRequestState,
     setCustomContext,
   })
+
+  const finishTurnAfterRequest = async (abortSignal: AbortSignal) => {
+    const context = getBaseContext(abortSignal)
+
+    if (getState().requestState === 'paused') {
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        await plugin.onTurnPause?.(context)
+      }
+      return
+    }
+
+    setRequestState('completed')
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+      await plugin.onTurnEnd?.(context)
+    }
+  }
+
+  async function runTurnLifecycle(options: { resume?: boolean } = {}) {
+    const ac = new AbortController()
+    runtime.abortController = ac
+    runtime.customContext = {}
+
+    let assistantMessage: ChatMessage | null = null
+    const setAssistantMessage = (message: ChatMessage) => {
+      assistantMessage = message
+    }
+
+    try {
+      setRequestState('processing', 'requesting')
+
+      const baseContextAtStart = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtStart))) {
+        if (options.resume) {
+          await plugin.onTurnResume?.(baseContextAtStart)
+        } else {
+          await plugin.onTurnStart?.(baseContextAtStart)
+        }
+      }
+
+      const turnResponseProvider = runtime.responseProvider
+
+      try {
+        await executeRequest(turnResponseProvider, ac.signal, { setAssistantMessage })
+        await finishTurnAfterRequest(ac.signal)
+      } catch (error) {
+        if (
+          ac.signal.aborted ||
+          error instanceof AbortError ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          setRequestState('aborted')
+        } else {
+          throw error
+        }
+      }
+    } catch (error) {
+      setRequestState('error')
+
+      let hasOnError = false
+      const context = getBaseContext(ac.signal)
+
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        if (plugin.onError) {
+          hasOnError = true
+          plugin.onError({ ...context, error })
+        }
+      }
+
+      if (!hasOnError) {
+        throw error
+      }
+    } finally {
+      const context = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+        try {
+          plugin.onFinally?.(context)
+        } catch (error) {
+          console.error(`Error in onFinally hook for plugin [${plugin.name || 'Anonymous'}]:`, error)
+        }
+      }
+
+      runtime.abortController = null
+
+      // 暂停态保留当前回合，方便外部命令恢复时继续沿用同一轮上下文。
+      if (getState().requestState !== 'paused') {
+        runtime.currentTurn = []
+      }
+
+      mutate('messages', (_, skipNotify) => {
+        if (assistantMessage?.loading) {
+          assistantMessage.loading = undefined
+        } else {
+          skipNotify()
+        }
+      })
+    }
+  }
+
+  const dispatchCommand = async <Result = unknown>(command: string, payload?: unknown): Promise<Result> => {
+    const handler = runtime.commandHandlers.get(command)
+
+    if (!handler) {
+      throw new Error(`Unknown command "${command}"`)
+    }
+
+    const owner = pluginCommandOwners.get(command)
+    if (!owner) {
+      throw new Error(`Unknown command "${command}"`)
+    }
+
+    if (getState().requestState === 'processing') {
+      const hasPausedToolCall = getState().messages.some((message) => {
+        if (message.role !== 'assistant' || !Array.isArray(message.tool_calls) || message.tool_calls.length === 0) {
+          return false
+        }
+
+        const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
+        return message.tool_calls.some((toolCall) => {
+          const status = toolCallState[toolCall.id]?.status
+          return status === 'paused' || status === 'awaiting-approval'
+        })
+      })
+
+      if (!hasPausedToolCall) {
+        throw new Error('Cannot run plugin command while processing is in progress')
+      }
+
+      await new Promise<void>((resolve) => {
+        let unsubscribe = () => {}
+        const checkState = (currentState = getState()) => {
+          if (currentState.requestState !== 'processing') {
+            unsubscribe()
+            resolve()
+            return true
+          }
+
+          return false
+        }
+
+        unsubscribe = subscribe('requestState', (currentState) => {
+          checkState(currentState)
+        })
+
+        checkState()
+      })
+    }
+
+    const previousAbortController = runtime.abortController
+    const ac = new AbortController()
+    runtime.abortController = ac
+
+    let shouldRequest = false
+    let requestNextOptions: RequestNextOptions | undefined
+    let commandSucceeded = false
+    let result: Result
+
+    try {
+      const baseContext = getBaseContext(ac.signal)
+      if (isPluginDisabled(owner, baseContext)) {
+        throw new Error(`Plugin command "${command}" is disabled.`)
+      }
+
+      const appendMessage = (message: ChatMessage | ChatMessage[]) => {
+        appendMessages(...(Array.isArray(message) ? message : [message]))
+      }
+
+      const requestNext = (options?: RequestNextOptions) => {
+        shouldRequest = true
+        requestNextOptions = options
+      }
+
+      result = (await handler(payload, { ...baseContext, appendMessage, requestNext })) as Result
+      commandSucceeded = true
+    } finally {
+      runtime.abortController = previousAbortController
+      if (!previousAbortController && (!shouldRequest || !commandSucceeded)) {
+        runtime.currentTurn = []
+      }
+    }
+
+    if (shouldRequest && !ac.signal.aborted) {
+      await runTurnLifecycle({ resume: requestNextOptions?.resume })
+    }
+
+    return result
+  }
 
   async function executeRequest(
     responseProvider: ResponseProvider,
@@ -299,7 +503,7 @@ export const createMessageEngine = (
           appendMessages(...(Array.isArray(message) ? message : [message]))
         }
 
-        const requestNext = () => {
+        const requestNext = (_options?: RequestNextOptions) => {
           shouldRequest = true
         }
 
@@ -322,92 +526,7 @@ export const createMessageEngine = (
   }
 
   async function runTurn() {
-    const ac = new AbortController()
-    runtime.abortController = ac
-    // 在每个回合开始时重置自定义上下文
-    runtime.customContext = {}
-
-    // 记录当前请求的 assistantMessage，方便在 finally 中进行状态清理（如将 loading 置为 false）
-    let assistantMessage: ChatMessage | null = null
-    const setAssistantMessage = (message: ChatMessage) => {
-      assistantMessage = message
-    }
-
-    try {
-      setRequestState('processing', 'requesting')
-      // 1) onTurnStart 串行执行，有错误则中断
-      const baseContextAtStart = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtStart))) {
-        await plugin.onTurnStart?.(baseContextAtStart)
-      }
-
-      // 在 onTurnStart 之后快照当前的 response provider
-      // 允许插件在 onTurnStart 钩子中修改 responseProvider
-      // 并在整个 turn 请求过程中防止因它发生变化而导致的不一致
-      const turnResponseProvider = runtime.responseProvider
-
-      try {
-        await executeRequest(turnResponseProvider, ac.signal, { setAssistantMessage })
-        setRequestState('completed')
-      } catch (error) {
-        // 检查是否是中止错误：优先检查当前使用的 AbortController 的信号状态
-        // 然后检查错误类型（instanceof 检查最准确）
-        // 最后通过 name 属性作为后备检查（处理跨模块/序列化等边界情况）
-        if (
-          ac.signal.aborted ||
-          error instanceof AbortError ||
-          (error instanceof Error && error.name === 'AbortError')
-        ) {
-          setRequestState('aborted')
-        } else {
-          throw error
-        }
-      }
-
-      // 3) onTurnEnd 串行执行，有错误则中断
-      const baseContextAtEnd = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtEnd))) {
-        await plugin.onTurnEnd?.(baseContextAtEnd)
-      }
-    } catch (error) {
-      setRequestState('error')
-
-      let hasOnError = false
-      const context = getBaseContext(ac.signal)
-
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        if (plugin.onError) {
-          hasOnError = true
-          plugin.onError({ ...context, error })
-        }
-      }
-
-      // 如果没有任何插件实现了 onError 钩子，则抛出错误
-      if (!hasOnError) {
-        throw error
-      }
-    } finally {
-      const context = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        try {
-          plugin.onFinally?.(context)
-        } catch (error) {
-          console.error(`Error in onFinally hook for plugin [${plugin.name || 'Anonymous'}]:`, error)
-        }
-      }
-
-      runtime.abortController = null
-      runtime.currentTurn = []
-
-      // 如果请求立即出错，loading 可能一直为 true，这时需要手动将其置为 false
-      mutate('messages', (_, skipNotify) => {
-        if (assistantMessage?.loading) {
-          assistantMessage.loading = undefined
-        } else {
-          skipNotify()
-        }
-      })
-    }
+    await runTurnLifecycle()
   }
 
   async function sendMessage(content: string) {
@@ -417,7 +536,7 @@ export const createMessageEngine = (
       return
     }
 
-    if (getState().requestState === 'processing') {
+    if (getState().requestState === 'processing' || getState().requestState === 'paused') {
       console.warn('Cannot send message while processing is in progress')
       return
     }
@@ -434,7 +553,7 @@ export const createMessageEngine = (
 
   async function send(...msgs: ChatMessage[]) {
     // Validate current state - only allow sending when not processing
-    if (getState().requestState === 'processing') {
+    if (getState().requestState === 'processing' || getState().requestState === 'paused') {
       console.warn('Cannot send message while processing is in progress')
       return
     }
@@ -467,6 +586,7 @@ export const createMessageEngine = (
     sendMessage,
     send,
     abort,
+    dispatchCommand,
     setResponseProvider(provider) {
       runtime.responseProvider = provider
     },

@@ -2,7 +2,15 @@ import type { ChatCompletion, ChatCompletionFunctionTool, ChatCompletionTool } f
 import { describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../adapters/native'
 import { createMessageEngine } from '../core/engine'
-import { lengthPlugin, thinkingPlugin, toolPlugin, type RuntimeTool, type ToolProvider } from '../plugins'
+import {
+  lengthPlugin,
+  thinkingPlugin,
+  TOOL_REJECT_COMMAND,
+  TOOL_RESUME_COMMAND,
+  toolPlugin,
+  type RuntimeTool,
+  type ToolProvider,
+} from '../plugins'
 import type { CreateMessageEngineOptions, MessageEnginePlugin, ResponseProvider } from '../types'
 
 const silentDefaultPlugins = [thinkingPlugin({ disabled: true }), lengthPlugin({ disabled: true })]
@@ -444,5 +452,258 @@ describe('toolPlugin', () => {
     await engine.sendMessage('use custom tool')
 
     expect(responseProvider).toHaveBeenCalledOnce()
+  })
+
+  it('pauses a tool call until an external resume command approves it', async () => {
+    let markPaused!: () => void
+    const paused = new Promise<void>((resolve) => {
+      markPaused = resolve
+    })
+    const callTool = vi.fn(async () => 'approved result')
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        return {
+          id: 'approval-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-approval',
+                    type: 'function',
+                    function: {
+                      name: 'sensitive_lookup',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(requestBody.messages.at(-1)).toMatchObject({
+        role: 'tool',
+        tool_call_id: 'call-approval',
+        content: 'approved result',
+      })
+      return {
+        id: 'approval-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'done',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'sensitive_lookup',
+              },
+            },
+          ],
+          callTool,
+          onToolCallStart(toolCall, context) {
+            context.pauseToolCall(toolCall.id, {
+              content: 'Awaiting approval.',
+              reason: 'manual-review',
+            })
+            markPaused()
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    const turn = engine.sendMessage('run sensitive lookup')
+    await paused
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(engine.getState()).toMatchObject({
+      requestState: 'paused',
+      processingState: undefined,
+      isPaused: true,
+    })
+    expect(engine.getState().messages[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-approval': {
+            status: 'paused',
+            reason: 'manual-review',
+            content: 'Awaiting approval.',
+          },
+        },
+      },
+    })
+    expect(engine.getState().messages[2]).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-approval',
+      content: 'Awaiting approval.',
+    })
+    expect(callTool).not.toHaveBeenCalled()
+
+    await expect(
+      engine.dispatchCommand(TOOL_RESUME_COMMAND, {
+        toolCallId: 'call-approval',
+      }),
+    ).resolves.toEqual({
+      status: 'resumed',
+      toolCallId: 'call-approval',
+    })
+
+    await turn
+
+    expect(callTool).toHaveBeenCalledOnce()
+    expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(engine.getState()).toMatchObject({
+      requestState: 'completed',
+      isPaused: false,
+    })
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'done',
+    })
+  })
+
+  it('skips a paused tool call when an external reject command denies it', async () => {
+    let markPaused!: () => void
+    const paused = new Promise<void>((resolve) => {
+      markPaused = resolve
+    })
+    const callTool = vi.fn(async () => 'should not run')
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        return {
+          id: 'rejection-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-rejection',
+                    type: 'function',
+                    function: {
+                      name: 'sensitive_delete',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(requestBody.messages.at(-1)).toMatchObject({
+        role: 'tool',
+        tool_call_id: 'call-rejection',
+        content: 'Tool call cancelled.',
+      })
+      return {
+        id: 'rejection-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'denied',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'sensitive_delete',
+              },
+            },
+          ],
+          callTool,
+          onToolCallStart(toolCall, context) {
+            context.pauseToolCall(toolCall.id)
+            markPaused()
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    const turn = engine.sendMessage('delete sensitive data')
+    await paused
+
+    await expect(
+      engine.dispatchCommand(TOOL_REJECT_COMMAND, {
+        toolCallId: 'call-rejection',
+        reason: 'approval denied',
+      }),
+    ).resolves.toEqual({
+      status: 'rejected',
+      toolCallId: 'call-rejection',
+    })
+
+    await turn
+
+    expect(callTool).not.toHaveBeenCalled()
+    expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(engine.getState().messages[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-rejection': {
+            status: 'cancelled',
+          },
+        },
+      },
+    })
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'denied',
+    })
   })
 })

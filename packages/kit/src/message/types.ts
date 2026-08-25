@@ -17,8 +17,24 @@ export type DeepReadonly<T> = T extends (...args: any[]) => any
       : T
 
 // Define different states for the request process
-export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+export type RequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
+
+export interface RequestNextOptions {
+  /**
+   * 标记后续请求是从暂停状态恢复触发的请求。
+   * 设置为 true 时，后续 turn 会触发 `onTurnResume`，不会触发 `onTurnStart`。
+   */
+  resume?: boolean
+}
+
+export type MessagePluginCommandHandler = (
+  payload: unknown,
+  context: BasePluginContext & {
+    appendMessage: (message: ChatMessage | ChatMessage[]) => void
+    requestNext: (options?: RequestNextOptions) => void
+  },
+) => MaybePromise<unknown>
 
 export type ChatMessage<
   Metadata extends object = Record<string, unknown>,
@@ -47,6 +63,7 @@ export interface PublicMessageState {
   processingState?: RequestProcessingState
   messages: ChatMessage[]
   isProcessing: boolean
+  isPaused: boolean
 }
 
 export interface InternalMessageState {
@@ -60,6 +77,7 @@ export interface MessageRuntime {
   customContext: Record<string, unknown>
   abortController: AbortController | null
   responseProvider: ResponseProvider
+  commandHandlers: Map<string, MessagePluginCommandHandler>
 }
 
 export interface MessageEngine {
@@ -70,6 +88,7 @@ export interface MessageEngine {
   send(...msgs: ChatMessage[]): Promise<void>
   abort(): Promise<void>
   setResponseProvider(provider: ResponseProvider): void
+  dispatchCommand<Result = unknown>(command: string, payload?: unknown): Promise<Result>
 }
 
 export type MessageUpdateKind = 'messages' | 'requestState'
@@ -152,7 +171,7 @@ export interface AfterRequestContext extends BasePluginContext {
    * 使用 appendMessage 函数追加消息，可触发消息更新通知。
    */
   appendMessage: (message: ChatMessage | ChatMessage[]) => void
-  requestNext: () => void
+  requestNext: (options?: RequestNextOptions) => void
 }
 
 export interface CompletionChunkContext extends BasePluginContext {
@@ -183,11 +202,22 @@ export interface MessageEnginePlugin {
    */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
   /**
+   * 一次对话回合（turn）从暂停状态恢复后的生命周期钩子。
+   * 与 `onTurnStart` 互斥：resume 触发的后续请求只触发 `onTurnResume`。
+   */
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
+  /**
    * 一次对话回合（turn）结束的生命周期钩子。
    * 触发时机：本轮对话完成（成功、被中止）后。
    * 执行策略：按插件注册顺序串行执行，有错误则中断流程。
    */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
+  /**
+   * 一次对话回合（turn）暂停钩子。
+   * 触发时机：本轮请求进入 `paused` 状态后，例如工具调用等待人工确认。
+   * 与 `onTurnEnd` 互斥：暂停的 turn 只触发 `onTurnPause`，不会触发 `onTurnEnd`。
+   */
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 请求开始前的生命周期钩子。
    * 触发时机：已组装 requestBody，正式发起请求之前。
@@ -207,6 +237,11 @@ export interface MessageEnginePlugin {
   onCompletionChunk?: (context: CompletionChunkContext) => void
   onError?: (context: BasePluginContext & { error: unknown }) => void
   onFinally?: (context: BasePluginContext) => void
+  /**
+   * 插件命令集合。
+   * 插件可以在这里声明额外的外部命令入口。
+   */
+  commands?: Record<string, MessagePluginCommandHandler>
 }
 
 export interface CreateMessageEngineOptions {

@@ -47,6 +47,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       currentTurn: context.currentTurn.map((message) => resolveReactiveMessage(message as ChatMessage)),
       requestState: adapter.requestState.value,
       processingState: adapter.processingState.value,
+      isPaused: adapter.isPaused.value,
       plugins,
       setRequestState: context.setRequestState,
       abortSignal: context.abortSignal,
@@ -71,8 +72,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const {
       name,
       disabled,
+      commands,
       onTurnStart,
       onTurnEnd,
+      onTurnResume,
+      onTurnPause,
       onBeforeRequest,
       onAfterRequest,
       onCompletionChunk,
@@ -95,8 +99,30 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       corePlugin.onTurnStart = (context) => onTurnStart(createVueBaseContext(context))
     }
 
+    if (onTurnResume) {
+      corePlugin.onTurnResume = (context) => onTurnResume(createVueBaseContext(context))
+    }
+
     if (onTurnEnd) {
       corePlugin.onTurnEnd = (context) => onTurnEnd(createVueBaseContext(context))
+    }
+
+    if (onTurnPause) {
+      corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
+    }
+
+    if (commands) {
+      corePlugin.commands = Object.fromEntries(
+        Object.entries(commands).map(([commandName, handler]) => [
+          commandName,
+          (payload, context) =>
+            handler(payload, {
+              ...createVueBaseContext(context),
+              appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
+              requestNext: context.requestNext,
+            }),
+        ]),
+      )
     }
 
     if (onBeforeRequest) {
@@ -184,8 +210,10 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     messages: adapter.messages,
     responseProvider,
     isProcessing: adapter.isProcessing,
+    isPaused: adapter.isPaused,
     sendMessage: engine.sendMessage,
     send: engine.send,
     abortRequest: engine.abort,
+    dispatchCommand: engine.dispatchCommand,
   } as UseMessageReturn
 }

@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { toolPlugin as createCoreToolPlugin } from '../../../message/plugins'
-import type { ToolProviderItem, ToolSource } from '../../../message/plugins'
+import type { ToolCallPauseOptions, ToolProviderItem, ToolSource } from '../../../message/plugins'
 import { normalizeToAsyncGenerator } from '../../../message/utils'
 import type { ChatMessage, MaybePromise, MaybeStreamableResult, ToolCall } from '../../../types'
 import type { VueMessagePluginRuntime } from '../types.internal'
 import type { BasePluginContext, UseMessagePlugin } from '../types'
+
+export { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND } from '../../../message/plugins'
+export type { ToolCallPauseOptions, ToolResumeCommandPayload, ToolResumeCommandResult } from '../../../message/plugins'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage
@@ -12,6 +15,10 @@ export interface UseMessageToolActionContext extends BasePluginContext {
    * 当前工具的来源。
    */
   toolSource?: ToolSource
+  /**
+   * 在工具正式执行前挂起当前 tool call。
+   */
+  pauseToolCall: (toolCallId: string, options?: ToolCallPauseOptions) => void
   /**
    * @deprecated use `assistantMessage` instead
    */
@@ -28,6 +35,10 @@ export interface UseMessageToolCallContext extends BasePluginContext {
    * 当前工具的来源。
    */
   toolSource: ToolSource
+  /**
+   * 在工具正式执行前挂起当前 tool call。
+   */
+  pauseToolCall: (toolCallId: string, options?: ToolCallPauseOptions) => void
   /**
    * @deprecated use `assistantMessage` instead
    */
@@ -75,6 +86,10 @@ export const toolPlugin = (
       },
     ) => void
     /**
+     * 工具调用进入等待确认时使用的消息内容。
+     */
+    toolCallPausedContent?: string
+    /**
      * 当请求被中止时用于工具调用取消的消息内容。
      */
     toolCallCancelledContent?: string
@@ -96,6 +111,7 @@ export const toolPlugin = (
     callTool,
     onToolCallStart,
     onToolCallEnd,
+    toolCallPausedContent,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
     autoFillMissingToolMessages = false,
@@ -118,6 +134,7 @@ export const toolPlugin = (
                 ...runtime.createVueBaseContext(context),
                 assistantMessage,
                 currentMessage: assistantMessage,
+                pauseToolCall: context.pauseToolCall,
               })
             }
           : undefined,
@@ -133,6 +150,7 @@ export const toolPlugin = (
               currentMessage: assistantMessage,
               toolMessage,
               toolSource: context.toolSource,
+              pauseToolCall: context.pauseToolCall,
             } as UseMessageCallToolContext,
           )
 
@@ -151,6 +169,7 @@ export const toolPlugin = (
                 primaryMessage: assistantMessage,
                 toolMessage,
                 toolSource: context.toolSource,
+                pauseToolCall: context.pauseToolCall,
               })
             }
           : undefined,
@@ -165,11 +184,13 @@ export const toolPlugin = (
                 primaryMessage: assistantMessage,
                 toolMessage,
                 toolSource: context.toolSource,
+                pauseToolCall: context.pauseToolCall,
                 status: context.status,
                 error: context.error,
               })
             }
           : undefined,
+        toolCallPausedContent,
         toolCallCancelledContent,
         toolCallFailedContent,
         autoFillMissingToolMessages,
