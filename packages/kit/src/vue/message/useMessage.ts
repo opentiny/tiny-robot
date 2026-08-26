@@ -28,6 +28,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages = [],
     requestMessageFields = [],
     requestMessageFieldsExclude = ['state', 'metadata', 'loading'],
+    persistPausedTurn,
     plugins = [],
     responseProvider: initialResponseProvider,
     onCompletionChunk,
@@ -77,6 +78,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       onTurnEnd,
       onTurnResume,
       onTurnPause,
+      onTurnAbort,
       onBeforeRequest,
       onAfterRequest,
       onCompletionChunk,
@@ -109,6 +111,10 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
     if (onTurnPause) {
       corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
+    }
+
+    if (onTurnAbort) {
+      corePlugin.onTurnAbort = (context) => onTurnAbort(createVueBaseContext(context))
     }
 
     if (commands) {
@@ -189,6 +195,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages: initialMessages as CoreChatMessage[],
     requestMessageFields,
     requestMessageFieldsExclude,
+    persistPausedTurn,
     responseProvider: initialResponseProvider as CoreResponseProvider,
     onCompletionChunk: onCompletionChunk ? onCompletionChunkHandler : undefined,
     plugins: plugins.map((plugin) => createCorePlugin(plugin)),

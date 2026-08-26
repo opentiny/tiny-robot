@@ -23,6 +23,13 @@ import {
   omitFields,
   pickFields,
 } from '../utils'
+import {
+  clearTurnSnapshot,
+  createTurnId,
+  loadTurnSnapshots,
+  saveTurnSnapshot,
+  serializeTurnData,
+} from './turnPersistence'
 
 type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
 
@@ -63,6 +70,121 @@ const isPluginDisabled = (plugin: MessageEnginePlugin, context: BasePluginContex
   return Boolean(plugin.disabled)
 }
 
+const getRestorableToolCallIds = (messages: ChatMessage[]) => {
+  const ids = new Set<string>()
+
+  for (const message of messages) {
+    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+      continue
+    }
+
+    const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
+    for (const toolCall of message.tool_calls) {
+      const status = toolCallState[toolCall.id]?.status
+      if (status === undefined || status === 'awaiting-approval') {
+        ids.add(toolCall.id)
+      }
+    }
+  }
+
+  return ids
+}
+
+const findRestoredTurn = (messages: ChatMessage[], persistPausedTurn: boolean) => {
+  if (!persistPausedTurn) {
+    return undefined
+  }
+
+  const snapshots = loadTurnSnapshots()
+  if (snapshots.length === 0) {
+    return undefined
+  }
+
+  const messageToolCallIds = getRestorableToolCallIds(messages)
+  const matches = snapshots.filter((snapshot) =>
+    snapshot.toolCallIds.some((toolCallId) => messageToolCallIds.has(toolCallId)),
+  )
+
+  if (matches.length === 1) {
+    return matches[0]
+  }
+
+  // A turn snapshot is only meaningful when the conversation messages are available.
+  // Never restore a snapshot without a message match, because the tool call arguments
+  // and persisted tool statuses live in the conversation message history.
+  return undefined
+}
+
+const restorePendingToolCallStates = (messages: ChatMessage[], toolCallIds: string[]) => {
+  const toolCallIdSet = new Set(toolCallIds)
+
+  return messages.map((message) => {
+    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+      return message
+    }
+
+    const pendingToolCallIds = message.tool_calls
+      .map((toolCall) => toolCall.id)
+      .filter((toolCallId) => toolCallIdSet.has(toolCallId))
+
+    if (pendingToolCallIds.length === 0) {
+      return message
+    }
+
+    const toolCallState = (message.state?.toolCall as Record<string, Record<string, unknown>> | undefined) ?? {}
+    const nextToolCallState = { ...toolCallState }
+    let changed = false
+
+    for (const toolCallId of pendingToolCallIds) {
+      if (toolCallState[toolCallId]?.status !== undefined) {
+        continue
+      }
+
+      nextToolCallState[toolCallId] = {
+        ...toolCallState[toolCallId],
+        status: 'awaiting-approval',
+      }
+      changed = true
+    }
+
+    if (!changed) {
+      return message
+    }
+
+    return {
+      ...message,
+      state: {
+        ...message.state,
+        toolCall: nextToolCallState,
+      },
+    }
+  })
+}
+
+const restoreCurrentTurn = (messages: ChatMessage[], toolCallIds: string[]) => {
+  const toolCallIdSet = new Set(toolCallIds)
+  const assistantIndex = messages.findIndex(
+    (message) =>
+      message.role === 'assistant' &&
+      Array.isArray(message.tool_calls) &&
+      message.tool_calls.some((toolCall) => toolCallIdSet.has(toolCall.id)),
+  )
+
+  if (assistantIndex === -1) {
+    return []
+  }
+
+  let turnStart = assistantIndex
+  for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+    if (messages[index].role === 'user') {
+      turnStart = index
+      break
+    }
+  }
+
+  return messages.slice(turnStart)
+}
+
 export const createMessageEngine = (
   adapter: MessageStateAdapter,
   options: CreateMessageEngineOptions = {},
@@ -71,22 +193,33 @@ export const createMessageEngine = (
     initialMessages = [],
     requestMessageFields = [],
     requestMessageFieldsExclude = ['state', 'metadata', 'loading'],
+    persistPausedTurn = true,
     responseProvider: initialResponseProvider = defaultResponseProvider,
     onCompletionChunk,
     plugins: pluginsFromOptions = [],
   } = options
 
+  const createMessage = <T extends ChatMessage>(message: T): T => adapter.createMessage(message)
+
+  const restoredTurn = findRestoredTurn(initialMessages, persistPausedTurn)
+
+  const restoredMessages = restoredTurn
+    ? restorePendingToolCallStates(initialMessages, restoredTurn.toolCallIds)
+    : initialMessages
+  const runtimeMessages = restoredMessages.map((message) => createMessage(message))
+
   const initialState: InternalMessageState = {
-    requestState: 'idle',
-    processingState: undefined,
-    messages: [...initialMessages],
+    requestState: restoredTurn ? 'paused' : 'idle',
+    processingState: restoredTurn?.processingState,
+    messages: runtimeMessages,
   }
 
   adapter.initialize(initialState)
 
   const runtime: MessageRuntime = {
-    currentTurn: [],
-    customContext: {},
+    turnId: restoredTurn?.turnId ?? null,
+    currentTurn: restoredTurn ? restoreCurrentTurn(initialState.messages, restoredTurn.toolCallIds) : [],
+    customContext: restoredTurn?.customContext ?? {},
     abortController: null,
     responseProvider: initialResponseProvider,
     commandHandlers: new Map(),
@@ -96,7 +229,6 @@ export const createMessageEngine = (
   const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
 
   const getState = () => adapter.getState()
-  const createMessage = <T extends ChatMessage>(message: T): T => adapter.createMessage(message)
   const subscribe = adapter.subscribe
   const mutate = adapter.mutate
   const pluginCommandOwners = new Map<string, MessageEnginePlugin>()
@@ -187,6 +319,8 @@ export const createMessageEngine = (
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
         await plugin.onTurnPause?.(context)
       }
+
+      persistCurrentPausedTurn()
       return
     }
 
@@ -194,12 +328,24 @@ export const createMessageEngine = (
     for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
       await plugin.onTurnEnd?.(context)
     }
+
+    if (persistPausedTurn && runtime.turnId) {
+      clearTurnSnapshot(runtime.turnId)
+    }
   }
 
   async function runTurnLifecycle(options: { resume?: boolean } = {}) {
     const ac = new AbortController()
     runtime.abortController = ac
-    runtime.customContext = {}
+
+    if (options.resume) {
+      if (persistPausedTurn && runtime.turnId) {
+        clearTurnSnapshot(runtime.turnId)
+      }
+    } else {
+      runtime.turnId ??= createTurnId()
+      runtime.customContext = {}
+    }
 
     let assistantMessage: ChatMessage | null = null
     const setAssistantMessage = (message: ChatMessage) => {
@@ -265,6 +411,7 @@ export const createMessageEngine = (
       // 暂停态保留当前回合，方便外部命令恢复时继续沿用同一轮上下文。
       if (getState().requestState !== 'paused') {
         runtime.currentTurn = []
+        runtime.turnId = null
       }
 
       mutate('messages', (_, skipNotify) => {
@@ -290,7 +437,7 @@ export const createMessageEngine = (
     }
 
     if (getState().requestState === 'processing') {
-      const hasPausedToolCall = getState().messages.some((message) => {
+      const hasAwaitingApprovalToolCall = getState().messages.some((message) => {
         if (message.role !== 'assistant' || !Array.isArray(message.tool_calls) || message.tool_calls.length === 0) {
           return false
         }
@@ -298,11 +445,11 @@ export const createMessageEngine = (
         const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
         return message.tool_calls.some((toolCall) => {
           const status = toolCallState[toolCall.id]?.status
-          return status === 'paused' || status === 'awaiting-approval'
+          return status === 'awaiting-approval'
         })
       })
 
-      if (!hasPausedToolCall) {
+      if (!hasAwaitingApprovalToolCall) {
         throw new Error('Cannot run plugin command while processing is in progress')
       }
 
@@ -329,10 +476,12 @@ export const createMessageEngine = (
     const previousAbortController = runtime.abortController
     const ac = new AbortController()
     runtime.abortController = ac
+    const wasPaused = getState().requestState === 'paused'
 
     let shouldRequest = false
     let requestNextOptions: RequestNextOptions | undefined
     let commandSucceeded = false
+    let shouldFinishTurn = false
     let result: Result
 
     try {
@@ -352,15 +501,31 @@ export const createMessageEngine = (
 
       result = (await handler(payload, { ...baseContext, appendMessage, requestNext })) as Result
       commandSucceeded = true
+      shouldFinishTurn = wasPaused && !shouldRequest && getState().requestState !== 'paused'
     } finally {
       runtime.abortController = previousAbortController
-      if (!previousAbortController && (!shouldRequest || !commandSucceeded)) {
+      if (
+        !previousAbortController &&
+        (!shouldRequest || !commandSucceeded) &&
+        getState().requestState !== 'paused' &&
+        !shouldFinishTurn
+      ) {
         runtime.currentTurn = []
       }
     }
 
+    if (commandSucceeded && getState().requestState === 'paused') {
+      persistCurrentPausedTurn()
+    }
+
     if (shouldRequest && !ac.signal.aborted) {
       await runTurnLifecycle({ resume: requestNextOptions?.resume })
+    }
+
+    if (shouldFinishTurn) {
+      await finishTurnAfterRequest(ac.signal)
+      runtime.currentTurn = []
+      runtime.turnId = null
     }
 
     return result
@@ -481,6 +646,50 @@ export const createMessageEngine = (
     await postRequest(assistantMessage, responseProvider, abortSignal, lastChoice, options)
   }
 
+  function persistCurrentPausedTurn() {
+    if (!persistPausedTurn || !runtime.turnId) {
+      return
+    }
+
+    const state = getState()
+    const toolCallIds = Array.from(
+      new Set(
+        state.messages.flatMap((message) => {
+          if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+            return []
+          }
+
+          const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
+          return message.tool_calls
+            .filter((toolCall) => {
+              const status = toolCallState[toolCall.id]?.status
+              return status === 'awaiting-approval'
+            })
+            .map((toolCall) => toolCall.id)
+        }),
+      ),
+    )
+
+    if (toolCallIds.length === 0) {
+      return
+    }
+
+    const customContext = serializeTurnData(runtime.customContext)
+    if (!customContext || typeof customContext !== 'object') {
+      return
+    }
+
+    saveTurnSnapshot({
+      version: 1,
+      turnId: runtime.turnId,
+      requestState: 'paused',
+      processingState: state.processingState,
+      toolCallIds,
+      customContext: customContext as Record<string, unknown>,
+      pausedAt: Date.now(),
+    })
+  }
+
   async function postRequest(
     currentMessage: ChatMessage,
     responseProvider: ResponseProvider,
@@ -564,14 +773,40 @@ export const createMessageEngine = (
   }
 
   async function abort() {
+    if (getState().requestState === 'paused') {
+      const ac = new AbortController()
+      runtime.abortController = ac
+
+      try {
+        const context = getBaseContext(ac.signal)
+        for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+          await plugin.onTurnAbort?.(context)
+        }
+
+        if (getState().requestState === 'paused') {
+          setRequestState('aborted')
+        }
+
+        if (persistPausedTurn && runtime.turnId) {
+          clearTurnSnapshot(runtime.turnId)
+        }
+      } finally {
+        runtime.abortController = null
+        runtime.currentTurn = []
+        runtime.turnId = null
+      }
+
+      return
+    }
+
     runtime.abortController?.abort()
 
-    // 等待直到 isProcessing 变为 false
-    if (getState().isProcessing) {
+    // 仅等待实际请求结束；paused 是等待确认，不存在可 abort 的请求。
+    if (getState().requestState === 'processing') {
       await new Promise<void>((resolve) => {
         let unsubscribe = () => {}
         unsubscribe = subscribe('requestState', (currentState) => {
-          if (!currentState.isProcessing) {
+          if (currentState.requestState !== 'processing') {
             unsubscribe()
             resolve()
           }

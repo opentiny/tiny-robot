@@ -73,6 +73,7 @@ export interface InternalMessageState {
 }
 
 export interface MessageRuntime {
+  turnId: string | null
   currentTurn: ChatMessage[]
   customContext: Record<string, unknown>
   abortController: AbortController | null
@@ -219,6 +220,11 @@ export interface MessageEnginePlugin {
    */
   onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
+   * 一次对话回合被外部取消的生命周期钩子。
+   * paused 状态下调用 abort 时也会触发，用于清理等待中的工具调用。
+   */
+  onTurnAbort?: (context: BasePluginContext) => MaybePromise<void>
+  /**
    * 请求开始前的生命周期钩子。
    * 触发时机：已组装 requestBody，正式发起请求之前。
    * 执行策略：按插件注册顺序串行执行，避免并发修改 requestBody 产生冲突。
@@ -246,6 +252,11 @@ export interface MessageEnginePlugin {
 
 export interface CreateMessageEngineOptions {
   initialMessages?: ChatMessage[]
+  /**
+   * Automatically persist paused turns in the browser when localStorage is available.
+   * Defaults to true so existing tool pause integrations can survive a page reload.
+   */
+  persistPausedTurn?: boolean
   /**
    * 请求消息时，要包含的字段（白名单）。默认包含所有字段。
    * 如果 `requestMessageFieldsExclude` 存在，会先取 `requestMessageFields` 中的字段，再排除 `requestMessageFieldsExclude` 中的字段

@@ -46,7 +46,7 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
   const requestState = ref<RequestState>('idle')
   const processingState = ref<RequestProcessingState | undefined>(undefined)
   const messages = ref<ChatMessage[]>([])
-  const isProcessing = computed(() => requestState.value === 'processing')
+  const isProcessing = computed(() => requestState.value === 'processing' || requestState.value === 'paused')
   const isPaused = computed(() => requestState.value === 'paused')
 
   const initialize = (initialState: InternalMessageState) => {

@@ -300,6 +300,127 @@ describe('useMessage', () => {
     })
   })
 
+  it('restores a persisted paused turn with reactive messages after recreating useMessage', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    let shouldPause = true
+    const callTool = vi.fn(async () => 'vue restored result')
+    const responseProvider: ResponseProvider = async (requestBody) => {
+      if (!requestBody.messages.some((message) => message.role === 'tool')) {
+        return {
+          id: 'vue-persisted-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          system_fingerprint: null,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: 'call-vue-persisted',
+                    type: 'function',
+                    function: {
+                      name: 'vue_persisted_lookup',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              delta: undefined,
+              logprobs: null,
+              finish_reason: 'tool_calls',
+            },
+          ],
+        }
+      }
+
+      return {
+        id: 'vue-persisted-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        system_fingerprint: null,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'vue restored done',
+            },
+            delta: undefined,
+            logprobs: null,
+            finish_reason: 'stop',
+          },
+        ],
+      }
+    }
+
+    const createEngine = (initialMessages: ChatMessage[] = []) =>
+      useMessage({
+        initialMessages,
+        responseProvider,
+        plugins: [
+          toolPlugin({
+            getTools: async () => [
+              {
+                type: 'function',
+                function: { name: 'vue_persisted_lookup' },
+              },
+            ],
+            callTool,
+            onToolCallStart(toolCall, context) {
+              if (shouldPause) {
+                context.pauseToolCall(toolCall.id)
+              }
+            },
+          }),
+        ],
+      })
+
+    try {
+      const firstEngine = createEngine()
+      await firstEngine.sendMessage('persist vue turn')
+
+      shouldPause = false
+      const persistedMessages = JSON.parse(JSON.stringify(firstEngine.messages.value)) as ChatMessage[]
+      const restoredEngine = createEngine(persistedMessages)
+      expect(restoredEngine.isPaused.value).toBe(true)
+      expect(restoredEngine.messages.value).toHaveLength(3)
+
+      await restoredEngine.dispatchCommand(TOOL_RESUME_COMMAND, {
+        toolCallId: 'call-vue-persisted',
+      })
+
+      expect(callTool).toHaveBeenCalledOnce()
+      expect(restoredEngine.isPaused.value).toBe(false)
+      expect(restoredEngine.messages.value[1]).toMatchObject({
+        state: { toolCall: { 'call-vue-persisted': { status: 'success' } } },
+      })
+      expect(restoredEngine.messages.value[2]).toMatchObject({
+        role: 'tool',
+        tool_call_id: 'call-vue-persisted',
+        content: 'vue restored result',
+      })
+      expect(restoredEngine.messages.value.at(-1)).toMatchObject({
+        role: 'assistant',
+        content: 'vue restored done',
+      })
+      expect(values.has('__tiny-robot-turn')).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('does not inject vue skill instructions by default', async () => {
     const skills = ref<SkillDefinition[]>([
       {

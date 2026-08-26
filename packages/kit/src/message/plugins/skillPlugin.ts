@@ -53,12 +53,14 @@ type SkillSelectionStatus =
       phase: 'selecting'
       candidates: SkillCandidate[]
       preferredSkillNames?: string[]
+      maxSelectedSkills?: number
     }
   | {
       mode: 'auto'
       phase: 'ready'
       candidates: SkillCandidate[]
       preferredSkillNames?: string[]
+      maxSelectedSkills?: number
     }
 
 /**
@@ -88,7 +90,6 @@ export interface SkillRequestContext {
    * Instructions generated for the current skill selection state.
    */
   instructions: string[]
-  runtimeTools: RuntimeTool[]
   selection: SkillSelectionStatus
 }
 
@@ -225,6 +226,49 @@ const normalizeCandidates = (candidates: SkillCandidate[]) => {
   return [...candidateMap.values()]
 }
 
+const collectPendingSkillNames = (context: BasePluginContext) => {
+  const skillNames = new Set<string>()
+  const messages = [...context.currentTurn, ...context.getState().messages]
+
+  for (const message of messages) {
+    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+      continue
+    }
+
+    const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
+    for (const toolCall of message.tool_calls) {
+      if (toolCallState[toolCall.id]?.status !== 'awaiting-approval') {
+        continue
+      }
+
+      if (toolCall.type !== 'function' || !('function' in toolCall)) {
+        continue
+      }
+
+      if (toolCall.function.name !== 'list_skill_files' && toolCall.function.name !== 'read_skill_file') {
+        continue
+      }
+
+      try {
+        const rawArguments = toolCall.function.arguments
+        const argumentsValue = typeof rawArguments === 'string' ? JSON.parse(rawArguments || '{}') : rawArguments
+        const skillName =
+          argumentsValue && typeof argumentsValue === 'object' && 'skillName' in argumentsValue
+            ? argumentsValue.skillName
+            : undefined
+
+        if (typeof skillName === 'string' && skillName.length > 0) {
+          skillNames.add(skillName)
+        }
+      } catch {
+        // The tool handler will report malformed arguments after the turn is resumed.
+      }
+    }
+  }
+
+  return [...skillNames]
+}
+
 /** Reads the skill context attached to a plugin lifecycle context. */
 export const getSkillRequestContext = (context: Pick<BasePluginContext, 'customContext'>) => {
   return context.customContext[skillPluginContextKey] as SkillRequestContext | undefined
@@ -287,6 +331,7 @@ const createAutoSelectionRuntimeTools = ({
   onInstructionsResolved,
   onSkillsResolved,
   onSkillSelectionResolved,
+  setRuntimeTools,
 }: {
   selection: AutoSkillSelection
   getSkillByName: SkillResolver['getSkillByName']
@@ -295,6 +340,7 @@ const createAutoSelectionRuntimeTools = ({
   onInstructionsResolved: SkillPluginHooks['onInstructionsResolved']
   onSkillsResolved: SkillPluginHooks['onSkillsResolved']
   onSkillSelectionResolved: SkillPluginHooks['onSkillSelectionResolved']
+  setRuntimeTools: (runtimeTools: RuntimeTool[]) => void
 }): RuntimeTool[] => {
   return createSkillSelectionRuntimeTools(candidates, {
     maxSelectedSkills: selection.maxSelectedSkills,
@@ -316,18 +362,20 @@ const createAutoSelectionRuntimeTools = ({
       )
 
       const instructions = createResolvedSkillInstructions(skills)
+      const runtimeTools = createSkillResourceRuntimeTools(skills)
+      setRuntimeTools(runtimeTools)
       const skillContext: SkillRequestContext = {
         skills,
         skillNames: skills.map((skill) => skill.name),
         requestedSkillNames,
         unresolvedSkillNames,
         instructions,
-        runtimeTools: createSkillResourceRuntimeTools(skills),
         selection: {
           mode: 'auto',
           phase: 'ready',
           candidates,
           preferredSkillNames,
+          maxSelectedSkills: selection.maxSelectedSkills,
         },
       }
 
@@ -357,13 +405,203 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
     ...restOptions
   } = options
 
+  let runtimeTools: RuntimeTool[] = []
+  let runtimeToolsReady = false
+
+  const setRuntimeTools = (nextRuntimeTools: RuntimeTool[]) => {
+    runtimeTools = nextRuntimeTools
+    runtimeToolsReady = true
+  }
+
+  const resolveRestoredSkills = async (skillContext: SkillRequestContext, context: BasePluginContext) => {
+    const selectionOptions = typeof selection === 'function' ? await selection(context) : selection
+
+    if (skillContext.selection.mode === 'manual' && selectionOptions.mode === 'manual' && selectionOptions.skills) {
+      const persistedSkillNames = new Set(skillContext.skillNames)
+      const skills = normalizeSkills(selectionOptions.skills).filter((skill) => persistedSkillNames.has(skill.name))
+      const pendingSkills = await resolvePendingSkills(
+        context,
+        skills.map((skill) => skill.name),
+      )
+      return normalizeSkills([...skills, ...pendingSkills])
+    }
+
+    let skills = skillContext.skills
+    if (skillContext.skillNames.length > 0 && getSkillByName) {
+      const result = await resolveSkillsByNames(skillContext.skillNames, getSkillByName, context)
+      if (result.skills.length > 0 || skillContext.skills.length === 0) {
+        skills = result.skills
+      }
+    }
+
+    const pendingSkills = await resolvePendingSkills(
+      context,
+      skills.map((skill) => skill.name),
+    )
+    return normalizeSkills([...skills, ...pendingSkills])
+  }
+
+  const resolvePendingSkills = async (context: BasePluginContext, excludedSkillNames: string[] = []) => {
+    const excludedNames = new Set(excludedSkillNames)
+    const pendingSkillNames = collectPendingSkillNames(context).filter((name) => !excludedNames.has(name))
+    if (pendingSkillNames.length === 0 || !getSkillByName) {
+      return []
+    }
+
+    const result = await resolveSkillsByNames(pendingSkillNames, getSkillByName, context)
+    return result.skills
+  }
+
+  const rebuildManualRuntimeTools = async (
+    selectionOptions: Extract<SkillSelection, { mode: 'manual' }>,
+    context: BasePluginContext,
+  ) => {
+    let skills: SkillDefinition[]
+    let requestedSkillNames: string[]
+    let unresolvedSkillNames: string[]
+
+    if (selectionOptions.skills) {
+      skills = normalizeSkills(selectionOptions.skills)
+      requestedSkillNames = skills.map((skill) => skill.name)
+      unresolvedSkillNames = []
+    } else {
+      requestedSkillNames = getUniqueStringArray(selectionOptions.skillNames) ?? []
+      if (!getSkillByName && requestedSkillNames.length > 0) {
+        setRuntimeTools([])
+        return
+      }
+
+      const result = getSkillByName
+        ? await resolveSkillsByNames(requestedSkillNames, getSkillByName, context)
+        : { skills: [], unresolvedSkillNames: [] }
+      skills = result.skills
+      unresolvedSkillNames = result.unresolvedSkillNames
+    }
+
+    setRuntimeTools(createSkillResourceRuntimeTools(skills))
+    setSkillContext(context, {
+      skills,
+      skillNames: skills.map((skill) => skill.name),
+      requestedSkillNames,
+      unresolvedSkillNames,
+      instructions: createResolvedSkillInstructions(skills),
+      selection: {
+        mode: 'manual',
+        phase: 'ready',
+      },
+    })
+  }
+
+  const rebuildRuntimeTools = async (context: BasePluginContext) => {
+    const skillContext = getSkillRequestContext(context)
+    const selectionOptions = typeof selection === 'function' ? await selection(context) : selection
+
+    if (!skillContext) {
+      if (selectionOptions.mode === 'manual') {
+        await rebuildManualRuntimeTools(selectionOptions, context)
+      } else if (selectionOptions.mode === 'auto') {
+        if (!getSkillCandidates || !getSkillByName) {
+          setRuntimeTools([])
+          return
+        }
+
+        const candidates = normalizeCandidates(await getSkillCandidates(context))
+        const candidateNameSet = new Set(candidates.map((candidate) => candidate.name))
+        const preferredSkillNames = getUniqueStringArray(selectionOptions.preferredSkillNames)?.filter((name) =>
+          candidateNameSet.has(name),
+        )
+        const runtimeTools = createAutoSelectionRuntimeTools({
+          selection: selectionOptions,
+          getSkillByName,
+          candidates,
+          preferredSkillNames,
+          onInstructionsResolved,
+          onSkillsResolved,
+          onSkillSelectionResolved,
+          setRuntimeTools,
+        })
+        setRuntimeTools(runtimeTools)
+        setSkillContext(context, {
+          skills: [],
+          skillNames: [],
+          requestedSkillNames: [],
+          unresolvedSkillNames: [],
+          instructions: candidates.length
+            ? [createSkillSelectionInstructions({ candidates, preferredSkillNames })]
+            : [],
+          selection: {
+            mode: 'auto',
+            phase: 'selecting',
+            candidates,
+            preferredSkillNames,
+            maxSelectedSkills: selectionOptions.maxSelectedSkills,
+          },
+        })
+      } else {
+        setRuntimeTools(createSkillResourceRuntimeTools(await resolvePendingSkills(context)))
+      }
+      return
+    }
+
+    if (skillContext.selection.mode === 'none') {
+      setRuntimeTools(createSkillResourceRuntimeTools(await resolvePendingSkills(context)))
+      return
+    }
+
+    if (skillContext.selection.mode === 'auto' && skillContext.selection.phase === 'selecting') {
+      const autoSelection: AutoSkillSelection =
+        selectionOptions.mode === 'auto'
+          ? selectionOptions
+          : {
+              mode: 'auto',
+              preferredSkillNames: skillContext.selection.preferredSkillNames,
+              maxSelectedSkills: skillContext.selection.maxSelectedSkills,
+            }
+
+      if (!getSkillByName) {
+        throw new Error('getSkillByName is required when restoring auto skill selection')
+      }
+
+      const nextRuntimeTools = createAutoSelectionRuntimeTools({
+        selection: autoSelection,
+        getSkillByName,
+        candidates: skillContext.selection.candidates,
+        preferredSkillNames: skillContext.selection.preferredSkillNames,
+        onInstructionsResolved,
+        onSkillsResolved,
+        onSkillSelectionResolved,
+        setRuntimeTools,
+      })
+      setRuntimeTools(nextRuntimeTools)
+      return
+    }
+
+    const skills = await resolveRestoredSkills(skillContext, context)
+    setRuntimeTools(createSkillResourceRuntimeTools(skills))
+
+    setSkillContext(context, {
+      ...skillContext,
+      skills,
+      skillNames: skills.map((skill) => skill.name),
+      unresolvedSkillNames: skillContext.requestedSkillNames.filter(
+        (skillName) => !skills.some((skill) => skill.name === skillName),
+      ),
+      instructions: createResolvedSkillInstructions(skills),
+    })
+  }
+
   return {
     name: 'skill',
     ...restOptions,
     provideTools: async (context: BasePluginContext) => {
-      return getSkillRequestContext(context)?.runtimeTools ?? []
+      if (!runtimeToolsReady) {
+        await rebuildRuntimeTools(context)
+      }
+
+      return runtimeTools
     },
     onTurnStart: async (context) => {
+      setRuntimeTools([])
       const selectionOptions: SkillSelection = typeof selection === 'function' ? await selection(context) : selection
 
       if (selectionOptions.mode === 'none') {
@@ -373,7 +611,6 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
           requestedSkillNames: [],
           unresolvedSkillNames: [],
           instructions: [],
-          runtimeTools: [],
           selection: {
             mode: 'none',
             phase: 'ready',
@@ -406,13 +643,13 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
         }
 
         const instructions = createResolvedSkillInstructions(skills)
+        setRuntimeTools(createSkillResourceRuntimeTools(skills))
         const skillContext: SkillRequestContext = {
           skills,
           skillNames: skills.map((skill) => skill.name),
           requestedSkillNames,
           unresolvedSkillNames,
           instructions,
-          runtimeTools: createSkillResourceRuntimeTools(skills),
           selection: {
             mode: 'manual',
             phase: 'ready',
@@ -446,26 +683,29 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
       }
       const instructions =
         candidates.length > 0 ? [createSkillSelectionInstructions({ candidates, preferredSkillNames })] : []
+      const runtimeTools = createAutoSelectionRuntimeTools({
+        selection: selectionOptions,
+        getSkillByName: resolveSkillByName,
+        candidates,
+        preferredSkillNames,
+        onInstructionsResolved,
+        onSkillsResolved,
+        onSkillSelectionResolved,
+        setRuntimeTools,
+      })
+      setRuntimeTools(runtimeTools)
       const skillContext: SkillRequestContext = {
         skills: [],
         skillNames: [],
         requestedSkillNames: [],
         unresolvedSkillNames: [],
         instructions,
-        runtimeTools: createAutoSelectionRuntimeTools({
-          selection: selectionOptions,
-          getSkillByName: resolveSkillByName,
-          candidates,
-          preferredSkillNames,
-          onInstructionsResolved,
-          onSkillsResolved,
-          onSkillSelectionResolved,
-        }),
         selection: {
           mode: 'auto',
           phase: 'selecting',
           candidates,
           preferredSkillNames,
+          maxSelectedSkills: selectionOptions.maxSelectedSkills,
         },
       }
 
@@ -473,6 +713,12 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
       await onInstructionsResolved?.(skillContext, context)
 
       return restOptions.onTurnStart?.(context)
+    },
+    onTurnResume: async (context) => {
+      if (!runtimeToolsReady) {
+        await rebuildRuntimeTools(context)
+      }
+      return restOptions.onTurnResume?.(context)
     },
   } satisfies MessageEnginePlugin & ToolProvider
 }

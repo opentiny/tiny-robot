@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { IconArrowDown, IconCancelled, IconError, IconLoading, IconPlugin } from '@opentiny/tiny-robot-svgs'
+import {
+  IconArrowDown,
+  IconCancelled,
+  IconClose,
+  IconError,
+  IconLoading,
+  IconPlugin,
+  IconWarning,
+} from '@opentiny/tiny-robot-svgs'
 import { type Component, computed, nextTick, ref, useCssModule, watch, watchEffect } from 'vue'
 import { ToolCallStatus, useBubbleEventFn, useToolCall } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
@@ -22,8 +30,14 @@ const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['cancelled', { text: '已取消', icon: IconCancelled }],
 ])
 
+const approvalTextAndIconMap = new Map<string, { text: string; icon: Component }>([
+  ['awaiting-approval', { text: '等待确认', icon: IconWarning }],
+  ['denied', { text: '已拒绝', icon: IconClose }],
+])
+
 const textAndIcon = computed(() => {
-  return textAndIconMap.get(state.value?.status || '') || { text: '', icon: IconPlugin }
+  const status = state.value?.status || ''
+  return textAndIconMap.get(status) || approvalTextAndIconMap.get(status) || { text: '', icon: IconPlugin }
 })
 
 const prettyJSON = (json: unknown, space = 2) => {
@@ -193,6 +207,7 @@ const handleClick = () => {
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    gap: 8px;
   }
 
   .header-icon {
@@ -209,8 +224,13 @@ const handleClick = () => {
     }
 
     &.icon-failed,
-    &.icon-cancelled {
+    &.icon-cancelled,
+    &.icon-denied {
       color: var(--tr-color-error);
+    }
+
+    &.icon-awaiting-approval {
+      color: var(--tr-color-warning, #e6a23c);
     }
   }
 
