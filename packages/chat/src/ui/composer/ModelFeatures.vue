@@ -33,16 +33,12 @@ const featureOptions = computed(() =>
 const pendingFeatureIds = computed(() => new Set(props.model.pendingFeatureIds ?? []))
 const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
 
-const visibleFeatures = computed(() =>
-  featureOptions.value.filter((feature) => selectedModel.value?.capabilities?.[feature.id]),
-)
-
 function isPending(id: ChatBuiltInModelFeature) {
   return pendingFeatureIds.value.has(id)
 }
 
 function toggleFeature(id: ChatBuiltInModelFeature) {
-  if (isPending(id)) {
+  if (isPending(id) || selectedModel.value?.capabilities?.[id] !== true) {
     return
   }
 
@@ -51,14 +47,14 @@ function toggleFeature(id: ChatBuiltInModelFeature) {
 </script>
 
 <template>
-  <div v-if="visibleFeatures.length" class="tr-chat-model-features">
+  <div v-if="featureOptions.length" class="tr-chat-model-features">
     <button
-      v-for="feature in visibleFeatures"
+      v-for="feature in featureOptions"
       :key="feature.id"
       class="tr-chat-model-features__button"
       :class="{ 'tr-chat-model-features__button--active': model.features?.[feature.id] }"
       type="button"
-      :disabled="isPending(feature.id)"
+      :disabled="isPending(feature.id) || selectedModel?.capabilities?.[feature.id] !== true"
       :aria-label="feature.label"
       :title="feature.label"
       @click="toggleFeature(feature.id)"

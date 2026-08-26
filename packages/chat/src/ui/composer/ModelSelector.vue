@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TrDropdownMenu, type DropdownMenuItem } from '@opentiny/tiny-robot'
-import { IconAtom } from '@opentiny/tiny-robot-svgs'
+import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
+import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { ChatLabels, ChatModelView } from '../../types'
 
 const props = defineProps<{
@@ -13,84 +13,80 @@ const emit = defineEmits<{
   selectModel: [payload: { id: string | null }]
 }>()
 
-const modelOptions = computed(() => props.model.options ?? [])
-const selectedModel = computed(() => modelOptions.value.find((model) => model.id === props.model.selectedId))
-const menuItems = computed<DropdownMenuItem[]>(() =>
-  modelOptions.value.map((model) => ({
-    id: model.id,
-    text: model.label,
+const modelOptions = computed<ModelSelectorOption[]>(() =>
+  (props.model.options ?? []).map((model) => ({
+    value: model.id,
+    label: model.label,
+    icon: model.icon,
   })),
 )
 
-function handleModelSelect(item: DropdownMenuItem) {
-  if (props.model.selecting || item.id === props.model.selectedId) {
+function handleModelSelect(id: string | null) {
+  if (props.model.selecting || id === props.model.selectedId) {
     return
   }
 
-  emit('selectModel', { id: item.id })
+  emit('selectModel', { id })
 }
 </script>
 
 <template>
-  <TrDropdownMenu
-    class="tr-chat-model-selector__menu"
+  <TrModelSelector
     v-if="modelOptions.length"
-    :items="menuItems"
-    trigger="click"
-    @item-click="handleModelSelect"
+    class="tr-chat-model-selector"
+    :models="modelOptions"
+    :model-value="model.selectedId ?? null"
+    :disabled="model.selecting"
+    append-to=".tr-chat-ui"
+    :placeholder="labels.selectModel"
+    :aria-label="labels.selectModel"
+    @update:model-value="handleModelSelect"
   >
-    <template #trigger>
-      <button
-        class="tr-chat-model-selector__button"
-        type="button"
-        :disabled="model.selecting"
-        :aria-label="selectedModel?.label || labels.selectModel"
-        :title="selectedModel?.label || labels.selectModel"
-      >
-        <IconAtom :size="16" class="tr-chat-model-selector__icon" />
-        <span class="tr-chat-model-selector__label">{{ selectedModel?.label || labels.selectModel }}</span>
-      </button>
+    <template #trigger="{ option, label, open }">
+      <span class="tr-chat-model-selector__trigger" :class="{ 'has-icon': option?.icon }">
+        <span class="tr-chat-model-selector__trigger-main">
+          <component
+            :is="option?.icon"
+            v-if="option?.icon"
+            class="tr-chat-model-selector__icon"
+            aria-hidden="true"
+            focusable="false"
+          />
+          <span class="tr-chat-model-selector__label">{{ label }}</span>
+        </span>
+        <IconArrowDown
+          class="tr-chat-model-selector__chevron"
+          :class="{ 'is-open': open }"
+          aria-hidden="true"
+          focusable="false"
+        />
+      </span>
     </template>
-  </TrDropdownMenu>
+  </TrModelSelector>
 </template>
 
-<style>
-.tr-chat-model-selector__menu {
-  z-index: calc(var(--tr-z-index-drawer, 1000) + 2);
-}
-</style>
-
 <style scoped>
-.tr-chat-model-selector__button {
+.tr-chat-model-selector__trigger,
+.tr-chat-model-selector__trigger-main {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  max-width: 180px;
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--tr-border-color-disabled);
-  border-radius: var(--tr-radius-full);
-  color: var(--tr-text-secondary);
-  background: var(--tr-container-bg-default);
-  font: inherit;
-  font-size: var(--tr-font-size-sm);
-  line-height: 1;
-  cursor: pointer;
 }
 
-.tr-chat-model-selector__button:hover:not(:disabled) {
-  border-color: var(--tr-border-color-hover);
-  color: var(--tr-text-primary);
-  background: var(--tr-container-bg-hover);
+.tr-chat-model-selector__trigger {
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.tr-chat-model-selector__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+.tr-chat-model-selector__trigger-main {
+  min-width: 0;
+  gap: 8px;
 }
 
 .tr-chat-model-selector__icon {
-  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 
 .tr-chat-model-selector__label {
@@ -99,15 +95,26 @@ function handleModelSelect(item: DropdownMenuItem) {
   white-space: nowrap;
 }
 
+.tr-chat-model-selector__chevron {
+  flex: 0 0 auto;
+  transition: transform 0.18s ease;
+}
+
+.tr-chat-model-selector__chevron.is-open {
+  transform: rotate(180deg);
+}
+
 @container (max-width: 959px) {
-  .tr-chat-model-selector__button {
-    justify-content: center;
-    width: 32px;
-    padding: 0;
+  .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__label {
+    display: none;
   }
 
-  .tr-chat-model-selector__label {
+  .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__chevron {
     display: none;
+  }
+
+  .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__trigger-main {
+    gap: 0;
   }
 }
 </style>

@@ -214,7 +214,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
   box-shadow: 0 8px 22px rgba(40, 42, 51, 0.08);
 }
 
-.work-helper :deep(.tr-chat-model-selector__button),
+.work-helper :deep(.tr-model-selector__trigger),
 .work-helper :deep(.tr-chat-model-features__button) {
   border-radius: 18px;
 }

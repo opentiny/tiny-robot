@@ -11,6 +11,7 @@ const models: ChatResolvedProviderModel[] = [
     providerLabel: 'OpenAI',
     apiUrl: 'url',
     apiKey: 'key',
+    icon: 'model-a-icon' as never,
     capabilities: { thinking: true, search: true },
     reasoning: { efforts: ['low', 'high'] as const, defaultEffort: 'low' as const },
   },
@@ -30,6 +31,7 @@ describe('createProviderModelRuntime', () => {
   it('selects the first model and its default reasoning effort', () => {
     const runtime = createProviderModelRuntime(models)
     expect(runtime.model.selectedId.value).toBe('model-a')
+    expect(runtime.model.options.value[0]?.icon).toBe('model-a-icon')
     expect(runtime.model.reasoning?.value).toMatchObject({ enabled: false, effort: undefined })
   })
 

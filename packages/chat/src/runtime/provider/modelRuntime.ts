@@ -37,9 +37,10 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
 
   const model: ChatModelRuntime = {
     options: computed<readonly ChatModelOption[]>(() =>
-      models.map(({ id, label, capabilities }) => ({
+      models.map(({ id, label, icon, capabilities }) => ({
         id,
         label,
+        icon,
         capabilities,
       })),
     ),

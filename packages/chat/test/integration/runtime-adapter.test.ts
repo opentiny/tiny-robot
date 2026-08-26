@@ -111,4 +111,30 @@ describe('useChatRuntimeAdapter integration', () => {
     expect(adapter.data.value.mcp?.servers?.[0].enabled).toBe(true)
     expect(adapter.data.value.mcp?.tools?.['server-a']?.[0].enabled).toBe(true)
   })
+
+  it('selects a model through the adapter and projects the updated selection', async () => {
+    const model = {
+      options: shallowRef([
+        { id: 'model-a', label: 'Model A' },
+        { id: 'model-b', label: 'Model B' },
+      ]),
+      selectedId: shallowRef<string | null>('model-a'),
+      features: shallowRef({ thinking: false, search: false }),
+      select: vi.fn(async (id: string | null) => {
+        model.selectedId.value = id
+      }),
+      setFeature: vi.fn(),
+    }
+    const conversation = useConversation({
+      storage: createMemoryStorage(),
+      useMessageOptions: { responseProvider: createResponseProvider() },
+    })
+    const runtime = useKitChatRuntime({ conversation, composer: { model } })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: vi.fn() })
+
+    await adapter.selectModel('model-b')
+
+    expect(model.select).toHaveBeenCalledWith('model-b')
+    expect(adapter.data.value.model?.selectedId).toBe('model-b')
+  })
 })

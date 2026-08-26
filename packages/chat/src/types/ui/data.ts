@@ -1,5 +1,6 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatRequestState } from '../base'
 import type { ChatBuiltInModelFeature } from '../runtime'
+import type { Component } from 'vue'
 
 export interface ChatUIData {
   readonly conversation?: ChatConversationView
@@ -52,6 +53,7 @@ export interface ChatModelView {
 export interface ChatModelOptionView {
   readonly id: string
   readonly label: string
+  readonly icon?: Component
   readonly capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   readonly metadata?: Readonly<Record<string, unknown>>
 }

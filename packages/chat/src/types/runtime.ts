@@ -1,5 +1,6 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatReadable, ChatRequestState } from './base'
 import type { ChatSendPayload } from './commands'
+import type { Component } from 'vue'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -47,6 +48,7 @@ export interface ChatMcpRunConfig {
 export interface ChatModelOption {
   id: string
   label: string
+  icon?: Component
   capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   metadata?: Readonly<Record<string, unknown>>
 }
