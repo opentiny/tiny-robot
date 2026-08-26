@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env VP_MODE=development vitepress dev",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 VP_MODE=production vitepress build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=6144 VP_MODE=production vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {
