@@ -799,8 +799,15 @@ export const toolPlugin = (
           error: new Error(reason ?? 'Tool call rejected.'),
         })
 
-        // Rejection terminates the current turn. No follow-up model request is made.
-        setRequestState('completed')
+        const latestPending = findPendingToolCallFromContext(context)
+        const latestToolMessages = latestPending?.toolMessages ?? []
+
+        if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
+          // Rejection terminates the current turn only when no other tool calls still await approval.
+          setRequestState('completed')
+        } else {
+          setRequestState('paused')
+        }
 
         return { status: 'rejected', toolCallId } satisfies ToolResumeCommandResult
       },

@@ -929,6 +929,95 @@ describe('toolPlugin', () => {
     })
   })
 
+  it('keeps the turn paused when only one of multiple awaiting tool calls is rejected', async () => {
+    const callTool = vi.fn(async () => 'should not run')
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const toolMessages = requestBody.messages.filter((message) => message.role === 'tool')
+
+      if (toolMessages.length > 0) {
+        throw new Error('partial rejection should not start a follow-up request')
+      }
+
+      return {
+        id: 'partial-rejection-tool-call',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call-reject-one',
+                  type: 'function',
+                  function: { name: 'first_tool', arguments: '{}' },
+                },
+                {
+                  id: 'call-still-awaiting',
+                  type: 'function',
+                  function: { name: 'second_tool', arguments: '{}' },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          shouldPauseToolCall: async () => true,
+          getTools: async () => [
+            { type: 'function', function: { name: 'first_tool' } },
+            { type: 'function', function: { name: 'second_tool' } },
+          ],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('reject one tool')
+
+    await expect(
+      engine.dispatchCommand(TOOL_REJECT_COMMAND, {
+        toolCallId: 'call-reject-one',
+        reason: 'manual rejection',
+      }),
+    ).resolves.toEqual({
+      status: 'rejected',
+      toolCallId: 'call-reject-one',
+    })
+
+    expect(callTool).not.toHaveBeenCalled()
+    expect(responseProvider).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+    expect(engine.getState().messages[1]).toMatchObject({
+      state: {
+        toolCall: {
+          'call-reject-one': { status: 'denied', reason: 'manual rejection' },
+          'call-still-awaiting': { status: 'awaiting-approval' },
+        },
+      },
+    })
+    expect(engine.getState().messages[2]).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-reject-one',
+      content: 'Tool call denied.',
+    })
+    expect(engine.getState().messages[3]).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-still-awaiting',
+      content: 'Tool call awaiting confirmation.',
+    })
+  })
+
   it('rejects all awaiting tool calls as one turn', async () => {
     const callTool = vi.fn(async () => 'should not run')
     const responseProvider = vi.fn<ResponseProvider>(
