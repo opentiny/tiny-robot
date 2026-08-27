@@ -17,7 +17,7 @@ import { useModelSelectorFilter } from './composables/useModelSelectorFilter'
 import { useModelSelectorFloating } from './composables/useModelSelectorFloating'
 import { useModelSelectorNavigation } from './composables/useModelSelectorNavigation'
 import { useModelSelectorState } from './composables/useModelSelectorState'
-import type { ModelSelectorEffortValue, ModelSelectorEmits, ModelSelectorProps, ModelSelectorSlots } from './index.type'
+import type { ModelSelectorEmits, ModelSelectorProps, ModelSelectorSlots } from './index.type'
 import type { ModelSelectorInitialHighlight, NormalizedModelSelectorOption } from './internal.type'
 import { getDuplicateModelEffortValues, normalizeModelEfforts } from './normalizeModelEfforts'
 import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
@@ -29,12 +29,12 @@ defineOptions({ name: 'TrModelSelector' })
 const props = withDefaults(defineProps<ModelSelectorProps>(), {
   models: () => [],
   defaultValue: null,
-  effort: undefined,
-  defaultEffort: null,
+  reasoningEffort: undefined,
+  defaultReasoningEffort: null,
   open: undefined,
   defaultOpen: false,
   disabled: false,
-  searchable: true,
+  searchable: false,
   placeholder: 'Select model',
   searchPlaceholder: 'Search models',
   emptyText: 'No models found.',
@@ -43,8 +43,7 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   placement: 'bottom-start',
   offset: 8,
   matchTriggerWidth: true,
-  listAriaLabel: 'Models',
-  effortLabel: 'Thinking',
+  reasoningEffortLabel: 'Thinking',
 })
 
 const emit = defineEmits<ModelSelectorEmits>()
@@ -104,7 +103,11 @@ const teleportTarget = computed(() => {
   }
 
   const searchableTarget = fallbackTarget as Node & ParentNode
-  return searchableTarget.querySelector?.(requestedTarget) ?? fallbackTarget
+  try {
+    return searchableTarget.querySelector?.(requestedTarget) ?? fallbackTarget
+  } catch {
+    return fallbackTarget
+  }
 })
 
 const state = useModelSelectorState({
@@ -123,17 +126,17 @@ const duplicateValues = computed(() => getDuplicateModelValues(props.models))
 const currentOption = computed(() => {
   return normalizedOptions.value.find((option) => option.value === state.value.value) ?? null
 })
-const currentEfforts = computed(() => normalizeModelEfforts(currentOption.value?.raw.efforts))
-const duplicateEffortValues = computed(() => getDuplicateModelEffortValues(currentOption.value?.raw.efforts))
+const currentEfforts = computed(() => normalizeModelEfforts(currentOption.value?.raw.reasoningEfforts))
+const duplicateEffortValues = computed(() => getDuplicateModelEffortValues(currentOption.value?.raw.reasoningEfforts))
 // Raw vnode props preserve an explicitly bound `undefined`, which still denotes controlled usage.
 const effortState = useModelSelectorEffort({
-  value: () => props.effort,
-  defaultValue: props.defaultEffort,
+  value: () => props.reasoningEffort,
+  defaultValue: props.defaultReasoningEffort,
   efforts: () => currentEfforts.value,
-  controlled: hasInitialVNodeProp('effort'),
-  onUpdateValue: (value) => emit('update:effort', value),
+  controlled: hasInitialVNodeProp('reasoningEffort', 'reasoning-effort'),
+  onUpdateValue: (value) => emit('update:reasoningEffort', value),
 })
-const activeEffort = computed<ModelSelectorEffortValue>(() => effortState.activeOption.value?.value ?? null)
+const activeEffort = computed<string | null>(() => effortState.activeOption.value?.value ?? null)
 const isOpen = computed(() => state.open.value && !props.disabled)
 
 const filter = useModelSelectorFilter({
@@ -156,10 +159,15 @@ const activeDescendantId = computed(() => {
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
 const resolvedAriaLabel = computed(() => props.ariaLabel?.trim() || props.placeholder)
 const resolvedSearchAriaLabel = computed(() => props.searchAriaLabel?.trim() || props.searchPlaceholder)
-const resolvedEffortAriaLabel = computed(() => props.effortAriaLabel?.trim() || props.effortLabel)
+const resolvedListAriaLabel = computed(
+  () => props.listAriaLabel?.trim() || props.ariaLabel?.trim() || props.placeholder,
+)
+const resolvedReasoningEffortAriaLabel = computed(
+  () => props.reasoningEffortAriaLabel?.trim() || props.reasoningEffortLabel,
+)
 const triggerAriaLabel = computed(() => {
-  const effortLabel = effortState.activeOption.value?.label
-  return `${resolvedAriaLabel.value}: ${triggerLabel.value}${effortLabel ? `, ${resolvedEffortAriaLabel.value}: ${effortLabel}` : ''}`
+  const reasoningEffortLabel = effortState.activeOption.value?.label
+  return `${resolvedAriaLabel.value}: ${triggerLabel.value}${reasoningEffortLabel ? `, ${resolvedReasoningEffortAriaLabel.value}: ${reasoningEffortLabel}` : ''}`
 })
 
 function findVisibleOption(key: string) {
@@ -302,7 +310,7 @@ function handleSelectByKey(key: string) {
   }
 }
 
-function handleSelectEffort(value: ModelSelectorEffortValue) {
+function handleSelectEffort(value: string | null) {
   if (props.disabled || currentOption.value?.disabled) {
     return
   }
@@ -311,7 +319,7 @@ function handleSelectEffort(value: ModelSelectorEffortValue) {
   const changed = effortState.setValue(value)
 
   if (changed) {
-    emit('effort-change', option)
+    emit('reasoning-effort-change', option)
   }
 }
 
@@ -459,7 +467,7 @@ if (import.meta.env.DEV) {
     (values) => {
       if (values.length > 0) {
         console.warn(
-          `[TrModelSelector] effort values must be unique for model "${currentOption.value?.value ?? ''}". Duplicate values are ignored: ${values.join(', ')}`,
+          `[TrModelSelector] reasoning effort values must be unique for model "${currentOption.value?.value ?? ''}". Duplicate values are ignored: ${values.join(', ')}`,
         )
       }
     },
@@ -549,8 +557,8 @@ onMounted(() => {
             :label="triggerLabel"
             :open="isOpen"
             :disabled="disabled"
-            :effort="activeEffort"
-            :effort-option="effortState.activeOption.value"
+            :reasoning-effort="activeEffort"
+            :reasoning-effort-option="effortState.activeOption.value"
           />
         </template>
       </ModelSelectorTrigger>
@@ -579,11 +587,11 @@ onMounted(() => {
             :search-placeholder="searchPlaceholder"
             :empty-text="emptyText"
             :search-aria-label="resolvedSearchAriaLabel"
-            :list-aria-label="listAriaLabel"
+            :list-aria-label="resolvedListAriaLabel"
             :effort-options="currentEfforts"
             :effort-value="activeEffort"
-            :effort-label="effortLabel"
-            :effort-aria-label="resolvedEffortAriaLabel"
+            :effort-label="reasoningEffortLabel"
+            :effort-aria-label="resolvedReasoningEffortAriaLabel"
             :effort-disabled="Boolean(currentOption?.disabled)"
             :size="size"
             :content-class="contentClass"
@@ -620,10 +628,10 @@ onMounted(() => {
                 :option="currentOption?.raw ?? null"
                 :query="filter.query.value"
                 :close="closeFromSlot"
-                :efforts="currentEfforts"
-                :effort="activeEffort"
-                :effort-option="effortState.activeOption.value"
-                :set-effort="handleSelectEffort"
+                :reasoning-efforts="currentEfforts"
+                :reasoning-effort="activeEffort"
+                :reasoning-effort-option="effortState.activeOption.value"
+                :set-reasoning-effort="handleSelectEffort"
               />
             </template>
           </ModelSelectorPanel>

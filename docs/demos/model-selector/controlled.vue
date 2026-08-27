@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
-import { TrModelSelector, type ModelSelectorValue } from '@opentiny/tiny-robot'
+import { TrModelSelector } from '@opentiny/tiny-robot'
 import { modelSelectorDemoModels } from './demo-models'
 
-const model = shallowRef<ModelSelectorValue>('qwen3.7-plus')
+const model = shallowRef<string | null>('qwen3.7-plus')
 
 function setInvalidValue() {
   model.value = 'retired-model'
@@ -17,7 +17,7 @@ function restoreValue() {
 <template>
   <div class="model-selector-controlled-demo">
     <div class="model-selector-controlled-demo__selector">
-      <TrModelSelector v-model="model" :models="modelSelectorDemoModels" placeholder="当前值没有匹配模型" />
+      <TrModelSelector v-model="model" :models="modelSelectorDemoModels" placeholder="当前值没有匹配模型" searchable />
 
       <div class="model-selector-controlled-demo__actions">
         <button type="button" @click="setInvalidValue">设置不存在的值</button>

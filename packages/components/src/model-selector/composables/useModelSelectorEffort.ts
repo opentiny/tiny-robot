@@ -1,17 +1,17 @@
 import { computed, shallowRef, watch } from 'vue'
-import type { ModelSelectorEffortOption, ModelSelectorEffortValue } from '../index.type'
+import type { ModelSelectorReasoningEffortOption } from '../index.type'
 
 interface UseModelSelectorEffortOptions {
-  value: () => ModelSelectorEffortValue | undefined
-  defaultValue: ModelSelectorEffortValue
-  efforts: () => readonly ModelSelectorEffortOption[]
+  value: () => string | null | undefined
+  defaultValue: string | null
+  efforts: () => readonly ModelSelectorReasoningEffortOption[]
   controlled: boolean
-  onUpdateValue: (value: ModelSelectorEffortValue) => void
+  onUpdateValue: (value: string | null) => void
 }
 
 export function useModelSelectorEffort(options: UseModelSelectorEffortOptions) {
   const isControlled = options.controlled
-  const internalValue = shallowRef<ModelSelectorEffortValue>(options.defaultValue)
+  const internalValue = shallowRef<string | null>(options.defaultValue)
 
   if (import.meta.env.DEV) {
     watch(
@@ -27,7 +27,7 @@ export function useModelSelectorEffort(options: UseModelSelectorEffortOptions) {
     )
   }
 
-  const value = computed<ModelSelectorEffortValue>(() => {
+  const value = computed<string | null>(() => {
     if (!isControlled) {
       return internalValue.value
     }
@@ -39,7 +39,7 @@ export function useModelSelectorEffort(options: UseModelSelectorEffortOptions) {
     return options.efforts().find((option) => option.value === value.value) ?? null
   })
 
-  function setValue(nextValue: ModelSelectorEffortValue) {
+  function setValue(nextValue: string | null) {
     if (Object.is(value.value, nextValue)) {
       return false
     }

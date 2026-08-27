@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import type { ModelSelectorEffortOption, ModelSelectorEffortValue } from '../index.type'
+import type { ModelSelectorReasoningEffortOption } from '../index.type'
 
 defineOptions({ name: 'TrModelSelectorEffort' })
 
 defineProps<{
-  options: readonly ModelSelectorEffortOption[]
-  value: ModelSelectorEffortValue
+  options: readonly ModelSelectorReasoningEffortOption[]
+  value: string | null
   label: string
   groupAriaLabel: string
   disabled: boolean
 }>()
 
 defineEmits<{
-  select: [value: ModelSelectorEffortValue]
+  select: [value: string | null]
 }>()
 </script>
 

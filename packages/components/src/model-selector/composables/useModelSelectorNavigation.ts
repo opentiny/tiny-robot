@@ -1,11 +1,10 @@
 import { computed, nextTick, shallowRef, watch, type Ref } from 'vue'
-import type { ModelSelectorValue } from '../index.type'
 import type { NormalizedModelSelectorOption } from '../internal.type'
 
 interface UseModelSelectorNavigationOptions {
   enabled: () => boolean
   options: () => readonly NormalizedModelSelectorOption[]
-  selectedValue: () => ModelSelectorValue
+  selectedValue: () => string | null
   containerEl: Ref<HTMLElement | null>
 }
 

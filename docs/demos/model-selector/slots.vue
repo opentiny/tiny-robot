@@ -2,11 +2,9 @@
 import { shallowRef } from 'vue'
 import {
   TrModelSelector,
-  type ModelSelectorEffortValue,
-  type ModelSelectorEffortOption,
+  type ModelSelectorReasoningEffortOption,
   type ModelSelectorFilterMethod,
   type ModelSelectorOption,
-  type ModelSelectorValue,
 } from '@opentiny/tiny-robot'
 import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
@@ -30,7 +28,7 @@ const modelRows = [
     label: 'DeepSeek V4 Pro',
     description: '预览版 · 1M 上下文 · 最大输出 384K',
     keywords: ['preview', '推理', 'reasoning', 'agent', '代码'],
-    efforts: [
+    reasoningEfforts: [
       ['high', 'High'],
       ['max', 'Max'],
     ],
@@ -41,7 +39,7 @@ const modelRows = [
     label: 'DeepSeek V4 Flash',
     description: 'V4-Flash-0731 Public Beta · 1M 上下文 · 最大输出 384K',
     keywords: ['推理', 'reasoning', '低成本'],
-    efforts: [
+    reasoningEfforts: [
       ['low', 'Low'],
       ['high', 'High'],
       ['max', 'Max'],
@@ -54,7 +52,7 @@ const modelRows = [
     description: '需 Token Plan（本示例禁用） · 推理与视觉理解 · 1M 上下文',
     disabled: true,
     keywords: ['百炼', '通义千问', 'qwencloud', 'dashscope'],
-    efforts: undefined,
+    reasoningEfforts: undefined,
   },
   {
     provider: 'qwen',
@@ -62,7 +60,7 @@ const modelRows = [
     label: 'Qwen3.7 Max',
     description: '纯文本旗舰 · 1M 上下文 · 最大输出 131K',
     keywords: ['百炼', '通义千问', 'dashscope', '推理', 'reasoning', 'agent', '代码'],
-    efforts: undefined,
+    reasoningEfforts: undefined,
   },
   {
     provider: 'qwen',
@@ -70,22 +68,25 @@ const modelRows = [
     label: 'Qwen3.7 Plus',
     description: '图像、文本与视频输入 · 1M 上下文 · 最大输出 131K',
     keywords: ['百炼', '通义千问', 'dashscope', '多模态', '推理', 'reasoning'],
-    efforts: undefined,
+    reasoningEfforts: undefined,
   },
 ] as const
 
-const models = modelRows.map(({ provider, efforts, ...row }) => ({
+const models = modelRows.map(({ provider, reasoningEfforts, ...row }) => ({
   ...row,
   ...providerBases[provider],
-  ...(efforts
+  ...(reasoningEfforts
     ? {
-        efforts: efforts.map(([value, label]) => ({ value, label })) satisfies readonly ModelSelectorEffortOption[],
+        reasoningEfforts: reasoningEfforts.map(([value, label]) => ({
+          value,
+          label,
+        })) satisfies readonly ModelSelectorReasoningEffortOption[],
       }
     : {}),
 })) satisfies readonly ModelSelectorOption[]
 
-const model = shallowRef<ModelSelectorValue>('deepseek-v4-flash')
-const effort = shallowRef<ModelSelectorEffortValue>('high')
+const model = shallowRef<string | null>('deepseek-v4-flash')
+const reasoningEffort = shallowRef<string | null>('high')
 
 const filterMethod: ModelSelectorFilterMethod = (query, option) => {
   const searchText = [
@@ -113,9 +114,10 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
     <h3 class="model-selector-slots-demo__title">完整插槽组合</h3>
     <TrModelSelector
       v-model="model"
-      v-model:effort="effort"
+      v-model:reasoning-effort="reasoningEffort"
       :models="models"
       :filter-method="filterMethod"
+      searchable
       variant="muted"
       size="large"
       placeholder="选择工作模型"
@@ -123,7 +125,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
       content-class="model-selector-slots-panel"
       :content-style="{ maxHeight: '420px' }"
     >
-      <template #trigger="{ option, label, open, effortOption }">
+      <template #trigger="{ option, label, open, reasoningEffortOption }">
         <span class="model-selector-slots-demo__trigger">
           <component
             :is="option?.icon"
@@ -134,7 +136,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
           />
           <span class="model-selector-slots-demo__trigger-copy">
             <span class="model-selector-slots-demo__trigger-meta">
-              工作模型{{ effortOption ? ` · ${effortOption.label}` : '' }}
+              工作模型{{ reasoningEffortOption ? ` · ${reasoningEffortOption.label}` : '' }}
             </span>
             <span class="model-selector-slots-demo__trigger-label">{{ label }}</span>
           </span>
@@ -191,27 +193,35 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
         </span>
       </template>
 
-      <template #footer="{ close, efforts, effort: activeEffort, effortOption, setEffort }">
+      <template
+        #footer="{
+          close,
+          reasoningEfforts,
+          reasoningEffort: activeReasoningEffort,
+          reasoningEffortOption,
+          setReasoningEffort,
+        }"
+      >
         <div class="model-selector-slots-demo__footer">
           <div class="model-selector-slots-demo__effort">
             <span class="model-selector-slots-demo__effort-label">
-              Reasoning effort{{ effortOption ? ` · ${effortOption.label}` : '' }}
+              Reasoning effort{{ reasoningEffortOption ? ` · ${reasoningEffortOption.label}` : '' }}
             </span>
             <div
-              v-if="efforts.length > 0"
+              v-if="reasoningEfforts.length > 0"
               class="model-selector-slots-demo__effort-options"
               role="group"
               aria-label="推理强度"
             >
               <button
-                v-for="option in efforts"
+                v-for="option in reasoningEfforts"
                 :key="option.value"
                 type="button"
                 class="model-selector-slots-demo__effort-option"
-                :class="{ 'is-active': activeEffort === option.value }"
-                :aria-pressed="activeEffort === option.value"
+                :class="{ 'is-active': activeReasoningEffort === option.value }"
+                :aria-pressed="activeReasoningEffort === option.value"
                 :disabled="option.disabled"
-                @click="setEffort(option.value)"
+                @click="setReasoningEffort(option.value)"
               >
                 {{ option.label }}
               </button>
@@ -225,7 +235,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
     <p class="model-selector-slots-demo__status" aria-live="polite">
       当前值：<code>{{ String(model) }}</code
-      >；<code>v-model:effort</code> 保留值：<code>{{ String(effort) }}</code>
+      >；<code>v-model:reasoning-effort</code> 保留值：<code>{{ String(reasoningEffort) }}</code>
     </p>
   </div>
 </template>

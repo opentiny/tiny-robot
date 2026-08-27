@@ -1,22 +1,17 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
-import {
-  TrModelSelector,
-  type ModelSelectorEffortValue,
-  type ModelSelectorOption,
-  type ModelSelectorValue,
-} from '@opentiny/tiny-robot'
+import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
 import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
-const model = shallowRef<ModelSelectorValue>('deepseek-v4-flash')
-const effort = shallowRef<ModelSelectorEffortValue>('high')
+const model = shallowRef<string | null>('deepseek-v4-flash')
+const reasoningEffort = shallowRef<string | null>('high')
 
 const models = [
   {
     value: 'deepseek-v4-flash',
     label: 'DeepSeek V4 Flash',
     icon: IconDeepseek,
-    efforts: [
+    reasoningEfforts: [
       { value: 'high', label: 'High' },
       { value: 'max', label: 'Max' },
     ],
@@ -31,7 +26,7 @@ const models = [
 
 <template>
   <div class="model-selector-basic-demo">
-    <TrModelSelector v-model="model" v-model:effort="effort" :models="models" />
+    <TrModelSelector v-model="model" v-model:reasoning-effort="reasoningEffort" :models="models" searchable />
   </div>
 </template>
 

@@ -1,12 +1,14 @@
-import type { ModelSelectorEffortOption, ModelSelectorEfforts } from './index.type'
+import type { ModelSelectorReasoningEffortOption, ModelSelectorReasoningEfforts } from './index.type'
 
-const DEFAULT_MODEL_SELECTOR_EFFORTS: readonly ModelSelectorEffortOption[] = Object.freeze([
+const DEFAULT_MODEL_SELECTOR_EFFORTS: readonly ModelSelectorReasoningEffortOption[] = Object.freeze([
   Object.freeze({ value: 'low', label: 'Low' }),
   Object.freeze({ value: 'medium', label: 'Medium' }),
   Object.freeze({ value: 'high', label: 'High' }),
 ])
 
-export function normalizeModelEfforts(efforts: ModelSelectorEfforts | undefined): readonly ModelSelectorEffortOption[] {
+export function normalizeModelEfforts(
+  efforts: ModelSelectorReasoningEfforts | undefined,
+): readonly ModelSelectorReasoningEffortOption[] {
   if (!efforts) {
     return []
   }
@@ -16,7 +18,7 @@ export function normalizeModelEfforts(efforts: ModelSelectorEfforts | undefined)
   }
 
   const values = new Set<string>()
-  const normalized: ModelSelectorEffortOption[] = []
+  const normalized: ModelSelectorReasoningEffortOption[] = []
 
   for (const option of efforts) {
     if (values.has(option.value)) {
@@ -30,7 +32,7 @@ export function normalizeModelEfforts(efforts: ModelSelectorEfforts | undefined)
   return normalized
 }
 
-export function getDuplicateModelEffortValues(efforts: ModelSelectorEfforts | undefined): string[] {
+export function getDuplicateModelEffortValues(efforts: ModelSelectorReasoningEfforts | undefined): string[] {
   if (!efforts || efforts === true) {
     return []
   }

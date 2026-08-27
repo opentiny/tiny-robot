@@ -1,19 +1,17 @@
 import type { Placement } from '@floating-ui/dom'
 import type { Component, StyleValue, VNode } from 'vue'
 
-export type ModelSelectorValue = string | null
-export type ModelSelectorEffortValue = string | null
 export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
 export type ModelSelectorContentClass = string | readonly string[] | Record<string, boolean>
 
-export interface ModelSelectorEffortOption {
+export interface ModelSelectorReasoningEffortOption {
   readonly value: string
   readonly label: string
   readonly disabled?: boolean
 }
 
-export type ModelSelectorEfforts = boolean | readonly ModelSelectorEffortOption[]
+export type ModelSelectorReasoningEfforts = boolean | readonly ModelSelectorReasoningEffortOption[]
 
 export interface ModelSelectorOption {
   value: string
@@ -24,17 +22,17 @@ export interface ModelSelectorOption {
   group?: string
   groupLabel?: string
   keywords?: readonly string[]
-  efforts?: ModelSelectorEfforts
+  reasoningEfforts?: ModelSelectorReasoningEfforts
 }
 
 export type ModelSelectorFilterMethod = (query: string, option: ModelSelectorOption) => boolean
 
 export interface ModelSelectorProps {
   models?: readonly ModelSelectorOption[]
-  modelValue?: ModelSelectorValue
-  defaultValue?: ModelSelectorValue
-  effort?: ModelSelectorEffortValue
-  defaultEffort?: ModelSelectorEffortValue
+  modelValue?: string | null
+  defaultValue?: string | null
+  reasoningEffort?: string | null
+  defaultReasoningEffort?: string | null
   open?: boolean
   defaultOpen?: boolean
   disabled?: boolean
@@ -54,19 +52,19 @@ export interface ModelSelectorProps {
   ariaLabel?: string
   searchAriaLabel?: string
   listAriaLabel?: string
-  effortLabel?: string
-  effortAriaLabel?: string
+  reasoningEffortLabel?: string
+  reasoningEffortAriaLabel?: string
 }
 
 export interface ModelSelectorTriggerSlotProps {
-  value: ModelSelectorValue
+  value: string | null
   option: ModelSelectorOption | null
   label: string
   open: boolean
   disabled: boolean
   /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  effort: ModelSelectorEffortValue
-  effortOption: ModelSelectorEffortOption | null
+  reasoningEffort: string | null
+  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
 }
 
 export interface ModelSelectorItemSlotProps {
@@ -87,18 +85,18 @@ export interface ModelSelectorEmptySlotProps {
 }
 
 export interface ModelSelectorPanelSlotProps {
-  value: ModelSelectorValue
+  value: string | null
   option: ModelSelectorOption | null
   query: string
   close: () => void
 }
 
 export interface ModelSelectorFooterSlotProps extends ModelSelectorPanelSlotProps {
-  efforts: readonly ModelSelectorEffortOption[]
+  reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
   /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  effort: ModelSelectorEffortValue
-  effortOption: ModelSelectorEffortOption | null
-  setEffort: (value: ModelSelectorEffortValue) => void
+  reasoningEffort: string | null
+  reasoningEffortOption: ModelSelectorReasoningEffortOption | null
+  setReasoningEffort: (value: string | null) => void
 }
 
 export interface ModelSelectorSlots {
@@ -111,9 +109,9 @@ export interface ModelSelectorSlots {
 }
 
 export interface ModelSelectorEmits {
-  (event: 'update:modelValue', value: ModelSelectorValue): void
+  (event: 'update:modelValue', value: string | null): void
   (event: 'change', option: ModelSelectorOption): void
-  (event: 'update:effort', value: ModelSelectorEffortValue): void
-  (event: 'effort-change', option: ModelSelectorEffortOption | null): void
+  (event: 'update:reasoningEffort', value: string | null): void
+  (event: 'reasoning-effort-change', option: ModelSelectorReasoningEffortOption | null): void
   (event: 'update:open', open: boolean): void
 }

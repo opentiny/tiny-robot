@@ -1,18 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef } from 'vue'
 import { TrModelSelector, TrThemeProvider } from '@opentiny/tiny-robot'
-import type {
-  ModelSelectorEffortOption,
-  ModelSelectorEffortValue,
-  ModelSelectorOption,
-  ModelSelectorValue,
-} from '@opentiny/tiny-robot'
+import type { ModelSelectorReasoningEffortOption, ModelSelectorOption } from '@opentiny/tiny-robot'
 
 interface SelectorEventLog {
   updates: number
   changes: number
   openUpdates: number
-  lastValue: ModelSelectorValue
+  lastValue: string | null
   lastChange: string
   lastOpen: boolean | null
 }
@@ -20,8 +15,8 @@ interface SelectorEventLog {
 interface EffortEventLog {
   updates: number
   changes: number
-  lastValue: ModelSelectorEffortValue
-  lastChange: ModelSelectorEffortValue
+  lastValue: string | null
+  lastChange: string | null
   sequence: string[]
 }
 
@@ -46,7 +41,7 @@ function createEffortEventLog(): EffortEventLog {
   })
 }
 
-function recordValue(log: SelectorEventLog, value: ModelSelectorValue) {
+function recordValue(log: SelectorEventLog, value: string | null) {
   log.updates += 1
   log.lastValue = value
 }
@@ -61,13 +56,13 @@ function recordOpen(log: SelectorEventLog, open: boolean) {
   log.lastOpen = open
 }
 
-function recordEffortValue(log: EffortEventLog, value: ModelSelectorEffortValue) {
+function recordEffortValue(log: EffortEventLog, value: string | null) {
   log.updates += 1
   log.lastValue = value
   log.sequence.push(`update:${value ?? 'null'}`)
 }
 
-function recordEffortChange(log: EffortEventLog, option: ModelSelectorEffortOption | null) {
+function recordEffortChange(log: EffortEventLog, option: ModelSelectorReasoningEffortOption | null) {
   log.changes += 1
   log.lastChange = option?.value ?? null
   log.sequence.push(`change:${option?.value ?? 'null'}`)
@@ -119,7 +114,7 @@ const models: readonly ModelSelectorOption[] = [
 
 const compactModels = models.slice(0, 3)
 const minimalModels: readonly ModelSelectorOption[] = [
-  { value: 'minimal-reasoning', label: 'Minimal Reasoning', efforts: true },
+  { value: 'minimal-reasoning', label: 'Minimal Reasoning', reasoningEfforts: true },
   { value: 'minimal-plain', label: 'Minimal Plain' },
 ]
 const customFilterModels: readonly ModelSelectorOption[] = [
@@ -131,13 +126,13 @@ const effortModels: readonly ModelSelectorOption[] = [
     value: 'reasoning-default',
     label: 'Reasoning Default',
     description: 'Uses the default effort levels',
-    efforts: true,
+    reasoningEfforts: true,
   },
   {
     value: 'reasoning-custom',
     label: 'Reasoning Custom',
     description: 'Uses custom effort levels',
-    efforts: [
+    reasoningEfforts: [
       { value: 'minimal', label: 'Minimal' },
       { value: 'medium', label: 'Medium' },
       { value: 'maximum', label: 'Maximum', disabled: true },
@@ -154,7 +149,7 @@ const effortModels: readonly ModelSelectorOption[] = [
     label: 'Disabled Reasoning',
     description: 'Disabled model with effort metadata',
     disabled: true,
-    efforts: true,
+    reasoningEfforts: true,
   },
 ]
 
@@ -173,18 +168,18 @@ const logs = {
 }
 
 const asyncModels = ref<readonly ModelSelectorOption[]>([])
-const controlledValue = ref<ModelSelectorValue>('gpt-4o')
+const controlledValue = ref<string | null>('gpt-4o')
 const controlledOpen = ref(false)
 const controlledModelRemoved = ref(false)
-const blockedValue = ref<ModelSelectorValue>('gpt-4o')
+const blockedValue = ref<string | null>('gpt-4o')
 const blockedOpen = ref(false)
 const controlledModels = computed(() =>
   controlledModelRemoved.value ? models.filter((option) => option.value !== 'gpt-4o') : models,
 )
-const initiallyUndefinedValue = shallowRef<ModelSelectorValue | undefined>(undefined)
+const initiallyUndefinedValue = shallowRef<string | null | undefined>(undefined)
 const initiallyUndefinedOpen = shallowRef<boolean | undefined>(undefined)
-const initiallyUndefinedEffort = shallowRef<ModelSelectorEffortValue | undefined>(undefined)
-const blockedEffort = shallowRef<ModelSelectorEffortValue>('medium')
+const initiallyUndefinedEffort = shallowRef<string | null | undefined>(undefined)
+const blockedEffort = shallowRef<string | null>('medium')
 
 function primeInitiallyUndefinedSelector() {
   initiallyUndefinedValue.value = 'reasoning-default'
@@ -198,7 +193,7 @@ function showDisabledEffortModel() {
   initiallyUndefinedOpen.value = true
 }
 
-function handleControlledValue(value: ModelSelectorValue) {
+function handleControlledValue(value: string | null) {
   recordValue(logs.controlled, value)
   controlledValue.value = value
 }
@@ -272,6 +267,7 @@ onBeforeUnmount(() => {
         <TrModelSelector
           data-testid="init-selector"
           :models="models"
+          searchable
           aria-label="Init selector"
           list-aria-label="Init models"
           @update:model-value="recordValue(logs.init, $event)"
@@ -305,24 +301,24 @@ onBeforeUnmount(() => {
           data-testid="minimal-fallback-selector"
           :models="minimalModels"
           model-value="minimal-reasoning"
-          effort="medium"
+          reasoning-effort="medium"
           placeholder="Choose compact model"
           search-placeholder="Find compact model"
-          list-aria-label="Compact models"
-          effort-label="Thinking level"
+          reasoning-effort-label="Thinking level"
         />
         <TrModelSelector
           data-testid="minimal-explicit-selector"
           :models="minimalModels"
           model-value="minimal-reasoning"
-          effort="medium"
+          reasoning-effort="medium"
+          searchable
           placeholder="Ignored selector fallback"
           search-placeholder="Ignored search fallback"
-          effort-label="Ignored effort fallback"
+          reasoning-effort-label="Ignored effort fallback"
           aria-label="Explicit selector"
           search-aria-label="Explicit search"
           list-aria-label="Explicit models"
-          effort-aria-label="Explicit effort"
+          reasoning-effort-aria-label="Explicit effort"
         />
       </div>
     </section>
@@ -332,6 +328,7 @@ onBeforeUnmount(() => {
       <TrModelSelector
         data-testid="uncontrolled-selector"
         :models="models"
+        searchable
         default-value="claude-sonnet"
         aria-label="Uncontrolled selector"
         search-aria-label="Uncontrolled search"
@@ -363,6 +360,7 @@ onBeforeUnmount(() => {
         :models="controlledModels"
         :model-value="controlledValue"
         :open="controlledOpen"
+        searchable
         aria-label="Controlled selector"
         search-aria-label="Controlled search"
         list-aria-label="Controlled models"
@@ -389,6 +387,7 @@ onBeforeUnmount(() => {
         :models="controlledModels"
         :model-value="blockedValue"
         :open="blockedOpen"
+        searchable
         aria-label="Blocked selector"
         search-aria-label="Blocked search"
         list-aria-label="Blocked models"
@@ -413,12 +412,12 @@ onBeforeUnmount(() => {
         :models="effortModels"
         :searchable="false"
         default-value="reasoning-default"
-        default-effort="medium"
+        default-reasoning-effort="medium"
         aria-label="Default effort selector"
         list-aria-label="Default effort models"
-        effort-aria-label="Default effort levels"
-        @update:effort="recordEffortValue(logs.effortUncontrolled, $event)"
-        @effort-change="recordEffortChange(logs.effortUncontrolled, $event)"
+        reasoning-effort-aria-label="Default effort levels"
+        @update:reasoning-effort="recordEffortValue(logs.effortUncontrolled, $event)"
+        @reasoning-effort-change="recordEffortChange(logs.effortUncontrolled, $event)"
       />
       <div class="model-selector-test__metrics">
         <output data-testid="effort-uncontrolled-updates">{{ logs.effortUncontrolled.updates }}</output>
@@ -432,12 +431,12 @@ onBeforeUnmount(() => {
         :models="effortModels"
         :searchable="false"
         model-value="reasoning-default"
-        :effort="blockedEffort"
+        :reasoning-effort="blockedEffort"
         aria-label="Blocked effort selector"
         list-aria-label="Blocked effort models"
-        effort-aria-label="Blocked effort levels"
-        @update:effort="recordEffortValue(logs.effortBlocked, $event)"
-        @effort-change="recordEffortChange(logs.effortBlocked, $event)"
+        reasoning-effort-aria-label="Blocked effort levels"
+        @update:reasoning-effort="recordEffortValue(logs.effortBlocked, $event)"
+        @reasoning-effort-change="recordEffortChange(logs.effortBlocked, $event)"
       />
       <div class="model-selector-test__metrics">
         <output data-testid="effort-blocked-raw">{{ blockedEffort }}</output>
@@ -457,28 +456,30 @@ onBeforeUnmount(() => {
       <TrModelSelector
         v-model="initiallyUndefinedValue"
         v-model:open="initiallyUndefinedOpen"
-        v-model:effort="initiallyUndefinedEffort"
+        v-model:reasoning-effort="initiallyUndefinedEffort"
         data-testid="effort-controlled-selector"
         :models="effortModels"
         :searchable="false"
         aria-label="Controlled effort selector"
         list-aria-label="Controlled effort models"
-        @update:effort="recordEffortValue(logs.effortControlled, $event)"
-        @effort-change="recordEffortChange(logs.effortControlled, $event)"
+        @update:reasoning-effort="recordEffortValue(logs.effortControlled, $event)"
+        @reasoning-effort-change="recordEffortChange(logs.effortControlled, $event)"
       >
-        <template #trigger="{ label, effort, effortOption }">
+        <template #trigger="{ label, reasoningEffort, reasoningEffortOption }">
           <span data-testid="effort-controlled-trigger-slot">
-            {{ label }}|{{ effort ?? 'null' }}|{{ effortOption?.label ?? 'null' }}
+            {{ label }}|{{ reasoningEffort ?? 'null' }}|{{ reasoningEffortOption?.label ?? 'null' }}
           </span>
         </template>
-        <template #footer="{ efforts, effort, effortOption, setEffort, close }">
+        <template #footer="{ reasoningEfforts, reasoningEffort, reasoningEffortOption, setReasoningEffort, close }">
           <div data-testid="effort-custom-footer">
-            <output data-testid="effort-footer-count">{{ efforts.length }}</output>
-            <output data-testid="effort-footer-value">{{ effort ?? 'null' }}</output>
-            <output data-testid="effort-footer-option">{{ effortOption?.label ?? 'null' }}</output>
-            <button data-testid="effort-footer-medium" type="button" @click="setEffort('medium')">Medium</button>
-            <button data-testid="effort-footer-high" type="button" @click="setEffort('high')">High</button>
-            <button data-testid="effort-footer-low" type="button" @click="setEffort('low')">Low</button>
+            <output data-testid="effort-footer-count">{{ reasoningEfforts.length }}</output>
+            <output data-testid="effort-footer-value">{{ reasoningEffort ?? 'null' }}</output>
+            <output data-testid="effort-footer-option">{{ reasoningEffortOption?.label ?? 'null' }}</output>
+            <button data-testid="effort-footer-medium" type="button" @click="setReasoningEffort('medium')">
+              Medium
+            </button>
+            <button data-testid="effort-footer-high" type="button" @click="setReasoningEffort('high')">High</button>
+            <button data-testid="effort-footer-low" type="button" @click="setReasoningEffort('low')">Low</button>
             <button data-testid="effort-footer-close" type="button" @click="close">Close effort panel</button>
           </div>
         </template>
@@ -505,6 +506,7 @@ onBeforeUnmount(() => {
         data-testid="custom-filter-selector"
         :models="customFilterModels"
         :filter-method="customFilter"
+        searchable
         aria-label="Custom filter selector"
         search-aria-label="Custom filter search"
         list-aria-label="Custom filter models"
@@ -536,6 +538,7 @@ onBeforeUnmount(() => {
         data-testid="slot-selector"
         :models="models"
         default-value="gpt-4o"
+        searchable
         variant="ghost"
         size="small"
         content-class="model-selector-test__custom-content"
@@ -598,6 +601,13 @@ onBeforeUnmount(() => {
           search-aria-label="Secondary search"
           list-aria-label="Secondary models"
         />
+        <TrModelSelector
+          data-testid="invalid-append-to-selector"
+          :models="compactModels"
+          append-to="["
+          aria-label="Invalid append target selector"
+          list-aria-label="Invalid append target models"
+        />
       </div>
     </section>
 
@@ -614,6 +624,7 @@ onBeforeUnmount(() => {
         data-testid="default-open-selector"
         :models="compactModels"
         default-open
+        searchable
         aria-label="Default open selector"
         search-aria-label="Default open search"
         list-aria-label="Default open models"
@@ -700,6 +711,7 @@ onBeforeUnmount(() => {
       <TrModelSelector
         data-testid="tab-boundary-selector"
         :models="compactModels"
+        searchable
         aria-label="Tab boundary selector"
         search-aria-label="Tab boundary search"
         list-aria-label="Tab boundary models"

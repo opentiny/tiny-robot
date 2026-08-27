@@ -143,10 +143,11 @@ test.describe('ModelSelector 组件测试', () => {
       )
 
       await fallbackTrigger.click()
-      await expect(page.getByRole('combobox', { name: 'Find compact model' })).toBeVisible()
-      await expect(page.getByRole('listbox', { name: 'Compact models' })).toBeVisible()
+      await expect(page.getByRole('combobox', { name: 'Find compact model' })).toHaveCount(0)
+      const fallbackListbox = page.getByRole('listbox', { name: 'Choose compact model' })
+      await expect(fallbackListbox).toBeVisible()
       await expect(page.getByRole('group', { name: 'Thinking level' })).toBeVisible()
-      await page.getByRole('combobox', { name: 'Find compact model' }).press('Escape')
+      await fallbackListbox.press('Escape')
 
       const explicitTrigger = page.getByTestId('minimal-explicit-selector').getByRole('button')
       await expect(explicitTrigger).toHaveAttribute(
@@ -162,7 +163,9 @@ test.describe('ModelSelector 组件测试', () => {
   })
 
   test.describe('Reasoning effort', () => {
-    test('efforts:true 与 defaultEffort 应渲染默认档位，点击和键盘选择不关闭且事件有序去重', async ({ page }) => {
+    test('reasoningEfforts:true 与 defaultReasoningEffort 应渲染默认档位，点击和键盘选择不关闭且事件有序去重', async ({
+      page,
+    }) => {
       const trigger = getTrigger(page, 'Default effort selector')
 
       await expect(trigger).toContainText('Reasoning Default')
@@ -546,6 +549,16 @@ test.describe('ModelSelector 组件测试', () => {
       await outsideAction.click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
       await expect(outsideAction).toBeFocused()
+    })
+
+    test('非法 appendTo 选择器应回退到默认挂载节点', async ({ page }) => {
+      const trigger = page.getByTestId('invalid-append-to-selector').getByRole('button')
+
+      await trigger.click()
+      const listbox = page.getByRole('listbox', { name: 'Invalid append target models' })
+      await expect(listbox).toBeVisible()
+      await listbox.press('Escape')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'false')
     })
 
     test('快速 open/close 不应留下过期浮层', async ({ page }) => {

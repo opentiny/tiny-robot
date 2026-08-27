@@ -1,4 +1,4 @@
-import type { ModelSelectorEffortOption, ModelSelectorOption } from '@opentiny/tiny-robot'
+import type { ModelSelectorReasoningEffortOption, ModelSelectorOption } from '@opentiny/tiny-robot'
 import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
 const providerBases = {
@@ -22,7 +22,7 @@ interface ModelRow {
   description: string
   disabled?: boolean
   keywords: readonly string[]
-  efforts?: readonly EffortRow[]
+  reasoningEfforts?: readonly EffortRow[]
 }
 
 const modelRows = [
@@ -32,7 +32,7 @@ const modelRows = [
     label: 'DeepSeek V4 Pro',
     description: '预览版 · 1M 上下文 · 最大输出 384K',
     keywords: ['preview', '推理', 'reasoning', 'agent', '代码'],
-    efforts: [
+    reasoningEfforts: [
       ['high', 'High'],
       ['max', 'Max'],
     ],
@@ -43,7 +43,7 @@ const modelRows = [
     label: 'DeepSeek V4 Flash',
     description: 'V4-Flash-0731 Public Beta · 1M 上下文 · 最大输出 384K',
     keywords: ['推理', 'reasoning', '低成本'],
-    efforts: [
+    reasoningEfforts: [
       ['low', 'Low'],
       ['high', 'High'],
       ['max', 'Max'],
@@ -80,12 +80,15 @@ const modelRows = [
   },
 ] satisfies readonly ModelRow[]
 
-export const modelSelectorDemoModels = modelRows.map(({ provider, efforts, ...model }) => ({
+export const modelSelectorDemoModels = modelRows.map(({ provider, reasoningEfforts, ...model }) => ({
   ...model,
   ...providerBases[provider],
-  ...(efforts
+  ...(reasoningEfforts
     ? {
-        efforts: efforts.map(([value, label]) => ({ value, label })) satisfies readonly ModelSelectorEffortOption[],
+        reasoningEfforts: reasoningEfforts.map(([value, label]) => ({
+          value,
+          label,
+        })) satisfies readonly ModelSelectorReasoningEffortOption[],
       }
     : {}),
 })) satisfies readonly ModelSelectorOption[]

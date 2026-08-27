@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, type VNode } from 'vue'
-import type { ModelSelectorGroupLabelSlotProps, ModelSelectorItemSlotProps, ModelSelectorValue } from '../index.type'
+import type { ModelSelectorGroupLabelSlotProps, ModelSelectorItemSlotProps } from '../index.type'
 import type { ModelSelectorOptionGroup } from '../internal.type'
 import ModelSelectorItem from './ModelSelectorItem.vue'
 
@@ -8,7 +8,7 @@ defineOptions({ name: 'TrModelSelectorGroup' })
 
 const props = defineProps<{
   group: ModelSelectorOptionGroup
-  selectedValue: ModelSelectorValue
+  selectedValue: string | null
   highlightedKey: string | null
   optionIdPrefix: string
 }>()

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
-import { TrModelSelector, type ModelSelectorOption, type ModelSelectorValue } from '@opentiny/tiny-robot'
+import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
 import { IconArrowDown, IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
-const model = shallowRef<ModelSelectorValue>('deepseek-v4-flash')
+const model = shallowRef<string | null>('deepseek-v4-flash')
 
 const models = [
   {
