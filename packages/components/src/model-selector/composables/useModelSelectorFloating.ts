@@ -136,8 +136,6 @@ export function useModelSelectorFloating(options: UseModelSelectorFloatingOption
       cleanupAutoUpdate.current = autoUpdate(reference, floating, () => {
         void updatePosition()
       })
-
-      await updatePosition()
     },
     { flush: 'post', immediate: true },
   )

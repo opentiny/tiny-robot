@@ -1,21 +1,20 @@
 import { computed, shallowRef, watch } from 'vue'
-import type { ModelSelectorValue } from '../index.type'
 
 interface UseModelSelectorStateOptions {
-  value: () => ModelSelectorValue | undefined
-  defaultValue: ModelSelectorValue
+  value: () => string | null | undefined
+  defaultValue: string | null
   valueControlled: boolean
   open: () => boolean | undefined
   defaultOpen: boolean
   openControlled: boolean
-  onUpdateValue: (value: ModelSelectorValue) => void
+  onUpdateValue: (value: string | null) => void
   onUpdateOpen: (open: boolean) => void
 }
 
 export function useModelSelectorState(options: UseModelSelectorStateOptions) {
   const isValueControlled = options.valueControlled
   const isOpenControlled = options.openControlled
-  const internalValue = shallowRef<ModelSelectorValue>(options.defaultValue)
+  const internalValue = shallowRef<string | null>(options.defaultValue)
   const internalOpen = shallowRef(options.defaultOpen)
 
   if (import.meta.env.DEV) {
@@ -44,7 +43,7 @@ export function useModelSelectorState(options: UseModelSelectorStateOptions) {
     )
   }
 
-  const value = computed<ModelSelectorValue>(() => {
+  const value = computed<string | null>(() => {
     if (!isValueControlled) {
       return internalValue.value
     }
@@ -60,7 +59,7 @@ export function useModelSelectorState(options: UseModelSelectorStateOptions) {
     return Boolean(options.open())
   })
 
-  function setValue(nextValue: ModelSelectorValue) {
+  function setValue(nextValue: string | null) {
     if (Object.is(value.value, nextValue)) {
       return false
     }

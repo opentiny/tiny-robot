@@ -4,12 +4,10 @@ import { shallowRef, type StyleValue, type VNode } from 'vue'
 import type {
   ModelSelectorContentClass,
   ModelSelectorEmptySlotProps,
-  ModelSelectorEffortOption,
-  ModelSelectorEffortValue,
+  ModelSelectorReasoningEffortOption,
   ModelSelectorGroupLabelSlotProps,
   ModelSelectorItemSlotProps,
   ModelSelectorSize,
-  ModelSelectorValue,
 } from '../index.type'
 import type { ModelSelectorOptionGroup } from '../internal.type'
 import ModelSelectorEffort from './ModelSelectorEffort.vue'
@@ -22,7 +20,7 @@ const props = defineProps<{
   searchable: boolean
   groups: readonly ModelSelectorOptionGroup[]
   isEmpty: boolean
-  selectedValue: ModelSelectorValue
+  selectedValue: string | null
   highlightedKey: string | null
   activeDescendantId?: string
   listboxId: string
@@ -31,8 +29,8 @@ const props = defineProps<{
   emptyText: string
   searchAriaLabel: string
   listAriaLabel: string
-  effortOptions: readonly ModelSelectorEffortOption[]
-  effortValue: ModelSelectorEffortValue
+  effortOptions: readonly ModelSelectorReasoningEffortOption[]
+  effortValue: string | null
   effortLabel: string
   effortAriaLabel: string
   effortDisabled: boolean
@@ -45,7 +43,7 @@ const emit = defineEmits<{
   'update:query': [value: string]
   hover: [key: string]
   select: [key: string]
-  'select-effort': [value: ModelSelectorEffortValue]
+  'select-effort': [value: string | null]
   keydown: [event: KeyboardEvent]
   focusout: [event: FocusEvent]
 }>()
