@@ -27,6 +27,10 @@ export interface ChatModelFeatureChangePayload {
   readonly enabled: boolean
 }
 
+export interface ChatModelReasoningEffortChangePayload {
+  readonly effort: string | null
+}
+
 export interface ChatMcpAddServerPayload {
   readonly id: string
 }
@@ -82,6 +86,7 @@ export interface ChatUIEmits {
   'bubble-event': [payload: ChatBubbleEventPayload]
   'model-select': [payload: ChatModelSelectPayload]
   'model-feature-change': [payload: ChatModelFeatureChangePayload]
+  'model-reasoning-effort-change': [payload: ChatModelReasoningEffortChangePayload]
   'mcp-add-server': [payload: ChatMcpAddServerPayload]
   'mcp-remove-server': [payload: ChatMcpRemoveServerPayload]
   'mcp-server-enabled-change': [payload: ChatMcpServerEnabledChangePayload]

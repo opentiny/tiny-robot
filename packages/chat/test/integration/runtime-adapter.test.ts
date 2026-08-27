@@ -71,12 +71,27 @@ describe('useChatRuntimeAdapter integration', () => {
       'server-a': [{ id: 'tool-a', name: 'Tool A', enabled: false }],
     })
     const model = {
-      options: shallowRef([{ id: 'model-a', label: 'Model A', capabilities: { thinking: true } }]),
+      options: shallowRef([
+        {
+          id: 'model-a',
+          label: 'Model A',
+          capabilities: { thinking: true },
+          efforts: [
+            { value: 'low', label: 'Low' },
+            { value: 'high', label: 'High' },
+          ],
+          defaultEffort: 'low',
+        },
+      ]),
       selectedId: shallowRef<string | null>('model-a'),
       features: shallowRef({ thinking: false, search: false }),
+      reasoning: shallowRef({ enabled: false, effort: 'low' }),
       select: vi.fn(),
       setFeature: vi.fn(async (id: 'thinking' | 'search', enabled: boolean) => {
         model.features.value = { ...model.features.value, [id]: enabled }
+      }),
+      setReasoningEffort: vi.fn(async (effort: string | null) => {
+        model.reasoning.value = { enabled: false, effort: effort ?? 'low' }
       }),
     }
     const mcp = {
@@ -104,10 +119,13 @@ describe('useChatRuntimeAdapter integration', () => {
     const adapter = useChatRuntimeAdapter({ runtime, onActionError: vi.fn() })
 
     await adapter.setModelFeature('thinking', true)
+    await adapter.setModelReasoningEffort('high')
     await adapter.setMcpServerEnabled('server-a', true)
     await adapter.setMcpToolEnabled('server-a', 'tool-a', true)
 
     expect(adapter.data.value.model?.features?.thinking).toBe(true)
+    expect(model.setReasoningEffort).toHaveBeenCalledWith('high')
+    expect(adapter.data.value.model?.reasoning?.effort).toBe('high')
     expect(adapter.data.value.mcp?.servers?.[0].enabled).toBe(true)
     expect(adapter.data.value.mcp?.tools?.['server-a']?.[0].enabled).toBe(true)
   })
@@ -124,6 +142,7 @@ describe('useChatRuntimeAdapter integration', () => {
         model.selectedId.value = id
       }),
       setFeature: vi.fn(),
+      setReasoningEffort: vi.fn(),
     }
     const conversation = useConversation({
       storage: createMemoryStorage(),

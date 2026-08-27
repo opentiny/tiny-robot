@@ -38,7 +38,11 @@ function isPending(id: ChatBuiltInModelFeature) {
 }
 
 function toggleFeature(id: ChatBuiltInModelFeature) {
-  if (isPending(id) || selectedModel.value?.capabilities?.[id] !== true) {
+  if (
+    isPending(id) ||
+    selectedModel.value?.capabilities?.[id] !== true ||
+    (id === 'thinking' && selectedModel.value?.thinkingRequired === true)
+  ) {
     return
   }
 
@@ -54,7 +58,11 @@ function toggleFeature(id: ChatBuiltInModelFeature) {
       class="tr-chat-model-features__button"
       :class="{ 'tr-chat-model-features__button--active': model.features?.[feature.id] }"
       type="button"
-      :disabled="isPending(feature.id) || selectedModel?.capabilities?.[feature.id] !== true"
+      :disabled="
+        isPending(feature.id) ||
+        selectedModel?.capabilities?.[feature.id] !== true ||
+        (feature.id === 'thinking' && selectedModel?.thinkingRequired === true)
+      "
       :aria-label="feature.label"
       :title="feature.label"
       @click="toggleFeature(feature.id)"

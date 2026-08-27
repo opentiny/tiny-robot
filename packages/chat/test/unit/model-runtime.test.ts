@@ -13,7 +13,11 @@ const models: ChatResolvedProviderModel[] = [
     apiKey: 'key',
     icon: 'model-a-icon' as never,
     capabilities: { thinking: true, search: true },
-    reasoning: { efforts: ['low', 'high'] as const, defaultEffort: 'low' as const },
+    efforts: [
+      { value: 'low', label: 'Low' },
+      { value: 'high', label: 'High' },
+    ],
+    defaultEffort: 'low',
   },
   {
     id: 'model-b',
@@ -23,7 +27,8 @@ const models: ChatResolvedProviderModel[] = [
     apiUrl: 'url',
     apiKey: 'key',
     capabilities: { thinking: false, search: false },
-    reasoning: { efforts: ['max'] as const, defaultEffort: 'max' as const },
+    efforts: [{ value: 'max', label: 'Max' }],
+    defaultEffort: 'max',
   },
 ]
 
@@ -32,7 +37,11 @@ describe('createProviderModelRuntime', () => {
     const runtime = createProviderModelRuntime(models)
     expect(runtime.model.selectedId.value).toBe('model-a')
     expect(runtime.model.options.value[0]?.icon).toBe('model-a-icon')
-    expect(runtime.model.reasoning?.value).toMatchObject({ enabled: false, effort: undefined })
+    expect(runtime.model.options.value[0]?.efforts).toEqual([
+      { value: 'low', label: 'Low' },
+      { value: 'high', label: 'High' },
+    ])
+    expect(runtime.model.reasoning?.value).toMatchObject({ enabled: false, effort: 'low' })
   })
 
   it('switches models and resets unsupported features and effort', () => {
@@ -42,7 +51,15 @@ describe('createProviderModelRuntime', () => {
     runtime.model.select('model-b')
 
     expect(runtime.model.features.value).toEqual({ thinking: false, search: false })
-    expect(runtime.model.reasoning?.value.effort).toBeUndefined()
+    expect(runtime.model.reasoning?.value.effort).toBe('max')
+  })
+
+  it('sets supported efforts and rejects unsupported efforts', () => {
+    const runtime = createProviderModelRuntime(models)
+
+    runtime.model.setReasoningEffort('high')
+    expect(runtime.model.reasoning?.value.effort).toBe('high')
+    expect(() => runtime.model.setReasoningEffort('max')).toThrow('does not support reasoning effort')
   })
 
   it('supports built-in features only', () => {

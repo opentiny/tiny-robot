@@ -93,6 +93,49 @@ describe('useLocalChatRuntime integration', () => {
     expect(runtime.activeConversation.value?.messages[0].metadata?.run_config_metadata).toEqual(firstMetadata)
   })
 
+  it('uses a model-configured effort in the provider request', async () => {
+    const fetchMock = vi.fn(
+      async (): Promise<Response> =>
+        new Response(
+          `data: ${JSON.stringify({ id: 'response', object: 'chat.completion', created: 0, model: 'deepseek-v4-flash', choices: [{ index: 0, delta: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`,
+          { status: 200, headers: { 'Content-Type': 'text/event-stream' } },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const runtime = createLocalRuntime({
+      conversation: {
+        storage: createMemoryStorage(),
+        useMessageOptions: {},
+      },
+      modelProviders: [
+        {
+          type: 'deepseek',
+          apiKey: 'test-key',
+          models: [
+            {
+              id: 'deepseek-v4-flash',
+              label: 'DeepSeek V4 Flash',
+              capabilities: { thinking: true },
+              efforts: [{ value: 'balanced', label: 'Balanced' }],
+              defaultEffort: 'balanced',
+            },
+          ],
+        },
+      ],
+    })
+
+    runtime.composer.model?.setFeature('thinking', true)
+    runtime.composer.model?.setReasoningEffort('balanced')
+    await expect(runtime.actions.send({ text: 'hello' })).resolves.toBe(true)
+
+    const requestCall = fetchMock.mock.calls[0] as unknown as [RequestInfo | URL, RequestInit | undefined]
+    const requestBody = JSON.parse(String(requestCall[1]?.body)) as Record<string, unknown>
+    expect(requestBody).toMatchObject({
+      thinking: { type: 'enabled' },
+      reasoning_effort: 'balanced',
+    })
+  })
+
   it('blocks sends while enabled MCP server tools are not loaded', async () => {
     const servers = shallowRef([{ id: 'server-a', name: 'Server A', installed: true, enabled: true, loading: true }])
     const tools = shallowRef<Record<string, readonly { id: string; name: string; enabled: boolean }[]>>({})

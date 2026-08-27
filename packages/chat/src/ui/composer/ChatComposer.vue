@@ -31,6 +31,7 @@ const emit = defineEmits<{
   openMcpPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
+  modelReasoningEffortChange: [payload: { effort: string | null }]
   mcpAddServer: [payload: { id: string }]
   mcpRemoveServer: [payload: { id: string }]
   mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
@@ -82,6 +83,10 @@ function handleFeatureChange(payload: { id: ChatBuiltInModelFeature; enabled: bo
   emit('modelFeatureChange', payload)
 }
 
+function handleReasoningEffortChange(payload: { effort: string | null }) {
+  emit('modelReasoningEffortChange', payload)
+}
+
 function handleAddServer(payload: { id: string }) {
   emit('mcpAddServer', payload)
 }
@@ -113,7 +118,13 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
         <template v-if="$slots['sender-footer'] || model || mcp" #footer>
           <div v-if="model || mcp" class="model-actions">
             <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />
-            <ModelSelector v-if="model" :model="model" :labels="labels" @select-model="handleSelectModel" />
+            <ModelSelector
+              v-if="model"
+              :model="model"
+              :labels="labels"
+              @select-model="handleSelectModel"
+              @update-reasoning-effort="handleReasoningEffortChange"
+            />
             <MCPSelector
               v-if="mcp"
               :mcp="mcp"

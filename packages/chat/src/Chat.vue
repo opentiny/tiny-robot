@@ -94,6 +94,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @update:input-value="adapter.setInputValue"
     @model-select="({ id }) => adapter.selectModel(id)"
     @model-feature-change="({ id, enabled }) => adapter.setModelFeature(id, enabled)"
+    @model-reasoning-effort-change="({ effort }) => adapter.setModelReasoningEffort(effort)"
     @mcp-add-server="({ id }) => adapter.addMcpServer(id)"
     @mcp-remove-server="({ id }) => adapter.removeMcpServer(id)"
     @mcp-server-enabled-change="({ id, enabled }) => adapter.setMcpServerEnabled(id, enabled)"

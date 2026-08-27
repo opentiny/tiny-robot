@@ -27,6 +27,7 @@ export function createRuntimeFixture(overrides: Partial<ChatRuntime['actions']> 
     deleteConversation: 0,
     select: 0,
     setFeature: 0,
+    setReasoningEffort: 0,
     addServer: 0,
     removeServer: 0,
     setServerEnabled: 0,
@@ -44,6 +45,9 @@ export function createRuntimeFixture(overrides: Partial<ChatRuntime['actions']> 
     setFeature: async (id, enabled) => {
       calls.setFeature++
       features.value = { ...features.value, [id]: enabled }
+    },
+    setReasoningEffort: async () => {
+      calls.setReasoningEffort++
     },
   }
   const mcp: ChatMcpRuntime = {

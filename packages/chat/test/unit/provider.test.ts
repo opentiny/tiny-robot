@@ -34,7 +34,36 @@ describe('provider helpers', () => {
     ])
 
     expect(models[0].apiUrl).toBe('https://api.deepseek.com/chat/completions')
+    expect(models[0].efforts).toEqual([
+      { value: 'low', label: '低' },
+      { value: 'high', label: '高' },
+      { value: 'max', label: '最高' },
+    ])
+    expect(models[0].defaultEffort).toBe('high')
+    expect(models[0].effortParam).toBe('reasoning_effort')
     expect(models[1].apiUrl).toBe('https://proxy.example/v1/chat/completions')
+  })
+
+  it('allows a model to override provider effort options', () => {
+    const models = resolveProviderModels([
+      {
+        type: 'deepseek',
+        models: [
+          {
+            id: 'custom-model',
+            label: 'Custom',
+            efforts: [{ value: 'balanced', label: 'Balanced' }],
+            defaultEffort: 'balanced',
+          },
+        ],
+      },
+    ])
+
+    expect(models[0]).toMatchObject({
+      efforts: [{ value: 'balanced', label: 'Balanced' }],
+      defaultEffort: 'balanced',
+      effortParam: 'reasoning_effort',
+    })
   })
 
   it('rejects duplicate model ids', () => {
@@ -64,7 +93,8 @@ describe('provider helpers', () => {
         thinking: { enabled: { thinking: { type: 'enabled' } }, disabled: { thinking: { type: 'disabled' } } },
         search: { enabled: { search: true }, disabled: { search: false } },
       },
-      reasoning: { efforts: ['high'], effortParam: 'effort' },
+      efforts: [{ value: 'high', label: 'High' }],
+      effortParam: 'effort',
     }))
     const requestBody: Record<string, unknown> = {}
     plugin.onBeforeRequest?.({
@@ -84,6 +114,20 @@ describe('provider helpers', () => {
       search: false,
       effort: 'high',
     })
+
+    const disabledRequestBody: Record<string, unknown> = {}
+    plugin.onBeforeRequest?.({
+      customContext: {
+        run_config_context: {
+          modelId: 'model-a',
+          features: { thinking: false },
+          reasoning: { enabled: false, effort: 'high' },
+        },
+      },
+      requestBody: disabledRequestBody,
+    } as never)
+
+    expect(disabledRequestBody).not.toHaveProperty('effort')
   })
 
   it('creates a response provider with provider headers and body', async () => {

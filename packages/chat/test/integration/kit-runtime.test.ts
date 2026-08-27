@@ -30,6 +30,7 @@ function createComposer(): ChatComposerRuntime {
       reasoning: shallowRef({ enabled: true, effort: 'high' as const }),
       select: () => {},
       setFeature: () => {},
+      setReasoningEffort: () => {},
     },
   }
 }

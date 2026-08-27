@@ -6,7 +6,6 @@ import type {
   ChatRunConfig,
   ChatRunConfigReasoning,
 } from '../types'
-import { CHAT_REASONING_EFFORTS } from '../types/runtime'
 
 export const CHAT_RUN_CONFIG_METADATA_KEY = 'run_config_metadata'
 export const CHAT_RUN_CONFIG_CONTEXT_KEY = 'run_config_context'
@@ -153,7 +152,7 @@ export function readRunConfigFromMessage(message?: ChatMessageItem): ChatRunConf
       !isRecord(raw.reasoning) ||
       typeof raw.reasoning.enabled !== 'boolean' ||
       (raw.reasoning.effort !== undefined &&
-        (typeof raw.reasoning.effort !== 'string' || !CHAT_REASONING_EFFORTS.includes(raw.reasoning.effort as never)))
+        (typeof raw.reasoning.effort !== 'string' || raw.reasoning.effort.length === 0))
     ) {
       return undefined
     }

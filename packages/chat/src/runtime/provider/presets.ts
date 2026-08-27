@@ -4,7 +4,9 @@ interface ChatProviderPreset {
   label: string
   apiUrl: string
   featureBody?: ChatProviderModelConfig['featureBody']
-  reasoning?: ChatProviderModelConfig['reasoning']
+  efforts?: ChatProviderModelConfig['efforts']
+  defaultEffort?: ChatProviderModelConfig['defaultEffort']
+  effortParam?: ChatProviderModelConfig['effortParam']
 }
 
 const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
@@ -29,11 +31,13 @@ const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
         },
       },
     },
-    reasoning: {
-      efforts: ['high', 'max'],
-      defaultEffort: 'high',
-      effortParam: 'reasoning_effort',
-    },
+    efforts: [
+      { value: 'low', label: '低' },
+      { value: 'high', label: '高' },
+      { value: 'max', label: '最高' },
+    ],
+    defaultEffort: 'high',
+    effortParam: 'reasoning_effort',
   },
   qwen: {
     label: 'DashScope',
@@ -92,7 +96,9 @@ export function resolveProviderModels(providers: readonly ChatProviderConfig[]):
           ...preset.featureBody,
           ...model.featureBody,
         },
-        reasoning: model.reasoning ?? preset.reasoning,
+        efforts: model.efforts ?? preset.efforts,
+        defaultEffort: model.defaultEffort ?? preset.defaultEffort,
+        effortParam: model.effortParam ?? preset.effortParam,
       }
     })
   })

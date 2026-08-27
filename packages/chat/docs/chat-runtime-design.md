@@ -13,12 +13,12 @@
   -> ChatRuntime.actions
 ```
 
-| 层级 | 职责 |
-| --- | --- |
-| `ChatRuntime` | 会话、消息、请求状态、Composer 状态和业务动作 |
+| 层级                    | 职责                                                       |
+| ----------------------- | ---------------------------------------------------------- |
+| `ChatRuntime`           | 会话、消息、请求状态、Composer 状态和业务动作              |
 | `useChatRuntimeAdapter` | Runtime 到 UI 的数据投影、草稿协调、动作执行和临时 pending |
-| `TrChatUI` | 纯 UI Shell、输入状态和根级 Emits |
-| 业务数据层 | Provider、凭证、Transport 和消息引擎 |
+| `TrChatUI`              | 纯 UI Shell、输入状态和根级 Emits                          |
+| 业务数据层              | Provider、凭证、Transport 和消息引擎                       |
 
 `useChatRuntimeAdapter` 不负责 MCP 自动加载、业务去重或 `runConfig` 构造。`useLocalChatRuntime` 组装 Kit、Provider、MCP Adapter 和 Plugin；声明式 `mcpServers` 由默认 Adapter 负责连接与 Tool 生命周期，高级 `mcp` 入口保留给特殊协议。
 
@@ -43,10 +43,7 @@ export interface ChatRuntime {
 export interface ChatRuntimeActions {
   send: (payload: ChatSendPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
-  createConversation: (payload?: {
-    title?: string
-    metadata?: Record<string, unknown>
-  }) => Promise<void> | void
+  createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
   switchConversation: (id: string) => Promise<void> | void
   renameConversation: (id: string, title: string) => Promise<void> | void
   deleteConversation: (id: string) => Promise<void> | void
@@ -66,9 +63,7 @@ export interface ChatBeforeSendContext {
   }>
 }
 
-export type ChatBeforeSend = (
-  context: ChatBeforeSendContext,
-) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
+export type ChatBeforeSend = (context: ChatBeforeSendContext) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
 ```
 
 `send()` 返回：
@@ -93,9 +88,7 @@ export interface ChatComposerRuntime {
 `useKitChatRuntime` 会统一派生最终 `submitDisabled`：
 
 ```ts
-const submitDisabled = computed(
-  () => Boolean(source.submitDisabled?.value) || !areEnabledMcpToolsReady(source.mcp),
-)
+const submitDisabled = computed(() => Boolean(source.submitDisabled?.value) || !areEnabledMcpToolsReady(source.mcp))
 ```
 
 自定义 Runtime 必须保证 `submitDisabled` 覆盖所有发送前置条件。
@@ -126,19 +119,19 @@ ChatUI 的公共输入事件为 `update:inputValue`。`ChatComposer` 的 `update
 
 `useChatRuntimeAdapter` 映射：
 
-| Runtime | ChatUIData |
-| --- | --- |
-| `conversations.value` | `conversation.items` |
-| `activeConversation.id/title` | `conversation.activeId/title` |
-| `activeConversation.messages` | `bubble.messages` |
-| `activeConversation.requestState` | `request.state` |
-| `activeConversation.processingState` | `request.processingState` |
-| `activeConversation.lastError` | `request.error` |
-| `composer.disabled` | `sender.disabled` |
-| `composer.submitDisabled` | `sender.submitDisabled` |
-| `requestState === 'processing'` | `sender.loading` |
-| `composer.model` | `model` |
-| `composer.mcp` | `mcp` |
+| Runtime                              | ChatUIData                    |
+| ------------------------------------ | ----------------------------- |
+| `conversations.value`                | `conversation.items`          |
+| `activeConversation.id/title`        | `conversation.activeId/title` |
+| `activeConversation.messages`        | `bubble.messages`             |
+| `activeConversation.requestState`    | `request.state`               |
+| `activeConversation.processingState` | `request.processingState`     |
+| `activeConversation.lastError`       | `request.error`               |
+| `composer.disabled`                  | `sender.disabled`             |
+| `composer.submitDisabled`            | `sender.submitDisabled`       |
+| `requestState === 'processing'`      | `sender.loading`              |
+| `composer.model`                     | `model`                       |
+| `composer.mcp`                       | `mcp`                         |
 
 ## 6. Model 和 MCP 事件
 
@@ -190,13 +183,13 @@ export interface ChatRunConfig {
 
 字段来源：
 
-| 字段 | 来源 |
-| --- | --- |
-| `modelId` | `composer.model.selectedId.value` |
-| `features` | `composer.model.features.value` 的浅拷贝 |
-| `reasoning` | `composer.model.reasoning.value` |
-| `mcp.serverIds` | 已安装且启用的 Server |
-| `mcp.toolIds` | 对应 Server 下启用的 Tool |
+| 字段            | 来源                                                                          |
+| --------------- | ----------------------------------------------------------------------------- |
+| `modelId`       | `composer.model.selectedId.value`                                             |
+| `features`      | `composer.model.features.value` 的浅拷贝                                      |
+| `reasoning`     | `composer.model.reasoning.value`，其中 `effort` 来自当前模型的 `efforts` 配置 |
+| `mcp.serverIds` | 已安装且启用的 Server                                                         |
+| `mcp.toolIds`   | 对应 Server 下启用的 Tool                                                     |
 
 `useKitChatRuntime` 负责生成、clone 快照并写入用户消息 metadata。`runConfigContextPlugin` 在每轮开始时读取快照，Provider Request 和 MCP Tool Plugin 消费当前轮快照。
 
@@ -204,11 +197,11 @@ export interface ChatRunConfig {
 
 ## 8. 接入方式
 
-| 场景 | 入口 |
-| --- | --- |
-| 新项目 | `useLocalChatRuntime` |
-| 已有 Kit conversation | `useKitChatRuntime` |
-| 其他数据层 | 实现 `ChatRuntime` |
+| 场景                  | 入口                  |
+| --------------------- | --------------------- |
+| 新项目                | `useLocalChatRuntime` |
+| 已有 Kit conversation | `useKitChatRuntime`   |
+| 其他数据层            | 实现 `ChatRuntime`    |
 
 ### 新项目
 

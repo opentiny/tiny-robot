@@ -7,7 +7,6 @@ export type {
   ChatProviderConfig,
   ChatProviderFeatureBody,
   ChatProviderModelConfig,
-  ChatProviderReasoningConfig,
   ChatProviderType,
   ChatResolvedProviderModel,
 } from './types'

@@ -44,6 +44,7 @@ export type {
   ChatUIProps,
   ChatUISlots,
   ChatPromptClickPayload,
+  ChatModelReasoningEffortChangePayload,
   ChatMessageContent,
   ChatMessageItem,
   ChatMessagePart,
@@ -65,7 +66,6 @@ export type {
   ChatWelcomeOptions,
   ChatWelcomeComposerPlacement,
   ChatSenderOptions,
-  ChatReasoningEffort,
   ChatModelRuntime,
   ChatRuntimeActions,
   ChatRunConfigReasoning,
@@ -99,6 +99,5 @@ export type {
   ChatProviderConfig,
   ChatProviderFeatureBody,
   ChatProviderModelConfig,
-  ChatProviderReasoningConfig,
   ChatProviderType,
 } from './runtime/provider'

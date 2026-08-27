@@ -74,6 +74,8 @@ export function createDefaultChatLabels(): ChatLabels {
     composerPlaceholder: '请输入你的问题...',
     composerLoadingPlaceholder: '思考中...',
     selectModel: '选择模型',
+    searchModel: '搜索模型',
+    modelEmptyText: '暂无模型',
     rightAsideTitle: '详情',
     mcp: 'MCP',
     thinkingFeature: '深度思考',

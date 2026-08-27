@@ -41,13 +41,17 @@ export function createProviderRequestPlugin(
         }
       })
 
+      const reasoningEnabled = currentRunConfig.reasoning?.enabled ?? currentRunConfig.features?.thinking
+      const reasoningEffort = currentRunConfig.reasoning?.effort
+
       if (
-        runConfig?.reasoning?.effort &&
-        model.reasoning?.effortParam &&
-        model.reasoning.efforts?.includes(runConfig.reasoning.effort)
+        reasoningEnabled &&
+        reasoningEffort &&
+        model.effortParam &&
+        model.efforts?.some((option) => option.value === reasoningEffort)
       ) {
         Object.assign(requestBody, {
-          [model.reasoning.effortParam]: runConfig.reasoning.effort,
+          [model.effortParam]: reasoningEffort,
         })
       }
     },

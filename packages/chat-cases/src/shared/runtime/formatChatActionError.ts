@@ -9,6 +9,7 @@ const actionLabels: Record<ChatRuntimeActionErrorPayload['action'], string> = {
   'delete-conversation': '删除会话',
   'select-model': '切换模型',
   'set-model-feature': '更新模型能力',
+  'set-model-reasoning-effort': '更新思考强度',
   'add-mcp-server': '添加插件',
   'remove-mcp-server': '移除插件',
   'set-mcp-server-enabled': '更新插件状态',

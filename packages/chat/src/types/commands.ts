@@ -15,6 +15,7 @@ export interface ChatRuntimeActionErrorPayload {
     | 'delete-conversation'
     | 'select-model'
     | 'set-model-feature'
+    | 'set-model-reasoning-effort'
     | 'add-mcp-server'
     | 'remove-mcp-server'
     | 'set-mcp-server-enabled'

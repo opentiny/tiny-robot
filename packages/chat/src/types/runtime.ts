@@ -1,5 +1,6 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatReadable, ChatRequestState } from './base'
 import type { ChatSendPayload } from './commands'
+import type { ModelSelectorEffortOption } from '@opentiny/tiny-robot'
 import type { Component } from 'vue'
 
 export interface ChatConversation extends ChatConversationInfo {
@@ -9,14 +10,12 @@ export interface ChatConversation extends ChatConversationInfo {
   lastError?: unknown | null
 }
 
-export const CHAT_REASONING_EFFORTS = ['low', 'medium', 'high', 'max'] as const
-export type ChatReasoningEffort = (typeof CHAT_REASONING_EFFORTS)[number]
 export const CHAT_BUILT_IN_MODEL_FEATURES = ['thinking', 'search'] as const
 export type ChatBuiltInModelFeature = (typeof CHAT_BUILT_IN_MODEL_FEATURES)[number]
 
 export interface ChatRunConfigReasoning {
   enabled: boolean
-  effort?: ChatReasoningEffort
+  effort?: string
 }
 
 export interface ChatRunConfig {
@@ -49,6 +48,9 @@ export interface ChatModelOption {
   id: string
   label: string
   icon?: Component
+  efforts?: readonly ModelSelectorEffortOption[]
+  defaultEffort?: string
+  thinkingRequired?: boolean
   capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>
   metadata?: Readonly<Record<string, unknown>>
 }
@@ -60,6 +62,7 @@ export interface ChatModelRuntime {
   reasoning?: ChatReadable<ChatRunConfigReasoning>
   select: (id: string | null) => Promise<void> | void
   setFeature: (id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void> | void
+  setReasoningEffort: (effort: string | null) => Promise<void> | void
 }
 
 export interface ChatMcpServerInfo {

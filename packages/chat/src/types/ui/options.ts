@@ -75,6 +75,8 @@ export interface ChatLabels {
   composerPlaceholder: string
   composerLoadingPlaceholder: string
   selectModel: string
+  searchModel: string
+  modelEmptyText: string
   mcp: string
   thinkingFeature: string
   searchFeature: string

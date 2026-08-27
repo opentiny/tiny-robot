@@ -25,6 +25,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const runtime = computed(() => toValue(options.runtime))
   const activeConversation = computed(() => runtime.value.activeConversation.value)
   const pendingModelSelecting = shallowRef(false)
+  const pendingModelReasoningEffort = shallowRef(false)
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlySet<string>>(new Set())
@@ -55,7 +56,9 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
           options: model.options.value,
           selectedId: model.selectedId.value,
           features: model.features.value,
+          reasoning: model.reasoning?.value,
           selecting: pendingModelSelecting.value,
+          reasoningSelecting: pendingModelReasoningEffort.value,
           pendingFeatureIds: [...pendingModelFeatureIds.value],
         }
       : undefined
@@ -158,6 +161,18 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     )
   }
 
+  async function setModelReasoningEffort(effort: string | null) {
+    const model = runtime.value.composer.model
+    if (!model || pendingModelReasoningEffort.value || model.reasoning?.value.effort === effort) return
+
+    pendingModelReasoningEffort.value = true
+    try {
+      await runAction('set-model-reasoning-effort', { effort }, () => model.setReasoningEffort(effort))
+    } finally {
+      pendingModelReasoningEffort.value = false
+    }
+  }
+
   async function addMcpServer(id: string) {
     const mcp = runtime.value.composer.mcp
     if (mcp)
@@ -211,6 +226,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       runAction('delete-conversation', { id }, () => runtime.value.actions.deleteConversation(id)),
     selectModel,
     setModelFeature,
+    setModelReasoningEffort,
     addMcpServer,
     removeMcpServer,
     setMcpServerEnabled,

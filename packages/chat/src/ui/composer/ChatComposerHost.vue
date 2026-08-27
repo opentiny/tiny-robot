@@ -29,6 +29,7 @@ const emit = defineEmits<{
   openMcpPanel: []
   modelSelect: [payload: { id: string | null }]
   modelFeatureChange: [payload: { id: ChatBuiltInModelFeature; enabled: boolean }]
+  modelReasoningEffortChange: [payload: { effort: string | null }]
   mcpAddServer: [payload: { id: string }]
   mcpRemoveServer: [payload: { id: string }]
   mcpServerEnabledChange: [payload: { id: string; enabled: boolean }]
@@ -70,6 +71,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
     @open-mcp-panel="emit('openMcpPanel')"
     @model-select="emit('modelSelect', $event)"
     @model-feature-change="emit('modelFeatureChange', $event)"
+    @model-reasoning-effort-change="emit('modelReasoningEffortChange', $event)"
     @mcp-add-server="emit('mcpAddServer', $event)"
     @mcp-remove-server="emit('mcpRemoveServer', $event)"
     @mcp-server-enabled-change="emit('mcpServerEnabledChange', $event)"

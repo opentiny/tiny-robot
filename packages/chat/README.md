@@ -145,11 +145,11 @@ const modelProviders: ChatProviderConfig[] = [
 
 `type` 只接受 `openai`、`deepseek` 和 `qwen`。默认地址和内置请求映射如下：
 
-| `type`     | 默认服务地址                                                         | 可用内置能力                                                                      |
-| ---------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `openai`   | `https://api.openai.com/v1/chat/completions`                         | 默认没有额外的能力请求体映射；可通过模型配置提供自定义 `featureBody`              |
-| `deepseek` | `https://api.deepseek.com/chat/completions`                          | `thinking` 会映射为 `thinking.type`；请求支持 `reasoning_effort` 的 `high`、`max` |
-| `qwen`     | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` | `thinking` 映射为 `enable_thinking`，`search` 映射为 `enable_search`              |
+| `type`     | 默认服务地址                                                         | 可用内置能力                                                                             |
+| ---------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `openai`   | `https://api.openai.com/v1/chat/completions`                         | 默认没有额外的能力请求体映射；可通过模型配置提供自定义 `featureBody`                     |
+| `deepseek` | `https://api.deepseek.com/chat/completions`                          | `thinking` 会映射为 `thinking.type`；请求支持 `reasoning_effort` 的 `low`、`high`、`max` |
+| `qwen`     | `https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions` | `thinking` 映射为 `enable_thinking`，`search` 映射为 `enable_search`                     |
 
 这些是包内的默认请求映射，不代表服务端一定允许对应字段。服务端返回的 HTTP 错误会作为请求错误处理。
 
@@ -183,11 +183,34 @@ const modelProviders: ChatProviderConfig[] = [
 ]
 ```
 
+模型可以直接使用 ModelSelector 的 `efforts` 配置思考强度：
+
+```ts
+const modelProviders: ChatProviderConfig[] = [
+  {
+    type: 'deepseek',
+    models: [
+      {
+        id: 'deepseek-v4-flash',
+        label: 'DeepSeek V4 Flash',
+        capabilities: { thinking: true },
+        efforts: [
+          { value: 'low', label: '低' },
+          { value: 'high', label: '高' },
+          { value: 'max', label: '最高' },
+        ],
+        defaultEffort: 'high',
+      },
+    ],
+  },
+]
+```
+
 - `thinking` 表示深度思考开关。
 - `search` 表示联网搜索开关。
 - 只有当前模型声明支持的开关才会显示在页面中。
 - 切换模型后，当前模型不支持的开关会关闭。
-- 当前页面提供 `thinking` 和 `search` 开关，不提供 reasoning effort 选择器；模型的 `reasoning.defaultEffort` 决定初始 effort，DeepSeek 预设默认值为 `high`。
+- `efforts` 直接控制当前模型可用的思考强度，`defaultEffort` 控制初始强度。
 
 `capabilities` 控制界面可用性；实际请求字段由 Provider 默认映射和模型的 `featureBody` 决定。
 
@@ -355,17 +378,17 @@ const mcpServers: ChatMcpServers = [
 
 ### 5.5 配置字段
 
-| 字段          | 是否必填 | 说明                                              |
-| ------------- | -------- | ------------------------------------------------- |
-| `id`          | 是       | 唯一标识；重复 ID 会在创建默认 Adapter 时同步报错 |
-| `name`        | 是       | 页面显示名称                                      |
-| `baseUrl`     | 是       | MCP Streamable HTTP 地址                          |
+| 字段          | 是否必填 | 说明                                                        |
+| ------------- | -------- | ----------------------------------------------------------- |
+| `id`          | 是       | 唯一标识；重复 ID 会在创建默认 Adapter 时同步报错           |
+| `name`        | 是       | 页面显示名称                                                |
+| `baseUrl`     | 是       | MCP Streamable HTTP 地址                                    |
 | `installed`   | 否       | 初始显示为已安装，但不自动启用；默认 Adapter 会后台发现工具 |
-| `description` | 否       | 页面说明                                          |
-| `icon`        | 否       | 页面图标地址                                      |
-| `headers`     | 否       | MCP 请求头；仅建议用于非敏感 header 或本地调试    |
-| `timeout`     | 否       | 连接和请求超时，单位为毫秒                        |
-| `validate`    | 否       | 创建 MCP 连接前执行的校验函数，参数为 Server ID   |
+| `description` | 否       | 页面说明                                                    |
+| `icon`        | 否       | 页面图标地址                                                |
+| `headers`     | 否       | MCP 请求头；仅建议用于非敏感 header 或本地调试              |
+| `timeout`     | 否       | 连接和请求超时，单位为毫秒                                  |
+| `validate`    | 否       | 创建 MCP 连接前执行的校验函数，参数为 Server ID             |
 
 ### 5.6 初始安装状态
 
@@ -663,13 +686,13 @@ const ui: ChatUIOptions = {
 
 `layout` 还支持以下高级布局配置：
 
-| 配置 | 说明 |
-| --- | --- |
-| `layout.surface.mode` | `normal` 使用普通布局；`floating` 使用浮动窗口布局 |
+| 配置                             | 说明                                               |
+| -------------------------------- | -------------------------------------------------- |
+| `layout.surface.mode`            | `normal` 使用普通布局；`floating` 使用浮动窗口布局 |
 | `layout.surface.floatingOptions` | 浮动窗口的拖拽、缩放等配置，具体字段由布局组件提供 |
-| `layout.emptyState` | 空会话内容使用 `start` 或 `center` 布局 |
-| `layout.composer.welcome` | 欢迎页输入框放在 `footer` 或 `center` 区域 |
-| `layout.leftAside: false` | 完全关闭左侧会话栏 |
+| `layout.emptyState`              | 空会话内容使用 `start` 或 `center` 布局            |
+| `layout.composer.welcome`        | 欢迎页输入框放在 `footer` 或 `center` 区域         |
+| `layout.leftAside: false`        | 完全关闭左侧会话栏                                 |
 
 浮动布局可以通过 `TrChat` 或 `TrChatUI` 的 `floatingState` 受控，并监听 `update:floating-state`、`floating-drag*` 和 `floating-resize*` 事件。右侧栏还可以通过 `rightAsidePanel` 受控指定当前面板，并监听 `update:right-aside-panel`。
 
@@ -713,22 +736,22 @@ const ui: ChatUIOptions = {
 </TrChat>
 ```
 
-| 插槽                       | 用途                               |
-| -------------------------- | ---------------------------------- |
-| `header-notice`            | 顶部标题下方的提示区域             |
-| `request-error`            | 替换请求错误显示内容，提供 `error` |
-| `layout-right-aside`       | 完整替换右侧详情栏，提供 `panel`、打开/关闭操作和打开状态 Slot Props |
-| `layout-right-aside-content` | 保留右侧栏外壳，只替换右侧栏正文 |
-| `layout-right-aside-title` | 右侧详情栏标题                     |
-| `composer-before`          | 输入框前方的扩展内容，提供输入和提交操作 Slot Props |
-| `sender-footer`            | 输入区底部附加内容                 |
-| `sender-footer-right`      | 输入区底部右侧附加内容             |
-| `welcome-footer`           | 欢迎区域底部附加内容               |
-| `prompts-footer`           | 提示项区域底部附加内容             |
-| `bubble-prefix`            | 消息列表前置内容                   |
-| `bubble-suffix`            | 消息列表后置内容                   |
-| `bubble-after`             | 消息列表之后的内容                 |
-| `bubble-content-footer`    | 消息内容底部附加内容               |
+| 插槽                         | 用途                                                                 |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `header-notice`              | 顶部标题下方的提示区域                                               |
+| `request-error`              | 替换请求错误显示内容，提供 `error`                                   |
+| `layout-right-aside`         | 完整替换右侧详情栏，提供 `panel`、打开/关闭操作和打开状态 Slot Props |
+| `layout-right-aside-content` | 保留右侧栏外壳，只替换右侧栏正文                                     |
+| `layout-right-aside-title`   | 右侧详情栏标题                                                       |
+| `composer-before`            | 输入框前方的扩展内容，提供输入和提交操作 Slot Props                  |
+| `sender-footer`              | 输入区底部附加内容                                                   |
+| `sender-footer-right`        | 输入区底部右侧附加内容                                               |
+| `welcome-footer`             | 欢迎区域底部附加内容                                                 |
+| `prompts-footer`             | 提示项区域底部附加内容                                               |
+| `bubble-prefix`              | 消息列表前置内容                                                     |
+| `bubble-suffix`              | 消息列表后置内容                                                     |
+| `bubble-after`               | 消息列表之后的内容                                                   |
+| `bubble-content-footer`      | 消息内容底部附加内容                                                 |
 
 一个可运行的 `header-notice` 示例：
 
@@ -757,14 +780,14 @@ const ui: ChatUIOptions = {
 
 不需要完整替换左侧栏时，可以只定制其中一个区域：
 
-| 插槽 | 区域 |
-| --- | --- |
-| `layout-left-aside-brand` | 品牌和侧栏顶部操作 |
-| `layout-left-aside-actions` | 新建会话或业务导航 |
-| `layout-left-aside-content` | 主内容区；未提供时默认渲染 `TrHistory` |
-| `layout-left-aside-footer` | 用户、设置或其他底部操作 |
-| `layout-left-aside-rail` | Dock 折叠态内容 |
-| `layout-left-aside-history-item-prefix` | 默认历史项前缀 |
+| 插槽                                    | 区域                                   |
+| --------------------------------------- | -------------------------------------- |
+| `layout-left-aside-brand`               | 品牌和侧栏顶部操作                     |
+| `layout-left-aside-actions`             | 新建会话或业务导航                     |
+| `layout-left-aside-content`             | 主内容区；未提供时默认渲染 `TrHistory` |
+| `layout-left-aside-footer`              | 用户、设置或其他底部操作               |
+| `layout-left-aside-rail`                | Dock 折叠态内容                        |
+| `layout-left-aside-history-item-prefix` | 默认历史项前缀                         |
 
 这些插槽提供公开的会话数据和操作函数，不绑定 `TrHistory` 实例。`layout-left-aside-content` 可以替换为收藏夹、项目列表或其他业务面板；提供该插槽后，默认历史列表不会渲染。旧的 `layout-left-aside` 优先级更高，仍可用于完整替换展开面板。
 
@@ -994,18 +1017,18 @@ function handleSubmit(payload: ChatSendPayload) {
 
 ## 12. API 速查
 
-| 导出                  | 用途                                              |
-| --------------------- | ------------------------------------------------- |
-| `TrChat`              | 完整聊天页面，连接 `ChatRuntime` 和 `TrChatUI`    |
-| `TrChatUI`            | 纯界面层，接收 `ChatUIData` 和 UI 事件            |
-| `useLocalChatRuntime` | 新项目默认 Runtime，组装会话、Provider 和可选 MCP |
-| `useKitChatRuntime`   | 适配已有 Kit 会话                                 |
+| 导出                    | 用途                                                      |
+| ----------------------- | --------------------------------------------------------- |
+| `TrChat`                | 完整聊天页面，连接 `ChatRuntime` 和 `TrChatUI`            |
+| `TrChatUI`              | 纯界面层，接收 `ChatUIData` 和 UI 事件                    |
+| `useLocalChatRuntime`   | 新项目默认 Runtime，组装会话、Provider 和可选 MCP         |
+| `useKitChatRuntime`     | 适配已有 Kit 会话                                         |
 | `useChatRuntimeAdapter` | 将自定义 `ChatRuntime` 投影为 `ChatUIData` 并处理 UI 动作 |
-| `useChatHistoryItems` | 将会话数据转换为历史列表项的高级辅助函数 |
-| `useChatHistoryData` | 将平铺或分组的会话展示数据转换为默认历史列表数据 |
-| `ChatUIOptions`       | `TrChat` 和 `TrChatUI` 的界面配置类型             |
-| `ChatProviderConfig`  | 模型服务配置类型                                  |
-| `ChatMcpServers`      | 声明式 MCP 服务配置类型                           |
-| `ChatRuntime`         | 自有状态管理接入时实现的 Runtime 协议             |
+| `useChatHistoryItems`   | 将会话数据转换为历史列表项的高级辅助函数                  |
+| `useChatHistoryData`    | 将平铺或分组的会话展示数据转换为默认历史列表数据          |
+| `ChatUIOptions`         | `TrChat` 和 `TrChatUI` 的界面配置类型                     |
+| `ChatProviderConfig`    | 模型服务配置类型                                          |
+| `ChatMcpServers`        | 声明式 MCP 服务配置类型                                   |
+| `ChatRuntime`           | 自有状态管理接入时实现的 Runtime 协议                     |
 
 其他常用公开类型包括 `ChatHistoryData`、`ChatHistoryGroup`、`ChatMcpServerConfig`、`ChatRuntimeActionErrorPayload`、`ChatSendPayload`、`ChatBeforeSend`、`ChatBeforeSendContext`、`ChatUISlots`、`ChatUIData`、`ChatUIProps`、`ChatUIEmits`、`ChatRunConfig`、`ChatMcpRuntime` 和浮动布局相关的 `LayoutFloatingState`。

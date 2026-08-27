@@ -11,15 +11,20 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   selectModel: [payload: { id: string | null }]
+  updateReasoningEffort: [payload: { effort: string | null }]
 }>()
 
+const thinkingEnabled = computed(() => props.model.reasoning?.enabled === true)
 const modelOptions = computed<ModelSelectorOption[]>(() =>
   (props.model.options ?? []).map((model) => ({
     value: model.id,
     label: model.label,
     icon: model.icon,
+    efforts: thinkingEnabled.value ? model.efforts : undefined,
   })),
 )
+
+const selectedModel = computed(() => props.model.options?.find((model) => model.id === props.model.selectedId))
 
 function handleModelSelect(id: string | null) {
   if (props.model.selecting || id === props.model.selectedId) {
@@ -27,6 +32,14 @@ function handleModelSelect(id: string | null) {
   }
 
   emit('selectModel', { id })
+}
+
+function handleReasoningEffortChange(effort: string | null) {
+  if (props.model.reasoningSelecting) {
+    return
+  }
+
+  emit('updateReasoningEffort', { effort })
 }
 </script>
 
@@ -36,11 +49,16 @@ function handleModelSelect(id: string | null) {
     class="tr-chat-model-selector"
     :models="modelOptions"
     :model-value="model.selectedId ?? null"
-    :disabled="model.selecting"
+    :disabled="model.selecting || model.reasoningSelecting"
+    :effort="model.reasoning?.effort ?? null"
+    :default-effort="selectedModel?.defaultEffort ?? null"
     append-to=".tr-chat-ui"
     :placeholder="labels.selectModel"
+    :search-placeholder="labels.searchModel"
+    :empty-text="labels.modelEmptyText"
     :aria-label="labels.selectModel"
     @update:model-value="handleModelSelect"
+    @update:effort="handleReasoningEffortChange"
   >
     <template #trigger="{ option, label, open }">
       <span class="tr-chat-model-selector__trigger" :class="{ 'has-icon': option?.icon }">
@@ -66,6 +84,10 @@ function handleModelSelect(id: string | null) {
 </template>
 
 <style scoped>
+.tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+  border-radius: var(--tr-radius-full);
+}
+
 .tr-chat-model-selector__trigger,
 .tr-chat-model-selector__trigger-main {
   display: inline-flex;
