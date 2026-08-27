@@ -142,7 +142,17 @@ export const iconCategoryGroups: IconCategoryGroup[] = [
   {
     title: '品牌',
     keywords: ['品牌', 'brand', 'logo'],
-    icons: ['IconLogo', 'IconAi'],
+    icons: [
+      'IconLogo',
+      'IconAi',
+      'IconOpenai',
+      'IconClaude',
+      'IconDeepseek',
+      'IconBailian',
+      'IconModelscope',
+      'IconOpenrouter',
+      'IconOllama',
+    ],
   },
   {
     title: '插画与场景态',
