@@ -67,55 +67,7 @@ importers:
       '@opentiny/vue':
         specifier: ^3.20.0
         version: 3.30.0
-      '@opentiny/vue-base-select':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-button':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-input':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-modal':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-notify':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-numeric':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-option':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-popconfirm':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-radio':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-radio-group':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-select':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-slider':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-switch':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-tab-item':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-tabs':
-        specifier: ^3.20.0
-        version: 3.30.0
       '@opentiny/vue-theme':
-        specifier: ^3.20.0
-        version: 3.30.0
-      '@opentiny/vue-tooltip':
         specifier: ^3.20.0
         version: 3.30.0
       dompurify:

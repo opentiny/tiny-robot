@@ -17,8 +17,6 @@ const prodAlias = {
   '@opentiny/tiny-robot-style': '@opentiny/tiny-robot/dist/style.css',
 }
 
-const tinyVueAlias = fileURLToPath(new URL('./tiny-vue-runtime.ts', import.meta.url))
-
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'TinyRobot',
@@ -43,7 +41,6 @@ export default defineConfig({
     },
     resolve: {
       alias: {
-        '@opentiny/vue': tinyVueAlias,
         ...(process.env.VP_MODE === 'development' ? devAlias : prodAlias),
       },
     },
