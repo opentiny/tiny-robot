@@ -47,7 +47,30 @@ jobs:
         run: pnpm build
 
       - name: Build docs
-        run: pnpm -F docs build
+        env:
+          NODE_OPTIONS: >-
+            --max-old-space-size=10240
+            --report-on-fatalerror
+            --report-uncaught-exception
+            --diagnostic-dir=${{ runner.temp }}/node-diagnostics/docs
+            --heapsnapshot-near-heap-limit=1
+            --heap-prof
+            --heap-prof-dir=${{ runner.temp }}/node-diagnostics/docs
+            --heap-prof-interval=512
+          VP_MODE: production
+        run: |
+          mkdir -p "$RUNNER_TEMP/node-diagnostics/docs"
+          set -o pipefail
+          pnpm -F docs exec vitepress build 2>&1 | tee "$RUNNER_TEMP/node-diagnostics/docs/build.log"
+
+      - name: Upload Node diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: node-diagnostics-${{ github.run_id }}
+          path: ${{ runner.temp }}/node-diagnostics/docs
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Save PR number
         if: github.event_name == 'pull_request'
