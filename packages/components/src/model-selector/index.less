@@ -281,6 +281,11 @@
   line-height: 22px;
 }
 
+.tr-model-selector__search-input:focus-visible {
+  outline: 2px solid var(--tr-color-primary);
+  outline-offset: 2px;
+}
+
 .tr-model-selector__search-input::placeholder {
   color: var(--tr-text-tertiary);
 }
@@ -458,7 +463,7 @@
 }
 
 @media (max-width: 480px) {
-  .tr-model-selector__trigger {
+  .tr-model-selector button.tr-model-selector__trigger {
     max-width: min(240px, calc(100vw - 24px));
   }
 
