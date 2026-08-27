@@ -11,6 +11,7 @@
   "dependencies": {
     "@opentiny/tiny-robot-chat": "0.5.2-alpha.10",
     "@opentiny/tiny-robot": "0.5.2-alpha.10",
+    "@opentiny/tiny-robot-svgs": "0.5.2-alpha.10",
     "vue": "^3.5.40"
   },
   "devDependencies": {

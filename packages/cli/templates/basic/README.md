@@ -39,6 +39,14 @@ The Chat package does not prompt for or validate missing API Keys. The upstream 
 
 MCP follows the same three modes: the official endpoint with an optional API Key, a custom `baseUrl` with optional headers, or a proxy `baseUrl` without headers.
 
+The basic template already includes the Model Context MCP proxy in `vite.config.ts`. If you use `add chat` in an existing project, the CLI does not modify that project's Vite configuration; add the same `/modelcontextprotocol-mcp` proxy under `server.proxy` manually and restart Vite.
+
+## Model capabilities
+
+Qwen models support deep thinking and web search. DeepSeek models support deep thinking. Unsupported capabilities remain visible as disabled buttons so the available model capabilities are clear.
+
+DeepSeek models inherit the provider's thinking effort options: `low`, `high`, and `max`, with `high` as the default. The effort selector appears only after `深度思考` is enabled. To customize a model, set `efforts` and `defaultEffort` on that model in `src/App.vue`; use `thinkingRequired: true` only for models that cannot disable thinking.
+
 ## Environment variables
 
 Copy `.env.example` to `.env.local`. Leave endpoint variables blank for official Provider/MCP defaults, or set them for custom services and backend proxies:

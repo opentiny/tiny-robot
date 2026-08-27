@@ -39,7 +39,12 @@ test('create basic scaffolds a complete chat-basic project', () => {
     assert.ok(fs.existsSync(path.join(project, 'src/App.vue')))
     assert.ok(fs.existsSync(path.join(project, 'src/main.ts')))
     assert.ok(fs.existsSync(path.join(project, 'public/favicon.svg')))
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-svgs'], '0.5.2-alpha.10')
+    assert.match(fs.readFileSync(path.join(project, 'src/App.vue'), 'utf8'), /IconBailian/)
+    assert.match(fs.readFileSync(path.join(project, 'src/App.vue'), 'utf8'), /icon: IconDeepseek/)
     assert.match(fs.readFileSync(path.join(project, 'vite.config.ts'), 'utf8'), /modelcontextprotocol-mcp/)
+    assert.ok(fs.existsSync(path.join(project, '.env.example')))
+    assert.equal(fs.existsSync(path.join(project, '.env')), false)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'index.html'), 'utf8'), /__PROJECT_NAME__/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
@@ -72,6 +77,10 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
     assert.equal(packageJson.dependencies['@vueuse/core'], '13.1.0')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-svgs'], '0.5.2-alpha.10')
+    const runtimeConfig = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/config/chat-runtime.ts'), 'utf8')
+    assert.match(runtimeConfig, /IconBailian/)
+    assert.match(runtimeConfig, /icon: IconDeepseek/)
     assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /<TinyRobotChat \/>/)
     assert.match(result.stdout, /server\.proxy/)
   } finally {
