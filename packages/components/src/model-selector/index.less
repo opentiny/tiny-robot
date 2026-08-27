@@ -98,6 +98,7 @@
   width: 1em;
   height: 1em;
   flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .tr-model-selector__trigger-label {
@@ -178,13 +179,13 @@
   font-size: var(--tr-font-size-sm);
 }
 
-.tr-model-selector__panel-header,
+.tr-model-selector__header,
 .tr-model-selector__footer {
   flex: 0 0 auto;
   padding: 10px 12px;
 }
 
-.tr-model-selector__panel-header {
+.tr-model-selector__header {
   border-bottom: 1px solid color-mix(in srgb, var(--tr-model-selector-divider-color) 42%, transparent);
 }
 
@@ -330,7 +331,7 @@
 .tr-model-selector__group-title {
   overflow: hidden;
   padding: 4px 8px 6px;
-  color: var(--tr-model-selector-group-label-color);
+  color: var(--tr-model-selector-group-title-color);
   font-size: var(--tr-font-size-xs);
   line-height: 18px;
   text-overflow: ellipsis;

@@ -45,7 +45,7 @@ export function useModelSelectorFilter(options: UseModelSelectorFilterOptions) {
         key: option.groupKey,
         index: groupMap.size,
         group: option.raw.group?.trim() ?? '',
-        label: option.groupLabel,
+        label: option.raw.group?.trim() ?? '',
         items: [option],
       })
     })

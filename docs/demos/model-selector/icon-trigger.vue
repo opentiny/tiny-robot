@@ -25,9 +25,16 @@ const models = [
       <template #trigger="{ option, label, open }">
         <span class="model-selector-icon-trigger-demo__trigger" :class="{ 'has-icon': option?.icon }">
           <span class="model-selector-icon-trigger-demo__trigger-main">
+            <img
+              v-if="typeof option?.icon === 'string'"
+              :src="option.icon"
+              class="model-selector-icon-trigger-demo__icon"
+              alt=""
+              aria-hidden="true"
+            />
             <component
               :is="option?.icon"
-              v-if="option?.icon"
+              v-else-if="option?.icon"
               class="model-selector-icon-trigger-demo__icon"
               aria-hidden="true"
               focusable="false"

@@ -29,10 +29,8 @@ export function normalizeModelOptions(models: readonly ModelSelectorOption[]): N
     const label = normalizeText(model.label) || model.value
     const description = normalizeText(model.description) || undefined
     const group = normalizeText(model.group)
-    const explicitGroupLabel = normalizeText(model.groupLabel)
-    const groupKey = group || explicitGroupLabel || DEFAULT_GROUP_KEY
-    const groupLabel = explicitGroupLabel || group
-    const keywords = [...(model.keywords ?? [])]
+    const groupKey = group || DEFAULT_GROUP_KEY
+    const icon = typeof model.icon === 'string' ? model.icon : model.icon ? toRaw(model.icon) : undefined
 
     normalizedOptions.push({
       key: `value:${model.value}`,
@@ -40,12 +38,10 @@ export function normalizeModelOptions(models: readonly ModelSelectorOption[]): N
       value: model.value,
       label,
       description,
-      icon: model.icon ? toRaw(model.icon) : undefined,
+      icon,
       disabled: Boolean(model.disabled),
       groupKey,
-      groupLabel,
-      keywords,
-      searchText: createSearchText([label, model.value, description, group, explicitGroupLabel, ...keywords]),
+      searchText: createSearchText([label, model.value, description, group]),
       raw: model,
     })
   })

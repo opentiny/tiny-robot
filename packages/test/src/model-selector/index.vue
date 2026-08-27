@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef } from 'vue'
-import { TrModelSelector, TrThemeProvider } from '@opentiny/tiny-robot'
+import { TrModelSelector } from '@opentiny/tiny-robot'
 import type { ModelSelectorReasoningEffortOption, ModelSelectorOption } from '@opentiny/tiny-robot'
+import { IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
 interface SelectorEventLog {
   updates: number
@@ -73,42 +74,34 @@ const models: readonly ModelSelectorOption[] = [
     value: 'gpt-4o',
     label: 'GPT-4o',
     description: 'Fast multimodal model',
-    group: 'openai',
-    groupLabel: 'OpenAI',
-    keywords: ['vision', 'omni'],
+    group: 'OpenAI',
+    icon: 'https://example.com/model.svg',
   },
   {
     value: 'gpt-4.1',
     label: 'GPT-4.1',
     description: 'Precise coding model',
-    group: 'openai',
-    groupLabel: 'OpenAI',
-    keywords: ['code'],
+    group: 'OpenAI',
+    icon: IconDeepseek,
   },
   {
     value: 'claude-sonnet',
     label: 'Claude Sonnet',
     description: 'Balanced reasoning model',
-    group: 'anthropic',
-    groupLabel: 'Anthropic',
-    keywords: ['analysis'],
+    group: 'Anthropic',
   },
   {
     value: 'claude-haiku',
     label: 'Claude Haiku',
     description: 'Unavailable compact model',
     disabled: true,
-    group: 'anthropic',
-    groupLabel: 'Anthropic',
-    keywords: ['fast'],
+    group: 'Anthropic',
   },
   {
     value: 'deepseek-r1',
     label: 'DeepSeek R1',
     description: 'Open reasoning model',
-    group: 'open-source',
-    groupLabel: 'Open Source',
-    keywords: ['reasoning'],
+    group: 'Open Source',
   },
 ]
 
@@ -231,15 +224,10 @@ async function rapidOpenClose() {
 }
 
 const isDark = ref(false)
-const localColorMode = ref<'light' | 'dark'>('dark')
 
 function toggleDarkMode() {
   isDark.value = !isDark.value
   document.documentElement.setAttribute('data-tr-color-mode', isDark.value ? 'dark' : 'light')
-}
-
-function toggleLocalColorMode() {
-  localColorMode.value = localColorMode.value === 'dark' ? 'light' : 'dark'
 }
 
 onBeforeUnmount(() => {
@@ -269,7 +257,6 @@ onBeforeUnmount(() => {
           :models="models"
           searchable
           aria-label="Init selector"
-          list-aria-label="Init models"
           @update:model-value="recordValue(logs.init, $event)"
           @change="recordChange(logs.init, $event)"
           @update:open="recordOpen(logs.init, $event)"
@@ -280,7 +267,6 @@ onBeforeUnmount(() => {
           data-testid="async-selector"
           :models="asyncModels"
           aria-label="Async selector"
-          list-aria-label="Async models"
           @update:model-value="recordValue(logs.async, $event)"
           @change="recordChange(logs.async, $event)"
           @update:open="recordOpen(logs.async, $event)"
@@ -317,8 +303,6 @@ onBeforeUnmount(() => {
           reasoning-effort-label="Ignored effort fallback"
           aria-label="Explicit selector"
           search-aria-label="Explicit search"
-          list-aria-label="Explicit models"
-          reasoning-effort-aria-label="Explicit effort"
         />
       </div>
     </section>
@@ -332,7 +316,6 @@ onBeforeUnmount(() => {
         default-value="claude-sonnet"
         aria-label="Uncontrolled selector"
         search-aria-label="Uncontrolled search"
-        list-aria-label="Uncontrolled models"
         @update:model-value="recordValue(logs.uncontrolled, $event)"
         @change="recordChange(logs.uncontrolled, $event)"
         @update:open="recordOpen(logs.uncontrolled, $event)"
@@ -363,7 +346,6 @@ onBeforeUnmount(() => {
         searchable
         aria-label="Controlled selector"
         search-aria-label="Controlled search"
-        list-aria-label="Controlled models"
         @update:model-value="handleControlledValue"
         @change="recordChange(logs.controlled, $event)"
         @update:open="handleControlledOpen"
@@ -390,7 +372,6 @@ onBeforeUnmount(() => {
         searchable
         aria-label="Blocked selector"
         search-aria-label="Blocked search"
-        list-aria-label="Blocked models"
         @update:model-value="recordValue(logs.blocked, $event)"
         @change="recordChange(logs.blocked, $event)"
         @update:open="recordOpen(logs.blocked, $event)"
@@ -414,8 +395,6 @@ onBeforeUnmount(() => {
         default-value="reasoning-default"
         default-reasoning-effort="medium"
         aria-label="Default effort selector"
-        list-aria-label="Default effort models"
-        reasoning-effort-aria-label="Default effort levels"
         @update:reasoning-effort="recordEffortValue(logs.effortUncontrolled, $event)"
         @reasoning-effort-change="recordEffortChange(logs.effortUncontrolled, $event)"
       />
@@ -433,8 +412,6 @@ onBeforeUnmount(() => {
         model-value="reasoning-default"
         :reasoning-effort="blockedEffort"
         aria-label="Blocked effort selector"
-        list-aria-label="Blocked effort models"
-        reasoning-effort-aria-label="Blocked effort levels"
         @update:reasoning-effort="recordEffortValue(logs.effortBlocked, $event)"
         @reasoning-effort-change="recordEffortChange(logs.effortBlocked, $event)"
       />
@@ -461,7 +438,6 @@ onBeforeUnmount(() => {
         :models="effortModels"
         :searchable="false"
         aria-label="Controlled effort selector"
-        list-aria-label="Controlled effort models"
         @update:reasoning-effort="recordEffortValue(logs.effortControlled, $event)"
         @reasoning-effort-change="recordEffortChange(logs.effortControlled, $event)"
       >
@@ -509,7 +485,6 @@ onBeforeUnmount(() => {
         searchable
         aria-label="Custom filter selector"
         search-aria-label="Custom filter search"
-        list-aria-label="Custom filter models"
       />
     </section>
 
@@ -520,7 +495,6 @@ onBeforeUnmount(() => {
         :models="models"
         :searchable="false"
         aria-label="Keyboard selector"
-        list-aria-label="Keyboard models"
         @update:model-value="recordValue(logs.keyboard, $event)"
         @change="recordChange(logs.keyboard, $event)"
         @update:open="recordOpen(logs.keyboard, $event)"
@@ -545,7 +519,6 @@ onBeforeUnmount(() => {
         :content-style="{ borderWidth: '2px' }"
         aria-label="Slot selector"
         search-aria-label="Slot search"
-        list-aria-label="Slot models"
         @update:model-value="recordValue(logs.slots, $event)"
         @change="recordChange(logs.slots, $event)"
         @update:open="recordOpen(logs.slots, $event)"
@@ -553,13 +526,10 @@ onBeforeUnmount(() => {
         <template #trigger="{ label, open }">
           <span data-testid="slot-trigger-content">{{ open ? 'Opened' : 'Closed' }}: {{ label }}</span>
         </template>
-        <template #panel-header>
+        <template #header>
           <button data-testid="slot-header-action" type="button" @click="slotHeaderActivations += 1">
             Header action
           </button>
-        </template>
-        <template #group-label="{ label, models: groupModels }">
-          <span :data-testid="`slot-group-${label || 'ungrouped'}`">Custom {{ label }} ({{ groupModels.length }})</span>
         </template>
         <template #item="{ option, selected, disabled }">
           <span :data-testid="`slot-item-${option.value}`">
@@ -592,21 +562,18 @@ onBeforeUnmount(() => {
           :models="compactModels"
           aria-label="Primary selector"
           search-aria-label="Primary search"
-          list-aria-label="Primary models"
         />
         <TrModelSelector
           data-testid="secondary-selector"
           :models="compactModels"
           aria-label="Secondary selector"
           search-aria-label="Secondary search"
-          list-aria-label="Secondary models"
         />
         <TrModelSelector
           data-testid="invalid-append-to-selector"
           :models="compactModels"
           append-to="["
           aria-label="Invalid append target selector"
-          list-aria-label="Invalid append target models"
         />
       </div>
     </section>
@@ -627,7 +594,6 @@ onBeforeUnmount(() => {
         searchable
         aria-label="Default open selector"
         search-aria-label="Default open search"
-        list-aria-label="Default open models"
         @update:open="recordOpen(logs.defaultOpen, $event)"
       />
       <TrModelSelector
@@ -636,7 +602,6 @@ onBeforeUnmount(() => {
         :open="rapidOpen"
         aria-label="Rapid selector"
         search-aria-label="Rapid search"
-        list-aria-label="Rapid models"
         @update:open="rapidOpen = $event"
       />
       <output data-testid="default-open-updates">{{ logs.defaultOpen.openUpdates }}</output>
@@ -653,7 +618,6 @@ onBeforeUnmount(() => {
           variant="outline"
           size="small"
           aria-label="Outline small selector"
-          list-aria-label="Outline small models"
         />
         <TrModelSelector
           data-testid="ghost-normal-selector"
@@ -662,7 +626,6 @@ onBeforeUnmount(() => {
           variant="ghost"
           size="normal"
           aria-label="Ghost normal selector"
-          list-aria-label="Ghost normal models"
         />
         <TrModelSelector
           data-testid="muted-large-selector"
@@ -671,51 +634,14 @@ onBeforeUnmount(() => {
           variant="muted"
           size="large"
           aria-label="Muted large selector"
-          list-aria-label="Muted large models"
         />
         <TrModelSelector
           data-testid="disabled-selector"
           :models="compactModels"
           disabled
           aria-label="Disabled selector"
-          list-aria-label="Disabled models"
         />
       </div>
-    </section>
-
-    <section id="model-selector-local-theme" class="model-selector-test__section" data-testid="local-theme-section">
-      <h3>Teleport 局部主题继承</h3>
-      <TrThemeProvider
-        v-model:color-mode="localColorMode"
-        theme="model-selector-local"
-        target-element="#model-selector-local-theme"
-      >
-        <TrModelSelector
-          data-testid="local-theme-selector"
-          :models="compactModels"
-          aria-label="Local theme selector"
-          search-aria-label="Local theme search"
-          list-aria-label="Local theme models"
-        >
-          <template #footer>
-            <button data-testid="local-theme-toggle" type="button" @click="toggleLocalColorMode">
-              Toggle local theme
-            </button>
-          </template>
-        </TrModelSelector>
-      </TrThemeProvider>
-    </section>
-
-    <section class="model-selector-test__section" data-testid="tab-boundary-section">
-      <h3>Teleport Tab 边界</h3>
-      <TrModelSelector
-        data-testid="tab-boundary-selector"
-        :models="compactModels"
-        searchable
-        aria-label="Tab boundary selector"
-        search-aria-label="Tab boundary search"
-        list-aria-label="Tab boundary models"
-      />
     </section>
   </div>
 </template>
@@ -786,16 +712,6 @@ onBeforeUnmount(() => {
 
 :global(.model-selector-test__custom-content) {
   border-style: dashed;
-}
-
-:global([data-tr-theme='model-selector-local'][data-tr-color-mode='dark']) {
-  --tr-model-selector-panel-bg: rgb(18 24 38);
-  --tr-model-selector-item-color: rgb(248 250 252);
-}
-
-:global([data-tr-theme='model-selector-local'][data-tr-color-mode='light']) {
-  --tr-model-selector-panel-bg: rgb(241 245 249);
-  --tr-model-selector-item-color: rgb(15 23 42);
 }
 
 @media (max-width: 480px) {

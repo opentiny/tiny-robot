@@ -11,13 +11,11 @@ import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 const providerBases = {
   deepseek: {
     icon: IconDeepseek,
-    group: 'deepseek-v4',
-    groupLabel: 'DeepSeek V4',
+    group: 'DeepSeek V4',
   },
   qwen: {
     icon: IconBailian,
-    group: 'qwen',
-    groupLabel: 'Qwen',
+    group: 'Qwen',
   },
 } as const
 
@@ -27,7 +25,6 @@ const modelRows = [
     value: 'deepseek-v4-pro',
     label: 'DeepSeek V4 Pro',
     description: '预览版 · 1M 上下文 · 最大输出 384K',
-    keywords: ['preview', '推理', 'reasoning', 'agent', '代码'],
     reasoningEfforts: [
       ['high', 'High'],
       ['max', 'Max'],
@@ -38,7 +35,6 @@ const modelRows = [
     value: 'deepseek-v4-flash',
     label: 'DeepSeek V4 Flash',
     description: 'V4-Flash-0731 Public Beta · 1M 上下文 · 最大输出 384K',
-    keywords: ['推理', 'reasoning', '低成本'],
     reasoningEfforts: [
       ['low', 'Low'],
       ['high', 'High'],
@@ -51,7 +47,6 @@ const modelRows = [
     label: 'Qwen3.8 Max Preview',
     description: '需 Token Plan（本示例禁用） · 推理与视觉理解 · 1M 上下文',
     disabled: true,
-    keywords: ['百炼', '通义千问', 'qwencloud', 'dashscope'],
     reasoningEfforts: undefined,
   },
   {
@@ -59,7 +54,6 @@ const modelRows = [
     value: 'qwen3.7-max',
     label: 'Qwen3.7 Max',
     description: '纯文本旗舰 · 1M 上下文 · 最大输出 131K',
-    keywords: ['百炼', '通义千问', 'dashscope', '推理', 'reasoning', 'agent', '代码'],
     reasoningEfforts: undefined,
   },
   {
@@ -67,7 +61,6 @@ const modelRows = [
     value: 'qwen3.7-plus',
     label: 'Qwen3.7 Plus',
     description: '图像、文本与视频输入 · 1M 上下文 · 最大输出 131K',
-    keywords: ['百炼', '通义千问', 'dashscope', '多模态', '推理', 'reasoning'],
     reasoningEfforts: undefined,
   },
 ] as const
@@ -89,14 +82,7 @@ const model = shallowRef<string | null>('deepseek-v4-flash')
 const reasoningEffort = shallowRef<string | null>('high')
 
 const filterMethod: ModelSelectorFilterMethod = (query, option) => {
-  const searchText = [
-    option.label,
-    option.value,
-    option.description,
-    option.group,
-    option.groupLabel,
-    ...(option.keywords ?? []),
-  ]
+  const searchText = [option.label, option.value, option.description, option.group]
     .filter(Boolean)
     .join(' ')
     .toLocaleLowerCase()
@@ -127,9 +113,16 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
     >
       <template #trigger="{ option, label, open, reasoningEffortOption }">
         <span class="model-selector-slots-demo__trigger">
+          <img
+            v-if="typeof option?.icon === 'string'"
+            :src="option.icon"
+            class="model-selector-slots-demo__trigger-icon"
+            alt=""
+            aria-hidden="true"
+          />
           <component
             :is="option?.icon"
-            v-if="option?.icon"
+            v-else-if="option?.icon"
             class="model-selector-slots-demo__trigger-icon"
             aria-hidden="true"
             focusable="false"
@@ -146,7 +139,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
         </span>
       </template>
 
-      <template #panel-header="{ query, close }">
+      <template #header="{ query, close }">
         <div class="model-selector-slots-demo__panel-heading">
           <span class="model-selector-slots-demo__panel-copy">
             <strong>选择工作模型</strong>
@@ -158,19 +151,19 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
         </div>
       </template>
 
-      <template #group-label="{ label, models: groupModels }">
-        <span class="model-selector-slots-demo__group-label">
-          <span>{{ label }}</span>
-          <span>{{ groupModels.length }} 项</span>
-        </span>
-      </template>
-
       <template #item="{ option, selected, highlighted, disabled }">
         <span class="model-selector-slots-demo__item">
           <span class="model-selector-slots-demo__item-main">
+            <img
+              v-if="typeof option.icon === 'string'"
+              :src="option.icon"
+              class="model-selector-slots-demo__item-icon"
+              alt=""
+              aria-hidden="true"
+            />
             <component
               :is="option.icon"
-              v-if="option.icon"
+              v-else-if="option.icon"
               class="model-selector-slots-demo__item-icon"
               aria-hidden="true"
               focusable="false"
@@ -332,7 +325,6 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 }
 
 .model-selector-slots-demo__panel-heading,
-.model-selector-slots-demo__group-label,
 .model-selector-slots-demo__item,
 .model-selector-slots-demo__footer {
   display: flex;

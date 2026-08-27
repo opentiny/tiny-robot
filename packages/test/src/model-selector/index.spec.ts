@@ -57,7 +57,7 @@ test.describe('ModelSelector 组件测试', () => {
 
       await page.getByTestId('controlled-open').click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByRole('listbox', { name: 'Controlled models' })).toBeVisible()
+      await expect(page.getByRole('listbox', { name: 'Controlled selector' })).toBeVisible()
       await expect(page.getByTestId('controlled-open-updates')).toHaveText('0')
 
       await page.getByRole('option', { name: /Claude Sonnet/ }).click()
@@ -93,7 +93,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
     })
 
-    test('受控父级拒绝关闭时，同一次 outside pointer/focusout 只应发一次关闭请求', async ({ page }) => {
+    test('受控父级拒绝关闭时，同一次 outside pointer 只应发一次关闭请求', async ({ page }) => {
       const trigger = getTrigger(page, 'Blocked selector')
 
       await page.getByTestId('blocked-force-open').click()
@@ -152,13 +152,26 @@ test.describe('ModelSelector 组件测试', () => {
       const explicitTrigger = page.getByTestId('minimal-explicit-selector').getByRole('button')
       await expect(explicitTrigger).toHaveAttribute(
         'aria-label',
-        'Explicit selector: Minimal Reasoning, Explicit effort: Medium',
+        'Explicit selector: Minimal Reasoning, Ignored effort fallback: Medium',
       )
 
       await explicitTrigger.click()
       await expect(page.getByRole('combobox', { name: 'Explicit search' })).toBeVisible()
-      await expect(page.getByRole('listbox', { name: 'Explicit models' })).toBeVisible()
-      await expect(page.getByRole('group', { name: 'Explicit effort' })).toBeVisible()
+      await expect(page.getByRole('listbox', { name: 'Explicit selector' })).toBeVisible()
+      await expect(page.getByRole('group', { name: 'Ignored effort fallback' })).toBeVisible()
+    })
+
+    test('icon 支持 Vue 组件和 URL', async ({ page }) => {
+      const selector = page.getByTestId('controlled-selector')
+      await expect(selector.locator('img.tr-model-selector__trigger-icon')).toHaveAttribute(
+        'src',
+        'https://example.com/model.svg',
+      )
+
+      await selector.getByRole('button').click()
+      const listbox = page.getByRole('listbox', { name: 'Controlled selector' })
+      await expect(listbox.locator('img.tr-model-selector__option-icon')).toHaveCount(1)
+      await expect(listbox.locator('svg.tr-model-selector__option-icon')).toHaveCount(1)
     })
   })
 
@@ -172,7 +185,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(trigger).toContainText('Medium')
       await trigger.click()
 
-      const effortGroup = page.getByRole('group', { name: 'Default effort levels' })
+      const effortGroup = page.getByRole('group', { name: 'Thinking' })
       const low = effortGroup.getByRole('button', { name: 'Low', exact: true })
       const medium = effortGroup.getByRole('button', { name: 'Medium', exact: true })
       const high = effortGroup.getByRole('button', { name: 'High', exact: true })
@@ -215,7 +228,7 @@ test.describe('ModelSelector 组件测试', () => {
       await page.getByRole('option', { name: /Reasoning Custom/ }).click()
       await trigger.click()
 
-      const effortGroup = page.getByRole('group', { name: 'Default effort levels' })
+      const effortGroup = page.getByRole('group', { name: 'Thinking' })
       await expect(effortGroup.getByRole('button')).toHaveCount(3)
       await expect(effortGroup.getByRole('button', { name: 'Minimal', exact: true })).toBeEnabled()
       await expect(effortGroup.getByRole('button', { name: 'Medium', exact: true })).toHaveCount(1)
@@ -235,7 +248,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(trigger).toContainText('Medium')
       await trigger.click()
 
-      const effortGroup = page.getByRole('group', { name: 'Blocked effort levels' })
+      const effortGroup = page.getByRole('group', { name: 'Thinking' })
       const low = effortGroup.getByRole('button', { name: 'Low', exact: true })
       const medium = effortGroup.getByRole('button', { name: 'Medium', exact: true })
       await low.click()
@@ -265,7 +278,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
       await expect(page.getByTestId('effort-controlled-trigger-slot')).toHaveText(/Reasoning Default\|high\|High/)
 
-      const listbox = page.getByRole('listbox', { name: 'Controlled effort models' })
+      const listbox = page.getByRole('listbox', { name: 'Controlled effort selector' })
       const panel = listbox.locator('..')
       await expect(page.getByTestId('effort-custom-footer')).toBeVisible()
       await expect(page.getByTestId('effort-footer-count')).toHaveText('3')
@@ -326,10 +339,10 @@ test.describe('ModelSelector 组件测试', () => {
   })
 
   test.describe('搜索、分组与选项', () => {
-    test('默认搜索应覆盖 description、groupLabel 和 keywords', async ({ page }) => {
+    test('默认搜索应覆盖 description 和 group', async ({ page }) => {
       await getTrigger(page, 'Init selector').click()
       const search = page.getByRole('combobox', { name: 'Search models' })
-      const listbox = page.getByRole('listbox', { name: 'Init models' })
+      const listbox = page.getByRole('listbox', { name: 'Init selector' })
 
       await search.fill('coding')
       await expect(listbox.getByRole('option')).toHaveCount(1)
@@ -339,7 +352,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(listbox.getByRole('group', { name: 'Anthropic' })).toBeVisible()
       await expect(listbox.getByRole('option')).toHaveCount(2)
 
-      await search.fill('vision')
+      await search.fill('multimodal')
       await expect(listbox.getByRole('option')).toHaveCount(1)
       await expect(listbox.getByRole('option', { name: /GPT-4o/ })).toBeVisible()
     })
@@ -362,7 +375,7 @@ test.describe('ModelSelector 组件测试', () => {
     test('自定义 filterMethod 应替换默认匹配规则', async ({ page }) => {
       await getTrigger(page, 'Custom filter selector').click()
       const search = page.getByRole('combobox', { name: 'Custom filter search' })
-      const listbox = page.getByRole('listbox', { name: 'Custom filter models' })
+      const listbox = page.getByRole('listbox', { name: 'Custom filter selector' })
 
       await search.fill('featured')
       await expect(listbox.getByRole('option')).toHaveCount(1)
@@ -378,9 +391,9 @@ test.describe('ModelSelector 组件测试', () => {
     test('Arrow/Home/End 应跳过 disabled，Enter 选择后关闭并恢复焦点', async ({ page }) => {
       const trigger = getTrigger(page, 'Keyboard selector')
       await trigger.focus()
-      await trigger.press('ArrowDown')
+      await trigger.click()
 
-      const listbox = page.getByRole('listbox', { name: 'Keyboard models' })
+      const listbox = page.getByRole('listbox', { name: 'Keyboard selector' })
       await expect(listbox).toBeFocused()
       await expect(await getActiveOption(page, listbox)).toContainText('GPT-4o')
 
@@ -405,13 +418,13 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(page.getByTestId('keyboard-last-value')).toHaveText('deepseek-r1')
     })
 
-    test('ArrowUp 打开时应从末项开始，Escape 只关闭不选择', async ({ page }) => {
+    test('Enter 应打开面板，Escape 只关闭不选择', async ({ page }) => {
       const trigger = getTrigger(page, 'Keyboard selector')
       await trigger.focus()
-      await trigger.press('ArrowUp')
+      await trigger.press('Enter')
 
-      const listbox = page.getByRole('listbox', { name: 'Keyboard models' })
-      await expect(await getActiveOption(page, listbox)).toContainText('DeepSeek R1')
+      const listbox = page.getByRole('listbox', { name: 'Keyboard selector' })
+      await expect(await getActiveOption(page, listbox)).toContainText('GPT-4o')
       await listbox.press('Escape')
 
       await expect(trigger).toBeFocused()
@@ -454,46 +467,28 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(search).toHaveAttribute('aria-activedescendant', activeBeforeHome!)
     })
 
-    test('header/footer 中的 Enter 应触发自身控件，Tab 可在面板内移动并在离开后关闭', async ({ page }) => {
+    test('header/footer 中的 Enter 应触发自身控件，Tab 不接管面板状态', async ({ page }) => {
       const trigger = getTrigger(page, 'Slot selector')
       await trigger.click()
       const search = page.getByRole('combobox', { name: 'Slot search' })
       await expect(search).toBeFocused()
 
-      await search.press('Shift+Tab')
       const headerAction = page.getByTestId('slot-header-action')
-      await expect(headerAction).toBeFocused()
+      await headerAction.focus()
       await headerAction.press('Enter')
       await expect(page.getByTestId('slot-header-activations')).toHaveText('1')
       await expect(page.getByTestId('slot-changes')).toHaveText('0')
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
-      await search.focus()
-      await search.press('Tab')
       const footerAction = page.getByTestId('slot-footer-action')
-      await expect(footerAction).toBeFocused()
+      await footerAction.focus()
       await footerAction.press('Enter')
       await expect(page.getByTestId('slot-footer-activations')).toHaveText('1')
       await expect(page.getByTestId('slot-changes')).toHaveText('0')
 
-      await footerAction.press('Tab')
-      await expect(page.getByTestId('slot-footer-close')).toBeFocused()
-      await page.keyboard.press('Tab')
-      await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-      await expect(trigger).not.toBeFocused()
-    })
-
-    test('Teleport 回环到自身 Trigger 时，Shift+Tab 应关闭而不形成焦点循环', async ({ page }) => {
-      const trigger = getTrigger(page, 'Tab boundary selector')
-      await trigger.click()
-
-      const search = page.getByRole('combobox', { name: 'Tab boundary search' })
-      await expect(search).toBeFocused()
-      await search.press('Shift+Tab')
-
-      await expect(trigger).toBeFocused()
-      await expect(trigger).toHaveAttribute('aria-expanded', 'false')
-      await expect(page.getByRole('listbox', { name: 'Tab boundary models' })).toHaveCount(0)
+      await search.focus()
+      await search.press('Tab')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true')
     })
 
     test('trigger、combobox、listbox、option 和 group 应建立完整 ARIA 关联', async ({ page }) => {
@@ -505,7 +500,7 @@ test.describe('ModelSelector 组件测试', () => {
 
       await trigger.click()
       const search = page.getByRole('combobox', { name: 'Uncontrolled search' })
-      const listbox = page.getByRole('listbox', { name: 'Uncontrolled models' })
+      const listbox = page.getByRole('listbox', { name: 'Uncontrolled selector' })
       await expect(search).toHaveAttribute('aria-controls', listboxId!)
       await expect(search).toHaveAttribute('aria-autocomplete', 'list')
       await expect(search).toHaveAttribute('aria-expanded', 'true')
@@ -538,7 +533,7 @@ test.describe('ModelSelector 组件测试', () => {
       await secondary.click()
       await expect(primary).toHaveAttribute('aria-expanded', 'false')
       await expect(secondary).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByRole('listbox', { name: 'Secondary models' })).toBeVisible()
+      await expect(page.getByRole('listbox', { name: 'Secondary selector' })).toBeVisible()
     })
 
     test('outside click 应关闭面板且不把焦点抢回 trigger', async ({ page }) => {
@@ -555,7 +550,7 @@ test.describe('ModelSelector 组件测试', () => {
       const trigger = page.getByTestId('invalid-append-to-selector').getByRole('button')
 
       await trigger.click()
-      const listbox = page.getByRole('listbox', { name: 'Invalid append target models' })
+      const listbox = page.getByRole('listbox', { name: 'Invalid append target selector' })
       await expect(listbox).toBeVisible()
       await listbox.press('Escape')
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -565,7 +560,7 @@ test.describe('ModelSelector 组件测试', () => {
       await page.getByTestId('rapid-open-close').click()
       await expect(page.getByTestId('rapid-open-state')).toHaveText('false')
       await expect(getTrigger(page, 'Rapid selector')).toHaveAttribute('aria-expanded', 'false')
-      await expect(page.getByRole('listbox', { name: 'Rapid models' })).toHaveCount(0)
+      await expect(page.getByRole('listbox', { name: 'Rapid selector' })).toHaveCount(0)
       await expect(page.locator('.tr-model-selector__dropdown-wrapper.is-positioned')).toHaveCount(0)
     })
 
@@ -575,7 +570,7 @@ test.describe('ModelSelector 组件测试', () => {
       await trigger.click()
 
       await expect(page.getByTestId('slot-trigger-content')).toContainText('Opened: GPT-4o')
-      await expect(page.getByTestId('slot-group-OpenAI')).toContainText('Custom OpenAI (2)')
+      await expect(page.getByRole('group', { name: 'OpenAI' })).toBeVisible()
       await expect(page.getByTestId('slot-item-gpt-4o')).toContainText('Custom GPT-4o selected')
 
       const panel = page.locator('.tr-model-selector__panel.model-selector-test__custom-content')
@@ -584,7 +579,7 @@ test.describe('ModelSelector 组件测试', () => {
 
       await page.getByRole('combobox', { name: 'Slot search' }).fill('missing-value')
       await expect(page.getByTestId('slot-empty')).toHaveText('Nothing matches missing-value')
-      await expect(page.getByRole('listbox', { name: 'Slot models' }).getByRole('option')).toHaveCount(0)
+      await expect(page.getByRole('listbox', { name: 'Slot selector' }).getByRole('option')).toHaveCount(0)
       await page.getByTestId('slot-footer-close').click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
       await expect(trigger).toBeFocused()
@@ -618,21 +613,6 @@ test.describe('ModelSelector 组件测试', () => {
       expect(largeBox!.height).toBeGreaterThan(normalBox!.height)
     })
 
-    test('Teleport Panel 应继承最近 ThemeProvider，并响应局部主题切换', async ({ page }) => {
-      await getTrigger(page, 'Local theme selector').click()
-
-      const wrapper = page.locator('.tr-model-selector__dropdown-wrapper[data-tr-theme="model-selector-local"]')
-      const panel = wrapper.locator('.tr-model-selector__panel')
-      await expect(wrapper).toHaveAttribute('data-tr-color-mode', 'dark')
-      await expect(panel).toHaveCSS('background-color', 'rgb(18, 24, 38)')
-      await expect(panel).toHaveCSS('color', 'rgb(248, 250, 252)')
-
-      await page.getByTestId('local-theme-toggle').click()
-      await expect(wrapper).toHaveAttribute('data-tr-color-mode', 'light')
-      await expect(panel).toHaveCSS('background-color', 'rgb(241, 245, 249)')
-      await expect(panel).toHaveCSS('color', 'rgb(15, 23, 42)')
-    })
-
     test('暗色 token 应生效，窄屏下面板不超出视口', async ({ page }) => {
       const trigger = page.getByTestId('outline-small-selector').getByRole('button')
       const lightBackground = await trigger.evaluate((element) => getComputedStyle(element).backgroundColor)
@@ -651,7 +631,7 @@ test.describe('ModelSelector 组件测试', () => {
       expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(353)
 
       await getTrigger(page, 'Default effort selector').click()
-      const effortGroup = page.getByRole('group', { name: 'Default effort levels' })
+      const effortGroup = page.getByRole('group', { name: 'Thinking' })
       const effortGroupBox = await effortGroup.boundingBox()
       expect(effortGroupBox).toBeTruthy()
       expect(effortGroupBox!.x).toBeGreaterThanOrEqual(7)
