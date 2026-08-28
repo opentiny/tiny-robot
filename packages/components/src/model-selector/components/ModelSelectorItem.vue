@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconCheck } from '@opentiny/tiny-robot-svgs'
 import type { VNode } from 'vue'
-import type { ModelSelectorItemSlotProps } from '../index.type'
+import type { ModelSelectorItemSlotProps, ModelSelectorOption } from '../index.type'
 import type { NormalizedModelSelectorOption } from '../internal.type'
 
 defineOptions({ name: 'TrModelSelectorItem' })
@@ -16,7 +16,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   hover: [key: string]
-  select: [key: string]
+  select: [option: ModelSelectorOption]
 }>()
 
 defineSlots<{
@@ -31,7 +31,7 @@ function handleMouseEnter() {
 
 function handleSelect() {
   if (!props.option.disabled) {
-    emit('select', props.option.key)
+    emit('select', props.option.raw)
   }
 }
 </script>
@@ -54,11 +54,18 @@ function handleSelect() {
     @mousedown.prevent
     @click="handleSelect"
   >
-    <slot name="item" :option="option.raw" :selected="selected" :highlighted="highlighted" :disabled="option.disabled">
+    <slot name="item" :option="option.raw" :selected="selected" :highlighted="highlighted">
       <span class="tr-model-selector__option-main">
+        <img
+          v-if="typeof option.icon === 'string'"
+          :src="option.icon"
+          class="tr-model-selector__option-icon"
+          alt=""
+          aria-hidden="true"
+        />
         <component
           :is="option.icon"
-          v-if="option.icon"
+          v-else-if="option.icon"
           class="tr-model-selector__option-icon"
           aria-hidden="true"
           focusable="false"

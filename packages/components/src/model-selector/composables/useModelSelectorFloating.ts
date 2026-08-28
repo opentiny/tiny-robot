@@ -7,7 +7,6 @@ interface UseModelSelectorFloatingOptions {
   open: () => boolean
   placement: () => Placement
   offset: () => number
-  matchTriggerWidth: () => boolean
   teleportTarget: () => Node | null
   onOutsidePointerDown: (event: PointerEvent) => void
 }
@@ -34,14 +33,9 @@ export function useModelSelectorFloating(options: UseModelSelectorFloatingOption
         options.floatingEl.value,
         options.placement(),
         options.offset(),
-        options.matchTriggerWidth(),
         options.teleportTarget(),
       ] as const,
-    async (
-      [open, referenceEl, floatingEl, placement, offsetValue, matchTriggerWidth, _teleportTarget],
-      _previous,
-      onCleanup,
-    ) => {
+    async ([open, referenceEl, floatingEl, placement, offsetValue, _teleportTarget], _previous, onCleanup) => {
       isPositioned.value = false
 
       if (!open || !referenceEl || !floatingEl) {
@@ -89,7 +83,7 @@ export function useModelSelectorFloating(options: UseModelSelectorFloatingOption
                 apply({ availableHeight, availableWidth, rects, elements }) {
                   const matchedWidth = Math.min(rects.reference.width, Math.max(0, availableWidth))
 
-                  elements.floating.style.minWidth = matchTriggerWidth ? `${Math.round(matchedWidth)}px` : ''
+                  elements.floating.style.minWidth = `${Math.round(matchedWidth)}px`
                   elements.floating.style.maxWidth = `${Math.max(0, Math.floor(availableWidth))}px`
                   elements.floating.style.setProperty(
                     '--tr-model-selector-available-height',

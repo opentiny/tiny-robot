@@ -1,9 +1,9 @@
 import type { Placement } from '@floating-ui/dom'
-import type { Component, StyleValue, VNode } from 'vue'
+import type { Component, VNode } from 'vue'
 
 export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
-export type ModelSelectorContentClass = string | readonly string[] | Record<string, boolean>
+export type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
 export interface ModelSelectorReasoningEffortOption {
   readonly value: string
@@ -17,11 +17,9 @@ export interface ModelSelectorOption {
   value: string
   label: string
   description?: string
-  icon?: Component
+  icon?: Component | string
   disabled?: boolean
   group?: string
-  groupLabel?: string
-  keywords?: readonly string[]
   reasoningEfforts?: ModelSelectorReasoningEfforts
 }
 
@@ -46,24 +44,15 @@ export interface ModelSelectorProps {
   placement?: Placement
   offset?: number
   appendTo?: string | HTMLElement
-  matchTriggerWidth?: boolean
-  contentClass?: ModelSelectorContentClass
-  contentStyle?: StyleValue
-  ariaLabel?: string
-  searchAriaLabel?: string
-  listAriaLabel?: string
+  panelClass?: ModelSelectorPanelClass
   reasoningEffortLabel?: string
-  reasoningEffortAriaLabel?: string
 }
 
 export interface ModelSelectorTriggerSlotProps {
-  value: string | null
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  disabled: boolean
   /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  reasoningEffort: string | null
   reasoningEffortOption: ModelSelectorReasoningEffortOption | null
 }
 
@@ -71,30 +60,21 @@ export interface ModelSelectorItemSlotProps {
   option: ModelSelectorOption
   selected: boolean
   highlighted: boolean
-  disabled: boolean
-}
-
-export interface ModelSelectorGroupLabelSlotProps {
-  group: string
-  label: string
-  models: readonly ModelSelectorOption[]
 }
 
 export interface ModelSelectorEmptySlotProps {
   query: string
 }
 
-export interface ModelSelectorPanelSlotProps {
-  value: string | null
+export interface ModelSelectorSlotProps {
   option: ModelSelectorOption | null
   query: string
   close: () => void
 }
 
-export interface ModelSelectorFooterSlotProps extends ModelSelectorPanelSlotProps {
+export interface ModelSelectorFooterSlotProps extends ModelSelectorSlotProps {
   reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
   /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  reasoningEffort: string | null
   reasoningEffortOption: ModelSelectorReasoningEffortOption | null
   setReasoningEffort: (value: string | null) => void
 }
@@ -102,9 +82,8 @@ export interface ModelSelectorFooterSlotProps extends ModelSelectorPanelSlotProp
 export interface ModelSelectorSlots {
   trigger?: (props: ModelSelectorTriggerSlotProps) => VNode | VNode[]
   item?: (props: ModelSelectorItemSlotProps) => VNode | VNode[]
-  'group-label'?: (props: ModelSelectorGroupLabelSlotProps) => VNode | VNode[]
   empty?: (props: ModelSelectorEmptySlotProps) => VNode | VNode[]
-  'panel-header'?: (props: ModelSelectorPanelSlotProps) => VNode | VNode[]
+  header?: (props: ModelSelectorSlotProps) => VNode | VNode[]
   footer?: (props: ModelSelectorFooterSlotProps) => VNode | VNode[]
 }
 

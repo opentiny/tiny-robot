@@ -10,19 +10,25 @@ const props = defineProps<{
   disabled: boolean
   label: string
   effortLabel?: string
-  icon?: Component
+  icon?: Component | string
   controlsId: string
-  triggerAriaLabel: string
   variant: ModelSelectorVariant
   size: ModelSelectorSize
 }>()
 
 const title = computed(() => (props.effortLabel ? `${props.label} · ${props.effortLabel}` : props.label))
 
-defineEmits<{
+const emit = defineEmits<{
   click: [event: MouseEvent]
-  keydown: [event: KeyboardEvent]
+  enter: [event: KeyboardEvent]
 }>()
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' && !event.defaultPrevented) {
+    event.preventDefault()
+    emit('enter', event)
+  }
+}
 
 defineSlots<{
   default?: () => VNode | VNode[]
@@ -36,18 +42,25 @@ defineSlots<{
     :class="[`tr-model-selector__trigger--${variant}`, `tr-model-selector__trigger--${size}`, { 'is-open': open }]"
     :title="title"
     :disabled="disabled"
-    :aria-label="triggerAriaLabel"
+    :aria-label="title"
     :aria-expanded="open"
     :aria-controls="controlsId"
     aria-haspopup="listbox"
     @click="$emit('click', $event)"
-    @keydown="$emit('keydown', $event)"
+    @keydown="handleKeydown"
   >
     <slot>
       <span class="tr-model-selector__trigger-content">
+        <img
+          v-if="typeof icon === 'string'"
+          :src="icon"
+          class="tr-model-selector__trigger-icon"
+          alt=""
+          aria-hidden="true"
+        />
         <component
           :is="icon"
-          v-if="icon"
+          v-else-if="icon"
           class="tr-model-selector__trigger-icon"
           aria-hidden="true"
           focusable="false"
