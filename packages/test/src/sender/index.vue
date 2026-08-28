@@ -16,6 +16,7 @@ declare global {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
+      setTemplateAppendTo: (value: string | undefined) => void
     }
   }
 }
@@ -176,6 +177,10 @@ const toggleTemplateAppendTo = () => {
   result.value = templateAppendTo.value ? '模板选择器挂载到自定义容器' : '模板选择器挂载到 body'
 }
 
+const setTemplateAppendTo = (value: string | undefined) => {
+  templateAppendTo.value = value
+}
+
 const mentions = ref<MentionItem[]>([
   {
     label: '小小画家',
@@ -263,6 +268,7 @@ onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
     pressDeleteBeforeTemplate,
+    setTemplateAppendTo,
   }
 })
 

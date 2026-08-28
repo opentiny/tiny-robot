@@ -5,7 +5,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { TemplateSelectDropdownPluginKey } from './plugins'
-import type { SelectOption } from '../types'
+import type { SelectOption, TemplateOptions } from '../types'
 import { closeAllDropdowns, setupClickOutside } from './dropdown-manager'
 import { useTeleportTarget } from '../../../../shared/composables'
 
@@ -23,9 +23,7 @@ interface Props {
   updateAttributes: (attrs: Record<string, unknown>) => void
   editor: Editor
   extension: {
-    options: {
-      appendTo?: string | HTMLElement
-    }
+    options: Pick<TemplateOptions, 'appendTo'>
   }
 }
 
@@ -38,7 +36,7 @@ const triggerRef = ref<HTMLElement>()
 const dropdownRef = ref<HTMLElement>()
 let cleanupClickOutside: (() => void) | null = null
 let cleanupAutoUpdate: (() => void) | null = null
-const teleportTarget = useTeleportTarget(triggerRef, props.extension.options.appendTo)
+const teleportTarget = useTeleportTarget(triggerRef, props.extension.options.appendTo, { fallback: 'body' })
 const isCustomTeleportTarget = computed(() => {
   const target = teleportTarget.value
   return target instanceof HTMLElement && target !== document.body

@@ -49,4 +49,47 @@ test.describe('Template Select - appendTo', () => {
     await page.keyboard.press('Escape')
     await expect(dropdown).toHaveCount(0)
   })
+
+  test('非法选择器回退到 body，并保持模板选择器可用', async () => {
+    await page.evaluate(() => {
+      window.__senderTestApi?.setTemplateAppendTo('[')
+    })
+    await helper.wait(300)
+    await templateHelper.setSelectTemplate()
+    await templateHelper.openTemplateSelect()
+
+    const dropdown = page.locator(templateHelper.selectors.templateSelectDropdown)
+    await expect(dropdown.evaluate((element) => element.parentElement?.tagName)).resolves.toBe('BODY')
+  })
+
+  for (const [name, appendTo] of [
+    ['未配置 appendTo', undefined],
+    ['配置 body', 'body'],
+    ['配置不存在的选择器', '#template-select-missing'],
+  ] as const) {
+    test(`ShadowRoot 下${name}时回退到 body`, async () => {
+      await page.evaluate(() => {
+        const shadowHost = document.createElement('div')
+        const shadowRoot = shadowHost.attachShadow({ mode: 'open' })
+        document.body.appendChild(shadowHost)
+
+        const getRootNode = Element.prototype.getRootNode
+        Element.prototype.getRootNode = function (options) {
+          if (this.matches('.template-select__trigger')) {
+            return shadowRoot
+          }
+          return getRootNode.call(this, options)
+        }
+      })
+      await page.evaluate((value) => {
+        window.__senderTestApi?.setTemplateAppendTo(value)
+      }, appendTo)
+      await helper.wait(300)
+      await templateHelper.setSelectTemplate()
+      await templateHelper.openTemplateSelect()
+
+      const dropdown = page.locator(templateHelper.selectors.templateSelectDropdown)
+      await expect(dropdown.evaluate((element) => element.parentElement?.tagName)).resolves.toBe('BODY')
+    })
+  }
 })

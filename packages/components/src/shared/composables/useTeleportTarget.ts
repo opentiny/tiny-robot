@@ -10,7 +10,11 @@ import { computed } from 'vue'
  *   - 否则在 document.body 内查找 target（如果 target 为 'body'，直接返回 document.body）。
  *   - 如果查找失败，则返回查找的根节点（ShadowRoot 或 body）。
  */
-export function useTeleportTarget(reference?: MaybeElementRef, target?: string | HTMLElement) {
+export function useTeleportTarget(
+  reference?: MaybeElementRef,
+  target?: string | HTMLElement,
+  options: { fallback?: 'root' | 'body' } = {},
+) {
   return computed(() => {
     if (target instanceof HTMLElement) {
       return target
@@ -22,17 +26,22 @@ export function useTeleportTarget(reference?: MaybeElementRef, target?: string |
     const rootNode = referentceEl?.getRootNode?.()
     const inShadowDOM = rootNode instanceof ShadowRoot
     const searchRoot = inShadowDOM ? rootNode : document.body
+    const fallbackTarget = options.fallback === 'body' ? document.body : searchRoot
 
     if (selector) {
-      if (!inShadowDOM && selector === 'body') {
+      if (selector === 'body' && (!inShadowDOM || options.fallback === 'body')) {
         // 特殊处理，直接返回 <body>
         return document.body
       }
 
-      const found = searchRoot.querySelector(selector)
-      if (found instanceof Node) return found
+      try {
+        const found = searchRoot.querySelector(selector)
+        if (found instanceof Node) return found
+      } catch {
+        return fallbackTarget
+      }
     }
 
-    return searchRoot
+    return fallbackTarget
   })
 }
