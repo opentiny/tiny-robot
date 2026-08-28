@@ -27,9 +27,9 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   defaultOpen: false,
   disabled: false,
   searchable: false,
-  placeholder: 'Select model',
-  searchPlaceholder: 'Search models',
-  emptyText: 'No models found.',
+  placeholder: '选择模型',
+  searchPlaceholder: '搜索模型',
+  emptyText: '暂无可用模型',
   variant: 'outline',
   size: 'normal',
   placement: 'bottom-start',
@@ -50,12 +50,12 @@ const idPrefix = `tr-model-selector-${instanceUid}`
 const listboxId = `${idPrefix}-listbox`
 const referenceEl = shallowRef<HTMLElement | null>(null)
 const floatingEl = shallowRef<HTMLElement | null>(null)
-const isMounted = shallowRef(false)
+const isTeleportReady = shallowRef(false)
 const pendingFocusRestore = shallowRef<boolean | null>(null)
 
 const baseTeleportTarget = useTeleportTarget(referenceEl)
 const teleportTarget = computed(() => {
-  if (!isMounted.value) {
+  if (!isTeleportReady.value) {
     return null
   }
 
@@ -113,10 +113,9 @@ const isOpen = computed(() => state.open.value && !props.disabled)
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
 const resolvedAriaLabel = computed(() => props.ariaLabel?.trim() || props.placeholder)
 const resolvedSearchAriaLabel = computed(() => props.searchAriaLabel?.trim() || props.searchPlaceholder)
-const resolvedReasoningEffortAriaLabel = computed(() => props.reasoningEffortLabel)
 const triggerAriaLabel = computed(() => {
   const reasoningEffortLabel = effortState.activeOption.value?.label
-  return `${resolvedAriaLabel.value}: ${triggerLabel.value}${reasoningEffortLabel ? `, ${resolvedReasoningEffortAriaLabel.value}: ${reasoningEffortLabel}` : ''}`
+  return `${resolvedAriaLabel.value}: ${triggerLabel.value}${reasoningEffortLabel ? `, ${props.reasoningEffortLabel}: ${reasoningEffortLabel}` : ''}`
 })
 
 const triggerSlotProps = computed<ModelSelectorTriggerSlotProps>(() => ({
@@ -305,7 +304,7 @@ watch(
 )
 
 onMounted(() => {
-  isMounted.value = true
+  isTeleportReady.value = true
 })
 </script>
 
@@ -331,7 +330,7 @@ onMounted(() => {
       </ModelSelectorTrigger>
     </span>
 
-    <Teleport v-if="isMounted && teleportTarget" :to="teleportTarget">
+    <Teleport v-if="teleportTarget" :to="teleportTarget">
       <div
         v-if="isOpen"
         ref="floatingEl"
@@ -353,7 +352,7 @@ onMounted(() => {
             :effort-options="currentEfforts"
             :effort-value="activeEffort"
             :effort-label="reasoningEffortLabel"
-            :effort-aria-label="resolvedReasoningEffortAriaLabel"
+            :effort-aria-label="reasoningEffortLabel"
             :effort-disabled="Boolean(currentOption?.disabled)"
             :size="size"
             :content-class="contentClass"

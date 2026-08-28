@@ -161,9 +161,9 @@ Panel 默认挂载到当前 ShadowRoot 或 `document.body`。组件只提供 Mod
 | `defaultOpen`            | `boolean`                                                | `false`                            | 非受控初始开关                                       |
 | `disabled`               | `boolean`                                                | `false`                            | 是否禁用组件                                         |
 | `searchable`             | `boolean`                                                | `false`                            | 是否显示搜索框                                       |
-| `placeholder`            | `string`                                                 | `'Select model'`                   | 无匹配选中项时的 Trigger 文本                        |
-| `searchPlaceholder`      | `string`                                                 | `'Search models'`                  | 搜索框占位文本                                       |
-| `emptyText`              | `string`                                                 | `'No models found.'`               | 默认空状态文本                                       |
+| `placeholder`            | `string`                                                 | `'选择模型'`                       | 无匹配选中项时的 Trigger 文本                        |
+| `searchPlaceholder`      | `string`                                                 | `'搜索模型'`                       | 搜索框占位文本                                       |
+| `emptyText`              | `string`                                                 | `'暂无可用模型'`                   | 默认空状态文本                                       |
 | `filterMethod`           | `ModelSelectorFilterMethod`                              | 内置包含匹配                       | 自定义搜索过滤函数                                   |
 | `variant`                | `'outline' \| 'ghost' \| 'muted'`                        | `'outline'`                        | Trigger 外观                                         |
 | `size`                   | `'small' \| 'normal' \| 'large'`                         | `'normal'`                         | Trigger 与 Panel 尺寸                                |
