@@ -9,7 +9,7 @@ import {
 } from '@opentiny/tiny-robot'
 import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-robot-kit'
 import { computed, ref } from 'vue'
-import { mockResponseProvider } from './mockResponseProvider'
+import { sseResponseProvider } from './sseResponseProvider'
 
 const input = ref('')
 const {
@@ -23,7 +23,7 @@ const {
   sendMessage,
   abortActiveRequest,
 } = useConversation({
-  useMessageOptions: { responseProvider: mockResponseProvider },
+  useMessageOptions: { responseProvider: sseResponseProvider },
   storage: localStorageStrategyFactory(),
   autoSaveMessages: true,
   autoSaveThrottle: 500,
