@@ -499,8 +499,7 @@ onBeforeUnmount(() => {
         searchable
         variant="ghost"
         size="small"
-        content-class="model-selector-test__custom-content"
-        :content-style="{ borderWidth: '2px' }"
+        panel-class="model-selector-test__custom-content"
         @update:model-value="recordValue(logs.slots, $event)"
         @change="recordChange(logs.slots, $event)"
         @update:open="recordOpen(logs.slots, $event)"
@@ -665,7 +664,8 @@ onBeforeUnmount(() => {
   align-items: flex-start;
 }
 
-:global(.model-selector-test__custom-content) {
+:global(.tr-model-selector__panel.model-selector-test__custom-content) {
+  border-width: 2px;
   border-style: dashed;
 }
 

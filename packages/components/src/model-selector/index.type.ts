@@ -1,9 +1,9 @@
 import type { Placement } from '@floating-ui/dom'
-import type { Component, StyleValue, VNode } from 'vue'
+import type { Component, VNode } from 'vue'
 
 export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
-export type ModelSelectorContentClass = string | readonly string[] | Record<string, boolean>
+export type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
 export interface ModelSelectorReasoningEffortOption {
   readonly value: string
@@ -44,8 +44,7 @@ export interface ModelSelectorProps {
   placement?: Placement
   offset?: number
   appendTo?: string | HTMLElement
-  contentClass?: ModelSelectorContentClass
-  contentStyle?: StyleValue
+  panelClass?: ModelSelectorPanelClass
   reasoningEffortLabel?: string
 }
 

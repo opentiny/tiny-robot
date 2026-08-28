@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { IconNoData, IconSearch } from '@opentiny/tiny-robot-svgs'
-import { computed, nextTick, onMounted, shallowRef, watch, type StyleValue, type VNode } from 'vue'
+import { computed, nextTick, onMounted, shallowRef, watch, type VNode } from 'vue'
 import type {
-  ModelSelectorContentClass,
   ModelSelectorEmptySlotProps,
   ModelSelectorFooterSlotProps,
   ModelSelectorFilterMethod,
   ModelSelectorItemSlotProps,
   ModelSelectorOption,
+  ModelSelectorPanelClass,
   ModelSelectorReasoningEffortOption,
   ModelSelectorSize,
   ModelSelectorSlotProps,
@@ -37,8 +37,7 @@ const props = defineProps<{
   effortLabel: string
   effortDisabled: boolean
   size: ModelSelectorSize
-  contentClass?: ModelSelectorContentClass
-  contentStyle?: StyleValue
+  panelClass?: ModelSelectorPanelClass
   slotContext: ModelSelectorPanelSlotContext
 }>()
 
@@ -197,8 +196,7 @@ watch(
 <template>
   <div
     class="tr-model-selector__panel"
-    :class="[`tr-model-selector__panel--${size}`, contentClass]"
-    :style="contentStyle"
+    :class="[`tr-model-selector__panel--${size}`, panelClass]"
     @keydown="handlePanelKeydown"
   >
     <div v-if="$slots.header" class="tr-model-selector__header">

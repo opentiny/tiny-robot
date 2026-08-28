@@ -108,8 +108,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
       size="large"
       placeholder="选择工作模型"
       search-placeholder="例如：推理 数学"
-      content-class="model-selector-slots-panel"
-      :content-style="{ maxHeight: '420px' }"
+      panel-class="model-selector-slots-panel"
     >
       <template #trigger="{ option, label, open, reasoningEffortOption }">
         <span class="model-selector-slots-demo__trigger">
@@ -385,7 +384,8 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
   opacity: 0.55;
 }
 
-:global(.model-selector-slots-panel) {
+:global(.tr-model-selector__panel.model-selector-slots-panel) {
+  max-height: 420px;
   box-shadow: 0 16px 48px rgb(0 0 0 / 16%);
 }
 </style>

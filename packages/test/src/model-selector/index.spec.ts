@@ -580,7 +580,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(page.locator('.tr-model-selector__dropdown-wrapper.is-positioned')).toHaveCount(0)
     })
 
-    test('slots 应保留语义 wrapper，并应支持 contentClass/contentStyle 和 empty slot', async ({ page }) => {
+    test('slots 应保留语义 wrapper，并应支持 panelClass 和 empty slot', async ({ page }) => {
       const trigger = getTrigger(page, 'slot-selector')
       await expect(page.getByTestId('slot-trigger-content')).toContainText('Closed: GPT-4o')
       await trigger.click()

@@ -171,8 +171,7 @@ ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当
 | `placement`              | `Placement`                                              | `'bottom-start'`                   | Floating UI 浮层位置                                                                    |
 | `offset`                 | `number`                                                 | `8`                                | Trigger 与浮层的间距                                                                    |
 | `appendTo`               | `string \| HTMLElement`                                  | 当前 ShadowRoot 或 `document.body` | Teleport 目标；默认使用当前 ShadowRoot 或 `document.body`，选择器未命中时回退到默认目标 |
-| `contentClass`           | `string \| readonly string[] \| Record<string, boolean>` | -                                  | 附加到 Panel 根元素的 class                                                             |
-| `contentStyle`           | `StyleValue`                                             | -                                  | 附加到 Panel 根元素的内联样式                                                           |
+| `panelClass`             | `string \| readonly string[] \| Record<string, boolean>` | -                                  | 附加到 Panel 根元素的 class                                                             |
 | `reasoningEffortLabel`   | `string`                                                 | `'Thinking'`                       | 默认 reasoning effort Footer 的可见标题                                                 |
 
 ## Events
@@ -203,11 +202,11 @@ ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当
 
 ```typescript
 import type { Placement } from '@floating-ui/dom'
-import type { Component, StyleValue, VNode } from 'vue'
+import type { Component, VNode } from 'vue'
 
 type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 type ModelSelectorSize = 'small' | 'normal' | 'large'
-type ModelSelectorContentClass = string | readonly string[] | Record<string, boolean>
+type ModelSelectorPanelClass = string | readonly string[] | Record<string, boolean>
 
 interface ModelSelectorReasoningEffortOption {
   readonly value: string
@@ -248,8 +247,7 @@ interface ModelSelectorProps {
   placement?: Placement
   offset?: number
   appendTo?: string | HTMLElement
-  contentClass?: ModelSelectorContentClass
-  contentStyle?: StyleValue
+  panelClass?: ModelSelectorPanelClass
   reasoningEffortLabel?: string
 }
 
