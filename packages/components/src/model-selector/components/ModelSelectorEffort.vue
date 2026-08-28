@@ -7,7 +7,6 @@ defineProps<{
   options: readonly ModelSelectorReasoningEffortOption[]
   value: string | null
   label: string
-  groupAriaLabel: string
   disabled: boolean
 }>()
 
@@ -19,7 +18,7 @@ defineEmits<{
 <template>
   <div class="tr-model-selector__effort">
     <span class="tr-model-selector__effort-label">{{ label }}</span>
-    <div class="tr-model-selector__effort-options" role="group" :aria-label="groupAriaLabel">
+    <div class="tr-model-selector__effort-options" role="group" :aria-label="label">
       <button
         v-for="option in options"
         :key="option.value"

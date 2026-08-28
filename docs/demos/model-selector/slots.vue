@@ -151,7 +151,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
         </div>
       </template>
 
-      <template #item="{ option, selected, highlighted, disabled }">
+      <template #item="{ option, selected, highlighted }">
         <span class="model-selector-slots-demo__item">
           <span class="model-selector-slots-demo__item-main">
             <img
@@ -174,7 +174,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
             </span>
           </span>
           <span class="model-selector-slots-demo__item-state" aria-hidden="true">
-            {{ disabled ? '不可用' : selected ? '当前' : highlighted ? 'Enter 选择' : '' }}
+            {{ option.disabled ? '不可用' : selected ? '当前' : highlighted ? 'Enter 选择' : '' }}
           </span>
         </span>
       </template>
@@ -186,15 +186,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
         </span>
       </template>
 
-      <template
-        #footer="{
-          close,
-          reasoningEfforts,
-          reasoningEffort: activeReasoningEffort,
-          reasoningEffortOption,
-          setReasoningEffort,
-        }"
-      >
+      <template #footer="{ close, reasoningEfforts, reasoningEffortOption, setReasoningEffort }">
         <div class="model-selector-slots-demo__footer">
           <div class="model-selector-slots-demo__effort">
             <span class="model-selector-slots-demo__effort-label">
@@ -211,8 +203,8 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
                 :key="option.value"
                 type="button"
                 class="model-selector-slots-demo__effort-option"
-                :class="{ 'is-active': activeReasoningEffort === option.value }"
-                :aria-pressed="activeReasoningEffort === option.value"
+                :class="{ 'is-active': reasoningEffortOption?.value === option.value }"
+                :aria-pressed="reasoningEffortOption?.value === option.value"
                 :disabled="option.disabled"
                 @click="setReasoningEffort(option.value)"
               >

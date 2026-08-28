@@ -9,6 +9,23 @@
 
 ## 公共 API 调整
 
+### 作用域参数最终形态
+
+- `trigger`：`{ option, label, open, reasoningEffortOption }`
+- `item`：`{ option, selected, highlighted }`；禁用状态从 `option.disabled` 获取
+- `empty`：`{ query }`
+- `header`：`{ option, query, close }`
+- `footer`：`{ option, query, close, reasoningEfforts, reasoningEffortOption, setReasoningEffort }`
+
+删除以下作用域参数：
+
+- `trigger` 的 `value`、`reasoningEffort`
+- `header` / `footer` 的 `value`
+- `footer` 的 `reasoningEffort`
+- `item` 的 `disabled`
+
+保留 `option` 与 `reasoningEffortOption`：前者表示当前模型，后者表示当前模型的 reasoning effort 选项，职责不同。
+
 ### 删除
 
 - `ModelSelectorProps.matchTriggerWidth`
@@ -17,6 +34,8 @@
 - `ModelSelectorSlots['panel-header']`
 - `ModelSelectorProps.listAriaLabel`
 - `ModelSelectorProps.reasoningEffortAriaLabel`
+- `ModelSelectorProps.ariaLabel`
+- `ModelSelectorProps.searchAriaLabel`
 - `ModelSelectorGroupLabelSlotProps`
 - `ModelSelectorPanelSlotProps`
 
@@ -30,7 +49,6 @@
 
 - 插槽：`trigger`、`item`、`empty`、`header`、`footer`。
 - Props：模型、受控状态、默认状态、搜索、文案、过滤、样式、浮层定位、`reasoningEffortLabel`。
-- `ariaLabel` 和 `searchAriaLabel`，避免删除后无法为 Trigger 和搜索框提供可靠的无障碍名称。
 - `group`，同时作为分组标识和默认显示标题。
 
 ## disabled 契约
@@ -43,7 +61,6 @@
 - `ModelSelectorTrigger` 内部 `disabled`：绑定原生 button 的 `disabled` 属性。
 - `ModelSelectorEffort` 内部 `disabled`：当前模型禁用时统一禁用 effort 按钮。
 - `NormalizedModelSelectorOption.disabled`：归一化后的内部 boolean 状态。
-- `trigger` 和 `item` 插槽参数中的 `disabled`：供自定义内容渲染禁用状态。
 
 内部 `effortDisabled` 只作为组件间属性，不暴露为根组件公共 Props。
 
@@ -100,7 +117,7 @@
 ### `ModelSelectorItem`
 
 - 保留内部 `highlighted`，用于键盘导航视觉状态、ARIA active descendant 和自动滚动。
-- 保留 item 插槽中的 `highlighted`、`disabled`。
+- 保留 item 插槽中的 `highlighted`；禁用状态通过 `option.disabled` 提供，不再单独暴露 `disabled`。
 - 选择事件改为向上抛出原始 `ModelSelectorOption`，根组件继续做最终禁用校验。
 
 ### `ModelSelectorTrigger`
@@ -121,6 +138,7 @@
 
 - `packages/components/src/model-selector/index.type.ts`
   - 删除废弃 Props、分组字段和插槽类型。
+  - 精简各插槽作用域类型，删除冗余的 `value`、`reasoningEffort` 和 item `disabled`。
   - 增加 `ModelSelectorSlotProps`。
   - 将插槽名改为 `header`。
 - `packages/components/src/model-selector/internal.type.ts`
@@ -137,6 +155,7 @@
 - `packages/components/src/model-selector/index.vue`
   - 删除主题注入、根级 filter/navigation、Panel 键盘处理和 Panel 主动聚焦。
   - 简化 Trigger 事件和选项选择链路。
+  - 按最终作用域参数形态生成 Trigger、Header 和 Footer 插槽数据。
   - 更新 header/footer/item/empty 插槽转发。
 - `packages/components/src/model-selector/components/ModelSelectorPanel.vue`
   - 接管搜索、导航、键盘和面板焦点。
@@ -144,7 +163,7 @@
 - `packages/components/src/model-selector/components/ModelSelectorGroup.vue`
   - 删除 `group-label` 插槽和相关参数。
 - `packages/components/src/model-selector/components/ModelSelectorItem.vue`
-  - 调整选择事件负载，保留 highlight 和 disabled 状态。
+  - 调整选择事件负载，移除 item 插槽重复的 `disabled` 参数。
 - `packages/components/src/model-selector/components/ModelSelectorTrigger.vue`
   - 收敛键盘事件为 Enter 语义事件。
 - `packages/components/src/model-selector/index.less`
@@ -155,12 +174,14 @@
 ### 文档与测试
 
 - `docs/src/components/model-selector.md`
-  - 同步 Props、Slots、Types、键盘和主题说明。
+  - 同步 Props、Slots、Types、键盘、禁用语义和最终作用域参数说明。
   - 删除 `group-label`、`panel-header`、`matchTriggerWidth` 和已删除 ARIA Props。
 - `docs/demos/model-selector/slots.vue`
   - 改用 `header`，删除分组标题插槽和 `groupLabel` 数据。
+  - 删除冗余作用域参数的解构和使用。
 - `packages/test/src/model-selector/index.vue`
   - 同步插槽、ARIA Props、分组字段和主题场景。
+  - 同步最终作用域参数，覆盖 `option.disabled`、`reasoningEffortOption` 和自定义插槽渲染。
 - `packages/test/src/model-selector/index.spec.ts`
   - 更新 Enter 打开行为。
   - 删除 ArrowUp/ArrowDown 打开断言。

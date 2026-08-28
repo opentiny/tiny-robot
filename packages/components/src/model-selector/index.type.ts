@@ -4,7 +4,6 @@ import type { Component, StyleValue, VNode } from 'vue'
 export type ModelSelectorVariant = 'outline' | 'ghost' | 'muted'
 export type ModelSelectorSize = 'small' | 'normal' | 'large'
 export type ModelSelectorContentClass = string | readonly string[] | Record<string, boolean>
-export type ModelSelectorIcon = Component | string
 
 export interface ModelSelectorReasoningEffortOption {
   readonly value: string
@@ -18,7 +17,7 @@ export interface ModelSelectorOption {
   value: string
   label: string
   description?: string
-  icon?: ModelSelectorIcon
+  icon?: Component | string
   disabled?: boolean
   group?: string
   reasoningEfforts?: ModelSelectorReasoningEfforts
@@ -47,19 +46,14 @@ export interface ModelSelectorProps {
   appendTo?: string | HTMLElement
   contentClass?: ModelSelectorContentClass
   contentStyle?: StyleValue
-  ariaLabel?: string
-  searchAriaLabel?: string
   reasoningEffortLabel?: string
 }
 
 export interface ModelSelectorTriggerSlotProps {
-  value: string | null
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  disabled: boolean
   /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  reasoningEffort: string | null
   reasoningEffortOption: ModelSelectorReasoningEffortOption | null
 }
 
@@ -67,7 +61,6 @@ export interface ModelSelectorItemSlotProps {
   option: ModelSelectorOption
   selected: boolean
   highlighted: boolean
-  disabled: boolean
 }
 
 export interface ModelSelectorEmptySlotProps {
@@ -75,7 +68,6 @@ export interface ModelSelectorEmptySlotProps {
 }
 
 export interface ModelSelectorSlotProps {
-  value: string | null
   option: ModelSelectorOption | null
   query: string
   close: () => void
@@ -84,7 +76,6 @@ export interface ModelSelectorSlotProps {
 export interface ModelSelectorFooterSlotProps extends ModelSelectorSlotProps {
   reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
   /** The effort currently supported by the selected model. Sticky unsupported values resolve to null. */
-  reasoningEffort: string | null
   reasoningEffortOption: ModelSelectorReasoningEffortOption | null
   setReasoningEffort: (value: string | null) => void
 }

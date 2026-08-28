@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
-import { computed, type VNode } from 'vue'
-import type { ModelSelectorIcon, ModelSelectorSize, ModelSelectorVariant } from '../index.type'
+import { computed, type Component, type VNode } from 'vue'
+import type { ModelSelectorSize, ModelSelectorVariant } from '../index.type'
 
 defineOptions({ name: 'TrModelSelectorTrigger' })
 
@@ -10,9 +10,8 @@ const props = defineProps<{
   disabled: boolean
   label: string
   effortLabel?: string
-  icon?: ModelSelectorIcon
+  icon?: Component | string
   controlsId: string
-  triggerAriaLabel: string
   variant: ModelSelectorVariant
   size: ModelSelectorSize
 }>()
@@ -43,7 +42,7 @@ defineSlots<{
     :class="[`tr-model-selector__trigger--${variant}`, `tr-model-selector__trigger--${size}`, { 'is-open': open }]"
     :title="title"
     :disabled="disabled"
-    :aria-label="triggerAriaLabel"
+    :aria-label="title"
     :aria-expanded="open"
     :aria-controls="controlsId"
     aria-haspopup="listbox"

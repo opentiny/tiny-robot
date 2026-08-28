@@ -20,7 +20,7 @@ import ModelSelectorGroup from './ModelSelectorGroup.vue'
 
 defineOptions({ name: 'TrModelSelectorPanel' })
 
-type ModelSelectorPanelSlotContext = Pick<ModelSelectorSlotProps, 'value' | 'option' | 'close'>
+type ModelSelectorPanelSlotContext = Pick<ModelSelectorSlotProps, 'option' | 'close'>
 
 const props = defineProps<{
   options: readonly NormalizedModelSelectorOption[]
@@ -29,14 +29,12 @@ const props = defineProps<{
   filterMethod?: ModelSelectorFilterMethod
   listboxId: string
   optionIdPrefix: string
+  placeholder: string
   searchPlaceholder: string
   emptyText: string
-  searchAriaLabel: string
-  ariaLabel: string
   effortOptions: readonly ModelSelectorReasoningEffortOption[]
   effortValue: string | null
   effortLabel: string
-  effortAriaLabel: string
   effortDisabled: boolean
   size: ModelSelectorSize
   contentClass?: ModelSelectorContentClass
@@ -86,7 +84,6 @@ const headerSlotProps = computed<ModelSelectorSlotProps>(() => ({
 const footerSlotProps = computed<ModelSelectorFooterSlotProps>(() => ({
   ...headerSlotProps.value,
   reasoningEfforts: props.effortOptions,
-  reasoningEffort: props.effortValue,
   reasoningEffortOption: props.effortOptions.find((option) => option.value === props.effortValue) ?? null,
   setReasoningEffort: (value) => emit('select-effort', value),
 }))
@@ -218,7 +215,7 @@ watch(
         role="combobox"
         :value="filter.query.value"
         :placeholder="searchPlaceholder"
-        :aria-label="searchAriaLabel"
+        :aria-label="searchPlaceholder"
         :aria-controls="listboxId"
         :aria-activedescendant="activeDescendantId"
         aria-autocomplete="list"
@@ -245,7 +242,7 @@ watch(
       :class="{ 'is-empty': filter.isEmpty.value }"
       role="listbox"
       tabindex="-1"
-      :aria-label="ariaLabel"
+      :aria-label="placeholder"
       :aria-activedescendant="searchable ? undefined : activeDescendantId"
       @keydown="handleListboxKeydown"
     >
@@ -271,7 +268,6 @@ watch(
           :options="effortOptions"
           :value="effortValue"
           :label="effortLabel"
-          :group-aria-label="effortAriaLabel"
           :disabled="effortDisabled"
           @select="$emit('select-effort', $event)"
         />

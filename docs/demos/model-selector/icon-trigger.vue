@@ -21,7 +21,7 @@ const models = [
 
 <template>
   <div class="model-selector-icon-trigger-demo">
-    <TrModelSelector v-model="model" :models="models" aria-label="选择模型">
+    <TrModelSelector v-model="model" :models="models">
       <template #trigger="{ option, label, open }">
         <span class="model-selector-icon-trigger-demo__trigger" :class="{ 'has-icon': option?.icon }">
           <span class="model-selector-icon-trigger-demo__trigger-main">

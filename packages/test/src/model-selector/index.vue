@@ -256,7 +256,6 @@ onBeforeUnmount(() => {
           data-testid="init-selector"
           :models="models"
           searchable
-          aria-label="Init selector"
           @update:model-value="recordValue(logs.init, $event)"
           @change="recordChange(logs.init, $event)"
           @update:open="recordOpen(logs.init, $event)"
@@ -266,7 +265,6 @@ onBeforeUnmount(() => {
         <TrModelSelector
           data-testid="async-selector"
           :models="asyncModels"
-          aria-label="Async selector"
           @update:model-value="recordValue(logs.async, $event)"
           @change="recordChange(logs.async, $event)"
           @update:open="recordOpen(logs.async, $event)"
@@ -301,8 +299,6 @@ onBeforeUnmount(() => {
           placeholder="Ignored selector fallback"
           search-placeholder="Ignored search fallback"
           reasoning-effort-label="Ignored effort fallback"
-          aria-label="Explicit selector"
-          search-aria-label="Explicit search"
         />
       </div>
     </section>
@@ -314,8 +310,6 @@ onBeforeUnmount(() => {
         :models="models"
         searchable
         default-value="claude-sonnet"
-        aria-label="Uncontrolled selector"
-        search-aria-label="Uncontrolled search"
         @update:model-value="recordValue(logs.uncontrolled, $event)"
         @change="recordChange(logs.uncontrolled, $event)"
         @update:open="recordOpen(logs.uncontrolled, $event)"
@@ -344,8 +338,6 @@ onBeforeUnmount(() => {
         :model-value="controlledValue"
         :open="controlledOpen"
         searchable
-        aria-label="Controlled selector"
-        search-aria-label="Controlled search"
         @update:model-value="handleControlledValue"
         @change="recordChange(logs.controlled, $event)"
         @update:open="handleControlledOpen"
@@ -370,8 +362,6 @@ onBeforeUnmount(() => {
         :model-value="blockedValue"
         :open="blockedOpen"
         searchable
-        aria-label="Blocked selector"
-        search-aria-label="Blocked search"
         @update:model-value="recordValue(logs.blocked, $event)"
         @change="recordChange(logs.blocked, $event)"
         @update:open="recordOpen(logs.blocked, $event)"
@@ -394,7 +384,6 @@ onBeforeUnmount(() => {
         :searchable="false"
         default-value="reasoning-default"
         default-reasoning-effort="medium"
-        aria-label="Default effort selector"
         @update:reasoning-effort="recordEffortValue(logs.effortUncontrolled, $event)"
         @reasoning-effort-change="recordEffortChange(logs.effortUncontrolled, $event)"
       />
@@ -411,7 +400,6 @@ onBeforeUnmount(() => {
         :searchable="false"
         model-value="reasoning-default"
         :reasoning-effort="blockedEffort"
-        aria-label="Blocked effort selector"
         @update:reasoning-effort="recordEffortValue(logs.effortBlocked, $event)"
         @reasoning-effort-change="recordEffortChange(logs.effortBlocked, $event)"
       />
@@ -437,19 +425,18 @@ onBeforeUnmount(() => {
         data-testid="effort-controlled-selector"
         :models="effortModels"
         :searchable="false"
-        aria-label="Controlled effort selector"
         @update:reasoning-effort="recordEffortValue(logs.effortControlled, $event)"
         @reasoning-effort-change="recordEffortChange(logs.effortControlled, $event)"
       >
-        <template #trigger="{ label, reasoningEffort, reasoningEffortOption }">
+        <template #trigger="{ label, reasoningEffortOption }">
           <span data-testid="effort-controlled-trigger-slot">
-            {{ label }}|{{ reasoningEffort ?? 'null' }}|{{ reasoningEffortOption?.label ?? 'null' }}
+            {{ label }}|{{ reasoningEffortOption?.value ?? 'null' }}|{{ reasoningEffortOption?.label ?? 'null' }}
           </span>
         </template>
-        <template #footer="{ reasoningEfforts, reasoningEffort, reasoningEffortOption, setReasoningEffort, close }">
+        <template #footer="{ reasoningEfforts, reasoningEffortOption, setReasoningEffort, close }">
           <div data-testid="effort-custom-footer">
             <output data-testid="effort-footer-count">{{ reasoningEfforts.length }}</output>
-            <output data-testid="effort-footer-value">{{ reasoningEffort ?? 'null' }}</output>
+            <output data-testid="effort-footer-value">{{ reasoningEffortOption?.value ?? 'null' }}</output>
             <output data-testid="effort-footer-option">{{ reasoningEffortOption?.label ?? 'null' }}</output>
             <button data-testid="effort-footer-medium" type="button" @click="setReasoningEffort('medium')">
               Medium
@@ -483,8 +470,6 @@ onBeforeUnmount(() => {
         :models="customFilterModels"
         :filter-method="customFilter"
         searchable
-        aria-label="Custom filter selector"
-        search-aria-label="Custom filter search"
       />
     </section>
 
@@ -494,7 +479,6 @@ onBeforeUnmount(() => {
         data-testid="keyboard-selector"
         :models="models"
         :searchable="false"
-        aria-label="Keyboard selector"
         @update:model-value="recordValue(logs.keyboard, $event)"
         @change="recordChange(logs.keyboard, $event)"
         @update:open="recordOpen(logs.keyboard, $event)"
@@ -517,8 +501,6 @@ onBeforeUnmount(() => {
         size="small"
         content-class="model-selector-test__custom-content"
         :content-style="{ borderWidth: '2px' }"
-        aria-label="Slot selector"
-        search-aria-label="Slot search"
         @update:model-value="recordValue(logs.slots, $event)"
         @change="recordChange(logs.slots, $event)"
         @update:open="recordOpen(logs.slots, $event)"
@@ -531,9 +513,9 @@ onBeforeUnmount(() => {
             Header action
           </button>
         </template>
-        <template #item="{ option, selected, disabled }">
+        <template #item="{ option, selected }">
           <span :data-testid="`slot-item-${option.value}`">
-            Custom {{ option.label }}{{ selected ? ' selected' : '' }}{{ disabled ? ' disabled' : '' }}
+            Custom {{ option.label }}{{ selected ? ' selected' : '' }}{{ option.disabled ? ' disabled' : '' }}
           </span>
         </template>
         <template #empty="{ query }">
@@ -557,24 +539,9 @@ onBeforeUnmount(() => {
     <section class="model-selector-test__section" data-testid="multiple-section">
       <h3>多实例与 outside click</h3>
       <div class="model-selector-test__row">
-        <TrModelSelector
-          data-testid="primary-selector"
-          :models="compactModels"
-          aria-label="Primary selector"
-          search-aria-label="Primary search"
-        />
-        <TrModelSelector
-          data-testid="secondary-selector"
-          :models="compactModels"
-          aria-label="Secondary selector"
-          search-aria-label="Secondary search"
-        />
-        <TrModelSelector
-          data-testid="invalid-append-to-selector"
-          :models="compactModels"
-          append-to="["
-          aria-label="Invalid append target selector"
-        />
+        <TrModelSelector data-testid="primary-selector" :models="compactModels" />
+        <TrModelSelector data-testid="secondary-selector" :models="compactModels" />
+        <TrModelSelector data-testid="invalid-append-to-selector" :models="compactModels" append-to="[" />
       </div>
     </section>
 
@@ -592,16 +559,12 @@ onBeforeUnmount(() => {
         :models="compactModels"
         default-open
         searchable
-        aria-label="Default open selector"
-        search-aria-label="Default open search"
         @update:open="recordOpen(logs.defaultOpen, $event)"
       />
       <TrModelSelector
         data-testid="rapid-selector"
         :models="compactModels"
         :open="rapidOpen"
-        aria-label="Rapid selector"
-        search-aria-label="Rapid search"
         @update:open="rapidOpen = $event"
       />
       <output data-testid="default-open-updates">{{ logs.defaultOpen.openUpdates }}</output>
@@ -617,7 +580,6 @@ onBeforeUnmount(() => {
           :searchable="false"
           variant="outline"
           size="small"
-          aria-label="Outline small selector"
         />
         <TrModelSelector
           data-testid="ghost-normal-selector"
@@ -625,7 +587,6 @@ onBeforeUnmount(() => {
           :searchable="false"
           variant="ghost"
           size="normal"
-          aria-label="Ghost normal selector"
         />
         <TrModelSelector
           data-testid="muted-large-selector"
@@ -633,14 +594,8 @@ onBeforeUnmount(() => {
           :searchable="false"
           variant="muted"
           size="large"
-          aria-label="Muted large selector"
         />
-        <TrModelSelector
-          data-testid="disabled-selector"
-          :models="compactModels"
-          disabled
-          aria-label="Disabled selector"
-        />
+        <TrModelSelector data-testid="disabled-selector" :models="compactModels" disabled />
       </div>
     </section>
   </div>

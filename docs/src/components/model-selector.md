@@ -50,7 +50,7 @@ ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当
 
 通过 `trigger`、`header`、`item`、`empty` 和 `footer` 插槽调整显示内容，不改变组件的选择、搜索和键盘交互。这个案例保留了更完整的面板层次和 effort 操作区，适合查看每个插槽能拿到哪些数据，以及如何替换默认展示。
 
-<demo vue="../../demos/model-selector/slots.vue" title="完整插槽组合" description="自定义 Trigger、面板头、分组标题、模型项、空状态和 footer。" />
+<demo vue="../../demos/model-selector/slots.vue" title="完整插槽组合" description="自定义 Trigger、面板头、模型项、空状态和 footer。" />
 
 #### 图标 Trigger
 
@@ -67,6 +67,12 @@ ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当
 - 传入 `open` 时，浮层开关由外部维护；否则组件使用 `defaultOpen` 作为初始开关，并在用户交互后自己更新。
 - 同一个组件实例生命周期内不要在受控与非受控之间切换。开发环境会对此给出警告。
 - 受控模式下，消费方需要响应对应的 `update:modelValue`、`update:reasoningEffort` 或 `update:open` 并回写状态；未回写时组件不会自行修改受控值。
+
+### 禁用语义
+
+- 组件 `disabled`：禁用 Trigger、保持面板关闭，并禁止模型和 reasoning effort 选择。
+- 模型项 `disabled`：保留展示，但不可选择。
+- reasoning effort 项 `disabled`：仅禁用对应的 effort 选项。
 
 ### 值与事件语义
 
@@ -108,28 +114,23 @@ ModelSelector 是一个模型下拉选择器，用于在一组模型中选择当
 
 `reasoningEffort` / `defaultReasoningEffort` 保存的是用户选择过的值，并在切换模型时保持不变。组件不会因为新模型不支持该值而自动清空，也不会在模型切换时触发 reasoning effort 事件：
 
-| 当前模型状态                               | 解析结果                                                                                                     |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| 支持当前 reasoning effort 值               | 默认 Trigger 显示对应 label，默认 Footer 激活该项，插槽收到对应 `reasoningEffort` 与 `reasoningEffortOption` |
-| 声明了 reasoningEfforts，但不支持当前值    | 用户选择过的值继续保留；默认 Trigger 不显示 reasoning effort，默认 Footer 无激活项，插槽收到 `null` / `null` |
-| 未声明 reasoningEfforts                    | 用户选择过的值继续保留；不渲染默认 reasoning effort Footer，Trigger 与插槽中的有效 reasoning effort 均为空   |
-| 后续切回支持同一 reasoning effort 值的模型 | 该值重新显示为激活项，不额外触发 `update:reasoningEffort` 或 `reasoning-effort-change`                       |
+| 当前模型状态                               | 解析结果                                                                                                                   |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| 支持当前 reasoning effort 值               | 默认 Trigger 显示对应 label，默认 Footer 激活该项，插槽收到对应 `reasoningEffortOption`                                    |
+| 声明了 reasoningEfforts，但不支持当前值    | 用户选择过的值继续保留；默认 Trigger 不显示 reasoning effort，默认 Footer 无激活项，插槽收到 `reasoningEffortOption: null` |
+| 未声明 reasoningEfforts                    | 用户选择过的值继续保留；不渲染默认 reasoning effort Footer，Trigger 与插槽中的 `reasoningEffortOption` 均为空              |
+| 后续切回支持同一 reasoning effort 值的模型 | 该值重新显示为激活项，不额外触发 `update:reasoningEffort` 或 `reasoning-effort-change`                                     |
 
 用户通过默认 Footer 或 `footer` 插槽的 `setReasoningEffort()` 选择新值时，依次触发 `update:reasoningEffort` 和 `reasoning-effort-change`，不会关闭浮层。重复选择当前值、选择未声明值、禁用项，或当前模型处于禁用状态时不会触发事件；`setReasoningEffort(null)` 可清空保存的 reasoning effort。
 
-提供 `footer` 插槽后会完整替换默认 reasoning effort Footer，而不是追加内容。插槽会收到当前模型可选的 `reasoningEfforts`、当前真正可用的 `reasoningEffort` / `reasoningEffortOption`，以及已经内置禁用和去重规则的 `setReasoningEffort()`，因此不需要在消费层重复维护选项列表或选择规则。
-
-## 主题与挂载位置
-
-Panel 默认挂载到当前 ShadowRoot 或 `document.body`。组件只提供 ModelSelector 相关 CSS 变量，不注入或同步主题状态；主题和 color mode 由外部统一调度。
-
-如果只在局部容器上覆盖 CSS 变量，需要把 `appendTo` 指向该局部作用域内的元素；默认挂载到 `document.body` 时，局部 CSS 变量不会自动跨越 DOM 边界。
+提供 `footer` 插槽后会完整替换默认 reasoning effort Footer，而不是追加内容。插槽会收到当前模型可选的 `reasoningEfforts`、当前真正可用的 `reasoningEffortOption`，以及已经内置禁用和去重规则的 `setReasoningEffort()`，因此不需要在消费层重复维护选项列表或选择规则。
 
 ## 键盘与可访问性
 
 | 位置                 | 按键                    | 行为                                                 |
 | -------------------- | ----------------------- | ---------------------------------------------------- |
-| Trigger              | `Enter`                 | 打开浮层；组件只对 Enter 提供语义化触发事件          |
+| Trigger              | 点击                    | 打开/关闭面板                                        |
+| Trigger              | `Enter`                 | 打开面板                                             |
 | Trigger              | `Space`                 | 通过原生按钮点击行为打开或关闭                       |
 | Trigger / Panel      | `Escape`                | 关闭浮层，并在键盘关闭或选择后恢复 Trigger 焦点      |
 | 搜索框 / Listbox     | `ArrowDown` / `ArrowUp` | 跳过禁用项移动高亮                                   |
@@ -138,7 +139,7 @@ Panel 默认挂载到当前 ShadowRoot 或 `document.body`。组件只提供 Mod
 | Listbox              | `Space`                 | 选择高亮项                                           |
 | Effort 按钮          | `Enter` / `Space`       | 通过原生按钮行为切换 effort，不关闭浮层              |
 
-组件已内置常见键盘操作和 ARIA 属性。除非你在插槽中放入复杂内容，一般不需要额外处理。Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox` 和 `option` 表达选择状态。未显式传入时，`ariaLabel` 和 `searchAriaLabel` 分别回退到对应的 `placeholder` 和 `searchPlaceholder`；Listbox 使用 `ariaLabel` 或 `placeholder` 作为可访问名称，reasoning effort 选项组使用 `reasoningEffortLabel`。
+组件已内置常见键盘操作和 ARIA 属性。除非你在插槽中放入复杂内容，一般不需要额外处理。Trigger 是真实的 `button`，Panel 使用 `combobox`、`listbox` 和 `option` 表达选择状态；组件使用 `placeholder`、`searchPlaceholder` 和 `reasoningEffortLabel` 生成对应的可访问名称。
 
 组件不会拦截 `Tab` 或重排页面焦点，Panel 也不会因为 Tab 离开而自动关闭。由于 Panel 可能 Teleport 到 `document.body` 末尾，离开 Panel 后的目标由 Teleport 后的实际 DOM 顺序决定。如需关闭面板，可使用 `Escape`、outside pointer 或受控 `open`。
 
@@ -150,31 +151,29 @@ Panel 默认挂载到当前 ShadowRoot 或 `document.body`。组件只提供 Mod
 
 ## Props
 
-| 属性名                   | 类型                                                     | 默认值                             | 说明                                                 |
-| ------------------------ | -------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
-| `models`                 | `readonly ModelSelectorOption[]`                         | `[]`                               | 模型列表；每项可通过 `reasoningEfforts` 声明推理强度 |
-| `modelValue`             | `string \| null`                                         | `undefined`                        | 受控选中值；传入后需响应 `update:modelValue`         |
-| `defaultValue`           | `string \| null`                                         | `null`                             | 非受控初始值，仅初始化时使用                         |
-| `reasoningEffort`        | `string \| null`                                         | `undefined`                        | 受控推理强度；传入后需响应 `update:reasoningEffort`  |
-| `defaultReasoningEffort` | `string \| null`                                         | `null`                             | 非受控 reasoning effort 初始值，仅初始化时使用       |
-| `open`                   | `boolean`                                                | `undefined`                        | 受控开关；传入后需响应 `update:open`                 |
-| `defaultOpen`            | `boolean`                                                | `false`                            | 非受控初始开关                                       |
-| `disabled`               | `boolean`                                                | `false`                            | 是否禁用组件                                         |
-| `searchable`             | `boolean`                                                | `false`                            | 是否显示搜索框                                       |
-| `placeholder`            | `string`                                                 | `'选择模型'`                       | 无匹配选中项时的 Trigger 文本                        |
-| `searchPlaceholder`      | `string`                                                 | `'搜索模型'`                       | 搜索框占位文本                                       |
-| `emptyText`              | `string`                                                 | `'暂无可用模型'`                   | 默认空状态文本                                       |
-| `filterMethod`           | `ModelSelectorFilterMethod`                              | 内置包含匹配                       | 自定义搜索过滤函数                                   |
-| `variant`                | `'outline' \| 'ghost' \| 'muted'`                        | `'outline'`                        | Trigger 外观                                         |
-| `size`                   | `'small' \| 'normal' \| 'large'`                         | `'normal'`                         | Trigger 与 Panel 尺寸                                |
-| `placement`              | `Placement`                                              | `'bottom-start'`                   | Floating UI 浮层位置                                 |
-| `offset`                 | `number`                                                 | `8`                                | Trigger 与浮层的间距                                 |
-| `appendTo`               | `string \| HTMLElement`                                  | 当前 ShadowRoot 或 `document.body` | Teleport 目标；选择器未命中时回退到默认目标          |
-| `contentClass`           | `string \| readonly string[] \| Record<string, boolean>` | -                                  | 附加到 Panel 根元素的 class                          |
-| `contentStyle`           | `StyleValue`                                             | -                                  | 附加到 Panel 根元素的内联样式                        |
-| `ariaLabel`              | `string`                                                 | `placeholder`                      | Trigger 可访问名称前缀                               |
-| `searchAriaLabel`        | `string`                                                 | `searchPlaceholder`                | 搜索框可访问名称                                     |
-| `reasoningEffortLabel`   | `string`                                                 | `'Thinking'`                       | 默认 reasoning effort Footer 的可见标题              |
+| 属性名                   | 类型                                                     | 默认值                             | 说明                                                                                    |
+| ------------------------ | -------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------- |
+| `models`                 | `readonly ModelSelectorOption[]`                         | `[]`                               | 模型列表；每项可通过 `reasoningEfforts` 声明推理强度                                    |
+| `modelValue`             | `string \| null`                                         | `undefined`                        | 受控选中值；传入后需响应 `update:modelValue`                                            |
+| `defaultValue`           | `string \| null`                                         | `null`                             | 非受控初始值，仅初始化时使用                                                            |
+| `reasoningEffort`        | `string \| null`                                         | `undefined`                        | 受控推理强度；传入后需响应 `update:reasoningEffort`                                     |
+| `defaultReasoningEffort` | `string \| null`                                         | `null`                             | 非受控 reasoning effort 初始值，仅初始化时使用                                          |
+| `open`                   | `boolean`                                                | `undefined`                        | 受控开关；传入后需响应 `update:open`                                                    |
+| `defaultOpen`            | `boolean`                                                | `false`                            | 非受控初始开关                                                                          |
+| `disabled`               | `boolean`                                                | `false`                            | 禁用 Trigger、保持面板关闭，并禁止模型和 reasoning effort 选择                          |
+| `searchable`             | `boolean`                                                | `false`                            | 是否显示搜索框                                                                          |
+| `placeholder`            | `string`                                                 | `'选择模型'`                       | 无匹配选中项时的 Trigger 文本                                                           |
+| `searchPlaceholder`      | `string`                                                 | `'搜索模型'`                       | 搜索框占位文本                                                                          |
+| `emptyText`              | `string`                                                 | `'暂无可用模型'`                   | 默认空状态文本                                                                          |
+| `filterMethod`           | `ModelSelectorFilterMethod`                              | 内置包含匹配                       | 自定义搜索过滤函数                                                                      |
+| `variant`                | `'outline' \| 'ghost' \| 'muted'`                        | `'outline'`                        | Trigger 外观                                                                            |
+| `size`                   | `'small' \| 'normal' \| 'large'`                         | `'normal'`                         | Trigger 与 Panel 尺寸                                                                   |
+| `placement`              | `Placement`                                              | `'bottom-start'`                   | Floating UI 浮层位置                                                                    |
+| `offset`                 | `number`                                                 | `8`                                | Trigger 与浮层的间距                                                                    |
+| `appendTo`               | `string \| HTMLElement`                                  | 当前 ShadowRoot 或 `document.body` | Teleport 目标；默认使用当前 ShadowRoot 或 `document.body`，选择器未命中时回退到默认目标 |
+| `contentClass`           | `string \| readonly string[] \| Record<string, boolean>` | -                                  | 附加到 Panel 根元素的 class                                                             |
+| `contentStyle`           | `StyleValue`                                             | -                                  | 附加到 Panel 根元素的内联样式                                                           |
+| `reasoningEffortLabel`   | `string`                                                 | `'Thinking'`                       | 默认 reasoning effort Footer 的可见标题                                                 |
 
 ## Events
 
@@ -190,15 +189,15 @@ Panel 默认挂载到当前 ShadowRoot 或 `document.body`。组件只提供 Mod
 
 ## Slots
 
-| 插槽名    | 作用域参数                                                                                                      | 说明                                 |
-| --------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `trigger` | `{ value, option, label, open, disabled, reasoningEffort, reasoningEffortOption }`                              | 替换内部 Trigger 按钮的内容          |
-| `item`    | `{ option, selected, highlighted, disabled }`                                                                   | 自定义选项内容                       |
-| `empty`   | `{ query }`                                                                                                     | 自定义空状态                         |
-| `header`  | `{ value, option, query, close }`                                                                               | Panel 顶部扩展区                     |
-| `footer`  | `{ value, option, query, close, reasoningEfforts, reasoningEffort, reasoningEffortOption, setReasoningEffort }` | 完整替换默认 reasoning effort Footer |
+| 插槽名    | 作用域参数                                                                              | 说明                                              |
+| --------- | --------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `trigger` | `{ option, label, open, reasoningEffortOption }`                                        | 替换内部 Trigger 按钮的内容                       |
+| `item`    | `{ option, selected, highlighted }`                                                     | 自定义选项内容；禁用状态从 `option.disabled` 获取 |
+| `empty`   | `{ query }`                                                                             | 自定义空状态                                      |
+| `header`  | `{ option, query, close }`                                                              | Panel 顶部扩展区                                  |
+| `footer`  | `{ option, query, close, reasoningEfforts, reasoningEffortOption, setReasoningEffort }` | 完整替换默认 reasoning effort Footer              |
 
-`close()` 会请求关闭浮层并恢复 Trigger 焦点。`trigger` 和 `footer` 中的 `reasoningEffort` 是当前模型真正可用的值：保存的值不受支持时为 `null`，对应的 `reasoningEffortOption` 也为 `null`。`setReasoningEffort(value)` 复用默认 UI 的校验和事件语义。
+`close()` 会请求关闭浮层；关闭成功后恢复 Trigger 焦点。受控 `open` 未回写为 `false` 时，组件不会强制关闭。`trigger` 和 `footer` 中的 `reasoningEffortOption` 是当前模型真正可用的选项：保存的值不受支持时为 `null`。`setReasoningEffort(value)` 复用默认 UI 的校验和事件语义。
 
 ## Types
 
@@ -218,13 +217,11 @@ interface ModelSelectorReasoningEffortOption {
 
 type ModelSelectorReasoningEfforts = boolean | readonly ModelSelectorReasoningEffortOption[]
 
-type ModelSelectorIcon = Component | string
-
 interface ModelSelectorOption {
   value: string
   label: string
   description?: string
-  icon?: ModelSelectorIcon
+  icon?: Component | string
   disabled?: boolean
   group?: string
   reasoningEfforts?: ModelSelectorReasoningEfforts
@@ -253,19 +250,14 @@ interface ModelSelectorProps {
   appendTo?: string | HTMLElement
   contentClass?: ModelSelectorContentClass
   contentStyle?: StyleValue
-  ariaLabel?: string
-  searchAriaLabel?: string
   reasoningEffortLabel?: string
 }
 
 interface ModelSelectorTriggerSlotProps {
-  value: string | null
   option: ModelSelectorOption | null
   label: string
   open: boolean
-  disabled: boolean
   /** The effort supported by the selected model. Unsupported saved values are exposed as null. */
-  reasoningEffort: string | null
   reasoningEffortOption: ModelSelectorReasoningEffortOption | null
 }
 
@@ -273,7 +265,6 @@ interface ModelSelectorItemSlotProps {
   option: ModelSelectorOption
   selected: boolean
   highlighted: boolean
-  disabled: boolean
 }
 
 interface ModelSelectorEmptySlotProps {
@@ -281,7 +272,6 @@ interface ModelSelectorEmptySlotProps {
 }
 
 interface ModelSelectorSlotProps {
-  value: string | null
   option: ModelSelectorOption | null
   query: string
   close: () => void
@@ -290,7 +280,6 @@ interface ModelSelectorSlotProps {
 interface ModelSelectorFooterSlotProps extends ModelSelectorSlotProps {
   reasoningEfforts: readonly ModelSelectorReasoningEffortOption[]
   /** The effort supported by the selected model. Unsupported saved values are exposed as null. */
-  reasoningEffort: string | null
   reasoningEffortOption: ModelSelectorReasoningEffortOption | null
   setReasoningEffort: (value: string | null) => void
 }

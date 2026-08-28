@@ -54,7 +54,7 @@ function handleSelect() {
     @mousedown.prevent
     @click="handleSelect"
   >
-    <slot name="item" :option="option.raw" :selected="selected" :highlighted="highlighted" :disabled="option.disabled">
+    <slot name="item" :option="option.raw" :selected="selected" :highlighted="highlighted">
       <span class="tr-model-selector__option-main">
         <img
           v-if="typeof option.icon === 'string'"

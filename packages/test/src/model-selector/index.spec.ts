@@ -1,7 +1,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-function getTrigger(page: Page, ariaLabel: string) {
-  return page.getByRole('button', { name: new RegExp(`^${ariaLabel}:`) })
+function getTrigger(page: Page, testId: string) {
+  return page.getByTestId(testId).getByRole('button')
+}
+
+async function getListbox(page: Page, testId: string) {
+  const listboxId = await getTrigger(page, testId).getAttribute('aria-controls')
+  expect(listboxId).toBeTruthy()
+  return page.locator(`[id="${listboxId}"]`)
+}
+
+async function getSearch(page: Page, testId: string) {
+  return (await getListbox(page, testId)).locator('..').getByRole('combobox')
 }
 
 async function getActiveOption(page: Page, focusOwner: Locator) {
@@ -19,32 +29,33 @@ test.describe('ModelSelector 组件测试', () => {
 
   test.describe('状态契约', () => {
     test('初始化和异步 models 更新不应隐式选择或触发 change', async ({ page }) => {
-      await expect(getTrigger(page, 'Init selector')).toContainText('Select model')
+      await expect(getTrigger(page, 'init-selector')).toContainText('选择模型')
       await expect(page.getByTestId('init-updates')).toHaveText('0')
       await expect(page.getByTestId('init-changes')).toHaveText('0')
 
-      await expect(getTrigger(page, 'Async selector')).toContainText('Select model')
+      await expect(getTrigger(page, 'async-selector')).toContainText('选择模型')
       await page.getByTestId('load-async-models').click()
-      await expect(getTrigger(page, 'Async selector')).toContainText('Select model')
+      await expect(getTrigger(page, 'async-selector')).toContainText('选择模型')
       await expect(page.getByTestId('async-updates')).toHaveText('0')
       await expect(page.getByTestId('async-changes')).toHaveText('0')
     })
 
     test('非受控 value/open 应内部更新，重复选择只关闭不重复发事件', async ({ page }) => {
-      const trigger = getTrigger(page, 'Uncontrolled selector')
+      const trigger = getTrigger(page, 'uncontrolled-selector')
 
       await expect(trigger).toContainText('Claude Sonnet')
       await expect(page.getByTestId('uncontrolled-updates')).toHaveText('0')
       await expect(page.getByTestId('uncontrolled-changes')).toHaveText('0')
 
       await trigger.click()
-      await page.getByRole('option', { name: /Claude Sonnet/ }).click()
+      const listbox = await getListbox(page, 'uncontrolled-selector')
+      await listbox.getByRole('option', { name: /Claude Sonnet/ }).click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
       await expect(page.getByTestId('uncontrolled-updates')).toHaveText('0')
       await expect(page.getByTestId('uncontrolled-changes')).toHaveText('0')
 
       await trigger.click()
-      await page.getByRole('option', { name: /GPT-4o/ }).click()
+      await listbox.getByRole('option', { name: /GPT-4o/ }).click()
       await expect(trigger).toContainText('GPT-4o')
       await expect(page.getByTestId('uncontrolled-updates')).toHaveText('1')
       await expect(page.getByTestId('uncontrolled-changes')).toHaveText('1')
@@ -53,14 +64,15 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('受控 value/open 应由父级回写，外部打开不产生 update:open', async ({ page }) => {
-      const trigger = getTrigger(page, 'Controlled selector')
+      const trigger = getTrigger(page, 'controlled-selector')
 
       await page.getByTestId('controlled-open').click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByRole('listbox', { name: 'Controlled selector' })).toBeVisible()
+      const listbox = await getListbox(page, 'controlled-selector')
+      await expect(listbox).toBeVisible()
       await expect(page.getByTestId('controlled-open-updates')).toHaveText('0')
 
-      await page.getByRole('option', { name: /Claude Sonnet/ }).click()
+      await listbox.getByRole('option', { name: /Claude Sonnet/ }).click()
       await expect(page.getByTestId('controlled-value')).toHaveText('claude-sonnet')
       await expect(page.getByTestId('controlled-updates')).toHaveText('1')
       await expect(page.getByTestId('controlled-changes')).toHaveText('1')
@@ -68,13 +80,13 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(trigger).toContainText('Claude Sonnet')
 
       await page.getByTestId('controlled-open').click()
-      await page.getByRole('combobox', { name: 'Controlled search' }).press('Escape')
+      await (await getSearch(page, 'controlled-selector')).press('Escape')
       await expect(page.getByTestId('controlled-open-state')).toHaveText('false')
       await expect(page.getByTestId('controlled-open-updates')).toHaveText('2')
     })
 
     test('受控父级不回写时，组件应只发请求且保持 prop 状态', async ({ page }) => {
-      const trigger = getTrigger(page, 'Blocked selector')
+      const trigger = getTrigger(page, 'blocked-selector')
 
       await trigger.click()
       await expect(page.getByTestId('blocked-open-updates')).toHaveText('1')
@@ -82,7 +94,8 @@ test.describe('ModelSelector 组件测试', () => {
 
       await page.getByTestId('blocked-force-open').click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-      await page.getByRole('option', { name: /Claude Sonnet/ }).click()
+      const listbox = await getListbox(page, 'blocked-selector')
+      await listbox.getByRole('option', { name: /Claude Sonnet/ }).click()
 
       await expect(page.getByTestId('blocked-value')).toHaveText('gpt-4o')
       await expect(page.getByTestId('blocked-updates')).toHaveText('1')
@@ -94,11 +107,11 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('受控父级拒绝关闭时，同一次 outside pointer 只应发一次关闭请求', async ({ page }) => {
-      const trigger = getTrigger(page, 'Blocked selector')
+      const trigger = getTrigger(page, 'blocked-selector')
 
       await page.getByTestId('blocked-force-open').click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByRole('combobox', { name: 'Blocked search' })).toBeFocused()
+      await expect(await getSearch(page, 'blocked-selector')).toBeFocused()
 
       await page.getByTestId('outside-action').click()
       await expect(page.getByTestId('blocked-open-state')).toHaveText('true')
@@ -107,18 +120,18 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('无效或被移除的受控值应显示 placeholder，恢复后重新显示且不发 change', async ({ page }) => {
-      const trigger = getTrigger(page, 'Controlled selector')
+      const trigger = getTrigger(page, 'controlled-selector')
 
       await expect(trigger).toContainText('GPT-4o')
       await page.getByTestId('controlled-remove').click()
-      await expect(trigger).toContainText('Select model')
+      await expect(trigger).toContainText('选择模型')
       await expect(page.getByTestId('controlled-updates')).toHaveText('0')
       await expect(page.getByTestId('controlled-changes')).toHaveText('0')
 
       await page.getByTestId('controlled-restore').click()
       await expect(trigger).toContainText('GPT-4o')
       await page.getByTestId('controlled-invalid').click()
-      await expect(trigger).toContainText('Select model')
+      await expect(trigger).toContainText('选择模型')
       await expect(page.getByTestId('controlled-updates')).toHaveText('0')
       await expect(page.getByTestId('controlled-changes')).toHaveText('0')
     })
@@ -126,8 +139,8 @@ test.describe('ModelSelector 组件测试', () => {
     test('defaultOpen 应仅初始打开，不产生 update:open', async ({ page }) => {
       await page.getByTestId('mount-default-open').click()
 
-      const trigger = getTrigger(page, 'Default open selector')
-      const search = page.getByRole('combobox', { name: 'Default open search' })
+      const trigger = getTrigger(page, 'default-open-selector')
+      const search = await getSearch(page, 'default-open-selector')
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
       await expect(search).toBeFocused()
       await expect(page.getByTestId('default-open-updates')).toHaveText('0')
@@ -135,30 +148,25 @@ test.describe('ModelSelector 组件测试', () => {
   })
 
   test.describe('最小用法与公开 helper', () => {
-    test('只有 value/label 的模型可渲染，ARIA 文案应回退到对应可见文案且允许显式覆盖', async ({ page }) => {
+    test('只有 value/label 的模型可渲染，ARIA 文案使用对应可见文案', async ({ page }) => {
       const fallbackTrigger = page.getByTestId('minimal-fallback-selector').getByRole('button')
-      await expect(fallbackTrigger).toHaveAttribute(
-        'aria-label',
-        'Choose compact model: Minimal Reasoning, Thinking level: Medium',
-      )
+      await expect(fallbackTrigger).toHaveAttribute('aria-label', 'Minimal Reasoning · Medium')
 
       await fallbackTrigger.click()
-      await expect(page.getByRole('combobox', { name: 'Find compact model' })).toHaveCount(0)
-      const fallbackListbox = page.getByRole('listbox', { name: 'Choose compact model' })
+      await expect(await getSearch(page, 'minimal-fallback-selector')).toHaveCount(0)
+      const fallbackListbox = await getListbox(page, 'minimal-fallback-selector')
       await expect(fallbackListbox).toBeVisible()
-      await expect(page.getByRole('group', { name: 'Thinking level' })).toBeVisible()
+      await expect(fallbackListbox.locator('..').getByRole('group', { name: 'Thinking level' })).toBeVisible()
       await fallbackListbox.press('Escape')
 
       const explicitTrigger = page.getByTestId('minimal-explicit-selector').getByRole('button')
-      await expect(explicitTrigger).toHaveAttribute(
-        'aria-label',
-        'Explicit selector: Minimal Reasoning, Ignored effort fallback: Medium',
-      )
+      await expect(explicitTrigger).toHaveAttribute('aria-label', 'Minimal Reasoning · Medium')
 
       await explicitTrigger.click()
-      await expect(page.getByRole('combobox', { name: 'Explicit search' })).toBeVisible()
-      await expect(page.getByRole('listbox', { name: 'Explicit selector' })).toBeVisible()
-      await expect(page.getByRole('group', { name: 'Ignored effort fallback' })).toBeVisible()
+      await expect(await getSearch(page, 'minimal-explicit-selector')).toBeVisible()
+      const explicitListbox = await getListbox(page, 'minimal-explicit-selector')
+      await expect(explicitListbox).toBeVisible()
+      await expect(explicitListbox.locator('..').getByRole('group', { name: 'Ignored effort fallback' })).toBeVisible()
     })
 
     test('icon 支持 Vue 组件和 URL', async ({ page }) => {
@@ -169,7 +177,7 @@ test.describe('ModelSelector 组件测试', () => {
       )
 
       await selector.getByRole('button').click()
-      const listbox = page.getByRole('listbox', { name: 'Controlled selector' })
+      const listbox = await getListbox(page, 'controlled-selector')
       await expect(listbox.locator('img.tr-model-selector__option-icon')).toHaveCount(1)
       await expect(listbox.locator('svg.tr-model-selector__option-icon')).toHaveCount(1)
     })
@@ -179,13 +187,15 @@ test.describe('ModelSelector 组件测试', () => {
     test('reasoningEfforts:true 与 defaultReasoningEffort 应渲染默认档位，点击和键盘选择不关闭且事件有序去重', async ({
       page,
     }) => {
-      const trigger = getTrigger(page, 'Default effort selector')
+      const trigger = getTrigger(page, 'effort-uncontrolled-selector')
 
       await expect(trigger).toContainText('Reasoning Default')
       await expect(trigger).toContainText('Medium')
       await trigger.click()
 
-      const effortGroup = page.getByRole('group', { name: 'Thinking' })
+      const effortGroup = (await getListbox(page, 'effort-uncontrolled-selector'))
+        .locator('..')
+        .getByRole('group', { name: 'Thinking' })
       const low = effortGroup.getByRole('button', { name: 'Low', exact: true })
       const medium = effortGroup.getByRole('button', { name: 'Medium', exact: true })
       const high = effortGroup.getByRole('button', { name: 'High', exact: true })
@@ -222,13 +232,16 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('自定义 effort 应去除重复值并保留 disabled 语义', async ({ page }) => {
-      const trigger = getTrigger(page, 'Default effort selector')
+      const trigger = getTrigger(page, 'effort-uncontrolled-selector')
 
       await trigger.click()
-      await page.getByRole('option', { name: /Reasoning Custom/ }).click()
+      const listbox = await getListbox(page, 'effort-uncontrolled-selector')
+      await listbox.getByRole('option', { name: /Reasoning Custom/ }).click()
       await trigger.click()
 
-      const effortGroup = page.getByRole('group', { name: 'Thinking' })
+      const effortGroup = (await getListbox(page, 'effort-uncontrolled-selector'))
+        .locator('..')
+        .getByRole('group', { name: 'Thinking' })
       await expect(effortGroup.getByRole('button')).toHaveCount(3)
       await expect(effortGroup.getByRole('button', { name: 'Minimal', exact: true })).toBeEnabled()
       await expect(effortGroup.getByRole('button', { name: 'Medium', exact: true })).toHaveCount(1)
@@ -243,12 +256,14 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('受控父级拒绝 effort 回写时应只发送请求并保持 prop 状态', async ({ page }) => {
-      const trigger = getTrigger(page, 'Blocked effort selector')
+      const trigger = getTrigger(page, 'effort-blocked-selector')
 
       await expect(trigger).toContainText('Medium')
       await trigger.click()
 
-      const effortGroup = page.getByRole('group', { name: 'Thinking' })
+      const effortGroup = (await getListbox(page, 'effort-blocked-selector'))
+        .locator('..')
+        .getByRole('group', { name: 'Thinking' })
       const low = effortGroup.getByRole('button', { name: 'Low', exact: true })
       const medium = effortGroup.getByRole('button', { name: 'Medium', exact: true })
       await low.click()
@@ -264,12 +279,12 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('初始 undefined 的受控 v-model 应接受外部回写，自定义 footer 完整覆盖并可更新和关闭', async ({ page }) => {
-      const trigger = getTrigger(page, 'Controlled effort selector')
+      const trigger = getTrigger(page, 'effort-controlled-selector')
 
       await expect(page.getByTestId('effort-controlled-model')).toHaveText('undefined')
       await expect(page.getByTestId('effort-controlled-open')).toHaveText('undefined')
       await expect(page.getByTestId('effort-controlled-raw')).toHaveText('undefined')
-      await expect(page.getByTestId('effort-controlled-trigger-slot')).toHaveText(/Select model\|null\|null/)
+      await expect(page.getByTestId('effort-controlled-trigger-slot')).toHaveText(/选择模型\|null\|null/)
 
       await page.getByTestId('undefined-controlled-prime').click()
       await expect(page.getByTestId('effort-controlled-model')).toHaveText('reasoning-default')
@@ -278,7 +293,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
       await expect(page.getByTestId('effort-controlled-trigger-slot')).toHaveText(/Reasoning Default\|high\|High/)
 
-      const listbox = page.getByRole('listbox', { name: 'Controlled effort selector' })
+      const listbox = await getListbox(page, 'effort-controlled-selector')
       const panel = listbox.locator('..')
       await expect(page.getByTestId('effort-custom-footer')).toBeVisible()
       await expect(page.getByTestId('effort-footer-count')).toHaveText('3')
@@ -302,10 +317,11 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('effort 应跨模型 sticky，unsupported 时 slot 解析为 null，模型切换不发 effort 事件', async ({ page }) => {
-      const trigger = getTrigger(page, 'Controlled effort selector')
+      const trigger = getTrigger(page, 'effort-controlled-selector')
 
       await page.getByTestId('undefined-controlled-prime').click()
-      await page.getByRole('option', { name: /Plain Model/ }).click()
+      const listbox = await getListbox(page, 'effort-controlled-selector')
+      await listbox.getByRole('option', { name: /Plain Model/ }).click()
 
       await expect(page.getByTestId('effort-controlled-model')).toHaveText('plain-model')
       await expect(page.getByTestId('effort-controlled-open')).toHaveText('false')
@@ -319,7 +335,7 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(page.getByTestId('effort-footer-count')).toHaveText('0')
       await expect(page.getByTestId('effort-footer-value')).toHaveText('null')
       await expect(page.getByTestId('effort-footer-option')).toHaveText('null')
-      await page.getByRole('option', { name: /Reasoning Default/ }).click()
+      await listbox.getByRole('option', { name: /Reasoning Default/ }).click()
 
       await expect(page.getByTestId('effort-controlled-model')).toHaveText('reasoning-default')
       await expect(page.getByTestId('effort-controlled-raw')).toHaveText('high')
@@ -340,9 +356,9 @@ test.describe('ModelSelector 组件测试', () => {
 
   test.describe('搜索、分组与选项', () => {
     test('默认搜索应覆盖 description 和 group', async ({ page }) => {
-      await getTrigger(page, 'Init selector').click()
-      const search = page.getByRole('combobox', { name: 'Search models' })
-      const listbox = page.getByRole('listbox', { name: 'Init selector' })
+      await getTrigger(page, 'init-selector').click()
+      const search = await getSearch(page, 'init-selector')
+      const listbox = await getListbox(page, 'init-selector')
 
       await search.fill('coding')
       await expect(listbox.getByRole('option')).toHaveCount(1)
@@ -358,12 +374,12 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('禁用项应可被搜索和读取，但不可选择', async ({ page }) => {
-      const trigger = getTrigger(page, 'Init selector')
+      const trigger = getTrigger(page, 'init-selector')
       await trigger.click()
-      const search = page.getByRole('combobox', { name: 'Search models' })
+      const search = await getSearch(page, 'init-selector')
 
       await search.fill('Haiku')
-      const disabledOption = page.getByRole('option', { name: /Claude Haiku/ })
+      const disabledOption = (await getListbox(page, 'init-selector')).getByRole('option', { name: /Claude Haiku/ })
       await expect(disabledOption).toHaveAttribute('aria-disabled', 'true')
       await disabledOption.dispatchEvent('click')
 
@@ -373,9 +389,9 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('自定义 filterMethod 应替换默认匹配规则', async ({ page }) => {
-      await getTrigger(page, 'Custom filter selector').click()
-      const search = page.getByRole('combobox', { name: 'Custom filter search' })
-      const listbox = page.getByRole('listbox', { name: 'Custom filter selector' })
+      await getTrigger(page, 'custom-filter-selector').click()
+      const search = await getSearch(page, 'custom-filter-selector')
+      const listbox = await getListbox(page, 'custom-filter-selector')
 
       await search.fill('featured')
       await expect(listbox.getByRole('option')).toHaveCount(1)
@@ -383,17 +399,17 @@ test.describe('ModelSelector 组件测试', () => {
 
       await search.fill('First Model')
       await expect(listbox.getByRole('option')).toHaveCount(0)
-      await expect(page.locator('.tr-model-selector__empty[role="status"]')).toContainText('No models found.')
+      await expect(page.locator('.tr-model-selector__empty[role="status"]')).toContainText('暂无可用模型')
     })
   })
 
   test.describe('键盘、焦点与 ARIA', () => {
     test('Arrow/Home/End 应跳过 disabled，Enter 选择后关闭并恢复焦点', async ({ page }) => {
-      const trigger = getTrigger(page, 'Keyboard selector')
+      const trigger = getTrigger(page, 'keyboard-selector')
       await trigger.focus()
       await trigger.click()
 
-      const listbox = page.getByRole('listbox', { name: 'Keyboard selector' })
+      const listbox = await getListbox(page, 'keyboard-selector')
       await expect(listbox).toBeFocused()
       await expect(await getActiveOption(page, listbox)).toContainText('GPT-4o')
 
@@ -419,11 +435,11 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('Enter 应打开面板，Escape 只关闭不选择', async ({ page }) => {
-      const trigger = getTrigger(page, 'Keyboard selector')
+      const trigger = getTrigger(page, 'keyboard-selector')
       await trigger.focus()
       await trigger.press('Enter')
 
-      const listbox = page.getByRole('listbox', { name: 'Keyboard selector' })
+      const listbox = await getListbox(page, 'keyboard-selector')
       await expect(await getActiveOption(page, listbox)).toContainText('GPT-4o')
       await listbox.press('Escape')
 
@@ -434,8 +450,8 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('搜索框 Home/End 保留文本编辑语义，输入法组合期间不接管候选导航', async ({ page }) => {
-      await getTrigger(page, 'Init selector').click()
-      const search = page.getByRole('combobox', { name: 'Search models' })
+      await getTrigger(page, 'init-selector').click()
+      const search = await getSearch(page, 'init-selector')
 
       await search.fill('GPT-4.1')
       await search.evaluate((element: HTMLInputElement) => {
@@ -468,9 +484,9 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('header/footer 中的 Enter 应触发自身控件，Tab 不接管面板状态', async ({ page }) => {
-      const trigger = getTrigger(page, 'Slot selector')
+      const trigger = getTrigger(page, 'slot-selector')
       await trigger.click()
-      const search = page.getByRole('combobox', { name: 'Slot search' })
+      const search = await getSearch(page, 'slot-selector')
       await expect(search).toBeFocused()
 
       const headerAction = page.getByTestId('slot-header-action')
@@ -492,15 +508,15 @@ test.describe('ModelSelector 组件测试', () => {
     })
 
     test('trigger、combobox、listbox、option 和 group 应建立完整 ARIA 关联', async ({ page }) => {
-      const trigger = getTrigger(page, 'Uncontrolled selector')
+      const trigger = getTrigger(page, 'uncontrolled-selector')
       const listboxId = await trigger.getAttribute('aria-controls')
       expect(listboxId).toBeTruthy()
       await expect(trigger).toHaveAttribute('aria-haspopup', 'listbox')
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
 
       await trigger.click()
-      const search = page.getByRole('combobox', { name: 'Uncontrolled search' })
-      const listbox = page.getByRole('listbox', { name: 'Uncontrolled selector' })
+      const search = await getSearch(page, 'uncontrolled-selector')
+      const listbox = await getListbox(page, 'uncontrolled-selector')
       await expect(search).toHaveAttribute('aria-controls', listboxId!)
       await expect(search).toHaveAttribute('aria-autocomplete', 'list')
       await expect(search).toHaveAttribute('aria-expanded', 'true')
@@ -517,15 +533,15 @@ test.describe('ModelSelector 组件测试', () => {
       await expect(listbox.getByRole('group', { name: 'Anthropic' })).toBeVisible()
 
       await search.fill('no-such-model')
-      await expect(page.locator('.tr-model-selector__empty[role="status"]')).toContainText('No models found.')
+      await expect(page.locator('.tr-model-selector__empty[role="status"]')).toContainText('暂无可用模型')
       await expect(listbox.getByRole('option')).toHaveCount(0)
     })
   })
 
   test.describe('浮层、多实例与样式', () => {
     test('多实例 ARIA id 应唯一，打开第二个应通过 outside pointer 关闭第一个', async ({ page }) => {
-      const primary = getTrigger(page, 'Primary selector')
-      const secondary = getTrigger(page, 'Secondary selector')
+      const primary = getTrigger(page, 'primary-selector')
+      const secondary = getTrigger(page, 'secondary-selector')
       expect(await primary.getAttribute('aria-controls')).not.toBe(await secondary.getAttribute('aria-controls'))
 
       await primary.click()
@@ -533,11 +549,11 @@ test.describe('ModelSelector 组件测试', () => {
       await secondary.click()
       await expect(primary).toHaveAttribute('aria-expanded', 'false')
       await expect(secondary).toHaveAttribute('aria-expanded', 'true')
-      await expect(page.getByRole('listbox', { name: 'Secondary selector' })).toBeVisible()
+      await expect(await getListbox(page, 'secondary-selector')).toBeVisible()
     })
 
     test('outside click 应关闭面板且不把焦点抢回 trigger', async ({ page }) => {
-      const trigger = getTrigger(page, 'Primary selector')
+      const trigger = getTrigger(page, 'primary-selector')
       const outsideAction = page.getByTestId('outside-action')
 
       await trigger.click()
@@ -550,7 +566,7 @@ test.describe('ModelSelector 组件测试', () => {
       const trigger = page.getByTestId('invalid-append-to-selector').getByRole('button')
 
       await trigger.click()
-      const listbox = page.getByRole('listbox', { name: 'Invalid append target selector' })
+      const listbox = await getListbox(page, 'invalid-append-to-selector')
       await expect(listbox).toBeVisible()
       await listbox.press('Escape')
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
@@ -559,27 +575,28 @@ test.describe('ModelSelector 组件测试', () => {
     test('快速 open/close 不应留下过期浮层', async ({ page }) => {
       await page.getByTestId('rapid-open-close').click()
       await expect(page.getByTestId('rapid-open-state')).toHaveText('false')
-      await expect(getTrigger(page, 'Rapid selector')).toHaveAttribute('aria-expanded', 'false')
-      await expect(page.getByRole('listbox', { name: 'Rapid selector' })).toHaveCount(0)
+      await expect(getTrigger(page, 'rapid-selector')).toHaveAttribute('aria-expanded', 'false')
+      await expect(await getListbox(page, 'rapid-selector')).toHaveCount(0)
       await expect(page.locator('.tr-model-selector__dropdown-wrapper.is-positioned')).toHaveCount(0)
     })
 
     test('slots 应保留语义 wrapper，并应支持 contentClass/contentStyle 和 empty slot', async ({ page }) => {
-      const trigger = getTrigger(page, 'Slot selector')
+      const trigger = getTrigger(page, 'slot-selector')
       await expect(page.getByTestId('slot-trigger-content')).toContainText('Closed: GPT-4o')
       await trigger.click()
 
       await expect(page.getByTestId('slot-trigger-content')).toContainText('Opened: GPT-4o')
-      await expect(page.getByRole('group', { name: 'OpenAI' })).toBeVisible()
+      const listbox = await getListbox(page, 'slot-selector')
+      await expect(listbox.getByRole('group', { name: 'OpenAI' })).toBeVisible()
       await expect(page.getByTestId('slot-item-gpt-4o')).toContainText('Custom GPT-4o selected')
 
       const panel = page.locator('.tr-model-selector__panel.model-selector-test__custom-content')
       await expect(panel).toBeVisible()
       await expect(panel).toHaveCSS('border-top-width', '2px')
 
-      await page.getByRole('combobox', { name: 'Slot search' }).fill('missing-value')
+      await (await getSearch(page, 'slot-selector')).fill('missing-value')
       await expect(page.getByTestId('slot-empty')).toHaveText('Nothing matches missing-value')
-      await expect(page.getByRole('listbox', { name: 'Slot selector' }).getByRole('option')).toHaveCount(0)
+      await expect(listbox.getByRole('option')).toHaveCount(0)
       await page.getByTestId('slot-footer-close').click()
       await expect(trigger).toHaveAttribute('aria-expanded', 'false')
       await expect(trigger).toBeFocused()
@@ -624,14 +641,16 @@ test.describe('ModelSelector 组件测试', () => {
         .not.toBe(lightBackground)
 
       await page.setViewportSize({ width: 360, height: 720 })
-      await getTrigger(page, 'Muted large selector').click()
-      const panelBox = await page.locator('.tr-model-selector__panel').boundingBox()
+      await getTrigger(page, 'muted-large-selector').click()
+      const panelBox = await (await getListbox(page, 'muted-large-selector')).locator('..').boundingBox()
       expect(panelBox).toBeTruthy()
       expect(panelBox!.x).toBeGreaterThanOrEqual(7)
       expect(panelBox!.x + panelBox!.width).toBeLessThanOrEqual(353)
 
-      await getTrigger(page, 'Default effort selector').click()
-      const effortGroup = page.getByRole('group', { name: 'Thinking' })
+      await getTrigger(page, 'effort-uncontrolled-selector').click()
+      const effortGroup = (await getListbox(page, 'effort-uncontrolled-selector'))
+        .locator('..')
+        .getByRole('group', { name: 'Thinking' })
       const effortGroupBox = await effortGroup.boundingBox()
       expect(effortGroupBox).toBeTruthy()
       expect(effortGroupBox!.x).toBeGreaterThanOrEqual(7)

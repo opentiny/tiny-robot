@@ -111,25 +111,15 @@ const effortState = useModelSelectorEffort({
 const activeEffort = computed<string | null>(() => effortState.activeOption.value?.value ?? null)
 const isOpen = computed(() => state.open.value && !props.disabled)
 const triggerLabel = computed(() => currentOption.value?.label ?? props.placeholder)
-const resolvedAriaLabel = computed(() => props.ariaLabel?.trim() || props.placeholder)
-const resolvedSearchAriaLabel = computed(() => props.searchAriaLabel?.trim() || props.searchPlaceholder)
-const triggerAriaLabel = computed(() => {
-  const reasoningEffortLabel = effortState.activeOption.value?.label
-  return `${resolvedAriaLabel.value}: ${triggerLabel.value}${reasoningEffortLabel ? `, ${props.reasoningEffortLabel}: ${reasoningEffortLabel}` : ''}`
-})
 
 const triggerSlotProps = computed<ModelSelectorTriggerSlotProps>(() => ({
-  value: state.value.value,
   option: currentOption.value?.raw ?? null,
   label: triggerLabel.value,
   open: isOpen.value,
-  disabled: props.disabled,
-  reasoningEffort: activeEffort.value,
   reasoningEffortOption: effortState.activeOption.value,
 }))
 
 const panelSlotContext = computed(() => ({
-  value: state.value.value,
   option: currentOption.value?.raw ?? null,
   close: closeFromSlot,
 }))
@@ -318,7 +308,6 @@ onMounted(() => {
         :effort-label="effortState.activeOption.value?.label"
         :icon="currentOption?.icon"
         :controls-id="listboxId"
-        :trigger-aria-label="triggerAriaLabel"
         :variant="variant"
         :size="size"
         @click="handleTriggerClick"
@@ -345,14 +334,12 @@ onMounted(() => {
             :filter-method="filterMethod"
             :listbox-id="listboxId"
             :option-id-prefix="idPrefix"
+            :placeholder="placeholder"
             :search-placeholder="searchPlaceholder"
             :empty-text="emptyText"
-            :search-aria-label="resolvedSearchAriaLabel"
-            :ariaLabel="resolvedAriaLabel"
             :effort-options="currentEfforts"
             :effort-value="activeEffort"
             :effort-label="reasoningEffortLabel"
-            :effort-aria-label="reasoningEffortLabel"
             :effort-disabled="Boolean(currentOption?.disabled)"
             :size="size"
             :content-class="contentClass"
