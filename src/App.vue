@@ -1,20 +1,32 @@
 <script setup lang="ts">
-import { type BubbleRoleConfig, type HistoryItem, TrBubbleList, TrHistory, TrSender } from '@opentiny/tiny-robot'
-import { useConversation } from '@opentiny/tiny-robot-kit'
+import {
+  type BubbleRoleConfig,
+  type HistoryItem,
+  type HistoryMenuItem,
+  TrBubbleList,
+  TrHistory,
+  TrSender,
+} from '@opentiny/tiny-robot'
+import { localStorageStrategyFactory, useConversation } from '@opentiny/tiny-robot-kit'
 import { computed, ref } from 'vue'
 import { mockResponseProvider } from './mockResponseProvider'
 
 const input = ref('')
 const {
-  conversations, // 会话列表
-  activeConversation, // 当前会话及其消息 engine
-  activeConversationId, // 当前会话 ID
-  createConversation, // 创建会话
-  switchConversation, // 切换会话
-  sendMessage, // 向当前会话发送消息
-  abortActiveRequest, // 停止当前会话的请求
+  conversations,
+  activeConversation,
+  activeConversationId,
+  createConversation,
+  switchConversation,
+  updateConversationTitle,
+  deleteConversation,
+  sendMessage,
+  abortActiveRequest,
 } = useConversation({
   useMessageOptions: { responseProvider: mockResponseProvider },
+  storage: localStorageStrategyFactory(),
+  autoSaveMessages: true,
+  autoSaveThrottle: 500,
 })
 
 const messages = computed(() => activeConversation.value?.engine.messages.value ?? [])
@@ -39,6 +51,14 @@ function startConversation() {
 function openConversation(item: HistoryItem) {
   if (item.id) void switchConversation(item.id)
 }
+
+function renameConversation(title: string, item: HistoryItem) {
+  if (item.id) updateConversationTitle(item.id, title)
+}
+
+function handleHistoryAction(action: HistoryMenuItem, item: HistoryItem) {
+  if (action.id === 'delete' && item.id) void deleteConversation(item.id)
+}
 </script>
 
 <template>
@@ -52,8 +72,9 @@ function openConversation(item: HistoryItem) {
         class="history-list"
         :data="conversations as HistoryItem[]"
         :selected="activeConversationId ?? undefined"
-        :menu-items="[]"
         @item-click="openConversation"
+        @item-title-change="renameConversation"
+        @item-action="handleHistoryAction"
       />
     </aside>
     <header>
@@ -118,10 +139,6 @@ function openConversation(item: HistoryItem) {
 .history-list {
   min-height: 0;
   overflow: auto;
-}
-
-.history-list :deep(.tr-history__item-actions) {
-  display: none;
 }
 
 .app-shell > header {
