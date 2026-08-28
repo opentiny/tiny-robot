@@ -16,17 +16,17 @@ export function useTeleportTarget(
   options: { fallback?: 'root' | 'body' } = {},
 ) {
   return computed(() => {
-    if (target instanceof HTMLElement) {
-      return target
-    }
-
-    const selector = target
-
     const referentceEl = unrefElement(reference)
     const rootNode = referentceEl?.getRootNode?.()
     const inShadowDOM = rootNode instanceof ShadowRoot
     const searchRoot = inShadowDOM ? rootNode : document.body
     const fallbackTarget = options.fallback === 'body' ? document.body : searchRoot
+
+    if (target instanceof HTMLElement) {
+      return target.isConnected ? target : fallbackTarget
+    }
+
+    const selector = target
 
     if (selector) {
       if (selector === 'body' && (!inShadowDOM || options.fallback === 'body')) {

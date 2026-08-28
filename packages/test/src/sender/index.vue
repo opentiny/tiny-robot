@@ -16,7 +16,7 @@ declare global {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
-      setTemplateAppendTo: (value: string | undefined) => void
+      setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
   }
 }
@@ -41,7 +41,7 @@ const enableMention = ref(false)
 const enableTemplate = ref(false)
 const enableSuggestion = ref(false)
 const templateData = ref<TemplateItem[]>([])
-const templateAppendTo = ref<string | undefined>()
+const templateAppendTo = ref<string | HTMLElement | undefined>()
 const attachmentsSourceMounted = ref(false)
 const senderAttachmentItems = ref<Attachment[]>([
   {
@@ -177,7 +177,7 @@ const toggleTemplateAppendTo = () => {
   result.value = templateAppendTo.value ? '模板选择器挂载到自定义容器' : '模板选择器挂载到 body'
 }
 
-const setTemplateAppendTo = (value: string | undefined) => {
+const setTemplateAppendTo = (value: string | HTMLElement | undefined) => {
   templateAppendTo.value = value
 }
 

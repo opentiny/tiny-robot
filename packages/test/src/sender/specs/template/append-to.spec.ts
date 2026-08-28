@@ -62,6 +62,18 @@ test.describe('Template Select - appendTo', () => {
     await expect(dropdown.evaluate((element) => element.parentElement?.tagName)).resolves.toBe('BODY')
   })
 
+  test('传入脱离 DOM 的 HTMLElement 时回退到 body', async () => {
+    await page.evaluate(() => {
+      window.__senderTestApi?.setTemplateAppendTo(document.createElement('div'))
+    })
+    await helper.wait(300)
+    await templateHelper.setSelectTemplate()
+    await templateHelper.openTemplateSelect()
+
+    const dropdown = page.locator(templateHelper.selectors.templateSelectDropdown)
+    await expect(dropdown.evaluate((element) => element.parentElement?.tagName)).resolves.toBe('BODY')
+  })
+
   for (const [name, appendTo] of [
     ['未配置 appendTo', undefined],
     ['配置 body', 'body'],
