@@ -13,6 +13,7 @@ import Feedback from './feedback'
 import History from './history'
 import IconButton from './icon-button'
 import { Layout, LayoutAsideToggle, LayoutProxyScrollbar } from './layout'
+import ModelSelector from './model-selector'
 import { Prompt, Prompts } from './prompts'
 import Sender from './sender'
 import SenderCompat from './sender-compat'
@@ -22,6 +23,7 @@ import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
+import { ExtensionCard, ExtensionCardGrid } from './extension-manager'
 import {
   ActionButton,
   SubmitButton,
@@ -45,6 +47,7 @@ export * from './feedback/index.type'
 export * from './history/index.type'
 export * from './icon-button/index.type'
 export * from './layout/index.type'
+export * from './model-selector/index.type'
 export * from './prompts/index.type'
 export * from './sender/index.type'
 export * from './sender-actions/index.type'
@@ -54,6 +57,7 @@ export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
+export * from './extension-manager/index.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
 export type { SenderContentRegister } from './shared/composables/useSenderContentRegistration'
@@ -89,6 +93,7 @@ const components = [
   Layout,
   LayoutProxyScrollbar,
   LayoutAsideToggle,
+  ModelSelector,
   Prompt,
   Prompts,
   Sender,
@@ -100,6 +105,8 @@ const components = [
   Welcome,
   McpServerPicker,
   McpAddForm,
+  ExtensionCard,
+  ExtensionCardGrid,
   ActionButton,
   SubmitButton,
   ClearButton,
@@ -149,6 +156,8 @@ export {
   LayoutProxyScrollbar as TrLayoutProxyScrollbar,
   LayoutAsideToggle,
   LayoutAsideToggle as TrLayoutAsideToggle,
+  ModelSelector,
+  ModelSelector as TrModelSelector,
   Prompt,
   Prompt as TrPrompt,
   Prompts,
@@ -171,6 +180,10 @@ export {
   McpServerPicker as TrMcpServerPicker,
   McpAddForm,
   McpAddForm as TrMcpAddForm,
+  ExtensionCard,
+  ExtensionCard as TrExtensionCard,
+  ExtensionCardGrid,
+  ExtensionCardGrid as TrExtensionCardGrid,
   ActionButton,
   ActionButton as TrActionButton,
   SubmitButton,

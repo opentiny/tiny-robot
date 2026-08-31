@@ -16,7 +16,7 @@ export const Template = Extension.create<TemplateOptions>({
   name: EXTENSION_NAMES.TEMPLATE,
 
   addExtensions() {
-    return [TemplateBlock.configure(this.options), TemplateSelect.configure({ appendTo: this.options.appendTo })]
+    return [TemplateBlock.configure(this.options), TemplateSelect.configure(this.options)]
   },
 
   // 添加命令（统一命令入口）

@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@opentiny/tiny-robot": "https://pkg.pr.new/@opentiny/tiny-robot@e6c3c86",
+    "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-chat": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",

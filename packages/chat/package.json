@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "@opentiny/tiny-robot": "https://pkg.pr.new/@opentiny/tiny-robot@e6c3c86",
+    "@opentiny/tiny-robot": "workspace:*",
     "@opentiny/tiny-robot-kit": "workspace:*",
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@vueuse/core": "^13.9.0"

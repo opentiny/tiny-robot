@@ -5,8 +5,9 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { computePosition, flip, shift, offset, autoUpdate } from '@floating-ui/dom'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import { TemplateSelectDropdownPluginKey } from './plugins'
-import type { SelectOption } from '../types'
+import type { SelectOption, TemplateOptions } from '../types'
 import { closeAllDropdowns, setupClickOutside } from './dropdown-manager'
+import { useTeleportTarget } from '../../../../shared/composables'
 
 interface NodeAttrs {
   id: string
@@ -21,20 +22,12 @@ interface Props {
   }
   updateAttributes: (attrs: Record<string, unknown>) => void
   editor: Editor
-  appendTo?: string | HTMLElement
+  extension: {
+    options: Pick<TemplateOptions, 'appendTo'>
+  }
 }
 
 const props = defineProps<Props>()
-
-const resolvedAppendTo = computed<string | HTMLElement>(() => {
-  if (!props.appendTo) return document.body
-  if (typeof props.appendTo === 'string') {
-    return document.querySelector<HTMLElement>(props.appendTo) ?? document.body
-  }
-  return props.appendTo
-})
-
-const isBodyTarget = computed(() => resolvedAppendTo.value === document.body)
 
 // 状态管理
 const showDropdown = ref(false)
@@ -43,6 +36,11 @@ const triggerRef = ref<HTMLElement>()
 const dropdownRef = ref<HTMLElement>()
 let cleanupClickOutside: (() => void) | null = null
 let cleanupAutoUpdate: (() => void) | null = null
+const teleportTarget = useTeleportTarget(triggerRef, props.extension.options.appendTo, { fallback: 'body' })
+const isCustomTeleportTarget = computed(() => {
+  const target = teleportTarget.value
+  return target instanceof HTMLElement && target !== document.body
+})
 
 // 计算属性
 const selectedOption = computed(() => {
@@ -147,7 +145,8 @@ const updatePosition = () => {
 
     computePosition(triggerRef.value, dropdownRef.value, {
       placement: 'bottom-start',
-      strategy: isBodyTarget.value ? 'fixed' : 'absolute', // 使用 fixed 定位策略，相对于视口
+      // 自定义挂载目标使用 absolute 定位
+      strategy: isCustomTeleportTarget.value ? 'absolute' : 'fixed', // 使用 fixed 定位策略，相对于视口
       middleware: [offset(4), flip(), shift({ padding: 8 })],
     }).then(({ x, y }) => {
       if (dropdownRef.value) {
@@ -263,12 +262,12 @@ onUnmounted(() => {
     </span>
     <span contenteditable="false" class="template-select__suffix">&#8203;</span>
 
-    <Teleport :to="resolvedAppendTo">
+    <Teleport :to="teleportTarget">
       <div
         v-if="showDropdown"
         ref="dropdownRef"
         class="template-select__dropdown"
-        :class="{ 'template-select__dropdown--in-surface': !isBodyTarget }"
+        :class="{ 'is-absolute': isCustomTeleportTarget }"
       >
         <div
           v-for="(option, index) in node.attrs.options"
@@ -354,6 +353,10 @@ onUnmounted(() => {
   box-shadow: var(--tr-sender-template-select-dropdown-shadow);
   padding: 6px;
 
+  &.is-absolute {
+    position: absolute;
+  }
+
   &::-webkit-scrollbar {
     width: 8px;
   }
@@ -374,11 +377,6 @@ onUnmounted(() => {
       background-clip: padding-box;
     }
   }
-}
-
-.template-select__dropdown--in-surface {
-  position: absolute;
-  z-index: 1;
 }
 
 .template-select__option {

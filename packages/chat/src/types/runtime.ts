@@ -1,7 +1,6 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatReadable, ChatRequestState } from './base'
 import type { ChatSendPayload } from './commands'
-import type { ModelSelectorEffortOption } from '@opentiny/tiny-robot'
-import type { Component } from 'vue'
+import type { ModelSelectorOption, ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -47,8 +46,8 @@ export interface ChatMcpRunConfig {
 export interface ChatModelOption {
   id: string
   label: string
-  icon?: Component
-  efforts?: readonly ModelSelectorEffortOption[]
+  icon?: Exclude<ModelSelectorOption['icon'], string>
+  efforts?: readonly ModelSelectorReasoningEffortOption[]
   defaultEffort?: string
   thinkingRequired?: boolean
   capabilities?: Readonly<Partial<Record<ChatBuiltInModelFeature, boolean>>>

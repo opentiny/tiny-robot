@@ -20,7 +20,7 @@ const modelOptions = computed<ModelSelectorOption[]>(() =>
     value: model.id,
     label: model.label,
     icon: model.icon,
-    efforts: thinkingEnabled.value ? model.efforts : undefined,
+    reasoningEfforts: thinkingEnabled.value ? model.efforts : undefined,
   })),
 )
 
@@ -50,15 +50,15 @@ function handleReasoningEffortChange(effort: string | null) {
     :models="modelOptions"
     :model-value="model.selectedId ?? null"
     :disabled="model.selecting || model.reasoningSelecting"
-    :effort="model.reasoning?.effort ?? null"
-    :default-effort="selectedModel?.defaultEffort ?? null"
+    :reasoning-effort="model.reasoning?.effort ?? null"
+    :default-reasoning-effort="selectedModel?.defaultEffort ?? null"
     append-to=".tr-chat-ui"
     :placeholder="labels.selectModel"
     :search-placeholder="labels.searchModel"
     :empty-text="labels.modelEmptyText"
     :aria-label="labels.selectModel"
     @update:model-value="handleModelSelect"
-    @update:effort="handleReasoningEffortChange"
+    @update:reasoning-effort="handleReasoningEffortChange"
   >
     <template #trigger="{ option, label, open }">
       <span class="tr-chat-model-selector__trigger" :class="{ 'has-icon': option?.icon }">

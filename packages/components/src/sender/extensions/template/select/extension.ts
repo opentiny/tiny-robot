@@ -4,8 +4,7 @@
 
 import { Node, mergeAttributes } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
-import { defineComponent, h } from 'vue'
-import type { TemplateSelectAttrs, TemplateSelectOptions } from '../types'
+import type { TemplateOptions, TemplateSelectAttrs } from '../types'
 import TemplateSelectView from './template-select-view.vue'
 import { selectDropdownStatePlugin, selectZeroWidthPlugin, selectKeyboardPlugin } from './plugins'
 import { NODE_TYPE_NAMES } from '../../constants'
@@ -13,14 +12,8 @@ import { NODE_TYPE_NAMES } from '../../constants'
 /**
  * TemplateSelect 节点定义
  */
-export const TemplateSelect = Node.create<TemplateSelectOptions>({
+export const TemplateSelect = Node.create<TemplateOptions>({
   name: NODE_TYPE_NAMES.TEMPLATE_SELECT,
-
-  addOptions() {
-    return {
-      appendTo: undefined,
-    }
-  },
 
   // 节点配置
   group: 'inline',
@@ -118,19 +111,8 @@ export const TemplateSelect = Node.create<TemplateSelectOptions>({
 
   // 使用 Vue 组件渲染
   addNodeView() {
-    const appendTo = this.options.appendTo
-
-    return VueNodeViewRenderer(
-      defineComponent({
-        name: 'TemplateSelectNodeView',
-        setup(nodeViewProps) {
-          return () => {
-            // @ts-expect-error - Vue SFC type compatibility
-            return h(TemplateSelectView, { ...nodeViewProps, appendTo })
-          }
-        },
-      }),
-    )
+    // @ts-expect-error - Vue SFC type compatibility
+    return VueNodeViewRenderer(TemplateSelectView)
   },
 
   // 添加插件
