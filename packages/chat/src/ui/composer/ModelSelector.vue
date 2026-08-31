@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
+import { TrModelSelector, type ModelSelectorOption, type ModelSelectorProps } from '@opentiny/tiny-robot'
 import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 import type { ChatLabels, ChatModelView } from '../../types'
 
 const props = defineProps<{
   model: ChatModelView
   labels: ChatLabels
+  appendTo?: ModelSelectorProps['appendTo']
 }>()
 
 const emit = defineEmits<{
@@ -52,7 +53,7 @@ function handleReasoningEffortChange(effort: string | null) {
     :disabled="model.selecting || model.reasoningSelecting"
     :reasoning-effort="model.reasoning?.effort ?? null"
     :default-reasoning-effort="selectedModel?.defaultEffort ?? null"
-    append-to=".tr-chat-ui"
+    :append-to="props.appendTo"
     :placeholder="labels.selectModel"
     :search-placeholder="labels.searchModel"
     :empty-text="labels.modelEmptyText"

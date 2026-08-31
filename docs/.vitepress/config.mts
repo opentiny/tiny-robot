@@ -35,6 +35,9 @@ export default defineConfig({
   ],
   vite: {
     plugins: [vueJsx(), SidebarBadgePlugin()],
+    ssr: {
+      noExternal: [/^@opentiny\/vue(?:-|$)/],
+    },
     server: {
       open: true,
       proxy: process.env.VP_MODE === 'development' ? { '/playground': 'http://localhost:5184' } : undefined,

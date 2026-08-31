@@ -34,6 +34,7 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   size: 'normal',
   placement: 'bottom-start',
   offset: 8,
+  appendTo: 'body',
   reasoningEffortLabel: 'Thinking',
 })
 

@@ -12,7 +12,7 @@ import type {
   ChatSenderView,
   ChatSendPayload,
 } from '../../types'
-import type { ResolvedChatSenderOptions } from '../resolveOptions'
+import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
@@ -20,6 +20,7 @@ const props = defineProps<{
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
   model?: ChatModelView
+  modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
 }>()
 
@@ -122,6 +123,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
               v-if="model"
               :model="model"
               :labels="labels"
+              :append-to="modelOptions?.appendTo"
               @select-model="handleSelectModel"
               @update-reasoning-effort="handleReasoningEffortChange"
             />

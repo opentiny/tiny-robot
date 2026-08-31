@@ -54,6 +54,7 @@ const senderOptions = computed(() =>
   resolvedOptions.value.sender === false ? undefined : resolvedOptions.value.sender,
 )
 const visibleModel = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedData.value.model))
+const modelOptions = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedOptions.value.model))
 const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefined : resolvedData.value.mcp))
 const hasMcpServers = computed(() => (visibleMcp.value?.servers?.length ?? 0) > 0)
 const hasRightAsideContent = computed(() => hasFullRightAsideSlot || hasRightAsideContentSlot || hasMcpServers.value)
@@ -356,6 +357,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 :sender-options="senderOptions"
                 :labels="resolvedOptions.labels"
                 :model="visibleModel"
+                :model-options="modelOptions"
                 :mcp="visibleMcp"
                 @submit="handleSubmit"
                 @cancel="handleCancel"
@@ -414,6 +416,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           :sender-options="senderOptions"
           :labels="resolvedOptions.labels"
           :model="visibleModel"
+          :model-options="modelOptions"
           :mcp="visibleMcp"
           @submit="handleSubmit"
           @cancel="handleCancel"

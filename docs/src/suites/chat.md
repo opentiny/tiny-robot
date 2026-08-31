@@ -66,7 +66,11 @@ Chat 页面必须放在有明确高度的父容器中，否则内部主区无法
 
 ### 最小接入
 
-下面的示例把 `openai` Provider 指向应用自己的 OpenAI-compatible BFF。它不在浏览器中保存 API Key，也不需要在线文档示例访问真实服务：
+下面的交互示例迁移自 `chat-basic`，展示 `TrChat`、多模型 Provider 和流式消息的最小组合。在线文档通过同源 Service Worker 提供模拟响应，不需要配置 API Key：
+
+<demo vue="../../demos/suites/chat/Basic.vue" :vueFiles="['../../demos/suites/chat/Basic.vue']" />
+
+下面的代码把 `openai` Provider 指向应用自己的 OpenAI-compatible BFF，适合迁移到业务项目。它不在浏览器中保存 API Key：
 
 ```vue
 <script setup lang="ts">
@@ -99,6 +103,23 @@ const runtime = useLocalChatRuntime({ modelProviders })
 - 或在 `conversation.useMessageOptions.responseProvider` 中提供自定义响应 Provider。
 
 两者同时提供会抛出错误。第一次发送非空文本时，如果没有当前会话，Runtime 会创建会话并使用标题生成器生成标题。默认会话流程启用消息自动保存；`conversation` 中显式传入的选项会覆盖默认值。
+
+## 示例组织
+
+Chat 的示例分为最小接入和综合案例两类：
+
+- 本文的`最小接入`只展示 `TrChat`、`useLocalChatRuntime` 和 `modelProviders` 的基本组合，适合复制到业务项目中开始接入。
+- 综合案例按应用拆分为独立页面，展示 TinyRobot、DeepSeek、豆包、Gemini 和 WorkHelper 等完整页面，源码统一位于 `docs/demos/suites/chat`。
+
+文档中的组件级示例写在 `docs/demos` 中，并通过 `<demo vue="..." />` 嵌入 Markdown；综合案例使用独立 Markdown 页面，可直接进入：
+
+- [TinyRobot](/examples/chat-tiny-robot)
+- [DeepSeek](/examples/chat-deepseek)
+- [豆包](/examples/chat-doubao)
+- [Gemini](/examples/chat-gemini)
+- [WorkHelper](/examples/chat-worker-helper)
+
+在线文档案例默认请求同源 `/api`，由 docs Service Worker 返回模拟流式响应，不需要配置 API Key。接入真实后台时，将 `modelProviders[].apiUrl` 指向业务 BFF，并由 BFF 完成认证和上游模型协议转换。
 
 ### 自定义存储
 
@@ -190,9 +211,7 @@ interface ChatBeforeSendContext {
   }
 }
 
-type ChatBeforeSend = (
-  context: ChatBeforeSendContext,
-) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
+type ChatBeforeSend = (context: ChatBeforeSendContext) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
 ```
 
 `beforeSend` 在生成本轮 `ChatRunConfig` 快照后、创建会话和用户消息前执行。`continue` 继续发送，`handled` 表示业务已经处理且不创建消息，`reject` 阻止发送并保留草稿。回调抛出错误时同样阻止发送，并通过 `runtime-action-error` 报告。
@@ -451,24 +470,24 @@ const runtime = useLocalChatRuntime({ modelProviders, mcp })
 
 ### 默认值
 
-| 配置                                        | 默认值                                            |
-| ------------------------------------------- | ------------------------------------------------- |
-| `layout.surface.mode`                       | `'normal'`                                        |
-| `layout.emptyState`                         | `'start'`                                         |
-| `layout.composer.welcome`                   | `'footer'`                                        |
-| `layout.contentMaxWidth`                    | `980`                                             |
-| `layout.panelPadding` / `panelGap`          | `12` / `12`                                       |
-| `layout.leftAside.mode`                     | `'dock'`                                          |
-| `layout.leftAside.width` / `collapsedWidth` | `300` / `56`                                      |
-| `layout.leftAside.defaultOpen`              | `false`                                           |
-| `layout.rightAside`                         | `false`                                           |
-| `header`                                    | 开启                                              |
-| `history`                                   | 开启，菜单含重命名和删除                          |
-| `welcome`                                   | 开启，显示默认标题和描述                          |
-| `prompts.items`                             | `[]`                                              |
-| `bubble.autoScroll`                         | `true`                                            |
-| `sender`                                    | `multiple`、可清空、最大长度 `1000`、显示字数限制 |
-| `model` / `mcp`                             | 默认区域配置，实际数据来自 Runtime                |
+| 配置                                        | 默认值                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `layout.surface.mode`                       | `'normal'`                                                                           |
+| `layout.emptyState`                         | `'start'`                                                                            |
+| `layout.composer.welcome`                   | `'footer'`                                                                           |
+| `layout.contentMaxWidth`                    | `980`                                                                                |
+| `layout.panelPadding` / `panelGap`          | `12` / `12`                                                                          |
+| `layout.leftAside.mode`                     | `'dock'`                                                                             |
+| `layout.leftAside.width` / `collapsedWidth` | `300` / `56`                                                                         |
+| `layout.leftAside.defaultOpen`              | `false`                                                                              |
+| `layout.rightAside`                         | `false`                                                                              |
+| `header`                                    | 开启                                                                                 |
+| `history`                                   | 开启，菜单含重命名和删除                                                             |
+| `welcome`                                   | 开启，显示默认标题和描述                                                             |
+| `prompts.items`                             | `[]`                                                                                 |
+| `bubble.autoScroll`                         | `true`                                                                               |
+| `sender`                                    | `multiple`、可清空、最大长度 `1000`、显示字数限制                                    |
+| `model` / `mcp`                             | 默认区域配置，实际数据来自 Runtime；`model.appendTo` 默认挂载到 `body`，可由外部覆盖 |
 
 ### 常用 options
 

@@ -9,6 +9,7 @@ import type {
   WelcomeProps,
   LayoutFloatingOptions,
   LayoutFloatingState,
+  ModelSelectorProps,
 } from '@opentiny/tiny-robot'
 import type { ChatConversationInfo } from '../base'
 import type { ChatUIData } from './data'
@@ -126,5 +127,7 @@ export interface ChatSenderOptions
   readonly defaultActions?: ChatSenderDefaultActions
 }
 
-export type ChatModelOptions = Record<string, never>
+export interface ChatModelOptions {
+  readonly appendTo?: ModelSelectorProps['appendTo']
+}
 export type ChatMcpOptions = Record<string, never>

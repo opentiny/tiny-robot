@@ -678,7 +678,7 @@ const ui: ChatUIOptions = {
 | `prompts`                | 空会话提示项，或设置为 `false` 隐藏                                                                                                       |
 | `bubble`                 | 消息气泡、自动滚动和角色配置                                                                                                              |
 | `sender`                 | 输入框配置，或设置为 `false` 隐藏输入区                                                                                                   |
-| `model`                  | 模型区域开关；当前支持默认配置对象或 `false`                                                                                              |
+| `model`                  | 模型区域开关；支持 `false` 或配置对象，`model.appendTo` 默认挂载到 `body`，可由外部覆盖                                                   |
 | `mcp`                    | MCP 区域开关；当前支持默认配置对象或 `false`                                                                                              |
 | `labels`                 | 覆盖界面文案的部分字段                                                                                                                    |
 

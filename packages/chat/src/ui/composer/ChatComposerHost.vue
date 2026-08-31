@@ -10,7 +10,7 @@ import type {
   ChatSendPayload,
   ChatSenderSlotProps,
 } from '../../types'
-import type { ResolvedChatSenderOptions } from '../resolveOptions'
+import type { ResolvedChatModelOptions, ResolvedChatSenderOptions } from '../resolveOptions'
 
 const props = defineProps<{
   sender: Required<ChatSenderView>
@@ -18,6 +18,7 @@ const props = defineProps<{
   senderOptions: ResolvedChatSenderOptions
   labels: ChatLabels
   model?: ChatModelView
+  modelOptions?: ResolvedChatModelOptions
   mcp?: ChatMcpView
 }>()
 
@@ -63,6 +64,7 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
     :sender-options="props.senderOptions"
     :labels="props.labels"
     :model="props.model"
+    :model-options="props.modelOptions"
     :mcp="props.mcp"
     @submit="emit('submit', $event)"
     @cancel="emit('cancel')"
