@@ -1,28 +1,44 @@
 import type { App } from 'vue'
-import ExtensionManager from './index.vue'
-import { ExtensionCard, ExtensionCardGrid } from './components'
+import ExtensionManagerComp from './index.vue'
+import { ExtensionCard as ExtensionCardComp, ExtensionCardGrid as ExtensionCardGridComp } from './components'
 
-ExtensionManager.name = 'ExtensionManager'
-ExtensionCard.name = 'ExtensionCard'
-ExtensionCardGrid.name = 'ExtensionCardGrid'
+export * from './index.type'
 
-const install = function <T>(app: App<T>) {
-  app.component(ExtensionManager.name!, ExtensionManager)
-  app.component(ExtensionCard.name!, ExtensionCard)
-  app.component(ExtensionCardGrid.name!, ExtensionCardGrid)
+ExtensionCardComp.name = 'TrExtensionCard'
+
+const extensionCardInstall = function <T>(app: App<T>) {
+  app.component(ExtensionCardComp.name!, ExtensionCardComp)
 }
 
-const ExtensionManagerWithSubComponents = Object.assign(ExtensionManager, {
-  install,
+const ExtensionCard = ExtensionCardComp as typeof ExtensionCardComp & {
+  install: typeof extensionCardInstall
+}
+
+ExtensionCard.install = extensionCardInstall
+
+ExtensionCardGridComp.name = 'TrExtensionCardGrid'
+
+const extensionCardGridInstall = function <T>(app: App<T>) {
+  app.component(ExtensionCardGridComp.name!, ExtensionCardGridComp)
+}
+
+const ExtensionCardGrid = ExtensionCardGridComp as typeof ExtensionCardGridComp & {
+  install: typeof extensionCardGridInstall
+}
+
+ExtensionCardGrid.install = extensionCardGridInstall
+
+ExtensionManagerComp.name = 'TrExtensionManager'
+
+const extensionManagerInstall = function <T>(app: App<T>) {
+  app.component(ExtensionManagerComp.name!, ExtensionManagerComp)
+}
+
+const ExtensionManager = Object.assign(ExtensionManagerComp, {
+  install: extensionManagerInstall,
   Card: ExtensionCard,
   CardGrid: ExtensionCardGrid,
 })
 
-export { ExtensionManager }
-export * from './public.type'
-
-export default ExtensionManagerWithSubComponents as typeof ExtensionManager & {
-  install: typeof install
-  Card: typeof ExtensionCard
-  CardGrid: typeof ExtensionCardGrid
-}
+export { ExtensionCard, ExtensionCardGrid, ExtensionManager }
+export default ExtensionManager

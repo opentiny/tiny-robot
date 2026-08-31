@@ -8,15 +8,22 @@ const Card = ExtensionManager.Card
 const CardGrid = ExtensionManager.CardGrid
 const managerTabs: ExtensionManagerTab[] = [{ id: 'library', label: 'Library', items: [] }]
 
-const registrations = new Map<string, Component>()
-const app = {
-  component(name: string, component: Component) {
-    registrations.set(name, component)
-    return this
-  },
-} as unknown as App
+const installInto = (component: Component & { install: (app: App) => void }) => {
+  const registrations = new Map<string, Component>()
+  const app = {
+    component(name: string, registeredComponent: Component) {
+      registrations.set(name, registeredComponent)
+      return this
+    },
+  } as unknown as App
 
-ExtensionManager.install(app)
+  component.install(app)
+  return registrations
+}
+
+const managerRegistrations = installInto(Manager)
+const cardRegistrations = installInto(Card)
+const cardGridRegistrations = installInto(CardGrid)
 </script>
 
 <template>
@@ -26,7 +33,13 @@ ExtensionManager.install(app)
   <output data-testid="manager-name">{{ Manager.name }}</output>
   <output data-testid="card-name">{{ Card.name }}</output>
   <output data-testid="card-grid-name">{{ CardGrid.name }}</output>
-  <output data-testid="manager-registration">{{ registrations.get('ExtensionManager') === Manager }}</output>
-  <output data-testid="card-registration">{{ registrations.get('ExtensionCard') === Card }}</output>
-  <output data-testid="card-grid-registration">{{ registrations.get('ExtensionCardGrid') === CardGrid }}</output>
+  <output data-testid="manager-registration">
+    {{ managerRegistrations.size === 1 && managerRegistrations.get('TrExtensionManager') === Manager }}
+  </output>
+  <output data-testid="card-registration">
+    {{ cardRegistrations.size === 1 && cardRegistrations.get('TrExtensionCard') === Card }}
+  </output>
+  <output data-testid="card-grid-registration">
+    {{ cardGridRegistrations.size === 1 && cardGridRegistrations.get('TrExtensionCardGrid') === CardGrid }}
+  </output>
 </template>
