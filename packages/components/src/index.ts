@@ -23,6 +23,7 @@ import ThemeProvider from './theme-provider'
 import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
+import { ExtensionCard, ExtensionCardGrid } from './extension-manager'
 import {
   ActionButton,
   SubmitButton,
@@ -56,6 +57,7 @@ export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
+export * from './extension-manager/index.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
 export type { SenderContentRegister } from './shared/composables/useSenderContentRegistration'
@@ -103,6 +105,8 @@ const components = [
   Welcome,
   McpServerPicker,
   McpAddForm,
+  ExtensionCard,
+  ExtensionCardGrid,
   ActionButton,
   SubmitButton,
   ClearButton,
@@ -176,6 +180,10 @@ export {
   McpServerPicker as TrMcpServerPicker,
   McpAddForm,
   McpAddForm as TrMcpAddForm,
+  ExtensionCard,
+  ExtensionCard as TrExtensionCard,
+  ExtensionCardGrid,
+  ExtensionCardGrid as TrExtensionCardGrid,
   ActionButton,
   ActionButton as TrActionButton,
   SubmitButton,

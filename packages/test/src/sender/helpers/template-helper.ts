@@ -81,6 +81,29 @@ export function createTemplateTestHelper(page: Page) {
     },
 
     /**
+     * 设置模板选择器
+     */
+    async setSelectTemplate() {
+      await page.click(selectors.setTemplateSelectBtn)
+      await expect(page.locator(selectors.templateSelect)).toBeVisible()
+    },
+
+    /**
+     * 获取模板选择器
+     */
+    getTemplateSelect() {
+      return page.locator(selectors.templateSelect)
+    },
+
+    /**
+     * 打开模板选择器
+     */
+    async openTemplateSelect() {
+      await this.getTemplateSelect().locator(selectors.templateSelectTrigger).click()
+      await expect(page.locator(selectors.templateSelectDropdown)).toBeVisible()
+    },
+
+    /**
      * 清空模板
      */
     async clearTemplates() {

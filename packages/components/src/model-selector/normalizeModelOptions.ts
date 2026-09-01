@@ -29,7 +29,7 @@ export function normalizeModelOptions(models: readonly ModelSelectorOption[]): N
     const label = normalizeText(model.label) || model.value
     const description = normalizeText(model.description) || undefined
     const group = normalizeText(model.group)
-    const groupKey = group || DEFAULT_GROUP_KEY
+    const groupKey = group ? `group:${group}` : DEFAULT_GROUP_KEY
     const icon = typeof model.icon === 'string' ? model.icon : model.icon ? toRaw(model.icon) : undefined
 
     normalizedOptions.push({
