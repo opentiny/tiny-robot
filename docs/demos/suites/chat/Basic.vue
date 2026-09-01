@@ -39,8 +39,15 @@ const runtime = useLocalChatRuntime({ modelProviders })
 
 <style scoped>
 .chat-basic-demo {
+  --tr-layout-height: 100%;
+  box-sizing: border-box;
   height: min(620px, calc(100vh - 240px));
   min-height: 480px;
+}
+
+.chat-basic-demo :deep(.tr-chat-ui) {
+  height: 100%;
+  min-height: 0;
 }
 
 @media (max-width: 640px) {

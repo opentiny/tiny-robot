@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
-import { TrSender } from '@opentiny/tiny-robot'
-import { IconArrowDown, IconCheck, IconPlus, IconVoice } from '@opentiny/tiny-robot-svgs'
-import type { ChatBuiltInModelFeature, ChatModelRuntime, ChatStructuredData } from '@opentiny/tiny-robot-chat'
+import { computed } from 'vue'
+import { TrModelSelector, TrSender, type ModelSelectorOption } from '@opentiny/tiny-robot'
+import { IconPlus, IconVoice } from '@opentiny/tiny-robot-svgs'
+import type { ChatModelRuntime, ChatStructuredData } from '@opentiny/tiny-robot-chat'
 
 interface GeminiComposerProps {
   readonly value: string
@@ -15,79 +15,26 @@ interface GeminiComposerProps {
   readonly clear: () => void
   readonly model: ChatModelRuntime
   readonly selectModel: (id: string | null) => Promise<void>
-  readonly setModelFeature: (id: ChatBuiltInModelFeature, enabled: boolean) => Promise<void>
 }
 
 const props = defineProps<GeminiComposerProps>()
-const modelMenuOpen = shallowRef(false)
-const modelSelecting = shallowRef(false)
-const featureSetting = shallowRef(false)
-const modelMenuRef = useTemplateRef<HTMLElement>('modelMenu')
-const modelOptions = computed(() => props.model.options.value)
-const selectedModel = computed(() => modelOptions.value.find((option) => option.id === props.model.selectedId.value))
-const extendedThinking = computed(() => Boolean(props.model.features.value.thinking))
-
-function handleDocumentPointerDown(event: PointerEvent) {
-  if (!modelMenuOpen.value || modelMenuRef.value?.contains(event.target as Node)) return
-  modelMenuOpen.value = false
-}
-
-function handleDocumentKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    modelMenuOpen.value = false
-  }
-}
-
-async function handleModelSelect(id: string) {
-  if (modelSelecting.value || id === props.model.selectedId.value) {
-    modelMenuOpen.value = false
-    return
-  }
-
-  modelSelecting.value = true
-  try {
-    await props.selectModel(id)
-    modelMenuOpen.value = false
-  } finally {
-    modelSelecting.value = false
-  }
-}
-
-async function toggleExtendedThinking() {
-  if (featureSetting.value) return
-
-  featureSetting.value = true
-  try {
-    await props.setModelFeature('thinking', !extendedThinking.value)
-    modelMenuOpen.value = false
-  } finally {
-    featureSetting.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('pointerdown', handleDocumentPointerDown)
-  document.addEventListener('keydown', handleDocumentKeydown)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', handleDocumentPointerDown)
-  document.removeEventListener('keydown', handleDocumentKeydown)
-})
+const modelOptions = computed<ModelSelectorOption[]>(() =>
+  props.model.options.value.map((option) => ({ value: option.id, label: option.label, icon: option.icon })),
+)
 </script>
 
 <template>
   <TrSender
     mode="single"
-    :model-value="props.value"
+    :model-value="value"
     placeholder="问问 Gemini"
-    :loading="props.loading"
-    :disabled="props.disabled"
-    :default-actions="{ submit: { disabled: props.submitDisabled } }"
-    @update:model-value="props.setInputValue"
-    @submit="(text, structuredData) => props.submit({ text, structuredData })"
-    @cancel="props.cancel"
-    @clear="props.clear"
+    :loading="loading"
+    :disabled="disabled"
+    :default-actions="{ submit: { disabled: submitDisabled } }"
+    @update:model-value="setInputValue"
+    @submit="(text, structuredData) => submit({ text, structuredData })"
+    @cancel="cancel"
+    @clear="clear"
   >
     <template #prefix>
       <button class="gemini-composer__add" type="button" aria-label="添加内容" title="添加内容" disabled>
@@ -95,59 +42,15 @@ onBeforeUnmount(() => {
       </button>
     </template>
     <template #actions-inline>
-      <div ref="modelMenu" class="gemini-composer__model-menu">
-        <button
-          class="gemini-composer__model"
-          type="button"
-          aria-label="选择模型"
-          title="选择模型"
-          aria-haspopup="menu"
-          aria-controls="gemini-model-menu"
-          :aria-expanded="modelMenuOpen"
-          :disabled="modelSelecting || featureSetting"
-          @click.stop="modelMenuOpen = !modelMenuOpen"
-        >
-          <span>{{ selectedModel?.label ?? '选择模型' }}</span>
-          <IconArrowDown :size="16" />
-        </button>
-        <div v-if="modelMenuOpen" id="gemini-model-menu" class="gemini-composer__dropdown" role="menu">
-          <button
-            v-for="option in modelOptions"
-            :key="option.id"
-            class="gemini-composer__option"
-            type="button"
-            role="menuitemradio"
-            :aria-checked="option.id === props.model.selectedId.value"
-            :disabled="modelSelecting || featureSetting"
-            @click="handleModelSelect(option.id)"
-          >
-            <span class="gemini-composer__option-check">
-              <IconCheck v-if="option.id === props.model.selectedId.value" :size="14" />
-            </span>
-            <span class="gemini-composer__option-copy">
-              <span>{{ option.label }}</span>
-            </span>
-          </button>
-          <div class="gemini-composer__divider" />
-          <button
-            class="gemini-composer__option"
-            :class="{ 'is-active': extendedThinking }"
-            type="button"
-            role="menuitemcheckbox"
-            :aria-checked="extendedThinking"
-            :disabled="featureSetting"
-            @click="toggleExtendedThinking"
-          >
-            <span class="gemini-composer__option-check">
-              <IconCheck v-if="extendedThinking" :size="14" />
-            </span>
-            <span class="gemini-composer__option-copy">
-              <span>扩展思考</span>
-              <small>擅长解决复杂问题</small>
-            </span>
-          </button>
-        </div>
-      </div>
+      <TrModelSelector
+        class="gemini-composer__model-selector"
+        :models="modelOptions"
+        :model-value="model.selectedId.value"
+        placeholder="选择模型"
+        aria-label="选择模型"
+        variant="ghost"
+        @update:model-value="selectModel"
+      />
       <button class="gemini-composer__voice" type="button" aria-label="语音输入" title="语音输入" disabled>
         <IconVoice :size="22" />
       </button>
@@ -157,7 +60,6 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .gemini-composer__add,
-.gemini-composer__model,
 .gemini-composer__voice {
   display: inline-flex;
   align-items: center;
@@ -181,84 +83,6 @@ onBeforeUnmount(() => {
   height: 28px;
 }
 
-.gemini-composer__model {
-  gap: 6px;
-  height: 30px;
-  padding: 0 6px;
-  border-radius: 8px;
-  font: inherit;
-  font-size: 13px;
-}
-
-.gemini-composer__model-menu {
-  position: relative;
-}
-
-.gemini-composer__model:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.gemini-composer__dropdown {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 8px);
-  right: 0;
-  box-sizing: border-box;
-  width: 192px;
-  padding: 8px;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgb(31 35 41 / 14%);
-}
-
-.gemini-composer__option {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  align-items: center;
-  width: 100%;
-  min-height: 52px;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 10px;
-  color: #1f1f1f;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.gemini-composer__option:hover,
-.gemini-composer__option.is-active {
-  background: #f5f6f7;
-}
-
-.gemini-composer__option:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-.gemini-composer__option-check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-}
-
-.gemini-composer__option-copy {
-  display: grid;
-  min-width: 0;
-  font-size: 13px;
-  line-height: 18px;
-}
-
-.gemini-composer__divider {
-  height: 1px;
-  margin: 8px 0;
-  background: #e5e7eb;
-}
-
 .gemini-composer__voice {
   width: 30px;
   height: 30px;
@@ -267,15 +91,13 @@ onBeforeUnmount(() => {
 }
 
 .gemini-composer__add:hover,
-.gemini-composer__model:hover,
 .gemini-composer__voice:hover {
   background: #f1f3f4;
 }
 
 .gemini-composer__add:focus-visible,
-.gemini-composer__model:focus-visible,
 .gemini-composer__voice:focus-visible,
-.gemini-composer__option:focus-visible {
+.gemini-composer__model-selector:focus-within {
   outline: 2px solid #1476ff;
   outline-offset: 2px;
 }

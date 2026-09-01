@@ -36,7 +36,7 @@ import './cases/tiny-robot/index.css'
   position: relative;
   display: flex;
   width: 100%;
-  height: min(560px, calc(100vh - 200px));
+  height: min(880px, calc(100vh - 180px));
   min-height: 0;
   overflow: hidden;
   border-radius: 16px;

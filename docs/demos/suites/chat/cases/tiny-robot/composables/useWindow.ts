@@ -5,7 +5,7 @@ import { computed, shallowRef, watch } from 'vue'
 export type DisplayMode = 'floating' | 'fullscreen'
 
 export function useWindow() {
-  const show = shallowRef(false)
+  const show = shallowRef(true)
   const displayMode = shallowRef<DisplayMode>('floating')
   const floatingState = shallowRef<LayoutFloatingState>({
     placement: 'center',

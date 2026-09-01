@@ -94,7 +94,6 @@ const chatUi = {
             v-bind="slotProps"
             :model="runtime.composer.model!"
             :select-model="modelAdapter.selectModel"
-            :set-model-feature="modelAdapter.setModelFeature"
           />
         </template>
 
