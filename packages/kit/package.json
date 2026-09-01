@@ -1,6 +1,10 @@
 {
   "name": "@opentiny/tiny-robot-kit",
-  "version": "0.3.4-beta.1",
+  "version": "0.3.4",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opentiny/tiny-robot.git"
+  },
   "publishConfig": {
     "access": "public"
   },
