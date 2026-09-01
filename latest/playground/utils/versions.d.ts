@@ -3,9 +3,5 @@ interface GetVersionsOptions {
     limit?: number;
     includeLatest?: boolean;
 }
-type VersionsResult = {
-    versions: string[];
-    lastVersion: string | undefined;
-};
-export declare function getVersions(pkg: string, options?: GetVersionsOptions): Promise<VersionsResult>;
+export declare function getVersions(pkg: string, options?: GetVersionsOptions): Promise<string[]>;
 export {};
