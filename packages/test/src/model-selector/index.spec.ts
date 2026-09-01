@@ -459,14 +459,19 @@ test.describe('ModelSelector 组件测试', () => {
       })
 
       const activeBeforeHome = await search.getAttribute('aria-activedescendant')
-      await search.press('Home')
-      await expect.poll(() => search.evaluate((element: HTMLInputElement) => element.selectionStart)).toBe(0)
-      await expect(search).toHaveAttribute('aria-activedescendant', activeBeforeHome!)
+      const editingKeyResult = await search.evaluate((element) => {
+        return Object.fromEntries(
+          ['Home', 'End'].map((key) => {
+            const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+            element.dispatchEvent(event)
+            return [key, event.defaultPrevented]
+          }),
+        )
+      })
 
-      await search.press('End')
-      await expect
-        .poll(() => search.evaluate((element: HTMLInputElement) => element.selectionStart))
-        .toBe('GPT-4.1'.length)
+      expect(editingKeyResult).toEqual({ Home: false, End: false })
+      await expect(search).toHaveValue('GPT-4.1')
+      await expect(search).toHaveAttribute('aria-activedescendant', activeBeforeHome!)
 
       const compositionResult = await search.evaluate((element) => {
         const event = new KeyboardEvent('keydown', {
@@ -539,6 +544,132 @@ test.describe('ModelSelector 组件测试', () => {
   })
 
   test.describe('浮层、多实例与样式', () => {
+    test('仅短名称的面板应按内容收缩且不窄于触发器', async ({ page }) => {
+      const trigger = getTrigger(page, 'short-selector')
+      await trigger.click()
+
+      const panel = (await getListbox(page, 'short-selector')).locator('..')
+      const [triggerBox, panelBox] = await Promise.all([trigger.boundingBox(), panel.boundingBox()])
+
+      expect(triggerBox).toBeTruthy()
+      expect(panelBox).toBeTruthy()
+      expect(panelBox!.width).toBeGreaterThanOrEqual(triggerBox!.width - 1)
+      expect(panelBox!.width).toBeLessThan(200)
+    })
+
+    test('移动端的短选项面板不应被强制铺满视口', async ({ page }) => {
+      await page.setViewportSize({ width: 360, height: 720 })
+      await getTrigger(page, 'short-selector').click()
+
+      const panelBox = await (await getListbox(page, 'short-selector')).locator('..').boundingBox()
+
+      expect(panelBox).toBeTruthy()
+      expect(panelBox!.width).toBeLessThan(240)
+    })
+
+    test('三种 size 的短选项面板都应按内容收缩', async ({ page }) => {
+      const widths: number[] = []
+
+      for (const testId of ['short-small-selector', 'short-selector', 'short-large-selector']) {
+        const trigger = getTrigger(page, testId)
+        await trigger.click()
+        const panelBox = await (await getListbox(page, testId)).locator('..').boundingBox()
+        expect(panelBox).toBeTruthy()
+        widths.push(panelBox!.width)
+        await trigger.click()
+      }
+
+      for (const width of widths) {
+        expect(width).toBeLessThan(200)
+      }
+    })
+
+    test('选项文字列应支持通过 panelClass 覆盖最大宽度', async ({ page }) => {
+      const defaultTrigger = getTrigger(page, 'rich-width-selector')
+      await defaultTrigger.click()
+      const defaultPanel = (await getListbox(page, 'rich-width-selector')).locator('..')
+      const defaultText = defaultPanel.locator('.tr-model-selector__option-text').first()
+      await expect(defaultText).toHaveCSS('max-width', '320px')
+      const defaultPanelBox = await defaultPanel.boundingBox()
+      await defaultTrigger.click()
+
+      const narrowTrigger = getTrigger(page, 'narrow-rich-width-selector')
+      await narrowTrigger.click()
+      const narrowPanel = (await getListbox(page, 'narrow-rich-width-selector')).locator('..')
+      const narrowText = narrowPanel.locator('.tr-model-selector__option-text').first()
+      await expect(narrowText).toHaveCSS('max-width', '160px')
+      const narrowPanelBox = await narrowPanel.boundingBox()
+
+      expect(defaultPanelBox).toBeTruthy()
+      expect(narrowPanelBox).toBeTruthy()
+      expect(defaultPanelBox!.width - narrowPanelBox!.width).toBeGreaterThan(100)
+    })
+
+    test('选中状态不应改变相同选项集合的面板宽度', async ({ page }) => {
+      const selectedTrigger = getTrigger(page, 'short-selector')
+      await selectedTrigger.click()
+      const selectedPanelBox = await (await getListbox(page, 'short-selector')).locator('..').boundingBox()
+      await selectedTrigger.click()
+
+      const unselectedTrigger = getTrigger(page, 'short-unselected-selector')
+      await unselectedTrigger.click()
+      const unselectedPanelBox = await (await getListbox(page, 'short-unselected-selector')).locator('..').boundingBox()
+
+      expect(selectedPanelBox).toBeTruthy()
+      expect(unselectedPanelBox).toBeTruthy()
+      expect(Math.abs(selectedPanelBox!.width - unselectedPanelBox!.width)).toBeLessThanOrEqual(1)
+    })
+
+    test('搜索框应为面板提供局部最小宽度', async ({ page }) => {
+      await getTrigger(page, 'short-search-selector').click()
+      const panelBox = await (await getListbox(page, 'short-search-selector')).locator('..').boundingBox()
+
+      expect(panelBox).toBeTruthy()
+      expect(panelBox!.width).toBeGreaterThanOrEqual(240)
+    })
+
+    test('思考强度应为面板提供局部最小宽度', async ({ page }) => {
+      await getTrigger(page, 'short-effort-selector').click()
+      const panelBox = await (await getListbox(page, 'short-effort-selector')).locator('..').boundingBox()
+
+      expect(panelBox).toBeTruthy()
+      expect(panelBox!.width).toBeGreaterThanOrEqual(240)
+    })
+
+    test('空状态应为面板提供局部最小宽度', async ({ page }) => {
+      await getTrigger(page, 'empty-selector').click()
+      const panelBox = await (await getListbox(page, 'empty-selector')).locator('..').boundingBox()
+
+      expect(panelBox).toBeTruthy()
+      expect(panelBox!.width).toBeGreaterThanOrEqual(240)
+    })
+
+    test('搜索过滤不应让已打开的面板宽度收缩', async ({ page }) => {
+      await getTrigger(page, 'stable-search-selector').click()
+      const panel = (await getListbox(page, 'stable-search-selector')).locator('..')
+      const initialBox = await panel.boundingBox()
+
+      await (await getSearch(page, 'stable-search-selector')).fill('Ω')
+      await expect((await getListbox(page, 'stable-search-selector')).getByRole('option')).toHaveCount(1)
+      const filteredBox = await panel.boundingBox()
+
+      expect(initialBox).toBeTruthy()
+      expect(filteredBox).toBeTruthy()
+      expect(filteredBox!.width).toBeGreaterThanOrEqual(initialBox!.width - 1)
+    })
+
+    test('打开期间新增更宽选项时面板可以增长', async ({ page }) => {
+      await getTrigger(page, 'dynamic-width-selector').click()
+      const panel = (await getListbox(page, 'dynamic-width-selector')).locator('..')
+      const initialBox = await panel.boundingBox()
+
+      await page.getByTestId('add-rich-width-models').click()
+      await expect((await getListbox(page, 'dynamic-width-selector')).getByRole('option')).toHaveCount(2)
+
+      expect(initialBox).toBeTruthy()
+      await expect.poll(async () => (await panel.boundingBox())?.width ?? 0).toBeGreaterThan(initialBox!.width + 100)
+    })
+
     test('多实例 ARIA id 应唯一，打开第二个应通过 outside pointer 关闭第一个', async ({ page }) => {
       const primary = getTrigger(page, 'primary-selector')
       const secondary = getTrigger(page, 'secondary-selector')

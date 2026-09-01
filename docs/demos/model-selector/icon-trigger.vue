@@ -1,48 +1,26 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
 import { TrModelSelector, type ModelSelectorOption } from '@opentiny/tiny-robot'
-import { IconArrowDown, IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
+import { IconArrowDown } from '@opentiny/tiny-robot-svgs'
 
-const model = shallowRef<string | null>('deepseek-v4-flash')
+const model = shallowRef<string | null>('general-model')
 
 const models = [
-  {
-    value: 'deepseek-v4-flash',
-    label: 'DeepSeek V4 Flash',
-    icon: IconDeepseek,
-  },
-  {
-    value: 'qwen3.7-max',
-    label: 'Qwen3.7 Max',
-    icon: IconBailian,
-  },
+  { value: 'general-model', label: '通用模型' },
+  { value: 'reasoning-model', label: '推理模型' },
+  { value: 'lightweight-model', label: '轻量模型' },
 ] satisfies readonly ModelSelectorOption[]
 </script>
 
 <template>
-  <div class="model-selector-icon-trigger-demo">
+  <div class="model-selector-trigger-demo">
     <TrModelSelector v-model="model" :models="models">
-      <template #trigger="{ option, label, open }">
-        <span class="model-selector-icon-trigger-demo__trigger" :class="{ 'has-icon': option?.icon }">
-          <span class="model-selector-icon-trigger-demo__trigger-main">
-            <img
-              v-if="typeof option?.icon === 'string'"
-              :src="option.icon"
-              class="model-selector-icon-trigger-demo__icon"
-              alt=""
-              aria-hidden="true"
-            />
-            <component
-              :is="option?.icon"
-              v-else-if="option?.icon"
-              class="model-selector-icon-trigger-demo__icon"
-              aria-hidden="true"
-              focusable="false"
-            />
-            <span class="model-selector-icon-trigger-demo__label">{{ label }}</span>
-          </span>
+      <template #trigger="{ label, open }">
+        <span class="model-selector-trigger-demo__content">
+          <span class="model-selector-trigger-demo__badge" aria-hidden="true">AI</span>
+          <span class="model-selector-trigger-demo__label">{{ label }}</span>
           <IconArrowDown
-            class="model-selector-icon-trigger-demo__chevron"
+            class="model-selector-trigger-demo__arrow"
             :class="{ 'is-open': open }"
             aria-hidden="true"
             focusable="false"
@@ -50,79 +28,63 @@ const models = [
         </span>
       </template>
     </TrModelSelector>
-
-    <span class="model-selector-icon-trigger-demo__value" aria-live="polite">当前模型：{{ model }}</span>
   </div>
 </template>
 
 <style scoped>
-.model-selector-icon-trigger-demo {
+.model-selector-trigger-demo {
   display: flex;
   min-height: 96px;
   align-items: center;
-  gap: 12px;
   padding: 20px;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 20px;
+  border-radius: 12px;
   background: var(--vp-c-bg);
 }
 
-.model-selector-icon-trigger-demo__icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-}
-
-.model-selector-icon-trigger-demo__trigger,
-.model-selector-icon-trigger-demo__trigger-main {
+.model-selector-trigger-demo__content {
   display: inline-flex;
-  align-items: center;
-}
-
-.model-selector-icon-trigger-demo__trigger {
   width: 100%;
-  justify-content: space-between;
+  align-items: center;
   gap: 8px;
 }
 
-.model-selector-icon-trigger-demo__trigger-main {
+.model-selector-trigger-demo__badge {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.model-selector-trigger-demo__label {
   min-width: 0;
-  gap: 8px;
-}
-
-.model-selector-icon-trigger-demo__label {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.model-selector-icon-trigger-demo__chevron {
+.model-selector-trigger-demo__arrow {
   width: 1em;
   height: 1em;
   flex: 0 0 auto;
   transition: transform 0.18s ease;
 }
 
-.model-selector-icon-trigger-demo__chevron.is-open {
+.model-selector-trigger-demo__arrow.is-open {
   transform: rotate(180deg);
 }
 
 @media (max-width: 480px) {
-  .model-selector-icon-trigger-demo__trigger.has-icon .model-selector-icon-trigger-demo__label {
+  .model-selector-trigger-demo__label,
+  .model-selector-trigger-demo__arrow {
     display: none;
   }
-
-  .model-selector-icon-trigger-demo__chevron {
-    display: none;
-  }
-
-  .model-selector-icon-trigger-demo__trigger.has-icon .model-selector-icon-trigger-demo__trigger-main {
-    gap: 0;
-  }
-}
-
-.model-selector-icon-trigger-demo__value {
-  color: var(--vp-c-text-2);
-  font-size: 13px;
 }
 </style>

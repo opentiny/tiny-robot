@@ -106,6 +106,39 @@ const models: readonly ModelSelectorOption[] = [
 ]
 
 const compactModels = models.slice(0, 3)
+const shortModels: readonly ModelSelectorOption[] = [
+  { value: 'short-a', label: 'A' },
+  { value: 'short-b', label: 'B' },
+]
+const richWidthModels: readonly ModelSelectorOption[] = [
+  {
+    value: 'rich-width-a',
+    label: 'A model name that is intentionally much longer than the available option text column',
+    description:
+      'A detailed model description that is intentionally long enough to verify the configurable intrinsic width cap.',
+    icon: IconDeepseek,
+  },
+  {
+    value: 'rich-width-b',
+    label: 'Another intentionally verbose model name',
+    description: 'Another long description used to keep the panel representative of information-rich options.',
+    icon: IconDeepseek,
+  },
+]
+const stableSearchModels: readonly ModelSelectorOption[] = [...richWidthModels, { value: 'stable-short', label: 'Ω' }]
+const dynamicWidthModels = ref<readonly ModelSelectorOption[]>(shortModels)
+
+function addRichWidthModels() {
+  dynamicWidthModels.value = richWidthModels
+}
+
+const shortEffortModels: readonly ModelSelectorOption[] = [
+  {
+    value: 'short-effort',
+    label: 'A',
+    reasoningEfforts: [{ value: 'low', label: 'L' }],
+  },
+]
 const minimalModels: readonly ModelSelectorOption[] = [
   { value: 'minimal-reasoning', label: 'Minimal Reasoning', reasoningEfforts: true },
   { value: 'minimal-plain', label: 'Minimal Plain' },
@@ -538,6 +571,33 @@ onBeforeUnmount(() => {
     <section class="model-selector-test__section" data-testid="multiple-section">
       <h3>多实例与 outside click</h3>
       <div class="model-selector-test__row">
+        <TrModelSelector data-testid="short-small-selector" :models="shortModels" size="small" />
+        <TrModelSelector data-testid="short-selector" :models="shortModels" default-value="short-a" />
+        <TrModelSelector data-testid="short-unselected-selector" :models="shortModels" placeholder="A" />
+        <TrModelSelector data-testid="short-search-selector" :models="shortModels" searchable />
+        <TrModelSelector data-testid="empty-selector" :models="[]" placeholder="A" />
+        <TrModelSelector
+          data-testid="short-effort-selector"
+          :models="shortEffortModels"
+          default-value="short-effort"
+          default-reasoning-effort="low"
+        />
+        <TrModelSelector data-testid="short-large-selector" :models="shortModels" size="large" />
+        <TrModelSelector data-testid="rich-width-selector" :models="richWidthModels" default-value="rich-width-a" />
+        <TrModelSelector
+          data-testid="narrow-rich-width-selector"
+          :models="richWidthModels"
+          default-value="rich-width-a"
+          panel-class="model-selector-test__narrow-panel"
+        />
+        <TrModelSelector data-testid="stable-search-selector" :models="stableSearchModels" searchable />
+        <TrModelSelector data-testid="dynamic-width-selector" :models="dynamicWidthModels" default-value="short-a">
+          <template #header>
+            <button data-testid="add-rich-width-models" type="button" @click="addRichWidthModels">
+              Add wider options
+            </button>
+          </template>
+        </TrModelSelector>
         <TrModelSelector data-testid="primary-selector" :models="compactModels" />
         <TrModelSelector data-testid="secondary-selector" :models="compactModels" />
         <TrModelSelector data-testid="invalid-append-to-selector" :models="compactModels" append-to="[" />
@@ -667,6 +727,10 @@ onBeforeUnmount(() => {
 :global(.tr-model-selector__panel.model-selector-test__custom-content) {
   border-width: 2px;
   border-style: dashed;
+}
+
+:global(.tr-model-selector__panel.model-selector-test__narrow-panel) {
+  --tr-model-selector-option-text-max-width: 160px;
 }
 
 @media (max-width: 480px) {
