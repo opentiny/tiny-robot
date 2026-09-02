@@ -648,6 +648,9 @@ export const createMessageEngine = (
 
   async function abort() {
     if (getState().requestState === 'paused') {
+      // 暂停状态下插件命令可能仍在异步处理中。
+      // 安装清理钩子使用的 controller 前，先取消该命令。
+      runtime.abortController?.abort()
       const ac = new AbortController()
       runtime.abortController = ac
 

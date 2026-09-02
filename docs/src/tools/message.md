@@ -138,6 +138,8 @@ interface UseMessageReturn {
   send: (...msgs: ChatMessage[]) => Promise<void>
   /** 中止当前请求 */
   abortRequest: () => Promise<void>
+  /** 调度插件命令，例如工具确认或拒绝 */
+  dispatchCommand: <Result = unknown>(command: string, payload?: unknown) => Promise<Result>
 }
 ```
 
@@ -174,10 +176,18 @@ interface UseMessagePlugin {
   name?: string
   /** 是否禁用插件 */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
+  /** 引擎创建时初始化插件运行时状态 */
+  onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
+  /** 回合从暂停状态恢复前触发 */
+  onResumed?: (context: BasePluginContext) => MaybePromise<void>
+  /** 回合进入暂停状态后触发 */
+  onPaused?: (context: BasePluginContext) => MaybePromise<void>
   /** 对话回合开始钩子 */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
   /** 对话回合结束钩子 */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
+  /** 对话回合被外部中止时触发 */
+  onTurnAbort?: (context: BasePluginContext) => MaybePromise<void>
   /** 请求开始前钩子 */
   onBeforeRequest?: (
     context: BasePluginContext & {
@@ -190,7 +200,7 @@ interface UseMessagePlugin {
       currentMessage: ChatMessage
       lastChoice?: CompletionChoice
       appendMessage: (message: ChatMessage | ChatMessage[]) => void
-      requestNext: () => void
+      requestNext: (resume?: boolean) => void
     },
   ) => MaybePromise<void>
   /** 数据块处理钩子 */
@@ -205,8 +215,38 @@ interface UseMessagePlugin {
   onError?: (context: BasePluginContext & { error: unknown }) => void
   /** 最终清理钩子 */
   onFinally?: (context: BasePluginContext) => void
+  /** 插件命令集合 */
+  commands?: Record<
+    string,
+    (
+      payload: unknown,
+      context: BasePluginContext & {
+        appendMessage: (message: ChatMessage | ChatMessage[]) => void
+        requestNext: (resume?: boolean) => void
+      },
+    ) => MaybePromise<unknown>
+  >
 }
 ```
+
+插件命令通过 `dispatchCommand` 调用。工具插件提供单个工具的确认和拒绝命令：
+
+```typescript
+import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND } from '@opentiny/tiny-robot-kit'
+
+// message 是已配置 toolPlugin 的 useMessage 实例
+
+await message.dispatchCommand(TOOL_RESUME_COMMAND, {
+  toolCallId: 'call-123',
+})
+
+await message.dispatchCommand(TOOL_REJECT_COMMAND, {
+  toolCallId: 'call-456',
+  reason: '用户拒绝执行该工具',
+})
+```
+
+`TOOL_RESUME_COMMAND` 和 `TOOL_REJECT_COMMAND` 每次只处理一个 `toolCallId`。确认后会执行该工具；拒绝后会将工具状态标记为 `denied`，不会直接中止整个对话回合。
 
 ### 内置插件
 

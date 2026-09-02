@@ -853,34 +853,41 @@ export const toolPlugin = (
         }
 
         setRequestState('processing', 'calling-tools')
-        const { runtimeToolMap, toolSourceMap } = await resolveTools(context, [])
-        const toolSource = getToolSource(toolCall, toolSourceMap)
+        try {
+          const { runtimeToolMap, toolSourceMap } = await resolveTools(context, [])
+          const toolSource = getToolSource(toolCall, toolSourceMap)
 
-        mutate('messages', () => {
-          toolMessage.content = ''
-          toolMessage.metadata ??= {}
-          toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-        })
+          mutate('messages', () => {
+            toolMessage.content = ''
+            toolMessage.metadata ??= {}
+            toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
+          })
 
-        await processToolCall(
-          toolCall,
-          {
-            ...context,
-            assistantMessage,
-            toolMessage,
-            toolSource,
-          },
-          runtimeToolMap,
-          { skipStartHook: true },
-        )
+          await processToolCall(
+            toolCall,
+            {
+              ...context,
+              assistantMessage,
+              toolMessage,
+              toolSource,
+            },
+            runtimeToolMap,
+            { skipStartHook: true },
+          )
 
-        const latestPending = findPendingToolCallFromContext(context)
-        const latestToolMessages = latestPending?.toolMessages ?? []
+          const latestPending = findPendingToolCallFromContext(context)
+          const latestToolMessages = latestPending?.toolMessages ?? []
 
-        if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
-          requestNext(true)
-        } else {
-          setRequestState('paused')
+          if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
+            requestNext(true)
+          } else {
+            setRequestState('paused')
+          }
+        } catch (error) {
+          if (!context.abortSignal.aborted && context.getState().requestState === 'processing') {
+            setRequestState('paused')
+          }
+          throw error
         }
 
         return { status: 'resumed', toolCallId } satisfies ToolCallCommandResult
@@ -902,31 +909,38 @@ export const toolPlugin = (
         }
 
         setRequestState('processing', 'calling-tools')
-        const { toolSourceMap } = await resolveTools(context, [])
-        const toolSource = getToolSource(toolCall, toolSourceMap)
+        try {
+          const { toolSourceMap } = await resolveTools(context, [])
+          const toolSource = getToolSource(toolCall, toolSourceMap)
 
-        mutate('messages', () => {
-          toolMessage.content = toolCallFailedContent
-          toolMessage.metadata ??= {}
-          toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-        })
+          mutate('messages', () => {
+            toolMessage.content = toolCallFailedContent
+            toolMessage.metadata ??= {}
+            toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
+          })
 
-        toolCallEnd(toolCall, {
-          ...context,
-          assistantMessage,
-          toolMessage,
-          toolSource,
-          status: 'denied',
-          error: new Error(reason ?? 'Tool call rejected.'),
-        })
+          toolCallEnd(toolCall, {
+            ...context,
+            assistantMessage,
+            toolMessage,
+            toolSource,
+            status: 'denied',
+            error: new Error(reason ?? 'Tool call rejected.'),
+          })
 
-        const latestPending = findPendingToolCallFromContext(context)
-        const latestToolMessages = latestPending?.toolMessages ?? []
+          const latestPending = findPendingToolCallFromContext(context)
+          const latestToolMessages = latestPending?.toolMessages ?? []
 
-        if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
-          requestNext(true)
-        } else {
-          setRequestState('paused')
+          if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
+            requestNext(true)
+          } else {
+            setRequestState('paused')
+          }
+        } catch (error) {
+          if (!context.abortSignal.aborted && context.getState().requestState === 'processing') {
+            setRequestState('paused')
+          }
+          throw error
         }
 
         return { status: 'denied', toolCallId } satisfies ToolCallCommandResult

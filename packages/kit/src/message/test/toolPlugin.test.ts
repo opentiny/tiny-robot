@@ -719,6 +719,107 @@ describe('toolPlugin', () => {
     })
   })
 
+  it.each([TOOL_RESUME_COMMAND, TOOL_REJECT_COMMAND])(
+    'restores paused state when %s cannot resolve tools',
+    async (command) => {
+      let shouldRejectToolResolution = false
+      const getTools = vi.fn(async () => {
+        if (shouldRejectToolResolution) {
+          throw new Error('tools unavailable')
+        }
+
+        return [
+          {
+            type: 'function' as const,
+            function: { name: 'approval_tool' },
+          },
+        ]
+      })
+      const callTool = vi.fn(async () => 'approved')
+      const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+        if (!requestBody.messages.some((message) => message.role === 'tool')) {
+          return {
+            id: 'tool-resolution-failure',
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: 'mock',
+            choices: [
+              {
+                index: 0,
+                message: {
+                  role: 'assistant',
+                  content: '',
+                  tool_calls: [
+                    {
+                      id: 'call-resolution-failure',
+                      type: 'function',
+                      function: { name: 'approval_tool', arguments: '{}' },
+                    },
+                  ],
+                },
+                finish_reason: 'tool_calls',
+              },
+            ],
+          } as ChatCompletion
+        }
+
+        return {
+          id: 'tool-resolution-recovered',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: { role: 'assistant', content: 'done' },
+              finish_reason: 'stop',
+            },
+          ],
+        } as ChatCompletion
+      })
+
+      const engine = createTestMessageEngine({
+        plugins: [
+          ...silentDefaultPlugins,
+          toolPlugin({
+            getTools,
+            callTool,
+            shouldPauseToolCall: () => true,
+          }),
+        ],
+        responseProvider,
+      })
+
+      await engine.sendMessage('run approval tool')
+      expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+
+      shouldRejectToolResolution = true
+      await expect(
+        engine.dispatchCommand(command, {
+          toolCallId: 'call-resolution-failure',
+        }),
+      ).rejects.toThrow('tools unavailable')
+      expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+
+      shouldRejectToolResolution = false
+      await expect(
+        engine.dispatchCommand(command, {
+          toolCallId: 'call-resolution-failure',
+        }),
+      ).resolves.toMatchObject({
+        toolCallId: 'call-resolution-failure',
+      })
+
+      expect(engine.getState()).toMatchObject({ requestState: 'completed', isPaused: false })
+      expect(responseProvider).toHaveBeenCalledTimes(2)
+      if (command === TOOL_RESUME_COMMAND) {
+        expect(callTool).toHaveBeenCalledOnce()
+      } else {
+        expect(callTool).not.toHaveBeenCalled()
+      }
+    },
+  )
+
   it('pauses only tools selected by shouldPauseToolCall', async () => {
     const callTool = vi.fn(async (toolCall: ChatCompletionMessageToolCall) => `${toolCall.id} result`)
     const shouldPauseToolCall = vi.fn(async (toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => {

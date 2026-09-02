@@ -8,6 +8,7 @@ import type {
   PublicMessageState,
   RequestProcessingState,
   RequestState,
+  ResponseProvider,
 } from '../types'
 import { mockResponseProvider } from './mockResponseProvider'
 
@@ -266,6 +267,51 @@ describe('createMessageEngine', () => {
     await expect(engine.dispatchCommand('resume')).rejects.toThrow('resume failed')
     expect(onResumed).toHaveBeenCalledOnce()
     expect(engine.getState()).toMatchObject({ requestState: 'error', isCurrentTurn: false })
+  })
+
+  it('aborts an asynchronous command while the turn is paused', async () => {
+    let markCommandStarted!: () => void
+    const commandStarted = new Promise<void>((resolve) => {
+      markCommandStarted = resolve
+    })
+    let releaseCommand!: () => void
+    const commandBlocked = new Promise<void>((resolve) => {
+      releaseCommand = resolve
+    })
+    let commandSignal!: AbortSignal
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      throw new Error('responseProvider should not run after abort')
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onInit: () => ({ requestState: 'paused' as const, turnId: 'async-command' }),
+          commands: {
+            resume: async (_payload, context) => {
+              commandSignal = context.abortSignal
+              markCommandStarted()
+              await commandBlocked
+              context.requestNext(true)
+            },
+          },
+        },
+      ],
+      responseProvider,
+    })
+
+    const command = engine.dispatchCommand('resume')
+    await commandStarted
+    await engine.abort()
+
+    expect(commandSignal.aborted).toBe(true)
+    expect(engine.getState()).toMatchObject({ requestState: 'aborted', isCurrentTurn: false })
+
+    releaseCommand()
+    await command
+
+    expect(responseProvider).not.toHaveBeenCalled()
   })
 
   it('should execute multiple plugin hooks in the correct order', async () => {
