@@ -261,7 +261,7 @@
 
 .tr-model-selector__search {
   display: flex;
-  min-width: 240px;
+  min-width: min(240px, var(--tr-model-selector-available-width, calc(100vw - 16px)));
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;

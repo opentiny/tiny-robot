@@ -628,6 +628,21 @@ test.describe('ModelSelector 组件测试', () => {
       expect(panelBox!.width).toBeGreaterThanOrEqual(240)
     })
 
+    test('极窄视口下搜索区域应完整显示在面板内', async ({ page }) => {
+      await page.setViewportSize({ width: 220, height: 720 })
+      await getTrigger(page, 'short-search-selector').click()
+
+      const panel = (await getListbox(page, 'short-search-selector')).locator('..')
+      const [panelBox, searchBox] = await Promise.all([
+        panel.boundingBox(),
+        panel.locator('.tr-model-selector__search').boundingBox(),
+      ])
+
+      expect(panelBox).toBeTruthy()
+      expect(searchBox).toBeTruthy()
+      expect(searchBox!.x + searchBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width + 1)
+    })
+
     test('思考强度应为面板提供局部最小宽度', async ({ page }) => {
       await getTrigger(page, 'short-effort-selector').click()
       const panelBox = await (await getListbox(page, 'short-effort-selector')).locator('..').boundingBox()
