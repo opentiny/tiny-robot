@@ -28,6 +28,11 @@ export type MessagePluginCommandHandler = (
   },
 ) => MaybePromise<unknown>
 
+export interface MessagePluginCommandRegistration {
+  handler: MessagePluginCommandHandler
+  owner: MessageEnginePlugin
+}
+
 export type ChatMessage<
   Metadata extends object = Record<string, unknown>,
   State extends object = Record<string, unknown>,
@@ -71,7 +76,7 @@ export interface MessageRuntime {
   customContext: Record<string, unknown>
   abortController: AbortController | null
   responseProvider: ResponseProvider
-  commandHandlers: Map<string, MessagePluginCommandHandler>
+  commandHandlers: Map<string, MessagePluginCommandRegistration>
 }
 
 export interface MessageEngine {

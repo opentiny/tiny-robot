@@ -145,7 +145,7 @@ export type ToolCallPreparationContext = BasePluginContext & {
 export const TOOL_RESUME_COMMAND = 'tool.resume'
 export const TOOL_REJECT_COMMAND = 'tool.reject'
 
-export type ToolResumeCommandPayload = {
+export type ToolCallCommandPayload = {
   /**
    * 需要恢复或拒绝的 tool call id。
    */
@@ -159,7 +159,7 @@ export type ToolResumeCommandPayload = {
 /**
  * 恢复或拒绝工具调用的命令执行结果。
  */
-export type ToolResumeCommandResult =
+export type ToolCallCommandResult =
   | { status: 'resumed'; toolCallId: string }
   | { status: 'denied'; toolCallId: string }
   | { status: 'missing'; toolCallId: string }
@@ -536,7 +536,7 @@ export const toolPlugin = (
     )
   }
 
-  const parsePauseCommandPayload = (payload: unknown): ToolResumeCommandPayload => {
+  const parsePauseCommandPayload = (payload: unknown): ToolCallCommandPayload => {
     if (!payload || typeof payload !== 'object') {
       throw new Error('Tool pause/resume commands require an object payload with toolCallId.')
     }
@@ -762,6 +762,35 @@ export const toolPlugin = (
     return toolMessage
   }
 
+  const resolvePendingToolCall = (
+    context: BasePluginContext,
+    toolCallId: string,
+    appendMessage: (message: ChatMessage | ChatMessage[]) => void,
+  ) => {
+    const pending = findPendingToolCallFromContext(context)
+
+    if (!pending) {
+      return null
+    }
+
+    const assistantMessage = pending.assistantMessage as Extract<ChatMessage, { role: 'assistant' }> &
+      AssistantMessageWithState
+    const toolCall = assistantMessage.tool_calls?.find((call) => call.id === toolCallId)
+
+    if (!toolCall || assistantMessage.state?.toolCall?.[toolCallId]?.status !== 'awaiting-approval') {
+      return null
+    }
+
+    const toolMessage = ensureToolMessage({
+      toolCall,
+      toolMessages: pending.toolMessages,
+      createMessage: context.createMessage,
+      appendMessage,
+    })
+
+    return { assistantMessage, toolCall, toolMessage }
+  }
+
   const getToolSource = (toolCall: ChatCompletionMessageToolCall, toolSourceMap: Map<string, ToolSource>) => {
     const functionToolCall = isFunctionToolCall(toolCall) ? toolCall : undefined
     return functionToolCall
@@ -809,33 +838,15 @@ export const toolPlugin = (
     commands: {
       [TOOL_RESUME_COMMAND]: async (payload, context) => {
         const { toolCallId, reason } = parsePauseCommandPayload(payload)
-        const { createMessage, appendMessage, requestNext, setRequestState, mutate } = context
+        const { appendMessage, requestNext, setRequestState, mutate } = context
 
-        const pending = findPendingToolCallFromContext(context)
+        const pendingToolCall = resolvePendingToolCall(context, toolCallId, appendMessage)
 
-        if (!pending) {
-          return { status: 'missing', toolCallId } satisfies ToolResumeCommandResult
+        if (!pendingToolCall) {
+          return { status: 'missing', toolCallId } satisfies ToolCallCommandResult
         }
 
-        const assistantMessage = pending.assistantMessage as Extract<ChatMessage, { role: 'assistant' }> &
-          AssistantMessageWithState
-        const toolCall = assistantMessage.tool_calls?.find((call) => call.id === toolCallId)
-
-        if (!toolCall) {
-          return { status: 'missing', toolCallId } satisfies ToolResumeCommandResult
-        }
-
-        const toolCallStatus = assistantMessage.state?.toolCall?.[toolCallId]?.status
-        if (toolCallStatus !== 'awaiting-approval') {
-          return { status: 'missing', toolCallId } satisfies ToolResumeCommandResult
-        }
-
-        const toolMessage = ensureToolMessage({
-          toolCall,
-          toolMessages: pending.toolMessages,
-          createMessage,
-          appendMessage,
-        })
+        const { assistantMessage, toolCall, toolMessage } = pendingToolCall
 
         if (reason) {
           setToolCallState(assistantMessage, toolCallId, { reason }, mutate)
@@ -872,37 +883,19 @@ export const toolPlugin = (
           setRequestState('paused')
         }
 
-        return { status: 'resumed', toolCallId } satisfies ToolResumeCommandResult
+        return { status: 'resumed', toolCallId } satisfies ToolCallCommandResult
       },
       [TOOL_REJECT_COMMAND]: async (payload, context) => {
         const { toolCallId, reason } = parsePauseCommandPayload(payload)
-        const { createMessage, appendMessage, requestNext, setRequestState, mutate } = context
+        const { appendMessage, requestNext, setRequestState, mutate } = context
 
-        const pending = findPendingToolCallFromContext(context)
+        const pendingToolCall = resolvePendingToolCall(context, toolCallId, appendMessage)
 
-        if (!pending) {
-          return { status: 'missing', toolCallId } satisfies ToolResumeCommandResult
+        if (!pendingToolCall) {
+          return { status: 'missing', toolCallId } satisfies ToolCallCommandResult
         }
 
-        const assistantMessage = pending.assistantMessage as Extract<ChatMessage, { role: 'assistant' }> &
-          AssistantMessageWithState
-        const toolCall = assistantMessage.tool_calls?.find((call) => call.id === toolCallId)
-
-        if (!toolCall) {
-          return { status: 'missing', toolCallId } satisfies ToolResumeCommandResult
-        }
-
-        const toolCallStatus = assistantMessage.state?.toolCall?.[toolCallId]?.status
-        if (toolCallStatus !== 'awaiting-approval') {
-          return { status: 'missing', toolCallId } satisfies ToolResumeCommandResult
-        }
-
-        const toolMessage = ensureToolMessage({
-          toolCall,
-          toolMessages: pending.toolMessages,
-          createMessage,
-          appendMessage,
-        })
+        const { assistantMessage, toolCall, toolMessage } = pendingToolCall
 
         if (reason) {
           setToolCallState(assistantMessage, toolCallId, { reason }, mutate)
@@ -936,7 +929,7 @@ export const toolPlugin = (
           setRequestState('paused')
         }
 
-        return { status: 'denied', toolCallId } satisfies ToolResumeCommandResult
+        return { status: 'denied', toolCallId } satisfies ToolCallCommandResult
       },
       ...restOptions.commands,
     },
@@ -1077,8 +1070,6 @@ export const toolPlugin = (
           hasAwaitingApprovalToolCall = true
           return
         }
-
-        toolCallStart(toolCall, contextWithToolMessage)
 
         await processToolCall(toolCall, contextWithToolMessage, runtimeToolMap)
       })

@@ -7,7 +7,7 @@ import type { VueMessagePluginRuntime } from '../types.internal'
 import type { BasePluginContext, UseMessagePlugin } from '../types'
 
 export { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND } from '../../../message/plugins'
-export type { ToolResumeCommandPayload, ToolResumeCommandResult } from '../../../message/plugins'
+export type { ToolCallCommandPayload, ToolCallCommandResult } from '../../../message/plugins'
 
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage

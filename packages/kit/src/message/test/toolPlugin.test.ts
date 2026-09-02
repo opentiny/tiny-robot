@@ -33,6 +33,7 @@ describe('toolPlugin', () => {
   it('injects and executes runtime tools before falling back to callTool', async () => {
     const runtimeCall = vi.fn(() => ({ result: 'runtime-result' }))
     const fallbackCall = vi.fn()
+    const startHook = vi.fn()
     const runtimeTool: RuntimeTool = {
       tool: {
         type: 'function',
@@ -112,6 +113,7 @@ describe('toolPlugin', () => {
         toolPlugin({
           getTools: async () => [runtimeTool],
           callTool: fallbackCall,
+          onToolCallStart: startHook,
         }),
       ],
       responseProvider,
@@ -130,6 +132,7 @@ describe('toolPlugin', () => {
       }),
     )
     expect(fallbackCall).not.toHaveBeenCalled()
+    expect(startHook).toHaveBeenCalledOnce()
     expect(responseProvider).toHaveBeenCalledTimes(2)
     expect(engine.getState().messages.at(-1)).toMatchObject({
       role: 'assistant',
@@ -1115,6 +1118,108 @@ describe('toolPlugin', () => {
           },
         },
       },
+    })
+  })
+
+  it('aborts a resumed tool call without leaving the engine processing', async () => {
+    let markPaused!: () => void
+    const paused = new Promise<void>((resolve) => {
+      markPaused = resolve
+    })
+    let markStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve
+    })
+    let shouldPause = true
+    const callTool = vi.fn((_toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => {
+      markStarted()
+      return new Promise<string>((resolve) => {
+        context.abortSignal.addEventListener('abort', () => resolve('cancelled'), { once: true })
+      })
+    })
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (hasToolResult) {
+        throw new Error('responseProvider should not be called after abort')
+      }
+
+      return {
+        id: 'resume-abort-tool-call',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call-resume-abort',
+                  type: 'function',
+                  function: {
+                    name: 'sensitive_update',
+                    arguments: '{}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'sensitive_update',
+              },
+            },
+          ],
+          callTool,
+          shouldPauseToolCall() {
+            if (shouldPause) {
+              markPaused()
+            }
+            return shouldPause
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('run sensitive update')
+    await paused
+
+    shouldPause = false
+    const resume = engine.dispatchCommand(TOOL_RESUME_COMMAND, {
+      toolCallId: 'call-resume-abort',
+    })
+    await started
+
+    const abortResult = await Promise.race([
+      engine.abort().then(() => 'aborted'),
+      new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 1000)),
+    ])
+
+    expect(abortResult).toBe('aborted')
+    await expect(resume).resolves.toEqual({
+      status: 'resumed',
+      toolCallId: 'call-resume-abort',
+    })
+    expect(responseProvider).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({
+      requestState: 'aborted',
+      isProcessing: false,
+      isPaused: false,
     })
   })
 

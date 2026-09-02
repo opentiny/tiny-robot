@@ -10,7 +10,7 @@ export type {
   ToolCallPreparationContext,
   ToolProvider,
   ToolProviderItem,
-  ToolResumeCommandPayload,
-  ToolResumeCommandResult,
+  ToolCallCommandPayload,
+  ToolCallCommandResult,
   ToolSource,
 } from './toolPlugin'

@@ -8,6 +8,7 @@ import {
   MessageEngine,
   MessageEnginePlugin,
   MessageEngineInitResult,
+  MessagePluginCommandRegistration,
   MessageRequestBody,
   MessageRuntime,
   MessageStateAdapter,
@@ -82,6 +83,7 @@ export const createMessageEngine = (
   const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
   const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
   const runtimeMessages = initialMessages.map((message) => createMessage(message))
+  let initializedMessages = runtimeMessages
 
   const initialState: InternalMessageState = {
     requestState: 'idle',
@@ -97,13 +99,12 @@ export const createMessageEngine = (
     customContext: {},
     abortController: null,
     responseProvider: initialResponseProvider,
-    commandHandlers: new Map(),
+    commandHandlers: new Map<string, MessagePluginCommandRegistration>(),
   }
 
   const getState = () => adapter.getState()
   const subscribe = adapter.subscribe
   const mutate = adapter.mutate
-  const pluginCommandOwners = new Map<string, MessageEnginePlugin>()
 
   for (const plugin of plugins) {
     if (!plugin.commands) {
@@ -115,8 +116,7 @@ export const createMessageEngine = (
         throw new Error(`Duplicate command name "${commandName}" detected.`)
       }
 
-      runtime.commandHandlers.set(commandName, handler)
-      pluginCommandOwners.set(commandName, plugin)
+      runtime.commandHandlers.set(commandName, { handler, owner: plugin })
     }
   }
 
@@ -188,18 +188,19 @@ export const createMessageEngine = (
   const applyInitResult = (result: MessageEngineInitResult) => {
     if (result.messages) {
       const nextMessages = result.messages.map((message) => createMessage(message))
+      initializedMessages = nextMessages
       mutate('messages', (draft) => {
         draft.messages = nextMessages
       })
     }
 
-    if (result.currentTurn) {
-      runtime.currentTurn = result.currentTurn
+    if (result.currentTurn !== undefined) {
+      runtime.currentTurn = result.currentTurn.map((message) => createMessage(message))
     }
     if (result.turnId !== undefined) {
       runtime.turnId = result.turnId
     }
-    if (result.customContext) {
+    if (result.customContext !== undefined) {
       runtime.customContext = result.customContext
     }
     if (result.requestState) {
@@ -211,7 +212,7 @@ export const createMessageEngine = (
   for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, getBaseContext(initSignal)))) {
     const result = plugin.onInit?.({
       ...getBaseContext(initSignal),
-      initialMessages: runtimeMessages,
+      initialMessages: initializedMessages,
     })
 
     if (result && typeof result === 'object' && 'then' in result) {
@@ -239,19 +240,16 @@ export const createMessageEngine = (
     }
   }
 
+  const notifyTurnAbort = async (abortSignal: AbortSignal) => {
+    const context = getBaseContext(abortSignal)
+    for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
+      await plugin.onTurnAbort?.(context)
+    }
+  }
+
   async function runTurnLifecycle(options: { resume?: boolean } = {}) {
     const ac = new AbortController()
     runtime.abortController = ac
-
-    if (options.resume) {
-      const resumeContext = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, resumeContext))) {
-        await plugin.onResumed?.(resumeContext)
-      }
-    } else {
-      runtime.turnId ??= createTurnId()
-      runtime.customContext = {}
-    }
 
     let assistantMessage: ChatMessage | null = null
     const setAssistantMessage = (message: ChatMessage) => {
@@ -259,6 +257,16 @@ export const createMessageEngine = (
     }
 
     try {
+      if (options.resume) {
+        const resumeContext = getBaseContext(ac.signal)
+        for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, resumeContext))) {
+          await plugin.onResumed?.(resumeContext)
+        }
+      } else {
+        runtime.turnId ??= createTurnId()
+        runtime.customContext = {}
+      }
+
       setRequestState('processing', 'requesting')
 
       const baseContextAtStart = getBaseContext(ac.signal)
@@ -329,16 +337,13 @@ export const createMessageEngine = (
   }
 
   const dispatchCommand = async <Result = unknown>(command: string, payload?: unknown): Promise<Result> => {
-    const handler = runtime.commandHandlers.get(command)
+    const registration = runtime.commandHandlers.get(command)
 
-    if (!handler) {
+    if (!registration) {
       throw new Error(`Unknown command "${command}"`)
     }
 
-    const owner = pluginCommandOwners.get(command)
-    if (!owner) {
-      throw new Error(`Unknown command "${command}"`)
-    }
+    const { handler, owner } = registration
 
     if (getState().requestState === 'processing') {
       const hasAwaitingApprovalToolCall = getState().messages.some((message) => {
@@ -423,6 +428,12 @@ export const createMessageEngine = (
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, pausedContext))) {
         await plugin.onPaused?.(pausedContext)
       }
+    }
+
+    if (ac.signal.aborted && (getState().requestState === 'processing' || getState().requestState === 'paused')) {
+      setRequestState('aborted')
+      runtime.currentTurn = []
+      runtime.turnId = null
     }
 
     if (shouldRequest && !ac.signal.aborted) {
@@ -641,10 +652,7 @@ export const createMessageEngine = (
       runtime.abortController = ac
 
       try {
-        const context = getBaseContext(ac.signal)
-        for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-          await plugin.onTurnAbort?.(context)
-        }
+        await notifyTurnAbort(ac.signal)
 
         if (getState().requestState === 'paused') {
           setRequestState('aborted')
@@ -658,7 +666,12 @@ export const createMessageEngine = (
       return
     }
 
-    runtime.abortController?.abort()
+    const activeAbortController = runtime.abortController
+    activeAbortController?.abort()
+
+    if (getState().requestState === 'processing') {
+      await notifyTurnAbort(activeAbortController?.signal ?? new AbortController().signal)
+    }
 
     // 仅等待实际请求结束；paused 是等待确认，不存在可 abort 的请求。
     if (getState().requestState === 'processing') {

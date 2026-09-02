@@ -219,6 +219,55 @@ describe('createMessageEngine', () => {
     expect(second).toHaveBeenCalled()
   })
 
+  it('passes the latest initialized messages to later plugins', () => {
+    let laterInitialMessages: ChatMessage[] | undefined
+    const initializedMessage = { role: 'user' as const, content: 'initialized' }
+
+    createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          name: 'initializer',
+          onInit: () => ({ messages: [initializedMessage] }),
+        },
+        {
+          name: 'observer',
+          onInit: ({ initialMessages }) => {
+            laterInitialMessages = initialMessages
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('noop'),
+    })
+
+    expect(laterInitialMessages).toEqual([initializedMessage])
+  })
+
+  it('cleans up the lifecycle when a plugin fails during resume', async () => {
+    const onResumed = vi.fn(() => {
+      throw new Error('resume failed')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onInit: () => ({ requestState: 'paused' as const, turnId: 'resume-error', currentTurn: [] }),
+          onResumed,
+          commands: {
+            resume: (_payload, context) => {
+              context.requestNext(true)
+            },
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('unused'),
+    })
+
+    await expect(engine.dispatchCommand('resume')).rejects.toThrow('resume failed')
+    expect(onResumed).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'error', isCurrentTurn: false })
+  })
+
   it('should execute multiple plugin hooks in the correct order', async () => {
     const beforeRequest = vi.fn()
     const completionChunk = vi.fn()
