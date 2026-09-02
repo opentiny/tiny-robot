@@ -17,6 +17,10 @@
       <div class="conversation-title">自定义插槽</div>
     </template>
 
+    <template #input-prefix>
+      <span>需求</span>
+    </template>
+
     <template #prefix>
       <icon-ai class="user-avatar" />
     </template>

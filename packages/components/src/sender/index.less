@@ -295,6 +295,28 @@
   &__input-field-wrapper {
     position: relative;
     width: 100%;
+    overflow: hidden;
+  }
+
+  &__input-prefix {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    width: max-content;
+    height: var(--tr-sender-input-height);
+    line-height: var(--tr-sender-input-line-height);
+    white-space: nowrap;
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  &__input-field-wrapper.has-input-prefix {
+    :deep(.tiny-textarea__inner) {
+      text-indent: calc(var(--tr-sender-input-prefix-width, 0px) + var(--tr-sender-input-prefix-gap));
+    }
   }
 
   // 自动完成占位符

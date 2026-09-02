@@ -245,6 +245,7 @@ const filteredSuggestions = computed(() => {
 | ----------------- | -------------------------------- | ----------------------- |
 | `header`          | 头部插槽，位于输入框上方         | 无                      |
 | `prefix`          | 前缀插槽，位于输入框左侧         | 无                      |
+| `input-prefix`    | 多行输入框首行前缀插槽           | 无                      |
 | `actions`         | 后缀插槽，位于输入框右侧         | 单行模式下的操作按钮    |
 | `content`         | 内容插槽                         | 输入内容区域            |
 | `footer-left`     | 底部左侧插槽，保留字数限制       | 字数限制                |
@@ -348,4 +349,4 @@ type SuggestionItem = string | {
   content: string;  // 建议项文本内容
   highlights?: string[] | HighlightFunction;  // 高亮方式
 }
-``` 
+```

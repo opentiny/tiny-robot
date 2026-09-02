@@ -1,6 +1,11 @@
 {
   "name": "@opentiny/tiny-robot",
-  "version": "0.3.3",
+  "version": "0.3.4",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opentiny/tiny-robot.git"
+  },
   "publishConfig": {
     "access": "public"
   },
