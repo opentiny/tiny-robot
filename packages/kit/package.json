@@ -1,6 +1,7 @@
 {
   "name": "@opentiny/tiny-robot-kit",
   "version": "0.3.4",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/opentiny/tiny-robot.git"
@@ -21,7 +22,6 @@
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch"
   },
   "author": "",
-  "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.13.17",
     "tsup": "^8.0.1",
