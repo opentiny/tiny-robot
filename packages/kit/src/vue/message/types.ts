@@ -126,6 +126,7 @@ export interface UseMessageReturn {
   messages: Ref<ChatMessage[]>
   responseProvider: Ref<UseMessageOptions['responseProvider']>
   isProcessing: ComputedRef<boolean>
+  isCurrentTurn: ComputedRef<boolean>
   isPaused: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
@@ -139,6 +140,7 @@ export interface BasePluginContext {
   turnId: string | null
   requestState: RequestState
   processingState?: RequestProcessingState
+  isCurrentTurn: boolean
   isPaused: boolean
   plugins: UseMessagePlugin[]
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void

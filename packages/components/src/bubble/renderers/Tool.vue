@@ -28,16 +28,13 @@ const textAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['success', { text: '已调用', icon: IconPlugin }],
   ['failed', { text: '调用失败', icon: IconError }],
   ['cancelled', { text: '已取消', icon: IconCancelled }],
-])
-
-const approvalTextAndIconMap = new Map<string, { text: string; icon: Component }>([
   ['awaiting-approval', { text: '等待确认', icon: IconWarning }],
   ['denied', { text: '已拒绝', icon: IconClose }],
 ])
 
 const textAndIcon = computed(() => {
   const status = state.value?.status || ''
-  return textAndIconMap.get(status) || approvalTextAndIconMap.get(status) || { text: '', icon: IconPlugin }
+  return textAndIconMap.get(status) || { text: '', icon: IconPlugin }
 })
 
 const prettyJSON = (json: unknown, space = 2) => {
@@ -230,7 +227,7 @@ const handleClick = () => {
     }
 
     &.icon-awaiting-approval {
-      color: var(--tr-color-warning, #e6a23c);
+      color: var(--tr-color-warning);
     }
   }
 

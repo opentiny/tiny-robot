@@ -551,7 +551,8 @@ describe('toolPlugin', () => {
     expect(engine.getState()).toMatchObject({
       requestState: 'paused',
       processingState: undefined,
-      isProcessing: true,
+      isProcessing: false,
+      isCurrentTurn: true,
       isPaused: true,
     })
     expect(engine.getState().messages[1]).toMatchObject({

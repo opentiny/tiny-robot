@@ -39,12 +39,14 @@ describe('createVueMessageAdapter', () => {
     expect(adapter.processingState.value).toBeUndefined()
     expect(adapter.messages.value).toHaveLength(1)
     expect(adapter.isProcessing.value).toBe(false)
+    expect(adapter.isCurrentTurn.value).toBe(false)
 
     await engine.sendMessage('ping')
 
     expect(adapter.requestState.value).toBe('completed')
     expect(adapter.processingState.value).toBeUndefined()
     expect(adapter.isProcessing.value).toBe(false)
+    expect(adapter.isCurrentTurn.value).toBe(false)
     expect(adapter.messages.value).toHaveLength(3)
     expect(adapter.messages.value[1]).toMatchObject({ role: 'user', content: 'ping' })
     expect(adapter.messages.value[2]).toMatchObject({ role: 'assistant', content: 'hello world', loading: undefined })

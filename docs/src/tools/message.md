@@ -126,8 +126,12 @@ interface UseMessageReturn {
   messages: Ref<ChatMessage[]>
   /** 响应提供者（可动态更新） */
   responseProvider: Ref<UseMessageOptions['responseProvider']>
-  /** 是否正在处理中 */
+  /** 是否正在处理请求（不包含暂停） */
   isProcessing: ComputedRef<boolean>
+  /** 当前回合是否仍在运行或暂停等待确认 */
+  isCurrentTurn: ComputedRef<boolean>
+  /** 是否处于暂停等待确认状态 */
+  isPaused: ComputedRef<boolean>
   /** 发送消息 */
   sendMessage: (content: string) => Promise<void>
   /** 发送消息（支持传入多个消息对象） */
@@ -141,7 +145,7 @@ interface UseMessageReturn {
 
 ```typescript
 /** 请求状态 */
-type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+type RequestState = 'idle' | 'processing' | 'paused' | 'completed' | 'aborted' | 'error'
 
 /** 处理状态 */
 type RequestProcessingState = 'requesting' | 'completing' | string
@@ -149,6 +153,7 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 
 - `idle`: 空闲状态，没有正在进行的请求
 - `processing`: 正在处理中（包含 `requesting` 和 `completing` 两个子状态）
+- `paused`: 当前回合暂停，等待工具确认或外部恢复
 - `completed`: 请求已完成
 - `aborted`: 请求被中止
 - `error`: 请求发生错误
@@ -270,7 +275,7 @@ useMessage({
 | `beforeCallTools` | `assistantMessage`、`currentMessage`（已弃用）                                      | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。                                               |
 | `callTool`        | `assistantMessage`、`currentMessage`（已弃用）、`toolMessage`、`toolSource`         | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息、当前工具对应的 `toolMessage` 和工具来源。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。     |
 | `onToolCallStart` | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`       | 在 `BasePluginContext` 基础上额外包含触发当前工具调用的 assistant 消息、当前 tool 消息和工具来源。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。                             |
-| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息、工具来源和执行状态；当工具执行失败或被取消时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
+| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息、工具来源和执行状态；当工具执行失败、取消或拒绝时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
 
 `toolSource` 类型：
 

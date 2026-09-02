@@ -47,6 +47,7 @@ describe('createMessageEngine', () => {
     expect(s.messages).toHaveLength(1)
     expect(s.messages[0].content).toBe('hi')
     expect(s.isProcessing).toBe(false)
+    expect(s.isCurrentTurn).toBe(false)
   })
 
   it('sendMessage runs responseProvider and appends assistant content', async () => {
