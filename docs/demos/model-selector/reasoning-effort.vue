@@ -9,7 +9,7 @@ const models = [
   {
     value: 'reasoning-standard',
     label: '标准推理模型',
-    description: '11',
+    description: '使用内置 Low、Medium、High 思考强度选项',
     reasoningEfforts: true,
   },
   {
