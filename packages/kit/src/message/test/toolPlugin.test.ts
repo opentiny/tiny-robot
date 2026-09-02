@@ -862,7 +862,7 @@ describe('toolPlugin', () => {
       expect(requestBody.messages.at(-1)).toMatchObject({
         role: 'tool',
         tool_call_id: 'call-rejection',
-        content: 'Tool call denied.',
+        content: 'Tool call failed.',
       })
       return {
         id: 'rejection-answer',
@@ -938,7 +938,7 @@ describe('toolPlugin', () => {
     })
     expect(engine.getState().messages[2]).toMatchObject({
       role: 'tool',
-      content: 'Tool call denied.',
+      content: 'Tool call failed.',
     })
     expect(engine.getState().messages.at(-1)).toMatchObject({
       role: 'assistant',
@@ -1026,7 +1026,7 @@ describe('toolPlugin', () => {
     expect(engine.getState().messages[2]).toMatchObject({
       role: 'tool',
       tool_call_id: 'call-reject-one',
-      content: 'Tool call denied.',
+      content: 'Tool call failed.',
     })
     expect(engine.getState().messages[3]).toMatchObject({
       role: 'tool',

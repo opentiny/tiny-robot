@@ -91,11 +91,7 @@ export const toolPlugin = (
      */
     toolCallCancelledContent?: string
     /**
-     * 工具调用被用户拒绝或取消当前回合而被标记为 denied 时使用的消息内容。
-     */
-    toolCallDeniedContent?: string
-    /**
-     * 当工具调用执行失败（抛错）时使用的消息内容。
+     * 当工具调用执行失败、被拒绝或因回合中止而未执行时使用的消息内容。
      */
     toolCallFailedContent?: string
     /**
@@ -115,7 +111,6 @@ export const toolPlugin = (
     onToolCallEnd,
     toolCallPausedContent,
     toolCallCancelledContent = 'Tool call cancelled.',
-    toolCallDeniedContent = 'Tool call denied.',
     toolCallFailedContent = 'Tool call failed.',
     autoFillMissingToolMessages = false,
     ...restOptions
@@ -205,7 +200,6 @@ export const toolPlugin = (
           : undefined,
         toolCallPausedContent,
         toolCallCancelledContent,
-        toolCallDeniedContent,
         toolCallFailedContent,
         autoFillMissingToolMessages,
       })
