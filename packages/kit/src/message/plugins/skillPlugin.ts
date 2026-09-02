@@ -714,11 +714,11 @@ export const skillPlugin = <S extends SkillSelection = SkillSelection>(
 
       return restOptions.onTurnStart?.(context)
     },
-    onTurnResume: async (context) => {
+    onResumed: async (context) => {
       if (!runtimeToolsReady) {
         await rebuildRuntimeTools(context)
       }
-      return restOptions.onTurnResume?.(context)
+      return restOptions.onResumed?.(context)
     },
   } satisfies MessageEnginePlugin & ToolProvider
 }

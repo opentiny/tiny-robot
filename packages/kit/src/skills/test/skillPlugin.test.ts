@@ -259,10 +259,8 @@ describe('skillPlugin', () => {
           toolPlugin({
             getTools: async () => [],
             callTool,
-            onToolCallStart(toolCall, context) {
-              if (shouldPause) {
-                context.pauseToolCall(toolCall.id, { reason: 'rebuild-check' })
-              }
+            shouldPauseToolCall() {
+              return shouldPause
             },
           }),
         ],
@@ -383,10 +381,8 @@ describe('skillPlugin', () => {
             callTool: async () => {
               throw new Error('runtime skill tool was not rebuilt')
             },
-            onToolCallStart(toolCall, context) {
-              if (shouldPause) {
-                context.pauseToolCall(toolCall.id)
-              }
+            shouldPauseToolCall() {
+              return shouldPause
             },
           }),
         ],

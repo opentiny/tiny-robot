@@ -271,9 +271,9 @@ describe('useMessage', () => {
             },
           ],
           callTool,
-          onToolCallStart(toolCall, context) {
-            context.pauseToolCall(toolCall.id)
+          shouldPauseToolCall() {
             markPaused()
+            return true
           },
         }),
       ],
@@ -378,10 +378,8 @@ describe('useMessage', () => {
               },
             ],
             callTool,
-            onToolCallStart(toolCall, context) {
-              if (shouldPause) {
-                context.pauseToolCall(toolCall.id)
-              }
+            shouldPauseToolCall() {
+              return shouldPause
             },
           }),
         ],

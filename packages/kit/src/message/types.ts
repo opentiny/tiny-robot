@@ -20,19 +20,11 @@ export type DeepReadonly<T> = T extends (...args: any[]) => any
 export type RequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
 
-export interface RequestNextOptions {
-  /**
-   * 标记后续请求是从暂停状态恢复触发的请求。
-   * 设置为 true 时，后续 turn 会触发 `onTurnResume`，不会触发 `onTurnStart`。
-   */
-  resume?: boolean
-}
-
 export type MessagePluginCommandHandler = (
   payload: unknown,
   context: BasePluginContext & {
     appendMessage: (message: ChatMessage | ChatMessage[]) => void
-    requestNext: (options?: RequestNextOptions) => void
+    requestNext: (resume?: boolean) => void
   },
 ) => MaybePromise<unknown>
 
@@ -150,6 +142,8 @@ export interface BasePluginContext {
   mutate: MutateMessageStateFn
   abortSignal: AbortSignal
   currentTurn: ChatMessage[]
+  /** 当前对话回合 ID；用于插件保存或恢复回合级状态。 */
+  turnId: string | null
   /**
    * 当前 engine 中已注册的插件列表。
    *
@@ -159,6 +153,23 @@ export interface BasePluginContext {
   customContext: Record<string, unknown>
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   setCustomContext: (data: Record<string, unknown>) => void
+}
+
+export interface MessageEngineInitContext extends BasePluginContext {
+  /** 引擎初始化时当前可用的消息历史。 */
+  initialMessages: ChatMessage[]
+}
+
+export interface MessageEngineInitResult {
+  /** 初始化后的消息历史。 */
+  messages?: ChatMessage[]
+  /** 初始化后的请求状态。 */
+  requestState?: RequestState
+  processingState?: RequestProcessingState
+  /** 初始化后的回合运行时数据。 */
+  turnId?: string | null
+  currentTurn?: ChatMessage[]
+  customContext?: Record<string, unknown>
 }
 
 export interface BeforeRequestContext extends BasePluginContext {
@@ -172,7 +183,7 @@ export interface AfterRequestContext extends BasePluginContext {
    * 使用 appendMessage 函数追加消息，可触发消息更新通知。
    */
   appendMessage: (message: ChatMessage | ChatMessage[]) => void
-  requestNext: (options?: RequestNextOptions) => void
+  requestNext: (resume?: boolean) => void
 }
 
 export interface CompletionChunkContext extends BasePluginContext {
@@ -197,28 +208,23 @@ export interface MessageEnginePlugin {
    * 是否禁用插件。
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
+  /** 引擎创建时初始化插件拥有的运行时状态。 */
+  onInit?: (context: MessageEngineInitContext) => MessageEngineInitResult | void
+  /** 一次回合从暂停状态恢复前触发。 */
+  onResumed?: (context: BasePluginContext) => MaybePromise<void>
+  /** 一次回合进入暂停状态后触发。 */
+  onPaused?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。
    */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
   /**
-   * 一次对话回合（turn）从暂停状态恢复后的生命周期钩子。
-   * 与 `onTurnStart` 互斥：resume 触发的后续请求只触发 `onTurnResume`。
-   */
-  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
-  /**
    * 一次对话回合（turn）结束的生命周期钩子。
    * 触发时机：本轮对话完成（成功、被中止）后。
    * 执行策略：按插件注册顺序串行执行，有错误则中断流程。
    */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
-  /**
-   * 一次对话回合（turn）暂停钩子。
-   * 触发时机：本轮请求进入 `paused` 状态后，例如工具调用等待人工确认。
-   * 与 `onTurnEnd` 互斥：暂停的 turn 只触发 `onTurnPause`，不会触发 `onTurnEnd`。
-   */
-  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合被外部取消的生命周期钩子。
    * paused 状态下调用 abort 时也会触发，用于清理等待中的工具调用。
@@ -252,11 +258,6 @@ export interface MessageEnginePlugin {
 
 export interface CreateMessageEngineOptions {
   initialMessages?: ChatMessage[]
-  /**
-   * Automatically persist paused turns in the browser when localStorage is available.
-   * Defaults to true so existing tool pause integrations can survive a page reload.
-   */
-  persistPausedTurn?: boolean
   /**
    * 请求消息时，要包含的字段（白名单）。默认包含所有字段。
    * 如果 `requestMessageFieldsExclude` 存在，会先取 `requestMessageFields` 中的字段，再排除 `requestMessageFieldsExclude` 中的字段

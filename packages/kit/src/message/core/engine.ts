@@ -7,11 +7,11 @@ import {
   InternalMessageState,
   MessageEngine,
   MessageEnginePlugin,
+  MessageEngineInitResult,
   MessageRequestBody,
   MessageRuntime,
   MessageStateAdapter,
   RequestProcessingState,
-  RequestNextOptions,
   RequestState,
   ResponseProvider,
 } from '../types'
@@ -22,14 +22,8 @@ import {
   normalizeToAsyncGenerator,
   omitFields,
   pickFields,
-} from '../utils'
-import {
-  clearTurnSnapshot,
   createTurnId,
-  loadTurnSnapshots,
-  saveTurnSnapshot,
-  serializeTurnData,
-} from './turnPersistence'
+} from '../utils'
 
 type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
 
@@ -70,121 +64,6 @@ const isPluginDisabled = (plugin: MessageEnginePlugin, context: BasePluginContex
   return Boolean(plugin.disabled)
 }
 
-const getRestorableToolCallIds = (messages: ChatMessage[]) => {
-  const ids = new Set<string>()
-
-  for (const message of messages) {
-    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
-      continue
-    }
-
-    const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
-    for (const toolCall of message.tool_calls) {
-      const status = toolCallState[toolCall.id]?.status
-      if (status === undefined || status === 'awaiting-approval') {
-        ids.add(toolCall.id)
-      }
-    }
-  }
-
-  return ids
-}
-
-const findRestoredTurn = (messages: ChatMessage[], persistPausedTurn: boolean) => {
-  if (!persistPausedTurn) {
-    return undefined
-  }
-
-  const snapshots = loadTurnSnapshots()
-  if (snapshots.length === 0) {
-    return undefined
-  }
-
-  const messageToolCallIds = getRestorableToolCallIds(messages)
-  const matches = snapshots.filter((snapshot) =>
-    snapshot.toolCallIds.some((toolCallId) => messageToolCallIds.has(toolCallId)),
-  )
-
-  if (matches.length === 1) {
-    return matches[0]
-  }
-
-  // A turn snapshot is only meaningful when the conversation messages are available.
-  // Never restore a snapshot without a message match, because the tool call arguments
-  // and persisted tool statuses live in the conversation message history.
-  return undefined
-}
-
-const restorePendingToolCallStates = (messages: ChatMessage[], toolCallIds: string[]) => {
-  const toolCallIdSet = new Set(toolCallIds)
-
-  return messages.map((message) => {
-    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
-      return message
-    }
-
-    const pendingToolCallIds = message.tool_calls
-      .map((toolCall) => toolCall.id)
-      .filter((toolCallId) => toolCallIdSet.has(toolCallId))
-
-    if (pendingToolCallIds.length === 0) {
-      return message
-    }
-
-    const toolCallState = (message.state?.toolCall as Record<string, Record<string, unknown>> | undefined) ?? {}
-    const nextToolCallState = { ...toolCallState }
-    let changed = false
-
-    for (const toolCallId of pendingToolCallIds) {
-      if (toolCallState[toolCallId]?.status !== undefined) {
-        continue
-      }
-
-      nextToolCallState[toolCallId] = {
-        ...toolCallState[toolCallId],
-        status: 'awaiting-approval',
-      }
-      changed = true
-    }
-
-    if (!changed) {
-      return message
-    }
-
-    return {
-      ...message,
-      state: {
-        ...message.state,
-        toolCall: nextToolCallState,
-      },
-    }
-  })
-}
-
-const restoreCurrentTurn = (messages: ChatMessage[], toolCallIds: string[]) => {
-  const toolCallIdSet = new Set(toolCallIds)
-  const assistantIndex = messages.findIndex(
-    (message) =>
-      message.role === 'assistant' &&
-      Array.isArray(message.tool_calls) &&
-      message.tool_calls.some((toolCall) => toolCallIdSet.has(toolCall.id)),
-  )
-
-  if (assistantIndex === -1) {
-    return []
-  }
-
-  let turnStart = assistantIndex
-  for (let index = assistantIndex - 1; index >= 0; index -= 1) {
-    if (messages[index].role === 'user') {
-      turnStart = index
-      break
-    }
-  }
-
-  return messages.slice(turnStart)
-}
-
 export const createMessageEngine = (
   adapter: MessageStateAdapter,
   options: CreateMessageEngineOptions = {},
@@ -193,7 +72,6 @@ export const createMessageEngine = (
     initialMessages = [],
     requestMessageFields = [],
     requestMessageFieldsExclude = ['state', 'metadata', 'loading'],
-    persistPausedTurn = true,
     responseProvider: initialResponseProvider = defaultResponseProvider,
     onCompletionChunk,
     plugins: pluginsFromOptions = [],
@@ -201,32 +79,26 @@ export const createMessageEngine = (
 
   const createMessage = <T extends ChatMessage>(message: T): T => adapter.createMessage(message)
 
-  const restoredTurn = findRestoredTurn(initialMessages, persistPausedTurn)
-
-  const restoredMessages = restoredTurn
-    ? restorePendingToolCallStates(initialMessages, restoredTurn.toolCallIds)
-    : initialMessages
-  const runtimeMessages = restoredMessages.map((message) => createMessage(message))
+  const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
+  const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
+  const runtimeMessages = initialMessages.map((message) => createMessage(message))
 
   const initialState: InternalMessageState = {
-    requestState: restoredTurn ? 'paused' : 'idle',
-    processingState: restoredTurn?.processingState,
+    requestState: 'idle',
+    processingState: undefined,
     messages: runtimeMessages,
   }
 
   adapter.initialize(initialState)
 
   const runtime: MessageRuntime = {
-    turnId: restoredTurn?.turnId ?? null,
-    currentTurn: restoredTurn ? restoreCurrentTurn(initialState.messages, restoredTurn.toolCallIds) : [],
-    customContext: restoredTurn?.customContext ?? {},
+    turnId: null,
+    currentTurn: [],
+    customContext: {},
     abortController: null,
     responseProvider: initialResponseProvider,
     commandHandlers: new Map(),
   }
-
-  const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
-  const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
 
   const getState = () => adapter.getState()
   const subscribe = adapter.subscribe
@@ -306,31 +178,64 @@ export const createMessageEngine = (
     mutate,
     abortSignal,
     currentTurn: runtime.currentTurn,
+    turnId: runtime.turnId,
     plugins,
     customContext: runtime.customContext,
     setRequestState,
     setCustomContext,
   })
 
+  const applyInitResult = (result: MessageEngineInitResult) => {
+    if (result.messages) {
+      const nextMessages = result.messages.map((message) => createMessage(message))
+      mutate('messages', (draft) => {
+        draft.messages = nextMessages
+      })
+    }
+
+    if (result.currentTurn) {
+      runtime.currentTurn = result.currentTurn
+    }
+    if (result.turnId !== undefined) {
+      runtime.turnId = result.turnId
+    }
+    if (result.customContext) {
+      runtime.customContext = result.customContext
+    }
+    if (result.requestState) {
+      setRequestState(result.requestState, result.processingState)
+    }
+  }
+
+  const initSignal = new AbortController().signal
+  for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, getBaseContext(initSignal)))) {
+    const result = plugin.onInit?.({
+      ...getBaseContext(initSignal),
+      initialMessages: runtimeMessages,
+    })
+
+    if (result && typeof result === 'object' && 'then' in result) {
+      throw new Error(`Plugin [${plugin.name || 'Anonymous'}] onInit must be synchronous.`)
+    }
+
+    if (result) {
+      applyInitResult(result)
+    }
+  }
+
   const finishTurnAfterRequest = async (abortSignal: AbortSignal) => {
     const context = getBaseContext(abortSignal)
 
     if (getState().requestState === 'paused') {
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        await plugin.onTurnPause?.(context)
+        await plugin.onPaused?.(context)
       }
-
-      persistCurrentPausedTurn()
       return
     }
 
     setRequestState('completed')
     for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
       await plugin.onTurnEnd?.(context)
-    }
-
-    if (persistPausedTurn && runtime.turnId) {
-      clearTurnSnapshot(runtime.turnId)
     }
   }
 
@@ -339,8 +244,9 @@ export const createMessageEngine = (
     runtime.abortController = ac
 
     if (options.resume) {
-      if (persistPausedTurn && runtime.turnId) {
-        clearTurnSnapshot(runtime.turnId)
+      const resumeContext = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, resumeContext))) {
+        await plugin.onResumed?.(resumeContext)
       }
     } else {
       runtime.turnId ??= createTurnId()
@@ -357,9 +263,7 @@ export const createMessageEngine = (
 
       const baseContextAtStart = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContextAtStart))) {
-        if (options.resume) {
-          await plugin.onTurnResume?.(baseContextAtStart)
-        } else {
+        if (!options.resume) {
           await plugin.onTurnStart?.(baseContextAtStart)
         }
       }
@@ -479,7 +383,7 @@ export const createMessageEngine = (
     const wasPaused = getState().requestState === 'paused'
 
     let shouldRequest = false
-    let requestNextOptions: RequestNextOptions | undefined
+    let requestNextResume: boolean | undefined
     let commandSucceeded = false
     let shouldFinishTurn = false
     let result: Result
@@ -494,9 +398,9 @@ export const createMessageEngine = (
         appendMessages(...(Array.isArray(message) ? message : [message]))
       }
 
-      const requestNext = (options?: RequestNextOptions) => {
+      const requestNext = (resume?: boolean) => {
         shouldRequest = true
-        requestNextOptions = options
+        requestNextResume = resume
       }
 
       result = (await handler(payload, { ...baseContext, appendMessage, requestNext })) as Result
@@ -515,11 +419,14 @@ export const createMessageEngine = (
     }
 
     if (commandSucceeded && getState().requestState === 'paused') {
-      persistCurrentPausedTurn()
+      const pausedContext = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, pausedContext))) {
+        await plugin.onPaused?.(pausedContext)
+      }
     }
 
     if (shouldRequest && !ac.signal.aborted) {
-      await runTurnLifecycle({ resume: requestNextOptions?.resume })
+      await runTurnLifecycle({ resume: requestNextResume === true })
     }
 
     if (shouldFinishTurn) {
@@ -646,50 +553,6 @@ export const createMessageEngine = (
     await postRequest(assistantMessage, responseProvider, abortSignal, lastChoice, options)
   }
 
-  function persistCurrentPausedTurn() {
-    if (!persistPausedTurn || !runtime.turnId) {
-      return
-    }
-
-    const state = getState()
-    const toolCallIds = Array.from(
-      new Set(
-        state.messages.flatMap((message) => {
-          if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
-            return []
-          }
-
-          const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
-          return message.tool_calls
-            .filter((toolCall) => {
-              const status = toolCallState[toolCall.id]?.status
-              return status === 'awaiting-approval'
-            })
-            .map((toolCall) => toolCall.id)
-        }),
-      ),
-    )
-
-    if (toolCallIds.length === 0) {
-      return
-    }
-
-    const customContext = serializeTurnData(runtime.customContext)
-    if (!customContext || typeof customContext !== 'object') {
-      return
-    }
-
-    saveTurnSnapshot({
-      version: 1,
-      turnId: runtime.turnId,
-      requestState: 'paused',
-      processingState: state.processingState,
-      toolCallIds,
-      customContext: customContext as Record<string, unknown>,
-      pausedAt: Date.now(),
-    })
-  }
-
   async function postRequest(
     currentMessage: ChatMessage,
     responseProvider: ResponseProvider,
@@ -712,7 +575,7 @@ export const createMessageEngine = (
           appendMessages(...(Array.isArray(message) ? message : [message]))
         }
 
-        const requestNext = (_options?: RequestNextOptions) => {
+        const requestNext = (_resume?: boolean) => {
           shouldRequest = true
         }
 
@@ -785,10 +648,6 @@ export const createMessageEngine = (
 
         if (getState().requestState === 'paused') {
           setRequestState('aborted')
-        }
-
-        if (persistPausedTurn && runtime.turnId) {
-          clearTurnSnapshot(runtime.turnId)
         }
       } finally {
         runtime.abortController = null

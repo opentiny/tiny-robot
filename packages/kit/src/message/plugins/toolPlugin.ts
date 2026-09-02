@@ -8,27 +8,120 @@ import {
 import type { MaybePromise, MaybeStreamableResult } from '../../types'
 import type { BasePluginContext, ChatMessage, MessageEnginePlugin, MutateMessageStateFn } from '../types'
 import { combineDeltaData, makeAbortable, normalizeToAsyncGenerator } from '../utils'
+import { clearTurnSnapshot, loadTurnSnapshots, saveTurnSnapshot, serializeTurnData } from '../core/turnPersistence'
 
 type AssistantMessageWithState = ChatMessage<
   Record<string, unknown>,
   { toolCall?: Record<string, Record<string, unknown>> }
 >
 
+const collectPendingToolCallIds = (messages: ChatMessage[]) => {
+  const ids = new Set<string>()
+
+  for (const message of messages) {
+    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+      continue
+    }
+
+    const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
+    for (const toolCall of message.tool_calls) {
+      const status = toolCallState[toolCall.id]?.status
+      if (status === undefined || status === 'awaiting-approval') {
+        ids.add(toolCall.id)
+      }
+    }
+  }
+
+  return ids
+}
+
+const findPersistedPausedTurn = (messages: ChatMessage[]) => {
+  const snapshots = loadTurnSnapshots()
+  if (snapshots.length === 0) {
+    return undefined
+  }
+
+  const messageToolCallIds = collectPendingToolCallIds(messages)
+  const matches = snapshots.filter((snapshot) =>
+    snapshot.toolCallIds.some((toolCallId) => messageToolCallIds.has(toolCallId)),
+  )
+
+  return matches.length === 1 ? matches[0] : undefined
+}
+
+const restorePersistedToolCallStates = (messages: ChatMessage[], toolCallIds: string[]) => {
+  const toolCallIdSet = new Set(toolCallIds)
+
+  messages.forEach((message) => {
+    if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+      return
+    }
+
+    const pendingToolCallIds = message.tool_calls
+      .map((toolCall) => toolCall.id)
+      .filter((toolCallId) => toolCallIdSet.has(toolCallId))
+
+    if (pendingToolCallIds.length === 0) {
+      return
+    }
+
+    const toolCallState = (message.state?.toolCall as Record<string, Record<string, unknown>> | undefined) ?? {}
+    const nextToolCallState = { ...toolCallState }
+    let changed = false
+
+    for (const toolCallId of pendingToolCallIds) {
+      if (toolCallState[toolCallId]?.status !== undefined) {
+        continue
+      }
+
+      nextToolCallState[toolCallId] = {
+        ...toolCallState[toolCallId],
+        status: 'awaiting-approval',
+      }
+      changed = true
+    }
+
+    if (!changed) {
+      return
+    }
+
+    message.state = {
+      ...message.state,
+      toolCall: nextToolCallState,
+    }
+  })
+
+  return messages
+}
+
+const restorePersistedTurnMessages = (messages: ChatMessage[], toolCallIds: string[]) => {
+  const toolCallIdSet = new Set(toolCallIds)
+  const assistantIndex = messages.findIndex(
+    (message) =>
+      message.role === 'assistant' &&
+      Array.isArray(message.tool_calls) &&
+      message.tool_calls.some((toolCall) => toolCallIdSet.has(toolCall.id)),
+  )
+
+  if (assistantIndex === -1) {
+    return []
+  }
+
+  let turnStart = assistantIndex
+  for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+    if (messages[index].role === 'user') {
+      turnStart = index
+      break
+    }
+  }
+
+  return messages.slice(turnStart)
+}
+
 /**
  * 工具来源标识，便于区分来自 toolPlugin、其他插件 provider，还是未知来源。
  */
 export type ToolSource = { type: 'toolPlugin' } | { type: 'toolProvider'; pluginName?: string } | { type: 'unknown' }
-
-export type ToolCallPauseOptions = {
-  /**
-   * 暂停时写入 tool 消息的提示文案。
-   */
-  content?: string
-  /**
-   * 暂停原因，主要用于状态记录和外部审批链路追踪。
-   */
-  reason?: string
-}
 
 export type ToolCallContext = BasePluginContext & {
   assistantMessage: AssistantMessageWithState
@@ -40,10 +133,6 @@ export type ToolCallContext = BasePluginContext & {
    * 当前工具的来源。
    */
   toolSource: ToolSource
-  /**
-   * 在工具正式执行前挂起当前 tool call。
-   */
-  pauseToolCall: (toolCallId: string, options?: ToolCallPauseOptions) => void
 }
 
 export type ToolCallPreparationContext = BasePluginContext & {
@@ -51,16 +140,10 @@ export type ToolCallPreparationContext = BasePluginContext & {
    * 当前 assistant 消息。
    */
   assistantMessage: AssistantMessageWithState
-  /**
-   * 在进入 callTool 前挂起当前 tool call。
-   */
-  pauseToolCall: (toolCallId: string, options?: ToolCallPauseOptions) => void
 }
 
 export const TOOL_RESUME_COMMAND = 'tool.resume'
 export const TOOL_REJECT_COMMAND = 'tool.reject'
-export const TOOL_RESUME_TURN_COMMAND = 'tool.resumeTurn'
-export const TOOL_REJECT_TURN_COMMAND = 'tool.rejectTurn'
 
 export type ToolResumeCommandPayload = {
   /**
@@ -78,17 +161,8 @@ export type ToolResumeCommandPayload = {
  */
 export type ToolResumeCommandResult =
   | { status: 'resumed'; toolCallId: string }
-  | { status: 'rejected'; toolCallId: string }
+  | { status: 'denied'; toolCallId: string }
   | { status: 'missing'; toolCallId: string }
-
-export type ToolTurnCommandPayload = {
-  reason?: string
-}
-
-export type ToolTurnCommandResult = {
-  status: 'resumed' | 'rejected' | 'missing'
-  toolCallIds: string[]
-}
 
 export interface RuntimeTool {
   /**
@@ -252,13 +326,17 @@ export const toolPlugin = (
      */
     toolCallCancelledContent?: string
     /**
-     * 当工具调用被拒绝时使用的消息内容。
+     * 当工具调用被用户拒绝或取消当前回合而被标记为 denied 时使用的消息内容。
      */
     toolCallDeniedContent?: string
     /**
      * 当工具调用执行失败（抛错）时使用的消息内容。
      */
     toolCallFailedContent?: string
+    /**
+     * 是否在浏览器 localStorage 中持久化暂停的工具回合。默认：true。
+     */
+    persistPausedTurn?: boolean
     /**
      * 是否在请求前自动补充缺失的 tool 消息。
      * 当 assistant 响应了 tool_calls 但未追加对应的 tool 消息时，
@@ -278,9 +356,51 @@ export const toolPlugin = (
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallDeniedContent = 'Tool call denied.',
     toolCallFailedContent = 'Tool call failed.',
+    persistPausedTurn = true,
     autoFillMissingToolMessages = false,
     ...restOptions
   } = options
+
+  const persistPausedTurnState = (context: BasePluginContext) => {
+    if (!persistPausedTurn || !context.turnId) {
+      return
+    }
+
+    const state = context.getState()
+    const toolCallIds = Array.from(
+      new Set(
+        state.messages.flatMap((message) => {
+          if (message.role !== 'assistant' || !Array.isArray(message.tool_calls)) {
+            return []
+          }
+
+          const toolCallState = (message.state?.toolCall as Record<string, { status?: string }> | undefined) ?? {}
+          return message.tool_calls
+            .filter((toolCall) => toolCallState[toolCall.id]?.status === 'awaiting-approval')
+            .map((toolCall) => toolCall.id)
+        }),
+      ),
+    )
+
+    if (toolCallIds.length === 0) {
+      return
+    }
+
+    const customContext = serializeTurnData(context.customContext)
+    if (!customContext || typeof customContext !== 'object') {
+      return
+    }
+
+    saveTurnSnapshot({
+      version: 1,
+      turnId: context.turnId,
+      requestState: 'paused',
+      processingState: state.processingState,
+      toolCallIds,
+      customContext: customContext as Record<string, unknown>,
+      pausedAt: Date.now(),
+    })
+  }
 
   const ensureToolCallState = (assistantMessage: AssistantMessageWithState, toolCallId: string) => {
     assistantMessage.state ??= {}
@@ -444,31 +564,33 @@ export const toolPlugin = (
     return pendingFromTurn ?? findPendingToolCall(context.getState().messages)
   }
 
-  const createPauseToolCall =
-    (assistantMessage: AssistantMessageWithState, mutate: MutateMessageStateFn, toolMessage?: ChatMessage) =>
-    (toolCallId: string, pauseOptions: ToolCallPauseOptions = {}) => {
-      const now = Math.floor(Date.now() / 1000)
-      const content = pauseOptions.content ?? toolCallPausedContent
+  const markToolCallAwaiting = (
+    assistantMessage: AssistantMessageWithState,
+    toolCallId: string,
+    mutate: MutateMessageStateFn,
+    toolMessage?: ChatMessage,
+  ) => {
+    const now = Math.floor(Date.now() / 1000)
+    const content = toolCallPausedContent
 
-      setToolCallState(
-        assistantMessage,
-        toolCallId,
-        {
-          status: 'awaiting-approval',
-          reason: pauseOptions.reason,
-          content,
-        },
-        mutate,
-      )
+    setToolCallState(
+      assistantMessage,
+      toolCallId,
+      {
+        status: 'awaiting-approval',
+        content,
+      },
+      mutate,
+    )
 
-      if (toolMessage) {
-        mutate('messages', () => {
-          toolMessage.content = content
-          toolMessage.metadata ??= {}
-          toolMessage.metadata.updatedAt = now
-        })
-      }
+    if (toolMessage) {
+      mutate('messages', () => {
+        toolMessage.content = content
+        toolMessage.metadata ??= {}
+        toolMessage.metadata.updatedAt = now
+      })
     }
+  }
 
   const processToolCall = async (
     toolCall: ChatCompletionMessageToolCall,
@@ -615,27 +737,6 @@ export const toolPlugin = (
     return { tools, runtimeToolMap, toolSourceMap }
   }
 
-  const getAwaitingToolCalls = (assistantMessage: AssistantMessageWithState) => {
-    const toolCallState = assistantMessage.state?.toolCall ?? {}
-
-    return (assistantMessage.tool_calls ?? []).filter(
-      (toolCall) => toolCallState[toolCall.id]?.status === 'awaiting-approval',
-    )
-  }
-
-  const parseTurnCommandPayload = (payload: unknown): ToolTurnCommandPayload => {
-    if (payload === undefined || payload === null) {
-      return {}
-    }
-
-    if (typeof payload !== 'object') {
-      throw new Error('Tool turn commands require an object payload.')
-    }
-
-    const { reason } = payload as { reason?: unknown }
-    return typeof reason === 'string' && reason.length > 0 ? { reason } : {}
-  }
-
   const ensureToolMessage = ({
     toolCall,
     toolMessages,
@@ -676,6 +777,40 @@ export const toolPlugin = (
   return {
     name: 'tool',
     ...restOptions,
+    onInit: (context) => {
+      const restResult = restOptions.onInit?.(context)
+      const persistedPausedTurn = persistPausedTurn ? findPersistedPausedTurn(context.initialMessages) : undefined
+
+      if (!persistedPausedTurn) {
+        return restResult
+      }
+
+      const restoredMessages = restorePersistedToolCallStates(context.initialMessages, persistedPausedTurn.toolCallIds)
+      return {
+        ...(restResult ?? {}),
+        requestState: 'paused',
+        processingState: persistedPausedTurn.processingState,
+        turnId: persistedPausedTurn.turnId,
+        currentTurn: restorePersistedTurnMessages(restoredMessages, persistedPausedTurn.toolCallIds),
+        customContext: persistedPausedTurn.customContext,
+      }
+    },
+    onResumed: async (context) => {
+      if (persistPausedTurn && context.turnId) {
+        clearTurnSnapshot(context.turnId)
+      }
+      await restOptions.onResumed?.(context)
+    },
+    onTurnEnd: async (context) => {
+      if (persistPausedTurn && context.turnId) {
+        clearTurnSnapshot(context.turnId)
+      }
+      await restOptions.onTurnEnd?.(context)
+    },
+    onPaused: async (context) => {
+      persistPausedTurnState(context)
+      await restOptions.onPaused?.(context)
+    },
     commands: {
       [TOOL_RESUME_COMMAND]: async (payload, context) => {
         const { toolCallId, reason } = parsePauseCommandPayload(payload)
@@ -728,7 +863,6 @@ export const toolPlugin = (
             assistantMessage,
             toolMessage,
             toolSource,
-            pauseToolCall: createPauseToolCall(assistantMessage, mutate, toolMessage),
           },
           runtimeToolMap,
           { skipStartHook: true },
@@ -738,7 +872,7 @@ export const toolPlugin = (
         const latestToolMessages = latestPending?.toolMessages ?? []
 
         if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
-          requestNext({ resume: true })
+          requestNext(true)
         } else {
           setRequestState('paused')
         }
@@ -747,7 +881,7 @@ export const toolPlugin = (
       },
       [TOOL_REJECT_COMMAND]: async (payload, context) => {
         const { toolCallId, reason } = parsePauseCommandPayload(payload)
-        const { createMessage, appendMessage, setRequestState, mutate } = context
+        const { createMessage, appendMessage, requestNext, setRequestState, mutate } = context
 
         const pending = findPendingToolCallFromContext(context)
 
@@ -794,7 +928,6 @@ export const toolPlugin = (
           assistantMessage,
           toolMessage,
           toolSource,
-          pauseToolCall: createPauseToolCall(assistantMessage, mutate, toolMessage),
           status: 'denied',
           error: new Error(reason ?? 'Tool call rejected.'),
         })
@@ -803,145 +936,12 @@ export const toolPlugin = (
         const latestToolMessages = latestPending?.toolMessages ?? []
 
         if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
-          // Rejection terminates the current turn only when no other tool calls still await approval.
-          setRequestState('completed')
+          requestNext(true)
         } else {
           setRequestState('paused')
         }
 
-        return { status: 'rejected', toolCallId } satisfies ToolResumeCommandResult
-      },
-      [TOOL_RESUME_TURN_COMMAND]: async (payload, context) => {
-        const { reason } = parseTurnCommandPayload(payload)
-        const { appendMessage, createMessage, requestNext, setRequestState, mutate } = context
-        const pending = findPendingToolCallFromContext(context)
-
-        if (!pending) {
-          return { status: 'missing', toolCallIds: [] } satisfies ToolTurnCommandResult
-        }
-
-        const assistantMessage = pending.assistantMessage as Extract<ChatMessage, { role: 'assistant' }> &
-          AssistantMessageWithState
-        const toolCalls = getAwaitingToolCalls(assistantMessage)
-
-        if (toolCalls.length === 0) {
-          return { status: 'missing', toolCallIds: [] } satisfies ToolTurnCommandResult
-        }
-
-        const toolMessages = toolCalls.map((toolCall) =>
-          ensureToolMessage({
-            toolCall,
-            toolMessages: pending.toolMessages,
-            createMessage,
-            appendMessage,
-          }),
-        )
-
-        if (reason) {
-          for (const toolCall of toolCalls) {
-            setToolCallState(assistantMessage, toolCall.id, { reason }, mutate)
-          }
-        }
-
-        setRequestState('processing', 'calling-tools')
-        const { runtimeToolMap, toolSourceMap } = await resolveTools(context, [])
-
-        await Promise.all(
-          toolCalls.map(async (toolCall, index) => {
-            const toolMessage = toolMessages[index]
-            mutate('messages', () => {
-              toolMessage.content = ''
-              toolMessage.metadata ??= {}
-              toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-            })
-
-            await processToolCall(
-              toolCall,
-              {
-                ...context,
-                assistantMessage,
-                toolMessage,
-                toolSource: getToolSource(toolCall, toolSourceMap),
-                pauseToolCall: createPauseToolCall(assistantMessage, mutate, toolMessage),
-              },
-              runtimeToolMap,
-              { skipStartHook: true },
-            )
-          }),
-        )
-
-        const latestPending = findPendingToolCallFromContext(context)
-        const latestToolMessages = latestPending?.toolMessages ?? []
-
-        if (isAllToolCallsCompleted(assistantMessage, latestToolMessages)) {
-          requestNext({ resume: true })
-        } else {
-          setRequestState('paused')
-        }
-
-        return {
-          status: 'resumed',
-          toolCallIds: toolCalls.map((toolCall) => toolCall.id),
-        } satisfies ToolTurnCommandResult
-      },
-      [TOOL_REJECT_TURN_COMMAND]: async (payload, context) => {
-        const { reason } = parseTurnCommandPayload(payload)
-        const { appendMessage, createMessage, setRequestState, mutate } = context
-        const pending = findPendingToolCallFromContext(context)
-
-        if (!pending) {
-          return { status: 'missing', toolCallIds: [] } satisfies ToolTurnCommandResult
-        }
-
-        const assistantMessage = pending.assistantMessage as Extract<ChatMessage, { role: 'assistant' }> &
-          AssistantMessageWithState
-        const toolCalls = getAwaitingToolCalls(assistantMessage)
-
-        if (toolCalls.length === 0) {
-          return { status: 'missing', toolCallIds: [] } satisfies ToolTurnCommandResult
-        }
-
-        const toolMessages = toolCalls.map((toolCall) =>
-          ensureToolMessage({
-            toolCall,
-            toolMessages: pending.toolMessages,
-            createMessage,
-            appendMessage,
-          }),
-        )
-        const { toolSourceMap } = await resolveTools(context, [])
-
-        setRequestState('processing', 'calling-tools')
-        for (const [index, toolCall] of toolCalls.entries()) {
-          const toolMessage = toolMessages[index]
-
-          if (reason) {
-            setToolCallState(assistantMessage, toolCall.id, { reason }, mutate)
-          }
-
-          mutate('messages', () => {
-            toolMessage.content = toolCallDeniedContent
-            toolMessage.metadata ??= {}
-            toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-          })
-
-          toolCallEnd(toolCall, {
-            ...context,
-            assistantMessage,
-            toolMessage,
-            toolSource: getToolSource(toolCall, toolSourceMap),
-            pauseToolCall: createPauseToolCall(assistantMessage, mutate, toolMessage),
-            status: 'denied',
-            error: new Error(reason ?? 'Tool call rejected.'),
-          })
-        }
-
-        setRequestState('completed')
-
-        return {
-          status: 'rejected',
-          toolCallIds: toolCalls.map((toolCall) => toolCall.id),
-        } satisfies ToolTurnCommandResult
+        return { status: 'denied', toolCallId } satisfies ToolResumeCommandResult
       },
       ...restOptions.commands,
     },
@@ -956,6 +956,10 @@ export const toolPlugin = (
       return restOptions.onTurnStart?.(context)
     },
     onTurnAbort: (context) => {
+      if (persistPausedTurn && context.turnId) {
+        clearTurnSnapshot(context.turnId)
+      }
+
       const pending = findPendingToolCallFromContext(context)
 
       if (pending) {
@@ -995,7 +999,6 @@ export const toolPlugin = (
               assistantMessage,
               toolMessage,
               toolSource,
-              pauseToolCall: createPauseToolCall(assistantMessage, context.mutate, toolMessage),
               status: 'denied',
               error: new Error('Tool call cancelled by user.'),
             })
@@ -1036,12 +1039,10 @@ export const toolPlugin = (
 
       setRequestState('processing', 'calling-tools')
       const assistantMessage = currentMessage as AssistantMessageWithState
-      const pauseToolCall = createPauseToolCall(assistantMessage, mutate)
 
       await beforeCallTools?.(currentMessage.tool_calls as ChatCompletionMessageToolCall[], {
         ...context,
         assistantMessage,
-        pauseToolCall,
       })
 
       const { runtimeToolMap, toolSourceMap } = currentToolResolution ?? {
@@ -1074,44 +1075,15 @@ export const toolPlugin = (
           assistantMessage,
           toolMessage,
           toolSource,
-          pauseToolCall: createPauseToolCall(assistantMessage, mutate, toolMessage),
-        }
-
-        const initialToolCallStatus = assistantMessage.state?.toolCall?.[toolCall.id]?.status
-        if (initialToolCallStatus === 'awaiting-approval') {
-          hasAwaitingApprovalToolCall = true
-          mutate('messages', () => {
-            if (!hasMeaningfulToolContent(toolMessage.content)) {
-              toolMessage.content = toolCallPausedContent
-            }
-
-            toolMessage.metadata ??= {}
-            toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-          })
-          return
         }
 
         if (shouldPauseToolCall && (await shouldPauseToolCall(toolCall, contextWithToolMessage))) {
-          contextWithToolMessage.pauseToolCall(toolCall.id)
+          markToolCallAwaiting(assistantMessage, toolCall.id, mutate, toolMessage)
           hasAwaitingApprovalToolCall = true
           return
         }
 
         toolCallStart(toolCall, contextWithToolMessage)
-
-        const awaitingApprovalStatus = assistantMessage.state?.toolCall?.[toolCall.id]?.status
-        if (awaitingApprovalStatus === 'awaiting-approval') {
-          hasAwaitingApprovalToolCall = true
-          mutate('messages', () => {
-            if (!hasMeaningfulToolContent(toolMessage.content)) {
-              toolMessage.content = toolCallPausedContent
-            }
-
-            toolMessage.metadata ??= {}
-            toolMessage.metadata.updatedAt = Math.floor(Date.now() / 1000)
-          })
-          return
-        }
 
         await processToolCall(toolCall, contextWithToolMessage, runtimeToolMap)
       })

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ComputedRef, Ref } from 'vue'
 import type { AsyncStreamableResult, ChatMessage, MaybePromise, ToolCall } from '../../types'
-import type { RequestNextOptions } from '../../message/types'
+import type { MessageEngineInitResult } from '../../message/types'
 
 export interface Tool {
   type: 'function'
@@ -87,17 +87,12 @@ export type UseMessagePluginCommandHandler = (
   payload: unknown,
   context: BasePluginContext & {
     appendMessage: (message: ChatMessage | ChatMessage[]) => void
-    requestNext: (options?: RequestNextOptions) => void
+    requestNext: (resume?: boolean) => void
   },
 ) => MaybePromise<unknown>
 
 export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
-  /**
-   * Automatically persist paused turns in the browser when localStorage is available.
-   * Defaults to true so existing tool pause integrations can survive a page reload.
-   */
-  persistPausedTurn?: boolean
   /**
    * 请求消息时，要包含的字段（白名单）。默认包含所有字段。
    * 如果 `requestMessageFieldsExclude` 存在，会先取 `requestMessageFields` 中的字段，再排除 `requestMessageFieldsExclude` 中的字段
@@ -141,6 +136,7 @@ export interface UseMessageReturn {
 export interface BasePluginContext {
   messages: ChatMessage[]
   currentTurn: ChatMessage[]
+  turnId: string | null
   requestState: RequestState
   processingState?: RequestProcessingState
   isPaused: boolean
@@ -166,28 +162,20 @@ export interface UseMessagePlugin {
    * 是否禁用插件。useMessage 可能会内置一些默认插件，如果需要禁用，可以设置为 true。
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
+  onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
+  onResumed?: (context: BasePluginContext) => MaybePromise<void>
+  onPaused?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。
    */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
   /**
-   * 一次对话回合（turn）从暂停状态恢复后的生命周期钩子。
-   * 与 `onTurnStart` 互斥：resume 触发的后续请求只触发 `onTurnResume`。
-   */
-  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
-  /**
    * 一次对话回合（turn）结束的生命周期钩子。
    * 触发时机：本轮对话完成（成功、被中止）后
    * 执行策略：按插件注册顺序串行执行，有错误则中断流程
    */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
-  /**
-   * 一次对话回合（turn）暂停钩子。
-   * 触发时机：本轮请求进入 `paused` 状态后，例如工具调用等待人工确认。
-   * 与 `onTurnEnd` 互斥：暂停的 turn 只触发 `onTurnPause`，不会触发 `onTurnEnd`。
-   */
-  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合被外部取消的生命周期钩子。
    * paused 状态下调用 abort 时也会触发，用于清理等待中的工具调用。
@@ -214,7 +202,7 @@ export interface UseMessagePlugin {
       currentMessage: ChatMessage
       lastChoice?: CompletionChoice
       appendMessage: (message: ChatMessage | ChatMessage[]) => void
-      requestNext: (options?: RequestNextOptions) => void
+      requestNext: (resume?: boolean) => void
     },
   ) => MaybePromise<void>
   /**

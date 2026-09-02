@@ -11,8 +11,6 @@ import {
   lengthPlugin,
   thinkingPlugin,
   TOOL_REJECT_COMMAND,
-  TOOL_REJECT_TURN_COMMAND,
-  TOOL_RESUME_TURN_COMMAND,
   TOOL_RESUME_COMMAND,
   toolPlugin,
   type RuntimeTool,
@@ -536,12 +534,10 @@ describe('toolPlugin', () => {
             },
           ],
           callTool,
-          onToolCallStart(toolCall, context) {
-            context.pauseToolCall(toolCall.id, {
-              content: 'Awaiting approval.',
-              reason: 'manual-review',
-            })
+          toolCallPausedContent: 'Awaiting approval.',
+          shouldPauseToolCall() {
             markPaused()
+            return true
           },
         }),
       ],
@@ -564,7 +560,6 @@ describe('toolPlugin', () => {
         toolCall: {
           'call-approval': {
             status: 'awaiting-approval',
-            reason: 'manual-review',
             content: 'Awaiting approval.',
           },
         },
@@ -690,9 +685,25 @@ describe('toolPlugin', () => {
     })
     expect(callTool).not.toHaveBeenCalled()
 
-    await expect(engine.dispatchCommand(TOOL_RESUME_TURN_COMMAND)).resolves.toEqual({
+    await expect(
+      engine.dispatchCommand(TOOL_RESUME_COMMAND, {
+        toolCallId: 'call-first',
+      }),
+    ).resolves.toEqual({
       status: 'resumed',
-      toolCallIds: ['call-first', 'call-second'],
+      toolCallId: 'call-first',
+    })
+
+    expect(callTool).toHaveBeenCalledTimes(1)
+    expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+
+    await expect(
+      engine.dispatchCommand(TOOL_RESUME_COMMAND, {
+        toolCallId: 'call-second',
+      }),
+    ).resolves.toEqual({
+      status: 'resumed',
+      toolCallId: 'call-second',
     })
 
     expect(callTool).toHaveBeenCalledTimes(2)
@@ -809,7 +820,7 @@ describe('toolPlugin', () => {
     })
   })
 
-  it('denies an awaiting tool call without starting a follow-up request', async () => {
+  it('reports an awaiting tool rejection as a denied tool result and continues the turn', async () => {
     let markPaused!: () => void
     const paused = new Promise<void>((resolve) => {
       markPaused = resolve
@@ -862,7 +873,7 @@ describe('toolPlugin', () => {
             index: 0,
             message: {
               role: 'assistant',
-              content: 'denied',
+              content: 'failure handled',
             },
             finish_reason: 'stop',
           },
@@ -883,9 +894,9 @@ describe('toolPlugin', () => {
             },
           ],
           callTool,
-          onToolCallStart(toolCall, context) {
-            context.pauseToolCall(toolCall.id)
+          shouldPauseToolCall() {
             markPaused()
+            return true
           },
         }),
       ],
@@ -894,6 +905,7 @@ describe('toolPlugin', () => {
 
     const turn = engine.sendMessage('delete sensitive data')
     await paused
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     await expect(
       engine.dispatchCommand(TOOL_REJECT_COMMAND, {
@@ -901,14 +913,14 @@ describe('toolPlugin', () => {
         reason: 'approval denied',
       }),
     ).resolves.toEqual({
-      status: 'rejected',
+      status: 'denied',
       toolCallId: 'call-rejection',
     })
 
     await turn
 
     expect(callTool).not.toHaveBeenCalled()
-    expect(responseProvider).toHaveBeenCalledTimes(1)
+    expect(responseProvider).toHaveBeenCalledTimes(2)
     expect(engine.getState()).toMatchObject({
       requestState: 'completed',
       isPaused: false,
@@ -923,9 +935,13 @@ describe('toolPlugin', () => {
         },
       },
     })
-    expect(engine.getState().messages.at(-1)).toMatchObject({
+    expect(engine.getState().messages[2]).toMatchObject({
       role: 'tool',
       content: 'Tool call denied.',
+    })
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'failure handled',
     })
   })
 
@@ -991,7 +1007,7 @@ describe('toolPlugin', () => {
         reason: 'manual rejection',
       }),
     ).resolves.toEqual({
-      status: 'rejected',
+      status: 'denied',
       toolCallId: 'call-reject-one',
     })
 
@@ -1015,75 +1031,6 @@ describe('toolPlugin', () => {
       role: 'tool',
       tool_call_id: 'call-still-awaiting',
       content: 'Tool call awaiting confirmation.',
-    })
-  })
-
-  it('rejects all awaiting tool calls as one turn', async () => {
-    const callTool = vi.fn(async () => 'should not run')
-    const responseProvider = vi.fn<ResponseProvider>(
-      async () =>
-        ({
-          id: 'turn-rejection-tool-call',
-          object: 'chat.completion',
-          created: Math.floor(Date.now() / 1000),
-          model: 'mock',
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: '',
-                tool_calls: [
-                  {
-                    id: 'call-reject-first',
-                    type: 'function',
-                    function: { name: 'first_tool', arguments: '{}' },
-                  },
-                  {
-                    id: 'call-reject-second',
-                    type: 'function',
-                    function: { name: 'second_tool', arguments: '{}' },
-                  },
-                ],
-              },
-              finish_reason: 'tool_calls',
-            },
-          ],
-        }) as ChatCompletion,
-    )
-
-    const engine = createTestMessageEngine({
-      plugins: [
-        ...silentDefaultPlugins,
-        toolPlugin({
-          shouldPauseToolCall: async () => true,
-          getTools: async () => [
-            { type: 'function', function: { name: 'first_tool' } },
-            { type: 'function', function: { name: 'second_tool' } },
-          ],
-          callTool,
-        }),
-      ],
-      responseProvider,
-    })
-
-    await engine.sendMessage('reject all tools')
-
-    await expect(engine.dispatchCommand(TOOL_REJECT_TURN_COMMAND, { reason: 'manual rejection' })).resolves.toEqual({
-      status: 'rejected',
-      toolCallIds: ['call-reject-first', 'call-reject-second'],
-    })
-
-    expect(callTool).not.toHaveBeenCalled()
-    expect(responseProvider).toHaveBeenCalledOnce()
-    expect(engine.getState()).toMatchObject({ requestState: 'completed', isPaused: false })
-    expect(engine.getState().messages[1]).toMatchObject({
-      state: {
-        toolCall: {
-          'call-reject-first': { status: 'denied', reason: 'manual rejection' },
-          'call-reject-second': { status: 'denied', reason: 'manual rejection' },
-        },
-      },
     })
   })
 
@@ -1136,9 +1083,9 @@ describe('toolPlugin', () => {
             },
           ],
           callTool,
-          onToolCallStart(toolCall, context) {
-            context.pauseToolCall(toolCall.id)
+          shouldPauseToolCall() {
             markPaused()
+            return true
           },
         }),
       ],
@@ -1249,10 +1196,8 @@ describe('toolPlugin', () => {
               },
             ],
             callTool,
-            onToolCallStart(toolCall, context) {
-              if (shouldPause) {
-                context.pauseToolCall(toolCall.id, { reason: 'reload-check' })
-              }
+            shouldPauseToolCall() {
+              return shouldPause
             },
           }),
         ],

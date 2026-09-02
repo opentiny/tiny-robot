@@ -17,7 +17,7 @@ export interface PersistedTurnSnapshot {
   pausedAt: number
 }
 
-interface PersistedTurnStore {
+interface PersistedTurnStorage {
   version: typeof TURN_STATE_VERSION
   turns: PersistedTurnSnapshot[]
 }
@@ -84,13 +84,13 @@ const serialize = <T>(value: T): T | undefined => {
   }
 }
 
-const parseStore = (value: string | null): PersistedTurnStore => {
+const parsePersistedTurnStorage = (value: string | null): PersistedTurnStorage => {
   if (!value) {
     return { version: TURN_STATE_VERSION, turns: [] }
   }
 
   try {
-    const parsed = JSON.parse(value) as Partial<PersistedTurnStore>
+    const parsed = JSON.parse(value) as Partial<PersistedTurnStorage>
     if (parsed.version !== TURN_STATE_VERSION || !Array.isArray(parsed.turns)) {
       return { version: TURN_STATE_VERSION, turns: [] }
     }
@@ -114,14 +114,14 @@ const parseStore = (value: string | null): PersistedTurnStore => {
   }
 }
 
-const writeStore = (store: PersistedTurnStore) => {
+const writePersistedTurnStorage = (turnStorage: PersistedTurnStorage) => {
   const storage = getLocalStorage()
   if (!storage) {
     return
   }
 
   try {
-    storage.setItem(TURN_STATE_STORAGE_KEY, JSON.stringify(store))
+    storage.setItem(TURN_STATE_STORAGE_KEY, JSON.stringify(turnStorage))
   } catch {
     // Persistence is best effort. A full or unavailable localStorage must not break messaging.
   }
@@ -134,7 +134,7 @@ export const loadTurnSnapshots = (): PersistedTurnSnapshot[] => {
   }
 
   try {
-    return parseStore(storage.getItem(TURN_STATE_STORAGE_KEY)).turns
+    return parsePersistedTurnStorage(storage.getItem(TURN_STATE_STORAGE_KEY)).turns
   } catch {
     return []
   }
@@ -158,16 +158,16 @@ export const saveTurnSnapshot = (snapshot: PersistedTurnSnapshot): void => {
     return
   }
 
-  const store = parseStore(storedValue)
-  const existingIndex = store.turns.findIndex((turn) => turn.turnId === snapshot.turnId)
+  const turnStorage = parsePersistedTurnStorage(storedValue)
+  const existingIndex = turnStorage.turns.findIndex((turn) => turn.turnId === snapshot.turnId)
 
   if (existingIndex === -1) {
-    store.turns.push(serializedSnapshot)
+    turnStorage.turns.push(serializedSnapshot)
   } else {
-    store.turns[existingIndex] = serializedSnapshot
+    turnStorage.turns[existingIndex] = serializedSnapshot
   }
 
-  writeStore(store)
+  writePersistedTurnStorage(turnStorage)
 }
 
 export const clearTurnSnapshot = (turnId: string): void => {
@@ -183,10 +183,10 @@ export const clearTurnSnapshot = (turnId: string): void => {
     return
   }
 
-  const store = parseStore(storedValue)
-  const turns = store.turns.filter((turn) => turn.turnId !== turnId)
+  const turnStorage = parsePersistedTurnStorage(storedValue)
+  const turns = turnStorage.turns.filter((turn) => turn.turnId !== turnId)
 
-  if (turns.length === store.turns.length) {
+  if (turns.length === turnStorage.turns.length) {
     return
   }
 
@@ -199,11 +199,7 @@ export const clearTurnSnapshot = (turnId: string): void => {
     return
   }
 
-  writeStore({ ...store, turns })
-}
-
-export const createTurnId = (): string => {
-  return `turn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+  writePersistedTurnStorage({ ...turnStorage, turns })
 }
 
 export const serializeTurnData = <T>(value: T): T => {

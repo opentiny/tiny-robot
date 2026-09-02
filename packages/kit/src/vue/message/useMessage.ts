@@ -28,7 +28,6 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages = [],
     requestMessageFields = [],
     requestMessageFieldsExclude = ['state', 'metadata', 'loading'],
-    persistPausedTurn,
     plugins = [],
     responseProvider: initialResponseProvider,
     onCompletionChunk,
@@ -46,6 +45,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     return {
       messages: adapter.messages.value as ChatMessage[],
       currentTurn: context.currentTurn.map((message) => resolveReactiveMessage(message as ChatMessage)),
+      turnId: context.turnId,
       requestState: adapter.requestState.value,
       processingState: adapter.processingState.value,
       isPaused: adapter.isPaused.value,
@@ -73,11 +73,12 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const {
       name,
       disabled,
+      onInit,
+      onResumed,
+      onPaused,
       commands,
       onTurnStart,
       onTurnEnd,
-      onTurnResume,
-      onTurnPause,
       onTurnAbort,
       onBeforeRequest,
       onAfterRequest,
@@ -97,20 +98,28 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
         typeof disabled === 'function' ? (context) => disabled(createVueBaseContext(context)) : disabled
     }
 
+    if (onInit) {
+      corePlugin.onInit = (context) =>
+        onInit({
+          ...createVueBaseContext(context),
+          initialMessages: context.initialMessages.map((message) => resolveReactiveMessage(message as ChatMessage)),
+        })
+    }
+
+    if (onResumed) {
+      corePlugin.onResumed = (context) => onResumed(createVueBaseContext(context))
+    }
+
+    if (onPaused) {
+      corePlugin.onPaused = (context) => onPaused(createVueBaseContext(context))
+    }
+
     if (onTurnStart) {
       corePlugin.onTurnStart = (context) => onTurnStart(createVueBaseContext(context))
     }
 
-    if (onTurnResume) {
-      corePlugin.onTurnResume = (context) => onTurnResume(createVueBaseContext(context))
-    }
-
     if (onTurnEnd) {
       corePlugin.onTurnEnd = (context) => onTurnEnd(createVueBaseContext(context))
-    }
-
-    if (onTurnPause) {
-      corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
     }
 
     if (onTurnAbort) {
@@ -195,7 +204,6 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     initialMessages: initialMessages as CoreChatMessage[],
     requestMessageFields,
     requestMessageFieldsExclude,
-    persistPausedTurn,
     responseProvider: initialResponseProvider as CoreResponseProvider,
     onCompletionChunk: onCompletionChunk ? onCompletionChunkHandler : undefined,
     plugins: plugins.map((plugin) => createCorePlugin(plugin)),
