@@ -57,7 +57,7 @@ export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
-export * from './extension-manager/index.type'
+export * from './extension-manager/public.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
 export type { SenderContentRegister } from './shared/composables/useSenderContentRegistration'

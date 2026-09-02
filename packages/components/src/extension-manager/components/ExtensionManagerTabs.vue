@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { CSSProperties, VNode } from 'vue'
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ExtensionManagerTab } from '../index.type'
 
 defineOptions({ name: 'ExtensionManagerTabs' })
@@ -25,6 +25,7 @@ const getTabPanelDomId = (tabId: string) => `${props.idPrefix}-tabpanel-${encode
 
 const tabElements = new Map<string, HTMLButtonElement>()
 const indicatorStyle = ref<CSSProperties>()
+let tabResizeObserver: ResizeObserver | undefined
 
 const updateIndicator = () => {
   const activeTab = props.activeTabId ? tabElements.get(props.activeTabId) : undefined
@@ -41,13 +42,30 @@ const updateIndicator = () => {
 }
 
 const setTabRef = (tabId: string, element: HTMLButtonElement | null) => {
-  if (element) tabElements.set(tabId, element)
-  else tabElements.delete(tabId)
+  const previousElement = tabElements.get(tabId)
+
+  if (previousElement && previousElement !== element) tabResizeObserver?.unobserve(previousElement)
+
+  if (element) {
+    tabElements.set(tabId, element)
+    tabResizeObserver?.observe(element)
+  } else {
+    tabElements.delete(tabId)
+  }
 }
 
 watch([() => props.activeTabId, () => props.tabs.map((tab) => tab.id)], updateIndicator, { flush: 'post' })
 
-onMounted(updateIndicator)
+onMounted(() => {
+  if (typeof ResizeObserver !== 'undefined') {
+    tabResizeObserver = new ResizeObserver(updateIndicator)
+    tabElements.forEach((element) => tabResizeObserver?.observe(element))
+  }
+
+  updateIndicator()
+})
+
+onBeforeUnmount(() => tabResizeObserver?.disconnect())
 
 const selectTab = (tabId: string) => emit('select', tabId)
 

@@ -2,7 +2,7 @@ import type { App } from 'vue'
 import ExtensionManagerComp from './index.vue'
 import { ExtensionCard as ExtensionCardComp, ExtensionCardGrid as ExtensionCardGridComp } from './components'
 
-export * from './index.type'
+export * from './public.type'
 
 ExtensionCardComp.name = 'TrExtensionCard'
 
@@ -32,6 +32,8 @@ ExtensionManagerComp.name = 'TrExtensionManager'
 
 const extensionManagerInstall = function <T>(app: App<T>) {
   app.component(ExtensionManagerComp.name!, ExtensionManagerComp)
+  app.component(ExtensionCard.name!, ExtensionCard)
+  app.component(ExtensionCardGrid.name!, ExtensionCardGrid)
 }
 
 const ExtensionManager = Object.assign(ExtensionManagerComp, {

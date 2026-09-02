@@ -34,7 +34,12 @@ const cardGridRegistrations = installInto(CardGrid)
   <output data-testid="card-name">{{ Card.name }}</output>
   <output data-testid="card-grid-name">{{ CardGrid.name }}</output>
   <output data-testid="manager-registration">
-    {{ managerRegistrations.size === 1 && managerRegistrations.get('TrExtensionManager') === Manager }}
+    {{
+      managerRegistrations.size === 3 &&
+      managerRegistrations.get('TrExtensionManager') === Manager &&
+      managerRegistrations.get('TrExtensionCard') === Card &&
+      managerRegistrations.get('TrExtensionCardGrid') === CardGrid
+    }}
   </output>
   <output data-testid="card-registration">
     {{ cardRegistrations.size === 1 && cardRegistrations.get('TrExtensionCard') === Card }}

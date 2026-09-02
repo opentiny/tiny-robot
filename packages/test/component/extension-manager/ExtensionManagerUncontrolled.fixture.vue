@@ -24,8 +24,16 @@ const handleActiveTabUpdate = (tabId: string | undefined) => {
   record('update:active-tab:' + (tabId ?? 'undefined'))
 }
 
+const handleTabChange = (event: { tabId: string }) => {
+  record('tab-change:' + event.tabId)
+}
+
 const handleSectionToggle = (event: { tabId: string; sectionKey: string; expanded: boolean }) => {
   record('section-toggle:' + event.tabId + '/' + event.sectionKey + '/' + event.expanded)
+}
+
+const lengthenActiveLabel = () => {
+  tabs.value[1]!.label = 'Dash tab with a dramatically longer label'
 }
 
 const identityTabs: ExtensionManagerTab[] = [
@@ -49,6 +57,7 @@ const identityTabs: ExtensionManagerTab[] = [
       default-active-tab="a-b"
       empty-text="No uncontrolled tabs"
       @update:active-tab="handleActiveTabUpdate"
+      @tab-change="handleTabChange"
       @section-toggle="handleSectionToggle"
     >
       <template #tab="{ tab, active, select }">
@@ -59,6 +68,7 @@ const identityTabs: ExtensionManagerTab[] = [
     </ExtensionManager>
   </div>
 
+  <button type="button" data-testid="lengthen-active-label" @click="lengthenActiveLabel">Lengthen label</button>
   <output data-testid="uncontrolled-event-log">{{ eventLog.join('|') }}</output>
 
   <div data-testid="identity-manager">

@@ -131,6 +131,22 @@ test.describe('ExtensionManager section model', () => {
 })
 
 test.describe('ExtensionManager uncontrolled state', () => {
+  test('does not emit an update for the initial uncontrolled default', async ({ mount }) => {
+    const component = await mount(ExtensionManagerUncontrolledFixture)
+    const events = component.getByTestId('uncontrolled-event-log')
+
+    await expect(events).toBeEmpty()
+  })
+
+  test('emits the uncontrolled update synchronously before tab-change', async ({ mount }) => {
+    const component = await mount(ExtensionManagerUncontrolledFixture)
+    const manager = component.getByTestId('uncontrolled-manager')
+    const events = component.getByTestId('uncontrolled-event-log')
+
+    await manager.getByRole('tab', { name: /Slash tab/ }).click()
+    await expect(events).toHaveText('update:active-tab:a/b|tab-change:a/b')
+  })
+
   test('activates and focuses tabs with Arrow, Home, and End keys', async ({ mount }) => {
     const component = await mount(ExtensionManagerUncontrolledFixture)
     const manager = component.getByTestId('uncontrolled-manager')
@@ -187,6 +203,25 @@ test.describe('ExtensionManager uncontrolled state', () => {
     await expectIndicatorAt(dashTab)
     await slashTab.click()
     await expectIndicatorAt(slashTab)
+  })
+
+  test('resizes the active indicator when tab content changes in place', async ({ mount }) => {
+    const component = await mount(ExtensionManagerUncontrolledFixture)
+    const manager = component.getByTestId('uncontrolled-manager')
+    const indicator = manager.locator('.extension-manager-tabs__indicator')
+    const activeTab = manager.getByRole('tab', { name: /Dash tab/ })
+
+    const originalIndicatorWidth = await indicator.evaluate((element) => (element as HTMLElement).style.width)
+    await component.getByTestId('lengthen-active-label').click()
+
+    await expect(activeTab).toHaveText(/dramatically longer label/)
+    await expect
+      .poll(async () => {
+        const tabWidth = await activeTab.evaluate((element) => `${(element as HTMLElement).offsetWidth}px`)
+        const indicatorWidth = await indicator.evaluate((element) => (element as HTMLElement).style.width)
+        return indicatorWidth === tabWidth && indicatorWidth !== originalIndicatorWidth
+      })
+      .toBe(true)
   })
 
   test('keeps Enter and Space activation through native tab buttons', async ({ mount }) => {
