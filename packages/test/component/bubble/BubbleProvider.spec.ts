@@ -46,6 +46,14 @@ test.describe('BubbleProvider', () => {
     await expect(provider.getByTestId('prop-fallback-bubble').getByTestId('fallback-content-renderer')).toBeVisible()
   })
 
+  test('renders contentResolver output in custom content renderers', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+
+    await expect(component.getByTestId('resolved-provider').getByTestId('test-content-renderer')).toContainText(
+      'Resolved provider content',
+    )
+  })
+
   test('maps renderer state and custom events to Bubble payload indexes', async ({ mount }) => {
     const component = await mount(BubbleProviderFixture)
     const provider = component.getByTestId('matched-provider')

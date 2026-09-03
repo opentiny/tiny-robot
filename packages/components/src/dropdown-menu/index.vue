@@ -66,7 +66,7 @@ const handleTriggerClick = () => {
 
 const focusTrigger = async () => {
   await nextTick()
-  triggerRef.value?.focus()
+  if (!show.value) triggerRef.value?.focus()
 }
 
 const getMenuItems = () => {

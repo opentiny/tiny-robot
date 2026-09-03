@@ -120,4 +120,21 @@ test.describe('DropdownMenu', () => {
 
     await expect(page.getByRole('menuitem', { name: 'Reasoning model' })).toBeFocused()
   })
+
+  for (const key of ['Escape', 'Enter']) {
+    test(`keeps focus in a manual menu that remains open after ${key}`, async ({ mount, page }) => {
+      const component = await mount(DropdownMenuFixture)
+      const section = component.getByTestId('manual-menu')
+      const trigger = section.getByRole('button', { name: 'Manual trigger' })
+      const item = page.getByRole('menuitem', { name: 'Reasoning model' })
+
+      await section.getByRole('button', { name: 'Toggle manual menu' }).click()
+      await trigger.focus()
+      await trigger.press('ArrowDown')
+      await item.press(key)
+
+      await expect(page.getByRole('menu').filter({ hasText: 'Reasoning model' })).toBeVisible()
+      await expect(item).toBeFocused()
+    })
+  }
 })

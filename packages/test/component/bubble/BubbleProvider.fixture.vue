@@ -16,6 +16,7 @@ import TestContentRenderer from './TestContentRenderer.vue'
 
 const customContent: BubbleMessage['content'] = [{ type: 'custom', text: 'Provider content' }]
 const unknownContent: BubbleMessage['content'] = [{ type: 'unknown', label: 'Unknown content' }]
+const sourceContent: BubbleMessage['content'] = [{ type: 'source', text: 'Source content' }]
 
 const contentMatches: BubbleContentRendererMatch[] = [
   {
@@ -94,6 +95,16 @@ const recordBubbleEvent = (payload: BubbleEvent & { messageIndex: number; conten
         <BubbleProvider :content-renderer-matches="contentMatches" :store="{ label: 'inner-store' }">
           <Bubble role="assistant" :content="customContent" />
         </BubbleProvider>
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="resolved-provider">
+      <BubbleProvider :content-renderer-matches="contentMatches">
+        <Bubble
+          role="assistant"
+          :content="sourceContent"
+          :content-resolver="() => [{ type: 'custom', text: 'Resolved provider content' }]"
+        />
       </BubbleProvider>
     </section>
   </main>
