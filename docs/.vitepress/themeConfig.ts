@@ -14,7 +14,6 @@ const sharedSidebarItems = [
     text: '组件',
     base: '/components/',
     items: [
-      { text: 'Container 容器', link: 'container' },
       { text: 'Layout 布局', link: 'layout' },
       { text: 'Bubble 气泡', link: 'bubble' },
       { text: 'Sender 消息输入框', link: 'sender' },
@@ -30,6 +29,7 @@ const sharedSidebarItems = [
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
+      { text: 'Container 容器', link: 'container' },
     ],
   },
   {
