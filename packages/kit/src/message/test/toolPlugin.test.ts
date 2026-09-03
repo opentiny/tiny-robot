@@ -15,6 +15,48 @@ const isFunctionTool = (tool: ChatCompletionTool): tool is ChatCompletionFunctio
 const functionToolNames = (tools: ChatCompletionTool[] = []) =>
   tools.filter(isFunctionTool).map((tool) => tool.function.name)
 
+const toolCallCompletion = (...toolCallIds: string[]): ChatCompletion => ({
+  id: `tool-call-${toolCallIds.join('-')}`,
+  object: 'chat.completion',
+  created: Math.floor(Date.now() / 1000),
+  model: 'mock',
+  choices: [
+    {
+      index: 0,
+      message: {
+        role: 'assistant',
+        content: '',
+        tool_calls: toolCallIds.map((id) => ({
+          id,
+          type: 'function',
+          function: {
+            name: 'lookup',
+            arguments: '{}',
+          },
+        })),
+      },
+      finish_reason: 'tool_calls',
+    },
+  ],
+})
+
+const assistantCompletion = (content: string, finishReason: 'stop' | 'length' = 'stop'): ChatCompletion => ({
+  id: `assistant-${finishReason}`,
+  object: 'chat.completion',
+  created: Math.floor(Date.now() / 1000),
+  model: 'mock',
+  choices: [
+    {
+      index: 0,
+      message: {
+        role: 'assistant',
+        content,
+      },
+      finish_reason: finishReason,
+    },
+  ],
+})
+
 describe('toolPlugin', () => {
   it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
     'rejects invalid maxToolRounds value %s',
@@ -99,6 +141,304 @@ describe('toolPlugin', () => {
     expect(engine.getState().messages.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
+    })
+  })
+
+  it('cancels an over-limit batch and completes the turn with tools disabled', async () => {
+    const callTool = vi.fn(async () => 'tool result')
+    const onLimitExceeded = vi.fn(async () => {})
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      requestCount += 1
+
+      if (requestCount === 1) {
+        return toolCallCompletion('call-allowed')
+      }
+
+      if (requestCount === 2) {
+        return toolCallCompletion('call-blocked-a', 'call-blocked-b')
+      }
+
+      expect(requestBody.tools).toEqual([])
+      expect(requestBody.tool_choice).toBe('none')
+      return assistantCompletion('Completed without more tools.')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 1,
+          getTools: async () => [
+            {
+              type: 'function',
+              function: {
+                name: 'lookup',
+              },
+            },
+          ],
+          callTool,
+          onLimitExceeded,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('use tools')
+
+    expect(callTool).toHaveBeenCalledTimes(1)
+    expect(onLimitExceeded).toHaveBeenCalledOnce()
+    expect(onLimitExceeded).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'call-blocked-a' }), expect.objectContaining({ id: 'call-blocked-b' })],
+      expect.objectContaining({
+        assistantMessage: expect.objectContaining({ role: 'assistant' }),
+        toolRoundCount: 2,
+        maxToolRounds: 1,
+      }),
+    )
+    expect(engine.getState().requestState).toBe('completed')
+    expect(engine.getState().messages.slice(-3)).toMatchObject([
+      {
+        role: 'tool',
+        tool_call_id: 'call-blocked-a',
+        content:
+          'Tool call skipped because the maximum number of tool-call rounds (1) was reached. Continue the conversation without calling tools.',
+      },
+      {
+        role: 'tool',
+        tool_call_id: 'call-blocked-b',
+        content:
+          'Tool call skipped because the maximum number of tool-call rounds (1) was reached. Continue the conversation without calling tools.',
+      },
+      {
+        role: 'assistant',
+        content: 'Completed without more tools.',
+      },
+    ])
+    expect(
+      engine
+        .getState()
+        .messages.find((message) => message.tool_calls?.some((toolCall) => toolCall.id === 'call-blocked-a')),
+    ).toMatchObject({
+      state: {
+        toolCall: {
+          'call-blocked-a': { status: 'cancelled' },
+          'call-blocked-b': { status: 'cancelled' },
+        },
+      },
+    })
+  })
+
+  it('treats maxToolRounds zero as no tool execution for the turn', async () => {
+    const callTool = vi.fn(async () => 'unexpected')
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      requestCount += 1
+
+      if (requestCount === 1) {
+        return toolCallCompletion('call-limited')
+      }
+
+      expect(requestBody).toMatchObject({
+        tools: [],
+        tool_choice: 'none',
+      })
+      return assistantCompletion('done without tools')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 0,
+          getTools: async () => [],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('do not execute tools')
+
+    expect(callTool).not.toHaveBeenCalled()
+    expect(engine.getState().messages.at(-2)).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-limited',
+      content: expect.stringContaining('maximum number of tool-call rounds (0) was reached'),
+    })
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'done without tools',
+    })
+  })
+
+  it('resets the tool round budget for each top-level user turn', async () => {
+    const callTool = vi.fn(async () => 'tool result')
+    const responses = [
+      toolCallCompletion('turn-1-allowed'),
+      toolCallCompletion('turn-1-blocked'),
+      assistantCompletion('turn 1 done'),
+      toolCallCompletion('turn-2-allowed'),
+      assistantCompletion('turn 2 done'),
+    ]
+    const responseProvider = vi.fn<ResponseProvider>(async () => responses.shift()!)
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 1,
+          getTools: async () => [],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('first turn')
+    await engine.sendMessage('second turn')
+
+    expect(callTool).toHaveBeenCalledTimes(2)
+    expect(callTool.mock.calls.map(([toolCall]) => toolCall.id)).toEqual(['turn-1-allowed', 'turn-2-allowed'])
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'turn 2 done',
+    })
+  })
+
+  it('keeps tools disabled across closing length continuations', async () => {
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      requestCount += 1
+
+      if (requestCount === 1) {
+        return toolCallCompletion('call-limited')
+      }
+
+      expect(requestBody).toMatchObject({
+        tools: [],
+        tool_choice: 'none',
+      })
+
+      return requestCount === 2
+        ? assistantCompletion('partial closing answer', 'length')
+        : assistantCompletion('final closing answer')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        lengthPlugin(),
+        toolPlugin({
+          maxToolRounds: 0,
+          getTools: async () => [],
+          callTool: async () => 'unexpected',
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('finish without tools')
+
+    expect(responseProvider).toHaveBeenCalledTimes(3)
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'final closing answer',
+    })
+  })
+
+  it('fails when a provider returns tool calls after tools were disabled', async () => {
+    const callTool = vi.fn(async () => 'unexpected')
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      requestCount += 1
+
+      if (requestCount === 1) {
+        return toolCallCompletion('call-limited')
+      }
+
+      expect(requestBody).toMatchObject({
+        tools: [],
+        tool_choice: 'none',
+      })
+      return toolCallCompletion('call-provider-violation')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 0,
+          getTools: async () => [],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await expect(engine.sendMessage('finish without tools')).rejects.toThrow(
+      'The response provider returned tool calls after tool calling was disabled.',
+    )
+
+    expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(callTool).not.toHaveBeenCalled()
+    expect(engine.getState().requestState).toBe('error')
+  })
+
+  it('stops before the closing request when onLimitExceeded throws', async () => {
+    const callTool = vi.fn(async () => 'unexpected')
+    const responseProvider = vi.fn<ResponseProvider>(async () => toolCallCompletion('call-limited'))
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 0,
+          getTools: async () => [],
+          callTool,
+          onLimitExceeded: async () => {
+            throw new Error('limit callback failed')
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    await expect(engine.sendMessage('finish without tools')).rejects.toThrow('limit callback failed')
+
+    expect(responseProvider).toHaveBeenCalledOnce()
+    expect(callTool).not.toHaveBeenCalled()
+    expect(engine.getState().requestState).toBe('error')
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'tool',
+      tool_call_id: 'call-limited',
+      content: expect.stringContaining('Continue the conversation without calling tools.'),
+    })
+  })
+
+  it('executes every tool call in one allowed round', async () => {
+    const callTool = vi.fn(async () => 'tool result')
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      requestCount += 1
+      return requestCount === 1
+        ? toolCallCompletion('call-a', 'call-b', 'call-c')
+        : assistantCompletion('all calls completed')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 1,
+          getTools: async () => [],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('run a batch')
+
+    expect(callTool).toHaveBeenCalledTimes(3)
+    expect(callTool.mock.calls.map(([toolCall]) => toolCall.id)).toEqual(['call-a', 'call-b', 'call-c'])
+    expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'all calls completed',
     })
   })
 
