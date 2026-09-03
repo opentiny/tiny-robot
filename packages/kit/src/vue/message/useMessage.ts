@@ -75,8 +75,8 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
       name,
       disabled,
       onInit,
-      onResumed,
-      onPaused,
+      onTurnResume,
+      onTurnPause,
       commands,
       onTurnStart,
       onTurnEnd,
@@ -107,12 +107,12 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
         })
     }
 
-    if (onResumed) {
-      corePlugin.onResumed = (context) => onResumed(createVueBaseContext(context))
+    if (onTurnResume) {
+      corePlugin.onTurnResume = (context) => onTurnResume(createVueBaseContext(context))
     }
 
-    if (onPaused) {
-      corePlugin.onPaused = (context) => onPaused(createVueBaseContext(context))
+    if (onTurnPause) {
+      corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
     }
 
     if (onTurnStart) {
@@ -136,6 +136,7 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
               ...createVueBaseContext(context),
               appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
               requestNext: context.requestNext,
+              resumeTurn: context.resumeTurn,
             }),
         ]),
       )

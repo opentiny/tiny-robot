@@ -166,6 +166,16 @@ describe('skillPlugin', () => {
 
     expect(responseProvider).toHaveBeenCalledTimes(2)
     expect(onInstructionsResolved).toHaveBeenCalledTimes(1)
+    expect(engine.getState().messages[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-1': {
+            description: 'Read a file from a current skill by skill name and relative path.',
+          },
+        },
+      },
+    })
     expect(engine.getState().messages.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
@@ -273,7 +283,8 @@ describe('skillPlugin', () => {
 
       expect(firstEngine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
       const snapshot = JSON.parse(values.get('__tiny-robot-turn') ?? '{}')
-      expect(snapshot.turns[0].customContext.__tiny_robot_skill).not.toHaveProperty('runtimeTools')
+      const skillContext = snapshot.turns[0].customContext.__tiny_robot_skill
+      expect(skillContext).not.toHaveProperty('runtimeTools')
 
       shouldPause = false
       const restoredEngine = createEngine(firstEngine.getState().messages)
@@ -293,6 +304,104 @@ describe('skillPlugin', () => {
         role: 'assistant',
         content: 'rebuild done',
       })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps a restored turn paused when its skill resolver cannot rebuild a pending tool', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    const turnId = 'paused-skill-resolver-failure'
+    const toolCallId = 'call-skill-resolver-failure'
+    const persistedSkill = {
+      name: 'docs',
+      description: 'Docs skill',
+      instructions: 'Use docs.',
+      resources: [{ path: 'guide.md', kind: 'text', resourceId: 'guide.md' }],
+    }
+    values.set(
+      '__tiny-robot-turn',
+      JSON.stringify({
+        version: 1,
+        turns: [
+          {
+            version: 1,
+            turnId,
+            requestState: 'paused',
+            toolCallIds: [toolCallId],
+            customContext: {
+              __tiny_robot_skill: {
+                skills: [persistedSkill],
+                skillNames: ['docs'],
+                requestedSkillNames: ['docs'],
+                unresolvedSkillNames: [],
+                instructions: ['Use docs.'],
+                selection: { mode: 'manual', phase: 'ready' },
+              },
+            },
+            pausedAt: Date.now(),
+          },
+        ],
+      }),
+    )
+
+    const getSkillByName = vi.fn(async () => undefined)
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      throw new Error('responseProvider should not run when skill restoration fails')
+    })
+    const engine = createTestMessageEngine({
+      initialMessages: [
+        { role: 'user', content: 'read docs' },
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: toolCallId,
+              type: 'function',
+              function: {
+                name: 'read_skill_file',
+                arguments: JSON.stringify({ skillName: 'docs', path: 'guide.md' }),
+              },
+            },
+          ],
+          state: {
+            turnId,
+            toolCall: { [toolCallId]: { status: 'awaiting-approval' } },
+          },
+        },
+        { role: 'tool', tool_call_id: toolCallId, content: 'Tool call awaiting confirmation.' },
+      ],
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: { mode: 'manual', skillNames: ['docs'] },
+          getSkillByName,
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => {
+            throw new Error('fallback tool execution should not run')
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    try {
+      expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+      await expect(engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId })).rejects.toThrow(
+        'Unable to restore selected skills: docs',
+      )
+      expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+      expect(responseProvider).not.toHaveBeenCalled()
+      expect(values.has('__tiny-robot-turn')).toBe(true)
     } finally {
       vi.unstubAllGlobals()
     }

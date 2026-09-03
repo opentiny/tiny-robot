@@ -88,6 +88,7 @@ export type UseMessagePluginCommandHandler = (
   context: BasePluginContext & {
     appendMessage: (message: ChatMessage | ChatMessage[]) => void
     requestNext: (resume?: boolean) => void
+    resumeTurn: () => Promise<void>
   },
 ) => MaybePromise<unknown>
 
@@ -165,8 +166,8 @@ export interface UseMessagePlugin {
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
-  onResumed?: (context: BasePluginContext) => MaybePromise<void>
-  onPaused?: (context: BasePluginContext) => MaybePromise<void>
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。

@@ -521,7 +521,6 @@ interface SkillRequestContext {
   requestedSkillNames: string[]
   unresolvedSkillNames: string[]
   instructions: string[]
-  runtimeTools: RuntimeTool[]
   selection:
     | { mode: 'manual' | 'none'; phase: 'ready' }
     | {
@@ -630,5 +629,4 @@ type SkillSelection =
 | `requestedSkillNames` | manual 或 auto 请求启用的名称 |
 | `unresolvedSkillNames` | 请求启用但未成功解析的名称 |
 | `instructions` | 当前 selection 阶段生成的 instructions |
-| `runtimeTools` | 当前阶段由 skill capability 生成的运行时工具 |
 | `selection` | 当前模式、阶段、候选和偏好信息 |

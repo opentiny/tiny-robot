@@ -134,6 +134,16 @@ describe('toolPlugin', () => {
     expect(fallbackCall).not.toHaveBeenCalled()
     expect(startHook).toHaveBeenCalledOnce()
     expect(responseProvider).toHaveBeenCalledTimes(2)
+    expect(engine.getState().messages[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-1': {
+            description: 'Runtime lookup',
+          },
+        },
+      },
+    })
     expect(engine.getState().messages.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
@@ -717,6 +727,84 @@ describe('toolPlugin', () => {
       role: 'assistant',
       content: 'turn done',
     })
+  })
+
+  it('runs the turn resume hook before each approved tool call', async () => {
+    const events: string[] = []
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      if (!requestBody.messages.some((message) => message.role === 'tool')) {
+        return {
+          id: 'resume-hook-tools',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-resume-first',
+                    type: 'function',
+                    function: { name: 'first_tool', arguments: '{}' },
+                  },
+                  {
+                    id: 'call-resume-second',
+                    type: 'function',
+                    function: { name: 'second_tool', arguments: '{}' },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      return {
+        id: 'resume-hook-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [{ index: 0, message: { role: 'assistant', content: 'done' }, finish_reason: 'stop' }],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onTurnResume: () => {
+            events.push('resume')
+          },
+        },
+        toolPlugin({
+          getTools: async () => [
+            { type: 'function', function: { name: 'first_tool' } },
+            { type: 'function', function: { name: 'second_tool' } },
+          ],
+          callTool: async (toolCall) => {
+            events.push(toolCall.function.name)
+            return 'ok'
+          },
+          shouldPauseToolCall: () => true,
+        }),
+      ],
+      responseProvider,
+    })
+
+    const turn = engine.sendMessage('run tools')
+    await vi.waitFor(() => expect(engine.getState().requestState).toBe('paused'))
+
+    await engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'call-resume-first' })
+    expect(events).toEqual(['resume', 'first_tool'])
+    expect(engine.getState()).toMatchObject({ requestState: 'paused' })
+
+    await engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'call-resume-second' })
+    await turn
+    expect(events).toEqual(['resume', 'first_tool', 'resume', 'second_tool'])
   })
 
   it.each([TOOL_RESUME_COMMAND, TOOL_REJECT_COMMAND])(
@@ -1423,7 +1511,7 @@ describe('toolPlugin', () => {
       const persistedMessages = JSON.parse(JSON.stringify(firstEngine.getState().messages)) as ChatMessage[]
       const persistedAssistant = persistedMessages.find((message) => message.role === 'assistant')
       if (persistedAssistant) {
-        delete persistedAssistant.state
+        delete persistedAssistant.state?.toolCall
       }
 
       const restoredEngine = createPausedEngine(persistedMessages)
@@ -1456,6 +1544,69 @@ describe('toolPlugin', () => {
         content: 'restored and completed',
       })
       expect(values.has('__tiny-robot-turn')).toBe(false)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('restores paused turns independently when conversations reuse a tool call id', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    const responseProvider = vi.fn<ResponseProvider>(async () => ({
+      id: 'shared-tool-call',
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: 'mock',
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: 'assistant',
+            content: '',
+            tool_calls: [
+              {
+                id: 'call-shared',
+                type: 'function',
+                function: { name: 'sensitive_lookup', arguments: '{}' },
+              },
+            ],
+          },
+          finish_reason: 'tool_calls',
+        },
+      ],
+    }))
+
+    const createPausedEngine = (initialMessages: ChatMessage[] = []) =>
+      createTestMessageEngine({
+        initialMessages,
+        plugins: [
+          ...silentDefaultPlugins,
+          toolPlugin({
+            getTools: async () => [{ type: 'function', function: { name: 'sensitive_lookup' } }],
+            callTool: async () => 'unused',
+            shouldPauseToolCall: () => true,
+          }),
+        ],
+        responseProvider,
+      })
+
+    try {
+      const firstEngine = createPausedEngine()
+      const secondEngine = createPausedEngine()
+      await firstEngine.sendMessage('first conversation')
+      await secondEngine.sendMessage('second conversation')
+
+      const firstMessages = JSON.parse(JSON.stringify(firstEngine.getState().messages)) as ChatMessage[]
+      const secondMessages = JSON.parse(JSON.stringify(secondEngine.getState().messages)) as ChatMessage[]
+      expect(firstMessages[1]?.state?.turnId).not.toBe(secondMessages[1]?.state?.turnId)
+
+      expect(createPausedEngine(firstMessages).getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+      expect(createPausedEngine(secondMessages).getState()).toMatchObject({ requestState: 'paused', isPaused: true })
     } finally {
       vi.unstubAllGlobals()
     }

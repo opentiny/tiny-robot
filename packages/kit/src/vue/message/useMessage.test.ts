@@ -200,7 +200,11 @@ describe('useMessage', () => {
     const paused = new Promise<void>((resolve) => {
       markPaused = resolve
     })
-    const callTool = vi.fn(async () => 'approved result')
+    const onTurnResume = vi.fn()
+    const callTool = vi.fn(async () => {
+      expect(onTurnResume).toHaveBeenCalledOnce()
+      return 'approved result'
+    })
     const responseProvider: ResponseProvider = async (requestBody) => {
       const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
 
@@ -261,6 +265,7 @@ describe('useMessage', () => {
     const engine = useMessage({
       responseProvider,
       plugins: [
+        { onTurnResume },
         toolPlugin({
           getTools: async () => [
             {
@@ -293,6 +298,7 @@ describe('useMessage', () => {
     await turn
 
     expect(callTool).toHaveBeenCalledOnce()
+    expect(onTurnResume).toHaveBeenCalledOnce()
     expect(engine.isPaused.value).toBe(false)
     expect(engine.messages.value.at(-1)).toMatchObject({
       role: 'assistant',

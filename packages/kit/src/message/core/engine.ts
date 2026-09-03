@@ -229,7 +229,7 @@ export const createMessageEngine = (
 
     if (getState().requestState === 'paused') {
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        await plugin.onPaused?.(context)
+        await plugin.onTurnPause?.(context)
       }
       return
     }
@@ -257,12 +257,7 @@ export const createMessageEngine = (
     }
 
     try {
-      if (options.resume) {
-        const resumeContext = getBaseContext(ac.signal)
-        for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, resumeContext))) {
-          await plugin.onResumed?.(resumeContext)
-        }
-      } else {
+      if (!options.resume) {
         runtime.turnId ??= createTurnId()
         runtime.customContext = {}
       }
@@ -391,7 +386,21 @@ export const createMessageEngine = (
     let requestNextResume: boolean | undefined
     let commandSucceeded = false
     let shouldFinishTurn = false
+    let turnResumed = false
     let result: Result
+
+    const resumeTurn = async () => {
+      if (!wasPaused || turnResumed) {
+        return
+      }
+
+      const resumeContext = getBaseContext(ac.signal)
+      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, resumeContext))) {
+        await plugin.onTurnResume?.(resumeContext)
+      }
+
+      turnResumed = true
+    }
 
     try {
       const baseContext = getBaseContext(ac.signal)
@@ -408,7 +417,7 @@ export const createMessageEngine = (
         requestNextResume = resume
       }
 
-      result = (await handler(payload, { ...baseContext, appendMessage, requestNext })) as Result
+      result = (await handler(payload, { ...baseContext, appendMessage, requestNext, resumeTurn })) as Result
       commandSucceeded = true
       shouldFinishTurn = wasPaused && !shouldRequest && getState().requestState !== 'paused'
     } finally {
@@ -423,10 +432,10 @@ export const createMessageEngine = (
       }
     }
 
-    if (commandSucceeded && getState().requestState === 'paused') {
+    if ((commandSucceeded || turnResumed) && getState().requestState === 'paused') {
       const pausedContext = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, pausedContext))) {
-        await plugin.onPaused?.(pausedContext)
+        await plugin.onTurnPause?.(pausedContext)
       }
     }
 
@@ -437,6 +446,9 @@ export const createMessageEngine = (
     }
 
     if (shouldRequest && !ac.signal.aborted) {
+      if (requestNextResume) {
+        await resumeTurn()
+      }
       await runTurnLifecycle({ resume: requestNextResume === true })
     }
 

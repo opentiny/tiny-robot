@@ -178,10 +178,10 @@ interface UseMessagePlugin {
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /** 引擎创建时初始化插件运行时状态 */
   onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
-  /** 回合从暂停状态恢复前触发 */
-  onResumed?: (context: BasePluginContext) => MaybePromise<void>
+  /** 回合离开暂停状态、继续执行前触发 */
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   /** 回合进入暂停状态后触发 */
-  onPaused?: (context: BasePluginContext) => MaybePromise<void>
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /** 对话回合开始钩子 */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
   /** 对话回合结束钩子 */
@@ -223,6 +223,7 @@ interface UseMessagePlugin {
       context: BasePluginContext & {
         appendMessage: (message: ChatMessage | ChatMessage[]) => void
         requestNext: (resume?: boolean) => void
+        resumeTurn: () => Promise<void>
       },
     ) => MaybePromise<unknown>
   >

@@ -9,14 +9,14 @@ import {
   IconWarning,
 } from '@opentiny/tiny-robot-svgs'
 import { type Component, computed, nextTick, ref, useCssModule, watch, watchEffect } from 'vue'
-import { ToolCallStatus, useBubbleEventFn, useToolCall } from '../composables'
+import { type ToolCallState, useBubbleEventFn, useToolCall } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 
 const props = defineProps<
   BubbleContentRendererProps<
     ChatMessageContent,
     {
-      toolCall?: Record<string, { status?: ToolCallStatus; open?: boolean }>
+      toolCall?: Record<string, ToolCallState>
     }
   > & { toolCallIndex: number }
 >()
@@ -36,6 +36,8 @@ const textAndIcon = computed(() => {
   const status = state.value?.status || ''
   return textAndIconMap.get(status) || { text: '', icon: IconPlugin }
 })
+
+const description = computed(() => (typeof state.value.description === 'string' ? state.value.description : ''))
 
 const prettyJSON = (json: unknown, space = 2) => {
   let prettyJson = ''
@@ -147,10 +149,13 @@ const handleClick = () => {
     <div class="header">
       <div class="header-left">
         <component :is="textAndIcon.icon" class="header-icon" :class="`icon-${state.status}`" />
-        <span>
-          <span>{{ textAndIcon.text }}&nbsp;</span>
-          <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
-        </span>
+        <div class="tool-info">
+          <div>
+            <span>{{ textAndIcon.text }}&nbsp;</span>
+            <span class="title">{{ toolCall?.function.name || 'Untitled' }} </span>
+          </div>
+          <div v-if="description" class="description">{{ description }}</div>
+        </div>
       </div>
       <div class="header-right">
         <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !open }" @click="handleClick" />
@@ -193,10 +198,22 @@ const handleClick = () => {
     align-items: center;
     gap: 8px;
     flex: 1;
+    min-width: 0;
+
+    .tool-info {
+      min-width: 0;
+    }
 
     .title {
       color: var(--tr-text-primary);
       font-weight: 600;
+    }
+
+    .description {
+      color: var(--tr-text-secondary);
+      font-size: 12px;
+      line-height: 18px;
+      word-break: break-word;
     }
   }
 

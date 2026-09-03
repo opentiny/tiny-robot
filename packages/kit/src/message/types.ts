@@ -25,6 +25,11 @@ export type MessagePluginCommandHandler = (
   context: BasePluginContext & {
     appendMessage: (message: ChatMessage | ChatMessage[]) => void
     requestNext: (resume?: boolean) => void
+    /**
+     * Starts the paused-turn resume lifecycle once. Commands that execute work
+     * before the next model request should call this before their side effects.
+     */
+    resumeTurn: () => Promise<void>
   },
 ) => MaybePromise<unknown>
 
@@ -216,10 +221,10 @@ export interface MessageEnginePlugin {
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /** 引擎创建时初始化插件拥有的运行时状态。 */
   onInit?: (context: MessageEngineInitContext) => MessageEngineInitResult | void
-  /** 一次回合从暂停状态恢复前触发。 */
-  onResumed?: (context: BasePluginContext) => MaybePromise<void>
+  /** 一次回合离开暂停状态、继续执行前触发。 */
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   /** 一次回合进入暂停状态后触发。 */
-  onPaused?: (context: BasePluginContext) => MaybePromise<void>
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。

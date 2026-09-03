@@ -244,8 +244,8 @@ describe('createMessageEngine', () => {
     expect(laterInitialMessages).toEqual([initializedMessage])
   })
 
-  it('cleans up the lifecycle when a plugin fails during resume', async () => {
-    const onResumed = vi.fn(() => {
+  it('keeps the turn paused when a plugin fails during turn resume', async () => {
+    const onTurnResume = vi.fn(() => {
       throw new Error('resume failed')
     })
     const engine = createTestMessageEngine({
@@ -253,7 +253,7 @@ describe('createMessageEngine', () => {
         ...silentDefaultPlugins,
         {
           onInit: () => ({ requestState: 'paused' as const, turnId: 'resume-error', currentTurn: [] }),
-          onResumed,
+          onTurnResume,
           commands: {
             resume: (_payload, context) => {
               context.requestNext(true)
@@ -265,8 +265,8 @@ describe('createMessageEngine', () => {
     })
 
     await expect(engine.dispatchCommand('resume')).rejects.toThrow('resume failed')
-    expect(onResumed).toHaveBeenCalledOnce()
-    expect(engine.getState()).toMatchObject({ requestState: 'error', isCurrentTurn: false })
+    expect(onTurnResume).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'paused', isCurrentTurn: true })
   })
 
   it('aborts an asynchronous command while the turn is paused', async () => {
