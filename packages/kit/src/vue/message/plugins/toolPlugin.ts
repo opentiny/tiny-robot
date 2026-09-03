@@ -22,6 +22,11 @@ export interface UseMessageCallToolContext extends UseMessageToolActionContext {
   toolMessage: ChatMessage
 }
 
+export interface UseMessageToolLimitExceededContext extends UseMessageToolActionContext {
+  toolRoundCount: number
+  maxToolRounds: number
+}
+
 export interface UseMessageToolCallContext extends BasePluginContext {
   assistantMessage: ChatMessage
   /**
@@ -45,6 +50,14 @@ export const toolPlugin = (
      * 在处理包含 tool_calls 的响应前调用。
      */
     beforeCallTools?: (toolCalls: ToolCall[], context: UseMessageToolActionContext) => Promise<void>
+    /**
+     * 单个用户回合允许执行的最大工具调用轮数。未设置时不限制。
+     */
+    maxToolRounds?: number
+    /**
+     * 模型返回的工具调用超过最大轮数时触发。
+     */
+    onLimitExceeded?: (toolCalls: ToolCall[], context: UseMessageToolLimitExceededContext) => MaybePromise<void>
     /**
      * 执行单个工具调用并返回其文本结果的函数。
      */
@@ -93,6 +106,8 @@ export const toolPlugin = (
   const {
     getTools,
     beforeCallTools,
+    maxToolRounds,
+    onLimitExceeded,
     callTool,
     onToolCallStart,
     onToolCallEnd,
@@ -110,6 +125,20 @@ export const toolPlugin = (
       return createCoreToolPlugin({
         ...wrappedRestOptions,
         getTools: async (context) => getTools(runtime.createVueBaseContext(context)),
+        maxToolRounds,
+        onLimitExceeded: onLimitExceeded
+          ? async (toolCalls, context) => {
+              const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
+
+              await onLimitExceeded(toolCalls as unknown as ToolCall[], {
+                ...runtime.createVueBaseContext(context),
+                assistantMessage,
+                currentMessage: assistantMessage,
+                toolRoundCount: context.toolRoundCount,
+                maxToolRounds: context.maxToolRounds,
+              })
+            }
+          : undefined,
         beforeCallTools: beforeCallTools
           ? async (toolCalls, context) => {
               const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)

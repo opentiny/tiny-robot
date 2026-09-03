@@ -195,6 +195,75 @@ describe('useMessage', () => {
     })
   })
 
+  it('adapts onLimitExceeded to the reactive vue message context', async () => {
+    const onLimitExceeded = vi.fn((_toolCalls, context) => {
+      context.assistantMessage.state = {
+        ...context.assistantMessage.state,
+        fromLimitCallback: true,
+      }
+    })
+    const responseProvider = mockSequentialResponseProvider([
+      {
+        finish_reason: 'tool_calls',
+        tool_calls: [
+          {
+            index: 0,
+            id: 'call-limited',
+            type: 'function',
+            function: {
+              name: 'lookup',
+              arguments: '{}',
+            },
+          },
+        ],
+      },
+      {
+        content: 'done without tools',
+        onRequest(requestBody) {
+          expect(requestBody).toMatchObject({
+            tools: [],
+            tool_choice: 'none',
+          })
+        },
+      },
+    ])
+    const engine = useMessage({
+      responseProvider,
+      plugins: [
+        toolPlugin({
+          maxToolRounds: 0,
+          getTools: async () => [],
+          callTool: async () => 'unexpected',
+          onLimitExceeded,
+        }),
+      ],
+    })
+
+    await engine.sendMessage('finish without tools')
+
+    const limitedAssistantMessage = engine.messages.value.find((message) =>
+      message.tool_calls?.some((toolCall) => toolCall.id === 'call-limited'),
+    )
+    expect(onLimitExceeded).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: 'call-limited' })],
+      expect.objectContaining({
+        assistantMessage: limitedAssistantMessage,
+        currentMessage: limitedAssistantMessage,
+        toolRoundCount: 1,
+        maxToolRounds: 0,
+      }),
+    )
+    expect(limitedAssistantMessage).toMatchObject({
+      role: 'assistant',
+      state: {
+        fromLimitCallback: true,
+        toolCall: {
+          'call-limited': { status: 'cancelled' },
+        },
+      },
+    })
+  })
+
   it('does not inject vue skill instructions by default', async () => {
     const skills = ref<SkillDefinition[]>([
       {
