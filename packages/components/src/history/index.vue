@@ -1,6 +1,6 @@
 <script lang="ts" setup generic="T extends HistoryItem">
 import { IconCheck, IconClose, IconDelete, IconEditPen, IconMore } from '@opentiny/tiny-robot-svgs'
-import { computed, ref, type Ref } from 'vue'
+import { computed, nextTick, ref, shallowRef } from 'vue'
 import { useTouchDevice } from '../shared/composables'
 import Empty from './components/Empty.vue'
 import MenuList from './components/MenuList.vue'
@@ -62,7 +62,18 @@ const {
 const { isTouchDevice } = useTouchDevice()
 
 const menuTriggerEl = ref<HTMLButtonElement | null>(null)
-const menuTriggerItem = ref<T | null>(null) as Ref<T | null>
+const menuTriggerItem = shallowRef<T | null>(null)
+const menuListRef = ref<{ focusFirstItem: () => void; focusLastItem: () => void } | null>(null)
+
+const focusMenuItem = (position: 'first' | 'last') => {
+  nextTick(() => {
+    if (position === 'first') {
+      menuListRef.value?.focusFirstItem()
+    } else {
+      menuListRef.value?.focusLastItem()
+    }
+  })
+}
 
 const toggleMenu = (ev: MouseEvent, item: T) => {
   if (ev.currentTarget instanceof HTMLButtonElement) {
@@ -74,14 +85,27 @@ const toggleMenu = (ev: MouseEvent, item: T) => {
 
     menuTriggerEl.value = ev.currentTarget
     menuTriggerItem.value = item
+    if (ev.detail === 0) focusMenuItem('first')
   } else {
     menuTriggerEl.value = null
     menuTriggerItem.value = null
   }
 }
 
+const handleMenuTriggerKeydown = (event: KeyboardEvent, item: T, position: 'first' | 'last') => {
+  event.preventDefault()
+  event.stopPropagation()
+
+  if (event.currentTarget instanceof HTMLButtonElement) {
+    menuTriggerEl.value = event.currentTarget
+    menuTriggerItem.value = item
+    focusMenuItem(position)
+  }
+}
+
 const handleClickMenuItem = (action: HistoryMenuItem) => {
   const item = menuTriggerItem.value
+  const trigger = menuTriggerEl.value
 
   if (!item) {
     return
@@ -89,6 +113,8 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
 
   if (action.id === 'rename') {
     handleEdit(item)
+  } else {
+    nextTick(() => trigger?.focus())
   }
   emit('item-action', action, item)
 }
@@ -131,6 +157,8 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
                 class="editor-confirm"
                 v-if="props.showRenameControls && editingItem === item"
                 ref="editorConfirmRefList"
+                type="button"
+                aria-label="确认重命名"
                 @click="handleEditConfirm"
               >
                 <IconCheck></IconCheck>
@@ -139,11 +167,23 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
                 class="editor-cancel"
                 v-if="props.showRenameControls && editingItem === item"
                 ref="editorCancelRefList"
+                type="button"
+                aria-label="取消重命名"
                 @click="handleEditCancel"
               >
                 <IconClose></IconClose>
               </button>
-              <button class="menu" :class="{ hidden: editingItem === item }" @click="(ev) => toggleMenu(ev, item)">
+              <button
+                class="menu"
+                :class="{ hidden: editingItem === item }"
+                type="button"
+                :aria-label="`${item.title} 更多操作`"
+                aria-haspopup="menu"
+                :aria-expanded="menuTriggerItem === item"
+                @click="(ev) => toggleMenu(ev, item)"
+                @keydown.down="(ev) => handleMenuTriggerKeydown(ev, item, 'first')"
+                @keydown.up="(ev) => handleMenuTriggerKeydown(ev, item, 'last')"
+              >
                 <IconMore></IconMore>
               </button>
             </span>
@@ -151,6 +191,7 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
         </div>
       </div>
       <MenuList
+        ref="menuListRef"
         v-show="menuTriggerEl"
         v-model:trigger="menuTriggerEl"
         v-model:data="menuTriggerItem"
@@ -169,7 +210,14 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
     & > .tr-history__item-actions {
       & > .menu {
         position: absolute;
-        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+
+        &:focus-visible {
+          position: static;
+          opacity: 1;
+          pointer-events: auto;
+        }
       }
     }
   }
@@ -178,7 +226,8 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
     & > .tr-history__item-actions {
       & > .menu {
         position: static;
-        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
       }
     }
   }

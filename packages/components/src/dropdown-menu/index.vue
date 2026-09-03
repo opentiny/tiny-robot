@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onClickOutside } from '@vueuse/core'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch, watchEffect } from 'vue'
 import TrBasePopper from '../base-popper'
 import { usePopperHover } from './composables/usePopperHover'
 import { DropdownMenuEmits, DropdownMenuItem, DropdownMenuProps } from './index.type'
@@ -33,6 +33,14 @@ const basePopperRef = ref<InstanceType<typeof TrBasePopper> | null>(null)
 const triggerRef = computed(() => basePopperRef.value?.triggerRef)
 const dropdownMenuRef = computed(() => basePopperRef.value?.popperRef)
 
+watchEffect(() => {
+  const trigger = triggerRef.value
+  if (!trigger) return
+
+  trigger.setAttribute('aria-haspopup', 'menu')
+  trigger.setAttribute('aria-expanded', String(Boolean(show.value)))
+})
+
 if (props.trigger === 'click' || props.trigger === 'manual') {
   onClickOutside(
     dropdownMenuRef,
@@ -56,9 +64,75 @@ const handleTriggerClick = () => {
   }
 }
 
+const focusTrigger = async () => {
+  await nextTick()
+  triggerRef.value?.focus()
+}
+
+const getMenuItems = () => {
+  return Array.from(dropdownMenuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') || [])
+}
+
+const focusMenuItem = async (position: 'first' | 'last') => {
+  await nextTick()
+  const items = getMenuItems()
+  items[position === 'first' ? 0 : items.length - 1]?.focus()
+}
+
+const handleTriggerKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (props.trigger === 'manual' && !show.value) return
+
+    event.preventDefault()
+    if (props.trigger !== 'manual') show.value = true
+    focusMenuItem(event.key === 'ArrowDown' ? 'first' : 'last')
+  } else if ((event.key === 'Enter' || event.key === ' ') && props.trigger !== 'manual') {
+    event.preventDefault()
+    show.value = true
+    focusMenuItem('first')
+  } else if (event.key === 'Escape' && show.value) {
+    event.preventDefault()
+    show.value = false
+  }
+}
+
+const handleMenuKeydown = (event: KeyboardEvent) => {
+  const items = getMenuItems()
+  const currentIndex = items.indexOf(document.activeElement as HTMLElement)
+
+  if (event.key === 'Tab') {
+    if (props.trigger !== 'manual') show.value = false
+    return
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    show.value = false
+    focusTrigger()
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    items[currentIndex]?.click()
+    return
+  }
+
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || items.length === 0) return
+
+  event.preventDefault()
+  let nextIndex = currentIndex
+  if (event.key === 'Home') nextIndex = 0
+  if (event.key === 'End') nextIndex = items.length - 1
+  if (event.key === 'ArrowDown') nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+  if (event.key === 'ArrowUp') nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+  items[nextIndex]?.focus()
+}
+
 const handleItemClick = (item: DropdownMenuItem) => {
   show.value = false
   emit('item-click', item)
+  focusTrigger()
 }
 
 defineExpose({
@@ -78,17 +152,19 @@ defineExpose({
     :offset="8"
     :transition-props="{ name: 'tr-dropdown-menu' }"
     :prevent-overflow="true"
-    :trigger-events="{ onClick: handleTriggerClick }"
+    :trigger-events="{ onClick: handleTriggerClick, onKeydown: handleTriggerKeydown }"
   >
     <template #trigger>
       <slot name="trigger" />
     </template>
     <template #content>
-      <ul class="tr-dropdown-menu__list">
+      <ul class="tr-dropdown-menu__list" role="menu" @keydown="handleMenuKeydown">
         <li
           class="tr-dropdown-menu__list-item"
           v-for="item in props.items"
           :key="item.id"
+          role="menuitem"
+          tabindex="-1"
           @click="handleItemClick(item)"
         >
           {{ item.text }}
