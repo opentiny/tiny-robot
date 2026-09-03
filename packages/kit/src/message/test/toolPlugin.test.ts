@@ -16,6 +16,92 @@ const functionToolNames = (tools: ChatCompletionTool[] = []) =>
   tools.filter(isFunctionTool).map((tool) => tool.function.name)
 
 describe('toolPlugin', () => {
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid maxToolRounds value %s',
+    (maxToolRounds) => {
+      expect(() =>
+        toolPlugin({
+          maxToolRounds,
+          getTools: async () => [],
+          callTool: async () => 'unused',
+        }),
+      ).toThrow('maxToolRounds must be a non-negative integer')
+    },
+  )
+
+  it('keeps tool rounds unlimited when maxToolRounds is omitted', async () => {
+    const callTool = vi.fn(async () => 'tool result')
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      requestCount += 1
+
+      if (requestCount <= 3) {
+        return {
+          id: `tool-round-${requestCount}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: `call-${requestCount}`,
+                    type: 'function',
+                    function: {
+                      name: 'lookup',
+                      arguments: '{}',
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      return {
+        id: 'final-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'done',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => [],
+          callTool,
+        }),
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('use tools')
+
+    expect(callTool).toHaveBeenCalledTimes(3)
+    expect(responseProvider).toHaveBeenCalledTimes(4)
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'done',
+    })
+  })
+
   it('injects and executes runtime tools before falling back to callTool', async () => {
     const runtimeCall = vi.fn(() => ({ result: 'runtime-result' }))
     const fallbackCall = vi.fn()

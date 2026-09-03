@@ -25,6 +25,12 @@ export type ToolCallContext = BasePluginContext & {
   toolSource: ToolSource
 }
 
+export type ToolLimitExceededContext = BasePluginContext & {
+  assistantMessage: AssistantMessageWithState
+  toolRoundCount: number
+  maxToolRounds: number
+}
+
 export interface RuntimeTool {
   tool: ChatCompletionFunctionTool
   handler: (
@@ -136,6 +142,17 @@ export const toolPlugin = (
       context: BasePluginContext & { assistantMessage: AssistantMessageWithState },
     ) => Promise<void>
     /**
+     * 单个用户回合允许执行的最大工具调用轮数。未设置时不限制。
+     */
+    maxToolRounds?: number
+    /**
+     * 模型返回的工具调用超过最大轮数时触发。
+     */
+    onLimitExceeded?: (
+      toolCalls: ChatCompletionMessageToolCall[],
+      context: ToolLimitExceededContext,
+    ) => MaybePromise<void>
+    /**
      * 执行单个工具调用并返回其文本结果的函数。
      */
     callTool: (
@@ -183,6 +200,8 @@ export const toolPlugin = (
   const {
     getTools,
     beforeCallTools,
+    maxToolRounds,
+    onLimitExceeded: _onLimitExceeded,
     callTool,
     onToolCallStart,
     onToolCallEnd,
@@ -191,6 +210,10 @@ export const toolPlugin = (
     autoFillMissingToolMessages = false,
     ...restOptions
   } = options
+
+  if (maxToolRounds !== undefined && (!Number.isInteger(maxToolRounds) || maxToolRounds < 0)) {
+    throw new TypeError('maxToolRounds must be a non-negative integer')
+  }
 
   const ensureToolCallState = (assistantMessage: AssistantMessageWithState, toolCallId: string) => {
     assistantMessage.state ??= {}
