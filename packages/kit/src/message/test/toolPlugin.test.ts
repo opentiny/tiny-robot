@@ -168,14 +168,18 @@ describe('toolPlugin', () => {
         ...silentDefaultPlugins,
         toolPlugin({
           maxToolRounds: 1,
-          getTools: async () => [
-            {
-              type: 'function',
-              function: {
-                name: 'lookup',
+          getTools: async () => [],
+          onBeforeRequest: ({ requestBody }) => {
+            requestBody.tools = [
+              {
+                type: 'function',
+                function: {
+                  name: 'lookup',
+                },
               },
-            },
-          ],
+            ]
+            requestBody.tool_choice = 'auto'
+          },
           callTool,
           onLimitExceeded,
         }),
