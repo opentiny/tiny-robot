@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T">
 import { onClickOutside, useElementBounding, useElementSize, useWindowSize } from '@vueuse/core'
-import { computed, CSSProperties, ref } from 'vue'
+import { computed, CSSProperties, nextTick, ref } from 'vue'
 import { toCssUnit } from '../../shared/utils'
 import { HistoryMenuItem } from '../index.type'
 
@@ -60,11 +60,59 @@ const handleItemClick = (item: { id: string; text: string }) => {
   trigger.value = null
   data.value = null
 }
+
+const getMenuItems = () => Array.from(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') || [])
+
+const focusFirstItem = () => getMenuItems()[0]?.focus()
+const focusLastItem = () => getMenuItems().at(-1)?.focus()
+
+const closeAndFocusTrigger = () => {
+  const triggerElement = trigger.value
+  trigger.value = null
+  data.value = null
+  nextTick(() => triggerElement?.focus())
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  const items = getMenuItems()
+  const currentIndex = items.indexOf(document.activeElement as HTMLElement)
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeAndFocusTrigger()
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    items[currentIndex]?.click()
+    return
+  }
+
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || items.length === 0) return
+
+  event.preventDefault()
+  let nextIndex = currentIndex
+  if (event.key === 'Home') nextIndex = 0
+  if (event.key === 'End') nextIndex = items.length - 1
+  if (event.key === 'ArrowDown') nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+  if (event.key === 'ArrowUp') nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+  items[nextIndex]?.focus()
+}
+
+defineExpose({ focusFirstItem, focusLastItem })
 </script>
 
 <template>
-  <ul class="tr-history__menu-list" ref="menuRef" :style="styles">
-    <li class="tr-history__menu-list__item" v-for="item in props.items" :key="item.id" @click="handleItemClick(item)">
+  <ul class="tr-history__menu-list" ref="menuRef" :style="styles" role="menu" @keydown="handleKeydown">
+    <li
+      class="tr-history__menu-list__item"
+      v-for="item in props.items"
+      :key="item.id"
+      role="menuitem"
+      tabindex="-1"
+      @click="handleItemClick(item)"
+    >
       <component :is="item.icon" />
       <span>{{ item.text }}</span>
     </li>
