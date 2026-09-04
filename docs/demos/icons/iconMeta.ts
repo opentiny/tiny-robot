@@ -148,6 +148,7 @@ export const iconCategoryGroups: IconCategoryGroup[] = [
       'IconOpenai',
       'IconClaude',
       'IconDeepseek',
+      'IconGemini',
       'IconBailian',
       'IconModelscope',
       'IconOpenrouter',
