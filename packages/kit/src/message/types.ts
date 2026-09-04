@@ -17,8 +17,26 @@ export type DeepReadonly<T> = T extends (...args: any[]) => any
       : T
 
 // Define different states for the request process
-export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+export type RequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
+
+export type MessagePluginCommandHandler = (
+  payload: unknown,
+  context: BasePluginContext & {
+    appendMessage: (message: ChatMessage | ChatMessage[]) => void
+    requestNext: (resume?: boolean) => void
+    /**
+     * Starts the paused-turn resume lifecycle once. Commands that execute work
+     * before the next model request should call this before their side effects.
+     */
+    resumeTurn: () => Promise<void>
+  },
+) => MaybePromise<unknown>
+
+export interface MessagePluginCommandRegistration {
+  handler: MessagePluginCommandHandler
+  owner: MessageEnginePlugin
+}
 
 export type ChatMessage<
   Metadata extends object = Record<string, unknown>,
@@ -47,6 +65,8 @@ export interface PublicMessageState {
   processingState?: RequestProcessingState
   messages: ChatMessage[]
   isProcessing: boolean
+  isCurrentTurn: boolean
+  isPaused: boolean
 }
 
 export interface InternalMessageState {
@@ -56,10 +76,12 @@ export interface InternalMessageState {
 }
 
 export interface MessageRuntime {
+  turnId: string | null
   currentTurn: ChatMessage[]
   customContext: Record<string, unknown>
   abortController: AbortController | null
   responseProvider: ResponseProvider
+  commandHandlers: Map<string, MessagePluginCommandRegistration>
 }
 
 export interface MessageEngine {
@@ -70,6 +92,7 @@ export interface MessageEngine {
   send(...msgs: ChatMessage[]): Promise<void>
   abort(): Promise<void>
   setResponseProvider(provider: ResponseProvider): void
+  dispatchCommand<Result = unknown>(command: string, payload?: unknown): Promise<Result>
 }
 
 export type MessageUpdateKind = 'messages' | 'requestState'
@@ -130,6 +153,8 @@ export interface BasePluginContext {
   mutate: MutateMessageStateFn
   abortSignal: AbortSignal
   currentTurn: ChatMessage[]
+  /** 当前对话回合 ID；用于插件保存或恢复回合级状态。 */
+  turnId: string | null
   /**
    * 当前 engine 中已注册的插件列表。
    *
@@ -139,6 +164,23 @@ export interface BasePluginContext {
   customContext: Record<string, unknown>
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   setCustomContext: (data: Record<string, unknown>) => void
+}
+
+export interface MessageEngineInitContext extends BasePluginContext {
+  /** 引擎初始化时当前可用的消息历史。 */
+  initialMessages: ChatMessage[]
+}
+
+export interface MessageEngineInitResult {
+  /** 初始化后的消息历史。 */
+  messages?: ChatMessage[]
+  /** 初始化后的请求状态。 */
+  requestState?: RequestState
+  processingState?: RequestProcessingState
+  /** 初始化后的回合运行时数据。 */
+  turnId?: string | null
+  currentTurn?: ChatMessage[]
+  customContext?: Record<string, unknown>
 }
 
 export interface BeforeRequestContext extends BasePluginContext {
@@ -152,7 +194,7 @@ export interface AfterRequestContext extends BasePluginContext {
    * 使用 appendMessage 函数追加消息，可触发消息更新通知。
    */
   appendMessage: (message: ChatMessage | ChatMessage[]) => void
-  requestNext: () => void
+  requestNext: (resume?: boolean) => void
 }
 
 export interface CompletionChunkContext extends BasePluginContext {
@@ -177,6 +219,12 @@ export interface MessageEnginePlugin {
    * 是否禁用插件。
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
+  /** 引擎创建时初始化插件拥有的运行时状态。 */
+  onInit?: (context: MessageEngineInitContext) => MessageEngineInitResult | void
+  /** 一次回合离开暂停状态、继续执行前触发。 */
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
+  /** 一次回合进入暂停状态后触发。 */
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。
@@ -188,6 +236,11 @@ export interface MessageEnginePlugin {
    * 执行策略：按插件注册顺序串行执行，有错误则中断流程。
    */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
+  /**
+   * 一次对话回合被外部取消的生命周期钩子。
+   * paused 状态下调用 abort 时也会触发，用于清理等待中的工具调用。
+   */
+  onTurnAbort?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 请求开始前的生命周期钩子。
    * 触发时机：已组装 requestBody，正式发起请求之前。
@@ -207,6 +260,11 @@ export interface MessageEnginePlugin {
   onCompletionChunk?: (context: CompletionChunkContext) => void
   onError?: (context: BasePluginContext & { error: unknown }) => void
   onFinally?: (context: BasePluginContext) => void
+  /**
+   * 插件命令集合。
+   * 插件可以在这里声明额外的外部命令入口。
+   */
+  commands?: Record<string, MessagePluginCommandHandler>
 }
 
 export interface CreateMessageEngineOptions {

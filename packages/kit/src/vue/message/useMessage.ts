@@ -45,8 +45,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     return {
       messages: adapter.messages.value as ChatMessage[],
       currentTurn: context.currentTurn.map((message) => resolveReactiveMessage(message as ChatMessage)),
+      turnId: context.turnId,
       requestState: adapter.requestState.value,
       processingState: adapter.processingState.value,
+      isCurrentTurn: adapter.isCurrentTurn.value,
+      isPaused: adapter.isPaused.value,
       plugins,
       setRequestState: context.setRequestState,
       abortSignal: context.abortSignal,
@@ -71,8 +74,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const {
       name,
       disabled,
+      onInit,
+      onTurnResume,
+      onTurnPause,
+      commands,
       onTurnStart,
       onTurnEnd,
+      onTurnAbort,
       onBeforeRequest,
       onAfterRequest,
       onCompletionChunk,
@@ -91,12 +99,47 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
         typeof disabled === 'function' ? (context) => disabled(createVueBaseContext(context)) : disabled
     }
 
+    if (onInit) {
+      corePlugin.onInit = (context) =>
+        onInit({
+          ...createVueBaseContext(context),
+          initialMessages: context.initialMessages.map((message) => resolveReactiveMessage(message as ChatMessage)),
+        })
+    }
+
+    if (onTurnResume) {
+      corePlugin.onTurnResume = (context) => onTurnResume(createVueBaseContext(context))
+    }
+
+    if (onTurnPause) {
+      corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
+    }
+
     if (onTurnStart) {
       corePlugin.onTurnStart = (context) => onTurnStart(createVueBaseContext(context))
     }
 
     if (onTurnEnd) {
       corePlugin.onTurnEnd = (context) => onTurnEnd(createVueBaseContext(context))
+    }
+
+    if (onTurnAbort) {
+      corePlugin.onTurnAbort = (context) => onTurnAbort(createVueBaseContext(context))
+    }
+
+    if (commands) {
+      corePlugin.commands = Object.fromEntries(
+        Object.entries(commands).map(([commandName, handler]) => [
+          commandName,
+          (payload, context) =>
+            handler(payload, {
+              ...createVueBaseContext(context),
+              appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
+              requestNext: context.requestNext,
+              resumeTurn: context.resumeTurn,
+            }),
+        ]),
+      )
     }
 
     if (onBeforeRequest) {
@@ -184,8 +227,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     messages: adapter.messages,
     responseProvider,
     isProcessing: adapter.isProcessing,
+    isCurrentTurn: adapter.isCurrentTurn,
+    isPaused: adapter.isPaused,
     sendMessage: engine.sendMessage,
     send: engine.send,
     abortRequest: engine.abort,
+    dispatchCommand: engine.dispatchCommand,
   } as UseMessageReturn
 }

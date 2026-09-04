@@ -2,7 +2,14 @@ import type { ChatCompletion } from 'openai/resources'
 import { describe, expect, it, vi } from 'vitest'
 import { createNativeMessageAdapter } from '../../message/adapters/native'
 import { createMessageEngine } from '../../message/core/engine'
-import { getSkillRequestContext, lengthPlugin, skillPlugin, thinkingPlugin, toolPlugin } from '../../message/plugins'
+import {
+  getSkillRequestContext,
+  lengthPlugin,
+  skillPlugin,
+  thinkingPlugin,
+  TOOL_RESUME_COMMAND,
+  toolPlugin,
+} from '../../message/plugins'
 import type { SkillPluginOptions, SkillSelection } from '../../message/plugins'
 import type { CreateMessageEngineOptions, MessageRequestBody, ResponseProvider } from '../../message/types'
 import { mockResponseProvider } from '../../message/test/mockResponseProvider'
@@ -159,9 +166,448 @@ describe('skillPlugin', () => {
 
     expect(responseProvider).toHaveBeenCalledTimes(2)
     expect(onInstructionsResolved).toHaveBeenCalledTimes(1)
+    expect(engine.getState().messages[1]).toMatchObject({
+      role: 'assistant',
+      state: {
+        toolCall: {
+          'call-1': {
+            description: 'Read a file from a current skill by skill name and relative path.',
+          },
+        },
+      },
+    })
     expect(engine.getState().messages.at(-1)).toMatchObject({
       role: 'assistant',
       content: 'done',
+    })
+  })
+
+  it('rebuilds skill runtime tools before resuming a persisted turn', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    let shouldPause = true
+    const callTool = vi.fn(async () => 'fallback should not run')
+    const skill: SkillDefinition = {
+      name: 'docs',
+      description: 'Docs skill',
+      instructions: 'Use docs.',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text',
+          resourceId: 'guide.md',
+          readText: async () => '# Rebuilt guide',
+        },
+      ],
+    }
+    const getSkillByName = vi.fn(async (name: string) => (name === skill.name ? skill : undefined))
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody: MessageRequestBody) => {
+      const hasToolResult = requestBody.messages.some((message) => message.role === 'tool')
+
+      if (!hasToolResult) {
+        return {
+          id: 'persisted-skill-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-rebuild-skill',
+                    type: 'function',
+                    function: {
+                      name: 'read_skill_file',
+                      arguments: JSON.stringify({ skillName: 'docs', path: 'guide.md' }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(String(requestBody.messages.at(-1)?.content)).toContain('Rebuilt guide')
+      return {
+        id: 'persisted-skill-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'rebuild done',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const createEngine = (initialMessages: CreateMessageEngineOptions['initialMessages'] = []) =>
+      createTestMessageEngine({
+        initialMessages,
+        plugins: [
+          ...silentDefaultPlugins,
+          skillPlugin({
+            selection: { mode: 'manual', skillNames: [skill.name] },
+            getSkillByName,
+          }),
+          toolPlugin({
+            getTools: async () => [],
+            callTool,
+            shouldPauseToolCall() {
+              return shouldPause
+            },
+          }),
+        ],
+        responseProvider,
+      })
+
+    try {
+      const firstEngine = createEngine()
+      await firstEngine.sendMessage('read docs')
+
+      expect(firstEngine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+      const snapshot = JSON.parse(values.get('__tiny-robot-turn') ?? '{}')
+      const skillContext = snapshot.turns[0].customContext.__tiny_robot_skill
+      expect(skillContext).not.toHaveProperty('runtimeTools')
+
+      shouldPause = false
+      const restoredEngine = createEngine(firstEngine.getState().messages)
+
+      await expect(
+        restoredEngine.dispatchCommand(TOOL_RESUME_COMMAND, {
+          toolCallId: 'call-rebuild-skill',
+        }),
+      ).resolves.toEqual({
+        status: 'resumed',
+        toolCallId: 'call-rebuild-skill',
+      })
+
+      expect(callTool).not.toHaveBeenCalled()
+      expect(getSkillByName).toHaveBeenCalledTimes(2)
+      expect(restoredEngine.getState().messages.at(-1)).toMatchObject({
+        role: 'assistant',
+        content: 'rebuild done',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps a restored turn paused when its skill resolver cannot rebuild a pending tool', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    const turnId = 'paused-skill-resolver-failure'
+    const toolCallId = 'call-skill-resolver-failure'
+    const persistedSkill = {
+      name: 'docs',
+      description: 'Docs skill',
+      instructions: 'Use docs.',
+      resources: [{ path: 'guide.md', kind: 'text', resourceId: 'guide.md' }],
+    }
+    values.set(
+      '__tiny-robot-turn',
+      JSON.stringify({
+        version: 1,
+        turns: [
+          {
+            version: 1,
+            turnId,
+            requestState: 'paused',
+            toolCallIds: [toolCallId],
+            customContext: {
+              __tiny_robot_skill: {
+                skills: [persistedSkill],
+                skillNames: ['docs'],
+                requestedSkillNames: ['docs'],
+                unresolvedSkillNames: [],
+                instructions: ['Use docs.'],
+                selection: { mode: 'manual', phase: 'ready' },
+              },
+            },
+            pausedAt: Date.now(),
+          },
+        ],
+      }),
+    )
+
+    const getSkillByName = vi.fn(async () => undefined)
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      throw new Error('responseProvider should not run when skill restoration fails')
+    })
+    const engine = createTestMessageEngine({
+      initialMessages: [
+        { role: 'user', content: 'read docs' },
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: toolCallId,
+              type: 'function',
+              function: {
+                name: 'read_skill_file',
+                arguments: JSON.stringify({ skillName: 'docs', path: 'guide.md' }),
+              },
+            },
+          ],
+          state: {
+            turnId,
+            toolCall: { [toolCallId]: { status: 'awaiting-approval' } },
+          },
+        },
+        { role: 'tool', tool_call_id: toolCallId, content: 'Tool call awaiting confirmation.' },
+      ],
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: { mode: 'manual', skillNames: ['docs'] },
+          getSkillByName,
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => {
+            throw new Error('fallback tool execution should not run')
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    try {
+      expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+      await expect(engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId })).rejects.toThrow(
+        'Unable to restore selected skills: docs',
+      )
+      expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
+      expect(responseProvider).not.toHaveBeenCalled()
+      expect(values.has('__tiny-robot-turn')).toBe(true)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('rebuilds skill runtime tools when the turn snapshot is unavailable', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    let shouldPause = true
+    const skill: SkillDefinition = {
+      name: 'docs',
+      description: 'Docs skill',
+      instructions: 'Use docs.',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text',
+          resourceId: 'guide.md',
+          text: '# Rebuilt without snapshot',
+        },
+      ],
+    }
+    const getSkillByName = vi.fn(async (name: string) => (name === skill.name ? skill : undefined))
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody: MessageRequestBody) => {
+      if (!requestBody.messages.some((message) => message.role === 'tool')) {
+        return {
+          id: 'missing-snapshot-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-missing-snapshot',
+                    type: 'function',
+                    function: {
+                      name: 'read_skill_file',
+                      arguments: JSON.stringify({ skillName: 'docs', path: 'guide.md' }),
+                    },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      expect(String(requestBody.messages.at(-1)?.content)).toContain('Rebuilt without snapshot')
+      return {
+        id: 'missing-snapshot-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'rebuild done' },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const createEngine = (initialMessages: CreateMessageEngineOptions['initialMessages'] = []) =>
+      createTestMessageEngine({
+        initialMessages,
+        plugins: [
+          ...silentDefaultPlugins,
+          skillPlugin({
+            selection: { mode: 'manual', skillNames: [skill.name] },
+            getSkillByName,
+          }),
+          toolPlugin({
+            getTools: async () => [],
+            callTool: async () => {
+              throw new Error('runtime skill tool was not rebuilt')
+            },
+            shouldPauseToolCall() {
+              return shouldPause
+            },
+          }),
+        ],
+        responseProvider,
+      })
+
+    try {
+      const firstEngine = createEngine()
+      await firstEngine.sendMessage('read docs')
+      const messages = firstEngine.getState().messages
+      values.delete('__tiny-robot-turn')
+
+      shouldPause = false
+      const restoredEngine = createEngine(messages)
+      await expect(
+        restoredEngine.dispatchCommand(TOOL_RESUME_COMMAND, {
+          toolCallId: 'call-missing-snapshot',
+        }),
+      ).resolves.toMatchObject({ status: 'resumed' })
+
+      expect(getSkillByName).toHaveBeenCalledTimes(2)
+      expect(restoredEngine.getState().messages.at(-1)).toMatchObject({
+        role: 'assistant',
+        content: 'rebuild done',
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('rebuilds resource handlers from pending tool arguments when the skill context is missing', async () => {
+    const skill: SkillDefinition = {
+      name: 'docs',
+      description: 'Docs skill',
+      instructions: 'Use docs.',
+      resources: [
+        {
+          path: 'guide.md',
+          kind: 'text',
+          resourceId: 'guide.md',
+          text: '# Rebuilt from pending tool call',
+        },
+      ],
+    }
+    const getSkillByName = vi.fn(async (name: string) => (name === skill.name ? skill : undefined))
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody: MessageRequestBody) => {
+      expect(String(requestBody.messages.at(-1)?.content)).toContain('Rebuilt from pending tool call')
+      return {
+        id: 'pending-skill-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'rebuild done' },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      initialMessages: [
+        { role: 'user', content: 'read docs' },
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [
+            {
+              id: 'call-pending-context',
+              type: 'function',
+              function: {
+                name: 'read_skill_file',
+                arguments: JSON.stringify({ skillName: 'docs', path: 'guide.md' }),
+              },
+            },
+          ],
+          state: {
+            toolCall: {
+              'call-pending-context': { status: 'awaiting-approval' },
+            },
+          },
+        },
+        {
+          role: 'tool',
+          tool_call_id: 'call-pending-context',
+          content: 'Tool call awaiting confirmation.',
+        },
+      ],
+      plugins: [
+        ...silentDefaultPlugins,
+        skillPlugin({
+          selection: { mode: 'none' },
+          getSkillByName,
+        }),
+        toolPlugin({
+          getTools: async () => [],
+          callTool: async () => {
+            throw new Error('runtime skill tool was not rebuilt')
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    await expect(
+      engine.dispatchCommand(TOOL_RESUME_COMMAND, {
+        toolCallId: 'call-pending-context',
+      }),
+    ).resolves.toMatchObject({ status: 'resumed' })
+
+    expect(getSkillByName).toHaveBeenCalledOnce()
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'rebuild done',
     })
   })
 

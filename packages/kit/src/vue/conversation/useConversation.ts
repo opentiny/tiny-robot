@@ -230,8 +230,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     workingEngines.forEach((engine, key) => {
       if (excludeId && key === excludeId) return
 
-      const isProcessing = engine.isProcessing?.value
-      if (!isProcessing) {
+      const isCurrentTurn = engine.isCurrentTurn?.value
+      if (!isCurrentTurn) {
         stopAutoSave(key)
         workingEngines.delete(key)
       }

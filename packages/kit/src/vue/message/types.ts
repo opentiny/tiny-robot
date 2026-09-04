@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ComputedRef, Ref } from 'vue'
 import type { AsyncStreamableResult, ChatMessage, MaybePromise, ToolCall } from '../../types'
+import type { MessageEngineInitResult } from '../../message/types'
 
 export interface Tool {
   type: 'function'
@@ -23,7 +24,7 @@ export interface MessageRequestBody {
 }
 
 // Define different states for the request process
-export type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+export type RequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 export type RequestProcessingState = 'requesting' | 'completing' | string
 
 // Usage information for API response
@@ -82,6 +83,15 @@ export type ResponseProvider<T = ChatCompletion> = (
   abortSignal: AbortSignal,
 ) => AsyncStreamableResult<T>
 
+export type UseMessagePluginCommandHandler = (
+  payload: unknown,
+  context: BasePluginContext & {
+    appendMessage: (message: ChatMessage | ChatMessage[]) => void
+    requestNext: (resume?: boolean) => void
+    resumeTurn: () => Promise<void>
+  },
+) => MaybePromise<unknown>
+
 export interface UseMessageOptions {
   initialMessages?: ChatMessage[]
   /**
@@ -117,16 +127,22 @@ export interface UseMessageReturn {
   messages: Ref<ChatMessage[]>
   responseProvider: Ref<UseMessageOptions['responseProvider']>
   isProcessing: ComputedRef<boolean>
+  isCurrentTurn: ComputedRef<boolean>
+  isPaused: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
   abortRequest: () => Promise<void>
+  dispatchCommand: <Result = unknown>(command: string, payload?: unknown) => Promise<Result>
 }
 
 export interface BasePluginContext {
   messages: ChatMessage[]
   currentTurn: ChatMessage[]
+  turnId: string | null
   requestState: RequestState
   processingState?: RequestProcessingState
+  isCurrentTurn: boolean
+  isPaused: boolean
   plugins: UseMessagePlugin[]
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   abortSignal: AbortSignal
@@ -149,6 +165,9 @@ export interface UseMessagePlugin {
    * 是否禁用插件。useMessage 可能会内置一些默认插件，如果需要禁用，可以设置为 true。
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
+  onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 一次对话回合（turn）开始钩子：用户消息入队后、正式发起请求之前触发。
    * 按插件注册顺序串行执行，便于做有序初始化/校验；出错则中断流程。
@@ -160,6 +179,11 @@ export interface UseMessagePlugin {
    * 执行策略：按插件注册顺序串行执行，有错误则中断流程
    */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
+  /**
+   * 一次对话回合被外部取消的生命周期钩子。
+   * paused 状态下调用 abort 时也会触发，用于清理等待中的工具调用。
+   */
+  onTurnAbort?: (context: BasePluginContext) => MaybePromise<void>
   /**
    * 请求开始前的生命周期钩子。
    * 触发时机：已组装 requestBody，正式发起请求之前。
@@ -181,7 +205,7 @@ export interface UseMessagePlugin {
       currentMessage: ChatMessage
       lastChoice?: CompletionChoice
       appendMessage: (message: ChatMessage | ChatMessage[]) => void
-      requestNext: () => void
+      requestNext: (resume?: boolean) => void
     },
   ) => MaybePromise<void>
   /**
@@ -198,4 +222,9 @@ export interface UseMessagePlugin {
   ) => void
   onError?: (context: BasePluginContext & { error: unknown }) => void
   onFinally?: (context: BasePluginContext) => void
+  /**
+   * 插件命令集合。
+   * 插件可以在这里声明额外的外部命令入口。
+   */
+  commands?: Record<string, UseMessagePluginCommandHandler>
 }
