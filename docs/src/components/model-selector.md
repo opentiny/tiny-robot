@@ -58,6 +58,8 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 <demo vue="../../demos/model-selector/reasoning-effort.vue" title="思考强度" description="内置选项、自定义选项与不支持思考强度的模型。" />
 
+示例设置了 `:close-on-select="false"`，切换模型后面板保持打开，可继续选择思考强度。该属性只控制模型选择后的关闭行为，不会根据模型是否支持思考强度做隐式判断。
+
 - `true` 对应内置的 `Low`、`Medium`、`High`。
 - 选项数组支持自定义 `value`、`label` 和 `disabled`。
 - `false`、`undefined` 或空数组表示不显示思考强度。
@@ -92,7 +94,7 @@ const filterMethod: ModelSelectorFilterMethod = (query, option) => {
 
 <demo vue="../../demos/model-selector/slots.vue" title="自定义选项面板" description="面板标题、模型项、空状态和底部操作区的定制效果。" />
 
-`item` 位于 `role="option"` 内，适合非交互内容。`header` 和 `footer` 支持按钮、链接或表单控件；作用域中的 `close()` 用于请求关闭面板。
+`item` 位于 `role="option"` 内，适合非交互内容。`header` 和 `footer` 支持按钮、链接或表单控件；作用域中的 `close()` 用于关闭面板。
 
 `footer` 插槽会完整替换默认的思考强度区域。自定义 Footer 可通过 `reasoningEfforts`、`reasoningEffortOption` 和 `setReasoningEffort()` 保留思考强度选择能力。
 
@@ -134,16 +136,16 @@ const open = shallowRef(false)
 
 ## 键盘操作与无障碍
 
-| 位置           | 按键                    | 行为                               |
-| -------------- | ----------------------- | ---------------------------------- |
-| 触发器         | `Enter`                 | 打开面板                           |
-| 触发器         | `Space`                 | 通过按钮原生点击行为打开或关闭面板 |
-| 面板           | `Escape`                | 关闭面板并恢复触发器焦点           |
-| 搜索框或列表   | `ArrowDown` / `ArrowUp` | 跳过禁用项移动高亮                 |
-| 非搜索模式列表 | `Home` / `End`          | 跳到首个或末个可用项               |
-| 搜索框或列表   | `Enter`                 | 选择高亮项；输入法组合期间不会误选 |
-| 非搜索模式列表 | `Space`                 | 选择高亮项                         |
-| 思考强度按钮   | `Enter` / `Space`       | 选择思考强度，不关闭面板           |
+| 位置           | 按键                    | 行为                                                                |
+| -------------- | ----------------------- | ------------------------------------------------------------------- |
+| 触发器         | `Enter`                 | 打开面板                                                            |
+| 触发器         | `Space`                 | 通过按钮原生点击行为打开或关闭面板                                  |
+| 面板           | `Escape`                | 关闭面板并恢复触发器焦点                                            |
+| 搜索框或列表   | `ArrowDown` / `ArrowUp` | 跳过禁用项移动高亮                                                  |
+| 非搜索模式列表 | `Home` / `End`          | 跳到首个或末个可用项                                                |
+| 搜索框或列表   | `Enter`                 | 选择高亮项；是否关闭由 `closeOnSelect` 决定；输入法组合期间不会误选 |
+| 非搜索模式列表 | `Space`                 | 选择高亮项；是否关闭由 `closeOnSelect` 决定                         |
+| 思考强度按钮   | `Enter` / `Space`       | 选择思考强度，不关闭面板                                            |
 
 组件使用真实按钮以及 `combobox`、`listbox`、`option` 等 ARIA 语义。它不会拦截 `Tab` 或重排焦点；面板 Teleport 后，Tab 顺序由实际 DOM 位置决定。
 
@@ -164,6 +166,7 @@ const open = shallowRef(false)
 | `defaultReasoningEffort` | `string \| null`                 | `null`      | 非受控初始思考强度                               |
 | `open`                   | `boolean`                        | `undefined` | 受控面板开关；通过 `update:open` 同步            |
 | `defaultOpen`            | `boolean`                        | `false`     | 非受控初始面板开关                               |
+| `closeOnSelect`          | `boolean`                        | `true`      | 选择模型后是否自动关闭面板                       |
 | `disabled`               | `boolean`                        | `false`     | 禁用组件并保持面板关闭                           |
 
 #### 搜索与文案
@@ -198,7 +201,7 @@ const open = shallowRef(false)
 | `reasoning-effort-change` | `(option: ModelSelectorReasoningEffortOption \| null)` | 思考强度请求变化后触发                 |
 | `update:open`             | `(open: boolean)`                                      | 请求更新面板开关                       |
 
-事件只响应用户交互，初始化、外部赋值和更新 `models` 不会触发 `change`。选择模型时依次触发 `update:modelValue`、`change` 和 `update:open(false)`；选择思考强度时依次触发 `update:reasoningEffort` 和 `reasoning-effort-change`，并保持面板打开。
+事件只响应用户交互，初始化、外部赋值和更新 `models` 不会触发 `change`。选择不同模型时依次触发 `update:modelValue` 和 `change`；`closeOnSelect` 为 `true` 时随后触发 `update:open(false)` 并关闭面板，为 `false` 时面板保持打开。选择思考强度时依次触发 `update:reasoningEffort` 和 `reasoning-effort-change`，并保持面板打开。
 
 ### Slots
 
@@ -210,7 +213,7 @@ const open = shallowRef(false)
 | `header`  | `{ option, query, close }`                                                              | 自定义面板头部           |
 | `footer`  | `{ option, query, close, reasoningEfforts, reasoningEffortOption, setReasoningEffort }` | 完整替换默认思考强度区域 |
 
-`close()` 请求关闭面板，成功关闭后恢复触发器焦点。受控 `open` 未回写为 `false` 时，组件不会强制关闭。`reasoningEffortOption` 只返回当前模型真正支持的选项；已保存但不受支持的值会解析为 `null`。
+`close()` 关闭面板并恢复触发器焦点。使用受控 `open` 时，消费层需要同步更新值。`reasoningEffortOption` 只返回当前模型真正支持的选项；已保存但不受支持的值会解析为 `null`。
 
 ### Types
 
@@ -252,6 +255,7 @@ export interface ModelSelectorProps {
   defaultReasoningEffort?: string | null
   open?: boolean
   defaultOpen?: boolean
+  closeOnSelect?: boolean
   disabled?: boolean
   searchable?: boolean
   placeholder?: string

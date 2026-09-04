@@ -25,6 +25,7 @@ const props = withDefaults(defineProps<ModelSelectorProps>(), {
   defaultReasoningEffort: null,
   open: undefined,
   defaultOpen: false,
+  closeOnSelect: true,
   disabled: false,
   searchable: false,
   placeholder: '选择模型',
@@ -207,7 +208,9 @@ function handleSelectOption(option: ModelSelectorOption) {
     emit('change', normalizedOption.raw)
   }
 
-  requestClose(true)
+  if (props.closeOnSelect) {
+    requestClose(true)
+  }
 }
 
 function handleSelectEffort(value: string | null) {

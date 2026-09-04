@@ -185,6 +185,7 @@ const logs = {
   uncontrolled: createEventLog(),
   controlled: createEventLog(),
   blocked: createEventLog(),
+  keepOpen: createEventLog(),
   keyboard: createEventLog(),
   slots: createEventLog(),
   defaultOpen: createEventLog(),
@@ -410,6 +411,23 @@ onBeforeUnmount(() => {
 
     <section class="model-selector-test__section" data-testid="effort-section">
       <h3>Reasoning effort</h3>
+
+      <TrModelSelector
+        data-testid="keep-open-selector"
+        :models="effortModels"
+        :searchable="false"
+        :close-on-select="false"
+        default-value="reasoning-default"
+        @update:model-value="recordValue(logs.keepOpen, $event)"
+        @change="recordChange(logs.keepOpen, $event)"
+        @update:open="recordOpen(logs.keepOpen, $event)"
+      />
+      <div class="model-selector-test__metrics">
+        <output data-testid="keep-open-updates">{{ logs.keepOpen.updates }}</output>
+        <output data-testid="keep-open-changes">{{ logs.keepOpen.changes }}</output>
+        <output data-testid="keep-open-open-updates">{{ logs.keepOpen.openUpdates }}</output>
+        <output data-testid="keep-open-last-open">{{ logs.keepOpen.lastOpen }}</output>
+      </div>
 
       <TrModelSelector
         data-testid="effort-uncontrolled-selector"

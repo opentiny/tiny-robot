@@ -37,6 +37,7 @@ const models = [
       v-model="model"
       v-model:reasoning-effort="reasoningEffort"
       :models="models"
+      :close-on-select="false"
       reasoning-effort-label="思考强度"
     />
     <span aria-live="polite">当前值：{{ reasoningEffort ?? '未选择' }}</span>

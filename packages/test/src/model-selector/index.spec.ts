@@ -184,6 +184,39 @@ test.describe('ModelSelector 组件测试', () => {
   })
 
   test.describe('Reasoning effort', () => {
+    test('closeOnSelect=false 时鼠标和键盘选择模型应保持面板、焦点与高亮', async ({ page }) => {
+      const trigger = getTrigger(page, 'keep-open-selector')
+
+      await trigger.click()
+      const listbox = await getListbox(page, 'keep-open-selector')
+      await expect(listbox).toBeFocused()
+
+      await listbox.getByRole('option', { name: /Reasoning Custom/ }).click()
+      await expect(trigger).toContainText('Reasoning Custom')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      await expect(listbox).toBeFocused()
+      await expect(await getActiveOption(page, listbox)).toContainText('Reasoning Custom')
+
+      await listbox.press('End')
+      await listbox.press('Enter')
+      await expect(trigger).toContainText('Plain Model')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      await expect(listbox).toBeFocused()
+      await expect(await getActiveOption(page, listbox)).toContainText('Plain Model')
+
+      await listbox.press('Home')
+      await listbox.press('Space')
+      await listbox.press('Space')
+      await expect(trigger).toContainText('Reasoning Default')
+      await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+      await expect(listbox).toBeFocused()
+      await expect(await getActiveOption(page, listbox)).toContainText('Reasoning Default')
+      await expect(page.getByTestId('keep-open-updates')).toHaveText('3')
+      await expect(page.getByTestId('keep-open-changes')).toHaveText('3')
+      await expect(page.getByTestId('keep-open-open-updates')).toHaveText('1')
+      await expect(page.getByTestId('keep-open-last-open')).toHaveText('true')
+    })
+
     test('reasoningEfforts:true 与 defaultReasoningEffort 应渲染默认档位，点击和键盘选择不关闭且事件有序去重', async ({
       page,
     }) => {
