@@ -1,4 +1,4 @@
-import { autoUpdate, computePosition, flip, offset, shift, size, type Placement } from '@floating-ui/dom'
+import { autoUpdate, computePosition, flip, offset, shift, size, type Placement, type Strategy } from '@floating-ui/dom'
 import { nextTick, onScopeDispose, shallowRef, watch, type Ref } from 'vue'
 
 interface UseModelSelectorFloatingOptions {
@@ -6,6 +6,7 @@ interface UseModelSelectorFloatingOptions {
   floatingEl: Ref<HTMLElement | null>
   open: () => boolean
   placement: () => Placement
+  strategy: () => Strategy
   offset: () => number
   teleportTarget: () => Node | null
   onOutsidePointerDown: (event: PointerEvent) => void
@@ -32,10 +33,15 @@ export function useModelSelectorFloating(options: UseModelSelectorFloatingOption
         options.referenceEl.value,
         options.floatingEl.value,
         options.placement(),
+        options.strategy(),
         options.offset(),
         options.teleportTarget(),
       ] as const,
-    async ([open, referenceEl, floatingEl, placement, offsetValue, _teleportTarget], _previous, onCleanup) => {
+    async (
+      [open, referenceEl, floatingEl, placement, strategy, offsetValue, _teleportTarget],
+      _previous,
+      onCleanup,
+    ) => {
       isPositioned.value = false
 
       if (!open || !referenceEl || !floatingEl) {
@@ -73,7 +79,7 @@ export function useModelSelectorFloating(options: UseModelSelectorFloatingOption
         try {
           const result = await computePosition(reference, floating, {
             placement,
-            strategy: 'fixed',
+            strategy,
             middleware: [
               offset(offsetValue),
               flip({ padding: 8 }),

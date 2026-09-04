@@ -82,6 +82,12 @@ const teleportTarget = computed(() => {
     return fallbackTarget
   }
 })
+const isCustomTeleportTarget = computed(() => {
+  const target = teleportTarget.value
+  const ownerDocument = referenceEl.value?.ownerDocument
+
+  return Boolean(ownerDocument && target && target !== ownerDocument.body && target.nodeType === 1)
+})
 
 const state = useModelSelectorState({
   value: () => props.modelValue,
@@ -233,6 +239,7 @@ const { isPositioned } = useModelSelectorFloating({
   floatingEl,
   open: () => isOpen.value,
   placement: () => props.placement,
+  strategy: () => (isCustomTeleportTarget.value ? 'absolute' : 'fixed'),
   offset: () => props.offset,
   teleportTarget: () => teleportTarget.value,
   onOutsidePointerDown: () => requestClose(false),
@@ -325,7 +332,7 @@ onMounted(() => {
         v-if="isOpen"
         ref="floatingEl"
         class="tr-model-selector__dropdown-wrapper"
-        :class="{ 'is-positioned': isPositioned }"
+        :class="{ 'is-positioned': isPositioned, 'is-absolute': isCustomTeleportTarget }"
       >
         <div class="tr-model-selector__dropdown-surface">
           <ModelSelectorPanel
