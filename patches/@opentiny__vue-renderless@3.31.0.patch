@@ -1,0 +1,15 @@
+diff --git a/tabs-mf/vue-bar.js b/tabs-mf/vue-bar.js
+--- a/tabs-mf/vue-bar.js
++++ b/tabs-mf/vue-bar.js
+@@ -2,7 +2,10 @@ import "../chunk-G2ADBYYC.js";
+ import { addResizeListener, removeResizeListener } from "@opentiny/utils";
+ import { wheelListener, getBoundRect, handleClickDropdownItem, key, emitAdd, scrollToLeft } from "./index";
+ import { getAddWheelListener } from "./wheel";
+-const { addWheelListener, removeWheelListener } = getAddWheelListener(window, document);
++const { addWheelListener, removeWheelListener } = typeof window === "undefined" ? {
++  addWheelListener: () => {},
++  removeWheelListener: () => {}
++} : getAddWheelListener(window, document);
+ const api = ["state", "wheelListener", "handleClickDropdownItem", "key", "emitAdd", "scrollToLeft"];
+ const renderless = (props, { onMounted, onBeforeUnmount, reactive, watch, inject, computed }, { vm }) => {
+   const tabs = inject("tabs", null);

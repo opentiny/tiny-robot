@@ -34,6 +34,9 @@ export default defineConfig({
     ],
   ],
   vite: {
+    ssr: {
+      noExternal: ['@opentiny/vue', /^@opentiny\/vue-/],
+    },
     plugins: [vueJsx(), SidebarBadgePlugin()],
     server: {
       open: true,

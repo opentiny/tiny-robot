@@ -1,0 +1,12 @@
+diff --git a/dist/index.es.js b/dist/index.es.js
+--- a/dist/index.es.js
++++ b/dist/index.es.js
+@@ -3526,7 +3526,7 @@ const Ea = (e, t) => {
+ };
+ class _a {
+   constructor() {
+-    this.reads = [], this.writes = [], this.raf = Na.bind(window);
++    this.reads = [], this.writes = [], this.raf = Na;
+   }
+   runTasks(t) {
+     let s;

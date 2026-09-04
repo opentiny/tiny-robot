@@ -7,4 +7,6 @@ overrides:
   rollup: 4.62.4
 
 patchedDependencies:
+  '@opentiny/utils@3.31.0': patches/@opentiny__utils@3.31.0.patch
+  '@opentiny/vue-renderless@3.31.0': patches/@opentiny__vue-renderless@3.31.0.patch
   vitepress-demo-plugin@1.5.0: patches/vitepress-demo-plugin@1.5.0.patch
