@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconNoData, IconSearch } from '@opentiny/tiny-robot-svgs'
-import { computed, nextTick, onMounted, shallowRef, watch, type VNode } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, watch, type VNode } from 'vue'
 import type {
   ModelSelectorEmptySlotProps,
   ModelSelectorFooterSlotProps,
@@ -56,6 +56,15 @@ defineSlots<{
 
 const searchInputEl = shallowRef<HTMLInputElement | null>(null)
 const listboxEl = shallowRef<HTMLElement | null>(null)
+const panelEl = shallowRef<HTMLElement | null>(null)
+const openMinWidth = shallowRef<number | null>(null)
+let panelResizeObserver: ResizeObserver | undefined
+
+const panelStyle = computed(() =>
+  openMinWidth.value === null
+    ? undefined
+    : ({ '--tr-model-selector-open-min-width': `${openMinWidth.value}px` } as Record<string, string>),
+)
 
 const filter = useModelSelectorFilter({
   options: () => props.options,
@@ -181,7 +190,33 @@ function handlePanelKeydown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
+  const panel = panelEl.value
+  const ResizeObserverConstructor = panel?.ownerDocument.defaultView?.ResizeObserver
+
+  function recordExpandedWidth() {
+    if (!panel) {
+      return
+    }
+
+    const width = Math.ceil(panel.getBoundingClientRect().width)
+
+    if (width > (openMinWidth.value ?? 0)) {
+      openMinWidth.value = width
+    }
+  }
+
+  recordExpandedWidth()
+
+  if (panel && ResizeObserverConstructor) {
+    panelResizeObserver = new ResizeObserverConstructor(recordExpandedWidth)
+    panelResizeObserver.observe(panel)
+  }
+
   void focusPrimary()
+})
+
+onBeforeUnmount(() => {
+  panelResizeObserver?.disconnect()
 })
 
 watch(
@@ -195,8 +230,10 @@ watch(
 
 <template>
   <div
+    ref="panelEl"
     class="tr-model-selector__panel"
     :class="[`tr-model-selector__panel--${size}`, panelClass]"
+    :style="panelStyle"
     @keydown="handlePanelKeydown"
   >
     <div v-if="$slots.header" class="tr-model-selector__header">

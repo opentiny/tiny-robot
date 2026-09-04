@@ -152,8 +152,12 @@
 
 .tr-model-selector__panel {
   display: flex;
-  width: min(320px, calc(100vw - 16px));
-  min-width: 100%;
+  width: max-content;
+  min-width: max(
+    100%,
+    min(var(--tr-model-selector-open-min-width, 0px), var(--tr-model-selector-available-width, calc(100vw - 16px)))
+  );
+  max-width: 100%;
   max-height: var(--tr-model-selector-available-height, min(480px, calc(100vh - 16px)));
   flex-direction: column;
   overflow: hidden;
@@ -166,7 +170,6 @@
 }
 
 .tr-model-selector__panel--small {
-  width: min(280px, calc(100vw - 16px));
   font-size: var(--tr-font-size-xs);
 }
 
@@ -175,7 +178,6 @@
 }
 
 .tr-model-selector__panel--large {
-  width: min(360px, calc(100vw - 16px));
   font-size: var(--tr-font-size-sm);
 }
 
@@ -195,7 +197,7 @@
 
 .tr-model-selector__effort {
   display: flex;
-  min-width: 0;
+  min-width: min(216px, calc(100vw - 42px));
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -259,10 +261,12 @@
 
 .tr-model-selector__search {
   display: flex;
+  min-width: min(240px, var(--tr-model-selector-available-width, calc(100vw - 16px)));
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
+  box-sizing: border-box;
   border-bottom: 1px solid color-mix(in srgb, var(--tr-model-selector-divider-color) 42%, transparent);
 }
 
@@ -388,9 +392,10 @@
   gap: 10px;
 }
 
-.tr-model-selector__option-copy {
+.tr-model-selector__option-text {
   display: flex;
   min-width: 0;
+  max-width: var(--tr-model-selector-option-text-max-width);
   flex-direction: column;
   gap: 2px;
 }
@@ -415,10 +420,16 @@
 
 .tr-model-selector__option-check {
   color: var(--tr-model-selector-item-selected-color);
+  visibility: hidden;
+}
+
+.tr-model-selector__option.is-selected .tr-model-selector__option-check {
+  visibility: visible;
 }
 
 .tr-model-selector__empty {
   display: flex;
+  min-width: min(238px, calc(100vw - 18px));
   min-height: 160px;
   flex: 1 1 auto;
   flex-direction: column;
@@ -465,12 +476,6 @@
 @media (max-width: 480px) {
   .tr-model-selector button.tr-model-selector__trigger {
     max-width: min(240px, calc(100vw - 24px));
-  }
-
-  .tr-model-selector__panel,
-  .tr-model-selector__panel--small,
-  .tr-model-selector__panel--large {
-    width: calc(100vw - 16px);
   }
 
   .tr-model-selector__effort {

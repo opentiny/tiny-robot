@@ -54,7 +54,7 @@
     "@floating-ui/dom": "^1.6.0",
     "@opentiny/tiny-robot-svgs": "workspace:*",
     "@opentiny/vue": "^3.20.0",
-    "@vueuse/core": "^13.1.0",
+    "@vueuse/core": "^13.9.0",
     "jsonrepair": "^3.13.1",
     "@tiptap/core": "3.17.1",
     "@tiptap/vue-3": "3.17.1",
