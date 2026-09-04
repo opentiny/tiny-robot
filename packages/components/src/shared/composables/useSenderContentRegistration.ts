@@ -6,7 +6,8 @@ export type SenderContentRegister = (source: string, payload: MaybeRefOrGetter<u
 export const SENDER_CONTENT_REGISTRATION_CONTEXT_KEY: unique symbol = Symbol('sender-content-registration-context')
 
 export const useSenderContentRegistration: () => SenderContentRegister | undefined = ():
-  SenderContentRegister | undefined => {
+  | SenderContentRegister
+  | undefined => {
   const registerFn = inject<SenderContentRegister | undefined>(SENDER_CONTENT_REGISTRATION_CONTEXT_KEY, undefined)
 
   return registerFn
