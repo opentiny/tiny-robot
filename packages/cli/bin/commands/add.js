@@ -19,7 +19,7 @@ import {
   mergeEnvContent,
 } from '../utils.js'
 
-const TARGET_VERSION = '0.5.2-alpha.10'
+const TARGET_VERSION = '0.5.2-alpha.14'
 const CHAT_ADD_FEATURE_DIR = 'src/tiny-robot-chat'
 const DEPENDENCIES = {
   '@opentiny/tiny-robot': TARGET_VERSION,
