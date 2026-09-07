@@ -283,8 +283,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           :is-left-aside-visible="isLeftAsideVisible"
           :is-left-aside-drawer="asideState.isLeftAsideDrawer.value"
           :is-left-aside-open="asideState.resolvedLeftAsideOpen.value"
-          :is-right-aside-visible="isRightAsideVisible"
-          :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
           :labels="resolvedOptions.labels"
           @create-conversation="handleCreateConversation"
           @open-left-aside="asideState.openLeftAside"
@@ -520,6 +518,8 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 }
 
 .chat-welcome-composer {
+  width: 100%;
+  margin-top: 16px;
   text-align: left;
 }
 

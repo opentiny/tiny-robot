@@ -10,8 +10,6 @@ defineProps<{
   isLeftAsideVisible: boolean
   isLeftAsideDrawer: boolean
   isLeftAsideOpen: boolean
-  isRightAsideVisible: boolean
-  isRightAsideOpen: boolean
   labels: ChatLabels
 }>()
 
@@ -75,16 +73,6 @@ function openRightAside() {
       </div>
       <h3 class="chat-header__title">{{ title }}</h3>
       <div class="chat-header__actions">
-        <button
-          v-if="isRightAsideVisible && !isRightAsideOpen"
-          class="chat-header__aside-action"
-          type="button"
-          :aria-label="labels.openRightAside"
-          :title="labels.openRightAside"
-          @click="openRightAside"
-        >
-          <IconCollapseLeft :size="18" />
-        </button>
         <button
           v-if="!isEmpty || !isLeftAsideVisible"
           class="chat-header__new"
@@ -160,28 +148,8 @@ function openRightAside() {
   display: inline-flex;
 }
 
-.chat-header__aside-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  border-radius: var(--tr-radius-full);
-  color: var(--tr-icon-color-default);
-  background: transparent;
-  cursor: pointer;
-}
-
-.chat-header__aside-action:hover {
-  color: var(--tr-icon-color-hover);
-  background: var(--tr-container-bg-hover);
-}
-
 .chat-header__new:hover,
-.chat-header__aside-toggle:hover,
-.chat-header__aside-action:hover {
+.chat-header__aside-toggle:hover {
   color: var(--tr-icon-color-hover);
   background: var(--tr-container-bg-hover);
 }

@@ -91,6 +91,10 @@ const runtime = useLocalChatRuntime({
 
 const chatUi = {
   layout: {
+    emptyState: 'center',
+    composer: {
+      welcome: 'center',
+    },
     rightAside: {
       mode: 'dock',
       width: 400,
