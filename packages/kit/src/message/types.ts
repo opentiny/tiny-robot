@@ -24,7 +24,7 @@ export type MessagePluginCommandHandler = (
   payload: unknown,
   context: BasePluginContext & {
     appendMessage: (message: ChatMessage | ChatMessage[]) => void
-    requestNext: (resume?: boolean) => void
+    requestNext: () => void
     /**
      * Starts the paused-turn resume lifecycle once. Commands that execute work
      * before the next model request should call this before their side effects.
@@ -32,11 +32,6 @@ export type MessagePluginCommandHandler = (
     resumeTurn: () => Promise<void>
   },
 ) => MaybePromise<unknown>
-
-export interface MessagePluginCommandRegistration {
-  handler: MessagePluginCommandHandler
-  owner: MessageEnginePlugin
-}
 
 export type ChatMessage<
   Metadata extends object = Record<string, unknown>,
@@ -67,6 +62,7 @@ export interface PublicMessageState {
   isProcessing: boolean
   isCurrentTurn: boolean
   isPaused: boolean
+  canStartTurn: boolean
 }
 
 export interface InternalMessageState {
@@ -81,7 +77,6 @@ export interface MessageRuntime {
   customContext: Record<string, unknown>
   abortController: AbortController | null
   responseProvider: ResponseProvider
-  commandHandlers: Map<string, MessagePluginCommandRegistration>
 }
 
 export interface MessageEngine {
@@ -166,21 +161,23 @@ export interface BasePluginContext {
   setCustomContext: (data: Record<string, unknown>) => void
 }
 
-export interface MessageEngineInitContext extends BasePluginContext {
+export interface MessageEngineInitContext {
   /** 引擎初始化时当前可用的消息历史。 */
   initialMessages: ChatMessage[]
-}
-
-export interface MessageEngineInitResult {
-  /** 初始化后的消息历史。 */
-  messages?: ChatMessage[]
-  /** 初始化后的请求状态。 */
-  requestState?: RequestState
+  requestState: RequestState
   processingState?: RequestProcessingState
-  /** 初始化后的回合运行时数据。 */
-  turnId?: string | null
-  currentTurn?: ChatMessage[]
-  customContext?: Record<string, unknown>
+  turnId: string | null
+  currentTurn: ChatMessage[]
+  customContext: Record<string, unknown>
+  plugins: readonly MessageEnginePlugin[]
+  /** 设置初始化后继续使用的 turn 标识。 */
+  setTurnId: (turnId: string | null) => void
+  /** 设置初始化后继续使用的 turn 消息引用。 */
+  setCurrentTurn: (messages: ChatMessage[]) => void
+  /** 合并初始化阶段的插件上下文。 */
+  setCustomContext: (data: Record<string, unknown>) => void
+  /** 设置初始化后的请求状态。 */
+  setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
 }
 
 export interface BeforeRequestContext extends BasePluginContext {
@@ -194,7 +191,7 @@ export interface AfterRequestContext extends BasePluginContext {
    * 使用 appendMessage 函数追加消息，可触发消息更新通知。
    */
   appendMessage: (message: ChatMessage | ChatMessage[]) => void
-  requestNext: (resume?: boolean) => void
+  requestNext: () => void
 }
 
 export interface CompletionChunkContext extends BasePluginContext {
@@ -220,7 +217,7 @@ export interface MessageEnginePlugin {
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /** 引擎创建时初始化插件拥有的运行时状态。 */
-  onInit?: (context: MessageEngineInitContext) => MessageEngineInitResult | void
+  onInit?: (context: MessageEngineInitContext) => void
   /** 一次回合离开暂停状态、继续执行前触发。 */
   onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   /** 一次回合进入暂停状态后触发。 */

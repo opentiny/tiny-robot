@@ -94,9 +94,21 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     )
 
     // 监听消息变化并自动保存
-    const stopHandle = watch(engine.messages, throttledSave, { deep: true })
+    const stopMessageWatcher = watch(engine.messages, throttledSave, { deep: true })
+    const stopPausedWatcher = watch(
+      engine.requestState,
+      (requestState) => {
+        if (requestState === 'paused') {
+          saveMessages(id)
+        }
+      },
+      { flush: 'sync' },
+    )
 
-    watchers.set(id, stopHandle)
+    watchers.set(id, () => {
+      stopMessageWatcher()
+      stopPausedWatcher()
+    })
   }
 
   /**

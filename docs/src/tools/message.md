@@ -132,6 +132,8 @@ interface UseMessageReturn {
   isCurrentTurn: ComputedRef<boolean>
   /** 是否处于暂停等待确认状态 */
   isPaused: ComputedRef<boolean>
+  /** 是否允许开始新的用户回合 */
+  canStartTurn: ComputedRef<boolean>
   /** 发送消息 */
   sendMessage: (content: string) => Promise<void>
   /** 发送消息（支持传入多个消息对象） */
@@ -177,7 +179,7 @@ interface UseMessagePlugin {
   /** 是否禁用插件 */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /** 引擎创建时初始化插件运行时状态 */
-  onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
+  onInit?: (context: { initialMessages: ChatMessage[]; requestState: RequestState; processingState?: RequestProcessingState; turnId: string | null; currentTurn: ChatMessage[]; customContext: Record<string, unknown>; plugins: readonly UseMessagePlugin[]; setTurnId: (turnId: string | null) => void; setCurrentTurn: (messages: ChatMessage[]) => void; setCustomContext: (data: Record<string, unknown>) => void; setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void }) => void
   /** 回合离开暂停状态、继续执行前触发 */
   onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   /** 回合进入暂停状态后触发 */
@@ -200,7 +202,7 @@ interface UseMessagePlugin {
       currentMessage: ChatMessage
       lastChoice?: CompletionChoice
       appendMessage: (message: ChatMessage | ChatMessage[]) => void
-      requestNext: (resume?: boolean) => void
+      requestNext: () => void
     },
   ) => MaybePromise<void>
   /** 数据块处理钩子 */
@@ -222,7 +224,7 @@ interface UseMessagePlugin {
       payload: unknown,
       context: BasePluginContext & {
         appendMessage: (message: ChatMessage | ChatMessage[]) => void
-        requestNext: (resume?: boolean) => void
+        requestNext: () => void
         resumeTurn: () => Promise<void>
       },
     ) => MaybePromise<unknown>
@@ -299,6 +301,7 @@ useMessage({
 
 | 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `toolCallAwaitingApprovalContent` | `string` | 否 | `'Tool call awaiting confirmation.'` | 工具调用等待确认时，写入对应 tool 消息的提示内容。 |
 | `getTools`                    | `(context: BasePluginContext) => MaybePromise<ToolProviderItem[]>`                                               | 是   | -                        | 返回当前轮次要传给 API 的工具列表。可以返回普通 OpenAI tool schema，也可以返回带执行函数的 runtime tool。                                                                                             |
 | `callTool`                    | `(toolCall, context) => MaybeStreamableResult<string \| Record<string, unknown>>`         | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。可通过 `context.toolSource` 判断工具来源。                                                                |
 | `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。新字段为 `context.assistantMessage`；`context.currentMessage` 继续保留，但已弃用。                                                                  |
@@ -306,6 +309,7 @@ useMessage({
 | `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled' \| 'denied'`，并额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`，失败、取消或拒绝时可能有 `context.error`。 |
 | `toolCallCancelledContent`    | `string`                                                                                                         | 否   | `'Tool call cancelled.'` | 请求被中止且需要补全缺失 tool 消息时，填入该默认内容。                                                                                                                                                |
 | `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行失败、被用户拒绝或因请求中止而未执行时，写入该提示。                                                                                                                                              |
+| `persistPausedTurn`            | `boolean`                                                                                                        | 否   | `true`                   | 是否将暂停回合持久化到 localStorage，以便刷新后恢复。                                                                                                                                                |
 | `autoFillMissingToolMessages` | `boolean`                                                                                                        | 否   | `false`                  | 在下一轮开始前，自动补齐上一次被取消但尚未写入的 tool 消息。                                                                                                                                          |
 
 **回调上下文补充：**

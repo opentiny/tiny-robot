@@ -7,8 +7,7 @@ import {
   InternalMessageState,
   MessageEngine,
   MessageEnginePlugin,
-  MessageEngineInitResult,
-  MessagePluginCommandRegistration,
+  MessageEngineInitContext,
   MessageRequestBody,
   MessageRuntime,
   MessageStateAdapter,
@@ -27,6 +26,11 @@ import {
 } from '../utils'
 
 type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
+
+type CommandRegistration = {
+  handler: NonNullable<MessageEnginePlugin['commands']>[string]
+  owner: MessageEnginePlugin
+}
 
 const defaultResponseProvider: ResponseProvider = async () => {
   throw new Error('Response provider is not set')
@@ -83,7 +87,6 @@ export const createMessageEngine = (
   const defaultPlugins: MessageEnginePlugin[] = [thinkingPlugin(), lengthPlugin()]
   const plugins = deduplicatePlugins(defaultPlugins.concat(pluginsFromOptions))
   const runtimeMessages = initialMessages.map((message) => createMessage(message))
-  let initializedMessages = runtimeMessages
 
   const initialState: InternalMessageState = {
     requestState: 'idle',
@@ -99,8 +102,9 @@ export const createMessageEngine = (
     customContext: {},
     abortController: null,
     responseProvider: initialResponseProvider,
-    commandHandlers: new Map<string, MessagePluginCommandRegistration>(),
   }
+
+  const commandHandlers = new Map<string, CommandRegistration>()
 
   const getState = () => adapter.getState()
   const subscribe = adapter.subscribe
@@ -112,11 +116,11 @@ export const createMessageEngine = (
     }
 
     for (const [commandName, handler] of Object.entries(plugin.commands)) {
-      if (runtime.commandHandlers.has(commandName)) {
+      if (commandHandlers.has(commandName)) {
         throw new Error(`Duplicate command name "${commandName}" detected.`)
       }
 
-      runtime.commandHandlers.set(commandName, { handler, owner: plugin })
+      commandHandlers.set(commandName, { handler, owner: plugin })
     }
   }
 
@@ -160,15 +164,15 @@ export const createMessageEngine = (
   }
 
   const appendMessages = (...messages: ChatMessage[]) => {
-    const runtimeMessages = messages.map((message) => createMessage(message))
+    const createdMessages = messages.map((message) => createMessage(message))
 
     mutate('messages', (draft) => {
-      draft.messages.push(...runtimeMessages)
+      draft.messages.push(...createdMessages)
     })
 
-    runtime.currentTurn.push(...runtimeMessages)
+    runtime.currentTurn.push(...createdMessages)
 
-    return runtimeMessages
+    return createdMessages
   }
 
   // Create base context for plugins
@@ -185,42 +189,52 @@ export const createMessageEngine = (
     setCustomContext,
   })
 
-  const applyInitResult = (result: MessageEngineInitResult) => {
-    if (result.messages) {
-      const nextMessages = result.messages.map((message) => createMessage(message))
-      initializedMessages = nextMessages
-      mutate('messages', (draft) => {
-        draft.messages = nextMessages
-      })
+  const setTurnId = (turnId: string | null) => {
+    runtime.turnId = turnId
+  }
+
+  const setCurrentTurn = (messages: ChatMessage[]) => {
+    const runtimeMessageSet = new Set(runtimeMessages)
+    if (messages.some((message) => !runtimeMessageSet.has(message))) {
+      throw new Error('Initialization currentTurn must use messages from initialMessages.')
     }
 
-    if (result.currentTurn !== undefined) {
-      runtime.currentTurn = result.currentTurn.map((message) => createMessage(message))
-    }
-    if (result.turnId !== undefined) {
-      runtime.turnId = result.turnId
-    }
-    if (result.customContext !== undefined) {
-      runtime.customContext = result.customContext
-    }
-    if (result.requestState) {
-      setRequestState(result.requestState, result.processingState)
+    runtime.currentTurn = messages
+  }
+
+  const getInitContext = (): MessageEngineInitContext => {
+    const state = getState()
+    return {
+      initialMessages: runtimeMessages,
+      requestState: state.requestState,
+      processingState: state.processingState,
+      turnId: runtime.turnId,
+      currentTurn: runtime.currentTurn,
+      customContext: runtime.customContext,
+      plugins,
+      setTurnId,
+      setCurrentTurn,
+      setCustomContext,
+      setRequestState,
     }
   }
 
   const initSignal = new AbortController().signal
-  for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, getBaseContext(initSignal)))) {
-    const result = plugin.onInit?.({
-      ...getBaseContext(initSignal),
-      initialMessages: initializedMessages,
-    })
+  for (const plugin of plugins) {
+    const initContext = getInitContext()
 
-    if (result && typeof result === 'object' && 'then' in result) {
-      throw new Error(`Plugin [${plugin.name || 'Anonymous'}] onInit must be synchronous.`)
+    if (isPluginDisabled(plugin, getBaseContext(initSignal))) {
+      continue
     }
 
-    if (result) {
-      applyInitResult(result)
+    const result = plugin.onInit?.(initContext) as unknown
+
+    if (result !== undefined) {
+      if (result && typeof result === 'object' && 'then' in result) {
+        throw new Error(`Plugin [${plugin.name || 'Anonymous'}] onInit must be synchronous.`)
+      }
+
+      throw new Error(`Plugin [${plugin.name || 'Anonymous'}] onInit must use initialization setters.`)
     }
   }
 
@@ -332,7 +346,7 @@ export const createMessageEngine = (
   }
 
   const dispatchCommand = async <Result = unknown>(command: string, payload?: unknown): Promise<Result> => {
-    const registration = runtime.commandHandlers.get(command)
+    const registration = commandHandlers.get(command)
 
     if (!registration) {
       throw new Error(`Unknown command "${command}"`)
@@ -383,7 +397,6 @@ export const createMessageEngine = (
     const wasPaused = getState().requestState === 'paused'
 
     let shouldRequest = false
-    let requestNextResume: boolean | undefined
     let commandSucceeded = false
     let shouldFinishTurn = false
     let turnResumed = false
@@ -412,9 +425,8 @@ export const createMessageEngine = (
         appendMessages(...(Array.isArray(message) ? message : [message]))
       }
 
-      const requestNext = (resume?: boolean) => {
+      const requestNext = () => {
         shouldRequest = true
-        requestNextResume = resume
       }
 
       result = (await handler(payload, { ...baseContext, appendMessage, requestNext, resumeTurn })) as Result
@@ -446,10 +458,8 @@ export const createMessageEngine = (
     }
 
     if (shouldRequest && !ac.signal.aborted) {
-      if (requestNextResume) {
-        await resumeTurn()
-      }
-      await runTurnLifecycle({ resume: requestNextResume === true })
+      await resumeTurn()
+      await runTurnLifecycle({ resume: wasPaused })
     }
 
     if (shouldFinishTurn) {
@@ -598,7 +608,7 @@ export const createMessageEngine = (
           appendMessages(...(Array.isArray(message) ? message : [message]))
         }
 
-        const requestNext = (_resume?: boolean) => {
+        const requestNext = () => {
           shouldRequest = true
         }
 
@@ -615,7 +625,7 @@ export const createMessageEngine = (
     // 并行执行所有 onAfterRequest 钩子
     await makeAbortable(Promise.all(tasks), abortSignal)
 
-    if (shouldRequest) {
+    if (shouldRequest && getState().requestState !== 'paused' && !abortSignal.aborted) {
       await executeRequest(responseProvider, abortSignal, options)
     }
   }
@@ -631,7 +641,7 @@ export const createMessageEngine = (
       return
     }
 
-    if (getState().requestState === 'processing' || getState().requestState === 'paused') {
+    if (!getState().canStartTurn) {
       console.warn('Cannot send message while processing is in progress')
       return
     }
@@ -648,7 +658,7 @@ export const createMessageEngine = (
 
   async function send(...msgs: ChatMessage[]) {
     // Validate current state - only allow sending when not processing
-    if (getState().requestState === 'processing' || getState().requestState === 'paused') {
+    if (!getState().canStartTurn) {
       console.warn('Cannot send message while processing is in progress')
       return
     }

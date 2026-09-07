@@ -74,7 +74,9 @@ describe('skillPlugin', () => {
           role: 'system',
           content: expect.stringContaining('Follow Vue best practices.'),
         })
-        expect(requestBody.tools?.map((tool) => tool.function.name)).toContain('read_skill_file')
+        expect(requestBody.tools?.flatMap((tool) => (tool.type === 'function' ? [tool.function.name] : []))).toContain(
+          'read_skill_file',
+        )
 
         return {
           id: 'tool-call',
@@ -285,6 +287,7 @@ describe('skillPlugin', () => {
       const snapshot = JSON.parse(values.get('__tiny-robot-turn') ?? '{}')
       const skillContext = snapshot.turns[0].customContext.__tiny_robot_skill
       expect(skillContext).not.toHaveProperty('runtimeTools')
+      expect(skillContext.skills).toEqual([{ name: skill.name }])
 
       shouldPause = false
       const restoredEngine = createEngine(firstEngine.getState().messages)
@@ -345,7 +348,6 @@ describe('skillPlugin', () => {
                 selection: { mode: 'manual', phase: 'ready' },
               },
             },
-            pausedAt: Date.now(),
           },
         ],
       }),
@@ -407,7 +409,7 @@ describe('skillPlugin', () => {
     }
   })
 
-  it('rebuilds skill runtime tools when the turn snapshot is unavailable', async () => {
+  it('does not resume a historical tool call when the turn snapshot is unavailable', async () => {
     const values = new Map<string, string>()
     vi.stubGlobal('localStorage', {
       getItem: (key: string) => values.get(key) ?? null,
@@ -506,17 +508,15 @@ describe('skillPlugin', () => {
 
       shouldPause = false
       const restoredEngine = createEngine(messages)
+      expect(restoredEngine.getState()).toMatchObject({ requestState: 'idle', isPaused: false })
       await expect(
         restoredEngine.dispatchCommand(TOOL_RESUME_COMMAND, {
           toolCallId: 'call-missing-snapshot',
         }),
-      ).resolves.toMatchObject({ status: 'resumed' })
+      ).resolves.toEqual({ status: 'missing', toolCallId: 'call-missing-snapshot' })
 
-      expect(getSkillByName).toHaveBeenCalledTimes(2)
-      expect(restoredEngine.getState().messages.at(-1)).toMatchObject({
-        role: 'assistant',
-        content: 'rebuild done',
-      })
+      expect(responseProvider).toHaveBeenCalledOnce()
+      expect(getSkillByName).toHaveBeenCalledOnce()
     } finally {
       vi.unstubAllGlobals()
     }
@@ -537,6 +537,27 @@ describe('skillPlugin', () => {
       ],
     }
     const getSkillByName = vi.fn(async (name: string) => (name === skill.name ? skill : undefined))
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+    values.set(
+      '__tiny-robot-turn',
+      JSON.stringify({
+        version: 1,
+        turns: [
+          {
+            version: 1,
+            turnId: 'pending-skill-context',
+            requestState: 'paused',
+            toolCallIds: ['call-pending-context'],
+            customContext: {},
+          },
+        ],
+      }),
+    )
     const responseProvider = vi.fn<ResponseProvider>(async (requestBody: MessageRequestBody) => {
       expect(String(requestBody.messages.at(-1)?.content)).toContain('Rebuilt from pending tool call')
       return {
@@ -571,6 +592,7 @@ describe('skillPlugin', () => {
             },
           ],
           state: {
+            turnId: 'pending-skill-context',
             toolCall: {
               'call-pending-context': { status: 'awaiting-approval' },
             },
@@ -609,6 +631,7 @@ describe('skillPlugin', () => {
       role: 'assistant',
       content: 'rebuild done',
     })
+    vi.unstubAllGlobals()
   })
 
   it('calls onInstructionsResolved immediately without a request body', async () => {
@@ -819,7 +842,9 @@ describe('skillPlugin', () => {
         })
         expect(String(requestBody.messages[0].content)).toContain('weather: Weather skill')
         expect(String(requestBody.messages[0].content)).not.toContain('Use wttr.in for weather requests.')
-        expect(requestBody.tools?.map((tool) => tool.function.name)).toEqual(['select_skills'])
+        expect(requestBody.tools?.flatMap((tool) => (tool.type === 'function' ? [tool.function.name] : []))).toEqual([
+          'select_skills',
+        ])
 
         return {
           id: 'select-skill',

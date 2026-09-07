@@ -1,5 +1,3 @@
-import type { RequestProcessingState } from '../types'
-
 export const TURN_STATE_STORAGE_KEY = '__tiny-robot-turn'
 const TURN_STATE_VERSION = 1
 
@@ -11,10 +9,8 @@ export interface PersistedTurnSnapshot {
   version: typeof TURN_STATE_VERSION
   turnId: string
   requestState: 'paused'
-  processingState?: RequestProcessingState
   toolCallIds: string[]
   customContext: Record<string, unknown>
-  pausedAt: number
 }
 
 interface PersistedTurnStorage {
@@ -34,17 +30,25 @@ const getLocalStorage = (): Storage | undefined => {
   }
 }
 
-const toSerializable = (value: unknown, ancestors: WeakSet<object> = new WeakSet()): unknown => {
-  if (value === null || value === undefined) {
-    return value
+const toSerializable = (value: unknown, path = '$', ancestors: WeakSet<object> = new WeakSet()): unknown => {
+  if (value === null) {
+    return null
+  }
+
+  if (value === undefined) {
+    throw new Error(`Cannot serialize turn data at ${path}: undefined is not supported.`)
   }
 
   if (typeof value === 'bigint') {
-    return value.toString()
+    throw new Error(`Cannot serialize turn data at ${path}: bigint is not supported.`)
   }
 
   if (typeof value === 'function' || typeof value === 'symbol') {
-    return undefined
+    throw new Error(`Cannot serialize turn data at ${path}: ${typeof value} is not supported.`)
+  }
+
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    throw new Error(`Cannot serialize turn data at ${path}: non-finite numbers are not supported.`)
   }
 
   if (typeof value !== 'object') {
@@ -52,21 +56,27 @@ const toSerializable = (value: unknown, ancestors: WeakSet<object> = new WeakSet
   }
 
   if (ancestors.has(value)) {
-    return undefined
+    throw new Error(`Cannot serialize turn data at ${path}: circular references are not supported.`)
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  if (prototype !== Object.prototype && prototype !== null && !Array.isArray(value)) {
+    throw new Error(`Cannot serialize turn data at ${path}: unsupported object type.`)
   }
 
   ancestors.add(value)
 
   let result: unknown
   if (Array.isArray(value)) {
-    result = value.map((item) => toSerializable(item, ancestors))
+    result = value.map((item, index) => toSerializable(item, `${path}[${index}]`, ancestors))
   } else {
     const objectResult: Record<string, unknown> = {}
     for (const [key, item] of Object.entries(value)) {
-      const serializableItem = toSerializable(item, ancestors)
-      if (serializableItem !== undefined) {
-        objectResult[key] = serializableItem
-      }
+      objectResult[key] = toSerializable(item, `${path}.${key}`, ancestors)
     }
     result = objectResult
   }
@@ -75,13 +85,8 @@ const toSerializable = (value: unknown, ancestors: WeakSet<object> = new WeakSet
   return result
 }
 
-const serialize = <T>(value: T): T | undefined => {
-  try {
-    const serializableValue = toSerializable(value)
-    return serializableValue === undefined ? undefined : (JSON.parse(JSON.stringify(serializableValue)) as T)
-  } catch {
-    return undefined
-  }
+const serialize = <T>(value: T): T => {
+  return JSON.parse(JSON.stringify(toSerializable(value))) as T
 }
 
 const parsePersistedTurnStorage = (value: string | null): PersistedTurnStorage => {
@@ -103,8 +108,7 @@ const parsePersistedTurnStorage = (value: string | null): PersistedTurnStorage =
         turn.requestState === 'paused' &&
         Array.isArray(turn.toolCallIds) &&
         turn.customContext &&
-        typeof turn.customContext === 'object' &&
-        typeof turn.pausedAt === 'number',
+        typeof turn.customContext === 'object',
       )
     })
 
@@ -142,9 +146,6 @@ export const loadTurnSnapshots = (): PersistedTurnSnapshot[] => {
 
 export const saveTurnSnapshot = (snapshot: PersistedTurnSnapshot): void => {
   const serializedSnapshot = serialize(snapshot)
-  if (!serializedSnapshot) {
-    return
-  }
 
   const storage = getLocalStorage()
   if (!storage) {
@@ -203,5 +204,5 @@ export const clearTurnSnapshot = (turnId: string): void => {
 }
 
 export const serializeTurnData = <T>(value: T): T => {
-  return serialize(value) ?? ({} as T)
+  return serialize(value)
 }

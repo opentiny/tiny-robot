@@ -85,7 +85,7 @@ export const toolPlugin = (
     /**
      * 工具调用进入等待确认时使用的消息内容。
      */
-    toolCallPausedContent?: string
+    toolCallAwaitingApprovalContent?: string
     /**
      * 当请求被中止时用于工具调用取消的消息内容。
      */
@@ -94,6 +94,8 @@ export const toolPlugin = (
      * 当工具调用执行失败、被拒绝或因回合中止而未执行时使用的消息内容。
      */
     toolCallFailedContent?: string
+    /** 是否在浏览器 localStorage 中持久化暂停的工具回合。 */
+    persistPausedTurn?: boolean
     /**
      * 是否在请求前自动补充缺失的 tool 消息。
      * 当 assistant 响应了 tool_calls 但未追加对应的 tool 消息时，
@@ -109,9 +111,10 @@ export const toolPlugin = (
     callTool,
     onToolCallStart,
     onToolCallEnd,
-    toolCallPausedContent,
+    toolCallAwaitingApprovalContent,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
+    persistPausedTurn = true,
     autoFillMissingToolMessages = false,
     ...restOptions
   } = options
@@ -198,9 +201,10 @@ export const toolPlugin = (
               })
             }
           : undefined,
-        toolCallPausedContent,
+        toolCallAwaitingApprovalContent,
         toolCallCancelledContent,
         toolCallFailedContent,
+        persistPausedTurn,
         autoFillMissingToolMessages,
       })
     },

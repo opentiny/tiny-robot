@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ComputedRef, Ref } from 'vue'
 import type { AsyncStreamableResult, ChatMessage, MaybePromise, ToolCall } from '../../types'
-import type { MessageEngineInitResult } from '../../message/types'
 
 export interface Tool {
   type: 'function'
@@ -87,7 +86,7 @@ export type UseMessagePluginCommandHandler = (
   payload: unknown,
   context: BasePluginContext & {
     appendMessage: (message: ChatMessage | ChatMessage[]) => void
-    requestNext: (resume?: boolean) => void
+    requestNext: () => void
     resumeTurn: () => Promise<void>
   },
 ) => MaybePromise<unknown>
@@ -129,6 +128,7 @@ export interface UseMessageReturn {
   isProcessing: ComputedRef<boolean>
   isCurrentTurn: ComputedRef<boolean>
   isPaused: ComputedRef<boolean>
+  canStartTurn: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
   send: (...msgs: ChatMessage[]) => Promise<void>
   abortRequest: () => Promise<void>
@@ -143,6 +143,7 @@ export interface BasePluginContext {
   processingState?: RequestProcessingState
   isCurrentTurn: boolean
   isPaused: boolean
+  canStartTurn: boolean
   plugins: UseMessagePlugin[]
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
   abortSignal: AbortSignal
@@ -156,6 +157,20 @@ export interface BasePluginContext {
   setCustomContext: (data: Record<string, unknown>) => void
 }
 
+export interface UseMessagePluginInitContext {
+  initialMessages: ChatMessage[]
+  requestState: RequestState
+  processingState?: RequestProcessingState
+  turnId: string | null
+  currentTurn: ChatMessage[]
+  customContext: Record<string, unknown>
+  plugins: readonly UseMessagePlugin[]
+  setTurnId: (turnId: string | null) => void
+  setCurrentTurn: (messages: ChatMessage[]) => void
+  setCustomContext: (data: Record<string, unknown>) => void
+  setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
+}
+
 export interface UseMessagePlugin {
   /**
    * 插件名称。
@@ -165,7 +180,7 @@ export interface UseMessagePlugin {
    * 是否禁用插件。useMessage 可能会内置一些默认插件，如果需要禁用，可以设置为 true。
    */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
-  onInit?: (context: BasePluginContext & { initialMessages: ChatMessage[] }) => MessageEngineInitResult | void
+  onInit?: (context: UseMessagePluginInitContext) => void
   onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /**
@@ -205,7 +220,7 @@ export interface UseMessagePlugin {
       currentMessage: ChatMessage
       lastChoice?: CompletionChoice
       appendMessage: (message: ChatMessage | ChatMessage[]) => void
-      requestNext: (resume?: boolean) => void
+      requestNext: () => void
     },
   ) => MaybePromise<void>
   /**
