@@ -28,7 +28,7 @@ test('add dependencies include vueuse and update stale versions', () => {
   assert.equal(updated.type, 'updated')
   assert.equal(added.type, 'added')
   assert.equal(skipped.type, 'skipped')
-  assert.equal(pkg.dependencies['@vueuse/core'], '13.1.0')
+  assert.equal(pkg.dependencies['@vueuse/core'], '13.9.0')
 })
 
 test('add dependencies preserve compatible ranges and reject unsafe section changes', () => {

@@ -26,7 +26,7 @@ const DEPENDENCIES = {
   '@opentiny/tiny-robot-chat': TARGET_VERSION,
   '@opentiny/tiny-robot-kit': TARGET_VERSION,
   '@opentiny/tiny-robot-svgs': TARGET_VERSION,
-  '@vueuse/core': '13.1.0',
+  '@vueuse/core': '13.9.0',
 }
 const PACKAGE_STYLE_IMPORTS = [
   "import '@opentiny/tiny-robot/dist/style.css'",

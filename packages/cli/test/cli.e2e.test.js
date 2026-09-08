@@ -75,12 +75,32 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.ok(!fs.existsSync(path.join(root, 'vite.config.ts')))
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
-    assert.equal(packageJson.dependencies['@vueuse/core'], '13.1.0')
+    assert.equal(packageJson.dependencies['@vueuse/core'], '13.9.0')
     const runtimeConfig = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/config/chat-runtime.ts'), 'utf8')
     assert.match(runtimeConfig, /IconBailian/)
     assert.match(runtimeConfig, /icon: IconDeepseek/)
     assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /<TinyRobotChat \/>/)
     assert.match(result.stdout, /server\.proxy/)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat keeps document-wide styles owned by the host application', () => {
+  const root = createTempDir('tiny-robot-add-styles-')
+
+  try {
+    createVueProject(root)
+
+    const result = runCli(root, 'add', 'chat', '--yes')
+    const featureCss = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/index.css'), 'utf8')
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.match(
+      featureCss,
+      /\.chat-add-app,\s*\.chat-add-app \*,\s*\.chat-add-window,\s*\.chat-add-window \*\s*\{[^}]*box-sizing:\s*border-box/s,
+    )
+    assert.doesNotMatch(featureCss, /(^|})\s*(?::root|html|body|#app|\*)\s*(?:,|\{)/m)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

@@ -35,7 +35,7 @@ DeepSeek 模型默认继承 `low`、`high`、`max` 三档思考强度，默认�
 - `src/config/chat-runtime.ts`: MCP 示例和模型配置。
 - `src/components`: 窗口头部和输入区工具。
 - `src/composables/useWindow.ts`: floating、fullscreen 窗口状态。
-- `src/index.css`: 模板公共样式和 Surface 样式变量。
+- `src/index.css`: 仅作用于 Chat 容器的组件样式和 Surface 样式变量，不重置宿主页面的全局样式。
 
 ## 替换数据
 

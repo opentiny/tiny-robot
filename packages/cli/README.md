@@ -17,7 +17,7 @@ npx @opentiny/tiny-robot-cli add chat --yes
 
 `create` is an overall project scaffold. The `basic` template is aligned with `packages/chat-basic` and is copied into a new project.
 
-`add chat` is a local feature injection for an existing Vue project. It creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core`), and imports the feature CSS. It does not modify the host project's Vite configuration. Existing files with different contents are reported as conflicts and are never silently overwritten.
+`add chat` is a local feature injection for an existing Vue project. It creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and imports feature-scoped CSS that does not reset the host document. It does not modify the host project's Vite configuration. Existing files with different contents are reported as conflicts and are never silently overwritten.
 
 By default, `add chat` mounts `TinyRobotChat` into a standard `src/App.vue` when a safe template and script setup block are available, so the generated project includes the floating AI trigger. Use `--no-mount` to keep `App.vue` unchanged and print the mount snippet. Use `--dry-run` to inspect the plan without changing files and `--yes` to skip prompts:
 
