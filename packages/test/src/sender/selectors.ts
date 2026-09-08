@@ -40,6 +40,8 @@ export const SENDER_SELECTORS = {
 
   footer: '.tr-sender-footer',
   customFooterBtn: '[data-testid="custom-footer-btn"]',
+  inputPrefix: '.tr-sender-input-prefix',
+  inputPrefixBtn: '[data-testid="input-prefix-btn"]',
 
   resultDisplay: '[data-testid="result-display"]',
   submitDetailDisplay: '[data-testid="submit-detail-display"]',

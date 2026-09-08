@@ -61,6 +61,9 @@ defineExpose(expose)
       <template v-if="$slots.prefix" #prefix>
         <slot name="prefix" />
       </template>
+      <template v-if="$slots['input-prefix']" #input-prefix>
+        <slot name="input-prefix" />
+      </template>
       <template v-if="$slots.content" #content="slotProps">
         <slot name="content" v-bind="slotProps" />
       </template>

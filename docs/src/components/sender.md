@@ -248,6 +248,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 
 - **`header`** - 顶部区域，可添加标题、提示信息等
 - **`prefix`** - 输入框前缀区域，可添加图标、标签等（位于输入框内部）
+- **`input-prefix`** - 多行模式首行前置区域，支持自定义交互内容
 - **`footer`** - 底部左侧区域，可添加功能按钮
 - **`footer-right`** - 底部右侧区域，可添加操作按钮
 
@@ -451,6 +452,7 @@ onSelect: (item) => {
 |---------|------|-----------|
 | header | 头部插槽，位于输入框上方 | - |
 | prefix | 前缀插槽，位于输入框左侧 | - |
+| input-prefix @new | 多行模式首行前置插槽 | - |
 | content @0.4 | 内容插槽，用于完全自定义编辑器内容 | `{ editor }` |
 | actions-inline @0.4 | 单行模式下的操作按钮区域 | - |
 | footer | 底部自定义区域 | `{ editor, hasContent, disabled, loading }` |
