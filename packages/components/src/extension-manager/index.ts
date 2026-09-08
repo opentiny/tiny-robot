@@ -1,7 +1,8 @@
 import type { App } from 'vue'
+import ExtensionManagerComp from './index.vue'
 import { ExtensionCard as ExtensionCardComp, ExtensionCardGrid as ExtensionCardGridComp } from './components'
 
-export * from './index.type'
+export * from './public.type'
 
 ExtensionCardComp.name = 'TrExtensionCard'
 
@@ -27,4 +28,19 @@ const ExtensionCardGrid = ExtensionCardGridComp as typeof ExtensionCardGridComp 
 
 ExtensionCardGrid.install = extensionCardGridInstall
 
-export { ExtensionCard, ExtensionCardGrid }
+ExtensionManagerComp.name = 'TrExtensionManager'
+
+const extensionManagerInstall = function <T>(app: App<T>) {
+  app.component(ExtensionManagerComp.name!, ExtensionManagerComp)
+  app.component(ExtensionCard.name!, ExtensionCard)
+  app.component(ExtensionCardGrid.name!, ExtensionCardGrid)
+}
+
+const ExtensionManager = Object.assign(ExtensionManagerComp, {
+  install: extensionManagerInstall,
+  Card: ExtensionCard,
+  CardGrid: ExtensionCardGrid,
+})
+
+export { ExtensionCard, ExtensionCardGrid, ExtensionManager }
+export default ExtensionManager
