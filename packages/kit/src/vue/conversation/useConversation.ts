@@ -312,13 +312,18 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     conversations.value.splice(idx, 1)
 
-    storage?.deleteConversation?.(id)
-
-    // If deleting the active conversation, switch to new conversation
+    // Clear active state before waiting for persistence so consumers never
+    // observe an active id whose conversation has already been removed.
     if (activeConversationId.value === id) {
       activeConversationId.value = null
       clearInactiveEngines()
     }
+
+    // Let any save that already passed the in-memory existence check finish,
+    // then delete last so a stale write cannot recreate persisted data.
+    await messageSaveQueues.get(id)?.catch(() => undefined)
+    messageSaveQueues.delete(id)
+    await storage?.deleteConversation?.(id)
   }
 
   /**
