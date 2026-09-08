@@ -6,6 +6,52 @@ import type { ConversationStorageStrategy } from '../../storage'
 import { useConversation } from './useConversation'
 
 describe('useConversation', () => {
+  const responseProvider: ResponseProvider = async () =>
+    ({
+      id: 'conversation-test',
+      object: 'chat.completion',
+      created: Math.floor(Date.now() / 1000),
+      model: 'mock',
+      choices: [],
+    }) as ChatCompletion
+
+  it('keeps paused inactive engines while clearing engines that can start a turn', async () => {
+    const conversation = useConversation({
+      useMessageOptions: { responseProvider },
+    })
+    const pausedConversation = conversation.createConversation({
+      id: 'paused',
+      useMessageOptions: {
+        plugins: [
+          {
+            onInit: ({ setRequestState }) => setRequestState('paused'),
+          },
+        ],
+      },
+    })
+    conversation.createConversation({ id: 'idle' })
+
+    await conversation.switchConversation('paused')
+    await conversation.switchConversation('idle')
+
+    expect(pausedConversation.engine.canStartTurn.value).toBe(false)
+    expect((await conversation.switchConversation('paused'))?.engine).toBe(pausedConversation.engine)
+  })
+
+  it('clears inactive engines that can start a turn', async () => {
+    const conversation = useConversation({
+      useMessageOptions: { responseProvider },
+    })
+    const idleConversation = conversation.createConversation({ id: 'idle' })
+    conversation.createConversation({ id: 'other' })
+
+    await conversation.switchConversation('idle')
+    await conversation.switchConversation('other')
+
+    expect(idleConversation.engine.canStartTurn.value).toBe(true)
+    expect((await conversation.switchConversation('idle'))?.engine).not.toBe(idleConversation.engine)
+  })
+
   it('serializes initial and paused message saves', async () => {
     const values = new Map<string, string>()
     vi.stubGlobal('localStorage', {

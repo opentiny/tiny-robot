@@ -128,8 +128,6 @@ interface UseMessageReturn {
   responseProvider: Ref<UseMessageOptions['responseProvider']>
   /** 是否正在处理请求（不包含暂停） */
   isProcessing: ComputedRef<boolean>
-  /** 当前回合是否仍在运行或暂停等待确认 */
-  isCurrentTurn: ComputedRef<boolean>
   /** 是否处于暂停等待确认状态 */
   isPaused: ComputedRef<boolean>
   /** 是否允许开始新的用户回合 */

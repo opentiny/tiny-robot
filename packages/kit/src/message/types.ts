@@ -60,7 +60,6 @@ export interface PublicMessageState {
   processingState?: RequestProcessingState
   messages: ChatMessage[]
   isProcessing: boolean
-  isCurrentTurn: boolean
   isPaused: boolean
   canStartTurn: boolean
 }

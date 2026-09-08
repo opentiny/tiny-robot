@@ -126,7 +126,6 @@ export interface UseMessageReturn {
   messages: Ref<ChatMessage[]>
   responseProvider: Ref<UseMessageOptions['responseProvider']>
   isProcessing: ComputedRef<boolean>
-  isCurrentTurn: ComputedRef<boolean>
   isPaused: ComputedRef<boolean>
   canStartTurn: ComputedRef<boolean>
   sendMessage: (content: string) => Promise<void>
@@ -141,7 +140,6 @@ export interface BasePluginContext {
     processingState?: RequestProcessingState
     messages: ChatMessage[]
     isProcessing: boolean
-    isCurrentTurn: boolean
     isPaused: boolean
     canStartTurn: boolean
   }
@@ -150,7 +148,6 @@ export interface BasePluginContext {
   turnId: string | null
   requestState: RequestState
   processingState?: RequestProcessingState
-  isCurrentTurn: boolean
   isPaused: boolean
   canStartTurn: boolean
   plugins: UseMessagePlugin[]

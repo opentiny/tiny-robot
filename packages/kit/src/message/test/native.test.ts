@@ -48,7 +48,7 @@ describe('createMessageEngine', () => {
     expect(s.messages).toHaveLength(1)
     expect(s.messages[0].content).toBe('hi')
     expect(s.isProcessing).toBe(false)
-    expect(s.isCurrentTurn).toBe(false)
+    expect(s.canStartTurn).toBe(true)
   })
 
   it('sendMessage runs responseProvider and appends assistant content', async () => {
@@ -284,7 +284,7 @@ describe('createMessageEngine', () => {
 
     await expect(engine.dispatchCommand('resume')).rejects.toThrow('resume failed')
     expect(onTurnResume).toHaveBeenCalledOnce()
-    expect(engine.getState()).toMatchObject({ requestState: 'paused', isCurrentTurn: true })
+    expect(engine.getState()).toMatchObject({ requestState: 'paused', canStartTurn: false })
   })
 
   it('resumes a paused turn when a command requests the next request without a resume flag', async () => {
@@ -324,7 +324,7 @@ describe('createMessageEngine', () => {
 
     expect(events).toEqual(['resume', 'before-request'])
     expect(customContextAtRequest).toEqual({ marker: 'preserved' })
-    expect(engine.getState()).toMatchObject({ requestState: 'completed', isCurrentTurn: false })
+    expect(engine.getState()).toMatchObject({ requestState: 'completed', canStartTurn: true })
   })
 
   it('aborts an asynchronous command while the turn is paused', async () => {
@@ -367,7 +367,7 @@ describe('createMessageEngine', () => {
     await engine.abort()
 
     expect(commandSignal.aborted).toBe(true)
-    expect(engine.getState()).toMatchObject({ requestState: 'aborted', isCurrentTurn: false })
+    expect(engine.getState()).toMatchObject({ requestState: 'aborted', canStartTurn: true })
 
     releaseCommand()
     await command

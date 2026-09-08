@@ -769,8 +769,8 @@ describe('toolPlugin', () => {
       requestState: 'paused',
       processingState: undefined,
       isProcessing: false,
-      isCurrentTurn: true,
       isPaused: true,
+      canStartTurn: false,
     })
     expect(engine.getState().messages[1]).toMatchObject({
       role: 'assistant',

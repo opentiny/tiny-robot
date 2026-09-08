@@ -15,7 +15,6 @@ export interface VueMessageStateAdapter extends MessageStateAdapter {
   processingState: Ref<RequestProcessingState | undefined>
   messages: Ref<ChatMessage[]>
   isProcessing: ComputedRef<boolean>
-  isCurrentTurn: ComputedRef<boolean>
   isPaused: ComputedRef<boolean>
   canStartTurn: ComputedRef<boolean>
 }
@@ -49,7 +48,6 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
   const processingState = ref<RequestProcessingState | undefined>(undefined)
   const messages = ref<ChatMessage[]>([])
   const isProcessing = computed(() => requestState.value === 'processing')
-  const isCurrentTurn = computed(() => requestState.value === 'processing' || requestState.value === 'paused')
   const isPaused = computed(() => requestState.value === 'paused')
   const canStartTurn = computed(() => requestState.value !== 'processing' && requestState.value !== 'paused')
 
@@ -78,7 +76,6 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
       processingState: processingState.value,
       messages: toPlainValue(messages.value),
       isProcessing: isProcessing.value,
-      isCurrentTurn: isCurrentTurn.value,
       isPaused: isPaused.value,
       canStartTurn: canStartTurn.value,
     } satisfies PublicMessageState
@@ -136,7 +133,6 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     processingState,
     messages,
     isProcessing,
-    isCurrentTurn,
     isPaused,
     canStartTurn,
     initialize,
