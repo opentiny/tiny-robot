@@ -6,6 +6,7 @@ import path from 'node:path'
 import process from 'node:process'
 import semver from 'semver'
 
+import { createRuntimeDependencies, resolveRuntimeVersion } from '../runtime-version.js'
 import {
   findProjectRoot,
   findSubPackageRoot,
@@ -19,15 +20,7 @@ import {
   mergeEnvContent,
 } from '../utils.js'
 
-const TARGET_VERSION = '0.5.2-alpha.10'
 const CHAT_ADD_FEATURE_DIR = 'src/tiny-robot-chat'
-const DEPENDENCIES = {
-  '@opentiny/tiny-robot': TARGET_VERSION,
-  '@opentiny/tiny-robot-chat': TARGET_VERSION,
-  '@opentiny/tiny-robot-kit': TARGET_VERSION,
-  '@opentiny/tiny-robot-svgs': TARGET_VERSION,
-  '@vueuse/core': '13.9.0',
-}
 const PACKAGE_STYLE_IMPORTS = [
   "import '@opentiny/tiny-robot/dist/style.css'",
   "import '@opentiny/tiny-robot-chat/dist/style.css'",
@@ -189,7 +182,11 @@ function insertDependencyOrdered(dependencies, name, version) {
   return next
 }
 
-function ensureDependency(pkg, name, targetVersion) {
+function ensureDependency(pkg, name, targetSpecifier) {
+  const targetMinimum = semver.minVersion(targetSpecifier)
+  invariant(targetMinimum, `${name} has an invalid target version specifier (${targetSpecifier})`)
+  const targetVersion = targetMinimum.version
+
   for (const section of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
     const value = pkg[section]
     if (value !== undefined && (value === null || typeof value !== 'object' || Array.isArray(value))) {
@@ -210,8 +207,8 @@ function ensureDependency(pkg, name, targetVersion) {
       return { type: 'conflict', reason: 'dependencies must be a JSON object' }
     }
     pkg.dependencies ??= {}
-    pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetVersion)
-    return { type: 'added', to: targetVersion, section: 'dependencies' }
+    pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetSpecifier)
+    return { type: 'added', to: targetSpecifier, section: 'dependencies' }
   }
 
   const dependency = existing[0]
@@ -226,12 +223,13 @@ function ensureDependency(pkg, name, targetVersion) {
     }
   }
 
-  const satisfies = semver.satisfies(targetVersion, dependency.version, { includePrerelease: true })
+  const satisfies = semver.satisfies(targetVersion, dependency.version)
 
   if (satisfies) return { type: 'skipped', section: dependency.section, version: dependency.version }
 
   const minimum = typeof dependency.version === 'string' ? semver.minVersion(dependency.version) : null
   if (
+    semver.prerelease(targetVersion) === null &&
     typeof dependency.version === 'string' &&
     ((semver.valid(dependency.version) && semver.gte(dependency.version, targetVersion)) ||
       (minimum && semver.gte(minimum, targetVersion)))
@@ -242,16 +240,16 @@ function ensureDependency(pkg, name, targetVersion) {
   if (dependency.section !== 'dependencies') {
     return {
       type: 'conflict',
-      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetVersion}`,
+      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetSpecifier}`,
     }
   }
 
-  pkg.dependencies[name] = targetVersion
+  pkg.dependencies[name] = targetSpecifier
   return {
     type: 'updated',
     section: dependency.section,
     from: dependency.version,
-    to: targetVersion,
+    to: targetSpecifier,
   }
 }
 
@@ -412,10 +410,10 @@ function isSelected(selectedFiles, label) {
   return selectedFiles.includes(label)
 }
 
-function getDependencyPlan(pkg) {
+function getDependencyPlan(pkg, dependencies) {
   const preview = JSON.parse(JSON.stringify(pkg))
 
-  return Object.entries(DEPENDENCIES).map(([name, version]) => ({
+  return Object.entries(dependencies).map(([name, version]) => ({
     name,
     result: ensureDependency(preview, name, version),
   }))
@@ -493,7 +491,7 @@ function applyChanges(changes) {
   }
 }
 
-function validateSelection(selectedFiles, pkg, featureInspection, mountPlan, allowManualMount) {
+function validateSelection(selectedFiles, pkg, featureInspection, mountPlan, allowManualMount, dependencies) {
   const featureFilesSelected = isSelected(selectedFiles, 'Chat feature files')
   const featureFilesMissing = featureInspection.some((file) => file.type === 'create')
 
@@ -511,7 +509,7 @@ function validateSelection(selectedFiles, pkg, featureInspection, mountPlan, all
 
   if (isSelected(selectedFiles, 'package.json')) return
 
-  const dependencyChanges = getDependencyPlan(pkg).filter(({ result }) => result.type !== 'skipped')
+  const dependencyChanges = getDependencyPlan(pkg, dependencies).filter(({ result }) => result.type !== 'skipped')
   if (dependencyChanges.length > 0 && (featureFilesSelected || isSelected(selectedFiles, 'main entry style imports'))) {
     throw new Error(
       'Select package.json when adding the chat feature or its style imports so required dependencies can be checked.',
@@ -520,7 +518,7 @@ function validateSelection(selectedFiles, pkg, featureInspection, mountPlan, all
 }
 
 function prepareChanges(targetDir, selectedFiles, context) {
-  const { featureInspection, mainFile, mountPlan, pkgPath, pkg, allowConflicts } = context
+  const { featureInspection, mainFile, mountPlan, pkgPath, pkg, allowConflicts, dependencies } = context
   const changes = []
   const results = { featureInspection, style: null, env: null, dependencies: [], mount: null, dependencyChanged: false }
 
@@ -564,7 +562,7 @@ function prepareChanges(targetDir, selectedFiles, context) {
   }
 
   if (isSelected(selectedFiles, 'package.json')) {
-    for (const [name, version] of Object.entries(DEPENDENCIES)) {
+    for (const [name, version] of Object.entries(dependencies)) {
       const result = ensureDependency(pkg, name, version)
       if (result.type === 'conflict' && !allowConflicts) throw new Error(`${name}: ${result.reason}`)
       results.dependencies.push({ name, result })
@@ -637,7 +635,7 @@ async function addFeature(targetDir, type, options) {
     nonInteractive: options.nonInteractive,
   })
 
-  validateSelection(selectedFiles, pkg, featureInspection, mountPlan, options.dryRun)
+  validateSelection(selectedFiles, pkg, featureInspection, mountPlan, options.dryRun, options.dependencies)
   const prepared = prepareChanges(targetDir, selectedFiles, {
     featureInspection,
     mainFile,
@@ -645,6 +643,7 @@ async function addFeature(targetDir, type, options) {
     pkgPath,
     pkg,
     allowConflicts: options.dryRun,
+    dependencies: options.dependencies,
   })
 
   if (options.dryRun) {
@@ -660,7 +659,9 @@ async function addFeature(targetDir, type, options) {
       `  ${formatPlanStatus(prepared.results.env?.type ?? 'unavailable')} .env.example (${prepared.results.env?.type ?? 'not selected'})`,
     )
     const dependencyPlan =
-      prepared.results.dependencies.length > 0 ? prepared.results.dependencies : getDependencyPlan(pkg)
+      prepared.results.dependencies.length > 0
+        ? prepared.results.dependencies
+        : getDependencyPlan(pkg, options.dependencies)
     for (const { name, result } of dependencyPlan) {
       const status = result.type === 'added' || result.type === 'updated' ? '~' : result.type === 'conflict' ? '!' : '○'
       console.log(`  ${status} package.json (${result.type}: ${name})`)
@@ -733,11 +734,17 @@ export function registerAddCommand(program) {
     .option('--dry-run', 'print the change plan without modifying files')
     .option('--mount', 'safely mount TinyRobotChat in src/App.vue (default)')
     .option('--no-mount', 'keep App.vue unchanged and print the mount snippet')
+    .option('--runtime-version <version>', 'override the TinyRobot runtime version')
     .action(async (type, options) => {
       try {
+        const runtime = resolveRuntimeVersion(options.runtimeVersion)
         const nonInteractive = Boolean(options.yes || options.dryRun || !process.stdout.isTTY)
         const targetDir = await resolveTargetPackage(process.cwd(), nonInteractive)
-        await addFeature(targetDir, type, { ...options, nonInteractive })
+        await addFeature(targetDir, type, {
+          ...options,
+          dependencies: createRuntimeDependencies(runtime.specifier),
+          nonInteractive,
+        })
       } catch (error) {
         if (error instanceof Error && error.name === 'ExitPromptError') {
           console.error('\nOperation cancelled.')
@@ -749,4 +756,4 @@ export function registerAddCommand(program) {
     })
 }
 
-export { DEPENDENCIES, ensureDependency, ensureStyleImports, getChatFeatureFiles, planMount, resolveTargetPackage }
+export { ensureDependency, ensureStyleImports, getChatFeatureFiles, planMount, resolveTargetPackage }

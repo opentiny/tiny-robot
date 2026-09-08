@@ -7,6 +7,13 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const cliFile = fileURLToPath(new URL('../bin/cli.js', import.meta.url))
+const cliPackageFile = fileURLToPath(new URL('../package.json', import.meta.url))
+const runtimePackageNames = [
+  '@opentiny/tiny-robot',
+  '@opentiny/tiny-robot-chat',
+  '@opentiny/tiny-robot-kit',
+  '@opentiny/tiny-robot-svgs',
+]
 
 function createTempDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix))
@@ -45,6 +52,45 @@ test('create basic scaffolds a complete chat-basic project', () => {
     assert.ok(fs.existsSync(path.join(project, '.env.example')))
     assert.equal(fs.existsSync(path.join(project, '.env')), false)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'index.html'), 'utf8'), /__PROJECT_NAME__/)
+    assert.doesNotMatch(fs.readFileSync(path.join(project, 'package.json'), 'utf8'), /__TINY_ROBOT_VERSION__/)
+
+    const cliVersion = JSON.parse(fs.readFileSync(cliPackageFile, 'utf8')).version
+    const expectedRuntimeSpecifier = cliVersion.includes('-') ? cliVersion : `^${cliVersion}`
+    for (const name of runtimePackageNames.filter((name) => name in packageJson.dependencies)) {
+      assert.equal(packageJson.dependencies[name], expectedRuntimeSpecifier)
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('create formats explicit prerelease and stable runtime versions', () => {
+  const root = createTempDir('tiny-robot-create-version-')
+
+  try {
+    const prerelease = runCli(root, 'create', 'fixture-prerelease', '--runtime-version', '0.5.2-alpha.15')
+    const stable = runCli(root, 'create', 'fixture-stable', '--runtime-version', '0.5.3')
+    const prereleasePackage = JSON.parse(fs.readFileSync(path.join(root, 'fixture-prerelease', 'package.json'), 'utf8'))
+    const stablePackage = JSON.parse(fs.readFileSync(path.join(root, 'fixture-stable', 'package.json'), 'utf8'))
+
+    assert.equal(prerelease.status, 0, prerelease.stderr)
+    assert.equal(stable.status, 0, stable.stderr)
+    assert.equal(prereleasePackage.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+    assert.equal(stablePackage.dependencies['@opentiny/tiny-robot'], '^0.5.3')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('create rejects an invalid runtime version before creating the target', () => {
+  const root = createTempDir('tiny-robot-create-invalid-version-')
+
+  try {
+    const result = runCli(root, 'create', 'fixture-invalid', '--runtime-version', 'alpha')
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /valid semantic version/i)
+    assert.equal(fs.existsSync(path.join(root, 'fixture-invalid')), false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -57,7 +103,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     createVueProject(root)
 
     const beforeDryRun = fs.readdirSync(root).sort()
-    const dryRun = runCli(root, 'add', 'chat', '--dry-run')
+    const dryRun = runCli(root, 'add', 'chat', '--dry-run', '--runtime-version', '0.5.2-alpha.15')
     assert.equal(dryRun.status, 0, dryRun.stderr)
     assert.deepEqual(fs.readdirSync(root).sort(), beforeDryRun)
     assert.match(dryRun.stdout, /Change Plan/)
@@ -67,7 +113,7 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.match(dryRun.stdout, /server\.proxy/)
     assert.doesNotMatch(dryRun.stdout, /Vite MCP proxy/)
 
-    const result = runCli(root, 'add', 'chat', '--yes')
+    const result = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-alpha.15')
     const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
     assert.equal(result.status, 0, result.stderr)
     assert.ok(fs.existsSync(path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue')))
@@ -76,11 +122,54 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
     assert.equal(packageJson.dependencies['@vueuse/core'], '13.9.0')
+    for (const name of runtimePackageNames) assert.equal(packageJson.dependencies[name], '0.5.2-alpha.15')
     const runtimeConfig = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/config/chat-runtime.ts'), 'utf8')
     assert.match(runtimeConfig, /IconBailian/)
     assert.match(runtimeConfig, /icon: IconDeepseek/)
     assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /<TinyRobotChat \/>/)
     assert.match(result.stdout, /server\.proxy/)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add preserves a compatible host range and uses caret ranges for missing stable runtimes', () => {
+  const root = createTempDir('tiny-robot-add-stable-version-')
+
+  try {
+    createVueProject(root)
+    const packageFile = path.join(root, 'package.json')
+    const before = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    before.dependencies['@opentiny/tiny-robot'] = '^0.5.1'
+    fs.writeFileSync(packageFile, `${JSON.stringify(before, null, 2)}\n`)
+
+    const result = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.3')
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '^0.5.1')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-chat'], '^0.5.3')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-kit'], '^0.5.3')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-svgs'], '^0.5.3')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add rejects an invalid runtime version before modifying the project', () => {
+  const root = createTempDir('tiny-robot-add-invalid-version-')
+
+  try {
+    createVueProject(root)
+    const packageFile = path.join(root, 'package.json')
+    const before = fs.readFileSync(packageFile, 'utf8')
+
+    const result = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '^0.5.3')
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /valid semantic version/i)
+    assert.equal(fs.readFileSync(packageFile, 'utf8'), before)
+    assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
