@@ -263,6 +263,7 @@ export function createChatUi(options: ChatUiConfigOptions): ChatUIOptions {
         },
       },
     },
+    model: { appendTo: '.chat-add-window' },
     layout: {
       heightMode: 'parent',
       leftAside: false,
