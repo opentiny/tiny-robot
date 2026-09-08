@@ -3,5 +3,8 @@ packages:
   - '!packages/cli/templates/**'
   - docs
 
+overrides:
+  rollup: 4.62.4
+
 patchedDependencies:
   vitepress-demo-plugin@1.5.0: patches/vitepress-demo-plugin@1.5.0.patch

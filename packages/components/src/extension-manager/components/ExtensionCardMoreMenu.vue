@@ -45,12 +45,10 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
 <template>
   <div v-if="props.actions.length" class="tr-extension-card__more-action">
     <ExtensionCardPopover as-child :placement="props.placement">
-      <template #trigger="{ popoverId, open }">
+      <template #trigger="{ open }">
         <button
           class="tr-extension-card__icon-button"
           type="button"
-          :popovertarget="popoverId"
-          popovertargetaction="toggle"
           :title="props.label"
           :aria-label="props.label"
           :aria-expanded="open"

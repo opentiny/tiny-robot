@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconArrowDown, IconAtom } from '@opentiny/tiny-robot-svgs'
-import { nextTick, ref, watch, watchEffect } from 'vue'
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useBubbleContentRenderer, useBubbleEventFn, useOmitMessageFields } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 
@@ -23,16 +23,58 @@ const { restMessage, restProps } = useOmitMessageFields(props, ['reasoning_conte
 const renderer = useBubbleContentRenderer(restMessage, props.contentIndex)
 
 const open = ref(true)
+const displayedReasoningContent = ref(props.message.reasoning_content ?? '')
+const detailRef = ref<HTMLParagraphElement | null>(null)
 
-watchEffect(() => {
-  // 思考过程默认展开
-  open.value = props.message.state?.open ?? true
-})
+let renderFrame: number | null = null
+
+const scrollDetailToBottom = () => {
+  if (!open.value || !detailRef.value) {
+    return
+  }
+
+  detailRef.value.scrollTop = detailRef.value.scrollHeight
+}
+
+const scheduleDetailUpdate = () => {
+  if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+    displayedReasoningContent.value = props.message.reasoning_content ?? ''
+    return
+  }
+
+  if (renderFrame !== null) {
+    return
+  }
+
+  renderFrame = window.requestAnimationFrame(() => {
+    renderFrame = null
+    displayedReasoningContent.value = props.message.reasoning_content ?? ''
+    nextTick(scrollDetailToBottom)
+  })
+}
+
+watch(
+  () => props.message.state?.open,
+  (value) => {
+    // 思考过程默认展开
+    open.value = value ?? true
+    if (open.value) {
+      scheduleDetailUpdate()
+    }
+  },
+  { immediate: true },
+)
+
+watch(() => props.message.reasoning_content, scheduleDetailUpdate, { immediate: true })
 
 const handleBubbleEvent = useBubbleEventFn()
 
 const handleClick = () => {
   open.value = !open.value
+  if (open.value) {
+    scheduleDetailUpdate()
+  }
+
   handleBubbleEvent({
     name: 'state:update',
     payload: {
@@ -42,23 +84,12 @@ const handleClick = () => {
   })
 }
 
-const detailRef = ref<HTMLParagraphElement | null>(null)
-
-watch(
-  () => props.message.reasoning_content,
-  () => {
-    nextTick(() => {
-      if (!detailRef.value) {
-        return
-      }
-
-      detailRef.value.scrollTo({
-        top: detailRef.value.scrollHeight,
-        behavior: 'smooth',
-      })
-    })
-  },
-)
+onBeforeUnmount(() => {
+  if (renderFrame !== null && typeof window !== 'undefined') {
+    window.cancelAnimationFrame(renderFrame)
+    renderFrame = null
+  }
+})
 </script>
 
 <template>
@@ -77,7 +108,7 @@ watch(
         </div>
         <div class="border-line"></div>
       </div>
-      <p class="detail-content" ref="detailRef">{{ props.message.reasoning_content }}</p>
+      <p class="detail-content" ref="detailRef">{{ displayedReasoningContent }}</p>
     </div>
   </div>
   <component :is="renderer.renderer" v-bind="{ ...renderer.attributes, ...restProps }" />
