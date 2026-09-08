@@ -18,6 +18,7 @@ const sharedSidebarItems = [
       { text: 'Layout 布局', link: 'layout' },
       { text: 'Bubble 气泡', link: 'bubble' },
       { text: 'Sender 消息输入框', link: 'sender' },
+      { text: 'ModelSelector 模型选择器', link: 'model-selector' },
       { text: 'Prompts 提示集', link: 'prompts' },
       { text: 'Welcome 欢迎', link: 'welcome' },
       { text: 'Feedback 气泡反馈', link: 'feedback' },

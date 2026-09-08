@@ -70,7 +70,7 @@ function handleSelect() {
           aria-hidden="true"
           focusable="false"
         />
-        <span class="tr-model-selector__option-copy">
+        <span class="tr-model-selector__option-text">
           <span class="tr-model-selector__option-label" :title="option.label">{{ option.label }}</span>
           <span
             v-if="option.description"
@@ -82,7 +82,7 @@ function handleSelect() {
           </span>
         </span>
       </span>
-      <IconCheck v-if="selected" class="tr-model-selector__option-check" aria-hidden="true" focusable="false" />
+      <IconCheck class="tr-model-selector__option-check" aria-hidden="true" focusable="false" />
     </slot>
   </div>
 </template>
