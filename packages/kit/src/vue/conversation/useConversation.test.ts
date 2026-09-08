@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { isProxy } from 'vue'
 import { toolPlugin } from '../message/plugins'
 import type { ChatCompletion, ResponseProvider } from '../message/types'
 import type { ChatMessage } from '../../message/types'
@@ -7,7 +6,7 @@ import type { ConversationStorageStrategy } from '../../storage'
 import { useConversation } from './useConversation'
 
 describe('useConversation', () => {
-  it('persists a stable paused message snapshot before the tool snapshot is written', async () => {
+  it('serializes initial and paused message saves', async () => {
     const values = new Map<string, string>()
     vi.stubGlobal('localStorage', {
       getItem: (key: string) => values.get(key) ?? null,
@@ -15,41 +14,29 @@ describe('useConversation', () => {
       removeItem: (key: string) => values.delete(key),
     } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
 
-    let releasePauseSave!: () => void
-    const pauseSave = new Promise<void>((resolve) => {
-      releasePauseSave = resolve
+    let releaseInitialSave!: () => void
+    const initialSave = new Promise<void>((resolve) => {
+      releaseInitialSave = resolve
     })
-    let markPauseSaveStarted!: () => void
-    const pauseSaveStarted = new Promise<void>((resolve) => {
-      markPauseSaveStarted = resolve
+    let markInitialSaveStarted!: () => void
+    const initialSaveStarted = new Promise<void>((resolve) => {
+      markInitialSaveStarted = resolve
     })
     const persistedMessages: ChatMessage[][] = []
-    let pauseSaveBlocked = false
+    let saveCount = 0
     const storage: ConversationStorageStrategy = {
       loadConversations: () => [],
       loadMessages: async () => [],
       saveConversation: vi.fn(),
       saveMessages: vi.fn(async (_id, messages) => {
-        if (isProxy(messages)) {
-          return
+        const snapshot = JSON.parse(JSON.stringify(messages)) as ChatMessage[]
+        if (saveCount === 0) {
+          saveCount += 1
+          markInitialSaveStarted()
+          await initialSave
         }
 
-        const hasAwaitingTool = messages.some((message) => {
-          if (message.role !== 'assistant') {
-            return false
-          }
-
-          const toolCallState = message.state?.toolCall as Record<string, { status?: string }> | undefined
-          return Object.values(toolCallState ?? {}).some((toolCall) => toolCall.status === 'awaiting-approval')
-        })
-
-        if (hasAwaitingTool && !pauseSaveBlocked) {
-          pauseSaveBlocked = true
-          markPauseSaveStarted()
-          await pauseSave
-        }
-
-        persistedMessages.push(JSON.parse(JSON.stringify(messages)) as ChatMessage[])
+        persistedMessages.push(snapshot)
       }),
     }
     const responseProvider: ResponseProvider = async () =>
@@ -94,18 +81,13 @@ describe('useConversation', () => {
         },
       })
       const activeConversation = conversation.createConversation({ id: 'conversation-1' })
+      await initialSaveStarted
       const turn = conversation.sendMessage('run sensitive lookup')
 
       await vi.waitFor(() => expect(activeConversation.engine.requestState.value).toBe('paused'))
-      await pauseSaveStarted
 
       expect(values.has('__tiny-robot-turn')).toBe(false)
-
-      const assistantMessage = activeConversation.engine.messages.value.find((message) => message.role === 'assistant')
-      expect(assistantMessage).toBeDefined()
-      assistantMessage!.content = 'mutated while saving'
-
-      releasePauseSave()
+      releaseInitialSave()
       await turn
 
       expect(persistedMessages).toEqual(

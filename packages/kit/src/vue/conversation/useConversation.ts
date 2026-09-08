@@ -25,6 +25,12 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   const watchers = new Map<string, WatchStopHandle>()
 
   /**
+   * Serialize message saves per conversation so an older async write cannot
+   * complete after a newer paused-turn save and overwrite it.
+   */
+  const messageSaveQueues = new Map<string, Promise<void>>()
+
+  /**
    * Currently active conversation id.
    */
   const activeConversationId = ref<string | null>(null)
@@ -54,15 +60,23 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    *
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
-  const saveConversationMessages = async (id: string, messages: ChatMessage[]) => {
-    if (!storage?.saveMessages) return
+  const saveConversationMessages = (id: string, messages: ChatMessage[]): Promise<void> => {
+    const previousSave = messageSaveQueues.get(id) ?? Promise.resolve()
+    const currentSave = previousSave
+      .catch(() => undefined)
+      .then(async () => {
+        if (!storage?.saveMessages) return
 
-    const conversation = conversations.value.find((item) => item.id === id)
-    if (!conversation) return
+        const conversation = conversations.value.find((item) => item.id === id)
+        if (!conversation) return
 
-    conversation.updatedAt = Date.now()
-    await storage.saveConversation?.(conversation)
-    await storage.saveMessages(id, messages)
+        conversation.updatedAt = Date.now()
+        await storage.saveConversation?.(conversation)
+        await storage.saveMessages(id, messages)
+      })
+
+    messageSaveQueues.set(id, currentSave)
+    return currentSave
   }
 
   const saveMessages = async (id?: string): Promise<void> => {
@@ -236,8 +250,9 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     setupAutoSave(id, engine)
 
     // Persist new conversation and its initial messages.
-    storage?.saveConversation?.(info)
-    storage?.saveMessages?.(id, engine.messages.value)
+    void saveConversationMessages(id, engine.messages.value).catch((error) => {
+      console.error('[useConversation] save initial messages failed:', error)
+    })
 
     activeConversationId.value = id
 
