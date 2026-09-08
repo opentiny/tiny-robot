@@ -113,7 +113,7 @@ const handleKeydown = (tabIndex: number, event: KeyboardEvent) => {
       role="tab"
       :id="getTabDomId(tab.id)"
       :aria-selected="tab.id === props.activeTabId"
-      :aria-controls="getTabPanelDomId(tab.id)"
+      :aria-controls="tab.id === props.activeTabId ? getTabPanelDomId(tab.id) : undefined"
       :tabindex="tab.id === props.activeTabId ? 0 : -1"
       @click="selectTab(tab.id)"
       @keydown="handleKeydown(index, $event)"

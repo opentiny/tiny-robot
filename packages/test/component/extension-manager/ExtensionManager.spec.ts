@@ -173,6 +173,22 @@ test.describe('ExtensionManager uncontrolled state', () => {
     await expect(dashTab).toBeFocused()
   })
 
+  test('only links the active tab to the rendered tabpanel', async ({ mount }) => {
+    const component = await mount(ExtensionManagerUncontrolledFixture)
+    const manager = component.getByTestId('uncontrolled-manager')
+    const slashTab = manager.getByRole('tab', { name: /Slash tab/ })
+    const dashTab = manager.getByRole('tab', { name: /Dash tab/ })
+    const tabpanel = manager.getByRole('tabpanel')
+
+    await expect(dashTab).toHaveAttribute('aria-controls', await tabpanel.getAttribute('id'))
+    await expect(slashTab).not.toHaveAttribute('aria-controls')
+
+    await slashTab.click()
+
+    await expect(slashTab).toHaveAttribute('aria-controls', await tabpanel.getAttribute('id'))
+    await expect(dashTab).not.toHaveAttribute('aria-controls')
+  })
+
   test('moves the shared indicator to the active tab', async ({ mount }) => {
     const component = await mount(ExtensionManagerUncontrolledFixture)
     const manager = component.getByTestId('uncontrolled-manager')
