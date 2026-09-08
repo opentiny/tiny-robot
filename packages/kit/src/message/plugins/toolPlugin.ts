@@ -936,7 +936,7 @@ export const toolPlugin = (
         clearTurnSnapshot(context.turnId)
       }
 
-      const pending = findPendingToolCallFromContext(context)
+      const pending = context.currentTurn.length > 0 ? findPendingToolCall(context.currentTurn) : null
 
       if (pending) {
         const assistantMessage = pending.assistantMessage as Extract<ChatMessage, { role: 'assistant' }> &

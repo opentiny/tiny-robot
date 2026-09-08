@@ -44,6 +44,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
   const createVueBaseContext = (context: CoreBasePluginContext): VueBasePluginContext => {
     return {
+      getState: () => {
+        const state = context.getState()
+        return {
+          ...state,
+          messages: state.messages.map((message) => resolveReactiveMessage(message as ChatMessage)),
+        }
+      },
       messages: adapter.messages.value as ChatMessage[],
       currentTurn: context.currentTurn.map((message) => resolveReactiveMessage(message as ChatMessage)),
       turnId: context.turnId,

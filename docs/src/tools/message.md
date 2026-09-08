@@ -173,6 +173,12 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 可通过 `plugins` 选项追加或覆盖默认插件。插件提供了多个生命周期钩子：
 
 ```typescript
+interface BasePluginContext {
+  /** 获取当前消息引擎状态 */
+  getState: () => PublicMessageState
+  // 其他上下文字段...
+}
+
 interface UseMessagePlugin {
   /** 插件名称 */
   name?: string

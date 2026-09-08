@@ -136,6 +136,15 @@ export interface UseMessageReturn {
 }
 
 export interface BasePluginContext {
+  getState: () => {
+    requestState: RequestState
+    processingState?: RequestProcessingState
+    messages: ChatMessage[]
+    isProcessing: boolean
+    isCurrentTurn: boolean
+    isPaused: boolean
+    canStartTurn: boolean
+  }
   messages: ChatMessage[]
   currentTurn: ChatMessage[]
   turnId: string | null

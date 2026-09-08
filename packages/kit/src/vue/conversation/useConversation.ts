@@ -1,7 +1,7 @@
 import { computed, ref, watch, WatchStopHandle } from 'vue'
 import { localStorageStrategyFactory } from '../../storage/factories'
 import { ChatMessage } from '../../types'
-import { UseMessageOptions, UseMessageReturn } from '../message/types'
+import { UseMessageOptions, UseMessagePlugin, UseMessageReturn } from '../message/types'
 import { useMessage } from '../message/useMessage'
 import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
 import { useThrottleFn } from './useThrottleFn'
@@ -54,20 +54,27 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    *
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
-  const saveMessages = (id?: string) => {
+  const saveConversationMessages = async (id: string, messages: ChatMessage[]) => {
     if (!storage?.saveMessages) return
-    const conversationId = id || activeConversationId.value
 
-    const conversation = conversations.value.find((c) => c.id === conversationId)
+    const conversation = conversations.value.find((item) => item.id === id)
     if (!conversation) return
 
     conversation.updatedAt = Date.now()
-    storage?.saveConversation?.(conversation)
+    await storage.saveConversation?.(conversation)
+    await storage.saveMessages(id, messages)
+  }
 
-    const engine = workingEngines.get(conversation.id)
+  const saveMessages = async (id?: string): Promise<void> => {
+    if (!storage?.saveMessages) return
+    const conversationId = id || activeConversationId.value
+
+    if (!conversationId) return
+
+    const engine = workingEngines.get(conversationId)
     if (!engine) return
 
-    storage.saveMessages(conversation.id, engine.messages.value)
+    await saveConversationMessages(conversationId, engine.messages.value)
   }
 
   /**
@@ -95,19 +102,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     // 监听消息变化并自动保存
     const stopMessageWatcher = watch(engine.messages, throttledSave, { deep: true })
-    const stopPausedWatcher = watch(
-      engine.requestState,
-      (requestState) => {
-        if (requestState === 'paused') {
-          saveMessages(id)
-        }
-      },
-      { flush: 'sync' },
-    )
-
     watchers.set(id, () => {
       stopMessageWatcher()
-      stopPausedWatcher()
     })
   }
 
@@ -120,6 +116,18 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       watcher()
       watchers.delete(id)
     }
+  }
+
+  const createConversationEngine = (id: string, messageOptions: UseMessageOptions): UseMessageReturn => {
+    const plugins = messageOptions.plugins ?? []
+    const pausePersistencePlugin: UseMessagePlugin = {
+      onTurnPause: (context) => saveConversationMessages(id, context.getState().messages),
+    }
+
+    return useMessage({
+      ...messageOptions,
+      plugins: options.autoSaveMessages ? [pausePersistencePlugin, ...plugins] : plugins,
+    })
   }
 
   /**
@@ -183,7 +191,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       }
     }
 
-    const engine = useMessage({
+    const engine = createConversationEngine(id, {
       ...options.useMessageOptions,
       ...overrideOptions,
       initialMessages,
@@ -220,7 +228,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     }
     conversations.value.unshift(info)
 
-    const engine = useMessage({
+    const engine = createConversationEngine(id, {
       ...options.useMessageOptions,
       ...useMessageOptions,
     })
@@ -334,8 +342,8 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   /**
    * Convenience method: send message to active conversation.
    */
-  const sendMessage = (content: string) => {
-    activeConversation.value?.engine.sendMessage(content)
+  const sendMessage = (content: string): Promise<void> => {
+    return activeConversation.value?.engine.sendMessage(content) ?? Promise.resolve()
   }
 
   /**

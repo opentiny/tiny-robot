@@ -1393,6 +1393,114 @@ describe('toolPlugin', () => {
     })
   })
 
+  it('denies paused tools when abort happens while another tool is still running', async () => {
+    let markPaused!: () => void
+    const paused = new Promise<void>((resolve) => {
+      markPaused = resolve
+    })
+    let markRunning!: () => void
+    const running = new Promise<void>((resolve) => {
+      markRunning = resolve
+    })
+    const callTool = vi.fn(async (toolCall: ChatCompletionMessageToolCall, context: ToolCallContext) => {
+      if (toolCall.type === 'function' && toolCall.id === 'call-running') {
+        markRunning()
+        await new Promise<void>((resolve, reject) => {
+          context.abortSignal.addEventListener(
+            'abort',
+            () => {
+              reject(new Error('tool aborted'))
+            },
+            { once: true },
+          )
+        })
+      }
+
+      return 'cancelled'
+    })
+    const responseProvider = vi.fn<ResponseProvider>(
+      async () =>
+        ({
+          id: 'abort-concurrent-tool-calls',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-paused',
+                    type: 'function',
+                    function: { name: 'sensitive_delete', arguments: '{}' },
+                  },
+                  {
+                    id: 'call-running',
+                    type: 'function',
+                    function: { name: 'background_lookup', arguments: '{}' },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        }) as ChatCompletion,
+    )
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          getTools: async () => [
+            { type: 'function', function: { name: 'sensitive_delete' } },
+            { type: 'function', function: { name: 'background_lookup' } },
+          ],
+          callTool,
+          shouldPauseToolCall(toolCall) {
+            if (toolCall.type === 'function' && toolCall.id === 'call-paused') {
+              markPaused()
+              return true
+            }
+
+            return false
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    const turn = engine.sendMessage('run concurrent tools')
+    await paused
+    await running
+
+    await engine.abort()
+    await turn
+    await vi.waitFor(() =>
+      expect(engine.getState().messages[1]).toMatchObject({
+        state: {
+          toolCall: {
+            'call-running': { status: 'cancelled' },
+          },
+        },
+      }),
+    )
+
+    expect(responseProvider).toHaveBeenCalledOnce()
+    expect(callTool).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'aborted', isPaused: false })
+    expect(engine.getState().messages[1]).toMatchObject({
+      state: {
+        toolCall: {
+          'call-paused': { status: 'denied' },
+          'call-running': { status: 'cancelled' },
+        },
+      },
+    })
+  })
+
   it('aborts a resumed tool call without leaving the engine processing', async () => {
     let markPaused!: () => void
     const paused = new Promise<void>((resolve) => {
