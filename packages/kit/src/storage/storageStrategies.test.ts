@@ -77,7 +77,7 @@ describe('localStorageStrategyFactory', () => {
     expect(await strategy.loadMessages('one')).toEqual([])
   })
 
-  it('returns empty data and keeps delete safe when persisted JSON is corrupted', async () => {
+  it('returns empty data and reports delete failure when persisted JSON is corrupted', async () => {
     const { storage, values } = createLocalStorage()
     values.set('corrupted', '{not-json')
     vi.stubGlobal('localStorage', storage)
@@ -86,7 +86,20 @@ describe('localStorageStrategyFactory', () => {
 
     expect(await strategy.loadConversations()).toEqual([])
     expect(await strategy.loadMessages('missing')).toEqual([])
-    expect(() => strategy.deleteConversation?.('missing')).not.toThrow()
+    expect(() => strategy.deleteConversation?.('missing')).toThrow(SyntaxError)
+  })
+
+  it('propagates deletion writes that localStorage rejects', () => {
+    const { storage, values } = createLocalStorage()
+    values.set('conversation-test', JSON.stringify([conversation('one', 10)]))
+    storage.setItem = () => {
+      throw new Error('storage quota exceeded')
+    }
+    vi.stubGlobal('localStorage', storage)
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const strategy = localStorageStrategyFactory({ key: 'conversation-test' })
+
+    expect(() => strategy.deleteConversation?.('one')).toThrow('storage quota exceeded')
   })
 })
 

@@ -85,6 +85,7 @@ export class LocalStorageStrategy implements ConversationStorageStrategy {
       localStorage.setItem(this.storageKey, JSON.stringify(conversations))
     } catch (error) {
       console.error('删除会话失败:', error)
+      throw error
     }
   }
 }

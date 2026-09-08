@@ -319,11 +319,23 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       clearInactiveEngines()
     }
 
-    // Let any save that already passed the in-memory existence check finish,
-    // then delete last so a stale write cannot recreate persisted data.
-    await messageSaveQueues.get(id)?.catch(() => undefined)
-    messageSaveQueues.delete(id)
-    await storage?.deleteConversation?.(id)
+    // Serialize deletion with both pending and later saves for this id. A new
+    // conversation with the same id can then persist only after deletion.
+    const previousSave = messageSaveQueues.get(id) ?? Promise.resolve()
+    const deletion = previousSave
+      .catch(() => undefined)
+      .then(async () => {
+        await storage?.deleteConversation?.(id)
+      })
+    messageSaveQueues.set(id, deletion)
+
+    try {
+      await deletion
+    } finally {
+      if (messageSaveQueues.get(id) === deletion) {
+        messageSaveQueues.delete(id)
+      }
+    }
   }
 
   /**

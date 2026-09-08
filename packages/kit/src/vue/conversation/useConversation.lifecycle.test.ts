@@ -238,6 +238,85 @@ describe('useConversation lifecycle', () => {
     expect(messages.has('one')).toBe(false)
   })
 
+  it('keeps later saves serialized when a conversation id is recreated during deletion', async () => {
+    const conversations = new Map<string, ConversationInfo>()
+    const messages = new Map<string, ChatMessage[]>()
+    let releaseOldSave!: () => void
+    const oldSavePending = new Promise<void>((resolve) => {
+      releaseOldSave = resolve
+    })
+    let markOldSaveStarted!: () => void
+    const oldSaveStarted = new Promise<void>((resolve) => {
+      markOldSaveStarted = resolve
+    })
+    let releaseRecreatedSave!: () => void
+    const recreatedSavePending = new Promise<void>((resolve) => {
+      releaseRecreatedSave = resolve
+    })
+    let markRecreatedSaveStarted!: () => void
+    const recreatedSaveStarted = new Promise<void>((resolve) => {
+      markRecreatedSaveStarted = resolve
+    })
+    let markRecreatedSaveFinished!: () => void
+    const recreatedSaveFinished = new Promise<void>((resolve) => {
+      markRecreatedSaveFinished = resolve
+    })
+    const storage: ConversationStorageStrategy = {
+      loadConversations: () => [],
+      loadMessages: () => [],
+      saveConversation: (nextConversation) => {
+        conversations.set(nextConversation.id, clone(nextConversation))
+      },
+      saveMessages: async (id, nextMessages) => {
+        const snapshot = clone(nextMessages)
+        if (snapshot[0]?.content === 'old') {
+          markOldSaveStarted()
+          await oldSavePending
+        } else if (snapshot.length === 1 && snapshot[0]?.content === 'recreated') {
+          markRecreatedSaveStarted()
+          await recreatedSavePending
+        }
+        messages.set(id, snapshot)
+        if (snapshot.length === 1 && snapshot[0]?.content === 'recreated') {
+          markRecreatedSaveFinished()
+        }
+      },
+      deleteConversation: (id) => {
+        conversations.delete(id)
+        messages.delete(id)
+      },
+    }
+    const api = useConversation({ storage, useMessageOptions: { responseProvider } })
+    api.createConversation({
+      id: 'one',
+      useMessageOptions: { initialMessages: [{ role: 'user', content: 'old' }] },
+    })
+    await oldSaveStarted
+
+    const deletion = api.deleteConversation('one')
+    await vi.waitFor(() => expect(api.conversations.value).toEqual([]))
+    const recreated = api.createConversation({
+      id: 'one',
+      useMessageOptions: { initialMessages: [{ role: 'user', content: 'recreated' }] },
+    })
+    releaseOldSave()
+    await recreatedSaveStarted
+    await deletion
+
+    recreated.engine.messages.value.push({ role: 'user', content: 'latest' })
+    const latestSave = api.saveMessages('one')
+    await Promise.race([latestSave, new Promise<void>((resolve) => setTimeout(resolve, 0))])
+    releaseRecreatedSave()
+    await recreatedSaveFinished
+    await latestSave
+
+    expect(conversations.get('one')).toMatchObject({ id: 'one' })
+    expect(messages.get('one')).toEqual([
+      { role: 'user', content: 'recreated' },
+      { role: 'user', content: 'latest' },
+    ])
+  })
+
   it('keeps active state cleared when persisted deletion fails', async () => {
     const storage: ConversationStorageStrategy = {
       loadConversations: () => [info('one')],
