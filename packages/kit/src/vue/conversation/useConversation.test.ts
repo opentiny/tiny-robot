@@ -84,7 +84,7 @@ describe('useConversation', () => {
       await initialSaveStarted
       const turn = conversation.sendMessage('run sensitive lookup')
 
-      await vi.waitFor(() => expect(activeConversation.engine.requestState.value).toBe('paused'))
+      await vi.waitFor(() => expect(activeConversation.engine.processingState.value).toBe('pausing'))
 
       expect(values.has('__tiny-robot-turn')).toBe(false)
       releaseInitialSave()

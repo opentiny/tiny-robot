@@ -238,17 +238,41 @@ export const createMessageEngine = (
     }
   }
 
-  const finishTurnAfterRequest = async (abortSignal: AbortSignal) => {
-    const context = getBaseContext(abortSignal)
+  const isPausing = () => getState().requestState === 'processing' && getState().processingState === 'pausing'
 
-    if (getState().requestState === 'paused') {
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
-        await plugin.onTurnPause?.(context)
+  const finishTurnPause = async (abortSignal: AbortSignal) => {
+    for (const plugin of plugins) {
+      const context = getBaseContext(abortSignal)
+      if (isPluginDisabled(plugin, context)) {
+        continue
+      }
+
+      await plugin.onTurnPause?.(context)
+      if (abortSignal.aborted) {
+        break
+      }
+    }
+
+    if (abortSignal.aborted) {
+      if (getState().requestState === 'processing') {
+        setRequestState('aborted')
       }
       return
     }
 
+    if (isPausing()) {
+      setRequestState('paused')
+    }
+  }
+
+  const finishTurnAfterRequest = async (abortSignal: AbortSignal) => {
+    if (isPausing() || getState().requestState === 'paused') {
+      await finishTurnPause(abortSignal)
+      return
+    }
+
     setRequestState('completed')
+    const context = getBaseContext(abortSignal)
     for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
       await plugin.onTurnEnd?.(context)
     }
@@ -431,24 +455,22 @@ export const createMessageEngine = (
 
       result = (await handler(payload, { ...baseContext, appendMessage, requestNext, resumeTurn })) as Result
       commandSucceeded = true
-      shouldFinishTurn = wasPaused && !shouldRequest && getState().requestState !== 'paused'
+      shouldFinishTurn = wasPaused && !shouldRequest && getState().requestState !== 'paused' && !isPausing()
     } finally {
       runtime.abortController = previousAbortController
       if (
         !previousAbortController &&
         (!shouldRequest || !commandSucceeded) &&
         getState().requestState !== 'paused' &&
+        !isPausing() &&
         !shouldFinishTurn
       ) {
         runtime.currentTurn = []
       }
     }
 
-    if ((commandSucceeded || turnResumed) && getState().requestState === 'paused') {
-      const pausedContext = getBaseContext(ac.signal)
-      for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, pausedContext))) {
-        await plugin.onTurnPause?.(pausedContext)
-      }
+    if ((commandSucceeded || turnResumed) && isPausing()) {
+      await finishTurnPause(ac.signal)
     }
 
     if (ac.signal.aborted && (getState().requestState === 'processing' || getState().requestState === 'paused')) {

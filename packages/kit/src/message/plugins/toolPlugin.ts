@@ -373,6 +373,12 @@ export const toolPlugin = (
     }
 
     const state = context.getState()
+    const isPauseReady =
+      state.requestState === 'paused' || (state.requestState === 'processing' && state.processingState === 'pausing')
+    if (!isPauseReady) {
+      return
+    }
+
     const toolCallIds = Array.from(
       new Set(
         state.messages.flatMap((message) => {
@@ -821,6 +827,10 @@ export const toolPlugin = (
 
     try {
       const { appendMessage, requestNext, resumeTurn, setRequestState, mutate } = context
+      if (context.getState().requestState !== 'paused') {
+        return { status: 'missing', toolCallId }
+      }
+
       const pendingToolCall = resolvePendingToolCall(context, toolCallId, appendMessage)
 
       if (!pendingToolCall) {
@@ -866,7 +876,7 @@ export const toolPlugin = (
         if (isAllToolCallsCompleted(assistantMessage, latestPending?.toolMessages ?? [])) {
           requestNext()
         } else {
-          setRequestState('paused')
+          setRequestState('processing', 'pausing')
         }
       } catch (error) {
         if (!context.abortSignal.aborted && context.getState().requestState === 'processing') {
@@ -1110,7 +1120,7 @@ export const toolPlugin = (
       await makeAbortable(Promise.all(toolCallPromises), abortSignal)
       if (!abortSignal.aborted) {
         if (hasAwaitingApprovalToolCall) {
-          setRequestState('paused')
+          setRequestState('processing', 'pausing')
         } else {
           requestNext()
         }

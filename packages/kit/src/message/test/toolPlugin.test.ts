@@ -473,6 +473,210 @@ describe('toolPlugin', () => {
     expect(responseProvider).toHaveBeenCalledOnce()
   })
 
+  it('does not expose a paused turn before pause hooks complete', async () => {
+    const values = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    } satisfies Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>)
+
+    const events: string[] = []
+    let releasePauseSave!: () => void
+    const pauseSave = new Promise<void>((resolve) => {
+      releasePauseSave = resolve
+    })
+    let markPauseSaveStarted!: () => void
+    const pauseSaveStarted = new Promise<void>((resolve) => {
+      markPauseSaveStarted = resolve
+    })
+    let pauseSaveBlocked = false
+    let snapshotPersisted = false
+    const callTool = vi.fn(async () => {
+      events.push('call-tool')
+      return 'approved result'
+    })
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      if (!requestBody.messages.some((message) => message.role === 'tool')) {
+        return {
+          id: 'pause-boundary-tool-call',
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: 'mock',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: '',
+                tool_calls: [
+                  {
+                    id: 'call-pause-boundary',
+                    type: 'function',
+                    function: { name: 'sensitive_lookup', arguments: '{}' },
+                  },
+                ],
+              },
+              finish_reason: 'tool_calls',
+            },
+          ],
+        } as ChatCompletion
+      }
+
+      return {
+        id: 'pause-boundary-answer',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: 'done' },
+            finish_reason: 'stop',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onTurnPause: async () => {
+            if (pauseSaveBlocked) {
+              return
+            }
+
+            pauseSaveBlocked = true
+            events.push('pause-start')
+            markPauseSaveStarted()
+            await pauseSave
+            events.push('pause-end')
+          },
+        },
+        toolPlugin({
+          getTools: async () => [{ type: 'function', function: { name: 'sensitive_lookup' } }],
+          callTool,
+          shouldPauseToolCall: () => true,
+          onTurnPause: () => {
+            snapshotPersisted = values.has('__tiny-robot-turn')
+            events.push('snapshot')
+          },
+        }),
+      ],
+      responseProvider,
+    })
+
+    try {
+      const turn = engine.sendMessage('run sensitive lookup')
+      await pauseSaveStarted
+
+      expect(engine.getState()).toMatchObject({
+        requestState: 'processing',
+        processingState: 'pausing',
+        isPaused: false,
+      })
+
+      let resumeSettled = false
+      const resume = engine.dispatchCommand(TOOL_RESUME_COMMAND, { toolCallId: 'call-pause-boundary' }).finally(() => {
+        resumeSettled = true
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(resumeSettled).toBe(false)
+      expect(callTool).not.toHaveBeenCalled()
+
+      releasePauseSave()
+      await resume
+      await turn
+
+      expect(snapshotPersisted).toBe(true)
+      expect(events.indexOf('pause-end')).toBeLessThan(events.indexOf('snapshot'))
+      expect(events.indexOf('snapshot')).toBeLessThan(events.indexOf('call-tool'))
+      expect(callTool).toHaveBeenCalledOnce()
+      expect(responseProvider).toHaveBeenCalledTimes(2)
+      expect(engine.getState()).toMatchObject({ requestState: 'completed', isPaused: false })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('finishes abort after a pausing turn completes its pause hook', async () => {
+    let releasePauseSave!: () => void
+    const pauseSave = new Promise<void>((resolve) => {
+      releasePauseSave = resolve
+    })
+    let markPauseSaveStarted!: () => void
+    const pauseSaveStarted = new Promise<void>((resolve) => {
+      markPauseSaveStarted = resolve
+    })
+    const callTool = vi.fn(async () => 'should not run')
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      return {
+        id: 'pause-abort-boundary',
+        object: 'chat.completion',
+        created: Math.floor(Date.now() / 1000),
+        model: 'mock',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: '',
+              tool_calls: [
+                {
+                  id: 'call-pause-abort-boundary',
+                  type: 'function',
+                  function: { name: 'sensitive_lookup', arguments: '{}' },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      } as ChatCompletion
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onTurnPause: async () => {
+            markPauseSaveStarted()
+            await pauseSave
+          },
+        },
+        toolPlugin({
+          getTools: async () => [{ type: 'function', function: { name: 'sensitive_lookup' } }],
+          callTool,
+          shouldPauseToolCall: () => true,
+        }),
+      ],
+      responseProvider,
+    })
+
+    const turn = engine.sendMessage('run sensitive lookup')
+    await pauseSaveStarted
+
+    const abort = engine.abort()
+    let abortSettled = false
+    void abort.finally(() => {
+      abortSettled = true
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(abortSettled).toBe(false)
+    expect(engine.getState()).toMatchObject({ requestState: 'processing', processingState: 'pausing' })
+
+    releasePauseSave()
+    await abort
+    await turn
+
+    expect(callTool).not.toHaveBeenCalled()
+    expect(responseProvider).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'aborted', isProcessing: false, isPaused: false })
+  })
+
   it('pauses a tool call until an external resume command approves it', async () => {
     let markPaused!: () => void
     const paused = new Promise<void>((resolve) => {
