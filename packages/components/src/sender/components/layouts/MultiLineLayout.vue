@@ -25,7 +25,11 @@ const slotScope = useSlotScope()
       <!-- 编辑器内容 -->
       <div class="tr-sender-content">
         <slot name="content" :editor="context.editor">
-          <EditorContent />
+          <EditorContent>
+            <template v-if="$slots['input-prefix']" #input-prefix>
+              <slot name="input-prefix" />
+            </template>
+          </EditorContent>
         </slot>
       </div>
     </div>

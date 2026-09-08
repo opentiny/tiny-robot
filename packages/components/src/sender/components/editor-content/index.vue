@@ -1,15 +1,28 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { EditorContent as TiptapEditorContent } from '@tiptap/vue-3'
+import { useResizeObserver } from '@vueuse/core'
 import { useSenderContext } from '../../context'
 
 // editorRef 在模板中通过 ref="editorRef" 使用
 const { editor, editorRef } = useSenderContext()
+const editorScrollRef = ref<HTMLElement | null>(null)
+const inputPrefixRef = ref<HTMLElement | null>(null)
+
+useResizeObserver(inputPrefixRef, ([entry]) => {
+  if (!entry) return
+
+  editorScrollRef.value?.style.setProperty('--tr-sender-input-prefix-width', `${entry.contentRect.width}px`)
+})
 </script>
 
 <template>
   <div ref="editorRef" class="tr-sender-editor-wrapper">
     <!-- 新增：滚动容器，用于控制高度和滚动 -->
-    <div class="tr-sender-editor-scroll">
+    <div ref="editorScrollRef" :class="['tr-sender-editor-scroll', { 'has-input-prefix': $slots['input-prefix'] }]">
+      <div v-if="$slots['input-prefix']" ref="inputPrefixRef" class="tr-sender-input-prefix">
+        <slot name="input-prefix" />
+      </div>
       <TiptapEditorContent v-if="editor" :editor="editor" class="tr-sender-editor-content" />
     </div>
   </div>
@@ -24,6 +37,7 @@ const { editor, editorRef } = useSenderContext()
 
 // 滚动容器：高度和滚动由 useAutoSize 控制
 .tr-sender-editor-scroll {
+  position: relative;
   flex: 1;
   min-width: 0;
   overflow-y: hidden; // 默认隐藏，由 JS 控制
@@ -45,6 +59,25 @@ const { editor, editorRef } = useSenderContext()
       background: rgba(0, 0, 0, 0.25);
     }
   }
+
+  &.has-input-prefix {
+    :deep(.ProseMirror > p:first-child) {
+      text-indent: calc(var(--tr-sender-input-prefix-width, 0px) + var(--tr-sender-gap, 8px));
+    }
+  }
+}
+
+.tr-sender-input-prefix {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  width: max-content;
+  min-height: var(--tr-sender-line-height, 26px);
+  line-height: var(--tr-sender-line-height, 26px);
+  white-space: nowrap;
 }
 
 .tr-sender-editor-content {

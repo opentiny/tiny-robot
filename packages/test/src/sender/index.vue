@@ -90,6 +90,10 @@ const handleCustomAction = () => {
   result.value = '自定义按钮被点击'
 }
 
+const handleInputPrefixAction = () => {
+  result.value = 'input-prefix 被点击'
+}
+
 const handleClearSenderAttachmentItems = () => {
   senderAttachmentItems.value = []
 }
@@ -423,6 +427,10 @@ onBeforeUnmount(() => {
     >
       <template v-if="attachmentsSourceMounted" #header>
         <TrAttachments v-model:items="senderAttachmentItems" variant="card" />
+      </template>
+
+      <template #input-prefix>
+        <button data-testid="input-prefix-btn" type="button" @click="handleInputPrefixAction">需求</button>
       </template>
 
       <template #footer>

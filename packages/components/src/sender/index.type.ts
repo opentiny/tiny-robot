@@ -352,6 +352,11 @@ export interface SenderSlots {
   prefix?: () => unknown
 
   /**
+   * 多行模式首行前置插槽
+   */
+  'input-prefix'?: () => unknown
+
+  /**
    * 内容插槽
    *
    * @param props - 插槽属性
