@@ -109,6 +109,7 @@ jobs:
             packages/components/dist
             packages/kit/dist
             packages/svgs/dist
+            packages/chat/dist
           if-no-files-found: error
           retention-days: 1
 
