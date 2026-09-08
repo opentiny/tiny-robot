@@ -8,6 +8,7 @@
 @import './prompt.less';
 @import './prompts.less';
 @import './layout.less';
+@import './model-selector.less';
 
 [data-tr-color-mode='light'] {
   color-scheme: light;
@@ -16,4 +17,3 @@
 [data-tr-color-mode='dark'] {
   color-scheme: dark;
 }
-

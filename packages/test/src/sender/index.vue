@@ -16,6 +16,7 @@ declare global {
     __senderTestApi?: {
       moveCursorBeforeTemplate: (index: number) => boolean
       pressDeleteBeforeTemplate: (index: number) => boolean
+      setTemplateAppendTo: (value: string | HTMLElement | undefined) => void
     }
   }
 }
@@ -40,6 +41,7 @@ const enableMention = ref(false)
 const enableTemplate = ref(false)
 const enableSuggestion = ref(false)
 const templateData = ref<TemplateItem[]>([])
+const templateAppendTo = ref<string | HTMLElement | undefined>()
 const attachmentsSourceMounted = ref(false)
 const senderAttachmentItems = ref<Attachment[]>([
   {
@@ -54,7 +56,7 @@ const mode = computed(() => (isMultipleMode.value ? 'multiple' : 'single'))
 const size = computed(() => (isSmallSize.value ? 'small' : 'normal'))
 
 const componentKey = computed(() => {
-  return `${enableMention.value}-${enableTemplate.value}-${enableSuggestion.value}`
+  return `${enableMention.value}-${enableTemplate.value}-${enableSuggestion.value}-${templateAppendTo.value || 'body'}`
 })
 
 const handleModeChange = () => {
@@ -154,6 +156,31 @@ const clearTemplate = () => {
   result.value = '已清空模板'
 }
 
+const setTemplateSelect = () => {
+  templateData.value = [
+    { type: 'text', content: '模型：' },
+    {
+      type: 'select',
+      content: '',
+      placeholder: '请选择模型',
+      options: [
+        { label: 'GPT-4', value: 'gpt-4' },
+        { label: 'DeepSeek', value: 'deepseek' },
+      ],
+    },
+  ]
+  result.value = '已设置模板选择器'
+}
+
+const toggleTemplateAppendTo = () => {
+  templateAppendTo.value = templateAppendTo.value ? undefined : '#template-select-teleport-target'
+  result.value = templateAppendTo.value ? '模板选择器挂载到自定义容器' : '模板选择器挂载到 body'
+}
+
+const setTemplateAppendTo = (value: string | HTMLElement | undefined) => {
+  templateAppendTo.value = value
+}
+
 const mentions = ref<MentionItem[]>([
   {
     label: '小小画家',
@@ -188,7 +215,7 @@ const extensions = computed(() => {
     exts.push(Sender.mention(mentions))
   }
   if (enableTemplate.value) {
-    exts.push(Sender.template(templateData))
+    exts.push(Sender.template(templateData, { appendTo: templateAppendTo.value }))
   }
   if (enableSuggestion.value) {
     exts.push(Sender.suggestion(suggestions))
@@ -241,6 +268,7 @@ onMounted(() => {
   window.__senderTestApi = {
     moveCursorBeforeTemplate,
     pressDeleteBeforeTemplate,
+    setTemplateAppendTo,
   }
 })
 
@@ -332,6 +360,10 @@ onBeforeUnmount(() => {
             <tiny-switch data-testid="toggle-template-btn" v-model="enableTemplate"></tiny-switch>
           </div>
           <div class="control-item">
+            <label>template appendTo:</label>
+            <button data-testid="toggle-template-append-to-btn" @click="toggleTemplateAppendTo">切换</button>
+          </div>
+          <div class="control-item">
             <label>suggestion:</label>
             <tiny-switch data-testid="toggle-suggestion-btn" v-model="enableSuggestion"></tiny-switch>
           </div>
@@ -356,6 +388,7 @@ onBeforeUnmount(() => {
           <button data-testid="set-template-simple-btn" @click="setTemplateSimple">简单模板</button>
           <button data-testid="set-template-empty-btn" @click="setTemplateEmpty">空模板块</button>
           <button data-testid="set-template-multiple-btn" @click="setTemplateMultiple">多模板块</button>
+          <button data-testid="set-template-select-btn" @click="setTemplateSelect">模板选择器</button>
           <button data-testid="clear-template-btn" @click="clearTemplate">清空模板</button>
         </div>
       </fieldset>
@@ -396,6 +429,8 @@ onBeforeUnmount(() => {
         <button data-testid="custom-footer-btn" @click="handleCustomAction">自定义按钮</button>
       </template>
     </Sender>
+
+    <div id="template-select-teleport-target" data-testid="template-select-teleport-target"></div>
   </div>
 </template>
 
@@ -442,5 +477,9 @@ onBeforeUnmount(() => {
 .result-display {
   margin: 0;
   word-break: break-all;
+}
+
+#template-select-teleport-target {
+  position: relative;
 }
 </style>

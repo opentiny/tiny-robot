@@ -213,6 +213,7 @@ const openSearch = () => {
 .custom-header {
   --vp-c-divider: #f9f9f9;
   --search-border-color: #dfdfdf;
+  --header-inline-padding: 24px;
 
   position: sticky;
   top: 0;
@@ -230,18 +231,19 @@ const openSearch = () => {
 }
 
 .header-container {
-  max-width: 92rem;
-  margin: 0 auto;
   width: 100%;
 }
 
 /* 第一行样式 */
 .header-top {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(280px, 1fr) auto;
+  column-gap: clamp(20px, 3vw, 40px);
   height: 4rem;
   align-items: center;
-  justify-content: space-between;
+  justify-content: stretch;
   border-bottom: 1px solid var(--vp-c-divider);
+  padding: 0 var(--header-inline-padding);
 }
 
 .logo-section {
@@ -270,9 +272,10 @@ const openSearch = () => {
 /* 搜索栏样式 */
 .search-section {
   display: flex;
-  flex: 1;
+  justify-self: center;
+  width: 100%;
   max-width: 512px;
-  margin: 0 32px;
+  margin: 0;
 }
 
 .search-container {
@@ -332,6 +335,7 @@ const openSearch = () => {
 .tools-section {
   display: flex;
   align-items: center;
+  justify-self: end;
   gap: 8px;
 }
 
@@ -379,25 +383,38 @@ const openSearch = () => {
 
 /* 第二行样式 */
 .header-bottom {
+  display: flex;
   height: var(--vp-nav-bottom-height);
   align-items: center;
-  padding-left: 3rem;
-  padding-right: 3rem;
+  overflow-x: auto;
+  padding: 0 var(--header-inline-padding);
+  scrollbar-width: none;
+}
+
+.header-bottom::-webkit-scrollbar {
+  display: none;
 }
 
 /* 响应式设计 */
-@media (min-width: 1024px) {
-  .header-bottom {
-    display: flex;
+@media (min-width: 960px) {
+  .custom-header {
+    --header-inline-padding: 32px;
   }
+}
+
+@media (min-width: 1024px) {
   .header-top {
-    padding: 0 3rem;
     margin-left: 0;
     margin-right: 0;
   }
 }
 
 @media (max-width: 768px) {
+  .header-top {
+    grid-template-columns: auto 1fr auto;
+    column-gap: 16px;
+  }
+
   .search-section {
     display: none;
   }
@@ -412,8 +429,13 @@ const openSearch = () => {
 }
 
 @media (max-width: 640px) {
+  .custom-header {
+    --header-inline-padding: 12px;
+  }
+
   .header-top {
-    padding: 0 12px;
+    column-gap: 6px;
+    padding-right: 8px;
   }
 
   .tools-section {
@@ -444,6 +466,21 @@ const openSearch = () => {
   .search-input {
     animation: none;
     transition: none;
+  }
+}
+@media (max-width: 360px) {
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .home-link svg {
+    display: none;
+  }
+
+  .tool-button {
+    width: 24px;
+    height: 24px;
   }
 }
 </style>

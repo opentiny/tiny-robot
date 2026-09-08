@@ -25,6 +25,7 @@ export const SENDER_SELECTORS = {
 
   toggleMentionBtn: '[data-testid="toggle-mention-btn"]',
   toggleTemplateBtn: '[data-testid="toggle-template-btn"]',
+  toggleTemplateAppendToBtn: '[data-testid="toggle-template-append-to-btn"]',
   toggleSuggestionBtn: '[data-testid="toggle-suggestion-btn"]',
 
   sender: '[data-testid="test-sender"]',
@@ -55,7 +56,13 @@ export const SENDER_SELECTORS = {
   setTemplateSimpleBtn: '[data-testid="set-template-simple-btn"]',
   setTemplateEmptyBtn: '[data-testid="set-template-empty-btn"]',
   setTemplateMultipleBtn: '[data-testid="set-template-multiple-btn"]',
+  setTemplateSelectBtn: '[data-testid="set-template-select-btn"]',
   clearTemplateBtn: '[data-testid="clear-template-btn"]',
+
+  templateSelect: '.template-select',
+  templateSelectTrigger: '.template-select__trigger',
+  templateSelectDropdown: '.template-select__dropdown',
+  templateSelectOption: '.template-select__option',
 
   suggestionList: '.suggestion-list',
   suggestionItem: '.suggestion-list__item',

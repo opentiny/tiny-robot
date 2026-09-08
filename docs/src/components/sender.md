@@ -78,6 +78,7 @@ TrSender.mention(mentions, '@')
 TrSender.suggestion(suggestions) // 不过滤
 TrSender.suggestion(suggestions, { filterFn: customFilter }) // 自定义过滤
 TrSender.template(templates)
+TrSender.template(templates, { appendTo: '.chat-window' })
 
 // 标准配置（用于复杂场景）
 TrSender.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
@@ -310,14 +311,16 @@ Sender 提供了多个插槽位置，方便扩展功能：
 ```typescript
 // 便捷函数
 TrSender.template(templates)
+TrSender.template(templates, { appendTo: '.chat-window' })
 
 // 标准配置
-TrSender.Template.configure({ items: templates })
+TrSender.Template.configure({ items: templates, appendTo: '.chat-window' })
 ```
 
 | 配置项  | 类型                                      | 说明         |
 | ------- | ----------------------------------------- | ------------ |
 | `items` | `TemplateItem[]` \| `Ref<TemplateItem[]>` | 模板数据列表 |
+| `appendTo` | `string` \| `HTMLElement` | Template Select 下拉菜单的挂载目标，默认挂载到 `body` |
 
 #### Mention
 

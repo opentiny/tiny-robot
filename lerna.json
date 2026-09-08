@@ -11,5 +11,6 @@
     "npmClient": "pnpm"
   },
   "ignoreChanges": ["**/*.md", "**/test/**", ".npmrc"],
-  "granularPathspec": false
+  "granularPathspec": false,
+  "$schema": "node_modules/lerna/schemas/lerna-schema.json"
 }

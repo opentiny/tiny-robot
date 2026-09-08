@@ -127,6 +127,11 @@ export const useExtensionManagerState = (
   )
 
   let lastEmittedActiveTabId = props.activeTab
+  const emitActiveTabUpdate = (nextActiveTabId: string | undefined) => {
+    lastEmittedActiveTabId = nextActiveTabId
+    emit('update:active-tab', nextActiveTabId)
+  }
+
   watch(
     activeTabId,
     (nextActiveTabId) => {
@@ -137,10 +142,9 @@ export const useExtensionManagerState = (
 
       if (nextActiveTabId === lastEmittedActiveTabId) return
 
-      lastEmittedActiveTabId = nextActiveTabId
-      emit('update:active-tab', nextActiveTabId)
+      emitActiveTabUpdate(nextActiveTabId)
     },
-    { immediate: true },
+    { immediate: props.activeTab !== undefined },
   )
 
   const isSectionExpanded = (tabId: string, sectionKey: ExtensionManagerSectionKey) => {
@@ -152,7 +156,8 @@ export const useExtensionManagerState = (
     if (!tab || activeTabId.value === tab.id) return
 
     if (props.activeTab === undefined) uncontrolledActiveTabId.value = tab.id
-    else emit('update:active-tab', tab.id)
+
+    emitActiveTabUpdate(tab.id)
 
     emit('tab-change', { tabId: tab.id })
   }
