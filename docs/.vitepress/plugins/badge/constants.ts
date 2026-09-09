@@ -17,7 +17,7 @@ export type BadgeValue = BadgeType | string
  */
 export const BADGE_TEXT_MAP: Record<BadgeType, string> = {
   new: '新增',
-  deprecated: '已废弃',
+  deprecated: '弃用',
   beta: 'Beta',
   alpha: 'Alpha',
 }

@@ -3,6 +3,8 @@
     :data="data"
     :selected="selected"
     :menu-items="menuItems"
+    :show-rename-controls="isTouchDevice"
+    :rename-control-on-click-outside="isTouchDevice ? 'cancel' : 'confirm'"
     @item-click="(item) => (selected = item.id)"
     @item-title-change="(newTitle, item) => (item.title = newTitle)"
     @item-action="(action, item) => handleAction(action, item)"
@@ -10,9 +12,11 @@
 </template>
 
 <script setup lang="ts">
-import { TrHistory } from '@opentiny/tiny-robot'
+import { TrHistory, useTouchDevice } from '@opentiny/tiny-robot'
 import { IconEditPen, IconDelete, IconCopy } from '@opentiny/tiny-robot-svgs'
 import { reactive, ref } from 'vue'
+
+const { isTouchDevice } = useTouchDevice()
 
 const data = reactive([
   { title: '如何训练一只聪明的小狗', id: '1' },
