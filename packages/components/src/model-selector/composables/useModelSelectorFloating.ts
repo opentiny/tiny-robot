@@ -89,6 +89,10 @@ export function useModelSelectorFloating(options: UseModelSelectorFloatingOption
                     '--tr-model-selector-available-height',
                     `${Math.max(0, Math.floor(availableHeight))}px`,
                   )
+                  elements.floating.style.setProperty(
+                    '--tr-model-selector-available-width',
+                    `${Math.max(0, Math.floor(availableWidth))}px`,
+                  )
                 },
               }),
             ],

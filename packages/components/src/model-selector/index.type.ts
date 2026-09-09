@@ -33,6 +33,7 @@ export interface ModelSelectorProps {
   defaultReasoningEffort?: string | null
   open?: boolean
   defaultOpen?: boolean
+  closeOnSelect?: boolean
   disabled?: boolean
   searchable?: boolean
   placeholder?: string

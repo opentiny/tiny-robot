@@ -7,6 +7,7 @@ import {
   BeforeRequestContext as CoreBeforeRequestContext,
   ChatMessage as CoreChatMessage,
   CompletionChunkContext as CoreCompletionChunkContext,
+  MessageEngineInitContext as CoreMessageEngineInitContext,
   ResponseProvider as CoreResponseProvider,
   CreateMessageEngineOptions,
   MessageEnginePlugin,
@@ -43,10 +44,20 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
 
   const createVueBaseContext = (context: CoreBasePluginContext): VueBasePluginContext => {
     return {
+      getState: () => {
+        const state = context.getState()
+        return {
+          ...state,
+          messages: state.messages.map((message) => resolveReactiveMessage(message as ChatMessage)),
+        }
+      },
       messages: adapter.messages.value as ChatMessage[],
       currentTurn: context.currentTurn.map((message) => resolveReactiveMessage(message as ChatMessage)),
+      turnId: context.turnId,
       requestState: adapter.requestState.value,
       processingState: adapter.processingState.value,
+      isPaused: adapter.isPaused.value,
+      canStartTurn: adapter.canStartTurn.value,
       plugins,
       setRequestState: context.setRequestState,
       abortSignal: context.abortSignal,
@@ -71,8 +82,13 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     const {
       name,
       disabled,
+      onInit,
+      onTurnResume,
+      onTurnPause,
+      commands,
       onTurnStart,
       onTurnEnd,
+      onTurnAbort,
       onBeforeRequest,
       onAfterRequest,
       onCompletionChunk,
@@ -91,12 +107,60 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
         typeof disabled === 'function' ? (context) => disabled(createVueBaseContext(context)) : disabled
     }
 
+    if (onInit) {
+      corePlugin.onInit = (context: CoreMessageEngineInitContext) => {
+        onInit({
+          initialMessages: context.initialMessages.map((message) => resolveReactiveMessage(message as ChatMessage)),
+          requestState: context.requestState,
+          processingState: context.processingState,
+          turnId: context.turnId,
+          currentTurn: context.currentTurn.map((message) => resolveReactiveMessage(message as ChatMessage)),
+          customContext: context.customContext,
+          plugins,
+          setTurnId: context.setTurnId,
+          setCurrentTurn: (messages) =>
+            context.setCurrentTurn(
+              messages.map((message) => resolveReactiveMessage(message) as unknown as CoreChatMessage),
+            ),
+          setCustomContext: context.setCustomContext,
+          setRequestState: context.setRequestState,
+        })
+      }
+    }
+
+    if (onTurnResume) {
+      corePlugin.onTurnResume = (context) => onTurnResume(createVueBaseContext(context))
+    }
+
+    if (onTurnPause) {
+      corePlugin.onTurnPause = (context) => onTurnPause(createVueBaseContext(context))
+    }
+
     if (onTurnStart) {
       corePlugin.onTurnStart = (context) => onTurnStart(createVueBaseContext(context))
     }
 
     if (onTurnEnd) {
       corePlugin.onTurnEnd = (context) => onTurnEnd(createVueBaseContext(context))
+    }
+
+    if (onTurnAbort) {
+      corePlugin.onTurnAbort = (context) => onTurnAbort(createVueBaseContext(context))
+    }
+
+    if (commands) {
+      corePlugin.commands = Object.fromEntries(
+        Object.entries(commands).map(([commandName, handler]) => [
+          commandName,
+          (payload, context) =>
+            handler(payload, {
+              ...createVueBaseContext(context),
+              appendMessage: context.appendMessage as (message: ChatMessage | ChatMessage[]) => void,
+              requestNext: context.requestNext,
+              resumeTurn: context.resumeTurn,
+            }),
+        ]),
+      )
     }
 
     if (onBeforeRequest) {
@@ -184,8 +248,11 @@ export const useMessage = (options: UseMessageOptions): UseMessageReturn => {
     messages: adapter.messages,
     responseProvider,
     isProcessing: adapter.isProcessing,
+    isPaused: adapter.isPaused,
+    canStartTurn: adapter.canStartTurn,
     sendMessage: engine.sendMessage,
     send: engine.send,
     abortRequest: engine.abort,
+    dispatchCommand: engine.dispatchCommand,
   } as UseMessageReturn
 }

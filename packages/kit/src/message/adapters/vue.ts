@@ -15,6 +15,8 @@ export interface VueMessageStateAdapter extends MessageStateAdapter {
   processingState: Ref<RequestProcessingState | undefined>
   messages: Ref<ChatMessage[]>
   isProcessing: ComputedRef<boolean>
+  isPaused: ComputedRef<boolean>
+  canStartTurn: ComputedRef<boolean>
 }
 
 const toReactiveMessage = (message: ChatMessage) => reactive(message) as ChatMessage
@@ -46,6 +48,8 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
   const processingState = ref<RequestProcessingState | undefined>(undefined)
   const messages = ref<ChatMessage[]>([])
   const isProcessing = computed(() => requestState.value === 'processing')
+  const isPaused = computed(() => requestState.value === 'paused')
+  const canStartTurn = computed(() => requestState.value !== 'processing' && requestState.value !== 'paused')
 
   const initialize = (initialState: InternalMessageState) => {
     if (initialized) {
@@ -54,7 +58,7 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
 
     requestState.value = initialState.requestState
     processingState.value = initialState.processingState
-    messages.value = initialState.messages.map(toReactiveMessage)
+    messages.value = initialState.messages
     initialized = true
   }
 
@@ -72,6 +76,8 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
       processingState: processingState.value,
       messages: toPlainValue(messages.value),
       isProcessing: isProcessing.value,
+      isPaused: isPaused.value,
+      canStartTurn: canStartTurn.value,
     } satisfies PublicMessageState
   }
 
@@ -127,6 +133,8 @@ export const createVueMessageAdapter = (): VueMessageStateAdapter => {
     processingState,
     messages,
     isProcessing,
+    isPaused,
+    canStartTurn,
     initialize,
     getState,
     createMessage,
