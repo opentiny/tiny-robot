@@ -126,14 +126,20 @@ interface UseMessageReturn {
   messages: Ref<ChatMessage[]>
   /** 响应提供者（可动态更新） */
   responseProvider: Ref<UseMessageOptions['responseProvider']>
-  /** 是否正在处理中 */
+  /** 是否正在处理请求（不包含暂停） */
   isProcessing: ComputedRef<boolean>
+  /** 是否处于暂停等待确认状态 */
+  isPaused: ComputedRef<boolean>
+  /** 是否允许开始新的用户回合 */
+  canStartTurn: ComputedRef<boolean>
   /** 发送消息 */
   sendMessage: (content: string) => Promise<void>
   /** 发送消息（支持传入多个消息对象） */
   send: (...msgs: ChatMessage[]) => Promise<void>
   /** 中止当前请求 */
   abortRequest: () => Promise<void>
+  /** 调度插件命令，例如工具确认或拒绝 */
+  dispatchCommand: <Result = unknown>(command: string, payload?: unknown) => Promise<Result>
 }
 ```
 
@@ -141,7 +147,7 @@ interface UseMessageReturn {
 
 ```typescript
 /** 请求状态 */
-type RequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+type RequestState = 'idle' | 'processing' | 'paused' | 'completed' | 'aborted' | 'error'
 
 /** 处理状态 */
 type RequestProcessingState = 'requesting' | 'completing' | string
@@ -149,6 +155,7 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 
 - `idle`: 空闲状态，没有正在进行的请求
 - `processing`: 正在处理中（包含 `requesting` 和 `completing` 两个子状态）
+- `paused`: 当前回合暂停，等待工具确认或外部恢复
 - `completed`: 请求已完成
 - `aborted`: 请求被中止
 - `error`: 请求发生错误
@@ -164,15 +171,29 @@ type RequestProcessingState = 'requesting' | 'completing' | string
 可通过 `plugins` 选项追加或覆盖默认插件。插件提供了多个生命周期钩子：
 
 ```typescript
+interface BasePluginContext {
+  /** 获取当前消息引擎状态 */
+  getState: () => PublicMessageState
+  // 其他上下文字段...
+}
+
 interface UseMessagePlugin {
   /** 插件名称 */
   name?: string
   /** 是否禁用插件 */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
+  /** 引擎创建时初始化插件运行时状态 */
+  onInit?: (context: { initialMessages: ChatMessage[]; requestState: RequestState; processingState?: RequestProcessingState; turnId: string | null; currentTurn: ChatMessage[]; customContext: Record<string, unknown>; plugins: readonly UseMessagePlugin[]; setTurnId: (turnId: string | null) => void; setCurrentTurn: (messages: ChatMessage[]) => void; setCustomContext: (data: Record<string, unknown>) => void; setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void }) => void
+  /** 回合离开暂停状态、继续执行前触发 */
+  onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
+  /** 回合进入暂停状态后触发 */
+  onTurnPause?: (context: BasePluginContext) => MaybePromise<void>
   /** 对话回合开始钩子 */
   onTurnStart?: (context: BasePluginContext) => MaybePromise<void>
   /** 对话回合结束钩子 */
   onTurnEnd?: (context: BasePluginContext) => MaybePromise<void>
+  /** 对话回合被外部中止时触发 */
+  onTurnAbort?: (context: BasePluginContext) => MaybePromise<void>
   /** 请求开始前钩子 */
   onBeforeRequest?: (
     context: BasePluginContext & {
@@ -200,8 +221,39 @@ interface UseMessagePlugin {
   onError?: (context: BasePluginContext & { error: unknown }) => void
   /** 最终清理钩子 */
   onFinally?: (context: BasePluginContext) => void
+  /** 插件命令集合 */
+  commands?: Record<
+    string,
+    (
+      payload: unknown,
+      context: BasePluginContext & {
+        appendMessage: (message: ChatMessage | ChatMessage[]) => void
+        requestNext: () => void
+        resumeTurn: () => Promise<void>
+      },
+    ) => MaybePromise<unknown>
+  >
 }
 ```
+
+插件命令通过 `dispatchCommand` 调用。工具插件提供单个工具的确认和拒绝命令：
+
+```typescript
+import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND } from '@opentiny/tiny-robot-kit'
+
+// message 是已配置 toolPlugin 的 useMessage 实例
+
+await message.dispatchCommand(TOOL_RESUME_COMMAND, {
+  toolCallId: 'call-123',
+})
+
+await message.dispatchCommand(TOOL_REJECT_COMMAND, {
+  toolCallId: 'call-456',
+  reason: '用户拒绝执行该工具',
+})
+```
+
+`TOOL_RESUME_COMMAND` 和 `TOOL_REJECT_COMMAND` 每次只处理一个 `toolCallId`。确认后会执行该工具；拒绝后会将工具状态标记为 `denied`，不会直接中止整个对话回合。
 
 ### 内置插件
 
@@ -253,13 +305,17 @@ useMessage({
 
 | 参数                          | 类型                                                                                                             | 必填 | 默认值                   | 说明                                                                                                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `toolCallAwaitingApprovalContent` | `string` | 否 | `'Tool call awaiting confirmation.'` | 工具调用等待确认时，写入对应 tool 消息的提示内容。 |
 | `getTools`                    | `(context: BasePluginContext) => MaybePromise<ToolProviderItem[]>`                                               | 是   | -                        | 返回当前轮次要传给 API 的工具列表。可以返回普通 OpenAI tool schema，也可以返回带执行函数的 runtime tool。                                                                                             |
 | `callTool`                    | `(toolCall, context) => MaybeStreamableResult<string \| Record<string, unknown>>`         | 是   | -                        | 执行单个工具调用，返回结果字符串或可流式返回的对象，结果会合并到对应 tool 消息的 `content`。可通过 `context.toolSource` 判断工具来源。                                                                |
 | `beforeCallTools`             | `(toolCalls, context) => Promise<void>`                                                                          | 否   | -                        | 在真正执行工具前调用，可用于统一校验、鉴权、埋点。新字段为 `context.assistantMessage`；`context.currentMessage` 继续保留，但已弃用。                                                                  |
+| `maxToolRounds`               | `number`                                                                                                         | 否   | 不限制                   | 单个用户回合允许执行的最大工具调用轮数，必须是非负整数。`0` 表示不执行任何工具；未设置时保持无限轮次的兼容行为。                                                                                      |
+| `onLimitExceeded`             | `(toolCalls, context) => MaybePromise<void>`                                                                      | 否   | -                        | 下一批工具调用超过轮次上限时触发一次。回调会被等待；若回调抛错，本回合进入错误状态且不会发起关闭请求。                                                                                                |
 | `onToolCallStart`             | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具开始执行时触发。此时对应的 tool 消息已经创建并追加到 `messages` 中；`context` 额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`。                                     |
-| `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled'`，并额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`，失败或取消时可能有 `context.error`。 |
+| `onToolCallEnd`               | `(toolCall, context) => void`                                                                                    | 否   | -                        | 单个工具执行结束时触发。`context.status` 为 `'success' \| 'failed' \| 'cancelled' \| 'denied'`，并额外包含 `assistantMessage`、`primaryMessage`（兼容字段）和 `toolMessage`，失败、取消或拒绝时可能有 `context.error`。 |
 | `toolCallCancelledContent`    | `string`                                                                                                         | 否   | `'Tool call cancelled.'` | 请求被中止且需要补全缺失 tool 消息时，填入该默认内容。                                                                                                                                                |
-| `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行抛错且当前 tool 消息内容仍为空时，写入该失败提示。                                                                                                                                            |
+| `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行失败、被用户拒绝或因请求中止而未执行时，写入该提示。                                                                                                                                              |
+| `persistPausedTurn`            | `boolean`                                                                                                        | 否   | `true`                   | 是否将暂停回合持久化到 localStorage，以便刷新后恢复。                                                                                                                                                |
 | `autoFillMissingToolMessages` | `boolean`                                                                                                        | 否   | `false`                  | 在下一轮开始前，自动补齐上一次被取消但尚未写入的 tool 消息。                                                                                                                                          |
 
 **回调上下文补充：**
@@ -267,9 +323,10 @@ useMessage({
 | 回调              | 额外上下文字段                                                                      | 说明                                                                                                                                                                                           |
 | ----------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `beforeCallTools` | `assistantMessage`、`currentMessage`（已弃用）                                      | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。                                               |
+| `onLimitExceeded` | `assistantMessage`、`currentMessage`（Vue 兼容字段）、`toolRoundCount`、`maxToolRounds` | 在 `BasePluginContext` 基础上额外包含超限的 assistant 消息、当前工具调用轮次和配置上限。该回调只用于 UI、日志或遥测，不能放行超限调用。                                                        |
 | `callTool`        | `assistantMessage`、`currentMessage`（已弃用）、`toolMessage`、`toolSource`         | 在 `BasePluginContext` 基础上额外包含当前这条带 `tool_calls` 的 assistant 消息、当前工具对应的 `toolMessage` 和工具来源。推荐使用 `assistantMessage`；`currentMessage` 为兼容旧代码保留。     |
 | `onToolCallStart` | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`       | 在 `BasePluginContext` 基础上额外包含触发当前工具调用的 assistant 消息、当前 tool 消息和工具来源。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。                             |
-| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息、工具来源和执行状态；当工具执行失败或被取消时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
+| `onToolCallEnd`   | `assistantMessage`、`primaryMessage`（兼容字段）、`toolMessage`、`toolSource`、`status`、`error?` | 在 `BasePluginContext` 基础上额外包含 assistant 消息、当前 tool 消息、工具来源和执行状态；当工具执行失败、取消或拒绝时，还可能包含 `error`。推荐使用 `assistantMessage`；`primaryMessage` 为兼容旧代码保留。 |
 
 `toolSource` 类型：
 
@@ -296,6 +353,25 @@ interface RuntimeTool {
 `toolPlugin` 会保留请求体中已有的 OpenAI `custom` tool，也允许 `getTools` / `provideTools` 返回普通 `ChatCompletionTool`。其中只有 function tool 会参与工具名去重、`toolSource` 记录和 runtime handler 路由；runtime tool 的 `tool` 字段仍需是 `ChatCompletionFunctionTool`。
 
 `ToolProvider` 是供插件扩展使用的高级协议。对于使用 `toolPlugin` 的业务代码，通常只需要通过 `getTools` 和 `callTool` 接入工具；当插件本身需要按内部状态向模型暴露工具时，再实现 `provideTools(context)`。
+
+##### 限制工具调用轮次
+
+一个工具调用轮次是指模型的一条 assistant 响应中包含一个或多个 `tool_calls`。同一响应中的调用数量不额外消耗轮次：允许执行的批次会完整执行，插件不会截断或改写模型返回的 `tool_calls`。
+
+当下一批调用超过 `maxToolRounds` 时，该批次中的工具均不会执行。插件会按原顺序为每个调用追加一条说明超限原因的 tool 消息，并把对应状态标记为 `cancelled`，随后发起关闭请求。关闭请求及其 length 续写都会同时设置 `tools: []` 和 `tool_choice: 'none'`，直到模型返回一条不含 `tool_calls` 的 assistant 消息，正常结束本回合。
+
+```typescript
+toolPlugin({
+  maxToolRounds: 4,
+  getTools,
+  callTool,
+  onLimitExceeded: (toolCalls, { toolRoundCount, maxToolRounds }) => {
+    console.warn(`Stopped ${toolCalls.length} tool calls at round ${toolRoundCount}/${maxToolRounds}.`)
+  },
+})
+```
+
+`tool_choice: 'none'` 是 OpenAI 兼容协议的字段。如果自定义 `responseProvider` 使用其他协议，需要在 provider 内映射或移除该字段，同时保证关闭请求不能再次调用工具。若 provider 在关闭阶段仍返回 `tool_calls`，插件会将其视为协议错误，且不会执行这些调用或继续重试。
 
 ##### 基础示例
 

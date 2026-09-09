@@ -106,9 +106,9 @@ interface UseConversationReturn {
   /** 更新会话标题 */
   updateConversationTitle: (id: string, title?: string) => void
   /** 保存指定会话的消息 */
-  saveMessages: (id?: string) => void
+  saveMessages: (id?: string) => Promise<void>
   /** 发送消息到当前活跃会话 */
-  sendMessage: (content: string) => void
+  sendMessage: (content: string) => Promise<void>
   /** 中止当前活跃会话的请求 */
   abortActiveRequest: () => Promise<void>
 }

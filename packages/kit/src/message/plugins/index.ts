@@ -3,4 +3,15 @@ export { getSkillRequestContext, skillPlugin } from './skillPlugin'
 export type { SkillPluginOptions, SkillRequestContext, SkillSelection } from './skillPlugin'
 export { thinkingPlugin } from './thinkingPlugin'
 export { toolPlugin } from './toolPlugin'
-export type { RuntimeTool, ToolCallContext, ToolProvider, ToolProviderItem, ToolSource } from './toolPlugin'
+export { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND } from './toolPlugin'
+export type {
+  RuntimeTool,
+  ToolCallContext,
+  ToolCallPreparationContext,
+  ToolCallCommandPayload,
+  ToolCallCommandResult,
+  ToolLimitExceededContext,
+  ToolProvider,
+  ToolProviderItem,
+  ToolSource,
+} from './toolPlugin'
