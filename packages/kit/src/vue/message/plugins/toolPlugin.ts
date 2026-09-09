@@ -6,6 +6,9 @@ import type { ChatMessage, MaybePromise, MaybeStreamableResult, ToolCall } from 
 import type { VueMessagePluginRuntime } from '../types.internal'
 import type { BasePluginContext, UseMessagePlugin } from '../types'
 
+export { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND } from '../../../message/plugins'
+export type { ToolCallCommandPayload, ToolCallCommandResult } from '../../../message/plugins'
+
 export interface UseMessageToolActionContext extends BasePluginContext {
   assistantMessage: ChatMessage
   /**
@@ -20,6 +23,11 @@ export interface UseMessageToolActionContext extends BasePluginContext {
 
 export interface UseMessageCallToolContext extends UseMessageToolActionContext {
   toolMessage: ChatMessage
+}
+
+export interface UseMessageToolLimitExceededContext extends UseMessageToolActionContext {
+  toolRoundCount: number
+  maxToolRounds: number
 }
 
 export interface UseMessageToolCallContext extends BasePluginContext {
@@ -46,6 +54,19 @@ export const toolPlugin = (
      */
     beforeCallTools?: (toolCalls: ToolCall[], context: UseMessageToolActionContext) => Promise<void>
     /**
+     * 单个用户回合允许执行的最大工具调用轮数。未设置时不限制。
+     */
+    maxToolRounds?: number
+    /**
+     * 模型返回的工具调用超过最大轮数时触发。
+     */
+    onLimitExceeded?: (toolCalls: ToolCall[], context: UseMessageToolLimitExceededContext) => MaybePromise<void>
+    /**
+     * 在每个工具调用正式执行前判断是否需要等待外部确认。
+     * 返回 true 时当前工具会进入 awaiting-approval，其他工具仍可继续执行。
+     */
+    shouldPauseToolCall?: (toolCall: ToolCall, context: UseMessageToolCallContext) => boolean | Promise<boolean>
+    /**
      * 执行单个工具调用并返回其文本结果的函数。
      */
     callTool: (
@@ -64,24 +85,30 @@ export const toolPlugin = (
      * 触发时机：工具调用完成（成功、失败或取消）时触发。
      * @param toolCall - 工具调用对象
      * @param context - 插件上下文，包含当前工具消息、状态和错误信息
-     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled'
-     * @param context.error - 当状态为 'failed' 或 'cancelled' 时，可能包含错误信息
+     * @param context.status - 工具调用状态：'success' | 'failed' | 'cancelled' | 'denied'
+     * @param context.error - 当状态为 'failed'、'cancelled' 或 'denied' 时，可能包含错误信息
      */
     onToolCallEnd?: (
       toolCall: ToolCall,
       context: UseMessageToolCallContext & {
-        status: 'success' | 'failed' | 'cancelled'
+        status: 'success' | 'failed' | 'cancelled' | 'denied'
         error?: Error
       },
     ) => void
+    /**
+     * 工具调用进入等待确认时使用的消息内容。
+     */
+    toolCallAwaitingApprovalContent?: string
     /**
      * 当请求被中止时用于工具调用取消的消息内容。
      */
     toolCallCancelledContent?: string
     /**
-     * 当工具调用执行失败（抛错或拒绝）时使用的消息内容。
+     * 当工具调用执行失败、被拒绝或因回合中止而未执行时使用的消息内容。
      */
     toolCallFailedContent?: string
+    /** 是否在浏览器 localStorage 中持久化暂停的工具回合。 */
+    persistPausedTurn?: boolean
     /**
      * 是否在请求前自动补充缺失的 tool 消息。
      * 当 assistant 响应了 tool_calls 但未追加对应的 tool 消息时，
@@ -93,11 +120,16 @@ export const toolPlugin = (
   const {
     getTools,
     beforeCallTools,
+    maxToolRounds,
+    onLimitExceeded,
+    shouldPauseToolCall,
     callTool,
     onToolCallStart,
     onToolCallEnd,
+    toolCallAwaitingApprovalContent,
     toolCallCancelledContent = 'Tool call cancelled.',
     toolCallFailedContent = 'Tool call failed.',
+    persistPausedTurn = true,
     autoFillMissingToolMessages = false,
     ...restOptions
   } = options
@@ -110,6 +142,20 @@ export const toolPlugin = (
       return createCoreToolPlugin({
         ...wrappedRestOptions,
         getTools: async (context) => getTools(runtime.createVueBaseContext(context)),
+        maxToolRounds,
+        onLimitExceeded: onLimitExceeded
+          ? async (toolCalls, context) => {
+              const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
+
+              await onLimitExceeded(toolCalls as unknown as ToolCall[], {
+                ...runtime.createVueBaseContext(context),
+                assistantMessage,
+                currentMessage: assistantMessage,
+                toolRoundCount: context.toolRoundCount,
+                maxToolRounds: context.maxToolRounds,
+              })
+            }
+          : undefined,
         beforeCallTools: beforeCallTools
           ? async (toolCalls, context) => {
               const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
@@ -118,6 +164,20 @@ export const toolPlugin = (
                 ...runtime.createVueBaseContext(context),
                 assistantMessage,
                 currentMessage: assistantMessage,
+              })
+            }
+          : undefined,
+        shouldPauseToolCall: shouldPauseToolCall
+          ? async (toolCall, context) => {
+              const assistantMessage = runtime.resolveReactiveMessage(context.assistantMessage as ChatMessage)
+              const toolMessage = runtime.resolveReactiveMessage(context.toolMessage as ChatMessage)
+
+              return shouldPauseToolCall(toolCall as unknown as ToolCall, {
+                ...runtime.createVueBaseContext(context),
+                assistantMessage,
+                primaryMessage: assistantMessage,
+                toolMessage,
+                toolSource: context.toolSource,
               })
             }
           : undefined,
@@ -170,8 +230,10 @@ export const toolPlugin = (
               })
             }
           : undefined,
+        toolCallAwaitingApprovalContent,
         toolCallCancelledContent,
         toolCallFailedContent,
+        persistPausedTurn,
         autoFillMissingToolMessages,
       })
     },

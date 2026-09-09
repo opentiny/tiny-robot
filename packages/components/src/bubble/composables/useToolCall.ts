@@ -3,14 +3,21 @@ import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 import { getJsonrepair } from '../utils'
 import { useBubbleStore } from './useBubbleStore'
 
-const toolCallStatus = ['running', 'success', 'failed', 'cancelled'] as const
+const toolCallStatus = ['running', 'success', 'failed', 'cancelled', 'awaiting-approval', 'denied'] as const
 export type ToolCallStatus = (typeof toolCallStatus)[number]
+
+export interface ToolCallState {
+  status?: ToolCallStatus
+  open?: boolean
+  description?: string
+  [key: string]: unknown
+}
 
 export const useToolCall = (
   props: BubbleContentRendererProps<
     ChatMessageContent,
     {
-      toolCall?: Record<string, { status?: ToolCallStatus; open?: boolean }>
+      toolCall?: Record<string, ToolCallState>
     }
   > & { toolCallIndex: number },
 ) => {
@@ -24,7 +31,7 @@ export const useToolCall = (
     toolCallDefaultStatus?: ToolCallStatus
   }>()
 
-  const state = computed(() => {
+  const state = computed<ToolCallState>(() => {
     let defaultStatus = store.toolCallDefaultStatus
     if (defaultStatus && !toolCallStatus.includes(defaultStatus)) {
       defaultStatus = undefined
@@ -32,7 +39,7 @@ export const useToolCall = (
 
     const defaultOpen = store.toolCallDefaultOpen
 
-    let result = {
+    let result: ToolCallState = {
       status: defaultStatus,
       open: defaultOpen,
     }

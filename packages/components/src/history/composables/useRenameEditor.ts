@@ -1,5 +1,5 @@
 import { onClickOutside } from '@vueuse/core'
-import { computed, nextTick, ref, type Ref } from 'vue'
+import { computed, nextTick, ref, shallowRef, type Ref } from 'vue'
 
 export interface UseRenameEditorProps<T extends { title: string }> {
   renameControlOnClickOutside?: 'confirm' | 'cancel' | 'none'
@@ -21,7 +21,7 @@ export const useRenameEditor = <T extends { title: string }>({
   renameControlOnClickOutside,
   onItemTitleChange,
 }: UseRenameEditorProps<T>): UseRenameEditorReturn<T> => {
-  const editingItem = ref<T | undefined>(undefined) as Ref<T | undefined>
+  const editingItem = shallowRef<T | undefined>(undefined) as Ref<T | undefined>
   const editorRefList = ref<HTMLInputElement[] | null>(null)
   const editorRef = computed(() => editorRefList.value?.at(0))
   const editorConfirmRefList = ref<HTMLButtonElement[] | null>(null)

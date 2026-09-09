@@ -1,7 +1,7 @@
 import { computed, ref, watch, WatchStopHandle } from 'vue'
 import { localStorageStrategyFactory } from '../../storage/factories'
 import { ChatMessage } from '../../types'
-import { UseMessageOptions, UseMessageReturn } from '../message/types'
+import { UseMessageOptions, UseMessagePlugin, UseMessageReturn } from '../message/types'
 import { useMessage } from '../message/useMessage'
 import { Conversation, ConversationInfo, UseConversationOptions, UseConversationReturn } from './types'
 import { useThrottleFn } from './useThrottleFn'
@@ -23,6 +23,27 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * Watch stop handles for each engine's messages, used for auto-save.
    */
   const watchers = new Map<string, WatchStopHandle>()
+
+  /**
+   * Serialize persistence per conversation so saves and deletion cannot
+   * complete out of order.
+   */
+  const persistenceQueues = new Map<string, Promise<void>>()
+
+  const enqueuePersistence = (id: string, operation: () => Promise<void>): Promise<void> => {
+    const previousOperation = persistenceQueues.get(id)
+    const currentOperation = previousOperation ? previousOperation.catch(() => undefined).then(operation) : operation()
+    persistenceQueues.set(id, currentOperation)
+
+    const clearCompletedOperation = () => {
+      if (persistenceQueues.get(id) === currentOperation) {
+        persistenceQueues.delete(id)
+      }
+    }
+    void currentOperation.then(clearCompletedOperation, clearCompletedOperation)
+
+    return currentOperation
+  }
 
   /**
    * Currently active conversation id.
@@ -54,20 +75,29 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    *
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
-  const saveMessages = (id?: string) => {
+  const saveConversationMessages = (id: string, messages: ChatMessage[]): Promise<void> => {
+    return enqueuePersistence(id, async () => {
+      if (!storage?.saveMessages) return
+
+      const conversation = conversations.value.find((item) => item.id === id)
+      if (!conversation) return
+
+      conversation.updatedAt = Date.now()
+      await storage.saveConversation?.(conversation)
+      await storage.saveMessages(id, messages)
+    })
+  }
+
+  const saveMessages = async (id?: string): Promise<void> => {
     if (!storage?.saveMessages) return
     const conversationId = id || activeConversationId.value
 
-    const conversation = conversations.value.find((c) => c.id === conversationId)
-    if (!conversation) return
+    if (!conversationId) return
 
-    conversation.updatedAt = Date.now()
-    storage?.saveConversation?.(conversation)
-
-    const engine = workingEngines.get(conversation.id)
+    const engine = workingEngines.get(conversationId)
     if (!engine) return
 
-    storage.saveMessages(conversation.id, engine.messages.value)
+    await saveConversationMessages(conversationId, engine.messages.value)
   }
 
   /**
@@ -94,9 +124,10 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     )
 
     // 监听消息变化并自动保存
-    const stopHandle = watch(engine.messages, throttledSave, { deep: true })
-
-    watchers.set(id, stopHandle)
+    const stopMessageWatcher = watch(engine.messages, throttledSave, { deep: true })
+    watchers.set(id, () => {
+      stopMessageWatcher()
+    })
   }
 
   /**
@@ -108,6 +139,18 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       watcher()
       watchers.delete(id)
     }
+  }
+
+  const createConversationEngine = (id: string, messageOptions: UseMessageOptions): UseMessageReturn => {
+    const plugins = messageOptions.plugins ?? []
+    const pausePersistencePlugin: UseMessagePlugin = {
+      onTurnPause: (context) => saveConversationMessages(id, context.getState().messages),
+    }
+
+    return useMessage({
+      ...messageOptions,
+      plugins: options.autoSaveMessages ? [pausePersistencePlugin, ...plugins] : plugins,
+    })
   }
 
   /**
@@ -171,7 +214,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
       }
     }
 
-    const engine = useMessage({
+    const engine = createConversationEngine(id, {
       ...options.useMessageOptions,
       ...overrideOptions,
       initialMessages,
@@ -208,7 +251,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     }
     conversations.value.unshift(info)
 
-    const engine = useMessage({
+    const engine = createConversationEngine(id, {
       ...options.useMessageOptions,
       ...useMessageOptions,
     })
@@ -216,8 +259,9 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     setupAutoSave(id, engine)
 
     // Persist new conversation and its initial messages.
-    storage?.saveConversation?.(info)
-    storage?.saveMessages?.(id, engine.messages.value)
+    void saveConversationMessages(id, engine.messages.value).catch((error) => {
+      console.error('[useConversation] save initial messages failed:', error)
+    })
 
     activeConversationId.value = id
 
@@ -230,8 +274,7 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
     workingEngines.forEach((engine, key) => {
       if (excludeId && key === excludeId) return
 
-      const isProcessing = engine.isProcessing?.value
-      if (!isProcessing) {
+      if (engine.canStartTurn.value) {
         stopAutoSave(key)
         workingEngines.delete(key)
       }
@@ -278,13 +321,20 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     conversations.value.splice(idx, 1)
 
-    storage?.deleteConversation?.(id)
-
-    // If deleting the active conversation, switch to new conversation
+    // Clear active state before waiting for persistence so consumers never
+    // observe an active id whose conversation has already been removed.
     if (activeConversationId.value === id) {
       activeConversationId.value = null
       clearInactiveEngines()
     }
+
+    // Serialize deletion with both pending and later saves for this id. A new
+    // conversation with the same id can then persist only after deletion.
+    const deletion = enqueuePersistence(id, async () => {
+      await storage?.deleteConversation?.(id)
+    })
+
+    await deletion
   }
 
   /**
@@ -316,14 +366,18 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     info.title = title
     info.updatedAt = Date.now()
-    storage?.saveConversation?.(info)
+    void enqueuePersistence(id, async () => {
+      await storage?.saveConversation?.(info)
+    }).catch((error) => {
+      console.error('[useConversation] update title failed:', error)
+    })
   }
 
   /**
    * Convenience method: send message to active conversation.
    */
-  const sendMessage = (content: string) => {
-    activeConversation.value?.engine.sendMessage(content)
+  const sendMessage = (content: string): Promise<void> => {
+    return activeConversation.value?.engine.sendMessage(content) ?? Promise.resolve()
   }
 
   /**

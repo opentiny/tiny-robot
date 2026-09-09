@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { MaybeStreamableResult } from '../types'
 
+export const createTurnId = (): string => {
+  return `turn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+}
+
 export class AbortError extends Error {
   constructor(message: string) {
     super(message)

@@ -28,6 +28,8 @@ export const createNativeMessageAdapter = (): MessageStateAdapter => {
       processingState: state.processingState,
       messages: [...state.messages],
       isProcessing: state.requestState === 'processing',
+      isPaused: state.requestState === 'paused',
+      canStartTurn: state.requestState !== 'processing' && state.requestState !== 'paused',
     } satisfies PublicMessageState
   }
 
