@@ -141,7 +141,10 @@ watch(
 .tr-anchor {
   &__list-item {
     position: relative;
-    padding-inline: var(--tr-anchor-surface-padding-inline);
+
+    &.is-expanded {
+      padding-inline: var(--tr-anchor-surface-padding-inline);
+    }
 
     &::after {
       content: attr(data-tooltip);
