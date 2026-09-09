@@ -24,6 +24,7 @@ import {
   pickFields,
   createTurnId,
 } from '../utils'
+import { runRequestBodyFinalizers } from './requestFinalizers'
 
 type ChatCompletionChoice = ChatCompletion.Choice | ChatCompletionChunk.Choice
 
@@ -508,6 +509,7 @@ export const createMessageEngine = (
     for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, baseContext))) {
       await plugin.onBeforeRequest?.({ ...baseContext, requestBody })
     }
+    runRequestBodyFinalizers(requestBody)
 
     // 请求前对消息进行清洗，去掉不必要的字段
     requestBody.messages = sanitizeMessages(requestBody.messages)

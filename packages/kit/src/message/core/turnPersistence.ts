@@ -10,6 +10,7 @@ export interface PersistedTurnSnapshot {
   turnId: string
   requestState: 'paused'
   toolCallIds: string[]
+  toolRoundCount?: number
   customContext: Record<string, unknown>
 }
 
@@ -107,6 +108,10 @@ const parsePersistedTurnStorage = (value: string | null): PersistedTurnStorage =
         typeof turn.turnId === 'string' &&
         turn.requestState === 'paused' &&
         Array.isArray(turn.toolCallIds) &&
+        (turn.toolRoundCount === undefined ||
+          (typeof turn.toolRoundCount === 'number' &&
+            Number.isInteger(turn.toolRoundCount) &&
+            turn.toolRoundCount >= 0)) &&
         turn.customContext &&
         typeof turn.customContext === 'object',
       )
