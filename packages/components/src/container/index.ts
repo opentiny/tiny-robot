@@ -1,12 +1,17 @@
 import { App } from 'vue'
-import Container from './index.vue'
+import ContainerComponent from './index.vue'
 
-Container.name = 'TrContainer'
+ContainerComponent.name = 'TrContainer'
 
 const install = function <T>(app: App<T>) {
-  app.component(Container.name!, Container)
+  app.component(ContainerComponent.name!, ContainerComponent)
 }
 
-Container.install = install
+ContainerComponent.install = install
 
-export default Container as typeof Container & { install: typeof install }
+/**
+ * @deprecated Container is kept for compatibility. Use `Layout` (`TrLayout`) for new layouts.
+ */
+const Container = ContainerComponent as typeof ContainerComponent & { install: typeof install }
+
+export default Container

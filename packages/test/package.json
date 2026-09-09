@@ -10,6 +10,7 @@
     "test": "pnpm run test:e2e && pnpm run test:ct",
     "test:e2e": "playwright test",
     "test:ct": "playwright test -c playwright-ct.config.ts",
+    "type-check:ct": "vue-tsc --noEmit -p tsconfig.ct.json",
     "test:ui": "playwright test --ui",
     "test:codegen": "playwright codegen localhost:3333",
     "test:headed": "playwright test --headed",
