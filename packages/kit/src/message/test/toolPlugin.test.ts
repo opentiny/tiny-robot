@@ -161,6 +161,7 @@ describe('toolPlugin', () => {
   it('cancels an over-limit batch and completes the turn with tools disabled', async () => {
     const callTool = vi.fn(async () => 'tool result')
     const onLimitExceeded = vi.fn(async () => {})
+    const endedToolCalls: Array<{ id: string; status: string; content: unknown }> = []
     let requestCount = 0
     const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
       requestCount += 1
@@ -196,6 +197,13 @@ describe('toolPlugin', () => {
           },
           callTool,
           onLimitExceeded,
+          onToolCallEnd: (toolCall, context) => {
+            endedToolCalls.push({
+              id: toolCall.id,
+              status: context.status,
+              content: context.toolMessage.content,
+            })
+          },
         }),
       ],
       responseProvider,
@@ -214,6 +222,21 @@ describe('toolPlugin', () => {
       }),
     )
     expect(engine.getState().requestState).toBe('completed')
+    expect(endedToolCalls).toEqual([
+      { id: 'call-allowed', status: 'success', content: 'tool result' },
+      {
+        id: 'call-blocked-a',
+        status: 'cancelled',
+        content:
+          'Tool call skipped because the maximum number of tool-call rounds (1) was reached. Continue the conversation without calling tools.',
+      },
+      {
+        id: 'call-blocked-b',
+        status: 'cancelled',
+        content:
+          'Tool call skipped because the maximum number of tool-call rounds (1) was reached. Continue the conversation without calling tools.',
+      },
+    ])
     expect(engine.getState().messages.slice(-3)).toMatchObject([
       {
         role: 'tool',
@@ -243,6 +266,53 @@ describe('toolPlugin', () => {
           'call-blocked-b': { status: 'cancelled' },
         },
       },
+    })
+  })
+
+  it('keeps tools disabled after later plugins modify the closing request', async () => {
+    const injectedTool: ChatCompletionFunctionTool = {
+      type: 'function',
+      function: { name: 'lookup' },
+    }
+    let requestCount = 0
+    const responseProvider = vi.fn<ResponseProvider>(async (requestBody) => {
+      requestCount += 1
+
+      if (requestCount === 1) {
+        expect(requestBody.tools).toEqual([injectedTool])
+        expect(requestBody.tool_choice).toBe('auto')
+        return toolCallCompletion('call-limited')
+      }
+
+      expect(requestBody.tools).toEqual([])
+      expect(requestBody.tool_choice).toBe('none')
+      return assistantCompletion('completed without reinjected tools')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        toolPlugin({
+          maxToolRounds: 0,
+          getTools: async () => [],
+          callTool: async () => 'unexpected',
+        }),
+        {
+          name: 'later-tool-injector',
+          onBeforeRequest({ requestBody }) {
+            requestBody.tools = [injectedTool]
+            requestBody.tool_choice = 'auto'
+          },
+        },
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('finish without later tools')
+
+    expect(engine.getState()).toMatchObject({ requestState: 'completed' })
+    expect(engine.getState().messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'completed without reinjected tools',
     })
   })
 

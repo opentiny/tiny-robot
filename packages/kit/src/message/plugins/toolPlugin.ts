@@ -14,6 +14,7 @@ import type {
   MutateMessageStateFn,
 } from '../types'
 import { combineDeltaData, makeAbortable, normalizeToAsyncGenerator } from '../utils'
+import { addRequestBodyFinalizer } from '../core/requestFinalizers'
 import { clearTurnSnapshot, loadTurnSnapshots, saveTurnSnapshot, serializeTurnData } from '../core/turnPersistence'
 
 type AssistantMessageWithState = ChatMessage<
@@ -1034,8 +1035,12 @@ export const toolPlugin = (
 
       if (toolLoopMode === 'closing') {
         await restOptions.onBeforeRequest?.(context)
-        requestBody.tools = []
-        requestBody.tool_choice = 'none'
+        const disableTools = () => {
+          requestBody.tools = []
+          requestBody.tool_choice = 'none'
+        }
+        disableTools()
+        addRequestBodyFinalizer(requestBody, disableTools)
         currentToolResolution = undefined
         return
       }
@@ -1088,6 +1093,7 @@ export const toolPlugin = (
       } = context
 
       const toolCalls = currentMessage.tool_calls as ChatCompletionMessageToolCall[] | undefined
+      const assistantMessage = currentMessage as AssistantMessageWithState
 
       if (toolLoopMode === 'closing' && toolCalls?.length) {
         throw new Error('The response provider returned tool calls after tool calling was disabled.')
@@ -1101,25 +1107,30 @@ export const toolPlugin = (
 
       if (maxToolRounds !== undefined && toolRoundCount > maxToolRounds) {
         const limitExceededContent = `Tool call skipped because the maximum number of tool-call rounds (${maxToolRounds}) was reached. Continue the conversation without calling tools.`
-        const cancelledMessages = toolCalls.map((toolCall) =>
-          createMessage({
-            role: 'tool',
+        const cancelledCalls = toolCalls.map((toolCall) => ({
+          toolCall,
+          toolMessage: createMessage({
+            role: 'tool' as const,
             tool_call_id: toolCall.id,
             content: limitExceededContent,
           }),
-        )
+        }))
 
-        appendMessage(cancelledMessages)
-        mutate('messages', () => {
-          for (const toolCall of toolCalls) {
-            const message = ensureToolCallState(currentMessage as AssistantMessageWithState, toolCall.id)
-            message.state.toolCall[toolCall.id].status = 'cancelled'
-          }
-        })
+        appendMessage(cancelledCalls.map(({ toolMessage }) => toolMessage))
+        const toolSourceMap = currentToolResolution?.toolSourceMap ?? new Map<string, ToolSource>()
+        for (const { toolCall, toolMessage } of cancelledCalls) {
+          toolCallEnd(toolCall, {
+            ...context,
+            assistantMessage,
+            toolMessage,
+            toolSource: getToolSource(toolCall, toolSourceMap),
+            status: 'cancelled',
+          })
+        }
 
         await onLimitExceeded?.(toolCalls, {
           ...context,
-          assistantMessage: currentMessage as AssistantMessageWithState,
+          assistantMessage,
           toolRoundCount,
           maxToolRounds,
         })
@@ -1131,7 +1142,6 @@ export const toolPlugin = (
       }
 
       setRequestState('processing', 'calling-tools')
-      const assistantMessage = currentMessage as AssistantMessageWithState
       const turnId = context.turnId
 
       if (turnId) {
