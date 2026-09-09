@@ -25,10 +25,25 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
   const watchers = new Map<string, WatchStopHandle>()
 
   /**
-   * Serialize message saves per conversation so an older async write cannot
-   * complete after a newer paused-turn save and overwrite it.
+   * Serialize persistence per conversation so saves and deletion cannot
+   * complete out of order.
    */
-  const messageSaveQueues = new Map<string, Promise<void>>()
+  const persistenceQueues = new Map<string, Promise<void>>()
+
+  const enqueuePersistence = (id: string, operation: () => Promise<void>): Promise<void> => {
+    const previousOperation = persistenceQueues.get(id)
+    const currentOperation = previousOperation ? previousOperation.catch(() => undefined).then(operation) : operation()
+    persistenceQueues.set(id, currentOperation)
+
+    const clearCompletedOperation = () => {
+      if (persistenceQueues.get(id) === currentOperation) {
+        persistenceQueues.delete(id)
+      }
+    }
+    void currentOperation.then(clearCompletedOperation, clearCompletedOperation)
+
+    return currentOperation
+  }
 
   /**
    * Currently active conversation id.
@@ -61,22 +76,16 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
    * @param id - 会话 ID，如果不提供则使用当前活跃会话
    */
   const saveConversationMessages = (id: string, messages: ChatMessage[]): Promise<void> => {
-    const previousSave = messageSaveQueues.get(id) ?? Promise.resolve()
-    const currentSave = previousSave
-      .catch(() => undefined)
-      .then(async () => {
-        if (!storage?.saveMessages) return
+    return enqueuePersistence(id, async () => {
+      if (!storage?.saveMessages) return
 
-        const conversation = conversations.value.find((item) => item.id === id)
-        if (!conversation) return
+      const conversation = conversations.value.find((item) => item.id === id)
+      if (!conversation) return
 
-        conversation.updatedAt = Date.now()
-        await storage.saveConversation?.(conversation)
-        await storage.saveMessages(id, messages)
-      })
-
-    messageSaveQueues.set(id, currentSave)
-    return currentSave
+      conversation.updatedAt = Date.now()
+      await storage.saveConversation?.(conversation)
+      await storage.saveMessages(id, messages)
+    })
   }
 
   const saveMessages = async (id?: string): Promise<void> => {
@@ -321,21 +330,11 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     // Serialize deletion with both pending and later saves for this id. A new
     // conversation with the same id can then persist only after deletion.
-    const previousSave = messageSaveQueues.get(id) ?? Promise.resolve()
-    const deletion = previousSave
-      .catch(() => undefined)
-      .then(async () => {
-        await storage?.deleteConversation?.(id)
-      })
-    messageSaveQueues.set(id, deletion)
+    const deletion = enqueuePersistence(id, async () => {
+      await storage?.deleteConversation?.(id)
+    })
 
-    try {
-      await deletion
-    } finally {
-      if (messageSaveQueues.get(id) === deletion) {
-        messageSaveQueues.delete(id)
-      }
-    }
+    await deletion
   }
 
   /**
@@ -367,7 +366,11 @@ export const useConversation = (options: UseConversationOptions): UseConversatio
 
     info.title = title
     info.updatedAt = Date.now()
-    storage?.saveConversation?.(info)
+    void enqueuePersistence(id, async () => {
+      await storage?.saveConversation?.(info)
+    }).catch((error) => {
+      console.error('[useConversation] update title failed:', error)
+    })
   }
 
   /**

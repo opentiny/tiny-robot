@@ -147,6 +147,55 @@ describe('useConversation lifecycle', () => {
     expect(messages.has('one')).toBe(false)
   })
 
+  it('does not restore a deleted conversation when an asynchronous title save finishes late', async () => {
+    const conversations = new Map<string, ConversationInfo>()
+    let releaseTitleSave!: () => void
+    const titleSavePending = new Promise<void>((resolve) => {
+      releaseTitleSave = resolve
+    })
+    let markTitleSaveStarted!: () => void
+    const titleSaveStarted = new Promise<void>((resolve) => {
+      markTitleSaveStarted = resolve
+    })
+    let markTitleSaveFinished!: () => void
+    const titleSaveFinished = new Promise<void>((resolve) => {
+      markTitleSaveFinished = resolve
+    })
+    const storage: ConversationStorageStrategy = {
+      loadConversations: () => [],
+      loadMessages: () => [],
+      saveConversation: async (nextConversation) => {
+        const snapshot = clone(nextConversation)
+        if (snapshot.title === 'Updated') {
+          markTitleSaveStarted()
+          await titleSavePending
+        }
+        conversations.set(snapshot.id, snapshot)
+        if (snapshot.title === 'Updated') {
+          markTitleSaveFinished()
+        }
+      },
+      saveMessages: () => undefined,
+      deleteConversation: (id) => {
+        conversations.delete(id)
+      },
+    }
+    const api = useConversation({ storage, useMessageOptions: { responseProvider } })
+    api.createConversation({ id: 'one', title: 'Draft' })
+    await api.saveMessages('one')
+
+    api.updateConversationTitle('one', 'Updated')
+    await titleSaveStarted
+    const deletion = api.deleteConversation('one')
+    await Promise.race([deletion, new Promise<void>((resolve) => setTimeout(resolve, 0))])
+
+    releaseTitleSave()
+    await titleSaveFinished
+    await deletion
+
+    expect(conversations.has('one')).toBe(false)
+  })
+
   it('waits for asynchronous persistence deletion before resolving', async () => {
     let releaseDelete!: () => void
     let markDeleteStarted!: () => void
