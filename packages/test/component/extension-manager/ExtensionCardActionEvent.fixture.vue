@@ -24,9 +24,10 @@ const eventPayload = computed(() => JSON.stringify(lastEvent.value?.payload ?? n
 const handleAction = (event: ExtensionCardActionEvent) => {
   lastEvent.value = event
   if (event.type !== 'switch' || typeof event.checked !== 'boolean' || !commitSwitchChanges.value) return
+  const checked = event.checked
 
   actions.value = actions.value.map((action) =>
-    action.id === event.id && action.type === 'switch' ? { ...action, checked: event.checked } : action,
+    action.id === event.id && action.type === 'switch' ? { ...action, checked } : action,
   )
 }
 </script>

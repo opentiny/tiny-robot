@@ -39,10 +39,11 @@ const handleAction = (event: ExtensionCardActionEvent) => {
   lastEvent.value = event
 
   if (event.type !== 'switch' || typeof event.checked !== 'boolean') return
+  const checked = event.checked
 
   overflowActions.value = overflowActions.value.map((action) =>
     action.id === event.id && action.type === 'switch'
-      ? { ...action, checked: event.checked, label: getOverflowSwitchLabel(event.checked) }
+      ? { ...action, checked, label: getOverflowSwitchLabel(checked) }
       : action,
   )
 }
