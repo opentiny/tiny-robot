@@ -96,6 +96,57 @@ test.describe('History', () => {
     await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 
+  test('closes the action menu when Tab moves focus away', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('flat-history')
+    const trigger = history.getByRole('button', { name: 'First chat 更多操作' })
+    const menu = history.getByRole('menu')
+
+    await trigger.focus()
+    await trigger.press('ArrowDown')
+    await expect(history.getByRole('menuitem', { name: '重命名' })).toBeFocused()
+
+    await history.getByRole('menuitem', { name: '重命名' }).press('Tab')
+
+    await expect(menu).toBeHidden()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('closes a mouse-opened action menu with Escape from the trigger', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('flat-history')
+    const trigger = history.getByRole('button', { name: 'First chat 更多操作' })
+    const menu = history.getByRole('menu')
+
+    await history.locator('.tr-history__item').first().hover()
+    await trigger.click()
+    await expect(menu).toBeVisible()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    await trigger.press('Escape')
+
+    await expect(menu).toBeHidden()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('closes a mouse-opened action menu when Tab leaves the trigger', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('flat-history')
+    const trigger = history.getByRole('button', { name: 'First chat 更多操作' })
+    const nextTrigger = history.getByRole('button', { name: 'Second chat 更多操作' })
+    const menu = history.getByRole('menu')
+
+    await history.locator('.tr-history__item').first().hover()
+    await trigger.click()
+    await expect(menu).toBeVisible()
+
+    await trigger.press('Tab')
+
+    await expect(menu).toBeHidden()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(nextTrigger).toBeFocused()
+  })
+
   test('cancels rename with Escape without emitting a title change', async ({ mount }) => {
     const component = await mount(HistoryFixture)
     const history = component.getByTestId('cancel-history')

@@ -103,6 +103,19 @@ const handleMenuTriggerKeydown = (event: KeyboardEvent, item: T, position: 'firs
   }
 }
 
+const closeMenu = () => {
+  menuTriggerEl.value = null
+  menuTriggerItem.value = null
+}
+
+const handleMenuTriggerEscape = (event: KeyboardEvent) => {
+  if (!menuTriggerEl.value) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  closeMenu()
+}
+
 const handleClickMenuItem = (action: HistoryMenuItem) => {
   const item = menuTriggerItem.value
   const trigger = menuTriggerEl.value
@@ -183,6 +196,8 @@ const handleClickMenuItem = (action: HistoryMenuItem) => {
                 @click="(ev) => toggleMenu(ev, item)"
                 @keydown.down="(ev) => handleMenuTriggerKeydown(ev, item, 'first')"
                 @keydown.up="(ev) => handleMenuTriggerKeydown(ev, item, 'last')"
+                @keydown.escape="handleMenuTriggerEscape"
+                @keydown.tab="closeMenu"
               >
                 <IconMore></IconMore>
               </button>

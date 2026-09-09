@@ -74,6 +74,12 @@ const closeAndFocusTrigger = () => {
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Tab') {
+    trigger.value = null
+    data.value = null
+    return
+  }
+
   const items = getMenuItems()
   const currentIndex = items.indexOf(document.activeElement as HTMLElement)
 
