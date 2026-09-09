@@ -8,9 +8,10 @@ export type {
   RuntimeTool,
   ToolCallContext,
   ToolCallPreparationContext,
-  ToolProvider,
-  ToolProviderItem,
   ToolCallCommandPayload,
   ToolCallCommandResult,
+  ToolLimitExceededContext,
+  ToolProvider,
+  ToolProviderItem,
   ToolSource,
 } from './toolPlugin'
