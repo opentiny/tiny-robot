@@ -103,6 +103,7 @@ jobs:
           name: package-dist
           path: |
             packages/components/dist
+            packages/chat/dist
             packages/kit/dist
             packages/svgs/dist
           if-no-files-found: error
