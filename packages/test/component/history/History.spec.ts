@@ -208,4 +208,59 @@ test.describe('History', () => {
     await expect(noneEditor).toHaveValue('Still editing')
     await expect(noneHistory.getByTestId('none-output')).toBeEmpty()
   })
+
+  test('preserves mapped conversation rename state by id and emits the current item', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('mapped-conversation-history')
+    const editor = await openRenameEditor(history, '新标题')
+
+    await editor.fill('Draft title')
+    await component.getByTestId('replace-mapped-conversations').click()
+
+    await expect(editor).toBeVisible()
+    await expect(editor).toHaveValue('Draft title')
+    await editor.press('Enter')
+    await expect(history.getByTestId('mapped-rename-output')).toHaveText(
+      JSON.stringify({
+        newTitle: 'Draft title',
+        item: { id: 'conversation-1', revision: 2, title: '新标题' },
+      }),
+    )
+    await expect(history.getByTestId('mapped-rename-identity')).toHaveText('current')
+  })
+
+  test('preserves mapped conversation menu state by id and emits the current item', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('mapped-conversation-history')
+    const trigger = history.getByRole('button', { name: '新标题 更多操作' })
+
+    await trigger.focus()
+    await trigger.press('ArrowDown')
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+
+    await history.evaluate((element) => element.dispatchEvent(new Event('replace-conversations')))
+
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    await history.getByRole('menuitem', { name: '归档' }).click()
+    await expect(history.getByTestId('mapped-action-output')).toHaveText(
+      JSON.stringify({
+        action: { id: 'archive', text: '归档' },
+        item: { id: 'conversation-1', revision: 2, title: '新标题' },
+      }),
+    )
+    await expect(history.getByTestId('mapped-action-identity')).toHaveText('current')
+  })
+
+  test('does not restore stale rename state when a removed id is added again', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('mapped-conversation-history')
+    const editor = await openRenameEditor(history, '新标题')
+
+    await editor.fill('Stale draft')
+    await component.getByTestId('remove-mapped-conversation').click()
+    await component.getByTestId('restore-mapped-conversation').click()
+
+    await expect(history.getByRole('textbox')).toHaveCount(0)
+    await expect(history).toContainText('新标题')
+  })
 })
