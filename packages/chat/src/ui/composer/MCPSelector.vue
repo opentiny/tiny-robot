@@ -91,7 +91,7 @@ const activeCount = computed(() => servers.value.filter((server) => server.insta
   font-size: 10px;
 }
 
-@container (max-width: 959px) {
+@container chat-composer (max-width: 640px) {
   .tr-chat-mcp-selector__button {
     justify-content: center;
     width: 32px;

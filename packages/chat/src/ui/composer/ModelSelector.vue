@@ -86,7 +86,12 @@ function handleReasoningEffortChange(effort: string | null) {
 
 <style scoped>
 .tr-chat-model-selector :deep(button.tr-model-selector__trigger) {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
   border-radius: var(--tr-radius-full);
+  color: var(--tr-text-secondary);
+  font-size: var(--tr-font-size-sm);
 }
 
 .tr-chat-model-selector__trigger,
@@ -127,7 +132,7 @@ function handleReasoningEffortChange(effort: string | null) {
   transform: rotate(180deg);
 }
 
-@container (max-width: 959px) {
+@container chat-composer (max-width: 640px) {
   .tr-chat-model-selector__trigger.has-icon .tr-chat-model-selector__label {
     display: none;
   }

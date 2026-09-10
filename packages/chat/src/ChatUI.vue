@@ -57,10 +57,11 @@ const visibleModel = computed(() => (resolvedOptions.value.model === false ? und
 const modelOptions = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedOptions.value.model))
 const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefined : resolvedData.value.mcp))
 const hasMcpServers = computed(() => (visibleMcp.value?.servers?.length ?? 0) > 0)
+const hasRightAsideContent = computed(() => hasFullRightAsideSlot || hasRightAsideContentSlot || hasMcpServers.value)
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
 const isSenderVisible = computed(() => resolvedOptions.value.sender !== false)
 const isLeftAsideVisible = computed(() => leftAsideLayout.value !== false)
-const isRightAsideVisible = computed(() => effectiveRightAsideLayout.value !== false)
+const isRightAsideVisible = computed(() => hasRightAsideContent.value && effectiveRightAsideLayout.value !== false)
 const asideState = useChatAsideState({
   leftAside: leftAsideLayout,
   rightAside: effectiveRightAsideLayout,
@@ -476,17 +477,6 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         @update-server-enabled="(payload) => emit('mcp-server-enabled-change', payload)"
         @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
       />
-      <ChatRightAside
-        v-else
-        :show-close="effectiveRightAsideLayout !== false ? effectiveRightAsideLayout.showClose : true"
-        :labels="resolvedOptions.labels"
-        @close="asideState.closeRightAside"
-      >
-        <template #title>
-          <slot v-if="$slots['layout-right-aside-title']" name="layout-right-aside-title" />
-          <h2 v-else class="chat-right-aside-title">{{ resolvedOptions.labels.rightAsideTitle }}</h2>
-        </template>
-      </ChatRightAside>
     </template>
   </TrLayout>
 </template>

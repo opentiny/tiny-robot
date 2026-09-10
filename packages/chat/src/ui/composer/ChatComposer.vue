@@ -152,6 +152,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
 .chat-footer {
   position: relative;
   flex-shrink: 0;
+  container: chat-composer / inline-size;
 }
 
 .model-actions {
@@ -161,7 +162,7 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
   flex-wrap: wrap;
 }
 
-@container (max-width: 959px) {
+@container chat-composer (max-width: 640px) {
   .model-actions {
     flex-wrap: nowrap;
     gap: 6px;

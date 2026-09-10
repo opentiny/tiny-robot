@@ -116,7 +116,7 @@ function toggleFeature(id: ChatBuiltInModelFeature) {
   flex-shrink: 0;
 }
 
-@container (max-width: 959px) {
+@container chat-composer (max-width: 640px) {
   .tr-chat-model-features__button {
     justify-content: center;
     width: 32px;

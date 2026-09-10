@@ -163,7 +163,7 @@ function resolveRightAside(options: false | ChatRightAsideOptions | undefined): 
     mode: options?.mode ?? 'dock',
     width: options?.width ?? 320,
     collapsedWidth: options?.collapsedWidth ?? 0,
-    defaultOpen: options?.defaultOpen ?? false,
+    defaultOpen: options?.defaultOpen ?? true,
     showClose: options?.showClose ?? true,
   }
 }
