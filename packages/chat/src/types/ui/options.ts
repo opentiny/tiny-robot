@@ -86,6 +86,7 @@ export interface ChatLabels {
   rightAsideTitle: string
   openRightAside: string
   closeRightAside: string
+  scrollToBottom: string
 }
 
 export interface ChatAsideOptions {

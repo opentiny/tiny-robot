@@ -2,8 +2,12 @@
 import { computed, useSlots } from 'vue'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconAi, IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
-import type { HistoryMenuItem } from '@opentiny/tiny-robot'
-import { useChatHistoryData, type ChatHistoryItem } from '../../composables/useChatHistoryItems'
+import type { HistoryGroup, HistoryMenuItem } from '@opentiny/tiny-robot'
+import {
+  useChatHistoryData,
+  type ChatHistoryDisplayData,
+  type ChatHistoryItem,
+} from '../../composables/useChatHistoryItems'
 import type {
   ChatBrandOptions,
   ChatConversationInfo,
@@ -46,6 +50,10 @@ const historyProps = computed(() => {
   return nextHistoryProps
 })
 const historyMenuItems = computed<HistoryMenuItem[]>(() => props.history.menuItems ?? [])
+const displayedHistoryItems = computed(() => {
+  const data = historyData.value
+  return isHistoryGroupData(data) ? data.flatMap((group) => group.items) : data
+})
 
 function handleCreateConversation() {
   emit('createConversation')
@@ -64,7 +72,16 @@ function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem) {
 }
 
 function findConversation(id: string) {
-  return props.conversation.items.find((item) => item.id === id) ?? { id, title: props.labels.newConversationTitle }
+  return (
+    displayedHistoryItems.value.find((item) => item.id === id)?.raw ?? {
+      id,
+      title: props.labels.newConversationTitle,
+    }
+  )
+}
+
+function isHistoryGroupData(data: ChatHistoryDisplayData): data is HistoryGroup<ChatHistoryItem>[] {
+  return data.length > 0 && typeof (data[0] as HistoryGroup<ChatHistoryItem>).group !== 'undefined'
 }
 
 function switchConversation(id: string) {

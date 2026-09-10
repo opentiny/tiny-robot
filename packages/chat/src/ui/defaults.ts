@@ -84,6 +84,7 @@ export function createDefaultChatLabels(): ChatLabels {
     welcomeDescription: '您好，我是TinyRobot，您专属的 AI 智能专家',
     openRightAside: '打开详情',
     closeRightAside: '关闭详情',
+    scrollToBottom: '滚动到底部',
   }
 }
 

@@ -401,7 +401,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
       </section>
 
       <div class="chat-scroll-actions">
-        <ScrollToBottom :target="scrollTarget" />
+        <ScrollToBottom :target="scrollTarget" :label="resolvedOptions.labels.scrollToBottom" />
       </div>
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
