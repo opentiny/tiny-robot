@@ -51,6 +51,10 @@ defineExpose({
 
 <style lang="less" scoped>
 .tr-anchor {
+  --tr-anchor-surface-padding-inline: 8px;
+  --tr-anchor-item-padding-inline: 11px;
+  --tr-anchor-tooltip-gap: 10px;
+
   pointer-events: none;
   z-index: var(--tr-z-index-fixed);
   inline-size: var(--tr-anchor-width-collapsed);
@@ -98,9 +102,9 @@ defineExpose({
   &__surface {
     width: 100%;
     overflow: visible;
-    border: 1px solid transparent;
     border-radius: var(--tr-anchor-surface-radius);
     box-sizing: border-box;
+    padding: 16px var(--tr-anchor-surface-padding-inline);
     transition:
       background-color 0.22s ease,
       border-color 0.22s ease,
@@ -109,7 +113,6 @@ defineExpose({
 
   &.is-expanded &__surface {
     background: var(--tr-anchor-bg);
-    border: 1px solid var(--tr-anchor-border);
     box-shadow: var(--tr-anchor-shadow);
   }
 

@@ -142,6 +142,10 @@ watch(
   &__list-item {
     position: relative;
 
+    &.is-expanded {
+      padding-inline: var(--tr-anchor-surface-padding-inline);
+    }
+
     &::after {
       content: attr(data-tooltip);
       position: absolute;
@@ -169,11 +173,11 @@ watch(
     }
 
     &.is-right::after {
-      right: calc(100% + 8px);
+      right: calc(100% + var(--tr-anchor-tooltip-gap));
     }
 
     &.is-left::after {
-      left: calc(100% + 8px);
+      left: calc(100% + var(--tr-anchor-tooltip-gap));
     }
 
     &.is-tooltip-visible::after {
@@ -197,7 +201,7 @@ watch(
     display: grid;
     align-items: center;
     column-gap: 0;
-    padding: 6px 11px;
+    padding: 4px var(--tr-anchor-item-padding-inline);
     border: 0;
     border-radius: var(--tr-anchor-item-radius);
     background: transparent;
@@ -215,14 +219,18 @@ watch(
     }
   }
 
+  &__list-item:not(.is-expanded) &__item {
+    padding-inline: 0;
+  }
+
   &__list-item.is-right &__item {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) var(--tr-anchor-marker-track-size);
     grid-template-areas: 'content marker';
     text-align: left;
   }
 
   &__list-item.is-left &__item {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: var(--tr-anchor-marker-track-size) minmax(0, 1fr);
     grid-template-areas: 'marker content';
     text-align: left;
   }
@@ -236,7 +244,9 @@ watch(
   }
 
   &__marker-slot {
-    grid-area: marker;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -246,11 +256,11 @@ watch(
   }
 
   &__list-item.is-right &__marker-slot {
-    justify-self: end;
+    right: calc(var(--tr-anchor-surface-padding-inline) + var(--tr-anchor-item-padding-inline));
   }
 
   &__list-item.is-left &__marker-slot {
-    justify-self: start;
+    left: calc(var(--tr-anchor-surface-padding-inline) + var(--tr-anchor-item-padding-inline));
   }
 
   &__marker {
