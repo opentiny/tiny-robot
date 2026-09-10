@@ -99,16 +99,12 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     options.onRightAsidePanelChange?.(panel)
   }
 
-  watch(
-    isMobileViewport,
-    (isMobile) => {
-      if (isMobile) {
-        requestLeftAsideOpen(false, 'viewport')
-        requestRightAsideOpen(false, 'viewport')
-      }
-    },
-    { immediate: true },
-  )
+  watch(isMobileViewport, (isMobile) => {
+    if (isMobile) {
+      requestLeftAsideOpen(false, 'viewport')
+      requestRightAsideOpen(false, 'viewport')
+    }
+  })
 
   return {
     leftAsideOptions,
