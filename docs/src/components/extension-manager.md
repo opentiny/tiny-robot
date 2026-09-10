@@ -5,7 +5,7 @@ pageClass: demo-container-page-bg
 
 # ExtensionManager 扩展管理组件
 
-`ExtensionManager` 用于浏览和管理通用 Extension。组件提供标签页切换、筛选、自动分区和分区展开，并自行维护筛选与分区展开状态。当前标签页既可以由父组件控制，也可以由组件维护。安装、删除、开关状态和详情跳转等操作会触发事件，由应用决定如何更新 Extension 数据或打开后续界面。
+`ExtensionManager` 用于浏览和管理通用 Extension。组件提供标签页切换、筛选、自动分区和分区展开，并自行维护筛选与分区展开状态。当前标签页既可以由父组件控制，也可以由组件维护。安装、卸载、开关状态和详情跳转等操作会触发事件，由应用决定如何更新 Extension 数据或打开后续界面。
 
 ## 概览
 
@@ -21,15 +21,17 @@ pageClass: demo-container-page-bg
 
 ## 快速开始
 
-下面以 MCP 和 Skills 两类 Extension 为例，展示一个可直接运行的管理场景。MCP 已安装并支持启用开关；Skills 可以安装，安装后会移动到“已安装”分区。
+下面以 MCP 和 Skills 两类 Extension 为例，展示一个可直接运行的管理场景。MCP 已安装，支持启用开关，并可从更多操作中卸载；Skills 可以安装，安装后会移动到“已安装”分区。卸载 MCP 后，条目会回到“可安装”分区，并可重新安装。
 
-<demo vue="../../demos/extension-manager/basic.vue" title="管理 MCP 与 Skills" description="使用两个标签页管理已安装的 MCP 和可安装的 Skills，并在操作后更新开关或安装状态。" />
+<demo vue="../../demos/extension-manager/basic.vue" title="管理 MCP 与 Skills" description="切换 MCP 开关、安装 Skills，或卸载并重新安装 MCP，观察条目在分区之间移动。" />
 
 ## 常用用法
 
 ### 浏览、筛选和自动分区
 
-组件为当前标签页自动生成标签筛选和关键词搜索。搜索会忽略首尾空白，并匹配 `name` 和 `description`。同时设置标签和关键词时，条目需要同时满足两个条件。每个标签页保存自己的筛选条件。
+组件会读取当前标签页中各条目的 `tags`，生成标签筛选选项。当前标签页没有可用标签时，组件隐藏标签筛选器，但仍显示关键词搜索。
+
+搜索会忽略首尾空白，并匹配 `name` 和 `description`。同时设置标签和关键词时，条目需要同时满足两个条件。每个标签页保存自己的筛选条件。已选择的标签不再存在时，组件会清除该标签条件。
 
 `installed: true` 的条目归入“已安装”；`installed: false` 或省略 `installed` 的条目归入“可安装”。两段始终显示，即使筛选后没有条目；原始数据的顺序会保留。
 
@@ -55,21 +57,26 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 
 `ExtensionManager` 同时处理外部数据、可由父组件控制的值，以及组件自身的界面状态。接入时需要先明确每项数据由谁更新。用户点击“安装”、切换开关或点击名称时，组件不会直接修改 `tabs` 或条目数据。
 
-| 状态 / 数据                                     | 所有者                                               | 初始值来源                                           | 用户操作后谁更新                        | 相关 API                                                              |
-| ----------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------- | --------------------------------------- | --------------------------------------------------------------------- |
-| `tabs`、`item.installed` 和 action 的 `checked` | 应用                                                 | `tabs`                                               | 应用收到 `action` 后更新数据            | `tabs`、`action`                                                      |
-| 当前标签页                                      | 提供 `active-tab` 时由父组件管理，否则由组件内部管理 | `active-tab`；非受控时为 `default-active-tab` 或首项 | 受控时由父组件更新；非受控时由组件更新  | `active-tab`、`default-active-tab`、`update:active-tab`、`tab-change` |
-| 标签筛选和搜索词                                | 组件                                                 | 空筛选条件                                           | 组件按标签页分别保存                    | —                                                                     |
-| 分区展开状态                                    | 组件                                                 | 每个标签页的两个分区默认展开                         | 组件先更新状态，再触发 `section-toggle` | `section-toggle`                                                      |
+| 状态 / 数据          | 管理方 | 更新方式                                |
+| -------------------- | ------ | --------------------------------------- |
+| Extension 数据       | 应用   | 处理 `action` 后更新 `tabs`             |
+| 当前标签页（受控）   | 应用   | 处理 `update:active-tab` 后更新绑定值   |
+| 当前标签页（非受控） | 组件   | 自动更新内部状态                        |
+| 标签筛选和搜索词     | 组件   | 按标签页分别保存筛选条件                |
+| 分区展开状态         | 组件   | 先更新内部状态，再触发 `section-toggle` |
 
 ### 当前标签页
 
 当前标签页同时支持受控和非受控两种使用方式：
 
-| 使用方式 | 当前值来源   | 用户选择标签页                                                            | `default-active-tab`                         | 当前值失效                                                                                                 |
-| -------- | ------------ | ------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 受控     | `active-tab` | 依次触发 `update:active-tab` 和 `tab-change`；父组件需要更新 `active-tab` | 不生效                                       | 组件显示第一个可用标签页并触发 `update:active-tab`；没有标签页时参数为 `undefined`，不触发 `tab-change`    |
-| 非受控   | 组件内部状态 | 组件先更新内部状态，再依次触发 `update:active-tab` 和 `tab-change`        | 仅作为初始值；未提供或无效时使用第一个标签页 | `tabs` 变化导致当前值失效时，组件自动切换到新的第一个标签页并触发 `update:active-tab`，不触发 `tab-change` |
+- **受控方式**
+  - 当前值来自 `active-tab`，`default-active-tab` 不生效。
+  - 用户选择标签页时，组件依次触发 `update:active-tab` 和 `tab-change`；父组件需要更新 `active-tab`。
+  - `active-tab` 无效时，组件显示第一个可用标签页并触发 `update:active-tab`。没有标签页时参数为 `undefined`。这两种情况都不会触发 `tab-change`。
+- **非受控方式**
+  - 当前值由组件保存，初始值来自 `default-active-tab`；未提供或无效时使用第一个标签页。
+  - 用户选择标签页时，组件先更新内部状态，再依次触发 `update:active-tab` 和 `tab-change`。
+  - `tabs` 变化导致当前值失效时，组件自动切换到新的第一个标签页并触发 `update:active-tab`，不触发 `tab-change`。
 
 非受控模式初始化时，即使 `default-active-tab` 无效并改用第一个标签页，也不会额外触发 `update:active-tab`。父组件直接修改受控的 `active-tab` 也不会触发 `tab-change`，因为 `tab-change` 只表示用户选择了标签页。
 
@@ -77,7 +84,7 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 
 ### 处理操作事件
 
-快速开始中的 MCP 开关和 Skills 安装按钮展示了应用如何根据 `action` 更新数据。`action` 和 `name-click` 只说明用户执行了什么操作，不表示组件已经修改 `tabs`。例如，switch action 的 `action.checked` 是用户选择的新状态。Card 仍会显示传入的 `checked`，因此应用需要更新对应 action。用户点击安装或删除按钮时，组件同样只触发事件。操作完成后，应用需要更新 `item.installed` 或移除对应条目，组件随后会按照新的 `tabs` 重新分区。
+快速开始中的 MCP 开关与卸载操作，以及 Skills 安装按钮，展示了应用如何根据 `action` 更新数据。`action` 和 `name-click` 只说明用户执行了什么操作，不表示组件已经修改 `tabs`。例如，switch action 的 `action.checked` 是用户选择的新状态。Card 仍会显示传入的 `checked`，因此应用需要更新对应 action。用户点击安装或卸载按钮时，组件同样只触发事件。操作完成后，应用需要更新 `item.installed` 和对应 `actions`，组件随后会按照新的 `tabs` 重新分区。
 
 分区展开状态按标签页和分区分别保存。组件会先更新展开状态，再触发 `section-toggle`。事件中的 `expanded` 是更新后的值，应用不需要再同步这个状态，可以按需监听该事件。
 
@@ -111,7 +118,7 @@ Card 名称默认可以点击，并支持 `Enter` 和 `Space`。设置 `name-cli
 
 ### 响应式与长内容
 
-筛选区域根据 `ExtensionManager` 自身的容器宽度调整布局，不依赖浏览器视口宽度。容器宽度不超过 `480px` 时，标签选择和搜索框由两列变为单列。
+筛选区域根据 `ExtensionManager` 自身的容器宽度调整布局，不依赖浏览器视口宽度。存在标签筛选器且容器宽度不超过 `480px` 时，标签选择和搜索框由两列变为单列；没有可用标签时，搜索框始终独占一行。
 
 CardGrid 根据自身容器宽度自动调整列数。每列默认至少为 `320px`，可以通过 `--tr-extension-card-grid-card-min-width` 调整。Card 名称和描述过长时会在单行内省略，完整内容保留在 `title` 中。
 
@@ -220,39 +227,55 @@ import type {
 
 ### Types
 
-| 类型名 | 类型或签名 | 说明 | 导出入口 |
-| --- | --- | --- |
-| `ExtensionCardAction` | union | Card 的 switch、button 和 custom action。 | `@opentiny/tiny-robot` |
-| `ExtensionCardActionBase` | interface | 所有 Card action 共有的标识、文案、图标和禁用字段。 | `@opentiny/tiny-robot` |
-| `ExtensionCardSwitchAction` | interface | `checked` 值由应用提供的 switch action。 | `@opentiny/tiny-robot` |
-| `ExtensionCardButtonAction` | interface | 普通 button action。 | `@opentiny/tiny-robot` |
-| `ExtensionCardCustomAction` | interface | 可由 `primary-action` 插槽渲染的 custom action。 | `@opentiny/tiny-robot` |
-| `ExtensionCardRenderableAction` | union | 从每种 `ExtensionCardAction` 中移除 `hidden` 字段后得到的联合类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardActionEvent` | interface | Card 触发 action 事件时提供的数据。 | `@opentiny/tiny-robot` |
-| `ExtensionCardProps` | interface | Card 的公开 Props 类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardEmits` | interface | Card 的公开事件类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardSlots` | interface | Card 的公开插槽类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridItem` | type | 带 `id` 的 Card 数据。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridActionEvent` | interface | 包含 `itemId` 和 Card action 的事件数据。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridNameClickEvent` | interface | 包含 `itemId` 和 Card name-click 原生事件的数据。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridProps` | interface | CardGrid 的公开 Props 类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridEmits` | interface | CardGrid 的公开事件类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridSlots` | interface | CardGrid 的公开插槽类型。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerItem` | type | `ExtensionManager` 接收的条目；在 Grid item 基础上增加分区和筛选字段。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerTab` | interface | `ExtensionManager` 的标签页数据。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerSectionKey` | union | `'installed' \| 'available'`。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerTagOption` | interface | 组件根据当前数据生成的标签选项结构。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerTabChangeEvent` | interface | 标签切换事件数据。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerSectionToggleEvent` | interface | 分区折叠事件数据。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerActionEvent` | interface | 包含标签页、分区、条目和 Card action 的事件数据。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerNameClickEvent` | interface | 包含标签页、分区、条目和 Card name-click 原生事件的数据。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerProps` | interface | `ExtensionManager` 的公开 Props 类型。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerEmits` | interface | `ExtensionManager` 的公开事件类型。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerSlots` | interface | `ExtensionManager` 的公开插槽类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardOverflowMenuPlacement` | union | `'bottom-end' \| 'top-end'`。 | `@opentiny/tiny-robot` |
+以下索引按组件分组。所有类型均从 `@opentiny/tiny-robot` 导出。
+
+#### Card Types
+
+| 类型名                               | 类型或签名 | 说明                                                                | 导出入口               |
+| ------------------------------------ | ---------- | ------------------------------------------------------------------- | ---------------------- |
+| `ExtensionCardAction`                | union      | Card 的 switch、button 和 custom action。                           | `@opentiny/tiny-robot` |
+| `ExtensionCardActionBase`            | interface  | 所有 Card action 共有的标识、文案、图标和状态字段。                 | `@opentiny/tiny-robot` |
+| `ExtensionCardSwitchAction`          | interface  | `checked` 值由应用提供的 switch action。                            | `@opentiny/tiny-robot` |
+| `ExtensionCardButtonAction`          | interface  | 普通 button action。                                                | `@opentiny/tiny-robot` |
+| `ExtensionCardCustomAction`          | interface  | 可由 `primary-action` 插槽渲染的 custom action。                    | `@opentiny/tiny-robot` |
+| `ExtensionCardRenderableAction`      | union      | 从每种 `ExtensionCardAction` 中移除 `hidden` 字段后得到的联合类型。 | `@opentiny/tiny-robot` |
+| `ExtensionCardActionEvent`           | interface  | Card 触发 action 事件时提供的数据。                                 | `@opentiny/tiny-robot` |
+| `ExtensionCardProps`                 | interface  | Card 的公开 Props 类型。                                            | `@opentiny/tiny-robot` |
+| `ExtensionCardEmits`                 | interface  | Card 的公开事件类型。                                               | `@opentiny/tiny-robot` |
+| `ExtensionCardSlots`                 | interface  | Card 的公开插槽类型。                                               | `@opentiny/tiny-robot` |
+| `ExtensionCardOverflowMenuPlacement` | union      | `'bottom-end' \| 'top-end'`。                                       | `@opentiny/tiny-robot` |
+
+#### CardGrid Types
+
+| 类型名                            | 类型或签名 | 说明                                              | 导出入口               |
+| --------------------------------- | ---------- | ------------------------------------------------- | ---------------------- |
+| `ExtensionCardGridItem`           | type       | 带 `id` 的 Card 数据。                            | `@opentiny/tiny-robot` |
+| `ExtensionCardGridActionEvent`    | interface  | 包含 `itemId` 和 Card action 的事件数据。         | `@opentiny/tiny-robot` |
+| `ExtensionCardGridNameClickEvent` | interface  | 包含 `itemId` 和 Card name-click 原生事件的数据。 | `@opentiny/tiny-robot` |
+| `ExtensionCardGridProps`          | interface  | CardGrid 的公开 Props 类型。                      | `@opentiny/tiny-robot` |
+| `ExtensionCardGridEmits`          | interface  | CardGrid 的公开事件类型。                         | `@opentiny/tiny-robot` |
+| `ExtensionCardGridSlots`          | interface  | CardGrid 的公开插槽类型。                         | `@opentiny/tiny-robot` |
+
+#### ExtensionManager Types
+
+| 类型名                               | 类型或签名 | 说明                                                                   | 导出入口               |
+| ------------------------------------ | ---------- | ---------------------------------------------------------------------- | ---------------------- |
+| `ExtensionManagerItem`               | type       | `ExtensionManager` 接收的条目；在 Grid item 基础上增加分区和筛选字段。 | `@opentiny/tiny-robot` |
+| `ExtensionManagerTab`                | interface  | `ExtensionManager` 的标签页数据。                                      | `@opentiny/tiny-robot` |
+| `ExtensionManagerSectionKey`         | union      | `'installed' \| 'available'`。                                         | `@opentiny/tiny-robot` |
+| `ExtensionManagerTagOption`          | interface  | 组件根据当前数据生成的标签选项结构。                                   | `@opentiny/tiny-robot` |
+| `ExtensionManagerTabChangeEvent`     | interface  | 标签切换事件数据。                                                     | `@opentiny/tiny-robot` |
+| `ExtensionManagerSectionToggleEvent` | interface  | 分区折叠事件数据。                                                     | `@opentiny/tiny-robot` |
+| `ExtensionManagerActionEvent`        | interface  | 包含标签页、分区、条目和 Card action 的事件数据。                      | `@opentiny/tiny-robot` |
+| `ExtensionManagerNameClickEvent`     | interface  | 包含标签页、分区、条目和 Card name-click 原生事件的数据。              | `@opentiny/tiny-robot` |
+| `ExtensionManagerProps`              | interface  | `ExtensionManager` 的公开 Props 类型。                                 | `@opentiny/tiny-robot` |
+| `ExtensionManagerEmits`              | interface  | `ExtensionManager` 的公开事件类型。                                    | `@opentiny/tiny-robot` |
+| `ExtensionManagerSlots`              | interface  | `ExtensionManager` 的公开插槽类型。                                    | `@opentiny/tiny-robot` |
 
 ```ts
 import type { Component } from 'vue'
+
+export type ExtensionCardOverflowMenuPlacement = 'bottom-end' | 'top-end'
 
 export interface ExtensionCardActionBase {
   id: string
@@ -284,6 +307,19 @@ export interface ExtensionCardActionEvent {
   type: ExtensionCardAction['type']
   checked?: boolean
   payload?: unknown
+}
+
+export interface ExtensionCardProps {
+  name: string
+  description?: string
+  icon?: string | Component
+  actions?: ExtensionCardAction[]
+  primaryActionsLimit?: number
+  progress?: number | 'indeterminate'
+  nameClickable?: boolean
+  overflowMenuLabel?: string
+  overflowMenuPlacement?: ExtensionCardOverflowMenuPlacement
+  overflowMenuShowIcons?: boolean
 }
 
 export type ExtensionCardGridItem = ExtensionCardProps & { id: string }
@@ -342,12 +378,12 @@ export interface ExtensionManagerNameClickEvent {
 
 下表仅列出当前作为公共定制接口的 CSS Variables。将这些变量设置在 Card、CardGrid 或其父级元素上，即可调整对应样式。未列出的组件内部变量不属于公共定制接口，不应依赖。
 
-| 变量名                                        | 说明                                    | 默认值                    |
-| --------------------------------------------- | --------------------------------------- | ------------------------- |
-| `--tr-extension-card-bg-color`                | Card 背景色。                           | `#f8f8f8`                 |
-| `--tr-extension-card-bg-color-hover`          | Card 悬停背景及默认操作背景。           | `rgba(0, 0, 0, 0.04)`     |
-| `--tr-extension-card-focus-color`             | 可点击名称的 focus-visible 描边颜色。   | `#191919`                 |
-| `--tr-extension-card-icon-color`              | 溢出菜单 action 图标颜色。              | `#808080`                 |
-| `--tr-extension-card-switch-bg-color`         | 未选中 switch 轨道颜色。                | `var(--tr-text-disabled)` |
-| `--tr-extension-card-switch-bg-color-checked` | 选中 switch 轨道颜色。                  | `var(--tr-color-primary)` |
-| `--tr-extension-card-grid-card-min-width`     | CardGrid 每个响应式网格轨道的最小宽度。 | `320px`                   |
+| 变量名                                        | 说明                                    | 默认值                             |
+| --------------------------------------------- | --------------------------------------- | ---------------------------------- |
+| `--tr-extension-card-bg-color`                | Card 背景色。                           | `var(--tr-container-bg-default-2)` |
+| `--tr-extension-card-bg-color-hover`          | Card 悬停背景及默认操作背景。           | `var(--tr-container-bg-hover)`     |
+| `--tr-extension-card-focus-color`             | 可点击名称的 focus-visible 描边颜色。   | `var(--tr-text-primary)`           |
+| `--tr-extension-card-icon-color`              | 溢出菜单 action 图标颜色。              | `var(--tr-text-tertiary)`          |
+| `--tr-extension-card-switch-bg-color`         | 未选中 switch 轨道颜色。                | `var(--tr-text-disabled)`          |
+| `--tr-extension-card-switch-bg-color-checked` | 选中 switch 轨道颜色。                  | `var(--tr-color-primary)`          |
+| `--tr-extension-card-grid-card-min-width`     | CardGrid 每个响应式网格轨道的最小宽度。 | `320px`                            |

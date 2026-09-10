@@ -99,7 +99,7 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: var(--tr-extension-card-bg-color-hover);
+    background: var(--tr-extension-card-bg-color-hover, var(--tr-container-bg-hover));
   }
 
   &:disabled {
@@ -111,7 +111,7 @@ const handleAction = (action: ExtensionCardRenderableAction, close: () => void) 
 .tr-extension-card__action-icon {
   width: 16px;
   height: 16px;
-  color: var(--tr-extension-card-icon-color);
+  color: var(--tr-extension-card-icon-color, var(--tr-text-tertiary));
   transform: rotate(90deg);
 }
 

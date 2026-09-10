@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { TrExtensionManager } from '@opentiny/tiny-robot'
-import type { ExtensionManagerActionEvent, ExtensionManagerTab } from '@opentiny/tiny-robot'
+import type { ExtensionCardAction, ExtensionManagerActionEvent, ExtensionManagerTab } from '@opentiny/tiny-robot'
+
+const createMcpActions = (name: string, checked = true): ExtensionCardAction[] => [
+  { id: 'enabled', type: 'switch', label: `启用${name}`, checked },
+  { id: 'uninstall', type: 'button', label: '卸载', danger: true },
+]
 
 const tabs = ref<ExtensionManagerTab[]>([
   {
@@ -13,14 +18,14 @@ const tabs = ref<ExtensionManagerTab[]>([
         name: '文件系统',
         description: '读取和管理本地文件。',
         installed: true,
-        actions: [{ id: 'enabled', type: 'switch', label: '启用文件系统', checked: true }],
+        actions: createMcpActions('文件系统'),
       },
       {
         id: 'github',
         name: 'GitHub',
         description: '访问仓库、议题和拉取请求。',
         installed: true,
-        actions: [{ id: 'enabled', type: 'switch', label: '启用 GitHub', checked: false }],
+        actions: createMcpActions('GitHub', false),
       },
     ],
   },
@@ -57,7 +62,13 @@ const handleAction = (event: ExtensionManagerActionEvent) => {
 
   if (event.action.type === 'button' && event.action.id === 'install') {
     item.installed = true
-    item.actions = []
+    item.actions = event.tabId === 'mcp' ? createMcpActions(item.name) : []
+    return
+  }
+
+  if (event.action.type === 'button' && event.action.id === 'uninstall') {
+    item.installed = false
+    item.actions = [{ id: 'install', type: 'button', label: '安装' }]
   }
 }
 </script>
