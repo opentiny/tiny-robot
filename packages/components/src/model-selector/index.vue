@@ -14,7 +14,7 @@ import type {
 } from './index.type'
 import { getDuplicateModelEffortValues, normalizeModelEfforts } from './normalizeModelEfforts'
 import { getDuplicateModelValues, normalizeModelOptions } from './normalizeModelOptions'
-import { useTeleportTarget } from '../shared/composables/useTeleportTarget'
+import { useStableId, useTeleportTarget } from '../shared/composables'
 
 defineOptions({ name: 'TrModelSelector' })
 
@@ -42,12 +42,11 @@ const emit = defineEmits<ModelSelectorEmits>()
 defineSlots<ModelSelectorSlots>()
 
 const instance = getCurrentInstance()
-const instanceUid = instance?.uid ?? 0
 const initialVNodeProps = instance?.vnode.props ?? {}
 const hasInitialVNodeProp = (...names: string[]) => {
   return names.some((name) => Object.prototype.hasOwnProperty.call(initialVNodeProps, name))
 }
-const idPrefix = `tr-model-selector-${instanceUid}`
+const idPrefix = `tr-model-selector-${useStableId()}`
 const listboxId = `${idPrefix}-listbox`
 const referenceEl = shallowRef<HTMLElement | null>(null)
 const floatingEl = shallowRef<HTMLElement | null>(null)
