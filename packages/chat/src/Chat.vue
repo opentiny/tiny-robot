@@ -1,0 +1,176 @@
+<script setup lang="ts">
+import ChatUI from './ChatUI.vue'
+import { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
+import type {
+  ChatBubbleEventPayload,
+  ChatBubbleStateChangePayload,
+  ChatHistoryActionPayload,
+  ChatPromptClickPayload,
+  ChatRuntime,
+  ChatRuntimeActionErrorPayload,
+  ChatHistoryData,
+  LayoutFloatingDragDetail,
+  LayoutFloatingResizeDetail,
+  LayoutFloatingState,
+  ChatUIOptions,
+} from './types'
+
+const props = defineProps<{
+  runtime: ChatRuntime
+  ui?: ChatUIOptions
+  title?: string
+  floatingState?: LayoutFloatingState
+  rightAsidePanel?: string
+  historyData?: ChatHistoryData
+}>()
+
+const emit = defineEmits<{
+  'update:floating-state': [value: LayoutFloatingState]
+  'floating-drag-start': [detail: LayoutFloatingDragDetail]
+  'floating-drag': [detail: LayoutFloatingDragDetail]
+  'floating-drag-end': [detail: LayoutFloatingDragDetail]
+  'floating-resize-start': [detail: LayoutFloatingResizeDetail]
+  'floating-resize': [detail: LayoutFloatingResizeDetail]
+  'floating-resize-end': [detail: LayoutFloatingResizeDetail]
+  'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
+  'history-action': [payload: ChatHistoryActionPayload]
+  'prompt-click': [payload: ChatPromptClickPayload]
+  'bubble-state-change': [payload: ChatBubbleStateChangePayload]
+  'bubble-event': [payload: ChatBubbleEventPayload]
+  'left-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
+  'right-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
+  'update:right-aside-panel': [value: string | undefined]
+}>()
+
+const adapter = useChatRuntimeAdapter({
+  runtime: () => props.runtime,
+  title: () => props.title,
+  historyData: () => props.historyData,
+  onActionError: (payload) => emit('runtime-action-error', payload),
+})
+
+defineExpose({
+  send: adapter.send,
+})
+
+function handleHistoryAction(payload: ChatHistoryActionPayload) {
+  if (payload.action.id === 'delete') {
+    adapter.deleteConversation(payload.conversation.id)
+    return
+  }
+
+  emit('history-action', payload)
+}
+</script>
+
+<template>
+  <ChatUI
+    :data="adapter.data.value"
+    :ui="props.ui"
+    :floating-state="props.floatingState"
+    :right-aside-panel="props.rightAsidePanel"
+    :input-value="adapter.inputValue.value"
+    @create-conversation="adapter.createConversation"
+    @switch-conversation="({ id }) => adapter.switchConversation(id)"
+    @rename-conversation="({ id, title }) => adapter.renameConversation(id, title)"
+    @delete-conversation="({ id }) => adapter.deleteConversation(id)"
+    @history-action="handleHistoryAction"
+    @prompt-click="(payload) => emit('prompt-click', payload)"
+    @bubble-state-change="(payload) => emit('bubble-state-change', payload)"
+    @bubble-event="(payload) => emit('bubble-event', payload)"
+    @left-aside-open-change="(payload) => emit('left-aside-open-change', payload)"
+    @right-aside-open-change="(payload) => emit('right-aside-open-change', payload)"
+    @update:right-aside-panel="(value) => emit('update:right-aside-panel', value)"
+    @update:floating-state="(value) => emit('update:floating-state', value)"
+    @floating-drag-start="(detail) => emit('floating-drag-start', detail)"
+    @floating-drag="(detail) => emit('floating-drag', detail)"
+    @floating-drag-end="(detail) => emit('floating-drag-end', detail)"
+    @floating-resize-start="(detail) => emit('floating-resize-start', detail)"
+    @floating-resize="(detail) => emit('floating-resize', detail)"
+    @floating-resize-end="(detail) => emit('floating-resize-end', detail)"
+    @submit="adapter.send"
+    @cancel="adapter.abort"
+    @clear="() => adapter.setInputValue('')"
+    @update:input-value="adapter.setInputValue"
+    @model-select="({ id }) => adapter.selectModel(id)"
+    @model-feature-change="({ id, enabled }) => adapter.setModelFeature(id, enabled)"
+    @model-reasoning-effort-change="({ effort }) => adapter.setModelReasoningEffort(effort)"
+    @mcp-add-server="({ id }) => adapter.addMcpServer(id)"
+    @mcp-remove-server="({ id }) => adapter.removeMcpServer(id)"
+    @mcp-server-enabled-change="({ id, enabled }) => adapter.setMcpServerEnabled(id, enabled)"
+    @mcp-tool-enabled-change="({ serverId, toolId, enabled }) => adapter.setMcpToolEnabled(serverId, toolId, enabled)"
+  >
+    <template v-if="$slots['layout-header']" #layout-header="slotProps">
+      <slot name="layout-header" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside']" #layout-left-aside="slotProps">
+      <slot name="layout-left-aside" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-brand']" #layout-left-aside-brand="slotProps">
+      <slot name="layout-left-aside-brand" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-actions']" #layout-left-aside-actions="slotProps">
+      <slot name="layout-left-aside-actions" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-content']" #layout-left-aside-content="slotProps">
+      <slot name="layout-left-aside-content" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-footer']" #layout-left-aside-footer="slotProps">
+      <slot name="layout-left-aside-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-rail']" #layout-left-aside-rail="slotProps">
+      <slot name="layout-left-aside-rail" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-left-aside-history-item-prefix']" #layout-left-aside-history-item-prefix="slotProps">
+      <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-right-aside']" #layout-right-aside="slotProps">
+      <slot name="layout-right-aside" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-right-aside-content']" #layout-right-aside-content>
+      <slot name="layout-right-aside-content" />
+    </template>
+    <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title>
+      <slot name="layout-right-aside-title" />
+    </template>
+    <template v-if="$slots['layout-main']" #layout-main="slotProps">
+      <slot name="layout-main" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
+      <slot name="layout-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['composer-before']" #composer-before="slotProps">
+      <slot name="composer-before" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['header-notice']" #header-notice>
+      <slot name="header-notice" />
+    </template>
+    <template v-if="$slots['request-error']" #request-error="slotProps">
+      <slot name="request-error" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['welcome-footer']" #welcome-footer>
+      <slot name="welcome-footer" />
+    </template>
+    <template v-if="$slots['prompts-footer']" #prompts-footer>
+      <slot name="prompts-footer" />
+    </template>
+    <template v-if="$slots['bubble-prefix']" #bubble-prefix>
+      <slot name="bubble-prefix" />
+    </template>
+    <template v-if="$slots['bubble-suffix']" #bubble-suffix>
+      <slot name="bubble-suffix" />
+    </template>
+    <template v-if="$slots['bubble-after']" #bubble-after>
+      <slot name="bubble-after" />
+    </template>
+    <template v-if="$slots['bubble-content-footer']" #bubble-content-footer>
+      <slot name="bubble-content-footer" />
+    </template>
+    <template v-if="$slots['sender-footer']" #sender-footer>
+      <slot name="sender-footer" />
+    </template>
+    <template v-if="$slots['sender-footer-right']" #sender-footer-right>
+      <slot name="sender-footer-right" />
+    </template>
+  </ChatUI>
+</template>
