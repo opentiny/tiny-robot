@@ -211,6 +211,61 @@ test.describe('Sender 组件测试', () => {
     await helper.expectResult('自定义按钮被点击')
   })
 
+  test('Slots: input-prefix - 应该只作用于多行首行并支持交互', async () => {
+    await expect(page.locator(helper.selectors.inputPrefix)).toHaveCount(0)
+
+    await helper.toggleMode()
+    await expect(page.locator(helper.selectors.inputPrefix)).toBeVisible()
+
+    await helper.typeContent('第一行')
+    await page.keyboard.press('Control+Enter')
+    await page.keyboard.type('第二行')
+
+    const paragraphIndents = await helper
+      .getEditor()
+      .locator('p')
+      .evaluateAll((paragraphs) => paragraphs.map((paragraph) => getComputedStyle(paragraph).textIndent))
+
+    expect(parseFloat(paragraphIndents[0])).toBeGreaterThan(0)
+    expect(paragraphIndents[1]).toBe('0px')
+
+    await page.locator(helper.selectors.inputPrefixBtn).click()
+    await helper.expectResult('input-prefix 被点击')
+
+    await helper.clearContent()
+    await helper.getEditor().click()
+    for (let index = 0; index < 8; index += 1) {
+      await page.keyboard.type(`第${index + 1}行`)
+      if (index < 7) {
+        await page.keyboard.press('Control+Enter')
+      }
+    }
+
+    await helper.getEditor().evaluate((element) => {
+      const scrollContainer = element.closest('.tr-sender-editor-scroll')
+      element.scrollTop = 0
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0
+      }
+    })
+
+    const prefixTopBeforeScroll = await page.locator(helper.selectors.inputPrefix).evaluate((element) => {
+      return element.getBoundingClientRect().top
+    })
+
+    await helper.getEditor().evaluate((element) => {
+      const scrollContainer = element.closest('.tr-sender-editor-scroll')
+      element.scrollTop = element.scrollHeight
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight
+      }
+    })
+
+    await expect
+      .poll(() => page.locator(helper.selectors.inputPrefix).evaluate((element) => element.getBoundingClientRect().top))
+      .toBeLessThan(prefixTopBeforeScroll)
+  })
+
   test('Emits: submit - 应该正确触发提交事件', async () => {
     await helper.typeContent('提交测试')
     await helper.clickSubmit()
