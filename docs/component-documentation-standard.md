@@ -767,7 +767,7 @@ const handleItemClick = (_event: MouseEvent, item: PromptProps) => {
 ```markdown
 ## 快速开始
 
-传入提示项列表即可渲染可选择的提示内容。
+传入提示项列表即可渲染多个提示项，展示列表的基本结构。
 
 <demo
   vue="../../demos/prompts/basic.vue"
@@ -776,7 +776,7 @@ const handleItemClick = (_event: MouseEvent, item: PromptProps) => {
 />
 ```
 
-`Prompts` 是集合组件，因此 Demo 保留两个语义不同的提示项，使读者能够看出提示项的重复结构和列表关系。Demo 只保留完成该目标所需的 `items` 和 `<tr-prompts>`，不为展示更多状态或样式增加无关内容。
+`Prompts` 是集合组件，因此 Demo 保留两个语义不同的提示项，使读者能够看出提示项的重复结构和列表关系。Demo 只保留完成该目标所需的 `items` 和 `<tr-prompts>`，不为展示更多状态或样式增加无关内容。L0 不处理选择事件；`item-click` 和选择结果放在 L3 说明。
 
 ### 13.2 L1：常用变体
 
