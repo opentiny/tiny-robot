@@ -369,9 +369,7 @@ test.describe('ExtensionManager Filter acceptance', () => {
     expect(availableIds).toEqual(['beta', 'gamma'])
   })
 
-  test('derives item tags, disables the selector without tags, and keeps the filter row for empty tabs', async ({
-    mount,
-  }) => {
+  test('hides the tag selector when the current tab has no filterable tags', async ({ mount }) => {
     const component = await mount(ExtensionManagerFixture)
     const manager = component.getByTestId('manager-host')
 
@@ -380,13 +378,23 @@ test.describe('ExtensionManager Filter acceptance', () => {
     await component.getByTestId('remove-recommended-tag').click()
     await manager.getByTestId('filter-tag').selectOption('writing')
     await component.getByTestId('remove-writing-tag').click()
-    await expect(manager.getByTestId('filter-tag')).toBeDisabled()
+
+    await expect(manager.getByTestId('filter-tag')).toHaveCount(0)
+    await expect(manager.getByTestId('filter-search')).toBeVisible()
+
+    const filterBox = await manager.getByTestId('filter-root').boundingBox()
+    const searchBox = await manager.getByTestId('filter-search').boundingBox()
+    expect(filterBox).not.toBeNull()
+    expect(searchBox).not.toBeNull()
+    expect(searchBox!.x).toBe(filterBox!.x)
+    expect(searchBox!.width).toBe(filterBox!.width)
+
     await component.getByTestId('set-active-market').click()
-    await expect(manager.getByTestId('filter-tag')).toBeEnabled()
+    await expect(manager.getByTestId('filter-tag')).toBeVisible()
     await component.getByTestId('empty-library').click()
-    await expect(manager.getByTestId('filter-root')).toBeVisible()
     await component.getByTestId('remove-market-tab').click()
-    await expect(manager.getByTestId('filter-root')).toBeVisible()
+    await expect(manager.getByTestId('filter-tag')).toHaveCount(0)
+    await expect(manager.getByTestId('filter-search')).toBeVisible()
   })
 
   test('isolates tab filter state and clears invalid or removed tab state', async ({ mount }) => {

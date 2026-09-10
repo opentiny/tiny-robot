@@ -29,6 +29,7 @@ const sharedSidebarItems = [
       { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+      { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },
       { text: 'Theme 主题', link: 'theme' },
       { text: 'Container 容器', link: 'container' },
     ],

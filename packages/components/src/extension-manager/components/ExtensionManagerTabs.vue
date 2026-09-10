@@ -135,7 +135,7 @@ const handleKeydown = (tabIndex: number, event: KeyboardEvent) => {
   display: flex;
   align-items: center;
   gap: 4px;
-  border-bottom: 1px solid var(--tr-mcp-server-picker-tabs-divider-color);
+  border-bottom: 1px solid color-mix(in srgb, var(--tr-text-primary) 10%, transparent);
 }
 
 .extension-manager-tabs__tab {
@@ -167,7 +167,7 @@ const handleKeydown = (tabIndex: number, event: KeyboardEvent) => {
   bottom: -1px;
   left: 0;
   height: 2px;
-  background: var(--tr-mcp-server-picker-tabs-border-color-active);
+  background: var(--tr-text-primary);
   pointer-events: none;
   transition:
     transform 200ms cubic-bezier(0.2, 0, 0, 1),
