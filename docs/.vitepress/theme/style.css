@@ -41,6 +41,10 @@ body,
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.demo-container-page-bg .vitepress-demo-plugin__container {
+  background-color: var(--vp-c-bg);
+}
+
 /* Bubble 组件 Demo 样式 */
 div:has(h1[id='bubble-气泡组件']) {
   .vitepress-demo-plugin-preview {
@@ -77,7 +81,9 @@ div:has(h1[id='bubble-气泡组件']) {
 /* 侧边栏项目样式增强 */
 .VPSidebarItem .link {
   border-radius: 12px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   position: relative;
 }
 
