@@ -1,6 +1,6 @@
 <script lang="ts" setup generic="T extends HistoryItem">
 import { IconCheck, IconClose, IconDelete, IconEditPen, IconMore } from '@opentiny/tiny-robot-svgs'
-import { computed, nextTick, ref, shallowRef } from 'vue'
+import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import { useTouchDevice } from '../shared/composables'
 import Empty from './components/Empty.vue'
 import MenuList from './components/MenuList.vue'
@@ -43,6 +43,16 @@ const isEmpty = computed(() => {
   return groups.value.length === 0 || groups.value.every((group) => group.items.length === 0)
 })
 
+const currentItems = computed(() => groups.value.flatMap((group) => group.items))
+
+const resolveCurrentItem = (target: T): T | undefined => {
+  if (target.id) {
+    return currentItems.value.find((item) => item.id === target.id)
+  }
+
+  return currentItems.value.find((item) => item === target)
+}
+
 const {
   editingItem,
   editorRefList,
@@ -57,12 +67,22 @@ const {
   onItemTitleChange: (newTitle, item) => {
     emit('item-title-change', newTitle, item)
   },
+  resolveItem: resolveCurrentItem,
 })
 
 const { isTouchDevice } = useTouchDevice()
 
 const menuTriggerEl = ref<HTMLButtonElement | null>(null)
-const menuTriggerItem = shallowRef<T | null>(null)
+const menuTriggerTarget = shallowRef<T | null>(null)
+const menuTriggerItem = computed<T | null>({
+  get: () => {
+    const target = menuTriggerTarget.value
+    return target ? (resolveCurrentItem(target) ?? null) : null
+  },
+  set: (item) => {
+    menuTriggerTarget.value = item
+  },
+})
 const menuListRef = ref<{ focusFirstItem: () => void; focusLastItem: () => void } | null>(null)
 
 const focusMenuItem = (position: 'first' | 'last') => {
@@ -107,6 +127,16 @@ const closeMenu = () => {
   menuTriggerEl.value = null
   menuTriggerItem.value = null
 }
+
+watch(
+  menuTriggerItem,
+  (item) => {
+    if (!item && menuTriggerTarget.value) {
+      closeMenu()
+    }
+  },
+  { flush: 'sync' },
+)
 
 const handleMenuTriggerEscape = (event: KeyboardEvent) => {
   if (!menuTriggerEl.value) return

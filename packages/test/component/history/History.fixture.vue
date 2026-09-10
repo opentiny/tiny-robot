@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import History from '../../../components/src/history/index.vue'
 import type { HistoryItem, HistoryMenuItem } from '../../../components/src/history/index.type'
 
 type FixtureItem = HistoryItem & { kind: string }
+type MappedConversationItem = HistoryItem & { revision: number }
 
 const flatItems: FixtureItem[] = [
   { id: 'chat-1', title: 'First chat', kind: 'work' },
@@ -27,6 +28,49 @@ const confirmedRename = ref('')
 const confirmedRenameIdentity = ref('')
 const cancelledRename = ref('')
 const untouchedRename = ref('')
+const mappedConversationSource = ref<Array<{ id: string; title?: string; revision: number }>>([
+  { id: 'conversation-1', revision: 1 },
+  { id: 'conversation-2', title: 'Existing title', revision: 1 },
+])
+const mappedConversationData = computed(() =>
+  mappedConversationSource.value.map((conversation) => ({
+    ...conversation,
+    title: conversation.title || '新标题',
+  })),
+)
+const mappedRenameOutput = ref('')
+const mappedRenameIdentity = ref('')
+const mappedActionOutput = ref('')
+const mappedActionIdentity = ref('')
+
+const replaceMappedConversations = () => {
+  mappedConversationSource.value = mappedConversationSource.value.map((conversation) => ({
+    ...conversation,
+    revision: conversation.revision + 1,
+  }))
+}
+
+const removeMappedConversation = () => {
+  mappedConversationSource.value = mappedConversationSource.value.filter(
+    (conversation) => conversation.id !== 'conversation-1',
+  )
+}
+
+const restoreMappedConversation = () => {
+  mappedConversationSource.value = [{ id: 'conversation-1', revision: 3 }, ...mappedConversationSource.value]
+}
+
+const recordMappedRename = (newTitle: string, item: MappedConversationItem) => {
+  mappedRenameOutput.value = JSON.stringify({ newTitle, item })
+  mappedRenameIdentity.value =
+    item === mappedConversationData.value.find((conversation) => conversation.id === item.id) ? 'current' : 'stale'
+}
+
+const recordMappedAction = (action: HistoryMenuItem, item: MappedConversationItem) => {
+  mappedActionOutput.value = JSON.stringify({ action, item })
+  mappedActionIdentity.value =
+    item === mappedConversationData.value.find((conversation) => conversation.id === item.id) ? 'current' : 'stale'
+}
 
 const recordClick = (item: FixtureItem) => {
   lastItemClick.value = JSON.stringify(item)
@@ -106,6 +150,30 @@ const recordUntouchedRename = (newTitle: string, item: FixtureItem) => {
     <section data-testid="none-history">
       <History :data="flatItems" rename-control-on-click-outside="none" @item-title-change="recordUntouchedRename" />
       <output data-testid="none-output">{{ untouchedRename }}</output>
+    </section>
+
+    <button data-testid="replace-mapped-conversations" type="button" @click="replaceMappedConversations">
+      Replace mapped conversations
+    </button>
+    <button data-testid="remove-mapped-conversation" type="button" @click="removeMappedConversation">
+      Remove mapped conversation
+    </button>
+    <button data-testid="restore-mapped-conversation" type="button" @click="restoreMappedConversation">
+      Restore mapped conversation
+    </button>
+    <section data-testid="mapped-conversation-history" @replace-conversations="replaceMappedConversations">
+      <History
+        :data="mappedConversationData"
+        :menu-items="menuItems"
+        :show-rename-controls="true"
+        rename-control-on-click-outside="none"
+        @item-title-change="recordMappedRename"
+        @item-action="recordMappedAction"
+      />
+      <output data-testid="mapped-rename-output">{{ mappedRenameOutput }}</output>
+      <output data-testid="mapped-rename-identity">{{ mappedRenameIdentity }}</output>
+      <output data-testid="mapped-action-output">{{ mappedActionOutput }}</output>
+      <output data-testid="mapped-action-identity">{{ mappedActionIdentity }}</output>
     </section>
   </main>
 </template>
