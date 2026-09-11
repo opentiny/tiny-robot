@@ -53,6 +53,10 @@ jobs:
           package-manager-cache: false
           registry-url: 'https://registry.npmjs.org' # 设置npm registry地址
 
+      - name: Verify publish package versions
+        if: ${{ inputs.publish_npm }}
+        run: node scripts/verify-publish-versions.js --dist-tag "${{ inputs.tag }}"
+
       # 步骤4: 获取pnpm缓存目录路径
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -94,6 +98,7 @@ jobs:
           name: dispatch-package-dist
           path: |
             packages/components/dist
+            packages/chat/dist
             packages/kit/dist
             packages/svgs/dist
           if-no-files-found: error
