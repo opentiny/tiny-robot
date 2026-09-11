@@ -59,6 +59,32 @@ test('publish verification accepts synchronized stable packages on latest', () =
   }
 })
 
+test('publish verification rejects prerelease numeric identifiers with leading zeroes', () => {
+  const root = createFixture(synchronizedVersions('1.2.3-alpha.01'))
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: 'alpha' }),
+      /valid semantic version.*1\.2\.3-alpha\.01/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('publish verification rejects a numeric prerelease channel unusable by npm', () => {
+  const root = createFixture(synchronizedVersions('1.2.3-0'))
+
+  try {
+    assert.throws(
+      () => verifyPublishVersions({ rootDir: root, distTag: '0' }),
+      /unusable npm dist-tag.*0/i,
+    )
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('publish verification rejects a mismatched runtime package', () => {
   const versions = synchronizedVersions('0.5.2-alpha.15')
   versions['@opentiny/tiny-robot-svgs'] = '0.5.2-alpha.14'

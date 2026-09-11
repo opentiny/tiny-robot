@@ -24,11 +24,15 @@ function readPackage(rootDir, expectedName, relativePath) {
 
 function publishChannel(version) {
   const match =
-    /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
+    /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-((?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(
       version,
     )
   if (!match) throw new Error(`Package version must be a valid semantic version: ${version}`)
-  return match[1]?.split('.')[0] ?? 'latest'
+  const channel = match[1]?.split('.')[0] ?? 'latest'
+  if (/^(?:v)?\d+$|^[xX]$/.test(channel)) {
+    throw new Error(`Package version derives an unusable npm dist-tag: ${channel}`)
+  }
+  return channel
 }
 
 export function verifyPublishVersions({ rootDir = process.cwd(), expectedVersion, distTag } = {}) {
