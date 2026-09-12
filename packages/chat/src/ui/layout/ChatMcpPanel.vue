@@ -47,18 +47,13 @@ const embeddedPickerStyle = {
   minHeight: '0',
 }
 
-function getMetadataString(server: ChatMcpServerView, key: string) {
-  const value = server.metadata?.[key]
-  return typeof value === 'string' ? value : undefined
-}
-
 function toPluginInfo(server: ChatMcpServerView, includeTools: boolean): PluginInfo {
   const serverTools = includeTools && server.installed ? (tools.value[server.id] ?? []) : []
 
   return {
     id: server.id,
     name: server.name,
-    icon: getMetadataString(server, 'icon') ?? fallbackPluginIcon,
+    icon: server.icon ?? fallbackPluginIcon,
     description: server.description ?? '',
     enabled: server.enabled,
     expanded: true,
@@ -69,7 +64,7 @@ function toPluginInfo(server: ChatMcpServerView, includeTools: boolean): PluginI
       enabled: tool.enabled,
     })),
     addState: server.loading ? 'loading' : server.installed ? 'added' : 'idle',
-    category: getMetadataString(server, 'category'),
+    category: server.category,
   }
 }
 
