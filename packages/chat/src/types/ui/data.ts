@@ -55,7 +55,10 @@ export interface ChatModelView {
 export interface ChatModelOptionView {
   readonly id: string
   readonly label: string
-  readonly icon?: Exclude<ModelSelectorOption['icon'], string>
+  readonly description?: string
+  readonly icon?: ModelSelectorOption['icon']
+  readonly disabled?: boolean
+  readonly group?: string
   readonly efforts?: readonly ModelSelectorReasoningEffortOption[]
   readonly defaultEffort?: string
   readonly thinkingRequired?: boolean
@@ -72,6 +75,8 @@ export interface ChatMcpServerView {
   readonly id: string
   readonly name: string
   readonly description?: string
+  readonly icon?: string
+  readonly category?: string
   readonly installed: boolean
   readonly enabled: boolean
   readonly loading?: boolean

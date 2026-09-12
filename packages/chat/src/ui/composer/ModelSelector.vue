@@ -20,7 +20,10 @@ const modelOptions = computed<ModelSelectorOption[]>(() =>
   (props.model.options ?? []).map((model) => ({
     value: model.id,
     label: model.label,
+    description: model.description,
     icon: model.icon,
+    disabled: model.disabled,
+    group: model.group,
     reasoningEfforts: thinkingEnabled.value ? model.efforts : undefined,
   })),
 )
@@ -65,11 +68,17 @@ function handleReasoningEffortChange(effort: string | null) {
       <span class="tr-chat-model-selector__trigger" :class="{ 'has-icon': option?.icon }">
         <span class="tr-chat-model-selector__trigger-main">
           <component
-            :is="option?.icon"
-            v-if="option?.icon"
+            v-if="option?.icon && typeof option.icon !== 'string'"
+            :is="option.icon"
             class="tr-chat-model-selector__icon"
             aria-hidden="true"
             focusable="false"
+          />
+          <img
+            v-else-if="typeof option?.icon === 'string'"
+            :src="option.icon"
+            class="tr-chat-model-selector__icon"
+            alt=""
           />
           <span class="tr-chat-model-selector__label">{{ label }}</span>
         </span>

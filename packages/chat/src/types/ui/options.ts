@@ -16,11 +16,19 @@ import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
 
-export interface ChatUIProps {
+type ChatInputControlProps =
+  | {
+      inputValue: string
+      defaultInputValue?: never
+    }
+  | {
+      inputValue?: undefined
+      defaultInputValue?: string
+    }
+
+export type ChatUIProps = ChatInputControlProps & {
   data?: Readonly<ChatUIData>
   ui?: Readonly<ChatUIOptions>
-  inputValue?: string
-  defaultInputValue?: string
   floatingState?: LayoutFloatingState
   rightAsidePanel?: string
 }
@@ -123,8 +131,10 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   readonly submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
-export interface ChatSenderOptions
-  extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
+export interface ChatSenderOptions extends Omit<
+  SenderProps,
+  'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
+> {
   readonly defaultActions?: ChatSenderDefaultActions
 }
 

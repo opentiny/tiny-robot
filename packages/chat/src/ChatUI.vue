@@ -18,6 +18,9 @@ import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
   ChatConversationInfo,
+  ChatHistoryActionPayload,
+  ChatHistoryGroup,
+  ChatModelFeatureChangePayload,
   ChatSendPayload,
   ChatUIEmits,
   ChatUIProps,
@@ -145,7 +148,7 @@ function handleCreateConversation() {
 }
 
 function handleSwitchConversation(item: { id: string }) {
-  emit('switch-conversation', { id: item.id })
+  emit('switch-conversation', { conversationId: item.id })
 
   if (asideState.isLeftAsideDrawer.value) {
     asideState.closeLeftAside()
@@ -153,15 +156,62 @@ function handleSwitchConversation(item: { id: string }) {
 }
 
 function handleRenameConversation(item: { id: string }, title: string) {
-  emit('rename-conversation', { id: item.id, title })
+  emit('rename-conversation', { conversationId: item.id, title })
 }
 
 function handleHistoryAction(action: HistoryMenuItem, item: ChatConversationInfo) {
-  emit('history-action', { action, conversation: item })
+  emit('history-action', createHistoryActionPayload(action, item))
 }
 
-function handleDeleteConversation(item: ChatConversationInfo) {
-  emit('delete-conversation', { id: item.id })
+function handleDeleteConversation(item: ChatConversationInfo | string) {
+  handleHistoryAction(
+    {
+      id: 'delete',
+      text: resolvedOptions.value.labels.deleteConversation,
+    },
+    typeof item === 'string' ? findConversation(item) : item,
+  )
+}
+
+function findConversation(id: string): ChatConversationInfo {
+  const item = resolvedData.value.conversation.items.find((conversation) => conversation.id === id)
+  if (item) return item
+
+  for (const entry of resolvedData.value.conversation.history ?? []) {
+    if (isHistoryGroup(entry)) {
+      const historyItem = entry.items.find((conversation) => conversation.id === id)
+      if (historyItem) return historyItem
+    } else if (entry.id === id) {
+      return entry
+    }
+  }
+
+  return {
+    id,
+    title: resolvedOptions.value.labels.newConversationTitle,
+  }
+}
+
+function isHistoryGroup(entry: ChatConversationInfo | ChatHistoryGroup): entry is ChatHistoryGroup {
+  return 'items' in entry && Array.isArray(entry.items)
+}
+
+function createHistoryActionPayload(
+  action: HistoryMenuItem,
+  conversation: ChatConversationInfo,
+): ChatHistoryActionPayload {
+  let defaultPrevented = false
+
+  return {
+    action,
+    conversation,
+    get defaultPrevented() {
+      return defaultPrevented
+    },
+    preventDefault() {
+      defaultPrevented = true
+    },
+  }
 }
 
 function handlePromptClick(event: MouseEvent, item: PromptProps) {
@@ -191,6 +241,26 @@ function handleInputValue(value: string) {
   }
 
   emit('update:inputValue', value)
+}
+
+function handleModelSelect(payload: { id: string | null }) {
+  emit('model-select', { modelId: payload.id })
+}
+
+function handleModelFeatureChange(payload: { id: ChatModelFeatureChangePayload['featureId']; enabled: boolean }) {
+  emit('model-feature-change', { featureId: payload.id, enabled: payload.enabled })
+}
+
+function handleMcpAddServer(payload: { id: string }) {
+  emit('mcp-add-server', { serverId: payload.id })
+}
+
+function handleMcpRemoveServer(payload: { id: string }) {
+  emit('mcp-remove-server', { serverId: payload.id })
+}
+
+function handleMcpServerEnabledChange(payload: { id: string; enabled: boolean }) {
+  emit('mcp-server-enabled-change', { serverId: payload.id, enabled: payload.enabled })
 }
 
 function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
@@ -244,7 +314,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             :create-conversation="handleCreateConversation"
             :switch-conversation="(id: string) => handleSwitchConversation({ id })"
             :rename-conversation="(id: string, title: string) => handleRenameConversation({ id }, title)"
-            :delete-conversation="(id: string) => emit('delete-conversation', { id })"
+            :delete-conversation="handleDeleteConversation"
             :open-left-aside="asideState.openLeftAside"
             :close-left-aside="asideState.closeLeftAside"
             :toggle-left-aside="asideState.toggleLeftAside"
@@ -321,12 +391,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
             </slot>
           </div>
           <ChatMessages
-            :messages="visibleMessages"
+            :messages="resolvedData.bubble.messages"
             :scroll-target="scrollTarget"
             :options="resolvedOptions.bubble"
             :welcome="resolvedOptions.welcome"
             :prompts="resolvedOptions.prompts"
             :labels="resolvedOptions.labels"
+            :is-empty="isEmpty"
             :center-empty-state="isEmptyStateCentered"
             :center-welcome-composer="isWelcomeComposerCentered"
             @prompt-click="handlePromptClick"
@@ -361,13 +432,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 @cancel="handleCancel"
                 @clear="handleClear"
                 @update:value="handleInputValue"
-                @model-select="(payload) => emit('model-select', payload)"
-                @model-feature-change="(payload) => emit('model-feature-change', payload)"
+                @model-select="handleModelSelect"
+                @model-feature-change="handleModelFeatureChange"
                 @model-reasoning-effort-change="(payload) => emit('model-reasoning-effort-change', payload)"
                 @open-mcp-panel="handleOpenMcpPanel"
-                @mcp-add-server="(payload) => emit('mcp-add-server', payload)"
-                @mcp-remove-server="(payload) => emit('mcp-remove-server', payload)"
-                @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
+                @mcp-add-server="handleMcpAddServer"
+                @mcp-remove-server="handleMcpRemoveServer"
+                @mcp-server-enabled-change="handleMcpServerEnabledChange"
                 @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
               >
                 <template v-if="$slots['composer-before']" #composer-before="slotProps">
@@ -384,17 +455,17 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 </template>
               </ChatComposerHost>
             </template>
-            <template v-if="$slots['bubble-prefix']" #bubble-prefix>
-              <slot name="bubble-prefix" />
+            <template v-if="$slots['bubble-prefix']" #bubble-prefix="slotProps">
+              <slot name="bubble-prefix" v-bind="slotProps" />
             </template>
-            <template v-if="$slots['bubble-suffix']" #bubble-suffix>
-              <slot name="bubble-suffix" />
+            <template v-if="$slots['bubble-suffix']" #bubble-suffix="slotProps">
+              <slot name="bubble-suffix" v-bind="slotProps" />
             </template>
-            <template v-if="$slots['bubble-after']" #bubble-after>
-              <slot name="bubble-after" />
+            <template v-if="$slots['bubble-after']" #bubble-after="slotProps">
+              <slot name="bubble-after" v-bind="slotProps" />
             </template>
-            <template v-if="$slots['bubble-content-footer']" #bubble-content-footer>
-              <slot name="bubble-content-footer" />
+            <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
+              <slot name="bubble-content-footer" v-bind="slotProps" />
             </template>
           </ChatMessages>
         </div>
@@ -420,13 +491,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @cancel="handleCancel"
           @clear="handleClear"
           @update:value="handleInputValue"
-          @model-select="(payload) => emit('model-select', payload)"
-          @model-feature-change="(payload) => emit('model-feature-change', payload)"
+          @model-select="handleModelSelect"
+          @model-feature-change="handleModelFeatureChange"
           @model-reasoning-effort-change="(payload) => emit('model-reasoning-effort-change', payload)"
           @open-mcp-panel="handleOpenMcpPanel"
-          @mcp-add-server="(payload) => emit('mcp-add-server', payload)"
-          @mcp-remove-server="(payload) => emit('mcp-remove-server', payload)"
-          @mcp-server-enabled-change="(payload) => emit('mcp-server-enabled-change', payload)"
+          @mcp-add-server="handleMcpAddServer"
+          @mcp-remove-server="handleMcpRemoveServer"
+          @mcp-server-enabled-change="handleMcpServerEnabledChange"
           @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
         >
           <template v-if="$slots['composer-before']" #composer-before="slotProps">
@@ -472,9 +543,9 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         :mcp="visibleMcp"
         :labels="resolvedOptions.labels"
         @close="asideState.closeRightAside"
-        @add-server="(payload) => emit('mcp-add-server', payload)"
-        @remove-server="(payload) => emit('mcp-remove-server', payload)"
-        @update-server-enabled="(payload) => emit('mcp-server-enabled-change', payload)"
+        @add-server="handleMcpAddServer"
+        @remove-server="handleMcpRemoveServer"
+        @update-server-enabled="handleMcpServerEnabledChange"
         @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
       />
     </template>

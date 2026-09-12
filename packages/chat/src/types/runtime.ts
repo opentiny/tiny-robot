@@ -46,7 +46,10 @@ export interface ChatMcpRunConfig {
 export interface ChatModelOption {
   id: string
   label: string
-  icon?: Exclude<ModelSelectorOption['icon'], string>
+  description?: string
+  icon?: ModelSelectorOption['icon']
+  disabled?: boolean
+  group?: string
   efforts?: readonly ModelSelectorReasoningEffortOption[]
   defaultEffort?: string
   thinkingRequired?: boolean
@@ -68,6 +71,8 @@ export interface ChatMcpServerInfo {
   id: string
   name: string
   description?: string
+  icon?: string
+  category?: string
   installed: boolean
   enabled: boolean
   loading?: boolean

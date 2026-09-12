@@ -28,7 +28,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingModelReasoningEffort = shallowRef(false)
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
-  const pendingMcpToolIds = shallowRef<ReadonlySet<string>>(new Set())
+  const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
 
   const input = useChatDraft({
     send: async (payload) => (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false,
@@ -45,7 +45,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         tools[serverId] = serverTools.map(
           (tool): ChatMcpToolView => ({
             ...tool,
-            loading: pendingMcpToolIds.value.has(getToolKey(serverId, tool.id)),
+            loading: isMcpToolPending(serverId, tool.id),
           }),
         )
       }
@@ -111,8 +111,37 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     target.value = next
   }
 
-  function getToolKey(serverId: string, toolId: string) {
-    return `${serverId}:${toolId}`
+  function isMcpToolPending(serverId: string, toolId: string) {
+    return pendingMcpToolIds.value.get(serverId)?.has(toolId) ?? false
+  }
+
+  function setMcpToolPending(serverId: string, toolId: string, pending: boolean) {
+    const next = new Map(pendingMcpToolIds.value)
+    const toolIds = new Set(next.get(serverId) ?? [])
+
+    if (pending) {
+      toolIds.add(toolId)
+      next.set(serverId, toolIds)
+    } else {
+      toolIds.delete(toolId)
+      if (toolIds.size === 0) {
+        next.delete(serverId)
+      } else {
+        next.set(serverId, toolIds)
+      }
+    }
+
+    pendingMcpToolIds.value = next
+  }
+
+  async function withPendingMcpTool(serverId: string, toolId: string, task: () => Promise<void> | void) {
+    if (isMcpToolPending(serverId, toolId)) return
+    setMcpToolPending(serverId, toolId, true)
+    try {
+      await task()
+    } finally {
+      setMcpToolPending(serverId, toolId, false)
+    }
   }
 
   async function runAction<T>(
@@ -147,7 +176,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     if (!model || model.selectedId.value === id || pendingModelSelecting.value) return
     pendingModelSelecting.value = true
     try {
-      await runAction('select-model', { id }, () => model.select(id))
+      await runAction('select-model', { modelId: id }, () => model.select(id))
     } finally {
       pendingModelSelecting.value = false
     }
@@ -157,7 +186,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     const model = runtime.value.composer.model
     if (!model || model.features.value[id] === enabled) return
     await withPending(pendingModelFeatureIds, id, () =>
-      runAction('set-model-feature', { id, enabled }, () => model.setFeature(id, enabled)),
+      runAction('set-model-feature', { featureId: id, enabled }, () => model.setFeature(id, enabled)),
     )
   }
 
@@ -176,14 +205,16 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   async function addMcpServer(id: string) {
     const mcp = runtime.value.composer.mcp
     if (mcp)
-      await withPending(pendingMcpServerIds, id, () => runAction('add-mcp-server', { id }, () => mcp.addServer(id)))
+      await withPending(pendingMcpServerIds, id, () =>
+        runAction('add-mcp-server', { serverId: id }, () => mcp.addServer(id)),
+      )
   }
 
   async function removeMcpServer(id: string) {
     const mcp = runtime.value.composer.mcp
     if (mcp)
       await withPending(pendingMcpServerIds, id, () =>
-        runAction('remove-mcp-server', { id }, () => mcp.removeServer(id)),
+        runAction('remove-mcp-server', { serverId: id }, () => mcp.removeServer(id)),
       )
   }
 
@@ -192,7 +223,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     const server = mcp?.servers.value.find((item) => item.id === id)
     if (mcp && server && server.enabled !== enabled) {
       await withPending(pendingMcpServerIds, id, () =>
-        runAction('set-mcp-server-enabled', { id, enabled }, () => mcp.setServerEnabled(id, enabled)),
+        runAction('set-mcp-server-enabled', { serverId: id, enabled }, () => mcp.setServerEnabled(id, enabled)),
       )
     }
   }
@@ -200,9 +231,8 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   async function setMcpToolEnabled(serverId: string, toolId: string, enabled: boolean) {
     const mcp = runtime.value.composer.mcp
     const tool = mcp?.tools.value[serverId]?.find((item) => item.id === toolId)
-    const key = getToolKey(serverId, toolId)
     if (mcp && tool && tool.enabled !== enabled) {
-      await withPending(pendingMcpToolIds, key, () =>
+      await withPendingMcpTool(serverId, toolId, () =>
         runAction('set-mcp-tool-enabled', { serverId, toolId, enabled }, () =>
           mcp.setToolEnabled(serverId, toolId, enabled),
         ),
@@ -219,11 +249,13 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     createConversation: () =>
       runAction('create-conversation', undefined, () => runtime.value.actions.createConversation()),
     switchConversation: (id: string) =>
-      runAction('switch-conversation', { id }, () => runtime.value.actions.switchConversation(id)),
+      runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id)),
     renameConversation: (id: string, title: string) =>
-      runAction('rename-conversation', { id, title }, () => runtime.value.actions.renameConversation(id, title)),
+      runAction('rename-conversation', { conversationId: id, title }, () =>
+        runtime.value.actions.renameConversation(id, title),
+      ),
     deleteConversation: (id: string) =>
-      runAction('delete-conversation', { id }, () => runtime.value.actions.deleteConversation(id)),
+      runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id)),
     selectModel,
     setModelFeature,
     setModelReasoningEffort,
