@@ -11,6 +11,8 @@ export interface ChatAsideOpenChangePayload {
 export interface ChatHistoryActionPayload {
   readonly action: import('@opentiny/tiny-robot').HistoryMenuItem
   readonly conversation: ChatConversationInfo
+  readonly defaultPrevented: boolean
+  preventDefault: () => void
 }
 
 export interface ChatPromptClickPayload {
@@ -19,11 +21,11 @@ export interface ChatPromptClickPayload {
 }
 
 export interface ChatModelSelectPayload {
-  readonly id: string | null
+  readonly modelId: string | null
 }
 
 export interface ChatModelFeatureChangePayload {
-  readonly id: ChatBuiltInModelFeature
+  readonly featureId: ChatBuiltInModelFeature
   readonly enabled: boolean
 }
 
@@ -32,15 +34,15 @@ export interface ChatModelReasoningEffortChangePayload {
 }
 
 export interface ChatMcpAddServerPayload {
-  readonly id: string
+  readonly serverId: string
 }
 
 export interface ChatMcpRemoveServerPayload {
-  readonly id: string
+  readonly serverId: string
 }
 
 export interface ChatMcpServerEnabledChangePayload {
-  readonly id: string
+  readonly serverId: string
   readonly enabled: boolean
 }
 
@@ -77,9 +79,8 @@ export interface ChatUIEmits {
   cancel: []
   clear: []
   'create-conversation': []
-  'switch-conversation': [payload: { readonly id: string }]
-  'rename-conversation': [payload: { readonly id: string; readonly title: string }]
-  'delete-conversation': [payload: { readonly id: string }]
+  'switch-conversation': [payload: { readonly conversationId: string }]
+  'rename-conversation': [payload: { readonly conversationId: string; readonly title: string }]
   'history-action': [payload: ChatHistoryActionPayload]
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]

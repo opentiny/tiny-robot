@@ -1,5 +1,6 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '../base'
 import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
+import type { BubbleMessage } from '@opentiny/tiny-robot'
 
 export interface ChatHeaderSlotProps {
   readonly title: string
@@ -59,6 +60,16 @@ export interface ChatMainSlotProps {
   readonly conversation: ChatConversationView
 }
 
+export interface ChatBubbleSlotProps {
+  readonly messages: readonly BubbleMessage[]
+  readonly role?: string
+  readonly messageIndexes: readonly number[]
+}
+
+export interface ChatBubbleContentFooterSlotProps extends ChatBubbleSlotProps {
+  readonly contentIndex?: number
+}
+
 export interface ChatUISlots {
   'layout-header'?: (props: ChatHeaderSlotProps) => unknown
   'layout-left-aside'?: (props: ChatLeftAsideSlotProps) => unknown
@@ -78,10 +89,10 @@ export interface ChatUISlots {
   'request-error'?: (props: { error: unknown }) => unknown
   'welcome-footer'?: () => unknown
   'prompts-footer'?: () => unknown
-  'bubble-prefix'?: () => unknown
-  'bubble-suffix'?: () => unknown
-  'bubble-after'?: () => unknown
-  'bubble-content-footer'?: () => unknown
+  'bubble-prefix'?: (props: ChatBubbleSlotProps) => unknown
+  'bubble-suffix'?: (props: ChatBubbleSlotProps) => unknown
+  'bubble-after'?: (props: ChatBubbleSlotProps) => unknown
+  'bubble-content-footer'?: (props: ChatBubbleContentFooterSlotProps) => unknown
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
 }

@@ -54,12 +54,13 @@ defineExpose({
 })
 
 function handleHistoryAction(payload: ChatHistoryActionPayload) {
-  if (payload.action.id === 'delete') {
-    adapter.deleteConversation(payload.conversation.id)
-    return
-  }
-
   emit('history-action', payload)
+
+  if (payload.action.id === 'delete') {
+    if (!payload.defaultPrevented) {
+      adapter.deleteConversation(payload.conversation.id)
+    }
+  }
 }
 </script>
 
@@ -71,9 +72,8 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     :right-aside-panel="props.rightAsidePanel"
     :input-value="adapter.inputValue.value"
     @create-conversation="adapter.createConversation"
-    @switch-conversation="({ id }) => adapter.switchConversation(id)"
-    @rename-conversation="({ id, title }) => adapter.renameConversation(id, title)"
-    @delete-conversation="({ id }) => adapter.deleteConversation(id)"
+    @switch-conversation="({ conversationId }) => adapter.switchConversation(conversationId)"
+    @rename-conversation="({ conversationId, title }) => adapter.renameConversation(conversationId, title)"
     @history-action="handleHistoryAction"
     @prompt-click="(payload) => emit('prompt-click', payload)"
     @bubble-state-change="(payload) => emit('bubble-state-change', payload)"
@@ -92,12 +92,12 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @cancel="adapter.abort"
     @clear="() => adapter.setInputValue('')"
     @update:input-value="adapter.setInputValue"
-    @model-select="({ id }) => adapter.selectModel(id)"
-    @model-feature-change="({ id, enabled }) => adapter.setModelFeature(id, enabled)"
+    @model-select="({ modelId }) => adapter.selectModel(modelId)"
+    @model-feature-change="({ featureId, enabled }) => adapter.setModelFeature(featureId, enabled)"
     @model-reasoning-effort-change="({ effort }) => adapter.setModelReasoningEffort(effort)"
-    @mcp-add-server="({ id }) => adapter.addMcpServer(id)"
-    @mcp-remove-server="({ id }) => adapter.removeMcpServer(id)"
-    @mcp-server-enabled-change="({ id, enabled }) => adapter.setMcpServerEnabled(id, enabled)"
+    @mcp-add-server="({ serverId }) => adapter.addMcpServer(serverId)"
+    @mcp-remove-server="({ serverId }) => adapter.removeMcpServer(serverId)"
+    @mcp-server-enabled-change="({ serverId, enabled }) => adapter.setMcpServerEnabled(serverId, enabled)"
     @mcp-tool-enabled-change="({ serverId, toolId, enabled }) => adapter.setMcpToolEnabled(serverId, toolId, enabled)"
   >
     <template v-if="$slots['layout-header']" #layout-header="slotProps">
@@ -154,17 +154,17 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     <template v-if="$slots['prompts-footer']" #prompts-footer>
       <slot name="prompts-footer" />
     </template>
-    <template v-if="$slots['bubble-prefix']" #bubble-prefix>
-      <slot name="bubble-prefix" />
+    <template v-if="$slots['bubble-prefix']" #bubble-prefix="slotProps">
+      <slot name="bubble-prefix" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['bubble-suffix']" #bubble-suffix>
-      <slot name="bubble-suffix" />
+    <template v-if="$slots['bubble-suffix']" #bubble-suffix="slotProps">
+      <slot name="bubble-suffix" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['bubble-after']" #bubble-after>
-      <slot name="bubble-after" />
+    <template v-if="$slots['bubble-after']" #bubble-after="slotProps">
+      <slot name="bubble-after" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['bubble-content-footer']" #bubble-content-footer>
-      <slot name="bubble-content-footer" />
+    <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
+      <slot name="bubble-content-footer" v-bind="slotProps" />
     </template>
     <template v-if="$slots['sender-footer']" #sender-footer>
       <slot name="sender-footer" />
