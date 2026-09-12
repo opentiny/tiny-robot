@@ -1,6 +1,7 @@
 import type { ChatConversationInfo } from '../base'
 import type { ChatSendPayload } from '../commands'
 import type { ChatBuiltInModelFeature } from '../runtime'
+import type { ChatRightAsidePanelId } from './options'
 import type { LayoutFloatingDragDetail, LayoutFloatingResizeDetail, LayoutFloatingState } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
@@ -94,5 +95,5 @@ export interface ChatUIEmits {
   'mcp-tool-enabled-change': [payload: ChatMcpToolEnabledChangePayload]
   'left-aside-open-change': [payload: ChatAsideOpenChangePayload]
   'right-aside-open-change': [payload: ChatAsideOpenChangePayload]
-  'update:right-aside-panel': [value: string | undefined]
+  'update:right-aside-panel': [value: ChatRightAsidePanelId | undefined]
 }

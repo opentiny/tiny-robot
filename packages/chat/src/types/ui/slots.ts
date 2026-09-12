@@ -1,4 +1,5 @@
 import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '../base'
+import type { ChatRightAsidePanelId, ChatRightAsidePanelOptions } from './options'
 import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
 import type { BubbleMessage } from '@opentiny/tiny-robot'
 
@@ -11,7 +12,7 @@ export interface ChatHeaderSlotProps {
   readonly openLeftAside: () => void
   readonly closeLeftAside: () => void
   readonly toggleLeftAside: () => void
-  readonly openRightAside: (panel?: string) => void
+  readonly openRightAside: (panel?: ChatRightAsidePanelId) => void
   readonly closeRightAside: () => void
 }
 
@@ -36,9 +37,10 @@ export interface ChatHistoryItemPrefixSlotProps {
   readonly item: ChatConversationInfo
 }
 
-export interface ChatRightAsideSlotProps {
-  readonly panel: string | undefined
-  readonly openRightAside: (panel?: string) => void
+export interface ChatRightAsidePanelSlotProps {
+  readonly panelId: ChatRightAsidePanelId | undefined
+  readonly panel?: ChatRightAsidePanelOptions
+  readonly openRightAside: (panelId?: ChatRightAsidePanelId) => void
   readonly closeRightAside: () => void
   readonly isRightAsideOpen: boolean
 }
@@ -79,9 +81,7 @@ export interface ChatUISlots {
   'layout-left-aside-footer'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-rail'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-history-item-prefix'?: (props: ChatHistoryItemPrefixSlotProps) => unknown
-  'layout-right-aside'?: (props: ChatRightAsideSlotProps) => unknown
-  'layout-right-aside-content'?: () => unknown
-  'layout-right-aside-title'?: () => unknown
+  'layout-right-aside-panel'?: (props: ChatRightAsidePanelSlotProps) => unknown
   'layout-main'?: (props: ChatMainSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'composer-before'?: (props: ChatSenderSlotProps) => unknown

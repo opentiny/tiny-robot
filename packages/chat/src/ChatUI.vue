@@ -21,10 +21,12 @@ import type {
   ChatHistoryActionPayload,
   ChatHistoryGroup,
   ChatModelFeatureChangePayload,
+  ChatRightAsidePanelOptions,
   ChatSendPayload,
   ChatUIEmits,
   ChatUIProps,
 } from './types'
+import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from './types'
 
 const props = defineProps<ChatUIProps>()
 const emit = defineEmits<ChatUIEmits>()
@@ -47,8 +49,7 @@ const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
-const hasFullRightAsideSlot = Boolean(slots['layout-right-aside'])
-const hasRightAsideContentSlot = Boolean(slots['layout-right-aside-content'])
+const hasRightAsidePanelSlot = Boolean(slots['layout-right-aside-panel'])
 const hasLegacyLeftAsideSlot = Boolean(slots['layout-left-aside'])
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
@@ -60,8 +61,24 @@ const visibleModel = computed(() => (resolvedOptions.value.model === false ? und
 const modelOptions = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedOptions.value.model))
 const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefined : resolvedData.value.mcp))
 const hasMcpServers = computed(() => (visibleMcp.value?.servers?.length ?? 0) > 0)
-const hasRightAsideContent = computed(() => hasFullRightAsideSlot || hasRightAsideContentSlot || hasMcpServers.value)
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
+const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]>(() => {
+  const panels =
+    hasRightAsidePanelSlot && effectiveRightAsideLayout.value !== false ? effectiveRightAsideLayout.value.panels : []
+
+  if (!hasMcpServers.value) {
+    return panels
+  }
+
+  return [
+    ...panels,
+    {
+      id: CHAT_MCP_RIGHT_ASIDE_PANEL_ID,
+      title: resolvedOptions.value.labels.mcp,
+    },
+  ]
+})
+const hasRightAsideContent = computed(() => availableRightAsidePanels.value.length > 0)
 const isSenderVisible = computed(() => resolvedOptions.value.sender !== false)
 const isLeftAsideVisible = computed(() => leftAsideLayout.value !== false)
 const isRightAsideVisible = computed(() => hasRightAsideContent.value && effectiveRightAsideLayout.value !== false)
@@ -69,14 +86,16 @@ const asideState = useChatAsideState({
   leftAside: leftAsideLayout,
   rightAside: effectiveRightAsideLayout,
   rightAsidePanel: () => props.rightAsidePanel,
+  rightAsidePanels: availableRightAsidePanels,
   isMobileViewport,
   viewportWidth,
   onLeftOpenChange: (payload) => emit('left-aside-open-change', payload),
   onRightOpenChange: (payload) => emit('right-aside-open-change', payload),
   onRightAsidePanelChange: (panel) => emit('update:right-aside-panel', panel),
 })
-const activeRightAsidePanel = computed(
-  () => asideState.resolvedRightAsidePanel.value ?? (hasMcpServers.value ? 'mcp' : undefined),
+const activeRightAsidePanel = computed(() => asideState.resolvedRightAsidePanel.value)
+const activeRightAsidePanelOptions = computed(() =>
+  availableRightAsidePanels.value.find((panel) => panel.id === activeRightAsidePanel.value),
 )
 const bubbleRoleConfigs = computed(
   () => resolvedOptions.value.bubble.bubbleList.roleConfigs ?? { system: { hidden: true } },
@@ -232,7 +251,7 @@ function handleClear() {
 }
 
 function handleOpenMcpPanel() {
-  if (hasMcpServers.value) asideState.openRightAside('mcp')
+  if (hasMcpServers.value) asideState.openRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
 }
 
 function handleInputValue(value: string) {
@@ -517,37 +536,36 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     </template>
 
     <template v-if="isRightAsideVisible" #right-aside>
-      <template v-if="hasFullRightAsideSlot">
-        <slot
-          name="layout-right-aside"
-          :panel="activeRightAsidePanel"
-          :open-right-aside="asideState.openRightAside"
-          :close-right-aside="asideState.closeRightAside"
-          :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
-        />
-      </template>
       <ChatRightAside
-        v-else-if="hasRightAsideContentSlot"
         :show-close="effectiveRightAsideLayout !== false ? effectiveRightAsideLayout.showClose : true"
         :labels="resolvedOptions.labels"
         @close="asideState.closeRightAside"
       >
         <template #title>
-          <slot v-if="$slots['layout-right-aside-title']" name="layout-right-aside-title" />
-          <h2 v-else class="chat-right-aside-title">{{ resolvedOptions.labels.rightAsideTitle }}</h2>
+          <h2 class="chat-right-aside-title">
+            {{ activeRightAsidePanelOptions?.title ?? resolvedOptions.labels.rightAsideTitle }}
+          </h2>
         </template>
-        <slot name="layout-right-aside-content" />
+        <ChatMcpPanel
+          v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && visibleMcp"
+          :mcp="visibleMcp"
+          :labels="resolvedOptions.labels"
+          @close="asideState.closeRightAside"
+          @add-server="handleMcpAddServer"
+          @remove-server="handleMcpRemoveServer"
+          @update-server-enabled="handleMcpServerEnabledChange"
+          @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
+        />
+        <slot
+          v-else-if="activeRightAsidePanelOptions"
+          name="layout-right-aside-panel"
+          :panel-id="activeRightAsidePanel"
+          :panel="activeRightAsidePanelOptions"
+          :open-right-aside="asideState.openRightAside"
+          :close-right-aside="asideState.closeRightAside"
+          :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
+        />
       </ChatRightAside>
-      <ChatMcpPanel
-        v-else-if="hasMcpServers && visibleMcp"
-        :mcp="visibleMcp"
-        :labels="resolvedOptions.labels"
-        @close="asideState.closeRightAside"
-        @add-server="handleMcpAddServer"
-        @remove-server="handleMcpRemoveServer"
-        @update-server-enabled="handleMcpServerEnabledChange"
-        @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
-      />
     </template>
   </TrLayout>
 </template>

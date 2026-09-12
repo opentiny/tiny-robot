@@ -1,18 +1,25 @@
 import { computed, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
-import type { ChatAsideOpenChangePayload, ChatAsideOptions, ChatRightAsideOptions } from '../types'
+import type {
+  ChatAsideOpenChangePayload,
+  ChatAsideOptions,
+  ChatRightAsideOptions,
+  ChatRightAsidePanelId,
+  ChatRightAsidePanelOptions,
+} from '../types'
 
 type AsideOptions = false | Readonly<ChatAsideOptions> | undefined
 
 export interface UseChatAsideStateOptions {
   leftAside: MaybeRefOrGetter<AsideOptions>
   rightAside: MaybeRefOrGetter<false | Readonly<ChatRightAsideOptions> | undefined>
-  rightAsidePanel?: MaybeRefOrGetter<string | undefined>
+  rightAsidePanel?: MaybeRefOrGetter<ChatRightAsidePanelId | undefined>
+  rightAsidePanels?: MaybeRefOrGetter<readonly ChatRightAsidePanelOptions[]>
   isMobileViewport: MaybeRefOrGetter<boolean>
   viewportWidth: MaybeRefOrGetter<number>
   onLeftOpenChange: (payload: ChatAsideOpenChangePayload) => void
   onRightOpenChange: (payload: ChatAsideOpenChangePayload) => void
-  onRightAsidePanelChange?: (panel: string | undefined) => void
+  onRightAsidePanelChange?: (panel: ChatRightAsidePanelId | undefined) => void
 }
 
 function toSize(value: number | undefined, fallback: number) {
@@ -27,11 +34,12 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const rightOpen = shallowRef(
     rightInitial !== false ? (rightInitial?.open ?? rightInitial?.defaultOpen ?? false) : false,
   )
-  const rightPanel = shallowRef<string | undefined>(rightPanelInitial)
+  const rightPanel = shallowRef<ChatRightAsidePanelId | undefined>(rightPanelInitial)
   const isMobileViewport = computed(() => toValue(options.isMobileViewport))
   const viewportWidth = computed(() => toValue(options.viewportWidth))
   const leftAside = computed(() => toValue(options.leftAside))
   const rightAside = computed(() => toValue(options.rightAside))
+  const rightAsidePanels = computed(() => toValue(options.rightAsidePanels) ?? [])
   const resolvedLeftAsideOpen = computed(() => {
     const layout = leftAside.value
     return layout !== false ? (layout?.open ?? leftOpen.value) : false
@@ -40,9 +48,12 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     const layout = rightAside.value
     return layout !== false ? (layout?.open ?? rightOpen.value) : false
   })
+  const defaultRightAsidePanel = computed(() =>
+    rightAside.value !== false ? rightAside.value?.defaultPanel : undefined,
+  )
   const resolvedRightAsidePanel = computed(() => {
     const controlledPanel = toValue(options.rightAsidePanel)
-    return controlledPanel !== undefined ? controlledPanel : rightPanel.value
+    return resolveRightAsidePanel(controlledPanel ?? rightPanel.value)
   })
   const leftAsideMode = computed(() =>
     isMobileViewport.value ? 'drawer' : leftAside.value !== false ? leftAside.value?.mode : 'dock',
@@ -91,12 +102,31 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     options.onRightOpenChange({ open, source })
   }
 
-  function setRightAsidePanel(panel: string | undefined) {
+  function setRightAsidePanel(panel: ChatRightAsidePanelId | undefined) {
+    const resolvedPanel = resolveRightAsidePanel(panel)
+    if (panel !== undefined && panel !== resolvedPanel) return false
+
     if (toValue(options.rightAsidePanel) === undefined) {
-      rightPanel.value = panel
+      rightPanel.value = resolvedPanel
     }
 
-    options.onRightAsidePanelChange?.(panel)
+    options.onRightAsidePanelChange?.(resolvedPanel)
+    return true
+  }
+
+  function hasRightAsidePanel(panel: ChatRightAsidePanelId) {
+    return rightAsidePanels.value.some((item) => item.id === panel)
+  }
+
+  function resolveRightAsidePanel(panel: ChatRightAsidePanelId | undefined) {
+    if (panel !== undefined && hasRightAsidePanel(panel)) return panel
+
+    const defaultPanel = defaultRightAsidePanel.value
+    if (defaultPanel && hasRightAsidePanel(defaultPanel)) {
+      return defaultPanel
+    }
+
+    return rightAsidePanels.value[0]?.id
   }
 
   watch(isMobileViewport, (isMobile) => {
@@ -105,6 +135,24 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
       requestRightAsideOpen(false, 'viewport')
     }
   })
+
+  watch(
+    [rightAsidePanels, defaultRightAsidePanel, rightPanel, () => toValue(options.rightAsidePanel)],
+    () => {
+      const resolvedPanel = resolvedRightAsidePanel.value
+      const controlledPanel = toValue(options.rightAsidePanel)
+
+      if (controlledPanel !== undefined) {
+        if (controlledPanel !== resolvedPanel) {
+          options.onRightAsidePanelChange?.(resolvedPanel)
+        }
+      } else if (rightPanel.value !== undefined && rightPanel.value !== resolvedPanel) {
+        rightPanel.value = resolvedPanel
+        options.onRightAsidePanelChange?.(resolvedPanel)
+      }
+    },
+    { immediate: true },
+  )
 
   return {
     leftAsideOptions,
@@ -118,8 +166,9 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     closeLeftAside: () => requestLeftAsideOpen(false),
     toggleLeftAside: () => requestLeftAsideOpen(!resolvedLeftAsideOpen.value),
     closeRightAside: () => requestRightAsideOpen(false),
-    openRightAside: (panel?: string) => {
-      if (panel !== undefined) setRightAsidePanel(panel)
+    openRightAside: (panel?: ChatRightAsidePanelId) => {
+      if (panel !== undefined && !setRightAsidePanel(panel)) return
+      if (resolvedRightAsidePanel.value === undefined) return
       requestRightAsideOpen(true)
     },
     setRightAsidePanel,

@@ -9,6 +9,7 @@ import type {
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
   ChatHistoryData,
+  ChatRightAsidePanelId,
   LayoutFloatingDragDetail,
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
@@ -20,7 +21,7 @@ const props = defineProps<{
   ui?: ChatUIOptions
   title?: string
   floatingState?: LayoutFloatingState
-  rightAsidePanel?: string
+  rightAsidePanel?: ChatRightAsidePanelId
   historyData?: ChatHistoryData
 }>()
 
@@ -39,7 +40,7 @@ const emit = defineEmits<{
   'bubble-event': [payload: ChatBubbleEventPayload]
   'left-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
   'right-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
-  'update:right-aside-panel': [value: string | undefined]
+  'update:right-aside-panel': [value: ChatRightAsidePanelId | undefined]
 }>()
 
 const adapter = useChatRuntimeAdapter({
@@ -124,14 +125,8 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     <template v-if="$slots['layout-left-aside-history-item-prefix']" #layout-left-aside-history-item-prefix="slotProps">
       <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
     </template>
-    <template v-if="$slots['layout-right-aside']" #layout-right-aside="slotProps">
-      <slot name="layout-right-aside" v-bind="slotProps" />
-    </template>
-    <template v-if="$slots['layout-right-aside-content']" #layout-right-aside-content>
-      <slot name="layout-right-aside-content" />
-    </template>
-    <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title>
-      <slot name="layout-right-aside-title" />
+    <template v-if="$slots['layout-right-aside-panel']" #layout-right-aside-panel="slotProps">
+      <slot name="layout-right-aside-panel" v-bind="slotProps" />
     </template>
     <template v-if="$slots['layout-main']" #layout-main="slotProps">
       <slot name="layout-main" v-bind="slotProps" />

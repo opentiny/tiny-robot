@@ -1,4 +1,5 @@
 import { createDefaultChatUIOptions } from './defaults'
+import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from '../types'
 import type { DefaultChatUIOptions } from './defaults'
 import type {
   ChatAsideOptions,
@@ -13,6 +14,8 @@ import type {
   ChatModelOptions,
   ChatPromptsOptions,
   ChatRightAsideOptions,
+  ChatRightAsidePanelId,
+  ChatRightAsidePanelOptions,
   ChatSenderOptions,
   ChatSurfaceOptions,
   ChatUIOptions,
@@ -46,8 +49,11 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
 }
 
 export type ResolvedChatAsideOptions = Required<Omit<ChatAsideOptions, 'open'>> & Pick<ChatAsideOptions, 'open'>
-export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open'>> &
-  Pick<ChatRightAsideOptions, 'open'>
+export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open' | 'defaultPanel' | 'panels'>> &
+  Pick<ChatRightAsideOptions, 'open'> & {
+    defaultPanel: ChatRightAsidePanelId | undefined
+    panels: readonly ChatRightAsidePanelOptions[]
+  }
 
 export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
   menuItems: NonNullable<ChatHistoryOptions['menuItems']>
@@ -165,7 +171,24 @@ function resolveRightAside(options: false | ChatRightAsideOptions | undefined): 
     collapsedWidth: options?.collapsedWidth ?? 0,
     defaultOpen: options?.defaultOpen ?? true,
     showClose: options?.showClose ?? true,
+    defaultPanel: options?.defaultPanel,
+    panels: resolveRightAsidePanels(options?.panels),
   }
+}
+
+function resolveRightAsidePanels(
+  panels: readonly ChatRightAsidePanelOptions[] | undefined,
+): readonly ChatRightAsidePanelOptions[] {
+  const seen = new Set<string>()
+
+  return (panels ?? []).filter((panel) => {
+    if (panel.id === CHAT_MCP_RIGHT_ASIDE_PANEL_ID || seen.has(panel.id)) {
+      return false
+    }
+
+    seen.add(panel.id)
+    return true
+  })
 }
 
 function resolveBrand(

@@ -4,6 +4,7 @@ export { useKitChatRuntime } from './runtime/useKitChatRuntime'
 export { useLocalChatRuntime } from './runtime/useLocalChatRuntime'
 export { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 export { useChatHistoryData, useChatHistoryItems } from './composables/useChatHistoryItems'
+export { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from './types'
 
 export type * from './types'
 
