@@ -98,6 +98,8 @@ export function createRuntimeFixture(overrides: Partial<ChatRuntime['actions']> 
     runtime: { conversations, activeConversation, composer: { model, mcp }, actions } satisfies ChatRuntime,
     model,
     mcp,
+    servers,
+    tools,
     calls,
   }
 }

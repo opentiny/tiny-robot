@@ -125,4 +125,41 @@ describe('useChatRuntimeAdapter', () => {
     await request
     expect(adapter.data.value.model?.pendingFeatureIds).toEqual([])
   })
+
+  it('keeps pending states isolated when MCP ids contain separators', async () => {
+    const firstDeferred = createDeferred<void>()
+    const secondDeferred = createDeferred<void>()
+    const fixture = createRuntimeFixture()
+    fixture.servers.value = [
+      { id: 'server:a', name: 'Server A', installed: true, enabled: true },
+      { id: 'server', name: 'Server B', installed: true, enabled: true },
+    ]
+    fixture.tools.value = {
+      'server:a': [{ id: 'tool', name: 'Tool A', enabled: false }],
+      server: [{ id: 'a:tool', name: 'Tool B', enabled: false }],
+    }
+    fixture.mcp.setToolEnabled = vi.fn((serverId, toolId) => {
+      if (serverId === 'server:a' && toolId === 'tool') return firstDeferred.promise
+      return secondDeferred.promise
+    })
+    const adapter = useChatRuntimeAdapter({ runtime: fixture.runtime, onActionError: vi.fn() })
+
+    const first = adapter.setMcpToolEnabled('server:a', 'tool', true)
+    const second = adapter.setMcpToolEnabled('server', 'a:tool', true)
+
+    await Promise.resolve()
+    expect(fixture.mcp.setToolEnabled).toHaveBeenCalledTimes(2)
+    expect(adapter.data.value.mcp?.tools).toMatchObject({
+      'server:a': [{ id: 'tool', loading: true }],
+      server: [{ id: 'a:tool', loading: true }],
+    })
+
+    firstDeferred.resolve()
+    secondDeferred.resolve()
+    await Promise.all([first, second])
+    expect(adapter.data.value.mcp?.tools).toMatchObject({
+      'server:a': [{ id: 'tool', loading: false }],
+      server: [{ id: 'a:tool', loading: false }],
+    })
+  })
 })
