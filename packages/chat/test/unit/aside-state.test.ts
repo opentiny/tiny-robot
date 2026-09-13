@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { nextTick, shallowRef } from 'vue'
 import { useChatAsideState } from '../../src/composables/useChatAsideState'
 
+const rightAsidePanels = [
+  { id: 'settings', title: 'Settings' },
+  { id: 'details', title: 'Details' },
+] as const
+
 describe('useChatAsideState', () => {
   it('supports uncontrolled state and user events', () => {
     const onLeftOpenChange = vi.fn()
@@ -42,7 +47,8 @@ describe('useChatAsideState', () => {
     const rightEvents = vi.fn()
     const state = useChatAsideState({
       leftAside: { defaultOpen: true, width: 500 },
-      rightAside: { defaultOpen: true },
+      rightAside: {},
+      defaultRightAsideOpen: true,
       isMobileViewport: mobile,
       viewportWidth: 400,
       onLeftOpenChange: leftEvents,
@@ -70,46 +76,191 @@ describe('useChatAsideState', () => {
     expect(state.resolvedRightAsideOpen.value).toBe(false)
   })
 
-  it('tracks the active right panel in uncontrolled mode', () => {
-    const onRightAsidePanelChange = vi.fn()
+  it('uses the default registered panel and opens a requested registered panel', () => {
+    const onRightAsidePanelUpdate = vi.fn()
+    const onRightAsideOpenUpdate = vi.fn()
     const state = useChatAsideState({
       leftAside: false,
-      rightAside: { defaultOpen: false },
-      rightAsidePanel: undefined,
+      rightAside: {},
+      defaultRightAsideOpen: false,
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels,
       isMobileViewport: false,
       viewportWidth: 1000,
       onLeftOpenChange: vi.fn(),
       onRightOpenChange: vi.fn(),
-      onRightAsidePanelChange,
+      onRightAsidePanelUpdate,
+      onRightAsideOpenUpdate,
     })
 
-    state.openRightAside('settings')
-
     expect(state.resolvedRightAsidePanel.value).toBe('settings')
+    state.openRightAside('details')
+
+    expect(state.resolvedRightAsidePanel.value).toBe('details')
     expect(state.resolvedRightAsideOpen.value).toBe(true)
-    expect(onRightAsidePanelChange).toHaveBeenCalledWith('settings')
+    expect(onRightAsidePanelUpdate).toHaveBeenLastCalledWith('details')
+    expect(onRightAsideOpenUpdate).toHaveBeenLastCalledWith(true)
   })
 
-  it('does not mutate a controlled right panel', () => {
-    const panel = shallowRef<string | undefined>('mcp')
-    const onRightAsidePanelChange = vi.fn()
+  it('rejects unknown panels and keeps the aside closed when no panel is registered', () => {
+    const onRightOpenChange = vi.fn()
+    const onRightAsidePanelUpdate = vi.fn()
     const state = useChatAsideState({
       leftAside: false,
-      rightAside: { defaultOpen: false },
-      rightAsidePanel: panel,
+      rightAside: {},
+      rightAsidePanels: [],
       isMobileViewport: false,
       viewportWidth: 1000,
       onLeftOpenChange: vi.fn(),
-      onRightOpenChange: vi.fn(),
-      onRightAsidePanelChange,
+      onRightOpenChange,
+      onRightAsidePanelUpdate,
     })
 
     state.openRightAside('settings')
 
-    expect(state.resolvedRightAsidePanel.value).toBe('mcp')
-    expect(onRightAsidePanelChange).toHaveBeenCalledWith('settings')
+    expect(state.resolvedRightAsidePanel.value).toBeUndefined()
+    expect(state.resolvedRightAsideOpen.value).toBe(false)
+    expect(onRightOpenChange).not.toHaveBeenCalled()
+    expect(onRightAsidePanelUpdate).not.toHaveBeenCalled()
+  })
 
-    panel.value = 'settings'
+  it('rejects an unknown panel when registered panels are available', () => {
+    const onRightOpenChange = vi.fn()
+    const onRightAsidePanelUpdate = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange,
+      onRightAsidePanelUpdate,
+    })
+
+    state.openRightAside('unknown')
+
     expect(state.resolvedRightAsidePanel.value).toBe('settings')
+    expect(state.resolvedRightAsideOpen.value).toBe(false)
+    expect(onRightOpenChange).not.toHaveBeenCalled()
+    expect(onRightAsidePanelUpdate).not.toHaveBeenCalled()
+  })
+
+  it('requests a registered panel without mutating the controlled panel', () => {
+    const panel = shallowRef<string | undefined>('settings')
+    const onRightAsidePanelUpdate = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      activeRightAsidePanelId: panel,
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+      onRightAsidePanelUpdate,
+    })
+
+    state.openRightAside('details')
+
+    expect(state.resolvedRightAsidePanel.value).toBe('settings')
+    expect(onRightAsidePanelUpdate).toHaveBeenCalledWith('details')
+
+    panel.value = 'details'
+    expect(state.resolvedRightAsidePanel.value).toBe('details')
+  })
+
+  it('separates panel activation from opening the right aside', () => {
+    const onRightAsideOpenUpdate = vi.fn()
+    const onRightAsidePanelUpdate = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      defaultRightAsideOpen: false,
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+      onRightAsideOpenUpdate,
+      onRightAsidePanelUpdate,
+    })
+
+    expect(state.activateRightAsidePanel('details')).toBe(true)
+    expect(state.resolvedRightAsidePanel.value).toBe('details')
+    expect(state.resolvedRightAsideOpen.value).toBe(false)
+    expect(onRightAsideOpenUpdate).not.toHaveBeenCalled()
+
+    state.toggleRightAside('details')
+    expect(state.resolvedRightAsideOpen.value).toBe(true)
+    expect(onRightAsideOpenUpdate).toHaveBeenCalledWith(true)
+    expect(onRightAsidePanelUpdate).toHaveBeenCalledWith('details')
+  })
+
+  it('closes without clearing the active panel', () => {
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      defaultRightAsideOpen: true,
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+    })
+
+    state.closeRightAside()
+
+    expect(state.resolvedRightAsideOpen.value).toBe(false)
+    expect(state.resolvedRightAsidePanel.value).toBe('settings')
+  })
+
+  it('falls back when the active registered panel is removed', async () => {
+    const panels = shallowRef([...rightAsidePanels])
+    const onRightAsidePanelUpdate = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels: panels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+      onRightAsidePanelUpdate,
+    })
+
+    state.openRightAside('details')
+    panels.value = [{ id: 'settings', title: 'Settings' }]
+    await nextTick()
+
+    expect(state.resolvedRightAsidePanel.value).toBe('settings')
+    expect(onRightAsidePanelUpdate).toHaveBeenLastCalledWith('settings')
+  })
+
+  it('falls back to the first registered panel for invalid defaults and controlled values', async () => {
+    const panel = shallowRef<string | undefined>('unknown')
+    const onRightAsidePanelUpdate = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      defaultActiveRightAsidePanelId: 'missing',
+      activeRightAsidePanelId: panel,
+      rightAsidePanels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+      onRightAsidePanelUpdate,
+    })
+
+    await nextTick()
+
+    expect(state.resolvedRightAsidePanel.value).toBe('settings')
+    expect(onRightAsidePanelUpdate).toHaveBeenCalledWith('settings')
   })
 })

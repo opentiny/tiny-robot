@@ -270,7 +270,6 @@ export function createChatUi(options: ChatUiConfigOptions): ChatUIOptions {
       rightAside: {
         mode: 'drawer',
         width: 400,
-        defaultOpen: false,
       },
       surface: { mode: 'floating', floatingOptions: options.floatingOptions },
       emptyState: 'center',

@@ -30,15 +30,35 @@ describe('UI resolvers', () => {
     expect(data.sender).toEqual({ loading: false, disabled: false, submitDisabled: false })
   })
 
-  it('resolves defaults and explicit right aside sections', () => {
+  it('resolves defaults and registered right aside panels', () => {
     expect(resolveChatUIOptions(undefined).layout.rightAside).toBe(false)
     expect(resolveChatUIOptions(undefined).layout.surface.mode).toBe('normal')
     expect(resolveChatUIOptions(undefined).layout.emptyState).toBe('start')
     expect(resolveChatUIOptions(undefined).layout.composer.welcome).toBe('footer')
     expect(resolveChatUIOptions({ sender: false, history: false }).sender).toBe(false)
-    expect(resolveChatUIOptions({ layout: { rightAside: {} } }).layout.rightAside).toMatchObject({
-      defaultOpen: true,
+    expect(resolveChatUIOptions({ layout: { rightAside: {} } }).layout.rightAside).toEqual({
+      mode: 'dock',
+      width: 320,
+      collapsedWidth: 0,
+      showClose: true,
+      panels: [],
     })
+    const rightAside = resolveChatUIOptions({
+      layout: {
+        rightAside: {
+          panels: [
+            { id: 'settings', title: 'Settings' },
+            { id: 'settings', title: 'Duplicate settings' },
+            { id: 'mcp', title: 'Reserved MCP panel' },
+            { id: 'details' },
+          ],
+        },
+      },
+    }).layout.rightAside
+    expect(rightAside === false ? [] : rightAside.panels).toEqual([
+      { id: 'settings', title: 'Settings' },
+      { id: 'details' },
+    ])
     expect(resolveChatUIOptions({ layout: { rightAside: false } }).layout.rightAside).toBe(false)
     expect(resolveChatUIOptions({ layout: { composer: { welcome: 'center' } } }).layout.composer.welcome).toBe('center')
     const floatingOptions = { draggable: true, minWidth: 360 }

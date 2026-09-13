@@ -13,13 +13,17 @@ type AsideOptions = false | Readonly<ChatAsideOptions> | undefined
 export interface UseChatAsideStateOptions {
   leftAside: MaybeRefOrGetter<AsideOptions>
   rightAside: MaybeRefOrGetter<false | Readonly<ChatRightAsideOptions> | undefined>
-  rightAsidePanel?: MaybeRefOrGetter<ChatRightAsidePanelId | undefined>
+  rightAsideOpen?: MaybeRefOrGetter<boolean | undefined>
+  defaultRightAsideOpen?: MaybeRefOrGetter<boolean | undefined>
+  activeRightAsidePanelId?: MaybeRefOrGetter<ChatRightAsidePanelId | undefined>
+  defaultActiveRightAsidePanelId?: MaybeRefOrGetter<ChatRightAsidePanelId | undefined>
   rightAsidePanels?: MaybeRefOrGetter<readonly ChatRightAsidePanelOptions[]>
   isMobileViewport: MaybeRefOrGetter<boolean>
   viewportWidth: MaybeRefOrGetter<number>
   onLeftOpenChange: (payload: ChatAsideOpenChangePayload) => void
   onRightOpenChange: (payload: ChatAsideOpenChangePayload) => void
-  onRightAsidePanelChange?: (panel: ChatRightAsidePanelId | undefined) => void
+  onRightAsideOpenUpdate?: (open: boolean) => void
+  onRightAsidePanelUpdate?: (panel: ChatRightAsidePanelId | undefined) => void
 }
 
 function toSize(value: number | undefined, fallback: number) {
@@ -28,33 +32,28 @@ function toSize(value: number | undefined, fallback: number) {
 
 export function useChatAsideState(options: UseChatAsideStateOptions) {
   const leftInitial = toValue(options.leftAside)
-  const rightInitial = toValue(options.rightAside)
-  const rightPanelInitial = toValue(options.rightAsidePanel)
-  const leftOpen = shallowRef(leftInitial !== false ? (leftInitial?.open ?? leftInitial?.defaultOpen ?? false) : false)
-  const rightOpen = shallowRef(
-    rightInitial !== false ? (rightInitial?.open ?? rightInitial?.defaultOpen ?? false) : false,
-  )
-  const rightPanel = shallowRef<ChatRightAsidePanelId | undefined>(rightPanelInitial)
+  const leftOpen = shallowRef(leftInitial !== false ? (leftInitial?.defaultOpen ?? false) : false)
+  const rightOpen = shallowRef(toValue(options.defaultRightAsideOpen) ?? false)
+  const rightPanel = shallowRef<ChatRightAsidePanelId | undefined>(undefined)
   const isMobileViewport = computed(() => toValue(options.isMobileViewport))
   const viewportWidth = computed(() => toValue(options.viewportWidth))
   const leftAside = computed(() => toValue(options.leftAside))
   const rightAside = computed(() => toValue(options.rightAside))
   const rightAsidePanels = computed(() => toValue(options.rightAsidePanels) ?? [])
+  const controlledRightAsideOpen = computed(() => toValue(options.rightAsideOpen))
+  const controlledRightAsidePanel = computed(() => toValue(options.activeRightAsidePanelId))
+  const defaultRightAsidePanel = computed(() => toValue(options.defaultActiveRightAsidePanelId))
   const resolvedLeftAsideOpen = computed(() => {
     const layout = leftAside.value
     return layout !== false ? (layout?.open ?? leftOpen.value) : false
   })
   const resolvedRightAsideOpen = computed(() => {
     const layout = rightAside.value
-    return layout !== false ? (layout?.open ?? rightOpen.value) : false
+    return layout !== false ? (controlledRightAsideOpen.value ?? rightOpen.value) : false
   })
-  const defaultRightAsidePanel = computed(() =>
-    rightAside.value !== false ? rightAside.value?.defaultPanel : undefined,
+  const resolvedRightAsidePanel = computed(() =>
+    resolveRightAsidePanel(controlledRightAsidePanel.value ?? rightPanel.value),
   )
-  const resolvedRightAsidePanel = computed(() => {
-    const controlledPanel = toValue(options.rightAsidePanel)
-    return resolveRightAsidePanel(controlledPanel ?? rightPanel.value)
-  })
   const leftAsideMode = computed(() =>
     isMobileViewport.value ? 'drawer' : leftAside.value !== false ? leftAside.value?.mode : 'dock',
   )
@@ -98,20 +97,9 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
 
   function requestRightAsideOpen(open: boolean, source: ChatAsideOpenChangePayload['source'] = 'user') {
     if (resolvedRightAsideOpen.value === open) return
-    if (rightAside.value !== false && rightAside.value?.open === undefined) rightOpen.value = open
+    if (controlledRightAsideOpen.value === undefined) rightOpen.value = open
+    options.onRightAsideOpenUpdate?.(open)
     options.onRightOpenChange({ open, source })
-  }
-
-  function setRightAsidePanel(panel: ChatRightAsidePanelId | undefined) {
-    const resolvedPanel = resolveRightAsidePanel(panel)
-    if (panel !== undefined && panel !== resolvedPanel) return false
-
-    if (toValue(options.rightAsidePanel) === undefined) {
-      rightPanel.value = resolvedPanel
-    }
-
-    options.onRightAsidePanelChange?.(resolvedPanel)
-    return true
   }
 
   function hasRightAsidePanel(panel: ChatRightAsidePanelId) {
@@ -120,13 +108,37 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
 
   function resolveRightAsidePanel(panel: ChatRightAsidePanelId | undefined) {
     if (panel !== undefined && hasRightAsidePanel(panel)) return panel
-
-    const defaultPanel = defaultRightAsidePanel.value
-    if (defaultPanel && hasRightAsidePanel(defaultPanel)) {
-      return defaultPanel
+    if (defaultRightAsidePanel.value && hasRightAsidePanel(defaultRightAsidePanel.value)) {
+      return defaultRightAsidePanel.value
     }
-
     return rightAsidePanels.value[0]?.id
+  }
+
+  function activateRightAsidePanel(panel: ChatRightAsidePanelId) {
+    if (!hasRightAsidePanel(panel)) return false
+    if (controlledRightAsidePanel.value === undefined) rightPanel.value = panel
+    options.onRightAsidePanelUpdate?.(panel)
+    return true
+  }
+
+  function openRightAside(panel?: ChatRightAsidePanelId) {
+    if (panel !== undefined && !activateRightAsidePanel(panel)) return
+    if (resolvedRightAsidePanel.value === undefined) return
+    requestRightAsideOpen(true)
+  }
+
+  function closeRightAside() {
+    requestRightAsideOpen(false)
+  }
+
+  function toggleRightAside(panel?: ChatRightAsidePanelId) {
+    if (panel !== undefined && !hasRightAsidePanel(panel)) return
+    if (panel !== undefined && panel !== resolvedRightAsidePanel.value) {
+      activateRightAsidePanel(panel)
+      requestRightAsideOpen(true)
+      return
+    }
+    requestRightAsideOpen(!resolvedRightAsideOpen.value)
   }
 
   watch(isMobileViewport, (isMobile) => {
@@ -137,18 +149,18 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   })
 
   watch(
-    [rightAsidePanels, defaultRightAsidePanel, rightPanel, () => toValue(options.rightAsidePanel)],
+    [rightAsidePanels, defaultRightAsidePanel, rightPanel, controlledRightAsidePanel],
     () => {
       const resolvedPanel = resolvedRightAsidePanel.value
-      const controlledPanel = toValue(options.rightAsidePanel)
-
-      if (controlledPanel !== undefined) {
-        if (controlledPanel !== resolvedPanel) {
-          options.onRightAsidePanelChange?.(resolvedPanel)
+      if (controlledRightAsidePanel.value !== undefined) {
+        if (controlledRightAsidePanel.value !== resolvedPanel) {
+          options.onRightAsidePanelUpdate?.(resolvedPanel)
         }
       } else if (rightPanel.value !== undefined && rightPanel.value !== resolvedPanel) {
         rightPanel.value = resolvedPanel
-        options.onRightAsidePanelChange?.(resolvedPanel)
+        options.onRightAsidePanelUpdate?.(resolvedPanel)
+      } else if (rightPanel.value === undefined && resolvedPanel !== undefined) {
+        rightPanel.value = resolvedPanel
       }
     },
     { immediate: true },
@@ -165,13 +177,10 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     openLeftAside: () => requestLeftAsideOpen(true),
     closeLeftAside: () => requestLeftAsideOpen(false),
     toggleLeftAside: () => requestLeftAsideOpen(!resolvedLeftAsideOpen.value),
-    closeRightAside: () => requestRightAsideOpen(false),
-    openRightAside: (panel?: ChatRightAsidePanelId) => {
-      if (panel !== undefined && !setRightAsidePanel(panel)) return
-      if (resolvedRightAsidePanel.value === undefined) return
-      requestRightAsideOpen(true)
-    },
-    setRightAsidePanel,
+    openRightAside,
+    closeRightAside,
+    toggleRightAside,
+    activateRightAsidePanel,
     handleLeftAsideOpenChange: (payload: { open: boolean }) => requestLeftAsideOpen(payload.open),
     handleRightAsideOpenChange: (payload: { open: boolean }) => requestRightAsideOpen(payload.open),
   }

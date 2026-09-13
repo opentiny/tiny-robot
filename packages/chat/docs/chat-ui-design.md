@@ -85,7 +85,6 @@ clear
 create-conversation
 switch-conversation
 rename-conversation
-delete-conversation
 history-action
 prompt-click
 bubble-state-change
@@ -134,8 +133,7 @@ right-aside-open-change
 | `layout-main` | `messages`、`request`、`conversation` |
 | `layout-footer` | `value`、Sender 状态、输入、提交、取消和清空操作 |
 | `request-error` | `error` |
-| `layout-right-aside` | 右栏正文，无 Slot props |
-| `layout-right-aside-title` | 右栏标题，无 Slot props |
+| `layout-right-aside-panel` | 当前业务右栏面板，提供 `panelId`、`panel`、`panels` 和右栏操作 |
 
 Slot props 只暴露公开数据和操作函数，不暴露内部组件实例。
 
@@ -175,15 +173,15 @@ sender-footer-right
 - ChatUI 不等待事件处理、不维护业务 pending，也不伪造成功状态。
 - `useChatRuntimeAdapter` 负责 Runtime action、错误捕获、并发去重和临时 pending。
 
-Bubble payload 保留 `messageIndex` 和 `contentIndex`。`messageIndex` 指向过滤后的可见消息列表。
+Bubble payload 保留 `messageIndex` 和 `contentIndex`。`messageIndex` 指向原始消息列表。
 
 ## 9. Aside
 
 - Desktop 断点为 `960px`，左栏默认使用 dock。
 - Mobile 强制使用 drawer，左栏宽度不超过 viewport 的 `86%`。
-- `defaultOpen` 只用于初始化。
-- `open` 存在时为受控模式。
-- 外部修改 `open` 只更新展示状态，不触发 `*-aside-open-change`。
+- `defaultOpen` 只用于左栏初始化；右栏使用 `defaultRightAsideOpen` 和 `defaultActiveRightAsidePanelId`。
+- 右栏的 `rightAsideOpen` 和 `activeRightAsidePanelId` 分别为受控状态。
+- 外部修改受控状态只更新展示，不触发 `*-aside-open-change`。
 - 用户操作和 viewport 行为才触发 `*-aside-open-change`，payload 为：
 
 ```ts
@@ -195,16 +193,17 @@ interface ChatAsideOpenChangePayload {
 
 - `user` 表示用户点击 Header、Aside 或 Drawer 等控制。
 - `viewport` 表示响应式断点切换导致组件主动关闭 Aside。
-- 外部修改 `layout.*Aside.open` 只更新展示，不派发 `open-change`。
+- 右栏的 `rightAsideOpen` 和 `activeRightAsidePanelId` 是运行时受控状态；`layout.rightAside` 只描述布局和静态面板集合。
 - `layout.rightAside === false` 优先级最高。
-- `layout.rightAside` 是右栏唯一的启用开关：未配置或设置为 `false` 时不创建右栏，设置为对象时创建右栏。
-- `layout-right-aside` 和 `layout-right-aside-title` Slot 只提供右栏内容，不参与右栏启用判断。
+- `layout.rightAside` 配置右栏容器和注册面板；默认状态通过 `defaultRightAsideOpen`、`defaultActiveRightAsidePanelId` 提供，存在可用注册面板或 MCP Server 时才创建右栏。
+- 业务面板由 `layout.rightAside.panels` 注册，并通过 `layout-right-aside-panel` 按 `panelId` 渲染。
+- `mcp` 是内置保留 ID；未知 ID 不会打开右栏，失效 ID 回退到首个可用面板。
 - 右栏关闭后可从 Header 重新打开。
 - 左栏关闭时，Header 保留新建会话入口。
 
 ## 10. TrChat 事件边界
 
-`TrChat` 消费会话、提交、Model 和 MCP 事件；`useChatRuntimeAdapter` 调用 Runtime 并报告动作错误，不向外重复转发。Prompt、Bubble 和 Aside 事件由 `TrChat` 原样转发；`history-action` 中的 `delete` 由 Adapter 调用 Runtime 删除会话，其他 action 原样转发。
+`TrChat` 消费会话、提交、Model 和 MCP 事件；`useChatRuntimeAdapter` 调用 Runtime 并报告动作错误，不向外重复转发。Prompt、Bubble 和 Aside 事件由 `TrChat` 原样转发；`history-action` 先派发，`delete` 未被 `preventDefault()` 取消时由 `TrChat` 调用 Runtime 删除会话。
 
 ## 11. 默认值与高度
 

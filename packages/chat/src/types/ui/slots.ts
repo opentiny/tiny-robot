@@ -40,8 +40,11 @@ export interface ChatHistoryItemPrefixSlotProps {
 export interface ChatRightAsidePanelSlotProps {
   readonly panelId: ChatRightAsidePanelId | undefined
   readonly panel?: ChatRightAsidePanelOptions
+  readonly panels: readonly ChatRightAsidePanelOptions[]
   readonly openRightAside: (panelId?: ChatRightAsidePanelId) => void
   readonly closeRightAside: () => void
+  readonly toggleRightAside: (panelId?: ChatRightAsidePanelId) => void
+  readonly activateRightAsidePanel: (panelId: ChatRightAsidePanelId) => void
   readonly isRightAsideOpen: boolean
 }
 

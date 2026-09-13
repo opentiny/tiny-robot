@@ -14,7 +14,6 @@ import type {
   ChatModelOptions,
   ChatPromptsOptions,
   ChatRightAsideOptions,
-  ChatRightAsidePanelId,
   ChatRightAsidePanelOptions,
   ChatSenderOptions,
   ChatSurfaceOptions,
@@ -49,11 +48,9 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
 }
 
 export type ResolvedChatAsideOptions = Required<Omit<ChatAsideOptions, 'open'>> & Pick<ChatAsideOptions, 'open'>
-export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'open' | 'defaultPanel' | 'panels'>> &
-  Pick<ChatRightAsideOptions, 'open'> & {
-    defaultPanel: ChatRightAsidePanelId | undefined
-    panels: readonly ChatRightAsidePanelOptions[]
-  }
+export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'panels'>> & {
+  panels: readonly ChatRightAsidePanelOptions[]
+}
 
 export type ResolvedChatHistoryOptions = ChatHistoryOptions & {
   menuItems: NonNullable<ChatHistoryOptions['menuItems']>
@@ -165,13 +162,10 @@ function resolveRightAside(options: false | ChatRightAsideOptions | undefined): 
   }
 
   return {
-    open: options?.open,
     mode: options?.mode ?? 'dock',
     width: options?.width ?? 320,
     collapsedWidth: options?.collapsedWidth ?? 0,
-    defaultOpen: options?.defaultOpen ?? true,
     showClose: options?.showClose ?? true,
-    defaultPanel: options?.defaultPanel,
     panels: resolveRightAsidePanels(options?.panels),
   }
 }

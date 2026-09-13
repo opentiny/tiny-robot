@@ -100,7 +100,6 @@ const chatUi = {
     rightAside: {
       mode: 'dock',
       width: 400,
-      defaultOpen: false,
     },
   },
 } satisfies ChatUIOptions

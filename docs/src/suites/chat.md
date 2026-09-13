@@ -507,7 +507,7 @@ const ui: ChatUIOptions = {
       collapsedWidth: 56,
       defaultOpen: true,
     },
-    rightAside: { mode: 'drawer', width: 320, defaultOpen: false },
+    rightAside: { mode: 'drawer', width: 320 },
   },
   welcome: { title: '开始一个新问题', description: '输入内容开始对话。' },
   prompts: { items: [{ label: '总结这段内容' }, { label: '列出执行步骤' }] },
@@ -517,7 +517,7 @@ const ui: ChatUIOptions = {
 }
 ```
 
-可设为 `false` 的区域包括 `header`、`history`、`welcome`、`prompts`、`sender`、`model`、`mcp`；`layout.leftAside` 和 `layout.rightAside` 也可以设为 `false`。右侧栏的唯一启用开关是 `layout.rightAside`：未配置或为 `false` 时，即使提供右侧栏插槽也不会创建右栏。
+可设为 `false` 的区域包括 `header`、`history`、`welcome`、`prompts`、`sender`、`model`、`mcp`；`layout.leftAside` 和 `layout.rightAside` 也可以设为 `false`。右侧栏需要配置且存在可用业务面板或 MCP Server 才会创建。
 
 ### normal 与 floating
 
@@ -557,7 +557,6 @@ Chat 使用 `960px` 作为桌面与移动端断点：
 | `layout-left-aside`  | 会话数据和会话 CRUD 操作                 |
 | `layout-main`        | `messages`、`request`、`conversation`    |
 | `layout-footer`      | 输入值、提交、取消、清空和输入状态       |
-| `layout-right-aside` | `panel`、打开/关闭右栏函数和当前打开状态 |
 
 左侧栏局部扩展：
 
@@ -575,14 +574,27 @@ Chat 使用 `960px` 作为桌面与移动端断点：
 | Slot                                                                         | 用途                               |
 | ---------------------------------------------------------------------------- | ---------------------------------- |
 | `header-notice`                                                              | Header 提示                        |
-| `layout-right-aside-content` / `layout-right-aside-title`                    | 保留右栏外壳，自定义正文或标题     |
+| `layout-right-aside-panel`                                                    | 当前业务右栏面板，参数含 `panelId`、`panel`、`panels` 和右栏操作 |
 | `composer-before`                                                            | 输入区前方内容                     |
 | `sender-footer` / `sender-footer-right`                                      | 输入区底部内容                     |
 | `request-error`                                                              | 自定义请求错误，参数为 `{ error }` |
 | `welcome-footer` / `prompts-footer`                                          | 欢迎和提示区域底部                 |
 | `bubble-prefix` / `bubble-suffix` / `bubble-after` / `bubble-content-footer` | 消息内容周边扩展                   |
 
-右侧栏插槽只提供内容，不负责启用右栏；需要先设置 `ui.layout.rightAside`。
+右侧栏通过注册面板启用并渲染。配置 `layout.rightAside.panels` 后，使用 `layout-right-aside-panel` 根据 `panelId` 渲染业务内容；`defaultActiveRightAsidePanelId` 指定默认面板，`defaultRightAsideOpen` 指定初始开闭状态。`mcp` 是内置保留 ID，业务不能注册；未知 ID 不会打开右栏，失效 ID 会回退到首个可用面板。
+
+```vue
+<TrChat
+  :runtime="runtime"
+  :ui="{ layout: { rightAside: { panels: [{ id: 'details', title: '详情' }] } } }"
+  v-model:right-aside-open="rightAsideOpen"
+  v-model:active-right-aside-panel-id="activeRightAsidePanelId"
+>
+  <template #layout-right-aside-panel="{ panelId }">
+    <DetailPanel v-if="panelId === 'details'" />
+  </template>
+</TrChat>
+```
 
 ### Events
 
@@ -593,8 +605,8 @@ Chat 使用 `960px` 作为桌面与移动端断点：
 | `submit`                                                | `TrChatUI` 派发 `ChatSendPayload`；`TrChat` 内部消费       |
 | `cancel` / `clear`                                      | 取消请求或清空输入；`TrChat` 内部消费                      |
 | `create-conversation` / `switch-conversation`           | 会话创建或切换；`TrChat` 内部消费                          |
-| `rename-conversation` / `delete-conversation`           | 会话修改；`TrChat` 内部消费                                |
-| `history-action`                                        | 历史菜单动作；`delete` 默认由 `TrChat` 消费，其余向外转发  |
+| `rename-conversation`                                   | 会话重命名；`TrChat` 内部消费                              |
+| `history-action`                                        | 历史菜单动作；先向外派发，`delete` 未被 `preventDefault()` 取消时由 `TrChat` 默认处理 |
 | `prompt-click`                                          | 提示项点击，参数含原始 MouseEvent 和提示项                 |
 | `bubble-state-change` / `bubble-event`                  | 气泡状态变化或自定义事件                                   |
 | `model-select` / `model-feature-change`                 | 模型或 `thinking`/`search` 能力变化                        |
@@ -602,11 +614,13 @@ Chat 使用 `960px` 作为桌面与移动端断点：
 | `mcp-server-enabled-change` / `mcp-tool-enabled-change` | MCP Server 或工具启停                                      |
 | `left-aside-open-change` / `right-aside-open-change`    | 侧栏状态变化，payload 为 `{ open, source }`                |
 | `runtime-action-error`                                  | `TrChat` 动作失败，payload 为 `{ action, payload, error }` |
-| `update:right-aside-panel`                              | 右栏当前面板变化                                           |
+| `update:right-aside-open` / `update:active-right-aside-panel-id` | 右栏开闭或当前面板变化                              |
 | `update:floating-state`                                 | 浮动布局位置或尺寸变化                                     |
 | `floating-drag-*` / `floating-resize-*`                 | 浮层拖拽或缩放生命周期                                     |
 
 不要在 `TrChat` 外部重复处理它已经消费的发送、取消、会话、模型和 MCP 事件；应监听 `runtime-action-error` 统一处理动作错误。
+
+事件 payload 使用领域字段：会话操作为 `conversationId`，模型选择为 `modelId`，模型能力开关为 `featureId`，MCP Server 操作为 `serverId`。
 
 ## 独立使用 TrChatUI
 

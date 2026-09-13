@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import ChatUI from './ChatUI.vue'
 import { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 import type {
@@ -16,12 +17,24 @@ import type {
   ChatUIOptions,
 } from './types'
 
+interface ChatUIActions {
+  openRightAside: (panel?: ChatRightAsidePanelId) => void
+  closeRightAside: () => void
+  toggleRightAside: (panel?: ChatRightAsidePanelId) => void
+  activateRightAsidePanel: (panel: ChatRightAsidePanelId) => boolean
+}
+
+const chatUIRef = ref<ChatUIActions | null>(null)
+
 const props = defineProps<{
   runtime: ChatRuntime
   ui?: ChatUIOptions
   title?: string
   floatingState?: LayoutFloatingState
-  rightAsidePanel?: ChatRightAsidePanelId
+  rightAsideOpen?: boolean
+  defaultRightAsideOpen?: boolean
+  activeRightAsidePanelId?: ChatRightAsidePanelId
+  defaultActiveRightAsidePanelId?: ChatRightAsidePanelId
   historyData?: ChatHistoryData
 }>()
 
@@ -40,7 +53,8 @@ const emit = defineEmits<{
   'bubble-event': [payload: ChatBubbleEventPayload]
   'left-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
   'right-aside-open-change': [{ open: boolean; source: 'user' | 'viewport' }]
-  'update:right-aside-panel': [value: ChatRightAsidePanelId | undefined]
+  'update:right-aside-open': [value: boolean]
+  'update:active-right-aside-panel-id': [value: ChatRightAsidePanelId | undefined]
 }>()
 
 const adapter = useChatRuntimeAdapter({
@@ -52,6 +66,10 @@ const adapter = useChatRuntimeAdapter({
 
 defineExpose({
   send: adapter.send,
+  openRightAside: (panel?: ChatRightAsidePanelId) => chatUIRef.value?.openRightAside(panel),
+  closeRightAside: () => chatUIRef.value?.closeRightAside(),
+  toggleRightAside: (panel?: ChatRightAsidePanelId) => chatUIRef.value?.toggleRightAside(panel),
+  activateRightAsidePanel: (panel: ChatRightAsidePanelId) => chatUIRef.value?.activateRightAsidePanel(panel) ?? false,
 })
 
 function handleHistoryAction(payload: ChatHistoryActionPayload) {
@@ -67,10 +85,14 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
 
 <template>
   <ChatUI
+    ref="chatUIRef"
     :data="adapter.data.value"
     :ui="props.ui"
     :floating-state="props.floatingState"
-    :right-aside-panel="props.rightAsidePanel"
+    :right-aside-open="props.rightAsideOpen"
+    :default-right-aside-open="props.defaultRightAsideOpen"
+    :active-right-aside-panel-id="props.activeRightAsidePanelId"
+    :default-active-right-aside-panel-id="props.defaultActiveRightAsidePanelId"
     :input-value="adapter.inputValue.value"
     @create-conversation="adapter.createConversation"
     @switch-conversation="({ conversationId }) => adapter.switchConversation(conversationId)"
@@ -81,7 +103,8 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @bubble-event="(payload) => emit('bubble-event', payload)"
     @left-aside-open-change="(payload) => emit('left-aside-open-change', payload)"
     @right-aside-open-change="(payload) => emit('right-aside-open-change', payload)"
-    @update:right-aside-panel="(value) => emit('update:right-aside-panel', value)"
+    @update:right-aside-open="(value) => emit('update:right-aside-open', value)"
+    @update:active-right-aside-panel-id="(value) => emit('update:active-right-aside-panel-id', value)"
     @update:floating-state="(value) => emit('update:floating-state', value)"
     @floating-drag-start="(detail) => emit('floating-drag-start', detail)"
     @floating-drag="(detail) => emit('floating-drag', detail)"

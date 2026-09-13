@@ -671,7 +671,7 @@ const ui: ChatUIOptions = {
 | `layout.panelPadding`    | 面板内边距，默认 `12`                                                                                                                     |
 | `layout.panelGap`        | 面板间距，默认 `12`                                                                                                                       |
 | `layout.leftAside`       | 左侧会话栏；可设置 `mode`、`width`、`collapsedWidth`、`open`、`defaultOpen`                                                               |
-| `layout.rightAside`      | 右侧详情栏的唯一启用开关；未配置或设置为 `false` 时不创建右栏，设置为 `{}` 或具体配置时创建右栏，可配置侧栏模式、宽度、打开状态和关闭按钮 |
+| `layout.rightAside`      | 右侧详情栏配置；可配置侧栏模式、宽度、关闭按钮和注册面板。存在可用注册面板或 MCP Server 时才创建右栏 |
 | `header`                 | 顶部栏配置为 `false` 时隐藏顶部栏                                                                                                         |
 | `history`                | 配置会话列表及菜单项，或设置为 `false` 隐藏会话列表                                                                                       |
 | `welcome`                | 空会话欢迎区域，或设置为 `false` 隐藏                                                                                                     |
@@ -694,7 +694,7 @@ const ui: ChatUIOptions = {
 | `layout.composer.welcome`        | 欢迎页输入框放在 `footer` 或 `center` 区域         |
 | `layout.leftAside: false`        | 完全关闭左侧会话栏                                 |
 
-浮动布局可以通过 `TrChat` 或 `TrChatUI` 的 `floatingState` 受控，并监听 `update:floating-state`、`floating-drag*` 和 `floating-resize*` 事件。右侧栏还可以通过 `rightAsidePanel` 受控指定当前面板，并监听 `update:right-aside-panel`。
+浮动布局可以通过 `TrChat` 或 `TrChatUI` 的 `floatingState` 受控，并监听 `update:floating-state`、`floating-drag*` 和 `floating-resize*` 事件。右侧栏的开闭和当前面板分别通过 `rightAsideOpen`、`activeRightAsidePanelId` 受控，并监听对应的 `update:*` 事件。
 
 ### 6.3 隐藏功能区
 
@@ -717,21 +717,26 @@ const ui: ChatUIOptions = {
 - `drawer`：抽屉模式。
 - `width`：桌面端展开宽度。
 - `collapsedWidth`：桌面端折叠后的宽度。
-- `defaultOpen`：非受控模式的初始状态。
-- `open`：受控模式的当前状态。
+- `defaultRightAsideOpen`：右栏非受控模式的初始状态。
+- `defaultActiveRightAsidePanelId`：当前面板非受控模式的初始值。
 
-当 `open` 存在时，组件不会用内部状态写回它；用户操作和移动端断点行为仍会通过 `left-aside-open-change` 或 `right-aside-open-change` 通知外部。
+右栏可以通过 `rightAsideOpen` 和 `activeRightAsidePanelId` 分别受控；组件不会直接修改外部值。用户操作和移动端断点行为仍会通过 `right-aside-open-change` 通知外部。
 
 ## 7. 自定义内容：插槽
 
 只在需要替换或补充某个区域时使用插槽。常用插槽如下：
 
-`layout-right-aside` 和 `layout-right-aside-title` 只提供右栏内容，不会启用右栏。需要先通过 `ui.layout.rightAside` 显式启用：
+业务右栏面板通过 `layout.rightAside.panels` 注册，再由 `layout-right-aside-panel` 按当前 `panelId` 渲染。默认值通过 `defaultRightAsideOpen` 和 `defaultActiveRightAsidePanelId` 传入。`mcp` 是内置保留 ID，业务不能注册；未知 ID 不会打开右栏，失效 ID 会回退到第一个可用面板：
 
 ```vue
-<TrChat :runtime="runtime" :ui="{ layout: { rightAside: {} } }">
-  <template #layout-right-aside>
-    <DetailPanel />
+<TrChat
+  :runtime="runtime"
+  :ui="{ layout: { rightAside: { panels: [{ id: 'details', title: '详情' }] } } }"
+  v-model:right-aside-open="rightAsideOpen"
+  v-model:active-right-aside-panel-id="activeRightAsidePanelId"
+>
+  <template #layout-right-aside-panel="{ panelId }">
+    <DetailPanel v-if="panelId === 'details'" />
   </template>
 </TrChat>
 ```
@@ -740,9 +745,7 @@ const ui: ChatUIOptions = {
 | ---------------------------- | -------------------------------------------------------------------- |
 | `header-notice`              | 顶部标题下方的提示区域                                               |
 | `request-error`              | 替换请求错误显示内容，提供 `error`                                   |
-| `layout-right-aside`         | 完整替换右侧详情栏，提供 `panel`、打开/关闭操作和打开状态 Slot Props |
-| `layout-right-aside-content` | 保留右侧栏外壳，只替换右侧栏正文                                     |
-| `layout-right-aside-title`   | 右侧详情栏标题                                                       |
+| `layout-right-aside-panel`   | 当前业务右栏面板正文，提供 `panelId`、`panel`、`panels` 和右栏操作 Slot Props |
 | `composer-before`            | 输入框前方的扩展内容，提供输入和提交操作 Slot Props                  |
 | `sender-footer`              | 输入区底部附加内容                                                   |
 | `sender-footer-right`        | 输入区底部右侧附加内容                                               |
@@ -862,7 +865,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 - `left-aside-open-change`：左侧栏打开状态变化。
 - `right-aside-open-change`：右侧栏打开状态变化。
 
-发送、取消、会话、模型和 MCP 操作已经由 `TrChat` 消费，不要在外部再次处理这些对应的 UI 事件。`history-action` 中 ID 为 `delete` 的默认删除行为也已经由 `TrChat` 处理；其他自定义菜单动作由外部处理。
+发送、取消、会话、模型和 MCP 操作已经由 `TrChat` 消费，不要在外部再次处理这些对应的 UI 事件。`history-action` 会先向外派发；ID 为 `delete` 时，未调用 `payload.preventDefault()` 才由 `TrChat` 执行默认删除，其他自定义菜单动作由外部处理。
 
 侧栏事件的 payload 为 `{ open, source }`，其中 `source` 是 `user` 或 `viewport`，分别表示用户操作或响应式断点导致的关闭。
 

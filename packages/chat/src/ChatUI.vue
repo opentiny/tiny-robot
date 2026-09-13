@@ -85,13 +85,24 @@ const isRightAsideVisible = computed(() => hasRightAsideContent.value && effecti
 const asideState = useChatAsideState({
   leftAside: leftAsideLayout,
   rightAside: effectiveRightAsideLayout,
-  rightAsidePanel: () => props.rightAsidePanel,
+  rightAsideOpen: () => props.rightAsideOpen,
+  defaultRightAsideOpen: () => props.defaultRightAsideOpen ?? false,
+  activeRightAsidePanelId: () => props.activeRightAsidePanelId,
+  defaultActiveRightAsidePanelId: () => props.defaultActiveRightAsidePanelId,
   rightAsidePanels: availableRightAsidePanels,
   isMobileViewport,
   viewportWidth,
   onLeftOpenChange: (payload) => emit('left-aside-open-change', payload),
   onRightOpenChange: (payload) => emit('right-aside-open-change', payload),
-  onRightAsidePanelChange: (panel) => emit('update:right-aside-panel', panel),
+  onRightAsideOpenUpdate: (open) => emit('update:right-aside-open', open),
+  onRightAsidePanelUpdate: (panel) => emit('update:active-right-aside-panel-id', panel),
+})
+
+defineExpose({
+  openRightAside: asideState.openRightAside,
+  closeRightAside: asideState.closeRightAside,
+  toggleRightAside: asideState.toggleRightAside,
+  activateRightAsidePanel: asideState.activateRightAsidePanel,
 })
 const activeRightAsidePanel = computed(() => asideState.resolvedRightAsidePanel.value)
 const activeRightAsidePanelOptions = computed(() =>
@@ -561,8 +572,11 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           name="layout-right-aside-panel"
           :panel-id="activeRightAsidePanel"
           :panel="activeRightAsidePanelOptions"
+          :panels="availableRightAsidePanels"
           :open-right-aside="asideState.openRightAside"
           :close-right-aside="asideState.closeRightAside"
+          :toggle-right-aside="asideState.toggleRightAside"
+          :activate-right-aside-panel="asideState.activateRightAsidePanel"
           :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
         />
       </ChatRightAside>
