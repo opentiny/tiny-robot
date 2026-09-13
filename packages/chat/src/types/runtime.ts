@@ -1,6 +1,13 @@
-import type { ChatConversationInfo, ChatMessageItem, ChatProcessingState, ChatReadable, ChatRequestState } from './base'
+import type {
+  ChatConversationInfo,
+  ChatIcon,
+  ChatMessageItem,
+  ChatProcessingState,
+  ChatReadable,
+  ChatRequestState,
+} from './base'
 import type { ChatSendPayload } from './commands'
-import type { ModelSelectorOption, ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
+import type { ModelSelectorReasoningEffortOption } from '@opentiny/tiny-robot'
 
 export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
@@ -47,7 +54,7 @@ export interface ChatModelOption {
   id: string
   label: string
   description?: string
-  icon?: ModelSelectorOption['icon']
+  icon?: ChatIcon
   disabled?: boolean
   group?: string
   efforts?: readonly ModelSelectorReasoningEffortOption[]
@@ -71,7 +78,7 @@ export interface ChatMcpServerInfo {
   id: string
   name: string
   description?: string
-  icon?: string
+  icon?: ChatIcon
   category?: string
   installed: boolean
   enabled: boolean
