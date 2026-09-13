@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 /**
  * Read-only reactive value used by the ChatRuntime protocol.
  *
@@ -14,6 +16,8 @@ export interface ChatReadable<T> {
 export interface ChatWritable<T> {
   value: T
 }
+
+export type ChatIcon = string | Component
 
 export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
 
