@@ -30,7 +30,10 @@ export type ChatUIProps = ChatInputControlProps & {
   data?: Readonly<ChatUIData>
   ui?: Readonly<ChatUIOptions>
   floatingState?: LayoutFloatingState
-  rightAsidePanel?: string
+  rightAsideOpen?: boolean
+  defaultRightAsideOpen?: boolean
+  activeRightAsidePanelId?: ChatRightAsidePanelId
+  defaultActiveRightAsidePanelId?: ChatRightAsidePanelId
 }
 
 export interface ChatUIOptions {
@@ -105,8 +108,18 @@ export interface ChatAsideOptions {
   readonly defaultOpen?: boolean
 }
 
-export interface ChatRightAsideOptions extends ChatAsideOptions {
+export interface ChatRightAsideOptions extends Omit<ChatAsideOptions, 'open' | 'defaultOpen'> {
   readonly showClose?: boolean
+  readonly panels?: readonly ChatRightAsidePanelOptions[]
+}
+
+export const CHAT_MCP_RIGHT_ASIDE_PANEL_ID = 'mcp' as const
+
+export type ChatRightAsidePanelId = string
+
+export interface ChatRightAsidePanelOptions {
+  readonly id: ChatRightAsidePanelId
+  readonly title?: string
 }
 
 export type ChatHistoryOptions = Omit<HistoryProps<ChatConversationInfo>, 'data' | 'selected' | 'onItemAction'>
