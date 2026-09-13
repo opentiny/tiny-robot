@@ -553,7 +553,13 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         @close="asideState.closeRightAside"
       >
         <template #title>
-          <h2 class="chat-right-aside-title">
+          <slot
+            v-if="$slots['layout-right-aside-title']"
+            name="layout-right-aside-title"
+            :panel-id="activeRightAsidePanel"
+            :panel="activeRightAsidePanelOptions"
+          />
+          <h2 v-else class="chat-right-aside-title">
             {{ activeRightAsidePanelOptions?.title ?? resolvedOptions.labels.rightAsideTitle }}
           </h2>
         </template>

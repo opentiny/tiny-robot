@@ -60,6 +60,10 @@ describe('UI resolvers', () => {
       { id: 'details' },
     ])
     expect(resolveChatUIOptions({ layout: { rightAside: false } }).layout.rightAside).toBe(false)
+    expect(
+      resolveChatUIOptions({ layout: { rightAside: { panels: [{ id: 'preview', title: 'Preview' }] } } }).layout
+        .rightAside,
+    ).toMatchObject({ panels: [{ id: 'preview', title: 'Preview' }] })
     expect(resolveChatUIOptions({ layout: { composer: { welcome: 'center' } } }).layout.composer.welcome).toBe('center')
     const floatingOptions = { draggable: true, minWidth: 360 }
     const resolvedSurface = resolveChatUIOptions({

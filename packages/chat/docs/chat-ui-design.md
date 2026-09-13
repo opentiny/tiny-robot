@@ -133,6 +133,7 @@ right-aside-open-change
 | `layout-main` | `messages`、`request`、`conversation` |
 | `layout-footer` | `value`、Sender 状态、输入、提交、取消和清空操作 |
 | `request-error` | `error` |
+| `layout-right-aside-title` | 当前右栏标题，提供 `panelId`、`panel` |
 | `layout-right-aside-panel` | 当前业务右栏面板，提供 `panelId`、`panel`、`panels` 和右栏操作 |
 
 Slot props 只暴露公开数据和操作函数，不暴露内部组件实例。
@@ -196,7 +197,7 @@ interface ChatAsideOpenChangePayload {
 - 右栏的 `rightAsideOpen` 和 `activeRightAsidePanelId` 是运行时受控状态；`layout.rightAside` 只描述布局和静态面板集合。
 - `layout.rightAside === false` 优先级最高。
 - `layout.rightAside` 配置右栏容器和注册面板；默认状态通过 `defaultRightAsideOpen`、`defaultActiveRightAsidePanelId` 提供，存在可用注册面板或 MCP Server 时才创建右栏。
-- 业务面板由 `layout.rightAside.panels` 注册，并通过 `layout-right-aside-panel` 按 `panelId` 渲染。
+- 业务面板由 `layout.rightAside.panels` 注册，并通过 `layout-right-aside-panel` 按 `panelId` 渲染；标题可通过 `layout-right-aside-title` 按 `panelId` 自定义。
 - `mcp` 是内置保留 ID；未知 ID 不会打开右栏，失效 ID 回退到首个可用面板。
 - 右栏关闭后可从 Header 重新打开。
 - 左栏关闭时，Header 保留新建会话入口。

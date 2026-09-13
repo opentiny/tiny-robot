@@ -574,6 +574,7 @@ Chat 使用 `960px` 作为桌面与移动端断点：
 | Slot                                                                         | 用途                               |
 | ---------------------------------------------------------------------------- | ---------------------------------- |
 | `header-notice`                                                              | Header 提示                        |
+| `layout-right-aside-title`                                                    | 当前右栏标题，参数含 `panelId`、`panel`                        |
 | `layout-right-aside-panel`                                                    | 当前业务右栏面板，参数含 `panelId`、`panel`、`panels` 和右栏操作 |
 | `composer-before`                                                            | 输入区前方内容                     |
 | `sender-footer` / `sender-footer-right`                                      | 输入区底部内容                     |
@@ -756,7 +757,7 @@ const historyData = useChatHistoryData({
 | `ChatHistoryOptions`、`ChatPromptsOptions`、`ChatSenderOptions`            | 历史、提示和输入区  |
 | `ChatBubbleOptions`、`ChatModelView`、`ChatMcpView`                        | 消息、模型和 MCP UI |
 | `ChatUIEmits`、`ChatUISlots`                                               | 事件与插槽类型      |
-| `ChatLeftAsideSlotProps`、`ChatRightAsideSlotProps`、`ChatSenderSlotProps` | 作用域插槽参数      |
+| `ChatLeftAsideSlotProps`、`ChatRightAsideTitleSlotProps`、`ChatRightAsidePanelSlotProps`、`ChatSenderSlotProps` | 作用域插槽参数      |
 
 此外还导出 `UseLocalChatRuntimeOptions`、`UseKitChatRuntimeOptions`、`UseChatRuntimeAdapterOptions`、`UseChatHistoryItemsOptions`、`UseChatHistoryDataOptions`，以及浮动布局相关的 `LayoutFloatingState`、`LayoutFloatingOptions`、`LayoutFloatingDragDetail`、`LayoutFloatingResizeDetail`。
 

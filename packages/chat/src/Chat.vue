@@ -148,6 +148,9 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     <template v-if="$slots['layout-left-aside-history-item-prefix']" #layout-left-aside-history-item-prefix="slotProps">
       <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
     </template>
+    <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title="slotProps">
+      <slot name="layout-right-aside-title" v-bind="slotProps" />
+    </template>
     <template v-if="$slots['layout-right-aside-panel']" #layout-right-aside-panel="slotProps">
       <slot name="layout-right-aside-panel" v-bind="slotProps" />
     </template>

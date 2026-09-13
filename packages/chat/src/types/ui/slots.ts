@@ -37,9 +37,14 @@ export interface ChatHistoryItemPrefixSlotProps {
   readonly item: ChatConversationInfo
 }
 
-export interface ChatRightAsidePanelSlotProps {
+export interface ChatRightAsidePanelContext {
   readonly panelId: ChatRightAsidePanelId | undefined
   readonly panel?: ChatRightAsidePanelOptions
+}
+
+export type ChatRightAsideTitleSlotProps = ChatRightAsidePanelContext
+
+export interface ChatRightAsidePanelSlotProps extends ChatRightAsidePanelContext {
   readonly panels: readonly ChatRightAsidePanelOptions[]
   readonly openRightAside: (panelId?: ChatRightAsidePanelId) => void
   readonly closeRightAside: () => void
@@ -84,6 +89,7 @@ export interface ChatUISlots {
   'layout-left-aside-footer'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-rail'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-history-item-prefix'?: (props: ChatHistoryItemPrefixSlotProps) => unknown
+  'layout-right-aside-title'?: (props: ChatRightAsideTitleSlotProps) => unknown
   'layout-right-aside-panel'?: (props: ChatRightAsidePanelSlotProps) => unknown
   'layout-main'?: (props: ChatMainSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown

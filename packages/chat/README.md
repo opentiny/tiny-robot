@@ -726,7 +726,7 @@ const ui: ChatUIOptions = {
 
 只在需要替换或补充某个区域时使用插槽。常用插槽如下：
 
-业务右栏面板通过 `layout.rightAside.panels` 注册，再由 `layout-right-aside-panel` 按当前 `panelId` 渲染。默认值通过 `defaultRightAsideOpen` 和 `defaultActiveRightAsidePanelId` 传入。`mcp` 是内置保留 ID，业务不能注册；未知 ID 不会打开右栏，失效 ID 会回退到第一个可用面板：
+业务右栏面板通过 `layout.rightAside.panels` 注册，再由 `layout-right-aside-panel` 按当前 `panelId` 渲染。标题可通过 `layout-right-aside-title` 按当前 `panelId` 自定义；未提供时使用面板的 `title`。默认值通过 `defaultRightAsideOpen` 和 `defaultActiveRightAsidePanelId` 传入。`mcp` 是内置保留 ID，业务不能注册；未知 ID 不会打开右栏，失效 ID 会回退到第一个可用面板：
 
 ```vue
 <TrChat
@@ -745,6 +745,7 @@ const ui: ChatUIOptions = {
 | ---------------------------- | -------------------------------------------------------------------- |
 | `header-notice`              | 顶部标题下方的提示区域                                               |
 | `request-error`              | 替换请求错误显示内容，提供 `error`                                   |
+| `layout-right-aside-title`   | 当前右栏标题，提供 `panelId` 和 `panel` Slot Props                   |
 | `layout-right-aside-panel`   | 当前业务右栏面板正文，提供 `panelId`、`panel`、`panels` 和右栏操作 Slot Props |
 | `composer-before`            | 输入框前方的扩展内容，提供输入和提交操作 Slot Props                  |
 | `sender-footer`              | 输入区底部附加内容                                                   |
