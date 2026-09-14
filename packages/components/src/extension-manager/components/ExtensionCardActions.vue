@@ -140,7 +140,7 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
     pointer-events: none;
 
     &:checked + .tr-extension-card-primary-actions__switch-track {
-      background: var(--tr-extension-card-switch-bg-color-checked);
+      background: var(--tr-extension-card-switch-bg-color-checked, var(--tr-color-primary));
 
       &::after {
         transform: translateX(18px);
@@ -155,7 +155,7 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
   width: 40px;
   height: 22px;
   border-radius: 999px;
-  background: var(--tr-extension-card-switch-bg-color);
+  background: var(--tr-extension-card-switch-bg-color, var(--tr-text-disabled));
   transition: background 0.2s ease;
 
   &::after {
@@ -181,14 +181,18 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
   padding: 4px 12px;
   border: 0;
   border-radius: 999px;
-  background: var(--tr-extension-card-bg-color-hover);
+  background: var(--tr-extension-card-bg-color-hover, var(--tr-container-bg-hover));
   color: var(--tr-text-primary);
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s ease;
 
   &:hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--tr-extension-card-bg-color-hover) 80%, var(--tr-text-primary) 20%);
+    background-color: color-mix(
+      in srgb,
+      var(--tr-extension-card-bg-color-hover, var(--tr-container-bg-hover)) 80%,
+      var(--tr-text-primary) 20%
+    );
   }
 
   &:active:not(:disabled) {
