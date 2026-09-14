@@ -1,0 +1,14 @@
+<demo
+  vue="../../demos/chat/worker-helper/Demo.vue"
+  :vueFiles="[
+    '../../demos/chat/worker-helper/Demo.vue',
+    '../../demos/chat/ChatDemoShell.vue',
+    '../../demos/chat/worker-helper/WorkHelperCase.vue',
+    '../../demos/chat/shared/createChatRuntime.ts',
+    '../../demos/chat/shared/formatChatActionError.ts',
+    '../../demos/chat/shared/mockConversationStorage.ts',
+    '../../demos/chat/shared/modelProviders.ts',
+    '../../demos/chat/shared/base.css'
+  ]"
+  playground="false"
+/>
