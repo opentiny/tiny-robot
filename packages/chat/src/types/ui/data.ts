@@ -75,7 +75,7 @@ export interface ChatMcpServerView {
   readonly id: string
   readonly name: string
   readonly description?: string
-  readonly icon?: ChatIcon
+  readonly icon?: string
   readonly category?: string
   readonly installed: boolean
   readonly enabled: boolean

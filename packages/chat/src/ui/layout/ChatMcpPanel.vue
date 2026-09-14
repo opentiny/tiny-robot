@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TrMcpServerPicker, type PluginInfo } from '@opentiny/tiny-robot'
+import { TrMcpServerPicker, type PluginCreationData, type PluginInfo } from '@opentiny/tiny-robot'
 import fallbackPluginIcon from '../../assets/modelcontextprotocol.png'
 import type { ChatLabels, ChatMcpServerView, ChatMcpView } from '../../types'
 
@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   addServer: [payload: { id: string }]
+  createServer: [payload: { type: 'form' | 'code'; data: PluginCreationData }]
   removeServer: [payload: { id: string }]
   updateServerEnabled: [payload: { id: string; enabled: boolean }]
   updateToolEnabled: [payload: { serverId: string; toolId: string; enabled: boolean }]
@@ -78,6 +79,10 @@ function handlePluginAdd(plugin: PluginInfo) {
   emit('addServer', { id: plugin.id })
 }
 
+function handlePluginCreate(type: 'form' | 'code', data: PluginCreationData) {
+  emit('createServer', { type, data })
+}
+
 function handlePluginDelete(plugin: PluginInfo) {
   const server = findServer(plugin.id)
   if (!server || !server.installed || server.loading) return
@@ -109,11 +114,12 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
       :loading="hasPendingAction"
       :market-loading="false"
       :title="labels.mcp"
-      :show-custom-add-button="false"
+      :show-custom-add-button="true"
       :allow-plugin-delete="true"
       :allow-tool-toggle="true"
       @plugin-toggle="handlePluginToggle"
       @plugin-add="handlePluginAdd"
+      @plugin-create="handlePluginCreate"
       @plugin-delete="handlePluginDelete"
       @tool-toggle="handleToolToggle"
     />

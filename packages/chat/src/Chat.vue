@@ -6,6 +6,7 @@ import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
   ChatHistoryActionPayload,
+  ChatMcpCreateServerPayload,
   ChatPromptClickPayload,
   ChatRuntime,
   ChatRuntimeActionErrorPayload,
@@ -48,6 +49,7 @@ const emit = defineEmits<{
   'floating-resize-end': [detail: LayoutFloatingResizeDetail]
   'runtime-action-error': [payload: ChatRuntimeActionErrorPayload]
   'history-action': [payload: ChatHistoryActionPayload]
+  'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]
   'bubble-event': [payload: ChatBubbleEventPayload]
@@ -120,6 +122,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     @model-feature-change="({ featureId, enabled }) => adapter.setModelFeature(featureId, enabled)"
     @model-reasoning-effort-change="({ effort }) => adapter.setModelReasoningEffort(effort)"
     @mcp-add-server="({ serverId }) => adapter.addMcpServer(serverId)"
+    @mcp-create-server="(payload) => emit('mcp-create-server', payload)"
     @mcp-remove-server="({ serverId }) => adapter.removeMcpServer(serverId)"
     @mcp-server-enabled-change="({ serverId, enabled }) => adapter.setMcpServerEnabled(serverId, enabled)"
     @mcp-tool-enabled-change="({ serverId, toolId, enabled }) => adapter.setMcpToolEnabled(serverId, toolId, enabled)"
