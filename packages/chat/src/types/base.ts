@@ -1,4 +1,4 @@
-import type { Component } from 'vue'
+import type { ModelSelectorOption } from '@opentiny/tiny-robot'
 
 /**
  * Read-only reactive value used by the ChatRuntime protocol.
@@ -17,7 +17,7 @@ export interface ChatWritable<T> {
   value: T
 }
 
-export type ChatIcon = string | Component
+export type ChatIcon = ModelSelectorOption['icon']
 
 export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 

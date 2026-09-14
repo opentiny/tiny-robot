@@ -1,6 +1,6 @@
 export function formatRequestError(error: unknown): string {
   if (error instanceof Error) {
-    return error.message || String(error)
+    return error.message || safeString(error)
   }
 
   if (typeof error === 'string') {
@@ -14,9 +14,17 @@ export function formatRequestError(error: unknown): string {
         return text
       }
     } catch {
-      return String(error)
+      return safeString(error)
     }
   }
 
-  return String(error)
+  return safeString(error)
+}
+
+function safeString(error: unknown): string {
+  try {
+    return String(error)
+  } catch {
+    return '未知请求错误'
+  }
 }

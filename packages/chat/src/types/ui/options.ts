@@ -97,6 +97,7 @@ export interface ChatLabels {
   rightAsideTitle: string
   openRightAside: string
   closeRightAside: string
+  scrollToBottom: string
 }
 
 export interface ChatAsideOptions {
@@ -143,10 +144,8 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   readonly submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
-export interface ChatSenderOptions extends Omit<
-  SenderProps,
-  'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
-> {
+export interface ChatSenderOptions
+  extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
   readonly defaultActions?: ChatSenderDefaultActions
 }
 

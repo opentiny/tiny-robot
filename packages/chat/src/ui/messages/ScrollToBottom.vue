@@ -6,6 +6,7 @@ import { TrIconButton } from '@opentiny/tiny-robot'
 
 const props = defineProps<{
   target: HTMLElement | null
+  label: string
 }>()
 
 const distanceToBottom = shallowRef(0)
@@ -59,7 +60,7 @@ function scrollToBottom() {
     size="36"
     svg-size="18"
     type="button"
-    aria-label="滚动到底部"
+    :aria-label="props.label"
     @click="scrollToBottom"
   />
 </template>
