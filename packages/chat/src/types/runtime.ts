@@ -78,7 +78,7 @@ export interface ChatMcpServerInfo {
   id: string
   name: string
   description?: string
-  icon?: ChatIcon
+  icon?: string
   category?: string
   installed: boolean
   enabled: boolean

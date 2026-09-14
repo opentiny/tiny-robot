@@ -17,12 +17,11 @@ const emit = defineEmits<{
 }>()
 
 const servers = computed(() => props.mcp.servers ?? [])
-const hasServers = computed(() => servers.value.length > 0)
 const activeCount = computed(() => servers.value.filter((server) => server.installed && server.enabled).length)
 </script>
 
 <template>
-  <div v-if="hasServers" class="tr-chat-mcp-selector">
+  <div class="tr-chat-mcp-selector">
     <button
       class="tr-chat-mcp-selector__button"
       :class="{ 'tr-chat-mcp-selector__button--active': activeCount > 0 }"
