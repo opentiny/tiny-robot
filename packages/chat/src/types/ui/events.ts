@@ -2,7 +2,12 @@ import type { ChatConversationInfo } from '../base'
 import type { ChatSendPayload } from '../commands'
 import type { ChatBuiltInModelFeature } from '../runtime'
 import type { ChatRightAsidePanelId } from './options'
-import type { LayoutFloatingDragDetail, LayoutFloatingResizeDetail, LayoutFloatingState } from '@opentiny/tiny-robot'
+import type {
+  LayoutFloatingDragDetail,
+  LayoutFloatingResizeDetail,
+  LayoutFloatingState,
+  PluginCreationData,
+} from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
   readonly open: boolean
@@ -36,6 +41,11 @@ export interface ChatModelReasoningEffortChangePayload {
 
 export interface ChatMcpAddServerPayload {
   readonly serverId: string
+}
+
+export interface ChatMcpCreateServerPayload {
+  readonly type: 'form' | 'code'
+  readonly data: PluginCreationData
 }
 
 export interface ChatMcpRemoveServerPayload {
@@ -90,6 +100,7 @@ export interface ChatUIEmits {
   'model-feature-change': [payload: ChatModelFeatureChangePayload]
   'model-reasoning-effort-change': [payload: ChatModelReasoningEffortChangePayload]
   'mcp-add-server': [payload: ChatMcpAddServerPayload]
+  'mcp-create-server': [payload: ChatMcpCreateServerPayload]
   'mcp-remove-server': [payload: ChatMcpRemoveServerPayload]
   'mcp-server-enabled-change': [payload: ChatMcpServerEnabledChangePayload]
   'mcp-tool-enabled-change': [payload: ChatMcpToolEnabledChangePayload]

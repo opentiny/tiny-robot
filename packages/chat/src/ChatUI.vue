@@ -20,6 +20,7 @@ import type {
   ChatConversationInfo,
   ChatHistoryActionPayload,
   ChatHistoryGroup,
+  ChatMcpCreateServerPayload,
   ChatModelFeatureChangePayload,
   ChatRightAsidePanelOptions,
   ChatSendPayload,
@@ -60,13 +61,12 @@ const senderOptions = computed(() =>
 const visibleModel = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedData.value.model))
 const modelOptions = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedOptions.value.model))
 const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefined : resolvedData.value.mcp))
-const hasMcpServers = computed(() => (visibleMcp.value?.servers?.length ?? 0) > 0)
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
 const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]>(() => {
   const panels =
     hasRightAsidePanelSlot && effectiveRightAsideLayout.value !== false ? effectiveRightAsideLayout.value.panels : []
 
-  if (!hasMcpServers.value) {
+  if (!visibleMcp.value) {
     return panels
   }
 
@@ -262,7 +262,11 @@ function handleClear() {
 }
 
 function handleOpenMcpPanel() {
-  if (hasMcpServers.value) asideState.openRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
+  if (visibleMcp.value) asideState.openRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
+}
+
+function handleMcpCreateServer(payload: ChatMcpCreateServerPayload) {
+  emit('mcp-create-server', payload)
 }
 
 function handleInputValue(value: string) {
@@ -572,6 +576,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           @remove-server="handleMcpRemoveServer"
           @update-server-enabled="handleMcpServerEnabledChange"
           @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
+          @create-server="handleMcpCreateServer"
         />
         <slot
           v-else-if="activeRightAsidePanelOptions"

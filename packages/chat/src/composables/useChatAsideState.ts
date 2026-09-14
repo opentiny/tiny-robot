@@ -152,7 +152,9 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     [rightAsidePanels, defaultRightAsidePanel, rightPanel, controlledRightAsidePanel],
     () => {
       const resolvedPanel = resolvedRightAsidePanel.value
-      if (controlledRightAsidePanel.value !== undefined) {
+      if (resolvedPanel === undefined) {
+        requestRightAsideOpen(false)
+      } else if (controlledRightAsidePanel.value !== undefined) {
         if (controlledRightAsidePanel.value !== resolvedPanel) {
           options.onRightAsidePanelUpdate?.(resolvedPanel)
         }

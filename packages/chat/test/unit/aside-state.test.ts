@@ -49,6 +49,7 @@ describe('useChatAsideState', () => {
       leftAside: { defaultOpen: true, width: 500 },
       rightAside: {},
       defaultRightAsideOpen: true,
+      rightAsidePanels,
       isMobileViewport: mobile,
       viewportWidth: 400,
       onLeftOpenChange: leftEvents,
@@ -240,6 +241,32 @@ describe('useChatAsideState', () => {
 
     expect(state.resolvedRightAsidePanel.value).toBe('settings')
     expect(onRightAsidePanelUpdate).toHaveBeenLastCalledWith('settings')
+  })
+
+  it('closes the right aside when all registered panels are removed', async () => {
+    const panels = shallowRef([...rightAsidePanels])
+    const onRightOpenChange = vi.fn()
+    const onRightAsideOpenUpdate = vi.fn()
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {},
+      defaultRightAsideOpen: true,
+      defaultActiveRightAsidePanelId: 'settings',
+      rightAsidePanels: panels,
+      isMobileViewport: false,
+      viewportWidth: 1000,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange,
+      onRightAsideOpenUpdate,
+    })
+
+    panels.value = []
+    await nextTick()
+
+    expect(state.resolvedRightAsidePanel.value).toBeUndefined()
+    expect(state.resolvedRightAsideOpen.value).toBe(false)
+    expect(onRightAsideOpenUpdate).toHaveBeenLastCalledWith(false)
+    expect(onRightOpenChange).toHaveBeenLastCalledWith({ open: false, source: 'user' })
   })
 
   it('falls back to the first registered panel for invalid defaults and controlled values', async () => {
