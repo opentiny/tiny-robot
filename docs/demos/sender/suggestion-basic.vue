@@ -5,6 +5,7 @@ import type { SenderSuggestionItem } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const selectedItem = ref('')
+const submittedContent = ref('')
 
 // 建议列表
 const suggestions: SenderSuggestionItem[] = [
@@ -20,13 +21,13 @@ const suggestions: SenderSuggestionItem[] = [
 const extensions = [
   TrSender.suggestion(suggestions, {
     onSelect: (item) => {
-      console.log(item)
+      selectedItem.value = item.content
     },
   }),
 ]
 
 const handleSubmit = (text: string) => {
-  console.log('📝 提交内容：', text)
+  submittedContent.value = text
 }
 </script>
 
@@ -42,6 +43,7 @@ const handleSubmit = (text: string) => {
     />
 
     <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
+    <div v-if="submittedContent" class="demo-result"><strong>提交内容：</strong> {{ submittedContent }}</div>
   </div>
 </template>
 

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
 
 const content = ref('')
+const submittedContent = ref('')
 
 // 表单验证：至少 5 个字符
 const isValid = computed(() => content.value.length >= 5)
@@ -19,7 +20,7 @@ const defaultActions = computed(() => ({
 }))
 
 const handleSubmit = (text: string) => {
-  alert(`已提交: ${text}`)
+  submittedContent.value = text
   content.value = ''
 }
 </script>
@@ -35,6 +36,7 @@ const handleSubmit = (text: string) => {
       clearable
       @submit="handleSubmit"
     />
+    <p v-if="submittedContent" class="result" aria-live="polite">已提交：{{ submittedContent }}</p>
   </div>
 </template>
 
@@ -46,6 +48,11 @@ const handleSubmit = (text: string) => {
 .tip {
   margin-bottom: 12px;
   font-size: 14px;
+  color: #606266;
+}
+
+.result {
+  margin: 12px 0 0;
   color: #606266;
 }
 </style>

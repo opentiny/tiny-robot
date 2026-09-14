@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSuggestionItem, StructuredData } from '@opentiny/tiny-robot'
+import type { SenderSuggestionItem } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const selectedItem = ref('')
+const submittedContent = ref('')
 const filterMode = ref<'default' | 'prefix' | 'category'>('default')
 
 // 模式说明
@@ -60,14 +61,12 @@ const extensions = computed(() => [
     },
     onSelect: (item) => {
       selectedItem.value = item.content
-      console.log('选中建议:', item.content)
     },
   }),
 ])
 
-const handleSubmit = (text: string, data?: StructuredData) => {
-  console.log('📝 提交内容：', text)
-  console.log('📋 结构化数据：', data)
+const handleSubmit = (text: string) => {
+  submittedContent.value = text
 }
 </script>
 
@@ -98,6 +97,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
     />
 
     <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
+    <div v-if="submittedContent" class="demo-result"><strong>提交内容：</strong> {{ submittedContent }}</div>
   </div>
 </template>
 

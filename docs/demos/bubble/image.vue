@@ -3,7 +3,7 @@
     <div>
       <p><strong>单张图片</strong></p>
       <tr-bubble
-        :content="[{ type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=1' } }]"
+        :content="[{ type: 'image_url', image_url: { url: '/logo-large.svg' } }]"
         :avatar="aiAvatar"
       ></tr-bubble>
     </div>
@@ -38,14 +38,14 @@ import { h, ref } from 'vue'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 
 const multipleImages = [
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=2' } },
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=3' } },
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=4' } },
+  { type: 'image_url', image_url: { url: '/logo-large.svg' } },
+  { type: 'image_url', image_url: { url: '/logo-mini.svg' } },
+  { type: 'image_url', image_url: { url: '/wave.webp' } },
 ]
 
 const mixedContent = [
   { type: 'text', text: '这是一张示例图片：' },
-  { type: 'image_url', image_url: { url: 'https://picsum.photos/400/300?random=5' } },
+  { type: 'image_url', image_url: { url: '/logo-large.svg' } },
   { type: 'text', text: '图片下方可以继续显示文本内容。' },
 ]
 
