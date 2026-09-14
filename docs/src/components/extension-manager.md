@@ -231,46 +231,50 @@ import type {
 
 #### Card Types
 
-| 类型名                               | 类型或签名 | 说明                                                                | 导出入口               |
-| ------------------------------------ | ---------- | ------------------------------------------------------------------- | ---------------------- |
-| `ExtensionCardAction`                | union      | Card 的 switch、button 和 custom action。                           | `@opentiny/tiny-robot` |
-| `ExtensionCardActionBase`            | interface  | 所有 Card action 共有的标识、文案、图标和状态字段。                 | `@opentiny/tiny-robot` |
-| `ExtensionCardSwitchAction`          | interface  | `checked` 值由应用提供的 switch action。                            | `@opentiny/tiny-robot` |
-| `ExtensionCardButtonAction`          | interface  | 普通 button action。                                                | `@opentiny/tiny-robot` |
-| `ExtensionCardCustomAction`          | interface  | 可由 `primary-action` 插槽渲染的 custom action。                    | `@opentiny/tiny-robot` |
-| `ExtensionCardRenderableAction`      | union      | 从每种 `ExtensionCardAction` 中移除 `hidden` 字段后得到的联合类型。 | `@opentiny/tiny-robot` |
-| `ExtensionCardActionEvent`           | interface  | Card 触发 action 事件时提供的数据。                                 | `@opentiny/tiny-robot` |
-| `ExtensionCardProps`                 | interface  | Card 的公开 Props 类型。                                            | `@opentiny/tiny-robot` |
-| `ExtensionCardEmits`                 | interface  | Card 的公开事件类型。                                               | `@opentiny/tiny-robot` |
-| `ExtensionCardSlots`                 | interface  | Card 的公开插槽类型。                                               | `@opentiny/tiny-robot` |
-| `ExtensionCardOverflowMenuPlacement` | union      | `'bottom-end' \| 'top-end'`。                                       | `@opentiny/tiny-robot` |
+| 类型名                               | 类型或签名 | 说明                                                                |
+| ------------------------------------ | ---------- | ------------------------------------------------------------------- |
+| `ExtensionCardAction`                | union      | Card 的 switch、button 和 custom action。                           |
+| `ExtensionCardActionBase`            | interface  | 所有 Card action 共有的标识、文案、图标和状态字段。                 |
+| `ExtensionCardSwitchAction`          | interface  | `checked` 值由应用提供的 switch action。                            |
+| `ExtensionCardButtonAction`          | interface  | 普通 button action。                                                |
+| `ExtensionCardCustomAction`          | interface  | 可由 `primary-action` 插槽渲染的 custom action。                    |
+| `ExtensionCardRenderableAction`      | union      | 从每种 `ExtensionCardAction` 中移除 `hidden` 字段后得到的联合类型。 |
+| `ExtensionCardActionEvent`           | interface  | Card 触发 action 事件时提供的数据。                                 |
+| `ExtensionCardProps`                 | interface  | Card 的公开 Props 类型。                                            |
+| `ExtensionCardEmits`                 | interface  | Card 的公开事件类型。                                               |
+| `ExtensionCardSlots`                 | interface  | Card 的公开插槽类型。                                               |
+| `ExtensionCardOverflowMenuPlacement` | union      | `'bottom-end' \| 'top-end'`。                                       |
 
 #### CardGrid Types
 
-| 类型名                            | 类型或签名 | 说明                                              | 导出入口               |
-| --------------------------------- | ---------- | ------------------------------------------------- | ---------------------- |
-| `ExtensionCardGridItem`           | type       | 带 `id` 的 Card 数据。                            | `@opentiny/tiny-robot` |
-| `ExtensionCardGridActionEvent`    | interface  | 包含 `itemId` 和 Card action 的事件数据。         | `@opentiny/tiny-robot` |
-| `ExtensionCardGridNameClickEvent` | interface  | 包含 `itemId` 和 Card name-click 原生事件的数据。 | `@opentiny/tiny-robot` |
-| `ExtensionCardGridProps`          | interface  | CardGrid 的公开 Props 类型。                      | `@opentiny/tiny-robot` |
-| `ExtensionCardGridEmits`          | interface  | CardGrid 的公开事件类型。                         | `@opentiny/tiny-robot` |
-| `ExtensionCardGridSlots`          | interface  | CardGrid 的公开插槽类型。                         | `@opentiny/tiny-robot` |
+| 类型名                            | 类型或签名 | 说明                                              |
+| --------------------------------- | ---------- | ------------------------------------------------- |
+| `ExtensionCardGridItem`           | type       | 带 `id` 的 Card 数据。                            |
+| `ExtensionCardGridActionEvent`    | interface  | 包含 `itemId` 和 Card action 的事件数据。         |
+| `ExtensionCardGridNameClickEvent` | interface  | 包含 `itemId` 和 Card name-click 原生事件的数据。 |
+| `ExtensionCardGridProps`          | interface  | CardGrid 的公开 Props 类型。                      |
+| `ExtensionCardGridEmits`          | interface  | CardGrid 的公开事件类型。                         |
+| `ExtensionCardGridSlots`          | interface  | CardGrid 的公开插槽类型。                         |
 
 #### ExtensionManager Types
 
-| 类型名                               | 类型或签名 | 说明                                                                   | 导出入口               |
-| ------------------------------------ | ---------- | ---------------------------------------------------------------------- | ---------------------- |
-| `ExtensionManagerItem`               | type       | `ExtensionManager` 接收的条目；在 Grid item 基础上增加分区和筛选字段。 | `@opentiny/tiny-robot` |
-| `ExtensionManagerTab`                | interface  | `ExtensionManager` 的标签页数据。                                      | `@opentiny/tiny-robot` |
-| `ExtensionManagerSectionKey`         | union      | `'installed' \| 'available'`。                                         | `@opentiny/tiny-robot` |
-| `ExtensionManagerTagOption`          | interface  | 组件根据当前数据生成的标签选项结构。                                   | `@opentiny/tiny-robot` |
-| `ExtensionManagerTabChangeEvent`     | interface  | 标签切换事件数据。                                                     | `@opentiny/tiny-robot` |
-| `ExtensionManagerSectionToggleEvent` | interface  | 分区折叠事件数据。                                                     | `@opentiny/tiny-robot` |
-| `ExtensionManagerActionEvent`        | interface  | 包含标签页、分区、条目和 Card action 的事件数据。                      | `@opentiny/tiny-robot` |
-| `ExtensionManagerNameClickEvent`     | interface  | 包含标签页、分区、条目和 Card name-click 原生事件的数据。              | `@opentiny/tiny-robot` |
-| `ExtensionManagerProps`              | interface  | `ExtensionManager` 的公开 Props 类型。                                 | `@opentiny/tiny-robot` |
-| `ExtensionManagerEmits`              | interface  | `ExtensionManager` 的公开事件类型。                                    | `@opentiny/tiny-robot` |
-| `ExtensionManagerSlots`              | interface  | `ExtensionManager` 的公开插槽类型。                                    | `@opentiny/tiny-robot` |
+| 类型名                               | 类型或签名 | 说明                                                                   |
+| ------------------------------------ | ---------- | ---------------------------------------------------------------------- |
+| `ExtensionManagerItem`               | type       | `ExtensionManager` 接收的条目；在 Grid item 基础上增加分区和筛选字段。 |
+| `ExtensionManagerTab`                | interface  | `ExtensionManager` 的标签页数据。                                      |
+| `ExtensionManagerSectionKey`         | union      | `'installed' \| 'available'`。                                         |
+| `ExtensionManagerTagOption`          | interface  | 组件根据当前数据生成的标签选项结构。                                   |
+| `ExtensionManagerTabChangeEvent`     | interface  | 标签切换事件数据。                                                     |
+| `ExtensionManagerSectionToggleEvent` | interface  | 分区折叠事件数据。                                                     |
+| `ExtensionManagerActionEvent`        | interface  | 包含标签页、分区、条目和 Card action 的事件数据。                      |
+| `ExtensionManagerNameClickEvent`     | interface  | 包含标签页、分区、条目和 Card name-click 原生事件的数据。              |
+| `ExtensionManagerProps`              | interface  | `ExtensionManager` 的公开 Props 类型。                                 |
+| `ExtensionManagerEmits`              | interface  | `ExtensionManager` 的公开事件类型。                                    |
+| `ExtensionManagerSlots`              | interface  | `ExtensionManager` 的公开插槽类型。                                    |
+
+#### 核心数据与事件类型（节选）
+
+下面的代码块选择性展开 Card action、条目结构和事件 payload，便于理解它们之间的关系，并不是全部公开类型定义。Props、Events 和 Slots 的完整公开契约见前面的对应 API 表；未展开的类型仍可通过上面的 Types 索引查找。
 
 ```ts
 import type { Component } from 'vue'
@@ -302,6 +306,9 @@ export interface ExtensionCardCustomAction extends ExtensionCardActionBase {
 
 export type ExtensionCardAction = ExtensionCardSwitchAction | ExtensionCardButtonAction | ExtensionCardCustomAction
 
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
+export type ExtensionCardRenderableAction = DistributiveOmit<ExtensionCardAction, 'hidden'>
+
 export interface ExtensionCardActionEvent {
   id: string
   type: ExtensionCardAction['type']
@@ -330,6 +337,11 @@ export type ExtensionManagerItem = ExtensionCardGridItem & {
 }
 
 export type ExtensionManagerSectionKey = 'installed' | 'available'
+
+export interface ExtensionManagerTagOption {
+  value: string
+  label: string
+}
 
 export interface ExtensionManagerTab {
   id: string
@@ -378,12 +390,12 @@ export interface ExtensionManagerNameClickEvent {
 
 下表仅列出当前作为公共定制接口的 CSS Variables。将这些变量设置在 Card、CardGrid 或其父级元素上，即可调整对应样式。未列出的组件内部变量不属于公共定制接口，不应依赖。
 
-| 变量名                                        | 说明                                    | 默认值                             |
-| --------------------------------------------- | --------------------------------------- | ---------------------------------- |
-| `--tr-extension-card-bg-color`                | Card 背景色。                           | `var(--tr-container-bg-default-2)` |
-| `--tr-extension-card-bg-color-hover`          | Card 悬停背景及默认操作背景。           | `var(--tr-container-bg-hover)`     |
-| `--tr-extension-card-focus-color`             | 可点击名称的 focus-visible 描边颜色。   | `var(--tr-text-primary)`           |
-| `--tr-extension-card-icon-color`              | 溢出菜单 action 图标颜色。              | `var(--tr-text-tertiary)`          |
-| `--tr-extension-card-switch-bg-color`         | 未选中 switch 轨道颜色。                | `var(--tr-text-disabled)`          |
-| `--tr-extension-card-switch-bg-color-checked` | 选中 switch 轨道颜色。                  | `var(--tr-color-primary)`          |
-| `--tr-extension-card-grid-card-min-width`     | CardGrid 每个响应式网格轨道的最小宽度。 | `320px`                            |
+| 变量名                                        | 说明                                                           | 默认值                             |
+| --------------------------------------------- | -------------------------------------------------------------- | ---------------------------------- |
+| `--tr-extension-card-bg-color`                | Card 背景色。                                                  | `var(--tr-container-bg-default-2)` |
+| `--tr-extension-card-bg-color-hover`          | 主操作按钮、默认图标占位、进度条轨道及更多操作按钮悬停背景色。 | `var(--tr-container-bg-hover)`     |
+| `--tr-extension-card-focus-color`             | 可点击名称的 focus-visible 描边颜色。                          | `var(--tr-text-primary)`           |
+| `--tr-extension-card-icon-color`              | 更多操作按钮的三点图标颜色。                                   | `var(--tr-text-tertiary)`          |
+| `--tr-extension-card-switch-bg-color`         | 未选中 switch 轨道颜色。                                       | `var(--tr-text-disabled)`          |
+| `--tr-extension-card-switch-bg-color-checked` | 选中 switch 轨道颜色。                                         | `var(--tr-color-primary)`          |
+| `--tr-extension-card-grid-card-min-width`     | CardGrid 每个响应式网格轨道的最小宽度。                        | `320px`                            |

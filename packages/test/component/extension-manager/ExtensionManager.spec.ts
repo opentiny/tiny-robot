@@ -397,6 +397,16 @@ test.describe('ExtensionManager Filter acceptance', () => {
     await expect(manager.getByTestId('filter-search')).toBeVisible()
   })
 
+  test('shows the manager empty state without filters when no tabs are available', async ({ mount }) => {
+    const component = await mount(ExtensionManagerFixture)
+    const manager = component.getByTestId('manager-host')
+
+    await component.getByTestId('clear-tabs').click()
+
+    await expect(manager.getByText('暂无内容', { exact: true })).toBeVisible()
+    await expect(manager.getByTestId('extension-filter-controls')).toHaveCount(0)
+  })
+
   test('isolates tab filter state and clears invalid or removed tab state', async ({ mount }) => {
     const component = await mount(ExtensionManagerFixture)
     const manager = component.getByTestId('manager-host')
