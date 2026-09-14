@@ -149,7 +149,7 @@ const handleNameClick = (
       </template>
     </ExtensionManagerTabs>
 
-    <ExtensionFilterControls v-bind="filter.controls.value" />
+    <ExtensionFilterControls v-if="hasActiveTab" v-bind="filter.controls.value" />
 
     <div
       v-if="hasActiveTab"
