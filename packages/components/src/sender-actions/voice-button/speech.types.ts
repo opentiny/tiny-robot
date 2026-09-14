@@ -27,8 +27,7 @@ export interface SpeechConfig {
   lang?: string // 识别语言，默认浏览器语言
   continuous?: boolean // 是否持续识别
   interimResults?: boolean // 是否返回中间结果
-  autoReplace?: boolean // 是否自动替换当前输入内容
-  onVoiceButtonClick?: (isRecording: boolean, preventDefault: () => void) => void | Promise<void> // 录音按钮点击拦截器
+  autoReplace?: boolean // 是否在录音期间用识别结果替换整个输入框内容
 }
 
 // 语音识别状态
