@@ -31,7 +31,7 @@ describe('UI resolvers', () => {
   })
 
   it('resolves defaults and registered right aside panels', () => {
-    expect(resolveChatUIOptions(undefined).layout.rightAside).toBe(false)
+    expect(resolveChatUIOptions(undefined).layout.rightAside).toMatchObject({ width: 320, panels: [] })
     expect(resolveChatUIOptions(undefined).layout.surface.mode).toBe('normal')
     expect(resolveChatUIOptions(undefined).layout.emptyState).toBe('start')
     expect(resolveChatUIOptions(undefined).layout.composer.welcome).toBe('footer')

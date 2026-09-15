@@ -153,13 +153,7 @@ function resolveLeftAside(
 }
 
 function resolveRightAside(options: false | ChatRightAsideOptions | undefined): false | ResolvedChatRightAsideOptions {
-  if (options === false) {
-    return false
-  }
-
-  if (!options) {
-    return false
-  }
+  if (options === false) return false
 
   return {
     mode: options?.mode ?? 'dock',

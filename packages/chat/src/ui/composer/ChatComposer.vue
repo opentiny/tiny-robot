@@ -116,6 +116,9 @@ function handleToolEnabledChange(payload: { serverId: string; toolId: string; en
         @cancel="emit('cancel')"
         @clear="handleClear"
       >
+        <template v-if="$slots['sender-header']" #header>
+          <slot name="sender-header" />
+        </template>
         <template v-if="$slots['sender-footer'] || model || mcp" #footer>
           <div v-if="model || mcp" class="model-actions">
             <ModelFeatures v-if="model" :model="model" :labels="labels" @update-feature="handleFeatureChange" />

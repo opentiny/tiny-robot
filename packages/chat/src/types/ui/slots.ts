@@ -89,6 +89,7 @@ export interface ChatUISlots {
   'layout-left-aside-footer'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-rail'?: (props: ChatLeftAsideSlotProps) => unknown
   'layout-left-aside-history-item-prefix'?: (props: ChatHistoryItemPrefixSlotProps) => unknown
+  'layout-right-aside'?: (props: ChatRightAsidePanelSlotProps) => unknown
   'layout-right-aside-title'?: (props: ChatRightAsideTitleSlotProps) => unknown
   'layout-right-aside-panel'?: (props: ChatRightAsidePanelSlotProps) => unknown
   'layout-main'?: (props: ChatMainSlotProps) => unknown
@@ -102,6 +103,7 @@ export interface ChatUISlots {
   'bubble-suffix'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-after'?: (props: ChatBubbleSlotProps) => unknown
   'bubble-content-footer'?: (props: ChatBubbleContentFooterSlotProps) => unknown
+  'sender-header'?: () => unknown
   'sender-footer'?: () => unknown
   'sender-footer-right'?: () => unknown
 }

@@ -82,6 +82,9 @@ const layoutFooterProps = computed<ChatSenderSlotProps>(() => ({
     <template v-if="$slots['composer-before']" #composer-before>
       <slot name="composer-before" v-bind="layoutFooterProps" />
     </template>
+    <template v-if="$slots['sender-header']" #sender-header>
+      <slot name="sender-header" />
+    </template>
     <template v-if="$slots['layout-footer']" #default>
       <slot name="layout-footer" v-bind="layoutFooterProps" />
     </template>
