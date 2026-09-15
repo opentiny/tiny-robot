@@ -7,12 +7,49 @@ A lightweight CLI for scaffolding TinyRobot-based product projects.
 ```bash
 npx @opentiny/tiny-robot-cli create my-app
 pnpm dlx @opentiny/tiny-robot-cli create my-app
+npx @opentiny/tiny-robot-cli add chat --yes
 ```
 
 ## Options
 
-- `-t, --template <name>`: template name, currently supports `basic`
+- `-t, --template <name>`: template name; `basic` generates the Chat Basic project
 - `-h, --help`: show help
+
+`create` is an overall project scaffold. The `basic` template is aligned with `packages/chat-basic` and is copied into a new project.
+
+`add chat` is a local feature injection for an existing Vue project. It creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and imports feature-scoped CSS that does not reset the host document. It does not modify the host project's Vite configuration. Existing files with different contents are reported as conflicts and are never silently overwritten.
+
+By default, `add chat` mounts `TinyRobotChat` into a standard `src/App.vue` when a safe template and script setup block are available, so the generated project includes the floating AI trigger. Use `--no-mount` to keep `App.vue` unchanged and print the mount snippet. Use `--dry-run` to inspect the plan without changing files and `--yes` to skip prompts:
+
+```bash
+npx @opentiny/tiny-robot-cli add chat --dry-run
+npx @opentiny/tiny-robot-cli add chat --yes
+npx @opentiny/tiny-robot-cli add chat --yes --no-mount
+```
+
+The feature adds or preserves these dependencies. Compatible versions are kept, and higher versions are not downgraded:
+
+- `@opentiny/tiny-robot`
+- `@opentiny/tiny-robot-chat`
+- `@opentiny/tiny-robot-kit`
+- `@opentiny/tiny-robot-svgs`
+- `@vueuse/core`
+
+Copy the generated `.env.example` to `.env.local`, then configure the provider API URL and API key before starting the project. `add chat` does not create or modify `.env`.
+
+The Model Context MCP example uses `/modelcontextprotocol-mcp`. Add this proxy manually to the existing `vite.config.*` file under `server.proxy`, then restart Vite:
+
+```ts
+server: {
+  proxy: {
+    '/modelcontextprotocol-mcp': {
+      target: 'https://modelcontextprotocol.io/mcp',
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/modelcontextprotocol-mcp/, ''),
+    },
+  },
+},
+```
 
 ## Template Documentation
 
