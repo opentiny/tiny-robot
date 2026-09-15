@@ -9,6 +9,7 @@ import {
   IconWarning,
 } from '@opentiny/tiny-robot-svgs'
 import { type Component, computed, nextTick, ref, useCssModule, watch, watchEffect } from 'vue'
+import { TinyButton } from '@opentiny/vue'
 import { type ToolCallState, useBubbleEventFn, useToolCall } from '../composables'
 import { BubbleContentRendererProps, ChatMessageContent } from '../index.type'
 
@@ -125,6 +126,18 @@ watchEffect(() => {
 
 const handleBubbleEvent = useBubbleEventFn()
 
+const emitToolAction = (action: 'resume' | 'reject') => {
+  const toolCallId = toolCall.value?.id
+  if (!toolCallId || state.value.status !== 'awaiting-approval') {
+    return
+  }
+
+  handleBubbleEvent({
+    name: `tool-call:${action}`,
+    payload: { toolCallId },
+  })
+}
+
 const handleClick = () => {
   open.value = !open.value
 
@@ -160,6 +173,12 @@ const handleClick = () => {
       <div class="header-right">
         <IconArrowDown class="expand-icon" :class="{ '-rotate-90': !open }" @click="handleClick" />
       </div>
+      <div v-if="state.status === 'awaiting-approval'" class="tool-actions">
+        <tiny-button type="primary" size="mini" round :reset-time="0" @click.stop="emitToolAction('resume')">
+          同意
+        </tiny-button>
+        <tiny-button size="mini" round :reset-time="0" @click.stop="emitToolAction('reject')">拒绝</tiny-button>
+      </div>
     </div>
     <div v-show="open" class="divider"></div>
     <div v-show="open" class="detail" v-html="detail" ref="detailRef"></div>
@@ -188,40 +207,51 @@ const handleClick = () => {
 }
 
 .header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  column-gap: 8px;
+  row-gap: 8px;
+  align-items: start;
 
   .header-left {
+    grid-column: 1 / 3;
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
     min-width: 0;
+  }
 
-    .tool-info {
-      min-width: 0;
-    }
+  .tool-info {
+    min-width: 0;
+  }
 
-    .title {
-      color: var(--tr-text-primary);
-      font-weight: 600;
-    }
+  .title {
+    color: var(--tr-text-primary);
+    font-weight: 600;
+  }
 
-    .description {
-      color: var(--tr-text-secondary);
-      font-size: 12px;
-      line-height: 18px;
-      word-break: break-word;
+  .description {
+    color: var(--tr-text-secondary);
+    font-size: 12px;
+    line-height: 18px;
+    word-break: break-word;
+  }
+
+  .tool-actions {
+    grid-column: 2 / 4;
+    display: flex;
+    gap: var(--tr-spacing-sm);
+
+    .tiny-button + .tiny-button {
+      margin-left: 0;
     }
   }
 
   .header-right {
-    flex-shrink: 0;
+    grid-column: 3;
+    grid-row: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
   }
 
   .header-icon {

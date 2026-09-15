@@ -379,6 +379,46 @@ emitBubbleEvent({
 
 > **注意**：`state-change` 是针对 `bubble-event` 中 `state:update` 提供的便捷事件，只负责通知外部更新 UI 状态。若状态没有同步回传给消息的 `state` 属性，渲染器下一次渲染时不会保留该状态。
 
+### 工具调用确认
+
+该示例只使用 Bubble 和 `@opentiny/tiny-robot-kit`。页面加载后会自动发起一次模拟工具调用，点击工具卡片中的按钮即可完成审批。
+
+<demo vue="../../demos/bubble/tool-approval.vue" />
+
+如果应用使用 `toolPlugin`，可以将它加入 `useMessage` 的 `plugins`，并通过 `shouldPauseToolCall` 控制哪些工具需要用户确认：
+
+```ts
+import { toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+
+const message = useMessage({
+  responseProvider,
+  plugins: [
+    toolPlugin({
+      getTools,
+      callTool,
+
+      // 根据工具名称、参数或用户权限决定是否需要确认
+      shouldPauseToolCall: (toolCall) => toolCall.function.name === 'send_email',
+    }),
+  ],
+})
+```
+
+当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“同意”和“拒绝”按钮。业务层监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
+
+```ts
+const command = event.name === 'tool-call:resume' ? TOOL_RESUME_COMMAND : TOOL_REJECT_COMMAND
+await message.dispatchCommand(command, { toolCallId })
+```
+
+如果使用 `useConversation`，事件处理方式相同，只需要将命令发送给当前会话的引擎：
+
+```ts
+await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
+```
+
+更详细的 `toolPlugin` 配置和命令说明，请参考 [工具插件 API](../tools/message)。
+
 ## Props
 
 **BubbleProps** - 单个气泡的属性配置
