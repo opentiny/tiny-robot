@@ -8,11 +8,11 @@
 ChatRuntime -> TrChat -> ChatUIData + ChatUIOptions -> TrChatUI -> Emits
 ```
 
-| 模块 | 职责 |
-| --- | --- |
-| `TrChatUI` | Layout、History、Messages、Sender、Model/MCP 控件组合 |
+| 模块                    | 职责                                                      |
+| ----------------------- | --------------------------------------------------------- |
+| `TrChatUI`              | Layout、History、Messages、Sender、Model/MCP 控件组合     |
 | `useChatRuntimeAdapter` | Runtime 适配、草稿管理、数据映射、动作执行和 pending 状态 |
-| 业务数据层 | 请求、流式、持久化、Provider、Transport、Tool 调用 |
+| 业务数据层              | 请求、流式、持久化、Provider、Transport、Tool 调用        |
 
 `TrChatUI` 不依赖 Runtime、Kit、Vue Ref 或 controller，只消费普通只读 Data 和 UI Options。
 
@@ -35,7 +35,7 @@ export interface ChatUIProps {
 - 生命周期内不切换受控和非受控模式。
 - `''` 表示明确清空，`undefined` 不作为输入值传递给底层 Sender。
 
-`ChatComposer` 的 `update:value` 仅用于 `ChatUI` 与受控 Sender 之间的通信，不属于 `TrChatUI` 公共事件协议；输入通过 `modelValue` 和 `update:model-value` 同步，不使用命令式 Composer 控制。
+输入区的 `update:value` 仅用于 `ChatUI` 与受控 Sender 之间的通信，不属于 `TrChatUI` 公共事件协议；输入通过 `modelValue` 和 `update:model-value` 同步，不使用命令式 Composer 控制。
 
 `data` 表示展示事实，`ui` 只表示布局、品牌、标签和底层组件静态配置。UI Options 不覆盖 Data 中的 loading、disabled、selected 和 pending 状态。
 
@@ -66,11 +66,11 @@ Model/MCP Data 未提供时不渲染对应控件。所有公共 Data 类型均�
 
 解析规则：
 
-| 输入 | 语义 |
-| --- | --- |
-| `undefined` | 使用默认值 |
-| `false` | 关闭对应区域及交互 |
-| object | 覆盖已提供字段 |
+| 输入                 | 语义                     |
+| -------------------- | ------------------------ |
+| `undefined`          | 使用默认值               |
+| `false`              | 关闭对应区域及交互       |
+| object               | 覆盖已提供字段           |
 | array/function/VNode | 作为底层组件静态配置使用 |
 
 不使用递归 deep merge。数组按整体替换；`roleConfigs` 按 role 合并，同一 role 的字段按用户配置覆盖。
@@ -126,28 +126,28 @@ right-aside-open-change
 
 区域 Slot 保留外层布局和滚动结构：
 
-| Slot | Slot props |
-| --- | --- |
-| `layout-header` | `title`、`conversation`、会话创建和左右 Aside 操作 |
-| `layout-left-aside` | `conversation`、会话 CRUD、左栏操作 |
-| `layout-main` | `messages`、`request`、`conversation` |
-| `layout-footer` | `value`、Sender 状态、输入、提交、取消和清空操作 |
-| `request-error` | `error` |
-| `layout-right-aside-title` | 当前右栏标题，提供 `panelId`、`panel` |
+| Slot                       | Slot props                                                     |
+| -------------------------- | -------------------------------------------------------------- |
+| `layout-header`            | `title`、`conversation`、会话创建和左右 Aside 操作             |
+| `layout-left-aside`        | `conversation`、会话 CRUD、左栏操作                            |
+| `layout-main`              | `messages`、`request`、`conversation`                          |
+| `layout-footer`            | `value`、Sender 状态、输入、提交、取消和清空操作               |
+| `request-error`            | `error`                                                        |
+| `layout-right-aside-title` | 当前右栏标题，提供 `panelId`、`panel`                          |
 | `layout-right-aside-panel` | 当前业务右栏面板，提供 `panelId`、`panel`、`panels` 和右栏操作 |
 
 Slot props 只暴露公开数据和操作函数，不暴露内部组件实例。
 
 左侧 Aside 默认由 Brand、Actions、Content、Footer 四个区域组成。可通过以下细粒度 Slot 替换单个区域：
 
-| Slot | 作用 |
-| --- | --- |
-| `layout-left-aside-brand` | 品牌和顶部操作 |
-| `layout-left-aside-actions` | 新建会话或业务导航 |
-| `layout-left-aside-content` | 默认历史或其他业务面板 |
-| `layout-left-aside-footer` | 底部用户和设置区域 |
-| `layout-left-aside-rail` | Dock 折叠态 |
-| `layout-left-aside-history-item-prefix` | 默认历史项的业务前缀 |
+| Slot                                    | 作用                   |
+| --------------------------------------- | ---------------------- |
+| `layout-left-aside-brand`               | 品牌和顶部操作         |
+| `layout-left-aside-actions`             | 新建会话或业务导航     |
+| `layout-left-aside-content`             | 默认历史或其他业务面板 |
+| `layout-left-aside-footer`              | 底部用户和设置区域     |
+| `layout-left-aside-rail`                | Dock 折叠态            |
+| `layout-left-aside-history-item-prefix` | 默认历史项的业务前缀   |
 
 未提供 `layout-left-aside-content` 时，Content 默认使用 `TrHistory`。`ChatConversationView.history` 可提供平铺或分组的历史展示投影，分组规则和排序由业务侧决定；`items` 仍是会话事实来源，`activeId` 仍负责选中态。提供旧的 `layout-left-aside` 时，它优先于这些细粒度 Slot，以保持兼容。
 

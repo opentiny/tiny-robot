@@ -41,8 +41,21 @@ describe('UI resolvers', () => {
       width: 320,
       collapsedWidth: 0,
       showClose: true,
+      resizable: false,
+      minWidth: undefined,
+      maxWidth: undefined,
       panels: [],
     })
+    expect(
+      resolveChatUIOptions({
+        layout: { rightAside: { resizable: true, minWidth: 360, maxWidth: 300 } },
+      }).layout.rightAside,
+    ).toMatchObject({ resizable: true, minWidth: 360, maxWidth: 360 })
+    expect(
+      resolveChatUIOptions({
+        layout: { rightAside: { minWidth: Number.NaN, maxWidth: Number.POSITIVE_INFINITY } },
+      }).layout.rightAside,
+    ).toMatchObject({ minWidth: undefined, maxWidth: undefined })
     const rightAside = resolveChatUIOptions({
       layout: {
         rightAside: {

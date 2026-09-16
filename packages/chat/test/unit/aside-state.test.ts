@@ -60,8 +60,41 @@ describe('useChatAsideState', () => {
     await nextTick()
     expect(state.leftAsideOptions.value.expandedWidth).toBe(344)
     expect(state.rightAsideOptions.value.expandedWidth).toBe(400)
+    expect(state.rightAsideOptions.value.resizable).toBe(false)
+    expect(state.rightAsideOptions.value.minExpandedWidth).toBe(400)
+    expect(state.rightAsideOptions.value.maxExpandedWidth).toBe(400)
     expect(leftEvents).toHaveBeenCalledWith({ open: false, source: 'viewport' })
     expect(rightEvents).toHaveBeenCalledWith({ open: false, source: 'viewport' })
+  })
+
+  it('maps right aside resize options and keeps the resized width', () => {
+    const state = useChatAsideState({
+      leftAside: false,
+      rightAside: {
+        width: 360,
+        resizable: true,
+        minWidth: 300,
+        maxWidth: 520,
+      },
+      defaultRightAsideOpen: true,
+      rightAsidePanels,
+      isMobileViewport: false,
+      viewportWidth: 1200,
+      onLeftOpenChange: vi.fn(),
+      onRightOpenChange: vi.fn(),
+    })
+
+    expect(state.rightAsideOptions.value).toMatchObject({
+      expandedWidth: 360,
+      defaultExpandedWidth: 360,
+      minExpandedWidth: 300,
+      maxExpandedWidth: 520,
+      resizable: true,
+    })
+
+    state.handleRightAsideResize({ expandedWidth: 440 })
+
+    expect(state.rightAsideOptions.value.expandedWidth).toBe(440)
   })
 
   it('keeps false asides closed', () => {

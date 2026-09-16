@@ -168,6 +168,9 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     <template v-if="$slots['layout-main']" #layout-main="slotProps">
       <slot name="layout-main" v-bind="slotProps" />
     </template>
+    <template v-if="$slots['layout-empty-state']" #layout-empty-state="slotProps">
+      <slot name="layout-empty-state" v-bind="slotProps" />
+    </template>
     <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
       <slot name="layout-footer" v-bind="slotProps" />
     </template>

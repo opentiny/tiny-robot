@@ -111,7 +111,7 @@ Runtime 返回 false 或 reject
 
 发送 reject 不由 Adapter 静默吞掉。Runtime 负责把错误写入 `activeConversation.lastError`，Adapter 将其投影为 `ChatUIData.request.error`，并通过 `runtime-action-error` 将 `{ action, payload, error }` 派发给外部。
 
-ChatUI 的公共输入事件为 `update:inputValue`。`ChatComposer` 的 `update:value` 仅是 ChatUI 内部事件，不属于 Runtime 或 ChatUI 公共协议。ChatUI 不负责提交后自动清空，草稿清空和失败恢复由 useChatDraft 负责。输入模式在组件生命周期内不得从受控切换为非受控，或反向切换。
+ChatUI 的公共输入事件为 `update:inputValue`。输入区的 `update:value` 仅是 ChatUI 内部事件，不属于 Runtime 或 ChatUI 公共协议。ChatUI 不负责提交后自动清空，草稿清空和失败恢复由 useChatDraft 负责。输入模式在组件生命周期内不得从受控切换为非受控，或反向切换。
 
 `sender.loading` 继续由 `requestState === 'processing'` 派生。Runtime 不新增 `operations`、`streaming` 等状态。
 

@@ -110,6 +110,9 @@ export interface ChatAsideOptions {
 
 export interface ChatRightAsideOptions extends Omit<ChatAsideOptions, 'open' | 'defaultOpen'> {
   readonly showClose?: boolean
+  readonly resizable?: boolean
+  readonly minWidth?: number
+  readonly maxWidth?: number
   readonly panels?: readonly ChatRightAsidePanelOptions[]
 }
 

@@ -48,7 +48,11 @@ export type ResolvedChatBrandOptions = ChatBrandOptions & {
 }
 
 export type ResolvedChatAsideOptions = Required<Omit<ChatAsideOptions, 'open'>> & Pick<ChatAsideOptions, 'open'>
-export type ResolvedChatRightAsideOptions = Required<Omit<ChatRightAsideOptions, 'panels'>> & {
+export type ResolvedChatRightAsideOptions = Required<
+  Omit<ChatRightAsideOptions, 'panels' | 'minWidth' | 'maxWidth'>
+> & {
+  minWidth: number | undefined
+  maxWidth: number | undefined
   panels: readonly ChatRightAsidePanelOptions[]
 }
 
@@ -155,13 +159,23 @@ function resolveLeftAside(
 function resolveRightAside(options: false | ChatRightAsideOptions | undefined): false | ResolvedChatRightAsideOptions {
   if (options === false) return false
 
+  const minWidth = resolveAsideWidth(options?.minWidth)
+  const maxWidth = resolveAsideWidth(options?.maxWidth)
+
   return {
     mode: options?.mode ?? 'dock',
     width: options?.width ?? 320,
     collapsedWidth: options?.collapsedWidth ?? 0,
     showClose: options?.showClose ?? true,
+    resizable: options?.resizable ?? false,
+    minWidth,
+    maxWidth: maxWidth === undefined || minWidth === undefined ? maxWidth : Math.max(minWidth, maxWidth),
     panels: resolveRightAsidePanels(options?.panels),
   }
+}
+
+function resolveAsideWidth(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
 }
 
 function resolveRightAsidePanels(

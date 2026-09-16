@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, useSlots } from 'vue'
+import { computed } from 'vue'
 import { TrHistory, TrIconButton } from '@opentiny/tiny-robot'
 import { IconAi, IconCollapseLeft, IconCollapseRight, IconNewSession } from '@opentiny/tiny-robot-svgs'
 import type { HistoryGroup, HistoryMenuItem } from '@opentiny/tiny-robot'
@@ -37,8 +37,6 @@ const emit = defineEmits<{
   toggle: []
 }>()
 
-const slots = useSlots()
-const hasCustomRail = computed(() => Boolean(slots.rail))
 const historyData = useChatHistoryData({
   conversations: () => props.conversation.items,
   history: () => props.conversation.history,
@@ -111,7 +109,7 @@ function toggleAside() {
 
 <template>
   <aside class="chat-left-aside">
-    <span v-if="!hasCustomRail" class="chat-left-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
+    <span class="chat-left-aside-logo" :aria-label="brand.name || labels.newConversationTitle">
       <component :is="brand.logo || IconAi" />
     </span>
 

@@ -2,6 +2,7 @@ import type { ChatConversationInfo, ChatMessageItem, ChatStructuredData } from '
 import type { ChatRightAsidePanelId, ChatRightAsidePanelOptions } from './options'
 import type { ChatConversationView, ChatHistoryData, ChatRequestView } from './data'
 import type { BubbleMessage } from '@opentiny/tiny-robot'
+import type { VNode } from 'vue'
 
 export interface ChatHeaderSlotProps {
   readonly title: string
@@ -70,6 +71,14 @@ export interface ChatMainSlotProps {
   readonly conversation: ChatConversationView
 }
 
+export interface ChatEmptyStateSlotProps {
+  readonly messages: readonly ChatMessageItem[]
+  readonly request?: ChatRequestView
+  readonly conversation: ChatConversationView
+  readonly isEmpty: true
+  readonly renderComposer: () => VNode | null
+}
+
 export interface ChatBubbleSlotProps {
   readonly messages: readonly BubbleMessage[]
   readonly role?: string
@@ -93,6 +102,7 @@ export interface ChatUISlots {
   'layout-right-aside-title'?: (props: ChatRightAsideTitleSlotProps) => unknown
   'layout-right-aside-panel'?: (props: ChatRightAsidePanelSlotProps) => unknown
   'layout-main'?: (props: ChatMainSlotProps) => unknown
+  'layout-empty-state'?: (props: ChatEmptyStateSlotProps) => unknown
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'composer-before'?: (props: ChatSenderSlotProps) => unknown
   'header-notice'?: () => unknown
