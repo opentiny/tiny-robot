@@ -286,13 +286,6 @@ const runtime = useLocalChatRuntime({
 
 `TrChatUI` 适合应用已经拥有会话和请求状态的场景。下面的示例使用本地状态接收提交内容，并把结果写回消息列表。
 
-<demo
-  vue="../../demos/chat/UIControlled.vue"
-  :vueFiles="['../../demos/chat/UIControlled.vue']"
-  title="纯界面接入"
-  description="宿主维护输入、消息和请求状态，组件只负责展示和派发事件。"
-/>
-
 受控输入必须同步 `update:input-value`；使用 `defaultInputValue` 时由组件维护草稿，生命周期内不要切换两种模式。
 
 ```vue
