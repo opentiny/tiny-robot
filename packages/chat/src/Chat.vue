@@ -101,7 +101,7 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     :active-right-aside-panel-id="props.activeRightAsidePanelId"
     :default-active-right-aside-panel-id="props.defaultActiveRightAsidePanelId"
     :input-value="adapter.inputValue.value"
-    @create-conversation="adapter.createConversation"
+    @create-conversation="adapter.clearActiveConversation"
     @switch-conversation="({ conversationId }) => adapter.switchConversation(conversationId)"
     @rename-conversation="({ conversationId, title }) => adapter.renameConversation(conversationId, title)"
     @history-action="handleHistoryAction"

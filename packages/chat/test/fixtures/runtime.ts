@@ -21,6 +21,7 @@ export function createRuntimeFixture(overrides: Partial<ChatRuntime['actions']> 
   const calls = {
     send: 0,
     abort: 0,
+    clearActiveConversation: 0,
     createConversation: 0,
     switchConversation: 0,
     renameConversation: 0,
@@ -78,6 +79,10 @@ export function createRuntimeFixture(overrides: Partial<ChatRuntime['actions']> 
     },
     abort: async () => {
       calls.abort++
+    },
+    clearActiveConversation: async () => {
+      calls.clearActiveConversation++
+      activeConversation.value = null
     },
     createConversation: async () => {
       calls.createConversation++

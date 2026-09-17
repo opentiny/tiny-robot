@@ -43,12 +43,15 @@ export interface ChatRuntime {
 export interface ChatRuntimeActions {
   send: (payload: ChatSendPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
+  clearActiveConversation: () => Promise<void> | void
   createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
   switchConversation: (id: string) => Promise<void> | void
   renameConversation: (id: string, title: string) => Promise<void> | void
   deleteConversation: (id: string) => Promise<void> | void
 }
 ```
+
+UI 的“新会话”动作调用 `clearActiveConversation`，只清除当前选中会话，不创建或持久化空会话。默认 Kit Runtime 在首条消息发送时再调用 `createConversation` 创建真实会话；`createConversation` 仍保留立即创建会话的语义。
 
 ```ts
 export type ChatBeforeSendResult = 'continue' | 'handled' | 'reject'

@@ -97,6 +97,33 @@ describe('useKitChatRuntime integration', () => {
     expect(conversation.activeConversation.value).toBeNull()
   })
 
+  it('clears the active conversation and creates one on the first send', async () => {
+    const { conversation } = createConversation(createResponseProvider('reply'))
+    conversation.createConversation({ title: 'Existing' })
+    const runtime = useKitChatRuntime({ conversation })
+
+    await runtime.actions.clearActiveConversation()
+
+    expect(runtime.activeConversation.value).toBeNull()
+    expect(runtime.conversations.value).toHaveLength(1)
+
+    await expect(runtime.actions.send({ text: 'hello' })).resolves.toBe(true)
+    await nextTick()
+
+    expect(runtime.conversations.value).toHaveLength(2)
+    expect(runtime.activeConversation.value?.messages.map((message) => message.content)).toEqual(['hello', 'reply'])
+  })
+
+  it('forwards empty text to a custom send', async () => {
+    const { conversation } = createConversation(createResponseProvider())
+    const send = vi.fn(async () => {})
+    const runtime = useKitChatRuntime({ conversation, send })
+
+    await expect(runtime.actions.send({ text: '' })).resolves.toBe(true)
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ text: '' }))
+    expect(conversation.conversations.value).toHaveLength(0)
+  })
+
   it('runs beforeSend with model and MCP snapshots before creating a message', async () => {
     const { conversation } = createConversation(createResponseProvider('reply'))
     const mcp = {

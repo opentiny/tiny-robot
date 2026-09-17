@@ -13,6 +13,14 @@ describe('useChatDraft', () => {
     expect(draft.inputValue.value).toBe('  ')
   })
 
+  it('forwards empty text when empty sends are allowed', async () => {
+    const send = vi.fn(async () => true)
+    const draft = useChatDraft({ send, allowEmptyText: true })
+
+    await expect(draft.send({ text: '' })).resolves.toBe(true)
+    expect(send).toHaveBeenCalledWith({ text: '' })
+  })
+
   it('trims sent text and clears the draft after acceptance', async () => {
     const send = vi.fn(async () => true)
     const draft = useChatDraft({ send })

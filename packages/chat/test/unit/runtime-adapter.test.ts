@@ -67,6 +67,9 @@ describe('useChatRuntimeAdapter', () => {
       abort: async () => {
         throw error
       },
+      clearActiveConversation: async () => {
+        throw error
+      },
       createConversation: async () => {
         throw error
       },
@@ -83,6 +86,7 @@ describe('useChatRuntimeAdapter', () => {
     const adapter = useChatRuntimeAdapter({ runtime: fixture.runtime, onActionError })
 
     await adapter.abort()
+    await adapter.clearActiveConversation()
     await adapter.createConversation()
     await adapter.switchConversation('id')
     await adapter.renameConversation('id', 'title')
@@ -90,6 +94,7 @@ describe('useChatRuntimeAdapter', () => {
 
     expect(onActionError.mock.calls.map(([payload]: [{ action: string }]) => payload.action)).toEqual([
       'abort',
+      'clear-active-conversation',
       'create-conversation',
       'switch-conversation',
       'rename-conversation',

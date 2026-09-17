@@ -85,7 +85,7 @@ VITE_OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 
 这个示例不需要在 `conversation.useMessageOptions` 中提供 `responseProvider`，因为 `modelProviders` 会提供响应请求所需的 Provider。`useLocalChatRuntime` 会将会话、模型和完整聊天页面连接起来。
 
-第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 默认会开启消息自动保存流程。如果在 `conversation` 中显式传入 `autoSaveMessages`，则以调用方配置为准。
+第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。点击 TrChat 的“新会话”只会清除当前会话，不会创建或持久化空会话；需要立即创建会话时才调用 `runtime.actions.createConversation()`。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 默认会开启消息自动保存流程。如果在 `conversation` 中显式传入 `autoSaveMessages`，则以调用方配置为准。
 
 发送过程中，页面的取消操作会调用 Runtime 的 `abort`。Runtime 不检查 API Key 是否存在：有 Key 时发送默认 Bearer 认证，没有 Key 时直接请求配置的 `apiUrl`。认证失败由上游模型服务或后端代理返回，并按普通请求错误处理。
 
@@ -793,7 +793,7 @@ const ui: ChatUIOptions = {
 | `layout-left-aside-rail`                | Dock 折叠态内容                        |
 | `layout-left-aside-history-item-prefix` | 默认历史项前缀                         |
 
-这些插槽提供公开的会话数据和操作函数，不绑定 `TrHistory` 实例。`layout-left-aside-content` 可以替换为收藏夹、项目列表或其他业务面板；提供该插槽后，默认历史列表不会渲染。旧的 `layout-left-aside` 优先级更高，仍可用于完整替换展开面板。
+这些插槽提供公开的会话数据和操作函数，不绑定 `TrHistory` 实例。插槽中的 `createConversation` 表示开始新会话，使用 `TrChat` 时会清除当前会话，不会立即创建空会话；需要立即创建会话时直接调用 `runtime.actions.createConversation()`。`layout-left-aside-content` 可以替换为收藏夹、项目列表或其他业务面板；提供该插槽后，默认历史列表不会渲染。旧的 `layout-left-aside` 优先级更高，仍可用于完整替换展开面板。
 
 历史默认数据来自 `conversation.history`。它可以是平铺会话数组，也可以是业务侧决定顺序和分组的数组：
 
@@ -841,7 +841,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 该事件覆盖：
 
 - 发送和取消；
-- 创建、切换、重命名和删除会话；
+- 清除当前会话、创建、切换、重命名和删除会话；
 - 模型切换和功能开关；
 - MCP Server 添加、删除、启用，以及工具开关。
 

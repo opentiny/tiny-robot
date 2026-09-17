@@ -31,6 +31,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
 
   const input = useChatDraft({
+    allowEmptyText: true,
     send: async (payload) => (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false,
   })
 
@@ -247,6 +248,8 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     setInputValue: input.setInputValue,
     send: (payload: ChatSendPayload) => input.send(payload),
     abort: () => runAction('abort', undefined, () => runtime.value.actions.abort?.()),
+    clearActiveConversation: () =>
+      runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation()),
     createConversation: () =>
       runAction('create-conversation', undefined, () => runtime.value.actions.createConversation()),
     switchConversation: (id: string) =>

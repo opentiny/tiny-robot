@@ -19,6 +19,35 @@ function createAdapter(responseProvider: ResponseProvider) {
 }
 
 describe('useChatRuntimeAdapter integration', () => {
+  it('clears the active conversation without creating a history item', async () => {
+    const { conversation } = createAdapter(createResponseProvider())
+    const existing = conversation.createConversation({ title: 'Existing' })
+    const send = vi.fn(async () => {})
+    const runtime = useKitChatRuntime({ conversation, send })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: vi.fn() })
+
+    await adapter.clearActiveConversation()
+
+    expect(runtime.activeConversation.value).toBeNull()
+    expect(runtime.conversations.value).toHaveLength(1)
+    expect(runtime.conversations.value[0].id).toBe(existing.id)
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('forwards empty text for attachment sends to a custom runtime send', async () => {
+    const { conversation } = createAdapter(createResponseProvider())
+    const send = vi.fn(async () => {})
+    const runtime = useKitChatRuntime({ conversation, send })
+    const adapter = useChatRuntimeAdapter({ runtime, onActionError: vi.fn() })
+    const payload = {
+      text: '',
+      attachments: [{ name: 'report.txt', type: 'text/plain' }],
+    } as Parameters<typeof adapter.send>[0]
+
+    await expect(adapter.send(payload)).resolves.toBe(true)
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ text: '' }))
+  })
+
   it('clears the draft and projects messages and request state after a successful send', async () => {
     const { adapter } = createAdapter(createResponseProvider('reply'))
     adapter.setInputValue('hello')
