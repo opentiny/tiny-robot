@@ -627,7 +627,7 @@ function renderEmptyStateComposer() {
     </template>
 
     <template v-if="isDefaultComposerVisible" #footer>
-      <div v-if="!isWelcomeComposerCentered" class="chat-panel-content chat-panel-content--footer">
+      <div v-if="!isEmpty || !isWelcomeComposerCentered" class="chat-panel-content chat-panel-content--footer">
         <ChatInputRegion v-bind="composerProps" v-on="composerTemplateEvents">
           <template v-if="$slots['composer-before']" #composer-before="slotProps">
             <slot name="composer-before" v-bind="slotProps" />
