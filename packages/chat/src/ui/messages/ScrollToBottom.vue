@@ -66,18 +66,21 @@ function scrollToBottom() {
 </template>
 
 <style lang="less" scoped>
-.tr-chat-scroll-to-bottom {
+.tr-chat-scroll-to-bottom.tr-icon-button {
   color: var(--tr-text-secondary);
+  background: var(--tr-chat-scroll-button-bg, var(--tr-container-bg-default));
+  border: 1px solid var(--tr-chat-scroll-button-border-color, var(--tr-border-color-default));
   opacity: 0.95;
-  transition: opacity 0.2s ease-in-out;
-
-  &.tr-icon-button {
-    background: var(--tr-chat-scroll-button-bg, #fff);
-    border: 1px solid var(--tr-chat-scroll-button-border-color, rgba(23, 32, 51, 0.12));
-  }
+  transition:
+    opacity 0.2s ease-in-out,
+    background-color 0.2s ease-in-out;
 
   &:hover {
-    background: #f0f0f0 !important;
+    color: var(--tr-text-primary);
+    background: var(
+      --tr-chat-scroll-button-hover-bg,
+      color-mix(in srgb, var(--tr-text-primary) 8%, var(--tr-chat-scroll-button-bg, var(--tr-container-bg-default)))
+    );
   }
 }
 </style>

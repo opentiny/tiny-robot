@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
-import { computed, shallowRef, useSlots, type Slots } from 'vue'
+import { computed, h, shallowRef, useSlots, type Slots } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
-import type { HistoryMenuItem, LayoutProps, PromptProps } from '@opentiny/tiny-robot'
+import type { HistoryMenuItem, LayoutAsideResizeValue, LayoutProps, PromptProps } from '@opentiny/tiny-robot'
 import ScrollToBottom from './ui/messages/ScrollToBottom.vue'
 import ChatLeftAside from './ui/layout/ChatLeftAside.vue'
-import ChatComposerHost from './ui/composer/ChatComposerHost.vue'
+import ChatInputRegion from './ui/composer/ChatInputRegion.vue'
 import ChatHeader from './ui/layout/ChatHeader.vue'
 import ChatMessages from './ui/messages/ChatMessages.vue'
 import ChatRightAside from './ui/layout/ChatRightAside.vue'
 import ChatMcpPanel from './ui/layout/ChatMcpPanel.vue'
 import { useChatAsideState } from './composables/useChatAsideState'
+import { createDefaultChatUIOptions } from './ui/defaults'
 import { resolveChatUIData } from './ui/resolveData'
-import { resolveChatUIOptions } from './ui/resolveOptions'
+import { resolveChatUIOptions, type ResolvedChatSenderOptions } from './ui/resolveOptions'
 import { formatRequestError } from './ui/formatRequestError'
 import type {
   ChatBubbleEventPayload,
@@ -20,8 +21,13 @@ import type {
   ChatConversationInfo,
   ChatHistoryActionPayload,
   ChatHistoryGroup,
+  LayoutFloatingDragDetail,
+  LayoutFloatingResizeDetail,
+  LayoutFloatingState,
   ChatMcpCreateServerPayload,
+  ChatMcpToolEnabledChangePayload,
   ChatModelFeatureChangePayload,
+  ChatModelReasoningEffortChangePayload,
   ChatRightAsidePanelOptions,
   ChatSendPayload,
   ChatUIEmits,
@@ -29,7 +35,10 @@ import type {
 } from './types'
 import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from './types'
 
-const props = defineProps<ChatUIProps>()
+const props = withDefaults(defineProps<ChatUIProps>(), {
+  rightAsideOpen: undefined,
+})
+
 const emit = defineEmits<ChatUIEmits>()
 const slots: Slots = useSlots()
 
@@ -50,17 +59,24 @@ const inputValue = computed(() => (isControlledInput ? (props.inputValue ?? '') 
 const isHeaderVisible = computed(() => resolvedOptions.value.header !== false)
 const leftAsideLayout = computed(() => resolvedOptions.value.layout.leftAside)
 const rightAsideLayout = computed(() => resolvedOptions.value.layout.rightAside)
-const hasRightAsidePanelSlot = Boolean(slots['layout-right-aside-panel'])
+const hasRightAsidePanelSlot = Boolean(slots['layout-right-aside'] || slots['layout-right-aside-panel'])
+
 const hasLegacyLeftAsideSlot = Boolean(slots['layout-left-aside'])
+const hasLayoutEmptyStateSlot = Boolean(slots['layout-empty-state'])
 const historyOptions = computed(() =>
   resolvedOptions.value.history === false ? { menuItems: [] } : resolvedOptions.value.history,
 )
-const senderOptions = computed(() =>
-  resolvedOptions.value.sender === false ? undefined : resolvedOptions.value.sender,
-)
+const fallbackSenderOptions = createDefaultChatUIOptions().sender
+const senderOptions = computed<ResolvedChatSenderOptions>(() => {
+  const options = resolvedOptions.value.sender
+
+  return options === false ? fallbackSenderOptions : options
+})
 const visibleModel = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedData.value.model))
 const modelOptions = computed(() => (resolvedOptions.value.model === false ? undefined : resolvedOptions.value.model))
-const visibleMcp = computed(() => (resolvedOptions.value.mcp === false ? undefined : resolvedData.value.mcp))
+const visibleMcp = computed(() =>
+  resolvedOptions.value.mcp === false || rightAsideLayout.value === false ? undefined : resolvedData.value.mcp,
+)
 const effectiveRightAsideLayout = computed(() => rightAsideLayout.value)
 const availableRightAsidePanels = computed<readonly ChatRightAsidePanelOptions[]>(() => {
   const panels =
@@ -116,12 +132,15 @@ const visibleMessages = computed(() =>
 )
 const isEmpty = computed(() => visibleMessages.value.length === 0)
 const hasLayoutMainSlot = Boolean(slots['layout-main'])
+const isCustomEmptyStateActive = computed(() => isEmpty.value && hasLayoutEmptyStateSlot && !hasLayoutMainSlot)
 const isEmptyStateCentered = computed(() => isEmpty.value && resolvedOptions.value.layout.emptyState === 'center')
+
+const isDefaultComposerVisible = computed(() => isSenderVisible.value && !isCustomEmptyStateActive.value)
 
 const isWelcomeComposerCentered = computed(
   () =>
     isEmpty.value &&
-    senderOptions.value !== undefined &&
+    isSenderVisible.value &&
     resolvedOptions.value.welcome !== false &&
     resolvedOptions.value.layout.composer.welcome === 'center' &&
     !hasLayoutMainSlot,
@@ -262,7 +281,7 @@ function handleClear() {
 }
 
 function handleOpenMcpPanel() {
-  if (visibleMcp.value) asideState.openRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
+  if (visibleMcp.value) asideState.toggleRightAside(CHAT_MCP_RIGHT_ASIDE_PANEL_ID)
 }
 
 function handleMcpCreateServer(payload: ChatMcpCreateServerPayload) {
@@ -285,6 +304,10 @@ function handleModelFeatureChange(payload: { id: ChatModelFeatureChangePayload['
   emit('model-feature-change', { featureId: payload.id, enabled: payload.enabled })
 }
 
+function handleModelReasoningEffortChange(payload: ChatModelReasoningEffortChangePayload) {
+  emit('model-reasoning-effort-change', payload)
+}
+
 function handleMcpAddServer(payload: { id: string }) {
   emit('mcp-add-server', { serverId: payload.id })
 }
@@ -297,12 +320,111 @@ function handleMcpServerEnabledChange(payload: { id: string; enabled: boolean })
   emit('mcp-server-enabled-change', { serverId: payload.id, enabled: payload.enabled })
 }
 
+function handleMcpToolEnabledChange(payload: ChatMcpToolEnabledChangePayload) {
+  emit('mcp-tool-enabled-change', payload)
+}
+
 function handleBubbleStateChange(payload: ChatBubbleStateChangePayload) {
   emit('bubble-state-change', payload)
 }
 
 function handleBubbleEvent(payload: ChatBubbleEventPayload) {
   emit('bubble-event', payload)
+}
+
+function handleFloatingStateUpdate(value: LayoutFloatingState) {
+  emit('update:floating-state', value)
+}
+
+function handleFloatingDragStart(detail: LayoutFloatingDragDetail) {
+  emit('floating-drag-start', detail)
+}
+
+function handleFloatingDrag(detail: LayoutFloatingDragDetail) {
+  emit('floating-drag', detail)
+}
+
+function handleFloatingDragEnd(detail: LayoutFloatingDragDetail) {
+  emit('floating-drag-end', detail)
+}
+
+function handleFloatingResizeStart(detail: LayoutFloatingResizeDetail) {
+  emit('floating-resize-start', detail)
+}
+
+function handleFloatingResize(detail: LayoutFloatingResizeDetail) {
+  emit('floating-resize', detail)
+}
+
+function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
+  emit('floating-resize-end', detail)
+}
+
+function handleRightAsideResize(detail: LayoutAsideResizeValue) {
+  asideState.handleRightAsideResize(detail)
+}
+
+const composerProps = computed(() => ({
+  sender: resolvedData.value.sender,
+  value: inputValue.value,
+  senderOptions: senderOptions.value,
+  labels: resolvedOptions.value.labels,
+  model: visibleModel.value,
+  modelOptions: modelOptions.value,
+  mcp: visibleMcp.value,
+}))
+
+const composerEvents = {
+  onSubmit: handleSubmit,
+  onCancel: handleCancel,
+  onClear: handleClear,
+  'onUpdate:value': handleInputValue,
+  onModelSelect: handleModelSelect,
+  onModelFeatureChange: handleModelFeatureChange,
+  onModelReasoningEffortChange: handleModelReasoningEffortChange,
+  onOpenMcpPanel: handleOpenMcpPanel,
+  onMcpAddServer: handleMcpAddServer,
+  onMcpRemoveServer: handleMcpRemoveServer,
+  onMcpServerEnabledChange: handleMcpServerEnabledChange,
+  onMcpToolEnabledChange: handleMcpToolEnabledChange,
+}
+
+const composerTemplateEvents = {
+  submit: handleSubmit,
+  cancel: handleCancel,
+  clear: handleClear,
+  'update:value': handleInputValue,
+  modelSelect: handleModelSelect,
+  modelFeatureChange: handleModelFeatureChange,
+  modelReasoningEffortChange: handleModelReasoningEffortChange,
+  openMcpPanel: handleOpenMcpPanel,
+  mcpAddServer: handleMcpAddServer,
+  mcpRemoveServer: handleMcpRemoveServer,
+  mcpServerEnabledChange: handleMcpServerEnabledChange,
+  mcpToolEnabledChange: handleMcpToolEnabledChange,
+}
+
+const composerSlots = {
+  'composer-before': slots['composer-before'],
+  'layout-footer': slots['layout-footer'],
+  'sender-header': slots['sender-header'],
+  'sender-footer': slots['sender-footer'],
+  'sender-footer-right': slots['sender-footer-right'],
+}
+
+function renderEmptyStateComposer() {
+  if (!isSenderVisible.value) {
+    return null
+  }
+
+  return h(
+    ChatInputRegion,
+    {
+      ...composerProps.value,
+      ...composerEvents,
+    },
+    composerSlots,
+  )
 }
 </script>
 
@@ -313,13 +435,14 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
     :style="layoutStyle"
     @left-aside-open-change="asideState.handleLeftAsideOpenChange"
     @right-aside-open-change="asideState.handleRightAsideOpenChange"
-    @update:floating-state="(value) => emit('update:floating-state', value)"
-    @floating-drag-start="(detail) => emit('floating-drag-start', detail)"
-    @floating-drag="(detail) => emit('floating-drag', detail)"
-    @floating-drag-end="(detail) => emit('floating-drag-end', detail)"
-    @floating-resize-start="(detail) => emit('floating-resize-start', detail)"
-    @floating-resize="(detail) => emit('floating-resize', detail)"
-    @floating-resize-end="(detail) => emit('floating-resize-end', detail)"
+    @right-aside-resize="handleRightAsideResize"
+    @update:floating-state="handleFloatingStateUpdate"
+    @floating-drag-start="handleFloatingDragStart"
+    @floating-drag="handleFloatingDrag"
+    @floating-drag-end="handleFloatingDragEnd"
+    @floating-resize-start="handleFloatingResizeStart"
+    @floating-resize="handleFloatingResize"
+    @floating-resize-end="handleFloatingResizeEnd"
   >
     <template v-if="isLeftAsideVisible" #left-aside>
       <ChatLeftAside
@@ -446,40 +569,32 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 :conversation="resolvedData.conversation"
               />
             </template>
+            <template v-if="!hasLayoutMainSlot && $slots['layout-empty-state']" #empty-state>
+              <slot
+                name="layout-empty-state"
+                :messages="visibleMessages"
+                :request="resolvedData.request"
+                :conversation="resolvedData.conversation"
+                :is-empty="true"
+                :render-composer="renderEmptyStateComposer"
+              />
+            </template>
             <template v-if="$slots['welcome-footer']" #welcome-footer>
               <slot name="welcome-footer" />
             </template>
             <template v-if="$slots['prompts-footer']" #prompts-footer>
               <slot name="prompts-footer" />
             </template>
-            <template v-if="isWelcomeComposerCentered && senderOptions" #welcome-composer>
-              <ChatComposerHost
-                class="chat-welcome-composer"
-                :sender="resolvedData.sender"
-                :value="inputValue"
-                :sender-options="senderOptions"
-                :labels="resolvedOptions.labels"
-                :model="visibleModel"
-                :model-options="modelOptions"
-                :mcp="visibleMcp"
-                @submit="handleSubmit"
-                @cancel="handleCancel"
-                @clear="handleClear"
-                @update:value="handleInputValue"
-                @model-select="handleModelSelect"
-                @model-feature-change="handleModelFeatureChange"
-                @model-reasoning-effort-change="(payload) => emit('model-reasoning-effort-change', payload)"
-                @open-mcp-panel="handleOpenMcpPanel"
-                @mcp-add-server="handleMcpAddServer"
-                @mcp-remove-server="handleMcpRemoveServer"
-                @mcp-server-enabled-change="handleMcpServerEnabledChange"
-                @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
-              >
+            <template v-if="!isCustomEmptyStateActive && isWelcomeComposerCentered" #welcome-composer>
+              <ChatInputRegion class="chat-welcome-composer" v-bind="composerProps" v-on="composerTemplateEvents">
                 <template v-if="$slots['composer-before']" #composer-before="slotProps">
                   <slot name="composer-before" v-bind="slotProps" />
                 </template>
                 <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
                   <slot name="layout-footer" v-bind="slotProps" />
+                </template>
+                <template v-if="$slots['sender-header']" #sender-header>
+                  <slot name="sender-header" />
                 </template>
                 <template v-if="$slots['sender-footer']" #sender-footer>
                   <slot name="sender-footer" />
@@ -487,7 +602,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
                 <template v-if="$slots['sender-footer-right']" #sender-footer-right>
                   <slot name="sender-footer-right" />
                 </template>
-              </ChatComposerHost>
+              </ChatInputRegion>
             </template>
             <template v-if="$slots['bubble-prefix']" #bubble-prefix="slotProps">
               <slot name="bubble-prefix" v-bind="slotProps" />
@@ -511,34 +626,17 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 
-    <template v-if="isSenderVisible && senderOptions" #footer>
-      <div v-if="!isWelcomeComposerCentered" class="chat-panel-content chat-panel-content--footer">
-        <ChatComposerHost
-          :sender="resolvedData.sender"
-          :value="inputValue"
-          :sender-options="senderOptions"
-          :labels="resolvedOptions.labels"
-          :model="visibleModel"
-          :model-options="modelOptions"
-          :mcp="visibleMcp"
-          @submit="handleSubmit"
-          @cancel="handleCancel"
-          @clear="handleClear"
-          @update:value="handleInputValue"
-          @model-select="handleModelSelect"
-          @model-feature-change="handleModelFeatureChange"
-          @model-reasoning-effort-change="(payload) => emit('model-reasoning-effort-change', payload)"
-          @open-mcp-panel="handleOpenMcpPanel"
-          @mcp-add-server="handleMcpAddServer"
-          @mcp-remove-server="handleMcpRemoveServer"
-          @mcp-server-enabled-change="handleMcpServerEnabledChange"
-          @mcp-tool-enabled-change="(payload) => emit('mcp-tool-enabled-change', payload)"
-        >
+    <template v-if="isDefaultComposerVisible" #footer>
+      <div v-if="!isEmpty || !isWelcomeComposerCentered" class="chat-panel-content chat-panel-content--footer">
+        <ChatInputRegion v-bind="composerProps" v-on="composerTemplateEvents">
           <template v-if="$slots['composer-before']" #composer-before="slotProps">
             <slot name="composer-before" v-bind="slotProps" />
           </template>
           <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
             <slot name="layout-footer" v-bind="slotProps" />
+          </template>
+          <template v-if="$slots['sender-header']" #sender-header>
+            <slot name="sender-header" />
           </template>
           <template v-if="$slots['sender-footer']" #sender-footer>
             <slot name="sender-footer" />
@@ -546,51 +644,63 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
           <template v-if="$slots['sender-footer-right']" #sender-footer-right>
             <slot name="sender-footer-right" />
           </template>
-        </ChatComposerHost>
+        </ChatInputRegion>
       </div>
     </template>
 
     <template v-if="isRightAsideVisible" #right-aside>
-      <ChatRightAside
-        :show-close="effectiveRightAsideLayout !== false ? effectiveRightAsideLayout.showClose : true"
-        :labels="resolvedOptions.labels"
-        @close="asideState.closeRightAside"
+      <slot
+        name="layout-right-aside"
+        :panel-id="activeRightAsidePanel"
+        :panel="activeRightAsidePanelOptions"
+        :panels="availableRightAsidePanels"
+        :open-right-aside="asideState.openRightAside"
+        :close-right-aside="asideState.closeRightAside"
+        :toggle-right-aside="asideState.toggleRightAside"
+        :activate-right-aside-panel="asideState.activateRightAsidePanel"
+        :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
       >
-        <template #title>
-          <slot
-            v-if="$slots['layout-right-aside-title']"
-            name="layout-right-aside-title"
-            :panel-id="activeRightAsidePanel"
-            :panel="activeRightAsidePanelOptions"
-          />
-          <h2 v-else class="chat-right-aside-title">
-            {{ activeRightAsidePanelOptions?.title ?? resolvedOptions.labels.rightAsideTitle }}
-          </h2>
-        </template>
-        <ChatMcpPanel
-          v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && visibleMcp"
-          :mcp="visibleMcp"
+        <ChatRightAside
+          :show-close="effectiveRightAsideLayout !== false ? effectiveRightAsideLayout.showClose : true"
           :labels="resolvedOptions.labels"
           @close="asideState.closeRightAside"
-          @add-server="handleMcpAddServer"
-          @remove-server="handleMcpRemoveServer"
-          @update-server-enabled="handleMcpServerEnabledChange"
-          @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
-          @create-server="handleMcpCreateServer"
-        />
-        <slot
-          v-else-if="activeRightAsidePanelOptions"
-          name="layout-right-aside-panel"
-          :panel-id="activeRightAsidePanel"
-          :panel="activeRightAsidePanelOptions"
-          :panels="availableRightAsidePanels"
-          :open-right-aside="asideState.openRightAside"
-          :close-right-aside="asideState.closeRightAside"
-          :toggle-right-aside="asideState.toggleRightAside"
-          :activate-right-aside-panel="asideState.activateRightAsidePanel"
-          :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
-        />
-      </ChatRightAside>
+        >
+          <template #title>
+            <slot
+              v-if="$slots['layout-right-aside-title']"
+              name="layout-right-aside-title"
+              :panel-id="activeRightAsidePanel"
+              :panel="activeRightAsidePanelOptions"
+            />
+            <h2 v-else class="chat-right-aside-title">
+              {{ activeRightAsidePanelOptions?.title ?? resolvedOptions.labels.rightAsideTitle }}
+            </h2>
+          </template>
+          <ChatMcpPanel
+            v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && visibleMcp"
+            :mcp="visibleMcp"
+            :labels="resolvedOptions.labels"
+            @close="asideState.closeRightAside"
+            @add-server="handleMcpAddServer"
+            @remove-server="handleMcpRemoveServer"
+            @update-server-enabled="handleMcpServerEnabledChange"
+            @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
+            @create-server="handleMcpCreateServer"
+          />
+          <slot
+            v-else-if="activeRightAsidePanelOptions"
+            name="layout-right-aside-panel"
+            :panel-id="activeRightAsidePanel"
+            :panel="activeRightAsidePanelOptions"
+            :panels="availableRightAsidePanels"
+            :open-right-aside="asideState.openRightAside"
+            :close-right-aside="asideState.closeRightAside"
+            :toggle-right-aside="asideState.toggleRightAside"
+            :activate-right-aside-panel="asideState.activateRightAsidePanel"
+            :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
+          />
+        </ChatRightAside>
+      </slot>
     </template>
   </TrLayout>
 </template>
