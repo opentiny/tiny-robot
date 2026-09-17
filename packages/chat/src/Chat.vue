@@ -27,17 +27,22 @@ interface ChatUIActions {
 
 const chatUIRef = ref<ChatUIActions | null>(null)
 
-const props = defineProps<{
-  runtime: ChatRuntime
-  ui?: ChatUIOptions
-  title?: string
-  floatingState?: LayoutFloatingState
-  rightAsideOpen?: boolean
-  defaultRightAsideOpen?: boolean
-  activeRightAsidePanelId?: ChatRightAsidePanelId
-  defaultActiveRightAsidePanelId?: ChatRightAsidePanelId
-  historyData?: ChatHistoryData
-}>()
+const props = withDefaults(
+  defineProps<{
+    runtime: ChatRuntime
+    ui?: ChatUIOptions
+    title?: string
+    floatingState?: LayoutFloatingState
+    rightAsideOpen?: boolean
+    defaultRightAsideOpen?: boolean
+    activeRightAsidePanelId?: ChatRightAsidePanelId
+    defaultActiveRightAsidePanelId?: ChatRightAsidePanelId
+    historyData?: ChatHistoryData
+  }>(),
+  {
+    rightAsideOpen: undefined,
+  },
+)
 
 const emit = defineEmits<{
   'update:floating-state': [value: LayoutFloatingState]
@@ -151,6 +156,9 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     <template v-if="$slots['layout-left-aside-history-item-prefix']" #layout-left-aside-history-item-prefix="slotProps">
       <slot name="layout-left-aside-history-item-prefix" v-bind="slotProps" />
     </template>
+    <template v-if="$slots['layout-right-aside']" #layout-right-aside="slotProps">
+      <slot name="layout-right-aside" v-bind="slotProps" />
+    </template>
     <template v-if="$slots['layout-right-aside-title']" #layout-right-aside-title="slotProps">
       <slot name="layout-right-aside-title" v-bind="slotProps" />
     </template>
@@ -159,6 +167,9 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     </template>
     <template v-if="$slots['layout-main']" #layout-main="slotProps">
       <slot name="layout-main" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['layout-empty-state']" #layout-empty-state="slotProps">
+      <slot name="layout-empty-state" v-bind="slotProps" />
     </template>
     <template v-if="$slots['layout-footer']" #layout-footer="slotProps">
       <slot name="layout-footer" v-bind="slotProps" />
@@ -189,6 +200,9 @@ function handleHistoryAction(payload: ChatHistoryActionPayload) {
     </template>
     <template v-if="$slots['bubble-content-footer']" #bubble-content-footer="slotProps">
       <slot name="bubble-content-footer" v-bind="slotProps" />
+    </template>
+    <template v-if="$slots['sender-header']" #sender-header>
+      <slot name="sender-header" />
     </template>
     <template v-if="$slots['sender-footer']" #sender-footer>
       <slot name="sender-footer" />

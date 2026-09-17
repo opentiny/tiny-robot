@@ -110,6 +110,9 @@ export interface ChatAsideOptions {
 
 export interface ChatRightAsideOptions extends Omit<ChatAsideOptions, 'open' | 'defaultOpen'> {
   readonly showClose?: boolean
+  readonly resizable?: boolean
+  readonly minWidth?: number
+  readonly maxWidth?: number
   readonly panels?: readonly ChatRightAsidePanelOptions[]
 }
 
@@ -144,10 +147,8 @@ export type ChatSenderDefaultActions = Omit<DefaultActions, 'submit'> & {
   readonly submit?: Omit<SubmitActionConfig, 'disabled'>
 }
 
-export interface ChatSenderOptions extends Omit<
-  SenderProps,
-  'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'
-> {
+export interface ChatSenderOptions
+  extends Omit<SenderProps, 'modelValue' | 'defaultValue' | 'loading' | 'disabled' | 'defaultActions'> {
   readonly defaultActions?: ChatSenderDefaultActions
 }
 

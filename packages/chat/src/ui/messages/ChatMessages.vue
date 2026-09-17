@@ -147,10 +147,12 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
         <div
           class="chat-empty-content"
           :class="{
-            'chat-empty-content--centered': props.centerEmptyState || props.centerWelcomeComposer,
+            'chat-empty-content--centered':
+              !$slots['empty-state'] && (props.centerEmptyState || props.centerWelcomeComposer),
           }"
         >
-          <template v-if="$slots['welcome-composer']">
+          <slot v-if="$slots['empty-state']" name="empty-state" />
+          <template v-else-if="$slots['welcome-composer']">
             <div class="chat-welcome-content">
               <TrWelcome v-if="welcomeProps" v-bind="welcomeProps">
                 <template #footer>

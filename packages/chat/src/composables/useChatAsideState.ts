@@ -1,5 +1,6 @@
 import { computed, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
+import type { LayoutAsideResizeValue } from '@opentiny/tiny-robot'
 import type {
   ChatAsideOpenChangePayload,
   ChatAsideOptions,
@@ -34,6 +35,8 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const leftInitial = toValue(options.leftAside)
   const leftOpen = shallowRef(leftInitial !== false ? (leftInitial?.defaultOpen ?? false) : false)
   const rightOpen = shallowRef(toValue(options.defaultRightAsideOpen) ?? false)
+  const rightInitial = toValue(options.rightAside)
+  const rightAsideWidth = shallowRef(toSize(rightInitial !== false ? rightInitial?.width : undefined, 320))
   const rightPanel = shallowRef<ChatRightAsidePanelId | undefined>(undefined)
   const isMobileViewport = computed(() => toValue(options.isMobileViewport))
   const viewportWidth = computed(() => toValue(options.viewportWidth))
@@ -81,11 +84,13 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     return {
       mode: rightAsideMode.value,
       open: resolvedRightAsideOpen.value,
-      expandedWidth: mobileWidth ?? toSize(layout !== false ? layout?.width : undefined, 320),
-      minExpandedWidth: mobileWidth,
-      maxExpandedWidth: mobileWidth,
+      expandedWidth: mobileWidth ?? rightAsideWidth.value,
+      defaultExpandedWidth: rightAsideWidth.value,
+      minExpandedWidth: mobileWidth ?? (layout !== false ? layout?.minWidth : undefined),
+      maxExpandedWidth: mobileWidth ?? (layout !== false ? layout?.maxWidth : undefined),
       collapsedWidth: isMobileViewport.value || layout === false ? 0 : toSize(layout?.collapsedWidth, 0),
       collapseEffect: 'overlay' as const,
+      resizable: !isMobileViewport.value && layout !== false && layout?.resizable === true,
     }
   })
 
@@ -100,6 +105,12 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     if (controlledRightAsideOpen.value === undefined) rightOpen.value = open
     options.onRightAsideOpenUpdate?.(open)
     options.onRightOpenChange({ open, source })
+  }
+
+  function handleRightAsideResize(detail: LayoutAsideResizeValue) {
+    if (!isMobileViewport.value) {
+      rightAsideWidth.value = detail.expandedWidth
+    }
   }
 
   function hasRightAsidePanel(panel: ChatRightAsidePanelId) {
@@ -183,6 +194,7 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
     closeRightAside,
     toggleRightAside,
     activateRightAsidePanel,
+    handleRightAsideResize,
     handleLeftAsideOpenChange: (payload: { open: boolean }) => requestLeftAsideOpen(payload.open),
     handleRightAsideOpenChange: (payload: { open: boolean }) => requestRightAsideOpen(payload.open),
   }

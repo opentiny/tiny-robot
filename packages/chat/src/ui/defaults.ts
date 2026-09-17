@@ -39,7 +39,7 @@ export interface DefaultChatUIOptions {
       collapsedWidth: number
       defaultOpen: boolean
     }
-    rightAside: false
+    rightAside: NonNullable<ChatLayoutOptions['rightAside']>
   }
   brand: ChatBrandOptions & {
     name: string
@@ -109,7 +109,7 @@ export function createDefaultChatUIOptions(): DefaultChatUIOptions {
         collapsedWidth: 56,
         defaultOpen: false,
       },
-      rightAside: false,
+      rightAside: {},
     },
     brand: {
       name: 'TinyRobot',
