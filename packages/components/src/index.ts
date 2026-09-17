@@ -61,6 +61,7 @@ export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
 export * from './mcp-extension-form/index.type'
 export * from './mcp-extension-detail/index.type'
+export * from './mcp-extension-storage/index.type'
 export * from './extension-manager/public.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
@@ -80,6 +81,7 @@ export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
+export { createMcpExtensionStorage } from './mcp-extension-storage'
 const components = [
   Attachments,
   Bubble,
