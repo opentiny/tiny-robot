@@ -53,6 +53,8 @@ export interface ChatRuntimeActions {
 
 UI 的“新会话”动作调用 `clearActiveConversation`，只清除当前选中会话，不创建或持久化空会话。默认 Kit Runtime 在首条消息发送时再调用 `createConversation` 创建真实会话；`createConversation` 仍保留立即创建会话的语义。
 
+`clearActiveConversation` 不删除会话，也不终止正在进行的请求。需要“取消后新会话”时必须先调用 `abort`，再清除当前会话。
+
 ```ts
 export type ChatBeforeSendResult = 'continue' | 'handled' | 'reject'
 
@@ -69,13 +71,13 @@ export interface ChatBeforeSendContext {
 export type ChatBeforeSend = (context: ChatBeforeSendContext) => ChatBeforeSendResult | Promise<ChatBeforeSendResult>
 ```
 
-`send()` 返回：
+默认 Runtime 的 `send()` 返回：
 
 - `true`：Runtime 接受发送。
-- `false`：发送资格不满足，没有创建消息。
+- `false`：发送资格不满足，没有创建消息。默认发送在 trim 后文本为空时属于此情况；传入自定义 `useKitChatRuntime.send` 时，空文本可以进入自定义回调。
 - reject：消息引擎、网络或业务请求失败。
 
-`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、创建会话和用户消息前执行。返回 `continue` 继续发送，返回 `handled` 表示业务已经处理且不创建消息，返回 `reject` 阻止发送并保留草稿。抛出错误会阻止发送，并由适配器通过 `runtime-action-error` 报告。
+`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、默认流程创建会话和用户消息前执行。返回 `continue` 继续发送，返回 `handled` 表示业务已经处理且不创建消息或调用自定义 `send`，返回 `reject` 阻止发送并保留草稿。抛出错误会阻止发送，并由适配器通过 `runtime-action-error` 报告。
 
 ## 3. Composer
 
@@ -112,7 +114,7 @@ Runtime 返回 false 或 reject
   -> useChatDraft 恢复发送前草稿
 ```
 
-发送 reject 不由 Adapter 静默吞掉。Runtime 负责把错误写入 `activeConversation.lastError`，Adapter 将其投影为 `ChatUIData.request.error`，并通过 `runtime-action-error` 将 `{ action, payload, error }` 派发给外部。
+Adapter 允许空文本继续进入 Runtime，由 Runtime 决定是否接受。发送 reject 不由 Adapter 静默吞掉。Runtime 负责把错误写入 `activeConversation.lastError`，Adapter 将其投影为 `ChatUIData.request.error`，并通过 `runtime-action-error` 将 `{ action, payload, error }` 派发给外部；尚未创建活动会话时失败没有会话可记录该错误。
 
 ChatUI 的公共输入事件为 `update:inputValue`。输入区的 `update:value` 仅是 ChatUI 内部事件，不属于 Runtime 或 ChatUI 公共协议。ChatUI 不负责提交后自动清空，草稿清空和失败恢复由 useChatDraft 负责。输入模式在组件生命周期内不得从受控切换为非受控，或反向切换。
 
@@ -151,29 +153,29 @@ mcp-tool-enabled-change
 
 `useChatRuntimeAdapter` 负责调用 Runtime action、并发去重、pending 状态和错误记录。所有 Runtime action 的 reject 都通过 `runtime-action-error` 报告；`send` 报告后返回 `false` 以触发草稿恢复，`abort`、会话 CRUD、Model 和 MCP 动作报告后由 Adapter 消费，避免未处理 Promise rejection。ChatUI 不等待这些动作，也不修改业务 Data。
 
-`TrChat` 继续消费会话、提交、Model 和 MCP 事件，不向外重复转发。Prompt、Bubble 和 Aside 事件原样向外转发；`history-action` 先向外派发，`delete` 未被 `preventDefault()` 取消时调用 `deleteConversation`，其他 action 由外部处理。发送前的模型、MCP 和业务校验通过 Runtime `beforeSend` 完成，不增加 ChatUI 事件。Aside 的 `open-change` 事件中，`user` 表示用户点击 Header、Aside 或 Drawer 等控制，`viewport` 表示响应式断点切换导致组件主动关闭 Aside。外部修改 `layout.*Aside.open` 只影响展示，不派发事件。
+`TrChat` 消费提交、取消、切换、重命名、模型和大多数 MCP 事件；`clear` 只清空草稿，`create-conversation` 调用 `clearActiveConversation` 开始新会话。`mcp-create-server` 继续向外转发。Prompt、Bubble 和 Aside 事件原样向外转发；`history-action` 先向外派发，`delete` 未被 `preventDefault()` 取消时调用 `deleteConversation`，其他 action 由外部处理。发送前的模型、MCP 和业务校验通过 Runtime `beforeSend` 完成，不增加 ChatUI 事件。Aside 的 `open-change` 事件中，`user` 表示用户点击 Header、Aside 或 Drawer 等控制，`viewport` 表示响应式断点切换导致组件主动关闭 Aside。外部修改 `layout.*Aside.open` 只影响展示，不派发事件。
 
 MCP Tool 加载是 Server 生命周期的一部分：
 
 - `addServer()` 负责安装、启用并加载 Tool。
 - `setServerEnabled(id, true)` 负责加载 Tool。
-- `setServerEnabled(id, false)` 清空当前 Runtime 实例内该 Server 的 Tool 状态和定义缓存；重新启用会重新发现 Tool。
+- `setServerEnabled(id, false)` 关闭当前 Runtime 实例内该 Server 的 Tool；重新启用复用已读取的 Tool 和定义缓存，不自动重新 discovery。
 - `removeServer()` 清理当前 Server 的 Tool 状态。
 - 加载失败时更新 Server 状态并抛出错误。
 
 声明式 MCP：
 
 - `mcpServers` 是包含 `id` 的只读数组，只描述 Server 名称、地址、应用层 headers、超时、校验函数和可选的 `installed` 初始状态。
-- `installed: true` 仅表示默认 Adapter 创建时初始已安装；Server 初始仍未启用，不会自动连接或发现 Tool。
+- `installed: true` 仅表示默认 Adapter 创建时初始已安装；Server 初始仍未启用，但会后台 discovery Tool。
 - 默认 Adapter 仅支持 `streamableHttp`，每次 discovery/call 创建并关闭一个 SDK Client，不维护连接池。
-- 同一 Server 的并发 discovery/load 只执行一次；删除、禁用或失败会失效缓存，旧请求不能回写当前状态。
-- `addServer`、`removeServer` 和启用状态只作用于当前 Runtime 实例；禁用 Server 会清空该实例的 Tool 状态和定义缓存，重新启用会重新发现 Tool。
+- 同一 Server 的并发 discovery/load 只执行一次；删除或失败会失效缓存，旧请求不能回写当前状态。
+- `addServer`、`removeServer` 和启用状态只作用于当前 Runtime 实例；禁用 Server 保留该实例的 Tool 状态和定义缓存，删除或 discovery 失败才清理。
 - `ChatMcpServerInfo.error` 区分用户禁用和加载失败；异步错误继续向 Runtime action reject。
 - `mcp` 与 `mcpServers` 不能同时传入；未传入 MCP 配置时不创建 Adapter 或 MCP Plugin。
 
 ## 7. RunConfig
 
-`ChatRunConfig` 是消息请求快照，不是 `send()` 参数。
+`ChatRunConfig` 是每轮请求快照，不是 `ChatRuntime.actions.send()` 的公开参数。`useKitChatRuntime` 在内部生成它，写入默认用户消息 metadata，并作为自定义 `send` 的扩展 payload 字段传入。
 
 ```ts
 export interface ChatRunConfig {

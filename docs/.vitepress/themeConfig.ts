@@ -51,7 +51,10 @@ const sharedSidebarItems = [
   {
     text: '套件',
     base: '/suites/',
-    items: [{ text: 'Chat 聊天套件', link: 'chat' }],
+    items: [
+      { text: 'Chat 聊天界面', link: 'chat' },
+      { text: 'Chat 运行时', link: 'chat-runtime' },
+    ],
   },
 ]
 

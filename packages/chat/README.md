@@ -15,7 +15,7 @@ Runtime 是聊天页面使用的状态和操作集合。Provider 是模型服务
 | 场景          | 推荐入口                       | 说明                                        |
 | ------------- | ------------------------------ | ------------------------------------------- |
 | 新项目        | `useLocalChatRuntime + TrChat` | 默认方式，包负责组装会话、模型和 MCP 运行时 |
-| 已有 Kit 会话 | `useKitChatRuntime + TrChat`   | 复用已有会话和发送逻辑                      |
+| 已有 Kit 会话 | `useKitChatRuntime + TrChat`   | 复用已有会话和消息引擎                      |
 | 自有状态管理  | `TrChatUI`                     | 仅提供界面，需要自行管理数据与事件          |
 
 ## 2. 安装和准备
@@ -85,7 +85,7 @@ VITE_OPENAI_API_KEY=<YOUR_OPENAI_API_KEY>
 
 这个示例不需要在 `conversation.useMessageOptions` 中提供 `responseProvider`，因为 `modelProviders` 会提供响应请求所需的 Provider。`useLocalChatRuntime` 会将会话、模型和完整聊天页面连接起来。
 
-第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。点击 TrChat 的“新会话”只会清除当前会话，不会创建或持久化空会话；需要立即创建会话时才调用 `runtime.actions.createConversation()`。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 默认会开启消息自动保存流程。如果在 `conversation` 中显式传入 `autoSaveMessages`，则以调用方配置为准。
+第一次发送非空消息时，如果当前没有会话，Runtime 会自动创建会话，并使用消息文本生成标题。点击 TrChat 的“新会话”只会清除当前会话，不会创建或持久化空会话；需要立即创建会话时才调用 `runtime.actions.createConversation()`。清除当前会话不会取消旧会话请求；需要取消后新会话时，先调用 `runtime.actions.abort()`，再调用 `runtime.actions.clearActiveConversation()`。未配置 `storage` 时，Kit 会使用默认的 LocalStorage 策略保存会话和消息；`useLocalChatRuntime` 默认会开启消息自动保存流程。如果在 `conversation` 中显式传入 `autoSaveMessages`，则以调用方配置为准。
 
 发送过程中，页面的取消操作会调用 Runtime 的 `abort`。Runtime 不检查 API Key 是否存在：有 Key 时发送默认 Bearer 认证，没有 Key 时直接请求配置的 `apiUrl`。认证失败由上游模型服务或后端代理返回，并按普通请求错误处理。
 
@@ -139,7 +139,7 @@ const modelProviders: ChatProviderConfig[] = [
 
 `apiKey` 是可选的。配置后会在请求中作为默认 Bearer 认证发送；不配置时可以使用无认证的自定义 `apiUrl`，例如由后端代理完成认证。Key 会随前端代码和请求到达浏览器用户，只适合本地开发或可信环境。生产环境不要在浏览器中放置长期密钥。
 
-同一组 Provider 中的模型 ID 以及多个 Provider 之间的模型 ID 都必须唯一。模型列表中的第一个模型会作为初始选择项。
+同一份 `modelProviders` 配置内的模型 ID 必须唯一，包括不同 Provider 中的模型。模型列表中的第一个模型会作为初始选择项。
 
 ### 4.2 支持的服务类型
 
@@ -296,7 +296,7 @@ const runtime = useLocalChatRuntime({
 })
 ```
 
-也可以在已有的 `responseProvider` 配置上加入 `mcpServers`。`modelProviders` 与 `conversation.useMessageOptions.responseProvider` 不能同时提供。
+也可以在已有的 `responseProvider` 配置上加入 `mcpServers`。非空 `modelProviders` 与 `conversation.useMessageOptions.responseProvider` 不能同时提供。
 
 ### 5.3 生产推荐：BFF 代理
 
@@ -385,7 +385,7 @@ const mcpServers: ChatMcpServers = [
 | `baseUrl`     | 是       | MCP Streamable HTTP 地址                                    |
 | `installed`   | 否       | 初始显示为已安装，但不自动启用；默认 Adapter 会后台发现工具 |
 | `description` | 否       | 页面说明                                                    |
-| `icon`        | 否       | 页面图标地址                                                |
+| `icon`        | 否       | 配置字段；默认 Adapter 当前不会投影为页面图标，自定义 MCP Runtime 可提供 `ChatMcpServerInfo.icon` |
 | `headers`     | 否       | MCP 请求头；仅建议用于非敏感 header 或本地调试              |
 | `timeout`     | 否       | 连接和请求超时，单位为毫秒                                  |
 | `validate`    | 否       | 创建 MCP 连接前执行的校验函数，参数为 Server ID             |
@@ -671,7 +671,7 @@ const ui: ChatUIOptions = {
 | `layout.panelPadding`    | 面板内边距，默认 `12`                                                                                                                     |
 | `layout.panelGap`        | 面板间距，默认 `12`                                                                                                                       |
 | `layout.leftAside`       | 左侧会话栏；可设置 `mode`、`width`、`collapsedWidth`、`open`、`defaultOpen`                                                               |
-| `layout.rightAside`      | 右侧详情栏配置；可配置侧栏模式、宽度、关闭按钮和注册面板。存在可用注册面板或 MCP Server 时才创建右栏 |
+| `layout.rightAside`      | 右侧详情栏配置；可配置侧栏模式、宽度、关闭按钮和注册面板。存在可用注册面板或 `data.mcp` 时才创建右栏 |
 | `header`                 | 顶部栏配置为 `false` 时隐藏顶部栏                                                                                                         |
 | `history`                | 配置会话列表及菜单项，或设置为 `false` 隐藏会话列表                                                                                       |
 | `welcome`                | 空会话欢迎区域，或设置为 `false` 隐藏                                                                                                     |
@@ -845,7 +845,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 - 模型切换和功能开关；
 - MCP Server 添加、删除、启用，以及工具开关。
 
-发送错误会恢复发送前的草稿，并通过 `runtime-action-error` 报告；`useChatRuntimeAdapter.send()` 会以 `false` 结束，不会继续抛出 Promise rejection。直接调用 `runtime.actions.send()` 时，Runtime 仍可能抛出原始错误。其他由页面触发的 Runtime 操作会通过事件报告，不产生未处理的 Promise rejection。
+发送错误会恢复发送前的草稿，并通过 `runtime-action-error` 报告；`useChatRuntimeAdapter.send()` 会以 `false` 结束，不会继续抛出 Promise rejection。直接调用 `runtime.actions.send()` 时，Runtime 仍可能抛出原始错误。尚未创建活动会话时的校验或自定义发送失败没有 `request.error` 可写入，应使用 `runtime-action-error` 展示。其他由页面触发的 Runtime 操作会通过事件报告，不产生未处理的 Promise rejection。
 
 请求错误会在页面中显示。使用 `request-error` 插槽可以替换默认错误区域：
 
@@ -866,7 +866,7 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 - `left-aside-open-change`：左侧栏打开状态变化。
 - `right-aside-open-change`：右侧栏打开状态变化。
 
-发送、取消、会话、模型和 MCP 操作已经由 `TrChat` 消费，不要在外部再次处理这些对应的 UI 事件。`history-action` 会先向外派发；ID 为 `delete` 时，未调用 `payload.preventDefault()` 才由 `TrChat` 执行默认删除，其他自定义菜单动作由外部处理。
+发送、取消、切换、重命名、模型和大多数 MCP 操作已经由 `TrChat` 消费，不要在外部再次处理这些对应的 UI 事件。`mcp-create-server` 始终由 `TrChat` 转发给宿主。`history-action` 会先向外派发；公开事件中没有 `delete-conversation`，ID 为 `delete` 时，未调用 `payload.preventDefault()` 才由 `TrChat` 执行默认删除，其他自定义菜单动作由外部处理。
 
 侧栏事件的 payload 为 `{ open, source }`，其中 `source` 是 `user` 或 `viewport`，分别表示用户操作或响应式断点导致的关闭。
 
@@ -898,9 +898,22 @@ const runtime = useKitChatRuntime({
 
 宿主负责创建和维护 `useConversation`。Chat Runtime 负责将它转换为 `TrChat` 使用的数据和操作。`composer` 是可选的，用于传入宿主已经维护的 Composer 状态；新项目使用 `useLocalChatRuntime` 时，模型 Provider 和声明式 MCP 应通过对应的 Local Runtime 配置提供。
 
+`useKitChatRuntime` 未传 `send` 时只发送非空文本，并在首条消息时创建会话。传入自定义 `send` 后，已 trim 的空文本也会进入该回调；自定义回调负责会话创建、附件传输、消息写入和请求处理：
+
+```ts
+const runtime = useKitChatRuntime({
+  conversation,
+  send: async ({ text, runConfig }) => {
+    await sendBusinessMessage({ text, runConfig })
+  },
+})
+```
+
+`TrChat` 内部已经使用 `useChatRuntimeAdapter`，已有 Kit 会话不需要额外创建 Adapter。只有自定义页面壳仍希望复用 `ChatRuntime` 到 `ChatUIData` 的投影、草稿恢复和动作错误处理时，才直接使用该组合式函数。
+
 ### 9.1 发送前校验与拦截
 
-`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、创建会话和用户消息前执行，适合校验当前模型、能力开关、MCP Server、工具权限和业务条件：
+`beforeSend` 在生成本轮 `ChatRunConfig` 快照后、默认流程创建会话和用户消息前执行；自定义 `send` 场景也会执行，返回 `handled` 时不会调用自定义 `send`。它适合校验当前模型、能力开关、MCP Server、工具权限和业务条件：
 
 ```ts
 const runtime = useLocalChatRuntime({
@@ -979,6 +992,8 @@ function handleSubmit(payload: ChatSendPayload) {
 受控模式下，外部必须响应 `update:input-value` 并更新 `inputValue`。外部还需要处理会话、请求状态、取消、模型和 MCP 事件，并将最新事实写回 `data`。
 
 `ChatSendPayload` 预留了 `structuredData` 字段，但当前默认的 `useKitChatRuntime` 只将 `text` 写入用户消息，不会自动持久化或发送 `structuredData`。需要结构化内容端到端传递时，应使用自定义 Runtime，或先扩展默认 Runtime 的消息内容协议。
+
+Chat 没有公开的附件字段或端到端附件协议。纯附件可以让自定义 `useKitChatRuntime.send` 收到 `{ text: '' }`，但附件数据不会出现在 `ChatSendPayload` 中；业务需要使用自定义 Sender、插槽或宿主状态保存并传递附件。
 
 ## 11. 常见问题
 

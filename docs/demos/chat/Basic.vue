@@ -13,15 +13,6 @@ const modelProviders: ChatProviderConfig[] = [
     models: [
       { id: 'qwen3.7-flash', label: 'Qwen3.7 Flash', capabilities: { thinking: true, search: true } },
       { id: 'qwen3.7-plus', label: 'Qwen3.7 Plus', capabilities: { thinking: true, search: true } },
-      { id: 'qwen3.7-max', label: 'Qwen3.7 Max', capabilities: { thinking: true, search: true } },
-    ],
-  },
-  {
-    type: 'deepseek',
-    apiUrl,
-    models: [
-      { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash', capabilities: { thinking: true } },
-      { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', capabilities: { thinking: true } },
     ],
   },
 ]
@@ -32,7 +23,7 @@ const runtime = useLocalChatRuntime({ modelProviders })
 <template>
   <TrTheme>
     <div class="chat-basic-demo">
-      <TrChat :runtime="runtime" />
+      <tr-chat :runtime="runtime" />
     </div>
   </TrTheme>
 </template>
