@@ -626,8 +626,11 @@ function renderEmptyStateComposer() {
       <TrLayout.ProxyScrollbar :scroll-target="scrollTarget" />
     </template>
 
-    <template v-if="isDefaultComposerVisible" #footer>
-      <div v-if="!isEmpty || !isWelcomeComposerCentered" class="chat-panel-content chat-panel-content--footer">
+    <template #footer>
+      <div
+        v-if="isDefaultComposerVisible && (!isEmpty || !isWelcomeComposerCentered)"
+        class="chat-panel-content chat-panel-content--footer"
+      >
         <ChatInputRegion v-bind="composerProps" v-on="composerTemplateEvents">
           <template v-if="$slots['composer-before']" #composer-before="slotProps">
             <slot name="composer-before" v-bind="slotProps" />
@@ -660,7 +663,19 @@ function renderEmptyStateComposer() {
         :activate-right-aside-panel="asideState.activateRightAsidePanel"
         :is-right-aside-open="asideState.resolvedRightAsideOpen.value"
       >
+        <ChatMcpPanel
+          v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && visibleMcp"
+          :mcp="visibleMcp"
+          :labels="resolvedOptions.labels"
+          @close="asideState.closeRightAside"
+          @add-server="handleMcpAddServer"
+          @remove-server="handleMcpRemoveServer"
+          @update-server-enabled="handleMcpServerEnabledChange"
+          @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
+          @create-server="handleMcpCreateServer"
+        />
         <ChatRightAside
+          v-else
           :show-close="effectiveRightAsideLayout !== false ? effectiveRightAsideLayout.showClose : true"
           :labels="resolvedOptions.labels"
           @close="asideState.closeRightAside"
@@ -676,19 +691,8 @@ function renderEmptyStateComposer() {
               {{ activeRightAsidePanelOptions?.title ?? resolvedOptions.labels.rightAsideTitle }}
             </h2>
           </template>
-          <ChatMcpPanel
-            v-if="activeRightAsidePanel === CHAT_MCP_RIGHT_ASIDE_PANEL_ID && visibleMcp"
-            :mcp="visibleMcp"
-            :labels="resolvedOptions.labels"
-            @close="asideState.closeRightAside"
-            @add-server="handleMcpAddServer"
-            @remove-server="handleMcpRemoveServer"
-            @update-server-enabled="handleMcpServerEnabledChange"
-            @update-tool-enabled="(payload) => emit('mcp-tool-enabled-change', payload)"
-            @create-server="handleMcpCreateServer"
-          />
           <slot
-            v-else-if="activeRightAsidePanelOptions"
+            v-if="activeRightAsidePanelOptions"
             name="layout-right-aside-panel"
             :panel-id="activeRightAsidePanel"
             :panel="activeRightAsidePanelOptions"

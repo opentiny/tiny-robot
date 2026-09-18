@@ -9,6 +9,7 @@ export interface ChatRuntimeActionErrorPayload {
   readonly action:
     | 'send'
     | 'abort'
+    | 'clear-active-conversation'
     | 'create-conversation'
     | 'switch-conversation'
     | 'rename-conversation'

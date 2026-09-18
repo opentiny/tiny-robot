@@ -137,6 +137,10 @@ function handleToolToggle(plugin: PluginInfo, toolId: string, enabled: boolean) 
   overflow: hidden;
 }
 
+.chat-mcp-panel :deep(.mcp-server-picker) {
+  border: 0;
+}
+
 .chat-mcp-panel :deep(.mcp-server-picker__content) {
   min-height: 0;
   overflow: hidden;

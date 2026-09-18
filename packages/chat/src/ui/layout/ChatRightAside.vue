@@ -90,6 +90,5 @@ const emit = defineEmits<{
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
 }
 </style>
