@@ -39,9 +39,9 @@ import '@opentiny/tiny-robot-chat/dist/style.css'
 Chat 的父容器需要有可计算高度。下面的示例使用本地模拟服务，发送后会显示回答。
 
 <demo
-  vue="../../demos/chat/basic.vue"
+  vue="../../demos/chat/Basic.vue"
   :vueFiles="[
-    '../../demos/chat/basic.vue',
+    '../../demos/chat/Basic.vue',
     '../../demos/chat/shared/modelProviders.ts'
   ]"
   title="完整聊天页面"

@@ -18,9 +18,9 @@ Chat Runtime 统一会话、消息发送、模型和 MCP 状态。新建聊天�
 创建 `useLocalChatRuntime` 并传给 `TrChat`。
 
 <demo
-  vue="../../demos/chat/basic.vue"
+  vue="../../demos/chat/Basic.vue"
   :vueFiles="[
-    '../../demos/chat/basic.vue',
+    '../../demos/chat/Basic.vue',
     '../../demos/chat/shared/modelProviders.ts'
   ]"
   title="创建运行时"
