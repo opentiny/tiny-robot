@@ -143,7 +143,7 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
   async function handleSend(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
 
-    if (!text || composer.disabled?.value || composer.submitDisabled?.value) {
+    if ((!text && !send) || composer.disabled?.value || composer.submitDisabled?.value) {
       return false
     }
 
@@ -196,6 +196,9 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     activeConversation,
     composer,
     actions: {
+      clearActiveConversation: () => {
+        conversation.activeConversationId.value = null
+      },
       send: handleSend,
       abort: async () => {
         await conversation.abortActiveRequest()
