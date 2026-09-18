@@ -7,26 +7,14 @@ import {
   type ChatPromptClickPayload,
   type ChatRuntimeActionErrorPayload,
 } from '@opentiny/tiny-robot-chat'
+import DouBaoIcon from './DouBaoIcon.vue'
 import DouBaoHeader from './DouBaoHeader.vue'
 import DouBaoSidebar from './DouBaoSidebar.vue'
-import { useChatCaseRuntime } from '../shared/createChatRuntime'
 import { formatChatActionError } from '../shared/formatChatActionError'
-import {
-  douBaoConversationPrompts,
-  douBaoConversationStorageKey,
-  douBaoConversationWelcome,
-  douBaoMockConversations,
-  douBaoNavigation,
-  douBaoWorkPrompts,
-  douBaoWorkWelcome,
-} from './config'
+import { douBaoConversationPrompts, douBaoConversationWelcome } from './config'
+import { useDouBaoRuntime } from './runtime'
 
-type DouBaoNavigation = (typeof douBaoNavigation)[keyof typeof douBaoNavigation]
-
-const runtime = useChatCaseRuntime({
-  storageKey: douBaoConversationStorageKey,
-  initialConversations: douBaoMockConversations,
-})
+const { runtime, startBlank } = useDouBaoRuntime()
 const actionErrorMessage = shallowRef('')
 const promptAdapter = useChatRuntimeAdapter({
   runtime,
@@ -37,33 +25,56 @@ const historyData = computed<ChatHistoryData>(() => {
 
   return items.length ? [{ group: '最近', items }] : []
 })
+const headerTitle = computed(() => runtime.activeConversation.value?.title ?? '新对话')
 // Avoid rendering the default IconAi twice; its fixed SVG IDs collide with the welcome icon.
-const emptyBrandLogo = defineComponent({
-  name: 'DouBaoEmptyBrandLogo',
+const emptyVisual = defineComponent({
+  name: 'DouBaoEmptyVisual',
   render: () => null,
 })
 const isFloatingSidebarVisible = shallowRef(false)
-const activeNavigation = shallowRef<DouBaoNavigation>(douBaoNavigation.chat)
 const chatContainer = shallowRef<HTMLElement | null>(null)
 let floatingHideTimer: ReturnType<typeof setTimeout> | undefined
 
+const senderTools = [
+  { id: 'chat', label: '对话', icon: 'new-chat' },
+  { id: 'image', label: '图像生成', icon: 'image' },
+  { id: 'ppt', label: 'PPT生成', icon: 'ppt' },
+  { id: 'write', label: '帮我写作', icon: 'write' },
+  { id: 'video', label: '视频生成', icon: 'video' },
+  { id: 'translate', label: '翻译', icon: 'translate' },
+  { id: 'more', label: '更多', icon: 'more' },
+] as const
+
 const chatUi = computed(() => ({
-  brand: { name: 'DouBao', logo: emptyBrandLogo },
+  brand: { name: '豆包', logo: emptyVisual },
   layout: {
-    contentMaxWidth: 840,
-    panelPadding: 12,
-    panelGap: 16,
+    contentMaxWidth: 900,
+    panelPadding: 0,
+    panelGap: 0,
     leftAside: {
       mode: 'dock' as const,
-      width: 280,
+      width: 238,
       collapsedWidth: 0,
       defaultOpen: true,
     },
   },
-  welcome: activeNavigation.value === douBaoNavigation.work ? douBaoWorkWelcome : douBaoConversationWelcome,
-  prompts: activeNavigation.value === douBaoNavigation.work ? douBaoWorkPrompts : douBaoConversationPrompts,
+  history: { menuItems: [] },
+  bubble: {
+    autoScroll: true,
+    bubbleList: {
+      roleConfigs: {
+        assistant: { placement: 'start' as const, shape: 'none' as const, avatar: emptyVisual },
+        user: { placement: 'end' as const, shape: 'rounded' as const, avatar: emptyVisual },
+      },
+    },
+  },
+  model: false as const,
+  mcp: false as const,
+  welcome: douBaoConversationWelcome,
+  prompts: douBaoConversationPrompts,
   sender: {
-    placeholder: '发消息或输入 / 选择技能',
+    placeholder: '发消息或按住空格说...',
+    showWordLimit: false,
   },
 }))
 
@@ -93,12 +104,6 @@ function toggleSidebar(toggleLeftAside: () => void) {
   toggleLeftAside()
 }
 
-function handleNavigationChange(item: string) {
-  if (item === douBaoNavigation.work || item === douBaoNavigation.chat) {
-    activeNavigation.value = item
-  }
-}
-
 function handlePromptClick(payload: ChatPromptClickPayload) {
   void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
 }
@@ -109,26 +114,10 @@ function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
 
 function handleConversationSelect(id: string, switchConversation: (id: string) => void) {
   switchConversation(id)
-  activeNavigation.value = douBaoNavigation.chat
 }
 
-function handleCreateConversation(createConversation: () => void) {
-  createConversation()
-  activeNavigation.value = douBaoNavigation.chat
-}
-
-function handleConversationTitleChange(
-  title: string,
-  id: string,
-  renameConversation: (id: string, title: string) => void,
-) {
-  renameConversation(id, title)
-}
-
-function handleConversationAction(action: { id: string }, id: string, deleteConversation: (id: string) => void) {
-  if (action.id === 'delete') {
-    deleteConversation(id)
-  }
+function handleCreateConversation() {
+  startBlank()
 }
 
 onBeforeUnmount(() => {
@@ -152,32 +141,20 @@ onBeforeUnmount(() => {
         <template #layout-header="{ isLeftAsideOpen, toggleLeftAside }">
           <DouBaoHeader
             :is-sidebar-open="isLeftAsideOpen"
+            :title="headerTitle"
             @toggle="toggleSidebar(toggleLeftAside)"
             @menu-enter="showFloatingSidebar"
             @menu-leave="scheduleHideFloatingSidebar"
           />
         </template>
 
-        <template
-          #layout-left-aside="{
-            conversation,
-            isOpen,
-            createConversation,
-            switchConversation,
-            renameConversation,
-            deleteConversation,
-          }"
-        >
+        <template #layout-left-aside="{ conversation, isOpen, switchConversation }">
           <DouBaoSidebar
             variant="fixed"
             :conversation="conversation"
             :history-data="historyData"
-            :active-navigation="activeNavigation"
-            @create-conversation="handleCreateConversation(createConversation)"
-            @navigation-change="handleNavigationChange"
+            @create-conversation="handleCreateConversation"
             @conversation-select="handleConversationSelect($event, switchConversation)"
-            @conversation-title-change="(title, id) => handleConversationTitleChange(title, id, renameConversation)"
-            @conversation-action="(action, id) => handleConversationAction(action, id, deleteConversation)"
           />
           <Teleport v-if="chatContainer" :to="chatContainer">
             <Transition name="doubao-sidebar-slide" :css="!isOpen">
@@ -191,14 +168,8 @@ onBeforeUnmount(() => {
                   variant="floating"
                   :conversation="conversation"
                   :history-data="historyData"
-                  :active-navigation="activeNavigation"
-                  @create-conversation="handleCreateConversation(createConversation)"
-                  @navigation-change="handleNavigationChange"
+                  @create-conversation="handleCreateConversation"
                   @conversation-select="handleConversationSelect($event, switchConversation)"
-                  @conversation-title-change="
-                    (title, id) => handleConversationTitleChange(title, id, renameConversation)
-                  "
-                  @conversation-action="(action, id) => handleConversationAction(action, id, deleteConversation)"
                 />
               </div>
             </Transition>
@@ -206,27 +177,26 @@ onBeforeUnmount(() => {
         </template>
 
         <template #welcome-footer>
-          <div class="doubao-mode-switch" role="group" aria-label="模式切换">
-            <button
-              class="doubao-mode-switch__item"
-              :class="{ 'is-active': activeNavigation === douBaoNavigation.chat }"
-              type="button"
-              :aria-pressed="activeNavigation === douBaoNavigation.chat"
-              @click="activeNavigation = douBaoNavigation.chat"
-            >
-              对话
-            </button>
-            <button
-              class="doubao-mode-switch__item"
-              :class="{ 'is-active': activeNavigation === douBaoNavigation.work }"
-              type="button"
-              :aria-pressed="activeNavigation === douBaoNavigation.work"
-              @click="activeNavigation = douBaoNavigation.work"
-            >
-              工作
-            </button>
-          </div>
           <div class="doubao-prompts-title">为你推荐</div>
+        </template>
+
+        <template #sender-footer>
+          <div class="doubao-sender-tools" aria-label="创作工具（展示）">
+            <span class="doubao-sender-tools__add" aria-hidden="true">
+              <DouBaoIcon name="plus" :size="20" />
+            </span>
+            <span class="doubao-sender-tools__divider" aria-hidden="true"></span>
+            <span v-for="tool in senderTools" :key="tool.id" class="doubao-sender-tools__item">
+              <DouBaoIcon class="doubao-sender-tools__icon" :name="tool.icon" :size="15" />
+              <span>{{ tool.label }}</span>
+            </span>
+          </div>
+        </template>
+
+        <template #sender-footer-right>
+          <span class="doubao-sender-voice" aria-hidden="true">
+            <DouBaoIcon name="audio-lines" :size="19" />
+          </span>
         </template>
       </TrChat>
     </main>
@@ -240,12 +210,12 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  color: var(--tr-text-primary);
-  background: var(--tr-container-bg-default);
-  --tr-chat-ui-left-aside-bg: var(--tr-container-bg-default-2);
-  --tr-chat-ui-header-bg: var(--tr-container-bg-default);
-  --tr-chat-ui-main-bg: var(--tr-container-bg-default);
-  --tr-chat-ui-footer-bg: var(--tr-container-bg-default);
+  color: #17191c;
+  background: #fff;
+  --tr-chat-ui-left-aside-bg: #f7f8fa;
+  --tr-chat-ui-header-bg: #fff;
+  --tr-chat-ui-main-bg: #fff;
+  --tr-chat-ui-footer-bg: #fff;
 }
 
 .doubao-case__action-error {
@@ -299,20 +269,26 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
+.doubao-case__chat :deep(.chat-panel) {
+  padding: 0;
+}
+
 .doubao-case__chat :deep(.chat-panel-content--footer) {
-  padding-bottom: 28px;
+  max-width: 900px;
+  padding: 0 0 38px;
 }
 
 .doubao-case__chat :deep(.tr-welcome) {
   box-sizing: border-box;
   width: 100%;
-  padding: 28vh 0 0;
+  padding: clamp(150px, 28vh, 230px) 0 0;
 }
 
 .doubao-case__chat :deep(.tr-welcome__title) {
-  color: var(--tr-text-primary);
-  font-size: 30px;
+  color: #050505;
+  font-size: 28px;
   font-weight: 650;
+  letter-spacing: -0.6px;
 }
 
 .doubao-case__chat :deep(.tr-welcome__title-wrapper) {
@@ -321,21 +297,8 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
+.doubao-case__chat :deep(.tr-welcome__description),
 .doubao-case__chat :deep(.tr-welcome__icon) {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-}
-
-.doubao-case__chat :deep(.tr-welcome__icon svg) {
-  display: block;
-  width: 40px;
-  height: 40px;
-}
-
-.doubao-case__chat :deep(.tr-welcome__description) {
   display: none;
 }
 
@@ -349,73 +312,184 @@ onBeforeUnmount(() => {
 }
 
 .doubao-case__chat :deep(.tr-prompts__list-container) {
-  justify-content: flex-start;
   max-width: none;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 9px;
 }
 
 .doubao-case__chat :deep(.tr-prompts) {
   box-sizing: border-box;
   width: 100%;
-  max-width: 840px;
-  margin: 0 auto;
-  padding: 0 24px;
+  margin-bottom: 12px;
+  padding: 0;
+  --tr-prompt-title-font-weight: normal;
 }
 
 .doubao-case__chat :deep(.tr-prompt) {
-  border-color: var(--tr-border-color-default);
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid #dfe2e7;
   border-radius: 10px;
-  border-style: solid;
-  border-width: 1px;
   box-shadow: none;
-  background: var(--tr-container-bg-default);
+  color: #202226;
+  background: #fff;
+  font-size: 14px;
 }
 
 .doubao-case__chat :deep(.tr-prompt:hover) {
-  border-color: var(--tr-border-color-hover);
-  background: var(--tr-color-primary-light);
+  border-color: #cdd1d8;
+  background: #f7f8fa;
 }
 
-.doubao-mode-switch {
-  display: inline-flex;
-  align-self: center;
-  margin-top: 24px;
-  padding: 3px;
-  border-radius: 8px;
-  background: var(--tr-container-bg-default-2);
+.doubao-case__chat :deep(.tr-sender) {
+  min-height: 98px;
+  border: 1px solid #e1e3e7;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 8%);
+  --tr-sender-multi-main-padding: 14px 16px 3px;
+  --tr-sender-footer-padding: 5px 10px 10px 14px;
+}
+
+.doubao-case__chat :deep(.chat-panel-content--main.is-message-state .tr-chat-messages__bubble-list) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 0 120px;
+}
+
+.doubao-case__chat :deep(.chat-panel-content--main.is-message-state .tr-bubble__avatar) {
+  display: none;
+}
+
+.doubao-case__chat :deep(.chat-panel-content--main.is-message-state .tr-bubble[data-role='user']) {
+  --tr-bubble-max-width: 72%;
+}
+
+.doubao-case__chat :deep(.chat-panel-content--main.is-message-state [data-box-type='box'][data-role='user']) {
+  --tr-bubble-box-bg: #f4f4f5;
+  --tr-bubble-box-padding: 12px 16px;
+  --tr-bubble-box-shape-rounded-radius: 16px;
+  --tr-bubble-box-shadow: none;
+}
+
+.doubao-case__chat :deep(.chat-panel-content--main.is-message-state .tr-bubble[data-role='assistant']) {
+  --tr-bubble-max-width: 100%;
+}
+
+.doubao-case__chat :deep(.chat-panel-content--main.is-message-state [data-box-type='box'][data-role='assistant']) {
+  --tr-bubble-box-bg: transparent;
+  --tr-bubble-box-padding: 0;
+  --tr-bubble-box-shadow: none;
+}
+
+.doubao-case__chat :deep(.tr-sender-footer-left) {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .doubao-prompts-title {
-  align-self: flex-start;
   box-sizing: border-box;
   width: 100%;
-  max-width: 840px;
-  margin-top: 112px;
-  margin-right: auto;
-  margin-left: auto;
-  padding: 0 24px;
-  color: var(--tr-text-tertiary);
-  font-size: 12px;
-  line-height: 18px;
+  align-self: flex-start;
+  margin: clamp(54px, 10vh, 88px) auto 10px;
+  padding: 0;
+  color: #9da1a9;
+  font-size: 13px;
+  line-height: 20px;
   text-align: left;
 }
 
-.doubao-mode-switch__item {
-  min-width: 76px;
-  padding: 7px 16px;
-  border: 0;
-  border-radius: 6px;
-  color: var(--tr-text-secondary);
-  background: transparent;
-  font: inherit;
+.doubao-case__chat :deep(.doubao-sender-tools) {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  overflow: hidden;
+  color: #25272b;
   font-size: 13px;
-  cursor: pointer;
+  white-space: nowrap;
 }
 
-.doubao-mode-switch__item.is-active {
-  color: var(--tr-text-primary);
-  background: var(--tr-container-bg-default);
-  box-shadow: var(--tr-shadow-sm);
+.doubao-case__chat :deep(.doubao-sender-tools__item),
+.doubao-case__chat :deep(.doubao-sender-tools__add) {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+}
+
+.doubao-case__chat :deep(.doubao-sender-tools__icon) {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+.doubao-case__chat :deep(.doubao-sender-tools__add) {
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.doubao-case__chat :deep(.doubao-sender-tools__divider) {
+  width: 1px;
+  height: 19px;
+  flex: none;
+  background: #e5e7eb;
+}
+
+.doubao-case__chat :deep(.doubao-sender-voice) {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #22252a;
+  background: #f3f4f6;
+  cursor: default;
+}
+
+@media (max-width: 1100px) {
+  .doubao-case__chat :deep(.chat-panel-content--footer) {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .doubao-case__chat :deep(.tr-prompts),
+  .doubao-prompts-title {
+    max-width: calc(100% - 40px);
+  }
+
+  .doubao-case__chat :deep(.doubao-sender-tools) {
+    gap: 9px;
+  }
+
+  .doubao-case__chat :deep(.doubao-sender-tools__item:nth-last-child(-n + 3)) {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .doubao-case__chat :deep(.tr-welcome) {
+    padding-top: 120px;
+  }
+
+  .doubao-case__chat :deep(.tr-welcome__title) {
+    font-size: 24px;
+  }
+
+  .doubao-prompts-title {
+    margin-top: 44px;
+  }
+
+  .doubao-case__chat :deep(.doubao-sender-tools__item:nth-child(n + 6)) {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

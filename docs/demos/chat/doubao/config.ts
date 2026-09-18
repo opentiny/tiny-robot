@@ -1,44 +1,70 @@
 import type { ChatPromptsOptions, ChatWelcomeOptions } from '@opentiny/tiny-robot-chat'
 import type { ChatMessage } from '@opentiny/tiny-robot-kit'
 
-export const douBaoNavigation = {
-  work: 'new-task',
-  chat: 'new-chat',
-} as const
-
-export const douBaoConversationStorageKey = 'tiny-robot-doubao-conversations'
-
 export const douBaoMockConversations = [
   {
-    title: '新对话',
-    metadata: { color: 'pink' },
+    title: '总结PDF文档',
+    metadata: { color: 'blue' },
     messages: [
-      { role: 'user', content: '帮我制定一个周末杭州两日游计划' },
+      { role: 'user', content: '请帮我总结这份 PDF 文档的重点内容' },
       {
         role: 'assistant',
-        content: '可以安排西湖、灵隐寺和河坊街三类行程，并根据交通距离合理分配时间。',
+        content: '可以，请上传文档后我会按主题、关键结论和待办事项进行整理。',
       },
     ],
   },
   {
-    title: '设计与创意',
+    title: '生成会议议程模板',
+    metadata: { color: 'cyan' },
+    messages: [
+      { role: 'user', content: '生成一个 30 分钟项目周会的议程模板' },
+      {
+        role: 'assistant',
+        content: '建议包含进展同步、风险讨论、决策事项和下周计划四个部分。',
+      },
+    ],
+  },
+  {
+    title: '用Python写一个自动爬取天气信息的示例',
     metadata: { color: 'green' },
     messages: [
-      { role: 'user', content: '为一个智能家居产品想三个简洁的宣传语' },
+      { role: 'user', content: '用 Python 写一个自动爬取天气信息的示例' },
       {
         role: 'assistant',
-        content: '可以考虑：让每个空间，都懂你的生活。',
+        content: '可以使用 requests 获取公开接口数据，并用定时任务控制执行频率。',
       },
     ],
   },
   {
-    title: '用户输入1',
-    metadata: { color: 'pink' },
+    title: '规划一份厦门出游攻略',
+    metadata: { color: 'yellow' },
     messages: [
-      { role: 'user', content: '把下面这段内容整理成会议纪要' },
+      { role: 'user', content: '帮我规划一份厦门出游攻略' },
       {
         role: 'assistant',
-        content: '请把需要整理的原始内容发给我，我会按议题、结论和待办事项进行归纳。',
+        content: '可以围绕鼓浪屿、环岛路和沙坡尾安排两到三天的轻松行程。',
+      },
+    ],
+  },
+  {
+    title: '历史对话默认',
+    metadata: { color: 'orange' },
+    messages: [
+      { role: 'user', content: '这是一个历史对话示例' },
+      {
+        role: 'assistant',
+        content: '已为你保留这段演示历史。',
+      },
+    ],
+  },
+  {
+    title: '历史对话默认',
+    metadata: { color: 'pink' },
+    messages: [
+      { role: 'user', content: '查看另一个历史对话示例' },
+      {
+        role: 'assistant',
+        content: '这是另一个可切换的本地历史会话。',
       },
     ],
   },
@@ -54,30 +80,17 @@ export const douBaoConversationWelcome: ChatWelcomeOptions = {
   align: 'center',
 }
 
-export const douBaoWorkWelcome: ChatWelcomeOptions = {
-  title: '今天有什么工作要处理?',
-  description: '',
-  align: 'center',
-}
-
 export const douBaoConversationPrompts: ChatPromptsOptions = {
   vertical: true,
   wrap: false,
   items: [
-    { id: 'hot-topic', label: '热点：国产动画电影《年末》综合票房突破 60 万元', size: 'small' },
-    { id: 'sleep', label: '每天睡够几小时才算睡眠充足?', size: 'small' },
-    { id: 'probability', label: '举一个概率为0却可能发生的例子', size: 'small' },
-    { id: 'industry', label: '未来5年哪些行业可能迎来爆发?', size: 'small' },
-  ],
-}
-
-export const douBaoWorkPrompts: ChatPromptsOptions = {
-  vertical: true,
-  wrap: false,
-  items: [
-    { id: 'daily', label: '处理日常工作', size: 'small' },
-    { id: 'content', label: '内容创作', size: 'small' },
-    { id: 'research', label: '完成调研分析', size: 'small' },
-    { id: 'creative', label: '设计与创意', size: 'small' },
+    {
+      id: 'hot-topic',
+      label: '热点：沈腾新片《欢迎来龙餐馆》爆火带动出品方股价大涨',
+      size: 'small',
+    },
+    { id: 'english-role', label: '帮我设计一个能陪练英语口语的AI角色设定', size: 'small' },
+    { id: 'nuts', label: '常吃坚果对健康有哪些益处？', size: 'small' },
+    { id: 'english-plan', label: '设计每天15分钟的英语启蒙亲子计划', size: 'small' },
   ],
 }

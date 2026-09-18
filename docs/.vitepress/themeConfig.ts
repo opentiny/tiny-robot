@@ -75,7 +75,7 @@ const sidebar = {
       items: [
         { text: 'TinyRobot', link: 'chat-tiny-robot' },
         { text: 'DeepSeek', link: 'chat-deepseek' },
-        { text: 'DouBao', link: 'chat-doubao' },
+        { text: '豆包', link: 'chat-doubao' },
         { text: 'Gemini', link: 'chat-gemini' },
         { text: 'WorkHelper', link: 'chat-worker-helper' },
         { text: 'Assistant 综合示例', link: 'assistant' },
