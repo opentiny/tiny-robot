@@ -175,7 +175,7 @@ const handleClick = () => {
       </div>
       <div v-if="state.status === 'awaiting-approval'" class="tool-actions">
         <tiny-button type="primary" size="mini" round :reset-time="0" @click.stop="emitToolAction('resume')">
-          同意
+          允许
         </tiny-button>
         <tiny-button size="mini" round :reset-time="0" @click.stop="emitToolAction('reject')">拒绝</tiny-button>
       </div>

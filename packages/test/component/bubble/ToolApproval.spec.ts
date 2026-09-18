@@ -7,9 +7,9 @@ test.describe('Tool approval renderer', () => {
     const approvalBubble = component.getByTestId('approval-bubble')
     const completedBubble = component.getByTestId('completed-bubble')
 
-    await expect(approvalBubble.getByRole('button', { name: '同意' })).toBeVisible()
+    await expect(approvalBubble.getByRole('button', { name: '允许' })).toBeVisible()
     await expect(approvalBubble.getByRole('button', { name: '拒绝' })).toBeVisible()
-    await expect(completedBubble.getByRole('button', { name: '同意' })).toHaveCount(0)
+    await expect(completedBubble.getByRole('button', { name: '允许' })).toHaveCount(0)
     await expect(completedBubble.getByRole('button', { name: '拒绝' })).toHaveCount(0)
   })
 
@@ -17,7 +17,7 @@ test.describe('Tool approval renderer', () => {
     const component = await mount(ToolApprovalFixture)
     const approvalBubble = component.getByTestId('approval-bubble')
 
-    await approvalBubble.getByRole('button', { name: '同意' }).click()
+    await approvalBubble.getByRole('button', { name: '允许' }).click()
 
     await expect(component.getByTestId('last-event')).toHaveText(
       JSON.stringify({

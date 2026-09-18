@@ -404,7 +404,7 @@ const message = useMessage({
 })
 ```
 
-当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“同意”和“拒绝”按钮。业务层监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
+当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“允许”和“拒绝”按钮。业务层监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
 
 ```ts
 if (event.name !== 'tool-call:resume' && event.name !== 'tool-call:reject') {
