@@ -11,6 +11,27 @@ const openRenameEditor = async (history: Locator, title: string) => {
 }
 
 test.describe('History', () => {
+  test('keeps the action menu anchored inside a transformed containing block', async ({ mount }) => {
+    const component = await mount(HistoryFixture)
+    const history = component.getByTestId('transformed-history')
+    const trigger = history.getByRole('button', { name: 'First chat 更多操作' })
+    const menu = history.getByRole('menu')
+
+    await history.locator('.tr-history__item').first().hover()
+    await trigger.click()
+    await expect(menu).toBeVisible()
+
+    await expect
+      .poll(async () => {
+        const triggerBox = await trigger.boundingBox()
+        const menuBox = await menu.boundingBox()
+
+        if (!triggerBox || !menuBox) return Number.NaN
+        return menuBox.y - (triggerBox.y + triggerBox.height)
+      })
+      .toBeCloseTo(8, 0)
+  })
+
   test('renders empty, flat, and grouped data with selection', async ({ mount }) => {
     const component = await mount(HistoryFixture)
     const flat = component.getByTestId('flat-history')
