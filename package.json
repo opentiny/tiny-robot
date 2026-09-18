@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "scripts": {
-    "dev": "pnpm build:svgs && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
+    "dev": "pnpm build:components && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "node scripts/build-docs.js",
@@ -13,7 +13,7 @@
     "build:playground": "pnpm -F @opentiny/tiny-robot-playground build",
     "build:deps": "pnpm -F @opentiny/tiny-robot-* -F \"!@opentiny/tiny-robot-playground\" build",
     "dev:components": "pnpm build:deps && pnpm -F @opentiny/tiny-robot dev",
-    "build:components": "pnpm build:deps && pnpm -F @opentiny/tiny-robot build",
+    "build:components": "pnpm -r --filter @opentiny/tiny-robot-chat... build",
     "dev:kit": "pnpm -F @opentiny/tiny-robot-kit dev",
     "build:kit": "pnpm -F @opentiny/tiny-robot-kit build",
     "build:svgs": "pnpm -F @opentiny/tiny-robot-svgs build",
