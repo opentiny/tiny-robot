@@ -100,6 +100,10 @@ const recordUntouchedRename = (newTitle: string, item: FixtureItem) => {
 
 <template>
   <main>
+    <section data-testid="transformed-history" style="margin-top: 120px; will-change: transform">
+      <History :data="flatItems" :menu-items="menuItems" />
+    </section>
+
     <section data-testid="flat-history">
       <History
         :data="flatItems"
