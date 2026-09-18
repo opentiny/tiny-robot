@@ -10,6 +10,7 @@ export interface ChatDraft {
 
 export interface UseChatDraftOptions {
   send: (payload: ChatSendPayload) => Promise<boolean>
+  allowEmptyText?: boolean
   abort?: () => Promise<void> | void
 }
 
@@ -23,7 +24,7 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
   async function send(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
 
-    if (!text) {
+    if (!text && !options.allowEmptyText) {
       return false
     }
 

@@ -115,6 +115,7 @@ export interface ChatComposerRuntime {
 export interface ChatRuntimeActions {
   send: (payload: ChatSendPayload) => Promise<boolean>
   abort?: () => Promise<void> | void
+  clearActiveConversation: () => Promise<void> | void
   createConversation: (payload?: { title?: string; metadata?: Record<string, unknown> }) => Promise<void> | void
   switchConversation: (id: string) => Promise<void> | void
   renameConversation: (id: string, title: string) => Promise<void> | void

@@ -42,6 +42,14 @@ export function useChatAsideState(options: UseChatAsideStateOptions) {
   const viewportWidth = computed(() => toValue(options.viewportWidth))
   const leftAside = computed(() => toValue(options.leftAside))
   const rightAside = computed(() => toValue(options.rightAside))
+  watch(
+    () => (rightAside.value !== false ? rightAside.value?.width : undefined),
+    (width) => {
+      if (typeof width === 'number') {
+        rightAsideWidth.value = width
+      }
+    },
+  )
   const rightAsidePanels = computed(() => toValue(options.rightAsidePanels) ?? [])
   const controlledRightAsideOpen = computed(() => toValue(options.rightAsideOpen))
   const controlledRightAsidePanel = computed(() => toValue(options.activeRightAsidePanelId))
