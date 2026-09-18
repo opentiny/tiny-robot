@@ -50,22 +50,19 @@ TinyRobot 是一个 monorepo，包含以下包：
 
 ```bash
 # 使用 pnpm（推荐）
-pnpm add @opentiny/tiny-robot
+pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-kit
 
 # 使用 npm
-npm install @opentiny/tiny-robot
+npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
 
 # 使用 yarn
-yarn add @opentiny/tiny-robot
+yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit
 ```
 
+`@opentiny/tiny-robot-kit` 是组件库的 peer dependency。`SkillAdd` 默认会动态加载其中的 Skill
+解析能力，因此使用组件库前需要一并安装。
+
 **可选包**：
-
-- `@opentiny/tiny-robot-kit` — 仅在需要 AI 模型请求或数据处理功能时使用。需要时添加：
-
-  ```bash
-  pnpm add @opentiny/tiny-robot-kit
-  ```
 
 - `@opentiny/tiny-robot-svgs` — 可选。仅在需要单独使用 SVG 图标库或自定义图标时单独安装：
 

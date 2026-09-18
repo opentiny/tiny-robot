@@ -69,6 +69,7 @@ export default defineConfig({
         'vue',
         'vue-router',
         '@opentiny/vue',
+        '@opentiny/tiny-robot-kit',
         '@opentiny/tiny-robot-svgs',
         'markdown-it',
         'dompurify',
