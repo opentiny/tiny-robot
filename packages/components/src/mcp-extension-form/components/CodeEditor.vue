@@ -3,9 +3,17 @@ import { ref } from 'vue'
 import { useStableId } from '../../shared/composables'
 
 const codeData = defineModel<string>('codeData', { required: true })
-const props = defineProps<{ error?: string; disabled?: boolean }>()
+const props = defineProps<{ error?: string }>()
 const textarea = ref<HTMLTextAreaElement>()
 const errorId = `mcp-extension-code-error-${useStableId()}`
+const codePlaceholder = `{
+  "mcpServers": {
+    "mcp-server": {
+      "type": "sse",
+      "url": ""
+    }
+  }
+}`
 
 defineExpose({
   focus() {
@@ -27,10 +35,9 @@ const handleInput = (event: Event) => {
           :value="codeData"
           class="code-editor__textarea"
           aria-label="MCP JSON 配置"
-          :disabled="props.disabled"
           :aria-invalid="Boolean(props.error)"
           :aria-describedby="props.error ? errorId : undefined"
-          placeholder="请输入 JSON 配置..."
+          :placeholder="codePlaceholder"
           @input="handleInput"
         ></textarea>
         <p v-if="props.error" :id="errorId" class="code-editor__error">{{ props.error }}</p>

@@ -1,46 +1,57 @@
 <script setup lang="ts">
 import { FormEditor, CodeEditor } from './components'
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type {
-  McpExtensionFormAddType,
   McpExtensionFormEmits,
-  McpExtensionFormModel,
+  McpExtensionFormMode,
   McpExtensionFormProps,
+  McpExtensionFormValue,
 } from './index.type'
+import type { McpExtensionFormDraft } from './internal.type'
 import {
-  parseMcpExtensionHeaders,
+  parseMcpExtensionCode,
+  serializeMcpExtensionCode,
+  toMcpExtensionFormDraft,
+  toMcpExtensionFormValue,
   validateMcpExtensionCode,
   validateMcpExtensionField,
   validateMcpExtensionForm,
 } from './validation'
 import type { McpExtensionFormErrors } from './validation'
 
-const props = withDefaults(defineProps<Pick<McpExtensionFormProps, 'submitting'>>(), {
-  submitting: false,
+const props = withDefaults(defineProps<Omit<McpExtensionFormProps, 'modelValue'>>(), {
+  defaultMode: 'form',
 })
 const emit = defineEmits<McpExtensionFormEmits>()
-const model = defineModel<McpExtensionFormModel>({ required: true })
-const formEditor = ref<{ focusField: (field: keyof McpExtensionFormModel['form']) => void }>()
+const model = defineModel<McpExtensionFormValue>({ required: true })
+const internalMode = ref<McpExtensionFormMode>(props.defaultMode)
+const activeMode = computed(() => props.mode ?? internalMode.value)
+const createCodeDraft = (value: McpExtensionFormValue) => (value.name.trim() ? serializeMcpExtensionCode(value) : '')
+const formDraft = ref(toMcpExtensionFormDraft(model.value))
+const codeDraft = ref(createCodeDraft(model.value))
+const skipNextModelSync = ref(false)
+const formEditor = ref<{ focusField: (field: keyof McpExtensionFormDraft) => void }>()
 const codeEditor = ref<{ focus: () => void }>()
 const errors = ref<McpExtensionFormErrors>({})
 const codeError = ref('')
 
-const addTypeOptions = [
+const modeOptions = [
   { label: 'form', text: '表单添加' },
   { label: 'code', text: '代码添加' },
 ] as const
 
-const handleCancel = () => {
-  if (props.submitting) return
-  emit('cancel')
+const updateModel = (value: McpExtensionFormValue) => {
+  skipNextModelSync.value = true
+  model.value = value
+  void nextTick(() => {
+    skipNextModelSync.value = false
+  })
 }
 
 const handleConfirm = () => {
-  if (props.submitting) return
-
-  if (model.value.addType === 'form') {
-    const nextErrors = validateMcpExtensionForm(model.value.form)
-    const firstError = Object.keys(nextErrors)[0] as keyof McpExtensionFormModel['form'] | undefined
+  if (activeMode.value === 'form') {
+    const nextErrors = validateMcpExtensionForm(formDraft.value)
+    const firstError = Object.keys(nextErrors)[0] as keyof McpExtensionFormDraft | undefined
 
     if (firstError) {
       errors.value = nextErrors
@@ -49,21 +60,11 @@ const handleConfirm = () => {
     }
 
     errors.value = {}
-    const form = model.value.form
-    const headers = parseMcpExtensionHeaders(form.headers)
-    emit('submit', {
-      source: 'form',
-      value: {
-        ...form,
-        name: form.name.trim(),
-        url: form.url.trim(),
-        thumbnail: form.thumbnail?.trim() || null,
-        headers,
-      },
-    })
+    const value = toMcpExtensionFormValue(formDraft.value)
+    updateModel(value)
+    emit('submit', value, { source: 'form' })
   } else {
-    const code = model.value.code
-    const nextCodeError = validateMcpExtensionCode(code)
+    const nextCodeError = validateMcpExtensionCode(codeDraft.value)
 
     if (nextCodeError) {
       codeError.value = nextCodeError
@@ -72,43 +73,66 @@ const handleConfirm = () => {
     }
 
     codeError.value = ''
-    emit('submit', { source: 'code', value: code })
+    const value = parseMcpExtensionCode(codeDraft.value)
+    updateModel(value)
+    emit('submit', value, { source: 'code' })
   }
 }
 
-const handleUpdateMcpExtensionFormAddType = (type: McpExtensionFormAddType) => {
-  model.value = { ...model.value, addType: type }
+const handleUpdateMode = (mode: McpExtensionFormMode) => {
+  if (mode === 'form') formDraft.value = toMcpExtensionFormDraft(model.value)
+  else codeDraft.value = createCodeDraft(model.value)
+
+  if (props.mode === undefined) internalMode.value = mode
+  emit('update:mode', mode)
 }
 
-const handleUpdateForm = (form: McpExtensionFormModel['form']) => {
-  model.value = { ...model.value, form }
+const handleUpdateForm = (form: McpExtensionFormDraft) => {
+  formDraft.value = form
+  try {
+    updateModel(toMcpExtensionFormValue(form))
+  } catch {
+    // Keep an invalid headers draft local until it can be represented by modelValue.
+  }
 }
 
 const handleUpdateCode = (code: string) => {
-  model.value = { ...model.value, code }
+  codeDraft.value = code
+  try {
+    updateModel(parseMcpExtensionCode(code))
+  } catch {
+    // Keep an invalid code draft local until it can be represented by modelValue.
+  }
 }
 
 watch(
-  () => model.value.form,
-  (form, previousForm) => {
-    const nextErrors = { ...errors.value }
-
-    for (const field of Object.keys(nextErrors) as Array<keyof McpExtensionFormModel['form']>) {
-      if (form[field] !== previousForm[field] && !validateMcpExtensionField(field, form)) {
-        delete nextErrors[field]
-      }
+  model,
+  (value) => {
+    if (skipNextModelSync.value) {
+      skipNextModelSync.value = false
+      return
     }
-
-    errors.value = nextErrors
+    formDraft.value = toMcpExtensionFormDraft(value)
+    codeDraft.value = createCodeDraft(value)
   },
+  { deep: true },
 )
 
-watch(
-  () => model.value.code,
-  (code) => {
-    if (codeError.value && !validateMcpExtensionCode(code)) codeError.value = ''
-  },
-)
+watch(formDraft, (form, previousForm) => {
+  const nextErrors = { ...errors.value }
+
+  for (const field of Object.keys(nextErrors) as Array<keyof McpExtensionFormDraft>) {
+    if (form[field] !== previousForm[field] && !validateMcpExtensionField(field, form)) {
+      delete nextErrors[field]
+    }
+  }
+
+  errors.value = nextErrors
+})
+
+watch(codeDraft, (code) => {
+  if (codeError.value && !validateMcpExtensionCode(code)) codeError.value = ''
+})
 </script>
 
 <template>
@@ -119,12 +143,11 @@ watch(
         <span class="mcp-extension-form__add-type-label">添加方式</span>
         <div class="mcp-extension-form__add-type-options" role="radiogroup" aria-label="添加方式">
           <label
-            v-for="option in addTypeOptions"
+            v-for="option in modeOptions"
             :key="option.label"
             class="mcp-extension-form__add-type-option"
             :class="{
-              'mcp-extension-form__add-type-option--active': model.addType === option.label,
-              'mcp-extension-form__add-type-option--disabled': props.submitting,
+              'mcp-extension-form__add-type-option--active': activeMode === option.label,
             }"
           >
             <input
@@ -132,41 +155,26 @@ watch(
               type="radio"
               name="mcp-extension-form-add-type"
               :value="option.label"
-              :checked="model.addType === option.label"
-              :disabled="props.submitting"
-              @change="handleUpdateMcpExtensionFormAddType(option.label)"
+              :checked="activeMode === option.label"
+              @change="handleUpdateMode(option.label)"
             />
             <span>{{ option.text }}</span>
           </label>
         </div>
       </div>
 
-      <div v-if="model.addType === 'form'">
-        <FormEditor
-          ref="formEditor"
-          :form-data="model.form"
-          :errors="errors"
-          :disabled="props.submitting"
-          @update:form-data="handleUpdateForm"
-        />
+      <div v-if="activeMode === 'form'">
+        <FormEditor ref="formEditor" :form-data="formDraft" :errors="errors" @update:form-data="handleUpdateForm" />
       </div>
 
-      <div v-if="model.addType === 'code'">
-        <CodeEditor
-          ref="codeEditor"
-          :code-data="model.code"
-          :error="codeError"
-          :disabled="props.submitting"
-          @update:code-data="handleUpdateCode"
-        />
+      <div v-if="activeMode === 'code'">
+        <CodeEditor ref="codeEditor" :code-data="codeDraft" :error="codeError" @update:code-data="handleUpdateCode" />
       </div>
     </div>
 
     <div class="mcp-extension-form__footer">
-      <button class="button cancel" type="button" :disabled="props.submitting" @click="handleCancel">取消</button>
-      <button class="button confirm" type="submit" :disabled="props.submitting">
-        {{ props.submitting ? '提交中…' : '确定' }}
-      </button>
+      <button class="button cancel" type="button" @click="emit('cancel')">取消</button>
+      <button class="button confirm" type="submit">确定</button>
     </div>
   </form>
 </template>
@@ -332,11 +340,6 @@ watch(
         background: var(--tr-color-primary);
       }
 
-      &--disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-
       &:focus-within {
         outline: 2px solid var(--tr-color-primary);
         outline-offset: 2px;
@@ -377,11 +380,6 @@ watch(
       &:focus-visible {
         outline: 2px solid var(--tr-color-primary);
         outline-offset: 2px;
-      }
-
-      &:disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
       }
 
       &.cancel {

@@ -1,34 +1,27 @@
-export type McpExtensionFormAddType = 'form' | 'code'
+export type McpExtensionFormMode = 'form' | 'code'
 
-export interface McpExtensionFormData {
+export interface McpExtensionFormValue {
   name: string
-  description: string
+  description?: string
   type: 'sse' | 'streamableHttp'
   url: string
-  headers: string
+  headers?: Record<string, string>
   thumbnail?: string | null
 }
 
-export interface McpExtensionFormModel {
-  addType: McpExtensionFormAddType
-  form: McpExtensionFormData
-  code: string
-}
-
-export interface McpExtensionValue extends Omit<McpExtensionFormData, 'headers'> {
-  headers: Record<string, unknown>
-}
-
-export type McpExtensionFormSubmitPayload =
-  { source: 'form'; value: McpExtensionValue } | { source: 'code'; value: string }
-
 export interface McpExtensionFormProps {
-  modelValue: McpExtensionFormModel
-  submitting?: boolean
+  modelValue: McpExtensionFormValue
+  mode?: McpExtensionFormMode
+  defaultMode?: McpExtensionFormMode
+}
+
+export interface McpExtensionFormSubmitMeta {
+  source: McpExtensionFormMode
 }
 
 export interface McpExtensionFormEmits {
-  (e: 'update:modelValue', value: McpExtensionFormModel): void
-  (e: 'submit', payload: McpExtensionFormSubmitPayload): void
+  (e: 'update:modelValue', value: McpExtensionFormValue): void
+  (e: 'update:mode', mode: McpExtensionFormMode): void
+  (e: 'submit', value: McpExtensionFormValue, meta: McpExtensionFormSubmitMeta): void
   (e: 'cancel'): void
 }

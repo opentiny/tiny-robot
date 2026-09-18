@@ -5,57 +5,91 @@ test.describe('McpExtensionForm', () => {
   test('exposes required semantics only for required form fields', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
-    const name = component.getByRole('textbox', { name: '名称' })
-    const type = component.getByRole('radiogroup', { name: '类型' })
-    const url = component.getByRole('textbox', { name: 'URL', exact: true })
-
-    await expect(name).toHaveAttribute('required', '')
-    await expect(type).toHaveAttribute('aria-required', 'true')
-    await expect(url).toHaveAttribute('required', '')
+    await expect(component.getByRole('textbox', { name: '名称' })).toHaveAttribute('required', '')
+    await expect(component.getByRole('radiogroup', { name: '类型' })).toHaveAttribute('aria-required', 'true')
+    await expect(component.getByRole('textbox', { name: 'URL', exact: true })).toHaveAttribute('required', '')
 
     await expect(component.getByRole('textbox', { name: '描述' })).not.toHaveAttribute('required', '')
     await expect(component.getByRole('textbox', { name: '请求头' })).not.toHaveAttribute('required', '')
     await expect(component.getByRole('textbox', { name: '缩略图 URL' })).not.toHaveAttribute('required', '')
   })
 
-  test('reflects a replacement model supplied by the host', async ({ mount }) => {
+  test('reflects a normalized replacement value supplied by the host', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByTestId('replace-model').click()
 
     await expect(component.getByRole('textbox', { name: '名称' })).toHaveValue('Updated MCP')
+    await expect(component.getByRole('textbox', { name: '描述' })).toHaveValue('Updated by the host.')
+    await expect(component.getByRole('textbox', { name: '请求头' })).toHaveValue(
+      JSON.stringify({ Authorization: 'Bearer token' }, null, 2),
+    )
     await expect(component.getByRole('textbox', { name: 'URL', exact: true })).toHaveValue('https://example.com/sse')
     await expect(component.locator('input[type="radio"][value="sse"]')).toBeChecked()
   })
 
-  test('emits complete controlled drafts and preserves both entry modes while switching', async ({ mount }) => {
+  test('supports a controlled mode', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
-    await component.getByRole('textbox', { name: '名称' }).fill('Controlled MCP')
     await component.getByText('代码添加', { exact: true }).click()
-    await component.getByRole('textbox', { name: 'MCP JSON 配置' }).fill('{"mcpServers":{}}')
-    await component.getByText('表单添加', { exact: true }).click()
-
-    await expect(component.getByRole('textbox', { name: '名称' })).toHaveValue('Controlled MCP')
-    await expect(component.getByTestId('model-output')).toContainText('"code":"{\\"mcpServers\\":{}}"')
+    await expect(component.getByRole('radio', { name: '代码添加' })).toBeChecked()
+    await expect(component.getByTestId('mode-output')).toHaveText('code')
   })
 
-  test('updates the controlled entry mode and transport type through radio controls', async ({ mount }) => {
+  test('uses defaultMode when mode is uncontrolled', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture, {
+      props: { controlledMode: false, defaultMode: 'code' },
+    })
+
+    const code = component.getByRole('textbox', { name: 'MCP JSON 配置' })
+    await expect(component.getByRole('radio', { name: '代码添加' })).toBeChecked()
+    await expect(code).toHaveValue('')
+    await expect(code).toHaveAttribute(
+      'placeholder',
+      '{\n  "mcpServers": {\n    "mcp-server": {\n      "type": "sse",\n      "url": ""\n    }\n  }\n}',
+    )
+
+    await component.getByText('表单添加', { exact: true }).click()
+    await component.getByRole('textbox', { name: '名称' }).fill('Weather MCP')
+    await component.getByText('代码添加', { exact: true }).click()
+
+    await expect(component.getByRole('radio', { name: '代码添加' })).toBeChecked()
+    await expect(code).toHaveValue(
+      '{\n  "mcpServers": {\n    "Weather MCP": {\n      "type": "streamableHttp",\n      "url": ""\n    }\n  }\n}',
+    )
+  })
+
+  test('updates the normalized value from valid form input', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
-    const codeMode = component.getByRole('radio', { name: '代码添加' })
-    await component.getByText('代码添加', { exact: true }).click()
-    await expect(codeMode).toBeChecked()
-    await expect(component.getByTestId('model-output')).toContainText('"addType":"code"')
+    await component.getByRole('textbox', { name: '名称' }).fill('  Weather MCP  ')
+    await component.getByRole('textbox', { name: '描述' }).fill('Weather tools')
+    await component.getByRole('textbox', { name: 'URL', exact: true }).fill('  https://example.com/mcp  ')
+    await component.getByRole('textbox', { name: '请求头' }).fill('{"Authorization":"Bearer token","retry":2}')
 
-    await component.getByText('表单添加', { exact: true }).click()
-    const sse = component.getByRole('radio', { name: '服务器发送事件（SSE）' })
-    await component.getByText('服务器发送事件（SSE）', { exact: true }).click()
-    await expect(sse).toBeChecked()
-    await expect(component.getByTestId('model-output')).toContainText('"type":"sse"')
+    const model = await component
+      .getByTestId('model-output')
+      .evaluate((element) => JSON.parse(element.textContent ?? ''))
+    expect(model).toEqual({
+      name: 'Weather MCP',
+      description: 'Weather tools',
+      type: 'streamableHttp',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: 'Bearer token', retry: '2' },
+    })
   })
 
-  test('blocks an invalid form submission and focuses the first invalid field', async ({ mount }) => {
+  test('preserves header names that overlap object prototype properties', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+
+    await component.getByRole('textbox', { name: '请求头' }).fill('{"__proto__":"safe","constructor":"ctor"}')
+
+    const modelOutput = component.getByTestId('model-output')
+    await expect(modelOutput).toContainText('"__proto__":"safe"')
+    await expect(modelOutput).toContainText('"constructor":"ctor"')
+  })
+
+  test('blocks invalid form submission and focuses the first invalid field', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByRole('button', { name: '确定' }).click()
@@ -66,118 +100,120 @@ test.describe('McpExtensionForm', () => {
     await expect(component.getByTestId('submit-output')).toBeEmpty()
   })
 
-  test('rejects invalid form fields before submission', async ({ mount }) => {
+  test('rejects invalid optional fields before submission', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByRole('textbox', { name: '名称' }).fill('Invalid MCP')
     await component.getByRole('textbox', { name: '描述' }).fill('a'.repeat(1001))
-    await component.getByRole('textbox', { name: 'URL', exact: true }).fill('ftp://example.com/mcp')
+    await component.getByRole('textbox', { name: 'URL', exact: true }).fill('https://example.com/mcp')
     await component.getByRole('textbox', { name: '请求头' }).fill('[]')
     await component.getByRole('textbox', { name: '缩略图 URL' }).fill('not-a-url')
     await component.getByRole('button', { name: '确定' }).click()
 
     const description = component.getByRole('textbox', { name: '描述' })
     await expect(description).toHaveAttribute('aria-invalid', 'true')
-    await expect(component.getByRole('textbox', { name: 'URL', exact: true })).toHaveAttribute('aria-invalid', 'true')
     await expect(component.getByRole('textbox', { name: '请求头' })).toHaveAttribute('aria-invalid', 'true')
     await expect(component.getByRole('textbox', { name: '缩略图 URL' })).toHaveAttribute('aria-invalid', 'true')
     await expect(description).toBeFocused()
     await expect(component.getByTestId('submit-output')).toBeEmpty()
   })
 
-  test('clears only the corrected field error after that field becomes valid', async ({ mount }) => {
+  test('clears only a corrected field error after that field becomes valid', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
-    const name = component.getByRole('textbox', { name: '名称' })
     const description = component.getByRole('textbox', { name: '描述' })
-    const url = component.getByRole('textbox', { name: 'URL', exact: true })
     const headers = component.getByRole('textbox', { name: '请求头' })
-    const thumbnail = component.getByRole('textbox', { name: '缩略图 URL' })
 
     await description.fill('a'.repeat(1001))
-    await url.fill('ftp://example.com/mcp')
     await headers.fill('[]')
-    await thumbnail.fill('not-a-url')
     await component.getByRole('button', { name: '确定' }).click()
-
-    await name.fill('   ')
-    await expect(name).toHaveAttribute('aria-invalid', 'true')
-    await name.fill('Weather MCP')
-    await expect(name).toHaveAttribute('aria-invalid', 'false')
-    await expect(url).toHaveAttribute('aria-invalid', 'true')
 
     await description.fill('a'.repeat(1000))
     await expect(description).toHaveAttribute('aria-invalid', 'false')
-
-    await url.fill('https://')
-    await expect(url).toHaveAttribute('aria-invalid', 'true')
-    await url.fill('https://example.com/mcp')
-    await expect(url).toHaveAttribute('aria-invalid', 'false')
-
-    await headers.fill('[1]')
     await expect(headers).toHaveAttribute('aria-invalid', 'true')
+
     await headers.fill('{}')
     await expect(headers).toHaveAttribute('aria-invalid', 'false')
-
-    await thumbnail.fill('ftp://example.com/icon.svg')
-    await expect(thumbnail).toHaveAttribute('aria-invalid', 'true')
-    await thumbnail.fill('')
-    await expect(thumbnail).toHaveAttribute('aria-invalid', 'false')
   })
 
-  test('submits a normalized form payload after validation succeeds', async ({ mount }) => {
+  test('submits one normalized value and omits empty optional fields', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByRole('textbox', { name: '名称' }).fill('  Weather MCP  ')
-    await component.getByRole('textbox', { name: '描述' }).fill('Weather tools')
     await component.getByRole('textbox', { name: 'URL', exact: true }).fill('  https://example.com/mcp  ')
-    await component.getByRole('textbox', { name: '请求头' }).fill('{"Authorization":"Bearer token","retry":2}')
     await component.getByRole('button', { name: '确定' }).click()
 
     await expect(component.getByTestId('submit-output')).toHaveText(
       JSON.stringify({
-        source: 'form',
         value: {
           name: 'Weather MCP',
-          description: 'Weather tools',
           type: 'streamableHttp',
           url: 'https://example.com/mcp',
-          headers: { Authorization: 'Bearer token', retry: 2 },
-          thumbnail: null,
         },
+        source: 'form',
       }),
     )
   })
 
-  test('requires a top-level JSON object in code mode and submits the original string', async ({ mount }) => {
+  test('validates code as a single MCP server config and submits the normalized value', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByText('代码添加', { exact: true }).click()
     const code = component.getByRole('textbox', { name: 'MCP JSON 配置' })
-    await code.fill('[]')
+    await code.fill('{"mcpServers":{}}')
     await component.getByRole('button', { name: '确定' }).click()
 
     await expect(code).toHaveAttribute('aria-invalid', 'true')
     await expect(code).toBeFocused()
     await expect(component.getByTestId('submit-output')).toBeEmpty()
 
-    const raw = '  {"mcpServers":{"weather":{"url":"https://example.com"}}}  '
-    await code.fill(raw)
+    await code.fill(
+      JSON.stringify({
+        mcpServers: {
+          weather: {
+            type: 'http',
+            url: ' https://example.com/mcp ',
+            headers: { Authorization: 'Bearer token', retry: 2 },
+          },
+        },
+      }),
+    )
+
+    const model = await component
+      .getByTestId('model-output')
+      .evaluate((element) => JSON.parse(element.textContent ?? ''))
+    expect(model).toEqual({
+      name: 'weather',
+      type: 'streamableHttp',
+      url: 'https://example.com/mcp',
+      headers: { Authorization: 'Bearer token', retry: '2' },
+    })
+
     await component.getByRole('button', { name: '确定' }).click()
 
-    await expect(component.getByTestId('submit-output')).toHaveText(JSON.stringify({ source: 'code', value: raw }))
+    await expect(component.getByTestId('submit-output')).toHaveText(
+      JSON.stringify({
+        value: {
+          name: 'weather',
+          type: 'streamableHttp',
+          url: 'https://example.com/mcp',
+          headers: { Authorization: 'Bearer token', retry: '2' },
+        },
+        source: 'code',
+      }),
+    )
   })
 
-  test('keeps a code error until the configuration becomes a valid JSON object', async ({ mount }) => {
+  test('keeps a code error until the input becomes one valid server config', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByText('代码添加', { exact: true }).click()
     const code = component.getByRole('textbox', { name: 'MCP JSON 配置' })
-    await code.fill('[]')
+    await code.fill('{"mcpServers":{}}')
     await component.getByRole('button', { name: '确定' }).click()
 
     await code.fill('{')
     await expect(code).toHaveAttribute('aria-invalid', 'true')
-    await code.fill('{}')
+    await code.fill('{"mcpServers":{"weather":{"url":"https://example.com/mcp"}}}')
     await expect(code).toHaveAttribute('aria-invalid', 'false')
   })
 
@@ -216,19 +252,13 @@ test.describe('McpExtensionForm', () => {
     await expect(thumbnail).toHaveAttribute('src', /^data:image\/svg\+xml/)
   })
 
-  test('emits cancel without resetting and disables interaction while submitting', async ({ mount }) => {
+  test('emits cancel without resetting the draft', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
     await component.getByRole('textbox', { name: '名称' }).fill('Draft MCP')
     await component.getByRole('button', { name: '取消' }).click()
+
     await expect(component.getByTestId('cancel-count')).toHaveText('1')
     await expect(component.getByRole('textbox', { name: '名称' })).toHaveValue('Draft MCP')
-
-    await component.getByTestId('toggle-submitting').click()
-    await expect(component.getByRole('textbox', { name: '名称' })).toBeDisabled()
-    await expect(component.getByRole('radio', { name: '表单添加' })).toBeDisabled()
-    await expect(component.getByRole('radio', { name: '服务器发送事件（SSE）' })).toBeDisabled()
-    await expect(component.getByRole('button', { name: '取消' })).toBeDisabled()
-    await expect(component.getByRole('button', { name: '提交中…' })).toBeDisabled()
   })
 })

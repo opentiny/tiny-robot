@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useStableId } from '../../shared/composables'
-import type { McpExtensionFormData } from '../index.type'
+import type { McpExtensionFormDraft } from '../internal.type'
 import defaultImageUrl from '../default-thumbnail.svg'
 
-const formData = defineModel<McpExtensionFormData>('formData', { required: true })
+const formData = defineModel<McpExtensionFormDraft>('formData', { required: true })
 const props = defineProps<{
-  errors?: Partial<Record<keyof McpExtensionFormData, string>>
-  disabled?: boolean
+  errors?: Partial<Record<keyof McpExtensionFormDraft, string>>
 }>()
 const fieldIdPrefix = `mcp-extension-form-${useStableId()}`
 const fieldIds = {
@@ -53,7 +52,7 @@ watch(
 )
 
 defineExpose({
-  focusField(field: keyof McpExtensionFormData) {
+  focusField(field: keyof McpExtensionFormDraft) {
     if (field === 'name') nameInput.value?.focus()
     if (field === 'description') descriptionInput.value?.focus()
     if (field === 'url') urlInput.value?.focus()
@@ -62,7 +61,7 @@ defineExpose({
   },
 })
 
-const updateField = <K extends keyof McpExtensionFormData>(key: K, value: McpExtensionFormData[K]) => {
+const updateField = <K extends keyof McpExtensionFormDraft>(key: K, value: McpExtensionFormDraft[K]) => {
   formData.value = { ...formData.value, [key]: value }
 }
 
@@ -100,7 +99,6 @@ const typeOptions = [
         type="text"
         placeholder="请输入插件名称"
         required
-        :disabled="props.disabled"
         :aria-invalid="Boolean(props.errors?.name)"
         :aria-describedby="props.errors?.name ? `${fieldIds.name}-error` : undefined"
         @input="updateField('name', getInputValue($event))"
@@ -120,7 +118,6 @@ const typeOptions = [
           :value="formData.description"
           class="form-editor__textarea"
           placeholder="请输入插件描述"
-          :disabled="props.disabled"
           :aria-invalid="Boolean(props.errors?.description)"
           :aria-describedby="
             props.errors?.description
@@ -144,19 +141,13 @@ const typeOptions = [
         <span class="form-editor__required" aria-hidden="true">*</span>类型
       </label>
       <div class="form-editor__radio-group" role="radiogroup" aria-label="类型" aria-required="true">
-        <label
-          v-for="option in typeOptions"
-          :key="option.label"
-          class="form-editor__radio-option"
-          :class="{ 'form-editor__radio-option--disabled': props.disabled }"
-        >
+        <label v-for="option in typeOptions" :key="option.label" class="form-editor__radio-option">
           <input
             class="form-editor__radio-input"
             type="radio"
             :name="fieldIds.type"
             :value="option.label"
             :checked="formData.type === option.label"
-            :disabled="props.disabled"
             @change="updateField('type', option.label)"
           />
           <span>{{ option.text }}</span>
@@ -177,7 +168,6 @@ const typeOptions = [
         type="url"
         placeholder="请输入插件URL"
         required
-        :disabled="props.disabled"
         :aria-invalid="Boolean(props.errors?.url)"
         :aria-describedby="props.errors?.url ? `${fieldIds.url}-error` : undefined"
         @input="updateField('url', getInputValue($event))"
@@ -196,7 +186,6 @@ const typeOptions = [
         :value="formData.headers"
         class="form-editor__textarea"
         placeholder="请输入请求头，格式为JSON"
-        :disabled="props.disabled"
         :aria-invalid="Boolean(props.errors?.headers)"
         :aria-describedby="props.errors?.headers ? `${fieldIds.headers}-error` : undefined"
         @input="updateField('headers', getInputValue($event))"
@@ -217,7 +206,6 @@ const typeOptions = [
         type="url"
         aria-label="缩略图 URL"
         placeholder="请输入缩略图 URL"
-        :disabled="props.disabled"
         :aria-invalid="Boolean(props.errors?.thumbnail || thumbnailLoadFailed)"
         :aria-describedby="thumbnailErrorIds"
         @input="handleThumbnailInput"
@@ -340,11 +328,6 @@ const typeOptions = [
     line-height: 20px;
     cursor: pointer;
     box-sizing: border-box;
-
-    &--disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
   }
 
   &__radio-input {
@@ -381,10 +364,6 @@ const typeOptions = [
     &:focus-visible {
       outline: 2px solid var(--tr-color-primary);
       outline-offset: 2px;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
     }
   }
 

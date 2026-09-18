@@ -3,25 +3,20 @@ import type {
   McpExtensionDetailEmits,
   McpExtensionDetailProps,
   McpExtensionFormEmits,
-  McpExtensionFormModel,
+  McpExtensionFormMode,
   McpExtensionFormProps,
+  McpExtensionFormValue,
   McpExtensionToolToggleEvent,
 } from '../index'
 
-const model: McpExtensionFormModel = {
-  addType: 'form',
-  form: {
-    name: 'Weather MCP',
-    description: 'Weather tools',
-    type: 'streamableHttp',
-    url: 'https://example.com/mcp',
-    headers: '{}',
-    thumbnail: null,
-  },
-  code: '{}',
+const model: McpExtensionFormValue = {
+  name: 'Weather MCP',
+  type: 'streamableHttp',
+  url: 'https://example.com/mcp',
 }
 
-const formProps: McpExtensionFormProps = { modelValue: model, submitting: false }
+const mode: McpExtensionFormMode = 'code'
+const formProps: McpExtensionFormProps = { modelValue: model, mode, defaultMode: 'form' }
 const detailProps: McpExtensionDetailProps = {
   id: 'weather',
   name: 'Weather MCP',
@@ -33,11 +28,8 @@ const toggleEvent: McpExtensionToolToggleEvent = { toolId: 'forecast', enabled: 
 
 declare const formEmit: McpExtensionFormEmits
 formEmit('update:modelValue', model)
-formEmit('submit', {
-  source: 'form',
-  value: { ...model.form, headers: {} },
-})
-formEmit('submit', { source: 'code', value: '{}' })
+formEmit('update:mode', mode)
+formEmit('submit', model, { source: 'form' })
 formEmit('cancel')
 
 declare const detailEmit: McpExtensionDetailEmits
