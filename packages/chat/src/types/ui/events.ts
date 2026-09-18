@@ -7,6 +7,8 @@ import type {
   LayoutFloatingResizeDetail,
   LayoutFloatingState,
   PluginCreationData,
+  HistoryMenuItem,
+  PromptProps,
 } from '@opentiny/tiny-robot'
 
 export interface ChatAsideOpenChangePayload {
@@ -14,8 +16,17 @@ export interface ChatAsideOpenChangePayload {
   readonly source: 'user' | 'viewport'
 }
 
+export interface ChatSwitchConversationPayload {
+  readonly conversationId: string
+}
+
+export interface ChatRenameConversationPayload {
+  readonly conversationId: string
+  readonly title: string
+}
+
 export interface ChatHistoryActionPayload {
-  readonly action: import('@opentiny/tiny-robot').HistoryMenuItem
+  readonly action: HistoryMenuItem
   readonly conversation: ChatConversationInfo
   readonly defaultPrevented: boolean
   preventDefault: () => void
@@ -23,7 +34,7 @@ export interface ChatHistoryActionPayload {
 
 export interface ChatPromptClickPayload {
   readonly event: MouseEvent
-  readonly item: import('@opentiny/tiny-robot').PromptProps
+  readonly item: PromptProps
 }
 
 export interface ChatModelSelectPayload {
@@ -90,8 +101,8 @@ export interface ChatUIEmits {
   cancel: []
   clear: []
   'create-conversation': []
-  'switch-conversation': [payload: { readonly conversationId: string }]
-  'rename-conversation': [payload: { readonly conversationId: string; readonly title: string }]
+  'switch-conversation': [payload: ChatSwitchConversationPayload]
+  'rename-conversation': [payload: ChatRenameConversationPayload]
   'history-action': [payload: ChatHistoryActionPayload]
   'prompt-click': [payload: ChatPromptClickPayload]
   'bubble-state-change': [payload: ChatBubbleStateChangePayload]

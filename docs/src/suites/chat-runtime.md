@@ -4,30 +4,30 @@ outline: [1, 3]
 
 # Chat 运行时
 
-Chat Runtime 统一会话、消息发送、模型和 MCP 状态。它可直接驱动 `TrChat`，也可通过 `useChatRuntimeAdapter` 投影为 `TrChatUI` 数据。
+Chat Runtime 统一会话、消息发送、模型和 MCP 状态。新建聊天页面使用 `useLocalChatRuntime`，已有 Kit 会话使用 `useKitChatRuntime`。
 
 ## 概览
 
-| 场景           | 入口                    | 说明                                            |
-| -------------- | ----------------------- | ----------------------------------------------- |
-| 新建聊天页面   | `useLocalChatRuntime`   | 组装 Kit 会话、Provider 和可选 MCP。            |
-| 已有 Kit 会话  | `useKitChatRuntime`     | 复用已有 `useConversation`。                    |
-| 自定义 Runtime | `useChatRuntimeAdapter` | 将符合 `ChatRuntime` 协议的状态投影为界面数据。 |
-
-`TrChat` 已内置 `useChatRuntimeAdapter`。只有直接使用 `TrChatUI` 且已有 `ChatRuntime` 时，才需要手动调用该适配器。
+| 场景          | Runtime               | 使用组件              | 说明                                               |
+| ------------- | --------------------- | --------------------- | -------------------------------------------------- |
+| 新建聊天页面  | `useLocalChatRuntime` | `TrChat`              | 创建完整聊天页面并配置模型服务和可选 MCP。         |
+| 已有 Kit 会话 | `useKitChatRuntime`   | `TrChat` / `TrChatUI` | 复用已有 `useConversation`，接入完整或自定义界面。 |
 
 ## 快速开始
 
-创建 `useLocalChatRuntime` 并传给 `TrChat`。完整界面示例见 [Chat 聊天界面](./chat)。
+创建 `useLocalChatRuntime` 并传给 `TrChat`。
 
 <demo
   vue="../../demos/chat/basic.vue"
-  :vueFiles="['../../demos/chat/basic.vue']"
+  :vueFiles="[
+    '../../demos/chat/basic.vue',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
   title="创建运行时"
   description="配置模型服务后创建 Runtime，发送消息并获得回答。"
 />
 
-## 用法示例
+## Runtime 场景与配置
 
 ### 模型服务
 
@@ -82,9 +82,11 @@ const conversation = useConversation({
 const runtime = useKitChatRuntime({ conversation })
 ```
 
+将 Runtime 直接传给 `TrChat` 可以使用完整聊天页面。使用 `TrChatUI` 时，应用负责将会话、消息和请求状态组织为界面数据，并处理界面事件；`TrChatUI` 本身不接收 `runtime`。
+
 `clearActiveConversation()` 仅把当前会话设为 `null`，不会删除会话或中止请求。默认发送流程会在首条非空消息发送时创建会话；需要取消后开始新会话时，先调用 `abort()`，再调用 `clearActiveConversation()`。
 
-### 自定义发送
+### 发送配置
 
 默认 Runtime 拒绝 trim 后为空的文本。传入自定义 `send` 后，空文本会以 `{ text: '' }` 进入回调，由应用处理附件、会话创建、消息写入和请求。
 
@@ -105,7 +107,7 @@ const runtime = useKitChatRuntime({ conversation })
 
 发送被禁用、已启用 MCP 工具未准备好或 `beforeSend` 返回 `'reject'` 时，`actions.send()` 返回 `false`。请求错误和校验异常会 reject 原始错误。
 
-### MCP 和安全边界
+### MCP 配置与安全边界
 
 `mcpServers` 与 `mcp` 互斥。前者适用于浏览器可访问的 Streamable HTTP 服务，后者用于自定义 transport、OAuth、权限过滤或连接复用。
 
@@ -134,34 +136,16 @@ Browser -> /api/mcp/project-tools -> MCP Server
 
 Chat 没有稳定的附件传输协议。自定义 `send` 可收到空文本和 `structuredData`，但附件数据应由应用的 Sender、插槽或状态自行传递。
 
-### 自定义 Runtime
-
-自定义 Runtime 需要实现 `conversations`、`activeConversation`、`composer` 和 `actions`。将它接入 `TrChat`，或通过适配器得到 `TrChatUI` 的数据和动作：
-
-```ts
-import { useChatRuntimeAdapter } from '@opentiny/tiny-robot-chat'
-
-const adapter = useChatRuntimeAdapter({
-  runtime,
-  onActionError: ({ action, error }) => report(action, error),
-})
-
-// <tr-chat-ui :data="adapter.data.value" @submit="adapter.send" />
-```
-
-适配器协调草稿、Runtime 动作错误、模型和 MCP 操作中的临时状态；不要修改它投影出的只读快照。
-
 ## API
 
 ### Composables
 
-| 导出                    | 签名                                                                         | 说明                                  |
-| ----------------------- | ---------------------------------------------------------------------------- | ------------------------------------- |
-| `useLocalChatRuntime`   | `(options: UseLocalChatRuntimeOptions) => ChatRuntime`                       | 创建默认 Runtime。                    |
-| `useKitChatRuntime`     | `(options: UseKitChatRuntimeOptions) => ChatRuntime`                         | 包装 Kit 会话。                       |
-| `useChatRuntimeAdapter` | `(options: UseChatRuntimeAdapterOptions) => ChatRuntimeAdapter`              | 将 Runtime 投影为 ChatUI 数据和动作。 |
-| `useChatHistoryItems`   | `(options: UseChatHistoryItemsOptions) => ShallowRef<ChatHistoryItem[]>`     | 规范化平铺历史项。                    |
-| `useChatHistoryData`    | `(options: UseChatHistoryDataOptions) => ShallowRef<ChatHistoryDisplayData>` | 规范化平铺或分组历史数据。            |
+| 导出                  | 签名                                                                         | 说明                       |
+| --------------------- | ---------------------------------------------------------------------------- | -------------------------- |
+| `useLocalChatRuntime` | `(options: UseLocalChatRuntimeOptions) => ChatRuntime`                       | 创建默认 Runtime。         |
+| `useKitChatRuntime`   | `(options: UseKitChatRuntimeOptions) => ChatRuntime`                         | 包装 Kit 会话。            |
+| `useChatHistoryItems` | `(options: UseChatHistoryItemsOptions) => ShallowRef<ChatHistoryItem[]>`     | 规范化平铺历史项。         |
+| `useChatHistoryData`  | `(options: UseChatHistoryDataOptions) => ShallowRef<ChatHistoryDisplayData>` | 规范化平铺或分组历史数据。 |
 
 ### Runtime 协议
 
@@ -216,15 +200,14 @@ const adapter = useChatRuntimeAdapter({
 
 #### Composable 配置
 
-| 类型                           | 字段                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `UseLocalChatRuntimeOptions`   | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseLocalChatRuntimeMcpAdapter`；`mcpServers?: ChatMcpServers` |
-| `UseKitChatRuntimeOptions`     | `conversation: UseConversationReturn`；`lastError?: ChatWritable<unknown \| null>`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: ChatSendPayload & { runConfig?: ChatRunConfig }) => void \| Promise<void>`；`composer?: ChatComposerRuntime`                                                                                                                                |
-| `UseChatRuntimeAdapterOptions` | `runtime: MaybeRefOrGetter<ChatRuntime>`；`title?: MaybeRefOrGetter<string \| undefined>`；`historyData?: MaybeRefOrGetter<ChatHistoryData \| undefined>`；`onActionError: (payload: ChatRuntimeActionErrorPayload) => void`                                                                                                                                                                                                  |
-| `UseChatHistoryItemsOptions`   | `conversations: MaybeRefOrGetter<readonly ChatConversationInfo[] \| undefined>`；`defaultTitle: MaybeRefOrGetter<string>`                                                                                                                                                                                                                                                                                                     |
-| `UseChatHistoryDataOptions`    | 继承 `UseChatHistoryItemsOptions`；`history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`                                                                                                                                                                                                                                                                                                                                 |
-| `ChatHistoryItem`              | 继承 `ChatConversationInfo`；`raw: ChatConversationInfo`                                                                                                                                                                                                                                                                                                                                                                      |
-| `ChatHistoryDisplayData`       | `ChatHistoryItem[] \| HistoryGroup<ChatHistoryItem>[]`                                                                                                                                                                                                                                                                                                                                                                        |
+| 类型                         | 字段                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `UseLocalChatRuntimeOptions` | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseLocalChatRuntimeMcpAdapter`；`mcpServers?: ChatMcpServers` |
+| `UseKitChatRuntimeOptions`   | `conversation: UseConversationReturn`；`lastError?: ChatWritable<unknown \| null>`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: ChatSendPayload & { runConfig?: ChatRunConfig }) => void \| Promise<void>`；`composer?: ChatComposerRuntime`                                                                                                                                |
+| `UseChatHistoryItemsOptions` | `conversations: MaybeRefOrGetter<readonly ChatConversationInfo[] \| undefined>`；`defaultTitle: MaybeRefOrGetter<string>`                                                                                                                                                                                                                                                                                                     |
+| `UseChatHistoryDataOptions`  | 继承 `UseChatHistoryItemsOptions`；`history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`                                                                                                                                                                                                                                                                                                                                 |
+| `ChatHistoryItem`            | 继承 `ChatConversationInfo`；`raw: ChatConversationInfo`                                                                                                                                                                                                                                                                                                                                                                      |
+| `ChatHistoryDisplayData`     | `ChatHistoryItem[] \| HistoryGroup<ChatHistoryItem>[]`                                                                                                                                                                                                                                                                                                                                                                        |
 
 `UseConversationOptions`、`UseConversationReturn` 来自 `@opentiny/tiny-robot-kit`；`MaybeRefOrGetter` 来自 Vue；`ModelSelectorReasoningEffortOption`、`HistoryGroup` 和 `ChatIcon` 的底层图标类型来自 `@opentiny/tiny-robot`。这些外部类型请参阅各自的 API。
 

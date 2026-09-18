@@ -40,7 +40,10 @@ Chat 的父容器需要有可计算高度。下面的示例使用本地模拟服
 
 <demo
   vue="../../demos/chat/basic.vue"
-  :vueFiles="['../../demos/chat/basic.vue']"
+  :vueFiles="[
+    '../../demos/chat/basic.vue',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
   title="完整聊天页面"
   description="创建 Runtime 后传给 TrChat，完成一次消息发送。"
 />
@@ -134,9 +137,14 @@ const ui = {
 
 <demo
   vue="../../demos/chat/right-aside-panel.vue"
-  :vueFiles="['../../demos/chat/right-aside-panel.vue']"
-  title="业务右侧面板"
-  description="注册详情面板，并由应用同步右栏开闭和当前面板。"
+  :vueFiles="[
+    '../../demos/chat/right-aside-panel.vue',
+    '../../demos/chat/BusinessRightAside.vue',
+    '../../demos/chat/release-preview.html',
+    '../../demos/chat/shared/modelProviders.ts'
+  ]"
+  title="对话驱动的工作台"
+  description="消息操作可以打开发布方案预览和引用资料面板；输入区 MCP 按钮可以打开内置 MCP 面板。"
 />
 
 `mcp` 是内置保留面板 ID，不能在 `panels` 中注册。MCP 激活时直接使用自身的标题和关闭按钮；`layout-right-aside-title` 与 `layout-right-aside-panel` 只作用于应用注册的面板。

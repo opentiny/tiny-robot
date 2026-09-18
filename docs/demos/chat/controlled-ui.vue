@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import { TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
 import { TrChatUI, type ChatMessageItem, type ChatSendPayload, type ChatUIData } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
@@ -28,16 +27,9 @@ async function handleSubmit(payload: ChatSendPayload) {
 </script>
 
 <template>
-  <TrTheme>
-    <div class="controlled-ui-demo">
-      <TrChatUI
-        :data="data"
-        :input-value="inputValue"
-        @update:input-value="inputValue = $event"
-        @submit="handleSubmit"
-      />
-    </div>
-  </TrTheme>
+  <div class="controlled-ui-demo">
+    <TrChatUI :data="data" :input-value="inputValue" @update:input-value="inputValue = $event" @submit="handleSubmit" />
+  </div>
 </template>
 
 <style scoped>

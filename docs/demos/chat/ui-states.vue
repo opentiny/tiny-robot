@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
-import { TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
 import { TrChatUI, type ChatUIData } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
@@ -29,21 +28,21 @@ const data = computed<ChatUIData>(() => ({
 </script>
 
 <template>
-  <TrTheme>
-    <section class="chat-state-demo">
-      <div class="chat-state-demo__actions">
-        <button
-          type="button"
-          v-for="item in ['empty', 'processing', 'error', 'disabled']"
-          :key="item"
-          @click="viewState = item as ViewState"
-        >
-          {{ item }}
-        </button>
-      </div>
-      <TrChatUI :data="data" :input-value="inputValue" @update:input-value="inputValue = $event" />
-    </section>
-  </TrTheme>
+  <section class="chat-state-demo">
+    <div class="chat-state-demo__actions">
+      <button
+        type="button"
+        v-for="item in ['empty', 'processing', 'error', 'disabled']"
+        :key="item"
+        :class="{ 'is-active': viewState === item }"
+        :aria-pressed="viewState === item"
+        @click="viewState = item as ViewState"
+      >
+        {{ item }}
+      </button>
+    </div>
+    <TrChatUI :data="data" :input-value="inputValue" @update:input-value="inputValue = $event" />
+  </section>
 </template>
 
 <style scoped>
@@ -65,7 +64,32 @@ const data = computed<ChatUIData>(() => ({
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px;
+  padding: 10px;
+  border-bottom: 1px solid var(--tr-color-border, #e5e6eb);
+  background: var(--tr-container-bg-default-2, #f7f8fa);
+}
+
+.chat-state-demo__actions button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--tr-color-border, #dcdfe6);
+  border-radius: 6px;
+  color: var(--tr-text-primary, #252b3a);
+  background: var(--tr-container-bg-default, #fff);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat-state-demo__actions button:hover {
+  border-color: var(--tr-color-primary, #1476ff);
+  color: var(--tr-color-primary, #1476ff);
+}
+
+.chat-state-demo__actions button.is-active {
+  border-color: var(--tr-color-primary, #1476ff);
+  color: #fff;
+  background: var(--tr-color-primary, #1476ff);
 }
 
 .chat-state-demo :deep(.tr-chat-ui) {

@@ -1,81 +1,142 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
-import { TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
-import { TrChat, useLocalChatRuntime, type ChatProviderConfig } from '@opentiny/tiny-robot-chat'
+import { TrChat, useLocalChatRuntime, type ChatMcpServers } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
+import BusinessRightAside from './BusinessRightAside.vue'
+import { modelProviders } from './shared/modelProviders'
 
-const rightAsideOpen = shallowRef(true)
-const activePanelId = shallowRef<string | undefined>('details')
-const modelProviders: ChatProviderConfig[] = [
+const mcpServers: ChatMcpServers = [
   {
-    type: 'openai',
-    apiUrl: `${import.meta.env.BASE_URL}api`,
-    models: [{ id: 'assistant', label: '应用助手' }],
+    id: 'project-knowledge',
+    name: '项目知识库',
+    description: '检索需求、设计和项目约定。',
+    baseUrl: `${import.meta.env.BASE_URL}api/mcp/project-knowledge`,
+    installed: true,
+  },
+  {
+    id: 'release-calendar',
+    name: '发布日历',
+    description: '查询发布窗口和冻结时间。',
+    baseUrl: `${import.meta.env.BASE_URL}api/mcp/release-calendar`,
+    installed: true,
   },
 ]
-const runtime = useLocalChatRuntime({ modelProviders })
-const ui = {
-  layout: {
-    rightAside: {
-      width: 320,
-      panels: [{ id: 'details', title: '会话详情' }],
+
+const rightAsideOpen = shallowRef(true)
+const activeRightAsidePanelId = shallowRef<string | undefined>('preview')
+
+const runtime = useLocalChatRuntime({
+  modelProviders,
+  mcpServers,
+  conversation: {
+    useMessageOptions: {
+      initialMessages: [
+        {
+          role: 'assistant',
+          content: '发布方案已整理完成。你可以打开右侧预览，或查看引用资料。',
+        },
+      ],
     },
   },
+})
+
+runtime.actions.createConversation({ title: '发布方案协作' })
+
+function openPanel(panelId: 'preview' | 'sources') {
+  activeRightAsidePanelId.value = panelId
+  rightAsideOpen.value = true
 }
 </script>
 
 <template>
-  <TrTheme>
-    <section class="right-aside-demo">
-      <div class="right-aside-demo__actions">
-        <button type="button" @click="rightAsideOpen = !rightAsideOpen">切换详情</button>
-      </div>
-      <tr-chat
-        :runtime="runtime"
-        :ui="ui"
-        :right-aside-open="rightAsideOpen"
-        :active-right-aside-panel-id="activePanelId"
-        @update:right-aside-open="rightAsideOpen = $event"
-        @update:active-right-aside-panel-id="activePanelId = $event"
-      >
-        <template #layout-right-aside-panel="{ panelId, closeRightAside }">
-          <section v-if="panelId === 'details'" class="detail-panel">
-            <h3>会话详情</h3>
-            <p>这是应用注册的右侧面板。</p>
-            <button type="button" @click="closeRightAside">关闭</button>
-          </section>
-        </template>
-      </tr-chat>
-    </section>
-  </TrTheme>
+  <section class="chat-workbench">
+    <TrChat
+      class="chat-workbench__chat"
+      :runtime="runtime"
+      :ui="{
+        layout: {
+          rightAside: {
+            width: 344,
+            resizable: true,
+            minWidth: 300,
+            maxWidth: 480,
+            panels: [
+              { id: 'preview', title: '发布方案预览' },
+              { id: 'sources', title: '引用资料' },
+            ],
+          },
+        },
+      }"
+      :right-aside-open="rightAsideOpen"
+      :active-right-aside-panel-id="activeRightAsidePanelId"
+      @update:right-aside-open="rightAsideOpen = $event"
+      @update:active-right-aside-panel-id="activeRightAsidePanelId = $event"
+    >
+      <template #bubble-content-footer="{ role, messageIndexes }">
+        <div v-if="role === 'assistant' && messageIndexes.includes(0)" class="message-actions">
+          <button class="message-actions__button" type="button" @click="openPanel('preview')">查看发布方案</button>
+          <button class="message-actions__button" type="button" @click="openPanel('sources')">查看引用资料</button>
+        </div>
+      </template>
+
+      <template #layout-right-aside-panel="{ panelId }">
+        <BusinessRightAside :panel-id="panelId" @open-panel="openPanel" />
+      </template>
+    </TrChat>
+  </section>
 </template>
 
 <style scoped>
-.right-aside-demo {
+.chat-workbench {
   --tr-layout-height: 100%;
-  display: flex;
-  flex-direction: column;
-  height: min(620px, calc(100vh - 240px));
+  height: min(700px, calc(100vh - 240px));
   min-height: 480px;
 }
 
-.right-aside-demo__actions {
-  padding: 8px;
+.chat-workbench__chat {
+  height: 100%;
 }
 
-.right-aside-demo :deep(.tr-chat-ui) {
-  flex: 1;
-  min-height: 0;
+.message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.right-aside-demo :deep(.tr-welcome__title-wrapper) {
+.message-actions__button {
+  border: 1px solid #c8d6e6;
+  border-radius: 8px;
+  color: #27567e;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.message-actions__button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.message-actions__button:hover {
+  border-color: #5d8db7;
+  background: #f1f7fc;
+}
+
+:deep(h2.chat-right-aside-title) {
+  padding: 0;
+  border-top: none;
+}
+
+:deep(.tr-welcome__title-wrapper) {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.detail-panel h2 {
-  border-top: 0px;
-  margin: 0px;
+@media (max-width: 640px) {
+  .chat-workbench {
+    height: 620px;
+  }
 }
 </style>
