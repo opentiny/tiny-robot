@@ -2,11 +2,13 @@
 import { onMounted } from 'vue'
 import {
   TrExtensionManager,
+  TrIconButton,
   TrMcpExtensionDetail,
   TrMcpExtensionForm,
   TrSkillExtensionDetail,
   TrSkillImportForm,
 } from '@opentiny/tiny-robot'
+import { IconClose } from '@opentiny/tiny-robot-svgs'
 import { resolveExampleSkill } from './mock-api'
 import ExtensionAddMenu from './ExtensionAddMenu.vue'
 import { useExtensionCatalog } from './use-extension-catalog'
@@ -96,7 +98,15 @@ onMounted(() => void loadCatalog())
                     : 'Skill 详情'
           }}
         </h3>
-        <button type="button" aria-label="关闭弹窗" @click="closeDialog">关闭</button>
+        <TrIconButton
+          :icon="IconClose"
+          size="28"
+          svg-size="20"
+          type="button"
+          aria-label="关闭弹窗"
+          title="关闭"
+          @click="closeDialog"
+        />
       </header>
       <p v-if="dialogError" role="alert">{{ dialogError }}</p>
       <tr-mcp-extension-form
