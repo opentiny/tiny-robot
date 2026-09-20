@@ -242,28 +242,42 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     }
   }
 
-  function clearActiveConversation() {
-    input.invalidate()
-    return runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
+  function clearDraftIfConversationChanged(previousId: string | undefined) {
+    if (activeConversation.value?.id !== previousId) {
+      input.setInputValue('')
+    }
   }
 
-  function createConversation() {
+  async function clearActiveConversation() {
+    const previousId = activeConversation.value?.id
     input.invalidate()
-    return runAction('create-conversation', undefined, () => runtime.value.actions.createConversation())
+    await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
+    clearDraftIfConversationChanged(previousId)
   }
 
-  function switchConversation(id: string) {
+  async function createConversation() {
+    const previousId = activeConversation.value?.id
+    input.invalidate()
+    await runAction('create-conversation', undefined, () => runtime.value.actions.createConversation())
+    clearDraftIfConversationChanged(previousId)
+  }
+
+  async function switchConversation(id: string) {
+    const previousId = activeConversation.value?.id
     if (activeConversation.value?.id !== id) {
       input.invalidate()
     }
-    return runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id))
+    await runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id))
+    clearDraftIfConversationChanged(previousId)
   }
 
-  function deleteConversation(id: string) {
+  async function deleteConversation(id: string) {
+    const previousId = activeConversation.value?.id
     if (activeConversation.value?.id === id) {
       input.invalidate()
     }
-    return runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id))
+    await runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id))
+    clearDraftIfConversationChanged(previousId)
   }
 
   return {
