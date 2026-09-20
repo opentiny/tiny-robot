@@ -5,7 +5,6 @@ SkillImportForm.name = 'TrSkillImportForm'
 
 const install = function <T>(app: App<T>) {
   app.component(SkillImportForm.name!, SkillImportForm)
-  app.component('TrSkillAdd', SkillImportForm)
 }
 
 SkillImportForm.install = install

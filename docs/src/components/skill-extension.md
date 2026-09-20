@@ -110,6 +110,12 @@ description: 用于试用 Skill 导入。
 | `submit` | 本地文件夹解析成功且用户点击“确定”，或 GitHub 地址解析成功后；应用需自行保存定义。 | `(definition: SkillDefinition) => void` |
 | `cancel` | 用户在本地导入界面点击“取消”时；组件不自行关闭宿主或清空草稿。                     | `() => void`                            |
 
+#### CSS Variables
+
+| 变量名                                 | 说明               | 默认值    |
+| -------------------------------------- | ------------------ | --------- |
+| `--tr-skill-import-form-primary-color` | 导入表单的强调色。 | `#191919` |
+
 #### Types
 
 | 类型名                    | 类型或签名 | 说明                                                      |
@@ -153,27 +159,6 @@ type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 | `size`                  | `number`                                   | 文件大小，字节。         | 否           |
 | `lastModified`          | `number`                                   | 最后修改时间数值。       | 否           |
 | `metadata`              | `Record<string, unknown>`                  | 附加元数据。             | 否           |
-
-#### 旧名称兼容
-
-已有代码中的 `SkillAdd`、`TrSkillAdd` 和 `<tr-skill-add>` 仍可使用；新代码推荐改用 `SkillImportForm`、`TrSkillImportForm` 和 `<tr-skill-import-form>`。更名只涉及导入名称与标签，Props 和 Events 不变。例如：
-
-```vue
-<script setup lang="ts">
-import { shallowRef } from 'vue'
-import { TrSkillImportForm } from '@opentiny/tiny-robot'
-import type { SkillDefinition } from '@opentiny/tiny-robot'
-
-const received = shallowRef<SkillDefinition>()
-</script>
-
-<template>
-  <tr-skill-import-form source="github" @submit="received = $event" />
-  <p v-if="received">已解析 {{ received.name }}</p>
-</template>
-```
-
-类型别名 `SkillAddSource`、`SkillAddInput`、`SkillAddProps`、`SkillAddEmits` 也继续导出，分别对应 `SkillImportFormSource`、`SkillImportFormInput`、`SkillImportFormProps`、`SkillImportFormEmits`。旧名称目前没有移除计划。
 
 ### SkillExtensionDetail
 

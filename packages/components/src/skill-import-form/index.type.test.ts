@@ -1,10 +1,6 @@
-import { SkillAdd, SkillImportForm, TrSkillAdd, TrSkillImportForm } from '../index'
+import { SkillImportForm, TrSkillImportForm } from '../index'
 import type { SkillDefinition as KitSkillDefinition } from '@opentiny/tiny-robot-kit'
 import type {
-  SkillAddEmits,
-  SkillAddInput,
-  SkillAddProps,
-  SkillAddSource,
   SkillDefinition,
   SkillImportFormEmits,
   SkillImportFormInput,
@@ -23,7 +19,6 @@ type SkillAddValidationExportsAreInternal =
     : false
 
 const source: SkillImportFormSource = 'local'
-const legacySource: SkillAddSource = source
 const localInput: SkillImportFormInput = { source, files: [] }
 const githubInput: SkillImportFormInput = {
   source: 'github',
@@ -51,21 +46,10 @@ declare const emit: SkillImportFormEmits
 emit('submit', definition)
 emit('cancel')
 
-const legacyInput: SkillAddInput = localInput
-const legacyProps: SkillAddProps = props
-declare const legacyEmit: SkillAddEmits
-legacyEmit('submit', definition)
-legacyEmit('cancel')
-
 void SkillImportForm
 void TrSkillImportForm
-void SkillAdd
-void TrSkillAdd
 void localInput
-void legacySource
 void githubInput
 void props
-void legacyInput
-void legacyProps
 void compatibleDefinition
 void skillAddValidationExportsAreInternal

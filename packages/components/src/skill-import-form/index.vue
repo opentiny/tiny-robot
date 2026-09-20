@@ -353,7 +353,7 @@ watch(
 
 <style lang="less" scoped>
 .skill-add {
-  --skill-add-primary-color: var(--tr-skill-add-primary-color, #191919);
+  --skill-import-form-primary-color: var(--tr-skill-import-form-primary-color, #191919);
 
   width: 100%;
   color: var(--tr-text-primary, #191919);
@@ -407,7 +407,7 @@ watch(
 }
 
 .skill-add__dropzone--dragging {
-  border-color: var(--skill-add-primary-color);
+  border-color: var(--skill-import-form-primary-color);
   background: var(--tr-container-bg-hover, #f5f5f5);
 }
 
@@ -421,7 +421,7 @@ watch(
 }
 
 .skill-add__dropzone:focus-within {
-  outline: 2px solid var(--skill-add-primary-color);
+  outline: 2px solid var(--skill-import-form-primary-color);
   outline-offset: 2px;
 }
 
@@ -536,7 +536,7 @@ watch(
 }
 
 .skill-add__remove:focus-visible {
-  outline: 2px solid var(--skill-add-primary-color);
+  outline: 2px solid var(--skill-import-form-primary-color);
   outline-offset: 2px;
 }
 
@@ -565,8 +565,8 @@ watch(
 }
 
 .skill-add__url-input:focus-visible {
-  border-color: var(--skill-add-primary-color);
-  outline: 2px solid color-mix(in srgb, var(--skill-add-primary-color) 20%, transparent);
+  border-color: var(--skill-import-form-primary-color);
+  outline: 2px solid color-mix(in srgb, var(--skill-import-form-primary-color) 20%, transparent);
   outline-offset: 1px;
 }
 
@@ -611,7 +611,7 @@ watch(
 }
 
 .skill-add__button:focus-visible {
-  outline: 2px solid var(--skill-add-primary-color);
+  outline: 2px solid var(--skill-import-form-primary-color);
   outline-offset: 2px;
 }
 
@@ -627,8 +627,8 @@ watch(
 }
 
 .skill-add__button--primary {
-  border: 1px solid var(--skill-add-primary-color);
-  background: var(--skill-add-primary-color);
+  border: 1px solid var(--skill-import-form-primary-color);
+  background: var(--skill-import-form-primary-color);
   color: var(--tr-text-inverse, #fff);
 }
 

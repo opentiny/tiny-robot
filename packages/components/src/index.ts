@@ -136,7 +136,6 @@ export default {
       const name = component.name!.replace(/^Tiny/, '').replace(/^Tr/, '')
       app.component(`Tr${name}`, component)
     })
-    app.component('TrSkillAdd', SkillImportForm)
   },
 }
 
@@ -201,10 +200,6 @@ export {
   McpExtensionDetail as TrMcpExtensionDetail,
   SkillImportForm,
   SkillImportForm as TrSkillImportForm,
-  /** Compatibility alias; use SkillImportForm for new code. */
-  SkillImportForm as SkillAdd,
-  /** Compatibility alias; use TrSkillImportForm for new code. */
-  SkillImportForm as TrSkillAdd,
   SkillExtensionDetail,
   SkillExtensionDetail as TrSkillExtensionDetail,
   ExtensionManager,
