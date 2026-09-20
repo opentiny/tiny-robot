@@ -24,6 +24,7 @@ const installMatchMedia = async (page: Page, initialDark = false) => {
       configurable: true,
       value: () => mediaQuery,
     })
+
     ;(window as typeof window & { setSystemDark: (value: boolean) => void }).setSystemDark = (value) => {
       matches = value
       const event = { matches: value, media: mediaQuery.media } as MediaQueryListEvent

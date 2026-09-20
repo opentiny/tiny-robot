@@ -160,8 +160,7 @@ type DynamicSkillPluginOptions<S extends SkillSelection> = SkillPluginHooks &
   }
 
 export type SkillPluginOptions<S extends SkillSelection = SkillSelection> =
-  | StaticSkillPluginOptions<S>
-  | DynamicSkillPluginOptions<S>
+  StaticSkillPluginOptions<S> | DynamicSkillPluginOptions<S>
 
 const skillPluginContextKey = '__tiny_robot_skill'
 

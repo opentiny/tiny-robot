@@ -104,16 +104,16 @@ const parsePersistedTurnStorage = (value: string | null): PersistedTurnStorage =
     const turns = parsed.turns.filter((turn): turn is PersistedTurnSnapshot => {
       return Boolean(
         turn &&
-          turn.version === TURN_STATE_VERSION &&
-          typeof turn.turnId === 'string' &&
-          turn.requestState === 'paused' &&
-          Array.isArray(turn.toolCallIds) &&
-          (turn.toolRoundCount === undefined ||
-            (typeof turn.toolRoundCount === 'number' &&
-              Number.isInteger(turn.toolRoundCount) &&
-              turn.toolRoundCount >= 0)) &&
-          turn.customContext &&
-          typeof turn.customContext === 'object',
+        turn.version === TURN_STATE_VERSION &&
+        typeof turn.turnId === 'string' &&
+        turn.requestState === 'paused' &&
+        Array.isArray(turn.toolCallIds) &&
+        (turn.toolRoundCount === undefined ||
+          (typeof turn.toolRoundCount === 'number' &&
+            Number.isInteger(turn.toolRoundCount) &&
+            turn.toolRoundCount >= 0)) &&
+        turn.customContext &&
+        typeof turn.customContext === 'object',
       )
     })
 
