@@ -24,6 +24,7 @@ export interface UseChatRuntimeAdapterOptions {
 export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const runtime = computed(() => toValue(options.runtime))
   const activeConversation = computed(() => runtime.value.activeConversation.value)
+  const activeConversationId = computed(() => activeConversation.value?.id ?? null)
   const pendingModelSelecting = shallowRef(false)
   const pendingModelReasoningEffort = shallowRef(false)
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
@@ -42,21 +43,50 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     { flush: 'sync' },
   )
 
-  async function send(payload: ChatSendPayload) {
-    const conversationId = activeConversation.value?.id
-    const accepted = (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false
+  let sendInFlight = false
 
-    if (conversationId !== undefined && activeConversation.value?.id !== conversationId) {
-      input.invalidate()
+  async function send(payload: ChatSendPayload) {
+    const startConversationId = activeConversationId.value
+    sendInFlight = true
+
+    let actionResult: boolean | undefined
+    try {
+      actionResult = await runAction('send', payload, () => runtime.value.actions.send(payload))
+    } finally {
+      sendInFlight = false
     }
 
-    return accepted
+    const endConversationId = activeConversationId.value
+    const selfCreatedConversation = startConversationId === null && endConversationId !== null && actionResult !== false
+
+    if (endConversationId !== startConversationId && !selfCreatedConversation) {
+      invalidateDraftForNavigation()
+    }
+
+    return actionResult ?? false
   }
 
   const input = useChatDraft({
     allowEmptyText: true,
     send,
   })
+
+  function invalidateDraftForNavigation() {
+    input.invalidate()
+    if (input.inputValue.value !== '') {
+      input.setInputValue('')
+    }
+  }
+
+  watch(
+    activeConversationId,
+    (nextId, previousId) => {
+      if (nextId !== previousId && !sendInFlight) {
+        invalidateDraftForNavigation()
+      }
+    },
+    { flush: 'sync' },
+  )
 
   const data = computed<ChatUIData>(() => {
     const active = activeConversation.value
@@ -277,42 +307,28 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     }
   }
 
-  function clearDraftIfConversationChanged(previousId: string | undefined) {
-    if (activeConversation.value?.id !== previousId) {
-      input.setInputValue('')
-    }
-  }
-
   async function clearActiveConversation() {
-    const previousId = activeConversation.value?.id
     input.invalidate()
     await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
-    clearDraftIfConversationChanged(previousId)
   }
 
   async function createConversation() {
-    const previousId = activeConversation.value?.id
     input.invalidate()
     await runAction('create-conversation', undefined, () => runtime.value.actions.createConversation())
-    clearDraftIfConversationChanged(previousId)
   }
 
   async function switchConversation(id: string) {
-    const previousId = activeConversation.value?.id
     if (activeConversation.value?.id !== id) {
       input.invalidate()
     }
     await runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id))
-    clearDraftIfConversationChanged(previousId)
   }
 
   async function deleteConversation(id: string) {
-    const previousId = activeConversation.value?.id
     if (activeConversation.value?.id === id) {
       input.invalidate()
     }
     await runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id))
-    clearDraftIfConversationChanged(previousId)
   }
 
   return {
