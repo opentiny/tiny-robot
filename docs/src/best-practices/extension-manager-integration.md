@@ -14,17 +14,17 @@ pageClass: demo-container-page-bg
 点击名称会打开原生 `<dialog>` 详情弹窗。点击顶部“添加”按钮，可选择添加 MCP、上传本地 Skill 技能包或从 GitHub 导入 Skill。相应表单在弹窗中打开；点击弹窗外侧或关闭按钮可关闭。应用保存成功后才切换到详情，保存失败时仍保留表单和错误提示。点击“安装”可以看到异步进度，点击“重置示例”可恢复初始状态。示例没有真实网络请求，刷新页面也会清空内存数据。
 
 <demo
-  vue="../../demos/extension-manager/integrated.vue"
+  vue="../../demos/best-practices/extension-manager-integration/integrated.vue"
   :vueFiles="[
-    '../../demos/extension-manager/integrated.vue',
-    '../../demos/extension-manager/ExtensionAddMenu.vue',
-    '../../demos/extension-manager/ExtensionAddIcon.vue',
-    '../../demos/extension-manager/use-extension-catalog.ts',
-    '../../demos/extension-manager/extension-catalog-repository.ts',
-    '../../demos/extension-manager/use-extension-dialog.ts',
-    '../../demos/extension-manager/mock-api.ts',
-    '../../demos/extension-manager/catalog.ts',
-    '../../demos/extension-manager/skill-options-storage.ts',
+    '../../demos/best-practices/extension-manager-integration/integrated.vue',
+    '../../demos/best-practices/extension-manager-integration/ExtensionAddMenu.vue',
+    '../../demos/best-practices/extension-manager-integration/ExtensionAddIcon.vue',
+    '../../demos/best-practices/extension-manager-integration/use-extension-catalog.ts',
+    '../../demos/best-practices/extension-manager-integration/extension-catalog-repository.ts',
+    '../../demos/best-practices/extension-manager-integration/use-extension-dialog.ts',
+    '../../demos/best-practices/extension-manager-integration/mock-api.ts',
+    '../../demos/best-practices/extension-manager-integration/catalog.ts',
+    '../../demos/best-practices/extension-manager-integration/skill-options-storage.ts',
   ]"
   title="内置与远程扩展管理"
   description="异步安装并查看进度，启用、卸载、添加及查看扩展，最后重置示例。"
