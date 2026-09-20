@@ -19,6 +19,10 @@ export function createProviderRequestPlugin(
         throw new Error(`Unknown model for this turn: ${runConfig.modelId}`)
       }
 
+      if (model?.disabled) {
+        throw new Error(`Model is disabled for this turn: ${model.id}`)
+      }
+
       if (!model || !runConfig) {
         return
       }

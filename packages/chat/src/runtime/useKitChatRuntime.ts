@@ -20,9 +20,11 @@ import { createDefaultChatTitle, resolveChatConversationTitle } from './defaults
 
 type TitleGenerator = (text: string) => string
 type KitConversationInfo = UseConversationReturn['conversations']['value'][number]
+type KitConversation = NonNullable<UseConversationReturn['activeConversation']['value']>
 type UseKitChatComposerOptions = ChatRuntime['composer']
 
 interface KitRuntimeSendPayload extends ChatSendPayload {
+  readonly conversationId: string | null
   runConfig?: ChatRunConfig
 }
 
@@ -75,9 +77,19 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
   }
 
   const sourceComposer = composerOptions ?? {}
-  const submitDisabled = computed(
-    () => Boolean(sourceComposer.submitDisabled?.value) || !areEnabledMcpToolsReady(sourceComposer.mcp),
-  )
+  const submitDisabled = computed(() => {
+    const model = sourceComposer.model
+    const selectedModel = model?.options.value.find((item) => item.id === model.selectedId.value)
+    const noUsableModel = !send && Boolean(model && (!selectedModel || selectedModel.disabled))
+    const active = activeKitConversation.value
+
+    return (
+      Boolean(sourceComposer.submitDisabled?.value) ||
+      !areEnabledMcpToolsReady(sourceComposer.mcp) ||
+      noUsableModel ||
+      Boolean(!send && active && !active.engine.canStartTurn.value)
+    )
+  })
   const composer: ChatRuntime['composer'] = {
     ...sourceComposer,
     submitDisabled,
@@ -106,39 +118,35 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
     }
   }
 
-  const sendMessage =
-    send ??
-    (async (payload: KitRuntimeSendPayload) => {
-      const nextText = payload.text.trim()
+  async function sendDefaultMessage(payload: KitRuntimeSendPayload, targetConversation: KitConversation) {
+    const nextText = payload.text.trim()
 
-      if (!nextText) {
-        return
-      }
+    if (!nextText) {
+      return null
+    }
 
-      let active = activeKitConversation.value
+    if (!targetConversation.title) {
+      conversation.updateConversationTitle(targetConversation.id, resolveTitle(nextText))
+    }
 
-      if (!active) {
-        active = conversation.createConversation({ title: resolveTitle(nextText) })
-      } else if (!active.title) {
-        conversation.updateConversationTitle(active.id, resolveTitle(nextText))
-      }
+    const now = Math.floor(Date.now() / 1000)
 
-      const now = Math.floor(Date.now() / 1000)
-
-      await active.engine.send({
-        role: 'user',
-        content: nextText,
-        metadata: {
-          createdAt: now,
-          updatedAt: now,
-          ...(payload.runConfig
-            ? {
-                [CHAT_RUN_CONFIG_METADATA_KEY]: cloneRunConfig(payload.runConfig),
-              }
-            : {}),
-        },
-      })
+    await targetConversation.engine.send({
+      role: 'user',
+      content: nextText,
+      metadata: {
+        createdAt: now,
+        updatedAt: now,
+        ...(payload.runConfig
+          ? {
+              [CHAT_RUN_CONFIG_METADATA_KEY]: cloneRunConfig(payload.runConfig),
+            }
+          : {}),
+      },
     })
+
+    return targetConversation
+  }
 
   async function handleSend(payload: ChatSendPayload): Promise<boolean> {
     const text = payload.text.trim()
@@ -147,11 +155,14 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       return false
     }
 
-    let conversationId = conversation.activeConversation.value?.id ?? null
+    let targetConversation = conversation.activeConversation.value
+    const targetConversationId = targetConversation?.id ?? null
+    let errorConversationId = targetConversationId
 
     const effectivePayload = {
       ...payload,
       text,
+      conversationId: targetConversationId,
       runConfig: cloneRunConfig(resolveComposerRunConfig(composer)),
     }
 
@@ -168,22 +179,36 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
         return true
       }
 
-      const task = Promise.resolve(sendMessage(effectivePayload))
-      conversationId = conversation.activeConversation.value?.id ?? conversationId
+      if ((conversation.activeConversation.value?.id ?? null) !== targetConversationId) {
+        return false
+      }
 
-      if (conversationId) {
+      if (!send && targetConversation && !targetConversation.engine.canStartTurn.value) {
+        return false
+      }
+
+      if (!send && !targetConversation) {
+        targetConversation = conversation.createConversation({ title: resolveTitle(text) })
+        errorConversationId = targetConversation.id
+      }
+
+      if (errorConversationId) {
         conversationErrors.value = {
           ...conversationErrors.value,
-          [conversationId]: null,
+          [errorConversationId]: null,
         }
       }
+
+      const task = send
+        ? Promise.resolve(send(effectivePayload))
+        : Promise.resolve(sendDefaultMessage(effectivePayload, targetConversation!))
       await task
       return true
     } catch (error) {
-      if (conversationId) {
+      if (errorConversationId) {
         conversationErrors.value = {
           ...conversationErrors.value,
-          [conversationId]: error,
+          [errorConversationId]: error,
         }
       }
 

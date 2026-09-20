@@ -1,4 +1,4 @@
-import { computed, shallowRef, toValue } from 'vue'
+import { computed, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { useChatDraft } from './useChatDraft'
 import type {
@@ -29,6 +29,18 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
+
+  watch(
+    runtime,
+    () => {
+      pendingModelSelecting.value = false
+      pendingModelReasoningEffort.value = false
+      pendingModelFeatureIds.value = new Set()
+      pendingMcpServerIds.value = new Set()
+      pendingMcpToolIds.value = new Map()
+    },
+    { flush: 'sync' },
+  )
 
   async function send(payload: ChatSendPayload) {
     const conversationId = activeConversation.value?.id
@@ -148,12 +160,15 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   }
 
   async function withPendingMcpTool(serverId: string, toolId: string, task: () => Promise<void> | void) {
+    const actionRuntime = runtime.value
     if (isMcpToolPending(serverId, toolId)) return
     setMcpToolPending(serverId, toolId, true)
     try {
       await task()
     } finally {
-      setMcpToolPending(serverId, toolId, false)
+      if (runtime.value === actionRuntime) {
+        setMcpToolPending(serverId, toolId, false)
+      }
     }
   }
 
@@ -175,23 +190,29 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     id: T,
     task: () => Promise<void> | void,
   ) {
+    const actionRuntime = runtime.value
     if (target.value.has(id)) return
     setPendingId(target, id, true)
     try {
       await task()
     } finally {
-      setPendingId(target, id, false)
+      if (runtime.value === actionRuntime) {
+        setPendingId(target, id, false)
+      }
     }
   }
 
   async function selectModel(id: string | null) {
-    const model = runtime.value.composer.model
+    const actionRuntime = runtime.value
+    const model = actionRuntime.composer.model
     if (!model || model.selectedId.value === id || pendingModelSelecting.value) return
     pendingModelSelecting.value = true
     try {
       await runAction('select-model', { modelId: id }, () => model.select(id))
     } finally {
-      pendingModelSelecting.value = false
+      if (runtime.value === actionRuntime) {
+        pendingModelSelecting.value = false
+      }
     }
   }
 
@@ -204,14 +225,17 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   }
 
   async function setModelReasoningEffort(effort: string | null) {
-    const model = runtime.value.composer.model
+    const actionRuntime = runtime.value
+    const model = actionRuntime.composer.model
     if (!model || pendingModelReasoningEffort.value || model.reasoning?.value.effort === effort) return
 
     pendingModelReasoningEffort.value = true
     try {
       await runAction('set-model-reasoning-effort', { effort }, () => model.setReasoningEffort(effort))
     } finally {
-      pendingModelReasoningEffort.value = false
+      if (runtime.value === actionRuntime) {
+        pendingModelReasoningEffort.value = false
+      }
     }
   }
 
