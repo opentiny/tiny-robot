@@ -76,8 +76,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handlePointerD
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 6px 14px;
+  padding: 4px 12px;
   border: 1px solid var(--tr-border-color-default);
   border-radius: 999px;
   background: var(--tr-container-bg-default);
@@ -89,16 +88,16 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handlePointerD
 
 .extension-add-menu__plus {
   position: relative;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .extension-add-menu__plus::before,
 .extension-add-menu__plus::after {
   position: absolute;
-  top: 7px;
+  top: 6px;
   left: 0;
-  width: 16px;
+  width: 14px;
   height: 1.5px;
   border-radius: 2px;
   background: var(--tr-text-tertiary);
