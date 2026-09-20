@@ -35,6 +35,15 @@ body,
   margin: 0;
 }
 
+.vitepress-demo-plugin__container .vitepress-demo-plugin-file-tabs {
+  justify-content: safe center;
+}
+
+.vitepress-demo-plugin__container .vitepress-demo-plugin-file-tabs .vitepress-demo-plugin-tab {
+  flex: none;
+  white-space: nowrap;
+}
+
 /* 暗色模式下的 Demo 插件样式 */
 .dark .vitepress-demo-plugin__container {
   background-color: #191919;
@@ -45,8 +54,8 @@ body,
   background-color: var(--vp-c-bg);
 }
 
-/* Extension 示例的辅助控制，不依赖全局 button 默认样式。 */
-.extension-demo-controls {
+/* Demo 辅助控制，不依赖全局 button 默认样式。 */
+.demo-aux-controls {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -54,10 +63,10 @@ body,
   margin-bottom: 16px;
 }
 
-.extension-demo-control {
+.demo-aux-control {
   min-height: 32px;
   padding: 5px 12px;
-  border: 1px solid var(--vp-c-text-3);
+  border: 1px solid var(--vp-c-text-2);
   border-radius: 6px;
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
@@ -68,17 +77,17 @@ body,
   line-height: 20px;
 }
 
-.extension-demo-control:hover:not(:disabled) {
+.demo-aux-control:hover:not(:disabled) {
   border-color: var(--vp-c-text-2);
   background: var(--vp-c-bg-soft);
 }
 
-.extension-demo-control:focus-visible {
+.demo-aux-control:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 2px;
 }
 
-.extension-demo-control:disabled {
+.demo-aux-control:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }

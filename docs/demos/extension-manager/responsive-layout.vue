@@ -42,8 +42,8 @@ const tabs: ExtensionManagerTab[] = [
 </script>
 
 <template>
-  <div class="extension-demo-controls">
-    <button type="button" class="extension-demo-control" :aria-pressed="narrow" @click="narrow = !narrow">
+  <div class="demo-aux-controls">
+    <button type="button" class="demo-aux-control" :aria-pressed="narrow" @click="narrow = !narrow">
       {{ narrow ? '切换为宽容器' : '切换为窄容器' }}
     </button>
   </div>

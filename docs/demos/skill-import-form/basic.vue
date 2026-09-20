@@ -15,8 +15,8 @@ const reset = () => {
 
 <template>
   <section>
-    <div class="extension-demo-controls">
-      <button type="button" class="extension-demo-control" @click="reset">重置示例</button>
+    <div class="demo-aux-controls">
+      <button type="button" class="demo-aux-control" @click="reset">重置示例</button>
     </div>
     <p>将这个真实 Skill 的目录地址复制到下方 URL 输入框：</p>
     <p class="example-url">

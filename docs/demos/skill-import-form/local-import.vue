@@ -21,8 +21,8 @@ const reset = () => {
 
 <template>
   <section>
-    <div class="extension-demo-controls">
-      <button type="button" class="extension-demo-control" @click="reset">重置示例</button>
+    <div class="demo-aux-controls">
+      <button type="button" class="demo-aux-control" @click="reset">重置示例</button>
     </div>
     <tr-skill-import-form :key="formKey" source="local" @submit="handleSubmit" @cancel="cancelled = true" />
     <p aria-live="polite">

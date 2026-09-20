@@ -52,15 +52,13 @@ onMounted(() => void loadCatalog())
 
 <template>
   <section class="integrated-demo">
-    <div class="extension-demo-controls">
-      <button type="button" class="extension-demo-control" :disabled="saving || loading" @click="reset">
-        重置示例
-      </button>
+    <div class="demo-aux-controls">
+      <button type="button" class="demo-aux-control" :disabled="saving || loading" @click="reset">重置示例</button>
     </div>
     <p v-if="loading" role="status">正在加载远程目录…</p>
     <p v-if="catalogError" role="alert">
       {{ catalogError }}。已安装的远程扩展仍可使用存储快照。
-      <button type="button" class="extension-demo-control" @click="loadCatalog">重试目录</button>
+      <button type="button" class="demo-aux-control" @click="loadCatalog">重试目录</button>
     </p>
 
     <tr-extension-manager
@@ -139,7 +137,7 @@ onMounted(() => void loadCatalog())
   container: integrated-demo / inline-size;
 }
 
-.integrated-demo > .extension-demo-controls {
+.integrated-demo > .demo-aux-controls {
   margin-bottom: 0;
 }
 

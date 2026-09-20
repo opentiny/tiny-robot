@@ -21,8 +21,8 @@ const reset = () => {
 
 <template>
   <section class="mcp-demo">
-    <div class="extension-demo-controls">
-      <button type="button" class="extension-demo-control" @click="reset">重置示例</button>
+    <div class="demo-aux-controls">
+      <button type="button" class="demo-aux-control" @click="reset">重置示例</button>
     </div>
     <tr-mcp-extension-form
       :key="formKey"

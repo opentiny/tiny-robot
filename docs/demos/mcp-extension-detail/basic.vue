@@ -25,8 +25,8 @@ const reset = () => {
 
 <template>
   <section>
-    <div class="extension-demo-controls">
-      <button type="button" class="extension-demo-control" @click="reset">恢复工具状态</button>
+    <div class="demo-aux-controls">
+      <button type="button" class="demo-aux-control" @click="reset">恢复工具状态</button>
     </div>
     <tr-mcp-extension-detail
       id="weather"

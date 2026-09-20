@@ -47,12 +47,10 @@ onUnmounted(() => resolvePending?.(example))
 
 <template>
   <section>
-    <div class="extension-demo-controls">
-      <button type="button" class="extension-demo-control" :disabled="!pending" @click="finishSuccess">
-        让解析成功
-      </button>
-      <button type="button" class="extension-demo-control" :disabled="!pending" @click="finishError">让解析失败</button>
-      <button type="button" class="extension-demo-control" :disabled="pending" @click="reset">重置示例</button>
+    <div class="demo-aux-controls">
+      <button type="button" class="demo-aux-control" :disabled="!pending" @click="finishSuccess">让解析成功</button>
+      <button type="button" class="demo-aux-control" :disabled="!pending" @click="finishError">让解析失败</button>
+      <button type="button" class="demo-aux-control" :disabled="pending" @click="reset">重置示例</button>
     </div>
     <p>
       将示例地址粘贴到 URL 输入框并点击“导入”：<code>{{ exampleUrl }}</code>

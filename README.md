@@ -50,19 +50,22 @@ TinyRobot is a monorepo containing the following packages:
 
 ```bash
 # Using pnpm (recommended)
-pnpm add @opentiny/tiny-robot @opentiny/tiny-robot-kit
+pnpm add @opentiny/tiny-robot
 
 # Using npm
-npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
+npm install @opentiny/tiny-robot
 
 # Using yarn
-yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit
+yarn add @opentiny/tiny-robot
 ```
 
-`@opentiny/tiny-robot-kit` is a peer dependency of the component library. `SkillImportForm` dynamically loads
-its Skill parser by default, so install both packages before using the component library.
-
 **Optional packages**:
+
+- `@opentiny/tiny-robot-kit` — Only needed if you use AI model request or data-processing features. Add it when required:
+
+  ```bash
+  pnpm add @opentiny/tiny-robot-kit
+  ```
 
 - `@opentiny/tiny-robot-svgs` — Optional. Install separately only if you need to use the SVG icon library standalone or with custom icons:
 
