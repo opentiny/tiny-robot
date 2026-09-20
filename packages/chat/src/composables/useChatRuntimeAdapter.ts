@@ -1,0 +1,316 @@
+import { computed, shallowRef, toValue } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
+import { useChatDraft } from './useChatDraft'
+import type {
+  ChatMcpServerView,
+  ChatMcpToolView,
+  ChatMcpView,
+  ChatModelView,
+  ChatBuiltInModelFeature,
+  ChatHistoryData,
+  ChatRuntime,
+  ChatRuntimeActionErrorPayload,
+  ChatSendPayload,
+  ChatUIData,
+} from '../types'
+
+export interface UseChatRuntimeAdapterOptions {
+  runtime: MaybeRefOrGetter<ChatRuntime>
+  title?: MaybeRefOrGetter<string | undefined>
+  historyData?: MaybeRefOrGetter<ChatHistoryData | undefined>
+  onActionError: (payload: ChatRuntimeActionErrorPayload) => void
+}
+
+export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
+  const runtime = computed(() => toValue(options.runtime))
+  const activeConversation = computed(() => runtime.value.activeConversation.value)
+  const pendingModelSelecting = shallowRef(false)
+  const pendingModelReasoningEffort = shallowRef(false)
+  const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
+  const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
+  const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
+
+  async function send(payload: ChatSendPayload) {
+    const conversationId = activeConversation.value?.id
+    const accepted = (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false
+
+    if (conversationId !== undefined && activeConversation.value?.id !== conversationId) {
+      input.invalidate()
+    }
+
+    return accepted
+  }
+
+  const input = useChatDraft({
+    allowEmptyText: true,
+    send,
+  })
+
+  const data = computed<ChatUIData>(() => {
+    const active = activeConversation.value
+    const model = runtime.value.composer.model
+    const mcp = runtime.value.composer.mcp
+    const tools: Record<string, ChatMcpToolView[]> = {}
+
+    for (const [serverId, serverTools] of Object.entries(mcp?.tools.value ?? {})) {
+      if (serverTools) {
+        tools[serverId] = serverTools.map(
+          (tool): ChatMcpToolView => ({
+            ...tool,
+            loading: isMcpToolPending(serverId, tool.id),
+          }),
+        )
+      }
+    }
+
+    const modelView: ChatModelView | undefined = model
+      ? {
+          options: model.options.value,
+          selectedId: model.selectedId.value,
+          features: model.features.value,
+          reasoning: model.reasoning?.value,
+          selecting: pendingModelSelecting.value,
+          reasoningSelecting: pendingModelReasoningEffort.value,
+          pendingFeatureIds: [...pendingModelFeatureIds.value],
+        }
+      : undefined
+    const mcpView: ChatMcpView | undefined = mcp
+      ? {
+          servers: mcp.servers.value.map(
+            (server): ChatMcpServerView => ({
+              ...server,
+              icon: typeof server.icon === 'string' ? server.icon : undefined,
+              loading: Boolean(server.loading || pendingMcpServerIds.value.has(server.id)),
+            }),
+          ),
+          tools,
+        }
+      : undefined
+
+    return {
+      conversation: {
+        items: runtime.value.conversations.value,
+        activeId: active?.id ?? null,
+        title: toValue(options.title) || active?.title,
+        history: toValue(options.historyData),
+      },
+      bubble: { messages: active?.messages ?? [] },
+      sender: {
+        loading: active?.requestState === 'processing',
+        disabled: Boolean(runtime.value.composer.disabled?.value),
+        submitDisabled: Boolean(runtime.value.composer.submitDisabled?.value),
+      },
+      request: active
+        ? {
+            state: active.requestState,
+            processingState: active.processingState,
+            error: active.lastError ?? undefined,
+          }
+        : undefined,
+      model: modelView,
+      mcp: mcpView,
+    }
+  })
+
+  function setPendingId<T extends string>(target: { value: ReadonlySet<T> }, id: T, pending: boolean) {
+    const next = new Set(target.value)
+
+    if (pending) {
+      next.add(id)
+    } else {
+      next.delete(id)
+    }
+
+    target.value = next
+  }
+
+  function isMcpToolPending(serverId: string, toolId: string) {
+    return pendingMcpToolIds.value.get(serverId)?.has(toolId) ?? false
+  }
+
+  function setMcpToolPending(serverId: string, toolId: string, pending: boolean) {
+    const next = new Map(pendingMcpToolIds.value)
+    const toolIds = new Set(next.get(serverId) ?? [])
+
+    if (pending) {
+      toolIds.add(toolId)
+      next.set(serverId, toolIds)
+    } else {
+      toolIds.delete(toolId)
+      if (toolIds.size === 0) {
+        next.delete(serverId)
+      } else {
+        next.set(serverId, toolIds)
+      }
+    }
+
+    pendingMcpToolIds.value = next
+  }
+
+  async function withPendingMcpTool(serverId: string, toolId: string, task: () => Promise<void> | void) {
+    if (isMcpToolPending(serverId, toolId)) return
+    setMcpToolPending(serverId, toolId, true)
+    try {
+      await task()
+    } finally {
+      setMcpToolPending(serverId, toolId, false)
+    }
+  }
+
+  async function runAction<T>(
+    action: ChatRuntimeActionErrorPayload['action'],
+    payload: unknown,
+    task: () => Promise<T> | T,
+  ): Promise<T | undefined> {
+    try {
+      return await task()
+    } catch (error) {
+      options.onActionError({ action, payload, error })
+      return undefined
+    }
+  }
+
+  async function withPending<T extends string>(
+    target: { value: ReadonlySet<T> },
+    id: T,
+    task: () => Promise<void> | void,
+  ) {
+    if (target.value.has(id)) return
+    setPendingId(target, id, true)
+    try {
+      await task()
+    } finally {
+      setPendingId(target, id, false)
+    }
+  }
+
+  async function selectModel(id: string | null) {
+    const model = runtime.value.composer.model
+    if (!model || model.selectedId.value === id || pendingModelSelecting.value) return
+    pendingModelSelecting.value = true
+    try {
+      await runAction('select-model', { modelId: id }, () => model.select(id))
+    } finally {
+      pendingModelSelecting.value = false
+    }
+  }
+
+  async function setModelFeature(id: ChatBuiltInModelFeature, enabled: boolean) {
+    const model = runtime.value.composer.model
+    if (!model || model.features.value[id] === enabled) return
+    await withPending(pendingModelFeatureIds, id, () =>
+      runAction('set-model-feature', { featureId: id, enabled }, () => model.setFeature(id, enabled)),
+    )
+  }
+
+  async function setModelReasoningEffort(effort: string | null) {
+    const model = runtime.value.composer.model
+    if (!model || pendingModelReasoningEffort.value || model.reasoning?.value.effort === effort) return
+
+    pendingModelReasoningEffort.value = true
+    try {
+      await runAction('set-model-reasoning-effort', { effort }, () => model.setReasoningEffort(effort))
+    } finally {
+      pendingModelReasoningEffort.value = false
+    }
+  }
+
+  async function addMcpServer(id: string) {
+    const mcp = runtime.value.composer.mcp
+    if (mcp)
+      await withPending(pendingMcpServerIds, id, () =>
+        runAction('add-mcp-server', { serverId: id }, () => mcp.addServer(id)),
+      )
+  }
+
+  async function removeMcpServer(id: string) {
+    const mcp = runtime.value.composer.mcp
+    if (mcp)
+      await withPending(pendingMcpServerIds, id, () =>
+        runAction('remove-mcp-server', { serverId: id }, () => mcp.removeServer(id)),
+      )
+  }
+
+  async function setMcpServerEnabled(id: string, enabled: boolean) {
+    const mcp = runtime.value.composer.mcp
+    const server = mcp?.servers.value.find((item) => item.id === id)
+    if (mcp && server && server.enabled !== enabled) {
+      await withPending(pendingMcpServerIds, id, () =>
+        runAction('set-mcp-server-enabled', { serverId: id, enabled }, () => mcp.setServerEnabled(id, enabled)),
+      )
+    }
+  }
+
+  async function setMcpToolEnabled(serverId: string, toolId: string, enabled: boolean) {
+    const mcp = runtime.value.composer.mcp
+    const tool = mcp?.tools.value[serverId]?.find((item) => item.id === toolId)
+    if (mcp && tool && tool.enabled !== enabled) {
+      await withPendingMcpTool(serverId, toolId, () =>
+        runAction('set-mcp-tool-enabled', { serverId, toolId, enabled }, () =>
+          mcp.setToolEnabled(serverId, toolId, enabled),
+        ),
+      )
+    }
+  }
+
+  function clearDraftIfConversationChanged(previousId: string | undefined) {
+    if (activeConversation.value?.id !== previousId) {
+      input.setInputValue('')
+    }
+  }
+
+  async function clearActiveConversation() {
+    const previousId = activeConversation.value?.id
+    input.invalidate()
+    await runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
+    clearDraftIfConversationChanged(previousId)
+  }
+
+  async function createConversation() {
+    const previousId = activeConversation.value?.id
+    input.invalidate()
+    await runAction('create-conversation', undefined, () => runtime.value.actions.createConversation())
+    clearDraftIfConversationChanged(previousId)
+  }
+
+  async function switchConversation(id: string) {
+    const previousId = activeConversation.value?.id
+    if (activeConversation.value?.id !== id) {
+      input.invalidate()
+    }
+    await runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id))
+    clearDraftIfConversationChanged(previousId)
+  }
+
+  async function deleteConversation(id: string) {
+    const previousId = activeConversation.value?.id
+    if (activeConversation.value?.id === id) {
+      input.invalidate()
+    }
+    await runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id))
+    clearDraftIfConversationChanged(previousId)
+  }
+
+  return {
+    data,
+    inputValue: input.inputValue,
+    setInputValue: input.setInputValue,
+    send: (payload: ChatSendPayload) => input.send(payload),
+    abort: () => runAction('abort', undefined, () => runtime.value.actions.abort?.()),
+    clearActiveConversation,
+    createConversation,
+    switchConversation,
+    renameConversation: (id: string, title: string) =>
+      runAction('rename-conversation', { conversationId: id, title }, () =>
+        runtime.value.actions.renameConversation(id, title),
+      ),
+    deleteConversation,
+    selectModel,
+    setModelFeature,
+    setModelReasoningEffort,
+    addMcpServer,
+    removeMcpServer,
+    setMcpServerEnabled,
+    setMcpToolEnabled,
+  }
+}
