@@ -30,9 +30,20 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const pendingMcpServerIds = shallowRef<ReadonlySet<string>>(new Set())
   const pendingMcpToolIds = shallowRef<ReadonlyMap<string, ReadonlySet<string>>>(new Map())
 
+  async function send(payload: ChatSendPayload) {
+    const conversationId = activeConversation.value?.id
+    const accepted = (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false
+
+    if (conversationId !== undefined && activeConversation.value?.id !== conversationId) {
+      input.invalidate()
+    }
+
+    return accepted
+  }
+
   const input = useChatDraft({
     allowEmptyText: true,
-    send: async (payload) => (await runAction('send', payload, () => runtime.value.actions.send(payload))) ?? false,
+    send,
   })
 
   const data = computed<ChatUIData>(() => {
