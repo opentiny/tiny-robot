@@ -1,11 +1,18 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import Switch from '../shared/components/Switch.vue'
+import ExtensionDetailSummary from '../shared/components/ExtensionDetailSummary.vue'
 import type { McpExtensionDetailEmits, McpExtensionDetailProps, McpExtensionTool } from './index.type'
 
 defineOptions({ name: 'McpExtensionDetail' })
 
-defineProps<McpExtensionDetailProps>()
+const props = defineProps<McpExtensionDetailProps>()
 const emit = defineEmits<McpExtensionDetailEmits>()
+
+const summaryBadges = computed(() => [
+  props.tools.length + ' 个工具',
+  ...(props.updatedAt ? ['更新于 ' + props.updatedAt] : []),
+])
 
 const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
   if (tool.disabled) return
@@ -15,24 +22,10 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
 
 <template>
   <div class="mcp-extension-detail">
-    <dl class="mcp-extension-detail__summary">
-      <div class="mcp-extension-detail__summary-row">
-        <dt>名称：</dt>
-        <dd>{{ name }}</dd>
-      </div>
-      <div class="mcp-extension-detail__summary-row">
-        <dt>描述：</dt>
-        <dd>{{ description || '暂无描述' }}</dd>
-      </div>
-    </dl>
+    <ExtensionDetailSummary :name="props.name" :description="props.description" :badges="summaryBadges" />
 
-    <div class="mcp-extension-detail__metadata" aria-label="MCP 元数据">
-      <span class="mcp-extension-detail__badge">{{ tools.length }} 个工具</span>
-      <span v-if="updatedAt" class="mcp-extension-detail__badge">更新于 {{ updatedAt }}</span>
-    </div>
-
-    <ul v-if="tools.length" class="mcp-extension-detail__tools">
-      <li v-for="tool in tools" :key="tool.id" class="mcp-extension-detail__tool">
+    <ul v-if="props.tools.length" class="mcp-extension-detail__tools">
+      <li v-for="tool in props.tools" :key="tool.id" class="mcp-extension-detail__tool">
         <div class="mcp-extension-detail__tool-content">
           <strong class="mcp-extension-detail__tool-name">{{ tool.name }}</strong>
           <p v-if="tool.description" class="mcp-extension-detail__tool-description">{{ tool.description }}</p>
@@ -54,43 +47,6 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
 <style lang="less" scoped>
 .mcp-extension-detail {
   color: var(--tr-text-primary);
-}
-
-.mcp-extension-detail__summary {
-  margin: 0 0 8px;
-  color: var(--tr-text-secondary);
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.mcp-extension-detail__summary-row {
-  display: flex;
-  gap: 4px;
-}
-
-.mcp-extension-detail__summary-row dt {
-  flex: none;
-}
-
-.mcp-extension-detail__summary-row dd {
-  min-width: 0;
-  margin: 0;
-}
-
-.mcp-extension-detail__metadata {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.mcp-extension-detail__badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--tr-container-bg-hover);
-  color: var(--tr-text-secondary);
-  font-size: 12px;
-  line-height: 18px;
 }
 
 .mcp-extension-detail__tools {

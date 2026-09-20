@@ -27,6 +27,7 @@ import ExtensionManager, { ExtensionCard, ExtensionCardGrid } from './extension-
 import McpExtensionForm from './mcp-extension-form'
 import McpExtensionDetail from './mcp-extension-detail'
 import SkillAdd from './skill-add'
+import SkillExtensionDetail from './skill-extension-detail'
 import {
   ActionButton,
   SubmitButton,
@@ -64,6 +65,7 @@ export * from './mcp-extension-form/index.type'
 export * from './mcp-extension-detail/index.type'
 export * from './mcp-extension-storage/index.type'
 export * from './skill-add/index.type'
+export * from './skill-extension-detail/index.type'
 export * from './extension-manager/public.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
@@ -115,6 +117,7 @@ const components = [
   McpExtensionForm,
   McpExtensionDetail,
   SkillAdd,
+  SkillExtensionDetail,
   ExtensionManager,
   ExtensionCard,
   ExtensionCardGrid,
@@ -197,6 +200,8 @@ export {
   McpExtensionDetail as TrMcpExtensionDetail,
   SkillAdd,
   SkillAdd as TrSkillAdd,
+  SkillExtensionDetail,
+  SkillExtensionDetail as TrSkillExtensionDetail,
   ExtensionManager,
   ExtensionManager as TrExtensionManager,
   ExtensionCard,
