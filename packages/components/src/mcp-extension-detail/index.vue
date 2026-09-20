@@ -45,6 +45,8 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
 </template>
 
 <style lang="less" scoped>
+@detail-divider-color: color-mix(in srgb, var(--tr-border-color-default) 42%, transparent);
+
 .mcp-extension-detail {
   color: var(--tr-text-primary);
 }
@@ -52,7 +54,7 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
 .mcp-extension-detail__tools {
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--tr-border-color-default);
+  border-top: 1px solid @detail-divider-color;
   list-style: none;
 }
 
@@ -63,7 +65,7 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
   gap: 20px;
   min-height: 68px;
   padding: 0 16px;
-  border-bottom: 1px solid var(--tr-border-color-default);
+  border-bottom: 1px solid @detail-divider-color;
 }
 
 .mcp-extension-detail__tool-content {
@@ -92,7 +94,7 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
 .mcp-extension-detail__empty {
   margin: 0;
   padding: 32px 0;
-  border-top: 1px solid var(--tr-border-color-default);
+  border-top: 1px solid @detail-divider-color;
   color: var(--tr-text-secondary);
   font-size: 13px;
   text-align: center;

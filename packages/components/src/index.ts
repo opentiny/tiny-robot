@@ -26,7 +26,7 @@ import McpAddForm from './mcp-add-form'
 import ExtensionManager, { ExtensionCard, ExtensionCardGrid } from './extension-manager'
 import McpExtensionForm from './mcp-extension-form'
 import McpExtensionDetail from './mcp-extension-detail'
-import SkillAdd from './skill-add'
+import SkillImportForm from './skill-import-form'
 import SkillExtensionDetail from './skill-extension-detail'
 import {
   ActionButton,
@@ -64,7 +64,7 @@ export * from './mcp-add-form/index.type'
 export * from './mcp-extension-form/index.type'
 export * from './mcp-extension-detail/index.type'
 export * from './mcp-extension-storage/index.type'
-export * from './skill-add/index.type'
+export * from './skill-import-form/index.type'
 export * from './skill-extension-detail/index.type'
 export * from './extension-manager/public.type'
 
@@ -85,7 +85,7 @@ export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
-export { createMcpExtensionStorage } from './mcp-extension-storage'
+export { createMcpExtensionStorage, createMemoryMcpExtensionStorage } from './mcp-extension-storage'
 const components = [
   Attachments,
   Bubble,
@@ -116,7 +116,7 @@ const components = [
   McpAddForm,
   McpExtensionForm,
   McpExtensionDetail,
-  SkillAdd,
+  SkillImportForm,
   SkillExtensionDetail,
   ExtensionManager,
   ExtensionCard,
@@ -136,6 +136,7 @@ export default {
       const name = component.name!.replace(/^Tiny/, '').replace(/^Tr/, '')
       app.component(`Tr${name}`, component)
     })
+    app.component('TrSkillAdd', SkillImportForm)
   },
 }
 
@@ -198,8 +199,12 @@ export {
   McpExtensionForm as TrMcpExtensionForm,
   McpExtensionDetail,
   McpExtensionDetail as TrMcpExtensionDetail,
-  SkillAdd,
-  SkillAdd as TrSkillAdd,
+  SkillImportForm,
+  SkillImportForm as TrSkillImportForm,
+  /** Compatibility alias; use SkillImportForm for new code. */
+  SkillImportForm as SkillAdd,
+  /** Compatibility alias; use TrSkillImportForm for new code. */
+  SkillImportForm as TrSkillAdd,
   SkillExtensionDetail,
   SkillExtensionDetail as TrSkillExtensionDetail,
   ExtensionManager,

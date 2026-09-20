@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import type { Locator } from '@playwright/test'
 import path from 'node:path'
-import SkillAddFixture from './SkillAdd.fixture.vue'
+import SkillImportFormFixture from './SkillImportForm.fixture.vue'
 
 const validSkillDirectory = path.join(import.meta.dirname, 'fixtures/valid-skill')
 const missingEntryDirectory = path.join(import.meta.dirname, 'fixtures/missing-skill')
@@ -52,9 +52,9 @@ const dropDirectory = async (dropzone: Locator, name: string) => {
   }, name)
 }
 
-test.describe('SkillAdd', () => {
+test.describe('SkillImportForm', () => {
   test('uses the injected resolver and emits the resolved SkillDefinition', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
 
     await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
 
@@ -69,7 +69,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('uses the dynamically imported kit resolver by default', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.getByTestId('use-default-resolver').click()
 
     await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
@@ -82,7 +82,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('rejects invalid local selections before calling the resolver', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     const dropzone = component.getByTestId('skill-dropzone')
 
     await dropFile(dropzone, 'SKILL.md', 8)
@@ -95,7 +95,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('keeps the upload box size while resolving and shows resolver errors internally', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     const dropzone = component.getByTestId('skill-dropzone')
     const initialBox = await dropzone.boundingBox()
 
@@ -117,7 +117,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('removes a resolved selection and allows the same folder to be selected again', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     const input = component.locator('input[type="file"]')
 
     await input.setInputFiles(validSkillDirectory)
@@ -132,7 +132,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('keeps the latest definition when an earlier resolver finishes later', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     const dropzone = component.getByTestId('skill-dropzone')
     await component.getByTestId('set-resolver-race').click()
 
@@ -146,7 +146,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('resolves a trimmed GitHub URL and emits the resulting definition', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.getByTestId('show-github').click()
 
     const url = component.getByRole('textbox', { name: 'URL' })
@@ -185,7 +185,7 @@ test.describe('SkillAdd', () => {
       }),
     )
 
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.getByTestId('use-default-resolver').click()
     await component.getByTestId('show-github').click()
     await component.getByRole('textbox', { name: 'URL' }).fill(githubUrl)
@@ -197,7 +197,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('keeps GitHub loading and resolver errors inside the component', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.getByTestId('show-github').click()
     await component
       .getByRole('textbox', { name: 'URL' })
@@ -215,7 +215,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('rejects invalid GitHub URLs before calling the resolver', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.getByTestId('show-github').click()
     const url = component.getByRole('textbox', { name: 'URL' })
     await url.fill('https://github.com/opentiny/tiny-robot/blob/main/skills/demo/SKILL.md')
@@ -228,7 +228,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('resets internal drafts and errors when the source changes', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.getByTestId('set-resolver-error').click()
     await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
     await expect(component.getByRole('alert')).toBeVisible()
@@ -243,7 +243,7 @@ test.describe('SkillAdd', () => {
   })
 
   test('emits cancel while keeping transient state internal', async ({ mount }) => {
-    const component = await mount(SkillAddFixture)
+    const component = await mount(SkillImportFormFixture)
     await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
 
     await component.getByRole('button', { name: '取消' }).click()

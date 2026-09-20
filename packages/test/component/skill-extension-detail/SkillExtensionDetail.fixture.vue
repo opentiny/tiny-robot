@@ -28,9 +28,25 @@ const emptyDefinition = {
   description: '',
   instructions: 'Follow the instructions.',
 }
+
+const manyResourcesDefinition = {
+  ...definition,
+  name: 'many-resources-skill',
+  resources: Array.from({ length: 12 }, (_, index) => ({
+    path: `references/file-${index + 1}.md`,
+    kind: 'text' as const,
+    resourceId: `references/file-${index + 1}.md`,
+    text: 'Resource content',
+  })),
+}
 </script>
 
 <template>
   <SkillExtensionDetail data-testid="detail" :definition="definition" updated-at="2026-07-10" />
   <SkillExtensionDetail data-testid="empty-detail" :definition="emptyDefinition" />
+  <SkillExtensionDetail
+    data-testid="many-resources-detail"
+    :definition="manyResourcesDefinition"
+    style="--tr-skill-extension-detail-content-max-height: 320px"
+  />
 </template>

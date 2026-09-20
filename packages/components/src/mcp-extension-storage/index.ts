@@ -1,9 +1,14 @@
 export { createMcpExtensionStorage } from './storage'
+export { createMemoryMcpExtensionStorage } from './memory'
 export type {
   McpExtensionInput,
-  McpExtensionRecord,
+  McpExtensionIdentity,
+  McpExtensionDataInput,
+  McpExtensionData,
+  McpExtensionOptions,
+  McpExtensionToolPolicy,
+  McpExtensionStorageAdapter,
   McpExtensionStorage,
   McpExtensionStorageOptions,
-  McpExtensionToolPolicy,
   McpExtensionTransportType,
 } from './index.type'

@@ -2,7 +2,7 @@
 import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import { IconClose, IconFileFolder, IconSuccess } from '@opentiny/tiny-robot-svgs'
 import { useStableId } from '../shared/composables'
-import type { SkillAddEmits, SkillAddInput, SkillAddProps, SkillDefinition } from './index.type'
+import type { SkillImportFormEmits, SkillImportFormInput, SkillImportFormProps, SkillDefinition } from './index.type'
 import { resolveSkillWithKit } from './resolver'
 import {
   DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE,
@@ -10,11 +10,11 @@ import {
   validateSkillAddBrowserSelection,
 } from './validation'
 
-const props = withDefaults(defineProps<SkillAddProps>(), {
+const props = withDefaults(defineProps<SkillImportFormProps>(), {
   source: 'local',
   maxUploadSize: DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE,
 })
-const emit = defineEmits<SkillAddEmits>()
+const emit = defineEmits<SkillImportFormEmits>()
 const fileInput = ref<HTMLInputElement>()
 const githubInput = ref<HTMLInputElement>()
 const browserFiles = ref<File[]>([])
@@ -80,7 +80,7 @@ const invalidateResolution = () => {
   resolvedDefinition.value = undefined
 }
 
-const resolveSkill = async (input: SkillAddInput) => {
+const resolveSkill = async (input: SkillImportFormInput) => {
   const generation = ++resolverGeneration
   resolving.value = true
   resolverErrorMessage.value = ''
@@ -215,7 +215,7 @@ const handleSubmit = async () => {
     return
   }
 
-  let input: Extract<SkillAddInput, { source: 'github' }>
+  let input: Extract<SkillImportFormInput, { source: 'github' }>
   try {
     input = parseSkillAddGithubUrl(githubUrl.value)
   } catch (error) {

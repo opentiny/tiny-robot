@@ -50,9 +50,9 @@ export interface SkillDefinition {
   metadata?: Record<string, unknown>
 }
 
-export type SkillAddSource = 'local' | 'github'
+export type SkillImportFormSource = 'local' | 'github'
 
-export type SkillAddInput =
+export type SkillImportFormInput =
   | {
       source: 'local'
       files: File[]
@@ -65,15 +65,24 @@ export type SkillAddInput =
       path: string
     }
 
-export type SkillResolver = (input: SkillAddInput) => Promise<SkillDefinition>
+export type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>
 
-export interface SkillAddProps {
-  source?: SkillAddSource
+export interface SkillImportFormProps {
+  source?: SkillImportFormSource
   maxUploadSize?: number
   resolveSkill?: SkillResolver
 }
 
-export interface SkillAddEmits {
+export interface SkillImportFormEmits {
   (event: 'submit', definition: SkillDefinition): void
   (event: 'cancel'): void
 }
+
+/** Compatibility alias; use SkillImportFormSource for new code. */
+export type SkillAddSource = SkillImportFormSource
+/** Compatibility alias; use SkillImportFormInput for new code. */
+export type SkillAddInput = SkillImportFormInput
+/** Compatibility alias; use SkillImportFormProps for new code. */
+export type SkillAddProps = SkillImportFormProps
+/** Compatibility alias; use SkillImportFormEmits for new code. */
+export type SkillAddEmits = SkillImportFormEmits

@@ -59,7 +59,7 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
 yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit
 ```
 
-`@opentiny/tiny-robot-kit` is a peer dependency of the component library. `SkillAdd` dynamically loads
+`@opentiny/tiny-robot-kit` is a peer dependency of the component library. `SkillImportForm` dynamically loads
 its Skill parser by default, so install both packages before using the component library.
 
 **Optional packages**:

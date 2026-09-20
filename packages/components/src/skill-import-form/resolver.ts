@@ -1,4 +1,4 @@
-import type { SkillAddInput, SkillDefinition, SkillResolver } from './index.type'
+import type { SkillImportFormInput, SkillDefinition, SkillResolver } from './index.type'
 
 let kitModulePromise: Promise<typeof import('@opentiny/tiny-robot-kit')> | undefined
 
@@ -7,7 +7,7 @@ const loadKit = () => {
   return kitModulePromise
 }
 
-export const resolveSkillWithKit: SkillResolver = async (input: SkillAddInput): Promise<SkillDefinition> => {
+export const resolveSkillWithKit: SkillResolver = async (input: SkillImportFormInput): Promise<SkillDefinition> => {
   const { loadSkillWithDetails } = await loadKit()
   const options =
     input.source === 'local'

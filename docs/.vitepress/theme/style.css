@@ -45,6 +45,44 @@ body,
   background-color: var(--vp-c-bg);
 }
 
+/* Extension 示例的辅助控制，不依赖全局 button 默认样式。 */
+.extension-demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.extension-demo-control {
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--vp-c-text-3);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.extension-demo-control:hover:not(:disabled) {
+  border-color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-soft);
+}
+
+.extension-demo-control:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.extension-demo-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 /* Bubble 组件 Demo 样式 */
 div:has(h1[id='bubble-气泡组件']) {
   .vitepress-demo-plugin-preview {
@@ -131,11 +169,11 @@ div:has(h1[id='bubble-气泡组件']) {
   border-radius: 12px;
 }
 .main-content .items .item .link {
-  padding: 0;
+  padding: 6px 0 6px 16px;
   margin: 0;
-  padding-left: 16px;
-  height: 36px;
-  line-height: 36px;
+  min-height: 36px;
+  height: auto;
+  line-height: 24px;
 }
 .main-content .items .item .text {
   padding: 0;

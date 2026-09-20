@@ -1,4 +1,4 @@
-import type { SkillAddInput } from './index.type'
+import type { SkillImportFormInput } from './index.type'
 
 export interface SkillAddBrowserSelectionValidationOptions {
   maxUploadSize?: number
@@ -31,7 +31,7 @@ export function validateSkillAddBrowserSelection(
   return ''
 }
 
-export function parseSkillAddGithubUrl(value: string): Extract<SkillAddInput, { source: 'github' }> {
+export function parseSkillAddGithubUrl(value: string): Extract<SkillImportFormInput, { source: 'github' }> {
   const urlValue = value.trim()
   let url: URL
 

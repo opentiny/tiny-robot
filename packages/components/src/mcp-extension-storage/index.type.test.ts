@@ -1,50 +1,29 @@
-import { createMcpExtensionStorage } from '../index'
-import type {
-  McpExtensionInput,
-  McpExtensionRecord,
-  McpExtensionStorage,
-  McpExtensionStorageOptions,
-  McpExtensionToolPolicy,
-  McpExtensionTransportType,
-} from '../index'
+import { createMcpExtensionStorage, createMemoryMcpExtensionStorage } from '../index'
+import type { McpExtensionData, McpExtensionOptions, McpExtensionStorage } from '../index'
 
-const transport: McpExtensionTransportType = 'streamableHttp'
-const input: McpExtensionInput = {
+const identity = { source: 'remote', id: 'weather' }
+const storage: McpExtensionStorage<{ enabled: boolean }> = createMemoryMcpExtensionStorage({
+  parseBusinessOptions(value) {
+    if (typeof value !== 'object' || value === null || !('enabled' in value) || typeof value.enabled !== 'boolean')
+      throw new Error('Invalid enabled')
+    return { enabled: value.enabled }
+  },
+})
+const data: Promise<McpExtensionData> = storage.upsertData({
+  ...identity,
+  version: 1,
   name: 'Weather',
-  description: 'Forecast tools',
-  type: transport,
+  type: 'streamableHttp',
   url: 'https://example.com/mcp',
-  headers: { Authorization: 'Bearer token', Retries: 3 },
-  thumbnail: null,
-}
-const policy: McpExtensionToolPolicy = { default: 'enabled', overrides: {} }
-const options: McpExtensionStorageOptions = { namespace: 'demo', storage: window.localStorage }
-const storage: McpExtensionStorage = createMcpExtensionStorage()
-const injected: McpExtensionStorage = createMcpExtensionStorage(options)
-
-const records: Promise<McpExtensionRecord[]> = storage.list()
-const record: Promise<McpExtensionRecord | undefined> = storage.get('id')
-const created: Promise<McpExtensionRecord> = storage.create(input)
-const createdFromConfig: Promise<McpExtensionRecord> = storage.createFromConfig(
-  '{"mcpServers":{"weather":{"url":"https://example.com/mcp"}}}',
-)
-const updated: Promise<McpExtensionRecord> = storage.update('id', input)
-const updatedFromConfig: Promise<McpExtensionRecord> = storage.updateFromConfig(
-  'id',
-  '{"mcpServers":{"weather":{"url":"https://example.com/mcp"}}}',
-)
-const deleted: Promise<void> = storage.delete('id')
-const enabled: Promise<McpExtensionRecord> = storage.setEnabled('id', true)
-const toolEnabled: Promise<McpExtensionRecord> = storage.setToolEnabled('id', 'forecast', true)
-
-void policy
-void injected
-void records
-void record
-void created
-void createdFromConfig
-void updated
-void updatedFromConfig
-void deleted
-void enabled
-void toolEnabled
+  tools: [],
+})
+const options: Promise<McpExtensionOptions<{ enabled: boolean }>> = storage.setOptions(identity, {
+  toolPolicy: { default: 'enabled', overrides: {} },
+  business: { enabled: true },
+})
+const removed: Promise<void> = storage.deleteData(identity)
+const remote = createMcpExtensionStorage({ adapter: { read: async () => null, write: async () => undefined } })
+void data
+void options
+void removed
+void remote

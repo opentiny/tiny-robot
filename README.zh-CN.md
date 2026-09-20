@@ -59,7 +59,7 @@ npm install @opentiny/tiny-robot @opentiny/tiny-robot-kit
 yarn add @opentiny/tiny-robot @opentiny/tiny-robot-kit
 ```
 
-`@opentiny/tiny-robot-kit` 是组件库的 peer dependency。`SkillAdd` 默认会动态加载其中的 Skill
+`@opentiny/tiny-robot-kit` 是组件库的 peer dependency。`SkillImportForm` 默认会动态加载其中的 Skill
 解析能力，因此使用组件库前需要一并安装。
 
 **可选包**：

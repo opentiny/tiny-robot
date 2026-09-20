@@ -1,24 +1,24 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import SkillAdd from '../../../components/src/skill-add/index.vue'
+import SkillImportForm from '../../../components/src/skill-import-form'
 import type {
-  SkillAddInput,
-  SkillAddSource,
+  SkillImportFormInput,
+  SkillImportFormSource,
   SkillDefinition,
   SkillResolver,
-} from '../../../components/src/skill-add/index.type'
+} from '../../../components/src/skill-import-form/index.type'
 
 type ResolverMode = 'success' | 'error' | 'pending' | 'race'
 
-const source = ref<SkillAddSource>('local')
+const source = ref<SkillImportFormSource>('local')
 const resolverMode = ref<ResolverMode>('success')
 const useDefaultResolver = ref(false)
 const submitted = ref<SkillDefinition>()
 const cancelCount = ref(0)
-const resolverInputs = ref<SkillAddInput[]>([])
+const resolverInputs = ref<SkillImportFormInput[]>([])
 let releasePending: (() => void) | undefined
 
-const summarizeInput = (value: SkillAddInput | undefined) => {
+const summarizeInput = (value: SkillImportFormInput | undefined) => {
   if (!value) return ''
   if (value.source === 'github') return JSON.stringify(value)
 
@@ -81,7 +81,7 @@ const handleSubmit = (definition: SkillDefinition) => {
   <button data-testid="set-resolver-race" type="button" @click="resolverMode = 'race'">Resolve race</button>
   <button data-testid="release-resolver" type="button" @click="releasePending?.()">Release resolver</button>
 
-  <SkillAdd
+  <SkillImportForm
     :source="source"
     :resolve-skill="useDefaultResolver ? undefined : resolveSkill"
     @submit="handleSubmit"

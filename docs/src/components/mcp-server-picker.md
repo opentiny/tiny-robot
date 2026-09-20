@@ -28,7 +28,7 @@ badge: deprecated
 
 `McpServerPicker` 的“已安装”和“市场”是两个固定标签页；`ExtensionManager.tabs` 表示 Extension 类型或应用定义的分类，每个标签页内部再根据 `installed` 自动生成“已安装”和“可安装”分区。迁移时不要直接把两组旧列表分别当成两个 `ExtensionManagerTab`，否则每个标签页仍会额外生成两个分区。
 
-操作事件也从多个 MCP 专用事件合并为一个通用 `action` 事件。应用需要为安装、卸载和开关配置稳定的 action id，再根据 `tabId`、`sectionKey`、`itemId` 和 `action` 更新原始数据。完整的数据和事件示例见 [ExtensionManager 快速开始](./extension-manager.md#快速开始)及[处理操作事件](./extension-manager.md#处理操作事件)。
+操作事件也从多个 MCP 专用事件合并为一个通用 `action` 事件。应用需要为安装、卸载和开关配置稳定的 action id，再根据 `tabId`、`sectionKey`、`itemId` 和 `action` 更新原始数据。完整的数据和事件示例见 [ExtensionManager 用法示例](./extension-manager.md#用法示例)及[处理操作事件](./extension-manager.md#处理操作事件)。
 
 ### 迁移时需要保留的应用职责
 

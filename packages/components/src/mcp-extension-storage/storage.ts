@@ -1,186 +1,178 @@
 import { parseMcpExtensionConfig } from './config'
 import {
+  identityKey,
+  parseData,
+  parseIdentity,
   parseMcpExtensionStorageDocument,
+  parseOptions,
   serializeMcpExtensionStorageDocument,
-  type McpExtensionStorageDocument,
 } from './document'
 import type {
-  McpExtensionInput,
-  McpExtensionRecord,
+  McpExtensionData,
+  McpExtensionDataInput,
+  McpExtensionIdentity,
+  McpExtensionOptions,
   McpExtensionStorage,
+  McpExtensionStorageAdapter,
   McpExtensionStorageOptions,
 } from './index.type'
 import { normalizeMcpExtensionInput } from './normalize'
 
 const getStorage = (storage: Storage | undefined) => {
   if (storage) return storage
-
   try {
     if (typeof window !== 'undefined' && window.localStorage) return window.localStorage
-  } catch (error) {
-    const wrapped = new Error('MCP extension storage cannot access window.localStorage') as Error & {
-      cause?: unknown
-    }
-    wrapped.cause = error
-    throw wrapped
+  } catch (cause) {
+    throw Object.assign(new Error('MCP storage cannot access localStorage'), { cause })
   }
-
-  throw new Error('MCP extension storage requires a Web Storage implementation')
+  throw new Error('MCP storage requires Web Storage or an adapter')
 }
 
-const getStorageKey = (namespace: string | undefined) => {
-  const normalizedNamespace = namespace?.trim()
-  return normalizedNamespace ? `tiny-robot:${normalizedNamespace}:mcp-extensions` : 'tiny-robot:mcp-extensions'
-}
-
-const withCause = (message: string, cause: unknown) => {
-  const error = new Error(message) as Error & { cause?: unknown }
-  error.cause = cause
-  return error
-}
-
+const storageKey = (namespace?: string) =>
+  namespace?.trim() ? `tiny-robot:${namespace.trim()}:mcp-extensions` : 'tiny-robot:mcp-extensions'
 const nextTimestamp = (previous?: string) => {
-  const timestamp = new Date().toISOString()
-  return timestamp === previous ? new Date(Date.parse(timestamp) + 1).toISOString() : timestamp
+  const current = new Date().toISOString()
+  return current === previous ? new Date(Date.parse(current) + 1).toISOString() : current
 }
 
-/**
- * Creates MCP extension persistence backed by Web Storage.
- *
- * Header values are stored as plaintext JSON in the selected Storage. Do not
- * use this persistence boundary when plaintext credentials are unacceptable.
- */
-export const createMcpExtensionStorage = (options: McpExtensionStorageOptions = {}): McpExtensionStorage => {
-  const storage = getStorage(options.storage)
-  const storageKey = getStorageKey(options.namespace)
-
-  const readDocument = () => {
-    let raw: string | null
-    try {
-      raw = storage.getItem(storageKey)
-    } catch (error) {
-      throw withCause(`Failed to read MCP extensions from "${storageKey}"`, error)
-    }
-    return parseMcpExtensionStorageDocument(raw)
+/** One versioned document stores definitions and settings separately. Headers are plaintext JSON. */
+export const createMcpExtensionStorage = <TBusiness = never>(
+  options: McpExtensionStorageOptions<TBusiness> = {},
+): McpExtensionStorage<TBusiness> => {
+  if (options.storage && options.adapter) throw new Error('Choose either MCP storage or adapter')
+  const key = storageKey(options.namespace)
+  const adapter: McpExtensionStorageAdapter =
+    options.adapter ??
+    (() => {
+      const storage = getStorage(options.storage)
+      return { read: async (key) => storage.getItem(key), write: async (key, value) => storage.setItem(key, value) }
+    })()
+  const read = async () => parseMcpExtensionStorageDocument(await adapter.read(key), options.parseBusinessOptions)
+  let queue: Promise<unknown> = Promise.resolve()
+  const mutate = <T>(operation: (document: Awaited<ReturnType<typeof read>>) => T): Promise<T> => {
+    const result = queue.then(async () => {
+      const document = await read()
+      const value = operation(document)
+      await adapter.write(key, serializeMcpExtensionStorageDocument(document))
+      return value
+    })
+    queue = result.catch(() => undefined)
+    return result
   }
-
-  const writeDocument = (document: McpExtensionStorageDocument) => {
-    try {
-      storage.setItem(storageKey, serializeMcpExtensionStorageDocument(document))
-    } catch (error) {
-      throw withCause(`Failed to write MCP extensions to "${storageKey}"`, error)
-    }
-  }
-
-  const create = async (input: McpExtensionInput) => {
-    const document = readDocument()
-    const normalized = normalizeMcpExtensionInput(input)
-    if (document.extensions.some((extension) => extension.name === normalized.name)) {
-      throw new Error(`MCP extension name already exists: ${normalized.name}`)
-    }
-
-    const timestamp = new Date().toISOString()
-    const record: McpExtensionRecord = {
-      id: crypto.randomUUID(),
-      ...normalized,
-      enabled: true,
-      toolPolicy: { default: 'enabled', overrides: {} },
-      createdAt: timestamp,
+  const equal = (left: McpExtensionIdentity, right: McpExtensionIdentity) => identityKey(left) === identityKey(right)
+  const normalizeData = (input: McpExtensionDataInput, previous?: McpExtensionData): McpExtensionData => {
+    const identity = parseIdentity(input)
+    const connection = normalizeMcpExtensionInput(input)
+    const timestamp = nextTimestamp(previous?.updatedAt)
+    return parseData({
+      ...identity,
+      version: input.version,
+      ...connection,
+      tools: input.tools,
+      createdAt: previous?.createdAt ?? timestamp,
       updatedAt: timestamp,
-    }
-    document.extensions.push(record)
-    writeDocument(document)
-    return record
+    })
   }
-
-  const update = async (id: string, input: McpExtensionInput) => {
-    const document = readDocument()
-    const index = document.extensions.findIndex((extension) => extension.id === id)
-    if (index === -1) throw new Error(`MCP extension not found: ${id}`)
-
-    const normalized = normalizeMcpExtensionInput(input)
-    if (document.extensions.some((extension) => extension.id !== id && extension.name === normalized.name)) {
-      throw new Error(`MCP extension name already exists: ${normalized.name}`)
-    }
-
-    const existing = document.extensions[index]
-    const record: McpExtensionRecord = {
-      ...existing,
-      ...normalized,
-      updatedAt: nextTimestamp(existing.updatedAt),
-    }
-    document.extensions[index] = record
-    writeDocument(document)
-    return record
-  }
-
+  const defaultOptions = (): McpExtensionOptions<TBusiness> => ({ toolPolicy: { default: 'enabled', overrides: {} } })
+  const upsertData = (input: McpExtensionDataInput) =>
+    mutate((document) => {
+      const index = document.data.findIndex((entry) => equal(entry, input))
+      const previous = document.data[index]
+      if (previous && previous.version > input.version) return previous
+      const next = normalizeData(input, previous)
+      if (previous && previous.version === input.version) {
+        const { createdAt: _a, updatedAt: _b, ...oldDefinition } = previous
+        const { createdAt: _c, updatedAt: _d, ...newDefinition } = next
+        if (JSON.stringify(oldDefinition) !== JSON.stringify(newDefinition))
+          throw new Error(`MCP definition version conflict: ${identityKey(input)}`)
+        return previous
+      }
+      if (index === -1) document.data.push(next)
+      else document.data[index] = next
+      return next
+    })
+  const update = (
+    identity: McpExtensionIdentity,
+    input: McpExtensionDataInput | Parameters<typeof normalizeMcpExtensionInput>[0],
+  ) =>
+    mutate((document) => {
+      const index = document.data.findIndex((entry) => equal(entry, identity))
+      if (index === -1) throw new Error(`MCP extension not found: ${identityKey(identity)}`)
+      const previous = document.data[index]
+      const next = normalizeData(
+        { ...previous, ...input, source: previous.source, id: previous.id, version: previous.version + 1 },
+        previous,
+      )
+      document.data[index] = next
+      return next
+    })
   return {
-    async list() {
-      return readDocument().extensions
+    async listData() {
+      return (await read()).data
     },
-    async get(id) {
-      return readDocument().extensions.find((extension) => extension.id === id)
+    async getData(identity) {
+      return (await read()).data.find((entry) => equal(entry, identity))
     },
-    create,
-    async createFromConfig(config) {
-      return create(parseMcpExtensionConfig(config))
+    upsertData,
+    deleteData(identity) {
+      return mutate((document) => {
+        const index = document.data.findIndex((entry) => equal(entry, identity))
+        if (index === -1) throw new Error(`MCP extension not found: ${identityKey(identity)}`)
+        document.data.splice(index, 1)
+      })
+    },
+    async getOptions(identity) {
+      return (await read()).options.find((entry) => equal(entry, identity))?.value
+    },
+    setOptions(identity, value) {
+      return mutate((document) => {
+        const normalizedIdentity = parseIdentity(identity)
+        const parsed = parseOptions(JSON.parse(JSON.stringify(value)), options.parseBusinessOptions)
+        const index = document.options.findIndex((entry) => equal(entry, identity))
+        const entry = { ...normalizedIdentity, value: parsed }
+        if (index === -1) document.options.push(entry)
+        else document.options[index] = entry
+        return parsed
+      })
+    },
+    deleteOptions(identity) {
+      return mutate((document) => {
+        const index = document.options.findIndex((entry) => equal(entry, identity))
+        if (index !== -1) document.options.splice(index, 1)
+      })
+    },
+    setToolEnabled(identity, toolId, enabled) {
+      return mutate((document) => {
+        if (typeof enabled !== 'boolean' || !toolId.trim())
+          throw new Error('MCP tool enabled must be boolean and tool ID non-empty')
+        const normalizedIdentity = parseIdentity(identity)
+        const index = document.options.findIndex((entry) => equal(entry, identity))
+        const previous = index === -1 ? defaultOptions() : document.options[index].value
+        const overrides = { ...previous.toolPolicy.overrides }
+        if (enabled === (previous.toolPolicy.default === 'enabled')) delete overrides[toolId]
+        else
+          Object.defineProperty(overrides, toolId, {
+            value: enabled,
+            writable: true,
+            enumerable: true,
+            configurable: true,
+          })
+        const value = { ...previous, toolPolicy: { ...previous.toolPolicy, overrides } }
+        const entry = { ...normalizedIdentity, value }
+        if (index === -1) document.options.push(entry)
+        else document.options[index] = entry
+        return value
+      })
+    },
+    create(input) {
+      return upsertData({ ...input, source: 'manual', id: crypto.randomUUID(), version: 1, tools: [] })
+    },
+    createFromConfig(config) {
+      return this.create(parseMcpExtensionConfig(config))
     },
     update,
-    async updateFromConfig(id, config) {
-      return update(id, parseMcpExtensionConfig(config))
-    },
-    async delete(id) {
-      const document = readDocument()
-      const index = document.extensions.findIndex((extension) => extension.id === id)
-      if (index === -1) throw new Error(`MCP extension not found: ${id}`)
-      document.extensions.splice(index, 1)
-      writeDocument(document)
-    },
-    async setEnabled(id, enabled) {
-      if (typeof enabled !== 'boolean') throw new Error('MCP extension enabled must be boolean')
-
-      const document = readDocument()
-      const index = document.extensions.findIndex((extension) => extension.id === id)
-      if (index === -1) throw new Error(`MCP extension not found: ${id}`)
-
-      const existing = document.extensions[index]
-      const record: McpExtensionRecord = {
-        ...existing,
-        enabled,
-        updatedAt: nextTimestamp(existing.updatedAt),
-      }
-      document.extensions[index] = record
-      writeDocument(document)
-      return record
-    },
-    async setToolEnabled(id, toolName, enabled) {
-      if (typeof enabled !== 'boolean') throw new Error('MCP extension tool enabled must be boolean')
-
-      const document = readDocument()
-      const index = document.extensions.findIndex((extension) => extension.id === id)
-      if (index === -1) throw new Error(`MCP extension not found: ${id}`)
-
-      const existing = document.extensions[index]
-      const overrides = { ...existing.toolPolicy.overrides }
-      const defaultEnabled = existing.toolPolicy.default === 'enabled'
-      if (enabled === defaultEnabled) delete overrides[toolName]
-      else {
-        Object.defineProperty(overrides, toolName, {
-          configurable: true,
-          enumerable: true,
-          value: enabled,
-          writable: true,
-        })
-      }
-
-      const record: McpExtensionRecord = {
-        ...existing,
-        toolPolicy: { ...existing.toolPolicy, overrides },
-        updatedAt: nextTimestamp(existing.updatedAt),
-      }
-      document.extensions[index] = record
-      writeDocument(document)
-      return record
+    updateFromConfig(identity, config) {
+      return update(identity, parseMcpExtensionConfig(config))
     },
   }
 }

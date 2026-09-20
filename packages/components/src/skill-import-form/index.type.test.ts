@@ -1,6 +1,17 @@
-import { SkillAdd, TrSkillAdd } from '../index'
+import { SkillAdd, SkillImportForm, TrSkillAdd, TrSkillImportForm } from '../index'
 import type { SkillDefinition as KitSkillDefinition } from '@opentiny/tiny-robot-kit'
-import type { SkillAddEmits, SkillAddInput, SkillAddProps, SkillDefinition, SkillResolver } from '../index'
+import type {
+  SkillAddEmits,
+  SkillAddInput,
+  SkillAddProps,
+  SkillAddSource,
+  SkillDefinition,
+  SkillImportFormEmits,
+  SkillImportFormInput,
+  SkillImportFormProps,
+  SkillImportFormSource,
+  SkillResolver,
+} from '../index'
 
 type ComponentsPublicApi = typeof import('../index')
 type SkillAddValidationExportsAreInternal =
@@ -11,8 +22,10 @@ type SkillAddValidationExportsAreInternal =
     ? true
     : false
 
-const localInput: SkillAddInput = { source: 'local', files: [] }
-const githubInput: SkillAddInput = {
+const source: SkillImportFormSource = 'local'
+const legacySource: SkillAddSource = source
+const localInput: SkillImportFormInput = { source, files: [] }
+const githubInput: SkillImportFormInput = {
   source: 'github',
   url: 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo',
   repo: 'opentiny/tiny-robot',
@@ -25,7 +38,7 @@ const definition: SkillDefinition = {
   instructions: '# Demo',
 }
 const resolver: SkillResolver = async (input) => ({ ...definition, metadata: { source: input.source } })
-const props: SkillAddProps = {
+const props: SkillImportFormProps = {
   source: 'local',
   maxUploadSize: 10 * 1024 * 1024,
   resolveSkill: resolver,
@@ -34,14 +47,25 @@ const kitDefinition: KitSkillDefinition = definition
 const compatibleDefinition: SkillDefinition = kitDefinition
 const skillAddValidationExportsAreInternal: SkillAddValidationExportsAreInternal = true
 
-declare const emit: SkillAddEmits
+declare const emit: SkillImportFormEmits
 emit('submit', definition)
 emit('cancel')
 
+const legacyInput: SkillAddInput = localInput
+const legacyProps: SkillAddProps = props
+declare const legacyEmit: SkillAddEmits
+legacyEmit('submit', definition)
+legacyEmit('cancel')
+
+void SkillImportForm
+void TrSkillImportForm
 void SkillAdd
 void TrSkillAdd
 void localInput
+void legacySource
 void githubInput
 void props
+void legacyInput
+void legacyProps
 void compatibleDefinition
 void skillAddValidationExportsAreInternal

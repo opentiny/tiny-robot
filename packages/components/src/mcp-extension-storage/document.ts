@@ -1,95 +1,115 @@
-import type { McpExtensionRecord, McpExtensionToolPolicy } from './index.type'
+import type { McpExtensionData, McpExtensionIdentity, McpExtensionOptions, McpExtensionToolPolicy } from './index.type'
 import { normalizeMcpExtensionInput } from './normalize'
 
-export interface McpExtensionStorageDocument {
+export interface McpExtensionStorageDocument<TBusiness = never> {
   schemaVersion: 1
-  extensions: McpExtensionRecord[]
+  data: McpExtensionData[]
+  options: Array<McpExtensionIdentity & { value: McpExtensionOptions<TBusiness> }>
 }
-
-const documentFields = ['schemaVersion', 'extensions'] as const
-const recordFields = [
-  'id',
-  'name',
-  'description',
-  'type',
-  'url',
-  'headers',
-  'thumbnail',
-  'enabled',
-  'toolPolicy',
-  'createdAt',
-  'updatedAt',
-] as const
-const toolPolicyFields = ['default', 'overrides'] as const
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const assertOnlyFields = (value: Record<string, unknown>, fields: readonly string[], subject: string) => {
-  const unexpected = Object.keys(value).find((field) => !fields.includes(field))
-  if (unexpected) throw new Error(`Unexpected MCP extension ${subject} field: ${unexpected}`)
+const assertFields = (value: Record<string, unknown>, allowed: string[], label: string) => {
+  const unexpected = Object.keys(value).find((key) => !allowed.includes(key))
+  if (unexpected) throw new Error(`Unexpected MCP ${label} field: ${unexpected}`)
 }
 
-const assertIsoTimestamp = (value: unknown, field: 'createdAt' | 'updatedAt') => {
-  if (typeof value !== 'string') throw new Error(`MCP extension ${field} must be an ISO timestamp`)
+export const identityKey = ({ source, id }: McpExtensionIdentity) => JSON.stringify([source, id])
 
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.valueOf()) || parsed.toISOString() !== value) {
-    throw new Error(`MCP extension ${field} must be an ISO timestamp`)
+export const parseIdentity = (value: unknown): McpExtensionIdentity => {
+  if (
+    !isObject(value) ||
+    typeof value.source !== 'string' ||
+    !value.source.trim() ||
+    value.source !== value.source.trim()
+  ) {
+    throw new Error('MCP source must be a non-empty canonical string')
   }
-
-  return value
+  if (typeof value.id !== 'string' || !value.id.trim() || value.id !== value.id.trim()) {
+    throw new Error('MCP id must be a non-empty canonical string')
+  }
+  return { source: value.source, id: value.id }
 }
 
-const parseToolPolicy = (value: unknown): McpExtensionToolPolicy => {
-  if (!isObject(value)) throw new Error('MCP extension tool policy must be an object')
-  assertOnlyFields(value, toolPolicyFields, 'tool policy')
-  if (value.default !== 'enabled' && value.default !== 'disabled') {
-    throw new Error('MCP extension tool policy default must be enabled or disabled')
-  }
-  if (!isObject(value.overrides)) throw new Error('MCP extension tool overrides must be an object')
-
+export const parseToolPolicy = (value: unknown): McpExtensionToolPolicy => {
+  if (!isObject(value)) throw new Error('MCP tool policy must be an object')
+  assertFields(value, ['default', 'overrides'], 'tool policy')
+  if (value.default !== 'enabled' && value.default !== 'disabled') throw new Error('MCP tool policy default is invalid')
+  if (!isObject(value.overrides)) throw new Error('MCP tool overrides must be an object')
   const overrides: Record<string, boolean> = {}
-  Object.entries(value.overrides).forEach(([toolName, enabled]) => {
-    if (typeof enabled !== 'boolean') {
-      throw new Error(`MCP extension tool override for "${toolName}" must be boolean`)
-    }
-    Object.defineProperty(overrides, toolName, {
-      configurable: true,
-      enumerable: true,
-      value: enabled,
-      writable: true,
-    })
-  })
-
+  for (const [id, enabled] of Object.entries(value.overrides)) {
+    if (!id.trim() || typeof enabled !== 'boolean') throw new Error(`Invalid MCP tool override: ${id}`)
+    Object.defineProperty(overrides, id, { value: enabled, writable: true, enumerable: true, configurable: true })
+  }
   return { default: value.default, overrides }
 }
 
-const parseRecord = (value: unknown): McpExtensionRecord => {
-  if (!isObject(value)) throw new Error('MCP extension record must be an object')
-  assertOnlyFields(value, recordFields, 'record')
-
-  if (typeof value.id !== 'string' || !uuidPattern.test(value.id)) {
-    throw new Error('MCP extension id must be a UUID')
-  }
-  if (typeof value.name !== 'string') throw new Error('MCP extension name must be a string')
-  if (typeof value.description !== 'string') throw new Error('MCP extension description must be a string')
-  if (value.type !== 'sse' && value.type !== 'streamableHttp') {
-    throw new Error('MCP extension type must be sse or streamableHttp')
-  }
-  if (typeof value.url !== 'string') throw new Error('MCP extension url must be a string')
-  if (!isObject(value.headers)) throw new Error('MCP extension headers must be an object')
-  if (value.thumbnail !== null && typeof value.thumbnail !== 'string') {
-    throw new Error('MCP extension thumbnail must be a string or null')
-  }
-
-  Object.entries(value.headers).forEach(([headerName, headerValue]) => {
-    if (typeof headerValue !== 'string') {
-      throw new Error(`MCP extension headers value for "${headerName}" must be a string`)
+const parseTools = (value: unknown): McpExtensionData['tools'] => {
+  if (!Array.isArray(value)) throw new Error('MCP tools must be an array')
+  const ids = new Set<string>()
+  return value.map((tool: unknown) => {
+    if (!isObject(tool)) throw new Error('MCP tool must be an object')
+    assertFields(tool, ['id', 'name', 'description', 'enabled', 'disabled'], 'tool')
+    if (typeof tool.id !== 'string' || !tool.id.trim() || ids.has(tool.id))
+      throw new Error('MCP tool id is invalid or duplicated')
+    if (typeof tool.name !== 'string' || !tool.name.trim()) throw new Error('MCP tool name is invalid')
+    if (typeof tool.enabled !== 'boolean') throw new Error('MCP tool enabled must be boolean')
+    if (tool.description !== undefined && typeof tool.description !== 'string')
+      throw new Error('MCP tool description must be a string')
+    if (tool.disabled !== undefined && typeof tool.disabled !== 'boolean')
+      throw new Error('MCP tool disabled must be boolean')
+    ids.add(tool.id)
+    return {
+      id: tool.id,
+      name: tool.name,
+      ...(tool.description === undefined ? {} : { description: tool.description }),
+      enabled: tool.enabled,
+      ...(tool.disabled === undefined ? {} : { disabled: tool.disabled }),
     }
   })
+}
 
+const parseTimestamp = (value: unknown) => {
+  if (typeof value !== 'string' || Number.isNaN(Date.parse(value)) || new Date(value).toISOString() !== value) {
+    throw new Error('MCP timestamp must be ISO format')
+  }
+  return value
+}
+
+export const parseData = (value: unknown): McpExtensionData => {
+  if (!isObject(value)) throw new Error('MCP data must be an object')
+  assertFields(
+    value,
+    [
+      'source',
+      'id',
+      'version',
+      'name',
+      'description',
+      'type',
+      'url',
+      'headers',
+      'thumbnail',
+      'tools',
+      'createdAt',
+      'updatedAt',
+    ],
+    'data',
+  )
+  const identity = parseIdentity(value)
+  if (!Number.isSafeInteger(value.version) || (value.version as number) < 0)
+    throw new Error('MCP version must be a non-negative integer')
+  if (
+    typeof value.name !== 'string' ||
+    typeof value.description !== 'string' ||
+    (value.type !== 'sse' && value.type !== 'streamableHttp') ||
+    typeof value.url !== 'string' ||
+    !isObject(value.headers) ||
+    (value.thumbnail !== null && typeof value.thumbnail !== 'string')
+  ) {
+    throw new Error('MCP connection data is invalid')
+  }
   const normalized = normalizeMcpExtensionInput({
     name: value.name,
     description: value.description,
@@ -98,61 +118,70 @@ const parseRecord = (value: unknown): McpExtensionRecord => {
     headers: value.headers,
     thumbnail: value.thumbnail,
   })
-  if (normalized.name !== value.name) throw new Error('MCP extension name must be canonical')
-  if (normalized.description !== value.description) throw new Error('MCP extension description must be canonical')
-  if (normalized.url !== value.url) throw new Error('MCP extension url must be canonical')
-  if (normalized.thumbnail !== value.thumbnail) throw new Error('MCP extension thumbnail must be canonical')
   if (
-    Object.keys(normalized.headers).length !== Object.keys(value.headers).length ||
-    Object.entries(value.headers).some(([headerName, headerValue]) => normalized.headers[headerName] !== headerValue)
+    normalized.name !== value.name ||
+    normalized.description !== value.description ||
+    normalized.url !== value.url ||
+    normalized.thumbnail !== value.thumbnail ||
+    JSON.stringify(normalized.headers) !== JSON.stringify(value.headers)
   ) {
-    throw new Error('MCP extension headers must be canonical')
+    throw new Error('MCP connection data must be canonical')
   }
-
-  if (typeof value.enabled !== 'boolean') throw new Error('MCP extension enabled must be boolean')
-
   return {
-    id: value.id,
+    ...identity,
+    version: value.version as number,
     ...normalized,
-    enabled: value.enabled,
-    toolPolicy: parseToolPolicy(value.toolPolicy),
-    createdAt: assertIsoTimestamp(value.createdAt, 'createdAt'),
-    updatedAt: assertIsoTimestamp(value.updatedAt, 'updatedAt'),
+    tools: parseTools(value.tools),
+    createdAt: parseTimestamp(value.createdAt),
+    updatedAt: parseTimestamp(value.updatedAt),
   }
 }
 
-export const parseMcpExtensionStorageDocument = (raw: string | null): McpExtensionStorageDocument => {
-  if (raw === null) return { schemaVersion: 1, extensions: [] }
+export const parseOptions = <TBusiness>(
+  value: unknown,
+  parseBusinessOptions?: (value: unknown) => TBusiness,
+): McpExtensionOptions<TBusiness> => {
+  if (!isObject(value)) throw new Error('MCP options must be an object')
+  assertFields(value, ['toolPolicy', 'business'], 'options')
+  const toolPolicy = parseToolPolicy(value.toolPolicy)
+  if (!Object.prototype.hasOwnProperty.call(value, 'business')) return { toolPolicy }
+  if (!parseBusinessOptions) throw new Error('MCP business options require parseBusinessOptions')
+  return { toolPolicy, business: parseBusinessOptions(value.business) }
+}
 
-  let parsed: unknown
+export const parseMcpExtensionStorageDocument = <TBusiness>(
+  raw: string | null,
+  parseBusinessOptions?: (value: unknown) => TBusiness,
+): McpExtensionStorageDocument<TBusiness> => {
+  if (raw === null) return { schemaVersion: 1, data: [], options: [] }
+  let value: unknown
   try {
-    parsed = JSON.parse(raw)
-  } catch (error) {
-    const wrapped = new Error('Invalid MCP extension storage JSON') as Error & { cause?: unknown }
-    wrapped.cause = error
-    throw wrapped
+    value = JSON.parse(raw)
+  } catch {
+    throw new Error('Invalid MCP extension storage JSON')
   }
-
-  if (!isObject(parsed)) throw new Error('MCP extension storage document must be an object')
-  assertOnlyFields(parsed, documentFields, 'document')
-  if (parsed.schemaVersion !== 1) {
-    throw new Error(`Unsupported MCP extension storage schema version: ${String(parsed.schemaVersion)}`)
-  }
-  if (!Array.isArray(parsed.extensions)) {
-    throw new Error('MCP extension storage extensions must be an array')
-  }
-
-  const extensions = parsed.extensions.map(parseRecord)
-  const ids = new Set<string>()
-  const names = new Set<string>()
-  extensions.forEach((extension) => {
-    if (ids.has(extension.id)) throw new Error(`Duplicate MCP extension id: ${extension.id}`)
-    if (names.has(extension.name)) throw new Error(`Duplicate MCP extension name: ${extension.name}`)
-    ids.add(extension.id)
-    names.add(extension.name)
+  if (!isObject(value)) throw new Error('MCP storage document must be an object')
+  assertFields(value, ['schemaVersion', 'data', 'options'], 'document')
+  if (value.schemaVersion !== 1)
+    throw new Error(`Unsupported MCP storage schema version: ${String(value.schemaVersion)}`)
+  if (!Array.isArray(value.data) || !Array.isArray(value.options))
+    throw new Error('MCP data and options must be arrays')
+  const data = value.data.map(parseData)
+  const options = value.options.map((entry: unknown) => {
+    if (!isObject(entry)) throw new Error('MCP options entry must be an object')
+    assertFields(entry, ['source', 'id', 'value'], 'options entry')
+    return { ...parseIdentity(entry), value: parseOptions(entry.value, parseBusinessOptions) }
   })
-
-  return { schemaVersion: 1, extensions }
+  for (const entries of [data, options]) {
+    const keys = new Set<string>()
+    for (const entry of entries) {
+      const key = identityKey(entry)
+      if (keys.has(key)) throw new Error(`Duplicate MCP identity: ${key}`)
+      keys.add(key)
+    }
+  }
+  return { schemaVersion: 1, data, options }
 }
 
-export const serializeMcpExtensionStorageDocument = (document: McpExtensionStorageDocument) => JSON.stringify(document)
+export const serializeMcpExtensionStorageDocument = <TBusiness>(document: McpExtensionStorageDocument<TBusiness>) =>
+  JSON.stringify(document)
