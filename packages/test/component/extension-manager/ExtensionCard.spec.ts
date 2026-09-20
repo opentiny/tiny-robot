@@ -135,4 +135,16 @@ test.describe('standalone ExtensionCard', () => {
     await expect(card.getByRole('button', { name: 'Item name' })).toHaveCount(0)
     await expect(card.locator('.tr-extension-card__name')).toHaveText('Item name')
   })
+
+  test('uses the dark theme surface for its background', async ({ mount }) => {
+    const component = await mount(ExtensionCardFixture)
+
+    await expect(component.getByTestId('dark-theme-card')).toHaveCSS('background-color', 'rgba(255, 255, 255, 0.05)')
+  })
+
+  test('keeps the public card background variable customizable', async ({ mount }) => {
+    const component = await mount(ExtensionCardFixture)
+
+    await expect(component.getByTestId('custom-theme-card')).toHaveCSS('background-color', 'rgb(12, 34, 56)')
+  })
 })

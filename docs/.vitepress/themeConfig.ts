@@ -14,7 +14,6 @@ const sharedSidebarItems = [
     text: '组件',
     base: '/components/',
     items: [
-      { text: 'Container 容器', link: 'container' },
       { text: 'Layout 布局', link: 'layout' },
       { text: 'Bubble 气泡', link: 'bubble' },
       { text: 'Sender 消息输入框', link: 'sender' },
@@ -29,8 +28,10 @@ const sharedSidebarItems = [
       { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
       { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
       { text: 'Attachments 附件卡片', link: 'attachments' },
-      { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
+      { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },
+      { text: 'McpServerPicker 插件选择器（已弃用）', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
+      { text: 'Container 容器', link: 'container' },
     ],
   },
   {

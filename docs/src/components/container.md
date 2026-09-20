@@ -1,8 +1,12 @@
 ---
 outline: [1, 3]
+badge: deprecated
 ---
 
 # Container 容器
+
+> [!WARNING]
+> `Container` 已废弃，仅为兼容现有代码而保留。新布局请使用 [`Layout`](./layout.md)（`TrLayout`）。两者的 API 并非一一对应，迁移时请根据 Layout 的区域插槽、布局模式和浮层状态重新配置。
 
 ## 代码示例
 

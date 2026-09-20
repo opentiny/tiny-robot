@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T">
-import { onClickOutside, useElementBounding, useElementSize, useWindowSize } from '@vueuse/core'
-import { computed, CSSProperties, ref } from 'vue'
-import { toCssUnit } from '../../shared/utils'
+import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
+import { onClickOutside } from '@vueuse/core'
+import { nextTick, ref, watch } from 'vue'
 import { HistoryMenuItem } from '../index.type'
 
 const trigger = defineModel<HTMLButtonElement | null>('trigger', { default: null })
@@ -34,37 +34,105 @@ onClickOutside(
   },
 )
 
-const { top, bottom, left } = useElementBounding(trigger)
-const { width: menuListWidth, height: menuListHeight } = useElementSize(menuRef, undefined, { box: 'border-box' })
-const { height: viewportHeight } = useWindowSize()
-
 const threshold = 4
 
-const styles = computed(() => {
-  const styles: CSSProperties = {
-    left: `min(${toCssUnit(left.value)}, calc(100% - ${toCssUnit(menuListWidth.value + threshold)}))`,
-  }
+watch(
+  [trigger, menuRef, () => props.menuListGap],
+  ([reference, floating], _, onCleanup) => {
+    if (!reference || !floating) return
 
-  const topValue = bottom.value + props.menuListGap
-  if (topValue + menuListHeight.value + threshold > viewportHeight.value) {
-    styles.bottom = `calc(100% - ${toCssUnit(top.value - props.menuListGap)})`
-  } else {
-    styles.top = toCssUnit(topValue)
-  }
+    let active = true
+    const cleanup = autoUpdate(reference, floating, async () => {
+      const { x, y } = await computePosition(reference, floating, {
+        placement: 'bottom-start',
+        strategy: 'fixed',
+        middleware: [
+          offset(props.menuListGap),
+          flip({ fallbackPlacements: ['top-start'] }),
+          shift({ padding: threshold }),
+        ],
+      })
 
-  return styles
-})
+      if (!active || trigger.value !== reference || menuRef.value !== floating) return
+
+      Object.assign(floating.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+      })
+    })
+
+    onCleanup(() => {
+      active = false
+      cleanup()
+    })
+  },
+  { flush: 'post' },
+)
 
 const handleItemClick = (item: { id: string; text: string }) => {
   emit('item-click', item)
   trigger.value = null
   data.value = null
 }
+
+const getMenuItems = () => Array.from(menuRef.value?.querySelectorAll<HTMLElement>('[role="menuitem"]') || [])
+
+const focusFirstItem = () => getMenuItems()[0]?.focus()
+const focusLastItem = () => getMenuItems().at(-1)?.focus()
+
+const closeAndFocusTrigger = () => {
+  const triggerElement = trigger.value
+  trigger.value = null
+  data.value = null
+  nextTick(() => triggerElement?.focus())
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Tab') {
+    trigger.value = null
+    data.value = null
+    return
+  }
+
+  const items = getMenuItems()
+  const currentIndex = items.indexOf(document.activeElement as HTMLElement)
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeAndFocusTrigger()
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    items[currentIndex]?.click()
+    return
+  }
+
+  if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key) || items.length === 0) return
+
+  event.preventDefault()
+  let nextIndex = currentIndex
+  if (event.key === 'Home') nextIndex = 0
+  if (event.key === 'End') nextIndex = items.length - 1
+  if (event.key === 'ArrowDown') nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+  if (event.key === 'ArrowUp') nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+  items[nextIndex]?.focus()
+}
+
+defineExpose({ focusFirstItem, focusLastItem })
 </script>
 
 <template>
-  <ul class="tr-history__menu-list" ref="menuRef" :style="styles">
-    <li class="tr-history__menu-list__item" v-for="item in props.items" :key="item.id" @click="handleItemClick(item)">
+  <ul class="tr-history__menu-list" ref="menuRef" role="menu" @keydown="handleKeydown">
+    <li
+      class="tr-history__menu-list__item"
+      v-for="item in props.items"
+      :key="item.id"
+      role="menuitem"
+      tabindex="-1"
+      @click="handleItemClick(item)"
+    >
       <component :is="item.icon" />
       <span>{{ item.text }}</span>
     </li>

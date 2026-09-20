@@ -8,6 +8,7 @@ import type {
   PublicMessageState,
   RequestProcessingState,
   RequestState,
+  ResponseProvider,
 } from '../types'
 import { mockResponseProvider } from './mockResponseProvider'
 
@@ -47,6 +48,7 @@ describe('createMessageEngine', () => {
     expect(s.messages).toHaveLength(1)
     expect(s.messages[0].content).toBe('hi')
     expect(s.isProcessing).toBe(false)
+    expect(s.canStartTurn).toBe(true)
   })
 
   it('sendMessage runs responseProvider and appends assistant content', async () => {
@@ -218,6 +220,161 @@ describe('createMessageEngine', () => {
     expect(second).toHaveBeenCalled()
   })
 
+  it('passes the latest initialized context to later plugins', () => {
+    let laterInitialMessages: ChatMessage[] | undefined
+    let laterTurnId: string | null | undefined
+    let laterRequestState: string | undefined
+    let laterCustomContext: Record<string, unknown> | undefined
+    const initializedMessage = { role: 'user' as const, content: 'initialized' }
+
+    createTestMessageEngine({
+      initialMessages: [initializedMessage],
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          name: 'initializer',
+          onInit: ({ initialMessages, setCurrentTurn, setTurnId, setCustomContext, setRequestState }) => {
+            setCurrentTurn(initialMessages)
+            setTurnId('initialized')
+            setCustomContext({ marker: 'initialized' })
+            setRequestState('paused')
+          },
+        },
+        {
+          onInit: ({ initialMessages, turnId, requestState, customContext }) => {
+            laterInitialMessages = initialMessages
+            laterTurnId = turnId
+            laterRequestState = requestState
+            laterCustomContext = customContext
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('noop'),
+    })
+
+    expect(laterInitialMessages?.[0]).toBe(initializedMessage)
+    expect(laterTurnId).toBe('initialized')
+    expect(laterRequestState).toBe('paused')
+    expect(laterCustomContext).toMatchObject({ marker: 'initialized' })
+  })
+
+  it('keeps the turn paused when a plugin fails during turn resume', async () => {
+    const onTurnResume = vi.fn(() => {
+      throw new Error('resume failed')
+    })
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onInit: ({ setRequestState, setTurnId, setCurrentTurn }) => {
+            setRequestState('paused')
+            setTurnId('resume-error')
+            setCurrentTurn([])
+          },
+          onTurnResume,
+          commands: {
+            resume: (_payload, context) => {
+              context.requestNext()
+            },
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('unused'),
+    })
+
+    await expect(engine.dispatchCommand('resume')).rejects.toThrow('resume failed')
+    expect(onTurnResume).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'paused', canStartTurn: false })
+  })
+
+  it('resumes a paused turn when a command requests the next request without a resume flag', async () => {
+    const events: string[] = []
+    let customContextAtRequest: Record<string, unknown> | undefined
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onInit: ({ setRequestState, setTurnId, setCurrentTurn, setCustomContext }) => {
+            setRequestState('paused')
+            setTurnId('resume-without-flag')
+            setCurrentTurn([])
+            setCustomContext({ marker: 'preserved' })
+          },
+          onTurnStart: () => {
+            events.push('start')
+          },
+          onTurnResume: () => {
+            events.push('resume')
+          },
+          onBeforeRequest: ({ customContext }) => {
+            events.push('before-request')
+            customContextAtRequest = customContext
+          },
+          commands: {
+            resume: (_payload, context) => {
+              context.requestNext()
+            },
+          },
+        },
+      ],
+      responseProvider: mockResponseProvider('resumed'),
+    })
+
+    await engine.dispatchCommand('resume')
+
+    expect(events).toEqual(['resume', 'before-request'])
+    expect(customContextAtRequest).toEqual({ marker: 'preserved' })
+    expect(engine.getState()).toMatchObject({ requestState: 'completed', canStartTurn: true })
+  })
+
+  it('aborts an asynchronous command while the turn is paused', async () => {
+    let markCommandStarted!: () => void
+    const commandStarted = new Promise<void>((resolve) => {
+      markCommandStarted = resolve
+    })
+    let releaseCommand!: () => void
+    const commandBlocked = new Promise<void>((resolve) => {
+      releaseCommand = resolve
+    })
+    let commandSignal!: AbortSignal
+    const responseProvider = vi.fn<ResponseProvider>(async () => {
+      throw new Error('responseProvider should not run after abort')
+    })
+
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onInit: ({ setRequestState, setTurnId }) => {
+            setRequestState('paused')
+            setTurnId('async-command')
+          },
+          commands: {
+            resume: async (_payload, context) => {
+              commandSignal = context.abortSignal
+              markCommandStarted()
+              await commandBlocked
+              context.requestNext()
+            },
+          },
+        },
+      ],
+      responseProvider,
+    })
+
+    const command = engine.dispatchCommand('resume')
+    await commandStarted
+    await engine.abort()
+
+    expect(commandSignal.aborted).toBe(true)
+    expect(engine.getState()).toMatchObject({ requestState: 'aborted', canStartTurn: true })
+
+    releaseCommand()
+    await command
+
+    expect(responseProvider).not.toHaveBeenCalled()
+  })
+
   it('should execute multiple plugin hooks in the correct order', async () => {
     const beforeRequest = vi.fn()
     const completionChunk = vi.fn()
@@ -287,6 +444,31 @@ describe('createMessageEngine', () => {
 
     expect(afterRequest).toHaveBeenNthCalledWith(1, 'plugin1', 'assistant reply')
     expect(afterRequest).toHaveBeenNthCalledWith(2, 'plugin2', 'assistant reply')
+  })
+
+  it('does not let an after-request requestNext bypass a paused state', async () => {
+    const responseProvider = vi.fn(mockResponseProvider('assistant reply'))
+    const engine = createTestMessageEngine({
+      plugins: [
+        ...silentDefaultPlugins,
+        {
+          onAfterRequest: ({ setRequestState }) => {
+            setRequestState('paused')
+          },
+        },
+        {
+          onAfterRequest: ({ requestNext }) => {
+            requestNext()
+          },
+        },
+      ],
+      responseProvider,
+    })
+
+    await engine.sendMessage('pause after request')
+
+    expect(responseProvider).toHaveBeenCalledOnce()
+    expect(engine.getState()).toMatchObject({ requestState: 'paused', isPaused: true })
   })
 
   it('should handle abort correctly during message processing with delayed chunks', async () => {

@@ -41,6 +41,10 @@ body,
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.demo-container-page-bg .vitepress-demo-plugin__container {
+  background-color: var(--vp-c-bg);
+}
+
 /* Bubble 组件 Demo 样式 */
 div:has(h1[id='bubble-气泡组件']) {
   .vitepress-demo-plugin-preview {
@@ -77,7 +81,9 @@ div:has(h1[id='bubble-气泡组件']) {
 /* 侧边栏项目样式增强 */
 .VPSidebarItem .link {
   border-radius: 12px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   position: relative;
 }
 
@@ -328,9 +334,13 @@ div:has(h1[id='bubble-气泡组件']) {
 }
 
 .version-badge--deprecated {
-  background-color: #fef0f0;
-  color: #f56c6c;
-  border: 1px solid #fde2e2;
+  padding: 1px 6px;
+  background-color: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-3);
+  border: 0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .version-badge--beta {
@@ -353,9 +363,8 @@ div:has(h1[id='bubble-气泡组件']) {
 }
 
 .dark .version-badge--deprecated {
-  background-color: rgba(245, 108, 108, 0.15);
-  color: #f89898;
-  border-color: rgba(245, 108, 108, 0.25);
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--vp-c-text-2);
 }
 
 .dark .version-badge--beta {

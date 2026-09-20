@@ -76,11 +76,16 @@ export class LocalStorageStrategy implements ConversationStorageStrategy {
   }
 
   deleteConversation(conversationId: string) {
-    const conversations = getConversations(this.storageKey)
-    const index = conversations.findIndex((item) => item.id === conversationId)
-    if (index !== -1) {
-      conversations.splice(index, 1)
+    try {
+      const conversations = getConversations(this.storageKey)
+      const index = conversations.findIndex((item) => item.id === conversationId)
+      if (index !== -1) {
+        conversations.splice(index, 1)
+      }
+      localStorage.setItem(this.storageKey, JSON.stringify(conversations))
+    } catch (error) {
+      console.error('删除会话失败:', error)
+      throw error
     }
-    localStorage.setItem(this.storageKey, JSON.stringify(conversations))
   }
 }

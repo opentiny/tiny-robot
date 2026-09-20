@@ -39,10 +39,11 @@ const handleAction = (event: ExtensionCardActionEvent) => {
   lastEvent.value = event
 
   if (event.type !== 'switch' || typeof event.checked !== 'boolean') return
+  const checked = event.checked
 
   overflowActions.value = overflowActions.value.map((action) =>
     action.id === event.id && action.type === 'switch'
-      ? { ...action, checked: event.checked, label: getOverflowSwitchLabel(event.checked) }
+      ? { ...action, checked, label: getOverflowSwitchLabel(checked) }
       : action,
   )
 }
@@ -98,6 +99,16 @@ const handleAction = (event: ExtensionCardActionEvent) => {
     <ExtensionCard data-testid="progress-card" name="Progress card" progress="indeterminate" />
     <ExtensionCard data-testid="high-progress-card" name="High progress" :progress="125" />
     <ExtensionCard data-testid="low-progress-card" name="Low progress" :progress="-10" />
+
+    <div data-tr-color-mode="dark">
+      <ExtensionCard data-testid="dark-theme-card" name="Dark theme card" />
+    </div>
+
+    <ExtensionCard
+      data-testid="custom-theme-card"
+      name="Custom theme card"
+      style="--tr-extension-card-bg-color: rgb(12, 34, 56)"
+    />
 
     <output data-testid="event-id">{{ lastEvent?.id }}</output>
     <output data-testid="event-type">{{ lastEvent?.type }}</output>
