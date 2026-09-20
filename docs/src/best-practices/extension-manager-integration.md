@@ -20,6 +20,7 @@ pageClass: demo-container-page-bg
     '../../demos/extension-manager/ExtensionAddMenu.vue',
     '../../demos/extension-manager/ExtensionAddIcon.vue',
     '../../demos/extension-manager/use-extension-catalog.ts',
+    '../../demos/extension-manager/extension-catalog-repository.ts',
     '../../demos/extension-manager/use-extension-dialog.ts',
     '../../demos/extension-manager/mock-api.ts',
     '../../demos/extension-manager/catalog.ts',
@@ -29,7 +30,7 @@ pageClass: demo-container-page-bg
   description="异步安装并查看进度，启用、卸载、添加及查看扩展，最后重置示例。"
 />
 
-示例源码从 `integrated.vue` 开始：`use-extension-catalog.ts` 使用公开的 MCP 内存存储 和 kit `createMemorySkillStorage()` 保存需要持久化的已安装定义；默认已安装的内置项直接来自应用代码。`use-extension-dialog.ts` 管理原生弹窗；`catalog.ts` 只处理目录身份和版本选择，`skill-options-storage.ts` 保存应用的 Skill 启用偏好。`mock-api.ts` 集中提供异步目录和安装进度，方便替换为真实 API。
+示例源码从 `integrated.vue` 开始：`use-extension-catalog.ts` 管理加载状态、安装进度和页面交互；`extension-catalog-repository.ts` 使用公开的 MCP 内存存储和 kit `createMemorySkillStorage()` 合并目录与已安装记录，并保存定义及启用偏好。默认已安装的内置项直接来自应用代码。`use-extension-dialog.ts` 管理原生弹窗；`catalog.ts` 处理目录身份和版本选择，`skill-options-storage.ts` 保存应用的 Skill 启用偏好。`mock-api.ts` 提供异步目录和安装进度，方便替换为真实 API。
 
 ## 替换目录和存储
 

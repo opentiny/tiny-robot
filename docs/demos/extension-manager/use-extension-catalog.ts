@@ -1,40 +1,12 @@
 import { computed, ref, shallowRef } from 'vue'
-import {
-  createMemoryMcpExtensionStorage,
-  type ExtensionManagerActionEvent,
-  type ExtensionManagerTab,
-  type McpExtensionIdentity,
-} from '@opentiny/tiny-robot'
-import { createMemorySkillStorage } from '@opentiny/tiny-robot-kit'
-import {
-  canonicalCatalog,
-  extensionKey,
-  fromStoredSkill,
-  skillVersion,
-  withSkillSnapshot,
-  type ExtensionDefinition,
-  type ResolvedExtension,
-} from './catalog'
+import { type ExtensionManagerActionEvent, type ExtensionManagerTab } from '@opentiny/tiny-robot'
+import { extensionKey, type ExtensionDefinition, type ResolvedExtension } from './catalog'
+import { createExtensionCatalogRepository } from './extension-catalog-repository'
 import { fetchRemoteExtensions, getBuiltInExtensions, prepareExtensionInstall } from './mock-api'
-import { createMemorySkillOptionsStorage } from './skill-options-storage'
-
-const parseMcpBusiness = (value: unknown) => {
-  if (typeof value !== 'object' || value === null || !('enabled' in value) || typeof value.enabled !== 'boolean') {
-    throw new Error('MCP enabled 配置无效')
-  }
-  return { enabled: value.enabled }
-}
-const mcpIdentity = (item: { source: string; id: string }): McpExtensionIdentity => ({
-  source: item.source,
-  id: item.id,
-})
 
 export const useExtensionCatalog = () => {
   const builtins = getBuiltInExtensions()
-  // 生产应用可把 MCP 工厂换成 createMcpExtensionStorage({ adapter })，Skill 换成 kit 的持久实现。
-  let mcpStorage = createMemoryMcpExtensionStorage({ parseBusinessOptions: parseMcpBusiness })
-  let skillStorage = createMemorySkillStorage()
-  let skillOptions = createMemorySkillOptionsStorage()
+  let repository = createExtensionCatalogRepository()
   const remoteCatalog = shallowRef<ExtensionDefinition[]>()
   const catalogError = ref('')
   const loading = ref(true)
@@ -79,141 +51,8 @@ export const useExtensionCatalog = () => {
     })),
   )
 
-  const extensionName = (item: ExtensionDefinition) => (item.kind === 'mcp' ? item.data.value.name : item.data.name)
-
-  const persistEnabled = async (item: ExtensionDefinition, enabled: boolean) => {
-    if (item.kind === 'mcp') {
-      const identity = mcpIdentity(item)
-      const current = await mcpStorage.getOptions(identity)
-      await mcpStorage.setOptions(identity, {
-        toolPolicy: current?.toolPolicy ?? { default: 'enabled', overrides: {} },
-        business: { enabled },
-      })
-    } else await skillOptions.set(item.data.name, { enabled })
-  }
-
-  // 同名扩展只启用一个；切换目标前先保存其他已安装条目的禁用偏好。
-  const disableNamedPeers = async (target: ExtensionDefinition) => {
-    for (const peer of items.value) {
-      if (
-        peer.kind === target.kind &&
-        peer.installed &&
-        peer.enabled &&
-        extensionKey(peer) !== extensionKey(target) &&
-        extensionName(peer) === extensionName(target)
-      ) {
-        await persistEnabled(peer, false)
-      }
-    }
-  }
-
-  const saveDefinition = async (definition: ExtensionDefinition) => {
-    if (definition.kind === 'mcp') {
-      const { value, tools } = definition.data
-      await mcpStorage.upsertData({ ...mcpIdentity(definition), version: definition.version, ...value, tools })
-      if ((await mcpStorage.getOptions(mcpIdentity(definition)))?.business?.enabled ?? true) {
-        await disableNamedPeers(definition)
-      }
-    } else {
-      await skillStorage.add(withSkillSnapshot(definition))
-      if ((await skillOptions.get(definition.data.name))?.enabled ?? true) await disableNamedPeers(definition)
-    }
-    await refreshItems()
-  }
-
   const refreshItems = async () => {
-    const errors: string[] = []
-    const catalog = canonicalCatalog([...builtins, ...(remoteCatalog.value ?? [])])
-    const storedMcp = await mcpStorage.listData()
-    const storedSkill = await Promise.all((await skillStorage.list()).map((summary) => skillStorage.get(summary.name)))
-    const mcpByKey = new Map(storedMcp.map((record) => [JSON.stringify([record.source, record.id]), record]))
-    const skillByName = new Map(storedSkill.filter((skill) => skill !== undefined).map((skill) => [skill.name, skill]))
-    const resolved: ResolvedExtension[] = []
-    const seen = new Set<string>()
-
-    for (const definition of catalog) {
-      const key = extensionKey(definition)
-      seen.add(key)
-      if (definition.kind === 'mcp') {
-        const identity = mcpIdentity(definition)
-        let stored = mcpByKey.get(JSON.stringify([identity.source, identity.id]))
-        if (stored && definition.version > stored.version) {
-          try {
-            const { value, tools } = definition.data
-            stored = await mcpStorage.upsertData({ ...identity, version: definition.version, ...value, tools })
-          } catch (error) {
-            errors.push(`${definition.id} 更新失败：${String(error)}`)
-          }
-        }
-        const options = await mcpStorage.getOptions(identity)
-        const current: ExtensionDefinition = stored
-          ? {
-              kind: 'mcp',
-              source: definition.source,
-              id: definition.id,
-              version: stored.version,
-              data: { value: stored, tools: stored.tools },
-            }
-          : definition
-        resolved.push({
-          ...current,
-          installed: Boolean(stored || (definition.source === 'builtin' && definition.installed)),
-          enabled: options?.business?.enabled ?? true,
-          toolOverrides: options?.toolPolicy.overrides ?? {},
-          toolDefault: options?.toolPolicy.default ?? 'enabled',
-        })
-      } else {
-        let stored = skillByName.get(definition.data.name)
-        if (stored && definition.version > skillVersion(stored)) {
-          try {
-            stored = await skillStorage.add(withSkillSnapshot(definition))
-          } catch (error) {
-            errors.push(`${definition.data.name} 更新失败：${String(error)}`)
-          }
-        }
-        const options = await skillOptions.get(definition.data.name)
-        const current = stored ? fromStoredSkill(stored) : definition
-        resolved.push({
-          ...current,
-          installed: Boolean(stored || (definition.source === 'builtin' && definition.installed)),
-          enabled: options?.enabled ?? true,
-          toolOverrides: {},
-          toolDefault: 'enabled',
-        })
-      }
-    }
-
-    for (const stored of storedMcp) {
-      const definition: ExtensionDefinition = {
-        kind: 'mcp',
-        source: stored.source as ExtensionDefinition['source'],
-        id: stored.id,
-        version: stored.version,
-        data: { value: stored, tools: stored.tools },
-      }
-      if (seen.has(extensionKey(definition))) continue
-      const options = await mcpStorage.getOptions(stored)
-      resolved.push({
-        ...definition,
-        installed: true,
-        enabled: options?.business?.enabled ?? true,
-        toolOverrides: options?.toolPolicy.overrides ?? {},
-        toolDefault: options?.toolPolicy.default ?? 'enabled',
-      })
-    }
-    for (const stored of storedSkill) {
-      if (!stored) continue
-      const definition = fromStoredSkill(stored)
-      if (seen.has(extensionKey(definition))) continue
-      const options = await skillOptions.get(stored.name)
-      resolved.push({
-        ...definition,
-        installed: true,
-        enabled: options?.enabled ?? true,
-        toolOverrides: {},
-        toolDefault: 'enabled',
-      })
-    }
+    const { items: resolved, errors } = await repository.list(builtins, remoteCatalog.value ?? [])
     items.value = resolved
     if (errors.length) message.value = errors.join('；')
     return errors.length
@@ -243,9 +82,8 @@ export const useExtensionCatalog = () => {
     }
   }
 
-  const setEnabled = async (item: ResolvedExtension, enabled: boolean) => {
-    if (enabled) await disableNamedPeers(item)
-    await persistEnabled(item, enabled)
+  const saveDefinition = async (definition: ExtensionDefinition) => {
+    await repository.save(definition, items.value)
     await refreshItems()
   }
 
@@ -254,7 +92,7 @@ export const useExtensionCatalog = () => {
     toolId: string,
     enabled: boolean,
   ) => {
-    await mcpStorage.setToolEnabled(mcpIdentity(item), toolId, enabled)
+    await repository.setToolEnabled(item, toolId, enabled)
     await refreshItems()
   }
 
@@ -273,13 +111,13 @@ export const useExtensionCatalog = () => {
         await saveDefinition(item)
         message.value = '扩展已安装。'
       } else if (action.id === 'enabled' && typeof action.checked === 'boolean') {
-        await setEnabled(item, action.checked)
+        await repository.setEnabled(item, action.checked, items.value)
+        await refreshItems()
         message.value = action.checked ? '扩展已启用。' : '扩展已禁用。'
       } else if (action.id === 'uninstall') {
         const builtin = builtins.find((definition) => extensionKey(definition) === itemId)
         if (builtin?.installed) return
-        if (item.kind === 'mcp') await mcpStorage.deleteData(mcpIdentity(item))
-        else await skillStorage.delete(item.data.name)
+        await repository.remove(item)
         await refreshItems()
         message.value = '扩展已卸载；再次安装会恢复上次配置。'
       }
@@ -294,9 +132,7 @@ export const useExtensionCatalog = () => {
 
   const resetCatalog = () => {
     ++loadSequence
-    mcpStorage = createMemoryMcpExtensionStorage({ parseBusinessOptions: parseMcpBusiness })
-    skillStorage = createMemorySkillStorage()
-    skillOptions = createMemorySkillOptionsStorage()
+    repository = createExtensionCatalogRepository()
     remoteCatalog.value = undefined
     installProgress.value = {}
     activeTab.value = 'mcp'
