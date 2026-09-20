@@ -125,6 +125,7 @@ export interface ChatRuntimeActions {
 export interface ChatRuntime {
   conversations: ChatReadable<readonly ChatConversationInfo[]>
   activeConversation: ChatReadable<ChatConversation | null>
+  conversationNavigationRevision?: ChatReadable<number>
   composer: ChatComposerRuntime
   actions: ChatRuntimeActions
 }

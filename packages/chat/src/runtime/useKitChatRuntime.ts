@@ -49,6 +49,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
   const { conversation, lastError: errorRef, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationErrors = shallowRef<Record<string, unknown | null>>({})
+  const conversationNavigationRevision = shallowRef(0)
   const resolveTitle = titleGenerator ?? createDefaultChatTitle
 
   const activeKitConversation = computed(() => conversation.activeConversation.value)
@@ -219,10 +220,13 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
   return {
     conversations,
     activeConversation,
+    conversationNavigationRevision,
     composer,
     actions: {
       clearActiveConversation: () => {
+        if (conversation.activeConversationId.value === null) return
         conversation.activeConversationId.value = null
+        conversationNavigationRevision.value++
       },
       send: handleSend,
       abort: async () => {
@@ -230,15 +234,25 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       },
       createConversation: (payload) => {
         conversation.createConversation(payload)
+        conversationNavigationRevision.value++
       },
       switchConversation: async (id) => {
+        const previousId = conversation.activeConversationId.value
         await conversation.switchConversation(id)
+        if (conversation.activeConversationId.value !== previousId) {
+          conversationNavigationRevision.value++
+        }
       },
       renameConversation: (id, title) => {
         conversation.updateConversationTitle(id, title)
       },
       deleteConversation: async (id) => {
+        const previousId = conversation.activeConversationId.value
         await conversation.deleteConversation(id)
+
+        if (conversation.activeConversationId.value !== previousId) {
+          conversationNavigationRevision.value++
+        }
 
         const { [id]: _removedConversationError, ...restConversationErrors } = conversationErrors.value
         conversationErrors.value = restConversationErrors

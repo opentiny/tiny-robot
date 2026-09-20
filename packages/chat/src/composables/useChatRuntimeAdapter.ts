@@ -25,6 +25,7 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   const runtime = computed(() => toValue(options.runtime))
   const activeConversation = computed(() => runtime.value.activeConversation.value)
   const activeConversationId = computed(() => activeConversation.value?.id ?? null)
+  const conversationNavigationRevision = computed(() => runtime.value.conversationNavigationRevision?.value)
   const pendingModelSelecting = shallowRef(false)
   const pendingModelReasoningEffort = shallowRef(false)
   const pendingModelFeatureIds = shallowRef<ReadonlySet<ChatBuiltInModelFeature>>(new Set())
@@ -43,23 +44,47 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     { flush: 'sync' },
   )
 
-  let sendInFlight = false
+  let sendsInFlight = 0
 
   async function send(payload: ChatSendPayload) {
     const startConversationId = activeConversationId.value
-    sendInFlight = true
+    const startNavigationRevision = conversationNavigationRevision.value
+    sendsInFlight++
 
     let actionResult: boolean | undefined
+    let synchronousConversationId = startConversationId
     try {
-      actionResult = await runAction('send', payload, () => runtime.value.actions.send(payload))
+      let action: Promise<boolean> | undefined
+      try {
+        action = runtime.value.actions.send(payload)
+      } catch (error) {
+        options.onActionError({ action: 'send', payload, error })
+      }
+
+      synchronousConversationId = activeConversationId.value
+
+      if (action) {
+        try {
+          actionResult = await action
+        } catch (error) {
+          options.onActionError({ action: 'send', payload, error })
+        }
+      }
     } finally {
-      sendInFlight = false
+      sendsInFlight--
     }
 
     const endConversationId = activeConversationId.value
-    const selfCreatedConversation = startConversationId === null && endConversationId !== null && actionResult !== false
+    const navigationChanged = conversationNavigationRevision.value !== startNavigationRevision
+    const selfCreatedConversation =
+      startConversationId === null &&
+      synchronousConversationId !== null &&
+      endConversationId === synchronousConversationId
 
-    if (endConversationId !== startConversationId && !selfCreatedConversation) {
+    if (
+      navigationChanged ||
+      (startNavigationRevision === undefined && endConversationId !== startConversationId && !selfCreatedConversation)
+    ) {
       invalidateDraftForNavigation()
     }
 
@@ -81,7 +106,17 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   watch(
     activeConversationId,
     (nextId, previousId) => {
-      if (nextId !== previousId && !sendInFlight) {
+      if (conversationNavigationRevision.value === undefined && nextId !== previousId && sendsInFlight === 0) {
+        invalidateDraftForNavigation()
+      }
+    },
+    { flush: 'sync' },
+  )
+
+  watch(
+    conversationNavigationRevision,
+    (nextRevision, previousRevision) => {
+      if (nextRevision !== undefined && previousRevision !== undefined && nextRevision !== previousRevision) {
         invalidateDraftForNavigation()
       }
     },
