@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useBreakpoints, useWindowSize } from '@vueuse/core'
-import { computed, h, shallowRef, useSlots, type Slots } from 'vue'
+import { computed, h, shallowRef } from 'vue'
 import { TrLayout } from '@opentiny/tiny-robot'
 import type { HistoryMenuItem, LayoutAsideResizeValue, LayoutProps, PromptProps } from '@opentiny/tiny-robot'
 import ScrollToBottom from './ui/messages/ScrollToBottom.vue'
@@ -32,6 +32,7 @@ import type {
   ChatSendPayload,
   ChatUIEmits,
   ChatUIProps,
+  ChatUISlots,
 } from './types'
 import { CHAT_MCP_RIGHT_ASIDE_PANEL_ID } from './types'
 
@@ -40,7 +41,7 @@ const props = withDefaults(defineProps<ChatUIProps>(), {
 })
 
 const emit = defineEmits<ChatUIEmits>()
-const slots: Slots = useSlots()
+const slots = defineSlots<ChatUISlots>()
 
 const isControlledInput = props.inputValue !== undefined
 const draftValue = shallowRef(props.inputValue ?? props.defaultInputValue ?? '')

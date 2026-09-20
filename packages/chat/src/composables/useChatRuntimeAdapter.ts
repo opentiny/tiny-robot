@@ -242,24 +242,44 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
     }
   }
 
+  function clearActiveConversation() {
+    input.invalidate()
+    return runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation())
+  }
+
+  function createConversation() {
+    input.invalidate()
+    return runAction('create-conversation', undefined, () => runtime.value.actions.createConversation())
+  }
+
+  function switchConversation(id: string) {
+    if (activeConversation.value?.id !== id) {
+      input.invalidate()
+    }
+    return runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id))
+  }
+
+  function deleteConversation(id: string) {
+    if (activeConversation.value?.id === id) {
+      input.invalidate()
+    }
+    return runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id))
+  }
+
   return {
     data,
     inputValue: input.inputValue,
     setInputValue: input.setInputValue,
     send: (payload: ChatSendPayload) => input.send(payload),
     abort: () => runAction('abort', undefined, () => runtime.value.actions.abort?.()),
-    clearActiveConversation: () =>
-      runAction('clear-active-conversation', undefined, () => runtime.value.actions.clearActiveConversation()),
-    createConversation: () =>
-      runAction('create-conversation', undefined, () => runtime.value.actions.createConversation()),
-    switchConversation: (id: string) =>
-      runAction('switch-conversation', { conversationId: id }, () => runtime.value.actions.switchConversation(id)),
+    clearActiveConversation,
+    createConversation,
+    switchConversation,
     renameConversation: (id: string, title: string) =>
       runAction('rename-conversation', { conversationId: id, title }, () =>
         runtime.value.actions.renameConversation(id, title),
       ),
-    deleteConversation: (id: string) =>
-      runAction('delete-conversation', { conversationId: id }, () => runtime.value.actions.deleteConversation(id)),
+    deleteConversation,
     selectModel,
     setModelFeature,
     setModelReasoningEffort,
