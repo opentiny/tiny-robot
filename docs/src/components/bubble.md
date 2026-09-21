@@ -159,16 +159,16 @@ BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会�
 
 ### 自动滚动
 
-通过 `autoScroll` 属性启用自动滚动功能。当新消息添加时，如果滚动容器接近底部，会自动滚动到底部。
+通过 `autoScroll` 属性启用自动跟随。BubbleList 会观察实际渲染内容的尺寸；图片、Markdown、自定义渲染器等异步内容增高时，只要仍处于跟随状态，就会继续滚动到底部。
 
 <demo vue="../../demos/bubble/list-auto-scroll.vue" />
 
-> **注意**：`autoScroll` 功能有两种触发机制：
+> **注意**：自动跟随遵循以下规则：
 >
-> 1. **常规自动滚动**：当消息内容变化时（如消息数量、内容、推理内容），如果满足以下条件会自动滚动：
->    - BubbleList 必须是可滚动容器（`scrollHeight > clientHeight`）
->    - 滚动容器需要接近底部
-> 2. **用户消息特殊处理**：当最后一条消息的 `role` 为 `'user'` 时，会立即使用平滑滚动（`smooth`）滚动到底部，无需满足上述条件。这确保了用户发送消息后能立即看到自己发送的内容。
+> 1. 用户向上滚动并离开底部后，自动跟随会暂停，避免打断阅读。
+> 2. 用户重新滚动到底部后，自动跟随会恢复。
+> 3. `autoScroll` 支持响应式切换；关闭时暂停自动行为，再次开启时会恢复此前保留的跟随意图。
+> 4. 当最后一条消息的 `role` 为 `'user'` 时，会使用平滑滚动（`smooth`）滚动到底部，确保用户能立即看到自己发送的内容。
 
 ### 自定义渲染器
 
@@ -414,13 +414,13 @@ emitBubbleEvent({
 | `roleConfigs`       | `Record<string, BubbleRoleConfig>`                            | -                              | 每个角色的默认配置项（头像、位置、形状等）                                                                                                                                                                                              |
 | `contentRenderMode` | `'single' \| 'split'`                                         | -                              | 内容渲染模式                                                                                                                                                                                                                            |
 | `contentResolver`   | `(message: BubbleMessage) => ChatMessageContent \| undefined` | `(message) => message.content` | 内容解析函数，用于解析消息内容                                                                                                                                                                                                          |
-| `autoScroll`        | `boolean`                                                     | `false`                        | 是否自动滚动到底部。需要满足以下条件：<br/>- BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）<br/>- 滚动容器接近底部                                                                                                         |
+| `autoScroll`        | `boolean`                                                     | `false`                        | 是否根据实际渲染内容尺寸自动跟随底部。异步内容增高时继续跟随；用户向上滚动时暂停，回到底部后恢复；支持响应式切换。                                                                                                                      |
 
 **BubbleList Expose**
 
-| 方法             | 签名                                           | 说明                                                                                  |
-| ---------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 滚动到底部。传入 `'smooth'` 可平滑滚动。若未启用 `autoScroll`，调用后无实际滚动效果。 |
+| 方法             | 签名                                           | 说明                                                                               |
+| ---------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部。传入 `'smooth'` 可平滑滚动；即使 `autoScroll` 已关闭也可以调用。 |
 
 **BubbleProviderProps** - 气泡提供者组件的属性配置
 

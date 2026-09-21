@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
-import { useAutoScroll } from '@opentiny/tiny-robot'
+import { TrBubbleList, useAutoScroll } from '@opentiny/tiny-robot'
+import type { BubbleListProps } from '@opentiny/tiny-robot'
 
 const scrollTarget = ref<HTMLElement | null>(null)
 const contentTarget = ref<HTMLElement | null>(null)
@@ -25,6 +26,14 @@ useAutoScroll(noMountScrollTarget, undefined, {
   scrollOnMount: false,
 })
 
+const bubbleListRef = ref<InstanceType<typeof TrBubbleList> | null>(null)
+const bubbleAutoScroll = ref(true)
+const lateBlockHeight = ref(16)
+const messages: BubbleListProps['messages'] = Array.from({ length: 8 }, (_, index) => ({
+  role: index % 2 === 0 ? 'user' : 'assistant',
+  content: `第 ${index + 1} 条用于撑高列表的消息：${'rendered content '.repeat(8)}`,
+}))
+
 async function growObservedContent() {
   blockHeight.value += 320
   await nextTick()
@@ -33,6 +42,11 @@ async function growObservedContent() {
 async function growLegacyContent() {
   legacyBlockHeight.value += 320
   legacySignal.value += 1
+  await nextTick()
+}
+
+async function growBubbleContent() {
+  lateBlockHeight.value += 320
   await nextTick()
 }
 </script>
@@ -52,6 +66,25 @@ async function growLegacyContent() {
     <div ref="noMountScrollTarget" data-testid="no-mount-scroll" class="scroll-host">
       <div ref="noMountContentTarget" :style="{ height: `${blockHeight}px` }" />
     </div>
+    <button data-testid="grow-bubble-content" @click="growBubbleContent">增高 BubbleList 内容</button>
+    <button data-testid="toggle-bubble-auto-scroll" @click="bubbleAutoScroll = !bubbleAutoScroll">
+      切换 BubbleList 自动滚动
+    </button>
+    <TrBubbleList
+      ref="bubbleListRef"
+      data-testid="bubble-list"
+      :messages="messages"
+      :auto-scroll="bubbleAutoScroll"
+      style="width: 320px; max-height: 220px; padding: 12px"
+    >
+      <template #after="{ messageIndexes }">
+        <div
+          v-if="messageIndexes.at(-1) === messages.length - 1"
+          data-testid="late-rendered-block"
+          :style="{ height: `${lateBlockHeight}px` }"
+        />
+      </template>
+    </TrBubbleList>
   </section>
 </template>
 
