@@ -329,19 +329,15 @@ export const createMessageEngine = (
     } catch (error) {
       setRequestState('error')
 
-      let hasOnError = false
       const context = getBaseContext(ac.signal)
 
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
         if (plugin.onError) {
-          hasOnError = true
           plugin.onError({ ...context, error })
         }
       }
 
-      if (!hasOnError) {
-        throw error
-      }
+      throw error
     } finally {
       const context = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {

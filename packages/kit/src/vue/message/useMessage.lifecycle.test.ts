@@ -201,7 +201,7 @@ describe('useMessage lifecycle', () => {
 
   it('exposes provider failures through error and finally hooks', async () => {
     const providerError = new Error('provider failed')
-    let observedError: unknown
+    const observedErrors: unknown[] = []
     let finalState: string | undefined
     const engine = useMessage({
       responseProvider: async () => {
@@ -210,7 +210,12 @@ describe('useMessage lifecycle', () => {
       plugins: [
         {
           onError: ({ error }) => {
-            observedError = error
+            observedErrors.push(error)
+          },
+        },
+        {
+          onError: ({ error }) => {
+            observedErrors.push(error)
           },
           onFinally: ({ requestState }) => {
             finalState = requestState
@@ -219,12 +224,23 @@ describe('useMessage lifecycle', () => {
       ],
     })
 
-    await engine.sendMessage('fail')
+    await expect(engine.sendMessage('fail')).rejects.toBe(providerError)
 
-    expect(observedError).toBe(providerError)
+    expect(observedErrors).toEqual([providerError, providerError])
     expect(finalState).toBe('error')
     expect(engine.requestState.value).toBe('error')
     expect(engine.isProcessing.value).toBe(false)
+  })
+
+  it('rejects provider failures when no error observer is registered', async () => {
+    const providerError = new Error('provider failed without observer')
+    const engine = useMessage({
+      responseProvider: async () => {
+        throw providerError
+      },
+    })
+
+    await expect(engine.sendMessage('fail')).rejects.toBe(providerError)
   })
 
   it('aborts an active provider and publishes the aborted lifecycle state', async () => {
