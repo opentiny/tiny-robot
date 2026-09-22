@@ -1,4 +1,4 @@
-import { computed, shallowRef, watchEffect } from 'vue'
+import { computed, shallowRef } from 'vue'
 import type { UseConversationReturn } from '@opentiny/tiny-robot-kit'
 import type {
   ChatConversation,
@@ -8,7 +8,6 @@ import type {
   ChatRunConfig,
   ChatRuntime,
   ChatSendPayload,
-  ChatWritable,
 } from '../types'
 import {
   areEnabledMcpToolsReady,
@@ -30,7 +29,6 @@ interface KitRuntimeSendPayload extends ChatSendPayload {
 
 export interface UseKitChatRuntimeOptions {
   conversation: UseConversationReturn
-  lastError?: ChatWritable<unknown | null>
   titleGenerator?: TitleGenerator
   beforeSend?: ChatBeforeSend
   send?: (payload: KitRuntimeSendPayload) => Promise<void> | void
@@ -47,8 +45,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
 }
 
 export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
-  const { conversation, lastError: errorRef, titleGenerator, beforeSend, send, composer: composerOptions } = options
-  const conversationErrors = shallowRef<Record<string, unknown | null>>({})
+  const { conversation, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationNavigationRevision = shallowRef(0)
   const resolveTitle = titleGenerator ?? createDefaultChatTitle
 
@@ -67,15 +64,8 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       messages: active.engine.messages.value,
       requestState: active.engine.requestState.value,
       processingState: active.engine.processingState.value,
-      lastError: conversationErrors.value[active.id] ?? null,
     }
   })
-
-  if (errorRef) {
-    watchEffect(() => {
-      errorRef.value = activeConversation.value?.lastError ?? null
-    })
-  }
 
   const sourceComposer = composerOptions ?? {}
   const submitDisabled = computed(() => {
@@ -158,7 +148,6 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
 
     let targetConversation = conversation.activeConversation.value
     const targetConversationId = targetConversation?.id ?? null
-    let errorConversationId = targetConversationId
 
     const effectivePayload = {
       ...payload,
@@ -167,54 +156,35 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
       runConfig: cloneRunConfig(resolveComposerRunConfig(composer)),
     }
 
-    try {
-      const beforeSendResult = await beforeSend?.(
-        createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig),
-      )
+    const beforeSendResult = await beforeSend?.(
+      createBeforeSendContext({ ...payload, text }, effectivePayload.runConfig),
+    )
 
-      if (beforeSendResult === 'reject') {
-        return false
-      }
-
-      if (beforeSendResult === 'handled') {
-        return true
-      }
-
-      if ((conversation.activeConversation.value?.id ?? null) !== targetConversationId) {
-        return false
-      }
-
-      if (!send && targetConversation && !targetConversation.engine.canStartTurn.value) {
-        return false
-      }
-
-      if (!send && !targetConversation) {
-        targetConversation = conversation.createConversation({ title: resolveTitle(text) })
-        errorConversationId = targetConversation.id
-      }
-
-      if (errorConversationId) {
-        conversationErrors.value = {
-          ...conversationErrors.value,
-          [errorConversationId]: null,
-        }
-      }
-
-      const task = send
-        ? Promise.resolve(send(effectivePayload))
-        : Promise.resolve(sendDefaultMessage(effectivePayload, targetConversation!))
-      await task
-      return true
-    } catch (error) {
-      if (errorConversationId) {
-        conversationErrors.value = {
-          ...conversationErrors.value,
-          [errorConversationId]: error,
-        }
-      }
-
-      throw error
+    if (beforeSendResult === 'reject') {
+      return false
     }
+
+    if (beforeSendResult === 'handled') {
+      return true
+    }
+
+    if ((conversation.activeConversation.value?.id ?? null) !== targetConversationId) {
+      return false
+    }
+
+    if (!send && targetConversation && !targetConversation.engine.canStartTurn.value) {
+      return false
+    }
+
+    if (!send && !targetConversation) {
+      targetConversation = conversation.createConversation({ title: resolveTitle(text) })
+    }
+
+    const task = send
+      ? Promise.resolve(send(effectivePayload))
+      : Promise.resolve(sendDefaultMessage(effectivePayload, targetConversation!))
+    await task
+    return true
   }
 
   return {
@@ -253,9 +223,6 @@ export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntim
         if (conversation.activeConversationId.value !== previousId) {
           conversationNavigationRevision.value++
         }
-
-        const { [id]: _removedConversationError, ...restConversationErrors } = conversationErrors.value
-        conversationErrors.value = restConversationErrors
       },
     },
   }

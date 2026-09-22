@@ -131,12 +131,10 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
 
     for (const [serverId, serverTools] of Object.entries(mcp?.tools.value ?? {})) {
       if (serverTools) {
-        tools[serverId] = serverTools.map(
-          (tool): ChatMcpToolView => ({
-            ...tool,
-            loading: isMcpToolPending(serverId, tool.id),
-          }),
-        )
+        tools[serverId] = serverTools.map((tool): ChatMcpToolView => ({
+          ...tool,
+          loading: isMcpToolPending(serverId, tool.id),
+        }))
       }
     }
 
@@ -153,13 +151,11 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       : undefined
     const mcpView: ChatMcpView | undefined = mcp
       ? {
-          servers: mcp.servers.value.map(
-            (server): ChatMcpServerView => ({
-              ...server,
-              icon: typeof server.icon === 'string' ? server.icon : undefined,
-              loading: Boolean(server.loading || pendingMcpServerIds.value.has(server.id)),
-            }),
-          ),
+          servers: mcp.servers.value.map((server): ChatMcpServerView => ({
+            ...server,
+            icon: typeof server.icon === 'string' ? server.icon : undefined,
+            loading: Boolean(server.loading || pendingMcpServerIds.value.has(server.id)),
+          })),
           tools,
         }
       : undefined
@@ -181,7 +177,6 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         ? {
             state: active.requestState,
             processingState: active.processingState,
-            error: active.lastError ?? undefined,
           }
         : undefined,
       model: modelView,

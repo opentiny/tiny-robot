@@ -14,7 +14,6 @@ import { useChatAsideState } from './composables/useChatAsideState'
 import { createDefaultChatUIOptions } from './ui/defaults'
 import { resolveChatUIData } from './ui/resolveData'
 import { resolveChatUIOptions, type ResolvedChatSenderOptions } from './ui/resolveOptions'
-import { formatRequestError } from './ui/formatRequestError'
 import type {
   ChatBubbleEventPayload,
   ChatBubbleStateChangePayload,
@@ -146,7 +145,6 @@ const isWelcomeComposerCentered = computed(
     resolvedOptions.value.layout.composer.welcome === 'center' &&
     !hasLayoutMainSlot,
 )
-const requestError = computed(() => resolvedData.value.request?.error)
 const layoutStyle = computed(() => ({
   containerType: 'inline-size',
   '--tr-layout-left-aside-bg': 'var(--tr-chat-ui-left-aside-bg, var(--tr-container-bg-default))',
@@ -543,11 +541,6 @@ function renderEmptyStateComposer() {
     <template #main>
       <section class="chat-panel">
         <div ref="scrollTarget" class="chat-main-scroll-host">
-          <div v-if="requestError !== undefined && requestError !== null" class="chat-request-error" role="alert">
-            <slot name="request-error" :error="requestError">
-              {{ formatRequestError(requestError) }}
-            </slot>
-          </div>
           <ChatMessages
             :messages="resolvedData.bubble.messages"
             :scroll-target="scrollTarget"
@@ -716,16 +709,6 @@ function renderEmptyStateComposer() {
   height: 100%;
   box-sizing: border-box;
   padding: var(--tr-chat-ui-panel-padding);
-}
-
-.chat-request-error {
-  box-sizing: border-box;
-  margin: 0 auto 12px;
-  max-width: var(--tr-chat-ui-content-max-width);
-  padding: 8px 12px;
-  border: 1px solid var(--tr-color-error);
-  border-radius: 8px;
-  color: var(--tr-color-error);
 }
 
 .chat-main-scroll-host {

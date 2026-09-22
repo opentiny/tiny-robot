@@ -13,7 +13,6 @@ export interface ChatConversation extends ChatConversationInfo {
   messages: readonly ChatMessageItem[]
   requestState: ChatRequestState
   processingState?: ChatProcessingState
-  lastError?: unknown | null
 }
 
 export const CHAT_BUILT_IN_MODEL_FEATURES = ['thinking', 'search'] as const
