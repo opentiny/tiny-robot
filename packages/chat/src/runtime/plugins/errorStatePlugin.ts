@@ -36,9 +36,22 @@ export function errorStatePlugin(options: ErrorStatePluginOptions = {}): UseMess
     name: ERROR_STATE_PLUGIN_NAME,
     disabled: options.disabled,
     onError(context) {
+      const normalizedError = options.normalizeError
+        ? options.normalizeError(context.error, context)
+        : normalizeError(context.error)
+
+      if (normalizedError == null) {
+        return
+      }
+
       const targetMessage = [...context.currentTurn].reverse().find((message) => message.role === 'assistant')
 
       if (!targetMessage) {
+        context.appendMessage({
+          role: 'assistant',
+          content: '',
+          state: { error: normalizedError },
+        })
         return
       }
 
@@ -46,14 +59,6 @@ export function errorStatePlugin(options: ErrorStatePluginOptions = {}): UseMess
       const target = context.messages[targetIndex]
 
       if (!target) {
-        return
-      }
-
-      const normalizedError = options.normalizeError
-        ? options.normalizeError(context.error, context)
-        : normalizeError(context.error)
-
-      if (normalizedError == null) {
         return
       }
 
