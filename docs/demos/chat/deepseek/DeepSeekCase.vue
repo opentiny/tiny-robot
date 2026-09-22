@@ -52,7 +52,7 @@ const historyData = computed(() => {
 })
 
 function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action)
+  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
 }
 
 const chatUi = computed(() => ({

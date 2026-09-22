@@ -41,7 +41,7 @@ const historyData = computed<ChatHistoryData>(() => {
 const actionErrorMessage = shallowRef('')
 
 function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action)
+  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
 }
 
 const modelAdapter = useChatRuntimeAdapter({

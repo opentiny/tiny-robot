@@ -1,7 +1,8 @@
 import type { ChatProviderConfig } from '@opentiny/tiny-robot-chat'
 import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
 
-const defaultApiUrl = `${import.meta.env.BASE_URL}api`
+const runtimeOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin
+const defaultApiUrl = new URL(`${import.meta.env.BASE_URL}api`, runtimeOrigin).toString()
 
 export const modelProviders: ChatProviderConfig[] = [
   {

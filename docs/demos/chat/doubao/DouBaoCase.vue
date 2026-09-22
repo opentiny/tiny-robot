@@ -109,7 +109,7 @@ function handlePromptClick(payload: ChatPromptClickPayload) {
 }
 
 function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action)
+  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
 }
 
 function handleConversationSelect(id: string, switchConversation: (id: string) => void) {

@@ -69,7 +69,7 @@ const runtime = useLocalChatRuntime({ modelProviders })
 
 ### 复用 Kit 会话
 
-已有 Kit `useConversation` 时使用 `useKitChatRuntime`。Runtime 会读取已有会话、消息和请求状态。
+已有 Kit `useConversation` 时使用 `useKitChatRuntime`。它只适配已有会话、消息和请求状态，不会修改该会话的插件配置，也不会自动安装错误状态插件。
 
 ```ts
 import { useConversation } from '@opentiny/tiny-robot-kit'
@@ -107,6 +107,60 @@ const runtime = useKitChatRuntime({ conversation })
 
 发送被禁用、已启用 MCP 工具未准备好或 `beforeSend` 返回 `'reject'` 时，`actions.send()` 返回 `false`。请求错误和校验异常会 reject 原始错误。
 
+### 把请求错误保存到消息
+
+`useLocalChatRuntime` 创建 conversation 时会默认安装 `errorStatePlugin()`。Provider 失败后，插件把规范化错误写入当前回合最后一条 assistant 消息的 `state.error`；错误与消息一起由 conversation 持久化。Engine 发请求时仍按默认规则排除 `state`、`metadata` 和 `loading`，所以这些界面状态不会发送给模型。
+
+<demo
+  vue="../../demos/chat/runtime-error.vue"
+  :vueFiles="['../../demos/chat/runtime-error.vue']"
+  title="本地 Runtime 错误状态"
+  description="触发确定性请求失败，观察错误归属、Promise 传播和后续成功发送。"
+/>
+
+`useKitChatRuntime` 不安装插件。适配已有 conversation 时，需要在创建 conversation 的位置显式加入：
+
+```ts
+import { useConversation } from '@opentiny/tiny-robot-kit'
+import { errorStatePlugin, useKitChatRuntime } from '@opentiny/tiny-robot-chat'
+
+const conversation = useConversation({
+  useMessageOptions: {
+    responseProvider,
+    plugins: [errorStatePlugin()],
+  },
+})
+
+const runtime = useKitChatRuntime({ conversation })
+```
+
+常用配置：
+
+```ts
+import { ERROR_STATE_PLUGIN_NAME, errorStatePlugin, type ChatErrorPluginContext } from '@opentiny/tiny-robot-chat'
+import type { UseMessagePlugin } from '@opentiny/tiny-robot-kit'
+
+// 禁用 useLocalChatRuntime 的默认错误写入。
+const disabled = errorStatePlugin({ disabled: true })
+
+// 返回 null 或 undefined 时，本次不写 message.state.error。
+const normalized = errorStatePlugin({
+  normalizeError(error, _context) {
+    return error instanceof Error ? { message: error.message } : null
+  },
+})
+
+// 同名用户插件会替换 Local Runtime 的默认插件。
+const replacement: UseMessagePlugin = {
+  name: ERROR_STATE_PLUGIN_NAME,
+  onError(context: ChatErrorPluginContext) {
+    // 记录、规范化或写入应用需要的消息状态。
+  },
+}
+```
+
+`onError` 是观察与状态写入钩子。所有已启用的 `onError` 执行后，请求 Promise 仍会 reject 原始错误；`TrChat` 因此仍会发出 `runtime-action-error`。该事件适合遥测或非消息动作反馈，不应再复制一份 send 错误详情到页面顶部。
+
 ### MCP 配置与安全边界
 
 `mcpServers` 与 `mcp` 互斥。前者适用于浏览器可访问的 Streamable HTTP 服务，后者用于自定义 transport、OAuth、权限过滤或连接复用。
@@ -140,20 +194,31 @@ Chat 没有稳定的附件传输协议。自定义 `send` 可收到空文本和 
 
 ### Composables
 
-| 导出                  | 签名                                                                         | 说明                       |
-| --------------------- | ---------------------------------------------------------------------------- | -------------------------- |
-| `useLocalChatRuntime` | `(options: UseLocalChatRuntimeOptions) => ChatRuntime`                       | 创建默认 Runtime。         |
-| `useKitChatRuntime`   | `(options: UseKitChatRuntimeOptions) => ChatRuntime`                         | 包装 Kit 会话。            |
-| `useChatHistoryItems` | `(options: UseChatHistoryItemsOptions) => ShallowRef<ChatHistoryItem[]>`     | 规范化平铺历史项。         |
-| `useChatHistoryData`  | `(options: UseChatHistoryDataOptions) => ShallowRef<ChatHistoryDisplayData>` | 规范化平铺或分组历史数据。 |
+| 导出                  | 签名                                                                         | 说明                                |
+| --------------------- | ---------------------------------------------------------------------------- | ----------------------------------- |
+| `useLocalChatRuntime` | `(options: UseLocalChatRuntimeOptions) => ChatRuntime`                       | 创建默认 Runtime。                  |
+| `useKitChatRuntime`   | `(options: UseKitChatRuntimeOptions) => ChatRuntime`                         | 包装 Kit 会话。                     |
+| `useChatHistoryItems` | `(options: UseChatHistoryItemsOptions) => ShallowRef<ChatHistoryItem[]>`     | 规范化平铺历史项。                  |
+| `useChatHistoryData`  | `(options: UseChatHistoryDataOptions) => ShallowRef<ChatHistoryDisplayData>` | 规范化平铺或分组历史数据。          |
+| `errorStatePlugin`    | `(options?: ErrorStatePluginOptions) => UseMessagePlugin`                    | 把请求错误写入所属 assistant 消息。 |
+
+### 错误状态插件
+
+| 导出                      | 类型或签名                                                                                                                   | 说明                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `ERROR_STATE_PLUGIN_NAME` | `'error-state'`                                                                                                              | 默认插件名；同名用户插件可替换 Local Runtime 的内置实现。        |
+| `ErrorStatePluginOptions` | `{ disabled?: UseMessagePlugin['disabled']; normalizeError?: (error: unknown, context: ChatErrorPluginContext) => unknown }` | 控制启用状态和写入 `state.error` 前的规范化。                    |
+| `ChatErrorPluginContext`  | `Parameters<NonNullable<UseMessagePlugin['onError']>>[0]`                                                                    | `normalizeError` 与自定义错误插件可使用的完整 `onError` 上下文。 |
+
+`normalizeError` 默认把原生 `Error` 转为 `{ name, message, code? }`，把其他值转为 `{ message: String(error) }`。返回 `null` 或 `undefined` 会跳过本次写入；插件找不到本轮 assistant 消息时也不会创建额外消息。
 
 ### Runtime 协议
 
-`ChatReadable<T>` 为只读 `{ readonly value: T }`，`ChatWritable<T>` 为可写 `{ value: T }`。所有 Runtime 状态字段使用这两个结构协议。
+`ChatReadable<T>` 为只读 `{ readonly value: T }`，当前 `ChatRuntime` 状态使用该结构协议。公开的 `ChatWritable<T>` 是可写 `{ value: T }` 结构，可供兼容适配层使用，但 Runtime 不再通过它暴露请求错误。
 
 | 类型                  | 字段                                                                                                                                                                                                                                                                                                   |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ChatRuntime`         | `conversations: ChatReadable<readonly ChatConversationInfo[]>`；`activeConversation: ChatReadable<ChatConversation \| null>`；`composer: ChatComposerRuntime`；`actions: ChatRuntimeActions`                                                                                                           |
+| `ChatRuntime`         | `conversations: ChatReadable<readonly ChatConversationInfo[]>`；`activeConversation: ChatReadable<ChatConversation \| null>`；`conversationNavigationRevision?: ChatReadable<number>`；`composer: ChatComposerRuntime`；`actions: ChatRuntimeActions`                                                  |
 | `ChatRuntimeActions`  | `send(payload): Promise<boolean>`；`abort?()`；`clearActiveConversation()`；`createConversation(payload?: { title?: string; metadata?: Record<string, unknown> })`；`switchConversation(id)`；`renameConversation(id, title)`；`deleteConversation(id)`                                                |
 | `ChatComposerRuntime` | `disabled?: ChatReadable<boolean>`；`submitDisabled?: ChatReadable<boolean>`；`model?: ChatModelRuntime`；`mcp?: ChatMcpRuntime`                                                                                                                                                                       |
 | `ChatModelRuntime`    | `options: ChatReadable<readonly ChatModelOption[]>`；`selectedId: ChatReadable<string \| null>`；`features: ChatReadable<Partial<Record<'thinking' \| 'search', boolean>>>`；`reasoning?: ChatReadable<ChatRunConfigReasoning>`；`select(id)`；`setFeature(id, enabled)`；`setReasoningEffort(effort)` |
@@ -166,7 +231,7 @@ Chat 没有稳定的附件传输协议。自定义 `send` 可收到空文本和 
 | 类型                                         | 字段                                                                                                                                                                                                                                                                         |
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ChatConversationInfo`                       | `id: string`；`title: string`；`createdAt?: number`；`updatedAt?: number`；`metadata?: Record<string, unknown>`；允许额外业务字段 `[key: string]: unknown`。                                                                                                                 |
-| `ChatConversation`                           | 继承 `ChatConversationInfo`；`messages: readonly ChatMessageItem[]`；`requestState: 'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`；`processingState?: 'requesting' \| 'completing' \| string`；`lastError?: unknown \| null`                    |
+| `ChatConversation`                           | 继承 `ChatConversationInfo`；`messages: readonly ChatMessageItem[]`；`requestState: 'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`；`processingState?: 'requesting' \| 'completing' \| string`                                                   |
 | `ChatMessageItem`                            | `role?: string`；`content?: string \| ChatMessagePart[]`；`reasoning_content?: string`；`tool_calls?: ChatToolCall[]`；`tool_call_id?: string`；`name?: string`；`id?: string`；`loading?: boolean`；`state?: Record<string, unknown>`；`metadata?: Record<string, unknown>` |
 | `ChatMessagePart` / `ChatStructuredDataItem` | `type: string`，可追加业务字段。                                                                                                                                                                                                                                             |
 | `ChatToolCall`                               | `id: string`；`type: 'function' \| string`；`function: { name: string; arguments: string }`                                                                                                                                                                                  |
@@ -189,21 +254,21 @@ Chat 没有稳定的附件传输协议。自定义 `send` 可收到空文本和 
 
 #### 发送与请求快照
 
-| 类型                            | 字段                                                                                                                                                           |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChatRunConfig`                 | `modelId?: string`；`features?: Partial<Record<'thinking' \| 'search', boolean>>`；`reasoning?: ChatRunConfigReasoning`；`mcp?: ChatMcpRunConfig`              |
-| `ChatRunConfigReasoning`        | `enabled: boolean`；`effort?: string`                                                                                                                          |
-| `ChatMcpRunConfig`              | `serverIds: readonly string[]`；`toolIds: Readonly<Record<string, readonly string[]>>`                                                                         |
-| `ChatBeforeSendContext`         | `payload: ChatSendPayload`；`runConfig?: ChatRunConfig`；`model?: ChatModelOption`；`mcp?: { servers: readonly ChatMcpServerInfo[]; tools: ChatMcpToolState }` |
-| `ChatBeforeSend`                | `(context: ChatBeforeSendContext) => 'continue' \| 'handled' \| 'reject' \| Promise<'continue' \| 'handled' \| 'reject'>`                                      |
-| `ChatRuntimeActionErrorPayload` | `action` 为 `send`、`abort`、会话 CRUD、模型或 MCP 动作名；`payload?: unknown`；`error: unknown`                                                               |
+| 类型                            | 字段                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatRunConfig`                 | `modelId?: string`；`features?: Partial<Record<'thinking' \| 'search', boolean>>`；`reasoning?: ChatRunConfigReasoning`；`mcp?: ChatMcpRunConfig`                                                                                                                                                                                                                               |
+| `ChatRunConfigReasoning`        | `enabled: boolean`；`effort?: string`                                                                                                                                                                                                                                                                                                                                           |
+| `ChatMcpRunConfig`              | `serverIds: readonly string[]`；`toolIds: Readonly<Record<string, readonly string[]>>`                                                                                                                                                                                                                                                                                          |
+| `ChatBeforeSendContext`         | `payload: ChatSendPayload`；`runConfig?: ChatRunConfig`；`model?: ChatModelOption`；`mcp?: { servers: readonly ChatMcpServerInfo[]; tools: ChatMcpToolState }`                                                                                                                                                                                                                  |
+| `ChatBeforeSend`                | `(context: ChatBeforeSendContext) => 'continue' \| 'handled' \| 'reject' \| Promise<'continue' \| 'handled' \| 'reject'>`                                                                                                                                                                                                                                                       |
+| `ChatRuntimeActionErrorPayload` | `action: 'send' \| 'abort' \| 'clear-active-conversation' \| 'create-conversation' \| 'switch-conversation' \| 'rename-conversation' \| 'delete-conversation' \| 'select-model' \| 'set-model-feature' \| 'set-model-reasoning-effort' \| 'add-mcp-server' \| 'remove-mcp-server' \| 'set-mcp-server-enabled' \| 'set-mcp-tool-enabled'`；`payload?: unknown`；`error: unknown` |
 
 #### Composable 配置
 
 | 类型                         | 字段                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `UseLocalChatRuntimeOptions` | `conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & { useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']> }`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`composer?: Pick<ChatComposerRuntime, 'disabled' \| 'submitDisabled'>`；`modelProviders?: readonly ChatProviderConfig[]`；`mcp?: UseLocalChatRuntimeMcpAdapter`；`mcpServers?: ChatMcpServers` |
-| `UseKitChatRuntimeOptions`   | `conversation: UseConversationReturn`；`lastError?: ChatWritable<unknown \| null>`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: ChatSendPayload & { runConfig?: ChatRunConfig }) => void \| Promise<void>`；`composer?: ChatComposerRuntime`                                                                                                                                |
+| `UseKitChatRuntimeOptions`   | `conversation: UseConversationReturn`；`titleGenerator?: (text: string) => string`；`beforeSend?: ChatBeforeSend`；`send?: (payload: ChatSendPayload & { conversationId: string \| null; runConfig?: ChatRunConfig }) => void \| Promise<void>`；`composer?: ChatComposerRuntime`                                                                                                                                             |
 | `UseChatHistoryItemsOptions` | `conversations: MaybeRefOrGetter<readonly ChatConversationInfo[] \| undefined>`；`defaultTitle: MaybeRefOrGetter<string>`                                                                                                                                                                                                                                                                                                     |
 | `UseChatHistoryDataOptions`  | 继承 `UseChatHistoryItemsOptions`；`history?: MaybeRefOrGetter<ChatHistoryData \| undefined>`                                                                                                                                                                                                                                                                                                                                 |
 | `ChatHistoryItem`            | 继承 `ChatConversationInfo`；`raw: ChatConversationInfo`                                                                                                                                                                                                                                                                                                                                                                      |

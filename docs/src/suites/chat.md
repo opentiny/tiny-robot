@@ -4,7 +4,7 @@ outline: [1, 3]
 
 # Chat 聊天界面
 
-`TrChat` 提供由 `ChatRuntime` 驱动的完整聊天页面，`TrChatUI` 只负责界面渲染和用户操作事件。运行时、模型服务、MCP 和会话存储请参阅 [Chat 运行时](./chat-runtime)。
+`TrChat` 用 Runtime 驱动完整聊天页面；`TrChatUI` 只渲染应用提供的数据并发出用户操作事件。需要自主管理请求与会话时选择前者，已有数据层时选择后者。
 
 ## 概览
 
@@ -12,7 +12,7 @@ outline: [1, 3]
 
 - 使用 `TrChat` 快速嵌入会话列表、消息、输入区和模型选择。
 - 使用 `TrChatUI` 接入应用已有的会话、消息和请求状态。
-- 使用插槽替换局部区域，或注册业务右侧面板。
+- 使用插槽替换局部区域，或注册应用右侧面板。
 
 ### 选择组件
 
@@ -76,7 +76,7 @@ const runtime = useLocalChatRuntime({ modelProviders })
 
 ### 页面状态
 
-`TrChatUI` 根据 `data` 渲染状态。示例可切换空会话、请求中、错误和禁用状态；应用持有并更新这些数据。
+`TrChatUI` 根据 `data` 渲染状态。示例可切换空会话、请求中、消息错误和禁用状态；应用持有并更新这些数据。
 
 <demo
   vue="../../demos/chat/ui-states.vue"
@@ -85,7 +85,31 @@ const runtime = useLocalChatRuntime({ modelProviders })
   description="切换 data 中的请求和输入状态，观察界面反馈。"
 />
 
-`data.sender.loading` 控制发送中的反馈，`disabled` 和 `submitDisabled` 分别禁用输入或提交。`data.request.error` 用于展示请求错误；应用需要决定重试和错误恢复方式。
+`data.sender.loading` 控制发送中的反馈，`disabled` 和 `submitDisabled` 分别禁用输入或提交。`data.request.state` 只表达请求生命周期；可展示的错误属于具体消息，放在该 assistant 消息的 `state.error` 中。
+
+### 在所属消息中展示错误
+
+`useLocalChatRuntime` 默认把请求错误规范化到本轮最后一条 assistant 消息的 `state.error`。Bubble 在正常消息内容之后渲染错误，因此错误会保持所属消息的头像、顺序和布局；请求失败仍会让 `request.state` 进入 `error`。
+
+<demo
+  vue="../../demos/chat/runtime-error.vue"
+  :vueFiles="['../../demos/chat/runtime-error.vue']"
+  title="消息级请求错误"
+  description="使用确定性本地 Provider 反复触发失败与成功，观察默认错误气泡和动作失败通知。"
+/>
+
+错误状态的职责如下：
+
+| 状态或通知             | 管理方           | 用途                                                               |
+| ---------------------- | ---------------- | ------------------------------------------------------------------ |
+| `message.state.error`  | Runtime 或应用   | 保存并展示属于这条消息的错误详情。                                 |
+| `request.state`        | Runtime 或应用   | 表达 idle、processing、completed、aborted、error 等请求生命周期。  |
+| `runtime-action-error` | `TrChat`         | 通知应用某个 Runtime 动作失败，可用于遥测或全局非消息动作反馈。    |
+| Bubble 默认错误渲染器  | `BubbleProvider` | 在消息内容之后展示错误；不会提供重试按钮，也不改变请求或消息状态。 |
+
+默认错误元素使用 `role="alert"`，长文本会保留换行并在连续字符串中断行，适合窄容器。它使用公开的 `--tr-color-error`、`--tr-color-error-light`、`--tr-bubble-max-width` 和 `--tr-bubble-box-border-radius` 主题变量。需要不同结构时，通过 `ui.bubble.bubbleProvider.errorRenderer` 提供统一的 Provider 级渲染器；不要依赖内部 `.tr-bubble__error` 选择器，也不要把重试等副作用放进纯展示渲染器。
+
+`runtime-action-error` 在 send 失败时仍会发出，但它不是消息错误的数据源。应用可以用它记录遥测；默认页面和综合案例不会再把同一个 send 错误同时显示为顶部提示。会话、模型或 MCP 等非消息动作失败仍适合使用全局反馈。
 
 ### 接入外部数据
 
@@ -170,58 +194,60 @@ const ui = {
 
 ### TrChat Props
 
-| 属性                             | 类型                    | 默认值         | 说明                              |
-| -------------------------------- | ----------------------- | -------------- | --------------------------------- |
-| `runtime`                        | `ChatRuntime`           | —              | 必填，提供会话、Composer 和动作。 |
-| `ui`                             | `ChatUIOptions`         | —              | 页面布局、文案和区域配置。        |
-| `title`                          | `string`                | —              | 覆盖当前页面标题。                |
-| `historyData`                    | `ChatHistoryData`       | —              | 覆盖默认历史列表或分组。          |
-| `floatingState`                  | `LayoutFloatingState`   | —              | 浮动布局的受控状态。              |
-| `rightAsideOpen`                 | `boolean`               | —              | 右栏受控开闭状态。                |
-| `defaultRightAsideOpen`          | `boolean`               | `false`        | 非受控右栏初始开闭状态。          |
-| `activeRightAsidePanelId`        | `ChatRightAsidePanelId` | —              | 右栏受控当前面板。                |
-| `defaultActiveRightAsidePanelId` | `ChatRightAsidePanelId` | 第一个可用面板 | 非受控当前面板初始值。            |
+| 属性名                                | 说明                                    | 类型                    | 默认值         | 必填 |
+| ------------------------------------- | --------------------------------------- | ----------------------- | -------------- | ---- |
+| `runtime`                             | 提供会话、Composer 状态和动作。         | `ChatRuntime`           | —              | 是   |
+| `ui`                                  | 配置页面布局、文案和区域。              | `ChatUIOptions`         | —              | 否   |
+| `title`                               | 覆盖当前会话提供的页面标题。            | `string`                | —              | 否   |
+| `history-data`                        | 覆盖 Runtime 会话生成的历史列表或分组。 | `ChatHistoryData`       | —              | 否   |
+| `floating-state`                      | 浮动布局的受控位置和尺寸。              | `LayoutFloatingState`   | —              | 否   |
+| `right-aside-open`                    | 右栏受控开闭状态。                      | `boolean`               | —              | 否   |
+| `default-right-aside-open`            | 非受控右栏初始开闭状态。                | `boolean`               | `false`        | 否   |
+| `active-right-aside-panel-id`         | 右栏受控当前面板；应用处理更新事件。    | `ChatRightAsidePanelId` | —              | 否   |
+| `default-active-right-aside-panel-id` | 非受控当前面板初始值。                  | `ChatRightAsidePanelId` | 第一个可用面板 | 否   |
 
 ### TrChatUI Props
 
-| 属性                                                         | 类型                    | 默认值             | 说明                                      |
-| ------------------------------------------------------------ | ----------------------- | ------------------ | ----------------------------------------- |
-| `data`                                                       | `ChatUIData`            | 空展示数据         | 应用提供的展示事实。                      |
-| `ui`                                                         | `ChatUIOptions`         | 默认界面配置       | 页面布局、文案和区域配置。                |
-| `inputValue`                                                 | `string`                | —                  | 受控草稿；应用处理 `update:input-value`。 |
-| `defaultInputValue`                                          | `string`                | `''`               | 非受控草稿初始值。                        |
-| `floatingState`                                              | `LayoutFloatingState`   | —                  | 浮动布局的受控状态。                      |
-| `rightAsideOpen` / `defaultRightAsideOpen`                   | `boolean`               | — / `false`        | 右栏受控值或非受控初始值。                |
-| `activeRightAsidePanelId` / `defaultActiveRightAsidePanelId` | `ChatRightAsidePanelId` | — / 第一个可用面板 | 当前面板受控值或非受控初始值。            |
+| 属性名                                | 说明                                     | 类型                    | 默认值         | 必填 |
+| ------------------------------------- | ---------------------------------------- | ----------------------- | -------------- | ---- |
+| `data`                                | 应用提供的展示事实；组件不会修改该对象。 | `ChatUIData`            | 空展示数据     | 否   |
+| `ui`                                  | 配置页面布局、文案和区域。               | `ChatUIOptions`         | 默认界面配置   | 否   |
+| `input-value`                         | 受控草稿；应用处理更新事件并写回新值。   | `string`                | —              | 否   |
+| `default-input-value`                 | 非受控草稿初始值。                       | `string`                | `''`           | 否   |
+| `floating-state`                      | 浮动布局的受控位置和尺寸。               | `LayoutFloatingState`   | —              | 否   |
+| `right-aside-open`                    | 右栏受控开闭状态。                       | `boolean`               | —              | 否   |
+| `default-right-aside-open`            | 非受控右栏初始开闭状态。                 | `boolean`               | `false`        | 否   |
+| `active-right-aside-panel-id`         | 受控当前面板；应用处理更新事件。         | `ChatRightAsidePanelId` | —              | 否   |
+| `default-active-right-aside-panel-id` | 非受控当前面板初始值。                   | `ChatRightAsidePanelId` | 第一个可用面板 | 否   |
 
 ### Events
 
 `TrChatUI` 发出下列事件；`TrChat` 消费会话、发送、模型和 MCP 的标准动作，仅转发 `history-action`、`mcp-create-server`、气泡事件、侧栏状态和浮动状态事件。
 
-| 事件                                                 | 参数                                                     | 触发时机                                  |
-| ---------------------------------------------------- | -------------------------------------------------------- | ----------------------------------------- |
-| `submit`                                             | `ChatSendPayload`                                        | 请求提交；应用决定如何发送。              |
-| `update:input-value`                                 | `string`                                                 | 受控草稿更新。                            |
-| `cancel` / `clear`                                   | 无                                                       | 请求取消或清空草稿。                      |
-| `create-conversation`                                | 无                                                       | 请求开始新会话。                          |
-| `switch-conversation`                                | `{ conversationId: string }`                             | 请求切换会话。                            |
-| `rename-conversation`                                | `{ conversationId: string; title: string }`              | 请求重命名会话。                          |
-| `history-action`                                     | `ChatHistoryActionPayload`                               | 历史菜单操作；可调用 `preventDefault()`。 |
-| `prompt-click`                                       | `ChatPromptClickPayload`                                 | 点击提示项。                              |
-| `bubble-state-change` / `bubble-event`               | 对应 payload                                             | 气泡状态或交互变化。                      |
-| `model-select`                                       | `{ modelId: string \| null }`                            | 选择模型。                                |
-| `model-feature-change`                               | `{ featureId; enabled }`                                 | 修改模型能力开关。                        |
-| `model-reasoning-effort-change`                      | `{ effort: string \| null }`                             | 修改 reasoning effort。                   |
-| `mcp-add-server` / `mcp-remove-server`               | `{ serverId: string }`                                   | 添加或删除 MCP Server。                   |
-| `mcp-create-server`                                  | `ChatMcpCreateServerPayload`                             | 请求创建 MCP Server。                     |
-| `mcp-server-enabled-change`                          | `{ serverId: string; enabled: boolean }`                 | 修改 Server 启用状态。                    |
-| `mcp-tool-enabled-change`                            | `{ serverId: string; toolId: string; enabled: boolean }` | 修改工具启用状态。                        |
-| `update:right-aside-open`                            | `boolean`                                                | 右栏受控状态更新。                        |
-| `update:active-right-aside-panel-id`                 | `string \| undefined`                                    | 当前右栏面板更新。                        |
-| `left-aside-open-change` / `right-aside-open-change` | `{ open: boolean; source: 'user' \| 'viewport' }`        | 侧栏状态变化。                            |
-| `update:floating-state`                              | `LayoutFloatingState`                                    | 浮动状态更新。                            |
-| `floating-drag-*` / `floating-resize-*`              | 对应 Detail                                              | 浮动拖拽或缩放生命周期。                  |
-| `runtime-action-error`                               | `ChatRuntimeActionErrorPayload`                          | 仅 `TrChat` 转发 Runtime 动作错误。       |
+| 事件                                                 | 参数                                                     | 触发时机                                                                 |
+| ---------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `submit`                                             | `ChatSendPayload`                                        | 请求提交；应用决定如何发送。                                             |
+| `update:input-value`                                 | `string`                                                 | 受控草稿更新。                                                           |
+| `cancel` / `clear`                                   | 无                                                       | 请求取消或清空草稿。                                                     |
+| `create-conversation`                                | 无                                                       | 请求开始新会话。                                                         |
+| `switch-conversation`                                | `{ conversationId: string }`                             | 请求切换会话。                                                           |
+| `rename-conversation`                                | `{ conversationId: string; title: string }`              | 请求重命名会话。                                                         |
+| `history-action`                                     | `ChatHistoryActionPayload`                               | 历史菜单操作；可调用 `preventDefault()`。                                |
+| `prompt-click`                                       | `ChatPromptClickPayload`                                 | 点击提示项。                                                             |
+| `bubble-state-change` / `bubble-event`               | 对应 payload                                             | 气泡状态或交互变化。                                                     |
+| `model-select`                                       | `{ modelId: string \| null }`                            | 选择模型。                                                               |
+| `model-feature-change`                               | `{ featureId; enabled }`                                 | 修改模型能力开关。                                                       |
+| `model-reasoning-effort-change`                      | `{ effort: string \| null }`                             | 修改 reasoning effort。                                                  |
+| `mcp-add-server` / `mcp-remove-server`               | `{ serverId: string }`                                   | 添加或删除 MCP Server。                                                  |
+| `mcp-create-server`                                  | `ChatMcpCreateServerPayload`                             | 请求创建 MCP Server。                                                    |
+| `mcp-server-enabled-change`                          | `{ serverId: string; enabled: boolean }`                 | 修改 Server 启用状态。                                                   |
+| `mcp-tool-enabled-change`                            | `{ serverId: string; toolId: string; enabled: boolean }` | 修改工具启用状态。                                                       |
+| `update:right-aside-open`                            | `boolean`                                                | 右栏受控状态更新。                                                       |
+| `update:active-right-aside-panel-id`                 | `string \| undefined`                                    | 当前右栏面板更新。                                                       |
+| `left-aside-open-change` / `right-aside-open-change` | `{ open: boolean; source: 'user' \| 'viewport' }`        | 侧栏状态变化。                                                           |
+| `update:floating-state`                              | `LayoutFloatingState`                                    | 浮动状态更新。                                                           |
+| `floating-drag-*` / `floating-resize-*`              | 对应 Detail                                              | 浮动拖拽或缩放生命周期。                                                 |
+| `runtime-action-error`                               | `ChatRuntimeActionErrorPayload`                          | 仅 `TrChat` 发出；通知 Runtime 动作失败，send 错误详情仍从所属消息读取。 |
 
 ### Slots
 
@@ -240,7 +266,6 @@ const ui = {
 | `layout-footer` / `composer-before`                                                                             | `ChatSenderSlotProps`              | 替换默认 Sender 或在其前插入内容。 |
 | `sender-header` / `sender-footer` / `sender-footer-right`                                                       | 无                                 | 扩展默认 Sender。                  |
 | `header-notice` / `welcome-footer` / `prompts-footer`                                                           | 无                                 | 扩展对应区域。                     |
-| `request-error`                                                                                                 | `{ error: unknown }`               | 替换请求错误内容。                 |
 | `bubble-prefix` / `bubble-suffix` / `bubble-after`                                                              | `ChatBubbleSlotProps`              | 扩展消息周边。                     |
 | `bubble-content-footer`                                                                                         | `ChatBubbleContentFooterSlotProps` | 扩展消息内容底部。                 |
 
@@ -268,7 +293,7 @@ const ui = {
 | `ChatHistoryGroup`     | `group: string \| symbol`；`items: readonly ChatConversationInfo[]`                                                                                                                                                                                                                                                                          |
 | `ChatBubbleView`       | `messages?: readonly ChatMessageItem[]`                                                                                                                                                                                                                                                                                                      |
 | `ChatSenderView`       | `loading?: boolean`；`disabled?: boolean`；`submitDisabled?: boolean`                                                                                                                                                                                                                                                                        |
-| `ChatRequestView`      | `state: ChatRequestState`；`processingState?: ChatProcessingState`；`error?: unknown`                                                                                                                                                                                                                                                        |
+| `ChatRequestView`      | `state: ChatRequestState`；`processingState?: ChatProcessingState`                                                                                                                                                                                                                                                                           |
 | `ChatModelView`        | `options?: readonly ChatModelOptionView[]`；`selectedId?: string \| null`；`features?: Partial<Record<'thinking' \| 'search', boolean>>`；`reasoning?: { enabled: boolean; effort?: string }`；`selecting?: boolean`；`reasoningSelecting?: boolean`；`pendingFeatureIds?: readonly ('thinking' \| 'search')[]`                              |
 | `ChatModelOptionView`  | `id: string`；`label: string`；`description?: string`；`icon?: ChatIcon`；`disabled?: boolean`；`group?: string`；`efforts?: readonly ModelSelectorReasoningEffortOption[]`；`defaultEffort?: string`；`thinkingRequired?: boolean`；`capabilities?: Partial<Record<'thinking' \| 'search', boolean>>`；`metadata?: Record<string, unknown>` |
 | `ChatMcpView`          | `servers?: readonly ChatMcpServerView[]`；`tools?: ChatMcpToolMap`                                                                                                                                                                                                                                                                           |
@@ -289,7 +314,7 @@ const ui = {
 | `ChatRightAsideOptions`      | 继承 `ChatAsideOptions`，不含 `open`、`defaultOpen`；另有 `showClose?: boolean`；`resizable?: boolean`；`minWidth?: number`；`maxWidth?: number`；`panels?: readonly ChatRightAsidePanelOptions[]`                                                                                                                                                                                                                              |
 | `ChatRightAsidePanelOptions` | `id: string`；`title?: string`                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `ChatLabels`                 | `newConversationTitle`；`createConversation`；`renameConversation`；`deleteConversation`；`expandConversationList`；`collapseConversationList`；`composerPlaceholder`；`composerLoadingPlaceholder`；`selectModel`；`searchModel`；`modelEmptyText`；`mcp`；`thinkingFeature`；`searchFeature`；`welcomeTitle`；`welcomeDescription`；`rightAsideTitle`；`openRightAside`；`closeRightAside`；`scrollToBottom`，均为 `string`。 |
-| `ChatBubbleOptions`          | `autoScroll?: boolean`；`bubbleProvider?: Omit<BubbleProviderProps, 'store'>`；`bubbleList?: ChatBubbleListOptions`                                                                                                                                                                                                                                                                                                             |
+| `ChatBubbleOptions`          | `autoScroll?: boolean`；`bubbleProvider?: Omit<BubbleProviderProps, 'store'>`；`bubbleList?: ChatBubbleListOptions`。`bubbleProvider.errorRenderer` 可统一替换消息错误视图。                                                                                                                                                                                                                                                    |
 | `ChatPromptsOptions`         | 继承 `PromptsProps`，另有 `items?: PromptProps[]`。                                                                                                                                                                                                                                                                                                                                                                             |
 | `ChatModelOptions`           | `appendTo?: ModelSelectorProps['appendTo']`                                                                                                                                                                                                                                                                                                                                                                                     |
 | `ChatMcpOptions`             | `Record<string, never>`，当前没有配置字段。                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -312,7 +337,18 @@ const ui = {
 | `ChatBubbleSlotProps`              | `messages: readonly BubbleMessage[]`；`role?: string`；`messageIndexes: readonly number[]`                                                                                                                                                                |
 | `ChatBubbleContentFooterSlotProps` | 继承 `ChatBubbleSlotProps`；`contentIndex?: number`                                                                                                                                                                                                       |
 
-`ChatUISlots` 是插槽名到上述函数签名的映射；无作用域参数的插槽为 `header-notice`、`welcome-footer`、`prompts-footer`、`sender-header`、`sender-footer` 和 `sender-footer-right`。`request-error` 接收 `{ error: unknown }`。
+`ChatUISlots` 是插槽名到上述函数签名的映射；无作用域参数的插槽为 `header-notice`、`welcome-footer`、`prompts-footer`、`sender-header`、`sender-footer` 和 `sender-footer-right`。
+
+#### 消息错误展示
+
+以下入口从 `@opentiny/tiny-robot` 导出，`TrChat` 通过 `ChatBubbleOptions.bubbleProvider` 复用它们。
+
+| 入口                                | 类型或签名                            | 说明                                                               |
+| ----------------------------------- | ------------------------------------- | ------------------------------------------------------------------ |
+| `BubbleErrorInfo`                   | `interface`                           | 推荐错误结构：`message` 必填，可包含 `name`、`code` 和 `details`。 |
+| `BubbleErrorRendererProps`          | `{ message: BubbleMessage }`          | 自定义错误渲染器只接收所属消息，不接收 `contentIndex`。            |
+| `BubbleProviderProps.errorRenderer` | `Component<BubbleErrorRendererProps>` | 在 Provider 范围内替换默认消息错误渲染器。                         |
+| `BubbleRenderers.Error`             | `Component<BubbleErrorRendererProps>` | 默认错误渲染器，可在组合自定义 Provider 时复用。                   |
 
 #### 事件参数
 

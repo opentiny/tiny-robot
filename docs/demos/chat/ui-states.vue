@@ -13,7 +13,15 @@ const data = computed<ChatUIData>(() => ({
   bubble:
     viewState.value === 'empty'
       ? { messages: [] }
-      : { messages: [{ role: 'assistant', content: '这是由应用提供的消息。' }] },
+      : {
+          messages: [
+            {
+              role: 'assistant',
+              content: '这是由应用提供的消息。',
+              ...(viewState.value === 'error' ? { state: { error: { message: '模拟请求失败' } } } : {}),
+            },
+          ],
+        },
   sender: {
     loading: viewState.value === 'processing',
     disabled: viewState.value === 'disabled',
@@ -22,7 +30,7 @@ const data = computed<ChatUIData>(() => ({
     viewState.value === 'processing'
       ? { state: 'processing', processingState: 'requesting' }
       : viewState.value === 'error'
-        ? { state: 'error', error: new Error('模拟请求失败') }
+        ? { state: 'error' }
         : { state: 'idle' },
 }))
 </script>

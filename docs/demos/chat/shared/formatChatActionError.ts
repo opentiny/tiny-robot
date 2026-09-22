@@ -1,8 +1,10 @@
 import type { ChatRuntimeActionErrorPayload } from '@opentiny/tiny-robot-chat'
 
-const actionLabels: Record<ChatRuntimeActionErrorPayload['action'], string> = {
-  send: '发送消息',
+type GlobalFeedbackAction = Exclude<ChatRuntimeActionErrorPayload['action'], 'send'>
+
+const actionLabels: Record<GlobalFeedbackAction, string> = {
   abort: '取消请求',
+  'clear-active-conversation': '清空当前会话',
   'create-conversation': '新建会话',
   'switch-conversation': '切换会话',
   'rename-conversation': '重命名会话',
@@ -17,5 +19,7 @@ const actionLabels: Record<ChatRuntimeActionErrorPayload['action'], string> = {
 }
 
 export function formatChatActionError(action: ChatRuntimeActionErrorPayload['action']) {
+  if (action === 'send') return null
+
   return `${actionLabels[action]}失败，请重试`
 }
