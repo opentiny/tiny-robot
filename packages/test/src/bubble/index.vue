@@ -4,25 +4,29 @@ import { TrBubbleList, useAutoScroll } from '@opentiny/tiny-robot'
 import type { BubbleListProps } from '@opentiny/tiny-robot'
 
 const scrollTarget = ref<HTMLElement | null>(null)
-const contentTarget = ref<HTMLElement | null>(null)
+const contentRef = ref<HTMLElement | null>(null)
 const enabled = ref(true)
 const blockHeight = ref(520)
 
-useAutoScroll(scrollTarget, undefined, {
-  contentTarget,
+useAutoScroll({
+  scrollRef: scrollTarget,
+  contentRef,
   enabled,
   bottomThreshold: 20,
 })
 
-const legacyScrollTarget = ref<HTMLElement | null>(null)
+const legacyScrollTarget = Object.assign(ref<HTMLElement | null>(null), {
+  scrollRef: 'legacy target marker',
+})
 const legacySignal = ref(0)
 const legacyBlockHeight = ref(520)
 useAutoScroll(legacyScrollTarget, legacySignal)
 
 const noMountScrollTarget = ref<HTMLElement | null>(null)
 const noMountContentTarget = ref<HTMLElement | null>(null)
-useAutoScroll(noMountScrollTarget, undefined, {
-  contentTarget: noMountContentTarget,
+useAutoScroll({
+  scrollRef: noMountScrollTarget,
+  contentRef: noMountContentTarget,
   scrollOnMount: false,
 })
 
@@ -57,7 +61,7 @@ async function growBubbleContent() {
     <button data-testid="grow-observed" @click="growObservedContent">增高观察内容</button>
     <button data-testid="toggle-enabled" @click="enabled = !enabled">切换自动滚动</button>
     <div ref="scrollTarget" data-testid="observed-scroll" class="scroll-host">
-      <div ref="contentTarget" data-testid="observed-content" :style="{ height: `${blockHeight}px` }" />
+      <div ref="contentRef" data-testid="observed-content" :style="{ height: `${blockHeight}px` }" />
     </div>
     <button data-testid="grow-legacy" @click="growLegacyContent">增高旧接口内容</button>
     <div ref="legacyScrollTarget" data-testid="legacy-scroll" class="scroll-host">

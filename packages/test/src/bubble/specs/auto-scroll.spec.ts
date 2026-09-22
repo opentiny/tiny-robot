@@ -29,7 +29,7 @@ test.beforeEach(async ({ page }) => {
   )
 })
 
-test('contentTarget 大幅增高时保持跟随底部', async ({ page }) => {
+test('contentRef 大幅增高时保持跟随底部', async ({ page }) => {
   await page.getByTestId('grow-observed').click()
   await expect.poll(() => page.evaluate(distanceToBottom, '[data-testid="observed-scroll"]')).toBeLessThanOrEqual(1)
   await page.getByTestId('grow-observed').click()

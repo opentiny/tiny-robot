@@ -55,7 +55,7 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
 }
 
 const lastMessage = computed(() => props.messages.at(-1))
-const contentTarget = ref<HTMLElement | null>(null)
+const contentRef = ref<HTMLElement | null>(null)
 const bubbleMessages = computed<BubbleMessage[]>(() => props.messages.map((message) => ({ ...message })))
 const shouldAutoScroll = computed(() => props.options.autoScroll ?? true)
 const bubbleProviderProps = computed(() => ({
@@ -101,8 +101,9 @@ const promptProps = computed<ResolvedChatPromptsOptions>(() => {
 })
 const hasPrompts = computed(() => props.prompts !== false && promptProps.value.items.length > 0)
 
-const { scrollToBottom } = useAutoScroll(() => props.scrollTarget, undefined, {
-  contentTarget,
+const { scrollToBottom } = useAutoScroll({
+  scrollRef: () => props.scrollTarget,
+  contentRef,
   enabled: shouldAutoScroll,
 })
 
@@ -135,7 +136,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 <template>
   <div
-    ref="contentTarget"
+    ref="contentRef"
     class="chat-panel-content chat-panel-content--main"
     :class="{
       'is-message-state': !isEmpty,

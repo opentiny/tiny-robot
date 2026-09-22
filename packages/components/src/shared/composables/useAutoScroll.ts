@@ -1,5 +1,6 @@
 import {
   type MaybeComputedElementRef,
+  type UseScrollReturn,
   unrefElement,
   useEventListener,
   useResizeObserver,
@@ -35,44 +36,89 @@ function useOnceFallingEdge(source: Ref<boolean>, cb: () => void) {
   return stop
 }
 
-/**
- * 当目标滚动容器保持跟随状态时，根据内容尺寸、容器尺寸或兼容业务信号自动滚动到底部
- * @param target 目标滚动容器的元素引用
- * @param source 兼容旧接口的可选业务信号，当该数据变化时会触发自动滚动
- * @param options 配置选项
- * @param options.scrollOnMount 是否在组件挂载时滚动到底部，默认为 true
- * @param options.bottomThreshold 判断接近底部的阈值（像素），默认为 20
- * @param options.contentTarget 滚动容器内用于监听尺寸变化的内容元素
- * @param options.enabled 是否启用自动滚动，可传入响应式值
- * @returns scrollToBottom 手动滚动到底部的方法
- */
-export interface UseAutoScrollOptions {
+interface AutoScrollBehaviorOptions {
+  /** 是否在组件挂载时滚动到底部，默认为 true */
   scrollOnMount?: boolean
+  /** 滚动事件的节流时间（毫秒），默认为 0 */
   scrollThrottle?: number
+  /** 判断接近底部的阈值（像素），默认为 20 */
   bottomThreshold?: number
-  contentTarget?: MaybeComputedElementRef
+  /** 是否启用自动滚动，可传入响应式值 */
   enabled?: MaybeRefOrGetter<boolean>
 }
 
+export interface UseAutoScrollOptions extends AutoScrollBehaviorOptions {
+  /** 目标滚动容器的元素引用 */
+  scrollRef: MaybeComputedElementRef
+  /** 滚动容器内用于监听尺寸变化的内容元素引用 */
+  contentRef: MaybeComputedElementRef
+}
+
+/** @deprecated 仅用于旧位置参数结构，请改用 `UseAutoScrollOptions` */
+export interface LegacyUseAutoScrollOptions extends AutoScrollBehaviorOptions {
+  contentTarget?: MaybeComputedElementRef
+}
+
+export interface UseAutoScrollReturn {
+  scrollToBottom: (behavior?: ScrollBehavior) => Promise<void>
+  arrivedState: UseScrollReturn['arrivedState']
+}
+
+function isUseAutoScrollOptions(value: UseAutoScrollOptions | MaybeComputedElementRef): value is UseAutoScrollOptions {
+  if (typeof value !== 'object' || value === null) return false
+
+  const prototype = Object.getPrototypeOf(value)
+  const isPlainObject = prototype === Object.prototype || prototype === null
+
+  return isPlainObject && 'scrollRef' in value && 'contentRef' in value
+}
+
+/**
+ * 当滚动容器保持跟随状态时，根据内容或容器尺寸变化自动滚动到底部
+ * @param options 滚动容器、内容元素及行为配置
+ * @returns 手动滚动方法和当前位置状态
+ */
+export function useAutoScroll(options: UseAutoScrollOptions): UseAutoScrollReturn
+
+/**
+ * @deprecated 请改用对象参数：`useAutoScroll({ scrollRef, contentRef, ...options })`
+ */
 export function useAutoScroll(
   target: MaybeComputedElementRef,
   source?: MaybeRefOrGetter<unknown>,
-  options?: UseAutoScrollOptions,
-) {
-  const {
-    scrollOnMount = true,
-    bottomThreshold = 20,
-    scrollThrottle = 0,
-    contentTarget,
-    enabled = true,
-  } = options ?? {}
+  options?: LegacyUseAutoScrollOptions,
+): UseAutoScrollReturn
+
+export function useAutoScroll(
+  optionsOrTarget: UseAutoScrollOptions | MaybeComputedElementRef,
+  legacySource?: MaybeRefOrGetter<unknown>,
+  legacyOptions?: LegacyUseAutoScrollOptions,
+): UseAutoScrollReturn {
+  let scrollRef: MaybeComputedElementRef
+  let contentRef: MaybeComputedElementRef | undefined
+  let source: MaybeRefOrGetter<unknown> | undefined
+  let options: AutoScrollBehaviorOptions | undefined
+
+  if (arguments.length === 1 && isUseAutoScrollOptions(optionsOrTarget)) {
+    scrollRef = optionsOrTarget.scrollRef
+    contentRef = optionsOrTarget.contentRef
+    source = undefined
+    options = optionsOrTarget
+  } else {
+    scrollRef = optionsOrTarget as MaybeComputedElementRef
+    contentRef = legacyOptions?.contentTarget
+    source = legacySource
+    options = legacyOptions
+  }
+
+  const { scrollOnMount = true, bottomThreshold = 20, scrollThrottle = 0, enabled = true } = options ?? {}
 
   const isFollowing = ref(true)
   let scheduledFrame: number | null = null
   const stopWatches = new Set<WatchHandle>()
 
-  const targetElement = () => unrefElement(target)
-  const contentElement = () => (contentTarget ? unrefElement(contentTarget) : null)
+  const targetElement = () => unrefElement(scrollRef)
+  const contentElement = () => (contentRef ? unrefElement(contentRef) : null)
   const automaticScrollingEnabled = () => toValue(enabled)
 
   const { y, isScrolling, arrivedState } = useScroll(targetElement, { throttle: scrollThrottle })

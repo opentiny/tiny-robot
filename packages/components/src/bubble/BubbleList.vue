@@ -52,8 +52,9 @@ const scrollContainerRef = ref<HTMLDivElement | null>(null)
 const contentRef = ref<HTMLDivElement | null>(null)
 const lastMessage = computed(() => props.messages.at(-1))
 
-const { scrollToBottom } = useAutoScroll(scrollContainerRef, undefined, {
-  contentTarget: contentRef,
+const { scrollToBottom } = useAutoScroll({
+  scrollRef: scrollContainerRef,
+  contentRef,
   enabled: () => props.autoScroll,
 })
 
