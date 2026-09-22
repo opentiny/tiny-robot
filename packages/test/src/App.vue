@@ -6,7 +6,6 @@
         <li><a href="/" @click.prevent="currentComponent = 'Home'">首页</a></li>
         <li><a href="/attachments" @click.prevent="currentComponent = 'Attachments'">Attachments 组件</a></li>
         <li><a href="/container" @click.prevent="currentComponent = 'Container'">Container 组件</a></li>
-        <li><a href="/bubble" @click.prevent="currentComponent = 'Bubble'">Bubble 组件</a></li>
         <li><a href="/layout" @click.prevent="currentComponent = 'Layout'">Layout 组件</a></li>
         <li>
           <a href="/model-selector" @click.prevent="currentComponent = 'ModelSelector'">ModelSelector 组件</a>
@@ -27,19 +26,17 @@ import type { Component } from 'vue'
 import Home from './home/index.vue'
 import AttachmentsDemo from './attachments/index.vue'
 import ContainerDemo from './container/index.vue'
-import BubbleDemo from './bubble/index.vue'
 import LayoutDemo from './layout/index.vue'
 import ModelSelectorDemo from './model-selector/index.vue'
 import SenderDemo from './sender/index.vue'
 
-type ComponentName = 'Home' | 'Attachments' | 'Bubble' | 'Container' | 'Layout' | 'ModelSelector' | 'Sender'
+type ComponentName = 'Home' | 'Attachments' | 'Container' | 'Layout' | 'ModelSelector' | 'Sender'
 
 const currentComponent = ref<ComponentName>('Home')
 
 const components: Record<ComponentName, Component> = {
   Home,
   Attachments: AttachmentsDemo,
-  Bubble: BubbleDemo,
   Container: ContainerDemo,
   Layout: LayoutDemo,
   ModelSelector: ModelSelectorDemo,

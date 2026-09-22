@@ -1,5 +1,30 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
+import type { Locator } from '@playwright/test'
 import BubbleListFixture from './BubbleList.fixture.vue'
+
+const distanceToBottom = (scroller: Locator) =>
+  scroller.evaluate((element) => element.scrollHeight - element.clientHeight - element.scrollTop)
+
+const expectAtBottom = async (scroller: Locator) => {
+  await expect.poll(() => distanceToBottom(scroller)).toBeLessThanOrEqual(1)
+}
+
+const waitForStableScroll = (scroller: Locator) =>
+  scroller.evaluate(
+    (element) =>
+      new Promise<void>((resolve) => {
+        let previous = element.scrollTop
+        let stableFrames = 0
+        const check = () => {
+          const current = element.scrollTop
+          stableFrames = current === previous ? stableFrames + 1 : 0
+          previous = current
+          if (stableFrames >= 3) resolve()
+          else requestAnimationFrame(check)
+        }
+        requestAnimationFrame(check)
+      }),
+  )
 
 test.describe('BubbleList', () => {
   test('groups messages by the default divider strategy', async ({ mount }) => {
@@ -79,14 +104,63 @@ test.describe('BubbleList', () => {
       element.scrollTop = 0
     })
     await section.getByRole('button', { name: 'Scroll to bottom' }).click()
-    await expect
-      .poll(() => list.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight))
-      .toBeLessThanOrEqual(1)
+    await expectAtBottom(list)
 
     await section.getByRole('button', { name: 'Append user message' }).click()
     await expect(list).toContainText('Latest user message')
-    await expect
-      .poll(() => list.evaluate((element) => element.scrollHeight - element.scrollTop - element.clientHeight))
-      .toBeLessThanOrEqual(1)
+    await expectAtBottom(list)
+  })
+
+  test('keeps the public root as the padded scroll container', async ({ mount }) => {
+    const component = await mount(BubbleListFixture)
+    const list = component.getByTestId('scroll-list')
+
+    await expect(list).toHaveClass(/tr-bubble-list/)
+    await expect(list.locator(':scope > .tr-bubble-list__content')).toHaveCount(1)
+    await expect(list).toHaveCSS('overflow-y', 'auto')
+    await expect(list).toHaveCSS('padding-top', '12px')
+    await expect(list.locator(':scope > .tr-bubble-list__content')).toHaveCSS('padding-top', '0px')
+    await expect.poll(() => list.evaluate((element) => element.clientHeight)).toBeLessThanOrEqual(220)
+  })
+
+  test('follows large asynchronously rendered content growth', async ({ mount }) => {
+    const component = await mount(BubbleListFixture)
+    const section = component.getByTestId('scroll-section')
+    const list = section.getByTestId('scroll-list')
+
+    await expectAtBottom(list)
+    await section.getByRole('button', { name: 'Grow rendered content' }).click()
+    await expectAtBottom(list)
+  })
+
+  test('preserves the reading position when rendered content grows after an upward scroll', async ({ mount }) => {
+    const component = await mount(BubbleListFixture)
+    const section = component.getByTestId('scroll-section')
+    const list = section.getByTestId('scroll-list')
+
+    await expectAtBottom(list)
+    await waitForStableScroll(list)
+    await list.evaluate((element) => {
+      element.scrollTop = element.scrollHeight - element.clientHeight - 100
+      element.dispatchEvent(new Event('scroll'))
+    })
+    await list.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())))
+    const before = await list.evaluate((element) => element.scrollTop)
+
+    await section.getByRole('button', { name: 'Grow rendered content' }).click()
+    await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBe(before)
+  })
+
+  test('reactively disables and restores following', async ({ mount }) => {
+    const component = await mount(BubbleListFixture)
+    const section = component.getByTestId('scroll-section')
+    const list = section.getByTestId('scroll-list')
+
+    await expectAtBottom(list)
+    await section.getByRole('button', { name: 'Toggle BubbleList auto scroll' }).click()
+    await section.getByRole('button', { name: 'Grow rendered content' }).click()
+    await expect.poll(() => distanceToBottom(list)).toBeGreaterThan(100)
+    await section.getByRole('button', { name: 'Toggle BubbleList auto scroll' }).click()
+    await expectAtBottom(list)
   })
 })

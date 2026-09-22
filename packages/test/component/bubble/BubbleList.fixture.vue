@@ -69,9 +69,15 @@ const scrollMessages = ref<BubbleMessage[]>(
   })),
 )
 const scrollList = ref<{ scrollToBottom: (behavior?: ScrollBehavior) => Promise<void> } | null>(null)
+const bubbleAutoScroll = ref(true)
+const lateBlockHeight = ref(16)
 
 const appendUserMessage = () => {
   scrollMessages.value.push({ id: 'latest-user', role: 'user', content: 'Latest user message' })
+}
+
+const growRenderedContent = () => {
+  lateBlockHeight.value += 320
 }
 </script>
 
@@ -135,20 +141,32 @@ const appendUserMessage = () => {
     <section data-testid="scroll-section">
       <button type="button" @click="scrollList?.scrollToBottom('auto')">Scroll to bottom</button>
       <button type="button" @click="appendUserMessage">Append user message</button>
+      <button type="button" @click="growRenderedContent">Grow rendered content</button>
+      <button type="button" @click="bubbleAutoScroll = !bubbleAutoScroll">Toggle BubbleList auto scroll</button>
       <BubbleList
         ref="scrollList"
         data-testid="scroll-list"
         class="scroll-list"
         :messages="scrollMessages"
-        :auto-scroll="true"
-      />
+        :auto-scroll="bubbleAutoScroll"
+      >
+        <template #after="{ messageIndexes }">
+          <div
+            v-if="messageIndexes.at(-1) === scrollMessages.length - 1"
+            data-testid="late-rendered-block"
+            :style="{ height: `${lateBlockHeight}px` }"
+          />
+        </template>
+      </BubbleList>
     </section>
   </main>
 </template>
 
 <style scoped>
 .scroll-list {
-  height: 100px;
+  width: 320px;
+  max-height: 220px;
+  padding: 12px;
 }
 
 .scroll-list :deep([data-type='text']) {
