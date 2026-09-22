@@ -44,6 +44,17 @@ export type BubbleMessage<
   state?: S
 }
 
+export interface BubbleErrorInfo {
+  message: string
+  name?: string
+  code?: string | number
+  details?: unknown
+}
+
+export interface BubbleErrorRendererProps {
+  message: BubbleMessage
+}
+
 export type BubbleProps = BubbleMessage & {
   hidden?: boolean
   avatar?: VNode | Component
@@ -215,6 +226,7 @@ export interface BubbleProviderProps {
   contentAttributes?: BubbleContentAttributesConfig
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
+  errorRenderer?: Component<BubbleErrorRendererProps>
   store?: Record<string, unknown>
 }
 

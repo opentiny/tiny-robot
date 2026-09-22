@@ -16,17 +16,9 @@ import type { ChatUIData } from './data'
 
 export type ChatCssSize = string | number
 
-type ChatInputControlProps =
-  | {
-      inputValue: string
-      defaultInputValue?: never
-    }
-  | {
-      inputValue?: undefined
-      defaultInputValue?: string
-    }
-
-export type ChatUIProps = ChatInputControlProps & {
+export interface ChatUIProps {
+  inputValue?: string
+  defaultInputValue?: string
   data?: Readonly<ChatUIData>
   ui?: Readonly<ChatUIOptions>
   floatingState?: LayoutFloatingState

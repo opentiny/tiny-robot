@@ -91,11 +91,18 @@ export function createMcpToolPlugin(listTools: ChatToolListTools, callTool: Chat
       let argumentsValue: Record<string, unknown> = {}
 
       if (rawArguments && rawArguments.trim()) {
+        let parsed: unknown
         try {
-          argumentsValue = JSON.parse(rawArguments) as Record<string, unknown>
+          parsed = JSON.parse(rawArguments)
         } catch {
           throw new Error(`Invalid JSON arguments for MCP tool "${rawName}".`)
         }
+
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          throw new Error(`Arguments for MCP tool "${rawName}" must be a JSON object.`)
+        }
+
+        argumentsValue = parsed as Record<string, unknown>
       }
 
       return callTool(exposedTool.serverId, exposedTool.originalName, argumentsValue)

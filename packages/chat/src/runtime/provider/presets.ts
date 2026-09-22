@@ -61,9 +61,10 @@ const providerPresets: Record<ChatProviderType, ChatProviderPreset> = {
 }
 
 export function normalizeChatCompletionsUrl(apiUrl: string) {
-  const trimmedUrl = apiUrl.trim().replace(/\/+$/, '')
-
-  return trimmedUrl.endsWith('/chat/completions') ? trimmedUrl : `${trimmedUrl}/chat/completions`
+  const url = new URL(apiUrl.trim())
+  const pathname = url.pathname.replace(/\/+$/, '')
+  url.pathname = pathname.endsWith('/chat/completions') ? pathname : `${pathname}/chat/completions`
+  return url.toString()
 }
 
 export function resolveProviderModels(providers: readonly ChatProviderConfig[]): readonly ChatResolvedProviderModel[] {

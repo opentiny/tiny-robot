@@ -9,6 +9,7 @@ import {
   type ChatProviderConfig,
 } from './provider'
 import { createRunConfigContextPlugin } from './plugins/runConfigContextPlugin'
+import { errorStatePlugin } from './plugins/errorStatePlugin'
 import { createMcpToolPlugin, type ChatToolCallTool, type ChatToolListTools } from './plugins/mcpToolPlugin'
 import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
@@ -50,7 +51,7 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
   const providerRuntime = providerModels.length > 0 ? createProviderModelRuntime(providerModels) : null
   const resolvedMcp = options.mcpServers !== undefined ? createDefaultMcpAdapter(options.mcpServers) : options.mcp
   const composerOptions = options.composer ?? {}
-  const builtInPlugins: UseMessagePlugin[] = [createRunConfigContextPlugin()]
+  const builtInPlugins: UseMessagePlugin[] = [errorStatePlugin(), createRunConfigContextPlugin()]
 
   if (providerRuntime) {
     builtInPlugins.push(createProviderRequestPlugin(providerRuntime.resolveModel))

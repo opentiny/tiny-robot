@@ -5,6 +5,7 @@ export interface ChatDraft {
   inputValue: ChatReadable<string>
   setInputValue: (value: string) => void
   send: (payload: ChatSendPayload) => Promise<boolean> | boolean
+  invalidate: () => void
   abort?: () => Promise<void> | void
 }
 
@@ -16,9 +17,16 @@ export interface UseChatDraftOptions {
 
 export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
   const inputValue = shallowRef('')
+  let latestSendId = 0
+  let inputRevision = 0
 
   function setInputValue(value: string) {
+    inputRevision++
     inputValue.value = value
+  }
+
+  function invalidate() {
+    inputRevision++
   }
 
   async function send(payload: ChatSendPayload): Promise<boolean> {
@@ -28,7 +36,9 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
       return false
     }
 
-    const previousInputValue = payload.text
+    const sendId = ++latestSendId
+    const revisionAtClear = inputRevision
+    const previousInputValue = inputValue.value
 
     try {
       inputValue.value = ''
@@ -38,13 +48,13 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
         text,
       })
 
-      if (!accepted && inputValue.value === '') {
+      if (!accepted && sendId === latestSendId && inputRevision === revisionAtClear && inputValue.value === '') {
         inputValue.value = previousInputValue
       }
 
       return accepted
     } catch (error) {
-      if (inputValue.value === '') {
+      if (sendId === latestSendId && inputRevision === revisionAtClear && inputValue.value === '') {
         inputValue.value = previousInputValue
       }
       throw error
@@ -55,6 +65,7 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
     inputValue,
     setInputValue,
     send,
+    invalidate,
     abort: options.abort,
   }
 }

@@ -11,10 +11,11 @@ export interface ChatProviderModelRuntime {
 }
 
 export function createProviderModelRuntime(models: readonly ChatResolvedProviderModel[]): ChatProviderModelRuntime {
-  const selectedModelId = shallowRef<string | null>(models[0]?.id ?? null)
-  const reasoningEffort = shallowRef<string | undefined>(getDefaultEffort(models[0]))
+  const initialModel = models.find((model) => !model.disabled)
+  const selectedModelId = shallowRef<string | null>(initialModel?.id ?? null)
+  const reasoningEffort = shallowRef<string | undefined>(getDefaultEffort(initialModel))
   const featureState = reactive<Partial<Record<ChatBuiltInModelFeature, boolean>>>({
-    thinking: models[0]?.thinkingRequired === true,
+    thinking: initialModel?.thinkingRequired === true,
   })
 
   const selectedModel = computed(() => models.find((item) => item.id === selectedModelId.value))
@@ -51,15 +52,31 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
 
   const model: ChatModelRuntime = {
     options: computed<readonly ChatModelOption[]>(() =>
-      models.map(({ id, label, icon, efforts, defaultEffort, thinkingRequired, capabilities }) => ({
-        id,
-        label,
-        icon,
-        efforts,
-        defaultEffort,
-        thinkingRequired,
-        capabilities,
-      })),
+      models.map(
+        ({
+          id,
+          label,
+          description,
+          icon,
+          disabled,
+          group,
+          efforts,
+          defaultEffort,
+          thinkingRequired,
+          capabilities,
+        }) => ({
+          id,
+          label,
+          description,
+          icon,
+          disabled,
+          group,
+          efforts,
+          defaultEffort,
+          thinkingRequired,
+          capabilities,
+        }),
+      ),
     ),
 
     selectedId: computed(() => selectedModelId.value),
@@ -85,8 +102,14 @@ export function createProviderModelRuntime(models: readonly ChatResolvedProvider
     }),
 
     select(id) {
-      if (id !== null && !resolveModel(id)) {
+      const nextModel = id === null ? undefined : resolveModel(id)
+
+      if (id !== null && !nextModel) {
         throw new Error(`Unknown model: ${id}`)
+      }
+
+      if (nextModel?.disabled) {
+        throw new Error(`Model is disabled: ${id}`)
       }
 
       selectedModelId.value = id

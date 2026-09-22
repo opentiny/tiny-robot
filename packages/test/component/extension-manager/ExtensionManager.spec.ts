@@ -179,13 +179,15 @@ test.describe('ExtensionManager uncontrolled state', () => {
     const slashTab = manager.getByRole('tab', { name: /Slash tab/ })
     const dashTab = manager.getByRole('tab', { name: /Dash tab/ })
     const tabpanel = manager.getByRole('tabpanel')
+    const tabpanelId = await tabpanel.getAttribute('id')
 
-    await expect(dashTab).toHaveAttribute('aria-controls', await tabpanel.getAttribute('id'))
+    expect(tabpanelId).not.toBeNull()
+    await expect(dashTab).toHaveAttribute('aria-controls', tabpanelId!)
     await expect(slashTab).not.toHaveAttribute('aria-controls')
 
     await slashTab.click()
 
-    await expect(slashTab).toHaveAttribute('aria-controls', await tabpanel.getAttribute('id'))
+    await expect(slashTab).toHaveAttribute('aria-controls', tabpanelId!)
     await expect(dashTab).not.toHaveAttribute('aria-controls')
   })
 
