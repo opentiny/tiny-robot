@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ChatMessage } from '../../types'
 import type { ChatCompletion, MessageRequestBody, ResponseProvider } from './types'
 import { useMessage } from './useMessage'
@@ -230,6 +230,44 @@ describe('useMessage lifecycle', () => {
     expect(finalState).toBe('error')
     expect(engine.requestState.value).toBe('error')
     expect(engine.isProcessing.value).toBe(false)
+  })
+
+  it('continues error hooks and preserves the provider failure when an observer throws', async () => {
+    const providerError = new Error('provider failed')
+    const observerError = new Error('observer failed')
+    const observedErrors: unknown[] = []
+    let finalState: string | undefined
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const engine = useMessage({
+      responseProvider: async () => {
+        throw providerError
+      },
+      plugins: [
+        {
+          name: 'throwing-observer',
+          onError: () => {
+            throw observerError
+          },
+        },
+        {
+          onError: ({ error }) => {
+            observedErrors.push(error)
+          },
+          onFinally: ({ requestState }) => {
+            finalState = requestState
+          },
+        },
+      ],
+    })
+
+    try {
+      await expect(engine.sendMessage('fail')).rejects.toBe(providerError)
+
+      expect(observedErrors).toEqual([providerError])
+      expect(finalState).toBe('error')
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 
   it('rejects provider failures when no error observer is registered', async () => {
