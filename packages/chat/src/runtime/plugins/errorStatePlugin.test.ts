@@ -95,7 +95,7 @@ describe('errorStatePlugin', () => {
     })
   })
 
-  it('skips errors raised before an assistant message exists', async () => {
+  it('creates an assistant error message when onTurnStart fails before a response exists', async () => {
     const turnError = new Error('turn setup failed')
     const engine = useMessage({
       responseProvider: async () => completion('unused'),
@@ -111,7 +111,40 @@ describe('errorStatePlugin', () => {
 
     await expect(engine.sendMessage('fail')).rejects.toBe(turnError)
 
-    expect(engine.messages.value).toMatchObject([{ role: 'user', content: 'fail' }])
+    expect(engine.messages.value).toMatchObject([
+      { role: 'user', content: 'fail' },
+      {
+        role: 'assistant',
+        content: '',
+        state: { error: { name: 'Error', message: 'turn setup failed' } },
+      },
+    ])
+  })
+
+  it('creates an assistant error message when onBeforeRequest fails before a response exists', async () => {
+    const requestError = new Error('request setup failed')
+    const engine = useMessage({
+      responseProvider: async () => completion('unused'),
+      plugins: [
+        {
+          onBeforeRequest() {
+            throw requestError
+          },
+        },
+        errorStatePlugin(),
+      ],
+    })
+
+    await expect(engine.sendMessage('fail')).rejects.toBe(requestError)
+
+    expect(engine.messages.value).toMatchObject([
+      { role: 'user', content: 'fail' },
+      {
+        role: 'assistant',
+        content: '',
+        state: { error: { name: 'Error', message: 'request setup failed' } },
+      },
+    ])
   })
 
   it.each([null, undefined])('skips writes when normalizeError returns %s', async (normalizedError) => {
