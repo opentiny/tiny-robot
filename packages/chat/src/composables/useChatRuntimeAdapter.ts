@@ -40,28 +40,49 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
       pendingModelFeatureIds.value = new Set()
       pendingMcpServerIds.value = new Set()
       pendingMcpToolIds.value = new Map()
+      invalidateDraftForNavigation()
     },
     { flush: 'sync' },
   )
 
-  let sendsInFlight = 0
+  const sendsInFlight = new WeakMap<ChatRuntime, number>()
+
+  function getSendsInFlight(targetRuntime: ChatRuntime) {
+    return sendsInFlight.get(targetRuntime) ?? 0
+  }
+
+  function incrementSendsInFlight(targetRuntime: ChatRuntime) {
+    sendsInFlight.set(targetRuntime, getSendsInFlight(targetRuntime) + 1)
+  }
+
+  function decrementSendsInFlight(targetRuntime: ChatRuntime) {
+    const nextCount = getSendsInFlight(targetRuntime) - 1
+    if (nextCount === 0) {
+      sendsInFlight.delete(targetRuntime)
+    } else {
+      sendsInFlight.set(targetRuntime, nextCount)
+    }
+  }
 
   async function send(payload: ChatSendPayload) {
-    const startConversationId = activeConversationId.value
-    const startNavigationRevision = conversationNavigationRevision.value
-    sendsInFlight++
+    const actionRuntime = runtime.value
+    const getActionConversationId = () => actionRuntime.activeConversation.value?.id ?? null
+    const getActionNavigationRevision = () => actionRuntime.conversationNavigationRevision?.value
+    const startConversationId = getActionConversationId()
+    const startNavigationRevision = getActionNavigationRevision()
+    incrementSendsInFlight(actionRuntime)
 
     let actionResult: boolean | undefined
     let synchronousConversationId = startConversationId
     try {
       let action: Promise<boolean> | undefined
       try {
-        action = runtime.value.actions.send(payload)
+        action = actionRuntime.actions.send(payload)
       } catch (error) {
         options.onActionError({ action: 'send', payload, error })
       }
 
-      synchronousConversationId = activeConversationId.value
+      synchronousConversationId = getActionConversationId()
 
       if (action) {
         try {
@@ -71,11 +92,15 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
         }
       }
     } finally {
-      sendsInFlight--
+      decrementSendsInFlight(actionRuntime)
     }
 
-    const endConversationId = activeConversationId.value
-    const navigationChanged = conversationNavigationRevision.value !== startNavigationRevision
+    if (runtime.value !== actionRuntime) {
+      return actionResult ?? false
+    }
+
+    const endConversationId = getActionConversationId()
+    const navigationChanged = getActionNavigationRevision() !== startNavigationRevision
     const selfCreatedConversation =
       startConversationId === null &&
       synchronousConversationId !== null &&
@@ -106,7 +131,11 @@ export function useChatRuntimeAdapter(options: UseChatRuntimeAdapterOptions) {
   watch(
     activeConversationId,
     (nextId, previousId) => {
-      if (conversationNavigationRevision.value === undefined && nextId !== previousId && sendsInFlight === 0) {
+      if (
+        conversationNavigationRevision.value === undefined &&
+        nextId !== previousId &&
+        getSendsInFlight(runtime.value) === 0
+      ) {
         invalidateDraftForNavigation()
       }
     },
