@@ -259,7 +259,7 @@ export interface MessageEnginePlugin {
    * 无论是流式响应（多个增量数据块）还是非流式响应（单个完整数据块），都会触发此钩子。
    */
   onCompletionChunk?: (context: CompletionChunkContext) => void
-  onError?: (context: MessageErrorContext) => void
+  onError?: (context: MessageErrorContext) => MaybePromise<void>
   onFinally?: (context: BasePluginContext) => void
   /**
    * 插件命令集合。

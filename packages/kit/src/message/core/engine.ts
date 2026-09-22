@@ -337,7 +337,7 @@ export const createMessageEngine = (
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
         if (plugin.onError) {
           try {
-            plugin.onError({ ...context, error, appendMessage })
+            await plugin.onError({ ...context, error, appendMessage })
           } catch (hookError) {
             console.error(`Error in onError hook for plugin [${plugin.name || 'Anonymous'}]:`, hookError)
           }

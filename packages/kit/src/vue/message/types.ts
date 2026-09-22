@@ -246,7 +246,7 @@ export interface UseMessagePlugin {
       chunk: ChatCompletion
     },
   ) => void
-  onError?: (context: UseMessageErrorContext) => void
+  onError?: (context: UseMessageErrorContext) => MaybePromise<void>
   onFinally?: (context: BasePluginContext) => void
   /**
    * 插件命令集合。
