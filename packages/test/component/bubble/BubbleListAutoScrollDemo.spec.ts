@@ -59,10 +59,6 @@ test.describe('BubbleList auto-scroll demo', () => {
     await page.clock.fastForward(500)
     await expect(sourceBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
 
-    await loadButton.click()
-    await expect(sourceBubble.locator('.async-content')).toHaveCount(1)
-    await expect(sourceBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
-
     await component.getByRole('button', { name: '添加消息' }).click()
     const laterBubble = component.locator('.tr-bubble').filter({ hasText: '第 3 条消息' })
     await loadButton.click()
@@ -74,5 +70,43 @@ test.describe('BubbleList auto-scroll demo', () => {
 
     await page.clock.fastForward(500)
     await expect(laterBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
+  })
+
+  test('replays asynchronous loading for the current source message', async ({ mount, page }) => {
+    await page.clock.install()
+    const component = await mount(BubbleListAutoScrollDemo)
+    const region = component.locator('.async-content')
+    const loadButton = component.getByRole('button', { name: '模拟图片异步加载' })
+
+    await loadButton.click()
+    await page.clock.fastForward(500)
+    await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
+
+    await loadButton.click()
+    await expect(region).toHaveCount(1)
+    await expect(region).toContainText('图片加载中…')
+    await expect(region.getByRole('img')).toHaveCount(0)
+
+    await page.clock.fastForward(500)
+    await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
+  })
+
+  test('aligns a loaded user asynchronous region to the end', async ({ mount, page }) => {
+    await page.clock.install()
+    const component = await mount(BubbleListAutoScrollDemo)
+
+    await component.getByRole('button', { name: '添加消息' }).click()
+    const userBubble = component.locator('.tr-bubble').filter({ hasText: '第 3 条消息' })
+    await component.getByRole('button', { name: '模拟图片异步加载' }).click()
+    await page.clock.fastForward(500)
+    await expect(userBubble.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
+
+    const alignment = await userBubble.evaluate((bubble) => {
+      const after = bubble.querySelector<HTMLElement>('.tr-bubble__after')!.getBoundingClientRect()
+      const region = bubble.querySelector<HTMLElement>('.async-content')!.getBoundingClientRect()
+      return { afterRight: after.right, regionRight: region.right }
+    })
+
+    expect(Math.abs(alignment.afterRight - alignment.regionRight)).toBeLessThanOrEqual(1)
   })
 })

@@ -17,7 +17,12 @@
     >
       <tr-bubble-list :messages="messages" :role-configs="roles" :auto-scroll="autoScroll" style="max-height: 100%">
         <template #after="{ messages: groupMessages }">
-          <div v-for="message in getAsyncMessages(groupMessages)" :key="message.id" class="async-content">
+          <div
+            v-for="message in getAsyncMessages(groupMessages)"
+            :key="message.id"
+            class="async-content"
+            :class="{ 'async-content--end': message.role === 'user' }"
+          >
             <template v-if="getImageStatus(message) === 'loaded'">
               <img
                 class="async-image"
@@ -89,7 +94,7 @@ const imageTimers = new Map<string, number>()
 const loadAsyncImage = () => {
   const message = messages.value.at(-1)
   const messageId = message?.id
-  if (!message || !messageId || getImageStatus(message)) {
+  if (!message || !messageId) {
     return
   }
 
@@ -116,6 +121,10 @@ onBeforeUnmount(() => imageTimers.forEach((timer) => window.clearTimeout(timer))
   border: 1px solid var(--tr-color-border);
   border-radius: 8px;
   background: var(--tr-color-bg-1);
+}
+
+.async-content--end {
+  margin-left: auto;
 }
 
 .async-image {
