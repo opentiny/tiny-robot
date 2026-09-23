@@ -139,9 +139,12 @@ test.describe('BubbleList', () => {
     const component = await mount(BubbleListFixture)
     const section = component.getByTestId('scroll-section')
     const list = section.getByTestId('scroll-list')
+    const renderedBlock = section.getByTestId('late-rendered-block')
 
     await expectAtBottom(list)
+    await expect(renderedBlock).toHaveCSS('height', '16px')
     await section.getByRole('button', { name: 'Grow rendered content' }).click()
+    await expect(renderedBlock).toHaveCSS('height', '336px')
     await expectAtBottom(list)
   })
 
@@ -149,8 +152,10 @@ test.describe('BubbleList', () => {
     const component = await mount(BubbleListFixture)
     const section = component.getByTestId('scroll-section')
     const list = section.getByTestId('scroll-list')
+    const renderedBlock = section.getByTestId('late-rendered-block')
 
     await expectAtBottom(list)
+    await expect(renderedBlock).toHaveCSS('height', '16px')
     await waitForStableScroll(list)
     await list.evaluate((element) => {
       element.scrollTop = element.scrollHeight - element.clientHeight - 100
@@ -160,6 +165,7 @@ test.describe('BubbleList', () => {
     const before = await list.evaluate((element) => element.scrollTop)
 
     await section.getByRole('button', { name: 'Grow rendered content' }).click()
+    await expect(renderedBlock).toHaveCSS('height', '336px')
     await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBe(before)
   })
 
