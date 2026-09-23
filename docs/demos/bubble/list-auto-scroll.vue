@@ -17,18 +17,21 @@
     >
       <tr-bubble-list :messages="messages" :role-configs="roles" :auto-scroll="autoScroll" style="max-height: 100%">
         <template #after="{ messages: groupMessages }">
-          <div v-if="showAsyncContent && isImageMessage(groupMessages)" class="async-content">
-            <img
-              v-if="imageStatus === 'loaded'"
-              class="async-image"
-              :src="earthriseImageUrl"
-              alt="从月球地平线上升起的地球"
-              @error="imageStatus = 'error'"
-            />
-            <div v-if="imageStatus === 'error'" class="async-status">图片加载失败，请重试</div>
-            <div v-else class="async-caption">
-              <strong>Earthrise · Apollo 8</strong>
-              <span>NASA / Bill Anders，1968</span>
+          <div v-for="message in getAsyncMessages(groupMessages)" :key="message.id" class="async-content">
+            <template v-if="getImageStatus(message) === 'loaded'">
+              <img
+                class="async-image"
+                :src="earthriseImageUrl"
+                alt="从月球地平线上升起的地球"
+                @error="setImageStatus(message, 'error')"
+              />
+              <div class="async-caption">
+                <strong>Earthrise · Apollo 8</strong>
+                <span>NASA / Bill Anders，1968</span>
+              </div>
+            </template>
+            <div v-else class="async-status">
+              {{ getImageStatus(message) === 'loading' ? '图片加载中…' : '图片加载失败' }}
             </div>
           </div>
         </template>
@@ -46,20 +49,27 @@ const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
 const autoScroll = ref(true)
-const imageMessageId = 'earthrise-message'
-const imageStatus = ref<'idle' | 'loading' | 'loaded' | 'error'>('idle')
+type ImageStatus = 'loading' | 'loaded' | 'error'
+type Message = BubbleListProps['messages'][number]
+
+const imageStatuses = ref<Record<string, ImageStatus>>({})
 const earthriseImageUrl =
   'https://assets.science.nasa.gov/dynamicimage/assets/science/esd/climate/2023/12/August-2013_1920x1200.jpg?crop=faces%2Cfocalpoint&fit=clip&h=1200&w=1920'
-const isImageLoading = computed(() => imageStatus.value === 'loading')
-const showAsyncContent = computed(() => imageStatus.value === 'loaded' || imageStatus.value === 'error')
+const isImageLoading = computed(() => Object.values(imageStatuses.value).some((status) => status === 'loading'))
 
 const messages = ref<BubbleListProps['messages']>([
-  { role: 'user', content: '请展示一张经典的太空照片' },
-  { id: imageMessageId, role: 'ai', content: '当然，这是 Apollo 8 拍摄的 Earthrise：' },
+  { id: 'message-1', role: 'user', content: '请展示一张经典的太空照片' },
+  { id: 'message-2', role: 'ai', content: '当然，这是 Apollo 8 拍摄的 Earthrise：' },
 ])
 
-const isImageMessage = (groupMessages: BubbleListProps['messages']) =>
-  groupMessages.some((message) => message.id === imageMessageId)
+const getImageStatus = (message: Message) => (message.id ? imageStatuses.value[message.id] : undefined)
+const getAsyncMessages = (groupMessages: BubbleListProps['messages']) =>
+  groupMessages.filter((message) => getImageStatus(message))
+const setImageStatus = (message: Message, status: ImageStatus) => {
+  if (message.id) {
+    imageStatuses.value[message.id] = status
+  }
+}
 
 const roles: Record<string, BubbleRoleConfig> = {
   ai: { placement: 'start', avatar: aiAvatar },
@@ -71,20 +81,27 @@ let messageCount = 2
 const addMessage = () => {
   messageCount++
   const role = messageCount % 2 === 0 ? 'ai' : 'user'
-  messages.value.push({ role, content: `第 ${messageCount} 条消息` })
+  messages.value.push({ id: `message-${messageCount}`, role, content: `第 ${messageCount} 条消息` })
 }
 
-let imageTimer: number | undefined
+const imageTimers = new Map<string, number>()
 
 const loadAsyncImage = () => {
-  window.clearTimeout(imageTimer)
-  imageStatus.value = 'loading'
-  imageTimer = window.setTimeout(() => {
-    imageStatus.value = 'loaded'
-  }, 300)
+  const message = messages.value.at(-1)
+  const messageId = message?.id
+  if (!message || !messageId || getImageStatus(message)) {
+    return
+  }
+
+  setImageStatus(message, 'loading')
+  const timer = window.setTimeout(() => {
+    setImageStatus(message, 'loaded')
+    imageTimers.delete(messageId)
+  }, 500)
+  imageTimers.set(messageId, timer)
 }
 
-onBeforeUnmount(() => window.clearTimeout(imageTimer))
+onBeforeUnmount(() => imageTimers.forEach((timer) => window.clearTimeout(timer)))
 </script>
 
 <style scoped>
