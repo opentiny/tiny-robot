@@ -21,9 +21,12 @@ test.describe('BubbleList auto-scroll demo', () => {
   })
 
   test('shows the loading region for 500ms, then mounts a compact image card at once', async ({ mount, page }) => {
+    await page.clock.install()
     const component = await mount(BubbleListAutoScrollDemo)
     const region = component.locator('.async-content')
     const button = component.getByRole('button', { name: '模拟图片异步加载' })
+    const list = component.locator('.tr-bubble-list')
+    const initialScrollHeight = await list.evaluate((element) => element.scrollHeight)
 
     await button.click()
     await expect(component.getByRole('button', { name: '图片加载中…' })).toBeDisabled()
@@ -31,10 +34,11 @@ test.describe('BubbleList auto-scroll demo', () => {
     await expect(region).toContainText('图片加载中…')
     await expect(region.getByRole('img')).toHaveCount(0)
 
-    await page.waitForTimeout(400)
+    await page.clock.fastForward(400)
     await expect(region).toContainText('图片加载中…')
     await expect(region.getByRole('img')).toHaveCount(0)
 
+    await page.clock.fastForward(100)
     await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
     await expect(region).toContainText('Earthrise · Apollo 8')
 
@@ -45,6 +49,11 @@ test.describe('BubbleList auto-scroll demo', () => {
 
     expect(sizes.contentHeight).toBeGreaterThan(100)
     expect(sizes.contentHeight).toBeLessThan(sizes.containerHeight)
+    await expect.poll(() => list.evaluate((element) => element.scrollHeight)).toBeGreaterThan(initialScrollHeight)
+    await expect.poll(() => list.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true)
+    await expect
+      .poll(() => list.evaluate((element) => element.scrollHeight - element.clientHeight - element.scrollTop))
+      .toBeLessThanOrEqual(1)
   })
 
   test('creates one asynchronous region per source message', async ({ mount, page }) => {
