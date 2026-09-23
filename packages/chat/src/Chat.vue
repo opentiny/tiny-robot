@@ -289,9 +289,6 @@ function handleFloatingResizeEnd(detail: LayoutFloatingResizeDetail) {
     <template v-if="slots['header-notice']" #header-notice>
       <slot name="header-notice" />
     </template>
-    <template v-if="slots['request-error']" #request-error="slotProps">
-      <slot name="request-error" v-bind="slotProps" />
-    </template>
     <template v-if="slots['welcome-footer']" #welcome-footer>
       <slot name="welcome-footer" />
     </template>

@@ -106,7 +106,6 @@ export interface ChatUISlots {
   'layout-footer'?: (props: ChatSenderSlotProps) => unknown
   'composer-before'?: (props: ChatSenderSlotProps) => unknown
   'header-notice'?: () => unknown
-  'request-error'?: (props: { error: unknown }) => unknown
   'welcome-footer'?: () => unknown
   'prompts-footer'?: () => unknown
   'bubble-prefix'?: (props: ChatBubbleSlotProps) => unknown

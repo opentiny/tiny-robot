@@ -39,7 +39,6 @@ export interface ChatSenderView {
 export interface ChatRequestView {
   readonly state: ChatRequestState
   readonly processingState?: ChatProcessingState
-  readonly error?: unknown
 }
 
 export interface ChatModelView {
