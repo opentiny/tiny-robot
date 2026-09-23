@@ -89,4 +89,16 @@ test.describe('useAutoScroll', () => {
     await expectAtBottom(observedScroller)
     await expect(scroller).toHaveJSProperty('scrollTop', 0)
   })
+
+  test('follows content that mounts after the scroll root', async ({ mount }) => {
+    const component = await mount(AutoScrollFixture)
+    const scroller = component.getByTestId('delayed-scroll')
+
+    await component.evaluate(
+      () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+    )
+    await component.getByRole('button', { name: 'Mount delayed content' }).click()
+    await expect(component.getByTestId('delayed-content')).toHaveCSS('height', '520px')
+    await expectAtBottom(scroller)
+  })
 })

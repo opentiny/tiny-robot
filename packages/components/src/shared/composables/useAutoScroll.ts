@@ -161,19 +161,16 @@ export function useAutoScroll(
     })
   }
 
-  const createResizeHandler = () => {
-    let initialized = false
-
-    return () => {
-      if (!initialized) {
-        initialized = true
-        if (!scrollOnMount) {
-          syncFollowingFromScrollPosition()
-          return
-        }
+  let initialized = false
+  const handleResize = () => {
+    if (!initialized) {
+      initialized = true
+      if (!scrollOnMount) {
+        syncFollowingFromScrollPosition()
+        return
       }
-      scheduleScroll()
     }
+    scheduleScroll()
   }
 
   /** 用户向上离开底部时停止跟随；内容增长本身不会清除跟随意图 */
@@ -192,8 +189,8 @@ export function useAutoScroll(
     { flush: 'post' },
   )
 
-  useResizeObserver(contentElement, createResizeHandler())
-  useResizeObserver(targetElement, createResizeHandler())
+  useResizeObserver(contentElement, handleResize)
+  useResizeObserver(targetElement, handleResize)
 
   /** 保留旧版业务信号驱动方式 */
   if (source !== undefined) {

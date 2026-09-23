@@ -31,6 +31,16 @@ useAutoScroll({
   scrollOnMount: false,
 })
 
+const delayedScrollRef = ref<HTMLElement | null>(null)
+const delayedContentRef = ref<HTMLElement | null>(null)
+const showDelayedContent = ref(false)
+
+useAutoScroll({
+  scrollRef: delayedScrollRef,
+  contentRef: delayedContentRef,
+  scrollOnMount: false,
+})
+
 const growObservedContent = () => {
   blockHeight.value += 320
 }
@@ -57,6 +67,11 @@ const growLegacyContent = () => {
 
     <div ref="noMountScrollRef" data-testid="no-mount-scroll" class="scroll-host">
       <div ref="noMountContentRef" :style="{ height: `${blockHeight}px` }" />
+    </div>
+
+    <button type="button" @click="showDelayedContent = true">Mount delayed content</button>
+    <div ref="delayedScrollRef" data-testid="delayed-scroll" class="scroll-host">
+      <div v-if="showDelayedContent" ref="delayedContentRef" data-testid="delayed-content" style="height: 520px" />
     </div>
   </section>
 </template>
