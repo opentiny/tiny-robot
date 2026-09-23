@@ -39,8 +39,33 @@ const unresolvedContent: BubbleMessage['content'] = [{ type: 'unknown', label: '
 
     <Bubble data-testid="empty-bubble" role="assistant" />
     <Bubble data-testid="hidden-bubble" role="assistant" content="Hidden text" hidden />
+    <Bubble
+      data-testid="content-error-bubble"
+      id="content-error"
+      role="assistant"
+      content="Partial answer"
+      :state="{ error: { message: 'Provider failed' } }"
+    />
+    <Bubble
+      data-testid="error-only-bubble"
+      id="error-only"
+      role="assistant"
+      content=""
+      :state="{ error: { message: 'Only failure' } }"
+    />
+    <Bubble data-testid="false-error-bubble" role="assistant" content="" :state="{ error: false }" />
+    <Bubble data-testid="zero-error-bubble" role="assistant" content="" :state="{ error: 0 }" />
+    <Bubble data-testid="empty-error-bubble" role="assistant" content="" :state="{ error: '' }" />
+    <Bubble data-testid="null-error-bubble" role="assistant" content="" :state="{ error: null }" />
+    <Bubble data-testid="undefined-error-bubble" role="assistant" content="" :state="{ error: undefined }" />
 
-    <Bubble data-testid="split-bubble" role="assistant" :content="splitContent" content-render-mode="split">
+    <Bubble
+      data-testid="split-bubble"
+      role="assistant"
+      :content="splitContent"
+      :state="{ error: { message: 'Split failed' } }"
+      content-render-mode="split"
+    >
       <template #content-footer="{ contentIndex }">
         <span data-testid="split-footer">footer-{{ contentIndex }}</span>
       </template>

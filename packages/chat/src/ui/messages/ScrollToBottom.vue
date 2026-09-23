@@ -32,6 +32,8 @@ function scheduleSyncDistance() {
 }
 
 useEventListener(() => props.target, 'scroll', scheduleSyncDistance)
+useEventListener(() => props.target, 'load', scheduleSyncDistance, { capture: true })
+useEventListener(() => props.target, 'loadedmetadata', scheduleSyncDistance, { capture: true })
 useResizeObserver(() => props.target, scheduleSyncDistance)
 useMutationObserver(() => props.target, scheduleSyncDistance, { childList: true, subtree: true })
 

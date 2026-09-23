@@ -28,6 +28,16 @@ const consecutiveMessages: BubbleMessage[] = [
 
 const fallbackMessages: BubbleMessage[] = [{ id: 'fallback', content: 'Ignored fallback content' }]
 
+const errorMessages: BubbleMessage[] = [
+  {
+    id: 'error-first',
+    role: 'assistant',
+    content: 'First partial answer',
+    state: { error: { message: 'First answer failed' } },
+  },
+  { id: 'error-second', role: 'assistant', content: 'Second answer' },
+]
+
 const eventMessages: BubbleMessage[] = [
   { id: 'm0', role: 'assistant', content: [{ type: 'custom', text: 'Message zero' }] },
   { id: 'm1', role: 'assistant', content: [{ type: 'custom', text: 'Message one' }] },
@@ -119,6 +129,10 @@ const growRenderedContent = () => {
         :role-configs="{ assistant: { placement: 'end', shape: 'rounded' } }"
         :content-resolver="(message) => `Resolved ${message.id}`"
       />
+    </section>
+
+    <section data-testid="error-list">
+      <BubbleList :messages="errorMessages" group-strategy="consecutive" />
     </section>
 
     <section data-testid="custom-list">
