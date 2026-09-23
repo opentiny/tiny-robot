@@ -15,12 +15,8 @@
     >
       <tr-bubble-list :messages="messages" :role-configs="roles" :auto-scroll="autoScroll" style="max-height: 100%">
         <template #after="{ messageIndexes }">
-          <div
-            v-if="messageIndexes.at(-1) === messages.length - 1"
-            class="async-content"
-            :style="{ height: `${asyncContentHeight}px` }"
-          >
-            异步渲染区域
+          <div v-if="asyncContentVisible && messageIndexes.at(-1) === messages.length - 1" class="async-content">
+            异步内容已渲染（高度 336px）
           </div>
         </template>
       </tr-bubble-list>
@@ -37,7 +33,7 @@ const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
 const autoScroll = ref(true)
-const asyncContentHeight = ref(16)
+const asyncContentVisible = ref(false)
 
 const messages = ref<BubbleListProps['messages']>([
   { role: 'user', content: '第一条消息' },
@@ -58,8 +54,9 @@ const addMessage = () => {
 }
 
 const growAsyncContent = () => {
+  asyncContentVisible.value = false
   window.setTimeout(() => {
-    asyncContentHeight.value = 336
+    asyncContentVisible.value = true
   }, 300)
 }
 </script>
@@ -71,10 +68,11 @@ const growAsyncContent = () => {
 
 .async-content {
   box-sizing: border-box;
-  overflow: hidden;
+  height: 336px;
   margin-top: 8px;
+  padding: 16px;
+  border: 1px dashed var(--tr-color-primary);
   border-radius: 4px;
-  background: var(--tr-color-bg-2);
-  transition: height 0.2s ease;
+  background: var(--tr-color-primary-light);
 }
 </style>
