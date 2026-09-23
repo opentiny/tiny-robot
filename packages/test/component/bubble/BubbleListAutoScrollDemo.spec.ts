@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
 import BubbleListAutoScrollDemo from '../../../../docs/demos/bubble/list-auto-scroll.vue'
 
+const earthriseImage = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1200">
+    <rect width="1900" height="1200" fill="#111827" />
+  </svg>
+`
+
 test.describe('BubbleList auto-scroll demo', () => {
   test('does not render the asynchronous region before it is triggered', async ({ mount }) => {
     const component = await mount(BubbleListAutoScrollDemo)
@@ -8,16 +14,27 @@ test.describe('BubbleList auto-scroll demo', () => {
     await expect(component.locator('.async-content')).toHaveCount(0)
   })
 
-  test('renders a visibly bounded 336px asynchronous region after the delay', async ({ mount }) => {
+  test('loads a compact Earthrise card without filling the scroll viewport', async ({ mount, page }) => {
+    await page.route('https://assets.science.nasa.gov/**', async (route) => {
+      await route.fulfill({ body: earthriseImage, contentType: 'image/svg+xml' })
+    })
+
     const component = await mount(BubbleListAutoScrollDemo)
     const region = component.locator('.async-content')
+    const button = component.getByRole('button', { name: '模拟图片异步加载' })
 
-    await component.getByRole('button', { name: '模拟异步增高' }).click()
+    await button.click()
+    await expect(component.getByRole('button', { name: '图片加载中…' })).toBeDisabled()
     await expect(region).toBeVisible()
-    await expect(region).toHaveCSS('height', '336px')
-    await expect(region).toHaveCSS('border-top-style', 'dashed')
-    await expect
-      .poll(() => region.evaluate((element) => getComputedStyle(element).backgroundColor))
-      .not.toBe('rgba(0, 0, 0, 0)')
+    await expect(region.getByRole('img', { name: '从月球地平线上升起的地球' })).toBeVisible()
+    await expect(region).toContainText('Earthrise · Apollo 8')
+
+    const sizes = await component.locator('.scroll-container').evaluate((container) => {
+      const content = container.querySelector<HTMLElement>('.async-content')!
+      return { contentHeight: content.offsetHeight, containerHeight: container.clientHeight }
+    })
+
+    expect(sizes.contentHeight).toBeGreaterThan(100)
+    expect(sizes.contentHeight).toBeLessThan(sizes.containerHeight)
   })
 })
