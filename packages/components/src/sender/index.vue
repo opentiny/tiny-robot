@@ -36,13 +36,19 @@ const props = withDefaults(defineProps<SenderProps>(), {
 const emit = defineEmits<SenderEmits>()
 
 // 输入区域元素引用
-const inputRef = ref<HTMLElement | null>(null)
+type TinyInputInstance = HTMLElement & {
+  resizeTextarea?: () => void
+}
+
+const inputRef = ref<TinyInputInstance | null>(null)
 const senderRef = ref<HTMLElement | null>(null)
 const templateEditorRef = ref<InstanceType<typeof TemplateEditor> | null>(null)
 const inputWrapperRef = ref<HTMLElement | null>(null)
 const inputPrefixRef = ref<HTMLElement | null>(null)
 const buttonsContainerRef = ref<HTMLElement | null>(null)
 const inputPrefixScrollTop = ref(0)
+const inputPrefixWidth = ref(0)
+let inputWrapperWidth = 0
 let inputPrefixTextarea: HTMLTextAreaElement | null = null
 
 // 是否显示模板编辑器
@@ -431,12 +437,31 @@ const hasDecorativeContent = computed(() => !!slots.decorativeContent)
 const showInputPrefix = computed(
   () => currentMode.value === 'multiple' && !!slots['input-prefix'] && !showTemplateEditor.value,
 )
+const hasInputPrefix = computed(() => showInputPrefix.value && inputPrefixWidth.value > 0)
+
+const resizeTextarea = () => {
+  nextTick(() => {
+    if (currentMode.value === 'multiple') {
+      inputRef.value?.resizeTextarea?.()
+    }
+  })
+}
 
 useResizeObserver(inputPrefixRef, ([entry]) => {
+  const width = entry.contentRect.width
+  inputPrefixWidth.value = width
   inputPrefixRef.value?.parentElement?.style.setProperty(
     '--tr-sender-input-prefix-width',
-    `${entry.contentRect.width}px`,
+    `${width}px`,
   )
+  resizeTextarea()
+})
+
+useResizeObserver(inputWrapperRef, ([entry]) => {
+  if (entry.contentRect.width === inputWrapperWidth) return
+
+  inputWrapperWidth = entry.contentRect.width
+  resizeTextarea()
 })
 
 const handleInputPrefixScroll = (event: Event) => {
@@ -456,7 +481,7 @@ const syncInputPrefixScroll = async (show: boolean) => {
 
   await nextTick()
 
-  if (!showInputPrefix.value) return
+  if (!hasInputPrefix.value) return
 
   const textarea = senderRef.value?.querySelector('.tiny-textarea__inner') as HTMLTextAreaElement | null
   if (!textarea) return
@@ -467,7 +492,7 @@ const syncInputPrefixScroll = async (show: boolean) => {
 }
 
 watch(
-  [showInputPrefix, inputRef],
+  [hasInputPrefix, inputRef],
   ([show]) => {
     syncInputPrefixScroll(show)
   },
@@ -596,7 +621,7 @@ defineExpose({
                 />
               </template>
               <!-- 普通输入框 -->
-              <div v-else class="tiny-sender__input-field-wrapper" :class="{ 'has-input-prefix': showInputPrefix }">
+              <div v-else class="tiny-sender__input-field-wrapper" :class="{ 'has-input-prefix': hasInputPrefix }">
                 <div
                   v-if="showInputPrefix"
                   ref="inputPrefixRef"
