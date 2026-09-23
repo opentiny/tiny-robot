@@ -5,17 +5,16 @@ import {
   useChatRuntimeAdapter,
   type ChatHistoryData,
   type ChatPromptClickPayload,
-  type ChatRuntimeActionErrorPayload,
 } from '@opentiny/tiny-robot-chat'
 import DouBaoIcon from './DouBaoIcon.vue'
 import DouBaoHeader from './DouBaoHeader.vue'
 import DouBaoSidebar from './DouBaoSidebar.vue'
-import { formatChatActionError } from '../shared/formatChatActionError'
+import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 import { douBaoConversationPrompts, douBaoConversationWelcome } from './config'
 import { useDouBaoRuntime } from './runtime'
 
 const { runtime, startBlank } = useDouBaoRuntime()
-const actionErrorMessage = shallowRef('')
+const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
 const promptAdapter = useChatRuntimeAdapter({
   runtime,
   onActionError: handleRuntimeActionError,
@@ -106,10 +105,6 @@ function toggleSidebar(toggleLeftAside: () => void) {
 
 function handlePromptClick(payload: ChatPromptClickPayload) {
   void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
-}
-
-function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
 }
 
 function handleConversationSelect(id: string, switchConversation: (id: string) => void) {

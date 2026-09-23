@@ -180,6 +180,9 @@ const IconFloatWindow = h(
     height: 52px;
     padding: 0 10px;
   }
+  .chat-add-header__history-trigger {
+    position: static;
+  }
   .chat-add-header__history-panel {
     position: absolute;
     top: 52px;

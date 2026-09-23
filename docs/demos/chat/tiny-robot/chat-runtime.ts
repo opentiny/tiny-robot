@@ -7,7 +7,10 @@ export interface McpExample {
   request: string
 }
 
-const defaultApiUrl = `${import.meta.env.BASE_URL}api`
+const defaultApiUrl = new URL(
+  `${import.meta.env.BASE_URL}api`,
+  globalThis.location?.origin ?? 'http://localhost',
+).toString()
 
 export const mcpExamples: McpExample[] = [
   { id: 'weather', title: '查询北京天气', request: '查询北京今天的天气，并给出出行建议' },

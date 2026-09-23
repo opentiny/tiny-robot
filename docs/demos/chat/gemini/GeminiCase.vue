@@ -1,11 +1,6 @@
 <script setup lang="ts">
-import { computed, defineComponent, h, shallowRef } from 'vue'
-import {
-  TrChat,
-  useChatRuntimeAdapter,
-  type ChatHistoryData,
-  type ChatRuntimeActionErrorPayload,
-} from '@opentiny/tiny-robot-chat'
+import { computed, defineComponent, h } from 'vue'
+import { TrChat, useChatRuntimeAdapter, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
 import { IconNewSession, IconPlus, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import GeminiComposer from './GeminiComposer.vue'
 import GeminiHeader from './GeminiHeader.vue'
@@ -13,7 +8,7 @@ import GeminiRail from './GeminiRail.vue'
 import geminiMask from './icons/gemini-mask.svg'
 import { geminiConversationStorageKey, geminiMockConversations, geminiWelcome } from './config'
 import { useChatCaseRuntime } from '../shared/createChatRuntime'
-import { formatChatActionError } from '../shared/formatChatActionError'
+import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 
 const GeminiLogo = defineComponent({
   name: 'GeminiLogo',
@@ -38,11 +33,7 @@ const historyData = computed<ChatHistoryData>(() => {
   return items.length ? [{ group: '最近', items }] : []
 })
 
-const actionErrorMessage = shallowRef('')
-
-function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
-}
+const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
 
 const modelAdapter = useChatRuntimeAdapter({
   runtime,

@@ -1,4 +1,5 @@
 import type { ChatRuntimeActionErrorPayload } from '@opentiny/tiny-robot-chat'
+import { onScopeDispose, shallowRef } from 'vue'
 
 type GlobalFeedbackAction = Exclude<ChatRuntimeActionErrorPayload['action'], 'send'>
 
@@ -22,4 +23,33 @@ export function formatChatActionError(action: ChatRuntimeActionErrorPayload['act
   if (action === 'send') return null
 
   return `${actionLabels[action]}失败，请重试`
+}
+
+export function useChatActionErrorMessage(dismissAfter = 3000) {
+  const actionErrorMessage = shallowRef('')
+  let dismissTimer: ReturnType<typeof setTimeout> | undefined
+
+  function clearDismissTimer() {
+    if (dismissTimer === undefined) return
+
+    clearTimeout(dismissTimer)
+    dismissTimer = undefined
+  }
+
+  function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
+    clearDismissTimer()
+    const message = formatChatActionError(payload.action)
+    actionErrorMessage.value = message ?? ''
+
+    if (!message) return
+
+    dismissTimer = setTimeout(() => {
+      actionErrorMessage.value = ''
+      dismissTimer = undefined
+    }, dismissAfter)
+  }
+
+  onScopeDispose(clearDismissTimer)
+
+  return { actionErrorMessage, handleRuntimeActionError }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineComponent, h, shallowRef } from 'vue'
-import { TrChat, type ChatRuntimeActionErrorPayload } from '@opentiny/tiny-robot-chat'
+import { TrChat } from '@opentiny/tiny-robot-chat'
 import { IconImageUpload, IconSparkles, IconThink } from '@opentiny/tiny-robot-svgs'
 import DeepSeekHeader from './DeepSeekHeader.vue'
 import deepseekMark from './icons/deepseek-mark.svg'
@@ -10,7 +10,7 @@ import searchIcon from './icons/search.svg'
 import sidebarToggleIcon from './icons/sidebar-toggle.svg'
 import { deepseekConversationStorageKey, deepseekMockConversations, deepseekWelcome } from './config'
 import { useChatCaseRuntime } from '../shared/createChatRuntime'
-import { formatChatActionError } from '../shared/formatChatActionError'
+import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 
 const DeepSeekLogo = defineComponent({
   name: 'DeepSeekLogo',
@@ -34,7 +34,7 @@ const activeWelcomeMode = shallowRef<DeepSeekWelcomeMode>('fast')
 const activeWelcomeModeLabel = computed(
   () => deepseekWelcomeModes.find((mode) => mode.id === activeWelcomeMode.value)?.label ?? '',
 )
-const actionErrorMessage = shallowRef('')
+const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
 const historyData = computed(() => {
   const groups = ['置顶', '昨天', '30天内'] as const
   const grouped = new Map<string, typeof runtime.conversations.value>()
@@ -50,10 +50,6 @@ const historyData = computed(() => {
 
   return [...grouped.entries()].filter(([, items]) => items.length > 0).map(([group, items]) => ({ group, items }))
 })
-
-function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
-}
 
 const chatUi = computed(() => ({
   brand: { name: 'DeepSeek', logo: DeepSeekLogo },

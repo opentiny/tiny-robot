@@ -113,7 +113,9 @@ function createDouBaoMemoryStorage(): ConversationStorageStrategy {
         conversations[index] = nextConversation
       }
     },
-    saveMessages: (conversationId, nextMessages) => messages.set(conversationId, [...nextMessages]),
+    saveMessages(conversationId, nextMessages) {
+      messages.set(conversationId, [...nextMessages])
+    },
     deleteConversation(conversationId) {
       const index = conversations.findIndex((conversation) => conversation.id === conversationId)
 

@@ -222,7 +222,7 @@ const ui = {
 
 ### Events
 
-`TrChatUI` 发出下列事件；`TrChat` 消费会话、发送、模型和 MCP 的标准动作，仅转发 `history-action`、`mcp-create-server`、气泡事件、侧栏状态和浮动状态事件。
+`TrChatUI` 发出下列事件；`TrChat` 消费会话、发送、模型和 MCP 的标准动作，转发 `history-action`、`prompt-click`、`mcp-create-server`、气泡事件、侧栏状态和浮动状态事件。Runtime 动作失败时，`TrChat` 额外发出 `runtime-action-error`。
 
 | 事件                                                 | 参数                                                     | 触发时机                                                                 |
 | ---------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -282,6 +282,21 @@ const ui = {
 ### Types
 
 所有下列类型从 `@opentiny/tiny-robot-chat` 导出。`?` 表示可选字段。
+
+#### 组件契约与基础类型
+
+| 类型                           | 类型或字段                                                                                                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChatUIProps`                  | `inputValue?`、`defaultInputValue?`、`data?`、`ui?`、`floatingState?`、`rightAsideOpen?`、`defaultRightAsideOpen?`、`activeRightAsidePanelId?`、`defaultActiveRightAsidePanelId?` |
+| `ChatUIEmits`                  | `TrChatUI` 的公开事件映射；事件名和参数见 Events。                                                                                                                                |
+| `ChatCssSize`                  | `string \| number`                                                                                                                                                                |
+| `ChatWelcomeComposerPlacement` | `'footer' \| 'center'`                                                                                                                                                            |
+| `ChatRightAsidePanelId`        | `string`                                                                                                                                                                          |
+| `ChatRightAsidePanelContext`   | `panelId: ChatRightAsidePanelId \| undefined`；`panel?: ChatRightAsidePanelOptions`                                                                                               |
+| `ChatBuiltInModelFeature`      | `'thinking' \| 'search'`                                                                                                                                                          |
+| `ChatRequestState`             | `'idle' \| 'processing' \| 'completed' \| 'paused' \| 'aborted' \| 'error'`                                                                                                       |
+| `ChatProcessingState`          | `'requesting' \| 'completing' \| string`                                                                                                                                          |
+| `ChatMessageContent`           | `string \| ChatMessagePart[]`                                                                                                                                                     |
 
 #### 展示数据
 
@@ -355,8 +370,11 @@ const ui = {
 | 类型                                                     | 字段                                                                                                             |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `ChatSendPayload`                                        | `text: string`；`structuredData?: ChatStructuredData`                                                            |
-| `ChatStructuredData`                                     | `ChatStructuredDataItem[]`；每项包含 `type: string`，可追加业务字段。                                            |
+| `ChatStructuredData`                                     | `ChatStructuredDataItem[]`                                                                                       |
+| `ChatStructuredDataItem`                                 | `type: string`；可追加自定义字段。                                                                               |
 | `ChatHistoryActionPayload`                               | `action: HistoryMenuItem`；`conversation: ChatConversationInfo`；`defaultPrevented: boolean`；`preventDefault()` |
+| `ChatSwitchConversationPayload`                          | `conversationId: string`                                                                                         |
+| `ChatRenameConversationPayload`                          | `conversationId: string`；`title: string`                                                                        |
 | `ChatPromptClickPayload`                                 | `event: MouseEvent`；`item: PromptProps`                                                                         |
 | `ChatModelSelectPayload`                                 | `modelId: string \| null`                                                                                        |
 | `ChatModelFeatureChangePayload`                          | `featureId: 'thinking' \| 'search'`；`enabled: boolean`                                                          |

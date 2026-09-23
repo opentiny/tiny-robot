@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  TrChat,
-  useChatRuntimeAdapter,
-  type ChatPromptClickPayload,
-  type ChatRuntimeActionErrorPayload,
-} from '@opentiny/tiny-robot-chat'
+import { TrChat, useChatRuntimeAdapter, type ChatPromptClickPayload } from '@opentiny/tiny-robot-chat'
 import {
   IconAi,
   IconBrowser,
@@ -16,7 +11,7 @@ import {
 } from '@opentiny/tiny-robot-svgs'
 import { computed, h, markRaw, shallowRef } from 'vue'
 import { useChatCaseRuntime } from '../shared/createChatRuntime'
-import { formatChatActionError } from '../shared/formatChatActionError'
+import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 
 const cards = [
   { id: 'trouble', title: '故障处理', prompt: '弹性公网IP不通怎么办?', tone: 'warning', icon: markRaw(IconWarning) },
@@ -35,7 +30,7 @@ const cards = [
 
 const promptBatchSize = 6
 const batchIndex = shallowRef(0)
-const actionErrorMessage = shallowRef('')
+const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
 const runtime = useChatCaseRuntime({
   storageKey: 'tiny-robot-work-helper-conversations',
 })
@@ -109,10 +104,6 @@ function shuffleCards() {
 
 function handlePromptClick(payload: ChatPromptClickPayload) {
   void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
-}
-
-function handleRuntimeActionError(payload: ChatRuntimeActionErrorPayload) {
-  actionErrorMessage.value = formatChatActionError(payload.action) ?? ''
 }
 </script>
 
