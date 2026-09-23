@@ -19,7 +19,7 @@ export interface ChatWritable<T> {
 
 export type ChatIcon = ModelSelectorOption['icon']
 
-export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'aborted' | 'error'
+export type ChatRequestState = 'idle' | 'processing' | 'completed' | 'paused' | 'aborted' | 'error'
 
 export type ChatProcessingState = 'requesting' | 'completing' | string
 

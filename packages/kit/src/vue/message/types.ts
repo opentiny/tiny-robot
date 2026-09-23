@@ -177,6 +177,11 @@ export interface UseMessagePluginInitContext {
   setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
 }
 
+export interface UseMessageErrorContext extends BasePluginContext {
+  error: unknown
+  appendMessage: (message: ChatMessage | ChatMessage[]) => void
+}
+
 export interface UseMessagePlugin {
   /**
    * 插件名称。
@@ -241,7 +246,7 @@ export interface UseMessagePlugin {
       chunk: ChatCompletion
     },
   ) => void
-  onError?: (context: BasePluginContext & { error: unknown }) => void
+  onError?: (context: UseMessageErrorContext) => MaybePromise<void>
   onFinally?: (context: BasePluginContext) => void
   /**
    * 插件命令集合。

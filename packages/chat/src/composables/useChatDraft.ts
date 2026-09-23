@@ -17,15 +17,16 @@ export interface UseChatDraftOptions {
 
 export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
   const inputValue = shallowRef('')
-  let draftVersion = 0
+  let latestSendId = 0
+  let inputRevision = 0
 
   function setInputValue(value: string) {
-    draftVersion++
+    inputRevision++
     inputValue.value = value
   }
 
   function invalidate() {
-    draftVersion++
+    inputRevision++
   }
 
   async function send(payload: ChatSendPayload): Promise<boolean> {
@@ -35,7 +36,8 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
       return false
     }
 
-    const sendVersion = ++draftVersion
+    const sendId = ++latestSendId
+    const revisionAtClear = inputRevision
     const previousInputValue = inputValue.value
 
     try {
@@ -46,13 +48,13 @@ export function useChatDraft(options: UseChatDraftOptions): ChatDraft {
         text,
       })
 
-      if (!accepted && draftVersion === sendVersion && inputValue.value === '') {
+      if (!accepted && sendId === latestSendId && inputRevision === revisionAtClear && inputValue.value === '') {
         inputValue.value = previousInputValue
       }
 
       return accepted
     } catch (error) {
-      if (draftVersion === sendVersion && inputValue.value === '') {
+      if (sendId === latestSendId && inputRevision === revisionAtClear && inputValue.value === '') {
         inputValue.value = previousInputValue
       }
       throw error
