@@ -16,19 +16,17 @@
       style="height: 300px; border: 1px solid #ddd; border-radius: 4px; overflow-y: auto; padding: 8px"
     >
       <tr-bubble-list :messages="messages" :role-configs="roles" :auto-scroll="autoScroll" style="max-height: 100%">
-        <template #after="{ messageIndexes }">
-          <div v-if="showAsyncContent && messageIndexes.at(-1) === messages.length - 1" class="async-content">
+        <template #after="{ messages: groupMessages }">
+          <div v-if="showAsyncContent && isImageMessage(groupMessages)" class="async-content">
             <img
-              v-if="imageStatus !== 'error'"
+              v-if="imageStatus === 'loaded'"
               class="async-image"
               :src="earthriseImageUrl"
               alt="从月球地平线上升起的地球"
-              @load="imageStatus = 'loaded'"
               @error="imageStatus = 'error'"
             />
-            <div v-if="imageStatus === 'loading'" class="async-status">正在加载图片资源…</div>
-            <div v-else-if="imageStatus === 'error'" class="async-status">图片加载失败，请重试</div>
-            <div v-else-if="imageStatus === 'loaded'" class="async-caption">
+            <div v-if="imageStatus === 'error'" class="async-status">图片加载失败，请重试</div>
+            <div v-else class="async-caption">
               <strong>Earthrise · Apollo 8</strong>
               <span>NASA / Bill Anders，1968</span>
             </div>
@@ -48,18 +46,20 @@ const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
 const autoScroll = ref(true)
-const imageStatus = ref<'idle' | 'waiting' | 'loading' | 'loaded' | 'error'>('idle')
+const imageMessageId = 'earthrise-message'
+const imageStatus = ref<'idle' | 'loading' | 'loaded' | 'error'>('idle')
 const earthriseImageUrl =
   'https://assets.science.nasa.gov/dynamicimage/assets/science/esd/climate/2023/12/August-2013_1920x1200.jpg?crop=faces%2Cfocalpoint&fit=clip&h=1200&w=1920'
-const isImageLoading = computed(() => imageStatus.value === 'waiting' || imageStatus.value === 'loading')
-const showAsyncContent = computed(
-  () => imageStatus.value === 'loading' || imageStatus.value === 'loaded' || imageStatus.value === 'error',
-)
+const isImageLoading = computed(() => imageStatus.value === 'loading')
+const showAsyncContent = computed(() => imageStatus.value === 'loaded' || imageStatus.value === 'error')
 
 const messages = ref<BubbleListProps['messages']>([
-  { role: 'user', content: '第一条消息' },
-  { role: 'ai', content: 'AI 回复' },
+  { role: 'user', content: '请展示一张经典的太空照片' },
+  { id: imageMessageId, role: 'ai', content: '当然，这是 Apollo 8 拍摄的 Earthrise：' },
 ])
+
+const isImageMessage = (groupMessages: BubbleListProps['messages']) =>
+  groupMessages.some((message) => message.id === imageMessageId)
 
 const roles: Record<string, BubbleRoleConfig> = {
   ai: { placement: 'start', avatar: aiAvatar },
@@ -77,10 +77,11 @@ const addMessage = () => {
 let imageTimer: number | undefined
 
 const loadAsyncImage = () => {
-  imageStatus.value = 'waiting'
+  window.clearTimeout(imageTimer)
+  imageStatus.value = 'loading'
   imageTimer = window.setTimeout(() => {
-    imageStatus.value = 'loading'
-  }, 500)
+    imageStatus.value = 'loaded'
+  }, 300)
 }
 
 onBeforeUnmount(() => window.clearTimeout(imageTimer))
