@@ -47,6 +47,7 @@ test.describe('Bubble', () => {
     await component.getByTestId('finish-reasoning').click()
     await expect(bubble.locator('[data-type="reasoning"]')).toContainText('已思考')
     await expect(bubble.locator('[data-type="text"]')).toHaveText('最终回答')
+    await expect(bubble.locator('.detail-content')).toHaveText('第一段思考\n第二段思考')
   })
 
   test('renders loading and tool calls when answer content is empty', async ({ mount }) => {
