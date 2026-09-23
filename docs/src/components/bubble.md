@@ -170,6 +170,53 @@ BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会�
 > 3. `autoScroll` 支持响应式切换；关闭时暂停自动行为，再次开启时会恢复此前保留的跟随意图。
 > 4. 当最后一条消息的 `role` 为 `'user'` 时，会使用平滑滚动（`smooth`）滚动到底部，确保用户能立即看到自己发送的内容。
 
+#### useAutoScroll
+
+`useAutoScroll` 是 BubbleList 内部使用的公开组合式函数。新代码推荐使用对象参数，并分别传入滚动容器和承载全部内容的内部元素：
+
+```ts
+import { useAutoScroll } from '@opentiny/tiny-robot'
+import { ref } from 'vue'
+
+const scrollRef = ref<HTMLElement | null>(null)
+const contentRef = ref<HTMLElement | null>(null)
+const enabled = ref(true)
+
+const { scrollToBottom, arrivedState } = useAutoScroll({
+  scrollRef,
+  contentRef,
+  enabled,
+  scrollOnMount: true,
+  scrollThrottle: 0,
+  bottomThreshold: 20,
+})
+```
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `scrollRef` | `MaybeComputedElementRef` | — | 产生滚动条的容器元素。 |
+| `contentRef` | `MaybeComputedElementRef` | — | 滚动容器内承载全部内容的元素；其尺寸变化用于触发自动跟随。 |
+| `enabled` | `MaybeRefOrGetter<boolean>` | `true` | 是否启用自动跟随，支持响应式切换。 |
+| `scrollOnMount` | `boolean` | `true` | 挂载时是否滚动到底部。 |
+| `scrollThrottle` | `number` | `0` | 滚动事件节流时间，单位为毫秒。 |
+| `bottomThreshold` | `number` | `20` | 判断是否接近底部的距离阈值，单位为像素。 |
+
+| 返回值 | 类型 | 说明 |
+| --- | --- | --- |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部；不受 `enabled` 限制。 |
+| `arrivedState` | `UseScrollReturn['arrivedState']` | 当前是否到达各滚动边界的响应式状态。 |
+
+旧的位置参数签名仍为兼容性保留，但已弃用：
+
+```ts
+useAutoScroll(scrollRef, source, {
+  contentTarget: contentRef,
+  // 其他滚动配置
+})
+```
+
+其中 `source` 是旧版业务数据变化信号。新代码应使用对象参数和 `contentRef`，让自动滚动由实际 UI 尺寸变化驱动。
+
 ### 自定义渲染器
 
 Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩展。渲染器系统分为两种类型：
