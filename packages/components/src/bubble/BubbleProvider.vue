@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { setupBubbleBoxRenderer, setupBubbleContentRenderer, setupBubbleStore } from './composables'
+import {
+  setupBubbleBoxRenderer,
+  setupBubbleContentRenderer,
+  setupBubbleErrorRenderer,
+  setupBubbleStore,
+} from './composables'
 import type { BubbleProviderProps } from './index.type'
+import { BubbleRenderers } from './renderers/allRenderers'
 import {
   defaultBoxRendererMatches,
   defaultContentRendererMatches,
@@ -33,6 +39,8 @@ const fallbackContentRenderer = computed(() => {
   return props.fallbackContentRenderer || defaultFallbackContentRenderer
 })
 
+const errorRenderer = computed(() => props.errorRenderer || BubbleRenderers.Error)
+
 setupBubbleBoxRenderer({
   boxRendererMatches,
   boxAttributes: () => props.boxAttributes,
@@ -43,6 +51,7 @@ setupBubbleContentRenderer({
   contentAttributes: () => props.contentAttributes,
   fallbackContentRenderer,
 })
+setupBubbleErrorRenderer(errorRenderer)
 </script>
 
 <template>

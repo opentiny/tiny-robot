@@ -66,6 +66,7 @@ export {
   BubbleRenderers,
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
+  useBubbleErrorRenderer,
   useBubbleEventFn,
   useBubbleStateChangeFn,
   useMessageContent,

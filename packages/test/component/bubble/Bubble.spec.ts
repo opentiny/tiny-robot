@@ -32,6 +32,27 @@ test.describe('Bubble', () => {
     await expect(component.getByTestId('hidden-bubble')).toBeHidden()
   })
 
+  test('renders one message error immediately after its normal content', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+    const bubble = component.getByTestId('content-error-bubble')
+    const flow = bubble.locator('[data-type="text"], [role="alert"]')
+
+    await expect(flow).toHaveText(['Partial answer', 'Provider failed'])
+    await expect(bubble.getByRole('alert')).toHaveCount(1)
+  })
+
+  test('renders error-only and non-nullish error values without empty text nodes', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('error-only-bubble').getByRole('alert')).toHaveText('Only failure')
+    await expect(component.getByTestId('error-only-bubble').locator('[data-type="text"]')).toHaveCount(0)
+    await expect(component.getByTestId('false-error-bubble').getByRole('alert')).toHaveText('false')
+    await expect(component.getByTestId('zero-error-bubble').getByRole('alert')).toHaveText('0')
+    await expect(component.getByTestId('empty-error-bubble').getByRole('alert')).toHaveText('')
+    await expect(component.getByTestId('null-error-bubble').getByRole('alert')).toHaveCount(0)
+    await expect(component.getByTestId('undefined-error-bubble').getByRole('alert')).toHaveCount(0)
+  })
+
   test('splits array content into boxes and exposes each footer index', async ({ mount }) => {
     const component = await mount(BubbleFixture)
     const bubble = component.getByTestId('split-bubble')
@@ -39,6 +60,12 @@ test.describe('Bubble', () => {
     await expect(bubble.locator('[data-box-type="box"]')).toHaveCount(2)
     await expect(bubble.locator('[data-type="text"]')).toHaveText(['First segment', 'Second segment'])
     await expect(bubble.getByTestId('split-footer')).toHaveText(['footer-0', 'footer-1'])
+    await expect(bubble.locator('[data-box-type="box"], [role="alert"]')).toHaveText([
+      'First segmentfooter-0',
+      'Second segmentfooter-1',
+      'Split failed',
+    ])
+    await expect(bubble.getByRole('alert')).toHaveCount(1)
   })
 
   test('renders content returned by contentResolver', async ({ mount }) => {

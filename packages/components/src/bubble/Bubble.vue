@@ -6,6 +6,7 @@ import {
   setupBubblePropBoxRenderer,
   setupBubblePropContentRenderer,
   setupBubbleStore,
+  useBubbleErrorRenderer,
   useBubbleMessageGroup,
   useContentResolver,
   useCopyCleanup,
@@ -23,6 +24,7 @@ const props = withDefaults(defineProps<BubbleProps>(), {
 defineSlots<BubbleSlots>()
 
 const contentResolver = useContentResolver(() => props.contentResolver)
+const errorRenderer = useBubbleErrorRenderer()
 
 const emit = defineEmits<{
   (e: 'state-change', payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }): void
@@ -50,8 +52,10 @@ const getContentItems = (message: BubbleMessage) => {
   if (Array.isArray(content)) {
     return content
   }
-  return [{ type: 'text', text: content || '' }]
+  return content ? [{ type: 'text', text: content }] : []
 }
+
+const hasMessageError = (message: BubbleMessage) => message.state?.error != null
 
 // Setup prop-level fallback renderers for responsive tracking
 setupBubblePropBoxRenderer({ fallbackBoxRenderer: () => props.fallbackBoxRenderer })
@@ -117,6 +121,7 @@ if (!isInBubbleList) {
             ></BubbleContentWrapper>
             <slot name="content-footer" :messages="messages" :role="props.role" :content-index="index"></slot>
           </BubbleBoxWrapper>
+          <component v-if="hasMessageError(messages.at(0)!)" :is="errorRenderer" :message="messages.at(0)!"></component>
         </template>
         <template v-else>
           <BubbleBoxWrapper :role="props.role" :placement="props.placement" :shape="props.shape" :messages="messages">
@@ -129,6 +134,7 @@ if (!isInBubbleList) {
                 @state-change="emit('state-change', { ...$event, messageIndex: msgIndex })"
                 @bubble-event="emit('bubble-event', { ...$event, messageIndex: msgIndex })"
               ></BubbleContentWrapper>
+              <component v-if="hasMessageError(message)" :is="errorRenderer" :message="message"></component>
             </template>
             <slot name="content-footer" :messages="messages" :role="props.role"></slot>
           </BubbleBoxWrapper>

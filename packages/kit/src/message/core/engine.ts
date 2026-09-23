@@ -329,19 +329,22 @@ export const createMessageEngine = (
     } catch (error) {
       setRequestState('error')
 
-      let hasOnError = false
       const context = getBaseContext(ac.signal)
+      const appendMessage = (message: ChatMessage | ChatMessage[]) => {
+        appendMessages(...(Array.isArray(message) ? message : [message]))
+      }
 
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {
         if (plugin.onError) {
-          hasOnError = true
-          plugin.onError({ ...context, error })
+          try {
+            await plugin.onError({ ...context, error, appendMessage })
+          } catch (hookError) {
+            console.error(`Error in onError hook for plugin [${plugin.name || 'Anonymous'}]:`, hookError)
+          }
         }
       }
 
-      if (!hasOnError) {
-        throw error
-      }
+      throw error
     } finally {
       const context = getBaseContext(ac.signal)
       for (const plugin of plugins.filter((plugin) => !isPluginDisabled(plugin, context))) {

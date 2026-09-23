@@ -47,6 +47,18 @@ test.describe('BubbleList', () => {
     await expect(bubble).toContainText('Resolved fallback')
   })
 
+  test('keeps a grouped message error between its own content and the next message', async ({ mount }) => {
+    const component = await mount(BubbleListFixture)
+    const list = component.getByTestId('error-list')
+
+    await expect(list.locator('[data-type="text"], [role="alert"]')).toHaveText([
+      'First partial answer',
+      'First answer failed',
+      'Second answer',
+    ])
+    await expect(list.getByRole('alert')).toHaveCount(1)
+  })
+
   test('preserves non-contiguous custom indexes and maps state events globally', async ({ mount }) => {
     const component = await mount(BubbleListFixture)
     const list = component.getByTestId('custom-list')

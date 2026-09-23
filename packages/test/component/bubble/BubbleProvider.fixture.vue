@@ -13,10 +13,15 @@ import FallbackContentRenderer from './FallbackContentRenderer.vue'
 import SecondaryContentRenderer from './SecondaryContentRenderer.vue'
 import TestBoxRenderer from './TestBoxRenderer.vue'
 import TestContentRenderer from './TestContentRenderer.vue'
+import TestErrorRenderer from './TestErrorRenderer.vue'
 
 const customContent: BubbleMessage['content'] = [{ type: 'custom', text: 'Provider content' }]
 const unknownContent: BubbleMessage['content'] = [{ type: 'unknown', label: 'Unknown content' }]
 const sourceContent: BubbleMessage['content'] = [{ type: 'source', text: 'Source content' }]
+const splitErrorContent: BubbleMessage['content'] = [
+  { type: 'text', text: 'Segment one' },
+  { type: 'text', text: 'Segment two' },
+]
 
 const contentMatches: BubbleContentRendererMatch[] = [
   {
@@ -104,6 +109,26 @@ const recordBubbleEvent = (payload: BubbleEvent & { messageIndex: number; conten
           role="assistant"
           :content="sourceContent"
           :content-resolver="() => [{ type: 'custom', text: 'Resolved provider content' }]"
+        />
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="error-provider">
+      <BubbleProvider :error-renderer="TestErrorRenderer">
+        <Bubble
+          data-testid="provider-error-bubble"
+          id="provider-error"
+          role="assistant"
+          content="Provider partial"
+          :state="{ error: { message: 'Provider failure' } }"
+        />
+        <Bubble
+          data-testid="provider-split-error-bubble"
+          id="provider-split-error"
+          role="assistant"
+          :content="splitErrorContent"
+          :state="{ error: { message: 'Split provider failure' } }"
+          content-render-mode="split"
         />
       </BubbleProvider>
     </section>
