@@ -128,6 +128,11 @@ export function useAutoScroll(
     return el.scrollHeight - el.scrollTop - el.clientHeight <= bottomThreshold
   }
 
+  const syncFollowingFromScrollPosition = () => {
+    const el = toValue(targetElement)
+    if (el) isFollowing.value = isNearBottom(el as HTMLElement)
+  }
+
   const scrollToBottom = async (behavior: ScrollBehavior = 'auto') => {
     isFollowing.value = true
     const el = toValue(targetElement)
@@ -138,8 +143,9 @@ export function useAutoScroll(
 
     if (behavior === 'smooth' && !isNearBottom(el as HTMLElement)) {
       const stopWatch = useOnceFallingEdge(isScrolling, () => {
-        el.scrollTo({ top: el.scrollHeight, behavior: 'auto' })
         stopWatches.delete(stopWatch)
+        if (!isFollowing.value) return
+        el.scrollTo({ top: el.scrollHeight, behavior: 'auto' })
       })
       stopWatches.add(stopWatch)
     }
@@ -161,7 +167,10 @@ export function useAutoScroll(
     return () => {
       if (!initialized) {
         initialized = true
-        if (!scrollOnMount) return
+        if (!scrollOnMount) {
+          syncFollowingFromScrollPosition()
+          return
+        }
       }
       scheduleScroll()
     }

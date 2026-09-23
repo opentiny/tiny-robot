@@ -37,6 +37,27 @@ test.describe('useAutoScroll', () => {
     await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(before)
   })
 
+  test('stays away from the bottom when the user interrupts a smooth scroll', async ({ mount, page }) => {
+    const component = await mount(AutoScrollFixture)
+    const scroller = component.getByTestId('observed-scroll')
+
+    await expectAtBottom(scroller)
+    await component.getByRole('button', { name: 'Grow observed content' }).click()
+    await component.getByRole('button', { name: 'Grow observed content' }).click()
+    await expectAtBottom(scroller)
+    await scroller.evaluate((element) => {
+      element.scrollTop = 0
+      element.dispatchEvent(new Event('scroll'))
+    })
+    await component.getByRole('button', { name: 'Smooth scroll to bottom' }).click()
+    await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
+    await scroller.hover()
+    await page.mouse.wheel(0, -1000)
+    await scroller.evaluate(() => new Promise((resolve) => setTimeout(resolve, 500)))
+
+    await expect.poll(() => distanceToBottom(scroller)).toBeGreaterThan(20)
+  })
+
   test('resumes preserved following intent when re-enabled', async ({ mount }) => {
     const component = await mount(AutoScrollFixture)
     const scroller = component.getByTestId('observed-scroll')
@@ -58,9 +79,14 @@ test.describe('useAutoScroll', () => {
     await expectAtBottom(scroller)
   })
 
-  test('does not scroll on the initial resize when scrollOnMount is false', async ({ mount }) => {
+  test('preserves an initial non-bottom position when scrollOnMount is false', async ({ mount }) => {
     const component = await mount(AutoScrollFixture)
+    const scroller = component.getByTestId('no-mount-scroll')
+    const observedScroller = component.getByTestId('observed-scroll')
 
-    await expect(component.getByTestId('no-mount-scroll')).toHaveJSProperty('scrollTop', 0)
+    await expect(scroller).toHaveJSProperty('scrollTop', 0)
+    await component.getByRole('button', { name: 'Grow observed content' }).click()
+    await expectAtBottom(observedScroller)
+    await expect(scroller).toHaveJSProperty('scrollTop', 0)
   })
 })

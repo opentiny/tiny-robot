@@ -7,7 +7,7 @@ const contentRef = ref<HTMLElement | null>(null)
 const enabled = ref(true)
 const blockHeight = ref(520)
 
-useAutoScroll({
+const { scrollToBottom } = useAutoScroll({
   scrollRef,
   contentRef,
   enabled,
@@ -45,6 +45,7 @@ const growLegacyContent = () => {
   <section>
     <button type="button" @click="growObservedContent">Grow observed content</button>
     <button type="button" @click="enabled = !enabled">Toggle auto scroll</button>
+    <button type="button" @click="scrollToBottom('smooth')">Smooth scroll to bottom</button>
     <div ref="scrollRef" data-testid="observed-scroll" class="scroll-host">
       <div ref="contentRef" :style="{ height: `${blockHeight}px` }" />
     </div>
