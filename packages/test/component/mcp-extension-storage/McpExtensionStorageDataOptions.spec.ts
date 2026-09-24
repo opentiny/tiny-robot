@@ -154,6 +154,28 @@ test('manual config helpers create and edit a definition without changing its id
   expect((await storage.listData()).length).toBe(1)
 })
 
+test('manual updates clear optional connection fields omitted from the replacement value', async () => {
+  const storage = createMemoryMcpExtensionStorage()
+  const created = await storage.create({
+    ...weather,
+    description: '旧描述',
+    headers: { Authorization: 'Bearer token' },
+    thumbnail: 'https://example.com/icon.png',
+  })
+
+  const updated = await storage.update(created, weather)
+
+  expect(updated).toMatchObject({
+    source: 'manual',
+    id: created.id,
+    version: 2,
+  })
+  expect(updated.description).toBe('')
+  expect(updated.headers).toEqual({})
+  expect(updated.thumbnail).toBeNull()
+  expect(await storage.getData(created)).toEqual(updated)
+})
+
 test('config creation works when passed as a standalone callback', async () => {
   const storage = createMemoryMcpExtensionStorage()
   const createFromConfig = storage.createFromConfig

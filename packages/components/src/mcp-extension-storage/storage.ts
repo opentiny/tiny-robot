@@ -114,16 +114,19 @@ export const createMcpExtensionStorage = <TBusiness = never>(
     })
   const create = (input: McpExtensionInput) =>
     upsertData({ ...input, source: 'manual', id: createId(), version: 1, tools: [] })
-  const update = (
-    identity: McpExtensionIdentity,
-    input: McpExtensionDataInput | Parameters<typeof normalizeMcpExtensionInput>[0],
-  ) =>
+  const update = (identity: McpExtensionIdentity, input: McpExtensionInput) =>
     mutate((document) => {
       const index = document.data.findIndex((entry) => equal(entry, identity))
       if (index === -1) throw new Error(`MCP extension not found: ${identityKey(identity)}`)
       const previous = document.data[index]
       const next = normalizeData(
-        { ...previous, ...input, source: previous.source, id: previous.id, version: previous.version + 1 },
+        {
+          ...input,
+          source: previous.source,
+          id: previous.id,
+          version: previous.version + 1,
+          tools: previous.tools,
+        },
         previous,
       )
       document.data[index] = next

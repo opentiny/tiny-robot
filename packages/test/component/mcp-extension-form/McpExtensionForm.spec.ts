@@ -36,6 +36,33 @@ test.describe('McpExtensionForm', () => {
     await expect(component.getByTestId('mode-output')).toHaveText('code')
   })
 
+  test('syncs the latest model when the host directly switches the controlled mode', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+
+    await component.getByTestId('replace-model').click()
+    await component.getByRole('textbox', { name: '名称' }).fill('Edited in form')
+    await expect(component.getByTestId('model-output')).toContainText('"name":"Edited in form"')
+
+    await component.getByTestId('set-mode-code').click()
+    const code = component.getByRole('textbox', { name: 'MCP JSON 配置' })
+    await expect(code).toHaveValue(/"Edited in form"/)
+
+    await code.fill(
+      JSON.stringify({
+        mcpServers: {
+          'Edited in code': {
+            type: 'sse',
+            url: 'https://example.com/code',
+          },
+        },
+      }),
+    )
+    await expect(component.getByTestId('model-output')).toContainText('"name":"Edited in code"')
+
+    await component.getByTestId('set-mode-form').click()
+    await expect(component.getByRole('textbox', { name: '名称' })).toHaveValue('Edited in code')
+  })
+
   test('uses defaultMode when mode is uncontrolled', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture, {
       props: { controlledMode: false, defaultMode: 'code' },

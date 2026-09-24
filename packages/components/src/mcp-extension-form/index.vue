@@ -79,7 +79,7 @@ const handleConfirm = () => {
   }
 }
 
-const handleUpdateMode = (mode: McpExtensionFormMode) => {
+const syncDraftForMode = (mode: McpExtensionFormMode) => {
   if (mode === 'form') {
     const invalidHeaders = validateMcpExtensionField('headers', formDraft.value) ? formDraft.value.headers : undefined
     formDraft.value = {
@@ -87,7 +87,9 @@ const handleUpdateMode = (mode: McpExtensionFormMode) => {
       ...(invalidHeaders === undefined ? {} : { headers: invalidHeaders }),
     }
   } else codeDraft.value = createCodeDraft(model.value)
+}
 
+const handleUpdateMode = (mode: McpExtensionFormMode) => {
   if (props.mode === undefined) internalMode.value = mode
   emit('update:mode', mode)
 }
@@ -125,6 +127,8 @@ watch(
   },
   { deep: true },
 )
+
+watch(activeMode, syncDraftForMode)
 
 watch(formDraft, (form, previousForm) => {
   const nextErrors = { ...errors.value }

@@ -45,6 +45,8 @@ const replaceModel = () => {
 
 <template>
   <button data-testid="replace-model" type="button" @click="replaceModel">Replace model</button>
+  <button data-testid="set-mode-form" type="button" @click="mode = 'form'">Show form</button>
+  <button data-testid="set-mode-code" type="button" @click="mode = 'code'">Show code</button>
   <McpExtensionForm
     v-model="model"
     :mode="props.controlledMode ? mode : undefined"
