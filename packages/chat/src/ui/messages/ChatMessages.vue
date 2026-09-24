@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, h, nextTick, watch } from 'vue'
+import { computed, h, nextTick, ref, watch } from 'vue'
 import {
   BubbleRenderers,
   TrBubbleList,
@@ -55,6 +55,7 @@ const defaultRoleConfigs: Record<string, BubbleRoleConfig> = {
 }
 
 const lastMessage = computed(() => props.messages.at(-1))
+const contentRef = ref<HTMLElement | null>(null)
 const bubbleMessages = computed<BubbleMessage[]>(() => props.messages.map((message) => ({ ...message })))
 const shouldAutoScroll = computed(() => props.options.autoScroll ?? true)
 const bubbleProviderProps = computed(() => ({
@@ -100,13 +101,11 @@ const promptProps = computed<ResolvedChatPromptsOptions>(() => {
 })
 const hasPrompts = computed(() => props.prompts !== false && promptProps.value.items.length > 0)
 
-const { scrollToBottom } = useAutoScroll(
-  () => props.scrollTarget,
-  () =>
-    shouldAutoScroll.value
-      ? [props.messages.length, lastMessage.value?.content, lastMessage.value?.reasoning_content]
-      : null,
-)
+const { scrollToBottom } = useAutoScroll({
+  scrollRef: () => props.scrollTarget,
+  contentRef,
+  enabled: shouldAutoScroll,
+})
 
 watch(
   () => lastMessage.value?.role,
@@ -137,6 +136,7 @@ function handleBubbleEvent(payload: ChatBubbleEventPayload) {
 
 <template>
   <div
+    ref="contentRef"
     class="chat-panel-content chat-panel-content--main"
     :class="{
       'is-message-state': !isEmpty,
