@@ -23,24 +23,6 @@ const decodeSkillAddGithubSegment = (segment: string) => {
   }
 }
 
-/**
- * A GitHub `tree` URL does not delimit the branch and the directory, so every split of the
- * path after `tree` is a candidate. Shorter refs come first, which keeps the common
- * `tree/<branch>/<directory>` form as the first attempt.
- */
-export function getSkillAddGithubCandidates(segments: string[]): Array<{ ref: string; path: string }> {
-  const candidates: Array<{ ref: string; path: string }> = []
-
-  for (let refLength = 1; refLength < segments.length; refLength += 1) {
-    candidates.push({
-      ref: segments.slice(0, refLength).map(decodeSkillAddGithubSegment).join('/'),
-      path: segments.slice(refLength).map(decodeSkillAddGithubSegment).join('/'),
-    })
-  }
-
-  return candidates
-}
-
 export function validateSkillAddBrowserSelection(
   files: File[],
   options: SkillAddBrowserSelectionValidationOptions = {},
@@ -66,9 +48,14 @@ export function validateSkillAddBrowserSelection(
   return ''
 }
 
-export function parseSkillAddGithubUrlCandidates(
-  value: string,
-): Array<Extract<SkillImportFormInput, { source: 'github' }>> {
+interface SkillAddGithubLink {
+  url: string
+  repo: string
+  /** `tree` / `blob` 之后的路径段，第一段是 ref 的开头；GitHub 用仓库真实 refs 决定 ref 与目录的边界。 */
+  segments: string[]
+}
+
+const parseSkillAddGithubLink = (value: string): SkillAddGithubLink => {
   const urlValue = value.trim()
   let url: URL
 
@@ -108,17 +95,19 @@ export function parseSkillAddGithubUrlCandidates(
   const pathParts = isSkillEntryBlobLink ? linkParts.slice(0, -1) : linkParts
   if (!pathParts.length) throw new Error(GITHUB_SKILL_URL_ERROR)
 
-  return getSkillAddGithubCandidates([ref, ...pathParts]).map((candidate) => ({
-    source: 'github' as const,
+  return {
     url: urlValue,
     repo: `${owner}/${repo}`,
-    ref: candidate.ref,
-    path: candidate.path,
-  }))
+    segments: [ref, ...pathParts].map(decodeSkillAddGithubSegment),
+  }
 }
 
 export function parseSkillAddGithubUrl(value: string): Extract<SkillImportFormInput, { source: 'github' }> {
-  const [candidate] = parseSkillAddGithubUrlCandidates(value)
+  const { url, repo, segments } = parseSkillAddGithubLink(value)
 
-  return candidate
+  return { source: 'github', url, repo, ref: segments[0], path: segments.slice(1).join('/') }
+}
+
+export function getSkillAddGithubSegments(value: string): string[] {
+  return parseSkillAddGithubLink(value).segments
 }

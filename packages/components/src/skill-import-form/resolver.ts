@@ -1,5 +1,5 @@
 import type { SkillImportFormInput, SkillDefinition, SkillResolver } from './index.type'
-import { parseSkillAddGithubUrlCandidates } from './validation'
+import { getSkillAddGithubSegments } from './validation'
 
 let kitModulePromise: Promise<typeof import('@opentiny/tiny-robot-kit')> | undefined
 
@@ -16,35 +16,63 @@ export const resolveSkillWithKit: SkillResolver = async (input: SkillImportFormI
     return skill
   }
 
-  const candidates = getGithubCandidates(input)
-  let firstError: unknown
+  const target = await resolveGithubTarget(input)
+  const { skill } = await loadSkillWithDetails({
+    source: 'github',
+    repo: target.repo,
+    ref: target.ref,
+    path: target.path,
+  })
 
-  for (const candidate of candidates) {
-    try {
-      const { skill } = await loadSkillWithDetails({
-        source: 'github',
-        repo: candidate.repo,
-        ref: candidate.ref,
-        path: candidate.path,
-      })
-      return skill
-    } catch (error) {
-      firstError ??= error
-      // A 404 can mean the branch/directory split was wrong, e.g. `tree/feature/demo/skills`.
-      // Other failures are real, so they stop the fallback instead of multiplying requests.
-      if (!(error instanceof Error) || !error.message.includes('404')) break
-    }
-  }
-
-  throw firstError
+  return skill
 }
 
-const getGithubCandidates = (
+const githubApiBase = 'https://api.github.com'
+
+const fetchGithubMatchingRefs = async (repo: string, namespace: 'heads' | 'tags', prefix: string) => {
+  const url = new URL(`${githubApiBase}/repos/${repo}/git/matching-refs/${namespace}/${prefix}`)
+  url.searchParams.set('per_page', '100')
+
+  const response = await fetch(url, { headers: { accept: 'application/vnd.github+json' } })
+
+  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
+
+  const refs = (await response.json()) as Array<{ ref?: string }>
+  const namespacePrefix = `refs/${namespace}/`
+
+  return refs
+    .map((entry) => entry.ref ?? '')
+    .filter((ref) => ref.startsWith(namespacePrefix))
+    .map((ref) => ref.slice(namespacePrefix.length))
+}
+
+/**
+ * GitHub 解析 `tree/<ref>/<path>` 时，是把 URL 路径前缀与仓库真实 refs 匹配并取最长的一个，
+ * 分支与标签都参与匹配（例如分支 `probe` 与标签 `probe/deep` 同时存在时取 `probe/deep`）。
+ * 查不到匹配 ref 时（例如 URL 直接使用 commit SHA）沿用解析出的首段，保持原有行为。
+ */
+const resolveGithubTarget = async (
   input: Extract<SkillImportFormInput, { source: 'github' }>,
-): Array<Extract<SkillImportFormInput, { source: 'github' }>> => {
+): Promise<{ repo: string; ref: string; path: string }> => {
+  const segments = getSkillAddGithubSegments(input.url)
+  const [prefix] = segments
+
   try {
-    return parseSkillAddGithubUrlCandidates(input.url)
+    const [heads, tags] = await Promise.all([
+      fetchGithubMatchingRefs(input.repo, 'heads', prefix),
+      fetchGithubMatchingRefs(input.repo, 'tags', prefix),
+    ])
+    const matched = [...heads, ...tags]
+      .filter((ref) => segments.slice(0, ref.split('/').length).join('/') === ref)
+      .sort((left, right) => right.length - left.length)
+    const [ref] = matched
+
+    if (ref) {
+      return { repo: input.repo, ref, path: segments.slice(ref.split('/').length).join('/') }
+    }
   } catch {
-    return [input]
+    // refs 查询失败（限流、网络）时退回首段解析，尽量保持既有导入能力。
   }
+
+  return { repo: input.repo, ref: input.ref, path: input.path }
 }

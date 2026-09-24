@@ -1,13 +1,57 @@
 import { expect, test } from '@playwright/experimental-ct-vue'
-import type { Locator } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import path from 'node:path'
 import SkillImportFormFixture from './SkillImportForm.fixture.vue'
 
 const validSkillDirectory = path.join(import.meta.dirname, 'fixtures/valid-skill')
 const missingEntryDirectory = path.join(import.meta.dirname, 'fixtures/missing-skill')
 const githubUrl = 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo'
-const githubContentsUrl = 'https://api.github.com/repos/opentiny/tiny-robot/contents/skills/demo?ref=main'
 const githubDownloadUrl = 'https://raw.githubusercontent.com/opentiny/tiny-robot/main/skills/demo/SKILL.md'
+
+type GithubRepositoryMock = {
+  heads?: string[]
+  tags?: string[]
+  /** contents 响应，键为 `<ref>:<path>`，例如 `main:skills/demo` */
+  contents?: Record<string, unknown>
+}
+
+const mockGithubRepository = async (page: Page, mock: GithubRepositoryMock) => {
+  const requests: string[] = []
+
+  await page.route(/https:\/\/api\.github\.com\/repos\//, async (route) => {
+    const requestUrl = new URL(route.request().url())
+    requests.push(`${requestUrl.pathname}${requestUrl.search}`)
+
+    const matchingRefs = /^\/repos\/[^/]+\/[^/]+\/git\/matching-refs\/(heads|tags)\/(.*)$/.exec(requestUrl.pathname)
+
+    if (matchingRefs) {
+      const [, namespace, rawPrefix] = matchingRefs
+      const names = (namespace === 'heads' ? mock.heads : mock.tags) ?? []
+      const prefix = decodeURIComponent(rawPrefix)
+
+      await route.fulfill({
+        json: names
+          .filter((name) => name.startsWith(prefix))
+          .map((name) => ({ ref: `refs/${namespace}/${name}`, object: { sha: '0'.repeat(40), type: 'commit' } })),
+      })
+      return
+    }
+
+    const contents = /^\/repos\/[^/]+\/[^/]+\/contents\/(.*)$/.exec(requestUrl.pathname)
+    const entry = contents
+      ? mock.contents?.[`${requestUrl.searchParams.get('ref') ?? ''}:${decodeURIComponent(contents[1])}`]
+      : undefined
+
+    if (!entry) {
+      await route.fulfill({ status: 404, json: { message: 'Not Found' } })
+      return
+    }
+
+    await route.fulfill({ json: entry })
+  })
+
+  return requests
+}
 
 const dropFile = async (dropzone: Locator, name: string, size: number) => {
   await dropzone.evaluate(
@@ -301,9 +345,10 @@ test.describe('SkillImportForm', () => {
   })
 
   test('uses the default kit resolver for GitHub imports', async ({ mount, page }) => {
-    await page.route(githubContentsUrl, (route) =>
-      route.fulfill({
-        json: [
+    await mockGithubRepository(page, {
+      heads: ['main'],
+      contents: {
+        'main:skills/demo': [
           {
             name: 'SKILL.md',
             path: 'skills/demo/SKILL.md',
@@ -312,8 +357,8 @@ test.describe('SkillImportForm', () => {
             download_url: githubDownloadUrl,
           },
         ],
-      }),
-    )
+      },
+    })
     await page.route(githubDownloadUrl, (route) =>
       route.fulfill({
         body: ['---', 'name: github-demo', 'description: GitHub demo', '---', '', '# GitHub Demo'].join('\n'),
@@ -332,19 +377,10 @@ test.describe('SkillImportForm', () => {
   })
 
   test('loads a GitHub URL whose branch name contains a slash', async ({ mount, page }) => {
-    await page.route(/https:\/\/api\.github\.com\/repos\//, async (route) => {
-      const requestUrl = new URL(route.request().url())
-      const matchesSkillRoot =
-        requestUrl.searchParams.get('ref') === 'feature/demo' &&
-        requestUrl.pathname === '/repos/opentiny/tiny-robot/contents/skills/example'
-
-      if (!matchesSkillRoot) {
-        await route.fulfill({ status: 404, json: { message: 'Not Found' } })
-        return
-      }
-
-      await route.fulfill({
-        json: [
+    const requests = await mockGithubRepository(page, {
+      heads: ['feature/demo', 'feature/other'],
+      contents: {
+        'feature/demo:skills/example': [
           {
             name: 'SKILL.md',
             path: 'skills/example/SKILL.md',
@@ -353,7 +389,7 @@ test.describe('SkillImportForm', () => {
             download_url: githubDownloadUrl,
           },
         ],
-      })
+      },
     })
     await page.route(githubDownloadUrl, (route) =>
       route.fulfill({
@@ -373,6 +409,80 @@ test.describe('SkillImportForm', () => {
 
     await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
     await expect(component.getByTestId('submit-output')).toContainText('"name":"slash-branch-demo"')
+    expect(requests.filter((request) => request.includes('/contents/'))).toEqual([
+      '/repos/opentiny/tiny-robot/contents/skills/example?ref=feature%2Fdemo',
+    ])
+  })
+
+  test('prefers the longest ref that prefixes the URL path', async ({ mount, page }) => {
+    const requests = await mockGithubRepository(page, {
+      heads: ['probe', 'probe/other'],
+      tags: ['probe/deep'],
+      contents: {
+        'probe/deep:packages': [
+          {
+            name: 'SKILL.md',
+            path: 'packages/SKILL.md',
+            type: 'file',
+            size: 80,
+            download_url: githubDownloadUrl,
+          },
+        ],
+      },
+    })
+    await page.route(githubDownloadUrl, (route) =>
+      route.fulfill({
+        body: ['---', 'name: longest-ref-demo', 'description: Longest ref demo', '---', '', '# Longest Ref'].join('\n'),
+      }),
+    )
+
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
+    await component.getByTestId('show-github').click()
+    await component
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://github.com/opentiny/tiny-robot/tree/probe/deep/packages')
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"longest-ref-demo"')
+    expect(requests.filter((request) => request.includes('/contents/'))).toEqual([
+      '/repos/opentiny/tiny-robot/contents/packages?ref=probe%2Fdeep',
+    ])
+  })
+
+  test('keeps the parsed ref when the repository exposes no matching ref', async ({ mount, page }) => {
+    const requests = await mockGithubRepository(page, {
+      heads: ['main'],
+      contents: {
+        'abc1234:skills/demo': [
+          {
+            name: 'SKILL.md',
+            path: 'skills/demo/SKILL.md',
+            type: 'file',
+            size: 80,
+            download_url: githubDownloadUrl,
+          },
+        ],
+      },
+    })
+    await page.route(githubDownloadUrl, (route) =>
+      route.fulfill({
+        body: ['---', 'name: commit-ref-demo', 'description: Commit ref demo', '---', '', '# Commit Ref'].join('\n'),
+      }),
+    )
+
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
+    await component.getByTestId('show-github').click()
+    await component
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://github.com/opentiny/tiny-robot/tree/abc1234/skills/demo')
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"commit-ref-demo"')
+    expect(requests.filter((request) => request.includes('/contents/'))).toEqual([
+      '/repos/opentiny/tiny-robot/contents/skills/demo?ref=abc1234',
+    ])
   })
 
   test('decodes percent-encoded GitHub paths and rejects broken encodings', async ({ mount }) => {
