@@ -33,12 +33,18 @@ export function useChatCaseRuntime(options: ChatCaseRuntimeOptions) {
                 return
               }
 
-              if (!initialConversations.length) return
+              if (options.storageKey || !initialConversations.length) return
 
               let firstConversationId: string | undefined
 
               for (const item of initialConversations) {
-                runtime.actions.createConversation({ title: item.title, metadata: item.metadata })
+                const seedConversation = {
+                  title: item.title,
+                  metadata: item.metadata,
+                  useMessageOptions: { initialMessages: [...item.messages] },
+                }
+
+                runtime.actions.createConversation(seedConversation)
                 firstConversationId ??= runtime.conversations.value[0]?.id
               }
 

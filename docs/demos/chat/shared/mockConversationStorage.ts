@@ -16,12 +16,18 @@ export function createMockConversationStorage(
   seeds: readonly MockConversationSeed[],
 ): ConversationStorageStrategy {
   const storage = localStorageStrategyFactory({ key: storageKey })
+  const initializedKey = `${storageKey}:initialized`
 
   return {
     async loadConversations() {
       const conversations = await storage.loadConversations()
+      const initialized = localStorage.getItem(initializedKey)
 
-      if (conversations.length || !seeds.length) {
+      if (conversations.length && !initialized) {
+        localStorage.setItem(initializedKey, 'true')
+      }
+
+      if (initialized || conversations.length || !seeds.length) {
         return conversations
       }
 
@@ -38,6 +44,8 @@ export function createMockConversationStorage(
         await storage.saveConversation(conversation)
         await storage.saveMessages(conversation.id, [...seeds[index].messages])
       }
+
+      localStorage.setItem(initializedKey, 'true')
 
       return seededConversations
     },
