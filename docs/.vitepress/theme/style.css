@@ -55,6 +55,11 @@ div:has(h1[id='bubble-气泡组件']) {
   }
 }
 
+/* Chat Runtime API tables contain long public TypeScript signatures. */
+div:has(h1[id='chat-运行时']) table {
+  overflow-x: auto;
+}
+
 /* ===== VitePress 导航覆盖 ===== */
 .VPNav .container {
   width: unset;
