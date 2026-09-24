@@ -7,13 +7,13 @@ test.describe('standalone ExtensionCard action events', () => {
     const toggle = component.getByRole('switch', { name: '扩展开关' })
 
     await expect(toggle).toBeChecked()
-    await component.locator('.tr-extension-card-primary-actions__switch-track').click()
+    await toggle.click()
     await expect(toggle).not.toBeChecked()
     await expect(component.getByTestId('event-id')).toHaveText('toggle-extension')
     await expect(component.getByTestId('event-type')).toHaveText('switch')
     await expect(component.getByTestId('event-checked')).toHaveText('false')
 
-    await component.locator('.tr-extension-card-primary-actions__switch-track').click()
+    await toggle.press('Space')
     await expect(toggle).toBeChecked()
     await expect(component.getByTestId('event-checked')).toHaveText('true')
   })
@@ -25,7 +25,7 @@ test.describe('standalone ExtensionCard action events', () => {
     const toggle = component.getByRole('switch', { name: '扩展开关' })
 
     await component.getByTestId('ignore-switch-updates').click()
-    await component.locator('.tr-extension-card-primary-actions__switch-track').click()
+    await toggle.click()
 
     await expect(component.getByTestId('event-checked')).toHaveText('false')
     await expect(toggle).toBeChecked()
