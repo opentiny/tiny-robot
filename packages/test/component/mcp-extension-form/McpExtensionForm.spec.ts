@@ -36,6 +36,33 @@ test.describe('McpExtensionForm', () => {
     await expect(component.getByTestId('mode-output')).toHaveText('code')
   })
 
+  test('syncs the latest model when the host directly switches the controlled mode', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+
+    await component.getByTestId('replace-model').click()
+    await component.getByRole('textbox', { name: '名称' }).fill('Edited in form')
+    await expect(component.getByTestId('model-output')).toContainText('"name":"Edited in form"')
+
+    await component.getByTestId('set-mode-code').click()
+    const code = component.getByRole('textbox', { name: 'MCP JSON 配置' })
+    await expect(code).toHaveValue(/"Edited in form"/)
+
+    await code.fill(
+      JSON.stringify({
+        mcpServers: {
+          'Edited in code': {
+            type: 'sse',
+            url: 'https://example.com/code',
+          },
+        },
+      }),
+    )
+    await expect(component.getByTestId('model-output')).toContainText('"name":"Edited in code"')
+
+    await component.getByTestId('set-mode-form').click()
+    await expect(component.getByRole('textbox', { name: '名称' })).toHaveValue('Edited in code')
+  })
+
   test('uses defaultMode when mode is uncontrolled', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture, {
       props: { controlledMode: false, defaultMode: 'code' },
@@ -79,6 +106,52 @@ test.describe('McpExtensionForm', () => {
     })
   })
 
+  test('preserves invalid headers while propagating representable edits across mode switches', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+    const name = component.getByRole('textbox', { name: '名称' })
+    const headers = component.getByRole('textbox', { name: '请求头' })
+
+    await headers.fill('{"Authorization":"Bearer token"}')
+    await headers.fill('{')
+    await name.fill('Draft MCP')
+
+    const model = await component
+      .getByTestId('model-output')
+      .evaluate((element) => JSON.parse(element.textContent ?? ''))
+    expect(model).toMatchObject({ name: 'Draft MCP', headers: { Authorization: 'Bearer token' } })
+
+    await component.getByText('代码添加', { exact: true }).click()
+    await expect(component.getByRole('textbox', { name: 'MCP JSON 配置' })).toHaveValue(/Draft MCP/)
+    await component.getByText('表单添加', { exact: true }).click()
+
+    await expect(name).toHaveValue('Draft MCP')
+    await expect(headers).toHaveValue('{')
+  })
+
+  test('replaces an invalid form header draft after valid code edits', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+    const headers = component.getByRole('textbox', { name: '请求头' })
+
+    await component.getByTestId('replace-model').click()
+    await headers.fill('{')
+    await component.getByText('代码添加', { exact: true }).click()
+    await component.getByRole('textbox', { name: 'MCP JSON 配置' }).fill(
+      JSON.stringify({
+        mcpServers: {
+          'Code MCP': {
+            type: 'sse',
+            url: 'https://example.com/code',
+            headers: { Authorization: 'Bearer code' },
+          },
+        },
+      }),
+    )
+    await expect(component.getByTestId('model-output')).toContainText('"Authorization":"Bearer code"')
+
+    await component.getByText('表单添加', { exact: true }).click()
+    await expect(headers).toHaveValue(JSON.stringify({ Authorization: 'Bearer code' }, null, 2))
+  })
+
   test('preserves header names that overlap object prototype properties', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 
@@ -116,6 +189,19 @@ test.describe('McpExtensionForm', () => {
     await expect(component.getByRole('textbox', { name: '缩略图 URL' })).toHaveAttribute('aria-invalid', 'true')
     await expect(description).toBeFocused()
     await expect(component.getByTestId('submit-output')).toBeEmpty()
+  })
+
+  test('applies the description limit after trimming surrounding whitespace', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+    const description = component.getByRole('textbox', { name: '描述' })
+
+    await component.getByRole('textbox', { name: '名称' }).fill('Weather MCP')
+    await description.fill(` ${'a'.repeat(1000)} `)
+    await component.getByRole('textbox', { name: 'URL', exact: true }).fill('https://example.com/mcp')
+    await component.getByRole('button', { name: '确定' }).click()
+
+    await expect(description).toHaveAttribute('aria-invalid', 'false')
+    await expect(component.getByTestId('submit-output')).toContainText(`"description":"${'a'.repeat(1000)}"`)
   })
 
   test('clears only a corrected field error after that field becomes valid', async ({ mount }) => {

@@ -30,4 +30,26 @@ test.describe('McpExtensionDetail', () => {
     await expect(detail).toContainText('暂无可用工具')
     await expect(detail.getByText(/更新于/)).toHaveCount(0)
   })
+
+  test('associates each tool description with its switch using component-scoped IDs', async ({ mount }) => {
+    const component = await mount(McpExtensionDetailFixture)
+    const firstDetail = component.getByTestId('detail')
+    const secondDetail = component.getByTestId('second-detail')
+    const firstDescription = firstDetail.getByText('搜索公开网页。')
+    const secondDescription = secondDetail.getByText('搜索公开网页。')
+    const firstDescriptionId = await firstDescription.getAttribute('id')
+    const secondDescriptionId = await secondDescription.getAttribute('id')
+
+    expect(firstDescriptionId).toBeTruthy()
+    expect(secondDescriptionId).toBeTruthy()
+    expect(firstDescriptionId).not.toBe(secondDescriptionId)
+    await expect(firstDetail.getByRole('switch', { name: '启用 webSearch' })).toHaveAttribute(
+      'aria-describedby',
+      firstDescriptionId!,
+    )
+    await expect(secondDetail.getByRole('switch', { name: '启用 webSearch' })).toHaveAttribute(
+      'aria-describedby',
+      secondDescriptionId!,
+    )
+  })
 })

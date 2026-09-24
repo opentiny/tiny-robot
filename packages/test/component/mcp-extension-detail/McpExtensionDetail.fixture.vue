@@ -25,6 +25,7 @@ const handleToolToggle = (event: unknown) => {
     :tools="componentTools"
     @tool-toggle="handleToolToggle"
   />
+  <McpExtensionDetail data-testid="second-detail" id="mcp-genui-copy" name="GenUI MCP Copy" :tools="componentTools" />
   <McpExtensionDetail data-testid="empty-detail" id="mcp-empty" name="Empty MCP" :tools="[]" />
   <output data-testid="toggle-output">{{ JSON.stringify(lastToggle) }}</output>
 </template>
