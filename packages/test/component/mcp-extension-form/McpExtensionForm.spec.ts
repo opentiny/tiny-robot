@@ -128,6 +128,30 @@ test.describe('McpExtensionForm', () => {
     await expect(headers).toHaveValue('{')
   })
 
+  test('replaces an invalid form header draft after valid code edits', async ({ mount }) => {
+    const component = await mount(McpExtensionFormFixture)
+    const headers = component.getByRole('textbox', { name: '请求头' })
+
+    await component.getByTestId('replace-model').click()
+    await headers.fill('{')
+    await component.getByText('代码添加', { exact: true }).click()
+    await component.getByRole('textbox', { name: 'MCP JSON 配置' }).fill(
+      JSON.stringify({
+        mcpServers: {
+          'Code MCP': {
+            type: 'sse',
+            url: 'https://example.com/code',
+            headers: { Authorization: 'Bearer code' },
+          },
+        },
+      }),
+    )
+    await expect(component.getByTestId('model-output')).toContainText('"Authorization":"Bearer code"')
+
+    await component.getByText('表单添加', { exact: true }).click()
+    await expect(headers).toHaveValue(JSON.stringify({ Authorization: 'Bearer code' }, null, 2))
+  })
+
   test('preserves header names that overlap object prototype properties', async ({ mount }) => {
     const component = await mount(McpExtensionFormFixture)
 

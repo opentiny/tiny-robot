@@ -109,7 +109,9 @@ const handleUpdateForm = (form: McpExtensionFormDraft) => {
 const handleUpdateCode = (code: string) => {
   codeDraft.value = code
   try {
-    updateModel(parseMcpExtensionCode(code))
+    const value = parseMcpExtensionCode(code)
+    formDraft.value = { ...formDraft.value, headers: toMcpExtensionFormDraft(value).headers }
+    updateModel(value)
   } catch {
     // Keep an invalid code draft local until it can be represented by modelValue.
   }
