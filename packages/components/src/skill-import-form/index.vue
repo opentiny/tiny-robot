@@ -3,7 +3,7 @@ import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 import { IconClose, IconFileFolder, IconSuccess } from '@opentiny/tiny-robot-svgs'
 import { useStableId } from '../shared/composables'
 import type { SkillImportFormEmits, SkillImportFormInput, SkillImportFormProps, SkillDefinition } from './index.type'
-import { resolveSkillWithKit } from './resolver'
+import { resolveSkillWithKit, SkillGithubRequestError } from './resolver'
 import {
   DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE,
   DEFAULT_SKILL_ADD_RESOLVE_TIMEOUT,
@@ -76,6 +76,15 @@ class SkillAddTimeoutError extends Error {
 const GITHUB_STATUS_PATTERN = /(?::\s|failed with\s)(\d{3})(?:\s|$)/i
 const NETWORK_ERROR_PATTERN = /failed to fetch|fetch failed|networkerror|network request failed/i
 
+const githubStatusMessage = (status: number) => {
+  if (status === 404) return '未找到对应的仓库、分支或目录，请检查链接是否正确，或确认仓库是否可公开访问'
+  if (status === 401) return '该仓库需要登录后才能访问'
+  if (status === 403 || status === 429) return 'GitHub 拒绝了本次访问，可能是权限不足或触发了访问频率限制，请稍后重试'
+  if (status >= 500) return 'GitHub 服务暂时不可用，请稍后重试'
+
+  return ''
+}
+
 const toSkillAddMessage = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error)
 
@@ -85,11 +94,11 @@ const toSkillAddMessage = (error: unknown) => {
   if (message.includes('must contain instructions')) return 'SKILL.md 必须包含技能说明'
   if (error instanceof Error && error.name === 'YAMLParseError') return 'SKILL.md 的 YAML 格式不正确'
 
-  const status = Number(GITHUB_STATUS_PATTERN.exec(message)?.[1])
-  if (status === 404) return '未找到对应的仓库、分支或目录，请检查链接是否正确，或确认仓库是否可公开访问'
-  if (status === 401) return '该仓库需要登录后才能访问'
-  if (status === 403 || status === 429) return 'GitHub 拒绝了本次访问，可能是权限不足或触发了访问频率限制，请稍后重试'
-  if (status >= 500) return 'GitHub 服务暂时不可用，请稍后重试'
+  const status =
+    error instanceof SkillGithubRequestError ? error.status : Number(GITHUB_STATUS_PATTERN.exec(message)?.[1])
+  const statusMessage = githubStatusMessage(status)
+
+  if (statusMessage) return statusMessage
   if (NETWORK_ERROR_PATTERN.test(message)) return '网络请求失败，请检查网络连接后重试'
 
   return message

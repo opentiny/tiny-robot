@@ -450,11 +450,12 @@ test.describe('SkillImportForm', () => {
     ])
   })
 
-  test('keeps the parsed ref when the repository exposes no matching ref', async ({ mount, page }) => {
+  test('uses a commit SHA ref without querying refs', async ({ mount, page }) => {
+    const commitSha = '0123456789abcdef0123456789abcdef01234567'
     const requests = await mockGithubRepository(page, {
       heads: ['main'],
       contents: {
-        'abc1234:skills/demo': [
+        [`${commitSha}:skills/demo`]: [
           {
             name: 'SKILL.md',
             path: 'skills/demo/SKILL.md',
@@ -476,13 +477,29 @@ test.describe('SkillImportForm', () => {
     await component.getByTestId('show-github').click()
     await component
       .getByRole('textbox', { name: 'URL' })
-      .fill('https://github.com/opentiny/tiny-robot/tree/abc1234/skills/demo')
+      .fill(`https://github.com/opentiny/tiny-robot/tree/${commitSha}/skills/demo`)
     await component.getByRole('button', { name: '导入' }).click()
 
     await expect(component.getByTestId('submit-output')).toContainText('"name":"commit-ref-demo"')
+    expect(requests.filter((request) => request.includes('/matching-refs/'))).toEqual([])
     expect(requests.filter((request) => request.includes('/contents/'))).toEqual([
-      '/repos/opentiny/tiny-robot/contents/skills/demo?ref=abc1234',
+      `/repos/opentiny/tiny-robot/contents/skills/demo?ref=${commitSha}`,
     ])
+  })
+
+  test('reports a missing branch or tag without loading the path', async ({ mount, page }) => {
+    const requests = await mockGithubRepository(page, { heads: ['feature/other'] })
+
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
+    await component.getByTestId('show-github').click()
+    await component
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://github.com/opentiny/tiny-robot/tree/feature/demo/skills/example')
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByRole('alert')).toHaveText('未找到与该链接匹配的分支或标签，请检查链接是否正确')
+    expect(requests.filter((request) => request.includes('/contents/'))).toEqual([])
   })
 
   test('decodes percent-encoded GitHub paths and rejects broken encodings', async ({ mount }) => {
