@@ -112,6 +112,37 @@ test('default validation rejects invalid and excluded selections', async ({ page
   await expect(page.locator(trigger)).toBeVisible()
 })
 
+test('extending a valid selection beyond the configured limit removes the trigger', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ selection: { maxTextLength: 12 } }))
+  await page.locator('#long').scrollIntoViewIfNeeded()
+  await page.locator('#long').evaluate((element) => {
+    const range = document.createRange()
+    range.setStart(element.firstChild!, 0)
+    range.setEnd(element.firstChild!, 4)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+    document.dispatchEvent(new Event('selectionchange'))
+  })
+  await expect(page.locator(trigger)).toBeVisible()
+  await page.evaluate(() => {
+    const selection = window.getSelection()!
+    selection.extend(selection.anchorNode!, 24)
+    document.dispatchEvent(new Event('selectionchange'))
+  })
+  const selectedLength = await page.evaluate(() => window.getSelection()?.toString().trim().length ?? 0)
+  expect(selectedLength).toBeGreaterThan(12)
+  await expect(page.locator(trigger)).toHaveCount(0)
+})
+
+test('mouse drag beyond the configured limit leaves no trigger', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ selection: { maxTextLength: 12 } }))
+  await dragSelectText(page, '#selection-limit')
+  const selectedLength = await page.evaluate(() => window.getSelection()?.toString().trim().length ?? 0)
+  expect(selectedLength).toBeGreaterThan(12)
+  await expect(page.locator(trigger)).toHaveCount(0)
+})
+
 test('nearby context excludes sensitive, hidden and form content', async ({ page }) => {
   await select(page, '#nearby-term')
   await page.locator(trigger).click()
