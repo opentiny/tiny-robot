@@ -30,20 +30,32 @@ export const resolveSkillWithKit: SkillResolver = async (input: SkillImportFormI
 const githubApiBase = 'https://api.github.com'
 
 const fetchGithubMatchingRefs = async (repo: string, namespace: 'heads' | 'tags', prefix: string) => {
-  const url = new URL(`${githubApiBase}/repos/${repo}/git/matching-refs/${namespace}/${prefix}`)
-  url.searchParams.set('per_page', '100')
-
-  const response = await fetch(url, { headers: { accept: 'application/vnd.github+json' } })
-
-  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
-
-  const refs = (await response.json()) as Array<{ ref?: string }>
   const namespacePrefix = `refs/${namespace}/`
+  const refs: string[] = []
+
+  // matching-refs 按字符串前缀匹配且分页返回，这里最多取 3 页（300 个同前缀 ref）。
+  for (let page = 1; page <= 3; page += 1) {
+    const url = new URL(`${githubApiBase}/repos/${repo}/git/matching-refs/${namespace}/${prefix}`)
+    url.searchParams.set('per_page', '100')
+    url.searchParams.set('page', String(page))
+
+    const response = await fetch(url, { headers: { accept: 'application/vnd.github+json' } })
+
+    if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
+
+    const batch = (await response.json()) as Array<{ ref?: string }>
+
+    refs.push(
+      ...batch
+        .map((entry) => entry.ref ?? '')
+        .filter((ref) => ref.startsWith(namespacePrefix))
+        .map((ref) => ref.slice(namespacePrefix.length)),
+    )
+
+    if (batch.length < 100) break
+  }
 
   return refs
-    .map((entry) => entry.ref ?? '')
-    .filter((ref) => ref.startsWith(namespacePrefix))
-    .map((ref) => ref.slice(namespacePrefix.length))
 }
 
 /**
