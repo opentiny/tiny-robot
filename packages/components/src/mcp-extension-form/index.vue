@@ -80,8 +80,13 @@ const handleConfirm = () => {
 }
 
 const handleUpdateMode = (mode: McpExtensionFormMode) => {
-  if (mode === 'form') formDraft.value = toMcpExtensionFormDraft(model.value)
-  else codeDraft.value = createCodeDraft(model.value)
+  if (mode === 'form') {
+    const invalidHeaders = validateMcpExtensionField('headers', formDraft.value) ? formDraft.value.headers : undefined
+    formDraft.value = {
+      ...toMcpExtensionFormDraft(model.value),
+      ...(invalidHeaders === undefined ? {} : { headers: invalidHeaders }),
+    }
+  } else codeDraft.value = createCodeDraft(model.value)
 
   if (props.mode === undefined) internalMode.value = mode
   emit('update:mode', mode)
@@ -89,11 +94,14 @@ const handleUpdateMode = (mode: McpExtensionFormMode) => {
 
 const handleUpdateForm = (form: McpExtensionFormDraft) => {
   formDraft.value = form
+  let value: McpExtensionFormValue
   try {
-    updateModel(toMcpExtensionFormValue(form))
+    value = toMcpExtensionFormValue(form)
   } catch {
-    // Keep an invalid headers draft local until it can be represented by modelValue.
+    value = toMcpExtensionFormValue({ ...form, headers: '' })
+    if (model.value.headers) value.headers = model.value.headers
   }
+  updateModel(value)
 }
 
 const handleUpdateCode = (code: string) => {

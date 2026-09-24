@@ -121,6 +121,29 @@ test('concurrent changes on one storage instance keep both identities', async ()
   expect((await storage.listData()).length).toBe(2)
 })
 
+test('concurrent changes across storage instances sharing an adapter keep both identities', async () => {
+  let raw: string | null = null
+  const adapter = {
+    async read() {
+      const snapshot = raw
+      await Promise.resolve()
+      return snapshot
+    },
+    async write(_key: string, value: string) {
+      raw = value
+    },
+  }
+  const first = createMcpExtensionStorage({ adapter })
+  const second = createMcpExtensionStorage({ adapter })
+
+  await Promise.all([
+    first.upsertData({ ...identity, version: 1, ...weather, tools: [] }),
+    second.upsertData({ source: 'builtin', id: 'search', version: 1, ...weather, tools: [] }),
+  ])
+
+  expect(await first.listData()).toHaveLength(2)
+})
+
 test('manual config helpers create and edit a definition without changing its identity', async () => {
   const storage = createMemoryMcpExtensionStorage()
   const created = await storage.createFromConfig(
@@ -129,6 +152,30 @@ test('manual config helpers create and edit a definition without changing its id
   const updated = await storage.update(created, { ...weather, name: '天气服务' })
   expect(updated).toMatchObject({ source: 'manual', id: created.id, version: 2, name: '天气服务' })
   expect((await storage.listData()).length).toBe(1)
+})
+
+test('config creation works when passed as a standalone callback', async () => {
+  const storage = createMemoryMcpExtensionStorage()
+  const createFromConfig = storage.createFromConfig
+
+  const created = await createFromConfig(
+    JSON.stringify({ mcpServers: { weather: { url: 'https://example.com/mcp' } } }),
+  )
+
+  expect(created).toMatchObject({ source: 'manual', name: 'weather', version: 1 })
+})
+
+test('manual creation generates a UUID when crypto.randomUUID is unavailable', async () => {
+  const randomUuidDescriptor = Object.getOwnPropertyDescriptor(crypto, 'randomUUID')
+  Object.defineProperty(crypto, 'randomUUID', { configurable: true, value: undefined })
+
+  try {
+    const created = await createMemoryMcpExtensionStorage().create(weather)
+    expect(created.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  } finally {
+    if (randomUuidDescriptor) Object.defineProperty(crypto, 'randomUUID', randomUuidDescriptor)
+    else Reflect.deleteProperty(crypto, 'randomUUID')
+  }
 })
 
 test('uses the original storage key and rejects corrupt data without overwriting it', async () => {

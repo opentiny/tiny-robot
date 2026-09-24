@@ -3,6 +3,7 @@ const props = defineProps<{
   modelValue: boolean
   label: string
   disabled?: boolean
+  descriptionId?: string
 }>()
 
 const emit = defineEmits<{
@@ -27,6 +28,7 @@ const handleChange = (event: Event) => {
       type="checkbox"
       role="switch"
       :aria-label="props.label"
+      :aria-describedby="props.descriptionId"
       :checked="props.modelValue"
       :disabled="props.disabled"
       @change="handleChange"

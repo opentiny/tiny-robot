@@ -2,12 +2,14 @@
 import { computed } from 'vue'
 import Switch from '../shared/components/Switch.vue'
 import ExtensionDetailSummary from '../shared/components/ExtensionDetailSummary.vue'
+import { useStableId } from '../shared/composables'
 import type { McpExtensionDetailEmits, McpExtensionDetailProps, McpExtensionTool } from './index.type'
 
 defineOptions({ name: 'McpExtensionDetail' })
 
 const props = defineProps<McpExtensionDetailProps>()
 const emit = defineEmits<McpExtensionDetailEmits>()
+const toolDescriptionIdPrefix = `mcp-extension-tool-${useStableId()}`
 
 const summaryBadges = computed(() => [
   props.tools.length + ' 个工具',
@@ -18,6 +20,8 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
   if (tool.disabled) return
   emit('tool-toggle', { toolId: tool.id, enabled })
 }
+const getToolDescriptionId = (tool: McpExtensionTool) =>
+  `${toolDescriptionIdPrefix}-${encodeURIComponent(tool.id)}-description`
 </script>
 
 <template>
@@ -28,13 +32,16 @@ const handleToolToggle = (tool: McpExtensionTool, enabled: boolean) => {
       <li v-for="tool in props.tools" :key="tool.id" class="mcp-extension-detail__tool">
         <div class="mcp-extension-detail__tool-content">
           <strong class="mcp-extension-detail__tool-name">{{ tool.name }}</strong>
-          <p v-if="tool.description" class="mcp-extension-detail__tool-description">{{ tool.description }}</p>
+          <p v-if="tool.description" :id="getToolDescriptionId(tool)" class="mcp-extension-detail__tool-description">
+            {{ tool.description }}
+          </p>
         </div>
 
         <Switch
           :model-value="tool.enabled"
           :label="`启用 ${tool.name}`"
           :disabled="tool.disabled"
+          :description-id="tool.description ? getToolDescriptionId(tool) : undefined"
           @update:model-value="handleToolToggle(tool, $event)"
         />
       </li>

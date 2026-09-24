@@ -11,6 +11,7 @@ import type {
   McpExtensionData,
   McpExtensionDataInput,
   McpExtensionIdentity,
+  McpExtensionInput,
   McpExtensionOptions,
   McpExtensionStorage,
   McpExtensionStorageAdapter,
@@ -34,6 +35,23 @@ const nextTimestamp = (previous?: string) => {
   const current = new Date().toISOString()
   return current === previous ? new Date(Date.parse(current) + 1).toISOString() : current
 }
+const mutationQueues = new WeakMap<object, Map<string, Promise<unknown>>>()
+
+const getMutationQueues = (owner: object) => {
+  const existing = mutationQueues.get(owner)
+  if (existing) return existing
+  const queues = new Map<string, Promise<unknown>>()
+  mutationQueues.set(owner, queues)
+  return queues
+}
+const createId = () => {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
 
 /** One versioned document stores definitions and settings separately. Headers are plaintext JSON. */
 export const createMcpExtensionStorage = <TBusiness = never>(
@@ -41,22 +59,25 @@ export const createMcpExtensionStorage = <TBusiness = never>(
 ): McpExtensionStorage<TBusiness> => {
   if (options.storage && options.adapter) throw new Error('Choose either MCP storage or adapter')
   const key = storageKey(options.namespace)
-  const adapter: McpExtensionStorageAdapter =
-    options.adapter ??
-    (() => {
-      const storage = getStorage(options.storage)
-      return { read: async (key) => storage.getItem(key), write: async (key, value) => storage.setItem(key, value) }
-    })()
+  const storage = options.adapter ? undefined : getStorage(options.storage)
+  const adapter: McpExtensionStorageAdapter = options.adapter ?? {
+    read: async (key) => storage!.getItem(key),
+    write: async (key, value) => storage!.setItem(key, value),
+  }
+  const queues = getMutationQueues(options.adapter ?? storage!)
   const read = async () => parseMcpExtensionStorageDocument(await adapter.read(key), options.parseBusinessOptions)
-  let queue: Promise<unknown> = Promise.resolve()
   const mutate = <T>(operation: (document: Awaited<ReturnType<typeof read>>) => T): Promise<T> => {
-    const result = queue.then(async () => {
+    const result = (queues.get(key) ?? Promise.resolve()).then(async () => {
       const document = await read()
       const value = operation(document)
       await adapter.write(key, serializeMcpExtensionStorageDocument(document))
       return value
     })
-    queue = result.catch(() => undefined)
+    const queue = result.catch(() => undefined)
+    queues.set(key, queue)
+    void queue.then(() => {
+      if (queues.get(key) === queue) queues.delete(key)
+    })
     return result
   }
   const equal = (left: McpExtensionIdentity, right: McpExtensionIdentity) => identityKey(left) === identityKey(right)
@@ -91,6 +112,8 @@ export const createMcpExtensionStorage = <TBusiness = never>(
       else document.data[index] = next
       return next
     })
+  const create = (input: McpExtensionInput) =>
+    upsertData({ ...input, source: 'manual', id: createId(), version: 1, tools: [] })
   const update = (
     identity: McpExtensionIdentity,
     input: McpExtensionDataInput | Parameters<typeof normalizeMcpExtensionInput>[0],
@@ -164,11 +187,9 @@ export const createMcpExtensionStorage = <TBusiness = never>(
         return value
       })
     },
-    create(input) {
-      return upsertData({ ...input, source: 'manual', id: crypto.randomUUID(), version: 1, tools: [] })
-    },
+    create,
     createFromConfig(config) {
-      return this.create(parseMcpExtensionConfig(config))
+      return create(parseMcpExtensionConfig(config))
     },
     update,
     updateFromConfig(identity, config) {

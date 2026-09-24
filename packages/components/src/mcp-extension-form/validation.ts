@@ -118,7 +118,7 @@ export const validateMcpExtensionField = (
 ): string | undefined => {
   if (field === 'name') return form.name.trim() ? undefined : '请输入名称'
   if (field === 'description') {
-    return form.description.length <= 1000 ? undefined : '描述不能超过 1000 个字符'
+    return form.description.trim().length <= 1000 ? undefined : '描述不能超过 1000 个字符'
   }
   if (field === 'url') return isHttpUrl(form.url.trim()) ? undefined : '请输入有效的 HTTP 或 HTTPS URL'
   if (field === 'thumbnail') {
