@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QuickAssist UMD fixture</title>
+    <style>
+      body {
+        margin: 32px;
+        font: 16px/1.6 sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="scope">
+      <p id="term">UMD 智能帮助</p>
+    </main>
+    <aside id="host-chat" hidden>宿主 AI 对话面板</aside>
+    <script type="module">
+      import umdUrl from '../../components/dist/vanilla/vanilla.umd.js?url'
+
+      window.qaRequests = []
+      window.qaEvents = []
+      const script = document.createElement('script')
+      script.src = umdUrl
+      script.onload = () => {
+        window.qa = window.TinyRobotVanilla.createQuickAssist({
+          include: ['#scope'],
+          adapter: {
+            submit(request) {
+              window.qaRequests.push(request)
+              document.querySelector('#host-chat').hidden = false
+            },
+          },
+          onEvent: (event) => window.qaEvents.push(event),
+        })
+      }
+      document.head.appendChild(script)
+    </script>
+  </body>
+</html>

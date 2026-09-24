@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QuickAssist HTML 接入示例</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 32px;
+        color: #222b36;
+        font:
+          15px/1.7 system-ui,
+          sans-serif;
+        background: #f5f7fa;
+      }
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      article,
+      aside {
+        padding: 20px;
+        border: 1px solid #dfe3e8;
+        border-radius: 12px;
+        background: #fff;
+      }
+      article {
+        margin: 20px 0;
+      }
+      article p {
+        max-width: 72ch;
+      }
+      [data-sensitive],
+      [data-ai-selection='false'] {
+        padding: 8px 10px;
+        border-radius: 6px;
+        color: #744c12;
+        background: #fff4e5;
+      }
+      aside {
+        position: sticky;
+        bottom: 16px;
+        box-shadow: 0 8px 28px #20304018;
+      }
+      aside[hidden] {
+        display: none;
+      }
+      pre {
+        max-height: 280px;
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      button {
+        padding: 7px 12px;
+        border: 1px solid #cbd3dd;
+        border-radius: 6px;
+        background: #fff;
+        cursor: pointer;
+      }
+      .status {
+        min-height: 1.4em;
+        color: #536171;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>QuickAssist HTML 接入示例</h1>
+      <p>选中下面正文中的一个概念，点击“智能帮助”，查看组件如何把请求交给模拟对话面板。</p>
+
+      <article id="guide-content" aria-label="可选择的产品帮助内容">
+        <h2>云服务器配置</h2>
+        <p>
+          包年包月适合长期、稳定运行的工作负载。按需计费适合临时任务和用量变化较大的业务，用户可以根据预期使用时长调整预算。
+        </p>
+        <p>
+          竞价计费使用闲置计算资源来降低成本，但实例可能因供需变化被回收。生产系统应评估业务中断容忍度，并为重要数据配置独立的持久化存储。
+        </p>
+        <p>安全组用于管理云服务器的入站和出站访问规则。建议遵循最小权限原则，只开放业务实际需要的端口。</p>
+        <p data-sensitive="true">敏感示例：access token = demo-secret-abc123（不可选择，也不会放入附近上下文）。</p>
+        <p data-ai-selection="false">此内容通过 data-ai-selection 标记排除。</p>
+      </article>
+
+      <aside id="assistant-panel" aria-label="模拟 AI 对话面板" hidden>
+        <h2>模拟 AI 对话面板</h2>
+        <p>适配器收到请求后立即打开此面板。此示例不会连接模型。</p>
+        <pre id="request-output"></pre>
+        <div><button id="close-assistant" type="button">关闭面板</button></div>
+      </aside>
+      <p class="status" id="event-status" aria-live="polite"></p>
+    </main>
+
+    <script>
+      ;(async () => {
+        const output = document.querySelector('#request-output')
+        const panel = document.querySelector('#assistant-panel')
+        const status = document.querySelector('#event-status')
+
+        // 文档预览在 iframe 中运行，资源地址由文档页面提供；单独打开此文件时从仓库构建产物加载。
+        const previewUmdUrl = window.parent === window ? undefined : window.parent.__tinyRobotVanillaDemoUmdUrl
+        const localUmdUrl = new URL('../../../packages/components/dist/vanilla/vanilla.umd.js', document.baseURI)
+        const script = document.createElement('script')
+        script.src = previewUmdUrl ?? localUmdUrl.href
+        await new Promise((resolve, reject) => {
+          script.onload = resolve
+          script.onerror = () => reject(new Error('无框架组件脚本加载失败'))
+          document.head.appendChild(script)
+        })
+
+        const quickAssist = window.TinyRobotVanilla.createQuickAssist({
+          include: ['#guide-content'],
+          selection: { maxTextLength: 240 },
+          getContext: () => ({ product: '云服务器', section: '实例配置', accountId: 'account-demo-0481' }),
+          sanitizeContext: (context) => ({
+            ...context,
+            businessContext: {
+              ...context.businessContext,
+              accountId: '[已脱敏]',
+            },
+          }),
+          suggestions: [
+            {
+              id: 'compare',
+              getLabel: ({ text }) => `比较“${text}”`,
+              getPrompt: ({ text }) => `请结合页面上下文比较“${text}”与相关选项`,
+            },
+          ],
+          getSuggestions: async (context, signal) => {
+            await new Promise((resolve) => setTimeout(resolve, 650))
+            if (signal.aborted) return []
+            return [
+              {
+                id: 'risk',
+                label: `查看“${context.text}”的注意事项`,
+                prompt: `请结合页面上下文说明“${context.text}”的注意事项`,
+              },
+            ]
+          },
+          adapter: {
+            submit(request) {
+              panel.hidden = false
+              // 使用 textContent 展示完整请求；实际接入时应把 prompt 和 context
+              // 一起交给应用的对话层，而不是把上下文拼到页面 HTML 中。
+              output.textContent = JSON.stringify(
+                {
+                  source: request.source,
+                  query: request.query,
+                  prompt: request.prompt,
+                  context: request.context,
+                  suggestion: request.suggestion,
+                },
+                null,
+                2,
+              )
+            },
+          },
+          onEvent(event) {
+            status.textContent = event.type === 'error' ? `QuickAssist 错误：${event.stage}` : `最近事件：${event.type}`
+          },
+        })
+
+        document.querySelector('#close-assistant').addEventListener('click', () => {
+          panel.hidden = true
+        })
+        window.addEventListener('pagehide', () => quickAssist.destroy(), { once: true })
+        document.documentElement.dataset.quickAssistReady = 'true'
+      })().catch((error) => {
+        document.querySelector('#event-status').textContent = `组件初始化失败：${error.message}`
+        console.error(error)
+      })
+    </script>
+  </body>
+</html>
