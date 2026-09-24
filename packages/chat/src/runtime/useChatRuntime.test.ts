@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ChatMessage, ConversationInfo, ConversationStorageStrategy } from '@opentiny/tiny-robot-kit'
 import { errorStatePlugin } from './plugins/errorStatePlugin'
-import { useLocalChatRuntime } from './useLocalChatRuntime'
+import { useChatRuntime } from './useChatRuntime'
 
 const createMemoryStorage = (): ConversationStorageStrategy => {
   const conversations = new Map<string, ConversationInfo>()
@@ -24,10 +24,10 @@ const createMemoryStorage = (): ConversationStorageStrategy => {
   }
 }
 
-describe('useLocalChatRuntime error state', () => {
+describe('useChatRuntime error state', () => {
   it('stores provider failures on the generated assistant message by default', async () => {
     const providerError = new Error('provider failed')
-    const runtime = useLocalChatRuntime({
+    const runtime = useChatRuntime({
       conversation: {
         storage: createMemoryStorage(),
         useMessageOptions: {
@@ -55,7 +55,7 @@ describe('useLocalChatRuntime error state', () => {
 
   it('lets a same-name user plugin disable default error state writes', async () => {
     const providerError = new Error('provider failed')
-    const runtime = useLocalChatRuntime({
+    const runtime = useChatRuntime({
       conversation: {
         storage: createMemoryStorage(),
         useMessageOptions: {

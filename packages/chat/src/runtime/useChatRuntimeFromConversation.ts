@@ -27,7 +27,7 @@ interface KitRuntimeSendPayload extends ChatSendPayload {
   runConfig?: ChatRunConfig
 }
 
-export interface UseKitChatRuntimeOptions {
+export interface UseChatRuntimeFromConversationOptions {
   conversation: UseConversationReturn
   titleGenerator?: TitleGenerator
   beforeSend?: ChatBeforeSend
@@ -44,7 +44,7 @@ const toChatConversationInfo = (item: KitConversationInfo): ChatConversationInfo
   }
 }
 
-export function useKitChatRuntime(options: UseKitChatRuntimeOptions): ChatRuntime {
+export function useChatRuntimeFromConversation(options: UseChatRuntimeFromConversationOptions): ChatRuntime {
   const { conversation, titleGenerator, beforeSend, send, composer: composerOptions } = options
   const conversationNavigationRevision = shallowRef(0)
   const resolveTitle = titleGenerator ?? createDefaultChatTitle

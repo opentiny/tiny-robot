@@ -1,7 +1,7 @@
 export { default as TrChat } from './Chat.vue'
 export { default as TrChatUI } from './ChatUI.vue'
-export { useKitChatRuntime } from './runtime/useKitChatRuntime'
-export { useLocalChatRuntime } from './runtime/useLocalChatRuntime'
+export { useChatRuntimeFromConversation } from './runtime/useChatRuntimeFromConversation'
+export { useChatRuntime } from './runtime/useChatRuntime'
 export { ERROR_STATE_PLUGIN_NAME, errorStatePlugin } from './runtime/plugins/errorStatePlugin'
 export { useChatRuntimeAdapter } from './composables/useChatRuntimeAdapter'
 export { useChatHistoryData, useChatHistoryItems } from './composables/useChatHistoryItems'
@@ -16,8 +16,8 @@ export type {
   LayoutFloatingState,
 } from '@opentiny/tiny-robot'
 
-export type { UseKitChatRuntimeOptions } from './runtime/useKitChatRuntime'
-export type { UseLocalChatRuntimeMcpAdapter, UseLocalChatRuntimeOptions } from './runtime/useLocalChatRuntime'
+export type { UseChatRuntimeFromConversationOptions } from './runtime/useChatRuntimeFromConversation'
+export type { UseChatRuntimeMcpAdapter, UseChatRuntimeOptions } from './runtime/useChatRuntime'
 export type { ChatErrorPluginContext, ErrorStatePluginOptions } from './runtime/plugins/errorStatePlugin'
 export type { UseChatRuntimeAdapterOptions } from './composables/useChatRuntimeAdapter'
 export type {
