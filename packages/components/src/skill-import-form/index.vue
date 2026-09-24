@@ -103,10 +103,9 @@ const invalidateResolution = () => {
 }
 
 const resolveSkill = async (input: SkillImportFormInput) => {
-  const generation = ++resolverGeneration
+  invalidateResolution()
+  const generation = resolverGeneration
   resolving.value = true
-  resolverErrorMessage.value = ''
-  resolvedDefinition.value = undefined
   let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   try {

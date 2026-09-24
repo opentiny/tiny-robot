@@ -41,7 +41,8 @@ const fetchGithubMatchingRefs = async (repo: string, namespace: 'heads' | 'tags'
 
     const response = await fetch(url, { headers: { accept: 'application/vnd.github+json' } })
 
-    if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
+    // 查询失败（限流、无权限）时交出已拿到的结果，由调用方决定是否回退到 URL 首段解析。
+    if (!response.ok) return refs
 
     const batch = (await response.json()) as Array<{ ref?: string }>
 
