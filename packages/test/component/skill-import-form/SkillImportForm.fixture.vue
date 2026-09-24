@@ -8,9 +8,9 @@ import type {
   SkillResolver,
 } from '../../../components/src/skill-import-form/index.type'
 
-type ResolverMode = 'success' | 'error' | 'pending' | 'race'
+type ResolverMode = 'success' | 'error' | 'network-error' | 'pending' | 'race'
 
-const props = defineProps<{ maxUploadSize?: number }>()
+const props = defineProps<{ maxUploadSize?: number; resolveTimeout?: number }>()
 
 const source = ref<SkillImportFormSource>('local')
 const resolverMode = ref<ResolverMode>('success')
@@ -54,6 +54,7 @@ const resolveSkill: SkillResolver = async (input) => {
   }
 
   if (resolverMode.value === 'error') throw new Error('SKILL.md 的 YAML 格式不正确')
+  if (resolverMode.value === 'network-error') throw new TypeError('Failed to fetch')
 
   return {
     name: input.source === 'local' ? 'resolved-local' : 'resolved-github',
@@ -79,6 +80,9 @@ const handleSubmit = (definition: SkillDefinition) => {
   </button>
   <button data-testid="set-resolver-success" type="button" @click="resolverMode = 'success'">Resolve success</button>
   <button data-testid="set-resolver-error" type="button" @click="resolverMode = 'error'">Resolve error</button>
+  <button data-testid="set-resolver-network-error" type="button" @click="resolverMode = 'network-error'">
+    Resolve network error
+  </button>
   <button data-testid="set-resolver-pending" type="button" @click="resolverMode = 'pending'">Resolve pending</button>
   <button data-testid="set-resolver-race" type="button" @click="resolverMode = 'race'">Resolve race</button>
   <button data-testid="release-resolver" type="button" @click="releasePending?.()">Release resolver</button>
@@ -86,6 +90,7 @@ const handleSubmit = (definition: SkillDefinition) => {
   <SkillImportForm
     :source="source"
     :max-upload-size="props.maxUploadSize"
+    :resolve-timeout="props.resolveTimeout"
     :resolve-skill="useDefaultResolver ? undefined : resolveSkill"
     @submit="handleSubmit"
     @cancel="cancelCount += 1"

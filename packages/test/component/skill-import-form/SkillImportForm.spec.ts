@@ -423,13 +423,19 @@ test.describe('SkillImportForm', () => {
     const component = await mount(SkillImportFormFixture)
     await component.getByTestId('show-github').click()
     const url = component.getByRole('textbox', { name: 'URL' })
-    await url.fill('https://github.com/opentiny/tiny-robot/blob/main/skills/demo/SKILL.md')
+    await url.fill('https://github.com/opentiny/tiny-robot/tree/main')
 
     await component.getByRole('button', { name: '导入' }).click()
 
     await expect(component.getByRole('alert')).toHaveText('请输入有效的 GitHub Skill 地址')
     await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
     await expect(url).toBeFocused()
+
+    await url.fill('https://gitlab.com/opentiny/tiny-robot/tree/main/skills/demo')
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByRole('alert')).toHaveText('请输入有效的 GitHub Skill 地址')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
   })
 
   test('guides GitHub imports with an https placeholder', async ({ mount }) => {
@@ -440,6 +446,94 @@ test.describe('SkillImportForm', () => {
       'placeholder',
       'https://github.com/username/repo/tree/main/skills',
     )
+  })
+
+  test('imports a Skill from a blob link that points at SKILL.md', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-github').click()
+    await component
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://github.com/opentiny/tiny-robot/blob/main/skills/demo/SKILL.md')
+
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByTestId('resolver-input')).toHaveText(
+      JSON.stringify({
+        source: 'github',
+        url: 'https://github.com/opentiny/tiny-robot/blob/main/skills/demo/SKILL.md',
+        repo: 'opentiny/tiny-robot',
+        ref: 'main',
+        path: 'skills/demo',
+      }),
+    )
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"resolved-github"')
+  })
+
+  test('rejects a blob link that does not point at SKILL.md', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-github').click()
+    await component
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://github.com/opentiny/tiny-robot/blob/main/skills/demo/README.md')
+
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByRole('alert')).toHaveText('请粘贴 Skill 目录链接，或指向 SKILL.md 的文件链接')
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+  })
+
+  test('explains a missing GitHub repository path instead of showing the raw fetch error', async ({ mount, page }) => {
+    await page.route(/https:\/\/api\.github\.com\/repos\//, (route) =>
+      route.fulfill({ status: 404, json: { message: 'Not Found' } }),
+    )
+
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
+    await component.getByTestId('show-github').click()
+    await component.getByRole('textbox', { name: 'URL' }).fill(githubUrl)
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByRole('alert')).toHaveText(
+      '未找到对应的仓库、分支或目录，请检查链接是否正确，或确认仓库是否可公开访问',
+    )
+  })
+
+  test('explains a rejected GitHub request', async ({ mount, page }) => {
+    await page.route(/https:\/\/api\.github\.com\/repos\//, (route) =>
+      route.fulfill({ status: 403, json: { message: 'API rate limit exceeded' } }),
+    )
+
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
+    await component.getByTestId('show-github').click()
+    await component.getByRole('textbox', { name: 'URL' }).fill(githubUrl)
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByRole('alert')).toHaveText(
+      'GitHub 拒绝了本次访问，可能是权限不足或触发了访问频率限制，请稍后重试',
+    )
+  })
+
+  test('explains a network failure', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('set-resolver-network-error').click()
+    await component.getByTestId('show-github').click()
+    await component.getByRole('textbox', { name: 'URL' }).fill(githubUrl)
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByRole('alert')).toHaveText('网络请求失败，请检查网络连接后重试')
+  })
+
+  test('stops waiting for a slow resolver after resolveTimeout', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture, { props: { resolveTimeout: 100 } })
+    await component.getByTestId('set-resolver-pending').click()
+    await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
+
+    await expect(component.getByRole('alert')).toHaveText('导入超时，请稍后重试')
+    await expect(component.getByText('正在校验…')).toHaveCount(0)
+
+    await component.getByTestId('release-resolver').click()
+    await expect(component.getByTestId('submit-output')).toBeEmpty()
   })
 
   test('resets internal drafts and errors when the source changes', async ({ mount }) => {

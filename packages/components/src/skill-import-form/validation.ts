@@ -6,7 +6,10 @@ export interface SkillAddBrowserSelectionValidationOptions {
 
 export const DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 
+export const DEFAULT_SKILL_ADD_RESOLVE_TIMEOUT = 30 * 1000
+
 const GITHUB_SKILL_URL_ERROR = '请输入有效的 GitHub Skill 地址'
+const GITHUB_SKILL_FILE_ERROR = '请粘贴 Skill 目录链接，或指向 SKILL.md 的文件链接'
 
 export function formatSkillAddMaxUploadSize(maxUploadSize: number): string {
   return `${maxUploadSize / 1024 / 1024}`
@@ -78,7 +81,7 @@ export function parseSkillAddGithubUrlCandidates(
   const parts = url.pathname.split('/')
   if (parts.at(-1) === '') parts.pop()
   parts.shift()
-  const [owner, repo, tree, ref, ...pathParts] = parts
+  const [owner, repo, linkType, ref, ...linkParts] = parts
   const authority = urlValue.match(/^[^:/]+:\/\/([^/]+)/)?.[1]
 
   if (
@@ -92,12 +95,18 @@ export function parseSkillAddGithubUrlCandidates(
     parts.some((part) => part === '') ||
     !owner ||
     !repo ||
-    tree !== 'tree' ||
     !ref ||
-    !pathParts.length
+    (linkType !== 'tree' && linkType !== 'blob')
   ) {
     throw new Error(GITHUB_SKILL_URL_ERROR)
   }
+
+  const isSkillEntryBlobLink = linkType === 'blob' && linkParts.length >= 2 && linkParts.at(-1) === 'SKILL.md'
+
+  if (linkType === 'blob' && !isSkillEntryBlobLink) throw new Error(GITHUB_SKILL_FILE_ERROR)
+
+  const pathParts = isSkillEntryBlobLink ? linkParts.slice(0, -1) : linkParts
+  if (!pathParts.length) throw new Error(GITHUB_SKILL_URL_ERROR)
 
   return getSkillAddGithubCandidates([ref, ...pathParts]).map((candidate) => ({
     source: 'github' as const,

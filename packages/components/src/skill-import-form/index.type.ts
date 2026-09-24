@@ -70,6 +70,11 @@ export type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefini
 export interface SkillImportFormProps {
   source?: SkillImportFormSource
   maxUploadSize?: number
+  /**
+   * 解析（导入）超时时间，单位毫秒；设为 0 表示不超时。
+   * 超时后组件不再等待结果并提示用户，但在途请求不会被取消。
+   */
+  resolveTimeout?: number
   resolveSkill?: SkillResolver
 }
 

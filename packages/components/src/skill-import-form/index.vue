@@ -6,6 +6,7 @@ import type { SkillImportFormEmits, SkillImportFormInput, SkillImportFormProps, 
 import { resolveSkillWithKit } from './resolver'
 import {
   DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE,
+  DEFAULT_SKILL_ADD_RESOLVE_TIMEOUT,
   formatSkillAddMaxUploadSize,
   parseSkillAddGithubUrl,
   validateSkillAddBrowserSelection,
@@ -14,6 +15,7 @@ import {
 const props = withDefaults(defineProps<SkillImportFormProps>(), {
   source: 'local',
   maxUploadSize: DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE,
+  resolveTimeout: DEFAULT_SKILL_ADD_RESOLVE_TIMEOUT,
 })
 const emit = defineEmits<SkillImportFormEmits>()
 const fileInput = ref<HTMLInputElement>()
@@ -64,13 +66,31 @@ const formatFileSize = (size: number) => {
   return `${(size / 1024 / 1024).toFixed(2)}MB`
 }
 
+class SkillAddTimeoutError extends Error {
+  constructor() {
+    super('Skill import timed out')
+    this.name = 'SkillAddTimeoutError'
+  }
+}
+
+const GITHUB_STATUS_PATTERN = /(?::\s|failed with\s)(\d{3})(?:\s|$)/i
+const NETWORK_ERROR_PATTERN = /failed to fetch|fetch failed|networkerror|network request failed/i
+
 const toSkillAddMessage = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error)
 
+  if (error instanceof Error && error.name === 'SkillAddTimeoutError') return '导入超时，请稍后重试'
   if (message.includes('entry file "SKILL.md" is missing')) return 'Skill 包必须包含 SKILL.md 文件'
   if (message.includes('entry file "SKILL.md" must be a text file')) return 'SKILL.md 必须是文本文件'
   if (message.includes('must contain instructions')) return 'SKILL.md 必须包含技能说明'
   if (error instanceof Error && error.name === 'YAMLParseError') return 'SKILL.md 的 YAML 格式不正确'
+
+  const status = Number(GITHUB_STATUS_PATTERN.exec(message)?.[1])
+  if (status === 404) return '未找到对应的仓库、分支或目录，请检查链接是否正确，或确认仓库是否可公开访问'
+  if (status === 401) return '该仓库需要登录后才能访问'
+  if (status === 403 || status === 429) return 'GitHub 拒绝了本次访问，可能是权限不足或触发了访问频率限制，请稍后重试'
+  if (status >= 500) return 'GitHub 服务暂时不可用，请稍后重试'
+  if (NETWORK_ERROR_PATTERN.test(message)) return '网络请求失败，请检查网络连接后重试'
 
   return message
 }
@@ -87,9 +107,19 @@ const resolveSkill = async (input: SkillImportFormInput) => {
   resolving.value = true
   resolverErrorMessage.value = ''
   resolvedDefinition.value = undefined
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
 
   try {
-    const definition = await (props.resolveSkill ?? resolveSkillWithKit)(input)
+    const pending = (props.resolveSkill ?? resolveSkillWithKit)(input)
+    // 超时后不再等待结果。在途请求无法取消（取消方案待定），但晚到的结果会被这里丢弃。
+    const definition = await new Promise<SkillDefinition>((resolve, reject) => {
+      if (props.resolveTimeout > 0) {
+        timeoutId = setTimeout(() => reject(new SkillAddTimeoutError()), props.resolveTimeout)
+      }
+
+      pending.then(resolve, reject)
+    })
+
     if (generation !== resolverGeneration) return undefined
 
     resolvedDefinition.value = definition
@@ -99,6 +129,7 @@ const resolveSkill = async (input: SkillImportFormInput) => {
     resolverErrorMessage.value = toSkillAddMessage(error)
     return undefined
   } finally {
+    if (timeoutId) clearTimeout(timeoutId)
     if (generation === resolverGeneration) resolving.value = false
   }
 }
