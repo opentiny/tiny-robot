@@ -11,7 +11,6 @@ import type {
   BubbleContentAttributesConfig,
   BubbleContentRendererMatch,
   BubbleMessage,
-  ChatMessageContentItem,
 } from '../index.type'
 import { defaultContentRendererMatches, defaultFallbackContentRenderer } from '../renderers/defaultRenderers'
 import { useContentResolver } from './useContentResolver'
@@ -63,7 +62,7 @@ export function useBubbleContentRenderer(
     const msg = toValue(message)
     const resolvedContent = contentResolver(msg)
     const content = Array.isArray(resolvedContent)
-      ? (resolvedContent.at(contentIndex ?? 0) as ChatMessageContentItem)
+      ? (resolvedContent.at(contentIndex ?? 0) ?? { type: 'text', text: '' })
       : { type: 'text', text: resolvedContent || '' }
     const resolvedProviderAttributes = (() => {
       const attrs = toValue(contentAttributes)

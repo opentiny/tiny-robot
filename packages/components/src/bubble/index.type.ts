@@ -44,6 +44,17 @@ export type BubbleMessage<
   state?: S
 }
 
+export interface BubbleErrorInfo {
+  message: string
+  name?: string
+  code?: string | number
+  details?: unknown
+}
+
+export interface BubbleErrorRendererProps {
+  message: BubbleMessage
+}
+
 export type BubbleProps = BubbleMessage & {
   hidden?: boolean
   avatar?: VNode | Component
@@ -186,9 +197,9 @@ export interface BubbleListProps {
   contentRenderMode?: BubbleProps['contentRenderMode']
   contentResolver?: BubbleProps['contentResolver']
   /**
-   * 是否自动滚动到底部。需要满足以下条件：
-   * - BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）
-   * - 滚动容器接近底部
+   * 是否跟随渲染内容的尺寸变化自动滚动到底部。
+   * 图片、Markdown 和自定义渲染器等异步增高时会继续跟随；用户向上滚动时暂停，回到底部后恢复。
+   * 支持运行时响应式切换，不影响 scrollToBottom() 的手动调用。
    *
    * @default false
    */
@@ -215,6 +226,7 @@ export interface BubbleProviderProps {
   contentAttributes?: BubbleContentAttributesConfig
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
+  errorRenderer?: Component<BubbleErrorRendererProps>
   store?: Record<string, unknown>
 }
 

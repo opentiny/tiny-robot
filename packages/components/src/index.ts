@@ -75,6 +75,7 @@ export {
   BubbleRenderers,
   useBubbleBoxRenderer,
   useBubbleContentRenderer,
+  useBubbleErrorRenderer,
   useBubbleEventFn,
   useBubbleStateChangeFn,
   useMessageContent,
@@ -86,6 +87,7 @@ export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
 export { createMcpExtensionStorage, createMemoryMcpExtensionStorage } from './mcp-extension-storage'
+export type { LegacyUseAutoScrollOptions, UseAutoScrollOptions, UseAutoScrollReturn } from './shared/composables'
 const components = [
   Attachments,
   Bubble,
