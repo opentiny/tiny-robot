@@ -10,6 +10,8 @@ import type {
 
 type ResolverMode = 'success' | 'error' | 'pending' | 'race'
 
+const props = defineProps<{ maxUploadSize?: number }>()
+
 const source = ref<SkillImportFormSource>('local')
 const resolverMode = ref<ResolverMode>('success')
 const useDefaultResolver = ref(false)
@@ -83,6 +85,7 @@ const handleSubmit = (definition: SkillDefinition) => {
 
   <SkillImportForm
     :source="source"
+    :max-upload-size="props.maxUploadSize"
     :resolve-skill="useDefaultResolver ? undefined : resolveSkill"
     @submit="handleSubmit"
     @cancel="cancelCount += 1"

@@ -52,6 +52,60 @@ const dropDirectory = async (dropzone: Locator, name: string) => {
   }, name)
 }
 
+const dropDirectoryWithSize = async (dropzone: Locator, name: string, size: number) => {
+  await dropzone.evaluate(
+    (element, directory) => {
+      const file = new File([new Uint8Array(directory.size)], 'SKILL.md', { type: 'text/markdown' })
+      let readCount = 0
+      const entry = {
+        isFile: false,
+        isDirectory: true,
+        name: directory.name,
+        createReader: () => ({
+          readEntries: (resolve: (entries: FileSystemEntry[]) => void) =>
+            resolve(
+              readCount++ === 0
+                ? [
+                    {
+                      isFile: true,
+                      isDirectory: false,
+                      name: file.name,
+                      file: (resolveFile: (value: File) => void) => resolveFile(file),
+                    } as FileSystemFileEntry,
+                  ]
+                : [],
+            ),
+        }),
+      }
+      const event = new Event('drop', { bubbles: true, cancelable: true })
+      Object.defineProperty(event, 'dataTransfer', {
+        value: { files: [], items: [{ webkitGetAsEntry: () => entry }] },
+      })
+      element.dispatchEvent(event)
+    },
+    { name, size },
+  )
+}
+
+const dropUnreadableDirectory = async (dropzone: Locator) => {
+  await dropzone.evaluate((element) => {
+    const entry = {
+      isFile: false,
+      isDirectory: true,
+      name: 'unreadable-skill',
+      createReader: () => ({
+        readEntries: (_resolve: (entries: FileSystemEntry[]) => void, reject: (error: unknown) => void) =>
+          reject(new Error('读取 Skill 文件夹失败')),
+      }),
+    }
+    const event = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'dataTransfer', {
+      value: { files: [], items: [{ webkitGetAsEntry: () => entry }] },
+    })
+    element.dispatchEvent(event)
+  })
+}
+
 test.describe('SkillImportForm', () => {
   test('uses the injected resolver and emits the resolved SkillDefinition', async ({ mount }) => {
     const component = await mount(SkillImportFormFixture)
@@ -92,6 +146,30 @@ test.describe('SkillImportForm', () => {
     await component.locator('input[type="file"]').setInputFiles(missingEntryDirectory)
     await expect(component.getByRole('alert')).toHaveText('Skill 包必须包含 SKILL.md 文件')
     await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+  })
+
+  test('derives the upload limit hint and error message from maxUploadSize', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture, { props: { maxUploadSize: 1.5 * 1024 * 1024 } })
+    const dropzone = component.getByTestId('skill-dropzone')
+
+    await expect(dropzone).toContainText('1.5M以内')
+
+    await dropDirectoryWithSize(dropzone, 'big-skill', 2 * 1024 * 1024)
+    await expect(component.getByRole('alert')).toHaveText('Skill 包大小不能超过 1.5 MB')
+  })
+
+  test('reports a dropped directory read failure without keeping the stale selection', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    const dropzone = component.getByTestId('skill-dropzone')
+
+    await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
+    await expect(component.getByText('valid-skill', { exact: true })).toBeVisible()
+
+    await dropUnreadableDirectory(dropzone)
+
+    await expect(component.getByRole('alert')).toHaveText('读取 Skill 文件夹失败')
+    await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
+    await expect(component.getByTestId('submit-output')).toBeEmpty()
   })
 
   test('keeps the upload box size while resolving and shows resolver errors internally', async ({ mount }) => {
@@ -225,6 +303,16 @@ test.describe('SkillImportForm', () => {
     await expect(component.getByRole('alert')).toHaveText('请输入有效的 GitHub Skill 地址')
     await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
     await expect(url).toBeFocused()
+  })
+
+  test('guides GitHub imports with an https placeholder', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-github').click()
+
+    await expect(component.getByRole('textbox', { name: 'URL' })).toHaveAttribute(
+      'placeholder',
+      'https://github.com/username/repo/tree/main/skills',
+    )
   })
 
   test('resets internal drafts and errors when the source changes', async ({ mount }) => {

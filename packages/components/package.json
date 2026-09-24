@@ -46,7 +46,7 @@
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
-    "@opentiny/tiny-robot-kit": "workspace:*",
+    "@opentiny/tiny-robot-kit": "workspace:^",
     "vue": "^3.3.11",
     "dompurify": "^3.3.1",
     "markdown-it": "^14.1.0"

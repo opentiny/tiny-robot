@@ -6,6 +6,7 @@ import type { SkillImportFormEmits, SkillImportFormInput, SkillImportFormProps, 
 import { resolveSkillWithKit } from './resolver'
 import {
   DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE,
+  formatSkillAddMaxUploadSize,
   parseSkillAddGithubUrl,
   validateSkillAddBrowserSelection,
 } from './validation'
@@ -32,6 +33,7 @@ const githubUrlId = `${componentId}-github-url`
 const errorId = `${componentId}-error`
 
 const totalSize = computed(() => browserFiles.value.reduce((total, file) => total + file.size, 0))
+const maxUploadSizeLabel = computed(() => formatSkillAddMaxUploadSize(props.maxUploadSize))
 const hasBrowserFiles = computed(() => browserFiles.value.length > 0)
 const browserSelectionError = computed(() =>
   hasBrowserFiles.value || browserSubmitAttempted.value
@@ -174,7 +176,18 @@ const handleDrop = async (event: DragEvent) => {
   if (!event.dataTransfer) return
 
   const selectionGeneration = ++browserSelectionGeneration.value
-  const files = await getDroppedFiles(event.dataTransfer)
+  let files: File[]
+
+  try {
+    files = await getDroppedFiles(event.dataTransfer)
+  } catch (error) {
+    if (selectionGeneration !== browserSelectionGeneration.value) return
+
+    invalidateResolution()
+    resolverErrorMessage.value = toSkillAddMessage(error)
+    return
+  }
+
   if (selectionGeneration !== browserSelectionGeneration.value) return
 
   updateBrowserFiles(files)
@@ -295,7 +308,7 @@ watch(
                 {{ resolving ? '正在校验…' : '点击或拖拽上传Skill包' }}
               </strong>
               <span :id="browserDescriptionId" class="skill-add__upload-description"
-                >技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述，10M以内</span
+                >技能包需要包含SKILL.md文件、以YAML格式编辑技能名称和描述，{{ maxUploadSizeLabel }}M以内</span
               >
             </template>
           </label>
@@ -336,7 +349,7 @@ watch(
           :aria-describedby="errorMessage ? errorId : undefined"
           :aria-invalid="Boolean(errorMessage)"
           :disabled="resolving"
-          placeholder="http://github.com/username/repo/tree/main/skills"
+          placeholder="https://github.com/username/repo/tree/main/skills"
           @input="handleGithubInput"
         />
         <p v-if="errorMessage" :id="errorId" class="skill-add__error" role="alert">{{ errorMessage }}</p>

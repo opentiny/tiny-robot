@@ -6,6 +6,10 @@ export interface SkillAddBrowserSelectionValidationOptions {
 
 export const DEFAULT_SKILL_ADD_MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 
+export function formatSkillAddMaxUploadSize(maxUploadSize: number): string {
+  return `${maxUploadSize / 1024 / 1024}`
+}
+
 export function validateSkillAddBrowserSelection(
   files: File[],
   options: SkillAddBrowserSelectionValidationOptions = {},
@@ -25,7 +29,7 @@ export function validateSkillAddBrowserSelection(
 
   const totalSize = files.reduce((total, file) => total + file.size, 0)
   if (totalSize > maxUploadSize) {
-    return `Skill 包大小不能超过 ${Math.round(maxUploadSize / 1024 / 1024)} MB`
+    return `Skill 包大小不能超过 ${formatSkillAddMaxUploadSize(maxUploadSize)} MB`
   }
 
   return ''
