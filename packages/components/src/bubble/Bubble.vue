@@ -50,9 +50,9 @@ const messages = computed(() => {
 const getContentItems = (message: BubbleMessage) => {
   const content = contentResolver(message)
   if (Array.isArray(content)) {
-    return content
+    return content.length > 0 ? content : [{ type: 'text', text: '' }]
   }
-  return content ? [{ type: 'text', text: content }] : []
+  return [{ type: 'text', text: content || '' }]
 }
 
 const hasMessageError = (message: BubbleMessage) => message.state?.error != null
@@ -72,7 +72,7 @@ const hidden = computed(() => {
 const shouldSplitedContent = computed(() => {
   if (props.contentRenderMode === 'split' && messages.value.length === 1) {
     const content = contentResolver(messages.value.at(0)!)
-    if (Array.isArray(content)) {
+    if (Array.isArray(content) && content.length > 0) {
       return content
     }
   }
