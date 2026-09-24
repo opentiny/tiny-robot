@@ -1,6 +1,6 @@
 import { useConversation, type UseConversationOptions, type UseMessagePlugin } from '@opentiny/tiny-robot-kit'
 import type { ChatBeforeSend, ChatComposerRuntime, ChatMcpRuntime } from '../types'
-import { useKitChatRuntime } from './useKitChatRuntime'
+import { useChatRuntimeFromConversation } from './useChatRuntimeFromConversation'
 import {
   createProviderModelRuntime,
   createProviderRequestPlugin,
@@ -15,13 +15,13 @@ import { createDefaultMcpAdapter } from './mcp/createDefaultMcpAdapter'
 import type { ChatMcpServers } from './mcp/types'
 import { createDefaultChatTitle } from './defaults'
 
-export interface UseLocalChatRuntimeMcpAdapter {
+export interface UseChatRuntimeMcpAdapter {
   runtime: ChatMcpRuntime
   listTools: ChatToolListTools
   callTool: ChatToolCallTool
 }
 
-export interface UseLocalChatRuntimeOptions {
+export interface UseChatRuntimeOptions {
   conversation?: Omit<UseConversationOptions, 'useMessageOptions'> & {
     useMessageOptions?: Partial<UseConversationOptions['useMessageOptions']>
   }
@@ -29,22 +29,22 @@ export interface UseLocalChatRuntimeOptions {
   beforeSend?: ChatBeforeSend
   composer?: Pick<ChatComposerRuntime, 'disabled' | 'submitDisabled'>
   modelProviders?: readonly ChatProviderConfig[]
-  mcp?: UseLocalChatRuntimeMcpAdapter
+  mcp?: UseChatRuntimeMcpAdapter
   mcpServers?: ChatMcpServers
 }
 
-export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
-  const conversationOptions: NonNullable<UseLocalChatRuntimeOptions['conversation']> = options.conversation ?? {}
+export function useChatRuntime(options: UseChatRuntimeOptions) {
+  const conversationOptions: NonNullable<UseChatRuntimeOptions['conversation']> = options.conversation ?? {}
   const resolveTitle = options.titleGenerator ?? createDefaultChatTitle
   const userUseMessageOptions = conversationOptions.useMessageOptions
   const userResponseProvider = userUseMessageOptions?.responseProvider
 
   if (options.mcp !== undefined && options.mcpServers !== undefined) {
-    throw new Error('useLocalChatRuntime: mcp and mcpServers cannot be configured at the same time.')
+    throw new Error('useChatRuntime: mcp and mcpServers cannot be configured at the same time.')
   }
 
   if (options.modelProviders?.length && userResponseProvider) {
-    throw new Error('useLocalChatRuntime: modelProviders and responseProvider cannot be configured at the same time.')
+    throw new Error('useChatRuntime: modelProviders and responseProvider cannot be configured at the same time.')
   }
 
   const providerModels = options.modelProviders ? resolveProviderModels(options.modelProviders) : []
@@ -70,7 +70,7 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
   }
 
   if (!useMessageOptions.responseProvider) {
-    throw new Error('useLocalChatRuntime requires conversation.useMessageOptions.responseProvider or modelProviders.')
+    throw new Error('useChatRuntime requires conversation.useMessageOptions.responseProvider or modelProviders.')
   }
 
   const conversation = useConversation({
@@ -79,7 +79,7 @@ export function useLocalChatRuntime(options: UseLocalChatRuntimeOptions) {
     useMessageOptions: useMessageOptions as UseConversationOptions['useMessageOptions'],
   })
 
-  return useKitChatRuntime({
+  return useChatRuntimeFromConversation({
     conversation,
     titleGenerator: resolveTitle,
     beforeSend: options.beforeSend,
