@@ -21,10 +21,24 @@ export function createMockConversationStorage(
   return {
     async loadConversations() {
       const conversations = await storage.loadConversations()
-      const initialized = localStorage.getItem(initializedKey)
+      let initialized: string | null = null
+
+      try {
+        initialized = localStorage.getItem(initializedKey)
+      } catch {
+        return conversations
+      }
+
+      const markInitialized = () => {
+        try {
+          localStorage.setItem(initializedKey, 'true')
+        } catch {
+          // The marker is best effort.
+        }
+      }
 
       if (conversations.length && !initialized) {
-        localStorage.setItem(initializedKey, 'true')
+        markInitialized()
       }
 
       if (initialized || conversations.length || !seeds.length) {
@@ -45,7 +59,7 @@ export function createMockConversationStorage(
         await storage.saveMessages(conversation.id, [...seeds[index].messages])
       }
 
-      localStorage.setItem(initializedKey, 'true')
+      markInitialized()
 
       return seededConversations
     },
