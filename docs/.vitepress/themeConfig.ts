@@ -26,6 +26,7 @@ const sharedSidebarItems = [
       { text: 'DropdownMenu 下拉菜单', link: 'dropdown-menu' },
       { text: 'SuggestionPopover 建议弹出框', link: 'suggestion-popover' },
       { text: 'SuggestionPills 建议按钮组', link: 'suggestion-pills' },
+      { text: 'QuickAssist 智能帮助', link: 'quick-assist' },
       { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },

@@ -38,11 +38,14 @@
   "sideEffects": ["**/*.css"],
   "files": [
     "dist",
+    "vanilla",
     "README*"
   ],
   "scripts": {
     "dev": "vue-tsc && vite build --watch",
-    "build": "vue-tsc && vite build",
+    "build": "vue-tsc && vite build && npm run build:vanilla",
+    "build:vanilla": "vite build --config vite.vanilla.config.ts && tsc -p tsconfig.vanilla.json && vite build --config vite.vanilla-umd.config.ts",
+    "type-check:vanilla": "tsc --noEmit -p tsconfig.vanilla.json",
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
