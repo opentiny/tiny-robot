@@ -60,9 +60,12 @@ export type SkillImportFormInput =
   | {
       source: 'github'
       url: string
+      /**
+       * `owner/repo`，由 `url` 解析得到，供宿主直接使用。
+       * ref 与目录的边界需要按仓库真实 refs 在线解析，因此不在输入中提供：默认 resolver 会完成解析，
+       * 自定义 resolver 需要自行解析，或改用 kit 提供的解析能力。
+       */
       repo: string
-      ref: string
-      path: string
     }
 
 export type SkillResolver = (input: SkillImportFormInput) => Promise<SkillDefinition>

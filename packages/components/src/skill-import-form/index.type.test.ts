@@ -24,8 +24,6 @@ const githubInput: SkillImportFormInput = {
   source: 'github',
   url: 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo',
   repo: 'opentiny/tiny-robot',
-  ref: 'main',
-  path: 'skills/demo',
 }
 const definition: SkillDefinition = {
   name: 'demo',

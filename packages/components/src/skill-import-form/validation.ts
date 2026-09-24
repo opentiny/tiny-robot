@@ -103,9 +103,9 @@ const parseSkillAddGithubLink = (value: string): SkillAddGithubLink => {
 }
 
 export function parseSkillAddGithubUrl(value: string): Extract<SkillImportFormInput, { source: 'github' }> {
-  const { url, repo, segments } = parseSkillAddGithubLink(value)
+  const { url, repo } = parseSkillAddGithubLink(value)
 
-  return { source: 'github', url, repo, ref: segments[0], path: segments.slice(1).join('/') }
+  return { source: 'github', url, repo }
 }
 
 export function getSkillAddGithubSegments(value: string): string[] {

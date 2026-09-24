@@ -8,6 +8,14 @@ const missingEntryDirectory = path.join(import.meta.dirname, 'fixtures/missing-s
 const githubUrl = 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo'
 const githubDownloadUrl = 'https://raw.githubusercontent.com/opentiny/tiny-robot/main/skills/demo/SKILL.md'
 
+const skillEntry = (path: string) => ({
+  name: 'SKILL.md',
+  path,
+  type: 'file',
+  size: 80,
+  download_url: githubDownloadUrl,
+})
+
 type GithubRepositoryMock = {
   heads?: string[]
   tags?: string[]
@@ -337,8 +345,6 @@ test.describe('SkillImportForm', () => {
         source: 'github',
         url: 'https://github.com/opentiny/tiny-robot/tree/main/skills/demo',
         repo: 'opentiny/tiny-robot',
-        ref: 'main',
-        path: 'skills/demo',
       }),
     )
     await expect(component.getByTestId('submit-output')).toContainText('"name":"resolved-github"')
@@ -502,30 +508,41 @@ test.describe('SkillImportForm', () => {
     expect(requests.filter((request) => request.includes('/contents/'))).toEqual([])
   })
 
-  test('decodes percent-encoded GitHub paths and rejects broken encodings', async ({ mount }) => {
+  test('decodes percent-encoded GitHub paths and rejects broken encodings', async ({ mount, page }) => {
+    const requests = await mockGithubRepository(page, {
+      heads: ['main'],
+      contents: {
+        'main:my skill': [skillEntry('my skill/SKILL.md')],
+        'main:技能目录': [skillEntry('技能目录/SKILL.md')],
+      },
+    })
+    await page.route(githubDownloadUrl, (route) =>
+      route.fulfill({
+        body: ['---', 'name: decoded-skill', 'description: Decoded path demo', '---', '', '# Decoded'].join('\n'),
+      }),
+    )
+
     const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
     await component.getByTestId('show-github').click()
     const url = component.getByRole('textbox', { name: 'URL' })
 
     await url.fill('https://github.com/opentiny/tiny-robot/tree/main/my%20skill')
     await component.getByRole('button', { name: '导入' }).click()
-    await expect(component.getByTestId('resolver-input')).toHaveText(
-      JSON.stringify({
-        source: 'github',
-        url: 'https://github.com/opentiny/tiny-robot/tree/main/my%20skill',
-        repo: 'opentiny/tiny-robot',
-        ref: 'main',
-        path: 'my skill',
-      }),
-    )
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"decoded-skill"')
 
     await url.fill(`https://github.com/opentiny/tiny-robot/tree/main/${encodeURIComponent('技能目录')}`)
     await component.getByRole('button', { name: '导入' }).click()
-    await expect(component.getByTestId('resolver-input')).toContainText('"path":"技能目录"')
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"decoded-skill"')
 
     await url.fill('https://github.com/opentiny/tiny-robot/tree/main/%E0%A4%A')
     await component.getByRole('button', { name: '导入' }).click()
     await expect(component.getByRole('alert')).toHaveText('请输入有效的 GitHub Skill 地址')
+
+    expect(requests.filter((request) => request.includes('/contents/'))).toEqual([
+      '/repos/opentiny/tiny-robot/contents/my%20skill?ref=main',
+      `/repos/opentiny/tiny-robot/contents/${encodeURIComponent('技能目录')}?ref=main`,
+    ])
   })
 
   test('keeps GitHub loading and resolver errors inside the component', async ({ mount }) => {
@@ -589,8 +606,6 @@ test.describe('SkillImportForm', () => {
         source: 'github',
         url: 'https://github.com/opentiny/tiny-robot/blob/main/skills/demo/SKILL.md',
         repo: 'opentiny/tiny-robot',
-        ref: 'main',
-        path: 'skills/demo',
       }),
     )
     await expect(component.getByTestId('submit-output')).toContainText('"name":"resolved-github"')
