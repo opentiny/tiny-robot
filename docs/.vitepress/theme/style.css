@@ -37,12 +37,12 @@ body,
 
 /* HTML 快速帮助演示需要足够的高度展示正文和划词浮层。 */
 .VPDoc:has(h1[id='quickassist-智能帮助']) .vitepress-demo-plugin-preview iframe {
-  min-height: 480px !important;
+  min-height: 540px !important;
 }
 
 @media (max-width: 640px) {
   .VPDoc:has(h1[id='quickassist-智能帮助']) .vitepress-demo-plugin-preview iframe {
-    min-height: 600px !important;
+    min-height: 900px !important;
   }
 }
 

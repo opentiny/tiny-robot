@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
 
 # QuickAssist 智能帮助
 
-QuickAssist 是一个与框架无关的智能帮助组件，提供了划词入口。用户选中页面中的文字后，可以查看推荐问题、编辑问题，并把问题和有限上下文交给应用已有的 AI 对话面板。它只负责划词触发和输入交互，不包含回答展示、模型调用或完整聊天界面。
+QuickAssist 是一个与框架无关的智能帮助组件，可以用在需要在页面中进行轻量AI交互的场景。当前提供了“划词”触发和输入交互，用户选中页面中的文字后，可以查看推荐问题、编辑问题，并把问题和有限上下文交给应用已有的 AI 对话面板。它只负责划词触发和输入交互，不包含回答展示、模型调用或完整聊天界面。
 
 ## 安装与引入
 
@@ -53,6 +53,7 @@ UMD 入口会自动向所在文档注入组件样式。如果内容安全策略�
 ## 代码示例
 
 ### 基础用法
+
 使用 `createQuickAssist` 可以创建选词智能帮助的UI实例。支持通过传入参数来进行各类自定义配置。  
 `adapter` 参数负责连接应用现有的 AI 对话能力，例如用户发送问题后或者点击推荐问题后显示下一步AI对话窗口。提交时应处理 `prompt` 和 `context`；只发送 `query` 会丢掉推荐问题和页面上下文。
 
@@ -94,6 +95,19 @@ const quickAssist = createQuickAssist({
 下面的 HTML 示例把请求对象安全地显示在模拟对话面板中，不连接实际模型服务。
 
 <demo html="../../demos/quick-assist/vanilla.html" title="HTML 接入" description="划词后查看提交给应用的请求内容。" />
+
+### 延迟显示入口
+
+设置 `trigger.showDelay` 可在选区稳定后延迟显示划词入口，单位为毫秒；默认 `0`，保持立即显示。连续拖选时从最后一次有效选区重新计时，并等待鼠标松开；选区失效、关闭、停用或销毁时会取消待显示的入口。延迟只影响入口，不影响点击后打开输入浮层。
+
+<demo vue="../../demos/quick-assist/trigger-delay.vue" title="延迟显示划词入口" description="切换立即显示与延迟 300 毫秒，对比划词体验。" />
+
+```ts
+createQuickAssist({
+  adapter,
+  trigger: { showDelay: 300 },
+})
+```
 
 ### 推荐问题
 
@@ -310,6 +324,7 @@ onBeforeUnmount(() => {
 | `selection.maxTextLength`      | `number`                                                                 | `300`        | 可选文字的最大长度，必须为正整数                   |
 | `selection.validate`           | `(snapshot) => boolean`                                                  | 内置校验     | 替代默认的文本内容校验                             |
 | `trigger.label`                | `string`                                                                 | `智能帮助`   | 划词入口文案                                       |
+| `trigger.showDelay`            | `number`                                                                 | `0`          | 选区稳定后延迟显示入口，单位为毫秒，须为非负整数   |
 | `trigger.offset`               | `number`                                                                 | `8`          | 入口与选区的间距，单位为像素                       |
 | `trigger.placement`            | `'auto' \| 'top' \| 'bottom'`                                            | `'auto'`     | 入口的优先位置；空间不足时调整                     |
 | `nearbyContext.maxLength`      | `number`                                                                 | `500`        | 附近文本的最大字符数                               |
