@@ -143,6 +143,25 @@ test('mouse drag beyond the configured limit leaves no trigger', async ({ page }
   await expect(page.locator(trigger)).toHaveCount(0)
 })
 
+test('default trigger appears only after mouse selection ends', async ({ page }) => {
+  const rect = await page.locator('#term').evaluate((element) => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    return range.getBoundingClientRect().toJSON()
+  })
+  const y = rect.top + rect.height / 2
+  await page.mouse.move(rect.left + 1, y)
+  await page.mouse.down()
+  await page.mouse.move(rect.right - 1, y, { steps: 8 })
+  await page.waitForTimeout(100)
+  expect(await page.evaluate(() => window.getSelection()?.toString().trim().length ?? 0)).toBeGreaterThan(0)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(0)
+  await page.mouse.up()
+  await expect(page.locator(trigger)).toBeVisible()
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
+})
+
 test('showDelay waits after selection settles and emits trigger_show only when visible', async ({ page }) => {
   await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 180 } }))
   await select(page, '#term')
@@ -450,6 +469,7 @@ test('reselecting the same range after scroll reopens the trigger', async ({ pag
     selection.collapse(element.firstChild!, 0)
   })
   await dragSelectText(page, '#term')
+  await expect(page.locator(trigger)).toBeVisible()
   const state = await page.evaluate(() => {
     const selection = window.getSelection()
     const range = selection?.rangeCount ? selection.getRangeAt(0) : null
