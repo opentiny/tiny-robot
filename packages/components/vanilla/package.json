@@ -1,0 +1,9 @@
+{
+  "name": "@opentiny/tiny-robot/vanilla",
+  "private": true,
+  "type": "module",
+  "main": "../dist/vanilla/index.js",
+  "module": "../dist/vanilla/index.js",
+  "types": "../dist/vanilla/index.d.ts",
+  "style": "./style.css"
+}

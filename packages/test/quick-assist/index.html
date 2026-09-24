@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QuickAssist browser fixture</title>
+    <style>
+      body {
+        margin: 32px;
+        font: 16px/1.6 sans-serif;
+      }
+      #scope {
+        max-width: 700px;
+      }
+      .spacer {
+        height: 900px;
+      }
+      #scroll-box {
+        height: 120px;
+        overflow: auto;
+        border: 1px solid #888;
+      }
+      #chat {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        background: white;
+        padding: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="scope">
+      <p id="term">竞价计费</p>
+      <p id="term-copy">竞价计费</p>
+      <p id="other-term">网络安全组</p>
+      <p id="keyboard-term" tabindex="0">键盘选择测试</p>
+      <p id="short">ECS VPC ACL QoS 云</p>
+      <p id="mixed">包年包月 <b>按需计费</b> 竞价计费</p>
+      <p id="sensitive-cross">公共文本 <span data-ai-selection="false">SECRET_TOKEN</span> 普通说明</p>
+      <p id="nearby">
+        计费模式 <span id="nearby-term">弹性计费</span><span data-ai-selection="false">HIDDEN_SECRET</span
+        ><input value="PASSWORD_VALUE" /><span hidden>HIDDEN_TEXT</span>
+      </p>
+      <p id="url">https://example.com/token</p>
+      <p id="bare-url">example.com</p>
+      <p id="digits">123456</p>
+      <p id="uuid">550e8400-e29b-41d4-a716-446655440000</p>
+      <p id="zero-uuid">00000000-0000-0000-0000-000000000000</p>
+      <p id="punctuation">，。！？</p>
+      <p id="long"></p>
+      <p><a id="link" href="#link-target">网络配置说明</a></p>
+      <button id="button" type="button">按钮说明</button>
+      <label id="radio"><input type="radio" />单选说明</label>
+      <table>
+        <tbody>
+          <tr>
+            <td id="cell">实例规格</td>
+          </tr>
+        </tbody>
+      </table>
+      <textarea id="editable">编辑器文字</textarea>
+      <div id="contenteditable" contenteditable="true">可编辑内容</div>
+      <div class="monaco-editor"><span id="monaco">代码文本</span></div>
+      <div id="scroll-box">
+        <p id="scroll-term">滚动容器术语</p>
+        <div class="spacer"></div>
+      </div>
+    </main>
+    <p id="outside">范围之外文字</p>
+    <button id="outside-button" type="button">页面其他按钮</button>
+    <aside id="chat" hidden>
+      <h2>宿主 AI 面板</h2>
+      <pre id="request"></pre>
+    </aside>
+    <div class="spacer"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
