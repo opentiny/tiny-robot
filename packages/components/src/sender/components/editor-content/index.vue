@@ -1,27 +1,51 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { EditorContent as TiptapEditorContent } from '@tiptap/vue-3'
-import { useResizeObserver } from '@vueuse/core'
+import { useMutationObserver, useResizeObserver } from '@vueuse/core'
 import { useSenderContext } from '../../context'
 
 // editorRef 在模板中通过 ref="editorRef" 使用
-const { editor, editorRef } = useSenderContext()
+const { editor, editorRef, mode } = useSenderContext()
 const editorScrollRef = ref<HTMLElement | null>(null)
 const inputPrefixRef = ref<HTMLElement | null>(null)
+const placeholder = ref('')
+
+const syncPlaceholder = () => {
+  const element = editorScrollRef.value?.querySelector('.ProseMirror > p.is-editor-empty:first-child')
+  placeholder.value = mode.value === 'multiple' ? (element?.getAttribute('data-placeholder') ?? '') : ''
+}
 
 useResizeObserver(inputPrefixRef, ([entry]) => {
   if (!entry) return
 
   editorScrollRef.value?.style.setProperty('--tr-sender-input-prefix-width', `${entry.contentRect.width}px`)
 })
+
+useMutationObserver(editorScrollRef, syncPlaceholder, {
+  subtree: true,
+  childList: true,
+  attributes: true,
+  attributeFilter: ['class', 'data-placeholder'],
+})
+
+watch([editor, mode], () => nextTick(syncPlaceholder), { immediate: true })
 </script>
 
 <template>
   <div ref="editorRef" class="tr-sender-editor-wrapper">
     <!-- 新增：滚动容器，用于控制高度和滚动 -->
-    <div ref="editorScrollRef" :class="['tr-sender-editor-scroll', { 'has-input-prefix': $slots['input-prefix'] }]">
+    <div
+      ref="editorScrollRef"
+      :class="[
+        'tr-sender-editor-scroll',
+        { 'has-input-prefix': $slots['input-prefix'], 'is-multiple': mode === 'multiple' },
+      ]"
+    >
       <div v-if="$slots['input-prefix']" ref="inputPrefixRef" class="tr-sender-input-prefix">
         <slot name="input-prefix" />
+      </div>
+      <div v-if="mode === 'multiple' && placeholder" class="tr-sender-placeholder" aria-hidden="true">
+        {{ placeholder }}
       </div>
       <TiptapEditorContent v-if="editor" :editor="editor" class="tr-sender-editor-content" />
     </div>
@@ -64,6 +88,29 @@ useResizeObserver(inputPrefixRef, ([entry]) => {
     :deep(.ProseMirror > p:first-child) {
       text-indent: calc(var(--tr-sender-input-prefix-width, 0px) + var(--tr-sender-gap, 8px));
     }
+
+    .tr-sender-placeholder {
+      text-indent: calc(var(--tr-sender-input-prefix-width, 0px) + var(--tr-sender-gap, 8px));
+    }
+  }
+
+  &.is-multiple {
+    display: grid;
+
+    .tr-sender-placeholder,
+    :deep(.tr-sender-editor-content) {
+      grid-area: 1 / 1;
+    }
+
+    :deep(.tr-sender-editor-content),
+    :deep(.ProseMirror),
+    :deep(.ProseMirror p.is-editor-empty:first-child) {
+      min-height: 100%;
+    }
+
+    :deep(.ProseMirror p.is-editor-empty:first-child::before) {
+      display: none;
+    }
   }
 }
 
@@ -78,6 +125,16 @@ useResizeObserver(inputPrefixRef, ([entry]) => {
   min-height: var(--tr-sender-line-height, 26px);
   line-height: var(--tr-sender-line-height, 26px);
   white-space: nowrap;
+}
+
+.tr-sender-placeholder {
+  min-width: 0;
+  color: var(--tr-sender-placeholder-color);
+  line-height: var(--tr-sender-line-height, 26px);
+  font-size: var(--tr-sender-font-size, 16px);
+  pointer-events: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .tr-sender-editor-content {
