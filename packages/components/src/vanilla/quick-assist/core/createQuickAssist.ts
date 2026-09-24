@@ -1,7 +1,7 @@
 import { createContextModule } from '../context'
 import { observeAnchor, getSnapshotRect, positionElement } from '../positioning'
 import { createRecommendationResolver } from '../recommendation'
-import { createSelectionController } from '../selection'
+import { captureSelectionSnapshot, createSelectionController } from '../selection'
 import { createQuickAssistUI } from '../ui'
 import type {
   QuickAssistActivation,
@@ -58,6 +58,10 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     throw new Error('QuickAssist selection.maxTextLength must be a positive integer')
   }
   const triggerInput = input.trigger ?? {}
+  const showDelay = triggerInput.showDelay ?? 0
+  if (!Number.isInteger(showDelay) || showDelay < 0) {
+    throw new Error('QuickAssist trigger.showDelay must be a non-negative integer')
+  }
   const offset = triggerInput.offset ?? 8
   if (!Number.isFinite(offset) || offset < 0) {
     throw new Error('QuickAssist trigger.offset must be a non-negative number')
@@ -81,6 +85,7 @@ function normalizeOptions(input: QuickAssistOptions): ResolvedQuickAssistOptions
     selection: { maxTextLength, validate: selectionInput.validate },
     trigger: {
       label: triggerInput.label ?? '智能帮助',
+      showDelay,
       offset,
       placement: triggerInput.placement ?? 'auto',
     },
@@ -189,6 +194,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   let nextSessionId = 0
   let session: QuickAssistSession | null = null
   let triggerElement: HTMLElement | null = null
+  let triggerTimer: ReturnType<typeof setTimeout> | undefined
+  let pointerDown = false
   let anchorCleanup: (() => void) | undefined
   let unsubscribeSelection: (() => void) | undefined
   let unsubscribeSelectionClear: (() => void) | undefined
@@ -234,6 +241,8 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
 
   const closeSession = (reason: QuickAssistCloseReason): void => {
     const current = session
+    if (triggerTimer !== undefined) clearTimeout(triggerTimer)
+    triggerTimer = undefined
     stopAnchorObservation()
     triggerElement = null
     if (!current) {
@@ -407,6 +416,71 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       })
   }
 
+  const showTrigger = (candidate: QuickAssistSession, emitSelection = false): void => {
+    if (!isCurrent(candidate)) return
+    const snapshot = candidate.activation.selection
+    if (resolved.trigger.showDelay > 0 && snapshot) {
+      const latest = captureSelectionSnapshot(resolved.root)
+      if (
+        !latest ||
+        latest.text !== snapshot.text ||
+        latest.range.startContainer !== snapshot.range.startContainer ||
+        latest.range.startOffset !== snapshot.range.startOffset ||
+        latest.range.endContainer !== snapshot.range.endContainer ||
+        latest.range.endOffset !== snapshot.range.endOffset
+      ) {
+        closeSession('reselection')
+        return
+      }
+      if (!getSnapshotRect(snapshot)) {
+        closeSession('anchor-invalid')
+        return
+      }
+    }
+    triggerElement = ui.showTrigger({
+      activation: candidate.activation,
+      onClick: () => handlePopover(candidate),
+    })
+    if (emitSelection) emit({ type: 'selection', sessionId: candidate.id })
+    if (!isCurrent(candidate)) return
+    emit({ type: 'trigger_show', sessionId: candidate.id })
+    if (!isCurrent(candidate)) return
+    reposition(triggerElement, candidate)
+    if (!snapshot) return
+    let triggerAnchor = getSnapshotRect(snapshot)
+    let cumulativeTriggerMovement = 0
+    anchorCleanup = observeAnchor({
+      element: triggerElement,
+      snapshot,
+      onChange: () => {
+        if (!isCurrent(candidate) || !triggerElement) return
+        const nextAnchor = getSnapshotRect(snapshot)
+        if (candidate.state === 'trigger' && triggerAnchor && nextAnchor) {
+          cumulativeTriggerMovement +=
+            Math.abs(nextAnchor.left - triggerAnchor.left) + Math.abs(nextAnchor.top - triggerAnchor.top)
+          if (cumulativeTriggerMovement > 4) {
+            closeSession('scroll')
+            return
+          }
+        }
+        if (nextAnchor) triggerAnchor = nextAnchor
+        reposition(triggerElement, candidate)
+      },
+      onInvalid: () => {
+        if (isCurrent(candidate)) closeSession('anchor-invalid')
+      },
+    })
+  }
+
+  const scheduleTrigger = (candidate: QuickAssistSession): void => {
+    if (!isCurrent(candidate) || pointerDown) return
+    if (triggerTimer !== undefined) clearTimeout(triggerTimer)
+    triggerTimer = setTimeout(() => {
+      triggerTimer = undefined
+      showTrigger(candidate)
+    }, resolved.trigger.showDelay)
+  }
+
   const handleActivation = (rawActivation: QuickAssistActivation): void => {
     if (!enabled || destroyed) return
     const activation = normalizeActivation(rawActivation)
@@ -434,42 +508,27 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       submitStarted: false,
     }
     session = next
-    triggerElement = ui.showTrigger({
-      activation,
-      onClick: () => handlePopover(next),
-    })
+    if (resolved.trigger.showDelay === 0) {
+      showTrigger(next, true)
+      return
+    }
     emit({ type: 'selection', sessionId: next.id })
     if (!isCurrent(next)) return
-    emit({ type: 'trigger_show', sessionId: next.id })
-    if (!isCurrent(next)) return
-    reposition(triggerElement, next)
-    let triggerAnchor = getSnapshotRect(snapshot)
-    let cumulativeTriggerMovement = 0
-    anchorCleanup = observeAnchor({
-      element: triggerElement,
-      snapshot,
-      onChange: () => {
-        if (!isCurrent(next) || !triggerElement) return
-        const nextAnchor = getSnapshotRect(snapshot)
-        if (next.state === 'trigger' && triggerAnchor && nextAnchor) {
-          cumulativeTriggerMovement +=
-            Math.abs(nextAnchor.left - triggerAnchor.left) + Math.abs(nextAnchor.top - triggerAnchor.top)
-          if (cumulativeTriggerMovement > 4) {
-            closeSession('scroll')
-            return
-          }
-        }
-        if (nextAnchor) triggerAnchor = nextAnchor
-        reposition(triggerElement, next)
-      },
-      onInvalid: () => {
-        if (isCurrent(next)) closeSession('anchor-invalid')
-      },
-    })
+    scheduleTrigger(next)
   }
 
   const onPointerDown = (event: PointerEvent): void => {
+    if (event.pointerType !== 'touch') pointerDown = true
     if (session && !ui.contains(event.target as Node | null)) closeSession('outside')
+  }
+  const onPointerUp = (event: PointerEvent): void => {
+    if (event.pointerType === 'touch') return
+    pointerDown = false
+    if (session?.state === 'trigger' && !triggerElement && triggerTimer === undefined) scheduleTrigger(session)
+  }
+  const onPointerCancel = (): void => {
+    pointerDown = false
+    if (session?.state === 'trigger' && !triggerElement) closeSession('reselection')
   }
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape' && session) {
@@ -483,12 +542,16 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
 
   const attachGlobalListeners = (): void => {
     resolved.root.addEventListener('pointerdown', onPointerDown, true)
+    resolved.root.addEventListener('pointerup', onPointerUp, true)
+    resolved.root.addEventListener('pointercancel', onPointerCancel, true)
     resolved.root.addEventListener('keydown', onKeyDown, true)
     resolved.root.defaultView?.addEventListener('popstate', onRoute)
     resolved.root.defaultView?.addEventListener('hashchange', onRoute)
   }
   const detachGlobalListeners = (): void => {
     resolved.root.removeEventListener('pointerdown', onPointerDown, true)
+    resolved.root.removeEventListener('pointerup', onPointerUp, true)
+    resolved.root.removeEventListener('pointercancel', onPointerCancel, true)
     resolved.root.removeEventListener('keydown', onKeyDown, true)
     resolved.root.defaultView?.removeEventListener('popstate', onRoute)
     resolved.root.defaultView?.removeEventListener('hashchange', onRoute)
@@ -587,6 +650,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
   const disable = (): void => {
     if (destroyed || !enabled) return
     closeSession('disable')
+    pointerDown = false
     enabled = false
     selectionModule.disable()
     detachGlobalListeners()

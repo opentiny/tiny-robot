@@ -14,6 +14,7 @@ export const options: QuickAssistOptions = {
   adapter,
   sanitizeContext: (context: QuickAssistContext) => context,
   selection: { validate: (snapshot: SelectionSnapshot) => snapshot.text.length > 0 },
+  trigger: { showDelay: 200 },
   getSuggestions: (_context, signal): Suggestion[] =>
     signal.aborted ? [] : [{ id: 'test', label: '解释', prompt: '请解释' }],
 }

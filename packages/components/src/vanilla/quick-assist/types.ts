@@ -97,6 +97,8 @@ export interface QuickAssistSelectionOptions {
 
 export interface QuickAssistTriggerOptions {
   label?: string
+  /** Milliseconds to wait after the selection settles before showing the trigger. Defaults to 0. */
+  showDelay?: number
   offset?: number
   placement?: QuickAssistPlacement
 }

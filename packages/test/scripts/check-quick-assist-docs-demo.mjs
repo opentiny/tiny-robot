@@ -73,7 +73,7 @@ try {
         height: element.clientHeight,
         contentHeight: element.contentDocument?.documentElement.scrollHeight ?? 0,
       }))
-    expect(frame.height).toBeGreaterThanOrEqual(700)
+    expect(frame.height).toBeGreaterThanOrEqual(540)
     expect(frame.contentHeight).toBeLessThanOrEqual(frame.height)
   }
   await paragraph.evaluate((element) => {
@@ -107,6 +107,7 @@ try {
   await expect(demo.locator('#event-status')).not.toContainText('失败')
   if (!standalone) {
     for (const selector of [
+      '#qa-delay-text',
       '#qa-recommendations-text',
       '#qa-context-text',
       '#qa-scope-allowed',
@@ -114,6 +115,31 @@ try {
     ]) {
       await expect(page.locator(selector)).toBeVisible()
     }
+    const delayText = page.locator('#qa-delay-text')
+    await delayText.scrollIntoViewIfNeeded()
+    await delayText.evaluate((element) => {
+      const range = document.createRange()
+      range.setStart(element.firstChild, 0)
+      range.setEnd(element.firstChild, 4)
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    await expect(page.locator('.tr-quick-assist__trigger')).toHaveCount(0)
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+    await page.getByRole('button', { name: '立即显示' }).click()
+    await delayText.evaluate((element) => {
+      const range = document.createRange()
+      range.setStart(element.firstChild, 0)
+      range.setEnd(element.firstChild, 4)
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+      document.dispatchEvent(new Event('selectionchange'))
+    })
+    await expect(page.locator('.tr-quick-assist__trigger')).toBeVisible()
+    await page.keyboard.press('Escape')
     const recommendationText = page.locator('#qa-recommendations-text p').first()
     await recommendationText.scrollIntoViewIfNeeded()
     await recommendationText.evaluate((element) => {

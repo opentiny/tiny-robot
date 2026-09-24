@@ -143,6 +143,77 @@ test('mouse drag beyond the configured limit leaves no trigger', async ({ page }
   await expect(page.locator(trigger)).toHaveCount(0)
 })
 
+test('showDelay waits after selection settles and emits trigger_show only when visible', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 180 } }))
+  await select(page, '#term')
+  await expect(page.locator(trigger)).toHaveCount(0)
+  expect(await page.evaluate(() => window.qaEvents.map((event) => event.type))).toEqual(['selection'])
+  await page.waitForTimeout(80)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await expect(page.locator(trigger)).toBeVisible()
+  expect(await page.evaluate(() => window.qaEvents.map((event) => event.type))).toEqual(['selection', 'trigger_show'])
+})
+
+test('showDelay restarts for a newer selection and cancels an invalid selection', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 200 } }))
+  await select(page, '#term')
+  await page.waitForTimeout(100)
+  await select(page, '#other-term')
+  await page.waitForTimeout(120)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await expect(page.locator(trigger)).toBeVisible()
+  expect(await page.evaluate(() => window.qaEvents.filter((event) => event.type === 'trigger_show').length)).toBe(1)
+  await select(page, '#long')
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await page.waitForTimeout(220)
+  await expect(page.locator(trigger)).toHaveCount(0)
+})
+
+test('showDelay waits for mouse release and is canceled by disable', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 150 } }))
+  const rect = await page.locator('#term').evaluate((element) => {
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    return range.getBoundingClientRect().toJSON()
+  })
+  const y = rect.top + rect.height / 2
+  await page.mouse.move(rect.left + 1, y)
+  await page.mouse.down()
+  await page.mouse.move(rect.right - 1, y, { steps: 8 })
+  await page.waitForTimeout(180)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await page.mouse.up()
+  await expect(page.locator(trigger)).toBeVisible()
+  await select(page, '#other-term')
+  await page.evaluate(() => window.qa.disable())
+  await page.waitForTimeout(180)
+  await expect(page.locator(trigger)).toHaveCount(0)
+})
+
+test('showDelay validates input and cancels pending work on update or destroy', async ({ page }) => {
+  await page.evaluate(() => window.resetQuickAssist({ trigger: { showDelay: 160 } }))
+  const error = await page.evaluate(() => {
+    try {
+      window.qa.updateOptions({ trigger: { showDelay: -1 } })
+      return ''
+    } catch (caught) {
+      return (caught as Error).message
+    }
+  })
+  expect(error).toContain('trigger.showDelay')
+  await select(page, '#term')
+  await page.evaluate(() => window.qa.updateOptions({ trigger: { showDelay: 0 } }))
+  await page.waitForTimeout(180)
+  await expect(page.locator(trigger)).toHaveCount(0)
+  await select(page, '#other-term')
+  await expect(page.locator(trigger)).toBeVisible()
+  await page.evaluate(() => window.qa.updateOptions({ trigger: { showDelay: 160 } }))
+  await select(page, '#term')
+  await page.evaluate(() => window.qa.destroy())
+  await page.waitForTimeout(180)
+  await expect(page.locator(trigger)).toHaveCount(0)
+})
+
 test('nearby context excludes sensitive, hidden and form content', async ({ page }) => {
   await select(page, '#nearby-term')
   await page.locator(trigger).click()
