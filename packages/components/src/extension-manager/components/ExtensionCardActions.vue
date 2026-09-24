@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { VNode } from 'vue'
+import Switch from '../../shared/components/Switch.vue'
 import type { ExtensionCardActionEvent, ExtensionCardRenderableAction } from '../index.type'
 
 const props = withDefaults(
@@ -22,13 +23,8 @@ const emit = defineEmits<{
   (e: 'action', payload: ExtensionCardActionEvent): void
 }>()
 
-const handleSwitch = (action: Extract<ExtensionCardRenderableAction, { type: 'switch' }>, event: Event) => {
+const handleSwitch = (action: Extract<ExtensionCardRenderableAction, { type: 'switch' }>, checked: boolean) => {
   if (action.disabled) return
-
-  const input = event.currentTarget as HTMLInputElement
-  const checked = input.checked
-
-  input.checked = Boolean(action.checked)
 
   emit('action', {
     id: action.id,
@@ -55,21 +51,15 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
 <template>
   <div class="tr-extension-card-primary-actions">
     <template v-for="action in props.actions" :key="action.id">
-      <label
+      <Switch
         v-if="action.type === 'switch'"
         class="tr-extension-card-primary-actions__switch"
         :class="{ 'is-disabled': action.disabled, 'is-danger': action.danger }"
-      >
-        <input
-          type="checkbox"
-          role="switch"
-          :checked="action.checked"
-          :disabled="action.disabled"
-          :aria-label="action.label"
-          @change="handleSwitch(action, $event)"
-        />
-        <span class="tr-extension-card-primary-actions__switch-track"></span>
-      </label>
+        :model-value="action.checked"
+        :disabled="action.disabled"
+        :label="action.label"
+        @update:model-value="handleSwitch(action, $event)"
+      />
 
       <button
         v-else-if="action.type === 'button'"
@@ -116,59 +106,11 @@ const handleCustom = (action: Extract<ExtensionCardRenderableAction, { type: 'cu
 }
 
 .tr-extension-card-primary-actions__switch {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  width: 40px;
-  height: 22px;
-  cursor: pointer;
-
-  &.is-disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
+  --tr-switch-bg-color: var(--tr-extension-card-switch-bg-color, var(--tr-text-disabled));
+  --tr-switch-bg-color-checked: var(--tr-extension-card-switch-bg-color-checked, var(--tr-color-primary));
 
   &.is-danger {
     color: var(--tr-color-error);
-  }
-
-  input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-
-    &:checked + .tr-extension-card-primary-actions__switch-track {
-      background: var(--tr-extension-card-switch-bg-color-checked, var(--tr-color-primary));
-
-      &::after {
-        transform: translateX(18px);
-      }
-    }
-  }
-}
-
-.tr-extension-card-primary-actions__switch-track {
-  position: relative;
-  display: block;
-  width: 40px;
-  height: 22px;
-  border-radius: 999px;
-  background: var(--tr-extension-card-switch-bg-color, var(--tr-text-disabled));
-  transition: background 0.2s ease;
-
-  &::after {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 16%);
-    content: '';
-    transition: transform 0.2s ease;
   }
 }
 
