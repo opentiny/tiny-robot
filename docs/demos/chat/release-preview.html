@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      .preview-page {
+        box-sizing: border-box;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .preview-header {
+        padding: 8px 0 20px;
+        border-bottom: 1px solid #dce3eb;
+      }
+
+      .preview-eyebrow {
+        margin: 0 0 8px;
+        color: #53708f;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .preview-title {
+        margin: 0;
+        color: #16283f;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+
+      .preview-summary {
+        margin: 12px 0 0;
+        color: #64758a;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .preview-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        margin-top: 16px;
+        color: #64758a;
+        font-size: 13px;
+      }
+
+      .preview-status {
+        color: #087443;
+        font-weight: 700;
+      }
+
+      .preview-section {
+        padding: 20px 0;
+        border-bottom: 1px solid #dce3eb;
+      }
+
+      .preview-section__title {
+        margin: 0 0 14px;
+        color: #263d57;
+        font-size: 16px;
+      }
+
+      .preview-source__title {
+        color: #1f3854;
+        font-size: 15px;
+      }
+
+      .preview-source__meta,
+      .preview-source__summary {
+        margin: 8px 0 0;
+        color: #64758a;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .preview-list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .preview-list > li {
+        position: relative;
+        padding-left: 22px;
+        color: #4e6075;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .preview-list > li::before {
+        position: absolute;
+        left: 0;
+        color: #087443;
+        content: '✓';
+        font-weight: 700;
+      }
+
+      .preview-list--changes > li::before {
+        color: #537da5;
+        content: '•';
+        font-size: 20px;
+        line-height: 18px;
+      }
+
+      @media (max-width: 560px) {
+        .preview-page {
+          padding: 16px;
+        }
+
+        .preview-title {
+          font-size: 26px;
+        }
+      }
+    </style>
+  </head>
+  <body class="preview-body">
+    <main class="preview-page">
+      <header class="preview-header">
+        <p class="preview-eyebrow">发布方案</p>
+        <h1 class="preview-title">春季营销活动</h1>
+        <p class="preview-summary">发布检查已完成，当前版本已按计划发布。</p>
+        <div class="preview-meta">
+          <span class="preview-status">已发布</span><span>发布时间：2026-04-18 20:00</span>
+        </div>
+      </header>
+      <section class="preview-section preview-source">
+        <h2 class="preview-section__title">当前引用</h2>
+        <strong class="preview-source__title">__SOURCE_TITLE__</strong>
+        <p class="preview-source__meta">__SOURCE_META__</p>
+        <p class="preview-source__summary">__SOURCE_SUMMARY__</p>
+      </section>
+      <section class="preview-section">
+        <h2 class="preview-section__title">检查清单</h2>
+        <ul class="preview-list">
+          <li>接口联调完成</li>
+          <li>灰度开关已配置</li>
+          <li>回归报告已归档</li>
+        </ul>
+      </section>
+      <section class="preview-section">
+        <h2 class="preview-section__title">变更摘要</h2>
+        <ul class="preview-list preview-list--changes">
+          <li>新增活动首页和权益说明</li>
+          <li>优化发布前校验流程</li>
+          <li>补充失败回滚提示</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
