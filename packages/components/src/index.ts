@@ -24,6 +24,8 @@ import Welcome from './welcome'
 import McpServerPicker from './mcp-server-picker'
 import McpAddForm from './mcp-add-form'
 import ExtensionManager, { ExtensionCard, ExtensionCardGrid } from './extension-manager'
+import McpExtensionForm from './mcp-extension-form'
+import McpExtensionDetail from './mcp-extension-detail'
 import {
   ActionButton,
   SubmitButton,
@@ -57,6 +59,9 @@ export * from './theme-provider/index.type'
 export * from './welcome/index.type'
 export * from './mcp-server-picker/index.type'
 export * from './mcp-add-form/index.type'
+export * from './mcp-extension-form/index.type'
+export * from './mcp-extension-detail/index.type'
+export * from './mcp-extension-storage/index.type'
 export * from './extension-manager/public.type'
 
 export { useSenderContentRegistration } from './shared/composables/useSenderContentRegistration'
@@ -77,6 +82,7 @@ export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
+export { createMcpExtensionStorage, createMemoryMcpExtensionStorage } from './mcp-extension-storage'
 export type { LegacyUseAutoScrollOptions, UseAutoScrollOptions, UseAutoScrollReturn } from './shared/composables'
 const components = [
   Attachments,
@@ -106,6 +112,8 @@ const components = [
   Welcome,
   McpServerPicker,
   McpAddForm,
+  McpExtensionForm,
+  McpExtensionDetail,
   ExtensionManager,
   ExtensionCard,
   ExtensionCardGrid,
@@ -182,6 +190,10 @@ export {
   McpServerPicker as TrMcpServerPicker,
   McpAddForm,
   McpAddForm as TrMcpAddForm,
+  McpExtensionForm,
+  McpExtensionForm as TrMcpExtensionForm,
+  McpExtensionDetail,
+  McpExtensionDetail as TrMcpExtensionDetail,
   ExtensionManager,
   ExtensionManager as TrExtensionManager,
   ExtensionCard,
