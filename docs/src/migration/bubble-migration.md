@@ -35,7 +35,7 @@ outline: [1, 3]
 | `items: (BubbleProps & { slots? })[]` | `messages: BubbleMessage[]` | **必改**：数据结构变化 |
 | `roles?: Record<string, BubbleRoleConfig>` | `roleConfigs?: Record<string, BubbleRoleConfig>` | 命名变更 + 配置项变化 |
 | `loading?: boolean` + `loadingRole?: string` | `messages` 中使用 `{ loading: true }` 或使用渲染器匹配 | **推荐**：把 loading 当作一条消息 |
-| `autoScroll?: boolean` | `autoScroll?: boolean` | 行为增强：会监听 content/reasoning 等变化 |
+| `autoScroll?: boolean` | `autoScroll?: boolean` | 行为增强：会监听实际渲染内容的尺寸变化，图片、Markdown、自定义渲染器等异步增高也可继续跟随 |
 | （无） | `groupStrategy?: 'consecutive' \| 'divider' \| (fn)` | **新增**：分组策略（默认 `divider`） |
 | （无） | `dividerRole?: string` | `'divider'` 策略分割角色（默认 `'user'`） |
 | （无） | `fallbackRole?: string` | 消息 role 缺失时使用（默认 `'assistant'`） |

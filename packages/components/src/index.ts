@@ -77,6 +77,7 @@ export { useTheme } from './theme-provider/useTheme'
 export { useSenderContext } from './sender'
 export { vDropzone } from './drag-overlay/directives/vDropzone'
 export { useAutoScroll, useTouchDevice } from './shared/composables'
+export type { LegacyUseAutoScrollOptions, UseAutoScrollOptions, UseAutoScrollReturn } from './shared/composables'
 const components = [
   Attachments,
   Bubble,
