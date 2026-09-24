@@ -508,7 +508,7 @@ export function createQuickAssist(input: QuickAssistOptions): QuickAssistInstanc
       submitStarted: false,
     }
     session = next
-    if (resolved.trigger.showDelay === 0) {
+    if (resolved.trigger.showDelay === 0 && !pointerDown) {
       showTrigger(next, true)
       return
     }
