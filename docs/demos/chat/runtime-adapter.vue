@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue'
 import { useConversation } from '@opentiny/tiny-robot-kit'
-import type { ConversationStorageStrategy, ResponseProvider } from '@opentiny/tiny-robot-kit'
+import type { ChatMessage, ConversationStorageStrategy, ResponseProvider } from '@opentiny/tiny-robot-kit'
 import {
   TrChatUI,
   useChatRuntimeAdapter,
@@ -10,12 +10,18 @@ import {
 } from '@opentiny/tiny-robot-chat'
 import '@opentiny/tiny-robot-chat/dist/style.css'
 
+const messagesByConversation = new Map<string, ChatMessage[]>()
+
 const memoryStorage: ConversationStorageStrategy = {
   loadConversations: () => [],
-  loadMessages: () => [],
+  loadMessages: (conversationId) => [...(messagesByConversation.get(conversationId) ?? [])],
   saveConversation: () => undefined,
-  saveMessages: () => undefined,
-  deleteConversation: () => undefined,
+  saveMessages: (conversationId, messages) => {
+    messagesByConversation.set(conversationId, [...messages])
+  },
+  deleteConversation: (conversationId) => {
+    messagesByConversation.delete(conversationId)
+  },
 }
 
 let responseIndex = 0
@@ -44,6 +50,7 @@ const responseProvider: ResponseProvider = async (requestBody) => {
 
 const conversation = useConversation({
   storage: memoryStorage,
+  autoSaveMessages: true,
   useMessageOptions: { responseProvider },
 })
 const runtime = useChatRuntimeFromConversation({ conversation })
