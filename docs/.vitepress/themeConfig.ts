@@ -29,7 +29,9 @@ const sharedSidebarItems = [
       { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },
-      { text: 'McpServerPicker 插件选择器（已弃用）', link: 'mcp-server-picker' },
+      { text: 'MCP 扩展添加与详情', link: 'mcp-extension' },
+      { text: 'Skill 扩展导入与详情', link: 'skill-extension' },
+      { text: 'McpServerPicker 插件选择器', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
       { text: 'Container 容器', link: 'container' },
     ],
@@ -44,6 +46,11 @@ const sharedSidebarItems = [
       { text: 'AIClient 模型交互工具类', link: 'ai-client' },
       { text: '工具函数', link: 'utils' },
     ],
+  },
+  {
+    text: '最佳实践',
+    base: '/best-practices/',
+    items: [{ text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' }],
   },
   {
     text: '图标',
@@ -61,6 +68,7 @@ const sidebar = {
   '/guide/': sharedSidebarItems,
   '/components/': sharedSidebarItems,
   '/tools/': sharedSidebarItems,
+  '/best-practices/': sharedSidebarItems,
   '/icons/': sharedSidebarItems,
   '/examples/': [
     {

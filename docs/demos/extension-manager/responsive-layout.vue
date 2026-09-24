@@ -42,9 +42,11 @@ const tabs: ExtensionManagerTab[] = [
 </script>
 
 <template>
-  <button type="button" :aria-pressed="narrow" @click="narrow = !narrow">
-    {{ narrow ? '切换为宽容器' : '切换为窄容器' }}
-  </button>
+  <div class="demo-aux-controls">
+    <button type="button" class="demo-aux-control" :aria-pressed="narrow" @click="narrow = !narrow">
+      {{ narrow ? '切换为宽容器' : '切换为窄容器' }}
+    </button>
+  </div>
   <p aria-live="polite">当前布局：{{ narrow ? '窄容器' : '宽容器' }}</p>
   <div class="responsive-layout" :class="{ 'is-narrow': narrow }">
     <tr-extension-manager :tabs="tabs" />

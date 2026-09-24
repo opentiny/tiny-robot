@@ -35,6 +35,15 @@ body,
   margin: 0;
 }
 
+.vitepress-demo-plugin__container .vitepress-demo-plugin-file-tabs {
+  justify-content: safe center;
+}
+
+.vitepress-demo-plugin__container .vitepress-demo-plugin-file-tabs .vitepress-demo-plugin-tab {
+  flex: none;
+  white-space: nowrap;
+}
+
 /* 暗色模式下的 Demo 插件样式 */
 .dark .vitepress-demo-plugin__container {
   background-color: #191919;
@@ -43,6 +52,44 @@ body,
 
 .demo-container-page-bg .vitepress-demo-plugin__container {
   background-color: var(--vp-c-bg);
+}
+
+/* Demo 辅助控制，不依赖全局 button 默认样式。 */
+.demo-aux-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.demo-aux-control {
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--vp-c-text-2);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.demo-aux-control:hover:not(:disabled) {
+  border-color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-soft);
+}
+
+.demo-aux-control:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.demo-aux-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 /* Bubble 组件 Demo 样式 */
@@ -131,11 +178,11 @@ div:has(h1[id='bubble-气泡组件']) {
   border-radius: 12px;
 }
 .main-content .items .item .link {
-  padding: 0;
+  padding: 6px 0 6px 16px;
   margin: 0;
-  padding-left: 16px;
-  height: 36px;
-  line-height: 36px;
+  min-height: 36px;
+  height: auto;
+  line-height: 24px;
 }
 .main-content .items .item .text {
   padding: 0;
