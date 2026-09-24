@@ -35,10 +35,30 @@
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vanilla": {
+      "types": "./dist/vanilla/index.d.ts",
+      "default": "./dist/vanilla/index.js"
+    },
+    "./vanilla/style.css": "./dist/vanilla/style.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "vanilla": ["dist/vanilla/index.d.ts"],
+      "vanilla/*": ["dist/vanilla/*"],
+      "*": ["*"]
+    }
+  },
   "sideEffects": ["**/*.css"],
   "files": [
     "dist",
-    "vanilla",
     "README*"
   ],
   "scripts": {
