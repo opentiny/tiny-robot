@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "scripts": {
-    "dev": "pnpm build:svgs && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
+    "dev": "pnpm build:components && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "node scripts/build-docs.js",
