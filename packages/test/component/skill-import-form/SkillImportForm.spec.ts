@@ -106,6 +106,46 @@ const dropUnreadableDirectory = async (dropzone: Locator) => {
   })
 }
 
+const dropDirectoryWhenReleased = async (dropzone: Locator, name: string) => {
+  await dropzone.evaluate((element, rootName) => {
+    const file = new File(['---\nname: demo\n---\n\n# Demo'], 'SKILL.md', { type: 'text/markdown' })
+    const fileEntry = {
+      isFile: true,
+      isDirectory: false,
+      name: file.name,
+      file: (resolveFile: (value: File) => void) => resolveFile(file),
+    } as FileSystemFileEntry
+    let pending: ((entries: FileSystemEntry[]) => void) | undefined
+    let released = false
+    const scope = window as unknown as { releaseSkillDrop?: () => void }
+    scope.releaseSkillDrop = () => {
+      released = true
+      const resolve = pending
+      pending = undefined
+      resolve?.([fileEntry])
+    }
+    const entry = {
+      isFile: false,
+      isDirectory: true,
+      name: rootName,
+      createReader: () => ({
+        readEntries: (resolve: (entries: FileSystemEntry[]) => void) => {
+          if (released) {
+            resolve([])
+            return
+          }
+          pending = resolve
+        },
+      }),
+    }
+    const event = new Event('drop', { bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'dataTransfer', {
+      value: { files: [], items: [{ webkitGetAsEntry: () => entry }] },
+    })
+    element.dispatchEvent(event)
+  }, name)
+}
+
 test.describe('SkillImportForm', () => {
   test('uses the injected resolver and emits the resolved SkillDefinition', async ({ mount }) => {
     const component = await mount(SkillImportFormFixture)
@@ -170,6 +210,23 @@ test.describe('SkillImportForm', () => {
     await expect(component.getByRole('alert')).toHaveText('读取 Skill 文件夹失败')
     await expect(component.getByRole('button', { name: '确定' })).toBeDisabled()
     await expect(component.getByTestId('submit-output')).toBeEmpty()
+  })
+
+  test('blocks submitting the previous Skill while a replacement drop is still read', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    const dropzone = component.getByTestId('skill-dropzone')
+    const confirm = component.getByRole('button', { name: '确定' })
+
+    await component.locator('input[type="file"]').setInputFiles(validSkillDirectory)
+    await expect(component.getByText('valid-skill', { exact: true })).toBeVisible()
+    await expect(confirm).toBeEnabled()
+
+    await dropDirectoryWhenReleased(dropzone, 'replacement-skill')
+    await expect(confirm).toBeDisabled()
+
+    await dropzone.evaluate(() => (window as unknown as { releaseSkillDrop?: () => void }).releaseSkillDrop?.())
+    await expect(component.getByText('replacement-skill', { exact: true })).toBeVisible()
+    await expect(confirm).toBeEnabled()
   })
 
   test('keeps the upload box size while resolving and shows resolver errors internally', async ({ mount }) => {
@@ -272,6 +329,76 @@ test.describe('SkillImportForm', () => {
     await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
     await expect(component.getByTestId('submit-output')).toContainText('"name":"github-demo"')
     await expect(component.getByTestId('submit-output')).toContainText('"instructions":"# GitHub Demo"')
+  })
+
+  test('loads a GitHub URL whose branch name contains a slash', async ({ mount, page }) => {
+    await page.route(/https:\/\/api\.github\.com\/repos\//, async (route) => {
+      const requestUrl = new URL(route.request().url())
+      const matchesSkillRoot =
+        requestUrl.searchParams.get('ref') === 'feature/demo' &&
+        requestUrl.pathname === '/repos/opentiny/tiny-robot/contents/skills/example'
+
+      if (!matchesSkillRoot) {
+        await route.fulfill({ status: 404, json: { message: 'Not Found' } })
+        return
+      }
+
+      await route.fulfill({
+        json: [
+          {
+            name: 'SKILL.md',
+            path: 'skills/example/SKILL.md',
+            type: 'file',
+            size: 80,
+            download_url: githubDownloadUrl,
+          },
+        ],
+      })
+    })
+    await page.route(githubDownloadUrl, (route) =>
+      route.fulfill({
+        body: ['---', 'name: slash-branch-demo', 'description: Slash branch demo', '---', '', '# Slash Demo'].join(
+          '\n',
+        ),
+      }),
+    )
+
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('use-default-resolver').click()
+    await component.getByTestId('show-github').click()
+    await component
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://github.com/opentiny/tiny-robot/tree/feature/demo/skills/example')
+    await component.getByRole('button', { name: '导入' }).click()
+
+    await expect(component.getByTestId('resolver-call-count')).toHaveText('0')
+    await expect(component.getByTestId('submit-output')).toContainText('"name":"slash-branch-demo"')
+  })
+
+  test('decodes percent-encoded GitHub paths and rejects broken encodings', async ({ mount }) => {
+    const component = await mount(SkillImportFormFixture)
+    await component.getByTestId('show-github').click()
+    const url = component.getByRole('textbox', { name: 'URL' })
+
+    await url.fill('https://github.com/opentiny/tiny-robot/tree/main/my%20skill')
+    await component.getByRole('button', { name: '导入' }).click()
+    await expect(component.getByTestId('resolver-input')).toHaveText(
+      JSON.stringify({
+        source: 'github',
+        url: 'https://github.com/opentiny/tiny-robot/tree/main/my%20skill',
+        repo: 'opentiny/tiny-robot',
+        ref: 'main',
+        path: 'my skill',
+      }),
+    )
+
+    await url.fill(`https://github.com/opentiny/tiny-robot/tree/main/${encodeURIComponent('技能目录')}`)
+    await component.getByRole('button', { name: '导入' }).click()
+    await expect(component.getByTestId('resolver-input')).toContainText('"path":"技能目录"')
+
+    await url.fill('https://github.com/opentiny/tiny-robot/tree/main/%E0%A4%A')
+    await component.getByRole('button', { name: '导入' }).click()
+    await expect(component.getByRole('alert')).toHaveText('请输入有效的 GitHub Skill 地址')
   })
 
   test('keeps GitHub loading and resolver errors inside the component', async ({ mount }) => {

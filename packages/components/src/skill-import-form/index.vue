@@ -176,6 +176,8 @@ const handleDrop = async (event: DragEvent) => {
   if (!event.dataTransfer) return
 
   const selectionGeneration = ++browserSelectionGeneration.value
+  // Drop the previous Skill right away so it cannot be submitted while the new folder is read.
+  invalidateResolution()
   let files: File[]
 
   try {
@@ -183,7 +185,6 @@ const handleDrop = async (event: DragEvent) => {
   } catch (error) {
     if (selectionGeneration !== browserSelectionGeneration.value) return
 
-    invalidateResolution()
     resolverErrorMessage.value = toSkillAddMessage(error)
     return
   }
