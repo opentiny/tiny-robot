@@ -34,7 +34,11 @@ function normalizePrompt(text: string) {
 }
 
 export function getDouBaoReply(text: string) {
-  return promptReplies[normalizePrompt(text)] ?? '我已经收到你的问题。这是豆包演示中的本地模拟回复。'
+  const prompt = normalizePrompt(text)
+
+  return Object.prototype.hasOwnProperty.call(promptReplies, prompt)
+    ? promptReplies[prompt]
+    : '我已经收到你的问题。这是豆包演示中的本地模拟回复。'
 }
 
 function waitForReply(delay: number, abortSignal: AbortSignal) {
@@ -147,7 +151,7 @@ export function useDouBaoRuntime(_options?: { storage?: ConversationStorageStrat
   return {
     runtime,
     startBlank() {
-      conversation.activeConversationId.value = null
+      void runtime.actions.clearActiveConversation()
     },
   }
 }
