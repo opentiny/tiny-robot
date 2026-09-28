@@ -107,7 +107,7 @@ const runtime = useChatRuntime({ modelProviders })
 | `runtime-action-error`  | `TrChat`       | 通知应用某个 Runtime 动作失败，可用于遥测或全局非消息动作反馈。    |
 | TrChatUI 默认错误渲染器 | `TrChatUI`     | 在消息内容之后展示错误；不会提供重试按钮，也不改变请求或消息状态。 |
 
-`TrChatUI` 会显式启用内置错误渲染器；单独使用 `Bubble` 或 `BubbleProvider` 时，错误渲染器默认关闭。默认错误元素使用 `role="alert"`，长文本会保留换行并在连续字符串中断行，适合窄容器。它使用公开的 `--tr-color-error`、`--tr-color-error-light`、`--tr-bubble-max-width` 和 `--tr-bubble-box-border-radius` 主题变量。
+`TrChatUI` 会显式启用内置错误渲染器；单独使用 `Bubble` 或 `BubbleProvider` 时，错误渲染器默认关闭。默认错误元素使用 `role="alert"`，长文本会保留换行并在连续字符串中断行，适合窄容器。它使用公开的 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width` 主题变量。
 
 需要不同结构时，通过 `ui.bubble.bubbleProvider.errorRenderer` 提供统一的 Provider 级渲染器；传入 `null` 可以关闭 `TrChatUI` 的默认错误视图。不要依赖内部 `.tr-bubble__error` 选择器，也不要把重试等副作用放进纯展示渲染器。
 

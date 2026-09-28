@@ -708,6 +708,14 @@ type BubbleMessageGroup = {
 | `--tr-bubble-loading-color` | 加载图标颜色 |
 | `--tr-bubble-loading-size`  | 加载图标尺寸 |
 
+**error 错误提示**
+
+| 变量名                            | 说明             |
+| --------------------------------- | ---------------- |
+| `--tr-bubble-error-color`         | 错误提示文字颜色 |
+| `--tr-bubble-error-bg`            | 错误提示背景色   |
+| `--tr-bubble-error-border-radius` | 错误提示圆角大小 |
+
 **image 图片**
 
 | 变量名                                     | 说明                              |
