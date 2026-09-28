@@ -35,6 +35,17 @@ npx @opentiny/tiny-robot-cli create <project-name> --template basic
 npx @opentiny/tiny-robot-cli create my-app --template basic
 ```
 
+### 运行时版本
+
+`create` 和 `add chat` 都支持 `--runtime-version <version>` 指定 TinyRobot 运行时包版本。参数必须是精确的 semver；省略时使用 CLI 内置默认版本。
+
+```bash
+npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.5.2-rc.2
+npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
+```
+
+`create` 会将版本写入生成项目的 TinyRobot 运行时依赖。`add chat` 使用该版本处理 TinyRobot 运行时依赖；已有兼容版本会保留，更高版本不会被降级。
+
 创建完成后：
 
 ```bash
