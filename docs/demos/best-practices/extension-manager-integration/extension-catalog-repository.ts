@@ -5,8 +5,8 @@ import {
   extensionKey,
   fromStoredSkill,
   resolveSkillSave,
+  sameExtensionContent,
   skillVersion,
-  withSkillSnapshot,
   type ExtensionDefinition,
   type ResolvedExtension,
 } from './catalog'
@@ -66,7 +66,7 @@ export const createExtensionCatalogRepository = () => {
         await disableNamedPeers(definition, items)
       }
     } else {
-      const snapshot = resolveSkillSave(await skillStorage.get(definition.data.name), definition)
+      const snapshot = await resolveSkillSave(await skillStorage.get(definition.data.name), definition)
       if (snapshot) await skillStorage.add(snapshot)
       if ((await skillOptions.get(definition.data.name))?.enabled ?? true) await disableNamedPeers(definition, items)
     }
@@ -74,7 +74,7 @@ export const createExtensionCatalogRepository = () => {
 
   const list = async (builtins: ExtensionDefinition[], remote: ExtensionDefinition[]) => {
     const errors: string[] = []
-    const catalog = canonicalCatalog([...builtins, ...remote])
+    const catalog = await canonicalCatalog([...builtins, ...remote])
     const storedMcp = await mcpStorage.listData()
     const storedSkill = await Promise.all((await skillStorage.list()).map((summary) => skillStorage.get(summary.name)))
     const mcpByKey = new Map(storedMcp.map((record) => [JSON.stringify([record.source, record.id]), record]))
@@ -87,15 +87,7 @@ export const createExtensionCatalogRepository = () => {
       seen.add(key)
       if (definition.kind === 'mcp') {
         const identity = mcpIdentity(definition)
-        let stored = mcpByKey.get(JSON.stringify([identity.source, identity.id]))
-        if (stored && definition.version > stored.version) {
-          try {
-            const { value, tools } = definition.data
-            stored = await mcpStorage.upsertData({ ...identity, version: definition.version, ...value, tools })
-          } catch (error) {
-            errors.push(`${definition.id} 更新失败：${String(error)}`)
-          }
-        }
+        const stored = mcpByKey.get(JSON.stringify([identity.source, identity.id]))
         const options = await mcpStorage.getOptions(identity)
         const current: ExtensionDefinition = stored
           ? {
@@ -106,30 +98,35 @@ export const createExtensionCatalogRepository = () => {
               data: { value: stored, tools: stored.tools },
             }
           : definition
+        if (stored && definition.version === stored.version && !(await sameExtensionContent(current, definition))) {
+          errors.push(`${definition.id} 同版本定义冲突（版本 ${definition.version}）`)
+        }
         items.push({
           ...current,
           installed: Boolean(stored || (definition.source === 'builtin' && definition.installed)),
           enabled: options?.business?.enabled ?? true,
           toolOverrides: options?.toolPolicy.overrides ?? {},
           toolDefault: options?.toolPolicy.default ?? 'enabled',
+          availableUpdate: stored && definition.version > stored.version ? definition : undefined,
         })
       } else {
-        let stored = skillByName.get(definition.data.name)
-        if (stored && definition.version > skillVersion(stored)) {
-          try {
-            stored = await skillStorage.add(withSkillSnapshot(definition))
-          } catch (error) {
-            errors.push(`${definition.data.name} 更新失败：${String(error)}`)
-          }
-        }
+        const stored = skillByName.get(definition.data.name)
         const options = await skillOptions.get(definition.data.name)
         const current = stored ? fromStoredSkill(stored) : definition
+        if (
+          stored &&
+          definition.version === skillVersion(stored) &&
+          !(await sameExtensionContent(current, definition))
+        ) {
+          errors.push(`${definition.data.name} 同版本定义冲突（版本 ${definition.version}）`)
+        }
         items.push({
           ...current,
           installed: Boolean(stored || (definition.source === 'builtin' && definition.installed)),
           enabled: options?.enabled ?? true,
           toolOverrides: {},
           toolDefault: 'enabled',
+          availableUpdate: stored && definition.version > skillVersion(stored) ? definition : undefined,
         })
       }
     }

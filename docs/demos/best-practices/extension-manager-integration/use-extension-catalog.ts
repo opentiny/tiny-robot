@@ -1,6 +1,6 @@
 import { computed, ref, shallowRef } from 'vue'
 import { type ExtensionManagerActionEvent, type ExtensionManagerTab } from '@opentiny/tiny-robot'
-import { extensionKey, type ExtensionDefinition, type ResolvedExtension } from './catalog'
+import { extensionKey, normalizeRemoteCatalog, type ExtensionDefinition, type ResolvedExtension } from './catalog'
 import { createExtensionCatalogRepository } from './extension-catalog-repository'
 import { fetchRemoteExtensions, getBuiltInExtensions, prepareExtensionInstall } from './mock-api'
 
@@ -33,6 +33,9 @@ export const useExtensionCatalog = () => {
           tags: [sourceLabel[item.source]],
           actions: item.installed
             ? [
+                ...(item.availableUpdate
+                  ? [{ id: 'update', type: 'button' as const, label: '更新', disabled: saving.value }]
+                  : []),
                 {
                   id: 'enabled',
                   type: 'switch' as const,
@@ -64,7 +67,7 @@ export const useExtensionCatalog = () => {
     try {
       const remote = await fetchRemoteExtensions()
       if (sequence !== loadSequence) return
-      remoteCatalog.value = remote
+      remoteCatalog.value = normalizeRemoteCatalog(remote)
       catalogError.value = ''
     } catch (error) {
       if (sequence !== loadSequence) return
@@ -111,6 +114,9 @@ export const useExtensionCatalog = () => {
         // MCP 联通性校验等额外逻辑可在这里、保存定义之前 await validateMcpConnection(item.data.value)。
         await saveDefinition(item)
         message.value = '扩展已安装。'
+      } else if (action.id === 'update' && item.availableUpdate) {
+        await saveDefinition(item.availableUpdate)
+        message.value = '扩展已更新。'
       } else if (action.id === 'enabled' && typeof action.checked === 'boolean') {
         await repository.setEnabled(item, action.checked, items.value)
         await refreshItems()

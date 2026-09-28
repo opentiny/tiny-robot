@@ -12,7 +12,7 @@ pageClass: demo-container-page-bg
 
 ## 完整示例
 
-初始目录包含内置 MCP/Skill 和尚未安装的远程 MCP/Skill。切换 MCP 与 Skills 标签，尝试安装、启用或禁用、卸载，再观察条目如何在“已安装”和“可安装”之间移动。
+初始目录包含内置 MCP/Skill 和尚未安装的远程 MCP/Skill。切换 MCP 与 Skills 标签，尝试安装、更新、启用或禁用、卸载，再观察条目如何在“已安装”和“可安装”之间移动。
 
 点击名称会打开原生 `<dialog>` 详情弹窗。点击顶部“添加”按钮，可选择添加 MCP、上传本地 Skill 技能包或从 GitHub 导入 Skill。相应表单在弹窗中打开；点击弹窗外侧或关闭按钮可关闭。应用保存成功后才切换到详情，保存失败时仍保留表单和错误提示。点击“安装”可以看到异步进度，点击“重置示例”可恢复初始状态。示例没有真实网络请求，刷新页面也会清空内存数据。
 
@@ -37,18 +37,24 @@ pageClass: demo-container-page-bg
 
 ## 替换目录和存储
 
-目录请求负责返回定义，不代表已安装。把 `mock-api.ts` 中的 `fetchRemoteExtensions()` 换成应用的异步请求；保持 MCP 的 `source + id` 稳定，并在定义变更时增加 `version`。Skill 以 `name` 为身份，版本写入 `SkillDefinition.metadata.extensionVersion`。合并内置与远程目录时，同名 Skill 只保留一个：较高版本覆盖，版本和内容都相同时按目录顺序保留第一个，同版本但内容不同则报冲突。写入已安装定义时，较低版本不能覆盖现有快照，同版本也必须保持内容一致；列表合并时，同版或更高版本的已安装快照优先于目录定义。所有情况下，已保存的启用配置都单独保留。MCP 的同版本冲突和升级由公开 storage 校验；同名但 `source + id` 不同的 MCP 可以共存，但示例在启用其中一个时会禁用其他已安装的同名 MCP。远程目录失败时，应用仍可展示存储中的已安装快照。
+目录请求负责返回定义，不代表已安装。把 `mock-api.ts` 中的 `fetchRemoteExtensions()` 换成应用的异步请求；保持 MCP 的 `source + id` 稳定，并在定义变更时增加 `version`。Skill 以 `name` 为身份，版本写入 `SkillDefinition.metadata.extensionVersion`。合并内置与远程目录时，同名 Skill 只保留一个：较高版本成为目录候选，版本和内容都相同时按目录顺序保留第一个，同版本但内容不同则报冲突。Skill 资源即使通过 `readText` 或 `readBinary` 延迟读取，也会按实际内容比较。
 
-这个示例把 Skill 的 `name` 当作唯一标识，因此默认内置、远程和手动添加的同名条目是同一个 Skill。接入真实远程目录前，应用应先确认目录来源可信，并明确它可以更新哪些 Skill；不要仅因为远程条目的 `version` 更高，就让它覆盖本地或内置定义。如果业务允许不同发布者提供同名 Skill，应使用“发布者 + `name`”或“来源 + `name`”作为查找和存储键，或者拒绝跨来源自动更新。
+刷新目录只读取数据，不会改写已安装定义。目录版本高于已安装版本时，列表继续展示当前已安装快照，并显示“更新”操作；用户点击更新且保存成功后，列表才切换到新版本。较低版本不能覆盖现有快照，同版本也必须保持内容一致。启用配置与定义分开保存，因此更新定义不会重置整体开关和 MCP 工具开关。同名但 `source + id` 不同的 MCP 可以共存，但示例在启用其中一个时会禁用其他已安装的同名 MCP。远程目录失败时，应用仍可展示存储中的已安装快照。
+
+这个示例把 Skill 的 `name` 当作唯一标识，因此默认内置、远程和手动添加的同名条目是同一个 Skill。在比较版本前，应用要先确认条目来自允许的目录，并确认这个目录可以更新该 Skill；服务端返回的 `source` 不能直接采用，示例会在客户端把远程响应统一标记为 `remote`。如果业务允许不同发布者提供同名 Skill，应使用“发布者 + `name`”或“来源 + `name`”作为查找和存储键，或者拒绝跨来源更新。`version` 只用于在已经确认身份的两个定义之间判断新旧，不能说明定义来自同一发布者，也不能说明内容安全。
+
+下面的 `parseExtensionDefinitions()` 代表应用自己的运行时结构校验；不要用类型断言代替对接口响应的检查。
 
 ```ts
 import type { ExtensionDefinition } from './catalog'
 
-// mock-api.ts：这里接入实际目录 API；解析响应后再交给目录合并逻辑。
+// mock-api.ts：这里接入实际目录 API；校验响应后再交给目录合并逻辑。
 export async function fetchRemoteExtensions(): Promise<ExtensionDefinition[]> {
   const response = await fetch('/api/extensions/catalog')
   if (!response.ok) throw new Error(`目录请求失败：${response.status}`)
-  return (await response.json()) as ExtensionDefinition[]
+  const payload: unknown = await response.json()
+  const definitions = parseExtensionDefinitions(payload)
+  return definitions.map((definition) => ({ ...definition, source: 'remote' }))
 }
 ```
 
@@ -108,6 +114,6 @@ export const skillOptions: SkillOptionsStorage = {
 
 安装流程在 `use-extension-catalog.ts` 中：先异步准备并更新进度，需要校验 MCP 联通性时在代码注释标出的位置插入调用；成功后保存定义，再刷新列表。默认已安装的内置项只允许禁用；默认未安装的内置项和远程项可以安装、卸载。卸载删除定义但保留配置，再次安装同一身份会恢复整体开关和工具开关。应用收到表单提交后负责保存，成功才打开详情弹窗；详情组件不管理弹窗标题、关闭或焦点恢复。
 
-为了让示例代码保持简单，“保存目标扩展”和“禁用其他同名扩展”会分成多次存储写入。如果中间一次写入失败，之前成功的写入不会自动撤销，例如可能出现目标已经保存、旧扩展仍处于启用状态。生产应用接入服务端或 IndexedDB 时，应尽量把这些写入放进同一个事务；无法使用事务时，应在失败后重新读取实际状态，再撤销已经写入的更改、重试或提示用户处理。不要把示例中的“同名扩展只启用一个”当作权限控制。
+一次“安装并启用”或“切换同名扩展”的操作，可能需要先保存目标扩展，再逐个禁用其他同名扩展。Demo 为了展示步骤，按顺序执行这些写入；如果后一步失败，前面已经成功的写入仍会保留，用户可能暂时看到两个同名扩展都处于启用状态。生产应用应优先用数据库事务一次提交全部修改；无法使用事务时，失败后要重新读取存储中的实际状态，并明确选择回滚、重试或提示用户处理。示例中的“同名扩展只启用一个”是界面和业务约定，不是权限控制。
 
 组件行为和完整 API 分别见 [ExtensionManager](/components/extension-manager)、[MCP 扩展添加与详情](/components/mcp-extension) 和 [Skill 扩展导入与详情](/components/skill-extension)。
