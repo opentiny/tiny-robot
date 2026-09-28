@@ -123,7 +123,7 @@ import '@opentiny/tiny-robot/dist/style.css'
 
 **接入组件**
 
-在你的主业务组件中，添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
+仅当未选择 `App.vue mount` 或 CLI 未能安全自动挂载时，才需要在你的主业务组件中手动添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
 
 ```vue
 <!-- src/App.vue -->
