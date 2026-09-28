@@ -26,6 +26,7 @@
     "format": "prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
     "set-version": "node scripts/set-publish-version.js",
+    "test:release-scripts": "node --test scripts/set-publish-version.test.js scripts/verify-publish-versions.test.js",
     "lint": "eslint . --fix",
     "prepare": "husky install"
   },
