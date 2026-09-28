@@ -62,8 +62,9 @@ export const useExtensionCatalog = () => {
     const sequence = ++loadSequence
     loading.value = true
     try {
-      remoteCatalog.value = await fetchRemoteExtensions()
+      const remote = await fetchRemoteExtensions()
       if (sequence !== loadSequence) return
+      remoteCatalog.value = remote
       catalogError.value = ''
     } catch (error) {
       if (sequence !== loadSequence) return

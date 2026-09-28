@@ -55,7 +55,13 @@ onUnmounted(() => resolvePending?.(example))
     <p>
       将示例地址粘贴到 URL 输入框并点击“导入”：<code>{{ exampleUrl }}</code>
     </p>
-    <tr-skill-import-form :key="formKey" source="github" :resolve-skill="resolveExample" @submit="imported = $event" />
+    <tr-skill-import-form
+      :key="formKey"
+      source="github"
+      :resolve-timeout="0"
+      :resolve-skill="resolveExample"
+      @submit="imported = $event"
+    />
     <p aria-live="polite">应用收到：{{ imported?.name ?? '尚未收到解析结果' }}</p>
   </section>
 </template>
