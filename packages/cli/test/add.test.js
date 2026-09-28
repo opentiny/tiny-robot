@@ -5,15 +5,16 @@ import os from 'node:os'
 import path from 'node:path'
 
 import {
-  DEPENDENCIES,
-  createDependencies,
   ensureDependency,
   ensureStyleImports,
   getChatFeatureFiles,
   planMount,
   resolveTargetPackage,
 } from '../bin/commands/add.js'
+import { createRuntimeDependencies } from '../bin/runtime-version.js'
 import { listPackages, mergeEnvFile } from '../bin/utils.js'
+
+const DEPENDENCIES = createRuntimeDependencies('0.5.2-alpha.15')
 
 function createTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'tiny-robot-cli-'))
@@ -33,7 +34,7 @@ test('add dependencies include vueuse and update stale versions', () => {
 })
 
 test('add dependencies use the requested runtime version', () => {
-  const dependencies = createDependencies('0.5.2-rc.3')
+  const dependencies = createRuntimeDependencies('0.5.2-rc.3')
 
   assert.equal(dependencies['@opentiny/tiny-robot'], '0.5.2-rc.3')
   assert.equal(dependencies['@opentiny/tiny-robot-chat'], '0.5.2-rc.3')
@@ -58,6 +59,45 @@ test('add dependencies preserve compatible ranges and reject unsafe section chan
   assert.equal(ensureDependency(alias, '@vueuse/core', DEPENDENCIES['@vueuse/core']).type, 'conflict')
   assert.equal(incompatible.devDependencies['@vueuse/core'], '^12.0.0')
   assert.equal(higher.dependencies['@vueuse/core'], '14.0.0')
+})
+
+test('add dependencies preserve an existing range that accepts the stable runtime target', () => {
+  const pkg = { dependencies: { '@opentiny/tiny-robot': '^0.5.1' } }
+
+  const result = ensureDependency(pkg, '@opentiny/tiny-robot', '^0.5.3')
+
+  assert.equal(result.type, 'skipped')
+  assert.equal(pkg.dependencies['@opentiny/tiny-robot'], '^0.5.1')
+})
+
+test('add dependencies preserve a higher branch in a composite stable range', () => {
+  const pkg = { dependencies: { '@opentiny/tiny-robot': '^0.4.0 || ^1.0.0' } }
+
+  const result = ensureDependency(pkg, '@opentiny/tiny-robot', '^0.5.3')
+
+  assert.equal(result.type, 'skipped')
+  assert.equal(pkg.dependencies['@opentiny/tiny-robot'], '^0.4.0 || ^1.0.0')
+})
+
+test('add dependencies replace a stable range that cannot install the prerelease runtime target', () => {
+  const stableRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.1' } }
+  const sameReleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2' } }
+  const prereleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2-alpha.10' } }
+  const newerPrereleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2-alpha.20' } }
+
+  const updated = ensureDependency(stableRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const sameReleaseUpdated = ensureDependency(sameReleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const preserved = ensureDependency(prereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const newerPrereleaseUpdated = ensureDependency(newerPrereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+
+  assert.equal(updated.type, 'updated')
+  assert.equal(stableRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(sameReleaseUpdated.type, 'updated')
+  assert.equal(sameReleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(preserved.type, 'skipped')
+  assert.equal(prereleaseRange.dependencies['@opentiny/tiny-robot'], '^0.5.2-alpha.10')
+  assert.equal(newerPrereleaseUpdated.type, 'updated')
+  assert.equal(newerPrereleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
 })
 
 test('style imports add package and feature CSS imports exactly once', () => {

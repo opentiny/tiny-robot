@@ -6,7 +6,7 @@ import path from 'node:path'
 import process from 'node:process'
 import semver from 'semver'
 
-import { DEFAULT_RUNTIME_VERSION, resolveRuntimeVersion } from '../runtime-version.js'
+import { createRuntimeDependencies, resolveRuntimeVersion } from '../runtime-version.js'
 import {
   findProjectRoot,
   findSubPackageRoot,
@@ -21,17 +21,6 @@ import {
 } from '../utils.js'
 
 const CHAT_ADD_FEATURE_DIR = 'src/tiny-robot-chat'
-const DEPENDENCIES = createDependencies(DEFAULT_RUNTIME_VERSION)
-
-function createDependencies(runtimeVersion) {
-  return {
-    '@opentiny/tiny-robot': runtimeVersion,
-    '@opentiny/tiny-robot-chat': runtimeVersion,
-    '@opentiny/tiny-robot-kit': runtimeVersion,
-    '@opentiny/tiny-robot-svgs': runtimeVersion,
-    '@vueuse/core': '13.9.0',
-  }
-}
 const PACKAGE_STYLE_IMPORTS = [
   "import '@opentiny/tiny-robot/dist/style.css'",
   "import '@opentiny/tiny-robot-chat/dist/style.css'",
@@ -200,7 +189,20 @@ function insertDependencyOrdered(dependencies, name, version) {
   return next
 }
 
-function ensureDependency(pkg, name, targetVersion) {
+function hasStableBranchAtOrAbove(range, targetVersion) {
+  if (semver.prerelease(targetVersion) !== null) return false
+
+  return new semver.Range(range).set.some((comparators) => {
+    const minimum = semver.minVersion(comparators.map((comparator) => comparator.value).join(' '))
+    return minimum !== null && semver.gte(minimum, targetVersion)
+  })
+}
+
+function ensureDependency(pkg, name, targetSpecifier) {
+  const targetMinimum = semver.minVersion(targetSpecifier)
+  invariant(targetMinimum, `${name} has an invalid target version specifier (${targetSpecifier})`)
+  const targetVersion = targetMinimum.version
+
   for (const section of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
     const value = pkg[section]
     if (value !== undefined && (value === null || typeof value !== 'object' || Array.isArray(value))) {
@@ -221,8 +223,8 @@ function ensureDependency(pkg, name, targetVersion) {
       return { type: 'conflict', reason: 'dependencies must be a JSON object' }
     }
     pkg.dependencies ??= {}
-    pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetVersion)
-    return { type: 'added', to: targetVersion, section: 'dependencies' }
+    pkg.dependencies = insertDependencyOrdered(pkg.dependencies, name, targetSpecifier)
+    return { type: 'added', to: targetSpecifier, section: 'dependencies' }
   }
 
   const dependency = existing[0]
@@ -237,32 +239,27 @@ function ensureDependency(pkg, name, targetVersion) {
     }
   }
 
-  const satisfies = semver.satisfies(targetVersion, dependency.version, { includePrerelease: true })
+  const satisfies = semver.satisfies(targetVersion, dependency.version)
 
   if (satisfies) return { type: 'skipped', section: dependency.section, version: dependency.version }
 
-  const minimum = typeof dependency.version === 'string' ? semver.minVersion(dependency.version) : null
-  if (
-    typeof dependency.version === 'string' &&
-    ((semver.valid(dependency.version) && semver.gte(dependency.version, targetVersion)) ||
-      (minimum && semver.gte(minimum, targetVersion)))
-  ) {
+  if (hasStableBranchAtOrAbove(dependency.version, targetVersion)) {
     return { type: 'skipped', section: dependency.section, version: dependency.version }
   }
 
   if (dependency.section !== 'dependencies') {
     return {
       type: 'conflict',
-      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetVersion}`,
+      reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetSpecifier}`,
     }
   }
 
-  pkg.dependencies[name] = targetVersion
+  pkg.dependencies[name] = targetSpecifier
   return {
     type: 'updated',
     section: dependency.section,
     from: dependency.version,
-    to: targetVersion,
+    to: targetSpecifier,
   }
 }
 
@@ -642,7 +639,6 @@ function printChangeResults(targetDir, selectedFiles, results) {
 
 async function addFeature(targetDir, type, options) {
   invariant(type === 'chat', `unsupported feature: ${type}`)
-  const dependencies = createDependencies(options.runtimeVersion)
   const mountRequested = options.mount !== false
   const featureFiles = getChatFeatureFiles(targetDir)
   const mainFile = findMainEntry(targetDir)
@@ -658,7 +654,7 @@ async function addFeature(targetDir, type, options) {
     nonInteractive: options.nonInteractive,
   })
 
-  validateSelection(selectedFiles, pkg, featureInspection, mountPlan, options.dryRun, dependencies)
+  validateSelection(selectedFiles, pkg, featureInspection, mountPlan, options.dryRun, options.dependencies)
   const prepared = prepareChanges(targetDir, selectedFiles, {
     featureInspection,
     mainFile,
@@ -666,7 +662,7 @@ async function addFeature(targetDir, type, options) {
     pkgPath,
     pkg,
     allowConflicts: options.dryRun,
-    dependencies,
+    dependencies: options.dependencies,
   })
 
   if (options.dryRun) {
@@ -682,7 +678,7 @@ async function addFeature(targetDir, type, options) {
       `  ${formatPlanStatus(prepared.results.env?.type ?? 'unavailable')} .env.example (${prepared.results.env?.type ?? 'not selected'})`,
     )
     const dependencyPlan =
-      prepared.results.dependencies.length > 0 ? prepared.results.dependencies : getDependencyPlan(pkg, dependencies)
+      prepared.results.dependencies.length > 0 ? prepared.results.dependencies : getDependencyPlan(pkg, options.dependencies)
     for (const { name, result } of dependencyPlan) {
       const status = result.type === 'added' || result.type === 'updated' ? '~' : result.type === 'conflict' ? '!' : '○'
       console.log(`  ${status} package.json (${result.type}: ${name})`)
@@ -753,15 +749,19 @@ export function registerAddCommand(program) {
     .addArgument(new Argument('<type>', 'type of feature to add').choices(['chat']))
     .option('--yes', 'apply all safe changes without prompts')
     .option('--dry-run', 'print the change plan without modifying files')
-    .option('--runtime-version <version>', 'exact TinyRobot runtime version')
     .option('--mount', 'safely mount TinyRobotChat in src/App.vue (default)')
     .option('--no-mount', 'keep App.vue unchanged and print the mount snippet')
+    .option('--runtime-version <version>', 'override the TinyRobot runtime version')
     .action(async (type, options) => {
       try {
-        const runtimeVersion = resolveRuntimeVersion(options.runtimeVersion)
+        const runtime = resolveRuntimeVersion(options.runtimeVersion)
         const nonInteractive = Boolean(options.yes || options.dryRun || !process.stdout.isTTY)
         const targetDir = await resolveTargetPackage(process.cwd(), nonInteractive)
-        await addFeature(targetDir, type, { ...options, runtimeVersion, nonInteractive })
+        await addFeature(targetDir, type, {
+          ...options,
+          dependencies: createRuntimeDependencies(runtime.specifier),
+          nonInteractive,
+        })
       } catch (error) {
         if (error instanceof Error && error.name === 'ExitPromptError') {
           console.error('\nOperation cancelled.')
@@ -773,12 +773,4 @@ export function registerAddCommand(program) {
     })
 }
 
-export {
-  DEPENDENCIES,
-  createDependencies,
-  ensureDependency,
-  ensureStyleImports,
-  getChatFeatureFiles,
-  planMount,
-  resolveTargetPackage,
-}
+export { ensureDependency, ensureStyleImports, getChatFeatureFiles, planMount, resolveTargetPackage }

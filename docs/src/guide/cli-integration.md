@@ -37,7 +37,7 @@ npx @opentiny/tiny-robot-cli create my-app --template basic
 
 ### 运行时版本
 
-`create` 和 `add chat` 都支持 `--runtime-version <version>` 指定 TinyRobot 运行时包版本。参数必须是精确的 semver；省略时使用 CLI 内置默认版本。
+`create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。`--runtime-version <version>` 仅用于本地 CLI 开发或诊断，并遵循相同规则。
 
 ```bash
 npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.5.2-rc.2

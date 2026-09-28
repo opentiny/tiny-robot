@@ -1,12 +1,37 @@
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import semver from 'semver'
 
-export const DEFAULT_RUNTIME_VERSION = '0.5.2-rc.2'
-export const RUNTIME_VERSION_PLACEHOLDER = '__TINY_ROBOT_VERSION__'
+const CLI_PACKAGE_FILE = fileURLToPath(new URL('../package.json', import.meta.url))
 
-export function resolveRuntimeVersion(value = DEFAULT_RUNTIME_VERSION) {
-  const version = typeof value === 'string' ? semver.valid(value) : null
+export function readCliVersion() {
+  const packageJson = JSON.parse(fs.readFileSync(CLI_PACKAGE_FILE, 'utf8'))
+  return packageJson.version
+}
 
-  if (!version) throw new Error('runtime version must be an exact semantic version.')
+export function formatRuntimeSpecifier(version) {
+  const parsedVersion = typeof version === 'string' ? semver.parse(version) : null
+  const canonicalVersion = parsedVersion
+    ? `${parsedVersion.version}${parsedVersion.build.length > 0 ? `+${parsedVersion.build.join('.')}` : ''}`
+    : null
+  if (!parsedVersion || canonicalVersion !== version) {
+    throw new Error(`Runtime version must be a valid semantic version: ${String(version)}`)
+  }
 
-  return version
+  return parsedVersion.prerelease.length > 0 ? version : `^${version}`
+}
+
+export function resolveRuntimeVersion(override) {
+  const version = override ?? readCliVersion()
+  return { version, specifier: formatRuntimeSpecifier(version) }
+}
+
+export function createRuntimeDependencies(specifier) {
+  return {
+    '@opentiny/tiny-robot': specifier,
+    '@opentiny/tiny-robot-chat': specifier,
+    '@opentiny/tiny-robot-kit': specifier,
+    '@opentiny/tiny-robot-svgs': specifier,
+    '@vueuse/core': '13.9.0',
+  }
 }

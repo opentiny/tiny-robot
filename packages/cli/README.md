@@ -13,7 +13,7 @@ npx @opentiny/tiny-robot-cli add chat --yes
 ## Options
 
 - `-t, --template <name>`: template name; `basic` generates the Chat Basic project
-- `--runtime-version <version>`: exact TinyRobot runtime version; defaults to `0.5.2-rc.2`
+- `--runtime-version <version>`: override the TinyRobot runtime version for local CLI development or diagnosis
 - `-h, --help`: show help
 
 `create` is an overall project scaffold. The `basic` template is aligned with `packages/chat-basic` and is copied into a new project.
@@ -37,7 +37,17 @@ The feature adds or preserves these dependencies. Compatible versions are kept, 
 - `@opentiny/tiny-robot-svgs`
 - `@vueuse/core`
 
-  Copy the generated `.env.example` to `.env.local`, then configure the provider API URL and API key before starting the project. `add chat` does not create or modify `.env`. `VITE_*` values are embedded in the client bundle, so do not use production keys; production deployments must protect provider credentials behind a server-side proxy.
+Both `create` and `add chat` derive TinyRobot runtime dependency versions from the CLI package version. Prerelease CLI versions use the same exact runtime version, while stable CLI versions use a caret range:
+
+```text
+CLI 0.5.2-alpha.15 -> runtime 0.5.2-alpha.15
+CLI 0.5.2-beta.3   -> runtime 0.5.2-beta.3
+CLI 0.5.3          -> runtime ^0.5.3
+```
+
+An existing dependency range is preserved when it accepts the target runtime version; for example, `^0.5.1` is kept for a stable `0.5.3` target. Use `--runtime-version` only when testing an unpublished CLI checkout or diagnosing version resolution. The override follows the same prerelease-exact and stable-caret rules.
+
+Copy the generated `.env.example` to `.env.local`, then configure the provider API URL and API key before starting the project. `add chat` does not create or modify `.env`. `VITE_*` values are embedded in the client bundle, so do not use production keys; production deployments must protect provider credentials behind a server-side proxy.
 
 The Model Context MCP example uses `/modelcontextprotocol-mcp`. Add this proxy manually to the existing `vite.config.*` file under `server.proxy`, then restart Vite:
 

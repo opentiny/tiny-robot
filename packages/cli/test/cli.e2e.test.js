@@ -7,6 +7,13 @@ import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const cliFile = fileURLToPath(new URL('../bin/cli.js', import.meta.url))
+const cliPackageFile = fileURLToPath(new URL('../package.json', import.meta.url))
+const runtimePackageNames = [
+  '@opentiny/tiny-robot',
+  '@opentiny/tiny-robot-chat',
+  '@opentiny/tiny-robot-kit',
+  '@opentiny/tiny-robot-svgs',
+]
 
 function createTempDir(prefix) {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix))
@@ -36,7 +43,11 @@ test('create basic scaffolds a complete chat-basic project', () => {
 
     assert.equal(result.status, 0, result.stderr)
     assert.equal(packageJson.name, 'fixture-basic')
-    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '0.5.2-rc.2')
+    const cliVersion = JSON.parse(fs.readFileSync(cliPackageFile, 'utf8')).version
+    const expectedRuntimeSpecifier = cliVersion.includes('-') ? cliVersion : `^${cliVersion}`
+    for (const name of runtimePackageNames.filter((name) => name in packageJson.dependencies)) {
+      assert.equal(packageJson.dependencies[name], expectedRuntimeSpecifier)
+    }
     assert.ok(fs.existsSync(path.join(project, 'src/App.vue')))
     assert.ok(fs.existsSync(path.join(project, 'src/main.ts')))
     assert.ok(fs.existsSync(path.join(project, 'public/favicon.svg')))
@@ -46,6 +57,7 @@ test('create basic scaffolds a complete chat-basic project', () => {
     assert.ok(fs.existsSync(path.join(project, '.env.example')))
     assert.equal(fs.existsSync(path.join(project, '.env')), false)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'index.html'), 'utf8'), /__PROJECT_NAME__/)
+    assert.doesNotMatch(fs.readFileSync(path.join(project, 'package.json'), 'utf8'), /__TINY_ROBOT_VERSION__/)
     assert.match(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /^# fixture-basic$/m)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /PROJECT_NAME/)
   } finally {
@@ -60,12 +72,15 @@ test('create and add chat use the requested runtime version', () => {
   try {
     const created = runCli(createRoot, 'create', 'fixture-runtime', '--runtime-version', '0.5.2-rc.3')
     const createdPackage = JSON.parse(fs.readFileSync(path.join(createRoot, 'fixture-runtime', 'package.json'), 'utf8'))
+    const stable = runCli(createRoot, 'create', 'fixture-stable', '--runtime-version', '0.5.3')
+    const stablePackage = JSON.parse(fs.readFileSync(path.join(createRoot, 'fixture-stable', 'package.json'), 'utf8'))
 
     createVueProject(addRoot)
     const added = runCli(addRoot, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-rc.3')
     const addedPackage = JSON.parse(fs.readFileSync(path.join(addRoot, 'package.json'), 'utf8'))
 
     assert.equal(created.status, 0, created.stderr)
+    assert.equal(stable.status, 0, stable.stderr)
     assert.equal(added.status, 0, added.stderr)
     for (const name of ['@opentiny/tiny-robot', '@opentiny/tiny-robot-chat', '@opentiny/tiny-robot-svgs']) {
       assert.equal(createdPackage.dependencies[name], '0.5.2-rc.3')
@@ -78,13 +93,14 @@ test('create and add chat use the requested runtime version', () => {
     ]) {
       assert.equal(addedPackage.dependencies[name], '0.5.2-rc.3')
     }
+    assert.equal(stablePackage.dependencies['@opentiny/tiny-robot'], '^0.5.3')
   } finally {
     fs.rmSync(createRoot, { recursive: true, force: true })
     fs.rmSync(addRoot, { recursive: true, force: true })
   }
 })
 
-test('create and add chat reject non-exact runtime versions before changing files', () => {
+test('create and add chat reject invalid runtime versions before changing files', () => {
   const root = createTempDir('tiny-robot-invalid-runtime-')
 
   try {
@@ -94,11 +110,54 @@ test('create and add chat reject non-exact runtime versions before changing file
     const added = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '^0.5.2')
 
     assert.equal(created.status, 1)
-    assert.match(created.stderr, /exact semantic version/)
+    assert.match(created.stderr, /valid semantic version/i)
     assert.equal(fs.existsSync(path.join(root, 'fixture-invalid')), false)
     assert.equal(added.status, 1)
-    assert.match(added.stderr, /exact semantic version/)
+    assert.match(added.stderr, /valid semantic version/i)
     assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add preserves compatible ranges and uses caret ranges for stable runtimes', () => {
+  const root = createTempDir('tiny-robot-add-stable-version-')
+
+  try {
+    createVueProject(root)
+    const packageFile = path.join(root, 'package.json')
+    const before = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    before.dependencies['@opentiny/tiny-robot'] = '^0.5.1'
+    fs.writeFileSync(packageFile, `${JSON.stringify(before, null, 2)}\n`)
+
+    const result = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '0.5.3')
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '^0.5.1')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-chat'], '^0.5.3')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-kit'], '^0.5.3')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot-svgs'], '^0.5.3')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add derives runtime dependency versions from the CLI package version by default', () => {
+  const root = createTempDir('tiny-robot-add-default-version-')
+
+  try {
+    createVueProject(root)
+
+    const result = runCli(root, 'add', 'chat', '--yes')
+    const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+    const cliVersion = JSON.parse(fs.readFileSync(cliPackageFile, 'utf8')).version
+    const expectedRuntimeSpecifier = cliVersion.includes('-') ? cliVersion : `^${cliVersion}`
+
+    assert.equal(result.status, 0, result.stderr)
+    for (const name of runtimePackageNames) {
+      assert.equal(packageJson.dependencies[name], expectedRuntimeSpecifier)
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
