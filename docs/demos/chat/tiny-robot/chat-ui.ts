@@ -53,7 +53,7 @@ export const PROMPT_ITEMS_DATA: PromptItemData[] = [
   },
   {
     label: 'MCP 工具调用',
-    description: '搜索：北京天气（输入「搜索」「MCP」「工具」等关键词可触发模拟 MCP 工具调用）',
+    description: '查询北京今天的天气，并给出出行建议',
     emoji: '🔧',
   },
 ]
