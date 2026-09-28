@@ -6,6 +6,7 @@ import path from 'node:path'
 
 import {
   DEPENDENCIES,
+  createDependencies,
   ensureDependency,
   ensureStyleImports,
   getChatFeatureFiles,
@@ -29,6 +30,16 @@ test('add dependencies include vueuse and update stale versions', () => {
   assert.equal(added.type, 'added')
   assert.equal(skipped.type, 'skipped')
   assert.equal(pkg.dependencies['@vueuse/core'], '13.9.0')
+})
+
+test('add dependencies use the requested runtime version', () => {
+  const dependencies = createDependencies('0.5.2-rc.3')
+
+  assert.equal(dependencies['@opentiny/tiny-robot'], '0.5.2-rc.3')
+  assert.equal(dependencies['@opentiny/tiny-robot-chat'], '0.5.2-rc.3')
+  assert.equal(dependencies['@opentiny/tiny-robot-kit'], '0.5.2-rc.3')
+  assert.equal(dependencies['@opentiny/tiny-robot-svgs'], '0.5.2-rc.3')
+  assert.equal(dependencies['@vueuse/core'], '13.9.0')
 })
 
 test('add dependencies preserve compatible ranges and reject unsafe section changes', () => {

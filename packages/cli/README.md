@@ -13,6 +13,7 @@ npx @opentiny/tiny-robot-cli add chat --yes
 ## Options
 
 - `-t, --template <name>`: template name; `basic` generates the Chat Basic project
+- `--runtime-version <version>`: exact TinyRobot runtime version; defaults to `0.5.2-rc.2`
 - `-h, --help`: show help
 
 `create` is an overall project scaffold. The `basic` template is aligned with `packages/chat-basic` and is copied into a new project.
@@ -25,6 +26,7 @@ By default, `add chat` mounts `TinyRobotChat` into a standard `src/App.vue` when
 npx @opentiny/tiny-robot-cli add chat --dry-run
 npx @opentiny/tiny-robot-cli add chat --yes
 npx @opentiny/tiny-robot-cli add chat --yes --no-mount
+npx @opentiny/tiny-robot-cli add chat --yes --runtime-version 0.5.2-rc.2
 ```
 
 The feature adds or preserves these dependencies. Compatible versions are kept, and higher versions are not downgraded:

@@ -130,13 +130,14 @@ function replaceTemplateVariables(targetDir, variables) {
   }
 }
 
-export function scaffoldProject(templateDir, targetDir, projectName) {
+export function scaffoldProject(templateDir, targetDir, projectName, variables = {}) {
   copyTemplate(templateDir, targetDir)
 
   renameSpecialFiles(targetDir)
 
   replaceTemplateVariables(targetDir, {
     [TEMPLATE_PLACEHOLDER]: projectName,
+    ...variables,
   })
 }
 

@@ -36,6 +36,7 @@ test('create basic scaffolds a complete chat-basic project', () => {
 
     assert.equal(result.status, 0, result.stderr)
     assert.equal(packageJson.name, 'fixture-basic')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '0.5.2-rc.2')
     assert.ok(fs.existsSync(path.join(project, 'src/App.vue')))
     assert.ok(fs.existsSync(path.join(project, 'src/main.ts')))
     assert.ok(fs.existsSync(path.join(project, 'public/favicon.svg')))
@@ -47,6 +48,57 @@ test('create basic scaffolds a complete chat-basic project', () => {
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'index.html'), 'utf8'), /__PROJECT_NAME__/)
     assert.match(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /^# fixture-basic$/m)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /PROJECT_NAME/)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('create and add chat use the requested runtime version', () => {
+  const createRoot = createTempDir('tiny-robot-create-runtime-')
+  const addRoot = createTempDir('tiny-robot-add-runtime-')
+
+  try {
+    const created = runCli(createRoot, 'create', 'fixture-runtime', '--runtime-version', '0.5.2-rc.3')
+    const createdPackage = JSON.parse(fs.readFileSync(path.join(createRoot, 'fixture-runtime', 'package.json'), 'utf8'))
+
+    createVueProject(addRoot)
+    const added = runCli(addRoot, 'add', 'chat', '--yes', '--runtime-version', '0.5.2-rc.3')
+    const addedPackage = JSON.parse(fs.readFileSync(path.join(addRoot, 'package.json'), 'utf8'))
+
+    assert.equal(created.status, 0, created.stderr)
+    assert.equal(added.status, 0, added.stderr)
+    for (const name of ['@opentiny/tiny-robot', '@opentiny/tiny-robot-chat', '@opentiny/tiny-robot-svgs']) {
+      assert.equal(createdPackage.dependencies[name], '0.5.2-rc.3')
+    }
+    for (const name of [
+      '@opentiny/tiny-robot',
+      '@opentiny/tiny-robot-chat',
+      '@opentiny/tiny-robot-kit',
+      '@opentiny/tiny-robot-svgs',
+    ]) {
+      assert.equal(addedPackage.dependencies[name], '0.5.2-rc.3')
+    }
+  } finally {
+    fs.rmSync(createRoot, { recursive: true, force: true })
+    fs.rmSync(addRoot, { recursive: true, force: true })
+  }
+})
+
+test('create and add chat reject non-exact runtime versions before changing files', () => {
+  const root = createTempDir('tiny-robot-invalid-runtime-')
+
+  try {
+    const created = runCli(root, 'create', 'fixture-invalid', '--runtime-version', 'latest')
+
+    createVueProject(root)
+    const added = runCli(root, 'add', 'chat', '--yes', '--runtime-version', '^0.5.2')
+
+    assert.equal(created.status, 1)
+    assert.match(created.stderr, /exact semantic version/)
+    assert.equal(fs.existsSync(path.join(root, 'fixture-invalid')), false)
+    assert.equal(added.status, 1)
+    assert.match(added.stderr, /exact semantic version/)
+    assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

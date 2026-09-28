@@ -2,6 +2,8 @@ import { input, select } from '@inquirer/prompts'
 import path from 'node:path'
 import process from 'node:process'
 
+import { RUNTIME_VERSION_PLACEHOLDER, resolveRuntimeVersion } from '../runtime-version.js'
+
 import {
   DEFAULT_PROJECT_NAME,
   DEFAULT_TEMPLATE,
@@ -119,12 +121,15 @@ function printCreateSuccess(projectName) {
   console.log()
 }
 
-async function createProject(initialProjectName, initialTemplateName, skipPrompt) {
+async function createProject(initialProjectName, initialTemplateName, initialRuntimeVersion, skipPrompt) {
+  const runtimeVersion = resolveRuntimeVersion(initialRuntimeVersion)
   const options = await resolveCreateOptions(initialProjectName, initialTemplateName, skipPrompt)
 
   const { templateDir, targetDir } = validateCreateOptions(options)
 
-  scaffoldProject(templateDir, targetDir, options.projectName)
+  scaffoldProject(templateDir, targetDir, options.projectName, {
+    [RUNTIME_VERSION_PLACEHOLDER]: runtimeVersion,
+  })
 
   printCreateSuccess(options.projectName)
 }
@@ -134,10 +139,11 @@ export function registerCreateCommand(program) {
     .command('create [project-name]')
     .description('Create a TinyRobot project from template')
     .option('-t, --template <name>', 'template name')
+    .option('--runtime-version <version>', 'exact TinyRobot runtime version')
     .action((projectName, options) => {
       const skipPrompt = !process.stdout.isTTY
 
-      createProject(projectName ?? '', options.template ?? '', skipPrompt).catch((error) => {
+      createProject(projectName ?? '', options.template ?? '', options.runtimeVersion, skipPrompt).catch((error) => {
         if (error instanceof Error && error.name === 'ExitPromptError') {
           console.error('\nOperation cancelled.')
           process.exit(1)
