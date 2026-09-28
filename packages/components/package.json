@@ -35,6 +35,27 @@
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vanilla": {
+      "types": "./dist/vanilla/index.d.ts",
+      "default": "./dist/vanilla/index.js"
+    },
+    "./vanilla/style.css": "./dist/vanilla/style.css",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "vanilla": ["dist/vanilla/index.d.ts"],
+      "vanilla/*": ["dist/vanilla/*"],
+      "*": ["*"]
+    }
+  },
   "sideEffects": ["**/*.css"],
   "files": [
     "dist",
@@ -42,7 +63,9 @@
   ],
   "scripts": {
     "dev": "vue-tsc && vite build --watch",
-    "build": "vue-tsc && vite build",
+    "build": "vue-tsc && vite build && npm run build:vanilla",
+    "build:vanilla": "vite build --config vite.vanilla.config.ts && tsc -p tsconfig.vanilla.json && vite build --config vite.vanilla-umd.config.ts",
+    "type-check:vanilla": "tsc --noEmit -p tsconfig.vanilla.json",
     "type-check": "vue-tsc --noEmit"
   },
   "peerDependencies": {
