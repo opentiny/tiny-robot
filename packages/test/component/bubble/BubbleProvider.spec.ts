@@ -54,7 +54,7 @@ test.describe('BubbleProvider', () => {
     )
   })
 
-  test('replaces the default error renderer and passes the complete message only once', async ({ mount }) => {
+  test('uses an explicit custom error renderer and passes the complete message only once', async ({ mount }) => {
     const component = await mount(BubbleProviderFixture)
     const bubble = component.getByTestId('provider-error-bubble')
     const renderer = bubble.getByTestId('test-error-renderer')
@@ -64,6 +64,13 @@ test.describe('BubbleProvider', () => {
     await expect(renderer).toHaveAttribute('data-message-role', 'assistant')
     await expect(renderer).toHaveAttribute('data-content-index', 'absent')
     await expect(renderer).toHaveText('Provider partial|Provider failure')
+    await expect(bubble.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('keeps error rendering disabled in an unconfigured nested provider', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+    const bubble = component.getByTestId('nested-unconfigured-error-bubble')
+
     await expect(bubble.getByRole('alert')).toHaveCount(0)
   })
 

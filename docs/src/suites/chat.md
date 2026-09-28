@@ -100,14 +100,30 @@ const runtime = useChatRuntime({ modelProviders })
 
 错误状态的职责如下：
 
-| 状态或通知             | 管理方           | 用途                                                               |
-| ---------------------- | ---------------- | ------------------------------------------------------------------ |
-| `message.state.error`  | Runtime 或应用   | 保存并展示属于这条消息的错误详情。                                 |
-| `request.state`        | Runtime 或应用   | 表达 idle、processing、completed、aborted、error 等请求生命周期。  |
-| `runtime-action-error` | `TrChat`         | 通知应用某个 Runtime 动作失败，可用于遥测或全局非消息动作反馈。    |
-| Bubble 默认错误渲染器  | `BubbleProvider` | 在消息内容之后展示错误；不会提供重试按钮，也不改变请求或消息状态。 |
+| 状态或通知              | 管理方         | 用途                                                               |
+| ----------------------- | -------------- | ------------------------------------------------------------------ |
+| `message.state.error`   | Runtime 或应用 | 保存并展示属于这条消息的错误详情。                                 |
+| `request.state`         | Runtime 或应用 | 表达 idle、processing、completed、aborted、error 等请求生命周期。  |
+| `runtime-action-error`  | `TrChat`       | 通知应用某个 Runtime 动作失败，可用于遥测或全局非消息动作反馈。    |
+| TrChatUI 默认错误渲染器 | `TrChatUI`     | 在消息内容之后展示错误；不会提供重试按钮，也不改变请求或消息状态。 |
 
-默认错误元素使用 `role="alert"`，长文本会保留换行并在连续字符串中断行，适合窄容器。它使用公开的 `--tr-color-error`、`--tr-color-error-light`、`--tr-bubble-max-width` 和 `--tr-bubble-box-border-radius` 主题变量。需要不同结构时，通过 `ui.bubble.bubbleProvider.errorRenderer` 提供统一的 Provider 级渲染器；不要依赖内部 `.tr-bubble__error` 选择器，也不要把重试等副作用放进纯展示渲染器。
+`TrChatUI` 会显式启用内置错误渲染器；单独使用 `Bubble` 或 `BubbleProvider` 时，错误渲染器默认关闭。默认错误元素使用 `role="alert"`，长文本会保留换行并在连续字符串中断行，适合窄容器。它使用公开的 `--tr-bubble-error-color`、`--tr-bubble-error-bg`、`--tr-bubble-error-border-radius` 和 `--tr-bubble-max-width` 主题变量。
+
+需要不同结构时，通过 `ui.bubble.bubbleProvider.errorRenderer` 提供统一的 Provider 级渲染器；传入 `null` 可以关闭 `TrChatUI` 的默认错误视图。不要依赖内部 `.tr-bubble__error` 选择器，也不要把重试等副作用放进纯展示渲染器。
+
+```ts
+const customErrorUI: ChatUIOptions = {
+  bubble: {
+    bubbleProvider: { errorRenderer: CustomErrorRenderer },
+  },
+}
+
+const disabledErrorUI: ChatUIOptions = {
+  bubble: {
+    bubbleProvider: { errorRenderer: null },
+  },
+}
+```
 
 `runtime-action-error` 在 send 失败时仍会发出，但它不是消息错误的数据源。应用可以用它记录遥测；默认页面和综合案例不会再把同一个 send 错误同时显示为顶部提示。会话、模型或 MCP 等非消息动作失败仍适合使用全局反馈。
 
@@ -447,17 +463,17 @@ const runtime = useChatRuntime({ modelProviders })
 
 ##### 其他配置字段
 
-| 分支      | 常用字段或默认值                                                                                                 | 详细来源                                      |
-| --------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `brand`   | `name?: string`、`logo?: unknown`。                                                                              | —                                             |
-| `labels`  | 会话创建/重命名/删除、侧栏展开/收起、输入占位、模型、MCP、Welcome、右栏和滚动到底部等文案。                      | —                                             |
-| `history` | 默认菜单为重命名和删除；Chat 固定管理 `data`、`selected` 与事件。                                                | [History](../components/history)              |
-| `welcome` | 默认标题与描述来自 `labels.welcomeTitle`、`labels.welcomeDescription`。                                          | [Welcome](../components/welcome)              |
-| `prompts` | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                              | [Prompts](../components/prompts)              |
-| `bubble`  | `autoScroll`、`bubbleProvider`、`bubbleList`；`bubbleProvider.errorRenderer` 可统一替换消息错误视图。            | [Bubble](../components/bubble)                |
-| `sender`  | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。 | [Sender](../components/sender)                |
-| `model`   | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                         | [ModelSelector](../components/model-selector) |
-| `mcp`     | `Record<string, never>`，当前没有配置字段。                                                                      | —                                             |
+| 分支      | 常用字段或默认值                                                                                                          | 详细来源                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `brand`   | `name?: string`、`logo?: unknown`。                                                                                       | —                                             |
+| `labels`  | 会话创建/重命名/删除、侧栏展开/收起、输入占位、模型、MCP、Welcome、右栏和滚动到底部等文案。                               | —                                             |
+| `history` | 默认菜单为重命名和删除；Chat 固定管理 `data`、`selected` 与事件。                                                         | [History](../components/history)              |
+| `welcome` | 默认标题与描述来自 `labels.welcomeTitle`、`labels.welcomeDescription`。                                                   | [Welcome](../components/welcome)              |
+| `prompts` | `items?: PromptProps[]`，其余展示选项继承 Prompts。                                                                       | [Prompts](../components/prompts)              |
+| `bubble`  | `autoScroll`、`bubbleProvider`、`bubbleList`；`bubbleProvider.errorRenderer` 可替换默认消息错误视图，传入 `null` 可关闭。 | [Bubble](../components/bubble)                |
+| `sender`  | 默认 `mode: 'multiple'`、`clearable: true`、`maxLength: 1000`、`showWordLimit: true`；值和禁用状态由 Chat 管理。          | [Sender](../components/sender)                |
+| `model`   | 当前字段为 `appendTo?: ModelSelectorProps['appendTo']`。                                                                  | [ModelSelector](../components/model-selector) |
+| `mcp`     | `Record<string, never>`，当前没有配置字段。                                                                               | —                                             |
 
 `ChatLabels` 的字段为 `newConversationTitle`、`createConversation`、`renameConversation`、`deleteConversation`、`expandConversationList`、`collapseConversationList`、`composerPlaceholder`、`composerLoadingPlaceholder`、`selectModel`、`searchModel`、`modelEmptyText`、`mcp`、`thinkingFeature`、`searchFeature`、`welcomeTitle`、`welcomeDescription`、`rightAsideTitle`、`openRightAside`、`closeRightAside` 和 `scrollToBottom`，字段值均为 `string`。
 

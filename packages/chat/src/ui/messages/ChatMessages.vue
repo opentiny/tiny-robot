@@ -60,6 +60,7 @@ const bubbleMessages = computed<BubbleMessage[]>(() => props.messages.map((messa
 const shouldAutoScroll = computed(() => props.options.autoScroll ?? true)
 const bubbleProviderProps = computed(() => ({
   fallbackContentRenderer: BubbleRenderers.Markdown,
+  errorRenderer: BubbleRenderers.Error,
   ...props.options.bubbleProvider,
 }))
 type BubbleListViewProps = ResolvedChatBubbleOptions['bubbleList'] & {

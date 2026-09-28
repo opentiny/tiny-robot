@@ -192,19 +192,19 @@ const { scrollToBottom, arrivedState } = useAutoScroll({
 })
 ```
 
-| 参数 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `scrollRef` | `MaybeComputedElementRef` | — | 产生滚动条的容器元素。 |
-| `contentRef` | `MaybeComputedElementRef` | — | 滚动容器内承载全部内容的元素；其尺寸变化用于触发自动跟随。 |
-| `enabled` | `MaybeRefOrGetter<boolean>` | `true` | 是否启用自动跟随，支持响应式切换。 |
-| `scrollOnMount` | `boolean` | `true` | 挂载时是否滚动到底部。 |
-| `scrollThrottle` | `number` | `0` | 滚动事件节流时间，单位为毫秒。 |
-| `bottomThreshold` | `number` | `20` | 判断是否接近底部的距离阈值，单位为像素。 |
+| 参数              | 类型                        | 默认值 | 说明                                                       |
+| ----------------- | --------------------------- | ------ | ---------------------------------------------------------- |
+| `scrollRef`       | `MaybeComputedElementRef`   | —      | 产生滚动条的容器元素。                                     |
+| `contentRef`      | `MaybeComputedElementRef`   | —      | 滚动容器内承载全部内容的元素；其尺寸变化用于触发自动跟随。 |
+| `enabled`         | `MaybeRefOrGetter<boolean>` | `true` | 是否启用自动跟随，支持响应式切换。                         |
+| `scrollOnMount`   | `boolean`                   | `true` | 挂载时是否滚动到底部。                                     |
+| `scrollThrottle`  | `number`                    | `0`    | 滚动事件节流时间，单位为毫秒。                             |
+| `bottomThreshold` | `number`                    | `20`   | 判断是否接近底部的距离阈值，单位为像素。                   |
 
-| 返回值 | 类型 | 说明 |
-| --- | --- | --- |
+| 返回值           | 类型                                           | 说明                                    |
+| ---------------- | ---------------------------------------------- | --------------------------------------- |
 | `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部；不受 `enabled` 限制。 |
-| `arrivedState` | `UseScrollReturn['arrivedState']` | 当前是否到达各滚动边界的响应式状态。 |
+| `arrivedState`   | `UseScrollReturn['arrivedState']`              | 当前是否到达各滚动边界的响应式状态。    |
 
 旧的位置参数签名仍为兼容性保留，但已弃用：
 
@@ -306,6 +306,23 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 - `BubbleRenderers.Tool` - 单个工具调用渲染器
 - `BubbleRenderers.Tools` - 工具调用列表渲染器
 - `BubbleRenderers.ToolRole` - 工具角色消息渲染器
+- `BubbleRenderers.Error` - 消息级错误渲染器
+
+错误渲染器默认关闭。需要根据 `message.state.error` 渲染内置错误视图时，通过 `BubbleProvider` 显式启用：
+
+```vue
+<script setup lang="ts">
+import { BubbleRenderers } from '@opentiny/tiny-robot'
+</script>
+
+<template>
+  <tr-bubble-provider :error-renderer="BubbleRenderers.Error">
+    <tr-bubble role="assistant" content="部分回答" :state="{ error: { message: '请求失败' } }" />
+  </tr-bubble-provider>
+</template>
+```
+
+自定义错误渲染器接收 `{ message }`，不接收 `contentIndex`。省略 `errorRenderer` 或传入 `null` 时，不渲染独立的消息级错误视图。
 
 <demo vue="../../demos/bubble/reasoning.vue" />
 
@@ -471,15 +488,16 @@ emitBubbleEvent({
 
 **BubbleProviderProps** - 气泡提供者组件的属性配置
 
-| 属性                      | 类型                                    | 默认值 | 说明                                                           |
-| ------------------------- | --------------------------------------- | ------ | -------------------------------------------------------------- |
-| `boxRendererMatches`      | `BubbleBoxRendererMatch[]`              | -      | Box 渲染器匹配规则数组                                         |
-| `contentRendererMatches`  | `BubbleContentRendererMatch[]`          | -      | 内容渲染器匹配规则数组                                         |
-| `boxAttributes`           | `BubbleBoxAttributesConfig`             | -      | 统一注入到 Box 的 attributes，支持静态对象或 resolver 函数     |
-| `contentAttributes`       | `BubbleContentAttributesConfig`         | -      | 统一注入到 Content 的 attributes，支持静态对象或 resolver 函数 |
-| `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`     | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）              |
-| `fallbackContentRenderer` | `Component<BubbleContentRendererProps>` | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）               |
-| `store`                   | `Record<string, unknown>`               | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据     |
+| 属性                      | 类型                                          | 默认值 | 说明                                                           |
+| ------------------------- | --------------------------------------------- | ------ | -------------------------------------------------------------- |
+| `boxRendererMatches`      | `BubbleBoxRendererMatch[]`                    | -      | Box 渲染器匹配规则数组                                         |
+| `contentRendererMatches`  | `BubbleContentRendererMatch[]`                | -      | 内容渲染器匹配规则数组                                         |
+| `boxAttributes`           | `BubbleBoxAttributesConfig`                   | -      | 统一注入到 Box 的 attributes，支持静态对象或 resolver 函数     |
+| `contentAttributes`       | `BubbleContentAttributesConfig`               | -      | 统一注入到 Content 的 attributes，支持静态对象或 resolver 函数 |
+| `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`           | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）              |
+| `fallbackContentRenderer` | `Component<BubbleContentRendererProps>`       | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）               |
+| `errorRenderer`           | `Component<BubbleErrorRendererProps> \| null` | -      | 消息级错误渲染器；省略或传入 `null` 时关闭                     |
+| `store`                   | `Record<string, unknown>`                     | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据     |
 
 ## Emits
 
@@ -689,6 +707,14 @@ type BubbleMessageGroup = {
 | --------------------------- | ------------ |
 | `--tr-bubble-loading-color` | 加载图标颜色 |
 | `--tr-bubble-loading-size`  | 加载图标尺寸 |
+
+**error 错误提示**
+
+| 变量名                            | 说明             |
+| --------------------------------- | ---------------- |
+| `--tr-bubble-error-color`         | 错误提示文字颜色 |
+| `--tr-bubble-error-bg`            | 错误提示背景色   |
+| `--tr-bubble-error-border-radius` | 错误提示圆角大小 |
 
 **image 图片**
 
