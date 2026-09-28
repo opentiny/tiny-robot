@@ -45,6 +45,8 @@ test('create basic scaffolds a complete chat-basic project', () => {
     assert.ok(fs.existsSync(path.join(project, '.env.example')))
     assert.equal(fs.existsSync(path.join(project, '.env')), false)
     assert.doesNotMatch(fs.readFileSync(path.join(project, 'index.html'), 'utf8'), /__PROJECT_NAME__/)
+    assert.match(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /^# fixture-basic$/m)
+    assert.doesNotMatch(fs.readFileSync(path.join(project, 'README.md'), 'utf8'), /PROJECT_NAME/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }

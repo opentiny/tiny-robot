@@ -79,6 +79,18 @@ test('style imports recognize quote, semicolon, and CRLF variants', () => {
   assert.equal((content.match(/tiny-robot-chat\/index\.css/g) ?? []).length, 1)
 })
 
+test('style imports follow multi-line imports', () => {
+  const project = createTempProject()
+  const entry = path.join(project, 'main.ts')
+  fs.writeFileSync(entry, "import {\n  createApp,\n} from 'vue'\n\ncreateApp({}).mount('#app')\n")
+
+  ensureStyleImports(entry, "import './tiny-robot-chat/index.css'")
+
+  const content = fs.readFileSync(entry, 'utf8')
+  assert.match(content, /} from 'vue'\nimport '@opentiny\/tiny-robot\/dist\/style\.css'/)
+  assert.doesNotMatch(content, /import \{\nimport '@opentiny\/tiny-robot\/dist\/style\.css'/)
+})
+
 test('mount plan inserts import and component in the correct blocks', () => {
   const project = createTempProject()
   const app = path.join(project, 'src', 'App.vue')
@@ -96,6 +108,19 @@ test('mount plan inserts import and component in the correct blocks', () => {
     /<script setup lang="ts">\nimport TinyRobotChat from '\.\/tiny-robot-chat\/TinyRobotChat\.vue'/,
   )
   assert.match(plan.content, /<main>\{\{ title \}\}<\/main>\n  <TinyRobotChat \/>\n<\/template>/)
+})
+
+test('mount plan recognizes setup scripts with attributes before setup', () => {
+  const project = createTempProject()
+  const app = path.join(project, 'src', 'App.vue')
+  fs.mkdirSync(path.dirname(app), { recursive: true })
+  fs.writeFileSync(app, '<script lang="ts" setup>\nconst title = "App"\n</script>\n<template><main>{{ title }}</main></template>\n')
+
+  const plan = planMount(project)
+
+  assert.equal(plan.type, 'merge')
+  assert.match(plan.content, /<script lang="ts" setup>\nimport TinyRobotChat from '\.\/tiny-robot-chat\/TinyRobotChat\.vue'/)
+  assert.match(plan.content, /<TinyRobotChat \/>/)
 })
 
 test('mount plan inserts into the outer template when nested templates exist', () => {

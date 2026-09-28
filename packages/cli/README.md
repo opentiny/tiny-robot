@@ -35,7 +35,7 @@ The feature adds or preserves these dependencies. Compatible versions are kept, 
 - `@opentiny/tiny-robot-svgs`
 - `@vueuse/core`
 
-Copy the generated `.env.example` to `.env.local`, then configure the provider API URL and API key before starting the project. `add chat` does not create or modify `.env`.
+  Copy the generated `.env.example` to `.env.local`, then configure the provider API URL and API key before starting the project. `add chat` does not create or modify `.env`. `VITE_*` values are embedded in the client bundle, so do not use production keys; production deployments must protect provider credentials behind a server-side proxy.
 
 The Model Context MCP example uses `/modelcontextprotocol-mcp`. Add this proxy manually to the existing `vite.config.*` file under `server.proxy`, then restart Vite:
 

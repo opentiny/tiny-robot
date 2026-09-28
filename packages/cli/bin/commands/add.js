@@ -137,9 +137,16 @@ function insertImport(content, importStatement) {
   if (moduleName && lines.some((line) => importedModule(line) === moduleName)) return content
 
   let lastImportIndex = -1
+  let inImport = false
   for (let i = 0; i < lines.length; i++) {
-    if (/^\s*import\s/.test(lines[i])) {
+    if (inImport) {
       lastImportIndex = i
+      if (/\bfrom\s+['"][^'"]+['"]\s*;?\s*$/.test(lines[i])) inImport = false
+      continue
+    }
+    if (/^\s*import(?:\s|['"{*])/.test(lines[i])) {
+      lastImportIndex = i
+      inImport = !/['"][^'"]+['"]\s*;?\s*$/.test(lines[i])
       continue
     }
     if (lastImportIndex !== -1) break
@@ -307,7 +314,7 @@ function parseMountTemplate(source, filename) {
     return { type: 'manual', reason: 'App.vue template could not be parsed safely' }
   }
 
-  return { type: 'parsed', block: parsed.descriptor.template, components: compiled.ast.components ?? [] }
+  return { type: 'parsed', descriptor: parsed.descriptor, block: parsed.descriptor.template, components: compiled.ast.components ?? [] }
 }
 
 function findTemplateClose(block) {
@@ -326,9 +333,9 @@ function planMount(targetDir) {
 
   const importStatement = "import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue'"
   let after = before
-  const setupMatch = /<script\s+setup(?:\s[^>]*)?>([\s\S]*?)<\/script>/i.exec(before)
-  if (setupMatch) {
-    const setupContent = setupMatch[1]
+  const scriptSetup = templatePlan.descriptor.scriptSetup
+  if (scriptSetup) {
+    const setupContent = scriptSetup.content
     const defaultImport = /^\s*import\s+TinyRobotChat\s+from\s+['"]([^'"]+)['"]\s*;?\s*$/m.exec(setupContent)
     const featureImport =
       /^\s*import\s+([A-Za-z_$][\w$]*)\s+from\s+['"]\.\/tiny-robot-chat\/TinyRobotChat\.vue['"]\s*;?\s*$/m.exec(
@@ -349,10 +356,10 @@ function planMount(targetDir) {
     }
 
     if (!defaultImport) {
-      const insertionIndex = setupMatch.index + setupMatch[0].indexOf('>') + 1
+      const insertionIndex = scriptSetup.loc.start.offset
       after = `${before.slice(0, insertionIndex)}\n${importStatement}${before.slice(insertionIndex)}`
     }
-  } else if (/<script(?:\s[^>]*)?>/.test(before)) {
+  } else if (templatePlan.descriptor.script) {
     return { type: 'manual', reason: 'App.vue has a non-setup script block' }
   } else {
     after = `<script setup lang="ts">\n${importStatement}\n</script>\n\n${before}`
