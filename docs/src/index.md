@@ -15,7 +15,7 @@ hero:
       link: ./guide/quick-start
     - theme: alt
       text: demo 示例
-      link: ./examples/assistant
+      link: ./examples/chat-tiny-robot
 
 features:
   - title: AI 组件库
