@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HistoryMenuItem, PromptProps, TemplateItem } from '@opentiny/tiny-robot'
 import { TrSender, TrThemeProvider as TrTheme } from '@opentiny/tiny-robot'
-import { TrChat, useChatHistoryItems, useLocalChatRuntime, type ChatHistoryItem } from '@opentiny/tiny-robot-chat'
+import { TrChat, useChatHistoryItems, useChatRuntime, type ChatHistoryItem } from '@opentiny/tiny-robot-chat'
 import { IconAi } from '@opentiny/tiny-robot-svgs'
 import { computed, reactive, ref } from 'vue'
 import ComposerTools from './components/ComposerTools.vue'
@@ -10,7 +10,7 @@ import { composerMenus, createChatUi, templateCategories } from './config/chat-u
 import { mcpExamples, mcpServers, modelProviders } from './config/chat-runtime'
 import { useWindow } from './composables/useWindow'
 
-const runtime = useLocalChatRuntime({ modelProviders, mcpServers })
+const runtime = useChatRuntime({ modelProviders, mcpServers })
 const window = reactive(useWindow())
 const chatRef = ref<{ send: (payload: { text: string }) => Promise<boolean> } | null>(null)
 const currentTemplate = ref<TemplateItem[]>([])

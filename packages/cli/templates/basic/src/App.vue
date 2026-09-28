@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   TrChat,
-  useLocalChatRuntime,
+  useChatRuntime,
   type ChatMcpServers,
   type ChatProviderConfig,
   type ChatUIOptions,
@@ -90,7 +90,7 @@ const mcpServers = [
   },
 ] satisfies ChatMcpServers
 
-const runtime = useLocalChatRuntime({
+const runtime = useChatRuntime({
   mcpServers,
   modelProviders,
 })
