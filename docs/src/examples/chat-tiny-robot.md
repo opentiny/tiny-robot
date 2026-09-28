@@ -10,6 +10,7 @@
     '../../demos/chat/tiny-robot/useWindow.ts',
     '../../demos/chat/tiny-robot/chat-runtime.ts',
     '../../demos/chat/tiny-robot/chat-ui.ts',
+    '../../demos/chat/shared/modelProviders.ts',
     '../../demos/chat/shared/base.css'
   ]"
   playground="false"

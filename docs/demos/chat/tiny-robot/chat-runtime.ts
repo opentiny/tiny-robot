@@ -1,16 +1,12 @@
-import type { ChatMcpServers, ChatProviderConfig } from '@opentiny/tiny-robot-chat'
-import { IconBailian, IconDeepseek } from '@opentiny/tiny-robot-svgs'
+import type { ChatMcpServers } from '@opentiny/tiny-robot-chat'
+
+export { modelProviders } from '../shared/modelProviders'
 
 export interface McpExample {
   id: string
   title: string
   request: string
 }
-
-const defaultApiUrl = new URL(
-  `${import.meta.env.BASE_URL}api`,
-  globalThis.location?.origin ?? 'http://localhost',
-).toString()
 
 export const mcpExamples: McpExample[] = [
   { id: 'weather', title: '查询北京天气', request: '查询北京今天的天气，并给出出行建议' },
@@ -19,29 +15,3 @@ export const mcpExamples: McpExample[] = [
 ]
 
 export const mcpServers: ChatMcpServers = []
-
-export const modelProviders: ChatProviderConfig[] = [
-  {
-    type: 'qwen',
-    label: 'DashScope',
-    apiUrl: defaultApiUrl,
-    models: [
-      {
-        id: 'qwen3.7-flash',
-        label: 'Qwen3.7 Flash',
-        icon: IconBailian,
-        capabilities: { thinking: true, search: true },
-      },
-      { id: 'qwen3.7-plus', label: 'Qwen3.7 Plus', icon: IconBailian, capabilities: { thinking: true, search: true } },
-      { id: 'qwen3.7-max', label: 'Qwen3.7 Max', icon: IconBailian, capabilities: { thinking: true, search: true } },
-    ],
-  },
-  {
-    type: 'deepseek',
-    apiUrl: defaultApiUrl,
-    models: [
-      { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash', icon: IconDeepseek, capabilities: { thinking: true } },
-      { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', icon: IconDeepseek, capabilities: { thinking: true } },
-    ],
-  },
-]

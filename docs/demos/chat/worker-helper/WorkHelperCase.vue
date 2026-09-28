@@ -49,6 +49,9 @@ const chatUi = computed(() => ({
     name: '作业助手',
     logo: IconAi,
   },
+  bubble: {
+    autoScroll: Boolean(runtime.activeConversation.value?.messages.length),
+  },
   labels: {
     composerPlaceholder: '请输入您的问题，或告诉我您想完成什么，也可以通过@唤起专有技能',
     composerLoadingPlaceholder: '作业助手正在思考...',
@@ -177,6 +180,7 @@ function handlePromptClick(payload: ChatPromptClickPayload) {
 }
 
 .work-helper :deep(.tr-chat-ui) {
+  --tr-layout-main-min-width: 0;
   height: 100%;
   min-height: 0;
 }
