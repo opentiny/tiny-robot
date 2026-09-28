@@ -226,7 +226,7 @@ export interface BubbleProviderProps {
   contentAttributes?: BubbleContentAttributesConfig
   fallbackBoxRenderer?: Component<BubbleBoxRendererProps>
   fallbackContentRenderer?: Component<BubbleContentRendererProps>
-  errorRenderer?: Component<BubbleErrorRendererProps>
+  errorRenderer?: Component<BubbleErrorRendererProps> | null
   store?: Record<string, unknown>
 }
 

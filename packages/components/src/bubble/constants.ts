@@ -51,8 +51,9 @@ export const BUBBLE_STORE_KEY: InjectionKey<Record<string, unknown>> = Symbol('b
 
 export const BUBBLE_EVENT_FN_KEY: InjectionKey<(event: BubbleEvent) => void> = Symbol('bubble-event-fn')
 
-export const BUBBLE_ERROR_RENDERER_KEY: InjectionKey<MaybeRefOrGetter<Component<BubbleErrorRendererProps>>> =
-  Symbol('bubble-error-renderer')
+export const BUBBLE_ERROR_RENDERER_KEY: InjectionKey<
+  MaybeRefOrGetter<Component<BubbleErrorRendererProps> | null | undefined>
+> = Symbol('bubble-error-renderer')
 
 /**
  * Bubble list 上下文的注入键
