@@ -111,8 +111,15 @@ export const createExtensionCatalogRepository = () => {
         })
       } else {
         const stored = skillByName.get(definition.data.name)
+        const defaultInstalled = builtins.find(
+          (candidate): candidate is Extract<ExtensionDefinition, { kind: 'skill' }> =>
+            candidate.kind === 'skill' &&
+            candidate.source === 'builtin' &&
+            candidate.installed === true &&
+            candidate.data.name === definition.data.name,
+        )
         const options = await skillOptions.get(definition.data.name)
-        const current = stored ? fromStoredSkill(stored) : definition
+        const current = stored ? fromStoredSkill(stored) : (defaultInstalled ?? definition)
         if (
           stored &&
           definition.version === skillVersion(stored) &&
@@ -122,11 +129,11 @@ export const createExtensionCatalogRepository = () => {
         }
         items.push({
           ...current,
-          installed: Boolean(stored || (definition.source === 'builtin' && definition.installed)),
+          installed: Boolean(stored || defaultInstalled),
           enabled: options?.enabled ?? true,
           toolOverrides: {},
           toolDefault: 'enabled',
-          availableUpdate: stored && definition.version > skillVersion(stored) ? definition : undefined,
+          availableUpdate: definition.version > current.version ? definition : undefined,
         })
       }
     }
