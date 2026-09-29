@@ -1,9 +1,11 @@
 <demo
-  vue="../../demos/chat/worker-helper/Demo.vue"
+  vue="../../demos/chat/deepseek/Demo.vue"
   :vueFiles="[
-    '../../demos/chat/worker-helper/Demo.vue',
+    '../../demos/chat/deepseek/Demo.vue',
     '../../demos/chat/ChatDemoShell.vue',
-    '../../demos/chat/worker-helper/WorkHelperCase.vue',
+    '../../demos/chat/deepseek/DeepSeekCase.vue',
+    '../../demos/chat/deepseek/DeepSeekHeader.vue',
+    '../../demos/chat/deepseek/config.ts',
     '../../demos/chat/shared/createChatRuntime.ts',
     '../../demos/chat/shared/mockConversationStorage.ts',
     '../../demos/chat/shared/modelProviders.ts',
