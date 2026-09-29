@@ -81,7 +81,7 @@ export type BubbleAttributes = Record<string, unknown>
 
 export type BubbleBoxRendererContext = {
   contentRenderMode: 'single' | 'split'
-  resolvedMessageContents: Array<ChatMessageContent | undefined>
+  resolvedMessageContent: ChatMessageContent | undefined
 }
 
 export type BubbleBoxRendererAttributeMap = BubbleAttributes
@@ -111,9 +111,9 @@ export type BubbleBoxRendererMatch = {
   /**
    * 匹配函数，用于判断是否应该使用此渲染器
    * @param messages - 消息数组
-   * @param content - 要渲染的内容项。仅在 `split` 模式下（contentIndex 为数字）才会传入；为当前消息（messages[0]）经过 `contentResolver` 解析后的内容；`messages[0].content` 一定是一个数组，`content` 则为对应索引的内容项，即 `messages[0].content[contentIndex]`；当 contentIndex 为 undefined 时，content 也为 undefined
-   * @param contentIndex - 内容索引，用于指定要渲染的内容项。仅在 split 模式下才会传入（为数字），此时 messages 数组长度为 1
-   * @param context - Box 的渲染模式，以及每条消息经过 contentResolver 解析后的完整内容
+   * @param content - Box 仅包含一条消息时传入的内容项。single 模式为解析后内容的第一项，split 模式为 contentIndex 对应的内容项；Box 包含多条消息时为 undefined
+   * @param contentIndex - Box 仅包含一条消息时传入的内容索引。single 模式为 0，split 模式为当前索引；Box 包含多条消息时为 undefined
+   * @param context - Box 的渲染模式，以及单条消息经过 contentResolver 解析后的完整内容
    * @returns 如果匹配则返回 true，否则返回 false
    */
   find: (

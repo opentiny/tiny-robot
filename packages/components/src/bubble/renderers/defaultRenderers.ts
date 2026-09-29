@@ -17,8 +17,7 @@ export const defaultBoxRendererMatches: Array<BubbleBoxRendererMatch> = [
     find: (_, content, _contentIndex, context) =>
       context.contentRenderMode === 'split'
         ? content?.type === 'image_url'
-        : context.resolvedMessageContents.length === 1 &&
-          containsImagesExclusively(context.resolvedMessageContents.at(0)),
+        : containsImagesExclusively(context.resolvedMessageContent),
     renderer: markRaw(Box),
     priority: BubbleRendererMatchPriority.NORMAL,
     attributes: { 'data-box-type': 'image' },

@@ -67,17 +67,18 @@ export function useBubbleBoxRenderer(
     }
   }
 
-  const getContentAndIndex = (context: BubbleBoxRendererContext) => {
-    if (context.contentRenderMode !== 'split') {
-      return { content: undefined, index: undefined }
+  const getContentAndIndex = (msgs: BubbleMessage[]) => {
+    if (msgs.length !== 1) {
+      return { content: undefined, index: undefined, resolvedMessageContent: undefined }
     }
 
-    const resolvedContent = context.resolvedMessageContents.at(0)
+    const resolvedMessageContent = contentResolver(msgs.at(0)!)
     return {
-      content: Array.isArray(resolvedContent)
-        ? resolvedContent.at(contentIndex!)!
-        : { type: 'text', text: resolvedContent || '' },
-      index: contentIndex,
+      content: Array.isArray(resolvedMessageContent)
+        ? resolvedMessageContent.at(contentIndex ?? 0)!
+        : { type: 'text', text: resolvedMessageContent || '' },
+      index: contentIndex ?? 0,
+      resolvedMessageContent,
     }
   }
 
@@ -96,12 +97,12 @@ export function useBubbleBoxRenderer(
 
   return computed(() => {
     const msgs = toValue(messages)
+    const { content, index, resolvedMessageContent } = getContentAndIndex(msgs)
     const context: BubbleBoxRendererContext = {
       contentRenderMode: typeof contentIndex === 'number' ? 'split' : 'single',
-      resolvedMessageContents: msgs.map((message) => contentResolver(message)),
+      resolvedMessageContent,
     }
 
-    const { content, index } = getContentAndIndex(context)
     const resolvedBoxAttributes = (() => {
       const attrs = toValue(boxAttributes)
       if (!attrs) {

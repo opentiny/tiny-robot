@@ -43,7 +43,11 @@ const boxMatches: BubbleBoxRendererMatch[] = [
     find: (_messages, content) => content?.type === 'custom',
     renderer: markRaw(TestBoxRenderer),
     priority: -10,
-    attributes: { 'data-match-attribute': 'box-priority' },
+    attributes: (_messages, content, index) => ({
+      'data-match-attribute': 'box-priority',
+      'data-match-content-type': content?.type,
+      'data-match-content-index': String(index),
+    }),
   },
 ]
 
@@ -82,7 +86,15 @@ const recordBubbleEvent = (payload: BubbleEvent & { messageIndex: number; conten
     </section>
 
     <section data-testid="single-provider">
-      <BubbleProvider :box-renderer-matches="boxMatches">
+      <BubbleProvider
+        :box-renderer-matches="boxMatches"
+        :box-attributes="
+          (_messages, content, index) => ({
+            'data-provider-content-type': content?.type,
+            'data-provider-content-index': String(index),
+          })
+        "
+      >
         <Bubble role="assistant" :content="customContent" />
       </BubbleProvider>
     </section>
