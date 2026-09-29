@@ -81,7 +81,7 @@ export type BubbleAttributes = Record<string, unknown>
 
 export type BubbleBoxRendererContext = {
   contentRenderMode: 'single' | 'split'
-  resolvedContents: Array<ChatMessageContent | undefined>
+  resolvedMessageContents: Array<ChatMessageContent | undefined>
 }
 
 export type BubbleBoxRendererAttributeMap = BubbleAttributes
@@ -90,14 +90,12 @@ export type BubbleBoxRendererAttributesResolver = (
   messages: BubbleMessage[],
   content: ChatMessageContentItem | undefined,
   contentIndex: number | undefined,
-  context: BubbleBoxRendererContext,
 ) => BubbleBoxRendererAttributeMap | undefined
 
 export type BubbleBoxAttributesResolver = (
   messages: BubbleMessage[],
   content: ChatMessageContentItem | undefined,
   contentIndex: number | undefined,
-  context: BubbleBoxRendererContext,
 ) => BubbleAttributes | undefined
 
 export type BubbleContentAttributesResolver = (

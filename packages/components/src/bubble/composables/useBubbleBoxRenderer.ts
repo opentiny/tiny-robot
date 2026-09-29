@@ -72,7 +72,7 @@ export function useBubbleBoxRenderer(
       return { content: undefined, index: undefined }
     }
 
-    const resolvedContent = context.resolvedContents.at(0)
+    const resolvedContent = context.resolvedMessageContents.at(0)
     return {
       content: Array.isArray(resolvedContent)
         ? resolvedContent.at(contentIndex!)!
@@ -86,10 +86,9 @@ export function useBubbleBoxRenderer(
     msgs: BubbleMessage[],
     content: ReturnType<typeof getContentAndIndex>['content'],
     index: ReturnType<typeof getContentAndIndex>['index'],
-    context: BubbleBoxRendererContext,
   ): BubbleBoxRendererAttributeMap | undefined => {
     if (typeof match.attributes === 'function') {
-      return match.attributes(msgs, content, index, context)
+      return match.attributes(msgs, content, index)
     }
 
     return match.attributes
@@ -99,7 +98,7 @@ export function useBubbleBoxRenderer(
     const msgs = toValue(messages)
     const context: BubbleBoxRendererContext = {
       contentRenderMode: typeof contentIndex === 'number' ? 'split' : 'single',
-      resolvedContents: msgs.map((message) => contentResolver(message)),
+      resolvedMessageContents: msgs.map((message) => contentResolver(message)),
     }
 
     const { content, index } = getContentAndIndex(context)
@@ -108,7 +107,7 @@ export function useBubbleBoxRenderer(
       if (!attrs) {
         return undefined
       }
-      return typeof attrs === 'function' ? attrs(msgs, content, index, context) : attrs
+      return typeof attrs === 'function' ? attrs(msgs, content, index) : attrs
     })()
 
     const match = toValue(boxRendererMatches).find((match) => match.find(msgs, content, index, context))
@@ -118,7 +117,7 @@ export function useBubbleBoxRenderer(
         renderer: match.renderer,
         attributes: {
           ...resolvedBoxAttributes,
-          ...resolveMatchAttributes(match, msgs, content, index, context),
+          ...resolveMatchAttributes(match, msgs, content, index),
         },
       }
     }
