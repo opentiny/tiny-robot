@@ -7,7 +7,6 @@
     '../../demos/chat/deepseek/DeepSeekHeader.vue',
     '../../demos/chat/deepseek/config.ts',
     '../../demos/chat/shared/createChatRuntime.ts',
-    '../../demos/chat/shared/formatChatActionError.ts',
     '../../demos/chat/shared/mockConversationStorage.ts',
     '../../demos/chat/shared/modelProviders.ts',
     '../../demos/chat/shared/base.css'

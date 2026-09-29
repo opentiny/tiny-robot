@@ -9,7 +9,6 @@
     '../../demos/chat/gemini/GeminiRail.vue',
     '../../demos/chat/gemini/config.ts',
     '../../demos/chat/shared/createChatRuntime.ts',
-    '../../demos/chat/shared/formatChatActionError.ts',
     '../../demos/chat/shared/mockConversationStorage.ts',
     '../../demos/chat/shared/modelProviders.ts',
     '../../demos/chat/shared/base.css'
