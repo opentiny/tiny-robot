@@ -1,5 +1,5 @@
 ---
-outline: [1, 3]
+outline: [1, 4]
 ---
 
 # Sender 消息输入框

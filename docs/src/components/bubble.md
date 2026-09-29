@@ -1,5 +1,5 @@
 ---
-outline: [1, 3]
+outline: [1, 4]
 ---
 
 # Bubble 气泡组件
@@ -83,7 +83,7 @@ Bubble 组件支持渲染图片内容。当 `content` 为数组且包含 `type: 
 - `'single'` 模式：文本和图片在同一个 box 中渲染
 - `'split'` 模式：每个内容项（文本或图片）单独一个 box
 
-<demo vue="../../demos/bubble/image.vue" title="图片与图文混排" description="使用本地图片展示多图，以及图片位于文本前后的混合内容。" />
+<demo vue="../../demos/bubble/image.vue" title="图片与图文混排" description="使用固定的公开图片展示多图，以及图片位于文本前后的混合内容。" />
 
 #### 内容渲染模式
 
@@ -157,7 +157,7 @@ BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会�
 
 通过 `autoScroll` 属性启用自动跟随。BubbleList 会观察实际渲染内容的尺寸；图片、Markdown、自定义渲染器等异步内容增高时，只要仍处于跟随状态，就会继续滚动到底部。
 
-<demo vue="../../demos/bubble/list-auto-scroll.vue" title="消息列表自动滚动" description="添加和更新消息时，观察列表在接近底部时的自动滚动行为。" />
+<demo vue="../../demos/bubble/list-auto-scroll.vue" title="消息列表自动滚动" description="添加消息或异步加载固定的外部图片时，观察列表在接近底部时的自动跟随。" />
 
 > **注意**：自动跟随遵循以下规则：
 >

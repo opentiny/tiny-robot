@@ -26,13 +26,13 @@
             <template v-if="getImageStatus(message) === 'loaded'">
               <img
                 class="async-image"
-                :src="asyncImageUrl"
-                alt="TinyRobot 波形示例图"
+                :src="earthriseImageUrl"
+                alt="从月球地平线上升起的地球"
                 @error="setImageStatus(message, 'error')"
               />
               <div class="async-caption">
-                <strong>异步内容加载完成</strong>
-                <span>本地图片出现后，列表继续跟随到底部。</span>
+                <strong>Earthrise · Apollo 8</strong>
+                <span>NASA / Bill Anders，1968</span>
               </div>
             </template>
             <div v-else class="async-status">
@@ -59,12 +59,13 @@ type ImageStatus = 'loading' | 'loaded' | 'error'
 type Message = BubbleListProps['messages'][number]
 
 const imageStatuses = ref<Record<string, ImageStatus>>({})
-const asyncImageUrl = '/wave.webp'
+const earthriseImageUrl =
+  'https://assets.science.nasa.gov/dynamicimage/assets/science/esd/climate/2023/12/August-2013_1920x1200.jpg?crop=faces%2Cfocalpoint&fit=clip&h=1200&w=1920'
 const isImageLoading = computed(() => Object.values(imageStatuses.value).some((status) => status === 'loading'))
 
 const messages = ref<BubbleListProps['messages']>([
-  { id: 'message-1', role: 'user', content: '请模拟加载一段异步内容。' },
-  { id: 'message-2', role: 'ai', content: '点击上方按钮后，本地图片会延迟出现。' },
+  { id: 'message-1', role: 'user', content: '请展示一张经典的太空照片。' },
+  { id: 'message-2', role: 'ai', content: '当然，这是 Apollo 8 拍摄的 Earthrise：' },
 ])
 
 const getImageStatus = (message: Message) => (message.id ? imageStatuses.value[message.id] : undefined)
