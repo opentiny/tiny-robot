@@ -19,7 +19,8 @@
     "README.md"
   ],
   "scripts": {
-    "start": "node ./bin/cli.js"
+    "start": "node ./bin/cli.js",
+    "test": "node --test test/*.test.js"
   },
   "license": "MIT",
   "engines": {
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.3.2",
+    "@vue/compiler-sfc": "^3.5.40",
     "commander": "^14.0.3",
     "picocolors": "^1.1.1",
     "semver": "^7.8.1",
