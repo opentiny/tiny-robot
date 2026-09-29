@@ -24,15 +24,11 @@ Sender 是面向聊天场景的可组合输入组件，负责文本编辑、提�
 
 Sender 不负责消息列表、文件上传请求或 AI 响应状态本身。应用需要处理 `submit`、`cancel` 等事件，并把外部状态通过 Props 同步回来。
 
-## 快速开始
+## 用法示例
 
-### 最小可运行示例
-
-绑定输入内容并监听 `submit`。示例会在页面中展示已提交文本，形成可直接观察的输入闭环。
+绑定输入内容并监听 `submit`。示例会在页面中展示已提交文本，并由父组件清空受控值。
 
 <demo vue="../../demos/sender/basic.vue" title="基础消息提交" description="绑定输入内容，提交后在页面中显示结果并清空输入框。" />
-
-## 用法示例
 
 ### 输入与状态
 
@@ -97,7 +93,7 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 <demo vue="../../demos/sender/template-editor.vue" title="模板填充" description="支持动态模板切换，自动聚焦可编辑字段。" />
 
-**配置详见**：[扩展属性 - Template](#template)
+**配置详见**：[Template 配置](#template-配置)
 
 #### 提及功能
 
@@ -113,7 +109,8 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 <demo vue="../../demos/sender/mention.vue" title="提及功能" description="输入 @ 触发提及选择，快速引用预设的助手或对象，支持键盘导航和搜索过滤。" />
 
-**配置详见**：[扩展属性 - Mention](#mention)  
+**配置详见**：[Mention 配置](#mention-配置)
+
 **结构化数据**：[submit 事件 - 结构化数据说明](#结构化数据)
 
 #### 智能联想
@@ -146,7 +143,7 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 <demo vue="../../demos/sender/suggestion-highlight.vue" title="高亮模式" description="动态切换三种高亮模式，对比不同的高亮效果。" />
 
-**配置详见**：[扩展属性 - Suggestion](#suggestion)
+**配置详见**：[Suggestion 配置](#suggestion-配置)
 
 ### 语音输入与服务集成
 
@@ -156,11 +153,18 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 语音输入功能通过独立的 `VoiceButton` 组件实现，可按需添加到 `footer` 插槽中，无需额外配置。
 :::
 
-#### 浏览器语音识别
+#### 基础语音交互
 
-使用浏览器内置的语音识别功能，支持混合输入和连续识别两种模式。
+`auto-insert` 默认为 `true`，会把最终识别结果插入编辑器；关闭后，应用可以只通过 `speech-final` 接收结果并自行决定后续处理。
 
-<demo vue="../../demos/sender/voice-input.vue" title="基础语音输入" description="使用浏览器内置语音识别，支持混合输入和连续识别。" />
+<demo
+  vue="../../demos/sender/voice-input.vue"
+  :vueFiles="['../../demos/sender/voice-input.vue', '../../demos/sender/mockSpeechHandler.ts']"
+  title="基础语音输入"
+  description="使用本地 Mock 处理器对比自动写入编辑器和仅接收识别事件。"
+/>
+
+浏览器内置处理器是 `VoiceButton` 在未传 `customHandler` 时的默认实现。它会请求麦克风权限，且可用性取决于浏览器；正式产品应处理不支持、拒绝授权和识别失败等情况。
 
 #### 第三方语音服务
 
@@ -192,7 +196,12 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 通过插槽添加增强按钮（Upload、Voice 等），每个按钮都有独立的配置。
 
-<demo vue="../../demos/sender/actions-enhanced.vue" title="增强按钮" description="通过插槽添加 Upload、Voice 等增强按钮；上传内容随消息提交见下方示例。" />
+<demo
+  vue="../../demos/sender/actions-enhanced.vue"
+  :vueFiles="['../../demos/sender/actions-enhanced.vue', '../../demos/sender/mockSpeechHandler.ts']"
+  title="增强按钮"
+  description="通过插槽添加 Upload、Voice 等增强按钮；语音按钮使用本地 Mock，上传内容随消息提交见下方示例。"
+/>
 
 **配置详见**：[UploadButton 属性](#uploadbutton)、[VoiceButton 属性](#voicebutton)
 
@@ -281,11 +290,27 @@ Sender 提供了多个插槽位置，方便扩展功能：
 
 ## API
 
+### 公开导出
+
+| 导出                                              | 用途与约束                                                                  |
+| ------------------------------------------------- | --------------------------------------------------------------------------- |
+| `TrSender` / `Sender`                             | 消息输入主组件；静态提供 `Template`、`Mention`、`Suggestion` 及对应便捷工厂 |
+| `TrActionButton` / `ActionButton`                 | 可独立使用的基础图标按钮                                                    |
+| `TrUploadButton` / `UploadButton`                 | 文件选择按钮；必须放在 Sender 组件树内以读取禁用状态                        |
+| `TrVoiceButton` / `VoiceButton`                   | 语音输入按钮；必须放在 Sender 组件树内以访问编辑器和禁用状态                |
+| `TrSubmitButton` / `SubmitButton`                 | 默认提交 / 停止按钮；依赖 Sender Context                                    |
+| `TrClearButton` / `ClearButton`                   | 默认清空按钮；依赖 Sender Context                                           |
+| `TrWordCounter` / `WordCounter`                   | 字数统计；依赖 Sender Context                                               |
+| `TrDefaultActionButtons` / `DefaultActionButtons` | 组合默认清空与提交按钮；依赖 Sender Context                                 |
+| `SENDER_CONTEXT_KEY`                              | Sender 依赖注入键；主要供高级集成与定制子组件使用                           |
+
 ### Props
+
+#### Sender
 
 | 属性名                              | 说明                                                                                             | 类型                  | 默认值                       | 必填 |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------- | ---------------------------- | ---- |
-| `model-value`                       | 受控输入内容；父组件收到 `update:model-value` 后需要更新绑定值                                   | `string`              | `''`                         | 否   |
+| `model-value`                       | 受控输入内容；父组件收到 `update:model-value` 后需要更新绑定值                                   | `string`              | —                            | 否   |
 | `default-value`                     | 非受控初始内容，只在初始化时读取；同时提供 `model-value` 时以受控值为准                          | `string`              | `''`                         | 否   |
 | `placeholder`                       | 编辑器为空时显示的占位文本                                                                       | `string`              | `'请输入内容...'`            | 否   |
 | `mode`                              | 输入布局；单行内容溢出或插入换行时可自动切换为多行                                               | `InputMode`           | `'single'`                   | 否   |
@@ -300,7 +325,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 | `max-length`                        | 最大字素数；超出后保留输入但禁止提交                                                             | `number`              | `Infinity`                   | 否   |
 | `show-word-limit`                   | 提供 `max-length` 时显示字数统计                                                                 | `boolean`             | `false`                      | 否   |
 | `submit-type`                       | 设置 Enter 组合键的提交方式                                                                      | `SubmitTrigger`       | `'enter'`                    | 否   |
-| `stop-text`                         | `loading` 状态下停止操作旁的文字；空字符串时只显示图标                                           | `string`              | `'停止响应'`                 | 否   |
+| `stop-text`                         | `loading` 状态下停止操作旁的文字；省略或传空字符串时只显示图标                                   | `string`              | `''`（仅图标）               | 否   |
 | `default-actions` @0.4              | 配置默认提交和清空按钮的禁用状态与 Tooltip；提交按钮禁用会参与 `canSubmit` 计算                  | `DefaultActions`      | —                            | 否   |
 | `extensions` @0.4                   | Tiptap 扩展列表，例如 Template、Mention 和 Suggestion                                            | `Extension[]`         | `[]`                         | 否   |
 
@@ -308,7 +333,7 @@ Sender 提供了多个插槽位置，方便扩展功能：
 使用 `extensions` 属性配置功能扩展，提供灵活的配置和完整的类型支持。
 :::
 
-#### Template
+#### Template 配置
 
 模板填充功能扩展，支持动态设置模板内容。
 
@@ -327,7 +352,7 @@ TrSender.Template.configure({ items: templates, appendTo: '.chat-window' })
 | `HTMLAttributes` | 合并到模板块节点的 HTML 属性              | `Record<string, unknown>`                 | —               | 否   |
 | `appendTo`       | Template Select 下拉菜单的挂载目标        | `string` \| `HTMLElement`                 | `document.body` | 否   |
 
-#### Mention
+#### Mention 配置
 
 @提及功能扩展，支持快速引用预设的助手或对象，支持自定义触发字符。
 
@@ -349,7 +374,7 @@ TrSender.Mention.configure({ items: mentions, char: '@', allowSpaces: false })
 | `allowSpaces`    | 是否允许触发字符后的查询文本包含空格    | `boolean`                               | `false` | 否   |
 | `HTMLAttributes` | 合并到 Mention 节点的 HTML 属性         | `Record<string, unknown>`               | —       | 否   |
 
-#### Suggestion
+#### Suggestion 配置
 
 智能联想功能扩展，支持自动过滤、自定义过滤和多种高亮方式。
 
@@ -466,6 +491,8 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 ### Slots
 
+#### Sender Slots
+
 | 插槽名                | 用途                                 | 作用域参数            |
 | --------------------- | ------------------------------------ | --------------------- |
 | `header`              | 在输入区域上方添加内容               | —                     |
@@ -490,6 +517,8 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 ### Events
 
+#### Sender Events
+
 | 事件名               | 触发时机                                                                                       | 回调参数                                                                   |
 | -------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `update:model-value` | 编辑器文本变化时触发；受控模式下父组件需要据此更新 `model-value`                               | `(value: string) => void`                                                  |
@@ -506,7 +535,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 - **data**：结构化数据数组，仅在使用 Template 或 Mention 扩展时返回，包含文本和特殊节点的完整信息
 - **extra**：仅当存在外部 payload 时返回，当前包含 `externalPayloads`
 
-根据业务需求选择使用：
+根据提交数据的复杂度选择使用：
 
 - 简单场景：只使用 `text` 参数
 - 复杂场景：使用 `data` 参数提取特殊节点信息或自定义拼接格式
@@ -534,16 +563,18 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 ### Methods / Expose
 
-| 公开成员          | 说明                                                 | 签名                        |
-| ----------------- | ---------------------------------------------------- | --------------------------- |
-| `focus`           | 将焦点移入编辑器                                     | `() => void`                |
-| `blur`            | 使编辑器失去焦点                                     | `() => void`                |
-| `clear`           | 清空编辑器内容并触发 `clear`                         | `() => void`                |
-| `submit`          | 内容满足提交条件时触发 `submit`；不会自动清空内容    | `() => void`                |
-| `setContent` @0.4 | 替换编辑器全部文本                                   | `(content: string) => void` |
-| `getContent` @0.4 | 读取编辑器的 HTML 内容                               | `() => string`              |
-| `cancel` @0.4     | 触发 `cancel`；应用仍需终止外部任务并同步 `loading`  | `() => void`                |
-| `editor`          | 当前 Tiptap 编辑器引用；挂载完成前可能为 `undefined` | `Ref<Editor \| undefined>`  |
+#### Sender Methods / Expose
+
+| 公开成员          | 说明                                                      | 签名                        |
+| ----------------- | --------------------------------------------------------- | --------------------------- |
+| `focus`           | 将焦点移入编辑器                                          | `() => void`                |
+| `blur`            | 使编辑器失去焦点                                          | `() => void`                |
+| `clear`           | 清空编辑器内容并触发 `clear`                              | `() => void`                |
+| `submit`          | 内容满足提交条件时触发 `submit`；不会自动清空内容         | `() => void`                |
+| `setContent` @0.4 | 通过 Tiptap 替换编辑器全部内容；字符串可包含纯文本或 HTML | `(content: string) => void` |
+| `getContent` @0.4 | 读取编辑器的纯文本内容                                    | `() => string`              |
+| `cancel` @0.4     | 触发 `cancel`；应用仍需终止外部任务并同步 `loading`       | `() => void`                |
+| `editor`          | 当前 Tiptap 编辑器引用；挂载完成前可能为 `undefined`      | `Ref<Editor \| undefined>`  |
 
 #### UploadButton Methods
 
@@ -559,6 +590,15 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `stop`        | 停止识别并释放处理器       | `() => void`  |
 | `speechState` | 当前录音、支持性与错误状态 | `SpeechState` |
 
+### Composables
+
+| 函数                           | 用途                                                 | 签名与行为                                                                       |
+| ------------------------------ | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `useSenderContext`             | 在 Sender 内部的自定义子组件中读取编辑器、状态和操作 | `() => SenderContext`；必须在 `TrSender` 组件树内调用，否则抛出错误              |
+| `useSenderContentRegistration` | 为 Sender 注册附件等不写入编辑器的外部提交内容       | `() => SenderContentRegister \| undefined`；不在 `TrSender` 内时返回 `undefined` |
+
+`useSenderContentRegistration()` 返回的注册函数接收稳定的 `source` 和普通值、Ref 或 Getter 形式的 `payload`，并返回注销函数。Sender 会持续读取响应式 payload；提交时复制当前注册项，作为 `extra.externalPayloads` 传给 `submit`。注册组件卸载时必须调用注销函数；`TrAttachments` 已在内部完成注册与清理。
+
 ### 结构化提交数据 {#结构化数据}
 
 当使用 `Template` 或 `Mention` 扩展时，`submit` 事件的第二个参数 `data` 返回结构化数据数组。
@@ -568,7 +608,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 - 简单场景：使用 `text` 参数（纯文本）
 - 复杂场景：使用 `data` 参数提取特殊节点或自定义格式
 
-##### Mention 扩展
+#### Mention 扩展
 
 ```typescript
 function handleSubmit(text: string, data?: StructuredData) {
@@ -612,53 +652,53 @@ function handleSubmit(text: string, data?: StructuredData) {
 
 以下类型均从 `@opentiny/tiny-robot` 导出。表格先覆盖所有与 Sender、输入扩展和 Sender Actions 直接相关的公开类型；常用复杂类型的字段随后单独列出。
 
-| 类型名                       | 类型或签名                                                            | 说明                                 | 导出入口               |
-| ---------------------------- | --------------------------------------------------------------------- | ------------------------------------ | ---------------------- |
-| `SenderProps`                | `interface`                                                           | Sender 属性                          | `@opentiny/tiny-robot` |
-| `SenderEmits`                | `interface`                                                           | Sender 事件                          | `@opentiny/tiny-robot` |
-| `SenderSlots`                | `interface`                                                           | Sender 插槽                          | `@opentiny/tiny-robot` |
-| `SenderContext`              | `interface`                                                           | 子组件共享的 Sender 上下文           | `@opentiny/tiny-robot` |
-| `SenderSlotScope`            | `interface`                                                           | Sender 布局内部使用的插槽作用域契约  | `@opentiny/tiny-robot` |
-| `SenderExternalPayload`      | `interface`                                                           | 单个外部提交内容                     | `@opentiny/tiny-robot` |
-| `SenderSubmitExtra`          | `interface`                                                           | `submit` 的额外提交数据              | `@opentiny/tiny-robot` |
-| `SenderContentRegister`      | `(source: string, payload: MaybeRefOrGetter<unknown>) => () => void`  | 注册外部内容并返回注销函数           | `@opentiny/tiny-robot` |
-| `InputMode`                  | `'single' \| 'multiple'`                                              | 输入布局模式                         | `@opentiny/tiny-robot` |
-| `SubmitTrigger`              | `'enter' \| 'ctrlEnter' \| 'shiftEnter'`                              | 提交快捷键模式                       | `@opentiny/tiny-robot` |
-| `EnterKeyHint`               | HTML `enterkeyhint` 联合类型                                          | 移动端虚拟键盘提示                   | `@opentiny/tiny-robot` |
-| `AutoSize`                   | `boolean \| { minRows: number; maxRows: number }`                     | 多行编辑器高度范围                   | `@opentiny/tiny-robot` |
-| `DefaultActions`             | `interface`                                                           | 默认提交和清空按钮配置               | `@opentiny/tiny-robot` |
-| `StructuredData`             | `TemplateItem[] \| MentionStructuredItem[]`                           | Template 或 Mention 的结构化提交数据 | `@opentiny/tiny-robot` |
-| `SelectOption`               | `interface`                                                           | Template 选择项                      | `@opentiny/tiny-robot` |
-| `TemplateItem`               | `type`                                                                | 文本、可编辑块或选择器模板项         | `@opentiny/tiny-robot` |
-| `MentionItem`                | `interface`                                                           | Mention 输入项                       | `@opentiny/tiny-robot` |
-| `SenderSuggestionItem`       | `interface`                                                           | Suggestion 输入项                    | `@opentiny/tiny-robot` |
-| `SuggestionOptions`          | `interface`                                                           | Suggestion 扩展配置                  | `@opentiny/tiny-robot` |
-| `SuggestionState`            | `interface`                                                           | Suggestion 插件状态                  | `@opentiny/tiny-robot` |
-| `SuggestionTextPart`         | `interface`                                                           | 建议文本的高亮片段                   | `@opentiny/tiny-robot` |
-| `HighlightFunction`          | `(suggestionText: string, inputText: string) => SuggestionTextPart[]` | 自定义建议高亮函数                   | `@opentiny/tiny-robot` |
-| `ActionButtonProps`          | `interface`                                                           | Sender Action 基础按钮属性           | `@opentiny/tiny-robot` |
-| `UploadButtonProps`          | `interface`                                                           | 上传按钮属性                         | `@opentiny/tiny-robot` |
-| `UploadButtonEmits`          | `interface`                                                           | 上传按钮事件                         | `@opentiny/tiny-robot` |
-| `VoiceButtonProps`           | `interface`                                                           | 语音按钮属性                         | `@opentiny/tiny-robot` |
-| `VoiceButtonEmits`           | `interface`                                                           | 语音按钮事件                         | `@opentiny/tiny-robot` |
-| `WordCounterProps`           | `interface`                                                           | 字数统计属性                         | `@opentiny/tiny-robot` |
-| `TooltipContent`             | `string \| (() => string \| VNode)`                                   | Sender Action 的 Tooltip 内容        | `@opentiny/tiny-robot` |
-| `TooltipPlacement`           | `type`                                                                | Tooltip 方位联合类型                 | `@opentiny/tiny-robot` |
-| `SpeechCallbacks`            | `interface`                                                           | 语音处理过程回调                     | `@opentiny/tiny-robot` |
-| `SpeechHandler`              | `interface`                                                           | 可替换的语音处理器                   | `@opentiny/tiny-robot` |
-| `SpeechConfig`               | `interface`                                                           | 语音识别配置                         | `@opentiny/tiny-robot` |
-| `SpeechState`                | `interface`                                                           | 语音识别状态                         | `@opentiny/tiny-robot` |
-| `SpeechHookOptions`          | `interface extends SpeechConfig`                                      | `useSpeechHandler` 的配置与回调      | `@opentiny/tiny-robot` |
-| `SpeechHandlerResult`        | `interface`                                                           | `useSpeechHandler` 返回值            | `@opentiny/tiny-robot` |
-| `KeyboardHandlers`           | `interface`                                                           | Sender 内部键盘处理器公开类型        | `@opentiny/tiny-robot` |
-| `UseKeyboardShortcutsParams` | `interface`                                                           | 键盘快捷键组合函数参数               | `@opentiny/tiny-robot` |
-| `UseKeyboardShortcutsReturn` | `interface`                                                           | 键盘快捷键组合函数返回值             | `@opentiny/tiny-robot` |
-| `UseEditorReturn`            | `interface`                                                           | 编辑器组合函数返回值                 | `@opentiny/tiny-robot` |
-| `UseModeSwitchReturn`        | `interface`                                                           | 模式切换组合函数返回值               | `@opentiny/tiny-robot` |
-| `UseSuggestionReturn`        | `interface`                                                           | 建议功能组合函数返回值               | `@opentiny/tiny-robot` |
-| `UseSenderContextReturn`     | `SenderContext`                                                       | `useSenderContext` 返回类型          | `@opentiny/tiny-robot` |
-| `SuggestionListProps`        | `interface`                                                           | 建议列表属性                         | `@opentiny/tiny-robot` |
-| `SuggestionListEmits`        | `interface`                                                           | 建议列表事件                         | `@opentiny/tiny-robot` |
+| 类型名                       | 类型或签名                                                            | 说明                                                                                         |
+| ---------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `SenderProps`                | `interface`                                                           | Sender 属性                                                                                  |
+| `SenderEmits`                | `interface`                                                           | Sender 事件                                                                                  |
+| `SenderSlots`                | `interface`                                                           | Sender 插槽                                                                                  |
+| `SenderContext`              | `interface`                                                           | 子组件共享的 Sender 上下文                                                                   |
+| `SenderSlotScope`            | `interface`                                                           | Sender 布局内部使用的插槽作用域契约；当前顶层插槽尚未转发该作用域                            |
+| `SenderExternalPayload`      | `interface`                                                           | 单个外部提交内容                                                                             |
+| `SenderSubmitExtra`          | `interface`                                                           | `submit` 的额外提交数据                                                                      |
+| `SenderContentRegister`      | `(source: string, payload: MaybeRefOrGetter<unknown>) => () => void`  | 注册外部内容并返回注销函数                                                                   |
+| `InputMode`                  | `'single' \| 'multiple'`                                              | 输入布局模式                                                                                 |
+| `SubmitTrigger`              | `'enter' \| 'ctrlEnter' \| 'shiftEnter'`                              | 提交快捷键模式                                                                               |
+| `EnterKeyHint`               | HTML `enterkeyhint` 联合类型                                          | 移动端虚拟键盘提示                                                                           |
+| `AutoSize`                   | `boolean \| { minRows: number; maxRows: number }`                     | 多行编辑器高度范围                                                                           |
+| `DefaultActions`             | `interface`                                                           | 默认提交和清空按钮配置                                                                       |
+| `StructuredData`             | `TemplateItem[] \| MentionStructuredItem[]`                           | Template 或 Mention 的结构化提交数据                                                         |
+| `SelectOption`               | `interface`                                                           | Template 选择项                                                                              |
+| `TemplateItem`               | `type`                                                                | 文本、可编辑块或选择器模板项                                                                 |
+| `MentionItem`                | `interface`                                                           | Mention 输入项                                                                               |
+| `SenderSuggestionItem`       | `interface`                                                           | Suggestion 输入项                                                                            |
+| `SuggestionOptions`          | `interface`                                                           | Suggestion 扩展配置                                                                          |
+| `SuggestionState`            | `interface`                                                           | Suggestion 插件状态                                                                          |
+| `SuggestionTextPart`         | `interface`                                                           | 建议文本的高亮片段                                                                           |
+| `HighlightFunction`          | `(suggestionText: string, inputText: string) => SuggestionTextPart[]` | 自定义建议高亮函数                                                                           |
+| `ActionButtonProps`          | `interface`                                                           | Sender Action 基础按钮属性                                                                   |
+| `UploadButtonProps`          | `interface`                                                           | 上传按钮属性                                                                                 |
+| `UploadButtonEmits`          | `interface`                                                           | 上传按钮事件                                                                                 |
+| `VoiceButtonProps`           | `interface`                                                           | 语音按钮属性                                                                                 |
+| `VoiceButtonEmits`           | `interface`                                                           | 语音按钮事件                                                                                 |
+| `WordCounterProps`           | `interface`                                                           | 已公开导出的字数统计属性类型；当前 `TrWordCounter` 不接收这些 Props，而是读取 Sender Context |
+| `TooltipContent`             | `string \| (() => string \| VNode)`                                   | Sender Action 的 Tooltip 内容                                                                |
+| `TooltipPlacement`           | `type`                                                                | Tooltip 方位联合类型                                                                         |
+| `SpeechCallbacks`            | `interface`                                                           | 语音处理过程回调                                                                             |
+| `SpeechHandler`              | `interface`                                                           | 可替换的语音处理器                                                                           |
+| `SpeechConfig`               | `interface`                                                           | 语音识别配置                                                                                 |
+| `SpeechState`                | `interface`                                                           | 语音识别状态                                                                                 |
+| `SpeechHookOptions`          | `interface extends SpeechConfig`                                      | 语音处理器内部组合函数的配置与回调                                                           |
+| `SpeechHandlerResult`        | `interface`                                                           | 语音处理器内部组合函数的返回值                                                               |
+| `KeyboardHandlers`           | `interface`                                                           | Sender 内部键盘处理器的公开类型                                                              |
+| `UseKeyboardShortcutsParams` | `interface`                                                           | 键盘快捷键组合函数参数                                                                       |
+| `UseKeyboardShortcutsReturn` | `interface`                                                           | 键盘快捷键组合函数返回值                                                                     |
+| `UseEditorReturn`            | `interface`                                                           | 编辑器组合函数返回值                                                                         |
+| `UseModeSwitchReturn`        | `interface`                                                           | 模式切换组合函数返回值                                                                       |
+| `UseSuggestionReturn`        | `interface`                                                           | 建议功能组合函数返回值                                                                       |
+| `UseSenderContextReturn`     | `SenderContext`                                                       | `useSenderContext` 返回类型                                                                  |
+| `SuggestionListProps`        | `interface`                                                           | 建议列表属性                                                                                 |
+| `SuggestionListEmits`        | `interface`                                                           | 建议列表事件                                                                                 |
 
 #### 常用字段
 
@@ -701,89 +741,171 @@ function handleSubmit(text: string, data?: StructuredData) {
 | `source`  | 注册来源的稳定标识       | `string`  | 是   |
 | `payload` | 由对应来源定义的原始数据 | `unknown` | 是   |
 
-### CSS Variables
+`DefaultActions`：
 
-Sender 组件提供了丰富的 CSS 变量用于自定义样式。
+| 字段                      | 说明                                                | 类型               | 必填 |
+| ------------------------- | --------------------------------------------------- | ------------------ | ---- |
+| `submit.disabled`         | 禁用默认提交按钮，并参与 Sender 的 `canSubmit` 计算 | `boolean`          | 否   |
+| `submit.tooltip`          | 提交按钮 Tooltip                                    | `TooltipContent`   | 否   |
+| `submit.tooltipPlacement` | 提交按钮 Tooltip 位置                               | `TooltipPlacement` | 否   |
+| `clear.disabled`          | 禁用默认清空按钮                                    | `boolean`          | 否   |
+| `clear.tooltip`           | 清空按钮 Tooltip                                    | `TooltipContent`   | 否   |
+| `clear.tooltipPlacement`  | 清空按钮 Tooltip 位置                               | `TooltipPlacement` | 否   |
 
-**基础颜色**
+`SpeechConfig`：
 
-| 变量名                          | 说明         |
-| ------------------------------- | ------------ |
-| `--tr-sender-bg-color`          | 背景颜色     |
-| `--tr-sender-text-color`        | 文本颜色     |
-| `--tr-sender-placeholder-color` | 占位符颜色   |
-| `--tr-sender-button-hover-bg`   | 按钮悬停背景 |
+| 字段                 | 说明                                                                             | 类型                                                                          | 默认值                   |
+| -------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------ |
+| `customHandler`      | 替换浏览器内置识别器；处理器负责支持性检查、启动、停止和资源清理                 | `SpeechHandler`                                                               | 浏览器 Web Speech 处理器 |
+| `lang`               | 浏览器内置识别器使用的语言                                                       | `string`                                                                      | `navigator.language`     |
+| `continuous`         | 浏览器内置识别器是否持续识别                                                     | `boolean`                                                                     | `false`                  |
+| `interimResults`     | 浏览器内置识别器是否返回中间结果                                                 | `boolean`                                                                     | `true`                   |
+| `autoReplace`        | 公开类型中的兼容字段；当前 `VoiceButton` 和内置处理器不会读取该值                | `boolean`                                                                     | —                        |
+| `onVoiceButtonClick` | 公开类型中的兼容字段；当前点击拦截应使用 `VoiceButton` 的 `on-button-click` Prop | `(isRecording: boolean, preventDefault: () => void) => void \| Promise<void>` | —                        |
 
-**尺寸和间距**
+`SpeechHandler` 的完整接口如下。`start` 应通过回调报告识别过程；`stop` 必须停止录音、网络连接和计时器等外部资源。
 
-| 变量名                      | 说明         |
-| --------------------------- | ------------ |
-| `--tr-sender-font-size`     | 字体大小     |
-| `--tr-sender-line-height`   | 行高         |
-| `--tr-sender-border-radius` | 圆角大小     |
-| `--tr-sender-padding`       | 内边距       |
-| `--tr-sender-gap`           | 元素间距     |
-| `--tr-sender-footer-gap`    | 底部元素间距 |
-
-**Header 区域**
-
-| 变量名                             | 说明                 |
-| ---------------------------------- | -------------------- |
-| `--tr-sender-header-padding`       | 头部内边距           |
-| `--tr-sender-header-divider-inset` | 头部分割线缩进       |
-| `--tr-sender-multi-main-padding`   | 多行模式主区域内边距 |
-
-**Footer 区域**
-
-| 变量名                       | 说明       |
-| ---------------------------- | ---------- |
-| `--tr-sender-footer-padding` | 底部内边距 |
-
-**前缀和操作区**
-
-| 变量名                              | 说明             |
-| ----------------------------------- | ---------------- |
-| `--tr-sender-prefix-padding-right`  | 前缀区域右内边距 |
-| `--tr-sender-actions-padding-right` | 操作区域右内边距 |
-
-**按钮**
-
-| 变量名                           | 说明                          |
-| -------------------------------- | ----------------------------- |
-| `--tr-sender-button-size`        | 按钮尺寸                      |
-| `--tr-sender-button-size-submit` | 提交按钮尺寸                  |
-| `--tr-sender-tooltip-gap`        | 按钮 Tooltip 与触发按钮的间距 |
-
-:::tip 尺寸变体
-所有变量都支持通过 `size` 属性自动切换。当 `size="small"` 时，组件会使用对应的 `-small` 变体（如 `--tr-sender-font-size-small`）。
-:::
-
-:::tip Tooltip 间距
-Sender 按钮的 Tooltip 间距可通过 `--tr-sender-tooltip-gap` 全局自定义，默认值为 `8px`。由于 Tooltip 弹层通常挂载在全局层级，建议在 `:root` 或全局主题作用域下设置该变量。
-:::
-
-:::tip 使用示例
-
-```css
-/* 自定义背景色 */
-.my-sender {
-  --tr-sender-bg-color: #f5f5f5;
-  --tr-sender-text-color: #333;
-}
-
-/* 自定义按钮尺寸 */
-.my-sender {
-  --tr-sender-button-size: 40px;
-  --tr-sender-button-size-submit: 44px;
-}
-
-/* 全局调整 Sender 按钮 Tooltip 间距 */
-:root {
-  --tr-sender-tooltip-gap: 10px;
+```ts
+interface SpeechHandler {
+  start: (callbacks: SpeechCallbacks) => Promise<void> | void
+  stop: () => Promise<void> | void
+  isSupported: () => boolean
 }
 ```
 
-:::
+`SenderContext` 是 `useSenderContext()` 的完整返回类型。常用字段按职责分组如下；所有状态字段都是响应式 `Ref`。
+
+| 分组           | 字段                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------- |
+| 编辑器         | `editor`、`editorRef`                                                                 |
+| 输入与布局状态 | `mode`、`isAutoSwitching`、`disabled`、`loading`、`size`                              |
+| 提交派生状态   | `hasContent`、`hasEditorContent`、`canSubmit`、`isOverLimit`、`characterCount`        |
+| 配置状态       | `maxLength`、`showWordLimit`、`clearable`、`defaultActions`、`submitType`、`stopText` |
+| 动作           | `submit`、`clear`、`cancel`、`focus`、`blur`、`setContent`、`getContent`              |
+
+Context 动作与同名 Expose 方法具有相同行为；它们会修改编辑器内部状态或触发对应事件，但不会替应用结束外部请求，也不会在提交后自动清空受控值。
+
+### CSS Variables
+
+以下变量由公共主题样式声明。颜色标为“主题值”时，会随 `ThemeProvider` 的明暗主题切换；其余值可在 Sender 的样式作用域中覆盖。Tooltip 弹层通常挂载到全局层级，因此 `--tr-sender-tooltip-gap` 应设置在 `:root` 或全局主题作用域。
+
+**容器、文本与状态**
+
+| 变量名                                   | 说明                 | 默认值                           |
+| ---------------------------------------- | -------------------- | -------------------------------- |
+| `--tr-sender-bg-color`                   | Sender 背景色        | `var(--tr-container-bg-default)` |
+| `--tr-sender-bg-color-disabled`          | 禁用时的背景色       | 主题值                           |
+| `--tr-sender-text-color`                 | 编辑器文字颜色       | `var(--tr-text-primary)`         |
+| `--tr-sender-text-color-disabled`        | 禁用时的文字颜色     | 主题值                           |
+| `--tr-sender-placeholder-color`          | 占位文字颜色         | `var(--tr-text-tertiary)`        |
+| `--tr-sender-placeholder-color-disabled` | 禁用时的占位文字颜色 | 主题值                           |
+| `--tr-sender-box-shadow`                 | Sender 阴影          | 主题值                           |
+| `--tr-sender-header-border-bottom`       | Header 分隔线        | 主题值                           |
+| `--tr-sender-button-hover-bg`            | 操作按钮悬停背景     | `var(--tr-container-bg-hover)`   |
+| `--tr-sender-button-active-bg`           | 操作按钮激活背景     | 主题值                           |
+| `--tr-sender-word-limit-color`           | 字数统计文字颜色     | 主题值                           |
+| `--tr-sender-word-limit-error-color`     | 超出字数限制时的颜色 | 主题值                           |
+| `--tr-sender-transition-duration`        | 容器状态过渡时长     | `0.2s`                           |
+
+**尺寸与布局**
+
+| 变量名                              | 说明                            | 默认值                               |
+| ----------------------------------- | ------------------------------- | ------------------------------------ |
+| `--tr-sender-font-size`             | 编辑器字号                      | `16px`                               |
+| `--tr-sender-line-height`           | 编辑器行高                      | `26px`                               |
+| `--tr-sender-border-radius`         | Sender 圆角                     | `26px`                               |
+| `--tr-sender-padding`               | 单行模式主区域内边距            | `15px 20px`                          |
+| `--tr-sender-gap`                   | 同一区域内的元素间距            | `8px`                                |
+| `--tr-sender-footer-gap`            | Footer 左右区域间距             | `12px`                               |
+| `--tr-sender-header-padding`        | Header 内边距                   | `12px 20px`                          |
+| `--tr-sender-header-divider-inset`  | Header 分隔线左右缩进           | `20px`                               |
+| `--tr-sender-multi-main-padding`    | 多行模式主输入区内边距          | `16px 20px 12px`                     |
+| `--tr-sender-footer-padding`        | Footer 内边距                   | `0 10px 10px`                        |
+| `--tr-sender-prefix-padding-right`  | Prefix 右内边距                 | `4px`                                |
+| `--tr-sender-actions-padding-right` | 单行操作区右内边距              | `10px`                               |
+| `--tr-sender-button-size`           | 普通操作按钮尺寸                | `32px`                               |
+| `--tr-sender-button-size-submit`    | 提交按钮尺寸                    | `36px`                               |
+| `--tr-sender-action-button-size`    | ActionButton 在 Sender 内的尺寸 | `var(--tr-sender-button-size, 32px)` |
+| `--tr-sender-action-button-padding` | ActionButton 内边距             | `4px`                                |
+| `--tr-sender-action-gap`            | 相邻普通操作按钮间距            | `4px`                                |
+| `--tr-sender-action-submit-gap`     | 普通操作区与提交按钮间距        | `12px`                               |
+| `--tr-sender-tooltip-gap`           | Tooltip 与触发按钮的间距        | `8px`                                |
+
+当 `size="small"` 时，组件把下列基础变量映射到对应的 `-small` 变量。未列出 `-small` 版本的颜色和布局变量继续继承普通值。
+
+| 变量名                                    | 默认值           |
+| ----------------------------------------- | ---------------- |
+| `--tr-sender-font-size-small`             | `14px`           |
+| `--tr-sender-line-height-small`           | `24px`           |
+| `--tr-sender-border-radius-small`         | `24px`           |
+| `--tr-sender-padding-small`               | `12px 16px`      |
+| `--tr-sender-footer-gap-small`            | `8px`            |
+| `--tr-sender-header-padding-small`        | `12px 16px`      |
+| `--tr-sender-multi-main-padding-small`    | `14px 16px 10px` |
+| `--tr-sender-footer-padding-small`        | `0 10px 10px`    |
+| `--tr-sender-button-size-small`           | `28px`           |
+| `--tr-sender-button-size-submit-small`    | `32px`           |
+| `--tr-sender-prefix-padding-right-small`  | `4px`            |
+| `--tr-sender-actions-padding-right-small` | `8px`            |
+
+**Suggestion**
+
+| 变量名                                        | 说明               | 默认值 |
+| --------------------------------------------- | ------------------ | ------ |
+| `--tr-suggestion-bg-color`                    | 建议弹层背景       | 主题值 |
+| `--tr-suggestion-box-shadow-color`            | 建议弹层阴影颜色   | 主题值 |
+| `--tr-suggestion-text-color`                  | 建议文字颜色       | 主题值 |
+| `--tr-suggestion-hover-bg-color`              | 建议项悬停背景     | 主题值 |
+| `--tr-suggestion-scrollbar-thumb-color`       | 滚动条滑块颜色     | 主题值 |
+| `--tr-suggestion-scrollbar-thumb-hover-color` | 滚动条滑块悬停颜色 | 主题值 |
+| `--tr-suggestion-item-font-size`              | 建议项字号         | `14px` |
+| `--tr-suggestion-item-icon-size`              | 建议项图标尺寸     | `16px` |
+| `--tr-suggestion-autocomplete-color`          | 自动补全文字颜色   | 主题值 |
+| `--tr-suggestion-tab-hint-border`             | Tab 提示边框       | 主题值 |
+| `--tr-suggestion-tab-hint-color`              | Tab 提示文字颜色   | 主题值 |
+| `--tr-suggestion-tab-hint-bg`                 | Tab 提示背景       | 主题值 |
+
+**Mention**
+
+| 变量名                                      | 说明                       | 默认值 |
+| ------------------------------------------- | -------------------------- | ------ |
+| `--tr-sender-mention-color`                 | Mention 节点文字颜色       | 主题值 |
+| `--tr-sender-mention-bg`                    | Mention 节点背景           | 主题值 |
+| `--tr-sender-mention-hover-bg`              | Mention 节点悬停背景       | 主题值 |
+| `--tr-sender-mention-list-bg`               | Mention 列表背景           | 主题值 |
+| `--tr-sender-mention-list-shadow`           | Mention 列表阴影           | 主题值 |
+| `--tr-sender-mention-text-primary`          | Mention 列表主要文字颜色   | 主题值 |
+| `--tr-sender-mention-text-secondary`        | Mention 列表次要文字颜色   | 主题值 |
+| `--tr-sender-mention-text-tertiary`         | Mention 列表辅助文字颜色   | 主题值 |
+| `--tr-sender-mention-item-hover-bg`         | Mention 条目悬停背景       | 主题值 |
+| `--tr-sender-mention-item-selected-bg`      | Mention 条目选中背景       | 主题值 |
+| `--tr-sender-mention-scrollbar-thumb`       | Mention 滚动条滑块颜色     | 主题值 |
+| `--tr-sender-mention-scrollbar-thumb-hover` | Mention 滚动条滑块悬停颜色 | 主题值 |
+| `--tr-sender-mention-trigger-bg`            | 触发字符背景               | 主题值 |
+
+**Template**
+
+| 变量名                                              | 说明                       | 默认值    |
+| --------------------------------------------------- | -------------------------- | --------- |
+| `--tr-sender-template-color`                        | 可编辑模板块文字颜色       | 主题值    |
+| `--tr-sender-template-bg`                           | 可编辑模板块背景           | 主题值    |
+| `--tr-sender-template-border-radius`                | 可编辑模板块圆角           | `6px`     |
+| `--tr-sender-template-padding`                      | 可编辑模板块内边距         | `2px 4px` |
+| `--tr-sender-template-margin`                       | 可编辑模板块外边距         | `0 4px`   |
+| `--tr-sender-template-min-width`                    | 可编辑模板块最小宽度       | `32px`    |
+| `--tr-sender-template-select-color`                 | 模板选择器文字颜色         | 主题值    |
+| `--tr-sender-template-select-placeholder-color`     | 模板选择器占位文字颜色     | 主题值    |
+| `--tr-sender-template-select-bg`                    | 模板选择器背景             | 主题值    |
+| `--tr-sender-template-select-bg-hover`              | 模板选择器悬停背景         | 主题值    |
+| `--tr-sender-template-select-bg-active`             | 模板选择器激活背景         | 主题值    |
+| `--tr-sender-template-select-dropdown-bg`           | 模板下拉菜单背景           | 主题值    |
+| `--tr-sender-template-select-dropdown-shadow`       | 模板下拉菜单阴影           | 主题值    |
+| `--tr-sender-template-select-text-primary`          | 模板下拉菜单主要文字颜色   | 主题值    |
+| `--tr-sender-template-select-text-secondary`        | 模板下拉菜单次要文字颜色   | 主题值    |
+| `--tr-sender-template-select-option-hover-bg`       | 模板选项悬停背景           | 主题值    |
+| `--tr-sender-template-select-option-selected-bg`    | 模板选项选中背景           | 主题值    |
+| `--tr-sender-template-select-scrollbar-thumb`       | 模板下拉菜单滚动条颜色     | 主题值    |
+| `--tr-sender-template-select-scrollbar-thumb-hover` | 模板下拉菜单滚动条悬停颜色 | 主题值    |
 
 ## 迁移与弃用
 

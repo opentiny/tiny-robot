@@ -131,8 +131,6 @@ const extensions = [
 
 <template>
   <div class="demo-highlight">
-    <h3>高亮模式对比</h3>
-
     <div class="mode-selector">
       <label>
         <input type="radio" v-model="highlightMode" value="auto" />

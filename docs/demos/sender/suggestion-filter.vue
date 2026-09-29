@@ -12,7 +12,7 @@ const filterMode = ref<'default' | 'prefix' | 'category'>('default')
 const modeDescription = computed(() => {
   switch (filterMode.value) {
     case 'default':
-      return '默认过滤：模糊匹配，包含输入内容即可'
+      return '包含匹配：建议中包含输入内容即可'
     case 'prefix':
       return '前缀匹配：只匹配以输入内容开头的建议'
     case 'category':
@@ -75,7 +75,7 @@ const handleSubmit = (text: string) => {
     <div class="filter-selector">
       <label>
         <input type="radio" v-model="filterMode" value="default" />
-        默认过滤
+        包含匹配
       </label>
       <label>
         <input type="radio" v-model="filterMode" value="prefix" />

@@ -33,7 +33,6 @@ const handleSubmit = (text: string) => {
 
 <template>
   <div class="demo-suggestion">
-    <h3>基础用法</h3>
     <p class="demo-description">输入任意内容查看建议，支持键盘导航和自动补全</p>
     <tr-sender
       v-model="input"
