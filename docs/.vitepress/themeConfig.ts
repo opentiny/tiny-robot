@@ -29,6 +29,8 @@ const sharedSidebarItems = [
       { text: 'DragOverlay 拖拽浮层', link: 'drag-overlay' },
       { text: 'Attachments 附件卡片', link: 'attachments' },
       { text: 'ExtensionManager 扩展管理', link: 'extension-manager' },
+      { text: 'MCP 扩展添加与详情', link: 'mcp-extension' },
+      { text: 'Skill 扩展导入与详情', link: 'skill-extension' },
       { text: 'McpServerPicker 插件选择器（已弃用）', link: 'mcp-server-picker' },
       { text: 'Theme 主题', link: 'theme' },
       { text: 'Container 容器', link: 'container' },
@@ -46,6 +48,11 @@ const sharedSidebarItems = [
     ],
   },
   {
+    text: '最佳实践',
+    base: '/best-practices/',
+    items: [{ text: 'MCP 与 Skill 扩展管理', link: 'extension-manager-integration' }],
+  },
+  {
     text: '图标',
     items: [{ text: 'SVG 图标', link: '/icons/' }],
   },
@@ -61,7 +68,7 @@ const sharedSidebarItems = [
 
 const nav = [
   { text: '指南', link: '/guide/quick-start', activeMatch: '/guide/' },
-  { text: '演示', link: '/examples/assistant', activeMatch: '/examples/' },
+  { text: '演示', link: '/examples/chat-tiny-robot', activeMatch: '/examples/' },
   { text: '迁移指南', link: '/migration/bubble-migration', activeMatch: '/migration/' },
 ]
 
@@ -69,13 +76,18 @@ const sidebar = {
   '/guide/': sharedSidebarItems,
   '/components/': sharedSidebarItems,
   '/tools/': sharedSidebarItems,
+  '/best-practices/': sharedSidebarItems,
   '/icons/': sharedSidebarItems,
   '/suites/': sharedSidebarItems,
   '/examples/': [
     {
       text: '演示',
       base: '/examples/',
-      items: [{ text: '综合示例', link: 'assistant' }],
+      items: [
+        { text: 'TinyRobot', link: 'chat-tiny-robot' },
+        { text: 'WorkHelper', link: 'chat-worker-helper' },
+        { text: 'Assistant 综合示例', link: 'assistant' },
+      ],
     },
   ],
   '/migration/': [

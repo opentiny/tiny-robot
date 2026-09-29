@@ -68,6 +68,13 @@ test.describe('Bubble', () => {
     ).toHaveCount(1)
   })
 
+  test('does not render message errors without an explicitly configured renderer', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('unconfigured-error-bubble').getByRole('alert')).toHaveCount(0)
+    await expect(component.getByTestId('unconfigured-provider-error-bubble').getByRole('alert')).toHaveCount(0)
+  })
+
   test('renders one message error immediately after its normal content', async ({ mount }) => {
     const component = await mount(BubbleFixture)
     const bubble = component.getByTestId('content-error-bubble')

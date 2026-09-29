@@ -2,6 +2,7 @@
 import { markRaw, ref } from 'vue'
 import Bubble from '../../../components/src/bubble/Bubble.vue'
 import BubbleProvider from '../../../components/src/bubble/BubbleProvider.vue'
+import { BubbleRenderers } from '../../../components/src/bubble/renderers/allRenderers'
 import type {
   BubbleBoxRendererMatch,
   BubbleContentRendererMatch,
@@ -136,6 +137,19 @@ const recordBubbleEvent = (payload: BubbleEvent & { messageIndex: number; conten
           :state="{ error: { message: 'Split provider failure' } }"
           content-render-mode="split"
         />
+      </BubbleProvider>
+    </section>
+
+    <section data-testid="nested-error-provider">
+      <BubbleProvider :error-renderer="BubbleRenderers.Error">
+        <BubbleProvider>
+          <Bubble
+            data-testid="nested-unconfigured-error-bubble"
+            role="assistant"
+            content="Nested historical content"
+            :state="{ error: { message: 'Must stay opt-in' } }"
+          />
+        </BubbleProvider>
       </BubbleProvider>
     </section>
   </main>
