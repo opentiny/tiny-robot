@@ -47,7 +47,6 @@ const chatUi = computed(() => ({
       defaultOpen: true,
     },
   },
-  history: { menuItems: [] },
   bubble: {
     autoScroll: true,
     bubbleList: {
@@ -126,13 +125,24 @@ onBeforeUnmount(() => {
           />
         </template>
 
-        <template #layout-left-aside="{ conversation, isOpen, createConversation, switchConversation }">
+        <template
+          #layout-left-aside="{
+            conversation,
+            isOpen,
+            createConversation,
+            switchConversation,
+            renameConversation,
+            deleteConversation,
+          }"
+        >
           <DouBaoSidebar
             variant="fixed"
             :conversation="conversation"
             :history-data="historyData"
             @create-conversation="createConversation"
             @conversation-select="handleConversationSelect($event, switchConversation)"
+            :rename-conversation="renameConversation"
+            :delete-conversation="deleteConversation"
           />
           <Teleport v-if="chatContainer" :to="chatContainer">
             <Transition name="doubao-sidebar-slide" :css="!isOpen">
@@ -148,6 +158,8 @@ onBeforeUnmount(() => {
                   :history-data="historyData"
                   @create-conversation="createConversation"
                   @conversation-select="handleConversationSelect($event, switchConversation)"
+                  :rename-conversation="renameConversation"
+                  :delete-conversation="deleteConversation"
                 />
               </div>
             </Transition>

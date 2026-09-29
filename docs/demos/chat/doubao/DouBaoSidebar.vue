@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TrHistory } from '@opentiny/tiny-robot'
+import { TrHistory, type HistoryMenuItem } from '@opentiny/tiny-robot'
 import {
   useChatHistoryData,
   type ChatHistoryItem,
@@ -13,6 +13,8 @@ const props = defineProps<{
   variant: 'fixed' | 'floating'
   conversation: ChatConversationView
   historyData: ChatHistoryData
+  renameConversation: (id: string, title: string) => void
+  deleteConversation: (id: string) => void
 }>()
 
 const emit = defineEmits<{
@@ -33,6 +35,16 @@ const historyItems = useChatHistoryData({
 
 function handleConversationSelect(item: ChatHistoryItem) {
   emit('conversationSelect', item.raw.id)
+}
+
+function handleHistoryTitleChange(title: string, item: ChatHistoryItem) {
+  props.renameConversation(item.raw.id, title)
+}
+
+function handleHistoryAction(action: HistoryMenuItem, item: ChatHistoryItem) {
+  if (action.id === 'delete') {
+    props.deleteConversation(item.raw.id)
+  }
 }
 
 const historyIconColors = ['blue', 'cyan', 'green', 'yellow', 'orange', 'pink'] as const
@@ -109,8 +121,9 @@ function getHistoryIconColor(item: ChatConversationInfo) {
         class="doubao-sidebar__history"
         :data="historyItems as never"
         :selected="props.conversation.activeId ?? undefined"
-        :menu-items="[]"
         @item-click="handleConversationSelect"
+        @item-title-change="handleHistoryTitleChange"
+        @item-action="handleHistoryAction"
       >
         <template #item-prefix="{ item }">
           <span
@@ -283,10 +296,6 @@ button.doubao-sidebar__nav-item:focus-visible {
   --tr-history-item-hover-bg: #eceef2;
   --tr-history-item-selected-bg: #e9edf5;
   --tr-history-item-space-y: 2px;
-}
-
-.doubao-sidebar__history .tr-history__item-actions {
-  display: none;
 }
 
 .doubao-sidebar__history-icon {
