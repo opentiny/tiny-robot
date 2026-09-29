@@ -406,7 +406,11 @@ watch(
 
 <style lang="less" scoped>
 .skill-add {
-  --skill-import-form-primary-color: var(--tr-skill-import-form-primary-color, #191919);
+  --skill-import-form-primary-color: var(--tr-skill-import-form-primary-color, var(--tr-text-primary, #191919));
+  --skill-import-form-primary-text-color: var(
+    --tr-skill-import-form-primary-text-color,
+    var(--tr-container-bg-default, #fff)
+  );
 
   width: 100%;
   color: var(--tr-text-primary, #191919);
@@ -682,7 +686,7 @@ watch(
 .skill-add__button--primary {
   border: 1px solid var(--skill-import-form-primary-color);
   background: var(--skill-import-form-primary-color);
-  color: var(--tr-text-inverse, #fff);
+  color: var(--skill-import-form-primary-text-color);
 }
 
 @media (max-width: 480px) {

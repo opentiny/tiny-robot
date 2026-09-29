@@ -173,8 +173,10 @@ onMounted(() => void loadCatalog())
   max-height: min(85vh, 800px);
   overflow: auto;
   padding: 20px;
-  border: 1px solid var(--tr-border-color, #ddd);
+  border: 1px solid var(--tr-border-color-default, #ddd);
   border-radius: 10px;
+  background: var(--tr-container-bg-default, #fff);
+  color: var(--tr-text-primary, #191919);
 }
 
 .integrated-demo__dialog::backdrop {
