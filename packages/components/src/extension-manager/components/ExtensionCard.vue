@@ -149,22 +149,11 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   </div>
 </template>
 
-<style lang="less">
-:root {
-  --tr-extension-card-bg-color: #f8f8f8;
-  --tr-extension-card-bg-color-hover: rgba(0, 0, 0, 0.04);
-  --tr-extension-card-focus-color: #191919;
-  --tr-extension-card-icon-color: #808080;
-  --tr-extension-card-switch-bg-color: var(--tr-text-disabled);
-  --tr-extension-card-switch-bg-color-checked: var(--tr-color-primary);
-}
-</style>
-
 <style lang="less" scoped>
 .tr-extension-card {
   --tr-extension-card-action-icon-size: 16px;
   --tr-extension-card-menu-icon-slot-size: var(--tr-extension-card-action-icon-size);
-  --tr-extension-card-progress-bg-color: var(--tr-extension-card-bg-color-hover);
+  --tr-extension-card-progress-bg-color: var(--tr-extension-card-bg-color-hover, var(--tr-container-bg-hover));
   --tr-extension-card-progress-bar-color: var(--tr-color-success);
 
   box-sizing: border-box;
@@ -176,7 +165,7 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   min-height: 86px;
   padding: 14px 20px;
   border-radius: 8px;
-  background: var(--tr-extension-card-bg-color);
+  background: var(--tr-extension-card-bg-color, var(--tr-container-bg-default-2));
   overflow: hidden;
 }
 
@@ -197,7 +186,7 @@ const handleNameKeydown = (event: KeyboardEvent) => {
   overflow: hidden;
 
   &--placeholder {
-    background: var(--tr-extension-card-bg-color-hover);
+    background: var(--tr-extension-card-bg-color-hover, var(--tr-container-bg-hover));
     color: var(--tr-text-secondary);
     font-size: 18px;
     font-weight: 600;
@@ -234,7 +223,7 @@ const handleNameKeydown = (event: KeyboardEvent) => {
 
     &:focus-visible {
       border-radius: 4px;
-      box-shadow: 0 0 0 2px var(--tr-extension-card-focus-color);
+      box-shadow: 0 0 0 2px var(--tr-extension-card-focus-color, var(--tr-text-primary));
     }
   }
 }

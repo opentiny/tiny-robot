@@ -15,12 +15,11 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
 <template>
   <div class="extension-filter-controls" data-testid="extension-filter-controls">
     <div data-testid="filter-root" class="extension-filter-controls__fields">
-      <div class="extension-filter-controls__select-wrapper">
+      <div v-if="props.tags.length > 0" class="extension-filter-controls__select-wrapper">
         <select
           data-testid="filter-tag"
           class="extension-filter-controls__select"
           aria-label="标签"
-          :disabled="props.tags.length === 0"
           v-model="selectedTag"
         >
           <option value="">全部标签</option>
@@ -65,7 +64,7 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   min-width: 0;
   height: 32px;
   padding: 0 12px;
-  border: 1px solid var(--tr-mcp-server-picker-field-border-color);
+  border: 1px solid color-mix(in srgb, var(--tr-text-primary) 15%, transparent);
   border-radius: 8px;
   outline: none;
   background: var(--tr-container-bg-default);
@@ -73,7 +72,7 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   font-size: 13px;
 
   &:focus {
-    border-color: var(--tr-mcp-server-picker-tabs-border-color-active);
+    border-color: var(--tr-color-primary);
   }
 }
 
@@ -89,13 +88,13 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   min-width: 0;
 }
 
+.extension-filter-controls__input-wrapper:only-child {
+  grid-column: 1 / -1;
+}
+
 .extension-filter-controls__select {
   appearance: none;
   padding-right: 32px;
-
-  &:disabled + .extension-filter-controls__select-arrow {
-    opacity: 0.5;
-  }
 }
 
 .extension-filter-controls__select-arrow {
@@ -141,7 +140,7 @@ const searchValue = defineModel<string>('searchValue', { default: '' })
   }
 
   &:focus-visible {
-    outline: 2px solid var(--tr-mcp-server-picker-tabs-border-color-active);
+    outline: 2px solid var(--tr-color-primary);
     outline-offset: -2px;
   }
 }

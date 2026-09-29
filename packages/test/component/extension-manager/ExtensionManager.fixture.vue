@@ -124,6 +124,10 @@ const emptyLibrary = () => {
 const removeMarketTab = () => {
   tabs.value = tabs.value.filter((tab) => tab.id !== 'market')
 }
+
+const clearTabs = () => {
+  tabs.value = []
+}
 </script>
 
 <template>
@@ -162,6 +166,7 @@ const removeMarketTab = () => {
   </button>
   <button type="button" data-testid="empty-library" @click="emptyLibrary">Empty library</button>
   <button type="button" data-testid="remove-market-tab" @click="removeMarketTab">Remove market tab</button>
+  <button type="button" data-testid="clear-tabs" @click="clearTabs">Clear tabs</button>
   <button type="button" data-testid="show-item-slot-manager" @click="showItemSlotManager = true">
     Show item slot manager
   </button>
