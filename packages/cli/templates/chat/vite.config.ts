@@ -1,15 +1,10 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { resolve } from 'node:path'
 
-const workspaceRoot = resolve(import.meta.dirname, '..')
-
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
   server: {
-    fs: {
-      allow: [workspaceRoot],
-    },
     proxy: {
       '/modelcontextprotocol-mcp': {
         target: 'https://modelcontextprotocol.io/mcp',
