@@ -8,7 +8,6 @@ import sidebarToggleIcon from './icons/sidebar-toggle.svg'
 defineProps<{
   title: string
   isEmpty: boolean
-  modeLabel: string
   isSidebarOpen: boolean
 }>()
 
@@ -50,7 +49,6 @@ const emit = defineEmits<{
     <header v-if="!isEmpty" class="deepseek-session-header">
       <div class="deepseek-session-header__content">
         <h1 class="deepseek-session-header__title">{{ title }}</h1>
-        <span class="deepseek-session-header__mode">{{ modeLabel }}</span>
       </div>
       <button class="deepseek-session-header__share" type="button" aria-label="分享会话" title="分享会话" disabled>
         <IconShare :size="18" />
@@ -127,14 +125,6 @@ const emit = defineEmits<{
   line-height: 22px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.deepseek-session-header__mode {
-  display: block;
-  margin-top: 2px;
-  color: var(--tr-text-secondary);
-  font-size: 12px;
-  line-height: 18px;
 }
 
 .deepseek-session-header__share {

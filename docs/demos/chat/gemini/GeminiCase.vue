@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineComponent, h } from 'vue'
-import { TrChat, useChatRuntimeAdapter, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
+import { TrChat, type ChatHistoryData } from '@opentiny/tiny-robot-chat'
 import { IconNewSession, IconPlus, IconSearch, IconSetting, IconTypeAll } from '@opentiny/tiny-robot-svgs'
 import GeminiComposer from './GeminiComposer.vue'
 import GeminiHeader from './GeminiHeader.vue'
@@ -8,7 +8,6 @@ import GeminiRail from './GeminiRail.vue'
 import geminiMask from './icons/gemini-mask.svg'
 import { geminiConversationStorageKey, geminiMockConversations, geminiWelcome } from './config'
 import { useChatCaseRuntime } from '../shared/createChatRuntime'
-import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 
 const GeminiLogo = defineComponent({
   name: 'GeminiLogo',
@@ -33,12 +32,9 @@ const historyData = computed<ChatHistoryData>(() => {
   return items.length ? [{ group: '最近', items }] : []
 })
 
-const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
-
-const modelAdapter = useChatRuntimeAdapter({
-  runtime,
-  onActionError: handleRuntimeActionError,
-})
+async function selectModel(id: string | null) {
+  runtime.composer.model!.select(id)
+}
 
 const chatUi = {
   brand: { name: 'Gemini', logo: GeminiLogo },
@@ -56,6 +52,14 @@ const chatUi = {
       defaultOpen: true,
     },
   },
+  bubble: {
+    bubbleList: {
+      roleConfigs: {
+        assistant: { avatar: undefined },
+        user: { avatar: undefined },
+      },
+    },
+  },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   welcome: { ...geminiWelcome, icon: h(EmptyWelcomeIcon) as any },
   prompts: false as const,
@@ -66,26 +70,14 @@ const chatUi = {
 
 <template>
   <div class="gemini-case">
-    <div v-if="actionErrorMessage" class="gemini-case__action-error" role="alert" aria-live="polite">
-      {{ actionErrorMessage }}
-    </div>
     <main class="gemini-case__chat">
-      <TrChat
-        :runtime="runtime"
-        :ui="chatUi"
-        :history-data="historyData"
-        @runtime-action-error="handleRuntimeActionError"
-      >
+      <TrChat :runtime="runtime" :ui="chatUi" :history-data="historyData">
         <template #layout-header="{ isEmpty }">
           <GeminiHeader :is-empty="isEmpty" />
         </template>
 
         <template #layout-footer="slotProps">
-          <GeminiComposer
-            v-bind="slotProps"
-            :model="runtime.composer.model!"
-            :select-model="modelAdapter.selectModel"
-          />
+          <GeminiComposer v-bind="slotProps" :model="runtime.composer.model!" :select-model="selectModel" />
         </template>
 
         <template #layout-left-aside-rail="{ isOpen, conversation, openLeftAside, createConversation }">
@@ -177,7 +169,7 @@ const chatUi = {
   --gemini-sidebar-text: var(--tr-text-primary);
   --gemini-sidebar-muted: var(--tr-text-secondary);
   --gemini-sidebar-hover-bg: var(--tr-container-bg-hover);
-  --gemini-sidebar-selected-bg: var(--tr-color-primary-light);
+  --gemini-sidebar-selected-bg: #f2f2f0;
   --gemini-sidebar-selected-text: var(--tr-text-primary);
   --gemini-sidebar-focus-ring: color-mix(in srgb, var(--tr-color-primary) 52%, transparent);
   --gemini-avatar-bg: #d8e5f8;
@@ -185,25 +177,16 @@ const chatUi = {
   --gemini-sidebar-footer-bg: var(--gemini-sidebar-bg);
   --gemini-sidebar-footer-text: var(--gemini-sidebar-text);
   --gemini-sidebar-footer-hover-bg: var(--gemini-sidebar-hover-bg);
+  --gemini-history-item-padding: 6px 12px;
+  --gemini-bubble-user-bg: #f2f2f0;
+  --gemini-bubble-user-padding: 12px 18px;
+  --gemini-bubble-user-radius: 24px;
   --tr-chat-ui-left-aside-bg: var(--gemini-sidebar-bg);
   --tr-chat-ui-header-bg: var(--gemini-sidebar-bg);
   --tr-chat-ui-main-bg: var(--gemini-sidebar-bg);
   --tr-chat-ui-footer-bg: var(--gemini-sidebar-bg);
-}
-
-.gemini-case__action-error {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  z-index: 50;
-  padding: 8px 14px;
-  border: 1px solid var(--tr-color-error-light);
-  border-radius: 8px;
-  color: var(--tr-color-error);
-  background: var(--tr-color-error-light);
-  box-shadow: var(--tr-shadow-sm);
-  font-size: 13px;
-  transform: translateX(-50%);
+  --tr-bubble-error-bg: color-mix(in srgb, var(--tr-color-error) 8%, var(--tr-container-bg-default));
+  --tr-bubble-error-border-radius: 14px;
 }
 
 .gemini-case__chat {
@@ -399,17 +382,13 @@ const chatUi = {
   margin-top: 22px;
   padding: 0 8px;
   min-width: 0;
-}
-
-.gemini-case__chat :deep(.chat-left-aside-history) {
-  min-width: 0;
   --tr-history-group-space-y: 14px;
   --tr-history-group-title-font-size: 12px;
   --tr-history-group-title-line-height: 18px;
   --tr-history-group-title-padding: 0 12px 6px;
   --tr-history-group-title-color: var(--gemini-sidebar-muted);
-  --tr-history-item-padding: 6px 12px;
-  --tr-history-item-padding-editing: 6px 12px;
+  --tr-history-item-padding: var(--gemini-history-item-padding);
+  --tr-history-item-padding-editing: var(--gemini-history-item-padding);
   --tr-history-item-border-radius: 8px;
   --tr-history-item-color: var(--gemini-sidebar-text);
   --tr-history-item-hover-bg: var(--gemini-sidebar-hover-bg);
@@ -417,6 +396,10 @@ const chatUi = {
   --tr-history-item-selected-color: var(--gemini-sidebar-selected-text);
   --tr-history-item-space-y: 2px;
   --tr-history-item-font-size: 13px;
+}
+
+.gemini-case__chat :deep(.chat-left-aside-history) {
+  min-width: 0;
 }
 
 .gemini-case__chat :deep(.chat-left-aside-footer) {
@@ -565,5 +548,15 @@ const chatUi = {
     font-size: 30px;
     line-height: 42px;
   }
+}
+
+.gemini-case__chat :deep([data-box-type='box'][data-role='user']) {
+  --tr-bubble-box-bg: var(--gemini-bubble-user-bg);
+  --tr-bubble-box-padding: var(--gemini-bubble-user-padding);
+  border-radius: var(--gemini-bubble-user-radius);
+}
+
+.gemini-case__chat :deep([data-box-type='box']:not([data-role='user'])) {
+  --tr-bubble-box-bg: transparent;
 }
 </style>
