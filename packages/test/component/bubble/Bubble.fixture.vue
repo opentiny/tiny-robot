@@ -12,6 +12,12 @@ const splitContent: BubbleMessage['content'] = [
   { type: 'text', text: 'Second segment' },
 ]
 const unresolvedContent: BubbleMessage['content'] = [{ type: 'unknown', label: 'Unknown segment' }]
+const image = {
+  type: 'image_url',
+  image_url: { url: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' },
+}
+const imageOnlyContent: BubbleMessage['content'] = [image, image]
+const mixedImageFirstContent: BubbleMessage['content'] = [image, { type: 'text', text: 'Image caption' }]
 
 const reasoningMessage = reactive<BubbleMessage>({
   role: 'assistant',
@@ -118,6 +124,27 @@ const messageOnlyMatches: BubbleContentRendererMatch[] = [
         :state="{ error: { message: 'Must stay opt-in' } }"
       />
     </BubbleProvider>
+
+    <Bubble data-testid="image-only-bubble" role="assistant" :content="imageOnlyContent" />
+    <Bubble data-testid="mixed-image-first-bubble" role="assistant" :content="mixedImageFirstContent" />
+    <Bubble
+      data-testid="resolved-mixed-image-first-bubble"
+      role="assistant"
+      content="Original content"
+      :content-resolver="() => mixedImageFirstContent"
+    />
+    <Bubble
+      data-testid="resolved-image-only-bubble"
+      role="assistant"
+      content="Original content"
+      :content-resolver="() => imageOnlyContent"
+    />
+    <Bubble
+      data-testid="split-image-and-text-bubble"
+      role="assistant"
+      :content="mixedImageFirstContent"
+      content-render-mode="split"
+    />
 
     <BubbleProvider :error-renderer="BubbleRenderers.Error">
       <Bubble

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TrChat, useChatRuntimeAdapter, type ChatPromptClickPayload } from '@opentiny/tiny-robot-chat'
+import { TrChat, type ChatPromptClickPayload } from '@opentiny/tiny-robot-chat'
 import {
   IconAi,
   IconBrowser,
@@ -11,7 +11,6 @@ import {
 } from '@opentiny/tiny-robot-svgs'
 import { computed, h, markRaw, shallowRef } from 'vue'
 import { useChatCaseRuntime } from '../shared/createChatRuntime'
-import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 
 const cards = [
   { id: 'trouble', title: '故障处理', prompt: '弹性公网IP不通怎么办?', tone: 'warning', icon: markRaw(IconWarning) },
@@ -30,13 +29,8 @@ const cards = [
 
 const promptBatchSize = 6
 const batchIndex = shallowRef(0)
-const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
 const runtime = useChatCaseRuntime({
   storageKey: 'tiny-robot-work-helper-conversations',
-})
-const promptAdapter = useChatRuntimeAdapter({
-  runtime,
-  onActionError: handleRuntimeActionError,
 })
 
 const visibleCards = computed(() => {
@@ -106,22 +100,13 @@ function shuffleCards() {
 }
 
 function handlePromptClick(payload: ChatPromptClickPayload) {
-  void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
+  void runtime.actions.send({ text: payload.item.description ?? payload.item.label }).catch(() => undefined)
 }
 </script>
 
 <template>
   <div class="work-helper">
-    <div v-if="actionErrorMessage" class="work-helper__action-error" role="alert" aria-live="polite">
-      {{ actionErrorMessage }}
-    </div>
-    <TrChat
-      class="work-helper__chat"
-      :runtime="runtime"
-      :ui="chatUi"
-      @prompt-click="handlePromptClick"
-      @runtime-action-error="handleRuntimeActionError"
-    >
+    <TrChat class="work-helper__chat" :runtime="runtime" :ui="chatUi" @prompt-click="handlePromptClick">
       <template #layout-header="{ title, isEmpty, openLeftAside, createConversation }">
         <div class="work-helper__topbar">
           <button class="topbar-button" type="button" title="历史会话" aria-label="历史会话" @click="openLeftAside">
@@ -162,21 +147,6 @@ function handlePromptClick(payload: ChatPromptClickPayload) {
   overflow: visible;
   color: var(--tr-text-primary);
   background: var(--work-helper-bg);
-}
-
-.work-helper__action-error {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  z-index: 50;
-  padding: 8px 14px;
-  border: 1px solid var(--tr-color-error-light);
-  border-radius: 8px;
-  color: var(--tr-color-error);
-  background: var(--tr-color-error-light);
-  box-shadow: var(--tr-shadow-sm);
-  font-size: 13px;
-  transform: translateX(-50%);
 }
 
 .work-helper :deep(.tr-chat-ui) {

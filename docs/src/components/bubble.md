@@ -406,7 +406,7 @@ defineProps<BubbleBoxRendererProps>()
 
 - 使用 `markRaw` 包装渲染器组件，避免 Vue 的响应式处理
 - 为了不修改源数据内部内容和结构，UI 相关的数据应放在消息的 `state` 属性中
-- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex) => boolean`，其中 `content` 仅在 split 模式有值
+- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex, context) => boolean`。Box 仅包含一条消息时，single 模式下的 `content` 为第一项、`contentIndex` 为 `0`，split 模式下则为当前项及其索引；需要判断完整内容时，使用 `context.resolvedMessageContent`
 - Content 渲染器的 `find` 函数签名：`(message, content, contentIndex) => boolean`，`content` 为统一化后的 `ChatMessageContentItem`
 - 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
 - 多根节点或复合渲染器应使用 `inheritAttrs: false`，并显式决定 `$attrs` 绑定到哪个节点；不要把同一份 attributes 复制到多个兄弟节点上，避免重复 `id`、ARIA 或测试选择器
@@ -562,6 +562,7 @@ emitBubbleEvent({
 | `ToolCall`                            | `interface` | OpenAI 风格工具调用                    | `@opentiny/tiny-robot` |
 | `BubbleRoleConfig`                    | `type`      | BubbleList 的角色默认配置              | `@opentiny/tiny-robot` |
 | `BubbleAttributes`                    | `type`      | 渲染器 attributes 基础映射             | `@opentiny/tiny-robot` |
+| `BubbleBoxRendererContext`            | `type`      | box 渲染器匹配时的完整内容上下文       | `@opentiny/tiny-robot` |
 | `BubbleBoxRendererAttributeMap`       | `type`      | box 渲染器 attributes 映射             | `@opentiny/tiny-robot` |
 | `BubbleBoxRendererAttributesResolver` | `type`      | 动态 box 渲染器 attributes 解析函数    | `@opentiny/tiny-robot` |
 | `BubbleBoxAttributesResolver`         | `type`      | 动态 Provider box attributes 解析函数  | `@opentiny/tiny-robot` |
@@ -658,11 +659,17 @@ type BubbleRoleConfig = Pick<
 **BubbleBoxRendererMatch** - Box 渲染器匹配规则
 
 ```typescript
+type BubbleBoxRendererContext = {
+  contentRenderMode: 'single' | 'split'
+  resolvedMessageContent: ChatMessageContent | undefined
+}
+
 type BubbleBoxRendererMatch = {
   find: (
     messages: BubbleMessage[],
     content: ChatMessageContentItem | undefined,
     contentIndex: number | undefined,
+    context: BubbleBoxRendererContext,
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
@@ -670,8 +677,9 @@ type BubbleBoxRendererMatch = {
 }
 ```
 
-- `content`: 仅在 `split` 模式（`contentIndex` 为数字）时传入，为当前消息经 `contentResolver` 解析后对应索引的内容项；`contentIndex` 为 `undefined` 时 `content` 也为 `undefined`
-- `contentIndex`: 仅在 split 模式下传入，此时 `messages` 长度为 1
+- `content`: Box 仅包含一条消息时传入；single 模式为解析后内容的第一项，split 模式为当前索引对应的内容项。Box 包含多条消息时为 `undefined`
+- `contentIndex`: Box 仅包含一条消息时传入；single 模式为 `0`，split 模式为当前索引。Box 包含多条消息时为 `undefined`
+- `context`: 仅传给 `find`；`contentRenderMode` 表示当前 Box 的渲染模式，`resolvedMessageContent` 是单条消息经 `contentResolver` 解析后的完整内容。Box 包含多条消息时为 `undefined`
 
 **BubbleContentRendererMatch** - 内容渲染器匹配规则
 
