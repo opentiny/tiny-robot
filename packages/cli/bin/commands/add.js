@@ -1,5 +1,5 @@
 import { checkbox, select } from '@inquirer/prompts'
-import { compileTemplate, parse } from '@vue/compiler-sfc'
+import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc'
 import { Argument } from 'commander'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -304,6 +304,9 @@ function parseMountTemplate(source, filename) {
   if (parsed.errors.length > 0 || !parsed.descriptor.template) {
     return { type: 'manual', reason: 'App.vue template could not be parsed safely' }
   }
+  if (parsed.descriptor.template.src) {
+    return { type: 'manual', reason: 'App.vue uses an external template file' }
+  }
 
   const compiled = compileTemplate({
     source: parsed.descriptor.template.content,
@@ -344,7 +347,13 @@ function planMount(targetDir) {
     const namedImport = /^\s*import\s*\{[^}]*\bTinyRobotChat\b[^}]*\}\s*from\s+['"][^'"]+['"]\s*;?\s*$/m.test(
       setupContent,
     )
-    const localBinding = /^\s*(?:const|let|var|function|class)\s+TinyRobotChat\b/m.test(setupContent)
+    let bindings
+    try {
+      bindings = compileScript(templatePlan.descriptor, { id: 'tiny-robot-cli-mount' }).bindings
+    } catch {
+      return { type: 'manual', reason: 'App.vue script could not be parsed safely' }
+    }
+    const localBinding = Object.prototype.hasOwnProperty.call(bindings, 'TinyRobotChat') && !defaultImport
 
     if (
       namedImport ||

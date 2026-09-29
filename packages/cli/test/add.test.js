@@ -123,6 +123,21 @@ test('mount plan recognizes setup scripts with attributes before setup', () => {
   assert.match(plan.content, /<TinyRobotChat \/>/)
 })
 
+test('mount plan refuses external template files', () => {
+  const project = createTempProject()
+  const app = path.join(project, 'src', 'App.vue')
+  fs.mkdirSync(path.dirname(app), { recursive: true })
+  fs.writeFileSync(
+    app,
+    '<script setup lang="ts"></script>\n<template src="./App.template.html"></template>\n',
+  )
+
+  const plan = planMount(project)
+
+  assert.equal(plan.type, 'manual')
+  assert.match(plan.reason, /external template/i)
+})
+
 test('mount plan inserts into the outer template when nested templates exist', () => {
   const project = createTempProject()
   const app = path.join(project, 'src', 'App.vue')
@@ -203,6 +218,16 @@ test('mount plan ignores commented components and refuses conflicting bindings',
   )
   const aliased = planMount(project)
   assert.equal(aliased.type, 'manual')
+
+  for (const source of [
+    '<script setup>\nconst { TinyRobotChat } = useWidgets()\n</script>\n<template><main /></template>\n',
+    '<script setup>\nconst [TinyRobotChat] = widgets\n</script>\n<template><main /></template>\n',
+  ]) {
+    fs.writeFileSync(app, source)
+    const destructured = planMount(project)
+    assert.equal(destructured.type, 'manual')
+    assert.match(destructured.reason, /already declares TinyRobotChat/i)
+  }
 })
 
 test('env merge preserves existing values and is idempotent', () => {
