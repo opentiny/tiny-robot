@@ -1,24 +1,13 @@
 <script setup lang="ts">
-import { computed, defineComponent, onBeforeUnmount, shallowRef } from 'vue'
-import {
-  TrChat,
-  useChatRuntimeAdapter,
-  type ChatHistoryData,
-  type ChatPromptClickPayload,
-} from '@opentiny/tiny-robot-chat'
+import { computed, defineComponent, onBeforeUnmount, ref, shallowRef } from 'vue'
+import { TrChat, type ChatHistoryData, type ChatPromptClickPayload } from '@opentiny/tiny-robot-chat'
 import DouBaoIcon from './DouBaoIcon.vue'
 import DouBaoHeader from './DouBaoHeader.vue'
 import DouBaoSidebar from './DouBaoSidebar.vue'
-import { useChatActionErrorMessage } from '../shared/formatChatActionError'
 import { douBaoConversationPrompts, douBaoConversationWelcome } from './config'
 import { useDouBaoRuntime } from './runtime'
 
-const { runtime, startBlank } = useDouBaoRuntime()
-const { actionErrorMessage, handleRuntimeActionError } = useChatActionErrorMessage()
-const promptAdapter = useChatRuntimeAdapter({
-  runtime,
-  onActionError: handleRuntimeActionError,
-})
+const { runtime } = useDouBaoRuntime()
 const historyData = computed<ChatHistoryData>(() => {
   const items = runtime.conversations.value
 
@@ -32,6 +21,7 @@ const emptyVisual = defineComponent({
 })
 const isFloatingSidebarVisible = shallowRef(false)
 const chatContainer = shallowRef<HTMLElement | null>(null)
+const chatRef = ref<{ send: (payload: { text: string }) => Promise<boolean> } | null>(null)
 let floatingHideTimer: ReturnType<typeof setTimeout> | undefined
 
 const senderTools = [
@@ -104,15 +94,11 @@ function toggleSidebar(toggleLeftAside: () => void) {
 }
 
 function handlePromptClick(payload: ChatPromptClickPayload) {
-  void promptAdapter.send({ text: payload.item.description ?? payload.item.label })
+  void chatRef.value?.send({ text: payload.item.description ?? payload.item.label })
 }
 
 function handleConversationSelect(id: string, switchConversation: (id: string) => void) {
   switchConversation(id)
-}
-
-function handleCreateConversation() {
-  startBlank()
 }
 
 onBeforeUnmount(() => {
@@ -122,16 +108,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="doubao-case">
-    <div v-if="actionErrorMessage" class="doubao-case__action-error" role="alert" aria-live="polite">
-      {{ actionErrorMessage }}
-    </div>
     <main ref="chatContainer" class="doubao-case__chat">
       <TrChat
+        ref="chatRef"
         :runtime="runtime"
         :ui="chatUi"
         :history-data="historyData"
         @prompt-click="handlePromptClick"
-        @runtime-action-error="handleRuntimeActionError"
       >
         <template #layout-header="{ isLeftAsideOpen, toggleLeftAside }">
           <DouBaoHeader
@@ -143,12 +126,12 @@ onBeforeUnmount(() => {
           />
         </template>
 
-        <template #layout-left-aside="{ conversation, isOpen, switchConversation }">
+        <template #layout-left-aside="{ conversation, isOpen, createConversation, switchConversation }">
           <DouBaoSidebar
             variant="fixed"
             :conversation="conversation"
             :history-data="historyData"
-            @create-conversation="handleCreateConversation"
+            @create-conversation="createConversation"
             @conversation-select="handleConversationSelect($event, switchConversation)"
           />
           <Teleport v-if="chatContainer" :to="chatContainer">
@@ -163,7 +146,7 @@ onBeforeUnmount(() => {
                   variant="floating"
                   :conversation="conversation"
                   :history-data="historyData"
-                  @create-conversation="handleCreateConversation"
+                  @create-conversation="createConversation"
                   @conversation-select="handleConversationSelect($event, switchConversation)"
                 />
               </div>
@@ -211,21 +194,6 @@ onBeforeUnmount(() => {
   --tr-chat-ui-header-bg: #fff;
   --tr-chat-ui-main-bg: #fff;
   --tr-chat-ui-footer-bg: #fff;
-}
-
-.doubao-case__action-error {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  z-index: 50;
-  padding: 8px 14px;
-  border: 1px solid var(--tr-color-error-light);
-  border-radius: 8px;
-  color: var(--tr-color-error);
-  background: var(--tr-color-error-light);
-  box-shadow: var(--tr-shadow-sm);
-  font-size: 13px;
-  transform: translateX(-50%);
 }
 
 .doubao-case__floating-sidebar {

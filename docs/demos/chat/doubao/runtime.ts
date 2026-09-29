@@ -132,7 +132,6 @@ function createDouBaoMemoryStorage(): ConversationStorageStrategy {
 
 export function useDouBaoRuntime(_options?: { storage?: ConversationStorageStrategy; responseDelay?: number }): {
   runtime: ChatRuntime
-  startBlank: () => void
 } {
   const options = _options ?? {}
   const storage = options.storage ?? createDouBaoMemoryStorage()
@@ -150,8 +149,5 @@ export function useDouBaoRuntime(_options?: { storage?: ConversationStorageStrat
 
   return {
     runtime,
-    startBlank() {
-      void runtime.actions.clearActiveConversation()
-    },
   }
 }

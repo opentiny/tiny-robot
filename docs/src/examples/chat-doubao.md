@@ -9,8 +9,6 @@
     '../../demos/chat/doubao/DouBaoSidebar.vue',
     '../../demos/chat/doubao/config.ts',
     '../../demos/chat/doubao/runtime.ts',
-    '../../demos/chat/shared/formatChatActionError.ts',
-    '../../demos/chat/shared/mockConversationStorage.ts',
     '../../demos/chat/shared/base.css'
   ]"
   playground="false"
