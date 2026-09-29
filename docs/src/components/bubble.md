@@ -261,7 +261,7 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 
 除了配置渲染器，`BubbleProvider` 还支持通过 `box-attributes` 和 `content-attributes` 为 Box / Content 统一注入 attributes。
 
-- `box-attributes` 的作用域是一个 Box，对应参数为 `(messages, content, contentIndex)`
+- `box-attributes` 的作用域是一个 Box，对应参数为 `(messages, content, contentIndex, context)`
 - `content-attributes` 的作用域是单个 Content，对应参数为 `(message, content, contentIndex)`
 - 两个属性都支持传入静态对象，或返回 attributes 的函数
 
@@ -377,7 +377,7 @@ defineProps<BubbleBoxRendererProps>()
 
 - 使用 `markRaw` 包装渲染器组件，避免 Vue 的响应式处理
 - 为了不修改源数据内部内容和结构，UI 相关的数据应放在消息的 `state` 属性中
-- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex) => boolean`，其中 `content` 仅在 split 模式有值
+- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex, context) => boolean`，其中 `content` 仅在 split 模式有值；需要判断 single 模式下的完整内容时，使用 `context.resolvedContents`
 - Content 渲染器的 `find` 函数签名：`(message, content, contentIndex) => boolean`，`content` 为统一化后的 `ChatMessageContentItem`
 - 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
 - 多根节点或复合渲染器应使用 `inheritAttrs: false`，并显式决定 `$attrs` 绑定到哪个节点；不要把同一份 attributes 复制到多个兄弟节点上，避免重复 `id`、ARIA 或测试选择器
@@ -577,11 +577,17 @@ type BubbleRoleConfig = Pick<
 **BubbleBoxRendererMatch** - Box 渲染器匹配规则
 
 ```typescript
+type BubbleBoxRendererContext = {
+  contentRenderMode: 'single' | 'split'
+  resolvedContents: Array<ChatMessageContent | undefined>
+}
+
 type BubbleBoxRendererMatch = {
   find: (
     messages: BubbleMessage[],
     content: ChatMessageContentItem | undefined,
     contentIndex: number | undefined,
+    context: BubbleBoxRendererContext,
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
@@ -591,12 +597,14 @@ type BubbleBoxRendererMatch = {
         messages: BubbleMessage[],
         content: ChatMessageContentItem | undefined,
         contentIndex: number | undefined,
+        context: BubbleBoxRendererContext,
       ) => Record<string, string | undefined> | undefined)
 }
 ```
 
 - `content`: 仅在 `split` 模式（`contentIndex` 为数字）时传入，为当前消息经 `contentResolver` 解析后对应索引的内容项；`contentIndex` 为 `undefined` 时 `content` 也为 `undefined`
 - `contentIndex`: 仅在 split 模式下传入，此时 `messages` 长度为 1
+- `context`: 始终传入；`contentRenderMode` 表示当前 Box 的渲染模式，`resolvedContents` 包含每条消息经过 `contentResolver` 解析后的完整内容
 
 **BubbleContentRendererMatch** - 内容渲染器匹配规则
 

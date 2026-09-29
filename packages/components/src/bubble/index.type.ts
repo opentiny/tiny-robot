@@ -79,18 +79,25 @@ export type BubbleMessageGroup = {
 
 export type BubbleAttributes = Record<string, unknown>
 
+export type BubbleBoxRendererContext = {
+  contentRenderMode: 'single' | 'split'
+  resolvedContents: Array<ChatMessageContent | undefined>
+}
+
 export type BubbleBoxRendererAttributeMap = BubbleAttributes
 
 export type BubbleBoxRendererAttributesResolver = (
   messages: BubbleMessage[],
   content: ChatMessageContentItem | undefined,
   contentIndex: number | undefined,
+  context: BubbleBoxRendererContext,
 ) => BubbleBoxRendererAttributeMap | undefined
 
 export type BubbleBoxAttributesResolver = (
   messages: BubbleMessage[],
   content: ChatMessageContentItem | undefined,
   contentIndex: number | undefined,
+  context: BubbleBoxRendererContext,
 ) => BubbleAttributes | undefined
 
 export type BubbleContentAttributesResolver = (
@@ -108,12 +115,14 @@ export type BubbleBoxRendererMatch = {
    * @param messages - 消息数组
    * @param content - 要渲染的内容项。仅在 `split` 模式下（contentIndex 为数字）才会传入；为当前消息（messages[0]）经过 `contentResolver` 解析后的内容；`messages[0].content` 一定是一个数组，`content` 则为对应索引的内容项，即 `messages[0].content[contentIndex]`；当 contentIndex 为 undefined 时，content 也为 undefined
    * @param contentIndex - 内容索引，用于指定要渲染的内容项。仅在 split 模式下才会传入（为数字），此时 messages 数组长度为 1
+   * @param context - Box 的渲染模式，以及每条消息经过 contentResolver 解析后的完整内容
    * @returns 如果匹配则返回 true，否则返回 false
    */
   find: (
     messages: BubbleMessage[],
     content: ChatMessageContentItem | undefined,
     contentIndex: number | undefined,
+    context: BubbleBoxRendererContext,
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number

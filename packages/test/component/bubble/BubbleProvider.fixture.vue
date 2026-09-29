@@ -80,6 +80,12 @@ const recordBubbleEvent = (payload: BubbleEvent & { messageIndex: number; conten
       <output data-testid="event-output">{{ lastBubbleEvent }}</output>
     </section>
 
+    <section data-testid="single-provider">
+      <BubbleProvider :box-renderer-matches="boxMatches">
+        <Bubble role="assistant" :content="customContent" />
+      </BubbleProvider>
+    </section>
+
     <section data-testid="provider-fallbacks">
       <BubbleProvider
         :fallback-box-renderer="FallbackBoxRenderer"

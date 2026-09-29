@@ -10,6 +10,7 @@ import type {
   BubbleAttributes,
   BubbleBoxAttributesConfig,
   BubbleBoxRendererAttributeMap,
+  BubbleBoxRendererContext,
   BubbleBoxRendererMatch,
   BubbleMessage,
 } from '../index.type'
@@ -66,16 +67,17 @@ export function useBubbleBoxRenderer(
     }
   }
 
-  const getContentAndIndex = (msgs: BubbleMessage[]) => {
-    if (msgs.length !== 1) {
+  const getContentAndIndex = (context: BubbleBoxRendererContext) => {
+    if (context.contentRenderMode !== 'split') {
       return { content: undefined, index: undefined }
     }
-    const resolvedContent = contentResolver(msgs.at(0)!)
+
+    const resolvedContent = context.resolvedContents.at(0)
     return {
       content: Array.isArray(resolvedContent)
-        ? resolvedContent.at(contentIndex ?? 0)!
+        ? resolvedContent.at(contentIndex!)!
         : { type: 'text', text: resolvedContent || '' },
-      index: contentIndex ?? 0,
+      index: contentIndex,
     }
   }
 
@@ -84,9 +86,10 @@ export function useBubbleBoxRenderer(
     msgs: BubbleMessage[],
     content: ReturnType<typeof getContentAndIndex>['content'],
     index: ReturnType<typeof getContentAndIndex>['index'],
+    context: BubbleBoxRendererContext,
   ): BubbleBoxRendererAttributeMap | undefined => {
     if (typeof match.attributes === 'function') {
-      return match.attributes(msgs, content, index)
+      return match.attributes(msgs, content, index, context)
     }
 
     return match.attributes
@@ -94,24 +97,28 @@ export function useBubbleBoxRenderer(
 
   return computed(() => {
     const msgs = toValue(messages)
+    const context: BubbleBoxRendererContext = {
+      contentRenderMode: typeof contentIndex === 'number' ? 'split' : 'single',
+      resolvedContents: msgs.map((message) => contentResolver(message)),
+    }
 
-    const { content, index } = getContentAndIndex(msgs)
+    const { content, index } = getContentAndIndex(context)
     const resolvedBoxAttributes = (() => {
       const attrs = toValue(boxAttributes)
       if (!attrs) {
         return undefined
       }
-      return typeof attrs === 'function' ? attrs(msgs, content, index) : attrs
+      return typeof attrs === 'function' ? attrs(msgs, content, index, context) : attrs
     })()
 
-    const match = toValue(boxRendererMatches).find((match) => match.find(msgs, content, index))
+    const match = toValue(boxRendererMatches).find((match) => match.find(msgs, content, index, context))
 
     if (match) {
       return {
         renderer: match.renderer,
         attributes: {
           ...resolvedBoxAttributes,
-          ...resolveMatchAttributes(match, msgs, content, index),
+          ...resolveMatchAttributes(match, msgs, content, index, context),
         },
       }
     }

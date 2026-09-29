@@ -11,6 +11,14 @@ test.describe('BubbleProvider', () => {
     await expect(provider.getByTestId('test-box-renderer')).toBeVisible()
   })
 
+  test('does not expose one content item to box matchers in single mode', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+    const provider = component.getByTestId('single-provider')
+
+    await expect(provider.locator('[data-box-type="box"]')).toHaveCount(1)
+    await expect(provider.getByTestId('test-box-renderer')).toHaveCount(0)
+  })
+
   test('merges provider and match attributes onto renderer roots', async ({ mount }) => {
     const component = await mount(BubbleProviderFixture)
     const provider = component.getByTestId('matched-provider')
