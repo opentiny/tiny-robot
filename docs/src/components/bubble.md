@@ -6,14 +6,6 @@ outline: [1, 4]
 
 ## 概览
 
-:::danger 重大版本升级 v0.4
-Bubble 在 v0.4 进行了重大升级。
-
-**从 v0.3.x 升级？** 请查看 [Bubble 迁移指南](../migration/bubble-migration)。
-
-**新项目：** 直接使用下方 v0.4 的 API 和示例即可。
-:::
-
 Bubble 用于展示单条消息或消息列表，适合聊天、AI 流式回复以及需要自定义内容渲染的场景。它既可以独立展示气泡，也可以通过 `BubbleList` 和 `BubbleProvider` 组合管理分组、渲染器与共享配置。
 
 ### 适用场景
