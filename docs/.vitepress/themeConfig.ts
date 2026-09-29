@@ -85,6 +85,7 @@ const sidebar = {
       base: '/examples/',
       items: [
         { text: 'TinyRobot', link: 'chat-tiny-robot' },
+        { text: '豆包', link: 'chat-doubao' },
         { text: 'WorkHelper', link: 'chat-worker-helper' },
         { text: 'DeepSeek', link: 'chat-deepseek' },
         { text: 'Gemini', link: 'chat-gemini' },
