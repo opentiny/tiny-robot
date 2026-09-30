@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { TrSender } from '@opentiny/tiny-robot'
-import type { SenderSuggestionItem, StructuredData } from '@opentiny/tiny-robot'
+import type { SenderSuggestionItem } from '@opentiny/tiny-robot'
 
 const input = ref('')
 const selectedItem = ref('')
+const submittedContent = ref('')
 const filterMode = ref<'default' | 'prefix' | 'category'>('default')
 
 // 模式说明
 const modeDescription = computed(() => {
   switch (filterMode.value) {
     case 'default':
-      return '默认过滤：模糊匹配，包含输入内容即可'
+      return '包含匹配：建议中包含输入内容即可'
     case 'prefix':
       return '前缀匹配：只匹配以输入内容开头的建议'
     case 'category':
@@ -60,14 +61,12 @@ const extensions = computed(() => [
     },
     onSelect: (item) => {
       selectedItem.value = item.content
-      console.log('选中建议:', item.content)
     },
   }),
 ])
 
-const handleSubmit = (text: string, data?: StructuredData) => {
-  console.log('📝 提交内容：', text)
-  console.log('📋 结构化数据：', data)
+const handleSubmit = (text: string) => {
+  submittedContent.value = text
 }
 </script>
 
@@ -76,7 +75,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
     <div class="filter-selector">
       <label>
         <input type="radio" v-model="filterMode" value="default" />
-        默认过滤
+        包含匹配
       </label>
       <label>
         <input type="radio" v-model="filterMode" value="prefix" />
@@ -98,6 +97,7 @@ const handleSubmit = (text: string, data?: StructuredData) => {
     />
 
     <div v-if="selectedItem" class="demo-result"><strong>选中的建议：</strong> {{ selectedItem }}</div>
+    <div v-if="submittedContent" class="demo-result"><strong>提交内容：</strong> {{ submittedContent }}</div>
   </div>
 </template>
 
