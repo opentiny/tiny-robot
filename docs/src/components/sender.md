@@ -255,6 +255,12 @@ Sender 提供了多个插槽位置，方便扩展功能：
 
 <demo vue="../../demos/sender/custom-slots.vue" title="自定义插槽" description="在插槽区域添加自定义按钮，如深度思考、网络搜索等功能。" />
 
+<demo
+  vue="../../demos/sender/input-prefix-placeholder.vue"
+  title="首行前置插槽与超长占位文本"
+  description="展示多行模式下超长占位文本的换行，以及首行前置插槽的动态添加和移除。"
+/>
+
 #### 方法调用
 
 <demo vue="../../demos/sender/methods-demo.vue" title="方法调用" description="通过 ref 调用组件方法，如聚焦、设置内容等。" />
