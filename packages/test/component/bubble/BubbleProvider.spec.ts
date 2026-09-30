@@ -11,6 +11,16 @@ test.describe('BubbleProvider', () => {
     await expect(provider.getByTestId('test-box-renderer')).toBeVisible()
   })
 
+  test('passes the first content item and index to box callbacks in single mode', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+    const box = component.getByTestId('single-provider').getByTestId('test-box-renderer')
+
+    await expect(box).toHaveAttribute('data-provider-content-type', 'custom')
+    await expect(box).toHaveAttribute('data-provider-content-index', '0')
+    await expect(box).toHaveAttribute('data-match-content-type', 'custom')
+    await expect(box).toHaveAttribute('data-match-content-index', '0')
+  })
+
   test('merges provider and match attributes onto renderer roots', async ({ mount }) => {
     const component = await mount(BubbleProviderFixture)
     const provider = component.getByTestId('matched-provider')
@@ -52,6 +62,40 @@ test.describe('BubbleProvider', () => {
     await expect(component.getByTestId('resolved-provider').getByTestId('test-content-renderer')).toContainText(
       'Resolved provider content',
     )
+  })
+
+  test('uses an explicit custom error renderer and passes the complete message only once', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+    const bubble = component.getByTestId('provider-error-bubble')
+    const renderer = bubble.getByTestId('test-error-renderer')
+
+    await expect(renderer).toHaveCount(1)
+    await expect(renderer).toHaveAttribute('data-message-id', 'provider-error')
+    await expect(renderer).toHaveAttribute('data-message-role', 'assistant')
+    await expect(renderer).toHaveAttribute('data-content-index', 'absent')
+    await expect(renderer).toHaveText('Provider partial|Provider failure')
+    await expect(bubble.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('keeps error rendering disabled in an unconfigured nested provider', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+    const bubble = component.getByTestId('nested-unconfigured-error-bubble')
+
+    await expect(bubble.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('renders one custom error after every split content box without a content index', async ({ mount }) => {
+    const component = await mount(BubbleProviderFixture)
+    const bubble = component.getByTestId('provider-split-error-bubble')
+    const flow = bubble.locator('[data-box-type="box"], [data-testid="test-error-renderer"]')
+
+    await expect(flow).toHaveText([
+      'Segment one',
+      'Segment two',
+      /Segment one[\s\S]*Segment two[\s\S]*Split provider failure/,
+    ])
+    await expect(bubble.getByTestId('test-error-renderer')).toHaveCount(1)
+    await expect(bubble.getByTestId('test-error-renderer')).toHaveAttribute('data-content-index', 'absent')
   })
 
   test('maps renderer state and custom events to Bubble payload indexes', async ({ mount }) => {

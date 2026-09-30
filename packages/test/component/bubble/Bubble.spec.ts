@@ -29,7 +29,93 @@ test.describe('Bubble', () => {
     const component = await mount(BubbleFixture)
 
     await expect(component.getByTestId('empty-bubble').locator('[data-type="text"]')).toHaveCount(0)
+    await expect(component.getByTestId('empty-array-bubble').locator('[data-type="text"]')).toHaveCount(0)
+    await expect(component.getByTestId('empty-split-array-bubble').locator('[data-type="text"]')).toHaveCount(0)
     await expect(component.getByTestId('hidden-bubble')).toBeHidden()
+  })
+
+  test('renders and updates reasoning before the answer content starts', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+    const bubble = component.getByTestId('reasoning-bubble')
+
+    await expect(bubble.locator('[data-type="reasoning"]')).toContainText('正在思考')
+    await expect(bubble.locator('.detail-content')).toHaveText('第一段思考')
+
+    await component.getByTestId('append-reasoning').click()
+    await expect(bubble.locator('.detail-content')).toHaveText('第一段思考\n第二段思考')
+
+    await component.getByTestId('finish-reasoning').click()
+    await expect(bubble.locator('[data-type="reasoning"]')).toContainText('已思考')
+    await expect(bubble.locator('[data-type="text"]')).toHaveText('最终回答')
+    await expect(bubble.locator('.detail-content')).toHaveText('第一段思考\n第二段思考')
+  })
+
+  test('renders loading and tool calls when answer content is empty', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('loading-only-bubble').locator('[data-type="loading"]')).toHaveCount(1)
+    await expect(component.getByTestId('tools-only-bubble').locator('[data-type="tool-call"]')).toContainText(
+      '正在调用 search',
+    )
+  })
+
+  test('runs message-based content renderers for empty string and empty array content', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('message-only-bubble').getByTestId('message-only-renderer')).toHaveCount(1)
+    await expect(
+      component.getByTestId('empty-array-message-only-bubble').getByTestId('message-only-renderer'),
+    ).toHaveCount(1)
+  })
+
+  test('does not render message errors without an explicitly configured renderer', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('unconfigured-error-bubble').getByRole('alert')).toHaveCount(0)
+    await expect(component.getByTestId('unconfigured-provider-error-bubble').getByRole('alert')).toHaveCount(0)
+  })
+
+  test('renders one message error immediately after its normal content', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+    const bubble = component.getByTestId('content-error-bubble')
+    const flow = bubble.locator('[data-type="text"], [role="alert"]')
+
+    await expect(flow).toHaveText(['Partial answer', 'Provider failed'])
+    await expect(bubble.getByRole('alert')).toHaveCount(1)
+  })
+
+  test('renders error-only and non-nullish error values without empty text nodes', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('error-only-bubble').getByRole('alert')).toHaveText('Only failure')
+    await expect(component.getByTestId('error-only-bubble').locator('[data-type="text"]')).toHaveCount(0)
+    await expect(component.getByTestId('false-error-bubble').getByRole('alert')).toHaveText('false')
+    await expect(component.getByTestId('zero-error-bubble').getByRole('alert')).toHaveText('0')
+    await expect(component.getByTestId('empty-error-bubble').getByRole('alert')).toHaveText('')
+    await expect(component.getByTestId('null-error-bubble').getByRole('alert')).toHaveCount(0)
+    await expect(component.getByTestId('undefined-error-bubble').getByRole('alert')).toHaveCount(0)
+  })
+
+  test('uses image box styling only when single-mode content contains images exclusively', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('image-only-bubble').locator('[data-box-type="image"]')).toHaveCount(1)
+    await expect(component.getByTestId('mixed-image-first-bubble').locator('[data-box-type="box"]')).toHaveCount(1)
+    await expect(
+      component.getByTestId('resolved-mixed-image-first-bubble').locator('[data-box-type="box"]'),
+    ).toHaveCount(1)
+    await expect(component.getByTestId('resolved-image-only-bubble').locator('[data-box-type="image"]')).toHaveCount(1)
+  })
+
+  test('applies image box styling per item in split mode', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+    const boxes = component
+      .getByTestId('split-image-and-text-bubble')
+      .locator('[data-box-type="image"], [data-box-type="box"]')
+
+    await expect(boxes).toHaveCount(2)
+    await expect(boxes.nth(0)).toHaveAttribute('data-box-type', 'image')
+    await expect(boxes.nth(1)).toHaveAttribute('data-box-type', 'box')
   })
 
   test('splits array content into boxes and exposes each footer index', async ({ mount }) => {
@@ -39,6 +125,12 @@ test.describe('Bubble', () => {
     await expect(bubble.locator('[data-box-type="box"]')).toHaveCount(2)
     await expect(bubble.locator('[data-type="text"]')).toHaveText(['First segment', 'Second segment'])
     await expect(bubble.getByTestId('split-footer')).toHaveText(['footer-0', 'footer-1'])
+    await expect(bubble.locator('[data-box-type="box"], [role="alert"]')).toHaveText([
+      'First segmentfooter-0',
+      'Second segmentfooter-1',
+      'Split failed',
+    ])
+    await expect(bubble.getByRole('alert')).toHaveCount(1)
   })
 
   test('renders content returned by contentResolver', async ({ mount }) => {

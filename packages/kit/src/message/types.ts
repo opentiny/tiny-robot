@@ -206,6 +206,11 @@ export interface CompletionChunkContext extends BasePluginContext {
   chunk: ChatCompletion | ChatCompletionChunk
 }
 
+export interface MessageErrorContext extends BasePluginContext {
+  error: unknown
+  appendMessage: (message: ChatMessage | ChatMessage[]) => void
+}
+
 export interface MessageEnginePlugin {
   /**
    * 插件名称。
@@ -254,7 +259,7 @@ export interface MessageEnginePlugin {
    * 无论是流式响应（多个增量数据块）还是非流式响应（单个完整数据块），都会触发此钩子。
    */
   onCompletionChunk?: (context: CompletionChunkContext) => void
-  onError?: (context: BasePluginContext & { error: unknown }) => void
+  onError?: (context: MessageErrorContext) => MaybePromise<void>
   onFinally?: (context: BasePluginContext) => void
   /**
    * 插件命令集合。

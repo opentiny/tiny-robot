@@ -159,16 +159,63 @@ BubbleList 支持多种分组策略。分组时，连续的 `hidden` 消息会�
 
 ### 自动滚动
 
-通过 `autoScroll` 属性启用自动滚动功能。当新消息添加时，如果滚动容器接近底部，会自动滚动到底部。
+通过 `autoScroll` 属性启用自动跟随。BubbleList 会观察实际渲染内容的尺寸；图片、Markdown、自定义渲染器等异步内容增高时，只要仍处于跟随状态，就会继续滚动到底部。
 
 <demo vue="../../demos/bubble/list-auto-scroll.vue" />
 
-> **注意**：`autoScroll` 功能有两种触发机制：
+> **注意**：自动跟随遵循以下规则：
 >
-> 1. **常规自动滚动**：当消息内容变化时（如消息数量、内容、推理内容），如果满足以下条件会自动滚动：
->    - BubbleList 必须是可滚动容器（`scrollHeight > clientHeight`）
->    - 滚动容器需要接近底部
-> 2. **用户消息特殊处理**：当最后一条消息的 `role` 为 `'user'` 时，会立即使用平滑滚动（`smooth`）滚动到底部，无需满足上述条件。这确保了用户发送消息后能立即看到自己发送的内容。
+> 1. 用户向上滚动并离开底部后，自动跟随会暂停，避免打断阅读。
+> 2. 用户重新滚动到底部后，自动跟随会恢复。
+> 3. `autoScroll` 支持响应式切换；关闭时暂停自动行为，再次开启时会恢复此前保留的跟随意图。
+> 4. 当最后一条消息的 `role` 为 `'user'` 时，会使用平滑滚动（`smooth`）滚动到底部，确保用户能立即看到自己发送的内容。
+
+#### useAutoScroll
+
+`useAutoScroll` 是 BubbleList 内部使用的公开组合式函数。新代码推荐使用对象参数，并分别传入滚动容器和承载全部内容的内部元素：
+
+```ts
+import { useAutoScroll } from '@opentiny/tiny-robot'
+import { ref } from 'vue'
+
+const scrollRef = ref<HTMLElement | null>(null)
+const contentRef = ref<HTMLElement | null>(null)
+const enabled = ref(true)
+
+const { scrollToBottom, arrivedState } = useAutoScroll({
+  scrollRef,
+  contentRef,
+  enabled,
+  scrollOnMount: true,
+  scrollThrottle: 0,
+  bottomThreshold: 20,
+})
+```
+
+| 参数              | 类型                        | 默认值 | 说明                                                       |
+| ----------------- | --------------------------- | ------ | ---------------------------------------------------------- |
+| `scrollRef`       | `MaybeComputedElementRef`   | —      | 产生滚动条的容器元素。                                     |
+| `contentRef`      | `MaybeComputedElementRef`   | —      | 滚动容器内承载全部内容的元素；其尺寸变化用于触发自动跟随。 |
+| `enabled`         | `MaybeRefOrGetter<boolean>` | `true` | 是否启用自动跟随，支持响应式切换。                         |
+| `scrollOnMount`   | `boolean`                   | `true` | 挂载时是否滚动到底部。                                     |
+| `scrollThrottle`  | `number`                    | `0`    | 滚动事件节流时间，单位为毫秒。                             |
+| `bottomThreshold` | `number`                    | `20`   | 判断是否接近底部的距离阈值，单位为像素。                   |
+
+| 返回值           | 类型                                           | 说明                                    |
+| ---------------- | ---------------------------------------------- | --------------------------------------- |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部；不受 `enabled` 限制。 |
+| `arrivedState`   | `UseScrollReturn['arrivedState']`              | 当前是否到达各滚动边界的响应式状态。    |
+
+旧的位置参数签名仍为兼容性保留，但已弃用：
+
+```ts
+useAutoScroll(scrollRef, source, {
+  contentTarget: contentRef,
+  // 其他滚动配置
+})
+```
+
+其中 `source` 是旧版业务数据变化信号。新代码应使用对象参数和 `contentRef`，让自动滚动由实际 UI 尺寸变化驱动。
 
 ### 自定义渲染器
 
@@ -259,6 +306,23 @@ Bubble 组件采用渲染器架构，支持灵活的内容渲染和自定义扩�
 - `BubbleRenderers.Tool` - 单个工具调用渲染器
 - `BubbleRenderers.Tools` - 工具调用列表渲染器
 - `BubbleRenderers.ToolRole` - 工具角色消息渲染器
+- `BubbleRenderers.Error` - 消息级错误渲染器
+
+错误渲染器默认关闭。需要根据 `message.state.error` 渲染内置错误视图时，通过 `BubbleProvider` 显式启用：
+
+```vue
+<script setup lang="ts">
+import { BubbleRenderers } from '@opentiny/tiny-robot'
+</script>
+
+<template>
+  <tr-bubble-provider :error-renderer="BubbleRenderers.Error">
+    <tr-bubble role="assistant" content="部分回答" :state="{ error: { message: '请求失败' } }" />
+  </tr-bubble-provider>
+</template>
+```
+
+自定义错误渲染器接收 `{ message }`，不接收 `contentIndex`。省略 `errorRenderer` 或传入 `null` 时，不渲染独立的消息级错误视图。
 
 <demo vue="../../demos/bubble/reasoning.vue" />
 
@@ -330,7 +394,7 @@ defineProps<BubbleBoxRendererProps>()
 
 - 使用 `markRaw` 包装渲染器组件，避免 Vue 的响应式处理
 - 为了不修改源数据内部内容和结构，UI 相关的数据应放在消息的 `state` 属性中
-- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex) => boolean`，其中 `content` 仅在 split 模式有值
+- Box 渲染器的 `find` 函数签名：`(messages, content, contentIndex, context) => boolean`。Box 仅包含一条消息时，single 模式下的 `content` 为第一项、`contentIndex` 为 `0`，split 模式下则为当前项及其索引；需要判断完整内容时，使用 `context.resolvedMessageContent`
 - Content 渲染器的 `find` 函数签名：`(message, content, contentIndex) => boolean`，`content` 为统一化后的 `ChatMessageContentItem`
 - 在 Content 渲染器中可使用 `useMessageContent(props)` 获取当前 `content` 和 `contentText`，以正确处理 `contentIndex` 与数组内容
 - 多根节点或复合渲染器应使用 `inheritAttrs: false`，并显式决定 `$attrs` 绑定到哪个节点；不要把同一份 attributes 复制到多个兄弟节点上，避免重复 `id`、ARIA 或测试选择器
@@ -468,25 +532,26 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 | `roleConfigs`       | `Record<string, BubbleRoleConfig>`                            | -                              | 每个角色的默认配置项（头像、位置、形状等）                                                                                                                                                                                              |
 | `contentRenderMode` | `'single' \| 'split'`                                         | -                              | 内容渲染模式                                                                                                                                                                                                                            |
 | `contentResolver`   | `(message: BubbleMessage) => ChatMessageContent \| undefined` | `(message) => message.content` | 内容解析函数，用于解析消息内容                                                                                                                                                                                                          |
-| `autoScroll`        | `boolean`                                                     | `false`                        | 是否自动滚动到底部。需要满足以下条件：<br/>- BubbleList 是可滚动容器（需要 scrollHeight > clientHeight）<br/>- 滚动容器接近底部                                                                                                         |
+| `autoScroll`        | `boolean`                                                     | `false`                        | 是否根据实际渲染内容尺寸自动跟随底部。异步内容增高时继续跟随；用户向上滚动时暂停，回到底部后恢复；支持响应式切换。                                                                                                                      |
 
 **BubbleList Expose**
 
-| 方法             | 签名                                           | 说明                                                                                  |
-| ---------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 滚动到底部。传入 `'smooth'` 可平滑滚动。若未启用 `autoScroll`，调用后无实际滚动效果。 |
+| 方法             | 签名                                           | 说明                                                                               |
+| ---------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `scrollToBottom` | `(behavior?: ScrollBehavior) => Promise<void>` | 命令式滚动到底部。传入 `'smooth'` 可平滑滚动；即使 `autoScroll` 已关闭也可以调用。 |
 
 **BubbleProviderProps** - 气泡提供者组件的属性配置
 
-| 属性                      | 类型                                    | 默认值 | 说明                                                           |
-| ------------------------- | --------------------------------------- | ------ | -------------------------------------------------------------- |
-| `boxRendererMatches`      | `BubbleBoxRendererMatch[]`              | -      | Box 渲染器匹配规则数组                                         |
-| `contentRendererMatches`  | `BubbleContentRendererMatch[]`          | -      | 内容渲染器匹配规则数组                                         |
-| `boxAttributes`           | `BubbleBoxAttributesConfig`             | -      | 统一注入到 Box 的 attributes，支持静态对象或 resolver 函数     |
-| `contentAttributes`       | `BubbleContentAttributesConfig`         | -      | 统一注入到 Content 的 attributes，支持静态对象或 resolver 函数 |
-| `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`     | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）              |
-| `fallbackContentRenderer` | `Component<BubbleContentRendererProps>` | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）               |
-| `store`                   | `Record<string, unknown>`               | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据     |
+| 属性                      | 类型                                          | 默认值 | 说明                                                           |
+| ------------------------- | --------------------------------------------- | ------ | -------------------------------------------------------------- |
+| `boxRendererMatches`      | `BubbleBoxRendererMatch[]`                    | -      | Box 渲染器匹配规则数组                                         |
+| `contentRendererMatches`  | `BubbleContentRendererMatch[]`                | -      | 内容渲染器匹配规则数组                                         |
+| `boxAttributes`           | `BubbleBoxAttributesConfig`                   | -      | 统一注入到 Box 的 attributes，支持静态对象或 resolver 函数     |
+| `contentAttributes`       | `BubbleContentAttributesConfig`               | -      | 统一注入到 Content 的 attributes，支持静态对象或 resolver 函数 |
+| `fallbackBoxRenderer`     | `Component<BubbleBoxRendererProps>`           | -      | 默认 box 渲染器（当无法匹配到合适的渲染器时使用）              |
+| `fallbackContentRenderer` | `Component<BubbleContentRendererProps>`       | -      | 默认内容渲染器（当无法匹配到合适的渲染器时使用）               |
+| `errorRenderer`           | `Component<BubbleErrorRendererProps> \| null` | -      | 消息级错误渲染器；省略或传入 `null` 时关闭                     |
+| `store`                   | `Record<string, unknown>`                     | -      | 全局状态存储，用于在 BubbleList 和 Bubble 组件之间共享数据     |
 
 ## Emits
 
@@ -584,11 +649,17 @@ type BubbleRoleConfig = Pick<
 **BubbleBoxRendererMatch** - Box 渲染器匹配规则
 
 ```typescript
+type BubbleBoxRendererContext = {
+  contentRenderMode: 'single' | 'split'
+  resolvedMessageContent: ChatMessageContent | undefined
+}
+
 type BubbleBoxRendererMatch = {
   find: (
     messages: BubbleMessage[],
     content: ChatMessageContentItem | undefined,
     contentIndex: number | undefined,
+    context: BubbleBoxRendererContext,
   ) => boolean
   renderer: Component<BubbleBoxRendererProps>
   priority?: number
@@ -602,8 +673,9 @@ type BubbleBoxRendererMatch = {
 }
 ```
 
-- `content`: 仅在 `split` 模式（`contentIndex` 为数字）时传入，为当前消息经 `contentResolver` 解析后对应索引的内容项；`contentIndex` 为 `undefined` 时 `content` 也为 `undefined`
-- `contentIndex`: 仅在 split 模式下传入，此时 `messages` 长度为 1
+- `content`: Box 仅包含一条消息时传入；single 模式为解析后内容的第一项，split 模式为当前索引对应的内容项。Box 包含多条消息时为 `undefined`
+- `contentIndex`: Box 仅包含一条消息时传入；single 模式为 `0`，split 模式为当前索引。Box 包含多条消息时为 `undefined`
+- `context`: 仅传给 `find`；`contentRenderMode` 表示当前 Box 的渲染模式，`resolvedMessageContent` 是单条消息经 `contentResolver` 解析后的完整内容。Box 包含多条消息时为 `undefined`
 
 **BubbleContentRendererMatch** - 内容渲染器匹配规则
 
@@ -696,6 +768,14 @@ type BubbleMessageGroup = {
 | --------------------------- | ------------ |
 | `--tr-bubble-loading-color` | 加载图标颜色 |
 | `--tr-bubble-loading-size`  | 加载图标尺寸 |
+
+**error 错误提示**
+
+| 变量名                            | 说明             |
+| --------------------------------- | ---------------- |
+| `--tr-bubble-error-color`         | 错误提示文字颜色 |
+| `--tr-bubble-error-bg`            | 错误提示背景色   |
+| `--tr-bubble-error-border-radius` | 错误提示圆角大小 |
 
 **image 图片**
 
