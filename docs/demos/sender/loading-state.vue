@@ -9,7 +9,13 @@ const isDisabled = ref(false)
 const status = ref('等待提交')
 let loadingTimer: ReturnType<typeof setTimeout> | undefined
 
+const clearLoadingTimer = () => {
+  if (loadingTimer) clearTimeout(loadingTimer)
+  loadingTimer = undefined
+}
+
 const handleSubmit = (value: string) => {
+  clearLoadingTimer()
   loading.value = true
   status.value = `正在处理：${value}`
 
@@ -23,17 +29,12 @@ const handleSubmit = (value: string) => {
 }
 
 const handleCancel = () => {
-  if (loadingTimer) {
-    clearTimeout(loadingTimer)
-    loadingTimer = undefined
-  }
+  clearLoadingTimer()
   loading.value = false
   status.value = '已取消处理'
 }
 
-onBeforeUnmount(() => {
-  if (loadingTimer) clearTimeout(loadingTimer)
-})
+onBeforeUnmount(clearLoadingTimer)
 </script>
 
 <template>

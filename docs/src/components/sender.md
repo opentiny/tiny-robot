@@ -36,11 +36,11 @@ Sender 支持单行和多行两种输入模式，通过 `mode` 属性控制。
 
 <demo vue="../../demos/sender/mode-switch.vue" title="输入模式" description="支持单行和多行模式，单行模式可自动切换为多行。" />
 
-#### 加载与禁用状态
+#### 加载、禁用与取消
 
-通过 `loading` 和 `disabled` 属性控制组件状态。加载状态下可点击图标取消操作。
+通过 `loading` 和 `disabled` 属性控制组件状态。加载状态下可点击停止按钮触发 `cancel` 事件；应用需要终止外部任务，并把新的 `loading` 状态同步回组件。
 
-<demo vue="../../demos/sender/loading-state.vue" title="加载与禁用状态" description="展示加载和禁用两种状态的表现。" />
+<demo vue="../../demos/sender/loading-state.vue" title="加载、禁用与取消" description="展示加载与禁用状态，并模拟提交完成和取消处理。" />
 
 #### 字数限制
 
@@ -162,7 +162,7 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 
 支持集成第三方语音识别服务（如阿里云、百度、Azure 等）。这是高级集成示例，需要应用提供服务端代理、鉴权信息和浏览器录音权限，不属于基础使用的运行前提。
 
-<demo vue="../../demos/sender/voice-custom.vue" :vueFiles="['../../demos/sender/voice-custom.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="先用本地 Mock handler 验证接入流程，再参考 speechHandlers.ts 对接受保护的服务端代理。" />
+<demo vue="../../demos/sender/voice-custom.vue" :vueFiles="['../../demos/sender/voice-custom.vue', '../../demos/sender/speechHandlers.ts']" title="自定义语音识别" description="先用本地 Mock handler 验证接入流程，再参考 speechHandlers.ts 接入受保护的服务端代理。" />
 
 :::warning 参考实现不是可直接部署的服务
 `speechHandlers.ts` 展示阿里云一句话识别和实时识别所需的录音、API 调用与流式处理结构。示例中的代理地址和鉴权信息都是占位配置，应用必须在服务端保护凭据并实现对应代理。
@@ -208,12 +208,6 @@ TrSender.Suggestion.configure({ items: suggestions, filterFn: customFilter })
 <demo vue="../../demos/sender/attachments-in-sender.vue" title="输入框内附件列表" description="使用 Attachments 在 Sender 内展示和管理附件，并随消息一起提交。" />
 
 ### 交互与状态管理
-
-#### 取消操作
-
-在 loading 状态下，点击停止按钮会触发 `cancel` 事件，用于取消正在进行的操作（如 AI 响应）。
-
-<demo vue="../../demos/sender/cancel-event.vue" title="取消操作" description="loading 状态下点击停止按钮触发 cancel 事件。" />
 
 #### 提交方式
 
@@ -300,26 +294,26 @@ Sender 提供了多个插槽位置，方便扩展功能：
 
 #### Sender
 
-| 属性名                              | 说明                                                                                             | 类型                  | 默认值                       | 必填 |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------- | ---------------------------- | ---- |
-| `model-value`                       | 受控输入内容；父组件收到 `update:model-value` 后需要更新绑定值                                   | `string`              | —                            | 否   |
-| `default-value`                     | 非受控初始内容，只在初始化时读取；同时提供 `model-value` 时以受控值为准                          | `string`              | `''`                         | 否   |
-| `placeholder`                       | 编辑器为空时显示的占位文本                                                                       | `string`              | `'请输入内容...'`            | 否   |
-| `mode`                              | 输入布局；单行内容溢出或插入换行时可自动切换为多行                                               | `InputMode`           | `'single'`                   | 否   |
-| `size` @0.4                         | Sender 及其默认操作按钮的尺寸                                                                    | `'normal' \| 'small'` | `'normal'`                   | 否   |
-| `disabled`                          | 禁用编辑和默认操作按钮                                                                           | `boolean`             | `false`                      | 否   |
-| `loading`                           | 显示停止操作；此时提交按钮触发 `cancel` 而不是 `submit`                                          | `boolean`             | `false`                      | 否   |
-| `autofocus`                         | 编辑器创建后自动聚焦                                                                             | `boolean`             | `false`                      | 否   |
-| `enterkeyhint` @0.4                 | 设置移动端虚拟键盘的回车键提示                                                                   | `EnterKeyHint`        | `'send'`                     | 否   |
-| `auto-size`                         | 多行模式的自动高度范围；传 `true` 时使用 1～5 行                                                 | `AutoSize`            | `{ minRows: 1, maxRows: 5 }` | 否   |
-| `clearable`                         | 有编辑器文本时显示清空按钮                                                                       | `boolean`             | `false`                      | 否   |
-| `has-external-content` @0.5（弃用） | 兼容性地把空文本视为可提交；不会生成 `externalPayloads`，推荐改用 `useSenderContentRegistration` | `boolean`             | `false`                      | 否   |
-| `max-length`                        | 最大字素数；超出后保留输入但禁止提交                                                             | `number`              | `Infinity`                   | 否   |
-| `show-word-limit`                   | 提供 `max-length` 时显示字数统计                                                                 | `boolean`             | `false`                      | 否   |
-| `submit-type`                       | 设置 Enter 组合键的提交方式                                                                      | `SubmitTrigger`       | `'enter'`                    | 否   |
-| `stop-text`                         | `loading` 状态下停止操作旁的文字；省略或传空字符串时只显示图标                                   | `string`              | `''`（仅图标）               | 否   |
-| `default-actions` @0.4              | 配置默认提交和清空按钮的禁用状态与 Tooltip；提交按钮禁用会参与 `canSubmit` 计算                  | `DefaultActions`      | —                            | 否   |
-| `extensions` @0.4                   | Tiptap 扩展列表，例如 Template、Mention 和 Suggestion                                            | `Extension[]`         | `[]`                         | 否   |
+| 属性名                           | 说明                                                                                                                               | 类型                  | 默认值                       | 必填 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------- | ---------------------------- | ---- |
+| `model-value`                    | 受控输入内容；父组件收到 `update:model-value` 后需要更新绑定值                                                                     | `string`              | —                            | 否   |
+| `default-value`                  | 非受控初始内容，只在初始化时读取；同时提供 `model-value` 时以受控值为准                                                            | `string`              | `''`                         | 否   |
+| `placeholder`                    | 编辑器为空时显示的占位文本                                                                                                         | `string`              | `'请输入内容...'`            | 否   |
+| `mode`                           | 输入布局；单行内容溢出或插入换行时可自动切换为多行                                                                                 | `InputMode`           | `'single'`                   | 否   |
+| `size`                           | Sender 及其默认操作按钮的尺寸                                                                                                      | `'normal' \| 'small'` | `'normal'`                   | 否   |
+| `disabled`                       | 禁用编辑和默认操作按钮                                                                                                             | `boolean`             | `false`                      | 否   |
+| `loading`                        | 显示停止操作；此时提交按钮触发 `cancel` 而不是 `submit`                                                                            | `boolean`             | `false`                      | 否   |
+| `autofocus`                      | 编辑器创建后自动聚焦                                                                                                               | `boolean`             | `false`                      | 否   |
+| `enterkeyhint`                   | 设置移动端虚拟键盘的回车键提示                                                                                                     | `EnterKeyHint`        | `'send'`                     | 否   |
+| `auto-size`                      | 多行模式的自动高度范围；传 `true` 时使用 1～5 行                                                                                   | `AutoSize`            | `{ minRows: 1, maxRows: 5 }` | 否   |
+| `clearable`                      | 有编辑器文本时显示清空按钮                                                                                                         | `boolean`             | `false`                      | 否   |
+| `has-external-content`（已弃用） | 兼容性地把空文本视为可提交；1.0 仍保留该属性但不推荐新代码使用；不会生成 `externalPayloads`，请改用 `useSenderContentRegistration` | `boolean`             | `false`                      | 否   |
+| `max-length`                     | 最大字素数；超出后保留输入但禁止提交                                                                                               | `number`              | `Infinity`                   | 否   |
+| `show-word-limit`                | 提供 `max-length` 时显示字数统计                                                                                                   | `boolean`             | `false`                      | 否   |
+| `submit-type`                    | 设置 Enter 组合键的提交方式                                                                                                        | `SubmitTrigger`       | `'enter'`                    | 否   |
+| `stop-text`                      | `loading` 状态下停止操作旁的文字；省略或传空字符串时只显示图标                                                                     | `string`              | `''`（仅图标）               | 否   |
+| `default-actions`                | 配置默认提交和清空按钮的禁用状态与 Tooltip；提交按钮禁用会参与 `canSubmit` 计算                                                    | `DefaultActions`      | —                            | 否   |
+| `extensions`                     | Tiptap 扩展列表，例如 Template、Mention 和 Suggestion                                                                              | `Extension[]`         | `[]`                         | 否   |
 
 :::tip 扩展系统
 使用 `extensions` 属性配置功能扩展，提供灵活的配置和完整的类型支持。
@@ -485,14 +479,14 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 #### Sender Slots
 
-| 插槽名                | 用途                                 | 作用域参数            |
-| --------------------- | ------------------------------------ | --------------------- |
-| `header`              | 在输入区域上方添加内容               | —                     |
-| `prefix`              | 在编辑器左侧添加内容                 | —                     |
-| `content` @0.4        | 完全替换默认编辑器内容               | `{ editor: unknown }` |
-| `actions-inline` @0.4 | 在单行模式的默认操作按钮前添加内容   | —                     |
-| `footer`              | 在多行模式底部左侧添加内容           | —                     |
-| `footer-right`        | 在多行模式底部默认操作按钮前添加内容 | —                     |
+| 插槽名           | 用途                                 | 作用域参数            |
+| ---------------- | ------------------------------------ | --------------------- |
+| `header`         | 在输入区域上方添加内容               | —                     |
+| `prefix`         | 在编辑器左侧添加内容                 | —                     |
+| `content`        | 完全替换默认编辑器内容               | `{ editor: unknown }` |
+| `actions-inline` | 在单行模式的默认操作按钮前添加内容   | —                     |
+| `footer`         | 在多行模式底部左侧添加内容           | —                     |
+| `footer-right`   | 在多行模式底部默认操作按钮前添加内容 | —                     |
 
 #### ActionButton Slots
 
@@ -519,7 +513,7 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 | `clear`              | 用户点击清空按钮或调用 `clear()`，并且编辑器内容已被清空后触发                                 | `() => void`                                                               |
 | `focus`              | 编辑器获得焦点时触发                                                                           | `(event: FocusEvent) => void`                                              |
 | `blur`               | 编辑器失去焦点时触发                                                                           | `(event: FocusEvent) => void`                                              |
-| `cancel` @0.4        | `loading` 状态下点击停止操作或调用 `cancel()` 时触发；应用负责终止外部异步任务并更新 `loading` | `() => void`                                                               |
+| `cancel`             | `loading` 状态下点击停止操作或调用 `cancel()` 时触发；应用负责终止外部异步任务并更新 `loading` | `() => void`                                                               |
 
 :::tip submit 事件参数说明
 
@@ -557,16 +551,16 @@ Sender Actions 的基础图标按钮，也可以独立用于自定义操作区�
 
 #### Sender Methods / Expose
 
-| 公开成员          | 说明                                                      | 签名                        |
-| ----------------- | --------------------------------------------------------- | --------------------------- |
-| `focus`           | 将焦点移入编辑器                                          | `() => void`                |
-| `blur`            | 使编辑器失去焦点                                          | `() => void`                |
-| `clear`           | 清空编辑器内容并触发 `clear`                              | `() => void`                |
-| `submit`          | 内容满足提交条件时触发 `submit`；不会自动清空内容         | `() => void`                |
-| `setContent` @0.4 | 通过 Tiptap 替换编辑器全部内容；字符串可包含纯文本或 HTML | `(content: string) => void` |
-| `getContent` @0.4 | 读取编辑器的纯文本内容                                    | `() => string`              |
-| `cancel` @0.4     | 触发 `cancel`；应用仍需终止外部任务并同步 `loading`       | `() => void`                |
-| `editor`          | 当前 Tiptap 编辑器引用；挂载完成前可能为 `undefined`      | `Ref<Editor \| undefined>`  |
+| 公开成员     | 说明                                                      | 签名                        |
+| ------------ | --------------------------------------------------------- | --------------------------- |
+| `focus`      | 将焦点移入编辑器                                          | `() => void`                |
+| `blur`       | 使编辑器失去焦点                                          | `() => void`                |
+| `clear`      | 清空编辑器内容并触发 `clear`                              | `() => void`                |
+| `submit`     | 内容满足提交条件时触发 `submit`；不会自动清空内容         | `() => void`                |
+| `setContent` | 通过 Tiptap 替换编辑器全部内容；字符串可包含纯文本或 HTML | `(content: string) => void` |
+| `getContent` | 读取编辑器的纯文本内容                                    | `() => string`              |
+| `cancel`     | 触发 `cancel`；应用仍需终止外部任务并同步 `loading`       | `() => void`                |
+| `editor`     | 当前 Tiptap 编辑器引用；挂载完成前可能为 `undefined`      | `Ref<Editor \| undefined>`  |
 
 #### UploadButton Methods
 
@@ -642,55 +636,68 @@ function handleSubmit(text: string, data?: StructuredData) {
 
 ### Types
 
-以下类型均从 `@opentiny/tiny-robot` 导出。表格先覆盖所有与 Sender、输入扩展和 Sender Actions 直接相关的公开类型；常用复杂类型的字段随后单独列出。
+以下类型均从 `@opentiny/tiny-robot` 导出。索引按用途和支持级别分组：推荐公共类型可直接用于应用集成；高级类型服务于公开组合式函数；最后一组虽然仍可从包根导入，但不属于推荐入口。
 
-| 类型名                       | 类型或签名                                                            | 说明                                                                                         |
-| ---------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `SenderProps`                | `interface`                                                           | Sender 属性                                                                                  |
-| `SenderEmits`                | `interface`                                                           | Sender 事件                                                                                  |
-| `SenderSlots`                | `interface`                                                           | Sender 插槽                                                                                  |
-| `SenderContext`              | `interface`                                                           | 子组件共享的 Sender 上下文                                                                   |
-| `SenderSlotScope`            | `interface`                                                           | Sender 布局内部使用的插槽作用域契约；当前顶层插槽尚未转发该作用域                            |
-| `SenderExternalPayload`      | `interface`                                                           | 单个外部提交内容                                                                             |
-| `SenderSubmitExtra`          | `interface`                                                           | `submit` 的额外提交数据                                                                      |
-| `SenderContentRegister`      | `(source: string, payload: MaybeRefOrGetter<unknown>) => () => void`  | 注册外部内容并返回注销函数                                                                   |
-| `InputMode`                  | `'single' \| 'multiple'`                                              | 输入布局模式                                                                                 |
-| `SubmitTrigger`              | `'enter' \| 'ctrlEnter' \| 'shiftEnter'`                              | 提交快捷键模式                                                                               |
-| `EnterKeyHint`               | HTML `enterkeyhint` 联合类型                                          | 移动端虚拟键盘提示                                                                           |
-| `AutoSize`                   | `boolean \| { minRows: number; maxRows: number }`                     | 多行编辑器高度范围                                                                           |
-| `DefaultActions`             | `interface`                                                           | 默认提交和清空按钮配置                                                                       |
-| `StructuredData`             | `TemplateItem[] \| MentionStructuredItem[]`                           | Template 或 Mention 的结构化提交数据                                                         |
-| `SelectOption`               | `interface`                                                           | Template 选择项                                                                              |
-| `TemplateItem`               | `type`                                                                | 文本、可编辑块或选择器模板项                                                                 |
-| `MentionItem`                | `interface`                                                           | Mention 输入项                                                                               |
-| `SenderSuggestionItem`       | `interface`                                                           | Suggestion 输入项                                                                            |
-| `SuggestionOptions`          | `interface`                                                           | Suggestion 扩展配置                                                                          |
-| `SuggestionState`            | `interface`                                                           | Suggestion 插件状态                                                                          |
-| `SuggestionTextPart`         | `interface`                                                           | 建议文本的高亮片段                                                                           |
-| `HighlightFunction`          | `(suggestionText: string, inputText: string) => SuggestionTextPart[]` | 自定义建议高亮函数                                                                           |
-| `ActionButtonProps`          | `interface`                                                           | Sender Action 基础按钮属性                                                                   |
-| `UploadButtonProps`          | `interface`                                                           | 上传按钮属性                                                                                 |
-| `UploadButtonEmits`          | `interface`                                                           | 上传按钮事件                                                                                 |
-| `VoiceButtonProps`           | `interface`                                                           | 语音按钮属性                                                                                 |
-| `VoiceButtonEmits`           | `interface`                                                           | 语音按钮事件                                                                                 |
-| `WordCounterProps`           | `interface`                                                           | 已公开导出的字数统计属性类型；当前 `TrWordCounter` 不接收这些 Props，而是读取 Sender Context |
-| `TooltipContent`             | `string \| (() => string \| VNode)`                                   | Sender Action 的 Tooltip 内容                                                                |
-| `TooltipPlacement`           | `type`                                                                | Tooltip 方位联合类型                                                                         |
-| `SpeechCallbacks`            | `interface`                                                           | 语音处理过程回调                                                                             |
-| `SpeechHandler`              | `interface`                                                           | 可替换的语音处理器                                                                           |
-| `SpeechConfig`               | `interface`                                                           | 语音识别配置                                                                                 |
-| `SpeechState`                | `interface`                                                           | 语音识别状态                                                                                 |
-| `SpeechHookOptions`          | `interface extends SpeechConfig`                                      | 语音处理器内部组合函数的配置与回调                                                           |
-| `SpeechHandlerResult`        | `interface`                                                           | 语音处理器内部组合函数的返回值                                                               |
-| `KeyboardHandlers`           | `interface`                                                           | Sender 内部键盘处理器的公开类型                                                              |
-| `UseKeyboardShortcutsParams` | `interface`                                                           | 键盘快捷键组合函数参数                                                                       |
-| `UseKeyboardShortcutsReturn` | `interface`                                                           | 键盘快捷键组合函数返回值                                                                     |
-| `UseEditorReturn`            | `interface`                                                           | 编辑器组合函数返回值                                                                         |
-| `UseModeSwitchReturn`        | `interface`                                                           | 模式切换组合函数返回值                                                                       |
-| `UseSuggestionReturn`        | `interface`                                                           | 建议功能组合函数返回值                                                                       |
-| `UseSenderContextReturn`     | `SenderContext`                                                       | `useSenderContext` 返回类型                                                                  |
-| `SuggestionListProps`        | `interface`                                                           | 建议列表属性                                                                                 |
-| `SuggestionListEmits`        | `interface`                                                           | 建议列表事件                                                                                 |
+#### 推荐公共类型
+
+| 类型名                  | 类别            | 类型或签名                                                            | 说明                                 |
+| ----------------------- | --------------- | --------------------------------------------------------------------- | ------------------------------------ |
+| `SenderProps`           | 组件 Props      | `interface`                                                           | Sender 属性                          |
+| `SenderEmits`           | 组件 Events     | `interface`                                                           | Sender 事件                          |
+| `SenderSlots`           | 组件 Slots      | `interface`                                                           | Sender 插槽                          |
+| `SenderExternalPayload` | 提交数据        | `interface`                                                           | 单个外部提交内容                     |
+| `SenderSubmitExtra`     | 提交数据        | `interface`                                                           | `submit` 的额外提交数据              |
+| `InputMode`             | Prop 类型       | `'single' \| 'multiple'`                                              | 输入布局模式                         |
+| `SubmitTrigger`         | Prop 类型       | `'enter' \| 'ctrlEnter' \| 'shiftEnter'`                              | 提交快捷键模式                       |
+| `EnterKeyHint`          | Prop 类型       | HTML `enterkeyhint` 联合类型                                          | 移动端虚拟键盘提示                   |
+| `AutoSize`              | Prop 类型       | `boolean \| { minRows: number; maxRows: number }`                     | 多行编辑器高度范围                   |
+| `DefaultActions`        | 配置对象        | `interface`                                                           | 默认提交和清空按钮配置               |
+| `StructuredData`        | 结构化数据      | `TemplateItem[] \| MentionStructuredItem[]`                           | Template 或 Mention 的结构化提交数据 |
+| `SelectOption`          | Template 数据   | `interface`                                                           | Template 选择项                      |
+| `TemplateItem`          | Template 数据   | `type`                                                                | 文本、可编辑块或选择器模板项         |
+| `MentionItem`           | Mention 数据    | `interface`                                                           | Mention 输入项                       |
+| `SenderSuggestionItem`  | Suggestion 数据 | `interface`                                                           | Suggestion 输入项                    |
+| `SuggestionOptions`     | 扩展配置        | `interface`                                                           | Suggestion 扩展配置                  |
+| `SuggestionState`       | 扩展状态        | `interface`                                                           | Suggestion 插件状态                  |
+| `SuggestionTextPart`    | 高亮数据        | `interface`                                                           | 建议文本的高亮片段                   |
+| `HighlightFunction`     | 扩展回调        | `(suggestionText: string, inputText: string) => SuggestionTextPart[]` | 自定义建议高亮函数                   |
+| `ActionButtonProps`     | 组件 Props      | `interface`                                                           | Sender Action 基础按钮属性           |
+| `UploadButtonProps`     | 组件 Props      | `interface`                                                           | 上传按钮属性                         |
+| `UploadButtonEmits`     | 组件 Events     | `interface`                                                           | 上传按钮事件                         |
+| `VoiceButtonProps`      | 组件 Props      | `interface`                                                           | 语音按钮属性                         |
+| `VoiceButtonEmits`      | 组件 Events     | `interface`                                                           | 语音按钮事件                         |
+| `TooltipContent`        | Prop 类型       | `string \| (() => string \| VNode)`                                   | Sender Action 的 Tooltip 内容        |
+| `TooltipPlacement`      | Prop 类型       | `type`                                                                | Tooltip 方位联合类型                 |
+| `SpeechCallbacks`       | 语音回调        | `interface`                                                           | 语音处理过程回调                     |
+| `SpeechHandler`         | 服务接口        | `interface`                                                           | 可替换的语音处理器                   |
+| `SpeechConfig`          | 配置对象        | `interface`                                                           | 语音识别配置                         |
+| `SpeechState`           | 状态对象        | `interface`                                                           | 语音识别状态                         |
+
+#### 高级组合式 API 类型
+
+| 类型名                                     | 对应入口                       | 类型或签名                                                           | 说明                          |
+| ------------------------------------------ | ------------------------------ | -------------------------------------------------------------------- | ----------------------------- |
+| `SenderContext` / `UseSenderContextReturn` | `useSenderContext`             | `interface` / `SenderContext`                                        | Sender 上下文及其返回类型别名 |
+| `SenderContentRegister`                    | `useSenderContentRegistration` | `(source: string, payload: MaybeRefOrGetter<unknown>) => () => void` | 注册外部内容并返回注销函数    |
+
+#### 已公开但不推荐直接使用的类型
+
+这些类型目前仍由包根导出，因此保留在索引中以反映真实声明；它们属于内部实现契约或已知声明差异，不应作为新的应用集成入口。
+
+| 类型名                       | 类别           | 类型或签名                       | 说明                                                           |
+| ---------------------------- | -------------- | -------------------------------- | -------------------------------------------------------------- |
+| `SenderSlotScope`            | 内部插槽契约   | `interface`                      | Sender 布局内部使用；当前顶层插槽不会转发该作用域              |
+| `WordCounterProps`           | 已知契约差异   | `interface`                      | 当前 `TrWordCounter` 不接收这些 Props，而是读取 Sender Context |
+| `KeyboardHandlers`           | 内部组合式类型 | `interface`                      | Sender 内部键盘处理器契约                                      |
+| `UseKeyboardShortcutsParams` | 内部组合式类型 | `interface`                      | 内部键盘快捷键组合函数参数                                     |
+| `UseKeyboardShortcutsReturn` | 内部组合式类型 | `interface`                      | 内部键盘快捷键组合函数返回值                                   |
+| `UseEditorReturn`            | 内部组合式类型 | `interface`                      | 内部编辑器组合函数返回值                                       |
+| `UseModeSwitchReturn`        | 内部组合式类型 | `interface`                      | 内部模式切换组合函数返回值                                     |
+| `UseSuggestionReturn`        | 内部组合式类型 | `interface`                      | 内部建议功能组合函数返回值                                     |
+| `SpeechHookOptions`          | 内部组合式类型 | `interface extends SpeechConfig` | 内部语音组合函数的配置与回调                                   |
+| `SpeechHandlerResult`        | 内部组合式类型 | `interface`                      | 内部语音组合函数的状态和控制方法                               |
+| `SuggestionListProps`        | 内部组件类型   | `interface`                      | 内部建议列表属性                                               |
+| `SuggestionListEmits`        | 内部组件类型   | `interface`                      | 内部建议列表事件                                               |
 
 #### 常用字段
 
@@ -906,11 +913,13 @@ Context 动作与同名 Expose 方法具有相同行为；它们会修改编辑�
 - **快速迁移**：使用 `SenderCompat` 保持大部分 v0.3.x API 兼容，再处理少量破坏性变更。请查看 [SenderCompat 快速迁移指南](./sender-compat.md)。
 - **完全升级**：直接采用当前 Sender API，按照 [完整迁移方案](./sender-compat.md#完整迁移方案) 调整扩展、按钮、事件与主题接入。
 
-以下列表集中记录 v0.4 已移除的入口及替代方案。
+### 1.0 保留的弃用 API
+
+`has-external-content` 在 1.0 中仍保留兼容，但不推荐新代码继续使用。它只能让空文本进入可提交状态，不会生成 `externalPayloads`；请改用 `useSenderContentRegistration`，或将 `TrAttachments` 放在 `TrSender` 内自动注册附件内容。
 
 ### v0.4 已移除的 API {#已移除的-api}
 
-以下 API 在 v0.4 中已被移除，请参考替代方案进行迁移。
+以下列表集中记录 v0.4 已移除的入口及替代方案。
 
 #### Props
 
