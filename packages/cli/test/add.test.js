@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { ensureDependency, getChatFeatureFiles, resolveTargetPackage } from '../bin/commands/add.js'
+import { ensureDependency, getChatFeatureFiles, printChangeResults, resolveTargetPackage } from '../bin/commands/add.js'
 import { createRuntimeDependencies } from '../bin/runtime-version.js'
 import { listPackages, mergeEnvFile } from '../bin/utils.js'
 
@@ -108,6 +108,29 @@ test('env merge preserves existing values and is idempotent', () => {
   assert.equal(second.type, 'skipped')
   assert.match(content, /VITE_API_URL=https:\/\/custom/)
   assert.match(content, /VITE_API_KEY=/)
+})
+
+test('unavailable env template reports that no variables were added', () => {
+  const project = createTempProject()
+  const output = []
+  const originalLog = console.log
+
+  console.log = (message) => output.push(message)
+  try {
+    printChangeResults(project, {
+      featureInspection: [],
+      env: { type: 'unavailable' },
+      dependencies: [],
+      dependencyChanged: false,
+    })
+  } finally {
+    console.log = originalLog
+    fs.rmSync(project, { recursive: true, force: true })
+  }
+
+  const text = output.join('\n')
+  assert.match(text, /template is unavailable; no environment variables were added/)
+  assert.doesNotMatch(text, /already contains required variables/)
 })
 
 test('chat feature files are namespaced and include feature CSS', () => {

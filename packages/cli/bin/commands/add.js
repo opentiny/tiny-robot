@@ -383,6 +383,7 @@ function printChangeResults(targetDir, results) {
 
   if (results.env?.type === 'create') logSuccess('Created .env.example')
   else if (results.env?.type === 'merged') logSuccess(`Added ${results.env.added} env variables`)
+  else if (results.env?.type === 'unavailable') logSkip('.env.example template is unavailable; no environment variables were added')
   else logSkip('.env.example already contains required variables')
 
   for (const { name, result } of results.dependencies) printDependencyResult(result, name)
@@ -490,4 +491,4 @@ export function registerAddCommand(program) {
     })
 }
 
-export { ensureDependency, getChatFeatureFiles, resolveTargetPackage }
+export { ensureDependency, getChatFeatureFiles, printChangeResults, resolveTargetPackage }
