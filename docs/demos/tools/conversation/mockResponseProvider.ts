@@ -11,6 +11,7 @@ export async function* mockResponseProvider(
   const id = 'mock-' + Date.now()
   for (let i = 0; i < reply.length && !abortSignal.aborted; i++) {
     await new Promise((r) => setTimeout(r, 150))
+    if (abortSignal.aborted) return
     const deltaContent = reply[i]
     yield {
       id,

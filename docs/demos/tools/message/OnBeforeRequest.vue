@@ -1,4 +1,5 @@
 <template>
+  <p class="request-summary" aria-live="polite">{{ lastRequestSummary }}</p>
   <tr-bubble-list :messages="messages" :role-configs="roles"></tr-bubble-list>
   <tr-sender
     v-model="inputMessage"
@@ -20,7 +21,7 @@ import { useMessageOnBeforeRequest } from './OnBeforeRequest'
 const aiAvatar = h(IconAi, { style: { fontSize: '32px' } })
 const userAvatar = h(IconUser, { style: { fontSize: '32px' } })
 
-const { messages, isProcessing, sendMessage, abortRequest } = useMessageOnBeforeRequest()
+const { messages, isProcessing, sendMessage, abortRequest, lastRequestSummary } = useMessageOnBeforeRequest()
 
 const inputMessage = ref('')
 
@@ -34,3 +35,11 @@ const roles: Record<string, BubbleRoleConfig> = {
   user: { placement: 'end', avatar: userAvatar },
 }
 </script>
+
+<style scoped>
+.request-summary {
+  margin-bottom: 8px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+</style>
