@@ -636,7 +636,7 @@ function handleSubmit(text: string, data?: StructuredData) {
 
 ### Types
 
-以下类型均从 `@opentiny/tiny-robot` 导出。索引按用途和支持级别分组：推荐公共类型可直接用于应用集成；高级类型服务于公开组合式函数；最后一组虽然仍可从包根导入，但不属于推荐入口。
+以下类型均从 `@opentiny/tiny-robot` 导出。索引按用途和支持级别分组：推荐公共类型可直接用于应用集成；高级类型服务于公开组合式函数。
 
 #### 推荐公共类型
 
@@ -679,25 +679,6 @@ function handleSubmit(text: string, data?: StructuredData) {
 | ------------------------------------------ | ------------------------------ | -------------------------------------------------------------------- | ----------------------------- |
 | `SenderContext` / `UseSenderContextReturn` | `useSenderContext`             | `interface` / `SenderContext`                                        | Sender 上下文及其返回类型别名 |
 | `SenderContentRegister`                    | `useSenderContentRegistration` | `(source: string, payload: MaybeRefOrGetter<unknown>) => () => void` | 注册外部内容并返回注销函数    |
-
-#### 已公开但不推荐直接使用的类型
-
-这些类型目前仍由包根导出，因此保留在索引中以反映真实声明；它们属于内部实现契约或已知声明差异，不应作为新的应用集成入口。
-
-| 类型名                       | 类别           | 类型或签名                       | 说明                                                           |
-| ---------------------------- | -------------- | -------------------------------- | -------------------------------------------------------------- |
-| `SenderSlotScope`            | 内部插槽契约   | `interface`                      | Sender 布局内部使用；当前顶层插槽不会转发该作用域              |
-| `WordCounterProps`           | 已知契约差异   | `interface`                      | 当前 `TrWordCounter` 不接收这些 Props，而是读取 Sender Context |
-| `KeyboardHandlers`           | 内部组合式类型 | `interface`                      | Sender 内部键盘处理器契约                                      |
-| `UseKeyboardShortcutsParams` | 内部组合式类型 | `interface`                      | 内部键盘快捷键组合函数参数                                     |
-| `UseKeyboardShortcutsReturn` | 内部组合式类型 | `interface`                      | 内部键盘快捷键组合函数返回值                                   |
-| `UseEditorReturn`            | 内部组合式类型 | `interface`                      | 内部编辑器组合函数返回值                                       |
-| `UseModeSwitchReturn`        | 内部组合式类型 | `interface`                      | 内部模式切换组合函数返回值                                     |
-| `UseSuggestionReturn`        | 内部组合式类型 | `interface`                      | 内部建议功能组合函数返回值                                     |
-| `SpeechHookOptions`          | 内部组合式类型 | `interface extends SpeechConfig` | 内部语音组合函数的配置与回调                                   |
-| `SpeechHandlerResult`        | 内部组合式类型 | `interface`                      | 内部语音组合函数的状态和控制方法                               |
-| `SuggestionListProps`        | 内部组件类型   | `interface`                      | 内部建议列表属性                                               |
-| `SuggestionListEmits`        | 内部组件类型   | `interface`                      | 内部建议列表事件                                               |
 
 #### 常用字段
 
