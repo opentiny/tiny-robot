@@ -25,10 +25,9 @@ const errorText = computed(() => {
   max-width: var(--tr-bubble-max-width);
   min-width: 0;
   padding: 8px 12px;
-  color: var(--tr-color-error);
-  background-color: var(--tr-color-error-light);
-  border: 1px solid var(--tr-color-error);
-  border-radius: var(--tr-bubble-box-border-radius);
+  color: var(--tr-bubble-error-color);
+  background-color: var(--tr-bubble-error-bg);
+  border-radius: var(--tr-bubble-error-border-radius);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;

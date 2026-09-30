@@ -4,7 +4,7 @@
   "type": "module",
   "packageManager": "pnpm@10.34.5",
   "scripts": {
-    "dev": "pnpm build:svgs && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
+    "dev": "pnpm build:components && concurrently --names \"playground,docs\" --prefix-colors \"cyan,green\" \"pnpm dev:playground\" \"pnpm -F docs dev\"",
     "build": "pnpm build:components",
     "dev:docs": "pnpm build:components && pnpm -F docs dev",
     "build:docs": "node scripts/build-docs.js",
@@ -25,6 +25,8 @@
     "dev:test": "pnpm -F tiny-robot-test dev",
     "format": "prettier --write --list-different \"packages/**/*.{ts,mts,tsx,vue}\"",
     "type-check": "pnpm -F @opentiny/tiny-robot type-check",
+    "set-version": "node scripts/set-publish-version.js",
+    "test:release-scripts": "node --test scripts/set-publish-version.test.js scripts/verify-publish-versions.test.js",
     "lint": "eslint . --fix",
     "prepare": "husky install"
   },

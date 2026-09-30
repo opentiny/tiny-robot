@@ -17,7 +17,7 @@ pageClass: demo-container-page-bg
 
 ### 选择建议
 
-`ExtensionManager` 只处理通用的扩展管理功能。`installed` 和 `tags` 用于分区与筛选，不会传入 Card 或 CardGrid 的 `item` 插槽。MCP 工具、表单或详情等特定类型的内容应由应用实现。例如，应用可以在收到 `name-click` 后打开对应的详情界面。
+`ExtensionManager` 只处理通用的扩展管理功能。`installed` 和 `tags` 用于分区与筛选，不会传入 Card 或 CardGrid 的 `item` 插槽。添加 MCP、导入 Skill 和查看详情可交给对应的[专用 MCP 组件](./mcp-extension.md)或 [Skill 组件](./skill-extension.md)，并由应用负责加载、保存和打开界面。完整组合流程见 [MCP 与 Skill 扩展管理实践](/best-practices/extension-manager-integration)。
 
 ## 快速开始
 
@@ -87,6 +87,8 @@ Card 的 `progress` 可以是 `0` 至 `100` 的数值，超出范围会被限制
 快速开始中的 MCP 开关与卸载操作，以及 Skills 安装按钮，展示了应用如何根据 `action` 更新数据。`action` 和 `name-click` 只说明用户执行了什么操作，不表示组件已经修改 `tabs`。例如，switch action 的 `action.checked` 是用户选择的新状态。Card 仍会显示传入的 `checked`，因此应用需要更新对应 action。用户点击安装或卸载按钮时，组件同样只触发事件。操作完成后，应用需要更新 `item.installed` 和对应 `actions`，组件随后会按照新的 `tabs` 重新分区。
 
 分区展开状态按标签页和分区分别保存。组件会先更新展开状态，再触发 `section-toggle`。事件中的 `expanded` 是更新后的值，应用不需要再同步这个状态，可以按需监听该事件。
+
+需要把列表事件、MCP/Skill 添加与详情界面、定义存储和用户选项接成一个流程时，参见 [MCP 与 Skill 扩展管理实践](/best-practices/extension-manager-integration)。
 
 ## 组合与定制
 

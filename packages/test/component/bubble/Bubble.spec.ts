@@ -68,6 +68,13 @@ test.describe('Bubble', () => {
     ).toHaveCount(1)
   })
 
+  test('does not render message errors without an explicitly configured renderer', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('unconfigured-error-bubble').getByRole('alert')).toHaveCount(0)
+    await expect(component.getByTestId('unconfigured-provider-error-bubble').getByRole('alert')).toHaveCount(0)
+  })
+
   test('renders one message error immediately after its normal content', async ({ mount }) => {
     const component = await mount(BubbleFixture)
     const bubble = component.getByTestId('content-error-bubble')
@@ -87,6 +94,28 @@ test.describe('Bubble', () => {
     await expect(component.getByTestId('empty-error-bubble').getByRole('alert')).toHaveText('')
     await expect(component.getByTestId('null-error-bubble').getByRole('alert')).toHaveCount(0)
     await expect(component.getByTestId('undefined-error-bubble').getByRole('alert')).toHaveCount(0)
+  })
+
+  test('uses image box styling only when single-mode content contains images exclusively', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+
+    await expect(component.getByTestId('image-only-bubble').locator('[data-box-type="image"]')).toHaveCount(1)
+    await expect(component.getByTestId('mixed-image-first-bubble').locator('[data-box-type="box"]')).toHaveCount(1)
+    await expect(
+      component.getByTestId('resolved-mixed-image-first-bubble').locator('[data-box-type="box"]'),
+    ).toHaveCount(1)
+    await expect(component.getByTestId('resolved-image-only-bubble').locator('[data-box-type="image"]')).toHaveCount(1)
+  })
+
+  test('applies image box styling per item in split mode', async ({ mount }) => {
+    const component = await mount(BubbleFixture)
+    const boxes = component
+      .getByTestId('split-image-and-text-bubble')
+      .locator('[data-box-type="image"], [data-box-type="box"]')
+
+    await expect(boxes).toHaveCount(2)
+    await expect(boxes.nth(0)).toHaveAttribute('data-box-type', 'image')
+    await expect(boxes.nth(1)).toHaveAttribute('data-box-type', 'box')
   })
 
   test('splits array content into boxes and exposes each footer index', async ({ mount }) => {

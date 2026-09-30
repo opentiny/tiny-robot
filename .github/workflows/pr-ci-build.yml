@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: pnpm i --no-frozen-lockfile
 
+      - name: Test release scripts
+        run: pnpm test:release-scripts
+
       - name: Test kit
         run: pnpm -F @opentiny/tiny-robot-kit test
 

@@ -10,9 +10,15 @@ import Text from './Text.vue'
 import ToolRole from './ToolRole.vue'
 import Tools from './Tools.vue'
 
+const containsImagesExclusively = (content: unknown) =>
+  Array.isArray(content) && content.length > 0 && content.every((item) => item?.type === 'image_url')
+
 export const defaultBoxRendererMatches: Array<BubbleBoxRendererMatch> = [
   {
-    find: (_, content) => content?.type === 'image_url',
+    find: (_, content, _contentIndex, context) =>
+      context.contentRenderMode === 'split'
+        ? content?.type === 'image_url'
+        : containsImagesExclusively(context.resolvedMessageContent),
     renderer: markRaw(Box),
     priority: BubbleRendererMatchPriority.NORMAL,
     attributes: { 'data-box-type': 'image' },
