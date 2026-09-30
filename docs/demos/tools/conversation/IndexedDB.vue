@@ -53,6 +53,7 @@ const {
   activeConversationId,
   conversations,
   createConversation,
+  deleteConversation,
   switchConversation,
   abortActiveRequest,
 } = useConversation({
@@ -90,9 +91,10 @@ const options = computed(() =>
 const clearStorage = async () => {
   if (confirm('确定要清空所有会话数据吗？')) {
     try {
-      // 删除 IndexedDB 数据库
-      indexedDB.deleteDatabase('demo-chat-db')
-      location.reload()
+      const ids = conversations.value.map(({ id }) => id)
+      for (const id of ids) {
+        await deleteConversation(id)
+      }
     } catch (error) {
       console.error('清空存储失败:', error)
     }

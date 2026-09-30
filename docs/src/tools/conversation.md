@@ -85,13 +85,13 @@ const conversation = useConversation(options: UseConversationOptions): UseConver
 
 ### 配置
 
-| 配置项              | 类型                                  | 必填 | 默认值                          | 说明                                                                                             |
-| ------------------- | ------------------------------------- | ---- | ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `useMessageOptions` | `UseMessageOptions`                   | 是   | —                               | 所有会话共享的消息引擎基础配置。`createConversation` 的同名配置会在其上做浅合并。                |
-| `storage`           | `ConversationStorageStrategy`         | 否   | `localStorageStrategyFactory()` | 加载和持久化会话元数据与消息。                                                                   |
-| `autoSaveMessages`  | `boolean`                             | 否   | `false`                         | 是否监听已加载引擎的消息变化并自动保存。                                                         |
-| `autoSaveThrottle`  | `number`                              | 否   | `1000`                          | 自动保存节流时间，单位为毫秒；仅在开启自动保存后生效。                                           |
-| `onLoad`            | `(items: ConversationInfo[]) => void` | 否   | —                               | 初始会话列表成功加载并与同步创建的会话合并后调用。没有可加载列表时传入空数组；加载失败时不调用。 |
+| 配置项              | 类型                                  | 必填 | 默认值                          | 说明                                                                                                   |
+| ------------------- | ------------------------------------- | ---- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `useMessageOptions` | `UseMessageOptions`                   | 是   | —                               | 所有会话共享的消息引擎基础配置。`createConversation` 的同名配置会在其上做浅合并。                      |
+| `storage`           | `ConversationStorageStrategy`         | 否   | `localStorageStrategyFactory()` | 加载和持久化会话元数据与消息。                                                                         |
+| `autoSaveMessages`  | `boolean`                             | 否   | `false`                         | 是否监听已加载引擎的消息变化并自动保存。                                                               |
+| `autoSaveThrottle`  | `number`                              | 否   | `1000`                          | 自动保存节流时间，单位为毫秒；仅在开启自动保存后生效。                                                 |
+| `onLoad`            | `(items: ConversationInfo[]) => void` | 否   | —                               | 初始会话列表成功加载并与加载期间创建的内存会话合并后调用。最终没有会话时传入空数组；加载失败时不调用。 |
 
 `useMessageOptions` 和创建单个会话时的覆盖项都只在该引擎创建时读取。覆盖采用浅合并；例如传入新的 `plugins` 数组会替换基础配置中的整个数组，而不是自动拼接。
 
@@ -133,7 +133,7 @@ const conversation = useConversation(options: UseConversationOptions): UseConver
 
 - 正在处理或暂停的后台引擎会保留，因此多个会话可以并行处理请求；
 - 可以开始新回合的非活动引擎会被回收；再次切回时，从存储重新加载消息并创建新引擎；
-- 存储未及时保存的内存状态可能在引擎回收后丢失。需要保证恢复一致性时，应开启自动保存或在切换前等待 `saveMessages`；
+- 存储未及时保存的内存状态可能在引擎回收后丢失。自动保存采用节流，不保证引擎回收前完成最后一次保存；需要保证最新状态时，应在切换前等待 `saveMessages(id)`；
 - 同一会话的保存、改名和删除会按调用顺序串行进入持久化队列，避免较早的写入在删除后才完成。
 
 ### 存储策略

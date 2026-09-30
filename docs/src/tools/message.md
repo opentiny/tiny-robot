@@ -71,7 +71,7 @@ outline: [1, 4]
 
 ### 处理错误
 
-`responseProvider` 或生命周期钩子抛错时，当前回合进入 `error`，调用 `sendMessage` / `send` 得到的 Promise 会拒绝。插件的 `onError` 可以追加可见错误消息，但不会吞掉原始错误；调用方仍应按需捕获。
+`responseProvider` 或会向外传播的生命周期钩子抛错时，当前回合进入 `error`，调用 `sendMessage` / `send` 得到的 Promise 会拒绝。`onFinally` 是例外：其同步异常只会记录到控制台，不会改变回合状态或拒绝发送 Promise。插件的 `onError` 可以追加可见错误消息，但不会吞掉原始错误；调用方仍应捕获 Provider 和可传播钩子的错误。
 
 <demo
   vue="../../demos/tools/message/ErrorHandling.vue"

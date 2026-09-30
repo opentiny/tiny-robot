@@ -54,6 +54,7 @@ const {
   activeConversationId,
   conversations,
   createConversation,
+  deleteConversation,
   switchConversation,
   abortActiveRequest,
 } = useConversation({
@@ -87,10 +88,16 @@ const options = computed(() =>
 )
 
 // 清空存储
-const clearStorage = () => {
+const clearStorage = async () => {
   if (confirm('确定要清空所有会话数据吗？')) {
-    localStorage.removeItem('demo-conversations-localstorage')
-    location.reload()
+    try {
+      const ids = conversations.value.map(({ id }) => id)
+      for (const id of ids) {
+        await deleteConversation(id)
+      }
+    } catch (error) {
+      console.error('清空存储失败:', error)
+    }
   }
 }
 </script>
