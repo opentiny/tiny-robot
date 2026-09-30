@@ -11,8 +11,6 @@ TinyRobot 提供官方 CLI 工具 [`@opentiny/tiny-robot-cli`](https://www.npmjs
 
 ## 安装方式
 
-无需全局安装，可直接通过 `npx` 或 `pnpm dlx` 使用。
-
 ```bash
 # npm
 npx @opentiny/tiny-robot-cli
