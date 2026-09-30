@@ -113,9 +113,10 @@ description: 用于试用 Skill 导入。
 
 #### CSS Variables
 
-| 变量名                                 | 说明               | 默认值    |
-| -------------------------------------- | ------------------ | --------- |
-| `--tr-skill-import-form-primary-color` | 导入表单的强调色。 | `#191919` |
+| 变量名                                      | 说明                                         | 默认值                                 |
+| ------------------------------------------- | -------------------------------------------- | -------------------------------------- |
+| `--tr-skill-import-form-primary-color`      | 导入表单的强调色；未设置时跟随主题主文本色。 | `var(--tr-text-primary, #191919)`      |
+| `--tr-skill-import-form-primary-text-color` | 导入表单主按钮的文字色。                     | `var(--tr-container-bg-default, #fff)` |
 
 #### Types
 

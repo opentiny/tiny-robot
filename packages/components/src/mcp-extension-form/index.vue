@@ -222,19 +222,6 @@ watch(codeDraft, (code) => {
     button-line-height: 22px;
     button-min-width: 60px;
     button-transition: all 0.2s;
-
-    /* 取消按钮变量 */
-    cancel-bg-color: #ffffff;
-    cancel-border-color: #595959;
-    cancel-text-color: #191919;
-    cancel-hover-border-color: #c2c2c2;
-
-    /* 确认按钮变量 */
-    confirm-bg-color: #000000;
-    confirm-border-color: #000000;
-    confirm-text-color: #ffffff;
-    confirm-hover-bg-color: #333333;
-    confirm-hover-border-color: #333333;
   };
 
   // 响应式变量组
@@ -287,17 +274,20 @@ watch(codeDraft, (code) => {
   --button-transition: var(--tr-mcp-extension-form-button-transition);
 
   /* 取消按钮变量 */
-  --cancel-bg-color: var(--tr-mcp-extension-form-cancel-bg-color);
-  --cancel-border-color: var(--tr-mcp-extension-form-cancel-border-color);
-  --cancel-text-color: var(--tr-mcp-extension-form-cancel-text-color);
-  --cancel-hover-border-color: var(--tr-mcp-extension-form-cancel-hover-border-color);
+  --cancel-bg-color: var(--tr-mcp-extension-form-cancel-bg-color, var(--tr-container-bg-default, #fff));
+  --cancel-border-color: var(--tr-mcp-extension-form-cancel-border-color, var(--tr-border-color-default, #595959));
+  --cancel-text-color: var(--tr-mcp-extension-form-cancel-text-color, var(--tr-text-primary, #191919));
+  --cancel-hover-border-color: var(
+    --tr-mcp-extension-form-cancel-hover-border-color,
+    var(--tr-border-color-hover, #c2c2c2)
+  );
 
   /* 确认按钮变量 */
-  --confirm-bg-color: var(--tr-mcp-extension-form-confirm-bg-color);
-  --confirm-border-color: var(--tr-mcp-extension-form-confirm-border-color);
-  --confirm-text-color: var(--tr-mcp-extension-form-confirm-text-color);
-  --confirm-hover-bg-color: var(--tr-mcp-extension-form-confirm-hover-bg-color);
-  --confirm-hover-border-color: var(--tr-mcp-extension-form-confirm-hover-border-color);
+  --confirm-bg-color: var(--tr-mcp-extension-form-confirm-bg-color, var(--tr-text-primary, #191919));
+  --confirm-border-color: var(--tr-mcp-extension-form-confirm-border-color, var(--tr-text-primary, #191919));
+  --confirm-text-color: var(--tr-mcp-extension-form-confirm-text-color, var(--tr-container-bg-default, #fff));
+  --confirm-hover-bg-color: var(--tr-mcp-extension-form-confirm-hover-bg-color, var(--tr-text-secondary, #333));
+  --confirm-hover-border-color: var(--tr-mcp-extension-form-confirm-hover-border-color, var(--tr-text-secondary, #333));
 }
 
 .mcp-extension-form {
