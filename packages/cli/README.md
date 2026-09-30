@@ -16,11 +16,11 @@ npx @opentiny/tiny-robot-cli add chat --yes
 - `--runtime-version <version>`: override the TinyRobot runtime version used in the generated or updated project
 - `-h, --help`: show help
 
-`create` is an overall project scaffold. The `basic` template is aligned with `packages/chat-basic` and is copied into a new project.
+`create` scaffolds a new project. The `basic` template creates the Chat Basic project, and the `chat` template creates a standalone Chat project.
 
-`add chat` creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and merges `.env.example`. The CLI checks the planned targets again before writing and attempts to roll back applied changes if a write fails. Existing files with different contents are reported as conflicts and are never silently overwritten.
+`add chat` creates the isolated `src/tiny-robot-chat/` feature from `packages/cli/templates/chat`, adds the runtime dependencies (including `@vueuse/core@13.9.0`), and merges `.env.example`. Existing files with different contents are reported as conflicts and are never silently overwritten. If a write fails, the CLI attempts to roll back the changes that were already applied and reports any residual paths.
 
-`add chat` never modifies `src/main.ts`, `src/main.js`, `src/App.vue`, or `vite.config.*`. Render `TinyRobotChat` in the host application and add the MCP proxy manually; the generated component imports its required styles. Interactive mode asks once for confirmation; `--dry-run` previews the plan without changing files and `--yes` skips confirmation:
+`add chat` never modifies `src/main.ts`, `src/main.js`, `src/App.vue`, or `vite.config.*`, and it does not mount the component automatically. Render `TinyRobotChat` in the host application and add the MCP proxy manually; the generated component imports its required styles. Interactive mode shows the plan and asks for confirmation; `--dry-run` previews the plan without changing files and `--yes` applies it without confirmation:
 
 ```bash
 npx @opentiny/tiny-robot-cli add chat --dry-run
@@ -67,3 +67,4 @@ server: {
 Template-specific features and environment variables are documented in each template directory, for example:
 
 - `packages/cli/templates/basic/README.md`
+- `packages/cli/templates/chat/README.md`

@@ -35,9 +35,15 @@ npx @opentiny/tiny-robot-cli create <project-name> --template basic
 npx @opentiny/tiny-robot-cli create my-app --template basic
 ```
 
+CLI 还提供独立的 Chat 模板：
+
+```bash
+npx @opentiny/tiny-robot-cli create my-chat --template chat
+```
+
 ### 运行时版本
 
-`create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。`--runtime-version <version>` 仅用于本地 CLI 开发或诊断，并遵循相同规则。
+`create` 和 `add chat` 都根据 CLI 包版本生成 TinyRobot 运行时依赖：prerelease 使用同一精确版本，stable 使用 `^` 范围。通常无需指定版本；如需让生成项目使用特定 TinyRobot 版本，可通过 `--runtime-version <version>` 覆盖默认版本。
 
 ```bash
 npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.5.2-rc.2
@@ -75,7 +81,7 @@ npx @opentiny/tiny-robot-cli add chat
 
 CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package。
 
-执行后，CLI 会将 Chat 能力作为一个整体执行：先检查全部文件、依赖和环境变量，再一次性写入；如果写入过程中失败，会尝试回滚已应用的文件和新建目录；如果回滚失败，会报告未能回滚的路径。
+执行命令后，CLI 会生成以下内容：
 
 | 变更项                 | 说明                               |
 | ---------------------- | ---------------------------------- |
@@ -85,11 +91,9 @@ CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package
 
 `add chat` 不会修改 `src/main.ts`、`src/main.js`、`src/App.vue` 或 `vite.config.*`。
 
-交互模式只进行一次整体确认：`--yes` 跳过确认，`--dry-run` 只输出完整变更计划。
+默认交互模式会显示待变更内容并请求确认；`--yes` 直接应用变更，`--dry-run` 只预览变更计划，不写入文件。如果写入过程中失败，CLI 会尝试回滚已应用的文件和新建目录；如果回滚失败，会报告未能回滚的路径。
 
 CLI 会处理以下依赖：`@opentiny/tiny-robot`、`@opentiny/tiny-robot-chat`、`@opentiny/tiny-robot-kit`、`@opentiny/tiny-robot-svgs` 和 `@vueuse/core`。稳定版本会保留能够满足目标版本的依赖，预发布版本按精确版本处理。
-
-`add chat` 不会创建或修改用户项目的 `vite.config.*`。这是宿主项目的构建配置，需要手动补充 Model Context MCP 代理。
 
 ### 配置 Model Context MCP 代理
 
@@ -113,17 +117,17 @@ export default defineConfig({
 
 **接入组件**
 
-CLI 不会修改 `App.vue`，需要在你的主业务组件中手动添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
+CLI 不会自动挂载 `TinyRobotChat`，需要在你的主业务组件中手动添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
 
 ```vue
 <!-- src/App.vue -->
 <script setup lang="ts">
-import HelloWord from './components/HelloWorld.vue'
+import HelloWorld from './components/HelloWorld.vue'
 import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue' // [!code ++]
 </script>
 
 <template>
-  <HelloWord />
+  <HelloWorld />
   <!-- [!code ++] -->
   <TinyRobotChat />
 </template>

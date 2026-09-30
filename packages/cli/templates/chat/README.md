@@ -2,6 +2,12 @@
 
 这是一个独立的 Chat 项目模板，也可以通过 `add chat` 注入到现有 Vue 项目。
 
+创建独立 Chat 项目：
+
+```bash
+npx @opentiny/tiny-robot-cli create my-chat --template chat
+```
+
 ## 启动
 
 ```powershell
@@ -35,6 +41,7 @@ DeepSeek 模型默认继承 `low`、`high`、`max` 三档思考强度，默认�
 
 - `src/config/chat-ui.ts`: Chat UI、提示词、模板和菜单配置。
 - `src/config/chat-runtime.ts`: MCP 示例和模型配置。
+- `src/TinyRobotChat.vue`: Chat 入口组件及其样式依赖。
 - `src/components`: 窗口头部和输入区工具。
 - `src/composables/useWindow.ts`: floating、fullscreen 窗口状态。
 - `src/index.css`: 仅作用于 Chat 容器的组件样式和 Surface 样式变量，不重置宿主页面的全局样式。
