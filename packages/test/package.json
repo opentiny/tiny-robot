@@ -29,6 +29,7 @@
     "@types/node": "^22.13.17",
     "@vitejs/plugin-vue": "^4.5.2",
     "@vitejs/plugin-vue-jsx": "^4.1.2",
+    "@vue/compiler-dom": "3.5.41",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vue-tsc": "^2.2.8"
