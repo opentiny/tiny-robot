@@ -7,7 +7,7 @@ import {
   type AskUserRuntimeMeta,
   type AskUserState,
 } from '../../message/tools/askUser'
-import { TOOL_RESUME_COMMAND } from '../../message/plugins/toolPlugin'
+import { TOOL_RESUME_COMMAND, type ToolCallCommandResult } from '../../message/plugins/toolPlugin'
 import type { UseMessageReturn } from './types'
 
 export interface AskUserStateChangeEvent {
@@ -32,7 +32,23 @@ const getAskUserMessageState = (message: AskUserMessage): AskUserMessageState =>
   return (message.state ?? {}) as AskUserMessageState
 }
 
+const getToolCallStatus = (message: AskUserMessage, toolCallId: string): string | undefined => {
+  const toolCallState = getAskUserMessageState(message).toolCall
+  if (!toolCallState || typeof toolCallState !== 'object') {
+    return undefined
+  }
+
+  const callState = (toolCallState as Record<string, { status?: unknown }>)[toolCallId]
+  return typeof callState?.status === 'string' ? callState.status : undefined
+}
+
+const isKnownHandledToolCallStatus = (status: string | undefined) => {
+  return typeof status === 'string' && status !== 'awaiting-approval'
+}
+
 export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | 'dispatchCommand'>) => {
+  const resumePromises = new Map<string, Promise<ToolCallCommandResult>>()
+
   const setAskUserError = (target: AskUserMessage, state: AskUserState, error: unknown) => {
     target.state = {
       ...target.state,
@@ -43,6 +59,42 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
         updatedAt: Date.now(),
       },
     }
+  }
+
+  const resumeToolCall = (toolCallId: string) => {
+    const pendingResume = resumePromises.get(toolCallId)
+    if (pendingResume) {
+      return pendingResume
+    }
+
+    const resume = message
+      .dispatchCommand<ToolCallCommandResult>(TOOL_RESUME_COMMAND, {
+        toolCallId,
+      })
+      .finally(() => {
+        if (resumePromises.get(toolCallId) === resume) {
+          resumePromises.delete(toolCallId)
+        }
+      })
+    resumePromises.set(toolCallId, resume)
+    return resume
+  }
+
+  const ensureResumeSucceeded = (target: AskUserMessage, toolCallId: string, result: ToolCallCommandResult) => {
+    if (result.status !== 'missing') {
+      return
+    }
+
+    const currentState = getAskUserMessageState(target).askUser
+    if (!currentState || currentState.status !== 'submitted') {
+      return
+    }
+
+    if (isKnownHandledToolCallStatus(getToolCallStatus(target, toolCallId))) {
+      return
+    }
+
+    throw new Error('ask_user tool call cannot be resumed')
   }
 
   const handleStateChange = ({ messageIndex, key, value }: AskUserStateChangeEvent) => {
@@ -93,11 +145,10 @@ export const useAskUserRuntime = (message: Pick<UseMessageReturn, 'messages' | '
         },
       }
 
-      await message.dispatchCommand(TOOL_RESUME_COMMAND, {
-        toolCallId: runtime.toolCallId,
-      })
+      const result = await resumeToolCall(runtime.toolCallId)
+      ensureResumeSucceeded(target, runtime.toolCallId, result)
     } catch (error) {
-      setAskUserError(target, state, error)
+      setAskUserError(target, getAskUserMessageState(target).askUser ?? state, error)
     }
   }
 
