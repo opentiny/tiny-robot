@@ -5,14 +5,17 @@ import os from 'node:os'
 import path from 'node:path'
 
 import {
-  DEPENDENCIES,
+  addFileChange,
+  applyChanges,
   ensureDependency,
-  ensureStyleImports,
   getChatFeatureFiles,
-  planMount,
+  printChangeResults,
   resolveTargetPackage,
 } from '../bin/commands/add.js'
+import { createRuntimeDependencies } from '../bin/runtime-version.js'
 import { listPackages, mergeEnvFile } from '../bin/utils.js'
+
+const DEPENDENCIES = createRuntimeDependencies('0.5.2-alpha.15')
 
 function createTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'tiny-robot-cli-'))
@@ -29,6 +32,16 @@ test('add dependencies include vueuse and update stale versions', () => {
   assert.equal(added.type, 'added')
   assert.equal(skipped.type, 'skipped')
   assert.equal(pkg.dependencies['@vueuse/core'], '13.9.0')
+})
+
+test('add dependencies use the requested runtime version', () => {
+  const dependencies = createRuntimeDependencies('0.5.2-rc.3')
+
+  assert.equal(dependencies['@opentiny/tiny-robot'], '0.5.2-rc.3')
+  assert.equal(dependencies['@opentiny/tiny-robot-chat'], '0.5.2-rc.3')
+  assert.equal(dependencies['@opentiny/tiny-robot-kit'], '0.5.2-rc.3')
+  assert.equal(dependencies['@opentiny/tiny-robot-svgs'], '0.5.2-rc.3')
+  assert.equal(dependencies['@vueuse/core'], '13.9.0')
 })
 
 test('add dependencies preserve compatible ranges and reject unsafe section changes', () => {
@@ -49,185 +62,47 @@ test('add dependencies preserve compatible ranges and reject unsafe section chan
   assert.equal(higher.dependencies['@vueuse/core'], '14.0.0')
 })
 
-test('style imports add package and feature CSS imports exactly once', () => {
-  const project = createTempProject()
-  const entry = path.join(project, 'main.ts')
-  fs.writeFileSync(entry, "import { createApp } from 'vue'\n\ncreateApp({}).mount('#app')\n")
+test('add dependencies preserve an existing range that accepts the stable runtime target', () => {
+  const pkg = { dependencies: { '@opentiny/tiny-robot': '^0.5.1' } }
 
-  ensureStyleImports(entry, "import './tiny-robot-chat/index.css'")
-  ensureStyleImports(entry, "import './tiny-robot-chat/index.css'")
-
-  const content = fs.readFileSync(entry, 'utf8')
-  assert.equal((content.match(/@opentiny\/tiny-robot\/dist\/style\.css/g) ?? []).length, 1)
-  assert.equal((content.match(/@opentiny\/tiny-robot-chat\/dist\/style\.css/g) ?? []).length, 1)
-  assert.equal((content.match(/tiny-robot-chat\/index\.css/g) ?? []).length, 1)
-})
-
-test('style imports recognize quote, semicolon, and CRLF variants', () => {
-  const project = createTempProject()
-  const entry = path.join(project, 'main.ts')
-  fs.writeFileSync(
-    entry,
-    'import "@opentiny/tiny-robot/dist/style.css";\r\nimport "@opentiny/tiny-robot-chat/dist/style.css";\r\nimport "./tiny-robot-chat/index.css";\r\n',
-  )
-
-  const result = ensureStyleImports(entry, "import './tiny-robot-chat/index.css'")
-  const content = fs.readFileSync(entry, 'utf8')
+  const result = ensureDependency(pkg, '@opentiny/tiny-robot', '^0.5.3')
 
   assert.equal(result.type, 'skipped')
-  assert.equal((content.match(/style\.css/g) ?? []).length, 2)
-  assert.equal((content.match(/tiny-robot-chat\/index\.css/g) ?? []).length, 1)
+  assert.equal(pkg.dependencies['@opentiny/tiny-robot'], '^0.5.1')
 })
 
-test('style imports follow multi-line imports', () => {
-  const project = createTempProject()
-  const entry = path.join(project, 'main.ts')
-  fs.writeFileSync(entry, "import {\n  createApp,\n} from 'vue'\n\ncreateApp({}).mount('#app')\n")
+test('add dependencies preserve a higher branch in a composite stable range', () => {
+  const pkg = { dependencies: { '@opentiny/tiny-robot': '^0.4.0 || ^1.0.0' } }
 
-  ensureStyleImports(entry, "import './tiny-robot-chat/index.css'")
+  const result = ensureDependency(pkg, '@opentiny/tiny-robot', '^0.5.3')
 
-  const content = fs.readFileSync(entry, 'utf8')
-  assert.match(content, /} from 'vue'\nimport '@opentiny\/tiny-robot\/dist\/style\.css'/)
-  assert.doesNotMatch(content, /import \{\nimport '@opentiny\/tiny-robot\/dist\/style\.css'/)
+  assert.equal(result.type, 'skipped')
+  assert.equal(pkg.dependencies['@opentiny/tiny-robot'], '^0.4.0 || ^1.0.0')
 })
 
-test('mount plan inserts import and component in the correct blocks', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-  fs.writeFileSync(
-    app,
-    '<script setup lang="ts">\nconst title = "App"\n</script>\n\n<template>\n  <main>{{ title }}</main>\n</template>\n',
-  )
+test('add dependencies replace a stable range that cannot install the prerelease runtime target', () => {
+  const stableRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.1' } }
+  const sameReleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2' } }
+  const prereleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2-alpha.10' } }
+  const exactPrerelease = { dependencies: { '@opentiny/tiny-robot': '0.5.2-alpha.15' } }
+  const newerPrereleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2-alpha.20' } }
 
-  const plan = planMount(project)
+  const updated = ensureDependency(stableRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const sameReleaseUpdated = ensureDependency(sameReleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const prereleaseUpdated = ensureDependency(prereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const exactSkipped = ensureDependency(exactPrerelease, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const newerPrereleaseUpdated = ensureDependency(newerPrereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
 
-  assert.equal(plan.type, 'merge')
-  assert.match(
-    plan.content,
-    /<script setup lang="ts">\nimport TinyRobotChat from '\.\/tiny-robot-chat\/TinyRobotChat\.vue'/,
-  )
-  assert.match(plan.content, /<main>\{\{ title \}\}<\/main>\n  <TinyRobotChat \/>\n<\/template>/)
-})
-
-test('mount plan recognizes setup scripts with attributes before setup', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-  fs.writeFileSync(app, '<script lang="ts" setup>\nconst title = "App"\n</script>\n<template><main>{{ title }}</main></template>\n')
-
-  const plan = planMount(project)
-
-  assert.equal(plan.type, 'merge')
-  assert.match(plan.content, /<script lang="ts" setup>\nimport TinyRobotChat from '\.\/tiny-robot-chat\/TinyRobotChat\.vue'/)
-  assert.match(plan.content, /<TinyRobotChat \/>/)
-})
-
-test('mount plan refuses external template files', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-  fs.writeFileSync(
-    app,
-    '<script setup lang="ts"></script>\n<template src="./App.template.html"></template>\n',
-  )
-
-  const plan = planMount(project)
-
-  assert.equal(plan.type, 'manual')
-  assert.match(plan.reason, /external template/i)
-})
-
-test('mount plan inserts into the outer template when nested templates exist', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-  fs.writeFileSync(
-    app,
-    '<template>\n  <main />\n  <template v-if="show">\n    <span />\n  </template>\n</template>\n',
-  )
-
-  const plan = planMount(project)
-
-  assert.equal(plan.type, 'merge')
-  const nestedClose = plan.content.indexOf('  </template>')
-  const mount = plan.content.indexOf('  <TinyRobotChat />')
-  const outerClose = plan.content.lastIndexOf('</template>')
-  assert.ok(nestedClose < mount)
-  assert.ok(mount < outerClose)
-})
-
-test('mount plan detects components inside nested templates and rejects invalid templates', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-
-  fs.writeFileSync(
-    app,
-    '<template><main><template v-if="show"><TinyRobotChat /></template></main></template>\n',
-  )
-  assert.equal(planMount(project).type, 'skipped')
-
-  for (const source of [
-    '<template><main></template>\n',
-    '<template><main /></template>\n<template><aside /></template>\n',
-  ]) {
-    fs.writeFileSync(app, source)
-    const plan = planMount(project)
-    assert.equal(plan.type, 'manual')
-    assert.match(plan.reason, /parsed safely/)
-  }
-})
-
-test('mount plan handles no script and refuses options API scripts', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-
-  fs.writeFileSync(app, '<template><main /></template>\n')
-  const noScript = planMount(project)
-  assert.equal(noScript.type, 'merge')
-  assert.match(noScript.content, /<script setup lang="ts">/)
-  assert.match(noScript.content, /<TinyRobotChat \/>/)
-
-  fs.writeFileSync(app, '<script>export default {}</script>\n<template><main /></template>\n')
-  const optionsApi = planMount(project)
-  assert.equal(optionsApi.type, 'manual')
-})
-
-test('mount plan ignores commented components and refuses conflicting bindings', () => {
-  const project = createTempProject()
-  const app = path.join(project, 'src', 'App.vue')
-  fs.mkdirSync(path.dirname(app), { recursive: true })
-
-  fs.writeFileSync(app, '<template>\n  <!-- <TinyRobotChat /> -->\n  <main />\n</template>\n')
-  const commented = planMount(project)
-  assert.equal(commented.type, 'merge')
-  assert.match(commented.content, /import TinyRobotChat from '\.\/tiny-robot-chat\/TinyRobotChat\.vue'/)
-
-  fs.writeFileSync(
-    app,
-    '<script setup>\nimport TinyRobotChat from "./OtherChat.vue"\n</script>\n<template><main /></template>\n',
-  )
-  const conflicting = planMount(project)
-  assert.equal(conflicting.type, 'manual')
-
-  fs.writeFileSync(
-    app,
-    '<script setup>\nimport Chat from "./tiny-robot-chat/TinyRobotChat.vue"\n</script>\n<template><main /></template>\n',
-  )
-  const aliased = planMount(project)
-  assert.equal(aliased.type, 'manual')
-
-  for (const source of [
-    '<script setup>\nconst { TinyRobotChat } = useWidgets()\n</script>\n<template><main /></template>\n',
-    '<script setup>\nconst [TinyRobotChat] = widgets\n</script>\n<template><main /></template>\n',
-  ]) {
-    fs.writeFileSync(app, source)
-    const destructured = planMount(project)
-    assert.equal(destructured.type, 'manual')
-    assert.match(destructured.reason, /already declares TinyRobotChat/i)
-  }
+  assert.equal(updated.type, 'updated')
+  assert.equal(stableRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(sameReleaseUpdated.type, 'updated')
+  assert.equal(sameReleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(prereleaseUpdated.type, 'updated')
+  assert.equal(prereleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(exactSkipped.type, 'skipped')
+  assert.equal(exactPrerelease.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(newerPrereleaseUpdated.type, 'updated')
+  assert.equal(newerPrereleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
 })
 
 test('env merge preserves existing values and is idempotent', () => {
@@ -244,6 +119,57 @@ test('env merge preserves existing values and is idempotent', () => {
   assert.equal(second.type, 'skipped')
   assert.match(content, /VITE_API_URL=https:\/\/custom/)
   assert.match(content, /VITE_API_KEY=/)
+})
+
+test('unavailable env template reports that no variables were added', () => {
+  const project = createTempProject()
+  const output = []
+  const originalLog = console.log
+
+  console.log = (message) => output.push(message)
+  try {
+    printChangeResults(project, {
+      featureInspection: [],
+      env: { type: 'unavailable' },
+      dependencies: [],
+      dependencyChanged: false,
+    })
+  } finally {
+    console.log = originalLog
+    fs.rmSync(project, { recursive: true, force: true })
+  }
+
+  const text = output.join('\n')
+  assert.match(text, /template is unavailable; no environment variables were added/)
+  assert.doesNotMatch(text, /already contains required variables/)
+})
+
+test('applyChanges rejects targets changed after the plan was created', () => {
+  const project = createTempProject()
+  const target = path.join(project, 'planned.txt')
+  const changes = []
+
+  addFileChange(changes, target, 'planned content', 'create planned file')
+  fs.writeFileSync(target, 'external content')
+
+  assert.throws(() => applyChanges(changes), /planned target changed after planning/)
+  assert.equal(fs.readFileSync(target, 'utf8'), 'external content')
+})
+
+test('applyChanges rolls back files created before a later write fails', () => {
+  const project = createTempProject()
+  const firstTarget = path.join(project, 'generated', 'first.txt')
+  const blocker = path.join(project, 'blocker')
+  const secondTarget = path.join(blocker, 'second.txt')
+  const changes = []
+
+  fs.writeFileSync(blocker, 'not a directory')
+  addFileChange(changes, firstTarget, 'first', 'create first file')
+  addFileChange(changes, secondTarget, 'second', 'create second file')
+
+  assert.throws(() => applyChanges(changes), /all changes were rolled back/)
+  assert.equal(fs.existsSync(firstTarget), false)
+  assert.equal(fs.existsSync(path.dirname(firstTarget)), false)
 })
 
 test('chat feature files are namespaced and include feature CSS', () => {

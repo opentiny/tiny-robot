@@ -9,6 +9,9 @@ import WindowHeader from './components/WindowHeader.vue'
 import { composerMenus, createChatUi, templateCategories } from './config/chat-ui'
 import { mcpExamples, mcpServers, modelProviders } from './config/chat-runtime'
 import { useWindow } from './composables/useWindow'
+import '@opentiny/tiny-robot/dist/style.css'
+import '@opentiny/tiny-robot-chat/dist/style.css'
+import './index.css'
 
 const runtime = useChatRuntime({ modelProviders, mcpServers })
 const window = reactive(useWindow())

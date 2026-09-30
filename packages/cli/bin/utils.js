@@ -5,8 +5,9 @@ import pc from 'picocolors'
 import yaml from 'yaml'
 
 const TEMPLATE_PLACEHOLDER = '__PROJECT_NAME__'
+const RUNTIME_VERSION_PLACEHOLDER = '__TINY_ROBOT_VERSION__'
 
-export const BUILTIN_TEMPLATES = ['basic']
+export const BUILTIN_TEMPLATES = ['basic', 'chat']
 export const DEFAULT_TEMPLATE = 'basic'
 export const DEFAULT_PROJECT_NAME = 'tiny-robot-app'
 
@@ -130,13 +131,14 @@ function replaceTemplateVariables(targetDir, variables) {
   }
 }
 
-export function scaffoldProject(templateDir, targetDir, projectName) {
+export function scaffoldProject(templateDir, targetDir, projectName, runtimeVersion) {
   copyTemplate(templateDir, targetDir)
 
   renameSpecialFiles(targetDir)
 
   replaceTemplateVariables(targetDir, {
     [TEMPLATE_PLACEHOLDER]: projectName,
+    [RUNTIME_VERSION_PLACEHOLDER]: runtimeVersion,
   })
 }
 
