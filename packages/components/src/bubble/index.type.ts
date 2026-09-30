@@ -19,6 +19,55 @@ export type ChatMessageContentItem = { type: string; [key: string]: any }
 
 export type ChatMessageContent = string | ChatMessageContentItem[]
 
+export type AskUserStepType = 'single' | 'multiple' | 'text' | 'confirm'
+
+export interface AskUserOption {
+  label: string
+  value: string
+  description?: string
+  disabled?: boolean
+}
+
+export interface AskUserChoiceAnswer {
+  selected: string[]
+  other?: {
+    selected: boolean
+    text: string
+  }
+}
+
+export interface AskUserStep {
+  id: string
+  title: string
+  summary: string
+  description?: string
+  type: AskUserStepType
+  required?: boolean
+  options?: AskUserOption[]
+  placeholder?: string
+}
+
+export interface AskUserContent {
+  type: 'ask_user'
+  id: string
+  title?: string
+  description?: string
+  steps: AskUserStep[]
+  submitLabel?: string
+}
+
+export type AskUserStatus = 'active' | 'submitting' | 'submitted' | 'error'
+
+export interface AskUserState {
+  status: AskUserStatus
+  currentStep: number
+  answers: Record<string, unknown>
+  completedStepIds: string[]
+  expanded?: boolean
+  error?: string
+  updatedAt?: number
+}
+
 /**
  * 聊天消息接口（支持 OpenAI 格式）
  */

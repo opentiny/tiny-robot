@@ -41,6 +41,7 @@ export {
   useBubbleErrorRenderer,
   useBubbleEventFn,
   useBubbleStateChangeFn,
+  useAskUser,
   useMessageContent,
   useOmitMessageFields,
   useToolCall,
