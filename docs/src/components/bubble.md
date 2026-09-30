@@ -445,14 +445,18 @@ emitBubbleEvent({
 
 ### 工具调用确认
 
-该示例只使用 Bubble 和 `@opentiny/tiny-robot-kit`。页面加载后会自动发起一次模拟工具调用，点击工具卡片中的按钮即可完成审批。
+该示例只使用 Bubble 和 `@opentiny/tiny-robot-kit`。页面加载后会自动发起一次模拟工具调用；完成允许或拒绝后，还可以点击“再次发起审批”重复演示。消息列表会在限定高度的区域内滚动，顶部操作区始终保持可见。
 
-<demo vue="../../demos/bubble/tool-approval.vue" />
+<demo
+  vue="../../demos/bubble/tool-approval.vue"
+  title="确认工具调用"
+  description="工具等待执行时，用户可以允许或拒绝本次调用。"
+/>
 
 如果应用使用 `toolPlugin`，可以将它加入 `useMessage` 的 `plugins`，并通过 `shouldPauseToolCall` 控制哪些工具需要用户确认：
 
 ```ts
-import { toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
+import { TOOL_REJECT_COMMAND, TOOL_RESUME_COMMAND, toolPlugin, useMessage } from '@opentiny/tiny-robot-kit'
 
 const message = useMessage({
   responseProvider,
@@ -468,7 +472,12 @@ const message = useMessage({
 })
 ```
 
-当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“允许”和“拒绝”按钮。业务层监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
+当 `shouldPauseToolCall` 返回 `true` 时，kit 会将工具状态设置为 `awaiting-approval`，Bubble 的 Tool 渲染器会显示“允许”和“拒绝”按钮。应用监听 `bubble-event` 后，将对应的 `toolCallId` 转发给 kit：
+
+- 当工具状态为 `awaiting-approval` 且存在有效的工具调用 ID 时，点击“允许”会让 Tool 渲染器触发 `tool-call:resume`，payload 为 `{ toolCallId: string }`；Bubble 不会执行工具，也不会自行修改工具状态。
+- 当工具状态为 `awaiting-approval` 且存在有效的工具调用 ID 时，点击“拒绝”会让 Tool 渲染器触发 `tool-call:reject`，payload 同样为 `{ toolCallId: string }`；Bubble 不会自行拒绝工具调用。
+- 应用必须把 `toolCallId` 和对应命令传给 `message.dispatchCommand`（或当前会话的 `engine.dispatchCommand`）。kit 随后负责执行工具或标记为 `denied`，更新 tool 消息，并继续当前回合。
+- 应用负责处理命令的异步错误，并根据需要展示处理中、成功或失败状态。
 
 ```ts
 if (event.name !== 'tool-call:resume' && event.name !== 'tool-call:reject') {
