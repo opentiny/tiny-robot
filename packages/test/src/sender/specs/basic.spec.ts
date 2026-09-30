@@ -143,6 +143,27 @@ test.describe('Sender 组件测试', () => {
     await helper.expectEditorContent('测试')
   })
 
+  test('Props: placeholder - 多行模式下应支持换行且不产生纵向溢出', async () => {
+    await helper.toggleMode()
+    await helper.expectMode('multiple')
+
+    const placeholderText =
+      '请输入内容，支持较长的多行占位提示文本，用于验证占位层能够随着编辑器宽度自动换行并正确参与布局。'.repeat(2)
+    await helper.setPlaceholder(placeholderText)
+
+    const placeholder = page.locator('.tr-sender-placeholder')
+    await expect(placeholder).toBeVisible()
+    await expect(placeholder).toHaveText(placeholderText)
+    await expect
+      .poll(() => placeholder.evaluate((element) => element.getBoundingClientRect().height))
+      .toBeGreaterThan(26)
+
+    const editorScroll = helper.getEditorScroll()
+    await expect
+      .poll(() => editorScroll.evaluate((element) => element.scrollHeight <= element.clientHeight + 1))
+      .toBe(true)
+  })
+
   test('Props: submitType - 应该支持不同的提交方式', async () => {
     await helper.typeContent('Enter提交')
     await helper.expectEditorContent('Enter提交')
