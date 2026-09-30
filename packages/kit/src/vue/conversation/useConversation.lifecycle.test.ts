@@ -116,6 +116,33 @@ describe('useConversation lifecycle', () => {
     ])
   })
 
+  it('includes conversations created in memory when an async storage load returns empty', async () => {
+    let resolveLoad!: (items: ConversationInfo[]) => void
+    const delayedLoad = new Promise<ConversationInfo[]>((resolve) => {
+      resolveLoad = resolve
+    })
+    let loaded: ConversationInfo[] | undefined
+    const storage: ConversationStorageStrategy = {
+      loadConversations: () => delayedLoad,
+      loadMessages: () => [],
+      saveConversation: () => undefined,
+      saveMessages: () => undefined,
+    }
+    const conversation = useConversation({
+      storage,
+      useMessageOptions: { responseProvider },
+      onLoad: (items) => {
+        loaded = items
+      },
+    })
+    conversation.createConversation({ id: 'local', title: 'Local conversation' })
+
+    resolveLoad([])
+
+    await vi.waitFor(() => expect(loaded).toBeDefined())
+    expect(loaded?.map(({ id, title }) => ({ id, title }))).toEqual([{ id: 'local', title: 'Local conversation' }])
+  })
+
   it('persists consumer-visible create, message, title, and delete operations', async () => {
     vi.spyOn(Date, 'now').mockReturnValueOnce(100).mockReturnValue(200)
     const { storage, conversations, messages } = createMemoryStorage()
