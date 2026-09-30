@@ -75,7 +75,7 @@ npx @opentiny/tiny-robot-cli add chat
 
 CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package。
 
-执行后，CLI 会将 Chat 能力作为一个整体执行：先检查全部文件、依赖和环境变量，再一次性写入；任一步骤失败都不会留下部分修改。
+执行后，CLI 会将 Chat 能力作为一个整体执行：先检查全部文件、依赖和环境变量，再一次性写入；如果写入过程中失败，会尝试回滚已应用的文件和新建目录；如果回滚失败，会报告未能回滚的路径。
 
 | 变更项                 | 说明                               |
 | ---------------------- | ---------------------------------- |
@@ -111,16 +111,6 @@ export default defineConfig({
 
 ### 下一步操作
 
-**导入样式**
-
-CLI 不会修改应用入口，需要手动在 `src/main.ts` 或 `src/main.js` 导入样式：
-
-```shell
-import '@opentiny/tiny-robot/dist/style.css'
-import '@opentiny/tiny-robot-chat/dist/style.css'
-import './tiny-robot-chat/index.css'
-```
-
 **接入组件**
 
 CLI 不会修改 `App.vue`，需要在你的主业务组件中手动添加 CLI 创建的 `<TinyRobotChat/>` 组件代码。比如 `src/App.vue` 是你的主应用
@@ -133,15 +123,17 @@ import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue' // [!code ++]
 </script>
 
 <template>
-  <HelloWorld />
+  <HelloWord />
   <!-- [!code ++] -->
   <TinyRobotChat />
 </template>
 ```
 
+生成的 `TinyRobotChat.vue` 会自动导入 TinyRobot 和 Chat 样式，无需在 `src/main.ts` 或 `src/main.js` 中重复导入。
+
 **配置 API_KEY**
 
-复制 `.env.example` 为 `.env.local`，根据使用的模型配置 `VITE_ALIYUN_DASHSCOPE_KEY` 或 `VITE_DEEPSEEK_API_KEY`；自定义模型代理时可额外配置对应的 API URL 变量，自定义 MCP 地址使用 `VITE_AMAP_MCP_URL`。`VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。比如
+复制 `.env.example` 为 `.env.local`，根据使用的模型配置 `VITE_ALIYUN_DASHSCOPE_KEY` 或 `VITE_DEEPSEEK_API_KEY`；自定义模型代理可配置 `VITE_QWEN_API_URL` 或 `VITE_DEEPSEEK_API_URL`，自定义 MCP 地址使用 `VITE_AMAP_MCP_URL`。`VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。比如
 
 ```shell
 # .env.local

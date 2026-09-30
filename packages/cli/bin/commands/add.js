@@ -170,6 +170,26 @@ function ensureDependency(pkg, name, targetSpecifier) {
     }
   }
 
+  if (semver.prerelease(targetVersion) !== null) {
+    if (dependency.version === targetSpecifier)
+      return { type: 'skipped', section: dependency.section, version: dependency.version }
+
+    if (dependency.section !== 'dependencies') {
+      return {
+        type: 'conflict',
+        reason: `${name}@${dependency.version} in ${dependency.section} does not satisfy ${targetSpecifier}`,
+      }
+    }
+
+    pkg.dependencies[name] = targetSpecifier
+    return {
+      type: 'updated',
+      section: dependency.section,
+      from: dependency.version,
+      to: targetSpecifier,
+    }
+  }
+
   const satisfies = semver.satisfies(targetVersion, dependency.version)
 
   if (satisfies) return { type: 'skipped', section: dependency.section, version: dependency.version }
@@ -271,23 +291,39 @@ function fileContent(content) {
   return Buffer.isBuffer(content) ? content : Buffer.from(content)
 }
 
+function readTargetState(target) {
+  if (!fs.existsSync(target)) return { existed: false, content: null }
+  invariant(fs.statSync(target).isFile(), `${target} exists and is not a file.`)
+  return { existed: true, content: fs.readFileSync(target) }
+}
+
 function addFileChange(changes, target, content, message) {
-  if (fs.existsSync(target)) invariant(fs.statSync(target).isFile(), `${target} exists and is not a file.`)
-
+  const expected = readTargetState(target)
   const next = fileContent(content)
-  if (fs.existsSync(target) && fs.readFileSync(target).equals(next)) return false
+  if (expected.existed && expected.content.equals(next)) return false
 
-  changes.push({ target, content, message })
+  changes.push({ target, content: next, message, expected })
   return true
+}
+
+function assertTargetUnchanged(change) {
+  const current = readTargetState(change.target)
+  if (current.existed !== change.expected.existed) {
+    throw new Error(`planned target changed after planning: ${change.target}`)
+  }
+  if (current.existed && !current.content.equals(change.expected.content)) {
+    throw new Error(`planned target changed after planning: ${change.target}`)
+  }
 }
 
 function applyChanges(changes) {
   const snapshots = changes.map(({ target }) => ({
     target,
-    existed: fs.existsSync(target),
-    content: fs.existsSync(target) ? fs.readFileSync(target) : null,
+    ...readTargetState(target),
   }))
   const createdDirectories = new Set()
+
+  for (const change of changes) assertTargetUnchanged(change)
 
   try {
     for (const change of changes) {
@@ -302,12 +338,31 @@ function applyChanges(changes) {
       fs.writeFileSync(change.target, change.content)
     }
   } catch (error) {
+    const rollbackErrors = []
     for (const snapshot of snapshots.reverse()) {
-      if (snapshot.existed) fs.writeFileSync(snapshot.target, snapshot.content)
-      else if (fs.existsSync(snapshot.target)) fs.rmSync(snapshot.target, { force: true })
+      try {
+        if (snapshot.existed) fs.writeFileSync(snapshot.target, snapshot.content)
+        else if (fs.existsSync(snapshot.target)) fs.rmSync(snapshot.target, { force: true })
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `${snapshot.target}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+        )
+      }
     }
     for (const directory of [...createdDirectories].sort((left, right) => right.length - left.length)) {
-      if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) fs.rmdirSync(directory)
+      try {
+        if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) fs.rmdirSync(directory)
+      } catch (rollbackError) {
+        rollbackErrors.push(
+          `${directory}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+        )
+      }
+    }
+
+    if (rollbackErrors.length > 0) {
+      throw new Error(
+        `Failed to apply changes; rollback was incomplete: ${error instanceof Error ? error.message : String(error)}. Residual paths: ${rollbackErrors.join('; ')}`,
+      )
     }
 
     throw new Error(
@@ -435,9 +490,6 @@ async function addFeature(targetDir, type, options) {
 function printNextSteps({ dependencyChanged }) {
   const steps = []
   steps.push(
-    "Import '@opentiny/tiny-robot/dist/style.css', '@opentiny/tiny-robot-chat/dist/style.css', and './tiny-robot-chat/index.css' in your application entry file.",
-  )
-  steps.push(
     [
       'Render <TinyRobotChat /> near your main application component.',
       '',
@@ -491,4 +543,4 @@ export function registerAddCommand(program) {
     })
 }
 
-export { ensureDependency, getChatFeatureFiles, printChangeResults, resolveTargetPackage }
+export { addFileChange, applyChanges, ensureDependency, getChatFeatureFiles, printChangeResults, resolveTargetPackage }

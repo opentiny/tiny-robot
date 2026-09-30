@@ -7,7 +7,7 @@ import yaml from 'yaml'
 const TEMPLATE_PLACEHOLDER = '__PROJECT_NAME__'
 const RUNTIME_VERSION_PLACEHOLDER = '__TINY_ROBOT_VERSION__'
 
-export const BUILTIN_TEMPLATES = ['basic']
+export const BUILTIN_TEMPLATES = ['basic', 'chat']
 export const DEFAULT_TEMPLATE = 'basic'
 export const DEFAULT_PROJECT_NAME = 'tiny-robot-app'
 

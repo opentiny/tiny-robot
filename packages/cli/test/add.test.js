@@ -4,7 +4,14 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { ensureDependency, getChatFeatureFiles, printChangeResults, resolveTargetPackage } from '../bin/commands/add.js'
+import {
+  addFileChange,
+  applyChanges,
+  ensureDependency,
+  getChatFeatureFiles,
+  printChangeResults,
+  resolveTargetPackage,
+} from '../bin/commands/add.js'
 import { createRuntimeDependencies } from '../bin/runtime-version.js'
 import { listPackages, mergeEnvFile } from '../bin/utils.js'
 
@@ -77,19 +84,23 @@ test('add dependencies replace a stable range that cannot install the prerelease
   const stableRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.1' } }
   const sameReleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2' } }
   const prereleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2-alpha.10' } }
+  const exactPrerelease = { dependencies: { '@opentiny/tiny-robot': '0.5.2-alpha.15' } }
   const newerPrereleaseRange = { dependencies: { '@opentiny/tiny-robot': '^0.5.2-alpha.20' } }
 
   const updated = ensureDependency(stableRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
   const sameReleaseUpdated = ensureDependency(sameReleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
-  const preserved = ensureDependency(prereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const prereleaseUpdated = ensureDependency(prereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
+  const exactSkipped = ensureDependency(exactPrerelease, '@opentiny/tiny-robot', '0.5.2-alpha.15')
   const newerPrereleaseUpdated = ensureDependency(newerPrereleaseRange, '@opentiny/tiny-robot', '0.5.2-alpha.15')
 
   assert.equal(updated.type, 'updated')
   assert.equal(stableRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
   assert.equal(sameReleaseUpdated.type, 'updated')
   assert.equal(sameReleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
-  assert.equal(preserved.type, 'skipped')
-  assert.equal(prereleaseRange.dependencies['@opentiny/tiny-robot'], '^0.5.2-alpha.10')
+  assert.equal(prereleaseUpdated.type, 'updated')
+  assert.equal(prereleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
+  assert.equal(exactSkipped.type, 'skipped')
+  assert.equal(exactPrerelease.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
   assert.equal(newerPrereleaseUpdated.type, 'updated')
   assert.equal(newerPrereleaseRange.dependencies['@opentiny/tiny-robot'], '0.5.2-alpha.15')
 })
@@ -131,6 +142,34 @@ test('unavailable env template reports that no variables were added', () => {
   const text = output.join('\n')
   assert.match(text, /template is unavailable; no environment variables were added/)
   assert.doesNotMatch(text, /already contains required variables/)
+})
+
+test('applyChanges rejects targets changed after the plan was created', () => {
+  const project = createTempProject()
+  const target = path.join(project, 'planned.txt')
+  const changes = []
+
+  addFileChange(changes, target, 'planned content', 'create planned file')
+  fs.writeFileSync(target, 'external content')
+
+  assert.throws(() => applyChanges(changes), /planned target changed after planning/)
+  assert.equal(fs.readFileSync(target, 'utf8'), 'external content')
+})
+
+test('applyChanges rolls back files created before a later write fails', () => {
+  const project = createTempProject()
+  const firstTarget = path.join(project, 'generated', 'first.txt')
+  const blocker = path.join(project, 'blocker')
+  const secondTarget = path.join(blocker, 'second.txt')
+  const changes = []
+
+  fs.writeFileSync(blocker, 'not a directory')
+  addFileChange(changes, firstTarget, 'first', 'create first file')
+  addFileChange(changes, secondTarget, 'second', 'create second file')
+
+  assert.throws(() => applyChanges(changes), /all changes were rolled back/)
+  assert.equal(fs.existsSync(firstTarget), false)
+  assert.equal(fs.existsSync(path.dirname(firstTarget)), false)
 })
 
 test('chat feature files are namespaced and include feature CSS', () => {

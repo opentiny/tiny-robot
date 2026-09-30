@@ -65,6 +65,31 @@ test('create basic scaffolds a complete chat-basic project', () => {
   }
 })
 
+test('create chat materializes the standalone chat template', () => {
+  const root = createTempDir('tiny-robot-create-chat-')
+
+  try {
+    const result = runCli(root, 'create', 'fixture-chat', '--template', 'chat', '--runtime-version', '0.5.2-rc.3')
+    const project = path.join(root, 'fixture-chat')
+    const packageFile = path.join(project, 'package.json')
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    const component = fs.readFileSync(path.join(project, 'src/TinyRobotChat.vue'), 'utf8')
+    const envExample = fs.readFileSync(path.join(project, '.env.example'), 'utf8')
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(packageJson.name, 'fixture-chat')
+    assert.equal(packageJson.dependencies['@opentiny/tiny-robot'], '0.5.2-rc.3')
+    assert.doesNotMatch(fs.readFileSync(packageFile, 'utf8'), /__PROJECT_NAME__|__TINY_ROBOT_VERSION__/)
+    assert.match(component, /@opentiny\/tiny-robot\/dist\/style\.css/)
+    assert.match(component, /@opentiny\/tiny-robot-chat\/dist\/style\.css/)
+    assert.match(component, /import '\.\/index\.css'/)
+    assert.match(envExample, /VITE_QWEN_API_URL=/)
+    assert.match(envExample, /VITE_DEEPSEEK_API_URL=/)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('create and add chat use the requested runtime version', () => {
   const createRoot = createTempDir('tiny-robot-create-runtime-')
   const addRoot = createTempDir('tiny-robot-add-runtime-')
@@ -197,6 +222,10 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     assert.ok(fs.existsSync(path.join(root, '.env.example')))
     assert.equal(fs.existsSync(path.join(root, '.env')), false)
     assert.equal(packageJson.dependencies['@vueuse/core'], '13.9.0')
+    const featureComponent = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue'), 'utf8')
+    assert.match(featureComponent, /@opentiny\/tiny-robot\/dist\/style\.css/)
+    assert.match(featureComponent, /@opentiny\/tiny-robot-chat\/dist\/style\.css/)
+    assert.match(featureComponent, /import '\.\/index\.css'/)
     const runtimeConfig = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/config/chat-runtime.ts'), 'utf8')
     assert.match(runtimeConfig, /IconBailian/)
     assert.match(runtimeConfig, /icon: IconDeepseek/)
@@ -264,8 +293,9 @@ test('add chat does not modify local env and merges the env example', () => {
     assert.equal(result.status, 0, result.stderr)
     assert.equal(fs.readFileSync(localEnv, 'utf8'), localContent)
     assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_DEEPSEEK_API_KEY=placeholder/)
+    assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_QWEN_API_URL=/)
+    assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_DEEPSEEK_API_URL=/)
     assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_AMAP_MCP_URL=/)
-    assert.doesNotMatch(fs.readFileSync(envExample, 'utf8'), /VITE_QWEN_API_URL=/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
