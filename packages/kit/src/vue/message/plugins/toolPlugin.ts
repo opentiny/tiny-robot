@@ -115,6 +115,12 @@ export const toolPlugin = (
      * 插件将自动补充"工具调用已取消"的 tool 消息。默认：false。
      */
     autoFillMissingToolMessages?: boolean
+    /**
+     * 是否启用 AskUser runtime tool。启用后会自动注册 ask_user 并暂停对应工具调用。
+     */
+    askUser?: boolean
+    /** AskUser 的模型提示词。未提供时使用 kit 默认提示词。 */
+    askUserPrompt?: string
   },
 ): UseMessagePlugin => {
   const {
@@ -131,6 +137,8 @@ export const toolPlugin = (
     toolCallFailedContent = 'Tool call failed.',
     persistPausedTurn = true,
     autoFillMissingToolMessages = false,
+    askUser = false,
+    askUserPrompt,
     ...restOptions
   } = options
 
@@ -141,6 +149,8 @@ export const toolPlugin = (
 
       return createCoreToolPlugin({
         ...wrappedRestOptions,
+        askUser,
+        askUserPrompt,
         getTools: async (context) => getTools(runtime.createVueBaseContext(context)),
         maxToolRounds,
         onLimitExceeded: onLimitExceeded

@@ -183,7 +183,19 @@ interface UseMessagePlugin {
   /** 是否禁用插件 */
   disabled?: boolean | ((context: BasePluginContext) => boolean)
   /** 引擎创建时初始化插件运行时状态 */
-  onInit?: (context: { initialMessages: ChatMessage[]; requestState: RequestState; processingState?: RequestProcessingState; turnId: string | null; currentTurn: ChatMessage[]; customContext: Record<string, unknown>; plugins: readonly UseMessagePlugin[]; setTurnId: (turnId: string | null) => void; setCurrentTurn: (messages: ChatMessage[]) => void; setCustomContext: (data: Record<string, unknown>) => void; setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void }) => void
+  onInit?: (context: {
+    initialMessages: ChatMessage[]
+    requestState: RequestState
+    processingState?: RequestProcessingState
+    turnId: string | null
+    currentTurn: ChatMessage[]
+    customContext: Record<string, unknown>
+    plugins: readonly UseMessagePlugin[]
+    setTurnId: (turnId: string | null) => void
+    setCurrentTurn: (messages: ChatMessage[]) => void
+    setCustomContext: (data: Record<string, unknown>) => void
+    setRequestState: (state: RequestState, processingState?: RequestProcessingState) => void
+  }) => void
   /** 回合离开暂停状态、继续执行前触发 */
   onTurnResume?: (context: BasePluginContext) => MaybePromise<void>
   /** 回合进入暂停状态后触发 */
@@ -287,11 +299,7 @@ import { thinkingPlugin, useMessage } from '@opentiny/tiny-robot-kit'
 
 useMessage({
   responseProvider,
-  plugins: [
-    thinkingPlugin({
-      /* 自定义选项 */
-    }),
-  ],
+  plugins: [thinkingPlugin({/* 自定义选项 */})],
 })
 ```
 
@@ -317,6 +325,7 @@ useMessage({
 | `toolCallFailedContent`       | `string`                                                                                                         | 否   | `'Tool call failed.'`    | 工具执行失败、被用户拒绝或因请求中止而未执行时，写入该提示。                                                                                                                                              |
 | `persistPausedTurn`            | `boolean`                                                                                                        | 否   | `true`                   | 是否将暂停回合持久化到 localStorage，以便刷新后恢复。                                                                                                                                                |
 | `autoFillMissingToolMessages` | `boolean`                                                                                                        | 否   | `false`                  | 在下一轮开始前，自动补齐上一次被取消但尚未写入的 tool 消息。                                                                                                                                          |
+| `askUser`                     | `boolean`                                                                                                        | 否   | `false`                  | 启用 AskUser runtime tool。启用后自动注册 `ask_user`、暂停对应调用并在恢复时返回结构化答案；普通工具仍通过同一个 `getTools` 和 `callTool` 接入。                                                     |
 
 **回调上下文补充：**
 
@@ -331,10 +340,7 @@ useMessage({
 `toolSource` 类型：
 
 ```typescript
-type ToolSource =
-  | { type: 'toolPlugin' }
-  | { type: 'toolProvider'; pluginName?: string }
-  | { type: 'unknown' }
+type ToolSource = { type: 'toolPlugin' } | { type: 'toolProvider'; pluginName?: string } | { type: 'unknown' }
 ```
 
 `ToolProviderItem` 表示可提供给模型的工具项，可以是普通 OpenAI tool schema，也可以是带本地执行函数的 runtime tool：
