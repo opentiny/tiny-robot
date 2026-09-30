@@ -1,4 +1,5 @@
-import { reactive, onUnmounted, ref } from 'vue'
+import { reactive, onUnmounted, shallowRef, toValue, watch } from 'vue'
+import type { MaybeRefOrGetter } from 'vue'
 import type {
   SpeechHookOptions,
   SpeechHandlerResult,
@@ -16,9 +17,10 @@ import { WebSpeechHandler } from './webSpeechHandler'
  * @param options 语音识别配置
  * @returns 语音识别控制器
  */
-export function useSpeechHandler(options: SpeechHookOptions): SpeechHandlerResult {
-  // 使用 ref 存储 options，确保能获取最新值
-  const optionsRef = ref(options)
+export function useSpeechHandler(options: MaybeRefOrGetter<SpeechHookOptions>): SpeechHandlerResult {
+  const handlerRef = shallowRef<SpeechHandler | null>(null)
+  const pendingRestart = shallowRef(false)
+  const suppressEndCallback = shallowRef(false)
 
   // 语音识别状态
   const speechState = reactive<SpeechState>({
@@ -27,86 +29,150 @@ export function useSpeechHandler(options: SpeechHookOptions): SpeechHandlerResul
     error: undefined,
   })
 
-  // 创建回调函数集合 - 使用函数形式，每次调用时获取最新的 options
+  const resolveOptions = () => toValue(options)
+
+  const updateSupportState = () => {
+    const currentOptions = resolveOptions()
+    speechState.isSupported = currentOptions.customHandler
+      ? currentOptions.customHandler.isSupported()
+      : WebSpeechHandler.isSupported()
+  }
+
+  const createHandler = (currentOptions: SpeechHookOptions): SpeechHandler | null => {
+    if (currentOptions.customHandler) {
+      return currentOptions.customHandler
+    }
+
+    if (!WebSpeechHandler.isSupported()) {
+      return null
+    }
+
+    return new WebSpeechHandler(currentOptions)
+  }
+
+  // 创建回调函数集合 - 每次调用时都获取最新的 options
   const callbacks: SpeechCallbacks = {
     onStart: () => {
       speechState.isRecording = true
       speechState.error = undefined
-      optionsRef.value.onStart?.()
+      resolveOptions().onStart?.()
     },
     onInterim: (transcript: string) => {
-      optionsRef.value.onInterim?.(transcript)
+      resolveOptions().onInterim?.(transcript)
     },
     onFinal: (transcript: string) => {
-      optionsRef.value.onFinal?.(transcript)
+      resolveOptions().onFinal?.(transcript)
     },
     onEnd: (transcript?: string) => {
+      const shouldEmitEnd = !suppressEndCallback.value
+      const shouldRestart = pendingRestart.value
+
+      suppressEndCallback.value = false
+      pendingRestart.value = false
+      handlerRef.value = null
+
       if (speechState.isRecording) {
         speechState.isRecording = false
-        optionsRef.value.onEnd?.(transcript)
+      }
+
+      if (shouldEmitEnd) {
+        resolveOptions().onEnd?.(transcript)
+      }
+
+      updateSupportState()
+
+      if (shouldRestart) {
+        start()
       }
     },
     onError: (error: Error) => {
       speechState.error = error
       speechState.isRecording = false
-      optionsRef.value.onError?.(error)
+      pendingRestart.value = false
+      suppressEndCallback.value = false
+      handlerRef.value = null
+      resolveOptions().onError?.(error)
+      updateSupportState()
     },
   }
 
-  // 检查是否支持（对于内置 Handler，提前检查避免无效创建）
-  const isBuiltinSupported = WebSpeechHandler.isSupported()
-  speechState.isSupported = options.customHandler ? options.customHandler.isSupported() : isBuiltinSupported
-
-  // 选择语音处理器：如果提供了 customHandler，直接使用；否则在支持的情况下创建 WebSpeechHandler
-  const handler: SpeechHandler | null =
-    options.customHandler ?? (isBuiltinSupported ? new WebSpeechHandler(options) : null)
+  watch(
+    () => resolveOptions().customHandler,
+    () => {
+      if (!speechState.isRecording) {
+        handlerRef.value = null
+      }
+      updateSupportState()
+    },
+    { immediate: true },
+  )
 
   // 开始录音
   const start = () => {
-    if (!speechState.isSupported || !handler) {
+    const currentOptions = resolveOptions()
+
+    updateSupportState()
+
+    if (!speechState.isSupported) {
       const error = new Error('语音识别不受支持')
       speechState.error = error
-      optionsRef.value.onError?.(error)
+      currentOptions.onError?.(error)
       return
     }
 
-    // 如果正在录音，先停止再重新开始
+    // 如果正在录音，等待当前会话自然结束后再重启
     if (speechState.isRecording) {
-      handler.stop()
-      speechState.isRecording = false
-      // 短暂延迟后重新开始
-      setTimeout(() => {
-        handler.start(callbacks)
-      }, 200)
+      pendingRestart.value = true
+      handlerRef.value?.stop()
       return
     }
+
+    const nextHandler = createHandler(currentOptions)
+
+    if (!nextHandler || !nextHandler.isSupported()) {
+      const error = new Error('语音识别不受支持')
+      speechState.error = error
+      currentOptions.onError?.(error)
+      updateSupportState()
+      return
+    }
+
+    handlerRef.value = nextHandler
+    pendingRestart.value = false
+    suppressEndCallback.value = false
 
     try {
-      handler.start(callbacks)
+      nextHandler.start(callbacks)
     } catch (error) {
       speechState.error = error instanceof Error ? error : new Error('启动失败')
-      optionsRef.value.onError?.(speechState.error)
+      handlerRef.value = null
+      currentOptions.onError?.(speechState.error)
     }
   }
 
   // 停止录音
   const stop = () => {
-    if (!speechState.isRecording || !handler) {
+    if (!speechState.isRecording || !handlerRef.value) {
       return
     }
 
-    handler.stop()
-    callbacks.onEnd()
+    pendingRestart.value = false
+    suppressEndCallback.value = false
+    handlerRef.value.stop()
   }
 
   // 组件卸载时清理资源
   onUnmounted(() => {
     // 如果正在录音，先停止
-    if (speechState.isRecording && handler) {
-      handler.stop()
+    if (speechState.isRecording && handlerRef.value) {
+      pendingRestart.value = false
+      suppressEndCallback.value = true
+      handlerRef.value.stop()
       // 卸载时不触发 onEnd 回调，避免不必要的副作用
       speechState.isRecording = false
     }
+
+    handlerRef.value = null
   })
 
   return {
