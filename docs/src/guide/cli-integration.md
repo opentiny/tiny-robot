@@ -44,7 +44,7 @@ npx @opentiny/tiny-robot-cli create my-app --template basic --runtime-version 0.
 npx @opentiny/tiny-robot-cli add chat --runtime-version 0.5.2-rc.2
 ```
 
-`create` 会将版本写入生成项目的 TinyRobot 运行时依赖。`add chat` 使用该版本处理 TinyRobot 运行时依赖；已有兼容版本会保留，更高版本不会被降级。
+`create` 会将版本写入生成项目的 TinyRobot 运行时依赖。`add chat` 使用该版本处理 TinyRobot 运行时依赖；稳定版本会保留能够满足目标版本的依赖，预发布版本按精确版本处理。
 
 创建完成后：
 
@@ -75,10 +75,6 @@ npx @opentiny/tiny-robot-cli add chat
 
 CLI 会自动检测当前项目或 workspace 包，并引导选择目标 package。
 
-```bash
-npx @opentiny/tiny-robot-cli add chat
-```
-
 执行后，CLI 会根据当前项目状态自动处理以下内容：
 
 | 变更项                 | 说明                                   |
@@ -87,11 +83,11 @@ npx @opentiny/tiny-robot-cli add chat
 | `main.ts` / `main.js`  | 自动插入 TinyRobot 样式导入            |
 | `.env.example`         | 添加所需环境变量模板                   |
 | `package.json`         | 添加或保留 TinyRobot Chat 所需依赖     |
-| `App.vue`              | 自动挂载 `<TinyRobotChat />`           |
+| `App.vue`              | 在可安全解析的 `src/App.vue` 中尝试自动挂载 `<TinyRobotChat />` |
 
-执行过程中会展示变更确认列表，可按需勾选。
+交互模式下会展示变更确认列表，可按需勾选；使用 `--yes` 或 `--dry-run` 时不进行交互选择。
 
-CLI 会处理以下依赖：`@opentiny/tiny-robot`、`@opentiny/tiny-robot-chat`、`@opentiny/tiny-robot-kit`、`@opentiny/tiny-robot-svgs` 和 `@vueuse/core`。已有兼容版本会保留，更高版本不会被降级。
+CLI 会处理以下依赖：`@opentiny/tiny-robot`、`@opentiny/tiny-robot-chat`、`@opentiny/tiny-robot-kit`、`@opentiny/tiny-robot-svgs` 和 `@vueuse/core`。稳定版本会保留能够满足目标版本的依赖，预发布版本按精确版本处理。
 
 ```shell
 ? Select which file changes to apply (all selected by default):
@@ -130,6 +126,8 @@ export default defineConfig({
 
 ```shell
 import '@opentiny/tiny-robot/dist/style.css'
+import '@opentiny/tiny-robot-chat/dist/style.css'
+import './tiny-robot-chat/index.css'
 ```
 
 **接入组件**
@@ -152,7 +150,7 @@ import TinyRobotChat from './tiny-robot-chat/TinyRobotChat.vue' // [!code ++]
 
 **配置 API_KEY**
 
-复制 `.env.example` 为 `.env.local`，再在 `.env.local` 中配置大模型的 `API_KEY`。`VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。比如
+复制 `.env.example` 为 `.env.local`，根据使用的模型配置对应变量：Qwen 使用 `VITE_QWEN_API_URL` 和 `VITE_ALIYUN_DASHSCOPE_KEY`，DeepSeek 使用 `VITE_DEEPSEEK_API_URL` 和 `VITE_DEEPSEEK_API_KEY`；自定义 MCP 地址使用 `VITE_AMAP_MCP_URL`。`VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。比如
 
 ```shell
 # .env.local
@@ -164,7 +162,6 @@ VITE_DEEPSEEK_API_KEY=your_api_key
 如果依赖更新了，不要忘记安装
 
 ```shell
-npm install
 pnpm install
 ```
 
