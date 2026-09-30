@@ -561,6 +561,16 @@ await activeConversation.value?.engine.dispatchCommand(command, { toolCallId })
 | `state-change` | 渲染器发出 `state:update` 后触发；组件只通知下一状态，应用需要把值同步回消息的 `state` | `(payload: { key: string; value: unknown; messageIndex: number; contentIndex: number }) => void` |
 | `bubble-event` | 渲染器发出任意 Bubble 事件时触发；`state:update` 还会额外派发 `state-change`           | `(payload: BubbleEvent & { messageIndex: number; contentIndex: number }) => void`                |
 
+`bubble-event` 允许自定义事件名。内置渲染器会使用以下事件：
+
+| 内置事件名            | `payload` 类型                         | 说明                                                                                 |
+| --------------------- | -------------------------------------- | ------------------------------------------------------------------------------------ |
+| `state:update`        | `{ key: string; value: unknown }`      | 请求应用更新消息的 `state`；组件随后额外触发 `state-change`，不会自行持久化状态。     |
+| `tool-call:resume`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“允许”触发；应用需转发 `TOOL_RESUME_COMMAND`。     |
+| `tool-call:reject`    | `{ toolCallId: string }`               | Tool 处于 `awaiting-approval` 时点击“拒绝”触发；应用需转发 `TOOL_REJECT_COMMAND`。      |
+
+`bubble-event` 的回调参数还包含 `messageIndex` 和 `contentIndex`。工具审批事件只负责通知应用，Bubble 不会执行工具、拒绝调用或修改工具状态；请由 `toolPlugin` / `useMessage`（或会话引擎）处理对应命令。
+
 ### Slots
 
 #### Bubble Slots

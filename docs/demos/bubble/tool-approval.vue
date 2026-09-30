@@ -27,7 +27,7 @@ let approvalRun = 0
 let responseSequence = 0
 
 const createCompletion = (
-  message: ChatCompletion['choices'][number]['message'],
+  message: NonNullable<ChatCompletion['choices'][number]['message']>,
   finishReason: 'stop' | 'tool_calls',
 ): ChatCompletion => ({
   id: `tool-approval-response-${++responseSequence}`,
@@ -72,6 +72,7 @@ const responseProvider = async (requestBody: MessageRequestBody, abortSignal: Ab
       tool_calls: [
         {
           id: `call-tool-approval-${++approvalRun}`,
+          index: 0,
           type: 'function',
           function: {
             name: 'send_email',
