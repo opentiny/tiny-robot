@@ -17,7 +17,7 @@ pnpm build
 
 ## 接入真实模型
 
-复制项目根目录的 `.env.example` 为 `.env.local`，配置 `VITE_QWEN_API_URL`、`VITE_ALIYUN_DASHSCOPE_KEY`、`VITE_DEEPSEEK_API_URL` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。模板只提供 `.env.example`，不会自动创建 `.env`。配置读取逻辑位于 `src/config/chat-runtime.ts`；使用 `add chat` 注入后，对应文件位于 `src/tiny-robot-chat/config/chat-runtime.ts`。
+复制项目根目录的 `.env.example` 为 `.env.local`，配置 `VITE_ALIYUN_DASHSCOPE_KEY` 和 `VITE_DEEPSEEK_API_KEY`，重启 Vite 后即可使用模型选择器中的真实模型。Provider API URL 变量是可选覆盖项，可在使用自定义代理时额外配置。模板只提供 `.env.example`，不会自动创建 `.env`。配置读取逻辑位于 `src/config/chat-runtime.ts`；使用 `add chat` 注入后，对应文件位于 `src/tiny-robot-chat/config/chat-runtime.ts`。
 
 `VITE_*` 变量会被写入浏览器产物，仅限开发使用，禁止配置生产密钥；生产环境应通过服务端代理保护 Provider 凭证。
 

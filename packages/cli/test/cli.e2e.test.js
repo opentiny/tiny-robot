@@ -169,14 +169,22 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
   try {
     createVueProject(root)
 
-    const beforeDryRun = fs.readdirSync(root).sort()
+    const packageBefore = fs.readFileSync(path.join(root, 'package.json'), 'utf8')
+    const mainBefore = fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8')
+    const appBefore = fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8')
     const dryRun = runCli(root, 'add', 'chat', '--dry-run')
     assert.equal(dryRun.status, 0, dryRun.stderr)
-    assert.deepEqual(fs.readdirSync(root).sort(), beforeDryRun)
+    assert.equal(fs.readFileSync(path.join(root, 'package.json'), 'utf8'), packageBefore)
+    assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
+    assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
+    assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
+    assert.equal(fs.existsSync(path.join(root, '.env.example')), false)
     assert.match(dryRun.stdout, /Change Plan/)
     assert.match(dryRun.stdout, /\.env\.example/)
     assert.match(dryRun.stdout, /package\.json/)
     assert.match(dryRun.stdout, /added: @opentiny\/tiny-robot/)
+    assert.match(dryRun.stdout, /src\/main\.ts \/ src\/main\.js \(unchanged\)/)
+    assert.match(dryRun.stdout, /src\/App\.vue \(unchanged\)/)
     assert.match(dryRun.stdout, /server\.proxy/)
     assert.doesNotMatch(dryRun.stdout, /Vite MCP proxy/)
 
@@ -192,7 +200,8 @@ test('add chat injects a local feature and dry-run remains read-only', () => {
     const runtimeConfig = fs.readFileSync(path.join(root, 'src/tiny-robot-chat/config/chat-runtime.ts'), 'utf8')
     assert.match(runtimeConfig, /IconBailian/)
     assert.match(runtimeConfig, /icon: IconDeepseek/)
-    assert.match(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), /<TinyRobotChat \/>/)
+    assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
+    assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
     assert.match(result.stdout, /server\.proxy/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
@@ -224,17 +233,16 @@ test('add chat is idempotent and reports when no changes are necessary', () => {
 
   try {
     createVueProject(root)
+    const mainBefore = fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8')
+    const appBefore = fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8')
     const first = runCli(root, 'add', 'chat', '--yes')
     const second = runCli(root, 'add', 'chat', '--yes')
 
     assert.equal(first.status, 0, first.stderr)
     assert.equal(second.status, 0, second.stderr)
     assert.match(second.stdout, /No changes were necessary/i)
-    assert.equal((fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8').match(/style\.css/g) ?? []).length, 2)
-    assert.equal(
-      (fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8').match(/tiny-robot-chat\/index\.css/g) ?? []).length,
-      1,
-    )
+    assert.equal(fs.readFileSync(path.join(root, 'src/main.ts'), 'utf8'), mainBefore)
+    assert.equal(fs.readFileSync(path.join(root, 'src/App.vue'), 'utf8'), appBefore)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -256,7 +264,8 @@ test('add chat does not modify local env and merges the env example', () => {
     assert.equal(result.status, 0, result.stderr)
     assert.equal(fs.readFileSync(localEnv, 'utf8'), localContent)
     assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_DEEPSEEK_API_KEY=placeholder/)
-    assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_QWEN_API_URL=/)
+    assert.match(fs.readFileSync(envExample, 'utf8'), /VITE_AMAP_MCP_URL=/)
+    assert.doesNotMatch(fs.readFileSync(envExample, 'utf8'), /VITE_QWEN_API_URL=/)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
@@ -299,6 +308,56 @@ test('add chat validates package.json before modifying project files', () => {
     assert.equal(fs.existsSync(path.join(root, '.env.example')), false)
     assert.equal(fs.readFileSync(main, 'utf8'), "import { createApp } from 'vue'\n")
     assert.equal(fs.readFileSync(app, 'utf8'), '<template><main /></template>\n')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat aborts the whole operation when a feature file conflicts', () => {
+  const root = createTempDir('tiny-robot-add-file-conflict-')
+
+  try {
+    createVueProject(root)
+    const conflictingFile = path.join(root, 'src/tiny-robot-chat/TinyRobotChat.vue')
+    const packageFile = path.join(root, 'package.json')
+    const appFile = path.join(root, 'src/App.vue')
+    const packageBefore = fs.readFileSync(packageFile, 'utf8')
+    const appBefore = fs.readFileSync(appFile, 'utf8')
+    fs.mkdirSync(path.dirname(conflictingFile), { recursive: true })
+    fs.writeFileSync(conflictingFile, '<template><div>host</div></template>\n')
+
+    const result = runCli(root, 'add', 'chat', '--yes')
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /file conflicts detected/i)
+    assert.equal(fs.readFileSync(conflictingFile, 'utf8'), '<template><div>host</div></template>\n')
+    assert.equal(fs.readFileSync(packageFile, 'utf8'), packageBefore)
+    assert.equal(fs.readFileSync(appFile, 'utf8'), appBefore)
+    assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat/index.css')), false)
+    assert.equal(fs.existsSync(path.join(root, '.env.example')), false)
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('add chat aborts the whole operation when a dependency conflicts', () => {
+  const root = createTempDir('tiny-robot-add-dependency-conflict-')
+
+  try {
+    createVueProject(root)
+    const packageFile = path.join(root, 'package.json')
+    const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf8'))
+    packageJson.devDependencies = { '@vueuse/core': '^12.0.0' }
+    fs.writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`)
+    const packageBefore = fs.readFileSync(packageFile, 'utf8')
+
+    const result = runCli(root, 'add', 'chat', '--yes')
+
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /@vueuse\/core/i)
+    assert.equal(fs.readFileSync(packageFile, 'utf8'), packageBefore)
+    assert.equal(fs.existsSync(path.join(root, 'src/tiny-robot-chat')), false)
+    assert.equal(fs.existsSync(path.join(root, '.env.example')), false)
   } finally {
     fs.rmSync(root, { recursive: true, force: true })
   }
