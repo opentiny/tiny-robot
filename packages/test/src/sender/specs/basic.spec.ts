@@ -143,6 +143,27 @@ test.describe('Sender 组件测试', () => {
     await helper.expectEditorContent('测试')
   })
 
+  test('Props: placeholder - 多行模式下应支持换行且不产生纵向溢出', async () => {
+    await helper.toggleMode()
+    await helper.expectMode('multiple')
+
+    const placeholderText =
+      '请输入内容，支持较长的多行占位提示文本，用于验证占位层能够随着编辑器宽度自动换行并正确参与布局。'.repeat(2)
+    await helper.setPlaceholder(placeholderText)
+
+    const placeholder = page.locator('.tr-sender-placeholder')
+    await expect(placeholder).toBeVisible()
+    await expect(placeholder).toHaveText(placeholderText)
+    await expect
+      .poll(() => placeholder.evaluate((element) => element.getBoundingClientRect().height))
+      .toBeGreaterThan(26)
+
+    const editorScroll = helper.getEditorScroll()
+    await expect
+      .poll(() => editorScroll.evaluate((element) => element.scrollHeight <= element.clientHeight + 1))
+      .toBe(true)
+  })
+
   test('Props: submitType - 应该支持不同的提交方式', async () => {
     await helper.typeContent('Enter提交')
     await helper.expectEditorContent('Enter提交')
@@ -209,6 +230,61 @@ test.describe('Sender 组件测试', () => {
 
     await helper.clickCustomFooterBtn()
     await helper.expectResult('自定义按钮被点击')
+  })
+
+  test('Slots: input-prefix - 应该只作用于多行首行并支持交互', async () => {
+    await expect(page.locator(helper.selectors.inputPrefix)).toHaveCount(0)
+
+    await helper.toggleMode()
+    await expect(page.locator(helper.selectors.inputPrefix)).toBeVisible()
+
+    await helper.typeContent('第一行')
+    await page.keyboard.press('Control+Enter')
+    await page.keyboard.type('第二行')
+
+    const paragraphIndents = await helper
+      .getEditor()
+      .locator('p')
+      .evaluateAll((paragraphs) => paragraphs.map((paragraph) => getComputedStyle(paragraph).textIndent))
+
+    expect(parseFloat(paragraphIndents[0])).toBeGreaterThan(0)
+    expect(paragraphIndents[1]).toBe('0px')
+
+    await page.locator(helper.selectors.inputPrefixBtn).click()
+    await helper.expectResult('input-prefix 被点击')
+
+    await helper.clearContent()
+    await helper.getEditor().click()
+    for (let index = 0; index < 8; index += 1) {
+      await page.keyboard.type(`第${index + 1}行`)
+      if (index < 7) {
+        await page.keyboard.press('Control+Enter')
+      }
+    }
+
+    await helper.getEditor().evaluate((element) => {
+      const scrollContainer = element.closest('.tr-sender-editor-scroll')
+      element.scrollTop = 0
+      if (scrollContainer) {
+        scrollContainer.scrollTop = 0
+      }
+    })
+
+    const prefixTopBeforeScroll = await page.locator(helper.selectors.inputPrefix).evaluate((element) => {
+      return element.getBoundingClientRect().top
+    })
+
+    await helper.getEditor().evaluate((element) => {
+      const scrollContainer = element.closest('.tr-sender-editor-scroll')
+      element.scrollTop = element.scrollHeight
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight
+      }
+    })
+
+    await expect
+      .poll(() => page.locator(helper.selectors.inputPrefix).evaluate((element) => element.getBoundingClientRect().top))
+      .toBeLessThan(prefixTopBeforeScroll)
   })
 
   test('Emits: submit - 应该正确触发提交事件', async () => {
